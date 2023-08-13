@@ -1,0 +1,378 @@
+/*
+* WinEzCtrlKit Library
+*
+* Utility.h ： 实用函数
+*
+* Copyright(C) 2023 QingKong
+*/
+// 计次循环
+
+#pragma once
+#include "ECK.h"
+#include "CRefBin.h"
+#include "CRefStr.h"
+
+#include <math.h>
+#include <time.h>
+#include <process.h>
+
+#include <string_view>
+
+#include <windowsx.h>
+
+#define MAKEINTATOMW(i) (PWSTR)((ULONG_PTR)((WORD)(i)))
+#define EckBoolNot(x) ((x) = !(x))
+// lParam->POINT 用于处理鼠标消息   e.g. POINT pt = GET_PT_LPARAM(lParam);
+#define GET_PT_LPARAM(lParam) { GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) }
+// lParam->size 用于处理WM_SIZE   e.g. GET_SIZE_LPARAM(cxClient, cyClient, lParam);
+#define GET_SIZE_LPARAM(cx,cy,lParam) (cx) = LOWORD(lParam); (cy) = HIWORD(lParam);
+
+#define EckCounter(c, Var) for(decltype(c) Var = 0; Var < c; ++Var)
+
+#define EckCounterNVMakeVarName2(Name) ECKPRIV_COUNT_##Name##___
+#define EckCounterNVMakeVarName(Name) EckCounterNVMakeVarName2(Name)
+
+#define EckCounterNV(c) EckCounter(c, EckCounterNVMakeVarName(__LINE__))
+
+ECK_NAMESPACE_BEGIN
+namespace Colorref
+{
+	static constexpr COLORREF
+		Red               = 0x0000FF,// 红色
+		Green             = 0x00FF00,// 绿色
+		Blue              = 0xFF0000,// 蓝色
+		Yellow            = 0x00FFFF,// 黄色
+		Magenta           = 0xFF00FF,// 品红/洋红
+		Cyan              = 0xFFFF00,// 艳青/青色
+
+		Maroon            = 0x000080,// 红褐/暗红
+		OfficeGreen       = 0x008000,// 墨绿/暗绿
+		Olive             = 0x008080,// 褐绿/暗黄
+		NavyBlue          = 0x800000,// 藏青/暗蓝
+		Patriarch         = 0x800080,// 紫红/暗洋红
+		Teal              = 0x808000,// 深青/暗青
+
+		Silver            = 0xC0C0C0,// 浅灰/亮灰
+		MoneyGreen        = 0xC0DCC0,// 美元绿
+		LightBlue         = 0xF0CAA6,// 浅蓝/天蓝
+
+		Gray              = 0x808080,// 灰色/暗灰
+		NeutralGray       = 0xA4A0A0,// 中性灰
+		MilkyWhite        = 0xF0FBFF,// 乳白
+
+		Black             = 0x000000,// 黑色
+		White             = 0xFFFFFF,// 白色
+
+		BlueGray          = 0xFF8080,// 蓝灰
+		PurplishBlue      = 0xE03058,// 藏蓝
+		TenderGreen       = 0x00E080,// 嫩绿
+		Turquoise         = 0x80E000,// 青绿
+		YellowishBrown    = 0x0060C0,// 黄褐
+		Pink              = 0xFFA8FF,// 粉红
+		BrightYellow      = 0x00D8D8,// 嫩黄
+		JadeWhite         = 0xECECEC,// 银白
+		Purple            = 0xFF0090,// 紫色
+		Azure             = 0xFF8800,// 天蓝
+		Celadon           = 0x80A080,// 灰绿
+		CyanBlue          = 0xC06000,// 青蓝
+		Orange            = 0x0080FF,// 橙黄
+		Peachblow         = 0x8050FF,// 桃红
+		HibiscusRed       = 0xC080FF,// 芙红
+		DeepGray          = 0x606060// 深灰
+		;
+}
+
+struct CMemWriter
+{
+	BYTE* m_pMem = NULL;
+	CMemWriter(void* p)
+	{
+		m_pMem = (BYTE*)p;
+	}
+
+	EckInline CMemWriter& Write(PCVOID pSrc, SIZE_T cb)
+	{
+		memcpy(m_pMem, pSrc, cb);
+		m_pMem += cb;
+		return *this;
+	}
+
+	template<class T>
+	EckInline CMemWriter& operator<<(const T& Data)
+	{
+		return Write(&Data, sizeof(Data));
+	}
+
+	template<class T, class U>
+	EckInline CMemWriter& operator<<(const std::basic_string_view<T, U>& Data)
+	{
+		return Write(Data.data(), Data.size() * sizeof(T)) << L'\0';
+	}
+
+	template<class T, class U>
+	EckInline CMemWriter& operator<<(const std::basic_string<T, U>& Data)
+	{
+		return Write(Data.c_str(), (Data.size() + 1) * sizeof(T));
+	}
+
+	template<class T, class U>
+	EckInline CMemWriter& operator<<(const std::vector<T, U>& Data)
+	{
+		return Write(Data.data(), Data.size() * sizeof(T));
+	}
+
+	EckInline CMemWriter& operator<<(const CRefBin& Data)
+	{
+		return Write(Data, Data.m_cb);
+	}
+
+	EckInline CMemWriter& operator<<(const CRefStrW& Data)
+	{
+		return Write(Data, (Data.m_cchText + 1) * sizeof(WCHAR));
+	}
+
+	EckInline operator BYTE*& () { return m_pMem; }
+
+	EckInline CMemWriter& operator+=(SIZE_T cb)
+	{
+		m_pMem += cb;
+		return *this;
+	}
+
+	EckInline CMemWriter& operator-=(SIZE_T cb)
+	{
+		m_pMem -= cb;
+		return *this;
+	}
+};
+
+struct CMemReader
+{
+	BYTE* m_pMem = NULL;
+	CMemReader(PCVOID p) { m_pMem = (BYTE*)p; }
+
+	EckInline CMemReader& Read(void* pDst, SIZE_T cb)
+	{
+		memcpy(pDst, m_pMem, cb);
+		m_pMem += cb;
+		return *this;
+	}
+
+	template<class T>
+	EckInline CMemReader& operator>>(T& Data)
+	{
+		return Read(&Data, sizeof(Data));
+	}
+
+	EckInline CMemReader& operator>>(CRefStrW& Data)
+	{
+		int cch = (int)wcslen((PCWSTR)m_pMem);
+		Data.ReSize(cch);
+		return Read(Data, (cch + 1) * sizeof(WCHAR));
+	}
+
+	EckInline operator BYTE*& () { return m_pMem; }
+
+	EckInline CMemReader& operator+=(SIZE_T cb)
+	{
+		m_pMem += cb;
+		return *this;
+	}
+
+	EckInline CMemReader& operator-=(SIZE_T cb)
+	{
+		m_pMem -= cb;
+		return *this;
+	}
+
+	template<class T>
+	CMemReader& SkipPointer(T*& p)
+	{
+		p = (T*)m_pMem;
+		m_pMem += sizeof(*p);
+		return *this;
+	}
+};
+
+/// <summary>
+/// 计算下一对齐边界
+/// </summary>
+/// <param name="pStart">起始地址</param>
+/// <param name="pCurr">当前地址</param>
+/// <param name="cbAlign">对齐尺寸</param>
+/// <returns>当前地址到下一对齐边界的距离，如果当前地址已经落在对齐边界上，则返回0</returns>
+EckInline SIZE_T CalcNextAlignBoundaryDistance(const void* pStart, const void* pCurr, SIZE_T cbAlign)
+{
+	SIZE_T uDistance = (SIZE_T)pCurr - (SIZE_T)pStart;
+	return (((uDistance - 1u) / cbAlign + 1u) * cbAlign - uDistance);
+}
+
+/// <summary>
+/// 步进到下一对齐边界
+/// </summary>
+/// <param name="pStart">起始指针</param>
+/// <param name="pCurr">当前指针</param>
+/// <param name="cbAlign">对齐尺寸</param>
+/// <returns>步进后的指针，如果当前指针已经落在对齐边界上，则指针不变</returns>
+template<class T>
+EckInline T* StepToNextAlignBoundary(const T* pStart,const T* pCurr, SIZE_T cbAlign)
+{
+	return (T*)((BYTE*)pCurr + CalcNextAlignBoundaryDistance(pStart, pCurr, cbAlign));
+}
+
+/// <summary>
+/// 计算对齐后内存尺寸
+/// </summary>
+/// <param name="cbSize">尺寸</param>
+/// <param name="cbAlign">对齐尺寸</param>
+/// <returns>计算结果</returns>
+EckInline constexpr SIZE_T AlignMemSize(SIZE_T cbSize, SIZE_T cbAlign)
+{
+	return (cbSize + cbAlign) & ~cbAlign;
+}
+
+/// <summary>
+/// CRT创建线程。
+/// （_beginthreadex wrapper）
+/// </summary>
+/// <param name="lpStartAddress">起始地址</param>
+/// <param name="lpParameter">参数</param>
+/// <param name="lpThreadId">线程ID变量指针</param>
+/// <param name="dwCreationFlags">标志</param>
+/// <returns>线程句柄</returns>
+EckInline HANDLE CRTCreateThread(_beginthreadex_proc_type lpStartAddress, void* lpParameter = NULL,
+	UINT* lpThreadId = NULL, UINT dwCreationFlags = 0)
+{
+	return ((HANDLE)_beginthreadex(0, 0, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId));
+}
+
+EckInline constexpr ARGB ColorrefToARGB(COLORREF cr, BYTE byAlpha = 0xFF)
+{
+	BYTE* pcr = (BYTE*)&cr;
+	BYTE byTemp;
+	byTemp = pcr[0];
+	pcr[0] = pcr[2];
+	pcr[2] = byTemp;
+	pcr[3] = byAlpha;
+	return cr;
+}
+
+template<class T, class U>
+EckInline T i32ToP(U i)
+{
+	return (T)((ULONG_PTR)i);
+}
+
+template<class T, class U>
+EckInline T pToI32(U p)
+{
+	return (T)((ULONG_PTR)p);
+}
+
+EckInline BOOL IsFILETIMEZero(const FILETIME* pft)
+{
+	return pft->dwLowDateTime == 0 && pft->dwHighDateTime == 0;
+}
+
+EckInline BOOL operator==(const FILETIME& ft1, const FILETIME& ft2)
+{
+	return CompareFileTime(&ft1, &ft2) == 0;
+}
+
+EckInline BOOL operator>(const FILETIME& ft1, const FILETIME& ft2)
+{
+	return CompareFileTime(&ft1, &ft2) == 1;
+}
+
+EckInline BOOL operator<(const FILETIME& ft1, const FILETIME& ft2)
+{
+	return CompareFileTime(&ft1, &ft2) == -1;
+}
+
+template<class T1, class T2>
+EckInline BOOL IsBitSet(T1 dw1, T2 dw2)
+{
+	return ((dw1 & dw2) == dw2);
+}
+
+template<class T1, class T2>
+EckInline T1 ReInterpretNum(T2 n)
+{
+	return *(T1*)&n;
+}
+
+/// <summary>
+/// 取运行目录
+/// </summary>
+const CRefStrW& GetRunningPath();
+
+/// <summary>
+/// 读入文件
+/// </summary>
+/// <param name="pszFile">文件路径</param>
+/// <returns>返回字节集</returns>
+CRefBin ReadInFile(PCWSTR pszFile);
+
+/// <summary>
+/// 写到文件
+/// </summary>
+/// <param name="pData">字节流</param>
+/// <param name="cb">字节流长度</param>
+BOOL WriteToFile(PCWSTR pszFile, PCVOID pData, DWORD cb);
+
+/// <summary>
+/// 字节集到友好字符串表示
+/// </summary>
+/// <param name="Bin">字节集</param>
+/// <param name="iType">类型，0 - 空格分割的十六进制  1 - 易语言字节集调试输出</param>
+/// <returns>返回结果</returns>
+CRefStrW BinToFriendlyString(BYTE* pData, SIZE_T cb, int iType);
+
+EckInline void ScreenToClient(HWND hWnd, RECT* prc)
+{
+	::ScreenToClient(hWnd, (POINT*)prc);
+	::ScreenToClient(hWnd, ((POINT*)prc) + 1);
+}
+
+EckInline void ClientToScreen(HWND hWnd, RECT* prc)
+{
+	::ClientToScreen(hWnd, (POINT*)prc);
+	::ClientToScreen(hWnd, ((POINT*)prc) + 1);
+}
+
+RECT MakeRect(POINT pt1, POINT pt2);
+
+EckInline float RoundToF(float fVal, int cDigits)
+{
+	float fTemp = powf(10, (float)cDigits);
+	return roundf(fVal * fTemp) / fTemp;
+}
+
+EckInline double RoundTo(double fVal, int cDigits)
+{
+	double fTemp = pow(10, (double)cDigits);
+	return round(fVal * fTemp) / fTemp;
+}
+
+EckInline void RandSeed(UINT uSeed)
+{
+	srand(uSeed);
+}
+
+EckInline void RandSeed()
+{
+	srand((UINT)time(NULL));
+} 
+
+EckInline int Rand(int iMin = INT_MIN, int iMax = INT_MAX)
+{
+	return rand() % ((LONGLONG)iMax - (LONGLONG)iMin + 1ll) + (LONGLONG)iMin;
+}
+
+EckInline BOOL IsRectsIntersect(const RECT* prc1, const RECT* prc2)
+{
+	return
+		std::max(prc1->left, prc2->left) < std::min(prc1->right, prc2->right) &&
+		std::max(prc1->top, prc2->top) < std::min(prc1->bottom, prc2->bottom);
+}
+ECK_NAMESPACE_END
