@@ -20,9 +20,9 @@ static constexpr int INVALID_STR_POS = -1;
 // 简单字符串，可以对该类持有的文本执行除改变长度外的任何操作
 class CRefStrW
 {
-private:
-	using TAlloc = CAllocator<WCHAR, int>;
 public:
+	using TAlloc = CAllocator<WCHAR, int>;
+
 	PWSTR m_pszText = NULL;
 	int m_cchText = 0;
 	int m_cchCapacity = 0;
@@ -340,7 +340,7 @@ CRefStrW ToStr(double x, int iPrecision = 6);
 
 namespace Literals
 {
-	EckInline CRefStrW operator""_rs(PCWSTR psz, SIZE_T cch)
+	EckInline CRefStrW operator""_rs(PCWSTR psz, size_t cch)
 	{
 		return CRefStrW(psz, (int)cch);
 	}
@@ -511,6 +511,32 @@ EckInline int FindStrRevNcs(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchS
 EckInline int FindStrRevNcs(const CRefStrW& rbText, const CRefStrW& rbSub, int posStart = 0)
 {
 	return FindStrRevNcs(rbText, rbText.m_cchText, rbSub, posStart,  rbSub.m_cchText);
+}
+
+template<class TProcesser>
+void SplitStrInt(PCWSTR pszText, PCWSTR pszDiv, int cSubTextExpected, int cchText, int cchDiv, TProcesser Processer)
+{
+	if (cchText < 0)
+		cchText = (int)wcslen(pszText);
+	if (cchDiv < 0)
+		cchDiv = (int)wcslen(pszDiv);
+	if (cSubTextExpected <= 0)
+		cSubTextExpected = INT_MAX;
+
+	PCWSTR pszFind = wcsstr(pszText, pszDiv);
+	PCWSTR pszPrevFirst = pszText;
+	int c = 0;
+	while (pszFind)
+	{
+		Processer(pszPrevFirst, (int)(pszFind - pszPrevFirst));
+		++c;
+		if (c == cSubTextExpected)
+			return;
+		pszPrevFirst = pszFind + cchDiv;
+		pszFind = wcsstr(pszPrevFirst, pszDiv);
+	}
+
+	Processer(pszPrevFirst, (int)(pszText + cchText - pszPrevFirst));
 }
 
 /// <summary>

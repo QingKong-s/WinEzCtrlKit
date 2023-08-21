@@ -38,21 +38,15 @@ CRefBin ReadInFile(PCWSTR pszFile)
 BOOL WriteToFile(PCWSTR pszFile, PCVOID pData, DWORD cb)
 {
 	HANDLE hFile = CreateFileW(pszFile, GENERIC_WRITE, FILE_SHARE_READ, NULL,
-		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hFile == INVALID_HANDLE_VALUE)
 		return FALSE;
 
 	DWORD dwRead;
-	if (WriteFile(hFile, pData, cb, &dwRead, NULL))
-	{
-		CloseHandle(hFile);
-		return TRUE;
-	}
-	else
-	{
-		CloseHandle(hFile);
-		return FALSE;
-	}
+	BOOL b = WriteFile(hFile, pData, cb, &dwRead, NULL);
+
+	CloseHandle(hFile);
+	return b;
 }
 
 CRefStrW BinToFriendlyString(BYTE* pData, SIZE_T cb, int iType)

@@ -20,7 +20,7 @@ class CListView :public CWnd
 {
 public:
 	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, UINT nID) override
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
 	{
 		dwStyle |= WS_CHILD;
 		m_hWnd = CreateWindowExW(dwExStyle, WC_LISTVIEWW, pszText, dwStyle,

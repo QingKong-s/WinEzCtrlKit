@@ -1,12 +1,17 @@
 #pragma once
-#include "../CBk.h"
-#include "../CListView.h"
-#include "../CSubclassMgr.h"
-#include "../DesignerDef.h"
-#include "../CButton.h"
-#include "../CEdit.h"
-#include "../CComboBox.h"
-#include "../DesignerDef.h"
+#include <variant>
+
+#include "..\eck\CRefStr.h"
+#include "..\eck\CBk.h"
+#include "..\eck\CListView.h"
+#include "..\eck\CSubclassMgr.h"
+#include "..\eck\DesignerDef.h"
+#include "..\eck\CButton.h"
+#include "..\eck\CEdit.h"
+#include "..\eck\CComboBox.h"
+#include "..\eck\DesignerDef.h"
+
+using PCVOID = LPCVOID;
 
 class CSizer;
 
@@ -38,7 +43,7 @@ private:
 	static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 public:
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, UINT nID) override;
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override;
 
 	EckInline void SetWindowProc(WNDPROC pfnWndProc)
 	{
@@ -108,9 +113,14 @@ private:
 	void OnBlockMouseMove(CSizerBlock* pBlock, LPARAM lParam);
 };
 
-#include <variant>
+
 
 #define SCID_PROPLISTPARENT 20230808'01
+
+enum
+{
+	PLN_PROPCHANGED = 1
+};
 
 class CPropList :public eck::CListView
 {
@@ -127,7 +137,7 @@ private:
 	};
 
 
-	std::vector<ITEM> m_Items;
+	std::vector<ITEM> m_Items{};
 
 	int m_cxPadding = 0;
 	static constexpr int c_cxPadding = 4;
@@ -157,7 +167,10 @@ private:
 
 	void SaveEditingInfo(int idx)
 	{
+		if (m_idxInfo < 0)
+			return;
 		auto& Item = m_Items[idx];
+
 		eck::EckCtrlPropValue Val;
 		switch (Item.uType)
 		{
@@ -196,17 +209,17 @@ private:
 			break;
 		}
 
-		if(m_idxInfo>=0)
+		if (Item.Val.index() == 1)
+			Val.Vpsz = std::get<1>(Item.Val);
+		else if (Item.Val.index() == 2)
 		{
-			if (Item.Val.index() == 1)
-				Val.Vpsz = std::get<1>(Item.Val);
-			else if (Item.Val.index() == 2)
-			{
-				Val.Vbin.pData = std::get<2>(Item.Val);
-				Val.Vbin.cbSize = std::get<2>(Item.Val).m_cb;
-			}
-			eck::s_EckDesignAllCtrl[m_idxInfo].pfnSetProp(m_pWnd, Item.iID, &Val);
+			Val.Vbin.pData = std::get<2>(Item.Val);
+			Val.Vbin.cbSize = std::get<2>(Item.Val).m_cb;
 		}
+		eck::s_EckDesignAllCtrl[m_idxInfo].pfnSetProp(m_pWnd, Item.iID, &Val);
+		if (m_uNotifyMsg)
+			SendMessageW(GetParent(m_hWnd), m_uNotifyMsg, PLN_PROPCHANGED, m_idxCurrEdit);
+		m_pWnd->Redraw();
 	}
 
 	EckInline int InsertItem(eck::EckCtrlPropEntry& Info, int idx = -1, eck::EckCtrlPropValue Val = {})
@@ -228,11 +241,8 @@ private:
 			break;
 		case eck::ECPT::Customize:
 		case eck::ECPT::Image:
-		{
-			eck::CRefBin rb(Val.Vbin.pData, Val.Vbin.cbSize);
-			Item.Val = std::move(rb);
-		}
-		break;
+			Item.Val = eck::CRefBin(Val.Vbin.pData, Val.Vbin.cbSize);
+			break;
 		default:
 			Item.Val = Val;
 			break;
@@ -266,27 +276,74 @@ private:
 	static LRESULT CALLBACK SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
 		UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 public:
+	void GetPropFromCtrl(int idxItem)
+	{
+		if (m_idxInfo < 0)
+			return;
+		auto& Item = m_Items[idxItem];
+		eck::EckCtrlPropValue Val{};
+		auto iRet = eck::s_EckDesignAllCtrl[m_idxInfo].pfnGetProp(m_pWnd, Item.iID, &Val);
+
+		switch (Item.uType)
+		{
+		case eck::ECPT::Text:
+			Item.Val = Val.Vpsz;
+			if (eck::IsBitSet(iRet, eck::ESPR_NEEDFREE))
+				eck::TDesignAlloc::Free((BYTE*)Val.Vpsz);
+			break;
+		case eck::ECPT::Customize:
+		case eck::ECPT::Image:
+			Item.Val = eck::CRefBin(Val.Vbin.pData, Val.Vbin.cbSize);
+			if (eck::IsBitSet(iRet, eck::ESPR_NEEDFREE))
+				eck::TDesignAlloc::Free(Val.Vbin.pData);
+			break;
+		default:
+			Item.Val = Val;
+			break;
+		}
+	}
+
+	void ExitEditing()
+	{
+		ShowWindow(m_Edit, SW_HIDE);
+		ShowWindow(m_ComboBox, SW_HIDE);
+		ShowWindow(m_Button, SW_HIDE);
+		m_idxCurrEdit = -1;
+	}
+
 	EckInline void SetPropClass(int idxInfo = -1, eck::CWnd* pWnd = NULL)
 	{
+		if (m_idxCurrEdit >= 0)
+			SaveEditingInfo(m_idxCurrEdit);
+		ExitEditing();
 		m_Items.clear();
+		m_idxInfo = idxInfo;
+		m_pWnd = pWnd;
+
+		int idx;
+
 		EckCounter(ARRAYSIZE(eck::s_CommProp), i)
-			InsertItem(eck::s_CommProp[i], (int)i);
+		{
+			idx = InsertItem(eck::s_CommProp[i], (int)i);
+			GetPropFromCtrl(idx);
+		}
 
 		if (idxInfo >= 0)
 		{
 			assert(pWnd);
 			auto& ClassInfo = eck::s_EckDesignAllCtrl[idxInfo];
 			EckCounter(ClassInfo.cProp, i)
-				InsertItem(ClassInfo.pProp[i], (int)(ARRAYSIZE(eck::s_CommProp) + i));
+			{
+				idx = InsertItem(ClassInfo.pProp[i], (int)(ARRAYSIZE(eck::s_CommProp) + i));
+				GetPropFromCtrl(idx);
+			}
 		}
 
-		m_idxInfo = idxInfo;
-		m_pWnd = pWnd;
 		RefreshCount();
 	}
 
 	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, UINT nID) override
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
 	{
 		dwStyle |= (WS_CHILD | LVS_OWNERDATA | LVS_SINGLESEL | LVS_SHOWSELALWAYS);
 		m_hWnd = CreateWindowExW(dwExStyle, WC_LISTVIEWW, pszText, dwStyle,
@@ -294,7 +351,7 @@ public:
 
 		UpdateDpiSize();
 
-		m_Edit.Create(NULL, 0, 0, 0, 0, 0, 0, m_hWnd, IDC_EDIT);
+		m_Edit.Create(NULL, ES_WANTRETURN, 0, 0, 0, 0, 0, m_hWnd, IDC_EDIT);
 		m_ComboBox.Create(NULL, CBS_DROPDOWNLIST, 0, 0, 0, 0, 0, m_hWnd, IDC_COMBOBOX);
 		m_Button.Create(L"...", 0, 0, 0, 0, 0, 0, m_hWnd, IDC_BUTTON);
 

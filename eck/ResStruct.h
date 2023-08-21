@@ -3,11 +3,8 @@
 
 ECK_NAMESPACE_BEGIN
 #pragma pack(push, ECK_CTRLDATA_ALIGN)
-inline constexpr int
-DATAVER_RESTABLE_1 = 1,
-DATAVER_PUSHBUTTON_1 = 1,
-DATAVER_CHECKBUTTON_1 = 1,
-DATAVER_COMMANDLINK_1 = 1;
+static constexpr int
+DATAVER_RESTABLE_1 = 1;
 
 
 // 资源表
@@ -17,6 +14,7 @@ enum class ResType
 	Sound = 1,
 	Image = 2,
 	ImageList = 3,
+	Font = 4,
 };
 
 struct RESTABLEHEADER
@@ -50,6 +48,25 @@ struct FORMTABLE_INDEXENTRY
 	UINT uOffset;
 	UINT cbSize;
 };
+
+struct FTCTRLDATAHEADER
+{
+	int iVer;
+	int cCtrls;
+};
+
+struct FTCTRLDATA
+{
+	UINT cbData;
+	int cchText;
+	int cChildren;
+	int idxInfo;
+	RECT rc;// 左顶宽高，相对于最靠左上角的控件
+	DWORD dwStyle;
+	DWORD dwExStyle;
+};
+// WCHAR szText[];
+// BYTE byData[];
 
 
 #pragma pack(pop)

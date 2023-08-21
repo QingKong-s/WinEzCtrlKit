@@ -59,7 +59,7 @@ public:
 };
 
 template<class TObj>
-void ObjRecordRefStdDeleter(TObj Obj)
+void CALLBACK ObjRecordRefStdDeleter(TObj Obj)
 {
 
 }

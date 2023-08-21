@@ -89,6 +89,14 @@ EckInline int DpiScale(int i, int iDpiNew, int iDpiOld)
 	return i * iDpiNew / iDpiOld;
 }
 
+EckInline void DpiScale(RECT& rc, int iDpiNew, int iDpiOld)
+{
+	rc.left = rc.left * iDpiNew / iDpiOld;
+	rc.top = rc.top * iDpiNew / iDpiOld;
+	rc.right = rc.right * iDpiNew / iDpiOld;
+	rc.bottom = rc.bottom * iDpiNew / iDpiOld;
+}
+
 EckInline void SetPrevDpiProp(HWND hWnd, int iDpi)
 {
 	SetPropW(hWnd, PROP_PREVDPI, i32ToP<HANDLE>(iDpi));

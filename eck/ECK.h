@@ -24,8 +24,8 @@ ECK_NAMESPACE_BEGIN
 
 using SCHAR = signed char;
 using BITBOOL = UINT;
-using PCBYTE = LPCBYTE;
-using PCVOID = LPCVOID;
+using PCBYTE = const BYTE*;
+using PCVOID = const void*;
 using ECKENUM = BYTE;
 
 namespace Literals
@@ -81,7 +81,7 @@ ECK_NAMESPACE_END
 #define WCN_BK				L"Eck.WndClass.BK"
 #define WCN_LUNARCALENDAR	L"Eck.WndClass.LunarCalendar"
 #define WCN_CHARTPIE		L"Eck.WndClass.ChartPie"
-
+#define WCN_FORM			L"Eck.WndClass.Form"
 
 /*属性字符串*/
 
@@ -99,9 +99,9 @@ ECK_NAMESPACE_END
 ECK_NAMESPACE_BEGIN
 extern HINSTANCE g_hInstance;
 
-enum ECKLibInitStatus
+enum class InitStatus
 {
-	ECKOk = 0,
+	Ok = 0,
 	RegWndClassError = 1,
 	GdiplusInitError = 2
 };
@@ -111,5 +111,5 @@ enum ECKLibInitStatus
 /// </summary>
 /// <param name="hInstance">实例句柄，所有自定义窗口类将在此实例上注册</param>
 /// <returns>错误代码</returns>
-ECKLibInitStatus Init(HINSTANCE hInstance);
+InitStatus Init(HINSTANCE hInstance);
 ECK_NAMESPACE_END

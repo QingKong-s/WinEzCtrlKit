@@ -6,7 +6,7 @@ class CHotKey :public CWnd
 {
 public:
 	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, UINT nID)
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
 	{
 		dwStyle |= WS_CHILD;
 		m_hWnd = CreateWindowExW(dwExStyle, HOTKEY_CLASSW, pszText, dwStyle,

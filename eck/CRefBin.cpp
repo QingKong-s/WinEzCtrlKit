@@ -7,6 +7,7 @@ CRefBin::CRefBin(SIZE_T cb)
 	if (!cb)
 		return;
 
+	m_cb = cb;
 	SIZE_T cbCapacity = TAlloc::MakeCapacity(cb);
 	m_pStream = TAlloc::Alloc(cbCapacity);
 	if (m_pStream)

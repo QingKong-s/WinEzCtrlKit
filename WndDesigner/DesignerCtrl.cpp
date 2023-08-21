@@ -40,7 +40,7 @@ LRESULT CALLBACK CSizerBlock::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 }
 
 HWND CSizerBlock::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-	int x, int y, int cx, int cy, HWND hParent, UINT nID)
+	int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData)
 {
 	m_hWnd = CreateWindowExW(dwExStyle, WCN_BK, pszText, dwStyle,
 		x, y, cx, cy, hParent, eck::i32ToP<HMENU>(nID), eck::g_hInstance, NULL);
@@ -407,85 +407,7 @@ LRESULT CALLBACK CPropList::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARAM wPa
 		{
 			auto pnmlv = (NMLISTVIEW*)lParam;
 
-			ShowWindow(p->m_Edit, SW_HIDE);
-			ShowWindow(p->m_ComboBox, SW_HIDE);
-			ShowWindow(p->m_Button, SW_HIDE);
-			if (pnmlv->iItem < 0 &&
-				eck::IsBitSet(pnmlv->uOldState, LVIS_SELECTED) && 
-				!eck::IsBitSet(pnmlv->uNewState, LVIS_SELECTED))
-			{
-				p->m_idxCurrEdit = -1;
-				break;
-			}
-			if (p->m_idxCurrEdit >= 0)
-				p->SaveEditingInfo(p->m_idxCurrEdit);
-			p->m_idxCurrEdit = pnmlv->iItem;
-			RECT rcItem;
-			p->GetSubItemRect(pnmlv->iItem, 1, &rcItem);
-			rcItem.left += 1;
-			rcItem.right -= rcItem.left;
-			rcItem.bottom -= rcItem.top;
-
-			auto& Item = p->m_Items[pnmlv->iItem];
-			switch (Item.uType)
-			{
-			case eck::ECPT::Text:
-				p->m_Edit.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
-				p->m_Edit.SetInputMode(eck::CEdit::InputMode::Normal);
-				p->m_Edit.SetText(std::get<1>(Item.Val).m_pszText);
-				ShowWindow(p->m_Edit, SW_SHOWNOACTIVATE);
-				break;
-			case eck::ECPT::Int:
-				p->m_Edit.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
-				p->m_Edit.SetInputMode(eck::CEdit::InputMode::Int);
-				p->m_Edit.SetText(std::to_wstring(std::get<0>(Item.Val).Vi).c_str());
-				ShowWindow(p->m_Edit, SW_SHOWNOACTIVATE);
-				break;
-			case eck::ECPT::Float:
-				p->m_Edit.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
-				p->m_Edit.SetInputMode(eck::CEdit::InputMode::Float);
-				p->m_Edit.SetText(std::to_wstring(std::get<0>(Item.Val).Vf).c_str());
-				ShowWindow(p->m_Edit, SW_SHOWNOACTIVATE);
-				break;
-			case eck::ECPT::Double:
-				p->m_Edit.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
-				p->m_Edit.SetInputMode(eck::CEdit::InputMode::Double);
-				p->m_Edit.SetText(std::to_wstring(std::get<0>(Item.Val).Vlf).c_str());
-				ShowWindow(p->m_Edit, SW_SHOWNOACTIVATE);
-				break;
-			case eck::ECPT::Bool:
-				p->m_ComboBox.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
-				p->m_ComboBox.ResetContent();
-				p->m_ComboBox.AddString(L"¼Ù");
-				p->m_ComboBox.AddString(L"Õæ");
-				p->m_ComboBox.SetItemHeight(rcItem.bottom);
-				p->m_ComboBox.SetCurSel(!!std::get<0>(Item.Val).Vb);
-				ShowWindow(p->m_ComboBox, SW_SHOWNOACTIVATE);
-				break;
-			case eck::ECPT::DateTime:
-				break;
-			case eck::ECPT::PickInt:
-				p->m_ComboBox.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
-				p->m_ComboBox.ResetContent();
-				EckCounter(Item.aPickStr.size(), i)
-					p->m_ComboBox.AddString(eck::ToStr(i) + L". " + Item.aPickStr[i]);
-				p->m_ComboBox.SetItemHeight(rcItem.bottom);
-				p->m_ComboBox.SetCurSel(!!std::get<0>(Item.Val).Vi);
-				ShowWindow(p->m_ComboBox, SW_SHOWNOACTIVATE);
-				break;
-			case eck::ECPT::PickText:
-				break;
-			case eck::ECPT::Image:
-			case eck::ECPT::Customize:
-			case eck::ECPT::Color:
-			case eck::ECPT::Font:
-			case eck::ECPT::ImageList:
-				rcItem.left = rcItem.left + rcItem.right - rcItem.bottom;
-				rcItem.right = rcItem.bottom;
-				p->m_Button.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
-				ShowWindow(p->m_Button, SW_SHOWNOACTIVATE);
-				break;
-			}
+			
 		}
 		break;
 		}
@@ -522,14 +444,120 @@ LRESULT CALLBACK CPropList::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 			//case eck::ECPT::ImageList:
 			//}
 		}
+		else if (lParam == (LPARAM)p->m_Edit.GetHWND() && HIWORD(wParam) == NM_RETURN)
+		{
+			if (p->m_idxCurrEdit >= 0)
+				p->SaveEditingInfo(p->m_idxCurrEdit);
+		}
+		else if (lParam == (LPARAM)p->m_ComboBox.GetHWND() && HIWORD(wParam) == CBN_SELCHANGE)
+		{
+			if (p->m_idxCurrEdit >= 0)
+				p->SaveEditingInfo(p->m_idxCurrEdit);
+		}
 	}
 	break;
+
+	case WM_LBUTTONDOWN:
+	{
+		LRESULT lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);
+		LVHITTESTINFO lvhti;
+		lvhti.pt = GET_PT_LPARAM(lParam);
+		p->HitTest(&lvhti);
+
+		if (lvhti.iItem == p->m_idxCurrEdit)
+			return lResult;
+
+		ShowWindow(p->m_Edit, SW_HIDE);
+		ShowWindow(p->m_ComboBox, SW_HIDE);
+		ShowWindow(p->m_Button, SW_HIDE);
+		if (lvhti.iItem < 0)
+		{
+			p->m_idxCurrEdit = -1;
+			return lResult;
+		}
+		if (p->m_idxCurrEdit >= 0)
+			p->SaveEditingInfo(p->m_idxCurrEdit);
+		p->m_idxCurrEdit = lvhti.iItem;
+		RECT rcItem;
+		p->GetSubItemRect(lvhti.iItem, 1, &rcItem);
+		rcItem.left += 1;
+		rcItem.right -= rcItem.left;
+		rcItem.bottom -= rcItem.top;
+
+		auto& Item = p->m_Items[lvhti.iItem];
+		switch (Item.uType)
+		{
+		case eck::ECPT::Text:
+			p->m_Edit.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
+			p->m_Edit.SetInputMode(eck::CEdit::InputMode::Normal);
+			p->m_Edit.SetText(std::get<1>(Item.Val).m_pszText);
+			ShowWindow(p->m_Edit, SW_SHOWNOACTIVATE);
+			break;
+		case eck::ECPT::Int:
+			p->m_Edit.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
+			p->m_Edit.SetInputMode(eck::CEdit::InputMode::Int);
+			p->m_Edit.SetText(std::to_wstring(std::get<0>(Item.Val).Vi).c_str());
+			ShowWindow(p->m_Edit, SW_SHOWNOACTIVATE);
+			break;
+		case eck::ECPT::Float:
+			p->m_Edit.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
+			p->m_Edit.SetInputMode(eck::CEdit::InputMode::Float);
+			p->m_Edit.SetText(std::to_wstring(std::get<0>(Item.Val).Vf).c_str());
+			ShowWindow(p->m_Edit, SW_SHOWNOACTIVATE);
+			break;
+		case eck::ECPT::Double:
+			p->m_Edit.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
+			p->m_Edit.SetInputMode(eck::CEdit::InputMode::Double);
+			p->m_Edit.SetText(std::to_wstring(std::get<0>(Item.Val).Vlf).c_str());
+			ShowWindow(p->m_Edit, SW_SHOWNOACTIVATE);
+			break;
+		case eck::ECPT::Bool:
+			p->m_ComboBox.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
+			p->m_ComboBox.ResetContent();
+			p->m_ComboBox.AddString(L"¼Ù");
+			p->m_ComboBox.AddString(L"Õæ");
+			p->m_ComboBox.SetItemHeight(rcItem.bottom);
+			p->m_ComboBox.SetCurSel(!!std::get<0>(Item.Val).Vb);
+			ShowWindow(p->m_ComboBox, SW_SHOWNOACTIVATE);
+			break;
+		case eck::ECPT::DateTime:
+			break;
+		case eck::ECPT::PickInt:
+			p->m_ComboBox.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
+			p->m_ComboBox.ResetContent();
+			EckCounter(Item.aPickStr.size(), i)
+				p->m_ComboBox.AddString(eck::ToStr(i) + L". " + Item.aPickStr[i]);
+			p->m_ComboBox.SetItemHeight(rcItem.bottom);
+			p->m_ComboBox.SetCurSel(std::get<0>(Item.Val).Vi);
+			ShowWindow(p->m_ComboBox, SW_SHOWNOACTIVATE);
+			break;
+		case eck::ECPT::PickText:
+			break;
+		case eck::ECPT::Image:
+		case eck::ECPT::Customize:
+		case eck::ECPT::Color:
+		case eck::ECPT::Font:
+		case eck::ECPT::ImageList:
+			rcItem.left = rcItem.left + rcItem.right - rcItem.bottom;
+			rcItem.right = rcItem.bottom;
+			p->m_Button.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
+			ShowWindow(p->m_Button, SW_SHOWNOACTIVATE);
+			break;
+		}
+		return lResult;
+	}
 
 	case WM_KILLFOCUS:
 	{
 		LRESULT lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);
-		if (p->m_idxCurrEdit >= 0)
+		if (p->m_idxCurrEdit >= 0 &&
+			wParam != (WPARAM)p->m_Button.GetHWND() &&
+			wParam != (WPARAM)p->m_Edit.GetHWND() &&
+			wParam != (WPARAM)p->m_ComboBox.GetHWND())
+		{
 			p->SaveEditingInfo(p->m_idxCurrEdit);
+			p->ExitEditing();
+		}
 		return lResult;
 	}
 

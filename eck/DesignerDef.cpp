@@ -65,6 +65,15 @@ EckPropCallBackRet CALLBACK SetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropVa
 		*pbProcessed = TRUE;
 		pWnd->m_DDBase.bEnable = pProp->Vb;
 		break;
+	case CPID_FRAMETYPE:
+		*pbProcessed = TRUE;
+		pWnd->SetFrameType(pProp->Vi);
+		pWnd->FrameChanged();
+		break;
+	case CPID_SCROLLBAR:
+		*pbProcessed = TRUE;
+		pWnd->SetScrollBar(pProp->Vi);
+		break;
 	}
 	return ESPR_NONE;
 }
@@ -125,6 +134,14 @@ EckPropCallBackRet CALLBACK GetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropVa
 	case CPID_ENABLE:
 		*pbProcessed = TRUE;
 		pProp->Vb = pWnd->m_DDBase.bEnable;
+		break;
+	case CPID_FRAMETYPE:
+		*pbProcessed = TRUE;
+		pProp->Vi = pWnd->GetFrameType();
+		break;
+	case CPID_SCROLLBAR:
+		*pbProcessed = TRUE;
+		pProp->Vi = pWnd->GetScrollBar();
 		break;
 	}
 	return ESPR_NONE;

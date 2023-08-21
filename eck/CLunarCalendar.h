@@ -27,7 +27,7 @@ public:
 	ATOM RegisterWndClass(HINSTANCE hInstance);
 
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, UINT nID)
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
 	{
 		dwStyle |= WS_CHILD;
 		m_hWnd = CreateWindowExW(dwExStyle, WCN_LUNARCALENDAR, pszText, dwStyle,

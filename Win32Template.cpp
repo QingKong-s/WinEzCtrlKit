@@ -24,7 +24,6 @@
 #include "eck/CTaskGroupList.h"
 #include "eck/CArray.h"
 
-#include "eck/WndDesigner/WndMain.h"
 
 using namespace std::literals;
 
@@ -95,7 +94,7 @@ int CALLBACK PSProc(HWND hDlg, UINT uMsg, LPARAM lParam)
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ PWSTR pszCmdLine, _In_ int nCmdShow)
 {
 	CoInitialize(NULL);     
-	if (eck::Init(hInstance) != eck::ECKOk)
+	if (eck::Init(hInstance) != eck::InitStatus::Ok)
 	{
 		MessageBoxW(NULL, L"初始化失败", L"", 0);
 		return 1;
@@ -174,10 +173,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	//EckDbgPrint(rs);
 	//return 0;
 
-	//ShowIt();
-
-
-
 	//EckDbgPrint(CalcNextAlignBoundaryDistance(0, (void*)5, 4));
 	//return 0;
 
@@ -205,7 +200,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	CRefBin rb = SerializeDialogTemplate(Dlg, Items);
 
-	//HWND hDlg = CreateDialogIndirectParamW(hInstance, (DLGTEMPLATE*)rb.m_pStream, NULL, DlgProc_About, 0);
+	//HWND hDlg = CreateDialogIndirectParamW(NULL, (DLGTEMPLATE*)rb.m_pStream, NULL, DlgProc_About, 0);
 	//Dlg = {};
 	//Items.clear();
 	//DeserializeDialogTemplate(rb, Dlg, Items);
@@ -249,9 +244,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	//PropertySheetW(&psh);
 
-	eck::EnableWindowMica((HWND)0x00010112,DWMSBT_TRANSIENTWINDOW);
+	//eck::EnableWindowMica((HWND)0x00010112,DWMSBT_TRANSIENTWINDOW);
 
 	MSG msg;
+	//ShowIt();
 	//while (GetMessageW(&msg, NULL, 0, 0))
 	//{
 	//	TranslateMessage(&msg);

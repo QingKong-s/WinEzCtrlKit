@@ -13,16 +13,6 @@
 #include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
-// 基础数据
-struct CTRLINFO_BUTTON
-{
-	BOOL bShowTextAndImage;	// 是否同时显示图片和文本
-};
-
-struct CTRLINFO_COMMANDLINK
-{
-	BOOL bShieldIcon;
-};
 #pragma pack(push, ECK_CTRLDATA_ALIGN)
 
 inline constexpr int
@@ -34,25 +24,30 @@ DATAVER_COMMANDLINK_1 = 1;
 struct CREATEDATA_BUTTON
 {
 	int iVer;
-	BOOL bShowTextAndImage;
-	ECKENUM iAlignH;
-	ECKENUM iAlignV;
+	DWORD dwStyle;
+	DWORD dwExStyle;
+
+	
 	int cchText;
 };
 
 struct CREATEDATA_PUSHBUTTON :CREATEDATA_BUTTON
 {
 	int iVer;
+	BITBOOL bShowTextAndImage : 1;
 };
 
 struct CREATEDATA_CHECKBUTTON :CREATEDATA_BUTTON
 {
 	int iVer;
+	BITBOOL bShowTextAndImage : 1;
+	ECKENUM eCheckState;
 };
 
 struct CREATEDATA_COMMANDLINK :CREATEDATA_BUTTON
 {
 	int iVer;
+	BITBOOL m_bShieldIcon : 1;
 };
 
 #ifdef ECK_CTRL_DESIGN_INTERFACE
@@ -69,8 +64,7 @@ struct DESIGNDATA_PUSHBUTTON
 class CButton :public CWnd
 {
 protected:
-	CTRLINFO_BUTTON m_Info{};
-
+	BITBOOL m_bShowTextAndImage : 1;
 public:
 	CButton() {}
 
@@ -82,7 +76,7 @@ public:
 	/// <param name="bShowTextAndImage">是否同时显示</param>
 	void SetTextImageShowing(BOOL bShowTextAndImage)
 	{
-		m_Info.bShowTextAndImage = bShowTextAndImage;
+		m_bShowTextAndImage = bShowTextAndImage;
 		DWORD dwStyle = GetStyle();
 		if (bShowTextAndImage)
 			dwStyle &= ~(BS_BITMAP);
@@ -97,7 +91,7 @@ public:
 	/// <returns>是否同时显示</returns>
 	EckInline BOOL GetTextImageShowing() const
 	{
-		return m_Info.bShowTextAndImage;
+		return m_bShowTextAndImage;
 	}
 
 	/// <summary>
@@ -117,7 +111,7 @@ public:
 	EckInline void SetImage(HANDLE hImage, UINT uType)
 	{
 		if (hImage)
-			if (m_Info.bShowTextAndImage)
+			if (m_bShowTextAndImage)
 				ModifyStyle(0, BS_BITMAP);
 			else
 				ModifyStyle(BS_BITMAP, BS_BITMAP);
@@ -126,14 +120,24 @@ public:
 
 		SendMsg(BM_SETIMAGE, uType, (LPARAM)hImage);
 	}
-};
+
+	EckInline void SetMultiLine(BOOL bMultiLine)
+	{
+		ModifyStyle(bMultiLine ? BS_MULTILINE : 0, BS_MULTILINE);
+	}
+
+	EckInline BOOL GetMultiLine()
+	{
+		return IsBitSet(GetStyle(), BS_MULTILINE);
+	}
+};                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
 
 // 普通按钮
 class CPushButton :public CButton
 {
 public:
 	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, UINT nID)
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
 	{
 		dwStyle &= ~(BS_CHECKBOX | BS_COMMANDLINK | BS_DEFCOMMANDLINK);
 		dwStyle |= WS_CHILD;
@@ -142,6 +146,12 @@ public:
 		m_hWnd = CreateWindowExW(dwExStyle, WC_BUTTONW, pszText, dwStyle,
 			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
 		return m_hWnd;
+	}
+
+	CRefBin SerializeData() override
+	{
+		CRefBin rb;
+		return rb;
 	}
 
 	/// <summary>
@@ -157,10 +167,10 @@ public:
 	EckInline int GetType()
 	{
 		DWORD dwStyle = GetStyle();
-		if (IsBitSet(dwStyle, BS_PUSHBUTTON) || IsBitSet(dwStyle, BS_DEFPUSHBUTTON))
-			return 0;
-		else if (IsBitSet(dwStyle, BS_SPLITBUTTON) || IsBitSet(dwStyle, BS_DEFSPLITBUTTON))
+		if (IsBitSet(dwStyle, BS_SPLITBUTTON) || IsBitSet(dwStyle, BS_DEFSPLITBUTTON))
 			return 1;
+		else if (IsBitSet(dwStyle, BS_PUSHBUTTON) || IsBitSet(dwStyle, BS_DEFPUSHBUTTON))
+			return 0;
 		return -1;
 	}
 
@@ -185,7 +195,7 @@ class CCheckButton :public CButton
 {
 public:
 	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, UINT nID)
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
 	{
 		dwStyle &= ~(BS_PUSHBUTTON | BS_DEFPUSHBUTTON | BS_SPLITBUTTON | BS_DEFSPLITBUTTON | BS_COMMANDLINK | BS_DEFCOMMANDLINK);
 		dwStyle |= WS_CHILD;
@@ -286,10 +296,10 @@ public:
 class CCommandLink :public CButton
 {
 private:
-	CTRLINFO_COMMANDLINK m_InfoEx{};
+	BITBOOL m_bShieldIcon : 1;
 public:
 	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, UINT nID)
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
 	{
 		dwStyle &= ~(BS_PUSHBUTTON | BS_DEFPUSHBUTTON | BS_SPLITBUTTON | BS_DEFSPLITBUTTON | BS_CHECKBOX);
 		dwStyle |= WS_CHILD;
@@ -331,7 +341,7 @@ public:
 	/// <param name="bShieldIcon">是否为盾牌图标</param>
 	EckInline void SetShieldIcon(BOOL bShieldIcon)
 	{
-		m_InfoEx.bShieldIcon = bShieldIcon;
+		m_bShieldIcon = bShieldIcon;
 		SendMessageW(m_hWnd, BCM_SETSHIELD, 0, bShieldIcon);
 	}
 
@@ -341,7 +351,7 @@ public:
 	/// <returns></returns>
 	EckInline BOOL GetShieldIcon()
 	{
-		return m_InfoEx.bShieldIcon;// 这个东西只能置不能取.....把记录的值返回回去吧
+		return m_bShieldIcon;// 这个东西只能置不能取.....把记录的值返回回去吧
 	}
 
 	/// <summary>

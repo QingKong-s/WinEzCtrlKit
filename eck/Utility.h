@@ -144,6 +144,14 @@ struct CMemWriter
 		m_pMem -= cb;
 		return *this;
 	}
+
+	template<class T>
+	CMemWriter& SkipPointer(T*& p)
+	{
+		p = (T*)m_pMem;
+		m_pMem += sizeof(T);
+		return *this;
+	}
 };
 
 struct CMemReader
@@ -189,7 +197,7 @@ struct CMemReader
 	CMemReader& SkipPointer(T*& p)
 	{
 		p = (T*)m_pMem;
-		m_pMem += sizeof(*p);
+		m_pMem += sizeof(T);
 		return *this;
 	}
 };
@@ -319,6 +327,11 @@ CRefBin ReadInFile(PCWSTR pszFile);
 /// <param name="pData">字节流</param>
 /// <param name="cb">字节流长度</param>
 BOOL WriteToFile(PCWSTR pszFile, PCVOID pData, DWORD cb);
+
+EckInline BOOL WriteToFile(PCWSTR pszFile, const CRefBin& rb)
+{
+	return WriteToFile(pszFile, rb, (DWORD)rb.m_cb);
+}
 
 /// <summary>
 /// 字节集到友好字符串表示

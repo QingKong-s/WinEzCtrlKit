@@ -21,6 +21,7 @@ struct DESIGNDATA_WND
 	LOGFONTW lf;
 };
 #endif
+
 class CWnd
 {
 protected:
@@ -63,7 +64,7 @@ public:
 	}
 
 	virtual HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, UINT nID)
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
 	{
 		assert(FALSE);
 		return NULL;
@@ -106,6 +107,10 @@ public:
 	void SetFrameType(int iFrame);
 
 	int GetFrameType();
+
+	void SetScrollBar(int i);
+
+	int GetScrollBar();
 
 	EckInline LRESULT SendMsg(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
@@ -163,6 +168,13 @@ public:
 	{
 		return SetWindowPos(m_hWnd, NULL, x, y, cx, cy, SWP_NOZORDER | (bNoActive ? SWP_NOACTIVATE : 0));
 	}
+
+	EckInline BOOL Destroy()
+	{
+		BOOL b = DestroyWindow(m_hWnd);
+		m_hWnd = NULL;
+		return b;
+	}
 };
 
 class COwnWnd :public CWnd
@@ -194,4 +206,15 @@ protected:
 		}
 	}
 };
+
+inline HWND ReCreateCtrl(CWnd* pWnd)
+{
+	auto rb = pWnd->SerializeData();
+	HWND hParent = GetParent(pWnd->GetHWND());
+	int iID = GetDlgCtrlID(pWnd->GetHWND());
+	pWnd->Destroy();
+	pWnd->Create(NULL, 0, 0, 0, 0, 0, 0, hParent, iID, rb);
+
+	return NULL;
+}
 ECK_NAMESPACE_END

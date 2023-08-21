@@ -19,9 +19,6 @@
     <Filter Include="ECK Include">
       <UniqueIdentifier>{71789331-3ac2-45f7-8fe6-7e42e5769f44}</UniqueIdentifier>
     </Filter>
-    <Filter Include="WindowDesigner">
-      <UniqueIdentifier>{75d82e5b-6931-4398-bc01-9105bee6a168}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="targetver.h">
@@ -108,9 +105,6 @@
     <ClInclude Include="eck\Env.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\WndDesigner\WndMain.h">
-      <Filter>WindowDesigner</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CComboBox.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
@@ -138,9 +132,6 @@
     <ClInclude Include="eck\LunarDateLib.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\HbmMaker.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CHeader.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
@@ -152,9 +143,6 @@
     </ClInclude>
     <ClInclude Include="eck\CTaskGroupList.h">
       <Filter>ECK Include</Filter>
-    </ClInclude>
-    <ClInclude Include="eck\WndDesigner\DesginerCtrl.h">
-      <Filter>WindowDesigner</Filter>
     </ClInclude>
     <ClInclude Include="eck\CTab.h">
       <Filter>ECK Include</Filter>
@@ -175,6 +163,12 @@
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CAllocator.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CFormTable.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CForm.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
   </ItemGroup>
@@ -230,9 +224,6 @@
     <ClCompile Include="eck\WndHelper.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
-    <ClCompile Include="eck\WndDesigner\WndMain.cpp">
-      <Filter>WindowDesigner</Filter>
-    </ClCompile>
     <ClCompile Include="eck\CBk.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
@@ -248,10 +239,10 @@
     <ClCompile Include="eck\CTaskGroupList.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
-    <ClCompile Include="eck\WndDesigner\DesignerCtrl.cpp">
-      <Filter>WindowDesigner</Filter>
-    </ClCompile>
     <ClCompile Include="eck\DesignerDef.cpp">
+      <Filter>ECK Src</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\CForm.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -261,7 +252,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="cpp.hint" />
     <None Include="eckwindo.bin">
       <Filter>资源文件</Filter>
     </None>
