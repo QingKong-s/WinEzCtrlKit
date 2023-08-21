@@ -225,7 +225,7 @@ ATOM CColorPicker::RegisterWndClass(HINSTANCE hInstance)
 }
 
 HWND CColorPicker::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-	int x, int y, int cx, int cy, HWND hParent, UINT nID)
+	int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData)
 {
 	dwStyle |= (WS_CHILD | WS_VISIBLE | WS_VSCROLL | CBS_OWNERDRAWFIXED | CBS_DROPDOWNLIST);
 

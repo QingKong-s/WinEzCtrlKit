@@ -196,7 +196,7 @@ CRefStrW ToStr(double x, int iPrecision)
 	CRefStrW rs;
 	rs.ReSize(24);
 	*rs = L'\0';
-	_snwprintf_s(rs, rs.m_cchText, rs.m_cchText, L"%*f", iPrecision, x);
+	_snwprintf_s(rs, rs.m_cchText, rs.m_cchText, L"%.*g", iPrecision, x);
 	rs.ReCalcLen();
 	return rs;
 }
@@ -218,35 +218,9 @@ int FindStrRev(PCWSTR pszText, int posStart, PCWSTR pszSub, int cchText, int cch
 	return INVALID_STR_POS;
 }
 
-template<class TProcesser>
-void SplitTextInt(PCWSTR pszText, PCWSTR pszDiv, int cSubTextExpected, int cchText, int cchDiv, TProcesser Processer)
-{
-	if (cchText < 0)
-		cchText = (int)wcslen(pszText);
-	if (cchDiv < 0)
-		cchDiv = (int)wcslen(pszDiv);
-	if (cSubTextExpected <= 0)
-		cSubTextExpected = INT_MAX;
-
-	PCWSTR pszFind = wcsstr(pszText, pszDiv);
-	PCWSTR pszPrevFirst = pszText;
-	int c = 0;
-	while (pszFind)
-	{
-		Processer(pszPrevFirst, (int)(pszFind - pszPrevFirst));
-		++c;
-		if (c == cSubTextExpected)
-			return;
-		pszPrevFirst = pszFind + cchDiv;
-		pszFind = wcsstr(pszPrevFirst, pszDiv);
-	}
-
-	Processer(pszPrevFirst, (int)(pszText + cchText - pszPrevFirst));
-}
-
 void SplitStr(PCWSTR pszText, PCWSTR pszDiv, std::vector<CRefStrW>& aResult, int cSubTextExpected, int cchText, int cchDiv)
 {
-	SplitTextInt(pszText, pszDiv, cSubTextExpected, cchText, cchDiv,
+	SplitStrInt(pszText, pszDiv, cSubTextExpected, cchText, cchDiv,
 		[&](PCWSTR pszStart, int cchSub) {
 			aResult.push_back(CRefStrW(pszStart, cchSub));
 		});
@@ -254,7 +228,7 @@ void SplitStr(PCWSTR pszText, PCWSTR pszDiv, std::vector<CRefStrW>& aResult, int
 
 void SplitStr(PCWSTR pszText, PCWSTR pszDiv, std::vector<SPLTEXTINFO>& aResult, int cSubTextExpected, int cchText, int cchDiv)
 {
-	SplitTextInt(pszText, pszDiv, cSubTextExpected, cchText, cchDiv,
+	SplitStrInt(pszText, pszDiv, cSubTextExpected, cchText, cchDiv,
 		[&](PCWSTR pszStart, int cchSub) {
 			aResult.push_back({ pszStart,cchSub });
 		});
@@ -262,7 +236,7 @@ void SplitStr(PCWSTR pszText, PCWSTR pszDiv, std::vector<SPLTEXTINFO>& aResult, 
 
 void SplitStr(PWSTR pszText, PCWSTR pszDiv, std::vector<PWSTR>& aResult, int cSubTextExpected, int cchText, int cchDiv)
 {
-	SplitTextInt(pszText, pszDiv, cSubTextExpected, cchText, cchDiv,
+	SplitStrInt(pszText, pszDiv, cSubTextExpected, cchText, cchDiv,
 		[&](PCWSTR pszStart, int cchSub) {
 			PWSTR psz = (PWSTR)pszStart;
 			*(psz + cchSub) = L'\0';
@@ -294,17 +268,20 @@ EckInline int PrivFindSpace(PCWSTR pszText)
 {
 	PCWSTR pszOrg = pszText;
 	WCHAR ch = *pszText;
-	while (ch != L' ' && ch != L'¡¡')
+	while (ch != L' ' && ch != L'¡¡' && ch != L'\0')
 		ch = *++pszText;
 	return (int)(pszText - pszOrg);
 }
 
 CRefStrW AllTrimStr(PCWSTR pszText, int cchText)
 {
+	if (cchText < 0)
+		cchText = (int)wcslen(pszText);
+	if (cchText <= 0)
+		return {};
 	PCWSTR pszOrg = pszText;
-	CRefStrW rs;
-	if (cchText > 0)
-		rs.Reserve(cchText);
+	CRefStrW rs{};
+	rs.Reserve(cchText);
 
 	int posTemp;
 	while ((int)(pszText - pszOrg) < cchText)

@@ -43,4 +43,42 @@ int CWnd::GetFrameType()
 
 	return 0;// нч╠ъ©Р
 }
+
+void CWnd::SetScrollBar(int i)
+{
+	switch (i)
+	{
+	case 0:
+		ShowScrollBar(m_hWnd, SB_VERT, FALSE);
+		ShowScrollBar(m_hWnd, SB_HORZ, FALSE);
+		break;
+	case 1:
+		ShowScrollBar(m_hWnd, SB_VERT, FALSE);
+		ShowScrollBar(m_hWnd, SB_HORZ, TRUE);
+		break;
+	case 2:
+		ShowScrollBar(m_hWnd, SB_VERT, TRUE);
+		ShowScrollBar(m_hWnd, SB_HORZ, FALSE);
+		break;
+	case 3:
+		ShowScrollBar(m_hWnd, SB_VERT, TRUE);
+		ShowScrollBar(m_hWnd, SB_HORZ, TRUE);
+		break;
+	}
+}
+
+int CWnd::GetScrollBar()
+{
+	BOOL bVSB = IsBitSet(GetWindowLongPtrW(m_hWnd, GWL_STYLE), WS_VSCROLL);
+	BOOL bHSB = IsBitSet(GetWindowLongPtrW(m_hWnd, GWL_STYLE), WS_HSCROLL);
+	if (bVSB)
+		if (bHSB)
+			return 3;
+		else
+			return 2;
+	if (bHSB)
+		return 1;
+
+	return 0;
+}
 ECK_NAMESPACE_END

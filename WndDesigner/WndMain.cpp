@@ -1,21 +1,22 @@
 #include "WndMain.h"
 #include "DesginerCtrl.h"
+#include "resource.h"
 
 #include <unordered_set>
-#include <map>
 #include <stack>
 #include <functional>
 
-#include "..\ECK.h"
-#include "..\WndHelper.h"
-#include "..\CListBox.h"
-#include "..\CComboBox.h"
-#include "..\CListView.h"
-#include "..\CEdit.h"
-#include "..\CBk.h"
-#include "..\CTab.h"
-#include "..\Utility.h"
-#include "..\DesignerDef.h"
+#include "..\eck\ECK.h"
+#include "..\eck\WndHelper.h"
+#include "..\eck\CListBox.h"
+#include "..\eck\CComboBox.h"
+#include "..\eck\CListView.h"
+#include "..\eck\CEdit.h"
+#include "..\eck\CBk.h"
+#include "..\eck\CTab.h"
+#include "..\eck\Utility.h"
+#include "..\eck\DesignerDef.h"
+#include "..\eck\ResStruct.h"
 
 #define IDC_BK_MAIN			101
 #define IDC_CBB_CTRL		102
@@ -24,6 +25,8 @@
 #define IDC_ED_DESC			105
 #define IDC_BK_WORKWND		106
 #define IDC_TC_MAIN			107
+
+#define CNM_PROPLISTNOTIFY	(WM_USER + 1)
 
 int m_cxInfo, m_cxCtrlBox;
 int m_iDpi = USER_DEFAULT_SCREEN_DPI;
@@ -123,6 +126,7 @@ ATOM RegisterWDMain(HINSTANCE hInstance)
 	wcex.hCursor = LoadCursorW(NULL, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
 	wcex.lpszClassName = WCN_WDMAIN;
+	wcex.lpszMenuName = MAKEINTRESOURCEW(IDM_MAIN);
 	return RegisterClassExW(&wcex);
 }
 
@@ -371,11 +375,10 @@ LRESULT CALLBACK SubclassProc_Ctrl(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 
 	case WM_SETCURSOR:
 		if (m_bPlacingCtrl)
-		{
 			SetCursor(LoadCursorW(NULL, IDC_CROSS));
-			return 0;
-		}
-		break;
+		else
+			SetCursor(LoadCursorW(NULL, IDC_ARROW));
+		return 0;
 
 	case WM_RBUTTONDOWN:
 	{
@@ -395,6 +398,24 @@ LRESULT CALLBACK SubclassProc_Ctrl(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 		TrackPopupMenu(m_hMenuWorkWnd, TPM_RIGHTBUTTON, pt.x, pt.y, 0, m_hMain, NULL);
 	}
 	return 0;
+
+	case WM_MOVE:
+	{
+		LRESULT lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);
+		m_LVProp.GetPropFromCtrl(EckCPIDToIndex(eck::CPID_LEFT));
+		m_LVProp.GetPropFromCtrl(EckCPIDToIndex(eck::CPID_TOP));
+		m_LVProp.RedrawItems(EckCPIDToIndex(eck::CPID_LEFT), EckCPIDToIndex(eck::CPID_TOP));
+		return lResult;
+	}
+
+	case WM_SIZE:
+	{
+		LRESULT lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);
+		m_LVProp.GetPropFromCtrl(EckCPIDToIndex(eck::CPID_WIDTH));
+		m_LVProp.GetPropFromCtrl(EckCPIDToIndex(eck::CPID_HEIGHT));
+		m_LVProp.RedrawItems(EckCPIDToIndex(eck::CPID_WIDTH), EckCPIDToIndex(eck::CPID_HEIGHT));
+		return lResult;
+	}
 
 	case WM_LBUTTONDOWN:
 	{
@@ -695,6 +716,131 @@ void NewTab()
 	SingleSel(pCtx, pCtx->pWorkWnd->GetHWND());
 }
 
+class CCtrlsSerializer
+{
+private:
+	std::vector<RECT> m_aRects;// 所有有效窗口的矩形
+	std::vector<VALIDSELCTRL> m_aValidWnds;// 所有有效窗口的描述结构
+	int m_minLeft = INT_MAX, m_minTop = INT_MAX;// 最小的左边和顶边
+
+	TABCTX* m_pTabCtx = NULL;
+
+	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
+
+	SIZE_T m_cbTotal = sizeof(eck::FTCTRLDATAHEADER);
+public:
+	CCtrlsSerializer() = default;
+
+	CCtrlsSerializer(TABCTX* pTabCtx, int iDpi) :m_pTabCtx(pTabCtx), m_iDpi(iDpi)
+	{
+
+	}
+
+	void Reserve(int c)
+	{
+		m_aRects.reserve(c);
+		m_aValidWnds.reserve(c);
+	}
+
+	int GetCount()
+	{
+		return (int)m_aValidWnds.size();
+	}
+
+	void SetTabCtx(TABCTX* pTabCtx)
+	{
+		m_pTabCtx = pTabCtx;
+	}
+
+	void SetDpi(int iDpi)
+	{
+		m_iDpi = iDpi;
+	}
+
+	void AddCtrlInt(HWND hWnd)
+	{
+		RECT rc;
+		GetWindowRect(hWnd, &rc);
+		eck::DpiScale(rc, USER_DEFAULT_SCREEN_DPI, m_iDpi);
+		if (rc.left < m_minLeft)
+			m_minLeft = rc.left;
+		if (rc.top < m_minTop)
+			m_minTop = rc.top;
+
+		m_aRects.push_back(rc);
+		m_aValidWnds.push_back({ hWnd,0 });
+
+		auto& Info = m_pTabCtx->AllCtrls[hWnd];
+		m_cbTotal += ((Info.sText.size() + 1) * sizeof(WCHAR) + Info.rbData.m_cb + sizeof(eck::FTCTRLDATA));
+	}
+
+	void AddCtrl(HWND hWnd)
+	{
+		AddCtrlInt(hWnd);
+
+		int idxCurrParent = GetCount() - 1;
+		HWND hTemp = GetWindow(hWnd, GW_CHILD);
+		while (hTemp)
+		{
+			++m_aValidWnds[idxCurrParent].cChildren;
+			AddCtrl(hTemp);
+			hTemp = GetWindow(hTemp, GW_HWNDNEXT);
+		}
+	};
+
+	SIZE_T GetDataSize()
+	{
+		return m_cbTotal;
+	}
+
+	void Serialize(PVOID pMem)
+	{
+		eck::CMemWriter w(pMem);
+
+		eck::FTCTRLDATAHEADER* pHeader;
+		w.SkipPointer(pHeader);
+		pHeader->iVer = CBFVER_DESIGN_CTRL_1;
+		pHeader->cCtrls = GetCount();
+
+		HWND hCtrl;
+		eck::FTCTRLDATA* pCtrlInfo;
+		EckCounter(pHeader->cCtrls, i)
+		{
+			hCtrl = m_aValidWnds[i].hWnd;
+			auto& Info = m_pTabCtx->AllCtrls[hCtrl];
+
+			w.SkipPointer(pCtrlInfo);
+
+			pCtrlInfo->cchText = (int)Info.sText.size();
+			pCtrlInfo->cbData = (UINT)Info.rbData.m_cb;
+			pCtrlInfo->dwStyle = (DWORD)GetWindowLongPtrW(hCtrl, GWL_STYLE);
+			pCtrlInfo->dwExStyle = (DWORD)GetWindowLongPtrW(hCtrl, GWL_EXSTYLE);
+			pCtrlInfo->idxInfo = Info.idxInfo;
+			pCtrlInfo->rc.left = m_aRects[i].left - m_minLeft;
+			pCtrlInfo->rc.top = m_aRects[i].top - m_minTop;
+			pCtrlInfo->rc.right = m_aRects[i].right - m_aRects[i].left;
+			pCtrlInfo->rc.bottom = m_aRects[i].bottom - m_aRects[i].top;
+			pCtrlInfo->cChildren = m_aValidWnds[i].cChildren;
+
+			w << Info.sText << Info.rbData;
+		}
+#ifdef _DEBUG
+		if ((SIZE_T)(w - (BYTE*)pMem) > m_cbTotal)
+		{
+			EckDbgPrintFmt(L"序列化控件数据超界，分配 = %u，写入 = %u", m_cbTotal, w - (BYTE*)pMem);
+			EckDbgBreak();
+		}
+#endif
+	}
+
+	eck::CRefBin Serialize()
+	{
+		eck::CRefBin rb(m_cbTotal);
+		Serialize(rb);
+		return rb;
+	}
+};
+
 LRESULT CALLBACK WndProc_WDMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
@@ -734,6 +880,7 @@ LRESULT CALLBACK WndProc_WDMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 		m_LVProp.SetLVExtendStyle(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
 		m_LVProp.SetExplorerTheme();
+		m_LVProp.SetNotifyMsg(CNM_PROPLISTNOTIFY);
 
 		m_EDDesc.SetMultiLine(TRUE);
 		m_EDDesc.Create(NULL, WS_VISIBLE | ES_AUTOVSCROLL, 0, 0, 0, 0, 0, hWnd, IDC_ED_DESC);
@@ -821,41 +968,10 @@ LRESULT CALLBACK WndProc_WDMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 				EmptyClipboard();
 				HWND hCtrl;
 				SIZE_T cSel = pTabCtx->pMultiSelMarker.size();
-				SIZE_T cb = sizeof(CBINFOCTRLHEADER);
-				RECT rc;
 
+				CCtrlsSerializer Serializer(pTabCtx, m_iDpi);
 
-				std::vector<RECT> aRects;// 所有有效窗口的矩形
-				std::vector<VALIDSELCTRL> aValidWnds;// 所有有效窗口的描述结构
-				int minLeft = INT_MAX, minTop = INT_MAX;// 最小的左边和顶边
-
-				// 记录有效控件
-				std::function<void(HWND hWnd, CTRLINFO& Info)> ProcessValidCtrl = [&](HWND hWnd, CTRLINFO& Info)
-				{
-					cb += ((Info.sText.size() + 1) * sizeof(WCHAR) + Info.rbData.m_cb);
-
-					GetWindowRect(hWnd, &rc);
-					if (rc.left < minLeft)
-						minLeft = rc.left;
-					if (rc.top < minTop)
-						minTop = rc.top;
-
-					aRects.push_back(rc);
-					aValidWnds.push_back({ hWnd,0 });
-					int idxCurrParent = (int)aValidWnds.size() - 1;
-
-					HWND hTemp = GetWindow(hWnd, GW_CHILD);
-					while (hTemp)
-					{
-						++aValidWnds[idxCurrParent].cChildren;
-						ProcessValidCtrl(hTemp, pTabCtx->AllCtrls[hTemp]);
-						hTemp = GetWindow(hTemp, GW_HWNDNEXT);
-					}
-				};
-
-				aRects.reserve(cSel);
-				aValidWnds.reserve(cSel);
-
+				Serializer.Reserve((int)cSel);
 				for (auto x : pTabCtx->pMultiSelMarker)
 				{
 					hCtrl = x->GetTargetWindow();
@@ -864,41 +980,12 @@ LRESULT CALLBACK WndProc_WDMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 					if (IsCtrlParentSel(pTabCtx, hCtrl))// 如果一个控件的某上级窗口被选择，那么不应该处理
 						continue;
 
-					ProcessValidCtrl(hCtrl, Info);
+					Serializer.AddCtrl(hCtrl);
 				}
 
-				cb += (sizeof(CBINFOCTRL) * aValidWnds.size());
-
-				HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, cb);
+				HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, Serializer.GetDataSize());
 				void* pData = GlobalLock(hGlobal);
-				eck::CMemWriter w(pData);
-
-				CBINFOCTRLHEADER Header;
-				Header.iVer = CBFVER_DESIGN_CTRL_1;
-				Header.cCtrls = (int)aValidWnds.size();
-				w << Header;
-
-				CBINFOCTRL CtrlInfo;
-				EckCounter(aValidWnds.size(), i)
-				{
-					hCtrl = aValidWnds[i].hWnd;
-					auto& Info = pTabCtx->AllCtrls[hCtrl];
-
-					CtrlInfo.cchText = (int)Info.sText.size();
-					CtrlInfo.cbData = (DWORD)Info.rbData.m_cb;
-					CtrlInfo.dwStyle = (DWORD)GetWindowLongPtrW(hCtrl, GWL_STYLE);
-					CtrlInfo.dwExStyle = (DWORD)GetWindowLongPtrW(hCtrl, GWL_EXSTYLE);
-					CtrlInfo.idxInfo = Info.idxInfo;
-					CtrlInfo.rc.left = aRects[i].left - minLeft;
-					CtrlInfo.rc.top = aRects[i].top - minTop;
-					CtrlInfo.rc.right = aRects[i].right - aRects[i].left;
-					CtrlInfo.rc.bottom = aRects[i].bottom - aRects[i].top;
-					CtrlInfo.cChildren = aValidWnds[i].cChildren;
-
-					w << CtrlInfo << Info.sText << Info.rbData;
-				}
-
-				EckDbgPrintFmt(L"剪贴板数据  距离 = %I64d  分配 = %I64d", w.m_pMem - (BYTE*)pData, cb);
+				Serializer.Serialize(pData);
 				GlobalUnlock(hGlobal);
 				SetClipboardData(m_uCFCtrlInfo, hGlobal);
 				CloseClipboard();
@@ -918,10 +1005,10 @@ LRESULT CALLBACK WndProc_WDMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 				void* pData = GlobalLock(hGlobal);
 				eck::CMemReader r(pData);
 
-				auto pHeader = (CBINFOCTRLHEADER*)r.m_pMem;
-				r += sizeof(CBINFOCTRLHEADER);
+				auto pHeader = (eck::FTCTRLDATAHEADER*)r.m_pMem;
+				r += sizeof(eck::FTCTRLDATAHEADER);
 
-				CBINFOCTRL* pCtrlInfo;
+				eck::FTCTRLDATA* pCtrlInfo;
 				PCWSTR pszText;
 				BYTE* pCtrlData;
 				HWND hParent;
@@ -938,8 +1025,8 @@ LRESULT CALLBACK WndProc_WDMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 				int j = 0;
 				EckCounter(pHeader->cCtrls, i)
 				{
-					pCtrlInfo = (CBINFOCTRL*)r.m_pMem;
-					r += sizeof(CBINFOCTRL);
+					pCtrlInfo = (eck::FTCTRLDATA*)r.m_pMem;
+					r += sizeof(eck::FTCTRLDATA);
 					pszText = (PCWSTR)r.m_pMem;
 					r += ((pCtrlInfo->cchText + 1) * sizeof(WCHAR));
 					pCtrlData = r.m_pMem;
@@ -1007,6 +1094,34 @@ LRESULT CALLBACK WndProc_WDMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 				}
 
 				SingleSel(pTabCtx, pTabCtx->pWorkWnd->GetHWND());
+			}
+			return 0;
+
+			case IDMI_SAVEWNDTABLE:
+			{
+				CCtrlsSerializer Serializer(pTabCtx, m_iDpi);
+				EnumChildWindows(pTabCtx->pWorkWnd->GetHWND(), [](HWND hChild, LPARAM lParam)->BOOL
+					{
+						auto p = (CCtrlsSerializer*)lParam;
+						p->AddCtrl(hChild);
+						return TRUE;
+					}, (LPARAM)&Serializer);
+
+				eck::CRefBin rb(Serializer.GetDataSize() + sizeof(eck::FORMTABLEHEADER) + sizeof(eck::FORMTABLE_INDEXENTRY));
+				eck::CMemWriter w(rb);
+				eck::FORMTABLEHEADER* pHeader;
+				w.SkipPointer(pHeader);
+				pHeader->iVer = 1;
+				pHeader->cForms = 1;
+				eck::FORMTABLE_INDEXENTRY* pEntry;
+				w.SkipPointer(pEntry);
+				pEntry->cbSize = (UINT)rb.m_cb;
+				pEntry->iID = 101;
+				pEntry->uOffset = sizeof(eck::FORMTABLEHEADER) + sizeof(eck::FORMTABLE_INDEXENTRY);
+
+				Serializer.Serialize(w);
+
+				eck::WriteToFile(LR"(E:\Desktop\1.eckft)", rb);
 			}
 			return 0;
 			}
@@ -1094,6 +1209,31 @@ LRESULT CALLBACK WndProc_WDMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 		ImageList_Destroy(EckLVSetItemHeight(m_LVProp.GetHWND(), DPI(24)));
 
 		eck::OnDpiChanged_Parent_PreMonV2(hWnd, m_iDpi, iOldDpi);
+	}
+	return 0;
+
+	case CNM_PROPLISTNOTIFY:
+	{
+		switch (wParam)
+		{
+		case PLN_PROPCHANGED:
+		{
+			switch (lParam)
+			{
+			case EckCPIDToIndex(eck::CPID_LEFT):
+			case EckCPIDToIndex(eck::CPID_TOP):
+			case EckCPIDToIndex(eck::CPID_WIDTH):
+			case EckCPIDToIndex(eck::CPID_HEIGHT):
+			{
+				auto pTabCtx = m_Tabs[m_Tab.GetCurSel()];
+				for (auto x : pTabCtx->pMultiSelMarker)
+					x->MoveToTargetWindow();
+			}
+			return 0;
+			}
+		}
+		return 0;
+		}
 	}
 	return 0;
 	}

@@ -15,24 +15,7 @@
 #define CBFVER_DESIGN_CTRL_1 1
 
 #pragma pack(push, 4)
-struct CBINFOCTRLHEADER
-{
-	int iVer;
-	int cCtrls;
-};
 
-struct CBINFOCTRL
-{
-	DWORD cbData;
-	int cchText;
-	int cChildren;
-	int idxInfo;
-	RECT rc;// 左顶宽高，相对于最靠左上角的控件
-	DWORD dwStyle;
-	DWORD dwExStyle;
-};
-// WCHAR szText[];
-// BYTE byData[];
 #pragma pack(pop)
 
 struct VALIDSELCTRL

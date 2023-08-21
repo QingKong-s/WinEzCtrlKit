@@ -301,16 +301,16 @@ LRESULT CALLBACK CEdit::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 		return lResult;
 	}
 
-	//case WM_NCHITTEST:
-	//{
-	//	auto lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);
-	//	if (!p->GetMultiLine())
-	//	{
-	//		if (lResult == HTNOWHERE)
-	//			lResult = HTBORDER;
-	//	}
-	//	return lResult;
-	//}
+	case WM_NCHITTEST:
+	{
+		auto lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);
+		if (!p->GetMultiLine())
+		{
+			if (lResult == HTNOWHERE)
+				lResult = HTCLIENT;
+		}
+		return lResult;
+	}
 	}
 
 	return DefSubclassProc(hWnd, uMsg, wParam, lParam);
@@ -331,44 +331,6 @@ void CEdit::SetClr(int iType, COLORREF cr)
 		break;
 	}
 	Redraw();
-}
-
-void CEdit::SetScrollBar(int i)
-{
-	switch (i)
-	{
-	case 0:
-		ShowScrollBar(m_hWnd, SB_VERT, FALSE);
-		ShowScrollBar(m_hWnd, SB_HORZ, FALSE);
-		break;
-	case 1:
-		ShowScrollBar(m_hWnd, SB_VERT, FALSE);
-		ShowScrollBar(m_hWnd, SB_HORZ, TRUE);
-		break;
-	case 2:
-		ShowScrollBar(m_hWnd, SB_VERT, TRUE);
-		ShowScrollBar(m_hWnd, SB_HORZ, FALSE);
-		break;
-	case 3:
-		ShowScrollBar(m_hWnd, SB_VERT, TRUE);
-		ShowScrollBar(m_hWnd, SB_HORZ, TRUE);
-		break;
-	}
-}
-
-int CEdit::GetScrollBar()
-{
-	BOOL bVSB = IsBitSet(GetWindowLongPtrW(m_hWnd, GWL_STYLE), WS_VSCROLL);
-	BOOL bHSB = IsBitSet(GetWindowLongPtrW(m_hWnd, GWL_STYLE), WS_HSCROLL);
-	if (bVSB)
-		if (bHSB)
-			return 3;
-		else
-			return 2;
-	if (bHSB)
-		return 1;
-
-	return 0;
 }
 
 void CEdit::SetTransformMode(int iTransformMode)
@@ -473,5 +435,74 @@ CRefStrW CEdit::GetLine(int iPos)
 	}
 	return rs;
 }
-
 ECK_NAMESPACE_END
+
+#ifdef ECK_CTRL_DESIGN_INTERFACE
+#include "DesignerDef.h"
+ECK_NAMESPACE_BEGIN
+EckPropCallBackRet CALLBACK SetProp_Edit(CWnd* pWnd, int idProp, EckCtrlPropValue* pProp)
+{
+	EckDCtrlDefSetProp;
+
+	auto p = (CEdit*)pWnd;
+	switch (idProp)
+	{
+
+	}
+	return ESPR_NONE;
+}
+
+EckPropCallBackRet CALLBACK GetProp_Edit(CWnd* pWnd, int idProp, EckCtrlPropValue* pProp)
+{
+	EckDCtrlDefGetProp;
+
+	return ESPR_NONE;
+}
+
+CWnd* CALLBACK Create_Edit(BYTE* pData, ECK_CREATE_CTRL_EXTRA_ARGS)
+{
+	auto p = new CEdit;
+	p->Create(ECK_CREATE_CTRL_EXTRA_REALARGS);
+	if (p->GetHWND())
+		return p;
+	else
+	{
+		delete p;
+		return NULL;
+	}
+}
+
+static EckCtrlPropEntry s_Prop_Edit[] =
+{
+	{1,L"TextColor",L"文本颜色",L"",ECPT::Color},
+	{2,L"TextBKColor",L"文本背景颜色",L"",ECPT::Color},
+	{3,L"BKColor",L"编辑框背景颜色",L"",ECPT::Color},
+	{4,L"HideSelection",L"隐藏选择",L"",ECPT::Bool},
+	{5,L"MaxLength",L"最大允许长度",L"",ECPT::Int},
+	{6,L"MultiLine",L"是否多行",L"",ECPT::Bool},
+	{7,L"Align",L"对齐方式",L"",ECPT::PickInt,ECPF_NONE,L"左对齐\0居中\0右对齐\0\0"},
+	{8,L"InputMode",L"输入方式",L"",ECPT::PickInt,ECPF_NONE,
+					L"通常\0""只读\0""密码\0""整数文本\0""小数文本\0""输入字节\0""输入短整数\0""输入整数\0"
+					"输入长整数\0""输入小数\0""输入双精度小数\0""输入日期时间\0""\0"},
+	{9,L"PasswordChar",L"密码遮盖字符",L"",ECPT::Text},
+	{10,L"TransformMode",L"转换方式",L"",ECPT::PickInt,ECPF_NONE,L"无\0大写到小写\0小写到大写\0\0"},
+	{11,L"CueBanner",L"提示文本",L"",ECPT::Text},
+	{12,L"AlwaysCueBanner",L"总是显示提示文本",L"",ECPT::Bool},
+	{13,L"AutoWrap",L"自动换行",L"",ECPT::Bool},
+};
+
+EckCtrlDesignInfo CtInfoEdit =
+{
+	L"Edit",
+	L"编辑框",
+	L"",
+	NULL,
+	ARRAYSIZE(s_Prop_Edit),
+	s_Prop_Edit,
+	SetProp_Edit,
+	GetProp_Edit,
+	Create_Edit,
+	{140,40}
+};
+ECK_NAMESPACE_END
+#endif // ECK_CTRL_DESIGN_INTERFACE

@@ -280,7 +280,8 @@ LRESULT CALLBACK CTaskGroupList::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wPara
 	return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 }
 
-HWND CTaskGroupList::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle, int x, int y, int cx, int cy, HWND hParent, UINT nID)
+HWND CTaskGroupList::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle, 
+	int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData)
 {
 	dwStyle |= (WS_CHILD | LVS_NOCOLUMNHEADER);
 	dwStyle &= ~(LVS_OWNERDATA | LVS_OWNERDRAWFIXED);

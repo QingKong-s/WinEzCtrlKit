@@ -66,7 +66,7 @@ private:
 		UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 public:
 	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, UINT nID)
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
 	{
 		m_Info.crTextBK = m_Info.crBK = GetSysColor(COLOR_WINDOW);
 		m_Info.crText = CLR_DEFAULT;
@@ -149,10 +149,6 @@ public:
 	{
 		return m_Info.bAutoWrap;
 	}
-
-	void SetScrollBar(int i);
-
-	int GetScrollBar();
 
 	EckInline void SetAlign(int iAlign)
 	{

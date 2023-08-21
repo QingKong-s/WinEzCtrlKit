@@ -2,6 +2,7 @@
 #include "ECK.h"
 #include "WndHelper.h"
 #include "CWnd.h"
+#include "CAllocator.h"
 
 #ifdef ECK_CTRL_DESIGN_INTERFACE
 ECK_NAMESPACE_BEGIN
@@ -54,7 +55,7 @@ union EckCtrlPropValue
 	PWSTR Vpsz;
 	struct
 	{
-		void* pData;
+		BYTE* pData;
 		SIZE_T cbSize;
 	} Vbin;
 };
@@ -100,8 +101,12 @@ enum COMMPROPID
 	CPID_TEXT = -6,
 	CPID_VISIBLE = -7,
 	CPID_ENABLE = -8,
-	CPID_FONT = -9
+	CPID_FONT = -9,
+	CPID_FRAMETYPE = -10,
+	CPID_SCROLLBAR = -11,
 };
+
+#define EckCPIDToIndex(cpid) ((-(cpid)) - 1)
 
 static EckCtrlPropEntry s_CommProp[] =
 {
@@ -114,12 +119,15 @@ static EckCtrlPropEntry s_CommProp[] =
 	{CPID_VISIBLE,L"Visible",L"可视",L"",ECPT::Bool},
 	{CPID_ENABLE,L"Enable",L"禁止",L"",ECPT::Bool},
 	{CPID_FONT,L"Font",L"字体",L"",ECPT::Font},
+	{CPID_FRAMETYPE,L"Frame",L"边框",L"",ECPT::PickInt,ECPF_NONE,L"无边框\0凹入式\0凸出式\0浅凹入式\0镜框式\0单线边框式\0\0"},
+	{CPID_SCROLLBAR,L"ScrollBar",L"滚动条",L"",ECPT::PickInt,ECPF_NONE,L"无\0横向滚动条\0纵向滚动条\0横向及纵向滚动条\0\0"},
 };
 
 #define ECK_ALL_CTRL_CLASS \
 CtInfoButton \
 ,CtInfoCheckButton \
-,CtInfoCommandLink\
+,CtInfoCommandLink \
+,CtInfoEdit \
 
 
 
@@ -128,24 +136,21 @@ ECK_ALL_CTRL_CLASS;
 
 static EckCtrlDesignInfo s_EckDesignAllCtrl[] = { ECK_ALL_CTRL_CLASS };
 
-
-EckInline void* EckDesignAlloc(SIZE_T cb)
-{
-	return HeapAlloc(GetProcessHeap(), 0, cb);
-}
-
-EckInline void* EckDesignReAlloc(void* pOrg, SIZE_T cb)
-{
-	return HeapReAlloc(GetProcessHeap(), 0, pOrg, cb);
-}
-
-EckInline void EckDesignFree(void* p)
-{
-	HeapFree(GetProcessHeap(), 0, p);
-}
+using TDesignAlloc = CAllocator<BYTE>;
 
 EckPropCallBackRet CALLBACK SetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropValue* pProp, BOOL* pbProcessed);
 
 EckPropCallBackRet CALLBACK GetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropValue* pProp, BOOL* pbProcessed);
+
+#define EckDCtrlDefSetProp \
+					BOOL bDefProcessed; \
+					auto iDefRet = SetProp_Common(pWnd, idProp, pProp, &bDefProcessed); \
+					if (bDefProcessed) \
+						return iDefRet;
+#define EckDCtrlDefGetProp \
+					BOOL bDefProcessed; \
+					auto iDefRet = GetProp_Common(pWnd, idProp, pProp, &bDefProcessed); \
+					if (bDefProcessed) \
+						return iDefRet;
 ECK_NAMESPACE_END
 #endif // ECK_CTRL_DESIGN_INTERFACE

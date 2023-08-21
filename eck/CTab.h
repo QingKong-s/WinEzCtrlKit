@@ -6,7 +6,7 @@ class CTab :public CWnd
 {
 public:
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, UINT nID) override
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
 	{
 		dwStyle |= WS_CHILD;
 		m_hWnd = CreateWindowExW(0, WC_TABCONTROLW, NULL, dwStyle,

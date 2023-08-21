@@ -33,19 +33,25 @@ int CButton::GetAlign(BOOL bHAlign)
 	DWORD dwStyle = GetStyle();
 	if (bHAlign)
 	{
-		if (IsBitSet(dwStyle, BS_CENTER))
-			return CACenter;
+		if (IsBitSet(dwStyle, BS_LEFT))
+			return 0;
+		else if (IsBitSet(dwStyle, BS_CENTER))
+			return 1;
 		else if (IsBitSet(dwStyle, BS_RIGHT))
-			return CARight;
-		return CALeft;
+			return 2;
+		else
+			return 1;
 	}
 	else
 	{
-		if (IsBitSet(dwStyle, BS_VCENTER))
-			return CAVCenter;
+		if (IsBitSet(dwStyle, BS_TOP))
+			return 0;
+		else if (IsBitSet(dwStyle, BS_VCENTER))
+			return 1;
 		else if (IsBitSet(dwStyle, BS_BOTTOM))
-			return CARight;
-		return CALeft;
+			return 2;
+		else
+			return 1;
 	}
 }
 
@@ -146,13 +152,57 @@ ECK_NAMESPACE_END
 ECK_NAMESPACE_BEGIN
 EckPropCallBackRet CALLBACK SetProp_Button(CWnd* pWnd, int idProp, EckCtrlPropValue* pProp)
 {
-	auto p = (CButton*)pWnd;
+	EckDCtrlDefSetProp;
+
+	auto p = (CPushButton*)pWnd;
+	switch (idProp)
+	{
+	case 1:
+		p->SetAlign(TRUE, pProp->Vi);
+		break;
+	case 2:
+		p->SetAlign(FALSE, pProp->Vi);
+		break;
+	case 3:
+		break;
+	case 4:
+		p->SetTextImageShowing(pProp->Vb);
+		break;
+	case 5:
+		p->SetDef(pProp->Vb);
+		break;
+	case 6:
+		p->SetType(pProp->Vi);
+		break;
+	}
 	return ESPR_NONE;
 }
 
 EckPropCallBackRet CALLBACK GetProp_Button(CWnd* pWnd, int idProp, EckCtrlPropValue* pProp)
 {
+	EckDCtrlDefGetProp;
 
+	auto p = (CPushButton*)pWnd;
+	switch (idProp)
+	{
+	case 1:
+		pProp->Vi = p->GetAlign(TRUE);
+		break;
+	case 2:
+		pProp->Vi = p->GetAlign(FALSE);
+		break;
+	case 3:
+		break;
+	case 4:
+		pProp->Vb = p->GetTextImageShowing();
+		break;
+	case 5:
+		pProp->Vb = p->GetDef();
+		break;
+	case 6:
+		pProp->Vi = p->GetType();
+		break;
+	}
 	return ESPR_NONE;
 }
 
@@ -171,12 +221,12 @@ CWnd* CALLBACK Create_Button(BYTE* pData, ECK_CREATE_CTRL_EXTRA_ARGS)
 
 static EckCtrlPropEntry s_Prop_Button[] =
 {
-	{2,L"AlignH",L"横向对齐",L"",ECPT::PickInt,ECPF_NONE,L"左边\0""居中\0""右边\0""\0"},
-	{3,L"AlignV",L"纵向对齐",L"",ECPT::PickInt,ECPF_NONE,L"上边\0""居中\0""下边\0""\0"},
-	{4,L"Image",L"图片",L"",ECPT::Image},
-	{5,L"ShowImageAndText",L"同时显示图片和文本",L"",ECPT::Bool},
-	{7,L"Default",L"默认",L"",ECPT::Bool,ECPF_NONE},
-	{8,L"Type",L"类型",L"",ECPT::PickInt,ECPF_NONE,L"普通按钮\0""拆分按钮\0""\0"},
+	{1,L"AlignH",L"横向对齐",L"",ECPT::PickInt,ECPF_NONE,L"左边\0""居中\0""右边\0""\0"},
+	{2,L"AlignV",L"纵向对齐",L"",ECPT::PickInt,ECPF_NONE,L"上边\0""居中\0""下边\0""\0"},
+	{3,L"Image",L"图片",L"",ECPT::Image},
+	{4,L"ShowImageAndText",L"同时显示图片和文本",L"",ECPT::Bool},
+	{5,L"Default",L"默认",L"",ECPT::Bool,ECPF_NONE},
+	{6,L"Type",L"类型",L"",ECPT::PickInt,ECPF_NONE,L"普通按钮\0""拆分按钮\0""\0"},
 };
 
 EckCtrlDesignInfo CtInfoButton =
