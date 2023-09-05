@@ -47,9 +47,9 @@ SIZE_T FindBinRev(PCVOID pMain, SIZE_T cbMainSize, PCVOID pSub, SIZE_T cbSubSize
 
 class CRefBin
 {
-private:
-	using TAlloc = CAllocator<BYTE>;
 public:
+	using TAlloc = CAllocator<BYTE>;
+
 	BYTE* m_pStream = NULL;
 	SIZE_T m_cb = 0u;
 	SIZE_T m_cbCapacity = 0u;
@@ -125,9 +125,19 @@ public:
 		return *this;
 	}
 
-	EckInline BYTE* operator+(SIZE_T x)
+	EckInline BYTE* operator+(SIZE_T x) const
 	{
 		return m_pStream + x;
+	}
+
+	EckInline SIZE_T Size() const
+	{
+		return m_cb;
+	}
+
+	EckInline BYTE* Data() const
+	{
+		return m_pStream;
 	}
 
 	/// <summary>
@@ -265,7 +275,7 @@ public:
 	/// <param name="cbBin">字节集长度</param>
 	/// <param name="cCount">重复次数</param>
 	/// <param name="posStart">起始位置</param>
-	void MakeRepeatedBinSeq(PCVOID pBin, SIZE_T cbBin, SIZE_T cCount, SIZE_T posStart = 0u);
+	void MakeRepeatedBinSequence(PCVOID pBin, SIZE_T cbBin, SIZE_T cCount, SIZE_T posStart = 0u);
 
 	/// <summary>
 	/// 尾插

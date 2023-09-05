@@ -9,11 +9,27 @@ ECK_NAMESPACE_BEGIN
 CRefStrW g_rsCurrDir;
 ULONG_PTR g_uGpToken = 0u;
 HINSTANCE g_hInstance = NULL;
+
+
+#ifdef _DEBUG
+void CALLBACK GdiplusDebug(GpDebugEventLevel dwLevel, CHAR* pszMsg)
+{
+	PWSTR pszMsgW = A2W(pszMsg);
+	DbgPrint(pszMsgW);
+	CAllocator<WCHAR>::Free(pszMsgW);
+	if (dwLevel == DebugEventLevelFatal)
+		DebugBreak();
+}
+#endif,
+
 InitStatus Init(HINSTANCE hInstance)
 {
 	g_hInstance = hInstance;
 	GdiplusStartupInput gpsi{};
 	gpsi.GdiplusVersion = 1;
+#ifdef _DEBUG
+	gpsi.DebugEventCallback = GdiplusDebug;
+#endif
 	if (GdiplusStartup(&g_uGpToken, &gpsi, NULL) != Ok)
 		return InitStatus::GdiplusInitError;
 

@@ -3,7 +3,6 @@
 #include "Resource.h"
 
 #include <dwmapi.h>
-#include <ntverp.h>
 
 #include "eck/Env.h"
 #include "eck/DbgHelper.h"
@@ -23,6 +22,7 @@
 #include "eck/CListView.h"
 #include "eck/CTaskGroupList.h"
 #include "eck/CArray.h"
+#include "eck/CResSet.h"
 
 
 using namespace std::literals;
@@ -99,8 +99,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		MessageBoxW(NULL, L"初始化失败", L"", 0);
 		return 1;
 	}
+
 	using namespace eck;
 	using namespace eck::Literals;
+
+	//CResSet<int> ress;
+	
+
+	//BYTE by[20];
+	//CMemWriter w(by);
+	//w.SetValidRange(by, 10);
+	//w << 1 << 2;
+	//w << 3;
 
 	//PCWSTR psz = L"1000|3000|4000";
 	//std::vector<eck::CRefStrW> h{};
@@ -507,7 +517,7 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		td.Show(&tdc);
 
 		g_SBNcH = new eck::CScrollBarWndH;
-		g_SBNcH->Attach(hWnd);
+		g_SBNcH->Manage(eck::CWnd::ManageOp::Attach, hWnd);
 		g_SBNcH->ShowScrollBar(FALSE);
 
 		g_SB = new eck::CScrollBar;
@@ -527,7 +537,7 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 
 
 		HIMAGELIST hIL = ImageList_Create(48, 48, ILC_COLOR32, 10, 10);
-		HBITMAP hbm = eck::CreateHBITMAP(LR"(E:\Desktop\图标9.ico)");
+		HBITMAP hbm = eck::CreateHBITMAP(LR"(E:\Desktop\Temp\图标9.ico)");
 		ImageList_Add(hIL, hbm, NULL);
 
 		g_TGL = new eck::CTaskGroupList;

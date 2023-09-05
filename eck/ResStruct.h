@@ -58,14 +58,10 @@ struct FTCTRLDATAHEADER
 struct FTCTRLDATA
 {
 	UINT cbData;
-	int cchText;
 	int cChildren;
 	int idxInfo;
 	RECT rc;// 左顶宽高，相对于最靠左上角的控件
-	DWORD dwStyle;
-	DWORD dwExStyle;
 };
-// WCHAR szText[];
 // BYTE byData[];
 
 

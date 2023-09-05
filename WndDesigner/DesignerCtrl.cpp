@@ -334,7 +334,7 @@ LRESULT CALLBACK CPropList::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARAM wPa
 				}
 
 				rcHItem.left += p->m_cxPadding;
-				DrawTextW(hDC, Item.rsText, Item.rsText.m_cchText, &rcHItem,
+				DrawTextW(hDC, Item.rsText, Item.rsText.Size(), &rcHItem,
 					DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS);
 
 
@@ -377,7 +377,7 @@ LRESULT CALLBACK CPropList::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARAM wPa
 					case eck::ECPT::DateTime:
 						break;
 					case eck::ECPT::PickInt:
-						sVal = std::to_wstring(Union.Vi) + L". " + Item.aPickStr[Union.Vi].m_pszText;
+						sVal = std::to_wstring(Union.Vi) + L". " + Item.aPickStr[Union.Vi].Data();
 						break;
 					case eck::ECPT::PickText:
 						break;
@@ -489,25 +489,25 @@ LRESULT CALLBACK CPropList::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 		{
 		case eck::ECPT::Text:
 			p->m_Edit.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
-			p->m_Edit.SetInputMode(eck::CEdit::InputMode::Normal);
-			p->m_Edit.SetText(std::get<1>(Item.Val).m_pszText);
+			p->m_Edit.SetInputMode(eck::CEditExt::InputMode::Normal);
+			p->m_Edit.SetText(std::get<1>(Item.Val).Data());
 			ShowWindow(p->m_Edit, SW_SHOWNOACTIVATE);
 			break;
 		case eck::ECPT::Int:
 			p->m_Edit.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
-			p->m_Edit.SetInputMode(eck::CEdit::InputMode::Int);
+			p->m_Edit.SetInputMode(eck::CEditExt::InputMode::Int);
 			p->m_Edit.SetText(std::to_wstring(std::get<0>(Item.Val).Vi).c_str());
 			ShowWindow(p->m_Edit, SW_SHOWNOACTIVATE);
 			break;
 		case eck::ECPT::Float:
 			p->m_Edit.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
-			p->m_Edit.SetInputMode(eck::CEdit::InputMode::Float);
+			p->m_Edit.SetInputMode(eck::CEditExt::InputMode::Float);
 			p->m_Edit.SetText(std::to_wstring(std::get<0>(Item.Val).Vf).c_str());
 			ShowWindow(p->m_Edit, SW_SHOWNOACTIVATE);
 			break;
 		case eck::ECPT::Double:
 			p->m_Edit.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
-			p->m_Edit.SetInputMode(eck::CEdit::InputMode::Double);
+			p->m_Edit.SetInputMode(eck::CEditExt::InputMode::Double);
 			p->m_Edit.SetText(std::to_wstring(std::get<0>(Item.Val).Vlf).c_str());
 			ShowWindow(p->m_Edit, SW_SHOWNOACTIVATE);
 			break;

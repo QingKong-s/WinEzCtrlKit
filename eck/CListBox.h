@@ -279,7 +279,7 @@ public:
 		if (cch <= 0)
 			return rs;
 		rs.ReSize(cch);
-		SendMsg(LB_GETTEXT, idx, (LPARAM)rs.m_pszText);
+		SendMsg(LB_GETTEXT, idx, (LPARAM)rs.Data());
 		return rs;
 	}
 

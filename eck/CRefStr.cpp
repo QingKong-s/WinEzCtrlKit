@@ -1,7 +1,5 @@
 #include "CRefStr.h"
 
-#include <functional>
-
 ECK_NAMESPACE_BEGIN
 int CRefStrW::DupString(PCWSTR pszSrc, int cchSrc)
 {
@@ -135,7 +133,7 @@ void CRefStrW::ReplaceSubStr(PCWSTR pszReplaced, int cchReplaced, PCWSTR pszSrc,
 	}
 }
 
-void CRefStrW::MakeRepeatedStrSeq(PCWSTR pszText, int cchText, int cCount, int posStart)
+void CRefStrW::MakeRepeatedStrSequence(PCWSTR pszText, int cchText, int cCount, int posStart)
 {
 	if (cchText < 0)
 		cchText = (int)wcslen(pszText);
@@ -156,7 +154,7 @@ CRefStrW ToStr(int x, int iRadix)
 	CRefStrW rs;
 	rs.ReSize(24);
 	*rs = L'\0';
-	_itow_s(x, rs, (SIZE_T)rs.m_cchText, iRadix);
+	_itow_s(x, rs, (SIZE_T)rs.Size(), iRadix);
 	rs.ReCalcLen();
 	return rs;
 }
@@ -166,7 +164,7 @@ CRefStrW ToStr(UINT x, int iRadix)
 	CRefStrW rs;
 	rs.ReSize(24);
 	*rs = L'\0';
-	_ultow_s(x, rs, (SIZE_T)rs.m_cchText, iRadix);
+	_ultow_s(x, rs, (SIZE_T)rs.Size(), iRadix);
 	rs.ReCalcLen();
 	return rs;
 }
@@ -176,7 +174,7 @@ CRefStrW ToStr(LONGLONG x, int iRadix)
 	CRefStrW rs;
 	rs.ReSize(24);
 	*rs = L'\0';
-	_i64tow_s(x, rs, (SIZE_T)rs.m_cchText, iRadix);
+	_i64tow_s(x, rs, (SIZE_T)rs.Size(), iRadix);
 	rs.ReCalcLen();
 	return rs;
 }
@@ -186,7 +184,7 @@ CRefStrW ToStr(ULONGLONG x, int iRadix)
 	CRefStrW rs;
 	rs.ReSize(24);
 	*rs = L'\0';
-	_ui64tow_s(x, rs, (SIZE_T)rs.m_cchText, iRadix);
+	_ui64tow_s(x, rs, (SIZE_T)rs.Size(), iRadix);
 	rs.ReCalcLen();
 	return rs;
 }
@@ -196,7 +194,7 @@ CRefStrW ToStr(double x, int iPrecision)
 	CRefStrW rs;
 	rs.ReSize(24);
 	*rs = L'\0';
-	_snwprintf_s(rs, rs.m_cchText, rs.m_cchText, L"%.*g", iPrecision, x);
+	_snwprintf_s(rs, rs.Size(), rs.Size(), L"%.*g", iPrecision, x);
 	rs.ReCalcLen();
 	return rs;
 }

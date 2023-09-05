@@ -133,7 +133,7 @@ void CRefBin::ReplaceSubBin(PCVOID pReplacedBin, SIZE_T cbReplacedBin, PCVOID pS
 	}
 }
 
-void CRefBin::MakeRepeatedBinSeq(PCVOID pBin, SIZE_T cbBin, SIZE_T cCount, SIZE_T posStart)
+void CRefBin::MakeRepeatedBinSequence(PCVOID pBin, SIZE_T cbBin, SIZE_T cCount, SIZE_T posStart)
 {
 	ReSize(posStart + cCount * cbBin);
 	BYTE* pCurr;

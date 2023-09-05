@@ -173,7 +173,10 @@
     <ClInclude Include="..\eck\CCommDlg.h" />
     <ClInclude Include="..\eck\CDirBox.h" />
     <ClInclude Include="..\eck\CEdit.h" />
+    <ClInclude Include="..\eck\CEditExt.h" />
     <ClInclude Include="..\eck\CFileDlg.h" />
+    <ClInclude Include="..\eck\CForm.h" />
+    <ClInclude Include="..\eck\CFormTable.h" />
     <ClInclude Include="..\eck\CHeader.h" />
     <ClInclude Include="..\eck\CHotKey.h" />
     <ClInclude Include="..\eck\CIniFile.h" />
@@ -192,6 +195,7 @@
     <ClInclude Include="..\eck\CSubclassMgr.h" />
     <ClInclude Include="..\eck\CTab.h" />
     <ClInclude Include="..\eck\CTabExt.h" />
+    <ClInclude Include="..\eck\CTabHeader.h" />
     <ClInclude Include="..\eck\CTaskGroupList.h" />
     <ClInclude Include="..\eck\CTreeView.h" />
     <ClInclude Include="..\eck\CUpDown.h" />
@@ -202,7 +206,6 @@
     <ClInclude Include="..\eck\ECK.h" />
     <ClInclude Include="..\eck\Env.h" />
     <ClInclude Include="..\eck\GdiplusFlatDef.h" />
-    <ClInclude Include="..\eck\HbmMaker.h" />
     <ClInclude Include="..\eck\ImageHelper.h" />
     <ClInclude Include="..\eck\LunarDateLib.h" />
     <ClInclude Include="..\eck\ResStruct.h" />
@@ -222,12 +225,15 @@
     <ClCompile Include="..\eck\CCommDlg.cpp" />
     <ClCompile Include="..\eck\CDirBox.cpp" />
     <ClCompile Include="..\eck\CEdit.cpp" />
+    <ClCompile Include="..\eck\CEditExt.cpp" />
+    <ClCompile Include="..\eck\CForm.cpp" />
     <ClCompile Include="..\eck\CLabel.cpp" />
     <ClCompile Include="..\eck\CListBox.cpp" />
     <ClCompile Include="..\eck\CListBoxExt.cpp" />
     <ClCompile Include="..\eck\CLunarCalendar.cpp" />
     <ClCompile Include="..\eck\CRefBin.cpp" />
     <ClCompile Include="..\eck\CRefStr.cpp" />
+    <ClCompile Include="..\eck\CTabHeader.cpp" />
     <ClCompile Include="..\eck\CTaskGroupList.cpp" />
     <ClCompile Include="..\eck\CWnd.cpp" />
     <ClCompile Include="..\eck\DesignerDef.cpp" />
@@ -242,6 +248,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="WndDesigner.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="..\eck\Others\DpiAwarePreMonV2.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

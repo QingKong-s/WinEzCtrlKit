@@ -57,6 +57,13 @@ union EckCtrlPropValue
 	{
 		BYTE* pData;
 		SIZE_T cbSize;
+
+		auto& operator=(const CRefBin& x)
+		{
+			pData = x.m_pStream;
+			cbSize = x.m_cb;
+			return *this;
+		}
 	} Vbin;
 };
 

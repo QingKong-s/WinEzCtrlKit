@@ -7,6 +7,12 @@ EckPropCallBackRet CALLBACK SetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropVa
 	*pbProcessed = FALSE;
 	switch (idProp)
 	{
+	case CPID_NAME:
+	{
+		*pbProcessed = TRUE;
+		pWnd->m_DDBase.rsName = pProp->Vpsz;
+	}
+	break;
 	case CPID_LEFT:
 	{
 		*pbProcessed = TRUE;
@@ -14,7 +20,7 @@ EckPropCallBackRet CALLBACK SetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropVa
 		RECT rc;
 		GetWindowRect(hWnd, &rc);
 		ScreenToClient(GetParent(hWnd), &rc);
-		rc.left = pProp->Vi;
+		rc.left = eck::DpiScale(pProp->Vi, eck::GetDpi(pWnd->GetHWND()), USER_DEFAULT_SCREEN_DPI);
 		SetWindowPos(hWnd, NULL, rc.left, rc.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
 	}
 	break;
@@ -25,7 +31,7 @@ EckPropCallBackRet CALLBACK SetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropVa
 		RECT rc;
 		GetWindowRect(hWnd, &rc);
 		ScreenToClient(GetParent(hWnd), &rc);
-		rc.top = pProp->Vi;
+		rc.top = eck::DpiScale(pProp->Vi, eck::GetDpi(pWnd->GetHWND()), USER_DEFAULT_SCREEN_DPI);
 		SetWindowPos(hWnd, NULL, rc.left, rc.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
 	}
 	break;
@@ -36,7 +42,7 @@ EckPropCallBackRet CALLBACK SetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropVa
 		RECT rc;
 		GetWindowRect(hWnd, &rc);
 		ScreenToClient(GetParent(hWnd), &rc);
-		rc.right = pProp->Vi;
+		rc.right = eck::DpiScale(pProp->Vi, eck::GetDpi(pWnd->GetHWND()), USER_DEFAULT_SCREEN_DPI);
 		rc.bottom -= rc.top;
 		SetWindowPos(hWnd, NULL, 0, 0, rc.right, rc.bottom, SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
 	}
@@ -48,7 +54,7 @@ EckPropCallBackRet CALLBACK SetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropVa
 		RECT rc;
 		GetWindowRect(hWnd, &rc);
 		ScreenToClient(GetParent(hWnd), &rc);
-		rc.bottom = pProp->Vi;
+		rc.bottom = eck::DpiScale(pProp->Vi, eck::GetDpi(pWnd->GetHWND()), USER_DEFAULT_SCREEN_DPI);
 		rc.right -= rc.left;
 		SetWindowPos(hWnd, NULL, 0, 0, rc.right, rc.bottom, SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
 	}
@@ -83,6 +89,14 @@ EckPropCallBackRet CALLBACK GetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropVa
 	*pbProcessed = FALSE;
 	switch (idProp)
 	{
+	case CPID_NAME:
+	{
+		auto& rsName = pWnd->m_DDBase.rsName;
+		PWSTR p = (PWSTR)TDesignAlloc::Alloc(rsName.ByteSize());
+		rsName.CopyTo(p);
+		pProp->Vpsz = p;
+	}
+	return ESPR_NEEDFREE;
 	case CPID_LEFT:
 	{
 		*pbProcessed = TRUE;
@@ -90,7 +104,7 @@ EckPropCallBackRet CALLBACK GetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropVa
 		RECT rc;
 		GetWindowRect(hWnd, &rc);
 		ScreenToClient(GetParent(hWnd), &rc);
-		pProp->Vi = rc.left;
+		pProp->Vi = eck::DpiScale(rc.left, USER_DEFAULT_SCREEN_DPI, eck::GetDpi(pWnd->GetHWND()));
 	}
 	break;
 	case CPID_TOP:
@@ -100,7 +114,7 @@ EckPropCallBackRet CALLBACK GetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropVa
 		RECT rc;
 		GetWindowRect(hWnd, &rc);
 		ScreenToClient(GetParent(hWnd), &rc);
-		pProp->Vi = rc.top;
+		pProp->Vi = eck::DpiScale(rc.top, USER_DEFAULT_SCREEN_DPI, eck::GetDpi(pWnd->GetHWND()));
 	}
 	break;
 	case CPID_WIDTH:
@@ -110,7 +124,7 @@ EckPropCallBackRet CALLBACK GetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropVa
 		RECT rc;
 		GetWindowRect(hWnd, &rc);
 		ScreenToClient(GetParent(hWnd), &rc);
-		pProp->Vi = rc.right - rc.left;
+		pProp->Vi = eck::DpiScale(rc.right - rc.left, USER_DEFAULT_SCREEN_DPI, eck::GetDpi(pWnd->GetHWND()));
 	}
 	break;
 	case CPID_HEIGHT:
@@ -120,7 +134,7 @@ EckPropCallBackRet CALLBACK GetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropVa
 		RECT rc;
 		GetWindowRect(hWnd, &rc);
 		ScreenToClient(GetParent(hWnd), &rc);
-		pProp->Vi = rc.bottom - rc.top;
+		pProp->Vi = eck::DpiScale(rc.bottom - rc.top, USER_DEFAULT_SCREEN_DPI, eck::GetDpi(pWnd->GetHWND()));
 	}
 	break;
 	case CPID_TEXT:

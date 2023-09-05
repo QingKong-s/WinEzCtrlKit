@@ -5,8 +5,15 @@
 #include <algorithm>
 
 ECK_NAMESPACE_BEGIN
+template<class TRes>
+struct FStdResDeleter
+{
+	void operator()(TRes x)
+	{
 
-template<class TRes, class TDeleter>
+	}
+};
+template<class TRes, class TDeleter = FStdResDeleter<TRes>>
 class CResSet
 {
 private:
@@ -15,7 +22,7 @@ private:
 public:
 	~CResSet()
 	{
-		DestroyAllRes();
+		DestroyRes();
 	}
 
 	BOOL AddRes(int iID, TRes Res)
@@ -38,7 +45,7 @@ public:
 	EckInline TRes operator[](int iID)
 	{
 #ifdef _DEBUG
-		if (!IsExist(iID))
+		if (!IsResExist(iID))
 			EckDbgBreak();
 #endif
 		return m_Record[iID];
@@ -70,7 +77,7 @@ public:
 	{
 		for (auto& x : m_Record)
 		{
-			TDeleter()(it->second);
+			TDeleter()(x.second);
 		}
 		m_Record.clear();
 	}
@@ -82,21 +89,19 @@ public:
 
 	TRes Detach(int iID)
 	{
-		TRes Res;
+		TRes Res{};
 		auto it = m_Record.find(iID);
 		--m_cRes;
 #ifdef _DEBUG
-		if (it != m_Record)
+		if (it == m_Record.end())
 		{
-			Res = it->second;
-			return m_Record.erase(it);
-		}
-		else
+			EckDbgPrintWithPos(L"Î´ÕÒµ½×ÊÔ´");
 			EckDbgBreak();
-#else
-		Res = it->second;
-		return m_Record.erase(it);
+		}
 #endif
+		Res = std::move(it->second);
+		m_Record.erase(it);
+		return Res;
 	}
 };
 

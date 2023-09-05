@@ -7,7 +7,7 @@
 #include "..\eck\CSubclassMgr.h"
 #include "..\eck\DesignerDef.h"
 #include "..\eck\CButton.h"
-#include "..\eck\CEdit.h"
+#include "..\eck\CEditExt.h"
 #include "..\eck\CComboBox.h"
 #include "..\eck\DesignerDef.h"
 
@@ -146,7 +146,7 @@ private:
 		IDC_COMBOBOX = 102,
 		IDC_BUTTON = 103;
 
-	eck::CEdit m_Edit{};
+	eck::CEditExt m_Edit{};
 	eck::CComboBox m_ComboBox{};
 	eck::CPushButton m_Button{};
 
@@ -231,7 +231,7 @@ private:
 			while (*pszPick)
 			{
 				Item.aPickStr.push_back(pszPick);
-				pszPick += (Item.aPickStr.back().m_cchText + 1);
+				pszPick += (Item.aPickStr.back().Size() + 1);
 			}
 
 		switch (Info.Type)
@@ -303,8 +303,14 @@ public:
 		}
 	}
 
-	void ExitEditing()
+	void ExitEditing(BOOL bSave = FALSE)
 	{
+		if (m_idxCurrEdit < 0)
+			return;
+		if (bSave)
+		{
+			SaveEditingInfo(m_idxCurrEdit);
+		}
 		ShowWindow(m_Edit, SW_HIDE);
 		ShowWindow(m_ComboBox, SW_HIDE);
 		ShowWindow(m_Button, SW_HIDE);
@@ -372,5 +378,24 @@ public:
 			return;
 		m_Items[idx].Val = Val;
 		RedrawItems(idx, idx);
+	}
+
+	EckInline eck::EckCtrlPropValue GetValue(int idx)
+	{
+		eck::EckCtrlPropValue Val{};
+		auto& Item = m_Items[idx];
+
+		switch (Item.uType)
+		{
+		case eck::ECPT::Text:
+			Val.Vpsz = std::get<1>(Item.Val);
+			return Val;
+		case eck::ECPT::Customize:
+		case eck::ECPT::Image:
+			Val.Vbin = std::get<2>(Item.Val);
+			return Val;
+		default:
+			return std::get<0>(Item.Val);
+		}
 	}
 };

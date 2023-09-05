@@ -201,11 +201,18 @@ EckInline void DbgPrintFmt(PCWSTR pszFormat, ...)
 #define EckDbgPrint eck::DbgPrint
 #define EckDbgPrintFormatMessage eck::DbgPrintFormatMessage
 #define EckDbgPrintFmt eck::DbgPrintFmt
-#define EckDbgPrintWithPos(x) \
-    EckDbgPrint(L"【调试输出】" ECK_FILEW L" 中 " ECK_FUNCTIONW L" 函数 (" ECK_LINEW L"行)  信息：\n" x) \
-
-
+#define EckDbgPrintWithPos(x) EckDbgPrint(L"【调试输出】" ECK_FILEW L" 中 " ECK_FUNCTIONW L" 函数 (" ECK_LINEW L"行)  信息：\n" x)
 #define EckDbgBreak() DebugBreak()
+#define EckDbgCheckMemRange(pBase, cbSize, pCurr) \
+    if(((PCBYTE)(pBase)) + (cbSize) < (pCurr)) \
+    { \
+        EckDbgPrintFmt(L"内存范围检查失败，起始 = %p，尺寸 = %u，当前 = %p，超出 = %u", \
+        pBase, \
+        (UINT)cbSize, \
+        pCurr, \
+        (UINT)(((SIZE_T)(pCurr)) - ((SIZE_T)(pBase)) - (cbSize))); \
+        EckDbgBreak(); \
+    }
 
 #pragma warning (pop)
 #else
@@ -214,7 +221,7 @@ EckInline void DbgPrintFmt(PCWSTR pszFormat, ...)
 #define EckDbgPrintFormatMessage(x)
 #define EckDbgPrintFmt(...)
 #define EckDbgPrintWithPos(x)
-
 #define EckDbgBreak()
+#define EckDbgCheckMemRange(pBase, cbSize, pCurr)
 #endif // !NDEBUG
 ECK_NAMESPACE_END

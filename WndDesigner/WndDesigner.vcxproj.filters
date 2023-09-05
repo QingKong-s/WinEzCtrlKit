@@ -33,24 +33,6 @@
     <ClInclude Include="WndMain.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\eck\CAllocator.h">
-      <Filter>eck</Filter>
-    </ClInclude>
-    <ClInclude Include="..\eck\CArray.h">
-      <Filter>eck</Filter>
-    </ClInclude>
-    <ClInclude Include="..\eck\CBk.h">
-      <Filter>eck</Filter>
-    </ClInclude>
-    <ClInclude Include="..\eck\CButton.h">
-      <Filter>eck</Filter>
-    </ClInclude>
-    <ClInclude Include="..\eck\CChartBar.h">
-      <Filter>eck</Filter>
-    </ClInclude>
-    <ClInclude Include="..\eck\CChartLine.h">
-      <Filter>eck</Filter>
-    </ClInclude>
     <ClInclude Include="..\eck\CChartPie.h">
       <Filter>eck</Filter>
     </ClInclude>
@@ -69,7 +51,16 @@
     <ClInclude Include="..\eck\CEdit.h">
       <Filter>eck</Filter>
     </ClInclude>
+    <ClInclude Include="..\eck\CEditExt.h">
+      <Filter>eck</Filter>
+    </ClInclude>
     <ClInclude Include="..\eck\CFileDlg.h">
+      <Filter>eck</Filter>
+    </ClInclude>
+    <ClInclude Include="..\eck\CForm.h">
+      <Filter>eck</Filter>
+    </ClInclude>
+    <ClInclude Include="..\eck\CFormTable.h">
       <Filter>eck</Filter>
     </ClInclude>
     <ClInclude Include="..\eck\CHeader.h">
@@ -126,6 +117,9 @@
     <ClInclude Include="..\eck\CTabExt.h">
       <Filter>eck</Filter>
     </ClInclude>
+    <ClInclude Include="..\eck\CTabHeader.h">
+      <Filter>eck</Filter>
+    </ClInclude>
     <ClInclude Include="..\eck\CTaskGroupList.h">
       <Filter>eck</Filter>
     </ClInclude>
@@ -156,9 +150,6 @@
     <ClInclude Include="..\eck\GdiplusFlatDef.h">
       <Filter>eck</Filter>
     </ClInclude>
-    <ClInclude Include="..\eck\HbmMaker.h">
-      <Filter>eck</Filter>
-    </ClInclude>
     <ClInclude Include="..\eck\ImageHelper.h">
       <Filter>eck</Filter>
     </ClInclude>
@@ -174,6 +165,24 @@
     <ClInclude Include="..\eck\WndHelper.h">
       <Filter>eck</Filter>
     </ClInclude>
+    <ClInclude Include="..\eck\CAllocator.h">
+      <Filter>eck</Filter>
+    </ClInclude>
+    <ClInclude Include="..\eck\CArray.h">
+      <Filter>eck</Filter>
+    </ClInclude>
+    <ClInclude Include="..\eck\CBk.h">
+      <Filter>eck</Filter>
+    </ClInclude>
+    <ClInclude Include="..\eck\CButton.h">
+      <Filter>eck</Filter>
+    </ClInclude>
+    <ClInclude Include="..\eck\CChartBar.h">
+      <Filter>eck</Filter>
+    </ClInclude>
+    <ClInclude Include="..\eck\CChartLine.h">
+      <Filter>eck</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Entry.cpp">
@@ -185,15 +194,6 @@
     <ClCompile Include="WndMain.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\eck\CBk.cpp">
-      <Filter>eck</Filter>
-    </ClCompile>
-    <ClCompile Include="..\eck\CButton.cpp">
-      <Filter>eck</Filter>
-    </ClCompile>
-    <ClCompile Include="..\eck\CChartPie.cpp">
-      <Filter>eck</Filter>
-    </ClCompile>
     <ClCompile Include="..\eck\CColorPicker.cpp">
       <Filter>eck</Filter>
     </ClCompile>
@@ -204,6 +204,12 @@
       <Filter>eck</Filter>
     </ClCompile>
     <ClCompile Include="..\eck\CEdit.cpp">
+      <Filter>eck</Filter>
+    </ClCompile>
+    <ClCompile Include="..\eck\CEditExt.cpp">
+      <Filter>eck</Filter>
+    </ClCompile>
+    <ClCompile Include="..\eck\CForm.cpp">
       <Filter>eck</Filter>
     </ClCompile>
     <ClCompile Include="..\eck\CLabel.cpp">
@@ -222,6 +228,9 @@
       <Filter>eck</Filter>
     </ClCompile>
     <ClCompile Include="..\eck\CRefStr.cpp">
+      <Filter>eck</Filter>
+    </ClCompile>
+    <ClCompile Include="..\eck\CTabHeader.cpp">
       <Filter>eck</Filter>
     </ClCompile>
     <ClCompile Include="..\eck\CTaskGroupList.cpp">
@@ -248,10 +257,24 @@
     <ClCompile Include="..\eck\WndHelper.cpp">
       <Filter>eck</Filter>
     </ClCompile>
+    <ClCompile Include="..\eck\CBk.cpp">
+      <Filter>eck</Filter>
+    </ClCompile>
+    <ClCompile Include="..\eck\CButton.cpp">
+      <Filter>eck</Filter>
+    </ClCompile>
+    <ClCompile Include="..\eck\CChartPie.cpp">
+      <Filter>eck</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="WndDesigner.rc">
       <Filter>资源文件</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="..\eck\Others\DpiAwarePreMonV2.manifest">
+      <Filter>eck</Filter>
+    </Manifest>
   </ItemGroup>
 </Project>

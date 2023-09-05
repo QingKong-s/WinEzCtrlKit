@@ -171,7 +171,7 @@ public:
 		if (cch <= 0)
 			return rs;
 		rs.ReSize(cch);
-		SendMsg(CB_GETLBTEXT, idx, (LPARAM)rs.m_pszText);
+		SendMsg(CB_GETLBTEXT, idx, (LPARAM)rs.Data());
 		return rs;
 	}
 
@@ -326,6 +326,18 @@ public:
 		GetClientRect(m_hWnd, &rc);
 		int iOffset = rc.bottom - (int)SendMsg(CB_GETITEMHEIGHT, -1, 0);
 		return (SendMsg(CB_SETITEMHEIGHT, -1, cy - iOffset) != CB_ERR);
+	}
+
+	void SetItemString(int idx, PCWSTR pszText)
+	{
+		LPARAM lParam = GetItemData(idx);
+		int idxNew = InsertString(pszText, idx);
+		SetItemData(idxNew, lParam);
+		if (idxNew <= idx)
+			DeleteString(idx + 1);
+		else
+			DeleteString(idx);
+		SetCurSel(idxNew);
 	}
 
 	/// <summary>

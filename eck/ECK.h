@@ -41,19 +41,13 @@ namespace Literals
 	}
 }
 
-enum CtrlAlignH
+enum class Align
 {
-	CALeft,
-	CACenter,
-	CARight
+	Near,
+	Center,
+	Far
 };
 
-enum CtrlAlignV
-{
-	CATop,
-	CAVCenter,
-	CABottom
-};
 ECK_NAMESPACE_END
 
 
@@ -82,6 +76,7 @@ ECK_NAMESPACE_END
 #define WCN_LUNARCALENDAR	L"Eck.WndClass.LunarCalendar"
 #define WCN_CHARTPIE		L"Eck.WndClass.ChartPie"
 #define WCN_FORM			L"Eck.WndClass.Form"
+#define WCN_TABHEADER		L"Eck.WndClass.TabHeader"
 
 /*ÊôÐÔ×Ö·û´®*/
 
