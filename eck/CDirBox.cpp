@@ -109,7 +109,7 @@ void CDirBox::FillCtrl()
 		return;
 	}
 
-	int cchFile = m_rsDir.m_cchText;
+	int cchFile = m_rsDir.Size();
 	WCHAR pszPath[MAX_PATH];
 	wcscpy(pszPath, m_rsDir);
 	if (*(pszPath + cchFile - 1) == L'\\')

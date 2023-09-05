@@ -171,6 +171,12 @@
     <ClInclude Include="eck\CForm.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\CTabHeader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CEditExt.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Win32Template.cpp">
@@ -243,6 +249,12 @@
       <Filter>ECK Src</Filter>
     </ClCompile>
     <ClCompile Include="eck\CForm.cpp">
+      <Filter>ECK Src</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\CTabHeader.cpp">
+      <Filter>ECK Src</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\CEditExt.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
   </ItemGroup>

@@ -50,10 +50,7 @@ struct CTRLINFO
 {
 	eck::CWnd* pWnd = NULL;
 	int idxInfo = -1;
-	std::wstring sText{};
-	std::wstring sName{};
-	eck::CRefBin rbData{};
-	CTRLSUBCLASSCTX* pSubclassCtx;
+	CTRLSUBCLASSCTX* pSubclassCtx = NULL;
 
 	CTRLINFO() = default;
 
@@ -61,11 +58,10 @@ struct CTRLINFO
 	{
 		pWnd = x.pWnd;
 		idxInfo = x.idxInfo;
-		sText = std::move(x.sText);
-		rbData = std::move(x.rbData);
 		pSubclassCtx = x.pSubclassCtx;
 		x.pWnd = NULL;
 		x.pSubclassCtx = NULL;
+		x.idxInfo = -1;
 	}
 
 	~CTRLINFO()
@@ -104,10 +100,12 @@ __forceinline int DPI(int i)
 eck::CComboBox m_CBBCtrl;
 eck::CListBox m_LBCtrl;
 CPropList m_LVProp;
-eck::CEdit m_EDDesc;
+eck::CEditExt m_EDDesc;
 eck::CTab m_Tab;
 
 std::vector<TABCTX*> m_Tabs{};
+
+int m_idxCurrTab = -1;
 
 struct
 {
@@ -221,7 +219,7 @@ void FillCtrlComboBox(TABCTX* pTabCtx)
 	int idx;
 	for (auto& x : pTabCtx->AllCtrls)
 	{
-		idx = m_CBBCtrl.AddString(x.second.sName.c_str());
+		idx = m_CBBCtrl.AddString(x.second.pWnd->m_DDBase.rsName);
 		m_CBBCtrl.SetItemData(idx, (LPARAM)x.second.pWnd->GetHWND());
 	}
 	idx = m_CBBCtrl.AddString(L"Window");
@@ -316,9 +314,9 @@ void OnPlaceCtrlMouseMove(TABCTX* pTabCtx, HWND hWnd, LPARAM lParam)
 	Rectangle(m_PlaceCtrl_hDC, rc.left, rc.top, rc.right, rc.bottom);
 }
 
-std::wstring MakeCtrlName(int idxInfo, HWND hWnd)
+eck::CRefStrW MakeCtrlName(int idxInfo, HWND hWnd)
 {
-	return std::wstring(eck::s_EckDesignAllCtrl[idxInfo].pszName) + std::to_wstring((ULONG_PTR)hWnd);
+	return eck::CRefStrW(eck::s_EckDesignAllCtrl[idxInfo].pszName) + eck::ToStr((ULONG_PTR)hWnd);
 }
 
 eck::CWnd* CreateCtrl(int idxCtrlList, BYTE* pData, TABCTX* pTabCtx, ECK_CREATE_CTRL_EXTRA_ARGS)
@@ -333,15 +331,14 @@ eck::CWnd* CreateCtrl(int idxCtrlList, BYTE* pData, TABCTX* pTabCtx, ECK_CREATE_
 	CTRLINFO CtrlInfo;
 	CtrlInfo.pWnd = pWnd;
 	CtrlInfo.idxInfo = idxCtrlList - 1;
-	CtrlInfo.sText = pszText;
 	CtrlInfo.pSubclassCtx = pCtx;
-	CtrlInfo.sName = MakeCtrlName(idxCtrlList - 1, pWnd->GetHWND());
+	CtrlInfo.pWnd->m_DDBase.rsName = MakeCtrlName(idxCtrlList - 1, pWnd->GetHWND());
+
+	int idxComboBox = m_CBBCtrl.AddString(CtrlInfo.pWnd->m_DDBase.rsName);
+	m_CBBCtrl.SetItemData(idxComboBox, (LPARAM)pWnd->GetHWND());
 
 	pTabCtx->AllCtrls.insert(std::make_pair(pWnd->GetHWND(), std::move(CtrlInfo)));
-
 	SetWindowSubclass(pWnd->GetHWND(), SubclassProc_Ctrl, SCID_DESIGN, (DWORD_PTR)pCtx);
-	int idxComboBox=m_CBBCtrl.AddString(CtrlInfo.sName.c_str());
-	m_CBBCtrl.SetItemData(idxComboBox, (LPARAM)pWnd->GetHWND());
 	return pWnd;
 }
 
@@ -445,6 +442,7 @@ LRESULT CALLBACK SubclassProc_Ctrl(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			return 0;
 		}
 		/////////////////////////////
+		m_LVProp.ExitEditing(TRUE);
 		if (!IsCtrlSel(p->pTabCtx, hWnd))
 			SingleSel(p->pTabCtx, hWnd);
 		HWND hBK = pTabCtx->pBK->GetHWND();
@@ -629,6 +627,8 @@ LRESULT CALLBACK WndProc_WorkWindow(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 		POINT pt = GET_PT_LPARAM(lParam);
 		MapWindowPoints(hWnd, hBK, &pt, 1);
 
+		m_LVProp.ExitEditing(TRUE);
+
 		int idxCurr = m_LBCtrl.GetCurrSel();
 		if (idxCurr <= 0)// 鼠标指针模式
 		{
@@ -653,6 +653,11 @@ LRESULT CALLBACK WndProc_WorkWindow(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 		else// 组件设计模式
 		{
 			RECT rc = eck::MakeRect(pt, m_PlaceCtrl_ptStart);
+			if (IsRectEmpty(&rc))
+			{
+				rc.right = rc.left + eck::DpiScale(eck::s_EckDesignAllCtrl[idxCurr - 1].sizeDef.cx, m_iDpi);
+				rc.bottom = rc.top + eck::DpiScale(eck::s_EckDesignAllCtrl[idxCurr - 1].sizeDef.cy, m_iDpi);
+			}
 			MapWindowRect(hBK, hWnd, &rc);
 
 			auto pWnd = CreateCtrl(idxCurr, NULL, p, eck::s_EckDesignAllCtrl[idxCurr - 1].pszName, WS_CHILD | WS_VISIBLE, 0,
@@ -719,8 +724,9 @@ void NewTab()
 class CCtrlsSerializer
 {
 private:
-	std::vector<RECT> m_aRects;// 所有有效窗口的矩形
-	std::vector<VALIDSELCTRL> m_aValidWnds;// 所有有效窗口的描述结构
+	std::vector<RECT> m_aRects{};// 所有矩形，无DPI缩放
+	std::vector<VALIDSELCTRL> m_aValidWnds{};// 所有描述结构
+	std::vector<eck::CRefBin> m_aData{};// 所有数据
 	int m_minLeft = INT_MAX, m_minTop = INT_MAX;// 最小的左边和顶边
 
 	TABCTX* m_pTabCtx = NULL;
@@ -728,6 +734,25 @@ private:
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 
 	SIZE_T m_cbTotal = sizeof(eck::FTCTRLDATAHEADER);
+
+	void AddCtrlInt(HWND hWnd)
+	{
+		RECT rc;
+		GetWindowRect(hWnd, &rc);
+		eck::DpiScale(rc, USER_DEFAULT_SCREEN_DPI, m_iDpi);
+		if (rc.left < m_minLeft)
+			m_minLeft = rc.left;
+		if (rc.top < m_minTop)
+			m_minTop = rc.top;
+
+		m_aRects.push_back(rc);
+		m_aValidWnds.push_back({ hWnd,0 });
+
+		auto& Info = m_pTabCtx->AllCtrls[hWnd];
+
+		m_aData.emplace_back(Info.pWnd->SerializeData());
+		m_cbTotal += (m_aData.back().Size() + sizeof(eck::FTCTRLDATA));
+	}
 public:
 	CCtrlsSerializer() = default;
 
@@ -757,23 +782,6 @@ public:
 		m_iDpi = iDpi;
 	}
 
-	void AddCtrlInt(HWND hWnd)
-	{
-		RECT rc;
-		GetWindowRect(hWnd, &rc);
-		eck::DpiScale(rc, USER_DEFAULT_SCREEN_DPI, m_iDpi);
-		if (rc.left < m_minLeft)
-			m_minLeft = rc.left;
-		if (rc.top < m_minTop)
-			m_minTop = rc.top;
-
-		m_aRects.push_back(rc);
-		m_aValidWnds.push_back({ hWnd,0 });
-
-		auto& Info = m_pTabCtx->AllCtrls[hWnd];
-		m_cbTotal += ((Info.sText.size() + 1) * sizeof(WCHAR) + Info.rbData.m_cb + sizeof(eck::FTCTRLDATA));
-	}
-
 	void AddCtrl(HWND hWnd)
 	{
 		AddCtrlInt(hWnd);
@@ -795,7 +803,7 @@ public:
 
 	void Serialize(PVOID pMem)
 	{
-		eck::CMemWriter w(pMem);
+		eck::CMemWriter w(pMem, m_cbTotal);
 
 		eck::FTCTRLDATAHEADER* pHeader;
 		w.SkipPointer(pHeader);
@@ -810,11 +818,9 @@ public:
 			auto& Info = m_pTabCtx->AllCtrls[hCtrl];
 
 			w.SkipPointer(pCtrlInfo);
+			auto& rbData = m_aData[i];
 
-			pCtrlInfo->cchText = (int)Info.sText.size();
-			pCtrlInfo->cbData = (UINT)Info.rbData.m_cb;
-			pCtrlInfo->dwStyle = (DWORD)GetWindowLongPtrW(hCtrl, GWL_STYLE);
-			pCtrlInfo->dwExStyle = (DWORD)GetWindowLongPtrW(hCtrl, GWL_EXSTYLE);
+			pCtrlInfo->cbData = (UINT)rbData.Size();
 			pCtrlInfo->idxInfo = Info.idxInfo;
 			pCtrlInfo->rc.left = m_aRects[i].left - m_minLeft;
 			pCtrlInfo->rc.top = m_aRects[i].top - m_minTop;
@@ -822,15 +828,8 @@ public:
 			pCtrlInfo->rc.bottom = m_aRects[i].bottom - m_aRects[i].top;
 			pCtrlInfo->cChildren = m_aValidWnds[i].cChildren;
 
-			w << Info.sText << Info.rbData;
+			w << rbData;
 		}
-#ifdef _DEBUG
-		if ((SIZE_T)(w - (BYTE*)pMem) > m_cbTotal)
-		{
-			EckDbgPrintFmt(L"序列化控件数据超界，分配 = %u，写入 = %u", m_cbTotal, w - (BYTE*)pMem);
-			EckDbgBreak();
-		}
-#endif
 	}
 
 	eck::CRefBin Serialize()
@@ -910,27 +909,27 @@ LRESULT CALLBACK WndProc_WDMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	case WM_DRAWITEM:
 	{
 		auto pdis = (DRAWITEMSTRUCT*)lParam;
-		if (pdis->hwndItem != m_LBCtrl)
-			break;
-
-		HDC hDC = pdis->hDC;
-		if (eck::IsBitSet(pdis->itemState, ODS_SELECTED))
+		if (pdis->hwndItem == m_LBCtrl)
 		{
-			FillRect(hDC, &pdis->rcItem, GetSysColorBrush(COLOR_HIGHLIGHT));
-			SetTextColor(hDC, GetSysColor(COLOR_HIGHLIGHTTEXT));
-		}
-		else
-		{
-			FillRect(hDC, &pdis->rcItem, GetSysColorBrush(COLOR_WINDOW));
-			SetTextColor(hDC, GetSysColor(COLOR_WINDOWTEXT));
-		}
+			HDC hDC = pdis->hDC;
+			if (eck::IsBitSet(pdis->itemState, ODS_SELECTED))
+			{
+				FillRect(hDC, &pdis->rcItem, GetSysColorBrush(COLOR_HIGHLIGHT));
+				SetTextColor(hDC, GetSysColor(COLOR_HIGHLIGHTTEXT));
+			}
+			else
+			{
+				FillRect(hDC, &pdis->rcItem, GetSysColorBrush(COLOR_WINDOW));
+				SetTextColor(hDC, GetSysColor(COLOR_WINDOWTEXT));
+			}
 
-		SetBkMode(hDC, TRANSPARENT);
-		HGDIOBJ hOld = SelectObject(hDC, m_hFont);
-		PCWSTR pszText = (pdis->itemID ? eck::s_EckDesignAllCtrl[pdis->itemID - 1].pszName : L"指针");
+			SetBkMode(hDC, TRANSPARENT);
+			HGDIOBJ hOld = SelectObject(hDC, m_hFont);
+			PCWSTR pszText = (pdis->itemID ? eck::s_EckDesignAllCtrl[pdis->itemID - 1].pszName : L"指针");
 
-		DrawTextW(hDC, pszText, -1, &pdis->rcItem, DT_SINGLELINE | DT_LEFT | DT_VCENTER);
-		SelectObject(hDC, hOld);
+			DrawTextW(hDC, pszText, -1, &pdis->rcItem, DT_SINGLELINE | DT_LEFT | DT_VCENTER);
+			SelectObject(hDC, hOld);
+		}
 	}
 	return TRUE;
 
@@ -1003,13 +1002,12 @@ LRESULT CALLBACK WndProc_WDMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 				HGLOBAL hGlobal = GetClipboardData(m_uCFCtrlInfo);
 				void* pData = GlobalLock(hGlobal);
-				eck::CMemReader r(pData);
+				eck::CMemReader r(pData, GlobalSize(hGlobal));
 
 				auto pHeader = (eck::FTCTRLDATAHEADER*)r.m_pMem;
 				r += sizeof(eck::FTCTRLDATAHEADER);
 
 				eck::FTCTRLDATA* pCtrlInfo;
-				PCWSTR pszText;
 				BYTE* pCtrlData;
 				HWND hParent;
 				eck::CWnd* pWnd;
@@ -1025,10 +1023,8 @@ LRESULT CALLBACK WndProc_WDMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 				int j = 0;
 				EckCounter(pHeader->cCtrls, i)
 				{
-					pCtrlInfo = (eck::FTCTRLDATA*)r.m_pMem;
-					r += sizeof(eck::FTCTRLDATA);
-					pszText = (PCWSTR)r.m_pMem;
-					r += ((pCtrlInfo->cchText + 1) * sizeof(WCHAR));
+					r.SkipPointer(pCtrlInfo);
+
 					pCtrlData = r.m_pMem;
 					r += pCtrlInfo->cbData;
 
@@ -1050,7 +1046,7 @@ LRESULT CALLBACK WndProc_WDMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 					rc.right -= rc.left;
 					rc.bottom -= rc.top;
 
-					pWnd = CreateCtrl(pCtrlInfo->idxInfo + 1, pCtrlData, pTabCtx, pszText, pCtrlInfo->dwStyle, pCtrlInfo->dwExStyle,
+					pWnd = CreateCtrl(pCtrlInfo->idxInfo + 1, pCtrlData, pTabCtx, NULL, 0, 0,
 						rc.left, rc.top, rc.right, rc.bottom, hParent, 0);
 					if (pCtrlInfo->cChildren)
 						stackParentInfo.push({ i,pCtrlInfo->cChildren,0,pWnd->GetHWND() });
@@ -1108,11 +1104,13 @@ LRESULT CALLBACK WndProc_WDMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 					}, (LPARAM)&Serializer);
 
 				eck::CRefBin rb(Serializer.GetDataSize() + sizeof(eck::FORMTABLEHEADER) + sizeof(eck::FORMTABLE_INDEXENTRY));
-				eck::CMemWriter w(rb);
+				eck::CMemWriter w(rb, rb.Size());
+
 				eck::FORMTABLEHEADER* pHeader;
 				w.SkipPointer(pHeader);
 				pHeader->iVer = 1;
 				pHeader->cForms = 1;
+
 				eck::FORMTABLE_INDEXENTRY* pEntry;
 				w.SkipPointer(pEntry);
 				pEntry->cbSize = (UINT)rb.m_cb;
@@ -1228,6 +1226,26 @@ LRESULT CALLBACK WndProc_WDMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 				auto pTabCtx = m_Tabs[m_Tab.GetCurSel()];
 				for (auto x : pTabCtx->pMultiSelMarker)
 					x->MoveToTargetWindow();
+			}
+			return 0;
+
+			case EckCPIDToIndex(eck::CPID_NAME):
+			{
+				auto pTabCtx = m_Tabs[m_Tab.GetCurSel()];
+				auto& Sel = pTabCtx->pMultiSelMarker;
+				if (Sel.size() > 1 || Sel.size() <= 0)
+					return 0;
+				HWND hCtrl = Sel[0]->GetTargetWindow();
+				PCWSTR pszNew = m_LVProp.GetValue(EckCPIDToIndex(eck::CPID_NAME)).Vpsz;
+
+				EckCounter(m_CBBCtrl.GetCount(), i)
+				{
+					if ((HWND)m_CBBCtrl.GetItemData(i) == hCtrl)
+					{
+						m_CBBCtrl.SetItemString(i, pszNew);
+						break;
+					}
+				}
 			}
 			return 0;
 			}

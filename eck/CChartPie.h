@@ -53,7 +53,7 @@ private:
 		RECT rc = { 0,0,m_cxClient,m_cyClient };
 		FillRect(m_hCDC, &rc, GetSysColorBrush(COLOR_BTNFACE));
 
-		DrawTextW(m_hCDC, m_rsTitle, m_rsTitle.m_cchText, &rc, 
+		DrawTextW(m_hCDC, m_rsTitle, m_rsTitle.Size(), &rc, 
 			DT_CENTER | DT_TOP | DT_WORDBREAK);
 		//GdipFillPie(m_pGraphics,)
 	}
@@ -88,7 +88,7 @@ public:
 		rs.PushBack(L" ");
 		rs.PushBack(std::to_wstring(pItem->fValue).c_str());
 		SIZE size;
-		GetTextExtentPoint32W(m_hCDC, rs, rs.m_cchText, &size);
+		GetTextExtentPoint32W(m_hCDC, rs, rs.Size(), &size);
 		if (size.cx > m_cxLegend)
 			m_cxLegend = size.cx;
 		
@@ -106,7 +106,7 @@ public:
 	{
 		m_rsTitle = pszTitle;
 		RECT rc = { 0,0,m_cxClient,m_cyClient };
-		DrawTextW(m_hCDC, m_rsTitle, m_rsTitle.m_cchText, &rc,
+		DrawTextW(m_hCDC, m_rsTitle, m_rsTitle.Size(), &rc,
 			DT_CENTER | DT_TOP | DT_WORDBREAK | DT_CALCRECT);
 		m_cyTitle = rc.bottom - rc.top;
 		Paint(m_hCDC);

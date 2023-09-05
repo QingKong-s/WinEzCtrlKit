@@ -85,13 +85,33 @@ namespace Colorref
 struct CMemWriter
 {
 	BYTE* m_pMem = NULL;
+#ifdef _DEBUG
+	BYTE* m_pBase = NULL;
+	SIZE_T m_cbMax = 0u;
+#endif
+
 	CMemWriter(void* p)
 	{
 		m_pMem = (BYTE*)p;
 	}
 
+	CMemWriter(PCVOID p, SIZE_T cbMax)
+	{
+		m_pMem = (BYTE*)p;
+#ifdef _DEBUG
+		m_pBase = m_pMem;
+		m_cbMax = cbMax;
+#endif
+	}
+
 	EckInline CMemWriter& Write(PCVOID pSrc, SIZE_T cb)
 	{
+#ifdef _DEBUG
+		if (m_pBase)
+		{
+			EckDbgCheckMemRange(m_pBase, m_cbMax, m_pMem + cb);
+		}
+#endif
 		memcpy(m_pMem, pSrc, cb);
 		m_pMem += cb;
 		return *this;
@@ -128,7 +148,7 @@ struct CMemWriter
 
 	EckInline CMemWriter& operator<<(const CRefStrW& Data)
 	{
-		return Write(Data, (Data.m_cchText + 1) * sizeof(WCHAR));
+		return Write(Data, Data.ByteSize());
 	}
 
 	EckInline operator BYTE*& () { return m_pMem; }
@@ -157,10 +177,30 @@ struct CMemWriter
 struct CMemReader
 {
 	BYTE* m_pMem = NULL;
+#ifdef _DEBUG
+	BYTE* m_pBase = NULL;
+	SIZE_T m_cbMax = 0u;
+#endif
+
 	CMemReader(PCVOID p) { m_pMem = (BYTE*)p; }
+
+	CMemReader(PCVOID p, SIZE_T cbMax)
+	{
+		m_pMem = (BYTE*)p;
+#ifdef _DEBUG
+		m_pBase = m_pMem;
+		m_cbMax = cbMax;
+#endif
+	}
 
 	EckInline CMemReader& Read(void* pDst, SIZE_T cb)
 	{
+#ifdef _DEBUG
+		if (m_pBase)
+		{
+			EckDbgCheckMemRange(m_pBase, m_cbMax, m_pMem + cb);
+		}
+#endif
 		memcpy(pDst, m_pMem, cb);
 		m_pMem += cb;
 		return *this;
@@ -209,7 +249,7 @@ struct CMemReader
 /// <param name="pCurr">当前地址</param>
 /// <param name="cbAlign">对齐尺寸</param>
 /// <returns>当前地址到下一对齐边界的距离，如果当前地址已经落在对齐边界上，则返回0</returns>
-EckInline SIZE_T CalcNextAlignBoundaryDistance(const void* pStart, const void* pCurr, SIZE_T cbAlign)
+constexpr EckInline SIZE_T CalcNextAlignBoundaryDistance(const void* pStart, const void* pCurr, SIZE_T cbAlign)
 {
 	SIZE_T uDistance = (SIZE_T)pCurr - (SIZE_T)pStart;
 	return (((uDistance - 1u) / cbAlign + 1u) * cbAlign - uDistance);
@@ -223,9 +263,34 @@ EckInline SIZE_T CalcNextAlignBoundaryDistance(const void* pStart, const void* p
 /// <param name="cbAlign">对齐尺寸</param>
 /// <returns>步进后的指针，如果当前指针已经落在对齐边界上，则指针不变</returns>
 template<class T>
-EckInline T* StepToNextAlignBoundary(const T* pStart,const T* pCurr, SIZE_T cbAlign)
+constexpr EckInline const T* StepToNextAlignBoundary(const T* pStart, const T* pCurr, SIZE_T cbAlign)
+{
+	return (const T*)((BYTE*)pCurr + CalcNextAlignBoundaryDistance(pStart, pCurr, cbAlign));
+}
+
+/// <summary>
+/// 步进到下一对齐边界
+/// </summary>
+/// <param name="pStart">起始指针</param>
+/// <param name="pCurr">当前指针</param>
+/// <param name="cbAlign">对齐尺寸</param>
+/// <returns>步进后的指针，如果当前指针已经落在对齐边界上，则指针不变</returns>
+template<class T>
+constexpr EckInline T* StepToNextAlignBoundary(T* pStart, T* pCurr, SIZE_T cbAlign)
 {
 	return (T*)((BYTE*)pCurr + CalcNextAlignBoundaryDistance(pStart, pCurr, cbAlign));
+}
+
+template<class T, class U>
+constexpr EckInline const T* PtrSkipType(const U* p)
+{
+	return (const T*)((PCBYTE)p + sizeof(U));
+}
+
+template<class T, class U>
+constexpr EckInline T* PtrSkipType(U* p)
+{
+	return (T*)((PCBYTE)p + sizeof(U));
 }
 
 /// <summary>
@@ -266,13 +331,13 @@ EckInline constexpr ARGB ColorrefToARGB(COLORREF cr, BYTE byAlpha = 0xFF)
 }
 
 template<class T, class U>
-EckInline T i32ToP(U i)
+constexpr EckInline T i32ToP(U i)
 {
 	return (T)((ULONG_PTR)i);
 }
 
 template<class T, class U>
-EckInline T pToI32(U p)
+constexpr EckInline T pToI32(U p)
 {
 	return (T)((ULONG_PTR)p);
 }
@@ -298,7 +363,7 @@ EckInline BOOL operator<(const FILETIME& ft1, const FILETIME& ft2)
 }
 
 template<class T1, class T2>
-EckInline BOOL IsBitSet(T1 dw1, T2 dw2)
+constexpr EckInline BOOL IsBitSet(T1 dw1, T2 dw2)
 {
 	return ((dw1 & dw2) == dw2);
 }
@@ -388,4 +453,8 @@ EckInline BOOL IsRectsIntersect(const RECT* prc1, const RECT* prc2)
 		std::max(prc1->left, prc2->left) < std::min(prc1->right, prc2->right) &&
 		std::max(prc1->top, prc2->top) < std::min(prc1->bottom, prc2->bottom);
 }
+
+PSTR W2A(PCWSTR pszText, int cch = -1);
+
+PWSTR A2W(PCSTR pszText, int cch = -1);
 ECK_NAMESPACE_END

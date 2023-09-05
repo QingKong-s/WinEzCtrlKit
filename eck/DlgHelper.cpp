@@ -37,7 +37,7 @@ CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLGTITEM>&
 		if (Val.index() == 0)// 资源ID
 			cbTotal += sizeof(WORD);
 		else// 名称字符串
-			cbTotal += ((std::get<1>(Val).m_cchText + 1) * sizeof(WCHAR));
+			cbTotal += ((std::get<1>(Val).Size() + 1) * sizeof(WCHAR));
 	}
 
 	if (Dlg.Class)
@@ -46,20 +46,20 @@ CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLGTITEM>&
 		if (Val.index() == 0)// 类原子
 			cbTotal += sizeof(ATOM);
 		else// 类名字符串
-			cbTotal += ((std::get<1>(Val).m_cchText + 1) * sizeof(WCHAR));
+			cbTotal += ((std::get<1>(Val).Size() + 1) * sizeof(WCHAR));
 	}
 
 	if (Dlg.Caption)
 	{
 		auto& Val = *Dlg.Caption;
-		cbTotal += ((Val.m_cchText + 1) * sizeof(WCHAR));
+		cbTotal += ((Val.Size() + 1) * sizeof(WCHAR));
 	}
 
 	BOOL bHasFontStru = IsBitSet(Dlg.dwStyle, DS_SETFONT) || IsBitSet(Dlg.dwStyle, DS_SHELLFONT);
 	if (bHasFontStru)
 	{
 		cbTotal += sizeof(Dlg.Font);
-		cbTotal += ((Dlg.rsFontName.m_cchText + 1) * sizeof(WCHAR));
+		cbTotal += ((Dlg.rsFontName.Size() + 1) * sizeof(WCHAR));
 	}
 
 	cbTotal += CalcNextAlignBoundaryDistance(NULL, (PCVOID)cbTotal, sizeof(DWORD));
@@ -72,12 +72,12 @@ CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLGTITEM>&
 		if (x.Class.index() == 0)// 类原子
 			cbTotal += sizeof(ATOM);
 		else// 类名字符串
-			cbTotal += ((std::get<1>(x.Class).m_cchText + 1) * sizeof(WCHAR));
+			cbTotal += ((std::get<1>(x.Class).Size() + 1) * sizeof(WCHAR));
 
 		if (x.Caption.index() == 0)// 资源ID
 			cbTotal += sizeof(WORD);
 		else// 标题字符串
-			cbTotal += ((std::get<1>(x.Caption).m_cchText + 1) * sizeof(WCHAR));
+			cbTotal += ((std::get<1>(x.Caption).Size() + 1) * sizeof(WCHAR));
 
 		if (x.rbExtra.m_cb)
 			cbTotal += AlignMemSize(x.rbExtra.m_cb, 2);

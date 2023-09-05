@@ -33,7 +33,7 @@ public:
 	/// 创建自长度
 	/// </summary>
 	/// <param name="cchInit">字符串长度</param>
-	CRefStrW(int cchInit)
+	explicit CRefStrW(int cchInit)
 	{
 		int cchCapacity = TAlloc::MakeCapacity(cchInit + 1);
 		m_pszText = TAlloc::Alloc(cchCapacity);
@@ -67,18 +67,18 @@ public:
 
 	CRefStrW(const CRefStrW& x)
 	{
-		m_cchText = x.m_cchText;
+		m_cchText = x.Size();
 		m_cchCapacity = TAlloc::MakeCapacity(m_cchText + 1);
 		m_pszText = TAlloc::Alloc(m_cchCapacity);
-		if (x.m_pszText)
-			wcscpy(m_pszText, x.m_pszText);
+		if (x.Data())
+			wcscpy(m_pszText, x.Data());
 	}
 
 	CRefStrW(CRefStrW&& x) noexcept
 	{
-		m_cchText = x.m_cchText;
+		m_cchText = x.Size();
 		m_cchCapacity = x.m_cchCapacity;
-		m_pszText = x.m_pszText;
+		m_pszText = x.Data();
 		x.Reset();
 	}
 
@@ -95,16 +95,16 @@ public:
 
 	EckInline CRefStrW& operator=(const CRefStrW& x)
 	{
-		DupString(x.m_pszText, x.m_cchText);
+		DupString(x.Data(), x.Size());
 		return *this;
 	}
 
 	EckInline CRefStrW& operator=(CRefStrW&& x) noexcept
 	{
 		TAlloc::Free(m_pszText);
-		m_cchText = x.m_cchText;
+		m_cchText = x.Size();
 		m_cchCapacity = x.m_cchCapacity;
-		m_pszText = x.m_pszText;
+		m_pszText = x.Data();
 		x.Reset();
 		return *this;
 	}
@@ -121,7 +121,7 @@ public:
 
 	EckInline CRefStrW& operator+(const CRefStrW& x)
 	{
-		PushBack(x, x.m_cchText);
+		PushBack(x, x.Size());
 		return *this;
 	}
 
@@ -131,17 +131,30 @@ public:
 		return *this;
 	}
 
-	EckInline PWSTR operator+(int x)
-	{
-		return m_pszText + x;
-	}
-
 	WCHAR& operator[](int x)
 	{
 		return *(m_pszText + x);
 	}
 
 	EckInline operator PWSTR() const
+	{
+		return m_pszText;
+	}
+
+	EckInline int Size() const
+	{
+		return m_cchText;
+	}
+
+	EckInline SIZE_T ByteSize() const
+	{
+		if (m_pszText)
+			return (m_cchText + 1) * sizeof(WCHAR);
+		else
+			return 0u;
+	}
+
+	EckInline PWSTR Data() const
 	{
 		return m_pszText;
 	}
@@ -269,7 +282,7 @@ public:
 	/// <param name="rbNew">用作替换的字符串</param>
 	EckInline void Replace(int posStart, int cchReplacing, const CRefStrW& rbNew)
 	{
-		Replace(posStart, cchReplacing, rbNew, rbNew.m_cchText);
+		Replace(posStart, cchReplacing, rbNew, rbNew.Size());
 	}
 
 	/// <summary>
@@ -292,7 +305,7 @@ public:
 	/// <param name="cReplacing">替换进行的次数，0为执行所有替换</param>
 	EckInline void ReplaceSubStr(const CRefStrW& rbReplaced, const CRefStrW& rbSrc, int posStart = 0, int cReplacing = 0)
 	{
-		ReplaceSubStr(rbReplaced, rbReplaced.m_cchText, rbSrc, rbSrc.m_cchText, posStart, cReplacing);
+		ReplaceSubStr(rbReplaced, rbReplaced.Size(), rbSrc, rbSrc.Size(), posStart, cReplacing);
 	}
 
 	/// <summary>
@@ -314,7 +327,7 @@ public:
 	/// <param name="cchText">字符串长度</param>
 	/// <param name="cCount">重复次数</param>
 	/// <param name="posStart">起始位置</param>
-	void MakeRepeatedStrSeq(PCWSTR pszText, int cchText, int cCount, int posStart = 0);
+	void MakeRepeatedStrSequence(PCWSTR pszText, int cchText, int cCount, int posStart = 0);
 
 	/// <summary>
 	/// 取重复文本
@@ -322,9 +335,9 @@ public:
 	/// <param name="pszText">字符串</param>
 	/// <param name="cCount">重复次数</param>
 	/// <param name="posStart">起始位置</param>
-	EckInline void MakeRepeatedStrSeq(const CRefStrW& rbText, int cCount, int posStart = 0)
+	EckInline void MakeRepeatedStrSequence(const CRefStrW& rbText, int cCount, int posStart = 0)
 	{
-		MakeRepeatedStrSeq(rbText, rbText.m_cchText, cCount, posStart);
+		MakeRepeatedStrSequence(rbText, rbText.Size(), cCount, posStart);
 	}
 };
 
@@ -456,7 +469,7 @@ EckInline int FindStrNcs(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub,
 /// <returns>位置，若未找到返回INVALID_STR_POS</returns>
 EckInline int FindStrNcs(const CRefStrW& rbText, const CRefStrW& rbSub, int posStart = 0)
 {
-	return FindStrNcs(rbText, rbText.m_cchText, rbSub, posStart, rbSub.m_cchText);
+	return FindStrNcs(rbText, rbText.Size(), rbSub, posStart, rbSub.Size());
 }
 
 /// <summary>
@@ -479,7 +492,7 @@ int FindStrRev(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posSt
 /// <returns>位置，若未找到返回INVALID_STR_POS</returns>
 EckInline int FindStrRev(const CRefStrW& rbText, const CRefStrW& rbSub, int posStart = 0)
 {
-	return FindStrRev(rbText, rbText.m_cchText, rbSub, posStart,  rbSub.m_cchText);
+	return FindStrRev(rbText, rbText.Size(), rbSub, posStart,  rbSub.Size());
 }
 
 /// <summary>
@@ -496,7 +509,7 @@ EckInline int FindStrRev(const CRefStrW& rbText, const CRefStrW& rbSub, int posS
 EckInline int FindStrRevNcs(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = 0)
 {
 	auto rbText = ToUpperCase(pszText, cchText), rbSub = ToUpperCase(pszSub, cchSub);
-	return FindStrRev(rbText, rbText.m_cchText, rbSub, posStart,  rbSub.m_cchText);
+	return FindStrRev(rbText, rbText.Size(), rbSub, posStart,  rbSub.Size());
 }
 
 /// <summary>
@@ -510,7 +523,7 @@ EckInline int FindStrRevNcs(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchS
 /// <returns>位置，若未找到返回INVALID_STR_POS</returns>
 EckInline int FindStrRevNcs(const CRefStrW& rbText, const CRefStrW& rbSub, int posStart = 0)
 {
-	return FindStrRevNcs(rbText, rbText.m_cchText, rbSub, posStart,  rbSub.m_cchText);
+	return FindStrRevNcs(rbText, rbText.Size(), rbSub, posStart, rbSub.Size());
 }
 
 template<class TProcesser>

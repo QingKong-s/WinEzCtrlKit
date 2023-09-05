@@ -150,11 +150,18 @@ enum GpMatrixOrder {
 	MatrixOrderPrepend = 0,
 	MatrixOrderAppend = 1
 };
+enum GpDebugEventLevel 
+{
+	DebugEventLevelFatal,
+	DebugEventLevelWarning
+};
+
+typedef VOID(WINAPI* GpDebugEventProc)(GpDebugEventLevel level, CHAR* message);
 
 struct GdiplusStartupInput
 {
 	UINT32 GdiplusVersion;
-	void* DebugEventCallback;
+	GpDebugEventProc DebugEventCallback;
 	BOOL SuppressBackgroundThread;
 	BOOL SuppressExternalCodecs;
 };
@@ -196,7 +203,6 @@ struct ImageCodecInfo
 	const BYTE* SigPattern;
 	const BYTE* SigMask;
 };
-
 
 #define DECLFAKEGDIPOBJ(type) struct type{int unused;};
 #define DECLFAKEGDIPOBJINHERIT(type,base) struct type:public base{int unused;};

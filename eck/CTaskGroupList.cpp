@@ -63,7 +63,7 @@ LRESULT CALLBACK CTaskGroupList::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARA
 					iState = CPSTL_NORMAL;
 				RECT rc{ x,pnmlcd->nmcd.rc.top,pnmlcd->nmcd.rc.right,pnmlcd->nmcd.rc.bottom };
 				DrawThemeTextEx(p->m_hthControlPanel, hDC, CPANEL_SECTIONTITLELINK, iState,
-					Item.rsText, Item.rsText.m_cchText, DT_SINGLELINE, &rc, NULL);
+					Item.rsText, Item.rsText.Size(), DT_SINGLELINE, &rc, NULL);
 				//////////////////////»­×ÓÈÎÎñ
 				rc.top += (p->m_cySectionTitle + cxPadding);
 				
@@ -79,7 +79,7 @@ LRESULT CALLBACK CTaskGroupList::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARA
 						iState = CPCL_NORMAL;
 
 					DrawThemeTextEx(p->m_hthControlPanel, hDC, CPANEL_CONTENTLINK, iState,
-						sub.rsText, sub.rsText.m_cchText, DT_SINGLELINE, &rc, NULL);
+						sub.rsText, sub.rsText.Size(), DT_SINGLELINE, &rc, NULL);
 
 					rc.left += (sub.cx + p->m_cxSubTaskPadding * 2);
 				}
@@ -254,12 +254,12 @@ LRESULT CALLBACK CTaskGroupList::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wPara
 		for (auto& x : p->m_Items)
 		{
 			GetThemeTextExtent(p->m_hthControlPanel, p->m_hCDCAuxiliary, CPANEL_SECTIONTITLELINK, CPSTL_NORMAL,
-				x.rsText, x.rsText.m_cchText, DT_SINGLELINE, NULL, &rc);
+				x.rsText, x.rsText.Size(), DT_SINGLELINE, NULL, &rc);
 			x.cx = rc.right - rc.left;
 			for (auto& y : x.SubTasks)
 			{
 				GetThemeTextExtent(p->m_hthControlPanel, p->m_hCDCAuxiliary, CPANEL_CONTENTLINK, CPTL_NORMAL,
-					y.rsText, y.rsText.m_cchText, DT_SINGLELINE, NULL, &rc);
+					y.rsText, y.rsText.Size(), DT_SINGLELINE, NULL, &rc);
 				y.cx = rc.right - rc.left;
 			}
 		}
@@ -326,14 +326,14 @@ int CTaskGroupList::InsertTask(PCWSTR pszText, int idx, int idxImage, TGLSUBTASK
 	RECT rc;
 
 	GetThemeTextExtent(m_hthControlPanel, m_hCDCAuxiliary, CPANEL_SECTIONTITLELINK, CPSTL_NORMAL,
-		Item.rsText, Item.rsText.m_cchText, DT_SINGLELINE, NULL, &rc);
+		Item.rsText, Item.rsText.Size(), DT_SINGLELINE, NULL, &rc);
 	Item.cx = rc.right - rc.left;
 	EckCounter(cSubTask, i)
 	{
 		SubTask.rsText = pSubTask[i].pszText;
 		SubTask.uFlags = pSubTask[i].uFlags;
 		GetThemeTextExtent(m_hthControlPanel, m_hCDCAuxiliary, CPANEL_CONTENTLINK, CPTL_NORMAL,
-			SubTask.rsText, SubTask.rsText.m_cchText, DT_SINGLELINE, NULL, &rc);
+			SubTask.rsText, SubTask.rsText.Size(), DT_SINGLELINE, NULL, &rc);
 		SubTask.cx = rc.right - rc.left;
 		Item.SubTasks.push_back(std::move(SubTask));
 	}

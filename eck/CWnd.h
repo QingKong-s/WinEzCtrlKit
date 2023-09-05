@@ -13,12 +13,32 @@
 #include <assert.h>
 
 ECK_NAMESPACE_BEGIN
+inline constexpr int
+DATAVER_STD_1 = 1;
+#pragma pack(push, ECK_CTRLDATA_ALIGN)
+struct CREATEDATA_STD
+{
+	int iVer_Std;
+	int cchText;
+	DWORD dwStyle;
+	DWORD dwExStyle;
+
+	// WCHAR szText[];
+
+	EckInline PCWSTR Text() const
+	{
+		return PtrSkipType<WCHAR>(this);
+	}
+};
+#pragma pack(pop)
+
 #ifdef ECK_CTRL_DESIGN_INTERFACE
 struct DESIGNDATA_WND
 {
 	BITBOOL bVisible : 1;
 	BITBOOL bEnable : 1;
 	LOGFONTW lf;
+	CRefStrW rsName;
 };
 #endif
 
@@ -26,10 +46,29 @@ class CWnd
 {
 protected:
 	HWND m_hWnd = NULL;
+
+	EckInline HWND DefAttach(HWND hWnd)
+	{
+		HWND hOld = m_hWnd;
+		m_hWnd = hWnd;
+		return hOld;
+	}
 public:
 #ifdef ECK_CTRL_DESIGN_INTERFACE
 	DESIGNDATA_WND m_DDBase{};
 #endif
+	
+	enum class ManageOp
+	{
+		// 依附句柄，返回先前窗口句柄
+		Attach,
+		// 拆离句柄，返回窗口句柄
+		Detach,
+		// 父窗口已更改，不使用返回值
+		ChangeParent,
+		// 修改绑定，成功返回非0，失败返回0
+		Bind
+	};
 
 	CWnd()
 	{
@@ -46,22 +85,7 @@ public:
 
 	}
 
-	virtual EckInline HWND Attach(HWND hWnd)
-	{
-		HWND hOld = m_hWnd;
-		m_hWnd = hWnd;
-		return hOld;
-	}
-
-	virtual EckInline HWND Detach()
-	{
-		return Attach(NULL);
-	}
-
-	EckInline HWND GetHWND()
-	{
-		return m_hWnd;
-	}
+	virtual HWND Manage(ManageOp iType, HWND hWnd);
 
 	virtual HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
@@ -70,14 +94,18 @@ public:
 		return NULL;
 	}
 
-	virtual void ChangeParent(HWND hNewParent)
+	virtual CRefBin SerializeData(SIZE_T cbExtra = 0, SIZE_T* pcbSize = NULL);
+
+	static PCVOID SkipBaseData(PCVOID p)
 	{
-		assert(FALSE);
+		return (PCBYTE)p +
+			sizeof(CREATEDATA_STD) +
+			(((const CREATEDATA_STD*)p)->cchText + 1) * sizeof(WCHAR);
 	}
 
-	virtual CRefBin SerializeData()
+	EckInline HWND GetHWND()
 	{
-		return CRefBin();
+		return m_hWnd;
 	}
 
 	EckInline void FrameChanged()
@@ -164,7 +192,7 @@ public:
 		return SetWindowTheme(m_hWnd, L"Explorer", NULL);
 	}
 
-	EckInline BOOL Move(int x, int y, int cx, int cy,BOOL bNoActive=FALSE)
+	EckInline BOOL Move(int x, int y, int cx, int cy, BOOL bNoActive = FALSE)
 	{
 		return SetWindowPos(m_hWnd, NULL, x, y, cx, cy, SWP_NOZORDER | (bNoActive ? SWP_NOACTIVATE : 0));
 	}

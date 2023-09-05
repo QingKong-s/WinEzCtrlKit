@@ -18,6 +18,7 @@ struct FResTableEntryDeleter
 		switch (x.uType)
 		{
 		case ResType::Image:
+		case ResType::Font:
 			DeleteObject(x.hRes);
 			break;
 		case ResType::ImageList:
@@ -105,7 +106,10 @@ public:
 			pStream->Release();
 		}
 		break;
-
+		case ResType::Font:
+			assert(ote.cbSize == sizeof(LOGFONTW));// x86和x64下大小相同
+			e.hRes = CreateFontIndirectW((const LOGFONTW*)(m_pData + ote.cbOffset));
+			break;
 		default:
 			e.hRes = (HANDLE)(m_pData + ote.cbOffset);
 			break;
@@ -135,13 +139,9 @@ public:
 
 	CRefBin GetResBin(int iID)
 	{
-		CRefBin rb;
 		SIZE_T cb;
 		auto p = GetResBin(iID, &cb);
-		if (!p || !cb)
-			return rb;
-		rb.DupStream(p, cb);
-		return rb;
+		return CRefBin(p, cb);
 	}
 };
 ECK_NAMESPACE_END

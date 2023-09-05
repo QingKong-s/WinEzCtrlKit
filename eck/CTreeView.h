@@ -369,7 +369,7 @@ public:
 		if (cch <= 0)
 			return rs;
 		rs.ReSize(cch);
-		SendMsg(TVM_GETISEARCHSTRINGW, 0, (LPARAM)rs.m_pszText);
+		SendMsg(TVM_GETISEARCHSTRINGW, 0, (LPARAM)rs.Data());
 		return rs;
 	}
 

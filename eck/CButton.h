@@ -13,7 +13,6 @@
 #include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
-#pragma pack(push, ECK_CTRLDATA_ALIGN)
 
 inline constexpr int
 DATAVER_BUTTON_1 = 1,
@@ -21,33 +20,27 @@ DATAVER_PUSHBUTTON_1 = 1,
 DATAVER_CHECKBUTTON_1 = 1,
 DATAVER_COMMANDLINK_1 = 1;
 
-struct CREATEDATA_BUTTON
-{
-	int iVer;
-	DWORD dwStyle;
-	DWORD dwExStyle;
-
-	
-	int cchText;
-};
-
-struct CREATEDATA_PUSHBUTTON :CREATEDATA_BUTTON
+#pragma pack(push, ECK_CTRLDATA_ALIGN)
+struct CREATEDATA_PUSHBUTTON
 {
 	int iVer;
 	BITBOOL bShowTextAndImage : 1;
 };
 
-struct CREATEDATA_CHECKBUTTON :CREATEDATA_BUTTON
+struct CREATEDATA_CHECKBUTTON
 {
 	int iVer;
 	BITBOOL bShowTextAndImage : 1;
 	ECKENUM eCheckState;
 };
 
-struct CREATEDATA_COMMANDLINK :CREATEDATA_BUTTON
+struct CREATEDATA_COMMANDLINK
 {
 	int iVer;
-	BITBOOL m_bShieldIcon : 1;
+	int cchText;
+	BITBOOL bShieldIcon : 1;
+
+	// WCHAR szNote[];
 };
 
 #ifdef ECK_CTRL_DESIGN_INTERFACE
@@ -136,23 +129,10 @@ public:
 class CPushButton :public CButton
 {
 public:
-	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
-	{
-		dwStyle &= ~(BS_CHECKBOX | BS_COMMANDLINK | BS_DEFCOMMANDLINK);
-		dwStyle |= WS_CHILD;
-		if (!IsBitSet(dwStyle, BS_PUSHBUTTON | BS_DEFPUSHBUTTON | BS_SPLITBUTTON | BS_DEFSPLITBUTTON))
-			dwStyle |= BS_PUSHBUTTON;
-		m_hWnd = CreateWindowExW(dwExStyle, WC_BUTTONW, pszText, dwStyle,
-			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
-		return m_hWnd;
-	}
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override;
 
-	CRefBin SerializeData() override
-	{
-		CRefBin rb;
-		return rb;
-	}
+	CRefBin SerializeData(SIZE_T cbExtra = 0, SIZE_T* pcbSize = NULL) override;
 
 	/// <summary>
 	/// 置类型
@@ -164,15 +144,7 @@ public:
 	/// 取类型
 	/// </summary>
 	/// <returns>类型，0 - 普通  1 - 拆分</returns>
-	EckInline int GetType()
-	{
-		DWORD dwStyle = GetStyle();
-		if (IsBitSet(dwStyle, BS_SPLITBUTTON) || IsBitSet(dwStyle, BS_DEFSPLITBUTTON))
-			return 1;
-		else if (IsBitSet(dwStyle, BS_PUSHBUTTON) || IsBitSet(dwStyle, BS_DEFPUSHBUTTON))
-			return 0;
-		return -1;
-	}
+	int GetType();
 
 	/// <summary>
 	/// 置是否默认
@@ -194,24 +166,10 @@ public:
 class CCheckButton :public CButton
 {
 public:
-	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
-	{
-		dwStyle &= ~(BS_PUSHBUTTON | BS_DEFPUSHBUTTON | BS_SPLITBUTTON | BS_DEFSPLITBUTTON | BS_COMMANDLINK | BS_DEFCOMMANDLINK);
-		dwStyle |= WS_CHILD;
-		if (!IsBitSet(dwStyle, BS_RADIOBUTTON | BS_AUTORADIOBUTTON |
-			BS_CHECKBOX | BS_AUTOCHECKBOX | BS_3STATE | BS_AUTO3STATE))
-			dwStyle |= BS_AUTORADIOBUTTON;
-		m_hWnd = CreateWindowExW(dwExStyle, WC_BUTTONW, pszText, dwStyle,
-			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
-		/*
-		* 有一个专用于单选按钮的状态叫做BST_DONTCLICK，
-		* 如果未设置这个状态，那么按钮每次获得焦点都会产生BN_CLICKED，
-		* 发送BM_SETDONTCLICK设置它防止事件错误生成
-		*/
-		SendMsg(BM_SETDONTCLICK, TRUE, 0);
-		return m_hWnd;
-	}
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override;
+
+	CRefBin SerializeData(SIZE_T cbExtra = 0, SIZE_T* pcbSize = NULL) override;
 
 	/// <summary>
 	/// 置类型
@@ -298,17 +256,10 @@ class CCommandLink :public CButton
 private:
 	BITBOOL m_bShieldIcon : 1;
 public:
-	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
-	{
-		dwStyle &= ~(BS_PUSHBUTTON | BS_DEFPUSHBUTTON | BS_SPLITBUTTON | BS_DEFSPLITBUTTON | BS_CHECKBOX);
-		dwStyle |= WS_CHILD;
-		if (!IsBitSet(dwStyle, BS_COMMANDLINK | BS_DEFCOMMANDLINK))
-			dwStyle |= BS_COMMANDLINK;
-		m_hWnd = CreateWindowExW(dwExStyle, WC_BUTTONW, pszText, dwStyle,
-			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
-		return m_hWnd;
-	}
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override;
+
+	CRefBin SerializeData(SIZE_T cbExtra = 0, SIZE_T* pcbSize = NULL) override;
 
 	/// <summary>
 	/// 置注释文本
@@ -323,17 +274,7 @@ public:
 	/// <summary>
 	/// 取注释文本。
 	/// </summary>
-	EckInline CRefStrW GetNote()
-	{
-		CRefStrW rs;
-		int cch = (int)SendMsg(BCM_GETNOTELENGTH, 0, 0);
-		if (cch)
-		{
-			rs.ReSize(cch);
-			SendMsg(BCM_GETNOTE, (WPARAM)(cch + 1), (LPARAM)rs.m_pszText);
-		}
-		return rs;
-	}
+	CRefStrW GetNote();
 
 	/// <summary>
 	/// 置盾牌图标
@@ -358,16 +299,7 @@ public:
 	/// 置是否默认
 	/// </summary>
 	/// <param name="bDef">是否默认</param>
-	void SetDef(BOOL bDef)
-	{
-		DWORD dwStyle = GetStyle() & ~(BS_DEFPUSHBUTTON | BS_PUSHBUTTON | BS_DEFCOMMANDLINK | BS_COMMANDLINK);
-		if (bDef)
-			dwStyle |= BS_DEFCOMMANDLINK;
-		else
-			dwStyle |= BS_COMMANDLINK;
-
-		SetStyle(dwStyle);
-	}
+	void SetDef(BOOL bDef);
 
 	/// <summary>
 	/// 取是否默认

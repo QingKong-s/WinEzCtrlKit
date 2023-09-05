@@ -17,20 +17,20 @@ void CListBoxExt::UpdateThemeInfo()
 
 void CListBoxExt::AddFile()
 {
-	if (!m_rsDir.m_cchText)
+	if (!m_rsDir.Size())
 		return;
 	DeleteString(-1);
 
 	PWSTR pszPath = (PWSTR)_malloca((
-		m_rsDir.m_cchText +
-		m_rsFilePattern.m_cchText +
+		m_rsDir.Size() +
+		m_rsFilePattern.Size() +
 		5/*一个反斜杠，三个*.*（通配符为空时用），一个结尾NULL*/) * sizeof(WCHAR));
 	assert(pszPath);// 消除警告
 	wcscpy(pszPath, m_rsDir);
-	PWSTR pszTemp = pszPath + m_rsDir.m_cchText;// 指针指到目录的后面，方便替换通配符
+	PWSTR pszTemp = pszPath + m_rsDir.Size();// 指针指到目录的后面，方便替换通配符
 
 	PWSTR pszFilePattern;
-	if (m_rsFilePattern.m_cchText && m_rsFilePattern)
+	if (m_rsFilePattern.Size() && m_rsFilePattern)
 		pszFilePattern = m_rsFilePattern;
 	else
 	{
