@@ -9,6 +9,21 @@
 #include "ECK.h"
 #include "Utility.h"
 
+
+#define ECK_DS_BEGIN(StructName) struct StructName {
+#define ECK_DS_END_VAR(VarName) } VarName{};
+#define ECK_DS_END() };
+#define ECK_DS_ENTRY(Name, Size) const int o_##Name = Size; int Name = Size;
+
+#ifndef ECKMACRO_NO_ADD_HANDLE_MSG
+#define HANDLE_WM_MOUSELEAVE(hWnd, wParam, lParam, fn) \
+	((fn)((hWnd)), 0L)
+
+#endif
+
+#define HANDLE_WM_DPICHANGED(hWnd, wParam, lParam, fn) \
+	((fn)((hWnd), (int)(short)LOWORD(wParam), (int)(short)HIWORD(wParam), (RECT*)(lParam)), 0L)
+
 ECK_NAMESPACE_BEGIN
 
 #define ECK_COMMAND_BEGIN(CtrlIdVarName, CtrlHandleVarName) \
@@ -64,6 +79,7 @@ EckInline DWORD ModifyWindowStyle(HWND hWnd, DWORD dwNew, DWORD dwMask, int idx 
 	eck::CWndRecorder<Class*> Class::m_Recorder(m_WndRecord);
 
 
+
 EckInline int GetDpi(HWND hWnd)
 {
 #if _WIN32_WINNT >= _WIN32_WINNT_WIN10
@@ -79,14 +95,14 @@ EckInline int GetDpi(HWND hWnd)
 #endif
 }
 
-EckInline int DpiScale(int i, int iDpi)
-{
-	return i * iDpi / USER_DEFAULT_SCREEN_DPI;
-}
-
 EckInline int DpiScale(int i, int iDpiNew, int iDpiOld)
 {
 	return i * iDpiNew / iDpiOld;
+}
+
+EckInline int DpiScale(int i, int iDpi)
+{
+	return DpiScale(i, iDpi, USER_DEFAULT_SCREEN_DPI);
 }
 
 EckInline void DpiScale(RECT& rc, int iDpiNew, int iDpiOld)
@@ -95,6 +111,11 @@ EckInline void DpiScale(RECT& rc, int iDpiNew, int iDpiOld)
 	rc.top = rc.top * iDpiNew / iDpiOld;
 	rc.right = rc.right * iDpiNew / iDpiOld;
 	rc.bottom = rc.bottom * iDpiNew / iDpiOld;
+}
+
+EckInline void DpiScale(RECT& rc, int iDpi)
+{
+	DpiScale(rc, iDpi, USER_DEFAULT_SCREEN_DPI);
 }
 
 EckInline void SetPrevDpiProp(HWND hWnd, int iDpi)
@@ -240,4 +261,13 @@ EckInline HRESULT EnableWindowMica(HWND hWnd, DWM_SYSTEMBACKDROP_TYPE uType = DW
 #endif
 
 LRESULT OnNcCalcSize(WPARAM wParam, LPARAM lParam, MARGINS* pMargins);
+
+template<class T>
+EckInline void UpdateDpiSize(T& Dpis, int iDpi)
+{
+	for (int* p = ((int*)&Dpis) + 1; p < PtrSkipType(&Dpis); p += 2)
+	{
+		*p = DpiScale(*(p - 1), iDpi);
+	}
+}
 ECK_NAMESPACE_END

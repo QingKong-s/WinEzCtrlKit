@@ -5,7 +5,6 @@
 *
 * Copyright(C) 2023 QingKong
 */
-// 计次循环
 
 #pragma once
 #include "ECK.h"
@@ -27,12 +26,18 @@
 // lParam->size 用于处理WM_SIZE   e.g. GET_SIZE_LPARAM(cxClient, cyClient, lParam);
 #define GET_SIZE_LPARAM(cx,cy,lParam) (cx) = LOWORD(lParam); (cy) = HIWORD(lParam);
 
-#define EckCounter(c, Var) for(decltype(c) Var = 0; Var < c; ++Var)
+// 计次循环
+#define EckCounter(c, Var) for(std::remove_cv_t<decltype(c)> Var = 0; Var < c; ++Var)
 
 #define EckCounterNVMakeVarName2(Name) ECKPRIV_COUNT_##Name##___
 #define EckCounterNVMakeVarName(Name) EckCounterNVMakeVarName2(Name)
 
+// 计次循环，无变量名参数
 #define EckCounterNV(c) EckCounter(c, EckCounterNVMakeVarName(__LINE__))
+
+#define EckOpt(Type, Name) std::optional<Type> Name
+#define EckOptNul(Type, Name) std::optional<Type> Name = std::nullopt
+
 
 ECK_NAMESPACE_BEGIN
 namespace Colorref
@@ -182,14 +187,20 @@ struct CMemReader
 	SIZE_T m_cbMax = 0u;
 #endif
 
-	CMemReader(PCVOID p) { m_pMem = (BYTE*)p; }
+	CMemReader(PCVOID p, SIZE_T cbMax = 0u)
+	{
+		SetPtr(p, cbMax);
+	}
 
-	CMemReader(PCVOID p, SIZE_T cbMax)
+	void SetPtr(PCVOID p, SIZE_T cbMax = 0u)
 	{
 		m_pMem = (BYTE*)p;
 #ifdef _DEBUG
-		m_pBase = m_pMem;
-		m_cbMax = cbMax;
+		if (cbMax)
+		{
+			m_pBase = m_pMem;
+			m_cbMax = cbMax;
+		}
 #endif
 	}
 
@@ -242,6 +253,44 @@ struct CMemReader
 	}
 };
 
+class CEzCDC
+{
+private:
+	HDC m_hCDC = NULL;
+	HBITMAP m_hBmp = NULL;
+	HGDIOBJ m_hOld = NULL;
+public:
+	CEzCDC() = default;
+	CEzCDC(HWND hWnd, int cx = 0, int cy = 0)
+	{
+		Create(hWnd, cx, cy);
+	}
+
+	~CEzCDC()
+	{
+		if (m_hCDC)
+		{
+			SelectObject(m_hCDC, m_hOld);
+			DeleteObject(m_hBmp);
+			DeleteDC(m_hCDC);
+		}
+	}
+
+	HDC Create(HWND hWnd, int cx = 0, int cy = 0);
+
+	void ReSize(HWND hWnd, int cx = 0, int cy = 0);
+
+	EckInline HDC GetDC()
+	{
+		return m_hCDC;
+	}
+
+	EckInline HBITMAP GetBitmap()
+	{
+		return m_hBmp;
+	}
+};
+
 /// <summary>
 /// 计算下一对齐边界
 /// </summary>
@@ -281,16 +330,16 @@ constexpr EckInline T* StepToNextAlignBoundary(T* pStart, T* pCurr, SIZE_T cbAli
 	return (T*)((BYTE*)pCurr + CalcNextAlignBoundaryDistance(pStart, pCurr, cbAlign));
 }
 
-template<class T, class U>
-constexpr EckInline const T* PtrSkipType(const U* p)
+template<class T>
+constexpr EckInline PCVOID PtrSkipType(const T* p)
 {
-	return (const T*)((PCBYTE)p + sizeof(U));
+	return (PCVOID)((PCBYTE)p + sizeof(T));
 }
 
-template<class T, class U>
-constexpr EckInline T* PtrSkipType(U* p)
+template<class T>
+constexpr EckInline void* PtrSkipType(T* p)
 {
-	return (T*)((PCBYTE)p + sizeof(U));
+	return (void*)((PCBYTE)p + sizeof(T));
 }
 
 /// <summary>
@@ -454,7 +503,60 @@ EckInline BOOL IsRectsIntersect(const RECT* prc1, const RECT* prc2)
 		std::max(prc1->top, prc2->top) < std::min(prc1->bottom, prc2->bottom);
 }
 
-PSTR W2A(PCWSTR pszText, int cch = -1);
+PSTR StrW2X(PCWSTR pszText, int cch = -1, int uCP = CP_ACP);
 
-PWSTR A2W(PCSTR pszText, int cch = -1);
+PWSTR StrX2W(PCSTR pszText, int cch = -1, int uCP = CP_ACP);
+
+EckInline void DbBufPrepare(HWND hWnd, HDC& hCDC, HBITMAP& hBitmap, HGDIOBJ& hOldBmp, int cx = 8, int cy = 8)
+{
+	HDC hDC = GetDC(hWnd);
+	hCDC = CreateCompatibleDC(hDC);
+	hBitmap = CreateCompatibleBitmap(hDC, cx, cy);
+	hOldBmp = SelectObject(hCDC, hBitmap);
+	ReleaseDC(hWnd, hDC);
+}
+
+EckInline void DbBufReSize(HWND hWnd, HDC& hCDC, HBITMAP& hBitmap, HGDIOBJ& hOldBmp, int cx, int cy)
+{
+	SelectObject(hCDC, hOldBmp);
+	DeleteObject(hBitmap);
+
+	HDC hDC = GetDC(hWnd);
+	hBitmap = CreateCompatibleBitmap(hDC, cx, cy);
+	hOldBmp = SelectObject(hCDC, hBitmap);
+	ReleaseDC(hWnd, hDC);
+}
+
+EckInline void DbBufFree(HDC hCDC, HBITMAP hBitmap, HGDIOBJ hOldBmp)
+{
+	SelectObject(hCDC, hOldBmp);
+	DeleteObject(hBitmap);
+	DeleteDC(hCDC);
+}
+
+template<class T>
+EckInline BOOL Sign(T v)
+{
+	return v >= 0;
+}
+
+EckInline DWORD ReverseDWORD(BYTE* p)
+{
+	return ((p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]);
+}
+
+/// <summary>
+/// 反转4字节整数字节序
+/// </summary>
+/// <param name="dw">输入</param>
+/// <returns>转换结果</returns>
+EckInline DWORD ReverseDWORD(DWORD dw)
+{
+	return ReverseDWORD((BYTE*)&dw);
+}
+
+EckInline SIZE_T Cch2Cb(int cch)
+{
+	return (cch + 1) * sizeof(WCHAR);
+}
 ECK_NAMESPACE_END

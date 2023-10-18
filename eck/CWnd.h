@@ -10,6 +10,8 @@
 #include "WndHelper.h"
 #include "CRefStr.h"
 
+#include <optional>
+
 #include <assert.h>
 
 ECK_NAMESPACE_BEGIN
@@ -22,12 +24,14 @@ struct CREATEDATA_STD
 	int cchText;
 	DWORD dwStyle;
 	DWORD dwExStyle;
-
 	// WCHAR szText[];
 
 	EckInline PCWSTR Text() const
 	{
-		return PtrSkipType<WCHAR>(this);
+		if (cchText)
+			return (PCWSTR)PtrSkipType(this);
+		else
+			return NULL;
 	}
 };
 #pragma pack(pop)
@@ -37,7 +41,6 @@ struct DESIGNDATA_WND
 {
 	BITBOOL bVisible : 1;
 	BITBOOL bEnable : 1;
-	LOGFONTW lf;
 	CRefStrW rsName;
 };
 #endif
@@ -96,34 +99,36 @@ public:
 
 	virtual CRefBin SerializeData(SIZE_T cbExtra = 0, SIZE_T* pcbSize = NULL);
 
-	static PCVOID SkipBaseData(PCVOID p)
+	EckInline static PCVOID SkipBaseData(PCVOID p)
 	{
 		return (PCBYTE)p +
 			sizeof(CREATEDATA_STD) +
 			(((const CREATEDATA_STD*)p)->cchText + 1) * sizeof(WCHAR);
 	}
 
-	EckInline HWND GetHWND()
+	HWND ReCreate(EckOptNul(DWORD, dwNewStyle), EckOptNul(DWORD, dwNewExStyle), EckOptNul(RECT, rcPos));
+
+	EckInline HWND GetHWND() const
 	{
 		return m_hWnd;
 	}
 
-	EckInline void FrameChanged()
+	EckInline void FrameChanged() const
 	{
 		SetWindowPos(m_hWnd, NULL, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 	}
 
-	EckInline void SetRedraw(BOOL bRedraw)
+	EckInline void SetRedraw(BOOL bRedraw) const
 	{
 		SendMessageW(m_hWnd, WM_SETREDRAW, bRedraw, 0);
 	}
 
-	EckInline void Redraw()
+	EckInline void Redraw() const
 	{
 		InvalidateRect(m_hWnd, NULL, FALSE);
 	}
 
-	EckInline operator HWND()
+	EckInline operator HWND() const
 	{
 		return m_hWnd;
 	}
@@ -132,45 +137,45 @@ public:
 	/// 置边框类型
 	/// </summary>
 	/// <param name="iFrame">0 - 无边框  1 - 凹入式  2 - 凸出式  3 - 浅凹入式  4 - 镜框式  5 - 单线边框式</param>
-	void SetFrameType(int iFrame);
+	void SetFrameType(int iFrame) const;
 
-	int GetFrameType();
+	int GetFrameType() const;
 
-	void SetScrollBar(int i);
+	void SetScrollBar(int i) const;
 
-	int GetScrollBar();
+	int GetScrollBar() const;
 
-	EckInline LRESULT SendMsg(UINT uMsg, WPARAM wParam, LPARAM lParam)
+	EckInline LRESULT SendMsg(UINT uMsg, WPARAM wParam, LPARAM lParam) const
 	{
 		return SendMessageW(m_hWnd, uMsg, wParam, lParam);
 	}
 
-	EckInline DWORD GetStyle()
+	EckInline DWORD GetStyle() const
 	{
 		return (DWORD)GetWindowLongPtrW(m_hWnd, GWL_STYLE);
 	}
 
-	EckInline DWORD GetExStyle()
+	EckInline DWORD GetExStyle() const
 	{
 		return (DWORD)GetWindowLongPtrW(m_hWnd, GWL_EXSTYLE);
 	}
 
-	EckInline DWORD ModifyStyle(DWORD dwNew, DWORD dwMask, int idx = GWL_STYLE)
+	EckInline DWORD ModifyStyle(DWORD dwNew, DWORD dwMask, int idx = GWL_STYLE) const
 	{
 		return ModifyWindowStyle(m_hWnd, dwNew, dwMask, idx);
 	}
 
-	EckInline DWORD SetStyle(DWORD dwStyle)
+	EckInline DWORD SetStyle(DWORD dwStyle) const
 	{
 		return (DWORD)SetWindowLongPtrW(m_hWnd, GWL_STYLE, dwStyle);
 	}
 
-	EckInline DWORD SetExStyle(DWORD dwStyle)
+	EckInline DWORD SetExStyle(DWORD dwStyle) const
 	{
 		return (DWORD)SetWindowLongPtrW(m_hWnd, GWL_EXSTYLE, dwStyle);
 	}
 
-	EckInline CRefStrW GetText()
+	EckInline CRefStrW GetText() const
 	{
 		CRefStrW rs;
 		int cch = GetWindowTextLengthW(m_hWnd);
@@ -182,17 +187,17 @@ public:
 		return rs;
 	}
 
-	EckInline BOOL SetText(PCWSTR pszText)
+	EckInline BOOL SetText(PCWSTR pszText) const
 	{
 		return SetWindowTextW(m_hWnd, pszText);
 	}
 
-	EckInline HRESULT SetExplorerTheme()
+	EckInline HRESULT SetExplorerTheme() const
 	{
 		return SetWindowTheme(m_hWnd, L"Explorer", NULL);
 	}
 
-	EckInline BOOL Move(int x, int y, int cx, int cy, BOOL bNoActive = FALSE)
+	EckInline BOOL Move(int x, int y, int cx, int cy, BOOL bNoActive = FALSE) const
 	{
 		return SetWindowPos(m_hWnd, NULL, x, y, cx, cy, SWP_NOZORDER | (bNoActive ? SWP_NOACTIVATE : 0));
 	}
@@ -234,15 +239,4 @@ protected:
 		}
 	}
 };
-
-inline HWND ReCreateCtrl(CWnd* pWnd)
-{
-	auto rb = pWnd->SerializeData();
-	HWND hParent = GetParent(pWnd->GetHWND());
-	int iID = GetDlgCtrlID(pWnd->GetHWND());
-	pWnd->Destroy();
-	pWnd->Create(NULL, 0, 0, 0, 0, 0, 0, hParent, iID, rb);
-
-	return NULL;
-}
 ECK_NAMESPACE_END

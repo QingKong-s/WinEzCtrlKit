@@ -38,7 +38,10 @@ public:
 		int cchCapacity = TAlloc::MakeCapacity(cchInit + 1);
 		m_pszText = TAlloc::Alloc(cchCapacity);
 		if (m_pszText)
+		{
+			m_cchText = cchInit;
 			m_cchCapacity = cchCapacity;
+		}
 	}
 
 	/// <summary>
@@ -119,16 +122,29 @@ public:
 			return wcscmp(m_pszText, psz) == 0;
 	}
 
-	EckInline CRefStrW& operator+(const CRefStrW& x)
+	EckInline CRefStrW operator+(const CRefStrW& x) const
 	{
-		PushBack(x, x.Size());
-		return *this;
+		CRefStrW rs(m_cchText + x.m_cchText);
+		if (m_pszText)
+			wcscpy(rs.Data(), m_pszText);
+		if (x.m_pszText)
+			wcscpy(rs.Data() + m_cchText, x.m_pszText);
+		return rs;
 	}
 
-	EckInline CRefStrW& operator+(PCWSTR x)
+	EckInline CRefStrW operator+(PCWSTR x) const
 	{
-		PushBack(x);
-		return *this;
+		int cch;
+		if (x)
+			cch = (int)wcslen(x);
+		else
+			cch = 0;
+		CRefStrW rs(m_cchText + cch);
+		if (m_pszText)
+			wcscpy(rs.Data(), m_pszText);
+		if (x)
+			wcscpy(rs.Data() + m_cchText, x);
+		return rs;
 	}
 
 	WCHAR& operator[](int x)
@@ -169,8 +185,7 @@ public:
 	int DupString(PCWSTR pszSrc, int cchSrc = -1);
 
 	/// <summary>
-	/// 依附指针。
-	/// 分配器必须相同
+	/// 依附指针
 	/// </summary>
 	/// <param name="psz">指针</param>
 	/// <param name="cchCapacity">容量</param>
@@ -256,6 +271,17 @@ public:
 	}
 
 	/// <summary>
+	/// 重置尺寸
+	/// </summary>
+	/// <param name="cch">字符数</param>
+	EckInline void ReSizeAbs(int cch)
+	{
+		Reserve(cch + 1);
+		m_cchText = cch;
+		*(m_pszText + cch) = L'\0';
+	}
+
+	/// <summary>
 	/// 重新计算字符串长度
 	/// </summary>
 	/// <returns>长度</returns>
@@ -332,14 +358,21 @@ public:
 	/// <summary>
 	/// 取重复文本
 	/// </summary>
-	/// <param name="pszText">字符串</param>
+	/// <param name="rbText">字符串</param>
 	/// <param name="cCount">重复次数</param>
 	/// <param name="posStart">起始位置</param>
 	EckInline void MakeRepeatedStrSequence(const CRefStrW& rbText, int cCount, int posStart = 0)
 	{
 		MakeRepeatedStrSequence(rbText, rbText.Size(), cCount, posStart);
 	}
+
+	
 };
+
+EckInline std::weak_ordering operator<=>(const CRefStrW& rs1, const CRefStrW& rs2)
+{
+	return wcscmp(rs1.Data(), rs2.Data()) <=> 0;
+}
 
 CRefStrW ToStr(int x, int iRadix = 10);
 
@@ -439,7 +472,7 @@ EckInline int FindStr(PCWSTR pszText, PCWSTR pszSub, int posStart = 0)
 	if (pszFind)
 		return (int)(pszFind - pszText);
 	else
-		return 0;
+		return INVALID_STR_POS;
 }
 
 /// <summary>
@@ -527,7 +560,7 @@ EckInline int FindStrRevNcs(const CRefStrW& rbText, const CRefStrW& rbSub, int p
 }
 
 template<class TProcesser>
-void SplitStrInt(PCWSTR pszText, PCWSTR pszDiv, int cSubTextExpected, int cchText, int cchDiv, TProcesser Processer)
+void SplitStr(PCWSTR pszText, PCWSTR pszDiv, int cSubTextExpected, int cchText, int cchDiv, TProcesser Processer)
 {
 	if (cchText < 0)
 		cchText = (int)wcslen(pszText);
@@ -541,7 +574,8 @@ void SplitStrInt(PCWSTR pszText, PCWSTR pszDiv, int cSubTextExpected, int cchTex
 	int c = 0;
 	while (pszFind)
 	{
-		Processer(pszPrevFirst, (int)(pszFind - pszPrevFirst));
+		if (Processer(pszPrevFirst, (int)(pszFind - pszPrevFirst)))
+			return;
 		++c;
 		if (c == cSubTextExpected)
 			return;

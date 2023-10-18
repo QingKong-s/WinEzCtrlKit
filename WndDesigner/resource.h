@@ -3,8 +3,8 @@
 // 供 WndDesigner.rc 使用
 //
 #define IDD_ABOUT                       101
-#define IDR_MENU1                       129
 #define IDM_MAIN                        129
+#define IDC_BUTTON1                     1000
 #define ID_32771                        32771
 #define IDMI_NEWTAB                     32771
 #define IDMI_OPENPROJ                   32772
@@ -48,7 +48,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        129
 #define _APS_NEXT_COMMAND_VALUE         32789
-#define _APS_NEXT_CONTROL_VALUE         1000
+#define _APS_NEXT_CONTROL_VALUE         1001
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

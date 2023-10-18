@@ -7,7 +7,6 @@
 */
 #pragma once
 #include "CWnd.h"
-#include "CSubclassMgr.h"
 #include "CRefStr.h"
 #include "Utility.h"
 
@@ -20,7 +19,23 @@ DATAVER_EDIT_1 = 1;
 struct CREATEDATA_EDIT
 {
 	int iVer;
+	WCHAR chPassword;
+	ECKENUM eTransMode;
+	int iSelStart;
+	int iSelEnd;
+	int iLeftMargin;
+	int iRightMargin;
+	int cchCueBanner;
+	int cchMax;
+	// WCHAR szCueBanner[];
 
+	EckInline PCWSTR CueBanner() const
+	{
+		if (cchCueBanner)
+			return (PCWSTR)PtrSkipType(this);
+		else
+			return NULL;
+	}
 };
 #pragma pack(pop)
 
@@ -44,6 +59,13 @@ public:
 		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override;
 
 	CRefBin SerializeData(SIZE_T cbExtra = 0, SIZE_T* pcbSize = NULL) override;
+
+	EckInline static PCVOID SkipBaseData(PCVOID p)
+	{
+		return (PCBYTE)p +
+			sizeof(CREATEDATA_EDIT) +
+			(((const CREATEDATA_EDIT*)p)->cchCueBanner + 1) * sizeof(WCHAR);
+	}
 
 	EckInline BOOL CanUndo()
 	{
@@ -169,6 +191,10 @@ public:
 		SendMsg(EM_GETSEL, (WPARAM)&piSelStart, (LPARAM)piSelEnd);
 	}
 
+	/// <summary>
+	/// 取垂直滚动条位置
+	/// </summary>
+	/// <returns>位置</returns>
 	EckInline int GetThumb()
 	{
 		return (int)SendMsg(EM_GETTHUMB, 0, 0);
@@ -354,6 +380,11 @@ public:
 	EckInline void Copy()
 	{
 		SendMsg(WM_COPY, 0, 0);
+	}
+
+	EckInline void Cut()
+	{
+		SendMsg(WM_CUT, 0, 0);
 	}
 
 	EckInline void SelAll()

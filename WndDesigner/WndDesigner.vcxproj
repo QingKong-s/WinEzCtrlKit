@@ -211,11 +211,14 @@
     <ClInclude Include="..\eck\ResStruct.h" />
     <ClInclude Include="..\eck\Utility.h" />
     <ClInclude Include="..\eck\WndHelper.h" />
-    <ClInclude Include="DesginerCtrl.h" />
+    <ClInclude Include="CApp.h" />
+    <ClInclude Include="CPropList.h" />
+    <ClInclude Include="CSizer.h" />
+    <ClInclude Include="CWndMain.h" />
+    <ClInclude Include="CWorkWnd.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="Entry.h" />
-    <ClInclude Include="WndMain.h" />
+    <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\eck\CBk.cpp" />
@@ -242,9 +245,12 @@
     <ClCompile Include="..\eck\ImageHelper.cpp" />
     <ClCompile Include="..\eck\Utility.cpp" />
     <ClCompile Include="..\eck\WndHelper.cpp" />
-    <ClCompile Include="DesignerCtrl.cpp" />
+    <ClCompile Include="CApp.cpp" />
+    <ClCompile Include="CPropList.cpp" />
+    <ClCompile Include="CSizer.cpp" />
+    <ClCompile Include="CWndMain.cpp" />
+    <ClCompile Include="CWorkWnd.cpp" />
     <ClCompile Include="Entry.cpp" />
-    <ClCompile Include="WndMain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="WndDesigner.rc" />

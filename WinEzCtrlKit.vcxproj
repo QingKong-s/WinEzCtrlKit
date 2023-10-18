@@ -152,13 +152,15 @@
     <ClInclude Include="eck\CChartLine.h" />
     <ClInclude Include="eck\CChartPie.h" />
     <ClInclude Include="eck\CComboBox.h" />
+    <ClInclude Include="eck\CComboBoxEx.h" />
     <ClInclude Include="eck\CEditExt.h" />
+    <ClInclude Include="eck\CFile.h" />
     <ClInclude Include="eck\CForm.h" />
     <ClInclude Include="eck\CFormTable.h" />
     <ClInclude Include="eck\CResSet.h" />
     <ClInclude Include="eck\CResTable.h" />
+    <ClInclude Include="eck\CScrollView.h" />
     <ClInclude Include="eck\CTab.h" />
-    <ClInclude Include="eck\CTabExt.h" />
     <ClInclude Include="eck\CTabHeader.h" />
     <ClInclude Include="eck\CTaskGroupList.h" />
     <ClInclude Include="eck\CHeader.h" />
@@ -183,6 +185,7 @@
     <ClInclude Include="eck\CTreeView.h" />
     <ClInclude Include="eck\CUpDown.h" />
     <ClInclude Include="eck\CWnd.h" />
+    <ClInclude Include="eck\CWndSizer.h" />
     <ClInclude Include="eck\DbgHelper.h" />
     <ClInclude Include="eck\DesignerDef.h" />
     <ClInclude Include="eck\DlgHelper.h" />
@@ -207,6 +210,7 @@
     <ClCompile Include="eck\CDirBox.cpp" />
     <ClCompile Include="eck\CEdit.cpp" />
     <ClCompile Include="eck\CEditExt.cpp" />
+    <ClCompile Include="eck\CFile.cpp" />
     <ClCompile Include="eck\CForm.cpp" />
     <ClCompile Include="eck\CLabel.cpp" />
     <ClCompile Include="eck\CListBox.cpp" />

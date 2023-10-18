@@ -93,7 +93,7 @@ public:
 
 	EckInline int GetPos()
 	{
-		return SendMsg(UDM_GETPOS32, 0, NULL);
+		return (int)SendMsg(UDM_GETPOS32, 0, NULL);
 	}
 
 	EckInline void SetAutoBuddy(BOOL bAutoBuddy)
@@ -182,13 +182,13 @@ public:
 
 	EckInline BOOL SetAccel(UDACCEL* puda, int c)
 	{
-		return SendMsg(UDM_SETACCEL, c, (LPARAM)puda);
+		return (BOOL)SendMsg(UDM_SETACCEL, c, (LPARAM)puda);
 	}
 
 	EckInline std::vector<UDACCEL> GetAccel()
 	{
 		std::vector<UDACCEL> aAccel;
-		int cAccel = SendMsg(UDM_GETACCEL, 0, NULL);
+		int cAccel = (int)SendMsg(UDM_GETACCEL, 0, NULL);
 		if (!cAccel)
 			return aAccel;
 		aAccel.resize(cAccel);

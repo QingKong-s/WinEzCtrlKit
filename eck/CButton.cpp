@@ -1,4 +1,5 @@
 #include "CButton.h"
+#include "DesignerDef.h"
 
 ECK_NAMESPACE_BEGIN
 void CButton::SetAlign(BOOL bHAlign, int iAlign)
@@ -298,7 +299,7 @@ HWND CCommandLink::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		{
 		case DATAVER_COMMANDLINK_1:
 			SetShieldIcon(p->bShieldIcon);
-			SetNote(PtrSkipType<WCHAR>(p));
+			SetNote(p->Note());
 			break;
 		default:
 			EckDbgBreak();
@@ -332,7 +333,7 @@ CRefBin CCommandLink::SerializeData(SIZE_T cbExtra, SIZE_T* pcbSize)
 	CREATEDATA_COMMANDLINK* p;
 	w.SkipPointer(p);
 	p->iVer = DATAVER_COMMANDLINK_1;
-	p->cchText = rbNote.Size();
+	p->cchNote = rbNote.Size();
 	p->bShieldIcon = GetShieldIcon();
 
 	w << rbNote;
@@ -346,7 +347,8 @@ CRefStrW CCommandLink::GetNote()
 	if (cch)
 	{
 		rs.ReSize(cch);
-		SendMsg(BCM_GETNOTE, (WPARAM)(cch + 1), (LPARAM)rs.Data());
+		++cch;
+		SendMsg(BCM_GETNOTE, (WPARAM)&cch, (LPARAM)rs.Data());
 	}
 	return rs;
 }
@@ -361,10 +363,50 @@ void CCommandLink::SetDef(BOOL bDef)
 
 	SetStyle(dwStyle);
 }
+
+///////////////////////////////////////////////////////////////
+CWnd* CALLBACK Create_Button(PCBYTE pData, ECK_CREATE_CTRL_EXTRA_ARGS)
+{
+	auto p = new CPushButton;
+	p->Create(ECK_CREATE_CTRL_EXTRA_REALARGS, pData);
+	if (p->GetHWND())
+		return p;
+	else
+	{
+		delete p;
+		return NULL;
+	}
+}
+
+CWnd* CALLBACK Create_CheckButton(PCBYTE pData, ECK_CREATE_CTRL_EXTRA_ARGS)
+{
+	auto p = new CCheckButton;
+	p->Create(ECK_CREATE_CTRL_EXTRA_REALARGS, pData);
+	if (p->GetHWND())
+		return p;
+	else
+	{
+		delete p;
+		return NULL;
+	}
+}
+
+CWnd* CALLBACK Create_CommandLink(PCBYTE pData, ECK_CREATE_CTRL_EXTRA_ARGS)
+{
+	auto p = new CCommandLink;
+	p->Create(ECK_CREATE_CTRL_EXTRA_REALARGS, pData);
+	if (p->GetHWND())
+		return p;
+	else
+	{
+		delete p;
+		return NULL;
+	}
+}
 ECK_NAMESPACE_END
 
 #ifdef ECK_CTRL_DESIGN_INTERFACE
-#include "DesignerDef.h"
+
 
 ECK_NAMESPACE_BEGIN
 EckPropCallBackRet CALLBACK SetProp_Button(CWnd* pWnd, int idProp, EckCtrlPropValue* pProp)
@@ -423,20 +465,7 @@ EckPropCallBackRet CALLBACK GetProp_Button(CWnd* pWnd, int idProp, EckCtrlPropVa
 	return ESPR_NONE;
 }
 
-CWnd* CALLBACK Create_Button(BYTE* pData, ECK_CREATE_CTRL_EXTRA_ARGS)
-{
-	auto p = new CPushButton;
-	p->Create(ECK_CREATE_CTRL_EXTRA_REALARGS);
-	if (p->GetHWND())
-		return p;
-	else
-	{
-		delete p;
-		return NULL;
-	}
-}
-
-static EckCtrlPropEntry s_Prop_Button[] =
+static EckCtrlPropEntry s_Prop_Button[]
 {
 	{1,L"AlignH",L"横向对齐",L"",ECPT::PickInt,ECPF_NONE,L"左边\0""居中\0""右边\0""\0"},
 	{2,L"AlignV",L"纵向对齐",L"",ECPT::PickInt,ECPF_NONE,L"上边\0""居中\0""下边\0""\0"},
@@ -446,7 +475,7 @@ static EckCtrlPropEntry s_Prop_Button[] =
 	{6,L"Type",L"类型",L"",ECPT::PickInt,ECPF_NONE,L"普通按钮\0""拆分按钮\0""\0"},
 };
 
-EckCtrlDesignInfo CtInfoButton =
+EckCtrlDesignInfo CtInfoButton
 {
 	L"Button",
 	L"按钮",
@@ -459,10 +488,7 @@ EckCtrlDesignInfo CtInfoButton =
 	Create_Button,
 	{80,32}
 };
-
-
-
-
+///////////////////////////////////////////////////////////////
 EckPropCallBackRet CALLBACK SetProp_CheckButton(CWnd* pWnd, int idProp, EckCtrlPropValue* pProp)
 {
 	EckDCtrlDefSetProp;
@@ -537,20 +563,7 @@ EckPropCallBackRet CALLBACK GetProp_CheckButton(CWnd* pWnd, int idProp, EckCtrlP
 	return ESPR_NONE;
 }
 
-CWnd* CALLBACK Create_CheckButton(BYTE* pData, ECK_CREATE_CTRL_EXTRA_ARGS)
-{
-	auto p = new CCheckButton;
-	p->Create(ECK_CREATE_CTRL_EXTRA_REALARGS);
-	if (p->GetHWND())
-		return p;
-	else
-	{
-		delete p;
-		return NULL;
-	}
-}
-
-static EckCtrlPropEntry s_Prop_CheckButton[] =
+static EckCtrlPropEntry s_Prop_CheckButton[]
 {
 	{1,L"AlignH",L"横向对齐",L"",ECPT::PickInt,ECPF_NONE,L"左边\0""居中\0""右边\0""\0"},
 	{2,L"AlignV",L"纵向对齐",L"",ECPT::PickInt,ECPF_NONE,L"上边\0""居中\0""下边\0""\0"},
@@ -563,7 +576,7 @@ static EckCtrlPropEntry s_Prop_CheckButton[] =
 	{9,L"LeftText",L"文本居左",L"",ECPT::Bool},
 };
 
-EckCtrlDesignInfo CtInfoCheckButton =
+EckCtrlDesignInfo CtInfoCheckButton
 {
 	L"CheckButton",
 	L"选择框",
@@ -576,10 +589,7 @@ EckCtrlDesignInfo CtInfoCheckButton =
 	Create_CheckButton,
 	{112,24}
 };
-
-
-
-
+///////////////////////////////////////////////////////////////
 EckPropCallBackRet CALLBACK SetProp_CommandLink(CWnd* pWnd, int idProp, EckCtrlPropValue* pProp)
 {
 	EckDCtrlDefSetProp;
@@ -629,27 +639,14 @@ EckPropCallBackRet CALLBACK GetProp_CommandLink(CWnd* pWnd, int idProp, EckCtrlP
 	return ESPR_NONE;
 }
 
-CWnd* CALLBACK Create_CommandLink(BYTE* pData, ECK_CREATE_CTRL_EXTRA_ARGS)
-{
-	auto p = new CCommandLink;
-	p->Create(ECK_CREATE_CTRL_EXTRA_REALARGS);
-	if (p->GetHWND())
-		return p;
-	else
-	{
-		delete p;
-		return NULL;
-	}
-}
-
-static EckCtrlPropEntry s_Prop_CommandLink[] =
+static EckCtrlPropEntry s_Prop_CommandLink[]
 {
 	{1,L"Image",L"图片",L"",ECPT::Image},
 	{2,L"Note",L"注释文本",L"",ECPT::Text},
-	{3,L"ShieldIcon",L"盾牌图标",L"",ECPT::Bool},
+	{3,L"ShieldIcon",L"UAC图标",L"",ECPT::Bool},
 };
 
-EckCtrlDesignInfo CtInfoCommandLink =
+EckCtrlDesignInfo CtInfoCommandLink
 {
 	L"CommandLink",
 	L"命令链接",
@@ -663,5 +660,10 @@ EckCtrlDesignInfo CtInfoCommandLink =
 	{192,48}
 };
 ECK_NAMESPACE_END
-
+#else
+ECK_NAMESPACE_BEGIN
+EckCtrlDesignInfo CtInfoButton{ Create_Button };
+EckCtrlDesignInfo CtInfoCheckButton{ Create_CheckButton };
+EckCtrlDesignInfo CtInfoCommandLink{ Create_CommandLink };
+ECK_NAMESPACE_END
 #endif // ECK_CTRL_DESIGN_INTERFACE

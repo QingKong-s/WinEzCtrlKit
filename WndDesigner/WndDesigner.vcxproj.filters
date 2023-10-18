@@ -24,15 +24,6 @@
     <ClInclude Include="Resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Entry.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="DesginerCtrl.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="WndMain.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="..\eck\CChartPie.h">
       <Filter>eck</Filter>
     </ClInclude>
@@ -183,15 +174,27 @@
     <ClInclude Include="..\eck\CChartLine.h">
       <Filter>eck</Filter>
     </ClInclude>
+    <ClInclude Include="CApp.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CWorkWnd.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CWndMain.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CSizer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CPropList.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Entry.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="DesignerCtrl.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="WndMain.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="..\eck\CColorPicker.cpp">
@@ -265,6 +268,21 @@
     </ClCompile>
     <ClCompile Include="..\eck\CChartPie.cpp">
       <Filter>eck</Filter>
+    </ClCompile>
+    <ClCompile Include="CApp.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CWorkWnd.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CWndMain.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CSizer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CPropList.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

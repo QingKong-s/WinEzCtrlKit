@@ -11,7 +11,7 @@
 ECK_NAMESPACE_BEGIN
 class CBk :public CWnd
 {
-private:
+protected:
 	static ATOM m_atomBK;
 public:
 	static ATOM RegisterWndClass(HINSTANCE hInstance);
@@ -24,7 +24,7 @@ public:
 		return m_hWnd;
 	}
 
-	EckInline void SetWindowProc(WNDPROC pfnWndProc)
+	virtual void SetWindowProc(WNDPROC pfnWndProc)
 	{
 		SetWindowLongPtrW(m_hWnd, GWLP_WNDPROC, (LONG_PTR)pfnWndProc);
 	}

@@ -105,13 +105,14 @@ void CRefStrW::Replace(int posStart, int cchReplacing, PCWSTR pszNew, int cchNew
 		cchNew = (int)wcslen(pszNew);
 
 	int cchOrg = m_cchText;
-	ReSize(m_cchText + cchNew - cchReplacing);
+	
 
 	memmove(m_pszText + posStart + cchNew, m_pszText + posStart + cchReplacing, (cchOrg - posStart - cchReplacing) * sizeof(WCHAR));
 	if (pszNew)
 		memcpy(m_pszText + posStart, pszNew, cchNew * sizeof(WCHAR));
 
-	*(m_pszText + m_cchText) = L'\0';
+	ReSize(m_cchText + cchNew - cchReplacing);
+	//*(m_pszText + m_cchText) = L'\0';
 }
 
 void CRefStrW::ReplaceSubStr(PCWSTR pszReplaced, int cchReplaced, PCWSTR pszSrc, int cchSrc, int posStart, int cReplacing)
@@ -218,27 +219,30 @@ int FindStrRev(PCWSTR pszText, int posStart, PCWSTR pszSub, int cchText, int cch
 
 void SplitStr(PCWSTR pszText, PCWSTR pszDiv, std::vector<CRefStrW>& aResult, int cSubTextExpected, int cchText, int cchDiv)
 {
-	SplitStrInt(pszText, pszDiv, cSubTextExpected, cchText, cchDiv,
+	SplitStr(pszText, pszDiv, cSubTextExpected, cchText, cchDiv,
 		[&](PCWSTR pszStart, int cchSub) {
 			aResult.push_back(CRefStrW(pszStart, cchSub));
+			return FALSE;
 		});
 }
 
 void SplitStr(PCWSTR pszText, PCWSTR pszDiv, std::vector<SPLTEXTINFO>& aResult, int cSubTextExpected, int cchText, int cchDiv)
 {
-	SplitStrInt(pszText, pszDiv, cSubTextExpected, cchText, cchDiv,
+	SplitStr(pszText, pszDiv, cSubTextExpected, cchText, cchDiv,
 		[&](PCWSTR pszStart, int cchSub) {
 			aResult.push_back({ pszStart,cchSub });
+			return FALSE;
 		});
 }
 
 void SplitStr(PWSTR pszText, PCWSTR pszDiv, std::vector<PWSTR>& aResult, int cSubTextExpected, int cchText, int cchDiv)
 {
-	SplitStrInt(pszText, pszDiv, cSubTextExpected, cchText, cchDiv,
+	SplitStr(pszText, pszDiv, cSubTextExpected, cchText, cchDiv,
 		[&](PCWSTR pszStart, int cchSub) {
 			PWSTR psz = (PWSTR)pszStart;
 			*(psz + cchSub) = L'\0';
 			aResult.push_back(psz);
+			return FALSE;
 		});
 }
 
@@ -259,7 +263,7 @@ int RTrimStr(PCWSTR pszText, int cchText)
 		else
 			break;
 	}
-	return (int)(pszText + cchText - pszTemp);
+	return (int)(pszTemp - pszText);
 }
 
 EckInline int PrivFindSpace(PCWSTR pszText)

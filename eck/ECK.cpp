@@ -2,6 +2,7 @@
 #include "CLabel.h"
 #include "CColorPicker.h"
 #include "CBk.h"
+#include "Utility.h"
 
 #include <Shlwapi.h>
 
@@ -14,7 +15,7 @@ HINSTANCE g_hInstance = NULL;
 #ifdef _DEBUG
 void CALLBACK GdiplusDebug(GpDebugEventLevel dwLevel, CHAR* pszMsg)
 {
-	PWSTR pszMsgW = A2W(pszMsg);
+	PWSTR pszMsgW = StrX2W(pszMsg);
 	DbgPrint(pszMsgW);
 	CAllocator<WCHAR>::Free(pszMsgW);
 	if (dwLevel == DebugEventLevelFatal)

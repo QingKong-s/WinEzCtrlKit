@@ -12,24 +12,6 @@
 
 #include <strsafe.h>
 
-
-#define ECKWIDE2___(x)          L##x
-// ANSI字符串到宽字符串
-#define ECKWIDE___(x)           ECKWIDE2___(x)
-
-#define ECKTOSTR2___(x)         #x
-// 到ANSI字符串
-#define ECKTOSTR___(x)          ECKTOSTR2___(x)
-// 到宽字符串
-#define ECKTOSTRW___(x)         ECKWIDE___(ECKTOSTR2___(x))
-
-// [预定义] 当前函数名W
-#define ECK_FUNCTIONW           ECKWIDE___(__FUNCTION__)
-// [预定义] 行号W
-#define ECK_LINEW               ECKTOSTRW___(__LINE__)
-// [预定义] 当前文件W
-#define ECK_FILEW               __FILEW__
-
 ECK_NAMESPACE_BEGIN
 #ifndef NDEBUG
 
@@ -176,7 +158,7 @@ EckInline void DbgPrintLastError(BOOL bHex = FALSE, BOOL bNewLine = TRUE)
 EckInline void DbgPrintFormatMessage(UINT uErrCode, BOOL bNewLine = TRUE)
 {
     PWSTR pszInfo;
-    FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, uErrCode, 0, (PWSTR)&pszInfo, 20, NULL);
+    FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, uErrCode, 0, (PWSTR)&pszInfo, 0, NULL);
     DbgPrint(pszInfo, bNewLine);
     LocalFree(pszInfo);
 }
@@ -213,7 +195,7 @@ EckInline void DbgPrintFmt(PCWSTR pszFormat, ...)
         (UINT)(((SIZE_T)(pCurr)) - ((SIZE_T)(pBase)) - (cbSize))); \
         EckDbgBreak(); \
     }
-
+#define EckAssert assert
 #pragma warning (pop)
 #else
 #define EckDbgPrintGLE(x)
@@ -223,5 +205,6 @@ EckInline void DbgPrintFmt(PCWSTR pszFormat, ...)
 #define EckDbgPrintWithPos(x)
 #define EckDbgBreak()
 #define EckDbgCheckMemRange(pBase, cbSize, pCurr)
+#define EckAssert(x)
 #endif // !NDEBUG
 ECK_NAMESPACE_END
