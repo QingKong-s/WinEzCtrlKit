@@ -156,9 +156,6 @@
     <ClInclude Include="eck\ResStruct.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CTabExt.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CArray.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
@@ -171,10 +168,22 @@
     <ClInclude Include="eck\CForm.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CTabHeader.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CEditExt.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CTabHeader.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CComboBoxEx.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CFile.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CWndSizer.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CScrollView.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
   </ItemGroup>
@@ -255,6 +264,9 @@
       <Filter>ECK Src</Filter>
     </ClCompile>
     <ClCompile Include="eck\CEditExt.cpp">
+      <Filter>ECK Src</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\CFile.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,5 +1,6 @@
 #pragma once
 #include "CEdit.h"
+#include "CSubclassMgr.h"
 
 ECK_NAMESPACE_BEGIN
 inline constexpr int
@@ -12,16 +13,9 @@ struct CREATEDATA_EDITEXT
 	COLORREF crText;
 	COLORREF crTextBK;
 	COLORREF crBK;
-	int iInputMode;
-	int cchCueBanner;
-	int cchMax;
-	int iSelStart;
-	int iSelEnd;
-	WCHAR chMask;
+	ECKENUM iInputMode;
 	BITBOOL bMultiLine : 1;
 	BITBOOL bAutoWrap : 1;
-
-	// WCHAR szCueBanner[];
 };
 #pragma pack(pop)
 
@@ -58,7 +52,7 @@ private:
 
 	HBRUSH m_hbrEditBK = NULL;	// ±³¾°»­Ë¢
 	int m_cyText = 0;			// ÎÄ±¾¸ß¶È
-	RECT m_rcMargins{};			// ËÄ±ß¿ò³ß´ç
+	RECT m_rcMargins{};			// ±ß¾à
 	HWND m_hParent = NULL;		// ¸¸´°¿Ú
 
 	void UpdateTextInfo();
@@ -140,12 +134,14 @@ public:
 		return m_iInputMode;
 	}
 
-	EckInline void SetMaskChar(WCHAR chMask)
+	EckInline void SetPasswordChar(WCHAR chMask)
 	{
 		m_chMask = chMask;
+		if (m_iInputMode == InputMode::Password)
+			CEdit::SetPasswordChar(m_chMask);
 	}
 
-	EckInline WCHAR GetMaskChar()
+	EckInline WCHAR GetPasswordChar()
 	{
 		return m_chMask;
 	}

@@ -1,8 +1,7 @@
 #include "CEdit.h"
+#include "DesignerDef.h"
 
 ECK_NAMESPACE_BEGIN
-
-
 HWND CEdit::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData)
 {
@@ -18,33 +17,22 @@ HWND CEdit::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 
 		BOOL bVisible = IsBitSet(pBase->dwStyle, WS_VISIBLE);
 		dwStyle = pBase->dwStyle & ~WS_VISIBLE;
-		switch (p->iVer)
-		{
-		case DATAVER_EDIT_1:
-			switch (p->iVer)
-			{
-			case DATAVER_EDIT_1:
-				
-				break;
-			default:
-				EckDbgBreak();
-				break;
-			}
-			break;
-		default:
-			EckDbgBreak();
-			break;
-		}
-		m_hWnd = CreateWindowExW(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), dwStyle,
+
+		m_hWnd = CreateWindowExW(pBase->dwExStyle, WC_EDITW, pBase->Text(), dwStyle,
 			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
 
 		switch (p->iVer)
 		{
 		case DATAVER_EDIT_1:
-			SetCueBanner(PtrSkipType<WCHAR>(p), TRUE);/*
-			SetMaxLen(p->cchMax);
+			SetPasswordChar(p->chPassword);
+			SetTransformMode((TransMode)p->eTransMode);
 			SetSel(p->iSelStart, p->iSelEnd);
-			SetMaskChar(p->chMask);*/
+			SetMargins(p->iLeftMargin, p->iRightMargin);
+			SetCueBanner(p->CueBanner(), TRUE);
+			SetLimitText(p->cchMax);
+			break;
+		default:
+			EckDbgBreak();
 			break;
 		}
 		if (bVisible)
@@ -70,7 +58,16 @@ CRefBin CEdit::SerializeData(SIZE_T cbExtra, SIZE_T* pcbSize)
 		*pcbSize = cbBase + cbSize;
 
 	CMemWriter w(rb.Data() + cbBase, cbSize);
+	CREATEDATA_EDIT* p;
+	w.SkipPointer(p);
+	p->iVer = DATAVER_EDIT_1;
 
+	p->chPassword = GetPasswordChar();
+	p->eTransMode = (ECKENUM)GetTransformMode();
+	GetSel(&p->iSelStart, &p->iSelEnd);
+	GetMargins(&p->iLeftMargin, &p->iRightMargin);
+	p->cchCueBanner = rsCueBanner.Size();
+	p->cchMax = GetLimitText();
 
 	w << rsCueBanner;
 	return rb;
@@ -219,10 +216,24 @@ CRefStrW CEdit::GetLine(int iPos)
 	}
 	return rs;
 }
+
+
+CWnd* CALLBACK Create_Edit(PCBYTE pData, ECK_CREATE_CTRL_EXTRA_ARGS)
+{
+	auto p = new CEdit;
+	p->Create(ECK_CREATE_CTRL_EXTRA_REALARGS, pData);
+	if (p->GetHWND())
+		return p;
+	else
+	{
+		delete p;
+		return NULL;
+	}
+}
 ECK_NAMESPACE_END
 
 #ifdef ECK_CTRL_DESIGN_INTERFACE
-#include "DesignerDef.h"
+
 ECK_NAMESPACE_BEGIN
 EckPropCallBackRet CALLBACK SetProp_Edit(CWnd* pWnd, int idProp, EckCtrlPropValue* pProp)
 {
@@ -231,7 +242,6 @@ EckPropCallBackRet CALLBACK SetProp_Edit(CWnd* pWnd, int idProp, EckCtrlPropValu
 	auto p = (CEdit*)pWnd;
 	switch (idProp)
 	{
-
 	}
 	return ESPR_NONE;
 }
@@ -243,20 +253,7 @@ EckPropCallBackRet CALLBACK GetProp_Edit(CWnd* pWnd, int idProp, EckCtrlPropValu
 	return ESPR_NONE;
 }
 
-CWnd* CALLBACK Create_Edit(BYTE* pData, ECK_CREATE_CTRL_EXTRA_ARGS)
-{
-	auto p = new CEdit;
-	p->Create(ECK_CREATE_CTRL_EXTRA_REALARGS);
-	if (p->GetHWND())
-		return p;
-	else
-	{
-		delete p;
-		return NULL;
-	}
-}
-
-static EckCtrlPropEntry s_Prop_Edit[] =
+static EckCtrlPropEntry s_Prop_Edit[]
 {
 	{1,L"TextColor",L"文本颜色",L"",ECPT::Color},
 	{2,L"TextBKColor",L"文本背景颜色",L"",ECPT::Color},
@@ -275,7 +272,7 @@ static EckCtrlPropEntry s_Prop_Edit[] =
 	{13,L"AutoWrap",L"自动换行",L"",ECPT::Bool},
 };
 
-EckCtrlDesignInfo CtInfoEdit =
+EckCtrlDesignInfo CtInfoEdit
 {
 	L"Edit",
 	L"编辑框",
@@ -288,5 +285,9 @@ EckCtrlDesignInfo CtInfoEdit =
 	Create_Edit,
 	{80,24}
 };
+ECK_NAMESPACE_END
+#else
+ECK_NAMESPACE_BEGIN
+EckCtrlDesignInfo CtInfoEdit{ Create_Edit };
 ECK_NAMESPACE_END
 #endif // ECK_CTRL_DESIGN_INTERFACE

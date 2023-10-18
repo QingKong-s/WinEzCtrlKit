@@ -4,6 +4,17 @@
 #include "CWnd.h"
 #include "CAllocator.h"
 
+ECK_NAMESPACE_BEGIN
+#define ECK_CREATE_CTRL_EXTRA_ARGS PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle, \
+									int x, int y, int cx, int cy, HWND hParent, UINT nID
+#define ECK_CREATE_CTRL_EXTRA_REALARGS pszText, dwStyle, dwExStyle, x, y, cx, cy, hParent, nID
+// 创建控件
+typedef CWnd* (CALLBACK* ECKCICreate)(PCBYTE pData, ECK_CREATE_CTRL_EXTRA_ARGS);
+
+ECK_NAMESPACE_END
+
+
+
 #ifdef ECK_CTRL_DESIGN_INTERFACE
 ECK_NAMESPACE_BEGIN
 
@@ -78,12 +89,6 @@ typedef EckPropCallBackRet(CALLBACK* ECKCISetProp)(CWnd* pWnd, int idProp, EckCt
 // 取某属性
 typedef EckPropCallBackRet(CALLBACK* ECKCIGetProp)(CWnd* pWnd, int idProp, EckCtrlPropValue* pProp);
 
-#define ECK_CREATE_CTRL_EXTRA_ARGS PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle, \
-									int x, int y, int cx, int cy, HWND hParent, UINT nID
-#define ECK_CREATE_CTRL_EXTRA_REALARGS pszText, dwStyle, dwExStyle, x, y, cx, cy, hParent, nID
-// 创建控件
-typedef CWnd*(CALLBACK* ECKCICreate)(BYTE* pData, ECK_CREATE_CTRL_EXTRA_ARGS);
-
 struct EckCtrlDesignInfo
 {
 	PCWSTR pszName;         // 名称
@@ -130,18 +135,7 @@ static EckCtrlPropEntry s_CommProp[] =
 	{CPID_SCROLLBAR,L"ScrollBar",L"滚动条",L"",ECPT::PickInt,ECPF_NONE,L"无\0横向滚动条\0纵向滚动条\0横向及纵向滚动条\0\0"},
 };
 
-#define ECK_ALL_CTRL_CLASS \
-CtInfoButton \
-,CtInfoCheckButton \
-,CtInfoCommandLink \
-,CtInfoEdit \
 
-
-
-extern EckCtrlDesignInfo
-ECK_ALL_CTRL_CLASS;
-
-static EckCtrlDesignInfo s_EckDesignAllCtrl[] = { ECK_ALL_CTRL_CLASS };
 
 using TDesignAlloc = CAllocator<BYTE>;
 
@@ -160,4 +154,30 @@ EckPropCallBackRet CALLBACK GetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropVa
 					if (bDefProcessed) \
 						return iDefRet;
 ECK_NAMESPACE_END
+#else
+ECK_NAMESPACE_BEGIN
+struct EckCtrlDesignInfo
+{
+	ECKCICreate pfnCreate;
+};
+ECK_NAMESPACE_END
 #endif // ECK_CTRL_DESIGN_INTERFACE
+
+
+
+
+ECK_NAMESPACE_BEGIN
+#define ECK_ALL_CTRL_CLASS \
+CtInfoButton \
+,CtInfoCheckButton \
+,CtInfoCommandLink \
+,CtInfoEdit \
+
+
+
+extern EckCtrlDesignInfo
+ECK_ALL_CTRL_CLASS;
+
+static EckCtrlDesignInfo s_EckDesignAllCtrl[] = { ECK_ALL_CTRL_CLASS };
+
+ECK_NAMESPACE_END

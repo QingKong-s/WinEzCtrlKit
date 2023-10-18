@@ -10,6 +10,7 @@
 #include <Uxtheme.h>
 #include <vsstyle.h>
 #include <dwmapi.h>
+#include <assert.h>
 /*宏*/
 
 #define ECK_NAMESPACE_BEGIN namespace eck {
@@ -18,6 +19,26 @@
 #define EckInline __forceinline
 
 #define ECK_CTRLDATA_ALIGN 4
+
+#define ECKWIDE2___(x)          L##x
+// ANSI字符串到宽字符串
+#define ECKWIDE___(x)           ECKWIDE2___(x)
+
+#define ECKTOSTR2___(x)         #x
+// 到ANSI字符串
+#define ECKTOSTR___(x)          ECKTOSTR2___(x)
+// 到宽字符串
+#define ECKTOSTRW___(x)         ECKWIDE___(ECKTOSTR2___(x))
+
+// [预定义] 当前函数名W
+#define ECK_FUNCTIONW           ECKWIDE___(__FUNCTION__)
+// [预定义] 行号W
+#define ECK_LINEW               ECKTOSTRW___(__LINE__)
+// [预定义] 当前文件W
+#define ECK_FILEW               __FILEW__
+
+
+#define EckProp(getter, setter) __declspec(property(get = getter, put = setter)))
 
 /*类型*/
 ECK_NAMESPACE_BEGIN

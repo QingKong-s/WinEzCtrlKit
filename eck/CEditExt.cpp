@@ -321,7 +321,8 @@ HWND CEditExt::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	if (pData)
 	{
 		auto pBase = (const CREATEDATA_STD*)pData;
-		auto p = (const CREATEDATA_EDITEXT*)SkipBaseData(pData);
+		auto pEditBase = (const CREATEDATA_EDIT*)CWnd::SkipBaseData(pBase);
+		auto p = (const CREATEDATA_EDITEXT*)CEdit::SkipBaseData(pEditBase);
 		if (pBase->iVer_Std != DATAVER_STD_1)
 		{
 			EckDbgBreak();
@@ -330,42 +331,38 @@ HWND CEditExt::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 
 		BOOL bVisible = IsBitSet(pBase->dwStyle, WS_VISIBLE);
 		dwStyle = pBase->dwStyle & ~WS_VISIBLE;
+
 		switch (p->iVer)
 		{
 		case DATAVER_EDITEXT_1:
-			switch (p->iVer)
-			{
-			case DATAVER_EDITEXT_1:
-				SetMultiLine(p->bMultiLine);
-				SetAutoWrap(p->bAutoWrap);
-				if (m_bMultiLine)
-					dwStyle |= ES_MULTILINE | ES_AUTOVSCROLL | (m_bAutoWrap ? ES_AUTOHSCROLL : 0);
-				else
-					dwStyle |= ES_AUTOHSCROLL;
-				break;
-			default:
-				EckDbgBreak();
-				break;
-			}
+			SetMultiLine(p->bMultiLine);
+			SetAutoWrap(p->bAutoWrap);
+			if (m_bMultiLine)
+				dwStyle |= ES_MULTILINE | ES_AUTOVSCROLL | (m_bAutoWrap ? ES_AUTOHSCROLL : 0);
+			else
+				dwStyle |= ES_AUTOHSCROLL;
 			break;
 		default:
 			EckDbgBreak();
 			break;
 		}
-		m_hWnd = CreateWindowExW(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), dwStyle,
+		m_hWnd = CreateWindowExW(pBase->dwExStyle, WC_EDITW, pBase->Text(), dwStyle,
 			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
 
 		switch (p->iVer)
 		{
 		case DATAVER_EDITEXT_1:
+			SetPasswordChar(pEditBase->chPassword);
+			SetTransformMode((TransMode)pEditBase->eTransMode);
+			SetSel(pEditBase->iSelStart, pEditBase->iSelEnd);
+			SetMargins(pEditBase->iLeftMargin, pEditBase->iRightMargin);
+			SetCueBanner(pEditBase->CueBanner(), TRUE);
+			SetLimitText(pEditBase->cchMax);
+
 			SetClr(0, p->crText);
 			SetClr(1, p->crTextBK);
 			SetClr(2, p->crBK);
 			SetInputMode((InputMode)p->iInputMode);
-			SetCueBanner(PtrSkipType<WCHAR>(p), TRUE);
-			SetLimitText(p->cchMax);
-			SetSel(p->iSelStart, p->iSelEnd);
-			SetMaskChar(p->chMask);
 			break;
 		}
 		if (bVisible)
@@ -398,11 +395,12 @@ HWND CEditExt::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 CRefBin CEditExt::SerializeData(SIZE_T cbExtra, SIZE_T* pcbSize)
 {
 	SIZE_T cbBase;
-	auto rsCueBanner = GetCueBanner();
-	const SIZE_T cbSize = sizeof(CREATEDATA_EDITEXT) + rsCueBanner.ByteSize();
-	auto rb = CWnd::SerializeData(cbSize + cbExtra, &cbBase);
+	const SIZE_T cbSize = sizeof(CREATEDATA_EDITEXT);
+	auto rb = CEdit::SerializeData(cbSize + cbExtra, &cbBase);
 	if (pcbSize)
 		*pcbSize = cbBase + cbSize;
+
+	((CREATEDATA_EDIT*)CWnd::SkipBaseData(rb.Data()))->chPassword = GetPasswordChar();
 
 	CMemWriter w(rb.Data() + cbBase, cbSize);
 
@@ -412,15 +410,10 @@ CRefBin CEditExt::SerializeData(SIZE_T cbExtra, SIZE_T* pcbSize)
 	p->crText = GetClr(0);
 	p->crTextBK = GetClr(1);
 	p->crBK = GetClr(2);
-	p->iInputMode = (int)GetInputMode();
-	p->cchCueBanner = rsCueBanner.Size();
-	p->cchMax = GetLimitText();
-	GetSel(&p->iSelStart, &p->iSelEnd);
-	p->chMask = GetMaskChar();
+	p->iInputMode = (ECKENUM)GetInputMode();
 	p->bMultiLine = GetMultiLine();
 	p->bAutoWrap = GetAutoWrap();
 
-	w << rsCueBanner;
 	return rb;
 }
 

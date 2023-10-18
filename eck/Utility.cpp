@@ -4,6 +4,50 @@
 
 ECK_NAMESPACE_BEGIN
 extern CRefStrW g_rsCurrDir;
+
+HDC CEzCDC::Create(HWND hWnd, int cx, int cy)
+{
+	this->~CEzCDC();
+	HDC hDC = ::GetDC(hWnd);
+	if (cx <= 0 || cy <= 0)
+	{
+		RECT rc;
+		GetClientRect(hWnd, &rc);
+		cx = rc.right;
+		cy = rc.bottom;
+	}
+	m_hCDC = CreateCompatibleDC(hDC);
+	m_hBmp = CreateCompatibleBitmap(hDC, cx, cy);
+	m_hOld = SelectObject(m_hCDC, m_hBmp);
+	ReleaseDC(hWnd, hDC);
+	return m_hCDC;
+}
+
+void CEzCDC::ReSize(HWND hWnd, int cx, int cy)
+{
+	if (m_hCDC)
+	{
+		if (cx <= 0 || cy <= 0)
+		{
+			RECT rc;
+			GetClientRect(hWnd, &rc);
+			cx = rc.right;
+			cy = rc.bottom;
+		}
+
+		HDC hDC = ::GetDC(hWnd);
+		SelectObject(m_hCDC, m_hOld);
+		DeleteObject(m_hBmp);
+
+		m_hBmp = CreateCompatibleBitmap(hDC, cx, cy);
+		m_hOld = SelectObject(m_hCDC, m_hBmp);
+		ReleaseDC(hWnd, hDC);
+	}
+}
+
+
+
+
 const CRefStrW& GetRunningPath()
 {
 	return g_rsCurrDir;
@@ -122,21 +166,28 @@ RECT MakeRect(POINT pt1, POINT pt2)
 	return rc;
 }
 
-PSTR W2A(PCWSTR pszText, int cch)
+PSTR StrW2X(PCWSTR pszText, int cch, int uCP)
 {
-	int cchBuf = WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK, pszText, cch, NULL, 0, NULL, NULL);
+	int cchBuf = WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, NULL, 0, NULL, NULL);
 	auto pszBuf = CAllocator<char>::Alloc(cchBuf + 1);
-	WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK, pszText, cch, pszBuf, cchBuf, NULL, NULL);
+	WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, pszBuf, cchBuf, NULL, NULL);
 	*(pszBuf + cchBuf) = '\0';
 	return pszBuf;
 }
 
-PWSTR A2W(PCSTR pszText, int cch)
+PWSTR StrX2W(PCSTR pszText, int cch, int uCP)
 {
-	int cchBuf = MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, pszText, cch, NULL, 0);
+	int cchBuf = MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, NULL, 0);
 	auto pszBuf = CAllocator<WCHAR>::Alloc(cchBuf + 1);
-	MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, pszText, cch, pszBuf, cchBuf);
+	MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, pszBuf, cchBuf);
 	*(pszBuf + cchBuf) = '\0';
 	return pszBuf;
 }
+
+
+
+
+
+
+
 ECK_NAMESPACE_END

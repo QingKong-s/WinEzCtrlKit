@@ -37,10 +37,17 @@ struct CREATEDATA_CHECKBUTTON
 struct CREATEDATA_COMMANDLINK
 {
 	int iVer;
-	int cchText;
+	int cchNote;
 	BITBOOL bShieldIcon : 1;
-
 	// WCHAR szNote[];
+
+	EckInline PCWSTR Note() const
+	{
+		if (cchNote)
+			return (PCWSTR)PtrSkipType(this);
+		else
+			return NULL;
+	}
 };
 
 #ifdef ECK_CTRL_DESIGN_INTERFACE
@@ -57,7 +64,7 @@ struct DESIGNDATA_PUSHBUTTON
 class CButton :public CWnd
 {
 protected:
-	BITBOOL m_bShowTextAndImage : 1;
+	BITBOOL m_bShowTextAndImage : 1 = FALSE;
 public:
 	CButton() {}
 

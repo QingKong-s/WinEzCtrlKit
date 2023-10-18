@@ -79,7 +79,10 @@ public:
 		EckCounter(m_Header.cResources, i)
 		{
 			r.SkipPointer(pIndexEntry);
-			m_OffsetTable[pIndexEntry->iID] = { pIndexEntry->uOffset,pIndexEntry->cbSize,(ResType)pIndexEntry->eType };
+			m_OffsetTable.emplace(std::make_pair(
+				pIndexEntry->iID,
+				OFFSETENTRY{ pIndexEntry->uOffset,pIndexEntry->cbSize,(ResType)pIndexEntry->eType }
+			));
 		}
 		return TRUE;
 	}
