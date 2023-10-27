@@ -20,6 +20,7 @@ LRESULT CALLBACK CEditExt::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARAM wPar
 	switch (uMsg)
 	{
 	case WM_CTLCOLOREDIT:
+	case WM_CTLCOLORSTATIC:
 	{
 		auto it = m_WndRecord.find((HWND)lParam);
 		if (it != m_WndRecord.end())

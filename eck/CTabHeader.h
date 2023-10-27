@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "CUpDown.h"
 
 ECK_NAMESPACE_BEGIN
@@ -91,7 +91,7 @@ public:
 		{
 			Item.rsText = pItem->pszText;
 			SIZEL size;
-			GetTextExtentPoint32W(m_hCDC, Item.rsText, Item.rsText.Size(), &size);
+			GetTextExtentPoint32W(m_hCDC, Item.rsText.Data(), Item.rsText.Size(), &size);
 			Item.cxText = size.cx;
 			m_cxTotal += size.cx;
 		}

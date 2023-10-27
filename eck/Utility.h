@@ -1,7 +1,7 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* Utility.h £º ÊµÓÃº¯Êı
+* Utility.h ï¼š å®ç”¨å‡½æ•°
 *
 * Copyright(C) 2023 QingKong
 */
@@ -18,72 +18,72 @@
 #include <string_view>
 
 #include <windowsx.h>
+#include <d2d1.h>
 
 #define MAKEINTATOMW(i) (PWSTR)((ULONG_PTR)((WORD)(i)))
 #define EckBoolNot(x) ((x) = !(x))
-// lParam->POINT ÓÃÓÚ´¦ÀíÊó±êÏûÏ¢   e.g. POINT pt = GET_PT_LPARAM(lParam);
+// lParam->POINT ç”¨äºå¤„ç†é¼ æ ‡æ¶ˆæ¯   e.g. POINT pt = GET_PT_LPARAM(lParam);
 #define GET_PT_LPARAM(lParam) { GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) }
-// lParam->size ÓÃÓÚ´¦ÀíWM_SIZE   e.g. GET_SIZE_LPARAM(cxClient, cyClient, lParam);
+// lParam->size ç”¨äºå¤„ç†WM_SIZE   e.g. GET_SIZE_LPARAM(cxClient, cyClient, lParam);
 #define GET_SIZE_LPARAM(cx,cy,lParam) (cx) = LOWORD(lParam); (cy) = HIWORD(lParam);
 
-// ¼Æ´ÎÑ­»·
+// è®¡æ¬¡å¾ªç¯
 #define EckCounter(c, Var) for(std::remove_cv_t<decltype(c)> Var = 0; Var < c; ++Var)
 
 #define EckCounterNVMakeVarName2(Name) ECKPRIV_COUNT_##Name##___
 #define EckCounterNVMakeVarName(Name) EckCounterNVMakeVarName2(Name)
 
-// ¼Æ´ÎÑ­»·£¬ÎŞ±äÁ¿Ãû²ÎÊı
+// è®¡æ¬¡å¾ªç¯ï¼Œæ— å˜é‡åå‚æ•°
 #define EckCounterNV(c) EckCounter(c, EckCounterNVMakeVarName(__LINE__))
 
 #define EckOpt(Type, Name) std::optional<Type> Name
 #define EckOptNul(Type, Name) std::optional<Type> Name = std::nullopt
 
-
 ECK_NAMESPACE_BEGIN
 namespace Colorref
 {
 	static constexpr COLORREF
-		Red               = 0x0000FF,// ºìÉ«
-		Green             = 0x00FF00,// ÂÌÉ«
-		Blue              = 0xFF0000,// À¶É«
-		Yellow            = 0x00FFFF,// »ÆÉ«
-		Magenta           = 0xFF00FF,// Æ·ºì/Ñóºì
-		Cyan              = 0xFFFF00,// ÑŞÇà/ÇàÉ«
+		Red               = 0x0000FF,// çº¢è‰²
+		Green             = 0x00FF00,// ç»¿è‰²
+		Blue              = 0xFF0000,// è“è‰²
+		Yellow            = 0x00FFFF,// é»„è‰²
+		Magenta           = 0xFF00FF,// å“çº¢/æ´‹çº¢
+		Cyan              = 0xFFFF00,// è‰³é’/é’è‰²
 
-		Maroon            = 0x000080,// ºìºÖ/°µºì
-		OfficeGreen       = 0x008000,// Ä«ÂÌ/°µÂÌ
-		Olive             = 0x008080,// ºÖÂÌ/°µ»Æ
-		NavyBlue          = 0x800000,// ²ØÇà/°µÀ¶
-		Patriarch         = 0x800080,// ×Ïºì/°µÑóºì
-		Teal              = 0x808000,// ÉîÇà/°µÇà
+		Maroon            = 0x000080,// çº¢è¤/æš—çº¢
+		OfficeGreen       = 0x008000,// å¢¨ç»¿/æš—ç»¿
+		Olive             = 0x008080,// è¤ç»¿/æš—é»„
+		NavyBlue          = 0x800000,// è—é’/æš—è“
+		Patriarch         = 0x800080,// ç´«çº¢/æš—æ´‹çº¢
+		Teal              = 0x808000,// æ·±é’/æš—é’
 
-		Silver            = 0xC0C0C0,// Ç³»Ò/ÁÁ»Ò
-		MoneyGreen        = 0xC0DCC0,// ÃÀÔªÂÌ
-		LightBlue         = 0xF0CAA6,// Ç³À¶/ÌìÀ¶
+		Silver            = 0xC0C0C0,// æµ…ç°/äº®ç°
+		MoneyGreen        = 0xC0DCC0,// ç¾å…ƒç»¿
+		LightBlue         = 0xF0CAA6,// æµ…è“/å¤©è“
 
-		Gray              = 0x808080,// »ÒÉ«/°µ»Ò
-		NeutralGray       = 0xA4A0A0,// ÖĞĞÔ»Ò
-		MilkyWhite        = 0xF0FBFF,// Èé°×
+		Gray              = 0x808080,// ç°è‰²/æš—ç°
+		NeutralGray       = 0xA4A0A0,// ä¸­æ€§ç°
+		MilkyWhite        = 0xF0FBFF,// ä¹³ç™½
 
-		Black             = 0x000000,// ºÚÉ«
-		White             = 0xFFFFFF,// °×É«
+		Black             = 0x000000,// é»‘è‰²
+		White             = 0xFFFFFF,// ç™½è‰²
 
-		BlueGray          = 0xFF8080,// À¶»Ò
-		PurplishBlue      = 0xE03058,// ²ØÀ¶
-		TenderGreen       = 0x00E080,// ÄÛÂÌ
-		Turquoise         = 0x80E000,// ÇàÂÌ
-		YellowishBrown    = 0x0060C0,// »ÆºÖ
-		Pink              = 0xFFA8FF,// ·Ûºì
-		BrightYellow      = 0x00D8D8,// ÄÛ»Æ
-		JadeWhite         = 0xECECEC,// Òø°×
-		Purple            = 0xFF0090,// ×ÏÉ«
-		Azure             = 0xFF8800,// ÌìÀ¶
-		Celadon           = 0x80A080,// »ÒÂÌ
-		CyanBlue          = 0xC06000,// ÇàÀ¶
-		Orange            = 0x0080FF,// ³È»Æ
-		Peachblow         = 0x8050FF,// ÌÒºì
-		HibiscusRed       = 0xC080FF,// Ü½ºì
-		DeepGray          = 0x606060// Éî»Ò
+		BlueGray          = 0xFF8080,// è“ç°
+		PurplishBlue      = 0xE03058,// è—è“
+		TenderGreen       = 0x00E080,// å«©ç»¿
+		Turquoise         = 0x80E000,// é’ç»¿
+		YellowishBrown    = 0x0060C0,// é»„è¤
+		Pink              = 0xFFA8FF,// ç²‰çº¢
+		BrightYellow      = 0x00D8D8,// å«©é»„
+		JadeWhite         = 0xECECEC,// é“¶ç™½
+		Purple            = 0xFF0090,// ç´«è‰²
+		Azure             = 0xFF8800,// å¤©è“
+		Celadon           = 0x80A080,// ç°ç»¿
+		CyanBlue          = 0xC06000,// é’è“
+		Orange            = 0x0080FF,// æ©™é»„
+		Peachblow         = 0x8050FF,// æ¡ƒçº¢
+		HibiscusRed       = 0xC080FF,// èŠ™çº¢
+		DeepGray          = 0x606060// æ·±ç°
 		;
 }
 
@@ -148,12 +148,12 @@ struct CMemWriter
 
 	EckInline CMemWriter& operator<<(const CRefBin& Data)
 	{
-		return Write(Data, Data.m_cb);
+		return Write(Data.Data(), Data.m_cb);
 	}
 
 	EckInline CMemWriter& operator<<(const CRefStrW& Data)
 	{
-		return Write(Data, Data.ByteSize());
+		return Write(Data.Data(), Data.ByteSize());
 	}
 
 	EckInline operator BYTE*& () { return m_pMem; }
@@ -227,7 +227,7 @@ struct CMemReader
 	{
 		int cch = (int)wcslen((PCWSTR)m_pMem);
 		Data.ReSize(cch);
-		return Read(Data, (cch + 1) * sizeof(WCHAR));
+		return Read(Data.Data(), (cch + 1) * sizeof(WCHAR));
 	}
 
 	EckInline operator BYTE*& () { return m_pMem; }
@@ -292,12 +292,12 @@ public:
 };
 
 /// <summary>
-/// ¼ÆËãÏÂÒ»¶ÔÆë±ß½ç
+/// è®¡ç®—ä¸‹ä¸€å¯¹é½è¾¹ç•Œ
 /// </summary>
-/// <param name="pStart">ÆğÊ¼µØÖ·</param>
-/// <param name="pCurr">µ±Ç°µØÖ·</param>
-/// <param name="cbAlign">¶ÔÆë³ß´ç</param>
-/// <returns>µ±Ç°µØÖ·µ½ÏÂÒ»¶ÔÆë±ß½çµÄ¾àÀë£¬Èç¹ûµ±Ç°µØÖ·ÒÑ¾­ÂäÔÚ¶ÔÆë±ß½çÉÏ£¬Ôò·µ»Ø0</returns>
+/// <param name="pStart">èµ·å§‹åœ°å€</param>
+/// <param name="pCurr">å½“å‰åœ°å€</param>
+/// <param name="cbAlign">å¯¹é½å°ºå¯¸</param>
+/// <returns>å½“å‰åœ°å€åˆ°ä¸‹ä¸€å¯¹é½è¾¹ç•Œçš„è·ç¦»ï¼Œå¦‚æœå½“å‰åœ°å€å·²ç»è½åœ¨å¯¹é½è¾¹ç•Œä¸Šï¼Œåˆ™è¿”å›0</returns>
 constexpr EckInline SIZE_T CalcNextAlignBoundaryDistance(const void* pStart, const void* pCurr, SIZE_T cbAlign)
 {
 	SIZE_T uDistance = (SIZE_T)pCurr - (SIZE_T)pStart;
@@ -305,12 +305,12 @@ constexpr EckInline SIZE_T CalcNextAlignBoundaryDistance(const void* pStart, con
 }
 
 /// <summary>
-/// ²½½øµ½ÏÂÒ»¶ÔÆë±ß½ç
+/// æ­¥è¿›åˆ°ä¸‹ä¸€å¯¹é½è¾¹ç•Œ
 /// </summary>
-/// <param name="pStart">ÆğÊ¼Ö¸Õë</param>
-/// <param name="pCurr">µ±Ç°Ö¸Õë</param>
-/// <param name="cbAlign">¶ÔÆë³ß´ç</param>
-/// <returns>²½½øºóµÄÖ¸Õë£¬Èç¹ûµ±Ç°Ö¸ÕëÒÑ¾­ÂäÔÚ¶ÔÆë±ß½çÉÏ£¬ÔòÖ¸Õë²»±ä</returns>
+/// <param name="pStart">èµ·å§‹æŒ‡é’ˆ</param>
+/// <param name="pCurr">å½“å‰æŒ‡é’ˆ</param>
+/// <param name="cbAlign">å¯¹é½å°ºå¯¸</param>
+/// <returns>æ­¥è¿›åçš„æŒ‡é’ˆï¼Œå¦‚æœå½“å‰æŒ‡é’ˆå·²ç»è½åœ¨å¯¹é½è¾¹ç•Œä¸Šï¼Œåˆ™æŒ‡é’ˆä¸å˜</returns>
 template<class T>
 constexpr EckInline const T* StepToNextAlignBoundary(const T* pStart, const T* pCurr, SIZE_T cbAlign)
 {
@@ -318,12 +318,12 @@ constexpr EckInline const T* StepToNextAlignBoundary(const T* pStart, const T* p
 }
 
 /// <summary>
-/// ²½½øµ½ÏÂÒ»¶ÔÆë±ß½ç
+/// æ­¥è¿›åˆ°ä¸‹ä¸€å¯¹é½è¾¹ç•Œ
 /// </summary>
-/// <param name="pStart">ÆğÊ¼Ö¸Õë</param>
-/// <param name="pCurr">µ±Ç°Ö¸Õë</param>
-/// <param name="cbAlign">¶ÔÆë³ß´ç</param>
-/// <returns>²½½øºóµÄÖ¸Õë£¬Èç¹ûµ±Ç°Ö¸ÕëÒÑ¾­ÂäÔÚ¶ÔÆë±ß½çÉÏ£¬ÔòÖ¸Õë²»±ä</returns>
+/// <param name="pStart">èµ·å§‹æŒ‡é’ˆ</param>
+/// <param name="pCurr">å½“å‰æŒ‡é’ˆ</param>
+/// <param name="cbAlign">å¯¹é½å°ºå¯¸</param>
+/// <returns>æ­¥è¿›åçš„æŒ‡é’ˆï¼Œå¦‚æœå½“å‰æŒ‡é’ˆå·²ç»è½åœ¨å¯¹é½è¾¹ç•Œä¸Šï¼Œåˆ™æŒ‡é’ˆä¸å˜</returns>
 template<class T>
 constexpr EckInline T* StepToNextAlignBoundary(T* pStart, T* pCurr, SIZE_T cbAlign)
 {
@@ -343,25 +343,25 @@ constexpr EckInline void* PtrSkipType(T* p)
 }
 
 /// <summary>
-/// ¼ÆËã¶ÔÆëºóÄÚ´æ³ß´ç
+/// è®¡ç®—å¯¹é½åå†…å­˜å°ºå¯¸
 /// </summary>
-/// <param name="cbSize">³ß´ç</param>
-/// <param name="cbAlign">¶ÔÆë³ß´ç</param>
-/// <returns>¼ÆËã½á¹û</returns>
+/// <param name="cbSize">å°ºå¯¸</param>
+/// <param name="cbAlign">å¯¹é½å°ºå¯¸</param>
+/// <returns>è®¡ç®—ç»“æœ</returns>
 EckInline constexpr SIZE_T AlignMemSize(SIZE_T cbSize, SIZE_T cbAlign)
 {
 	return (cbSize + cbAlign) & ~cbAlign;
 }
 
 /// <summary>
-/// CRT´´½¨Ïß³Ì¡£
-/// £¨_beginthreadex wrapper£©
+/// CRTåˆ›å»ºçº¿ç¨‹ã€‚
+/// ï¼ˆ_beginthreadex wrapperï¼‰
 /// </summary>
-/// <param name="lpStartAddress">ÆğÊ¼µØÖ·</param>
-/// <param name="lpParameter">²ÎÊı</param>
-/// <param name="lpThreadId">Ïß³ÌID±äÁ¿Ö¸Õë</param>
-/// <param name="dwCreationFlags">±êÖ¾</param>
-/// <returns>Ïß³Ì¾ä±ú</returns>
+/// <param name="lpStartAddress">èµ·å§‹åœ°å€</param>
+/// <param name="lpParameter">å‚æ•°</param>
+/// <param name="lpThreadId">çº¿ç¨‹IDå˜é‡æŒ‡é’ˆ</param>
+/// <param name="dwCreationFlags">æ ‡å¿—</param>
+/// <returns>çº¿ç¨‹å¥æŸ„</returns>
 EckInline HANDLE CRTCreateThread(_beginthreadex_proc_type lpStartAddress, void* lpParameter = NULL,
 	UINT* lpThreadId = NULL, UINT dwCreationFlags = 0)
 {
@@ -424,22 +424,22 @@ EckInline T1 ReInterpretNum(T2 n)
 }
 
 /// <summary>
-/// È¡ÔËĞĞÄ¿Â¼
+/// å–è¿è¡Œç›®å½•
 /// </summary>
 const CRefStrW& GetRunningPath();
 
 /// <summary>
-/// ¶ÁÈëÎÄ¼ş
+/// è¯»å…¥æ–‡ä»¶
 /// </summary>
-/// <param name="pszFile">ÎÄ¼şÂ·¾¶</param>
-/// <returns>·µ»Ø×Ö½Ú¼¯</returns>
+/// <param name="pszFile">æ–‡ä»¶è·¯å¾„</param>
+/// <returns>è¿”å›å­—èŠ‚é›†</returns>
 CRefBin ReadInFile(PCWSTR pszFile);
 
 /// <summary>
-/// Ğ´µ½ÎÄ¼ş
+/// å†™åˆ°æ–‡ä»¶
 /// </summary>
-/// <param name="pData">×Ö½ÚÁ÷</param>
-/// <param name="cb">×Ö½ÚÁ÷³¤¶È</param>
+/// <param name="pData">å­—èŠ‚æµ</param>
+/// <param name="cb">å­—èŠ‚æµé•¿åº¦</param>
 BOOL WriteToFile(PCWSTR pszFile, PCVOID pData, DWORD cb);
 
 EckInline BOOL WriteToFile(PCWSTR pszFile, const CRefBin& rb)
@@ -448,11 +448,11 @@ EckInline BOOL WriteToFile(PCWSTR pszFile, const CRefBin& rb)
 }
 
 /// <summary>
-/// ×Ö½Ú¼¯µ½ÓÑºÃ×Ö·û´®±íÊ¾
+/// å­—èŠ‚é›†åˆ°å‹å¥½å­—ç¬¦ä¸²è¡¨ç¤º
 /// </summary>
-/// <param name="Bin">×Ö½Ú¼¯</param>
-/// <param name="iType">ÀàĞÍ£¬0 - ¿Õ¸ñ·Ö¸îµÄÊ®Áù½øÖÆ  1 - Ò×ÓïÑÔ×Ö½Ú¼¯µ÷ÊÔÊä³ö</param>
-/// <returns>·µ»Ø½á¹û</returns>
+/// <param name="Bin">å­—èŠ‚é›†</param>
+/// <param name="iType">ç±»å‹ï¼Œ0 - ç©ºæ ¼åˆ†å‰²çš„åå…­è¿›åˆ¶  1 - æ˜“è¯­è¨€å­—èŠ‚é›†è°ƒè¯•è¾“å‡º</param>
+/// <returns>è¿”å›ç»“æœ</returns>
 CRefStrW BinToFriendlyString(BYTE* pData, SIZE_T cb, int iType);
 
 EckInline void ScreenToClient(HWND hWnd, RECT* prc)
@@ -535,28 +535,44 @@ EckInline void DbBufFree(HDC hCDC, HBITMAP hBitmap, HGDIOBJ hOldBmp)
 }
 
 template<class T>
-EckInline BOOL Sign(T v)
+EckInline constexpr BOOL Sign(T v)
 {
 	return v >= 0;
 }
 
-EckInline DWORD ReverseDWORD(BYTE* p)
+EckInline constexpr DWORD ReverseDWORD(BYTE* p)
 {
 	return ((p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]);
 }
 
 /// <summary>
-/// ·´×ª4×Ö½ÚÕûÊı×Ö½ÚĞò
+/// åè½¬4å­—èŠ‚æ•´æ•°å­—èŠ‚åº
 /// </summary>
-/// <param name="dw">ÊäÈë</param>
-/// <returns>×ª»»½á¹û</returns>
-EckInline DWORD ReverseDWORD(DWORD dw)
+/// <param name="dw">è¾“å…¥</param>
+/// <returns>è½¬æ¢ç»“æœ</returns>
+EckInline constexpr DWORD ReverseDWORD(DWORD dw)
 {
 	return ReverseDWORD((BYTE*)&dw);
 }
 
-EckInline SIZE_T Cch2Cb(int cch)
+EckInline constexpr SIZE_T Cch2Cb(int cch)
 {
 	return (cch + 1) * sizeof(WCHAR);
+}
+
+EckInline D2D1_RECT_F MakeD2DRcF(const RECT& rc)
+{
+	return D2D1::RectF((float)rc.left, (float)rc.top, (float)rc.right, (float)rc.bottom);
+}
+
+EckInline constexpr RECT MakeRect(const D2D1_RECT_F& rc)
+{
+	return { (LONG)rc.left, (LONG)rc.top, (LONG)rc.right, (LONG)rc.bottom };
+}
+
+EckInline constexpr UINT ReverseColorref(UINT cr)
+{
+	BYTE* p = (BYTE*)&cr;
+	return (((p[0] << 16) | (p[1] << 8) | p[2]) & 0x00FFFFFF);
 }
 ECK_NAMESPACE_END

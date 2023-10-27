@@ -153,6 +153,7 @@
     <ClInclude Include="eck\CChartPie.h" />
     <ClInclude Include="eck\CComboBox.h" />
     <ClInclude Include="eck\CComboBoxEx.h" />
+    <ClInclude Include="eck\CDialog.h" />
     <ClInclude Include="eck\CEditExt.h" />
     <ClInclude Include="eck\CFile.h" />
     <ClInclude Include="eck\CForm.h" />
@@ -182,6 +183,7 @@
     <ClInclude Include="eck\CRefStr.h" />
     <ClInclude Include="eck\CStatic.h" />
     <ClInclude Include="eck\CSubclassMgr.h" />
+    <ClInclude Include="eck\CToolBar.h" />
     <ClInclude Include="eck\CTreeView.h" />
     <ClInclude Include="eck\CUpDown.h" />
     <ClInclude Include="eck\CWnd.h" />

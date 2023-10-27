@@ -1,7 +1,7 @@
-/*
+﻿/*
 * WinEzCtrlKit Library
 *
-* CComboBox.h �� ��׼��Ͽ�
+* CComboBox.h ： 标准组合框
 *
 * Copyright(C) 2023 QingKong
 */
@@ -39,45 +39,45 @@ public:
 	}
 
 	/// <summary>
-	/// ɾ����Ŀ
+	/// 删除项目
 	/// </summary>
 	/// <param name="idx"></param>
-	/// <returns>����ʣ����Ŀ��</returns>
+	/// <returns>返回剩余项目数</returns>
 	EckInline int DeleteString(int idx)
 	{
 		return (int)SendMsg(CB_DELETESTRING, idx, 0);
 	}
 
 	/// <summary>
-	/// ����·��
+	/// 加入路径
 	/// </summary>
-	/// <param name="pszPath">·��</param>
-	/// <param name="uFlags">DDL_����</param>
-	/// <returns>����</returns>
+	/// <param name="pszPath">路径</param>
+	/// <param name="uFlags">DDL_常量</param>
+	/// <returns>索引</returns>
 	EckInline int Dir(PCWSTR pszPath, UINT uFlags)
 	{
 		return (int)SendMsg(CB_DIR, uFlags, (LPARAM)pszPath);
 	}
 
 	/// <summary>
-	/// ������Ŀ��
-	/// �����ִ�Сд
+	/// 查找项目。
+	/// 不区分大小写
 	/// </summary>
-	/// <param name="pszText">�ı�����ƥ���Ը��ı���ͷ����Ŀ</param>
-	/// <param name="idxStart">��ʼ������-1 = ��ͷ���������б�</param>
-	/// <returns>����</returns>
+	/// <param name="pszText">文本，将匹配以该文本开头的项目</param>
+	/// <param name="idxStart">起始索引，-1 = 从头搜索整个列表</param>
+	/// <returns>索引</returns>
 	EckInline int FindString(PCWSTR pszText, int idxStart = -1)
 	{
 		return (int)SendMsg(CB_FINDSTRING, idxStart, (LPARAM)pszText);
 	}
 
 	/// <summary>
-	/// ������ȫƥ����Ŀ��
-	/// �����ִ�Сд
+	/// 查找完全匹配项目。
+	/// 不区分大小写
 	/// </summary>
-	/// <param name="pszText">�ı�����ƥ������ı���ȫ��ͬ����Ŀ</param>
-	/// <param name="idxStart">��ʼ������-1 = ��ͷ���������б�</param>
-	/// <returns>����</returns>
+	/// <param name="pszText">文本，将匹配与该文本完全相同的项目</param>
+	/// <param name="idxStart">起始索引，-1 = 从头搜索整个列表</param>
+	/// <returns>索引</returns>
 	EckInline int FindStringExact(PCWSTR pszText, int idxStart = -1)
 	{
 		return (int)SendMsg(CB_FINDSTRINGEXACT, idxStart, (LPARAM)pszText);
@@ -94,31 +94,31 @@ public:
 	}
 
 	/// <summary>
-	/// ȡ��ʾ����ı�
+	/// 取提示横幅文本
 	/// </summary>
-	/// <param name="pszBuf">������</param>
-	/// <param name="cchBuf">pszBufָʾ�Ļ�������С����WCHAR�ƣ�������βNULL</param>
-	/// <returns>�ɹ�����1��ʧ�ܷ��ش������</returns>
+	/// <param name="pszBuf">缓冲区</param>
+	/// <param name="cchBuf">pszBuf指示的缓冲区大小，以WCHAR计，包含结尾NULL</param>
+	/// <returns>成功返回1，失败返回错误代码</returns>
 	EckInline int GetCueBanner(PWSTR pszBuf, int cchBuf)
 	{
 		return (int)SendMsg(CB_GETCUEBANNER, (WPARAM)pszBuf, cchBuf);
 	}
 
 	/// <summary>
-	/// ȡ����ѡ���
-	/// �Ե�ѡ�б�����÷�������ѡ����Զ�ѡ�б�����÷��ؽ�����Ŀ
+	/// 取现行选中项。
+	/// 对单选列表框调用返回现行选中项，对多选列表框调用返回焦点项目
 	/// </summary>
-	/// <returns>����</returns>
-	EckInline int GetCurrSel()
+	/// <returns>索引</returns>
+	EckInline int GetCurSel()
 	{
 		return (int)SendMsg(CB_GETCURSEL, 0, 0);
 	}
 
 	/// <summary>
-	/// ȡ�����б������
+	/// 取下拉列表框矩形
 	/// </summary>
-	/// <param name="prc">���վ��Σ������Ļ</param>
-	/// <returns>�ɹ�����TRUE��ʧ�ܷ���FALSE</returns>
+	/// <param name="prc">接收矩形，相对屏幕</param>
+	/// <returns>成功返回TRUE，失败返回FALSE</returns>
 	EckInline BOOL GetDroppedCtrlRect(RECT* prc)
 	{
 		return (BOOL)SendMsg(CB_GETDROPPEDCONTROLRECT, 0, (LPARAM)prc);
@@ -130,10 +130,10 @@ public:
 	}
 
 	/// <summary>
-	/// ȡ�����б�����С���ȡ�
-	/// Ĭ����С����Ϊ0���б������Ϊmax(��С����, ��Ͽ����ؼ�����)
+	/// 取下拉列表框最小宽度。
+	/// 默认最小宽度为0，列表框宽度为max(最小宽度, 组合框主控件宽度)
 	/// </summary>
-	/// <returns>�ɹ�����������С���ȣ�ʧ�ܷ���CB_ERR</returns>
+	/// <returns>成功返回正的最小宽度，失败返回CB_ERR</returns>
 	EckInline BOOL GetDroppedWidth()
 	{
 		return (BOOL)SendMsg(CB_GETDROPPEDWIDTH, 0, 0);
@@ -176,21 +176,21 @@ public:
 	}
 
 	/// <summary>
-	/// ȡ��Ŀ�ı�
+	/// 取项目文本
 	/// </summary>
 	/// <param name="idx"></param>
 	/// <param name="pszBuf"></param>
-	/// <returns>�����ַ�����������βNULL����ʧ�ܷ���-1</returns>
+	/// <returns>返回字符数（不含结尾NULL），失败返回-1</returns>
 	EckInline int GetItemText(int idx, PWSTR pszBuf)
 	{
 		return (int)SendMsg(CB_GETLBTEXT, idx, (LPARAM)pszBuf);
 	}
 
 	/// <summary>
-	/// ȡ��Ŀ�ı�����
+	/// 取项目文本长度
 	/// </summary>
 	/// <param name="idx"></param>
-	/// <returns>�����ַ�����������βNULL��</returns>
+	/// <returns>返回字符数（不含结尾NULL）</returns>
 	EckInline int GetItemTextLength(int idx)
 	{
 		return (int)SendMsg(CB_GETLBTEXTLEN, idx, 0);
@@ -216,7 +216,7 @@ public:
 	/// </summary>
 	/// <param name="cItems"></param>
 	/// <param name="cbString"></param>
-	/// <returns>�ɹ�������Ԥ�������Ŀ������ʧ�ܷ���CB_ERRSPACE</returns>
+	/// <returns>成功返回已预分配的项目总数，失败返回CB_ERRSPACE</returns>
 	EckInline int InitStorage(int cItems, SIZE_T cbString)
 	{
 		return (int)SendMsg(CB_INITSTORAGE, cItems, cbString);
@@ -233,9 +233,9 @@ public:
 	}
 
 	/// <summary>
-	/// ���ı���������
+	/// 置文本输入限制
 	/// </summary>
-	/// <param name="cch">�ַ�������ȣ���Ϊ0������Ϊ0x7FFFFFFE</param>
+	/// <param name="cch">字符串最长长度，若为0则限制为0x7FFFFFFE</param>
 	EckInline void LimitText(int cch = 0)
 	{
 		SendMsg(CB_LIMITTEXT, cch, 0);
@@ -247,22 +247,22 @@ public:
 	}
 
 	/// <summary>
-	/// ���Ҳ�ѡ����Ŀ��
-	/// �����ִ�Сд
+	/// 查找并选择项目。
+	/// 不区分大小写
 	/// </summary>
-	/// <param name="pszText">�ı�����ƥ���Ը��ı���ͷ����Ŀ</param>
-	/// <param name="idxStart">��ʼ������-1 = ��ͷ���������б�</param>
-	/// <returns>������ʧ�ܷ���CB_ERR</returns>
+	/// <param name="pszText">文本，将匹配以该文本开头的项目</param>
+	/// <param name="idxStart">起始索引，-1 = 从头搜索整个列表</param>
+	/// <returns>索引，失败返回CB_ERR</returns>
 	EckInline int SelectString(PCWSTR pszText, int idxStart = -1)
 	{
 		return (int)SendMsg(CB_SELECTSTRING, idxStart, (LPARAM)pszText);
 	}
 
 	/// <summary>
-	/// ����ʾ����ı�
+	/// 置提示横幅文本
 	/// </summary>
-	/// <param name="pszText">�ı�</param>
-	/// <returns>�ɹ�����1��ʧ�ܷ��ش�����</returns>
+	/// <param name="pszText">文本</param>
+	/// <returns>成功返回1，失败返回错误码</returns>
 	EckInline int SetCueBanner(PWSTR pszText)
 	{
 		return (int)SendMsg(CB_SETCUEBANNER, 0, (LPARAM)pszText);
@@ -303,23 +303,23 @@ public:
 	}
 
 	/// <summary>
-	/// ����Ŀ�߶�
+	/// 置项目高度
 	/// </summary>
-	/// <param name="idx">Ϊ0ʱ�����б���Ŀ�߶ȣ�Ϊ-1ʱ�������ؼ��߶ȡ�
-	/// ����Ͽ����CBS_OWNERDRAWVARIABLE����ò���ָʾ��Ŀ����</param>
-	/// <param name="cy">�߶�</param>
-	/// <returns>�ɹ�����TRUE��ʧ�ܷ���FALSE</returns>
+	/// <param name="idx">为0时设置列表项目高度，为-1时设置主控件高度。
+	/// 若组合框具有CBS_OWNERDRAWVARIABLE，则该参数指示项目索引</param>
+	/// <param name="cy">高度</param>
+	/// <returns>成功返回TRUE，失败返回FALSE</returns>
 	EckInline BOOL SetItemHeight(int idx, int cy)
 	{
 		return (SendMsg(CB_SETITEMHEIGHT, idx, cy) != CB_ERR);
 	}
 
 	/// <summary>
-	/// ����Ŀ�߶���չ��
-	/// �޸����ø߶�ʱ��ƫ������⣬�������������ؼ��߶�
+	/// 置项目高度扩展。
+	/// 修复设置高度时有偏差的问题，仅用于设置主控件高度
 	/// </summary>
-	/// <param name="cy">�߶�</param>
-	/// <returns>�ɹ�����TRUE��ʧ�ܷ���FALSE</returns>
+	/// <param name="cy">高度</param>
+	/// <returns>成功返回TRUE，失败返回FALSE</returns>
 	EckInline BOOL SetItemHeight(int cy)
 	{
 		RECT rc;
@@ -344,7 +344,7 @@ public:
 	/// 
 	/// </summary>
 	/// <param name="lcid"></param>
-	/// <returns>�ɹ�������ǰ��LCID��ʧ�ܷ���CB_ERR</returns>
+	/// <returns>成功返回先前的LCID，失败返回CB_ERR</returns>
 	EckInline LCID SetLocale(LCID lcid)
 	{
 		return (LCID)SendMsg(CB_SETLOCALE, lcid, 0);

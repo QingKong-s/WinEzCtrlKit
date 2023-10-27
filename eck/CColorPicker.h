@@ -1,8 +1,8 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* CColorPicker.h £º ÑÕÉ«Ñ¡ÔñÆ÷
-* Ê¹ÓÃËùÓĞÕß»æÖÆµÄ³¬Àà»¯×éºÏ¿òÊµÏÖµÄÑÕÉ«Ñ¡ÔñÆ÷
+* CColorPicker.h ï¼š é¢œè‰²é€‰æ‹©å™¨
+* ä½¿ç”¨æ‰€æœ‰è€…ç»˜åˆ¶çš„è¶…ç±»åŒ–ç»„åˆæ¡†å®ç°çš„é¢œè‰²é€‰æ‹©å™¨
 *
 * Copyright(C) 2023 QingKong
 */
@@ -10,13 +10,14 @@
 #include "CWnd.h"
 #include "CSubclassMgr.h"
 #include "Utility.h"
+#include "CComboBox.h"
 
 #include <memory>
 
 #include <CommCtrl.h>
 
 ECK_NAMESPACE_BEGIN
-class CColorPicker :public CWnd
+class CColorPicker :public CComboBox
 {
 private:
 	struct PARENTSCCTX

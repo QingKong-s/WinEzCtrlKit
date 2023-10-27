@@ -1,8 +1,8 @@
-/*
+﻿/*
 * WinEzCtrlKit Library
 *
-* CListBoxExt.h �� �б�����չ
-* ��װ���������б��򲢶��书��������չ
+* CListBoxExt.h ： 列表框扩展
+* 封装了无数据列表框并对其功能做了扩展
 *
 * Copyright(C) 2023 QingKong
 */
@@ -20,15 +20,15 @@ ECK_NAMESPACE_BEGIN
 
 struct LBITEMCOMMINFO
 {
-	int idxImage;			   // ͼ������
-	int iReserved;			   // δ��
-	COLORREF crText;		   // �ı���ɫ
-	COLORREF crBK;			   // ������ɫ
-	COLORREF crSelText;		   // ѡ���ı���ɫ
-	COLORREF crSelBK;		   // ѡ�б�����ɫ
-	LPARAM lParam;			   // ������ֵ
-	BITBOOL bChecked : 1;	   // �Ƿ���
-	BITBOOL bDisabled : 1;	   // �Ƿ��ֹ
+	int idxImage;			   // 图像索引
+	int iReserved;			   // 未用
+	COLORREF crText;		   // 文本颜色
+	COLORREF crBK;			   // 背景颜色
+	COLORREF crSelText;		   // 选中文本颜色
+	COLORREF crSelBK;		   // 选中背景颜色
+	LPARAM lParam;			   // 表项数值
+	BITBOOL bChecked : 1;	   // 是否检查
+	BITBOOL bDisabled : 1;	   // 是否禁止
 
 	LBITEMCOMMINFO()
 	{
@@ -38,50 +38,50 @@ struct LBITEMCOMMINFO
 };
 
 #pragma warning (push)
-#pragma warning (disable:26495)// ��δ��ʼ��������
-// ֻ��������ʱ������Ϣ
+#pragma warning (disable:26495)// “未初始化变量”
+// 只用于运行时保存信息
 struct LBITEMINFO
 {
-	CRefStrW rsCaption;	       // ����
-	CRefStrW rsTip;		       // ��ʾ�ı�
-	HBRUSH hbrBK;		       // ������ˢ
-	HBRUSH hbrSelBK;	       // ѡ�б�����ˢ
-	LBITEMCOMMINFO Info;       // ͨ����Ϣ
+	CRefStrW rsCaption;	       // 标题
+	CRefStrW rsTip;		       // 提示文本
+	HBRUSH hbrBK;		       // 背景画刷
+	HBRUSH hbrSelBK;	       // 选中背景画刷
+	LBITEMCOMMINFO Info;       // 通用信息
 };
 #pragma warning (pop)
 
-// �б���
+// 列表框
 /*
-* �汾1���ݲ��֣�
-* EXELISTBOXDATA�ṹ
-* ��Ŀ����
-* ͼƬ��
-* Ŀ¼��������βNULL��
-* �ļ���������������βNULL��
+* 版本1数据布局：
+* EXELISTBOXDATA结构
+* 项目数据
+* 图片组
+* 目录（不带结尾NULL）
+* 文件过滤器（不带结尾NULL）
 */
 #define DATA_VER_LISTBOX_1	1
 struct EXELISTBOXDATA
 {
-	int iVer;				// �汾��
-	DWORD dwReserved;		// ����
+	int iVer;				// 版本号
+	DWORD dwReserved;		// 保留
 
-	int idxCurrSel;			// ����ѡ��
-	int cyItem;				// �и�
-	COLORREF crText;		// �ı���ɫ
-	COLORREF crBK;			// ������ɫ
-	COLORREF crSelText;		// ѡ���ı���ɫ
-	COLORREF crSelBK;		// ѡ�񱳾���ɫ
-	int iAlignH;			// �������
-	int iAlignV;			// �������
-	UINT uFileAttr;			// �ļ���������
-	FILETIME ftMinTime;		// �ļ���Сʱ�䣬����Э������ʱ
-	FILETIME ftMaxTime;		// �ļ����ʱ�䣬����Э������ʱ
-	int iCheckBoxMode;		// ѡ���б���ģʽ
-	BITBOOL bToolTip : 1;			// ������ʾ
-	BITBOOL bEllipsis : 1;			// ʡ�Ժ�
-	BITBOOL bBalloonToolTip : 1;	// ���򹤾���ʾ
-	BITBOOL bAutoSort : 1;			// �Զ�����
-	BITBOOL bIgnoreDisableItem : 1;	// ���Խ�ֹ����Ŀ 
+	int idxCurrSel;			// 现行选中
+	int cyItem;				// 行高
+	COLORREF crText;		// 文本颜色
+	COLORREF crBK;			// 背景颜色
+	COLORREF crSelText;		// 选中文本颜色
+	COLORREF crSelBK;		// 选择背景颜色
+	int iAlignH;			// 横向对齐
+	int iAlignV;			// 纵向对齐
+	UINT uFileAttr;			// 文件过滤属性
+	FILETIME ftMinTime;		// 文件最小时间，基于协调世界时
+	FILETIME ftMaxTime;		// 文件最大时间，基于协调世界时
+	int iCheckBoxMode;		// 选择列表框模式
+	BITBOOL bToolTip : 1;			// 工具提示
+	BITBOOL bEllipsis : 1;			// 省略号
+	BITBOOL bBalloonToolTip : 1;	// 气球工具提示
+	BITBOOL bAutoSort : 1;			// 自动排序
+	BITBOOL bIgnoreDisableItem : 1;	// 忽略禁止的项目 
 };
 
 constexpr int c_LBPadding = 3;
@@ -93,28 +93,28 @@ class CListBoxExt :public CListBox
 	SUBCLASS_REF_MGR_DECL(CListBoxExt, ObjRecorderRefPlaceholder)
 public:
 	EXELISTBOXDATA m_InfoEx{};
-	//////////ͼ���б����
-	HIMAGELIST m_hImageList       = NULL;   // ͼ���б����
+	//////////图像列表相关
+	HIMAGELIST m_hImageList       = NULL;   // 图像列表句柄
 	int m_cxImage                 = 0,
-		m_cyImage                 = 0;      // ͼ���б��ߴ�
-	//////////�ļ������
+		m_cyImage                 = 0;      // 图像列表尺寸
+	//////////文件框相关
 	CRefStrW m_rsDir{};
 	CRefStrW m_rsFilePattern{};
-	//////////ͨ����Ϣ
-	HBRUSH m_hbrBK                = NULL;   // ͨ�ñ������ˢ
-	HBRUSH m_hbrSelBK             = NULL;   // ͨ��ѡ��������ˢ
-	int m_idxChecked              = -1;     // ѡ�е���Ŀ������ѡģʽ��Ч
-	HTHEME m_hTheme               = NULL;   // ������������ѡ���ʱ��
-	int m_cxCheckBox              = 0;      // ѡ���ߴ�
-	std::vector<LBITEMINFO> m_ItemsInfo{};	// ������Ŀ
-	HWND m_hToolTip               = NULL;   // ������ʾ���ھ��
+	//////////通用信息
+	HBRUSH m_hbrBK                = NULL;   // 通用表项背景画刷
+	HBRUSH m_hbrSelBK             = NULL;   // 通用选择表项背景画刷
+	int m_idxChecked              = -1;     // 选中的项目，仅单选模式有效
+	HTHEME m_hTheme               = NULL;   // 主题句柄，绘制选择框时用
+	int m_cxCheckBox              = 0;      // 选择框尺寸
+	std::vector<LBITEMINFO> m_ItemsInfo{};	// 所有项目
+	HWND m_hToolTip               = NULL;   // 工具提示窗口句柄
 	TTTOOLINFOW m_ti
 	{
 		sizeof(TTTOOLINFOW),
 		TTF_ABSOLUTE | TTF_TRACK,
 		NULL,
 		TTID_LBITEM
-	};										// ������ʾ��Ϣ
+	};										// 工具提示信息
 	HWND m_hParent				= NULL;
 private:
 	void UpdateThemeInfo();
@@ -266,7 +266,7 @@ public:
 			0, 0, 0, 0, NULL, NULL, NULL, NULL);
 
 		if (m_Info.bDragList)
-			SetDragList(m_Info.bDragList);// ���������໯֮ǰ
+			SetDragList(m_Info.bDragList);// 必须在子类化之前
 		
 		UpdateThemeInfo();
 
@@ -339,7 +339,7 @@ public:
 			std::sort(m_ItemsInfo.begin(), m_ItemsInfo.end(),
 				[](LBITEMINFO& i1, LBITEMINFO& i2) -> bool
 				{
-					return wcscmp(i1.rsCaption, i2.rsCaption) < 0;
+					return wcscmp(i1.rsCaption.Data(), i2.rsCaption.Data()) < 0;
 				});
 			Redraw();
 		}
@@ -436,7 +436,7 @@ public:
 			if (cr != CLR_DEFAULT)
 				m_hbrSelBK = CreateSolidBrush(cr);
 			else
-				m_hbrSelBK = GetSysColorBrush(COLOR_HIGHLIGHT);// ����ɾ��ϵͳ��ɫ��ˢ
+				m_hbrSelBK = GetSysColorBrush(COLOR_HIGHLIGHT);// 可以删除系统颜色画刷
 		}
 		else
 			m_InfoEx.crSelText = cr;

@@ -1,4 +1,4 @@
-#include "DlgHelper.h"
+ï»¿#include "DlgHelper.h"
 #include "WndHelper.h"
 
 
@@ -28,24 +28,24 @@ CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLGTITEM>&
 		return {};
 
 	SIZE_T cbTotal =
-		sizeof(DLGTHEADER) /*Í·*/ +
-		sizeof(WORD) * 3 /*²Ëµ¥¡¢´°¿ÚÀà¡¢±êÌâÈı¸öÊı×éµÄµÚÒ»¸öÔªËØ*/;
+		sizeof(DLGTHEADER) /*å¤´*/ +
+		sizeof(WORD) * 3 /*èœå•ã€çª—å£ç±»ã€æ ‡é¢˜ä¸‰ä¸ªæ•°ç»„çš„ç¬¬ä¸€ä¸ªå…ƒç´ */;
 
 	if (Dlg.Menu)
 	{
 		auto& Val = *Dlg.Menu;
-		if (Val.index() == 0)// ×ÊÔ´ID
+		if (Val.index() == 0)// èµ„æºID
 			cbTotal += sizeof(WORD);
-		else// Ãû³Æ×Ö·û´®
+		else// åç§°å­—ç¬¦ä¸²
 			cbTotal += ((std::get<1>(Val).Size() + 1) * sizeof(WCHAR));
 	}
 
 	if (Dlg.Class)
 	{
 		auto& Val = *Dlg.Class;
-		if (Val.index() == 0)// ÀàÔ­×Ó
+		if (Val.index() == 0)// ç±»åŸå­
 			cbTotal += sizeof(ATOM);
-		else// ÀàÃû×Ö·û´®
+		else// ç±»åå­—ç¬¦ä¸²
 			cbTotal += ((std::get<1>(Val).Size() + 1) * sizeof(WCHAR));
 	}
 
@@ -65,18 +65,18 @@ CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLGTITEM>&
 	cbTotal += CalcNextAlignBoundaryDistance(NULL, (PCVOID)cbTotal, sizeof(DWORD));
 
 	cbTotal += (Items.size() * (
-		sizeof(DLGITEMTHEADER) /*Í·*/ +
-		sizeof(WORD) * 3 /*´°¿ÚÀà¡¢±êÌâÁ½¸öÊı×éµÄµÚÒ»¸öÔªËØºÍ¸½¼ÓÊı¾İ´óĞ¡*/));
+		sizeof(DLGITEMTHEADER) /*å¤´*/ +
+		sizeof(WORD) * 3 /*çª—å£ç±»ã€æ ‡é¢˜ä¸¤ä¸ªæ•°ç»„çš„ç¬¬ä¸€ä¸ªå…ƒç´ å’Œé™„åŠ æ•°æ®å¤§å°*/));
 	for (auto& x : Items)
 	{
-		if (x.Class.index() == 0)// ÀàÔ­×Ó
+		if (x.Class.index() == 0)// ç±»åŸå­
 			cbTotal += sizeof(ATOM);
-		else// ÀàÃû×Ö·û´®
+		else// ç±»åå­—ç¬¦ä¸²
 			cbTotal += ((std::get<1>(x.Class).Size() + 1) * sizeof(WCHAR));
 
-		if (x.Caption.index() == 0)// ×ÊÔ´ID
+		if (x.Caption.index() == 0)// èµ„æºID
 			cbTotal += sizeof(WORD);
-		else// ±êÌâ×Ö·û´®
+		else// æ ‡é¢˜å­—ç¬¦ä¸²
 			cbTotal += ((std::get<1>(x.Caption).Size() + 1) * sizeof(WCHAR));
 
 		if (x.rbExtra.m_cb)
@@ -94,9 +94,9 @@ CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLGTITEM>&
 	if (Dlg.Menu)
 	{
 		auto& Val = *Dlg.Menu;
-		if (Val.index() == 0)// ×ÊÔ´ID
+		if (Val.index() == 0)// èµ„æºID
 			w << 0xFFFF_us << std::get<0>(Val);
-		else// Ãû³Æ×Ö·û´®
+		else// åç§°å­—ç¬¦ä¸²
 			w << std::get<1>(Val);
 	}
 	else
@@ -105,9 +105,9 @@ CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLGTITEM>&
 	if (Dlg.Class)
 	{
 		auto& Val = *Dlg.Class;
-		if (Val.index() == 0)// ÀàÔ­×Ó
+		if (Val.index() == 0)// ç±»åŸå­
 			w << 0xFFFF_us << std::get<0>(Val);
-		else// ÀàÃû×Ö·û´®
+		else// ç±»åå­—ç¬¦ä¸²
 			w << std::get<1>(Val);
 	}
 	else
@@ -127,14 +127,14 @@ CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLGTITEM>&
 	{
 		w.Write(&x, sizeof(DLGITEMTHEADER));
 
-		if (x.Class.index() == 0)// ÀàÔ­×Ó
+		if (x.Class.index() == 0)// ç±»åŸå­
 			w << 0xFFFF_us << std::get<0>(x.Class);
-		else// ÀàÃû×Ö·û´®
+		else// ç±»åå­—ç¬¦ä¸²
 			w << std::get<1>(x.Class);
 
-		if (x.Caption.index() == 0)// ×ÊÔ´ID
+		if (x.Caption.index() == 0)// èµ„æºID
 			w << 0xFFFF_us << std::get<0>(x.Caption);
-		else// ±êÌâ×Ö·û´®
+		else// æ ‡é¢˜å­—ç¬¦ä¸²
 			w << std::get<1>(x.Caption);
 
 		w << (WORD)x.rbExtra.m_cb;
@@ -270,16 +270,16 @@ HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& Items,
 	if (Dlg.Class)
 	{
 		auto& Val = *Dlg.Class;
-		if (Val.index() == 0)// ÀàÔ­×Ó
+		if (Val.index() == 0)// ç±»åŸå­
 			pszClass = MAKEINTATOMW(std::get<0>(Val));
-		else// ÀàÃû×Ö·û´®
-			pszClass = std::get<1>(Val);
+		else// ç±»åå­—ç¬¦ä¸²
+			pszClass = std::get<1>(Val).Data();
 	}
 	else
 		pszClass = MAKEINTATOMW(32770);
 
 	if (Dlg.Caption)
-		pszCaption = *Dlg.Caption;
+		pszCaption = (*Dlg.Caption).Data();
 	else
 		pszCaption = NULL;
 
@@ -287,10 +287,10 @@ HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& Items,
 	if (Dlg.Menu)
 	{
 		auto& Val = *Dlg.Menu;
-		if (Val.index() == 0)// ×ÊÔ´ID
+		if (Val.index() == 0)// èµ„æºID
 			pszMenu = MAKEINTRESOURCEW(std::get<0>(Val));
-		else// Ãû³Æ×Ö·û´®
-			pszMenu = std::get<1>(Val);
+		else// åç§°å­—ç¬¦ä¸²
+			pszMenu = std::get<1>(Val).Data();
 		hMenu = LoadMenuW(hInstance, pszMenu);
 	}
 	else
@@ -299,7 +299,7 @@ HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& Items,
 	HFONT hFont;
 	BOOL bHasFontStru = IsBitSet(Dlg.dwStyle, DS_SETFONT) || IsBitSet(Dlg.dwStyle, DS_SHELLFONT);
 	if (bHasFontStru)
-		hFont = EzFont(Dlg.rsFontName, Dlg.Font.wPoint, Dlg.Font.wWeight,
+		hFont = EzFont(Dlg.rsFontName.Data(), Dlg.Font.wPoint, Dlg.Font.wWeight,
 			Dlg.Font.bItalic, FALSE, FALSE, NULL, Dlg.Font.byCharSet);
 	else
 		hFont = NULL;
@@ -325,7 +325,7 @@ HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& Items,
 			yBaseUnit = HIWORD(lRet);
 		}
 		/*
-		* ¹«Ê½£º
+		* å…¬å¼ï¼š
 		* xPixel = xDLU * xBaseUnit / 4
 		* yPixel = yDLU * yBaseUnit / 8
 		*/
@@ -356,15 +356,15 @@ HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& Items,
 	HWND hCtrl;
 	for (auto& x : Items)
 	{
-		if (x.Class.index() == 0)// ÀàÔ­×Ó
+		if (x.Class.index() == 0)// ç±»åŸå­
 			pszClass = MAKEINTATOMW(std::get<0>(x.Class));
-		else// ÀàÃû×Ö·û´®
-			pszClass = std::get<1>(x.Class);
+		else// ç±»åå­—ç¬¦ä¸²
+			pszClass = std::get<1>(x.Class).Data();
 
-		if (x.Caption.index() == 0)// ÀàÔ­×Ó
+		if (x.Caption.index() == 0)// ç±»åŸå­
 			pszCaption = MAKEINTATOMW(std::get<0>(x.Caption));
-		else// ÀàÃû×Ö·û´®
-			pszCaption = std::get<1>(x.Caption);
+		else// ç±»åå­—ç¬¦ä¸²
+			pszCaption = std::get<1>(x.Caption).Data();
 
 		rc = { x.x,x.y,x.cx,x.cy };
 		if (!IsBitSet(uFlags, CWFDT_USEPIXELUNIT))

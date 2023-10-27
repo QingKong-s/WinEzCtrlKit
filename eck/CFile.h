@@ -21,7 +21,7 @@ public:
 		Close();
 	}
 
-	void Close()
+	EckInline void Close()
 	{
 		if (m_hFile != INVALID_HANDLE_VALUE && m_hFile)
 		{
@@ -30,30 +30,30 @@ public:
 		}
 	}
 
-	HANDLE Open(PCWSTR pszFile, DWORD dwMode = OPEN_EXISTING, DWORD dwAccess = GENERIC_READ,
+	EckInline HANDLE Open(PCWSTR pszFile, DWORD dwMode = OPEN_EXISTING, DWORD dwAccess = GENERIC_READ,
 		DWORD dwShareMode = 0, DWORD dwAttr = FILE_ATTRIBUTE_NORMAL)
 	{
 		return (m_hFile = CreateFileW(pszFile, dwAccess, dwShareMode, NULL, dwMode, dwAttr, NULL));
 	}
 
-	HANDLE GetHandle()
+	EckInline HANDLE GetHandle()
 	{
 		return m_hFile;
 	}
 
-	LONGLONG GetSize()
+	EckInline LONGLONG GetSize()
 	{
 		LARGE_INTEGER lint;
 		GetFileSizeEx(m_hFile, &lint);
 		return lint.QuadPart;
 	}
 
-	DWORD GetSize32()
+	EckInline DWORD GetSize32()
 	{
 		return GetFileSize(m_hFile, NULL);
 	}
 
-	BOOL Read(void* pBuf, DWORD dwSize, DWORD* pdwRead = NULL)
+	EckInline BOOL Read(void* pBuf, DWORD dwSize, DWORD* pdwRead = NULL)
 	{
 		DWORD dw;
 		if (!pdwRead)
@@ -61,7 +61,7 @@ public:
 		return ReadFile(m_hFile, pBuf, dwSize, pdwRead, NULL);
 	}
 
-	BOOL Write(void* pBuf, DWORD dwSize, DWORD* pdwWritten = NULL)
+	EckInline BOOL Write(PCVOID pBuf, DWORD dwSize, DWORD* pdwWritten = NULL)
 	{
 		DWORD dw;
 		if (!pdwWritten)
@@ -69,35 +69,63 @@ public:
 		return WriteFile(m_hFile, pBuf, dwSize, pdwWritten, NULL);
 	}
 
-	BOOL End()
+	EckInline BOOL End()
 	{
 		return SetEndOfFile(m_hFile);
 	}
 
 	template<class T>
-	CFile& operator>>(T& Buf)
+	EckInline CFile& operator>>(T& Buf)
 	{
 		Read(&Buf, sizeof(T));
 		return *this;
 	}
 
 	template<class T>
-	CFile& operator<<(T& Buf)
+	EckInline CFile& operator<<(T& Buf)
 	{
 		Write(&Buf, sizeof(T));
 		return *this;
 	}
 
-	CFile& operator+=(LONG l)
+	EckInline CFile& operator+=(LONG l)
 	{
 		SetFilePointer(m_hFile, l, NULL, FILE_CURRENT);
 		return *this;
 	}
 
-	CFile& operator-=(LONG l)
+	EckInline CFile& operator-=(LONG l)
 	{
 		SetFilePointer(m_hFile, -l, NULL, FILE_CURRENT);
 		return *this;
+	}
+
+	EckInline CFile& MoveToBegin()
+	{
+		SetFilePointer(m_hFile, 0, NULL, FILE_BEGIN);
+		return *this;
+	}
+
+	EckInline CFile& MoveToEnd()
+	{
+		SetFilePointer(m_hFile, 0, NULL, FILE_END);
+		return *this;
+	}
+
+	EckInline CFile& MoveTo(LONG l)
+	{
+		SetFilePointer(m_hFile, l, NULL, FILE_BEGIN);
+		return *this;
+	}
+
+	EckInline DWORD GetCurrPos()
+	{
+		return SetFilePointer(m_hFile, 0, NULL, FILE_CURRENT);
+	}
+
+	EckInline void Flush()
+	{
+		FlushFileBuffers(m_hFile);
 	}
 };
 
@@ -118,17 +146,17 @@ public:
 	void* Open(PCWSTR pszFile, DWORD dwMap = FILE_MAP_READ, DWORD dwProtect = PAGE_READONLY, DWORD dwMode = OPEN_EXISTING,
 		DWORD dwAccess = GENERIC_READ, DWORD dwShareMode = 0, DWORD dwAttr = FILE_ATTRIBUTE_NORMAL);
 
-	CFile& GetFile()
+	EckInline CFile& GetFile()
 	{
 		return m_File;
 	}
 
-	HANDLE GetHMapping()
+	EckInline HANDLE GetHMapping()
 	{
 		return m_hMapping;
 	}
 
-	void* GetPFile()
+	EckInline void* GetPFile()
 	{
 		return m_pFile;
 	}
@@ -156,17 +184,17 @@ public:
 
 	void* Create(DWORD dwMap = FILE_MAP_READ, DWORD dwProtect = PAGE_READONLY);
 
-	CFile& GetFile()
+	EckInline CFile& GetFile()
 	{
 		return m_File;
 	}
 
-	HANDLE GetHMapping()
+	EckInline HANDLE GetHMapping()
 	{
 		return m_hMapping;
 	}
 
-	void* GetPFile()
+	EckInline void* GetPFile()
 	{
 		return m_pFile;
 	}

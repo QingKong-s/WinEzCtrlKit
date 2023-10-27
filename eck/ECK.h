@@ -89,16 +89,6 @@ ECK_NAMESPACE_END
 #define SCID_TASKGROUPLIST			20230725'01u
 #define SCID_TASKGROUPLISTPARENT	20230725'02u
 
-/*窗口类名*/
-
-#define WCN_LABEL			L"Eck.WndClass.Label"
-#define WCN_COLORPICKER		L"Eck.WndClass.ColorPicker"
-#define WCN_BK				L"Eck.WndClass.BK"
-#define WCN_LUNARCALENDAR	L"Eck.WndClass.LunarCalendar"
-#define WCN_CHARTPIE		L"Eck.WndClass.ChartPie"
-#define WCN_FORM			L"Eck.WndClass.Form"
-#define WCN_TABHEADER		L"Eck.WndClass.TabHeader"
-
 /*属性字符串*/
 
 #define PROP_DPIINFO		L"Eck.Prop.DpiInfo"
@@ -114,6 +104,17 @@ ECK_NAMESPACE_END
 #include "GdiplusFlatDef.h"
 ECK_NAMESPACE_BEGIN
 extern HINSTANCE g_hInstance;
+
+/*窗口类名*/
+
+constexpr inline PCWSTR WCN_LABEL = L"Eck.WndClass.Label";
+constexpr inline PCWSTR WCN_COLORPICKER = L"Eck.WndClass.ColorPicker";
+constexpr inline PCWSTR WCN_BK = L"Eck.WndClass.BK";
+constexpr inline PCWSTR WCN_LUNARCALENDAR = L"Eck.WndClass.LunarCalendar";
+constexpr inline PCWSTR WCN_CHARTPIE = L"Eck.WndClass.ChartPie";
+constexpr inline PCWSTR WCN_FORM = L"Eck.WndClass.Form";
+constexpr inline PCWSTR WCN_TABHEADER = L"Eck.WndClass.TabHeader";
+constexpr inline PCWSTR WCN_DLG = L"Eck.WndClass.CommDlg";
 
 enum class InitStatus
 {

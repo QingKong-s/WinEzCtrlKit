@@ -1,7 +1,7 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* CRefStr.h £º ×Ö·û´®
+* CRefStr.h ï¼š å­—ç¬¦ä¸²
 *
 * Copyright(C) 2023 QingKong
 */
@@ -17,7 +17,7 @@
 ECK_NAMESPACE_BEGIN
 static constexpr int INVALID_STR_POS = -1;
 
-// ¼òµ¥×Ö·û´®£¬¿ÉÒÔ¶Ô¸ÃÀà³ÖÓĞµÄÎÄ±¾Ö´ĞĞ³ı¸Ä±ä³¤¶ÈÍâµÄÈÎºÎ²Ù×÷
+// ç®€å•å­—ç¬¦ä¸²ï¼Œå¯ä»¥å¯¹è¯¥ç±»æŒæœ‰çš„æ–‡æœ¬æ‰§è¡Œé™¤æ”¹å˜é•¿åº¦å¤–çš„ä»»ä½•æ“ä½œ
 class CRefStrW
 {
 public:
@@ -30,9 +30,9 @@ public:
 	CRefStrW() = default;
 
 	/// <summary>
-	/// ´´½¨×Ô³¤¶È
+	/// åˆ›å»ºè‡ªé•¿åº¦
 	/// </summary>
-	/// <param name="cchInit">×Ö·û´®³¤¶È</param>
+	/// <param name="cchInit">å­—ç¬¦ä¸²é•¿åº¦</param>
 	explicit CRefStrW(int cchInit)
 	{
 		int cchCapacity = TAlloc::MakeCapacity(cchInit + 1);
@@ -45,10 +45,10 @@ public:
 	}
 
 	/// <summary>
-	/// ´´½¨×Ô×Ö·û´®
+	/// åˆ›å»ºè‡ªå­—ç¬¦ä¸²
 	/// </summary>
-	/// <param name="psz">×Ö·û´®Ö¸Õë</param>
-	/// <param name="cchText">×Ö·û´®³¤¶È</param>
+	/// <param name="psz">å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+	/// <param name="cchText">å­—ç¬¦ä¸²é•¿åº¦</param>
 	CRefStrW(PCWSTR psz, int cchText = -1)
 	{
 		if (!psz || !cchText)
@@ -112,16 +112,6 @@ public:
 		return *this;
 	}
 
-	EckInline BOOL operator==(PCWSTR psz)
-	{
-		if (!m_pszText && !psz)
-			return TRUE;
-		else if (!m_pszText || !psz)
-			return FALSE;
-		else
-			return wcscmp(m_pszText, psz) == 0;
-	}
-
 	EckInline CRefStrW operator+(const CRefStrW& x) const
 	{
 		CRefStrW rs(m_cchText + x.m_cchText);
@@ -152,9 +142,9 @@ public:
 		return *(m_pszText + x);
 	}
 
-	EckInline operator PWSTR() const
+	const WCHAR& operator[](int x) const
 	{
-		return m_pszText;
+		return *(m_pszText + x);
 	}
 
 	EckInline int Size() const
@@ -170,33 +160,38 @@ public:
 			return 0u;
 	}
 
-	EckInline PWSTR Data() const
+	EckInline PWSTR Data()
+	{
+		return m_pszText;
+	}
+
+	EckInline PCWSTR Data() const
 	{
 		return m_pszText;
 	}
 
 	/// <summary>
-	/// ¿ËÂ¡×Ö·û´®¡£
-	/// ½«Ö¸¶¨×Ö·û´®¸´ÖÆµ½×ÔÉí
+	/// å…‹éš†å­—ç¬¦ä¸²ã€‚
+	/// å°†æŒ‡å®šå­—ç¬¦ä¸²å¤åˆ¶åˆ°è‡ªèº«
 	/// </summary>
-	/// <param name="pszSrc">×Ö·û´®Ö¸Õë</param>
-	/// <param name="cchSrc">×Ö·û´®³¤¶È</param>
-	/// <returns>Êµ¼Ê¸´ÖÆµÄ×Ö·ûÊı</returns>
+	/// <param name="pszSrc">å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+	/// <param name="cchSrc">å­—ç¬¦ä¸²é•¿åº¦</param>
+	/// <returns>å®é™…å¤åˆ¶çš„å­—ç¬¦æ•°</returns>
 	int DupString(PCWSTR pszSrc, int cchSrc = -1);
 
 	/// <summary>
-	/// ÒÀ¸½Ö¸Õë
+	/// ä¾é™„æŒ‡é’ˆ
 	/// </summary>
-	/// <param name="psz">Ö¸Õë</param>
-	/// <param name="cchCapacity">ÈİÁ¿</param>
-	/// <param name="cchText">×Ö·ûÊı</param>
-	/// <returns>ÏÈÇ°³ÖÓĞµÄÖ¸Õë</returns>
+	/// <param name="psz">æŒ‡é’ˆ</param>
+	/// <param name="cchCapacity">å®¹é‡</param>
+	/// <param name="cchText">å­—ç¬¦æ•°</param>
+	/// <returns>å…ˆå‰æŒæœ‰çš„æŒ‡é’ˆ</returns>
 	PWSTR Attach(PWSTR psz, int cchCapacity, int cchText = -1);
 
 	/// <summary>
-	/// ²ğÀëÖ¸Õë
+	/// æ‹†ç¦»æŒ‡é’ˆ
 	/// </summary>
-	/// <returns>Ö¸Õë</returns>
+	/// <returns>æŒ‡é’ˆ</returns>
 	EckInline PWSTR Detach()
 	{
 		auto pTemp = m_pszText;
@@ -205,10 +200,10 @@ public:
 	}
 
 	/// <summary>
-	/// Çå³ı¡£
-	/// ³ÖÓĞµÄÄÚ´æ²»»á±»ÊÍ·Å
+	/// æ¸…é™¤ã€‚
+	/// æŒæœ‰çš„å†…å­˜ä¸ä¼šè¢«é‡Šæ”¾
 	/// </summary>
-	/// <returns>³ÖÓĞµÄÖ¸Õë</returns>
+	/// <returns>æŒæœ‰çš„æŒ‡é’ˆ</returns>
 	EckInline PWSTR Reset()
 	{
 		auto p = m_pszText;
@@ -219,17 +214,17 @@ public:
 	}
 
 	/// <summary>
-	/// Î²²å
+	/// å°¾æ’
 	/// </summary>
-	/// <param name="pszSrc">×Ö·û´®Ö¸Õë</param>
-	/// <param name="cchSrc">×Ö·û´®³¤¶È</param>
-	/// <returns>Êµ¼Ê¸´ÖÆµÄ×Ö·ûÊı</returns>
+	/// <param name="pszSrc">å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+	/// <param name="cchSrc">å­—ç¬¦ä¸²é•¿åº¦</param>
+	/// <returns>å®é™…å¤åˆ¶çš„å­—ç¬¦æ•°</returns>
 	int PushBack(PCWSTR pszSrc, int cchSrc = -1);
 
 	/// <summary>
-	/// Î²É¾
+	/// å°¾åˆ 
 	/// </summary>
-	/// <param name="cch">É¾³ı³¤¶È</param>
+	/// <param name="cch">åˆ é™¤é•¿åº¦</param>
 	EckInline void PopBack(int cch)
 	{
 		ReSize(m_cchText - cch);
@@ -237,11 +232,11 @@ public:
 	}
 
 	/// <summary>
-	/// ¸´ÖÆµ½
+	/// å¤åˆ¶åˆ°
 	/// </summary>
-	/// <param name="pszDst">Ä¿µÄ×Ö·û´®Ö¸Õë</param>
-	/// <param name="cch">×Ö·ûÊı</param>
-	/// <returns>Êµ¼Ê¸´ÖÆµÄ×Ö·ûÊı</returns>
+	/// <param name="pszDst">ç›®çš„å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+	/// <param name="cch">å­—ç¬¦æ•°</param>
+	/// <returns>å®é™…å¤åˆ¶çš„å­—ç¬¦æ•°</returns>
 	EckInline int CopyTo(PWSTR pszDst, int cch = -1) const
 	{
 		if (cch < 0 || cch > m_cchText)
@@ -254,15 +249,15 @@ public:
 	}
 
 	/// <summary>
-	/// ±£ÁôÄÚ´æ
+	/// ä¿ç•™å†…å­˜
 	/// </summary>
-	/// <param name="cch">×Ö·ûÊı</param>
+	/// <param name="cch">å­—ç¬¦æ•°</param>
 	void Reserve(int cch);
 
 	/// <summary>
-	/// ÖØÖÃ³ß´ç
+	/// é‡ç½®å°ºå¯¸
 	/// </summary>
-	/// <param name="cch">×Ö·ûÊı</param>
+	/// <param name="cch">å­—ç¬¦æ•°</param>
 	EckInline void ReSize(int cch)
 	{
 		Reserve(TAlloc::MakeCapacity(cch + 1));
@@ -271,9 +266,9 @@ public:
 	}
 
 	/// <summary>
-	/// ÖØÖÃ³ß´ç
+	/// é‡ç½®å°ºå¯¸
 	/// </summary>
-	/// <param name="cch">×Ö·ûÊı</param>
+	/// <param name="cch">å­—ç¬¦æ•°</param>
 	EckInline void ReSizeAbs(int cch)
 	{
 		Reserve(cch + 1);
@@ -282,9 +277,9 @@ public:
 	}
 
 	/// <summary>
-	/// ÖØĞÂ¼ÆËã×Ö·û´®³¤¶È
+	/// é‡æ–°è®¡ç®—å­—ç¬¦ä¸²é•¿åº¦
 	/// </summary>
-	/// <returns>³¤¶È</returns>
+	/// <returns>é•¿åº¦</returns>
 	EckInline int ReCalcLen()
 	{
 		m_cchText = (int)wcslen(m_pszText);
@@ -292,53 +287,53 @@ public:
 	}
 
 	/// <summary>
-	/// Ìæ»»
+	/// æ›¿æ¢
 	/// </summary>
-	/// <param name="posStart">Ìæ»»Î»ÖÃ</param>
-	/// <param name="cchReplacing">Ìæ»»³¤¶È</param>
-	/// <param name="pszNew">ÓÃ×÷Ìæ»»µÄ×Ö·û´®Ö¸Õë</param>
-	/// <param name="cchNew">ÓÃ×÷Ìæ»»µÄ×Ö·û´®³¤¶È</param>
+	/// <param name="posStart">æ›¿æ¢ä½ç½®</param>
+	/// <param name="cchReplacing">æ›¿æ¢é•¿åº¦</param>
+	/// <param name="pszNew">ç”¨ä½œæ›¿æ¢çš„å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+	/// <param name="cchNew">ç”¨ä½œæ›¿æ¢çš„å­—ç¬¦ä¸²é•¿åº¦</param>
 	void Replace(int posStart, int cchReplacing, PCWSTR pszNew, int cchNew);
 
 	/// <summary>
-	/// Ìæ»»
+	/// æ›¿æ¢
 	/// </summary>
-	/// <param name="posStart">Ìæ»»Î»ÖÃ</param>
-	/// <param name="cchReplacing">Ìæ»»³¤¶È</param>
-	/// <param name="rbNew">ÓÃ×÷Ìæ»»µÄ×Ö·û´®</param>
-	EckInline void Replace(int posStart, int cchReplacing, const CRefStrW& rbNew)
+	/// <param name="posStart">æ›¿æ¢ä½ç½®</param>
+	/// <param name="cchReplacing">æ›¿æ¢é•¿åº¦</param>
+	/// <param name="rsNew">ç”¨ä½œæ›¿æ¢çš„å­—ç¬¦ä¸²</param>
+	EckInline void Replace(int posStart, int cchReplacing, const CRefStrW& rsNew)
 	{
-		Replace(posStart, cchReplacing, rbNew, rbNew.Size());
+		Replace(posStart, cchReplacing, rsNew.Data(), rsNew.Size());
 	}
 
 	/// <summary>
-	/// ×ÓÎÄ±¾Ìæ»»
+	/// å­æ–‡æœ¬æ›¿æ¢
 	/// </summary>
-	/// <param name="pszReplaced">±»Ìæ»»µÄ×Ö·û´®Ö¸Õë</param>
-	/// <param name="cchReplaced">±»Ìæ»»µÄ×Ö·û´®³¤¶È</param>
-	/// <param name="pszSrc">ÓÃ×÷Ìæ»»µÄ×Ö·û´®Ö¸Õë</param>
-	/// <param name="cchSrc">ÓÃ×÷Ìæ»»µÄ×Ö·û´®³¤¶È</param>
-	/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-	/// <param name="cReplacing">Ìæ»»½øĞĞµÄ´ÎÊı£¬0ÎªÖ´ĞĞËùÓĞÌæ»»</param>
+	/// <param name="pszReplaced">è¢«æ›¿æ¢çš„å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+	/// <param name="cchReplaced">è¢«æ›¿æ¢çš„å­—ç¬¦ä¸²é•¿åº¦</param>
+	/// <param name="pszSrc">ç”¨ä½œæ›¿æ¢çš„å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+	/// <param name="cchSrc">ç”¨ä½œæ›¿æ¢çš„å­—ç¬¦ä¸²é•¿åº¦</param>
+	/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+	/// <param name="cReplacing">æ›¿æ¢è¿›è¡Œçš„æ¬¡æ•°ï¼Œ0ä¸ºæ‰§è¡Œæ‰€æœ‰æ›¿æ¢</param>
 	void ReplaceSubStr(PCWSTR pszReplaced, int cchReplaced, PCWSTR pszSrc, int cchSrc, int posStart = 0, int cReplacing = 0);
 
 	/// <summary>
-	/// ×ÓÎÄ±¾Ìæ»»
+	/// å­æ–‡æœ¬æ›¿æ¢
 	/// </summary>
-	/// <param name="rbReplaced">±»Ìæ»»µÄ×Ö·û´®</param>
-	/// <param name="rbSrc">ÓÃ×÷Ìæ»»µÄ×Ö·û´®</param>
-	/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-	/// <param name="cReplacing">Ìæ»»½øĞĞµÄ´ÎÊı£¬0ÎªÖ´ĞĞËùÓĞÌæ»»</param>
-	EckInline void ReplaceSubStr(const CRefStrW& rbReplaced, const CRefStrW& rbSrc, int posStart = 0, int cReplacing = 0)
+	/// <param name="rsReplaced">è¢«æ›¿æ¢çš„å­—ç¬¦ä¸²</param>
+	/// <param name="rsSrc">ç”¨ä½œæ›¿æ¢çš„å­—ç¬¦ä¸²</param>
+	/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+	/// <param name="cReplacing">æ›¿æ¢è¿›è¡Œçš„æ¬¡æ•°ï¼Œ0ä¸ºæ‰§è¡Œæ‰€æœ‰æ›¿æ¢</param>
+	EckInline void ReplaceSubStr(const CRefStrW& rsReplaced, const CRefStrW& rsSrc, int posStart = 0, int cReplacing = 0)
 	{
-		ReplaceSubStr(rbReplaced, rbReplaced.Size(), rbSrc, rbSrc.Size(), posStart, cReplacing);
+		ReplaceSubStr(rsReplaced.Data(), rsReplaced.Size(), rsSrc.Data(), rsSrc.Size(), posStart, cReplacing);
 	}
 
 	/// <summary>
-	/// È¡¿Õ°×ÎÄ±¾
+	/// å–ç©ºç™½æ–‡æœ¬
 	/// </summary>
-	/// <param name="cch">³¤¶È</param>
-	/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
+	/// <param name="cch">é•¿åº¦</param>
+	/// <param name="posStart">èµ·å§‹ä½ç½®</param>
 	EckInline void MakeEmpty(int cch, int posStart)
 	{
 		ReSize(posStart + cch);
@@ -347,31 +342,69 @@ public:
 	}
 
 	/// <summary>
-	/// È¡ÖØ¸´ÎÄ±¾
+	/// å–é‡å¤æ–‡æœ¬
 	/// </summary>
-	/// <param name="pszText">×Ö·û´®Ö¸Õë</param>
-	/// <param name="cchText">×Ö·û´®³¤¶È</param>
-	/// <param name="cCount">ÖØ¸´´ÎÊı</param>
-	/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
+	/// <param name="pszText">å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+	/// <param name="cchText">å­—ç¬¦ä¸²é•¿åº¦</param>
+	/// <param name="cCount">é‡å¤æ¬¡æ•°</param>
+	/// <param name="posStart">èµ·å§‹ä½ç½®</param>
 	void MakeRepeatedStrSequence(PCWSTR pszText, int cchText, int cCount, int posStart = 0);
 
 	/// <summary>
-	/// È¡ÖØ¸´ÎÄ±¾
+	/// å–é‡å¤æ–‡æœ¬
 	/// </summary>
-	/// <param name="rbText">×Ö·û´®</param>
-	/// <param name="cCount">ÖØ¸´´ÎÊı</param>
-	/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-	EckInline void MakeRepeatedStrSequence(const CRefStrW& rbText, int cCount, int posStart = 0)
+	/// <param name="rsText">å­—ç¬¦ä¸²</param>
+	/// <param name="cCount">é‡å¤æ¬¡æ•°</param>
+	/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+	EckInline void MakeRepeatedStrSequence(const CRefStrW& rsText, int cCount, int posStart = 0)
 	{
-		MakeRepeatedStrSequence(rbText, rbText.Size(), cCount, posStart);
+		MakeRepeatedStrSequence(rsText.Data(), rsText.Size(), cCount, posStart);
 	}
-
-	
 };
+
+EckInline bool operator==(const CRefStrW& rs1, const CRefStrW& rs2)
+{
+	if (!rs1.Data() && !rs2.Data())
+		return true;
+	else if (!rs1.Data() || !rs2.Data())
+		return false;
+	else
+		return wcscmp(rs1.Data(), rs2.Data()) == 0;
+}
 
 EckInline std::weak_ordering operator<=>(const CRefStrW& rs1, const CRefStrW& rs2)
 {
-	return wcscmp(rs1.Data(), rs2.Data()) <=> 0;
+	if (!rs1.Data() && !rs2.Data())
+		return std::weak_ordering::equivalent;
+	else if (!rs1.Data() && rs2.Data())
+		return std::weak_ordering::greater;
+	else if (rs1.Data() && !rs2.Data())
+		return std::weak_ordering::less;
+	else
+		return wcscmp(rs1.Data(), rs2.Data()) <=> 0;
+}
+
+EckInline bool operator==(const CRefStrW& rs1, PCWSTR psz2)
+{
+	if (!rs1.Data() && !psz2)
+		return true;
+	else if (!rs1.Data() || !psz2)
+		return false;
+	else
+		return wcscmp(rs1.Data(), psz2) == 0;
+}
+
+EckInline std::weak_ordering operator<=>(const CRefStrW& rs1, PCWSTR psz2)
+{
+	if (!rs1.Data() && !psz2)
+		return std::weak_ordering::equivalent;
+	else if (!rs1.Data() && psz2)
+		return std::weak_ordering::greater;
+	else if (rs1.Data() && !psz2)
+		return std::weak_ordering::less;
+	else
+#pragma warning (suppress:6387)
+		return wcscmp(rs1.Data(), psz2) <=> 0;
 }
 
 CRefStrW ToStr(int x, int iRadix = 10);
@@ -393,40 +426,40 @@ namespace Literals
 }
 
 /// <summary>
-/// µ½Ğ¡Ğ´
+/// åˆ°å°å†™
 /// </summary>
-/// <param name="pszText">×Ö·û´®Ö¸Õë</param>
-/// <param name="cchText">×Ö·û´®³¤¶È</param>
+/// <param name="pszText">å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+/// <param name="cchText">å­—ç¬¦ä¸²é•¿åº¦</param>
 /// <returns></returns>
 EckInline CRefStrW ToLowerCase(PCWSTR pszText, int cchText = -1)
 {
 	CRefStrW rs;
 	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_LOWERCASE, pszText, cchText, NULL, 0, NULL, NULL, 0);
 	rs.ReSize(cchResult);
-	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_LOWERCASE, pszText, cchText, rs, cchResult, NULL, NULL, 0);
+	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_LOWERCASE, pszText, cchText, rs.Data(), cchResult, NULL, NULL, 0);
 	return rs;
 }
 
 /// <summary>
-/// µ½´óĞ´
+/// åˆ°å¤§å†™
 /// </summary>
-/// <param name="pszText">×Ö·û´®Ö¸Õë</param>
-/// <param name="cchText">×Ö·û´®³¤¶È</param>
+/// <param name="pszText">å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+/// <param name="cchText">å­—ç¬¦ä¸²é•¿åº¦</param>
 /// <returns></returns>
 EckInline CRefStrW ToUpperCase(PCWSTR pszText, int cchText = -1)
 {
 	CRefStrW rs;
 	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_UPPERCASE, pszText, cchText, NULL, 0, NULL, NULL, 0);
 	rs.ReSize(cchResult);
-	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_UPPERCASE, pszText, cchText, rs, cchResult, NULL, NULL, 0);
+	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_UPPERCASE, pszText, cchText, rs.Data(), cchResult, NULL, NULL, 0);
 	return rs;
 }
 
 /// <summary>
-/// È¡ÎÄ±¾×ó±ß
+/// å–æ–‡æœ¬å·¦è¾¹
 /// </summary>
-/// <param name="pszText">×Ö·û´®Ö¸Õë</param>
-/// <param name="cchLeft">×ó±ß³¤¶È</param>
+/// <param name="pszText">å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+/// <param name="cchLeft">å·¦è¾¹é•¿åº¦</param>
 /// <returns></returns>
 EckInline CRefStrW StrLeft(PCWSTR pszText, int cchLeft)
 {
@@ -434,11 +467,11 @@ EckInline CRefStrW StrLeft(PCWSTR pszText, int cchLeft)
 }
 
 /// <summary>
-/// È¡ÎÄ±¾ÓÒ±ß
+/// å–æ–‡æœ¬å³è¾¹
 /// </summary>
-/// <param name="pszText">×Ö·û´®Ö¸Õë</param>
-/// <param name="cchRight">ÓÒ±ß³¤¶È</param>
-/// <param name="cchText">×Ö·û´®³¤¶È</param>
+/// <param name="pszText">å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+/// <param name="cchRight">å³è¾¹é•¿åº¦</param>
+/// <param name="cchText">å­—ç¬¦ä¸²é•¿åº¦</param>
 /// <returns></returns>
 EckInline CRefStrW StrRight(PCWSTR pszText, int cchRight, int cchText = -1)
 {
@@ -448,11 +481,11 @@ EckInline CRefStrW StrRight(PCWSTR pszText, int cchRight, int cchText = -1)
 }
 
 /// <summary>
-/// È¡ÎÄ±¾ÖĞ¼ä
+/// å–æ–‡æœ¬ä¸­é—´
 /// </summary>
-/// <param name="pszText">×Ö·û´®Ö¸Õë</param>
-/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-/// <param name="cchMid">ÖĞ¼ä³¤¶È</param>
+/// <param name="pszText">å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+/// <param name="cchMid">ä¸­é—´é•¿åº¦</param>
 /// <returns></returns>
 EckInline CRefStrW StrMid(PCWSTR pszText, int posStart, int cchMid)
 {
@@ -460,12 +493,12 @@ EckInline CRefStrW StrMid(PCWSTR pszText, int posStart, int cchMid)
 }
 
 /// <summary>
-/// Ñ°ÕÒÎÄ±¾
+/// å¯»æ‰¾æ–‡æœ¬
 /// </summary>
-/// <param name="pszText">ÒªÔÚÆäÖĞÑ°ÕÒµÄ×Ö·û´®Ö¸Õë</param>
-/// <param name="pszSub">ÒªÑ°ÕÒµÄ×Ö·û´®Ö¸Õë</param>
-/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-/// <returns>Î»ÖÃ£¬ÈôÎ´ÕÒµ½·µ»ØINVALID_STR_POS</returns>
+/// <param name="pszText">è¦åœ¨å…¶ä¸­å¯»æ‰¾çš„å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+/// <param name="pszSub">è¦å¯»æ‰¾çš„å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+/// <returns>ä½ç½®ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å›INVALID_STR_POS</returns>
 EckInline int FindStr(PCWSTR pszText, PCWSTR pszSub, int posStart = 0)
 {
 	PCWSTR pszFind = wcsstr(pszText + posStart, pszSub);
@@ -476,87 +509,87 @@ EckInline int FindStr(PCWSTR pszText, PCWSTR pszSub, int posStart = 0)
 }
 
 /// <summary>
-/// Ñ°ÕÒÎÄ±¾¡£
-/// ²»Çø·Ö´óĞ¡Ğ´¡£
-/// º¯ÊıÏÈ½«Õû¸ö×Ö·û´®×ª»»Îª´óĞ´£¬È»ºó¶ÔÆäµ÷ÓÃFindStr
+/// å¯»æ‰¾æ–‡æœ¬ã€‚
+/// ä¸åŒºåˆ†å¤§å°å†™ã€‚
+/// å‡½æ•°å…ˆå°†æ•´ä¸ªå­—ç¬¦ä¸²è½¬æ¢ä¸ºå¤§å†™ï¼Œç„¶åå¯¹å…¶è°ƒç”¨FindStr
 /// </summary>
-/// <param name="pszText">ÒªÔÚÆäÖĞÑ°ÕÒµÄ×Ö·û´®Ö¸Õë</param>
-/// <param name="cchText">ÒªÔÚÆäÖĞÑ°ÕÒµÄ×Ö·û´®³¤¶È</param>
-/// <param name="pszSub">ÒªÑ°ÕÒµÄ×Ö·û´®Ö¸Õë</param>
-/// <param name="cchSub">ÒªÑ°ÕÒµÄ×Ö·û´®³¤¶È</param>
-/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-/// <returns>Î»ÖÃ£¬ÈôÎ´ÕÒµ½·µ»ØINVALID_STR_POS</returns>
+/// <param name="pszText">è¦åœ¨å…¶ä¸­å¯»æ‰¾çš„å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+/// <param name="cchText">è¦åœ¨å…¶ä¸­å¯»æ‰¾çš„å­—ç¬¦ä¸²é•¿åº¦</param>
+/// <param name="pszSub">è¦å¯»æ‰¾çš„å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+/// <param name="cchSub">è¦å¯»æ‰¾çš„å­—ç¬¦ä¸²é•¿åº¦</param>
+/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+/// <returns>ä½ç½®ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å›INVALID_STR_POS</returns>
 EckInline int FindStrNcs(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = 0)
 {
-	return FindStr(ToUpperCase(pszText, cchText), ToUpperCase(pszSub, cchSub), posStart);
+	return FindStr(ToUpperCase(pszText, cchText).Data(), ToUpperCase(pszSub, cchSub).Data(), posStart);
 }
 
 /// <summary>
-/// Ñ°ÕÒÎÄ±¾¡£
-/// ²»Çø·Ö´óĞ¡Ğ´¡£
-/// º¯ÊıÏÈ½«Õû¸ö×Ö·û´®×ª»»Îª´óĞ´£¬È»ºó¶ÔÆäµ÷ÓÃFindStr
+/// å¯»æ‰¾æ–‡æœ¬ã€‚
+/// ä¸åŒºåˆ†å¤§å°å†™ã€‚
+/// å‡½æ•°å…ˆå°†æ•´ä¸ªå­—ç¬¦ä¸²è½¬æ¢ä¸ºå¤§å†™ï¼Œç„¶åå¯¹å…¶è°ƒç”¨FindStr
 /// </summary>
-/// <param name="rbText">ÒªÔÚÆäÖĞÑ°ÕÒµÄ×Ö·û´®</param>
-/// <param name="rbSub">ÒªÑ°ÕÒµÄ×Ö·û´®</param>
-/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-/// <returns>Î»ÖÃ£¬ÈôÎ´ÕÒµ½·µ»ØINVALID_STR_POS</returns>
-EckInline int FindStrNcs(const CRefStrW& rbText, const CRefStrW& rbSub, int posStart = 0)
+/// <param name="rsText">è¦åœ¨å…¶ä¸­å¯»æ‰¾çš„å­—ç¬¦ä¸²</param>
+/// <param name="rsSub">è¦å¯»æ‰¾çš„å­—ç¬¦ä¸²</param>
+/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+/// <returns>ä½ç½®ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å›INVALID_STR_POS</returns>
+EckInline int FindStrNcs(const CRefStrW& rsText, const CRefStrW& rsSub, int posStart = 0)
 {
-	return FindStrNcs(rbText, rbText.Size(), rbSub, posStart, rbSub.Size());
+	return FindStrNcs(rsText.Data(), rsText.Size(), rsSub.Data(), posStart, rsSub.Size());
 }
 
 /// <summary>
-/// µ¹ÕÒÎÄ±¾
+/// å€’æ‰¾æ–‡æœ¬
 /// </summary>
-/// <param name="pszText">ÒªÔÚÆäÖĞÑ°ÕÒµÄ×Ö·û´®Ö¸Õë</param>
-/// <param name="cchText">ÒªÔÚÆäÖĞÑ°ÕÒµÄ×Ö·û´®³¤¶È</param>
-/// <param name="pszSub">ÒªÑ°ÕÒµÄ×Ö·û´®Ö¸Õë</param>
-/// <param name="cchSub">ÒªÑ°ÕÒµÄ×Ö·û´®³¤¶È</param>
-/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-/// <returns>Î»ÖÃ£¬ÈôÎ´ÕÒµ½·µ»ØINVALID_STR_POS</returns>
+/// <param name="pszText">è¦åœ¨å…¶ä¸­å¯»æ‰¾çš„å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+/// <param name="cchText">è¦åœ¨å…¶ä¸­å¯»æ‰¾çš„å­—ç¬¦ä¸²é•¿åº¦</param>
+/// <param name="pszSub">è¦å¯»æ‰¾çš„å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+/// <param name="cchSub">è¦å¯»æ‰¾çš„å­—ç¬¦ä¸²é•¿åº¦</param>
+/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+/// <returns>ä½ç½®ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å›INVALID_STR_POS</returns>
 int FindStrRev(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = 0);
 
 /// <summary>
-/// µ¹ÕÒÎÄ±¾
+/// å€’æ‰¾æ–‡æœ¬
 /// </summary>
-/// <param name="rbText">ÒªÔÚÆäÖĞÑ°ÕÒµÄ×Ö·û´®</param>
-/// <param name="rbSub">ÒªÑ°ÕÒµÄ×Ö·û´®</param>
-/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-/// <returns>Î»ÖÃ£¬ÈôÎ´ÕÒµ½·µ»ØINVALID_STR_POS</returns>
-EckInline int FindStrRev(const CRefStrW& rbText, const CRefStrW& rbSub, int posStart = 0)
+/// <param name="rsText">è¦åœ¨å…¶ä¸­å¯»æ‰¾çš„å­—ç¬¦ä¸²</param>
+/// <param name="rsSub">è¦å¯»æ‰¾çš„å­—ç¬¦ä¸²</param>
+/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+/// <returns>ä½ç½®ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å›INVALID_STR_POS</returns>
+EckInline int FindStrRev(const CRefStrW& rsText, const CRefStrW& rsSub, int posStart = 0)
 {
-	return FindStrRev(rbText, rbText.Size(), rbSub, posStart,  rbSub.Size());
+	return FindStrRev(rsText.Data(), rsText.Size(), rsSub.Data(), posStart,  rsSub.Size());
 }
 
 /// <summary>
-/// µ¹ÕÒÎÄ±¾¡£
-/// ²»Çø·Ö´óĞ¡Ğ´¡£
-/// º¯ÊıÏÈ½«Õû¸ö×Ö·û´®×ª»»Îª´óĞ´£¬È»ºó¶ÔÆäµ÷ÓÃFindStrRev
+/// å€’æ‰¾æ–‡æœ¬ã€‚
+/// ä¸åŒºåˆ†å¤§å°å†™ã€‚
+/// å‡½æ•°å…ˆå°†æ•´ä¸ªå­—ç¬¦ä¸²è½¬æ¢ä¸ºå¤§å†™ï¼Œç„¶åå¯¹å…¶è°ƒç”¨FindStrRev
 /// </summary>
-/// <param name="pszText">ÒªÔÚÆäÖĞÑ°ÕÒµÄ×Ö·û´®Ö¸Õë</param>
-/// <param name="cchText">ÒªÔÚÆäÖĞÑ°ÕÒµÄ×Ö·û´®³¤¶È</param>
-/// <param name="pszSub">ÒªÑ°ÕÒµÄ×Ö·û´®Ö¸Õë</param>
-/// <param name="cchSub">ÒªÑ°ÕÒµÄ×Ö·û´®³¤¶È</param>
-/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-/// <returns>Î»ÖÃ£¬ÈôÎ´ÕÒµ½·µ»ØINVALID_STR_POS</returns>
+/// <param name="pszText">è¦åœ¨å…¶ä¸­å¯»æ‰¾çš„å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+/// <param name="cchText">è¦åœ¨å…¶ä¸­å¯»æ‰¾çš„å­—ç¬¦ä¸²é•¿åº¦</param>
+/// <param name="pszSub">è¦å¯»æ‰¾çš„å­—ç¬¦ä¸²æŒ‡é’ˆ</param>
+/// <param name="cchSub">è¦å¯»æ‰¾çš„å­—ç¬¦ä¸²é•¿åº¦</param>
+/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+/// <returns>ä½ç½®ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å›INVALID_STR_POS</returns>
 EckInline int FindStrRevNcs(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = 0)
 {
-	auto rbText = ToUpperCase(pszText, cchText), rbSub = ToUpperCase(pszSub, cchSub);
-	return FindStrRev(rbText, rbText.Size(), rbSub, posStart,  rbSub.Size());
+	auto rsText = ToUpperCase(pszText, cchText), rsSub = ToUpperCase(pszSub, cchSub);
+	return FindStrRev(rsText.Data(), rsText.Size(), rsSub.Data(), posStart,  rsSub.Size());
 }
 
 /// <summary>
-/// µ¹ÕÒÎÄ±¾¡£
-/// ²»Çø·Ö´óĞ¡Ğ´¡£
-/// º¯ÊıÏÈ½«Õû¸ö×Ö·û´®×ª»»Îª´óĞ´£¬È»ºó¶ÔÆäµ÷ÓÃFindStrRev
+/// å€’æ‰¾æ–‡æœ¬ã€‚
+/// ä¸åŒºåˆ†å¤§å°å†™ã€‚
+/// å‡½æ•°å…ˆå°†æ•´ä¸ªå­—ç¬¦ä¸²è½¬æ¢ä¸ºå¤§å†™ï¼Œç„¶åå¯¹å…¶è°ƒç”¨FindStrRev
 /// </summary>
-/// <param name="rbText">ÒªÔÚÆäÖĞÑ°ÕÒµÄ×Ö·û´®</param>
-/// <param name="rbSub">ÒªÑ°ÕÒµÄ×Ö·û´®</param>
-/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-/// <returns>Î»ÖÃ£¬ÈôÎ´ÕÒµ½·µ»ØINVALID_STR_POS</returns>
-EckInline int FindStrRevNcs(const CRefStrW& rbText, const CRefStrW& rbSub, int posStart = 0)
+/// <param name="rsText">è¦åœ¨å…¶ä¸­å¯»æ‰¾çš„å­—ç¬¦ä¸²</param>
+/// <param name="rsSub">è¦å¯»æ‰¾çš„å­—ç¬¦ä¸²</param>
+/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+/// <returns>ä½ç½®ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å›INVALID_STR_POS</returns>
+EckInline int FindStrRevNcs(const CRefStrW& rsText, const CRefStrW& rsSub, int posStart = 0)
 {
-	return FindStrRevNcs(rbText, rbText.Size(), rbSub, posStart, rbSub.Size());
+	return FindStrRevNcs(rsText.Data(), rsText.Size(), rsSub.Data(), posStart, rsSub.Size());
 }
 
 template<class TProcesser>
@@ -587,15 +620,15 @@ void SplitStr(PCWSTR pszText, PCWSTR pszDiv, int cSubTextExpected, int cchText, 
 }
 
 /// <summary>
-/// ·Ö¸îÎÄ±¾¡£
-/// º¯ÊıÖğ¸ö¿ËÂ¡×ÓÎÄ±¾²¢´æÈë½á¹ûÈİÆ÷
+/// åˆ†å‰²æ–‡æœ¬ã€‚
+/// å‡½æ•°é€ä¸ªå…‹éš†å­æ–‡æœ¬å¹¶å­˜å…¥ç»“æœå®¹å™¨
 /// </summary>
-/// <param name="pszText">Òª·Ö¸îµÄÎÄ±¾</param>
-/// <param name="pszDiv">·Ö¸ô·û</param>
-/// <param name="aResult">½á¹ûÈİÆ÷</param>
-/// <param name="cSubTextExpected">·µ»ØµÄ×î´ó×ÓÎÄ±¾Êı</param>
-/// <param name="cchText">Òª·Ö¸îµÄÎÄ±¾³¤¶È</param>
-/// <param name="cchDiv">·Ö¸ô·û³¤¶È</param>
+/// <param name="pszText">è¦åˆ†å‰²çš„æ–‡æœ¬</param>
+/// <param name="pszDiv">åˆ†éš”ç¬¦</param>
+/// <param name="aResult">ç»“æœå®¹å™¨</param>
+/// <param name="cSubTextExpected">è¿”å›çš„æœ€å¤§å­æ–‡æœ¬æ•°</param>
+/// <param name="cchText">è¦åˆ†å‰²çš„æ–‡æœ¬é•¿åº¦</param>
+/// <param name="cchDiv">åˆ†éš”ç¬¦é•¿åº¦</param>
 void SplitStr(PCWSTR pszText, PCWSTR pszDiv, std::vector<CRefStrW>& aResult, int cSubTextExpected = 0, int cchText = -1, int cchDiv = -1);
 
 struct SPLTEXTINFO
@@ -605,93 +638,93 @@ struct SPLTEXTINFO
 };
 
 /// <summary>
-/// ·Ö¸îÎÄ±¾¡£
-/// º¯Êı½«Ã¿¸ö×ÓÎÄ±¾µÄÎ»ÖÃĞÅÏ¢´æÈë½á¹ûÈİÆ÷£¬´Ëº¯Êı²»Ö´ĞĞÈÎºÎ¸´ÖÆ
+/// åˆ†å‰²æ–‡æœ¬ã€‚
+/// å‡½æ•°å°†æ¯ä¸ªå­æ–‡æœ¬çš„ä½ç½®ä¿¡æ¯å­˜å…¥ç»“æœå®¹å™¨ï¼Œæ­¤å‡½æ•°ä¸æ‰§è¡Œä»»ä½•å¤åˆ¶
 /// </summary>
-/// <param name="pszText">Òª·Ö¸îµÄÎÄ±¾</param>
-/// <param name="pszDiv">·Ö¸ô·û</param>
-/// <param name="aResult">½á¹ûÈİÆ÷</param>
-/// <param name="cSubTextExpected">·µ»ØµÄ×î´ó×ÓÎÄ±¾Êı</param>
-/// <param name="cchText">Òª·Ö¸îµÄÎÄ±¾³¤¶È</param>
-/// <param name="cchDiv">·Ö¸ô·û³¤¶È</param>
+/// <param name="pszText">è¦åˆ†å‰²çš„æ–‡æœ¬</param>
+/// <param name="pszDiv">åˆ†éš”ç¬¦</param>
+/// <param name="aResult">ç»“æœå®¹å™¨</param>
+/// <param name="cSubTextExpected">è¿”å›çš„æœ€å¤§å­æ–‡æœ¬æ•°</param>
+/// <param name="cchText">è¦åˆ†å‰²çš„æ–‡æœ¬é•¿åº¦</param>
+/// <param name="cchDiv">åˆ†éš”ç¬¦é•¿åº¦</param>
 void SplitStr(PCWSTR pszText, PCWSTR pszDiv, std::vector<SPLTEXTINFO>& aResult, int cSubTextExpected = 0, int cchText = -1, int cchDiv = -1);
 
 /// <summary>
-/// ·Ö¸îÎÄ±¾¡£
-/// º¯Êı½«Ã¿¸ö·Ö¸ô·ûµÄµÚÒ»¸ö×Ö·û¸ü¸ÄÎªL'\0'£¬Í¬Ê±½«Ã¿¸ö×ÓÎÄ±¾µÄÎ»ÖÃĞÅÏ¢´æÈëÈİÆ÷
+/// åˆ†å‰²æ–‡æœ¬ã€‚
+/// å‡½æ•°å°†æ¯ä¸ªåˆ†éš”ç¬¦çš„ç¬¬ä¸€ä¸ªå­—ç¬¦æ›´æ”¹ä¸ºL'\0'ï¼ŒåŒæ—¶å°†æ¯ä¸ªå­æ–‡æœ¬çš„ä½ç½®ä¿¡æ¯å­˜å…¥å®¹å™¨
 /// </summary>
-/// <param name="pszText">Òª·Ö¸îµÄÎÄ±¾£¬±ØĞë¿ÉĞ´</param>
-/// <param name="pszDiv">·Ö¸ô·û</param>
-/// <param name="aResult">½á¹ûÈİÆ÷</param>
-/// <param name="cSubTextExpected">·µ»ØµÄ×î´ó×ÓÎÄ±¾Êı</param>
-/// <param name="cchText">Òª·Ö¸îµÄÎÄ±¾³¤¶È</param>
-/// <param name="cchDiv">·Ö¸ô·û³¤¶È</param>
+/// <param name="pszText">è¦åˆ†å‰²çš„æ–‡æœ¬ï¼Œå¿…é¡»å¯å†™</param>
+/// <param name="pszDiv">åˆ†éš”ç¬¦</param>
+/// <param name="aResult">ç»“æœå®¹å™¨</param>
+/// <param name="cSubTextExpected">è¿”å›çš„æœ€å¤§å­æ–‡æœ¬æ•°</param>
+/// <param name="cchText">è¦åˆ†å‰²çš„æ–‡æœ¬é•¿åº¦</param>
+/// <param name="cchDiv">åˆ†éš”ç¬¦é•¿åº¦</param>
 void SplitStr(PWSTR pszText, PCWSTR pszDiv, std::vector<PWSTR>& aResult, int cSubTextExpected = 0, int cchText = -1, int cchDiv = -1);
 
 /// <summary>
-/// µ½È«½Ç
+/// åˆ°å…¨è§’
 /// </summary>
-/// <param name="pszText">Ô­Ê¼ÎÄ±¾</param>
-/// <param name="cchText">×Ö·ûÊı</param>
-/// <returns>×ª»»½á¹û</returns>
+/// <param name="pszText">åŸå§‹æ–‡æœ¬</param>
+/// <param name="cchText">å­—ç¬¦æ•°</param>
+/// <returns>è½¬æ¢ç»“æœ</returns>
 EckInline CRefStrW ToFullWidth(PCWSTR pszText, int cchText = -1)
 {
 	CRefStrW rs;
 	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_FULLWIDTH, pszText, cchText, NULL, 0, NULL, NULL, 0);
 	rs.ReSize(cchResult);
-	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_FULLWIDTH, pszText, cchText, rs, cchResult, NULL, NULL, 0);
+	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_FULLWIDTH, pszText, cchText, rs.Data(), cchResult, NULL, NULL, 0);
 	return rs;
 }
 
 /// <summary>
-/// µ½°ë½Ç
+/// åˆ°åŠè§’
 /// </summary>
-/// <param name="pszText">Ô­Ê¼ÎÄ±¾</param>
-/// <param name="cchText">×Ö·ûÊı</param>
-/// <returns>×ª»»½á¹û</returns>
+/// <param name="pszText">åŸå§‹æ–‡æœ¬</param>
+/// <param name="cchText">å­—ç¬¦æ•°</param>
+/// <returns>è½¬æ¢ç»“æœ</returns>
 EckInline CRefStrW ToHalfWidth(PCWSTR pszText, int cchText = -1)
 {
 	CRefStrW rs;
 	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_HALFWIDTH, pszText, cchText, NULL, 0, NULL, NULL, 0);
 	rs.ReSize(cchResult);
-	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_HALFWIDTH, pszText, cchText, rs, cchResult, NULL, NULL, 0);
+	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_HALFWIDTH, pszText, cchText, rs.Data(), cchResult, NULL, NULL, 0);
 	return rs;
 }
 
 /// <summary>
-/// É¾Ê×¿Õ¡£
-/// º¯Êı´ÓpszText¿ªÊ¼Ïòºó²½½øµ½µÚÒ»¸ö·Ç¿Õ¸ñ×Ö·û£¬È»ºó·µ»ØÖ¸ÏòÕâ¸ö×Ö·ûµÄÖ¸Õë¡£
-/// ´Ëº¯Êı²»Ö´ĞĞÈÎºÎĞŞ¸Ä×Ö·û´®µÄ²Ù×÷
+/// åˆ é¦–ç©ºã€‚
+/// å‡½æ•°ä»pszTextå¼€å§‹å‘åæ­¥è¿›åˆ°ç¬¬ä¸€ä¸ªéç©ºæ ¼å­—ç¬¦ï¼Œç„¶åè¿”å›æŒ‡å‘è¿™ä¸ªå­—ç¬¦çš„æŒ‡é’ˆã€‚
+/// æ­¤å‡½æ•°ä¸æ‰§è¡Œä»»ä½•ä¿®æ”¹å­—ç¬¦ä¸²çš„æ“ä½œ
 /// </summary>
-/// <param name="pszText">Ô­Ê¼ÎÄ±¾</param>
-/// <returns>µÚÒ»¸ö·Ç¿Õ¸ñ×Ö·ûµÄÖ¸Õë</returns>
+/// <param name="pszText">åŸå§‹æ–‡æœ¬</param>
+/// <returns>ç¬¬ä¸€ä¸ªéç©ºæ ¼å­—ç¬¦çš„æŒ‡é’ˆ</returns>
 EckInline PCWSTR LTrimStr(PCWSTR pszText)
 {
 	WCHAR ch = *pszText;
-	while ((ch == L' ' || ch == L'¡¡') && ch != L'\0')
+	while ((ch == L' ' || ch == L'ã€€') && ch != L'\0')
 		ch = *++pszText;
 	return pszText;
 }
 
 /// <summary>
-/// É¾Î²¿Õ¡£
-/// º¯Êı´ÓpszTextµÄÎ²²¿¿ªÊ¼ÏòÇ°²½½øµ½µÚÒ»¸ö·Ç¿Õ¸ñ×Ö·û£¬È»ºó·µ»ØÕâ¸ö×Ö·ûµÄÎ»ÖÃ¡£
-/// ´Ëº¯Êı²»Ö´ĞĞÈÎºÎĞŞ¸Ä×Ö·û´®µÄ²Ù×÷
+/// åˆ å°¾ç©ºã€‚
+/// å‡½æ•°ä»pszTextçš„å°¾éƒ¨å¼€å§‹å‘å‰æ­¥è¿›åˆ°ç¬¬ä¸€ä¸ªéç©ºæ ¼å­—ç¬¦ï¼Œç„¶åè¿”å›è¿™ä¸ªå­—ç¬¦çš„ä½ç½®ã€‚
+/// æ­¤å‡½æ•°ä¸æ‰§è¡Œä»»ä½•ä¿®æ”¹å­—ç¬¦ä¸²çš„æ“ä½œ
 /// </summary>
-/// <param name="pszText">Ô­Ê¼ÎÄ±¾</param>
-/// <param name="cchText">ÎÄ±¾³¤¶È</param>
-/// <returns>´Ó×Ö·û´®¿ªÍ·µ½×îºóÒ»¸ö·Ç¿Õ¸ñ×Ö·ûµÄ³¤¶È</returns>
+/// <param name="pszText">åŸå§‹æ–‡æœ¬</param>
+/// <param name="cchText">æ–‡æœ¬é•¿åº¦</param>
+/// <returns>ä»å­—ç¬¦ä¸²å¼€å¤´åˆ°æœ€åä¸€ä¸ªéç©ºæ ¼å­—ç¬¦çš„é•¿åº¦</returns>
 int RTrimStr(PCWSTR pszText, int cchText = -1);
 
 /// <summary>
-/// É¾Ê×Î²¿Õ¡£
-/// º¯ÊıÄÚ²¿¼òµ¥µØµ÷ÓÃLTrimStrºÍRTrimStr»ñÈ¡Ê×Î²¿ÕĞÅÏ¢¡£
-/// ´Ëº¯Êı²»Ö´ĞĞÈÎºÎĞŞ¸Ä×Ö·û´®µÄ²Ù×÷
+/// åˆ é¦–å°¾ç©ºã€‚
+/// å‡½æ•°å†…éƒ¨ç®€å•åœ°è°ƒç”¨LTrimStrå’ŒRTrimStrè·å–é¦–å°¾ç©ºä¿¡æ¯ã€‚
+/// æ­¤å‡½æ•°ä¸æ‰§è¡Œä»»ä½•ä¿®æ”¹å­—ç¬¦ä¸²çš„æ“ä½œ
 /// </summary>
-/// <param name="pszText">Ô­Ê¼ÎÄ±¾</param>
-/// <param name="piEndPos">½ÓÊÕRTrimStr·µ»ØÖµ</param>
-/// <param name="cchText">ÎÄ±¾³¤¶È</param>
-/// <returns>LTrimStr·µ»ØÖµ</returns>
+/// <param name="pszText">åŸå§‹æ–‡æœ¬</param>
+/// <param name="piEndPos">æ¥æ”¶RTrimStrè¿”å›å€¼</param>
+/// <param name="cchText">æ–‡æœ¬é•¿åº¦</param>
+/// <returns>LTrimStrè¿”å›å€¼</returns>
 EckInline PCWSTR RLTrimStr(PCWSTR pszText, int* piEndPos, int cchText = -1)
 {
 	auto pszLeft = LTrimStr(pszText);
@@ -701,10 +734,10 @@ EckInline PCWSTR RLTrimStr(PCWSTR pszText, int* piEndPos, int cchText = -1)
 }
 
 /// <summary>
-/// É¾È«²¿¿Õ
+/// åˆ å…¨éƒ¨ç©º
 /// </summary>
-/// <param name="pszText">Ô­Ê¼ÎÄ±¾</param>
-/// <param name="cchText">ÎÄ±¾³¤¶È</param>
-/// <returns>´¦Àí½á¹û</returns>
+/// <param name="pszText">åŸå§‹æ–‡æœ¬</param>
+/// <param name="cchText">æ–‡æœ¬é•¿åº¦</param>
+/// <returns>å¤„ç†ç»“æœ</returns>
 CRefStrW AllTrimStr(PCWSTR pszText, int cchText = -1);
 ECK_NAMESPACE_END

@@ -1,4 +1,4 @@
-#include "CDirBox.h"
+﻿#include "CDirBox.h"
 
 #include <utility>
 
@@ -103,7 +103,7 @@ void CDirBox::FillCtrl()
 {
 	SetRedraw(FALSE);
 	SendMessageW(m_hWnd, TVM_DELETEITEM, 0, NULL);
-	if (!PathFileExistsW(m_rsDir))
+	if (!PathFileExistsW(m_rsDir.Data()))
 	{
 		SetRedraw(TRUE);
 		return;
@@ -111,13 +111,13 @@ void CDirBox::FillCtrl()
 
 	int cchFile = m_rsDir.Size();
 	WCHAR pszPath[MAX_PATH];
-	wcscpy(pszPath, m_rsDir);
+	wcscpy(pszPath, m_rsDir.Data());
 	if (*(pszPath + cchFile - 1) == L'\\')
 		*(pszPath + cchFile - 1) = L'\0';
 
 	WCHAR pszNextLevelPath[MAX_PATH];
 	PWSTR pszTemp = pszNextLevelPath + cchFile;
-	wcscpy(pszNextLevelPath, m_rsDir);
+	wcscpy(pszNextLevelPath, m_rsDir.Data());
 	if (*(pszTemp - 1) != L'\\')
 	{
 		wcscpy(pszTemp, L"\\");
@@ -129,7 +129,7 @@ void CDirBox::FillCtrl()
 	if (bHasChildPath)
 	{
 		SendMessageW(m_hWnd, TVM_DELETEITEM, 0, SendMessageW(m_hWnd, TVM_GETNEXTITEM, TVGN_CHILD, (LPARAM)hNewItem));
-		EnumFile(m_rsDir, hNewItem);
+		EnumFile(m_rsDir.Data(), hNewItem);
 	}
 	SendMessageW(m_hWnd, TVM_EXPAND, TVE_EXPAND, (LPARAM)hNewItem);
 	SetRedraw(TRUE);

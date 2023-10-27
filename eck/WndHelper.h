@@ -224,11 +224,16 @@ EckInline HFONT ResetFontForDpiChanged(HWND hWnd, int iDpiNew, int iDpiOld, BOOL
 
 BOOL GetWindowClientRect(HWND hWnd, HWND hParent, RECT* prc);
 
-// 创建一个图像列表，用来设置ListView行高，忽略DPI缩放
-#define EckMakeLVItemHeightImageList(cy) ImageList_Create(1, (cy), 0, 1, 0)
-// 通过设置图像列表来设置ListView行高，忽略DPI缩放
-#define EckLVSetItemHeight(hLV,cy) ((HIMAGELIST)SendMessageW((hLV), LVM_SETIMAGELIST, \
-					LVSIL_SMALL, (LPARAM)EckMakeLVItemHeightImageList(cy)))
+/// <summary>
+/// 通过设置图像列表来设置ListView行高
+/// </summary>
+/// <param name="hLV"></param>
+/// <param name="cy"></param>
+/// <returns></returns>
+EckInline HIMAGELIST LVSetItemHeight(HWND hLV, int cy)
+{
+	return (HIMAGELIST)SendMessageW((hLV), LVM_SETIMAGELIST, LVSIL_SMALL, (LPARAM)ImageList_Create(1, (cy), 0, 1, 0));
+}
 
 EckInline BOOL BitBltPs(const PAINTSTRUCT* pps, HDC hdcSrc)
 {
@@ -270,4 +275,8 @@ EckInline void UpdateDpiSize(T& Dpis, int iDpi)
 		*p = DpiScale(*(p - 1), iDpi);
 	}
 }
+
+HWND GetThreadFirstWindow(DWORD dwTid);
+
+HWND GetSafeOwner(HWND hParent, HWND* phWndTop);
 ECK_NAMESPACE_END
