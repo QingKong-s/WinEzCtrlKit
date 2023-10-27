@@ -87,28 +87,45 @@ class CInertialScrollView : public CScrollView
 public:
 	using InertialScrollProc = void (*)(int, int, LPARAM);
 protected:
-	HANDLE m_hTimer = NULL;
-	int m_iCurrSpeed = 0;
-	int m_iUnitSpeed = 10;
-	int m_iAccel = 1;
-	int m_iPrevPos = 0;
+	int m_iTarget = 0;
+	int m_iCurrPos = 0;
+
 	HWND m_hWnd = NULL;
 	UINT m_uTimerID = 0;
-
-	int m_iRealAccel = 0;
-	int m_cFrame = 0;
-	int m_iDestPos = 0;
-	int m_iSrcPos = 0;
-	int m_v0 = 0;
 
 	InertialScrollProc m_pfnInertialScroll = NULL;
 	LPARAM m_lParam = 0;
 
-	BOOL m_bStop = TRUE;
+	static UINT s_uTimerNotify;
 public:
+	static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+	{
+		if (uMsg == s_uTimerNotify)
+		{
+			TimerProc(hWnd, 0, 0, 0);
+			return 0;
+		}
+
+		return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+	}
 	void SetHWND(HWND hWnd)
 	{
+		s_uTimerNotify = RegisterWindowMessageW(L"wedfgrshgehrwgeurwghuhgvuer");
+
 		m_hWnd = hWnd;
+		SetPropW(m_hWnd, L"Eck.Prop.SV", this);
+
+		SetWindowSubclass(m_hWnd, WndProc, 455646, 0);
+
+		CRTCreateThread([](void* pParam)->UINT
+			{
+				while (TRUE)
+				{
+					PostMessageW((HWND)pParam, s_uTimerNotify, 0, 0);
+					Sleep(40);
+				}
+				return 0;
+			}, m_hWnd);
 	}
 
 	void SetTimerID(UINT uTimerID)
@@ -121,76 +138,31 @@ public:
 		auto p = (CInertialScrollView*)GetPropW(hWnd, L"Eck.Prop.SV");
 		if (!p)
 			return;
-		if (idEvent != p->m_uTimerID)
-			return;
-		int iMidPos = p->m_iSrcPos + p->m_v0 * p->m_cFrame + p->m_iRealAccel * p->m_cFrame * p->m_cFrame / 2;
-		p->m_iCurrSpeed += p->m_iRealAccel;
+		//if (idEvent != p->m_uTimerID)
+		//	return;
 		
-		BOOL bStop = FALSE;
-		if (iMidPos < p->m_iMin)
-		{
-			bStop = TRUE;
-			iMidPos = p->m_iMin;
-		}
-		else if (iMidPos > p->m_iMax - p->m_iPage)
-		{
-			bStop = TRUE;
-			iMidPos = p->m_iMax - p->m_iPage;
-		}
-		if ((p->m_iCurrSpeed <= 0 && p->m_iRealAccel < 0) ||
-			(p->m_iCurrSpeed >= 0 && p->m_iRealAccel > 0))
-			bStop = TRUE;
 
-
-		p->m_iPos = iMidPos;
-		p->m_pfnInertialScroll(iMidPos, p->m_iPrevPos, p->m_lParam);
-		p->m_iPrevPos = p->m_iPos;
-		++p->m_cFrame;
-		if (bStop)
-		{
-			p->m_bStop = TRUE;
-			p->m_iCurrSpeed = 0;
-			KillTimer(hWnd, p->m_uTimerID);
-			RemovePropW(hWnd, L"Eck.Prop.SV");
-		}
+		const int iPrevPos = p->m_iCurrPos;
+		const int iDistance = p->m_iTarget - p->m_iCurrPos;
+		if (iDistance == 0)
+			return;
+		//if (iDistance == 0)
+		//	KillTimer(hWnd, p->m_uTimerID);
+		p->m_iCurrPos += ((iDistance) / 8);
+		p->SetPos(p->m_iCurrPos);
+		p->m_pfnInertialScroll(p->m_iCurrPos, iPrevPos, p->m_lParam);
 	}
 
 	void OnMouseWheel2(int iDelta, InertialScrollProc pfnInertialScroll, LPARAM lParam)
 	{
-		int iOrgPos = m_iPos;
-		m_iPrevPos = iOrgPos;
-		m_iSrcPos= iOrgPos;
-		int iPos = m_iPos - iDelta*60;
-		if (iPos < m_iMin)
-			iPos = m_iMin;
-		else if (iPos > m_iMax - m_iPage)
-			iPos = m_iMax - m_iPage;
-		m_iDestPos = iPos;
-		//int iMidPos;
-
-		if (eck::Sign(m_iRealAccel) != eck::Sign(iDelta))
-			m_iCurrSpeed = m_iUnitSpeed * -iDelta;
-		else
-			m_iCurrSpeed += (m_iUnitSpeed * -iDelta);
-
-		if (m_iCurrSpeed > 200)
-			m_iCurrSpeed = 200;
-		
-		m_v0 = m_iCurrSpeed;
-		int iAccel = (iDelta > 0 ? m_iAccel : -m_iAccel);
-		m_iRealAccel = iAccel;
-
 		m_pfnInertialScroll = pfnInertialScroll;
 		m_lParam = lParam;
-		m_cFrame = 0;
 
-		if(m_bStop)
-		{
-			SetPropW(m_hWnd, L"Eck.Prop.SV", this);
-			SetTimer(m_hWnd, m_uTimerID, 40, TimerProc);
-		}
+		m_iTarget += 50 * iDelta;
 
-		SetPos(iPos);
+		
+		//SetTimer(m_hWnd, m_uTimerID, 40, TimerProc);
 	}
 };
+
 ECK_NAMESPACE_END

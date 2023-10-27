@@ -1,4 +1,4 @@
-#include "CListBoxExt.h"
+ï»¿#include "CListBoxExt.h"
 
 ECK_NAMESPACE_BEGIN
 SUBCLASS_MGR_INIT(CListBoxExt, SCID_LBEXT, SubclassProc)
@@ -24,21 +24,21 @@ void CListBoxExt::AddFile()
 	PWSTR pszPath = (PWSTR)_malloca((
 		m_rsDir.Size() +
 		m_rsFilePattern.Size() +
-		5/*Ò»¸ö·´Ğ±¸Ü£¬Èı¸ö*.*£¨Í¨Åä·ûÎª¿ÕÊ±ÓÃ£©£¬Ò»¸ö½áÎ²NULL*/) * sizeof(WCHAR));
-	assert(pszPath);// Ïû³ı¾¯¸æ
-	wcscpy(pszPath, m_rsDir);
-	PWSTR pszTemp = pszPath + m_rsDir.Size();// Ö¸ÕëÖ¸µ½Ä¿Â¼µÄºóÃæ£¬·½±ãÌæ»»Í¨Åä·û
+		5/*ä¸€ä¸ªåæ–œæ ï¼Œä¸‰ä¸ª*.*ï¼ˆé€šé…ç¬¦ä¸ºç©ºæ—¶ç”¨ï¼‰ï¼Œä¸€ä¸ªç»“å°¾NULL*/) * sizeof(WCHAR));
+	assert(pszPath);// æ¶ˆé™¤è­¦å‘Š
+	wcscpy(pszPath, m_rsDir.Data());
+	PWSTR pszTemp = pszPath + m_rsDir.Size();// æŒ‡é’ˆæŒ‡åˆ°ç›®å½•çš„åé¢ï¼Œæ–¹ä¾¿æ›¿æ¢é€šé…ç¬¦
 
 	PWSTR pszFilePattern;
-	if (m_rsFilePattern.Size() && m_rsFilePattern)
-		pszFilePattern = m_rsFilePattern;
+	if (m_rsFilePattern.Size() && m_rsFilePattern.Data())
+		pszFilePattern = m_rsFilePattern.Data();
 	else
 	{
 #pragma warning(push)
-#pragma warning(disable:6255)// ½ûÓÃ¾¯¸æ£º¿¼ÂÇ¸ÄÓÃ_malloca
+#pragma warning(disable:6255)// ç¦ç”¨è­¦å‘Šï¼šè€ƒè™‘æ”¹ç”¨_malloca
 		pszFilePattern = (PWSTR)_alloca(4 * sizeof(WCHAR));
 #pragma warning(pop)
-		assert(pszFilePattern);// Ïû³ı¾¯¸æ
+		assert(pszFilePattern);// æ¶ˆé™¤è­¦å‘Š
 		wcscpy(pszFilePattern, L"*.*");
 	}
 
@@ -48,19 +48,19 @@ void CListBoxExt::AddFile()
 	while (TRUE)
 	{
 		pszDivPos = wcsstr(pszFilePattern, L"|");
-		if (pszDivPos != pszOld && pszDivPos)// ³£¹æÇé¿ö
+		if (pszDivPos != pszOld && pszDivPos)// å¸¸è§„æƒ…å†µ
 		{
 			int cch = (int)(pszDivPos - pszOld - 1);
 			wcscpy(pszTemp, L"\\");
 			wcsncat(pszTemp, pszOld, cch);
 			*(pszTemp + cch + 1) = L'\0';
 		}
-		else if (!pszDivPos)// ÕÒ²»µ½ÏÂÒ»¸ö·Ö¸ô·û
+		else if (!pszDivPos)// æ‰¾ä¸åˆ°ä¸‹ä¸€ä¸ªåˆ†éš”ç¬¦
 		{
 			wcscpy(pszTemp, L"\\");
 			wcscat(pszTemp, pszOld);
 		}
-		else// Î²²¿£¨pszDivPos==pszOld£©
+		else// å°¾éƒ¨ï¼ˆpszDivPos==pszOldï¼‰
 			break;
 
 		LBITEMCOMMINFO CommInfo{};
@@ -145,7 +145,7 @@ LRESULT CALLBACK CListBoxExt::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARAM w
 		auto& Item = p->m_ItemsInfo[pdis->itemID];
 
 		HDC hDC = pdis->hDC;
-		// »­±³¾°
+		// ç”»èƒŒæ™¯
 		if (IsBitSet(pdis->itemState, ODS_SELECTED)/* && !Item.Info.bDisabled*/)
 		{
 			if (Item.hbrSelBK)
@@ -176,7 +176,7 @@ LRESULT CALLBACK CListBoxExt::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARAM w
 			else
 				SetTextColor(hDC, GetSysColor(COLOR_WINDOWTEXT));
 		}
-		// »­Ñ¡Ôñ¿ò
+		// ç”»é€‰æ‹©æ¡†
 		RECT rc = pdis->rcItem;
 		if (p->m_InfoEx.iCheckBoxMode)
 		{
@@ -210,7 +210,7 @@ LRESULT CALLBACK CListBoxExt::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARAM w
 			rc.left += c_LBPadding;
 			rc.right = rc.left;
 		}
-		// »­Í¼Æ¬
+		// ç”»å›¾ç‰‡
 		if (p->m_cxImage)
 		{
 			if (p->m_hImageList && Item.Info.idxImage >= 0)
@@ -223,7 +223,7 @@ LRESULT CALLBACK CListBoxExt::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARAM w
 			rc.left += (p->m_cxImage + c_LBPadding);
 		}
 		rc.right = pdis->rcItem.right;
-		// »­ÎÄ±¾
+		// ç”»æ–‡æœ¬
 		UINT uDTFlags = DT_NOCLIP | DT_SINGLELINE | (p->m_InfoEx.bEllipsis ? DT_END_ELLIPSIS : 0);
 		switch (p->m_InfoEx.iAlignH)
 		{
@@ -242,7 +242,7 @@ LRESULT CALLBACK CListBoxExt::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARAM w
 		}
 
 		SetBkMode(hDC, TRANSPARENT);
-		DrawTextW(hDC, Item.rsCaption, -1, &rc, uDTFlags);
+		DrawTextW(hDC, Item.rsCaption.Data(), -1, &rc, uDTFlags);
 		return TRUE;
 	}
 	break;
@@ -261,7 +261,7 @@ LRESULT CALLBACK CListBoxExt::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 	auto p = (CListBoxExt*)dwRefData;
 	switch (uMsg)
 	{
-	case WM_LBUTTONDOWN:// ¸üĞÂ¼ì²é¿ò
+	case WM_LBUTTONDOWN:// æ›´æ–°æ£€æŸ¥æ¡†
 	{
 		if (!p->m_InfoEx.iCheckBoxMode)
 			break;
@@ -269,12 +269,12 @@ LRESULT CALLBACK CListBoxExt::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 		POINT pt{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) };
 		int idxItem;
 		int idx = p->HitTestCheckBox(pt, &idxItem);
-		// ¹ıÂË½ûÖ¹µÄÏîÄ¿
+		// è¿‡æ»¤ç¦æ­¢çš„é¡¹ç›®
 		if (idxItem < 0)
 			break;
 		if (p->m_ItemsInfo[idxItem].Info.bDisabled)
 			return 0;
-		// ¸üĞÂ¼ì²é×´Ì¬
+		// æ›´æ–°æ£€æŸ¥çŠ¶æ€
 		if (idx < 0)
 			break;
 		if (idx >= 0)
@@ -302,7 +302,7 @@ LRESULT CALLBACK CListBoxExt::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 	}
 	break;
 
-	case WM_LBUTTONDBLCLK:// Á¬»÷ĞŞ¸´
+	case WM_LBUTTONDBLCLK:// è¿å‡»ä¿®å¤
 	{
 		POINT pt{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) };
 		int idx = p->HitTestCheckBox(pt);
@@ -335,7 +335,7 @@ LRESULT CALLBACK CListBoxExt::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 		if (idx < 0)
 			break;
 		SendMessageW(p->m_hToolTip, TTM_GETTOOLINFOW, 0, (LPARAM)&p->m_ti);
-		p->m_ti.lpszText = p->m_ItemsInfo[idx].rsTip;
+		p->m_ti.lpszText = p->m_ItemsInfo[idx].rsTip.Data();
 		SendMessageW(p->m_hToolTip, TTM_SETTOOLINFOW, 0, (LPARAM)&p->m_ti);
 		SendMessageW(p->m_hToolTip, TTM_TRACKPOSITION, 0, MAKELPARAM(ptScr.x, ptScr.y));
 		SendMessageW(p->m_hToolTip, TTM_TRACKACTIVATE, TRUE, (LPARAM)&p->m_ti);
@@ -382,7 +382,7 @@ int CListBoxExt::InsertString(PCWSTR pszString, PCWSTR pszTip, const LBITEMCOMMI
 	{
 		for (int i = 0; i < (int)m_ItemsInfo.size(); ++i)
 		{
-			if (wcscmp(m_ItemsInfo[i].rsCaption, pszString) > 0)
+			if (wcscmp(m_ItemsInfo[i].rsCaption.Data(), pszString) > 0)
 			{
 				m_ItemsInfo.insert(m_ItemsInfo.begin() + i, std::move(Item));
 				goto Ret;
@@ -410,7 +410,7 @@ int CListBoxExt::AddString(PCWSTR pszString, PCWSTR pszTip, const LBITEMCOMMINFO
 	{
 		for (int i = 0; i < (int)m_ItemsInfo.size(); ++i)
 		{
-			if (wcscmp(m_ItemsInfo[i].rsCaption, pszString) > 0)
+			if (wcscmp(m_ItemsInfo[i].rsCaption.Data(), pszString) > 0)
 			{
 				m_ItemsInfo.insert(m_ItemsInfo.begin() + i, std::move(Item));
 				goto Ret;

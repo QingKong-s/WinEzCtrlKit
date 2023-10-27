@@ -1,4 +1,4 @@
-#include "CColorPicker.h"
+ï»¿#include "CColorPicker.h"
 
 ECK_NAMESPACE_BEGIN
 WND_RECORDER_INIT(CColorPicker)
@@ -14,44 +14,44 @@ constexpr struct CPPRESETCOLOR
 }
 c_ColorPickerPresetClr[] =
 {
-	{CLR_DEFAULT,L"Ä¬ÈÏ"},
-	{CLR_INVALID,L"×Ô¶¨Òå..."},
-	{0x0000FF,L"ºìÉ«"},
-	{0x00FF00,L"ÂÌÉ«"},
-	{0xFF0000,L"À¶É«"},
-	{0x00FFFF,L"»ÆÉ«"},
-	{0xFF00FF,L"Æ·ºì"},
-	{0xFFFF00,L"ÑŞÇà"},
-	{0x000080,L"ºìºÖ"},
-	{0x008000,L"Ä«ÂÌ"},
-	{0x008080,L"ºÖÂÌ"},
-	{0x800000,L"²ØÇà"},
-	{0x800080,L"×Ïºì"},
-	{0x808000,L"ÉîÇà"},
-	{0xC0C0C0,L"Ç³»Ò"},
-	{0xC0DCC0,L"ÃÀÔªÂÌ"},
-	{0xF0CAA6,L"Ç³À¶"},
-	{0x808080,L"»ÒÉ«"},
-	{0xA4A0A0,L"ÖĞĞÔ»Ò"},
-	{0xF0FBFF,L"Èé°×"},
-	{0x000000,L"ºÚÉ«"},
-	{0xFFFFFF,L"°×É«"},
-	{0xFF8080,L"À¶»Ò"},
-	{0xE03058,L"²ØÀ¶"},
-	{0x00E080,L"ÄÛÂÌ"},
-	{0x80E000,L"ÇàÂÌ"},
-	{0x0060C0,L"»ÆºÖ"},
-	{0xFFA8FF,L"·Ûºì"},
-	{0x00D8D8,L"ÄÛ»Æ"},
-	{0xECECEC,L"Òø°×"},
-	{0xFF0090,L"×ÏÉ«"},
-	{0xFF8800,L"ÌìÀ¶"},
-	{0x80A080,L"»ÒÂÌ"},
-	{0xC06000,L"ÇàÀ¶"},
-	{0x0080FF,L"³È»Æ"},
-	{0x8050FF,L"ÌÒºì"},
-	{0xC080FF,L"Ü½ºì"},
-	{0x606060,L"Éî»Ò"}
+	{CLR_DEFAULT,L"é»˜è®¤"},
+	{CLR_INVALID,L"è‡ªå®šä¹‰..."},
+	{0x0000FF,L"çº¢è‰²"},
+	{0x00FF00,L"ç»¿è‰²"},
+	{0xFF0000,L"è“è‰²"},
+	{0x00FFFF,L"é»„è‰²"},
+	{0xFF00FF,L"å“çº¢"},
+	{0xFFFF00,L"è‰³é’"},
+	{0x000080,L"çº¢è¤"},
+	{0x008000,L"å¢¨ç»¿"},
+	{0x008080,L"è¤ç»¿"},
+	{0x800000,L"è—é’"},
+	{0x800080,L"ç´«çº¢"},
+	{0x808000,L"æ·±é’"},
+	{0xC0C0C0,L"æµ…ç°"},
+	{0xC0DCC0,L"ç¾å…ƒç»¿"},
+	{0xF0CAA6,L"æµ…è“"},
+	{0x808080,L"ç°è‰²"},
+	{0xA4A0A0,L"ä¸­æ€§ç°"},
+	{0xF0FBFF,L"ä¹³ç™½"},
+	{0x000000,L"é»‘è‰²"},
+	{0xFFFFFF,L"ç™½è‰²"},
+	{0xFF8080,L"è“ç°"},
+	{0xE03058,L"è—è“"},
+	{0x00E080,L"å«©ç»¿"},
+	{0x80E000,L"é’ç»¿"},
+	{0x0060C0,L"é»„è¤"},
+	{0xFFA8FF,L"ç²‰çº¢"},
+	{0x00D8D8,L"å«©é»„"},
+	{0xECECEC,L"é“¶ç™½"},
+	{0xFF0090,L"ç´«è‰²"},
+	{0xFF8800,L"å¤©è“"},
+	{0x80A080,L"ç°ç»¿"},
+	{0xC06000,L"é’è“"},
+	{0x0080FF,L"æ©™é»„"},
+	{0x8050FF,L"æ¡ƒçº¢"},
+	{0xC080FF,L"èŠ™çº¢"},
+	{0x606060,L"æ·±ç°"}
 };
 #define CLPIDX_CUSTOM 1
 
@@ -227,7 +227,7 @@ ATOM CColorPicker::RegisterWndClass(HINSTANCE hInstance)
 HWND CColorPicker::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData)
 {
-	dwStyle |= (WS_CHILD | WS_VISIBLE | WS_VSCROLL | CBS_OWNERDRAWFIXED | CBS_DROPDOWNLIST);
+	dwStyle |= (WS_CHILD | WS_VSCROLL | CBS_OWNERDRAWFIXED | CBS_DROPDOWNLIST);
 
 	m_hParent = hParent;
 	m_ParentCtx.iDpi = GetDpi(hParent);
@@ -236,17 +236,17 @@ HWND CColorPicker::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, this);
 
 	SetRedraw(FALSE);
-	SendMsg(CB_INITSTORAGE, ARRAYSIZE(c_ColorPickerPresetClr), 0);
+	InitStorage(ARRAYSIZE(c_ColorPickerPresetClr), 0);
 	for (auto& x : c_ColorPickerPresetClr)
-		SendMsg(CB_ADDSTRING, 0, (LPARAM)x.pszName);
-	SendMsg(CB_SETCURSEL, 0, 0);
+		AddString(x.pszName);
+	SetCurSel(0);
 	SetRedraw(TRUE);
 	return m_hWnd;
 }
 
 COLORREF CColorPicker::GetColor()
 {
-	int idx = (int)SendMsg(CB_GETCURSEL, 0, 0);
+	int idx = GetCurSel();
 	if (idx == CB_ERR)
 		return CLR_INVALID;
 	COLORREF cr = c_ColorPickerPresetClr[idx].cr;
@@ -264,12 +264,12 @@ BOOL CColorPicker::SetColor(COLORREF cr)
 	{
 		if (c_ColorPickerPresetClr[i].cr == cr)
 		{
-			SendMsg(CB_SETCURSEL, i, 0);
+			SetCurSel(i);
 			return TRUE;
 		}
 	}
 	m_crCustom = cr;
-	SendMsg(CB_SETCURSEL, CLPIDX_CUSTOM, 0);
+	SetCurSel(CLPIDX_CUSTOM);
 	return TRUE;
 }
 ECK_NAMESPACE_END

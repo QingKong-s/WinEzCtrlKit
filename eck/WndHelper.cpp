@@ -78,4 +78,53 @@ LRESULT OnNcCalcSize(WPARAM wParam, LPARAM lParam, MARGINS* pMargins)
 	}
 	return 0;
 }
+
+HWND GetThreadFirstWindow(DWORD dwTid)
+{
+	HWND hWnd = GetActiveWindow();
+	if (!hWnd)
+		return hWnd;
+	EnumThreadWindows(GetCurrentThreadId(), [](HWND hWnd, LPARAM lParam)->BOOL
+		{
+			*(HWND*)lParam = hWnd;
+			return FALSE;
+		}, (LPARAM)&hWnd);
+	return hWnd;
+}
+
+HWND GetSafeOwner(HWND hParent, HWND* phWndTop)
+{
+	HWND hWnd = hParent;
+	if (hWnd == NULL)
+		hWnd = GetThreadFirstWindow(GetCurrentThreadId());
+
+	while (hWnd != NULL && (GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_CHILD))
+		hWnd = GetParent(hWnd);
+
+	HWND hWndTop = hWnd, hWndTemp = hWnd;
+	for (;;)
+	{
+		if (hWndTemp == NULL)
+			break;
+		else
+			hWndTop = hWndTemp;
+		hWndTemp = GetParent(hWndTop);
+	}
+
+	if (hParent == NULL && hWnd != NULL)
+		hWnd = GetLastActivePopup(hWnd);
+
+	if (phWndTop != NULL)
+	{
+		if (hWndTop != NULL && IsWindowEnabled(hWndTop) && hWndTop != hWnd)
+		{
+			*phWndTop = hWndTop;
+			EnableWindow(hWndTop, FALSE);
+		}
+		else
+			*phWndTop = NULL;
+	}
+
+	return hWnd;
+}
 ECK_NAMESPACE_END

@@ -1,7 +1,7 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* CListView.h £º ±ê×¼ÁĞ±íÊÓÍ¼
+* CListView.h ï¼š æ ‡å‡†åˆ—è¡¨è§†å›¾
 *
 * Copyright(C) 2023 QingKong
 */
@@ -29,16 +29,16 @@ public:
 	}
 
 	/// <summary>
-	/// È¡ÀíÏë³ß´ç¡£
-	/// ¸ù¾İ²ÎÕÕ³ß´ç¼ÆËãÏÔÊ¾Ö¸¶¨ÏîÄ¿ÊıµÄ×î¼Ñ¿Ø¼ş³ß´ç
+	/// å–ç†æƒ³å°ºå¯¸ã€‚
+	/// æ ¹æ®å‚ç…§å°ºå¯¸è®¡ç®—æ˜¾ç¤ºæŒ‡å®šé¡¹ç›®æ•°çš„æœ€ä½³æ§ä»¶å°ºå¯¸
 	/// </summary>
-	/// <param name="cItems">ÏîÄ¿Êı£¬ÈôÎª-1ÔòÊ¹ÓÃµ±Ç°ÏîÄ¿Êı</param>
-	/// <param name="cxRef">²ÎÕÕ¿í¶È£¬ÈôÎª-1ÔòÊ¹ÓÃ¿Ø¼ş¿í¶È</param>
-	/// <param name="cyRef">²ÎÕÕ¸ß¶È£¬ÈôÎª-1ÔòÊ¹ÓÃ¿Ø¼ş¸ß¶È</param>
-	/// <param name="piApprWidth">½ÓÊÕÀíÏë¿í¶È</param>
-	/// <param name="piApprHeight">½ÓÊÕÀíÏë¸ß¶È</param>
+	/// <param name="cItems">é¡¹ç›®æ•°ï¼Œè‹¥ä¸º-1åˆ™ä½¿ç”¨å½“å‰é¡¹ç›®æ•°</param>
+	/// <param name="cxRef">å‚ç…§å®½åº¦ï¼Œè‹¥ä¸º-1åˆ™ä½¿ç”¨æ§ä»¶å®½åº¦</param>
+	/// <param name="cyRef">å‚ç…§é«˜åº¦ï¼Œè‹¥ä¸º-1åˆ™ä½¿ç”¨æ§ä»¶é«˜åº¦</param>
+	/// <param name="piApprWidth">æ¥æ”¶ç†æƒ³å®½åº¦</param>
+	/// <param name="piApprHeight">æ¥æ”¶ç†æƒ³é«˜åº¦</param>
 	EckInline void ApproximateViewRect(int cItems = -1, int cxRef = -1, int cyRef = -1,
-		int* piApprWidth = NULL, int* piApprHeight = NULL)
+		int* piApprWidth = NULL, int* piApprHeight = NULL) const
 	{
 		DWORD dwRet = (DWORD)SendMsg(LVM_APPROXIMATEVIEWRECT, cItems, MAKEWPARAM(cxRef, cyRef));
 		if (piApprWidth)
@@ -48,12 +48,12 @@ public:
 	}
 
 	/// <summary>
-	/// ÅÅÁĞÏîÄ¿
+	/// æ’åˆ—é¡¹ç›®
 	/// </summary>
-	/// <param name="uFlag">ÅÅÁĞÑ¡Ïî£¬LVA_³£Á¿¡£
-	/// ×¢£ºµ±Ö¸¶¨LVA_ALIGNLEFT»òLVA_ALIGNTOPÊ±»á·Ö±ğÌí¼ÓLVS_ALIGNLEFTºÍLVS_ALIGNTOPÑùÊ½</param>
-	/// <returns>³É¹¦·µ»ØTRUE£¬Ê§°Ü·µ»ØFALSE</returns>
-	EckInline BOOL Arrange(UINT uFlag)
+	/// <param name="uFlag">æ’åˆ—é€‰é¡¹ï¼ŒLVA_å¸¸é‡ã€‚
+	/// æ³¨ï¼šå½“æŒ‡å®šLVA_ALIGNLEFTæˆ–LVA_ALIGNTOPæ—¶ä¼šåˆ†åˆ«æ·»åŠ LVS_ALIGNLEFTå’ŒLVS_ALIGNTOPæ ·å¼</param>
+	/// <returns>æˆåŠŸè¿”å›TRUEï¼Œå¤±è´¥è¿”å›FALSE</returns>
+	EckInline BOOL Arrange(UINT uFlag) const
 	{
 		switch (uFlag)
 		{
@@ -68,100 +68,100 @@ public:
 		}
 	}
 
-	EckInline void CancelEditLabel()
+	EckInline void CancelEditLabel() const
 	{
 		SendMsg(LVM_CANCELEDITLABEL, 0, 0);
 	}
 
 	/// <summary>
-	/// ´´½¨ÍÏ·ÅÍ¼Ïñ
+	/// åˆ›å»ºæ‹–æ”¾å›¾åƒ
 	/// </summary>
-	/// <param name="idx">ÏîÄ¿</param>
-	/// <param name="ptOrg">Í¼Ïñ×óÉÏ½ÇµÄ³õÊ¼Î»ÖÃ</param>
-	/// <returns>Í¼ÏñÁĞ±í¾ä±ú</returns>
-	EckInline HIMAGELIST CreateDragImage(int idx, POINT ptOrg = {})
+	/// <param name="idx">é¡¹ç›®</param>
+	/// <param name="ptOrg">å›¾åƒå·¦ä¸Šè§’çš„åˆå§‹ä½ç½®</param>
+	/// <returns>å›¾åƒåˆ—è¡¨å¥æŸ„</returns>
+	EckInline HIMAGELIST CreateDragImage(int idx, POINT ptOrg = {}) const
 	{
 		return (HIMAGELIST)SendMsg(LVM_CREATEDRAGIMAGE, idx, (LPARAM)&ptOrg);
 	}
 
-	EckInline BOOL DeleteAllItems()
+	EckInline BOOL DeleteAllItems() const
 	{
 		return (BOOL)SendMsg(LVM_DELETEALLITEMS, 0, 0);
 	}
 
-	EckInline BOOL DeleteColumn(int idx)
+	EckInline BOOL DeleteColumn(int idx) const
 	{
 		return (BOOL)SendMsg(LVM_DELETECOLUMN, idx, 0);
 	}
 
-	EckInline BOOL DeleteItem(int idx)
+	EckInline BOOL DeleteItem(int idx) const
 	{
 		return (BOOL)SendMsg(LVM_DELETEITEM, idx, 0);
 	}
 
 	/// <summary>
-	/// ½øÈë±à¼­
+	/// è¿›å…¥ç¼–è¾‘
 	/// </summary>
-	/// <param name="idx">ÏîÄ¿£¬ÈôÎª-1ÔòÈ¡Ïû±à¼­</param>
-	/// <returns>³É¹¦·µ»Ø±à¼­¿ò¾ä±ú£¬Ê§°Ü·µ»ØNULL¡£±à¼­¿ò½«ÔÚ±à¼­½áÊøºóÊ§Ğ§</returns>
-	EckInline HWND EditLabel(int idx)
+	/// <param name="idx">é¡¹ç›®ï¼Œè‹¥ä¸º-1åˆ™å–æ¶ˆç¼–è¾‘</param>
+	/// <returns>æˆåŠŸè¿”å›ç¼–è¾‘æ¡†å¥æŸ„ï¼Œå¤±è´¥è¿”å›NULLã€‚ç¼–è¾‘æ¡†å°†åœ¨ç¼–è¾‘ç»“æŸåå¤±æ•ˆ</returns>
+	EckInline HWND EditLabel(int idx) const
 	{
 		return (HWND)SendMsg(LVM_EDITLABELW, idx, 0);
 	}
 
 	/// <summary>
-	/// ÆôÓÃ/½ûÓÃ·Ö×éÊÓÍ¼
+	/// å¯ç”¨/ç¦ç”¨åˆ†ç»„è§†å›¾
 	/// </summary>
-	/// <param name="bEnable">ÊÇ·ñÆôÓÃ</param>
-	/// <returns>0 - ³É¹¦  1 - ¿Ø¼ş×´Ì¬ÒÑ¸ü¸Ä  -1 - Ê§°Ü</returns>
-	EckInline int EnableGroupView(BOOL bEnable)
+	/// <param name="bEnable">æ˜¯å¦å¯ç”¨</param>
+	/// <returns>0 - æˆåŠŸ  1 - æ§ä»¶çŠ¶æ€å·²æ›´æ”¹  -1 - å¤±è´¥</returns>
+	EckInline int EnableGroupView(BOOL bEnable) const
 	{
 		return (int)SendMsg(LVM_ENABLEGROUPVIEW, bEnable, 0);
 	}
 
 	/// <summary>
-	/// ±£Ö¤ÏÔÊ¾
+	/// ä¿è¯æ˜¾ç¤º
 	/// </summary>
-	/// <param name="idx">ÏîÄ¿</param>
-	/// <param name="bFullVisible">ÊÇ·ñ±£Ö¤ÍêÈ«¿É¼û</param>
-	/// <returns>³É¹¦·µ»ØTRUE£¬Ê§°Ü·µ»ØFALSE</returns>
-	EckInline BOOL EnsureVisible(int idx, BOOL bFullVisible = TRUE)
+	/// <param name="idx">é¡¹ç›®</param>
+	/// <param name="bFullVisible">æ˜¯å¦ä¿è¯å®Œå…¨å¯è§</param>
+	/// <returns>æˆåŠŸè¿”å›TRUEï¼Œå¤±è´¥è¿”å›FALSE</returns>
+	EckInline BOOL EnsureVisible(int idx, BOOL bFullVisible = TRUE) const
 	{
 		return (BOOL)SendMsg(LVM_ENSUREVISIBLE, idx, bFullVisible);
 	}
 
 	/// <summary>
-	/// Ñ°ÕÒÏîÄ¿
+	/// å¯»æ‰¾é¡¹ç›®
 	/// </summary>
-	/// <param name="idxStart">ÆğÊ¼ÏîÄ¿£¬ÈôÎª-1Ôò´ÓÍ·¿ªÊ¼Ñ°ÕÒ</param>
-	/// <param name="plvfi">LVFINDINFOWÖ¸Õë</param>
-	/// <returns>³É¹¦·µ»ØÏîÄ¿Ë÷Òı£¬Ê§°Ü·µ»Ø-1</returns>
-	EckInline int FindItem(int idxStart, LVFINDINFOW* plvfi)
+	/// <param name="idxStart">èµ·å§‹é¡¹ç›®ï¼Œè‹¥ä¸º-1åˆ™ä»å¤´å¼€å§‹å¯»æ‰¾</param>
+	/// <param name="plvfi">LVFINDINFOWæŒ‡é’ˆ</param>
+	/// <returns>æˆåŠŸè¿”å›é¡¹ç›®ç´¢å¼•ï¼Œå¤±è´¥è¿”å›-1</returns>
+	EckInline int FindItem(int idxStart, LVFINDINFOW* plvfi) const
 	{
 		return (int)SendMsg(LVM_FINDITEMW, idxStart, (LPARAM)plvfi);
 	}
 
-	EckInline COLORREF GetBKColor()
+	EckInline COLORREF GetBKColor() const
 	{
 		return (COLORREF)SendMsg(LVM_GETBKCOLOR, 0, 0);
 	}
 
-	EckInline BOOL GetBKImage(LVBKIMAGEW* plvbki)
+	EckInline BOOL GetBKImage(LVBKIMAGEW* plvbki) const
 	{
 		return (BOOL)SendMsg(LVM_GETBKIMAGEW, 0, (LPARAM)plvbki);
 	}
 
-	EckInline BOOL GetCallbackMask()
+	EckInline BOOL GetCallbackMask() const
 	{
 		return (BOOL)SendMsg(LVM_GETCALLBACKMASK, 0, 0);
 	}
 
-	EckInline BOOL GetColumn(int idx, LVCOLUMNW* plvc)
+	EckInline BOOL GetColumn(int idx, LVCOLUMNW* plvc) const
 	{
 		return (BOOL)SendMsg(LVM_GETCALLBACKMASK, idx, (LPARAM)plvc);
 	}
 
-	EckInline std::vector<int> GetColumnOrderArray()
+	EckInline std::vector<int> GetColumnOrderArray() const
 	{
 		std::vector<int> aOrder{};
 		int cColumn = (int)SendMessageW(GetHeaderCtrl(), HDM_GETITEMCOUNT, 0, 0);
@@ -172,141 +172,138 @@ public:
 		return aOrder;
 	}
 
-	EckInline BOOL GetColumnOrderArray(int cColumn, int* piOrder)
+	EckInline BOOL GetColumnOrderArray(int cColumn, int* piOrder) const
 	{
 		return (BOOL)SendMsg(LVM_GETCOLUMNORDERARRAY, cColumn, (LPARAM)piOrder);
 	}
 
-	EckInline int GetColumnWidth(int idx)
+	EckInline int GetColumnWidth(int idx) const
 	{
 		return (int)SendMsg(LVM_GETCOLUMNWIDTH, idx, 0);
 	}
 
-	EckInline int GetCountPerPage()
+	EckInline int GetCountPerPage() const
 	{
 		return (int)SendMsg(LVM_GETCOUNTPERPAGE, 0, 0);
 	}
 
-	EckInline HWND GetEditCtrl()
+	EckInline HWND GetEditCtrl() const
 	{
 		return (HWND)SendMsg(LVM_GETEDITCONTROL, 0, 0);
 	}
 
-	EckInline BOOL GetEmptyText(PWSTR pszBuf, int cchBuf)
+	EckInline BOOL GetEmptyText(PWSTR pszBuf, int cchBuf) const
 	{
 		return (BOOL)SendMsg(LVM_GETEMPTYTEXT, cchBuf, (LPARAM)pszBuf);
 	}
 
-	EckInline DWORD GetExtendLVStyle()
+	EckInline DWORD GetExtendLVStyle() const
 	{
 		return (DWORD)SendMsg(LVM_GETEXTENDEDLISTVIEWSTYLE, 0, 0);
 	}
 
-	EckInline int GetFocusedGroup()
+	EckInline int GetFocusedGroup() const
 	{
 		return (int)SendMsg(LVM_GETFOCUSEDGROUP, 0, 0);
 	}
 
-	EckInline int GetFooterItemCount()
+	EckInline int GetFooterItemCount() const
 	{
 		LVFOOTERINFO lvfi{ LVFF_ITEMCOUNT };
 		SendMsg(LVM_GETFOOTERINFO, 0, (LPARAM)&lvfi);
 		return lvfi.cItems;
 	}
 
-	EckInline BOOL GetFooterItem(int idx, LVFOOTERITEM* plvfi)
+	EckInline BOOL GetFooterItem(int idx, LVFOOTERITEM* plvfi) const
 	{
 		return (BOOL)SendMsg(LVM_GETFOOTERITEM, idx, (LPARAM)plvfi);
 	}
 
-	EckInline BOOL GetFooterItemRect(int idx, RECT* prc)
+	EckInline BOOL GetFooterItemRect(int idx, RECT* prc) const
 	{
 		return (BOOL)SendMsg(LVM_GETFOOTERITEMRECT, idx, (LPARAM)prc);
 	}
 
-	EckInline BOOL GetFooterRect(RECT* prc)
+	EckInline BOOL GetFooterRect(RECT* prc) const
 	{
 		return (BOOL)SendMsg(LVM_GETFOOTERRECT, 0, (LPARAM)prc);
 	}
 
-	EckInline int GetGroupCount()
+	EckInline int GetGroupCount() const
 	{
 		return (int)SendMsg(LVM_GETGROUPCOUNT, 0, 0);
 	}
 
-	EckInline int GetGroup(int iGroupID, LVGROUP* plvg)
+	EckInline int GetGroup(int iGroupID, LVGROUP* plvg) const
 	{
-		plvg->cbSize = sizeof(LVGROUP);
 		return (int)SendMsg(LVM_GETGROUPINFO, iGroupID, (LPARAM)plvg);
 	}
 
-	EckInline int GetGroupByIndex(int idx, LVGROUP* plvg)
+	EckInline int GetGroupByIndex(int idx, LVGROUP* plvg) const
 	{
-		plvg->cbSize = sizeof(LVGROUP);
 		return (int)SendMsg(LVM_GETGROUPINFOBYINDEX, idx, (LPARAM)plvg);
 	}
 
-	EckInline void GetGroupMetrics(LVGROUPMETRICS* plvgm)
+	EckInline void GetGroupMetrics(LVGROUPMETRICS* plvgm) const
 	{
-		plvgm->cbSize = sizeof(LVGROUPMETRICS);
 		SendMsg(LVM_GETGROUPMETRICS, NULL, (LPARAM)plvgm);
 	}
 
 	/// <summary>
-	/// È¡×é¾ØĞÎ
+	/// å–ç»„çŸ©å½¢
 	/// </summary>
-	/// <param name="iGroupID">×éID</param>
-	/// <param name="prc">½ÓÊÕ¾ØĞÎ</param>
-	/// <param name="uType">ÀàĞÍ£¬LVGGR_³£Á¿£¬Ä¬ÈÏLVGGR_GROUP</param>
+	/// <param name="iGroupID">ç»„ID</param>
+	/// <param name="prc">æ¥æ”¶çŸ©å½¢</param>
+	/// <param name="uType">ç±»å‹ï¼ŒLVGGR_å¸¸é‡ï¼Œé»˜è®¤LVGGR_GROUP</param>
 	/// <returns></returns>
-	EckInline BOOL GetGroupRect(int iGroupID, RECT* prc, UINT uType = LVGGR_GROUP)
+	EckInline BOOL GetGroupRect(int iGroupID, RECT* prc, UINT uType = LVGGR_GROUP) const
 	{
 		prc->top = uType;
 		return (BOOL)SendMsg(LVM_GETGROUPRECT, iGroupID, (LPARAM)prc);
 	}
 
 	/// <summary>
-	/// È¡×é×´Ì¬
+	/// å–ç»„çŠ¶æ€
 	/// </summary>
-	/// <param name="iGroupID">×éID</param>
-	/// <param name="uState">×´Ì¬ÑÚÂë£¬LVGS_³£Á¿</param>
-	/// <returns>×´Ì¬£¬Ö»ÓĞÑÚÂëÖ¸¶¨µÄÎ»ÓĞĞ§</returns>
-	EckInline UINT GetGroupState(int iGroupID, UINT uState)
+	/// <param name="iGroupID">ç»„ID</param>
+	/// <param name="uState">çŠ¶æ€æ©ç ï¼ŒLVGS_å¸¸é‡</param>
+	/// <returns>çŠ¶æ€ï¼Œåªæœ‰æ©ç æŒ‡å®šçš„ä½æœ‰æ•ˆ</returns>
+	EckInline UINT GetGroupState(int iGroupID, UINT uState) const
 	{
 		return (UINT)SendMsg(LVM_GETGROUPSTATE, iGroupID, uState);
 	}
 
-	EckInline CHeader GetHeaderCtrl()
+	EckInline CHeader GetHeaderCtrl() const
 	{
 		return CHeader((HWND)SendMsg(LVM_GETHEADER, 0, 0));
 	}
 
-	EckInline HCURSOR GetHotCursor()
+	EckInline HCURSOR GetHotCursor() const
 	{
 		return (HCURSOR)SendMsg(LVM_GETHOTCURSOR, 0, 0);
 	}
 
-	EckInline int GetHotItem()
+	EckInline int GetHotItem() const
 	{
 		return (int)SendMsg(LVM_GETHOTITEM, 0, 0);
 	}
 
-	EckInline DWORD GetHoverTime()
+	EckInline DWORD GetHoverTime() const
 	{
 		return (DWORD)SendMsg(LVM_GETHOVERTIME, 0, 0);
 	}
 
 	/// <summary>
-	/// È¡Í¼ÏñÁĞ±í
+	/// å–å›¾åƒåˆ—è¡¨
 	/// </summary>
-	/// <param name="uType">ÀàĞÍ£¬LVSIL_³£Á¿£¬Ä¬ÈÏLVSIL_NORMAL</param>
-	/// <returns>Í¼ÏñÁĞ±í¾ä±ú</returns>
-	EckInline HIMAGELIST GetImageList(UINT uType = LVSIL_NORMAL)
+	/// <param name="uType">ç±»å‹ï¼ŒLVSIL_å¸¸é‡ï¼Œé»˜è®¤LVSIL_NORMAL</param>
+	/// <returns>å›¾åƒåˆ—è¡¨å¥æŸ„</returns>
+	EckInline HIMAGELIST GetImageList(UINT uType = LVSIL_NORMAL) const
 	{
 		return (HIMAGELIST)SendMsg(LVM_GETHOVERTIME, uType, 0);
 	}
 
-	EckInline int GetInsertMark(BOOL* pbAfterItem)
+	EckInline int GetInsertMark(BOOL* pbAfterItem) const
 	{
 		LVINSERTMARK lvim{ sizeof(LVINSERTMARK) };
 		if (!SendMsg(LVM_GETINSERTMARK, 0, (LPARAM)&lvim))
@@ -316,34 +313,32 @@ public:
 		return lvim.iItem;
 	}
 
-	EckInline COLORREF GetInsertMarkColor()
+	EckInline COLORREF GetInsertMarkColor() const
 	{
 		return (COLORREF)SendMsg(LVM_GETINSERTMARKCOLOR, 0, 0);
 	}
 
-	EckInline BOOL GetInsertMarkRect(RECT* prc)
+	EckInline BOOL GetInsertMarkRect(RECT* prc) const
 	{
 		return (BOOL)SendMsg(LVM_GETINSERTMARKRECT, 0, (LPARAM)prc);
 	}
 
-	EckInline int GetISearchString(PWSTR pszBuf)
+	EckInline int GetISearchString(PWSTR pszBuf) const
 	{
 		return (int)SendMsg(LVM_GETISEARCHSTRINGW, 0, (LPARAM)pszBuf);
 	}
 
-	EckInline BOOL GetItem(int idx, int idxSubItem, LVITEMW* pli)
+	EckInline BOOL GetItem(LVITEMW* pli) const
 	{
-		pli->iItem = idx;
-		pli->iSubItem = idxSubItem;
 		return (BOOL)SendMsg(LVM_GETITEMW, 0, (LPARAM)pli);
 	}
 
-	EckInline int GetItemCount()
+	EckInline int GetItemCount() const
 	{
 		return (int)SendMsg(LVM_GETITEMCOUNT, 0, 0);
 	}
 
-	EckInline BOOL GetItemRect(int idx, int idxGroup, RECT* prc, UINT uType = LVIR_BOUNDS)
+	EckInline BOOL GetItemRect(int idx, int idxGroup, RECT* prc, UINT uType = LVIR_BOUNDS) const
 	{
 		LVITEMINDEX lvii;
 		lvii.iItem = idx;
@@ -352,18 +347,18 @@ public:
 		return (BOOL)SendMsg(LVM_GETITEMINDEXRECT, (WPARAM)&lvii, (LPARAM)prc);
 	}
 
-	EckInline BOOL GetItemRect(int idx, RECT* prc, UINT uType = LVIR_BOUNDS)
+	EckInline BOOL GetItemRect(int idx, RECT* prc, UINT uType = LVIR_BOUNDS) const
 	{
 		prc->left = uType;
 		return (BOOL)SendMsg(LVM_GETITEMRECT, idx, (LPARAM)prc);
 	}
 
-	EckInline BOOL GetItemPosition(int idx, POINT* ppt)
+	EckInline BOOL GetItemPosition(int idx, POINT* ppt) const
 	{
 		return (BOOL)SendMsg(LVM_GETITEMPOSITION, idx, (LPARAM)ppt);
 	}
 
-	EckInline void GetItemSpacing(BOOL bSmallIconView, int* pxSpacing = NULL, int* pySpacing = NULL)
+	EckInline void GetItemSpacing(BOOL bSmallIconView, int* pxSpacing = NULL, int* pySpacing = NULL) const
 	{
 		DWORD dwRet = (DWORD)SendMsg(LVM_GETITEMSPACING, bSmallIconView, 0);
 		if (pxSpacing)
@@ -373,25 +368,25 @@ public:
 	}
 
 	/// <summary>
-	/// È¡ÏîÄ¿×´Ì¬
+	/// å–é¡¹ç›®çŠ¶æ€
 	/// </summary>
-	/// <param name="idx">ÏîÄ¿</param>
-	/// <param name="uState">×´Ì¬ÑÚÂë</param>
-	/// <returns>×´Ì¬</returns>
-	EckInline UINT GetItemState(int idx, UINT uState)
+	/// <param name="idx">é¡¹ç›®</param>
+	/// <param name="uState">çŠ¶æ€æ©ç </param>
+	/// <returns>çŠ¶æ€</returns>
+	EckInline UINT GetItemState(int idx, UINT uState) const
 	{
 		return (UINT)SendMsg(LVM_GETITEMSTATE, idx, uState);
 	}
 
 	/// <summary>
-	/// È¡ÏîÄ¿ÎÄ±¾
+	/// å–é¡¹ç›®æ–‡æœ¬
 	/// </summary>
-	/// <param name="idx">ÏîÄ¿</param>
-	/// <param name="idxSubItem">ÁĞ</param>
-	/// <param name="pszBuf">»º³åÇø£¬²»¿ÉÎªNULL</param>
-	/// <param name="cchBuf">»º³åÇø×Ö·ûÊı</param>
-	/// <returns>¸´ÖÆµ½»º³åÇøµÄ×Ö·ûÊı</returns>
-	EckInline int GetItemText(int idx, int idxSubItem, PWSTR pszBuf, int cchBuf)
+	/// <param name="idx">é¡¹ç›®</param>
+	/// <param name="idxSubItem">åˆ—</param>
+	/// <param name="pszBuf">ç¼“å†²åŒºï¼Œä¸å¯ä¸ºNULL</param>
+	/// <param name="cchBuf">ç¼“å†²åŒºå­—ç¬¦æ•°</param>
+	/// <returns>å¤åˆ¶åˆ°ç¼“å†²åŒºçš„å­—ç¬¦æ•°</returns>
+	EckInline int GetItemText(int idx, int idxSubItem, PWSTR pszBuf, int cchBuf) const
 	{
 		LVITEMW li;
 		li.iSubItem = idxSubItem;
@@ -401,19 +396,19 @@ public:
 	}
 
 	/// <summary>
-	/// È¡ÏîÄ¿¾ä±ú¡£
-	/// ×î¶à»ñÈ¡Ç°259¸ö×Ö·û
+	/// å–é¡¹ç›®å¥æŸ„ã€‚
+	/// æœ€å¤šè·å–å‰259ä¸ªå­—ç¬¦
 	/// </summary>
-	/// <param name="idx">ÏîÄ¿</param>
-	/// <param name="idxSubItem">ÁĞ</param>
-	/// <returns>ÎÄ±¾</returns>
-	EckInline CRefStrW GetItemText(int idx, int idxSubItem)
+	/// <param name="idx">é¡¹ç›®</param>
+	/// <param name="idxSubItem">åˆ—</param>
+	/// <returns>æ–‡æœ¬</returns>
+	EckInline CRefStrW GetItemText(int idx, int idxSubItem) const
 	{
 		CRefStrW rs;
 		rs.ReSize(MAX_PATH - 1);
 		LVITEMW li;
 		li.iSubItem = idxSubItem;
-		li.pszText = rs;
+		li.pszText = rs.Data();
 		li.cchTextMax = MAX_PATH;
 		int cch = (int)SendMsg(LVM_GETITEMTEXTW, idx, (LPARAM)&li);
 		rs.ReSize(cch);
@@ -421,24 +416,24 @@ public:
 	}
 
 	/// <summary>
-	/// È¡ÏÂÒ»ÏîÄ¿
+	/// å–ä¸‹ä¸€é¡¹ç›®
 	/// </summary>
-	/// <param name="idx">²ÎÕÕÏîÄ¿£¬ÈôÎª-1Ôò²éÕÒ·ûºÏÌõ¼şµÄµÚÒ»¸öÏîÄ¿</param>
-	/// <param name="uFlags">LVNI_³£Á¿</param>
-	/// <returns>³É¹¦·µ»Ø²éÕÒµ½µÄÏîÄ¿Ë÷Òı£¬Ê§°Ü·µ»Ø-1</returns>
-	EckInline int GetNextItem(int idx, UINT uFlags)
+	/// <param name="idx">å‚ç…§é¡¹ç›®ï¼Œè‹¥ä¸º-1åˆ™æŸ¥æ‰¾ç¬¦åˆæ¡ä»¶çš„ç¬¬ä¸€ä¸ªé¡¹ç›®</param>
+	/// <param name="uFlags">LVNI_å¸¸é‡</param>
+	/// <returns>æˆåŠŸè¿”å›æŸ¥æ‰¾åˆ°çš„é¡¹ç›®ç´¢å¼•ï¼Œå¤±è´¥è¿”å›-1</returns>
+	EckInline int GetNextItem(int idx, UINT uFlags) const
 	{
 		return (int)SendMsg(LVM_GETNEXTITEM, idx, uFlags);
 	}
 
 	/// <summary>
-	/// È¡ÏÂÒ»ÏîÄ¿
+	/// å–ä¸‹ä¸€é¡¹ç›®
 	/// </summary>
-	/// <param name="idx">²ÎÕÕÏîÄ¿£¬ÈôÎª-1Ôò²éÕÒ·ûºÏÌõ¼şµÄµÚÒ»¸öÏîÄ¿</param>
-	/// <param name="idxGroup">×éË÷Òı</param>
-	/// <param name="uFlags">LVNI_³£Á¿</param>
-	/// <returns>³É¹¦·µ»Ø²éÕÒµ½µÄÏîÄ¿Ë÷Òı£¬Ê§°Ü·µ»Ø-1</returns>
-	EckInline int GetNextItem(int idx, int idxGroup, UINT uFlags)
+	/// <param name="idx">å‚ç…§é¡¹ç›®ï¼Œè‹¥ä¸º-1åˆ™æŸ¥æ‰¾ç¬¦åˆæ¡ä»¶çš„ç¬¬ä¸€ä¸ªé¡¹ç›®</param>
+	/// <param name="idxGroup">ç»„ç´¢å¼•</param>
+	/// <param name="uFlags">LVNI_å¸¸é‡</param>
+	/// <returns>æˆåŠŸè¿”å›æŸ¥æ‰¾åˆ°çš„é¡¹ç›®ç´¢å¼•ï¼Œå¤±è´¥è¿”å›-1</returns>
+	EckInline int GetNextItem(int idx, int idxGroup, UINT uFlags) const
 	{
 		if (idx < 0)
 			return (int)SendMsg(LVM_GETNEXTITEMINDEX, -1, uFlags);
@@ -451,102 +446,102 @@ public:
 		}
 	}
 
-	EckInline int GetNumberOfWorkAreas()
+	EckInline int GetNumberOfWorkAreas() const
 	{
 		UINT u = 0;
 		SendMsg(LVM_GETNUMBEROFWORKAREAS, 0, (LPARAM)&u);
 		return u;
 	}
 
-	EckInline BOOL GetOrigin(POINT* ppt)
+	EckInline BOOL GetOrigin(POINT* ppt) const
 	{
 		return (BOOL)SendMsg(LVM_GETORIGIN, 0, (LPARAM)ppt);
 	}
 
-	EckInline COLORREF GetOutLineColor()
+	EckInline COLORREF GetOutLineColor() const
 	{
 		return (COLORREF)SendMsg(LVM_GETOUTLINECOLOR, 0, 0);
 	}
 
-	EckInline int GetSelectedColumn()
+	EckInline int GetSelectedColumn() const
 	{
 		return (int)SendMsg(LVM_GETSELECTEDCOLUMN, 0, 0);
 	}
 
-	EckInline int GetSelectedCount()
+	EckInline int GetSelectedCount() const
 	{
 		return (int)SendMsg(LVM_GETSELECTEDCOUNT, 0, 0);
 	}
 
-	EckInline int GetSelectionMark()
+	EckInline int GetSelectionMark() const
 	{
 		return (int)SendMsg(LVM_GETSELECTIONMARK, 0, 0);
 	}
 
-	EckInline int GetStringWidth(PCWSTR pszText)
+	EckInline int GetStringWidth(PCWSTR pszText) const
 	{
 		return (int)SendMsg(LVM_GETSTRINGWIDTHW, 0, (LPARAM)pszText);
 	}
 
-	EckInline int GetSubItemRect(int idx, int idxSubItem, RECT* prc, UINT uType = LVIR_BOUNDS)
+	EckInline int GetSubItemRect(int idx, int idxSubItem, RECT* prc, UINT uType = LVIR_BOUNDS) const
 	{
 		prc->top = idxSubItem;
 		prc->left = uType;
 		return (int)SendMsg(LVM_GETSUBITEMRECT, idx, (LPARAM)prc);
 	}
 
-	EckInline COLORREF GetTextBKColor()
+	EckInline COLORREF GetTextBKColor() const
 	{
 		return (COLORREF)SendMsg(LVM_GETTEXTBKCOLOR, 0, 0);
 	}
 
-	EckInline COLORREF GetTextColor()
+	EckInline COLORREF GetTextColor() const
 	{
 		return (COLORREF)SendMsg(LVM_GETTEXTCOLOR, 0, 0);
 	}
 
-	EckInline void GetTileInfo(LVTILEINFO* plvti)
+	EckInline void GetTileInfo(LVTILEINFO* plvti) const
 	{
 		plvti->cbSize = sizeof(LVTILEINFO);
 		SendMsg(LVM_GETTILEINFO, 0, (LPARAM)plvti);
 	}
 
-	EckInline void GetTileViewInfo(LVTILEVIEWINFO* plvtvi)
+	EckInline void GetTileViewInfo(LVTILEVIEWINFO* plvtvi) const
 	{
 		plvtvi->cbSize = sizeof(LVTILEVIEWINFO);
 		SendMsg(LVM_GETTILEVIEWINFO, 0, (LPARAM)plvtvi);
 	}
 
-	EckInline HWND GetToolTips()
+	EckInline HWND GetToolTips() const
 	{
 		return (HWND)SendMsg(LVM_GETTOOLTIPS, 0, 0);
 	}
 
-	EckInline int GetTopIndex()
+	EckInline int GetTopIndex() const
 	{
 		return (int)SendMsg(LVM_GETTOOLTIPS, 0, 0);
 	}
 
-	EckInline BOOL GetUnicodeFormat()
+	EckInline BOOL GetUnicodeFormat() const
 	{
 		return (BOOL)SendMsg(LVM_GETUNICODEFORMAT, 0, 0);
 	}
 
 	/// <summary>
-	/// È¡µ±Ç°ÊÓÍ¼
+	/// å–å½“å‰è§†å›¾
 	/// </summary>
-	/// <returns>LV_VIEW_³£Á¿</returns>
-	EckInline UINT GetView()
+	/// <returns>LV_VIEW_å¸¸é‡</returns>
+	EckInline UINT GetView() const
 	{
 		return (UINT)SendMsg(LVM_GETVIEW, 0, 0);
 	}
 
-	EckInline BOOL GetViewRect(RECT* prc)
+	EckInline BOOL GetViewRect(RECT* prc) const
 	{
 		return (BOOL)SendMsg(LVM_GETVIEWRECT, 0, (LPARAM)prc);
 	}
 
-	EckInline std::vector<RECT> GetWorkAreas()
+	EckInline std::vector<RECT> GetWorkAreas() const
 	{
 		std::vector<RECT> aRect{};
 		int c = GetNumberOfWorkAreas();
@@ -557,27 +552,27 @@ public:
 		return aRect;
 	}
 
-	EckInline void GetWorkAreas(int c, RECT* prc)
+	EckInline void GetWorkAreas(int c, RECT* prc) const
 	{
 		SendMsg(LVM_GETWORKAREAS, c, (LPARAM)prc);
 	}
 
-	EckInline BOOL HasGroup(int iGroupID)
+	EckInline BOOL HasGroup(int iGroupID) const
 	{
 		return (BOOL)SendMsg(LVM_HASGROUP, iGroupID, 0);
 	}
 
-	EckInline int HitTest(LVHITTESTINFO* plvhti, BOOL bTestGroup = FALSE)
+	EckInline int HitTest(LVHITTESTINFO* plvhti, BOOL bTestGroup = FALSE) const
 	{
 		return (int)SendMsg(LVM_HITTEST, bTestGroup ? -1 : 0, (LPARAM)plvhti);
 	}
 
-	EckInline int InsertColumn(int idx, LVCOLUMNW* plvc)
+	EckInline int InsertColumn(int idx, LVCOLUMNW* plvc) const
 	{
 		return (int)SendMsg(LVM_INSERTCOLUMNW, idx, (LPARAM)plvc);
 	}
 
-	EckInline int InsertColumn(PCWSTR pszText, int idx = -1, int cxColumn = 160, int iFmt = LVCFMT_LEFT)
+	EckInline int InsertColumn(PCWSTR pszText, int idx = -1, int cxColumn = 160, int iFmt = LVCFMT_LEFT) const
 	{
 		if (idx < 0)
 			idx = GetHeaderCtrl().GetItemCount();
@@ -589,13 +584,13 @@ public:
 		return InsertColumn(idx, &lvc);
 	}
 
-	EckInline int InsertGroup(int idx, LVGROUP* plvg)
+	EckInline int InsertGroup(int idx, LVGROUP* plvg) const
 	{
 		plvg->cbSize = sizeof(LVGROUP);
 		return (int)SendMsg(LVM_INSERTGROUP, idx, (LPARAM)plvg);
 	}
 
-	EckInline int InsertGroupSorted(PFNLVGROUPCOMPARE pfnCmp, void* pData, LVINSERTGROUPSORTED* plvigs)
+	EckInline int InsertGroupSorted(PFNLVGROUPCOMPARE pfnCmp, void* pData, LVINSERTGROUPSORTED* plvigs) const
 	{
 		plvigs->pfnGroupCompare = pfnCmp;
 		plvigs->pvData = pData;
@@ -603,13 +598,18 @@ public:
 		return (int)SendMsg(LVM_INSERTGROUPSORTED, 0, (LPARAM)plvigs);
 	}
 
-	EckInline int InsertItem(int idx, LVITEMW* plvi)
+	EckInline int InsertItem(int idx, LVITEMW* plvi) const
 	{
 		plvi->iItem = idx;
 		return (int)SendMsg(LVM_INSERTITEM, 0, (LPARAM)plvi);
 	}
 
-	EckInline int InsertItem(PCWSTR pszText, int idx = -1, LPARAM lParam = 0, int idxImage = -1)
+	EckInline int InsertItem(LVITEMW* plvi) const
+	{
+		return (int)SendMsg(LVM_INSERTITEM, 0, (LPARAM)plvi);
+	}
+
+	EckInline int InsertItem(PCWSTR pszText, int idx = -1, LPARAM lParam = 0, int idxImage = -1) const
 	{
 		++idx;
 		if (idx < 0)
@@ -628,7 +628,7 @@ public:
 		return InsertItem(idx, &lvi);
 	}
 
-	EckInline int InsertMarkHitTest(POINT pt, BOOL bAfterItem = FALSE)
+	EckInline int InsertMarkHitTest(POINT pt, BOOL bAfterItem = FALSE) const
 	{
 		LVINSERTMARK lvim{ sizeof(LVINSERTMARK) };
 		lvim.iItem = -1;
@@ -638,195 +638,198 @@ public:
 		return lvim.iItem;
 	}
 
-	EckInline BOOL IsGroupViewEnabled()
+	EckInline BOOL IsGroupViewEnabled() const
 	{
 		return (BOOL)SendMsg(LVM_ISGROUPVIEWENABLED, 0, 0);
 	}
 
-	EckInline BOOL IsItemVisible(int idx)
+	EckInline BOOL IsItemVisible(int idx) const
 	{
 		return (BOOL)SendMsg(LVM_ISITEMVISIBLE, idx, 0);
 	}
 
-	EckInline UINT MapIDToIndex(int idx)
+	EckInline UINT MapIDToIndex(int idx) const
 	{
 		return (UINT)SendMsg(LVM_MAPIDTOINDEX, idx, 0);
 	}
 
-	EckInline int MapIndexToID(UINT uID)
+	EckInline int MapIndexToID(UINT uID) const
 	{
 		return (int)SendMsg(LVM_MAPINDEXTOID, uID, 0);
 	}
 
-	EckInline BOOL RedrawItems(int idxStart, int idxEnd)
+	EckInline BOOL RedrawItems(int idxStart, int idxEnd) const
 	{
 		return (BOOL)SendMsg(LVM_REDRAWITEMS, idxStart, idxEnd);
 	}
 
-	EckInline void RemoveGroup()
+	EckInline BOOL RedrawItem(int idx) const
+	{
+		return RedrawItems(idx, idx);
+	}
+
+	EckInline void RemoveGroup() const
 	{
 		SendMsg(LVM_REMOVEALLGROUPS, NULL, NULL);
 	}
 
 	/// <summary>
-	/// É¾³ı×é
+	/// åˆ é™¤ç»„
 	/// </summary>
-	/// <param name="iGroupID">×éID</param>
-	/// <returns>³É¹¦·µ»Ø×éË÷Òı£¬Ê§°Ü·µ»Ø-1</returns>
-	EckInline int RemoveGroup(int iGroupID)
+	/// <param name="iGroupID">ç»„ID</param>
+	/// <returns>æˆåŠŸè¿”å›ç»„ç´¢å¼•ï¼Œå¤±è´¥è¿”å›-1</returns>
+	EckInline int RemoveGroup(int iGroupID) const
 	{
 		return (int)SendMsg(LVM_REMOVEGROUP, iGroupID, NULL);
 	}
 
-	EckInline BOOL Scroll(int deltaH = 0, int deltaV = 0)
+	EckInline BOOL Scroll(int deltaH = 0, int deltaV = 0) const
 	{
 		return (BOOL)SendMsg(LVM_SCROLL, deltaH, deltaV);
 	}
 
 	/// <summary>
-	/// ÖÃ±³¾°ÑÕÉ«
+	/// ç½®èƒŒæ™¯é¢œè‰²
 	/// </summary>
-	/// <param name="cr">ÑÕÉ«£¬»òCLR_NONEÖ¸¶¨ÎŞ±³¾°É«</param>
-	/// <returns>³É¹¦·µ»ØTRUE£¬Ê§°Ü·µ»ØFALSE</returns>
-	EckInline BOOL SetBKColor(COLORREF cr)
+	/// <param name="cr">é¢œè‰²ï¼Œæˆ–CLR_NONEæŒ‡å®šæ— èƒŒæ™¯è‰²</param>
+	/// <returns>æˆåŠŸè¿”å›TRUEï¼Œå¤±è´¥è¿”å›FALSE</returns>
+	EckInline BOOL SetBKColor(COLORREF cr) const
 	{
 		return (BOOL)SendMsg(LVM_SETBKCOLOR, 0, cr);
 	}
 
-	EckInline BOOL SetBKImage(LVBKIMAGEW* plvbki)
+	EckInline BOOL SetBKImage(LVBKIMAGEW* plvbki) const
 	{
 		return (BOOL)SendMsg(LVM_SETBKIMAGEW, 0, (LPARAM)plvbki);
 	}
 
 	/// <summary>
-	/// ÖÃ»Øµ÷ÑÚÂë
+	/// ç½®å›è°ƒæ©ç 
 	/// </summary>
-	/// <param name="dwMask">ÑÚÂë£¬LVIS_³£Á¿</param>
-	/// <returns>³É¹¦·µ»ØTRUE£¬Ê§°Ü·µ»ØFALSE</returns>
-	EckInline BOOL SetCallbackMask(DWORD dwMask)
+	/// <param name="dwMask">æ©ç ï¼ŒLVIS_å¸¸é‡</param>
+	/// <returns>æˆåŠŸè¿”å›TRUEï¼Œå¤±è´¥è¿”å›FALSE</returns>
+	EckInline BOOL SetCallbackMask(DWORD dwMask) const
 	{
 		return (BOOL)SendMsg(LVM_SETCALLBACKMASK, dwMask, 0);
 	}
 
-	EckInline BOOL SetColumn(int idx, LVCOLUMNW* plvc)
+	EckInline BOOL SetColumn(int idx, LVCOLUMNW* plvc) const
 	{
 		return (BOOL)SendMsg(LVM_SETCOLUMNW, idx, (LPARAM)plvc);
 	}
 
-	EckInline BOOL SetColumnOrderArray(int* piOrder, int c)
+	EckInline BOOL SetColumnOrderArray(int* piOrder, int c) const
 	{
 		return (BOOL)SendMsg(LVM_SETCOLUMNORDERARRAY, c, (LPARAM)piOrder);
 	}
 
 	/// <summary>
-	/// ÖÃÁĞ¿í
+	/// ç½®åˆ—å®½
 	/// </summary>
-	/// <param name="idx">Ë÷Òı£¬¶ÔÓÚÁĞ±íÄ£Ê½´Ë²ÎÊı±ØĞëÉèÖÃÎª0</param>
-	/// <param name="cx">¿í¶È£¬»òLVSCW_AUTOSIZEÖ¸¶¨×Ô¶¯µ÷Õû´óĞ¡£¬»òLVSCW_AUTOSIZE_USEHEADERÖ¸¶¨ÊÊÓ¦±êÌâÎÄ±¾</param>
-	/// <returns>³É¹¦·µ»ØTRUE£¬Ê§°Ü·µ»ØFALSE</returns>
-	EckInline BOOL SetColumnWidth(int idx, int cx)
+	/// <param name="idx">ç´¢å¼•ï¼Œå¯¹äºåˆ—è¡¨æ¨¡å¼æ­¤å‚æ•°å¿…é¡»è®¾ç½®ä¸º0</param>
+	/// <param name="cx">å®½åº¦ï¼Œæˆ–LVSCW_AUTOSIZEæŒ‡å®šè‡ªåŠ¨è°ƒæ•´å¤§å°ï¼Œæˆ–LVSCW_AUTOSIZE_USEHEADERæŒ‡å®šé€‚åº”æ ‡é¢˜æ–‡æœ¬</param>
+	/// <returns>æˆåŠŸè¿”å›TRUEï¼Œå¤±è´¥è¿”å›FALSE</returns>
+	EckInline BOOL SetColumnWidth(int idx, int cx) const
 	{
 		return (BOOL)SendMsg(LVM_SETCOLUMNWIDTH, idx, cx);
 	}
 
 	/// <summary>
-	/// ÖÃÁĞ±íÊÓÍ¼À©Õ¹ÑùÊ½
+	/// ç½®åˆ—è¡¨è§†å›¾æ‰©å±•æ ·å¼
 	/// </summary>
-	/// <param name="dwNew">ĞÂÑùÊ½</param>
-	/// <param name="dwMask">ÑÚÂë£¬ÈôÎª0ÔòĞŞ¸ÄËùÓĞÑùÊ½</param>
-	/// <returns>·µ»Ø¾ÉÑùÊ½</returns>
-	EckInline DWORD SetLVExtendStyle(DWORD dwNew, DWORD dwMask = 0)
+	/// <param name="dwNew">æ–°æ ·å¼</param>
+	/// <param name="dwMask">æ©ç ï¼Œè‹¥ä¸º0åˆ™ä¿®æ”¹æ‰€æœ‰æ ·å¼</param>
+	/// <returns>è¿”å›æ—§æ ·å¼</returns>
+	EckInline DWORD SetLVExtendStyle(DWORD dwNew, DWORD dwMask = 0) const
 	{
 		return (DWORD)SendMsg(LVM_SETEXTENDEDLISTVIEWSTYLE, dwMask, dwNew);
 	}
 
 	/// <summary>
-	/// ÖÃ×éĞÅÏ¢
+	/// ç½®ç»„ä¿¡æ¯
 	/// </summary>
-	/// <param name="iGroupID">×éID</param>
-	/// <param name="plvg">LVGROUPÖ¸Õë</param>
-	/// <returns>³É¹¦·µ»Ø×éID£¬Ê§°Ü·µ»Ø-1</returns>
-	EckInline int SetGroup(int iGroupID, LVGROUP* plvg)
+	/// <param name="iGroupID">ç»„ID</param>
+	/// <param name="plvg">LVGROUPæŒ‡é’ˆ</param>
+	/// <returns>æˆåŠŸè¿”å›ç»„IDï¼Œå¤±è´¥è¿”å›-1</returns>
+	EckInline int SetGroup(int iGroupID, LVGROUP* plvg) const
 	{
 		plvg->cbSize = sizeof(LVGROUP);
 		return (int)SendMsg(LVM_SETGROUPINFO, iGroupID, (LPARAM)plvg);
 	}
 
-	EckInline void SetGroupMetrics(LVGROUPMETRICS* plvgm)
+	EckInline void SetGroupMetrics(LVGROUPMETRICS* plvgm) const
 	{
 		plvgm->cbSize = sizeof(LVGROUPMETRICS);
 		SendMsg(LVM_SETGROUPMETRICS, 0, (LPARAM)plvgm);
 	}
 
-	EckInline HCURSOR SetHotCursor(HCURSOR hCursor)
+	EckInline HCURSOR SetHotCursor(HCURSOR hCursor) const
 	{
 		return (HCURSOR)SendMsg(LVM_SETHOTCURSOR, 0, (LPARAM)hCursor);
 	}
 
-	EckInline int SetHotItem(int idx)
+	EckInline int SetHotItem(int idx) const
 	{
 		return (int)SendMsg(LVM_SETHOTITEM, idx, 0);
 	}
 
-	EckInline DWORD SetHoverTime(DWORD dwTime = (DWORD)-1)
+	EckInline DWORD SetHoverTime(DWORD dwTime = (DWORD)-1) const
 	{
 		return (DWORD)SendMsg(LVM_SETHOVERTIME, 0, dwTime);
 	}
 
 	/// <summary>
-	/// ÖÃ´óÍ¼±êÄ£Ê½Í¼±ê¼ä¾à¡£
-	/// ÈôxSpacingºÍySpacing¾ùÉèÎª-1£¬ÔòÊ¹ÓÃÄ¬ÈÏ¼ä¾à
+	/// ç½®å¤§å›¾æ ‡æ¨¡å¼å›¾æ ‡é—´è·ã€‚
+	/// è‹¥xSpacingå’ŒySpacingå‡è®¾ä¸º-1ï¼Œåˆ™ä½¿ç”¨é»˜è®¤é—´è·
 	/// </summary>
-	/// <param name="xSpacing">Ë®Æ½¼ä¸ô</param>
-	/// <param name="ySpacing">´¹Ö±¼ä¸ô</param>
-	/// <returns>·µ»ØÖµµÄµÍ×ÖÎªÏÈÇ°µÄË®Æ½¾àÀë£¬¸ß×ÖÎªÏÈÇ°µÄ´¹Ö±¾àÀë</returns>
-	EckInline DWORD SetIconSpacing(int xSpacing = -1, int ySpacing = -1)
+	/// <param name="xSpacing">æ°´å¹³é—´éš”</param>
+	/// <param name="ySpacing">å‚ç›´é—´éš”</param>
+	/// <returns>è¿”å›å€¼çš„ä½å­—ä¸ºå…ˆå‰çš„æ°´å¹³è·ç¦»ï¼Œé«˜å­—ä¸ºå…ˆå‰çš„å‚ç›´è·ç¦»</returns>
+	EckInline DWORD SetIconSpacing(int xSpacing = -1, int ySpacing = -1) const
 	{
 		return (DWORD)SendMsg(LVM_SETICONSPACING, 0, MAKELPARAM(xSpacing, ySpacing));
 	}
 
-	EckInline HIMAGELIST SetImageList(HIMAGELIST hImageList, UINT uType = LVSIL_NORMAL)
+	EckInline HIMAGELIST SetImageList(HIMAGELIST hImageList, UINT uType = LVSIL_NORMAL) const
 	{
 		return (HIMAGELIST)SendMsg(LVM_SETIMAGELIST, uType, (LPARAM)hImageList);
 	}
 
-	EckInline BOOL SetInfoTip(LVSETINFOTIP* plvsit)
+	EckInline BOOL SetInfoTip(LVSETINFOTIP* plvsit) const
 	{
 		plvsit->cbSize = sizeof(LVSETINFOTIP);
 		return (BOOL)SendMsg(LVM_SETINFOTIP, 0, (LPARAM)plvsit);
 	}
 
-	EckInline BOOL SetInsertMark(int idx, BOOL bAfterItem = FALSE)
+	EckInline BOOL SetInsertMark(int idx, BOOL bAfterItem = FALSE) const
 	{
 		LVINSERTMARK lvim{ sizeof(LVINSERTMARK),DWORD(bAfterItem ? LVIM_AFTER : 0),idx };
 		return (BOOL)SendMsg(LVM_SETINSERTMARK, 0, (LPARAM)&lvim);
 	}
 
-	EckInline COLORREF SetInsertMarkColor(COLORREF cr)
+	EckInline COLORREF SetInsertMarkColor(COLORREF cr) const
 	{
 		return (COLORREF)SendMsg(LVM_SETINSERTMARKCOLOR, 0, cr);
 	}
 
-	EckInline BOOL SetItem(int idx, int idxSubItem, LVITEMW* plvi)
+	EckInline BOOL SetItem(LVITEMW* plvi) const
 	{
-		plvi->iItem = idx;
-		plvi->iSubItem = idxSubItem;
 		return (BOOL)SendMsg(LVM_SETITEMW, 0, (LPARAM)plvi);
 	}
 
 	/// <summary>
-	/// ÖÃÏîÄ¿Êı¡£
-	/// Èô¿Ø¼ş¾ßÓĞËùÓĞÕßÊı¾İÑùÊ½Ôò´Ë·½·¨ÉèÖÃÏîÄ¿Êı£¬·ñÔòÖ¸Ê¾¿Ø¼şÎªÖ¸¶¨µÄÏîÊı·ÖÅäÄÚ´æ
+	/// ç½®é¡¹ç›®æ•°ã€‚
+	/// è‹¥æ§ä»¶å…·æœ‰æ‰€æœ‰è€…æ•°æ®æ ·å¼åˆ™æ­¤æ–¹æ³•è®¾ç½®é¡¹ç›®æ•°ï¼Œå¦åˆ™æŒ‡ç¤ºæ§ä»¶ä¸ºæŒ‡å®šçš„é¡¹æ•°åˆ†é…å†…å­˜
 	/// </summary>
-	/// <param name="iCount">ÏîÄ¿Êı</param>
-	/// <param name="uFlags">±êÖ¾£¬LVSICF_³£Á¿</param>
-	/// <returns>³É¹¦·µ»ØTRUE£¬Ê§°Ü·µ»ØFALSE</returns>
-	EckInline BOOL SetItemCount(int iCount, UINT uFlags = 0)
+	/// <param name="iCount">é¡¹ç›®æ•°</param>
+	/// <param name="uFlags">æ ‡å¿—ï¼ŒLVSICF_å¸¸é‡</param>
+	/// <returns>æˆåŠŸè¿”å›TRUEï¼Œå¤±è´¥è¿”å›FALSE</returns>
+	EckInline BOOL SetItemCount(int iCount, UINT uFlags = 0) const
 	{
 		return (BOOL)SendMsg(LVM_SETITEMCOUNT, iCount, uFlags);
 	}
 
-	EckInline BOOL SetItemState(int idx, int idxGroup, UINT uState, UINT uMask)
+	EckInline BOOL SetItemState(int idx, int idxGroup, UINT uState, UINT uMask) const
 	{
 		LVITEMW li;
 		li.state = uState;
@@ -837,7 +840,7 @@ public:
 		return (BOOL)SendMsg(LVM_SETITEMINDEXSTATE, (WPARAM)&lvii, (LPARAM)&li);
 	}
 
-	EckInline BOOL SetItemState(int idx, UINT uState, UINT uMask)
+	EckInline BOOL SetItemState(int idx, UINT uState, UINT uMask) const
 	{
 		LVITEMW li;
 		li.state = uState;
@@ -845,12 +848,12 @@ public:
 		return (BOOL)SendMsg(LVM_SETITEMSTATE, idx, (LPARAM)&li);
 	}
 
-	EckInline void SetItemPosition(int idx, POINT pt)
+	EckInline void SetItemPosition(int idx, POINT pt) const
 	{
 		SendMsg(LVM_SETITEMPOSITION32, idx, (LPARAM)&pt);
 	}
 
-	EckInline BOOL SetItemText(int idx, int idxSubItem, PCWSTR pszText)
+	EckInline BOOL SetItemText(int idx, int idxSubItem, PCWSTR pszText) const
 	{
 		LVITEMW li;
 		li.iSubItem = idxSubItem;
@@ -858,110 +861,125 @@ public:
 		return (BOOL)SendMsg(LVM_SETITEMTEXTW, idx, (LPARAM)&li);
 	}
 
-	EckInline COLORREF SetOutLineColor(COLORREF cr)
+	EckInline BOOL SetItemText(int idx, LVITEMW* pli) const
+	{
+		return (BOOL)SendMsg(LVM_SETITEMTEXTW, idx, (LPARAM)pli);
+	}
+
+
+	EckInline COLORREF SetOutLineColor(COLORREF cr) const
 	{
 		return (COLORREF)SendMsg(LVM_SETOUTLINECOLOR, 0, cr);
 	}
 
-	EckInline void SetSelectedColumn(int idx)
+	EckInline void SetSelectedColumn(int idx) const
 	{
 		SendMsg(LVM_SETSELECTEDCOLUMN, idx, 0);
 	}
 
-	EckInline int SetSelectionMark(int idx)
+	EckInline int SetSelectionMark(int idx) const
 	{
 		return (int)SendMsg(LVM_SETSELECTIONMARK, 0, idx);
 	}
 
-	EckInline COLORREF SetTextBKColor(COLORREF cr)
+	EckInline COLORREF SetTextBKColor(COLORREF cr) const
 	{
 		return (COLORREF)SendMsg(LVM_SETTEXTBKCOLOR, 0, cr);
 	}
 
-	EckInline COLORREF SetTextColor(COLORREF cr)
+	EckInline COLORREF SetTextColor(COLORREF cr) const
 	{
 		return (COLORREF)SendMsg(LVM_SETTEXTCOLOR, 0, cr);
 	}
 
-	EckInline BOOL SetTileInfo(int idx, UINT cColumn, UINT* piColumn, int* piFmt)
+	EckInline BOOL SetTileInfo(int idx, UINT cColumn, UINT* piColumn, int* piFmt) const
 	{
 		LVTILEINFO lvti{ sizeof(LVTILEINFO),idx,cColumn,piColumn,piFmt };
 		return (BOOL)SendMsg(LVM_SETTILEINFO, 0, (LPARAM)&lvti);
 	}
 
-	EckInline BOOL SetTileInfo(int idx, LVTILEINFO* plvti)
+	EckInline BOOL SetTileInfo(int idx, LVTILEINFO* plvti) const
 	{
 		plvti->iItem = idx;
 		return (BOOL)SendMsg(LVM_SETTILEINFO, 0, (LPARAM)plvti);
 	}
 
-	EckInline BOOL SetTileViewInfo(LVTILEVIEWINFO* plvtvi)
+	EckInline BOOL SetTileViewInfo(LVTILEVIEWINFO* plvtvi) const
 	{
 		return (BOOL)SendMsg(LVM_SETTILEVIEWINFO, 0, (LPARAM)plvtvi);
 	}
 
-	EckInline HWND SetToolTips(HWND hToolTip)
+	EckInline HWND SetToolTips(HWND hToolTip) const
 	{
 		return (HWND)SendMsg(LVM_SETTOOLTIPS, (WPARAM)hToolTip, 0);
 	}
 
-	EckInline BOOL SetUnicodeFormat(BOOL bUnicode)
+	EckInline BOOL SetUnicodeFormat(BOOL bUnicode) const
 	{
 		return (BOOL)SendMsg(LVM_SETUNICODEFORMAT, bUnicode, 0);
 	}
 
-	EckInline BOOL SetView(DWORD dwView)
+	EckInline BOOL SetView(DWORD dwView) const
 	{
 		return (SendMsg(LVM_SETVIEW, dwView, 0) > 0);
 	}
 
-	EckInline void SetWorkArea(RECT* prc, int c)
+	EckInline void SetWorkArea(RECT* prc, int c) const
 	{
 		SendMsg(LVM_SETWORKAREAS, c, (LPARAM)prc);
 	}
 
 	/// <summary>
-	/// ÅÅĞò×é
+	/// æ’åºç»„
 	/// </summary>
-	/// <param name="pfnCmp">ÅÅĞòº¯Êı¡£µÚÒ»¡¢¶ş¸ö²ÎÊıÎªÁ½×éµÄID£¬Èô×é1´óÓÚ×é2Ôò·µ»ØÕıÖµ£¬ÈôĞ¡ÓÚÔò·µ»Ø¸ºÖµ£¬ÈôµÈÓÚÔò·µ»Ø0</param>
-	/// <param name="pData">×Ô¶¨ÒåÊı¾İ</param>
-	/// <returns>³É¹¦·µ»ØTRUE£¬Ê§°Ü·µ»ØFALSE</returns>
-	EckInline BOOL SortGroups(PFNLVGROUPCOMPARE pfnCmp, void* pData)
+	/// <param name="pfnCmp">æ’åºå‡½æ•°ã€‚ç¬¬ä¸€ã€äºŒä¸ªå‚æ•°ä¸ºä¸¤ç»„çš„IDï¼Œè‹¥ç»„1å¤§äºç»„2åˆ™è¿”å›æ­£å€¼ï¼Œè‹¥å°äºåˆ™è¿”å›è´Ÿå€¼ï¼Œè‹¥ç­‰äºåˆ™è¿”å›0</param>
+	/// <param name="pData">è‡ªå®šä¹‰æ•°æ®</param>
+	/// <returns>æˆåŠŸè¿”å›TRUEï¼Œå¤±è´¥è¿”å›FALSE</returns>
+	EckInline BOOL SortGroups(PFNLVGROUPCOMPARE pfnCmp, void* pData) const
 	{
 		return (BOOL)SendMsg(LVM_SORTGROUPS, (WPARAM)pfnCmp, (LPARAM)pData);
 	}
 
 	/// <summary>
-	/// ÅÅĞòÏîÄ¿
+	/// æ’åºé¡¹ç›®
 	/// </summary>
-	/// <param name="pfnCmp">ÅÅĞòº¯Êı¡£µÚÒ»¡¢¶ş¸ö²ÎÊıÎªÁ½ÏîÄ¿µÄlParam£¬ÈôÏîÄ¿1ÔÚÏîÄ¿2Ö®ºóÔò·µ»ØÕıÖµ£¬ÈôÔÚÖ®Ç°Ôò·µ»Ø¸ºÖµ£¬ÈôÏàµÈÔò·µ»Ø0</param>
+	/// <param name="pfnCmp">æ’åºå‡½æ•°ã€‚ç¬¬ä¸€ã€äºŒä¸ªå‚æ•°ä¸ºä¸¤é¡¹ç›®çš„lParamï¼Œè‹¥é¡¹ç›®1åœ¨é¡¹ç›®2ä¹‹ååˆ™è¿”å›æ­£å€¼ï¼Œè‹¥åœ¨ä¹‹å‰åˆ™è¿”å›è´Ÿå€¼ï¼Œè‹¥ç›¸ç­‰åˆ™è¿”å›0</param>
 	/// <param name="pData"></param>
 	/// <returns></returns>
-	EckInline BOOL SortItemslParam(PFNLVITEMCOMPARE pfnCmp, LPARAM lParam)
+	EckInline BOOL SortItemslParam(PFNLVITEMCOMPARE pfnCmp, LPARAM lParam) const
 	{
 		return (BOOL)SendMsg(LVM_SORTITEMS, lParam, (LPARAM)pfnCmp);
 	}
 
 	/// <summary>
-	/// ÅÅĞòÏîÄ¿
+	/// æ’åºé¡¹ç›®
 	/// </summary>
-	/// <param name="pfnCmp">ÅÅĞòº¯Êı¡£µÚÒ»¡¢¶ş¸ö²ÎÊıÎªÁ½ÏîÄ¿µÄË÷Òı£¬ÈôÏîÄ¿1ÔÚÏîÄ¿2Ö®ºóÔò·µ»ØÕıÖµ£¬ÈôÔÚÖ®Ç°Ôò·µ»Ø¸ºÖµ£¬ÈôÏàµÈÔò·µ»Ø0</param>
+	/// <param name="pfnCmp">æ’åºå‡½æ•°ã€‚ç¬¬ä¸€ã€äºŒä¸ªå‚æ•°ä¸ºä¸¤é¡¹ç›®çš„ç´¢å¼•ï¼Œè‹¥é¡¹ç›®1åœ¨é¡¹ç›®2ä¹‹ååˆ™è¿”å›æ­£å€¼ï¼Œè‹¥åœ¨ä¹‹å‰åˆ™è¿”å›è´Ÿå€¼ï¼Œè‹¥ç›¸ç­‰åˆ™è¿”å›0</param>
 	/// <param name="pData"></param>
 	/// <returns></returns>
-	EckInline BOOL SortItemsIndex(PFNLVITEMCOMPAREEX pfnCmp, LPARAM lParam)
+	EckInline BOOL SortItemsIndex(PFNLVITEMCOMPAREEX pfnCmp, LPARAM lParam) const
 	{
 		return (BOOL)SendMsg(LVM_SORTITEMSEX, lParam, (LPARAM)pfnCmp);
 	}
 
-	EckInline int SubItemHitTest(POINT pt, LVHITTESTINFO* plvhti, BOOL bTestGroup = FALSE)
+	EckInline int SubItemHitTest(LVHITTESTINFO* plvhti, BOOL bTestGroup = FALSE) const
 	{
-		plvhti->pt = pt;
 		return (int)SendMsg(LVM_SUBITEMHITTEST, bTestGroup ? -1 : 0, (LPARAM)plvhti);
 	}
 
-	EckInline BOOL Update()
+	EckInline BOOL Update() const
 	{
 		return (BOOL)SendMsg(LVM_UPDATE, 0, 0);
+	}
+
+	EckInline int GetCurrSel() const
+	{
+		EckCounter(GetItemCount(), i)
+		{
+			if (GetItemState(i, LVIS_SELECTED) == LVIS_SELECTED)
+				return i;
+		}
+		return -1;
 	}
 };
 ECK_NAMESPACE_END

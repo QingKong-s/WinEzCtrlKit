@@ -85,10 +85,7 @@ HWND CPushButton::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	}
 	else
 	{
-		dwStyle &= ~(BS_CHECKBOX | BS_COMMANDLINK | BS_DEFCOMMANDLINK);
 		dwStyle |= WS_CHILD;
-		if (!IsBitSet(dwStyle, BS_PUSHBUTTON | BS_DEFPUSHBUTTON | BS_SPLITBUTTON | BS_DEFSPLITBUTTON))
-			dwStyle |= BS_PUSHBUTTON;
 		m_hWnd = CreateWindowExW(dwExStyle, WC_BUTTONW, pszText, dwStyle,
 			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
 	}

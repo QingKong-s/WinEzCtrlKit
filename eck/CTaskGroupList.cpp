@@ -1,4 +1,4 @@
-#include "CTaskGroupList.h"
+ï»¿#include "CTaskGroupList.h"
 
 #define SIZE_PADDING		4
 #define SIZE_SUBTASKPADDING	8
@@ -34,7 +34,7 @@ LRESULT CALLBACK CTaskGroupList::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARA
 				auto& Item = p->m_Items[pnmlcd->nmcd.dwItemSpec];
 				HDC hDC = pnmlcd->nmcd.hdc;
 				int cxPadding = p->m_cxPadding;
-				//////////////////////»­ÏîÄ¿±³¾°
+				//////////////////////ç”»é¡¹ç›®èƒŒæ™¯
 				int iState;
 				if (IsBitSet(pnmlcd->nmcd.uItemState, CDIS_SELECTED))
 				{
@@ -50,12 +50,12 @@ LRESULT CALLBACK CTaskGroupList::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARA
 
 				if (iState)
 					DrawThemeBackground(p->m_hthListView, hDC, LVP_LISTITEM, iState, &pnmlcd->nmcd.rc, NULL);
-				//////////////////////»­Í¼±ê
+				//////////////////////ç”»å›¾æ ‡
 				int x = cxPadding + pnmlcd->nmcd.rc.left, y = cxPadding + pnmlcd->nmcd.rc.top;
 				if (Item.idxImage >= 0)
 					ImageList_Draw(p->m_hImageList, Item.idxImage, hDC, x, y, ILD_NORMAL);
 				x += (p->m_cxIcon + p->m_cxSubTaskPadding);
-				//////////////////////»­½Ú±êÌâ
+				//////////////////////ç”»èŠ‚æ ‡é¢˜
 				if ((p->m_idxHot == pnmlcd->nmcd.dwItemSpec && p->m_bSectionTitleHot) ||
 					(p->m_idxPressed == pnmlcd->nmcd.dwItemSpec && p->m_bSectionTitlePressed))
 					iState = CPSTL_HOT;
@@ -63,8 +63,8 @@ LRESULT CALLBACK CTaskGroupList::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARA
 					iState = CPSTL_NORMAL;
 				RECT rc{ x,pnmlcd->nmcd.rc.top,pnmlcd->nmcd.rc.right,pnmlcd->nmcd.rc.bottom };
 				DrawThemeTextEx(p->m_hthControlPanel, hDC, CPANEL_SECTIONTITLELINK, iState,
-					Item.rsText, Item.rsText.Size(), DT_SINGLELINE, &rc, NULL);
-				//////////////////////»­×ÓÈÎÎñ
+					Item.rsText.Data(), Item.rsText.Size(), DT_SINGLELINE, &rc, NULL);
+				//////////////////////ç”»å­ä»»åŠ¡
 				rc.top += (p->m_cySectionTitle + cxPadding);
 				
 				EckCounter(Item.SubTasks.size(), i)
@@ -79,7 +79,7 @@ LRESULT CALLBACK CTaskGroupList::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARA
 						iState = CPCL_NORMAL;
 
 					DrawThemeTextEx(p->m_hthControlPanel, hDC, CPANEL_CONTENTLINK, iState,
-						sub.rsText, sub.rsText.Size(), DT_SINGLELINE, &rc, NULL);
+						sub.rsText.Data(), sub.rsText.Size(), DT_SINGLELINE, &rc, NULL);
 
 					rc.left += (sub.cx + p->m_cxSubTaskPadding * 2);
 				}
@@ -254,12 +254,12 @@ LRESULT CALLBACK CTaskGroupList::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wPara
 		for (auto& x : p->m_Items)
 		{
 			GetThemeTextExtent(p->m_hthControlPanel, p->m_hCDCAuxiliary, CPANEL_SECTIONTITLELINK, CPSTL_NORMAL,
-				x.rsText, x.rsText.Size(), DT_SINGLELINE, NULL, &rc);
+				x.rsText.Data(), x.rsText.Size(), DT_SINGLELINE, NULL, &rc);
 			x.cx = rc.right - rc.left;
 			for (auto& y : x.SubTasks)
 			{
 				GetThemeTextExtent(p->m_hthControlPanel, p->m_hCDCAuxiliary, CPANEL_CONTENTLINK, CPTL_NORMAL,
-					y.rsText, y.rsText.Size(), DT_SINGLELINE, NULL, &rc);
+					y.rsText.Data(), y.rsText.Size(), DT_SINGLELINE, NULL, &rc);
 				y.cx = rc.right - rc.left;
 			}
 		}
@@ -326,14 +326,14 @@ int CTaskGroupList::InsertTask(PCWSTR pszText, int idx, int idxImage, TGLSUBTASK
 	RECT rc;
 
 	GetThemeTextExtent(m_hthControlPanel, m_hCDCAuxiliary, CPANEL_SECTIONTITLELINK, CPSTL_NORMAL,
-		Item.rsText, Item.rsText.Size(), DT_SINGLELINE, NULL, &rc);
+		Item.rsText.Data(), Item.rsText.Size(), DT_SINGLELINE, NULL, &rc);
 	Item.cx = rc.right - rc.left;
 	EckCounter(cSubTask, i)
 	{
 		SubTask.rsText = pSubTask[i].pszText;
 		SubTask.uFlags = pSubTask[i].uFlags;
 		GetThemeTextExtent(m_hthControlPanel, m_hCDCAuxiliary, CPANEL_CONTENTLINK, CPTL_NORMAL,
-			SubTask.rsText, SubTask.rsText.Size(), DT_SINGLELINE, NULL, &rc);
+			SubTask.rsText.Data(), SubTask.rsText.Size(), DT_SINGLELINE, NULL, &rc);
 		SubTask.cx = rc.right - rc.left;
 		Item.SubTasks.push_back(std::move(SubTask));
 	}
@@ -430,6 +430,6 @@ void CTaskGroupList::RefreshThemeRes()
 		L"bp", -1, DT_SINGLELINE, NULL, &rc);
 	m_cySubTask = rc.bottom - rc.top;
 
-	EckLVSetItemHeight(m_hWnd, std::max(m_cyIcon, m_cySectionTitle + m_cySubTask + m_cxPadding * 2));
+	eck::LVSetItemHeight(m_hWnd, std::max(m_cyIcon, m_cySectionTitle + m_cySubTask + m_cxPadding * 2));
 }
 ECK_NAMESPACE_END

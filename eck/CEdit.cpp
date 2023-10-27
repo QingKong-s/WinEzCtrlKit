@@ -1,4 +1,4 @@
-#include "CEdit.h"
+ï»¿#include "CEdit.h"
 #include "DesignerDef.h"
 
 ECK_NAMESPACE_BEGIN
@@ -152,7 +152,7 @@ CRefStrW CEdit::GetSelText()
 	rs.ReSize(dwLen);
 	auto psz = (PWSTR)_malloca((dwEnd + 1) * sizeof(WCHAR));
 	GetWindowTextW(m_hWnd, psz, dwEnd + 1);
-	wcscpy(rs, psz + dwStart);
+	wcscpy(rs.Data(), psz + dwStart);
 	_freea(psz);
 	return rs;
 }
@@ -211,7 +211,7 @@ CRefStrW CEdit::GetLine(int iPos)
 	if (cch)
 	{
 		rs.ReSize(cch);
-		*(WORD*)rs.Data() = cch;// ·¢ËÍÏûÏ¢Ç°½«µÚÒ»¸öWORDÉèÖÃÎª»º³åÇø´óĞ¡
+		*(WORD*)rs.Data() = cch;// å‘é€æ¶ˆæ¯å‰å°†ç¬¬ä¸€ä¸ªWORDè®¾ç½®ä¸ºç¼“å†²åŒºå¤§å°
 		SendMsg(EM_GETLINE, iPos, (LPARAM)rs.Data());
 	}
 	return rs;
@@ -255,27 +255,27 @@ EckPropCallBackRet CALLBACK GetProp_Edit(CWnd* pWnd, int idProp, EckCtrlPropValu
 
 static EckCtrlPropEntry s_Prop_Edit[]
 {
-	{1,L"TextColor",L"ÎÄ±¾ÑÕÉ«",L"",ECPT::Color},
-	{2,L"TextBKColor",L"ÎÄ±¾±³¾°ÑÕÉ«",L"",ECPT::Color},
-	{3,L"BKColor",L"±à¼­¿ò±³¾°ÑÕÉ«",L"",ECPT::Color},
-	{4,L"HideSelection",L"Òş²ØÑ¡Ôñ",L"",ECPT::Bool},
-	{5,L"MaxLength",L"×î´óÔÊĞí³¤¶È",L"",ECPT::Int},
-	{6,L"MultiLine",L"ÊÇ·ñ¶àĞĞ",L"",ECPT::Bool},
-	{7,L"Align",L"¶ÔÆë·½Ê½",L"",ECPT::PickInt,ECPF_NONE,L"×ó¶ÔÆë\0¾ÓÖĞ\0ÓÒ¶ÔÆë\0\0"},
-	{8,L"InputMode",L"ÊäÈë·½Ê½",L"",ECPT::PickInt,ECPF_NONE,
-					L"Í¨³£\0""Ö»¶Á\0""ÃÜÂë\0""ÕûÊıÎÄ±¾\0""Ğ¡ÊıÎÄ±¾\0""ÊäÈë×Ö½Ú\0""ÊäÈë¶ÌÕûÊı\0""ÊäÈëÕûÊı\0"
-					"ÊäÈë³¤ÕûÊı\0""ÊäÈëĞ¡Êı\0""ÊäÈëË«¾«¶ÈĞ¡Êı\0""ÊäÈëÈÕÆÚÊ±¼ä\0""\0"},
-	{9,L"PasswordChar",L"ÃÜÂëÕÚ¸Ç×Ö·û",L"",ECPT::Text},
-	{10,L"TransformMode",L"×ª»»·½Ê½",L"",ECPT::PickInt,ECPF_NONE,L"ÎŞ\0´óĞ´µ½Ğ¡Ğ´\0Ğ¡Ğ´µ½´óĞ´\0\0"},
-	{11,L"CueBanner",L"ÌáÊ¾ÎÄ±¾",L"",ECPT::Text},
-	{12,L"AlwaysCueBanner",L"×ÜÊÇÏÔÊ¾ÌáÊ¾ÎÄ±¾",L"",ECPT::Bool},
-	{13,L"AutoWrap",L"×Ô¶¯»»ĞĞ",L"",ECPT::Bool},
+	{1,L"TextColor",L"æ–‡æœ¬é¢œè‰²",L"",ECPT::Color},
+	{2,L"TextBKColor",L"æ–‡æœ¬èƒŒæ™¯é¢œè‰²",L"",ECPT::Color},
+	{3,L"BKColor",L"ç¼–è¾‘æ¡†èƒŒæ™¯é¢œè‰²",L"",ECPT::Color},
+	{4,L"HideSelection",L"éšè—é€‰æ‹©",L"",ECPT::Bool},
+	{5,L"MaxLength",L"æœ€å¤§å…è®¸é•¿åº¦",L"",ECPT::Int},
+	{6,L"MultiLine",L"æ˜¯å¦å¤šè¡Œ",L"",ECPT::Bool},
+	{7,L"Align",L"å¯¹é½æ–¹å¼",L"",ECPT::PickInt,ECPF_NONE,L"å·¦å¯¹é½\0å±…ä¸­\0å³å¯¹é½\0\0"},
+	{8,L"InputMode",L"è¾“å…¥æ–¹å¼",L"",ECPT::PickInt,ECPF_NONE,
+					L"é€šå¸¸\0""åªè¯»\0""å¯†ç \0""æ•´æ•°æ–‡æœ¬\0""å°æ•°æ–‡æœ¬\0""è¾“å…¥å­—èŠ‚\0""è¾“å…¥çŸ­æ•´æ•°\0""è¾“å…¥æ•´æ•°\0"
+					"è¾“å…¥é•¿æ•´æ•°\0""è¾“å…¥å°æ•°\0""è¾“å…¥åŒç²¾åº¦å°æ•°\0""è¾“å…¥æ—¥æœŸæ—¶é—´\0""\0"},
+	{9,L"PasswordChar",L"å¯†ç é®ç›–å­—ç¬¦",L"",ECPT::Text},
+	{10,L"TransformMode",L"è½¬æ¢æ–¹å¼",L"",ECPT::PickInt,ECPF_NONE,L"æ— \0å¤§å†™åˆ°å°å†™\0å°å†™åˆ°å¤§å†™\0\0"},
+	{11,L"CueBanner",L"æç¤ºæ–‡æœ¬",L"",ECPT::Text},
+	{12,L"AlwaysCueBanner",L"æ€»æ˜¯æ˜¾ç¤ºæç¤ºæ–‡æœ¬",L"",ECPT::Bool},
+	{13,L"AutoWrap",L"è‡ªåŠ¨æ¢è¡Œ",L"",ECPT::Bool},
 };
 
 EckCtrlDesignInfo CtInfoEdit
 {
 	L"Edit",
-	L"±à¼­¿ò",
+	L"ç¼–è¾‘æ¡†",
 	L"",
 	NULL,
 	ARRAYSIZE(s_Prop_Edit),

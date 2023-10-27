@@ -1,7 +1,7 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* CWnd.h £º ´°¿Ú»ùÀà
+* CWnd.h ï¼š çª—å£åŸºç±»
 *
 * Copyright(C) 2023 QingKong
 */
@@ -63,13 +63,13 @@ public:
 	
 	enum class ManageOp
 	{
-		// ÒÀ¸½¾ä±ú£¬·µ»ØÏÈÇ°´°¿Ú¾ä±ú
+		// ä¾é™„å¥æŸ„ï¼Œè¿”å›å…ˆå‰çª—å£å¥æŸ„
 		Attach,
-		// ²ğÀë¾ä±ú£¬·µ»Ø´°¿Ú¾ä±ú
+		// æ‹†ç¦»å¥æŸ„ï¼Œè¿”å›çª—å£å¥æŸ„
 		Detach,
-		// ¸¸´°¿ÚÒÑ¸ü¸Ä£¬²»Ê¹ÓÃ·µ»ØÖµ
+		// çˆ¶çª—å£å·²æ›´æ”¹ï¼Œä¸ä½¿ç”¨è¿”å›å€¼
 		ChangeParent,
-		// ĞŞ¸Ä°ó¶¨£¬³É¹¦·µ»Ø·Ç0£¬Ê§°Ü·µ»Ø0
+		// ä¿®æ”¹ç»‘å®šï¼ŒæˆåŠŸè¿”å›é0ï¼Œå¤±è´¥è¿”å›0
 		Bind
 	};
 
@@ -134,9 +134,9 @@ public:
 	}
 
 	/// <summary>
-	/// ÖÃ±ß¿òÀàĞÍ
+	/// ç½®è¾¹æ¡†ç±»å‹
 	/// </summary>
-	/// <param name="iFrame">0 - ÎŞ±ß¿ò  1 - °¼ÈëÊ½  2 - Í¹³öÊ½  3 - Ç³°¼ÈëÊ½  4 - ¾µ¿òÊ½  5 - µ¥Ïß±ß¿òÊ½</param>
+	/// <param name="iFrame">0 - æ— è¾¹æ¡†  1 - å‡¹å…¥å¼  2 - å‡¸å‡ºå¼  3 - æµ…å‡¹å…¥å¼  4 - é•œæ¡†å¼  5 - å•çº¿è¾¹æ¡†å¼</param>
 	void SetFrameType(int iFrame) const;
 
 	int GetFrameType() const;
@@ -182,7 +182,7 @@ public:
 		if (cch)
 		{
 			rs.ReSize(cch);
-			GetWindowTextW(m_hWnd, rs, cch + 1);
+			GetWindowTextW(m_hWnd, rs.Data(), cch + 1);
 		}
 		return rs;
 	}
@@ -207,6 +207,21 @@ public:
 		BOOL b = DestroyWindow(m_hWnd);
 		m_hWnd = NULL;
 		return b;
+	}
+
+	EckInline void SetFont(HFONT hFont, BOOL bRedraw = FALSE) const
+	{
+		SendMsg(WM_SETFONT, (WPARAM)hFont, bRedraw);
+	}
+
+	EckInline BOOL Show(int nCmdShow) const
+	{
+		return ShowWindow(m_hWnd, nCmdShow);
+	}
+
+	EckInline BOOL Enable(BOOL bEnable) const
+	{
+		return EnableWindow(m_hWnd, bEnable);
 	}
 };
 

@@ -1,4 +1,4 @@
-#include "CLabel.h"
+ï»¿#include "CLabel.h"
 
 ECK_NAMESPACE_BEGIN
 WND_RECORDER_INIT(CLabel)
@@ -13,18 +13,18 @@ void CLabel::Paint(HDC hDC)
 	bf.SourceConstantAlpha = 255;
 	bf.AlphaFormat = AC_SRC_ALPHA;
 	//
-	// »­±³¾°
+	// ç”»èƒŒæ™¯
 	//
 
-	// »­´¿É«±³¾°
+	// ç”»çº¯è‰²èƒŒæ™¯
 	RECT rc{ 0,0,m_cxClient,m_cyClient };
 	if (!m_Info.bTransparent)
 		FillRect(hDC, &rc, (HBRUSH)GetStockObject(DC_BRUSH));
 	else
 		IntersectClipRect(hDC, 0, 0, m_cxClient, m_cyClient);
-	// ÀàÑùÊ½´øCS_PARENTDCËÙ¶È»á¿ìÒ»µã£¬²¢ÇÒ°´ÀíÀ´ËµÓ¦¸ÃÊÖ¶¯¼ô¼­×Ó´°¿Ú£¬µ«ÊÇÎªÊ²Ã´²»¼ô¼­Ò²Ã»ÊÂ¡£¡£¡£·´ÕıÕâÀï¾ÍÕâÃ´Ğ´ÁË°É£¬°´¹æ¶¨À´
+	// ç±»æ ·å¼å¸¦CS_PARENTDCé€Ÿåº¦ä¼šå¿«ä¸€ç‚¹ï¼Œå¹¶ä¸”æŒ‰ç†æ¥è¯´åº”è¯¥æ‰‹åŠ¨å‰ªè¾‘å­çª—å£ï¼Œä½†æ˜¯ä¸ºä»€ä¹ˆä¸å‰ªè¾‘ä¹Ÿæ²¡äº‹ã€‚ã€‚ã€‚åæ­£è¿™é‡Œå°±è¿™ä¹ˆå†™äº†å§ï¼ŒæŒ‰è§„å®šæ¥
 
-	// »­½¥±ä±³¾°»òµ×Í¼
+	// ç”»æ¸å˜èƒŒæ™¯æˆ–åº•å›¾
 	if (m_Info.iGradientMode != 0)
 	{
 		if (m_Info.iGradientMode <= 4 && m_Info.iGradientMode >= 1)
@@ -34,8 +34,8 @@ void CLabel::Paint(HDC hDC)
 			ULONG uMode;
 			switch (m_Info.iGradientMode)
 			{
-			case 1:// ´ÓÉÏµ½ÏÂ
-			case 2:// ´ÓÏÂµ½ÉÏ
+			case 1:// ä»ä¸Šåˆ°ä¸‹
+			case 2:// ä»ä¸‹åˆ°ä¸Š
 				cr2 = m_Info.crGradient[1];
 				tv[0].x = 0;
 				tv[0].y = 0;
@@ -57,8 +57,8 @@ void CLabel::Paint(HDC hDC)
 					cr3 = m_Info.crGradient[0];
 				}
 				break;
-			case 3:// ´Ó×óµ½ÓÒ
-			case 4:// ´ÓÓÒµ½×ó
+			case 3:// ä»å·¦åˆ°å³
+			case 4:// ä»å³åˆ°å·¦
 				cr2 = m_Info.crGradient[1];
 				tv[0].x = 0;
 				tv[0].y = 0;
@@ -112,16 +112,16 @@ void CLabel::Paint(HDC hDC)
 		else
 		{
 			TRIVERTEX tv[4];
-			// ×óÉÏ
+			// å·¦ä¸Š
 			tv[0].x = 0;
 			tv[0].y = 0;
-			// ×óÏÂ
+			// å·¦ä¸‹
 			tv[1].x = 0;
 			tv[1].y = m_cyClient;
-			// ÓÒÉÏ
+			// å³ä¸Š
 			tv[2].x = m_cxClient;
 			tv[2].y = 0;
-			// ÓÒÏÂ
+			// å³ä¸‹
 			tv[3].x = m_cxClient;
 			tv[3].y = m_cyClient;
 			COLORREF cr1, cr2, cr3;
@@ -129,8 +129,8 @@ void CLabel::Paint(HDC hDC)
 			GRADIENT_TRIANGLE gt[2];
 			switch (m_Info.iGradientMode)
 			{
-			case 5:// ×óÉÏµ½ÓÒÏÂ¨K
-			case 6:// ÓÒÏÂµ½×óÉÏ¨I
+			case 5:// å·¦ä¸Šåˆ°å³ä¸‹â†˜
+			case 6:// å³ä¸‹åˆ°å·¦ä¸Šâ†–
 				gt[0].Vertex1 = 0;
 				gt[0].Vertex2 = 1;
 				gt[0].Vertex3 = 2;
@@ -169,8 +169,8 @@ void CLabel::Paint(HDC hDC)
 				tv[3].Blue = GetBValue(cr3) << 8;
 				tv[3].Alpha = 0xFF << 8;
 				break;
-			case 7:// ×óÏÂµ½ÓÒÉÏ¨J
-			case 8:// ÓÒÉÏµ½×óÏÂ¨L
+			case 7:// å·¦ä¸‹åˆ°å³ä¸Šâ†—
+			case 8:// å³ä¸Šåˆ°å·¦ä¸‹â†™
 				gt[0].Vertex1 = 1;
 				gt[0].Vertex2 = 0;
 				gt[0].Vertex3 = 3;
@@ -219,7 +219,7 @@ void CLabel::Paint(HDC hDC)
 		SelectObject(m_hcdcHelper, m_hbmBK);
 		switch (m_Info.iBKPicMode)
 		{
-		case 0:// ¾Ó×óÉÏ
+		case 0:// å±…å·¦ä¸Š
 			if (m_Info.bFullWndPic)
 			{
 				if (!m_cyBKPic || !m_cxBKPic)
@@ -227,7 +227,7 @@ void CLabel::Paint(HDC hDC)
 				int cxRgn, cyRgn;
 
 				cxRgn = m_cyClient * m_cxBKPic / m_cyBKPic;
-				if (cxRgn < m_cxClient)// ÏÈ³¢ÊÔy¶ÔÆë£¬¿´x·½ÏòÊÇ·ñ³äÂú´°¿Ú
+				if (cxRgn < m_cxClient)// å…ˆå°è¯•yå¯¹é½ï¼Œçœ‹xæ–¹å‘æ˜¯å¦å……æ»¡çª—å£
 				{
 					cxRgn = m_cxClient;
 					cyRgn = m_cxClient * m_cyBKPic / m_cxBKPic;
@@ -240,13 +240,13 @@ void CLabel::Paint(HDC hDC)
 			else
 				GdiAlphaBlend(hDC, 0, 0, m_cxBKPic, m_cyBKPic, m_hcdcHelper, 0, 0, m_cxBKPic, m_cyBKPic, bf);
 			break;
-		case 1:// Æ½ÆÌ
+		case 1:// å¹³é“º
 			for (int i = 0; i < (m_cxClient - 1) / m_cxBKPic + 1; ++i)
 				for (int j = 0; j < (m_cyClient - 1) / m_cyBKPic + 1; ++j)
 					GdiAlphaBlend(hDC, i * m_cxBKPic, j * m_cyBKPic, m_cxBKPic, m_cyBKPic,
 						m_hcdcHelper, 0, 0, m_cxBKPic, m_cyBKPic, bf);
 			break;
-		case 2:// ¾ÓÖĞ
+		case 2:// å±…ä¸­
 			if (m_Info.bFullWndPic)
 			{
 				if (!m_cyBKPic || !m_cxBKPic)
@@ -255,7 +255,7 @@ void CLabel::Paint(HDC hDC)
 				int x, y;
 
 				cxRgn = m_cyClient * m_cxBKPic / m_cyBKPic;
-				if (cxRgn < m_cxClient)// ÏÈ³¢ÊÔy¶ÔÆë£¬¿´x·½ÏòÊÇ·ñ³äÂú´°¿Ú
+				if (cxRgn < m_cxClient)// å…ˆå°è¯•yå¯¹é½ï¼Œçœ‹xæ–¹å‘æ˜¯å¦å……æ»¡çª—å£
 				{
 					cxRgn = m_cxClient;
 					cyRgn = m_cxClient * m_cyBKPic / m_cxBKPic;
@@ -275,13 +275,13 @@ void CLabel::Paint(HDC hDC)
 				GdiAlphaBlend(hDC, (m_cxClient - m_cxBKPic) / 2, (m_cyClient - m_cyBKPic) / 2, m_cxBKPic, m_cyBKPic,
 					m_hcdcHelper, 0, 0, m_cxBKPic, m_cyBKPic, bf);
 			break;
-		case 3:// Ëõ·Å
+		case 3:// ç¼©æ”¾
 			GdiAlphaBlend(hDC, 0, 0, m_cxClient, m_cyClient, m_hcdcHelper, 0, 0, m_cxBKPic, m_cyBKPic, bf);
 			break;
 		}
 	}
 	//
-	// »­ÎÄ±¾
+	// ç”»æ–‡æœ¬
 	//
 	UINT uDTFlags = DT_NOCLIP | (m_Info.bAutoWrap ? DT_WORDBREAK : DT_SINGLELINE);
 	switch (m_Info.iEllipsisMode)
@@ -302,7 +302,7 @@ void CLabel::Paint(HDC hDC)
 	SelectObject(m_hcdcHelper, m_hbmPic);
 	GdiAlphaBlend(hDC, m_rcPartPic.left, m_rcPartPic.top, m_cxPic, m_cyPic, m_hcdcHelper, 0, 0, m_cxPic, m_cyPic, bf);
 	rc = m_rcPartText;
-	DrawTextW(hDC, m_rsText, -1, &rc, uDTFlags);
+	DrawTextW(hDC, m_rsText.Data(), -1, &rc, uDTFlags);
 }
 
 void CLabel::CalcPartsRect()
@@ -329,22 +329,22 @@ void CLabel::CalcPartsRect()
 	if (m_Info.bAutoWrap)
 	{
 		uDTFlags |= DT_WORDBREAK;
-		DrawTextW(m_hCDC, m_rsText, -1, &rc, uDTFlags);
+		DrawTextW(m_hCDC, m_rsText.Data(), -1, &rc, uDTFlags);
 
 		int cyText = rc.bottom - rc.top;
 		switch (m_Info.iAlignV)
 		{
-		case 0:// ÉÏ±ß
+		case 0:// ä¸Šè¾¹
 			rc.top = 0;
 			rc.bottom = rc.top + cyText;
 			yPic = rc.top;
 			break;
-		case 1:// ÖĞ¼ä
+		case 1:// ä¸­é—´
 			rc.top = (m_cyClient - cyText) / 2;
 			rc.bottom = rc.top + cyText;
 			yPic = (m_cyClient - m_cyPic) / 2;
 			break;
-		case 2:// ÏÂ±ß
+		case 2:// ä¸‹è¾¹
 			rc.bottom = m_cyClient;
 			rc.top = rc.bottom - cyText;
 			yPic = m_cyClient - m_cyPic;
@@ -356,22 +356,22 @@ void CLabel::CalcPartsRect()
 	else
 	{
 		uDTFlags |= DT_SINGLELINE;
-		DrawTextW(m_hCDC, m_rsText, -1, &rc, uDTFlags);
+		DrawTextW(m_hCDC, m_rsText.Data(), -1, &rc, uDTFlags);
 
 		int cyText = rc.bottom - rc.top;
 		switch (m_Info.iAlignV)
 		{
-		case 0:// ÉÏ±ß
+		case 0:// ä¸Šè¾¹
 			rc.top = 0;
 			rc.bottom = rc.top + cyText;
 			yPic = rc.top;
 			break;
-		case 1:// ÖĞ¼ä
+		case 1:// ä¸­é—´
 			rc.top = (m_cyClient - cyText) / 2;
 			rc.bottom = rc.top + cyText;
 			yPic = (m_cyClient - m_cyPic) / 2;
 			break;
-		case 2:// ÏÂ±ß
+		case 2:// ä¸‹è¾¹
 			rc.bottom = m_cyClient;
 			rc.top = rc.bottom - cyText;
 			yPic = m_cyClient - m_cyPic;
@@ -385,18 +385,18 @@ void CLabel::CalcPartsRect()
 	int cxTotal = cxText + m_cxPic;
 	switch (m_Info.iAlignH)
 	{
-	case 0:// ×ó±ß
+	case 0:// å·¦è¾¹
 		uDTFlags |= DT_LEFT;
 		rc.left = m_cxPic;
 		rc.right = rc.left + cxText;
 		xPic = 0;
 		break;
-	case 1:// ÖĞ¼ä
+	case 1:// ä¸­é—´
 		rc.left = (m_cxClient - cxTotal) / 2 + m_cxPic;
 		rc.right = rc.left + cxText;
 		xPic = rc.left - m_cxPic;
 		break;
-	case 2:// ÓÒ±ß
+	case 2:// å³è¾¹
 		uDTFlags |= DT_RIGHT;
 		rc.right = m_cxClient - m_cxPic;
 		rc.left = rc.right - cxText;
@@ -446,9 +446,9 @@ LRESULT CALLBACK CLabel::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 		if (p->m_Info.bTransparent)
 			switch (p->m_Info.iMousePassingThrough)
 			{
-			case 0:// ÎŞ
+			case 0:// æ— 
 				break;
-			case 1:// ´©Í¸¿Õ°×ÇøÓò
+			case 1:// ç©¿é€ç©ºç™½åŒºåŸŸ
 			{
 				POINT pt{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) };
 				ScreenToClient(hWnd, &pt);
@@ -456,7 +456,7 @@ LRESULT CALLBACK CLabel::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 					return HTTRANSPARENT;
 			}
 			break;
-			case 2:// ´©Í¸Õû¸ö¿Ø¼ş
+			case 2:// ç©¿é€æ•´ä¸ªæ§ä»¶
 				return HTTRANSPARENT;
 			}
 	}

@@ -1,4 +1,4 @@
-#include "CRefStr.h"
+ï»¿#include "CRefStr.h"
 
 ECK_NAMESPACE_BEGIN
 int CRefStrW::DupString(PCWSTR pszSrc, int cchSrc)
@@ -142,7 +142,7 @@ void CRefStrW::MakeRepeatedStrSequence(PCWSTR pszText, int cchText, int cCount, 
 	ReSize(posStart + cchText * cCount);
 	PWSTR pszCurr = m_pszText;
 	int i = 0;
-	for (; i < cCount, pszCurr += cchText; ++i)
+	for (; i < cCount; ++i, pszCurr += cchText)
 		memcpy(pszCurr, pszText, cchText * sizeof(WCHAR));
 	*(m_pszText + m_cchText) = L'\0';
 }
@@ -154,8 +154,8 @@ CRefStrW ToStr(int x, int iRadix)
 {
 	CRefStrW rs;
 	rs.ReSize(24);
-	*rs = L'\0';
-	_itow_s(x, rs, (SIZE_T)rs.Size(), iRadix);
+	*rs.Data() = L'\0';
+	_itow_s(x, rs.Data(), (SIZE_T)rs.Size(), iRadix);
 	rs.ReCalcLen();
 	return rs;
 }
@@ -164,8 +164,8 @@ CRefStrW ToStr(UINT x, int iRadix)
 {
 	CRefStrW rs;
 	rs.ReSize(24);
-	*rs = L'\0';
-	_ultow_s(x, rs, (SIZE_T)rs.Size(), iRadix);
+	*rs.Data() = L'\0';
+	_ultow_s(x, rs.Data(), (SIZE_T)rs.Size(), iRadix);
 	rs.ReCalcLen();
 	return rs;
 }
@@ -174,8 +174,8 @@ CRefStrW ToStr(LONGLONG x, int iRadix)
 {
 	CRefStrW rs;
 	rs.ReSize(24);
-	*rs = L'\0';
-	_i64tow_s(x, rs, (SIZE_T)rs.Size(), iRadix);
+	*rs.Data() = L'\0';
+	_i64tow_s(x, rs.Data(), (SIZE_T)rs.Size(), iRadix);
 	rs.ReCalcLen();
 	return rs;
 }
@@ -184,8 +184,8 @@ CRefStrW ToStr(ULONGLONG x, int iRadix)
 {
 	CRefStrW rs;
 	rs.ReSize(24);
-	*rs = L'\0';
-	_ui64tow_s(x, rs, (SIZE_T)rs.Size(), iRadix);
+	*rs.Data() = L'\0';
+	_ui64tow_s(x, rs.Data(), (SIZE_T)rs.Size(), iRadix);
 	rs.ReCalcLen();
 	return rs;
 }
@@ -194,8 +194,8 @@ CRefStrW ToStr(double x, int iPrecision)
 {
 	CRefStrW rs;
 	rs.ReSize(24);
-	*rs = L'\0';
-	_snwprintf_s(rs, rs.Size(), rs.Size(), L"%.*g", iPrecision, x);
+	*rs.Data() = L'\0';
+	_snwprintf_s(rs.Data(), rs.Size(), rs.Size(), L"%.*g", iPrecision, x);
 	rs.ReCalcLen();
 	return rs;
 }
@@ -258,7 +258,7 @@ int RTrimStr(PCWSTR pszText, int cchText)
 	while (pszTemp != pszText)
 	{
 		ch = *pszTemp;
-		if (ch == L' ' || ch == L'¡¡')
+		if (ch == L' ' || ch == L'ã€€')
 			--pszTemp;
 		else
 			break;
@@ -270,7 +270,7 @@ EckInline int PrivFindSpace(PCWSTR pszText)
 {
 	PCWSTR pszOrg = pszText;
 	WCHAR ch = *pszText;
-	while (ch != L' ' && ch != L'¡¡' && ch != L'\0')
+	while (ch != L' ' && ch != L'ã€€' && ch != L'\0')
 		ch = *++pszText;
 	return (int)(pszText - pszOrg);
 }
