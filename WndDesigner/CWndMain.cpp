@@ -1,4 +1,4 @@
-#include "CWndMain.h"
+ï»¿#include "CWndMain.h"
 #include "resource.h"
 
 LRESULT CWndMain::WndProc(HWND hWnd, UINT uMsg , WPARAM wParam, LPARAM lParam)
@@ -41,7 +41,7 @@ LRESULT CWndMain::WndProc(HWND hWnd, UINT uMsg , WPARAM wParam, LPARAM lParam)
 
 BOOL CWndMain::OnCreate(HWND hWnd, CREATESTRUCTW* pcs)
 {
-	m_hFontComm = eck::EzFont(L"Î¢ÈíÑÅºÚ", 9);
+	m_hFontComm = eck::EzFont(L"å¾®è½¯é›…é»‘", 9);
 	m_iDpi = eck::GetDpi(hWnd);
 	eck::UpdateDpiSize(m_Ds, m_iDpi);
 
@@ -49,10 +49,10 @@ BOOL CWndMain::OnCreate(HWND hWnd, CREATESTRUCTW* pcs)
 	UpdateDpi();
 
 	m_hMenuWorkWnd = CreatePopupMenu();
-	AppendMenuW(m_hMenuWorkWnd, 0, IDMI_WW_COPY, L"¸´ÖÆ");
-	AppendMenuW(m_hMenuWorkWnd, 0, IDMI_WW_CUT, L"¼ôÇÐ");
-	AppendMenuW(m_hMenuWorkWnd, 0, IDMI_WW_PASTE, L"Õ³Ìù");
-	AppendMenuW(m_hMenuWorkWnd, 0, IDMI_WW_DEL, L"É¾³ý");
+	AppendMenuW(m_hMenuWorkWnd, 0, IDMI_WW_COPY, L"å¤åˆ¶");
+	AppendMenuW(m_hMenuWorkWnd, 0, IDMI_WW_CUT, L"å‰ªåˆ‡");
+	AppendMenuW(m_hMenuWorkWnd, 0, IDMI_WW_PASTE, L"ç²˜è´´");
+	AppendMenuW(m_hMenuWorkWnd, 0, IDMI_WW_DEL, L"åˆ é™¤");
 
 	m_hPen = CreatePen(PS_SOLID, 2, eck::Colorref::Red);
 	m_cxInfo = DPI(240);
@@ -66,13 +66,13 @@ BOOL CWndMain::OnCreate(HWND hWnd, CREATESTRUCTW* pcs)
 
 		m_LVProp.Create(NULL, WS_VISIBLE | WS_BORDER /*| LVS_NOCOLUMNHEADER*/ | LVS_REPORT,
 			0, 0, 0, 0, 0, hWnd, IDC_LV_CTRLINFO);
-		EckLVSetItemHeight(m_LVProp, DPI(24));
+		eck::LVSetItemHeight(m_LVProp, DPI(24));
 		LVCOLUMNW lc;
 		lc.mask = LVCF_TEXT | LVCF_WIDTH;
-		lc.pszText = (PWSTR)L"ÊôÐÔ";
+		lc.pszText = (PWSTR)L"å±žæ€§";
 		lc.cx = DPI(110);
 		m_LVProp.InsertColumn(0, &lc);
-		lc.pszText = (PWSTR)L"Öµ";
+		lc.pszText = (PWSTR)L"å€¼";
 		lc.cx = DPI(110);
 		m_LVProp.InsertColumn(1, &lc);
 		m_LVProp.SetLVExtendStyle(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
@@ -121,7 +121,7 @@ void CWndMain::OnDrawItem(HWND hWnd, const DRAWITEMSTRUCT* pdis)
 
 		SetBkMode(hDC, TRANSPARENT);
 		HGDIOBJ hOld = SelectObject(hDC, m_hFontCtrlBox);
-		PCWSTR pszText = (pdis->itemID ? eck::s_EckDesignAllCtrl[pdis->itemID - 1].pszName : L"Ö¸Õë");
+		PCWSTR pszText = (pdis->itemID ? eck::s_EckDesignAllCtrl[pdis->itemID - 1].pszName : L"æŒ‡é’ˆ");
 
 		DrawTextW(hDC, pszText, -1, (RECT*)&pdis->rcItem, DT_SINGLELINE | DT_LEFT | DT_VCENTER);
 		SelectObject(hDC, hOld);
@@ -134,14 +134,14 @@ void CWndMain::OnCommand(HWND hWnd, int idCtrl, HWND hCtrl, UINT uNotifyCode)
 	{
 		switch (uNotifyCode)
 		{
-		case LBN_SELCHANGE:// ÓëCBN_SELCHANGEÏàµÈ
+		case LBN_SELCHANGE:// ä¸ŽCBN_SELCHANGEç›¸ç­‰
 			switch (idCtrl)
 			{
 			case IDC_LB_CTRL:
 				m_bPlacingCtrl = (m_LBCtrl.GetCurrSel() != 0);
 				break;
 			case IDC_CBB_CTRL:
-				SingleSel(m_vTabs[m_Tab.GetCurSel()], (HWND)m_CBBCtrl.GetItemData(m_CBBCtrl.GetCurrSel()));
+				SingleSel(m_vTabs[m_Tab.GetCurSel()], (HWND)m_CBBCtrl.GetItemData(m_CBBCtrl.GetCurSel()));
 				break;
 			}
 		}
@@ -183,7 +183,7 @@ void CWndMain::OnMenuCopy(HWND hWnd)
 		hCtrl = x->GetTargetWindow();
 		auto& Info = pTabCtx->AllCtrls[hCtrl];
 
-		if (IsCtrlParentSel(pTabCtx, hCtrl))// Èç¹ûÒ»¸ö¿Ø¼þµÄÄ³ÉÏ¼¶´°¿Ú±»Ñ¡Ôñ£¬ÄÇÃ´²»Ó¦¸Ã´¦Àí
+		if (IsCtrlParentSel(pTabCtx, hCtrl))// å¦‚æžœä¸€ä¸ªæŽ§ä»¶çš„æŸä¸Šçº§çª—å£è¢«é€‰æ‹©ï¼Œé‚£ä¹ˆä¸åº”è¯¥å¤„ç†
 			continue;
 
 		Serializer.AddCtrl(hCtrl);
@@ -259,7 +259,7 @@ void CWndMain::OnMenuDel(HWND hWnd)
 	{
 		hCtrl = x->GetTargetWindow();
 		auto& Info = pTabCtx->AllCtrls[hCtrl];
-		if (IsCtrlParentSel(pTabCtx, hCtrl))// Èç¹ûÒ»¸ö¿Ø¼þµÄÄ³ÉÏ¼¶´°¿Ú±»Ñ¡Ôñ£¬ÄÇÃ´²»Ó¦¸Ã´¦Àí
+		if (IsCtrlParentSel(pTabCtx, hCtrl))// å¦‚æžœä¸€ä¸ªæŽ§ä»¶çš„æŸä¸Šçº§çª—å£è¢«é€‰æ‹©ï¼Œé‚£ä¹ˆä¸åº”è¯¥å¤„ç†
 			continue;
 
 		aValidWnds.push_back(hCtrl);
@@ -392,7 +392,7 @@ void CWndMain::OnDpiChanged(HWND hWnd, int iDpiX, int iDpiY, RECT* prc)
 	int iOldDpi = m_iDpi;
 	m_iDpi = iDpiX;
 	UpdateDpi();
-	ImageList_Destroy(EckLVSetItemHeight(m_LVProp.GetHWND(), DPI(24)));
+	ImageList_Destroy(eck::LVSetItemHeight(m_LVProp.GetHWND(), DPI(24)));
 
 	eck::OnDpiChanged_Parent_PreMonV2(hWnd, m_iDpi, iOldDpi);
 }
@@ -441,7 +441,7 @@ LRESULT CWndMain::OnPropListNotify(HWND hWnd, WPARAM wParam, LPARAM lParam)
 	}
 }
 
-#pragma region ¿Ø¼þÏûÏ¢´¦Àí
+#pragma region æŽ§ä»¶æ¶ˆæ¯å¤„ç†
 LRESULT CWndMain::SubclassProc_Ctrl(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 {
 	auto p = (CTRLSUBCLASSCTX*)dwRefData;
@@ -536,13 +536,13 @@ void CWndMain::OnCtrlSize(HWND hWnd, UINT nType, int cx, int cy)
 void CWndMain::OnCtrlLButtonDown(HWND hWnd, UINT uKeyFlags, int x, int y, CTRLSUBCLASSCTX* p)
 {
 	auto pTabCtx = p->pTabCtx;
-	/////////////////////////////·ÅÖÃ¿Ø¼þ
+	/////////////////////////////æ”¾ç½®æŽ§ä»¶
 	if (m_bPlacingCtrl)
 	{
 		m_CtrlPlacing.OnLButtonDown(pTabCtx, hWnd, MAKELPARAM(x, y));
 		return;
 	}
-	/////////////////////////////Ctrl¼ü¶àÑ¡
+	/////////////////////////////Ctrlé”®å¤šé€‰
 	if (eck::IsBitSet(uKeyFlags, MK_CONTROL))
 	{
 		HWND hWorkWnd = pTabCtx->pWorkWnd->GetHWND();
@@ -617,7 +617,7 @@ void CWndMain::OnCtrlLButtonUp(HWND hWnd, UINT uKeyFlags, int x, int y, CTRLSUBC
 	ReleaseDC(hBK, m_hDC);
 
 	pTabCtx->pBK->SetRedraw(FALSE);
-	pTabCtx->pWorkWnd->SetRedraw(FALSE);// bydÕâÀïSetWindowPos»áµ¼ÖÂ´°¿Ú·è¿ñÖØ»­
+	pTabCtx->pWorkWnd->SetRedraw(FALSE);// bydè¿™é‡ŒSetWindowPosä¼šå¯¼è‡´çª—å£ç–¯ç‹‚é‡ç”»
 
 	RECT rc;
 	auto& aSelSizer = pTabCtx->pMultiSelMarker;
@@ -756,11 +756,11 @@ void CWndMain::OnWWLButtonUp(HWND hWnd, int x, int y, UINT uKeyFlags, TABCTX* p)
 
 	int idxCurr = m_LBCtrl.GetCurrSel();
 	POINT ptStart = m_CtrlPlacing.GetStartPoint();
-	if (idxCurr <= 0)// Êó±êÖ¸ÕëÄ£Ê½
+	if (idxCurr <= 0)// é¼ æ ‡æŒ‡é’ˆæ¨¡å¼
 	{
 		if (pt.x - ptStart.x == 0 || pt.y - ptStart.y == 0)
-			SingleSel(p, hWnd);// ¾ØÐÎÎÞÐ§£¬Ñ¡¶¨¹¤×÷´°¿Ú
-		else// ¾ØÐÎÓÐÐ§£¬Ñ¡ÖÐ¾ØÐÎÄÚµÄËùÓÐ¿Ø¼þ
+			SingleSel(p, hWnd);// çŸ©å½¢æ— æ•ˆï¼Œé€‰å®šå·¥ä½œçª—å£
+		else// çŸ©å½¢æœ‰æ•ˆï¼Œé€‰ä¸­çŸ©å½¢å†…çš„æ‰€æœ‰æŽ§ä»¶
 		{
 			ClearMultiSelMarker(p);
 			RECT rc = eck::MakeRect(pt, ptStart);
@@ -776,7 +776,7 @@ void CWndMain::OnWWLButtonUp(HWND hWnd, int x, int y, UINT uKeyFlags, TABCTX* p)
 			}
 		}
 	}
-	else// ×é¼þÉè¼ÆÄ£Ê½
+	else// ç»„ä»¶è®¾è®¡æ¨¡å¼
 	{
 		const int iUnit = p->pWorkWnd->GetGridPointGap();
 		RECT rc = eck::MakeRect(PtAlign(pt, iUnit), PtAlign(ptStart, iUnit));
@@ -814,7 +814,7 @@ void CWndMain::OnWWRButtonUp(HWND hWnd, UINT uKeyFlags, int x, int y, TABCTX* p)
 
 void CWndMain::NewTab(int posTab)
 {
-	m_Tab.InsertItem(L"ÐÂ´°Ìå", posTab);
+	m_Tab.InsertItem(L"æ–°çª—ä½“", posTab);
 
 	auto pCtx = new TABCTX;
 	pCtx->pBK = new CWorkWndBk;

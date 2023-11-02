@@ -25,6 +25,7 @@
 #include "eck/CResSet.h"
 #include "eck/CFormTable.h"
 #include "eck/CTabHeader.h"
+#include "eck/CSplitBar.h"
 
 
 using namespace std::literals;
@@ -32,7 +33,7 @@ using namespace std::literals;
 INT_PTR CALLBACK DlgProc_1(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	LPNMHDR     lpnmhdr;
-	static eck::CCommandLink cl1,cl2;
+	static eck::CCommandLink cl1, cl2;
 	switch (uMsg)
 	{
 	case WM_INITDIALOG:
@@ -47,7 +48,7 @@ INT_PTR CALLBACK DlgProc_1(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		BeginPaint(hDlg, &ps);
 		FillRect(ps.hdc, &ps.rcPaint, (HBRUSH)GetSysColorBrush(COLOR_WINDOW));
 		EndPaint(hDlg, &ps);
-	
+
 	}
 	return TRUE;
 	case WM_NOTIFY:
@@ -66,7 +67,7 @@ INT_PTR CALLBACK DlgProc_1(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			PropSheet_SetHeaderTitle(GetParent(hDlg), 0, L"你已经连接到Internet");
 			PropSheet_SetWizButtons(GetParent(hDlg), PSWIZB_BACK | PSWIZB_NEXT);
 		}
-			return FALSE;
+		return FALSE;
 
 		default:
 			break;
@@ -95,7 +96,7 @@ int CALLBACK PSProc(HWND hDlg, UINT uMsg, LPARAM lParam)
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ PWSTR pszCmdLine, _In_ int nCmdShow)
 {
-	CoInitialize(NULL);     
+	CoInitialize(NULL);
 	if (eck::Init(hInstance) != eck::InitStatus::Ok)
 	{
 		MessageBoxW(NULL, L"初始化失败", L"", 0);
@@ -106,7 +107,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	using namespace eck::Literals;
 
 	//CResSet<int> ress;
-	
+
 
 	//BYTE by[20];
 	//CMemWriter w(by);
@@ -155,8 +156,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	//int poss = FindStrRev(rs, L"1");
 	//EckDbgPrintFmt(L"%d", poss);
 	//return 0;
-	
-	
+
+
 	//PCWSTR psz = L"1000|||3000||4000";
 	//std::vector<eck::CRefStrW> a{};
 	//eck::SplitStr(psz, L"||||", a);
@@ -188,7 +189,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	//EckDbgPrint(CalcNextAlignBoundaryDistance(0, (void*)5, 4));
 	//return 0;
 
-	DLGTDLG Dlg{ 1,0xFFFF,0,0,WS_OVERLAPPEDWINDOW | WS_VISIBLE|DS_SETFONT ,3,0,0,240,100 };
+	DLGTDLG Dlg{ 1,0xFFFF,0,0,WS_OVERLAPPEDWINDOW | WS_VISIBLE | DS_SETFONT ,3,0,0,240,100 };
 	Dlg.Caption = L"测试对话框";
 	Dlg.Font = { 9,400,FALSE,GB2312_CHARSET };
 	Dlg.rsFontName = L"微软雅黑";
@@ -228,7 +229,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	psp[0].pfnDlgProc = DlgProc_1;
 
 	psp[1].dwSize = sizeof(PROPSHEETPAGEW);
-	psp[1].dwFlags = PSP_DLGINDIRECT | PSP_USEHEADERTITLE|PSP_USEHEADERSUBTITLE;
+	psp[1].dwFlags = PSP_DLGINDIRECT | PSP_USEHEADERTITLE | PSP_USEHEADERSUBTITLE;
 	psp[1].hInstance = hInstance;
 	psp[1].pResource = (DLGTEMPLATE*)rb.m_pStream;
 	psp[1].pszTitle = L"测试测试测试测试2";
@@ -245,7 +246,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	psh.dwSize = sizeof(psh);
 	psh.dwFlags = PSH_USEHICON | PSH_PROPSHEETPAGE | PSH_USECALLBACK |
 		PSH_AEROWIZARD | PSH_WIZARD | PSH_HEADER;
-		//PSH_WIZARD97;
+	//PSH_WIZARD97;
 	psh.hInstance = hInstance;
 	psh.hIcon = LoadIconW(NULL, IDI_WINLOGO);
 	psh.pszCaption = L"连接到 Internet";
@@ -308,6 +309,8 @@ eck::CScrollBar* g_SB;
 eck::CListView* g_LV;
 eck::CTaskGroupList* g_TGL;
 eck::CTabHeader* g_TH;
+eck::CSplitBar* g_SPB;
+eck::CSplitBar* g_SPBH;
 
 int g_iDpi = USER_DEFAULT_SCREEN_DPI;
 LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -397,168 +400,167 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		hIcon = eck::CreateHICON(LR"(E:\Desktop\图标9.ico)");
 		g_iDpi = eck::GetDpi(hWnd);
 		g_hFont = eck::EzFont(L"微软雅黑", 9);
+
+		//auto rbft = eck::ReadInFile(LR"(E:\Desktop\1.eckft)");
+		//eck::CFormTable ft;
+		//ft.LoadTable(rbft);// 解析窗体表
+		//eck::LoadForm(hWnd, ft.GetFormBin(101));// 载入
+		//eck::SetFontForWndAndCtrl(hWnd, g_hFont);
+		//return 0;
+		//eck::CWnd w;
+		//w.Attach(hWnd);
+		//w.FrameChanged();
+
+		//MARGINS Margins{ 0,0,eck::DpiScale(60,g_iDpi),0 };
+		////DwmExtendFrameIntoClientArea(hWnd, &Margins);
+		//eck::EnableWindowMica(hWnd);
+
+		//BOOL b = TRUE;
+		//DwmSetWindowAttribute(hWnd, DWMWA_ALLOW_NCPAINT, &b, sizeof(b));
+
+		//eck::SetFontForWndAndCtrl(hWnd, g_hFont);
+		//return 0;
+
+		g_Btn = new eck::CPushButton;
+		g_Btn->Create(L"测试按钮", WS_VISIBLE | BS_PUSHBUTTON, 0, 20, 30, 300, 180, hWnd, 101);
+
+		g_Edit = new eck::CEdit;
+		g_Edit->Create(L"示例编辑框", WS_VISIBLE, WS_EX_CLIENTEDGE, 400, 20, 400, 60, hWnd, 102);
+		//g_Edit->SetClr(2, 0xFF);
+		//g_Edit->SetClr(1, 0xFF);
+
+		g_Label = new eck::CLabel;
+		g_Label->Create(L"标签", WS_VISIBLE | WS_BORDER, 0, 20, 230, 400, 200, hWnd, 103);
+		g_Label->SetClr(2, CLR_DEFAULT);
+		auto rb = eck::ReadInFile(LR"(E:\Desktop\Temp\Zombatar_1.jpg)");
+		HBITMAP hBitmap = eck::CreateHBITMAP(rb, rb.m_cb);
+		g_Label->SetPic(hBitmap);
+		//g_Label->SetTransparent(TRUE);
+
+		g_CC = new eck::CColorPicker;
+		g_CC->SetNotifyMsg(WM_USER);
+		g_CC->Create(NULL, WS_VISIBLE, 0, 20, 450, 160, 400, hWnd, 104);
+
+		g_LBExt = new eck::CListBoxExt;
+		g_LBExt->Create(NULL, WS_VISIBLE, WS_EX_CLIENTEDGE, 500, 80, 300, 400, hWnd, 105);
+		g_LBExt->SetToolTip(TRUE);
+		g_LBExt->SetCheckBoxMode(1);
+		g_LBExt->SetItemHeight(0, 30);
+		eck::LBITEMCOMMINFO CommInfo{};
+		g_LBExt->SetRedraw(FALSE);
+		for (int i = 0; i < 40; ++i)
 		{
-			//auto rbft = eck::ReadInFile(LR"(E:\Desktop\1.eckft)");
-			//eck::CFormTable ft;
-			//ft.LoadTable(rbft);// 解析窗体表
-			//eck::LoadForm(hWnd, ft.GetFormBin(101));// 载入
-			//eck::SetFontForWndAndCtrl(hWnd, g_hFont);
-			//return 0;
-			//eck::CWnd w;
-			//w.Attach(hWnd);
-			//w.FrameChanged();
-
-			//MARGINS Margins{ 0,0,eck::DpiScale(60,g_iDpi),0 };
-			////DwmExtendFrameIntoClientArea(hWnd, &Margins);
-			//eck::EnableWindowMica(hWnd);
-
-			//BOOL b = TRUE;
-			//DwmSetWindowAttribute(hWnd, DWMWA_ALLOW_NCPAINT, &b, sizeof(b));
-
-			//eck::SetFontForWndAndCtrl(hWnd, g_hFont);
-			//return 0;
-
-			//g_Btn = new eck::CPushButton;
-			//g_Btn->Create(L"测试按钮", WS_VISIBLE | BS_PUSHBUTTON, 0, 20, 30, 300, 180, hWnd, 101);
-
-			//g_Edit = new eck::CEdit;
-			//g_Edit->Create(L"示例编辑框", WS_VISIBLE, WS_EX_CLIENTEDGE, 400, 20, 400, 60, hWnd, 102);
-			////g_Edit->SetClr(2, 0xFF);
-			////g_Edit->SetClr(1, 0xFF);
-
-			//g_Label = new eck::CLabel;
-			//g_Label->Create(L"标签", WS_VISIBLE | WS_BORDER, 0, 20, 230, 400, 200, hWnd, 103);
-			//g_Label->SetClr(2, CLR_DEFAULT);
-			//auto rb = eck::ReadInFile(LR"(E:\Desktop\Temp\Zombatar_1.jpg)");
-			//HBITMAP hBitmap = eck::CreateHBITMAP(rb, rb.m_cb);
-			//g_Label->SetPic(hBitmap);
-			////g_Label->SetTransparent(TRUE);
-
-			//g_CC = new eck::CColorPicker;
-			//g_CC->SetNotifyMsg(WM_USER);
-			//g_CC->Create(NULL, WS_VISIBLE, 0, 20, 450, 160, 400, hWnd, 104);
-
-			//g_LBExt = new eck::CListBoxExt;
-			//g_LBExt->Create(NULL, WS_VISIBLE, WS_EX_CLIENTEDGE, 500, 80, 300, 400, hWnd, 105);
-			//g_LBExt->SetToolTip(TRUE);
-			//g_LBExt->SetCheckBoxMode(1);
-			//g_LBExt->SetItemHeight(0, 30);
-			//eck::LBITEMCOMMINFO CommInfo{};
-			//g_LBExt->SetRedraw(FALSE);
-			//for (int i = 0; i < 40; ++i)
-			//{
-			//	if (i == 5)
-			//	{
-			//		CommInfo.bDisabled = TRUE;
-			//	}
-			//	else
-			//	{
-			//		CommInfo.bDisabled = FALSE;
-			//	}
-			//	g_LBExt->AddString(
-			//		(L"测试测试"s + std::to_wstring(i)).c_str(),
-			//		(L"我是提示"s + std::to_wstring(i)).c_str(),
-			//		CommInfo);
-			//}
-			//g_LBExt->SetRedraw(TRUE);
-
-			//g_DirBox = new eck::CDirBox;
-			//g_DirBox->SetDir(L"E:");
-			//g_DirBox->SetFileShowing(TRUE);
-			//g_DirBox->Create(NULL, WS_VISIBLE | TVS_HASBUTTONS | TVS_FULLROWSELECT | TVS_LINESATROOT | TVS_TRACKSELECT,
-			//	WS_EX_CLIENTEDGE, 820, 80, 400, 400, hWnd, 106);
-
-			//g_DirBox->SetExplorerTheme();
-			//g_DirBox->SetTVExtStyle(TVS_EX_DOUBLEBUFFER);
-
-
-			//eck::CTaskDialog td;
-			//TASKDIALOGCONFIG tdc;
-			//tdc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_SHOW_PROGRESS_BAR | TDF_CALLBACK_TIMER;
-			//tdc.pszMainInstruction = L"测试测试";
-			//tdc.pszContent = L"内容测试";
-			//tdc.hMainIcon = (HICON)TD_INFORMATION_ICON;
-			//td.m_aBtn.push_back({ 101,L"按钮1" });
-			//td.m_aBtn.push_back({ 102,L"按钮2" });
-			//td.m_aBtn.push_back({ 103,L"按钮3" });
-			//td.m_aBtn.push_back({ 104,L"按钮4" });
-			//td.m_aRadioBtn.push_back({ 201,L"单选框1" });
-			//td.m_aRadioBtn.push_back({ 202,L"单选框2" });
-			//tdc.lpCallbackData = (LONG_PTR)&td;
-			//tdc.pfCallback = [](HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LONG_PTR lRefData)->HRESULT
-			//{
-			//	auto p = (eck::CTaskDialog*)lRefData;
-			//	switch (uMsg)
-			//	{
-			//	case TDN_CREATED:
-			//		p->SetPBRange(0, 100);
-			//		break;
-			//	case TDN_RADIO_BUTTON_CLICKED:
-			//		if (wParam == 201)
-			//		{
-			//			p->SetPBState(PBST_ERROR);
-			//			p->SetShieldIcon(TRUE, 102);
-			//		}
-			//		else
-			//		{
-			//			p->SetPBState(PBST_NORMAL);
-			//			p->SetShieldIcon(FALSE, 102);
-			//		}
-			//		break;
-
-			//	case TDN_TIMER:
-			//		p->SetPBPos((int)wParam / 200);
-			//		if (wParam / 200 > 100)
-			//			return S_FALSE;
-			//		return S_OK;
-			//	}
-			//	return S_OK;
-			//};
-			//td.Show(&tdc);
-
-			//g_SBNcH = new eck::CScrollBarWndH;
-			//g_SBNcH->Manage(eck::CWnd::ManageOp::Attach, hWnd);
-			//g_SBNcH->ShowScrollBar(FALSE);
-
-			//g_SB = new eck::CScrollBar;
-			//g_SB->Create(NULL, WS_VISIBLE, 0, 20, 560, 400, 36, hWnd, 107);
-
-			//g_LV = new eck::CListView;
-			//g_LV->Create(NULL, WS_VISIBLE|LVS_REPORT, WS_EX_CLIENTEDGE, 20, 600, 600, 400, hWnd, 108);
-			//g_LV->SetExplorerTheme();
-			//g_LV->SetLVExtendStyle(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
-
-			//g_LV->InsertColumn(L"第一列");
-
-			//EckCounter(20, i)
-			//{
-			//	g_LV->InsertItem((L"测试测试测试"s + std::to_wstring(i)).c_str(), i);
-			//}
-
-
-			//HIMAGELIST hIL = ImageList_Create(48, 48, ILC_COLOR32, 10, 10);
-			//HBITMAP hbm = eck::CreateHBITMAP(LR"(E:\Desktop\Temp\图标9.ico)");
-			//ImageList_Add(hIL, hbm, NULL);
-
-			//g_TGL = new eck::CTaskGroupList;
-			//g_TGL->Create(NULL, WS_VISIBLE, WS_EX_CLIENTEDGE, 700, 480, 700, 500, hWnd, 109);
-			//g_TGL->SetTaskImageList(hIL);
-			//g_TGL->SetNotifyMsg(WM_USER + 1);
-			//eck::TGLSUBTASK SubTask[3]{};
-			//std::wstring s[3];
-			//EckCounter(10, i)
-			//{
-			//	s[0] = (L"子任务"s + std::to_wstring(i) + L"___1"s);
-			//	s[1] = (L"子任务"s + std::to_wstring(i) + L"___2"s);
-			//	s[2] = (L"子任务"s + std::to_wstring(i) + L"___3"s);
-			//	SubTask[0].pszText = s[0].c_str();
-			//	SubTask[1].pszText = s[1].c_str();
-			//	SubTask[2].pszText = s[2].c_str();
-			//	g_TGL->InsertTask((L"测试节标题"s + std::to_wstring(i)).c_str(), -1, 0, SubTask, ARRAYSIZE(SubTask));
-			//}
-			//g_TGL->RecalcColumnIdealWidth();
+			if (i == 5)
+			{
+				CommInfo.bDisabled = TRUE;
+			}
+			else
+			{
+				CommInfo.bDisabled = FALSE;
+			}
+			g_LBExt->AddString(
+				(L"测试测试"s + std::to_wstring(i)).c_str(),
+				(L"我是提示"s + std::to_wstring(i)).c_str(),
+				CommInfo);
 		}
-		
+		g_LBExt->SetRedraw(TRUE);
+
+		g_DirBox = new eck::CDirBox;
+		g_DirBox->SetDir(L"E:");
+		g_DirBox->SetFileShowing(TRUE);
+		g_DirBox->Create(NULL, WS_VISIBLE | TVS_HASBUTTONS | TVS_FULLROWSELECT | TVS_LINESATROOT | TVS_TRACKSELECT,
+			WS_EX_CLIENTEDGE, 820, 80, 400, 400, hWnd, 106);
+
+		g_DirBox->SetExplorerTheme();
+		g_DirBox->SetTVExtStyle(TVS_EX_DOUBLEBUFFER);
+
+
+		//eck::CTaskDialog td;
+		//TASKDIALOGCONFIG tdc;
+		//tdc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_SHOW_PROGRESS_BAR | TDF_CALLBACK_TIMER;
+		//tdc.pszMainInstruction = L"测试测试";
+		//tdc.pszContent = L"内容测试";
+		//tdc.hMainIcon = (HICON)TD_INFORMATION_ICON;
+		//td.m_aBtn.push_back({ 101,L"按钮1" });
+		//td.m_aBtn.push_back({ 102,L"按钮2" });
+		//td.m_aBtn.push_back({ 103,L"按钮3" });
+		//td.m_aBtn.push_back({ 104,L"按钮4" });
+		//td.m_aRadioBtn.push_back({ 201,L"单选框1" });
+		//td.m_aRadioBtn.push_back({ 202,L"单选框2" });
+		//tdc.lpCallbackData = (LONG_PTR)&td;
+		//tdc.pfCallback = [](HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LONG_PTR lRefData)->HRESULT
+		//{
+		//	auto p = (eck::CTaskDialog*)lRefData;
+		//	switch (uMsg)
+		//	{
+		//	case TDN_CREATED:
+		//		p->SetPBRange(0, 100);
+		//		break;
+		//	case TDN_RADIO_BUTTON_CLICKED:
+		//		if (wParam == 201)
+		//		{
+		//			p->SetPBState(PBST_ERROR);
+		//			p->SetShieldIcon(TRUE, 102);
+		//		}
+		//		else
+		//		{
+		//			p->SetPBState(PBST_NORMAL);
+		//			p->SetShieldIcon(FALSE, 102);
+		//		}
+		//		break;
+
+		//	case TDN_TIMER:
+		//		p->SetPBPos((int)wParam / 200);
+		//		if (wParam / 200 > 100)
+		//			return S_FALSE;
+		//		return S_OK;
+		//	}
+		//	return S_OK;
+		//};
+		//td.Show(&tdc);
+
+		g_SBNcH = new eck::CScrollBarWndH;
+		g_SBNcH->Manage(eck::CWnd::ManageOp::Attach, hWnd);
+		g_SBNcH->ShowScrollBar(FALSE);
+
+		g_SB = new eck::CScrollBar;
+		g_SB->Create(NULL, WS_VISIBLE, 0, 20, 560, 400, 36, hWnd, 107);
+
+		g_LV = new eck::CListView;
+		g_LV->Create(NULL, WS_VISIBLE | LVS_REPORT, WS_EX_CLIENTEDGE, 20, 600, 600, 400, hWnd, 108);
+		g_LV->SetExplorerTheme();
+		g_LV->SetLVExtendStyle(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
+
+		g_LV->InsertColumn(L"第一列");
+
+		EckCounter(20, i)
+		{
+			g_LV->InsertItem((L"测试测试测试"s + std::to_wstring(i)).c_str(), i);
+		}
+
+
+		HIMAGELIST hIL = ImageList_Create(48, 48, ILC_COLOR32, 10, 10);
+		HBITMAP hbm = eck::CreateHBITMAP(LR"(E:\Desktop\Temp\图标9.ico)");
+		ImageList_Add(hIL, hbm, NULL);
+
+		g_TGL = new eck::CTaskGroupList;
+		g_TGL->Create(NULL, WS_VISIBLE, WS_EX_CLIENTEDGE, 700, 480, 700, 500, hWnd, 109);
+		g_TGL->SetTaskImageList(hIL);
+		g_TGL->SetNotifyMsg(WM_USER + 1);
+		eck::TGLSUBTASK SubTask[3]{};
+		std::wstring s[3];
+		EckCounter(10, i)
+		{
+			s[0] = (L"子任务"s + std::to_wstring(i) + L"___1"s);
+			s[1] = (L"子任务"s + std::to_wstring(i) + L"___2"s);
+			s[2] = (L"子任务"s + std::to_wstring(i) + L"___3"s);
+			SubTask[0].pszText = s[0].c_str();
+			SubTask[1].pszText = s[1].c_str();
+			SubTask[2].pszText = s[2].c_str();
+			g_TGL->InsertTask((L"测试节标题"s + std::to_wstring(i)).c_str(), -1, 0, SubTask, ARRAYSIZE(SubTask));
+		}
+		g_TGL->RecalcColumnIdealWidth();
+
 		g_TH = new eck::CTabHeader;
 		g_TH->Create(NULL, WS_VISIBLE | WS_CHILD, 0, 0, 0, 800, 100, hWnd, 201);
 		eck::TABHEADERITEM thi;
@@ -568,6 +570,14 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		{
 			g_TH->InsertItem(&thi);
 		}
+
+		g_SPB = new eck::CSplitBar;
+		g_SPB->Create(NULL, WS_VISIBLE | WS_CHILD, 0, 50, 200, 20, 600, hWnd, 202);
+
+		g_SPBH = new eck::CSplitBar;
+		g_SPBH->Create(NULL, WS_VISIBLE | WS_CHILD, 0, 300, 400, 600, 20, hWnd, 202);
+		g_SPBH->SetDirection(TRUE);
+
 		eck::SetFontForWndAndCtrl(hWnd, g_hFont);
 	}
 	return 0;
@@ -605,7 +615,7 @@ INT_PTR CALLBACK DlgProc_About(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 		return TRUE;
 
 	case WM_DESTROY:
-		
+
 		return TRUE;
 	}
 

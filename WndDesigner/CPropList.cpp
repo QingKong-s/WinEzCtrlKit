@@ -1,4 +1,4 @@
-#include "CPropList.h"
+ï»¿#include "CPropList.h"
 
 #define SCID_PROPLIST		20230808'02
 #define SCID_PROPLISTPARENT 20230808'01
@@ -51,7 +51,7 @@ LRESULT CALLBACK CPropList::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARAM wPa
 				}
 
 				rcHItem.left += p->m_cxPadding;
-				DrawTextW(hDC, Item.rsText, Item.rsText.Size(), &rcHItem,
+				DrawTextW(hDC, Item.rsText.Data(), Item.rsText.Size(), &rcHItem,
 					DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS);
 
 
@@ -67,12 +67,12 @@ LRESULT CALLBACK CPropList::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARAM wPa
 				switch (Item.uType)
 				{
 				case eck::ECPT::Text:
-					pszVal = std::get<1>(Item.Val);
+					pszVal = std::get<1>(Item.Val).Data();
 					break;
 				case eck::ECPT::Image:
 				case eck::ECPT::Customize:
 					if (std::get<2>(Item.Val).m_cb)
-						pszVal = L"ÓÐÊý¾Ý";
+						pszVal = L"æœ‰æ•°æ®";
 					break;
 				default:
 				{
@@ -89,7 +89,7 @@ LRESULT CALLBACK CPropList::SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARAM wPa
 						sVal = std::to_wstring(Union.Vlf);
 						break;
 					case eck::ECPT::Bool:
-						sVal = (Union.Vb ? L"Õæ" : L"¼Ù");
+						sVal = (Union.Vb ? L"çœŸ" : L"å‡");
 						break;
 					case eck::ECPT::DateTime:
 						break;
@@ -231,8 +231,8 @@ LRESULT CALLBACK CPropList::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 		case eck::ECPT::Bool:
 			p->m_ComboBox.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
 			p->m_ComboBox.ResetContent();
-			p->m_ComboBox.AddString(L"¼Ù");
-			p->m_ComboBox.AddString(L"Õæ");
+			p->m_ComboBox.AddString(L"å‡");
+			p->m_ComboBox.AddString(L"çœŸ");
 			p->m_ComboBox.SetItemHeight(rcItem.bottom);
 			p->m_ComboBox.SetCurSel(!!std::get<0>(Item.Val).Vb);
 			ShowWindow(p->m_ComboBox, SW_SHOWNOACTIVATE);
@@ -243,7 +243,7 @@ LRESULT CALLBACK CPropList::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 			p->m_ComboBox.Move(rcItem.left, rcItem.top, rcItem.right, rcItem.bottom);
 			p->m_ComboBox.ResetContent();
 			EckCounter(Item.aPickStr.size(), i)
-				p->m_ComboBox.AddString(eck::ToStr(i) + L". " + Item.aPickStr[i]);
+				p->m_ComboBox.AddString((eck::ToStr(i) + L". " + Item.aPickStr[i]).Data());
 			p->m_ComboBox.SetItemHeight(rcItem.bottom);
 			p->m_ComboBox.SetCurSel(std::get<0>(Item.Val).Vi);
 			ShowWindow(p->m_ComboBox, SW_SHOWNOACTIVATE);

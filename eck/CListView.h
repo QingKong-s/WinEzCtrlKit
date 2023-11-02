@@ -807,6 +807,11 @@ public:
 		return (BOOL)SendMsg(LVM_SETINSERTMARK, 0, (LPARAM)&lvim);
 	}
 
+	EckInline BOOL SetInsertMark(LVINSERTMARK* plvim) const
+	{
+		return (BOOL)SendMsg(LVM_SETINSERTMARK, 0, (LPARAM)plvim);
+	}
+
 	EckInline COLORREF SetInsertMarkColor(COLORREF cr) const
 	{
 		return (COLORREF)SendMsg(LVM_SETINSERTMARKCOLOR, 0, cr);
@@ -840,12 +845,22 @@ public:
 		return (BOOL)SendMsg(LVM_SETITEMINDEXSTATE, (WPARAM)&lvii, (LPARAM)&li);
 	}
 
+	EckInline BOOL SetItemState(LVITEMINDEX* plvii, LVITEMW* plvi) const
+	{
+		return (BOOL)SendMsg(LVM_SETITEMINDEXSTATE, (WPARAM)plvii, (LPARAM)plvi);
+	}
+
 	EckInline BOOL SetItemState(int idx, UINT uState, UINT uMask) const
 	{
-		LVITEMW li;
-		li.state = uState;
-		li.stateMask = uMask;
-		return (BOOL)SendMsg(LVM_SETITEMSTATE, idx, (LPARAM)&li);
+		LVITEMW lvi;
+		lvi.state = uState;
+		lvi.stateMask = uMask;
+		return (BOOL)SendMsg(LVM_SETITEMSTATE, idx, (LPARAM)&lvi);
+	}
+
+	EckInline BOOL SetItemState(int idx, LVITEMW* plvi) const
+	{
+		return (BOOL)SendMsg(LVM_SETITEMSTATE, idx, (LPARAM)plvi);
 	}
 
 	EckInline void SetItemPosition(int idx, POINT pt) const

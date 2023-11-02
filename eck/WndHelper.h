@@ -1,7 +1,7 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* WndHelper.h £º ´°¿Ú²Ù×÷°ïÖúº¯Êı
+* WndHelper.h ï¼š çª—å£æ“ä½œå¸®åŠ©å‡½æ•°
 *
 * Copyright(C) 2023 QingKong
 */
@@ -14,6 +14,7 @@
 #define ECK_DS_END_VAR(VarName) } VarName{};
 #define ECK_DS_END() };
 #define ECK_DS_ENTRY(Name, Size) const int o_##Name = Size; int Name = Size;
+#define ECK_DS_ENTRY_F(Name, Size) const float o_##Name = Size; float Name = Size;
 
 #ifndef ECKMACRO_NO_ADD_HANDLE_MSG
 #define HANDLE_WM_MOUSELEAVE(hWnd, wParam, lParam, fn) \
@@ -105,6 +106,16 @@ EckInline int DpiScale(int i, int iDpi)
 	return DpiScale(i, iDpi, USER_DEFAULT_SCREEN_DPI);
 }
 
+EckInline float DpiScaleF(float i, int iDpiNew, int iDpiOld)
+{
+	return i * iDpiNew / iDpiOld;
+}
+
+EckInline float DpiScaleF(float i, int iDpi)
+{
+	return DpiScaleF(i, iDpi, USER_DEFAULT_SCREEN_DPI);
+}
+
 EckInline void DpiScale(RECT& rc, int iDpiNew, int iDpiOld)
 {
 	rc.left = rc.left * iDpiNew / iDpiOld;
@@ -134,16 +145,16 @@ EckInline void RemovePrevDpiProp(HWND hWnd)
 }
 
 /// <summary>
-/// ´´½¨×ÖÌå
+/// åˆ›å»ºå­—ä½“
 /// </summary>
-/// <param name="pszFontName">×ÖÌåÃû³Æ</param>
-/// <param name="iPoint">µãÊı</param>
-/// <param name="iWeight">È¨ÖØ</param>
-/// <param name="bItalic">ÊÇ·ñÇãĞ±</param>
-/// <param name="bUnderline">ÊÇ·ñÏÂ»®Ïß</param>
-/// <param name="bStrikeOut">ÊÇ·ñÉ¾³ıÏß</param>
-/// <param name="hWnd">¼ÆËã¸ß¶ÈÊ±µÄ²ÎÕÕ´°¿Ú£¬½«Ê¹ÓÃ´Ë´°¿ÚµÄDCÀ´¶ÈÁ¿£¬Ä¬ÈÏÊ¹ÓÃ×ÀÃæ´°¿Ú</param>
-/// <returns>×ÖÌå¾ä±ú</returns>
+/// <param name="pszFontName">å­—ä½“åç§°</param>
+/// <param name="iPoint">ç‚¹æ•°</param>
+/// <param name="iWeight">æƒé‡</param>
+/// <param name="bItalic">æ˜¯å¦å€¾æ–œ</param>
+/// <param name="bUnderline">æ˜¯å¦ä¸‹åˆ’çº¿</param>
+/// <param name="bStrikeOut">æ˜¯å¦åˆ é™¤çº¿</param>
+/// <param name="hWnd">è®¡ç®—é«˜åº¦æ—¶çš„å‚ç…§çª—å£ï¼Œå°†ä½¿ç”¨æ­¤çª—å£çš„DCæ¥åº¦é‡ï¼Œé»˜è®¤ä½¿ç”¨æ¡Œé¢çª—å£</param>
+/// <returns>å­—ä½“å¥æŸ„</returns>
 EckInline HFONT EzFont(PCWSTR pszFontName, int iPoint, int iWeight = 400, BOOL bItalic = FALSE,
 	BOOL bUnderline = FALSE, BOOL bStrikeOut = FALSE, HWND hWnd = NULL, DWORD dwCharSet = GB2312_CHARSET)
 {
@@ -156,12 +167,12 @@ EckInline HFONT EzFont(PCWSTR pszFontName, int iPoint, int iWeight = 400, BOOL b
 }
 
 /// <summary>
-/// ÉèÖÃ´°¿Ú×ÖÌå¡£
-/// º¯ÊıÃ¶¾Ù´°¿ÚµÄËùÓĞ×Ó´°¿Ú²¢Ï¤ÊıÉèÖÃ×ÖÌå
+/// è®¾ç½®çª—å£å­—ä½“ã€‚
+/// å‡½æ•°æšä¸¾çª—å£çš„æ‰€æœ‰å­çª—å£å¹¶æ‚‰æ•°è®¾ç½®å­—ä½“
 /// </summary>
-/// <param name="hWnd">´°¿Ú¾ä±ú</param>
-/// <param name="hFont">×ÖÌå¾ä±ú</param>
-/// <param name="bRedraw">ÊÇ·ñÖØ»­</param>
+/// <param name="hWnd">çª—å£å¥æŸ„</param>
+/// <param name="hFont">å­—ä½“å¥æŸ„</param>
+/// <param name="bRedraw">æ˜¯å¦é‡ç”»</param>
 EckInline void SetFontForWndAndCtrl(HWND hWnd, HFONT hFont, BOOL bRedraw = FALSE)
 {
 	EnumChildWindows(hWnd,
@@ -175,24 +186,24 @@ EckInline void SetFontForWndAndCtrl(HWND hWnd, HFONT hFont, BOOL bRedraw = FALSE
 }
 
 /// <summary>
-/// ´°¿ÚDPI±»¸ü¸Ä¡£
-/// ½öÊÊÓÃÓÚ'Ã¿ÏÔÊ¾Æ÷DPI¸ĞÖªV2'¸ĞÖªÄ£Ê½¡£
-/// º¯Êıµİ¹é±éÀú´°¿ÚµÄËùÓĞ×ÓËï´°¿Ú²¢µ÷ÓÃDeferWindowPosÏ¤Êıµ÷Õû³ß´ç¡£
-/// ´°¿ÚµÄÆäËû×ÊÔ´Èç×ÖÌåµÈÓÉÆäÊµÏÖ´úÂëĞŞ¸Ä
+/// çª—å£DPIè¢«æ›´æ”¹ã€‚
+/// ä»…é€‚ç”¨äº'æ¯æ˜¾ç¤ºå™¨DPIæ„ŸçŸ¥V2'æ„ŸçŸ¥æ¨¡å¼ã€‚
+/// å‡½æ•°é€’å½’éå†çª—å£çš„æ‰€æœ‰å­å­™çª—å£å¹¶è°ƒç”¨DeferWindowPosæ‚‰æ•°è°ƒæ•´å°ºå¯¸ã€‚
+/// çª—å£çš„å…¶ä»–èµ„æºå¦‚å­—ä½“ç­‰ç”±å…¶å®ç°ä»£ç ä¿®æ”¹
 /// </summary>
-/// <param name="hWnd">´°¿Ú¾ä±ú</param>
-/// <param name="iDpiNew">¸ü¸ÄºóµÄDPI</param>
-/// <param name="iDpiOld">¸ü¸ÄÇ°µÄDPI</param>
-/// <returns>³É¹¦·µ»ØTRUE£¬Ê§°Ü·µ»ØFALSE</returns>
+/// <param name="hWnd">çª—å£å¥æŸ„</param>
+/// <param name="iDpiNew">æ›´æ”¹åçš„DPI</param>
+/// <param name="iDpiOld">æ›´æ”¹å‰çš„DPI</param>
+/// <returns>æˆåŠŸè¿”å›TRUEï¼Œå¤±è´¥è¿”å›FALSE</returns>
 BOOL OnDpiChanged_Parent_PreMonV2(HWND hWnd, int iDpiNew, int iDpiOld);
 
 /// <summary>
-/// °´ĞÂ¾ÉDPIÖØĞÂ´´½¨×ÖÌå
+/// æŒ‰æ–°æ—§DPIé‡æ–°åˆ›å»ºå­—ä½“
 /// </summary>
-/// <param name="hFont">×ÖÌå</param>
-/// <param name="iDpiNew">ĞÂDPI</param>
-/// <param name="iDpiOld">¾ÉDPI</param>
-/// <param name="bDeletePrevFont">ÊÇ·ñÉ¾³ıhFontÖ¸Ê¾µÄ×ÖÌå£¬Ä¬ÈÏFALSE</param>
+/// <param name="hFont">å­—ä½“</param>
+/// <param name="iDpiNew">æ–°DPI</param>
+/// <param name="iDpiOld">æ—§DPI</param>
+/// <param name="bDeletePrevFont">æ˜¯å¦åˆ é™¤hFontæŒ‡ç¤ºçš„å­—ä½“ï¼Œé»˜è®¤FALSE</param>
 /// <returns></returns>
 EckInline HFONT ReCreateFontForDpiChanged(HFONT hFont, int iDpiNew, int iDpiOld, BOOL bDeletePrevFont = FALSE)
 {
@@ -205,13 +216,13 @@ EckInline HFONT ReCreateFontForDpiChanged(HFONT hFont, int iDpiNew, int iDpiOld,
 }
 
 /// <summary>
-/// °´ĞÂ¾ÉDPIÖØĞÂÉèÖÃ´°¿Ú×ÖÌå
+/// æŒ‰æ–°æ—§DPIé‡æ–°è®¾ç½®çª—å£å­—ä½“
 /// </summary>
-/// <param name="hWnd">´°¿Ú¾ä±ú</param>
-/// <param name="iDpiNew">ĞÂDPI</param>
-/// <param name="iDpiOld">¾ÉDPI</param>
-/// <param name="bRedraw">ÊÇ·ñÖØ»­£¬Ä¬ÈÏTRUE</param>
-/// <param name="bDeletePrevFont">ÊÇ·ñÉ¾³ıÏÈÇ°µÄ´°¿Ú×ÖÌå£¬Ä¬ÈÏFALSE</param>
+/// <param name="hWnd">çª—å£å¥æŸ„</param>
+/// <param name="iDpiNew">æ–°DPI</param>
+/// <param name="iDpiOld">æ—§DPI</param>
+/// <param name="bRedraw">æ˜¯å¦é‡ç”»ï¼Œé»˜è®¤TRUE</param>
+/// <param name="bDeletePrevFont">æ˜¯å¦åˆ é™¤å…ˆå‰çš„çª—å£å­—ä½“ï¼Œé»˜è®¤FALSE</param>
 /// <returns></returns>
 EckInline HFONT ResetFontForDpiChanged(HWND hWnd, int iDpiNew, int iDpiOld, BOOL bRedraw = TRUE, BOOL bDeletePrevFont = FALSE)
 {
@@ -225,7 +236,7 @@ EckInline HFONT ResetFontForDpiChanged(HWND hWnd, int iDpiNew, int iDpiOld, BOOL
 BOOL GetWindowClientRect(HWND hWnd, HWND hParent, RECT* prc);
 
 /// <summary>
-/// Í¨¹ıÉèÖÃÍ¼ÏñÁĞ±íÀ´ÉèÖÃListViewĞĞ¸ß
+/// é€šè¿‡è®¾ç½®å›¾åƒåˆ—è¡¨æ¥è®¾ç½®ListViewè¡Œé«˜
 /// </summary>
 /// <param name="hLV"></param>
 /// <param name="cy"></param>
@@ -271,9 +282,14 @@ template<class T>
 EckInline void UpdateDpiSize(T& Dpis, int iDpi)
 {
 	for (int* p = ((int*)&Dpis) + 1; p < PtrSkipType(&Dpis); p += 2)
-	{
 		*p = DpiScale(*(p - 1), iDpi);
-	}
+}
+
+template<class T>
+EckInline void UpdateDpiSizeF(T& Dpis, int iDpi)
+{
+	for (float* p = ((float*)&Dpis) + 1; p < PtrSkipType(&Dpis); p += 2)
+		*p = DpiScaleF(*(p - 1), iDpi);
 }
 
 HWND GetThreadFirstWindow(DWORD dwTid);

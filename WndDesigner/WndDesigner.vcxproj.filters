@@ -284,6 +284,9 @@
     <ClCompile Include="CPropList.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\eck\CDialog.cpp">
+      <Filter>eck</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="WndDesigner.rc">

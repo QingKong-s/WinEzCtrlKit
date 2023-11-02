@@ -223,6 +223,11 @@ public:
 	{
 		return EnableWindow(m_hWnd, bEnable);
 	}
+
+	EckInline BOOL IsVisible() const
+	{
+		return IsWindowVisible(m_hWnd);
+	}
 };
 
 class COwnWnd :public CWnd

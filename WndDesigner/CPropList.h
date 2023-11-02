@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "CApp.h"
 
 #include <variant>
@@ -74,25 +74,25 @@ private:
 			Item.Val = m_Edit.GetText();
 			break;
 		case eck::ECPT::Int:
-			Val.Vi = _wtoi(m_Edit.GetText());
+			Val.Vi = _wtoi(m_Edit.GetText().Data());
 			Item.Val = Val;
 			break;
 		case eck::ECPT::Float:
-			Val.Vf = (float)_wtof(m_Edit.GetText());
+			Val.Vf = (float)_wtof(m_Edit.GetText().Data());
 			Item.Val = Val;
 			break;
 		case eck::ECPT::Double:
-			Val.Vlf = _wtof(m_Edit.GetText());
+			Val.Vlf = _wtof(m_Edit.GetText().Data());
 			Item.Val = Val;
 			break;
 		case eck::ECPT::Bool:
-			Val.Vb = m_ComboBox.GetCurrSel();
+			Val.Vb = m_ComboBox.GetCurSel();
 			Item.Val = Val;
 			break;
 		case eck::ECPT::DateTime:
 			break;
 		case eck::ECPT::PickInt:
-			Val.Vi = m_ComboBox.GetCurrSel();
+			Val.Vi = m_ComboBox.GetCurSel();
 			Item.Val = Val;
 			break;
 		case eck::ECPT::PickText:
@@ -106,7 +106,7 @@ private:
 		}
 
 		if (Item.Val.index() == 1)
-			Val.Vpsz = std::get<1>(Item.Val);
+			Val.Vpsz = std::get<1>(Item.Val).Data();
 		else if (Item.Val.index() == 2)
 		{
 			Val.Vbin.pData = std::get<2>(Item.Val);
@@ -284,7 +284,7 @@ public:
 		switch (Item.uType)
 		{
 		case eck::ECPT::Text:
-			Val.Vpsz = std::get<1>(Item.Val);
+			Val.Vpsz = std::get<1>(Item.Val).Data();
 			return Val;
 		case eck::ECPT::Customize:
 		case eck::ECPT::Image:

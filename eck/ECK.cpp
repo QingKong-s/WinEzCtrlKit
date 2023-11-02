@@ -1,8 +1,9 @@
-#include "ECK.h"
+﻿#include "ECK.h"
 #include "CLabel.h"
 #include "CColorPicker.h"
 #include "CBk.h"
 #include "CDialog.h"
+#include "CSplitBar.h"
 #include "Utility.h"
 
 #include <Shlwapi.h>
@@ -45,6 +46,9 @@ InitStatus Init(HINSTANCE hInstance)
 		return InitStatus::RegWndClassError;
 
 	if (!CDialog::RegisterWndClass(hInstance))
+		return InitStatus::RegWndClassError;
+
+	if (!CSplitBar::RegisterWndClass(hInstance))
 		return InitStatus::RegWndClassError;
 
 	WCHAR szPath[MAX_PATH];

@@ -192,6 +192,12 @@
     <ClInclude Include="eck\CDialog.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\CAnimation.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CSplitBar.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Win32Template.cpp">
@@ -273,6 +279,12 @@
       <Filter>ECK Src</Filter>
     </ClCompile>
     <ClCompile Include="eck\CFile.cpp">
+      <Filter>ECK Src</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\CSplitBar.cpp">
+      <Filter>ECK Src</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\CDialog.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
   </ItemGroup>
