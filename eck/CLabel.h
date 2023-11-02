@@ -1,7 +1,7 @@
-/*
+﻿/*
 * WinEzCtrlKit Library
 *
-* CLabel.h �� ��ǩ
+* CLabel.h ： 标签
 *
 * Copyright(C) 2023 QingKong
 */
@@ -15,25 +15,25 @@
 ECK_NAMESPACE_BEGIN
 struct ECKLABELDATA
 {
-	int iBKPicMode;			// ��ͼģʽ��0 - ������  1 - ƽ��  2 - ����  3 - ����
-	int iAlignH;			// �������
-	int iAlignV;			// �������
-	COLORREF crText;		// �ı���ɫ
-	COLORREF crTextBK;		// �ı�������ɫ
-	COLORREF crBK;			// ������ɫ
+	int iBKPicMode;			// 底图模式，0 - 居左上  1 - 平铺  2 - 居中  3 - 缩放
+	int iAlignH;			// 横向对齐
+	int iAlignV;			// 纵向对齐
+	COLORREF crText;		// 文本颜色
+	COLORREF crTextBK;		// 文本背景颜色
+	COLORREF crBK;			// 背景颜色
 	/*
-	* ���䱳��ģʽ����ѡֵ��
-	* 0 - ��  1 - ���ϵ���  2 - ���µ���  3 - ������  4 - ���ҵ���
-	* 5 - �����ϵ�����  6 - �����µ�����  7 - �����µ�����  8 - �����ϵ�����
+	* 渐变背景模式，可选值：
+	* 0 - 无  1 - 从上到下  2 - 从下到上  3 - 从左到右  4 - 从右到左
+	* 5 - 从左上到右下  6 - 从右下到左上  7 - 从左下到右上  8 - 从右上到左下
 	*/
 	int iGradientMode;
-	COLORREF crGradient[3];	// ���䱳����ɫ
-	int iEllipsisMode;		// ʡ�Ժ�ģʽ��0 - ��  1 - ĩβʡ��  2 - ·��ʡ��  3 - ʡ�Ե���
-	int iPrefixMode;		// ǰ׺ģʽ��0 - ����  1 - ������ǰ׺  2 - �����»���  3 - ֻ��ʾ�»���
-	int iMousePassingThrough;	// ��괩͸��0 - ��  1 - ��͸�հ�����  2 - ��͸�����ؼ�
-	BITBOOL bAutoWrap : 1;		// �Զ�����
-	BITBOOL bFullWndPic : 1;	// ��ͼ���������ؼ�
-	BITBOOL bTransparent : 1;	// ͸����ǩ
+	COLORREF crGradient[3];	// 渐变背景颜色
+	int iEllipsisMode;		// 省略号模式，0 - 无  1 - 末尾省略  2 - 路径省略  3 - 省略单词
+	int iPrefixMode;		// 前缀模式，0 - 常规  1 - 不解释前缀  2 - 隐藏下划线  3 - 只显示下划线
+	int iMousePassingThrough;	// 鼠标穿透，0 - 无  1 - 穿透空白区域  2 - 穿透整个控件
+	BITBOOL bAutoWrap : 1;		// 自动折行
+	BITBOOL bFullWndPic : 1;	// 底图尽量充满控件
+	BITBOOL bTransparent : 1;	// 透明标签
 	BITBOOL bUxThemeText : 1;
 };
 
@@ -45,46 +45,46 @@ private:
 	ECKLABELDATA m_Info{};
 
 	int m_cxClient = 0,
-		m_cyClient = 0;			// �ͻ�����С
-	HDC m_hCDC = NULL;			// ��̨����DC
-	HDC m_hcdcHelper = NULL;	// ��λͼʹ�õĸ���DC
-	HBITMAP m_hBitmap = NULL;	// ��̨����λͼ
-	HGDIOBJ m_hOld1 = NULL;		// ��̨DC��λͼ���
-	HGDIOBJ m_hOld2 = NULL;		// ����DC��λͼ���
+		m_cyClient = 0;			// 客户区大小
+	HDC m_hCDC = NULL;			// 后台兼容DC
+	HDC m_hcdcHelper = NULL;	// 画位图使用的辅助DC
+	HBITMAP m_hBitmap = NULL;	// 后台兼容位图
+	HGDIOBJ m_hOld1 = NULL;		// 后台DC旧位图句柄
+	HGDIOBJ m_hOld2 = NULL;		// 辅助DC旧位图句柄
 
-	HBITMAP m_hbmBK = NULL;		// ��ͼ
-	HBITMAP m_hbmPic = NULL;	// ͼƬ
+	HBITMAP m_hbmBK = NULL;		// 底图
+	HBITMAP m_hbmPic = NULL;	// 图片
 	int m_cxBKPic = 0,
-		m_cyBKPic = 0;			// ��ͼ��С
+		m_cyBKPic = 0;			// 底图大小
 
 	int m_cxPic = 0,
-		m_cyPic = 0;			// ͼƬ��С
-	RECT m_rcPartPic{};			// �����ͼƬ����
-	RECT m_rcPartText{};		// ������ı�����
+		m_cyPic = 0;			// 图片大小
+	RECT m_rcPartPic{};			// 缓存的图片矩形
+	RECT m_rcPartText{};		// 缓存的文本矩形
 
-	static ATOM m_atomLabel;	// ��ǩ��ԭ��
+	static ATOM m_atomLabel;	// 标签类原子
 
 	/// <summary>
-	/// ���Ʊ�ǩ��
-	/// ��m_Info.bTransparentΪTRUE�����Զ����ü���DC���ؼ�����
+	/// 绘制标签。
+	/// 若m_Info.bTransparent为TRUE，则自动设置剪辑DC至控件矩形
 	/// </summary>
-	/// <param name="hDC">Ŀ��DC������֮ǰ���Ա����������</param>
+	/// <param name="hDC">目标DC，调用之前属性必须设置完毕</param>
 	void Paint(HDC hDC);
 
 	/// <summary>
-	/// ���㲿������
+	/// 计算部件矩形
 	/// </summary>
 	void CalcPartsRect();
 
 	/// <summary>
-	/// ���ⲿDC���ԡ�
-	/// ������ʹ��SaveDC����DC״̬��Ȼ����ݿؼ���������DC
+	/// 置外部DC属性。
+	/// 函数先使用SaveDC保存DC状态，然后根据控件属性设置DC
 	/// </summary>
-	/// <param name="hDC">Ŀ��DC</param>
+	/// <param name="hDC">目标DC</param>
 	void SetDCAttr(HDC hDC);
 
 	/// <summary>
-	/// �ؼ����ڹ���
+	/// 控件窗口过程
 	/// </summary>
 	static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -98,6 +98,7 @@ public:
 		m_hWnd = CreateWindowExW(dwExStyle, WCN_LABEL, pszText, dwStyle,
 			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), g_hInstance, this);
 		m_Recorder.AddRecord(m_hWnd, this);
+		SetClr(2, CLR_DEFAULT);
 		return m_hWnd;
 	}
 
@@ -119,24 +120,24 @@ public:
 	void Redraw();
 
 	/// <summary>
-	/// �ñ���ͼƬ
+	/// 置背景图片
 	/// </summary>
-	/// <param name="hBitmap">λͼ���</param>
+	/// <param name="hBitmap">位图句柄</param>
 	HBITMAP SetBKPic(HBITMAP hBitmap);
 
 	/// <summary>
-	/// ȡ����ͼƬ
+	/// 取背景图片
 	/// </summary>
-	/// <returns>ͼƬ���</returns>
+	/// <returns>图片句柄</returns>
 	EckInline HBITMAP GetBKPic()
 	{
 		return m_hbmBK;
 	}
 
 	/// <summary>
-	/// ��ͼƬ
+	/// 置图片
 	/// </summary>
-	/// <param name="hBitmap">λͼ���</param>
+	/// <param name="hBitmap">位图句柄</param>
 	HBITMAP SetPic(HBITMAP hBitmap);
 
 	EckInline HBITMAP GetPic()
@@ -145,7 +146,7 @@ public:
 	}
 
 	/// <summary>
-	/// �õ�ͼ��ʽ
+	/// 置底图方式
 	/// </summary>
 	EckInline void SetBKPicMode(int iBKPicMode)
 	{
@@ -159,10 +160,10 @@ public:
 	}
 
 	/// <summary>
-	/// �ö���
+	/// 置对齐
 	/// </summary>
-	/// <param name="bHAlign">�Ƿ�Ϊ�������</param>
-	/// <param name="iAlign">���뷽ʽ</param>
+	/// <param name="bHAlign">是否为横向对齐</param>
+	/// <param name="iAlign">对齐方式</param>
 	EckInline void SetAlign(BOOL bHAlign, int iAlign)
 	{
 		if (bHAlign)
@@ -182,7 +183,7 @@ public:
 	}
 
 	/// <summary>
-	/// ���Զ�����
+	/// 置自动换行
 	/// </summary>
 	/// <param name="bAutoWrap"></param>
 	/// <returns></returns>
@@ -199,10 +200,10 @@ public:
 	}
 
 	/// <summary>
-	/// ����ɫ
+	/// 置颜色
 	/// </summary>
-	/// <param name="idx">0 = �ı���ɫ  1 = ����  2 = �ı�����</param>
-	/// <param name="cr">��ɫ</param>
+	/// <param name="idx">0 = 文本颜色  1 = 背景  2 = 文本背景</param>
+	/// <param name="cr">颜色</param>
 	void SetClr(int idx, COLORREF cr);
 
 	EckInline COLORREF GetClr(int idx) const
@@ -218,7 +219,7 @@ public:
 	}
 
 	/// <summary>
-	/// �ý��䷽ʽ
+	/// 置渐变方式
 	/// </summary>
 	EckInline void SetGradientMode(int iGradientMode)
 	{
@@ -232,7 +233,7 @@ public:
 	}
 
 	/// <summary>
-	/// �ý�����ɫ
+	/// 置渐变颜色
 	/// </summary>
 	EckInline void SetGradientClr(int idx, COLORREF cr)
 	{
@@ -246,7 +247,7 @@ public:
 	}
 
 	/// <summary>
-	/// ��ʡ�Ժ�ģʽ
+	/// 置省略号模式
 	/// </summary>
 	/// <param name="iEllipsisMode"></param>
 	/// <returns></returns>
@@ -263,7 +264,7 @@ public:
 	}
 
 	/// <summary>
-	/// ��ǰ׺����ģʽ
+	/// 置前缀解释模式
 	/// </summary>
 	/// <param name="iPrefixMode"></param>
 	/// <returns></returns>
@@ -280,7 +281,7 @@ public:
 	}
 
 	/// <summary>
-	/// �õ�ͼ��������
+	/// 置底图充满窗口
 	/// </summary>
 	EckInline void SetFullWndPic(BOOL bFullWndPic)
 	{
@@ -294,7 +295,7 @@ public:
 	}
 
 	/// <summary>
-	/// ��͸����ǩ
+	/// 置透明标签
 	/// </summary>
 	EckInline void SetTransparent(BOOL bTransparent)
 	{
@@ -309,7 +310,7 @@ public:
 	}
 
 	/// <summary>
-	/// ����괩͸
+	/// 置鼠标穿透
 	/// </summary>
 	/// <param name="iMousePassingThrough"></param>
 	/// <returns></returns>

@@ -1,7 +1,7 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* DbgHelper.h £º µ÷ÊÔ°ïÖúº¯Êı
+* DbgHelper.h ï¼š è°ƒè¯•å¸®åŠ©å‡½æ•°
 *
 * Copyright(C) 2023 QingKong
 */
@@ -16,19 +16,19 @@ ECK_NAMESPACE_BEGIN
 #ifndef NDEBUG
 
 #pragma warning (push)
-#pragma warning (disable:6053)// ¶Ô¡°_snwprintf¡±µÄÇ°Ò»µ÷ÓÃ¿ÉÄÜÃ»ÓĞÎª×Ö·û´®¡°buf¡±Ìí¼Ó×Ö·û´®ÁãÖÕÖ¹·û
-#pragma warning (disable:4996)// º¯Êı²»°²È«
+#pragma warning (disable:6053)// å¯¹â€œ_snwprintfâ€çš„å‰ä¸€è°ƒç”¨å¯èƒ½æ²¡æœ‰ä¸ºå­—ç¬¦ä¸²â€œbufâ€æ·»åŠ å­—ç¬¦ä¸²é›¶ç»ˆæ­¢ç¬¦
+#pragma warning (disable:4996)// å‡½æ•°ä¸å®‰å…¨
 
 #define ECK_BS_DBGVAL           64
 #define ECK_BS_DBGVALMAXCH      (ECK_BS_DBGVAL - 1)
 
 /// <summary>
-/// ¡¾µ÷ÊÔÓÃ¡¿
-/// Êä³öµ÷ÊÔÊıÖµ¡£
+/// ã€è°ƒè¯•ç”¨ã€‘
+/// è¾“å‡ºè°ƒè¯•æ•°å€¼ã€‚
 /// </summary>
-/// <param name="i">ÊıÖµ</param>
-/// <param name="bHex">ÊÇ·ñÊ®Áù½øÖÆ</param>
-/// <param name="bNewLine">ÊÇ·ñÔÚÄ©Î²»»ĞĞ</param>
+/// <param name="i">æ•°å€¼</param>
+/// <param name="bHex">æ˜¯å¦åå…­è¿›åˆ¶</param>
+/// <param name="bNewLine">æ˜¯å¦åœ¨æœ«å°¾æ¢è¡Œ</param>
 EckInline void DbgPrint(int i, BOOL bHex = FALSE, BOOL bNewLine = TRUE)
 {
     WCHAR buf[ECK_BS_DBGVAL];
@@ -123,11 +123,11 @@ EckInline void DbgPrint(void* i, BOOL bNewLine = TRUE)
 }
 
 /// <summary>
-/// ¡¾µ÷ÊÔÓÃ¡¿
-/// Êä³ö×Ö·û´®
+/// ã€è°ƒè¯•ç”¨ã€‘
+/// è¾“å‡ºå­—ç¬¦ä¸²
 /// </summary>
-/// <param name="psz">×Ö·û´®</param>
-/// <param name="bNewLine">ÊÇ·ñÔÚÄ©Î²»»ĞĞ</param>
+/// <param name="psz">å­—ç¬¦ä¸²</param>
+/// <param name="bNewLine">æ˜¯å¦åœ¨æœ«å°¾æ¢è¡Œ</param>
 EckInline void DbgPrint(PCWSTR psz, BOOL bNewLine = TRUE)
 {
     PWSTR pszBuf = new WCHAR[lstrlenW(psz) + 2];
@@ -139,22 +139,22 @@ EckInline void DbgPrint(PCWSTR psz, BOOL bNewLine = TRUE)
 }
 
 /// <summary>
-/// ¡¾µ÷ÊÔÓÃ¡¿
-/// Êä³ö×îºó´íÎó¡£
+/// ã€è°ƒè¯•ç”¨ã€‘
+/// è¾“å‡ºæœ€åé”™è¯¯ã€‚
 /// </summary>
-/// <param name="bHex">ÊÇ·ñÊ®Áù½øÖÆ</param>
-/// <param name="bNewLine">ÊÇ·ñÔÚÄ©Î²»»ĞĞ</param>
+/// <param name="bHex">æ˜¯å¦åå…­è¿›åˆ¶</param>
+/// <param name="bNewLine">æ˜¯å¦åœ¨æœ«å°¾æ¢è¡Œ</param>
 EckInline void DbgPrintLastError(BOOL bHex = FALSE, BOOL bNewLine = TRUE)
 {
     DbgPrint(GetLastError(), bHex, bNewLine);
 }
 
 /// <summary>
-/// ¡¾µ÷ÊÔÓÃ¡¿
-/// Êä³ö´íÎóÂëµÄ¸ñÊ½»¯ĞÅÏ¢
+/// ã€è°ƒè¯•ç”¨ã€‘
+/// è¾“å‡ºé”™è¯¯ç çš„æ ¼å¼åŒ–ä¿¡æ¯
 /// </summary>
-/// <param name="uErrCode">´íÎóÂë</param>
-/// <param name="bNewLine">ÊÇ·ñÔÚÄ©Î²»»ĞĞ</param>
+/// <param name="uErrCode">é”™è¯¯ç </param>
+/// <param name="bNewLine">æ˜¯å¦åœ¨æœ«å°¾æ¢è¡Œ</param>
 EckInline void DbgPrintFormatMessage(UINT uErrCode, BOOL bNewLine = TRUE)
 {
     PWSTR pszInfo;
@@ -183,12 +183,12 @@ EckInline void DbgPrintFmt(PCWSTR pszFormat, ...)
 #define EckDbgPrint eck::DbgPrint
 #define EckDbgPrintFormatMessage eck::DbgPrintFormatMessage
 #define EckDbgPrintFmt eck::DbgPrintFmt
-#define EckDbgPrintWithPos(x) EckDbgPrint(L"¡¾µ÷ÊÔÊä³ö¡¿" ECK_FILEW L" ÖĞ " ECK_FUNCTIONW L" º¯Êı (" ECK_LINEW L"ĞĞ)  ĞÅÏ¢£º\n" x)
+#define EckDbgPrintWithPos(x) EckDbgPrint(L"ã€è°ƒè¯•è¾“å‡ºã€‘" ECK_FILEW L" ä¸­ " ECK_FUNCTIONW L" å‡½æ•° (" ECK_LINEW L"è¡Œ)  ä¿¡æ¯ï¼š\n" x)
 #define EckDbgBreak() DebugBreak()
 #define EckDbgCheckMemRange(pBase, cbSize, pCurr) \
     if(((PCBYTE)(pBase)) + (cbSize) < (pCurr)) \
     { \
-        EckDbgPrintFmt(L"ÄÚ´æ·¶Î§¼ì²éÊ§°Ü£¬ÆğÊ¼ = %p£¬³ß´ç = %u£¬µ±Ç° = %p£¬³¬³ö = %u", \
+        EckDbgPrintFmt(L"å†…å­˜èŒƒå›´æ£€æŸ¥å¤±è´¥ï¼Œèµ·å§‹ = %pï¼Œå°ºå¯¸ = %uï¼Œå½“å‰ = %pï¼Œè¶…å‡º = %u", \
         pBase, \
         (UINT)cbSize, \
         pCurr, \
@@ -198,13 +198,13 @@ EckInline void DbgPrintFmt(PCWSTR pszFormat, ...)
 #define EckAssert assert
 #pragma warning (pop)
 #else
-#define EckDbgPrintGLE(x)
-#define EckDbgPrint(x)
-#define EckDbgPrintFormatMessage(x)
-#define EckDbgPrintFmt(...)
-#define EckDbgPrintWithPos(x)
-#define EckDbgBreak()
-#define EckDbgCheckMemRange(pBase, cbSize, pCurr)
-#define EckAssert(x)
+#define EckDbgPrintGLE(x) ;
+#define EckDbgPrint(x) ;
+#define EckDbgPrintFormatMessage(x) ;
+#define EckDbgPrintFmt(...) ;
+#define EckDbgPrintWithPos(x) ;
+#define EckDbgBreak() ;
+#define EckDbgCheckMemRange(pBase, cbSize, pCurr) ;
+#define EckAssert(x) ;
 #endif // !NDEBUG
 ECK_NAMESPACE_END

@@ -254,6 +254,9 @@
     <ClCompile Include="..\eck\CButton.cpp">
       <Filter>eck</Filter>
     </ClCompile>
+    <ClCompile Include="..\eck\CDialog.cpp">
+      <Filter>eck</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Win32Template.rc">

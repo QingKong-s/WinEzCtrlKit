@@ -1,5 +1,5 @@
-#pragma once
-#include "ECK.h"
+﻿#pragma once
+#include "Utility.h"
 
 #include <functional>
 #include <numbers>
@@ -89,9 +89,16 @@ public:
 protected:
 	int m_iTarget = 0;
 	int m_iCurrPos = 0;
+	int m_iStart = 0;
+
+	int m_iDistance = 0;
+
+	int m_iDuration = 400;
 
 	HWND m_hWnd = NULL;
 	UINT m_uTimerID = 0;
+
+	int m_iSustain = 0;
 
 	InertialScrollProc m_pfnInertialScroll = NULL;
 	LPARAM m_lParam = 0;
@@ -122,7 +129,7 @@ public:
 				while (TRUE)
 				{
 					PostMessageW((HWND)pParam, s_uTimerNotify, 0, 0);
-					Sleep(40);
+					Sleep(20);
 				}
 				return 0;
 			}, m_hWnd);
@@ -131,6 +138,30 @@ public:
 	void SetTimerID(UINT uTimerID)
 	{
 		m_uTimerID = uTimerID;
+	}
+
+	static float OutCircle(float fCurrTime, float fStart, float fDistance, float fDuration)
+	{
+		fCurrTime = fCurrTime / fDuration - 1.f;
+		return fDistance * sqrt(1 - fCurrTime * fCurrTime) + fStart;
+	}
+
+	static float OutSine(float fCurrTime, float fStart, float fDistance, float fDuration)
+	{
+		return fDistance * sinf(fCurrTime / fDuration * std::numbers::pi_v<float> / 2.f) + fStart;
+	}
+
+	static float OutCubic(float fCurrTime, float fStart, float fDistance, float fDuration)
+	{
+		fCurrTime = fCurrTime / fDuration - 1.f;
+		return fDistance * (fCurrTime * fCurrTime * fCurrTime + 1.f) + fStart;
+	}
+
+	static float OutExpo(float fCurrTime, float fStart, float fDistance, float fDuration)
+	{
+		if (fCurrTime == fDuration)
+			return fStart + fDistance;
+		return fDistance * (-powf(-10.f * fCurrTime / fDuration, 2.f) + 1.f) + fStart;
 	}
 
 	static void CALLBACK TimerProc(HWND hWnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
@@ -142,15 +173,17 @@ public:
 		//	return;
 		
 
-		const int iPrevPos = p->m_iCurrPos;
-		const int iDistance = p->m_iTarget - p->m_iCurrPos;
-		if (iDistance == 0)
+		const int iPrevPos = p->m_iPos;
+		if (p->m_iDistance == 0)
 			return;
 		//if (iDistance == 0)
 		//	KillTimer(hWnd, p->m_uTimerID);
-		p->m_iCurrPos += ((iDistance) / 8);
-		p->SetPos(p->m_iCurrPos);
-		p->m_pfnInertialScroll(p->m_iCurrPos, iPrevPos, p->m_lParam);
+		p->m_iSustain += 20;
+		int iCurr = (int)OutCubic((float)p->m_iSustain, (float)p->m_iStart, (float)p->m_iDistance, 400);
+		p->SetPos(iCurr);
+		p->m_pfnInertialScroll(p->m_iPos, iPrevPos, p->m_lParam);
+		if (p->m_iSustain >= 400)
+			p->m_iDistance = 0;
 	}
 
 	void OnMouseWheel2(int iDelta, InertialScrollProc pfnInertialScroll, LPARAM lParam)
@@ -158,9 +191,15 @@ public:
 		m_pfnInertialScroll = pfnInertialScroll;
 		m_lParam = lParam;
 
-		m_iTarget += 50 * iDelta;
+		m_iStart = GetPos();
+		m_iDistance += 50 * iDelta;
+		if (m_iDistance + m_iStart > m_iMax)
+			m_iDistance = m_iMax - m_iStart;
+		if (m_iDistance + m_iStart < m_iMin)
+			m_iDistance = m_iMin - m_iStart;
+		m_iSustain = 0;
+		m_iDuration = m_iDistance * 4;
 
-		
 		//SetTimer(m_hWnd, m_uTimerID, 40, TimerProc);
 	}
 };

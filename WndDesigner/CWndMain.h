@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "CApp.h"
 #include "CWorkWnd.h"
 #include "CSizer.h"
@@ -21,7 +21,7 @@
 #include "..\eck\ResStruct.h"
 #include "..\eck\CFormTable.h"
 
-POINT PtAlign(POINT pt, int iUnit)
+inline POINT PtAlign(POINT pt, int iUnit)
 {
 	int ii = (pt.x % iUnit) * iUnit;
 	int iDelta = pt.x - ii;
@@ -44,15 +44,15 @@ struct CTRLSUBCLASSCTX
 	CWndMain* pThis;
 };
 
-struct CTRLINFO
+struct WDCTRLINFO
 {
 	eck::CWnd* pWnd = NULL;
 	int idxInfo = -1;
 	CTRLSUBCLASSCTX* pSubclassCtx = NULL;
 
-	CTRLINFO() = default;
+	WDCTRLINFO() = default;
 
-	CTRLINFO(CTRLINFO&& x) noexcept
+	WDCTRLINFO(WDCTRLINFO&& x) noexcept
 	{
 		pWnd = x.pWnd;
 		idxInfo = x.idxInfo;
@@ -62,7 +62,7 @@ struct CTRLINFO
 		x.idxInfo = -1;
 	}
 
-	~CTRLINFO()
+	~WDCTRLINFO()
 	{
 		delete pWnd;
 		delete pSubclassCtx;
@@ -75,7 +75,7 @@ struct TABCTX
 	CWorkWnd* pWorkWnd = NULL;
 	std::vector<CSizer*> pMultiSelMarker{};
 	std::unordered_set<HWND> SelCtrl{};
-	std::unordered_map<HWND, CTRLINFO> AllCtrls{};
+	std::unordered_map<HWND, WDCTRLINFO> AllCtrls{};
 	CWndMain* pThis;
 
 	~TABCTX()
@@ -97,10 +97,10 @@ struct VALIDSELCTRL
 class CCtrlsSerializer
 {
 private:
-	std::vector<RECT> m_aRects{};// ËùÓĞ¾ØĞÎ£¬ÎŞDPIËõ·Å
-	std::vector<VALIDSELCTRL> m_aValidWnds{};// ËùÓĞÃèÊö½á¹¹
-	std::vector<eck::CRefBin> m_aData{};// ËùÓĞÊı¾İ
-	int m_minLeft = INT_MAX, m_minTop = INT_MAX;// ×îĞ¡µÄ×ó±ßºÍ¶¥±ß
+	std::vector<RECT> m_aRects{};// æ‰€æœ‰çŸ©å½¢ï¼Œæ— DPIç¼©æ”¾
+	std::vector<VALIDSELCTRL> m_aValidWnds{};// æ‰€æœ‰æè¿°ç»“æ„
+	std::vector<eck::CRefBin> m_aData{};// æ‰€æœ‰æ•°æ®
+	int m_minLeft = INT_MAX, m_minTop = INT_MAX;// æœ€å°çš„å·¦è¾¹å’Œé¡¶è¾¹
 
 	TABCTX* m_pTabCtx = NULL;
 
@@ -364,7 +364,7 @@ private:
 	LRESULT OnPropListNotify(HWND hWnd, WPARAM wParam, LPARAM lParam);
 
 
-#pragma region ¿Ø¼şÏûÏ¢´¦Àí
+#pragma region æ§ä»¶æ¶ˆæ¯å¤„ç†
 	static LRESULT CALLBACK SubclassProc_Ctrl(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
 		UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 
@@ -432,7 +432,7 @@ private:
 
 	void FillPropList(TABCTX* pTabCtx)
 	{
-		int idxCBB = m_CBBCtrl.GetCurrSel();
+		int idxCBB = m_CBBCtrl.GetCurSel();
 
 		HWND hWnd = (HWND)m_CBBCtrl.GetItemData(idxCBB);
 		auto it = pTabCtx->AllCtrls.find(hWnd);
@@ -466,7 +466,7 @@ private:
 		int idx;
 		for (auto& x : pTabCtx->AllCtrls)
 		{
-			idx = m_CBBCtrl.AddString(x.second.pWnd->m_DDBase.rsName);
+			idx = m_CBBCtrl.AddString(x.second.pWnd->m_DDBase.rsName.Data());
 			m_CBBCtrl.SetItemData(idx, (LPARAM)x.second.pWnd->GetHWND());
 		}
 		idx = m_CBBCtrl.AddString(L"Window");
@@ -518,13 +518,13 @@ private:
 
 		auto pCtx = new CTRLSUBCLASSCTX{ idxCtrlList,pTabCtx,this };
 
-		CTRLINFO CtrlInfo;
+		WDCTRLINFO CtrlInfo;
 		CtrlInfo.pWnd = pWnd;
 		CtrlInfo.idxInfo = idxCtrlList - 1;
 		CtrlInfo.pSubclassCtx = pCtx;
 		CtrlInfo.pWnd->m_DDBase.rsName = MakeCtrlName(idxCtrlList - 1, pWnd->GetHWND());
 
-		int idxComboBox = m_CBBCtrl.AddString(CtrlInfo.pWnd->m_DDBase.rsName);
+		int idxComboBox = m_CBBCtrl.AddString(CtrlInfo.pWnd->m_DDBase.rsName.Data());
 		m_CBBCtrl.SetItemData(idxComboBox, (LPARAM)pWnd->GetHWND());
 
 		pTabCtx->AllCtrls.insert(std::make_pair(pWnd->GetHWND(), std::move(CtrlInfo)));

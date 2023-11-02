@@ -507,6 +507,8 @@ PSTR StrW2X(PCWSTR pszText, int cch = -1, int uCP = CP_ACP);
 
 PWSTR StrX2W(PCSTR pszText, int cch = -1, int uCP = CP_ACP);
 
+CRefStrW StrX2WRs(PCSTR pszText, int cch = -1, int uCP = CP_ACP);
+
 EckInline void DbBufPrepare(HWND hWnd, HDC& hCDC, HBITMAP& hBitmap, HGDIOBJ& hOldBmp, int cx = 8, int cy = 8)
 {
 	HDC hDC = GetDC(hWnd);

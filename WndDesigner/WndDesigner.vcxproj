@@ -226,6 +226,7 @@
     <ClCompile Include="..\eck\CChartPie.cpp" />
     <ClCompile Include="..\eck\CColorPicker.cpp" />
     <ClCompile Include="..\eck\CCommDlg.cpp" />
+    <ClCompile Include="..\eck\CDialog.cpp" />
     <ClCompile Include="..\eck\CDirBox.cpp" />
     <ClCompile Include="..\eck\CEdit.cpp" />
     <ClCompile Include="..\eck\CEditExt.cpp" />

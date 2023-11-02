@@ -1,9 +1,9 @@
-#include "CDialog.h"
+﻿#include "CDialog.h"
 ECK_NAMESPACE_BEGIN
 ATOM CDialog::RegisterWndClass(HINSTANCE hInstance)
 {
 	WNDCLASSW wc{};
-	wc.cbWndExtra = sizeof(void*);
+	wc.cbWndExtra = DLGWINDOWEXTRA + sizeof(void*) * 2;
 	wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
 	wc.hInstance = hInstance;
 	wc.lpfnWndProc = DefWindowProcW;

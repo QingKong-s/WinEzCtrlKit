@@ -1,4 +1,4 @@
-#include "Utility.h"
+Ôªø#include "Utility.h"
 #include "CRefBin.h"
 #include "CRefStr.h"
 
@@ -9,7 +9,7 @@ HDC CEzCDC::Create(HWND hWnd, int cx, int cy)
 {
 	this->~CEzCDC();
 	HDC hDC = ::GetDC(hWnd);
-	if (cx <= 0 || cy <= 0)
+	if (cx < 0 || cy < 0)
 	{
 		RECT rc;
 		GetClientRect(hWnd, &rc);
@@ -27,7 +27,7 @@ void CEzCDC::ReSize(HWND hWnd, int cx, int cy)
 {
 	if (m_hCDC)
 	{
-		if (cx <= 0 || cy <= 0)
+		if (cx < 0 || cy < 0)
 		{
 			RECT rc;
 			GetClientRect(hWnd, &rc);
@@ -63,7 +63,7 @@ CRefBin ReadInFile(PCWSTR pszFile)
 
 	LARGE_INTEGER i64{};
 	GetFileSizeEx(hFile, &i64);
-	if (i64.QuadPart > 1'073'741'824i64)// ¥Û”⁄1G£¨≤ª∂¡
+	if (i64.QuadPart > 1'073'741'824i64)// Â§ß‰∫é1GÔºå‰∏çËØª
 	{
 		EckDbgPrintFmt(L"So LARGE File! Size = %i64", i64.QuadPart);
 		CloseHandle(hFile);
@@ -184,10 +184,12 @@ PWSTR StrX2W(PCSTR pszText, int cch, int uCP)
 	return pszBuf;
 }
 
-
-
-
-
-
-
+CRefStrW StrX2WRs(PCSTR pszText, int cch, int uCP)
+{
+	int cchBuf = MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, NULL, 0);
+	CRefStrW rs(cchBuf);
+	MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, rs.Data(), cchBuf);
+	*(rs.Data() + cchBuf) = '\0';
+	return rs;
+}
 ECK_NAMESPACE_END

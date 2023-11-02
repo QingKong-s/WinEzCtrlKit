@@ -146,6 +146,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="eck\CAllocator.h" />
+    <ClInclude Include="eck\CAnimation.h" />
     <ClInclude Include="eck\CArray.h" />
     <ClInclude Include="eck\CBk.h" />
     <ClInclude Include="eck\CChartBar.h" />
@@ -161,6 +162,7 @@
     <ClInclude Include="eck\CResSet.h" />
     <ClInclude Include="eck\CResTable.h" />
     <ClInclude Include="eck\CScrollView.h" />
+    <ClInclude Include="eck\CSplitBar.h" />
     <ClInclude Include="eck\CTab.h" />
     <ClInclude Include="eck\CTabHeader.h" />
     <ClInclude Include="eck\CTaskGroupList.h" />
@@ -209,6 +211,7 @@
     <ClCompile Include="eck\CChartPie.cpp" />
     <ClCompile Include="eck\CColorPicker.cpp" />
     <ClCompile Include="eck\CCommDlg.cpp" />
+    <ClCompile Include="eck\CDialog.cpp" />
     <ClCompile Include="eck\CDirBox.cpp" />
     <ClCompile Include="eck\CEdit.cpp" />
     <ClCompile Include="eck\CEditExt.cpp" />
@@ -221,6 +224,7 @@
     <ClCompile Include="eck\CRefBin.cpp" />
     <ClCompile Include="eck\CRefStr.cpp" />
     <ClCompile Include="eck\CScrollBar.h" />
+    <ClCompile Include="eck\CSplitBar.cpp" />
     <ClCompile Include="eck\CTabHeader.cpp" />
     <ClCompile Include="eck\CTaskGroupList.cpp" />
     <ClCompile Include="eck\CWnd.cpp" />

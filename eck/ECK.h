@@ -1,7 +1,7 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* ECK.h £º ¹«¹²Í·ÎÄ¼ş
+* ECK.h ï¼š å…¬å…±å¤´æ–‡ä»¶
 *
 * Copyright(C) 2023 QingKong
 */
@@ -11,7 +11,7 @@
 #include <vsstyle.h>
 #include <dwmapi.h>
 #include <assert.h>
-/*ºê*/
+/*å®*/
 
 #define ECK_NAMESPACE_BEGIN namespace eck {
 #define ECK_NAMESPACE_END }
@@ -21,26 +21,26 @@
 #define ECK_CTRLDATA_ALIGN 4
 
 #define ECKWIDE2___(x)          L##x
-// ANSI×Ö·û´®µ½¿í×Ö·û´®
+// ANSIå­—ç¬¦ä¸²åˆ°å®½å­—ç¬¦ä¸²
 #define ECKWIDE___(x)           ECKWIDE2___(x)
 
 #define ECKTOSTR2___(x)         #x
-// µ½ANSI×Ö·û´®
+// åˆ°ANSIå­—ç¬¦ä¸²
 #define ECKTOSTR___(x)          ECKTOSTR2___(x)
-// µ½¿í×Ö·û´®
+// åˆ°å®½å­—ç¬¦ä¸²
 #define ECKTOSTRW___(x)         ECKWIDE___(ECKTOSTR2___(x))
 
-// [Ô¤¶¨Òå] µ±Ç°º¯ÊıÃûW
+// [é¢„å®šä¹‰] å½“å‰å‡½æ•°åW
 #define ECK_FUNCTIONW           ECKWIDE___(__FUNCTION__)
-// [Ô¤¶¨Òå] ĞĞºÅW
+// [é¢„å®šä¹‰] è¡Œå·W
 #define ECK_LINEW               ECKTOSTRW___(__LINE__)
-// [Ô¤¶¨Òå] µ±Ç°ÎÄ¼şW
+// [é¢„å®šä¹‰] å½“å‰æ–‡ä»¶W
 #define ECK_FILEW               __FILEW__
 
 
 #define EckProp(getter, setter) __declspec(property(get = getter, put = setter)))
 
-/*ÀàĞÍ*/
+/*ç±»å‹*/
 ECK_NAMESPACE_BEGIN
 
 using SCHAR = signed char;
@@ -72,7 +72,7 @@ enum class Align
 ECK_NAMESPACE_END
 
 
-/*×ÓÀà»¯ID*/
+/*å­ç±»åŒ–ID*/
 
 #define SCID_PUSHBUTTON				20230603'01u
 #define SCID_CHECKBUTTON			20230603'02u
@@ -89,14 +89,14 @@ ECK_NAMESPACE_END
 #define SCID_TASKGROUPLIST			20230725'01u
 #define SCID_TASKGROUPLISTPARENT	20230725'02u
 
-/*ÊôĞÔ×Ö·û´®*/
+/*å±æ€§å­—ç¬¦ä¸²*/
 
 #define PROP_DPIINFO		L"Eck.Prop.DpiInfo"
 #define PROP_PREVDPI		L"Eck.Prop.PrevDpi"
 #define PROP_PROPSHEETCTX	L"Eck.Prop.PropertySheet.Ctx"
 
 
-/*Ò»Ğ©¿ÉÄÜÓÃµ½µÄ¿Ø¼şID*/
+/*ä¸€äº›å¯èƒ½ç”¨åˆ°çš„æ§ä»¶ID*/
 
 
 
@@ -105,7 +105,7 @@ ECK_NAMESPACE_END
 ECK_NAMESPACE_BEGIN
 extern HINSTANCE g_hInstance;
 
-/*´°¿ÚÀàÃû*/
+/*çª—å£ç±»å*/
 
 constexpr inline PCWSTR WCN_LABEL = L"Eck.WndClass.Label";
 constexpr inline PCWSTR WCN_COLORPICKER = L"Eck.WndClass.ColorPicker";
@@ -115,6 +115,7 @@ constexpr inline PCWSTR WCN_CHARTPIE = L"Eck.WndClass.ChartPie";
 constexpr inline PCWSTR WCN_FORM = L"Eck.WndClass.Form";
 constexpr inline PCWSTR WCN_TABHEADER = L"Eck.WndClass.TabHeader";
 constexpr inline PCWSTR WCN_DLG = L"Eck.WndClass.CommDlg";
+constexpr inline PCWSTR WCN_SPLITBAR = L"Eck.WndClass.SplitBar";
 
 enum class InitStatus
 {
@@ -124,9 +125,9 @@ enum class InitStatus
 };
 
 /// <summary>
-/// ³õÊ¼»¯ECK Lib
+/// åˆå§‹åŒ–ECK Lib
 /// </summary>
-/// <param name="hInstance">ÊµÀı¾ä±ú£¬ËùÓĞ×Ô¶¨Òå´°¿ÚÀà½«ÔÚ´ËÊµÀıÉÏ×¢²á</param>
-/// <returns>´íÎó´úÂë</returns>
+/// <param name="hInstance">å®ä¾‹å¥æŸ„ï¼Œæ‰€æœ‰è‡ªå®šä¹‰çª—å£ç±»å°†åœ¨æ­¤å®ä¾‹ä¸Šæ³¨å†Œ</param>
+/// <returns>é”™è¯¯ä»£ç </returns>
 InitStatus Init(HINSTANCE hInstance);
 ECK_NAMESPACE_END

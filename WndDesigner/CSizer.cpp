@@ -1,4 +1,4 @@
-#include "CSizer.h"
+﻿#include "CSizer.h"
 LRESULT CALLBACK CSizerBlock::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	auto p = (CSizerBlock*)GetWindowLongPtrW(hWnd, 0);
@@ -42,7 +42,7 @@ LRESULT CALLBACK CSizerBlock::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 HWND CSizerBlock::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData)
 {
-	m_hWnd = CreateWindowExW(dwExStyle, WCN_BK, pszText, dwStyle,
+	m_hWnd = CreateWindowExW(dwExStyle, eck::WCN_BK, pszText, dwStyle,
 		x, y, cx, cy, hParent, eck::i32ToP<HMENU>(nID), eck::g_hInstance, NULL);
 
 	m_hbrBlock = CreateSolidBrush(eck::Colorref::Teal);

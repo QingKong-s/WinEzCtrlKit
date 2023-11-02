@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "CApp.h"
 
 #include "..\eck\CBk.h"
@@ -15,7 +15,7 @@ private:
 	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
 	{
-		m_hWnd = CreateWindowExW(dwExStyle, WCN_BK, pszText, dwStyle,
+		m_hWnd = CreateWindowExW(dwExStyle, eck::WCN_BK, pszText, dwStyle,
 			x, y, cx, cy, hParent, eck::i32ToP<HMENU>(nID), eck::g_hInstance, NULL);
 
 		int cxPointGap = eck::DpiScale(8, eck::GetDpi(m_hWnd));
@@ -54,7 +54,7 @@ public:
 	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
 	{
-		m_hWnd = CreateWindowExW(dwExStyle, WCN_BK, pszText, dwStyle,
+		m_hWnd = CreateWindowExW(dwExStyle, eck::WCN_BK, pszText, dwStyle,
 			x, y, cx, cy, hParent, eck::i32ToP<HMENU>(nID), eck::g_hInstance, NULL);
 		SetWindowProc(WndProc);
 		return m_hWnd;
