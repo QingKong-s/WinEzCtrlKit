@@ -1,8 +1,8 @@
-#pragma once
+ï»¿#pragma once
 /*
-* ÈôÒªÊ¹ÓÃDPI¸ÐÖª£¬Ìí¼ÓÇåµ¥ÎÄ¼þ".\eck\Others\DpiAwarePreMonV2.manifest"£¬
-* ½öÊ¹ÓÃ'ÏµÍ³DPI¸ÐÖª'ºÍ'Ã¿ÏÔÊ¾Æ÷DPI¸ÐÖªV2'£¬²»Ê¹ÓÃ'Ã¿ÏÔÊ¾Æ÷DPI¸ÐÖªV1'£¬´úÂëÒ²
-* Î´½øÐÐÊÊÅä
+* è‹¥è¦ä½¿ç”¨DPIæ„ŸçŸ¥ï¼Œæ·»åŠ æ¸…å•æ–‡ä»¶".\eck\Others\DpiAwarePreMonV2.manifest"ï¼Œ
+* ä»…ä½¿ç”¨'ç³»ç»ŸDPIæ„ŸçŸ¥'å’Œ'æ¯æ˜¾ç¤ºå™¨DPIæ„ŸçŸ¥V2'ï¼Œä¸ä½¿ç”¨'æ¯æ˜¾ç¤ºå™¨DPIæ„ŸçŸ¥V1'ï¼Œä»£ç ä¹Ÿ
+* æœªè¿›è¡Œé€‚é…
 */
 
 #ifndef ECKMACRO_NO_COMCTL60
@@ -17,6 +17,7 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #pragma comment(lib,"Shlwapi.lib")
 #pragma comment(lib,"UxTheme.lib")
 #pragma comment(lib,"Dwmapi.lib")
+#pragma comment(lib,"Winmm.lib")
 #endif
 
-// ECKMACRO_NO_WIN11_22621  SDK°æ±¾ÊÇ·ñ>=22621
+// ECKMACRO_NO_WIN11_22621  SDKç‰ˆæœ¬æ˜¯å¦>=22621

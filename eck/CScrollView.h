@@ -1,8 +1,9 @@
 ﻿#pragma once
 #include "Utility.h"
+#include "CMmTimer.h"
+#include "EasingCurve.h"
 
 #include <functional>
-#include <numbers>
 
 ECK_NAMESPACE_BEGIN
 class CScrollView
@@ -28,6 +29,11 @@ public:
 	int GetMax() const
 	{
 		return m_iMax;
+	}
+
+	int GetMaxWithPage() const
+	{
+		return m_iMax - m_iPage - 1;
 	}
 
 	void SetMax(int iMax)
@@ -87,103 +93,59 @@ class CInertialScrollView : public CScrollView
 public:
 	using InertialScrollProc = void (*)(int, int, LPARAM);
 protected:
-	int m_iTarget = 0;
-	int m_iCurrPos = 0;
+	CMsgMmTimer m_Timer{};
+
 	int m_iStart = 0;
-
 	int m_iDistance = 0;
-
-	int m_iDuration = 400;
-
-	HWND m_hWnd = NULL;
-	UINT m_uTimerID = 0;
-
 	int m_iSustain = 0;
+	int m_iDuration = 400;
 
 	InertialScrollProc m_pfnInertialScroll = NULL;
 	LPARAM m_lParam = 0;
 
 	static UINT s_uTimerNotify;
 public:
-	static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+	CInertialScrollView()
 	{
-		if (uMsg == s_uTimerNotify)
+		m_Timer.SetMsg(s_uTimerNotify);
+	}
+
+	static LRESULT CALLBACK SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+	{
+		auto p = (CInertialScrollView*)dwRefData;
+		if (uMsg == s_uTimerNotify && wParam == p->m_Timer.GetID())
 		{
-			TimerProc(hWnd, 0, 0, 0);
+			const int iPrevPos = p->GetPos();
+			p->m_iSustain += 20;
+			int iCurr = (int)OutCubic((float)p->m_iSustain, (float)p->m_iStart, (float)p->m_iDistance, (float)p->m_iDuration);
+			if (iCurr > p->GetMaxWithPage())
+			{
+				p->SetPos(p->GetMaxWithPage());
+				p->m_pfnInertialScroll(p->GetPos(), iPrevPos, p->m_lParam);
+				p->m_iDistance = 0;
+				p->m_Timer.KillTimer();
+				return 0;
+			}
+			p->SetPos(iCurr);
+			p->m_pfnInertialScroll(p->m_iPos, iPrevPos, p->m_lParam);
+			if (p->m_iSustain >= p->m_iDuration)
+			{
+				p->m_iDistance = 0;
+				p->m_Timer.KillTimer();
+			}
 			return 0;
 		}
 
 		return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 	}
+
 	void SetHWND(HWND hWnd)
 	{
-		s_uTimerNotify = RegisterWindowMessageW(L"wedfgrshgehrwgeurwghuhgvuer");
-
-		m_hWnd = hWnd;
-		SetPropW(m_hWnd, L"Eck.Prop.SV", this);
-
-		SetWindowSubclass(m_hWnd, WndProc, 455646, 0);
-
-		CRTCreateThread([](void* pParam)->UINT
-			{
-				while (TRUE)
-				{
-					PostMessageW((HWND)pParam, s_uTimerNotify, 0, 0);
-					Sleep(20);
-				}
-				return 0;
-			}, m_hWnd);
-	}
-
-	void SetTimerID(UINT uTimerID)
-	{
-		m_uTimerID = uTimerID;
-	}
-
-	static float OutCircle(float fCurrTime, float fStart, float fDistance, float fDuration)
-	{
-		fCurrTime = fCurrTime / fDuration - 1.f;
-		return fDistance * sqrt(1 - fCurrTime * fCurrTime) + fStart;
-	}
-
-	static float OutSine(float fCurrTime, float fStart, float fDistance, float fDuration)
-	{
-		return fDistance * sinf(fCurrTime / fDuration * std::numbers::pi_v<float> / 2.f) + fStart;
-	}
-
-	static float OutCubic(float fCurrTime, float fStart, float fDistance, float fDuration)
-	{
-		fCurrTime = fCurrTime / fDuration - 1.f;
-		return fDistance * (fCurrTime * fCurrTime * fCurrTime + 1.f) + fStart;
-	}
-
-	static float OutExpo(float fCurrTime, float fStart, float fDistance, float fDuration)
-	{
-		if (fCurrTime == fDuration)
-			return fStart + fDistance;
-		return fDistance * (-powf(-10.f * fCurrTime / fDuration, 2.f) + 1.f) + fStart;
-	}
-
-	static void CALLBACK TimerProc(HWND hWnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
-	{
-		auto p = (CInertialScrollView*)GetPropW(hWnd, L"Eck.Prop.SV");
-		if (!p)
+		if (m_Timer.GetHWND() == hWnd)
 			return;
-		//if (idEvent != p->m_uTimerID)
-		//	return;
-		
-
-		const int iPrevPos = p->m_iPos;
-		if (p->m_iDistance == 0)
-			return;
-		//if (iDistance == 0)
-		//	KillTimer(hWnd, p->m_uTimerID);
-		p->m_iSustain += 20;
-		int iCurr = (int)OutCubic((float)p->m_iSustain, (float)p->m_iStart, (float)p->m_iDistance, 400);
-		p->SetPos(iCurr);
-		p->m_pfnInertialScroll(p->m_iPos, iPrevPos, p->m_lParam);
-		if (p->m_iSustain >= 400)
-			p->m_iDistance = 0;
+		m_Timer.SetHWND(hWnd);
+		RemoveWindowSubclass(hWnd, SubclassProc, SCID_INERTIALSCROLLVIEW);
+		SetWindowSubclass(hWnd, SubclassProc, SCID_INERTIALSCROLLVIEW, (DWORD_PTR)this);
 	}
 
 	void OnMouseWheel2(int iDelta, InertialScrollProc pfnInertialScroll, LPARAM lParam)
@@ -192,16 +154,17 @@ public:
 		m_lParam = lParam;
 
 		m_iStart = GetPos();
-		m_iDistance += 50 * iDelta;
-		if (m_iDistance + m_iStart > m_iMax)
-			m_iDistance = m_iMax - m_iStart;
-		if (m_iDistance + m_iStart < m_iMin)
-			m_iDistance = m_iMin - m_iStart;
+		m_iDistance += (50 * iDelta);
+		if (m_iDistance + m_iStart > GetMaxWithPage())
+			m_iDistance = GetMaxWithPage() - m_iStart;
+		if (m_iDistance + m_iStart < GetMin())
+			m_iDistance = GetMin() - m_iStart;
 		m_iSustain = 0;
-		m_iDuration = m_iDistance * 4;
-
-		//SetTimer(m_hWnd, m_uTimerID, 40, TimerProc);
+		if (!m_Timer.GetID())
+			m_Timer.SetTimer(20);
 	}
-};
 
+	EckInline void SetDuration(int iDuration) { m_iDuration = iDuration; }
+};
+ECK_COMDAT UINT CInertialScrollView::s_uTimerNotify = RegisterWindowMessageW(L"wedfgrshgehrwgeurwghuhgvuer");
 ECK_NAMESPACE_END

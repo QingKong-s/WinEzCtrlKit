@@ -327,10 +327,11 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 	return 0;
 	case WM_COMMAND:
 	{
-		ECK_COMMAND_BEGIN(uCtrlID, hCtrl)
-			ECK_COMMAND_CASE(BN_CLICKED)
+		switch (LOWORD(wParam))
 		{
-			switch (uCtrlID)
+		case BN_CLICKED:
+		{
+			switch (HIWORD(wParam))
 			{
 			case 101:
 				g_Label->SetGradientMode(5);
@@ -340,7 +341,7 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 			}
 		}
 		return 0;
-		ECK_COMMAND_END()
+		}
 	}
 	break;
 	case WM_PAINT:

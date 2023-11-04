@@ -17,6 +17,7 @@
 #define ECK_NAMESPACE_END }
 
 #define EckInline __forceinline
+#define ECK_COMDAT __declspec(selectany)
 
 #define ECK_CTRLDATA_ALIGN 4
 
@@ -88,6 +89,7 @@ ECK_NAMESPACE_END
 #define SCID_DESIGN					20230621'01u
 #define SCID_TASKGROUPLIST			20230725'01u
 #define SCID_TASKGROUPLISTPARENT	20230725'02u
+#define SCID_INERTIALSCROLLVIEW		20231103'01u
 
 /*属性字符串*/
 

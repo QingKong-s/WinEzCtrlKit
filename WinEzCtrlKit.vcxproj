@@ -159,6 +159,7 @@
     <ClInclude Include="eck\CFile.h" />
     <ClInclude Include="eck\CForm.h" />
     <ClInclude Include="eck\CFormTable.h" />
+    <ClInclude Include="eck\CMmTimer.h" />
     <ClInclude Include="eck\CResSet.h" />
     <ClInclude Include="eck\CResTable.h" />
     <ClInclude Include="eck\CScrollView.h" />
@@ -193,6 +194,7 @@
     <ClInclude Include="eck\DbgHelper.h" />
     <ClInclude Include="eck\DesignerDef.h" />
     <ClInclude Include="eck\DlgHelper.h" />
+    <ClInclude Include="eck\EasingCurve.h" />
     <ClInclude Include="eck\ECK.h" />
     <ClInclude Include="eck\Env.h" />
     <ClInclude Include="eck\GdiplusFlatDef.h" />
