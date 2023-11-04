@@ -1,9 +1,7 @@
 ﻿#pragma once
 #include "Utility.h"
-#include "CMmTimer.h"
+#include "CMsgMmTimer.h"
 #include "EasingCurve.h"
-
-#include <functional>
 
 ECK_NAMESPACE_BEGIN
 class CScrollView
@@ -95,10 +93,11 @@ public:
 protected:
 	CMsgMmTimer m_Timer{};
 
-	int m_iStart = 0;
-	int m_iDistance = 0;
-	int m_iSustain = 0;
-	int m_iDuration = 400;
+	int m_iStart = 0;		// 起始位置
+	int m_iDistance = 0;	// 当前动画应滚动的总距离
+	int m_iSustain = 0;		// 持续时间，毫秒
+	int m_iDuration = 400;	// 动画总时间
+	int m_iDelta = 80;		// 每次滚动的距离
 
 	InertialScrollProc m_pfnInertialScroll = NULL;
 	LPARAM m_lParam = 0;
@@ -154,7 +153,8 @@ public:
 		m_lParam = lParam;
 
 		m_iStart = GetPos();
-		m_iDistance += (50 * iDelta);
+		// 计算新的滚动距离；将原先的滚动距离减去已经滑动完的位移再加上滚动事件产生的位移
+		m_iDistance = ((m_iDuration - m_iSustain) * m_iDistance / m_iDuration) + (m_iDelta * iDelta);
 		if (m_iDistance + m_iStart > GetMaxWithPage())
 			m_iDistance = GetMaxWithPage() - m_iStart;
 		if (m_iDistance + m_iStart < GetMin())
@@ -165,6 +165,8 @@ public:
 	}
 
 	EckInline void SetDuration(int iDuration) { m_iDuration = iDuration; }
+
+	EckInline void SetDelta(int iDelta) { m_iDelta = iDelta; }
 };
-ECK_COMDAT UINT CInertialScrollView::s_uTimerNotify = RegisterWindowMessageW(L"wedfgrshgehrwgeurwghuhgvuer");
+ECK_COMDAT UINT CInertialScrollView::s_uTimerNotify = RegisterWindowMessageW(MSG_INERTIALSV);
 ECK_NAMESPACE_END

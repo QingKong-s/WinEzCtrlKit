@@ -198,7 +198,7 @@
     <ClInclude Include="eck\CSplitBar.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CMmTimer.h">
+    <ClInclude Include="eck\CMsgMmTimer.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\EasingCurve.h">

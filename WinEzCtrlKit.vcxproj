@@ -159,7 +159,7 @@
     <ClInclude Include="eck\CFile.h" />
     <ClInclude Include="eck\CForm.h" />
     <ClInclude Include="eck\CFormTable.h" />
-    <ClInclude Include="eck\CMmTimer.h" />
+    <ClInclude Include="eck\CMsgMmTimer.h" />
     <ClInclude Include="eck\CResSet.h" />
     <ClInclude Include="eck\CResTable.h" />
     <ClInclude Include="eck\CScrollView.h" />

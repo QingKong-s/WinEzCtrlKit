@@ -119,6 +119,8 @@ constexpr inline PCWSTR WCN_TABHEADER = L"Eck.WndClass.TabHeader";
 constexpr inline PCWSTR WCN_DLG = L"Eck.WndClass.CommDlg";
 constexpr inline PCWSTR WCN_SPLITBAR = L"Eck.WndClass.SplitBar";
 
+constexpr inline PCWSTR MSG_INERTIALSV = L"Eck.Message.InertialScrollView";
+
 enum class InitStatus
 {
 	Ok = 0,
