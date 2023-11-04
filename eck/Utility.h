@@ -577,4 +577,19 @@ EckInline constexpr UINT ReverseColorref(UINT cr)
 	BYTE* p = (BYTE*)&cr;
 	return (((p[0] << 16) | (p[1] << 8) | p[2]) & 0x00FFFFFF);
 }
+
+EckInline void DoEvents()
+{
+	MSG msg;
+	while (PeekMessageW(&msg, NULL, 0u, 0u, PM_REMOVE))
+	{
+		if (msg.message == WM_QUIT)
+		{
+			PostQuitMessage((int)msg.wParam);
+			return;
+		}
+		TranslateMessage(&msg);
+		DispatchMessageW(&msg);
+	}
+}
 ECK_NAMESPACE_END

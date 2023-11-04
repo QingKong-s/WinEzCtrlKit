@@ -137,7 +137,6 @@ LRESULT CSplitBar::WndProc_Mark(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 int CSplitBar::CursorPtToPos(POINT ptClient)
 {
-	POINT ptDst;
 	int xyPos;
 	if (m_bHorizontal)
 	{

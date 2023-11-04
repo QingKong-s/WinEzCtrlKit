@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "ECK.h"
 #include "ResStruct.h"
 #include "DesignerDef.h"
@@ -113,7 +113,7 @@ public:
 			w.SkipPointer(pEntry);
 			pEntry->cbSize = (UINT)Info.cbSize;
 			pEntry->iID = Info.iID;
-			pEntry->uOffset = ocb;
+			pEntry->uOffset = (UINT)ocb;
 
 			EckDbgCheckMemRange(rb.Data(), m_cbTotal, rb.Data() + ocb);
 			memcpy(rb.Data() + ocb, Info.pData, Info.cbSize);
@@ -156,11 +156,11 @@ public:
 	}
 
 	/// <summary>
-	/// ±éÀú¿Ø¼þ
+	/// éåŽ†æŽ§ä»¶
 	/// </summary>
-	/// <param name="Processor">´¦Àíº¯Êý£¬HWND Processor(const FTCTRLDATA* p, PCBYTE pCtrlData, HWND hParent)¡£
-	/// Èô´¦Àíº¯Êý±£Ö¤·µ»ØÐÂ´´½¨µÄµ±Ç°¿Ø¼þ¾ä±ú£¬ÔòhParentÎªµ±Ç°¿Ø¼þÓ¦´ÓÊôµÄ¸¸´°¿Ú£¬ÎªNULLÔò´ú±í¸¸´°¿ÚÎªµ×´°¿Ú£»
-	/// Èô´¦Àíº¯Êý·µ»ØÈÎºÎÎÞÐ§µÄÖµ£¬ÔòÓ¦ºöÂÔhParent²ÎÊý</param>
+	/// <param name="Processor">å¤„ç†å‡½æ•°ï¼ŒHWND Processor(const FTCTRLDATA* p, PCBYTE pCtrlData, HWND hParent)ã€‚
+	/// è‹¥å¤„ç†å‡½æ•°ä¿è¯è¿”å›žæ–°åˆ›å»ºçš„å½“å‰æŽ§ä»¶å¥æŸ„ï¼Œåˆ™hParentä¸ºå½“å‰æŽ§ä»¶åº”ä»Žå±žçš„çˆ¶çª—å£ï¼Œä¸ºNULLåˆ™ä»£è¡¨çˆ¶çª—å£ä¸ºåº•çª—å£ï¼›
+	/// è‹¥å¤„ç†å‡½æ•°è¿”å›žä»»ä½•æ— æ•ˆçš„å€¼ï¼Œåˆ™åº”å¿½ç•¥hParentå‚æ•°</param>
 	template<class TProcessor>
 	void For(TProcessor Processor)
 	{
@@ -199,26 +199,26 @@ public:
 };
 
 /// <summary>
-/// ´ÓÀàË÷Òý´´½¨¿Ø¼þ
+/// ä»Žç±»ç´¢å¼•åˆ›å»ºæŽ§ä»¶
 /// </summary>
-/// <param name="idxClass">ÀàË÷Òý</param>
-/// <param name="pszText">±êÌâ£¬ÈôpData²»ÎªNULL£¬ÔòºöÂÔ´Ë²ÎÊý</param>
-/// <param name="dwStyle">ÑùÊ½£¬ÈôpData²»ÎªNULL£¬ÔòºöÂÔ´Ë²ÎÊý</param>
-/// <param name="dwExStyle">À©Õ¹ÑùÊ½£¬ÈôpData²»ÎªNULL£¬ÔòºöÂÔ´Ë²ÎÊý</param>
+/// <param name="idxClass">ç±»ç´¢å¼•</param>
+/// <param name="pszText">æ ‡é¢˜ï¼Œè‹¥pDataä¸ä¸ºNULLï¼Œåˆ™å¿½ç•¥æ­¤å‚æ•°</param>
+/// <param name="dwStyle">æ ·å¼ï¼Œè‹¥pDataä¸ä¸ºNULLï¼Œåˆ™å¿½ç•¥æ­¤å‚æ•°</param>
+/// <param name="dwExStyle">æ‰©å±•æ ·å¼ï¼Œè‹¥pDataä¸ä¸ºNULLï¼Œåˆ™å¿½ç•¥æ­¤å‚æ•°</param>
 /// <param name="x">x</param>
 /// <param name="y">y</param>
-/// <param name="cx">¿í¶È</param>
-/// <param name="cy">¸ß¶È</param>
-/// <param name="hParent">¸¸´°¿Ú</param>
-/// <param name="nID">¿Ø¼þID</param>
-/// <param name="pData">Êý¾Ý</param>
-/// <returns>³É¹¦·µ»ØCWndÖ¸Õë£¬µ÷ÓÃÕß¸ºÔðÊ¹ÓÃdeleteÊÍ·Å£¬Ê§°Ü·µ»ØNULL</returns>
+/// <param name="cx">å®½åº¦</param>
+/// <param name="cy">é«˜åº¦</param>
+/// <param name="hParent">çˆ¶çª—å£</param>
+/// <param name="nID">æŽ§ä»¶ID</param>
+/// <param name="pData">æ•°æ®</param>
+/// <returns>æˆåŠŸè¿”å›žCWndæŒ‡é’ˆï¼Œè°ƒç”¨è€…è´Ÿè´£ä½¿ç”¨deleteé‡Šæ”¾ï¼Œå¤±è´¥è¿”å›žNULL</returns>
 EckInline CWnd* CommCreateCtrl(int idxClass, PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
 {
 	if (idxClass < 0 || idxClass >= ARRAYSIZE(s_EckDesignAllCtrl))
 	{
-		EckDbgPrintWithPos(L"ÀàË÷Òý³¬³ö·¶Î§");
+		EckDbgPrintWithPos(L"ç±»ç´¢å¼•è¶…å‡ºèŒƒå›´");
 		EckDbgBreak();
 		return NULL;
 	}
@@ -229,13 +229,13 @@ EckInline CWnd* CommCreateCtrl(int idxClass, PCWSTR pszText, DWORD dwStyle, DWOR
 }
 
 /// <summary>
-/// ÔØÈë´°Ìå¡£
-/// º¯ÊýÔÚÖ¸¶¨µ×´°¿ÚÉÏ´´½¨´°ÌåÊý¾ÝÖÐ¼ÇÂ¼µÄËùÓÐ¿Ø¼þ
+/// è½½å…¥çª—ä½“ã€‚
+/// å‡½æ•°åœ¨æŒ‡å®šåº•çª—å£ä¸Šåˆ›å»ºçª—ä½“æ•°æ®ä¸­è®°å½•çš„æ‰€æœ‰æŽ§ä»¶
 /// </summary>
-/// <param name="hBK">ÒªÔÚÆäÉÏ´´½¨¿Ø¼þµÄ´°¿Ú</param>
-/// <param name="pFormData">´°ÌåÊý¾Ý£¬ÒÔFTCTRLDATAHEADER¿ªÍ·</param>
-/// <param name="pWnds">Ö¸Ïòvector±äÁ¿µÄÖ¸Õë£¬º¯Êý½«´´½¨µÄÖ¸Õë°´´ÎÐò×°ÔØµ½ÈÝÆ÷ÖÐ£¬ÈôÎªNULLÔò²»±£ÁôÖ¸Õë</param>
-/// <returns>³É¹¦·µ»ØTRUE£¬Ê§°Ü·µ»ØFALSE</returns>
+/// <param name="hBK">è¦åœ¨å…¶ä¸Šåˆ›å»ºæŽ§ä»¶çš„çª—å£</param>
+/// <param name="pFormData">çª—ä½“æ•°æ®ï¼Œä»¥FTCTRLDATAHEADERå¼€å¤´</param>
+/// <param name="pWnds">æŒ‡å‘vectorå˜é‡çš„æŒ‡é’ˆï¼Œå‡½æ•°å°†åˆ›å»ºçš„æŒ‡é’ˆæŒ‰æ¬¡åºè£…è½½åˆ°å®¹å™¨ä¸­ï¼Œè‹¥ä¸ºNULLåˆ™ä¸ä¿ç•™æŒ‡é’ˆ</param>
+/// <returns>æˆåŠŸè¿”å›žTRUEï¼Œå¤±è´¥è¿”å›žFALSE</returns>
 EckInline BOOL LoadForm(HWND hBK, PCVOID pFormData, std::vector<CWnd*>* pWnds = NULL)
 {
 	int iDpi = GetDpi(hBK);

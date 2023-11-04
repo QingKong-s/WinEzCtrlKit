@@ -20,34 +20,12 @@
 #define HANDLE_WM_MOUSELEAVE(hWnd, wParam, lParam, fn) \
 	((fn)((hWnd)), 0L)
 
-#endif
-
 #define HANDLE_WM_DPICHANGED(hWnd, wParam, lParam, fn) \
 	((fn)((hWnd), (int)(short)LOWORD(wParam), (int)(short)HIWORD(wParam), (RECT*)(lParam)), 0L)
+#endif
 
 ECK_NAMESPACE_BEGIN
-
-#define ECK_COMMAND_BEGIN(CtrlIdVarName, CtrlHandleVarName) \
-	UINT CtrlIdVarName = LOWORD(wParam); \
-	HWND CtrlHandleVarName = (HWND)lParam; \
-	switch (HIWORD(wParam)) {
-
-#define ECK_COMMAND_CASE(uCode) \
-	case uCode:
-
-#define ECK_COMMAND_END() \
-	}
-
-
-#define ECK_NOTIFY_BEGIN(PNMHDRVarName) \
-	NMHDR* PNMHDRVarName=(NMHDR*)lParam; \
-	switch(PNMHDRVarName->code) {
-
-#define ECK_NOTIFY_CASE(uCode) \
-	case uCode:
-
-#define ECK_NOTIFY_END() \
-	}
+constexpr inline UINT WM_USER_SAFE = WM_USER + 3;
 
 EckInline DWORD ModifyWindowStyle(HWND hWnd, DWORD dwNew, DWORD dwMask, int idx = GWL_STYLE)
 {
