@@ -18,6 +18,10 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #pragma comment(lib,"UxTheme.lib")
 #pragma comment(lib,"Dwmapi.lib")
 #pragma comment(lib,"Winmm.lib")
+#pragma comment(lib,"D2d1.lib")
+#pragma comment(lib,"dwrite.lib")
+#pragma comment(lib,"D3D11.lib")
+#pragma comment(lib,"dxguid.lib")
 #endif
 
 // ECKMACRO_NO_WIN11_22621  SDK版本是否>=22621

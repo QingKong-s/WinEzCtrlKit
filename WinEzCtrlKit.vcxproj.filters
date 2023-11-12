@@ -204,6 +204,9 @@
     <ClInclude Include="eck\EasingCurve.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\CDrawPanel.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Win32Template.cpp">
@@ -291,6 +294,9 @@
       <Filter>ECK Src</Filter>
     </ClCompile>
     <ClCompile Include="eck\CDialog.cpp">
+      <Filter>ECK Src</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\CDrawPanel.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
   </ItemGroup>

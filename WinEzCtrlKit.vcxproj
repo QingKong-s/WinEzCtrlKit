@@ -155,6 +155,7 @@
     <ClInclude Include="eck\CComboBox.h" />
     <ClInclude Include="eck\CComboBoxEx.h" />
     <ClInclude Include="eck\CDialog.h" />
+    <ClInclude Include="eck\CDrawPanel.h" />
     <ClInclude Include="eck\CEditExt.h" />
     <ClInclude Include="eck\CFile.h" />
     <ClInclude Include="eck\CForm.h" />
@@ -215,6 +216,7 @@
     <ClCompile Include="eck\CCommDlg.cpp" />
     <ClCompile Include="eck\CDialog.cpp" />
     <ClCompile Include="eck\CDirBox.cpp" />
+    <ClCompile Include="eck\CDrawPanel.cpp" />
     <ClCompile Include="eck\CEdit.cpp" />
     <ClCompile Include="eck\CEditExt.cpp" />
     <ClCompile Include="eck\CFile.cpp" />
