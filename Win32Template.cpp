@@ -26,6 +26,7 @@
 #include "eck/CFormTable.h"
 #include "eck/CTabHeader.h"
 #include "eck/CSplitBar.h"
+#include "eck/CDrawPanel.h"
 
 
 using namespace std::literals;
@@ -311,6 +312,8 @@ eck::CTaskGroupList* g_TGL;
 eck::CTabHeader* g_TH;
 eck::CSplitBar* g_SPB;
 eck::CSplitBar* g_SPBH;
+eck::CDrawPanel* g_DP;
+eck::CDrawPanelD2D* g_DPD2D;
 
 int g_iDpi = USER_DEFAULT_SCREEN_DPI;
 LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -398,9 +401,162 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 
 	case WM_CREATE:
 	{
-		hIcon = eck::CreateHICON(LR"(E:\Desktop\图标9.ico)");
+		//hIcon = eck::CreateHICON(LR"(E:\Desktop\图标9.ico)");
+
+		//hIcon=eck::CreateHICON()
+
 		g_iDpi = eck::GetDpi(hWnd);
 		g_hFont = eck::EzFont(L"微软雅黑", 9);
+
+
+		g_DP = new eck::CDrawPanel;
+		g_DP->Create(0, WS_CHILD | WS_VISIBLE | WS_BORDER, 0, 10, 10, 900, 900, hWnd, 10001);
+		HDC hDC = g_DP->GetHDC();
+		RECT rcDP{ 0,0,900,900 };
+		FillRect(hDC, &rcDP, (HBRUSH)GetStockObject(WHITE_BRUSH));
+
+
+		//RECT rcEllipse{ 10,20,600,300 };
+		//Ellipse(hDC, rcEllipse.left, rcEllipse.top, rcEllipse.right, rcEllipse.bottom);
+		//POINT pt;
+		//eck::PtFromEllipseAngle((rcEllipse.left + rcEllipse.right) / 2, (rcEllipse.top + rcEllipse.bottom) / 2,
+		//	(rcEllipse.right - rcEllipse.left) / 2, (rcEllipse.bottom - rcEllipse.top) / 2,
+		//	eck::Deg2Rad(30.f), (int&)pt.x, (int&)pt.y);
+		//
+		//HPEN hPen = CreatePen(0, 1, eck::Colorref::Red);
+		//SelectObject(hDC, hPen);
+		//MoveToEx(hDC, rcEllipse.left + (rcEllipse.right - rcEllipse.left) / 2,
+		//	rcEllipse.top + (rcEllipse.bottom - rcEllipse.top) / 2, 0);
+		//LineTo(hDC, pt.x, pt.y);
+		
+
+		//eck::DrawSpirograph(hDC, 260, 260, 260, 100, 30, 0.1);
+		//eck::DrawButterflyCurve(hDC, 400, 400,4.f,100,100,0.01);
+
+		//Ellipse(hDC, 100, 100, 600, 400);
+
+		//eck::DrawArc(hDC, 100, 100, 600, 400, eck::Deg2Rad(30), eck::Deg2Rad(15));
+
+		//eck::DrawRoseCurve(hDC, 400, 400);
+		//eck::DrawRegularStar(hDC, 450, 450, 300, 10, eck::Deg2Rad(90.f), FALSE);
+		//Rectangle(hDC, 600, 600, 880, 880);
+		float a, b, c;
+		//eck::CalcLineEquation(900, 360, 200, 900, a, b, c);
+		//XFORM xform = eck::XFORMReflection(a, b, c);
+		//eck::XFORMTranslate(100,100, xform);
+		//eck::XFORMRotate(eck::Deg2Rad(30), 100, 100, xform);
+		//eck::XFORMScale(0.5, 0.5,100,100, xform);
+		//eck::XFORMShear(tanf(eck::Deg2Rad(20)), 0,100,100, xform);
+		//SetGraphicsMode(hDC, GM_ADVANCED);
+		//auto bb = SetWorldTransform(hDC, &xform);
+		//EckAssert(bb);
+		//Rectangle(hDC, 600, 600, 880, 880);
+
+		//ModifyWorldTransform(hDC, NULL, MWT_IDENTITY);
+		//GpGraphics* pGraphics;
+		//GdipCreateFromHDC(hDC, &pGraphics);
+		//GdipSetSmoothingMode(pGraphics, SmoothingModeHighQuality);
+
+		POINT pt[]
+		{
+			{100,100},
+			{120,130},
+			{210,230},
+			{250,260},
+			{340,200},
+			{360,210},
+			{400,350},
+			{410,400},
+			{480,410},
+			{500,600}
+		};
+		constexpr int ioff = 4;
+		std::vector<POINT> vPt{};
+
+		eck::CalcBezierControlPoints(vPt, pt, ARRAYSIZE(pt));
+
+		SelectObject(hDC, CreatePen(0, 2, eck::Colorref::Green));
+		int j = 0;
+		EckCounter(vPt.size(), i)
+		{
+			if (i == 0)
+				continue;
+			auto& pt0 = vPt[i];
+			++j;
+			if (j % 3 == 0)
+			{
+				MoveToEx(hDC, vPt[i - 1].x, vPt[i - 1].y, 0);
+				LineTo(hDC, vPt[i - 2].x, vPt[i - 2].y);
+				j = 0;
+			}
+
+			Ellipse(hDC, pt0.x - ioff, pt0.y - ioff, pt0.x + ioff, pt0.y + ioff);
+		}
+
+		SelectObject(hDC, CreatePen(0, 2, eck::Colorref::Black));
+		PolyBezier(hDC, vPt.data(), vPt.size());
+
+		SelectObject(hDC, CreatePen(0, 2, eck::Colorref::Red));
+		for (auto pt0 : pt)
+		{
+			//Ellipse(hDC, pt0.x - ioff, pt0.y - ioff, pt0.x + ioff, pt0.y + ioff);
+		}
+
+		GpPen* pPen;
+		GdipCreatePen1(eck::ColorrefToARGB(eck::Colorref::Azure), 2.f, GpUnit::UnitPixel, &pPen);
+		//eck::DrawSpirograph(pGraphics, pPen, 600, 600, 260, 100, 30, 0.1);
+		//eck::DrawButterflyCurve(pGraphics, pPen, 400, 400, 4.f, 100, 100, 0.005);
+		//eck::DrawRegularStar(g_DP->GetGraphics(), pPen, 450, 450, 300, 10);
+		//eck::DrawRoseCurve(g_DP->GetGraphics(), pPen, 450, 450, 300.f, 10);
+		g_DP->Redraw();
+
+
+
+		g_DPD2D = new eck::CDrawPanelD2D;
+		g_DPD2D->Create(0, WS_CHILD | WS_VISIBLE | WS_BORDER, 0, 910, 10, 900, 900, hWnd, 10002);
+
+		auto pDC = g_DPD2D->GetDC();
+		ID2D1SolidColorBrush* pBrush;
+		pDC->CreateSolidColorBrush(D2D1::ColorF(0x66CCFF), &pBrush);
+		EckAssert(pBrush);
+		pDC->BeginDraw();
+		pDC->Clear(D2D1::ColorF(D2D1::ColorF::White));
+
+		//eck::DrawSpirograph({ eck::g_pD2dFactory,pDC,pBrush,3.f,NULL,450,450,260,100,50 });
+		//eck::DrawButterflyCurve({ eck::g_pD2dFactory,pDC,pBrush,3.f,NULL,200,200,4.f,50.f,50.f });
+		//eck::DrawRoseCurve({ eck::g_pD2dFactory,pDC,pBrush,3.f,NULL,450,450 });
+
+		IWICBitmapDecoder* pDecoder;
+		eck::CreateWicBitmapDecoder(LR"(E:\Desktop\Temp\WB7TQPSZD{XRYEO~{NX%XG0.jpg)", pDecoder, eck::g_pWicFactory);
+
+		std::vector<IWICBitmap*> vWicBmp{};
+		eck::CreateWicBitmap(vWicBmp, pDecoder, eck::g_pWicFactory);
+
+		ID2D1Bitmap1* pBitmap;
+		pDC->CreateBitmapFromWicBitmap(vWicBmp[0], &pBitmap);
+		EckAssert(pBitmap);
+
+		D2D1_MATRIX_4X4_F M{};
+		D2D1_RECT_F rcF{ 300,300,700,700 };
+		auto Size = pBitmap->GetSize();
+		D2D1_RECT_F rcFSrc{ 0,0,Size.width,Size.height };
+		eck::CalcDistortMatrix(rcF, { {280,280},{700,310},{300,780},{750,700} }, M);
+		//pDC->DrawBitmap(pBitmap, rcF, 1.f, D2D1_INTERPOLATION_MODE_CUBIC, rcFSrc, M);
+		rcF = { 600,600,880,880 };
+		pDC->DrawRectangle(rcF, pBrush, 3.f);
+
+		eck::CalcLineEquation(900, 360,200,900, a, b, c);
+		pDC->DrawLine({ 900, 360 }, { 200,900 }, pBrush);
+		pDC->SetTransform(eck::D2dMatrixReflection(a, b, c));
+		pDC->DrawRectangle(rcF, pBrush, 3.f);
+		pDC->SetTransform(D2D1::Matrix3x2F::Identity());
+		eck::DrawRegularStar({eck::g_pD2dFactory,pDC,pBrush,5.f,NULL,450,450,300,6});
+		
+		pDC->DrawEllipse({ 450,450,300,300 }, pBrush, 8.f);
+		pDC->EndDraw();
+		g_DPD2D->GetSwapChain()->Present(0, 0);
+
+		
 
 		//auto rbft = eck::ReadInFile(LR"(E:\Desktop\1.eckft)");
 		//eck::CFormTable ft;
@@ -422,58 +578,58 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		//eck::SetFontForWndAndCtrl(hWnd, g_hFont);
 		//return 0;
 
-		g_Btn = new eck::CPushButton;
-		g_Btn->Create(L"测试按钮", WS_VISIBLE | BS_PUSHBUTTON, 0, 20, 30, 300, 180, hWnd, 101);
+		//g_Btn = new eck::CPushButton;
+		//g_Btn->Create(L"测试按钮", WS_VISIBLE | BS_PUSHBUTTON, 0, 20, 30, 300, 180, hWnd, 101);
 
-		g_Edit = new eck::CEdit;
-		g_Edit->Create(L"示例编辑框", WS_VISIBLE, WS_EX_CLIENTEDGE, 400, 20, 400, 60, hWnd, 102);
-		//g_Edit->SetClr(2, 0xFF);
-		//g_Edit->SetClr(1, 0xFF);
+		//g_Edit = new eck::CEdit;
+		//g_Edit->Create(L"示例编辑框", WS_VISIBLE, WS_EX_CLIENTEDGE, 400, 20, 400, 60, hWnd, 102);
+		////g_Edit->SetClr(2, 0xFF);
+		////g_Edit->SetClr(1, 0xFF);
 
-		g_Label = new eck::CLabel;
-		g_Label->Create(L"标签", WS_VISIBLE | WS_BORDER, 0, 20, 230, 400, 200, hWnd, 103);
-		g_Label->SetClr(2, CLR_DEFAULT);
-		auto rb = eck::ReadInFile(LR"(E:\Desktop\Temp\Zombatar_1.jpg)");
-		HBITMAP hBitmap = eck::CreateHBITMAP(rb, rb.m_cb);
-		g_Label->SetPic(hBitmap);
-		//g_Label->SetTransparent(TRUE);
+		//g_Label = new eck::CLabel;
+		//g_Label->Create(L"标签", WS_VISIBLE | WS_BORDER, 0, 20, 230, 400, 200, hWnd, 103);
+		//g_Label->SetClr(2, CLR_DEFAULT);
+		//auto rb = eck::ReadInFile(LR"(E:\Desktop\Temp\Zombatar_1.jpg)");
+		//HBITMAP hBitmap = eck::CreateHBITMAP(rb, rb.m_cb);
+		//g_Label->SetPic(hBitmap);
+		////g_Label->SetTransparent(TRUE);
 
-		g_CC = new eck::CColorPicker;
-		g_CC->SetNotifyMsg(WM_USER);
-		g_CC->Create(NULL, WS_VISIBLE, 0, 20, 450, 160, 400, hWnd, 104);
+		//g_CC = new eck::CColorPicker;
+		//g_CC->SetNotifyMsg(WM_USER);
+		//g_CC->Create(NULL, WS_VISIBLE, 0, 20, 450, 160, 400, hWnd, 104);
 
-		g_LBExt = new eck::CListBoxExt;
-		g_LBExt->Create(NULL, WS_VISIBLE, WS_EX_CLIENTEDGE, 500, 80, 300, 400, hWnd, 105);
-		g_LBExt->SetToolTip(TRUE);
-		g_LBExt->SetCheckBoxMode(1);
-		g_LBExt->SetItemHeight(0, 30);
-		eck::LBITEMCOMMINFO CommInfo{};
-		g_LBExt->SetRedraw(FALSE);
-		for (int i = 0; i < 40; ++i)
-		{
-			if (i == 5)
-			{
-				CommInfo.bDisabled = TRUE;
-			}
-			else
-			{
-				CommInfo.bDisabled = FALSE;
-			}
-			g_LBExt->AddString(
-				(L"测试测试"s + std::to_wstring(i)).c_str(),
-				(L"我是提示"s + std::to_wstring(i)).c_str(),
-				CommInfo);
-		}
-		g_LBExt->SetRedraw(TRUE);
+		//g_LBExt = new eck::CListBoxExt;
+		//g_LBExt->Create(NULL, WS_VISIBLE, WS_EX_CLIENTEDGE, 500, 80, 300, 400, hWnd, 105);
+		//g_LBExt->SetToolTip(TRUE);
+		//g_LBExt->SetCheckBoxMode(1);
+		//g_LBExt->SetItemHeight(0, 30);
+		//eck::LBITEMCOMMINFO CommInfo{};
+		//g_LBExt->SetRedraw(FALSE);
+		//for (int i = 0; i < 40; ++i)
+		//{
+		//	if (i == 5)
+		//	{
+		//		CommInfo.bDisabled = TRUE;
+		//	}
+		//	else
+		//	{
+		//		CommInfo.bDisabled = FALSE;
+		//	}
+		//	g_LBExt->AddString(
+		//		(L"测试测试"s + std::to_wstring(i)).c_str(),
+		//		(L"我是提示"s + std::to_wstring(i)).c_str(),
+		//		CommInfo);
+		//}
+		//g_LBExt->SetRedraw(TRUE);
 
-		g_DirBox = new eck::CDirBox;
-		g_DirBox->SetDir(L"E:");
-		g_DirBox->SetFileShowing(TRUE);
-		g_DirBox->Create(NULL, WS_VISIBLE | TVS_HASBUTTONS | TVS_FULLROWSELECT | TVS_LINESATROOT | TVS_TRACKSELECT,
-			WS_EX_CLIENTEDGE, 820, 80, 400, 400, hWnd, 106);
+		//g_DirBox = new eck::CDirBox;
+		//g_DirBox->SetDir(L"E:");
+		//g_DirBox->SetFileShowing(TRUE);
+		//g_DirBox->Create(NULL, WS_VISIBLE | TVS_HASBUTTONS | TVS_FULLROWSELECT | TVS_LINESATROOT | TVS_TRACKSELECT,
+		//	WS_EX_CLIENTEDGE, 820, 80, 400, 400, hWnd, 106);
 
-		g_DirBox->SetExplorerTheme();
-		g_DirBox->SetTVExtStyle(TVS_EX_DOUBLEBUFFER);
+		//g_DirBox->SetExplorerTheme();
+		//g_DirBox->SetTVExtStyle(TVS_EX_DOUBLEBUFFER);
 
 
 		//eck::CTaskDialog td;
@@ -520,7 +676,7 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		//};
 		//td.Show(&tdc);
 
-		g_SBNcH = new eck::CScrollBarWndH;
+		/*g_SBNcH = new eck::CScrollBarWndH;
 		g_SBNcH->Manage(eck::CWnd::ManageOp::Attach, hWnd);
 		g_SBNcH->ShowScrollBar(FALSE);
 
@@ -577,9 +733,8 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 
 		g_SPBH = new eck::CSplitBar;
 		g_SPBH->Create(NULL, WS_VISIBLE | WS_CHILD, 0, 300, 400, 600, 20, hWnd, 202);
-		g_SPBH->SetDirection(TRUE);
-
-		eck::SetFontForWndAndCtrl(hWnd, g_hFont);
+		g_SPBH->SetDirection(TRUE);*/
+eck::SetFontForWndAndCtrl(hWnd, g_hFont);
 	}
 	return 0;
 

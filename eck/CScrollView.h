@@ -116,7 +116,7 @@ public:
 		{
 			const int iPrevPos = p->GetPos();
 			p->m_iSustain += 20;
-			int iCurr = (int)OutCubic((float)p->m_iSustain, (float)p->m_iStart, (float)p->m_iDistance, (float)p->m_iDuration);
+			int iCurr = (int)Easing::FOutCubic{}((float)p->m_iSustain, (float)p->m_iStart, (float)p->m_iDistance, (float)p->m_iDuration);
 			if (iCurr > p->GetMaxWithPage())
 			{
 				p->SetPos(p->GetMaxWithPage());
@@ -149,12 +149,17 @@ public:
 
 	void OnMouseWheel2(int iDelta, InertialScrollProc pfnInertialScroll, LPARAM lParam)
 	{
+		SmoothScrollDelta(m_iDelta * iDelta, pfnInertialScroll, lParam);
+	}
+
+	void SmoothScrollDelta(int iDelta, InertialScrollProc pfnInertialScroll, LPARAM lParam)
+	{
 		m_pfnInertialScroll = pfnInertialScroll;
 		m_lParam = lParam;
 
 		m_iStart = GetPos();
 		// 计算新的滚动距离；将原先的滚动距离减去已经滑动完的位移再加上滚动事件产生的位移
-		m_iDistance = ((m_iDuration - m_iSustain) * m_iDistance / m_iDuration) + (m_iDelta * iDelta);
+		m_iDistance = ((m_iDuration - m_iSustain) * m_iDistance / m_iDuration) + iDelta;
 		if (m_iDistance + m_iStart > GetMaxWithPage())
 			m_iDistance = GetMaxWithPage() - m_iStart;
 		if (m_iDistance + m_iStart < GetMin())

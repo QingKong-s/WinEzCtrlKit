@@ -32,7 +32,7 @@ struct LBITEMCOMMINFO
 
 	LBITEMCOMMINFO()
 	{
-		//ZeroMemory(this, sizeof(*this));
+		ZeroMemory(this, sizeof(*this));
 		crText = crBK = crSelText = crSelBK = CLR_DEFAULT;
 	}
 };

@@ -18,7 +18,8 @@
 #include <string_view>
 
 #include <windowsx.h>
-#include <d2d1.h>
+#include <d2d1_1.h>
+#include <Shlwapi.h>
 
 #define MAKEINTATOMW(i) (PWSTR)((ULONG_PTR)((WORD)(i)))
 #define EckBoolNot(x) ((x) = !(x))
@@ -28,13 +29,13 @@
 #define GET_SIZE_LPARAM(cx,cy,lParam) (cx) = LOWORD(lParam); (cy) = HIWORD(lParam);
 
 // 计次循环
-#define EckCounter(c, Var) for(std::remove_cv_t<decltype(c)> Var = 0; Var < c; ++Var)
+#define EckCounter(c, Var) for(std::remove_cvref_t<decltype(c)> Var = 0; Var < (c); ++Var)
 
 #define EckCounterNVMakeVarName2(Name) ECKPRIV_COUNT_##Name##___
 #define EckCounterNVMakeVarName(Name) EckCounterNVMakeVarName2(Name)
 
 // 计次循环，无变量名参数
-#define EckCounterNV(c) EckCounter(c, EckCounterNVMakeVarName(__LINE__))
+#define EckCounterNV(c) EckCounter((c), EckCounterNVMakeVarName(__LINE__))
 
 #define EckOpt(Type, Name) std::optional<Type> Name
 #define EckOptNul(Type, Name) std::optional<Type> Name = std::nullopt
@@ -253,13 +254,12 @@ struct CMemReader
 	}
 };
 
-class CEzCDC
+struct CEzCDC
 {
-private:
 	HDC m_hCDC = NULL;
 	HBITMAP m_hBmp = NULL;
 	HGDIOBJ m_hOld = NULL;
-public:
+
 	CEzCDC() = default;
 	CEzCDC(HWND hWnd, int cx = 0, int cy = 0)
 	{
@@ -280,14 +280,161 @@ public:
 
 	void ReSize(HWND hWnd, int cx = 0, int cy = 0);
 
-	EckInline HDC GetDC()
+	EckInline HDC GetDC() const { return m_hCDC; }
+
+	EckInline HBITMAP GetBitmap() const { return m_hBmp; }
+};
+
+class IStreamView :public IStream
+{
+private:
+	ULONG m_cRef = 1;
+
+	PCBYTE m_pMem = NULL;
+	PCBYTE m_pSeek = NULL;
+	SIZE_T m_cbSize = 0u;
+public:
+	IStreamView(PCVOID p, SIZE_T cb) :m_pMem{ (PCBYTE)p }, m_cbSize{ cb }, m_pSeek{ NULL } {}
+
+	void SetPointer(PCVOID p, SIZE_T cb)
 	{
-		return m_hCDC;
+		m_pMem = (PCBYTE)p;
+		m_pSeek = m_pMem;
+		m_cbSize = cb;
 	}
 
-	EckInline HBITMAP GetBitmap()
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void __RPC_FAR* __RPC_FAR* ppvObject)
 	{
-		return m_hBmp;
+		const QITAB qit[]
+		{
+			QITABENT(IStreamView, IStream),
+			QITABENT(IStreamView, ISequentialStream),
+			{}
+		};
+
+		return QISearch(this, qit, riid, ppvObject);
+	}
+
+	ULONG STDMETHODCALLTYPE AddRef(void)
+	{
+		++m_cRef;
+		return m_cRef;
+	}
+
+	ULONG STDMETHODCALLTYPE Release(void)
+	{
+		if (m_cRef == 1)
+		{
+			delete this;
+			return 0;
+		}
+		return --m_cRef;
+	}
+
+	HRESULT STDMETHODCALLTYPE Read(void* pv, ULONG cb, ULONG* pcbRead)
+	{
+		if (!pv || !pcbRead)
+			return STG_E_INVALIDPOINTER;
+		HRESULT hr = S_OK;
+		if (m_pSeek + cb > m_pMem + m_cbSize)
+		{
+			cb = (ULONG)(m_cbSize - (m_pSeek - m_pMem));
+			hr = S_FALSE;
+		}
+		memcpy(pv, m_pSeek, cb);
+		return hr;
+	}
+
+	HRESULT STDMETHODCALLTYPE Write(const void* pv, ULONG cb, ULONG* pcbWritten)
+	{
+		EckDbgBreak();
+		return STG_E_CANTSAVE;
+	}
+
+	HRESULT STDMETHODCALLTYPE Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition)
+	{
+		switch (dwOrigin)
+		{
+		case SEEK_SET:
+			if ((SIZE_T)dlibMove.QuadPart > m_cbSize)
+				return STG_E_INVALIDFUNCTION;
+			m_pSeek = m_pMem + (SIZE_T)dlibMove.QuadPart;
+			if (plibNewPosition)
+				plibNewPosition->QuadPart = dlibMove.QuadPart;
+			return S_OK;
+		case SEEK_CUR:
+		{
+			const auto ocbNew = (SIZE_T)dlibMove.QuadPart + (m_pSeek - m_pMem);
+			if (ocbNew > m_cbSize || ocbNew < 0)
+				return STG_E_INVALIDFUNCTION;
+			m_pSeek = m_pMem + ocbNew;
+			if (plibNewPosition)
+				plibNewPosition->QuadPart = (LONGLONG)ocbNew;
+		}
+		return S_OK;
+		case SEEK_END:
+			if (dlibMove.QuadPart < -(LONGLONG)m_cbSize || dlibMove.QuadPart>0)
+				return STG_E_INVALIDFUNCTION;
+			m_pSeek = m_pMem + m_cbSize + (SIZE_T)dlibMove.QuadPart;
+			if (plibNewPosition)
+				plibNewPosition->QuadPart = m_cbSize + dlibMove.QuadPart;
+			return S_OK;
+		}
+		return STG_E_INVALIDFUNCTION;
+	}
+
+	HRESULT STDMETHODCALLTYPE SetSize(ULARGE_INTEGER libNewSize)
+	{
+		EckDbgBreak();
+		return STG_E_MEDIUMFULL;
+	}
+
+	HRESULT STDMETHODCALLTYPE CopyTo(IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten)
+	{
+		if (!pstm)
+			return STG_E_INVALIDPOINTER;
+		if (m_pSeek + cb.QuadPart > m_pMem + m_cbSize)
+			cb.QuadPart = m_cbSize;
+
+		ULONG cbWritten;
+		pstm->Write(m_pSeek, cb.LowPart, &cbWritten);
+		if (pcbRead)
+			pcbRead->QuadPart = cbWritten;
+		if (pcbWritten)
+			pcbWritten->QuadPart = cbWritten;
+		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE Commit(DWORD grfCommitFlags)
+	{
+		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE Revert(void)
+	{
+		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE LockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType)
+	{
+		EckDbgBreak();
+		return STG_E_INVALIDFUNCTION;
+	}
+
+	HRESULT STDMETHODCALLTYPE UnlockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType)
+	{
+		return STG_E_INVALIDFUNCTION;
+	}
+
+	HRESULT STDMETHODCALLTYPE Stat(STATSTG* pstatstg, DWORD grfStatFlag)
+	{
+		return STG_E_ACCESSDENIED;
+	}
+
+	HRESULT STDMETHODCALLTYPE Clone(IStream** ppstm)
+	{
+		EckDbgBreak();
+		return STG_E_INSUFFICIENTMEMORY;
 	}
 };
 
@@ -590,6 +737,22 @@ EckInline void DoEvents()
 		}
 		TranslateMessage(&msg);
 		DispatchMessageW(&msg);
+	}
+}
+
+EckInline UINT Gcd(UINT a, UINT b)
+{
+	UINT c;
+	for (;;)
+	{
+		c = a % b;
+		if (c)
+		{
+			a = b;
+			b = c;
+		}
+		else
+			return b;
 	}
 }
 ECK_NAMESPACE_END

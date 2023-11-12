@@ -13,6 +13,7 @@ private:
 	static void CALLBACK TimerProc(UINT uTimerID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR dw1, DWORD_PTR dw2)
 	{
 		auto p = (CMsgMmTimer*)dwUser;
+
 		PostMessageW(p->m_hWnd, p->m_uNotifyMsg, uTimerID, p->m_lParam);
 	}
 public:

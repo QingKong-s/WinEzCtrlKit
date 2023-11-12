@@ -10,6 +10,11 @@
 #include <Uxtheme.h>
 #include <vsstyle.h>
 #include <dwmapi.h>
+#include <wincodec.h>
+#include <dwrite.h>
+#include <d2d1_1.h>
+#include <dxgi1_2.h>
+
 #include <assert.h>
 /*宏*/
 
@@ -106,6 +111,12 @@ ECK_NAMESPACE_END
 #include "GdiplusFlatDef.h"
 ECK_NAMESPACE_BEGIN
 extern HINSTANCE g_hInstance;
+extern IWICImagingFactory* g_pWicFactory;
+extern ID2D1Factory1* g_pD2dFactory;
+extern IDWriteFactory* g_pDwFactory;
+extern ID2D1Device* g_pD2dDevice;
+extern IDXGIDevice1* g_pDxgiDevice;
+extern IDXGIFactory2* g_pDxgiFactory;
 
 /*窗口类名*/
 
@@ -118,6 +129,8 @@ constexpr inline PCWSTR WCN_FORM = L"Eck.WndClass.Form";
 constexpr inline PCWSTR WCN_TABHEADER = L"Eck.WndClass.TabHeader";
 constexpr inline PCWSTR WCN_DLG = L"Eck.WndClass.CommDlg";
 constexpr inline PCWSTR WCN_SPLITBAR = L"Eck.WndClass.SplitBar";
+constexpr inline PCWSTR WCN_DRAWPANEL = L"Eck.WndClass.DrawPanel";
+constexpr inline PCWSTR WCN_DRAWPANELD2D = L"Eck.WndClass.DrawPanelD2D";
 
 constexpr inline PCWSTR MSG_INERTIALSV = L"Eck.Message.InertialScrollView";
 
@@ -125,13 +138,19 @@ enum class InitStatus
 {
 	Ok = 0,
 	RegWndClassError = 1,
-	GdiplusInitError = 2
+	GdiplusInitError = 2,
+	WicFactoryError = 3,
+	D2dFactoryError = 4,
+	DxgiDeviceError = 5,
+	DWriteFactoryError = 6,
+	D3dDeviceError = 7
 };
 
 /// <summary>
 /// 初始化ECK Lib
 /// </summary>
 /// <param name="hInstance">实例句柄，所有自定义窗口类将在此实例上注册</param>
+/// <param name="pdwErrCode">接收错误码变量的可选指针；若未发生错误，则不修改此指针指向的内容</param>
 /// <returns>错误代码</returns>
-InitStatus Init(HINSTANCE hInstance);
+InitStatus Init(HINSTANCE hInstance, DWORD* pdwErrCode = NULL);
 ECK_NAMESPACE_END
