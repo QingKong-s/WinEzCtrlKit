@@ -146,7 +146,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="eck\CAllocator.h" />
-    <ClInclude Include="eck\CAnimation.h" />
     <ClInclude Include="eck\CArray.h" />
     <ClInclude Include="eck\CBk.h" />
     <ClInclude Include="eck\CChartBar.h" />

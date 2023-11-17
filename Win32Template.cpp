@@ -4,6 +4,8 @@
 
 #include <dwmapi.h>
 
+#include <format>
+
 #include "eck/Env.h"
 #include "eck/DbgHelper.h"
 #include "eck/DlgHelper.h"
@@ -107,6 +109,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	using namespace eck;
 	using namespace eck::Literals;
 
+
+
 	//CResSet<int> ress;
 
 
@@ -142,15 +146,35 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	//EckDbgPrint(BinToFriendlyString(rb3, rb3.m_cb, 1));
 
 
-	//CArray<int> arr(2, 4, 4);
-	///*auto aaa = arr[1][2].e;
-	//*(aaa) = 0xFFFFFFFF;*/
-	////arr[1][2] = 1;
-	////int a = arr[1][2];
-	//arr[1][2] = 0xFFFFFFFF;
-	//arr.ReDim(TRUE, 3, 3i64, 3i64, 3i64);
-	//auto pp = arr[2][2][2].AddressOf();
-	//arr[2][2][2] = 0xCCCCCCCC;
+	CArray<int> arr(4, 4);
+	arr[1][2] = 1;
+	//int a = arr[1][2];
+	arr[1][2] = 0xFFFFFFFF;
+	arr.ReDim(3, 3, 3);
+	auto pp = arr[2][2][2].AddressOf();
+	arr[2][2][2] = 0xCCCCCCCC;
+
+	arr.ReDim(6, 6);
+	arr[0][0] = 123;
+	arr[2][2] = 456;
+
+	for (auto& x : arr)
+	{
+		x = 1;
+	}
+
+	CArray<std::wstring> srr(4, 4);
+	EckCounter(4, i)
+	{
+		EckCounter(4, j)
+		{
+			srr[i][j] = std::format(L"{},{}", i, j);
+		}
+	}
+
+
+
+	int aaaaaaaa = 0;
 
 
 	//CRefStrW rs = L"1";
@@ -527,7 +551,7 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		//eck::DrawRoseCurve({ eck::g_pD2dFactory,pDC,pBrush,3.f,NULL,450,450 });
 
 		IWICBitmapDecoder* pDecoder;
-		eck::CreateWicBitmapDecoder(LR"(E:\Desktop\Temp\WB7TQPSZD{XRYEO~{NX%XG0.jpg)", pDecoder, eck::g_pWicFactory);
+		eck::CreateWicBitmapDecoder(LR"(E:\Desktop\Temp\1.gif)", pDecoder, eck::g_pWicFactory);
 
 		std::vector<IWICBitmap*> vWicBmp{};
 		eck::CreateWicBitmap(vWicBmp, pDecoder, eck::g_pWicFactory);
@@ -541,7 +565,7 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		auto Size = pBitmap->GetSize();
 		D2D1_RECT_F rcFSrc{ 0,0,Size.width,Size.height };
 		eck::CalcDistortMatrix(rcF, { {280,280},{700,310},{300,780},{750,700} }, M);
-		//pDC->DrawBitmap(pBitmap, rcF, 1.f, D2D1_INTERPOLATION_MODE_CUBIC, rcFSrc, M);
+		pDC->DrawBitmap(pBitmap, rcF, 1.f, D2D1_INTERPOLATION_MODE_CUBIC, rcFSrc, M);
 		rcF = { 600,600,880,880 };
 		pDC->DrawRectangle(rcF, pBrush, 3.f);
 
