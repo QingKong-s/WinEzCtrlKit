@@ -192,9 +192,6 @@
     <ClInclude Include="eck\CDialog.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CAnimation.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CSplitBar.h">
       <Filter>ECK Include</Filter>
     </ClInclude>

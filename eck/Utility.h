@@ -561,13 +561,7 @@ EckInline BOOL operator<(const FILETIME& ft1, const FILETIME& ft2)
 template<class T1, class T2>
 constexpr EckInline BOOL IsBitSet(T1 dw1, T2 dw2)
 {
-	return ((dw1 & dw2) == dw2);
-}
-
-template<class T1, class T2>
-EckInline T1 ReInterpretNum(T2 n)
-{
-	return *(T1*)&n;
+	return (dw1 & dw2) == dw2;
 }
 
 /// <summary>
@@ -689,7 +683,7 @@ EckInline constexpr BOOL Sign(T v)
 	return v >= 0;
 }
 
-EckInline constexpr DWORD ReverseDWORD(BYTE* p)
+EckInline constexpr DWORD ReverseDWORD(const BYTE* p)
 {
 	return ((p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]);
 }

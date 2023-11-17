@@ -1,14 +1,13 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* CArray.h £º ¶àÎ¬Êý×é
-* ÄÚ´æ¿Õ¼äÁ¬ÐøµÄ¶àÎ¬Êý×é
+* CArray.h ï¼š å¤šç»´æ•°ç»„
+* å†…å­˜ç©ºé—´è¿žç»­çš„å¤šç»´æ•°ç»„
 *
 * Copyright(C) 2023 QingKong
 */
 #pragma once
 #include "ECK.h"
-#include "CAllocator.h"
 #include "Utility.h"
 
 #include <vector>
@@ -20,37 +19,34 @@ class ArrayDim
 {
 private:
 	TElem* e;
-	SIZE_T idxCurrDim;
-	std::vector<SIZE_T>* DimInfo;
+	size_t idxCurrDim;
+	std::vector<size_t>* DimInfo;
 
 	template<class TElem, class TAllocator>
 	friend class CArray;
 public:
-	operator TElem& ()
-	{
-		return *e;
-	}
+	EckInline operator TElem& () { return *e; }
 
-	ArrayDim<TElem> operator[](SIZE_T x)
+	EckInline operator const TElem& () const { return *e; }
+
+	ArrayDim<TElem> operator[](size_t x)
 	{
 #ifdef _DEBUG
 		if (idxCurrDim >= DimInfo->size())
 		{
-			EckDbgPrintWithPos(L"ÏÂ±ê¸öÊý³¬³öÎ¬Êý·¶Î§");
+			EckDbgPrintWithPos(L"ä¸‹æ ‡ä¸ªæ•°è¶…å‡ºç»´æ•°èŒƒå›´");
 			EckDbgBreak();
 		}
 
 		if (x > DimInfo->at(idxCurrDim))
 		{
-			EckDbgPrintWithPos(L"ÏÂ±ê³¬³ö·¶Î§");
+			EckDbgPrintWithPos(L"ä¸‹æ ‡è¶…å‡ºèŒƒå›´");
 			EckDbgBreak();
 		}
 #endif
-		SIZE_T c = 1u;
-		for (SIZE_T i = DimInfo->size() - 1; i > idxCurrDim; --i)
-		{
+		size_t c = 1u;
+		for (size_t i = DimInfo->size() - 1; i > idxCurrDim; --i)
 			c *= DimInfo->at(i);
-		}
 
 		ArrayDim<TElem> d;
 		d.e = e + c * x;
@@ -59,94 +55,170 @@ public:
 		return d;
 	}
 
-	const TElem& operator=(const TElem& x)
+	EckInline const TElem& operator=(const TElem& x)
 	{
 		*e = x;
 		return x;
 	}
 
-	TElem* AddressOf()
-	{
-		return e;
-	}
+	EckInline TElem* AddressOf() { return e; }
+
+	EckInline const TElem* AddressOf() const { return e; }
 };
 
-template<class TElem, class TAllocator = CAllocator<TElem>>
+template<class TElem, class TAllocator = std::allocator<TElem>>
 class CArray
 {
+public:
+	using TAlloc = TAllocator;
+	using TAllocTraits = std::allocator_traits<TAlloc>;
+	using TAryDim = ArrayDim<TElem>;
+	using TIterator = TElem*;
+	using TConstIterator = const TElem*;
 private:
 	TElem* m_pMem = NULL;
-	SIZE_T m_cCount = 0u;
-	SIZE_T m_cCapacity = 0u;
+	size_t m_cCount = 0u;
+	size_t m_cCapacity = 0u;
+	std::vector<size_t> m_Dim{};
+	TAlloc m_Alloc{};
 
-	std::vector<SIZE_T> m_Dim{};
 
-	using TAlloc = TAllocator;
-	using TAryDim = ArrayDim<TElem>;
-public:
-	CArray(SIZE_T cDimensions, ...)
+	void UnpackSizeArgs(size_t& cTotal) {}
+
+	template<class TSize0, class... TSize>
+	void UnpackSizeArgs(size_t& cTotal, TSize0 c0, TSize... c)
 	{
-		va_list vl;
-		va_start(vl, cDimensions);
-		ReDim(TRUE, cDimensions, vl);
-		va_end(vl);
+		cTotal *= c0;
+		m_Dim.emplace_back(c0);
+		UnpackSizeArgs(cTotal, c...);
+	}
+
+	static EckInline size_t MakeCapacity(size_t c) { return c * 3 / 2 + 1; }
+public:
+	CArray() = default;
+
+	template<class... TSize>
+	CArray(TSize... c)
+	{
+		if (!sizeof...(c))
+			throw std::bad_array_new_length{};
+		size_t cTotal = 1u;
+		UnpackSizeArgs(cTotal, c...);
+		m_cCount = cTotal;
+		m_cCapacity = MakeCapacity(m_cCount);
+		m_pMem = m_Alloc.allocate(m_cCapacity);
+		std::uninitialized_value_construct(begin(), end());
 	}
 
 	CArray(const CArray& x)
+		:m_cCount{ x.m_cCount }, m_cCapacity{ x.m_cCapacity }, m_Dim{ x.m_Dim },
+		m_Alloc{ TAllocTraits::select_on_container_copy_construction(x.m_Alloc) }
 	{
-		operator=(x);
+		m_pMem = m_Alloc.allocate(m_cCapacity);
+		std::uninitialized_copy(x.begin(), x.end(), begin());
 	}
 
-	CArray(CArray&& x)
+	CArray(CArray&& x) noexcept
+		:m_pMem{ x.m_pMem }, m_cCount{ x.m_cCount }, m_cCapacity{ x.m_cCapacity },
+		m_Dim{ x.m_Dim }, m_Alloc{ std::move(x.m_Alloc) }
 	{
-		operator=(std::move(x));
-	}
-
-	CArray& operator=(const CArray& x)
-	{
-		m_cCount = x.m_cCount;
-		m_cCapacity = TAlloc::MakeCapacity(m_cCount);
-		m_pMem = TAlloc::Alloc(m_cCapacity);
-		m_Dim = x.m_Dim;
-		memcpy(m_pMem, x.m_pMem, m_cCount * sizeof(TElem));
-	}
-
-	CArray& operator=(CArray&& x)
-	{
-		m_cCount = x.m_cCount;
-		m_cCapacity = x.m_cCapacity;
-		m_pMem = x.m_pMem;
-		m_Dim = x.m_Dim;
 		x.m_pMem = NULL;
 		x.m_cCount = x.m_cCapacity = 0u;
 		x.m_Dim.clear();
 	}
 
-	~CArray()
+	CArray& operator=(const CArray& x)
 	{
-		TAlloc::Free(m_pMem);
+		if (this == &x)
+			return *this;
+		if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
+		{
+			if (m_Alloc != x.m_Alloc)
+			{
+				m_Alloc.deallocate(m_pMem, m_cCapacity);
+				m_Alloc = x.m_Alloc;
+				m_cCount = x.m_cCount;
+				m_cCapacity = MakeCapacity(m_cCount);
+				m_pMem = m_Alloc.allocate(m_cCapacity);
+				std::uninitialized_copy(x.begin(), x.end(), begin());
+				return *this;
+			}
+			m_Alloc = x.m_Alloc;
+		}
+		m_Dim = x.m_Dim;
+		if (m_cCapacity < x.m_cCount)
+		{
+			m_Alloc.deallocate(m_pMem, m_cCapacity);
+			m_cCount = x.m_cCount;
+			m_cCapacity = MakeCapacity(m_cCount);
+			m_pMem = m_Alloc.allocate(m_cCapacity);
+			std::uninitialized_copy(x.begin(), x.end(), begin());
+			return *this;
+		}
+
+		if (m_cCount > x.m_cCount)
+		{
+			std::destroy(begin() + x.m_cCount, end());
+			m_cCount = x.m_cCount;
+			std::copy(x.begin(), x.end(), begin());
+		}
+		else
+		{
+			std::copy(x.begin(), x.begin() + m_cCount, begin());
+			std::uninitialized_copy(x.begin() + m_cCount, x.end(), begin() + m_cCount);
+			m_cCount = x.m_cCount;
+		}
+		return *this;
 	}
 
-	TAryDim operator[](SIZE_T x)
+	CArray& operator=(CArray&& x) noexcept
+	{
+		if (this == &x)
+			return *this;
+		if constexpr (TAllocTraits::propagate_on_container_move_assignment::value)
+		{
+			if (m_Alloc != x.m_Alloc)
+			{
+				m_Alloc.deallocate(m_pMem, m_cCapacity);
+				m_Alloc = std::move(x.m_Alloc);
+				m_cCount = x.m_cCount;
+				m_cCapacity = MakeCapacity(m_cCount);
+				m_pMem = m_Alloc.allocate(m_cCapacity);
+				std::uninitialized_copy(x.begin(), x.end(), begin());
+				return *this;
+			}
+			m_Alloc = std::move(x.m_Alloc);
+		}
+		std::swap(m_pMem, x.m_pMem);
+		std::swap(m_cCount, x.m_cCount);
+		std::swap(m_cCapacity, x.m_cCapacity);
+		std::swap(m_Dim, x.m_Dim);
+		return *this;
+	}
+
+	~CArray()
+	{
+		m_Alloc.deallocate(m_pMem, m_cCapacity);
+	}
+
+	TAryDim operator[](size_t x)
 	{
 #ifdef _DEBUG
 		if (!m_Dim.size())
 		{
-			EckDbgPrintWithPos(L"ÏÂ±ê¸öÊý³¬³öÎ¬Êý·¶Î§");
+			EckDbgPrintWithPos(L"ä¸‹æ ‡ä¸ªæ•°è¶…å‡ºç»´æ•°èŒƒå›´");
 			EckDbgBreak();
 		}
 
 		if (x > m_Dim[0])
 		{
-			EckDbgPrintWithPos(L"ÏÂ±ê³¬³ö·¶Î§");
+			EckDbgPrintWithPos(L"ä¸‹æ ‡è¶…å‡ºèŒƒå›´");
 			EckDbgBreak();
 		}
 #endif
-		SIZE_T c = 1;
-		for (SIZE_T i = m_Dim.size() - 1; i > 0; --i)
-		{
+		size_t c = 1;
+		for (size_t i = m_Dim.size() - 1; i > 0; --i)
 			c *= m_Dim[i];
-		}
 
 		TAryDim d;
 		d.e = m_pMem + c * x;
@@ -155,58 +227,62 @@ public:
 		return d;
 	}
 
-	void ReDim(BOOL bReservePrevData, SIZE_T cDimensions, va_list vlCounts)
+	template<class... TSize>
+	CArray& ReDim(TSize... c)
 	{
-		SIZE_T cTotal = 1;
-		SIZE_T c;
+		if (!sizeof...(c))
+			throw std::bad_array_new_length{};
+
+		size_t cTotal = 1u;
 		m_Dim.clear();
-		EckCounter(cDimensions, i)
-		{
-			c = va_arg(vlCounts, SIZE_T);
-			cTotal *= c;
-			m_Dim.push_back(c);
-		}
+		UnpackSizeArgs(cTotal, c...);
 
 		if (m_cCapacity < cTotal)
 		{
-			m_cCapacity = TAlloc::MakeCapacity(cTotal);
-			if (m_pMem)
-				m_pMem = TAlloc::ReAllocZ(m_pMem, m_cCapacity);
-			else
-				m_pMem = TAlloc::AllocZ(m_cCapacity);
+			CArray t(c...);
+			std::swap(*this, t);
+			return *this;
 		}
 
-		if (!bReservePrevData)
-			ZeroMemory(m_pMem, m_cCount * sizeof(TElem));
-
+		if (m_cCount > cTotal)
+			std::destroy(begin() + cTotal, end());
+		else
+			std::uninitialized_value_construct(begin() + m_cCount, begin() + cTotal);
 		m_cCount = cTotal;
+		return *this;
 	}
 
-	void ReDim(BOOL bReservePrevData, SIZE_T cDimensions, ...)
-	{
-		va_list vl;
-		va_start(vl, cDimensions);
-		ReDim(bReservePrevData, cDimensions, vl);
-		va_end(vl);
-	}
-
-	EckInline TElem* AddressOf()
-	{
-		return m_pMem;
-	}
-
-	EckInline SIZE_T GetElementsCount()
+	EckInline size_t GetCount() const noexcept
 	{
 		return m_cCount;
 	}
 
-	EckInline void Reset(BOOL bZeroMemory = TRUE)
+	EckInline size_t GetCount(size_t idxDim) const noexcept
 	{
-		if (bZeroMemory)
-			ZeroMemory(m_pMem, m_cCount * sizeof(TElem));
+		return m_Dim[idxDim];
+	}
+
+	EckInline void Reset() noexcept
+	{
 		m_cCount = 0;
 		m_Dim.clear();
 	}
+
+	EckInline TElem* Data() noexcept { return m_pMem; }
+
+	EckInline const TElem* Data() const noexcept { return m_pMem; }
+
+	EckInline TIterator begin() noexcept { return m_pMem; }
+
+	EckInline TIterator end() noexcept { return m_pMem + m_cCount; }
+
+	EckInline TConstIterator begin() const noexcept { return m_pMem; }
+
+	EckInline TConstIterator end() const noexcept { return m_pMem + m_cCount; }
+
+	EckInline TConstIterator cbegin() const noexcept { return begin(); }
+
+	EckInline TConstIterator cend() const noexcept { return end(); }
 };
 
 ECK_NAMESPACE_END

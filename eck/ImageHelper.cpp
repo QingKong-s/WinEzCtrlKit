@@ -139,7 +139,7 @@ HICON CreateHICON(IWICBitmap* pBmp, HBITMAP hbmMask)
 	return hIcon; 
 }
 
-HRESULT MakePloyLinePath(const D2D1_POINT_2F* pPt, int cPt,
+static HRESULT MakePloyLinePath(const D2D1_POINT_2F* pPt, int cPt,
 	ID2D1Factory* pFactory, ID2D1PathGeometry*& pPathGeo)
 {
 	ID2D1PathGeometry* pPathGeometry;
@@ -399,19 +399,21 @@ HRESULT CreateWicBitmap(std::vector<IWICBitmap*>& vResult, IWICBitmapDecoder* pD
 	HRESULT hr;
 	IWICBitmapFrameDecode* pFrameDecoder;
 	IWICFormatConverter* pConverter;
-	hr = pWicFactory->CreateFormatConverter(&pConverter);
-	if (FAILED(hr))
-	{
-		EckDbgPrintFormatMessage(hr);
-		EckDbgBreak();
-		return hr;
-	}
 
 	UINT cFrame;
 	pDecoder->GetFrameCount(&cFrame);
+	vResult.resize(cFrame);
 	EckCounter(cFrame, i)
 	{
 		hr = pDecoder->GetFrame(i, &pFrameDecoder);
+		if (FAILED(hr))
+		{
+			EckDbgPrintFormatMessage(hr);
+			EckDbgBreak();
+			return hr;
+		}
+
+		hr = pWicFactory->CreateFormatConverter(&pConverter);
 		if (FAILED(hr))
 		{
 			EckDbgPrintFormatMessage(hr);
@@ -437,11 +439,11 @@ HRESULT CreateWicBitmap(std::vector<IWICBitmap*>& vResult, IWICBitmapDecoder* pD
 			return hr;
 		}
 
-		vResult.emplace_back(pWicBitmap);
+		pConverter->Release();
+		vResult[i] = pWicBitmap;
 		pFrameDecoder->Release();
 	}
 
-	pConverter->Release();
 	return S_OK;
 }
 
