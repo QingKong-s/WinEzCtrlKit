@@ -9,7 +9,7 @@ HBITMAP CreateHBITMAP(PCVOID pData, SIZE_T cbData)
 	if (!pStream)
 		return NULL;
 
-	if (GdipCreateBitmapFromStream(pStream, &pBitmap) != Ok)
+	if (GdipCreateBitmapFromStream(pStream, &pBitmap) != GpStatus::GpOk)
 	{
 		pStream->Release();
 		return NULL;
@@ -32,7 +32,7 @@ HBITMAP CreateHBITMAP(PCWSTR pszFile)
 	HBITMAP hbm;
 	GpBitmap* pBitmap;
 
-	if (GdipCreateBitmapFromFile(pszFile, &pBitmap) != Ok)
+	if (GdipCreateBitmapFromFile(pszFile, &pBitmap) != GpStatus::GpOk)
 	{
 		return NULL;
 	}
@@ -74,7 +74,7 @@ HICON CreateHICON(PCVOID pData, SIZE_T cbData)
 	if (!pStream)
 		return NULL;
 
-	if (GdipCreateBitmapFromStream(pStream, &pBitmap) != Ok)
+	if (GdipCreateBitmapFromStream(pStream, &pBitmap) != GpStatus::GpOk)
 	{
 		pStream->Release();
 		return NULL;
@@ -97,7 +97,7 @@ HICON CreateHICON(PCWSTR pszFile)
 	HICON hIcon;
 	GpBitmap* pBitmap;
 
-	if (GdipCreateBitmapFromFile(pszFile, &pBitmap) != Ok)
+	if (GdipCreateBitmapFromFile(pszFile, &pBitmap) != GpStatus::GpOk)
 	{
 		return NULL;
 	}
@@ -190,12 +190,11 @@ void CalcDistortMatrix(const D2D1_RECT_F& rcOrg, const D2D1_POINT_2F(&ptDistort)
 	const float cx = rcOrg.right - rcOrg.left;
 	const float cy = rcOrg.bottom - rcOrg.top;
 
-	const DirectX::XMFLOAT4X4 MN(
+	const auto TN = DirectX::XMMatrixSet(
 		1.f / cx, 0, 0, 0,
 		0, 1.f / cy, 0, 0,
 		0, 0, 0, 0,
 		-rcOrg.left / cx, -rcOrg.top / cy, 0, 1.f);
-	const auto TN = DirectX::XMLoadFloat4x4(&MN);
 
 	const DirectX::XMFLOAT4X4 MA(
 		ptDistort[1].x - ptDistort[0].x, ptDistort[1].y - ptDistort[0].y, 0, 0,
@@ -205,22 +204,21 @@ void CalcDistortMatrix(const D2D1_RECT_F& rcOrg, const D2D1_POINT_2F(&ptDistort)
 	const auto TA = DirectX::XMLoadFloat4x4(&MA);
 
 	const float fDen = MA._11 * MA._22 - MA._12 * MA._21;
-	const float a =
-		(MA._22 * ptDistort[3].x -
-			MA._21 * ptDistort[3].y +
-			MA._21 * MA._42 -
-			MA._22 * MA._41) / fDen;
-	const float b =
-		(MA._11 * ptDistort[3].y -
-			MA._12 * ptDistort[3].x +
-			MA._12 * MA._41 -
-			MA._11 * MA._42) / fDen;
-	const DirectX::XMFLOAT4X4 MB(
+	const float a = (
+		MA._22 * ptDistort[3].x -
+		MA._21 * ptDistort[3].y +
+		MA._21 * MA._42 -
+		MA._22 * MA._41) / fDen;
+	const float b = (
+		MA._11 * ptDistort[3].y -
+		MA._12 * ptDistort[3].x +
+		MA._12 * MA._41 -
+		MA._11 * MA._42) / fDen;
+	const auto TB = DirectX::XMMatrixSet(
 		a / (a + b - 1), 0, 0, a / (a + b - 1) - 1,
 		0, b / (a + b - 1), 0, b / (a + b - 1) - 1,
 		0, 0, 0, 0,
 		0, 0, 0, 1.f);
-	const auto TB = DirectX::XMLoadFloat4x4(&MB);
 
 	DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4*)&MatrixResult, TN * TB * TA);
 }

@@ -146,36 +146,31 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	//EckDbgPrint(BinToFriendlyString(rb3, rb3.m_cb, 1));
 
 
-	CArray<int> arr(4, 4);
-	arr[1][2] = 1;
-	//int a = arr[1][2];
-	arr[1][2] = 0xFFFFFFFF;
-	arr.ReDim(3, 3, 3);
-	auto pp = arr[2][2][2].AddressOf();
-	arr[2][2][2] = 0xCCCCCCCC;
+	//CArray<int> arr(4, 4);
+	//arr[1][2] = 1;
+	////int a = arr[1][2];
+	//arr[1][2] = 0xFFFFFFFF;
+	//arr.ReDim(3, 3, 3);
+	//auto pp = arr[2][2][2].AddressOf();
+	//arr[2][2][2] = 0xCCCCCCCC;
 
-	arr.ReDim(6, 6);
-	arr[0][0] = 123;
-	arr[2][2] = 456;
+	//arr.ReDim(6, 6);
+	//arr[0][0] = 123;
+	//arr[2][2] = 456;
 
-	for (auto& x : arr)
-	{
-		x = 1;
-	}
+	//for (auto& x : arr)
+	//{
+	//	x = 1;
+	//}
 
-	CArray<std::wstring> srr(4, 4);
-	EckCounter(4, i)
-	{
-		EckCounter(4, j)
-		{
-			srr[i][j] = std::format(L"{},{}", i, j);
-		}
-	}
-
-
-
-	int aaaaaaaa = 0;
-
+	//CArray<std::wstring> srr(4, 4);
+	//EckCounter(4, i)
+	//{
+	//	EckCounter(4, j)
+	//	{
+	//		srr[i][j] = std::format(L"{},{}", i, j);
+	//	}
+	//}
 
 	//CRefStrW rs = L"1";
 	//int poss = FindStrRev(rs, L"1");
@@ -501,24 +496,24 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 
 		SelectObject(hDC, CreatePen(0, 2, eck::Colorref::Green));
 		int j = 0;
-		EckCounter(vPt.size(), i)
-		{
-			if (i == 0)
-				continue;
-			auto& pt0 = vPt[i];
-			++j;
-			if (j % 3 == 0)
-			{
-				MoveToEx(hDC, vPt[i - 1].x, vPt[i - 1].y, 0);
-				LineTo(hDC, vPt[i - 2].x, vPt[i - 2].y);
-				j = 0;
-			}
+		//EckCounter(vPt.size(), i)
+		//{
+		//	if (i == 0)
+		//		continue;
+		//	auto& pt0 = vPt[i];
+		//	++j;
+		//	if (j % 3 == 0)
+		//	{
+		//		MoveToEx(hDC, vPt[i - 1].x, vPt[i - 1].y, 0);
+		//		LineTo(hDC, vPt[i - 2].x, vPt[i - 2].y);
+		//		j = 0;
+		//	}
 
-			Ellipse(hDC, pt0.x - ioff, pt0.y - ioff, pt0.x + ioff, pt0.y + ioff);
-		}
+		//	Ellipse(hDC, pt0.x - ioff, pt0.y - ioff, pt0.x + ioff, pt0.y + ioff);
+		//}
 
 		SelectObject(hDC, CreatePen(0, 2, eck::Colorref::Black));
-		PolyBezier(hDC, vPt.data(), vPt.size());
+		//PolyBezier(hDC, vPt.data(), vPt.size());
 
 		SelectObject(hDC, CreatePen(0, 2, eck::Colorref::Red));
 		for (auto pt0 : pt)
@@ -532,6 +527,72 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		//eck::DrawButterflyCurve(pGraphics, pPen, 400, 400, 4.f, 100, 100, 0.005);
 		//eck::DrawRegularStar(g_DP->GetGraphics(), pPen, 450, 450, 300, 10);
 		//eck::DrawRoseCurve(g_DP->GetGraphics(), pPen, 450, 450, 300.f, 10);
+
+
+		IWICBitmapDecoder* pDecoder;
+		eck::CreateWicBitmapDecoder(LR"(E:\Desktop\Temp\2023.8 mc\Snipaste_2023-07-06_19-25-04.png)", pDecoder, eck::g_pWicFactory);
+
+		std::vector<IWICBitmap*> vWicBmp{};
+		eck::CreateWicBitmap(vWicBmp, pDecoder, eck::g_pWicFactory);
+
+		HBITMAP hbmOrg = eck::CreateHBITMAP(vWicBmp[0]);
+		UINT cx, cy;
+		vWicBmp[0]->GetSize(&cx, &cy);
+		POINT ptS[]
+		{
+			{0,0},
+			{cx,0},
+			{cx,cy},
+			{0,cy},
+		};
+
+		POINT ptD[]
+		{
+			{0,0},
+			{cx+100,10},
+			{cx,cy - 100},
+			{10,cy+20},
+			
+		};
+
+		eck::CMifptpHBITMAP Bmp(hbmOrg);
+		eck::CMifptpHBITMAP NewBmp{};
+
+		eck::MakeImageFromPolygonToPolygon(Bmp, NewBmp, ptS, ptD, ARRAYSIZE(ptD));
+		HDC hCDC = CreateCompatibleDC(hDC);
+		SelectObject(hCDC, NewBmp.GetHBITMAP());
+		
+		//BitBlt(hDC, 0, 0, NewBmp.GetWidth(), NewBmp.GetHeight(), hCDC, 0, 0, SRCCOPY);
+		SelectObject(hDC, GetStockObject(NULL_BRUSH));
+		//Polygon(hDC, ptD, 4);
+
+		GpBitmap* pbmp;
+		GdipCreateBitmapFromFile(LR"(E:\Desktop\Temp\2023.8 mc\Snipaste_2023-07-06_19-25-04.png)", &pbmp);
+		eck::CMifptpGpBitmap BmpGp(pbmp);
+		eck::CMifptpGpBitmap NewBmpGp{};
+		GpPoint ptS1[]
+		{
+			{0,0},
+			{cx,0},
+			{cx,cy},
+			{0,cy},
+		};
+
+		GpPoint ptD1[]
+		{
+			{0,0},
+			{cx + 100,10},
+			{cx,cy - 100},
+			{10,cy + 20},
+
+		};
+		auto time = GetTickCount64();
+		eck::MakeImageFromPolygonToPolygon(BmpGp, NewBmpGp, ptS1, ptD1, ARRAYSIZE(ptD1));
+		time = GetTickCount64() - time;
+		//MessageBoxW(0, std::format(L"{}", time).c_str(), 0, 0);
+		GdipDrawImage(g_DP->GetGraphics(), NewBmpGp.GetGpBitmap(), 0, 0);
+
+
 		g_DP->Redraw();
 
 
@@ -550,22 +611,16 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		//eck::DrawButterflyCurve({ eck::g_pD2dFactory,pDC,pBrush,3.f,NULL,200,200,4.f,50.f,50.f });
 		//eck::DrawRoseCurve({ eck::g_pD2dFactory,pDC,pBrush,3.f,NULL,450,450 });
 
-		IWICBitmapDecoder* pDecoder;
-		eck::CreateWicBitmapDecoder(LR"(E:\Desktop\Temp\1.gif)", pDecoder, eck::g_pWicFactory);
-
-		std::vector<IWICBitmap*> vWicBmp{};
-		eck::CreateWicBitmap(vWicBmp, pDecoder, eck::g_pWicFactory);
-
 		ID2D1Bitmap1* pBitmap;
 		pDC->CreateBitmapFromWicBitmap(vWicBmp[0], &pBitmap);
 		EckAssert(pBitmap);
 
-		D2D1_MATRIX_4X4_F M{};
+		//D2D1_MATRIX_4X4_F M{};
 		D2D1_RECT_F rcF{ 300,300,700,700 };
-		auto Size = pBitmap->GetSize();
-		D2D1_RECT_F rcFSrc{ 0,0,Size.width,Size.height };
-		eck::CalcDistortMatrix(rcF, { {280,280},{700,310},{300,780},{750,700} }, M);
-		pDC->DrawBitmap(pBitmap, rcF, 1.f, D2D1_INTERPOLATION_MODE_CUBIC, rcFSrc, M);
+		//auto Size = pBitmap->GetSize();
+		//D2D1_RECT_F rcFSrc{ 0,0,Size.width,Size.height };
+		//eck::CalcDistortMatrix(rcF, { {280,280},{700,310},{300,780},{750,700} }, M);
+		//pDC->DrawBitmap(pBitmap, rcF, 1.f, D2D1_INTERPOLATION_MODE_CUBIC, rcFSrc, M);
 		rcF = { 600,600,880,880 };
 		pDC->DrawRectangle(rcF, pBrush, 3.f);
 
@@ -574,13 +629,11 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		pDC->SetTransform(eck::D2dMatrixReflection(a, b, c));
 		pDC->DrawRectangle(rcF, pBrush, 3.f);
 		pDC->SetTransform(D2D1::Matrix3x2F::Identity());
-		eck::DrawRegularStar({eck::g_pD2dFactory,pDC,pBrush,5.f,NULL,450,450,300,6});
+		//eck::DrawRegularStar({eck::g_pD2dFactory,pDC,pBrush,5.f,NULL,450,450,300,6});
 		
-		pDC->DrawEllipse({ 450,450,300,300 }, pBrush, 8.f);
+		//pDC->DrawEllipse({ 450,450,300,300 }, pBrush, 8.f);
 		pDC->EndDraw();
 		g_DPD2D->GetSwapChain()->Present(0, 0);
-
-		
 
 		//auto rbft = eck::ReadInFile(LR"(E:\Desktop\1.eckft)");
 		//eck::CFormTable ft;

@@ -11,6 +11,7 @@
 
 #include <numbers>
 #include <execution>
+#include <unordered_map>
 
 #include <DirectXMath.h>
 #include <dxgi1_2.h>
@@ -717,7 +718,7 @@ template<class TVal = int, class TPt>
 /// <param name="n">边数/角数</param>
 /// <param name="fAngle">角度</param>
 /// <param name="bLinkStar">是否连接为星形</param>
-EckInline void CalcRegularStar(std::vector<TPt>& vPt, TVal r, int n, float fAngle = Deg2Rad(90.f), BOOL bLinkStar = TRUE)
+inline void CalcRegularStar(std::vector<TPt>& vPt, TVal r, int n, float fAngle = Deg2Rad(90.f), BOOL bLinkStar = TRUE)
 {
 	vPt.clear();
 	const float fAngleUnit = (std::numbers::pi_v<float>) * 2.f / n;
@@ -889,5 +890,324 @@ inline void CalcBezierControlPoints(std::vector<TPt>& vPt, const TPt* pPt, int c
 
 	_freea(piLineLen);
 	_freea(pptMid);
+}
+
+class CMifptpHBITMAP
+{
+private:
+	HBITMAP m_hBitmap = NULL;
+	BITMAP m_Bmp{};
+public:
+	using TColor = COLORREF;
+	using TColorComp = BYTE;
+	using TCoord = POINT;
+
+	CMifptpHBITMAP() = default;
+	explicit CMifptpHBITMAP(HBITMAP hBitmap) :m_hBitmap{ hBitmap } { GetObjectW(hBitmap, sizeof(m_Bmp), &m_Bmp); }
+
+	EckInline constexpr static TCoord MakeCoord(int x, int y) { return { x,y }; }
+
+	EckInline constexpr static BYTE GetColorComp(COLORREF cr, int k) { return ((BYTE*)&cr)[k]; }
+
+	EckInline constexpr static TColor MakeColor(const TColorComp(&Comp)[4])
+	{
+		return RGB(Comp[0], Comp[1], Comp[2]) | (Comp[3] << 24);
+	}
+
+	CMifptpHBITMAP New(TCoord Dimension) const
+	{
+		BITMAPINFO bmi{};
+		bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+		bmi.bmiHeader.biWidth = Dimension.x;
+		bmi.bmiHeader.biHeight = -Dimension.y;
+		bmi.bmiHeader.biPlanes = 1;
+		bmi.bmiHeader.biBitCount = 32;
+		const HDC hDC = GetDC(NULL);
+#pragma warning (suppress:6387)
+		const HBITMAP hbm = CreateDIBSection(hDC, &bmi, 0, NULL, NULL, 0);
+		ReleaseDC(NULL, hDC);
+		return CMifptpHBITMAP(hbm);
+	}
+
+	EckInline COLORREF GetPixel(TCoord pt) const
+	{
+		return *(((COLORREF*)(((BYTE*)m_Bmp.bmBits) + pt.y * m_Bmp.bmWidthBytes)) + pt.x);
+	}
+
+	EckInline void SetPixel(TCoord pt, TColor cr)
+	{
+		*(((COLORREF*)(((BYTE*)m_Bmp.bmBits) + pt.y * m_Bmp.bmWidthBytes)) + pt.x) = cr;
+	}
+
+	EckInline int GetWidth() const { return m_Bmp.bmWidth; }
+
+	EckInline int GetHeight() const { return m_Bmp.bmHeight; }
+
+	EckInline HBITMAP GetHBITMAP() const { return m_hBitmap; }
+
+	EckInline void Lock() const {}
+	EckInline void UnLock() const {}
+};
+
+class CMifptpGpBitmap
+{
+private:
+	GpBitmap* m_pBitmap = NULL;
+	GpBitmapData m_Data{};
+	int m_cx = 0,
+		m_cy = 0;
+public:
+	using TColor = ARGB;
+	using TColorComp = BYTE;
+	using TCoord = GpPoint;
+
+	CMifptpGpBitmap() = default;
+	explicit CMifptpGpBitmap(GpBitmap* pBitmap) :m_pBitmap{ pBitmap } 
+	{
+		GdipGetImageWidth(pBitmap, (UINT*)&m_cx);
+		GdipGetImageHeight(pBitmap, (UINT*)&m_cy);
+	}
+
+	EckInline constexpr static TCoord MakeCoord(int x, int y) { return { x,y }; }
+
+	EckInline constexpr static TColorComp GetColorComp(TColor cr, int k) { return ((BYTE*)&cr)[k]; }
+
+	EckInline constexpr static TColor MakeColor(const TColorComp(&Comp)[4])
+	{
+		return Comp[0] | (Comp[1] << 8) | (Comp[2] << 16) | (Comp[3] << 24);
+	}
+
+	CMifptpGpBitmap New(TCoord Dimension) const
+	{
+		GpBitmap* pBitmap;
+		GdipCreateBitmapFromScan0(Dimension.x, Dimension.y, 0, PixelFormat32bppPARGB, NULL, &pBitmap);
+		return CMifptpGpBitmap(pBitmap);
+	}
+
+	EckInline COLORREF GetPixel(TCoord pt) const
+	{
+		return *(((COLORREF*)(((BYTE*)m_Data.Scan0) + pt.y * m_Data.Stride)) + pt.x);
+	}
+
+	EckInline void SetPixel(TCoord pt, TColor cr)
+	{
+		*(((COLORREF*)(((BYTE*)m_Data.Scan0) + pt.y * m_Data.Stride)) + pt.x) = cr;
+	}
+
+	EckInline int GetWidth() const { return m_cx; }
+
+	EckInline int GetHeight() const { return m_cy; }
+
+	EckInline GpBitmap* GetGpBitmap() const { return m_pBitmap; }
+
+	EckInline void Lock()
+	{
+		const GpRect rc{ 0,0,m_cx,m_cy };
+		GdipBitmapLockBits(m_pBitmap, &rc, GpImageLockMode::ImageLockModeRead | GpImageLockMode::ImageLockModeWrite,
+			GpPixelFormat::PixelFormat32bppPARGB, &m_Data);
+	}
+
+	EckInline void UnLock()
+	{
+		GdipBitmapUnlockBits(m_pBitmap, &m_Data);
+	}
+};
+
+/// <summary>
+/// 生成扭曲图像。
+/// 生成从原图像上的多边形区域映射到目标多边形区域的扭曲图像
+/// </summary>
+/// <param name="Bmp">输入位图处理器</param>
+/// <param name="NewBmp">结果位图处理器，应自行释放相关资源</param>
+/// <param name="pptSrc">源多边形区域</param>
+/// <param name="pptDst">目标多边形区域</param>
+/// <param name="cPt">顶点数</param>
+/// <returns></returns>
+template<class TBmpHandler, class TCoord>
+inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
+	const TCoord* pptSrc, const TCoord* pptDst, int cPt)
+{
+	static_assert(std::is_same_v<TCoord, typename TBmpHandler::TCoord>);
+	if (cPt < 3)
+		return FALSE;
+	const auto [itMinY, itMaxY] = std::minmax_element(pptDst, pptDst + cPt, [](const TCoord& pt1, const TCoord& pt2)->bool
+		{
+			return pt1.y < pt2.y;
+		});
+	const auto [itMinX, itMaxX] = std::minmax_element(pptDst, pptDst + cPt, [](const TCoord& pt1, const TCoord& pt2)->bool
+		{
+			return pt1.x < pt2.x;
+		});
+	const int cyPolygon = itMaxY->y - itMinY->y + 1;
+	const int cxPolygon = itMaxX->x - itMinX->x + 1;
+	if (cxPolygon <= 0 || cyPolygon <= 0)
+		return FALSE;
+
+	NewBmp = Bmp.New(TBmpHandler::MakeCoord(cxPolygon, cyPolygon));
+	std::vector<TCoord> vPtDst(cPt);
+	EckCounter(cPt, i)
+		vPtDst[i] = TCoord{ pptDst[i].x - itMinX->x,pptDst[i].y - itMinY->y };
+	const int yMax = vPtDst[std::distance(pptDst, itMaxY)].y;
+
+	struct EDGE
+	{
+		float x;
+		float dx;
+		float Rx;
+		float Ry;
+		float dRx;
+		float dRy;
+		int yMax;
+		int yMin;
+	};
+
+	std::unordered_map<int, std::vector<EDGE*>> ET(cyPolygon);
+	using TETIt = std::unordered_map<int, std::vector<EDGE*>>::iterator;
+	EckCounter(cPt, i)
+	{
+		const auto& pt1 = vPtDst[i];
+		const auto& pt2 = vPtDst[(i + 1) % cPt];
+		const auto& ptSrc1 = pptSrc[i];
+		const auto& ptSrc2 = pptSrc[(i + 1) % cPt];
+		if (pt1.y == pt2.y)
+			continue;
+		auto p = new EDGE;
+		int yMax, yMin;
+		if (pt1.y < pt2.y)
+		{
+			p->x = (float)pt1.x;
+			p->Rx = (float)ptSrc1.x;
+			p->Ry = (float)ptSrc1.y;
+			yMax = (int)pt2.y;
+			yMin = (int)pt1.y;
+		}
+		else
+		{
+			p->x = (float)pt2.x;
+			p->Rx = (float)ptSrc2.x;
+			p->Ry = (float)ptSrc2.y;
+			yMax = (int)pt1.y;
+			yMin = (int)pt2.y;
+		}
+		p->dx = (float)(pt1.x - pt2.x) / (float)(pt1.y - pt2.y);
+		p->yMax = yMax;
+		p->yMin = yMin;
+		p->dRx= (float)(ptSrc1.x - ptSrc2.x) / (float)(pt1.y - pt2.y);
+		p->dRy = (float)(ptSrc1.y - ptSrc2.y) / (float)(pt1.y - pt2.y);
+		ET[yMin].emplace_back(p);
+	}
+
+	for (auto& x : ET)
+	{
+		std::sort(x.second.begin(), x.second.end(), [](const EDGE* p1, const EDGE* p2)->bool
+			{
+				if (p1->x == p2->x)
+					return p1->dx < p2->dx;
+				else
+					return p1->x < p2->x;
+			});
+	}
+
+	std::vector<EDGE*> AEL{};
+	std::vector<size_t> vNeedDel{};
+
+	Bmp.Lock();
+	NewBmp.Lock();
+	for (int y = 0; y <= yMax; ++y)
+	{
+		if (TETIt it; (it = ET.find(y)) != ET.end())
+			AEL.insert(AEL.end(), it->second.begin(), it->second.end());
+		if (!AEL.empty())
+		{
+			std::sort(AEL.begin(), AEL.end(), [](const EDGE* p1, const EDGE* p2)->bool
+				{
+					if (p1->x == p2->x)
+						return p1->dx < p2->dx;
+					else
+						return p1->x < p2->x;
+				});
+
+			vNeedDel.clear();
+			EckCounter(AEL.size(), i)
+			{
+				if (y == AEL[i]->yMax)
+					vNeedDel.emplace_back(i);
+			}
+			for (auto it = vNeedDel.rbegin(); it < vNeedDel.rend(); ++it)
+				AEL.erase(AEL.begin() + *it);
+			EckCounter(AEL.size() / 2, i)
+			{
+				auto pL = AEL[i * 2];
+				auto pR = AEL[i * 2 + 1];
+				float dRxx = (pL->Rx - pR->Rx) / (float)(pL->x - pR->x);
+				float dRyy = (pL->Ry - pR->Ry) / (float)(pL->x - pR->x);
+				float Rxx = pL->Rx;
+				float Ryy = pL->Ry;
+				for (int x = (int)pL->x; x <= (int)pR->x; ++x)
+				{
+					int x0 = (int)floorf(Rxx);
+					float fRateX = Rxx - x0;
+					if (x0 < 0)
+					{
+						x0 = 0;
+						fRateX = 0.f;
+					}
+					else if (x0 >= Bmp.GetWidth() - 1)
+					{
+						x0 = Bmp.GetWidth() - 2;
+						fRateX = 1.f;
+					}
+					int y0 = (int)floorf(Ryy);
+					float fRateY = Ryy - y0;
+					if (y0 < 0)
+					{
+						y0 = 0;
+						fRateY = 0.f;
+					}
+					else if (y0 >= Bmp.GetHeight() - 1)
+					{
+						y0 = Bmp.GetHeight() - 2;
+						fRateY = 1.f;
+					}
+					fRateX = 1.f - fRateX;
+					fRateY = 1.f - fRateY;
+					const typename TBmpHandler::TColor cr[4]
+					{
+						Bmp.GetPixel(TBmpHandler::MakeCoord(x0,y0)),
+						Bmp.GetPixel(TBmpHandler::MakeCoord(x0 + 1,y0)),
+						Bmp.GetPixel(TBmpHandler::MakeCoord(x0,y0 + 1)),
+						Bmp.GetPixel(TBmpHandler::MakeCoord(x0 + 1,y0 + 1)),
+					};
+
+					typename TBmpHandler::TColorComp crNew[4];
+					EckCounter(4, k)
+					{
+						crNew[k] = (typename TBmpHandler::TColorComp)(
+							TBmpHandler::GetColorComp(cr[0], k) * fRateX * fRateY +
+							TBmpHandler::GetColorComp(cr[1], k) * (1 - fRateX) * fRateY +
+							TBmpHandler::GetColorComp(cr[2], k) * fRateX * (1 - fRateY) +
+							TBmpHandler::GetColorComp(cr[3], k) * (1 - fRateX) * (1 - fRateY));
+					}
+
+					NewBmp.SetPixel(TBmpHandler::MakeCoord(x, y), TBmpHandler::MakeColor(crNew));
+					Rxx += dRxx;
+					Ryy += dRyy;
+				}
+			}
+
+			for (auto e : AEL)
+			{
+				e->x += e->dx;
+				e->Rx += e->dRx;
+				e->Ry += e->dRy;
+			}
+		}
+	}
+	NewBmp.UnLock();
+	Bmp.UnLock();
+	for (auto& x : ET)
+		for (auto e : x.second)
+			delete e;
+	return TRUE;
 }
 ECK_NAMESPACE_END

@@ -1,7 +1,7 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* GdiplusFlatDef.h £º GDI+Flat¶¨Òå
+* GdiplusFlatDef.h ï¼š GDI+Flatå®šä¹‰
 *
 * Copyright(C) 2023 QingKong
 */
@@ -18,37 +18,37 @@ typedef DWORD ARGB;
 
 enum GpStatus
 {
-	Ok,
-	GenericError,
-	InvalidParameter,
-	OutOfMemory,
-	ObjectBusy,
-	InsufficientBuffer,
-	NotImplemented,
-	Win32Error,
-	WrongState,
-	Aborted,
-	FileNotFound,
-	ValueOverflow,
-	AccessDenied,
-	UnknownImageFormat,
-	FontFamilyNotFound,
-	FontStyleNotFound,
-	NotTrueTypeFont,
-	UnsupportedGdiplusVersion,
-	GdiplusNotInitialized,
-	PropertyNotFound,
-	PropertyNotSupported,
-	ProfileNotFound
+	GpOk,
+	GpGenericError,
+	GpInvalidParameter,
+	GpOutOfMemory,
+	GpObjectBusy,
+	GpInsufficientBuffer,
+	GpNotImplemented,
+	GpWin32Error,
+	GpWrongState,
+	GpAborted,
+	GpFileNotFound,
+	GpValueOverflow,
+	GpAccessDenied,
+	GpUnknownImageFormat,
+	GpFontFamilyNotFound,
+	GpFontStyleNotFound,
+	GpNotTrueTypeFont,
+	GpUnsupportedGdiplusVersion,
+	GpGdiplusNotInitialized,
+	GpPropertyNotFound,
+	GpPropertyNotSupported,
+	GpProfileNotFound
 };
-enum SmoothingMode
+enum GpSmoothingMode
 {
 	SmoothingModeDefault,
 	SmoothingModeHighSpeed,
 	SmoothingModeHighQuality,
 	SmoothingModeNone,
 };
-enum TextRenderingHint
+enum GpTextRenderingHint
 {
 	TextRenderingHintSystemDefault,
 	TextRenderingHintSingleBitPerPixelGridFit,
@@ -78,7 +78,7 @@ enum GpFontStyle {
 	FontStyleUnderline = 4,
 	FontStyleStrikeout = 8
 };
-enum StringAlignment
+enum GpStringAlignment
 {
 	StringAlignmentNear,
 	StringAlignmentCenter,
@@ -107,7 +107,7 @@ enum GpStringFormatFlags
 	StringFormatFlagsNoClip                = 0x00004000,
 	StringFormatFlagsBypassGDI             = 0x80000000
 };
-enum PixelFormat
+enum GpPixelFormat
 {
 	PixelFormatIndexed        = 0x00010000,
 	PixelFormatGDI            = 0x00020000,
@@ -155,6 +155,12 @@ enum GpDebugEventLevel
 	DebugEventLevelFatal,
 	DebugEventLevelWarning
 };
+enum GpImageLockMode
+{
+	ImageLockModeRead = 0x0001,
+	ImageLockModeWrite = 0x0002,
+	ImageLockModeUserInputBuf = 0x0004
+};
 
 typedef VOID(WINAPI* GpDebugEventProc)(GpDebugEventLevel level, CHAR* message);
 
@@ -172,6 +178,13 @@ struct GpRectF
 	REAL Width;
 	REAL Height;
 };
+struct GpRect
+{
+	INT Left;
+	INT Top;
+	INT Width;
+	INT Height;
+};
 struct GpPointF
 {
 	REAL x;
@@ -182,12 +195,12 @@ struct GpPoint
 	int x;
 	int y;
 };
-struct BlurParams
+struct GpBlurParams
 {
 	REAL radius;
 	BOOL expandEdge;
 };
-struct ImageCodecInfo
+struct GpImageCodecInfo
 {
 	CLSID Clsid;
 	GUID  FormatID;
@@ -203,6 +216,17 @@ struct ImageCodecInfo
 	const BYTE* SigPattern;
 	const BYTE* SigMask;
 };
+struct GpBitmapData
+{
+	UINT Width;// Number of pixels in one scan line of the bitmap.
+	UINT Height;// Number of scan lines in the bitmap.
+	INT Stride;// Offset, in bytes, between consecutive scan lines of the bitmap.If the stride is positive, the bitmap is top - down.If the stride is negative, the bitmap is bottom - up.
+	GpPixelFormat PixelFormat;// Integer that specifies the pixel format of the bitmap.
+	void* Scan0;// Pointer to the first(index 0) scan line of the bitmap.
+	UINT_PTR Reserved;// Reserved for future use.
+};
+
+
 
 #define DECLFAKEGDIPOBJ(type) struct type{int unused;};
 #define DECLFAKEGDIPOBJINHERIT(type,base) struct type:public base{int unused;};
@@ -229,12 +253,12 @@ EXTERN_C_START
 GpStatus WINGDIPAPI GdiplusStartup(ULONG_PTR* token, const GdiplusStartupInput* input, void* output);
 void WINGDIPAPI GdiplusShutdown(ULONG_PTR token);
 GpStatus WINGDIPAPI GdipCreateFromHDC(HDC hdc, GpGraphics** graphics);
-GpStatus WINGDIPAPI GdipSetSmoothingMode(GpGraphics* graphics, SmoothingMode smoothingMode);
-GpStatus WINGDIPAPI GdipSetTextRenderingHint(GpGraphics* graphics, TextRenderingHint mode);
+GpStatus WINGDIPAPI GdipSetSmoothingMode(GpGraphics* graphics, GpSmoothingMode smoothingMode);
+GpStatus WINGDIPAPI GdipSetTextRenderingHint(GpGraphics* graphics, GpTextRenderingHint mode);
 GpStatus WINGDIPAPI GdipCreateFontFamilyFromName(GDIPCONST WCHAR* name, GpFontCollection* fontCollection, GpFontFamily** FontFamily);
 GpStatus WINGDIPAPI GdipCreateFont(GDIPCONST GpFontFamily* fontFamily, REAL emSize, GpFontStyle style, GpUnit unit, GpFont** font);
 GpStatus WINGDIPAPI GdipCreateStringFormat(int formatAttributes, LANGID language, GpStringFormat** format);
-GpStatus WINGDIPAPI GdipSetStringFormatAlign(GpStringFormat* format, StringAlignment align);
+GpStatus WINGDIPAPI GdipSetStringFormatAlign(GpStringFormat* format, GpStringAlignment align);
 GpStatus WINGDIPAPI GdipCreatePen1(ARGB color, REAL width, GpUnit unit, GpPen** pen);
 GpStatus WINGDIPAPI GdipMeasureString(GpGraphics* graphics, GDIPCONST WCHAR* string, INT length, GDIPCONST GpFont* font,
 	GDIPCONST GpRectF* layoutRect, GDIPCONST GpStringFormat* stringFormat, GpRectF* boundingBox, INT* codepointsFitted, INT* linesFilled);
@@ -273,9 +297,9 @@ GpStatus WINGDIPAPI GdipSetEffectParameters(GpEffect* effect, const VOID* params
 GpStatus WINGDIPAPI GdipCreateBitmapFromGraphics(INT width, INT height, GpGraphics* target, GpBitmap** bitmap);
 GpStatus WINGDIPAPI GdipBitmapApplyEffect(GpBitmap* bitmap, GpEffect* effect, RECT* roi, BOOL useAuxData, VOID** auxData, INT* auxDataSize);
 GpStatus WINGDIPAPI GdipCreateBitmapFromStream(IStream* stream, GpBitmap** bitmap);
-GpStatus WINGDIPAPI GdipCloneBitmapArea(REAL x, REAL y, REAL width, REAL height, PixelFormat format, GpBitmap* srcBitmap, GpBitmap** dstBitmap);
+GpStatus WINGDIPAPI GdipCloneBitmapArea(REAL x, REAL y, REAL width, REAL height, GpPixelFormat format, GpBitmap* srcBitmap, GpBitmap** dstBitmap);
 GpStatus WINGDIPAPI GdipGetImageGraphicsContext(GpImage* image, GpGraphics** graphics);
-GpStatus WINGDIPAPI GdipCreateBitmapFromScan0(INT width, INT height, INT stride, PixelFormat format, BYTE* scan0, GpBitmap** bitmap);
+GpStatus WINGDIPAPI GdipCreateBitmapFromScan0(INT width, INT height, INT stride, GpPixelFormat format, BYTE* scan0, GpBitmap** bitmap);
 GpStatus WINGDIPAPI GdipLoadImageFromFile(GDIPCONST WCHAR* filename, GpImage** image);
 GpStatus WINGDIPAPI GdipCreateHBITMAPFromBitmap(GpBitmap* bitmap, HBITMAP* hbmReturn, ARGB background);
 GpStatus WINGDIPAPI GdipDrawImage(GpGraphics* graphics, GpImage* image, REAL x, REAL y);
@@ -284,7 +308,7 @@ GpStatus WINGDIPAPI GdipCreateBitmapFromHICON(HICON hicon, GpBitmap** bitmap);
 GpStatus WINGDIPAPI GdipStringFormatGetGenericDefault(GpStringFormat** format);
 GpStatus WINGDIPAPI GdipDrawString(GpGraphics* graphics, GDIPCONST WCHAR* string, INT length, GDIPCONST GpFont* font,
 	GDIPCONST GpRectF* layoutRect, GDIPCONST GpStringFormat* stringFormat, GDIPCONST GpBrush* brush);
-GpStatus WINGDIPAPI GdipSetStringFormatLineAlign(GpStringFormat* format, StringAlignment align);
+GpStatus WINGDIPAPI GdipSetStringFormatLineAlign(GpStringFormat* format, GpStringAlignment align);
 GpStatus WINGDIPAPI GdipFillEllipse(GpGraphics* graphics, GpBrush* brush, REAL x, REAL y, REAL width, REAL height);
 GpStatus WINGDIPAPI GdipFillPie(GpGraphics* graphics, GpBrush* brush, REAL x, REAL y, REAL width, REAL height, REAL startAngle, REAL sweepAngle);
 GpStatus WINGDIPAPI GdipCreateBitmapFromFile(GDIPCONST WCHAR* filename, GpBitmap** bitmap);
@@ -292,7 +316,7 @@ GpStatus WINGDIPAPI GdipDrawLine(GpGraphics* graphics, GpPen* pen, REAL x1, REAL
 GpStatus WINGDIPAPI GdipDrawLineI(GpGraphics* graphics, GpPen* pen, INT x1, INT y1, INT x2, INT y2);
 GpStatus WINGDIPAPI GdipSaveImageToStream(GpImage* image, IStream* stream, GDIPCONST CLSID* clsidEncoder, GDIPCONST EncoderParameters* encoderParams);
 GpStatus WINGDIPAPI GdipGetImageEncodersSize(UINT* numEncoders, UINT* size);
-GpStatus WINGDIPAPI GdipGetImageEncoders(UINT numEncoders, UINT size, ImageCodecInfo* encoders);
+GpStatus WINGDIPAPI GdipGetImageEncoders(UINT numEncoders, UINT size, GpImageCodecInfo* encoders);
 GpStatus WINGDIPAPI GdipDrawLinesI(GpGraphics* graphics, GpPen* pen, GDIPCONST GpPoint* points, INT count);
 GpStatus WINGDIPAPI GdipDrawLines(GpGraphics* graphics, GpPen* pen, GDIPCONST GpPointF* points, INT count);
 GpStatus WINGDIPAPI GdipDrawArc(GpGraphics* graphics, GpPen* pen, REAL x, REAL y, REAL width, REAL height, REAL startAngle, REAL sweepAngle);
@@ -335,4 +359,6 @@ GpStatus WINGDIPAPI GdipInvertMatrix(GpMatrix* matrix);
 GpStatus WINGDIPAPI GdipGetMatrixElements(GDIPCONST GpMatrix* matrix, REAL* matrixOut);
 GpStatus WINGDIPAPI GdipGetFontHeight(GDIPCONST GpFont* font, GDIPCONST GpGraphics* graphics, REAL* height);
 GpStatus WINGDIPAPI GdipStringFormatGetGenericTypographic(GpStringFormat** format);
+GpStatus WINGDIPAPI GdipBitmapLockBits(GpBitmap* bitmap, GDIPCONST GpRect* rect, UINT flags, GpPixelFormat format, GpBitmapData* lockedBitmapData);
+GpStatus WINGDIPAPI GdipBitmapUnlockBits(GpBitmap* bitmap, GpBitmapData* lockedBitmapData);
 EXTERN_C_END

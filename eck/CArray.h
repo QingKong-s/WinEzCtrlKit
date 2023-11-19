@@ -100,7 +100,7 @@ public:
 	template<class... TSize>
 	CArray(TSize... c)
 	{
-		if (!sizeof...(c))
+		if constexpr (!sizeof...(c))
 			throw std::bad_array_new_length{};
 		size_t cTotal = 1u;
 		UnpackSizeArgs(cTotal, c...);
@@ -230,7 +230,7 @@ public:
 	template<class... TSize>
 	CArray& ReDim(TSize... c)
 	{
-		if (!sizeof...(c))
+		if constexpr (!sizeof...(c))
 			throw std::bad_array_new_length{};
 
 		size_t cTotal = 1u;
@@ -264,6 +264,7 @@ public:
 
 	EckInline void Reset() noexcept
 	{
+		std::destroy(begin(), end());
 		m_cCount = 0;
 		m_Dim.clear();
 	}
