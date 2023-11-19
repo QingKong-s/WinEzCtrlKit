@@ -48,7 +48,7 @@ InitStatus Init(HINSTANCE hInstance, DWORD* pdwErrCode)
 	gpsi.DebugEventCallback = GdiplusDebug;
 #endif
 	GpStatus uGpRet = GdiplusStartup(&g_uGpToken, &gpsi, NULL);
-	if (uGpRet != Ok)
+	if (uGpRet != GpStatus::GpOk)
 	{
 		*pdwErrCode = uGpRet;
 		return InitStatus::GdiplusInitError;

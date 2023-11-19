@@ -734,7 +734,7 @@ EckInline void DoEvents()
 	}
 }
 
-EckInline UINT Gcd(UINT a, UINT b)
+EckInline constexpr UINT Gcd(UINT a, UINT b)
 {
 	UINT c;
 	for (;;)
