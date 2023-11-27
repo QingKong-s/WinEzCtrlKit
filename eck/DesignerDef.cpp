@@ -1,4 +1,4 @@
-#include "DesignerDef.h"
+﻿#include "DesignerDef.h"
 
 ECK_NAMESPACE_BEGIN
 #ifdef ECK_CTRL_DESIGN_INTERFACE
@@ -139,7 +139,7 @@ EckPropCallBackRet CALLBACK GetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropVa
 	break;
 	case CPID_TEXT:
 		*pbProcessed = TRUE;
-		pProp->Vpsz = pWnd->GetText().Reset();
+		pProp->Vpsz = pWnd->GetText().Detach();
 		return ESPR_NEEDFREE;
 	case CPID_VISIBLE:
 		*pbProcessed = TRUE;

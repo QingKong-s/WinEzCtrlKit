@@ -1,7 +1,7 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* CCommDlg.h £º Í¨ÓÃ¶Ô»°¿ò
+* CCommDlg.h ï¼š é€šç”¨å¯¹è¯æ¡†
 *
 * Copyright(C) 2023 QingKong
 */
@@ -31,20 +31,20 @@ private:
 
 	HWND m_hDlg = NULL;
 public:
-	std::vector<TASKDIALOG_BUTTON> m_aBtn{};// ËùÓĞ°´Å¥
-	std::vector<TASKDIALOG_BUTTON> m_aRadioBtn{};// ËùÓĞµ¥Ñ¡°´Å¥
+	std::vector<TASKDIALOG_BUTTON> m_aBtn{};// æ‰€æœ‰æŒ‰é’®
+	std::vector<TASKDIALOG_BUTTON> m_aRadioBtn{};// æ‰€æœ‰å•é€‰æŒ‰é’®
 
 	CTaskDialog() = default;
 
 	/// <summary>
-	/// ÏÔÊ¾¡£
-	/// ´Ë·½·¨¸üĞÂcButtons¡¢pButtons¡¢cRadioButtons¡¢pRadioButtonsºÍhwndParent×Ö¶Î£¬È»ºóÊ¹ÓÃthisÊı¾İµ÷ÓÃTaskDialogIndirect
+	/// æ˜¾ç¤ºã€‚
+	/// æ­¤æ–¹æ³•æ›´æ–°cButtonsã€pButtonsã€cRadioButtonsã€pRadioButtonså’ŒhwndParentå­—æ®µï¼Œç„¶åä½¿ç”¨thisæ•°æ®è°ƒç”¨TaskDialogIndirect
 	/// </summary>
-	/// <param name="hParent">¸¸´°¿Ú¾ä±ú</param>
-	/// <param name="piRadioButton">½ÓÊÕµ¥Ñ¡¿ò×´Ì¬</param>
-	/// <param name="pbChecked">½ÓÊÕÑ¡Ôñ¿ò×´Ì¬</param>
-	/// <param name="phr">½ÓÊÕ´íÎó´úÂë</param>
-	/// <returns>·µ»Ø°´Å¥ID</returns>
+	/// <param name="hParent">çˆ¶çª—å£å¥æŸ„</param>
+	/// <param name="piRadioButton">æ¥æ”¶å•é€‰æ¡†çŠ¶æ€</param>
+	/// <param name="pbChecked">æ¥æ”¶é€‰æ‹©æ¡†çŠ¶æ€</param>
+	/// <param name="phr">æ¥æ”¶é”™è¯¯ä»£ç </param>
+	/// <returns>è¿”å›æŒ‰é’®ID</returns>
 	int Show(TASKDIALOGCONFIG* ptdc, int* piRadioButton = NULL, BOOL* pbChecked = NULL, HRESULT* phr = NULL);
 
 	EckInline HWND GetHWND()
@@ -94,11 +94,11 @@ public:
 	}
 
 	/// <summary>
-	/// ÖÃÔªËØÎÄ±¾¡£
-	/// ´°¿Ú²¼¾Ö¿ÉÄÜ»á±ä»¯ÒÔÊÊÓ¦ĞÂÎÄ±¾
+	/// ç½®å…ƒç´ æ–‡æœ¬ã€‚
+	/// çª—å£å¸ƒå±€å¯èƒ½ä¼šå˜åŒ–ä»¥é€‚åº”æ–°æ–‡æœ¬
 	/// </summary>
-	/// <param name="uType">ÔªËØÀàĞÍ£¬TDE_³£Á¿</param>
-	/// <param name="pszText">ÎÄ±¾</param>
+	/// <param name="uType">å…ƒç´ ç±»å‹ï¼ŒTDE_å¸¸é‡</param>
+	/// <param name="pszText">æ–‡æœ¬</param>
 	EckInline void SetElementText(UINT uType, PCWSTR pszText)
 	{
 		SendMessageW(m_hDlg, TDM_SET_ELEMENT_TEXT, uType, (LPARAM)pszText);
@@ -125,30 +125,30 @@ public:
 	}
 
 	/// <summary>
-	/// ½ø¶ÈÌõ_ÖÃ×´Ì¬
+	/// è¿›åº¦æ¡_ç½®çŠ¶æ€
 	/// </summary>
-	/// <param name="uState">×´Ì¬£¬PBST_³£Á¿</param>
+	/// <param name="uState">çŠ¶æ€ï¼ŒPBST_å¸¸é‡</param>
 	EckInline void SetPBState(UINT uState)
 	{
 		SendMessageW(m_hDlg, TDM_SET_PROGRESS_BAR_STATE, uState, 0);
 	}
 
 	/// <summary>
-	/// ¸üĞÂÔªËØÎÄ±¾¡£
-	/// ´°¿Ú²¼¾Ö²»»á±ä»¯£¬Òò´ËĞÂÎÄ±¾±ØĞë¶ÌÓÚ¾ÉÎÄ±¾
+	/// æ›´æ–°å…ƒç´ æ–‡æœ¬ã€‚
+	/// çª—å£å¸ƒå±€ä¸ä¼šå˜åŒ–ï¼Œå› æ­¤æ–°æ–‡æœ¬å¿…é¡»çŸ­äºæ—§æ–‡æœ¬
 	/// </summary>
-	/// <param name="uType">ÔªËØÀàĞÍ£¬TDE_³£Á¿</param>
-	/// <param name="pszText">ÎÄ±¾</param>
+	/// <param name="uType">å…ƒç´ ç±»å‹ï¼ŒTDE_å¸¸é‡</param>
+	/// <param name="pszText">æ–‡æœ¬</param>
 	EckInline void UpdateElementText(UINT uType, PCWSTR pszText)
 	{
 		SendMessageW(m_hDlg, TDM_UPDATE_ELEMENT_TEXT, uType, (LPARAM)pszText);
 	}
 
 	/// <summary>
-	/// ¸üĞÂÍ¼±ê
+	/// æ›´æ–°å›¾æ ‡
 	/// </summary>
-	/// <param name="uType">ÔªËØÀàĞÍ£¬TDIE_ICON_³£Á¿</param>
-	/// <param name="Icon">Í¼±ê£¬¿ÉÎªHICON»òPCWSTR£¬È¡¾öÓÚ´´½¨¶Ô»°¿òÊ±µÄÉèÖÃ</param>
+	/// <param name="uType">å…ƒç´ ç±»å‹ï¼ŒTDIE_ICON_å¸¸é‡</param>
+	/// <param name="Icon">å›¾æ ‡ï¼Œå¯ä¸ºHICONæˆ–PCWSTRï¼Œå–å†³äºåˆ›å»ºå¯¹è¯æ¡†æ—¶çš„è®¾ç½®</param>
 	template<IsHICONOrPCWSTR T>
 	EckInline void UpdateIcon(UINT uType, T Icon)
 	{
@@ -158,8 +158,8 @@ public:
 
 
 
-EckInline UINT MsgBox(PCWSTR pszText, PCWSTR pszCaption = L"", UINT uType = 0, HWND hParent = NULL)
+EckInline int MsgBox(PCWSTR pszText, PCWSTR pszCaption = L"", UINT uType = 0, HWND hParent = NULL)
 {
-	MessageBoxW(hParent, pszText, pszCaption, uType);
+	return MessageBoxW(hParent, pszText, pszCaption, uType);
 }
 ECK_NAMESPACE_END

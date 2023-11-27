@@ -204,6 +204,12 @@
     <ClInclude Include="eck\CDrawPanel.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\MathHelper.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CListBoxNew.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Win32Template.cpp">
