@@ -8,6 +8,7 @@
 #pragma once
 #include "Utility.h"
 #include "GdiplusFlatDef.h"
+#include "MathHelper.h"
 
 #include <numbers>
 #include <execution>
@@ -79,26 +80,6 @@ EckInline void CalcPointFromEllipseAngle(TVal a, TVal b, float fAngle, TVal& xRe
 	yRet = (TVal)((float)b * sinf(fEccentricAngle));
 }
 
-/// <summary>
-/// 角度转弧度
-/// </summary>
-/// <param name="fDeg">角度</param>
-/// <returns>弧度</returns>
-EckInline constexpr float Deg2Rad(float fDeg)
-{
-	return fDeg * std::numbers::pi_v<float> / 180.f;
-}
-
-/// <summary>
-/// 弧度转角度
-/// </summary>
-/// <param name="fRad">弧度</param>
-/// <returns>角度</returns>
-EckInline constexpr float Rad2Deg(float fRad)
-{
-	return fRad * 180.f / std::numbers::pi_v<float>;
-}
-
 template<class TVal = int, class TPt>
 /// <summary>
 /// 计算繁花曲线各点
@@ -128,8 +109,7 @@ inline void CalcSpirographPoint(std::vector<TPt>& vPt, TVal rOut, TVal rInt, TVa
 }
 
 /// <summary>
-/// 画繁花曲线。
-/// 函数假定坐标轴情况类似MM_TEXT
+/// 画繁花曲线
 /// </summary>
 /// <param name="hDC">设备场景</param>
 /// <param name="xCenter">中心点X</param>
@@ -151,8 +131,7 @@ EckInline BOOL DrawSpirograph(HDC hDC, int xCenter, int yCenter, int rOut, int r
 }
 
 /// <summary>
-/// 画繁花曲线。
-/// 函数假定坐标轴情况类似MM_TEXT
+/// 画繁花曲线
 /// </summary>
 /// <param name="pGraphics">图形对象</param>
 /// <param name="pPen">画笔对象</param>
@@ -191,8 +170,7 @@ struct DRAW_SPIROGRAPH_D2D_PARAM
 };
 
 /// <summary>
-/// 画繁花曲线。
-/// 函数假定坐标轴情况类似MM_TEXT
+/// 画繁花曲线
 /// </summary>
 /// <param name="Info">参数</param>
 /// <param name="ppPathGeometry">接收路径几何形变量的指针</param>
@@ -232,8 +210,7 @@ EckInline void CalcButterflyCurvePoint(std::vector<TPt>& vPt, float fDeformation
 }
 
 /// <summary>
-/// 画蝴蝶曲线。
-/// 函数假定坐标轴情况类似MM_TEXT
+/// 画蝴蝶曲线
 /// </summary>
 /// <param name="hDC">设备场景</param>
 /// <param name="xCenter">中心点X</param>
@@ -255,8 +232,7 @@ EckInline BOOL DrawButterflyCurve(HDC hDC, int xCenter, int yCenter, float fDefo
 }
 
 /// <summary>
-/// 画蝴蝶曲线。
-/// 函数假定坐标轴情况类似MM_TEXT
+/// 画蝴蝶曲线
 /// </summary>
 /// <param name="pGraphics">图形对象</param>
 /// <param name="pPen">画笔</param>
@@ -295,8 +271,7 @@ struct DRAW_BUTTERFLYCURVE_D2D_PARAM
 };
 
 /// <summary>
-/// 画蝴蝶曲线。
-/// 函数假定坐标轴情况类似MM_TEXT
+/// 画蝴蝶曲线
 /// </summary>
 /// <param name="Info">参数</param>
 /// <param name="ppPathGeometry">接收路径几何形变量的指针</param>
@@ -306,7 +281,7 @@ HRESULT DrawButterflyCurve(const DRAW_BUTTERFLYCURVE_D2D_PARAM& Info, ID2D1PathG
 template<class TVal = int>
 /// <summary>
 /// 从角度计算椭圆上一段弧的端点。
-/// 函数假定坐标轴情况类似MM_TEXT。计算结果可供Arc、Chord函数等使用
+/// 计算结果可供Arc、Chord函数等使用
 /// </summary>
 EckInline void CalcArcFromEllipseAngle(HDC hDC, TVal x, TVal y, TVal xr, TVal yr, float fStartAngle, float fSweepAngle,
 	TVal& x1, TVal& y1, TVal& x2, TVal& y2)
@@ -522,7 +497,6 @@ EckInline void CalcRoseCurvePoint(std::vector<TPt>& vPt, float a = 10.f, float n
 
 /// <summary>
 /// 画玫瑰曲线
-/// 函数假定坐标轴情况类似MM_TEXT
 /// </summary>
 /// <param name="hDC">设备场景</param>
 /// <param name="xCenter">中心点X</param>
@@ -544,7 +518,6 @@ EckInline BOOL DrawRoseCurve(HDC hDC, int xCenter, int yCenter, float a = 300.f,
 
 /// <summary>
 /// 画玫瑰曲线
-/// 函数假定坐标轴情况类似MM_TEXT
 /// </summary>
 /// <param name="pGraphics">图形对象</param>
 /// <param name="pPen">画笔对象</param>
@@ -583,7 +556,6 @@ struct DRAW_ROSECURVE_D2D_PARAM
 
 /// <summary>
 /// 画玫瑰曲线
-/// 函数假定坐标轴情况类似MM_TEXT
 /// </summary>
 /// <param name="Info">参数</param>
 /// <param name="ppPathGeometry">接收路径几何形变量的指针</param>
@@ -708,7 +680,6 @@ EckInline void CalcPointFromCircleAngle(TVal r, float fAngle, TVal& xRet, TVal& 
 	yRet = (TVal)((float)r * sinf(fAngle));
 }
 
-template<class TVal = int, class TPt>
 /// <summary>
 /// 计算正N角星各点。
 /// 等效于计算正N边形各点
@@ -718,6 +689,7 @@ template<class TVal = int, class TPt>
 /// <param name="n">边数/角数</param>
 /// <param name="fAngle">角度</param>
 /// <param name="bLinkStar">是否连接为星形</param>
+template<class TVal = int, class TPt>
 inline void CalcRegularStar(std::vector<TPt>& vPt, TVal r, int n, float fAngle = Deg2Rad(90.f), BOOL bLinkStar = TRUE)
 {
 	vPt.clear();
@@ -766,7 +738,6 @@ inline void CalcRegularStar(std::vector<TPt>& vPt, TVal r, int n, float fAngle =
 
 /// <summary>
 /// 画正N角星/正N边形
-/// 函数假定坐标轴情况类似MM_TEXT
 /// </summary>
 /// <param name="hDC">设备场景</param>
 /// <param name="xCenter">中心点X</param>
@@ -781,7 +752,6 @@ BOOL DrawRegularStar(HDC hDC, int xCenter, int yCenter,
 
 /// <summary>
 /// 画正N角星/正N边形
-/// 函数假定坐标轴情况类似MM_TEXT
 /// </summary>
 /// <param name="pGraphics">图形对象</param>
 /// <param name="pPen">画笔句柄</param>
@@ -812,7 +782,6 @@ struct DRAW_REGULARSTAR_D2D_PARAM
 
 /// <summary>
 /// 画正N角星/正N边形
-/// 函数假定坐标轴情况类似MM_TEXT
 /// </summary>
 /// <param name="Info">参数</param>
 /// <param name="ppPathGeometry">接收路径几何形变量的指针</param>
@@ -923,20 +892,20 @@ public:
 		bmi.bmiHeader.biPlanes = 1;
 		bmi.bmiHeader.biBitCount = 32;
 		const HDC hDC = GetDC(NULL);
-#pragma warning (suppress:6387)
+#pragma warning (suppress:6387)// 可能为NULL
 		const HBITMAP hbm = CreateDIBSection(hDC, &bmi, 0, NULL, NULL, 0);
 		ReleaseDC(NULL, hDC);
 		return CMifptpHBITMAP(hbm);
 	}
 
-	EckInline COLORREF GetPixel(TCoord pt) const
+	EckInline TColor GetPixel(TCoord pt) const
 	{
-		return *(((COLORREF*)(((BYTE*)m_Bmp.bmBits) + pt.y * m_Bmp.bmWidthBytes)) + pt.x);
+		return *(((TColor*)(((BYTE*)m_Bmp.bmBits) + pt.y * m_Bmp.bmWidthBytes)) + pt.x);
 	}
 
 	EckInline void SetPixel(TCoord pt, TColor cr)
 	{
-		*(((COLORREF*)(((BYTE*)m_Bmp.bmBits) + pt.y * m_Bmp.bmWidthBytes)) + pt.x) = cr;
+		*(((TColor*)(((BYTE*)m_Bmp.bmBits) + pt.y * m_Bmp.bmWidthBytes)) + pt.x) = cr;
 	}
 
 	EckInline int GetWidth() const { return m_Bmp.bmWidth; }
@@ -980,18 +949,18 @@ public:
 	CMifptpGpBitmap New(TCoord Dimension) const
 	{
 		GpBitmap* pBitmap;
-		GdipCreateBitmapFromScan0(Dimension.x, Dimension.y, 0, PixelFormat32bppPARGB, NULL, &pBitmap);
+		GdipCreateBitmapFromScan0(Dimension.x, Dimension.y, 0, GpPixelFormat::PixelFormat32bppPARGB, NULL, &pBitmap);
 		return CMifptpGpBitmap(pBitmap);
 	}
 
-	EckInline COLORREF GetPixel(TCoord pt) const
+	EckInline TColor GetPixel(TCoord pt) const
 	{
-		return *(((COLORREF*)(((BYTE*)m_Data.Scan0) + pt.y * m_Data.Stride)) + pt.x);
+		return *(((TColor*)(((BYTE*)m_Data.Scan0) + pt.y * m_Data.Stride)) + pt.x);
 	}
 
 	EckInline void SetPixel(TCoord pt, TColor cr)
 	{
-		*(((COLORREF*)(((BYTE*)m_Data.Scan0) + pt.y * m_Data.Stride)) + pt.x) = cr;
+		*(((TColor*)(((BYTE*)m_Data.Scan0) + pt.y * m_Data.Stride)) + pt.x) = cr;
 	}
 
 	EckInline int GetWidth() const { return m_cx; }
@@ -1015,7 +984,7 @@ public:
 
 /// <summary>
 /// 生成扭曲图像。
-/// 生成从原图像上的多边形区域映射到目标多边形区域的扭曲图像
+/// 生成从原图像上的多边形区域映射到目标多边形区域的扭曲图像，函数将多边形的外接矩形与新位图的(0,0)对齐
 /// </summary>
 /// <param name="Bmp">输入位图处理器</param>
 /// <param name="NewBmp">结果位图处理器，应自行释放相关资源</param>
@@ -1116,9 +1085,8 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 	for (int y = 0; y <= yMax; ++y)
 	{
 		if (TETIt it; (it = ET.find(y)) != ET.end())
-			AEL.insert(AEL.end(), it->second.begin(), it->second.end());
-		if (!AEL.empty())
 		{
+			AEL.insert(AEL.end(), it->second.begin(), it->second.end());
 			std::sort(AEL.begin(), AEL.end(), [](const EDGE* p1, const EDGE* p2)->bool
 				{
 					if (p1->x == p2->x)
@@ -1126,7 +1094,9 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 					else
 						return p1->x < p2->x;
 				});
-
+		}
+		if (!AEL.empty())
+		{
 			vNeedDel.clear();
 			EckCounter(AEL.size(), i)
 			{
@@ -1137,10 +1107,10 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 				AEL.erase(AEL.begin() + *it);
 			EckCounter(AEL.size() / 2, i)
 			{
-				auto pL = AEL[i * 2];
-				auto pR = AEL[i * 2 + 1];
-				float dRxx = (pL->Rx - pR->Rx) / (float)(pL->x - pR->x);
-				float dRyy = (pL->Ry - pR->Ry) / (float)(pL->x - pR->x);
+				const auto pL = AEL[i * 2];
+				const auto pR = AEL[i * 2 + 1];
+				const float dRxx = (pL->Rx - pR->Rx) / (float)(pL->x - pR->x);
+				const float dRyy = (pL->Ry - pR->Ry) / (float)(pL->x - pR->x);
 				float Rxx = pL->Rx;
 				float Ryy = pL->Ry;
 				for (int x = (int)pL->x; x <= (int)pR->x; ++x)
@@ -1205,9 +1175,6 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 	}
 	NewBmp.UnLock();
 	Bmp.UnLock();
-	for (auto& x : ET)
-		for (auto e : x.second)
-			delete e;
 	return TRUE;
 }
 ECK_NAMESPACE_END

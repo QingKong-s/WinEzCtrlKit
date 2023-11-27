@@ -29,6 +29,7 @@
 #include "eck/CTabHeader.h"
 #include "eck/CSplitBar.h"
 #include "eck/CDrawPanel.h"
+#include "eck/CLunarCalendar.h"
 
 
 using namespace std::literals;
@@ -109,8 +110,24 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	using namespace eck;
 	using namespace eck::Literals;
 
+	//auto date = CeToLunar({ 1902,6,20 });
+	//EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
+	//date = CeToLunar({ 1902,1,1 });
+	//EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
+	//date = CeToLunar({ 1902,1,6 });
+	//EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
+	//date = CeToLunar({ 1902,1,11 });
+	//EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
+	//date = CeToLunar({ 1902,2,3 });
+	//EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
+	//EckDbgPrint(NumToNaYin(GetNaYin(L"甲子")));
+	//EckDbgPrint(NumToNaYin(GetNaYin(6)));
+	//EckDbgPrint(NumToJieQi(GetJieQi({ 1902,5,22 })));
+	//EckDbgPrint(NumToShuXiang(GetShuXiang(2023)));
 
 
+	EckDbgBreak();
+	EckDbgBreak();
 	//CResSet<int> ress;
 
 
@@ -528,9 +545,10 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		//eck::DrawRegularStar(g_DP->GetGraphics(), pPen, 450, 450, 300, 10);
 		//eck::DrawRoseCurve(g_DP->GetGraphics(), pPen, 450, 450, 300.f, 10);
 
+		PCWSTR pszTest = LR"(F:\阿里云盘下载\图片\D5D0A9FFEEBE4385BC7BD3E9AB90F21B.jpg)";
 
 		IWICBitmapDecoder* pDecoder;
-		eck::CreateWicBitmapDecoder(LR"(E:\Desktop\Temp\2023.8 mc\Snipaste_2023-07-06_19-25-04.png)", pDecoder, eck::g_pWicFactory);
+		eck::CreateWicBitmapDecoder(pszTest, pDecoder, eck::g_pWicFactory);
 
 		std::vector<IWICBitmap*> vWicBmp{};
 		eck::CreateWicBitmap(vWicBmp, pDecoder, eck::g_pWicFactory);
@@ -549,11 +567,18 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		POINT ptD[]
 		{
 			{0,0},
-			{cx+100,10},
+			{cx+100,70},
 			{cx,cy - 100},
 			{10,cy+20},
 			
 		};
+
+		int aaaa = 10;
+
+		using T = int*;
+		std::add_pointer_t<std::add_const_t<std::remove_pointer_t<T>>> a1 = &aaaa;
+		a1 = NULL;
+		
 
 		eck::CMifptpHBITMAP Bmp(hbmOrg);
 		eck::CMifptpHBITMAP NewBmp{};
@@ -567,7 +592,7 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		//Polygon(hDC, ptD, 4);
 
 		GpBitmap* pbmp;
-		GdipCreateBitmapFromFile(LR"(E:\Desktop\Temp\2023.8 mc\Snipaste_2023-07-06_19-25-04.png)", &pbmp);
+		GdipCreateBitmapFromFile(pszTest, &pbmp);
 		eck::CMifptpGpBitmap BmpGp(pbmp);
 		eck::CMifptpGpBitmap NewBmpGp{};
 		GpPoint ptS1[]
@@ -581,9 +606,9 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		GpPoint ptD1[]
 		{
 			{0,0},
-			{cx + 100,10},
+			{cx + 100,70},
 			{cx,cy - 100},
-			{10,cy + 20},
+			{50,cy + 20},
 
 		};
 		auto time = GetTickCount64();
@@ -621,14 +646,14 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		//D2D1_RECT_F rcFSrc{ 0,0,Size.width,Size.height };
 		//eck::CalcDistortMatrix(rcF, { {280,280},{700,310},{300,780},{750,700} }, M);
 		//pDC->DrawBitmap(pBitmap, rcF, 1.f, D2D1_INTERPOLATION_MODE_CUBIC, rcFSrc, M);
-		rcF = { 600,600,880,880 };
-		pDC->DrawRectangle(rcF, pBrush, 3.f);
+		//rcF = { 600,600,880,880 };
+		//pDC->DrawRectangle(rcF, pBrush, 3.f);
 
-		eck::CalcLineEquation(900, 360,200,900, a, b, c);
-		pDC->DrawLine({ 900, 360 }, { 200,900 }, pBrush);
-		pDC->SetTransform(eck::D2dMatrixReflection(a, b, c));
-		pDC->DrawRectangle(rcF, pBrush, 3.f);
-		pDC->SetTransform(D2D1::Matrix3x2F::Identity());
+		//eck::CalcLineEquation(900, 360,200,900, a, b, c);
+		//pDC->DrawLine({ 900, 360 }, { 200,900 }, pBrush);
+		//pDC->SetTransform(eck::D2dMatrixReflection(a, b, c));
+		//pDC->DrawRectangle(rcF, pBrush, 3.f);
+		//pDC->SetTransform(D2D1::Matrix3x2F::Identity());
 		//eck::DrawRegularStar({eck::g_pD2dFactory,pDC,pBrush,5.f,NULL,450,450,300,6});
 		
 		//pDC->DrawEllipse({ 450,450,300,300 }, pBrush, 8.f);
