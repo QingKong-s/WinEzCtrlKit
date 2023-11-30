@@ -79,16 +79,16 @@ CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLGTITEM>&
 		else// 标题字符串
 			cbTotal += ((std::get<1>(x.Caption).Size() + 1) * sizeof(WCHAR));
 
-		if (x.rbExtra.m_cb)
-			cbTotal += AlignMemSize(x.rbExtra.m_cb, 2);
+		if (x.rbExtra.Size())
+			cbTotal += AlignMemSize(x.rbExtra.Size(), 2);
 
 		cbTotal += CalcNextAlignBoundaryDistance(NULL, (PCVOID)cbTotal, sizeof(DWORD));
 	}
 
 	CRefBin rb;
-	rb.ReSizeAbs(cbTotal);
+	rb.ReSize(cbTotal);
 
-	CMemWriter w(rb);
+	CMemWriter w(rb.Data());
 	w.Write(&Dlg, sizeof(DLGTHEADER));
 
 	if (Dlg.Menu)
@@ -121,7 +121,7 @@ CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLGTITEM>&
 	if (bHasFontStru)
 		w << Dlg.Font << Dlg.rsFontName;
 
-	w += CalcNextAlignBoundaryDistance(rb, w, sizeof(DWORD));
+	w += CalcNextAlignBoundaryDistance(rb.Data(), w, sizeof(DWORD));
 
 	for (auto& x : Items)
 	{
@@ -137,14 +137,14 @@ CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLGTITEM>&
 		else// 标题字符串
 			w << std::get<1>(x.Caption);
 
-		w << (WORD)x.rbExtra.m_cb;
-		if (x.rbExtra.m_cb)
+		w << (WORD)x.rbExtra.Size();
+		if (x.rbExtra.Size())
 		{
-			memcpy(w, x.rbExtra, x.rbExtra.m_cb);
-			w += AlignMemSize(x.rbExtra.m_cb, 2);
+			memcpy(w, x.rbExtra.Data(), x.rbExtra.Size());
+			w += AlignMemSize(x.rbExtra.Size(), 2);
 		}
 
-		w += CalcNextAlignBoundaryDistance(rb, w, sizeof(DWORD));
+		w += CalcNextAlignBoundaryDistance(rb.Data(), w, sizeof(DWORD));
 	}
 
 	return rb;
@@ -249,8 +249,8 @@ BOOL DeserializeDialogTemplate(PCVOID pTemplate, DLGTDLG& Dlg, std::vector<DLGTI
 		if (us)
 		{
 			CRefBin rb;
-			rb.ReSizeAbs(us);
-			r.Read(rb, rb.m_cb);
+			rb.ReSize(us);
+			r.Read(rb.Data(), rb.Size());
 			x.rbExtra = std::move(rb);
 		}
 
@@ -375,7 +375,7 @@ HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& Items,
 			rc.bottom = rc.bottom * yBaseUnit / 8;
 		}
 		hCtrl = CreateWindowExW(x.dwExStyle, pszClass, pszCaption, x.dwStyle,
-			rc.left, rc.top, rc.right, rc.bottom, hWnd, i32ToP<HMENU>(x.id), hInstance, x.rbExtra);
+			rc.left, rc.top, rc.right, rc.bottom, hWnd, i32ToP<HMENU>(x.id), hInstance, x.rbExtra.Data());
 		SendMessageW(hCtrl, WM_SETFONT, (WPARAM)hFont, FALSE);
 	}
 

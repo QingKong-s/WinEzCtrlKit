@@ -210,6 +210,9 @@
     <ClInclude Include="eck\CListBoxNew.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\StylePainter.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Win32Template.cpp">
@@ -234,9 +237,6 @@
       <Filter>ECK Src</Filter>
     </ClCompile>
     <ClCompile Include="eck\CColorPicker.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CRefBin.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
     <ClCompile Include="eck\Utility.cpp">

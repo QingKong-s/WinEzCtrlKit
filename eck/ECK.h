@@ -131,6 +131,7 @@ constexpr inline PCWSTR WCN_DLG = L"Eck.WndClass.CommDlg";
 constexpr inline PCWSTR WCN_SPLITBAR = L"Eck.WndClass.SplitBar";
 constexpr inline PCWSTR WCN_DRAWPANEL = L"Eck.WndClass.DrawPanel";
 constexpr inline PCWSTR WCN_DRAWPANELD2D = L"Eck.WndClass.DrawPanelD2D";
+constexpr inline PCWSTR WCN_LISTBOXNEW = L"Eck.WndClass.ListBoxNew";
 
 constexpr inline PCWSTR MSG_INERTIALSV = L"Eck.Message.InertialScrollView";
 

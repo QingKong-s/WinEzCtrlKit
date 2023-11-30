@@ -96,7 +96,7 @@ public:
 	CRefBin Serialize()
 	{
 		CRefBin rb(m_cbTotal);
-		CMemWriter w(rb, m_cbTotal);
+		CMemWriter w(rb.Data(), m_cbTotal);
 		int cForms = (int)m_aData.size();
 
 		FORMTABLEHEADER* pHeader;

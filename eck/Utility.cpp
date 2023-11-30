@@ -72,7 +72,7 @@ CRefBin ReadInFile(PCWSTR pszFile)
 
 	rb.ReSize((SIZE_T)i64.QuadPart);
 	DWORD dwRead;
-	if (!ReadFile(hFile, rb, i64.LowPart, &dwRead, NULL))
+	if (!ReadFile(hFile, rb.Data(), i64.LowPart, &dwRead, NULL))
 		rb.ReSize(0);
 
 	CloseHandle(hFile);

@@ -1,4 +1,4 @@
-#include "CWnd.h"
+Ôªø#include "CWnd.h"
 #include "Utility.h"
 #include "CRefBin.h"
 
@@ -33,7 +33,7 @@ CRefBin CWnd::SerializeData(SIZE_T cbExtra, SIZE_T* pcbSize)
 		*pcbSize = cbSize;
 
 	CRefBin rb(cbSize + cbExtra);
-	CMemWriter w(rb, cbSize);
+	CMemWriter w(rb.Data(), cbSize);
 
 	CREATEDATA_STD* p;
 	w.SkipPointer(p);
@@ -80,12 +80,12 @@ void CWnd::SetFrameType(int iFrame) const
 
 	switch (iFrame)
 	{
-	case 0: break;// Œﬁ±ﬂøÚ
-	case 1: dwExStyle |= WS_EX_CLIENTEDGE; break;// ∞º»Î Ω
-	case 2: dwExStyle |= (WS_EX_WINDOWEDGE | WS_EX_DLGMODALFRAME); break;// Õπ≥ˆ Ω
-	case 3: dwExStyle |= WS_EX_STATICEDGE; break;// «≥∞º»Î Ω
-	case 4: dwExStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE); break;// æµøÚ Ω
-	case 5: dwStyle |= WS_BORDER; break;// µ•œﬂ±ﬂøÚ Ω
+	case 0: break;// Êó†ËæπÊ°Ü
+	case 1: dwExStyle |= WS_EX_CLIENTEDGE; break;// ÂáπÂÖ•Âºè
+	case 2: dwExStyle |= (WS_EX_WINDOWEDGE | WS_EX_DLGMODALFRAME); break;// Âá∏Âá∫Âºè
+	case 3: dwExStyle |= WS_EX_STATICEDGE; break;// ÊµÖÂáπÂÖ•Âºè
+	case 4: dwExStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE); break;// ÈïúÊ°ÜÂºè
+	case 5: dwStyle |= WS_BORDER; break;// ÂçïÁ∫øËæπÊ°ÜÂºè
 	}
 
 	SetStyle(dwStyle);
@@ -99,19 +99,19 @@ int CWnd::GetFrameType() const
 	if (IsBitSet(dwExStyle, WS_EX_DLGMODALFRAME))
 	{
 		if (IsBitSet(dwExStyle, WS_EX_CLIENTEDGE))
-			return 4;// æµøÚ Ω
+			return 4;// ÈïúÊ°ÜÂºè
 		if (IsBitSet(dwExStyle, WS_EX_WINDOWEDGE))
-			return 2;// Õπ≥ˆ Ω
+			return 2;// Âá∏Âá∫Âºè
 	}
 
 	if (IsBitSet(dwExStyle, WS_EX_CLIENTEDGE))
-		return 1;// ∞º»Î Ω
+		return 1;// ÂáπÂÖ•Âºè
 	if (IsBitSet(dwExStyle, WS_EX_STATICEDGE))
-		return 3;// «≥∞º»Î Ω
+		return 3;// ÊµÖÂáπÂÖ•Âºè
 	if (IsBitSet(dwStyle, WS_BORDER))
-		return 5;// µ•œﬂ±ﬂøÚ Ω
+		return 5;// ÂçïÁ∫øËæπÊ°ÜÂºè
 
-	return 0;// Œﬁ±ﬂøÚ
+	return 0;// Êó†ËæπÊ°Ü
 }
 
 void CWnd::SetScrollBar(int i) const

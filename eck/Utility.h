@@ -149,7 +149,7 @@ struct CMemWriter
 
 	EckInline CMemWriter& operator<<(const CRefBin& Data)
 	{
-		return Write(Data.Data(), Data.m_cb);
+		return Write(Data.Data(), Data.Size());
 	}
 
 	EckInline CMemWriter& operator<<(const CRefStrW& Data)
@@ -585,7 +585,7 @@ BOOL WriteToFile(PCWSTR pszFile, PCVOID pData, DWORD cb);
 
 EckInline BOOL WriteToFile(PCWSTR pszFile, const CRefBin& rb)
 {
-	return WriteToFile(pszFile, rb, (DWORD)rb.m_cb);
+	return WriteToFile(pszFile, rb.Data(), (DWORD)rb.Size());
 }
 
 /// <summary>
@@ -748,5 +748,15 @@ EckInline constexpr UINT Gcd(UINT a, UINT b)
 		else
 			return b;
 	}
+}
+
+EckInline constexpr GpRectF ToGpRectF(const RECT& rc)
+{
+	return { (REAL)rc.left,(REAL)rc.top,(REAL)(rc.right - rc.left),(REAL)(rc.bottom - rc.top) };
+}
+
+EckInline constexpr HRESULT HResultFromBool(BOOL b)
+{
+	return b ? S_OK : S_FALSE;
 }
 ECK_NAMESPACE_END

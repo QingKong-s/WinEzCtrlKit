@@ -62,7 +62,7 @@ private:
 	HANDLE m_hHeap = GetProcessHeap();
 	DWORD m_dwSerialize = 0;
 public:
-	[[nodiscard]] EckInline T* allocate(value_type c)
+	[[nodiscard]] EckInline T* allocate(size_type c)
 	{
 		auto p = (T*)HeapAlloc(m_hHeap, m_dwSerialize, c * sizeof(value_type));
 		if (p)
@@ -102,7 +102,7 @@ public:
 	using size_type = TSize;
 	using difference_type = std::make_signed_t<size_type>;
 
-	[[nodiscard]] EckInline T* allocate(value_type c)
+	[[nodiscard]] EckInline T* allocate(size_type c)
 	{
 		auto p = (T*)HeapAlloc(GetProcessHeap(), 0, c * sizeof(value_type));
 		if (p)
@@ -113,7 +113,7 @@ public:
 
 	EckInline void deallocate(T* p, size_type c)
 	{
-		EckAssert(HeapSize(GetProcessHeap(), 0, p) / sizeof(value_type) == c);
+		EckAssert(p ? (HeapSize(GetProcessHeap(), 0, p) / sizeof(value_type) == c) : TRUE);
 		HeapFree(GetProcessHeap(), 0, p);
 	}
 };

@@ -123,9 +123,14 @@ public:
 		SendMessageW(m_hWnd, WM_SETREDRAW, bRedraw, 0);
 	}
 
-	EckInline void Redraw() const
+	EckInline BOOL Redraw() const
 	{
-		InvalidateRect(m_hWnd, NULL, FALSE);
+		return InvalidateRect(m_hWnd, NULL, FALSE);
+	}
+
+	EckInline BOOL Redraw(const RECT& rc) const
+	{
+		return InvalidateRect(m_hWnd, &rc, FALSE);
 	}
 
 	EckInline operator HWND() const

@@ -173,6 +173,7 @@
     <ClInclude Include="eck\CResTable.h" />
     <ClInclude Include="eck\CScrollView.h" />
     <ClInclude Include="eck\CSplitBar.h" />
+    <ClInclude Include="eck\StylePainter.h" />
     <ClInclude Include="eck\CTab.h" />
     <ClInclude Include="eck\CTabHeader.h" />
     <ClInclude Include="eck\CTaskGroupList.h" />
@@ -234,7 +235,6 @@
     <ClCompile Include="eck\CListBox.cpp" />
     <ClCompile Include="eck\CListBoxExt.cpp" />
     <ClCompile Include="eck\CLunarCalendar.cpp" />
-    <ClCompile Include="eck\CRefBin.cpp" />
     <ClCompile Include="eck\CRefStr.cpp" />
     <ClCompile Include="eck\CScrollBar.h" />
     <ClCompile Include="eck\CSplitBar.cpp" />

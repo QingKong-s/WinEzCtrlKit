@@ -1,7 +1,7 @@
 ﻿/*
 * WinEzCtrlKit Library
 *
-* CRefStr.h ： 字符串
+* CRefStrT.h ： 字符串
 *
 * Copyright(C) 2023 QingKong
 */
@@ -17,6 +17,8 @@
 
 ECK_NAMESPACE_BEGIN
 static constexpr int INVALID_STR_POS = -1;
+
+inline constexpr int StrNPos = -1;
 
 template<class TChar>
 struct CCharTraits
@@ -72,11 +74,16 @@ struct CCharTraits<CHAR>
 	EckInline static int Compare(PCSTR psz1, PCSTR psz2) { return strcmp(psz1, psz2); }
 };
 
-template<class TChar, class TCharTraits, class TAlloc = CAllocatorProcHeap<TChar, int>>
-class CRefStr
+template<class TChar_, class TCharTraits_, class TAlloc_ = CAllocatorProcHeap<TChar_, int>>
+class CRefStrT
 {
 public:
-	static constexpr int NPos = -1;
+	using TChar = TChar_;
+	using TCharTraits = TCharTraits_;
+	using TAlloc = TAlloc_;
+
+	static_assert(std::is_same_v<TChar, CHAR> || std::is_same_v<TChar, WCHAR>);
+
 	using TAllocTraits = CAllocatorTraits<TAlloc>;
 	using TPointer = TChar*;
 	using TConstPointer = const TChar*;
@@ -84,7 +91,7 @@ public:
 	using TIterator = TPointer;
 	using TConstIterator = TConstPointer;
 	using TReverseIterator = std::reverse_iterator<TIterator>;
-	using TConstReverseIterator = std::reverse_iterator<TConstPointer>;
+	using TConstReverseIterator = std::reverse_iterator<TConstIterator>;
 
 	TPointer m_pszText = NULL;
 	int m_cchText = 0;
@@ -92,7 +99,7 @@ public:
 
 	[[no_unique_address]] TAlloc m_Alloc{};
 
-	CRefStr() = default;
+	CRefStrT() = default;
 
 	TAlloc& GetAllocator() { return m_Alloc; }
 
@@ -100,7 +107,7 @@ public:
 	/// 创建自长度
 	/// </summary>
 	/// <param name="cchInit">字符串长度</param>
-	explicit CRefStr(int cchInit)
+	explicit CRefStrT(int cchInit)
 	{
 		m_cchCapacity = TAllocTraits::MakeCapacity(cchInit + 1);
 		m_pszText = m_Alloc.allocate(m_cchCapacity);
@@ -112,7 +119,7 @@ public:
 	/// </summary>
 	/// <param name="psz">字符串指针</param>
 	/// <param name="cchText">字符串长度</param>
-	CRefStr(TConstPointer psz, int cchText = -1)
+	CRefStrT(TConstPointer psz, int cchText = -1)
 	{
 		if (!psz || !cchText)
 			return;
@@ -124,10 +131,10 @@ public:
 		m_cchCapacity = TAllocTraits::MakeCapacity(cchText + 1);
 		m_pszText = m_Alloc.allocate(m_cchCapacity);
 		m_cchText = cchText;
-		TCharTraits::Copy(m_pszText, psz, cchText);
+		TCharTraits::CopyEnd(m_pszText, psz, cchText);
 	}
 
-	CRefStr(const CRefStr& x)
+	CRefStrT(const CRefStrT& x)
 	{
 		m_Alloc = TAllocTraits::select_on_container_copy_construction(x.m_Alloc);
 		m_cchText = x.Size();
@@ -136,38 +143,47 @@ public:
 		TCharTraits::CopyEnd(Data(), x.Data(), x.Size());
 	}
 
-	CRefStr(CRefStr&& x) noexcept
+	CRefStrT(CRefStrT&& x) noexcept
+		:m_pszText{ x.m_pszText }, m_cchText{ x.m_cchText }, m_cchCapacity{ x.m_cchCapacity },
+		m_Alloc{ std::move(x.m_Alloc) }
 	{
-		m_Alloc = std::move(x.m_Alloc);
-		m_cchText = x.Size();
-		m_cchCapacity = x.m_cchCapacity;
-		m_pszText = x.Detach();
+		x.m_pszText = NULL;
+		x.m_cchText = x.m_cchCapacity = 0;
 	}
 
-	~CRefStr()
+	~CRefStrT()
 	{
 		m_Alloc.deallocate(m_pszText, m_cchCapacity);
 	}
 
-	EckInline CRefStr& operator=(TConstPointer pszSrc)
+	EckInline CRefStrT& operator=(TConstPointer pszSrc)
 	{
 		DupString(pszSrc);
 		return *this;
 	}
 
-	EckInline CRefStr& operator=(const CRefStr& x)
+	EckInline CRefStrT& operator=(const CRefStrT& x)
 	{
-		m_Alloc.deallocate(m_pszText, m_cchCapacity);
-		if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
-			m_Alloc = x.m_Alloc;
-		else if constexpr (!TAllocTraits::is_always_equal::value)
+		if constexpr (!TAllocTraits::is_always_equal::value)
+		{
 			if (m_Alloc != x.m_Alloc)
+			{
 				m_Alloc = x.m_Alloc;
+				m_Alloc.deallocate(m_pszText, m_cchCapacity);
+				m_pszText = NULL;
+				m_cchText = m_cchCapacity = 0;
+			}
+			else if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
+				m_Alloc = x.m_Alloc;
+		}
+		else if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
+			m_Alloc = x.m_Alloc;
+
 		DupString(x.Data(), x.Size());
 		return *this;
 	}
 
-	EckInline CRefStr& operator=(CRefStr&& x) noexcept
+	EckInline CRefStrT& operator=(CRefStrT&& x) noexcept
 	{
 		if (this == &x)
 			return *this;
@@ -180,7 +196,9 @@ public:
 				return *this;
 			}
 		
-		std::swap(*this, x);
+		std::swap(m_pszText, x.m_pszText);
+		std::swap(m_cchText, x.m_cchText);
+		std::swap(m_cchCapacity, x.m_cchCapacity);
 		return *this;
 	}
 
@@ -336,7 +354,7 @@ public:
 		if (m_cchCapacity >= cch + 1)
 			return;
 
-		auto pOld = m_pszText;
+		const auto pOld = m_pszText;
 		m_pszText = m_Alloc.allocate(cch + 1);
 		if (pOld)
 		{
@@ -395,7 +413,7 @@ public:
 	/// <param name="posStart">替换位置</param>
 	/// <param name="cchReplacing">替换长度</param>
 	/// <param name="rsNew">用作替换的字符串</param>
-	EckInline void Replace(int posStart, int cchReplacing, const CRefStr& rsNew)
+	EckInline void Replace(int posStart, int cchReplacing, const CRefStrT& rsNew)
 	{
 		Replace(posStart, cchReplacing, rsNew.Data(), rsNew.Size());
 	}
@@ -422,7 +440,7 @@ public:
 		for (int c = 1;; ++c)
 		{
 			pos = FindStr(Data(), pszReplaced, posStart + pos);
-			if (pos == NPos)
+			if (pos == StrNPos)
 				break;
 			Replace(pos, cchReplaced, pszSrc, cchSrc);
 			pos += cchSrc;
@@ -438,7 +456,7 @@ public:
 	/// <param name="rsSrc">用作替换的字符串</param>
 	/// <param name="posStart">起始位置</param>
 	/// <param name="cReplacing">替换进行的次数，0为执行所有替换</param>
-	EckInline void ReplaceSubStr(const CRefStr& rsReplaced, const CRefStr& rsSrc,
+	EckInline void ReplaceSubStr(const CRefStrT& rsReplaced, const CRefStrT& rsSrc,
 		int posStart = 0, int cReplacing = 0)
 	{
 		ReplaceSubStr(rsReplaced.Data(), rsReplaced.Size(), rsSrc.Data(), rsSrc.Size(), posStart, cReplacing);
@@ -480,7 +498,7 @@ public:
 	/// <param name="rsText">字符串</param>
 	/// <param name="cCount">重复次数</param>
 	/// <param name="posStart">起始位置</param>
-	EckInline void MakeRepeatedStrSequence(const CRefStr& rsText, int cCount, int posStart = 0)
+	EckInline void MakeRepeatedStrSequence(const CRefStrT& rsText, int cCount, int posStart = 0)
 	{
 		MakeRepeatedStrSequence(rsText.Data(), rsText.Size(), cCount, posStart);
 	}
@@ -504,10 +522,10 @@ public:
 	EckInline TConstReverseIterator crend() const { return rend(); }
 };
 
-using CRefStrW = CRefStr<WCHAR, CCharTraits<WCHAR>>;
-using CRefStrA = CRefStr<CHAR, CCharTraits<CHAR>>;
+using CRefStrW = CRefStrT<WCHAR, CCharTraits<WCHAR>>;
+using CRefStrA = CRefStrT<CHAR, CCharTraits<CHAR>>;
 
-#define EckCRefStrTemp CRefStr<TChar, TCharTraits, TAlloc>
+#define EckCRefStrTemp CRefStrT<TChar, TCharTraits, TAlloc>
 
 template<class TChar, class TCharTraits, class TAlloc = CAllocatorProcHeap<TChar, int>>
 EckInline EckCRefStrTemp operator+(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
