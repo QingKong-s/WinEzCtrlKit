@@ -1,7 +1,7 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* CRefBin.h £º ×Ö½Ú¼¯
+* CRefBin.h ï¼š å­—èŠ‚é›†
 *
 * Copyright(C) 2023 QingKong
 */
@@ -14,157 +14,224 @@
 #include <vector>
 
 ECK_NAMESPACE_BEGIN
-static constexpr SIZE_T INVALID_BIN_POS =
-#ifdef _WIN64
-ULLONG_MAX
-#else
-ULONG_MAX
-#endif
-;
+static constexpr size_t INVALID_BIN_POS = std::numeric_limits<size_t>{}.max();
+
+inline constexpr size_t BinNPos = std::numeric_limits<size_t>{}.max();
 
 /// <summary>
-/// Ñ°ÕÒ×Ö½Ú¼¯
+/// å¯»æ‰¾å­—èŠ‚é›†
 /// </summary>
-/// <param name="pMain">ÒªÔÚÆäÖĞÑ°ÕÒµÄ×Ö½Ú¼¯Ö¸Õë</param>
-/// <param name="cbMainSize">ÒªÔÚÆäÖĞÑ°ÕÒµÄ×Ö½Ú¼¯³¤¶È</param>
-/// <param name="pSub">ÒªÑ°ÕÒµÄ×Ö½Ú¼¯Ö¸Õë</param>
-/// <param name="cbSubSize">ÒªÑ°ÕÒµÄ×Ö½Ú¼¯³¤¶È</param>
-/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-/// <returns>Î»ÖÃ£¬ÈôÎ´ÕÒµ½·µ»ØINVALID_BIN_POS</returns>
-SIZE_T FindBin(PCVOID pMain, SIZE_T cbMainSize, PCVOID pSub, SIZE_T cbSubSize, SIZE_T posStart = 0);
+/// <param name="pMain">è¦åœ¨å…¶ä¸­å¯»æ‰¾çš„å­—èŠ‚é›†æŒ‡é’ˆ</param>
+/// <param name="cbMainSize">è¦åœ¨å…¶ä¸­å¯»æ‰¾çš„å­—èŠ‚é›†é•¿åº¦</param>
+/// <param name="pSub">è¦å¯»æ‰¾çš„å­—èŠ‚é›†æŒ‡é’ˆ</param>
+/// <param name="cbSubSize">è¦å¯»æ‰¾çš„å­—èŠ‚é›†é•¿åº¦</param>
+/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+/// <returns>ä½ç½®ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å›BinNPos</returns>
+inline size_t FindBin(PCVOID pMain, size_t cbMainSize, PCVOID pSub, size_t cbSubSize, size_t posStart = 0)
+{
+	if (cbMainSize < cbSubSize)
+		return BinNPos;
+	for (PCBYTE pCurr = (PCBYTE)pMain + posStart, pEnd = (PCBYTE)pMain + cbMainSize - cbSubSize; pCurr <= pEnd; ++pCurr)
+	{
+		if (memcmp(pCurr, pSub, cbSubSize) == 0)
+			return pCurr - (PCBYTE)pMain;
+	}
+	return BinNPos;
+}
 
 /// <summary>
-/// µ¹ÕÒ×Ö½Ú¼¯
+/// å€’æ‰¾å­—èŠ‚é›†
 /// </summary>
-/// <param name="pMain">ÒªÔÚÆäÖĞÑ°ÕÒµÄ×Ö½Ú¼¯Ö¸Õë</param>
-/// <param name="cbMainSize">ÒªÔÚÆäÖĞÑ°ÕÒµÄ×Ö½Ú¼¯³¤¶È</param>
-/// <param name="pSub">ÒªÑ°ÕÒµÄ×Ö½Ú¼¯Ö¸Õë</param>
-/// <param name="cbSubSize">ÒªÑ°ÕÒµÄ×Ö½Ú¼¯³¤¶È</param>
-/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-/// <returns>Î»ÖÃ£¬ÈôÎ´ÕÒµ½·µ»ØINVALID_BIN_POS</returns>
-SIZE_T FindBinRev(PCVOID pMain, SIZE_T cbMainSize, PCVOID pSub, SIZE_T cbSubSize, SIZE_T posStart = 0);
+/// <param name="pMain">è¦åœ¨å…¶ä¸­å¯»æ‰¾çš„å­—èŠ‚é›†æŒ‡é’ˆ</param>
+/// <param name="cbMainSize">è¦åœ¨å…¶ä¸­å¯»æ‰¾çš„å­—èŠ‚é›†é•¿åº¦</param>
+/// <param name="pSub">è¦å¯»æ‰¾çš„å­—èŠ‚é›†æŒ‡é’ˆ</param>
+/// <param name="cbSubSize">è¦å¯»æ‰¾çš„å­—èŠ‚é›†é•¿åº¦</param>
+/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+/// <returns>ä½ç½®ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å›BinNPos</returns>
+inline size_t FindBinRev(PCVOID pMain, size_t cbMainSize, PCVOID pSub, size_t cbSubSize, size_t posStart = 0)
+{
+	if (cbMainSize < cbSubSize)
+		return BinNPos;
+	for (PCBYTE pCurr = (PCBYTE)pMain + cbMainSize - posStart - cbSubSize; pCurr >= pMain; --pCurr)
+	{
+		if (memcmp(pCurr, pSub, cbSubSize) == 0)
+			return pCurr - (PCBYTE)pMain;
+	}
+	return BinNPos;
+}
 
-
-class CRefBin
+template<class TAlloc_ = CAllocatorProcHeap<BYTE>>
+class CRefBinT
 {
 public:
-	using TAlloc = CAllocator<BYTE>;
+	using TAlloc = TAlloc_;
+	using TAllocTraits = CAllocatorTraits<TAlloc>;
 
+	using TIterator = BYTE*;
+	using TConstIterator = const BYTE*;
+	using TReverseIterator = std::reverse_iterator<TIterator>;
+	using TConstReverseIterator = std::reverse_iterator<TConstIterator>;
+private:
 	BYTE* m_pStream = NULL;
-	SIZE_T m_cb = 0u;
-	SIZE_T m_cbCapacity = 0u;
+	size_t m_cb = 0u;
+	size_t m_cbCapacity = 0u;
 
-	CRefBin() = default;
+	[[no_unique_address]] TAlloc m_Alloc{};
+public:
+	CRefBinT() = default;
 
 	/// <summary>
-	/// ´´½¨×Ô³¤¶È
+	/// åˆ›å»ºè‡ªé•¿åº¦
 	/// </summary>
 	/// <param name="cb"></param>
-	CRefBin(SIZE_T cb);
+	explicit CRefBinT(size_t cb)
+	{
+		m_cb = cb;
+		m_cbCapacity = TAllocTraits::MakeCapacity(cb);
+		m_pStream = m_Alloc.allocate(m_cbCapacity);
+	}
 
 	/// <summary>
-	/// ´´½¨×Ô×Ö½Ú¼¯
+	/// åˆ›å»ºè‡ªå­—èŠ‚é›†
 	/// </summary>
 	/// <param name="p"></param>
 	/// <param name="cb"></param>
-	CRefBin(PCVOID p, SIZE_T cb);
-
-	CRefBin(const CRefBin& x);
-
-	CRefBin(CRefBin&& x) noexcept
+	CRefBinT(PCVOID p, size_t cb)
 	{
-		m_pStream = x.m_pStream;
-		m_cb = x.m_cb;
-		m_cbCapacity = x.m_cbCapacity;
-		ZeroMemory(&x, sizeof(CRefBin));
+		EckAssert(cb ? (!!p) : TRUE);
+		m_cb = cb;
+		m_cbCapacity = TAllocTraits::MakeCapacity(cb);
+		m_pStream = m_Alloc.allocate(m_cbCapacity);
+		memcpy(Data(), p, cb);
+	}
+
+	CRefBinT(const CRefBinT& x)
+	{
+		EckAssert(x.Size() ? (!!x.Data()) : TRUE);
+		m_Alloc = TAllocTraits::select_on_container_copy_construction(x.m_Alloc);
+		m_cb = x.Size();
+		m_cbCapacity = TAllocTraits::MakeCapacity(x.Size());
+		m_pStream = m_Alloc.allocate(m_cbCapacity);
+		memcpy(Data(), x.Data(), x.Size());
+	}
+
+	CRefBinT(CRefBinT&& x) noexcept
+		:m_pStream{ x.m_pStream }, m_cb{ x.m_cb }, m_cbCapacity{ x.m_cbCapacity },
+		m_Alloc{ std::move(x.m_Alloc) }
+	{
+		x.m_pStream = NULL;
+		x.m_cb = x.m_cbCapacity = 0u;
 	}
 
 	/// <summary>
-	/// ´´½¨×Ô´óÀ¨ºÅ³õÊ¼»¯Æ÷
+	/// åˆ›å»ºè‡ªå¤§æ‹¬å·åˆå§‹åŒ–å™¨
 	/// </summary>
 	/// <param name="x"></param>
-	CRefBin(std::initializer_list<BYTE> x)
+	CRefBinT(std::initializer_list<BYTE> x)
 	{
-		DupStream(x.begin(), x.end() - x.begin());
+		m_cb = x.size();
+		m_cbCapacity = TAllocTraits::MakeCapacity(x.size());
+		m_pStream = m_Alloc.allocate(m_cbCapacity);
+		memcpy(Data(), x.begin(), x.size());
 	}
 
-	~CRefBin()
+	~CRefBinT()
 	{
-		TAlloc::Free(m_pStream);
+		m_Alloc.deallocate(m_pStream, m_cbCapacity);
 	}
 
-	CRefBin& operator=(CRefBin& x)
+	CRefBinT& operator=(CRefBinT& x)
 	{
-		DupStream(x.m_pStream, x.m_cb);
+		if constexpr (!TAllocTraits::is_always_equal::value)
+		{
+			if (m_Alloc != x.m_Alloc)
+			{
+				m_Alloc = x.m_Alloc;
+				m_Alloc.deallocate(m_pStream, m_cbCapacity);
+				m_pStream = NULL;
+				m_cb = m_cbCapacity = 0;
+			}
+			else if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
+				m_Alloc = x.m_Alloc;
+		}
+		else if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
+			m_Alloc = x.m_Alloc;
+
+		DupStream(x.Data(), x.Size());
 		return *this;
 	}
 
-	CRefBin& operator=(CRefBin&& x) noexcept
+	CRefBinT& operator=(CRefBinT&& x) noexcept
 	{
-		TAlloc::Free(m_pStream);
-		m_pStream = x.m_pStream;
-		m_cb = x.m_cb;
-		m_cbCapacity = x.m_cbCapacity;
-		ZeroMemory(&x, sizeof(CRefBin));
+		if (this == &x)
+			return *this;
+		if constexpr (TAllocTraits::propagate_on_container_move_assignment::value)
+			m_Alloc = std::move(x.m_Alloc);
+		else if constexpr (!TAllocTraits::is_always_equal::value)
+			if (m_Alloc != x.m_Alloc)
+			{
+				DupStream(x.Data(), x.Size());
+				return *this;
+			}
+
+		std::swap(m_pStream, x.m_pStream);
+		std::swap(m_cb, x.m_cb);
+		std::swap(m_cbCapacity, x.m_cbCapacity);
 		return *this;
 	}
 
-	BYTE& operator[](SIZE_T x)
-	{
-		return *(m_pStream + x);
-	}
+	EckInline BYTE* Data() { return m_pStream; }
 
-	EckInline operator BYTE* () const
-	{
-		return m_pStream;
-	}
+	EckInline const BYTE* Data() const { return m_pStream; }
 
-	EckInline CRefBin& operator+(const CRefBin& x)
-	{
-		PushBack(x, x.m_cb);
-		return *this;
-	}
+	BYTE& operator[](size_t idx) { return *(Data() + idx); }
 
-	EckInline BYTE* operator+(SIZE_T x) const
-	{
-		return m_pStream + x;
-	}
+	BYTE operator[](size_t idx) const { return *(Data() + idx); }
 
-	EckInline SIZE_T Size() const
-	{
-		return m_cb;
-	}
-
-	EckInline BYTE* Data() const
-	{
-		return m_pStream;
-	}
+	EckInline size_t Size() const { return m_cb; }
 
 	/// <summary>
-	/// ¿ËÂ¡×Ö½Ú¼¯¡£
-	/// ½«Ö¸¶¨×Ö½Ú¼¯¸´ÖÆµ½×ÔÉí
+	/// å…‹éš†å­—èŠ‚é›†ã€‚
+	/// å°†æŒ‡å®šå­—èŠ‚é›†å¤åˆ¶åˆ°è‡ªèº«
 	/// </summary>
-	/// <param name="p">×Ö½Ú¼¯Ö¸Õë</param>
-	/// <param name="cb">×Ö½Ú¼¯³¤¶È£¬µ÷ÓÃÍê³Éºó³ß´çÓë´Ë²ÎÊıÏàÍ¬</param>
-	void DupStream(PCVOID p, SIZE_T cb);
+	/// <param name="p">å­—èŠ‚é›†æŒ‡é’ˆ</param>
+	/// <param name="cb">å­—èŠ‚é›†é•¿åº¦ï¼Œè°ƒç”¨å®Œæˆåå°ºå¯¸ä¸æ­¤å‚æ•°ç›¸åŒ</param>
+	EckInline void DupStream(PCVOID p, size_t cb)
+	{
+		ReSize(cb);
+		memcpy(Data(), p, cb);
+	}
 
 	/// <summary>
-	/// ÒÀ¸½Ö¸Õë¡£
-	/// ·ÖÅäÆ÷±ØĞëÏàÍ¬
+	/// ä¾é™„æŒ‡é’ˆã€‚
+	/// åˆ†é…å™¨å¿…é¡»ç›¸åŒ
 	/// </summary>
-	/// <param name="p">Ö¸Õë</param>
-	/// <param name="cbCapacity">ÈİÁ¿</param>
-	/// <param name="cb">µ±Ç°³¤¶È</param>
-	/// <returns>ÏÈÇ°µÄÖ¸Õë</returns>
-	BYTE* Attach(BYTE* p, SIZE_T cbCapacity, SIZE_T cb);
+	/// <param name="p">æŒ‡é’ˆ</param>
+	/// <param name="cbCapacity">å®¹é‡</param>
+	/// <param name="cb">å½“å‰é•¿åº¦</param>
+	/// <returns>å…ˆå‰çš„æŒ‡é’ˆ</returns>
+	BYTE* Attach(BYTE* p, size_t cbCapacity, size_t cb)
+	{
+		const auto pOld = m_pStream;
+		if (!p)
+		{
+			m_pStream = NULL;
+			m_cb = m_cbCapacity = 0u;
+			return pOld;
+		}
+		m_pStream = p;
+		m_cbCapacity = cbCapacity;
+		m_cb = cb;
+		return pOld;
+	}
 
 	/// <summary>
-	/// ²ğÀëÖ¸Õë
+	/// æ‹†ç¦»æŒ‡é’ˆ
 	/// </summary>
 	/// <returns></returns>
 	EckInline BYTE* Detach()
 	{
-		auto pOld = m_pStream;
+		const auto pOld = m_pStream;
 		m_pStream = NULL;
 		m_cbCapacity = 0u;
 		m_cb = 0u;
@@ -172,134 +239,198 @@ public:
 	}
 
 	/// <summary>
-	/// ¸´ÖÆµ½
+	/// å¤åˆ¶åˆ°
 	/// </summary>
-	/// <param name="pDst">Ä¿±êÖ¸Õë</param>
-	/// <param name="cbMax">×î´ó³¤¶È£¬Èô¹ı´óÔò×Ô¶¯Ëõ¼õ</param>
-	/// <returns>¸´ÖÆµÄ³¤¶È</returns>
-	EckInline SIZE_T CopyTo(void* pDst, SIZE_T cbMax) const
+	/// <param name="pDst">ç›®æ ‡æŒ‡é’ˆ</param>
+	/// <param name="cbMax">æœ€å¤§é•¿åº¦ï¼Œè‹¥è¿‡å¤§åˆ™è‡ªåŠ¨ç¼©å‡</param>
+	/// <returns>å¤åˆ¶çš„é•¿åº¦</returns>
+	EckInline size_t CopyTo(void* pDst, size_t cbMax) const
 	{
 		if (cbMax > m_cb)
 			cbMax = m_cb;
-		if (!m_pStream || !pDst || !cbMax)
-			return 0u;
 		memcpy(pDst, m_pStream, cbMax);
 		return cbMax;
 	}
 
 	/// <summary>
-	/// ±£ÁôÄÚ´æ
+	/// ä¿ç•™å†…å­˜
 	/// </summary>
-	/// <param name="cb">³ß´ç</param>
-	void Reserve(SIZE_T cb);
-
-	/// <summary>
-	/// ÖÃ³¤¶È
-	/// </summary>
-	/// <param name="cb">³ß´ç</param>
-	EckInline void ReSize(SIZE_T cb)
+	/// <param name="cb">å°ºå¯¸</param>
+	void Reserve(size_t cb)
 	{
-		Reserve(TAlloc::MakeCapacity(cb));
-		m_cb = cb;
+		if (m_cbCapacity >= cb + 1)
+			return;
+
+		const auto pOld = m_pStream;
+		m_pStream = m_Alloc.allocate(cb);
+		if (pOld)
+		{
+			memcpy(Data(), pOld, Size());
+			m_Alloc.deallocate(pOld, m_cbCapacity);
+		}
+
+		m_cbCapacity = cb + 1;
 	}
 
 	/// <summary>
-	/// ÖÃ³¤¶È¡£
-	/// ²»»áÖ´ĞĞ³ß´çÀ©ÈİÔ¤·ÖÅä²Ù×÷
+	/// ç½®é•¿åº¦
 	/// </summary>
-	/// <param name="cb">³ß´ç</param>
-	EckInline void ReSizeAbs(SIZE_T cb)
+	/// <param name="cb">å°ºå¯¸</param>
+	EckInline void ReSize(size_t cb)
 	{
 		Reserve(cb);
 		m_cb = cb;
 	}
 
 	/// <summary>
-	/// Ìæ»»
+	/// æ›¿æ¢
 	/// </summary>
-	/// <param name="posStart">Ìæ»»Î»ÖÃ</param>
-	/// <param name="cbReplacing">Ìæ»»³¤¶È</param>
-	/// <param name="pNew">ÓÃ×÷Ìæ»»µÄ×Ö½Ú¼¯Ö¸Õë</param>
-	/// <param name="cbNew">ÓÃ×÷Ìæ»»µÄ×Ö½Ú¼¯³¤¶È</param>
-	void Replace(SIZE_T posStart, SIZE_T cbReplacing, PCVOID pNew = NULL, SIZE_T cbNew = 0u);
-
-	/// <summary>
-	/// Ìæ»»
-	/// </summary>
-	/// <param name="posStart">Ìæ»»Î»ÖÃ</param>
-	/// <param name="cbReplacing">Ìæ»»³¤¶È</param>
-	/// <param name="rb">ÓÃ×÷Ìæ»»µÄ×Ö½Ú¼¯</param>
-	EckInline void Replace(SIZE_T posStart, SIZE_T cbReplacing, const CRefBin& rb)
+	/// <param name="posStart">æ›¿æ¢ä½ç½®</param>
+	/// <param name="cbReplacing">æ›¿æ¢é•¿åº¦</param>
+	/// <param name="pNew">ç”¨ä½œæ›¿æ¢çš„å­—èŠ‚é›†æŒ‡é’ˆ</param>
+	/// <param name="cbNew">ç”¨ä½œæ›¿æ¢çš„å­—èŠ‚é›†é•¿åº¦</param>
+	EckInline void Replace(size_t posStart, size_t cbReplacing, PCVOID pNew = NULL, size_t cbNew = 0u)
 	{
-		Replace(posStart, cbReplacing, rb.m_pStream, rb.m_cb);
+		EckAssert(cbNew ? (!!pNew) : TRUE);
+		const size_t cbOrg = m_cb;
+		ReSize(Size() + cbNew - cbReplacing);
+		memmove(Data() + posStart + cbNew, Data() + posStart + cbReplacing, cbOrg - posStart - cbReplacing);
+		memcpy(Data() + posStart, pNew, cbNew);
 	}
 
 	/// <summary>
-	/// ×Ó×Ö½Ú¼¯Ìæ»»
+	/// æ›¿æ¢
 	/// </summary>
-	/// <param name="pReplacedBin">±»Ìæ»»µÄ×Ö½Ú¼¯Ö¸Õë</param>
-	/// <param name="cbReplacedBin">±»Ìæ»»µÄ×Ö½Ú¼¯³¤¶È</param>
-	/// <param name="pSrcBin">ÓÃ×÷Ìæ»»µÄ×Ö½Ú¼¯Ö¸Õë</param>
-	/// <param name="cbSrcBin">ÓÃ×÷Ìæ»»µÄ×Ö½Ú¼¯³¤¶È</param>
-	/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-	/// <param name="cReplacing">Ìæ»»½øĞĞµÄ´ÎÊı£¬0ÎªÖ´ĞĞËùÓĞÌæ»»</param>
-	void ReplaceSubBin(PCVOID pReplacedBin, SIZE_T cbReplacedBin, PCVOID pSrcBin, SIZE_T cbSrcBin, SIZE_T posStart = 0, int cReplacing = -1);
-
-	/// <summary>
-	/// ×Ó×Ö½Ú¼¯Ìæ»»
-	/// </summary>
-	/// <param name="rbReplacedBin">±»Ìæ»»µÄ×Ö½Ú¼¯</param>
-	/// <param name="rbSrcBin">ÓÃ×÷Ìæ»»µÄ×Ö½Ú¼¯</param>
-	/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-	/// <param name="cReplacing">Ìæ»»½øĞĞµÄ´ÎÊı£¬0ÎªÖ´ĞĞËùÓĞÌæ»»</param>
-	EckInline void ReplaceSubBin(const CRefBin& rbReplacedBin, const CRefBin& rbSrcBin, SIZE_T posStart = 0, int cReplacing = -1)
+	/// <param name="posStart">æ›¿æ¢ä½ç½®</param>
+	/// <param name="cbReplacing">æ›¿æ¢é•¿åº¦</param>
+	/// <param name="rb">ç”¨ä½œæ›¿æ¢çš„å­—èŠ‚é›†</param>
+	EckInline void Replace(size_t posStart, size_t cbReplacing, const CRefBinT& rb)
 	{
-		ReplaceSubBin(rbReplacedBin, rbReplacedBin.m_cb, rbSrcBin, rbSrcBin.m_cb, posStart, cReplacing);
+		Replace(posStart, cbReplacing, rb.Data(), rb.Size());
 	}
 
 	/// <summary>
-	/// È¡¿Õ°××Ö½Ú¼¯
+	/// å­å­—èŠ‚é›†æ›¿æ¢
 	/// </summary>
-	/// <param name="cbSize">³¤¶È</param>
-	/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-	EckInline void MakeEmpty(SIZE_T cbSize, SIZE_T posStart = 0u)
+	/// <param name="pReplacedBin">è¢«æ›¿æ¢çš„å­—èŠ‚é›†æŒ‡é’ˆ</param>
+	/// <param name="cbReplacedBin">è¢«æ›¿æ¢çš„å­—èŠ‚é›†é•¿åº¦</param>
+	/// <param name="pSrcBin">ç”¨ä½œæ›¿æ¢çš„å­—èŠ‚é›†æŒ‡é’ˆ</param>
+	/// <param name="cbSrcBin">ç”¨ä½œæ›¿æ¢çš„å­—èŠ‚é›†é•¿åº¦</param>
+	/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+	/// <param name="cReplacing">æ›¿æ¢è¿›è¡Œçš„æ¬¡æ•°ï¼Œ0ä¸ºæ‰§è¡Œæ‰€æœ‰æ›¿æ¢</param>
+	void ReplaceSubBin(PCVOID pReplacedBin, size_t cbReplacedBin,
+		PCVOID pSrcBin, size_t cbSrcBin, size_t posStart = 0, int cReplacing = -1)
+	{
+		size_t pos = 0u;
+		for (int c = 1;; ++c)
+		{
+			pos = FindBin(m_pStream, m_cb, pReplacedBin, cbReplacedBin, posStart + pos);
+			if (pos == BinNPos)
+				break;
+			Replace(pos, cbReplacedBin, pSrcBin, cbSrcBin);
+			pos += cbSrcBin;
+			if (c == cReplacing)
+				break;
+		}
+	}
+
+	/// <summary>
+	/// å­å­—èŠ‚é›†æ›¿æ¢
+	/// </summary>
+	/// <param name="rbReplacedBin">è¢«æ›¿æ¢çš„å­—èŠ‚é›†</param>
+	/// <param name="rbSrcBin">ç”¨ä½œæ›¿æ¢çš„å­—èŠ‚é›†</param>
+	/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+	/// <param name="cReplacing">æ›¿æ¢è¿›è¡Œçš„æ¬¡æ•°ï¼Œ0ä¸ºæ‰§è¡Œæ‰€æœ‰æ›¿æ¢</param>
+	EckInline void ReplaceSubBin(const CRefBinT& rbReplacedBin, const CRefBinT& rbSrcBin, size_t posStart = 0, int cReplacing = -1)
+	{
+		ReplaceSubBin(rbReplacedBin.Data(), rbReplacedBin.Size(), rbSrcBin.Data(), rbSrcBin.Size(),
+			posStart, cReplacing);
+	}
+
+	/// <summary>
+	/// å–ç©ºç™½å­—èŠ‚é›†
+	/// </summary>
+	/// <param name="cbSize">é•¿åº¦</param>
+	/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+	EckInline void MakeEmpty(size_t cbSize, size_t posStart = 0u)
 	{
 		ReSize(cbSize + posStart);
-		ZeroMemory(m_pStream + posStart, cbSize);
+		RtlZeroMemory(Data() + posStart, cbSize);
 	}
 
 	/// <summary>
-	/// È¡ÖØ¸´×Ö½Ú¼¯
+	/// å–é‡å¤å­—èŠ‚é›†
 	/// </summary>
-	/// <param name="pBin">×Ö½Ú¼¯Ö¸Õë</param>
-	/// <param name="cbBin">×Ö½Ú¼¯³¤¶È</param>
-	/// <param name="cCount">ÖØ¸´´ÎÊı</param>
-	/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-	void MakeRepeatedBinSequence(PCVOID pBin, SIZE_T cbBin, SIZE_T cCount, SIZE_T posStart = 0u);
+	/// <param name="pBin">å­—èŠ‚é›†æŒ‡é’ˆ</param>
+	/// <param name="cbBin">å­—èŠ‚é›†é•¿åº¦</param>
+	/// <param name="cCount">é‡å¤æ¬¡æ•°</param>
+	/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+	void MakeRepeatedBinSequence(PCVOID pBin, size_t cbBin, size_t cCount, size_t posStart = 0u)
+	{
+		ReSize(posStart + cCount * cbBin);
+		BYTE* pCurr;
+		size_t i;
+		for (i = 0, pCurr = m_pStream + posStart; i < cCount; ++i, pCurr += cbBin)
+			memcpy(pCurr, pBin, cbBin);
+	}
 
 	/// <summary>
-	/// Î²²å
+	/// å°¾æ’
 	/// </summary>
-	/// <param name="p">Òª²åÈëµÄ×Ö½Ú¼¯Ö¸Õë</param>
-	/// <param name="cb">Òª²åÈëµÄ×Ö½Ú¼¯³¤¶È</param>
-	EckInline void PushBack(PCVOID p, SIZE_T cb)
+	/// <param name="p">è¦æ’å…¥çš„å­—èŠ‚é›†æŒ‡é’ˆ</param>
+	/// <param name="cb">è¦æ’å…¥çš„å­—èŠ‚é›†é•¿åº¦</param>
+	EckInline void PushBack(PCVOID p, size_t cb)
 	{
 		ReSize(m_cb + cb);
-		memcpy(m_pStream + m_cb - cb, p, cb);
+		memcpy(Data() + Size() - cb, p, cb);
+	}
+
+	EckInline void PushBack(const CRefBinT& rb)
+	{
+		PushBack(rb.Data(), rb.Size());
 	}
 
 	/// <summary>
-	/// Î²É¾
+	/// å°¾åˆ 
 	/// </summary>
-	/// <param name="cb">ÒªÉ¾³ıµÄ³¤¶È</param>
-	EckInline void PopBack(SIZE_T cb)
+	/// <param name="cb">è¦åˆ é™¤çš„é•¿åº¦</param>
+	EckInline void PopBack(size_t cb)
 	{
-		ReSize(m_cb - cb);
+		EckAssert(m_cb >= cb);
+		m_cb -= cb;
 	}
+
+	EckInline void Clear() { m_cb = 0u; }
+
+	EckInline void Zero() { RtlZeroMemory(Data(), Size()); }
+
+	EckInline TIterator begin() { return Data(); }
+	EckInline TIterator end() { return begin() + Size(); }
+	EckInline TConstIterator begin() const { return Data(); }
+	EckInline TConstIterator end() const { return begin() + Size(); }
+	EckInline TConstIterator cbegin() const { begin(); }
+	EckInline TConstIterator cend() const { end(); }
+	EckInline TReverseIterator rbegin() { return TReverseIterator(begin()); }
+	EckInline TReverseIterator rend() { return TReverseIterator(end()); }
+	EckInline TConstReverseIterator rbegin() const { return TConstReverseIterator(begin()); }
+	EckInline TConstReverseIterator rend() const { return TConstReverseIterator(end()); }
+	EckInline TConstReverseIterator crbegin() const { return rbegin(); }
+	EckInline TConstReverseIterator crend() const { return rend(); }
 };
 
+using CRefBin = CRefBinT<CAllocatorProcHeap<BYTE>>;
+
+template<class TAlloc = CAllocatorProcHeap<BYTE>, class TAlloc1, class TAlloc2>
+CRefBinT<TAlloc> operator+(const CRefBinT<TAlloc1>& rb1, const CRefBinT<TAlloc2>& rb2)
+{
+	CRefBinT<TAlloc> rb(rb1.Size() + rb2.Size());
+	memcpy(rb.Data(), rb1.Data(), rb1.Size());
+	memcpy(rb.Data() + rb1.Size(), rb2.Data(), rb2.Size());
+	return rb;
+}
+
 /// <summary>
-/// µ½×Ö½Ú¼¯
+/// åˆ°å­—èŠ‚é›†
 /// </summary>
 /// <typeparam name="T"></typeparam>
 /// <param name="x"></param>
@@ -307,34 +438,32 @@ public:
 template<class T>
 EckInline CRefBin ToBin(T x)
 {
-	CRefBin rb;
-	rb.DupStream(&x, sizeof(T));
-	return rb;
+	return CRefBin(&x, sizeof(T));
 }
 
 /// <summary>
-/// ×Ö½Ú¼¯µ½
+/// å­—èŠ‚é›†åˆ°
 /// </summary>
 /// <typeparam name="T"></typeparam>
 /// <param name="rb"></param>
 /// <returns></returns>
-template<class T>
-EckInline T BinToData(const CRefBin& rb)
+template<class T, class TAlloc>
+EckInline T BinToData(const CRefBinT<TAlloc>& rb)
 {
-	assert(sizeof(T) <= rb.m_cb);
+	EckAssert(sizeof(T) <= rb.Size());
 	T x;
 	rb.CopyTo(&x, sizeof(T));
 	return x;
 }
 
 /// <summary>
-/// ×Ö½Ú¼¯µ½
+/// å­—èŠ‚é›†åˆ°
 /// </summary>
 /// <typeparam name="T"></typeparam>
 /// <param name="p"></param>
 /// <returns></returns>
 template<class T>
-EckInline T BinToData(PCVOID* p)
+EckInline T BinToData(PCVOID p)
 {
 	T x;
 	memcpy(&x, p, sizeof(T));
@@ -342,12 +471,12 @@ EckInline T BinToData(PCVOID* p)
 }
 
 /// <summary>
-/// È¡×Ö½Ú¼¯×ó±ß
+/// å–å­—èŠ‚é›†å·¦è¾¹
 /// </summary>
-/// <param name="p">×Ö½Ú¼¯</param>
-/// <param name="cbLeft">×ó±ß³¤¶È</param>
+/// <param name="p">å­—èŠ‚é›†</param>
+/// <param name="cbLeft">å·¦è¾¹é•¿åº¦</param>
 /// <returns></returns>
-EckInline CRefBin BinLeft(PCVOID p, SIZE_T cbLeft)
+EckInline CRefBin BinLeft(PCVOID p, size_t cbLeft)
 {
 	CRefBin rb;
 	rb.DupStream(p, cbLeft);
@@ -355,13 +484,13 @@ EckInline CRefBin BinLeft(PCVOID p, SIZE_T cbLeft)
 }
 
 /// <summary>
-/// È¡×Ö½Ú¼¯ÓÒ±ß
+/// å–å­—èŠ‚é›†å³è¾¹
 /// </summary>
-/// <param name="p">×Ö½Ú¼¯</param>
-/// <param name="cbSize">×Ö½Ú¼¯³¤¶È</param>
-/// <param name="cbRight">ÓÒ±ß³¤¶È</param>
+/// <param name="p">å­—èŠ‚é›†</param>
+/// <param name="cbSize">å­—èŠ‚é›†é•¿åº¦</param>
+/// <param name="cbRight">å³è¾¹é•¿åº¦</param>
 /// <returns></returns>
-EckInline CRefBin BinRight(PCVOID p,SIZE_T cbSize, SIZE_T cbRight)
+EckInline CRefBin BinRight(PCVOID p, size_t cbSize, size_t cbRight)
 {
 	CRefBin rb;
 	rb.DupStream((PCBYTE)p + cbSize - cbRight, cbRight);
@@ -369,13 +498,13 @@ EckInline CRefBin BinRight(PCVOID p,SIZE_T cbSize, SIZE_T cbRight)
 }
 
 /// <summary>
-/// È¡×Ö½Ú¼¯ÖĞ¼ä
+/// å–å­—èŠ‚é›†ä¸­é—´
 /// </summary>
-/// <param name="p">×Ö½Ú¼¯</param>
-/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-/// <param name="cbMid">ÖĞ¼ä³¤¶È</param>
+/// <param name="p">å­—èŠ‚é›†</param>
+/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+/// <param name="cbMid">ä¸­é—´é•¿åº¦</param>
 /// <returns></returns>
-EckInline CRefBin BinMid(PCVOID p, SIZE_T posStart, SIZE_T cbMid)
+EckInline CRefBin BinMid(PCVOID p, size_t posStart, size_t cbMid)
 {
 	CRefBin rb;
 	rb.DupStream((PCBYTE)p + posStart, cbMid);
@@ -383,80 +512,119 @@ EckInline CRefBin BinMid(PCVOID p, SIZE_T posStart, SIZE_T cbMid)
 }
 
 /// <summary>
-/// Ñ°ÕÒ×Ö½Ú¼¯
+/// å¯»æ‰¾å­—èŠ‚é›†
 /// </summary>
-/// <param name="rbMain">ÒªÔÚÆäÖĞÑ°ÕÒµÄ×Ö½Ú¼¯</param>
-/// <param name="rbSub">ÒªÑ°ÕÒµÄ×Ö½Ú¼¯</param>
-/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-/// <returns>Î»ÖÃ£¬ÈôÎ´ÕÒµ½·µ»ØINVALID_BIN_POS</returns>
-EckInline SIZE_T FindBin(const CRefBin& rbMain, const CRefBin& rbSub, SIZE_T posStart = 0)
+/// <param name="rbMain">è¦åœ¨å…¶ä¸­å¯»æ‰¾çš„å­—èŠ‚é›†</param>
+/// <param name="rbSub">è¦å¯»æ‰¾çš„å­—èŠ‚é›†</param>
+/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+/// <returns>ä½ç½®ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å›BinNPos</returns>
+template<class TAlloc1, class TAlloc2>
+EckInline size_t FindBin(const CRefBinT<TAlloc1>& rbMain, const CRefBinT<TAlloc1>& rbSub, size_t posStart = 0)
 {
-	return FindBin(rbMain, rbMain.m_cb, rbSub, rbSub.m_cb, posStart);
+	return FindBin(rbMain.Data(), rbMain.Size(), rbSub.Data(), rbSub.Size(), posStart);
 }
 
 /// <summary>
-/// µ¹ÕÒ×Ö½Ú¼¯
+/// å€’æ‰¾å­—èŠ‚é›†
 /// </summary>
-/// <param name="rbMain">ÒªÔÚÆäÖĞÑ°ÕÒµÄ×Ö½Ú¼¯</param>
-/// <param name="rbSub">ÒªÑ°ÕÒµÄ×Ö½Ú¼¯</param>
-/// <param name="posStart">ÆğÊ¼Î»ÖÃ</param>
-/// <returns>Î»ÖÃ£¬ÈôÎ´ÕÒµ½·µ»ØINVALID_BIN_POS</returns>
-EckInline SIZE_T FindBinRev(const CRefBin& rbMain, const CRefBin& rbSub, SIZE_T posStart = 0)
+/// <param name="rbMain">è¦åœ¨å…¶ä¸­å¯»æ‰¾çš„å­—èŠ‚é›†</param>
+/// <param name="rbSub">è¦å¯»æ‰¾çš„å­—èŠ‚é›†</param>
+/// <param name="posStart">èµ·å§‹ä½ç½®</param>
+/// <returns>ä½ç½®ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å›BinNPos</returns>
+EckInline size_t FindBinRev(const CRefBin& rbMain, const CRefBin& rbSub, size_t posStart = 0)
 {
-	return FindBinRev(rbMain, rbMain.m_cb, rbSub, rbSub.m_cb, posStart);
+	return FindBinRev(rbMain.Data(), rbMain.Size(), rbSub.Data(), rbSub.Size(), posStart);
 }
+
+template<class TProcesser>
+inline void SplitBin(PCVOID p, SIZE_T cbSize, PCVOID pDiv, SIZE_T cbDiv, int cBinExpected, TProcesser Processer)
+{
+	SIZE_T pos = FindBin(p, cbSize, pDiv, cbDiv);
+	SIZE_T posPrevFirst = 0u;
+	int c = 0;
+	while (pos != BinNPos)
+	{
+		Processer((BYTE*)p + posPrevFirst, pos - posPrevFirst);
+		++c;
+		if (c == cBinExpected)
+			return;
+		posPrevFirst = pos + cbDiv;
+		pos = FindBin(p, cbSize, pDiv, cbDiv, posPrevFirst);
+	}
+
+	Processer((BYTE*)p + posPrevFirst, pos + cbSize - posPrevFirst);
+}
+
 
 struct SPLITBININFO
 {
 	PCVOID pBin;
-	SIZE_T cbBin;
+	size_t cbBin;
 };
 
 /// <summary>
-/// ·Ö¸î×Ö½Ú¼¯¡£
-/// ´Ëº¯Êı²»Ö´ĞĞÈÎºÎ¸´ÖÆ²Ù×÷
+/// åˆ†å‰²å­—èŠ‚é›†ã€‚
+/// æ­¤å‡½æ•°ä¸æ‰§è¡Œä»»ä½•å¤åˆ¶æ“ä½œ
 /// </summary>
-/// <param name="p">Òª·Ö¸îµÄ×Ö½Ú¼¯Ö¸Õë</param>
-/// <param name="cbSize">Òª·Ö¸îµÄ×Ö½Ú¼¯³¤¶È</param>
-/// <param name="pDiv">ÓÃ×÷·Ö¸îµÄ×Ö½Ú¼¯Ö¸Õë</param>
-/// <param name="cbDiv">ÓÃ×÷·Ö¸îµÄ×Ö½Ú¼¯³¤¶È</param>
-/// <param name="aResult">½á¹ûÈİÆ÷</param>
-/// <param name="cBinExpected">·µ»ØµÄ×î´ó×Ó×Ö½Ú¼¯¸öÊı</param>
-void SplitBin(PCVOID p, SIZE_T cbSize, PCVOID pDiv, SIZE_T cbDiv, std::vector<SPLITBININFO>& aResult, int cBinExpected = 0);
-
-/// <summary>
-/// ·Ö¸î×Ö½Ú¼¯¡£
-/// ´Ëº¯Êı²»Ö´ĞĞÈÎºÎ¸´ÖÆ²Ù×÷
-/// </summary>
-/// <param name="rb">Òª·Ö¸îµÄ×Ö½Ú¼¯</param>
-/// <param name="rbDiv">ÓÃ×÷·Ö¸îµÄ×Ö½Ú¼¯</param>
-/// <param name="aResult">½á¹ûÈİÆ÷</param>
-/// <param name="cBinExpected">·µ»ØµÄ×î´ó×Ó×Ö½Ú¼¯¸öÊı</param>
-EckInline void SplitBin(const CRefBin& rb, const CRefBin& rbDiv, std::vector<SPLITBININFO>& aResult, int cBinExpected = 0)
+/// <param name="p">è¦åˆ†å‰²çš„å­—èŠ‚é›†æŒ‡é’ˆ</param>
+/// <param name="cbSize">è¦åˆ†å‰²çš„å­—èŠ‚é›†é•¿åº¦</param>
+/// <param name="pDiv">ç”¨ä½œåˆ†å‰²çš„å­—èŠ‚é›†æŒ‡é’ˆ</param>
+/// <param name="cbDiv">ç”¨ä½œåˆ†å‰²çš„å­—èŠ‚é›†é•¿åº¦</param>
+/// <param name="aResult">ç»“æœå®¹å™¨</param>
+/// <param name="cBinExpected">è¿”å›çš„æœ€å¤§å­å­—èŠ‚é›†ä¸ªæ•°</param>
+EckInline void SplitBin(PCVOID p, size_t cbSize, PCVOID pDiv, size_t cbDiv,
+	std::vector<SPLITBININFO>& aResult, int cBinExpected = 0)
 {
-	SplitBin(rb, rb.m_cb, rbDiv, rbDiv.m_cb, aResult, cBinExpected);
+	SplitBin(p, cbSize, pDiv, cbDiv, cBinExpected,
+		[&](PCVOID p, SIZE_T cb)
+		{
+			aResult.push_back({ p,cb });
+		});
 }
 
 /// <summary>
-/// ·Ö¸î×Ö½Ú¼¯
+/// åˆ†å‰²å­—èŠ‚é›†ã€‚
+/// æ­¤å‡½æ•°ä¸æ‰§è¡Œä»»ä½•å¤åˆ¶æ“ä½œ
 /// </summary>
-/// <param name="p">Òª·Ö¸îµÄ×Ö½Ú¼¯Ö¸Õë</param>
-/// <param name="cbSize">Òª·Ö¸îµÄ×Ö½Ú¼¯³¤¶È</param>
-/// <param name="pDiv">ÓÃ×÷·Ö¸îµÄ×Ö½Ú¼¯Ö¸Õë</param>
-/// <param name="cbDiv">ÓÃ×÷·Ö¸îµÄ×Ö½Ú¼¯³¤¶È</param>
-/// <param name="aResult">½á¹ûÈİÆ÷</param>
-/// <param name="cBinExpected">·µ»ØµÄ×î´ó×Ó×Ö½Ú¼¯¸öÊı</param>
-void SplitBin(PCVOID p, SIZE_T cbSize, PCVOID pDiv, SIZE_T cbDiv, std::vector<CRefBin>& aResult, int cBinExpected = 0);
+/// <param name="rb">è¦åˆ†å‰²çš„å­—èŠ‚é›†</param>
+/// <param name="rbDiv">ç”¨ä½œåˆ†å‰²çš„å­—èŠ‚é›†</param>
+/// <param name="aResult">ç»“æœå®¹å™¨</param>
+/// <param name="cBinExpected">è¿”å›çš„æœ€å¤§å­å­—èŠ‚é›†ä¸ªæ•°</param>
+EckInline void SplitBin(const CRefBin& rb, const CRefBin& rbDiv,
+	std::vector<SPLITBININFO>& aResult, int cBinExpected = 0)
+{
+	SplitBin(rb.Data(), rb.Size(), rbDiv.Data(), rbDiv.Size(), aResult, cBinExpected);
+}
 
 /// <summary>
-/// ·Ö¸î×Ö½Ú¼¯
+/// åˆ†å‰²å­—èŠ‚é›†
 /// </summary>
-/// <param name="rb">Òª·Ö¸îµÄ×Ö½Ú¼¯</param>
-/// <param name="rbDiv">ÓÃ×÷·Ö¸îµÄ×Ö½Ú¼¯</param>
-/// <param name="aResult">½á¹ûÈİÆ÷</param>
-/// <param name="cBinExpected">·µ»ØµÄ×î´ó×Ó×Ö½Ú¼¯¸öÊı</param>
-EckInline void SplitBin(const CRefBin& rb, const CRefBin& rbDiv, std::vector<CRefBin>& aResult, int cBinExpected = 0)
+/// <param name="p">è¦åˆ†å‰²çš„å­—èŠ‚é›†æŒ‡é’ˆ</param>
+/// <param name="cbSize">è¦åˆ†å‰²çš„å­—èŠ‚é›†é•¿åº¦</param>
+/// <param name="pDiv">ç”¨ä½œåˆ†å‰²çš„å­—èŠ‚é›†æŒ‡é’ˆ</param>
+/// <param name="cbDiv">ç”¨ä½œåˆ†å‰²çš„å­—èŠ‚é›†é•¿åº¦</param>
+/// <param name="aResult">ç»“æœå®¹å™¨</param>
+/// <param name="cBinExpected">è¿”å›çš„æœ€å¤§å­å­—èŠ‚é›†ä¸ªæ•°</param>
+EckInline void SplitBin(PCVOID p, size_t cbSize, PCVOID pDiv, size_t cbDiv,
+	std::vector<CRefBin>& aResult, int cBinExpected = 0)
 {
-	SplitBin(rb, rb.m_cb, rbDiv, rbDiv.m_cb, aResult, cBinExpected);
+	SplitBin(p, cbSize, pDiv, cbDiv, cBinExpected,
+		[&](PCVOID p, SIZE_T cb)
+		{
+			aResult.push_back(CRefBin(p, cb));
+		});
+}
+
+/// <summary>
+/// åˆ†å‰²å­—èŠ‚é›†
+/// </summary>
+/// <param name="rb">è¦åˆ†å‰²çš„å­—èŠ‚é›†</param>
+/// <param name="rbDiv">ç”¨ä½œåˆ†å‰²çš„å­—èŠ‚é›†</param>
+/// <param name="aResult">ç»“æœå®¹å™¨</param>
+/// <param name="cBinExpected">è¿”å›çš„æœ€å¤§å­å­—èŠ‚é›†ä¸ªæ•°</param>
+EckInline void SplitBin(const CRefBin& rb, const CRefBin& rbDiv,
+	std::vector<CRefBin>& aResult, int cBinExpected = 0)
+{
+	SplitBin(rb.Data(), rb.Size(), rbDiv.Data(), rbDiv.Size(), aResult, cBinExpected);
 }
 ECK_NAMESPACE_END

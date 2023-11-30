@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "ECK.h"
 #include "WndHelper.h"
 #include "CWnd.h"
@@ -8,7 +8,7 @@ ECK_NAMESPACE_BEGIN
 #define ECK_CREATE_CTRL_EXTRA_ARGS PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle, \
 									int x, int y, int cx, int cy, HWND hParent, UINT nID
 #define ECK_CREATE_CTRL_EXTRA_REALARGS pszText, dwStyle, dwExStyle, x, y, cx, cy, hParent, nID
-// ´´½¨¿Ø¼ş
+// åˆ›å»ºæ§ä»¶
 typedef CWnd* (CALLBACK* ECKCICreate)(PCBYTE pData, ECK_CREATE_CTRL_EXTRA_ARGS);
 
 ECK_NAMESPACE_END
@@ -46,13 +46,13 @@ enum EckCtrlPropFlags
 
 struct EckCtrlPropEntry
 {
-	int iID;				// ÊôĞÔID£¬Í¨Öª½Ó¿ÚÊ¹ÓÃID±êÊ¶ÊôĞÔ¶ø·ÇË÷Òı
-	PCWSTR pszName;         // Ãû³Æ
-	PCWSTR pszChsName;      // ÖĞÎÄÃû³Æ
-	PCWSTR pszDesc;         // ÃèÊö
-	EckCtrlPropType Type;	// ÀàĞÍ
-	EckCtrlPropFlags uFlags;// ±êÖ¾
-	PCWSTR pszPickStr;		// ºòÑ¡×Ö·û´®
+	int iID;				// å±æ€§IDï¼Œé€šçŸ¥æ¥å£ä½¿ç”¨IDæ ‡è¯†å±æ€§è€Œéç´¢å¼•
+	PCWSTR pszName;         // åç§°
+	PCWSTR pszChsName;      // ä¸­æ–‡åç§°
+	PCWSTR pszDesc;         // æè¿°
+	EckCtrlPropType Type;	// ç±»å‹
+	EckCtrlPropFlags uFlags;// æ ‡å¿—
+	PCWSTR pszPickStr;		// å€™é€‰å­—ç¬¦ä¸²
 };
 
 union EckCtrlPropValue
@@ -69,10 +69,10 @@ union EckCtrlPropValue
 		BYTE* pData;
 		SIZE_T cbSize;
 
-		auto& operator=(const CRefBin& x)
+		auto& operator=(CRefBin& x)
 		{
-			pData = x.m_pStream;
-			cbSize = x.m_cb;
+			pData = x.Data();
+			cbSize = x.Size();
 			return *this;
 		}
 	} Vbin;
@@ -80,27 +80,27 @@ union EckCtrlPropValue
 
 enum EckPropCallBackRet
 {
-	ESPR_NONE = 0,// ÎŞ
-	ESPR_RESETCTRL = 1 << 0,// ¿Ø¼şĞèÒª±»ÖØĞÂ´´½¨£¬½öÓÃÓÚECKCISetProp
-	ESPR_NEEDFREE = 1 << 1// µ÷ÓÃ·½Ó¦ÊÍ·Å·µ»ØµÄÄÚ´æ
+	ESPR_NONE = 0,// æ— 
+	ESPR_RESETCTRL = 1 << 0,// æ§ä»¶éœ€è¦è¢«é‡æ–°åˆ›å»ºï¼Œä»…ç”¨äºECKCISetProp
+	ESPR_NEEDFREE = 1 << 1// è°ƒç”¨æ–¹åº”é‡Šæ”¾è¿”å›çš„å†…å­˜
 };
-// Í¨ÖªÄ³ÊôĞÔ±»ĞŞ¸Ä
+// é€šçŸ¥æŸå±æ€§è¢«ä¿®æ”¹
 typedef EckPropCallBackRet(CALLBACK* ECKCISetProp)(CWnd* pWnd, int idProp, EckCtrlPropValue* pProp);
-// È¡Ä³ÊôĞÔ
+// å–æŸå±æ€§
 typedef EckPropCallBackRet(CALLBACK* ECKCIGetProp)(CWnd* pWnd, int idProp, EckCtrlPropValue* pProp);
 
 struct EckCtrlDesignInfo
 {
-	PCWSTR pszName;         // Ãû³Æ
-	PCWSTR pszChsName;      // ÖĞÎÄÃû³Æ
-	PCWSTR pszDesc;         // ÃèÊö
-	PCWSTR pszIcon;         // Í¼±ê£¬¿ÉÒÔÎª×ÊÔ´ID»òÎÄ¼şÃû£¬Éè¼ÆÆ÷½«Ê¹ÓÃLoadImage¼ÓÔØÍ¼±ê
-	SIZE_T cProp;			// ÊôĞÔÊıÄ¿
-	EckCtrlPropEntry* pProp;// ÊôĞÔÌõÄ¿
-	ECKCISetProp pfnSetProp;// ÖÃÊôĞÔÍ¨Öª½Ó¿Ú
-	ECKCIGetProp pfnGetProp;// È¡ÊôĞÔÍ¨Öª½Ó¿Ú
-	ECKCICreate pfnCreate;	// ´´½¨¿Ø¼ş½Ó¿Ú
-	SIZE sizeDef;			// Ä¬ÈÏ³ß´ç£¬²»Òª½øĞĞDPIËõ·Å
+	PCWSTR pszName;         // åç§°
+	PCWSTR pszChsName;      // ä¸­æ–‡åç§°
+	PCWSTR pszDesc;         // æè¿°
+	PCWSTR pszIcon;         // å›¾æ ‡ï¼Œå¯ä»¥ä¸ºèµ„æºIDæˆ–æ–‡ä»¶åï¼Œè®¾è®¡å™¨å°†ä½¿ç”¨LoadImageåŠ è½½å›¾æ ‡
+	SIZE_T cProp;			// å±æ€§æ•°ç›®
+	EckCtrlPropEntry* pProp;// å±æ€§æ¡ç›®
+	ECKCISetProp pfnSetProp;// ç½®å±æ€§é€šçŸ¥æ¥å£
+	ECKCIGetProp pfnGetProp;// å–å±æ€§é€šçŸ¥æ¥å£
+	ECKCICreate pfnCreate;	// åˆ›å»ºæ§ä»¶æ¥å£
+	SIZE sizeDef;			// é»˜è®¤å°ºå¯¸ï¼Œä¸è¦è¿›è¡ŒDPIç¼©æ”¾
 };
 
 enum COMMPROPID
@@ -122,17 +122,17 @@ enum COMMPROPID
 
 static EckCtrlPropEntry s_CommProp[] =
 {
-	{CPID_NAME,L"Name",L"Ãû³Æ",L"",ECPT::Text},
-	{CPID_LEFT,L"Left",L"×ó±ß",L"",ECPT::Int},
-	{CPID_TOP,L"Top",L"¶¥±ß",L"",ECPT::Int},
-	{CPID_WIDTH,L"Width",L"¿í¶È",L"",ECPT::Int},
-	{CPID_HEIGHT,L"Height",L"¸ß¶È",L"",ECPT::Int},
-	{CPID_TEXT,L"Text",L"ÎÄ±¾",L"",ECPT::Text},
-	{CPID_VISIBLE,L"Visible",L"¿ÉÊÓ",L"",ECPT::Bool},
-	{CPID_ENABLE,L"Enable",L"½ûÖ¹",L"",ECPT::Bool},
-	{CPID_FONT,L"Font",L"×ÖÌå",L"",ECPT::Font},
-	{CPID_FRAMETYPE,L"Frame",L"±ß¿ò",L"",ECPT::PickInt,ECPF_NONE,L"ÎŞ±ß¿ò\0°¼ÈëÊ½\0Í¹³öÊ½\0Ç³°¼ÈëÊ½\0¾µ¿òÊ½\0µ¥Ïß±ß¿òÊ½\0\0"},
-	{CPID_SCROLLBAR,L"ScrollBar",L"¹ö¶¯Ìõ",L"",ECPT::PickInt,ECPF_NONE,L"ÎŞ\0ºáÏò¹ö¶¯Ìõ\0×İÏò¹ö¶¯Ìõ\0ºáÏò¼°×İÏò¹ö¶¯Ìõ\0\0"},
+	{CPID_NAME,L"Name",L"åç§°",L"",ECPT::Text},
+	{CPID_LEFT,L"Left",L"å·¦è¾¹",L"",ECPT::Int},
+	{CPID_TOP,L"Top",L"é¡¶è¾¹",L"",ECPT::Int},
+	{CPID_WIDTH,L"Width",L"å®½åº¦",L"",ECPT::Int},
+	{CPID_HEIGHT,L"Height",L"é«˜åº¦",L"",ECPT::Int},
+	{CPID_TEXT,L"Text",L"æ–‡æœ¬",L"",ECPT::Text},
+	{CPID_VISIBLE,L"Visible",L"å¯è§†",L"",ECPT::Bool},
+	{CPID_ENABLE,L"Enable",L"ç¦æ­¢",L"",ECPT::Bool},
+	{CPID_FONT,L"Font",L"å­—ä½“",L"",ECPT::Font},
+	{CPID_FRAMETYPE,L"Frame",L"è¾¹æ¡†",L"",ECPT::PickInt,ECPF_NONE,L"æ— è¾¹æ¡†\0å‡¹å…¥å¼\0å‡¸å‡ºå¼\0æµ…å‡¹å…¥å¼\0é•œæ¡†å¼\0å•çº¿è¾¹æ¡†å¼\0\0"},
+	{CPID_SCROLLBAR,L"ScrollBar",L"æ»šåŠ¨æ¡",L"",ECPT::PickInt,ECPF_NONE,L"æ— \0æ¨ªå‘æ»šåŠ¨æ¡\0çºµå‘æ»šåŠ¨æ¡\0æ¨ªå‘åŠçºµå‘æ»šåŠ¨æ¡\0\0"},
 };
 
 

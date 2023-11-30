@@ -5,6 +5,7 @@
 #include "CDialog.h"
 #include "CSplitBar.h"
 #include "CDrawPanel.h"
+#include "CListBoxNew.h"
 #include "Utility.h"
 
 #include <Shlwapi.h>
@@ -97,6 +98,13 @@ InitStatus Init(HINSTANCE hInstance, DWORD* pdwErrCode)
 	}
 
 	if (!CDrawPanelD2D::RegisterWndClass())
+	{
+		*pdwErrCode = GetLastError();
+		EckDbgPrintFormatMessage(*pdwErrCode);
+		return InitStatus::RegWndClassError;
+	}
+
+	if (!CListBoxNew::RegisterWndClass())
 	{
 		*pdwErrCode = GetLastError();
 		EckDbgPrintFormatMessage(*pdwErrCode);

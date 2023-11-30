@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "CWnd.h"
 #include "CSubclassMgr.h"
 
@@ -10,10 +10,10 @@ public:
 	BOOL m_bDisableNoScroll = FALSE;
 
 	/// <summary>
-	/// ½ûÓÃÆôÓÃ¼ıÍ·
+	/// ç¦ç”¨å¯ç”¨ç®­å¤´
 	/// </summary>
-	/// <param name="iOp">ESB_³£Á¿</param>
-	/// <returns>³É¹¦·µ»ØTRUE£¬Ê§°Ü·µ»ØFALSE</returns>
+	/// <param name="iOp">ESB_å¸¸é‡</param>
+	/// <returns>æˆåŠŸè¿”å›TRUEï¼Œå¤±è´¥è¿”å›FALSE</returns>
 	EckInline BOOL EnableArrows(int iOp)
 	{
 		EnableScrollBar(m_hWnd, TType, iOp);
@@ -141,9 +141,9 @@ public:
 	}
 
 	/// <summary>
-	/// ½ûÓÃÆôÓÃ¼ıÍ·
+	/// ç¦ç”¨å¯ç”¨ç®­å¤´
 	/// </summary>
-	/// <returns>·µ»ØTRUE±íÊ¾Îª´¹Ö±¹ö¶¯Ìõ£¬·µ»ØFALSEÎªË®Æ½¹ö¶¯Ìõ</returns>
+	/// <returns>è¿”å›TRUEè¡¨ç¤ºä¸ºå‚ç›´æ»šåŠ¨æ¡ï¼Œè¿”å›FALSEä¸ºæ°´å¹³æ»šåŠ¨æ¡</returns>
 	EckInline BOOL GetDirection()
 	{
 		
@@ -165,6 +165,6 @@ public:
 	}
 };
 
-typedef CScrollBarNc<SB_HORZ> CScrollBarWndH;
-typedef CScrollBarNc<SB_VERT> CScrollBarWndV;
+using CScrollBarWndH = CScrollBarNc<SB_HORZ>;
+using CScrollBarWndV = CScrollBarNc<SB_VERT>;
 ECK_NAMESPACE_END

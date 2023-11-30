@@ -61,7 +61,7 @@ public:
 #ifdef _DEBUG
 #define EckVerifyCeDate(x) EckAssert(x.byMonth >= 1 && x.byMonth <= 12 && \
 									x.byDay >= 1 && x.byDay <= CeGetMonthDays(x.wYear, x.byMonth))
-#define EckVerifyLnDate(x) EckAssert(x.wYear >= LunarDateLib::iStartYear && x.wYear < LunarDateLib::iEndYear && \
+#define EckVerifyLnDate(x) EckAssert(x.wYear >= LunarDateLib::iStartYearReal && x.wYear < LunarDateLib::iEndYearReal && \
 									x.byMonth >= 0 && (x.bLeapMonth ? (x.byMonth <= 13) : (x.byMonth <= 12)) && \
 									x.bLeapMonth ? (LnGetLeapMonth(x.wYear) == x.byMonth) : TRUE && \
 									x.byDay >= 1 && x.byDay <= 30)
@@ -248,7 +248,7 @@ EckInline constexpr int TianGanToNum(PCWSTR pszTianGan)
 	EckCounter(ARRAYSIZE(c_TianGan), i)
 	{
 		if (wcscmp(pszTianGan, c_TianGan[i]) == 0)
-			return i;
+			return (int)i;
 	}
 	return 0;
 }
@@ -264,7 +264,7 @@ EckInline constexpr int DiZhiToNum(PCWSTR pszDiZhi)
 	EckCounter(ARRAYSIZE(c_DiZhi), i)
 	{
 		if (wcscmp(pszDiZhi, c_DiZhi[i]) == 0)
-			return i;
+			return (int)i;
 	}
 	return 0;
 }
@@ -280,7 +280,7 @@ EckInline constexpr int JiaZiToNum(PCWSTR pszJiaZi)
 	EckCounter(ARRAYSIZE(c_60JiaZi), i)
 	{
 		if (wcscmp(pszJiaZi, c_60JiaZi[i]) == 0)
-			return i;
+			return (int)i;
 	}
 	return -1;
 }
@@ -316,7 +316,7 @@ EckInline constexpr int NaYinToNum(PCWSTR pszNaYin)
 	EckCounter(ARRAYSIZE(c_NaYin), i)
 	{
 		if (wcscmp(pszNaYin, c_NaYin[i]) == 0)
-			return i;
+			return (int)i;
 	}
 	return -1;
 }
@@ -353,7 +353,7 @@ EckInline constexpr int JieQiToNum(PCWSTR pszJieQi)
 	EckCounter(ARRAYSIZE(c_JieQi), i)
 	{
 		if (wcscmp(pszJieQi, c_JieQi[i]) == 0)
-			return i;
+			return (int)i;
 	}
 	return -1;
 }
@@ -374,7 +374,7 @@ EckInline constexpr int ShuXiangToNum(PCWSTR pszShuXiang)
 	EckCounter(ARRAYSIZE(c_ShuXiang), i)
 	{
 		if (wcscmp(pszShuXiang, c_ShuXiang[i]) == 0)
-			return i;
+			return (int)i;
 	}
 	return -1;
 }

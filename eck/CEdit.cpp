@@ -151,6 +151,7 @@ CRefStrW CEdit::GetSelText()
 		return rs;
 	rs.ReSize(dwLen);
 	auto psz = (PWSTR)_malloca((dwEnd + 1) * sizeof(WCHAR));
+	EckAssert(psz);
 	GetWindowTextW(m_hWnd, psz, dwEnd + 1);
 	wcscpy(rs.Data(), psz + dwStart);
 	_freea(psz);
@@ -172,6 +173,7 @@ int CEdit::GetSelText(PWSTR pszBuf, int cchMax)
 	if (!dwLen)
 		return 0;
 	auto psz = (PWSTR)_malloca((dwEnd + 1) * sizeof(WCHAR));
+	EckAssert(psz);
 	GetWindowTextW(m_hWnd, psz, dwEnd + 1);
 	wcsncpy(pszBuf, psz + dwStart, cchMax);
 	_freea(psz);
