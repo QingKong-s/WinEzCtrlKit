@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CSplitBar.h ： 分隔条
+*
+* Copyright(C) 2023 QingKong
+*/
+#pragma once
 #include "CBk.h"
 #include "Utility.h"
 

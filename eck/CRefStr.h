@@ -92,13 +92,13 @@ public:
 	using TConstIterator = TConstPointer;
 	using TReverseIterator = std::reverse_iterator<TIterator>;
 	using TConstReverseIterator = std::reverse_iterator<TConstIterator>;
-
+private:
 	TPointer m_pszText = NULL;
 	int m_cchText = 0;
 	int m_cchCapacity = 0;
 
 	[[no_unique_address]] TAlloc m_Alloc{};
-
+public:
 	CRefStrT() = default;
 
 	TAlloc& GetAllocator() { return m_Alloc; }
@@ -149,6 +149,12 @@ public:
 	{
 		x.m_pszText = NULL;
 		x.m_cchText = x.m_cchCapacity = 0;
+	}
+
+	template<class TTraits, class TAlloc1>
+	CRefStrT(const std::basic_string<TChar, TTraits, TAlloc1>& x)
+	{
+		DupString(x.c_str(), (int)x.size());
 	}
 
 	~CRefStrT()
@@ -202,6 +208,13 @@ public:
 		return *this;
 	}
 
+	template<class TTraits, class TAlloc1>
+	EckInline CRefStrT& operator=(const std::basic_string<TChar, TTraits, TAlloc1>& x)
+	{
+		DupString(x.c_str(), (int)x.size());
+		return *this;
+	}
+
 	EckInline TChar& operator[](int x)
 	{
 		return *(Data() + x);
@@ -210,6 +223,19 @@ public:
 	EckInline TChar operator[](int x) const
 	{
 		return *(Data() + x);
+	}
+
+	EckInline CRefStrT& operator<<(const CRefStrT& x)
+	{
+		PushBack(x.Data(), x.Size());
+		return *this;
+	}
+
+	template<class TTraits, class TAlloc1>
+	EckInline CRefStrT& operator<<(const std::basic_string<TChar, TTraits, TAlloc1>& x)
+	{
+		PushBack(x.c_str(), (int)x.size());
+		return *this;
 	}
 
 	EckInline int Size() const

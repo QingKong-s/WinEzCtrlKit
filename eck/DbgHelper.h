@@ -8,11 +8,52 @@
 #pragma once
 #include "ECK.h"
 
+#include <string>
+#include <format>
 #include <stdio.h>
 
 #include <strsafe.h>
 
 ECK_NAMESPACE_BEGIN
+inline void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
+{
+	TASKDIALOGCONFIG tdc{ sizeof(TASKDIALOGCONFIG) };
+	tdc.pszMainInstruction = L"断言失败！";
+	tdc.pszMainIcon = TD_ERROR_ICON;
+
+	constexpr TASKDIALOG_BUTTON Btns[]
+	{
+		{100,L"终止程序"},
+		{101,L"调试程序"},
+		{102,L"继续运行"},
+	};
+	tdc.pButtons = Btns;
+	tdc.cButtons = ARRAYSIZE(Btns);
+	tdc.nDefaultButton = 101;
+    WCHAR szPath[MAX_PATH]{};
+	GetModuleFileNameW(NULL, szPath, MAX_PATH);
+	auto sContent = std::format(L"程序位置：{}\n\n源文件：{}\n\n行号：{}\n\n测试表达式：{}",
+		szPath, pszFile, pszLine, pszMsg);
+	tdc.pszContent = sContent.c_str();
+
+	tdc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS;
+
+	BOOL t;
+	int iBtn;
+	TaskDialogIndirect(&tdc, &iBtn, &t, &t);
+	switch (iBtn)
+	{
+	case 100:
+		ExitProcess(0);
+		return;
+	case 101:
+		DebugBreak();
+		return;
+	case 102:
+		return;
+	}
+}
+
 #ifndef NDEBUG
 
 #pragma warning (push)
@@ -22,13 +63,6 @@ ECK_NAMESPACE_BEGIN
 #define ECK_BS_DBGVAL           64
 #define ECK_BS_DBGVALMAXCH      (ECK_BS_DBGVAL - 1)
 
-/// <summary>
-/// 【调试用】
-/// 输出调试数值。
-/// </summary>
-/// <param name="i">数值</param>
-/// <param name="bHex">是否十六进制</param>
-/// <param name="bNewLine">是否在末尾换行</param>
 EckInline void DbgPrint(int i, BOOL bHex = FALSE, BOOL bNewLine = TRUE)
 {
     WCHAR buf[ECK_BS_DBGVAL];
@@ -62,7 +96,7 @@ EckInline void DbgPrint(LONGLONG i, BOOL bHex = FALSE, BOOL bNewLine = TRUE)
 EckInline void DbgPrint(ULONGLONG i, BOOL bHex = FALSE, BOOL bNewLine = TRUE)
 {
     WCHAR buf[ECK_BS_DBGVAL];
-    PCWSTR pszFmt = (bHex ? L"0x%016I64X" : L"%I64u");
+    const PCWSTR pszFmt = (bHex ? L"0x%016I64X" : L"%I64u");
     StringCchPrintfW(buf, ECK_BS_DBGVALMAXCH, pszFmt, i);
     OutputDebugStringW(buf);
     if (bNewLine)
@@ -122,12 +156,6 @@ EckInline void DbgPrint(void* i, BOOL bNewLine = TRUE)
     DbgPrint((ULONG_PTR)i, TRUE, bNewLine);
 }
 
-/// <summary>
-/// 【调试用】
-/// 输出字符串
-/// </summary>
-/// <param name="psz">字符串</param>
-/// <param name="bNewLine">是否在末尾换行</param>
 EckInline void DbgPrint(PCWSTR psz, BOOL bNewLine = TRUE)
 {
     PWSTR pszBuf = new WCHAR[lstrlenW(psz) + 2];
@@ -138,23 +166,11 @@ EckInline void DbgPrint(PCWSTR psz, BOOL bNewLine = TRUE)
     delete[] pszBuf;
 }
 
-/// <summary>
-/// 【调试用】
-/// 输出最后错误。
-/// </summary>
-/// <param name="bHex">是否十六进制</param>
-/// <param name="bNewLine">是否在末尾换行</param>
 EckInline void DbgPrintLastError(BOOL bHex = FALSE, BOOL bNewLine = TRUE)
 {
     DbgPrint(GetLastError(), bHex, bNewLine);
 }
 
-/// <summary>
-/// 【调试用】
-/// 输出错误码的格式化信息
-/// </summary>
-/// <param name="uErrCode">错误码</param>
-/// <param name="bNewLine">是否在末尾换行</param>
 EckInline void DbgPrintFormatMessage(UINT uErrCode, BOOL bNewLine = TRUE)
 {
     PWSTR pszInfo;
@@ -195,7 +211,7 @@ EckInline void DbgPrintFmt(PCWSTR pszFormat, ...)
         (UINT)(((SIZE_T)(pCurr)) - ((SIZE_T)(pBase)) - (cbSize))); \
         EckDbgBreak(); \
     }
-#define EckAssert assert
+#define EckAssert(x) (void)(!!(x) || (::eck::Assert(ECKWIDE___(#x), ECK_FILEW, ECK_LINEW), 0))
 #pragma warning (pop)
 #else
 #define EckDbgPrintGLE(x) ;

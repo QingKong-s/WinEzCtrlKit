@@ -106,7 +106,6 @@ ECK_NAMESPACE_END
 /*一些可能用到的控件ID*/
 
 
-
 #include "DbgHelper.h"
 #include "GdiplusFlatDef.h"
 ECK_NAMESPACE_BEGIN

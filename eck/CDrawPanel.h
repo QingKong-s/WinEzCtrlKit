@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "CWnd.h"
 #include "Utility.h"
-#include "ImageHelper.h"
+#include "GraphicsHelper.h"
 
 #include <dxgi1_2.h>
 

@@ -1,7 +1,7 @@
-/*
+﻿/*
 * WinEzCtrlKit Library
 *
-* CTreeView.h �� ��׼����ͼ
+* CTreeView.h ： 标准树视图
 *
 * Copyright(C) 2023 QingKong
 */
@@ -12,7 +12,7 @@
 
 
 ECK_NAMESPACE_BEGIN
-#define TVS_EX_ALL (/*TVS_EX_NOSINGLECOLLAPSE | */ /*����ʽ������ʹ��*/ /*TVS_EX_MULTISELECT | */ /*����ʽ����֧��*/ \
+#define TVS_EX_ALL (/*TVS_EX_NOSINGLECOLLAPSE | */ /*该样式不建议使用*/ /*TVS_EX_MULTISELECT | */ /*该样式不被支持*/ \
 	TVS_EX_DOUBLEBUFFER | TVS_EX_NOINDENTSTATE | TVS_EX_RICHTOOLTIP | TVS_EX_AUTOHSCROLL | \
 	TVS_EX_FADEINOUTEXPANDOS | TVS_EX_PARTIALCHECKBOXES | TVS_EX_EXCLUSIONCHECKBOXES | \
 	TVS_EX_DIMMEDCHECKBOXES | TVS_EX_DRAWIMAGEASYNC)
@@ -271,11 +271,11 @@ public:
 	}
 
 	/// <summary>
-	/// ����༭��
-	/// �ؼ�������н���
+	/// 进入编辑。
+	/// 控件必须具有焦点
 	/// </summary>
-	/// <param name="hItem">��Ŀ</param>
-	/// <returns>�ɹ����ر༭������ʧ�ܷ���NULL</returns>
+	/// <param name="hItem">项目</param>
+	/// <returns>成功返回编辑框句柄，失败返回NULL</returns>
 	EckInline HWND EditLabel(HTREEITEM hItem)
 	{
 		return (HWND)SendMsg(TVM_EDITLABELW, 0, (LPARAM)hItem);
@@ -287,11 +287,11 @@ public:
 	}
 
 	/// <summary>
-	/// ��֤��ʾ
+	/// 保证显示
 	/// </summary>
-	/// <param name="hItem">��Ŀ</param>
-	/// <param name="bTop">�Ƿ񾡿��ܽ���Ŀ����������</param>
-	/// <returns>���������ͼ����δչ���κ���Ŀ�򷵻�TRUE�����򷵻�FALSE</returns>
+	/// <param name="hItem">项目</param>
+	/// <param name="bTop">是否尽可能将项目滚动到顶部</param>
+	/// <returns>如果滚动视图并且未展开任何项目则返回TRUE，否则返回FALSE</returns>
 	EckInline BOOL EnsureVisible(HTREEITEM hItem, BOOL bTop = FALSE)
 	{
 		if (bTop)
@@ -301,17 +301,17 @@ public:
 	}
 
 	/// <summary>
-	/// չ��/�۵���Ŀ
+	/// 展开/折叠项目
 	/// </summary>
-	/// <param name="hItem">��Ŀ</param>
-	/// <param name="uOp">��������ѡ����ֵ��
-	/// TVE_COLLAPSE - �۵�
-	/// (TVE_COLLAPSERESET | TVE_COLLAPSE) - �۵���ɾ����������
-	/// TVE_EXPAND - չ��
-	/// (TVE_EXPANDPARTIAL | TVE_EXPAND) - ����չ��
-	/// TVE_TOGGLE - ��ת�۵�״̬
+	/// <param name="hItem">项目</param>
+	/// <param name="uOp">操作，可选下列值：
+	/// TVE_COLLAPSE - 折叠
+	/// (TVE_COLLAPSERESET | TVE_COLLAPSE) - 折叠并删除所有子项
+	/// TVE_EXPAND - 展开
+	/// (TVE_EXPANDPARTIAL | TVE_EXPAND) - 部分展开
+	/// TVE_TOGGLE - 反转折叠状态
 	/// </param>
-	/// <returns>�ɹ�����TRUE</returns>
+	/// <returns>成功返回TRUE</returns>
 	EckInline BOOL Expand(HTREEITEM hItem, UINT uOp)
 	{
 		return (BOOL)SendMsg(TVM_ENSUREVISIBLE, uOp, (LPARAM)hItem);
@@ -338,20 +338,20 @@ public:
 	}
 
 	/// <summary>
-	/// ȡͼ���б�
+	/// 取图像列表
 	/// </summary>
-	/// <param name="uType">���ͣ�TVSIL_����</param>
-	/// <returns>ͼ���б����</returns>
+	/// <param name="uType">类型，TVSIL_常量</param>
+	/// <returns>图像列表句柄</returns>
 	EckInline HIMAGELIST GetImageList(UINT uType = TVSIL_NORMAL)
 	{
 		return (HIMAGELIST)SendMsg(TVM_GETIMAGELIST, uType, 0);
 	}
 
 	/// <summary>
-	/// ȡ�������ȡ�
-	/// ȡ����������丸����������ȣ�������Ϊ��λ
+	/// 取缩进宽度。
+	/// 取得子项相对其父项的缩进宽度，以像素为单位
 	/// </summary>
-	/// <returns>��������</returns>
+	/// <returns>缩进宽度</returns>
 	EckInline int GetIndent()
 	{
 		return (int)SendMsg(TVM_GETINDENT, 0, 0);
@@ -391,12 +391,12 @@ public:
 	}
 
 	/// <summary>
-	/// ȡ��Ŀ����
+	/// 取项目矩形
 	/// </summary>
-	/// <param name="hItem">��Ŀ</param>
-	/// <param name="prc">���վ���</param>
-	/// <param name="bOnlyText">�Ƿ���ı��ߴ�</param>
-	/// <returns>�����Ŀ�ɼ��Ҿ��μ����ɹ��򷵻�TRUE�����򷵻�FALSE</returns>
+	/// <param name="hItem">项目</param>
+	/// <param name="prc">接收矩形</param>
+	/// <param name="bOnlyText">是否仅文本尺寸</param>
+	/// <returns>如果项目可见且矩形检索成功则返回TRUE，否则返回FALSE</returns>
 	EckInline BOOL GetItemRect(HTREEITEM hItem, RECT* prc, BOOL bOnlyText = FALSE)
 	{
 		*(HTREEITEM*)prc = hItem;
@@ -499,11 +499,11 @@ public:
 	}
 
 	/// <summary>
-	/// ���в���
+	/// 命中测试
 	/// </summary>
-	/// <param name="pt">���Ե㣬��Կͻ���</param>
-	/// <param name="puFlags">���ղ��Խ����־��TVHT_����</param>
-	/// <returns>��Ŀ���</returns>
+	/// <param name="pt">测试点，相对客户区</param>
+	/// <param name="puFlags">接收测试结果标志，TVHT_常量</param>
+	/// <returns>项目句柄</returns>
 	EckInline HTREEITEM HitTest(POINT pt, UINT* puFlags = NULL)
 	{
 		TVHITTESTINFO tvhti{ pt };
@@ -514,12 +514,12 @@ public:
 	}
 
 	/// <summary>
-	/// ������Ŀ
+	/// 插入项目
 	/// </summary>
-	/// <param name="ptvis">TVINSERTSTRUCTWָ�룬ֻ��Ҫ��ʼ��itemex��Ա</param>
-	/// <param name="hParent">����Ŀ����ΪTVI_ROOT/NULL����Ŀ���</param>
-	/// <param name="hInsertAfter">�����뵽������Ŀ����ΪTVI_��������Ŀ���</param>
-	/// <returns>��Ŀ�����ʧ�ܷ���NULL</returns>
+	/// <param name="ptvis">TVINSERTSTRUCTW指针，只需要初始化itemex成员</param>
+	/// <param name="hParent">父项目，可为TVI_ROOT/NULL或项目句柄</param>
+	/// <param name="hInsertAfter">欲插入到其后的项目，可为TVI_常量或项目句柄</param>
+	/// <returns>项目句柄，失败返回NULL</returns>
 	EckInline HTREEITEM InsertItem(TVINSERTSTRUCTW* ptvis, HTREEITEM hParent = TVI_ROOT,
 		HTREEITEM hInsertAfter = TVI_FIRST)
 	{
@@ -529,11 +529,11 @@ public:
 	}
 
 	/// <summary>
-	/// ѡ����Ŀ
+	/// 选择项目
 	/// </summary>
-	/// <param name="hItem">��Ŀ</param>
-	/// <param name="bNoSingleExpand">ѡ�񵥸���ʱ��չ������</param>
-	/// <returns>�ɹ�����TRUE��ʧ�ܷ���FALSE</returns>
+	/// <param name="hItem">项目</param>
+	/// <param name="bNoSingleExpand">选择单个项时不展开子项</param>
+	/// <returns>成功返回TRUE，失败返回FALSE</returns>
 	EckInline BOOL SelectItem(HTREEITEM hItem, BOOL bNoSingleExpand = FALSE)
 	{
 		return (BOOL)SendMsg(TVM_SELECTITEM, TVGN_CARET | (bNoSingleExpand ? TVSI_NOSINGLEEXPAND : 0), (LPARAM)hItem);
@@ -570,9 +570,9 @@ public:
 	}
 
 	/// <summary>
-	/// ����������
+	/// 置缩进宽度
 	/// </summary>
-	/// <param name="iIndent">�������ȣ���С����С�������ȣ�����Ϊ��С�������ȵ�ֵ</param>
+	/// <param name="iIndent">缩进宽度，若小于最小缩进宽度，则设为最小缩进宽度的值</param>
 	EckInline void SetIndent(int iIndent)
 	{
 		SendMsg(TVM_SETINDENT, iIndent, 0);
@@ -595,9 +595,9 @@ public:
 	}
 
 	/// <summary>
-	/// ����Ŀ�߶�
+	/// 置项目高度
 	/// </summary>
-	/// <param name="cy">�߶ȣ���Ϊ-1��ʹ��Ĭ�ϸ߶�</param>
+	/// <param name="cy">高度，若为-1则使用默认高度</param>
 	/// <returns></returns>
 	EckInline int SetItemHeight(int cy)
 	{
@@ -630,24 +630,24 @@ public:
 	}
 
 	/// <summary>
-	/// ��������
+	/// 排序子项
 	/// </summary>
-	/// <param name="hItem">��Ŀ</param>
-	/// <param name="bAllChildren">�Ƿ�������������ΪFALSE��ָ����hItem��ֱ������</param>
-	/// <returns>�ɹ�����TRUE��ʧ�ܷ���FALSE</returns>
+	/// <param name="hItem">项目</param>
+	/// <param name="bAllChildren">是否包含所有子项，若为FALSE则指排序hItem的直接子项</param>
+	/// <returns>成功返回TRUE，失败返回FALSE</returns>
 	EckInline BOOL SortChildren(HTREEITEM hItem, BOOL bAllChildren = TRUE)
 	{
 		return (BOOL)SendMsg(TVM_SORTCHILDREN, bAllChildren, (LPARAM)hItem);
 	}
 
 	/// <summary>
-	/// �������
-	/// ʹ���Զ������������Ŀ������
+	/// 排序子项。
+	/// 使用自定义过程排序项目的子项
 	/// </summary>
-	/// <param name="hItem">��Ŀ</param>
-	/// <param name="pfnCompare">�ȽϺ���������һ��Ӧ�ڵڶ���֮ǰ���򷵻ظ�ֵ������֮���򷵻���ֵ������ȣ��򷵻�0</param>
-	/// <param name="lParam">�Զ�����ֵ</param>
-	/// <returns>�ɹ�����TRUE��ʧ�ܷ���FALSE</returns>
+	/// <param name="hItem">项目</param>
+	/// <param name="pfnCompare">比较函数，若第一项应在第二项之前，则返回负值；若在之后，则返回正值；若相等，则返回0</param>
+	/// <param name="lParam">自定义数值</param>
+	/// <returns>成功返回TRUE，失败返回FALSE</returns>
 	EckInline BOOL SortChildren(HTREEITEM hItem, PFNTVCOMPARE pfnCompare, LPARAM lParam)
 	{
 		TVSORTCB tvscb;

@@ -213,6 +213,12 @@
     <ClInclude Include="eck\StylePainter.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\CMenu.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\GraphicsHelper.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Win32Template.cpp">
@@ -246,9 +252,6 @@
       <Filter>ECK Src</Filter>
     </ClCompile>
     <ClCompile Include="eck\CListBox.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\ImageHelper.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
     <ClCompile Include="eck\CCommDlg.cpp">

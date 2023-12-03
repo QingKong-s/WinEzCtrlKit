@@ -75,8 +75,14 @@ private:
 		{
 			BITBOOL m_FbMultiSel : 1;
 		};
-		UINT m_uFlags = 0u;
+		UINT m_uFlags = 0;
 	};
+
+	struct
+	{
+		BITBOOL m_bLBtnDown : 1 = FALSE;
+	};
+
 
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 
@@ -246,12 +252,29 @@ private:
 
 	void OnLButtonDown(HWND hWnd, BOOL bDoubleClick, int x, int y, UINT uKeyFlags)
 	{
+		m_bLBtnDown = TRUE;
+		//SetCapture(hWnd);
 		SetFocus(hWnd);
 		int idx = HitTest(x, y);
 		RECT rcItem;
 		if (m_FbMultiSel)
 		{
-			
+			//EckCounter(m_vItem.size(), i)
+			//{
+			//	if (m_vItem[i].bSel)
+			//	{
+			//		m_vItem[i].bSel = FALSE;
+			//		GetItemRect((int)i, rcItem);
+			//		Redraw(rcItem);
+			//	}
+			//}
+
+			if (idx >= 0)
+			{
+				EckBoolNot(m_vItem[idx].bSel);
+				GetItemRect(idx, rcItem);
+				Redraw(rcItem);
+			}
 		}
 		else
 		{
