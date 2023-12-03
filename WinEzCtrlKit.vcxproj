@@ -168,11 +168,13 @@
     <ClInclude Include="eck\CForm.h" />
     <ClInclude Include="eck\CFormTable.h" />
     <ClInclude Include="eck\CListBoxNew.h" />
+    <ClInclude Include="eck\CMenu.h" />
     <ClInclude Include="eck\CMsgMmTimer.h" />
     <ClInclude Include="eck\CResSet.h" />
     <ClInclude Include="eck\CResTable.h" />
     <ClInclude Include="eck\CScrollView.h" />
     <ClInclude Include="eck\CSplitBar.h" />
+    <ClInclude Include="eck\GraphicsHelper.h" />
     <ClInclude Include="eck\StylePainter.h" />
     <ClInclude Include="eck\CTab.h" />
     <ClInclude Include="eck\CTabHeader.h" />
@@ -244,7 +246,6 @@
     <ClCompile Include="eck\DesignerDef.cpp" />
     <ClCompile Include="eck\DlgHelper.cpp" />
     <ClCompile Include="eck\ECK.cpp" />
-    <ClCompile Include="eck\ImageHelper.cpp" />
     <ClCompile Include="eck\Utility.cpp" />
     <ClCompile Include="eck\WndHelper.cpp" />
     <ClCompile Include="Win32Template.cpp" />

@@ -71,7 +71,7 @@ class CArray
 {
 public:
 	using TAlloc = TAllocator;
-	using TAllocTraits = std::allocator_traits<TAlloc>;
+	using TAllocTraits = CAllocatorTraits<TAlloc>;
 	using TAryDim = ArrayDim<TElem>;
 	using TIterator = TElem*;
 	using TConstIterator = const TElem*;
@@ -92,8 +92,6 @@ private:
 		m_Dim.emplace_back(c0);
 		UnpackSizeArgs(cTotal, c...);
 	}
-
-	static EckInline size_t MakeCapacity(size_t c) { return c * 3 / 2 + 1; }
 public:
 	CArray() = default;
 
@@ -105,7 +103,7 @@ public:
 		size_t cTotal = 1u;
 		UnpackSizeArgs(cTotal, c...);
 		m_cCount = cTotal;
-		m_cCapacity = MakeCapacity(m_cCount);
+		m_cCapacity = TAllocTraits::MakeCapacity(m_cCount);
 		m_pMem = m_Alloc.allocate(m_cCapacity);
 		std::uninitialized_value_construct(begin(), end());
 	}
@@ -138,7 +136,7 @@ public:
 				m_Alloc.deallocate(m_pMem, m_cCapacity);
 				m_Alloc = x.m_Alloc;
 				m_cCount = x.m_cCount;
-				m_cCapacity = MakeCapacity(m_cCount);
+				m_cCapacity = TAllocTraits::MakeCapacity(m_cCount);
 				m_pMem = m_Alloc.allocate(m_cCapacity);
 				std::uninitialized_copy(x.begin(), x.end(), begin());
 				return *this;
@@ -150,7 +148,7 @@ public:
 		{
 			m_Alloc.deallocate(m_pMem, m_cCapacity);
 			m_cCount = x.m_cCount;
-			m_cCapacity = MakeCapacity(m_cCount);
+			m_cCapacity = TAllocTraits::MakeCapacity(m_cCount);
 			m_pMem = m_Alloc.allocate(m_cCapacity);
 			std::uninitialized_copy(x.begin(), x.end(), begin());
 			return *this;
@@ -182,7 +180,7 @@ public:
 				m_Alloc.deallocate(m_pMem, m_cCapacity);
 				m_Alloc = std::move(x.m_Alloc);
 				m_cCount = x.m_cCount;
-				m_cCapacity = MakeCapacity(m_cCount);
+				m_cCapacity = TAllocTraits::MakeCapacity(m_cCount);
 				m_pMem = m_Alloc.allocate(m_cCapacity);
 				std::uninitialized_copy(x.begin(), x.end(), begin());
 				return *this;

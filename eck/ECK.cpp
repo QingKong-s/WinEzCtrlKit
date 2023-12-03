@@ -27,9 +27,7 @@ IDXGIFactory2* g_pDxgiFactory = NULL;
 #ifdef _DEBUG
 void CALLBACK GdiplusDebug(GpDebugEventLevel dwLevel, CHAR* pszMsg)
 {
-	PWSTR pszMsgW = StrX2W(pszMsg);
-	DbgPrint(pszMsgW);
-	CAllocator<WCHAR>::Free(pszMsgW);
+	DbgPrint(StrX2W(pszMsg).Data());
 	if (dwLevel == DebugEventLevelFatal)
 		DebugBreak();
 }

@@ -147,17 +147,21 @@ struct CMemWriter
 		return Write(Data.data(), Data.size() * sizeof(T));
 	}
 
-	EckInline CMemWriter& operator<<(const CRefBin& Data)
+	template<class T>
+	EckInline CMemWriter& operator<<(const CRefBinT<T>& Data)
 	{
 		return Write(Data.Data(), Data.Size());
 	}
 
-	EckInline CMemWriter& operator<<(const CRefStrW& Data)
+	template<class T, class U, class V>
+	EckInline CMemWriter& operator<<(const CRefStrT<T, U, V>& Data)
 	{
 		return Write(Data.Data(), Data.ByteSize());
 	}
 
 	EckInline operator BYTE*& () { return m_pMem; }
+
+	EckInline BYTE* Data() { return m_pMem; }
 
 	EckInline CMemWriter& operator+=(SIZE_T cb)
 	{
@@ -182,9 +186,9 @@ struct CMemWriter
 
 struct CMemReader
 {
-	BYTE* m_pMem = NULL;
+	const BYTE* m_pMem = NULL;
 #ifdef _DEBUG
-	BYTE* m_pBase = NULL;
+	const BYTE* m_pBase = NULL;
 	SIZE_T m_cbMax = 0u;
 #endif
 
@@ -195,7 +199,7 @@ struct CMemReader
 
 	void SetPtr(PCVOID p, SIZE_T cbMax = 0u)
 	{
-		m_pMem = (BYTE*)p;
+		m_pMem = (const BYTE*)p;
 #ifdef _DEBUG
 		if (cbMax)
 		{
@@ -224,14 +228,17 @@ struct CMemReader
 		return Read(&Data, sizeof(Data));
 	}
 
-	EckInline CMemReader& operator>>(CRefStrW& Data)
+	template<class T, class U, class V>
+	EckInline CMemWriter& operator>>(const CRefStrT<T, U, V>& x)
 	{
-		int cch = (int)wcslen((PCWSTR)m_pMem);
-		Data.ReSize(cch);
-		return Read(Data.Data(), (cch + 1) * sizeof(WCHAR));
+		const int cch = U::Len(Data());
+		x.ReSize(cch);
+		return Read(x.Data(), cch * sizeof(WCHAR));
 	}
 
-	EckInline operator BYTE*& () { return m_pMem; }
+	EckInline operator const BYTE*& () { return m_pMem; }
+
+	EckInline const BYTE* Data() { return m_pMem; }
 
 	EckInline CMemReader& operator+=(SIZE_T cb)
 	{
@@ -644,11 +651,25 @@ EckInline BOOL IsRectsIntersect(const RECT* prc1, const RECT* prc2)
 		std::max(prc1->top, prc2->top) < std::min(prc1->bottom, prc2->bottom);
 }
 
-PSTR StrW2X(PCWSTR pszText, int cch = -1, int uCP = CP_ACP);
+template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = CAllocatorProcHeap<CHAR, int>>
+CRefStrT<CHAR, TCharTraits, TAlloc> StrW2X(PCWSTR pszText, int cch = -1, int uCP = CP_ACP)
+{
+	int cchBuf = WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, NULL, 0, NULL, NULL);
+	CRefStrT<CHAR, TCharTraits, TAlloc> rs(cchBuf);
+	WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, rs.Data(), cchBuf, NULL, NULL);
+	*(rs.Data() + cchBuf) = '\0';
+	return rs;
+}
 
-PWSTR StrX2W(PCSTR pszText, int cch = -1, int uCP = CP_ACP);
-
-CRefStrW StrX2WRs(PCSTR pszText, int cch = -1, int uCP = CP_ACP);
+template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = CAllocatorProcHeap<WCHAR, int>>
+CRefStrT<WCHAR, TCharTraits, TAlloc> StrX2W(PCSTR pszText, int cch = -1, int uCP = CP_ACP)
+{
+	int cchBuf = MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, NULL, 0);
+	CRefStrT<WCHAR, TCharTraits, TAlloc> rs(cchBuf);
+	MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, rs.Data(), cchBuf);
+	*(rs.Data() + cchBuf) = '\0';
+	return rs;
+}
 
 EckInline void DbBufPrepare(HWND hWnd, HDC& hCDC, HBITMAP& hBitmap, HGDIOBJ& hOldBmp, int cx = 8, int cy = 8)
 {

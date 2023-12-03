@@ -1,7 +1,7 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* CSubclassMgr.h £º ×ÓÀà»¯¹ÜÀíÆ÷
+* CSubclassMgr.h ï¼š å­ç±»åŒ–ç®¡ç†å™¨
 *
 * Copyright(C) 2023 QingKong
 */
@@ -38,7 +38,7 @@ public:
 		auto ret = m_Record.insert(std::make_pair(Id, Obj));
 #ifndef NDEBUG
 		if (!ret.second)
-			EckDbgPrint(L"¶ÔÏó¼ÇÂ¼Æ÷£ºÌí¼Ó¶ÔÏó¼ÇÂ¼Ê±³öÏÖ¸²¸Ç£¬Î»ÓÚ£º" __FUNCSIG__);
+			EckDbgPrint(L"å¯¹è±¡è®°å½•å™¨ï¼šæ·»åŠ å¯¹è±¡è®°å½•æ—¶å‡ºç°è¦†ç›–ï¼Œä½äºï¼š" __FUNCSIG__);
 #endif // !NDEBUG
 		if (pbCover)
 			*pbCover = !ret.second;
@@ -121,7 +121,7 @@ public:
 		}
 		else
 		{
-			EckDbgPrint(L"ÒıÓÃ¶ÔÏó¼ÇÂ¼Æ÷£º¼õÉÙÒıÓÃÊ±Î´ÕÒµ½¼ÇÂ¼   " __FUNCSIG__);
+			EckDbgPrint(L"å¼•ç”¨å¯¹è±¡è®°å½•å™¨ï¼šå‡å°‘å¼•ç”¨æ—¶æœªæ‰¾åˆ°è®°å½•   " __FUNCSIG__);
 			return -1;
 		}
 	}

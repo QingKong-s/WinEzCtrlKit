@@ -165,31 +165,4 @@ RECT MakeRect(POINT pt1, POINT pt2)
 
 	return rc;
 }
-
-PSTR StrW2X(PCWSTR pszText, int cch, int uCP)
-{
-	int cchBuf = WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, NULL, 0, NULL, NULL);
-	auto pszBuf = CAllocator<char>::Alloc(cchBuf + 1);
-	WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, pszBuf, cchBuf, NULL, NULL);
-	*(pszBuf + cchBuf) = '\0';
-	return pszBuf;
-}
-
-PWSTR StrX2W(PCSTR pszText, int cch, int uCP)
-{
-	int cchBuf = MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, NULL, 0);
-	auto pszBuf = CAllocator<WCHAR>::Alloc(cchBuf + 1);
-	MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, pszBuf, cchBuf);
-	*(pszBuf + cchBuf) = '\0';
-	return pszBuf;
-}
-
-CRefStrW StrX2WRs(PCSTR pszText, int cch, int uCP)
-{
-	int cchBuf = MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, NULL, 0);
-	CRefStrW rs(cchBuf);
-	MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, rs.Data(), cchBuf);
-	*(rs.Data() + cchBuf) = '\0';
-	return rs;
-}
 ECK_NAMESPACE_END

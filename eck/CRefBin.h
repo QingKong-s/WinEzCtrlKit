@@ -9,6 +9,7 @@
 #pragma once
 #include "ECK.h"
 #include "CAllocator.h"
+#include "CRefStr.h"
 
 #include <initializer_list>
 #include <vector>
@@ -180,13 +181,54 @@ public:
 		return *this;
 	}
 
+	BYTE& operator[](size_t idx) { EckAssert(idx < Size()); return *(Data() + idx); }
+
+	BYTE operator[](size_t idx) const { EckAssert(idx < Size()); return *(Data() + idx); }
+
+	template<class T>
+	EckInline CRefBinT& operator<<(const T& x)
+	{
+		PushBack(&x, sizeof(T));
+		return *this;
+	}
+
+	template<class TAlloc1>
+	EckInline CRefBinT& operator<<(const CRefBinT<TAlloc1>& x)
+	{
+		PushBack(x.Data(), x.Size());
+		return *this;
+	}
+
+	template<class T, class TAlloc1>
+	EckInline CRefBinT& operator<<(const std::vector<T, TAlloc1>& x)
+	{
+		PushBack(x.data(), x.size() * sizeof(T));
+		return *this;
+	}
+
+	template<class TChar, class TTraits, class TAlloc1>
+	EckInline CRefBinT& operator<<(const std::basic_string<TChar, TTraits, TAlloc1>& x)
+	{
+		PushBack(x.c_str(), x.size() * sizeof(TChar));
+		return *this;
+	}
+
+	template<class TChar, class TTraits, class TAlloc1>
+	EckInline CRefBinT& operator<<(const CRefStrT<TChar, TTraits, TAlloc1>& x)
+	{
+		PushBack(x.Data(), x.Size() * sizeof(TChar));
+		return *this;
+	}
+
+	template<class T>
+	T& At(size_t idx) { EckAssert(idx * sizeof(T) <= Size() - sizeof(T)); return *((T*)Data() + idx); }
+
+	template<class T>
+	const T& At(size_t idx) const { EckAssert(idx * sizeof(T) <= Size() - sizeof(T)); return *((const T*)Data() + idx); }
+
 	EckInline BYTE* Data() { return m_pStream; }
 
 	EckInline const BYTE* Data() const { return m_pStream; }
-
-	BYTE& operator[](size_t idx) { return *(Data() + idx); }
-
-	BYTE operator[](size_t idx) const { return *(Data() + idx); }
 
 	EckInline size_t Size() const { return m_cb; }
 
@@ -256,9 +298,9 @@ public:
 	/// 保留内存
 	/// </summary>
 	/// <param name="cb">尺寸</param>
-	void Reserve(size_t cb)
+	EckInline void Reserve(size_t cb)
 	{
-		if (m_cbCapacity >= cb + 1)
+		if (m_cbCapacity >= cb)
 			return;
 
 		const auto pOld = m_pStream;
@@ -269,7 +311,7 @@ public:
 			m_Alloc.deallocate(pOld, m_cbCapacity);
 		}
 
-		m_cbCapacity = cb + 1;
+		m_cbCapacity = cb;
 	}
 
 	/// <summary>
@@ -390,6 +432,18 @@ public:
 		PushBack(rb.Data(), rb.Size());
 	}
 
+	EckInline BYTE* PushBack(size_t cb)
+	{
+		ReSize(m_cb + cb);
+		return Data() + m_cb - cb;
+	}
+
+	template<class T>
+	EckInline T* PushBack()
+	{
+		return (T*)PushBack(sizeof(T));
+	}
+
 	/// <summary>
 	/// 尾删
 	/// </summary>
@@ -403,6 +457,15 @@ public:
 	EckInline void Clear() { m_cb = 0u; }
 
 	EckInline void Zero() { RtlZeroMemory(Data(), Size()); }
+
+	/// <summary>
+	/// 从左闭右开区间创建字节集
+	/// </summary>
+	template<class TAlloc1 = TAlloc>
+	EckInline CRefBinT<TAlloc> SubBin(size_t posBegin, size_t posEnd)
+	{
+		return CRefBinT<TAlloc>(Data() + posBegin, posEnd - posBegin);
+	}
 
 	EckInline TIterator begin() { return Data(); }
 	EckInline TIterator end() { return begin() + Size(); }

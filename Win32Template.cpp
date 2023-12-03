@@ -31,6 +31,7 @@
 #include "eck/CDrawPanel.h"
 #include "eck/CLunarCalendar.h"
 #include "eck/CListBoxNew.h"
+#include "eck/CMenu.h"
 
 
 using namespace std::literals;
@@ -126,7 +127,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	//EckDbgPrint(NumToJieQi(GetJieQi({ 1902,5,22 })));
 	//EckDbgPrint(NumToShuXiang(GetShuXiang(2023)));
 
+	CRefBin rb0;
+	rb0 << 4;
+	std::wstring s(L"测试测试12");
+	rb0 << s << 5;
 
+	std::vector<int> aa{ 10,11,12,13,14,15 };
+	rb0 << aa;
+
+	//EckDbgPrint(rb0.At<int>(7));
+	//EckAssert(rb0.At<int>(7) == 0);
 	//EckDbgBreak();
 	//EckDbgBreak();
 	//CResSet<int> ress;
@@ -352,6 +362,16 @@ eck::CSplitBar* g_SPBH;
 eck::CDrawPanel* g_DP;
 eck::CDrawPanelD2D* g_DPD2D;
 eck::CListBoxNew* g_LBN;
+eck::CMenu g_Menu
+{
+	{L"我是第一项",100},
+	{L"我是第β项",101},
+	{L"我是第3项",102},
+	{L"我是第D项",103},
+	{L"我是第戊项",104},
+	{L"我是第サ项",105},
+};
+
 
 int g_iDpi = USER_DEFAULT_SCREEN_DPI;
 LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -417,7 +437,13 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		}
 	}
 	return 0;
-
+	case WM_LBUTTONDOWN:
+	{
+		POINT pt;
+		GetCursorPos(&pt);
+		g_Menu.TrackPopupMenu(hWnd, pt.x, pt.y);
+	}
+	break;
 	//case WM_NCCALCSIZE:
 	//{
 	//	MARGINS margins{ 3,3,40,3 };
@@ -446,43 +472,55 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		g_iDpi = eck::GetDpi(hWnd);
 		g_hFont = eck::EzFont(L"微软雅黑", 9);
 
-		eck::CListBoxNew::FLbnProc pfnn = [](HWND hWnd, UINT uCode, LPARAM lParam, LPARAM lRefData)->LRESULT
-			{
-				static std::vector<eck::CRefStrW> v{};
-				switch (uCode)
-				{
-				case eck::CListBoxNew::NCode::GetDispInfo:
-				{
-					if (!v.size())
-					{
-						v.resize(100);
-						EckCounter(100, i)
-						{
-							v[i] = eck::ToStr(i) + L"测试测试";
-						}
-					}
-					auto p = (eck::LBNEWITEM*)lParam;
-					p->pszText = v[p->idxItem].Data();
-					p->cchText = v[p->idxItem].Size();
-				}
-				return 0;
-				}
+		//eck::CListBoxNew::FLbnProc pfnn = [](HWND hWnd, UINT uCode, LPARAM lParam, LPARAM lRefData)->LRESULT
+		//	{
+		//		static std::vector<eck::CRefStrW> v{};
+		//		switch (uCode)
+		//		{
+		//		case eck::CListBoxNew::NCode::GetDispInfo:
+		//		{
+		//			if (!v.size())
+		//			{
+		//				v.resize(100);
+		//				EckCounter(100, i)
+		//				{
+		//					v[i] = eck::ToStr(i) + L"测试测试";
+		//				}
+		//			}
+		//			auto p = (eck::LBNEWITEM*)lParam;
+		//			p->pszText = v[p->idxItem].Data();
+		//			p->cchText = v[p->idxItem].Size();
+		//		}
+		//		return 0;
+		//		}
 
-				return 0;
-			};
+		//		return 0;
+		//	};
 
-		g_LBN = new eck::CListBoxNew;
-		g_LBN->SetProc(pfnn);
-		g_LBN->Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL, 0, 100, 100, 600, 800, hWnd, 101);
-		g_LBN->SetItemCount(100);
+		//g_LBN = new eck::CListBoxNew;
+		//g_LBN->SetProc(pfnn);
+		//g_LBN->Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL, 0, 100, 100, 600, 800, hWnd, 101);
+		//g_LBN->SetItemCount(100);
 
+		EckDbgPrint(g_Menu.GetItemString(101).Data());
+		//EckDbgBreak();
+		//EckDbgBreak();
 
-		/*g_DP = new eck::CDrawPanel;
+		g_DP = new eck::CDrawPanel;
 		g_DP->Create(0, WS_CHILD | WS_VISIBLE | WS_BORDER, 0, 10, 10, 900, 900, hWnd, 10001);
 		HDC hDC = g_DP->GetHDC();
 		RECT rcDP{ 0,0,900,900 };
-		FillRect(hDC, &rcDP, (HBRUSH)GetStockObject(WHITE_BRUSH));*/
+		FillRect(hDC, &rcDP, (HBRUSH)GetStockObject(WHITE_BRUSH));
 
+		eck::CIcoFileReader ico;
+		auto rbIco = eck::ReadInFile(LR"(E:\Desktop\Tempo.ico)");
+		ico.AnalyzeData(rbIco.Data());
+		EckCounter(ico.GetIconCount(), i)
+		{
+			EckDbgPrintFmt(L"cx = %d, cy = %d", (int)ico.At(i)->bWidth, (int)ico.At(i)->bHeight);
+			DrawIconEx(hDC, 10, 10 + 50 * i, ico.CreateHICON(i), 0, 0, 0, NULL, DI_NORMAL);
+		}
+		//EckDbgPrintFmt(L"cx = %d, cy = %d", (int)ico.At(4)->bWidth, (int)ico.At(4)->bHeight);
 
 		//RECT rcEllipse{ 10,20,600,300 };
 		//Ellipse(hDC, rcEllipse.left, rcEllipse.top, rcEllipse.right, rcEllipse.bottom);
@@ -650,7 +688,7 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		//GdipDrawImage(g_DP->GetGraphics(), NewBmpGp.GetGpBitmap(), 0, 0);
 
 
-		//g_DP->Redraw();
+		g_DP->Redraw();
 
 
 
