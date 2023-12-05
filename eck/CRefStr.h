@@ -16,7 +16,7 @@
 #include <execution>
 
 ECK_NAMESPACE_BEGIN
-static constexpr int INVALID_STR_POS = -1;
+inline constexpr int INVALID_STR_POS = -1;
 
 inline constexpr int StrNPos = -1;
 
@@ -109,7 +109,7 @@ public:
 	/// <param name="cchInit">字符串长度</param>
 	explicit CRefStrT(int cchInit)
 	{
-		m_cchCapacity = TAllocTraits::MakeCapacity(cchInit + 1);
+		m_cchCapacity = cchInit + 1;
 		m_pszText = m_Alloc.allocate(m_cchCapacity);
 		m_cchText = cchInit;
 	}
@@ -135,10 +135,9 @@ public:
 	}
 
 	CRefStrT(const CRefStrT& x)
+		: m_cchText{ x.Size() }, m_cchCapacity{ TAllocTraits::MakeCapacity(m_cchText + 1) },
+		m_Alloc{ TAllocTraits::select_on_container_copy_construction(x.m_Alloc) }
 	{
-		m_Alloc = TAllocTraits::select_on_container_copy_construction(x.m_Alloc);
-		m_cchText = x.Size();
-		m_cchCapacity = TAllocTraits::MakeCapacity(m_cchText + 1);
 		m_pszText = m_Alloc.allocate(m_cchCapacity);
 		TCharTraits::CopyEnd(Data(), x.Data(), x.Size());
 	}
@@ -170,6 +169,8 @@ public:
 
 	EckInline CRefStrT& operator=(const CRefStrT& x)
 	{
+		if (this == &x)
+			return *this;
 		if constexpr (!TAllocTraits::is_always_equal::value)
 		{
 			if (m_Alloc != x.m_Alloc)

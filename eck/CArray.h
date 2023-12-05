@@ -64,6 +64,10 @@ public:
 	EckInline TElem* AddressOf() { return e; }
 
 	EckInline const TElem* AddressOf() const { return e; }
+
+	EckInline TElem& GetData() { return *e; }
+
+	EckInline const TElem& GetData() const { return *e; }
 };
 
 template<class TElem, class TAllocator = std::allocator<TElem>>
@@ -73,8 +77,14 @@ public:
 	using TAlloc = TAllocator;
 	using TAllocTraits = CAllocatorTraits<TAlloc>;
 	using TAryDim = ArrayDim<TElem>;
-	using TIterator = TElem*;
-	using TConstIterator = const TElem*;
+
+	using TPointer = TElem*;
+	using TConstPointer = const TElem*;
+
+	using TIterator = TPointer;
+	using TConstIterator = TConstPointer;
+	using TReverseIterator = std::reverse_iterator<TIterator>;
+	using TConstReverseIterator = std::reverse_iterator<TConstIterator>;
 private:
 	TElem* m_pMem = NULL;
 	size_t m_cCount = 0u;
@@ -118,7 +128,7 @@ public:
 
 	CArray(CArray&& x) noexcept
 		:m_pMem{ x.m_pMem }, m_cCount{ x.m_cCount }, m_cCapacity{ x.m_cCapacity },
-		m_Dim{ x.m_Dim }, m_Alloc{ std::move(x.m_Alloc) }
+		m_Dim{ std::move(x.m_Dim) }, m_Alloc{ std::move(x.m_Alloc) }
 	{
 		x.m_pMem = NULL;
 		x.m_cCount = x.m_cCapacity = 0u;
@@ -129,7 +139,7 @@ public:
 	{
 		if (this == &x)
 			return *this;
-		if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
+		if constexpr (!TAllocTraits::is_always_equal::value)
 		{
 			if (m_Alloc != x.m_Alloc)
 			{
@@ -141,8 +151,12 @@ public:
 				std::uninitialized_copy(x.begin(), x.end(), begin());
 				return *this;
 			}
-			m_Alloc = x.m_Alloc;
+			else if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
+				m_Alloc = x.m_Alloc;
 		}
+		else if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
+			m_Alloc = x.m_Alloc;
+
 		m_Dim = x.m_Dim;
 		if (m_cCapacity < x.m_cCount)
 		{
@@ -173,8 +187,12 @@ public:
 	{
 		if (this == &x)
 			return *this;
+
+		if (this == &x)
+			return *this;
 		if constexpr (TAllocTraits::propagate_on_container_move_assignment::value)
-		{
+			m_Alloc = std::move(x.m_Alloc);
+		else if constexpr (!TAllocTraits::is_always_equal::value)
 			if (m_Alloc != x.m_Alloc)
 			{
 				m_Alloc.deallocate(m_pMem, m_cCapacity);
@@ -185,8 +203,6 @@ public:
 				std::uninitialized_copy(x.begin(), x.end(), begin());
 				return *this;
 			}
-			m_Alloc = std::move(x.m_Alloc);
-		}
 		std::swap(m_pMem, x.m_pMem);
 		std::swap(m_cCount, x.m_cCount);
 		std::swap(m_cCapacity, x.m_cCapacity);
@@ -271,17 +287,18 @@ public:
 
 	EckInline const TElem* Data() const noexcept { return m_pMem; }
 
-	EckInline TIterator begin() noexcept { return m_pMem; }
-
-	EckInline TIterator end() noexcept { return m_pMem + m_cCount; }
-
-	EckInline TConstIterator begin() const noexcept { return m_pMem; }
-
-	EckInline TConstIterator end() const noexcept { return m_pMem + m_cCount; }
-
-	EckInline TConstIterator cbegin() const noexcept { return begin(); }
-
-	EckInline TConstIterator cend() const noexcept { return end(); }
+	EckInline TIterator begin() { return Data(); }
+	EckInline TIterator end() { return begin() + GetCount(); }
+	EckInline TConstIterator begin() const { return Data(); }
+	EckInline TConstIterator end() const { return begin() + GetCount(); }
+	EckInline TConstIterator cbegin() const { begin(); }
+	EckInline TConstIterator cend() const { end(); }
+	EckInline TReverseIterator rbegin() { return TReverseIterator(begin()); }
+	EckInline TReverseIterator rend() { return TReverseIterator(end()); }
+	EckInline TConstReverseIterator rbegin() const { return TConstReverseIterator(begin()); }
+	EckInline TConstReverseIterator rend() const { return TConstReverseIterator(end()); }
+	EckInline TConstReverseIterator crbegin() const { return rbegin(); }
+	EckInline TConstReverseIterator crend() const { return rend(); }
 };
 
 ECK_NAMESPACE_END

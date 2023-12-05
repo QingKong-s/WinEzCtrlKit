@@ -210,7 +210,6 @@ inline HRESULT CreateWicBitmap(std::vector<IWICBitmap*>& vResult,
 		if (FAILED(hr))
 		{
 			EckDbgPrintFormatMessage(hr);
-			EckDbgBreak();
 			return hr;
 		}
 
@@ -218,7 +217,6 @@ inline HRESULT CreateWicBitmap(std::vector<IWICBitmap*>& vResult,
 		if (FAILED(hr))
 		{
 			EckDbgPrintFormatMessage(hr);
-			EckDbgBreak();
 			return hr;
 		}
 
@@ -227,7 +225,6 @@ inline HRESULT CreateWicBitmap(std::vector<IWICBitmap*>& vResult,
 		if (FAILED(hr))
 		{
 			EckDbgPrintFormatMessage(hr);
-			EckDbgBreak();
 			return hr;
 		}
 
@@ -236,7 +233,6 @@ inline HRESULT CreateWicBitmap(std::vector<IWICBitmap*>& vResult,
 		if (FAILED(hr))
 		{
 			EckDbgPrintFormatMessage(hr);
-			EckDbgBreak();
 			return hr;
 		}
 
@@ -245,6 +241,47 @@ inline HRESULT CreateWicBitmap(std::vector<IWICBitmap*>& vResult,
 		pFrameDecoder->Release();
 	}
 
+	return S_OK;
+}
+
+inline HRESULT CreateWicBitmap(IWICBitmap*& pBmp,
+	IWICBitmapDecoder* pDecoder, IWICImagingFactory* pWicFactory)
+{
+	HRESULT hr;
+	IWICBitmapFrameDecode* pFrameDecoder;
+	IWICFormatConverter* pConverter;
+
+	hr = pDecoder->GetFrame(0, &pFrameDecoder);
+	if (FAILED(hr))
+	{
+		EckDbgPrintFormatMessage(hr);
+		return hr;
+	}
+
+	hr = pWicFactory->CreateFormatConverter(&pConverter);
+	if (FAILED(hr))
+	{
+		EckDbgPrintFormatMessage(hr);
+		return hr;
+	}
+
+	hr = pConverter->Initialize(pFrameDecoder, GUID_WICPixelFormat32bppPBGRA,
+		WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeMedianCut);
+	if (FAILED(hr))
+	{
+		EckDbgPrintFormatMessage(hr);
+		return hr;
+	}
+
+	hr = pWicFactory->CreateBitmapFromSource(pConverter, WICBitmapNoCache, &pBmp);
+	if (FAILED(hr))
+	{
+		EckDbgPrintFormatMessage(hr);
+		return hr;
+	}
+
+	pConverter->Release();
+	pFrameDecoder->Release();
 	return S_OK;
 }
 
@@ -347,5 +384,296 @@ public:
 	}
 
 	auto At(int idx) const { EckAssert(idx >= 0 && idx < GetIconCount()); return m_pEntry + idx; }
+};
+
+EckInline WORD GetPaletteEntryCount(HPALETTE hPalette)
+{
+	WORD w = 0;
+	GetObjectW(hPalette, sizeof(w), &w);
+	return w;
+}
+
+class CDib
+{
+private:
+	HBITMAP m_hBitmap = NULL;
+	DIBSECTION m_ds{};
+public:
+	CDib(const CDib&) = delete;
+	CDib& operator=(const CDib&) = delete;
+
+	CDib(CDib&& x) noexcept
+		:m_hBitmap{ x.m_hBitmap }, m_ds{ x.m_ds } {}
+	CDib& operator=(CDib&& x) noexcept
+	{
+		m_hBitmap = x.m_hBitmap;
+		m_ds = x.m_ds;
+	}
+
+	~CDib()
+	{
+		Destroy();
+	}
+
+	/// <summary>
+	/// 创建自DC。
+	/// 使用指定的调色板从DC中选入的位图创建一个DIB节，
+	/// 函数先获取位图的BITMAP结构并检索调色板条目，
+	/// 然后使用DIB_RGB_COLORS标志创建一个DIB节，
+	/// 最后使用BitBlt拷贝位图数据
+	/// </summary>
+	/// <param name="hDC">设备场景</param>
+	/// <param name="iTopToBottom">位图原点选项，-1 - 自上而下  0 - 默认  1 - 自下而上</param>
+	/// <param name="hPalette">调色板句柄</param>
+	/// <returns>创建的DIB节</returns>
+	HBITMAP Create(HDC hDC, int iTopToBottom = 0, HPALETTE hPalette = NULL)
+	{
+		Destroy();
+		BITMAP bmp;
+		if (!GetObjectW(GetCurrentObject(hDC, OBJ_BITMAP), sizeof(bmp), &bmp))
+			return NULL;
+		const int cPalEntry = (hPalette ? GetPaletteEntryCount(hPalette) : 0);
+		const size_t cbBmi = sizeof(BITMAPINFOHEADER) + cPalEntry * sizeof(RGBQUAD);
+		auto pbmi = (BITMAPINFO*)malloc(cbBmi);
+		EckAssert(pbmi);
+		ZeroMemory(pbmi, cbBmi);
+		pbmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+		pbmi->bmiHeader.biWidth = bmp.bmWidth;
+		pbmi->bmiHeader.biHeight = SetSign(bmp.bmHeight, (LONG)iTopToBottom);
+		pbmi->bmiHeader.biPlanes = 1;
+		pbmi->bmiHeader.biBitCount = bmp.bmBitsPixel;
+		pbmi->bmiHeader.biCompression = BI_RGB;
+		pbmi->bmiHeader.biClrUsed = cPalEntry;
+
+		if (hPalette)
+		{
+			GetPaletteEntries(hPalette, 0, cPalEntry, (PALETTEENTRY*)(pbmi->bmiColors));
+			EckCounter(cPalEntry, i)
+				pbmi->bmiColors[i].rgbReserved = 0;
+		}
+#pragma warning(suppress:6387)
+		m_hBitmap = CreateDIBSection(NULL, pbmi, DIB_RGB_COLORS, NULL, NULL, 0);
+		free(pbmi);
+		if (!m_hBitmap)
+			return NULL;
+		GetObjectW(m_hBitmap, sizeof(m_ds), &m_ds);
+		HDC hCDC = CreateCompatibleDC(hDC);
+		SelectObject(hCDC, m_hBitmap);
+		if (hPalette)
+		{
+			SelectPalette(hCDC, hPalette, FALSE);
+			RealizePalette(hCDC);
+		}
+		BitBlt(hCDC, 0, 0, bmp.bmWidth, bmp.bmHeight, hDC, 0, 0, SRCCOPY);
+		DeleteDC(hCDC);
+	}
+
+	/// <summary>
+	/// 创建自数据。
+	/// 从DIB或紧凑DIB创建DIB节，支持Win3.0、V4、V5位图头，注意：不能解析压缩DIB和OS/2风格的DIB；
+	/// 若给定数据具有BI_JPEG或BI_PNG，则总是创建32位DIB节
+	/// </summary>
+	/// <param name="pData">位图数据</param>
+	/// <param name="hDC">要使用调色板的DC，若该参数为NULL，则使用DIB_RGB_COLORS创建DIB节，否则使用DIB_PAL_COLORS</param>
+	/// <returns>创建的DIB节</returns>
+	HBITMAP Create(PCVOID pData, HDC hDC = NULL)
+	{
+		Destroy();
+		PCBYTE p = (PCBYTE)pData;
+		DWORD ocbBits = 0;
+		if (*((WORD*)p) == 0x4D42)
+		{
+			ocbBits = ((BITMAPFILEHEADER*)p)->bfOffBits;
+			p += sizeof(BITMAPFILEHEADER);
+		}
+
+		PCBYTE pBitsData;
+		const BITMAPV4HEADER* pV4;
+		size_t cbBits;
+		switch (*((DWORD*)p))
+		{
+		case (sizeof(BITMAPINFOHEADER)):
+		{
+			auto pbih = (const BITMAPINFOHEADER*)p;
+			const BOOL bBitFields = (pbih->biCompression == BI_BITFIELDS);
+			if (pbih->biCompression != BI_RGB && !bBitFields)
+				return NULL;
+			pBitsData =
+				(ocbBits ?
+					(p - sizeof(BITMAPFILEHEADER) + ocbBits) :
+					(p + sizeof(BITMAPINFOHEADER) /*跳过信息头*/ +
+						pbih->biClrUsed * sizeof(RGBQUAD) /*跳过颜色表*/ +
+						(bBitFields ? (3 * sizeof(DWORD)) : 0) /*跳过颜色掩码*/
+						));
+			cbBits = (pbih->biSizeImage ? pbih->biSizeImage :
+				(((((pbih->biWidth * pbih->biBitCount) + 31) & ~31) >> 3) * pbih->biHeight));
+			void* pBits;
+			m_hBitmap = CreateDIBSection(hDC, (const BITMAPINFO*)pbih,
+				(hDC ? DIB_PAL_COLORS : DIB_RGB_COLORS), &pBits, NULL, 0);
+			if (!m_hBitmap)
+				return NULL;
+			memcpy(pBits, pBitsData, cbBits);
+			GetObjectW(m_hBitmap, sizeof(m_ds), &m_ds);
+		}
+		break;
+		case (sizeof(BITMAPV4HEADER)):
+		case (sizeof(BITMAPV5HEADER)):
+		{
+			pV4 = (const BITMAPV4HEADER*)p;
+			pBitsData = (ocbBits ?
+				(p - sizeof(BITMAPFILEHEADER) + ocbBits) :
+				(p + pV4->bV4Size /*跳过信息头*/ +
+					pV4->bV4ClrUsed * sizeof(RGBQUAD) /*跳过颜色表*/));
+			cbBits = (pV4->bV4SizeImage ? pV4->bV4SizeImage :
+				((((pV4->bV4Width * pV4->bV4BitCount) + 31) & ~31) >> 3) * pV4->bV4Height);
+			if (pV4->bV4V4Compression == BI_JPEG || pV4->bV4V4Compression == BI_PNG)
+			{
+				auto pStream = new IStreamView(pBitsData, cbBits);
+				IWICBitmapDecoder* pDecoder;
+				if (FAILED(CreateWicBitmapDecoder(pStream, pDecoder, g_pWicFactory)))
+				{
+					pStream->Release();
+					return NULL;
+				}
+				pStream->Release();
+				IWICBitmap* pBitmap;
+				if (FAILED(CreateWicBitmap(pBitmap, pDecoder, g_pWicFactory)))
+				{
+					pDecoder->Release();
+					return NULL;
+				}
+				m_hBitmap = CreateHBITMAP(pBitmap);
+				pDecoder->Release();
+				pBitmap->Release();
+			}
+			else if (pV4->bV4V4Compression == BI_RGB || pV4->bV4V4Compression == BI_BITFIELDS)
+			{
+				auto pbmi = (BITMAPINFO*)malloc(
+					sizeof(BITMAPINFOHEADER) +
+					pV4->bV4ClrUsed * sizeof(RGBQUAD));
+				EckAssert(pbmi);
+				memcpy(pbmi, pV4, sizeof(BITMAPINFOHEADER));
+				memcpy(pbmi + 1, p + sizeof(BITMAPV4HEADER), pV4->bV4ClrUsed * sizeof(RGBQUAD));
+				void* pBits;
+				m_hBitmap = CreateDIBSection(hDC, pbmi,
+					(hDC ? DIB_PAL_COLORS : DIB_RGB_COLORS), &pBits, NULL, 0);
+				free(pbmi);
+				if (!m_hBitmap)
+					return NULL;
+				memcpy(pBits, pBitsData, cbBits);
+				GetObjectW(m_hBitmap, sizeof(m_ds), &m_ds);
+			}
+			else
+				return NULL;
+		}
+		break;
+		default:
+			EckDbgPrintWithPos(L"无法识别的位图格式");
+			return NULL;
+		}
+		return m_hBitmap;
+	}
+
+	/// <summary>
+	/// 创建空白32位DIB节
+	/// </summary>
+	/// <param name="cx">宽度</param>
+	/// <param name="cy">高度，负值为自上而下位图</param>
+	/// <returns>创建的DIB节</returns>
+	HBITMAP Create(int cx, int cy)
+	{
+		Destroy();
+		BITMAPINFOHEADER bih{};
+		bih.biSize = sizeof(BITMAPINFOHEADER);
+		bih.biWidth = cx;
+		bih.biHeight = cy;
+		bih.biPlanes = 1;
+		bih.biBitCount = 32;
+		bih.biCompression = BI_RGB;
+#pragma warning(suppress:6387)
+		m_hBitmap = CreateDIBSection(NULL, (const BITMAPINFO*)&bih, DIB_RGB_COLORS, NULL, NULL, 0);
+		if (!m_hBitmap)
+			return NULL;
+		GetObjectW(m_hBitmap, sizeof(m_ds), &m_ds);
+		return m_hBitmap;
+	}
+
+	EckInline HBITMAP GetHBitmap() const { return m_hBitmap; }
+
+	EckInline SIZE_T GetBmpDataSize() const
+	{
+		return sizeof(BITMAPFILEHEADER) +
+			sizeof(BITMAPINFOHEADER) +
+			sizeof(RGBQUAD) * m_ds.dsBmih.biClrUsed +
+			m_ds.dsBm.bmWidthBytes * m_ds.dsBm.bmHeight;
+	}
+
+	/// <summary>
+	/// 取BMP数据。
+	/// 使用Windows3.0版位图头
+	/// </summary>
+	/// <returns>BMP数据</returns>
+	CRefBin GetBmpData() const
+	{
+		if (!m_hBitmap)
+			return {};
+		const size_t cbTotal = GetBmpDataSize();
+		CRefBin rb(cbTotal);
+		auto pfh = (BITMAPFILEHEADER*)rb.Data();
+		auto pih = (BITMAPINFOHEADER*)(pfh + 1);
+		// 制文件头
+		pfh->bfType = 0x4D42;// BM
+		pfh->bfSize = (DWORD)cbTotal;
+		pfh->bfReserved1 = pfh->bfReserved2 = 0;
+		pfh->bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+		// 制信息头
+		pih->biSize = sizeof(BITMAPINFOHEADER);
+		pih->biWidth = m_ds.dsBm.bmWidth;
+		pih->biHeight = m_ds.dsBm.bmHeight;
+		pih->biPlanes = 1;
+		pih->biBitCount = m_ds.dsBm.bmBitsPixel;
+		pih->biCompression = 0;
+		pih->biXPelsPerMeter = pih->biYPelsPerMeter = 0;
+		pih->biClrUsed = m_ds.dsBmih.biClrUsed;
+		pih->biClrImportant = m_ds.dsBmih.biClrImportant;
+		// 制调色板
+		const size_t cbPalette = sizeof(RGBQUAD) * m_ds.dsBmih.biClrUsed;
+		if (cbPalette)
+		{
+			HDC hCDC = CreateCompatibleDC(NULL);
+			SelectObject(hCDC, m_hBitmap);
+			GetDIBColorTable(hCDC, 0, m_ds.dsBmih.biClrUsed, (RGBQUAD*)(pih + 1));
+			DeleteDC(hCDC);
+		}
+		// 制像素
+		memcpy(((BYTE*)(pih + 1)) + cbPalette, m_ds.dsBm.bmBits,
+			m_ds.dsBm.bmWidthBytes * m_ds.dsBm.bmHeight);
+		return rb;
+	}
+
+	EckInline void Destroy()
+	{
+		DeleteObject(m_hBitmap);
+		m_hBitmap = NULL;
+	}
+
+	EckInline const DIBSECTION& GetDibSectionStruct() const { return m_ds; }
+
+	HBITMAP Attach(HBITMAP hBitmap, const DIBSECTION* pds = NULL)
+	{
+		std::swap(m_hBitmap, hBitmap);
+		if (pds)
+			m_ds = *pds;
+		else
+			GetObjectW(m_hBitmap, sizeof(m_ds), &m_ds);
+		return hBitmap;
+	}
+
+	HBITMAP Detach()
+	{
+		auto t = m_hBitmap;
+		m_hBitmap = NULL;
+		return t;
+	}
 };
 ECK_NAMESPACE_END

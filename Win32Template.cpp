@@ -137,6 +137,68 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	//EckDbgPrint(rb0.At<int>(7));
 	//EckAssert(rb0.At<int>(7) == 0);
+	auto bbbb = GetClipboardString();
+	EckDbgPrint(bbbb.Data());
+	//SetClipboardString(L"测试测试啊啊啊啊啊啊啊啊啊啊");
+	HDC hDC = GetDC(GetDesktopWindow());
+	//HBITMAP hbm = (HBITMAP)GetCurrentObject(hDC, OBJ_BITMAP);
+	//auto tt = GetBmpData(hbm, hDC);
+
+	CDib dib{};
+	dib.Create(hDC);
+	auto tt = dib.GetBmpData();
+	//WriteToFile(LR"(E:\Desktop\1234567.bmp)", tt);
+
+	auto pbmi = (BITMAPINFO*)malloc(sizeof(BITMAPINFOHEADER) + 246 * sizeof(RGBQUAD));
+	ZeroMemory(pbmi, sizeof(BITMAPINFOHEADER));
+
+	pbmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	pbmi->bmiHeader.biWidth = (LONG)800;
+	pbmi->bmiHeader.biHeight = -(LONG)600;
+	pbmi->bmiHeader.biPlanes = 1;
+	pbmi->bmiHeader.biBitCount = 8;
+	pbmi->bmiHeader.biClrUsed = 246;
+	auto pclr = pbmi->bmiColors;
+	int r, g, b,i,inc;
+	for (i = 0, g = 0, inc = 8; g <= 0xFF; ++i, g += inc)
+	{
+		pclr[i] = { (BYTE)g,(BYTE)g,(BYTE)g,0 };
+		inc = (inc == 9 ? 8 : 9);
+	}
+
+	for (r = 0; r <= 0xFF; r += 0x33)
+		for (g = 0; g <= 0xFF; g += 0x33)
+			for (b = 0; b <= 0xFF; b += 0x33)
+			{
+				pclr[i] = { (BYTE)r,(BYTE)g,(BYTE)b,0 };
+				++i;
+			}
+
+	auto hbm = CreateDIBSection(NULL, pbmi, DIB_RGB_COLORS, NULL, NULL, 0);
+	hDC = CreateCompatibleDC(0);
+	auto plp = (LOGPALETTE*)malloc(sizeof(LOGPALETTE) + 246 * sizeof(PALETTEENTRY));
+	plp->palVersion = 0x300;
+	plp->palNumEntries = 246;
+	memcpy(plp->palPalEntry, pclr, 246 * sizeof(PALETTEENTRY));
+	auto hpal = CreatePalette(plp);
+
+	SelectObject(hDC, hbm);
+	SelectPalette(hDC, hpal, FALSE);
+	RealizePalette(hDC);
+
+	EckCounter(246, i)
+	{
+		auto hbr = CreateSolidBrush(PALETTEINDEX(i));
+		RECT rc{ i * 800 / 246,0,(i + 1) * 800 / 246,600 };
+		FillRect(hDC, &rc, hbr);
+
+	}
+
+	CDib dib1;
+	dib1.Create(hDC, 0, hpal);
+	tt = dib1.GetBmpData();
+	//WriteToFile(LR"(E:\Desktop\palette_test.bmp)", tt);
+
 	//EckDbgBreak();
 	//EckDbgBreak();
 	//CResSet<int> ress;
@@ -472,30 +534,30 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		g_iDpi = eck::GetDpi(hWnd);
 		g_hFont = eck::EzFont(L"微软雅黑", 9);
 
-		//eck::CListBoxNew::FLbnProc pfnn = [](HWND hWnd, UINT uCode, LPARAM lParam, LPARAM lRefData)->LRESULT
-		//	{
-		//		static std::vector<eck::CRefStrW> v{};
-		//		switch (uCode)
-		//		{
-		//		case eck::CListBoxNew::NCode::GetDispInfo:
-		//		{
-		//			if (!v.size())
-		//			{
-		//				v.resize(100);
-		//				EckCounter(100, i)
-		//				{
-		//					v[i] = eck::ToStr(i) + L"测试测试";
-		//				}
-		//			}
-		//			auto p = (eck::LBNEWITEM*)lParam;
-		//			p->pszText = v[p->idxItem].Data();
-		//			p->cchText = v[p->idxItem].Size();
-		//		}
-		//		return 0;
-		//		}
+		eck::CListBoxNew::FLbnProc pfnn = [](HWND hWnd, UINT uCode, LPARAM lParam, LPARAM lRefData)->LRESULT
+			{
+				static std::vector<eck::CRefStrW> v{};
+				switch (uCode)
+				{
+				case eck::CListBoxNew::NCode::GetDispInfo:
+				{
+					if (!v.size())
+					{
+						v.resize(100);
+						EckCounter(100, i)
+						{
+							v[i] = eck::ToStr(i) + L"测试测试";
+						}
+					}
+					auto p = (eck::LBNEWITEM*)lParam;
+					p->pszText = v[p->idxItem].Data();
+					p->cchText = v[p->idxItem].Size();
+				}
+				return 0;
+				}
 
-		//		return 0;
-		//	};
+				return 0;
+			};
 
 		//g_LBN = new eck::CListBoxNew;
 		//g_LBN->SetProc(pfnn);
@@ -512,14 +574,21 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		RECT rcDP{ 0,0,900,900 };
 		FillRect(hDC, &rcDP, (HBRUSH)GetStockObject(WHITE_BRUSH));
 
-		eck::CIcoFileReader ico;
-		auto rbIco = eck::ReadInFile(LR"(E:\Desktop\Tempo.ico)");
-		ico.AnalyzeData(rbIco.Data());
-		EckCounter(ico.GetIconCount(), i)
-		{
-			EckDbgPrintFmt(L"cx = %d, cy = %d", (int)ico.At(i)->bWidth, (int)ico.At(i)->bHeight);
-			DrawIconEx(hDC, 10, 10 + 50 * i, ico.CreateHICON(i), 0, 0, 0, NULL, DI_NORMAL);
-		}
+		auto rbdib = eck::ReadInFile(LR"(E:\Desktop\1.bmp)");
+		eck::CDib dib;
+		auto hbm = dib.Create(rbdib.Data());
+		HDC hcdc = CreateCompatibleDC(hDC);
+		SelectObject(hcdc, hbm);
+		BitBlt(hDC, 0, 0, 900, 900, hcdc, 0, 0, SRCCOPY);
+		g_DP->Redraw();
+		//eck::CIcoFileReader ico;
+		//auto rbIco = eck::ReadInFile(LR"(E:\Desktop\Tempo.ico)");
+		//ico.AnalyzeData(rbIco.Data());
+		//EckCounter(ico.GetIconCount(), i)
+		//{
+		//	EckDbgPrintFmt(L"cx = %d, cy = %d", (int)ico.At(i)->bWidth, (int)ico.At(i)->bHeight);
+		//	DrawIconEx(hDC, 10, 10 + 50 * i, ico.CreateHICON(i), 0, 0, 0, NULL, DI_NORMAL);
+		//}
 		//EckDbgPrintFmt(L"cx = %d, cy = %d", (int)ico.At(4)->bWidth, (int)ico.At(4)->bHeight);
 
 		//RECT rcEllipse{ 10,20,600,300 };
@@ -688,7 +757,7 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		//GdipDrawImage(g_DP->GetGraphics(), NewBmpGp.GetGpBitmap(), 0, 0);
 
 
-		g_DP->Redraw();
+		//g_DP->Redraw();
 
 
 

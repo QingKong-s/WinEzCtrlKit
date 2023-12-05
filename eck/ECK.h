@@ -136,21 +136,21 @@ constexpr inline PCWSTR MSG_INERTIALSV = L"Eck.Message.InertialScrollView";
 
 enum class InitStatus
 {
-	Ok = 0,
-	RegWndClassError = 1,
-	GdiplusInitError = 2,
-	WicFactoryError = 3,
-	D2dFactoryError = 4,
-	DxgiDeviceError = 5,
-	DWriteFactoryError = 6,
-	D3dDeviceError = 7
+	Ok,
+	RegWndClassError,
+	GdiplusInitError,
+	WicFactoryError,
+	D2dFactoryError,
+	DxgiDeviceError,
+	DWriteFactoryError,
+	D3dDeviceError
 };
 
 /// <summary>
 /// 初始化ECK Lib
 /// </summary>
 /// <param name="hInstance">实例句柄，所有自定义窗口类将在此实例上注册</param>
-/// <param name="pdwErrCode">接收错误码变量的可选指针；若未发生错误，则不修改此指针指向的内容</param>
+/// <param name="pdwErrCode">接收错误码变量的可选指针</param>
 /// <returns>错误代码</returns>
 InitStatus Init(HINSTANCE hInstance, DWORD* pdwErrCode = NULL);
 ECK_NAMESPACE_END

@@ -445,6 +445,14 @@ public:
 	}
 };
 
+struct CMAllocDeleter
+{
+	void operator()(void* p) const
+	{
+		free(p);
+	}
+};
+
 /// <summary>
 /// 计算下一对齐边界
 /// </summary>
@@ -779,5 +787,148 @@ EckInline constexpr GpRectF ToGpRectF(const RECT& rc)
 EckInline constexpr HRESULT HResultFromBool(BOOL b)
 {
 	return b ? S_OK : S_FALSE;
+}
+
+inline CRefStrW NumToHanZiDaXie(PCWSTR pszNum, int cch = -1)
+{
+	constexpr PCWSTR c_pszDaXie[]{ L"壹",L"贰",L"叁",L"肆",L"伍",L"陆",L"柒",L"捌",L"玖",L"拾",L"佰",L"仟" };
+	if (cch < 0)
+		cch = (int)wcslen(pszNum);
+	if (!cch)
+		return {};
+	CRefStrW rs(cch + 10);
+	auto psz = pszNum + cch - 1;
+	while (psz > pszNum)
+	{
+		if (*psz == L'.')
+			break;
+		--psz;
+	}
+	if (psz == pszNum)
+		return {};
+
+	const int cInt = (int)(psz < pszNum ? cch : psz - pszNum);
+	psz = pszNum + cch - 1;
+	struct SEG
+	{
+		PWSTR pszResult;
+	};
+	const int cSeg = (cInt - 1) / 4 + 1;
+	constexpr int c_SegBuf = 10;
+	auto pszBuf = (PWSTR)_malloca(cSeg * c_SegBuf * sizeof(WCHAR));
+	auto pSeg = (SEG*)_malloca(sizeof(SEG) * cSeg);
+	EckAssert(pszBuf);
+	EckAssert(pSeg);
+	EckCounter(cSeg, i)
+	{
+		auto pOrg = psz - 4 * (i + 1);
+		auto p = pszBuf + c_SegBuf * i;
+		int j = 0;
+		for (auto pTemp = pOrg; pTemp < pTemp + 4; ++pTemp, ++j)
+		{
+			if (*pTemp != L'0')
+			{
+				*p = *c_pszDaXie[*pTemp];
+				++p;
+				if (j == 0)
+				{
+					*p = L'万';
+					++p;
+				}
+				else if (j == 1)
+				{
+					*p = L'仟';
+					++p;
+				}
+				else if (j == 2)
+				{
+					*p = L'佰';
+					++p;
+				}
+			}
+			else if (j != 0 && j != 3)
+			{
+				*p = L'零';
+				++p;
+			}
+		}
+	}
+
+
+	_freea(pSeg);
+	_freea(pszBuf);
+}
+
+inline CRefStrW GetClipboardString(HWND hWnd = NULL)
+{
+	if (!OpenClipboard(hWnd))
+	{
+		EckDbgPrintFmt(L"剪贴板打开失败，当前所有者 = %p", GetClipboardOwner());
+		return {};
+	}
+	if (IsClipboardFormatAvailable(CF_UNICODETEXT))
+	{
+		const HANDLE hData = GetClipboardData(CF_UNICODETEXT);
+		if (hData)
+		{
+			const void* pData = GlobalLock(hData);
+			if (pData)
+			{
+				const auto cb = GlobalSize(hData);
+				const int cch = (int)(cb / sizeof(WCHAR));
+				CRefStrW rs(cch);
+				memcpy(rs.Data(), pData, cch * sizeof(WCHAR));
+				GlobalUnlock(hData);
+				CloseClipboard();
+				return rs;
+			}
+		}
+	}
+	CloseClipboard();
+	return {};
+}
+
+inline BOOL SetClipboardString(PCWSTR pszText, int cch = -1, HWND hWnd = NULL)
+{
+	if (!OpenClipboard(hWnd))
+	{
+		EckDbgPrintFmt(L"剪贴板打开失败，当前所有者 = %p", GetClipboardOwner());
+		return FALSE;
+	}
+	EmptyClipboard();
+	if (cch < 0)
+		cch = (int)wcslen(pszText);
+	const SIZE_T cb = Cch2Cb(cch);
+	
+	HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, cb);
+	if (hGlobal)
+	{
+		void* pData = GlobalLock(hGlobal);
+		if (pData)
+		{
+			memcpy(pData, pszText, cb);
+			GlobalUnlock(hGlobal);
+			SetClipboardData(CF_UNICODETEXT, hGlobal);
+			CloseClipboard();
+			return TRUE;
+		}
+	}
+	CloseClipboard();
+	return FALSE;
+}
+
+template<class T>
+EckInline T Abs(T x)
+{
+	if (x >= 0) return x;
+	else return -x;
+}
+
+template<class T>
+EckInline T SetSign(T x, T iSign)
+{
+	if (iSign > 0) return Abs(x);
+	if (iSign < 0) return -Abs(x);
+	else return x;
 }
 ECK_NAMESPACE_END
