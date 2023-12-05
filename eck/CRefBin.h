@@ -88,7 +88,7 @@ public:
 	explicit CRefBinT(size_t cb)
 	{
 		m_cb = cb;
-		m_cbCapacity = TAllocTraits::MakeCapacity(cb);
+		m_cbCapacity = cb;
 		m_pStream = m_Alloc.allocate(m_cbCapacity);
 	}
 
