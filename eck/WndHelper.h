@@ -107,21 +107,6 @@ EckInline void DpiScale(RECT& rc, int iDpi)
 	DpiScale(rc, iDpi, USER_DEFAULT_SCREEN_DPI);
 }
 
-EckInline void SetPrevDpiProp(HWND hWnd, int iDpi)
-{
-	SetPropW(hWnd, PROP_PREVDPI, i32ToP<HANDLE>(iDpi));
-}
-
-EckInline int GetPrevDpiProp(HWND hWnd)
-{
-	return pToI32<int>(GetPropW(hWnd, PROP_PREVDPI));
-}
-
-EckInline void RemovePrevDpiProp(HWND hWnd)
-{
-	RemovePropW(hWnd, PROP_PREVDPI);
-}
-
 /// <summary>
 /// 创建字体
 /// </summary>
@@ -273,4 +258,11 @@ EckInline void UpdateDpiSizeF(T& Dpis, int iDpi)
 HWND GetThreadFirstWindow(DWORD dwTid);
 
 HWND GetSafeOwner(HWND hParent, HWND* phWndTop);
+
+EckInline WNDPROC GetClassWndProc(HINSTANCE hInstance, PCWSTR pszClass)
+{
+	WNDCLASSEXW wcex{ sizeof(wcex) };
+	GetClassInfoExW(hInstance, pszClass, &wcex);
+	return wcex.lpfnWndProc;
+}
 ECK_NAMESPACE_END

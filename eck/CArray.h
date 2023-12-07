@@ -212,6 +212,7 @@ public:
 
 	~CArray()
 	{
+		std::destroy(begin(), end());
 		m_Alloc.deallocate(m_pMem, m_cCapacity);
 	}
 

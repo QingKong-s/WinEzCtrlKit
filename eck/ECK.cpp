@@ -24,23 +24,40 @@ IDXGIDevice1* g_pDxgiDevice = NULL;
 IDXGIFactory2* g_pDxgiFactory = NULL;
 
 
+DWORD g_dwTlsSlot = 0;
+
+static BOOL DefMsgFilter(const MSG*)
+{
+	return FALSE;
+}
+FMsgFilter g_pfnMsgFilter = DefMsgFilter;
+
 #ifdef _DEBUG
-void CALLBACK GdiplusDebug(GpDebugEventLevel dwLevel, CHAR* pszMsg)
+static void CALLBACK GdiplusDebug(GpDebugEventLevel dwLevel, CHAR* pszMsg)
 {
 	DbgPrint(StrX2W(pszMsg).Data());
 	if (dwLevel == DebugEventLevelFatal)
 		DebugBreak();
 }
-#endif,
+#endif
 
-InitStatus Init(HINSTANCE hInstance, DWORD* pdwErrCode)
+InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrCode)
 {
+	EckAssert(!g_hInstance && !g_dwTlsSlot);
 	DWORD dwTemp;
 	if (!pdwErrCode)
 		pdwErrCode = &dwTemp;
+	INITPARAM ip{};
+	if (!pInitParam)
+		pInitParam = &ip;
 	*pdwErrCode = 0;
 
+	g_dwTlsSlot = TlsAlloc();
 	g_hInstance = hInstance;
+
+	if (!IsBitSet(pInitParam->uFlags, ECKINIT_NOINITTHREAD))
+		ThreadInit();
+
 	GdiplusStartupInput gpsi{};
 	gpsi.GdiplusVersion = 1;
 #ifdef _DEBUG
@@ -60,14 +77,7 @@ InitStatus Init(HINSTANCE hInstance, DWORD* pdwErrCode)
 		return InitStatus::RegWndClassError;
 	}
 
-	if (!CColorPicker::RegisterWndClass(hInstance))
-	{
-		*pdwErrCode = GetLastError();
-		EckDbgPrintFormatMessage(*pdwErrCode);
-		return InitStatus::RegWndClassError;
-	}
-
-	if (!CBk::RegisterWndClass(hInstance))
+	if (!CBk::RegisterWndClass())
 	{
 		*pdwErrCode = GetLastError();
 		EckDbgPrintFormatMessage(*pdwErrCode);
@@ -118,9 +128,9 @@ InitStatus Init(HINSTANCE hInstance, DWORD* pdwErrCode)
 #ifndef NDEBUG
 	D2D1_FACTORY_OPTIONS D2DFactoryOptions;
 	D2DFactoryOptions.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
-	hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory1), &D2DFactoryOptions, (void**)&g_pD2dFactory);
+	hr = D2D1CreateFactory(pInitParam->uD2dFactoryType, __uuidof(ID2D1Factory1), &D2DFactoryOptions, (void**)&g_pD2dFactory);
 #else
-	hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, IID_PPV_ARGS(&g_pD2dFactory));
+	hr = D2D1CreateFactory(pInitParam->uD2dFactoryType, IID_PPV_ARGS(&g_pD2dFactory));
 #endif // !NDEBUG
 	if (FAILED(hr))
 	{
@@ -129,7 +139,7 @@ InitStatus Init(HINSTANCE hInstance, DWORD* pdwErrCode)
 		return InitStatus::D2dFactoryError;
 	}
 	//////////////创建DWrite工厂
-	hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), (IUnknown**)&g_pDwFactory);
+	hr = DWriteCreateFactory(pInitParam->uDWriteFactoryType, __uuidof(IDWriteFactory), (IUnknown**)&g_pDwFactory);
 	if (FAILED(hr))
 	{
 		*pdwErrCode = hr;
@@ -137,22 +147,14 @@ InitStatus Init(HINSTANCE hInstance, DWORD* pdwErrCode)
 		return InitStatus::DWriteFactoryError;
 	}
 	//////////////创建DXGI工厂
-	constexpr D3D_FEATURE_LEVEL uFeatureLevel[]
-	{
-		D3D_FEATURE_LEVEL_11_1,
-		D3D_FEATURE_LEVEL_11_0,
-		D3D_FEATURE_LEVEL_10_1,
-		D3D_FEATURE_LEVEL_10_0,
-		D3D_FEATURE_LEVEL_9_3,
-		D3D_FEATURE_LEVEL_9_2,
-		D3D_FEATURE_LEVEL_9_1
-	};
+
 	ID3D11Device* pD3DDevice;
 	hr = D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, D3D11_CREATE_DEVICE_BGRA_SUPPORT
 #ifndef NDEBUG
 		| D3D11_CREATE_DEVICE_DEBUG
 #endif // !NDEBUG
-		, uFeatureLevel, ARRAYSIZE(uFeatureLevel), D3D11_SDK_VERSION, &pD3DDevice, NULL, NULL);
+		, pInitParam->pD3dFeatureLevel, pInitParam->cD3dFeatureLevel,
+		D3D11_SDK_VERSION, &pD3DDevice, NULL, NULL);
 	if (FAILED(hr))
 	{
 		*pdwErrCode = hr;
@@ -185,4 +187,79 @@ InitStatus Init(HINSTANCE hInstance, DWORD* pdwErrCode)
 
 	return InitStatus::Ok;
 }
+
+DWORD GetThreadCtxTlsSlot()
+{
+	return g_dwTlsSlot;
+}
+
+void ThreadInit()
+{
+	EckAssert(!TlsGetValue(GetThreadCtxTlsSlot()));
+	auto p = new ECKTREADCTX{};
+	TlsSetValue(GetThreadCtxTlsSlot(), p);
+}
+
+void ThreadFree()
+{
+	EckAssert(TlsGetValue(GetThreadCtxTlsSlot()));
+	auto p = (ECKTREADCTX*)TlsGetValue(GetThreadCtxTlsSlot());
+	delete p;
+	TlsSetValue(GetThreadCtxTlsSlot(), NULL);
+}
+
+HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc)
+{
+	EckAssert(pCurrWnd);
+	auto pCtx = GetThreadCtx();
+	pCtx->pCurrWnd = pCurrWnd;
+	pCtx->pfnWndCreatingProc = pfnCreatingProc;
+	if (!pCtx->hhkTempCBT)
+	{
+		HHOOK hHook = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
+			{
+				auto pCtx = GetThreadCtx();
+				if (iCode == HCBT_CREATEWND)
+				{
+					pCtx->pCurrWnd->EnableNotifyReflection();
+					pCtx->hmWnd.insert(std::make_pair((HWND)wParam, pCtx->pCurrWnd));
+					if (pCtx->pfnWndCreatingProc)
+						pCtx->pfnWndCreatingProc((HWND)wParam, (CBT_CREATEWNDW*)lParam, pCtx);
+				}
+				return CallNextHookEx(pCtx->hhkTempCBT, iCode, wParam, lParam);
+			}, NULL, GetCurrentThreadId());
+		pCtx->hhkTempCBT = hHook;
+	}
+	return pCtx->hhkTempCBT;
+}
+
+void EndCbtHook()
+{
+	auto pCtx = GetThreadCtx();
+	EckAssert(pCtx->hhkTempCBT);
+	UnhookWindowsHookEx(pCtx->hhkTempCBT);
+	pCtx->hhkTempCBT = NULL;
+}
+
+BOOL PreTranslateMessage(const MSG* pMsg)
+{
+	if (g_pfnMsgFilter(pMsg))
+		return TRUE;
+	HWND hWnd = pMsg->hwnd;
+	CWnd* pWnd;
+	while (hWnd)
+	{
+		pWnd = CWndFromHWND(hWnd);
+		if (pWnd && pWnd->PreTranslateMessage(pMsg))
+			return TRUE;
+		hWnd = GetParent(hWnd);
+	}
+	return FALSE;
+}
+
+void SetMsgFilter(FMsgFilter pfnFilter)
+{
+	g_pfnMsgFilter = pfnFilter;
+}
+
 ECK_NAMESPACE_END

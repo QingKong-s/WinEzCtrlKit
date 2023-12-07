@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "CEdit.h"
 #include "CSubclassMgr.h"
 
@@ -27,7 +27,7 @@ public:
 		Normal = 0,
 		ReadOnly = 1,
 		Password = 2,
-		NeedFilterKey = 2,// �����ڲ�ʹ��
+		NeedFilterKey = 2,// 仅供内部使用
 		IntText = 3,
 		RealText = 4,
 		Byte = 5,
@@ -42,18 +42,18 @@ private:
 	SUBCLASS_MGR_DECL(CEditExt);
 	SUBCLASS_REF_MGR_DECL(CEditExt, ObjRecorderRefPlaceholder);
 private:
-	COLORREF m_crText;			// �ı���ɫ
-	COLORREF m_crTextBK;		// �ı�����ɫ
-	COLORREF m_crBK;			// �༭�򱳾�ɫ
-	InputMode m_iInputMode = InputMode::Normal;	// ���뷽ʽ
-	BITBOOL m_bMultiLine : 1 = FALSE;			// ����
-	BITBOOL m_bAutoWrap : 1 = TRUE;				// �Զ�����
-	WCHAR m_chMask = 0;			// �����ַ�
+	COLORREF m_crText;			// 文本颜色
+	COLORREF m_crTextBK;		// 文本背景色
+	COLORREF m_crBK;			// 编辑框背景色
+	InputMode m_iInputMode = InputMode::Normal;	// 输入方式
+	BITBOOL m_bMultiLine : 1 = FALSE;			// 多行
+	BITBOOL m_bAutoWrap : 1 = TRUE;				// 自动换行
+	WCHAR m_chMask = 0;			// 掩码字符
 
-	HBRUSH m_hbrEditBK = NULL;	// ������ˢ
-	int m_cyText = 0;			// �ı��߶�
-	RECT m_rcMargins{};			// �߾�
-	HWND m_hParent = NULL;		// ������
+	HBRUSH m_hbrEditBK = NULL;	// 背景画刷
+	int m_cyText = 0;			// 文本高度
+	RECT m_rcMargins{};			// 边距
+	HWND m_hParent = NULL;		// 父窗口
 
 	void UpdateTextInfo();
 
@@ -77,19 +77,35 @@ public:
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override;
 
-	CRefBin SerializeData(SIZE_T cbExtra = 0, SIZE_T* pcbSize = NULL) override;
+	void SerializeData(CRefBin& rb) override
+	{
+		const SIZE_T cbSize = sizeof(CREATEDATA_EDITEXT);
+		CEdit::SerializeData(rb);
+		((CREATEDATA_EDIT*)CWnd::SkipBaseData(rb.Data()))->chPassword = GetPasswordChar();
+
+		CMemWriter w(rb.PushBack(cbSize), cbSize);
+		CREATEDATA_EDITEXT* p;
+		w.SkipPointer(p);
+		p->iVer = DATAVER_EDITEXT_1;
+		p->crText = GetClr(0);
+		p->crTextBK = GetClr(1);
+		p->crBK = GetClr(2);
+		p->iInputMode = (ECKENUM)GetInputMode();
+		p->bMultiLine = GetMultiLine();
+		p->bAutoWrap = GetAutoWrap();
+	}
 
 	/// <summary>
-	/// ����ɫ
+	/// 置颜色
 	/// </summary>
-	/// <param name="iType">0 - �ı�  1 - �ı�����  2 - ����</param>
-	/// <param name="cr">��ɫ</param>
+	/// <param name="iType">0 - 文本  1 - 文本背景  2 - 背景</param>
+	/// <param name="cr">颜色</param>
 	void SetClr(int iType, COLORREF cr);
 
 	/// <summary>
-	/// ȡ��ɫ
+	/// 取颜色
 	/// </summary>
-	/// <param name="iType">0 - �ı�  1 - �ı�����  2 - ����</param>
+	/// <param name="iType">0 - 文本  1 - 文本背景  2 - 背景</param>
 	EckInline COLORREF GetClr(int iType)
 	{
 		switch (iType)

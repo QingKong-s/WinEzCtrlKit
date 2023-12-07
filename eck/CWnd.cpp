@@ -3,52 +3,10 @@
 #include "CRefBin.h"
 
 ECK_NAMESPACE_BEGIN
-HWND CWnd::Manage(ManageOp iType, HWND hWnd)
-{
-	switch (iType)
-	{
-	case ManageOp::Attach:
-		return DefAttach(hWnd);
-
-	case ManageOp::Detach:
-		return DefAttach(NULL);
-
-	case ManageOp::ChangeParent:
-		EckDbgBreak();
-		return NULL;
-
-	case ManageOp::Bind:
-		DefAttach(hWnd);
-		return (HWND)TRUE;
-	}
-	EckDbgBreak();
-	return NULL;
-}
-
-CRefBin CWnd::SerializeData(SIZE_T cbExtra, SIZE_T* pcbSize)
-{
-	CRefStrW rsText = GetText();
-	const SIZE_T cbSize = sizeof(CREATEDATA_STD) + rsText.ByteSize();
-	if (pcbSize)
-		*pcbSize = cbSize;
-
-	CRefBin rb(cbSize + cbExtra);
-	CMemWriter w(rb.Data(), cbSize);
-
-	CREATEDATA_STD* p;
-	w.SkipPointer(p);
-	p->iVer_Std = DATAVER_STD_1;
-	p->cchText = rsText.Size();
-	p->dwStyle = GetStyle();
-	p->dwExStyle = GetExStyle();
-
-	w << rsText;
-	return rb;
-}
-
 HWND CWnd::ReCreate(EckOpt(DWORD, dwNewStyle), EckOpt(DWORD, dwNewExStyle), EckOpt(RECT, rcPos))
 {
-	auto rb = SerializeData();
+	CRefBin rb{};
+	SerializeData(rb);
 	HWND hParent = GetParent(m_hWnd);
 	int iID = GetDlgCtrlID(m_hWnd);
 

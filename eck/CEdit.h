@@ -1,7 +1,7 @@
-/*
+﻿/*
 * WinEzCtrlKit Library
 *
-* CEdit.h �� ��׼�༭��
+* CEdit.h ： 标准编辑框
 *
 * Copyright(C) 2023 QingKong
 */
@@ -42,7 +42,7 @@ struct CREATEDATA_EDIT
 class CEdit :public CWnd
 {
 protected:
-	// Ĭ����ʾ������������ȣ�������βNULL
+	// 默认提示横幅缓冲区长度，不含结尾NULL
 	constexpr static int c_cchMaxCueBanner = 260;
 public:
 	enum class TransMode
@@ -58,7 +58,25 @@ public:
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override;
 
-	CRefBin SerializeData(SIZE_T cbExtra = 0, SIZE_T* pcbSize = NULL) override;
+	void SerializeData(CRefBin& rb) override
+	{
+		auto rsCueBanner = GetCueBanner();
+		const SIZE_T cbSize = sizeof(CREATEDATA_EDIT) + rsCueBanner.ByteSize();
+		CWnd::SerializeData(rb);
+		CMemWriter w(rb.PushBack(cbSize), cbSize);
+		CREATEDATA_EDIT* p;
+		w.SkipPointer(p);
+		p->iVer = DATAVER_EDIT_1;
+
+		p->chPassword = GetPasswordChar();
+		p->eTransMode = (ECKENUM)GetTransformMode();
+		GetSel(&p->iSelStart, &p->iSelEnd);
+		GetMargins(&p->iLeftMargin, &p->iRightMargin);
+		p->cchCueBanner = rsCueBanner.Size();
+		p->cchMax = GetLimitText();
+
+		w << rsCueBanner;
+	}
 
 	EckInline static PCVOID SkipBaseData(PCVOID p)
 	{
@@ -73,11 +91,11 @@ public:
 	}
 
 	/// <summary>
-	/// ȡ���괦�ַ�
+	/// 取坐标处字符
 	/// </summary>
-	/// <param name="pt">���꣬��Կͻ���</param>
-	/// <param name="piPosInLine">��������λ�ñ�������ΪNULL��ʧ������Ϊ-1</param>
-	/// <returns>�����ַ�λ�ã�ʧ�ܷ���-1</returns>
+	/// <param name="pt">坐标，相对客户区</param>
+	/// <param name="piPosInLine">接收行中位置变量，可为NULL，失败设置为-1</param>
+	/// <returns>返回字符位置，失败返回-1</returns>
 	int CharFromPos(POINT pt, int* piPosInLine = NULL);
 
 	EckInline void EmptyUndoBuffer()
@@ -101,20 +119,20 @@ public:
 	}
 
 	/// <summary>
-	/// ȡ��ʾ���
+	/// 取提示横幅
 	/// </summary>
-	/// <param name="pszBuf">������ָ��</param>
-	/// <param name="cchBuf">��������С��������βNULL</param>
-	/// <returns>�ɹ�����TRUE��ʧ�ܷ���FALSE</returns>
+	/// <param name="pszBuf">缓冲区指针</param>
+	/// <param name="cchBuf">缓冲区大小，不含结尾NULL</param>
+	/// <returns>成功返回TRUE，失败返回FALSE</returns>
 	EckInline BOOL GetCueBanner(PWSTR pszBuf, int cchBuf)
 	{
 		return (BOOL)SendMsg(EM_GETCUEBANNER, (WPARAM)pszBuf, cchBuf + 1);
 	}
 
 	/// <summary>
-	/// ȡ��һ�ɼ���
+	/// 取第一可见行
 	/// </summary>
-	/// <returns>���У����������������У����ص�һ���ɼ��ַ�����</returns>
+	/// <returns>多行：返回行索引，单行：返回第一个可见字符索引</returns>
 	EckInline int GetFirstVisibleLine()
 	{
 		return (int)SendMsg(EM_GETFIRSTVISIBLELINE, 0, 0);
@@ -136,10 +154,10 @@ public:
 	}
 
 	/// <summary>
-	/// ȡĳ���ı�
+	/// 取某行文本
 	/// </summary>
-	/// <param name="iPos">�����ַ�λ��</param>
-	/// <returns>�ı�</returns>
+	/// <param name="iPos">行中字符位置</param>
+	/// <returns>文本</returns>
 	CRefStrW GetLine(int iPos);
 
 	int GetLine(int idxLine, PWSTR pszBuf, int cchMax)
@@ -192,9 +210,9 @@ public:
 	}
 
 	/// <summary>
-	/// ȡ��ֱ������λ��
+	/// 取垂直滚动条位置
 	/// </summary>
-	/// <returns>λ��</returns>
+	/// <returns>位置</returns>
 	EckInline int GetThumb()
 	{
 		return (int)SendMsg(EM_GETTHUMB, 0, 0);
@@ -211,30 +229,30 @@ public:
 	}
 
 	/// <summary>
-	/// �ַ�λ�õ�����
+	/// 字符位置到行数
 	/// </summary>
-	/// <param name="iPos">�ַ�����������Ϊ-1�򷵻ص�ǰ��������У����߷���ѡ�����������У�����У�</param>
-	/// <returns>����������</returns>
+	/// <param name="iPos">字符索引，若设为-1则返回当前光标所在行，或者返回选定内容所在行（如果有）</param>
+	/// <returns>返回行索引</returns>
 	EckInline int LineFromChar(int iPos)
 	{
 		return (int)SendMsg(EM_LINEFROMCHAR, iPos, 0);
 	}
 
 	/// <summary>
-	/// ȡĳ�е�һ�ַ�λ��
+	/// 取某行第一字符位置
 	/// </summary>
-	/// <param name="iLine">������������Ϊ-1��ָ����ǰ���������</param>
-	/// <returns>����һ�еĵ�һ���ַ�������</returns>
+	/// <param name="iLine">行索引，若设为-1则指定当前光标所在行</param>
+	/// <returns>返回一行的第一个字符的索引</returns>
 	EckInline int LineIndex(int iLine)
 	{
 		return (int)SendMsg(EM_LINEINDEX, iLine, 0);
 	}
 
 	/// <summary>
-	/// ȡĳ�г���
+	/// 取某行长度
 	/// </summary>
-	/// <param name="iPos">�����ַ�λ��</param>
-	/// <returns>���س��ȣ�ʧ�ܷ���0</returns>
+	/// <param name="iPos">行中字符位置</param>
+	/// <returns>返回长度，失败返回0</returns>
 	EckInline int LineLength(int iPos)
 	{
 		return (int)SendMsg(EM_LINELENGTH, iPos, 0);
@@ -260,10 +278,10 @@ public:
 	}
 
 	/// <summary>
-	/// ����
+	/// 滚动
 	/// </summary>
-	/// <param name="iOp">������������ѡ����ֵ��SB_LINEDOWN��SB_LINEUP��SB_PAGEDOWN��SB_PAGEUP</param>
-	/// <returns>�ɹ�����TRUE</returns>
+	/// <param name="iOp">滚动操作，可选常量值：SB_LINEDOWN、SB_LINEUP、SB_PAGEDOWN、SB_PAGEUP</param>
+	/// <returns>成功返回TRUE</returns>
 	EckInline BOOL Scroll(int iOp)
 	{
 		return HIWORD(SendMsg(EM_SCROLL, iOp, 0));
@@ -330,10 +348,10 @@ public:
 	}
 
 	/// <summary>
-	/// ���Ʊ�λ
+	/// 置制表位
 	/// </summary>
-	/// <param name="piTabStop">�Ʊ�λ����</param>
-	/// <param name="c">����Ԫ��������Ϊ0������Ĭ���Ʊ�λ</param>
+	/// <param name="piTabStop">制表位数组</param>
+	/// <param name="c">数组元素数，若为0则设置默认制表位</param>
 	EckInline void SetTabStop(int* piTabStop, int c)
 	{
 		SendMsg(EM_SETTABSTOPS, c, (LPARAM)piTabStop);
@@ -345,12 +363,12 @@ public:
 	}
 
 	/// <summary>
-	/// ����������ʾ
+	/// 弹出气球提示
 	/// </summary>
-	/// <param name="pszCaption">����</param>
-	/// <param name="pszContent">�ı�</param>
-	/// <param name="iIcon">ͼ�����ͣ�TTI_����</param>
-	/// <returns>�ɹ�����TRUE</returns>
+	/// <param name="pszCaption">标题</param>
+	/// <param name="pszContent">文本</param>
+	/// <param name="iIcon">图标类型，TTI_常量</param>
+	/// <returns>成功返回TRUE</returns>
 	EckInline BOOL ShowBalloonTip(PCWSTR pszCaption, PCWSTR pszContent, int iIcon)
 	{
 		EDITBALLOONTIP ebt;
@@ -446,10 +464,10 @@ public:
 	TransMode GetTransformMode();
 
 	/// <summary>
-	/// ��ʧȥ����ʱ����ѡ��
-	/// ��Ҫ���´����ؼ�
+	/// 置失去焦点时隐藏选择。
+	/// 需要重新创建控件
 	/// </summary>
-	/// <param name="bHideSel">�Ƿ�����</param>
+	/// <param name="bHideSel">是否隐藏</param>
 	/// <returns></returns>
 	EckInline void SetHideSel(BOOL bHideSel)
 	{
@@ -462,8 +480,8 @@ public:
 	}
 
 	/// <summary>
-	/// �ö��롣
-	/// ��Ҫ���´����ؼ�
+	/// 置对齐。
+	/// 需要重新创建控件
 	/// </summary>
 	/// <param name="iAlign"></param>
 	/// <returns></returns>

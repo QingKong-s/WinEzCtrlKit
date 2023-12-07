@@ -1,7 +1,7 @@
-/*
+﻿/*
 * WinEzCtrlKit Library
 *
-* CBk.h �� ͨ�ÿհ״���
+* CBk.h ： 通用空白窗口
 *
 * Copyright(C) 2023 QingKong
 */
@@ -11,15 +11,23 @@
 ECK_NAMESPACE_BEGIN
 class CBk :public CWnd
 {
-protected:
-	static ATOM m_atomBK;
 public:
-	static ATOM RegisterWndClass(HINSTANCE hInstance);
+	static ATOM RegisterWndClass()
+	{
+		WNDCLASSW wc{};
+		wc.cbWndExtra = sizeof(void*) * 4;
+		wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
+		wc.hInstance = g_hInstance;
+		wc.lpfnWndProc = DefWindowProcW;
+		wc.lpszClassName = WCN_BK;
+		wc.style = CS_DBLCLKS | CS_PARENTDC;
+		return RegisterClassW(&wc);
+	}
 
 	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
 	{
-		m_hWnd = CreateWindowExW(dwExStyle, WCN_BK, pszText, dwStyle,
+		m_hWnd = IntCreate(dwExStyle, WCN_BK, pszText, dwStyle,
 			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), g_hInstance, NULL);
 		return m_hWnd;
 	}

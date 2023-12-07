@@ -1,7 +1,6 @@
 ﻿#include "CLabel.h"
 
 ECK_NAMESPACE_BEGIN
-WND_RECORDER_INIT(CLabel)
 ATOM CLabel::m_atomLabel = 0;
 
 
@@ -505,7 +504,6 @@ LRESULT CALLBACK CLabel::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 	case WM_DESTROY:
 	{
-		m_Recorder.DeleteRecord(hWnd);
 		SelectObject(p->m_hCDC, p->m_hOld1);
 		SelectObject(p->m_hcdcHelper, p->m_hOld2);
 		DeleteDC(p->m_hCDC);

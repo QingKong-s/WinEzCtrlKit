@@ -153,6 +153,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CTestWnd.h" />
     <ClInclude Include="eck\CAllocator.h" />
     <ClInclude Include="eck\CArray.h" />
     <ClInclude Include="eck\CBk.h" />
@@ -202,7 +203,6 @@
     <ClInclude Include="eck\CTreeView.h" />
     <ClInclude Include="eck\CUpDown.h" />
     <ClInclude Include="eck\CWnd.h" />
-    <ClInclude Include="eck\CWndSizer.h" />
     <ClInclude Include="eck\DbgHelper.h" />
     <ClInclude Include="eck\DesignerDef.h" />
     <ClInclude Include="eck\DlgHelper.h" />
@@ -221,10 +221,7 @@
     <ClInclude Include="Win32Template.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="eck\CBk.cpp" />
-    <ClCompile Include="eck\CButton.cpp" />
     <ClCompile Include="eck\CChartPie.cpp" />
-    <ClCompile Include="eck\CColorPicker.cpp" />
     <ClCompile Include="eck\CCommDlg.cpp" />
     <ClCompile Include="eck\CDialog.cpp" />
     <ClCompile Include="eck\CDirBox.cpp" />

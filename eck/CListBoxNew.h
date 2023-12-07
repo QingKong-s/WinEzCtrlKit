@@ -142,8 +142,8 @@ private:
 		m_DC.Create(hWnd);
 		SetBkMode(m_DC.GetDC(), TRANSPARENT);
 
-		m_SBH.Manage(eck::CWnd::ManageOp::Attach, hWnd);
-		m_SBV.Manage(eck::CWnd::ManageOp::Attach, hWnd);
+		m_SBH.Attach(hWnd);
+		m_SBV.Attach(hWnd);
 		return TRUE;
 	}
 

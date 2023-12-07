@@ -39,9 +39,9 @@ struct CREATEDATA_STD
 #ifdef ECK_CTRL_DESIGN_INTERFACE
 struct DESIGNDATA_WND
 {
+	CRefStrW rsName;
 	BITBOOL bVisible : 1;
 	BITBOOL bEnable : 1;
-	CRefStrW rsName;
 };
 #endif
 
@@ -49,6 +49,7 @@ class CWnd
 {
 protected:
 	HWND m_hWnd = NULL;
+	WNDPROC m_pfnRealProc = DefWindowProcW;
 
 	EckInline HWND DefAttach(HWND hWnd)
 	{
@@ -56,22 +57,80 @@ protected:
 		m_hWnd = hWnd;
 		return hOld;
 	}
+
+	static void WndCreatingSetLong(HWND hWnd, CBT_CREATEWNDW* pcs, ECKTREADCTX* pThreadCtx)
+	{
+		SetWindowLongPtrW(hWnd, 0, (LONG_PTR)pThreadCtx->pCurrWnd);
+	}
+
+	EckInline HWND IntCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle, 
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
+		FWndCreating pfnCreatingProc = NULL)
+	{
+		BeginCbtHook(this, pfnCreatingProc);
+		auto hWnd = CreateWindowExW(dwExStyle, pszClass, pszText, dwStyle,
+			x, y, cx, cy, hParent, hMenu, hInst, pParam);
+		EndCbtHook();
+		return hWnd;
+	}
+
+	static LRESULT WndProcNotifyReflection(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		auto p = CWndFromHWND(hWnd);
+		EckAssert(p);
+
+		CWnd* pChild;
+		LRESULT lResult = 0;
+		switch (uMsg)
+		{
+		case WM_NOTIFY:
+			pChild = CWndFromHWND(((NMHDR*)lParam)->hwndFrom);
+			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
+				return lResult;
+			break;
+		case WM_HSCROLL:
+		case WM_VSCROLL:
+		case WM_COMMAND:
+		case WM_CHARTOITEM:
+		case WM_VKEYTOITEM:
+		case WM_CTLCOLORMSGBOX:
+		case WM_CTLCOLOREDIT:
+		case WM_CTLCOLORLISTBOX:
+		case WM_CTLCOLORBTN:
+		case WM_CTLCOLORDLG:
+		case WM_CTLCOLORSCROLLBAR:
+		case WM_CTLCOLORSTATIC:
+			pChild = CWndFromHWND((HWND)lParam);
+			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
+				return lResult;
+			break;
+		case WM_DRAWITEM:
+			pChild = CWndFromHWND(((DRAWITEMSTRUCT*)lParam)->hwndItem);
+			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
+				return lResult;
+			break;
+		case WM_MEASUREITEM:
+			pChild = CWndFromHWND(GetDlgItem(hWnd, ((MEASUREITEMSTRUCT*)lParam)->CtlID));
+			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
+				return lResult;
+			break;
+		case WM_DELETEITEM:
+			pChild = CWndFromHWND(((DELETEITEMSTRUCT*)lParam)->hwndItem);
+			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
+				return lResult;
+			break;
+		case WM_COMPAREITEM:
+			pChild = CWndFromHWND(((COMPAREITEMSTRUCT*)lParam)->hwndItem);
+			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
+				return lResult;
+			break;
+		}
+		return CallWindowProcW(p->m_pfnRealProc, hWnd, uMsg, wParam, lParam);
+	}
 public:
 #ifdef ECK_CTRL_DESIGN_INTERFACE
 	DESIGNDATA_WND m_DDBase{};
 #endif
-	
-	enum class ManageOp
-	{
-		// 依附句柄，返回先前窗口句柄
-		Attach,
-		// 拆离句柄，返回窗口句柄
-		Detach,
-		// 父窗口已更改，不使用返回值
-		ChangeParent,
-		// 修改绑定，成功返回非0，失败返回0
-		Bind
-	};
 
 	CWnd()
 	{
@@ -88,7 +147,18 @@ public:
 
 	}
 
-	virtual HWND Manage(ManageOp iType, HWND hWnd);
+	virtual HWND Attach(HWND hWnd)
+	{
+		std::swap(m_hWnd, hWnd);
+		return hWnd;
+	}
+
+	virtual HWND Detach()
+	{
+		auto t = m_hWnd;
+		m_hWnd = NULL;
+		return t;
+	}
 
 	virtual HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
@@ -97,7 +167,43 @@ public:
 		return NULL;
 	}
 
-	virtual CRefBin SerializeData(SIZE_T cbExtra = 0, SIZE_T* pcbSize = NULL);
+	virtual void SerializeData(CRefBin& rb)
+	{
+		CRefStrW rsText = GetText();
+		const SIZE_T cbSize = sizeof(CREATEDATA_STD) + rsText.ByteSize();
+		CMemWriter w(rb.PushBack(cbSize), cbSize);
+		CREATEDATA_STD* p;
+		w.SkipPointer(p);
+		p->iVer_Std = DATAVER_STD_1;
+		p->cchText = rsText.Size();
+		p->dwStyle = GetStyle();
+		p->dwExStyle = GetExStyle();
+
+		w << rsText;
+	}
+
+	virtual BOOL PreTranslateMessage(const MSG* pMsg)
+	{
+		return FALSE;
+	}
+
+	/// <summary>
+	/// 父窗口通知类消息映射。
+	/// 父窗口接收到的通知消息将路由到本方法，一般情况下无需手动调用本方法。
+	/// 路由的消息有以下四种：自定义绘制系列（WM_XxxITEM）、
+	/// 标准通知系列（WM_COMMAND、WM_NOTIFY）、着色系列（WM_CTLCOLORXxx）、
+	/// 滚动条系列（WM_VSCROLL、WM_HSCROLL）
+	/// </summary>
+	/// <param name="hParent">父窗口句柄</param>
+	/// <param name="uMsg">消息</param>
+	/// <param name="wParam">wParam</param>
+	/// <param name="lParam">lParam</param>
+	/// <param name="lResult">消息返回值，调用本方法前保证其为0，仅当本方法返回TRUE时有效</param>
+	/// <returns>若返回TRUE，则不再将当前消息交由父窗口处理</returns>
+	EckInline virtual BOOL OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult)
+	{
+		return FALSE;
+	}
 
 	EckInline static PCVOID SkipBaseData(PCVOID p)
 	{
@@ -108,19 +214,27 @@ public:
 
 	HWND ReCreate(EckOptNul(DWORD, dwNewStyle), EckOptNul(DWORD, dwNewExStyle), EckOptNul(RECT, rcPos));
 
-	EckInline HWND GetHWND() const
+	/// <summary>
+	/// 启用通知类消息路由
+	/// </summary>
+	EckInline WNDPROC EnableNotifyReflection()
 	{
-		return m_hWnd;
+		auto pfnRealProc = (WNDPROC)SetLong(GWLP_WNDPROC, (LONG_PTR)WndProcNotifyReflection);
+		std::swap(pfnRealProc, m_pfnRealProc);
+		return pfnRealProc;
 	}
+
+	EckInline HWND GetHWND() const { return m_hWnd; }
 
 	EckInline void FrameChanged() const
 	{
-		SetWindowPos(m_hWnd, NULL, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+		SetWindowPos(m_hWnd, NULL, 0, 0, 0, 0,
+			SWP_NOZORDER | SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 	}
 
 	EckInline void SetRedraw(BOOL bRedraw) const
 	{
-		SendMessageW(m_hWnd, WM_SETREDRAW, bRedraw, 0);
+		SendMsg(WM_SETREDRAW, bRedraw, 0);
 	}
 
 	EckInline BOOL Redraw() const
@@ -192,6 +306,11 @@ public:
 		return rs;
 	}
 
+	EckInline int GetText(PWSTR pszBuf, int cchBuf) const
+	{
+		GetWindowTextW(m_hWnd, pszBuf, cchBuf);
+	}
+
 	EckInline BOOL SetText(PCWSTR pszText) const
 	{
 		return SetWindowTextW(m_hWnd, pszText);
@@ -232,6 +351,16 @@ public:
 	EckInline BOOL IsVisible() const
 	{
 		return IsWindowVisible(m_hWnd);
+	}
+
+	EckInline LONG_PTR GetLong(int i) const
+	{
+		return GetWindowLongPtrW(m_hWnd, i);
+	}
+
+	EckInline LONG_PTR SetLong(int i, LONG_PTR l) const
+	{
+		return SetWindowLongPtrW(m_hWnd, i, l);
 	}
 };
 

@@ -1,8 +1,8 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* CButton.h £º ±ê×¼°´Å¥
-* °üº¬°´Å¥µÄËùÓĞ±äÌå
+* CButton.h ï¼š æ ‡å‡†æŒ‰é’®
+* åŒ…å«æŒ‰é’®çš„æ‰€æœ‰å˜ä½“
 *
 * Copyright(C) 2023 QingKong
 */
@@ -59,8 +59,8 @@ struct DESIGNDATA_PUSHBUTTON
 #endif
 #pragma pack(pop)
 
-// °´Å¥»ùÀà¡£
-// ÇëÎğÖ±½ÓÊµÀı»¯´ËÀà
+// æŒ‰é’®åŸºç±»ã€‚
+// è¯·å‹¿ç›´æ¥å®ä¾‹åŒ–æ­¤ç±»
 class CButton :public CWnd
 {
 protected:
@@ -71,9 +71,9 @@ public:
 	~CButton() {}
 
 	/// <summary>
-	/// ÖÃÍ¼Æ¬ÎÄ±¾Í¬Ê±ÏÔÊ¾
+	/// ç½®å›¾ç‰‡æ–‡æœ¬åŒæ—¶æ˜¾ç¤º
 	/// </summary>
-	/// <param name="bShowTextAndImage">ÊÇ·ñÍ¬Ê±ÏÔÊ¾</param>
+	/// <param name="bShowTextAndImage">æ˜¯å¦åŒæ—¶æ˜¾ç¤º</param>
 	void SetTextImageShowing(BOOL bShowTextAndImage)
 	{
 		m_bShowTextAndImage = bShowTextAndImage;
@@ -86,27 +86,70 @@ public:
 	}
 
 	/// <summary>
-	/// È¡Í¼Æ¬ÎÄ±¾Í¬Ê±ÏÔÊ¾
+	/// å–å›¾ç‰‡æ–‡æœ¬åŒæ—¶æ˜¾ç¤º
 	/// </summary>
-	/// <returns>ÊÇ·ñÍ¬Ê±ÏÔÊ¾</returns>
-	EckInline BOOL GetTextImageShowing() const
+	/// <returns>æ˜¯å¦åŒæ—¶æ˜¾ç¤º</returns>
+	EckInline BOOL GetTextImageShowing() const { return m_bShowTextAndImage; }
+
+	/// <summary>
+	/// ç½®å¯¹é½
+	/// </summary>
+	/// <param name="bHAlign">æ˜¯å¦æ°´å¹³å¯¹é½</param>
+	/// <param name="iAlign">å¯¹é½ï¼Œå‚è§å±æ€§å®šä¹‰</param>
+	void SetAlign(BOOL bHAlign, Align iAlign)
 	{
-		return m_bShowTextAndImage;
+		DWORD dwStyle = GetStyle();
+		if (bHAlign)
+		{
+			dwStyle &= (~(BS_LEFT | BS_CENTER | BS_RIGHT));
+			switch (iAlign)
+			{
+			case Align::Near: dwStyle |= BS_LEFT; break;
+			case Align::Center: dwStyle |= BS_CENTER; break;
+			case Align::Far: dwStyle |= BS_RIGHT; break;
+			}
+		}
+		else
+		{
+			dwStyle &= (~(BS_TOP | BS_VCENTER | BS_BOTTOM));
+			switch (iAlign)
+			{
+			case Align::Near: dwStyle |= BS_TOP; break;
+			case Align::Center: dwStyle |= BS_VCENTER; break;
+			case Align::Far: dwStyle |= BS_BOTTOM; break;
+			}
+		}
+		SetStyle(dwStyle);
+		Redraw();
 	}
 
 	/// <summary>
-	/// ÖÃ¶ÔÆë
+	/// å–å¯¹é½
 	/// </summary>
-	/// <param name="bHAlign">ÊÇ·ñË®Æ½¶ÔÆë</param>
-	/// <param name="iAlign">¶ÔÆë£¬²Î¼ûÊôĞÔ¶¨Òå</param>
-	void SetAlign(BOOL bHAlign, int iAlign);
-
-	/// <summary>
-	/// È¡¶ÔÆë
-	/// </summary>
-	/// <param name="bHAlign">ÊÇ·ñË®Æ½¶ÔÆë</param>
-	/// <returns>¶ÔÆë£¬²Î¼ûÊôĞÔ¶¨Òå</returns>
-	int GetAlign(BOOL bHAlign);
+	/// <param name="bHAlign">æ˜¯å¦æ°´å¹³å¯¹é½</param>
+	/// <returns>å¯¹é½ï¼Œå‚è§å±æ€§å®šä¹‰</returns>
+	Align GetAlign(BOOL bHAlign)
+	{
+		DWORD dwStyle = GetStyle();
+		if (bHAlign)
+		{
+			if (IsBitSet(dwStyle, BS_CENTER))
+				return Align::Center;
+			else if (IsBitSet(dwStyle, BS_RIGHT))
+				return Align::Far;
+			else
+				return Align::Near;
+		}
+		else
+		{
+			if (IsBitSet(dwStyle, BS_VCENTER))
+				return Align::Center;
+			else if (IsBitSet(dwStyle, BS_BOTTOM))
+				return Align::Far;
+			else
+				return Align::Near;
+		}
+	}
 
 	EckInline void SetImage(HANDLE hImage, UINT uType)
 	{
@@ -132,35 +175,119 @@ public:
 	}
 };                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
 
-// ÆÕÍ¨°´Å¥
+// æ™®é€šæŒ‰é’®
 class CPushButton :public CButton
 {
 public:
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override;
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	{
+		if (pData)
+		{
+			auto pBase = (const CREATEDATA_STD*)pData;
+			auto p = (const CREATEDATA_PUSHBUTTON*)SkipBaseData(pData);
+			if (pBase->iVer_Std != DATAVER_STD_1)
+			{
+				EckDbgBreak();
+				return NULL;
+			}
 
-	CRefBin SerializeData(SIZE_T cbExtra = 0, SIZE_T* pcbSize = NULL) override;
+			m_hWnd = IntCreate(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), pBase->dwStyle,
+				x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+
+			switch (p->iVer)
+			{
+			case DATAVER_PUSHBUTTON_1:
+				SetTextImageShowing(p->bShowTextAndImage);
+				break;
+			default:
+				EckDbgBreak();
+				break;
+			}
+		}
+		else
+		{
+			dwStyle |= WS_CHILD;
+			m_hWnd = IntCreate(dwExStyle, WC_BUTTONW, pszText, dwStyle,
+				x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+		}
+
+		return m_hWnd;
+	}
+
+	void SerializeData(CRefBin& rb) override
+	{
+		const SIZE_T cbSize = sizeof(CREATEDATA_PUSHBUTTON);
+		CWnd::SerializeData(rb);
+		CMemWriter w(rb.PushBack(cbSize), cbSize);
+
+		CREATEDATA_PUSHBUTTON* p;
+		w.SkipPointer(p);
+		p->iVer = DATAVER_PUSHBUTTON_1;
+		p->bShowTextAndImage = GetTextImageShowing();
+	}
 
 	/// <summary>
-	/// ÖÃÀàĞÍ
+	/// ç½®ç±»å‹
 	/// </summary>
-	/// <param name="iType">ÀàĞÍ£¬0 - ÆÕÍ¨  1 - ²ğ·Ö</param>
-	void SetType(int iType);
+	/// <param name="iType">ç±»å‹ï¼Œ0 - æ™®é€š  1 - æ‹†åˆ†</param>
+	void SetType(int iType)
+	{
+		BOOL bDef = GetDef();
+		DWORD dwStyle = GetStyle() & ~(BS_PUSHBUTTON | BS_SPLITBUTTON | BS_DEFPUSHBUTTON | BS_DEFSPLITBUTTON);
+
+		switch (iType)
+		{
+		case 0:
+			dwStyle |= (bDef ? BS_DEFPUSHBUTTON : BS_PUSHBUTTON);
+			break;
+		case 1:
+			dwStyle |= (bDef ? BS_DEFSPLITBUTTON : BS_SPLITBUTTON);
+			break;
+		}
+
+		SetStyle(dwStyle);
+		Redraw();
+	}
 
 	/// <summary>
-	/// È¡ÀàĞÍ
+	/// å–ç±»å‹
 	/// </summary>
-	/// <returns>ÀàĞÍ£¬0 - ÆÕÍ¨  1 - ²ğ·Ö</returns>
-	int GetType();
+	/// <returns>ç±»å‹ï¼Œ0 - æ™®é€š  1 - æ‹†åˆ†</returns>
+	int GetType()
+	{
+		DWORD dwStyle = GetStyle();
+		if (IsBitSet(dwStyle, BS_SPLITBUTTON) || IsBitSet(dwStyle, BS_DEFSPLITBUTTON))
+			return 1;
+		else if (IsBitSet(dwStyle, BS_PUSHBUTTON) || IsBitSet(dwStyle, BS_DEFPUSHBUTTON))
+			return 0;
+		return -1;
+	}
 
 	/// <summary>
-	/// ÖÃÊÇ·ñÄ¬ÈÏ
+	/// ç½®æ˜¯å¦é»˜è®¤
 	/// </summary>
-	/// <param name="iDef">ÊÇ·ñÄ¬ÈÏ</param>
-	void SetDef(BOOL bDef);
+	/// <param name="iDef">æ˜¯å¦é»˜è®¤</param>
+	void SetDef(BOOL bDef)
+	{
+		int iType = GetType();
+		DWORD dwStyle = GetStyle() & ~(BS_DEFPUSHBUTTON | BS_DEFSPLITBUTTON | BS_PUSHBUTTON | BS_SPLITBUTTON);
+		if (bDef)
+			if (iType)
+				dwStyle |= BS_DEFSPLITBUTTON;
+			else
+				dwStyle |= BS_DEFPUSHBUTTON;
+		else
+			if (iType)
+				dwStyle |= BS_SPLITBUTTON;
+			else
+				dwStyle |= BS_PUSHBUTTON;
+
+		SetStyle(dwStyle);
+	}
 
 	/// <summary>
-	/// È¡ÊÇ·ñÄ¬ÈÏ
+	/// å–æ˜¯å¦é»˜è®¤
 	/// </summary>
 	EckInline BOOL GetDef()
 	{
@@ -169,41 +296,138 @@ public:
 	}
 };
 
-// Ñ¡Ôñ¿ò
+// é€‰æ‹©æ¡†
 class CCheckButton :public CButton
 {
 public:
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override;
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	{
+		if (pData)
+		{
+			auto pBase = (const CREATEDATA_STD*)pData;
+			auto p = (const CREATEDATA_CHECKBUTTON*)SkipBaseData(pData);
+			if (pBase->iVer_Std != DATAVER_STD_1)
+			{
+				EckDbgBreak();
+				return NULL;
+			}
 
-	CRefBin SerializeData(SIZE_T cbExtra = 0, SIZE_T* pcbSize = NULL) override;
+			m_hWnd = IntCreate(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), pBase->dwStyle,
+				x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+
+			switch (p->iVer)
+			{
+			case DATAVER_CHECKBUTTON_1:
+				SetTextImageShowing(p->bShowTextAndImage);
+				SetCheckState(p->eCheckState);
+				break;
+			default:
+				EckDbgBreak();
+				break;
+			}
+		}
+		else
+		{
+			dwStyle &= ~(BS_PUSHBUTTON | BS_DEFPUSHBUTTON | BS_SPLITBUTTON | BS_DEFSPLITBUTTON | BS_COMMANDLINK | BS_DEFCOMMANDLINK);
+			dwStyle |= WS_CHILD;
+			if (!IsBitSet(dwStyle, BS_RADIOBUTTON | BS_AUTORADIOBUTTON | BS_CHECKBOX | BS_AUTOCHECKBOX | BS_3STATE | BS_AUTO3STATE))
+				dwStyle |= BS_AUTORADIOBUTTON;
+			m_hWnd = IntCreate(dwExStyle, WC_BUTTONW, pszText, dwStyle,
+				x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+		}
+
+		/*
+		* æœ‰ä¸€ä¸ªä¸“ç”¨äºå•é€‰æŒ‰é’®çš„çŠ¶æ€å«åšBST_DONTCLICKï¼Œ
+		* å¦‚æœæœªè®¾ç½®è¿™ä¸ªçŠ¶æ€ï¼Œé‚£ä¹ˆæŒ‰é’®æ¯æ¬¡è·å¾—ç„¦ç‚¹éƒ½ä¼šäº§ç”ŸBN_CLICKEDï¼Œ
+		* å‘é€BM_SETDONTCLICKè®¾ç½®å®ƒé˜²æ­¢äº‹ä»¶é”™è¯¯ç”Ÿæˆ
+		*/
+		SendMsg(BM_SETDONTCLICK, TRUE, 0);
+		return m_hWnd;
+	}
+
+	void SerializeData(CRefBin& rb) override
+	{
+		const SIZE_T cbSize = sizeof(CREATEDATA_CHECKBUTTON);
+		CWnd::SerializeData(rb);
+		CMemWriter w(rb.PushBack(cbSize), cbSize);
+
+		CREATEDATA_CHECKBUTTON* p;
+		w.SkipPointer(p);
+		p->iVer = DATAVER_CHECKBUTTON_1;
+		p->bShowTextAndImage = GetTextImageShowing();
+		p->eCheckState = GetCheckState();
+	}
 
 	/// <summary>
-	/// ÖÃÀàĞÍ
+	/// ç½®ç±»å‹
 	/// </summary>
-	/// <param name="iType">ÀàĞÍ£¬0 - µ¥Ñ¡¿ò  1 - ¸´Ñ¡¿ò  2 - ÈıÌ¬¸´Ñ¡¿ò</param>
-	void SetType(int iType);
+	/// <param name="iType">ç±»å‹ï¼Œ0 - å•é€‰æ¡†  1 - å¤é€‰æ¡†  2 - ä¸‰æ€å¤é€‰æ¡†</param>
+	void SetType(int iType)
+	{
+		DWORD dwStyle = GetStyle() & ~(BS_AUTORADIOBUTTON | BS_AUTOCHECKBOX | BS_AUTO3STATE);
+		switch (iType)
+		{
+		case 0:dwStyle |= BS_AUTORADIOBUTTON; break;
+		case 1:dwStyle |= BS_AUTOCHECKBOX; break;
+		case 2:dwStyle |= BS_AUTO3STATE; break;
+		default:assert(FALSE); break;
+		}
+		SetStyle(dwStyle);
+		Redraw();
+	}
 
 	/// <summary>
-	/// È¡ÀàĞÍ
+	/// å–ç±»å‹
 	/// </summary>
-	int GetType();
+	int GetType()
+	{
+		DWORD dwStyle = GetStyle();
+		if (IsBitSet(dwStyle, BS_AUTORADIOBUTTON))
+			return 0;
+		else if (IsBitSet(dwStyle, BS_AUTOCHECKBOX))
+			return 1;
+		else if (IsBitSet(dwStyle, BS_AUTO3STATE))
+			return 2;
+		else
+			return -1;
+	}
 
 	/// <summary>
-	/// ÖÃ¼ì²é¿ò×´Ì¬
+	/// ç½®æ£€æŸ¥æ¡†çŠ¶æ€
 	/// </summary>
-	/// <param name="iState">×´Ì¬£¬0 - Î´Ñ¡ÖĞ  1 - Ñ¡ÖĞ  2 - °ëÑ¡ÖĞ</param>
-	void SetCheckState(int iState);
+	/// <param name="iState">çŠ¶æ€ï¼Œ0 - æœªé€‰ä¸­  1 - é€‰ä¸­  2 - åŠé€‰ä¸­</param>
+	void SetCheckState(int iState)
+	{
+		UINT uState;
+		switch (iState)
+		{
+		case 0:uState = BST_UNCHECKED; break;
+		case 1:uState = BST_CHECKED; break;
+		case 2:uState = BST_INDETERMINATE; break;
+		default:assert(FALSE); break;
+		}
+		SendMsg(BM_SETCHECK, uState, 0);
+	}
 
 	/// <summary>
-	/// È¡¼ì²é¿ò×´Ì¬
+	/// å–æ£€æŸ¥æ¡†çŠ¶æ€
 	/// </summary>
-	int GetCheckState();
+	int GetCheckState()
+	{
+		UINT uState = (UINT)SendMsg(BM_GETCHECK, 0, 0);
+		if (IsBitSet(uState, BST_CHECKED))
+			return 1;
+		else if (IsBitSet(uState, BST_INDETERMINATE))
+			return 2;
+		else
+			return 0;
+	}
 
 	/// <summary>
-	/// ÖÃ°´Å¥ĞÎÊ½
+	/// ç½®æŒ‰é’®å½¢å¼
 	/// </summary>
-	/// <param name="bPushLike">ÊÇ·ñÎª°´Å¥ĞÎÊ½</param>
+	/// <param name="bPushLike">æ˜¯å¦ä¸ºæŒ‰é’®å½¢å¼</param>
 	EckInline void SetPushLike(BOOL bPushLike)
 	{
 		ModifyStyle(bPushLike ? BS_PUSHLIKE : 0, BS_PUSHLIKE);
@@ -211,7 +435,7 @@ public:
 	}
 
 	/// <summary>
-	/// È¡°´Å¥ĞÎÊ½
+	/// å–æŒ‰é’®å½¢å¼
 	/// </summary>
 	/// <returns></returns>
 	EckInline BOOL GetPushLike()
@@ -220,9 +444,9 @@ public:
 	}
 
 	/// <summary>
-	/// ÖÃÆ½ÃæĞÎÊ½
+	/// ç½®å¹³é¢å½¢å¼
 	/// </summary>
-	/// <param name="bFlat">ÊÇ·ñÎªÆ½ÃæĞÎÊ½</param>
+	/// <param name="bFlat">æ˜¯å¦ä¸ºå¹³é¢å½¢å¼</param>
 	EckInline void SetFlat(BOOL bFlat)
 	{
 		ModifyStyle(bFlat ? BS_FLAT : 0, BS_FLAT);
@@ -230,7 +454,7 @@ public:
 	}
 
 	/// <summary>
-	/// È¡Æ½ÃæĞÎÊ½
+	/// å–å¹³é¢å½¢å¼
 	/// </summary>
 	EckInline BOOL GetFlat()
 	{
@@ -238,9 +462,9 @@ public:
 	}
 
 	/// <summary>
-	/// ÖÃÎÄ±¾¾Ó×ó
+	/// ç½®æ–‡æœ¬å±…å·¦
 	/// </summary>
-	/// <param name="bLeftText">ÊÇ·ñÎÄ±¾¾Ó×ó</param>
+	/// <param name="bLeftText">æ˜¯å¦æ–‡æœ¬å±…å·¦</param>
 	EckInline void SetLeftText(BOOL bLeftText)
 	{
 		ModifyStyle(bLeftText ? BS_LEFTTEXT : 0, BS_LEFTTEXT);
@@ -248,7 +472,7 @@ public:
 	}
 
 	/// <summary>
-	/// È¡ÎÄ±¾¾Ó×ó
+	/// å–æ–‡æœ¬å±…å·¦
 	/// </summary>
 	/// <returns></returns>
 	EckInline BOOL GetLeftText()
@@ -257,36 +481,102 @@ public:
 	}
 };
 
-// ÃüÁîÁ´½Ó
+// å‘½ä»¤é“¾æ¥
 class CCommandLink :public CButton
 {
 private:
 	BITBOOL m_bShieldIcon : 1;
 public:
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override;
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	{
+		if (pData)
+		{
+			auto pBase = (const CREATEDATA_STD*)pData;
+			auto p = (const CREATEDATA_COMMANDLINK*)SkipBaseData(pData);
+			if (pBase->iVer_Std != DATAVER_STD_1)
+			{
+				EckDbgBreak();
+				return NULL;
+			}
 
-	CRefBin SerializeData(SIZE_T cbExtra = 0, SIZE_T* pcbSize = NULL) override;
+			m_hWnd = IntCreate(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), pBase->dwStyle,
+				x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+
+			switch (p->iVer)
+			{
+			case DATAVER_COMMANDLINK_1:
+				SetShieldIcon(p->bShieldIcon);
+				SetNote(p->Note());
+				break;
+			default:
+				EckDbgBreak();
+				break;
+			}
+		}
+		else
+		{
+			dwStyle &= ~(BS_PUSHBUTTON | BS_DEFPUSHBUTTON | BS_SPLITBUTTON | BS_DEFSPLITBUTTON | BS_CHECKBOX);
+			dwStyle |= WS_CHILD;
+			if (!IsBitSet(dwStyle, BS_COMMANDLINK | BS_DEFCOMMANDLINK))
+				dwStyle |= BS_COMMANDLINK;
+			m_hWnd = IntCreate(dwExStyle, WC_BUTTONW, pszText, dwStyle,
+				x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+		}
+
+		return m_hWnd;
+	}
+
+	void SerializeData(CRefBin&rb) override
+	{
+		auto rsNote = GetNote();
+		const SIZE_T cbSize = sizeof(CREATEDATA_COMMANDLINK) + rsNote.ByteSize();
+		CWnd::SerializeData(rb);
+		CMemWriter w(rb.PushBack(cbSize), cbSize);
+		CREATEDATA_COMMANDLINK* p;
+		w.SkipPointer(p);
+		p->iVer = DATAVER_COMMANDLINK_1;
+		p->cchNote = rsNote.Size();
+		p->bShieldIcon = GetShieldIcon();
+
+		w << rsNote;
+	}
 
 	/// <summary>
-	/// ÖÃ×¢ÊÍÎÄ±¾
+	/// ç½®æ³¨é‡Šæ–‡æœ¬
 	/// </summary>
-	/// <param name="pszText">ÎÄ±¾Ö¸Õë</param>
-	/// <returns>³É¹¦·µ»ØTRUE£¬Ê§°Ü·µ»ØFALSE</returns>
+	/// <param name="pszText">æ–‡æœ¬æŒ‡é’ˆ</param>
+	/// <returns>æˆåŠŸè¿”å›TRUEï¼Œå¤±è´¥è¿”å›FALSE</returns>
 	EckInline BOOL SetNote(PCWSTR pszText)
 	{
 		return (BOOL)SendMsg(BCM_SETNOTE, 0, (LPARAM)pszText);
 	}
 
 	/// <summary>
-	/// È¡×¢ÊÍÎÄ±¾¡£
+	/// å–æ³¨é‡Šæ–‡æœ¬ã€‚
 	/// </summary>
-	CRefStrW GetNote();
+	CRefStrW GetNote()
+	{
+		CRefStrW rs;
+		int cch = (int)SendMsg(BCM_GETNOTELENGTH, 0, 0);
+		if (cch)
+		{
+			rs.ReSize(cch);
+			++cch;
+			SendMsg(BCM_GETNOTE, (WPARAM)&cch, (LPARAM)rs.Data());
+		}
+		return rs;
+	}
+
+	BOOL GetNote(PWSTR pszBuf, int& cchBuf)
+	{
+		return (BOOL)SendMsg(BCM_GETNOTE, (WPARAM)&cchBuf, (LPARAM)pszBuf);
+	}
 
 	/// <summary>
-	/// ÖÃ¶ÜÅÆÍ¼±ê
+	/// ç½®ç›¾ç‰Œå›¾æ ‡
 	/// </summary>
-	/// <param name="bShieldIcon">ÊÇ·ñÎª¶ÜÅÆÍ¼±ê</param>
+	/// <param name="bShieldIcon">æ˜¯å¦ä¸ºç›¾ç‰Œå›¾æ ‡</param>
 	EckInline void SetShieldIcon(BOOL bShieldIcon)
 	{
 		m_bShieldIcon = bShieldIcon;
@@ -294,24 +584,33 @@ public:
 	}
 
 	/// <summary>
-	/// È¡¶ÜÅÆÍ¼±ê
+	/// å–ç›¾ç‰Œå›¾æ ‡
 	/// </summary>
 	/// <returns></returns>
 	EckInline BOOL GetShieldIcon()
 	{
-		return m_bShieldIcon;// Õâ¸ö¶«Î÷Ö»ÄÜÖÃ²»ÄÜÈ¡.....°Ñ¼ÇÂ¼µÄÖµ·µ»Ø»ØÈ¥°É
+		return m_bShieldIcon;// è¿™ä¸ªä¸œè¥¿åªèƒ½ç½®ä¸èƒ½å–.....æŠŠè®°å½•çš„å€¼è¿”å›å›å»å§
 	}
 
 	/// <summary>
-	/// ÖÃÊÇ·ñÄ¬ÈÏ
+	/// ç½®æ˜¯å¦é»˜è®¤
 	/// </summary>
-	/// <param name="bDef">ÊÇ·ñÄ¬ÈÏ</param>
-	void SetDef(BOOL bDef);
+	/// <param name="bDef">æ˜¯å¦é»˜è®¤</param>
+	void SetDef(BOOL bDef)
+	{
+		DWORD dwStyle = GetStyle() & ~(BS_DEFPUSHBUTTON | BS_PUSHBUTTON | BS_DEFCOMMANDLINK | BS_COMMANDLINK);
+		if (bDef)
+			dwStyle |= BS_DEFCOMMANDLINK;
+		else
+			dwStyle |= BS_COMMANDLINK;
+
+		SetStyle(dwStyle);
+	}
 
 	/// <summary>
-	/// È¡ÊÇ·ñÄ¬ÈÏ
+	/// å–æ˜¯å¦é»˜è®¤
 	/// </summary>
-	/// <returns>ÊÇ·ñÄ¬ÈÏ</returns>
+	/// <returns>æ˜¯å¦é»˜è®¤</returns>
 	EckInline BOOL GetDef()
 	{
 		DWORD dwStyle = GetStyle();

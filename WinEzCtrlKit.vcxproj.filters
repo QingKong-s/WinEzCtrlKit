@@ -180,9 +180,6 @@
     <ClInclude Include="eck\CFile.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CWndSizer.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CScrollView.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
@@ -219,6 +216,9 @@
     <ClInclude Include="eck\GraphicsHelper.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="CTestWnd.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Win32Template.cpp">
@@ -230,9 +230,6 @@
     <ClCompile Include="eck\CWnd.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CButton.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
     <ClCompile Include="eck\CRefStr.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
@@ -240,9 +237,6 @@
       <Filter>ECK Src</Filter>
     </ClCompile>
     <ClCompile Include="eck\CLabel.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CColorPicker.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
     <ClCompile Include="eck\Utility.cpp">
@@ -264,9 +258,6 @@
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\WndHelper.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CBk.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
     <ClCompile Include="eck\CLunarCalendar.cpp">

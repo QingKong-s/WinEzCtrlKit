@@ -50,7 +50,7 @@ public:
 	virtual BOOL EndDlg(INT_PTR nResult)
 	{
 		BOOL b = EndDialog(m_hWnd, nResult);
-		Manage(CWnd::ManageOp::Detach, NULL);
+		Detach();
 		return b;
 	}
 };
