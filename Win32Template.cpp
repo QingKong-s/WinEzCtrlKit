@@ -400,8 +400,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	while (GetMessageW(&msg, NULL, 0, 0))
 	{
-		TranslateMessage(&msg);
-		DispatchMessageW(&msg);
+		if (!eck::PreTranslateMessage(&msg))
+		{
+			TranslateMessage(&msg);
+			DispatchMessageW(&msg);
+		}
 	}
 	return (int)msg.wParam;
 }
@@ -574,12 +577,12 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		RECT rcDP{ 0,0,900,900 };
 		FillRect(hDC, &rcDP, (HBRUSH)GetStockObject(WHITE_BRUSH));
 
-		auto rbdib = eck::ReadInFile(LR"(E:\Desktop\1.bmp)");
-		eck::CDib dib;
-		auto hbm = dib.Create(rbdib.Data());
-		HDC hcdc = CreateCompatibleDC(hDC);
-		SelectObject(hcdc, hbm);
-		BitBlt(hDC, 0, 0, 900, 900, hcdc, 0, 0, SRCCOPY);
+		//auto rbdib = eck::ReadInFile(LR"(E:\Desktop\1.bmp)");
+		//eck::CDib dib;
+		//auto hbm = dib.Create(rbdib.Data());
+		//HDC hcdc = CreateCompatibleDC(hDC);
+		//SelectObject(hcdc, hbm);
+		//BitBlt(hDC, 0, 0, 900, 900, hcdc, 0, 0, SRCCOPY);
 		g_DP->Redraw();
 		//eck::CIcoFileReader ico;
 		//auto rbIco = eck::ReadInFile(LR"(E:\Desktop\Tempo.ico)");

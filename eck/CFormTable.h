@@ -262,7 +262,7 @@ EckInline BOOL LoadForm(HWND hBK, PCVOID pFormData, std::vector<CWnd*>* pWnds = 
 			}
 			else
 			{
-				hWnd = pWnd->Manage(CWnd::ManageOp::Detach, NULL);
+				hWnd = pWnd->Detach();
 				delete pWnd;
 			}
 			return hWnd;

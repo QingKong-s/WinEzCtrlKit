@@ -16,6 +16,8 @@
 #include <dxgi1_2.h>
 
 #include <assert.h>
+
+#include <unordered_map>
 /*宏*/
 
 #define ECK_NAMESPACE_BEGIN namespace eck {
@@ -80,27 +82,30 @@ ECK_NAMESPACE_END
 
 /*子类化ID*/
 
-#define SCID_PUSHBUTTON				20230603'01u
-#define SCID_CHECKBUTTON			20230603'02u
-#define SCID_COMMANDLINK			20230603'03u
-#define SCID_EDIT					20230603'04u
-#define SCID_EDITPARENT				20230603'05u
-#define SCID_COLORPICKERPARENT		20230604'01u
-#define SCID_LBEXT					20230606'01u
-#define SCID_LBEXTPARENT			20230606'02u
-#define SCID_DIRBOX					20230607'01u
-#define SCID_DIRBOXPARENT			20230607'02u
-#define SCID_TRAY					20230611'01u
-#define SCID_DESIGN					20230621'01u
-#define SCID_TASKGROUPLIST			20230725'01u
-#define SCID_TASKGROUPLISTPARENT	20230725'02u
-#define SCID_INERTIALSCROLLVIEW		20231103'01u
+constexpr inline UINT SCID_PUSHBUTTON = 20230603'01u;
+constexpr inline UINT SCID_CHECKBUTTON = 20230603'02u;
+constexpr inline UINT SCID_COMMANDLINK = 20230603'03u;
+constexpr inline UINT SCID_EDIT = 20230603'04u;
+constexpr inline UINT SCID_EDITPARENT = 20230603'05u;
+constexpr inline UINT SCID_COLORPICKERPARENT = 20230604'01u;
+constexpr inline UINT SCID_LBEXT = 20230606'01u;
+constexpr inline UINT SCID_LBEXTPARENT = 20230606'02u;
+constexpr inline UINT SCID_DIRBOX = 20230607'01u;
+constexpr inline UINT SCID_DIRBOXPARENT = 20230607'02u;
+constexpr inline UINT SCID_TRAY = 20230611'01u;
+constexpr inline UINT SCID_DESIGN = 20230621'01u;
+constexpr inline UINT SCID_TASKGROUPLIST = 20230725'01u;
+constexpr inline UINT SCID_TASKGROUPLISTPARENT = 20230725'02u;
+constexpr inline UINT SCID_INERTIALSCROLLVIEW = 20231103'01u;
+
+constexpr inline UINT NM_FIRST_ECK = (0u - 0x514B);
+constexpr inline UINT NM_CLP_CLRCHANGED = NM_FIRST_ECK;
 
 /*属性字符串*/
 
-#define PROP_DPIINFO		L"Eck.Prop.DpiInfo"
-#define PROP_PREVDPI		L"Eck.Prop.PrevDpi"
-#define PROP_PROPSHEETCTX	L"Eck.Prop.PropertySheet.Ctx"
+constexpr inline PCWSTR PROP_DPIINFO = L"Eck.Prop.DpiInfo";
+constexpr inline PCWSTR PROP_PREVDPI = L"Eck.Prop.PrevDpi";
+constexpr inline PCWSTR PROP_PROPSHEETCTX = L"Eck.Prop.PropertySheet.Ctx";
 
 
 /*一些可能用到的控件ID*/
@@ -146,11 +151,112 @@ enum class InitStatus
 	D3dDeviceError
 };
 
+enum
+{
+	// 不要调用ThreadInit
+	ECKINIT_NOINITTHREAD = 1u << 0
+};
+
+constexpr inline D3D_FEATURE_LEVEL c_uDefD3dFeatureLevel[]
+{
+	D3D_FEATURE_LEVEL_11_1,
+	D3D_FEATURE_LEVEL_11_0,
+	D3D_FEATURE_LEVEL_10_1,
+	D3D_FEATURE_LEVEL_10_0,
+	D3D_FEATURE_LEVEL_9_3,
+	D3D_FEATURE_LEVEL_9_2,
+	D3D_FEATURE_LEVEL_9_1
+};
+
+struct INITPARAM
+{
+	D2D1_FACTORY_TYPE uD2dFactoryType = D2D1_FACTORY_TYPE_SINGLE_THREADED;
+	DWRITE_FACTORY_TYPE uDWriteFactoryType = DWRITE_FACTORY_TYPE_SHARED;
+	const D3D_FEATURE_LEVEL* pD3dFeatureLevel = c_uDefD3dFeatureLevel;
+	UINT cD3dFeatureLevel = ARRAYSIZE(c_uDefD3dFeatureLevel);
+	UINT uFlags = 0;
+};
+
 /// <summary>
-/// 初始化ECK Lib
+/// 初始化ECK Lib。
+/// 使用任何ECK功能之前需调用该函数。仅允许调用一次，重复调用的结果未知。
+/// 函数将在内部调用eck::ThreadInit，除非设置了ECKINIT_NOINITTHREAD
 /// </summary>
 /// <param name="hInstance">实例句柄，所有自定义窗口类将在此实例上注册</param>
+/// <param name="pInitParam">接收初始化参数的可选指针</param>
 /// <param name="pdwErrCode">接收错误码变量的可选指针</param>
 /// <returns>错误代码</returns>
-InitStatus Init(HINSTANCE hInstance, DWORD* pdwErrCode = NULL);
+InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam = NULL, DWORD* pdwErrCode = NULL);
+
+class CWnd;
+struct ECKTREADCTX;
+
+using FWndCreating = void(*)(HWND hWnd, CBT_CREATEWNDW* pcs, ECKTREADCTX* pThreadCtx);
+struct ECKTREADCTX
+{
+	std::unordered_map<HWND, CWnd*> hmWnd{};
+	HHOOK hhkTempCBT = NULL;
+	CWnd* pCurrWnd = NULL;
+	FWndCreating pfnWndCreatingProc = NULL;
+};
+
+/// <summary>
+/// 取线程上下文TLS槽
+/// </summary>
+DWORD GetThreadCtxTlsSlot();
+
+/// <summary>
+/// 初始化线程上下文。
+/// 在调用线程上初始化线程上下文，如果线程使用了ECK的窗口对象，则必须调用此函数
+/// </summary>
+void ThreadInit();
+
+/// <summary>
+/// 反初始化线程上下文。
+/// 调用此函数后不允许使用任何ECK窗口对象
+/// </summary>
+void ThreadFree();
+
+/// <summary>
+/// 取线程上下文
+/// </summary>
+EckInline ECKTREADCTX* GetThreadCtx()
+{
+	return (ECKTREADCTX*)TlsGetValue(GetThreadCtxTlsSlot());
+}
+
+/// <summary>
+/// 窗口句柄到CWnd指针
+/// </summary>
+EckInline CWnd* CWndFromHWND(HWND hWnd)
+{
+	auto pCtx = GetThreadCtx();
+	auto it = pCtx->hmWnd.find(hWnd);
+	if (it != pCtx->hmWnd.end())
+		return it->second;
+	else
+		return NULL;
+}
+
+HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc = NULL);
+
+void EndCbtHook();
+
+// 全局消息过滤器，若要拦截消息则应返回TRUE，否则应返回FALSE
+using FMsgFilter = BOOL(*)(const MSG* pMsg);
+
+/// <summary>
+/// 过滤消息。
+/// 若使用了任何ECK窗口对象，则必须在翻译按键和派发消息之前调用此函数
+/// </summary>
+/// <param name="pMsg">即将处理的消息</param>
+/// <returns>若返回值为TRUE，则不应继续处理消息；否则应正常进行剩余步骤</returns>
+BOOL PreTranslateMessage(const MSG* pMsg);
+
+/// <summary>
+/// 置消息过滤器
+/// </summary>
+/// <param name="pfnFilter">应用程序定义的过滤器函数指针</param>
+void SetMsgFilter(FMsgFilter pfnFilter);
+
 ECK_NAMESPACE_END

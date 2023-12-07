@@ -399,6 +399,7 @@ private:
 	HBITMAP m_hBitmap = NULL;
 	DIBSECTION m_ds{};
 public:
+	CDib() = default;
 	CDib(const CDib&) = delete;
 	CDib& operator=(const CDib&) = delete;
 
@@ -676,4 +677,15 @@ public:
 		return t;
 	}
 };
+
+inline CRefBin SaveWicBitmap(IWICBitmap* pBitmap)
+{
+	return {};
+}
+
+inline CRefBin SaveGpBitmap(GpBitmap* pBitmap)
+{
+
+	return {};
+}
 ECK_NAMESPACE_END

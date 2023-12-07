@@ -48,32 +48,6 @@ HWND CEdit::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	return m_hWnd;
 }
 
-CRefBin CEdit::SerializeData(SIZE_T cbExtra, SIZE_T* pcbSize)
-{
-	SIZE_T cbBase;
-	auto rsCueBanner = GetCueBanner();
-	const SIZE_T cbSize = sizeof(CREATEDATA_EDIT) + rsCueBanner.ByteSize();
-	auto rb = CWnd::SerializeData(cbSize + cbExtra, &cbBase);
-	if (pcbSize)
-		*pcbSize = cbBase + cbSize;
-
-	CMemWriter w(rb.Data() + cbBase, cbSize);
-	CREATEDATA_EDIT* p;
-	w.SkipPointer(p);
-	p->iVer = DATAVER_EDIT_1;
-
-	p->chPassword = GetPasswordChar();
-	p->eTransMode = (ECKENUM)GetTransformMode();
-	GetSel(&p->iSelStart, &p->iSelEnd);
-	GetMargins(&p->iLeftMargin, &p->iRightMargin);
-	p->cchCueBanner = rsCueBanner.Size();
-	p->cchMax = GetLimitText();
-
-	w << rsCueBanner;
-	return rb;
-}
-
-
 void CEdit::SetTransformMode(TransMode iTransformMode)
 {
 	DWORD dwStyle;

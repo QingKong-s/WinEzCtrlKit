@@ -1,4 +1,4 @@
-#include "CEditExt.h"
+ï»¿#include "CEditExt.h"
 
 ECK_NAMESPACE_BEGIN
 SUBCLASS_MGR_INIT(CEditExt, SCID_EDIT, SubclassProc)
@@ -55,7 +55,7 @@ LRESULT CALLBACK CEditExt::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 	case WM_KEYDOWN:
 		if (wParam == 'A')
 			if (GetKeyState(VK_CONTROL) & 0x80000000)
-				SendMessageW(hWnd, EM_SETSEL, 0, -1);// Ctrl + AÈ«Ñ¡
+				SendMessageW(hWnd, EM_SETSEL, 0, -1);// Ctrl + Aå…¨é€‰
 		break;
 
 	case WM_CHAR:
@@ -173,7 +173,7 @@ LRESULT CALLBACK CEditExt::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 			pszText = new WCHAR[cchText + 1];
 			GetWindowTextW(hWnd, pszText, cchText + 1);
 			lfValue = _wtof(pszText);
-			if (lfValue < -3.402823466e38)// Êµ¼ÊÉÏÕý¸ºÖµÖÐ¼äÊÇÓÐ¿ÕÏ¶µÄ£¬²»×öÅÐ¶ÏÁË¡£¡£¡£
+			if (lfValue < -3.402823466e38)// å®žé™…ä¸Šæ­£è´Ÿå€¼ä¸­é—´æ˜¯æœ‰ç©ºéš™çš„ï¼Œä¸åšåˆ¤æ–­äº†ã€‚ã€‚ã€‚
 				SetWindowTextW(hWnd, L"-3.402823466e38");
 			else if (lfValue < 3.402823466e38)
 				SetWindowTextW(hWnd, L"3.402823466e38");
@@ -223,28 +223,28 @@ LRESULT CALLBACK CEditExt::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 			if (wParam)
 			{
 				auto pnccsp = (NCCALCSIZE_PARAMS*)lParam;
-				p->m_rcMargins = pnccsp->rgrc[0];// ±£´æ·Ç¿Í»§Çø³ß´ç
-				lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);// callÄ¬ÈÏ¹ý³Ì£¬¼ÆËã±ê×¼±ß¿ò³ß´ç
-				// ±£´æ±ß¿ò³ß´ç
+				p->m_rcMargins = pnccsp->rgrc[0];// ä¿å­˜éžå®¢æˆ·åŒºå°ºå¯¸
+				lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);// callé»˜è®¤è¿‡ç¨‹ï¼Œè®¡ç®—æ ‡å‡†è¾¹æ¡†å°ºå¯¸
+				// ä¿å­˜è¾¹æ¡†å°ºå¯¸
 				p->m_rcMargins.left = pnccsp->rgrc[0].left - p->m_rcMargins.left;
 				p->m_rcMargins.top = pnccsp->rgrc[0].top - p->m_rcMargins.top;
 				p->m_rcMargins.right -= pnccsp->rgrc[0].right;
 				p->m_rcMargins.bottom -= pnccsp->rgrc[0].bottom;
-				// ÉÏÏÂÁô¿Õ
+				// ä¸Šä¸‹ç•™ç©º
 				pnccsp->rgrc[0].top += ((pnccsp->rgrc[0].bottom - pnccsp->rgrc[0].top - p->m_cyText) / 2);
 				pnccsp->rgrc[0].bottom = pnccsp->rgrc[0].top + p->m_cyText;
 			}
 			else
 			{
 				auto prc = (RECT*)lParam;
-				p->m_rcMargins = *prc;// ±£´æ·Ç¿Í»§Çø³ß´ç
-				lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);// callÄ¬ÈÏ¹ý³Ì£¬¼ÆËã±ê×¼±ß¿ò³ß´ç
-				// ±£´æ±ß¿ò³ß´ç
+				p->m_rcMargins = *prc;// ä¿å­˜éžå®¢æˆ·åŒºå°ºå¯¸
+				lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);// callé»˜è®¤è¿‡ç¨‹ï¼Œè®¡ç®—æ ‡å‡†è¾¹æ¡†å°ºå¯¸
+				// ä¿å­˜è¾¹æ¡†å°ºå¯¸
 				p->m_rcMargins.left = prc->left - p->m_rcMargins.left;
 				p->m_rcMargins.top = prc->top - p->m_rcMargins.top;
 				p->m_rcMargins.right -= prc->right;
 				p->m_rcMargins.bottom -= prc->bottom;
-				// ÉÏÏÂÁô¿Õ
+				// ä¸Šä¸‹ç•™ç©º
 				prc->top += ((prc->bottom - prc->top - p->m_cyText) / 2);
 				prc->bottom = prc->top + p->m_cyText;
 			}
@@ -255,36 +255,36 @@ LRESULT CALLBACK CEditExt::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 
 	case WM_NCPAINT:
 	{
-		DefSubclassProc(hWnd, uMsg, wParam, lParam);// »­Ä¬ÈÏ±ß¿ò
+		DefSubclassProc(hWnd, uMsg, wParam, lParam);// ç”»é»˜è®¤è¾¹æ¡†
 		if (p->GetMultiLine())
 			return 0;
 
 		RECT rcWnd, rcText;
 		HDC hDC = GetWindowDC(hWnd);
-		// È¡·Ç¿Í»§Çø¾ØÐÎ
+		// å–éžå®¢æˆ·åŒºçŸ©å½¢
 		GetWindowRect(hWnd, &rcWnd);
 		rcWnd.right -= rcWnd.left;
 		rcWnd.bottom -= rcWnd.top;
 		rcWnd.left = 0;
 		rcWnd.top = 0;
-		// ÖÆÎÄ±¾¾ØÐÎ
+		// åˆ¶æ–‡æœ¬çŸ©å½¢
 		rcText.left = 0;
 		rcText.top = (rcWnd.bottom - p->m_cyText) / 2;
 		rcText.right = rcWnd.right;
 		rcText.bottom = rcText.top + p->m_cyText;
-		// ·Ç¿Í»§Çø¾ØÐÎ¼õµô±ß¿ò
+		// éžå®¢æˆ·åŒºçŸ©å½¢å‡æŽ‰è¾¹æ¡†
 		rcWnd.left += p->m_rcMargins.left;
 		rcWnd.top += p->m_rcMargins.top;
 		rcWnd.right -= p->m_rcMargins.right;
 		rcWnd.bottom -= p->m_rcMargins.bottom;
-		// Òì»òºÏ²¢£¬¼ô¼­
+		// å¼‚æˆ–åˆå¹¶ï¼Œå‰ªè¾‘
 		HRGN hRgnBK = CreateRectRgnIndirect(&rcWnd);
 		HRGN hRgnText = CreateRectRgnIndirect(&rcText);
 		CombineRgn(hRgnBK, hRgnBK, hRgnText, RGN_XOR);
 		SelectClipRgn(hDC, hRgnBK);
 		DeleteObject(hRgnBK);
 		DeleteObject(hRgnText);
-		// Ìî³ä±³¾°
+		// å¡«å……èƒŒæ™¯
 		FillRect(hDC, &rcWnd, p->m_hbrEditBK);
 		ReleaseDC(hWnd, hDC);
 	}
@@ -391,31 +391,6 @@ HWND CEditExt::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		FrameChanged();
 	}
 	return m_hWnd;
-}
-
-CRefBin CEditExt::SerializeData(SIZE_T cbExtra, SIZE_T* pcbSize)
-{
-	SIZE_T cbBase;
-	const SIZE_T cbSize = sizeof(CREATEDATA_EDITEXT);
-	auto rb = CEdit::SerializeData(cbSize + cbExtra, &cbBase);
-	if (pcbSize)
-		*pcbSize = cbBase + cbSize;
-
-	((CREATEDATA_EDIT*)CWnd::SkipBaseData(rb.Data()))->chPassword = GetPasswordChar();
-
-	CMemWriter w(rb.Data() + cbBase, cbSize);
-
-	CREATEDATA_EDITEXT* p;
-	w.SkipPointer(p);
-	p->iVer = DATAVER_EDITEXT_1;
-	p->crText = GetClr(0);
-	p->crTextBK = GetClr(1);
-	p->crBK = GetClr(2);
-	p->iInputMode = (ECKENUM)GetInputMode();
-	p->bMultiLine = GetMultiLine();
-	p->bAutoWrap = GetAutoWrap();
-
-	return rb;
 }
 
 void CEditExt::SetClr(int iType, COLORREF cr)

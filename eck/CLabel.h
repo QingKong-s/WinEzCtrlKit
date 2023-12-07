@@ -40,8 +40,6 @@ struct ECKLABELDATA
 class CLabel :public COwnWnd
 {
 private:
-	WND_RECORDER_DECL(CLabel)
-
 	ECKLABELDATA m_Info{};
 
 	int m_cxClient = 0,
@@ -95,9 +93,10 @@ public:
 		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
 	{
 		dwStyle |= WS_CHILD;
+		BeginCbtHook(this);
 		m_hWnd = CreateWindowExW(dwExStyle, WCN_LABEL, pszText, dwStyle,
 			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), g_hInstance, this);
-		m_Recorder.AddRecord(m_hWnd, this);
+		EndCbtHook();
 		SetClr(2, CLR_DEFAULT);
 		return m_hWnd;
 	}

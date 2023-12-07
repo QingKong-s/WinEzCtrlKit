@@ -26,7 +26,6 @@ inline HRESULT MakePloyLinePath(const D2D1_POINT_2F* pPt, int cPt,
 	return S_OK;
 }
 
-template<class TVal = int, class TPt>
 /// <summary>
 /// 计算繁花曲线各点
 /// </summary>
@@ -35,6 +34,7 @@ template<class TVal = int, class TPt>
 /// <param name="rInt">内圆半径</param>
 /// <param name="iOffsetPtPen">描绘点距内圆圆心的偏移</param>
 /// <param name="fStep">步长</param>
+template<class TVal = int, class TPt>
 inline void CalcSpirographPoint(std::vector<TPt>& vPt, TVal rOut, TVal rInt, TVal iOffsetPtPen, float fStep = 0.1f)
 {
 	vPt.clear();
@@ -612,8 +612,8 @@ inline HRESULT EzD2dReSize(ID2D1DeviceContext* pDC, IDXGISwapChain1* pSwapChain,
 /// </summary>
 /// <param name="vPt">点集合</param>
 /// <param name="r">外接圆半径</param>
-/// <param name="n">边数/角数</param>
-/// <param name="fAngle">角度</param>
+/// <param name="n">边数或角数</param>
+/// <param name="fAngle">起始点相对X轴正方向的旋转角度</param>
 /// <param name="bLinkStar">是否连接为星形</param>
 template<class TVal = int, class TPt>
 inline void CalcRegularStar(std::vector<TPt>& vPt, TVal r, int n, float fAngle = Deg2Rad(90.f), BOOL bLinkStar = TRUE)
@@ -669,8 +669,8 @@ inline void CalcRegularStar(std::vector<TPt>& vPt, TVal r, int n, float fAngle =
 /// <param name="xCenter">中心点X</param>
 /// <param name="yCenter">中心点Y</param>
 /// <param name="r">外接圆半径</param>
-/// <param name="n">边数/角数</param>
-/// <param name="fAngle">角度</param>
+/// <param name="n">边数或角数</param>
+/// <param name="fAngle">起始点相对X轴正方向的旋转角度</param>
 /// <param name="bLinkStar">是否连接为星形</param>
 /// <returns>Polyline返回值</returns>
 inline BOOL DrawRegularStar(HDC hDC, int xCenter, int yCenter,
@@ -698,8 +698,8 @@ inline BOOL DrawRegularStar(HDC hDC, int xCenter, int yCenter,
 /// <param name="xCenter">中心点X</param>
 /// <param name="yCenter">中心点Y</param>
 /// <param name="r">外接圆半径</param>
-/// <param name="n">边数/角数</param>
-/// <param name="fAngle">角度</param>
+/// <param name="n">边数或角数</param>
+/// <param name="fAngle">起始点相对X轴正方向的旋转角度</param>
 /// <param name="bLinkStar">是否连接为星形</param>
 /// <returns>GdipDrawLines返回值</returns>
 inline GpStatus DrawRegularStar(GpGraphics* pGraphics, GpPen* pPen, float xCenter, float yCenter,
@@ -731,8 +731,8 @@ struct DRAW_REGULARSTAR_D2D_PARAM
 	float xCenter = 0.f;// 中心点X
 	float yCenter = 0.f;// 中心点Y
 	float r = 300;// 外接圆半径
-	int n = 5;// 边数/角数
-	float fAngle = Deg2Rad(90.f);// 起始角度
+	int n = 5;// 边数或角数
+	float fAngle = Deg2Rad(90.f);// 起始点相对X轴正方向的旋转角度
 	BOOL bLinkStar = TRUE;// 是否连接为星形
 };
 
@@ -797,12 +797,12 @@ inline HRESULT DrawRegularStar(const DRAW_REGULARSTAR_D2D_PARAM& Info,
 /// </summary>
 EckInline D2D1::Matrix3x2F D2dMatrixReflection(float A, float B, float C)
 {
-	const float fASqPlusSq = A * A + B * B;
-	const float t = -2.f * A * B / fASqPlusSq;
+	const float fASqPlusBSq = A * A + B * B;
+	const float t = -2.f * A * B / fASqPlusBSq;
 	return D2D1::Matrix3x2F(
-		1.f - 2.f * A * A / fASqPlusSq, t,
-		t, 1.f - 2.f * B * B / fASqPlusSq,
-		-2.f * A * C / fASqPlusSq, -2.f * B * C / fASqPlusSq);
+		1.f - 2.f * A * A / fASqPlusBSq, t,
+		t, 1.f - 2.f * B * B / fASqPlusBSq,
+		-2.f * A * C / fASqPlusBSq, -2.f * B * C / fASqPlusBSq);
 }
 
 /// <summary>
@@ -928,16 +928,16 @@ EckInline XFORM XFORMShear(float xFactor, float yFactor, float x, float y)
 /// </summary>
 EckInline XFORM XFORMReflection(float A, float B, float C)
 {
-	const float fASqPlusSq = A * A + B * B;
-	const float t = -2.f * A * B / fASqPlusSq;
+	const float fASqPlusBSq = A * A + B * B;
+	const float t = -2.f * A * B / fASqPlusBSq;
 	return
 	{
-		1.f - 2.f * A * A / fASqPlusSq,
+		1.f - 2.f * A * A / fASqPlusBSq,
 		t,
 		t,
-		1.f - 2.f * B * B / fASqPlusSq,
-		-2.f * A * C / fASqPlusSq,
-		-2.f * B * C / fASqPlusSq
+		1.f - 2.f * B * B / fASqPlusBSq,
+		-2.f * A * C / fASqPlusBSq,
+		-2.f * B * C / fASqPlusBSq
 	};
 }
 
@@ -1018,10 +1018,8 @@ public:
 		bmi.bmiHeader.biHeight = -Dimension.y;
 		bmi.bmiHeader.biPlanes = 1;
 		bmi.bmiHeader.biBitCount = 32;
-		const HDC hDC = GetDC(NULL);
 #pragma warning (suppress:6387)// 可能为NULL
-		const HBITMAP hbm = CreateDIBSection(hDC, &bmi, 0, NULL, NULL, 0);
-		ReleaseDC(NULL, hDC);
+		const HBITMAP hbm = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, NULL, NULL, 0);
 		return CMifptpHBITMAP(hbm);
 	}
 
