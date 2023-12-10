@@ -212,6 +212,7 @@ EckInline void DbgPrintFmt(PCWSTR pszFormat, ...)
         EckDbgBreak(); \
     }
 #define EckAssert(x) (void)(!!(x) || (::eck::Assert(ECKWIDE___(#x), ECK_FILEW, ECK_LINEW), 0))
+#define EckDbgPrintWndMap() ::eck::DbgPrintWndMap()
 #pragma warning (pop)
 #else
 #define EckDbgPrintGLE(x) ;
@@ -222,5 +223,6 @@ EckInline void DbgPrintFmt(PCWSTR pszFormat, ...)
 #define EckDbgBreak() ;
 #define EckDbgCheckMemRange(pBase, cbSize, pCurr) ;
 #define EckAssert(x) ;
+#define EckDbgPrintWndMap() ;
 #endif // !NDEBUG
 ECK_NAMESPACE_END

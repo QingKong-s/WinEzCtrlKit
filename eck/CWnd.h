@@ -47,9 +47,15 @@ struct DESIGNDATA_WND
 
 class CWnd
 {
-protected:
-	HWND m_hWnd = NULL;
+public:
 	WNDPROC m_pfnRealProc = DefWindowProcW;
+protected:
+	struct CREATEPARAM
+	{
+		CWnd* pWnd;
+		void* pParam;
+	};
+	HWND m_hWnd = NULL;
 
 	EckInline HWND DefAttach(HWND hWnd)
 	{
@@ -58,7 +64,7 @@ protected:
 		return hOld;
 	}
 
-	static void WndCreatingSetLong(HWND hWnd, CBT_CREATEWNDW* pcs, ECKTREADCTX* pThreadCtx)
+	static void WndCreatingSetLong(HWND hWnd, CBT_CREATEWNDW* pcs, ECKTHREADCTX* pThreadCtx)
 	{
 		SetWindowLongPtrW(hWnd, 0, (LONG_PTR)pThreadCtx->pCurrWnd);
 	}
@@ -70,13 +76,13 @@ protected:
 		BeginCbtHook(this, pfnCreatingProc);
 		auto hWnd = CreateWindowExW(dwExStyle, pszClass, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, hInst, pParam);
-		EndCbtHook();
 		return hWnd;
 	}
-
-	static LRESULT WndProcNotifyReflection(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+public:
+	static LRESULT CALLBACK WndProcMsgReflection(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		auto p = CWndFromHWND(hWnd);
+		auto pCtx = GetThreadCtx();
+		auto p = pCtx->WmAt(hWnd);
 		EckAssert(p);
 
 		CWnd* pChild;
@@ -84,7 +90,7 @@ protected:
 		switch (uMsg)
 		{
 		case WM_NOTIFY:
-			pChild = CWndFromHWND(((NMHDR*)lParam)->hwndFrom);
+			pChild = pCtx->WmAt(((NMHDR*)lParam)->hwndFrom);
 			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
 				return lResult;
 			break;
@@ -100,34 +106,34 @@ protected:
 		case WM_CTLCOLORDLG:
 		case WM_CTLCOLORSCROLLBAR:
 		case WM_CTLCOLORSTATIC:
-			pChild = CWndFromHWND((HWND)lParam);
+			pChild = pCtx->WmAt((HWND)lParam);
 			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
 				return lResult;
 			break;
 		case WM_DRAWITEM:
-			pChild = CWndFromHWND(((DRAWITEMSTRUCT*)lParam)->hwndItem);
+			pChild = pCtx->WmAt(((DRAWITEMSTRUCT*)lParam)->hwndItem);
 			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
 				return lResult;
 			break;
 		case WM_MEASUREITEM:
-			pChild = CWndFromHWND(GetDlgItem(hWnd, ((MEASUREITEMSTRUCT*)lParam)->CtlID));
+			pChild = pCtx->WmAt(GetDlgItem(hWnd, ((MEASUREITEMSTRUCT*)lParam)->CtlID));
 			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
 				return lResult;
 			break;
 		case WM_DELETEITEM:
-			pChild = CWndFromHWND(((DELETEITEMSTRUCT*)lParam)->hwndItem);
+			pChild = pCtx->WmAt(((DELETEITEMSTRUCT*)lParam)->hwndItem);
 			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
 				return lResult;
 			break;
 		case WM_COMPAREITEM:
-			pChild = CWndFromHWND(((COMPAREITEMSTRUCT*)lParam)->hwndItem);
+			pChild = pCtx->WmAt(((COMPAREITEMSTRUCT*)lParam)->hwndItem);
 			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
 				return lResult;
 			break;
 		}
-		return CallWindowProcW(p->m_pfnRealProc, hWnd, uMsg, wParam, lParam);
+		return p->OnMsg(hWnd, uMsg, wParam, lParam);
 	}
-public:
+
 #ifdef ECK_CTRL_DESIGN_INTERFACE
 	DESIGNDATA_WND m_DDBase{};
 #endif
@@ -182,7 +188,17 @@ public:
 		w << rsText;
 	}
 
-	virtual BOOL PreTranslateMessage(const MSG* pMsg)
+	EckInline virtual LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		return CallWindowProcW(m_pfnRealProc, hWnd, uMsg, wParam, lParam);
+	}
+
+	/// <summary>
+	/// 消息过滤器
+	/// </summary>
+	/// <param name="Msg">MSG结构</param>
+	/// <returns>若要禁止派发该消息则返回TRUE，否则返回FALSE</returns>
+	EckInline virtual BOOL PreTranslateMessage(const MSG& Msg)
 	{
 		return FALSE;
 	}
@@ -190,7 +206,7 @@ public:
 	/// <summary>
 	/// 父窗口通知类消息映射。
 	/// 父窗口接收到的通知消息将路由到本方法，一般情况下无需手动调用本方法。
-	/// 路由的消息有以下四种：自定义绘制系列（WM_XxxITEM）、
+	/// 路由的消息有以下四种：所有者项目系列（WM_XxxITEM）、
 	/// 标准通知系列（WM_COMMAND、WM_NOTIFY）、着色系列（WM_CTLCOLORXxx）、
 	/// 滚动条系列（WM_VSCROLL、WM_HSCROLL）
 	/// </summary>
@@ -205,6 +221,14 @@ public:
 		return FALSE;
 	}
 
+	EckInline virtual void GetAppropriateSize(int& cx, int& cy) const
+	{
+		RECT rc;
+		GetWindowRect(m_hWnd, &rc);
+		cx = rc.right - rc.left;
+		cy = rc.bottom - rc.top;
+	}
+
 	EckInline static PCVOID SkipBaseData(PCVOID p)
 	{
 		return (PCBYTE)p +
@@ -213,16 +237,6 @@ public:
 	}
 
 	HWND ReCreate(EckOptNul(DWORD, dwNewStyle), EckOptNul(DWORD, dwNewExStyle), EckOptNul(RECT, rcPos));
-
-	/// <summary>
-	/// 启用通知类消息路由
-	/// </summary>
-	EckInline WNDPROC EnableNotifyReflection()
-	{
-		auto pfnRealProc = (WNDPROC)SetLong(GWLP_WNDPROC, (LONG_PTR)WndProcNotifyReflection);
-		std::swap(pfnRealProc, m_pfnRealProc);
-		return pfnRealProc;
-	}
 
 	EckInline HWND GetHWND() const { return m_hWnd; }
 

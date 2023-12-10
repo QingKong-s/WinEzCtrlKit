@@ -28,17 +28,7 @@
 // lParam->size 用于处理WM_SIZE   e.g. GET_SIZE_LPARAM(cxClient, cyClient, lParam);
 #define GET_SIZE_LPARAM(cx,cy,lParam) (cx) = LOWORD(lParam); (cy) = HIWORD(lParam);
 
-// 计次循环
-#define EckCounter(c, Var) for(std::remove_cvref_t<decltype(c)> Var = 0; Var < (c); ++Var)
 
-#define EckCounterNVMakeVarName2(Name) ECKPRIV_COUNT_##Name##___
-#define EckCounterNVMakeVarName(Name) EckCounterNVMakeVarName2(Name)
-
-// 计次循环，无变量名参数
-#define EckCounterNV(c) EckCounter((c), EckCounterNVMakeVarName(__LINE__))
-
-#define EckOpt(Type, Name) std::optional<Type> Name
-#define EckOptNul(Type, Name) std::optional<Type> Name = std::nullopt
 
 ECK_NAMESPACE_BEGIN
 namespace Colorref
@@ -609,7 +599,50 @@ EckInline BOOL WriteToFile(PCWSTR pszFile, const CRefBin& rb)
 /// <param name="Bin">字节集</param>
 /// <param name="iType">类型，0 - 空格分割的十六进制  1 - 易语言字节集调试输出</param>
 /// <returns>返回结果</returns>
-CRefStrW BinToFriendlyString(BYTE* pData, SIZE_T cb, int iType);
+inline CRefStrW BinToFriendlyString(PCBYTE pData, SIZE_T cb, int iType)
+{
+	CRefStrW rsResult{};
+	if (!pData || !cb)
+	{
+		if (iType == 1)
+			rsResult = L"{ }";
+		return rsResult;
+	}
+
+	WCHAR szBuf[c_cbI32ToStrBufNoRadix2];
+	switch (iType)
+	{
+	case 0:
+	{
+		rsResult.Reserve((int)cb * 3 + 10);
+
+		for (SIZE_T i = 0u; i < cb; ++i)
+		{
+			swprintf_s(szBuf, L"%02hhX ", pData[i]);
+			rsResult.PushBack(szBuf);
+		}
+	}
+	break;
+
+	case 1:
+	{
+		rsResult.Reserve((int)cb * 4 + 10);
+
+		rsResult.PushBack(L"{ ");
+		swprintf_s(szBuf, L"%hhu", pData[0]);
+		rsResult.PushBack(szBuf);
+		for (SIZE_T i = 1u; i < cb; ++i)
+		{
+			swprintf_s(szBuf, L",%hhu", pData[i]);
+			rsResult.PushBack(szBuf);
+		}
+		rsResult.PushBack(L" }");
+	}
+	break;
+	}
+
+	return rsResult;
+}
 
 EckInline void ScreenToClient(HWND hWnd, RECT* prc)
 {
@@ -808,6 +841,7 @@ inline CRefStrW GetClipboardString(HWND hWnd = NULL)
 				const int cch = (int)(cb / sizeof(WCHAR));
 				CRefStrW rs(cch);
 				memcpy(rs.Data(), pData, cch * sizeof(WCHAR));
+				*(rs.Data() + cch) = L'\0';
 				GlobalUnlock(hData);
 				CloseClipboard();
 				return rs;
@@ -860,5 +894,12 @@ EckInline T SetSign(T x, T iSign)
 	if (iSign > 0) return Abs(x);
 	if (iSign < 0) return -Abs(x);
 	else return x;
+}
+
+EckInline CRefStrW ToStr(const CRefBin& rb)
+{
+	CRefStrW rs((int)rb.Size() / 2);
+	memcpy(rs.Data(), rb.Data(), rs.Size() * sizeof(WCHAR));
+	return rs;
 }
 ECK_NAMESPACE_END

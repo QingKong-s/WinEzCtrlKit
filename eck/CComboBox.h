@@ -14,16 +14,25 @@ ECK_NAMESPACE_BEGIN
 class CComboBox :public CWnd
 {
 public:
-	CComboBox()
-	{
-
-	}
-
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+	ECK_CWNDPROP_STYLE(AutoHScroll, CBS_AUTOHSCROLL);
+	ECK_CWNDPROP_STYLE(DisableNoScroll, CBS_DISABLENOSCROLL);
+	ECK_CWNDPROP_STYLE(DropDown, CBS_DROPDOWN);
+	ECK_CWNDPROP_STYLE(DropDownList, CBS_DROPDOWNLIST);
+	ECK_CWNDPROP_STYLE(HasString, CBS_HASSTRINGS);
+	ECK_CWNDPROP_STYLE(LowerCase, CBS_LOWERCASE);
+	ECK_CWNDPROP_STYLE(NoIntegralHeight, CBS_NOINTEGRALHEIGHT);
+	ECK_CWNDPROP_STYLE(OemConvert, CBS_OEMCONVERT);
+	ECK_CWNDPROP_STYLE(OwnerDrawFixed, CBS_OWNERDRAWFIXED);
+	ECK_CWNDPROP_STYLE(OwnerDrawVariable, CBS_OWNERDRAWVARIABLE);
+	ECK_CWNDPROP_STYLE(Simple, CBS_SIMPLE);
+	ECK_CWNDPROP_STYLE(Sort, CBS_SORT);
+	ECK_CWNDPROP_STYLE(UpperCase, CBS_UPPERCASE);
+public:
+	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
 	{
 		dwStyle |= WS_CHILD;
-		m_hWnd = CreateWindowExW(0, WC_COMBOBOXW, NULL, dwStyle,
+		m_hWnd = IntCreate(0, WC_COMBOBOXW, NULL, dwStyle,
 			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
 		return m_hWnd;
 	}

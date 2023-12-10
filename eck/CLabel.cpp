@@ -434,134 +434,6 @@ void CLabel::SetDCAttr(HDC hDC)
 	}
 }
 
-LRESULT CALLBACK CLabel::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	auto p = (CLabel*)GetWindowLongPtrW(hWnd, 0);
-
-	switch (uMsg)
-	{
-	case WM_NCHITTEST:
-	{
-		if (p->m_Info.bTransparent)
-			switch (p->m_Info.iMousePassingThrough)
-			{
-			case 0:// 无
-				break;
-			case 1:// 穿透空白区域
-			{
-				POINT pt{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) };
-				ScreenToClient(hWnd, &pt);
-				if (!PtInRect(&p->m_rcPartPic, pt) && !PtInRect(&p->m_rcPartText, pt))
-					return HTTRANSPARENT;
-			}
-			break;
-			case 2:// 穿透整个控件
-				return HTTRANSPARENT;
-			}
-	}
-	break;
-
-	case WM_WINDOWPOSCHANGED:
-	{
-		LRESULT lResult = DefWindowProcW(hWnd, uMsg, wParam, lParam);
-		if (p->m_Info.bTransparent)
-			p->Redraw();
-		return lResult;
-	}
-
-	case WM_SIZE:
-	{
-		p->m_cxClient = LOWORD(lParam);
-		p->m_cyClient = HIWORD(lParam);
-		SelectObject(p->m_hCDC, p->m_hOld1);
-		DeleteObject(p->m_hBitmap);
-		HDC hDC = GetDC(hWnd);
-		p->m_hBitmap = CreateCompatibleBitmap(hDC, p->m_cxClient, p->m_cyClient);
-		SelectObject(p->m_hCDC, p->m_hBitmap);
-		ReleaseDC(hWnd, hDC);
-		p->CalcPartsRect();
-		if (!p->m_Info.bTransparent)
-			p->Redraw();
-	}
-	return 0;
-
-	case WM_NCCREATE:
-		SetWindowLongPtrW(hWnd, 0, (LONG_PTR)((CREATESTRUCTW*)lParam)->lpCreateParams);
-		return TRUE;
-
-	case WM_CREATE:
-	{
-		p->OnOwnWndMsg(hWnd, uMsg, wParam, lParam);
-		HDC hDC = GetDC(hWnd);
-		p->m_hCDC = CreateCompatibleDC(hDC);
-		p->m_hcdcHelper = CreateCompatibleDC(hDC);
-		ReleaseDC(hWnd, hDC);
-		p->m_hOld1 = GetCurrentObject(p->m_hCDC, OBJ_BITMAP);
-		p->m_hOld2 = GetCurrentObject(p->m_hcdcHelper, OBJ_BITMAP);
-		SetDCBrushColor(p->m_hCDC, GetSysColor(COLOR_BTNFACE));
-	}
-	return 0;
-
-	case WM_DESTROY:
-	{
-		SelectObject(p->m_hCDC, p->m_hOld1);
-		SelectObject(p->m_hcdcHelper, p->m_hOld2);
-		DeleteDC(p->m_hCDC);
-		DeleteDC(p->m_hcdcHelper);
-		DeleteObject(p->m_hBitmap);
-	}
-	return 0;
-
-	case WM_PAINT:
-	{
-		PAINTSTRUCT ps;
-		BeginPaint(hWnd, &ps);
-		if (p->m_Info.bTransparent)
-		{
-			p->SetDCAttr(ps.hdc);
-			p->Paint(ps.hdc);
-			RestoreDC(ps.hdc, -1);
-		}
-		else
-		{
-			p->Paint(p->m_hCDC);
-			BitBlt(ps.hdc,
-				ps.rcPaint.left,
-				ps.rcPaint.top,
-				ps.rcPaint.right - ps.rcPaint.left,
-				ps.rcPaint.bottom - ps.rcPaint.top,
-				p->m_hCDC,
-				ps.rcPaint.left,
-				ps.rcPaint.top,
-				SRCCOPY);
-		}
-		EndPaint(hWnd, &ps);
-	}
-	return 0;
-
-	case WM_SETFONT:
-	{
-		p->OnOwnWndMsg(hWnd, uMsg, wParam, lParam);
-		SelectObject(p->m_hCDC, (HFONT)wParam);
-		p->CalcPartsRect();
-		p->Redraw();
-	}
-	break;
-
-	case WM_SETTEXT:
-	{
-		p->OnOwnWndMsg(hWnd, uMsg, wParam, lParam);
-		LRESULT lResult = DefWindowProcW(hWnd, uMsg, wParam, lParam);
-
-		p->CalcPartsRect();
-		p->Redraw();
-		return lResult;
-	}
-	}
-
-	return DefWindowProcW(hWnd, uMsg, wParam, lParam);
-}
-
 ATOM CLabel::RegisterWndClass(HINSTANCE hInstance)
 {
 	if (m_atomLabel)
@@ -570,7 +442,7 @@ ATOM CLabel::RegisterWndClass(HINSTANCE hInstance)
 	wc.cbWndExtra = sizeof(void*);
 	wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
 	wc.hInstance = hInstance;
-	wc.lpfnWndProc = WndProc;
+	wc.lpfnWndProc = DefWindowProcW;
 	wc.lpszClassName = WCN_LABEL;
 	wc.style = CS_DBLCLKS | CS_PARENTDC;
 	m_atomLabel = RegisterClassW(&wc);

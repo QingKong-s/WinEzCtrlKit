@@ -46,7 +46,19 @@
 #define ECK_FILEW               __FILEW__
 
 
-#define EckProp(getter, setter) __declspec(property(get = getter, put = setter)))
+#define ECKPROP(getter, setter) __declspec(property(get = getter, put = setter))
+
+// 计次循环
+#define EckCounter(c, Var) for(std::remove_cvref_t<decltype(c)> Var = 0; Var < (c); ++Var)
+
+#define EckCounterNVMakeVarName2(Name) ECKPRIV_COUNT_##Name##___
+#define EckCounterNVMakeVarName(Name) EckCounterNVMakeVarName2(Name)
+
+// 计次循环，无变量名参数
+#define EckCounterNV(c) EckCounter((c), EckCounterNVMakeVarName(__LINE__))
+
+#define EckOpt(Type, Name) std::optional<Type> Name
+#define EckOptNul(Type, Name) std::optional<Type> Name = std::nullopt
 
 /*类型*/
 ECK_NAMESPACE_BEGIN
@@ -98,6 +110,7 @@ constexpr inline UINT SCID_TASKGROUPLIST = 20230725'01u;
 constexpr inline UINT SCID_TASKGROUPLISTPARENT = 20230725'02u;
 constexpr inline UINT SCID_INERTIALSCROLLVIEW = 20231103'01u;
 
+#pragma warning(suppress:26454)// 算术溢出
 constexpr inline UINT NM_FIRST_ECK = (0u - 0x514B);
 constexpr inline UINT NM_CLP_CLRCHANGED = NM_FIRST_ECK;
 
@@ -106,10 +119,6 @@ constexpr inline UINT NM_CLP_CLRCHANGED = NM_FIRST_ECK;
 constexpr inline PCWSTR PROP_DPIINFO = L"Eck.Prop.DpiInfo";
 constexpr inline PCWSTR PROP_PREVDPI = L"Eck.Prop.PrevDpi";
 constexpr inline PCWSTR PROP_PROPSHEETCTX = L"Eck.Prop.PropertySheet.Ctx";
-
-
-/*一些可能用到的控件ID*/
-
 
 #include "DbgHelper.h"
 #include "GdiplusFlatDef.h"
@@ -179,7 +188,7 @@ struct INITPARAM
 
 /// <summary>
 /// 初始化ECK Lib。
-/// 使用任何ECK功能之前需调用该函数。仅允许调用一次，重复调用的结果未知。
+/// 使用任何ECK功能之前需调用该函数。仅允许调用一次。
 /// 函数将在内部调用eck::ThreadInit，除非设置了ECKINIT_NOINITTHREAD
 /// </summary>
 /// <param name="hInstance">实例句柄，所有自定义窗口类将在此实例上注册</param>
@@ -189,15 +198,37 @@ struct INITPARAM
 InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam = NULL, DWORD* pdwErrCode = NULL);
 
 class CWnd;
-struct ECKTREADCTX;
+struct ECKTHREADCTX;
 
-using FWndCreating = void(*)(HWND hWnd, CBT_CREATEWNDW* pcs, ECKTREADCTX* pThreadCtx);
-struct ECKTREADCTX
+using FWndCreating = void(*)(HWND hWnd, CBT_CREATEWNDW* pcs, ECKTHREADCTX* pThreadCtx);
+struct ECKTHREADCTX
 {
-	std::unordered_map<HWND, CWnd*> hmWnd{};
-	HHOOK hhkTempCBT = NULL;
-	CWnd* pCurrWnd = NULL;
-	FWndCreating pfnWndCreatingProc = NULL;
+	std::unordered_map<HWND, CWnd*> hmWnd{};// HWND->CWnd*
+	HHOOK hhkTempCBT = NULL;// CBT钩子句柄
+	CWnd* pCurrWnd = NULL;// 当前正在创建窗口所属的CWnd指针
+	FWndCreating pfnWndCreatingProc = NULL;// 当前创建窗口时要调用的过程
+	int cHookRef = 0;
+
+	EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
+	{
+		hmWnd.insert(std::make_pair(hWnd, pWnd));
+	}
+
+	EckInline void WmRemove(HWND hWnd)
+	{
+		auto it = hmWnd.find(hWnd);
+		if (it != hmWnd.end())
+			hmWnd.erase(it);
+	}
+
+	EckInline CWnd* WmAt(HWND hWnd) const
+	{
+		auto it = hmWnd.find(hWnd);
+		if (it != hmWnd.end())
+			return it->second;
+		else
+			return NULL;
+	}
 };
 
 /// <summary>
@@ -220,9 +251,9 @@ void ThreadFree();
 /// <summary>
 /// 取线程上下文
 /// </summary>
-EckInline ECKTREADCTX* GetThreadCtx()
+EckInline ECKTHREADCTX* GetThreadCtx()
 {
-	return (ECKTREADCTX*)TlsGetValue(GetThreadCtxTlsSlot());
+	return (ECKTHREADCTX*)TlsGetValue(GetThreadCtxTlsSlot());
 }
 
 /// <summary>
@@ -230,12 +261,7 @@ EckInline ECKTREADCTX* GetThreadCtx()
 /// </summary>
 EckInline CWnd* CWndFromHWND(HWND hWnd)
 {
-	auto pCtx = GetThreadCtx();
-	auto it = pCtx->hmWnd.find(hWnd);
-	if (it != pCtx->hmWnd.end())
-		return it->second;
-	else
-		return NULL;
+	return GetThreadCtx()->WmAt(hWnd);
 }
 
 HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc = NULL);
@@ -243,7 +269,7 @@ HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc = NULL);
 void EndCbtHook();
 
 // 全局消息过滤器，若要拦截消息则应返回TRUE，否则应返回FALSE
-using FMsgFilter = BOOL(*)(const MSG* pMsg);
+using FMsgFilter = BOOL(*)(const MSG& Msg);
 
 /// <summary>
 /// 过滤消息。
@@ -251,12 +277,14 @@ using FMsgFilter = BOOL(*)(const MSG* pMsg);
 /// </summary>
 /// <param name="pMsg">即将处理的消息</param>
 /// <returns>若返回值为TRUE，则不应继续处理消息；否则应正常进行剩余步骤</returns>
-BOOL PreTranslateMessage(const MSG* pMsg);
+BOOL PreTranslateMessage(const MSG& Msg);
 
 /// <summary>
 /// 置消息过滤器
 /// </summary>
 /// <param name="pfnFilter">应用程序定义的过滤器函数指针</param>
 void SetMsgFilter(FMsgFilter pfnFilter);
+
+void DbgPrintWndMap();
 
 ECK_NAMESPACE_END

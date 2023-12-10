@@ -10,7 +10,94 @@ private:
 	HMENU m_hMenu = NULL;
 
 	EckInline static constexpr UINT PosBool2UINT(BOOL bPosition) { return bPosition ? MF_BYPOSITION : MF_BYCOMMAND; }
+
+	static void ForMenuItemSave(CRefBin& rb, HMENU hMenu)
+	{
+		MENUITEMINFOW mii;
+		mii.cbSize = sizeof(mii);
+		PWSTR pszBuf;
+		ITEM* pItem;
+
+		const int cItem = GetMenuItemCount(hMenu);
+		EckCounter(cItem, i)
+		{
+			mii.fMask = MIIM_DATA | MIIM_FTYPE | MIIM_ID | MIIM_STATE | MIIM_STRING | MIIM_SUBMENU;
+			mii.cch = 0;
+			mii.dwTypeData = NULL;
+			GetMenuItemInfoW(hMenu, i, TRUE, &mii);
+			++mii.cch;
+			pItem = (ITEM*)rb.PushBack(sizeof(ITEM) + mii.cch * sizeof(WCHAR));
+			pszBuf = (PWSTR)(pItem + 1);
+			pItem->uState = mii.fState;
+			pItem->uType = mii.fType;
+			pItem->uID = mii.wID;
+			pItem->uData = (ULONGLONG)mii.dwItemData;
+			pItem->cchText = mii.cch - 1;
+			if (mii.hSubMenu)
+				pItem->cSubItem = GetMenuItemCount(mii.hSubMenu);
+			else
+				pItem->cSubItem = 0;
+
+			mii.dwTypeData = pszBuf;
+			mii.fMask = MIIM_STRING;
+			GetMenuItemInfoW(hMenu, i, TRUE, &mii);
+			*(pszBuf + mii.cch) = L'\0';
+			if (mii.hSubMenu)
+				ForMenuItemSave(rb, mii.hSubMenu);
+		}
+	}
+
+	static void ForMenuItemCreating(CMemReader& r, HMENU hMenu, int cItem)
+	{
+		MENUITEMINFOW mii{};
+		mii.cbSize = sizeof(mii);
+		mii.fMask = MIIM_DATA | MIIM_FTYPE | MIIM_ID | MIIM_STATE | MIIM_STRING | MIIM_SUBMENU;
+		const ITEM* pItem;
+		EckCounter(cItem, i)
+		{
+			r.SkipPointer(pItem);
+			mii.fState = pItem->uState;
+			mii.fType = pItem->uType;
+			mii.wID = pItem->uID;
+			mii.dwItemData = (ULONG_PTR)pItem->uData;
+			mii.dwTypeData = (PWSTR)r.Data();
+			r += Cch2Cb(pItem->cchText);
+			if (pItem->cSubItem)
+			{
+				mii.hSubMenu = CreatePopupMenu();
+				ForMenuItemCreating(r, mii.hSubMenu, pItem->cSubItem);
+			}
+			else
+				mii.hSubMenu = NULL;
+			InsertMenuItemW(hMenu, i, TRUE, &mii);
+		}
+	}
 public:
+	constexpr static int c_DataVer1 = 0;
+	struct DATAHEADER
+	{
+		int iVer;
+		int cItem;
+	};
+
+	struct ITEM
+	{
+		UINT uState;
+		UINT uType;
+		UINT uID;
+		ULONGLONG uData;
+		int cchText;
+		int cSubItem;
+		// WCHAR szText[];
+	};
+
+	struct INITITEM
+	{
+		PCWSTR pszText = NULL;
+		UINT uID = 0u;
+		UINT uFlags = 0u;
+	};
+
 	EckInline static constexpr BOOL StateHasEnabled(UINT u) { return !(u & (MF_DISABLED | MF_GRAYED)); }
 
 	EckInline static constexpr BOOL StateHasString(UINT u) { return !(u & (MF_BITMAP | MF_OWNERDRAW)); }
@@ -20,14 +107,20 @@ public:
 	EckInline static constexpr BOOL StateHasUnHiLite(UINT u) { return !(u & MF_HILITE); }
 
 	CMenu() = default;
-	CMenu(std::initializer_list<std::pair<PCWSTR, UINT>> Items)
+	CMenu(std::initializer_list<INITITEM> Items)
 		:m_hMenu{ CreatePopupMenu() }
 	{
 		for (auto x : Items)
-			AppendItem(x.first, x.second);
+			AppendItem(x.pszText, x.uID, x.uFlags);
 	}
 
 	CMenu(HMENU hMenu) :m_hMenu{ hMenu } {}
+
+	CMenu(PCVOID pData, SIZE_T cbData)
+		:m_hMenu{ CreatePopupMenu() }
+	{
+		AppendItems(pData, cbData);
+	}
 
 	CMenu(const CMenu&) = delete;
 	CMenu(CMenu&& x) noexcept
@@ -44,6 +137,37 @@ public:
 	}
 
 	~CMenu() { Destroy(); }
+
+	/// <summary>
+	/// 从数据附加项目。
+	/// 反序列化给定数据并将其中的项目附加到当前菜单
+	/// </summary>
+	/// <param name="pData">指针</param>
+	/// <param name="cb">长度</param>
+	void AppendItems(PCVOID pData, SIZE_T cb)
+	{
+		CMemReader r(pData, cb);
+		const DATAHEADER* pHeader;
+		r.SkipPointer(pHeader);
+		if (pHeader->iVer != c_DataVer1)
+		{
+			EckDbgBreak();
+			return;
+		}
+		ForMenuItemCreating(r, m_hMenu, pHeader->cItem);
+	}
+
+	/// <summary>
+	/// 序列化数据
+	/// </summary>
+	/// <param name="rb">字节集</param>
+	EckInline void SerializeData(CRefBin& rb)
+	{
+		auto pHeader = rb.PushBack<DATAHEADER>();
+		pHeader->iVer = c_DataVer1;
+		pHeader->cItem = GetItemCount();
+		ForMenuItemSave(rb, m_hMenu);
+	}
 
 	EckInline HMENU Attach(HMENU hMenu)
 	{
@@ -105,15 +229,25 @@ public:
 		return CheckMenuRadioItem(m_hMenu, uBegin, uEnd, uCheck, PosBool2UINT(bPosition));
 	}
 
+	/// <summary>
+	/// 创建菜单。
+	/// 旧的菜单将被销毁
+	/// </summary>
+	/// <returns></returns>
 	EckInline HMENU Create()
 	{
-		Attach(CreateMenu());
+		DestroyMenu(Attach(CreateMenu()));
 		return m_hMenu;
 	}
 
+	/// <summary>
+	/// 创建弹出式菜单。
+	/// 旧的菜单将被销毁
+	/// </summary>
+	/// <returns></returns>
 	EckInline HMENU CreatePopup()
 	{
-		Attach(CreatePopupMenu());
+		DestroyMenu(Attach(CreatePopupMenu()));
 		return m_hMenu;
 	}
 

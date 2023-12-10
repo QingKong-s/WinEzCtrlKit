@@ -424,7 +424,7 @@ public:
 	/// 最后使用BitBlt拷贝位图数据
 	/// </summary>
 	/// <param name="hDC">设备场景</param>
-	/// <param name="iTopToBottom">位图原点选项，-1 - 自上而下  0 - 默认  1 - 自下而上</param>
+	/// <param name="iTopToBottom">位图原点选项，<0 - 自上而下  >=0 - 自下而上</param>
 	/// <param name="hPalette">调色板句柄</param>
 	/// <returns>创建的DIB节</returns>
 	HBITMAP Create(HDC hDC, int iTopToBottom = 0, HPALETTE hPalette = NULL)
@@ -467,6 +467,7 @@ public:
 		}
 		BitBlt(hCDC, 0, 0, bmp.bmWidth, bmp.bmHeight, hDC, 0, 0, SRCCOPY);
 		DeleteDC(hCDC);
+		return m_hBitmap;
 	}
 
 	/// <summary>
@@ -637,7 +638,7 @@ public:
 		pih->biXPelsPerMeter = pih->biYPelsPerMeter = 0;
 		pih->biClrUsed = m_ds.dsBmih.biClrUsed;
 		pih->biClrImportant = m_ds.dsBmih.biClrImportant;
-		// 制调色板
+		// 制颜色表
 		const size_t cbPalette = sizeof(RGBQUAD) * m_ds.dsBmih.biClrUsed;
 		if (cbPalette)
 		{
