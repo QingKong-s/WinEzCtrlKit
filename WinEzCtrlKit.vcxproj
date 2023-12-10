@@ -166,6 +166,7 @@
     <ClInclude Include="eck\CDrawPanel.h" />
     <ClInclude Include="eck\CEditExt.h" />
     <ClInclude Include="eck\CFile.h" />
+    <ClInclude Include="eck\CFlowLayout.h" />
     <ClInclude Include="eck\CForm.h" />
     <ClInclude Include="eck\CFormTable.h" />
     <ClInclude Include="eck\CListBoxNew.h" />
@@ -225,7 +226,6 @@
     <ClCompile Include="eck\CCommDlg.cpp" />
     <ClCompile Include="eck\CDialog.cpp" />
     <ClCompile Include="eck\CDirBox.cpp" />
-    <ClCompile Include="eck\CDrawPanel.cpp" />
     <ClCompile Include="eck\CEdit.cpp" />
     <ClCompile Include="eck\CEditExt.cpp" />
     <ClCompile Include="eck\CFile.cpp" />
@@ -234,7 +234,6 @@
     <ClCompile Include="eck\CListBox.cpp" />
     <ClCompile Include="eck\CListBoxExt.cpp" />
     <ClCompile Include="eck\CLunarCalendar.cpp" />
-    <ClCompile Include="eck\CRefStr.cpp" />
     <ClCompile Include="eck\CScrollBar.h" />
     <ClCompile Include="eck\CSplitBar.cpp" />
     <ClCompile Include="eck\CTabHeader.cpp" />

@@ -148,10 +148,10 @@ inline HRESULT DrawSpirograph(const DRAW_SPIROGRAPH_D2D_PARAM& Info, ID2D1PathGe
 /// 计算将矩形映射到任意凸四边形的4x4矩阵
 /// </summary>
 /// <param name="rcOrg">矩形</param>
-/// <param name="ptDistort">映射到的点，分别对应左上角、右上角、左下角、右下角</param>
+/// <param name="ptDistort">映射到的点，至少指向四个D2D1_POINT_2F，分别对应左上角、右上角、左下角、右下角</param>
 /// <param name="MatrixResult">结果矩阵</param>
 inline void CalcDistortMatrix(const D2D1_RECT_F& rcOrg,
-	const D2D1_POINT_2F(&ptDistort)[4], D2D1_MATRIX_4X4_F& MatrixResult)
+	const D2D1_POINT_2F* ptDistort, D2D1_MATRIX_4X4_F& MatrixResult)
 {
 	const float cx = rcOrg.right - rcOrg.left;
 	const float cy = rcOrg.bottom - rcOrg.top;
@@ -607,8 +607,7 @@ inline HRESULT EzD2dReSize(ID2D1DeviceContext* pDC, IDXGISwapChain1* pSwapChain,
 }
 
 /// <summary>
-/// 计算正N角星各点。
-/// 等效于计算正N边形各点
+/// 计算正星形/正多边形各点
 /// </summary>
 /// <param name="vPt">点集合</param>
 /// <param name="r">外接圆半径</param>
@@ -625,7 +624,7 @@ inline void CalcRegularStar(std::vector<TPt>& vPt, TVal r, int n, float fAngle =
 	if (bLinkStar)
 	{
 		int i = 0;
-		const int cLoop = n % 2 ? n : n / 2;
+		const int cLoop = (n % 2) ? n : (n / 2);
 		EckCounterNV(cLoop)
 		{
 			CalcPointFromCircleAngle<TVal>(r, fTheta + fAngleUnit * i, x, y);
@@ -663,7 +662,7 @@ inline void CalcRegularStar(std::vector<TPt>& vPt, TVal r, int n, float fAngle =
 }
 
 /// <summary>
-/// 画正N角星/正N边形
+/// 画正星形/正多边形
 /// </summary>
 /// <param name="hDC">设备场景</param>
 /// <param name="xCenter">中心点X</param>
@@ -691,7 +690,7 @@ inline BOOL DrawRegularStar(HDC hDC, int xCenter, int yCenter,
 }
 
 /// <summary>
-/// 画正N角星/正N边形
+/// 画正星形/正多边形
 /// </summary>
 /// <param name="pGraphics">图形对象</param>
 /// <param name="pPen">画笔句柄</param>
@@ -737,7 +736,7 @@ struct DRAW_REGULARSTAR_D2D_PARAM
 };
 
 /// <summary>
-/// 画正N角星/正N边形
+/// 画正星形/正多边形
 /// </summary>
 /// <param name="Info">参数</param>
 /// <param name="ppPathGeometry">接收路径几何形变量的指针</param>

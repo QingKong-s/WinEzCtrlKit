@@ -7,31 +7,7 @@
 #include <format>
 
 #include "eck/Env.h"
-#include "eck/DbgHelper.h"
-#include "eck/DlgHelper.h"
-
-#include "eck/ECK.h"
-#include "eck/CButton.h"
-#include "eck/CEdit.h"
-#include "eck/CLabel.h"
-#include "eck/CColorPicker.h"
-#include "eck/ImageHelper.h"
-#include "eck/CListBoxExt.h"
-#include "eck/CCommDlg.h"
-#include "eck/CDirBox.h"
-#include "eck/CScrollBar.h"
-#include "eck/CComboBox.h"
-#include "eck/CListView.h"
-#include "eck/CTaskGroupList.h"
-#include "eck/CArray.h"
-#include "eck/CResSet.h"
-#include "eck/CFormTable.h"
-#include "eck/CTabHeader.h"
-#include "eck/CSplitBar.h"
-#include "eck/CDrawPanel.h"
-#include "eck/CLunarCalendar.h"
-#include "eck/CListBoxNew.h"
-#include "eck/CMenu.h"
+#include "CTestWnd.h"
 
 
 using namespace std::literals;
@@ -112,20 +88,27 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	using namespace eck;
 	using namespace eck::Literals;
 
-	//auto date = CeToLunar({ 1902,6,20 });
-	//EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
-	//date = CeToLunar({ 1902,1,1 });
-	//EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
-	//date = CeToLunar({ 1902,1,6 });
-	//EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
-	//date = CeToLunar({ 1902,1,11 });
-	//EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
-	//date = CeToLunar({ 1902,2,3 });
-	//EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
-	//EckDbgPrint(NumToNaYin(GetNaYin(L"甲子")));
-	//EckDbgPrint(NumToNaYin(GetNaYin(6)));
-	//EckDbgPrint(NumToJieQi(GetJieQi({ 1902,5,22 })));
-	//EckDbgPrint(NumToShuXiang(GetShuXiang(2023)));
+	CRefStrW rsi(L"123456789");
+	rsi.Insert(2, L"插入一段文本");
+	EckDbgPrint(rsi);
+	rsi.Erase(4, 5);
+	EckDbgPrint(rsi);
+	//EckDbgBreak();
+
+	auto date = CeToLunar({ 1902,6,20 });
+	EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
+	date = CeToLunar({ 1902,1,1 });
+	EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
+	date = CeToLunar({ 1902,1,6 });
+	EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
+	date = CeToLunar({ 1902,1,11 });
+	EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
+	date = CeToLunar({ 1902,2,3 });
+	EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
+	EckDbgPrint(NumToNaYin(GetNaYin(L"甲子")));
+	EckDbgPrint(NumToNaYin(GetNaYin(6)));
+	EckDbgPrint(NumToJieQi(GetJieQi({ 1902,5,22 })));
+	EckDbgPrint(NumToShuXiang(GetShuXiang(2023)));
 
 	CRefBin rb0;
 	rb0 << 4;
@@ -134,6 +117,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	std::vector<int> aa{ 10,11,12,13,14,15 };
 	rb0 << aa;
+
+	rb0 = { 0,1,2,3,4,5,6,7,8,9 };
+	rb0.Insert(4, { 11,12,13 });
+	EckDbgPrint(rb0);
+	rb0.Erase(5, 3);
+	EckDbgPrint(rb0);
+	//EckDbgBreak();
 
 	//EckDbgPrint(rb0.At<int>(7));
 	//EckAssert(rb0.At<int>(7) == 0);
@@ -380,27 +370,31 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	//return (int)msg.wParam;
 
 
-	WNDCLASSEXW wcex{ sizeof(WNDCLASSEX) };
-	wcex.style = CS_HREDRAW | CS_VREDRAW;
-	wcex.lpfnWndProc = WndProc_Main;
-	wcex.hInstance = hInstance;
-	wcex.hIcon = LoadIconW(NULL, IDI_APPLICATION);
-	wcex.hCursor = LoadCursorW(NULL, IDC_ARROW);
-	wcex.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
-	wcex.lpszClassName = WCN_MAIN;
-	if (!RegisterClassExW(&wcex))
-		return 1;
+	//WNDCLASSEXW wcex{ sizeof(WNDCLASSEX) };
+	//wcex.style = CS_HREDRAW | CS_VREDRAW;
+	//wcex.lpfnWndProc = WndProc_Main;
+	//wcex.hInstance = hInstance;
+	//wcex.hIcon = LoadIconW(NULL, IDI_APPLICATION);
+	//wcex.hCursor = LoadCursorW(NULL, IDC_ARROW);
+	//wcex.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
+	//wcex.lpszClassName = WCN_MAIN;
+	//if (!RegisterClassExW(&wcex))
+	//	return 1;
 
-	HWND hWnd = CreateWindowExW(0, WCN_MAIN, L"示例Win32程序", WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
-	if (!hWnd)
-		return 1;
-	ShowWindow(hWnd, nCmdShow);
-	UpdateWindow(hWnd);
+	//HWND hWnd = CreateWindowExW(0, WCN_MAIN, L"示例Win32程序", WS_OVERLAPPEDWINDOW,
+	//	CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
+	//if (!hWnd)
+	//	return 1;
+	//ShowWindow(hWnd, nCmdShow);
+	//UpdateWindow(hWnd);
+	CTestWnd::RegisterWndClass();
+	CTestWnd w;
+	w.Create(L"示例Win32程序", WS_OVERLAPPEDWINDOW, 0, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, 0);
+	w.Show(SW_SHOW);
 
 	while (GetMessageW(&msg, NULL, 0, 0))
 	{
-		if (!eck::PreTranslateMessage(&msg))
+		if (!eck::PreTranslateMessage(msg))
 		{
 			TranslateMessage(&msg);
 			DispatchMessageW(&msg);
@@ -430,9 +424,9 @@ eck::CListBoxNew* g_LBN;
 eck::CMenu g_Menu
 {
 	{L"我是第一项",100},
-	{L"我是第β项",101},
+	{L"我是第β项",101,MF_CHECKED},
 	{L"我是第3项",102},
-	{L"我是第D项",103},
+	{L"我是第D项",103,MF_GRAYED},
 	{L"我是第戊项",104},
 	{L"我是第サ项",105},
 };
@@ -530,10 +524,19 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 
 	case WM_CREATE:
 	{
+		//eck::CRefBin rbMenuData;
+		//g_Menu.SerializeData(rbMenuData);
+		//eck::WriteToFile(LR"(E:\Desktop\MenuData.bin)", rbMenuData);
+		//EckDbgBreak();
+		//g_Menu.CreatePopup();
+		//rbMenuData = eck::ReadInFile(LR"(E:\Desktop\MenuData.bin)");
+		//g_Menu.AppendItems(rbMenuData.Data(), rbMenuData.Size());
+		
 		//hIcon = eck::CreateHICON(LR"(E:\Desktop\图标9.ico)");
 
 		//hIcon=eck::CreateHICON()
-
+		eck::CComboBox cb;
+		cb.DropDown = TRUE;
 		g_iDpi = eck::GetDpi(hWnd);
 		g_hFont = eck::EzFont(L"微软雅黑", 9);
 

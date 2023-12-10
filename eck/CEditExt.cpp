@@ -347,7 +347,7 @@ HWND CEditExt::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 			EckDbgBreak();
 			break;
 		}
-		m_hWnd = CreateWindowExW(pBase->dwExStyle, WC_EDITW, pBase->Text(), dwStyle,
+		m_hWnd = IntCreate(pBase->dwExStyle, WC_EDITW, pBase->Text(), dwStyle,
 			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
 
 		switch (p->iVer)
@@ -377,7 +377,7 @@ HWND CEditExt::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		else
 			dwStyle |= ES_AUTOHSCROLL;
 
-		m_hWnd = CreateWindowExW(dwExStyle, WC_EDITW, pszText, dwStyle,
+		m_hWnd = IntCreate(dwExStyle, WC_EDITW, pszText, dwStyle,
 			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
 	}
 

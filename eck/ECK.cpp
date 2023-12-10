@@ -26,7 +26,7 @@ IDXGIFactory2* g_pDxgiFactory = NULL;
 
 DWORD g_dwTlsSlot = 0;
 
-static BOOL DefMsgFilter(const MSG*)
+static BOOL DefMsgFilter(const MSG&)
 {
 	return FALSE;
 }
@@ -119,10 +119,10 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		return InitStatus::RegWndClassError;
 	}
 
-	WCHAR szPath[MAX_PATH];
-	GetModuleFileNameW(NULL, szPath, MAX_PATH - 1);
-	PathRemoveFileSpecW(szPath);
-	g_rsCurrDir = szPath;
+	g_rsCurrDir.ReSize(32768);
+	GetModuleFileNameW(NULL, g_rsCurrDir.Data(), g_rsCurrDir.Size());
+	PathRemoveFileSpecW(g_rsCurrDir.Data());
+	g_rsCurrDir.ReCalcLen();
 
 	HRESULT hr;
 #ifndef NDEBUG
@@ -147,7 +147,6 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		return InitStatus::DWriteFactoryError;
 	}
 	//////////////创建DXGI工厂
-
 	ID3D11Device* pD3DDevice;
 	hr = D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, D3D11_CREATE_DEVICE_BGRA_SUPPORT
 #ifndef NDEBUG
@@ -196,14 +195,14 @@ DWORD GetThreadCtxTlsSlot()
 void ThreadInit()
 {
 	EckAssert(!TlsGetValue(GetThreadCtxTlsSlot()));
-	auto p = new ECKTREADCTX{};
+	const auto p = new ECKTHREADCTX{};
 	TlsSetValue(GetThreadCtxTlsSlot(), p);
 }
 
 void ThreadFree()
 {
 	EckAssert(TlsGetValue(GetThreadCtxTlsSlot()));
-	auto p = (ECKTREADCTX*)TlsGetValue(GetThreadCtxTlsSlot());
+	const auto p = (ECKTHREADCTX*)TlsGetValue(GetThreadCtxTlsSlot());
 	delete p;
 	TlsSetValue(GetThreadCtxTlsSlot(), NULL);
 }
@@ -211,20 +210,25 @@ void ThreadFree()
 HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc)
 {
 	EckAssert(pCurrWnd);
-	auto pCtx = GetThreadCtx();
+	const auto pCtx = GetThreadCtx();
+	++pCtx->cHookRef;
 	pCtx->pCurrWnd = pCurrWnd;
 	pCtx->pfnWndCreatingProc = pfnCreatingProc;
 	if (!pCtx->hhkTempCBT)
 	{
+		EckAssert(pCtx->cHookRef == 1);
 		HHOOK hHook = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
 			{
-				auto pCtx = GetThreadCtx();
+				const auto pCtx = GetThreadCtx();
 				if (iCode == HCBT_CREATEWND)
 				{
-					pCtx->pCurrWnd->EnableNotifyReflection();
-					pCtx->hmWnd.insert(std::make_pair((HWND)wParam, pCtx->pCurrWnd));
+					pCtx->pCurrWnd->m_pfnRealProc =
+						(WNDPROC)SetWindowLongPtrW((HWND)wParam, GWLP_WNDPROC,
+							(LONG_PTR)CWnd::WndProcMsgReflection);
+					pCtx->WmAdd((HWND)wParam, pCtx->pCurrWnd);
 					if (pCtx->pfnWndCreatingProc)
 						pCtx->pfnWndCreatingProc((HWND)wParam, (CBT_CREATEWNDW*)lParam, pCtx);
+					EndCbtHook();
 				}
 				return CallNextHookEx(pCtx->hhkTempCBT, iCode, wParam, lParam);
 			}, NULL, GetCurrentThreadId());
@@ -235,22 +239,28 @@ HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc)
 
 void EndCbtHook()
 {
-	auto pCtx = GetThreadCtx();
+	const auto pCtx = GetThreadCtx();
+	EckAssert(pCtx->cHookRef > 0);
 	EckAssert(pCtx->hhkTempCBT);
-	UnhookWindowsHookEx(pCtx->hhkTempCBT);
-	pCtx->hhkTempCBT = NULL;
+	--pCtx->cHookRef;
+	if (pCtx->cHookRef == 0)
+	{
+		UnhookWindowsHookEx(pCtx->hhkTempCBT);
+		pCtx->hhkTempCBT = NULL;
+	}
 }
 
-BOOL PreTranslateMessage(const MSG* pMsg)
+BOOL PreTranslateMessage(const MSG& Msg)
 {
-	if (g_pfnMsgFilter(pMsg))
+	if (g_pfnMsgFilter(Msg))
 		return TRUE;
-	HWND hWnd = pMsg->hwnd;
+	HWND hWnd = Msg.hwnd;
 	CWnd* pWnd;
+	const ECKTHREADCTX* const pCtx = GetThreadCtx();
 	while (hWnd)
 	{
-		pWnd = CWndFromHWND(hWnd);
-		if (pWnd && pWnd->PreTranslateMessage(pMsg))
+		pWnd = pCtx->WmAt(hWnd);
+		if (pWnd && pWnd->PreTranslateMessage(Msg))
 			return TRUE;
 		hWnd = GetParent(hWnd);
 	}
@@ -262,4 +272,21 @@ void SetMsgFilter(FMsgFilter pfnFilter)
 	g_pfnMsgFilter = pfnFilter;
 }
 
+void DbgPrintWndMap()
+{
+	auto pCtx = GetThreadCtx();
+	std::wstring s = std::format(L"当前线程（TID = {}）窗口映射表内容：\n", GetCurrentThreadId());
+	for (const auto& e : pCtx->hmWnd)
+	{
+		auto sText = e.second->GetText();
+		if (!sText.Data())
+			sText = L" ";
+		s += std::format(L"\tCWnd指针 = {}，HWND = {}，标题 = {}\n",
+			(PCVOID)e.second,
+			(PCVOID)e.first,
+			sText.Data());
+	}
+	s += std::format(L"共有{}个窗口", pCtx->hmWnd.size());
+	OutputDebugStringW(s.c_str());
+}
 ECK_NAMESPACE_END

@@ -93,51 +93,6 @@ BOOL WriteToFile(PCWSTR pszFile, PCVOID pData, DWORD cb)
 	return b;
 }
 
-CRefStrW BinToFriendlyString(BYTE* pData, SIZE_T cb, int iType)
-{
-	CRefStrW rsResult;
-	if (!pData || !cb)
-	{
-		if (iType == 1)
-			rsResult = L"{ }";
-		return rsResult;
-	}
-#define B2SBUFSIZE 32
-	WCHAR szBuf[B2SBUFSIZE];
-	switch (iType)
-	{
-	case 0:
-	{
-		rsResult.Reserve((int)cb * 3 + 10);
-
-		for (SIZE_T i = 0u; i < cb; ++i)
-		{
-			swprintf(szBuf, B2SBUFSIZE - 1, L"%02hhX ", pData[i]);
-			rsResult.PushBack(szBuf);
-		}
-	}
-	break;
-
-	case 1:
-	{
-		rsResult.Reserve((int)cb * 4 + 10);
-
-		rsResult.PushBack(L"{ ");
-		swprintf(szBuf, B2SBUFSIZE - 1, L"%hhu", pData[0]);
-		rsResult.PushBack(szBuf);
-		for (SIZE_T i = 1u; i < cb; ++i)
-		{
-			swprintf(szBuf, B2SBUFSIZE - 1, L",%hhu", pData[i]);
-			rsResult.PushBack(szBuf);
-		}
-		rsResult.PushBack(L" }");
-	}
-	break;
-	}
-#undef B2SBUFSIZE
-	return rsResult;
-}
-
 RECT MakeRect(POINT pt1, POINT pt2)
 {
 	RECT rc;

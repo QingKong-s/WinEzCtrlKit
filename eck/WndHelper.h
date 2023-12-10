@@ -24,6 +24,22 @@
 	((fn)((hWnd), (int)(short)LOWORD(wParam), (int)(short)HIWORD(wParam), (RECT*)(lParam)), 0L)
 #endif
 
+#define ECK_STYLE_GETSET(Name, Style) \
+	BOOL StyleGet##Name() \
+	{ \
+		return IsBitSet(GetStyle(), Style); \
+	} \
+	void StyleSet##Name(BOOL b) \
+	{ \
+		ModifyStyle((b ? Style : 0), Style, GWL_STYLE); \
+	}
+#define ECK_CWNDPROP_STYLE(Name, Style) \
+	ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; \
+	ECK_STYLE_GETSET(Name, Style)
+
+
+
+
 ECK_NAMESPACE_BEGIN
 constexpr inline UINT WM_USER_SAFE = WM_USER + 3;
 

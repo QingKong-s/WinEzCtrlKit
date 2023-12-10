@@ -128,7 +128,7 @@ public:
 	/// 创建自大括号初始化器
 	/// </summary>
 	/// <param name="x"></param>
-	CRefBinT(std::initializer_list<BYTE> x)
+	explicit CRefBinT(std::initializer_list<BYTE> x)
 	{
 		m_cb = x.size();
 		m_cbCapacity = TAllocTraits::MakeCapacity(x.size());
@@ -178,6 +178,12 @@ public:
 		std::swap(m_pStream, x.m_pStream);
 		std::swap(m_cb, x.m_cb);
 		std::swap(m_cbCapacity, x.m_cbCapacity);
+		return *this;
+	}
+
+	EckInline CRefBinT& operator=(std::initializer_list<BYTE> x)
+	{
+		DupStream(x);
 		return *this;
 	}
 
@@ -242,6 +248,17 @@ public:
 	{
 		ReSize(cb);
 		memcpy(Data(), p, cb);
+	}
+
+	template<class TAlloc1>
+	EckInline void DupStream(const CRefBinT<TAlloc1>& rb)
+	{
+		DupStream(rb.Data(), rb.Size());
+	}
+
+	EckInline void DupStream(std::initializer_list<BYTE> x)
+	{
+		DupStream(x.begin(), x.size());
 	}
 
 	/// <summary>
@@ -346,9 +363,15 @@ public:
 	/// <param name="posStart">替换位置</param>
 	/// <param name="cbReplacing">替换长度</param>
 	/// <param name="rb">用作替换的字节集</param>
-	EckInline void Replace(size_t posStart, size_t cbReplacing, const CRefBinT& rb)
+	template<class TAlloc1>
+	EckInline void Replace(size_t posStart, size_t cbReplacing, const CRefBinT<TAlloc1>& rb)
 	{
 		Replace(posStart, cbReplacing, rb.Data(), rb.Size());
+	}
+
+	EckInline void Replace(size_t posStart, size_t cbReplacing, std::initializer_list<BYTE> x)
+	{
+		Replace(posStart, cbReplacing, x.begin(), x.size());
 	}
 
 	/// <summary>
@@ -383,9 +406,18 @@ public:
 	/// <param name="rbSrcBin">用作替换的字节集</param>
 	/// <param name="posStart">起始位置</param>
 	/// <param name="cReplacing">替换进行的次数，0为执行所有替换</param>
-	EckInline void ReplaceSubBin(const CRefBinT& rbReplacedBin, const CRefBinT& rbSrcBin, size_t posStart = 0, int cReplacing = -1)
+	template<class TAlloc1, class TAlloc2>
+	EckInline void ReplaceSubBin(const CRefBinT<TAlloc1>& rbReplacedBin,
+		const CRefBinT<TAlloc2>& rbSrcBin, size_t posStart = 0, int cReplacing = -1)
 	{
 		ReplaceSubBin(rbReplacedBin.Data(), rbReplacedBin.Size(), rbSrcBin.Data(), rbSrcBin.Size(),
+			posStart, cReplacing);
+	}
+
+	EckInline void ReplaceSubBin(std::initializer_list<BYTE> ilReplacedBin,
+		std::initializer_list<BYTE> ilSrcBin, size_t posStart = 0, int cReplacing = -1)
+	{
+		ReplaceSubBin(ilReplacedBin.begin(), ilReplacedBin.size(), ilSrcBin.begin(), ilSrcBin.size(),
 			posStart, cReplacing);
 	}
 
@@ -467,6 +499,39 @@ public:
 		return CRefBinT<TAlloc>(Data() + posBegin, posEnd - posBegin);
 	}
 
+	EckInline void Insert(size_t pos, PCVOID p, size_t cb)
+	{
+		EckAssert(pos <= Size());
+		EckAssert(p ? TRUE : (cb == 0));
+		ReSize(Size() + cb);
+		memmove(
+			Data() + pos + cb,
+			Data() + pos,
+			Size() - cb - pos);
+		memcpy(Data() + pos, p, cb);
+	}
+
+	template<class TAlloc1 = TAlloc>
+	EckInline void Insert(size_t pos, const CRefBinT<TAlloc1>& rb)
+	{
+		Insert(pos, rb.Data(), rb.Size());
+	}
+
+	EckInline void Insert(size_t pos, std::initializer_list<BYTE> il)
+	{
+		Insert(pos, il.begin(), il.size());
+	}
+
+	EckInline void Erase(size_t pos, size_t cb)
+	{
+		EckAssert(Size() >= pos + cb);
+		memmove(
+			Data() + pos,
+			Data() + pos + cb,
+			Size() - pos - cb);
+		m_cb -= cb;
+	}
+
 	EckInline TIterator begin() { return Data(); }
 	EckInline TIterator end() { return begin() + Size(); }
 	EckInline TConstIterator begin() const { return Data(); }
@@ -490,6 +555,16 @@ CRefBinT<TAlloc> operator+(const CRefBinT<TAlloc1>& rb1, const CRefBinT<TAlloc2>
 	memcpy(rb.Data(), rb1.Data(), rb1.Size());
 	memcpy(rb.Data() + rb1.Size(), rb2.Data(), rb2.Size());
 	return rb;
+}
+
+CRefStrW BinToFriendlyString(PCBYTE pData, SIZE_T cb, int iType);
+template<class TAlloc>
+EckInline void DbgPrint(const CRefBinT<TAlloc>& rb,int iType=1, BOOL bNewLine = TRUE)
+{
+	auto rs = BinToFriendlyString(rb.Data(), rb.Size(), iType);
+	OutputDebugStringW(rs.Data());
+	if (bNewLine)
+		OutputDebugStringW(L"\n");
 }
 
 /// <summary>

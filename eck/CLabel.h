@@ -80,23 +80,142 @@ private:
 	/// </summary>
 	/// <param name="hDC">目标DC</param>
 	void SetDCAttr(HDC hDC);
-
-	/// <summary>
-	/// 控件窗口过程
-	/// </summary>
-	static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
 public:
+	LRESULT CALLBACK OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		switch (uMsg)
+		{
+		case WM_NCHITTEST:
+		{
+			if (m_Info.bTransparent)
+				switch (m_Info.iMousePassingThrough)
+				{
+				case 0:// 无
+					break;
+				case 1:// 穿透空白区域
+				{
+					POINT pt{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) };
+					ScreenToClient(hWnd, &pt);
+					if (!PtInRect(&m_rcPartPic, pt) && !PtInRect(&m_rcPartText, pt))
+						return HTTRANSPARENT;
+				}
+				break;
+				case 2:// 穿透整个控件
+					return HTTRANSPARENT;
+				}
+		}
+		break;
+
+		case WM_WINDOWPOSCHANGED:
+		{
+			LRESULT lResult = DefWindowProcW(hWnd, uMsg, wParam, lParam);
+			if (m_Info.bTransparent)
+				Redraw();
+			return lResult;
+		}
+
+		case WM_SIZE:
+		{
+			m_cxClient = LOWORD(lParam);
+			m_cyClient = HIWORD(lParam);
+			SelectObject(m_hCDC, m_hOld1);
+			DeleteObject(m_hBitmap);
+			HDC hDC = GetDC(hWnd);
+			m_hBitmap = CreateCompatibleBitmap(hDC, m_cxClient, m_cyClient);
+			SelectObject(m_hCDC, m_hBitmap);
+			ReleaseDC(hWnd, hDC);
+			CalcPartsRect();
+			if (!m_Info.bTransparent)
+				Redraw();
+		}
+		return 0;
+
+		case WM_NCCREATE:
+			SetWindowLongPtrW(hWnd, 0, (LONG_PTR)((CREATESTRUCTW*)lParam)->lpCreateParams);
+			return TRUE;
+
+		case WM_CREATE:
+		{
+			OnOwnWndMsg(hWnd, uMsg, wParam, lParam);
+			HDC hDC = GetDC(hWnd);
+			m_hCDC = CreateCompatibleDC(hDC);
+			m_hcdcHelper = CreateCompatibleDC(hDC);
+			ReleaseDC(hWnd, hDC);
+			m_hOld1 = GetCurrentObject(m_hCDC, OBJ_BITMAP);
+			m_hOld2 = GetCurrentObject(m_hcdcHelper, OBJ_BITMAP);
+			SetDCBrushColor(m_hCDC, GetSysColor(COLOR_BTNFACE));
+		}
+		return 0;
+
+		case WM_DESTROY:
+		{
+			SelectObject(m_hCDC, m_hOld1);
+			SelectObject(m_hcdcHelper, m_hOld2);
+			DeleteDC(m_hCDC);
+			DeleteDC(m_hcdcHelper);
+			DeleteObject(m_hBitmap);
+		}
+		return 0;
+
+		case WM_PAINT:
+		{
+			PAINTSTRUCT ps;
+			BeginPaint(hWnd, &ps);
+			if (m_Info.bTransparent)
+			{
+				SetDCAttr(ps.hdc);
+				Paint(ps.hdc);
+				RestoreDC(ps.hdc, -1);
+			}
+			else
+			{
+				Paint(m_hCDC);
+				BitBlt(ps.hdc,
+					ps.rcPaint.left,
+					ps.rcPaint.top,
+					ps.rcPaint.right - ps.rcPaint.left,
+					ps.rcPaint.bottom - ps.rcPaint.top,
+					m_hCDC,
+					ps.rcPaint.left,
+					ps.rcPaint.top,
+					SRCCOPY);
+			}
+			EndPaint(hWnd, &ps);
+		}
+		return 0;
+
+		case WM_SETFONT:
+		{
+			OnOwnWndMsg(hWnd, uMsg, wParam, lParam);
+			SelectObject(m_hCDC, (HFONT)wParam);
+			CalcPartsRect();
+			Redraw();
+		}
+		break;
+
+		case WM_SETTEXT:
+			m_rsText = (PWSTR)lParam;
+			return TRUE;
+		case WM_GETTEXTLENGTH:
+			return m_rsText.Size();
+		case WM_GETTEXT:
+			if (wParam > 0)
+				return m_rsText.CopyTo((PWSTR)lParam, (int)wParam - 1);
+			else
+				return 0;
+		}
+
+		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
+	}
+
 	static ATOM RegisterWndClass(HINSTANCE hInstance);
 
 	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
 	{
 		dwStyle |= WS_CHILD;
-		BeginCbtHook(this);
-		m_hWnd = CreateWindowExW(dwExStyle, WCN_LABEL, pszText, dwStyle,
+		m_hWnd = IntCreate(dwExStyle, WCN_LABEL, pszText, dwStyle,
 			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), g_hInstance, this);
-		EndCbtHook();
 		SetClr(2, CLR_DEFAULT);
 		return m_hWnd;
 	}

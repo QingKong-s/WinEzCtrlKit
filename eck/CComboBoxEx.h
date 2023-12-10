@@ -1,15 +1,23 @@
-#pragma once
+ï»¿#pragma once
 #include "CComboBox.h"
 
 ECK_NAMESPACE_BEGIN
 class CComboBoxEx :public CComboBox
 {
 public:
+	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	{
+		dwStyle |= WS_CHILD;
+		m_hWnd = IntCreate(0, WC_COMBOBOXEXW, NULL, dwStyle,
+			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+		return m_hWnd;
+	}
 	/// <summary>
-	/// É¾³ıÏîÄ¿
+	/// åˆ é™¤é¡¹ç›®
 	/// </summary>
-	/// <param name="idx">Ë÷Òı</param>
-	/// <returns>³É¹¦·µ»ØÊ£ÓàÏîÊı£¬Ê§°Ü·µ»ØCB_ERR</returns>
+	/// <param name="idx">ç´¢å¼•</param>
+	/// <returns>æˆåŠŸè¿”å›å‰©ä½™é¡¹æ•°ï¼Œå¤±è´¥è¿”å›CB_ERR</returns>
 	EckInline int DeleteItem(int idx) const
 	{
 		return (int)SendMsg(CBEM_DELETEITEM, idx, 0);
@@ -62,11 +70,11 @@ public:
 	}
 
 	/// <summary>
-	/// ÖÃÀ©Õ¹ÑùÊ½
+	/// ç½®æ‰©å±•æ ·å¼
 	/// </summary>
-	/// <param name="dwMask">ÑÚÂë£¬ÈôÎª0ÔòĞŞ¸ÄËùÓĞÑùÊ½</param>
-	/// <param name="dwStyle">ÑùÊ½</param>
-	/// <returns>·µ»ØÏÈÇ°ÑùÊ½</returns>
+	/// <param name="dwMask">æ©ç ï¼Œè‹¥ä¸º0åˆ™ä¿®æ”¹æ‰€æœ‰æ ·å¼</param>
+	/// <param name="dwStyle">æ ·å¼</param>
+	/// <returns>è¿”å›å…ˆå‰æ ·å¼</returns>
 	EckInline DWORD SetExtendedStyle(DWORD dwMask, DWORD dwStyle) const
 	{
 		return (DWORD)SendMsg(CBEM_SETEXTENDEDSTYLE, dwMask, dwStyle);
