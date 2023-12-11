@@ -314,7 +314,7 @@ public:
 			cchSrc = TCharTraits::Len(pszSrc);
 		if (!cchSrc)
 			goto NullStr;
-		ReSize(cchSrc);
+		ReSizeExtra(cchSrc);
 		TCharTraits::CopyEnd(Data(), pszSrc, cchSrc);
 		return cchSrc;
 	}
@@ -368,7 +368,7 @@ public:
 	{
 		if (!pszSrc)
 			return 0;
-		ReSize(Size() + cchSrc);
+		ReSizeExtra(Size() + cchSrc);
 		TCharTraits::CopyEnd(Data() + Size(), pszSrc, cchSrc);
 		return cchSrc;
 	}
@@ -438,6 +438,14 @@ public:
 		TCharTraits::Cut(Data(), cch);
 	}
 
+	EckInline void ReSizeExtra(int cch)
+	{
+		EckAssert(cch >= 0);
+		Reserve(TAllocTraits::MakeCapacity(cch));
+		m_cchText = cch;
+		TCharTraits::Cut(Data(), cch);
+	}
+
 	/// <summary>
 	/// 重新计算字符串长度
 	/// </summary>
@@ -459,7 +467,7 @@ public:
 		EckAssert(pszNew ? TRUE : cchNew == 0);
 		if (cchNew < 0)
 			cchNew = TCharTraits::Len(pszNew);
-		ReSize(Size() + cchNew - cchReplacing);
+		ReSizeExtra(Size() + cchNew - cchReplacing);
 		TCharTraits::Move(
 			Data() + posStart + cchNew,
 			Data() + posStart + cchReplacing,
@@ -546,7 +554,7 @@ public:
 		EckAssert(pszText);
 		if (cchText < 0)
 			cchText = TCharTraits::Len(pszText);
-		ReSize(posStart + cchText * cCount);
+		ReSizeExtra(posStart + cchText * cCount);
 		TPointer pszCurr = Data() + posStart;
 		for (int i = 0; i < cCount; ++i, pszCurr += cchText)
 			TCharTraits::Copy(pszCurr, pszText, cchText);
@@ -575,7 +583,7 @@ public:
 	{
 		EckAssert(pos <= Size());
 		EckAssert(pszText ? (cchText >= 0) : (cchText == 0));
-		ReSize(Size() + cchText);
+		ReSizeExtra(Size() + cchText);
 		TCharTraits::MoveEnd(
 			Data() + pos + cchText, 
 			Data() + pos,

@@ -165,6 +165,7 @@
     <ClInclude Include="eck\CDialog.h" />
     <ClInclude Include="eck\CDrawPanel.h" />
     <ClInclude Include="eck\CEditExt.h" />
+    <ClInclude Include="eck\CException.h" />
     <ClInclude Include="eck\CFile.h" />
     <ClInclude Include="eck\CFlowLayout.h" />
     <ClInclude Include="eck\CForm.h" />
@@ -215,6 +216,7 @@
     <ClInclude Include="eck\LunarDateLib.h" />
     <ClInclude Include="eck\MathHelper.h" />
     <ClInclude Include="eck\ResStruct.h" />
+    <ClInclude Include="eck\SystemHelper.h" />
     <ClInclude Include="eck\Utility.h" />
     <ClInclude Include="eck\WndHelper.h" />
     <ClInclude Include="Resource.h" />

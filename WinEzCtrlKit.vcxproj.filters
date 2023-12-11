@@ -222,6 +222,12 @@
     <ClInclude Include="eck\CFlowLayout.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\SystemHelper.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CException.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Win32Template.cpp">
