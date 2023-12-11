@@ -562,6 +562,7 @@ public:
 				free(pbmi);
 				if (!m_hBitmap)
 					return NULL;
+#pragma warning(suppress:6001)// 未初始化内存
 				memcpy(pBits, pBitsData, cbBits);
 				GetObjectW(m_hBitmap, sizeof(m_ds), &m_ds);
 			}

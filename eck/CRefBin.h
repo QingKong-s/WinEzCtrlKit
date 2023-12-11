@@ -246,7 +246,7 @@ public:
 	/// <param name="cb">字节集长度，调用完成后尺寸与此参数相同</param>
 	EckInline void DupStream(PCVOID p, size_t cb)
 	{
-		ReSize(cb);
+		ReSizeExtra(cb);
 		memcpy(Data(), p, cb);
 	}
 
@@ -341,6 +341,12 @@ public:
 		m_cb = cb;
 	}
 
+	EckInline void ReSizeExtra(size_t cb)
+	{
+		Reserve(TAllocTraits::MakeCapacity(cb));
+		m_cb = cb;
+	}
+
 	/// <summary>
 	/// 替换
 	/// </summary>
@@ -352,7 +358,7 @@ public:
 	{
 		EckAssert(cbNew ? (!!pNew) : TRUE);
 		const size_t cbOrg = m_cb;
-		ReSize(Size() + cbNew - cbReplacing);
+		ReSizeExtra(Size() + cbNew - cbReplacing);
 		memmove(Data() + posStart + cbNew, Data() + posStart + cbReplacing, cbOrg - posStart - cbReplacing);
 		memcpy(Data() + posStart, pNew, cbNew);
 	}
@@ -428,7 +434,7 @@ public:
 	/// <param name="posStart">起始位置</param>
 	EckInline void MakeEmpty(size_t cbSize, size_t posStart = 0u)
 	{
-		ReSize(cbSize + posStart);
+		ReSizeExtra(cbSize + posStart);
 		RtlZeroMemory(Data() + posStart, cbSize);
 	}
 
@@ -441,7 +447,7 @@ public:
 	/// <param name="posStart">起始位置</param>
 	void MakeRepeatedBinSequence(PCVOID pBin, size_t cbBin, size_t cCount, size_t posStart = 0u)
 	{
-		ReSize(posStart + cCount * cbBin);
+		ReSizeExtra(posStart + cCount * cbBin);
 		BYTE* pCurr;
 		size_t i;
 		for (i = 0, pCurr = m_pStream + posStart; i < cCount; ++i, pCurr += cbBin)
@@ -455,7 +461,7 @@ public:
 	/// <param name="cb">要插入的字节集长度</param>
 	EckInline void PushBack(PCVOID p, size_t cb)
 	{
-		ReSize(m_cb + cb);
+		ReSizeExtra(m_cb + cb);
 		memcpy(Data() + Size() - cb, p, cb);
 	}
 
@@ -466,7 +472,7 @@ public:
 
 	EckInline BYTE* PushBack(size_t cb)
 	{
-		ReSize(m_cb + cb);
+		ReSizeExtra(m_cb + cb);
 		return Data() + m_cb - cb;
 	}
 
@@ -503,7 +509,7 @@ public:
 	{
 		EckAssert(pos <= Size());
 		EckAssert(p ? TRUE : (cb == 0));
-		ReSize(Size() + cb);
+		ReSizeExtra(Size() + cb);
 		memmove(
 			Data() + pos + cb,
 			Data() + pos,

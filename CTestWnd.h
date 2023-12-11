@@ -25,6 +25,7 @@
 #include "eck\CListBoxNew.h"
 #include "eck\CMenu.h"
 #include "eck\CFlowLayout.h"
+#include "eck\SystemHelper.h"
 
 #define WCN_TEST L"TesttttttttttttttWndddddddddd"
 
@@ -55,6 +56,49 @@ private:
 	HFONT m_hFont = eck::EzFont(L"微软雅黑", 9);
 	HBITMAP m_hbm = NULL;
 public:
+	void Test()
+	{
+		CHAR szA[]{ "123你好45" };
+		EckDbgPrint(eck::CalcDbcsStringCharCount(szA, ARRAYSIZE(szA) - 1));
+		//EckDbgBreak();
+		EckDbgPrint(L"-----------------------");
+
+		//eck::CRegKey key(LR"(HKCU\Software\Test1)");
+		eck::CRegKey key2{};
+		//key2.Create(LR"(HKCU\Qk\Software\Test1)");
+		//key2.SetValue(L"测试值", 1);
+		EckDbgPrint(L"-----------------------");
+		key2.Open(
+			LR"(HKLM\SOFTWARE\Microsoft\VisualStudio\Debugger\JIT\{F200A7E7-DEA5-11D0-B854-00A0244A1DE2})",
+			KEY_READ);
+		EckDbgPrint(key2.GetValueStr(NULL,L"JITSettings"));
+		EckDbgPrint(L"-----------------------");
+		key2.Open(
+			LR"(HKLM\SOFTWARE\Microsoft\Windows)",
+			KEY_READ);
+		key2.EnumKey([](eck::CRefStrW& rsName)->BOOL
+			{
+				EckDbgPrint(rsName);
+				return FALSE;
+			});
+		EckDbgPrint(L"-----------------------");
+		key2.Open(
+			LR"(HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion)",
+			KEY_READ);
+		key2.EnumValue([](eck::CRefStrW& rsName, DWORD dwType)->BOOL
+			{
+				EckDbgPrint(rsName);
+				return FALSE;
+			});
+
+		//EckDbgBreak();
+	}
+
+	BOOL PreTranslateMessage(const MSG& Msg) override
+	{
+		return CWnd::PreTranslateMessage(Msg);
+	}
+
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)
@@ -72,6 +116,8 @@ public:
 			m_lot.Add(&m_Label);
 
 			eck::SetFontForWndAndCtrl(hWnd, m_hFont);
+
+			Test();
 		}
 		return 0;
 		case WM_SIZE:
@@ -82,8 +128,8 @@ public:
 		return 0;
 		case WM_COMMAND:
 		{
-			if ((HWND)lParam == m_Btn.GetHWND() && HIWORD(wParam) == BN_CLICKED)
-				EckDbgPrintWndMap();
+			//if ((HWND)lParam == m_Btn.GetHWND() && HIWORD(wParam) == BN_CLICKED)
+			//	EckDbgPrintWndMap();
 		}
 		break;
 		}
@@ -108,6 +154,7 @@ public:
 	{
 		m_hWnd = IntCreate(dwExStyle, WCN_TEST, pszText, dwStyle,
 			x, y, cx, cy, hParent, eck::i32ToP<HMENU>(nID), eck::g_hInstance, this);
+		EckDbgPrintWndMap();
 		return m_hWnd;
 	}
 };

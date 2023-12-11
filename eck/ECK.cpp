@@ -286,7 +286,7 @@ void DbgPrintWndMap()
 			(PCVOID)e.first,
 			sText.Data());
 	}
-	s += std::format(L"共有{}个窗口", pCtx->hmWnd.size());
+	s += std::format(L"共有{}个窗口\n", pCtx->hmWnd.size());
 	OutputDebugStringW(s.c_str());
 }
 ECK_NAMESPACE_END
