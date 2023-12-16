@@ -145,6 +145,7 @@ constexpr inline PCWSTR WCN_SPLITBAR = L"Eck.WndClass.SplitBar";
 constexpr inline PCWSTR WCN_DRAWPANEL = L"Eck.WndClass.DrawPanel";
 constexpr inline PCWSTR WCN_DRAWPANELD2D = L"Eck.WndClass.DrawPanelD2D";
 constexpr inline PCWSTR WCN_LISTBOXNEW = L"Eck.WndClass.ListBoxNew";
+constexpr inline PCWSTR WCN_ANIMATIONBOX = L"Eck.WndClass.AnimationBox";
 
 constexpr inline PCWSTR MSG_INERTIALSV = L"Eck.Message.InertialScrollView";
 
@@ -196,6 +197,8 @@ struct INITPARAM
 /// <param name="pdwErrCode">接收错误码变量的可选指针</param>
 /// <returns>错误代码</returns>
 InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam = NULL, DWORD* pdwErrCode = NULL);
+
+void UnInit();
 
 class CWnd;
 struct ECKTHREADCTX;

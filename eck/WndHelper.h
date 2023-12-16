@@ -281,4 +281,16 @@ EckInline WNDPROC GetClassWndProc(HINSTANCE hInstance, PCWSTR pszClass)
 	GetClassInfoExW(hInstance, pszClass, &wcex);
 	return wcex.lpfnWndProc;
 }
+
+inline ATOM EzRegisterWndClass(PCWSTR pszClass, UINT uStyle = CS_DBLCLKS | CS_VREDRAW | CS_HREDRAW)
+{
+	WNDCLASSW wc{};
+	wc.cbWndExtra = sizeof(void*) ;
+	wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
+	wc.hInstance = g_hInstance;
+	wc.lpfnWndProc = DefWindowProcW;
+	wc.lpszClassName = pszClass;
+	wc.style = uStyle;
+	return RegisterClassW(&wc);
+}
 ECK_NAMESPACE_END

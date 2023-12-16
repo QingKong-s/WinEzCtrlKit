@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
@@ -7,11 +7,11 @@ class CFile
 public:
 	enum Mode
 	{
-		ModeCover = CREATE_ALWAYS,				// ÈôÎÄ¼þÒÑ´æÔÚÔòÇå³ýÆäÊý¾Ý£¬Èô²»´æÔÚÔò´´½¨
-		ModeNoCover = OPEN_ALWAYS,				// ÈôÎÄ¼þÒÑ´æÔÚÔò´ò¿ª£¬Èô²»´æÔÚÔò´´½¨
-		ModeNew = CREATE_NEW,					// ÈôÎÄ¼þÒÑ´æÔÚÔòÊ§°Ü£¬Èô²»´æÔÚÔò´´½¨
-		ModeExisting = OPEN_EXISTING,			// ÈôÎÄ¼þÒÑ´æÔÚÔò´ò¿ª£¬Èô²»´æÔÚÔòÊ§°Ü
-		ModeCoverExisting = TRUNCATE_EXISTING,	// ÈôÎÄ¼þÒÑ´æÔÚÔòÇå³ýÆäÊý¾Ý£¬Èô²»´æÔÚÔòÊ§°Ü
+		ModeCover = CREATE_ALWAYS,				// è‹¥æ–‡ä»¶å·²å­˜åœ¨åˆ™æ¸…é™¤å…¶æ•°æ®ï¼Œè‹¥ä¸å­˜åœ¨åˆ™åˆ›å»º
+		ModeNoCover = OPEN_ALWAYS,				// è‹¥æ–‡ä»¶å·²å­˜åœ¨åˆ™æ‰“å¼€ï¼Œè‹¥ä¸å­˜åœ¨åˆ™åˆ›å»º
+		ModeNew = CREATE_NEW,					// è‹¥æ–‡ä»¶å·²å­˜åœ¨åˆ™å¤±è´¥ï¼Œè‹¥ä¸å­˜åœ¨åˆ™åˆ›å»º
+		ModeExisting = OPEN_EXISTING,			// è‹¥æ–‡ä»¶å·²å­˜åœ¨åˆ™æ‰“å¼€ï¼Œè‹¥ä¸å­˜åœ¨åˆ™å¤±è´¥
+		ModeCoverExisting = TRUNCATE_EXISTING,	// è‹¥æ–‡ä»¶å·²å­˜åœ¨åˆ™æ¸…é™¤å…¶æ•°æ®ï¼Œè‹¥ä¸å­˜åœ¨åˆ™å¤±è´¥
 	};
 private:
 	HANDLE m_hFile = INVALID_HANDLE_VALUE;
@@ -33,6 +33,7 @@ public:
 	EckInline HANDLE Open(PCWSTR pszFile, DWORD dwMode = OPEN_EXISTING, DWORD dwAccess = GENERIC_READ,
 		DWORD dwShareMode = 0, DWORD dwAttr = FILE_ATTRIBUTE_NORMAL)
 	{
+		Close();
 		return (m_hFile = CreateFileW(pszFile, dwAccess, dwShareMode, NULL, dwMode, dwAttr, NULL));
 	}
 

@@ -28,8 +28,6 @@
 // lParam->size 用于处理WM_SIZE   e.g. GET_SIZE_LPARAM(cxClient, cyClient, lParam);
 #define GET_SIZE_LPARAM(cx,cy,lParam) (cx) = LOWORD(lParam); (cy) = HIWORD(lParam);
 
-
-
 ECK_NAMESPACE_BEGIN
 namespace Colorref
 {
@@ -249,37 +247,6 @@ struct CMemReader
 		m_pMem += sizeof(T);
 		return *this;
 	}
-};
-
-struct CEzCDC
-{
-	HDC m_hCDC = NULL;
-	HBITMAP m_hBmp = NULL;
-	HGDIOBJ m_hOld = NULL;
-
-	CEzCDC() = default;
-	CEzCDC(HWND hWnd, int cx = 0, int cy = 0)
-	{
-		Create(hWnd, cx, cy);
-	}
-
-	~CEzCDC()
-	{
-		if (m_hCDC)
-		{
-			SelectObject(m_hCDC, m_hOld);
-			DeleteObject(m_hBmp);
-			DeleteDC(m_hCDC);
-		}
-	}
-
-	HDC Create(HWND hWnd, int cx = 0, int cy = 0);
-
-	void ReSize(HWND hWnd, int cx = 0, int cy = 0);
-
-	EckInline HDC GetDC() const { return m_hCDC; }
-
-	EckInline HBITMAP GetBitmap() const { return m_hBmp; }
 };
 
 class IStreamView :public IStream
@@ -570,30 +537,6 @@ constexpr EckInline BOOL IsBitSet(T1 dw1, T2 dw2)
 }
 
 /// <summary>
-/// 取运行目录
-/// </summary>
-const CRefStrW& GetRunningPath();
-
-/// <summary>
-/// 读入文件
-/// </summary>
-/// <param name="pszFile">文件路径</param>
-/// <returns>返回字节集</returns>
-CRefBin ReadInFile(PCWSTR pszFile);
-
-/// <summary>
-/// 写到文件
-/// </summary>
-/// <param name="pData">字节流</param>
-/// <param name="cb">字节流长度</param>
-BOOL WriteToFile(PCWSTR pszFile, PCVOID pData, DWORD cb);
-
-EckInline BOOL WriteToFile(PCWSTR pszFile, const CRefBin& rb)
-{
-	return WriteToFile(pszFile, rb.Data(), (DWORD)rb.Size());
-}
-
-/// <summary>
 /// 字节集到友好字符串表示
 /// </summary>
 /// <param name="Bin">字节集</param>
@@ -609,7 +552,7 @@ inline CRefStrW BinToFriendlyString(PCBYTE pData, SIZE_T cb, int iType)
 		return rsResult;
 	}
 
-	WCHAR szBuf[c_cbI32ToStrBufNoRadix2];
+	WCHAR szBuf[c_cchI32ToStrBufNoRadix2];
 	switch (iType)
 	{
 	case 0:
@@ -712,33 +655,6 @@ CRefStrT<WCHAR, TCharTraits, TAlloc> StrX2W(PCSTR pszText, int cch = -1, int uCP
 	return rs;
 }
 
-EckInline void DbBufPrepare(HWND hWnd, HDC& hCDC, HBITMAP& hBitmap, HGDIOBJ& hOldBmp, int cx = 8, int cy = 8)
-{
-	HDC hDC = GetDC(hWnd);
-	hCDC = CreateCompatibleDC(hDC);
-	hBitmap = CreateCompatibleBitmap(hDC, cx, cy);
-	hOldBmp = SelectObject(hCDC, hBitmap);
-	ReleaseDC(hWnd, hDC);
-}
-
-EckInline void DbBufReSize(HWND hWnd, HDC& hCDC, HBITMAP& hBitmap, HGDIOBJ& hOldBmp, int cx, int cy)
-{
-	SelectObject(hCDC, hOldBmp);
-	DeleteObject(hBitmap);
-
-	HDC hDC = GetDC(hWnd);
-	hBitmap = CreateCompatibleBitmap(hDC, cx, cy);
-	hOldBmp = SelectObject(hCDC, hBitmap);
-	ReleaseDC(hWnd, hDC);
-}
-
-EckInline void DbBufFree(HDC hCDC, HBITMAP hBitmap, HGDIOBJ hOldBmp)
-{
-	SelectObject(hCDC, hOldBmp);
-	DeleteObject(hBitmap);
-	DeleteDC(hCDC);
-}
-
 template<class T>
 EckInline constexpr BOOL Sign(T v)
 {
@@ -781,21 +697,6 @@ EckInline constexpr UINT ReverseColorref(UINT cr)
 	return (((p[0] << 16) | (p[1] << 8) | p[2]) & 0x00FFFFFF);
 }
 
-EckInline void DoEvents()
-{
-	MSG msg;
-	while (PeekMessageW(&msg, NULL, 0u, 0u, PM_REMOVE))
-	{
-		if (msg.message == WM_QUIT)
-		{
-			PostQuitMessage((int)msg.wParam);
-			return;
-		}
-		TranslateMessage(&msg);
-		DispatchMessageW(&msg);
-	}
-}
-
 EckInline constexpr UINT Gcd(UINT a, UINT b)
 {
 	UINT c;
@@ -822,65 +723,6 @@ EckInline constexpr HRESULT HResultFromBool(BOOL b)
 	return b ? S_OK : S_FALSE;
 }
 
-inline CRefStrW GetClipboardString(HWND hWnd = NULL)
-{
-	if (!OpenClipboard(hWnd))
-	{
-		EckDbgPrintFmt(L"剪贴板打开失败，当前所有者 = %p", GetClipboardOwner());
-		return {};
-	}
-	if (IsClipboardFormatAvailable(CF_UNICODETEXT))
-	{
-		const HANDLE hData = GetClipboardData(CF_UNICODETEXT);
-		if (hData)
-		{
-			const void* pData = GlobalLock(hData);
-			if (pData)
-			{
-				const auto cb = GlobalSize(hData);
-				const int cch = (int)(cb / sizeof(WCHAR));
-				CRefStrW rs(cch);
-				memcpy(rs.Data(), pData, cch * sizeof(WCHAR));
-				*(rs.Data() + cch) = L'\0';
-				GlobalUnlock(hData);
-				CloseClipboard();
-				return rs;
-			}
-		}
-	}
-	CloseClipboard();
-	return {};
-}
-
-inline BOOL SetClipboardString(PCWSTR pszText, int cch = -1, HWND hWnd = NULL)
-{
-	if (!OpenClipboard(hWnd))
-	{
-		EckDbgPrintFmt(L"剪贴板打开失败，当前所有者 = %p", GetClipboardOwner());
-		return FALSE;
-	}
-	EmptyClipboard();
-	if (cch < 0)
-		cch = (int)wcslen(pszText);
-	const SIZE_T cb = Cch2Cb(cch);
-	
-	HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, cb);
-	if (hGlobal)
-	{
-		void* pData = GlobalLock(hGlobal);
-		if (pData)
-		{
-			memcpy(pData, pszText, cb);
-			GlobalUnlock(hGlobal);
-			SetClipboardData(CF_UNICODETEXT, hGlobal);
-			CloseClipboard();
-			return TRUE;
-		}
-	}
-	CloseClipboard();
-	return FALSE;
-}
-
 template<class T>
 EckInline T Abs(T x)
 {
@@ -901,5 +743,15 @@ EckInline CRefStrW ToStr(const CRefBin& rb)
 	CRefStrW rs((int)rb.Size() / 2);
 	memcpy(rs.Data(), rb.Data(), rs.Size() * sizeof(WCHAR));
 	return rs;
+}
+
+template<class TInterface>
+EckInline void SafeRelease(TInterface*& pUnk)
+{
+	if (pUnk)
+	{
+		pUnk->Release();
+		pUnk = NULL;
+	}
 }
 ECK_NAMESPACE_END

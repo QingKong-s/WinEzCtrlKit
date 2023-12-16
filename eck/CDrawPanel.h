@@ -111,32 +111,24 @@ public:
 class CDrawPanelD2D :public CWnd
 {
 private:
-	ID2D1DeviceContext* m_pDC = NULL;
-	ID2D1Bitmap1* m_pBitmap = NULL;
-	IDXGISwapChain1* m_pSwapChain = NULL;
+	CEzD2D m_D2D{};
 
-	static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	LRESULT CALLBACK OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
-		auto p = (CDrawPanelD2D*)GetWindowLongPtrW(hWnd, 0);
 		switch (uMsg)
 		{
 		case WM_PAINT:
 			ValidateRect(hWnd, NULL);
-			p->m_pSwapChain->Present(0, 0);
+			m_D2D.GetSwapChain()->Present(0, 0);
 			return 0;
 		case WM_SIZE:
-			EzD2dReSize(p->m_pDC, p->m_pSwapChain, p->m_pBitmap, 0, LOWORD(lParam), HIWORD(lParam), 0);
+			m_D2D.ReSize(0, LOWORD(lParam), HIWORD(lParam), 0);
 			return 0;
 		case WM_CREATE:
-			EzD2D(EZD2D_PARAM::MakeBitblt(hWnd, g_pDxgiFactory, g_pDxgiDevice, g_pD2dDevice, 0, 0),
-				p->m_pDC, p->m_pSwapChain, p->m_pBitmap);
+			m_D2D.Create(EZD2D_PARAM::MakeBitblt(hWnd, g_pDxgiFactory, g_pDxgiDevice, g_pD2dDevice, 0, 0));
 			return 0;
-		case WM_NCCREATE:
-			p = (CDrawPanelD2D*)((CREATESTRUCTW*)lParam)->lpCreateParams;
-			SetWindowLongPtrW(hWnd, 0, (LONG_PTR)p);
-			break;
 		}
-		return DefWindowProcW(hWnd, uMsg, wParam, lParam);
+		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 public:
 	static ATOM RegisterWndClass()
@@ -145,7 +137,7 @@ public:
 		wc.cbWndExtra = sizeof(void*);
 		wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
 		wc.hInstance = eck::g_hInstance;
-		wc.lpfnWndProc = WndProc;
+		wc.lpfnWndProc = DefWindowProcW;
 		wc.lpszClassName = WCN_DRAWPANELD2D;
 		wc.style = CS_VREDRAW | CS_HREDRAW | CS_DBLCLKS;
 		return RegisterClassW(&wc);
@@ -159,8 +151,8 @@ public:
 		return m_hWnd;
 	}
 
-	EckInline ID2D1DeviceContext* GetDC() const { return m_pDC; }
+	EckInline ID2D1DeviceContext* GetDC() const { return m_D2D.GetDC(); }
 
-	EckInline IDXGISwapChain1* GetSwapChain() const { return m_pSwapChain; }
+	EckInline IDXGISwapChain1* GetSwapChain() const { return m_D2D.GetSwapChain(); }
 };
 ECK_NAMESPACE_END

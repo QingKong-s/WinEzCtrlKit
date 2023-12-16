@@ -3,7 +3,47 @@
 #include "CButton.h"
 
 ECK_NAMESPACE_BEGIN
+CWnd* CALLBACK Create_Button(PCBYTE pData, ECK_CREATE_CTRL_EXTRA_ARGS)
+{
+	auto p = new CPushButton;
+	p->Create(ECK_CREATE_CTRL_EXTRA_REALARGS, pData);
+	if (p->GetHWND())
+		return p;
+	else
+	{
+		delete p;
+		return NULL;
+	}
+}
+
+CWnd* CALLBACK Create_CheckButton(PCBYTE pData, ECK_CREATE_CTRL_EXTRA_ARGS)
+{
+	auto p = new CCheckButton;
+	p->Create(ECK_CREATE_CTRL_EXTRA_REALARGS, pData);
+	if (p->GetHWND())
+		return p;
+	else
+	{
+		delete p;
+		return NULL;
+	}
+}
+
+CWnd* CALLBACK Create_CommandLink(PCBYTE pData, ECK_CREATE_CTRL_EXTRA_ARGS)
+{
+	auto p = new CCommandLink;
+	p->Create(ECK_CREATE_CTRL_EXTRA_REALARGS, pData);
+	if (p->GetHWND())
+		return p;
+	else
+	{
+		delete p;
+		return NULL;
+	}
+}
+ECK_NAMESPACE_END
 #ifdef ECK_CTRL_DESIGN_INTERFACE
+ECK_NAMESPACE_BEGIN
 EckPropCallBackRet CALLBACK SetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropValue* pProp, BOOL* pbProcessed)
 {
 	*pbProcessed = FALSE;
@@ -163,60 +203,6 @@ EckPropCallBackRet CALLBACK GetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropVa
 	return ESPR_NONE;
 }
 
-
-
-
-
-
-
-
-
-
-///////////////////////////////////////////////////////////////
-CWnd* CALLBACK Create_Button(PCBYTE pData, ECK_CREATE_CTRL_EXTRA_ARGS)
-{
-	auto p = new CPushButton;
-	p->Create(ECK_CREATE_CTRL_EXTRA_REALARGS, pData);
-	if (p->GetHWND())
-		return p;
-	else
-	{
-		delete p;
-		return NULL;
-	}
-}
-
-CWnd* CALLBACK Create_CheckButton(PCBYTE pData, ECK_CREATE_CTRL_EXTRA_ARGS)
-{
-	auto p = new CCheckButton;
-	p->Create(ECK_CREATE_CTRL_EXTRA_REALARGS, pData);
-	if (p->GetHWND())
-		return p;
-	else
-	{
-		delete p;
-		return NULL;
-	}
-}
-
-CWnd* CALLBACK Create_CommandLink(PCBYTE pData, ECK_CREATE_CTRL_EXTRA_ARGS)
-{
-	auto p = new CCommandLink;
-	p->Create(ECK_CREATE_CTRL_EXTRA_REALARGS, pData);
-	if (p->GetHWND())
-		return p;
-	else
-	{
-		delete p;
-		return NULL;
-	}
-}
-ECK_NAMESPACE_END
-
-#ifdef ECK_CTRL_DESIGN_INTERFACE
-
-
-ECK_NAMESPACE_BEGIN
 EckPropCallBackRet CALLBACK SetProp_Button(CWnd* pWnd, int idProp, EckCtrlPropValue* pProp)
 {
 	EckDCtrlDefSetProp;
@@ -467,7 +453,7 @@ EckCtrlDesignInfo CtInfoCommandLink
 	Create_CommandLink,
 	{192,48}
 };
-
+ECK_NAMESPACE_END
 #else
 ECK_NAMESPACE_BEGIN
 EckCtrlDesignInfo CtInfoButton{ Create_Button };
@@ -475,7 +461,3 @@ EckCtrlDesignInfo CtInfoCheckButton{ Create_CheckButton };
 EckCtrlDesignInfo CtInfoCommandLink{ Create_CommandLink };
 ECK_NAMESPACE_END
 #endif // ECK_CTRL_DESIGN_INTERFACE
-
-
-#endif // ECK_CTRL_DESIGN_INTERFACE
-ECK_NAMESPACE_END

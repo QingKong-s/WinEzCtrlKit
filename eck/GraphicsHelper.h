@@ -2,6 +2,303 @@
 #include "ImageHelper.h"
 
 ECK_NAMESPACE_BEGIN
+struct CEzCDC
+{
+	HDC m_hCDC = NULL;
+	HBITMAP m_hBmp = NULL;
+	HGDIOBJ m_hOld = NULL;
+
+	CEzCDC() = default;
+	CEzCDC(const CEzCDC&) = delete;
+	CEzCDC(CEzCDC&& x) noexcept :m_hCDC{ x.m_hCDC }, m_hBmp{ x.m_hBmp }, m_hOld{ x.m_hOld }
+	{
+		x.m_hCDC = NULL;
+		x.m_hBmp = NULL;
+		x.m_hOld = NULL;
+	}
+
+	CEzCDC(HWND hWnd, int cx = 0, int cy = 0)
+	{
+		Create(hWnd, cx, cy);
+	}
+
+	~CEzCDC()
+	{
+		Destroy();
+	}
+
+	CEzCDC& operator=(const CEzCDC&) = delete;
+	CEzCDC& operator=(CEzCDC&& x) noexcept
+	{
+		std::swap(m_hCDC, x.m_hCDC);
+		std::swap(m_hBmp, x.m_hBmp);
+		std::swap(m_hOld, x.m_hOld);
+	}
+
+	HDC Create(HWND hWnd, int cx = 0, int cy = 0)
+	{
+		Destroy();
+		HDC hDC = ::GetDC(hWnd);
+		if (cx < 0 || cy < 0)
+		{
+			RECT rc;
+			GetClientRect(hWnd, &rc);
+			cx = rc.right;
+			cy = rc.bottom;
+		}
+		m_hCDC = CreateCompatibleDC(hDC);
+		m_hBmp = CreateCompatibleBitmap(hDC, cx, cy);
+		m_hOld = SelectObject(m_hCDC, m_hBmp);
+		ReleaseDC(hWnd, hDC);
+		return m_hCDC;
+	}
+
+	void ReSize(HWND hWnd, int cx = 0, int cy = 0)
+	{
+		EckAssert(!!m_hCDC && !!m_hBmp && !!m_hOld);
+		if (cx < 0 || cy < 0)
+		{
+			RECT rc;
+			GetClientRect(hWnd, &rc);
+			cx = rc.right;
+			cy = rc.bottom;
+		}
+
+		HDC hDC = ::GetDC(hWnd);
+		SelectObject(m_hCDC, m_hOld);
+		DeleteObject(m_hBmp);
+
+		m_hBmp = CreateCompatibleBitmap(hDC, cx, cy);
+		m_hOld = SelectObject(m_hCDC, m_hBmp);
+		ReleaseDC(hWnd, hDC);
+	}
+
+	EckInline constexpr HDC GetDC() const { return m_hCDC; }
+
+	EckInline constexpr HBITMAP GetBitmap() const { return m_hBmp; }
+
+	void Destroy()
+	{
+		if (m_hCDC)
+		{
+			SelectObject(m_hCDC, m_hOld);
+			DeleteObject(m_hBmp);
+			DeleteDC(m_hCDC);
+			m_hCDC = NULL;
+			m_hBmp = NULL;
+			m_hOld = NULL;
+		}
+	}
+};
+
+struct EZD2D_PARAM
+{
+	HWND hWnd = NULL;
+
+	IDXGIFactory2* pDxgiFactory = NULL;
+	IDXGIDevice* pDxgiDevice = NULL;
+	ID2D1Device* pD2dDevice = NULL;
+
+	UINT cx = 8;
+	UINT cy = 8;
+	UINT cBuffer = 1;
+	DXGI_SCALING uScaling = DXGI_SCALING_NONE;
+	DXGI_SWAP_EFFECT uSwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+	DXGI_ALPHA_MODE uAlphaMode = DXGI_ALPHA_MODE_IGNORE;
+	UINT uFlags = 0;
+
+	D2D1_DEVICE_CONTEXT_OPTIONS uDcOptions = D2D1_DEVICE_CONTEXT_OPTIONS_NONE;
+
+	D2D1_ALPHA_MODE uBmpAlphaMode = D2D1_ALPHA_MODE_IGNORE;
+	D2D1_BITMAP_OPTIONS uBmpOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
+
+	EckInline static EZD2D_PARAM MakeBitblt(HWND hWnd, IDXGIFactory2* pDxgiFactory,
+		IDXGIDevice* pDxgiDevice, ID2D1Device* pD2dDevice, int cx, int cy)
+	{
+		return
+		{
+			hWnd,pDxgiFactory,pDxgiDevice,pD2dDevice,(UINT)cx,(UINT)cy,
+			1,DXGI_SCALING_STRETCH,DXGI_SWAP_EFFECT_DISCARD,DXGI_ALPHA_MODE_IGNORE,0,
+			D2D1_DEVICE_CONTEXT_OPTIONS_NONE,D2D1_ALPHA_MODE_IGNORE,
+			D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW
+		};
+	}
+
+	EckInline static EZD2D_PARAM MakeFlip(HWND hWnd, IDXGIFactory2* pDxgiFactory,
+		IDXGIDevice* pDxgiDevice, ID2D1Device* pD2dDevice, int cx, int cy)
+	{
+		return
+		{
+			hWnd,pDxgiFactory,pDxgiDevice,pD2dDevice,(UINT)cx,(UINT)cy,
+			2,DXGI_SCALING_NONE,DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,DXGI_ALPHA_MODE_IGNORE,0,
+			D2D1_DEVICE_CONTEXT_OPTIONS_NONE,D2D1_ALPHA_MODE_IGNORE,
+			D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW
+		};
+	}
+};
+
+struct CEzD2D
+{
+	ID2D1DeviceContext* m_pDC = NULL;
+	IDXGISwapChain1* m_pSwapChain = NULL;
+	ID2D1Bitmap1* m_pBitmap = NULL;
+
+	CEzD2D() = default;
+	CEzD2D(const CEzD2D&) = delete;
+	CEzD2D(CEzD2D&& x) noexcept
+		:m_pDC{ x.m_pDC }, m_pSwapChain{ x.m_pSwapChain }, m_pBitmap{ x.m_pBitmap }
+	{
+		x.m_pDC = NULL;
+		x.m_pSwapChain = NULL;
+		x.m_pBitmap = NULL;
+	}
+
+	CEzD2D(const EZD2D_PARAM& Param)
+	{
+		Create(Param);
+	}
+
+	~CEzD2D()
+	{
+		Destroy();
+	}
+
+	CEzD2D& operator=(const CEzD2D&) = delete;
+	CEzD2D& operator=(CEzD2D&& x) noexcept
+	{
+		std::swap(m_pDC, x.m_pDC);
+		std::swap(m_pSwapChain, x.m_pSwapChain);
+		std::swap(m_pBitmap, x.m_pBitmap);
+	}
+
+	HRESULT Create(const EZD2D_PARAM& Param)
+	{
+		const DXGI_SWAP_CHAIN_DESC1 DxgiSwapChainDesc
+		{
+			Param.cx,
+			Param.cy,
+			DXGI_FORMAT_B8G8R8A8_UNORM,
+			FALSE,
+			{1, 0},
+			DXGI_USAGE_RENDER_TARGET_OUTPUT,
+			Param.cBuffer,
+			Param.uScaling,
+			Param.uSwapEffect,
+			Param.uAlphaMode,
+			Param.uFlags
+		};
+
+		HRESULT hr;
+		if (FAILED(hr = Param.pDxgiFactory->CreateSwapChainForHwnd(Param.pDxgiDevice, Param.hWnd,
+			&DxgiSwapChainDesc, NULL, NULL, &m_pSwapChain)))
+		{
+			EckDbgPrintFormatMessage(hr);
+			EckDbgBreak();
+			return hr;
+		}
+
+		if (FAILED(hr = Param.pD2dDevice->CreateDeviceContext(Param.uDcOptions, &m_pDC)))
+		{
+			SafeRelease(m_pSwapChain);
+			EckDbgPrintFormatMessage(hr);
+			EckDbgBreak();
+			return hr;
+		}
+
+		IDXGISurface1* pSurface;
+		if (FAILED(hr = m_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pSurface))))
+		{
+			SafeRelease(m_pSwapChain);
+			SafeRelease(m_pDC);
+			EckDbgPrintFormatMessage(hr);
+			EckDbgBreak();
+			return hr;
+		}
+
+		const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
+		{
+			{DXGI_FORMAT_B8G8R8A8_UNORM,Param.uBmpAlphaMode},
+			96,
+			96,
+			Param.uBmpOptions,
+			NULL
+		};
+
+		if (FAILED(hr = m_pDC->CreateBitmapFromDxgiSurface(pSurface, &D2dBmpProp, &m_pBitmap)))
+		{
+			SafeRelease(m_pSwapChain);
+			SafeRelease(m_pDC);
+			pSurface->Release();
+			EckDbgPrintFormatMessage(hr);
+			EckDbgBreak();
+			return hr;
+		}
+
+		pSurface->Release();
+		m_pDC->SetTarget(m_pBitmap);
+		return S_OK;
+	}
+
+	HRESULT ReSize(UINT cBuffer, int cx, int cy, UINT uSwapChainFlags,
+		D2D1_ALPHA_MODE uBmpAlphaMode = D2D1_ALPHA_MODE_IGNORE,
+		D2D1_BITMAP_OPTIONS uBmpOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW)
+	{
+		EckAssert(!!m_pDC && !!m_pSwapChain && !!m_pBitmap);
+		m_pDC->SetTarget(NULL);
+		SafeRelease(m_pBitmap);
+
+		HRESULT hr;
+		if (FAILED(hr = m_pSwapChain->ResizeBuffers(cBuffer, cx, cy, DXGI_FORMAT_UNKNOWN, uSwapChainFlags)))
+		{
+			EckDbgPrintFormatMessage(hr);
+			EckDbgBreak();
+			return hr;
+		}
+
+		IDXGISurface1* pSurface;
+		hr = m_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pSurface));
+		if (!pSurface)
+		{
+			EckDbgPrintFormatMessage(hr);
+			EckDbgBreak();
+			return hr;
+		}
+
+		D2D1_BITMAP_PROPERTIES1 D2dBmpProp
+		{
+			{DXGI_FORMAT_B8G8R8A8_UNORM,uBmpAlphaMode},
+			96,
+			96,
+			uBmpOptions,
+			NULL
+		};
+
+		if (FAILED(hr = m_pDC->CreateBitmapFromDxgiSurface(pSurface, &D2dBmpProp, &m_pBitmap)))
+		{
+			EckDbgPrintFormatMessage(hr);
+			EckDbgBreak();
+			return hr;
+		}
+
+		pSurface->Release();
+		m_pDC->SetTarget(m_pBitmap);
+		return S_OK;
+	}
+
+	EckInline constexpr auto GetDC() const { return m_pDC; }
+
+	EckInline constexpr auto GetBitmap() const { return m_pBitmap; }
+
+	EckInline constexpr auto GetSwapChain() const { return m_pSwapChain; }
+
+	EckInline void Destroy()
+	{
+		SafeRelease(m_pDC);
+		SafeRelease(m_pBitmap);
+		SafeRelease(m_pSwapChain);
+	}
+};
+
 inline HRESULT MakePloyLinePath(const D2D1_POINT_2F* pPt, int cPt,
 	ID2D1Factory* pFactory, ID2D1PathGeometry*& pPathGeo)
 {
@@ -409,200 +706,6 @@ inline HRESULT DrawRoseCurve(const DRAW_ROSECURVE_D2D_PARAM& Info,
 		*ppPathGeometry = pPathGeometry;
 	else
 		pPathGeometry->Release();
-	return S_OK;
-}
-
-struct EZD2D_PARAM
-{
-	HWND hWnd = NULL;
-
-	IDXGIFactory2* pDxgiFactory = NULL;
-	IDXGIDevice* pDxgiDevice = NULL;
-	ID2D1Device* pD2dDevice = NULL;
-
-	UINT cx = 8;
-	UINT cy = 8;
-	UINT cBuffer = 1;
-	DXGI_SCALING uScaling = DXGI_SCALING_NONE;
-	DXGI_SWAP_EFFECT uSwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-	DXGI_ALPHA_MODE uAlphaMode = DXGI_ALPHA_MODE_IGNORE;
-	UINT uFlags = 0;
-
-	D2D1_DEVICE_CONTEXT_OPTIONS uDcOptions = D2D1_DEVICE_CONTEXT_OPTIONS_NONE;
-
-	D2D1_ALPHA_MODE uBmpAlphaMode = D2D1_ALPHA_MODE_IGNORE;
-	D2D1_BITMAP_OPTIONS uBmpOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
-
-	EckInline static EZD2D_PARAM MakeBitblt(HWND hWnd, IDXGIFactory2* pDxgiFactory,
-		IDXGIDevice* pDxgiDevice, ID2D1Device* pD2dDevice, int cx, int cy)
-	{
-		return
-		{
-			hWnd,pDxgiFactory,pDxgiDevice,pD2dDevice,(UINT)cx,(UINT)cy,
-			1,DXGI_SCALING_STRETCH,DXGI_SWAP_EFFECT_DISCARD,DXGI_ALPHA_MODE_IGNORE,0,
-			D2D1_DEVICE_CONTEXT_OPTIONS_NONE,D2D1_ALPHA_MODE_IGNORE,
-			D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW
-		};
-	}
-
-	EckInline static EZD2D_PARAM MakeFlip(HWND hWnd, IDXGIFactory2* pDxgiFactory,
-		IDXGIDevice* pDxgiDevice, ID2D1Device* pD2dDevice, int cx, int cy)
-	{
-		return
-		{
-			hWnd,pDxgiFactory,pDxgiDevice,pD2dDevice,(UINT)cx,(UINT)cy,
-			2,DXGI_SCALING_NONE,DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,DXGI_ALPHA_MODE_IGNORE,0,
-			D2D1_DEVICE_CONTEXT_OPTIONS_NONE,D2D1_ALPHA_MODE_IGNORE,
-			D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW
-		};
-	}
-};
-
-/// <summary>
-/// 创建D2D资源
-/// </summary>
-/// <param name="Param">参数</param>
-/// <param name="pDC_">返回设备上下文</param>
-/// <param name="pSwapChain_">返回交换链</param>
-/// <param name="pBitmap_">返回位图</param>
-/// <returns>成功返回S_OK，失败返回错误代码</returns>
-inline HRESULT EzD2D(const EZD2D_PARAM& Param, ID2D1DeviceContext*& pDC_,
-	IDXGISwapChain1*& pSwapChain_, ID2D1Bitmap1*& pBitmap_)
-{
-	pDC_ = NULL;
-	pSwapChain_ = NULL;
-	pBitmap_ = NULL;
-
-	const DXGI_SWAP_CHAIN_DESC1 DxgiSwapChainDesc
-	{
-		Param.cx,
-		Param.cy,
-		DXGI_FORMAT_B8G8R8A8_UNORM,
-		FALSE,
-		{1, 0},
-		DXGI_USAGE_RENDER_TARGET_OUTPUT,
-		Param.cBuffer,
-		Param.uScaling,
-		Param.uSwapEffect,
-		Param.uAlphaMode,
-		Param.uFlags
-	};
-
-	ID2D1DeviceContext* pDC;
-	IDXGISwapChain1* pSwapChain;
-	ID2D1Bitmap1* pBitmap;
-
-	HRESULT hr;
-	if (FAILED(hr = Param.pDxgiFactory->CreateSwapChainForHwnd(Param.pDxgiDevice, Param.hWnd,
-		&DxgiSwapChainDesc, NULL, NULL, &pSwapChain)))
-	{
-		EckDbgPrintFormatMessage(hr);
-		EckDbgBreak();
-		return hr;
-	}
-
-	if (FAILED(hr = Param.pD2dDevice->CreateDeviceContext(Param.uDcOptions, &pDC)))
-	{
-		pSwapChain->Release();
-		EckDbgPrintFormatMessage(hr);
-		EckDbgBreak();
-		return hr;
-	}
-
-	IDXGISurface1* pSurface;
-	if (FAILED(hr = pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pSurface))))
-	{
-		pSwapChain->Release();
-		pDC->Release();
-		EckDbgPrintFormatMessage(hr);
-		EckDbgBreak();
-		return hr;
-	}
-
-	const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
-	{
-		{DXGI_FORMAT_B8G8R8A8_UNORM,Param.uBmpAlphaMode},
-		96,
-		96,
-		Param.uBmpOptions,
-		NULL
-	};
-
-	if (FAILED(hr = pDC->CreateBitmapFromDxgiSurface(pSurface, &D2dBmpProp, &pBitmap)))
-	{
-		pSwapChain->Release();
-		pDC->Release();
-		pSurface->Release();
-		EckDbgPrintFormatMessage(hr);
-		EckDbgBreak();
-		return hr;
-	}
-
-	pSurface->Release();
-	pDC->SetTarget(pBitmap);
-
-	pDC_ = pDC;
-	pSwapChain_ = pSwapChain;
-	pBitmap_ = pBitmap;
-	return S_OK;
-}
-
-/// <summary>
-/// 调整交换链大小
-/// </summary>
-/// <param name="pDC">设备上下文</param>
-/// <param name="pSwapChain">交换链</param>
-/// <param name="pBitmap">位图的引用</param>
-/// <param name="cBuffer">缓冲区数量</param>
-/// <param name="cx">宽度</param>
-/// <param name="cy">高度</param>
-/// <param name="uSwapChainFlags">交换链标志</param>
-/// <param name="uBmpAlphaMode">位图Alpha模式</param>
-/// <param name="uBmpOptions">位图选项</param>
-/// <returns>成功返回S_OK，失败返回错误代码</returns>
-inline HRESULT EzD2dReSize(ID2D1DeviceContext* pDC, IDXGISwapChain1* pSwapChain, ID2D1Bitmap1*& pBitmap,
-	UINT cBuffer, int cx, int cy, UINT uSwapChainFlags,
-	D2D1_ALPHA_MODE uBmpAlphaMode = D2D1_ALPHA_MODE_IGNORE,
-	D2D1_BITMAP_OPTIONS uBmpOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW)
-{
-	pDC->SetTarget(NULL);
-	pBitmap->Release();
-	pBitmap = NULL;
-	HRESULT hr;
-	if (FAILED(hr = pSwapChain->ResizeBuffers(cBuffer, cx, cy, DXGI_FORMAT_UNKNOWN, uSwapChainFlags)))
-	{
-		EckDbgPrintFormatMessage(hr);
-		EckDbgBreak();
-		return hr;
-	}
-
-	IDXGISurface1* pSurface;
-	hr = pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pSurface));
-	if (!pSurface)
-	{
-		EckDbgPrintFormatMessage(hr);
-		EckDbgBreak();
-		return hr;
-	}
-
-	D2D1_BITMAP_PROPERTIES1 D2dBmpProp
-	{
-		{DXGI_FORMAT_B8G8R8A8_UNORM,uBmpAlphaMode},
-		96,
-		96,
-		uBmpOptions,
-		NULL
-	};
-
-	if (FAILED(hr = pDC->CreateBitmapFromDxgiSurface(pSurface, &D2dBmpProp, &pBitmap)))
-	{
-		EckDbgPrintFormatMessage(hr);
-		EckDbgBreak();
-		return hr;
-	}
-
-	pSurface->Release();
-	pDC->SetTarget(pBitmap);
 	return S_OK;
 }
 

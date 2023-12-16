@@ -1,4 +1,4 @@
-#include "CTabHeader.h"
+ï»¿#include "CTabHeader.h"
 
 ECK_NAMESPACE_BEGIN
 ATOM CTabHeader::s_Atom = 0;
@@ -13,7 +13,7 @@ LRESULT CALLBACK CTabHeader::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 	{
 		p->m_cxClient = LOWORD(lParam);
 		p->m_cyClient = HIWORD(lParam);
-		DbBufReSize(hWnd, p->m_hCDC, p->m_hBitmap, p->m_hOldBmp, p->m_cxClient, p->m_cyClient);
+		//DbBufReSize(hWnd, p->m_hCDC, p->m_hBitmap, p->m_hOldBmp, p->m_cxClient, p->m_cyClient);
 		p->Paint();
 	}
 	return 0;
@@ -54,7 +54,7 @@ LRESULT CALLBACK CTabHeader::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 						//if(xCurrPos>p->m_cxClient-p)
 					}
 				}
-				return TRUE;// ×èÖ¹Î»ÖÃ¸ü¸Ä
+				return TRUE;// é˜»æ­¢ä½ç½®æ›´æ”¹
 			}
 		}
 	}
@@ -67,7 +67,7 @@ LRESULT CALLBACK CTabHeader::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 
 	case WM_CREATE:
 	{
-		DbBufPrepare(hWnd, p->m_hCDC, p->m_hBitmap, p->m_hOldBmp);
+		//DbBufPrepare(hWnd, p->m_hCDC, p->m_hBitmap, p->m_hOldBmp);
 
 		p->m_iDpi = GetDpi(hWnd);
 		UpdateDpiSize(p->m_Dpis, p->m_iDpi);
@@ -95,7 +95,7 @@ LRESULT CALLBACK CTabHeader::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 	return 0;
 
 	case WM_DESTROY:
-		DbBufFree(p->m_hCDC, p->m_hBitmap, p->m_hOldBmp);
+		//DbBufFree(p->m_hCDC, p->m_hBitmap, p->m_hOldBmp);
 		return 0;
 
 	case WM_SETREDRAW:

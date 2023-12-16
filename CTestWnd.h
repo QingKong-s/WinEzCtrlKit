@@ -26,6 +26,7 @@
 #include "eck\CMenu.h"
 #include "eck\CFlowLayout.h"
 #include "eck\SystemHelper.h"
+#include "eck\CAnimationBox.h"
 
 #define WCN_TEST L"TesttttttttttttttWndddddddddd"
 
@@ -50,6 +51,7 @@ private:
 	eck::CDrawPanel m_DP;
 	eck::CDrawPanelD2D m_DPD2D;
 	eck::CListBoxNew m_LBN;
+	eck::CAnimationBox m_AB{};
 
 	eck::CFlowLayout m_lot{};
 
@@ -58,38 +60,57 @@ private:
 public:
 	void Test()
 	{
-		CHAR szA[]{ "123你好45" };
-		EckDbgPrint(eck::CalcDbcsStringCharCount(szA, ARRAYSIZE(szA) - 1));
+		using namespace eck;
+		//CHAR szA[]{ "123你好45" };
+		//EckDbgPrint(eck::CalcDbcsStringCharCount(szA, ARRAYSIZE(szA) - 1));
 		//EckDbgBreak();
-		EckDbgPrint(L"-----------------------");
+		//EckDbgPrint(L"-----------------------");
 
 		//eck::CRegKey key(LR"(HKCU\Software\Test1)");
-		eck::CRegKey key2{};
+		//eck::CRegKey key2{};
 		//key2.Create(LR"(HKCU\Qk\Software\Test1)");
 		//key2.SetValue(L"测试值", 1);
-		EckDbgPrint(L"-----------------------");
-		key2.Open(
-			LR"(HKLM\SOFTWARE\Microsoft\VisualStudio\Debugger\JIT\{F200A7E7-DEA5-11D0-B854-00A0244A1DE2})",
-			KEY_READ);
-		EckDbgPrint(key2.GetValueStr(NULL,L"JITSettings"));
-		EckDbgPrint(L"-----------------------");
-		key2.Open(
-			LR"(HKLM\SOFTWARE\Microsoft\Windows)",
-			KEY_READ);
-		key2.EnumKey([](eck::CRefStrW& rsName)->BOOL
-			{
-				EckDbgPrint(rsName);
-				return FALSE;
-			});
-		EckDbgPrint(L"-----------------------");
-		key2.Open(
-			LR"(HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion)",
-			KEY_READ);
-		key2.EnumValue([](eck::CRefStrW& rsName, DWORD dwType)->BOOL
-			{
-				EckDbgPrint(rsName);
-				return FALSE;
-			});
+		//EckDbgPrint(L"-----------------------");
+		//key2.Open(
+		//	LR"(HKLM\SOFTWARE\Microsoft\VisualStudio\Debugger\JIT\{F200A7E7-DEA5-11D0-B854-00A0244A1DE2})",
+		//	KEY_READ);
+		//EckDbgPrint(key2.GetValueStr(NULL,L"JITSettings"));
+		//EckDbgPrint(L"-----------------------");
+		//key2.Open(
+		//	LR"(HKLM\SOFTWARE\Microsoft\Windows)",
+		//	KEY_READ);
+		//key2.EnumKey([](eck::CRefStrW& rsName)->BOOL
+		//	{
+		//		EckDbgPrint(rsName);
+		//		return FALSE;
+		//	});
+		//EckDbgPrint(L"-----------------------");
+		//key2.Open(
+		//	LR"(HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion)",
+		//	KEY_READ);
+		//key2.EnumValue([](eck::CRefStrW& rsName, DWORD dwType)->BOOL
+		//	{
+		//		EckDbgPrint(rsName);
+		//		return FALSE;
+		//	});
+
+		//CPUINFO ci{};
+		//GetCpuInfo(ci);
+		////EckDbgPrint(L"-----------------------");
+		////EckDbgPrint(ci.rsVendor);
+		////EckDbgPrint(ci.rsBrand);
+		////EckDbgPrint(ci.rsSerialNum);
+		////EckDbgPrint(ci.rsDescription);
+		//////EckDbgPrint(ci.rsVendor);
+		////EckDbgPrint(L"-----------------------");
+		//VARIANT var0{};
+		//WmiQueryClassProp(L"SELECT Description FROM Win32_Processor", L"Description", var0);
+		////EckDbgPrint( var0.bstrVal+2);
+
+		//FILEVERINFO fvi{};
+		//GetFileVerInfo(LR"(C:\Program Files\bilibili\哔哩哔哩.exe)", fvi);
+
+
 
 		//EckDbgBreak();
 	}
@@ -107,13 +128,46 @@ public:
 		{
 			m_Btn.Create(L"按钮测试", WS_CHILD | WS_VISIBLE, 0, 0, 0, 300, 70, hWnd, 101);
 			m_lot.Add(&m_Btn, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+
 			m_Edit.Create(L"编辑框", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, WS_EX_CLIENTEDGE,
 				0, 0, 200, 100, hWnd, 102);
 			m_lot.Add(&m_Edit, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+
 			m_Label.Create(L"我是标签", WS_CHILD | WS_VISIBLE | WS_BORDER, 0, 0, 0, 300, 200, hWnd, 103);
 			m_hbm = eck::CreateHBITMAP(LR"(E:\Desktop\Temp\111111.jpg)");
 			m_Label.SetPic(m_hbm);
 			m_lot.Add(&m_Label);
+
+			m_AB.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0, 0, 0, 1100, 700, hWnd, 104);
+			m_lot.Add(&m_AB);
+			auto pDC = m_AB.GetDC();
+
+			IWICBitmapDecoder* pDecoder;
+			eck::CreateWicBitmapDecoder(LR"(F:\Test\1.png)", pDecoder, eck::g_pWicFactory);
+			IWICBitmap* pWicBmp;
+			eck::CreateWicBitmap(pWicBmp, pDecoder, eck::g_pWicFactory);
+			ID2D1Bitmap1* pBitmap;
+			pDC->CreateBitmapFromWicBitmap(pWicBmp, &pBitmap);
+
+			auto pSpirit = new eck::CAbSpiritImage(pBitmap);
+			pSpirit->SetPos({ 200,400 });
+
+			//m_AB.AddSpirit(pSpirit);
+			//pSpirit->AutoMarch({ 10.f,20,600.f,0,FALSE });
+
+
+			eck::CreateWicBitmapDecoder(LR"(F:\Test\2.jpg)", pDecoder, eck::g_pWicFactory);
+			eck::CreateWicBitmap(pWicBmp, pDecoder, eck::g_pWicFactory);
+			pDC->CreateBitmapFromWicBitmap(pWicBmp, &pBitmap);
+
+			pSpirit = new eck::CAbSpiritImage(pBitmap);
+			pSpirit->SetPos({ 400,200 });
+
+			//m_AB.AddSpirit(pSpirit);
+			//pSpirit->Turn(-eck::Deg2Rad(90.f));
+			//pSpirit->AutoMarch({ 10.f,20,600.f,0,FALSE });
+
+
 
 			eck::SetFontForWndAndCtrl(hWnd, m_hFont);
 
