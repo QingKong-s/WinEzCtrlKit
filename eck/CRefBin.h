@@ -357,9 +357,12 @@ public:
 	EckInline void Replace(size_t posStart, size_t cbReplacing, PCVOID pNew = NULL, size_t cbNew = 0u)
 	{
 		EckAssert(cbNew ? (!!pNew) : TRUE);
-		const size_t cbOrg = m_cb;
+		const size_t cbOrg = Size();
 		ReSizeExtra(Size() + cbNew - cbReplacing);
-		memmove(Data() + posStart + cbNew, Data() + posStart + cbReplacing, cbOrg - posStart - cbReplacing);
+		memmove(
+			Data() + posStart + cbNew,
+			Data() + posStart + cbReplacing,
+			cbOrg - posStart - cbReplacing);
 		memcpy(Data() + posStart, pNew, cbNew);
 	}
 

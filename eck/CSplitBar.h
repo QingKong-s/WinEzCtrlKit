@@ -8,6 +8,7 @@
 #pragma once
 #include "CBk.h"
 #include "Utility.h"
+#include "GraphicsHelper.h"
 
 
 ECK_NAMESPACE_BEGIN

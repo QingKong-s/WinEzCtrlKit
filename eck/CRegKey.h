@@ -1,0 +1,470 @@
+﻿/*
+* WinEzCtrlKit Library
+*
+* CRegKey.h ： 注册表项
+*
+* Copyright(C) 2023 QingKong
+*/
+#pragma once
+#include "Utility.h"
+#include "CException.h"
+
+#include <functional>
+
+ECK_NAMESPACE_BEGIN
+class CRegKey
+{
+private:
+	HKEY m_hKey = NULL;
+public:
+	static HKEY AnalyzeFullPath(PCWSTR pszPath, int& cchSkip)
+	{
+#ifdef _DEBUG
+		if (wcsncmp(pszPath, L"HKU", 3u) == 0)
+			EckAssert(wcslen(pszPath) > 4);
+		else
+			EckAssert(wcslen(pszPath) > 5);
+#endif
+		HKEY hKeyRoot;
+		cchSkip = 5;
+		if (wcsncmp(pszPath, L"HKLM", 4u) == 0)
+			hKeyRoot = HKEY_LOCAL_MACHINE;
+		else if (wcsncmp(pszPath, L"HKCU", 4u) == 0)
+			hKeyRoot = HKEY_CURRENT_USER;
+		else if (wcsncmp(pszPath, L"HKCR", 4u) == 0)
+			hKeyRoot = HKEY_CLASSES_ROOT;
+		else if (wcsncmp(pszPath, L"HKU", 3u) == 0)
+		{
+			hKeyRoot = HKEY_USERS;
+			cchSkip = 4;
+		}
+		else if (wcsncmp(pszPath, L"HKCC", 4u) == 0)
+			hKeyRoot = HKEY_CURRENT_CONFIG;
+		else
+			hKeyRoot = NULL;
+		return hKeyRoot;
+	}
+
+	CRegKey() = default;
+	CRegKey(const CRegKey&) = delete;
+
+	CRegKey(CRegKey&& x) noexcept :m_hKey{ x.m_hKey } { x.m_hKey = NULL; }
+
+	/// <summary>
+	/// 构造自路径
+	/// </summary>
+	/// <param name="pszKey">注册项路径，应当以HKLM、HKCU、HKCR、HKU、HKCC五者其中之一开头</param>
+	/// <param name="dwAccess">访问权限</param>
+	CRegKey(PCWSTR pszPath, REGSAM dwAccess = KEY_READ | KEY_WRITE)
+	{
+		if (!pszPath)
+			return;
+		int cchSkip = 0;
+		auto hKeyRoot = AnalyzeFullPath(pszPath, cchSkip);
+		if (!hKeyRoot)
+			throw CConstMsgException(L"无法识别的根项");
+		auto r = Open(hKeyRoot, pszPath + cchSkip, dwAccess);
+		if (r != ERROR_SUCCESS)
+			throw CFmtMsgException(r);
+	}
+
+	CRegKey(HKEY hKey, PCWSTR pszKey, REGSAM dwAccess = KEY_READ | KEY_WRITE)
+	{
+		auto r = Open(hKey, pszKey, dwAccess);
+		if (r != ERROR_SUCCESS)
+			throw CFmtMsgException(r);
+	}
+
+	CRegKey(HKEY hKey) :m_hKey{ hKey } {}
+
+	~CRegKey()
+	{
+		Close();
+	}
+
+	CRegKey& operator=(const CRegKey&) = delete;
+	CRegKey& operator=(CRegKey&& x) noexcept
+	{
+		std::swap(m_hKey, x.m_hKey);
+	}
+
+	EckInline LSTATUS Close()
+	{
+		auto r = RegCloseKey(m_hKey);
+		m_hKey = NULL;
+		return r;
+	}
+
+	EckInline LSTATUS Open(HKEY hKey, PCWSTR pszSubKey, REGSAM dwAccess = KEY_READ | KEY_WRITE, DWORD dwOption = 0u)
+	{
+		Close();
+		return RegOpenKeyExW(hKey, pszSubKey, dwOption, dwAccess, &m_hKey);
+	}
+
+	EckInline LSTATUS Open(PCWSTR pszPath, REGSAM dwAccess = KEY_READ | KEY_WRITE, DWORD dwOption = 0u)
+	{
+		int cchSkip = 0;
+		auto hKeyRoot = AnalyzeFullPath(pszPath, cchSkip);
+		if (!hKeyRoot)
+			return ERROR_INVALID_PARAMETER;
+		return Open(hKeyRoot, pszPath + cchSkip, dwAccess, dwOption);
+	}
+
+	EckInline LSTATUS CopyTree(PCWSTR pszSubKey, HKEY hKeyDst)
+	{
+		return RegCopyTreeW(m_hKey, pszSubKey, hKeyDst);
+	}
+
+	EckInline LSTATUS Create(HKEY hKey, PCWSTR pszSubKey, REGSAM dwAccess = KEY_READ | KEY_WRITE,
+		DWORD dwOptions = REG_OPTION_NON_VOLATILE, DWORD* pdwDisposition = NULL,
+		PWSTR pszClass = NULL, SECURITY_ATTRIBUTES* psa = NULL)
+	{
+		Close();
+		return RegCreateKeyExW(hKey, pszSubKey, 0, pszClass, dwOptions,
+			dwAccess, psa, &m_hKey, pdwDisposition);
+	}
+
+	EckInline LSTATUS Create(PCWSTR pszPath, REGSAM dwAccess = KEY_READ | KEY_WRITE,
+		DWORD dwOptions = REG_OPTION_NON_VOLATILE, DWORD* pdwDisposition = NULL,
+		PWSTR pszClass = NULL, SECURITY_ATTRIBUTES* psa = NULL)
+	{
+		int cchSkip = 0;
+		auto hKeyRoot = AnalyzeFullPath(pszPath, cchSkip);
+		if (!hKeyRoot)
+			return ERROR_INVALID_PARAMETER;
+		return Create(hKeyRoot, pszPath + cchSkip, dwAccess, dwOptions, pdwDisposition, pszClass, psa);
+	}
+
+	EckInline LSTATUS Delete(PCWSTR pszSubKey, DWORD dwAccess)
+	{
+		return RegDeleteKeyExW(m_hKey, pszSubKey, dwAccess, 0);
+	}
+
+	EckInline LSTATUS DeleteValue(PCWSTR pszSubKey, PCWSTR pszValue)
+	{
+		return RegDeleteKeyValueW(m_hKey, pszSubKey, pszValue);
+	}
+
+	EckInline LSTATUS DeleteTree(PCWSTR pszSubKey)
+	{
+		return RegDeleteTreeW(m_hKey, pszSubKey);
+	}
+
+	EckInline LSTATUS DeleteValue(PCWSTR pszValue)
+	{
+		return RegDeleteValueW(m_hKey, pszValue);
+	}
+
+	EckInline LSTATUS EnumKey(DWORD idx, PWSTR pszKeyNameBuf, DWORD* pcchKeyNameBuf,
+		PWSTR pszClassNameBuf = NULL, DWORD* pcchClassName = NULL, FILETIME* pftLastWrite = NULL)
+	{
+		return RegEnumKeyExW(m_hKey, idx, pszKeyNameBuf, pcchKeyNameBuf, NULL,
+			pszClassNameBuf, pcchClassName, pftLastWrite);
+	}
+
+	int EnumKey(const std::function<BOOL(CRefStrW& rsName)>& fn, LSTATUS* plStatus = NULL)
+	{
+		if (plStatus)
+			*plStatus = ERROR_SUCCESS;
+		DWORD cchMaxSub = 0;
+		QueryInfo(NULL, NULL, NULL, &cchMaxSub);
+		DWORD idx = 0;
+		CRefStrW rs(cchMaxSub);
+		DWORD dw = cchMaxSub + 1;
+		LSTATUS lStatus;
+		while ((lStatus = EnumKey(idx, rs.Data(), &dw)) != ERROR_NO_MORE_ITEMS)
+		{
+			++idx;
+			if (lStatus != ERROR_SUCCESS)
+			{
+				if (plStatus)
+					*plStatus = lStatus;
+				return idx;
+			}
+			rs.ReSize((int)dw);
+			if (fn(rs))
+				break;
+			dw = cchMaxSub + 1;
+		}
+		return (int)idx;
+	}
+
+	EckInline LSTATUS EnumValue(DWORD idx, PWSTR pszValueNameBuf, DWORD* pcchValueNameBuf,
+		void* pDataBuf = NULL, DWORD* pcbDataBuf = NULL, DWORD* pdwType = NULL)
+	{
+		return RegEnumValueW(m_hKey, idx, pszValueNameBuf, pcchValueNameBuf,
+			NULL, pdwType, (BYTE*)pDataBuf, pcbDataBuf);
+	}
+
+	int EnumValue(const std::function<BOOL(CRefStrW& rsName, DWORD dwType)>& fn, LSTATUS* plStatus = NULL)
+	{
+		if (plStatus)
+			*plStatus = ERROR_SUCCESS;
+		constexpr int c_cchMax = 32770 / 2;
+		DWORD idx = 0;
+		CRefStrW rs(c_cchMax);
+		DWORD dw = c_cchMax;
+		DWORD dwType;
+		LSTATUS lStatus;
+		while ((lStatus = EnumValue(idx, rs.Data(), &dw, NULL, NULL, &dwType)) != ERROR_NO_MORE_ITEMS)
+		{
+			++idx;
+			if (lStatus != ERROR_SUCCESS)
+			{
+				if (plStatus)
+					*plStatus = lStatus;
+				return idx;
+			}
+			rs.ReSize((int)dw);
+			if (fn(rs, dwType))
+				break;
+			dw = c_cchMax;
+		}
+		return (int)idx;
+	}
+
+	EckInline LSTATUS Flush()
+	{
+		return RegFlushKey(m_hKey);
+	}
+
+	EckInline LSTATUS GetValue(PCWSTR pszSubKey, PCWSTR pszValue, void* pBuf, DWORD* pcbBuf,
+		DWORD dwFlags = 0u, DWORD* pdwType = NULL)
+	{
+		return RegGetValueW(m_hKey, pszSubKey, pszValue, dwFlags, pdwType, pBuf, pcbBuf);
+	}
+
+	/// <summary>
+	/// 取字节集注册项。
+	/// 绝对不能在当前句柄为HKEY_PERFORMANCE_DATA调用此方法
+	/// </summary>
+	/// <param name="pszSubKey">子项名称</param>
+	/// <param name="pszValue">值名称</param>
+	/// <param name="dwFlags">标志，本函数将自动添加类型限制标志</param>
+	/// <param name="plStatus">接收错误码变量的可选指针</param>
+	/// <returns>数据</returns>
+	CRefBin GetValueBin(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
+	{
+		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
+		dwFlags |= RRF_RT_REG_BINARY;
+		if (plStatus)
+			*plStatus = ERROR_SUCCESS;
+		DWORD cb = 0u;
+		LSTATUS lStatus = GetValue(pszSubKey, pszValue, NULL, &cb, dwFlags);
+		if (lStatus == ERROR_SUCCESS)
+		{
+			if (cb)
+			{
+				CRefBin rb(cb);
+				GetValue(pszSubKey, pszValue, rb.Data(), &cb, dwFlags);
+				return rb;
+			}
+			else
+				return {};
+		}
+		if (plStatus)
+			*plStatus = lStatus;
+		return {};
+	}
+
+	DWORD GetValueDword(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
+	{
+		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
+		dwFlags |= RRF_RT_REG_DWORD;
+		if (plStatus)
+			*plStatus = ERROR_SUCCESS;
+		DWORD dwData, cb = sizeof(DWORD);
+		LSTATUS lStatus = GetValue(pszSubKey, pszValue, &dwData, &cb, dwFlags);
+		if (lStatus == ERROR_SUCCESS)
+			return dwData;
+		if (plStatus)
+			*plStatus = lStatus;
+		return 0u;
+	}
+
+	ULONGLONG GetValueQword(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
+	{
+		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
+		dwFlags |= RRF_RT_REG_QWORD;
+		if (plStatus)
+			*plStatus = ERROR_SUCCESS;
+		ULONGLONG ullData;
+		DWORD cb = sizeof(DWORD);
+		LSTATUS lStatus = GetValue(pszSubKey, pszValue, &ullData, &cb, dwFlags);
+		if (lStatus == ERROR_SUCCESS)
+			return ullData;
+		if (plStatus)
+			*plStatus = lStatus;
+		return 0u;
+	}
+
+	CRefStrW GetValueStr(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
+	{
+		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
+		dwFlags |= RRF_RT_REG_SZ;
+		if (plStatus)
+			*plStatus = ERROR_SUCCESS;
+		DWORD cb = 0u;
+		LSTATUS lStatus = GetValue(pszSubKey, pszValue, NULL, &cb, dwFlags);
+		if (lStatus == ERROR_SUCCESS)
+		{
+			if (cb)
+			{
+				CRefStrW rs(cb / sizeof(WCHAR));
+				GetValue(pszSubKey, pszValue, rs.Data(), &cb, dwFlags);
+				return rs;
+			}
+			else
+				return {};
+		}
+		if (plStatus)
+			*plStatus = lStatus;
+		return {};
+	}
+
+	EckInline LSTATUS QueryInfo(PWSTR pszClassBuf = NULL, DWORD* pcchClassBuf = NULL, DWORD* pcSubKeys = NULL,
+		DWORD* pcchMaxSubKeyLen = NULL, DWORD* pcchMaxClassLen = NULL, DWORD* pcValues = NULL,
+		DWORD* pcchMaxValueNameLen = NULL, DWORD* pcbMaxValueLen = NULL, DWORD* pcbSecurityDescriptor = NULL,
+		FILETIME* pftLastWriteTime = NULL)
+	{
+		return RegQueryInfoKeyW(m_hKey, pszClassBuf, pcchClassBuf, NULL, pcSubKeys,
+			pcchMaxSubKeyLen, pcchMaxClassLen, pcValues, pcchMaxValueNameLen,
+			pcbMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime);
+	}
+
+	EckInline LSTATUS QueryValue(PCWSTR pszValue, void* pBuf, DWORD* pcbBuf, DWORD* pdwType = NULL)
+	{
+		return RegQueryValueExW(m_hKey, pszValue, NULL, pdwType, (BYTE*)pBuf, pcbBuf);
+	}
+
+	CRefBin QueryValueBin(PCWSTR pszValue, LSTATUS* plStatus = NULL)
+	{
+		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
+		if (plStatus)
+			*plStatus = ERROR_SUCCESS;
+		DWORD cb = 0u;
+		LSTATUS lStatus = QueryValue(pszValue, NULL, &cb);
+		if (lStatus == ERROR_SUCCESS)
+		{
+			if (cb)
+			{
+				CRefBin rb(cb);
+				QueryValue(pszValue, rb.Data(), &cb);
+				return rb;
+			}
+			else
+				return {};
+		}
+		if (plStatus)
+			*plStatus = lStatus;
+		return {};
+	}
+
+	DWORD QueryValueDword(PCWSTR pszValue, LSTATUS* plStatus = NULL)
+	{
+		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
+		if (plStatus)
+			*plStatus = ERROR_SUCCESS;
+		DWORD dwData, cb = sizeof(DWORD);
+		LSTATUS lStatus = QueryValue(pszValue, &dwData, &cb);
+		if (lStatus == ERROR_SUCCESS)
+			return dwData;
+		if (plStatus)
+			*plStatus = lStatus;
+		return 0u;
+	}
+
+	ULONGLONG QueryValueQword(PCWSTR pszValue, LSTATUS* plStatus = NULL)
+	{
+		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
+		if (plStatus)
+			*plStatus = ERROR_SUCCESS;
+		ULONGLONG ullData;
+		DWORD cb = sizeof(DWORD);
+		LSTATUS lStatus = QueryValue(pszValue, &ullData, &cb);
+		if (lStatus == ERROR_SUCCESS)
+			return ullData;
+		if (plStatus)
+			*plStatus = lStatus;
+		return 0u;
+	}
+
+	CRefStrW QueryValueStr(PCWSTR pszValue, LSTATUS* plStatus = NULL)
+	{
+		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
+		if (plStatus)
+			*plStatus = ERROR_SUCCESS;
+		DWORD cb = 0u;
+		LSTATUS lStatus = QueryValue(pszValue, NULL, &cb);
+		if (lStatus == ERROR_SUCCESS)
+		{
+			if (cb)
+			{
+				CRefStrW rs(cb / sizeof(WCHAR));
+				QueryValue(pszValue, rs.Data(), &cb);
+				return rs;
+			}
+			else
+				return {};
+		}
+		if (plStatus)
+			*plStatus = lStatus;
+		return {};
+	}
+
+	EckInline LSTATUS RenameKey(PCWSTR pszSubKey, PCWSTR pszNewName)
+	{
+		return RegRenameKey(m_hKey, pszSubKey, pszNewName);
+	}
+
+	EckInline LSTATUS SetValue(PCWSTR pszSubKey, PCWSTR pszValue, PCVOID pData, DWORD cbData, DWORD dwType)
+	{
+		return RegSetKeyValueW(m_hKey, pszSubKey, pszValue, dwType, pData, cbData);
+	}
+
+	EckInline LSTATUS SetValue(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwData)
+	{
+		return SetValue(pszSubKey, pszValue, &dwData, sizeof(dwData), REG_DWORD);
+	}
+
+	EckInline LSTATUS SetValueQword(PCWSTR pszSubKey, PCWSTR pszValue, ULONGLONG ullData)
+	{
+		return SetValue(pszSubKey, pszValue, &ullData, sizeof(ullData), REG_QWORD);
+	}
+
+	EckInline LSTATUS SetValue(PCWSTR pszSubKey, PCWSTR pszValue, const CRefStrW& rs)
+	{
+		return SetValue(pszSubKey, pszValue, rs.Data(), (DWORD)rs.ByteSize(), REG_SZ);
+	}
+
+	EckInline LSTATUS SetValue(PCWSTR pszSubKey, PCWSTR pszValue, const CRefBin& rs)
+	{
+		return SetValue(pszSubKey, pszValue, rs.Data(), (DWORD)rs.Size(), REG_BINARY);
+	}
+
+	EckInline LSTATUS SetValue(PCWSTR pszValue, PCVOID pData, DWORD cbData, DWORD dwType)
+	{
+		return RegSetValueExW(m_hKey, pszValue, NULL, dwType, (PCBYTE)pData, cbData);
+	}
+
+	EckInline LSTATUS SetValue(PCWSTR pszValue, DWORD dwData)
+	{
+		return SetValue(pszValue, &dwData, sizeof(dwData), REG_DWORD);
+	}
+
+	EckInline LSTATUS SetValueQword(PCWSTR pszValue, ULONGLONG ullData)
+	{
+		return SetValue(pszValue, &ullData, sizeof(ullData), REG_QWORD);
+	}
+
+	EckInline LSTATUS SetValue(PCWSTR pszValue, const CRefStrW& rs)
+	{
+		return SetValue(pszValue, rs.Data(), (DWORD)rs.ByteSize(), REG_SZ);
+	}
+
+	EckInline LSTATUS SetValue(PCWSTR pszValue, const CRefBin& rs)
+	{
+		return SetValue(pszValue, rs.Data(), (DWORD)rs.Size(), REG_BINARY);
+	}
+};
+ECK_NAMESPACE_END

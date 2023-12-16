@@ -319,6 +319,14 @@ public:
 		return cchSrc;
 	}
 
+	EckInline int DupBSTR(BSTR bstr)
+	{
+		if (bstr)
+			return DupString((TConstPointer)(((PCBYTE)bstr) + 4), (int)SysStringLen(bstr));
+		else
+			return 0;
+	}
+
 	/// <summary>
 	/// 依附指针
 	/// </summary>
@@ -369,7 +377,7 @@ public:
 		if (!pszSrc)
 			return 0;
 		ReSizeExtra(Size() + cchSrc);
-		TCharTraits::CopyEnd(Data() + Size(), pszSrc, cchSrc);
+		TCharTraits::CopyEnd(Data() + Size() - cchSrc, pszSrc, cchSrc);
 		return cchSrc;
 	}
 
@@ -467,11 +475,12 @@ public:
 		EckAssert(pszNew ? TRUE : cchNew == 0);
 		if (cchNew < 0)
 			cchNew = TCharTraits::Len(pszNew);
+		const int cchOrg = Size();
 		ReSizeExtra(Size() + cchNew - cchReplacing);
 		TCharTraits::Move(
 			Data() + posStart + cchNew,
 			Data() + posStart + cchReplacing,
-			Size() - posStart - cchReplacing);
+			cchOrg - posStart - cchReplacing);
 		if (pszNew)
 			TCharTraits::Copy(Data() + posStart, pszNew, cchNew);
 	}
@@ -701,23 +710,23 @@ EckInline void DbgPrint(const EckCRefStrTemp& rs, int iType = 1, BOOL bNewLine =
 }
 
 
-inline constexpr auto c_cbI32ToStrBufNoRadix2 = std::max({
+inline constexpr auto c_cchI32ToStrBufNoRadix2 = std::max({
 	_MAX_ITOSTR_BASE16_COUNT,_MAX_ITOSTR_BASE10_COUNT,_MAX_ITOSTR_BASE8_COUNT,
 	_MAX_LTOSTR_BASE16_COUNT ,_MAX_LTOSTR_BASE10_COUNT ,_MAX_LTOSTR_BASE8_COUNT,
 	_MAX_ULTOSTR_BASE16_COUNT,_MAX_ULTOSTR_BASE10_COUNT,_MAX_ULTOSTR_BASE8_COUNT });
-inline constexpr auto c_cbI64ToStrBufNoRadix2 = std::max({
+inline constexpr auto c_cchI64ToStrBufNoRadix2 = std::max({
 	_MAX_I64TOSTR_BASE16_COUNT,_MAX_I64TOSTR_BASE10_COUNT,_MAX_I64TOSTR_BASE8_COUNT,
 	_MAX_U64TOSTR_BASE16_COUNT,_MAX_U64TOSTR_BASE10_COUNT,_MAX_U64TOSTR_BASE8_COUNT });
 
-inline constexpr auto c_cbI32ToStrBuf = std::max({ c_cbI32ToStrBufNoRadix2,
+inline constexpr auto c_cchI32ToStrBuf = std::max({ c_cchI32ToStrBufNoRadix2,
 	_MAX_ITOSTR_BASE2_COUNT,_MAX_LTOSTR_BASE2_COUNT,_MAX_ULTOSTR_BASE2_COUNT });
-inline constexpr auto c_cbI64ToStrBuf = std::max({ c_cbI64ToStrBufNoRadix2,
+inline constexpr auto c_cchI64ToStrBuf = std::max({ c_cchI64ToStrBufNoRadix2,
 	_MAX_I64TOSTR_BASE2_COUNT,_MAX_U64TOSTR_BASE2_COUNT });
 
 
 EckInline CRefStrW ToStr(int x, int iRadix = 10)
 {
-	CRefStrW rs(c_cbI32ToStrBuf);
+	CRefStrW rs(c_cchI32ToStrBuf);
 	_itow(x, rs.Data(), iRadix);
 	rs.ReCalcLen();
 	return rs;
@@ -725,7 +734,7 @@ EckInline CRefStrW ToStr(int x, int iRadix = 10)
 
 EckInline CRefStrW ToStr(UINT x, int iRadix = 10)
 {
-	CRefStrW rs(c_cbI32ToStrBuf);
+	CRefStrW rs(c_cchI32ToStrBuf);
 	_ultow(x, rs.Data(), iRadix);
 	rs.ReCalcLen();
 	return rs;
@@ -733,7 +742,7 @@ EckInline CRefStrW ToStr(UINT x, int iRadix = 10)
 
 EckInline CRefStrW ToStr(LONGLONG x, int iRadix = 10)
 {
-	CRefStrW rs(c_cbI64ToStrBuf);
+	CRefStrW rs(c_cchI64ToStrBuf);
 	_i64tow(x, rs.Data(), iRadix);
 	rs.ReCalcLen();
 	return rs;
@@ -741,7 +750,7 @@ EckInline CRefStrW ToStr(LONGLONG x, int iRadix = 10)
 
 EckInline CRefStrW ToStr(ULONGLONG x, int iRadix = 10)
 {
-	CRefStrW rs(c_cbI64ToStrBuf);
+	CRefStrW rs(c_cchI64ToStrBuf);
 	_ui64tow(x, rs.Data(), iRadix);
 	rs.ReCalcLen();
 	return rs;

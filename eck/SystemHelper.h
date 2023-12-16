@@ -2,6 +2,9 @@
 #include "Utility.h"
 #include "CException.h"
 
+#include <wbemcli.h>
+#include <comdef.h>
+
 ECK_NAMESPACE_BEGIN
 inline int CalcDbcsStringCharCount(PCSTR pszText, int cchText, UINT uCp = CP_ACP)
 {
@@ -26,459 +29,456 @@ inline COLORREF GetCursorPosColor()
 	return cr;
 }
 
-class CRegKey
+inline CRefStrW GetClipboardString(HWND hWnd = NULL)
 {
-private:
-	HKEY m_hKey = NULL;
-public:
-	static HKEY AnalyzeFullPath(PCWSTR pszPath, int& cchSkip)
+	if (!OpenClipboard(hWnd))
 	{
-#ifdef _DEBUG
-		if (wcsncmp(pszPath, L"HKU", 3u) == 0)
-			EckAssert(wcslen(pszPath) > 4);
-		else
-			EckAssert(wcslen(pszPath) > 5);
-#endif
-		HKEY hKeyRoot;
-		cchSkip = 5;
-		if (wcsncmp(pszPath, L"HKLM", 4u) == 0)
-			hKeyRoot = HKEY_LOCAL_MACHINE;
-		else if (wcsncmp(pszPath, L"HKCU", 4u) == 0)
-			hKeyRoot = HKEY_CURRENT_USER;
-		else if (wcsncmp(pszPath, L"HKCR", 4u) == 0)
-			hKeyRoot = HKEY_CLASSES_ROOT;
-		else if (wcsncmp(pszPath, L"HKU", 3u) == 0)
-		{
-			hKeyRoot = HKEY_USERS;
-			cchSkip = 4;
-		}
-		else if (wcsncmp(pszPath, L"HKCC", 4u) == 0)
-			hKeyRoot = HKEY_CURRENT_CONFIG;
-		else
-			hKeyRoot = NULL;
-		return hKeyRoot;
+		EckDbgPrintFmt(L"剪贴板打开失败，当前所有者 = %p", GetClipboardOwner());
+		return {};
 	}
-
-	CRegKey() = default;
-	CRegKey(const CRegKey&) = delete;
-
-	CRegKey(CRegKey&& x) noexcept :m_hKey{ x.m_hKey } { x.m_hKey = NULL; }
-
-	/// <summary>
-	/// 构造自路径
-	/// </summary>
-	/// <param name="pszKey">注册项路径，应当以HKLM、HKCU、HKCR、HKU、HKCC五者其中之一开头</param>
-	/// <param name="dwAccess">访问权限</param>
-	CRegKey(PCWSTR pszPath, REGSAM dwAccess = KEY_READ | KEY_WRITE)
+	if (IsClipboardFormatAvailable(CF_UNICODETEXT))
 	{
-		if (!pszPath)
+		const HANDLE hData = GetClipboardData(CF_UNICODETEXT);
+		if (hData)
+		{
+			const void* pData = GlobalLock(hData);
+			if (pData)
+			{
+				const auto cb = GlobalSize(hData);
+				const int cch = (int)(cb / sizeof(WCHAR));
+				CRefStrW rs(cch);
+				memcpy(rs.Data(), pData, cch * sizeof(WCHAR));
+				*(rs.Data() + cch) = L'\0';
+				GlobalUnlock(hData);
+				CloseClipboard();
+				return rs;
+			}
+		}
+	}
+	CloseClipboard();
+	return {};
+}
+
+inline BOOL SetClipboardString(PCWSTR pszText, int cch = -1, HWND hWnd = NULL)
+{
+	if (!OpenClipboard(hWnd))
+	{
+		EckDbgPrintFmt(L"剪贴板打开失败，当前所有者 = %p", GetClipboardOwner());
+		return FALSE;
+	}
+	EmptyClipboard();
+	if (cch < 0)
+		cch = (int)wcslen(pszText);
+	const SIZE_T cb = Cch2Cb(cch);
+
+	HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, cb);
+	if (hGlobal)
+	{
+		void* pData = GlobalLock(hGlobal);
+		if (pData)
+		{
+			memcpy(pData, pszText, cb);
+			GlobalUnlock(hGlobal);
+			SetClipboardData(CF_UNICODETEXT, hGlobal);
+			CloseClipboard();
+			return TRUE;
+		}
+	}
+	CloseClipboard();
+	return FALSE;
+}
+
+EckInline void DoEvents()
+{
+	MSG msg;
+	while (PeekMessageW(&msg, NULL, 0u, 0u, PM_REMOVE))
+	{
+		if (msg.message == WM_QUIT)
+		{
+			PostQuitMessage((int)msg.wParam);
 			return;
-		int cchSkip = 0;
-		auto hKeyRoot = AnalyzeFullPath(pszPath, cchSkip);
-		if (!hKeyRoot)
-			throw CConstMsgException(L"无法识别的根项");
-		auto r = Open(hKeyRoot, pszPath + cchSkip, dwAccess);
-		if (r != ERROR_SUCCESS)
-			throw CFmtMsgException(r);
-	}
-
-	CRegKey(HKEY hKey, PCWSTR pszKey, REGSAM dwAccess = KEY_READ | KEY_WRITE)
-	{
-		auto r = Open(hKey, pszKey, dwAccess);
-		if (r != ERROR_SUCCESS)
-			throw CFmtMsgException(r);
-	}
-
-	CRegKey(HKEY hKey) :m_hKey{ hKey } {}
-
-	~CRegKey()
-	{
-		Close();
-	}
-
-	CRegKey& operator=(const CRegKey&) = delete;
-	CRegKey& operator=(CRegKey&& x) noexcept
-	{
-		std::swap(m_hKey, x.m_hKey);
-	}
-
-	EckInline LSTATUS Close()
-	{
-		auto r = RegCloseKey(m_hKey);
-		m_hKey = NULL;
-		return r;
-	}
-
-	EckInline LSTATUS Open(HKEY hKey, PCWSTR pszSubKey, REGSAM dwAccess = KEY_READ | KEY_WRITE, DWORD dwOption = 0u)
-	{
-		Close();
-		return RegOpenKeyExW(hKey, pszSubKey, dwOption, dwAccess, &m_hKey);
-	}
-
-	EckInline LSTATUS Open(PCWSTR pszPath, REGSAM dwAccess = KEY_READ | KEY_WRITE, DWORD dwOption = 0u)
-	{
-		int cchSkip = 0;
-		auto hKeyRoot = AnalyzeFullPath(pszPath, cchSkip);
-		if (!hKeyRoot)
-			return ERROR_INVALID_PARAMETER;
-		return Open(hKeyRoot, pszPath + cchSkip, dwAccess, dwOption);
-	}
-
-	EckInline LSTATUS CopyTree(PCWSTR pszSubKey, HKEY hKeyDst)
-	{
-		return RegCopyTreeW(m_hKey, pszSubKey, hKeyDst);
-	}
-
-	EckInline LSTATUS Create(HKEY hKey, PCWSTR pszSubKey, REGSAM dwAccess = KEY_READ | KEY_WRITE,
-		DWORD dwOptions = REG_OPTION_NON_VOLATILE, DWORD* pdwDisposition = NULL,
-		PWSTR pszClass = NULL, SECURITY_ATTRIBUTES* psa = NULL)
-	{
-		Close();
-		return RegCreateKeyExW(hKey, pszSubKey, 0, pszClass, dwOptions,
-			dwAccess, psa, &m_hKey, pdwDisposition);
-	}
-
-	EckInline LSTATUS Create(PCWSTR pszPath, REGSAM dwAccess = KEY_READ | KEY_WRITE,
-		DWORD dwOptions = REG_OPTION_NON_VOLATILE, DWORD* pdwDisposition = NULL,
-		PWSTR pszClass = NULL, SECURITY_ATTRIBUTES* psa = NULL)
-	{
-		int cchSkip = 0;
-		auto hKeyRoot = AnalyzeFullPath(pszPath, cchSkip);
-		if (!hKeyRoot)
-			return ERROR_INVALID_PARAMETER;
-		return Create(hKeyRoot, pszPath + cchSkip, dwAccess, dwOptions, pdwDisposition, pszClass, psa);
-	}
-
-	EckInline LSTATUS Delete(PCWSTR pszSubKey, DWORD dwAccess)
-	{
-		return RegDeleteKeyExW(m_hKey, pszSubKey, dwAccess, 0);
-	}
-
-	EckInline LSTATUS DeleteValue(PCWSTR pszSubKey, PCWSTR pszValue)
-	{
-		return RegDeleteKeyValueW(m_hKey, pszSubKey, pszValue);
-	}
-
-	EckInline LSTATUS DeleteTree(PCWSTR pszSubKey)
-	{
-		return RegDeleteTreeW(m_hKey, pszSubKey);
-	}
-
-	EckInline LSTATUS DeleteValue(PCWSTR pszValue)
-	{
-		return RegDeleteValueW(m_hKey, pszValue);
-	}
-
-	EckInline LSTATUS EnumKey(DWORD idx, PWSTR pszKeyNameBuf, DWORD* pcchKeyNameBuf,
-		PWSTR pszClassNameBuf = NULL, DWORD* pcchClassName = NULL, FILETIME* pftLastWrite = NULL)
-	{
-		return RegEnumKeyExW(m_hKey, idx, pszKeyNameBuf, pcchKeyNameBuf, NULL,
-			pszClassNameBuf, pcchClassName, pftLastWrite);
-	}
-
-	int EnumKey(const std::function<BOOL(CRefStrW& rsName)>& fn, LSTATUS* plStatus = NULL)
-	{
-		if (plStatus)
-			*plStatus = ERROR_SUCCESS;
-		DWORD cchMaxSub = 0;
-		QueryInfo(NULL, NULL, NULL, &cchMaxSub);
-		DWORD idx = 0;
-		CRefStrW rs(cchMaxSub);
-		DWORD dw = cchMaxSub + 1;
-		LSTATUS lStatus;
-		while ((lStatus = EnumKey(idx, rs.Data(), &dw)) != ERROR_NO_MORE_ITEMS)
-		{
-			++idx;
-			if (lStatus != ERROR_SUCCESS)
-			{
-				if (plStatus)
-					*plStatus = lStatus;
-				return idx;
-			}
-			rs.ReSize((int)dw);
-			if (fn(rs))
-				break;
-			dw = cchMaxSub + 1;
 		}
-		return (int)idx;
+		TranslateMessage(&msg);
+		DispatchMessageW(&msg);
 	}
+}
 
-	EckInline LSTATUS EnumValue(DWORD idx, PWSTR pszValueNameBuf, DWORD* pcchValueNameBuf,
-		void* pDataBuf = NULL, DWORD* pcbDataBuf = NULL, DWORD* pdwType = NULL)
+/// <summary>
+/// 读入文件
+/// </summary>
+/// <param name="pszFile">文件路径</param>
+/// <returns>返回字节集</returns>
+inline CRefBin ReadInFile(PCWSTR pszFile)
+{
+	const HANDLE hFile = CreateFileW(pszFile, GENERIC_READ, FILE_SHARE_READ, NULL,
+		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hFile == INVALID_HANDLE_VALUE)
 	{
-		return RegEnumValueW(m_hKey, idx, pszValueNameBuf, pcchValueNameBuf,
-			NULL, pdwType, (BYTE*)pDataBuf, pcbDataBuf);
-	}
-
-	int EnumValue(const std::function<BOOL(CRefStrW& rsName, DWORD dwType)>& fn, LSTATUS* plStatus = NULL)
-	{
-		if (plStatus)
-			*plStatus = ERROR_SUCCESS;
-		constexpr int c_cchMax = 32770 / 2;
-		DWORD idx = 0;
-		CRefStrW rs(c_cchMax);
-		DWORD dw = c_cchMax;
-		DWORD dwType;
-		LSTATUS lStatus;
-		while ((lStatus = EnumValue(idx, rs.Data(), &dw, NULL, NULL, &dwType)) != ERROR_NO_MORE_ITEMS)
-		{
-			++idx;
-			if (lStatus != ERROR_SUCCESS)
-			{
-				if (plStatus)
-					*plStatus = lStatus;
-				return idx;
-			}
-			rs.ReSize((int)dw);
-			if (fn(rs, dwType))
-				break;
-			dw = c_cchMax;
-		}
-		return (int)idx;
-	}
-
-	EckInline LSTATUS Flush()
-	{
-		return RegFlushKey(m_hKey);
-	}
-
-	EckInline LSTATUS GetValue(PCWSTR pszSubKey, PCWSTR pszValue, void* pBuf, DWORD* pcbBuf,
-		DWORD dwFlags = 0u, DWORD* pdwType = NULL)
-	{
-		return RegGetValueW(m_hKey, pszSubKey, pszValue, dwFlags, pdwType, pBuf, pcbBuf);
-	}
-
-	/// <summary>
-	/// 取字节集注册项。
-	/// 绝对不能在当前句柄为HKEY_PERFORMANCE_DATA调用此方法
-	/// </summary>
-	/// <param name="pszSubKey">子项名称</param>
-	/// <param name="pszValue">值名称</param>
-	/// <param name="dwFlags">标志，本函数将自动添加类型限制标志</param>
-	/// <param name="plStatus">接收错误码变量的可选指针</param>
-	/// <returns>数据</returns>
-	CRefBin GetValueBin(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
-	{
-		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
-		dwFlags |= RRF_RT_REG_BINARY;
-		if (plStatus)
-			*plStatus = ERROR_SUCCESS;
-		DWORD cb = 0u;
-		LSTATUS lStatus = GetValue(pszSubKey, pszValue, NULL, &cb, dwFlags);
-		if (lStatus == ERROR_SUCCESS)
-		{
-			if (cb)
-			{
-				CRefBin rb(cb);
-				GetValue(pszSubKey, pszValue, rb.Data(), &cb, dwFlags);
-				return rb;
-			}
-			else
-				return {};
-		}
-		if (plStatus)
-			*plStatus = lStatus;
+		EckDbgPrintFormatMessage(GetLastError());
 		return {};
 	}
 
-	DWORD GetValueDword(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
+	LARGE_INTEGER i64{};
+	GetFileSizeEx(hFile, &i64);
+	if (i64.QuadPart > 1'073'741'824i64)// 大于1G，不读
 	{
-		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
-		dwFlags |= RRF_RT_REG_DWORD;
-		if (plStatus)
-			*plStatus = ERROR_SUCCESS;
-		DWORD dwData, cb = sizeof(DWORD);
-		LSTATUS lStatus = GetValue(pszSubKey, pszValue, &dwData, &cb, dwFlags);
-		if (lStatus == ERROR_SUCCESS)
-			return dwData;
-		if (plStatus)
-			*plStatus = lStatus;
-		return 0u;
-	}
-
-	ULONGLONG GetValueQword(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
-	{
-		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
-		dwFlags |= RRF_RT_REG_QWORD;
-		if (plStatus)
-			*plStatus = ERROR_SUCCESS;
-		ULONGLONG ullData;
-		DWORD cb = sizeof(DWORD);
-		LSTATUS lStatus = GetValue(pszSubKey, pszValue, &ullData, &cb, dwFlags);
-		if (lStatus == ERROR_SUCCESS)
-			return ullData;
-		if (plStatus)
-			*plStatus = lStatus;
-		return 0u;
-	}
-
-	CRefStrW GetValueStr(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
-	{
-		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
-		dwFlags |= RRF_RT_REG_SZ;
-		if (plStatus)
-			*plStatus = ERROR_SUCCESS;
-		DWORD cb = 0u;
-		LSTATUS lStatus = GetValue(pszSubKey, pszValue, NULL, &cb, dwFlags);
-		if (lStatus == ERROR_SUCCESS)
-		{
-			if (cb)
-			{
-				CRefStrW rs(cb / sizeof(WCHAR));
-				GetValue(pszSubKey, pszValue, rs.Data(), &cb, dwFlags);
-				return rs;
-			}
-			else
-				return {};
-		}
-		if (plStatus)
-			*plStatus = lStatus;
+		EckDbgPrintFmt(L"文件太大! 尺寸 = %i64", i64.QuadPart);
+		CloseHandle(hFile);
 		return {};
 	}
 
-	EckInline LSTATUS QueryInfo(PWSTR pszClassBuf = NULL, DWORD* pcchClassBuf = NULL, DWORD* pcSubKeys = NULL,
-		DWORD* pcchMaxSubKeyLen = NULL, DWORD* pcchMaxClassLen = NULL, DWORD* pcValues = NULL, 
-		DWORD* pcchMaxValueNameLen = NULL,DWORD* pcbMaxValueLen = NULL, DWORD* pcbSecurityDescriptor = NULL,
-		FILETIME* pftLastWriteTime = NULL)
+	CRefBin rb(i64.LowPart);
+	DWORD dwRead;
+	if (!ReadFile(hFile, rb.Data(), i64.LowPart, &dwRead, NULL))
 	{
-		return RegQueryInfoKeyW(m_hKey, pszClassBuf, pcchClassBuf, NULL, pcSubKeys,
-			pcchMaxSubKeyLen, pcchMaxClassLen, pcValues, pcchMaxValueNameLen,
-			pcbMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime);
-	}
-
-	EckInline LSTATUS QueryValue(PCWSTR pszValue, void* pBuf, DWORD* pcbBuf, DWORD* pdwType = NULL)
-	{
-		return RegQueryValueExW(m_hKey, pszValue, NULL, pdwType, (BYTE*)pBuf, pcbBuf);
-	}
-
-	CRefBin QueryValueBin(PCWSTR pszValue, LSTATUS* plStatus = NULL)
-	{
-		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
-		if (plStatus)
-			*plStatus = ERROR_SUCCESS;
-		DWORD cb = 0u;
-		LSTATUS lStatus = QueryValue(pszValue, NULL, &cb);
-		if (lStatus == ERROR_SUCCESS)
-		{
-			if (cb)
-			{
-				CRefBin rb(cb);
-				QueryValue(pszValue, rb.Data(), &cb);
-				return rb;
-			}
-			else
-				return {};
-		}
-		if (plStatus)
-			*plStatus = lStatus;
+		EckDbgPrintFormatMessage(GetLastError());
 		return {};
 	}
 
-	DWORD QueryValueDword(PCWSTR pszValue, LSTATUS* plStatus = NULL)
-	{
-		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
-		if (plStatus)
-			*plStatus = ERROR_SUCCESS;
-		DWORD dwData, cb = sizeof(DWORD);
-		LSTATUS lStatus = QueryValue(pszValue, &dwData, &cb);
-		if (lStatus == ERROR_SUCCESS)
-			return dwData;
-		if (plStatus)
-			*plStatus = lStatus;
-		return 0u;
-	}
+	CloseHandle(hFile);
+	return rb;
+}
 
-	ULONGLONG QueryValueQword(PCWSTR pszValue, LSTATUS* plStatus = NULL)
-	{
-		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
-		if (plStatus)
-			*plStatus = ERROR_SUCCESS;
-		ULONGLONG ullData;
-		DWORD cb = sizeof(DWORD);
-		LSTATUS lStatus = QueryValue(pszValue, &ullData, &cb);
-		if (lStatus == ERROR_SUCCESS)
-			return ullData;
-		if (plStatus)
-			*plStatus = lStatus;
-		return 0u;
-	}
+/// <summary>
+/// 写到文件
+/// </summary>
+/// <param name="pszFile">文件路径</param>
+/// <param name="pData">字节流</param>
+/// <param name="cb">字节流长度</param>
+inline BOOL WriteToFile(PCWSTR pszFile, PCVOID pData, DWORD cb)
+{
+	const HANDLE hFile = CreateFileW(pszFile, GENERIC_WRITE, FILE_SHARE_READ, NULL,
+		CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hFile == INVALID_HANDLE_VALUE)
+		return FALSE;
 
-	CRefStrW QueryValueStr(PCWSTR pszValue, LSTATUS* plStatus = NULL)
-	{
-		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
-		if (plStatus)
-			*plStatus = ERROR_SUCCESS;
-		DWORD cb = 0u;
-		LSTATUS lStatus = QueryValue(pszValue, NULL, &cb);
-		if (lStatus == ERROR_SUCCESS)
-		{
-			if (cb)
-			{
-				CRefStrW rs(cb / sizeof(WCHAR));
-				QueryValue(pszValue, rs.Data(), &cb);
-				return rs;
-			}
-			else
-				return {};
-		}
-		if (plStatus)
-			*plStatus = lStatus;
-		return {};
-	}
+	DWORD dwRead;
+	const BOOL b = WriteFile(hFile, pData, cb, &dwRead, NULL);
+	CloseHandle(hFile);
+	return b;
+}
 
-	EckInline LSTATUS RenameKey(PCWSTR pszSubKey, PCWSTR pszNewName)
-	{
-		return RegRenameKey(m_hKey, pszSubKey, pszNewName);
-	}
+/// <summary>
+/// 写到文件
+/// </summary>
+/// <param name="pszFile">文件路径</param>
+/// <param name="rb">字节集</param>
+EckInline BOOL WriteToFile(PCWSTR pszFile, const CRefBin& rb)
+{
+	return WriteToFile(pszFile, rb.Data(), (DWORD)rb.Size());
+}
 
-	EckInline LSTATUS SetValue(PCWSTR pszSubKey, PCWSTR pszValue, PCVOID pData, DWORD cbData, DWORD dwType)
-	{
-		return RegSetKeyValueW(m_hKey, pszSubKey, pszValue, dwType, pData, cbData);
-	}
+/// <summary>
+/// WMI连接命名空间
+/// </summary>
+/// <param name="pWbemSrv">接收IWbemServices指针的变量，该变量的值将被覆盖</param>
+/// <param name="pWbemLoc">接收IWbemLocator指针的变量，该变量的值将被覆盖</param>
+/// <returns>错误代码</returns>
+inline HRESULT WmiConnectNamespace(IWbemServices*& pWbemSrv, IWbemLocator*& pWbemLoc)
+{
+	pWbemSrv = NULL;
+	pWbemLoc = NULL;
+	HRESULT hr;
+	if (FAILED(hr = CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_DEFAULT,
+		RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL)))
+		return hr;
+	if (FAILED(hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pWbemLoc))))
+		return hr;
+	if (FAILED(hr = pWbemLoc->ConnectServer(_bstr_t(L"ROOT\\CIMV2"),
+		NULL, NULL, 0, NULL, 0, 0, &pWbemSrv)))
+		goto Exit1;
+	if (FAILED(hr = CoSetProxyBlanket(pWbemSrv, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL,
+		RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE)))
+		goto Exit2;
+	return S_OK;
+Exit2:
+	pWbemSrv->Release();
+Exit1:
+	pWbemLoc->Release();
+	return hr;
+}
 
-	EckInline LSTATUS SetValue(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwData)
-	{
-		return SetValue(pszSubKey, pszValue, &dwData, sizeof(dwData), REG_DWORD);
-	}
+/// <summary>
+/// WMI查询类属性
+/// </summary>
+/// <param name="pszWql">WQL语句</param>
+/// <param name="pszProp">属性</param>
+/// <param name="Var">查询结果</param>
+/// <param name="pWbemSrv">IWbemServices指针，使用此接口执行查询</param>
+/// <returns>错误代码</returns>
+inline HRESULT WmiQueryClassProp(PCWSTR pszWql, PCWSTR pszProp, VARIANT& Var,
+	IWbemServices* pWbemSrv)
+{
+	HRESULT hr;
+	IEnumWbemClassObject* pEnum;
+	if (FAILED(hr = pWbemSrv->ExecQuery(_bstr_t(L"WQL"), _bstr_t(pszWql),
+		WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnum)))
+		goto Exit1;
+	IWbemClassObject* pClsObj;
+	ULONG ulReturned;
+	hr = pEnum->Next(WBEM_INFINITE, 1, &pClsObj, &ulReturned);
+	if (ulReturned != 1)
+		goto Exit1;
+	hr = pClsObj->Get(pszProp, 0, &Var, NULL, NULL);
+	pClsObj->Release();
+Exit1:
+	pEnum->Release();
+	return hr;
+}
 
-	EckInline LSTATUS SetValueQword(PCWSTR pszSubKey, PCWSTR pszValue, ULONGLONG ullData)
-	{
-		return SetValue(pszSubKey, pszValue, &ullData, sizeof(ullData), REG_QWORD);
-	}
+/// <summary>
+/// WMI查询类属性
+/// </summary>
+/// <param name="pszWql">WQL语句</param>
+/// <param name="pszProp">属性</param>
+/// <param name="Var">查询结果</param>
+/// <returns>错误代码</returns>
+inline HRESULT WmiQueryClassProp(PCWSTR pszWql, PCWSTR pszProp, VARIANT& Var)
+{
+	IWbemServices* pWbemSrv;
+	IWbemLocator* pWbemLoc;
+	HRESULT hr;
+	if (FAILED(hr = WmiConnectNamespace(pWbemSrv, pWbemLoc)))
+		return hr;
+	hr = WmiQueryClassProp(pszWql, pszProp, Var, pWbemSrv);
+	pWbemSrv->Release();
+	pWbemLoc->Release();
+	return hr;
+}
 
-	EckInline LSTATUS SetValue(PCWSTR pszSubKey, PCWSTR pszValue, const CRefStrW& rs)
-	{
-		return SetValue(pszSubKey, pszValue, rs.Data(), (DWORD)rs.ByteSize(), REG_SZ);
-	}
-
-	EckInline LSTATUS SetValue(PCWSTR pszSubKey, PCWSTR pszValue, const CRefBin& rs)
-	{
-		return SetValue(pszSubKey, pszValue, rs.Data(), (DWORD)rs.Size(), REG_BINARY);
-	}
-
-	EckInline LSTATUS SetValue(PCWSTR pszValue, PCVOID pData, DWORD cbData, DWORD dwType)
-	{
-		return RegSetValueExW(m_hKey, pszValue, NULL, dwType, (PCBYTE)pData, cbData);
-	}
-
-	EckInline LSTATUS SetValue(PCWSTR pszValue, DWORD dwData)
-	{
-		return SetValue(pszValue, &dwData, sizeof(dwData), REG_DWORD);
-	}
-
-	EckInline LSTATUS SetValueQword(PCWSTR pszValue, ULONGLONG ullData)
-	{
-		return SetValue(pszValue, &ullData, sizeof(ullData), REG_QWORD);
-	}
-
-	EckInline LSTATUS SetValue(PCWSTR pszValue, const CRefStrW& rs)
-	{
-		return SetValue(pszValue, rs.Data(), (DWORD)rs.ByteSize(), REG_SZ);
-	}
-
-	EckInline LSTATUS SetValue(PCWSTR pszValue, const CRefBin& rs)
-	{
-		return SetValue(pszValue, rs.Data(), (DWORD)rs.Size(), REG_BINARY);
-	}
+struct CPUINFO
+{
+	CRefStrW rsVendor;
+	CRefStrW rsBrand;
+	CRefStrW rsSerialNum;
+	CRefStrW rsDescription;
+	UINT uL2Cache;// 千字节
+	UINT uL3Cache;// 千字节
+	UINT uDataWidth;
+	UINT cCore;
+	UINT cThread;
+	UINT uMaxClockSpeed;// 兆赫兹
 };
+
+/// <summary>
+/// 取CPU信息
+/// </summary>
+/// <param name="ci">接收信息变量</param>
+/// <returns>错误代码</returns>
+inline HRESULT GetCpuInfo(CPUINFO& ci)
+{
+	int Register[4];
+	// 取制造商
+	__cpuid(Register, 0);
+	std::swap(Register[2], Register[3]);
+	ci.rsVendor = StrX2W((PCSTR)&Register[1], 12);
+	if (ci.rsVendor == L"GenuineIntel")
+		ci.rsVendor = L"Intel Corporation.";
+	else if (ci.rsVendor == L"AuthenticAMD" || ci.rsVendor == L"AMD ISBETTER")
+		ci.rsVendor = L"Advanced Micro Devices.";
+	else if (ci.rsVendor == L"Geode By NSC")
+		ci.rsVendor = L"National Semiconductor.";
+	else if (ci.rsVendor == L"CyrixInstead")
+		ci.rsVendor = L"Cyrix Corp., VIA Inc.";
+	else if (ci.rsVendor == L"NexGenDriven")
+		ci.rsVendor = L"NexGen Inc., Advanced Micro Devices.";
+	else if (ci.rsVendor == L"CentaurHauls")
+		ci.rsVendor = L"IDT\\Centaur, Via Inc.";
+	else if (ci.rsVendor == L"UMC UMC UMC ")
+		ci.rsVendor = L"United Microelectronics Corp.";
+	else if (ci.rsVendor == L"RiseRiseRise")
+		ci.rsVendor = L"Rise.";
+	else if (ci.rsVendor == L"GenuineTMx86" || ci.rsVendor == L"TransmetaCPU")
+		ci.rsVendor = L"Transmeta.";
+	else
+		ci.rsVendor = L"未知制造商";
+	// 取商标
+	char szBrand[49];
+	for (int i = 0x80000002; i <= 0x80000004; ++i)
+	{
+		__cpuid(Register, i);
+		memcpy(szBrand + (i - 0x80000002) * 16, Register, sizeof(Register));
+	}
+	szBrand[48] = '\0';
+	ci.rsBrand = StrX2W(szBrand);
+	// 取序列号
+	ci.rsSerialNum.ReSize(c_cchI32ToStrBuf * 2);
+	__cpuid(Register, 1);
+	int cch = swprintf(ci.rsSerialNum.Data(), L"%08X%08X", Register[3], Register[0]);
+	ci.rsSerialNum.ReSize(cch);
+
+	IWbemServices* pWbemSrv;
+	IWbemLocator* pWbemLoc;
+	HRESULT hr;
+	if (FAILED(hr = WmiConnectNamespace(pWbemSrv, pWbemLoc)))
+		return hr;
+	
+	VARIANT Var{};
+	IEnumWbemClassObject* pEnum;
+	if (FAILED(hr = pWbemSrv->ExecQuery(_bstr_t(L"WQL"), _bstr_t(L"Select * From Win32_Processor"),
+		WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnum)))
+	{
+		pWbemSrv->Release();
+		pWbemLoc->Release();
+		return hr;
+	}
+	IWbemClassObject* pClsObj;
+	ULONG ulReturned;
+	hr = pEnum->Next(WBEM_INFINITE, 1, &pClsObj, &ulReturned);
+	if (ulReturned == 1)
+	{
+		// 取描述
+		if (SUCCEEDED(pClsObj->Get(L"Description", 0, &Var, NULL, NULL)))
+		{
+			ci.rsDescription.DupBSTR(Var.bstrVal);
+			VariantClear(&Var);
+		}
+		// 取二级缓存
+		if (SUCCEEDED(pClsObj->Get(L"L2CacheSize", 0, &Var, NULL, NULL)))
+			ci.uL2Cache = Var.uintVal;
+		// 取三级缓存
+		if (SUCCEEDED(pClsObj->Get(L"L3CacheSize", 0, &Var, NULL, NULL)))
+			ci.uL3Cache = Var.uintVal;
+		// 取数据宽度
+		if (SUCCEEDED(pClsObj->Get(L"DataWidth", 0, &Var, NULL, NULL)))
+			ci.uDataWidth = Var.uiVal;
+		// 取核心数
+		if (SUCCEEDED(pClsObj->Get(L"NumberOfCores", 0, &Var, NULL, NULL)))
+			ci.cCore = Var.uintVal;
+		// 取线程数
+		if (SUCCEEDED(pClsObj->Get(L"ThreadCount", 0, &Var, NULL, NULL)))
+			ci.cThread = Var.uintVal;
+		// 取最大时钟速度
+		if (SUCCEEDED(pClsObj->Get(L"MaxClockSpeed", 0, &Var, NULL, NULL)))
+			ci.uMaxClockSpeed = Var.uintVal;
+		pClsObj->Release();
+	}
+	pEnum->Release();
+	pWbemSrv->Release();
+	pWbemLoc->Release();
+	return S_OK;
+}
+
+/// <summary>
+/// 显示/隐藏桌面
+/// </summary>
+/// <param name="bShow">是否显示</param>
+/// <returns>桌面ListView句柄</returns>
+inline HWND ShowDesktop(BOOL bShow)
+{
+	HWND hPm = FindWindowW(L"Progman", L"Program Manager");
+	HWND hDefView = FindWindowExW(hPm, NULL, L"SHELLDLL_DefView", NULL);
+	HWND hLV = FindWindowExW(hDefView, NULL, L"SysListView32", NULL);
+	if (!hLV)
+	{
+		EckCounterNV(1000)
+		{
+			hPm = FindWindowExW(0, hPm, L"WorkerW", NULL);
+			hDefView = FindWindowExW(hPm, NULL, L"SHELLDLL_DefView", NULL);
+			hLV = FindWindowExW(hDefView, NULL, L"SysListView32", NULL);
+			if (hLV)
+				goto Succeeded;
+		}
+		EckDbgPrintWithPos(L"寻找桌面窗口失败");
+		return NULL;
+	Succeeded:;
+	}
+	const int iSw = (bShow ? SW_SHOWNOACTIVATE : SW_HIDE);
+	ShowWindowAsync(hLV, iSw);
+	ShowWindowAsync(hDefView, iSw);
+	ShowWindowAsync(hPm, iSw);
+	return hLV;
+}
+
+/// <summary>
+/// 显示/隐藏任务栏
+/// </summary>
+/// <param name="bShow">是否显示</param>
+/// <returns>任务栏句柄</returns>
+EckInline HWND ShowTaskBar(BOOL bShow)
+{
+	const HWND hTb = FindWindowW(L"Shell_TrayWnd", NULL);
+	ShowWindowAsync(hTb, (bShow ? SW_SHOWNOACTIVATE : SW_HIDE));
+	return hTb;
+}
+
+struct FILEVERINFO
+{
+	CRefStrW Comment;
+	CRefStrW InternalName;
+	CRefStrW ProductName;
+	CRefStrW CompanyName;
+	CRefStrW LegalCopyright;
+	CRefStrW ProductVersion;
+	CRefStrW FileDescription;
+	CRefStrW LegalTrademarks;
+	CRefStrW PrivateBuild;
+	CRefStrW FileVersion;
+	CRefStrW OriginalFilename;
+	CRefStrW SpecialBuild;
+};
+
+/// <summary>
+/// 取文件版本信息
+/// </summary>
+/// <param name="pszFile">文件名</param>
+/// <param name="fvi">版本信息</param>
+/// <returns>成功返回TRUE，失败返回FALSE</returns>
+inline BOOL GetFileVerInfo(PCWSTR pszFile, FILEVERINFO& fvi)
+{
+	const DWORD cbBuf = GetFileVersionInfoSizeW(pszFile, NULL);
+	if (!cbBuf)
+		return FALSE;
+	void* pBuf = malloc(cbBuf);
+	EckAssert(pBuf);
+	if (!GetFileVersionInfoW(pszFile, 0, cbBuf, pBuf))
+	{
+		free(pBuf);
+		return FALSE;
+	}
+	struct
+	{
+		WORD wLanguage;
+		WORD wCodePage;
+	}*pLangCp;
+	UINT cbLangCp;
+	if (!VerQueryValueW(pBuf, LR"(\VarFileInfo\Translation)", (void**)&pLangCp, &cbLangCp))
+	{
+		free(pBuf);
+		return FALSE;
+	}
+	WCHAR szLangCp[9];
+	_swprintf(szLangCp, L"%04X%04X", pLangCp[0].wLanguage, pLangCp[0].wCodePage);
+	CRefStrW rsSub = CRefStrW(LR"(\StringFileInfo\)") + szLangCp + L"\\";
+
+	void* pStr;
+	UINT cchStr;
+	VerQueryValueW(pBuf, (rsSub + L"Comment").Data(), &pStr, &cchStr);
+	fvi.Comment.DupString((PCWSTR)pStr, (int)cchStr);
+	VerQueryValueW(pBuf, (rsSub + L"InternalName").Data(), &pStr, &cchStr);
+	fvi.InternalName.DupString((PCWSTR)pStr, (int)cchStr);
+	VerQueryValueW(pBuf, (rsSub + L"ProductName").Data(), &pStr, &cchStr);
+	fvi.ProductName.DupString((PCWSTR)pStr, (int)cchStr);
+	VerQueryValueW(pBuf, (rsSub + L"CompanyName").Data(), &pStr, &cchStr);
+	fvi.CompanyName.DupString((PCWSTR)pStr, (int)cchStr);
+	VerQueryValueW(pBuf, (rsSub + L"LegalCopyright").Data(), &pStr, &cchStr);
+	fvi.LegalCopyright.DupString((PCWSTR)pStr, (int)cchStr);
+	VerQueryValueW(pBuf, (rsSub + L"ProductVersion").Data(), &pStr, &cchStr);
+	fvi.ProductVersion.DupString((PCWSTR)pStr, (int)cchStr);
+	VerQueryValueW(pBuf, (rsSub + L"FileDescription").Data(), &pStr, &cchStr);
+	fvi.FileDescription.DupString((PCWSTR)pStr, (int)cchStr);
+	VerQueryValueW(pBuf, (rsSub + L"LegalTrademarks").Data(), &pStr, &cchStr);
+	fvi.LegalTrademarks.DupString((PCWSTR)pStr, (int)cchStr);
+	VerQueryValueW(pBuf, (rsSub + L"PrivateBuild").Data(), &pStr, &cchStr);
+	fvi.PrivateBuild.DupString((PCWSTR)pStr, (int)cchStr);
+	VerQueryValueW(pBuf, (rsSub + L"FileVersion").Data(), &pStr, &cchStr);
+	fvi.FileVersion.DupString((PCWSTR)pStr, (int)cchStr);
+	VerQueryValueW(pBuf, (rsSub + L"OriginalFilename").Data(), &pStr, &cchStr);
+	fvi.OriginalFilename.DupString((PCWSTR)pStr, (int)cchStr);
+	VerQueryValueW(pBuf, (rsSub + L"SpecialBuild").Data(), &pStr, &cchStr);
+	fvi.SpecialBuild.DupString((PCWSTR)pStr, (int)cchStr);
+
+	free(pBuf);
+	return TRUE;
+}
 ECK_NAMESPACE_END

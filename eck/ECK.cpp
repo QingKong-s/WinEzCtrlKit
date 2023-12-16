@@ -6,6 +6,7 @@
 #include "CSplitBar.h"
 #include "CDrawPanel.h"
 #include "CListBoxNew.h"
+#include "CAnimationBox.h"
 #include "Utility.h"
 
 #include <Shlwapi.h>
@@ -119,6 +120,13 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		return InitStatus::RegWndClassError;
 	}
 
+	if (!CAnimationBox::RegisterWndClass())
+	{
+		*pdwErrCode = GetLastError();
+		EckDbgPrintFormatMessage(*pdwErrCode);
+		return InitStatus::RegWndClassError;
+	}
+
 	g_rsCurrDir.ReSize(32768);
 	GetModuleFileNameW(NULL, g_rsCurrDir.Data(), g_rsCurrDir.Size());
 	PathRemoveFileSpecW(g_rsCurrDir.Data());
@@ -185,6 +193,16 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	}
 
 	return InitStatus::Ok;
+}
+
+void UnInit()
+{
+	SafeRelease(g_pWicFactory);
+	SafeRelease(g_pD2dFactory);
+	SafeRelease(g_pDwFactory);
+	SafeRelease(g_pD2dDevice);
+	SafeRelease(g_pDxgiDevice);
+	SafeRelease(g_pDxgiFactory);
 }
 
 DWORD GetThreadCtxTlsSlot()
@@ -276,15 +294,18 @@ void DbgPrintWndMap()
 {
 	auto pCtx = GetThreadCtx();
 	std::wstring s = std::format(L"当前线程（TID = {}）窗口映射表内容：\n", GetCurrentThreadId());
+	CRefStrW rs(64);
 	for (const auto& e : pCtx->hmWnd)
 	{
 		auto sText = e.second->GetText();
 		if (!sText.Data())
 			sText = L" ";
-		s += std::format(L"\tCWnd指针 = {}，HWND = {}，标题 = {}\n",
+		rs.ReSize(sText.Size() + 64);
+		swprintf(rs.Data(), L"\tCWnd指针 = 0x%0p，HWND = 0x%0p，标题 = %s\n",
 			(PCVOID)e.second,
 			(PCVOID)e.first,
 			sText.Data());
+		s += rs.Data();
 	}
 	s += std::format(L"共有{}个窗口\n", pCtx->hmWnd.size());
 	OutputDebugStringW(s.c_str());
