@@ -33,7 +33,18 @@ protected:
 		m_hTop = NULL;
 	}
 public:
-	static ATOM RegisterWndClass(HINSTANCE hInstance);
+	static ATOM RegisterWndClass()
+	{
+		WNDCLASSW wc{};
+		wc.cbWndExtra = DLGWINDOWEXTRA + sizeof(void*) * 2;
+		wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
+		wc.hInstance = eck::g_hInstance;
+		wc.lpfnWndProc = DefWindowProcW;
+		wc.lpszClassName = WCN_DLG;
+		wc.style = CS_DBLCLKS | CS_VREDRAW | CS_HREDRAW;
+		wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
+		return RegisterClassW(&wc);
+	}
 
 	virtual HWND CreateDlg(HWND hParent, void* pData = NULL)
 	{

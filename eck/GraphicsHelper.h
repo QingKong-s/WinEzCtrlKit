@@ -910,7 +910,7 @@ EckInline D2D1::Matrix3x2F D2dMatrixReflection(float A, float B, float C)
 /// <summary>
 /// XFORM取矩阵平移
 /// </summary>
-EckInline XFORM XFORMTranslate(float dx, float dy)
+EckInline constexpr XFORM XFORMTranslate(float dx, float dy)
 {
 	return
 	{
@@ -964,7 +964,7 @@ EckInline XFORM XFORMRotate(float fAngle, float x, float y)
 /// <summary>
 /// XFORM取矩阵缩放
 /// </summary>
-EckInline XFORM XFORMScale(float xScale, float yScale)
+EckInline constexpr XFORM XFORMScale(float xScale, float yScale)
 {
 	return
 	{
@@ -980,7 +980,7 @@ EckInline XFORM XFORMScale(float xScale, float yScale)
 /// <summary>
 /// XFORM取矩阵缩放
 /// </summary>
-EckInline XFORM XFORMScale(float xScale, float yScale, float x, float y)
+EckInline constexpr XFORM XFORMScale(float xScale, float yScale, float x, float y)
 {
 	return
 	{
@@ -996,7 +996,7 @@ EckInline XFORM XFORMScale(float xScale, float yScale, float x, float y)
 /// <summary>
 /// XFORM取矩阵错切
 /// </summary>
-EckInline XFORM XFORMShear(float xFactor, float yFactor)
+EckInline constexpr XFORM XFORMShear(float xFactor, float yFactor)
 {
 	return
 	{
@@ -1012,7 +1012,7 @@ EckInline XFORM XFORMShear(float xFactor, float yFactor)
 /// <summary>
 /// XFORM取矩阵错切
 /// </summary>
-EckInline XFORM XFORMShear(float xFactor, float yFactor, float x, float y)
+EckInline constexpr XFORM XFORMShear(float xFactor, float yFactor, float x, float y)
 {
 	return
 	{
@@ -1028,7 +1028,7 @@ EckInline XFORM XFORMShear(float xFactor, float yFactor, float x, float y)
 /// <summary>
 /// XFORM取矩阵对称
 /// </summary>
-EckInline XFORM XFORMReflection(float A, float B, float C)
+EckInline constexpr XFORM XFORMReflection(float A, float B, float C)
 {
 	const float fASqPlusBSq = A * A + B * B;
 	const float t = -2.f * A * B / fASqPlusBSq;
@@ -1062,18 +1062,18 @@ inline void CalcBezierControlPoints(std::vector<TPt>& vPt, const TPt* pPt, int c
 	vPt.emplace_back(*pPt);// 控点1
 	TVal xMid1, yMid1, xMid2, yMid2, dx, dy;
 
-	const auto& [x2, y2] = pPt[1];
-	const auto& [x1, y1] = pPt[0];
+	const auto [x2, y2] = pPt[1];
+	const auto [x1, y1] = pPt[0];
 	pptMid[0] = { (x1 + x2) / 2,(y1 + y2) / 2 };
 	piLineLen[0] = CalcLineLength(x1, y1, x2, y2);
 	for (int i = 1; i < cPt - 1; ++i)
 	{
-		const auto& [x2, y2] = pPt[i + 1];
-		const auto& [x1, y1] = pPt[i];
+		const auto [x2, y2] = pPt[i + 1];
+		const auto [x1, y1] = pPt[i];
 		pptMid[i] = { (x1 + x2) / 2,(y1 + y2) / 2 };
 		piLineLen[i] = CalcLineLength(x1, y1, x2, y2);
-		const auto& [x00, y00] = pptMid[i - 1];
-		const auto& [x01, y01] = pptMid[i];
+		const auto [x00, y00] = pptMid[i - 1];
+		const auto [x01, y01] = pptMid[i];
 		CalcPointFromLineScalePos<TVal>(x1, y1, x00, y00, K, xMid1, yMid1);
 		CalcPointFromLineScalePos<TVal>(x1, y1, x01, y01, K, xMid2, yMid2);
 		CalcPointFromLineScalePos<TVal>(x00, y00, x01, y01, (float)piLineLen[i - 1] / (float)(piLineLen[i] + piLineLen[i - 1]), dx, dy);
@@ -1405,4 +1405,425 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 	return TRUE;
 }
 
+enum
+{
+	FGRF_TOPTOBOTTOM = 1,// 从上到下
+	FGRF_BOTTOMTOTOP,// 从下到上
+	FGRF_LEFTTORIGHT,// 从左到右
+	FGRF_RIGHTTOLEFT,// 从右到左
+	FGRF_TOPLEFTTOBOTTOMRIGHT,// 从左上到右下↘
+	FGRF_BOTTOMRIGHTTOTOPLEFT,// 从右下到左上↖
+	FGRF_BOTTOMLEFTTOTOPRIGHT,// 从左下到右上↗
+	FGRF_TOPRIGHTTOBOTTOMLEFT,// 从右上到左下↙
+};
+
+/// <summary>
+/// 填充渐变矩形
+/// </summary>
+/// <param name="hDC">设备场景</param>
+/// <param name="rc">矩形</param>
+/// <param name="crGradient">渐变色，至少指向3个COLORREF</param>
+/// <param name="iGradientMode">渐变模式，FGRF_常量</param>
+/// <returns>GradientFill的返回值</returns>
+inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF crGradient[], int iGradientMode)
+{
+	EckAssert(iGradientMode >= 1 && iGradientMode <= 8);
+	const int
+		cx = rc.right - rc.left,
+		cy = rc.bottom - rc.top;
+	if (iGradientMode >= FGRF_TOPTOBOTTOM && iGradientMode <= FGRF_RIGHTTOLEFT)
+	{
+		TRIVERTEX tv[4];
+		COLORREF cr1, cr2, cr3;
+		ULONG uMode;
+		switch (iGradientMode)
+		{
+		case FGRF_TOPTOBOTTOM:// 从上到下
+		case FGRF_BOTTOMTOTOP:// 从下到上
+		{
+			cr2 = crGradient[1];
+			tv[0].x = 0;
+			tv[0].y = 0;
+			tv[1].x = cx;
+			tv[1].y = cy / 2;
+			tv[2].x = 0;
+			tv[2].y = cy / 2;
+			tv[3].x = cx;
+			tv[3].y = cy;
+			uMode = GRADIENT_FILL_RECT_V;
+			if (iGradientMode == 1)
+			{
+				cr1 = crGradient[0];
+				cr3 = crGradient[2];
+			}
+			else
+			{
+				cr1 = crGradient[2];
+				cr3 = crGradient[0];
+			}
+		}
+		break;
+		case FGRF_LEFTTORIGHT:// 从左到右
+		case FGRF_RIGHTTOLEFT:// 从右到左
+		{
+			cr2 = crGradient[1];
+			tv[0].x = 0;
+			tv[0].y = 0;
+			tv[1].x = cx / 2;
+			tv[1].y = cy;
+			tv[2].x = cx / 2;
+			tv[2].y = 0;
+			tv[3].x = cx;
+			tv[3].y = cy;
+			uMode = GRADIENT_FILL_RECT_H;
+			if (iGradientMode == 3)
+			{
+				cr1 = crGradient[0];
+				cr3 = crGradient[2];
+			}
+			else
+			{
+				cr1 = crGradient[2];
+				cr3 = crGradient[0];
+			}
+		}
+		break;
+		default:
+			__assume(0);
+		}
+
+		tv[0].Red = GetRValue(cr1) << 8;
+		tv[0].Green = GetGValue(cr1) << 8;
+		tv[0].Blue = GetBValue(cr1) << 8;
+		tv[0].Alpha = 0xFF << 8;
+
+		tv[1].Red = GetRValue(cr2) << 8;
+		tv[1].Green = GetGValue(cr2) << 8;
+		tv[1].Blue = GetBValue(cr2) << 8;
+		tv[1].Alpha = 0xFF << 8;
+
+		tv[2].Red = tv[1].Red;
+		tv[2].Green = tv[1].Green;
+		tv[2].Blue = tv[1].Blue;
+		tv[2].Alpha = 0xFF << 8;
+
+		tv[3].Red = GetRValue(cr3) << 8;
+		tv[3].Green = GetGValue(cr3) << 8;
+		tv[3].Blue = GetBValue(cr3) << 8;
+		tv[3].Alpha = 0xFF << 8;
+
+		GRADIENT_RECT gr[2];
+		gr[0].UpperLeft = 0;
+		gr[0].LowerRight = 1;
+		gr[1].UpperLeft = 2;
+		gr[1].LowerRight = 3;
+		return GradientFill(hDC, tv, ARRAYSIZE(tv), &gr, ARRAYSIZE(gr), uMode);
+	}
+	else
+	{
+		TRIVERTEX tv[4];
+		// 左上
+		tv[0].x = 0;
+		tv[0].y = 0;
+		// 左下
+		tv[1].x = 0;
+		tv[1].y = cy;
+		// 右上
+		tv[2].x = cx;
+		tv[2].y = 0;
+		// 右下
+		tv[3].x = cx;
+		tv[3].y = cy;
+		COLORREF cr1, cr2, cr3;
+
+		GRADIENT_TRIANGLE gt[2];
+		switch (iGradientMode)
+		{
+		case 5:// 左上到右下↘
+		case 6:// 右下到左上↖
+		{
+			gt[0].Vertex1 = 0;
+			gt[0].Vertex2 = 1;
+			gt[0].Vertex3 = 2;
+			gt[1].Vertex1 = 3;
+			gt[1].Vertex2 = 1;
+			gt[1].Vertex3 = 2;
+			cr2 = crGradient[1];
+			if (iGradientMode == 5)
+			{
+				cr1 = crGradient[0];
+				cr3 = crGradient[2];
+			}
+			else
+			{
+				cr1 = crGradient[2];
+				cr3 = crGradient[0];
+			}
+
+			tv[0].Red = GetRValue(cr1) << 8;
+			tv[0].Green = GetGValue(cr1) << 8;
+			tv[0].Blue = GetBValue(cr1) << 8;
+			tv[0].Alpha = 0xFF << 8;
+
+			tv[1].Red = GetRValue(cr2) << 8;
+			tv[1].Green = GetGValue(cr2) << 8;
+			tv[1].Blue = GetBValue(cr2) << 8;
+			tv[1].Alpha = 0xFF << 8;
+
+			tv[2].Red = tv[1].Red;
+			tv[2].Green = tv[1].Green;
+			tv[2].Blue = tv[1].Blue;
+			tv[2].Alpha = 0xFF << 8;
+
+			tv[3].Red = GetRValue(cr3) << 8;
+			tv[3].Green = GetGValue(cr3) << 8;
+			tv[3].Blue = GetBValue(cr3) << 8;
+			tv[3].Alpha = 0xFF << 8;
+		}
+		break;
+		case 7:// 左下到右上↗
+		case 8:// 右上到左下↙
+		{
+			gt[0].Vertex1 = 1;
+			gt[0].Vertex2 = 0;
+			gt[0].Vertex3 = 3;
+			gt[1].Vertex1 = 2;
+			gt[1].Vertex2 = 0;
+			gt[1].Vertex3 = 3;
+			cr2 = crGradient[1];
+			if (iGradientMode == 7)
+			{
+				cr1 = crGradient[0];
+				cr3 = crGradient[2];
+			}
+			else
+			{
+				cr1 = crGradient[2];
+				cr3 = crGradient[0];
+			}
+
+			tv[0].Red = GetRValue(cr2) << 8;
+			tv[0].Green = GetGValue(cr2) << 8;
+			tv[0].Blue = GetBValue(cr2) << 8;
+			tv[0].Alpha = 0xFF << 8;
+
+			tv[1].Red = GetRValue(cr1) << 8;
+			tv[1].Green = GetGValue(cr1) << 8;
+			tv[1].Blue = GetBValue(cr1) << 8;
+			tv[1].Alpha = 0xFF << 8;
+
+			tv[3].Red = tv[0].Red;
+			tv[3].Green = tv[0].Green;
+			tv[3].Blue = tv[0].Blue;
+			tv[3].Alpha = 0xFF << 8;
+
+			tv[2].Red = GetRValue(cr3) << 8;
+			tv[2].Green = GetGValue(cr3) << 8;
+			tv[2].Blue = GetBValue(cr3) << 8;
+			tv[2].Alpha = 0xFF << 8;
+		}
+		break;
+		default:
+			__assume(0);
+		}
+
+		return GradientFill(hDC, tv, ARRAYSIZE(tv), gt, ARRAYSIZE(gt), GRADIENT_FILL_TRIANGLE);
+	}
+}
+
+enum
+{
+	DBGIF_TOPLEFT,// 左上
+	DBGIF_TILE,// 平铺
+	DBGIF_CENTER,// 居中
+	DBGIF_STRETCH,// 缩放
+};
+
+/// <summary>
+/// 画背景图像。
+/// 通用背景图像绘制函数，支持32位位图
+/// </summary>
+/// <param name="hDC">设备场景</param>
+/// <param name="hdcBitmap">图像场景</param>
+/// <param name="rc">矩形</param>
+/// <param name="cxImage">图像宽度</param>
+/// <param name="cyImage">图像高度</param>
+/// <param name="iMode">模式，DBGIF_常量</param>
+/// <param name="bFullRgnImage">是否尽量充满目标区域</param>
+/// <returns>AlphaBlend的返回值</returns>
+inline BOOL DrawBackgroundImage32(HDC hDC, HDC hdcBitmap, const RECT& rc, int cxImage, int cyImage,
+	int iMode, BOOL bFullRgnImage)
+{
+	constexpr BLENDFUNCTION bf{ AC_SRC_OVER,0,255,AC_SRC_ALPHA };
+	const int
+		cx = rc.right - rc.left,
+		cy = rc.bottom - rc.top;
+	switch (iMode)
+	{
+	case DBGIF_TOPLEFT:// 居左上
+	{
+		if (bFullRgnImage)
+		{
+			if (!cyImage || !cxImage)
+				break;
+			int cxRgn, cyRgn;
+
+			cxRgn = cy * cxImage / cyImage;
+			if (cxRgn < cx)// 先尝试y对齐，看x方向是否充满窗口
+			{
+				cxRgn = cx;
+				cyRgn = cx * cyImage / cxImage;
+			}
+			else
+				cyRgn = cy;
+
+			return AlphaBlend(hDC, 0, 0, cxRgn, cyRgn, hdcBitmap, 0, 0, cxImage, cyImage, bf);
+		}
+		else
+			return AlphaBlend(hDC, 0, 0, cxImage, cyImage, hdcBitmap, 0, 0, cxImage, cyImage, bf);
+	}
+	break;
+	case DBGIF_TILE:// 平铺
+	{
+		BOOL b = TRUE;
+		for (int i = 0; i < (cx - 1) / cxImage + 1; ++i)
+			for (int j = 0; j < (cy - 1) / cyImage + 1; ++j)
+				b = AlphaBlend(hDC, i * cxImage, j * cyImage, cxImage, cyImage,
+					hdcBitmap, 0, 0, cxImage, cyImage, bf) && b;
+		return b;
+	}
+	break;
+	case DBGIF_CENTER:// 居中
+	{
+		if (bFullRgnImage)
+		{
+			if (!cyImage || !cxImage)
+				break;
+			int cxRgn, cyRgn;
+			int x, y;
+
+			cxRgn = cy * cxImage / cyImage;
+			if (cxRgn < cx)// 先尝试y对齐，看x方向是否充满窗口
+			{
+				cxRgn = cx;
+				cyRgn = cx * cyImage / cxImage;
+				x = 0;
+				y = (cy - cyRgn) / 2;
+			}
+			else
+			{
+				cyRgn = cy;
+				x = (cx - cxRgn) / 2;
+				y = 0;
+			}
+
+			return AlphaBlend(hDC, x, y, cxRgn, cyRgn, hdcBitmap, 0, 0, cxImage, cyImage, bf);
+		}
+		else
+			return AlphaBlend(hDC, (cx - cxImage) / 2, (cy - cyImage) / 2, cxImage, cyImage,
+				hdcBitmap, 0, 0, cxImage, cyImage, bf);
+	}
+	break;
+	case DBGIF_STRETCH:// 缩放
+		return AlphaBlend(hDC, 0, 0, cx, cy, hdcBitmap, 0, 0, cxImage, cyImage, bf);
+		break;
+	default:
+		EckDbgBreak();
+		EckDbgPrintWithPos(L"无效标志");
+	}
+	return FALSE;
+}
+
+/// <summary>
+/// 画背景图像。
+/// 通用背景图像绘制函数
+/// </summary>
+/// <param name="hDC">设备场景</param>
+/// <param name="hdcBitmap">图像场景</param>
+/// <param name="rc">矩形</param>
+/// <param name="cxImage">图像宽度</param>
+/// <param name="cyImage">图像高度</param>
+/// <param name="iMode">模式，DBGIF_常量</param>
+/// <param name="bFullRgnImage">是否尽量充满目标区域</param>
+/// <returns>BitBlt的返回值</returns>
+inline BOOL DrawBackgroundImage(HDC hDC, HDC hdcBitmap, const RECT& rc, int cxImage, int cyImage,
+	int iMode, BOOL bFullRgnImage)
+{
+	const int
+		cx = rc.right - rc.left,
+		cy = rc.bottom - rc.top;
+	switch (iMode)
+	{
+	case DBGIF_TOPLEFT:// 居左上
+	{
+		if (bFullRgnImage)
+		{
+			if (!cyImage || !cxImage)
+				break;
+			int cxRgn, cyRgn;
+
+			cxRgn = cy * cxImage / cyImage;
+			if (cxRgn < cx)// 先尝试y对齐，看x方向是否充满窗口
+			{
+				cxRgn = cx;
+				cyRgn = cx * cyImage / cxImage;
+			}
+			else
+				cyRgn = cy;
+
+			return BitBlt(hDC, 0, 0, cxRgn, cyRgn, hdcBitmap, 0, 0, SRCCOPY);
+		}
+		else
+			return BitBlt(hDC, 0, 0, cxImage, cyImage, hdcBitmap, 0, 0, SRCCOPY);
+	}
+	break;
+	case DBGIF_TILE:// 平铺
+	{
+		BOOL b = TRUE;
+		for (int i = 0; i < (cx - 1) / cxImage + 1; ++i)
+			for (int j = 0; j < (cy - 1) / cyImage + 1; ++j)
+				b = BitBlt(hDC, i * cxImage, j * cyImage, cxImage, cyImage,
+					hdcBitmap, 0, 0, SRCCOPY) && b;
+		return b;
+	}
+	case DBGIF_CENTER:// 居中
+	{
+		if (bFullRgnImage)
+		{
+			if (!cyImage || !cxImage)
+				break;
+			int cxRgn, cyRgn;
+			int x, y;
+
+			cxRgn = cy * cxImage / cyImage;
+			if (cxRgn < cx)// 先尝试y对齐，看x方向是否充满窗口
+			{
+				cxRgn = cx;
+				cyRgn = cx * cyImage / cxImage;
+				x = 0;
+				y = (cy - cyRgn) / 2;
+			}
+			else
+			{
+				cyRgn = cy;
+				x = (cx - cxRgn) / 2;
+				y = 0;
+			}
+
+			return BitBlt(hDC, x, y, cxRgn, cyRgn, hdcBitmap, 0, 0, SRCCOPY);
+		}
+		else
+			return BitBlt(hDC, (cx - cxImage) / 2, (cy - cyImage) / 2, cxImage, cyImage,
+				hdcBitmap, 0, 0, SRCCOPY);
+	}
+	break;
+	case DBGIF_STRETCH:// 缩放
+		return BitBlt(hDC, 0, 0, cx, cy, hdcBitmap, 0, 0, SRCCOPY);
+		break;
+	default:
+		EckDbgBreak();
+		EckDbgPrintWithPos(L"无效标志");
+	}
+	return FALSE;
+}
 ECK_NAMESPACE_END

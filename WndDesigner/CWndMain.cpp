@@ -853,7 +853,7 @@ ATOM CWndMain::RegisterWndClass()
 }
 
 HWND CWndMain::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-	int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData)
+	int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData)
 {
 	m_hWnd = CreateWindowExW(dwExStyle, WCN_WDMAIN, pszText, dwStyle,
 		x, y, cx, cy, hParent, NULL, App->GetHInstance(), this);

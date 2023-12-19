@@ -72,11 +72,11 @@ private:
 public:
 	static ATOM RegisterWndClass(HINSTANCE hInstance);
 
-	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	EckInline 
+	ECK_CWND_CREATE
 	{
 		m_hWnd = CreateWindowExW(dwExStyle, WCN_CHARTPIE, pszText, dwStyle,
-			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), g_hInstance, NULL);
+			x, y, cx, cy, hParent, hMenu, g_hInstance, NULL);
 		return m_hWnd;
 	}
 

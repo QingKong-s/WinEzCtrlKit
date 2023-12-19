@@ -1,16 +1,16 @@
-#pragma once
+ï»¿#pragma once
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
 class CHotKey :public CWnd
 {
 public:
-	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
+	EckInline 
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL)
 	{
 		dwStyle |= WS_CHILD;
 		m_hWnd = CreateWindowExW(dwExStyle, HOTKEY_CLASSW, pszText, dwStyle,
-			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+			x, y, cx, cy, hParent, hMenu, NULL, NULL);
 		return m_hWnd;
 	}
 
@@ -27,10 +27,10 @@ public:
 	}
 
 	/// <summary>
-	/// ÖÃÎŞĞ§¹æÔò
+	/// ç½®æ— æ•ˆè§„åˆ™
 	/// </summary>
-	/// <param name="uInvalid">ÎŞĞ§×éºÏ¼ü±êÖ¾£¬HKCOMB_³£Á¿</param>
-	/// <param name="uReplace">ÊäÈëÎŞĞ§Ê±Ìæ»»ÎªÄÄÖÖ×éºÏ¼ü£¬HOTKEYF_³£Á¿</param>
+	/// <param name="uInvalid">æ— æ•ˆç»„åˆé”®æ ‡å¿—ï¼ŒHKCOMB_å¸¸é‡</param>
+	/// <param name="uReplace">è¾“å…¥æ— æ•ˆæ—¶æ›¿æ¢ä¸ºå“ªç§ç»„åˆé”®ï¼ŒHOTKEYF_å¸¸é‡</param>
 	void SetRules(UINT uInvalid, UINT uReplace)
 	{
 		SendMsg(HKM_SETRULES, uInvalid, uReplace);

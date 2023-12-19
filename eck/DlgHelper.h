@@ -1,7 +1,7 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* DlgHelper.h £º ¶Ô»°¿òÏà¹Ø°ïÖúº¯Êı
+* DlgHelper.h ï¼š å¯¹è¯æ¡†ç›¸å…³å¸®åŠ©å‡½æ•°
 *
 * Copyright(C) 2023 QingKong
 */
@@ -10,6 +10,7 @@
 #include "CRefStr.h"
 #include "CRefBin.h"
 #include "Utility.h"
+#include "WndHelper.h"
 
 #include <vector>
 #include <variant>
@@ -20,8 +21,8 @@ ECK_NAMESPACE_BEGIN
 #pragma pack(push, 2)
 struct DLGTHEADER
 {
-	WORD      wVer;// ±ØĞëÎª1;
-	WORD      wSignature;// ±ØĞëÎª0xFFFF;
+	WORD      wVer;// å¿…é¡»ä¸º1;
+	WORD      wSignature;// å¿…é¡»ä¸º0xFFFF;
 	DWORD     idHelp;
 	DWORD     dwExStyle;
 	DWORD     dwStyle;
@@ -33,35 +34,35 @@ struct DLGTHEADER
 };
 
 /*
-DLGTHEADERºó¸úÒÔÏÂ½á¹¹
+DLGTHEADERåè·Ÿä»¥ä¸‹ç»“æ„
 struct DLGTMENU
 {
-	WCHAR ch[];// ch[0] == 0 - ÎŞ²Ëµ¥£¬ch[1]  0xFFFF - ×ÊÔ´ID£¬ch[2]  ÆäËû - ÒÔNULL½áÎ²µÄ×ÊÔ´Ãû³Æ£¬ch[n]
+	WCHAR ch[];// ch[0] == 0 - æ— èœå•ï¼Œch[1]  0xFFFF - èµ„æºIDï¼Œch[2]  å…¶ä»– - ä»¥NULLç»“å°¾çš„èµ„æºåç§°ï¼Œch[n]
 };
 
 struct DLGTWCLS
 {
-	WCHAR ch[];// ch[0] == 0 - ±ê×¼¶Ô»°¿òÀà£¬ch[1]  0xFFFF - Ô¤¶¨ÒåÀàÔ­×Ó£¬ch[2]  ÆäËû - ÒÔNULL½áÎ²µÄ´°¿ÚÀàÃû£¬ch[n]
+	WCHAR ch[];// ch[0] == 0 - æ ‡å‡†å¯¹è¯æ¡†ç±»ï¼Œch[1]  0xFFFF - é¢„å®šä¹‰ç±»åŸå­ï¼Œch[2]  å…¶ä»– - ä»¥NULLç»“å°¾çš„çª—å£ç±»åï¼Œch[n]
 };
 
 struct DLGTCAPTION
 {
-	WCHAR ch[];// ch[0] == 0 - ÎŞ±êÌâ£¬ch[1]  ÆäËû - ÒÔNULL½áÎ²µÄ±êÌâ£¬ch[n]
+	WCHAR ch[];// ch[0] == 0 - æ— æ ‡é¢˜ï¼Œch[1]  å…¶ä»– - ä»¥NULLç»“å°¾çš„æ ‡é¢˜ï¼Œch[n]
 };
-ÉÏÊöÈı¸öÊı×é±ØĞëÔÚWORD±ß½çÉÏ¶ÔÆë
+ä¸Šè¿°ä¸‰ä¸ªæ•°ç»„å¿…é¡»åœ¨WORDè¾¹ç•Œä¸Šå¯¹é½
 
-struct DLGTFONT// ½öµ±Ö¸¶¨ÁËDS_SETFONT»òDS_SHELLFONTÊ±´æÔÚ
+struct DLGTFONT// ä»…å½“æŒ‡å®šäº†DS_SETFONTæˆ–DS_SHELLFONTæ—¶å­˜åœ¨
 {
 	WORD      wPoint;
 	WORD      wWeight;
 	BYTE      bItalic;
 	BYTE      byCharSet;
-	WCHAR     szName[];// ÒÔNULL½áÎ²µÄ×ÖÌåÃû³Æ
+	WCHAR     szName[];// ä»¥NULLç»“å°¾çš„å­—ä½“åç§°
 };
 */
 
 
-// Ã¿¸öDLGITEMTHEADER¶¼±ØĞëÔÚDWORD±ß½çÉÏ¶ÔÆë
+// æ¯ä¸ªDLGITEMTHEADERéƒ½å¿…é¡»åœ¨DWORDè¾¹ç•Œä¸Šå¯¹é½
 
 struct DLGITEMTHEADER
 {
@@ -76,21 +77,21 @@ struct DLGITEMTHEADER
 };
 
 /*
-DLGITEMTHEADERºó¸úÒÔÏÂ½á¹¹
+DLGITEMTHEADERåè·Ÿä»¥ä¸‹ç»“æ„
 struct DLGITEMTWCLS
 {
-	WCHAR ch[];// ch[0] == 0xFFFF - Ô¤¶¨ÒåÀàÔ­×Ó£¬ch[2]  ÆäËû - ÒÔNULL½áÎ²µÄ´°¿ÚÀàÃû£¬ch[n]
+	WCHAR ch[];// ch[0] == 0xFFFF - é¢„å®šä¹‰ç±»åŸå­ï¼Œch[2]  å…¶ä»– - ä»¥NULLç»“å°¾çš„çª—å£ç±»åï¼Œch[n]
 };
 
 struct DLGITEMTCAPTION
 {
-	WCHAR ch[];// ch[0] == 0xFFFF - ×ÊÔ´ID£¬ch[2]  ÆäËû - ÒÔNULL½áÎ²µÄ±êÌâ£¬ch[n]
+	WCHAR ch[];// ch[0] == 0xFFFF - èµ„æºIDï¼Œch[2]  å…¶ä»– - ä»¥NULLç»“å°¾çš„æ ‡é¢˜ï¼Œch[n]
 };
 
 struct DLGITEMTEXTRA
 {
 	WORD cbExtra;
-};// ºó½Ó¸½¼ÓÊı¾İ
+};// åæ¥é™„åŠ æ•°æ®
 */
 
 struct DLGTDLG :public DLGTHEADER
@@ -118,52 +119,432 @@ struct DLGTITEM :public DLGITEMTHEADER
 
 enum
 {
-	// ½«³ß´çµ¥Î»ÊÓÎªÏñËØ£¬¶ø²»ÊÇDLU
+	// å°†å°ºå¯¸å•ä½è§†ä¸ºåƒç´ ï¼Œè€Œä¸æ˜¯DLU
 	CWFDT_USEPIXELUNIT = 1u << 0
 };
 
 /// <summary>
-/// È¡Ê×¸ö¿ÉÍ£Áô½¹µã¿Ø¼ş¡£
-/// º¯ÊıÃ¶¾Ù´°¿ÚµÄ×Ó´°¿Ú²¢·µ»ØµÚÒ»¸ö¿É¼û¡¢·Ç½ûÓÃÇÒ¾ßÓĞWS_TABSTOPµÄ¿Ø¼ş¾ä±ú
+/// å–é¦–ä¸ªå¯åœç•™ç„¦ç‚¹æ§ä»¶ã€‚
+/// å‡½æ•°æšä¸¾çª—å£çš„å­çª—å£å¹¶è¿”å›ç¬¬ä¸€ä¸ªå¯è§ã€éç¦ç”¨ä¸”å…·æœ‰WS_TABSTOPçš„æ§ä»¶å¥æŸ„
 /// </summary>
-/// <param name="hWnd">¸¸´°¿Ú</param>
-/// <returns>¿Ø¼ş¾ä±ú</returns>
-HWND GetFirstTabStopCtrl(HWND hWnd);
+/// <param name="hWnd">çˆ¶çª—å£</param>
+/// <returns>æ§ä»¶å¥æŸ„</returns>
+inline HWND GetFirstTabStopCtrl(HWND hWnd)
+{
+	HWND hCtrl = NULL;
+	EnumChildWindows(hWnd,
+		[](HWND hWnd, LPARAM lParam)->BOOL
+		{
+			if (IsWindowVisible(hWnd) &&
+				IsWindowEnabled(hWnd) &&
+				IsBitSet(GetWindowLongPtrW(hWnd, GWL_STYLE), WS_TABSTOP))
+			{
+				*(HWND*)lParam = hWnd;
+				return FALSE;
+			}
+			return TRUE;
+		}, (LPARAM)&hCtrl);
+	return hCtrl;
+}
 
 /// <summary>
-/// ĞòÁĞ»¯¶Ô»°¿òÄ£°å
+/// åºåˆ—åŒ–å¯¹è¯æ¡†æ¨¡æ¿
 /// </summary>
-/// <param name="Dlg">¶Ô»°¿òĞÅÏ¢</param>
-/// <param name="Items">¶Ô»°¿òÏîÄ¿ĞÅÏ¢</param>
-/// <returns>ĞòÁĞ»¯ºóµÄ¶Ô»°¿òÄ£°å×Ö½Ú¼¯</returns>
-CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLGTITEM>& Items);
+/// <param name="Dlg">å¯¹è¯æ¡†ä¿¡æ¯</param>
+/// <param name="Items">å¯¹è¯æ¡†é¡¹ç›®ä¿¡æ¯</param>
+/// <returns>åºåˆ—åŒ–åçš„å¯¹è¯æ¡†æ¨¡æ¿å­—èŠ‚é›†</returns>
+inline CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLGTITEM>& Items)
+{
+	using namespace eck::Literals;
+	if (Dlg.wVer != 1_us || Dlg.wSignature != 0xFFFF_us || (SIZE_T)Dlg.cDlgItems != Items.size())
+		return {};
+
+	SIZE_T cbTotal =
+		sizeof(DLGTHEADER) /*å¤´*/ +
+		sizeof(WORD) * 3 /*èœå•ã€çª—å£ç±»ã€æ ‡é¢˜ä¸‰ä¸ªæ•°ç»„çš„ç¬¬ä¸€ä¸ªå…ƒç´ */;
+
+	if (Dlg.Menu)
+	{
+		auto& Val = *Dlg.Menu;
+		if (Val.index() == 0)// èµ„æºID
+			cbTotal += sizeof(WORD);
+		else// åç§°å­—ç¬¦ä¸²
+			cbTotal += ((std::get<1>(Val).Size() + 1) * sizeof(WCHAR));
+	}
+
+	if (Dlg.Class)
+	{
+		auto& Val = *Dlg.Class;
+		if (Val.index() == 0)// ç±»åŸå­
+			cbTotal += sizeof(ATOM);
+		else// ç±»åå­—ç¬¦ä¸²
+			cbTotal += ((std::get<1>(Val).Size() + 1) * sizeof(WCHAR));
+	}
+
+	if (Dlg.Caption)
+	{
+		auto& Val = *Dlg.Caption;
+		cbTotal += ((Val.Size() + 1) * sizeof(WCHAR));
+	}
+
+	BOOL bHasFontStru = IsBitSet(Dlg.dwStyle, DS_SETFONT) || IsBitSet(Dlg.dwStyle, DS_SHELLFONT);
+	if (bHasFontStru)
+	{
+		cbTotal += sizeof(Dlg.Font);
+		cbTotal += ((Dlg.rsFontName.Size() + 1) * sizeof(WCHAR));
+	}
+
+	cbTotal += CalcNextAlignBoundaryDistance(NULL, (PCVOID)cbTotal, sizeof(DWORD));
+
+	cbTotal += (Items.size() * (
+		sizeof(DLGITEMTHEADER) /*å¤´*/ +
+		sizeof(WORD) * 3 /*çª—å£ç±»ã€æ ‡é¢˜ä¸¤ä¸ªæ•°ç»„çš„ç¬¬ä¸€ä¸ªå…ƒç´ å’Œé™„åŠ æ•°æ®å¤§å°*/));
+	for (auto& x : Items)
+	{
+		if (x.Class.index() == 0)// ç±»åŸå­
+			cbTotal += sizeof(ATOM);
+		else// ç±»åå­—ç¬¦ä¸²
+			cbTotal += ((std::get<1>(x.Class).Size() + 1) * sizeof(WCHAR));
+
+		if (x.Caption.index() == 0)// èµ„æºID
+			cbTotal += sizeof(WORD);
+		else// æ ‡é¢˜å­—ç¬¦ä¸²
+			cbTotal += ((std::get<1>(x.Caption).Size() + 1) * sizeof(WCHAR));
+
+		if (x.rbExtra.Size())
+			cbTotal += AlignMemSize(x.rbExtra.Size(), 2);
+
+		cbTotal += CalcNextAlignBoundaryDistance(NULL, (PCVOID)cbTotal, sizeof(DWORD));
+	}
+
+	CRefBin rb;
+	rb.ReSize(cbTotal);
+
+	CMemWriter w(rb.Data());
+	w.Write(&Dlg, sizeof(DLGTHEADER));
+
+	if (Dlg.Menu)
+	{
+		auto& Val = *Dlg.Menu;
+		if (Val.index() == 0)// èµ„æºID
+			w << 0xFFFF_us << std::get<0>(Val);
+		else// åç§°å­—ç¬¦ä¸²
+			w << std::get<1>(Val);
+	}
+	else
+		w << 0_us;
+
+	if (Dlg.Class)
+	{
+		auto& Val = *Dlg.Class;
+		if (Val.index() == 0)// ç±»åŸå­
+			w << 0xFFFF_us << std::get<0>(Val);
+		else// ç±»åå­—ç¬¦ä¸²
+			w << std::get<1>(Val);
+	}
+	else
+		w << 0_us;
+
+	if (Dlg.Caption)
+		w << *Dlg.Caption;
+	else
+		w << 0_us;
+
+	if (bHasFontStru)
+		w << Dlg.Font << Dlg.rsFontName;
+
+	w += CalcNextAlignBoundaryDistance(rb.Data(), w, sizeof(DWORD));
+
+	for (auto& x : Items)
+	{
+		w.Write(&x, sizeof(DLGITEMTHEADER));
+
+		if (x.Class.index() == 0)// ç±»åŸå­
+			w << 0xFFFF_us << std::get<0>(x.Class);
+		else// ç±»åå­—ç¬¦ä¸²
+			w << std::get<1>(x.Class);
+
+		if (x.Caption.index() == 0)// èµ„æºID
+			w << 0xFFFF_us << std::get<0>(x.Caption);
+		else// æ ‡é¢˜å­—ç¬¦ä¸²
+			w << std::get<1>(x.Caption);
+
+		w << (WORD)x.rbExtra.Size();
+		if (x.rbExtra.Size())
+		{
+			memcpy(w, x.rbExtra.Data(), x.rbExtra.Size());
+			w += AlignMemSize(x.rbExtra.Size(), 2);
+		}
+
+		w += CalcNextAlignBoundaryDistance(rb.Data(), w, sizeof(DWORD));
+	}
+
+	return rb;
+}
 
 /// <summary>
-/// ·´ĞòÁĞ»¯¶Ô»°¿òÄ£°å
+/// ååºåˆ—åŒ–å¯¹è¯æ¡†æ¨¡æ¿
 /// </summary>
-/// <param name="pTemplate">¶Ô»°¿òÄ£°åÖ¸Õë</param>
-/// <param name="Dlg">½ÓÊÕ¶Ô»°¿òĞÅÏ¢±äÁ¿£¬Èôº¯ÊıÊ§°Ü£¬Ôò´Ë²ÎÊıÄÚÈİÎŞ·¨È·¶¨</param>
-/// <param name="Items">½ÓÊÕ¶Ô»°¿òÏîÄ¿ĞÅÏ¢±äÁ¿</param>
-/// <returns>³É¹¦·µ»ØTRUE£¬Ê§°Ü·µ»ØFALSE</returns>
-BOOL DeserializeDialogTemplate(PCVOID pTemplate, DLGTDLG& Dlg, std::vector<DLGTITEM>& Items);
+/// <param name="pTemplate">å¯¹è¯æ¡†æ¨¡æ¿æŒ‡é’ˆ</param>
+/// <param name="Dlg">æ¥æ”¶å¯¹è¯æ¡†ä¿¡æ¯å˜é‡ï¼Œè‹¥å‡½æ•°å¤±è´¥ï¼Œåˆ™æ­¤å‚æ•°å†…å®¹æ— æ³•ç¡®å®š</param>
+/// <param name="Items">æ¥æ”¶å¯¹è¯æ¡†é¡¹ç›®ä¿¡æ¯å˜é‡</param>
+/// <returns>æˆåŠŸè¿”å›TRUEï¼Œå¤±è´¥è¿”å›FALSE</returns>
+inline BOOL DeserializeDialogTemplate(PCVOID pTemplate, DLGTDLG& Dlg, std::vector<DLGTITEM>& Items)
+{
+	using namespace eck::Literals;
+	CMemReader r(pTemplate);
+	r.Read(&Dlg, sizeof(DLGTHEADER));
+	if (Dlg.wVer != 1_us || Dlg.wSignature != 0xFFFF_us)
+		return FALSE;
+
+	WORD us;
+	CRefStrW rs;
+
+	r >> us;
+	switch (us)
+	{
+	case 0_us:
+		break;
+	case 0xFFFF_us:
+		r >> us;
+		Dlg.Menu = us;
+		break;
+	default:
+	{
+		r -= sizeof(WORD);
+		r >> rs;
+		Dlg.Menu = std::move(rs);
+	}
+	break;
+	}
+
+	r >> us;
+	switch (us)
+	{
+	case 0_us:
+		break;
+	case 0xFFFF_us:
+		r >> us;
+		Dlg.Class = us;
+		break;
+	default:
+	{
+		r -= sizeof(WORD);
+		r >> rs;
+		Dlg.Class = std::move(rs);
+	}
+	break;
+	}
+
+	r >> us;
+	if (us)
+	{
+		r -= sizeof(WORD);
+		r >> rs;
+		Dlg.Caption = std::move(rs);
+	}
+
+	if (IsBitSet(Dlg.dwStyle, DS_SETFONT) || IsBitSet(Dlg.dwStyle, DS_SHELLFONT))
+	{
+		r >> Dlg.Font;
+		r >> rs;
+		Dlg.rsFontName = std::move(rs);
+	}
+
+	r += CalcNextAlignBoundaryDistance(pTemplate, r, sizeof(DWORD));
+
+	Items.resize(Dlg.cDlgItems);
+	for (auto& x : Items)
+	{
+		r.Read(&x, sizeof(DLGITEMTHEADER));
+
+		r >> us;
+		if (us == 0xFFFF_us)
+		{
+			r >> us;
+			x.Class = us;
+		}
+		else
+		{
+			r -= sizeof(WCHAR);
+			r >> rs;
+			x.Class = std::move(rs);
+		}
+
+		r >> us;
+		if (us == 0xFFFF_us)
+		{
+			r >> us;
+			x.Caption = us;
+		}
+		else
+		{
+			r -= sizeof(WCHAR);
+			r >> rs;
+			x.Caption = std::move(rs);
+		}
+
+		r >> us;
+		if (us)
+		{
+			CRefBin rb;
+			rb.ReSize(us);
+			r.Read(rb.Data(), rb.Size());
+			x.rbExtra = std::move(rb);
+		}
+
+		r += CalcNextAlignBoundaryDistance(pTemplate, r, sizeof(DWORD));
+	}
+
+	return TRUE;
+}
 
 /// <summary>
-/// ´´½¨´°¿Ú×Ô¶Ô»°¿òÄ£°å¡£
-/// º¯Êı´Ó¶Ô»°¿òÄ£°åµÄ·´ĞòÁĞ»¯½á¹ûÄ£Äâ´´½¨Ò»¸ö¶Ô»°¿ò´°¿Ú¡£
-/// ÎŞ·¨½ÓÊÕ´°¿ÚµÄWM_CREATEºÍWM_NCCREATEÏûÏ¢£¬³ı·ÇÖ¸¶¨´°¿ÚÀàµÄ´°¿Ú¹ı³ÌÊÇ×Ô¶¨ÒåµÄ¡£
-/// ¿Ø¼ş´´½¨Íê±ÏÇÒ´°¿ÚÏÔÊ¾Ö®Ç°Ïò´°¿Ú¹ı³Ì·¢ËÍWM_INITDIALOGÏûÏ¢
+/// åˆ›å»ºçª—å£è‡ªå¯¹è¯æ¡†æ¨¡æ¿ã€‚
+/// å‡½æ•°ä»å¯¹è¯æ¡†æ¨¡æ¿çš„ååºåˆ—åŒ–ç»“æœæ¨¡æ‹Ÿåˆ›å»ºä¸€ä¸ªå¯¹è¯æ¡†çª—å£ã€‚
+/// æ— æ³•æ¥æ”¶çª—å£çš„WM_CREATEå’ŒWM_NCCREATEæ¶ˆæ¯ï¼Œé™¤éæŒ‡å®šçª—å£ç±»çš„çª—å£è¿‡ç¨‹æ˜¯è‡ªå®šä¹‰çš„ã€‚
+/// æ§ä»¶åˆ›å»ºå®Œæ¯•ä¸”çª—å£æ˜¾ç¤ºä¹‹å‰å‘çª—å£è¿‡ç¨‹å‘é€WM_INITDIALOGæ¶ˆæ¯
 /// </summary>
-/// <param name="Dlg">¶Ô»°¿òĞÅÏ¢</param>
-/// <param name="Items">¶Ô»°¿òÏîÄ¿ĞÅÏ¢</param>
-/// <param name="pfnWndProc">´°¿Ú¹ı³Ì¡£Èô²»ÎªNULL£¬Ôò´°¿Ú´´½¨Íê±ÏÇÒ¿Ø¼ş´´½¨Ö®Ç°½«´°¿ÚµÄ´°¿Ú¹ı³ÌÉèÎª´Ë²ÎÊıÖ¸¶¨µÄ´°¿Ú¹ı³Ì</param>
-/// <param name="hParent">¸¸´°¿Ú</param>
-/// <param name="hInstance">ÊµÀı¾ä±ú¡£´Ó´ËÊµÀı¼ÓÔØ×ÊÔ´£¬²¢Ê¹ÓÃÔÚ¸ÃÊµÀıÉÏ×¢²áµÄ´°¿ÚÀà</param>
-/// <param name="pParam">×Ô¶¨ÒåĞÅÏ¢£¬½«ÔÚWM_CREATE¡¢WM_NCCREATEºÍWM_INITDIALOGµÈÏûÏ¢ÖĞÊ¹ÓÃ</param>
-/// <param name="phMenu">½ÓÊÕ²Ëµ¥¾ä±ú±äÁ¿Ö¸Õë£¬¿ÉÎªNULL¡£µ÷ÓÃ·½¸ºÔğÎ¬»¤´Ë¾ä±úµÄÉúÃüÖÜÆÚ</param>
-/// <param name="phFont">½ÓÊÕ×ÖÌå¾ä±ú±äÁ¿Ö¸Õë£¬¿ÉÎªNULL¡£µ÷ÓÃ·½¸ºÔğÎ¬»¤´Ë¾ä±úµÄÉúÃüÖÜÆÚ</param>
-/// <param name="uFlags">±êÖ¾£¬CWFDT_³£Á¿</param>
-/// <returns>³É¹¦·µ»Ø´°¿Ú¾ä±ú£¬Ê§°Ü·µ»ØNULL</returns>
-HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& Items,
+/// <param name="Dlg">å¯¹è¯æ¡†ä¿¡æ¯</param>
+/// <param name="Items">å¯¹è¯æ¡†é¡¹ç›®ä¿¡æ¯</param>
+/// <param name="pfnWndProc">çª—å£è¿‡ç¨‹ã€‚è‹¥ä¸ä¸ºNULLï¼Œåˆ™çª—å£åˆ›å»ºå®Œæ¯•ä¸”æ§ä»¶åˆ›å»ºä¹‹å‰å°†çª—å£çš„çª—å£è¿‡ç¨‹è®¾ä¸ºæ­¤å‚æ•°æŒ‡å®šçš„çª—å£è¿‡ç¨‹</param>
+/// <param name="hParent">çˆ¶çª—å£</param>
+/// <param name="hInstance">å®ä¾‹å¥æŸ„ã€‚ä»æ­¤å®ä¾‹åŠ è½½èµ„æºï¼Œå¹¶ä½¿ç”¨åœ¨è¯¥å®ä¾‹ä¸Šæ³¨å†Œçš„çª—å£ç±»</param>
+/// <param name="pParam">è‡ªå®šä¹‰ä¿¡æ¯ï¼Œå°†åœ¨WM_CREATEã€WM_NCCREATEå’ŒWM_INITDIALOGç­‰æ¶ˆæ¯ä¸­ä½¿ç”¨</param>
+/// <param name="phMenu">æ¥æ”¶èœå•å¥æŸ„å˜é‡æŒ‡é’ˆï¼Œå¯ä¸ºNULLã€‚è°ƒç”¨æ–¹è´Ÿè´£ç»´æŠ¤æ­¤å¥æŸ„çš„ç”Ÿå‘½å‘¨æœŸ</param>
+/// <param name="phFont">æ¥æ”¶å­—ä½“å¥æŸ„å˜é‡æŒ‡é’ˆï¼Œå¯ä¸ºNULLã€‚è°ƒç”¨æ–¹è´Ÿè´£ç»´æŠ¤æ­¤å¥æŸ„çš„ç”Ÿå‘½å‘¨æœŸ</param>
+/// <param name="uFlags">æ ‡å¿—ï¼ŒCWFDT_å¸¸é‡</param>
+/// <returns>æˆåŠŸè¿”å›çª—å£å¥æŸ„ï¼Œå¤±è´¥è¿”å›NULL</returns>
+inline HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& Items,
 	WNDPROC pfnWndProc, HWND hParent, HINSTANCE hInstance,
-	void* pParam = NULL, HMENU* phMenu = NULL, HFONT* phFont = NULL, UINT uFlags = 0);
+	void* pParam = NULL, HMENU* phMenu = NULL, HFONT* phFont = NULL, UINT uFlags = 0)
+{
+	using namespace eck::Literals;
+	if (Dlg.wVer != 1_us || Dlg.wSignature != 0xFFFF_us || (SIZE_T)Dlg.cDlgItems != Items.size())
+		return NULL;
+	PCWSTR pszClass, pszCaption, pszMenu;
+	if (Dlg.Class)
+	{
+		auto& Val = *Dlg.Class;
+		if (Val.index() == 0)// ç±»åŸå­
+			pszClass = MAKEINTATOMW(std::get<0>(Val));
+		else// ç±»åå­—ç¬¦ä¸²
+			pszClass = std::get<1>(Val).Data();
+	}
+	else
+		pszClass = MAKEINTATOMW(32770);
+
+	if (Dlg.Caption)
+		pszCaption = (*Dlg.Caption).Data();
+	else
+		pszCaption = NULL;
+
+	HMENU hMenu;
+	if (Dlg.Menu)
+	{
+		auto& Val = *Dlg.Menu;
+		if (Val.index() == 0)// èµ„æºID
+			pszMenu = MAKEINTRESOURCEW(std::get<0>(Val));
+		else// åç§°å­—ç¬¦ä¸²
+			pszMenu = std::get<1>(Val).Data();
+		hMenu = LoadMenuW(hInstance, pszMenu);
+	}
+	else
+		hMenu = NULL;
+
+	HFONT hFont;
+	BOOL bHasFontStru = IsBitSet(Dlg.dwStyle, DS_SETFONT) || IsBitSet(Dlg.dwStyle, DS_SHELLFONT);
+	if (bHasFontStru)
+		hFont = EzFont(Dlg.rsFontName.Data(), Dlg.Font.wPoint, Dlg.Font.wWeight,
+			Dlg.Font.bItalic, FALSE, FALSE, NULL, Dlg.Font.byCharSet);
+	else
+		hFont = NULL;
+
+	RECT rc{ Dlg.x,Dlg.y,Dlg.cx,Dlg.cy };
+	int xBaseUnit, yBaseUnit;
+	if (!IsBitSet(uFlags, CWFDT_USEPIXELUNIT))
+	{
+		if (IsBitSet(Dlg.dwStyle, DS_SETFONT) || IsBitSet(Dlg.dwStyle, DS_SHELLFONT))
+		{
+			HDC hCDC = CreateCompatibleDC(NULL);
+			SelectObject(hCDC, hFont);
+			SIZE size;
+			GetTextExtentPoint32W(hCDC, L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 52, &size);
+			xBaseUnit = ((size.cx / 26) + 1) / 2;
+			yBaseUnit = size.cy;
+			DeleteDC(hCDC);
+		}
+		else
+		{
+			long lRet = GetDialogBaseUnits();
+			xBaseUnit = LOWORD(lRet);
+			yBaseUnit = HIWORD(lRet);
+		}
+		/*
+		* å…¬å¼ï¼š
+		* xPixel = xDLU * xBaseUnit / 4
+		* yPixel = yDLU * yBaseUnit / 8
+		*/
+		rc.left = rc.left * xBaseUnit / 4;
+		rc.top = rc.top * yBaseUnit / 8;
+		rc.right = rc.right * xBaseUnit / 4;
+		rc.bottom = rc.bottom * yBaseUnit / 8;
+	}
+
+	int x = rc.left, y = rc.top;
+	rc.right += rc.left;
+	rc.bottom += rc.top;
+#if _WIN32_WINNT >= _WIN32_WINNT_WIN10
+	AdjustWindowRectExForDpi(&rc, Dlg.dwStyle, hMenu != NULL, Dlg.dwExStyle, GetDpi(hParent));
+#else
+	AdjustWindowRectEx(&rc, Dlg.dwStyle, hMenu != NULL, Dlg.dwExStyle);
+#endif // _WIN32_WINNT >= _WIN32_WINNT_WIN10
+	rc.right -= rc.left;
+	rc.bottom -= rc.top;
+	rc.left = x;
+	rc.top = y;
+	HWND hWnd = CreateWindowExW(Dlg.dwExStyle, pszClass, pszCaption, Dlg.dwStyle & ~WS_VISIBLE,
+		rc.left, rc.top, rc.right, rc.bottom, hParent, hMenu, hInstance, pParam);
+	if (pfnWndProc)
+		SetWindowProc(hWnd, pfnWndProc);
+	SendMessageW(hWnd, WM_SETFONT, (WPARAM)hFont, FALSE);
+
+	HWND hCtrl;
+	for (auto& x : Items)
+	{
+		if (x.Class.index() == 0)// ç±»åŸå­
+			pszClass = MAKEINTATOMW(std::get<0>(x.Class));
+		else// ç±»åå­—ç¬¦ä¸²
+			pszClass = std::get<1>(x.Class).Data();
+
+		if (x.Caption.index() == 0)// ç±»åŸå­
+			pszCaption = MAKEINTATOMW(std::get<0>(x.Caption));
+		else// ç±»åå­—ç¬¦ä¸²
+			pszCaption = std::get<1>(x.Caption).Data();
+
+		rc = { x.x,x.y,x.cx,x.cy };
+		if (!IsBitSet(uFlags, CWFDT_USEPIXELUNIT))
+		{
+			rc.left = rc.left * xBaseUnit / 4;
+			rc.top = rc.top * yBaseUnit / 8;
+			rc.right = rc.right * xBaseUnit / 4;
+			rc.bottom = rc.bottom * yBaseUnit / 8;
+		}
+		hCtrl = CreateWindowExW(x.dwExStyle, pszClass, pszCaption, x.dwStyle,
+			rc.left, rc.top, rc.right, rc.bottom, hWnd, i32ToP<HMENU>(x.id), hInstance, x.rbExtra.Data());
+		SendMessageW(hCtrl, WM_SETFONT, (WPARAM)hFont, FALSE);
+	}
+
+	HWND hFirstCtrl = GetFirstTabStopCtrl(hWnd);
+	if (SendMessageW(hWnd, WM_INITDIALOG, (WPARAM)hFirstCtrl, (LPARAM)pParam))
+		SetFocus(hFirstCtrl);
+
+	ShowWindow(hWnd, SW_SHOW);
+	UpdateWindow(hWnd);
+	if (phMenu)
+		*phMenu = hMenu;
+	if (phFont)
+		*phFont = hFont;
+	return hWnd;
+}
 ECK_NAMESPACE_END

@@ -165,18 +165,6 @@ EckInline void SetFontForWndAndCtrl(HWND hWnd, HFONT hFont, BOOL bRedraw = FALSE
 }
 
 /// <summary>
-/// 窗口DPI被更改。
-/// 仅适用于'每显示器DPI感知V2'感知模式。
-/// 函数递归遍历窗口的所有子孙窗口并调用DeferWindowPos悉数调整尺寸。
-/// 窗口的其他资源如字体等由其实现代码修改
-/// </summary>
-/// <param name="hWnd">窗口句柄</param>
-/// <param name="iDpiNew">更改后的DPI</param>
-/// <param name="iDpiOld">更改前的DPI</param>
-/// <returns>成功返回TRUE，失败返回FALSE</returns>
-BOOL OnDpiChanged_Parent_PreMonV2(HWND hWnd, int iDpiNew, int iDpiOld);
-
-/// <summary>
 /// 按新旧DPI重新创建字体
 /// </summary>
 /// <param name="hFont">字体</param>
@@ -212,7 +200,18 @@ EckInline HFONT ResetFontForDpiChanged(HWND hWnd, int iDpiNew, int iDpiOld, BOOL
 	return hFontNew;
 }
 
-BOOL GetWindowClientRect(HWND hWnd, HWND hParent, RECT* prc);
+inline BOOL GetWindowClientRect(HWND hWnd, HWND hParent, RECT& rc)
+{
+	if (!GetWindowRect(hWnd, &rc))
+		return FALSE;
+	int cx = rc.right - rc.left,
+		cy = rc.bottom - rc.top;
+	if (!ScreenToClient(hParent, (POINT*)&rc))
+		return FALSE;
+	rc.right = rc.left + cx;
+	rc.bottom = rc.top + cy;
+	return TRUE;
+}
 
 /// <summary>
 /// 通过设置图像列表来设置ListView行高
@@ -255,7 +254,26 @@ EckInline HRESULT EnableWindowMica(HWND hWnd, DWM_SYSTEMBACKDROP_TYPE uType = DW
 }
 #endif
 
-LRESULT OnNcCalcSize(WPARAM wParam, LPARAM lParam, MARGINS* pMargins);
+inline LRESULT OnNcCalcSize(WPARAM wParam, LPARAM lParam, const MARGINS& Margins)
+{
+	if (wParam)
+	{
+		auto pnccsp = (NCCALCSIZE_PARAMS*)lParam;
+		pnccsp->rgrc[0].left += Margins.cxLeftWidth;
+		pnccsp->rgrc[0].top += Margins.cyTopHeight;
+		pnccsp->rgrc[0].right -= Margins.cxRightWidth;
+		pnccsp->rgrc[0].bottom -= Margins.cyBottomHeight;
+	}
+	else
+	{
+		auto prc = (RECT*)lParam;
+		prc->left += Margins.cxLeftWidth;
+		prc->top += Margins.cyTopHeight;
+		prc->right -= Margins.cxRightWidth;
+		prc->bottom -= Margins.cyBottomHeight;
+	}
+	return 0;
+}
 
 template<class T>
 EckInline void UpdateDpiSize(T& Dpis, int iDpi)
@@ -271,9 +289,54 @@ EckInline void UpdateDpiSizeF(T& Dpis, int iDpi)
 		*p = DpiScaleF(*(p - 1), iDpi);
 }
 
-HWND GetThreadFirstWindow(DWORD dwTid);
+inline HWND GetThreadFirstWindow(DWORD dwTid)
+{
+	HWND hWnd = GetActiveWindow();
+	if (!hWnd)
+		return hWnd;
+	EnumThreadWindows(GetCurrentThreadId(), [](HWND hWnd, LPARAM lParam)->BOOL
+		{
+			*(HWND*)lParam = hWnd;
+			return FALSE;
+		}, (LPARAM)&hWnd);
+	return hWnd;
+}
 
-HWND GetSafeOwner(HWND hParent, HWND* phWndTop);
+inline HWND GetSafeOwner(HWND hParent, HWND* phWndTop)
+{
+	HWND hWnd = hParent;
+	if (hWnd == NULL)
+		hWnd = GetThreadFirstWindow(GetCurrentThreadId());
+
+	while (hWnd != NULL && (GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_CHILD))
+		hWnd = GetParent(hWnd);
+
+	HWND hWndTop = hWnd, hWndTemp = hWnd;
+	for (;;)
+	{
+		if (hWndTemp == NULL)
+			break;
+		else
+			hWndTop = hWndTemp;
+		hWndTemp = GetParent(hWndTop);
+	}
+
+	if (hParent == NULL && hWnd != NULL)
+		hWnd = GetLastActivePopup(hWnd);
+
+	if (phWndTop != NULL)
+	{
+		if (hWndTop != NULL && IsWindowEnabled(hWndTop) && hWndTop != hWnd)
+		{
+			*phWndTop = hWndTop;
+			EnableWindow(hWndTop, FALSE);
+		}
+		else
+			*phWndTop = NULL;
+	}
+
+	return hWnd;
+}
 
 EckInline WNDPROC GetClassWndProc(HINSTANCE hInstance, PCWSTR pszClass)
 {

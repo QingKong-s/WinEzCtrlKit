@@ -29,7 +29,7 @@ inline HBITMAP CreateHBITMAP(PCVOID pData, SIZE_T cbData)
 {
 	HBITMAP hbm;
 	GpBitmap* pBitmap;
-	IStream* pStream = new IStreamView(pData, cbData);
+	IStream* pStream = new CStreamView(pData, cbData);
 	if (!pStream)
 		return NULL;
 
@@ -108,7 +108,7 @@ inline HICON CreateHICON(PCVOID pData, SIZE_T cbData)
 {
 	HICON hIcon;
 	GpBitmap* pBitmap;
-	IStream* pStream = new IStreamView(pData, cbData);
+	IStream* pStream = new CStreamView(pData, cbData);
 	if (!pStream)
 		return NULL;
 
@@ -530,7 +530,7 @@ public:
 				((((pV4->bV4Width * pV4->bV4BitCount) + 31) & ~31) >> 3) * pV4->bV4Height);
 			if (pV4->bV4V4Compression == BI_JPEG || pV4->bV4V4Compression == BI_PNG)
 			{
-				auto pStream = new IStreamView(pBitsData, cbBits);
+				auto pStream = new CStreamView(pBitsData, cbBits);
 				IWICBitmapDecoder* pDecoder;
 				if (FAILED(CreateWicBitmapDecoder(pStream, pDecoder, g_pWicFactory)))
 				{

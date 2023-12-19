@@ -1,7 +1,7 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* CUpDown.h £º ±ê×¼µ÷½ÚÆ÷
+* CUpDown.h ï¼š æ ‡å‡†è°ƒèŠ‚å™¨
 *
 * Copyright(C) 2023 QingKong
 */
@@ -16,16 +16,16 @@
 ECK_NAMESPACE_BEGIN
 struct EUPDOWNDATA
 {
-	int iDirection;			// ·½Ïò
-	BOOL bAutoBuddy;		// ×Ô¶¯Ñ¡Ôñ»ï°é
-	int iBuddyAlign;		// »ï°é´°¿Ú¶¨Î»·½Ê½
-	BOOL bArrowKeys;		// ÊÇ·ñÓÉÉÏÏÂ¼ýÍ·¿ØÖÆ
-	BOOL bHotTrack;			// ÊÇ·ñÈÈµã¸ú×Ù
+	int iDirection;			// æ–¹å‘
+	BOOL bAutoBuddy;		// è‡ªåŠ¨é€‰æ‹©ä¼™ä¼´
+	int iBuddyAlign;		// ä¼™ä¼´çª—å£å®šä½æ–¹å¼
+	BOOL bArrowKeys;		// æ˜¯å¦ç”±ä¸Šä¸‹ç®­å¤´æŽ§åˆ¶
+	BOOL bHotTrack;			// æ˜¯å¦çƒ­ç‚¹è·Ÿè¸ª
 };
 /*
-* µ÷½ÚÆ÷
+* è°ƒèŠ‚å™¨
 *
-* ÊÂ¼þ£º
+* äº‹ä»¶ï¼š
 * WM_NOTIFY
 * ->UDN_DELTAPOS(NMUPDOWN)
 */
@@ -35,8 +35,7 @@ private:
 	EUPDOWNDATA m_Info{};
 
 public:
-	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
+	ECK_CWND_CREATE
 	{
 		dwStyle |= (WS_CHILD | UDS_SETBUDDYINT);
 		switch (m_Info.iBuddyAlign)
@@ -53,7 +52,7 @@ public:
 		if (m_Info.bHotTrack)
 			dwStyle |= UDS_HOTTRACK;
 		m_hWnd = CreateWindowExW(dwExStyle, WC_BUTTONW, pszText, dwStyle,
-			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+			x, y, cx, cy, hParent, hMenu, NULL, NULL);
 		return m_hWnd;
 	}
 

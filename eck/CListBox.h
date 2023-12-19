@@ -1,7 +1,7 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* CListBox.h £º ±ê×¼ÁĞ±í¿ò
+* CListBox.h ï¼š æ ‡å‡†åˆ—è¡¨æ¡†
 *
 * Copyright(C) 2023 QingKong
 */
@@ -15,12 +15,12 @@
 ECK_NAMESPACE_BEGIN
 struct ECKLISTBOXINFO
 {
-	BITBOOL bAutoSort : 1;			// ×Ô¶¯ÅÅĞò
-	BITBOOL bMultiSel : 1;			// Êó±ê¶àÑ¡
-	BITBOOL bExtSel : 1;			// °´¼ü¶àÑ¡
-	BITBOOL bDragList : 1;			// ±íÏî¿ÉÍÏ¶¯
-	BITBOOL bIntegralHeight : 1;	// È¡Õû¿Ø¼ş¸ß¶È
-	BITBOOL bDisableNoScroll : 1;	// ÏÔÊ¾½ûÖ¹µÄ¹ö¶¯Ìõ
+	BITBOOL bAutoSort : 1;			// è‡ªåŠ¨æ’åº
+	BITBOOL bMultiSel : 1;			// é¼ æ ‡å¤šé€‰
+	BITBOOL bExtSel : 1;			// æŒ‰é”®å¤šé€‰
+	BITBOOL bDragList : 1;			// è¡¨é¡¹å¯æ‹–åŠ¨
+	BITBOOL bIntegralHeight : 1;	// å–æ•´æ§ä»¶é«˜åº¦
+	BITBOOL bDisableNoScroll : 1;	// æ˜¾ç¤ºç¦æ­¢çš„æ»šåŠ¨æ¡
 };
 
 class CListBox :public CWnd
@@ -28,20 +28,13 @@ class CListBox :public CWnd
 protected:
 	ECKLISTBOXINFO m_Info{};
 
-	static UINT m_uMsgDragList;		// ÍÏ¶¯ÁĞ±í¿òÏûÏ¢
+	static UINT m_uMsgDragList;		// æ‹–åŠ¨åˆ—è¡¨æ¡†æ¶ˆæ¯
 public:
-	CListBox()
-	{
-		if (!m_uMsgDragList)
-			m_uMsgDragList = RegisterWindowMessageW(DRAGLISTMSGSTRING);
-	}
-
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	ECK_CWND_CREATE
 	{
 		dwStyle |= WS_CHILD;
 		m_hWnd = CreateWindowExW(0, WC_LISTBOXW, NULL, dwStyle,
-			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+			x, y, cx, cy, hParent, hMenu, NULL, NULL);
 		return m_hWnd;
 	}
 
@@ -131,45 +124,45 @@ public:
 	}
 
 	/// <summary>
-	/// É¾³ıÏîÄ¿
+	/// åˆ é™¤é¡¹ç›®
 	/// </summary>
 	/// <param name="idx"></param>
-	/// <returns>·µ»ØÊ£ÓàÏîÄ¿Êı</returns>
+	/// <returns>è¿”å›å‰©ä½™é¡¹ç›®æ•°</returns>
 	EckInline int DeleteString(int idx)
 	{
 		return (int)SendMsg(LB_DELETESTRING, idx, 0);
 	}
 
 	/// <summary>
-	/// ¼ÓÈëÂ·¾¶
+	/// åŠ å…¥è·¯å¾„
 	/// </summary>
-	/// <param name="pszPath">Â·¾¶</param>
-	/// <param name="uFlags">DDL_³£Á¿</param>
-	/// <returns>Ë÷Òı</returns>
+	/// <param name="pszPath">è·¯å¾„</param>
+	/// <param name="uFlags">DDL_å¸¸é‡</param>
+	/// <returns>ç´¢å¼•</returns>
 	EckInline int Dir(PCWSTR pszPath, UINT uFlags)
 	{
 		return (int)SendMsg(LB_DIR, uFlags, (LPARAM)pszPath);
 	}
 
 	/// <summary>
-	/// ²éÕÒÏîÄ¿¡£
-	/// ²»Çø·Ö´óĞ¡Ğ´
+	/// æŸ¥æ‰¾é¡¹ç›®ã€‚
+	/// ä¸åŒºåˆ†å¤§å°å†™
 	/// </summary>
-	/// <param name="pszText">ÎÄ±¾£¬½«Æ¥ÅäÒÔ¸ÃÎÄ±¾¿ªÍ·µÄÏîÄ¿</param>
-	/// <param name="idxStart">ÆğÊ¼Ë÷Òı£¬-1 = ´ÓÍ·ËÑË÷Õû¸öÁĞ±í</param>
-	/// <returns>Ë÷Òı</returns>
+	/// <param name="pszText">æ–‡æœ¬ï¼Œå°†åŒ¹é…ä»¥è¯¥æ–‡æœ¬å¼€å¤´çš„é¡¹ç›®</param>
+	/// <param name="idxStart">èµ·å§‹ç´¢å¼•ï¼Œ-1 = ä»å¤´æœç´¢æ•´ä¸ªåˆ—è¡¨</param>
+	/// <returns>ç´¢å¼•</returns>
 	EckInline int FindString(PCWSTR pszText, int idxStart = -1)
 	{
 		return (int)SendMsg(LB_FINDSTRING, idxStart, (LPARAM)pszText);
 	}
 
 	/// <summary>
-	/// ²éÕÒÍêÈ«Æ¥ÅäÏîÄ¿¡£
-	/// ²»Çø·Ö´óĞ¡Ğ´
+	/// æŸ¥æ‰¾å®Œå…¨åŒ¹é…é¡¹ç›®ã€‚
+	/// ä¸åŒºåˆ†å¤§å°å†™
 	/// </summary>
-	/// <param name="pszText">ÎÄ±¾£¬½«Æ¥ÅäÓë¸ÃÎÄ±¾ÍêÈ«ÏàÍ¬µÄÏîÄ¿</param>
-	/// <param name="idxStart">ÆğÊ¼Ë÷Òı£¬-1 = ´ÓÍ·ËÑË÷Õû¸öÁĞ±í</param>
-	/// <returns>Ë÷Òı</returns>
+	/// <param name="pszText">æ–‡æœ¬ï¼Œå°†åŒ¹é…ä¸è¯¥æ–‡æœ¬å®Œå…¨ç›¸åŒçš„é¡¹ç›®</param>
+	/// <param name="idxStart">èµ·å§‹ç´¢å¼•ï¼Œ-1 = ä»å¤´æœç´¢æ•´ä¸ªåˆ—è¡¨</param>
+	/// <returns>ç´¢å¼•</returns>
 	EckInline int FindStringExact(PCWSTR pszText, int idxStart = -1)
 	{
 		return (int)SendMsg(LB_FINDSTRINGEXACT, idxStart, (LPARAM)pszText);
@@ -181,8 +174,8 @@ public:
 	}
 
 	/// <summary>
-	/// È¡½¹µãÏîÄ¿¡£
-	/// ¶Ôµ¥Ñ¡ÁĞ±í¿òµ÷ÓÃ·µ»ØÏÖĞĞÑ¡ÖĞÏî£¬¶Ô¶àÑ¡ÁĞ±í¿òµ÷ÓÃ·µ»Ø½¹µãÏîÄ¿
+	/// å–ç„¦ç‚¹é¡¹ç›®ã€‚
+	/// å¯¹å•é€‰åˆ—è¡¨æ¡†è°ƒç”¨è¿”å›ç°è¡Œé€‰ä¸­é¡¹ï¼Œå¯¹å¤šé€‰åˆ—è¡¨æ¡†è°ƒç”¨è¿”å›ç„¦ç‚¹é¡¹ç›®
 	/// </summary>
 	/// <returns></returns>
 	EckInline int GetCaretIndex()
@@ -196,10 +189,10 @@ public:
 	}
 
 	/// <summary>
-	/// È¡ÏÖĞĞÑ¡ÖĞÏî¡£
-	/// ¶Ôµ¥Ñ¡ÁĞ±í¿òµ÷ÓÃ·µ»ØÏÖĞĞÑ¡ÖĞÏî£¬¶Ô¶àÑ¡ÁĞ±í¿òµ÷ÓÃ·µ»Ø½¹µãÏîÄ¿
+	/// å–ç°è¡Œé€‰ä¸­é¡¹ã€‚
+	/// å¯¹å•é€‰åˆ—è¡¨æ¡†è°ƒç”¨è¿”å›ç°è¡Œé€‰ä¸­é¡¹ï¼Œå¯¹å¤šé€‰åˆ—è¡¨æ¡†è°ƒç”¨è¿”å›ç„¦ç‚¹é¡¹ç›®
 	/// </summary>
-	/// <returns>Ë÷Òı</returns>
+	/// <returns>ç´¢å¼•</returns>
 	EckInline int GetCurrSel()
 	{
 		return (int)SendMsg(LB_GETCURSEL, 0, 0);
@@ -241,9 +234,9 @@ public:
 	}
 
 	/// <summary>
-	/// È¡±»Ñ¡ÔñÏîÄ¿Êı
+	/// å–è¢«é€‰æ‹©é¡¹ç›®æ•°
 	/// </summary>
-	/// <returns>ÊıÄ¿£¬ÈôÎªµ¥Ñ¡ÁĞ±í¿ò£¬Ôò·µ»Ø-1</returns>
+	/// <returns>æ•°ç›®ï¼Œè‹¥ä¸ºå•é€‰åˆ—è¡¨æ¡†ï¼Œåˆ™è¿”å›-1</returns>
 	EckInline int GetSelCount()
 	{
 		return (int)SendMsg(LB_GETSELCOUNT, 0, 0);
@@ -262,11 +255,11 @@ public:
 	}
 
 	/// <summary>
-	/// È¡±»Ñ¡ÔñÏîÄ¿
+	/// å–è¢«é€‰æ‹©é¡¹ç›®
 	/// </summary>
-	/// <param name="piSelItems">Êı×é</param>
-	/// <param name="c">Êı×éÖĞµÄÔªËØÊı</param>
-	/// <returns>ÏîÄ¿Êı£¬ÈôÎªµ¥Ñ¡ÁĞ±í£¬Ôò·µ»Ø-1</returns>
+	/// <param name="piSelItems">æ•°ç»„</param>
+	/// <param name="c">æ•°ç»„ä¸­çš„å…ƒç´ æ•°</param>
+	/// <returns>é¡¹ç›®æ•°ï¼Œè‹¥ä¸ºå•é€‰åˆ—è¡¨ï¼Œåˆ™è¿”å›-1</returns>
 	EckInline int GetSelItems(int* piSelItems, int c)
 	{
 		return (int)SendMsg(LB_GETSELITEMS, c, (LPARAM)piSelItems);
@@ -288,7 +281,7 @@ public:
 	/// </summary>
 	/// <param name="idx"></param>
 	/// <param name="pszBuf"></param>
-	/// <returns>·µ»Ø×Ö·ûÊı£¨²»º¬½áÎ²NULL£©£¬Ê§°Ü·µ»Ø-1</returns>
+	/// <returns>è¿”å›å­—ç¬¦æ•°ï¼ˆä¸å«ç»“å°¾NULLï¼‰ï¼Œå¤±è´¥è¿”å›-1</returns>
 	EckInline int GetItemText(int idx, PWSTR pszBuf)
 	{
 		return (int)SendMsg(LB_GETTEXT, idx, (LPARAM)pszBuf);
@@ -298,7 +291,7 @@ public:
 	/// 
 	/// </summary>
 	/// <param name="idx"></param>
-	/// <returns>·µ»Ø×Ö·ûÊı£¨²»º¬½áÎ²NULL£©</returns>
+	/// <returns>è¿”å›å­—ç¬¦æ•°ï¼ˆä¸å«ç»“å°¾NULLï¼‰</returns>
 	EckInline int GetItemTextLength(int idx)
 	{
 		return (int)SendMsg(LB_GETTEXTLEN, idx, 0);
@@ -314,7 +307,7 @@ public:
 	/// </summary>
 	/// <param name="cItems"></param>
 	/// <param name="cbString"></param>
-	/// <returns>³É¹¦·µ»ØÒÑÔ¤·ÖÅäµÄÏîÄ¿×ÜÊı£¬Ê§°Ü·µ»ØLB_ERRSPACE</returns>
+	/// <returns>æˆåŠŸè¿”å›å·²é¢„åˆ†é…çš„é¡¹ç›®æ€»æ•°ï¼Œå¤±è´¥è¿”å›LB_ERRSPACE</returns>
 	EckInline int InitStorage(int cItems, SIZE_T cbString)
 	{
 		return (int)SendMsg(LB_INITSTORAGE, cItems, cbString);
@@ -342,12 +335,12 @@ public:
 	}
 
 	/// <summary>
-	/// ²éÕÒ²¢Ñ¡ÔñÏîÄ¿¡£
-	/// ²»Çø·Ö´óĞ¡Ğ´
+	/// æŸ¥æ‰¾å¹¶é€‰æ‹©é¡¹ç›®ã€‚
+	/// ä¸åŒºåˆ†å¤§å°å†™
 	/// </summary>
-	/// <param name="pszText">ÎÄ±¾£¬½«Æ¥ÅäÒÔ¸ÃÎÄ±¾¿ªÍ·µÄÏîÄ¿</param>
-	/// <param name="idxStart">ÆğÊ¼Ë÷Òı£¬-1 = ´ÓÍ·ËÑË÷Õû¸öÁĞ±í</param>
-	/// <returns>Ë÷Òı£¬Ê§°Ü·µ»ØLB_ERR</returns>
+	/// <param name="pszText">æ–‡æœ¬ï¼Œå°†åŒ¹é…ä»¥è¯¥æ–‡æœ¬å¼€å¤´çš„é¡¹ç›®</param>
+	/// <param name="idxStart">èµ·å§‹ç´¢å¼•ï¼Œ-1 = ä»å¤´æœç´¢æ•´ä¸ªåˆ—è¡¨</param>
+	/// <returns>ç´¢å¼•ï¼Œå¤±è´¥è¿”å›LB_ERR</returns>
 	EckInline int SelectString(PCWSTR pszText, int idxStart = -1)
 	{
 		return (int)SendMsg(LB_SELECTSTRING, idxStart, (LPARAM)pszText);
@@ -402,7 +395,7 @@ public:
 	/// <summary>
 	/// 
 	/// </summary>
-	/// <param name="idx">ÈôÁĞ±í¿ò¾ßÓĞLBS_OWNERDRAWVARIABLE£¬Ôò¸Ã²ÎÊıÖ¸Ê¾ÏîÄ¿Ë÷Òı£¬·ñÔòÔò±ØĞëÉèÖÃÎª0</param>
+	/// <param name="idx">è‹¥åˆ—è¡¨æ¡†å…·æœ‰LBS_OWNERDRAWVARIABLEï¼Œåˆ™è¯¥å‚æ•°æŒ‡ç¤ºé¡¹ç›®ç´¢å¼•ï¼Œå¦åˆ™åˆ™å¿…é¡»è®¾ç½®ä¸º0</param>
 	/// <param name="cy"></param>
 	/// <returns></returns>
 	EckInline BOOL SetItemHeight(int idx, int cy)
@@ -414,17 +407,17 @@ public:
 	/// 
 	/// </summary>
 	/// <param name="lcid"></param>
-	/// <returns>³É¹¦·µ»ØÏÈÇ°µÄLCID£¬Ê§°Ü·µ»ØLB_ERR</returns>
+	/// <returns>æˆåŠŸè¿”å›å…ˆå‰çš„LCIDï¼Œå¤±è´¥è¿”å›LB_ERR</returns>
 	EckInline LCID SetLocale(LCID lcid)
 	{
 		return (LCID)SendMsg(LB_SETLOCALE, lcid, 0);
 	}
 
 	/// <summary>
-	/// Ñ¡ÔñÏîÄ¿¡£
-	/// ½öÓÃÓÚ¶àÑ¡ÁĞ±í
+	/// é€‰æ‹©é¡¹ç›®ã€‚
+	/// ä»…ç”¨äºå¤šé€‰åˆ—è¡¨
 	/// </summary>
-	/// <param name="idx">Ë÷Òı£¬ÈôÉèÎª-1Ôò²Ù×÷ËùÓĞÏîÄ¿</param>
+	/// <param name="idx">ç´¢å¼•ï¼Œè‹¥è®¾ä¸º-1åˆ™æ“ä½œæ‰€æœ‰é¡¹ç›®</param>
 	/// <param name="bSel"></param>
 	/// <returns></returns>
 	EckInline BOOL SetSel(int idx, BOOL bSel)
@@ -442,5 +435,5 @@ public:
 		return (SendMsg(LB_SETTOPINDEX, idx, 0) != LB_ERR);
 	}
 };
-
+inline UINT CListBox::m_uMsgDragList = RegisterWindowMessageW(DRAGLISTMSGSTRING);
 ECK_NAMESPACE_END

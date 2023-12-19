@@ -1,24 +1,24 @@
-#pragma once
+ï»¿#pragma once
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
 class CTab :public CWnd
 {
 public:
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	
+	ECK_CWND_CREATE
 	{
 		dwStyle |= WS_CHILD;
 		m_hWnd = CreateWindowExW(0, WC_TABCONTROLW, NULL, dwStyle,
-			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+			x, y, cx, cy, hParent, hMenu, NULL, NULL);
 		return m_hWnd;
 	}
 
 	/// <summary>
-	/// ÇøÓò¾ØĞÎ×ª»»
+	/// åŒºåŸŸçŸ©å½¢è½¬æ¢
 	/// </summary>
-	/// <param name="prc">RECTÖ¸Õë</param>
-	/// <param name="bValidAeraToWndAera">ÎªTRUEÔò´ÓÏÔÊ¾ÇøÓò×ª»»µ½´°¿ÚÇøÓò£¬ÎªFALSEÔòÏà·´</param>
+	/// <param name="prc">RECTæŒ‡é’ˆ</param>
+	/// <param name="bValidAeraToWndAera">ä¸ºTRUEåˆ™ä»æ˜¾ç¤ºåŒºåŸŸè½¬æ¢åˆ°çª—å£åŒºåŸŸï¼Œä¸ºFALSEåˆ™ç›¸å</param>
 	void AdjustRect(RECT* prc, BOOL bValidAeraToWndAera)
 	{
 		SendMsg(TCM_ADJUSTRECT, bValidAeraToWndAera, (LPARAM)prc);
@@ -35,10 +35,10 @@ public:
 	}
 
 	/// <summary>
-	/// ÖØÖÃËùÓĞÏîÄ¿¡£
-	/// ½öÉèÖÃTCS_BUTTONSÊ±ÓĞĞ§
+	/// é‡ç½®æ‰€æœ‰é¡¹ç›®ã€‚
+	/// ä»…è®¾ç½®TCS_BUTTONSæ—¶æœ‰æ•ˆ
 	/// </summary>
-	/// <param name="bAllTab">ÈôÎªTRUE£¬ÔòÖØÖÃËùÓĞÏî£¬ÈôÎªFALSE£¬ÔòÖØÖÃ³ıµ±Ç°Ò³ÃæÖ®ÍâµÄËùÓĞÏî</param>
+	/// <param name="bAllTab">è‹¥ä¸ºTRUEï¼Œåˆ™é‡ç½®æ‰€æœ‰é¡¹ï¼Œè‹¥ä¸ºFALSEï¼Œåˆ™é‡ç½®é™¤å½“å‰é¡µé¢ä¹‹å¤–çš„æ‰€æœ‰é¡¹</param>
 	void DeselectAll(BOOL bAllTab)
 	{
 		SendMsg(TCM_DESELECTALL, bAllTab, 0);

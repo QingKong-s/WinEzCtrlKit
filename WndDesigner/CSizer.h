@@ -1,4 +1,4 @@
-#pragma once
+Ôªø#pragma once
 #include "CApp.h"
 #include "..\eck\CBk.h"
 
@@ -30,12 +30,12 @@ private:
 
 	static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 public:
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override;
+	
+	ECK_CWND_CREATE;
 
 	EckInline void SetWindowProc(WNDPROC pfnWndProc)
 	{
-		EckDbgPrint(L"CSizerBlock::SetWindowProc ≤ª÷ß≥÷");
+		EckDbgPrint(L"CSizerBlock::SetWindowProc ‰∏çÊîØÊåÅ");
 		return;
 	}
 

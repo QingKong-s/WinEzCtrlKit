@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CMenu.h ： 菜单
+*
+* Copyright(C) 2023 QingKong
+*/
+#pragma once
 #include "ECK.h"
 #include "CRefStr.h"
 #include "CRefBin.h"
@@ -175,7 +182,12 @@ public:
 		return hMenu;
 	}
 
-	EckInline HMENU GetHMenu() const { return m_hMenu; }
+	[[nodiscard]] EckInline HMENU Detach()
+	{
+		return Attach(NULL);
+	}
+
+	[[nodiscard]] EckInline HMENU GetHMenu() const { return m_hMenu; }
 
 	EckInline BOOL AppendItem(PCWSTR pszText, UINT uID, UINT uFlags = 0u)
 	{
@@ -276,12 +288,12 @@ public:
 		return GetMenuInfo(m_hMenu, pmi);
 	}
 
-	EckInline int GetItemCount()
+	[[nodiscard]] EckInline int GetItemCount()
 	{
 		return GetMenuItemCount(m_hMenu);
 	}
 
-	EckInline UINT GetItemID(int idx)
+	[[nodiscard]] EckInline UINT GetItemID(int idx)
 	{
 		return GetMenuItemID(m_hMenu, idx);
 	}
@@ -296,12 +308,12 @@ public:
 		return GetMenuItemRect(hWnd, m_hMenu, idx, prc);
 	}
 
-	EckInline UINT GetItemState(UINT uPos, BOOL bPosition = FALSE)
+	[[nodiscard]] EckInline UINT GetItemState(UINT uPos, BOOL bPosition = FALSE)
 	{
 		return GetMenuState(m_hMenu, uPos, PosBool2UINT(bPosition));
 	}
 
-	EckInline CRefStrW GetItemString(UINT uPos, BOOL bPosition = FALSE)
+	[[nodiscard]] EckInline CRefStrW GetItemString(UINT uPos, BOOL bPosition = FALSE)
 	{
 		MENUITEMINFOW mii;
 		mii.cbSize = sizeof(mii);
@@ -329,7 +341,7 @@ public:
 		return GetItemInfo(&mii, uPos, bPosition);
 	}
 
-	EckInline HMENU GetSubMenu(int idx)
+	[[nodiscard]] EckInline HMENU GetSubMenu(int idx)
 	{
 		return ::GetSubMenu(m_hMenu, idx);
 	}
@@ -380,12 +392,12 @@ public:
 		return InsertMenuItemW(m_hMenu, uPos, bPosition, pmii);
 	}
 
-	EckInline BOOL IsMenu()
+	[[nodiscard]] EckInline BOOL IsMenu()
 	{
 		return ::IsMenu(m_hMenu);
 	}
 
-	EckInline int HitTest(HWND hWnd, POINT pt)
+	[[nodiscard]] EckInline int HitTest(HWND hWnd, POINT pt)
 	{
 		return MenuItemFromPoint(hWnd, m_hMenu, pt);
 	}

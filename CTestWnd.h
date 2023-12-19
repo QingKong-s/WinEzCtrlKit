@@ -27,12 +27,13 @@
 #include "eck\CFlowLayout.h"
 #include "eck\SystemHelper.h"
 #include "eck\CAnimationBox.h"
+#include "eck\CForm.h"
 
 #define WCN_TEST L"TesttttttttttttttWndddddddddd"
 
 using eck::PCVOID;
 
-class CTestWnd :public eck::CWnd
+class CTestWnd :public eck::CForm
 {
 private:
 	eck::CPushButton m_Btn;
@@ -110,14 +111,21 @@ public:
 		//FILEVERINFO fvi{};
 		//GetFileVerInfo(LR"(C:\Program Files\bilibili\哔哩哔哩.exe)", fvi);
 
+		//eck::CRefBin rb;
+		//KeyboardEvent(VK_CONTROL, 'A');
 
 
+		CRefBin rbOlePic = ReadInFile(LR"(E:\Desktop\Temp\111111.bmp)");
+		IStream* pStream = new CStreamView(rbOlePic);
+		IPicture* pPic;
+		auto hr=OleLoadPicture(pStream, rbOlePic.Size(), TRUE, IID_PPV_ARGS(&pPic));
+		EckDbgPrintFormatMessage(hr);
 		//EckDbgBreak();
 	}
 
 	BOOL PreTranslateMessage(const MSG& Msg) override
 	{
-		return CWnd::PreTranslateMessage(Msg);
+		return CForm::PreTranslateMessage(Msg);
 	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -182,12 +190,17 @@ public:
 		return 0;
 		case WM_COMMAND:
 		{
-			//if ((HWND)lParam == m_Btn.GetHWND() && HIWORD(wParam) == BN_CLICKED)
-			//	EckDbgPrintWndMap();
+			if ((HWND)lParam == m_Btn.GetHWND() && HIWORD(wParam) == BN_CLICKED)
+			{
+				BkColor = eck::Colorref::DeepGray;
+				EscClose = TRUE;
+				TotalMove = TRUE;
+				Redraw();
+			}
 		}
 		break;
 		}
-		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
+		return CForm::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
 	static ATOM RegisterWndClass()
@@ -203,11 +216,10 @@ public:
 		return RegisterClassW(&wc);
 	}
 
-	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	ECK_CWND_CREATE
 	{
 		m_hWnd = IntCreate(dwExStyle, WCN_TEST, pszText, dwStyle,
-			x, y, cx, cy, hParent, eck::i32ToP<HMENU>(nID), eck::g_hInstance, this);
+			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, this);
 		EckDbgPrintWndMap();
 		return m_hWnd;
 	}

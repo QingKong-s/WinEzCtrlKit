@@ -47,12 +47,11 @@ private:
 public:
 	ATOM RegisterWndClass(HINSTANCE hInstance);
 
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
+	ECK_CWND_CREATE
 	{
 		dwStyle |= WS_CHILD;
 		m_hWnd = CreateWindowExW(dwExStyle, WCN_LUNARCALENDAR, pszText, dwStyle,
-			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), g_hInstance, this);
+			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
 		
 		return m_hWnd;
 	}

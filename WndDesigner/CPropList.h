@@ -244,12 +244,12 @@ public:
 		RefreshCount();
 	}
 
-	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	EckInline 
+	ECK_CWND_CREATE
 	{
 		dwStyle |= (WS_CHILD | LVS_OWNERDATA | LVS_SINGLESEL | LVS_SHOWSELALWAYS);
 		m_hWnd = CreateWindowExW(dwExStyle, WC_LISTVIEWW, pszText, dwStyle,
-			x, y, cx, cy, hParent, eck::i32ToP<HMENU>(nID), NULL, NULL);
+			x, y, cx, cy, hParent, eck::hMenu, NULL, NULL);
 
 		UpdateDpiSize();
 

@@ -1,8 +1,14 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* CIniFile.h £º Unicode±àÂëINIÎÄ¼ş¶ÁĞ´
+* CIniFile.h ï¼š Unicodeç¼–ç INIæ–‡ä»¶è¯»å†™
 *
 * Copyright(C) 2023 QingKong
 */
 #pragma once
+#include "Utility.h"
+
+class CIniFile
+{
+
+};

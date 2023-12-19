@@ -125,7 +125,7 @@ public:
 	}
 
 	/// <summary>
-	/// 创建自大括号初始化器
+	/// 创建自初始化列表
 	/// </summary>
 	/// <param name="x"></param>
 	explicit CRefBinT(std::initializer_list<BYTE> x)
@@ -438,7 +438,7 @@ public:
 	EckInline void MakeEmpty(size_t cbSize, size_t posStart = 0u)
 	{
 		ReSizeExtra(cbSize + posStart);
-		RtlZeroMemory(Data() + posStart, cbSize);
+		ZeroMemory(Data() + posStart, cbSize);
 	}
 
 	/// <summary>
@@ -503,9 +503,9 @@ public:
 	/// 从左闭右开区间创建字节集
 	/// </summary>
 	template<class TAlloc1 = TAlloc>
-	EckInline CRefBinT<TAlloc> SubBin(size_t posBegin, size_t posEnd)
+	EckInline CRefBinT<TAlloc1> SubBin(size_t posBegin, size_t posEnd)
 	{
-		return CRefBinT<TAlloc>(Data() + posBegin, posEnd - posBegin);
+		return CRefBinT<TAlloc1>(Data() + posBegin, posEnd - posBegin);
 	}
 
 	EckInline void Insert(size_t pos, PCVOID p, size_t cb)
@@ -568,7 +568,7 @@ CRefBinT<TAlloc> operator+(const CRefBinT<TAlloc1>& rb1, const CRefBinT<TAlloc2>
 
 CRefStrW BinToFriendlyString(PCBYTE pData, SIZE_T cb, int iType);
 template<class TAlloc>
-EckInline void DbgPrint(const CRefBinT<TAlloc>& rb,int iType=1, BOOL bNewLine = TRUE)
+EckInline void DbgPrint(const CRefBinT<TAlloc>& rb, int iType = 1, BOOL bNewLine = TRUE)
 {
 	auto rs = BinToFriendlyString(rb.Data(), rb.Size(), iType);
 	OutputDebugStringW(rs.Data());

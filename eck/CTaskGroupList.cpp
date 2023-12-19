@@ -281,7 +281,7 @@ LRESULT CALLBACK CTaskGroupList::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wPara
 }
 
 HWND CTaskGroupList::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle, 
-	int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData)
+	int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData)
 {
 	dwStyle |= (WS_CHILD | LVS_NOCOLUMNHEADER);
 	dwStyle &= ~(LVS_OWNERDATA | LVS_OWNERDRAWFIXED);
@@ -293,7 +293,7 @@ HWND CTaskGroupList::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	}
 	m_hParent = hParent;
 	m_hWnd = CreateWindowExW(dwExStyle, WC_LISTVIEWW, pszText, dwStyle,
-		x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+		x, y, cx, cy, hParent, hMenu, NULL, NULL);
 
 	SetExplorerTheme();
 

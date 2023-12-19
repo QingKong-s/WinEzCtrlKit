@@ -239,8 +239,7 @@ public:
 		DestroyWindow(m_hToolTip);
 	}
 
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
+	ECK_CWND_CREATE
 	{
 		dwStyle |= WS_CHILD;
 
@@ -256,7 +255,7 @@ public:
 
 		
 		m_hWnd = CreateWindowExW(dwExStyle, WC_LISTBOXW, NULL, dwStyle,
-			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+			x, y, cx, cy, hParent, hMenu, NULL, NULL);
 		m_SM.AddSubclass(m_hWnd, this);
 		m_hParent = hParent;
 		m_SMRef.AddRef(hParent, ObjRecorderRefPlaceholderVal);

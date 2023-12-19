@@ -75,12 +75,12 @@ private:
 public:
 	static ATOM RegisterWndClass(HINSTANCE hInstance);
 
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	
+	ECK_CWND_CREATE
 	{
 		dwStyle |= WS_CHILD;
-		m_hWnd = CreateWindowExW(dwExStyle, WCN_TABHEADER, pszText, dwStyle,
-			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), g_hInstance, this);
+		m_hWnd = IntCreate(dwExStyle, WCN_TABHEADER, pszText, dwStyle,
+			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
 		return m_hWnd;
 	}
 

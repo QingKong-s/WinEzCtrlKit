@@ -52,8 +52,51 @@ public:
 		ToUpperCase
 	};
 
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override;
+	
+	ECK_CWND_CREATE
+	{
+		if (pData)
+	{
+		auto pBase = (const CREATEDATA_STD*)pData;
+		auto p = (const CREATEDATA_EDIT*)SkipBaseData(pData);
+		if (pBase->iVer_Std != DATAVER_STD_1)
+		{
+			EckDbgBreak();
+			return NULL;
+		}
+
+		BOOL bVisible = IsBitSet(pBase->dwStyle, WS_VISIBLE);
+		dwStyle = pBase->dwStyle & ~WS_VISIBLE;
+
+		m_hWnd = CreateWindowExW(pBase->dwExStyle, WC_EDITW, pBase->Text(), dwStyle,
+			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+
+		switch (p->iVer)
+		{
+		case DATAVER_EDIT_1:
+			SetPasswordChar(p->chPassword);
+			SetTransformMode((TransMode)p->eTransMode);
+			SetSel(p->iSelStart, p->iSelEnd);
+			SetMargins(p->iLeftMargin, p->iRightMargin);
+			SetCueBanner(p->CueBanner(), TRUE);
+			SetLimitText(p->cchMax);
+			break;
+		default:
+			EckDbgBreak();
+			break;
+		}
+		if (bVisible)
+			ShowWindow(m_hWnd, SW_SHOWNOACTIVATE);
+	}
+	else
+	{
+		dwStyle |= WS_CHILD;
+
+		m_hWnd = CreateWindowExW(dwExStyle, WC_EDITW, pszText, dwStyle,
+			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+	}
+	return m_hWnd;
+	}
 
 	void SerializeData(CRefBin& rb) override
 	{
@@ -93,7 +136,25 @@ public:
 	/// <param name="pt">坐标，相对客户区</param>
 	/// <param name="piPosInLine">接收行中位置变量，可为NULL，失败设置为-1</param>
 	/// <returns>返回字符位置，失败返回-1</returns>
-	int CharFromPos(POINT pt, int* piPosInLine = NULL);
+	int CharFromPos(POINT pt, int* piPosInLine = NULL)
+	{
+		int iPos;
+		DWORD dwRet = (DWORD)SendMsg(EM_CHARFROMPOS, 0, MAKELPARAM(pt.x, pt.y));
+		USHORT usPos = LOWORD(dwRet);
+		if (usPos == 65535)
+			iPos = -1;
+		else
+			iPos = usPos;
+		if (piPosInLine)
+		{
+			usPos = HIWORD(dwRet);
+			if (usPos == 65535)
+				*piPosInLine = -1;
+			else
+				*piPosInLine = usPos;
+		}
+		return iPos;
+	}
 
 	EckInline void EmptyUndoBuffer()
 	{
@@ -155,7 +216,18 @@ public:
 	/// </summary>
 	/// <param name="iPos">行中字符位置</param>
 	/// <returns>文本</returns>
-	CRefStrW GetLine(int iPos);
+	CRefStrW GetLine(int iPos)
+	{
+		CRefStrW rs;
+		int cch = (int)SendMsg(EM_LINELENGTH, iPos, 0);
+		if (cch)
+		{
+			rs.ReSize(cch);
+			*(WORD*)rs.Data() = cch;// 发送消息前将第一个WORD设置为缓冲区大小
+			SendMsg(EM_GETLINE, iPos, (LPARAM)rs.Data());
+		}
+		return rs;
+	}
 
 	int GetLine(int idxLine, PWSTR pszBuf, int cchMax)
 	{
@@ -407,7 +479,17 @@ public:
 		SendMsg(EM_SETSEL, 0, -1);
 	}
 
-	void SetSelPos(int iSelPos);
+	void SetSelPos(int iSelPos)
+	{
+		DWORD dwStart, dwEnd;
+		SendMsg(EM_GETSEL, (WPARAM)&dwStart, (LPARAM)&dwEnd);
+		DWORD dwLen;
+		if (dwStart > dwEnd)
+			dwLen = dwStart - dwEnd;
+		else
+			dwLen = dwEnd - dwStart;
+		SendMsg(EM_SETSEL, iSelPos, iSelPos + dwLen);
+	}
 
 	EckInline int GetSelPos()
 	{
@@ -423,7 +505,17 @@ public:
 		SendMsg(EM_SETSEL, dwStart, dwStart + iSelNum);
 	}
 
-	int GetSelNum();
+	int GetSelNum()
+	{
+		DWORD dwStart, dwEnd;
+		SendMsg(EM_GETSEL, (WPARAM)&dwStart, (LPARAM)&dwEnd);
+		DWORD dwLen;
+		if (dwStart > dwEnd)
+			dwLen = dwStart - dwEnd;
+		else
+			dwLen = dwEnd - dwStart;
+		return (int)dwLen;
+	}
 
 	EckInline void SetSelEnd(int iSelEnd)
 	{
@@ -444,11 +536,69 @@ public:
 		SendMsg(EM_REPLACESEL, TRUE, (LPARAM)pszText);
 	}
 
-	int GetSelLen();
+	int GetSelLen()
+	{
+		DWORD dwStart, dwEnd;
+		SendMsg(EM_GETSEL, (WPARAM)&dwStart, (LPARAM)&dwEnd);
+		DWORD dwLen;
+		if (dwStart > dwEnd)
+			dwLen = dwStart - dwEnd;
+		else
+			dwLen = dwEnd - dwStart;
+		return dwLen;
+	}
 
-	CRefStrW GetSelText();
+	CRefStrW GetSelText()
+	{
+		CRefStrW rs;
+		DWORD dwStart, dwEnd;
+		SendMsg(EM_GETSEL, (WPARAM)&dwStart, (LPARAM)&dwEnd);
+		DWORD dwLen;
+		if (dwStart > dwEnd)
+		{
+			dwLen = dwStart - dwEnd;
+			std::swap(dwStart, dwEnd);
+		}
+		else
+			dwLen = dwEnd - dwStart;
+		if (!dwLen)
+			return rs;
+		rs.ReSize(dwLen);
+		auto psz = (PWSTR)_malloca((dwEnd + 1) * sizeof(WCHAR));
+		EckAssert(psz);
+		GetWindowTextW(m_hWnd, psz, dwEnd + 1);
+		wcscpy(rs.Data(), psz + dwStart);
+		_freea(psz);
+		return rs;
+	}
 
-	int GetSelText(PWSTR pszBuf, int cchMax);
+	int GetSelText(PWSTR pszBuf, int cchMax)
+	{
+		DWORD dwStart, dwEnd;
+		SendMsg(EM_GETSEL, (WPARAM)&dwStart, (LPARAM)&dwEnd);
+		DWORD dwLen;
+		if (dwStart > dwEnd)
+		{
+			dwLen = dwStart - dwEnd;
+			std::swap(dwStart, dwEnd);
+		}
+		else
+			dwLen = dwEnd - dwStart;
+		if (!dwLen)
+			return 0;
+		auto psz = (PWSTR)_malloca((dwEnd + 1) * sizeof(WCHAR));
+		EckAssert(psz);
+		GetWindowTextW(m_hWnd, psz, dwEnd + 1);
+		wcsncpy(pszBuf, psz + dwStart, cchMax);
+		_freea(psz);
+		if ((int)dwLen > cchMax)
+		{
+			*(pszBuf + cchMax) = L'\0';
+			return cchMax;
+		}
+		else
+			return dwLen;
+	}
 
 	EckInline void AddText(PCWSTR pszText)
 	{
@@ -456,9 +606,29 @@ public:
 		SendMsg(EM_REPLACESEL, FALSE, (LPARAM)pszText);
 	}
 
-	void SetTransformMode(TransMode iTransformMode);
+	void SetTransformMode(TransMode iTransformMode)
+	{
+		DWORD dwStyle;
+		switch (iTransformMode)
+		{
+		case TransMode::None:dwStyle = 0; break;
+		case TransMode::ToLowerCase:dwStyle = ES_LOWERCASE; break;
+		case TransMode::ToUpperCase:dwStyle = ES_UPPERCASE; break;
+		default:assert(FALSE);
+		}
+		ModifyStyle(dwStyle, ES_LOWERCASE | ES_UPPERCASE);
+	}
 
-	TransMode GetTransformMode();
+	TransMode GetTransformMode()
+	{
+		DWORD dwStyle = GetStyle();
+		if (IsBitSet(dwStyle, ES_LOWERCASE))
+			return TransMode::ToLowerCase;
+		else if (IsBitSet(dwStyle, ES_UPPERCASE))
+			return TransMode::ToUpperCase;
+		else
+			return TransMode::None;
+	}
 
 	/// <summary>
 	/// 置失去焦点时隐藏选择。
