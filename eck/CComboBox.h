@@ -28,12 +28,12 @@ public:
 	ECK_CWNDPROP_STYLE(Sort, CBS_SORT);
 	ECK_CWNDPROP_STYLE(UpperCase, CBS_UPPERCASE);
 public:
-	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	EckInline 
+	ECK_CWND_CREATE
 	{
 		dwStyle |= WS_CHILD;
 		m_hWnd = IntCreate(0, WC_COMBOBOXW, NULL, dwStyle,
-			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+			x, y, cx, cy, hParent, hMenu, NULL, NULL);
 		return m_hWnd;
 	}
 

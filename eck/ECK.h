@@ -48,6 +48,8 @@
 
 #define ECKPROP(getter, setter) __declspec(property(get = getter, put = setter))
 
+#define ECKPROP_R(getter) __declspec(property(get = getter))
+
 // 计次循环
 #define EckCounter(c, Var) for(std::remove_cvref_t<decltype(c)> Var = 0; Var < (c); ++Var)
 

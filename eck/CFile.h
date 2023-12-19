@@ -2,20 +2,25 @@
 #include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
+enum
+{
+	FCD_COVER = CREATE_ALWAYS,				// 若文件已存在则清除其数据，若不存在则创建
+	FCD_NOCOVER = OPEN_ALWAYS,				// 若文件已存在则打开，若不存在则创建
+	FCD_ONLYNEW = CREATE_NEW,				// 若文件已存在则失败，若不存在则创建
+	FCD_ONLYEXISTING = OPEN_EXISTING,		// 若文件已存在则打开，若不存在则失败
+	FCD_COVEREXISTING = TRUNCATE_EXISTING,	// 若文件已存在则清除其数据，若不存在则失败
+};
 class CFile
 {
-public:
-	enum Mode
-	{
-		ModeCover = CREATE_ALWAYS,				// 若文件已存在则清除其数据，若不存在则创建
-		ModeNoCover = OPEN_ALWAYS,				// 若文件已存在则打开，若不存在则创建
-		ModeNew = CREATE_NEW,					// 若文件已存在则失败，若不存在则创建
-		ModeExisting = OPEN_EXISTING,			// 若文件已存在则打开，若不存在则失败
-		ModeCoverExisting = TRUNCATE_EXISTING,	// 若文件已存在则清除其数据，若不存在则失败
-	};
 private:
 	HANDLE m_hFile = INVALID_HANDLE_VALUE;
 public:
+	CFile() = default;
+	CFile(PCWSTR pszFile, DWORD dwMode = OPEN_EXISTING, DWORD dwAccess = GENERIC_READ,
+		DWORD dwShareMode = 0, DWORD dwAttr = FILE_ATTRIBUTE_NORMAL)
+		:m_hFile{ CreateFileW(pszFile, dwAccess, dwShareMode, NULL, dwMode, dwAttr, NULL) }
+	{}
+
 	~CFile()
 	{
 		Close();
@@ -142,10 +147,40 @@ public:
 		Close();
 	}
 
-	void Close();
+	void Close()
+	{
+		if (m_hMapping && m_pFile)
+		{
+			UnmapViewOfFile(m_pFile);
+			CloseHandle(m_hMapping);
+			m_File.Close();
+			m_pFile = NULL;
+			m_hMapping = NULL;
+		}
+	}
 
-	void* Open(PCWSTR pszFile, DWORD dwMap = FILE_MAP_READ, DWORD dwProtect = PAGE_READONLY, DWORD dwMode = OPEN_EXISTING,
-		DWORD dwAccess = GENERIC_READ, DWORD dwShareMode = 0, DWORD dwAttr = FILE_ATTRIBUTE_NORMAL);
+	void* Open(PCWSTR pszFile, DWORD dwMap = FILE_MAP_READ, DWORD dwProtect = PAGE_READONLY,
+		DWORD dwMode = OPEN_EXISTING, DWORD dwAccess = GENERIC_READ,
+		DWORD dwShareMode = 0, DWORD dwAttr = FILE_ATTRIBUTE_NORMAL)
+	{
+		if (m_File.Open(pszFile, dwMode, dwAccess, dwShareMode, dwAttr) == INVALID_HANDLE_VALUE)
+			return NULL;
+		DWORD dwSize = m_File.GetSize32();
+		m_hMapping = CreateFileMappingW(m_File.GetHandle(), NULL, dwProtect, 0, dwSize, NULL);
+		if (!m_hMapping)
+		{
+			m_File.Close();
+			return NULL;
+		}
+		m_pFile = MapViewOfFile(m_hMapping, dwMap, 0, 0, dwSize);
+		if (!m_hMapping)
+		{
+			CloseHandle(m_hMapping);
+			m_File.Close();
+			return NULL;
+		}
+		return m_pFile;
+	}
 
 	EckInline CFile& GetFile()
 	{
@@ -171,23 +206,58 @@ private:
 	void* m_pFile = NULL;
 public:
 	CMappingFile2() = delete;
-	CMappingFile2(CFile& File) : m_File(File)
-	{
-
-	}
+	CMappingFile2(CFile& File) : m_File(File) {}
 
 	~CMappingFile2()
 	{
-		Close();
+#ifdef _DEBUG
+		if (m_hMapping)
+		{
+			EckDbgPrintWithPos(L"CMappingFile2没有调用Close()");
+			EckDbgBreak();
+		}
+#endif
 	}
 
-	void Close();
+	void Close()
+	{
+		if (m_hMapping && m_pFile)
+		{
+			UnmapViewOfFile(m_pFile);
+			CloseHandle(m_hMapping);
+			m_pFile = NULL;
+			m_hMapping = NULL;
+		}
+	}
 
-	void* Create(DWORD dwMap = FILE_MAP_READ, DWORD dwProtect = PAGE_READONLY);
+	void* Create(DWORD dwMap = FILE_MAP_READ, DWORD dwProtect = PAGE_READONLY)
+	{
+		DWORD dwSize = m_File.GetSize32();
+		m_hMapping = CreateFileMappingW(m_File.GetHandle(), NULL, dwProtect, 0, dwSize, NULL);
+		if (!m_hMapping)
+		{
+			m_File.Close();
+			return NULL;
+		}
+		m_pFile = MapViewOfFile(m_hMapping, dwMap, 0, 0, dwSize);
+		if (!m_hMapping)
+		{
+			CloseHandle(m_hMapping);
+			m_File.Close();
+			return NULL;
+		}
+		return m_pFile;
+	}
 
 	EckInline CFile& GetFile()
 	{
 		return m_File;
+	}
+
+	EckInline void SetFile(CFile& File)
+	{
+		EckAssert(!m_hMapping);
+		m_File = File;
 	}
 
 	EckInline HANDLE GetHMapping()

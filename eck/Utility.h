@@ -31,7 +31,7 @@
 ECK_NAMESPACE_BEGIN
 namespace Colorref
 {
-	static constexpr COLORREF
+	inline constexpr COLORREF
 		Red               = 0x0000FF,// 红色
 		Green             = 0x00FF00,// 绿色
 		Blue              = 0xFF0000,// 蓝色
@@ -249,7 +249,7 @@ struct CMemReader
 	}
 };
 
-class IStreamView :public IStream
+class CStreamView :public IStream
 {
 private:
 	ULONG m_cRef = 1;
@@ -258,7 +258,17 @@ private:
 	PCBYTE m_pSeek = NULL;
 	SIZE_T m_cbSize = 0u;
 public:
-	IStreamView(PCVOID p, SIZE_T cb) :m_pMem{ (PCBYTE)p }, m_cbSize{ cb }, m_pSeek{ NULL } {}
+	CStreamView() = default;
+	CStreamView(PCVOID p, SIZE_T cb)
+		:m_pMem{ (PCBYTE)p }, m_cbSize{ cb }, m_pSeek{ (PCBYTE)p } {}
+
+	template<class TAlloc>
+	CStreamView(const CRefBinT<TAlloc>& rb)
+		: m_pMem{ rb.Data() }, m_cbSize{ rb.Size() }, m_pSeek{ rb.Data() } {}
+
+	template<class T, class TAlloc>
+	CStreamView(const std::vector<T, TAlloc>& v)
+		: m_pMem{ (PCBYTE)v.data() }, m_cbSize{ v.size() * sizeof(T) }, m_pSeek{ (PCBYTE)v.data() } {}
 
 	void SetPointer(PCVOID p, SIZE_T cb)
 	{
@@ -271,8 +281,8 @@ public:
 	{
 		const QITAB qit[]
 		{
-			QITABENT(IStreamView, IStream),
-			QITABENT(IStreamView, ISequentialStream),
+			QITABENT(CStreamView, IStream),
+			QITABENT(CStreamView, ISequentialStream),
 			{}
 		};
 
@@ -306,6 +316,7 @@ public:
 			hr = S_FALSE;
 		}
 		memcpy(pv, m_pSeek, cb);
+		*pcbRead = cb;
 		return hr;
 	}
 
@@ -417,7 +428,7 @@ struct CMAllocDeleter
 /// <param name="pCurr">当前地址</param>
 /// <param name="cbAlign">对齐尺寸</param>
 /// <returns>当前地址到下一对齐边界的距离，如果当前地址已经落在对齐边界上，则返回0</returns>
-constexpr EckInline SIZE_T CalcNextAlignBoundaryDistance(const void* pStart, const void* pCurr, SIZE_T cbAlign)
+EckInline constexpr SIZE_T CalcNextAlignBoundaryDistance(const void* pStart, const void* pCurr, SIZE_T cbAlign)
 {
 	SIZE_T uDistance = (SIZE_T)pCurr - (SIZE_T)pStart;
 	return (((uDistance - 1u) / cbAlign + 1u) * cbAlign - uDistance);
@@ -431,7 +442,7 @@ constexpr EckInline SIZE_T CalcNextAlignBoundaryDistance(const void* pStart, con
 /// <param name="cbAlign">对齐尺寸</param>
 /// <returns>步进后的指针，如果当前指针已经落在对齐边界上，则指针不变</returns>
 template<class T>
-constexpr EckInline const T* StepToNextAlignBoundary(const T* pStart, const T* pCurr, SIZE_T cbAlign)
+EckInline constexpr const T* StepToNextAlignBoundary(const T* pStart, const T* pCurr, SIZE_T cbAlign)
 {
 	return (const T*)((BYTE*)pCurr + CalcNextAlignBoundaryDistance(pStart, pCurr, cbAlign));
 }
@@ -444,19 +455,19 @@ constexpr EckInline const T* StepToNextAlignBoundary(const T* pStart, const T* p
 /// <param name="cbAlign">对齐尺寸</param>
 /// <returns>步进后的指针，如果当前指针已经落在对齐边界上，则指针不变</returns>
 template<class T>
-constexpr EckInline T* StepToNextAlignBoundary(T* pStart, T* pCurr, SIZE_T cbAlign)
+EckInline constexpr T* StepToNextAlignBoundary(T* pStart, T* pCurr, SIZE_T cbAlign)
 {
 	return (T*)((BYTE*)pCurr + CalcNextAlignBoundaryDistance(pStart, pCurr, cbAlign));
 }
 
 template<class T>
-constexpr EckInline PCVOID PtrSkipType(const T* p)
+EckInline constexpr PCVOID PtrSkipType(const T* p)
 {
 	return (PCVOID)((PCBYTE)p + sizeof(T));
 }
 
 template<class T>
-constexpr EckInline void* PtrSkipType(T* p)
+EckInline constexpr void* PtrSkipType(T* p)
 {
 	return (void*)((PCBYTE)p + sizeof(T));
 }
@@ -499,13 +510,13 @@ EckInline constexpr ARGB ColorrefToARGB(COLORREF cr, BYTE byAlpha = 0xFF)
 }
 
 template<class T, class U>
-constexpr EckInline T i32ToP(U i)
+EckInline constexpr T i32ToP(U i)
 {
 	return (T)((ULONG_PTR)i);
 }
 
 template<class T, class U>
-constexpr EckInline T pToI32(U p)
+EckInline constexpr T pToI32(U p)
 {
 	return (T)((ULONG_PTR)p);
 }
@@ -531,7 +542,7 @@ EckInline BOOL operator<(const FILETIME& ft1, const FILETIME& ft2)
 }
 
 template<class T1, class T2>
-constexpr EckInline BOOL IsBitSet(T1 dw1, T2 dw2)
+EckInline constexpr BOOL IsBitSet(T1 dw1, T2 dw2)
 {
 	return (dw1 & dw2) == dw2;
 }
@@ -599,7 +610,33 @@ EckInline void ClientToScreen(HWND hWnd, RECT* prc)
 	::ClientToScreen(hWnd, ((POINT*)prc) + 1);
 }
 
-RECT MakeRect(POINT pt1, POINT pt2);
+inline constexpr RECT MakeRect(POINT pt1, POINT pt2)
+{
+	RECT rc;
+	if (pt1.x >= pt2.x)
+	{
+		rc.left = pt2.x;
+		rc.right = pt1.x;
+	}
+	else
+	{
+		rc.left = pt1.x;
+		rc.right = pt2.x;
+	}
+
+	if (pt1.y >= pt2.y)
+	{
+		rc.top = pt2.y;
+		rc.bottom = pt1.y;
+	}
+	else
+	{
+		rc.top = pt1.y;
+		rc.bottom = pt2.y;
+	}
+
+	return rc;
+}
 
 EckInline float RoundToF(float fVal, int cDigits)
 {
@@ -628,11 +665,11 @@ EckInline int Rand(int iMin = INT_MIN, int iMax = INT_MAX)
 	return rand() % ((LONGLONG)iMax - (LONGLONG)iMin + 1ll) + (LONGLONG)iMin;
 }
 
-EckInline BOOL IsRectsIntersect(const RECT* prc1, const RECT* prc2)
+EckInline constexpr BOOL IsRectsIntersect(const RECT&rc1, const RECT&rc2)
 {
 	return
-		std::max(prc1->left, prc2->left) < std::min(prc1->right, prc2->right) &&
-		std::max(prc1->top, prc2->top) < std::min(prc1->bottom, prc2->bottom);
+		std::max(rc1.left, rc2.left) < std::min(rc1.right, rc2.right) &&
+		std::max(rc1.top, rc2.top) < std::min(rc1.bottom, rc2.bottom);
 }
 
 template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = CAllocatorProcHeap<CHAR, int>>
@@ -681,9 +718,9 @@ EckInline constexpr SIZE_T Cch2Cb(int cch)
 	return (cch + 1) * sizeof(WCHAR);
 }
 
-EckInline D2D1_RECT_F MakeD2DRcF(const RECT& rc)
+EckInline constexpr D2D1_RECT_F MakeD2DRcF(const RECT& rc)
 {
-	return D2D1::RectF((float)rc.left, (float)rc.top, (float)rc.right, (float)rc.bottom);
+	return D2D1_RECT_F{ (float)rc.left, (float)rc.top, (float)rc.right, (float)rc.bottom };
 }
 
 EckInline constexpr RECT MakeRect(const D2D1_RECT_F& rc)
@@ -724,14 +761,14 @@ EckInline constexpr HRESULT HResultFromBool(BOOL b)
 }
 
 template<class T>
-EckInline T Abs(T x)
+EckInline constexpr T Abs(T x)
 {
 	if (x >= 0) return x;
 	else return -x;
 }
 
 template<class T>
-EckInline T SetSign(T x, T iSign)
+EckInline constexpr T SetSign(T x, T iSign)
 {
 	if (iSign > 0) return Abs(x);
 	if (iSign < 0) return -Abs(x);

@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Utility.h"
 #include "CException.h"
+#include "CFile.h"
 
 #include <wbemcli.h>
 #include <comdef.h>
@@ -132,6 +133,7 @@ inline CRefBin ReadInFile(PCWSTR pszFile)
 	if (!ReadFile(hFile, rb.Data(), i64.LowPart, &dwRead, NULL))
 	{
 		EckDbgPrintFormatMessage(GetLastError());
+		CloseHandle(hFile);
 		return {};
 	}
 
@@ -206,8 +208,7 @@ Exit1:
 /// <param name="Var">查询结果</param>
 /// <param name="pWbemSrv">IWbemServices指针，使用此接口执行查询</param>
 /// <returns>错误代码</returns>
-inline HRESULT WmiQueryClassProp(PCWSTR pszWql, PCWSTR pszProp, VARIANT& Var,
-	IWbemServices* pWbemSrv)
+inline HRESULT WmiQueryClassProp(PCWSTR pszWql, PCWSTR pszProp, VARIANT& Var, IWbemServices* pWbemSrv)
 {
 	HRESULT hr;
 	IEnumWbemClassObject* pEnum;
@@ -480,5 +481,33 @@ inline BOOL GetFileVerInfo(PCWSTR pszFile, FILEVERINFO& fvi)
 
 	free(pBuf);
 	return TRUE;
+}
+
+namespace EckPriv___
+{
+	template<class T>
+	EckInline constexpr INPUT KeyboardEventGetArg(T wVk)
+	{
+		return INPUT{ .type = INPUT_KEYBOARD ,.ki = { static_cast<WORD>(wVk) } };
+	}
+}
+
+template<class...T>
+/// <summary>
+/// 模拟按键。
+/// 函数顺序按下参数中提供的键，然后倒序将它们放开
+/// </summary>
+/// <param name="wVk">虚拟键代码</param>
+/// <returns>SendInput的返回值</returns>
+inline UINT KeyboardEvent(T...wVk)
+{
+	INPUT Args[]{ EckPriv___::KeyboardEventGetArg(wVk)... };
+	INPUT input[ARRAYSIZE(Args) * 2];
+	memcpy(input, Args, sizeof(Args));
+	for (auto& e : Args)
+		e.ki.dwFlags = KEYEVENTF_KEYUP;
+	std::reverse(Args, Args + ARRAYSIZE(Args));
+	memcpy(input + ARRAYSIZE(Args), Args, sizeof(Args));
+	return SendInput(ARRAYSIZE(input), input, sizeof(INPUT));
 }
 ECK_NAMESPACE_END

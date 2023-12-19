@@ -242,44 +242,11 @@
     <ClCompile Include="eck\ECK.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CWnd.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CEdit.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CLabel.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\Utility.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
     <ClCompile Include="eck\CListBoxExt.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CListBox.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CCommDlg.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CDirBox.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
     <ClCompile Include="eck\CScrollBar.h">
       <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\WndHelper.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CLunarCalendar.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CChartPie.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\DlgHelper.cpp">
-      <Filter>ECK Src</Filter>
     </ClCompile>
     <ClCompile Include="eck\CTaskGroupList.cpp">
       <Filter>ECK Src</Filter>
@@ -287,22 +254,10 @@
     <ClCompile Include="eck\DesignerDef.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CForm.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
     <ClCompile Include="eck\CTabHeader.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CEditExt.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CFile.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
     <ClCompile Include="eck\CSplitBar.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CDialog.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
   </ItemGroup>

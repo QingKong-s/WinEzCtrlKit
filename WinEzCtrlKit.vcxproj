@@ -226,28 +226,13 @@
     <ClInclude Include="Win32Template.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="eck\CChartPie.cpp" />
-    <ClCompile Include="eck\CCommDlg.cpp" />
-    <ClCompile Include="eck\CDialog.cpp" />
-    <ClCompile Include="eck\CDirBox.cpp" />
-    <ClCompile Include="eck\CEdit.cpp" />
-    <ClCompile Include="eck\CEditExt.cpp" />
-    <ClCompile Include="eck\CFile.cpp" />
-    <ClCompile Include="eck\CForm.cpp" />
-    <ClCompile Include="eck\CLabel.cpp" />
-    <ClCompile Include="eck\CListBox.cpp" />
     <ClCompile Include="eck\CListBoxExt.cpp" />
-    <ClCompile Include="eck\CLunarCalendar.cpp" />
     <ClCompile Include="eck\CScrollBar.h" />
     <ClCompile Include="eck\CSplitBar.cpp" />
     <ClCompile Include="eck\CTabHeader.cpp" />
     <ClCompile Include="eck\CTaskGroupList.cpp" />
-    <ClCompile Include="eck\CWnd.cpp" />
     <ClCompile Include="eck\DesignerDef.cpp" />
-    <ClCompile Include="eck\DlgHelper.cpp" />
     <ClCompile Include="eck\ECK.cpp" />
-    <ClCompile Include="eck\Utility.cpp" />
-    <ClCompile Include="eck\WndHelper.cpp" />
     <ClCompile Include="Win32Template.cpp" />
   </ItemGroup>
   <ItemGroup>

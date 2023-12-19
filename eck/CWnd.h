@@ -45,6 +45,16 @@ struct DESIGNDATA_WND
 };
 #endif
 
+#define ECK_CWND_CREATE \
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle, \
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) \
+	{ \
+		return Create(pszText, dwStyle, dwExStyle, x, y, cx, cy, \
+			hParent, ::eck::i32ToP<HMENU>(nID), pData); \
+	} \
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle, \
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+
 class CWnd
 {
 public:
@@ -138,20 +148,11 @@ public:
 	DESIGNDATA_WND m_DDBase{};
 #endif
 
-	CWnd()
-	{
+	CWnd(){}
 
-	}
+	CWnd(HWND hWnd) :m_hWnd(hWnd){}
 
-	CWnd(HWND hWnd) :m_hWnd(hWnd)
-	{
-
-	}
-
-	virtual ~CWnd()
-	{
-
-	}
+	virtual ~CWnd(){}
 
 	virtual HWND Attach(HWND hWnd)
 	{
@@ -166,10 +167,17 @@ public:
 		return t;
 	}
 
-	virtual HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
 	{
-		assert(FALSE);
+		return Create(pszText, dwStyle, dwExStyle, x, y, cx, cy,
+			hParent, i32ToP<HMENU>(nID), pData);
+	}
+
+	virtual HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL)
+	{
+		EckDbgBreak();
 		return NULL;
 	}
 
@@ -236,7 +244,32 @@ public:
 			(((const CREATEDATA_STD*)p)->cchText + 1) * sizeof(WCHAR);
 	}
 
-	HWND ReCreate(EckOptNul(DWORD, dwNewStyle), EckOptNul(DWORD, dwNewExStyle), EckOptNul(RECT, rcPos));
+	HWND ReCreate(EckOptNul(DWORD, dwNewStyle), EckOptNul(DWORD, dwNewExStyle), EckOptNul(RECT, rcPos))
+	{
+		CRefBin rb{};
+		SerializeData(rb);
+		HWND hParent = GetParent(m_hWnd);
+		int iID = GetDlgCtrlID(m_hWnd);
+
+		if (!rcPos.has_value())
+		{
+			RECT rc;
+			GetWindowRect(m_hWnd, &rc);
+			ScreenToClient(hParent, &rc);
+			rcPos = rc;
+		}
+
+		auto pData = (CREATEDATA_STD*)rb.Data();
+		if (dwNewStyle.has_value())
+			pData->dwStyle = dwNewStyle.value();
+		if (dwNewExStyle.has_value())
+			pData->dwExStyle = dwNewExStyle.value();
+
+		DestroyWindow(m_hWnd);
+		return Create(NULL, 0, 0,
+			rcPos.value().left, rcPos.value().top, rcPos.value().right, rcPos.value().bottom,
+			hParent, iID, rb.Data());
+	}
 
 	EckInline HWND GetHWND() const { return m_hWnd; }
 
@@ -270,13 +303,85 @@ public:
 	/// 置边框类型
 	/// </summary>
 	/// <param name="iFrame">0 - 无边框  1 - 凹入式  2 - 凸出式  3 - 浅凹入式  4 - 镜框式  5 - 单线边框式</param>
-	void SetFrameType(int iFrame) const;
+	void SetFrameType(int iFrame) const
+	{
+		DWORD dwStyle = GetStyle() & ~WS_BORDER;
+		DWORD dwExStyle = GetExStyle()
+			& ~(WS_EX_WINDOWEDGE | WS_EX_STATICEDGE | WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE);
 
-	int GetFrameType() const;
+		switch (iFrame)
+		{
+		case 0: break;// 无边框
+		case 1: dwExStyle |= WS_EX_CLIENTEDGE; break;// 凹入式
+		case 2: dwExStyle |= (WS_EX_WINDOWEDGE | WS_EX_DLGMODALFRAME); break;// 凸出式
+		case 3: dwExStyle |= WS_EX_STATICEDGE; break;// 浅凹入式
+		case 4: dwExStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE); break;// 镜框式
+		case 5: dwStyle |= WS_BORDER; break;// 单线边框式
+		}
 
-	void SetScrollBar(int i) const;
+		SetStyle(dwStyle);
+		SetExStyle(dwExStyle);
+	}
 
-	int GetScrollBar() const;
+	int GetFrameType() const
+	{
+		const DWORD dwStyle = GetStyle();
+		const DWORD dwExStyle = GetExStyle();
+		if (IsBitSet(dwExStyle, WS_EX_DLGMODALFRAME))
+		{
+			if (IsBitSet(dwExStyle, WS_EX_CLIENTEDGE))
+				return 4;// 镜框式
+			if (IsBitSet(dwExStyle, WS_EX_WINDOWEDGE))
+				return 2;// 凸出式
+		}
+
+		if (IsBitSet(dwExStyle, WS_EX_CLIENTEDGE))
+			return 1;// 凹入式
+		if (IsBitSet(dwExStyle, WS_EX_STATICEDGE))
+			return 3;// 浅凹入式
+		if (IsBitSet(dwStyle, WS_BORDER))
+			return 5;// 单线边框式
+
+		return 0;// 无边框
+	}
+
+	void SetScrollBar(int i) const
+	{
+		switch (i)
+		{
+		case 0:
+			ShowScrollBar(m_hWnd, SB_VERT, FALSE);
+			ShowScrollBar(m_hWnd, SB_HORZ, FALSE);
+			break;
+		case 1:
+			ShowScrollBar(m_hWnd, SB_VERT, FALSE);
+			ShowScrollBar(m_hWnd, SB_HORZ, TRUE);
+			break;
+		case 2:
+			ShowScrollBar(m_hWnd, SB_VERT, TRUE);
+			ShowScrollBar(m_hWnd, SB_HORZ, FALSE);
+			break;
+		case 3:
+			ShowScrollBar(m_hWnd, SB_VERT, TRUE);
+			ShowScrollBar(m_hWnd, SB_HORZ, TRUE);
+			break;
+		}
+	}
+
+	int GetScrollBar() const
+	{
+		const BOOL bVSB = IsBitSet(GetWindowLongPtrW(m_hWnd, GWL_STYLE), WS_VSCROLL);
+		const BOOL bHSB = IsBitSet(GetWindowLongPtrW(m_hWnd, GWL_STYLE), WS_HSCROLL);
+		if (bVSB)
+			if (bHSB)
+				return 3;
+			else
+				return 2;
+		if (bHSB)
+			return 1;
+
+		return 0;
+	}
 
 	EckInline LRESULT SendMsg(UINT uMsg, WPARAM wParam, LPARAM lParam) const
 	{

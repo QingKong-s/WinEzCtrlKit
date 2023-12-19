@@ -12,11 +12,11 @@ private:
 	eck::CEzCDC m_mdcGridPoint{};
 	BOOL m_bRBtnDown = FALSE;
 
-	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	EckInline 
+	ECK_CWND_CREATE
 	{
 		m_hWnd = CreateWindowExW(dwExStyle, eck::WCN_BK, pszText, dwStyle,
-			x, y, cx, cy, hParent, eck::i32ToP<HMENU>(nID), eck::g_hInstance, NULL);
+			x, y, cx, cy, hParent, eck::hMenu, eck::g_hInstance, NULL);
 
 		int cxPointGap = eck::DpiScale(8, eck::GetDpi(m_hWnd));
 		RECT rc{ 0,0,cxPointGap * 4,cxPointGap * 4 };
@@ -51,11 +51,11 @@ private:
 
 	static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 public:
-	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	EckInline 
+	ECK_CWND_CREATE
 	{
 		m_hWnd = CreateWindowExW(dwExStyle, eck::WCN_BK, pszText, dwStyle,
-			x, y, cx, cy, hParent, eck::i32ToP<HMENU>(nID), eck::g_hInstance, NULL);
+			x, y, cx, cy, hParent, eck::hMenu, eck::g_hInstance, NULL);
 		SetWindowProc(WndProc);
 		return m_hWnd;
 	}

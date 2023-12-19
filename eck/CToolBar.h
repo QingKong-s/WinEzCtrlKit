@@ -1,16 +1,16 @@
-#pragma once
+﻿#pragma once
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
 class CToolBar :public CWnd
 {
 public:
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	
+	ECK_CWND_CREATE
 	{
 		dwStyle |= WS_CHILD;
 		m_hWnd = CreateWindowExW(dwExStyle, TOOLBARCLASSNAMEW, pszText, dwStyle,
-			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+			x, y, cx, cy, hParent, hMenu, NULL, NULL);
 		return m_hWnd;
 	}
 

@@ -1,8 +1,8 @@
-/*
+Ôªø/*
 * WinEzCtrlKit Library
 *
-* CDirBox.h £∫ ƒø¬ºøÚ
-*  π”√TreeView µœ÷Œƒº˛∫Õƒø¬ºµƒ ˜–Œœ‘ æ
+* CDirBox.h Ôºö ÁõÆÂΩïÊ°Ü
+* ‰ΩøÁî®TreeViewÂÆûÁé∞Êñá‰ª∂ÂíåÁõÆÂΩïÁöÑÊ†ëÂΩ¢ÊòæÁ§∫
 *
 * Copyright(C) 2023 QingKong
 */
@@ -22,20 +22,13 @@ ECK_NAMESPACE_BEGIN
 
 struct ECKDIRBOXDATA
 {
-	BITBOOL bFile : 1;   // œ‘ æŒƒº˛
-	BITBOOL bNoCache : 1;// Ω˚÷πª∫¥Êƒ⁄»›
+	BITBOOL bFile : 1;   // ÊòæÁ§∫Êñá‰ª∂
+	BITBOOL bNoCache : 1;// Á¶ÅÊ≠¢ÁºìÂ≠òÂÜÖÂÆπ
 };
 
 class CDirBox :public CTreeView
 {
 private:
-	struct PARENTSCCTX
-	{
-		int iDpi;
-	};
-	SUBCLASS_MGR_DECL(CDirBox)
-	SUBCLASS_REF_MGR_DECL(CDirBox, PARENTSCCTX*)
-
 	ECKDIRBOXDATA m_Info{};
 
 	CRefStrW m_rsDir{};
@@ -43,34 +36,303 @@ private:
 	int m_cyImage = 0;
 	std::wstring m_sCurrPath{};
 	HWND m_hParent = NULL;
-	PARENTSCCTX m_ParentCtx{};
 
-	HTREEITEM InsertItem(PCWSTR pszText, PWSTR pszNextLevelPath, int cchNextLevelPath,
-		HTREEITEM hParentItem, HTREEITEM hItemAfter, BOOL* pbHasChildPath = NULL);
+	void EnumFile(PCWSTR pszFile, HTREEITEM hParentItem)
+	{
+		int cchFile = (int)wcslen(pszFile);
+		if (!cchFile)
+			return;
+		WCHAR pszPath[MAX_PATH];
+		wcscpy(pszPath, pszFile);
+		PWSTR pszPathTemp = pszPath + cchFile;
+		if (*(pszPathTemp - 1) != L'\\')
+		{
+			wcscpy(pszPathTemp, L"\\*");
+			++cchFile;
+		}
+		else
+			wcscpy(pszPathTemp, L"*");
 
-	void EnumFile(PCWSTR pszFile, HTREEITEM hParentItem);
+		WCHAR pszNextLevelPath[MAX_PATH];
+		PWSTR pszTemp = pszNextLevelPath + cchFile;
+		wcscpy(pszNextLevelPath, pszPath);
+		*pszTemp = L'\0';
 
-	void FillCtrl();
+		WIN32_FIND_DATAW wfd;
+		HANDLE hFind;
+		HTREEITEM hNewItem = NULL, hItemAfterDir = TVI_FIRST, hItemAfterFile = TVI_LAST;
 
-	void GetCheckedItemsHelper(std::vector<CRefStrW>& aText, HTREEITEM hParentItem, TVITEMEXW* ptvi);
+		hFind = FindFirstFileW(pszPath, &wfd);
+		if (hFind != INVALID_HANDLE_VALUE)
+		{
+			do
+			{
+				if (memcmp(wfd.cFileName, L".", 2 * sizeof(WCHAR)) == 0 ||
+					memcmp(wfd.cFileName, L"..", 3 * sizeof(WCHAR)) == 0)
+					continue;
+				wcscpy(pszTemp, wfd.cFileName);
+				if (IsBitSet(wfd.dwFileAttributes, FILE_ATTRIBUTE_DIRECTORY))
+					hItemAfterDir = InsertItem(wfd.cFileName, pszNextLevelPath, cchFile, hParentItem, hItemAfterDir);
+				else if (m_Info.bFile)
+					hItemAfterFile = InsertItem(wfd.cFileName, pszNextLevelPath, cchFile, hParentItem, hItemAfterFile);
+			} while (FindNextFileW(hFind, &wfd));
+			FindClose(hFind);
+		}
+	}
 
-	static LRESULT CALLBACK SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
-		UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
+	void FillCtrl()
+	{
+		SetRedraw(FALSE);
+		SendMessageW(m_hWnd, TVM_DELETEITEM, 0, NULL);
+		if (!PathFileExistsW(m_rsDir.Data()))
+		{
+			SetRedraw(TRUE);
+			return;
+		}
 
-	static LRESULT CALLBACK SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
-		UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
+		int cchFile = m_rsDir.Size();
+		WCHAR pszPath[MAX_PATH];
+		wcscpy(pszPath, m_rsDir.Data());
+		if (*(pszPath + cchFile - 1) == L'\\')
+			*(pszPath + cchFile - 1) = L'\0';
+
+		WCHAR pszNextLevelPath[MAX_PATH];
+		PWSTR pszTemp = pszNextLevelPath + cchFile;
+		wcscpy(pszNextLevelPath, m_rsDir.Data());
+		if (*(pszTemp - 1) != L'\\')
+		{
+			wcscpy(pszTemp, L"\\");
+			++cchFile;
+		}
+
+		BOOL bHasChildPath;
+		auto hNewItem = InsertItem(pszPath, pszNextLevelPath, cchFile, TVI_ROOT, TVI_LAST, &bHasChildPath);
+		if (bHasChildPath)
+		{
+			SendMessageW(m_hWnd, TVM_DELETEITEM, 0, SendMessageW(m_hWnd, TVM_GETNEXTITEM, TVGN_CHILD, (LPARAM)hNewItem));
+			EnumFile(m_rsDir.Data(), hNewItem);
+		}
+		SendMessageW(m_hWnd, TVM_EXPAND, TVE_EXPAND, (LPARAM)hNewItem);
+		SetRedraw(TRUE);
+	}
+
+	void GetCheckedItemsHelper(std::vector<CRefStrW>& aText, HTREEITEM hParentItem, TVITEMEXW* ptvi)
+	{
+		HTREEITEM hItem = GetFirstChildItem(hParentItem);
+		while (hItem)
+		{
+			if ((GetItemState(hItem, TVIS_STATEIMAGEMASK) >> 12) == 2)
+			{
+				ptvi->hItem = hItem;
+				ptvi->cchTextMax = MAX_PATH - 1;
+				SendMessageW(m_hWnd, TVM_GETITEMW, 0, (LPARAM)ptvi);
+				if (ptvi->lParam != ECKDBITEMFLAG_ISHIDEITEM)
+					aText.push_back(CRefStrW(ptvi->pszText));
+			}
+			GetCheckedItemsHelper(aText, hItem, ptvi);
+			hItem = GetNextSiblingItem(hItem);
+		}
+	}
 public:
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
+	HTREEITEM InsertItem(PCWSTR pszText, PWSTR pszNextLevelPath, int cchNextLevelPath,
+		HTREEITEM hParentItem, HTREEITEM hItemAfter, BOOL* pbHasChildPath = NULL)
+	{
+		if (pbHasChildPath)
+			*pbHasChildPath = FALSE;
+		PWSTR pTemp = pszNextLevelPath + cchNextLevelPath;
+
+		TVINSERTSTRUCTW tis;
+		SHFILEINFOW sfi{};
+		WIN32_FIND_DATAW wfd;
+		HANDLE hFind;
+		HTREEITEM hNewItem = NULL;
+
+		if (!SHGetFileInfoW(pszNextLevelPath, 0, &sfi, sizeof(SHFILEINFOW), SHGFI_SYSICONINDEX | SHGFI_SMALLICON))
+			return NULL;
+		tis.hParent = hParentItem;
+		tis.hInsertAfter = hItemAfter;
+		tis.itemex.mask = TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_TEXT;
+		tis.itemex.iSelectedImage = tis.itemex.iImage = sfi.iIcon;
+		tis.itemex.pszText = (PWSTR)pszText;
+		hNewItem = (HTREEITEM)SendMessageW(m_hWnd, TVM_INSERTITEMW, 0, (LPARAM)&tis);
+
+		wcscat(pTemp, L"\\*");
+		hFind = FindFirstFileW(pszNextLevelPath, &wfd);
+		if (hFind != INVALID_HANDLE_VALUE)
+		{
+			do
+			{
+				if (memcmp(wfd.cFileName, L".", 2 * sizeof(WCHAR)) == 0 ||
+					memcmp(wfd.cFileName, L"..", 3 * sizeof(WCHAR)) == 0)
+					continue;
+
+				tis.hParent = hNewItem;
+				tis.hInsertAfter = TVI_FIRST;
+				tis.itemex.mask = TVIF_TEXT | TVIF_PARAM;
+				tis.itemex.pszText = (PWSTR)L"0";
+				tis.itemex.lParam = ECKDBITEMFLAG_ISHIDEITEM;
+				SendMessageW(m_hWnd, TVM_INSERTITEMW, 0, (LPARAM)&tis);
+
+				if (pbHasChildPath)
+					*pbHasChildPath = TRUE;
+				break;
+			} while (FindNextFileW(hFind, &wfd));
+			FindClose(hFind);
+		}
+
+		return hNewItem;
+	}
+
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
+	{
+		switch (uMsg)
+		{
+		case WM_SETFONT:
+		{
+			LOGFONTA lf;
+			GetObjectA((HFONT)wParam, sizeof(lf), &lf);
+			int cy = std::max(m_cyImage, (int)lf.lfHeight);
+			int iDpi = GetDpi(hWnd);
+			if (cy < DpiScale(16, iDpi))
+				cy = -1;
+			else
+				cy += DpiScale(4, iDpi);
+			CWnd::OnMsg(hWnd, TVM_SETITEMHEIGHT, cy, lParam);
+		}
+		break;
+		}
+
+		return CTreeView::OnMsg(hWnd, uMsg, wParam, lParam);
+	}
+
+	BOOL OnNotifyMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult) override
+	{
+		switch (uMsg)
+		{
+		case WM_NOTIFY:
+		{
+			const HWND hTV = ((NMHDR*)lParam)->hwndFrom;
+			if (hTV != GetHWND())
+				break;
+			TVITEMEXW tvi;
+			switch (((NMHDR*)lParam)->code)
+			{
+			case TVN_ITEMEXPANDEDW:
+			{
+				auto pnmtv = (NMTREEVIEWW*)lParam;
+				if (pnmtv->action == TVE_EXPAND)
+				{
+					SetRedraw(FALSE);
+					std::wstring sPath{};
+					WCHAR szBuf[MAX_PATH];
+					int cch;
+					HTREEITEM hItem = (HTREEITEM)SendMessageW(hTV, TVM_GETNEXTITEM, TVGN_CHILD, (LPARAM)pnmtv->itemNew.hItem);
+					if (!hItem)
+						break;
+					tvi.mask = TVIF_PARAM | TVIF_TEXT;
+					tvi.hItem = hItem;
+					tvi.cchTextMax = MAX_PATH - 1;
+					tvi.pszText = szBuf;
+					SendMessageW(hTV, TVM_GETITEMW, 0, (LPARAM)&tvi);
+
+					if (tvi.lParam == ECKDBITEMFLAG_ISHIDEITEM)
+					{
+						tvi.mask = TVIF_TEXT;
+						tvi.cchTextMax = MAX_PATH - 1;
+						tvi.pszText = szBuf;
+						tvi.hItem = pnmtv->itemNew.hItem;
+						SendMessageW(hTV, TVM_GETITEMW, 0, (LPARAM)&tvi);
+						sPath = tvi.pszText;
+						SendMessageW(hTV, TVM_DELETEITEM, 0, (LPARAM)hItem);
+						hItem = (HTREEITEM)SendMessageW(hTV, TVM_GETNEXTITEM, TVGN_PARENT, (LPARAM)pnmtv->itemNew.hItem);
+						while (hItem)
+						{
+							tvi.hItem = hItem;
+							tvi.cchTextMax = MAX_PATH - 1;
+							SendMessageW(hTV, TVM_GETITEMW, 0, (LPARAM)&tvi);
+							cch = (int)wcslen(tvi.pszText);
+
+							if (*(tvi.pszText + cch - 1) == L'\\')
+								sPath = std::wstring(tvi.pszText) + sPath;
+							else
+								sPath = std::wstring(tvi.pszText) + L"\\" + sPath;
+							hItem = (HTREEITEM)SendMessageW(hTV, TVM_GETNEXTITEM, TVGN_PARENT, (LPARAM)hItem);
+						}
+						EnumFile(sPath.c_str(), pnmtv->itemNew.hItem);
+					}
+					SetRedraw(TRUE);
+				}
+				else if (pnmtv->action == TVE_COLLAPSE)
+				{
+					if (!m_Info.bNoCache)
+						break;
+					HTREEITEM hItemTemp;
+					HTREEITEM hItem = (HTREEITEM)SendMessageW(hTV, TVM_GETNEXTITEM, TVGN_CHILD, (LPARAM)pnmtv->itemNew.hItem);
+					if (!hItem)
+						break;
+
+					SetRedraw(FALSE);
+					tvi.mask = TVIF_PARAM;
+					tvi.hItem = hItem;
+					tvi.lParam = ECKDBITEMFLAG_ISHIDEITEM;
+					SendMessageW(hTV, TVM_SETITEMW, 0, (LPARAM)&tvi);
+
+					hItem = (HTREEITEM)SendMessageW(hTV, TVM_GETNEXTITEM, TVGN_NEXT, (LPARAM)hItem);
+					while (hItem)
+					{
+						hItemTemp = (HTREEITEM)SendMessageW(hTV, TVM_GETNEXTITEM, TVGN_NEXT, (LPARAM)hItem);
+						SendMessageW(hTV, TVM_DELETEITEM, 0, (LPARAM)hItem);
+						hItem = hItemTemp;
+					}
+					SetRedraw(TRUE);
+				}
+			}
+			return TRUE;
+			case TVN_SELCHANGEDW:
+			{
+				auto pnmtv = (NMTREEVIEWW*)lParam;
+				std::wstring sPath{};
+				WCHAR szBuf[MAX_PATH];
+				int cch;
+				HTREEITEM hItem;
+
+				tvi.mask = TVIF_TEXT;
+				tvi.cchTextMax = MAX_PATH - 1;
+				tvi.pszText = szBuf;
+				tvi.hItem = pnmtv->itemNew.hItem;
+				SendMessageW(hTV, TVM_GETITEMW, 0, (LPARAM)&tvi);
+				sPath = tvi.pszText;
+				hItem = (HTREEITEM)SendMessageW(hTV, TVM_GETNEXTITEM, TVGN_PARENT, (LPARAM)pnmtv->itemNew.hItem);
+				while (hItem)
+				{
+					tvi.hItem = hItem;
+					tvi.cchTextMax = MAX_PATH - 1;
+					SendMessageW(hTV, TVM_GETITEMW, 0, (LPARAM)&tvi);
+					cch = (int)wcslen(tvi.pszText);
+
+					if (*(tvi.pszText + cch - 1) == L'\\')
+						sPath = std::wstring(tvi.pszText) + sPath;
+					else
+						sPath = std::wstring(tvi.pszText) + L"\\" + sPath;
+					hItem = (HTREEITEM)SendMessageW(hTV, TVM_GETNEXTITEM, TVGN_PARENT, (LPARAM)hItem);
+				}
+
+				m_sCurrPath = std::move(sPath);
+			}
+			return TRUE;
+			}
+		}
+		break;
+		}
+		return CTreeView::OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult);
+	}
+
+	ECK_CWND_CREATE
 	{
 		dwStyle |= WS_CHILD;
 
 		m_hWnd = CreateWindowExW(dwExStyle, WC_TREEVIEWW, NULL, dwStyle,
-			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
-		m_SM.AddSubclass(m_hWnd, this);
-		m_hParent = hParent;
-		m_ParentCtx.iDpi = GetDpi(hParent);
-		m_SMRef.AddRef(hParent, &m_ParentCtx);
+			x, y, cx, cy, hParent, hMenu, NULL, NULL);
 
 		int cxImage;
 		SHGetImageList(SHIL_SMALL, IID_PPV_ARGS(&m_pIImageList));
@@ -121,9 +383,66 @@ public:
 		return m_sCurrPath;
 	}
 
-	void ExtendToPath(PCWSTR pszPath);
+	void ExtendToPath(PCWSTR pszPath)
+	{
+		if (!pszPath)
+			return;
 
-	std::vector<CRefStrW> GetCheckedItems();
+		std::wstring_view svPath(pszPath), svSubStr;
+		TVITEMEXW tvi;
+		WCHAR szBuf[MAX_PATH];
+
+		HTREEITEM hTopItem = GetRootItem();
+		HTREEITEM hItem;
+		BOOL bExpand;
+		size_t uPos = svPath.find(L"\\");
+		size_t uOldPos = 0u;
+		SetRedraw(FALSE);
+		while (uPos != std::wstring_view::npos && hTopItem)
+		{
+			svSubStr = svPath.substr(uOldPos, uPos - uOldPos);
+			hItem = hTopItem;
+			bExpand = FALSE;
+			do
+			{
+				tvi.cchTextMax = MAX_PATH - 1;
+				tvi.pszText = szBuf;
+				GetItem(hItem, TVIF_TEXT, &tvi);
+
+				if (_wcsnicmp(svSubStr.data(), szBuf, svSubStr.size()) == 0)
+				{
+					bExpand = TRUE;
+					Expand(hItem, TVE_EXPAND);
+					break;
+				}
+				else
+				{
+					hItem = GetNextSiblingItem(hItem);
+				}
+			} while (hItem);
+
+			if (!bExpand)
+				break;
+			uOldPos = uPos + 1;
+			hTopItem = GetFirstChildItem(hItem);
+			uPos = svPath.find(L"\\", uOldPos);
+			if (uPos == std::wstring_view::npos && uOldPos < svPath.size())
+				uPos = svPath.size();
+		}
+		SetRedraw(TRUE);
+	}
+
+	std::vector<CRefStrW> GetCheckedItems()
+	{
+		WCHAR szBuf[MAX_PATH];
+		TVITEMEXW tvi;
+		tvi.mask = TVIF_TEXT | TVIF_PARAM;
+		tvi.pszText = szBuf;
+		std::vector<CRefStrW> aText{};
+
+		GetCheckedItemsHelper(aText, GetRootItem(), &tvi);
+		return aText;
+	}
 
 	EckInline void Refresh()
 	{

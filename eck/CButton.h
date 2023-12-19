@@ -179,8 +179,8 @@ public:
 class CPushButton :public CButton
 {
 public:
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	
+	ECK_CWND_CREATE
 	{
 		if (pData)
 		{
@@ -193,7 +193,7 @@ public:
 			}
 
 			m_hWnd = IntCreate(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), pBase->dwStyle,
-				x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+				x, y, cx, cy, hParent, hMenu, NULL, NULL);
 
 			switch (p->iVer)
 			{
@@ -209,7 +209,7 @@ public:
 		{
 			dwStyle |= WS_CHILD;
 			m_hWnd = IntCreate(dwExStyle, WC_BUTTONW, pszText, dwStyle,
-				x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+				x, y, cx, cy, hParent, hMenu, NULL, NULL);
 		}
 
 		return m_hWnd;
@@ -300,8 +300,7 @@ public:
 class CCheckButton :public CButton
 {
 public:
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	ECK_CWND_CREATE
 	{
 		if (pData)
 		{
@@ -314,7 +313,7 @@ public:
 			}
 
 			m_hWnd = IntCreate(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), pBase->dwStyle,
-				x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+				x, y, cx, cy, hParent, hMenu, NULL, NULL);
 
 			switch (p->iVer)
 			{
@@ -334,7 +333,7 @@ public:
 			if (!IsBitSet(dwStyle, BS_RADIOBUTTON | BS_AUTORADIOBUTTON | BS_CHECKBOX | BS_AUTOCHECKBOX | BS_3STATE | BS_AUTO3STATE))
 				dwStyle |= BS_AUTORADIOBUTTON;
 			m_hWnd = IntCreate(dwExStyle, WC_BUTTONW, pszText, dwStyle,
-				x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+				x, y, cx, cy, hParent, hMenu, NULL, NULL);
 		}
 
 		/*
@@ -487,8 +486,8 @@ class CCommandLink :public CButton
 private:
 	BITBOOL m_bShieldIcon : 1;
 public:
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	
+	ECK_CWND_CREATE
 	{
 		if (pData)
 		{
@@ -501,7 +500,7 @@ public:
 			}
 
 			m_hWnd = IntCreate(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), pBase->dwStyle,
-				x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+				x, y, cx, cy, hParent, hMenu, NULL, NULL);
 
 			switch (p->iVer)
 			{
@@ -521,7 +520,7 @@ public:
 			if (!IsBitSet(dwStyle, BS_COMMANDLINK | BS_DEFCOMMANDLINK))
 				dwStyle |= BS_COMMANDLINK;
 			m_hWnd = IntCreate(dwExStyle, WC_BUTTONW, pszText, dwStyle,
-				x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+				x, y, cx, cy, hParent, hMenu, NULL, NULL);
 		}
 
 		return m_hWnd;

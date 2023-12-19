@@ -24,6 +24,7 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #pragma comment(lib,"dxguid.lib")
 #pragma comment(lib, "wbemuuid.lib")
 #pragma comment(lib, "Version.lib")
+#pragma comment(lib, "msimg32.lib")
 #endif
 
 // ECKMACRO_NO_WIN11_22621  SDK版本是否>=22621

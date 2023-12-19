@@ -19,12 +19,12 @@ typedef int (CALLBACK* PFNLVITEMCOMPAREEX)(int idx1, int idx2, LPARAM lParamSort
 class CListView :public CWnd
 {
 public:
-	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	EckInline 
+	ECK_CWND_CREATE
 	{
 		dwStyle |= WS_CHILD;
 		m_hWnd = IntCreate(dwExStyle, WC_LISTVIEWW, pszText, dwStyle,
-			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+			x, y, cx, cy, hParent, hMenu, NULL, NULL);
 		return m_hWnd;
 	}
 

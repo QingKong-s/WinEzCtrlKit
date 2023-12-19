@@ -131,12 +131,11 @@ public:
 class CScrollBar :public CScrollBarBase<SB_CTL>
 {
 public:
-	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
+	ECK_CWND_CREATE
 	{
 		dwStyle |= WS_CHILD;
 		m_hWnd = CreateWindowExW(dwExStyle, WC_SCROLLBARW, pszText, dwStyle,
-			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL);
+			x, y, cx, cy, hParent, hMenu, NULL, NULL);
 		return m_hWnd;
 	}
 

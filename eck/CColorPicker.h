@@ -2,7 +2,6 @@
 * WinEzCtrlKit Library
 *
 * CColorPicker.h ： 颜色选择器
-* 使用所有者绘制的超类化组合框实现的颜色选择器
 *
 * Copyright(C) 2023 QingKong
 */
@@ -193,13 +192,13 @@ public:
 		return CWnd::OnNotifyMsg(hParent, uMsg, wParam, lParam, lResult);
 	}
 
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override
+	
+	ECK_CWND_CREATE
 	{
 		dwStyle |= (WS_CHILD | WS_VSCROLL | CBS_OWNERDRAWFIXED | CBS_DROPDOWNLIST);
 		m_iDpi = GetDpi(hParent);
 		m_hWnd = IntCreate(0, WC_COMBOBOXW, NULL, dwStyle,
-			x, y, cx, cy, hParent, i32ToP<HMENU>(nID), NULL, NULL, WndCreatingSetLong);
+			x, y, cx, cy, hParent, hMenu, NULL, NULL, WndCreatingSetLong);
 		m_pfnRealProc = WndProc;
 		SetRedraw(FALSE);
 		InitStorage(ARRAYSIZE(c_ColorPickerPresetClr), 0);

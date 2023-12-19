@@ -1,4 +1,4 @@
-#pragma once
+Ôªø#pragma once
 #include "CListView.h"
 #include "CSubclassMgr.h"
 
@@ -26,7 +26,7 @@ enum
 
 enum
 {
-	// ¡¥Ω”±ªµ•ª˜£¨lParam = *TGLCLICKINFO
+	// ÈìæÊé•Ë¢´ÂçïÂáªÔºålParam = *TGLCLICKINFO
 	TGLNM_CLICK,
 };
 class CTaskGroupList :public CListView
@@ -89,8 +89,8 @@ private:
 
 	void RefreshThemeRes();
 public:
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL) override;
+	
+	ECK_CWND_CREATE;
 
 	EckInline void SetNotifyMsg(UINT uMsg)
 	{

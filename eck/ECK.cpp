@@ -71,7 +71,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		return InitStatus::GdiplusInitError;
 	}
 
-	if (!CLabel::RegisterWndClass(hInstance))
+	if (!CLabel::RegisterWndClass())
 	{
 		*pdwErrCode = GetLastError();
 		EckDbgPrintFormatMessage(*pdwErrCode);
@@ -85,7 +85,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		return InitStatus::RegWndClassError;
 	}
 
-	if (!CDialog::RegisterWndClass(hInstance))
+	if (!CDialog::RegisterWndClass())
 	{
 		*pdwErrCode = GetLastError();
 		EckDbgPrintFormatMessage(*pdwErrCode);
@@ -309,5 +309,10 @@ void DbgPrintWndMap()
 	}
 	s += std::format(L"共有{}个窗口\n", pCtx->hmWnd.size());
 	OutputDebugStringW(s.c_str());
+}
+
+const CRefStrW& GetRunningPath()
+{
+	return g_rsCurrDir;
 }
 ECK_NAMESPACE_END
