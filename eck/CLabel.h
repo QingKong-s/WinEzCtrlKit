@@ -38,7 +38,7 @@ struct ECKLABELDATA
 	BITBOOL bUxThemeText : 1;
 };
 
-class CLabel :public COwnWnd
+class CLabel :public CWnd
 {
 private:
 	ECKLABELDATA m_Info{};
@@ -60,6 +60,9 @@ private:
 		m_cyPic = 0;			// 图片大小
 	RECT m_rcPartPic{};			// 缓存的图片矩形
 	RECT m_rcPartText{};		// 缓存的文本矩形
+
+	HFONT m_hFont = NULL;
+	CRefStrW m_rsText{};
 
 	static ATOM m_atomLabel;	// 标签类原子
 
@@ -314,7 +317,8 @@ public:
 
 		case WM_CREATE:
 		{
-			OnOwnWndMsg(hWnd, uMsg, wParam, lParam);
+			auto pcs = (CREATESTRUCTW*)lParam;
+			m_rsText = pcs->lpszName;
 			HDC hDC = GetDC(hWnd);
 			m_hCDC = CreateCompatibleDC(hDC);
 			m_hcdcHelper = CreateCompatibleDC(hDC);
@@ -364,8 +368,8 @@ public:
 
 		case WM_SETFONT:
 		{
-			OnOwnWndMsg(hWnd, uMsg, wParam, lParam);
-			SelectObject(m_hCDC, (HFONT)wParam);
+			m_hFont = (HFONT)wParam;
+			SelectObject(m_hCDC, m_hFont);
 			CalcPartsRect();
 			Redraw();
 		}
