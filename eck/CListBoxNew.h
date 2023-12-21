@@ -363,7 +363,9 @@ public:
 		return RegisterClassW(&wc);
 	}
 
-	ECK_CWND_CREATE
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
 		m_hWnd = CreateWindowExW(dwExStyle, WCN_LISTBOXNEW, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, g_hInstance, this);

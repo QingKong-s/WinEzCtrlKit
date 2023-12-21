@@ -35,7 +35,9 @@ private:
 	EUPDOWNDATA m_Info{};
 
 public:
-	ECK_CWND_CREATE
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
 		dwStyle |= (WS_CHILD | UDS_SETBUDDYINT);
 		switch (m_Info.iBuddyAlign)

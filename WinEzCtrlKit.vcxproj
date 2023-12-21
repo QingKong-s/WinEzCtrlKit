@@ -226,11 +226,7 @@
     <ClInclude Include="Win32Template.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="eck\CListBoxExt.cpp" />
     <ClCompile Include="eck\CScrollBar.h" />
-    <ClCompile Include="eck\CSplitBar.cpp" />
-    <ClCompile Include="eck\CTabHeader.cpp" />
-    <ClCompile Include="eck\CTaskGroupList.cpp" />
     <ClCompile Include="eck\DesignerDef.cpp" />
     <ClCompile Include="eck\ECK.cpp" />
     <ClCompile Include="Win32Template.cpp" />

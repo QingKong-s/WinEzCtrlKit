@@ -116,7 +116,12 @@ constexpr inline UINT SCID_INERTIALSCROLLVIEW = 20231103'01u;
 
 #pragma warning(suppress:26454)// 算术溢出
 constexpr inline UINT NM_FIRST_ECK = (0u - 0x514B);
-constexpr inline UINT NM_CLP_CLRCHANGED = NM_FIRST_ECK;
+enum :UINT
+{
+	NM_CLP_CLRCHANGED = NM_FIRST_ECK,// NMCLPCLRCHANGED
+	NM_SPB_DRAGGED,// NMSPBDRAGGED
+	NM_TGL_TASKCLICKED,// NMTGLCLICKED
+};
 
 /*属性字符串*/
 

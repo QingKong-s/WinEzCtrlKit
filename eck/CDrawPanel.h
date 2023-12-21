@@ -88,8 +88,9 @@ public:
 		return RegisterClassW(&wc);
 	}
 
-	EckInline 
-	ECK_CWND_CREATE
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
 		m_hWnd = IntCreate(dwExStyle, WCN_DRAWPANEL, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
@@ -143,8 +144,9 @@ public:
 		return RegisterClassW(&wc);
 	}
 
-	EckInline 
-	ECK_CWND_CREATE
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
 		m_hWnd = IntCreate(dwExStyle, WCN_DRAWPANELD2D, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, g_hInstance, this);

@@ -50,9 +50,8 @@ struct DESIGNDATA_WND
 	{																				\
 		return Create(pszText, dwStyle, dwExStyle, x, y, cx, cy,					\
 			hParent, ::eck::i32ToP<HMENU>(nID), pData);								\
-	}																				\
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,						\
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+	}
+	
 
 class CWnd
 {
@@ -76,6 +75,16 @@ protected:
 		BeginCbtHook(this, pfnCreatingProc);
 		return CreateWindowExW(dwExStyle, pszClass, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, hInst, pParam);
+	}
+
+	template<class T>
+	EckInline LRESULT FillNmhdrAndSend(T& nmhdr, UINT uCode)
+	{
+		auto p = (NMHDR*)&nmhdr;
+		p->hwndFrom = GetHWND();
+		p->code = uCode;
+		p->idFrom = GetDlgCtrlID(GetHWND());
+		return SendMessageW(GetParent(GetHWND()), WM_NOTIFY, p->idFrom, (LPARAM)p);
 	}
 public:
 	ECKPROP_R(GetHWND) HWND HWnd;

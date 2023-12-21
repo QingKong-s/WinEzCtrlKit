@@ -242,22 +242,10 @@
     <ClCompile Include="eck\ECK.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CListBoxExt.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
     <ClCompile Include="eck\CScrollBar.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CTaskGroupList.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
     <ClCompile Include="eck\DesignerDef.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CTabHeader.cpp">
-      <Filter>ECK Src</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CSplitBar.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
   </ItemGroup>

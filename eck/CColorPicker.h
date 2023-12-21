@@ -80,29 +80,6 @@ private:
 	};
 	constexpr static int c_iCPItemPadding = 2;
 	constexpr static int c_cxCPClrBlock = 20;
-
-	static WNDPROC m_pfnColorPickerDefProc;
-
-	static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-	{
-		auto p = (CColorPicker*)CWndFromHWND(hWnd);
-		EckAssert(p);
-		switch (uMsg)
-		{
-		case WM_DPICHANGED_AFTERPARENT:
-		{
-			const int iDpiOld = p->m_iDpi;
-			p->m_iDpi = GetDpi(hWnd);
-			SendMessageW(hWnd, CB_SETITEMHEIGHT, -1,
-				DpiScale((int)SendMessageW(hWnd, CB_GETITEMHEIGHT, 0, 0), p->m_iDpi, iDpiOld));
-			SendMessageW(hWnd, CB_SETITEMHEIGHT, 0,
-				DpiScale((int)SendMessageW(hWnd, CB_GETITEMHEIGHT, 0, 0), p->m_iDpi, iDpiOld));
-		}
-		return 0;
-		}
-
-		return CallWindowProcW(m_pfnColorPickerDefProc, hWnd, uMsg, wParam, lParam);
-	}
 public:
 	BOOL OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult) override
 	{
@@ -111,8 +88,6 @@ public:
 		case WM_DRAWITEM:
 		{
 			auto pdis = (DRAWITEMSTRUCT*)lParam;
-			if (pdis->hwndItem != GetHWND())
-				break;
 			COLORREF cr = c_ColorPickerPresetClr[pdis->itemID].cr;
 			HBRUSH hbr;
 			HDC hDC = pdis->hDC;
@@ -154,9 +129,8 @@ public:
 			DrawTextW(hDC, c_ColorPickerPresetClr[pdis->itemID].pszName, -1, &rcText,
 				DT_NOCLIP | DT_SINGLELINE | DT_VCENTER);
 			lResult = TRUE;
-			return TRUE;
 		}
-		break;
+		return TRUE;
 
 		case WM_COMMAND:
 		{
@@ -180,11 +154,8 @@ public:
 			else
 				cr = c_ColorPickerPresetClr[idxCurrSel].cr;
 			NMCLPCLRCHANGED nm;
-			nm.nmhdr.hwndFrom = GetHWND();
-			nm.nmhdr.code = NM_CLP_CLRCHANGED;
-			nm.nmhdr.idFrom = GetDlgCtrlID(GetHWND());
 			nm.cr = cr;
-			SendMessageW(hParent, WM_NOTIFY, nm.nmhdr.idFrom, (LPARAM)&nm);
+			FillNmhdrAndSend(nm, NM_CLP_CLRCHANGED);
 			return TRUE;
 		}
 		break;
@@ -192,14 +163,35 @@ public:
 		return CWnd::OnNotifyMsg(hParent, uMsg, wParam, lParam, lResult);
 	}
 
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
+	{
+		auto p = (CColorPicker*)CWndFromHWND(hWnd);
+		EckAssert(p);
+		switch (uMsg)
+		{
+		case WM_DPICHANGED_AFTERPARENT:
+		{
+			const int iDpiOld = p->m_iDpi;
+			p->m_iDpi = GetDpi(hWnd);
+			SendMessageW(hWnd, CB_SETITEMHEIGHT, -1,
+				DpiScale((int)SendMessageW(hWnd, CB_GETITEMHEIGHT, 0, 0), p->m_iDpi, iDpiOld));
+			SendMessageW(hWnd, CB_SETITEMHEIGHT, 0,
+				DpiScale((int)SendMessageW(hWnd, CB_GETITEMHEIGHT, 0, 0), p->m_iDpi, iDpiOld));
+		}
+		return 0;
+		}
+
+		return CComboBox::OnMsg(hWnd, uMsg, wParam, lParam);
+	}
 	
-	ECK_CWND_CREATE
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
 		dwStyle |= (WS_CHILD | WS_VSCROLL | CBS_OWNERDRAWFIXED | CBS_DROPDOWNLIST);
 		m_iDpi = GetDpi(hParent);
 		m_hWnd = IntCreate(0, WC_COMBOBOXW, NULL, dwStyle,
 			x, y, cx, cy, hParent, hMenu, NULL, NULL, WndCreatingSetLong);
-		m_pfnRealProc = WndProc;
 		SetRedraw(FALSE);
 		InitStorage(ARRAYSIZE(c_ColorPickerPresetClr), 0);
 		for (auto& x : c_ColorPickerPresetClr)
@@ -243,5 +235,4 @@ public:
 		SendMsg(CB_SETCURSEL, idx, 0);
 	}
 };
-inline WNDPROC CColorPicker::m_pfnColorPickerDefProc = GetClassWndProc(NULL, WC_COMBOBOXW);
 ECK_NAMESPACE_END
