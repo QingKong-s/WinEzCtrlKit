@@ -211,9 +211,6 @@ public:
 		{
 		case WM_NOTIFY:
 		{
-			const HWND hTV = ((NMHDR*)lParam)->hwndFrom;
-			if (hTV != GetHWND())
-				break;
 			TVITEMEXW tvi;
 			switch (((NMHDR*)lParam)->code)
 			{
@@ -226,14 +223,14 @@ public:
 					std::wstring sPath{};
 					WCHAR szBuf[MAX_PATH];
 					int cch;
-					HTREEITEM hItem = (HTREEITEM)SendMessageW(hTV, TVM_GETNEXTITEM, TVGN_CHILD, (LPARAM)pnmtv->itemNew.hItem);
+					HTREEITEM hItem = GetFirstChildItem(pnmtv->itemNew.hItem);
 					if (!hItem)
 						break;
 					tvi.mask = TVIF_PARAM | TVIF_TEXT;
 					tvi.hItem = hItem;
 					tvi.cchTextMax = MAX_PATH - 1;
 					tvi.pszText = szBuf;
-					SendMessageW(hTV, TVM_GETITEMW, 0, (LPARAM)&tvi);
+					GetItem(&tvi);
 
 					if (tvi.lParam == ECKDBITEMFLAG_ISHIDEITEM)
 					{
@@ -241,22 +238,22 @@ public:
 						tvi.cchTextMax = MAX_PATH - 1;
 						tvi.pszText = szBuf;
 						tvi.hItem = pnmtv->itemNew.hItem;
-						SendMessageW(hTV, TVM_GETITEMW, 0, (LPARAM)&tvi);
+						GetItem(&tvi);
 						sPath = tvi.pszText;
-						SendMessageW(hTV, TVM_DELETEITEM, 0, (LPARAM)hItem);
-						hItem = (HTREEITEM)SendMessageW(hTV, TVM_GETNEXTITEM, TVGN_PARENT, (LPARAM)pnmtv->itemNew.hItem);
+						DeleteItem(hItem);
+						hItem = GetParentItem(pnmtv->itemNew.hItem);
 						while (hItem)
 						{
 							tvi.hItem = hItem;
 							tvi.cchTextMax = MAX_PATH - 1;
-							SendMessageW(hTV, TVM_GETITEMW, 0, (LPARAM)&tvi);
+							GetItem(&tvi);
 							cch = (int)wcslen(tvi.pszText);
 
 							if (*(tvi.pszText + cch - 1) == L'\\')
 								sPath = std::wstring(tvi.pszText) + sPath;
 							else
 								sPath = std::wstring(tvi.pszText) + L"\\" + sPath;
-							hItem = (HTREEITEM)SendMessageW(hTV, TVM_GETNEXTITEM, TVGN_PARENT, (LPARAM)hItem);
+							hItem = hItem = GetParentItem(pnmtv->itemNew.hItem);
 						}
 						EnumFile(sPath.c_str(), pnmtv->itemNew.hItem);
 					}
@@ -267,7 +264,7 @@ public:
 					if (!m_Info.bNoCache)
 						break;
 					HTREEITEM hItemTemp;
-					HTREEITEM hItem = (HTREEITEM)SendMessageW(hTV, TVM_GETNEXTITEM, TVGN_CHILD, (LPARAM)pnmtv->itemNew.hItem);
+					HTREEITEM hItem = GetFirstChildItem(pnmtv->itemNew.hItem);
 					if (!hItem)
 						break;
 
@@ -275,13 +272,13 @@ public:
 					tvi.mask = TVIF_PARAM;
 					tvi.hItem = hItem;
 					tvi.lParam = ECKDBITEMFLAG_ISHIDEITEM;
-					SendMessageW(hTV, TVM_SETITEMW, 0, (LPARAM)&tvi);
+					SetItem(&tvi);
 
-					hItem = (HTREEITEM)SendMessageW(hTV, TVM_GETNEXTITEM, TVGN_NEXT, (LPARAM)hItem);
+					hItem = GetNextSiblingItem(hItem);
 					while (hItem)
 					{
-						hItemTemp = (HTREEITEM)SendMessageW(hTV, TVM_GETNEXTITEM, TVGN_NEXT, (LPARAM)hItem);
-						SendMessageW(hTV, TVM_DELETEITEM, 0, (LPARAM)hItem);
+						hItemTemp = GetNextSiblingItem(hItem);
+						DeleteItem(hItem);
 						hItem = hItemTemp;
 					}
 					SetRedraw(TRUE);
@@ -300,21 +297,21 @@ public:
 				tvi.cchTextMax = MAX_PATH - 1;
 				tvi.pszText = szBuf;
 				tvi.hItem = pnmtv->itemNew.hItem;
-				SendMessageW(hTV, TVM_GETITEMW, 0, (LPARAM)&tvi);
+				GetItem(&tvi);
 				sPath = tvi.pszText;
-				hItem = (HTREEITEM)SendMessageW(hTV, TVM_GETNEXTITEM, TVGN_PARENT, (LPARAM)pnmtv->itemNew.hItem);
+				hItem = GetParentItem(pnmtv->itemNew.hItem);
 				while (hItem)
 				{
 					tvi.hItem = hItem;
 					tvi.cchTextMax = MAX_PATH - 1;
-					SendMessageW(hTV, TVM_GETITEMW, 0, (LPARAM)&tvi);
+					GetItem(&tvi);
 					cch = (int)wcslen(tvi.pszText);
 
 					if (*(tvi.pszText + cch - 1) == L'\\')
 						sPath = std::wstring(tvi.pszText) + sPath;
 					else
 						sPath = std::wstring(tvi.pszText) + L"\\" + sPath;
-					hItem = (HTREEITEM)SendMessageW(hTV, TVM_GETNEXTITEM, TVGN_PARENT, (LPARAM)hItem);
+					hItem = GetParentItem(pnmtv->itemNew.hItem);
 				}
 
 				m_sCurrPath = std::move(sPath);
@@ -327,7 +324,9 @@ public:
 		return CTreeView::OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult);
 	}
 
-	ECK_CWND_CREATE
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
 		dwStyle |= WS_CHILD;
 
@@ -407,7 +406,7 @@ public:
 			{
 				tvi.cchTextMax = MAX_PATH - 1;
 				tvi.pszText = szBuf;
-				GetItem(hItem, TVIF_TEXT, &tvi);
+				GetItem(&tvi);
 
 				if (_wcsnicmp(svSubStr.data(), szBuf, svSubStr.size()) == 0)
 				{

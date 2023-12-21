@@ -41,8 +41,6 @@ private:
 		ECK_DS_ENTRY(cxDefItemPadding, 4);
 	ECK_DS_END_VAR(m_Dpis);
 
-	static ATOM s_Atom;
-
 	HFONT m_hFont = NULL;
 	UINT m_uNotifyMsg = 0u;
 	std::vector<ITEM> m_Items{};
@@ -73,10 +71,111 @@ private:
 		
 	}
 public:
-	static ATOM RegisterWndClass(HINSTANCE hInstance);
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
+	{
+		auto p = (CTabHeader*)GetWindowLongPtrW(hWnd, 0);
+		switch (uMsg)
+		{
+		case WM_SIZE:
+		{
+			p->m_cxClient = LOWORD(lParam);
+			p->m_cyClient = HIWORD(lParam);
+			//DbBufReSize(hWnd, p->m_hCDC, p->m_hBitmap, p->m_hOldBmp, p->m_cxClient, p->m_cyClient);
+			p->Paint();
+		}
+		return 0;
 
-	
-	ECK_CWND_CREATE
+		case WM_NOTIFY:
+		{
+			if (((NMHDR*)lParam)->hwndFrom == p->m_UpDown.GetHWND())
+			{
+				if (((NMHDR*)lParam)->code == UDN_DELTAPOS)
+				{
+					auto pnmud = (NMUPDOWN*)lParam;
+					if (pnmud->iDelta < 0)
+					{
+						--p->m_idxFirstVisible;
+						if (p->m_idxFirstVisible < 0)
+						{
+							p->m_idxFirstVisible = 0;
+							return TRUE;
+						}
+
+						p->Paint();
+						p->Redraw();
+					}
+					else
+					{
+						int xCurrPos = 0;
+						int cxTemp;
+						int cVisible = 0;
+						for (SIZE_T i = p->m_idxFirstVisible; i < p->m_Items.size(); ++i)
+						{
+							auto& x = p->m_Items[i];
+							if (x.cxText < p->m_Dpis.cxDefMinItem)
+								cxTemp = p->m_Dpis.cxDefMinItem;
+							else
+								cxTemp = x.cxText;
+
+							xCurrPos += (cxTemp + p->m_Dpis.cxDefItemPadding);
+							//if(xCurrPos>p->m_cxClient-p)
+						}
+					}
+					return TRUE;// 阻止位置更改
+				}
+			}
+		}
+		break;
+
+		case WM_NCCREATE:
+			p = (CTabHeader*)((CREATESTRUCTW*)lParam)->lpCreateParams;
+			SetWindowLongPtrW(hWnd, 0, (LONG_PTR)p);
+			return TRUE;
+
+		case WM_CREATE:
+		{
+			//DbBufPrepare(hWnd, p->m_hCDC, p->m_hBitmap, p->m_hOldBmp);
+
+			p->m_iDpi = GetDpi(hWnd);
+			UpdateDpiSize(p->m_Dpis, p->m_iDpi);
+			p->m_UpDown.Create(NULL, WS_CHILD | UDS_HORZ, 0,
+				0, 0, p->m_Dpis.cxUpDown, p->m_Dpis.cyUpDown, hWnd, IDC_UPDOWN);
+		}
+		return 0;
+
+		case WM_DPICHANGED_AFTERPARENT:
+		{
+			p->m_iDpi = GetDpi(hWnd);
+			UpdateDpiSize(p->m_Dpis, p->m_iDpi);
+		}
+		return 0;
+
+		case WM_SETFONT:
+		{
+			p->m_hFont = (HFONT)wParam;
+			if (lParam)
+			{
+				p->Paint();
+				p->Redraw();
+			}
+		}
+		return 0;
+
+		case WM_DESTROY:
+			//DbBufFree(p->m_hCDC, p->m_hBitmap, p->m_hOldBmp);
+			return 0;
+
+		case WM_SETREDRAW:
+			p->m_bRedraw = (BOOL)wParam;
+			break;
+		}
+
+		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
+	}
+
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
 		dwStyle |= WS_CHILD;
 		m_hWnd = IntCreate(dwExStyle, WCN_TABHEADER, pszText, dwStyle,

@@ -89,8 +89,6 @@ constexpr int c_LBPadding = 3;
 
 class CListBoxExt :public CListBox
 {
-	SUBCLASS_MGR_DECL(CListBoxExt)
-	SUBCLASS_REF_MGR_DECL(CListBoxExt, ObjRecorderRefPlaceholder)
 public:
 	EXELISTBOXDATA m_InfoEx{};
 	//////////图像列表相关
@@ -117,11 +115,114 @@ public:
 	};										// 工具提示信息
 	HWND m_hParent				= NULL;
 private:
-	void UpdateThemeInfo();
+	void UpdateThemeInfo()
+	{
+		CloseThemeData(m_hTheme);
+		m_hTheme = OpenThemeData(m_hWnd, L"Button");
+		HDC hDC = GetDC(m_hWnd);
+		SIZE size;
+		GetThemePartSize(m_hTheme, hDC, BP_CHECKBOX, CBS_CHECKEDNORMAL, NULL, TS_DRAW, &size);
+		m_cxCheckBox = size.cx;
+		ReleaseDC(m_hWnd, hDC);
+	}
 
-	void AddFile();
+	void AddFile()
+	{
+		if (!m_rsDir.Size())
+			return;
+		DeleteString(-1);
 
-	int HitTestCheckBox(POINT pt, int* pidxItem = NULL);
+		PWSTR pszPath = (PWSTR)_malloca((
+			m_rsDir.Size() +
+			m_rsFilePattern.Size() +
+			5/*一个反斜杠，三个*.*（通配符为空时用），一个结尾NULL*/) * sizeof(WCHAR));
+		assert(pszPath);// 消除警告
+		wcscpy(pszPath, m_rsDir.Data());
+		PWSTR pszTemp = pszPath + m_rsDir.Size();// 指针指到目录的后面，方便替换通配符
+
+		PWSTR pszFilePattern;
+		if (m_rsFilePattern.Size() && m_rsFilePattern.Data())
+			pszFilePattern = m_rsFilePattern.Data();
+		else
+		{
+#pragma warning(push)
+#pragma warning(disable:6255)// 禁用警告：考虑改用_malloca
+			pszFilePattern = (PWSTR)_alloca(4 * sizeof(WCHAR));
+#pragma warning(pop)
+			assert(pszFilePattern);// 消除警告
+			wcscpy(pszFilePattern, L"*.*");
+		}
+
+		WIN32_FIND_DATAW wfd;
+		HANDLE hFind;
+		PWSTR pszDivPos, pszOld = pszFilePattern;
+		while (TRUE)
+		{
+			pszDivPos = wcsstr(pszFilePattern, L"|");
+			if (pszDivPos != pszOld && pszDivPos)// 常规情况
+			{
+				int cch = (int)(pszDivPos - pszOld - 1);
+				wcscpy(pszTemp, L"\\");
+				wcsncat(pszTemp, pszOld, cch);
+				*(pszTemp + cch + 1) = L'\0';
+			}
+			else if (!pszDivPos)// 找不到下一个分隔符
+			{
+				wcscpy(pszTemp, L"\\");
+				wcscat(pszTemp, pszOld);
+			}
+			else// 尾部（pszDivPos==pszOld）
+				break;
+
+			LBITEMCOMMINFO CommInfo{};
+			pszOld = pszDivPos + 1;
+			hFind = FindFirstFileW(pszPath, &wfd);
+			if (hFind == INVALID_HANDLE_VALUE)
+				if (!pszDivPos)
+					break;
+				else
+					continue;
+			do
+			{
+				if (memcmp(wfd.cFileName, L".", 2 * sizeof(WCHAR)) == 0 ||
+					memcmp(wfd.cFileName, L"..", 3 * sizeof(WCHAR)) == 0)
+					continue;
+				if (!m_InfoEx.uFileAttr || wfd.dwFileAttributes & m_InfoEx.uFileAttr)
+				{
+					if (m_InfoEx.ftMaxTime == m_InfoEx.ftMinTime || IsFILETIMEZero(&m_InfoEx.ftMaxTime))
+						AddString(wfd.cFileName, NULL, CommInfo);
+					else if (wfd.ftCreationTime > m_InfoEx.ftMinTime && wfd.ftCreationTime < m_InfoEx.ftMaxTime)
+						AddString(wfd.cFileName, NULL, CommInfo);
+				}
+			} while (FindNextFileW(hFind, &wfd));
+			FindClose(hFind);
+			if (!pszDivPos)
+				break;
+		}
+
+		_freea(pszPath);
+	}
+
+	int HitTestCheckBox(POINT pt, int* pidxItem = NULL)
+	{
+		POINT ptScr = pt;
+		ClientToScreen(m_hWnd, &ptScr);
+		int idx = LBItemFromPt(m_hWnd, ptScr, FALSE);
+		if (pidxItem)
+			*pidxItem = idx;
+		if (idx < 0)
+			return -1;
+
+		RECT rcItem;
+		if (SendMessageW(m_hWnd, LB_GETITEMRECT, idx, (LPARAM)&rcItem) == LB_ERR)
+			return -1;
+		rcItem.left += c_LBPadding;
+		rcItem.right = rcItem.left + m_cxCheckBox;
+		if (PtInRect(&rcItem, pt))
+			return idx;
+		else
+			return -1;
+	}
 
 	/*
 	EckInline void OnSelChange()
@@ -206,11 +307,6 @@ private:
 		LBMoveItem(m_idxDraggingBegin, idx);
 	}
 	*/
-	static LRESULT CALLBACK SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
-		UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
-
-	static LRESULT CALLBACK SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
-		UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 public:
 	CListBoxExt()
 	{
@@ -239,7 +335,236 @@ public:
 		DestroyWindow(m_hToolTip);
 	}
 
-	ECK_CWND_CREATE
+	BOOL OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult) override
+	{
+		switch (uMsg)
+		{
+		case WM_MEASUREITEM:
+		{
+			if (m_InfoEx.cyItem <= 0)
+				break;
+			auto pmis = (MEASUREITEMSTRUCT*)lParam;
+			pmis->itemHeight = m_InfoEx.cyItem;
+			lResult = TRUE;
+		}
+		return TRUE;
+
+		case WM_DRAWITEM:
+		{
+			auto pdis = (DRAWITEMSTRUCT*)lParam;
+			if (pdis->itemID == -1)
+				break;
+			auto& Item = m_ItemsInfo[pdis->itemID];
+
+			HDC hDC = pdis->hDC;
+			// 画背景
+			if (IsBitSet(pdis->itemState, ODS_SELECTED)/* && !Item.Info.bDisabled*/)
+			{
+				if (Item.hbrSelBK)
+					FillRect(hDC, &pdis->rcItem, Item.hbrSelBK);
+				else
+					FillRect(hDC, &pdis->rcItem, m_hbrSelBK);
+
+				if (Item.Info.crSelText != CLR_DEFAULT)
+					SetTextColor(hDC, Item.Info.crSelText);
+				else if (m_InfoEx.crSelText != CLR_DEFAULT)
+					SetTextColor(hDC, m_InfoEx.crSelText);
+				else
+					SetTextColor(hDC, GetSysColor(COLOR_HIGHLIGHTTEXT));
+			}
+			else
+			{
+				if (Item.hbrBK)
+					FillRect(hDC, &pdis->rcItem, Item.hbrBK);
+				else
+					FillRect(hDC, &pdis->rcItem, m_hbrBK);
+
+				if (Item.Info.bDisabled)
+					SetTextColor(hDC, GetSysColor(COLOR_GRAYTEXT));
+				else if (Item.Info.crText != CLR_DEFAULT)
+					SetTextColor(hDC, Item.Info.crText);
+				else if (m_InfoEx.crText != CLR_DEFAULT)
+					SetTextColor(hDC, m_InfoEx.crText);
+				else
+					SetTextColor(hDC, GetSysColor(COLOR_WINDOWTEXT));
+			}
+			// 画选择框
+			RECT rc = pdis->rcItem;
+			if (m_InfoEx.iCheckBoxMode)
+			{
+				rc.left += c_LBPadding;
+				rc.right = rc.left + m_cxCheckBox;
+
+				int iPartID;
+				int iStateID;
+				if (m_InfoEx.iCheckBoxMode == 1)
+				{
+					iPartID = BP_RADIOBUTTON;
+					if (m_idxChecked == pdis->itemID)
+						iStateID = Item.Info.bDisabled ? RBS_CHECKEDDISABLED : RBS_CHECKEDNORMAL;
+					else
+						iStateID = Item.Info.bDisabled ? RBS_UNCHECKEDDISABLED : RBS_UNCHECKEDNORMAL;
+				}
+				else
+				{
+					iPartID = BP_CHECKBOX;
+					if (Item.Info.bChecked)
+						iStateID = Item.Info.bDisabled ? CBS_CHECKEDDISABLED : CBS_CHECKEDNORMAL;
+					else
+						iStateID = Item.Info.bDisabled ? CBS_UNCHECKEDDISABLED : CBS_UNCHECKEDNORMAL;
+				}
+				DrawThemeBackground(m_hTheme, hDC, iPartID, iStateID, &rc, NULL);
+				rc.right += c_LBPadding;
+				rc.left = rc.right;
+			}
+			else
+			{
+				rc.left += c_LBPadding;
+				rc.right = rc.left;
+			}
+			// 画图片
+			if (m_cxImage)
+			{
+				if (m_hImageList && Item.Info.idxImage >= 0)
+				{
+					ImageList_Draw(m_hImageList, Item.Info.idxImage, hDC,
+						rc.right,
+						rc.top + ((rc.bottom - rc.top) - m_cyImage) / 2,
+						ILD_NORMAL | (IsBitSet(pdis->itemState, ODS_SELECTED) ? ILD_SELECTED : 0));
+				}
+				rc.left += (m_cxImage + c_LBPadding);
+			}
+			rc.right = pdis->rcItem.right;
+			// 画文本
+			UINT uDTFlags = DT_NOCLIP | DT_SINGLELINE | (m_InfoEx.bEllipsis ? DT_END_ELLIPSIS : 0);
+			switch (m_InfoEx.iAlignH)
+			{
+			case 0:uDTFlags |= DT_LEFT; break;
+			case 1:uDTFlags |= DT_CENTER; break;
+			case 2:uDTFlags |= DT_VCENTER; break;
+			default:EckDbgBreak(); break;
+			}
+
+			switch (m_InfoEx.iAlignV)
+			{
+			case 0:uDTFlags |= DT_TOP; break;
+			case 1:uDTFlags |= DT_VCENTER; break;
+			case 2:uDTFlags |= DT_BOTTOM; break;
+			default:EckDbgBreak(); break;
+			}
+
+			SetBkMode(hDC, TRANSPARENT);
+			DrawTextW(hDC, Item.rsCaption.Data(), -1, &rc, uDTFlags);
+			lResult = TRUE;
+		}
+		return TRUE;
+		}
+
+		return CListBox::OnNotifyMsg(hParent, uMsg, wParam, lParam, lResult);
+	}
+
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
+	{
+		switch (uMsg)
+		{
+		case WM_LBUTTONDOWN:// 更新检查框
+		{
+			if (!m_InfoEx.iCheckBoxMode)
+				break;
+
+			POINT pt{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) };
+			int idxItem;
+			int idx = HitTestCheckBox(pt, &idxItem);
+			// 过滤禁止的项目
+			if (idxItem < 0)
+				break;
+			if (m_ItemsInfo[idxItem].Info.bDisabled)
+				return 0;
+			// 更新检查状态
+			if (idx < 0)
+				break;
+			if (idx >= 0)
+				if (m_InfoEx.iCheckBoxMode == 1)
+				{
+					if (m_idxChecked != idx)
+					{
+						if (m_idxChecked >= 0)
+							RedrawItem(m_idxChecked);
+						m_idxChecked = idx;
+						RedrawItem(idx);
+					}
+				}
+				else
+				{
+					EckBoolNot(m_ItemsInfo[idx].Info.bChecked);
+					RedrawItem(idx);
+				}
+		}
+		break;
+
+		case WM_KEYDOWN:
+		{
+
+		}
+		break;
+
+		case WM_LBUTTONDBLCLK:// 连击修复
+		{
+			POINT pt{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) };
+			int idx = HitTestCheckBox(pt);
+			if (idx >= 0)
+				PostMessageW(hWnd, WM_LBUTTONDOWN, wParam, lParam);
+		}
+		break;
+
+		case WM_MOUSEMOVE:
+		{
+			if (!m_InfoEx.bToolTip)
+				break;
+			TRACKMOUSEEVENT tme;
+			tme.cbSize = sizeof(TRACKMOUSEEVENT);
+			tme.dwFlags = TME_HOVER | TME_LEAVE;
+			tme.dwHoverTime = 400;
+			tme.hwndTrack = hWnd;
+			TrackMouseEvent(&tme);
+		}
+		break;
+
+		case WM_MOUSEHOVER:
+		{
+			if (!m_InfoEx.bToolTip)
+				break;
+			SendMessageW(m_hToolTip, TTM_TRACKACTIVATE, FALSE, (LPARAM)&m_ti);
+			POINT ptScr{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) };
+			ClientToScreen(hWnd, &ptScr);
+			int idx = LBItemFromPt(hWnd, ptScr, FALSE);
+			if (idx < 0)
+				break;
+			SendMessageW(m_hToolTip, TTM_GETTOOLINFOW, 0, (LPARAM)&m_ti);
+			m_ti.lpszText = m_ItemsInfo[idx].rsTip.Data();
+			SendMessageW(m_hToolTip, TTM_SETTOOLINFOW, 0, (LPARAM)&m_ti);
+			SendMessageW(m_hToolTip, TTM_TRACKPOSITION, 0, MAKELPARAM(ptScr.x, ptScr.y));
+			SendMessageW(m_hToolTip, TTM_TRACKACTIVATE, TRUE, (LPARAM)&m_ti);
+		}
+		break;
+
+		case WM_MOUSELEAVE:
+			if (!m_InfoEx.bToolTip)
+				break;
+			SendMessageW(m_hToolTip, TTM_TRACKACTIVATE, FALSE, (LPARAM)&m_ti);
+			break;
+
+		case WM_THEMECHANGED:
+			UpdateThemeInfo();
+			break;
+		}
+
+		return CListBox::OnMsg(hWnd, uMsg, wParam, lParam);
+	}
+
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
 		dwStyle |= WS_CHILD;
 
@@ -256,16 +581,14 @@ public:
 		
 		m_hWnd = CreateWindowExW(dwExStyle, WC_LISTBOXW, NULL, dwStyle,
 			x, y, cx, cy, hParent, hMenu, NULL, NULL);
-		m_SM.AddSubclass(m_hWnd, this);
 		m_hParent = hParent;
-		m_SMRef.AddRef(hParent, ObjRecorderRefPlaceholderVal);
 
 		m_hToolTip = CreateWindowExW(0, TOOLTIPS_CLASSW, NULL,
 			WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP | (m_InfoEx.bBalloonToolTip ? TTS_BALLOON : 0),
 			0, 0, 0, 0, NULL, NULL, NULL, NULL);
 
 		if (m_Info.bDragList)
-			SetDragList(m_Info.bDragList);// 必须在子类化之前
+			SetDragList(m_Info.bDragList);
 		
 		UpdateThemeInfo();
 
@@ -274,15 +597,107 @@ public:
 		return m_hWnd;
 	}
 
-	int InsertString(PCWSTR pszString, PCWSTR pszTip, const LBITEMCOMMINFO& CommInfo, int iPos = -1);
+	int InsertString(PCWSTR pszString, PCWSTR pszTip, const LBITEMCOMMINFO& CommInfo, int iPos = -1)
+	{
+		int idx = (int)SendMessageW(m_hWnd, LB_INSERTSTRING, iPos, (LPARAM)L"");
+		if (idx == LB_ERR)
+			return -1;
+		LBITEMINFO Item{ pszString,pszTip,NULL,NULL,CommInfo };
+		if (CommInfo.crBK != CLR_DEFAULT)
+			Item.hbrBK = CreateSolidBrush(CommInfo.crBK);
+		if (CommInfo.crSelBK != CLR_DEFAULT)
+			Item.hbrSelBK = CreateSolidBrush(CommInfo.crSelBK);
+		if (!m_InfoEx.bAutoSort)
+			if (iPos < 0)
+				m_ItemsInfo.push_back(std::move(Item));
+			else
+				m_ItemsInfo.insert(m_ItemsInfo.begin() + idx, std::move(Item));
+		else
+		{
+			for (int i = 0; i < (int)m_ItemsInfo.size(); ++i)
+			{
+				if (wcscmp(m_ItemsInfo[i].rsCaption.Data(), pszString) > 0)
+				{
+					m_ItemsInfo.insert(m_ItemsInfo.begin() + i, std::move(Item));
+					goto Ret;
+				}
+			}
+			m_ItemsInfo.push_back(std::move(Item));
+		}
+	Ret:
+		return idx;
+	}
 
-	int AddString(PCWSTR pszString, PCWSTR pszTip, const LBITEMCOMMINFO& CommInfo);
+	int AddString(PCWSTR pszString, PCWSTR pszTip, const LBITEMCOMMINFO& CommInfo)
+	{
+		int idx = (int)SendMessageW(m_hWnd, LB_ADDSTRING, 0, (LPARAM)L"");
+		if (idx == LB_ERR)
+			return -1;
+		LBITEMINFO Item{ pszString,pszTip,NULL,NULL,CommInfo };
+		if (CommInfo.crBK != CLR_DEFAULT)
+			Item.hbrBK = CreateSolidBrush(CommInfo.crBK);
+		if (CommInfo.crSelBK != CLR_DEFAULT)
+			Item.hbrSelBK = CreateSolidBrush(CommInfo.crSelBK);
+		if (!m_InfoEx.bAutoSort)
+			m_ItemsInfo.push_back(std::move(Item));
+		else
+		{
+			for (int i = 0; i < (int)m_ItemsInfo.size(); ++i)
+			{
+				if (wcscmp(m_ItemsInfo[i].rsCaption.Data(), pszString) > 0)
+				{
+					m_ItemsInfo.insert(m_ItemsInfo.begin() + i, std::move(Item));
+					goto Ret;
+				}
+			}
+			m_ItemsInfo.push_back(std::move(Item));
+		}
+	Ret:
+		return idx;
+	}
 
-	void SetItem(int idx, PCWSTR pszString, PCWSTR pszTip, const LBITEMCOMMINFO& CommInfo);
+	void SetItem(int idx, PCWSTR pszString, PCWSTR pszTip, const LBITEMCOMMINFO& CommInfo)
+	{
+		LBITEMINFO& Item = m_ItemsInfo[idx];
+		Item = { pszString,pszTip,NULL,NULL,CommInfo };
+		if (CommInfo.crBK != CLR_DEFAULT)
+			Item.hbrBK = CreateSolidBrush(CommInfo.crBK);
+		if (CommInfo.crSelBK != CLR_DEFAULT)
+			Item.hbrSelBK = CreateSolidBrush(CommInfo.crSelBK);
+	}
 
-	BOOL DeleteString(int iPos);
+	BOOL DeleteString(int iPos)
+	{
+		if (iPos < 0)
+		{
+			SendMessageW(m_hWnd, LB_RESETCONTENT, 0, 0);
+			for (auto& x : m_ItemsInfo)
+			{
+				DeleteObject(x.hbrBK);
+				DeleteObject(x.hbrSelBK);
+			}
+			m_ItemsInfo.resize(0u);
+		}
+		else if (iPos >= 0 && iPos < (int)m_ItemsInfo.size())
+		{
+			if (SendMessageW(m_hWnd, LB_DELETESTRING, iPos, 0) == LB_ERR)
+				return FALSE;
+			auto& Item = m_ItemsInfo[iPos];
+			DeleteObject(Item.hbrBK);
+			DeleteObject(Item.hbrSelBK);
+			m_ItemsInfo.erase(m_ItemsInfo.begin() + iPos);
+		}
+		Redraw();
+		return TRUE;
+	}
 
-	BOOL InitStorage(int cItems);
+	BOOL InitStorage(int cItems)
+	{
+		if (SendMessageW(m_hWnd, LB_INITSTORAGE, cItems, 0) == LB_ERRSPACE)
+			return FALSE;
+		m_ItemsInfo.reserve(cItems);
+		return TRUE;
+	}
 
 	EckInline void SwapItem(int idx1, int idx2)
 	{

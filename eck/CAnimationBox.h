@@ -230,8 +230,9 @@ public:
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
-	
-	ECK_CWND_CREATE
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
 		m_hWnd = IntCreate(dwExStyle, WCN_ANIMATIONBOX, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, g_hInstance, NULL);

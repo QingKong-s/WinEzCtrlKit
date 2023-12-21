@@ -378,10 +378,8 @@ public:
 		return (int)SendMsg(TVM_GETISEARCHSTRINGW, 0, (LPARAM)pszBuf);
 	}
 
-	EckInline BOOL GetItem(HTREEITEM hItem, UINT uMask, TVITEMEXW* ptvi)
+	EckInline BOOL GetItem(TVITEMEXW* ptvi)
 	{
-		ptvi->hItem = hItem;
-		ptvi->mask = uMask;
 		return (BOOL)SendMsg(TVM_GETITEMW, 0, (LPARAM)ptvi);
 	}
 
@@ -588,9 +586,8 @@ public:
 		return (COLORREF)SendMsg(TVM_SETINSERTMARKCOLOR, 0, cr);
 	}
 
-	EckInline BOOL SetItem(HTREEITEM hItem, TVITEMEXW* ptvi)
+	EckInline BOOL SetItem(TVITEMEXW* ptvi)
 	{
-		ptvi->hItem = hItem;
 		return (BOOL)SendMsg(TVM_SETITEM, 0, (LPARAM)ptvi);
 	}
 

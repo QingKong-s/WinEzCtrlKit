@@ -62,12 +62,6 @@ private:
 		m_cyText = tm.tmHeight;
 		ReleaseDC(m_hWnd, hDC);
 	}
-
-	static LRESULT CALLBACK SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
-		UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
-
-	static LRESULT CALLBACK SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
-		UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 public:
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
@@ -120,7 +114,7 @@ public:
 					return 0;
 			}
 		}
-		return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+		return CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
 
 		case WM_KILLFOCUS:
 		{
@@ -202,7 +196,7 @@ public:
 					SetWindowTextW(hWnd, std::to_wstring(lfValue).c_str());
 				delete[] pszText;
 			}
-			return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+			return CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
 			case InputMode::Double:
 			{
 				cchText = GetWindowTextLengthW(hWnd);
@@ -219,7 +213,7 @@ public:
 					SetWindowTextW(hWnd, std::to_wstring(lfValue).c_str());
 				delete[] pszText;
 			}
-			return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+			return CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
 			case InputMode::DateTime:
 				break;
 			}
@@ -238,7 +232,7 @@ public:
 				{
 					auto pnccsp = (NCCALCSIZE_PARAMS*)lParam;
 					m_rcMargins = pnccsp->rgrc[0];// 保存非客户区尺寸
-					lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);// call默认过程，计算标准边框尺寸
+					lResult = CEdit::OnMsg(hWnd, uMsg, wParam, lParam);// call默认过程，计算标准边框尺寸
 					// 保存边框尺寸
 					m_rcMargins.left = pnccsp->rgrc[0].left - m_rcMargins.left;
 					m_rcMargins.top = pnccsp->rgrc[0].top - m_rcMargins.top;
@@ -252,7 +246,7 @@ public:
 				{
 					auto prc = (RECT*)lParam;
 					m_rcMargins = *prc;// 保存非客户区尺寸
-					lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);// call默认过程，计算标准边框尺寸
+					lResult = CEdit::OnMsg(hWnd, uMsg, wParam, lParam);// call默认过程，计算标准边框尺寸
 					// 保存边框尺寸
 					m_rcMargins.left = prc->left - m_rcMargins.left;
 					m_rcMargins.top = prc->top - m_rcMargins.top;
@@ -269,7 +263,7 @@ public:
 
 		case WM_NCPAINT:
 		{
-			DefSubclassProc(hWnd, uMsg, wParam, lParam);// 画默认边框
+			CEdit::OnMsg(hWnd, uMsg, wParam, lParam);// 画默认边框
 			if (GetMultiLine())
 				return 0;
 
@@ -306,7 +300,7 @@ public:
 
 		case WM_SETFONT:
 		{
-			auto lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);
+			auto lResult = CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
 			if (!GetMultiLine())
 			{
 				UpdateTextInfo();
@@ -317,7 +311,7 @@ public:
 
 		case WM_NCHITTEST:
 		{
-			auto lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);
+			auto lResult = CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
 			if (!GetMultiLine())
 			{
 				if (lResult == HTNOWHERE)
@@ -362,13 +356,14 @@ public:
 		m_crText = CLR_DEFAULT;
 	}
 
-	virtual ~CEditExt()
+	~CEditExt()
 	{
 		DeleteObject(m_hbrEditBK);
 	}
 
-	
-	ECK_CWND_CREATE
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
 		if (pData)
 	{

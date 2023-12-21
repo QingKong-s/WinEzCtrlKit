@@ -114,12 +114,11 @@ public:
 		//eck::CRefBin rb;
 		//KeyboardEvent(VK_CONTROL, 'A');
 
-
-		CRefBin rbOlePic = ReadInFile(LR"(E:\Desktop\Temp\111111.bmp)");
-		IStream* pStream = new CStreamView(rbOlePic);
-		IPicture* pPic;
-		auto hr=OleLoadPicture(pStream, rbOlePic.Size(), TRUE, IID_PPV_ARGS(&pPic));
-		EckDbgPrintFormatMessage(hr);
+		//CRefBin rbOlePic = ReadInFile(LR"(E:\Desktop\Temp\111111.bmp)");
+		//IStream* pStream = new CStreamView(rbOlePic);
+		//IPicture* pPic;
+		//auto hr=OleLoadPicture(pStream, rbOlePic.Size(), TRUE, IID_PPV_ARGS(&pPic));
+		//EckDbgPrintFormatMessage(hr);
 		//EckDbgBreak();
 	}
 
@@ -137,8 +136,9 @@ public:
 			m_Btn.Create(L"按钮测试", WS_CHILD | WS_VISIBLE, 0, 0, 0, 300, 70, hWnd, 101);
 			m_lot.Add(&m_Btn, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 
-			m_Edit.Create(L"编辑框", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, WS_EX_CLIENTEDGE,
+			m_Edit.Create(L"编辑框", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 0,
 				0, 0, 200, 100, hWnd, 102);
+			m_Edit.SetFrameType(1);
 			m_lot.Add(&m_Edit, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 
 			m_Label.Create(L"我是标签", WS_CHILD | WS_VISIBLE | WS_BORDER, 0, 0, 0, 300, 200, hWnd, 103);
@@ -174,8 +174,6 @@ public:
 			//m_AB.AddSpirit(pSpirit);
 			//pSpirit->Turn(-eck::Deg2Rad(90.f));
 			//pSpirit->AutoMarch({ 10.f,20,600.f,0,FALSE });
-
-
 
 			eck::SetFontForWndAndCtrl(hWnd, m_hFont);
 
@@ -216,7 +214,9 @@ public:
 		return RegisterClassW(&wc);
 	}
 
-	ECK_CWND_CREATE
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
 		m_hWnd = IntCreate(dwExStyle, WCN_TEST, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, this);

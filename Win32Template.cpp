@@ -476,27 +476,6 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
-	case WM_USER:
-	{
-		if (wParam == 104)
-		{
-			g_Label->SetClr(1, (COLORREF)lParam);
-		}
-	}
-	return 0;
-	case WM_USER + 1:
-	{
-		if (wParam == eck::TGLNM_CLICK)
-		{
-			auto pi = (eck::TGLCLICKINFO*)lParam;
-			std::wstring s =
-				L"项目索引："s + std::to_wstring(pi->idxItem) +
-				L"，部件ID：" + std::to_wstring(pi->uPart) +
-				L"，子任务索引：" + std::to_wstring(pi->idxSubTask);
-			MessageBoxW(hWnd, s.c_str(), L"", 0);
-		}
-	}
-	return 0;
 	case WM_LBUTTONDOWN:
 	{
 		POINT pt;

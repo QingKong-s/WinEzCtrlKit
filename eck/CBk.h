@@ -12,20 +12,9 @@ ECK_NAMESPACE_BEGIN
 class CBk :public CWnd
 {
 public:
-	static ATOM RegisterWndClass()
-	{
-		WNDCLASSW wc{};
-		wc.cbWndExtra = sizeof(void*) * 4;
-		wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
-		wc.hInstance = g_hInstance;
-		wc.lpfnWndProc = DefWindowProcW;
-		wc.lpszClassName = WCN_BK;
-		wc.style = CS_DBLCLKS | CS_PARENTDC;
-		return RegisterClassW(&wc);
-	}
-
-	EckInline 
-	ECK_CWND_CREATE
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
 		m_hWnd = IntCreate(dwExStyle, WCN_BK, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, g_hInstance, NULL);
