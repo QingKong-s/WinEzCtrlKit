@@ -9,6 +9,7 @@
 #include "ECK.h"
 #include "WndHelper.h"
 #include "CRefStr.h"
+#include "CException.h"
 
 #include <optional>
 
@@ -57,12 +58,10 @@ class CWnd
 {
 public:
 	WNDPROC m_pfnRealProc = DefWindowProcW;
+#ifdef ECK_CTRL_DESIGN_INTERFACE
+	DESIGNDATA_WND m_DDBase{};
+#endif
 protected:
-	struct CREATEPARAM
-	{
-		CWnd* pWnd;
-		void* pParam;
-	};
 	HWND m_hWnd = NULL;
 
 	static void WndCreatingSetLong(HWND hWnd, CBT_CREATEWNDW* pcs, ECKTHREADCTX* pThreadCtx)
@@ -70,19 +69,14 @@ protected:
 		SetWindowLongPtrW(hWnd, 0, (LONG_PTR)pThreadCtx->pCurrWnd);
 	}
 
-	EckInline HWND IntCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
+	[[nodiscard]] EckInline HWND IntCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
 		FWndCreating pfnCreatingProc = NULL)
 	{
 		BeginCbtHook(this, pfnCreatingProc);
-		const auto hWnd = CreateWindowExW(dwExStyle, pszClass, pszText, dwStyle,
+		return CreateWindowExW(dwExStyle, pszClass, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, hInst, pParam);
-		return hWnd;
 	}
-public:
-#ifdef ECK_CTRL_DESIGN_INTERFACE
-	DESIGNDATA_WND m_DDBase{};
-#endif
 public:
 	ECKPROP_R(GetHWND) HWND HWnd;
 	ECKPROP(GetFont, SetFont) HFONT HFont;
@@ -100,8 +94,8 @@ public:
 	/// </summary>
 	static LRESULT CALLBACK WndProcMsgReflection(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		auto pCtx = GetThreadCtx();
-		auto p = pCtx->WmAt(hWnd);
+		const auto pCtx = GetThreadCtx();
+		const auto p = pCtx->WmAt(hWnd);
 		EckAssert(p);
 
 		CWnd* pChild;
@@ -149,6 +143,12 @@ public:
 			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
 				return lResult;
 			break;
+		case WM_NCDESTROY:// 窗口生命周期中的最后一个消息，在这里解绑HWND和CWnd，从窗口映射中清除无效内容
+		{
+			const auto lResult = p->OnMsg(hWnd, uMsg, wParam, lParam);
+			(void)p->CWnd::Detach();// 控件类可能不允许拆离，必须使用基类拆离
+			return lResult;
+		}
 		}
 		return p->OnMsg(hWnd, uMsg, wParam, lParam);
 	}
@@ -157,18 +157,22 @@ public:
 	/// 是否可更改句柄所有权
 	/// </summary>
 	/// <returns>若类与HWND没有强联系则返回FALSE，否则返回TRUE，此时不能执行依附拆离等操作</returns>
-	EckInline static constexpr BOOL IsSingleOwner() { return FALSE; }
+	[[nodiscard]] EckInline static constexpr BOOL IsSingleOwner() { return FALSE; }
 
-	CWnd() {}
+	CWnd() = default;
 
 	/// <summary>
 	/// 构造自句柄。
 	/// 不插入窗口映射，仅用于临时使用
 	/// </summary>
 	/// <param name="hWnd"></param>
-	CWnd(HWND hWnd) :m_hWnd(hWnd) {}
+	CWnd(HWND hWnd) :m_hWnd{ hWnd } {}
 
-	virtual ~CWnd() {}
+	virtual ~CWnd()
+	{
+		// 对于已添加进映射的窗口，CWnd的生命周期必须在窗口生命周期之内
+		EckAssert(GetThreadCtx()->WmAt(m_hWnd) ? (!m_hWnd) : TRUE);
+	}
 
 	/// <summary>
 	/// 依附句柄。
@@ -189,7 +193,7 @@ public:
 	/// 函数将从窗口映射中移除句柄
 	/// </summary>
 	/// <returns>本类持有的旧句柄</returns>
-	virtual HWND Detach()
+	[[nodiscard]] virtual HWND Detach()
 	{
 		HWND hWnd = NULL;
 		std::swap(hWnd, m_hWnd);
@@ -202,7 +206,7 @@ public:
 	/// <summary>
 	/// 创建窗口
 	/// </summary>
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
 	{
 		return Create(pszText, dwStyle, dwExStyle, x, y, cx, cy,
@@ -216,8 +220,7 @@ public:
 	virtual HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL)
 	{
-		EckDbgBreak();
-		return NULL;
+		throw CConstMsgException(L"调用了CWnd的Create方法");
 	}
 
 	/// <summary>
@@ -325,7 +328,7 @@ public:
 		if (dwNewExStyle.has_value())
 			pData->dwExStyle = dwNewExStyle.value();
 
-		DestroyWindow(m_hWnd);
+		Destroy();
 		return Create(NULL, 0, 0,
 			rcPos.value().left, rcPos.value().top, rcPos.value().right, rcPos.value().bottom,
 			hParent, iID, rb.Data());
@@ -334,7 +337,7 @@ public:
 	/// <summary>
 	/// 取窗口句柄
 	/// </summary>
-	EckInline HWND GetHWND() const { return m_hWnd; }
+	[[nodiscard]] EckInline HWND GetHWND() const { return m_hWnd; }
 
 	/// <summary>
 	/// 边框已更改
@@ -369,11 +372,6 @@ public:
 		return InvalidateRect(m_hWnd, &rc, FALSE);
 	}
 
-	EckInline operator HWND() const
-	{
-		return m_hWnd;
-	}
-
 	/// <summary>
 	/// 置边框类型
 	/// </summary>
@@ -401,7 +399,7 @@ public:
 	/// <summary>
 	/// 取边框类型
 	/// </summary>
-	int GetFrameType() const
+	[[nodiscard]] int GetFrameType() const
 	{
 		const DWORD dwStyle = GetStyle();
 		const DWORD dwExStyle = GetExStyle();
@@ -452,7 +450,7 @@ public:
 	/// <summary>
 	/// 取滚动条类型
 	/// </summary>
-	int GetScrollBar() const
+	[[nodiscard]] int GetScrollBar() const
 	{
 		const BOOL bVSB = IsBitSet(GetWindowLongPtrW(m_hWnd, GWL_STYLE), WS_VSCROLL);
 		const BOOL bHSB = IsBitSet(GetWindowLongPtrW(m_hWnd, GWL_STYLE), WS_HSCROLL);
@@ -478,7 +476,7 @@ public:
 	/// <summary>
 	/// 取窗口样式
 	/// </summary>
-	EckInline DWORD GetStyle() const
+	[[nodiscard]] EckInline DWORD GetStyle() const
 	{
 		return (DWORD)GetWindowLongPtrW(m_hWnd, GWL_STYLE);
 	}
@@ -486,7 +484,7 @@ public:
 	/// <summary>
 	/// 取扩展样式
 	/// </summary>
-	EckInline DWORD GetExStyle() const
+	[[nodiscard]] EckInline DWORD GetExStyle() const
 	{
 		return (DWORD)GetWindowLongPtrW(m_hWnd, GWL_EXSTYLE);
 	}
@@ -526,7 +524,7 @@ public:
 	/// <summary>
 	/// 取标题
 	/// </summary>
-	EckInline CRefStrW GetText() const
+	[[nodiscard]] EckInline CRefStrW GetText() const
 	{
 		CRefStrW rs;
 		int cch = GetWindowTextLengthW(m_hWnd);
@@ -581,15 +579,7 @@ public:
 	EckInline BOOL Destroy()
 	{
 		EckAssert(IsWindow(m_hWnd));
-		BOOL b = DestroyWindow(m_hWnd);
-		if (b)
-		{
-			const auto pCtx = GetThreadCtx();
-			EckAssert(pCtx->WmAt(m_hWnd) == this);// 验证匹配性
-			pCtx->WmRemove(m_hWnd);
-			m_hWnd = NULL;
-		}
-		return b;
+		return DestroyWindow(m_hWnd);
 	}
 
 	/// <summary>
@@ -605,7 +595,7 @@ public:
 	/// <summary>
 	/// 取字体
 	/// </summary>
-	EckInline HFONT GetFont() const
+	[[nodiscard]] EckInline HFONT GetFont() const
 	{
 		return (HFONT)SendMsg(WM_GETFONT, 0, 0);
 	}
@@ -635,7 +625,7 @@ public:
 	/// <summary>
 	/// 是否允许
 	/// </summary>
-	EckInline BOOL IsEnabled() const
+	[[nodiscard]] EckInline BOOL IsEnabled() const
 	{
 		return IsWindowEnabled(m_hWnd);
 	}
@@ -643,7 +633,7 @@ public:
 	/// <summary>
 	/// 是否可见
 	/// </summary>
-	EckInline BOOL IsVisible() const
+	[[nodiscard]] EckInline BOOL IsVisible() const
 	{
 		return IsWindowVisible(m_hWnd);
 	}
@@ -652,7 +642,7 @@ public:
 	/// 取长型
 	/// </summary>
 	/// <param name="i">GWL_常量</param>
-	EckInline LONG_PTR GetLong(int i) const
+	[[nodiscard]] EckInline LONG_PTR GetLong(int i) const
 	{
 		return GetWindowLongPtrW(m_hWnd, i);
 	}
@@ -663,9 +653,16 @@ public:
 	/// <param name="i">GWL_常量</param>
 	/// <param name="l">新长型</param>
 	/// <returns>旧长型</returns>
-	EckInline LONG_PTR SetLong(int i, LONG_PTR l) const
+	[[nodiscard]] EckInline LONG_PTR SetLong(int i, LONG_PTR l) const
 	{
 		return SetWindowLongPtrW(m_hWnd, i, l);
+	}
+
+	[[nodiscard]] EckInline CRefStrW GetClsName()
+	{
+		CRefStrW rs(256);
+		GetClassNameW(GetHWND(), rs.Data(), 256 + 1);
+		return rs;
 	}
 };
 ECK_NAMESPACE_END

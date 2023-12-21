@@ -27,12 +27,12 @@ struct CFmtMsgException :CException
 	DWORD GetErrCode() const { return m_dwErr; }
 };
 
-void DbgPrint(const CConstMsgException& e)
+EckInline void DbgPrint(const CConstMsgException& e)
 {
 	OutputDebugStringW(e.GetMsg());
 }
 
-void DbgPrint(const CFmtMsgException& e)
+inline void DbgPrint(const CFmtMsgException& e)
 {
 	PWSTR pszInfo;
 	FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,

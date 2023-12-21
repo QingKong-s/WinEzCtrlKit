@@ -42,6 +42,29 @@ static void CALLBACK GdiplusDebug(GpDebugEventLevel dwLevel, CHAR* pszMsg)
 }
 #endif
 
+enum
+{
+	RWCT_EZREG,
+};
+
+constexpr struct
+{
+	PCWSTR pszClass = NULL;
+	UINT uClassStyle = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
+	int iType = RWCT_EZREG;
+}
+g_WndClassInfo[]
+{
+	{ WCN_LABEL },
+	{ WCN_BK },
+	{ WCN_DLG },
+	{ WCN_SPLITBAR },
+	{ WCN_DRAWPANEL },
+	{ WCN_DRAWPANELD2D },
+	{ WCN_LISTBOXNEW },
+	{ WCN_ANIMATIONBOX },
+};
+
 InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrCode)
 {
 	EckAssert(!g_hInstance && !g_dwTlsSlot);
@@ -71,66 +94,28 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		return InitStatus::GdiplusInitError;
 	}
 
-	if (!CLabel::RegisterWndClass())
+	for (const auto& e : g_WndClassInfo)
 	{
-		*pdwErrCode = GetLastError();
-		EckDbgPrintFormatMessage(*pdwErrCode);
-		return InitStatus::RegWndClassError;
-	}
-
-	if (!CBk::RegisterWndClass())
-	{
-		*pdwErrCode = GetLastError();
-		EckDbgPrintFormatMessage(*pdwErrCode);
-		return InitStatus::RegWndClassError;
-	}
-
-	if (!CDialog::RegisterWndClass())
-	{
-		*pdwErrCode = GetLastError();
-		EckDbgPrintFormatMessage(*pdwErrCode);
-		return InitStatus::RegWndClassError;
-	}
-
-	if (!CSplitBar::RegisterWndClass(hInstance))
-	{
-		*pdwErrCode = GetLastError();
-		EckDbgPrintFormatMessage(*pdwErrCode);
-		return InitStatus::RegWndClassError;
-	}
-
-	if (!CDrawPanel::RegisterWndClass())
-	{
-		*pdwErrCode = GetLastError();
-		EckDbgPrintFormatMessage(*pdwErrCode);
-		return InitStatus::RegWndClassError;
-	}
-
-	if (!CDrawPanelD2D::RegisterWndClass())
-	{
-		*pdwErrCode = GetLastError();
-		EckDbgPrintFormatMessage(*pdwErrCode);
-		return InitStatus::RegWndClassError;
-	}
-
-	if (!CListBoxNew::RegisterWndClass())
-	{
-		*pdwErrCode = GetLastError();
-		EckDbgPrintFormatMessage(*pdwErrCode);
-		return InitStatus::RegWndClassError;
-	}
-
-	if (!CAnimationBox::RegisterWndClass())
-	{
-		*pdwErrCode = GetLastError();
-		EckDbgPrintFormatMessage(*pdwErrCode);
-		return InitStatus::RegWndClassError;
+		switch (e.iType)
+		{
+		case RWCT_EZREG:
+			if (!EzRegisterWndClass(e.pszClass, e.uClassStyle))
+			{
+				*pdwErrCode = GetLastError();
+				EckDbgPrintFormatMessage(*pdwErrCode);
+				return InitStatus::RegWndClassError;
+			}
+			break;
+		default:
+			__assume(0);
+		}
 	}
 
 	g_rsCurrDir.ReSize(32768);
 	GetModuleFileNameW(NULL, g_rsCurrDir.Data(), g_rsCurrDir.Size());
 	PathRemoveFileSpecW(g_rsCurrDir.Data());
 	g_rsCurrDir.ReCalcLen();
+	g_rsCurrDir.ShrinkToFit();
 
 	HRESULT hr;
 #ifndef NDEBUG
@@ -217,7 +202,7 @@ void ThreadInit()
 	TlsSetValue(GetThreadCtxTlsSlot(), p);
 }
 
-void ThreadFree()
+void ThreadUnInit()
 {
 	EckAssert(TlsGetValue(GetThreadCtxTlsSlot()));
 	const auto p = (ECKTHREADCTX*)TlsGetValue(GetThreadCtxTlsSlot());
@@ -229,43 +214,34 @@ HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc)
 {
 	EckAssert(pCurrWnd);
 	const auto pCtx = GetThreadCtx();
-	++pCtx->cHookRef;
 	pCtx->pCurrWnd = pCurrWnd;
 	pCtx->pfnWndCreatingProc = pfnCreatingProc;
-	if (!pCtx->hhkTempCBT)
-	{
-		EckAssert(pCtx->cHookRef == 1);
-		HHOOK hHook = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
+	EckAssert(!pCtx->hhkTempCBT);
+	HHOOK hHook = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
+		{
+			const auto pCtx = GetThreadCtx();
+			if (iCode == HCBT_CREATEWND)
 			{
-				const auto pCtx = GetThreadCtx();
-				if (iCode == HCBT_CREATEWND)
-				{
-					pCtx->pCurrWnd->m_pfnRealProc =
-						(WNDPROC)SetWindowLongPtrW((HWND)wParam, GWLP_WNDPROC,
-							(LONG_PTR)CWnd::WndProcMsgReflection);
-					pCtx->WmAdd((HWND)wParam, pCtx->pCurrWnd);
-					if (pCtx->pfnWndCreatingProc)
-						pCtx->pfnWndCreatingProc((HWND)wParam, (CBT_CREATEWNDW*)lParam, pCtx);
-					EndCbtHook();
-				}
-				return CallNextHookEx(pCtx->hhkTempCBT, iCode, wParam, lParam);
-			}, NULL, GetCurrentThreadId());
-		pCtx->hhkTempCBT = hHook;
-	}
+				pCtx->pCurrWnd->m_pfnRealProc =
+					(WNDPROC)SetWindowLongPtrW((HWND)wParam, GWLP_WNDPROC,
+						(LONG_PTR)CWnd::WndProcMsgReflection);
+				pCtx->WmAdd((HWND)wParam, pCtx->pCurrWnd);
+				if (pCtx->pfnWndCreatingProc)
+					pCtx->pfnWndCreatingProc((HWND)wParam, (CBT_CREATEWNDW*)lParam, pCtx);
+				EndCbtHook();
+			}
+			return CallNextHookEx(pCtx->hhkTempCBT, iCode, wParam, lParam);
+		}, NULL, GetCurrentThreadId());
+	pCtx->hhkTempCBT = hHook;
 	return pCtx->hhkTempCBT;
 }
 
 void EndCbtHook()
 {
 	const auto pCtx = GetThreadCtx();
-	EckAssert(pCtx->cHookRef > 0);
 	EckAssert(pCtx->hhkTempCBT);
-	--pCtx->cHookRef;
-	if (pCtx->cHookRef == 0)
-	{
-		UnhookWindowsHookEx(pCtx->hhkTempCBT);
-		pCtx->hhkTempCBT = NULL;
-	}
+	UnhookWindowsHookEx(pCtx->hhkTempCBT);
+	pCtx->hhkTempCBT = NULL;
 }
 
 BOOL PreTranslateMessage(const MSG& Msg)
@@ -287,7 +263,10 @@ BOOL PreTranslateMessage(const MSG& Msg)
 
 void SetMsgFilter(FMsgFilter pfnFilter)
 {
-	g_pfnMsgFilter = pfnFilter;
+	if (!pfnFilter)
+		g_pfnMsgFilter = DefMsgFilter;
+	else
+		g_pfnMsgFilter = pfnFilter;
 }
 
 void DbgPrintWndMap()
@@ -297,14 +276,18 @@ void DbgPrintWndMap()
 	CRefStrW rs(64);
 	for (const auto& e : pCtx->hmWnd)
 	{
-		auto sText = e.second->GetText();
-		if (!sText.Data())
-			sText = L" ";
-		rs.ReSize(sText.Size() + 64);
-		swprintf(rs.Data(), L"\tCWnd指针 = 0x%0p，HWND = 0x%0p，标题 = %s\n",
-			(PCVOID)e.second,
-			(PCVOID)e.first,
-			sText.Data());
+		auto rsText = e.second->GetText();
+		if (!rsText.Data())
+			rsText = L" ";
+		auto rsCls = e.second->GetClsName();
+		if (!rsCls.Data())
+			rsCls = L" ";
+		rs.ReSize(rsText.Size() + rsCls.Size() + 64);
+		swprintf(rs.Data(), L"\tCWnd指针 = 0x%0p，HWND = 0x%0p，标题 = %s，类名 = %s\n",
+			e.second,
+			e.first,
+			rsText.Data(),
+			rsCls.Data());
 		s += rs.Data();
 	}
 	s += std::format(L"共有{}个窗口\n", pCtx->hmWnd.size());

@@ -197,8 +197,8 @@ struct INITPARAM
 /// 函数将在内部调用eck::ThreadInit，除非设置了ECKINIT_NOINITTHREAD
 /// </summary>
 /// <param name="hInstance">实例句柄，所有自定义窗口类将在此实例上注册</param>
-/// <param name="pInitParam">接收初始化参数的可选指针</param>
-/// <param name="pdwErrCode">接收错误码变量的可选指针</param>
+/// <param name="pInitParam">指向初始化参数的可选指针</param>
+/// <param name="pdwErrCode">指向接收错误码变量的可选指针</param>
 /// <returns>错误代码</returns>
 InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam = NULL, DWORD* pdwErrCode = NULL);
 
@@ -214,7 +214,6 @@ struct ECKTHREADCTX
 	HHOOK hhkTempCBT = NULL;// CBT钩子句柄
 	CWnd* pCurrWnd = NULL;// 当前正在创建窗口所属的CWnd指针
 	FWndCreating pfnWndCreatingProc = NULL;// 当前创建窗口时要调用的过程
-	int cHookRef = 0;
 
 	EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
 	{
@@ -241,7 +240,7 @@ struct ECKTHREADCTX
 /// <summary>
 /// 取线程上下文TLS槽
 /// </summary>
-DWORD GetThreadCtxTlsSlot();
+[[nodiscard]] DWORD GetThreadCtxTlsSlot();
 
 /// <summary>
 /// 初始化线程上下文。
@@ -253,12 +252,12 @@ void ThreadInit();
 /// 反初始化线程上下文。
 /// 调用此函数后不允许使用任何ECK窗口对象
 /// </summary>
-void ThreadFree();
+void ThreadUnInit();
 
 /// <summary>
 /// 取线程上下文
 /// </summary>
-EckInline ECKTHREADCTX* GetThreadCtx()
+[[nodiscard]] EckInline ECKTHREADCTX* GetThreadCtx()
 {
 	return (ECKTHREADCTX*)TlsGetValue(GetThreadCtxTlsSlot());
 }
@@ -266,7 +265,7 @@ EckInline ECKTHREADCTX* GetThreadCtx()
 /// <summary>
 /// 窗口句柄到CWnd指针
 /// </summary>
-EckInline CWnd* CWndFromHWND(HWND hWnd)
+[[nodiscard]] EckInline CWnd* CWndFromHWND(HWND hWnd)
 {
 	return GetThreadCtx()->WmAt(hWnd);
 }

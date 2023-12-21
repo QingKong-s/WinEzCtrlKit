@@ -627,6 +627,18 @@ public:
 		m_cchText -= cch;
 	}
 
+	void ShrinkToFit()
+	{
+		EckAssert(m_cchCapacity >= m_cchText + 1);
+		if (m_cchCapacity == m_cchText + 1)
+			return;
+		const auto pOld = m_pszText;
+		m_pszText = m_Alloc.allocate(m_cchText + 1);
+		TCharTraits::Copy(Data(), pOld, m_cchText + 1);
+		m_Alloc.deallocate(pOld, m_cchCapacity);
+		m_cchCapacity = m_cchText + 1;
+	}
+
 	EckInline TIterator begin() { return Data(); }
 	EckInline TIterator end() { return begin() + Size(); }
 	EckInline TConstIterator begin() const { return Data(); }
