@@ -29,14 +29,14 @@ private:
 	BITBOOL m_bEscClose : 1 = FALSE;
 	BITBOOL m_bTotalMove : 1 = FALSE;
 public:
-	ECKPROP(GetBkImage, SetBkImage) HBITMAP BkImage;
-	ECKPROP(GetBkImageMode, SetBkImageMode) int BkImageMode;
-	ECKPROP(GetFullWndImage, SetFullWndImage) BOOL FullWndImage;
-	ECKPROP(GetMoveable, SetMoveable) BOOL Moveable;
-	ECKPROP(GetEscClose, SetEscClose) BOOL EscClose;
-	ECKPROP(GetTotalMove, SetTotalMove) BOOL TotalMove;
-	ECKPROP(GetBkColor, SetBkColor) COLORREF BkColor;
-	ECKPROP_R(GetBkImageSize) std::pair<int, int> BkImageSize;
+	ECKPROP(GetBkImage, SetBkImage) HBITMAP BkImage;// 背景图片
+	ECKPROP(GetBkImageMode, SetBkImageMode) int BkImageMode;// 背景图片模式
+	ECKPROP(GetFullWndImage, SetFullWndImage) BOOL FullWndImage;// 全窗口绘制背景图片
+	ECKPROP(GetMoveable, SetMoveable) BOOL Moveable;// 可否移动
+	ECKPROP(GetEscClose, SetEscClose) BOOL EscClose;// ESC关闭
+	ECKPROP(GetTotalMove, SetTotalMove) BOOL TotalMove;// 随意移动
+	ECKPROP(GetBkColor, SetBkColor) COLORREF BkColor;// 背景颜色
+	ECKPROP_R(GetBkImageSize) std::pair<int, int> BkImageSize;// 背景图片大小
 
 	EckInline static ATOM RegisterWndClass() { return EzRegisterWndClass(WCN_FORM); }
 
@@ -60,17 +60,13 @@ public:
 		break;
 		case WM_LBUTTONDOWN:
 		{
-			if (
-				(Msg.hwnd == GetHWND() ||
-					(
-						m_bTotalMove &&
-						(SendMessageW(Msg.hwnd, WM_GETDLGCODE, Msg.wParam, (LPARAM)&Msg) & DLGC_STATIC)
-						)
-					) && IsWindowEnabled(GetHWND()))
-			{
-				PostMessageW(GetHWND(), WM_NCLBUTTONDOWN, HTCAPTION, 0);
-				return TRUE;
-			}
+			if (m_bTotalMove && IsWindowEnabled(GetHWND()))
+				if ((Msg.hwnd == GetHWND() ||
+					(SendMessageW(Msg.hwnd, WM_GETDLGCODE, Msg.wParam, (LPARAM)&Msg) & DLGC_STATIC)))
+				{
+					PostMessageW(GetHWND(), WM_NCLBUTTONDOWN, HTCAPTION, 0);
+					return TRUE;
+				}
 		}
 		break;
 		}

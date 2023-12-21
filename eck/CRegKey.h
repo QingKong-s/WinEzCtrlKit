@@ -88,6 +88,16 @@ public:
 		std::swap(m_hKey, x.m_hKey);
 	}
 
+	[[nodiscard]] EckInline HKEY Attach(HKEY hKey)
+	{
+		std::swap(m_hKey, hKey);
+		return hKey;
+	}
+
+	[[nodiscard]] EckInline HKEY Detach() { return Attach(NULL); }
+
+	[[nodiscard]] EckInline HKEY GetHKey() const { return m_hKey; }
+
 	EckInline LSTATUS Close()
 	{
 		auto r = RegCloseKey(m_hKey);
@@ -243,7 +253,7 @@ public:
 	/// <param name="dwFlags">标志，本函数将自动添加类型限制标志</param>
 	/// <param name="plStatus">接收错误码变量的可选指针</param>
 	/// <returns>数据</returns>
-	CRefBin GetValueBin(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
+	[[nodiscard]] CRefBin GetValueBin(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
 		dwFlags |= RRF_RT_REG_BINARY;
@@ -267,7 +277,7 @@ public:
 		return {};
 	}
 
-	DWORD GetValueDword(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
+	[[nodiscard]] DWORD GetValueDword(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
 		dwFlags |= RRF_RT_REG_DWORD;
@@ -282,7 +292,7 @@ public:
 		return 0u;
 	}
 
-	ULONGLONG GetValueQword(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
+	[[nodiscard]] ULONGLONG GetValueQword(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
 		dwFlags |= RRF_RT_REG_QWORD;
@@ -298,7 +308,7 @@ public:
 		return 0u;
 	}
 
-	CRefStrW GetValueStr(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
+	[[nodiscard]] CRefStrW GetValueStr(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
 		dwFlags |= RRF_RT_REG_SZ;
@@ -337,7 +347,7 @@ public:
 		return RegQueryValueExW(m_hKey, pszValue, NULL, pdwType, (BYTE*)pBuf, pcbBuf);
 	}
 
-	CRefBin QueryValueBin(PCWSTR pszValue, LSTATUS* plStatus = NULL)
+	[[nodiscard]] CRefBin QueryValueBin(PCWSTR pszValue, LSTATUS* plStatus = NULL)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
 		if (plStatus)
@@ -360,7 +370,7 @@ public:
 		return {};
 	}
 
-	DWORD QueryValueDword(PCWSTR pszValue, LSTATUS* plStatus = NULL)
+	[[nodiscard]] DWORD QueryValueDword(PCWSTR pszValue, LSTATUS* plStatus = NULL)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
 		if (plStatus)
@@ -374,7 +384,7 @@ public:
 		return 0u;
 	}
 
-	ULONGLONG QueryValueQword(PCWSTR pszValue, LSTATUS* plStatus = NULL)
+	[[nodiscard]] ULONGLONG QueryValueQword(PCWSTR pszValue, LSTATUS* plStatus = NULL)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
 		if (plStatus)
@@ -389,7 +399,7 @@ public:
 		return 0u;
 	}
 
-	CRefStrW QueryValueStr(PCWSTR pszValue, LSTATUS* plStatus = NULL)
+	[[nodiscard]] CRefStrW QueryValueStr(PCWSTR pszValue, LSTATUS* plStatus = NULL)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
 		if (plStatus)

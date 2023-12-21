@@ -164,7 +164,7 @@ public:
 	EckInline std::vector<int> GetColumnOrderArray() const
 	{
 		std::vector<int> aOrder{};
-		int cColumn = (int)SendMessageW(GetHeaderCtrl(), HDM_GETITEMCOUNT, 0, 0);
+		int cColumn = (int)SendMessageW(GetHeaderCtrl().GetHWND(), HDM_GETITEMCOUNT, 0, 0);
 		if (!cColumn)
 			return aOrder;
 		aOrder.resize(cColumn);

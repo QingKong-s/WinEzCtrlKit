@@ -541,6 +541,18 @@ public:
 		m_cb -= cb;
 	}
 
+	void ShrinkToFit()
+	{
+		EckAssert(m_cbCapacity >= m_cb);
+		if (m_cbCapacity == m_cb)
+			return;
+		const auto pOld = m_pStream;
+		m_pStream = m_Alloc.allocate(m_cb);
+		memcpy(Data(), pOld, Size());
+		m_Alloc.deallocate(pOld, m_cbCapacity);
+		m_cbCapacity = m_cb;
+	}
+
 	EckInline TIterator begin() { return Data(); }
 	EckInline TIterator end() { return begin() + Size(); }
 	EckInline TConstIterator begin() const { return Data(); }
