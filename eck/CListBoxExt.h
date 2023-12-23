@@ -8,7 +8,6 @@
 */
 #pragma once
 #include "CListBox.h"
-#include "CSubclassMgr.h"
 
 #include <algorithm>
 
@@ -496,7 +495,7 @@ public:
 				}
 				else
 				{
-					EckBoolNot(m_ItemsInfo[idx].Info.bChecked);
+					ECKBOOLNOT(m_ItemsInfo[idx].Info.bChecked);
 					RedrawItem(idx);
 				}
 		}

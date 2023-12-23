@@ -256,7 +256,7 @@ public:
 	{
 		if (!m_bLBtnDown)
 			return;
-		POINT pt = GET_PT_LPARAM(lParam);
+		POINT pt = ECK_GET_PT_LPARAM(lParam);
 		MapWindowPoints(hWnd, pTabCtx->pBK->GetHWND(), &pt, 1);
 		RECT rc = eck::MakeRect(pt, m_ptStart);
 

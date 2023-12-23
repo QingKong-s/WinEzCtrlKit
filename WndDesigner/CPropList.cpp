@@ -178,7 +178,7 @@ LRESULT CALLBACK CPropList::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 	{
 		LRESULT lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);
 		LVHITTESTINFO lvhti;
-		lvhti.pt = GET_PT_LPARAM(lParam);
+		lvhti.pt = ECK_GET_PT_LPARAM(lParam);
 		p->HitTest(&lvhti);
 
 		if (lvhti.iItem == p->m_idxCurrEdit)

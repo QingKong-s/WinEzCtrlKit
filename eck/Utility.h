@@ -21,13 +21,6 @@
 #include <d2d1_1.h>
 #include <Shlwapi.h>
 
-#define MAKEINTATOMW(i) (PWSTR)((ULONG_PTR)((WORD)(i)))
-#define EckBoolNot(x) ((x) = !(x))
-// lParam->POINT 用于处理鼠标消息   e.g. POINT pt = GET_PT_LPARAM(lParam);
-#define GET_PT_LPARAM(lParam) { GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) }
-// lParam->size 用于处理WM_SIZE   e.g. GET_SIZE_LPARAM(cxClient, cyClient, lParam);
-#define GET_SIZE_LPARAM(cx,cy,lParam) (cx) = LOWORD(lParam); (cy) = HIWORD(lParam);
-
 ECK_NAMESPACE_BEGIN
 namespace Colorref
 {
@@ -670,26 +663,6 @@ EckInline constexpr BOOL IsRectsIntersect(const RECT&rc1, const RECT&rc2)
 	return
 		std::max(rc1.left, rc2.left) < std::min(rc1.right, rc2.right) &&
 		std::max(rc1.top, rc2.top) < std::min(rc1.bottom, rc2.bottom);
-}
-
-template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = CAllocatorProcHeap<CHAR, int>>
-CRefStrT<CHAR, TCharTraits, TAlloc> StrW2X(PCWSTR pszText, int cch = -1, int uCP = CP_ACP)
-{
-	int cchBuf = WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, NULL, 0, NULL, NULL);
-	CRefStrT<CHAR, TCharTraits, TAlloc> rs(cchBuf);
-	WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, rs.Data(), cchBuf, NULL, NULL);
-	*(rs.Data() + cchBuf) = '\0';
-	return rs;
-}
-
-template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = CAllocatorProcHeap<WCHAR, int>>
-CRefStrT<WCHAR, TCharTraits, TAlloc> StrX2W(PCSTR pszText, int cch = -1, int uCP = CP_ACP)
-{
-	int cchBuf = MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, NULL, 0);
-	CRefStrT<WCHAR, TCharTraits, TAlloc> rs(cchBuf);
-	MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, rs.Data(), cchBuf);
-	*(rs.Data() + cchBuf) = '\0';
-	return rs;
 }
 
 template<class T>

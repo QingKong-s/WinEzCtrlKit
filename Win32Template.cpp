@@ -111,20 +111,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	EckDbgPrint(NumToJieQi(GetJieQi({ 1902,5,22 })));
 	EckDbgPrint(NumToShuXiang(GetShuXiang(2023)));
 
-	CRefBin rb0;
-	rb0 << 4;
-	std::wstring s(L"测试测试12");
-	rb0 << s << 5;
-
-	std::vector<int> aa{ 10,11,12,13,14,15 };
-	rb0 << aa;
-
-	rb0 = { 0,1,2,3,4,5,6,7,8,9 };
-	rb0.Insert(4, { 11,12,13 });
-	EckDbgPrint(rb0);
-	rb0.Erase(5, 3);
-	EckDbgPrint(rb0);
-	//EckDbgBreak();
 
 	//EckDbgPrint(rb0.At<int>(7));
 	//EckAssert(rb0.At<int>(7) == 0);

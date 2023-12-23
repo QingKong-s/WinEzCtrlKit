@@ -12,42 +12,6 @@
 
 ECK_NAMESPACE_BEGIN
 
-
-template<class T, class TSize = SIZE_T>
-struct CAllocator
-{
-	static T* Alloc(TSize c)
-	{
-		return (T*)HeapAlloc(GetProcessHeap(), 0, c * sizeof(T));
-	}
-
-	static T* ReAlloc(T* pOrg, TSize c)
-	{
-		return (T*)HeapReAlloc(GetProcessHeap(), 0, pOrg, c * sizeof(T));
-	}
-
-	static T* AllocZ(TSize c)
-	{
-		return (T*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, c * sizeof(T));
-	}
-
-	static T* ReAllocZ(T* pOrg, TSize c)
-	{
-		return (T*)HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, pOrg, c * sizeof(T));
-	}
-
-	static void Free(T* p)
-	{
-		HeapFree(GetProcessHeap(), 0, p);
-	}
-
-	static TSize MakeCapacity(TSize c)
-	{
-		return c * 2;
-	}
-};
-
-
 template<class T, class TSize = size_t>
 class CAllocatorHeap
 {
@@ -123,7 +87,6 @@ EckInline constexpr bool operator==(const CAllocatorProcHeap<T1, TSize1>& a1, co
 {
 	return true;
 }
-
 
 
 

@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "CWnd.h"
-#include "CSubclassMgr.h"
 
 ECK_NAMESPACE_BEGIN
 template<int TType>

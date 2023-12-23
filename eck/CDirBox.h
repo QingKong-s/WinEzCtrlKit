@@ -8,7 +8,6 @@
 */
 #pragma once
 #include "CTreeView.h"
-#include "CSubclassMgr.h"
 
 #include <string>
 #include <string_view>

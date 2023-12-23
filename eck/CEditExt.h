@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "CEdit.h"
-#include "CSubclassMgr.h"
 
 ECK_NAMESPACE_BEGIN
 inline constexpr int

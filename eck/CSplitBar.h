@@ -147,7 +147,7 @@ public:
 		{
 			if (m_bLBtnDown)
 			{
-				POINT ptClient GET_PT_LPARAM(lParam);
+				POINT ptClient ECK_GET_PT_LPARAM(lParam);
 				const int xyPos = CursorPtToPos(ptClient);
 				POINT ptNew{};
 				if (m_bHorizontal)
@@ -169,7 +169,7 @@ public:
 		return 0;
 		case WM_SIZE:
 		{
-			GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
+			ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
 			m_DC.ReSize(hWnd, m_cxClient, m_cyClient);
 			SetWindowPos(m_BKMark.GetHWND(), NULL, 0, 0, m_cxClient, m_cyClient,
 				SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
@@ -212,7 +212,7 @@ public:
 				ReleaseCapture();
 				m_bLBtnDown = FALSE;
 				HideMark();
-				const int xyPos = CursorPtToPos(GET_PT_LPARAM(lParam));
+				const int xyPos = CursorPtToPos(ECK_GET_PT_LPARAM(lParam));
 				NMSPBDRAGGED nm;
 				nm.xyPos = xyPos;
 				FillNmhdrAndSend(nm, NM_SPB_DRAGGED);

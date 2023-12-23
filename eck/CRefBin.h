@@ -28,7 +28,7 @@ inline constexpr size_t BinNPos = std::numeric_limits<size_t>{}.max();
 /// <param name="cbSubSize">要寻找的字节集长度</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回BinNPos</returns>
-inline size_t FindBin(PCVOID pMain, size_t cbMainSize, PCVOID pSub, size_t cbSubSize, size_t posStart = 0)
+[[nodiscard]] inline size_t FindBin(PCVOID pMain, size_t cbMainSize, PCVOID pSub, size_t cbSubSize, size_t posStart = 0)
 {
 	if (cbMainSize < cbSubSize)
 		return BinNPos;
@@ -49,7 +49,7 @@ inline size_t FindBin(PCVOID pMain, size_t cbMainSize, PCVOID pSub, size_t cbSub
 /// <param name="cbSubSize">要寻找的字节集长度</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回BinNPos</returns>
-inline size_t FindBinRev(PCVOID pMain, size_t cbMainSize, PCVOID pSub, size_t cbSubSize, size_t posStart = 0)
+[[nodiscard]] inline size_t FindBinRev(PCVOID pMain, size_t cbMainSize, PCVOID pSub, size_t cbSubSize, size_t posStart = 0)
 {
 	if (cbMainSize < cbSubSize)
 		return BinNPos;
@@ -81,14 +81,26 @@ private:
 public:
 	CRefBinT() = default;
 
+	explicit CRefBinT(const TAlloc& Al) : m_Alloc{ Al } {}
+
 	/// <summary>
 	/// 创建自长度
 	/// </summary>
-	/// <param name="cb"></param>
+	/// <param name="cb">字节数</param>
 	explicit CRefBinT(size_t cb)
+		: m_cb{ cb }, m_cbCapacity{ cb }
 	{
-		m_cb = cb;
-		m_cbCapacity = cb;
+		m_pStream = m_Alloc.allocate(m_cbCapacity);
+	}
+
+	/// <summary>
+	/// 创建自长度
+	/// </summary>
+	/// <param name="cb">字节数</param>
+	/// <param name="Al">分配器</param>
+	CRefBinT(size_t cb, const TAlloc& Al)
+		: m_cb{ cb }, m_cbCapacity{ cb }, m_Alloc{ Al }
+	{
 		m_pStream = m_Alloc.allocate(m_cbCapacity);
 	}
 
@@ -97,21 +109,26 @@ public:
 	/// </summary>
 	/// <param name="p"></param>
 	/// <param name="cb"></param>
-	CRefBinT(PCVOID p, size_t cb)
+	CRefBinT(PCVOID p, size_t cb, const TAlloc& Al = TAlloc{})
+		: m_cb{ cb }, m_cbCapacity{ cb }, m_Alloc{ Al }
 	{
-		EckAssert(cb ? (!!p) : TRUE);
-		m_cb = cb;
-		m_cbCapacity = TAllocTraits::MakeCapacity(cb);
+		EckAssert(p ? TRUE : cb);
 		m_pStream = m_Alloc.allocate(m_cbCapacity);
 		memcpy(Data(), p, cb);
 	}
 
 	CRefBinT(const CRefBinT& x)
+		: m_cb{ x.m_cb }, m_cbCapacity{ TAllocTraits::MakeCapacity(x.m_cb) },
+		m_Alloc{ TAllocTraits::select_on_container_copy_construction(x.m_Alloc) }
 	{
-		EckAssert(x.Size() ? (!!x.Data()) : TRUE);
-		m_Alloc = TAllocTraits::select_on_container_copy_construction(x.m_Alloc);
-		m_cb = x.Size();
-		m_cbCapacity = TAllocTraits::MakeCapacity(x.Size());
+		m_pStream = m_Alloc.allocate(m_cbCapacity);
+		memcpy(Data(), x.Data(), x.Size());
+	}
+
+	CRefBinT(const CRefBinT& x, const TAlloc& Al)
+		: m_cb{ x.m_cb }, m_cbCapacity{ TAllocTraits::MakeCapacity(x.m_cb) },
+		m_Alloc{ Al }
+	{
 		m_pStream = m_Alloc.allocate(m_cbCapacity);
 		memcpy(Data(), x.Data(), x.Size());
 	}
@@ -124,14 +141,30 @@ public:
 		x.m_cb = x.m_cbCapacity = 0u;
 	}
 
+	CRefBinT(CRefBinT&& x, const TAlloc& Al) noexcept(TAllocTraits::is_always_equal::value)
+		: m_pStream{ x.m_pStream }, m_cb{ x.m_cb }, m_cbCapacity{ x.m_cbCapacity },
+		m_Alloc{ Al }
+	{
+		if constexpr (!TAllocTraits::is_always_equal::value)
+		{
+			if (Al != x.m_Alloc)
+			{
+				x.m_Alloc.deallocate(m_pStream, m_cbCapacity);
+				m_pStream = m_Alloc.allocate(m_cbCapacity);
+				memcpy(Data(), x.Data(), x.Size());
+			}
+		}
+		x.m_pStream = NULL;
+		x.m_cb = x.m_cbCapacity = 0u;
+	}
+
 	/// <summary>
 	/// 创建自初始化列表
 	/// </summary>
 	/// <param name="x"></param>
-	explicit CRefBinT(std::initializer_list<BYTE> x)
+	CRefBinT(std::initializer_list<BYTE> x, const TAlloc& Al = TAlloc{})
+		: m_cb{ x.size() }, m_cbCapacity{ TAllocTraits::MakeCapacity(x.size()) }, m_Alloc{ Al }
 	{
-		m_cb = x.size();
-		m_cbCapacity = TAllocTraits::MakeCapacity(x.size());
 		m_pStream = m_Alloc.allocate(m_cbCapacity);
 		memcpy(Data(), x.begin(), x.size());
 	}
@@ -187,56 +220,78 @@ public:
 		return *this;
 	}
 
-	BYTE& operator[](size_t idx) { EckAssert(idx < Size()); return *(Data() + idx); }
+	[[nodiscard]] EckInline BYTE& operator[](size_t idx) { EckAssert(idx < Size()); return *(Data() + idx); }
 
-	BYTE operator[](size_t idx) const { EckAssert(idx < Size()); return *(Data() + idx); }
+	[[nodiscard]] EckInline BYTE operator[](size_t idx) const { EckAssert(idx < Size()); return *(Data() + idx); }
 
 	template<class T>
-	EckInline CRefBinT& operator<<(const T& x)
+	EckInline CRefBinT& operator+=(const T& x)
 	{
 		PushBack(&x, sizeof(T));
 		return *this;
 	}
 
 	template<class TAlloc1>
-	EckInline CRefBinT& operator<<(const CRefBinT<TAlloc1>& x)
+	EckInline CRefBinT& operator+=(const CRefBinT<TAlloc1>& x)
 	{
 		PushBack(x.Data(), x.Size());
 		return *this;
 	}
 
 	template<class T, class TAlloc1>
-	EckInline CRefBinT& operator<<(const std::vector<T, TAlloc1>& x)
+	EckInline CRefBinT& operator+=(const std::vector<T, TAlloc1>& x)
 	{
 		PushBack(x.data(), x.size() * sizeof(T));
 		return *this;
 	}
 
 	template<class TChar, class TTraits, class TAlloc1>
-	EckInline CRefBinT& operator<<(const std::basic_string<TChar, TTraits, TAlloc1>& x)
+	EckInline CRefBinT& operator+=(const std::basic_string<TChar, TTraits, TAlloc1>& x)
 	{
 		PushBack(x.c_str(), x.size() * sizeof(TChar));
 		return *this;
 	}
 
 	template<class TChar, class TTraits, class TAlloc1>
-	EckInline CRefBinT& operator<<(const CRefStrT<TChar, TTraits, TAlloc1>& x)
+	EckInline CRefBinT& operator+=(const CRefStrT<TChar, TTraits, TAlloc1>& x)
 	{
 		PushBack(x.Data(), x.Size() * sizeof(TChar));
 		return *this;
 	}
 
-	template<class T>
-	T& At(size_t idx) { EckAssert(idx * sizeof(T) <= Size() - sizeof(T)); return *((T*)Data() + idx); }
+	[[nodiscard]] EckInline TAlloc GetAllocator() const { return m_Alloc; }
 
 	template<class T>
-	const T& At(size_t idx) const { EckAssert(idx * sizeof(T) <= Size() - sizeof(T)); return *((const T*)Data() + idx); }
+	[[nodiscard]] EckInline T& AtType(size_t idx)
+	{
+		EckAssert(idx * sizeof(T) <= Size() - sizeof(T));
+		return *((T*)Data() + idx);
+	}
 
-	EckInline BYTE* Data() { return m_pStream; }
+	template<class T>
+	[[nodiscard]] EckInline const T& AtType(size_t idx) const
+	{
+		EckAssert(idx * sizeof(T) <= Size() - sizeof(T));
+		return *((const T*)Data() + idx);
+	}
 
-	EckInline const BYTE* Data() const { return m_pStream; }
+	[[nodiscard]] EckInline BYTE& At(size_t idx) { EckAssert(idx < Size()); return *(Data() + idx); }
 
-	EckInline size_t Size() const { return m_cb; }
+	[[nodiscard]] EckInline BYTE At(size_t idx) const { EckAssert(idx < Size()); return *(Data() + idx); }
+
+	[[nodiscard]] EckInline BYTE& Front() { return At(0); }
+
+	[[nodiscard]] EckInline BYTE Front() const { return At(0); }
+
+	[[nodiscard]] EckInline BYTE& Back() { return At(Size() - 1); }
+
+	[[nodiscard]] EckInline BYTE Back() const { return At(Size() - 1); }
+
+	[[nodiscard]] EckInline BYTE* Data() { return m_pStream; }
+
+	[[nodiscard]] EckInline const BYTE* Data() const { return m_pStream; }
+
+	[[nodiscard]] EckInline size_t Size() const { return m_cb; }
 
 	/// <summary>
 	/// 克隆字节集。
@@ -263,38 +318,38 @@ public:
 
 	/// <summary>
 	/// 依附指针。
-	/// 分配器必须相同
+	/// 先前的内存将被释放
 	/// </summary>
-	/// <param name="p">指针</param>
+	/// <param name="p">指针，必须可通过当前分配器解分配</param>
 	/// <param name="cbCapacity">容量</param>
 	/// <param name="cb">当前长度</param>
-	/// <returns>先前的指针</returns>
-	BYTE* Attach(BYTE* p, size_t cbCapacity, size_t cb)
+	void Attach(BYTE* p, size_t cbCapacity, size_t cb)
 	{
-		const auto pOld = m_pStream;
+		m_Alloc.deallocate(m_pStream, m_cbCapacity);
 		if (!p)
 		{
 			m_pStream = NULL;
 			m_cb = m_cbCapacity = 0u;
-			return pOld;
 		}
-		m_pStream = p;
-		m_cbCapacity = cbCapacity;
-		m_cb = cb;
-		return pOld;
+		else
+		{
+			m_pStream = p;
+			m_cbCapacity = cbCapacity;
+			m_cb = cb;
+		}
 	}
 
 	/// <summary>
 	/// 拆离指针
 	/// </summary>
 	/// <returns></returns>
-	EckInline BYTE* Detach()
+	[[nodiscard]] EckInline BYTE* Detach()
 	{
-		const auto pOld = m_pStream;
+		const auto pTemp = m_pStream;
 		m_pStream = NULL;
 		m_cbCapacity = 0u;
 		m_cb = 0u;
-		return pOld;
+		return pTemp;
 	}
 
 	/// <summary>
@@ -503,7 +558,7 @@ public:
 	/// 从左闭右开区间创建字节集
 	/// </summary>
 	template<class TAlloc1 = TAlloc>
-	EckInline CRefBinT<TAlloc1> SubBin(size_t posBegin, size_t posEnd)
+	[[nodiscard]] EckInline CRefBinT<TAlloc1> SubBin(size_t posBegin, size_t posEnd)
 	{
 		return CRefBinT<TAlloc1>(Data() + posBegin, posEnd - posBegin);
 	}
@@ -553,18 +608,18 @@ public:
 		m_cbCapacity = m_cb;
 	}
 
-	EckInline TIterator begin() { return Data(); }
-	EckInline TIterator end() { return begin() + Size(); }
-	EckInline TConstIterator begin() const { return Data(); }
-	EckInline TConstIterator end() const { return begin() + Size(); }
-	EckInline TConstIterator cbegin() const { begin(); }
-	EckInline TConstIterator cend() const { end(); }
-	EckInline TReverseIterator rbegin() { return TReverseIterator(begin()); }
-	EckInline TReverseIterator rend() { return TReverseIterator(end()); }
-	EckInline TConstReverseIterator rbegin() const { return TConstReverseIterator(begin()); }
-	EckInline TConstReverseIterator rend() const { return TConstReverseIterator(end()); }
-	EckInline TConstReverseIterator crbegin() const { return rbegin(); }
-	EckInline TConstReverseIterator crend() const { return rend(); }
+	[[nodiscard]] EckInline TIterator begin() { return Data(); }
+	[[nodiscard]] EckInline TIterator end() { return begin() + Size(); }
+	[[nodiscard]] EckInline TConstIterator begin() const { return Data(); }
+	[[nodiscard]] EckInline TConstIterator end() const { return begin() + Size(); }
+	[[nodiscard]] EckInline TConstIterator cbegin() const { begin(); }
+	[[nodiscard]] EckInline TConstIterator cend() const { end(); }
+	[[nodiscard]] EckInline TReverseIterator rbegin() { return TReverseIterator(begin()); }
+	[[nodiscard]] EckInline TReverseIterator rend() { return TReverseIterator(end()); }
+	[[nodiscard]] EckInline TConstReverseIterator rbegin() const { return TConstReverseIterator(begin()); }
+	[[nodiscard]] EckInline TConstReverseIterator rend() const { return TConstReverseIterator(end()); }
+	[[nodiscard]] EckInline TConstReverseIterator crbegin() const { return rbegin(); }
+	[[nodiscard]] EckInline TConstReverseIterator crend() const { return rend(); }
 };
 
 using CRefBin = CRefBinT<CAllocatorProcHeap<BYTE>>;
@@ -595,7 +650,7 @@ EckInline void DbgPrint(const CRefBinT<TAlloc>& rb, int iType = 1, BOOL bNewLine
 /// <param name="x"></param>
 /// <returns></returns>
 template<class T>
-EckInline CRefBin ToBin(T x)
+[[nodiscard]] EckInline CRefBin ToBin(T x)
 {
 	return CRefBin(&x, sizeof(T));
 }
@@ -607,7 +662,7 @@ EckInline CRefBin ToBin(T x)
 /// <param name="rb"></param>
 /// <returns></returns>
 template<class T, class TAlloc>
-EckInline T BinToData(const CRefBinT<TAlloc>& rb)
+[[nodiscard]] EckInline T BinToData(const CRefBinT<TAlloc>& rb)
 {
 	EckAssert(sizeof(T) <= rb.Size());
 	T x;
@@ -622,7 +677,7 @@ EckInline T BinToData(const CRefBinT<TAlloc>& rb)
 /// <param name="p"></param>
 /// <returns></returns>
 template<class T>
-EckInline T BinToData(PCVOID p)
+[[nodiscard]] EckInline T BinToData(PCVOID p)
 {
 	T x;
 	memcpy(&x, p, sizeof(T));
@@ -635,7 +690,7 @@ EckInline T BinToData(PCVOID p)
 /// <param name="p">字节集</param>
 /// <param name="cbLeft">左边长度</param>
 /// <returns></returns>
-EckInline CRefBin BinLeft(PCVOID p, size_t cbLeft)
+[[nodiscard]] EckInline CRefBin BinLeft(PCVOID p, size_t cbLeft)
 {
 	CRefBin rb;
 	rb.DupStream(p, cbLeft);
@@ -649,7 +704,7 @@ EckInline CRefBin BinLeft(PCVOID p, size_t cbLeft)
 /// <param name="cbSize">字节集长度</param>
 /// <param name="cbRight">右边长度</param>
 /// <returns></returns>
-EckInline CRefBin BinRight(PCVOID p, size_t cbSize, size_t cbRight)
+[[nodiscard]] EckInline CRefBin BinRight(PCVOID p, size_t cbSize, size_t cbRight)
 {
 	CRefBin rb;
 	rb.DupStream((PCBYTE)p + cbSize - cbRight, cbRight);
@@ -663,7 +718,7 @@ EckInline CRefBin BinRight(PCVOID p, size_t cbSize, size_t cbRight)
 /// <param name="posStart">起始位置</param>
 /// <param name="cbMid">中间长度</param>
 /// <returns></returns>
-EckInline CRefBin BinMid(PCVOID p, size_t posStart, size_t cbMid)
+[[nodiscard]] EckInline CRefBin BinMid(PCVOID p, size_t posStart, size_t cbMid)
 {
 	CRefBin rb;
 	rb.DupStream((PCBYTE)p + posStart, cbMid);
@@ -678,7 +733,7 @@ EckInline CRefBin BinMid(PCVOID p, size_t posStart, size_t cbMid)
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回BinNPos</returns>
 template<class TAlloc1, class TAlloc2>
-EckInline size_t FindBin(const CRefBinT<TAlloc1>& rbMain, const CRefBinT<TAlloc1>& rbSub, size_t posStart = 0)
+[[nodiscard]] EckInline size_t FindBin(const CRefBinT<TAlloc1>& rbMain, const CRefBinT<TAlloc1>& rbSub, size_t posStart = 0)
 {
 	return FindBin(rbMain.Data(), rbMain.Size(), rbSub.Data(), rbSub.Size(), posStart);
 }
@@ -690,7 +745,7 @@ EckInline size_t FindBin(const CRefBinT<TAlloc1>& rbMain, const CRefBinT<TAlloc1
 /// <param name="rbSub">要寻找的字节集</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回BinNPos</returns>
-EckInline size_t FindBinRev(const CRefBin& rbMain, const CRefBin& rbSub, size_t posStart = 0)
+[[nodiscard]] EckInline size_t FindBinRev(const CRefBin& rbMain, const CRefBin& rbSub, size_t posStart = 0)
 {
 	return FindBinRev(rbMain.Data(), rbMain.Size(), rbSub.Data(), rbSub.Size(), posStart);
 }

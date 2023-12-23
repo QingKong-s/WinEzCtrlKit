@@ -336,11 +336,11 @@ struct ICONDIR
 class CIcoFileReader
 {
 private:
-	const BYTE* m_pData = NULL;
+	PCBYTE m_pData = NULL;
 	const ICONDIR* m_pHeader = NULL;
 	const ICONDIRENTRY* m_pEntry = NULL;
 public:
-	EckInline int AnalyzeData(const BYTE* pData)
+	EckInline int AnalyzeData(PCBYTE pData)
 	{
 		m_pData = pData;
 		m_pHeader = (ICONDIR*)pData;
@@ -397,24 +397,16 @@ class CDib
 {
 private:
 	HBITMAP m_hBitmap = NULL;
-	DIBSECTION m_ds{};
 public:
 	CDib() = default;
 	CDib(const CDib&) = delete;
 	CDib& operator=(const CDib&) = delete;
 
 	CDib(CDib&& x) noexcept
-		:m_hBitmap{ x.m_hBitmap }, m_ds{ x.m_ds } {}
-	CDib& operator=(CDib&& x) noexcept
-	{
-		m_hBitmap = x.m_hBitmap;
-		m_ds = x.m_ds;
-	}
+		:m_hBitmap{ x.m_hBitmap } {}
+	CDib& operator=(CDib&& x) noexcept { m_hBitmap = x.m_hBitmap; }
 
-	~CDib()
-	{
-		Destroy();
-	}
+	~CDib() { Destroy(); }
 
 	/// <summary>
 	/// 创建自DC。
@@ -457,7 +449,6 @@ public:
 		free(pbmi);
 		if (!m_hBitmap)
 			return NULL;
-		GetObjectW(m_hBitmap, sizeof(m_ds), &m_ds);
 		HDC hCDC = CreateCompatibleDC(hDC);
 		SelectObject(hCDC, m_hBitmap);
 		if (hPalette)
@@ -515,7 +506,6 @@ public:
 			if (!m_hBitmap)
 				return NULL;
 			memcpy(pBits, pBitsData, cbBits);
-			GetObjectW(m_hBitmap, sizeof(m_ds), &m_ds);
 		}
 		break;
 		case (sizeof(BITMAPV4HEADER)):
@@ -564,7 +554,6 @@ public:
 					return NULL;
 #pragma warning(suppress:6001)// 未初始化内存
 				memcpy(pBits, pBitsData, cbBits);
-				GetObjectW(m_hBitmap, sizeof(m_ds), &m_ds);
 			}
 			else
 				return NULL;
@@ -597,7 +586,6 @@ public:
 		m_hBitmap = CreateDIBSection(NULL, (const BITMAPINFO*)&bih, DIB_RGB_COLORS, NULL, NULL, 0);
 		if (!m_hBitmap)
 			return NULL;
-		GetObjectW(m_hBitmap, sizeof(m_ds), &m_ds);
 		return m_hBitmap;
 	}
 
@@ -605,10 +593,12 @@ public:
 
 	EckInline SIZE_T GetBmpDataSize() const
 	{
+		DIBSECTION ds;
+		GetObjectW(m_hBitmap, sizeof(ds), &ds);
 		return sizeof(BITMAPFILEHEADER) +
 			sizeof(BITMAPINFOHEADER) +
-			sizeof(RGBQUAD) * m_ds.dsBmih.biClrUsed +
-			m_ds.dsBm.bmWidthBytes * m_ds.dsBm.bmHeight;
+			sizeof(RGBQUAD) * ds.dsBmih.biClrUsed +
+			ds.dsBm.bmWidthBytes * ds.dsBm.bmHeight;
 	}
 
 	/// <summary>
@@ -620,6 +610,8 @@ public:
 	{
 		if (!m_hBitmap)
 			return {};
+		DIBSECTION ds;
+		GetObjectW(m_hBitmap, sizeof(ds), &ds);
 		const size_t cbTotal = GetBmpDataSize();
 		CRefBin rb(cbTotal);
 		auto pfh = (BITMAPFILEHEADER*)rb.Data();
@@ -631,26 +623,26 @@ public:
 		pfh->bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
 		// 制信息头
 		pih->biSize = sizeof(BITMAPINFOHEADER);
-		pih->biWidth = m_ds.dsBm.bmWidth;
-		pih->biHeight = m_ds.dsBm.bmHeight;
+		pih->biWidth = ds.dsBm.bmWidth;
+		pih->biHeight = ds.dsBm.bmHeight;
 		pih->biPlanes = 1;
-		pih->biBitCount = m_ds.dsBm.bmBitsPixel;
+		pih->biBitCount = ds.dsBm.bmBitsPixel;
 		pih->biCompression = 0;
 		pih->biXPelsPerMeter = pih->biYPelsPerMeter = 0;
-		pih->biClrUsed = m_ds.dsBmih.biClrUsed;
-		pih->biClrImportant = m_ds.dsBmih.biClrImportant;
+		pih->biClrUsed = ds.dsBmih.biClrUsed;
+		pih->biClrImportant = ds.dsBmih.biClrImportant;
 		// 制颜色表
-		const size_t cbPalette = sizeof(RGBQUAD) * m_ds.dsBmih.biClrUsed;
+		const size_t cbPalette = sizeof(RGBQUAD) * ds.dsBmih.biClrUsed;
 		if (cbPalette)
 		{
 			HDC hCDC = CreateCompatibleDC(NULL);
 			SelectObject(hCDC, m_hBitmap);
-			GetDIBColorTable(hCDC, 0, m_ds.dsBmih.biClrUsed, (RGBQUAD*)(pih + 1));
+			GetDIBColorTable(hCDC, 0, ds.dsBmih.biClrUsed, (RGBQUAD*)(pih + 1));
 			DeleteDC(hCDC);
 		}
 		// 制像素
-		memcpy(((BYTE*)(pih + 1)) + cbPalette, m_ds.dsBm.bmBits,
-			m_ds.dsBm.bmWidthBytes * m_ds.dsBm.bmHeight);
+		memcpy(((BYTE*)(pih + 1)) + cbPalette, ds.dsBm.bmBits,
+			ds.dsBm.bmWidthBytes * ds.dsBm.bmHeight);
 		return rb;
 	}
 
@@ -660,24 +652,13 @@ public:
 		m_hBitmap = NULL;
 	}
 
-	EckInline const DIBSECTION& GetDibSectionStruct() const { return m_ds; }
-
-	HBITMAP Attach(HBITMAP hBitmap, const DIBSECTION* pds = NULL)
+	EckInline HBITMAP Attach(HBITMAP hBitmap)
 	{
 		std::swap(m_hBitmap, hBitmap);
-		if (pds)
-			m_ds = *pds;
-		else
-			GetObjectW(m_hBitmap, sizeof(m_ds), &m_ds);
 		return hBitmap;
 	}
 
-	HBITMAP Detach()
-	{
-		auto t = m_hBitmap;
-		m_hBitmap = NULL;
-		return t;
-	}
+	[[nodiscard]] EckInline HBITMAP Detach() { return Attach(NULL); }
 };
 
 inline CRefBin SaveWicBitmap(IWICBitmap* pBitmap)

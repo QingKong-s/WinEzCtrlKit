@@ -221,7 +221,7 @@ public:
 		return 0;
 		case WM_SIZE:
 		{
-			GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
+			ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
 			m_D2D.ReSize(2, m_cxClient, m_cyClient, 0);
 		}
 		return 0;
