@@ -119,7 +119,16 @@ public:
 		//IPicture* pPic;
 		//auto hr=OleLoadPicture(pStream, rbOlePic.Size(), TRUE, IID_PPV_ARGS(&pPic));
 		//EckDbgPrintFormatMessage(hr);
-		//EckDbgBreak();
+
+		//CRefStrW rs(L"测试测试123你好");
+		//rs.AppendFormat(L"整数 = %d，字符串 = %s。", 100, L"我是字符串");
+		//rs.Format(L"浮点 = %f", 120.3f);
+
+		CRefStrA rsa("测试字符串");
+		//auto bstr1 = rsa.ToBSTR();
+		//auto bstr2 = rs.ToBSTR();
+		EckDbgPrintWithPos(L"测试");
+		EckDbgBreak();
 	}
 
 	BOOL PreTranslateMessage(const MSG& Msg) override

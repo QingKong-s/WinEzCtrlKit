@@ -30,7 +30,7 @@ LRESULT CWndMain::WndProc(HWND hWnd, UINT uMsg , WPARAM wParam, LPARAM lParam)
 		return HANDLE_WM_SIZE(hWnd, wParam, lParam, p->OnSize);
 
 	case WM_DPICHANGED:
-		return HANDLE_WM_DPICHANGED(hWnd, wParam, lParam, p->OnDpiChanged);
+		return ECK_HANDLE_WM_DPICHANGED(hWnd, wParam, lParam, p->OnDpiChanged);
 
 	case CNM_PROPLISTNOTIFY:
 		return p->OnPropListNotify(hWnd, wParam, lParam);
@@ -867,7 +867,7 @@ void CCtrlPlacingEventHandler::OnLButtonDown(TABCTX* pTabCtx, HWND hWnd, LPARAM 
 	m_bLBtnDown = TRUE;
 	SetCapture(hWnd);
 
-	m_ptStart = GET_PT_LPARAM(lParam);
+	m_ptStart = ECK_GET_PT_LPARAM(lParam);
 	MapWindowPoints(hWnd, hBK, &m_ptStart, 1);
 
 	m_hDC = GetDC(hBK);

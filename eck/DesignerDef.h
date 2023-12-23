@@ -135,9 +135,41 @@ static EckCtrlPropEntry s_CommProp[] =
 	{CPID_SCROLLBAR,L"ScrollBar",L"滚动条",L"",ECPT::PickInt,ECPF_NONE,L"无\0横向滚动条\0纵向滚动条\0横向及纵向滚动条\0\0"},
 };
 
+template<class T, class TSize = SIZE_T>
+struct CAllocator1
+{
+	static T* Alloc(TSize c)
+	{
+		return (T*)HeapAlloc(GetProcessHeap(), 0, c * sizeof(T));
+	}
 
+	static T* ReAlloc(T* pOrg, TSize c)
+	{
+		return (T*)HeapReAlloc(GetProcessHeap(), 0, pOrg, c * sizeof(T));
+	}
 
-using TDesignAlloc = CAllocator<BYTE>;
+	static T* AllocZ(TSize c)
+	{
+		return (T*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, c * sizeof(T));
+	}
+
+	static T* ReAllocZ(T* pOrg, TSize c)
+	{
+		return (T*)HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, pOrg, c * sizeof(T));
+	}
+
+	static void Free(T* p)
+	{
+		HeapFree(GetProcessHeap(), 0, p);
+	}
+
+	static TSize MakeCapacity(TSize c)
+	{
+		return c * 2;
+	}
+};
+
+using TDesignAlloc = CAllocator1<BYTE>;
 
 EckPropCallBackRet CALLBACK SetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropValue* pProp, BOOL* pbProcessed);
 

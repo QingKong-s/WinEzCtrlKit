@@ -18,60 +18,79 @@
 #include <assert.h>
 
 #include <unordered_map>
-/*宏*/
+#include <type_traits>
 
-#define ECK_NAMESPACE_BEGIN namespace eck {
-#define ECK_NAMESPACE_END }
+#pragma region 宏
+#define ECK_NAMESPACE_BEGIN		namespace eck {
+#define ECK_NAMESPACE_END		}
 
-#define EckInline __forceinline
-#define ECK_COMDAT __declspec(selectany)
+#define EckInline				__forceinline
 
-#define ECK_CTRLDATA_ALIGN 4
+// 控件序列化数据对齐
+#define ECK_CTRLDATA_ALIGN		4
 
-#define ECKWIDE2___(x)          L##x
+#define ECKPRIV_ECKWIDE2___(x)	L##x
 // ANSI字符串到宽字符串
-#define ECKWIDE___(x)           ECKWIDE2___(x)
+#define ECKWIDE(x)				ECKPRIV_ECKWIDE2___(x)
 
-#define ECKTOSTR2___(x)         #x
+#define ECKPRIV_ECKTOSTR2___(x)	#x
 // 到ANSI字符串
-#define ECKTOSTR___(x)          ECKTOSTR2___(x)
+#define ECKTOSTR(x)				ECKPRIV_ECKTOSTR2___(x)
 // 到宽字符串
-#define ECKTOSTRW___(x)         ECKWIDE___(ECKTOSTR2___(x))
+#define ECKTOSTRW(x)			ECKWIDE(ECKPRIV_ECKTOSTR2___(x))
 
 // [预定义] 当前函数名W
-#define ECK_FUNCTIONW           ECKWIDE___(__FUNCTION__)
+#define ECK_FUNCTIONW			ECKWIDE(__FUNCTION__)
 // [预定义] 行号W
-#define ECK_LINEW               ECKTOSTRW___(__LINE__)
+#define ECK_LINEW				ECKTOSTRW(__LINE__)
 // [预定义] 当前文件W
-#define ECK_FILEW               __FILEW__
+#define ECK_FILEW				__FILEW__
 
-
-#define ECKPROP(getter, setter) __declspec(property(get = getter, put = setter))
-
-#define ECKPROP_R(getter) __declspec(property(get = getter))
-
-#define ECKPROP_W(setter) __declspec(property(put = setter))
+// 定义读写属性字段
+#define ECKPROP(Getter, Setter) __declspec(property(get = Getter, put = Setter))
+// 定义只读属性字段
+#define ECKPROP_R(Getter)		__declspec(property(get = Getter))
+// 定义只写属性字段
+#define ECKPROP_W(Setter)		__declspec(property(put = Setter))
 
 // 计次循环
-#define EckCounter(c, Var) for(std::remove_cvref_t<decltype(c)> Var = 0; Var < (c); ++Var)
+#define EckCounter(c, Var)						\
+	for(std::remove_cvref_t<decltype(c)> Var = 0; Var < (c); ++Var)
 
-#define EckCounterNVMakeVarName2(Name) ECKPRIV_COUNT_##Name##___
-#define EckCounterNVMakeVarName(Name) EckCounterNVMakeVarName2(Name)
+#define ECKPRIV_CounterNVMakeVarName2___(Name)	\
+	ECKPRIV_COUNT_##Name##___
+#define ECKPRIV_CounterNVMakeVarName___(Name)	\
+	ECKPRIV_CounterNVMakeVarName2___(Name)
 
 // 计次循环，无变量名参数
-#define EckCounterNV(c) EckCounter((c), EckCounterNVMakeVarName(__LINE__))
+#define EckCounterNV(c)			EckCounter((c), ECKPRIV_CounterNVMakeVarName___(__LINE__))
 
-#define EckOpt(Type, Name) std::optional<Type> Name
-#define EckOptNul(Type, Name) std::optional<Type> Name = std::nullopt
+// 可空
+#define EckOpt(Type, Name)		std::optional<Type> Name
+// 可空，默认为空
+#define EckOptNul(Type, Name)	std::optional<Type> Name = std::nullopt
 
-/*类型*/
+// 原子到PWSTR
+#define ECKMAKEINTATOMW(i) (PWSTR)((ULONG_PTR)((WORD)(i)))
+
+// 自取反
+#define ECKBOOLNOT(x) ((x) = !(x))
+
+// lParam->POINT 用于处理鼠标消息   e.g. POINT pt = ECK_GET_PT_LPARAM(lParam);
+#define ECK_GET_PT_LPARAM(lParam) { GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) }
+
+// lParam->size 用于处理WM_SIZE   e.g. ECK_GET_SIZE_LPARAM(cxClient, cyClient, lParam);
+#define ECK_GET_SIZE_LPARAM(cx,cy,lParam) (cx) = LOWORD(lParam); (cy) = HIWORD(lParam);
+#pragma endregion
+
 ECK_NAMESPACE_BEGIN
-
+#pragma region 类型
 using SCHAR = signed char;
 using BITBOOL = UINT;
 using PCBYTE = const BYTE*;
 using PCVOID = const void*;
 using ECKENUM = BYTE;
+#pragma endregion
 
 namespace Literals
 {
@@ -93,42 +112,41 @@ enum class Align
 	Far
 };
 
+constexpr inline auto c_cchI32ToStrBufNoRadix2 = std::max({
+	_MAX_ITOSTR_BASE16_COUNT,_MAX_ITOSTR_BASE10_COUNT,_MAX_ITOSTR_BASE8_COUNT,
+	_MAX_LTOSTR_BASE16_COUNT ,_MAX_LTOSTR_BASE10_COUNT ,_MAX_LTOSTR_BASE8_COUNT,
+	_MAX_ULTOSTR_BASE16_COUNT,_MAX_ULTOSTR_BASE10_COUNT,_MAX_ULTOSTR_BASE8_COUNT });
+constexpr inline auto c_cchI64ToStrBufNoRadix2 = std::max({
+	_MAX_I64TOSTR_BASE16_COUNT,_MAX_I64TOSTR_BASE10_COUNT,_MAX_I64TOSTR_BASE8_COUNT,
+	_MAX_U64TOSTR_BASE16_COUNT,_MAX_U64TOSTR_BASE10_COUNT,_MAX_U64TOSTR_BASE8_COUNT });
+
+constexpr inline auto c_cchI32ToStrBuf = std::max({ c_cchI32ToStrBufNoRadix2,
+	_MAX_ITOSTR_BASE2_COUNT,_MAX_LTOSTR_BASE2_COUNT,_MAX_ULTOSTR_BASE2_COUNT });
+constexpr inline auto c_cchI64ToStrBuf = std::max({ c_cchI64ToStrBufNoRadix2,
+	_MAX_I64TOSTR_BASE2_COUNT,_MAX_U64TOSTR_BASE2_COUNT });
+
 ECK_NAMESPACE_END
 
 
 /*子类化ID*/
 
-constexpr inline UINT SCID_PUSHBUTTON = 20230603'01u;
-constexpr inline UINT SCID_CHECKBUTTON = 20230603'02u;
-constexpr inline UINT SCID_COMMANDLINK = 20230603'03u;
-constexpr inline UINT SCID_EDIT = 20230603'04u;
-constexpr inline UINT SCID_EDITPARENT = 20230603'05u;
-constexpr inline UINT SCID_COLORPICKERPARENT = 20230604'01u;
-constexpr inline UINT SCID_LBEXT = 20230606'01u;
-constexpr inline UINT SCID_LBEXTPARENT = 20230606'02u;
-constexpr inline UINT SCID_DIRBOX = 20230607'01u;
-constexpr inline UINT SCID_DIRBOXPARENT = 20230607'02u;
-constexpr inline UINT SCID_TRAY = 20230611'01u;
 constexpr inline UINT SCID_DESIGN = 20230621'01u;
-constexpr inline UINT SCID_TASKGROUPLIST = 20230725'01u;
-constexpr inline UINT SCID_TASKGROUPLISTPARENT = 20230725'02u;
 constexpr inline UINT SCID_INERTIALSCROLLVIEW = 20231103'01u;
-
+/*-------------------*/
+/*控件通知代码*/
 #pragma warning(suppress:26454)// 算术溢出
 constexpr inline UINT NM_FIRST_ECK = (0u - 0x514B);
 enum :UINT
 {
-	NM_CLP_CLRCHANGED = NM_FIRST_ECK,// NMCLPCLRCHANGED
+	ECKPRIV_NM_FIRST_PLACEHOLDER___ = NM_FIRST_ECK,
+	NM_CLP_CLRCHANGED,// NMCLPCLRCHANGED
 	NM_SPB_DRAGGED,// NMSPBDRAGGED
 	NM_TGL_TASKCLICKED,// NMTGLCLICKED
 };
-
+/*-------------------*/
 /*属性字符串*/
 
-constexpr inline PCWSTR PROP_DPIINFO = L"Eck.Prop.DpiInfo";
-constexpr inline PCWSTR PROP_PREVDPI = L"Eck.Prop.PrevDpi";
-constexpr inline PCWSTR PROP_PROPSHEETCTX = L"Eck.Prop.PropertySheet.Ctx";
-
+/*-------------------*/
 #include "DbgHelper.h"
 #include "GdiplusFlatDef.h"
 ECK_NAMESPACE_BEGIN
@@ -232,7 +250,7 @@ struct ECKTHREADCTX
 			hmWnd.erase(it);
 	}
 
-	EckInline CWnd* WmAt(HWND hWnd) const
+	[[nodiscard]] EckInline CWnd* WmAt(HWND hWnd) const
 	{
 		auto it = hmWnd.find(hWnd);
 		if (it != hmWnd.end())
@@ -295,7 +313,4 @@ BOOL PreTranslateMessage(const MSG& Msg);
 /// </summary>
 /// <param name="pfnFilter">应用程序定义的过滤器函数指针</param>
 void SetMsgFilter(FMsgFilter pfnFilter);
-
-void DbgPrintWndMap();
-
 ECK_NAMESPACE_END

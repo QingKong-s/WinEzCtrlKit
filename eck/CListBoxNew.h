@@ -99,7 +99,7 @@ private:
 		switch (uMsg)
 		{
 		case WM_MOUSELEAVE:
-			return HANDLE_WM_MOUSELEAVE(hWnd, wParam, lParam, p->OnMouseLeave);
+			return ECK_HANDLE_WM_MOUSELEAVE(hWnd, wParam, lParam, p->OnMouseLeave);
 		case WM_MOUSEMOVE:
 			return HANDLE_WM_MOUSEMOVE(hWnd, wParam, lParam, p->OnMouseMove);
 		case WM_SIZE:
@@ -271,7 +271,7 @@ private:
 
 			if (idx >= 0)
 			{
-				EckBoolNot(m_vItem[idx].bSel);
+				ECKBOOLNOT(m_vItem[idx].bSel);
 				GetItemRect(idx, rcItem);
 				Redraw(rcItem);
 			}

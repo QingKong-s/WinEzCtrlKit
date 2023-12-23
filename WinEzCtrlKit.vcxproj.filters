@@ -87,9 +87,6 @@
     <ClInclude Include="eck\CWnd.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CSubclassMgr.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CRefStr.h">
       <Filter>ECK Include</Filter>
     </ClInclude>

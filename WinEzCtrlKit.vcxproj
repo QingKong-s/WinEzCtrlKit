@@ -202,7 +202,6 @@
     <ClInclude Include="eck\CListBoxExt.h" />
     <ClInclude Include="eck\CRefStr.h" />
     <ClInclude Include="eck\CStatic.h" />
-    <ClInclude Include="eck\CSubclassMgr.h" />
     <ClInclude Include="eck\CToolBar.h" />
     <ClInclude Include="eck\CTreeView.h" />
     <ClInclude Include="eck\CUpDown.h" />

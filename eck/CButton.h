@@ -8,7 +8,6 @@
 */
 #pragma once
 #include "CWnd.h"
-#include "CSubclassMgr.h"
 #include "CRefStr.h"
 #include "Utility.h"
 

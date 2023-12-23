@@ -251,7 +251,7 @@ void CSizer::OnBlockLButtonUp(CSizerBlock* pBlock, LPARAM lParam)
 	SelectObject(m_hDC, m_hOld);
 	ReleaseDC(pBlock->m_hWnd, m_hDC);
 
-	POINT pt = GET_PT_LPARAM(lParam);
+	POINT pt = ECK_GET_PT_LPARAM(lParam);
 	MapWindowPoints(pBlock->m_hWnd, m_hBK, &pt, 1);
 	RECT rc = SizerMakeRect(pt, pBlock->m_uType);
 	MapWindowRect(m_hBK, m_hWorkWndParent, &rc);
@@ -268,7 +268,7 @@ void CSizer::OnBlockMouseMove(CSizerBlock* pBlock, LPARAM lParam)
 {
 	if (!m_bLBtnDown)
 		return;
-	POINT pt = GET_PT_LPARAM(lParam);
+	POINT pt = ECK_GET_PT_LPARAM(lParam);
 	MapWindowPoints(pBlock->m_hWnd, m_hBK, &pt, 1);
 
 	RECT rc = SizerMakeRect(pt, pBlock->m_uType);

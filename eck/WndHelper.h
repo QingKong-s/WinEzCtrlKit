@@ -16,13 +16,10 @@
 #define ECK_DS_ENTRY(Name, Size) const int o_##Name = Size; int Name = Size;
 #define ECK_DS_ENTRY_F(Name, Size) const float o_##Name = Size; float Name = Size;
 
-#ifndef ECKMACRO_NO_ADD_HANDLE_MSG
-#define HANDLE_WM_MOUSELEAVE(hWnd, wParam, lParam, fn) \
+#define ECK_HANDLE_WM_MOUSELEAVE(hWnd, wParam, lParam, fn) \
 	((fn)((hWnd)), 0L)
-
-#define HANDLE_WM_DPICHANGED(hWnd, wParam, lParam, fn) \
+#define ECK_HANDLE_WM_DPICHANGED(hWnd, wParam, lParam, fn) \
 	((fn)((hWnd), (int)(short)LOWORD(wParam), (int)(short)HIWORD(wParam), (RECT*)(lParam)), 0L)
-#endif
 
 #define ECK_STYLE_GETSET(Name, Style) \
 	BOOL StyleGet##Name() \
@@ -37,9 +34,6 @@
 	ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; \
 	ECK_STYLE_GETSET(Name, Style)
 
-
-
-
 ECK_NAMESPACE_BEGIN
 constexpr inline UINT WM_USER_SAFE = WM_USER + 3;
 
@@ -51,29 +45,6 @@ EckInline DWORD ModifyWindowStyle(HWND hWnd, DWORD dwNew, DWORD dwMask, int idx 
 	SetWindowLongPtrW(hWnd, idx, dwStyle);
 	return dwStyle;
 }
-
-#define SUBCLASS_MGR_DECL(Class) \
-	static std::unordered_map<HWND, Class*> m_WndRecord; \
-	static eck::CSubclassMgr<Class*> m_SM;
-#define SUBCLASS_MGR_INIT(Class, uSCID, SubclassProc) \
-	std::unordered_map<HWND, Class*> Class::m_WndRecord{}; \
-	eck::CSubclassMgr<Class*> Class::m_SM(m_WndRecord, SubclassProc, uSCID);
-
-#define SUBCLASS_REF_MGR_DECL(Class, CtxType) \
-	static eck::CSubclassMgrRef<CtxType>::TRefRecorder::TRecord m_WndRefRecord; \
-	static eck::CSubclassMgrRef<CtxType> m_SMRef;
-#define SUBCLASS_REF_MGR_INIT(Class, CtxType, uSCID, SubclassProc, Deleter) \
-	eck::CSubclassMgrRef<CtxType>::TRefRecorder::TRecord Class::m_WndRefRecord{}; \
-	eck::CSubclassMgrRef<CtxType> Class::m_SMRef(m_WndRefRecord, SubclassProc, uSCID, Deleter);
-
-#define WND_RECORDER_DECL(Class) \
-	static std::unordered_map<HWND, Class*> m_WndRecord; \
-	static eck::CWndRecorder<Class*> m_Recorder;
-#define WND_RECORDER_INIT(Class) \
-	std::unordered_map<HWND, Class*> Class::m_WndRecord{}; \
-	eck::CWndRecorder<Class*> Class::m_Recorder(m_WndRecord);
-
-
 
 EckInline int GetDpi(HWND hWnd)
 {

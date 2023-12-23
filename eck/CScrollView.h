@@ -173,5 +173,5 @@ public:
 
 	EckInline void SetDelta(int iDelta) { m_iDelta = iDelta; }
 };
-ECK_COMDAT UINT CInertialScrollView::s_uTimerNotify = RegisterWindowMessageW(MSG_INERTIALSV);
+inline UINT CInertialScrollView::s_uTimerNotify = RegisterWindowMessageW(MSG_INERTIALSV);
 ECK_NAMESPACE_END

@@ -45,12 +45,22 @@ static void CALLBACK GdiplusDebug(GpDebugEventLevel dwLevel, CHAR* pszMsg)
 enum
 {
 	RWCT_EZREG,
+	RWCT_CUSTOM,
+};
+
+struct EZREGWNDINFO
+{
+	PCWSTR pszClass = NULL;
+	UINT uClassStyle = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
 };
 
 constexpr struct
 {
-	PCWSTR pszClass = NULL;
-	UINT uClassStyle = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
+	union
+	{
+		EZREGWNDINFO ez{};
+		WNDCLASSW wc;
+	};
 	int iType = RWCT_EZREG;
 }
 g_WndClassInfo[]
@@ -99,7 +109,15 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		switch (e.iType)
 		{
 		case RWCT_EZREG:
-			if (!EzRegisterWndClass(e.pszClass, e.uClassStyle))
+			if (!EzRegisterWndClass(e.ez.pszClass, e.ez.uClassStyle))
+			{
+				*pdwErrCode = GetLastError();
+				EckDbgPrintFormatMessage(*pdwErrCode);
+				return InitStatus::RegWndClassError;
+			}
+			break;
+		case RWCT_CUSTOM:
+			if (!RegisterClassW(&e.wc))
 			{
 				*pdwErrCode = GetLastError();
 				EckDbgPrintFormatMessage(*pdwErrCode);
@@ -282,8 +300,7 @@ void DbgPrintWndMap()
 		auto rsCls = e.second->GetClsName();
 		if (!rsCls.Data())
 			rsCls = L" ";
-		rs.ReSize(rsText.Size() + rsCls.Size() + 64);
-		swprintf(rs.Data(), L"\tCWnd指针 = 0x%0p，HWND = 0x%0p，标题 = %s，类名 = %s\n",
+		rs.Format(L"\tCWnd指针 = 0x%0p，HWND = 0x%0p，标题 = %s，类名 = %s\n",
 			e.second,
 			e.first,
 			rsText.Data(),
@@ -292,6 +309,21 @@ void DbgPrintWndMap()
 	}
 	s += std::format(L"共有{}个窗口\n", pCtx->hmWnd.size());
 	OutputDebugStringW(s.c_str());
+}
+
+void DbgPrintFmt(PCWSTR pszFormat, ...)
+{
+	va_list vl;
+	va_start(vl, pszFormat);
+	CRefStrW rs{};
+	rs.FormatV(pszFormat, vl);
+	DbgPrint(rs);
+	va_end(vl);
+}
+
+void DbgPrintWithPos(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg)
+{
+	DbgPrint(std::format(L"{}({}行) -> {}\n\t{}\n", pszFile, iLine, pszFunc, pszMsg));
 }
 
 const CRefStrW& GetRunningPath()

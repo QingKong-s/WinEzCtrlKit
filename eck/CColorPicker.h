@@ -7,7 +7,6 @@
 */
 #pragma once
 #include "CWnd.h"
-#include "CSubclassMgr.h"
 #include "Utility.h"
 #include "CComboBox.h"
 

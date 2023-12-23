@@ -78,7 +78,7 @@ public:
 		switch (uMsg)
 		{
 		case WM_SIZE:
-			GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
+			ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
 			return 0;
 		case WM_PAINT:
 		{

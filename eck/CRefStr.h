@@ -1,7 +1,7 @@
 ﻿/*
 * WinEzCtrlKit Library
 *
-* CRefStrT.h ： 字符串
+* CRefStr.h ： 字符串
 *
 * Copyright(C) 2023 QingKong
 */
@@ -27,7 +27,7 @@ inline constexpr int StrNPos = -1;
 /// <param name="pszSub">要寻找的字符串指针</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回StrNPos</returns>
-EckInline int FindStr(PCWSTR pszText, PCWSTR pszSub, int posStart = 0)
+[[nodiscard]] EckInline int FindStr(PCWSTR pszText, PCWSTR pszSub, int posStart = 0)
 {
 	PCWSTR pszFind = wcsstr(pszText + posStart, pszSub);
 	if (pszFind)
@@ -43,7 +43,7 @@ EckInline int FindStr(PCWSTR pszText, PCWSTR pszSub, int posStart = 0)
 /// <param name="pszSub">要寻找的字符串指针</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回StrNPos</returns>
-EckInline int FindStr(PCSTR pszText, PCSTR pszSub, int posStart = 0)
+[[nodiscard]] EckInline int FindStr(PCSTR pszText, PCSTR pszSub, int posStart = 0)
 {
 	PCSTR pszFind = strstr(pszText + posStart, pszSub);
 	if (pszFind)
@@ -53,12 +53,27 @@ EckInline int FindStr(PCSTR pszText, PCSTR pszSub, int posStart = 0)
 }
 
 template<class TChar>
+concept ccpIsStdChar = std::is_same_v<TChar, CHAR> || std::is_same_v<TChar, WCHAR>;
+
+template<ccpIsStdChar TChar>
+using TRefStrDefAlloc = CAllocatorProcHeap<TChar, int>;
+
+template<ccpIsStdChar TChar_, class TCharTraits_, class TAlloc_>
+class CRefStrT;
+
+template<class TCharTraits, class TAlloc>
+CRefStrT<WCHAR, TCharTraits, TAlloc> StrX2W(PCSTR pszText, int cch, int uCP);
+
+template<ccpIsStdChar TChar_>
 struct CCharTraits
-{};
+{
+	using TChar = void;
+};
 
 template<>
 struct CCharTraits<WCHAR>
 {
+	using TChar = WCHAR;
 	EckInline static int Len(PCWSTR psz) { return (int)wcslen(psz); }
 	EckInline static PWSTR Copy(PWSTR psz1, PCWSTR psz2, int cch) { return (PWSTR)memcpy(psz1, psz2, cch * sizeof(WCHAR)); }
 	EckInline static PWSTR CopyEnd(PWSTR psz1, PCWSTR psz2, int cch)
@@ -80,11 +95,14 @@ struct CCharTraits<WCHAR>
 	EckInline static constexpr WCHAR CharSpace() { return L' '; }
 	EckInline static int Compare(PCWSTR psz1, PCWSTR psz2) { return wcscmp(psz1, psz2); }
 	EckInline static int Find(PCWSTR pszText, PCWSTR pszSub, int posStart = 0) { return FindStr(pszText, pszSub, posStart); }
+	EckInline static int FormatV(PWSTR pszBuf, PCWSTR pszFmt, va_list vl) { return vswprintf(pszBuf, pszFmt, vl); }
+	EckInline static int GetFormatCchV(PCWSTR pszFmt, va_list vl) { return _vscwprintf(pszFmt, vl); }
 };
 
 template<>
 struct CCharTraits<CHAR>
 {
+	using TChar = CHAR;
 	EckInline static int Len(PCSTR psz) { return (int)strlen(psz); }
 	EckInline static PSTR Copy(PSTR psz1, PCSTR psz2, int cch) { return (PSTR)memcpy(psz1, psz2, cch); }
 	EckInline static PSTR CopyEnd(PSTR psz1, PCSTR psz2, int cch)
@@ -106,17 +124,24 @@ struct CCharTraits<CHAR>
 	EckInline static constexpr CHAR CharSpace() { return ' '; }
 	EckInline static int Compare(PCSTR psz1, PCSTR psz2) { return strcmp(psz1, psz2); }
 	EckInline static int Find(PCSTR pszText, PCSTR pszSub, int posStart = 0) { return FindStr(pszText, pszSub, posStart); }
+	EckInline static int FormatV(PSTR pszBuf, PCSTR pszFmt, va_list vl) { return vsprintf(pszBuf, pszFmt, vl); }
+	EckInline static int GetFormatCchV(PCSTR pszFmt, va_list vl) { return _vscprintf(pszFmt, vl); }
 };
 
-template<class TChar_, class TCharTraits_, class TAlloc_ = CAllocatorProcHeap<TChar_, int>>
+template<ccpIsStdChar TChar>
+using TRefStrDefTraits = CCharTraits<TChar>;
+
+template<
+	ccpIsStdChar TChar_,
+	class TCharTraits_ = TRefStrDefTraits<TChar_>,
+	class TAlloc_ = TRefStrDefAlloc<TChar_>
+>
 class CRefStrT
 {
 public:
 	using TChar = TChar_;
 	using TCharTraits = TCharTraits_;
 	using TAlloc = TAlloc_;
-
-	static_assert(std::is_same_v<TChar, CHAR> || std::is_same_v<TChar, WCHAR>);
 
 	using TAllocTraits = CAllocatorTraits<TAlloc>;
 	using TPointer = TChar*;
@@ -131,21 +156,31 @@ private:
 	int m_cchText = 0;
 	int m_cchCapacity = 0;
 
-	[[no_unique_address]] TAlloc m_Alloc{};
+	[[msvc::no_unique_address]] TAlloc m_Alloc{};
 public:
 	CRefStrT() = default;
 
-	TAlloc& GetAllocator() { return m_Alloc; }
+	explicit CRefStrT(const TAlloc& Al) : m_Alloc{ Al } {}
 
 	/// <summary>
 	/// 创建自长度
 	/// </summary>
 	/// <param name="cchInit">字符串长度</param>
 	explicit CRefStrT(int cchInit)
+		: m_cchCapacity{ cchInit + 1 }, m_cchText{ cchInit }
 	{
-		m_cchCapacity = cchInit + 1;
 		m_pszText = m_Alloc.allocate(m_cchCapacity);
-		m_cchText = cchInit;
+	}
+
+	/// <summary>
+	/// 创建自长度
+	/// </summary>
+	/// <param name="cchInit">字符串长度</param>
+	/// <param name="Al">分配器</param>
+	CRefStrT(int cchInit, const TAlloc& Al)
+		: m_cchText{ cchInit }, m_cchCapacity{ cchInit + 1 }, m_Alloc{ Al }
+	{
+		m_pszText = m_Alloc.allocate(m_cchCapacity);
 	}
 
 	/// <summary>
@@ -153,24 +188,34 @@ public:
 	/// </summary>
 	/// <param name="psz">字符串指针</param>
 	/// <param name="cchText">字符串长度</param>
-	CRefStrT(TConstPointer psz, int cchText = -1)
+	/// <param name="Al">分配器</param>
+	CRefStrT(TConstPointer psz, int cchText, const TAlloc& Al = TAlloc{})
+		: m_cchText{ cchText }, m_cchCapacity{ TAllocTraits::MakeCapacity(cchText + 1) }, m_Alloc{ Al }
 	{
-		if (!psz || !cchText)
-			return;
-		if (cchText < 0)
-			cchText = TCharTraits::Len(psz);
-		if (!cchText)
-			return;
-
-		m_cchCapacity = TAllocTraits::MakeCapacity(cchText + 1);
+		EckAssert(psz ? TRUE : cchText == 0);
 		m_pszText = m_Alloc.allocate(m_cchCapacity);
-		m_cchText = cchText;
-		TCharTraits::CopyEnd(m_pszText, psz, cchText);
+		TCharTraits::CopyEnd(Data(), psz, cchText);
 	}
+
+	/// <summary>
+	/// 创建自字符串
+	/// </summary>
+	/// <param name="psz">字符串指针</param>
+	/// <param name="Al">分配器</param>
+	CRefStrT(TConstPointer psz, const TAlloc& Al = TAlloc{})
+		: CRefStrT(psz, psz ? TCharTraits::Len(psz) : 0, Al) {}
 
 	CRefStrT(const CRefStrT& x)
 		: m_cchText{ x.Size() }, m_cchCapacity{ TAllocTraits::MakeCapacity(m_cchText + 1) },
 		m_Alloc{ TAllocTraits::select_on_container_copy_construction(x.m_Alloc) }
+	{
+		m_pszText = m_Alloc.allocate(m_cchCapacity);
+		TCharTraits::CopyEnd(Data(), x.Data(), x.Size());
+	}
+
+	CRefStrT(const CRefStrT& x, const TAlloc& Al)
+		: m_cchText{ x.Size() }, m_cchCapacity{ TAllocTraits::MakeCapacity(m_cchText + 1) },
+		m_Alloc{ Al }
 	{
 		m_pszText = m_Alloc.allocate(m_cchCapacity);
 		TCharTraits::CopyEnd(Data(), x.Data(), x.Size());
@@ -184,10 +229,30 @@ public:
 		x.m_cchText = x.m_cchCapacity = 0;
 	}
 
-	template<class TTraits, class TAlloc1>
-	explicit CRefStrT(const std::basic_string<TChar, TTraits, TAlloc1>& x)
+	CRefStrT(CRefStrT&& x, const TAlloc& Al) noexcept
+		:m_pszText{ x.m_pszText }, m_cchText{ x.m_cchText }, m_cchCapacity{ x.m_cchCapacity },
+		m_Alloc{ Al }
 	{
-		DupString(x.c_str(), (int)x.size());
+		if constexpr (!TAllocTraits::is_always_equal::value)
+		{
+			if (Al != x.m_Alloc)
+			{
+				x.m_Alloc.deallocate(m_pszText, m_cchCapacity);
+				m_pszText = m_Alloc.allocate(m_cchCapacity);
+				TCharTraits::CopyEnd(Data(), x.Data(), x.Size());
+			}
+		}
+		x.m_pszText = NULL;
+		x.m_cchText = x.m_cchCapacity = 0;
+	}
+
+	template<class TTraits, class TAlloc1>
+	explicit CRefStrT(const std::basic_string<TChar, TTraits, TAlloc1>& x, const TAlloc& Al = TAlloc{})
+		: m_cchText{ (int)x.size() }, m_cchCapacity{ TAllocTraits::MakeCapacity(m_cchText + 1) },
+		m_Alloc{ Al }
+	{
+		m_pszText = m_Alloc.allocate(m_cchCapacity);
+		TCharTraits::CopyEnd(Data(), x.c_str(), x.size());
 	}
 
 	~CRefStrT()
@@ -250,48 +315,50 @@ public:
 		return *this;
 	}
 
-	EckInline TChar& operator[](int x)
-	{
-		return *(Data() + x);
-	}
+	[[nodiscard]] EckInline TChar& At(int x) { EckAssert(x >= 0 && x < Size()); return *(Data() + x); }
 
-	EckInline TChar operator[](int x) const
-	{
-		return *(Data() + x);
-	}
+	[[nodiscard]] EckInline TChar At(int x) const { EckAssert(x >= 0 && x < Size()); return *(Data() + x); }
 
-	EckInline CRefStrT& operator<<(const CRefStrT& x)
+	[[nodiscard]] EckInline TChar& operator[](int x) { return At(x); }
+
+	[[nodiscard]] EckInline TChar operator[](int x) const { return At(x); }
+
+	[[nodiscard]] EckInline TChar& Front() { return At(0); }
+
+	[[nodiscard]] EckInline TChar Front() const { return At(0); }
+
+	[[nodiscard]] EckInline TChar& Back() { return At(Size() - 1); }
+
+	[[nodiscard]] EckInline TChar Back() const { return At(Size() - 1); }
+
+	EckInline CRefStrT& operator+=(const CRefStrT& x)
 	{
 		PushBack(x.Data(), x.Size());
 		return *this;
 	}
 
 	template<class TTraits, class TAlloc1>
-	EckInline CRefStrT& operator<<(const std::basic_string<TChar, TTraits, TAlloc1>& x)
+	EckInline CRefStrT& operator+=(const std::basic_string<TChar, TTraits, TAlloc1>& x)
 	{
 		PushBack(x.c_str(), (int)x.size());
 		return *this;
 	}
 
-	EckInline int Size() const
+	EckInline CRefStrT& operator+=(TConstPointer psz)
 	{
-		return m_cchText;
+		PushBack(psz);
+		return *this;
 	}
 
-	EckInline size_t ByteSize() const
-	{
-		return (m_cchText + 1) * sizeof(TChar);
-	}
+	[[nodiscard]] EckInline TAlloc GetAllocator() const { return m_Alloc; }
 
-	EckInline TPointer Data()
-	{
-		return m_pszText;
-	}
+	[[nodiscard]] EckInline int Size() const { return m_cchText; }
 
-	EckInline TConstPointer Data() const
-	{
-		return m_pszText;
-	}
+	[[nodiscard]] EckInline size_t ByteSize() const { return (m_cchText + 1) * sizeof(TChar); }
+
+	[[nodiscard]] EckInline TPointer Data() { return m_pszText; }
+
+	[[nodiscard]] EckInline TConstPointer Data() const { return m_pszText; }
 
 	/// <summary>
 	/// 克隆字符串。
@@ -302,18 +369,9 @@ public:
 	/// <returns>实际复制的字符数</returns>
 	int DupString(TConstPointer pszSrc, int cchSrc = -1)
 	{
-		if (!pszSrc)
-		{
-		NullStr:
-			m_cchText = 0;
-			if (m_pszText)
-				TCharTraits::Cut(m_pszText, 0);
-			return 0;
-		}
+		EckAssert(pszSrc ? TRUE : cchSrc == 0);
 		if (cchSrc < 0)
 			cchSrc = TCharTraits::Len(pszSrc);
-		if (!cchSrc)
-			goto NullStr;
 		ReSizeExtra(cchSrc);
 		TCharTraits::CopyEnd(Data(), pszSrc, cchSrc);
 		return cchSrc;
@@ -328,27 +386,25 @@ public:
 	}
 
 	/// <summary>
-	/// 依附指针
+	/// 依附指针。
+	/// 先前的内存将被释放
 	/// </summary>
 	/// <param name="psz">指针，必须可通过当前分配器解分配</param>
 	/// <param name="cchCapacity">容量</param>
 	/// <param name="cchText">字符数</param>
-	void Attach(TPointer psz, int cchCapacity, int cchText = -1)
+	void Attach(TPointer psz, int cchCapacity, int cchText)
 	{
+		EckAssert(cchCapacity > 0 && cchText >= 0);
 		m_Alloc.deallocate(m_pszText, m_cchCapacity);
 		if (!psz)
 		{
-			m_cchCapacity = 0;
-			m_cchText = 0;
 			m_pszText = NULL;
+			m_cchText = m_cchCapacity = 0;
 		}
 		else
 		{
 			m_cchCapacity = cchCapacity;
-			if (cchText < 0)
-				m_cchText = TCharTraits::Len(psz);
-			else
-				m_cchText = cchText;
+			m_cchText = cchText;
 			m_pszText = psz;
 		}
 	}
@@ -357,9 +413,9 @@ public:
 	/// 拆离指针
 	/// </summary>
 	/// <returns>指针，必须通过当前分配器解分配</returns>
-	EckInline TPointer Detach()
+	[[nodiscard]] EckInline TPointer Detach()
 	{
-		auto pTemp = m_pszText;
+		const auto = m_pszText;
 		m_cchCapacity = 0;
 		m_cchText = 0;
 		m_pszText = NULL;
@@ -386,6 +442,13 @@ public:
 		if (!pszSrc)
 			return 0;
 		return PushBack(pszSrc, TCharTraits::Len(pszSrc));
+	}
+
+	EckInline TPointer PushBack(int cch)
+	{
+		EckAssert(cch >= 0);
+		ReSizeExtra(Size() + cch);
+		return Data() + Size() - cch;
 	}
 
 	/// <summary>
@@ -581,6 +644,11 @@ public:
 		MakeRepeatedStrSequence(rsText.Data(), rsText.Size(), cCount, posStart);
 	}
 
+	/// <summary>
+	/// 清除。
+	/// 将尺寸设置为0并在开始处截断（如果有数据）
+	/// </summary>
+	/// <returns></returns>
 	EckInline void Clear()
 	{
 		m_cchText = 0;
@@ -588,6 +656,12 @@ public:
 			TCharTraits::Cut(Data(), 0);
 	}
 
+	/// <summary>
+	/// 插入字符串
+	/// </summary>
+	/// <param name="pos">位置</param>
+	/// <param name="pszText">字符串</param>
+	/// <param name="cchText">字符数</param>
 	EckInline void Insert(int pos, PCWSTR pszText, int cchText)
 	{
 		EckAssert(pos <= Size());
@@ -617,6 +691,11 @@ public:
 		Insert(pos, s.c_str(), (int)s.size());
 	}
 
+	/// <summary>
+	/// 擦除字符
+	/// </summary>
+	/// <param name="pos">位置</param>
+	/// <param name="cch">要擦除的字符数</param>
 	EckInline void Erase(int pos, int cch)
 	{
 		EckAssert(Size() >= pos + cch);
@@ -627,6 +706,9 @@ public:
 		m_cchText -= cch;
 	}
 
+	/// <summary>
+	/// 裁剪多余空间
+	/// </summary>
 	void ShrinkToFit()
 	{
 		EckAssert(m_cchCapacity >= m_cchText + 1);
@@ -639,26 +721,84 @@ public:
 		m_cchCapacity = m_cchText + 1;
 	}
 
-	EckInline TIterator begin() { return Data(); }
-	EckInline TIterator end() { return begin() + Size(); }
-	EckInline TConstIterator begin() const { return Data(); }
-	EckInline TConstIterator end() const { return begin() + Size(); }
-	EckInline TConstIterator cbegin() const { begin(); }
-	EckInline TConstIterator cend() const { end(); }
-	EckInline TReverseIterator rbegin() { return TReverseIterator(begin()); }
-	EckInline TReverseIterator rend() { return TReverseIterator(end()); }
-	EckInline TConstReverseIterator rbegin() const { return TConstReverseIterator(begin()); }
-	EckInline TConstReverseIterator rend() const { return TConstReverseIterator(end()); }
-	EckInline TConstReverseIterator crbegin() const { return rbegin(); }
-	EckInline TConstReverseIterator crend() const { return rend(); }
+	EckInline int Format(TConstPointer pszFmt, ...)
+	{
+		va_list vl;
+		va_start(vl, pszFmt);
+		const int cch = FormatV(pszFmt, vl);
+		va_end(vl);
+		return cch;
+	}
+
+	EckInline int FormatV(TConstPointer pszFmt, va_list vl)
+	{
+		const int cch = TCharTraits::GetFormatCchV(pszFmt, vl);
+		if (cch <= 0)
+			return 0;
+		ReSizeExtra(cch);
+		TCharTraits::FormatV(Data(), pszFmt, vl);
+		return cch;
+	}
+
+	EckInline int AppendFormat(TConstPointer pszFmt, ...)
+	{
+		va_list vl;
+		va_start(vl, pszFmt);
+		const int cch = AppendFormatV(pszFmt, vl);
+		va_end(vl);
+		return cch;
+	}
+
+	EckInline int AppendFormatV(TConstPointer pszFmt, va_list vl)
+	{
+		const int cch = TCharTraits::GetFormatCchV(pszFmt, vl);
+		if (cch <= 0)
+			return 0;
+		TCharTraits::FormatV(PushBack(cch), pszFmt, vl);
+		return cch;
+	}
+
+	/// <summary>
+	/// 取BSTR。
+	/// 调用方必须在使用完返回值后对其调用SysFreeString以解分配
+	/// </summary>
+	/// <returns>BSTR</returns>
+	[[nodiscard]] EckInline BSTR ToBSTR() const
+	{
+		if constexpr (std::is_same_v<TChar, WCHAR>)
+			return SysAllocStringLen(Data(), Size());
+		else
+		{
+			auto rs = StrX2W<CCharTraits<WCHAR>, CAllocatorProcHeap<WCHAR, int>>(Data(), Size(), CP_ACP);
+			return SysAllocStringLen(rs.Data(), rs.Size());
+		}
+	}
+
+	[[nodiscard]] EckInline std::basic_string_view<TChar> ToStringView() const
+	{
+		return std::basic_string_view<TChar>(Data(), Size());
+	}
+
+	[[nodiscard]] EckInline TIterator begin() { return Data(); }
+	[[nodiscard]] EckInline TIterator end() { return begin() + Size(); }
+	[[nodiscard]] EckInline TConstIterator begin() const { return Data(); }
+	[[nodiscard]] EckInline TConstIterator end() const { return begin() + Size(); }
+	[[nodiscard]] EckInline TConstIterator cbegin() const { begin(); }
+	[[nodiscard]] EckInline TConstIterator cend() const { end(); }
+	[[nodiscard]] EckInline TReverseIterator rbegin() { return TReverseIterator(begin()); }
+	[[nodiscard]] EckInline TReverseIterator rend() { return TReverseIterator(end()); }
+	[[nodiscard]] EckInline TConstReverseIterator rbegin() const { return TConstReverseIterator(begin()); }
+	[[nodiscard]] EckInline TConstReverseIterator rend() const { return TConstReverseIterator(end()); }
+	[[nodiscard]] EckInline TConstReverseIterator crbegin() const { return rbegin(); }
+	[[nodiscard]] EckInline TConstReverseIterator crend() const { return rend(); }
 };
 
 using CRefStrW = CRefStrT<WCHAR, CCharTraits<WCHAR>>;
 using CRefStrA = CRefStrT<CHAR, CCharTraits<CHAR>>;
 
 #define EckCRefStrTemp CRefStrT<TChar, TCharTraits, TAlloc>
-
-template<class TChar, class TCharTraits, class TAlloc = CAllocatorProcHeap<TChar, int>>
+	
+template<class TChar, class TCharTraits, class TAlloc>
 EckInline EckCRefStrTemp operator+(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
 {
 	EckCRefStrTemp x(rs1.Size() + rs2.Size());
@@ -667,8 +807,8 @@ EckInline EckCRefStrTemp operator+(const EckCRefStrTemp& rs1, const EckCRefStrTe
 	return x;
 }
 
-template<class TChar, class TCharTraits, class TAlloc = CAllocatorProcHeap<TChar, int>>
-EckInline EckCRefStrTemp operator+(const EckCRefStrTemp& rs, PCWSTR psz)
+template<class TChar, class TCharTraits, class TAlloc>
+EckInline EckCRefStrTemp operator+(const EckCRefStrTemp& rs, const TChar* psz)
 {
 	const int cch = (psz ? TCharTraits::Len(psz) : 0);
 	EckCRefStrTemp x(rs.Size() + cch);
@@ -677,8 +817,8 @@ EckInline EckCRefStrTemp operator+(const EckCRefStrTemp& rs, PCWSTR psz)
 	return x;
 }
 
-template<class TChar, class TCharTraits, class TAlloc = CAllocatorProcHeap<TChar, int>>
-EckInline bool operator==(const EckCRefStrTemp& rs1, PCWSTR psz2)
+template<class TChar, class TCharTraits, class TAlloc>
+[[nodiscard]] EckInline bool operator==(const EckCRefStrTemp& rs1, const TChar* psz2)
 {
 	if (!rs1.Data() && !psz2)
 		return true;
@@ -688,8 +828,8 @@ EckInline bool operator==(const EckCRefStrTemp& rs1, PCWSTR psz2)
 		return TCharTraits::Compare(rs1.Data(), psz2) == 0;
 }
 
-template<class TChar, class TCharTraits, class TAlloc = CAllocatorProcHeap<TChar, int>>
-EckInline std::weak_ordering operator<=>(const EckCRefStrTemp& rs1, PCWSTR psz2)
+template<class TChar, class TCharTraits, class TAlloc>
+[[nodiscard]] EckInline std::weak_ordering operator<=>(const EckCRefStrTemp& rs1, const TChar* psz2)
 {
 	if (!rs1.Data() && !psz2)
 		return std::weak_ordering::equivalent;
@@ -701,42 +841,35 @@ EckInline std::weak_ordering operator<=>(const EckCRefStrTemp& rs1, PCWSTR psz2)
 		return TCharTraits::Compare(rs1.Data(), psz2) <=> 0;
 }
 
-template<class TChar, class TCharTraits, class TAlloc = CAllocatorProcHeap<TChar, int>>
-EckInline bool operator==(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
+template<class TChar, class TCharTraits, class TAlloc>
+[[nodiscard]] EckInline bool operator==(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
 {
 	return operator==(rs1, rs2.Data());
 }
 
-template<class TChar, class TCharTraits, class TAlloc = CAllocatorProcHeap<TChar, int>>
-EckInline std::weak_ordering operator<=>(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
+template<class TChar, class TCharTraits, class TAlloc>
+[[nodiscard]] EckInline std::weak_ordering operator<=>(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
 {
 	return operator<=>(rs1, rs2.Data());
 }
 
-template<class TChar, class TCharTraits, class TAlloc>
-EckInline void DbgPrint(const EckCRefStrTemp& rs, int iType = 1, BOOL bNewLine = TRUE)
+template<class TCharTraits, class TAlloc>
+EckInline void DbgPrint(const CRefStrT<WCHAR, TCharTraits, TAlloc>& rs, int iType = 1, BOOL bNewLine = TRUE)
 {
 	OutputDebugStringW(rs.Data());
 	if (bNewLine)
 		OutputDebugStringW(L"\n");
 }
 
+template<class TCharTraits, class TAlloc>
+EckInline void DbgPrint(const CRefStrT<CHAR, TCharTraits, TAlloc>& rs, int iType = 1, BOOL bNewLine = TRUE)
+{
+	OutputDebugStringA(rs.Data());
+	if (bNewLine)
+		OutputDebugStringA("\n");
+}
 
-inline constexpr auto c_cchI32ToStrBufNoRadix2 = std::max({
-	_MAX_ITOSTR_BASE16_COUNT,_MAX_ITOSTR_BASE10_COUNT,_MAX_ITOSTR_BASE8_COUNT,
-	_MAX_LTOSTR_BASE16_COUNT ,_MAX_LTOSTR_BASE10_COUNT ,_MAX_LTOSTR_BASE8_COUNT,
-	_MAX_ULTOSTR_BASE16_COUNT,_MAX_ULTOSTR_BASE10_COUNT,_MAX_ULTOSTR_BASE8_COUNT });
-inline constexpr auto c_cchI64ToStrBufNoRadix2 = std::max({
-	_MAX_I64TOSTR_BASE16_COUNT,_MAX_I64TOSTR_BASE10_COUNT,_MAX_I64TOSTR_BASE8_COUNT,
-	_MAX_U64TOSTR_BASE16_COUNT,_MAX_U64TOSTR_BASE10_COUNT,_MAX_U64TOSTR_BASE8_COUNT });
-
-inline constexpr auto c_cchI32ToStrBuf = std::max({ c_cchI32ToStrBufNoRadix2,
-	_MAX_ITOSTR_BASE2_COUNT,_MAX_LTOSTR_BASE2_COUNT,_MAX_ULTOSTR_BASE2_COUNT });
-inline constexpr auto c_cchI64ToStrBuf = std::max({ c_cchI64ToStrBufNoRadix2,
-	_MAX_I64TOSTR_BASE2_COUNT,_MAX_U64TOSTR_BASE2_COUNT });
-
-
-EckInline CRefStrW ToStr(int x, int iRadix = 10)
+[[nodiscard]] EckInline CRefStrW ToStr(int x, int iRadix = 10)
 {
 	CRefStrW rs(c_cchI32ToStrBuf);
 	_itow(x, rs.Data(), iRadix);
@@ -744,7 +877,7 @@ EckInline CRefStrW ToStr(int x, int iRadix = 10)
 	return rs;
 }
 
-EckInline CRefStrW ToStr(UINT x, int iRadix = 10)
+[[nodiscard]] EckInline CRefStrW ToStr(UINT x, int iRadix = 10)
 {
 	CRefStrW rs(c_cchI32ToStrBuf);
 	_ultow(x, rs.Data(), iRadix);
@@ -752,7 +885,7 @@ EckInline CRefStrW ToStr(UINT x, int iRadix = 10)
 	return rs;
 }
 
-EckInline CRefStrW ToStr(LONGLONG x, int iRadix = 10)
+[[nodiscard]] EckInline CRefStrW ToStr(LONGLONG x, int iRadix = 10)
 {
 	CRefStrW rs(c_cchI64ToStrBuf);
 	_i64tow(x, rs.Data(), iRadix);
@@ -760,7 +893,7 @@ EckInline CRefStrW ToStr(LONGLONG x, int iRadix = 10)
 	return rs;
 }
 
-EckInline CRefStrW ToStr(ULONGLONG x, int iRadix = 10)
+[[nodiscard]] EckInline CRefStrW ToStr(ULONGLONG x, int iRadix = 10)
 {
 	CRefStrW rs(c_cchI64ToStrBuf);
 	_ui64tow(x, rs.Data(), iRadix);
@@ -768,7 +901,7 @@ EckInline CRefStrW ToStr(ULONGLONG x, int iRadix = 10)
 	return rs;
 }
 
-EckInline CRefStrW ToStr(double x, int iPrecision = 6)
+[[nodiscard]] EckInline CRefStrW ToStr(double x, int iPrecision = 6)
 {
 	CRefStrW rs(48);
 	_snwprintf_s(rs.Data(), rs.Size(), rs.Size(), L"%.*g", iPrecision, x);
@@ -790,7 +923,7 @@ namespace Literals
 /// <param name="pszText">字符串指针</param>
 /// <param name="cchText">字符串长度</param>
 /// <returns></returns>
-EckInline CRefStrW ToLowerCase(PCWSTR pszText, int cchText = -1)
+[[nodiscard]] EckInline CRefStrW ToLowerCase(PCWSTR pszText, int cchText = -1)
 {
 	CRefStrW rs;
 	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_LOWERCASE, pszText, cchText, NULL, 0, NULL, NULL, 0);
@@ -805,7 +938,7 @@ EckInline CRefStrW ToLowerCase(PCWSTR pszText, int cchText = -1)
 /// <param name="pszText">字符串指针</param>
 /// <param name="cchText">字符串长度</param>
 /// <returns></returns>
-EckInline CRefStrW ToUpperCase(PCWSTR pszText, int cchText = -1)
+[[nodiscard]] EckInline CRefStrW ToUpperCase(PCWSTR pszText, int cchText = -1)
 {
 	CRefStrW rs;
 	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_UPPERCASE, pszText, cchText, NULL, 0, NULL, NULL, 0);
@@ -820,7 +953,7 @@ EckInline CRefStrW ToUpperCase(PCWSTR pszText, int cchText = -1)
 /// <param name="pszText">字符串指针</param>
 /// <param name="cchText">字符串长度</param>
 /// <returns></returns>
-EckInline CRefStrW ToLowerCaseCrt(PCWSTR pszText, int cchText = -1)
+[[nodiscard]] EckInline CRefStrW ToLowerCaseCrt(PCWSTR pszText, int cchText = -1)
 {
 	if (cchText < 0)
 		cchText = (int)wcslen(pszText);
@@ -836,7 +969,7 @@ EckInline CRefStrW ToLowerCaseCrt(PCWSTR pszText, int cchText = -1)
 /// <param name="pszText">字符串指针</param>
 /// <param name="cchText">字符串长度</param>
 /// <returns></returns>
-EckInline CRefStrW ToUpperCaseCrt(PCWSTR pszText, int cchText = -1)
+[[nodiscard]] EckInline CRefStrW ToUpperCaseCrt(PCWSTR pszText, int cchText = -1)
 {
 	if (cchText < 0)
 		cchText = (int)wcslen(pszText);
@@ -852,7 +985,7 @@ EckInline CRefStrW ToUpperCaseCrt(PCWSTR pszText, int cchText = -1)
 /// <param name="pszText">字符串指针</param>
 /// <param name="cchText">字符串长度</param>
 /// <returns></returns>
-EckInline CRefStrA ToLowerCaseCrt(PCSTR pszText, int cchText = -1)
+[[nodiscard]] EckInline CRefStrA ToLowerCaseCrt(PCSTR pszText, int cchText = -1)
 {
 	if (cchText < 0)
 		cchText = (int)strlen(pszText);
@@ -868,7 +1001,7 @@ EckInline CRefStrA ToLowerCaseCrt(PCSTR pszText, int cchText = -1)
 /// <param name="pszText">字符串指针</param>
 /// <param name="cchText">字符串长度</param>
 /// <returns></returns>
-EckInline CRefStrA ToUpperCaseCrt(PCSTR pszText, int cchText = -1)
+[[nodiscard]] EckInline CRefStrA ToUpperCaseCrt(PCSTR pszText, int cchText = -1)
 {
 	if (cchText < 0)
 		cchText = (int)strlen(pszText);
@@ -884,7 +1017,7 @@ EckInline CRefStrA ToUpperCaseCrt(PCSTR pszText, int cchText = -1)
 /// <param name="pszText">字符串指针</param>
 /// <param name="cchLeft">左边长度</param>
 /// <returns></returns>
-EckInline CRefStrW StrLeft(PCWSTR pszText, int cchLeft)
+[[nodiscard]] EckInline CRefStrW StrLeft(PCWSTR pszText, int cchLeft)
 {
 	return CRefStrW(pszText, cchLeft);
 }
@@ -896,7 +1029,7 @@ EckInline CRefStrW StrLeft(PCWSTR pszText, int cchLeft)
 /// <param name="cchRight">右边长度</param>
 /// <param name="cchText">字符串长度</param>
 /// <returns></returns>
-EckInline CRefStrW StrRight(PCWSTR pszText, int cchRight, int cchText = -1)
+[[nodiscard]] EckInline CRefStrW StrRight(PCWSTR pszText, int cchRight, int cchText = -1)
 {
 	if (cchText < 0)
 		cchText = (int)wcslen(pszText);
@@ -910,7 +1043,7 @@ EckInline CRefStrW StrRight(PCWSTR pszText, int cchRight, int cchText = -1)
 /// <param name="posStart">起始位置</param>
 /// <param name="cchMid">中间长度</param>
 /// <returns></returns>
-EckInline CRefStrW StrMid(PCWSTR pszText, int posStart, int cchMid)
+[[nodiscard]] EckInline CRefStrW StrMid(PCWSTR pszText, int posStart, int cchMid)
 {
 	return CRefStrW(pszText + posStart, cchMid);
 }
@@ -926,7 +1059,7 @@ EckInline CRefStrW StrMid(PCWSTR pszText, int posStart, int cchMid)
 /// <param name="cchSub">要寻找的字符串长度</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回StrNPos</returns>
-EckInline int FindStrNcs(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = 0)
+[[nodiscard]] EckInline int FindStrNcs(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = 0)
 {
 	return FindStr(ToUpperCaseCrt(pszText, cchText).Data(), ToUpperCaseCrt(pszSub, cchSub).Data(), posStart);
 }
@@ -942,7 +1075,7 @@ EckInline int FindStrNcs(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub,
 /// <param name="cchSub">要寻找的字符串长度</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回StrNPos</returns>
-EckInline int FindStrNcs(PCSTR pszText, int cchText, PCSTR pszSub, int cchSub, int posStart = 0)
+[[nodiscard]] EckInline int FindStrNcs(PCSTR pszText, int cchText, PCSTR pszSub, int cchSub, int posStart = 0)
 {
 	return FindStr(ToUpperCaseCrt(pszText, cchText).Data(), ToUpperCaseCrt(pszSub, cchSub).Data(), posStart);
 }
@@ -956,7 +1089,7 @@ EckInline int FindStrNcs(PCSTR pszText, int cchText, PCSTR pszSub, int cchSub, i
 /// <param name="rsSub">要寻找的字符串</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回StrNPos</returns>
-EckInline int FindStrNcs(const CRefStrW& rsText, const CRefStrW& rsSub, int posStart = 0)
+[[nodiscard]] EckInline int FindStrNcs(const CRefStrW& rsText, const CRefStrW& rsSub, int posStart = 0)
 {
 	return FindStrNcs(rsText.Data(), rsText.Size(), rsSub.Data(), posStart, rsSub.Size());
 }
@@ -970,7 +1103,7 @@ EckInline int FindStrNcs(const CRefStrW& rsText, const CRefStrW& rsSub, int posS
 /// <param name="rsSub">要寻找的字符串</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回StrNPos</returns>
-EckInline int FindStrNcs(const CRefStrA& rsText, const CRefStrA& rsSub, int posStart = 0)
+[[nodiscard]] EckInline int FindStrNcs(const CRefStrA& rsText, const CRefStrA& rsSub, int posStart = 0)
 {
 	return FindStrNcs(rsText.Data(), rsText.Size(), rsSub.Data(), posStart, rsSub.Size());
 }
@@ -984,7 +1117,7 @@ EckInline int FindStrNcs(const CRefStrA& rsText, const CRefStrA& rsSub, int posS
 /// <param name="cchSub">要寻找的字符串长度</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回StrNPos</returns>
-inline int FindStrRev(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = 0)
+[[nodiscard]] inline int FindStrRev(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = 0)
 {
 	if (cchText < 0)
 		cchText = (int)wcslen(pszText);
@@ -1008,7 +1141,7 @@ inline int FindStrRev(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, in
 /// <param name="rsSub">要寻找的字符串</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回StrNPos</returns>
-EckInline int FindStrRev(const CRefStrW& rsText, const CRefStrW& rsSub, int posStart = 0)
+[[nodiscard]] EckInline int FindStrRev(const CRefStrW& rsText, const CRefStrW& rsSub, int posStart = 0)
 {
 	return FindStrRev(rsText.Data(), rsText.Size(), rsSub.Data(), posStart,  rsSub.Size());
 }
@@ -1024,7 +1157,7 @@ EckInline int FindStrRev(const CRefStrW& rsText, const CRefStrW& rsSub, int posS
 /// <param name="cchSub">要寻找的字符串长度</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回StrNPos</returns>
-EckInline int FindStrRevNcs(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = 0)
+[[nodiscard]] EckInline int FindStrRevNcs(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = 0)
 {
 	auto rsText = ToUpperCase(pszText, cchText), rsSub = ToUpperCase(pszSub, cchSub);
 	return FindStrRev(rsText.Data(), rsText.Size(), rsSub.Data(), posStart,  rsSub.Size());
@@ -1039,7 +1172,7 @@ EckInline int FindStrRevNcs(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchS
 /// <param name="rsSub">要寻找的字符串</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回StrNPos</returns>
-EckInline int FindStrRevNcs(const CRefStrW& rsText, const CRefStrW& rsSub, int posStart = 0)
+[[nodiscard]] EckInline int FindStrRevNcs(const CRefStrW& rsText, const CRefStrW& rsSub, int posStart = 0)
 {
 	return FindStrRevNcs(rsText.Data(), rsText.Size(), rsSub.Data(), posStart, rsSub.Size());
 }
@@ -1146,7 +1279,7 @@ EckInline void SplitStr(PWSTR pszText, PCWSTR pszDiv, std::vector<PWSTR>& aResul
 /// <param name="pszText">原始文本</param>
 /// <param name="cchText">字符数</param>
 /// <returns>转换结果</returns>
-EckInline CRefStrW ToFullWidth(PCWSTR pszText, int cchText = -1)
+[[nodiscard]] EckInline CRefStrW ToFullWidth(PCWSTR pszText, int cchText = -1)
 {
 	CRefStrW rs;
 	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_FULLWIDTH, pszText, cchText, NULL, 0, NULL, NULL, 0);
@@ -1161,7 +1294,7 @@ EckInline CRefStrW ToFullWidth(PCWSTR pszText, int cchText = -1)
 /// <param name="pszText">原始文本</param>
 /// <param name="cchText">字符数</param>
 /// <returns>转换结果</returns>
-EckInline CRefStrW ToHalfWidth(PCWSTR pszText, int cchText = -1)
+[[nodiscard]] EckInline CRefStrW ToHalfWidth(PCWSTR pszText, int cchText = -1)
 {
 	CRefStrW rs;
 	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_HALFWIDTH, pszText, cchText, NULL, 0, NULL, NULL, 0);
@@ -1177,7 +1310,7 @@ EckInline CRefStrW ToHalfWidth(PCWSTR pszText, int cchText = -1)
 /// </summary>
 /// <param name="pszText">原始文本</param>
 /// <returns>第一个非空格字符的指针</returns>
-EckInline PCWSTR LTrimStr(PCWSTR pszText)
+[[nodiscard]] EckInline PCWSTR LTrimStr(PCWSTR pszText)
 {
 	WCHAR ch = *pszText;
 	while ((ch == L' ' || ch == L'　') && ch != L'\0')
@@ -1193,7 +1326,7 @@ EckInline PCWSTR LTrimStr(PCWSTR pszText)
 /// <param name="pszText">原始文本</param>
 /// <param name="cchText">文本长度</param>
 /// <returns>从字符串开头到最后一个非空格字符的长度</returns>
-inline int RTrimStr(PCWSTR pszText, int cchText = -1)
+[[nodiscard]] inline int RTrimStr(PCWSTR pszText, int cchText = -1)
 {
 	if (cchText < 0)
 		cchText = (int)wcslen(pszText);
@@ -1222,7 +1355,7 @@ inline int RTrimStr(PCWSTR pszText, int cchText = -1)
 /// <param name="piEndPos">接收RTrimStr返回值</param>
 /// <param name="cchText">文本长度</param>
 /// <returns>LTrimStr返回值</returns>
-EckInline PCWSTR RLTrimStr(PCWSTR pszText, int* piEndPos, int cchText = -1)
+[[nodiscard]] EckInline PCWSTR RLTrimStr(PCWSTR pszText, int* piEndPos, int cchText = -1)
 {
 	auto pszLeft = LTrimStr(pszText);
 	auto posRight = RTrimStr(pszText, cchText);
@@ -1236,7 +1369,7 @@ EckInline PCWSTR RLTrimStr(PCWSTR pszText, int* piEndPos, int cchText = -1)
 /// <param name="pszText">原始文本</param>
 /// <param name="cchText">文本长度</param>
 /// <returns>处理结果</returns>
-inline CRefStrW AllTrimStr(PCWSTR pszText, int cchText = -1)
+[[nodiscard]] inline CRefStrW AllTrimStr(PCWSTR pszText, int cchText = -1)
 {
 	if (cchText < 0)
 		cchText = (int)wcslen(pszText);
@@ -1263,6 +1396,26 @@ inline CRefStrW AllTrimStr(PCWSTR pszText, int cchText = -1)
 			pszText += posTemp;
 	}
 
+	return rs;
+}
+
+template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = CAllocatorProcHeap<CHAR, int>>
+[[nodiscard]] CRefStrT<CHAR, TCharTraits, TAlloc> StrW2X(PCWSTR pszText, int cch = -1, int uCP = CP_ACP)
+{
+	int cchBuf = WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, NULL, 0, NULL, NULL);
+	CRefStrT<CHAR, TCharTraits, TAlloc> rs(cchBuf);
+	WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, rs.Data(), cchBuf, NULL, NULL);
+	*(rs.Data() + cchBuf) = '\0';
+	return rs;
+}
+
+template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = CAllocatorProcHeap<WCHAR, int>>
+[[nodiscard]] CRefStrT<WCHAR, TCharTraits, TAlloc> StrX2W(PCSTR pszText, int cch = -1, int uCP = CP_ACP)
+{
+	int cchBuf = MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, NULL, 0);
+	CRefStrT<WCHAR, TCharTraits, TAlloc> rs(cchBuf);
+	MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, rs.Data(), cchBuf);
+	*(rs.Data() + cchBuf) = '\0';
 	return rs;
 }
 

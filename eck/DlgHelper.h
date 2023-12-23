@@ -427,12 +427,12 @@ inline HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& 
 	{
 		auto& Val = *Dlg.Class;
 		if (Val.index() == 0)// 类原子
-			pszClass = MAKEINTATOMW(std::get<0>(Val));
+			pszClass = ECKMAKEINTATOMW(std::get<0>(Val));
 		else// 类名字符串
 			pszClass = std::get<1>(Val).Data();
 	}
 	else
-		pszClass = MAKEINTATOMW(32770);
+		pszClass = ECKMAKEINTATOMW(32770);
 
 	if (Dlg.Caption)
 		pszCaption = (*Dlg.Caption).Data();
@@ -513,12 +513,12 @@ inline HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& 
 	for (auto& x : Items)
 	{
 		if (x.Class.index() == 0)// 类原子
-			pszClass = MAKEINTATOMW(std::get<0>(x.Class));
+			pszClass = ECKMAKEINTATOMW(std::get<0>(x.Class));
 		else// 类名字符串
 			pszClass = std::get<1>(x.Class).Data();
 
 		if (x.Caption.index() == 0)// 类原子
-			pszCaption = MAKEINTATOMW(std::get<0>(x.Caption));
+			pszCaption = ECKMAKEINTATOMW(std::get<0>(x.Caption));
 		else// 类名字符串
 			pszCaption = std::get<1>(x.Caption).Data();
 

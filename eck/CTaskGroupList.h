@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "CListView.h"
-#include "CSubclassMgr.h"
 
 ECK_NAMESPACE_BEGIN
 struct TGLSUBTASK
@@ -187,7 +186,7 @@ public:
 		{
 		case WM_MOUSEMOVE:
 		{
-			POINT pt = GET_PT_LPARAM(lParam);
+			POINT pt = ECK_GET_PT_LPARAM(lParam);
 			LRESULT lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);
 			int idxHot = GetHotItem();
 			BOOL bRedraw = FALSE, bHotChanged = FALSE;
@@ -253,7 +252,7 @@ public:
 		case WM_LBUTTONDOWN:
 		{
 			LVHITTESTINFO lvhti;
-			lvhti.pt = GET_PT_LPARAM(lParam);
+			lvhti.pt = ECK_GET_PT_LPARAM(lParam);
 			HitTest(&lvhti);
 			m_idxPressed = lvhti.iItem;
 
@@ -289,7 +288,7 @@ public:
 			ReleaseCapture();
 
 			LVHITTESTINFO lvhti;
-			lvhti.pt = GET_PT_LPARAM(lParam);
+			lvhti.pt = ECK_GET_PT_LPARAM(lParam);
 			HitTest(&lvhti);
 
 			if (lvhti.iItem >= 0 && lvhti.iItem == m_idxPressed)
@@ -396,7 +395,6 @@ public:
 		TGLSUBTASK* pSubTask = NULL, int cSubTask = 0)
 	{
 		TASKITEM Item{ pszText,idxImage };
-		SUBTASK SubTask;
 		RECT rc;
 
 		GetThemeTextExtent(m_hthControlPanel, m_hCDCAuxiliary, CPANEL_SECTIONTITLELINK, CPSTL_NORMAL,
@@ -404,12 +402,13 @@ public:
 		Item.cx = rc.right - rc.left;
 		EckCounter(cSubTask, i)
 		{
+			SUBTASK SubTask;
 			SubTask.rsText = pSubTask[i].pszText;
 			SubTask.uFlags = pSubTask[i].uFlags;
 			GetThemeTextExtent(m_hthControlPanel, m_hCDCAuxiliary, CPANEL_CONTENTLINK, CPTL_NORMAL,
 				SubTask.rsText.Data(), SubTask.rsText.Size(), DT_SINGLELINE, NULL, &rc);
 			SubTask.cx = rc.right - rc.left;
-			Item.SubTasks.push_back(std::move(SubTask));
+			Item.SubTasks.emplace_back(std::move(SubTask));
 		}
 
 		if (idx < 0)
