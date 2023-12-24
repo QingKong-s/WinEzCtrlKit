@@ -231,6 +231,9 @@
     <ClInclude Include="eck\CRegKey.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\CStreamView.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Win32Template.cpp">

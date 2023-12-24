@@ -27,6 +27,12 @@ struct CFmtMsgException :CException
 	DWORD GetErrCode() const { return m_dwErr; }
 };
 
+struct CAttachSingleOwnerWndException :CException
+{};
+
+struct CDetachSingleOwnerWndException :CException
+{};
+
 EckInline void DbgPrint(const CConstMsgException& e)
 {
 	OutputDebugStringW(e.GetMsg());

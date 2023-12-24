@@ -151,6 +151,8 @@ public:
 	using TConstIterator = TConstPointer;
 	using TReverseIterator = std::reverse_iterator<TIterator>;
 	using TConstReverseIterator = std::reverse_iterator<TConstIterator>;
+
+	static_assert(std::is_same_v<typename TAllocTraits::size_type, int>);
 private:
 	TPointer m_pszText = NULL;
 	int m_cchText = 0;
@@ -415,11 +417,11 @@ public:
 	/// <returns>指针，必须通过当前分配器解分配</returns>
 	[[nodiscard]] EckInline TPointer Detach()
 	{
-		const auto = m_pszText;
+		const auto pOld = m_pszText;
 		m_cchCapacity = 0;
 		m_cchText = 0;
 		m_pszText = NULL;
-		return pTemp;
+		return pOld;
 	}
 
 	/// <summary>
@@ -475,27 +477,29 @@ public:
 		TCharTraits::CopyEnd(pszDst, Data(), cch);
 		return cch;
 	}
-
-	/// <summary>
-	/// 保留内存
-	/// </summary>
-	/// <param name="cch">字符数</param>
-	void Reserve(int cch)
+private:
+	void ReserveReal(int cch)
 	{
-		if (m_cchCapacity >= cch + 1)
+		if (m_cchCapacity >= cch)
 			return;
 
 		const auto pOld = m_pszText;
-		m_pszText = m_Alloc.allocate(cch + 1);
+		m_pszText = m_Alloc.allocate(cch);
 		if (pOld)
 		{
-			TCharTraits::Copy(Data(), pOld, m_cchText + 1);// 多拷一个结尾NULL
+			TCharTraits::Copy(Data(), pOld, m_cchText);// 多拷一个结尾NULL
 			m_Alloc.deallocate(pOld, m_cchCapacity);
 		}
 		else
 			TCharTraits::Cut(Data(), 0);
-		m_cchCapacity = cch + 1;
+		m_cchCapacity = cch;
 	}
+public:
+	/// <summary>
+	/// 保留内存
+	/// </summary>
+	/// <param name="cch">字符数</param>
+	EckInline void Reserve(int cch) { ReserveReal(cch + 1); }
 
 	/// <summary>
 	/// 重置尺寸
@@ -504,7 +508,7 @@ public:
 	EckInline void ReSize(int cch)
 	{
 		EckAssert(cch >= 0);
-		Reserve(cch);
+		ReserveReal(cch + 1);
 		m_cchText = cch;
 		TCharTraits::Cut(Data(), cch);
 	}
@@ -512,7 +516,7 @@ public:
 	EckInline void ReSizeExtra(int cch)
 	{
 		EckAssert(cch >= 0);
-		Reserve(TAllocTraits::MakeCapacity(cch));
+		ReserveReal(TAllocTraits::MakeCapacity(cch + 1));
 		m_cchText = cch;
 		TCharTraits::Cut(Data(), cch);
 	}
@@ -689,6 +693,17 @@ public:
 	EckInline void Insert(int pos, const std::basic_string<TChar, TTraits, TAlloc1>& s)
 	{
 		Insert(pos, s.c_str(), (int)s.size());
+	}
+
+	EckInline TPointer Insert(int pos, int cchText)
+	{
+		EckAssert(pos <= Size());
+		ReSizeExtra(Size() + cchText);
+		TCharTraits::MoveEnd(
+			Data() + pos + cchText,
+			Data() + pos,
+			Size() - cchText - pos);
+		return Data() + pos;
 	}
 
 	/// <summary>

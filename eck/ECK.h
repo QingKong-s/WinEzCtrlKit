@@ -90,6 +90,7 @@ using BITBOOL = UINT;
 using PCBYTE = const BYTE*;
 using PCVOID = const void*;
 using ECKENUM = BYTE;
+using SSIZE_T = std::make_signed_t<SIZE_T>;
 #pragma endregion
 
 namespace Literals
@@ -188,10 +189,19 @@ enum class InitStatus
 	D3dDeviceError
 };
 
-enum
+enum :UINT
 {
-	// 不要调用ThreadInit
-	ECKINIT_NOINITTHREAD = 1u << 0
+	EIF_DEFAULT = 0,
+	// 不调用ThreadInit
+	EIF_NOINITTHREAD = 1u << 0,
+	// 不初始化GDI+
+	EIF_NOINITGDIPLUS = 1u << 1,
+	// 不初始化WIC
+	EIF_NOINITWIC = 1u << 2,
+	// 不初始化D2D
+	EIF_NOINITD2D = 1u << 3,
+	// 不初始化DWrite
+	EIF_NOINITDWRITE = 1u << 4,
 };
 
 constexpr inline D3D_FEATURE_LEVEL c_uDefD3dFeatureLevel[]
@@ -211,7 +221,7 @@ struct INITPARAM
 	DWRITE_FACTORY_TYPE uDWriteFactoryType = DWRITE_FACTORY_TYPE_SHARED;
 	const D3D_FEATURE_LEVEL* pD3dFeatureLevel = c_uDefD3dFeatureLevel;
 	UINT cD3dFeatureLevel = ARRAYSIZE(c_uDefD3dFeatureLevel);
-	UINT uFlags = 0;
+	UINT uFlags = EIF_DEFAULT;
 };
 
 /// <summary>
@@ -304,7 +314,7 @@ using FMsgFilter = BOOL(*)(const MSG& Msg);
 /// 过滤消息。
 /// 若使用了任何ECK窗口对象，则必须在翻译按键和派发消息之前调用此函数
 /// </summary>
-/// <param name="pMsg">即将处理的消息</param>
+/// <param name="Msg">即将处理的消息</param>
 /// <returns>若返回值为TRUE，则不应继续处理消息；否则应正常进行剩余步骤</returns>
 BOOL PreTranslateMessage(const MSG& Msg);
 

@@ -37,6 +37,8 @@
 ECK_NAMESPACE_BEGIN
 constexpr inline UINT WM_USER_SAFE = WM_USER + 3;
 
+constexpr inline UINT CS_STDWND = CS_DBLCLKS | CS_VREDRAW | CS_HREDRAW;
+
 EckInline DWORD ModifyWindowStyle(HWND hWnd, DWORD dwNew, DWORD dwMask, int idx = GWL_STYLE)
 {
 	DWORD dwStyle = (DWORD)GetWindowLongPtrW(hWnd, idx);
@@ -316,15 +318,16 @@ EckInline WNDPROC GetClassWndProc(HINSTANCE hInstance, PCWSTR pszClass)
 	return wcex.lpfnWndProc;
 }
 
-inline ATOM EzRegisterWndClass(PCWSTR pszClass, UINT uStyle = CS_DBLCLKS | CS_VREDRAW | CS_HREDRAW)
+inline ATOM EzRegisterWndClass(PCWSTR pszClass, UINT uStyle = CS_STDWND, HBRUSH hbrBK = NULL)
 {
 	WNDCLASSW wc{};
-	wc.cbWndExtra = sizeof(void*) ;
+	wc.cbWndExtra = sizeof(void*);
 	wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
 	wc.hInstance = g_hInstance;
 	wc.lpfnWndProc = DefWindowProcW;
 	wc.lpszClassName = pszClass;
 	wc.style = uStyle;
+	wc.hbrBackground = hbrBK;
 	return RegisterClassW(&wc);
 }
 ECK_NAMESPACE_END

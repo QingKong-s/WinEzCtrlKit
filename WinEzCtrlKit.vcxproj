@@ -179,6 +179,7 @@
     <ClInclude Include="eck\CResTable.h" />
     <ClInclude Include="eck\CScrollView.h" />
     <ClInclude Include="eck\CSplitBar.h" />
+    <ClInclude Include="eck\CStreamView.h" />
     <ClInclude Include="eck\GraphicsHelper.h" />
     <ClInclude Include="eck\StylePainter.h" />
     <ClInclude Include="eck\CTab.h" />

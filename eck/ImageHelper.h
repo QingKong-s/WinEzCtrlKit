@@ -9,6 +9,7 @@
 #include "Utility.h"
 #include "GdiplusFlatDef.h"
 #include "MathHelper.h"
+#include "CStreamView.h"
 
 #include <numbers>
 #include <execution>
@@ -30,10 +31,9 @@ inline HBITMAP CreateHBITMAP(PCVOID pData, SIZE_T cbData)
 	HBITMAP hbm;
 	GpBitmap* pBitmap;
 	IStream* pStream = new CStreamView(pData, cbData);
-	if (!pStream)
-		return NULL;
 
-	if (GdipCreateBitmapFromStream(pStream, &pBitmap) != GpStatus::GpOk)
+	GpStatus gp1;
+	if ((gp1 = GdipCreateBitmapFromStream(pStream, &pBitmap)) != GpStatus::GpOk)
 	{
 		pStream->Release();
 		return NULL;
@@ -109,8 +109,6 @@ inline HICON CreateHICON(PCVOID pData, SIZE_T cbData)
 	HICON hIcon;
 	GpBitmap* pBitmap;
 	IStream* pStream = new CStreamView(pData, cbData);
-	if (!pStream)
-		return NULL;
 
 	if (GdipCreateBitmapFromStream(pStream, &pBitmap) != GpStatus::GpOk)
 	{

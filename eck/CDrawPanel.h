@@ -114,7 +114,7 @@ class CDrawPanelD2D :public CWnd
 private:
 	CEzD2D m_D2D{};
 
-	LRESULT CALLBACK OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)
 		{
