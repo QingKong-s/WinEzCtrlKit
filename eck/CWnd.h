@@ -51,7 +51,21 @@ struct DESIGNDATA_WND
 		return Create(pszText, dwStyle, dwExStyle, x, y, cx, cy,					\
 			hParent, ::eck::i32ToP<HMENU>(nID), pData);								\
 	}
-	
+
+#define ECK_CWND_SINGLEOWNER														\
+	[[nodiscard]] EckInline static constexpr BOOL IsSingleOwner() { return TRUE; }	\
+	void Attach(HWND hWnd) override													\
+	{																				\
+		throw eck::CAttachSingleOwnerWndException{};								\
+	}																				\
+	HWND Detach() override															\
+	{																				\
+		throw eck::CDetachSingleOwnerWndException{};								\
+	}
+
+#define ECK_CWND_NOSINGLEOWNER														\
+	[[nodiscard]] EckInline static constexpr BOOL IsSingleOwner() { return FALSE; }
+
 
 class CWnd
 {
@@ -80,6 +94,7 @@ protected:
 	template<class T>
 	EckInline LRESULT FillNmhdrAndSend(T& nmhdr, UINT uCode)
 	{
+		static_assert(sizeof(T) >= sizeof(NMHDR));
 		auto p = (NMHDR*)&nmhdr;
 		p->hwndFrom = GetHWND();
 		p->code = uCode;
@@ -87,16 +102,22 @@ protected:
 		return SendMessageW(GetParent(GetHWND()), WM_NOTIFY, p->idFrom, (LPARAM)p);
 	}
 public:
-	ECKPROP_R(GetHWND) HWND HWnd;
-	ECKPROP(GetFont, SetFont) HFONT HFont;
-	ECKPROP(GetStyle, SetStyle) DWORD Style;
-	ECKPROP(GetExStyle, SetExStyle) DWORD ExStyle;
-	ECKPROP_R(GetText) CRefStrW Text;
-	ECKPROP(GetFrameType, SetFrameType) int FrameType;
-	ECKPROP(GetScrollBar, SetScrollBar) int ScrollBarType;
-	ECKPROP(IsVisible, SetVisibility) BOOL Visible;
-	ECKPROP(IsEnabled, Enable) BOOL Enabled;
-	ECKPROP_W(SetRedraw) BOOL Redrawable;
+	ECKPROP_R(GetHWND)					HWND		HWnd;			// 窗口句柄
+	ECKPROP(GetFont, SetFont)			HFONT		HFont;			// 字体句柄
+	ECKPROP(GetStyle, SetStyle)			DWORD		Style;			// 窗口样式
+	ECKPROP(GetExStyle, SetExStyle)		DWORD		ExStyle;		// 扩展窗口样式
+	ECKPROP_R(GetText)					CRefStrW	Text;			// 标题
+	ECKPROP(GetFrameType, SetFrameType) int			FrameType;		// 边框类型
+	ECKPROP(GetScrollBar, SetScrollBar) int			ScrollBarType;	// 滚动条类型
+	ECKPROP(IsVisible, SetVisibility)	BOOL		Visible;		// 可视
+	ECKPROP(IsEnabled, Enable)			BOOL		Enabled;		// 可用（未禁止）
+	ECKPROP_W(SetRedraw)				BOOL		Redrawable;		// 可重画
+	ECKPROP(GetLeft, SetLeft)			int			Left;			// 左边，相对父窗口
+	ECKPROP(GetTop, SetTop)				int			Top;			// 顶边，相对父窗口
+	ECKPROP(GetWidth, SetWidth)			int			Width;			// 宽度
+	ECKPROP(GetHeight, SetHeight)		int			Height;			// 高度
+	ECKPROP(GetPosition, SetPosition)	POINT		Position;		// 位置
+	ECKPROP(GetSize, SetSize)			SIZE		Size;			// 尺寸
 
 	/// <summary>
 	/// EckWndProc
@@ -180,7 +201,8 @@ public:
 	virtual ~CWnd()
 	{
 		// 对于已添加进映射的窗口，CWnd的生命周期必须在窗口生命周期之内
-		EckAssert(GetThreadCtx()->WmAt(m_hWnd) ? (!m_hWnd) : TRUE);
+		if (m_hWnd)
+			EckAssert((GetThreadCtx()->WmAt(m_hWnd) ? (!m_hWnd) : TRUE));
 	}
 
 	/// <summary>
@@ -474,12 +496,14 @@ public:
 		return 0;
 	}
 
-	/// <summary>
-	/// 发送消息
-	/// </summary>
 	EckInline LRESULT SendMsg(UINT uMsg, WPARAM wParam, LPARAM lParam) const
 	{
 		return SendMessageW(m_hWnd, uMsg, wParam, lParam);
+	}
+
+	EckInline LRESULT PostMsg(UINT uMsg, WPARAM wParam, LPARAM lParam) const
+	{
+		return PostMessageW(m_hWnd, uMsg, wParam, lParam);
 	}
 
 	/// <summary>
@@ -672,6 +696,92 @@ public:
 		CRefStrW rs(256);
 		GetClassNameW(GetHWND(), rs.Data(), 256 + 1);
 		return rs;
+	}
+
+	void SetLeft(int i) const
+	{
+		RECT rc;
+		GetWindowRect(m_hWnd, &rc);
+		::ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
+		SetWindowPos(m_hWnd, NULL, i, rc.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+	}
+
+	[[nodiscard]] int GetLeft() const
+	{
+		RECT rc;
+		GetWindowRect(m_hWnd, &rc);
+		::ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
+		return rc.left;
+	}
+
+	void SetTop(int i) const
+	{
+		RECT rc;
+		GetWindowRect(m_hWnd, &rc);
+		::ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
+		SetWindowPos(m_hWnd, NULL, rc.left, i, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+	}
+
+	[[nodiscard]] int GetTop() const
+	{
+		RECT rc;
+		GetWindowRect(m_hWnd, &rc);
+		::ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
+		return rc.top;
+	}
+
+	void SetWidth(int i) const
+	{
+		RECT rc;
+		GetWindowRect(m_hWnd, &rc);
+		SetWindowPos(m_hWnd, NULL, 0, 0, i, rc.bottom - rc.top,
+			SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+	}
+
+	[[nodiscard]] int GetWidth() const
+	{
+		RECT rc;
+		GetWindowRect(m_hWnd, &rc);
+		return rc.right - rc.left;
+	}
+
+	void SetHeight(int i) const
+	{
+		RECT rc;
+		GetWindowRect(m_hWnd, &rc);
+		SetWindowPos(m_hWnd, NULL, 0, 0, rc.right - rc.left, i,
+			SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+	}
+
+	[[nodiscard]] int GetHeight() const
+	{
+		RECT rc;
+		GetWindowRect(m_hWnd, &rc);
+		return rc.bottom - rc.top;
+	}
+
+	EckInline void SetPosition(POINT pt) const
+	{
+		SetWindowPos(m_hWnd, NULL, pt.x, pt.y, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+	}
+
+	[[nodiscard]] EckInline POINT GetPosition() const
+	{
+		RECT rc;
+		GetWindowRect(m_hWnd, &rc);
+		return { rc.left, rc.top };
+	}
+
+	EckInline void SetSize(SIZE sz) const
+	{
+		SetWindowPos(m_hWnd, NULL, 0, 0, sz.cx, sz.cy, SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+	}
+
+	[[nodiscard]] EckInline SIZE GetSize() const
+	{
+		RECT rc;
+		GetWindowRect(m_hWnd, &rc);
+		return { rc.right - rc.left, rc.bottom - rc.top };
 	}
 };
 ECK_NAMESPACE_END

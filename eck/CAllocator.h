@@ -13,19 +13,19 @@
 ECK_NAMESPACE_BEGIN
 
 template<class T, class TSize = size_t>
-class CAllocatorHeap
+struct CAllocatorHeap
 {
+private:
+	HANDLE m_hHeap = GetProcessHeap();
+	DWORD m_dwSerialize = 0;
+
 	template<class T1, class TSize1, class T2, class TSize2>
 	friend bool operator==(const CAllocatorHeap<T1, TSize1>& a1, const CAllocatorHeap<T2, TSize2>& a2) noexcept;
 public:
 	using value_type = T;
 	using size_type = TSize;
 	using difference_type = std::make_signed_t<size_type>;
-private:
 
-	HANDLE m_hHeap = GetProcessHeap();
-	DWORD m_dwSerialize = 0;
-public:
 	[[nodiscard]] EckInline T* allocate(size_type c)
 	{
 		auto p = (T*)HeapAlloc(m_hHeap, m_dwSerialize, c * sizeof(value_type));
@@ -57,11 +57,11 @@ EckInline bool operator==(const CAllocatorHeap<T1, TSize1>& a1, const CAllocator
 
 
 template<class T, class TSize = size_t>
-class CAllocatorProcHeap
+struct CAllocatorProcHeap
 {
 	template<class T1, class TSize1, class T2, class TSize2>
 	friend constexpr bool operator==(const CAllocatorProcHeap<T1, TSize1>& a1, const CAllocatorProcHeap<T2, TSize2>& a2) noexcept;
-public:
+
 	using value_type = T;
 	using size_type = TSize;
 	using difference_type = std::make_signed_t<size_type>;
@@ -88,6 +88,63 @@ EckInline constexpr bool operator==(const CAllocatorProcHeap<T1, TSize1>& a1, co
 	return true;
 }
 
+
+
+/// <summary>
+/// VirtualAlloc分配器
+/// 适用于分配大内存，可以对分配的内存调用VirtualProtect
+/// </summary>
+template<class T, class TSize = size_t>
+struct CAllocatorVA
+{
+	using value_type = T;
+	using size_type = TSize;
+	using difference_type = std::make_signed_t<size_type>;
+
+	static TSize s_cbPage;
+
+	[[nodiscard]] EckInline T* allocate(size_type c)
+	{
+		auto p = (T*)VirtualAlloc(NULL, c * sizeof(value_type), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+		if (p)
+			return p;
+		else
+			throw std::bad_alloc{};
+	}
+
+	EckInline void deallocate(T* p, size_type c)
+	{
+		VirtualFree(p, 0, MEM_RELEASE);
+	}
+
+	EckInline static TSize MakeCapacity(TSize c)
+	{
+		return AlignMemSize(c * sizeof(value_type), s_cbPage) / sizeof(value_type);
+	}
+private:
+	EckInline constexpr static TSize AlignMemSize(TSize cbSize, TSize cbAlign)
+	{
+		if (cbSize / cbAlign * cbAlign == cbSize)
+			return cbSize;
+		else [[likely]]
+			return (cbSize / cbAlign + 1) * cbAlign;
+	}
+};
+
+template<class T, class TSize>
+inline TSize CAllocatorVA<T, TSize>::s_cbPage = []()
+	{
+		SYSTEM_INFO si;
+		GetSystemInfo(&si);
+		return (TSize)si.dwPageSize;
+	}
+();
+
+template<class T1, class TSize1, class T2, class TSize2>
+EckInline constexpr bool operator==(const CAllocatorVA<T1, TSize1>& a1, const CAllocatorVA<T2, TSize2>& a2) noexcept
+{
+	return true;
+}
 
 
 template<class TAlloc, class TSize, class = void>

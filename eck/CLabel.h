@@ -261,7 +261,7 @@ private:
 		}
 	}
 public:
-	LRESULT CALLBACK OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		switch (uMsg)
 		{

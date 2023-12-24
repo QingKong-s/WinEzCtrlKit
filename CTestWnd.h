@@ -124,10 +124,17 @@ public:
 		//rs.AppendFormat(L"整数 = %d，字符串 = %s。", 100, L"我是字符串");
 		//rs.Format(L"浮点 = %f", 120.3f);
 
-		CRefStrA rsa("测试字符串");
+		//CRefStrA rsa("测试字符串");
 		//auto bstr1 = rsa.ToBSTR();
 		//auto bstr2 = rs.ToBSTR();
-		EckDbgPrintWithPos(L"测试");
+		//EckDbgPrintWithPos(L"测试");
+
+		//CRefStrT<WCHAR, CCharTraits<WCHAR>, CAllocatorVA<WCHAR, int>> rsva(L"测试字符串");
+		//
+		//rsva.AppendFormat(L"整数 = %d，字符串 = %s。", 100, L"我是字符串");
+		//rsva.MakeRepeatedStrSequence(L"123456", 6, 1000);
+
+
 		EckDbgBreak();
 	}
 
@@ -212,15 +219,7 @@ public:
 
 	static ATOM RegisterWndClass()
 	{
-		WNDCLASSW wc{};
-		wc.cbWndExtra = sizeof(void*);
-		wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
-		wc.hInstance = eck::g_hInstance;
-		wc.lpfnWndProc = DefWindowProcW;
-		wc.lpszClassName = WCN_TEST;
-		wc.style = CS_DBLCLKS | CS_VREDRAW | CS_HREDRAW;
-		wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-		return RegisterClassW(&wc);
+		return eck::EzRegisterWndClass(WCN_TEST);
 	}
 
 	ECK_CWND_CREATE;
