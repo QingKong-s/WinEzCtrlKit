@@ -208,7 +208,7 @@ Exit1:
 /// </summary>
 /// <param name="pszWql">WQL语句</param>
 /// <param name="pszProp">属性</param>
-/// <param name="Var">查询结果</param>
+/// <param name="Var">查询结果，调用方必须对其调用VariantClear以解分配</param>
 /// <param name="pWbemSrv">IWbemServices指针，使用此接口执行查询</param>
 /// <returns>错误代码</returns>
 inline HRESULT WmiQueryClassProp(PCWSTR pszWql, PCWSTR pszProp, VARIANT& Var, IWbemServices* pWbemSrv)

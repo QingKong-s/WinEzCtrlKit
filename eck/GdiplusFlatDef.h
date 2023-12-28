@@ -361,4 +361,5 @@ GpStatus WINGDIPAPI GdipGetFontHeight(GDIPCONST GpFont* font, GDIPCONST GpGraphi
 GpStatus WINGDIPAPI GdipStringFormatGetGenericTypographic(GpStringFormat** format);
 GpStatus WINGDIPAPI GdipBitmapLockBits(GpBitmap* bitmap, GDIPCONST GpRect* rect, UINT flags, GpPixelFormat format, GpBitmapData* lockedBitmapData);
 GpStatus WINGDIPAPI GdipBitmapUnlockBits(GpBitmap* bitmap, GpBitmapData* lockedBitmapData);
+GpStatus WINGDIPAPI GdipSaveImageToFile(GpImage* image, GDIPCONST WCHAR* filename, GDIPCONST CLSID* clsidEncoder, GDIPCONST EncoderParameters* encoderParams);
 EXTERN_C_END

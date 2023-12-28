@@ -153,6 +153,15 @@ public:
 		////MsgBox(rs.Data());
 
 		//EckDbgPrint(L"123"_rs < L"456");
+
+		//IWICBitmap* pBitmap;
+		//IWICBitmapDecoder* pDecoder;
+		//CreateWicBitmapDecoder(LR"(E:\Desktop\Temp\111111.jpg)", pDecoder);
+		//CreateWicBitmap(pBitmap, pDecoder);
+
+		//CRefBin rb = SaveWicBitmap(pBitmap);
+		//WriteToFile(LR"(E:\Desktop\123.png)", rb);
+		
 		EckDbgBreak();
 	}
 

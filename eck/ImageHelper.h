@@ -242,8 +242,7 @@ inline HRESULT CreateWicBitmap(std::vector<IWICBitmap*>& vResult,
 	return S_OK;
 }
 
-inline HRESULT CreateWicBitmap(IWICBitmap*& pBmp,
-	IWICBitmapDecoder* pDecoder, IWICImagingFactory* pWicFactory)
+inline HRESULT CreateWicBitmap(IWICBitmap*& pBmp, IWICBitmapDecoder* pDecoder)
 {
 	HRESULT hr;
 	IWICBitmapFrameDecode* pFrameDecoder;
@@ -256,7 +255,7 @@ inline HRESULT CreateWicBitmap(IWICBitmap*& pBmp,
 		return hr;
 	}
 
-	hr = pWicFactory->CreateFormatConverter(&pConverter);
+	hr = g_pWicFactory->CreateFormatConverter(&pConverter);
 	if (FAILED(hr))
 	{
 		EckDbgPrintFormatMessage(hr);
@@ -271,7 +270,7 @@ inline HRESULT CreateWicBitmap(IWICBitmap*& pBmp,
 		return hr;
 	}
 
-	hr = pWicFactory->CreateBitmapFromSource(pConverter, WICBitmapNoCache, &pBmp);
+	hr = g_pWicFactory->CreateBitmapFromSource(pConverter, WICBitmapNoCache, &pBmp);
 	if (FAILED(hr))
 	{
 		EckDbgPrintFormatMessage(hr);
@@ -288,13 +287,12 @@ inline HRESULT CreateWicBitmap(IWICBitmap*& pBmp,
 /// </summary>
 /// <param name="pszFile">文件名</param>
 /// <param name="pDecoder">接收解码器变量引用</param>
-/// <param name="pWicFactory">WIC工厂</param>
 /// <returns>成功返回S_OK，失败返回错误代码</returns>
-EckInline HRESULT CreateWicBitmapDecoder(PCWSTR pszFile,
-	IWICBitmapDecoder*& pDecoder, IWICImagingFactory* pWicFactory)
+EckInline HRESULT CreateWicBitmapDecoder(PCWSTR pszFile, IWICBitmapDecoder*& pDecoder)
 {
 	pDecoder = NULL;
-	return pWicFactory->CreateDecoderFromFilename(pszFile, NULL, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &pDecoder);
+	return g_pWicFactory->CreateDecoderFromFilename(pszFile, NULL, GENERIC_READ,
+		WICDecodeMetadataCacheOnDemand, &pDecoder);
 }
 
 /// <summary>
@@ -305,10 +303,11 @@ EckInline HRESULT CreateWicBitmapDecoder(PCWSTR pszFile,
 /// <param name="pWicFactory">WIC工厂</param>
 /// <returns>成功返回S_OK，失败返回错误代码</returns>
 EckInline HRESULT CreateWicBitmapDecoder(IStream* pStream,
-	IWICBitmapDecoder*& pDecoder, IWICImagingFactory* pWicFactory)
+	IWICBitmapDecoder*& pDecoder)
 {
 	pDecoder = NULL;
-	return pWicFactory->CreateDecoderFromStream(pStream, NULL, WICDecodeMetadataCacheOnDemand, &pDecoder);
+	return g_pWicFactory->CreateDecoderFromStream(pStream, NULL, 
+		WICDecodeMetadataCacheOnDemand, &pDecoder);
 }
 
 struct ICONDIRENTRY
@@ -520,14 +519,14 @@ public:
 			{
 				auto pStream = new CStreamView(pBitsData, cbBits);
 				IWICBitmapDecoder* pDecoder;
-				if (FAILED(CreateWicBitmapDecoder(pStream, pDecoder, g_pWicFactory)))
+				if (FAILED(CreateWicBitmapDecoder(pStream, pDecoder)))
 				{
 					pStream->LeaveRelease();
 					return NULL;
 				}
 				pStream->LeaveRelease();
 				IWICBitmap* pBitmap;
-				if (FAILED(CreateWicBitmap(pBitmap, pDecoder, g_pWicFactory)))
+				if (FAILED(CreateWicBitmap(pBitmap, pDecoder)))
 				{
 					pDecoder->Release();
 					return NULL;
@@ -659,6 +658,61 @@ public:
 	[[nodiscard]] EckInline HBITMAP Detach() { return Attach(NULL); }
 };
 
+enum class ImageType
+{
+	Unknown,
+	Bmp,
+	Icon,
+	Gif,
+	Jpeg,
+	Png,
+	Tiff,
+	Wmf,
+	Emf,
+	Wdp,
+	Dds,
+
+	MaxValue
+};
+
+constexpr inline PCWSTR c_szImgMime[]
+{
+	L"",
+	L"image/bmp",
+	L"image/ico",
+	L"image/gif",
+	L"image/jpeg",
+	L"image/png",
+	L"image/tiff",
+	L"image/wmf",
+	L"image/emf",
+	L"image/vnd.ms-photo",// wdp
+	L"image/vnd.ms-dds",// dds
+};
+
+const inline GUID c_guidWicEncoder[]
+{
+	GUID_NULL,
+	GUID_ContainerFormatBmp,
+	GUID_NULL,// 不支持ico编码
+	GUID_ContainerFormatGif,
+	GUID_ContainerFormatJpeg,
+	GUID_ContainerFormatPng,
+	GUID_ContainerFormatTiff,
+	GUID_NULL,// 不支持wmf
+	GUID_NULL,// 不支持emf
+	GUID_ContainerFormatWmp,
+	GUID_ContainerFormatDds,
+};
+
+static_assert((int)ImageType::MaxValue == ARRAYSIZE(c_szImgMime) && 
+	ARRAYSIZE(c_szImgMime) == ARRAYSIZE(c_guidWicEncoder));
+
+EckInline constexpr PCWSTR GetImageMime(ImageType iType)
+{
+	return c_szImgMime[(int)iType];
+}
+
 inline GpStatus GetGpEncoderClsid(PCWSTR pszType, CLSID& clsid)
 {
 	GpStatus gps;
@@ -686,53 +740,148 @@ inline GpStatus GetGpEncoderClsid(PCWSTR pszType, CLSID& clsid)
 	return GpStatus::GpUnknownImageFormat;
 }
 
-inline CRefBin SaveWicBitmap(IWICBitmap* pBitmap)
+EckInline GUID GetWicEncoderGuid(ImageType iType)
 {
-	return {};
+	return c_guidWicEncoder[(int)iType];
 }
 
-enum class ImageType
+inline HRESULT SaveWicBitmap(IStream* pStream, IWICBitmap* pBitmap, ImageType iType = ImageType::Png)
 {
-	Unknown,
-	Bmp,
-	Icon,
-	Gif,
-	Jpeg,
-	Exif,
-	Png,
-	Tiff,
-	Wmf,
-	Emf,
-};
+	HRESULT hr;
+	GUID guid = GetWicEncoderGuid(iType);
+	IWICBitmapEncoder* pEncoder;
+	if (FAILED(hr = g_pWicFactory->CreateEncoder(guid, NULL, &pEncoder)))
+		return hr;
+	pEncoder->Initialize(pStream, WICBitmapEncoderNoCache);
+	IWICBitmapFrameEncode* pFrame;
+	IPropertyBag2* pPropBag;
+#pragma warning(suppress:6001)// 使用未初始化的内存
+	if (FAILED(hr = pEncoder->CreateNewFrame(&pFrame, &pPropBag)))
+	{
+		pEncoder->Release();
+		return hr;
+	}
 
-constexpr inline PCWSTR c_szImgMime[] =
-{
-	L"",
-	L"image/bmp",
-	L"image/x-icon",
-	L"image/gif",
-	L"image/jpeg",
-	L"image/exif",
-	L"image/png",
-	L"image/tiff",
-	L"image/wmf",
-	L"image/emf"
-};
+	if (FAILED(hr = pFrame->Initialize(pPropBag)))
+	{
+		pFrame->Release();
+		pEncoder->Release();
+		pPropBag->Release();
+		return hr;
+	}
+	// 尺寸
+	UINT cx, cy;
+	pBitmap->GetSize(&cx, &cy);
+	pFrame->SetSize(cx, cy);
+	// 像素格式
+	WICPixelFormatGUID guidFmt;
+	pBitmap->GetPixelFormat(&guidFmt);
+	pFrame->SetPixelFormat(&guidFmt);
+	// 分辨率
+	double xDpi, yDpi;
+	pBitmap->GetResolution(&xDpi, &yDpi);
+	pFrame->SetResolution(xDpi, yDpi);
 
-EckInline PCWSTR GetImageMime(ImageType iType)
-{
-	return c_szImgMime[(int)iType];
+	const WICRect rc{ 0,0,cx,cy };
+	IWICBitmapLock* pLock;
+	if (FAILED(hr = pBitmap->Lock(&rc, WICBitmapLockRead, &pLock)))// 取位图锁
+		goto Exit1;
+
+	UINT uStride;
+	pLock->GetStride(&uStride);
+
+	APTTYPE iAptType;
+	APTTYPEQUALIFIER iAptQualifier;
+	(void)CoGetApartmentType(&iAptType, &iAptQualifier);
+	if (iAptType == APTTYPE_MTA)// 多线程套间无法使用位图锁读取数据
+	{
+		const auto cbBuf = cy * uStride;
+		auto pData = VirtualAlloc(NULL, cbBuf, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+		EckAssert(pData);
+		if (FAILED(hr = pBitmap->CopyPixels(NULL, uStride, cbBuf, (BYTE*)pData)))
+		{
+			VirtualFree(pData, 0, MEM_RELEASE);
+			goto Exit;
+		}
+		if (FAILED(hr = pFrame->WritePixels(cy, uStride, cbBuf, (BYTE*)pData)))// 写入
+		{
+			VirtualFree(pData, 0, MEM_RELEASE);
+			goto Exit;
+		}
+		VirtualFree(pData, 0, MEM_RELEASE);
+	}
+	else
+	{
+		UINT cbBuf;
+		WICInProcPointer pData;
+		if (FAILED(hr = pLock->GetDataPointer(&cbBuf, &pData)))
+			goto Exit;
+#pragma warning(suppress:6387)// 可能为NULL
+		if (FAILED(hr = pFrame->WritePixels(cy, uStride, cbBuf, pData)))// 写入
+			goto Exit;
+	}
+	
+	hr = pFrame->Commit();// 提交帧
+	if (SUCCEEDED(hr))
+		hr = pEncoder->Commit();// 提交编码器
+Exit:
+	pLock->Release();
+Exit1:
+	pFrame->Release();
+	pEncoder->Release();
+	pPropBag->Release();
+	return hr;
 }
 
-inline CRefBin SaveGpImage(GpImage* pImage, ImageType iType = ImageType::Png)
+inline CRefBin SaveWicBitmap(IWICBitmap* pBitmap, ImageType iType = ImageType::Png, HRESULT* phr = NULL)
 {
-	CLSID clsid;
-	if (GetGpEncoderClsid(GetImageMime(iType), clsid) != GpStatus::GpOk)
-		return {};
 	CRefBin rb{};
 	auto pStream = new CRefBinStream(rb);
-	GdipSaveImageToStream(pImage, pStream, &clsid, NULL);
+	auto hr = SaveWicBitmap(pStream, pBitmap, iType);
+	if (phr)
+		*phr = hr;
 	pStream->LeaveRelease();
 	return rb;
+}
+
+inline HRESULT SaveWicBitmap(PCWSTR pszFile, IWICBitmap* pBitmap, ImageType iType = ImageType::Png)
+{
+	HRESULT hr;
+	IWICStream* pStream;
+	if (FAILED(hr = g_pWicFactory->CreateStream(&pStream)))
+		return hr;
+	pStream->InitializeFromFilename(pszFile, GENERIC_READ | GENERIC_WRITE);
+	hr = SaveWicBitmap(pStream, pBitmap, iType);
+	pStream->Release();
+	return hr;
+}
+
+inline GpStatus SaveGpImage(IStream* pStream, GpImage* pImage, ImageType iType = ImageType::Png)
+{
+	CLSID clsid;
+	GpStatus gps;
+	if ((gps = GetGpEncoderClsid(GetImageMime(iType), clsid)) != GpStatus::GpOk)
+		return gps;
+	return GdipSaveImageToStream(pImage, pStream, &clsid, NULL);
+}
+
+inline CRefBin SaveGpImage(GpImage* pImage, ImageType iType = ImageType::Png, GpStatus* pgps = NULL)
+{
+	CRefBin rb{};
+	auto pStream = new CRefBinStream(rb);
+	auto gps = SaveGpImage(pStream, pImage, iType);
+	pStream->LeaveRelease();
+	if (pgps)
+		*pgps = gps;
+	return rb;
+}
+
+inline GpStatus SaveGpImage(PCWSTR pszFile, GpImage* pImage, ImageType iType = ImageType::Png)
+{
+	CLSID clsid;
+	GpStatus gps;
+	if ((gps = GetGpEncoderClsid(GetImageMime(iType), clsid)) != GpStatus::GpOk)
+		return gps;
+	return GdipSaveImageToFile(pImage, pszFile, &clsid, NULL);
 }
 ECK_NAMESPACE_END
