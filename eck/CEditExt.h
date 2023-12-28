@@ -42,14 +42,28 @@ private:
 	COLORREF m_crTextBK;		// 文本背景色
 	COLORREF m_crBK;			// 编辑框背景色
 	InputMode m_iInputMode = InputMode::Normal;	// 输入方式
-	BITBOOL m_bMultiLine : 1 = FALSE;			// 多行
-	BITBOOL m_bAutoWrap : 1 = TRUE;				// 自动换行
-	WCHAR m_chMask = 0;			// 掩码字符
 
 	HBRUSH m_hbrEditBK = NULL;	// 背景画刷
-	int m_cyText = 0;			// 文本高度
 	RECT m_rcMargins{};			// 边距
 	HWND m_hParent = NULL;		// 父窗口
+	int m_cyText = 0;			// 文本高度
+
+	WCHAR m_chMask = 0;			// 掩码字符
+#if ECKCXX20
+	BITBOOL m_bMultiLine : 1 = FALSE;			// 多行
+	BITBOOL m_bAutoWrap : 1 = TRUE;				// 自动换行
+#else// ECKCXX20
+	union
+	{
+		struct
+		{
+			BITBOOL m_bMultiLine : 1;			// 多行
+			BITBOOL m_bAutoWrap : 1;			// 自动换行
+		};
+		DWORD m_dwFlags = 0b10;
+	};
+
+#endif// ECKCXX20
 
 	void UpdateTextInfo()
 	{
@@ -336,7 +350,7 @@ public:
 			if (m_hbrEditBK)
 				hbr = m_hbrEditBK;
 			else
-				hbr = (HBRUSH)DefSubclassProc(hWnd, uMsg, wParam, lParam);
+				hbr = (HBRUSH)CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
 			if (m_crText != CLR_DEFAULT)
 				SetTextColor((HDC)wParam, m_crText);
 			SetBkColor((HDC)wParam, m_crTextBK);

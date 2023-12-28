@@ -9,6 +9,7 @@
 #pragma warning (disable:4996)
 #include "ECK.h"
 #include "CAllocator.h"
+#include "Utility.h"
 
 #include <vector>
 #include <string>
@@ -52,6 +53,7 @@ inline constexpr int StrNPos = -1;
 		return StrNPos;
 }
 
+#if ECKCXX20
 template<class TChar>
 concept ccpIsStdChar = std::is_same_v<TChar, CHAR> || std::is_same_v<TChar, WCHAR>;
 
@@ -69,7 +71,22 @@ struct CCharTraits
 {
 	using TChar = void;
 };
+#else// ECKCXX20
+template<class TChar>
+using TRefStrDefAlloc = CAllocatorProcHeap<TChar, int>;
 
+template<class TChar_, class TCharTraits_, class TAlloc_>
+class CRefStrT;
+
+template<class TCharTraits, class TAlloc>
+CRefStrT<WCHAR, TCharTraits, TAlloc> StrX2W(PCSTR pszText, int cch, int uCP);
+
+template<class TChar_>
+struct CCharTraits
+{
+	using TChar = void;
+};
+#endif// ECKCXX20
 template<>
 struct CCharTraits<WCHAR>
 {
@@ -128,6 +145,7 @@ struct CCharTraits<CHAR>
 	EckInline static int GetFormatCchV(PCSTR pszFmt, va_list vl) { return _vscprintf(pszFmt, vl); }
 };
 
+#if ECKCXX20
 template<ccpIsStdChar TChar>
 using TRefStrDefTraits = CCharTraits<TChar>;
 
@@ -136,6 +154,16 @@ template<
 	class TCharTraits_ = TRefStrDefTraits<TChar_>,
 	class TAlloc_ = TRefStrDefAlloc<TChar_>
 >
+#else// ECKCXX20
+template<class TChar>
+using TRefStrDefTraits = CCharTraits<TChar>;
+
+template<
+	class TChar_,
+	class TCharTraits_ = TRefStrDefTraits<TChar_>,
+	class TAlloc_ = TRefStrDefAlloc<TChar_>
+>
+#endif// ECKCXX20
 class CRefStrT
 {
 public:
@@ -157,8 +185,8 @@ private:
 	TPointer m_pszText = NULL;
 	int m_cchText = 0;
 	int m_cchCapacity = 0;
-
-	[[msvc::no_unique_address]] TAlloc m_Alloc{};
+	
+	ECKNOUNIQUEADDR TAlloc m_Alloc{};
 public:
 	CRefStrT() = default;
 
@@ -414,7 +442,7 @@ public:
 	/// <summary>
 	/// 拆离指针
 	/// </summary>
-	/// <returns>指针，必须通过当前分配器解分配</returns>
+	/// <returns>指针，必须通过与当前分配器相等的分配器解分配</returns>
 	[[nodiscard]] EckInline TPointer Detach()
 	{
 		const auto pOld = m_pszText;
@@ -487,7 +515,7 @@ private:
 		m_pszText = m_Alloc.allocate(cch);
 		if (pOld)
 		{
-			TCharTraits::Copy(Data(), pOld, m_cchText);// 多拷一个结尾NULL
+			TCharTraits::Copy(Data(), pOld, m_cchText + 1);// 多拷一个结尾NULL
 			m_Alloc.deallocate(pOld, m_cchCapacity);
 		}
 		else
@@ -789,7 +817,7 @@ public:
 		}
 	}
 
-	[[nodiscard]] EckInline std::basic_string_view<TChar> ToStringView() const
+	[[nodiscard]] EckInline constexpr std::basic_string_view<TChar> ToStringView() const
 	{
 		return std::basic_string_view<TChar>(Data(), Size());
 	}
@@ -843,6 +871,7 @@ template<class TChar, class TCharTraits, class TAlloc>
 		return TCharTraits::Compare(rs1.Data(), psz2) == 0;
 }
 
+#if ECKCXX20
 template<class TChar, class TCharTraits, class TAlloc>
 [[nodiscard]] EckInline std::weak_ordering operator<=>(const EckCRefStrTemp& rs1, const TChar* psz2)
 {
@@ -855,6 +884,59 @@ template<class TChar, class TCharTraits, class TAlloc>
 	else
 		return TCharTraits::Compare(rs1.Data(), psz2) <=> 0;
 }
+#else// !ECKCXX20
+template<class TChar, class TCharTraits, class TAlloc>
+[[nodiscard]] EckInline bool operator<(const EckCRefStrTemp& rs1, const TChar* psz2)
+{
+	if (!rs1.Data() && !psz2)
+		return false;
+	else if (!rs1.Data() && psz2)
+		return false;
+	else if (rs1.Data() && !psz2)
+		return true;
+	else
+		return TCharTraits::Compare(rs1.Data(), psz2) < 0;
+}
+
+template<class TChar, class TCharTraits, class TAlloc>
+[[nodiscard]] EckInline bool operator>(const EckCRefStrTemp& rs1, const TChar* psz2)
+{
+	if (!rs1.Data() && !psz2)
+		return false;
+	else if (!rs1.Data() && psz2)
+		return true;
+	else if (rs1.Data() && !psz2)
+		return false;
+	else
+		return TCharTraits::Compare(rs1.Data(), psz2) > 0;
+}
+
+template<class TChar, class TCharTraits, class TAlloc>
+[[nodiscard]] EckInline bool operator<=(const EckCRefStrTemp& rs1, const TChar* psz2)
+{
+	if (!rs1.Data() && !psz2)
+		return true;
+	else if (!rs1.Data() && psz2)
+		return false;
+	else if (rs1.Data() && !psz2)
+		return true;
+	else
+		return TCharTraits::Compare(rs1.Data(), psz2) <= 0;
+}
+
+template<class TChar, class TCharTraits, class TAlloc>
+[[nodiscard]] EckInline bool operator>=(const EckCRefStrTemp& rs1, const TChar* psz2)
+{
+	if (!rs1.Data() && !psz2)
+		return true;
+	else if (!rs1.Data() && psz2)
+		return true;
+	else if (rs1.Data() && !psz2)
+		return false;
+	else
+		return TCharTraits::Compare(rs1.Data(), psz2) >= 0;
+}
+#endif// ECKCXX20
 
 template<class TChar, class TCharTraits, class TAlloc>
 [[nodiscard]] EckInline bool operator==(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
@@ -862,11 +944,37 @@ template<class TChar, class TCharTraits, class TAlloc>
 	return operator==(rs1, rs2.Data());
 }
 
+#if ECKCXX20
 template<class TChar, class TCharTraits, class TAlloc>
 [[nodiscard]] EckInline std::weak_ordering operator<=>(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
 {
 	return operator<=>(rs1, rs2.Data());
 }
+#else// !ECKCXX20
+template<class TChar, class TCharTraits, class TAlloc>
+[[nodiscard]] EckInline bool operator<(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
+{
+	return operator<(rs1, rs2.Data());
+}
+
+template<class TChar, class TCharTraits, class TAlloc>
+[[nodiscard]] EckInline bool operator>(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
+{
+	return operator>(rs1, rs2.Data());
+}
+
+template<class TChar, class TCharTraits, class TAlloc>
+[[nodiscard]] EckInline bool operator<=(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
+{
+	return operator<=(rs1, rs2.Data());
+}
+
+template<class TChar, class TCharTraits, class TAlloc>
+[[nodiscard]] EckInline bool operator>=(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
+{
+	return operator>=(rs1, rs2.Data());
+}
+#endif// ECKCXX20
 
 template<class TCharTraits, class TAlloc>
 EckInline void DbgPrint(const CRefStrT<WCHAR, TCharTraits, TAlloc>& rs, int iType = 1, BOOL bNewLine = TRUE)
@@ -1434,5 +1542,68 @@ template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = CAllocatorProcHe
 	return rs;
 }
 
+/// <summary>
+/// 字节集到友好字符串表示
+/// </summary>
+/// <param name="Bin">字节集</param>
+/// <param name="iType">类型，0 - 空格分割的十六进制  1 - 易语言字节集调试输出</param>
+/// <returns>返回结果</returns>
+inline CRefStrW BinToFriendlyString(PCBYTE pData, SIZE_T cb, int iType)
+{
+	CRefStrW rsResult{};
+	if (!pData || !cb)
+	{
+		if (iType == 1)
+			rsResult = L"{ }";
+		return rsResult;
+	}
+
+	switch (iType)
+	{
+	case 0:
+	{
+		rsResult.Reserve((int)cb * 3 + 10);
+		for (SIZE_T i = 0u; i < cb; ++i)
+			rsResult.AppendFormat(L"%02hhX ", pData[i]);
+	}
+	break;
+	case 1:
+	{
+		rsResult.Reserve((int)cb * 4 + 10);
+		rsResult.PushBack(L"{ ");
+		rsResult.AppendFormat(L"%hhu", pData[0]);
+		for (SIZE_T i = 1u; i < cb; ++i)
+			rsResult.AppendFormat(L"%hhu", pData[0]);
+		rsResult.PushBack(L" }");
+	}
+	break;
+	}
+
+	return rsResult;
+}
+
+EckInline CRefStrW Format(PCWSTR pszFmt, ...)
+{
+	CRefStrW rs{};
+	va_list vl;
+	va_start(vl, pszFmt);
+	rs.FormatV(pszFmt, vl);
+	va_end(vl);
+	return rs;
+}
+
 #undef EckCRefStrTemp
 ECK_NAMESPACE_END
+
+namespace std
+{
+	template<class TChar, class TCharTraits, class TAlloc>
+	struct hash<::eck::CRefStrT<TChar, TCharTraits, TAlloc>>
+	{
+		[[nodiscard]] EckInline size_t operator()(
+			const ::eck::CRefStrT<TChar, TCharTraits, TAlloc>& rs) const noexcept
+		{
+			return ::eck::Fnv1aHash((::eck::PCBYTE)rs.Data(), rs.Size() * sizeof(TChar));
+		}
+	};
+}

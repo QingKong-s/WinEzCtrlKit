@@ -213,8 +213,9 @@ public:
 #ifdef _DEBUG
 		if (m_hMapping)
 		{
-			EckDbgPrintWithPos(L"CMappingFile2没有调用Close()");
-			EckDbgBreak();
+			UnmapViewOfFile(m_pFile);
+			CloseHandle(m_hMapping);
+			EckDbgPrintWithPos(L"CMappingFile2已取消映射，请确保File对象仍然存在");
 		}
 #endif
 	}

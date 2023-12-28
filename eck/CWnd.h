@@ -8,7 +8,7 @@
 #pragma once
 #include "ECK.h"
 #include "WndHelper.h"
-#include "CRefStr.h"
+#include "CMemWalker.h"
 #include "CException.h"
 
 #include <optional>
@@ -69,6 +69,7 @@ struct DESIGNDATA_WND
 
 class CWnd
 {
+	friend HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc);
 public:
 	WNDPROC m_pfnRealProc = DefWindowProcW;
 #ifdef ECK_CTRL_DESIGN_INTERFACE
@@ -82,13 +83,24 @@ protected:
 		SetWindowLongPtrW(hWnd, 0, (LONG_PTR)pThreadCtx->pCurrWnd);
 	}
 
-	[[nodiscard]] EckInline HWND IntCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
+	EckInline HWND IntCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
 		FWndCreating pfnCreatingProc = NULL)
 	{
 		BeginCbtHook(this, pfnCreatingProc);
+#ifdef _DEBUG
+		CreateWindowExW(dwExStyle, pszClass, pszText, dwStyle,
+			x, y, cx, cy, hParent, hMenu, hInst, pParam);
+		if (!m_hWnd)
+		{
+			EckDbgPrintFormatMessage(GetLastError());
+			EckDbgBreak();
+		}
+		return m_hWnd;
+#else
 		return CreateWindowExW(dwExStyle, pszClass, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, hInst, pParam);
+#endif // _DEBUG
 	}
 
 	template<class T>
@@ -106,7 +118,7 @@ public:
 	ECKPROP(GetFont, SetFont)			HFONT		HFont;			// 字体句柄
 	ECKPROP(GetStyle, SetStyle)			DWORD		Style;			// 窗口样式
 	ECKPROP(GetExStyle, SetExStyle)		DWORD		ExStyle;		// 扩展窗口样式
-	ECKPROP_R(GetText)					CRefStrW	Text;			// 标题
+	ECKPROP(GetText, SetText)			CRefStrW	Text;			// 标题
 	ECKPROP(GetFrameType, SetFrameType) int			FrameType;		// 边框类型
 	ECKPROP(GetScrollBar, SetScrollBar) int			ScrollBarType;	// 滚动条类型
 	ECKPROP(IsVisible, SetVisibility)	BOOL		Visible;		// 可视
@@ -200,9 +212,11 @@ public:
 
 	virtual ~CWnd()
 	{
+#ifdef _DEBUG
 		// 对于已添加进映射的窗口，CWnd的生命周期必须在窗口生命周期之内
 		if (m_hWnd)
 			EckAssert((GetThreadCtx()->WmAt(m_hWnd) ? (!m_hWnd) : TRUE));
+#endif // _DEBUG
 	}
 
 	/// <summary>
@@ -782,6 +796,110 @@ public:
 		RECT rc;
 		GetWindowRect(m_hWnd, &rc);
 		return { rc.right - rc.left, rc.bottom - rc.top };
+	}
+
+	EckInline BOOL EnableArrows(int iOp, int iBarType)
+	{
+		EnableScrollBar(m_hWnd, iBarType, iOp);
+	}
+
+	EckInline int GetPos(int iType)
+	{
+		SCROLLINFO si;
+		si.cbSize = sizeof(SCROLLINFO);
+		si.fMask = SIF_POS;
+		GetScrollInfo(m_hWnd, iType, &si);
+		return si.nPos;
+	}
+
+	EckInline int GetTrackPos(int iType)
+	{
+		SCROLLINFO si;
+		si.cbSize = sizeof(SCROLLINFO);
+		si.fMask = SIF_TRACKPOS;
+		GetScrollInfo(m_hWnd, iType, &si);
+		return si.nTrackPos;
+	}
+
+	EckInline BOOL GetRange(int iType, int* piMin = NULL, int* piMax = NULL)
+	{
+		SCROLLINFO si;
+		si.cbSize = sizeof(SCROLLINFO);
+		si.fMask = SIF_RANGE;
+		BOOL b = GetScrollInfo(m_hWnd, iType, &si);
+		if (piMin)
+			*piMin = si.nMin;
+		if (piMax)
+			*piMax = si.nMax;
+		return b;
+	}
+
+	EckInline int GetPage(int iType)
+	{
+		SCROLLINFO si;
+		si.cbSize = sizeof(SCROLLINFO);
+		si.fMask = SIF_PAGE;
+		GetScrollInfo(m_hWnd, iType, &si);
+		return si.nPage;
+	}
+
+	EckInline BOOL GetInfo(int iType, SCROLLINFO* psi)
+	{
+		psi->cbSize = sizeof(SCROLLINFO);
+		return GetScrollInfo(m_hWnd, iType, psi);
+	}
+
+	EckInline void SetPos(int iType, int iPos, BOOL bRedraw = TRUE)
+	{
+		SCROLLINFO si;
+		si.cbSize = sizeof(SCROLLINFO);
+		si.fMask = SIF_POS;
+		si.nPos = iPos;
+		SetScrollInfo(m_hWnd, iType, &si, bRedraw);
+	}
+
+	EckInline void SetRange(int iType, int iMin, int iMax, BOOL bRedraw = TRUE)
+	{
+		SCROLLINFO si;
+		si.cbSize = sizeof(SCROLLINFO);
+		si.fMask = SIF_RANGE;
+		SetScrollInfo(m_hWnd, iType, &si, bRedraw);
+		si.nMin = iMin;
+		si.nMax = iMax;
+	}
+
+	EckInline void SetMin(int iType, int iMin, BOOL bRedraw = TRUE)
+	{
+		SCROLLINFO si;
+		si.cbSize = sizeof(SCROLLINFO);
+		si.fMask = SIF_RANGE;
+		GetScrollInfo(m_hWnd, iType, &si);
+		si.nMin = iMin;
+		SetScrollInfo(m_hWnd, iType, &si, bRedraw);
+	}
+
+	EckInline void SetMax(int iType, int iMax, BOOL bRedraw = TRUE)
+	{
+		SCROLLINFO si;
+		si.cbSize = sizeof(SCROLLINFO);
+		si.fMask = SIF_RANGE;
+		GetScrollInfo(m_hWnd, iType, &si);
+		si.nMax = iMax;
+		SetScrollInfo(m_hWnd, iType, &si, bRedraw);
+	}
+
+	EckInline void SetPage(int iType, int iPage, BOOL bRedraw = TRUE)
+	{
+		SCROLLINFO si;
+		si.cbSize = sizeof(SCROLLINFO);
+		si.fMask = SIF_PAGE;
+		si.nPage = iPage;
+		SetScrollInfo(m_hWnd, iType, &si, bRedraw);
+	}
+
+	EckInline void SetInfo(int iType, SCROLLINFO* psi, BOOL bRedraw = TRUE)
+	{
+		SetScrollInfo(m_hWnd, iType, psi, bRedraw);
 	}
 };
 ECK_NAMESPACE_END

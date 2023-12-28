@@ -121,8 +121,8 @@ public:
 	void TurnDelta(float fAngleDelta)
 	{
 		m_fAngle += fAngleDelta;
-		while (m_fAngle > 2.f * std::numbers::pi_v<float>)
-			m_fAngle -= (2.f * std::numbers::pi_v<float>);
+		while (m_fAngle > 2.f * PiF)
+			m_fAngle -= (2.f * PiF);
 	}
 
 	void Turn(float fAngle)
@@ -251,7 +251,7 @@ public:
 			});
 		if (it == m_vSpirit.end())
 			m_vSpirit.push_back(pSpirit);
-		else [[likely]]
+		else ECKLIKELY
 			m_vSpirit.insert(it, pSpirit);
 	}
 

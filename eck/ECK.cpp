@@ -1,13 +1,7 @@
 ﻿#include "ECK.h"
-#include "CLabel.h"
-#include "CColorPicker.h"
-#include "CBk.h"
-#include "CDialog.h"
-#include "CSplitBar.h"
-#include "CDrawPanel.h"
-#include "CListBoxNew.h"
-#include "CAnimationBox.h"
 #include "Utility.h"
+#include "CRefStr.h"
+#include "CWnd.h"
 
 #include <Shlwapi.h>
 #include <d3d11.h>
@@ -53,7 +47,7 @@ struct EZREGWNDINFO
 	UINT uClassStyle = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
 };
 
-constexpr struct
+struct
 {
 	union
 	{
@@ -66,7 +60,7 @@ g_WndClassInfo[]
 {
 	{ WCN_LABEL },
 	{ WCN_BK },
-	{ WCN_DLG },
+	{ },
 	{ WCN_SPLITBAR },
 	{ WCN_DRAWPANEL },
 	{ WCN_DRAWPANELD2D },
@@ -105,6 +99,10 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			return InitStatus::GdiplusInitError;
 		}
 	}
+
+	g_WndClassInfo[2].iType = RWCT_CUSTOM;
+	g_WndClassInfo[2].wc = { CS_STDWND,DefDlgProcW,0,DLGWINDOWEXTRA + sizeof(void*) * 2,
+	g_hInstance,NULL,LoadCursorW(NULL,IDC_ARROW),NULL,NULL,WCN_DLG };
 
 	for (const auto& e : g_WndClassInfo)
 	{
@@ -235,6 +233,23 @@ void ThreadInit()
 	TlsSetValue(GetThreadCtxTlsSlot(), p);
 }
 
+constexpr PCWSTR c_szErrInitStatus[]
+{
+	L"操作成功完成。",
+	L"注册窗口类失败",
+	L"GDI+初始化失败",
+	L"WIC初始化失败",
+	L"D2D初始化失败",
+	L"DXGI设备创建失败",
+	L"DWrite初始化失败",
+	L"D3D设备创建失败",
+};
+
+PCWSTR InitStatusToString(InitStatus iStatus)
+{
+	return c_szErrInitStatus[(int)iStatus];
+}
+
 void ThreadUnInit()
 {
 	EckAssert(TlsGetValue(GetThreadCtxTlsSlot()));
@@ -265,6 +280,8 @@ HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc)
 				pCtx->pCurrWnd->m_pfnRealProc =
 					(WNDPROC)SetWindowLongPtrW((HWND)wParam, GWLP_WNDPROC,
 						(LONG_PTR)CWnd::WndProcMsgReflection);
+				EckAssert(!pCtx->pCurrWnd->m_hWnd);
+				pCtx->pCurrWnd->m_hWnd = (HWND)wParam;
 				pCtx->WmAdd((HWND)wParam, pCtx->pCurrWnd);
 				if (pCtx->pfnWndCreatingProc)
 					pCtx->pfnWndCreatingProc((HWND)wParam, (CBT_CREATEWNDW*)lParam, pCtx);
@@ -312,8 +329,8 @@ void SetMsgFilter(FMsgFilter pfnFilter)
 void DbgPrintWndMap()
 {
 	auto pCtx = GetThreadCtx();
-	std::wstring s = std::format(L"当前线程（TID = {}）窗口映射表内容：\n", GetCurrentThreadId());
-	CRefStrW rs(64);
+	auto s = Format(L"当前线程（TID = %u）窗口映射表内容：\n", GetCurrentThreadId());
+	CRefStrW rs{};
 	for (const auto& e : pCtx->hmWnd)
 	{
 		auto rsText = e.second->GetText();
@@ -329,8 +346,8 @@ void DbgPrintWndMap()
 			rsCls.Data());
 		s += rs.Data();
 	}
-	s += std::format(L"共有{}个窗口\n", pCtx->hmWnd.size());
-	OutputDebugStringW(s.c_str());
+	s += Format(L"共有%u个窗口\n", pCtx->hmWnd.size());
+	OutputDebugStringW(s.Data());
 }
 
 void DbgPrintFmt(PCWSTR pszFormat, ...)
@@ -345,11 +362,50 @@ void DbgPrintFmt(PCWSTR pszFormat, ...)
 
 void DbgPrintWithPos(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg)
 {
-	DbgPrint(std::format(L"{}({}行) -> {}\n\t{}\n", pszFile, iLine, pszFunc, pszMsg));
+	DbgPrint(Format(L"%s(%u行) -> %s\n\t%s\n", pszFile, iLine, pszFunc, pszMsg));
 }
 
 const CRefStrW& GetRunningPath()
 {
 	return g_rsCurrDir;
+}
+
+inline void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
+{
+	TASKDIALOGCONFIG tdc{ sizeof(TASKDIALOGCONFIG) };
+	tdc.pszMainInstruction = L"断言失败！";
+	tdc.pszMainIcon = TD_ERROR_ICON;
+
+	constexpr TASKDIALOG_BUTTON Btns[]
+	{
+		{100,L"终止程序"},
+		{101,L"调试程序"},
+		{102,L"继续运行"},
+	};
+	tdc.pButtons = Btns;
+	tdc.cButtons = ARRAYSIZE(Btns);
+	tdc.nDefaultButton = 101;
+	WCHAR szPath[MAX_PATH]{};
+	GetModuleFileNameW(NULL, szPath, MAX_PATH);
+	const auto rsContent = Format(L"程序位置：%s\n\n源文件：%s\n\n行号：%s\n\n测试表达式：%s",
+		szPath, pszFile, pszLine, pszMsg);
+	tdc.pszContent = rsContent.Data();
+
+	tdc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS;
+
+	BOOL t;
+	int iBtn;
+	TaskDialogIndirect(&tdc, &iBtn, &t, &t);
+	switch (iBtn)
+	{
+	case 100:
+		ExitProcess(0);
+		return;
+	case 101:
+		DebugBreak();
+		return;
+	case 102:
+		return;
+	}
 }
 ECK_NAMESPACE_END

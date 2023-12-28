@@ -2,11 +2,30 @@
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
-template<int TType>
-class CScrollBarBase :public CWnd
+
+class CScrollBar :public CWnd
 {
-public:
+private:
 	BOOL m_bDisableNoScroll = FALSE;
+public:
+	ECK_STYLE_GETSET(BottomAlign, SBS_BOTTOMALIGN);
+	ECK_STYLE_GETSET(Horz, SBS_HORZ);
+	ECK_STYLE_GETSET(LeftAlign, SBS_LEFTALIGN);
+	ECK_STYLE_GETSET(RightAlign, SBS_RIGHTALIGN);
+	ECK_STYLE_GETSET(SizeBox, SBS_SIZEBOX);
+	ECK_STYLE_GETSET(SizeBoxBottomRightAlign, SBS_SIZEBOXBOTTOMRIGHTALIGN);
+	ECK_STYLE_GETSET(SizeBoxTopLeftAlign, SBS_SIZEBOXTOPLEFTALIGN);
+	ECK_STYLE_GETSET(SizeGrip, SBS_SIZEGRIP);
+	ECK_STYLE_GETSET(TopAlign, SBS_TOPALIGN);
+	ECK_STYLE_GETSET(Vert, SBS_VERT);
+
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+	{
+		return IntCreate(dwExStyle, WC_SCROLLBARW, pszText, dwStyle,
+			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+	}
 
 	/// <summary>
 	/// 禁用启用箭头
@@ -15,7 +34,7 @@ public:
 	/// <returns>成功返回TRUE，失败返回FALSE</returns>
 	EckInline BOOL EnableArrows(int iOp)
 	{
-		EnableScrollBar(m_hWnd, TType, iOp);
+		EnableScrollBar(m_hWnd, SB_CTL, iOp);
 	}
 
 	EckInline BOOL EnableArrows(int iOp, int iBarType)
@@ -28,7 +47,7 @@ public:
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
 		si.fMask = SIF_POS;
-		GetScrollInfo(m_hWnd, TType, &si);
+		GetScrollInfo(m_hWnd, SB_CTL, &si);
 		return si.nPos;
 	}
 
@@ -37,7 +56,7 @@ public:
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
 		si.fMask = SIF_TRACKPOS;
-		GetScrollInfo(m_hWnd, TType, &si);
+		GetScrollInfo(m_hWnd, SB_CTL, &si);
 		return si.nTrackPos;
 	}
 
@@ -46,7 +65,7 @@ public:
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
 		si.fMask = SIF_RANGE;
-		BOOL b = GetScrollInfo(m_hWnd, TType, &si);
+		BOOL b = GetScrollInfo(m_hWnd, SB_CTL, &si);
 		if (piMin)
 			*piMin = si.nMin;
 		if (piMax)
@@ -59,14 +78,14 @@ public:
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
 		si.fMask = SIF_PAGE;
-		GetScrollInfo(m_hWnd, TType, &si);
+		GetScrollInfo(m_hWnd, SB_CTL, &si);
 		return si.nPage;
 	}
 
 	EckInline BOOL GetInfo(SCROLLINFO* psi)
 	{
 		psi->cbSize = sizeof(SCROLLINFO);
-		return GetScrollInfo(m_hWnd, TType, psi);
+		return GetScrollInfo(m_hWnd, SB_CTL, psi);
 	}
 
 	EckInline void SetPos(int iPos, BOOL bRedraw = TRUE)
@@ -75,7 +94,7 @@ public:
 		si.cbSize = sizeof(SCROLLINFO);
 		si.fMask = SIF_POS | (m_bDisableNoScroll ? SIF_DISABLENOSCROLL : 0);
 		si.nPos = iPos;
-		SetScrollInfo(m_hWnd, TType, &si, bRedraw);
+		SetScrollInfo(m_hWnd, SB_CTL, &si, bRedraw);
 	}
 
 	EckInline void SetRange(int iMin, int iMax, BOOL bRedraw = TRUE)
@@ -83,7 +102,7 @@ public:
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
 		si.fMask = SIF_RANGE | (m_bDisableNoScroll ? SIF_DISABLENOSCROLL : 0);
-		SetScrollInfo(m_hWnd, TType, &si, bRedraw);
+		SetScrollInfo(m_hWnd, SB_CTL, &si, bRedraw);
 		si.nMin = iMin;
 		si.nMax = iMax;
 	}
@@ -93,10 +112,10 @@ public:
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
 		si.fMask = SIF_RANGE;
-		GetScrollInfo(m_hWnd, TType, &si);
+		GetScrollInfo(m_hWnd, SB_CTL, &si);
 		si.nMin = iMin;
 		si.fMask |= (m_bDisableNoScroll ? SIF_DISABLENOSCROLL : 0);
-		SetScrollInfo(m_hWnd, TType, &si, bRedraw);
+		SetScrollInfo(m_hWnd, SB_CTL, &si, bRedraw);
 	}
 
 	EckInline void SetMax(int iMax, BOOL bRedraw = TRUE)
@@ -104,10 +123,10 @@ public:
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
 		si.fMask = SIF_RANGE;
-		GetScrollInfo(m_hWnd, TType, &si);
+		GetScrollInfo(m_hWnd, SB_CTL, &si);
 		si.nMax = iMax;
 		si.fMask |= (m_bDisableNoScroll ? SIF_DISABLENOSCROLL : 0);
-		SetScrollInfo(m_hWnd, TType, &si, bRedraw);
+		SetScrollInfo(m_hWnd, SB_CTL, &si, bRedraw);
 	}
 
 	EckInline void SetPage(int iPage, BOOL bRedraw = TRUE)
@@ -116,55 +135,14 @@ public:
 		si.cbSize = sizeof(SCROLLINFO);
 		si.fMask = SIF_PAGE | (m_bDisableNoScroll ? SIF_DISABLENOSCROLL : 0);
 		si.nPage = iPage;
-		SetScrollInfo(m_hWnd, TType, &si, bRedraw);
+		SetScrollInfo(m_hWnd, SB_CTL, &si, bRedraw);
 	}
 
 	EckInline void SetInfo(SCROLLINFO* psi, BOOL bRedraw = TRUE)
 	{
 		psi->cbSize = sizeof(SCROLLINFO);
 		psi->fMask |= (m_bDisableNoScroll ? SIF_DISABLENOSCROLL : 0);
-		SetScrollInfo(m_hWnd, TType, psi, bRedraw);
+		SetScrollInfo(m_hWnd, SB_CTL, psi, bRedraw);
 	}
 };
-
-class CScrollBar :public CScrollBarBase<SB_CTL>
-{
-public:
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
-	{
-		dwStyle |= WS_CHILD;
-		m_hWnd = CreateWindowExW(dwExStyle, WC_SCROLLBARW, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
-		return m_hWnd;
-	}
-
-	/// <summary>
-	/// 禁用启用箭头
-	/// </summary>
-	/// <returns>返回TRUE表示为垂直滚动条，返回FALSE为水平滚动条</returns>
-	EckInline BOOL GetDirection()
-	{
-		
-	}
-};
-
-template<int TType>
-class CScrollBarNc :public CScrollBarBase<TType>
-{
-public:
-	EckInline BOOL ShowScrollBar(BOOL bShow)
-	{
-		return ::ShowScrollBar(this->m_hWnd, TType, bShow);
-	}
-
-	EckInline BOOL ShowScrollBar(BOOL bShow, int iBarType)
-	{
-		return ::ShowScrollBar(this->m_hWnd, iBarType, bShow);
-	}
-};
-
-using CScrollBarWndH = CScrollBarNc<SB_HORZ>;
-using CScrollBarWndV = CScrollBarNc<SB_VERT>;
 ECK_NAMESPACE_END

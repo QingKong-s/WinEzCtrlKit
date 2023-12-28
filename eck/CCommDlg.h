@@ -13,8 +13,6 @@
 #include <CommCtrl.h>
 
 ECK_NAMESPACE_BEGIN
-template<class T>
-concept IsHICONOrPCWSTR = requires{ std::is_same<T, HICON>::value || std::is_same<T, PCWSTR>::value; };
 
 class CTaskDialog
 {
@@ -197,10 +195,14 @@ public:
 	/// </summary>
 	/// <param name="uType">元素类型，TDIE_ICON_常量</param>
 	/// <param name="Icon">图标，可为HICON或PCWSTR，取决于创建对话框时的设置</param>
-	template<IsHICONOrPCWSTR T>
-	EckInline void UpdateIcon(UINT uType, T Icon)
+	EckInline void UpdateIcon(UINT uType, HICON hIcon)
 	{
-		SendMessageW(m_hDlg, TDM_UPDATE_ICON, uType, (LPARAM)Icon);
+		SendMessageW(m_hDlg, TDM_UPDATE_ICON, uType, (LPARAM)hIcon);
+	}
+
+	EckInline void UpdateIcon(UINT uType, PCWSTR pszIcon)
+	{
+		SendMessageW(m_hDlg, TDM_UPDATE_ICON, uType, (LPARAM)pszIcon);
 	}
 };
 

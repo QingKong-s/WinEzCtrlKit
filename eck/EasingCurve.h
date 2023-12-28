@@ -2,7 +2,6 @@
 #include "ECK.h"
 
 #include <math.h>
-#include <numbers>
 
 #define ECK_EASING_NAMESPACE_BEGIN namespace Easing {
 #define ECK_EASING_NAMESPACE_END }
@@ -49,7 +48,7 @@ struct FOutSine
 {
 	float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
 	{
-		return fDistance * sinf(fCurrTime / fDuration * std::numbers::pi_v<float> / 2.f) + fStart;
+		return fDistance * sinf(fCurrTime / fDuration * PiF / 2.f) + fStart;
 	}
 };
 

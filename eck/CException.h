@@ -43,7 +43,7 @@ inline void DbgPrint(const CFmtMsgException& e)
 	PWSTR pszInfo;
 	FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
 		NULL, e.GetErrCode(), 0, (PWSTR)&pszInfo, 0, NULL);
-	OutputDebugStringW(std::format(L"错误码 = {}，格式化信息 = {}", e.GetErrCode(), pszInfo).c_str());
+	OutputDebugStringW(Format(L"错误码 = %u，格式化信息 = %s", e.GetErrCode(), pszInfo).Data());
 	LocalFree(pszInfo);
 }
 

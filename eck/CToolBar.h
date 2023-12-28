@@ -5,13 +5,13 @@ ECK_NAMESPACE_BEGIN
 class CToolBar :public CWnd
 {
 public:
-	
-	ECK_CWND_CREATE
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
 		dwStyle |= WS_CHILD;
-		m_hWnd = CreateWindowExW(dwExStyle, TOOLBARCLASSNAMEW, pszText, dwStyle,
+		return IntCreate(dwExStyle, TOOLBARCLASSNAMEW, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, NULL, NULL);
-		return m_hWnd;
 	}
 
 	EckInline int AddBitmap(int cBitmaps, HINSTANCE hInstance, UINT_PTR nID)

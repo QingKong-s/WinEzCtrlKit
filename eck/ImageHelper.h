@@ -10,8 +10,8 @@
 #include "GdiplusFlatDef.h"
 #include "MathHelper.h"
 #include "CStreamView.h"
+#include "CRefBinStream.h"
 
-#include <numbers>
 #include <execution>
 #include <unordered_map>
 
@@ -30,24 +30,24 @@ inline HBITMAP CreateHBITMAP(PCVOID pData, SIZE_T cbData)
 {
 	HBITMAP hbm;
 	GpBitmap* pBitmap;
-	IStream* pStream = new CStreamView(pData, cbData);
+	auto pStream = new CStreamView(pData, cbData);
 
 	GpStatus gp1;
 	if ((gp1 = GdipCreateBitmapFromStream(pStream, &pBitmap)) != GpStatus::GpOk)
 	{
-		pStream->Release();
+		pStream->LeaveRelease();
 		return NULL;
 	}
 
 	if (GdipCreateHBITMAPFromBitmap(pBitmap, &hbm, 0))
 	{
 		GdipDisposeImage(pBitmap);
-		pStream->Release();
+		pStream->LeaveRelease();
 		return NULL;
 	}
 
 	GdipDisposeImage(pBitmap);
-	pStream->Release();
+	pStream->LeaveRelease();
 	return hbm;
 }
 
@@ -108,23 +108,23 @@ inline HICON CreateHICON(PCVOID pData, SIZE_T cbData)
 {
 	HICON hIcon;
 	GpBitmap* pBitmap;
-	IStream* pStream = new CStreamView(pData, cbData);
+	auto pStream = new CStreamView(pData, cbData);
 
 	if (GdipCreateBitmapFromStream(pStream, &pBitmap) != GpStatus::GpOk)
 	{
-		pStream->Release();
+		pStream->LeaveRelease();
 		return NULL;
 	}
 
 	if (GdipCreateHICONFromBitmap(pBitmap, &hIcon))
 	{
 		GdipDisposeImage(pBitmap);
-		pStream->Release();
+		pStream->LeaveRelease();
 		return NULL;
 	}
 
 	GdipDisposeImage(pBitmap);
-	pStream->Release();
+	pStream->LeaveRelease();
 	return hIcon;
 }
 
@@ -522,10 +522,10 @@ public:
 				IWICBitmapDecoder* pDecoder;
 				if (FAILED(CreateWicBitmapDecoder(pStream, pDecoder, g_pWicFactory)))
 				{
-					pStream->Release();
+					pStream->LeaveRelease();
 					return NULL;
 				}
-				pStream->Release();
+				pStream->LeaveRelease();
 				IWICBitmap* pBitmap;
 				if (FAILED(CreateWicBitmap(pBitmap, pDecoder, g_pWicFactory)))
 				{
@@ -659,14 +659,80 @@ public:
 	[[nodiscard]] EckInline HBITMAP Detach() { return Attach(NULL); }
 };
 
+inline GpStatus GetGpEncoderClsid(PCWSTR pszType, CLSID& clsid)
+{
+	GpStatus gps;
+	UINT cEncoders, cbEncoders;
+	if ((gps = GdipGetImageEncodersSize(&cEncoders, &cbEncoders)) != GpStatus::GpOk)
+		return gps;
+	auto pEncoders = (GpImageCodecInfo*)malloc(cbEncoders);
+	EckAssert(pEncoders);
+	if ((gps = GdipGetImageEncoders(cEncoders, cbEncoders, pEncoders)) != GpStatus::GpOk)
+	{
+		free(pEncoders);
+		return gps;
+	}
+	EckCounter(cEncoders, i)
+	{
+#pragma warning(suppress:6385)// 正在读取无效数据
+		if (!wcscmp(pEncoders[i].MimeType, pszType))
+		{
+			clsid = pEncoders[i].Clsid;
+			free(pEncoders);
+			return GpStatus::GpOk;
+		}
+	}
+	free(pEncoders);
+	return GpStatus::GpUnknownImageFormat;
+}
+
 inline CRefBin SaveWicBitmap(IWICBitmap* pBitmap)
 {
 	return {};
 }
 
-inline CRefBin SaveGpBitmap(GpBitmap* pBitmap)
+enum class ImageType
 {
+	Unknown,
+	Bmp,
+	Icon,
+	Gif,
+	Jpeg,
+	Exif,
+	Png,
+	Tiff,
+	Wmf,
+	Emf,
+};
 
-	return {};
+constexpr inline PCWSTR c_szImgMime[] =
+{
+	L"",
+	L"image/bmp",
+	L"image/x-icon",
+	L"image/gif",
+	L"image/jpeg",
+	L"image/exif",
+	L"image/png",
+	L"image/tiff",
+	L"image/wmf",
+	L"image/emf"
+};
+
+EckInline PCWSTR GetImageMime(ImageType iType)
+{
+	return c_szImgMime[(int)iType];
+}
+
+inline CRefBin SaveGpImage(GpImage* pImage, ImageType iType = ImageType::Png)
+{
+	CLSID clsid;
+	if (GetGpEncoderClsid(GetImageMime(iType), clsid) != GpStatus::GpOk)
+		return {};
+	CRefBin rb{};
+	auto pStream = new CRefBinStream(rb);
+	GdipSaveImageToStream(pImage, pStream, &clsid, NULL);
+	pStream->LeaveRelease();
+	return rb;
 }
 ECK_NAMESPACE_END

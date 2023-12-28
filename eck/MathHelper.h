@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "ECK.h"
-#include <numbers>
 
 ECK_NAMESPACE_BEGIN
 /// <summary>
@@ -11,7 +10,7 @@ ECK_NAMESPACE_BEGIN
 template<class TVal>
 EckInline constexpr TVal Deg2Rad(TVal fDeg)
 {
-	return fDeg * std::numbers::pi_v<TVal> / (TVal)180.;
+	return fDeg * (TVal)Pi / (TVal)180.;
 }
 
 /// <summary>
@@ -22,7 +21,7 @@ EckInline constexpr TVal Deg2Rad(TVal fDeg)
 template<class TVal>
 EckInline constexpr TVal Rad2Deg(TVal fRad)
 {
-	return fRad * (TVal)180. / std::numbers::pi_v<TVal>;
+	return fRad * (TVal)180. / (TVal)Pi;
 }
 
 template<class TVal>

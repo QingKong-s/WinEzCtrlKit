@@ -14,23 +14,22 @@
 #include <functional>
 
 ECK_NAMESPACE_BEGIN
-struct LBNEWITEM
+struct LBNITEM
 {
 	PCWSTR pszText;
 	int cchText;
 	int idxItem;
 };
 
+struct NMLBNGETDISPINFO
+{
+	NMHDR nmhdr;
+	LBNITEM Item;
+};
+
 
 class CListBoxNew :public CWnd
 {
-public:
-	enum NCode
-	{
-		GetDispInfo,
-	};
-
-	using FLbnProc = LRESULT(*)(HWND hWnd, UINT uCode, LPARAM lParam, LPARAM lRefData);
 private:
 	struct ITEM
 	{
@@ -43,7 +42,7 @@ private:
 			};
 			UINT uFlags = 0u;
 		};
-		
+
 	};
 
 	CEzCDC m_DC{};
@@ -63,12 +62,6 @@ private:
 
 	std::vector<ITEM> m_vItem{};
 
-	FLbnProc m_pfnProc = NULL;
-	LPARAM m_lRefData = 0;
-
-	CScrollBarWndH m_SBH{};
-	CScrollBarWndV m_SBV{};
-
 	union
 	{
 		struct
@@ -78,11 +71,18 @@ private:
 		UINT m_uFlags = 0;
 	};
 
-	struct
+#if ECKCXX20
+	BITBOOL m_bLBtnDown : 1 = FALSE;
+#else
+	union
 	{
-		BITBOOL m_bLBtnDown : 1 = FALSE;
+		struct
+		{
+			BITBOOL m_bLBtnDown : 1;
+		};
+		DWORD ECKPRIV_BITFIELD___ = 0;
 	};
-
+#endif
 
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 
@@ -93,44 +93,37 @@ private:
 	ECK_DS_END_VAR(m_Ds);
 
 
-	static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
-		auto p = (CListBoxNew*)GetWindowLongPtrW(hWnd, 0);
 		switch (uMsg)
 		{
 		case WM_MOUSELEAVE:
-			return ECK_HANDLE_WM_MOUSELEAVE(hWnd, wParam, lParam, p->OnMouseLeave);
+			return ECK_HANDLE_WM_MOUSELEAVE(hWnd, wParam, lParam, OnMouseLeave);
 		case WM_MOUSEMOVE:
-			return HANDLE_WM_MOUSEMOVE(hWnd, wParam, lParam, p->OnMouseMove);
+			return HANDLE_WM_MOUSEMOVE(hWnd, wParam, lParam, OnMouseMove);
 		case WM_SIZE:
-			return HANDLE_WM_SIZE(hWnd, wParam, lParam, p->OnSize);
+			return HANDLE_WM_SIZE(hWnd, wParam, lParam, OnSize);
 		case WM_PAINT:
-			return HANDLE_WM_PAINT(hWnd, wParam, lParam, p->OnPaint);
+			return HANDLE_WM_PAINT(hWnd, wParam, lParam, OnPaint);
 		case WM_VSCROLL:
-			return HANDLE_WM_VSCROLL(hWnd, wParam, lParam, p->OnVScroll);
+			return HANDLE_WM_VSCROLL(hWnd, wParam, lParam, OnVScroll);
 		case WM_MOUSEWHEEL:
-			return HANDLE_WM_MOUSEWHEEL(hWnd, wParam, lParam, p->OnMouseWheel);
+			return HANDLE_WM_MOUSEWHEEL(hWnd, wParam, lParam, OnMouseWheel);
 		case WM_LBUTTONDOWN:
-			return HANDLE_WM_LBUTTONDOWN(hWnd, wParam, lParam, p->OnLButtonDown);
+			return HANDLE_WM_LBUTTONDOWN(hWnd, wParam, lParam, OnLButtonDown);
 		case WM_SETFONT:
-			p->m_hFont = (HFONT)wParam;
-			SelectObject(p->m_DC.GetDC(), p->m_hFont);
+			m_hFont = (HFONT)wParam;
+			SelectObject(m_DC.GetDC(), m_hFont);
 			if (lParam)
-				p->Redraw();
+				Redraw();
 			return 0;
 		case WM_GETFONT:
-			return (LRESULT)p->m_hFont;
-		case WM_NCCREATE:
-		{
-			p = (CListBoxNew*)((CREATESTRUCTW*)lParam)->lpCreateParams;
-			SetWindowLongPtrW(hWnd, 0, (LONG_PTR)p);
-		}
-		break;
+			return (LRESULT)m_hFont;
 		case WM_CREATE:
-			return HANDLE_WM_CREATE(hWnd, wParam, lParam, p->OnCreate);
+			return HANDLE_WM_CREATE(hWnd, wParam, lParam, OnCreate);
 		}
 
-		return DefWindowProcW(hWnd, uMsg, wParam, lParam);
+		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
 	BOOL OnCreate(HWND hWnd, CREATESTRUCTW* pcs)
@@ -142,8 +135,6 @@ private:
 		m_DC.Create(hWnd);
 		SetBkMode(m_DC.GetDC(), TRANSPARENT);
 
-		m_SBH.Attach(hWnd);
-		m_SBV.Attach(hWnd);
 		return TRUE;
 	}
 
@@ -151,7 +142,8 @@ private:
 	{
 		m_cxClient = cx;
 		m_cyClient = cy;
-		m_SBV.SetPage(cy);
+
+		SetPage(SB_VERT, cy);
 		m_DC.ReSize(hWnd, cx, cy);
 	}
 
@@ -178,7 +170,7 @@ private:
 		SCROLLINFO si;
 		si.cbSize = sizeof(si);
 		si.fMask = SIF_ALL;
-		m_SBV.GetInfo(&si);
+		GetInfo(SB_VERT, &si);
 		const int yOld = si.nPos;
 		switch (uCode)
 		{
@@ -206,8 +198,8 @@ private:
 		}
 
 		si.fMask = SIF_POS;
-		m_SBV.SetInfo(&si);
-		m_SBV.GetInfo(&si);
+		SetInfo(SB_VERT, &si);
+		GetInfo(SB_VERT, &si);
 		ReCalcTopItem();
 		ScrollWindow(hWnd, 0, yOld - si.nPos, NULL, NULL);
 		UpdateWindow(hWnd);
@@ -297,11 +289,11 @@ private:
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
 		si.fMask = SIF_POS;
-		m_SBV.GetInfo(&si);
+		GetInfo(SB_VERT, &si);
 		const int yOld = si.nPos;
 		si.nPos += (-zDelta / WHEEL_DELTA * m_cyItem * 3);
-		m_SBV.SetInfo(&si);
-		m_SBV.GetInfo(&si);
+		SetInfo(SB_VERT, &si);
+		GetInfo(SB_VERT, &si);
 		ReCalcTopItem();
 		ScrollWindow(hWnd, 0, yOld - si.nPos, NULL, NULL);
 		UpdateWindow(hWnd);
@@ -310,14 +302,13 @@ private:
 
 	void ReCalcTopItem()
 	{
-		const int ySB = m_SBV.GetPos();
+		const int ySB = GetPos(SB_VERT);
 		m_idxTop = ySB / m_cyItem;
 		m_oyTop = m_idxTop * m_cyItem - ySB;
 	}
 
 	void RedrawItem(int idx, const RECT& rcItem)
 	{
-		LBNEWITEM item{};
 		const HDC hCDC = m_DC.GetDC();
 		int iState;
 
@@ -334,10 +325,12 @@ private:
 
 		m_StylePainter.DrawThemeBackground(hCDC, LVP_LISTITEM, iState, rcItem, NULL);
 
-		item.idxItem = idx;
-		m_pfnProc(m_hWnd, GetDispInfo, (LPARAM)&item, m_lRefData);
-		if (item.pszText)
-			DrawTextW(hCDC, item.pszText, item.cchText, (RECT*)&rcItem, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+		NMLBNGETDISPINFO nm;
+		nm.Item.idxItem = idx;
+		FillNmhdrAndSend(nm, NM_LBN_GETDISPINFO);
+		if (nm.Item.pszText)
+			DrawTextW(hCDC, nm.Item.pszText, nm.Item.cchText, (RECT*)&rcItem,
+				DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
 	}
 
 	void ReCalcScrollBar()
@@ -348,33 +341,17 @@ private:
 		si.nMin = 0;
 		si.nMax = (int)m_vItem.size() * m_cyItem;
 		si.nPage = m_cyClient;
-		m_SBV.SetInfo(&si);
+		SetInfo(SB_VERT, &si);
 	}
 public:
-	static ATOM RegisterWndClass()
-	{
-		WNDCLASSW wc{};
-		wc.cbWndExtra = sizeof(void*);
-		wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
-		wc.hInstance = eck::g_hInstance;
-		wc.lpfnWndProc = WndProc;
-		wc.lpszClassName = WCN_LISTBOXNEW;
-		wc.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
-		return RegisterClassW(&wc);
-	}
-
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
-		m_hWnd = CreateWindowExW(dwExStyle, WCN_LISTBOXNEW, pszText, dwStyle,
+		IntCreate(dwExStyle, WCN_LISTBOXNEW, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
 		return m_hWnd;
 	}
-
-	EckInline void SetProc(FLbnProc pfn) { m_pfnProc = pfn; }
-
-	EckInline void SetRefData(LPARAM lRefData) { m_lRefData = lRefData; }
 
 	EckInline void SetItemCount(int cItem)
 	{

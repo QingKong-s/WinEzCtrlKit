@@ -96,20 +96,20 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	EckDbgPrint(rsi);
 	//EckDbgBreak();
 
-	auto date = CeToLunar({ 1902,6,20 });
-	EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
-	date = CeToLunar({ 1902,1,1 });
-	EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
-	date = CeToLunar({ 1902,1,6 });
-	EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
-	date = CeToLunar({ 1902,1,11 });
-	EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
-	date = CeToLunar({ 1902,2,3 });
-	EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
-	EckDbgPrint(NumToNaYin(GetNaYin(L"甲子")));
-	EckDbgPrint(NumToNaYin(GetNaYin(6)));
-	EckDbgPrint(NumToJieQi(GetJieQi({ 1902,5,22 })));
-	EckDbgPrint(NumToShuXiang(GetShuXiang(2023)));
+	//auto date = CeToLunar({ 1902,6,20 });
+	//EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
+	//date = CeToLunar({ 1902,1,1 });
+	//EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
+	//date = CeToLunar({ 1902,1,6 });
+	//EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
+	//date = CeToLunar({ 1902,1,11 });
+	//EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
+	//date = CeToLunar({ 1902,2,3 });
+	//EckDbgPrint(std::format(L"{},{},{},{}", date.wYear, date.byMonth, date.byDay, date.bLeapMonth).c_str());
+	//EckDbgPrint(NumToNaYin(GetNaYin(L"甲子")));
+	//EckDbgPrint(NumToNaYin(GetNaYin(6)));
+	//EckDbgPrint(NumToJieQi(GetJieQi({ 1902,5,22 })));
+	//EckDbgPrint(NumToShuXiang(GetShuXiang(2023)));
 
 
 	//EckDbgPrint(rb0.At<int>(7));
@@ -398,7 +398,6 @@ eck::CLabel* g_Label;
 eck::CColorPicker* g_CC;
 eck::CListBoxExt* g_LBExt;
 eck::CDirBox* g_DirBox;
-eck::CScrollBarWndH* g_SBNcH;
 eck::CScrollBar* g_SB;
 eck::CListView* g_LV;
 eck::CTaskGroupList* g_TGL;
@@ -506,37 +505,14 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		g_iDpi = eck::GetDpi(hWnd);
 		g_hFont = eck::EzFont(L"微软雅黑", 9);
 
-		eck::CListBoxNew::FLbnProc pfnn = [](HWND hWnd, UINT uCode, LPARAM lParam, LPARAM lRefData)->LRESULT
-			{
-				static std::vector<eck::CRefStrW> v{};
-				switch (uCode)
-				{
-				case eck::CListBoxNew::NCode::GetDispInfo:
-				{
-					if (!v.size())
-					{
-						v.resize(100);
-						EckCounter(100, i)
-						{
-							v[i] = eck::ToStr(i) + L"测试测试";
-						}
-					}
-					auto p = (eck::LBNEWITEM*)lParam;
-					p->pszText = v[p->idxItem].Data();
-					p->cchText = v[p->idxItem].Size();
-				}
-				return 0;
-				}
-
-				return 0;
-			};
+		
 
 		//g_LBN = new eck::CListBoxNew;
 		//g_LBN->SetProc(pfnn);
 		//g_LBN->Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL, 0, 100, 100, 600, 800, hWnd, 101);
 		//g_LBN->SetItemCount(100);
 
-		EckDbgPrint(g_Menu.GetItemString(101).Data());
+		//EckDbgPrint(g_Menu.GetItemString(101).Data());
 		//EckDbgBreak();
 		//EckDbgBreak();
 
