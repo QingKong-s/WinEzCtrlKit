@@ -8,20 +8,43 @@
 
 #pragma once
 #include "ECK.h"
-#include "CRefBin.h"
-#include "CRefStr.h"
 
 #include <math.h>
 #include <time.h>
 #include <process.h>
 
 #include <string_view>
+#if ECKCXX20
+#include <concepts>
+#endif
 
 #include <windowsx.h>
 #include <d2d1_1.h>
 #include <Shlwapi.h>
 
 ECK_NAMESPACE_BEGIN
+template <class T1, class T2, bool = std::is_empty_v<T1> && !std::is_final_v<T1>>
+struct CompressedPair final : private T1
+{
+	T2 v2;
+
+	constexpr T1& GetFirst() noexcept { return *this; }
+
+	constexpr const T1& GetFirst() const noexcept { return *this; }
+};
+
+template <class T1, class T2>
+struct CompressedPair<T1, T2, false> final
+{
+	T1 v1;
+	T2 v2;
+
+	EckInline constexpr T1& GetFirst() noexcept { return v1; }
+
+	EckInline constexpr const T1& GetFirst() const noexcept { return v1; }
+};
+
+
 namespace Colorref
 {
 	inline constexpr COLORREF
@@ -68,179 +91,6 @@ namespace Colorref
 		DeepGray          = 0x606060// 深灰
 		;
 }
-
-struct CMemWriter
-{
-	BYTE* m_pMem = NULL;
-#ifdef _DEBUG
-	BYTE* m_pBase = NULL;
-	SIZE_T m_cbMax = 0u;
-#endif
-
-	CMemWriter(void* p)
-	{
-		m_pMem = (BYTE*)p;
-	}
-
-	CMemWriter(PCVOID p, SIZE_T cbMax)
-	{
-		m_pMem = (BYTE*)p;
-#ifdef _DEBUG
-		m_pBase = m_pMem;
-		m_cbMax = cbMax;
-#endif
-	}
-
-	EckInline CMemWriter& Write(PCVOID pSrc, SIZE_T cb)
-	{
-#ifdef _DEBUG
-		if (m_pBase)
-		{
-			EckDbgCheckMemRange(m_pBase, m_cbMax, m_pMem + cb);
-		}
-#endif
-		memcpy(m_pMem, pSrc, cb);
-		m_pMem += cb;
-		return *this;
-	}
-
-	template<class T>
-	EckInline CMemWriter& operator<<(const T& Data)
-	{
-		return Write(&Data, sizeof(Data));
-	}
-
-	template<class T, class U>
-	EckInline CMemWriter& operator<<(const std::basic_string_view<T, U>& Data)
-	{
-		return Write(Data.data(), Data.size() * sizeof(T)) << L'\0';
-	}
-
-	template<class T, class U>
-	EckInline CMemWriter& operator<<(const std::basic_string<T, U>& Data)
-	{
-		return Write(Data.c_str(), (Data.size() + 1) * sizeof(T));
-	}
-
-	template<class T, class U>
-	EckInline CMemWriter& operator<<(const std::vector<T, U>& Data)
-	{
-		return Write(Data.data(), Data.size() * sizeof(T));
-	}
-
-	template<class T>
-	EckInline CMemWriter& operator<<(const CRefBinT<T>& Data)
-	{
-		return Write(Data.Data(), Data.Size());
-	}
-
-	template<class T, class U, class V>
-	EckInline CMemWriter& operator<<(const CRefStrT<T, U, V>& Data)
-	{
-		return Write(Data.Data(), Data.ByteSize());
-	}
-
-	EckInline operator BYTE*& () { return m_pMem; }
-
-	EckInline BYTE* Data() { return m_pMem; }
-
-	EckInline CMemWriter& operator+=(SIZE_T cb)
-	{
-		m_pMem += cb;
-		return *this;
-	}
-
-	EckInline CMemWriter& operator-=(SIZE_T cb)
-	{
-		m_pMem -= cb;
-		return *this;
-	}
-
-	template<class T>
-	CMemWriter& SkipPointer(T*& p)
-	{
-		p = (T*)m_pMem;
-		m_pMem += sizeof(T);
-		return *this;
-	}
-};
-
-struct CMemReader
-{
-	const BYTE* m_pMem = NULL;
-#ifdef _DEBUG
-	const BYTE* m_pBase = NULL;
-	SIZE_T m_cbMax = 0u;
-#endif
-
-	CMemReader(PCVOID p, SIZE_T cbMax = 0u)
-	{
-		SetPtr(p, cbMax);
-	}
-
-	void SetPtr(PCVOID p, SIZE_T cbMax = 0u)
-	{
-		m_pMem = (const BYTE*)p;
-#ifdef _DEBUG
-		if (cbMax)
-		{
-			m_pBase = m_pMem;
-			m_cbMax = cbMax;
-		}
-#endif
-	}
-
-	EckInline CMemReader& Read(void* pDst, SIZE_T cb)
-	{
-#ifdef _DEBUG
-		if (m_pBase)
-		{
-			EckDbgCheckMemRange(m_pBase, m_cbMax, m_pMem + cb);
-		}
-#endif
-		memcpy(pDst, m_pMem, cb);
-		m_pMem += cb;
-		return *this;
-	}
-
-	template<class T>
-	EckInline CMemReader& operator>>(T& Data)
-	{
-		return Read(&Data, sizeof(Data));
-	}
-
-	template<class T, class U, class V>
-	EckInline CMemWriter& operator>>(const CRefStrT<T, U, V>& x)
-	{
-		const int cch = U::Len(Data());
-		x.ReSize(cch);
-		return Read(x.Data(), cch * sizeof(WCHAR));
-	}
-
-	EckInline operator const BYTE*& () { return m_pMem; }
-
-	EckInline const BYTE* Data() { return m_pMem; }
-
-	EckInline CMemReader& operator+=(SIZE_T cb)
-	{
-		m_pMem += cb;
-		return *this;
-	}
-
-	EckInline CMemReader& operator-=(SIZE_T cb)
-	{
-		m_pMem -= cb;
-		return *this;
-	}
-
-	template<class T>
-	CMemReader& SkipPointer(T*& p)
-	{
-		p = (T*)m_pMem;
-		m_pMem += sizeof(T);
-		return *this;
-	}
-};
 
 struct CMAllocDeleter
 {
@@ -311,34 +161,105 @@ EckInline constexpr SIZE_T AlignMemSize(SIZE_T cbSize, SIZE_T cbAlign)
 {
 	if (cbSize / cbAlign * cbAlign == cbSize)
 		return cbSize;
-	else [[likely]]
+	else ECKLIKELY
 		return (cbSize / cbAlign + 1) * cbAlign;
 }
 
-/// <summary>
-/// CRT创建线程。
-/// （_beginthreadex wrapper）
-/// </summary>
-/// <param name="lpStartAddress">起始地址</param>
-/// <param name="lpParameter">参数</param>
-/// <param name="lpThreadId">线程ID变量指针</param>
-/// <param name="dwCreationFlags">标志</param>
-/// <returns>线程句柄</returns>
-EckInline HANDLE CRTCreateThread(_beginthreadex_proc_type lpStartAddress, void* lpParameter = NULL,
-	UINT* lpThreadId = NULL, UINT dwCreationFlags = 0)
+#if ECKCXX20
+template<class T>
+concept ccpIsInteger = std::integral<T>;
+#else
+#pragma push_macro("ccpIsInteger")
+#define ccpIsInteger class
+#endif
+
+template<ccpIsInteger T>
+EckInline constexpr BYTE GetIntegerByte(T i, int idxByte)
 {
-	return ((HANDLE)_beginthreadex(0, 0, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId));
+	EckAssert(idxByte >= 0 && idxByte < sizeof(T));
+	return (BYTE)((i >> (idxByte * 8)) & 0b11111111);
+}
+
+template<ccpIsInteger T>
+EckInline constexpr void SetIntegerByte(T& i, int idxByte, BYTE by)
+{
+	EckAssert(idxByte >= 0 && idxByte < sizeof(T));
+	i &= ((~(T)0b11111111) << (idxByte * 8));
+}
+
+template<int N, ccpIsInteger T>
+EckInline constexpr BYTE GetIntegerByte(T i)
+{
+	static_assert(N >= 0 && N < sizeof(T));
+	return (BYTE)((i >> (N * 8)) & 0b11111111);
+}
+
+template<int N, ccpIsInteger T>
+EckInline constexpr void SetIntegerByte(T& i, BYTE by)
+{
+	static_assert(N >= 0 && N < sizeof(T));
+	i &= ((~(T)0b11111111) << (N * 8));
+}
+
+/// <summary>
+/// 字节组到整数
+/// </summary>
+/// <typeparam name="TRet"></typeparam>
+/// <typeparam name="...T"></typeparam>
+/// <param name="...by">字节组，个数必须等于sizeof(TRet)</param>
+/// <returns>整数</returns>
+template<ccpIsInteger TRet, class... T>
+EckInline constexpr TRet BytesToInteger(T... by)
+{
+	static_assert(sizeof...(T) == sizeof(TRet));
+	int i = 0;
+	auto fn = [&i](BYTE by)
+		{
+			++i;
+			return by << (8 * (i - 1));
+		};
+	return (TRet)(... | fn(by));
+}
+
+EckInline constexpr UINT ReverseColorref(COLORREF cr)
+{
+	return BytesToInteger<UINT>(
+		GetIntegerByte<2>(cr),
+		GetIntegerByte<1>(cr),
+		GetIntegerByte<0>(cr),
+		0);
 }
 
 EckInline constexpr ARGB ColorrefToARGB(COLORREF cr, BYTE byAlpha = 0xFF)
 {
-	BYTE* pcr = (BYTE*)&cr;
-	BYTE byTemp;
-	byTemp = pcr[0];
-	pcr[0] = pcr[2];
-	pcr[2] = byTemp;
-	pcr[3] = byAlpha;
-	return cr;
+	return ReverseColorref(cr) | (byAlpha << 24);
+}
+
+EckInline constexpr COLORREF ARGBToColorref(ARGB argb)
+{
+	return ReverseColorref(argb);
+}
+
+EckInline constexpr COLORREF ColorrefAlphaBlend(COLORREF cr, COLORREF crBK, BYTE byAlpha)
+{
+	return BytesToInteger<COLORREF>(
+		GetIntegerByte<0>(crBK) * byAlpha / 0xFF + GetIntegerByte<0>(cr) * (0xFF - byAlpha) / 0xFF,
+		GetIntegerByte<1>(crBK) * byAlpha / 0xFF + GetIntegerByte<1>(cr) * (0xFF - byAlpha) / 0xFF,
+		GetIntegerByte<2>(crBK) * byAlpha / 0xFF + GetIntegerByte<2>(cr) * (0xFF - byAlpha) / 0xFF,
+		0);
+}
+
+/// <summary>
+/// 反转整数字节序
+/// </summary>
+/// <param name="i">输入</param>
+/// <returns>转换结果</returns>
+template<ccpIsInteger T>
+EckInline constexpr T ReverseInteger(T i)
+{
+	auto p = (BYTE*)&i;
+	std::reverse(p, p + sizeof(T));
+	return i;
 }
 
 template<class T, class U>
@@ -379,57 +300,6 @@ EckInline constexpr BOOL IsBitSet(T1 dw1, T2 dw2)
 	return (dw1 & dw2) == dw2;
 }
 
-/// <summary>
-/// 字节集到友好字符串表示
-/// </summary>
-/// <param name="Bin">字节集</param>
-/// <param name="iType">类型，0 - 空格分割的十六进制  1 - 易语言字节集调试输出</param>
-/// <returns>返回结果</returns>
-inline CRefStrW BinToFriendlyString(PCBYTE pData, SIZE_T cb, int iType)
-{
-	CRefStrW rsResult{};
-	if (!pData || !cb)
-	{
-		if (iType == 1)
-			rsResult = L"{ }";
-		return rsResult;
-	}
-
-	WCHAR szBuf[c_cchI32ToStrBufNoRadix2];
-	switch (iType)
-	{
-	case 0:
-	{
-		rsResult.Reserve((int)cb * 3 + 10);
-
-		for (SIZE_T i = 0u; i < cb; ++i)
-		{
-			swprintf_s(szBuf, L"%02hhX ", pData[i]);
-			rsResult.PushBack(szBuf);
-		}
-	}
-	break;
-
-	case 1:
-	{
-		rsResult.Reserve((int)cb * 4 + 10);
-
-		rsResult.PushBack(L"{ ");
-		swprintf_s(szBuf, L"%hhu", pData[0]);
-		rsResult.PushBack(szBuf);
-		for (SIZE_T i = 1u; i < cb; ++i)
-		{
-			swprintf_s(szBuf, L",%hhu", pData[i]);
-			rsResult.PushBack(szBuf);
-		}
-		rsResult.PushBack(L" }");
-	}
-	break;
-	}
-
-	return rsResult;
-}
-
 EckInline void ScreenToClient(HWND hWnd, RECT* prc)
 {
 	::ScreenToClient(hWnd, (POINT*)prc);
@@ -444,7 +314,7 @@ EckInline void ClientToScreen(HWND hWnd, RECT* prc)
 
 inline constexpr RECT MakeRect(POINT pt1, POINT pt2)
 {
-	RECT rc;
+	RECT rc{};
 	if (pt1.x >= pt2.x)
 	{
 		rc.left = pt2.x;
@@ -510,21 +380,6 @@ EckInline constexpr BOOL Sign(T v)
 	return v >= 0;
 }
 
-EckInline constexpr DWORD ReverseDWORD(const BYTE* p)
-{
-	return ((p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]);
-}
-
-/// <summary>
-/// 反转4字节整数字节序
-/// </summary>
-/// <param name="dw">输入</param>
-/// <returns>转换结果</returns>
-EckInline constexpr DWORD ReverseDWORD(DWORD dw)
-{
-	return ReverseDWORD((BYTE*)&dw);
-}
-
 EckInline constexpr SIZE_T Cch2Cb(int cch)
 {
 	return (cch + 1) * sizeof(WCHAR);
@@ -540,15 +395,9 @@ EckInline constexpr RECT MakeRect(const D2D1_RECT_F& rc)
 	return { (LONG)rc.left, (LONG)rc.top, (LONG)rc.right, (LONG)rc.bottom };
 }
 
-EckInline constexpr UINT ReverseColorref(UINT cr)
-{
-	BYTE* p = (BYTE*)&cr;
-	return (((p[0] << 16) | (p[1] << 8) | p[2]) & 0x00FFFFFF);
-}
-
 EckInline constexpr UINT Gcd(UINT a, UINT b)
 {
-	UINT c;
+	UINT c = 0;
 	for (;;)
 	{
 		c = a % b;
@@ -587,13 +436,6 @@ EckInline constexpr T SetSign(T x, T iSign)
 	else return x;
 }
 
-EckInline CRefStrW ToStr(const CRefBin& rb)
-{
-	CRefStrW rs((int)rb.Size() / 2);
-	memcpy(rs.Data(), rb.Data(), rs.Size() * sizeof(WCHAR));
-	return rs;
-}
-
 template<class TInterface>
 EckInline void SafeRelease(TInterface*& pUnk)
 {
@@ -603,4 +445,28 @@ EckInline void SafeRelease(TInterface*& pUnk)
 		pUnk = NULL;
 	}
 }
+
+#ifdef _WIN64
+constexpr inline size_t c_FNVOffsetBasis = 14695981039346656037ull;
+constexpr inline size_t c_FNVPrime = 1099511628211ull;
+#else
+constexpr inline size_t c_FNVOffsetBasis = 2166136261u;
+constexpr inline size_t c_FNVPrime = 16777619u;
+#endif// _WIN64
+
+EckInline size_t Fnv1aHash(PCBYTE p, size_t cb)
+{
+	size_t hash = c_FNVOffsetBasis;
+	EckCounter(cb, i)
+	{
+		hash ^= p[i];
+		hash *= c_FNVPrime;
+	}
+	return hash;
+}
+
+#if !ECKCXX20
+#undef ccpIsInteger
+#pragma pop_macro("ccpIsInteger")
+#endif
 ECK_NAMESPACE_END

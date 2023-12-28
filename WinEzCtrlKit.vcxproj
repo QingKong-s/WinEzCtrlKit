@@ -76,7 +76,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions);ECK_CTRL_DESIGN_INTERFACE;NOMINMAX</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FloatingPointModel>Precise</FloatingPointModel>
     </ClCompile>
@@ -96,7 +96,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions);ECK_CTRL_DESIGN_INTERFACE;NOMINMAX</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FloatingPointModel>Precise</FloatingPointModel>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
@@ -115,7 +115,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;ECK_CTRL_DESIGN_INTERFACE;NOMINMAX;%(PreprocessorDefinitions);ECK_CTRL_DESIGN_INTERFACE;NOMINMAX</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FloatingPointModel>Precise</FloatingPointModel>
     </ClCompile>
@@ -136,7 +136,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions);ECK_CTRL_DESIGN_INTERFACE;NOMINMAX</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FloatingPointModel>Precise</FloatingPointModel>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
@@ -158,9 +158,6 @@
     <ClInclude Include="eck\CAnimationBox.h" />
     <ClInclude Include="eck\CArray.h" />
     <ClInclude Include="eck\CBk.h" />
-    <ClInclude Include="eck\CChartBar.h" />
-    <ClInclude Include="eck\CChartLine.h" />
-    <ClInclude Include="eck\CChartPie.h" />
     <ClInclude Include="eck\CComboBox.h" />
     <ClInclude Include="eck\CComboBoxEx.h" />
     <ClInclude Include="eck\CDialog.h" />
@@ -172,22 +169,25 @@
     <ClInclude Include="eck\CForm.h" />
     <ClInclude Include="eck\CFormTable.h" />
     <ClInclude Include="eck\CListBoxNew.h" />
+    <ClInclude Include="eck\CMemWalker.h" />
     <ClInclude Include="eck\CMenu.h" />
     <ClInclude Include="eck\CMsgMmTimer.h" />
+    <ClInclude Include="eck\CRefBinStream.h" />
     <ClInclude Include="eck\CRegKey.h" />
     <ClInclude Include="eck\CResSet.h" />
     <ClInclude Include="eck\CResTable.h" />
     <ClInclude Include="eck\CScrollView.h" />
     <ClInclude Include="eck\CSplitBar.h" />
     <ClInclude Include="eck\CStreamView.h" />
+    <ClInclude Include="eck\CWindowMask.h" />
     <ClInclude Include="eck\GraphicsHelper.h" />
+    <ClInclude Include="eck\StrBinInterop.h" />
     <ClInclude Include="eck\StylePainter.h" />
     <ClInclude Include="eck\CTab.h" />
     <ClInclude Include="eck\CTabHeader.h" />
     <ClInclude Include="eck\CTaskGroupList.h" />
     <ClInclude Include="eck\CHeader.h" />
     <ClInclude Include="eck\CHotKey.h" />
-    <ClInclude Include="eck\CIniFile.h" />
     <ClInclude Include="eck\CListView.h" />
     <ClInclude Include="eck\CLunarCalendar.h" />
     <ClInclude Include="eck\CPropertySheet.h" />

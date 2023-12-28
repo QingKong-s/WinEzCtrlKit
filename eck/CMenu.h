@@ -54,7 +54,7 @@ private:
 		}
 	}
 
-	static void ForMenuItemCreating(CMemReader& r, HMENU hMenu, int cItem)
+	static void ForMenuItemRead(CMemReader& r, HMENU hMenu, int cItem)
 	{
 		MENUITEMINFOW mii{};
 		mii.cbSize = sizeof(mii);
@@ -72,7 +72,7 @@ private:
 			if (pItem->cSubItem)
 			{
 				mii.hSubMenu = CreatePopupMenu();
-				ForMenuItemCreating(r, mii.hSubMenu, pItem->cSubItem);
+				ForMenuItemRead(r, mii.hSubMenu, pItem->cSubItem);
 			}
 			else
 				mii.hSubMenu = NULL;
@@ -161,7 +161,7 @@ public:
 			EckDbgBreak();
 			return;
 		}
-		ForMenuItemCreating(r, m_hMenu, pHeader->cItem);
+		ForMenuItemRead(r, m_hMenu, pHeader->cItem);
 	}
 
 	/// <summary>

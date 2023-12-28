@@ -42,7 +42,6 @@ private:
 	eck::CColorPicker m_CC;
 	eck::CListBoxExt m_LBExt;
 	eck::CDirBox m_DirBox;
-	eck::CScrollBarWndH m_SBNcH;
 	eck::CScrollBar m_SB;
 	eck::CListView m_LV;
 	eck::CTaskGroupList m_TGL;
@@ -59,9 +58,10 @@ private:
 	HFONT m_hFont = eck::EzFont(L"微软雅黑", 9);
 	HBITMAP m_hbm = NULL;
 public:
-	void Test()
+	__declspec(noinline) void Test()
 	{
 		using namespace eck;
+		using namespace eck::Literals;
 		//CHAR szA[]{ "123你好45" };
 		//EckDbgPrint(eck::CalcDbcsStringCharCount(szA, ARRAYSIZE(szA) - 1));
 		//EckDbgBreak();
@@ -134,7 +134,25 @@ public:
 		//rsva.AppendFormat(L"整数 = %d，字符串 = %s。", 100, L"我是字符串");
 		//rsva.MakeRepeatedStrSequence(L"123456", 6, 1000);
 
+		//GpImage* pbmp;
+		//GdipLoadImageFromFile(LR"(E:\Desktop\Temp\111111.bmp)", &pbmp);
+		//auto rb = SaveGpImage(pbmp, ImageType::Png);
+		//WriteToFile(LR"(E:\Desktop\111111.png)", rb);
 
+		//auto hIcon = CreateHICON(LR"(E:\Desktop\Temp\111111.jpg)");
+		//TrayAdd(101, hIcon, L"我是提示");
+
+		//auto a= BytesToInteger<DWORD>(0xaa, 0xbb, 0xcc, 0xdd);
+
+		//auto b = Rand(0x111111, 0xffffff);
+		//a = ColorrefToARGB(b, 0x4B);
+		//CRefStrW rs{};
+		//rs.Format(L"%08X", b);
+		//rs.PushBack(L"\n");
+		//rs.AppendFormat(L"%08X", a);
+		////MsgBox(rs.Data());
+
+		//EckDbgPrint(L"123"_rs < L"456");
 		EckDbgBreak();
 	}
 
@@ -161,37 +179,67 @@ public:
 			m_hbm = eck::CreateHBITMAP(LR"(E:\Desktop\Temp\111111.jpg)");
 			m_Label.SetPic(m_hbm);
 			m_lot.Add(&m_Label);
+			
+			//m_AB.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0, 0, 0, 1100, 700, hWnd, 104);
+			//m_lot.Add(&m_AB);
+			//auto pDC = m_AB.GetDC();
 
-			m_AB.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0, 0, 0, 1100, 700, hWnd, 104);
-			m_lot.Add(&m_AB);
-			auto pDC = m_AB.GetDC();
+			//IWICBitmapDecoder* pDecoder;
+			//eck::CreateWicBitmapDecoder(LR"(F:\Test\1.png)", pDecoder, eck::g_pWicFactory);
+			//IWICBitmap* pWicBmp;
+			//eck::CreateWicBitmap(pWicBmp, pDecoder, eck::g_pWicFactory);
+			//ID2D1Bitmap1* pBitmap;
+			//pDC->CreateBitmapFromWicBitmap(pWicBmp, &pBitmap);
 
-			IWICBitmapDecoder* pDecoder;
-			eck::CreateWicBitmapDecoder(LR"(F:\Test\1.png)", pDecoder, eck::g_pWicFactory);
-			IWICBitmap* pWicBmp;
-			eck::CreateWicBitmap(pWicBmp, pDecoder, eck::g_pWicFactory);
-			ID2D1Bitmap1* pBitmap;
-			pDC->CreateBitmapFromWicBitmap(pWicBmp, &pBitmap);
+			//auto pSpirit = new eck::CAbSpiritImage(pBitmap);
+			//pSpirit->SetPos({ 200,400 });
 
-			auto pSpirit = new eck::CAbSpiritImage(pBitmap);
-			pSpirit->SetPos({ 200,400 });
-
-			//m_AB.AddSpirit(pSpirit);
-			//pSpirit->AutoMarch({ 10.f,20,600.f,0,FALSE });
+			////m_AB.AddSpirit(pSpirit);
+			////pSpirit->AutoMarch({ 10.f,20,600.f,0,FALSE });
 
 
-			eck::CreateWicBitmapDecoder(LR"(F:\Test\2.jpg)", pDecoder, eck::g_pWicFactory);
-			eck::CreateWicBitmap(pWicBmp, pDecoder, eck::g_pWicFactory);
-			pDC->CreateBitmapFromWicBitmap(pWicBmp, &pBitmap);
+			//eck::CreateWicBitmapDecoder(LR"(F:\Test\2.jpg)", pDecoder, eck::g_pWicFactory);
+			//eck::CreateWicBitmap(pWicBmp, pDecoder, eck::g_pWicFactory);
+			//pDC->CreateBitmapFromWicBitmap(pWicBmp, &pBitmap);
 
-			pSpirit = new eck::CAbSpiritImage(pBitmap);
-			pSpirit->SetPos({ 400,200 });
+			//pSpirit = new eck::CAbSpiritImage(pBitmap);
+			//pSpirit->SetPos({ 400,200 });
 
 			//m_AB.AddSpirit(pSpirit);
 			//pSpirit->Turn(-eck::Deg2Rad(90.f));
 			//pSpirit->AutoMarch({ 10.f,20,600.f,0,FALSE });
+			//eck::CListBoxNew::FLbnProc pfnn = [](HWND hWnd, UINT uCode, LPARAM lParam, LPARAM lRefData)->LRESULT
+			//	{
+			//		static std::vector<eck::CRefStrW> v{};
+			//		switch (uCode)
+			//		{
+			//		case eck::CListBoxNew::NCode::GetDispInfo:
+			//		{
+			//			if (!v.size())
+			//			{
+			//				v.resize(100);
+			//				EckCounter(100, i)
+			//				{
+			//					v[i] = eck::ToStr(i) + L"测试测试";
+			//				}
+			//			}
+			//			auto p = (eck::LBNITEM*)lParam;
+			//			p->pszText = v[p->idxItem].Data();
+			//			p->cchText = v[p->idxItem].Size();
+			//		}
+			//		return 0;
+			//		}
+
+			//		return 0;
+			//	};
+			//m_LBN.SetProc(pfnn);
+			m_LBN.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL, 0,
+				0, 0, 700, 600, hWnd, 105);
+			m_LBN.SetItemCount(100);
+			m_lot.Add(&m_LBN, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 
 			eck::SetFontForWndAndCtrl(hWnd, m_hFont);
+
 
 			Test();
 		}
@@ -206,10 +254,11 @@ public:
 		{
 			if ((HWND)lParam == m_Btn.GetHWND() && HIWORD(wParam) == BN_CLICKED)
 			{
-				BkColor = eck::Colorref::DeepGray;
-				EscClose = TRUE;
-				TotalMove = TRUE;
-				Redraw();
+				TrayPopBalloon(101, L"气球测试", L"我是标题");
+				//BkColor = eck::Colorref::DeepGray;
+				//EscClose = TRUE;
+				//TotalMove = TRUE;
+				//Redraw();
 			}
 		}
 		break;
@@ -226,7 +275,7 @@ public:
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
-		m_hWnd = IntCreate(dwExStyle, WCN_TEST, pszText, dwStyle,
+		IntCreate(dwExStyle, WCN_TEST, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, this);
 		EckDbgPrintWndMap();
 		return m_hWnd;

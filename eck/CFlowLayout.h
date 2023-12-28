@@ -25,6 +25,10 @@ private:
 		CWnd* pWnd;
 		UINT uFlags;
 		RECT rcPos;
+#if !ECKCXX20
+		constexpr CTRL(CWnd* pWnd, UINT uFlags, RECT rcPos) noexcept
+			: pWnd{ pWnd }, uFlags{ uFlags }, rcPos{ rcPos } {}
+#endif
 	};
 
 	std::vector<CTRL> m_vCtrl{};

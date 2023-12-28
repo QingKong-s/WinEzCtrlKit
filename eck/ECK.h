@@ -21,8 +21,39 @@
 #include <type_traits>
 
 #pragma region 宏
+#if _MSVC_LANG > 201703L
+#define ECKCXX20 1
+#elif _MSVC_LANG > 201402L
+#define ECKCXX20 0
+#else
+#error "ECK Lib requires C++17 or later"
+#endif
+
 #define ECK_NAMESPACE_BEGIN		namespace eck {
 #define ECK_NAMESPACE_END		}
+
+ECK_NAMESPACE_BEGIN
+#if ECKCXX20
+template <class T>
+using RemoveCVRef_T = std::remove_cvref_t<T>;
+
+template <class T>
+struct RemoveCVRef
+{
+	using Type = std::remove_cvref_t<T>;
+};
+
+#else//	ECKCXX20
+template <class T>
+using RemoveCVRef_T = std::remove_cv_t<std::remove_reference_t<T>>;
+
+template <class T>
+struct RemoveCVRef
+{
+	using Type = RemoveCVRef_T<T>;
+};
+#endif// ECKCXX20
+ECK_NAMESPACE_END
 
 #define EckInline				__forceinline
 
@@ -55,7 +86,7 @@
 
 // 计次循环
 #define EckCounter(c, Var)						\
-	for(std::remove_cvref_t<decltype(c)> Var = 0; Var < (c); ++Var)
+	for(::eck::RemoveCVRef_T<decltype(c)> Var = 0; Var < (c); ++Var)
 
 #define ECKPRIV_CounterNVMakeVarName2___(Name)	\
 	ECKPRIV_COUNT_##Name##___
@@ -81,6 +112,16 @@
 
 // lParam->size 用于处理WM_SIZE   e.g. ECK_GET_SIZE_LPARAM(cxClient, cyClient, lParam);
 #define ECK_GET_SIZE_LPARAM(cx,cy,lParam) (cx) = LOWORD(lParam); (cy) = HIWORD(lParam);
+
+#if ECKCXX20
+#define ECKLIKELY [[likely]]
+#define ECKUNLIKELY [[unlikely]]
+#define ECKNOUNIQUEADDR [[no_unique_address]]
+#else//	!ECKCXX20
+#define ECKLIKELY
+#define ECKUNLIKELY
+#define ECKNOUNIQUEADDR
+#endif// ECKCXX20
 #pragma endregion
 
 ECK_NAMESPACE_BEGIN
@@ -126,6 +167,9 @@ constexpr inline auto c_cchI32ToStrBuf = std::max({ c_cchI32ToStrBufNoRadix2,
 constexpr inline auto c_cchI64ToStrBuf = std::max({ c_cchI64ToStrBufNoRadix2,
 	_MAX_I64TOSTR_BASE2_COUNT,_MAX_U64TOSTR_BASE2_COUNT });
 
+constexpr inline double Pi = 3.141592653589793;
+constexpr inline float PiF = static_cast<float>(Pi);
+
 ECK_NAMESPACE_END
 
 
@@ -143,6 +187,7 @@ enum :UINT
 	NM_CLP_CLRCHANGED,// NMCLPCLRCHANGED
 	NM_SPB_DRAGGED,// NMSPBDRAGGED
 	NM_TGL_TASKCLICKED,// NMTGLCLICKED
+	NM_LBN_GETDISPINFO,// NMLBNGETDISPINFO
 };
 /*-------------------*/
 /*属性字符串*/
@@ -176,6 +221,7 @@ constexpr inline PCWSTR WCN_LISTBOXNEW = L"Eck.WndClass.ListBoxNew";
 constexpr inline PCWSTR WCN_ANIMATIONBOX = L"Eck.WndClass.AnimationBox";
 
 constexpr inline PCWSTR MSG_INERTIALSV = L"Eck.Message.InertialScrollView";
+constexpr inline PCWSTR MSGREG_FORMTRAY = L"Eck.Message.FormTray";
 
 enum class InitStatus
 {
@@ -236,6 +282,8 @@ struct INITPARAM
 InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam = NULL, DWORD* pdwErrCode = NULL);
 
 void UnInit();
+
+PCWSTR InitStatusToString(InitStatus iStatus);
 
 class CWnd;
 struct ECKTHREADCTX;

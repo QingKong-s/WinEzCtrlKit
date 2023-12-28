@@ -63,7 +63,7 @@ struct DESIGNDATA_PUSHBUTTON
 class CButton :public CWnd
 {
 protected:
-	BITBOOL m_bShowTextAndImage : 1 = FALSE;
+	BOOL m_bShowTextAndImage = FALSE;
 public:
 	CButton() {}
 

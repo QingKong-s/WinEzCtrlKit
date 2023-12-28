@@ -61,7 +61,9 @@ inline constexpr size_t BinNPos = std::numeric_limits<size_t>{}.max();
 	return BinNPos;
 }
 
-template<class TAlloc_ = CAllocatorProcHeap<BYTE>>
+using TRefBinDefAllocator = CAllocatorProcHeap<BYTE>;
+
+template<class TAlloc_ = TRefBinDefAllocator>
 class CRefBinT
 {
 public:
@@ -77,7 +79,7 @@ private:
 	size_t m_cb = 0u;
 	size_t m_cbCapacity = 0u;
 
-	[[no_unique_address]] TAlloc m_Alloc{};
+	ECKNOUNIQUEADDR TAlloc m_Alloc{};
 public:
 	CRefBinT() = default;
 
@@ -622,7 +624,7 @@ public:
 	[[nodiscard]] EckInline TConstReverseIterator crend() const { return rend(); }
 };
 
-using CRefBin = CRefBinT<CAllocatorProcHeap<BYTE>>;
+using CRefBin = CRefBinT<TRefBinDefAllocator>;
 
 template<class TAlloc = CAllocatorProcHeap<BYTE>, class TAlloc1, class TAlloc2>
 CRefBinT<TAlloc> operator+(const CRefBinT<TAlloc1>& rb1, const CRefBinT<TAlloc2>& rb2)
@@ -633,6 +635,18 @@ CRefBinT<TAlloc> operator+(const CRefBinT<TAlloc1>& rb1, const CRefBinT<TAlloc2>
 	return rb;
 }
 
+template<class TAlloc>
+[[nodiscard]] EckInline bool operator==(const CRefBinT<TAlloc>& rb1, std::initializer_list<BYTE> il)
+{
+	if (!rb1.Data() && !il.size())
+		return true;
+	else if (!rb1.Data() || !il.size() || rb1.Size() != il.size())
+		return false;
+	else
+		return memcmp(rb1.Data(), il.begin(), il.size()) == 0;
+}
+
+#ifdef _DEBUG
 CRefStrW BinToFriendlyString(PCBYTE pData, SIZE_T cb, int iType);
 template<class TAlloc>
 EckInline void DbgPrint(const CRefBinT<TAlloc>& rb, int iType = 1, BOOL bNewLine = TRUE)
@@ -642,6 +656,7 @@ EckInline void DbgPrint(const CRefBinT<TAlloc>& rb, int iType = 1, BOOL bNewLine
 	if (bNewLine)
 		OutputDebugStringW(L"\n");
 }
+#endif
 
 /// <summary>
 /// 到字节集
@@ -842,3 +857,16 @@ EckInline void SplitBin(const CRefBin& rb, const CRefBin& rbDiv,
 	SplitBin(rb.Data(), rb.Size(), rbDiv.Data(), rbDiv.Size(), aResult, cBinExpected);
 }
 ECK_NAMESPACE_END
+
+namespace std
+{
+	template<class TAlloc>
+	struct hash<::eck::CRefBinT<TAlloc>>
+	{
+		[[nodiscard]] EckInline size_t operator()(
+			const ::eck::CRefBinT<TAlloc>& rb) const noexcept
+		{
+			return ::eck::Fnv1aHash(rb.Data(), rb.Size());
+		}
+	};
+}

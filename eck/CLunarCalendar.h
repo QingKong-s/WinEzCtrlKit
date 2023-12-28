@@ -101,18 +101,22 @@ inline constexpr PCWSTR c_DiZhi[12]{ L"子",L"丑",L"寅",L"卯",L"辰",L"巳",L
 
 EckInline constexpr BOOL CeIsLeapYear(int iYear)
 {
+#if ECKCXX20
 	return std::chrono::year(iYear).is_leap();
+#else
+	return iYear % 4 == 0 && (iYear % 100 != 0 || iYear % 400 == 0);
+#endif
 }
 
 EckInline constexpr int CeGetMonthDays(int iYear, int iMonth)
 {
 	EckAssert(iMonth >= 1 && iMonth <= 12);
-	if (iMonth == 2) [[unlikely]]
+	if (iMonth == 2)
 		if (CeIsLeapYear(iYear))
 			return 29;
 		else
 			return 28;
-	else [[likely]]
+	else ECKLIKELY
 		return c_CeMonthDays[iMonth - 1];
 }
 
@@ -154,7 +158,11 @@ EckInline constexpr int LnGetYearDays(int iYear)
 {
 	int c = 0;
 	const int iLeapMonth = LnGetLeapMonth(iYear);
+#if ECKCXX20
 	LunarDate Date{ .wYear = (WORD)iYear,.bLeapMonth = FALSE };
+#else
+	LunarDate Date{ (WORD)iYear,0,0,FALSE };
+#endif
 	for (Date.byMonth = 1; Date.byMonth <= 12; ++Date.byMonth)
 		c += LnGetMonthDays(Date);
 	if (iLeapMonth)
@@ -177,11 +185,16 @@ EckInline constexpr int CeGetDateDays(CEDate CeDate)
 inline constexpr LunarDate CeToLunar(CEDate CeDate)
 {
 	EckVerifyCeDate(CeDate);
+#if ECKCXX20
 	LunarDate Date{ .byDay = 1 };
+	int iDays;
+#else
+	LunarDate Date{ 0,0,1,FALSE };
+	int iDays = 0;
+#endif
 	const int iChuYi = LnGetSpringFestivalNum(CeDate.wYear);// 取初一
 	const int iCeDays = CeGetDateDays(CeDate);// 取给定日期的年内序数
 	int c = iChuYi;
-	int iDays;
 	if (iCeDays < iChuYi)// 需要到上一年寻找
 	{
 		Date.wYear = CeDate.wYear - 1;

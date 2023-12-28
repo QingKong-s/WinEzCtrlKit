@@ -82,6 +82,10 @@ private:
 		int iID;
 		PCVOID pData;
 		SIZE_T cbSize;
+#if !ECKCXX20
+		constexpr DATAENTRY(int iID, PCVOID pData, SIZE_T cbSize) noexcept
+			: iID(iID), pData(pData), cbSize(cbSize) {}
+#endif
 	};
 
 	std::vector<DATAENTRY> m_aData{};

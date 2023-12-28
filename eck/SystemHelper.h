@@ -2,6 +2,9 @@
 #include "Utility.h"
 #include "CException.h"
 #include "CFile.h"
+#include "CRefBin.h"
+
+#include <intrin.h>
 
 #include <wbemcli.h>
 #include <comdef.h>
@@ -488,7 +491,14 @@ namespace EckPriv___
 	template<class T>
 	EckInline constexpr INPUT KeyboardEventGetArg(T wVk)
 	{
+#if ECKCXX20
 		return INPUT{ .type = INPUT_KEYBOARD ,.ki = { static_cast<WORD>(wVk) } };
+#else
+		INPUT input{};
+		input.type = INPUT_KEYBOARD;
+		input.ki.wVk = static_cast<WORD>(wVk);
+		return input;
+#endif
 	}
 }
 
@@ -509,5 +519,23 @@ inline UINT KeyboardEvent(T...wVk)
 	std::reverse(Args, Args + ARRAYSIZE(Args));
 	memcpy(input + ARRAYSIZE(Args), Args, sizeof(Args));
 	return SendInput(ARRAYSIZE(input), input, sizeof(INPUT));
+}
+
+const CRefStrW& GetRunningPath();
+
+/// <summary>
+/// CRT创建线程。
+/// （_beginthreadex wrapper）
+/// </summary>
+/// <param name="pStartAddress">起始地址</param>
+/// <param name="pParameter">参数</param>
+/// <param name="pThreadId">线程ID变量指针</param>
+/// <param name="dwCreationFlags">标志</param>
+/// <returns>线程句柄</returns>
+[[nodiscard("Thread handle has been leaked")]]
+EckInline HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,
+	void* pParameter = NULL, UINT* pThreadId = NULL, UINT dwCreationFlags = 0)
+{
+	return (HANDLE)_beginthreadex(0, 0, pStartAddress, pParameter, dwCreationFlags, pThreadId);
 }
 ECK_NAMESPACE_END

@@ -9,49 +9,11 @@
 #include "ECK.h"
 
 #include <string>
-#include <format>
 #include <stdio.h>
 
 ECK_NAMESPACE_BEGIN
 #ifndef NDEBUG
-inline void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
-{
-	TASKDIALOGCONFIG tdc{ sizeof(TASKDIALOGCONFIG) };
-	tdc.pszMainInstruction = L"断言失败！";
-	tdc.pszMainIcon = TD_ERROR_ICON;
-
-	constexpr TASKDIALOG_BUTTON Btns[]
-	{
-		{100,L"终止程序"},
-		{101,L"调试程序"},
-		{102,L"继续运行"},
-	};
-	tdc.pButtons = Btns;
-	tdc.cButtons = ARRAYSIZE(Btns);
-	tdc.nDefaultButton = 101;
-    WCHAR szPath[MAX_PATH]{};
-	GetModuleFileNameW(NULL, szPath, MAX_PATH);
-	const auto sContent = std::format(L"程序位置：{}\n\n源文件：{}\n\n行号：{}\n\n测试表达式：{}",
-		szPath, pszFile, pszLine, pszMsg);
-	tdc.pszContent = sContent.c_str();
-
-	tdc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS;
-
-	BOOL t;
-	int iBtn;
-	TaskDialogIndirect(&tdc, &iBtn, &t, &t);
-	switch (iBtn)
-	{
-	case 100:
-		ExitProcess(0);
-		return;
-	case 101:
-		DebugBreak();
-		return;
-	case 102:
-		return;
-	}
-}
+void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine);
 
 #pragma warning (push)
 #pragma warning (disable:6053)// 对“_snwprintf”的前一调用可能没有为字符串“buf”添加字符串零终止符
@@ -212,7 +174,7 @@ void DbgPrintFmt(PCWSTR pszFormat, ...);
 #pragma warning (pop)
 #else
 #define EckDbgPrintGLE(x)           ;
-#define EckDbgPrint(x)              ;
+#define EckDbgPrint(...)            ;
 #define EckDbgPrintFormatMessage(x) ;
 #define EckDbgPrintFmt(...)         ;
 #define EckDbgPrintWithPos(x)       ;

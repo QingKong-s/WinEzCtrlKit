@@ -39,8 +39,20 @@ private:
 	COLORREF m_crMark = 0xFFCC66;
 	BYTE m_byMarkAlpha = 0xA0;
 
+#if ECKCXX20
 	BITBOOL m_bLBtnDown : 1 = FALSE;
 	BITBOOL m_bHorizontal : 1 = FALSE;
+#else
+	union
+	{
+		struct
+		{
+			BITBOOL m_bLBtnDown : 1 ;
+			BITBOOL m_bHorizontal : 1 ;
+		};
+		DWORD ECKPRIV_BITFIELD___ = 0;
+	};
+#endif
 
 	static LRESULT CALLBACK WndProc_Mark(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{

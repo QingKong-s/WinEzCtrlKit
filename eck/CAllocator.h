@@ -126,7 +126,7 @@ private:
 	{
 		if (cbSize / cbAlign * cbAlign == cbSize)
 			return cbSize;
-		else [[likely]]
+		else ECKLIKELY
 			return (cbSize / cbAlign + 1) * cbAlign;
 	}
 };
@@ -160,7 +160,7 @@ struct CAllocatorTraits : std::allocator_traits<TAlloc>
 private:
 	using TBase = std::allocator_traits<TAlloc>;
 public:
-	EckInline static TBase::size_type MakeCapacity(TBase::size_type c)
+	EckInline static typename TBase::size_type MakeCapacity(typename TBase::size_type c)
 	{
 		if constexpr (HasMakeCapacity<TBase::allocator_type, TBase::size_type>::value)
 			return TBase::allocator_type::MakeCapacity(c);
