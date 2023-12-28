@@ -92,14 +92,6 @@ namespace Colorref
 		;
 }
 
-struct CMAllocDeleter
-{
-	void operator()(void* p) const
-	{
-		free(p);
-	}
-};
-
 /// <summary>
 /// 计算下一对齐边界
 /// </summary>
