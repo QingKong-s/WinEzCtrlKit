@@ -32,8 +32,7 @@ inline HBITMAP CreateHBITMAP(PCVOID pData, SIZE_T cbData)
 	GpBitmap* pBitmap;
 	auto pStream = new CStreamView(pData, cbData);
 
-	GpStatus gp1;
-	if ((gp1 = GdipCreateBitmapFromStream(pStream, &pBitmap)) != GpStatus::GpOk)
+	if (GdipCreateBitmapFromStream(pStream, &pBitmap) != GpStatus::GpOk)
 	{
 		pStream->LeaveRelease();
 		return NULL;
@@ -413,7 +412,7 @@ public:
 	/// 最后使用BitBlt拷贝位图数据
 	/// </summary>
 	/// <param name="hDC">设备场景</param>
-	/// <param name="iTopToBottom">位图原点选项，<0 - 自上而下  >=0 - 自下而上</param>
+	/// <param name="iTopToBottom">位图原点选项，&lt;0 - 自上而下  >=0 - 自下而上</param>
 	/// <param name="hPalette">调色板句柄</param>
 	/// <returns>创建的DIB节</returns>
 	HBITMAP Create(HDC hDC, int iTopToBottom = 0, HPALETTE hPalette = NULL)
@@ -662,13 +661,10 @@ enum class ImageType
 {
 	Unknown,
 	Bmp,
-	Icon,
 	Gif,
 	Jpeg,
 	Png,
 	Tiff,
-	Wmf,
-	Emf,
 	Wdp,
 	Dds,
 
@@ -679,13 +675,10 @@ constexpr inline PCWSTR c_szImgMime[]
 {
 	L"",
 	L"image/bmp",
-	L"image/ico",
 	L"image/gif",
 	L"image/jpeg",
 	L"image/png",
 	L"image/tiff",
-	L"image/wmf",
-	L"image/emf",
 	L"image/vnd.ms-photo",// wdp
 	L"image/vnd.ms-dds",// dds
 };
@@ -694,13 +687,10 @@ const inline GUID c_guidWicEncoder[]
 {
 	GUID_NULL,
 	GUID_ContainerFormatBmp,
-	GUID_NULL,// 不支持ico编码
 	GUID_ContainerFormatGif,
 	GUID_ContainerFormatJpeg,
 	GUID_ContainerFormatPng,
 	GUID_ContainerFormatTiff,
-	GUID_NULL,// 不支持wmf
-	GUID_NULL,// 不支持emf
 	GUID_ContainerFormatWmp,
 	GUID_ContainerFormatDds,
 };
@@ -737,6 +727,7 @@ inline GpStatus GetGpEncoderClsid(PCWSTR pszType, CLSID& clsid)
 		}
 	}
 	free(pEncoders);
+	clsid = GUID_NULL;
 	return GpStatus::GpUnknownImageFormat;
 }
 
@@ -782,7 +773,7 @@ inline HRESULT SaveWicBitmap(IStream* pStream, IWICBitmap* pBitmap, ImageType iT
 	pBitmap->GetResolution(&xDpi, &yDpi);
 	pFrame->SetResolution(xDpi, yDpi);
 
-	const WICRect rc{ 0,0,cx,cy };
+	const WICRect rc{ 0,0,(int)cx,(int)cy };
 	IWICBitmapLock* pLock;
 	if (FAILED(hr = pBitmap->Lock(&rc, WICBitmapLockRead, &pLock)))// 取位图锁
 		goto Exit1;

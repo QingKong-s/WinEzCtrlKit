@@ -170,9 +170,6 @@ constexpr inline auto c_cchI64ToStrBuf = std::max({ c_cchI64ToStrBufNoRadix2,
 constexpr inline double Pi = 3.141592653589793;
 constexpr inline float PiF = static_cast<float>(Pi);
 
-ECK_NAMESPACE_END
-
-
 /*子类化ID*/
 
 constexpr inline UINT SCID_DESIGN = 20230621'01u;
@@ -188,11 +185,14 @@ enum :UINT
 	NM_SPB_DRAGGED,// NMSPBDRAGGED
 	NM_TGL_TASKCLICKED,// NMTGLCLICKED
 	NM_LBN_GETDISPINFO,// NMLBNGETDISPINFO
+	NM_TL_FILLCHILDREN,// NMTLFILLCHILDREN
+	NM_TL_GETDISPINFO,// NMTLGETDISPINFO
 };
 /*-------------------*/
 /*属性字符串*/
 
 /*-------------------*/
+ECK_NAMESPACE_END
 #include "DbgHelper.h"
 #include "GdiplusFlatDef.h"
 ECK_NAMESPACE_BEGIN
@@ -219,6 +219,7 @@ constexpr inline PCWSTR WCN_DRAWPANEL = L"Eck.WndClass.DrawPanel";
 constexpr inline PCWSTR WCN_DRAWPANELD2D = L"Eck.WndClass.DrawPanelD2D";
 constexpr inline PCWSTR WCN_LISTBOXNEW = L"Eck.WndClass.ListBoxNew";
 constexpr inline PCWSTR WCN_ANIMATIONBOX = L"Eck.WndClass.AnimationBox";
+constexpr inline PCWSTR WCN_TREELIST = L"Eck.WndClass.TreeList";
 
 constexpr inline PCWSTR MSG_INERTIALSV = L"Eck.Message.InertialScrollView";
 constexpr inline PCWSTR MSGREG_FORMTRAY = L"Eck.Message.FormTray";

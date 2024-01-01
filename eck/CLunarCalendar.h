@@ -60,12 +60,19 @@ public:
 };
 
 #ifdef _DEBUG
-#define EckVerifyCeDate(x) EckAssert(x.byMonth >= 1 && x.byMonth <= 12 && \
-									x.byDay >= 1 && x.byDay <= CeGetMonthDays(x.wYear, x.byMonth))
-#define EckVerifyLnDate(x) EckAssert(x.wYear >= LunarDateLib::iStartYearReal && x.wYear < LunarDateLib::iEndYearReal && \
-									x.byMonth >= 0 && (x.bLeapMonth ? (x.byMonth <= 13) : (x.byMonth <= 12)) && \
-									x.bLeapMonth ? (LnGetLeapMonth(x.wYear) == x.byMonth) : TRUE && \
-									x.byDay >= 1 && x.byDay <= 30)
+#define EckVerifyCeDate(x)														\
+			EckAssert(x.byMonth >= 1 &&											\
+				x.byMonth <= 12 &&												\
+				x.byDay >= 1 &&													\
+				x.byDay <= CeGetMonthDays(x.wYear, x.byMonth))
+#define EckVerifyLnDate(x)														\
+			EckAssert(x.wYear >= LunarDateLib::iStartYearReal &&				\
+				x.wYear < LunarDateLib::iEndYearReal &&							\
+				x.byMonth >= 0 &&												\
+				(x.bLeapMonth ? (x.byMonth <= 13) : (x.byMonth <= 12)) &&		\
+				x.bLeapMonth ? (LnGetLeapMonth(x.wYear) == x.byMonth) : TRUE && \
+				x.byDay >= 1 &&													\
+				x.byDay <= 30)
 #else
 #define EckVerifyCeDate(x) ;
 #define EckVerifyLnDate(x) ;
@@ -339,7 +346,7 @@ EckInline constexpr int GetJieQi(CEDate Date)
 {
 	EckVerifyCeDate(Date);
 	const int idx = (Date.wYear - LunarDateLib::iStartYear) * 3;
-	ULONGLONG ullJieQi =
+	const ULONGLONG ullJieQi =
 		(ULONGLONG)LunarDateLib::wSTSource[LunarDateLib::bySTIndex[idx]] |
 		(ULONGLONG)LunarDateLib::wSTSource[LunarDateLib::bySTIndex[idx + 1]] << 16 |
 		(ULONGLONG)LunarDateLib::wSTSource[LunarDateLib::bySTIndex[idx + 2]] << 32;

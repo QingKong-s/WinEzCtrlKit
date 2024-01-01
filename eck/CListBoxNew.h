@@ -327,7 +327,7 @@ private:
 
 		NMLBNGETDISPINFO nm;
 		nm.Item.idxItem = idx;
-		FillNmhdrAndSend(nm, NM_LBN_GETDISPINFO);
+		FillNmhdrAndSendNotify(nm, NM_LBN_GETDISPINFO);
 		if (nm.Item.pszText)
 			DrawTextW(hCDC, nm.Item.pszText, nm.Item.cchText, (RECT*)&rcItem,
 				DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
