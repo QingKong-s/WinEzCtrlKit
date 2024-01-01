@@ -227,7 +227,7 @@ public:
 				const int xyPos = CursorPtToPos(ECK_GET_PT_LPARAM(lParam));
 				NMSPBDRAGGED nm;
 				nm.xyPos = xyPos;
-				FillNmhdrAndSend(nm, NM_SPB_DRAGGED);
+				FillNmhdrAndSendNotify(nm, NM_SPB_DRAGGED);
 			}
 		}
 		return 0;

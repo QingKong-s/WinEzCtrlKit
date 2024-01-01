@@ -24,16 +24,16 @@ public:
 	}
 
 	/// <summary>
-	/// ģ��Ӧ�ò���
+	/// 模拟应用操作
 	/// </summary>
-	/// <returns>������ҳ�����Ӧ�ã��򷵻�TRUE�����򷵻�FALSE</returns>
+	/// <returns>若所有页面均已应用，则返回TRUE，否则返回FALSE</returns>
 	EckInline BOOL Apply()
 	{
 		return (BOOL)SendMsg(PSM_APPLY, 0, 0);
 	}
 
 	/// <summary>
-	/// ָʾ����������
+	/// 指示操作不可逆
 	/// </summary>
 	EckInline void CancelToClose()
 	{
@@ -46,20 +46,20 @@ public:
 	}
 
 	/// <summary>
-	/// ����/�����򵼰�ť
+	/// 启用/禁用向导按钮
 	/// </summary>
-	/// <param name="uButtons">��ť��PSBTN_����</param>
-	/// <param name="uMask">���룬PSBTN_����</param>
+	/// <param name="uButtons">按钮，PSBTN_常量</param>
+	/// <param name="uMask">掩码，PSBTN_常量</param>
 	EckInline void EnableWizardButton(UINT uButtons, UINT uMask)
 	{
 		SendMsg(PSM_ENABLEWIZBUTTONS, uButtons, uMask);
 	}
 
 	/// <summary>
-	/// ����/�����򵼰�ť
+	/// 启用/禁用向导按钮
 	/// </summary>
-	/// <param name="uButtons">��ť��PSBTN_����</param>
-	/// <param name="bEnable">�Ƿ�����</param>
+	/// <param name="uButtons">按钮，PSBTN_常量</param>
+	/// <param name="bEnable">是否启用</param>
 	EckInline void EnableWizardButton2(UINT uButtons, BOOL bEnable)
 	{
 		SendMsg(PSM_ENABLEWIZBUTTONS, bEnable ? uButtons : 0, uButtons);
@@ -131,13 +131,13 @@ public:
 	}
 
 	/// <summary>
-	/// �㲥��Ϣ��
-	/// ��ÿ��ҳ�淢��PSM_QUERYSIBLINGS��Ϣ��
-	/// ��ĳ��ҳ�淵��TRUE����ֹͣ�����ҳ�淢����Ϣ
+	/// 广播消息。
+	/// 向每个页面发送PSM_QUERYSIBLINGS消息。
+	/// 若某个页面返回TRUE，则停止向后续页面发送消息
 	/// </summary>
 	/// <param name="wParam"></param>
 	/// <param name="lParam"></param>
-	/// <returns>������ҳ����ѽ��յ���Ϣ���򷵻�TRUE�����򷵻�FALSE</returns>
+	/// <returns>若所有页面均已接收到消息，则返回TRUE，否则返回FALSE</returns>
 	EckInline BOOL QuerySiblings(WPARAM wParam, LPARAM lParam)
 	{
 		return (BOOL)SendMsg(PSM_QUERYSIBLINGS, wParam, lParam);
@@ -148,7 +148,7 @@ public:
 		SendMsg(PSM_REBOOTSYSTEM, 0, 0);
 	}
 
-	EckInline BOOL RecalcPageSize()
+	EckInline BOOL ReCalcPageSize()
 	{
 		return (BOOL)SendMsg(PSM_RECALCPAGESIZES, 0, 0);
 	}
@@ -209,46 +209,46 @@ public:
 	}
 
 	/// <summary>
-	/// �ñ���
+	/// 置标题
 	/// </summary>
-	/// <param name="pszText">�����ı����ɴ���MAKEINRESOURCE(��ԴID)</param>
-	/// <param name="bPropOf">�Ƿ���ʾΪĳĳ������</param>
+	/// <param name="pszText">标题文本，可传入MAKEINRESOURCE(资源ID)</param>
+	/// <param name="bPropOf">是否显示为某某的属性</param>
 	EckInline void SetTitle(PCWSTR pszText, BOOL bPropOf = FALSE)
 	{
 		SendMsg(PSM_SETTITLEW, bPropOf ? PSH_PROPTITLE : 0, (LPARAM)pszText);
 	}
 
 	/// <summary>
-	/// ���򵼰�ť
+	/// 置向导按钮
 	/// </summary>
-	/// <param name="uButtons">��ť��PSBTN_����</param>
-	/// <param name="bShieldIcon">�Ƿ���ʾ����ͼ�꣬����Aero������Ч</param>
+	/// <param name="uButtons">按钮，PSBTN_常量</param>
+	/// <param name="bShieldIcon">是否显示盾牌图标，仅在Aero向导中有效</param>
 	EckInline void SetWizardButtons(UINT uButtons, BOOL bShieldIcon = FALSE)
 	{
 		SendMsg(PSM_SETWIZBUTTONS, bShieldIcon ? PSWIZBF_ELEVATIONREQUIRED : 0, uButtons);
 	}
 
 	/// <summary>
-	/// ��ʾ/�����򵼰�ť
+	/// 显示/隐藏向导按钮
 	/// </summary>
-	/// <param name="uButtons">��ť��PSBTN_����</param>
-	/// <param name="uMask">���룬PSBTN_����</param>
+	/// <param name="uButtons">按钮，PSBTN_常量</param>
+	/// <param name="uMask">掩码，PSBTN_常量</param>
 	EckInline void ShowWizardButton(UINT uButtons, UINT uMask)
 	{
 		SendMsg(PSM_SHOWWIZBUTTONS, uButtons, uMask);
 	}
 
 	/// <summary>
-	/// ��ʾ/�����򵼰�ť
+	/// 显示/隐藏向导按钮
 	/// </summary>
-	/// <param name="uButtons">��ť��PSBTN_����</param>
-	/// <param name="bShow">�Ƿ���ʾ</param>
+	/// <param name="uButtons">按钮，PSBTN_常量</param>
+	/// <param name="bShow">是否显示</param>
 	EckInline void ShowWizardButton2(UINT uButtons, BOOL bShow)
 	{
 		SendMsg(PSM_SHOWWIZBUTTONS, bShow ? uButtons : 0, uButtons);
 	}
 
-	EckInline void UnChanged(HPROPSHEETPAGE hPage)
+	EckInline void Unchanged(HPROPSHEETPAGE hPage)
 	{
 		SendMsg(PSM_UNCHANGED, (WPARAM)hPage, 0);
 	}

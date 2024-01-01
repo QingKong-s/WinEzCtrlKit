@@ -1,7 +1,7 @@
 /*
 * WinEzCtrlKit Library
 *
-* CHeader.h £º ±ê×¼±íÍ·
+* CHeader.h ï¼š æ ‡å‡†è¡¨å¤´
 *
 * Copyright(C) 2023 QingKong
 */
@@ -12,14 +12,20 @@ ECK_NAMESPACE_BEGIN
 class CHeader :public CWnd
 {
 public:
-	CHeader(HWND hWnd)
+	ECK_CWND_NOSINGLEOWNER(CHeader)
+public:
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
-		m_hWnd = hWnd;
+		return IntCreate(dwExStyle, WC_HEADERW, pszText, dwStyle,
+			x, y, cx, cy, hParent, hMenu, NULL, NULL);
 	}
+
 	/// <summary>
-	/// Çå³ıÉ¸Ñ¡Æ÷
+	/// æ¸…é™¤ç­›é€‰å™¨
 	/// </summary>
-	/// <param name="idx">ÁĞË÷Òı£¬ÈôÎª-1ÔòÇå³ıËùÓĞÉ¸Ñ¡Æ÷</param>
+	/// <param name="idx">åˆ—ç´¢å¼•ï¼Œè‹¥ä¸º-1åˆ™æ¸…é™¤æ‰€æœ‰ç­›é€‰å™¨</param>
 	/// <returns></returns>
 	EckInline BOOL ClearFilter(int idx)
 	{
@@ -67,22 +73,22 @@ public:
 	}
 
 	/// <summary>
-	/// È¡ÏîÄ¿²ğ·Ö°´Å¥¾ØĞÎ
+	/// å–é¡¹ç›®æ‹†åˆ†æŒ‰é’®çŸ©å½¢
 	/// </summary>
-	/// <param name="idx">ÏîÄ¿Ë÷Òı</param>
-	/// <param name="prc">¾ØĞÎÖ¸Õë£¬Ïà¶Ô¿Ø¼ş¸¸´°¿Ú</param>
-	/// <returns>³É¹¦·µ»ØTRUE£¬Ê§°Ü·µ»ØFALSE</returns>
+	/// <param name="idx">é¡¹ç›®ç´¢å¼•</param>
+	/// <param name="prc">çŸ©å½¢æŒ‡é’ˆï¼Œç›¸å¯¹æ§ä»¶çˆ¶çª—å£</param>
+	/// <returns>æˆåŠŸè¿”å›TRUEï¼Œå¤±è´¥è¿”å›FALSE</returns>
 	EckInline BOOL GetItemDropDownRect(int idx, RECT* prc)
 	{
 		return (BOOL)SendMsg(HDM_GETITEMDROPDOWNRECT, idx, (LPARAM)prc);
 	}
 
 	/// <summary>
-	/// È¡ÏîÄ¿¾ØĞÎ
+	/// å–é¡¹ç›®çŸ©å½¢
 	/// </summary>
-	/// <param name="idx">ÏîÄ¿Ë÷Òı</param>
-	/// <param name="prc">¾ØĞÎÖ¸Õë£¬Ïà¶Ô¿Ø¼ş¸¸´°¿Ú</param>
-	/// <returns>³É¹¦·µ»ØTRUE£¬Ê§°Ü·µ»ØFALSE</returns>
+	/// <param name="idx">é¡¹ç›®ç´¢å¼•</param>
+	/// <param name="prc">çŸ©å½¢æŒ‡é’ˆï¼Œç›¸å¯¹æ§ä»¶çˆ¶çª—å£</param>
+	/// <returns>æˆåŠŸè¿”å›TRUEï¼Œå¤±è´¥è¿”å›FALSE</returns>
 	EckInline BOOL GetItemRect(int idx, RECT* prc)
 	{
 		return (BOOL)SendMsg(HDM_GETITEMRECT, idx, (LPARAM)prc);
@@ -101,10 +107,10 @@ public:
 	}
 
 	/// <summary>
-	/// È¡Òç³ö°´Å¥¾ØĞÎ
+	/// å–æº¢å‡ºæŒ‰é’®çŸ©å½¢
 	/// </summary>
-	/// <param name="prc">¾ØĞÎÖ¸Õë£¬Ïà¶ÔÆÁÄ»</param>
-	/// <returns>³É¹¦·µ»ØTRUE£¬Ê§°Ü·µ»ØFALSE</returns>
+	/// <param name="prc">çŸ©å½¢æŒ‡é’ˆï¼Œç›¸å¯¹å±å¹•</param>
+	/// <returns>æˆåŠŸè¿”å›TRUEï¼Œå¤±è´¥è¿”å›FALSE</returns>
 	EckInline BOOL GetOverFlowRect(RECT* prc)
 	{
 		return (BOOL)SendMsg(HDM_GETOVERFLOWRECT, 0, (LPARAM)prc);
@@ -120,7 +126,8 @@ public:
 		return (int)SendMsg(HDM_INSERTITEMW, idx, (LPARAM)phdi);
 	}
 
-	EckInline int InsertItem(PCWSTR pszText, int idx = -1, int cxItem = -1, int idxImage = -1, int iFmt = HDF_LEFT, LPARAM lParam = 0)
+	EckInline int InsertItem(PCWSTR pszText, int idx = -1, int cxItem = -1, 
+		int idxImage = -1, int iFmt = HDF_LEFT, LPARAM lParam = 0)
 	{
 		if (idx < 0)
 			idx = GetItemCount();
@@ -128,6 +135,7 @@ public:
 		hdi.mask = HDI_TEXT | HDI_FORMAT | HDI_LPARAM;
 		hdi.fmt = iFmt;
 		hdi.lParam = lParam;
+		hdi.pszText = (PWSTR)pszText;
 		if (cxItem >= 0)
 		{
 			hdi.mask |= HDI_WIDTH;

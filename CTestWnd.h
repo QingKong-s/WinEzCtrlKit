@@ -28,6 +28,7 @@
 #include "eck\SystemHelper.h"
 #include "eck\CAnimationBox.h"
 #include "eck\CForm.h"
+#include "eck\CTreeList.h"
 
 #define WCN_TEST L"TesttttttttttttttWndddddddddd"
 
@@ -52,6 +53,7 @@ private:
 	eck::CDrawPanelD2D m_DPD2D;
 	eck::CListBoxNew m_LBN;
 	eck::CAnimationBox m_AB{};
+	eck::CTreeList m_TL{};
 
 	eck::CFlowLayout m_lot{};
 
@@ -161,33 +163,51 @@ public:
 
 		//CRefBin rb = SaveWicBitmap(pBitmap);
 		//WriteToFile(LR"(E:\Desktop\123.png)", rb);
-		
-		EckDbgBreak();
+		//EckDbgBreak();
 	}
 
 	BOOL PreTranslateMessage(const MSG& Msg) override
 	{
 		return CForm::PreTranslateMessage(Msg);
 	}
+	struct WNDDATA
+	{
+		HWND hWnd{};
+		eck::CRefStrW rs{};
+		eck::CRefStrW rs2{};
+		std::vector<WNDDATA*> Children{};
+	};
+	void EnumWnd(HWND hWnd, WNDDATA* data)
+	{
+		auto h = GetWindow(hWnd, GW_CHILD);
+		while (h)
+		{
+			if(IsWindowVisible(h))
+			EnumWnd(h, data->Children.emplace_back(new WNDDATA{ h }));
+			h = GetWindow(h, GW_HWNDNEXT);
+		}
+	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
+
+		static std::vector<WNDDATA*> data{};
 		switch (uMsg)
 		{
 		case WM_CREATE:
 		{
-			m_Btn.Create(L"按钮测试", WS_CHILD | WS_VISIBLE, 0, 0, 0, 300, 70, hWnd, 101);
-			m_lot.Add(&m_Btn, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+			//m_Btn.Create(L"按钮测试", WS_CHILD | WS_VISIBLE, 0, 0, 0, 300, 70, hWnd, 101);
+			//m_lot.Add(&m_Btn, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 
-			m_Edit.Create(L"编辑框", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 0,
-				0, 0, 200, 100, hWnd, 102);
-			m_Edit.SetFrameType(1);
-			m_lot.Add(&m_Edit, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+			//m_Edit.Create(L"编辑框", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 0,
+			//	0, 0, 200, 100, hWnd, 102);
+			//m_Edit.SetFrameType(1);
+			//m_lot.Add(&m_Edit, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 
-			m_Label.Create(L"我是标签", WS_CHILD | WS_VISIBLE | WS_BORDER, 0, 0, 0, 300, 200, hWnd, 103);
-			m_hbm = eck::CreateHBITMAP(LR"(E:\Desktop\Temp\111111.jpg)");
-			m_Label.SetPic(m_hbm);
-			m_lot.Add(&m_Label);
+			//m_Label.Create(L"我是标签", WS_CHILD | WS_VISIBLE | WS_BORDER, 0, 0, 0, 300, 200, hWnd, 103);
+			//m_hbm = eck::CreateHBITMAP(LR"(E:\Desktop\Temp\111111.jpg)");
+			//m_Label.SetPic(m_hbm);
+			//m_lot.Add(&m_Label);
 			
 			//m_AB.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0, 0, 0, 1100, 700, hWnd, 104);
 			//m_lot.Add(&m_AB);
@@ -199,13 +219,10 @@ public:
 			//eck::CreateWicBitmap(pWicBmp, pDecoder, eck::g_pWicFactory);
 			//ID2D1Bitmap1* pBitmap;
 			//pDC->CreateBitmapFromWicBitmap(pWicBmp, &pBitmap);
-
 			//auto pSpirit = new eck::CAbSpiritImage(pBitmap);
 			//pSpirit->SetPos({ 200,400 });
-
 			////m_AB.AddSpirit(pSpirit);
 			////pSpirit->AutoMarch({ 10.f,20,600.f,0,FALSE });
-
 
 			//eck::CreateWicBitmapDecoder(LR"(F:\Test\2.jpg)", pDecoder, eck::g_pWicFactory);
 			//eck::CreateWicBitmap(pWicBmp, pDecoder, eck::g_pWicFactory);
@@ -242,17 +259,66 @@ public:
 			//		return 0;
 			//	};
 			//m_LBN.SetProc(pfnn);
-			m_LBN.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL, 0,
-				0, 0, 700, 600, hWnd, 105);
-			m_LBN.SetItemCount(100);
-			m_lot.Add(&m_LBN, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
-
+			//m_LBN.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL, 0,
+			//	0, 0, 700, 600, hWnd, 105);
+			//m_LBN.SetItemCount(100);
+			//m_lot.Add(&m_LBN, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+			data.push_back(new WNDDATA{});
+			EnumWnd(GetDesktopWindow(), data[0]);
+			m_TL.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
+				0, 0, 1000, 700, hWnd, 106);
+			m_TL.BuildTree();
 			eck::SetFontForWndAndCtrl(hWnd, m_hFont);
 
 
 			Test();
 		}
 		return 0;
+		case WM_NOTIFY:
+		{
+			auto pnm = (NMHDR*)lParam;
+			if (pnm->hwndFrom == m_TL.HWnd)
+			{
+				switch (pnm->code)
+				{
+				case eck::NM_TL_FILLCHILDREN:
+				{
+					auto p = (eck::NMTLFILLCHILDREN*)lParam;
+					if (eck::IsBitSet(p->ItemParent.uFlags, eck::TLIF_ROOT))
+					{
+						p->ItemParent.cChildren = (int)data[0]->Children.size();
+						p->plParam = (LPARAM*)data[0]->Children.data();
+					}
+					else
+					{
+						auto pd = (WNDDATA*)p->ItemParent.lParam;
+						p->ItemParent.cChildren = (int)pd->Children.size();
+						p->plParam = (LPARAM*)(pd->Children.data());
+					}
+				}
+				return 0;
+				case eck::NM_TL_GETDISPINFO:
+				{
+					auto p = (eck::NMTLGETDISPINFO*)lParam;
+					auto pd = (WNDDATA*)p->Item.lParam;
+					if (p->Item.idxSubItem == 0)
+					{
+						pd->rs2.Format(L"0x%08X", pd->hWnd);
+						p->Item.pszText = pd->rs2.Data();
+						p->Item.cchText = pd->rs2.Size();
+					}
+					else
+					{
+						pd->rs = eck::CWnd(pd->hWnd).GetText();
+						p->Item.pszText = pd->rs.Data();
+						p->Item.cchText = pd->rs.Size();
+					}
+				}
+				return 0;
+				}
+			}
+		}
+		break;
 		case WM_SIZE:
 		{
 			const int cx = LOWORD(lParam), cy = HIWORD(lParam);
@@ -263,7 +329,8 @@ public:
 		{
 			if ((HWND)lParam == m_Btn.GetHWND() && HIWORD(wParam) == BN_CLICKED)
 			{
-				TrayPopBalloon(101, L"气球测试", L"我是标题");
+				//TrayPopBalloon(101, L"气球测试", L"我是标题");
+				//m_Edit.SetClr(2, eck::Colorref::Azure);
 				//BkColor = eck::Colorref::DeepGray;
 				//EscClose = TRUE;
 				//TotalMove = TRUE;

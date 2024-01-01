@@ -66,6 +66,7 @@ g_WndClassInfo[]
 	{ WCN_DRAWPANELD2D },
 	{ WCN_LISTBOXNEW },
 	{ WCN_ANIMATIONBOX },
+	{ WCN_TREELIST },
 };
 
 InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrCode)

@@ -52,19 +52,21 @@ struct DESIGNDATA_WND
 			hParent, ::eck::i32ToP<HMENU>(nID), pData);								\
 	}
 
-#define ECK_CWND_SINGLEOWNER														\
+#define ECK_CWND_SINGLEOWNER													\
 	[[nodiscard]] EckInline static constexpr BOOL IsSingleOwner() { return TRUE; }	\
 	void Attach(HWND hWnd) override													\
 	{																				\
-		throw eck::CAttachSingleOwnerWndException{};								\
+		throw ::eck::CAttachSingleOwnerWndException{};								\
 	}																				\
 	HWND Detach() override															\
 	{																				\
-		throw eck::CDetachSingleOwnerWndException{};								\
-	}
+		throw ::eck::CDetachSingleOwnerWndException{};								\
+	}																				\
 
-#define ECK_CWND_NOSINGLEOWNER														\
-	[[nodiscard]] EckInline static constexpr BOOL IsSingleOwner() { return FALSE; }
+#define ECK_CWND_NOSINGLEOWNER(Class)												\
+	[[nodiscard]] EckInline static constexpr BOOL IsSingleOwner() { return FALSE; }	\
+	Class() = default;																\
+	Class(HWND hWnd) { m_hWnd = hWnd; }
 
 
 class CWnd
@@ -104,14 +106,31 @@ protected:
 	}
 
 	template<class T>
-	EckInline LRESULT FillNmhdrAndSend(T& nmhdr, UINT uCode)
+	EckInline void FillNmhdr(T& nm, UINT uCode)
 	{
 		static_assert(sizeof(T) >= sizeof(NMHDR));
-		auto p = (NMHDR*)&nmhdr;
+		auto p = (NMHDR*)&nm;
 		p->hwndFrom = GetHWND();
 		p->code = uCode;
 		p->idFrom = GetDlgCtrlID(GetHWND());
-		return SendMessageW(GetParent(GetHWND()), WM_NOTIFY, p->idFrom, (LPARAM)p);
+	}
+
+	template<class T>
+	EckInline LRESULT SendNotify(T& nm)
+	{
+		return SendMessageW(GetParent(GetHWND()), WM_NOTIFY, ((NMHDR*)&nm)->idFrom, (LPARAM)&nm);
+	}
+
+	template<class T>
+	EckInline LRESULT FillNmhdrAndSendNotify(T& nm, UINT uCode)
+	{
+		FillNmhdr(nm, uCode);
+		return SendNotify(nm);
+	}
+
+	LRESULT DefNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		return CWndFromHWND(hParent)->OnMsg(hParent, uMsg, wParam, lParam);
 	}
 public:
 	ECKPROP_R(GetHWND)					HWND		HWnd;			// 窗口句柄
@@ -130,6 +149,8 @@ public:
 	ECKPROP(GetHeight, SetHeight)		int			Height;			// 高度
 	ECKPROP(GetPosition, SetPosition)	POINT		Position;		// 位置
 	ECKPROP(GetSize, SetSize)			SIZE		Size;			// 尺寸
+	ECKPROP_R(GetClientWidth)			int			ClientWidth;
+	ECKPROP_R(GetClientHeight)			int			ClientHeight;
 
 	/// <summary>
 	/// EckWndProc
@@ -900,6 +921,20 @@ public:
 	EckInline void SetInfo(int iType, SCROLLINFO* psi, BOOL bRedraw = TRUE)
 	{
 		SetScrollInfo(m_hWnd, iType, psi, bRedraw);
+	}
+
+	[[nodiscard]] int GetClientWidth() const
+	{
+		RECT rc;
+		GetClientRect(m_hWnd, &rc);
+		return rc.right;
+	}
+
+	[[nodiscard]] int GetClientHeight() const
+	{
+		RECT rc;
+		GetClientRect(m_hWnd, &rc);
+		return rc.bottom;
 	}
 };
 ECK_NAMESPACE_END

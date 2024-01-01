@@ -350,7 +350,7 @@ public:
 			if (m_hbrEditBK)
 				hbr = m_hbrEditBK;
 			else
-				hbr = (HBRUSH)CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
+				hbr = (HBRUSH)DefNotifyMsg(hWnd, uMsg, wParam, lParam);
 			if (m_crText != CLR_DEFAULT)
 				SetTextColor((HDC)wParam, m_crText);
 			SetBkColor((HDC)wParam, m_crTextBK);

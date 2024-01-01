@@ -154,7 +154,7 @@ public:
 				cr = c_ColorPickerPresetClr[idxCurrSel].cr;
 			NMCLPCLRCHANGED nm;
 			nm.cr = cr;
-			FillNmhdrAndSend(nm, NM_CLP_CLRCHANGED);
+			FillNmhdrAndSendNotify(nm, NM_CLP_CLRCHANGED);
 			return TRUE;
 		}
 		break;

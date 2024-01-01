@@ -56,7 +56,10 @@ inline constexpr int StrNPos = -1;
 #if ECKCXX20
 template<class TChar>
 concept ccpIsStdChar = std::is_same_v<TChar, CHAR> || std::is_same_v<TChar, WCHAR>;
-
+#else// ECKCXX20
+#pragma push_macro("ccpIsStdChar")
+#define ccpIsStdChar class
+#endif// ECKCXX20
 template<ccpIsStdChar TChar>
 using TRefStrDefAlloc = CAllocatorProcHeap<TChar, int>;
 
@@ -71,22 +74,7 @@ struct CCharTraits
 {
 	using TChar = void;
 };
-#else// ECKCXX20
-template<class TChar>
-using TRefStrDefAlloc = CAllocatorProcHeap<TChar, int>;
 
-template<class TChar_, class TCharTraits_, class TAlloc_>
-class CRefStrT;
-
-template<class TCharTraits, class TAlloc>
-CRefStrT<WCHAR, TCharTraits, TAlloc> StrX2W(PCSTR pszText, int cch, int uCP);
-
-template<class TChar_>
-struct CCharTraits
-{
-	using TChar = void;
-};
-#endif// ECKCXX20
 template<>
 struct CCharTraits<WCHAR>
 {
@@ -145,7 +133,6 @@ struct CCharTraits<CHAR>
 	EckInline static int GetFormatCchV(PCSTR pszFmt, va_list vl) { return _vscprintf(pszFmt, vl); }
 };
 
-#if ECKCXX20
 template<ccpIsStdChar TChar>
 using TRefStrDefTraits = CCharTraits<TChar>;
 
@@ -154,16 +141,6 @@ template<
 	class TCharTraits_ = TRefStrDefTraits<TChar_>,
 	class TAlloc_ = TRefStrDefAlloc<TChar_>
 >
-#else// ECKCXX20
-template<class TChar>
-using TRefStrDefTraits = CCharTraits<TChar>;
-
-template<
-	class TChar_,
-	class TCharTraits_ = TRefStrDefTraits<TChar_>,
-	class TAlloc_ = TRefStrDefAlloc<TChar_>
->
-#endif// ECKCXX20
 class CRefStrT
 {
 public:
@@ -185,7 +162,7 @@ private:
 	TPointer m_pszText = NULL;
 	int m_cchText = 0;
 	int m_cchCapacity = 0;
-	
+
 	ECKNOUNIQUEADDR TAlloc m_Alloc{};
 public:
 	CRefStrT() = default;
@@ -331,7 +308,7 @@ public:
 				DupString(x.Data(), x.Size());
 				return *this;
 			}
-		
+
 		std::swap(m_pszText, x.m_pszText);
 		std::swap(m_cchText, x.m_cchText);
 		std::swap(m_cchCapacity, x.m_cchCapacity);
@@ -412,7 +389,10 @@ public:
 		if (bstr)
 			return DupString((TConstPointer)(((PCBYTE)bstr) + 4), (int)SysStringLen(bstr));
 		else
+		{
+			Clear();
 			return 0;
+		}
 	}
 
 	/// <summary>
@@ -700,13 +680,13 @@ public:
 		EckAssert(pszText ? (cchText >= 0) : (cchText == 0));
 		ReSizeExtra(Size() + cchText);
 		TCharTraits::MoveEnd(
-			Data() + pos + cchText, 
+			Data() + pos + cchText,
 			Data() + pos,
 			Size() - cchText - pos);
 		TCharTraits::Copy(Data() + pos, pszText, cchText);
 	}
 
-	template<class TTraits,class TAlloc1>
+	template<class TTraits, class TAlloc1>
 	EckInline void Insert(int pos, const CRefStrT<TChar, TTraits, TAlloc1>& rs)
 	{
 		Insert(pos, rs.Data(), rs.Size());
@@ -743,8 +723,8 @@ public:
 	{
 		EckAssert(Size() >= pos + cch);
 		TCharTraits::MoveEnd(
-			Data() + pos, 
-			Data() + pos + cch, 
+			Data() + pos,
+			Data() + pos + cch,
 			Size() - pos - cch);
 		m_cchText -= cch;
 	}
@@ -817,9 +797,15 @@ public:
 		}
 	}
 
-	[[nodiscard]] EckInline constexpr std::basic_string_view<TChar> ToStringView() const
+	[[nodiscard]] EckInline constexpr auto ToStringView() const
 	{
 		return std::basic_string_view<TChar>(Data(), Size());
+	}
+
+	template<class TTraits = std::char_traits<TChar>, class TAlloc1 = std::allocator<TChar>>
+	[[nodiscard]] EckInline auto ToStdString() const
+	{
+		return std::basic_string<TChar, TTraits, TAlloc1>(Data(), (size_t)Size());
 	}
 
 	[[nodiscard]] EckInline TIterator begin() { return Data(); }
@@ -840,7 +826,7 @@ using CRefStrW = CRefStrT<WCHAR, CCharTraits<WCHAR>>;
 using CRefStrA = CRefStrT<CHAR, CCharTraits<CHAR>>;
 
 #define EckCRefStrTemp CRefStrT<TChar, TCharTraits, TAlloc>
-	
+
 template<class TChar, class TCharTraits, class TAlloc>
 EckInline EckCRefStrTemp operator+(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
 {
@@ -1266,7 +1252,7 @@ namespace Literals
 /// <returns>位置，若未找到返回StrNPos</returns>
 [[nodiscard]] EckInline int FindStrRev(const CRefStrW& rsText, const CRefStrW& rsSub, int posStart = 0)
 {
-	return FindStrRev(rsText.Data(), rsText.Size(), rsSub.Data(), posStart,  rsSub.Size());
+	return FindStrRev(rsText.Data(), rsText.Size(), rsSub.Data(), posStart, rsSub.Size());
 }
 
 /// <summary>
@@ -1283,7 +1269,7 @@ namespace Literals
 [[nodiscard]] EckInline int FindStrRevNcs(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = 0)
 {
 	auto rsText = ToUpperCase(pszText, cchText), rsSub = ToUpperCase(pszSub, cchSub);
-	return FindStrRev(rsText.Data(), rsText.Size(), rsSub.Data(), posStart,  rsSub.Size());
+	return FindStrRev(rsText.Data(), rsText.Size(), rsSub.Data(), posStart, rsSub.Size());
 }
 
 /// <summary>
@@ -1591,6 +1577,11 @@ EckInline CRefStrW Format(PCWSTR pszFmt, ...)
 	va_end(vl);
 	return rs;
 }
+
+#if !ECKCXX20
+#undef ccpIsStdChar
+#pragma pop_macro("ccpIsStdChar")
+#endif
 
 #undef EckCRefStrTemp
 ECK_NAMESPACE_END
