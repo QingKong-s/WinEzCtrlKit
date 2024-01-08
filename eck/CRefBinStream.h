@@ -2,8 +2,7 @@
 * WinEzCtrlKit Library
 *
 * CRefBinStream.h ： 字节集流
-* CRefBin流的IStream实现
-*
+* 
 * Copyright(C) 2023 QingKong
 */
 #pragma once
@@ -12,6 +11,12 @@
 #include <Shlwapi.h>
 
 ECK_NAMESPACE_BEGIN
+/// <summary>
+/// 字节集流类
+/// 底层为CRefBinT的IStream实现
+/// 本类非线程安全
+/// </summary>
+/// <typeparam name="TAlloc"></typeparam>
 template<class TAlloc>
 class CRefBinStreamT :public IStream
 {

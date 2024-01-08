@@ -19,7 +19,8 @@ public:
 		{
 		case WM_THEMECHANGED:
 			CloseThemeData(m_hTheme);
-			[[fallthrough]]
+			m_hTheme = OpenThemeData(hWnd, L"ListView");
+			return 0;
 		case WM_CREATE:
 			m_bOwnerData = IsBitSet(GetStyle(), LVS_OWNERDATA);
 			m_hTheme = OpenThemeData(hWnd, L"ListView");
