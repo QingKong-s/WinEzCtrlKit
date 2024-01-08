@@ -269,7 +269,10 @@ public:
 
 	EckInline CRefStrT& operator=(TConstPointer pszSrc)
 	{
-		DupString(pszSrc);
+		if (pszSrc)
+			DupString(pszSrc);
+		else
+			Clear();
 		return *this;
 	}
 

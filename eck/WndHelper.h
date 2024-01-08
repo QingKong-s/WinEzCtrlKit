@@ -269,8 +269,13 @@ inline HWND GetThreadFirstWindow(DWORD dwTid)
 		return hWnd;
 	EnumThreadWindows(GetCurrentThreadId(), [](HWND hWnd, LPARAM lParam)->BOOL
 		{
-			*(HWND*)lParam = hWnd;
-			return FALSE;
+			if (IsWindowVisible(hWnd))
+			{
+				*(HWND*)lParam = hWnd;
+				return TRUE;
+			}
+			else
+				return FALSE;
 		}, (LPARAM)&hWnd);
 	return hWnd;
 }
@@ -329,5 +334,66 @@ inline ATOM EzRegisterWndClass(PCWSTR pszClass, UINT uStyle = CS_STDWND, HBRUSH 
 	wc.style = uStyle;
 	wc.hbrBackground = hbrBK;
 	return RegisterClassW(&wc);
+}
+
+EckInline HMONITOR GetMainMonitor()
+{
+	HMONITOR hMonitor = NULL;
+	EnumDisplayMonitors(NULL, NULL, [](HMONITOR hMonitor, HDC, RECT*, LPARAM lParam)->BOOL
+		{
+			MONITORINFO mi;
+			mi.cbSize = sizeof(mi);
+			GetMonitorInfoW(hMonitor, &mi);
+			if (IsBitSet(mi.dwFlags, MONITORINFOF_PRIMARY))
+			{
+				*(HMONITOR*)lParam = hMonitor;
+				return FALSE;
+			}
+			else
+				return TRUE;
+		}, (LPARAM)&hMonitor);
+	return hMonitor;
+}
+
+inline HMONITOR GetOwnerMonitor(HWND hWnd)
+{
+	if (hWnd)
+		return MonitorFromWindow(hWnd, MONITOR_DEFAULTTOPRIMARY);
+	else
+	{
+		const auto hForeGnd = GetForegroundWindow();
+		DWORD dwPID;
+		GetWindowThreadProcessId(hForeGnd, &dwPID);
+		if (dwPID == GetCurrentProcessId())// 如果前台窗口是自进程窗口，返回这个窗口所在的显示器
+			return MonitorFromWindow(hForeGnd, MONITOR_DEFAULTTOPRIMARY);
+		else// 否则返回主显示器
+			return GetMainMonitor();
+	}
+}
+
+inline POINT CalcCenterWndPos(HWND hParent, int cx, int cy)
+{
+	if (hParent)
+	{
+		RECT rc;
+		GetWindowRect(hParent, &rc);
+		return
+		{
+			rc.left + (rc.right - rc.left - cx) / 2,
+			rc.top + (rc.bottom - rc.top - cy) / 2
+		};
+	}
+	else
+	{
+		const auto hMonitor = GetOwnerMonitor(NULL);
+		MONITORINFO mi;
+		mi.cbSize = sizeof(mi);
+		GetMonitorInfoW(hMonitor, &mi);
+		return
+		{
+			mi.rcWork.left + (mi.rcWork.right - mi.rcWork.left - cx) / 2,
+			mi.rcWork.top + (mi.rcWork.bottom - mi.rcWork.top - cy) / 2
+		};
+	}
 }
 ECK_NAMESPACE_END

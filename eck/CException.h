@@ -33,6 +33,15 @@ struct CAttachSingleOwnerWndException :CException
 struct CDetachSingleOwnerWndException :CException
 {};
 
+struct CCreateOnPureCWndException :CException
+{};
+
+struct CDlgBoxOnPureCDialogException :CException
+{};
+
+struct CCreateDlgOnPureCDialogException :CException
+{};
+
 EckInline void DbgPrint(const CConstMsgException& e)
 {
 	OutputDebugStringW(e.GetMsg());
