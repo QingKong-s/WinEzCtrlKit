@@ -38,9 +38,9 @@ public:
 		DateTime = 11,
 	};
 private:
-	COLORREF m_crText;			// 文本颜色
-	COLORREF m_crTextBK;		// 文本背景色
-	COLORREF m_crBK;			// 编辑框背景色
+	COLORREF m_crText = CLR_DEFAULT;			// 文本颜色
+	COLORREF m_crTextBK = CLR_DEFAULT;			// 文本背景色
+	COLORREF m_crBK = CLR_DEFAULT;				// 编辑框背景色
 	InputMode m_iInputMode = InputMode::Normal;	// 输入方式
 
 	HBRUSH m_hbrEditBK = NULL;	// 背景画刷
@@ -68,12 +68,12 @@ private:
 	void UpdateTextInfo()
 	{
 		HFONT hFont = (HFONT)SendMsg(WM_GETFONT, 0, 0);
-		HDC hDC = GetDC(m_hWnd);
-		SelectObject(hDC, hFont);
+		HDC hCDC = CreateCompatibleDC(NULL);
+		SelectObject(hCDC, hFont);
 		TEXTMETRICW tm;
-		GetTextMetricsW(hDC, &tm);
+		GetTextMetricsW(hCDC, &tm);
 		m_cyText = tm.tmHeight;
-		ReleaseDC(m_hWnd, hDC);
+		DeleteDC(hCDC);
 	}
 public:
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -306,7 +306,10 @@ public:
 			DeleteObject(hRgnBK);
 			DeleteObject(hRgnText);
 			// 填充背景
-			FillRect(hDC, &rcWnd, m_hbrEditBK);
+			if (m_hbrEditBK)
+				FillRect(hDC, &rcWnd, m_hbrEditBK);
+			else
+				FillRect(hDC, &rcWnd, GetSysColorBrush(COLOR_WINDOW));
 			ReleaseDC(hWnd, hDC);
 		}
 		return 0;
@@ -353,7 +356,8 @@ public:
 				hbr = (HBRUSH)DefNotifyMsg(hWnd, uMsg, wParam, lParam);
 			if (m_crText != CLR_DEFAULT)
 				SetTextColor((HDC)wParam, m_crText);
-			SetBkColor((HDC)wParam, m_crTextBK);
+			if (m_crBK != CLR_DEFAULT)
+				SetBkColor((HDC)wParam, m_crTextBK);
 			lResult = (LRESULT)hbr;
 			return TRUE;
 		}
@@ -361,12 +365,6 @@ public:
 		}
 
 		return CEdit::OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult);
-	}
-
-	CEditExt()
-	{
-		m_crTextBK = m_crBK = GetSysColor(COLOR_WINDOW);
-		m_crText = CLR_DEFAULT;
 	}
 
 	~CEditExt()
@@ -379,75 +377,75 @@ public:
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
 		if (pData)
-	{
-		auto pBase = (const CREATEDATA_STD*)pData;
-		auto pEditBase = (const CREATEDATA_EDIT*)CWnd::SkipBaseData(pBase);
-		auto p = (const CREATEDATA_EDITEXT*)CEdit::SkipBaseData(pEditBase);
-		if (pBase->iVer_Std != DATAVER_STD_1)
 		{
-			EckDbgBreak();
-			return NULL;
+			auto pBase = (const CREATEDATA_STD*)pData;
+			auto pEditBase = (const CREATEDATA_EDIT*)CWnd::SkipBaseData(pBase);
+			auto p = (const CREATEDATA_EDITEXT*)CEdit::SkipBaseData(pEditBase);
+			if (pBase->iVer_Std != DATAVER_STD_1)
+			{
+				EckDbgBreak();
+				return NULL;
+			}
+
+			BOOL bVisible = IsBitSet(pBase->dwStyle, WS_VISIBLE);
+			dwStyle = pBase->dwStyle & ~WS_VISIBLE;
+
+			switch (p->iVer)
+			{
+			case DATAVER_EDITEXT_1:
+				SetMultiLine(p->bMultiLine);
+				SetAutoWrap(p->bAutoWrap);
+				if (m_bMultiLine)
+					dwStyle |= ES_MULTILINE | ES_AUTOVSCROLL | (m_bAutoWrap ? ES_AUTOHSCROLL : 0);
+				else
+					dwStyle |= ES_AUTOHSCROLL;
+				break;
+			default:
+				EckDbgBreak();
+				break;
+			}
+			m_hWnd = IntCreate(pBase->dwExStyle, WC_EDITW, pBase->Text(), dwStyle,
+				x, y, cx, cy, hParent, hMenu, NULL, NULL);
+
+			switch (p->iVer)
+			{
+			case DATAVER_EDITEXT_1:
+				SetPasswordChar(pEditBase->chPassword);
+				SetTransformMode((TransMode)pEditBase->eTransMode);
+				SetSel(pEditBase->iSelStart, pEditBase->iSelEnd);
+				SetMargins(pEditBase->iLeftMargin, pEditBase->iRightMargin);
+				SetCueBanner(pEditBase->CueBanner(), TRUE);
+				SetLimitText(pEditBase->cchMax);
+
+				SetClr(0, p->crText);
+				SetClr(1, p->crTextBK);
+				SetClr(2, p->crBK);
+				SetInputMode((InputMode)p->iInputMode);
+				break;
+			}
+			if (bVisible)
+				ShowWindow(m_hWnd, SW_SHOWNOACTIVATE);
 		}
-
-		BOOL bVisible = IsBitSet(pBase->dwStyle, WS_VISIBLE);
-		dwStyle = pBase->dwStyle & ~WS_VISIBLE;
-
-		switch (p->iVer)
+		else
 		{
-		case DATAVER_EDITEXT_1:
-			SetMultiLine(p->bMultiLine);
-			SetAutoWrap(p->bAutoWrap);
+			dwStyle |= WS_CHILD;
 			if (m_bMultiLine)
 				dwStyle |= ES_MULTILINE | ES_AUTOVSCROLL | (m_bAutoWrap ? ES_AUTOHSCROLL : 0);
 			else
 				dwStyle |= ES_AUTOHSCROLL;
-			break;
-		default:
-			EckDbgBreak();
-			break;
-		}
-		m_hWnd = IntCreate(pBase->dwExStyle, WC_EDITW, pBase->Text(), dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
 
-		switch (p->iVer)
+			m_hWnd = IntCreate(dwExStyle, WC_EDITW, pszText, dwStyle,
+				x, y, cx, cy, hParent, hMenu, NULL, NULL);
+		}
+
+		m_hParent = hParent;
+
+		if (!GetMultiLine())
 		{
-		case DATAVER_EDITEXT_1:
-			SetPasswordChar(pEditBase->chPassword);
-			SetTransformMode((TransMode)pEditBase->eTransMode);
-			SetSel(pEditBase->iSelStart, pEditBase->iSelEnd);
-			SetMargins(pEditBase->iLeftMargin, pEditBase->iRightMargin);
-			SetCueBanner(pEditBase->CueBanner(), TRUE);
-			SetLimitText(pEditBase->cchMax);
-
-			SetClr(0, p->crText);
-			SetClr(1, p->crTextBK);
-			SetClr(2, p->crBK);
-			SetInputMode((InputMode)p->iInputMode);
-			break;
+			UpdateTextInfo();
+			FrameChanged();
 		}
-		if (bVisible)
-			ShowWindow(m_hWnd, SW_SHOWNOACTIVATE);
-	}
-	else
-	{
-		dwStyle |= WS_CHILD;
-		if (m_bMultiLine)
-			dwStyle |= ES_MULTILINE | ES_AUTOVSCROLL | (m_bAutoWrap ? ES_AUTOHSCROLL : 0);
-		else
-			dwStyle |= ES_AUTOHSCROLL;
-
-		m_hWnd = IntCreate(dwExStyle, WC_EDITW, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
-	}
-
-	m_hParent = hParent;
-
-	if (!GetMultiLine())
-	{
-		UpdateTextInfo();
-		FrameChanged();
-	}
-	return m_hWnd;
+		return m_hWnd;
 	}
 
 	void SerializeData(CRefBin& rb) override
@@ -480,9 +478,11 @@ public:
 		case 0:m_crText = cr; break;
 		case 1:m_crTextBK = cr; break;
 		case 2:
-			if (m_hbrEditBK)
-				DeleteObject(m_hbrEditBK);
-			m_hbrEditBK = CreateSolidBrush(cr);
+			DeleteObject(m_hbrEditBK);
+			if (cr != CLR_DEFAULT)
+				m_hbrEditBK = CreateSolidBrush(cr);
+			else
+				m_hbrEditBK = NULL;
 			m_crBK = cr;
 			SendMsg(WM_NCPAINT, 0, 0);
 			break;

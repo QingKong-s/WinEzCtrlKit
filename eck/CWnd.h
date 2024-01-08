@@ -236,7 +236,7 @@ public:
 #ifdef _DEBUG
 		// 对于已添加进映射的窗口，CWnd的生命周期必须在窗口生命周期之内
 		if (m_hWnd)
-			EckAssert((GetThreadCtx()->WmAt(m_hWnd) ? (!m_hWnd) : TRUE));
+			EckAssert(((GetThreadCtx()->WmAt(m_hWnd) == this) ? (!m_hWnd) : TRUE));
 #endif // _DEBUG
 	}
 
@@ -729,7 +729,7 @@ public:
 	[[nodiscard]] EckInline CRefStrW GetClsName()
 	{
 		CRefStrW rs(256);
-		GetClassNameW(GetHWND(), rs.Data(), 256 + 1);
+		rs.ReSize(GetClassNameW(GetHWND(), rs.Data(), 256 + 1));
 		return rs;
 	}
 
@@ -824,7 +824,7 @@ public:
 		EnableScrollBar(m_hWnd, iBarType, iOp);
 	}
 
-	EckInline int GetPos(int iType)
+	EckInline int GetSbPos(int iType)
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -833,7 +833,7 @@ public:
 		return si.nPos;
 	}
 
-	EckInline int GetTrackPos(int iType)
+	EckInline int GetSbTrackPos(int iType)
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -842,7 +842,7 @@ public:
 		return si.nTrackPos;
 	}
 
-	EckInline BOOL GetRange(int iType, int* piMin = NULL, int* piMax = NULL)
+	EckInline BOOL GetSbRange(int iType, int* piMin = NULL, int* piMax = NULL)
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -855,7 +855,7 @@ public:
 		return b;
 	}
 
-	EckInline int GetPage(int iType)
+	EckInline int GetSbPage(int iType)
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -864,13 +864,13 @@ public:
 		return si.nPage;
 	}
 
-	EckInline BOOL GetInfo(int iType, SCROLLINFO* psi)
+	EckInline BOOL GetSbInfo(int iType, SCROLLINFO* psi)
 	{
 		psi->cbSize = sizeof(SCROLLINFO);
 		return GetScrollInfo(m_hWnd, iType, psi);
 	}
 
-	EckInline void SetPos(int iType, int iPos, BOOL bRedraw = TRUE)
+	EckInline void SetSbPos(int iType, int iPos, BOOL bRedraw = TRUE)
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -879,7 +879,7 @@ public:
 		SetScrollInfo(m_hWnd, iType, &si, bRedraw);
 	}
 
-	EckInline void SetRange(int iType, int iMin, int iMax, BOOL bRedraw = TRUE)
+	EckInline void SetSbRange(int iType, int iMin, int iMax, BOOL bRedraw = TRUE)
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -889,7 +889,7 @@ public:
 		si.nMax = iMax;
 	}
 
-	EckInline void SetMin(int iType, int iMin, BOOL bRedraw = TRUE)
+	EckInline void SetSbMin(int iType, int iMin, BOOL bRedraw = TRUE)
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -899,7 +899,7 @@ public:
 		SetScrollInfo(m_hWnd, iType, &si, bRedraw);
 	}
 
-	EckInline void SetMax(int iType, int iMax, BOOL bRedraw = TRUE)
+	EckInline void SetSbMax(int iType, int iMax, BOOL bRedraw = TRUE)
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -909,7 +909,7 @@ public:
 		SetScrollInfo(m_hWnd, iType, &si, bRedraw);
 	}
 
-	EckInline void SetPage(int iType, int iPage, BOOL bRedraw = TRUE)
+	EckInline void SetSbPage(int iType, int iPage, BOOL bRedraw = TRUE)
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -918,7 +918,7 @@ public:
 		SetScrollInfo(m_hWnd, iType, &si, bRedraw);
 	}
 
-	EckInline void SetInfo(int iType, SCROLLINFO* psi, BOOL bRedraw = TRUE)
+	EckInline void SetSbInfo(int iType, SCROLLINFO* psi, BOOL bRedraw = TRUE)
 	{
 		SetScrollInfo(m_hWnd, iType, psi, bRedraw);
 	}

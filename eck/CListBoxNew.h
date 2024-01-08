@@ -143,7 +143,7 @@ private:
 		m_cxClient = cx;
 		m_cyClient = cy;
 
-		SetPage(SB_VERT, cy);
+		SetSbPage(SB_VERT, cy);
 		m_DC.ReSize(hWnd, cx, cy);
 	}
 
@@ -170,7 +170,7 @@ private:
 		SCROLLINFO si;
 		si.cbSize = sizeof(si);
 		si.fMask = SIF_ALL;
-		GetInfo(SB_VERT, &si);
+		GetSbInfo(SB_VERT, &si);
 		const int yOld = si.nPos;
 		switch (uCode)
 		{
@@ -198,8 +198,8 @@ private:
 		}
 
 		si.fMask = SIF_POS;
-		SetInfo(SB_VERT, &si);
-		GetInfo(SB_VERT, &si);
+		SetSbInfo(SB_VERT, &si);
+		GetSbInfo(SB_VERT, &si);
 		ReCalcTopItem();
 		ScrollWindow(hWnd, 0, yOld - si.nPos, NULL, NULL);
 		UpdateWindow(hWnd);
@@ -289,11 +289,11 @@ private:
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
 		si.fMask = SIF_POS;
-		GetInfo(SB_VERT, &si);
+		GetSbInfo(SB_VERT, &si);
 		const int yOld = si.nPos;
 		si.nPos += (-zDelta / WHEEL_DELTA * m_cyItem * 3);
-		SetInfo(SB_VERT, &si);
-		GetInfo(SB_VERT, &si);
+		SetSbInfo(SB_VERT, &si);
+		GetSbInfo(SB_VERT, &si);
 		ReCalcTopItem();
 		ScrollWindow(hWnd, 0, yOld - si.nPos, NULL, NULL);
 		UpdateWindow(hWnd);
@@ -302,7 +302,7 @@ private:
 
 	void ReCalcTopItem()
 	{
-		const int ySB = GetPos(SB_VERT);
+		const int ySB = GetSbPos(SB_VERT);
 		m_idxTop = ySB / m_cyItem;
 		m_oyTop = m_idxTop * m_cyItem - ySB;
 	}
@@ -341,7 +341,7 @@ private:
 		si.nMin = 0;
 		si.nMax = (int)m_vItem.size() * m_cyItem;
 		si.nPage = m_cyClient;
-		SetInfo(SB_VERT, &si);
+		SetSbInfo(SB_VERT, &si);
 	}
 public:
 	ECK_CWND_CREATE;
