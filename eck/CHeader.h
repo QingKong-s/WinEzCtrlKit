@@ -1,4 +1,4 @@
-/*
+﻿/*
 * WinEzCtrlKit Library
 *
 * CHeader.h ： 标准表头

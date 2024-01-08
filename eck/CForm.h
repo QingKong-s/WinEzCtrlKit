@@ -56,7 +56,7 @@ private:
 		UINT ECKPRIV_PLACEHOLDER___ = 0b1;
 	};
 #endif
-
+protected:
 	static UINT s_uTrayMsg;
 	static UINT s_uTaskbarCreatedMsg;
 public:
@@ -68,8 +68,6 @@ public:
 	ECKPROP(GetTotalMove, SetTotalMove)			BOOL		TotalMove;		// 随意移动
 	ECKPROP(GetBkColor, SetBkColor)				COLORREF	BkColor;		// 背景颜色
 	ECKPROP_R(GetBkImageSize)					SIZE		BkImageSize;	// 背景图片大小
-
-	EckInline static ATOM RegisterWndClass() { return EzRegisterWndClass(WCN_FORM); }
 
 	~CForm()
 	{
@@ -175,6 +173,13 @@ public:
 
 	}
 
+	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+	{
+		return IntCreate(dwExStyle, WCN_FORM, pszText, dwStyle,
+			x, y, cx, cy, hParent, hMenu, g_hInstance, NULL);
+	}
+
 	EckInline HBITMAP GetBkImage() const { return m_hbmBk; }
 
 	EckInline void SetBkImage(HBITMAP hbmBk)
@@ -226,7 +231,7 @@ public:
 
 	EckInline SIZE GetBkImageSize() const { return { m_cxImage,m_cyImage }; }
 
-	EckInline BOOL TrayAdd(UINT uID, HICON hIcon, PCWSTR pszTip, DWORD dwState = 0u, BOOL bShowTip = TRUE)
+	BOOL TrayAdd(UINT uID, HICON hIcon, PCWSTR pszTip, DWORD dwState = 0u, BOOL bShowTip = TRUE)
 	{
 		NOTIFYICONDATAW nid;
 		nid.cbSize = sizeof(nid);

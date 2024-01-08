@@ -114,6 +114,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			{
 				*pdwErrCode = GetLastError();
 				EckDbgPrintFormatMessage(*pdwErrCode);
+				EckDbgBreak();
 				return InitStatus::RegWndClassError;
 			}
 			break;
@@ -122,6 +123,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			{
 				*pdwErrCode = GetLastError();
 				EckDbgPrintFormatMessage(*pdwErrCode);
+				EckDbgBreak();
 				return InitStatus::RegWndClassError;
 			}
 			break;
@@ -363,7 +365,7 @@ void DbgPrintFmt(PCWSTR pszFormat, ...)
 
 void DbgPrintWithPos(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg)
 {
-	DbgPrint(Format(L"%s(%u行) -> %s\n\t%s\n", pszFile, iLine, pszFunc, pszMsg));
+	DbgPrint(Format(L"%s(%u) -> %s\n\t%s\n", pszFile, iLine, pszFunc, pszMsg));
 }
 
 const CRefStrW& GetRunningPath()

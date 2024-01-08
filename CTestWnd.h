@@ -29,8 +29,9 @@
 #include "eck\CAnimationBox.h"
 #include "eck\CForm.h"
 #include "eck\CTreeList.h"
+#include "eck\CInputBox.h"
 
-#define WCN_TEST L"TesttttttttttttttWndddddddddd"
+#define WCN_TEST L"CTestWindow"
 
 using eck::PCVOID;
 
@@ -164,6 +165,29 @@ public:
 		//CRefBin rb = SaveWicBitmap(pBitmap);
 		//WriteToFile(LR"(E:\Desktop\123.png)", rb);
 		//EckDbgBreak();
+
+		CInputBox ib;
+		INPUTBOXOPT opt
+		{
+			L"输入框测试",
+			L"此 API 不参与 DPI 虚拟化",
+			L"BeginPaint 函数准备用于绘制的指定窗口，并使用有关绘制的信息填充 PAINTSTRUCT 结构。",
+			L"BeginPaint 函数会自动设置设备上下文的剪辑区域，以排除更新区域之外的任何区域。 更新区域由 InvalidateRect 或 InvalidateRgn"
+			" 函数以及系统在调整大小、移动、创建、滚动或影响工作区的任何其他操作后设置。"
+			" 如果更新区域标记为要擦除， BeginPaint 会将 WM_ERASEBKGND 消息发送到窗口。"
+			"\n应用程序不应调用 BeginPaint ，除非响应 WM_PAINT 消息。 对 BeginPaint 的每个调用都必须具有对 EndPaint 函数的相应调用。"
+			"\n如果插入点位于要绘制的区域， BeginPaint 会自动隐藏插入点以防止擦除它。"
+			"\n如果窗口的 类具有背景画笔， 则 BeginPaint 使用该画笔在返回之前擦除更新区域的背景。",
+			{},
+			IPBF_CENTERSCREEN | IPBF_FIXWIDTH //| IPBF_MULTILINE
+			,0,
+			0,
+			0,
+			0,
+		};
+
+		ib.DlgBox(HWnd, &opt);
+		MsgBox(opt.rsInput.Data());
 	}
 
 	BOOL PreTranslateMessage(const MSG& Msg) override
@@ -172,9 +196,11 @@ public:
 	}
 	struct WNDDATA
 	{
+		eck::TLNODE Node{};
 		HWND hWnd{};
 		eck::CRefStrW rs{};
 		eck::CRefStrW rs2{};
+		eck::CRefStrW rs3{};
 		std::vector<WNDDATA*> Children{};
 	};
 	void EnumWnd(HWND hWnd, WNDDATA* data)
@@ -182,10 +208,13 @@ public:
 		auto h = GetWindow(hWnd, GW_CHILD);
 		while (h)
 		{
-			if(IsWindowVisible(h))
-			EnumWnd(h, data->Children.emplace_back(new WNDDATA{ h }));
+			if (IsWindowVisible(h))
+			{
+				EnumWnd(h, data->Children.emplace_back(new WNDDATA{ {},h }));
+			}
 			h = GetWindow(h, GW_HWNDNEXT);
 		}
+		data->Node.cChildren = data->Children.size();
 	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -208,7 +237,7 @@ public:
 			//m_hbm = eck::CreateHBITMAP(LR"(E:\Desktop\Temp\111111.jpg)");
 			//m_Label.SetPic(m_hbm);
 			//m_lot.Add(&m_Label);
-			
+
 			//m_AB.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0, 0, 0, 1100, 700, hWnd, 104);
 			//m_lot.Add(&m_AB);
 			//auto pDC = m_AB.GetDC();
@@ -266,7 +295,7 @@ public:
 			data.push_back(new WNDDATA{});
 			EnumWnd(GetDesktopWindow(), data[0]);
 			m_TL.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
-				0, 0, 1000, 700, hWnd, 106);
+				0, 0, 1200, 1000, hWnd, 106);
 			m_TL.BuildTree();
 			eck::SetFontForWndAndCtrl(hWnd, m_hFont);
 
@@ -284,34 +313,39 @@ public:
 				case eck::NM_TL_FILLCHILDREN:
 				{
 					auto p = (eck::NMTLFILLCHILDREN*)lParam;
-					if (eck::IsBitSet(p->ItemParent.uFlags, eck::TLIF_ROOT))
+					if (!p->pParent)
 					{
-						p->ItemParent.cChildren = (int)data[0]->Children.size();
-						p->plParam = (LPARAM*)data[0]->Children.data();
+						p->pParent = (eck::TLNODE*)data[0];
+						p->pChildren = (eck::TLNODE**)data[0]->Children.data();
 					}
 					else
 					{
-						auto pd = (WNDDATA*)p->ItemParent.lParam;
-						p->ItemParent.cChildren = (int)pd->Children.size();
-						p->plParam = (LPARAM*)(pd->Children.data());
+						auto pd = (WNDDATA*)p->pParent;
+						p->pChildren = (eck::TLNODE**)pd->Children.data();
 					}
 				}
 				return 0;
 				case eck::NM_TL_GETDISPINFO:
 				{
 					auto p = (eck::NMTLGETDISPINFO*)lParam;
-					auto pd = (WNDDATA*)p->Item.lParam;
-					if (p->Item.idxSubItem == 0)
+					auto pd = (WNDDATA*)p->Item.pNode;
+					switch (p->Item.idxSubItem)
 					{
-						pd->rs2.Format(L"0x%08X", pd->hWnd);
-						p->Item.pszText = pd->rs2.Data();
-						p->Item.cchText = pd->rs2.Size();
-					}
-					else
-					{
-						pd->rs = eck::CWnd(pd->hWnd).GetText();
+					case 0:
+						pd->rs.Format(L"0x%08X", pd->hWnd);
 						p->Item.pszText = pd->rs.Data();
 						p->Item.cchText = pd->rs.Size();
+						break;
+					case 1:
+						pd->rs2 = eck::CWnd(pd->hWnd).GetClsName();
+						p->Item.pszText = pd->rs2.Data();
+						p->Item.cchText = pd->rs2.Size();
+						break;
+					case 2:
+						pd->rs3 = eck::CWnd(pd->hWnd).GetText();
+						p->Item.pszText = pd->rs3.Data();
+						p->Item.cchText = pd->rs3.Size();
+						break;
 					}
 				}
 				return 0;
