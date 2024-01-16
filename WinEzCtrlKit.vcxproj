@@ -167,6 +167,7 @@
     <ClInclude Include="eck\CEditExt.h" />
     <ClInclude Include="eck\CException.h" />
     <ClInclude Include="eck\CFile.h" />
+    <ClInclude Include="eck\CFixedBlockCollection.h" />
     <ClInclude Include="eck\CFlowLayout.h" />
     <ClInclude Include="eck\CForm.h" />
     <ClInclude Include="eck\CFormTable.h" />
@@ -187,6 +188,7 @@
     <ClInclude Include="eck\CtrlGraphics.h" />
     <ClInclude Include="eck\CWindowMask.h" />
     <ClInclude Include="eck\GraphicsHelper.h" />
+    <ClInclude Include="eck\OleDragDropHelper.h" />
     <ClInclude Include="eck\StrBinInterop.h" />
     <ClInclude Include="eck\StylePainter.h" />
     <ClInclude Include="eck\CTab.h" />

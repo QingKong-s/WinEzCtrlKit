@@ -161,20 +161,9 @@ protected:
 		else
 			bNeedEnableOwner = FALSE;
 
-		POINT pt;
-		if (IsBitSet(uDlgFlags, DLGNCF_CENTERPARENT))
-			pt = CalcCenterWndPos(hParent, cx, cy);
-		else if (IsBitSet(uDlgFlags, DLGNCF_CENTERSCREEN))
-			pt = CalcCenterWndPos(NULL, cx, cy);
-		else
-			pt = { x,y };
-
-		IntCreate(dwExStyle, pszClass, pszText, dwStyle,
-			pt.x, pt.y, cx, cy, hOwner, hMenu, hInst, pParam, pfnCreatingProc);
-		EckAssert(m_bDlgProcInit);
-		const HWND hFirstCtrl = GetFirstTabStopCtrl(m_hWnd);
-		if (SendMsg(WM_INITDIALOG, (WPARAM)hFirstCtrl, (LPARAM)pParam))
-			SetFocus(hFirstCtrl);
+		IntCreateModelessDlg(dwExStyle, pszClass, pszText, dwStyle,
+			x, y, cx, cy, hParent, hMenu, hInst, pParam, uDlgFlags, pfnCreatingProc);
+		
 		MsgLoop();
 		if (bNeedEnableOwner)
 			EnableWindow(hOwner, TRUE);
@@ -200,9 +189,16 @@ protected:
 		IntCreate(dwExStyle, pszClass, pszText, dwStyle,
 			pt.x, pt.y, cx, cy, hParent, hMenu, hInst, pParam, pfnCreatingProc);
 		EckAssert(m_bDlgProcInit);
-		const HWND hFirstCtrl = GetFirstTabStopCtrl(m_hWnd);
-		if (SendMsg(WM_INITDIALOG, (WPARAM)hFirstCtrl, (LPARAM)pParam))
-			SetFocus(hFirstCtrl);
+
+		if (m_hWnd)
+		{
+			HWND hFirstCtrl = GetNextDlgTabItem(m_hWnd, NULL, FALSE);
+			if (SendMsg(WM_INITDIALOG, (WPARAM)hFirstCtrl, (LPARAM)pParam))
+			{
+				hFirstCtrl = GetNextDlgTabItem(m_hWnd, NULL, FALSE);
+				SetFocus(hFirstCtrl);
+			}
+		}
 		return m_hWnd;
 	}
 public:

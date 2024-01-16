@@ -30,6 +30,7 @@
 #include "eck\CForm.h"
 #include "eck\CTreeList.h"
 #include "eck\CInputBox.h"
+#include "eck\CFixedBlockCollection.h"
 
 #define WCN_TEST L"CTestWindow"
 
@@ -58,8 +59,12 @@ private:
 
 	eck::CFlowLayout m_lot{};
 
+	int m_iDpi = 96;
+
 	HFONT m_hFont = eck::EzFont(L"微软雅黑", 9);
 	HBITMAP m_hbm = NULL;
+
+	HIMAGELIST m_il = NULL;
 public:
 	__declspec(noinline) void Test()
 	{
@@ -186,8 +191,8 @@ public:
 			0,
 		};
 
-		ib.DlgBox(HWnd, &opt);
-		MsgBox(opt.rsInput.Data());
+		//ib.DlgBox(HWnd, &opt);
+		//MsgBox(opt.rsInput.Data());
 	}
 
 	BOOL PreTranslateMessage(const MSG& Msg) override
@@ -198,11 +203,13 @@ public:
 	{
 		eck::TLNODE Node{};
 		HWND hWnd{};
+		int idxImg;
 		eck::CRefStrW rs{};
 		eck::CRefStrW rs2{};
 		eck::CRefStrW rs3{};
 		std::vector<WNDDATA*> Children{};
 	};
+	eck::CFixedBlockCollection<WNDDATA> wdbuf{};
 	void EnumWnd(HWND hWnd, WNDDATA* data)
 	{
 		auto h = GetWindow(hWnd, GW_CHILD);
@@ -210,7 +217,15 @@ public:
 		{
 			if (IsWindowVisible(h))
 			{
-				EnumWnd(h, data->Children.emplace_back(new WNDDATA{ {},h }));
+				BOOL b;
+				auto hicon = eck::GetWindowIcon(h, b, TRUE);
+				int idx = -1;
+				if (hicon)
+					idx = ImageList_AddIcon(m_il, hicon);
+				if (b)
+					DestroyIcon(hicon);
+				//EnumWnd(h, data->Children.emplace_back(new WNDDATA{ {},h }));
+				EnumWnd(h, data->Children.emplace_back(wdbuf.Alloc(1, eck::TLNODE{}, h, idx)));
 			}
 			h = GetWindow(h, GW_HWNDNEXT);
 		}
@@ -292,10 +307,18 @@ public:
 			//	0, 0, 700, 600, hWnd, 105);
 			//m_LBN.SetItemCount(100);
 			//m_lot.Add(&m_LBN, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
-			data.push_back(new WNDDATA{});
+			m_iDpi = eck::GetDpi(hWnd);
+
+			m_il = ImageList_Create(eck::DpiScale(16, m_iDpi), eck::DpiScale(16, m_iDpi),
+				ILC_COLOR32 | ILC_ORIGINALSIZE, 0, 40);
+			data.push_back(wdbuf.Alloc(1));
 			EnumWnd(GetDesktopWindow(), data[0]);
 			m_TL.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
 				0, 0, 1200, 1000, hWnd, 106);
+			m_TL.InsertColumn(L"HWND", -1, 360);
+			m_TL.InsertColumn(L"szClsName", -1, 360);
+			m_TL.InsertColumn(L"szText", -1, 400);
+			m_TL.SetImageList(m_il);
 			m_TL.BuildTree();
 			eck::SetFontForWndAndCtrl(hWnd, m_hFont);
 
@@ -347,6 +370,7 @@ public:
 						p->Item.cchText = pd->rs3.Size();
 						break;
 					}
+					p->Item.idxImg = pd->idxImg;
 				}
 				return 0;
 				}

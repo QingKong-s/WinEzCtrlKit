@@ -1,53 +1,36 @@
-#pragma once
+﻿#pragma once
 #include "CHeader.h"
 
 ECK_NAMESPACE_BEGIN
-inline BOOL DrawListViewItemBackground(HTHEME hTheme, int iLVType, CHeader* pHeader,
-	const NMLVCUSTOMDRAW* plvnmcd, int cCol, RECT* prcCol)
+EckInline HRESULT DrawListViewItemBackground(HTHEME hTheme, HDC hDC, int iPart, int iState, 
+	RECT& rcRow, long xActualRight)
 {
-	if (hTheme)
-	{
-		FillRect(plvnmcd->nmcd.hdc, &plvnmcd->nmcd.rc, GetSysColorBrush(COLOR_WINDOW));
-		if (iLVType == LV_VIEW_DETAILS)
-		{
-			EckCounter(cCol, i)
-				pHeader->GetItemRect(i, prcCol + i);
-			if (plvnmcd->iStateId && cCol)
-			{
-				RECT rc
-				{ 
-					plvnmcd->nmcd.rc.left,
-					plvnmcd->nmcd.rc.top,
-					prcCol[cCol - 1].right,
-					plvnmcd->nmcd.rc.bottom 
-				};
-				DrawThemeBackground(hTheme, plvnmcd->nmcd.hdc, plvnmcd->iPartId,
-					plvnmcd->iStateId, &rc, NULL);
-			}
-			EckCounter(cCol, i)
-			{
-				if (prcCol[i].left >= 0)
-				{
-					RECT rc
-					{ 
-						prcCol[i].left - 1,
-						plvnmcd->nmcd.rc.top,
-						prcCol[i].left,
-						plvnmcd->nmcd.rc.bottom 
-					};
-					DrawThemeBackground(hTheme, plvnmcd->nmcd.hdc, LVP_COLUMNDETAIL, 0, &rc, NULL);
-				}
-			}
-		}
-		else
-			if (plvnmcd->iStateId)
-				DrawThemeBackground(hTheme, plvnmcd->nmcd.hdc, plvnmcd->iPartId,
-					plvnmcd->iStateId, &plvnmcd->nmcd.rc, NULL);
-	}
-	else
-	{
 
-	}
-	return TRUE;
+	return S_OK;
+}
+
+EckInline HRESULT DrawListViewColumnDetail(HTHEME hTheme, HDC hDC, int x, int yTop, int yBottom)
+{
+	RECT rc{ x - 1,yTop,x,yBottom };
+	return DrawThemeBackground(hTheme, hDC, LVP_COLUMNDETAIL, 0, &rc, NULL);
+}
+
+inline void DrawSelectionRect(HDC hDC, const RECT& rc)
+{
+	HDC hCDC = CreateCompatibleDC(hDC);
+	HBITMAP hBitmap = CreateCompatibleBitmap(hDC, 1, 1);
+	SelectObject(hCDC, hBitmap);
+
+	constexpr RECT rcInt{ 0,0,1,1 };
+	FillRect(hCDC, &rcInt, GetSysColorBrush(COLOR_MENUHILIGHT));
+
+	BLENDFUNCTION bf{ .BlendOp = AC_SRC_OVER,.SourceConstantAlpha = 70 };
+	AlphaBlend(hDC, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top,
+		hCDC, 0, 0, 1, 1, bf);
+
+	DeleteDC(hCDC);
+	DeleteObject(hBitmap);
+
+	FrameRect(hDC, &rc, GetSysColorBrush(COLOR_HIGHLIGHT));
 }
 ECK_NAMESPACE_END
