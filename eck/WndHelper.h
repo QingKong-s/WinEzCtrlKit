@@ -10,28 +10,29 @@
 #include "Utility.h"
 
 
-#define ECK_DS_BEGIN(StructName) struct StructName {
-#define ECK_DS_END_VAR(VarName) } VarName{};
-#define ECK_DS_END() };
-#define ECK_DS_ENTRY(Name, Size) const int o_##Name = Size; int Name = Size;
-#define ECK_DS_ENTRY_F(Name, Size) const float o_##Name = Size; float Name = Size;
+#define ECK_DS_BEGIN(StructName)	struct StructName {
+#define ECK_DS_END_VAR(VarName)		} VarName{};
+#define ECK_DS_END()				};
+#define ECK_DS_ENTRY(Name, Size)	const int o_##Name = Size; int Name = Size;
+#define ECK_DS_ENTRY_F(Name, Size)	const float o_##Name = Size; float Name = Size;
 
 #define ECK_HANDLE_WM_MOUSELEAVE(hWnd, wParam, lParam, fn) \
 	((fn)((hWnd)), 0L)
 #define ECK_HANDLE_WM_DPICHANGED(hWnd, wParam, lParam, fn) \
 	((fn)((hWnd), (int)(short)LOWORD(wParam), (int)(short)HIWORD(wParam), (RECT*)(lParam)), 0L)
 
-#define ECK_STYLE_GETSET(Name, Style) \
-	BOOL StyleGet##Name() \
-	{ \
-		return IsBitSet(GetStyle(), Style); \
-	} \
-	void StyleSet##Name(BOOL b) \
-	{ \
+#define ECK_STYLE_GETSET(Name, Style)					\
+	BOOL StyleGet##Name()								\
+	{													\
+		return IsBitSet(GetStyle(), Style);				\
+	}													\
+	void StyleSet##Name(BOOL b)							\
+	{													\
 		ModifyStyle((b ? Style : 0), Style, GWL_STYLE); \
 	}
-#define ECK_CWNDPROP_STYLE(Name, Style) \
-	ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; \
+
+#define ECK_CWNDPROP_STYLE(Name, Style)					\
+	ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name;	\
 	ECK_STYLE_GETSET(Name, Style)
 
 ECK_NAMESPACE_BEGIN

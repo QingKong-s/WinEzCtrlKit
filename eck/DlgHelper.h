@@ -93,6 +93,7 @@ struct DLGITEMTEXTRA
 	WORD cbExtra;
 };// 后接附加数据
 */
+#pragma pack(pop)
 
 struct DLGTDLG :public DLGTHEADER
 {
@@ -115,37 +116,13 @@ struct DLGTITEM :public DLGITEMTHEADER
 	std::variant<WORD, CRefStrW> Caption;
 	CRefBin rbExtra;
 };
-#pragma pack(pop)
+
 
 enum
 {
 	// 将尺寸单位视为像素，而不是DLU
 	CWFDT_USEPIXELUNIT = 1u << 0
 };
-
-/// <summary>
-/// 取首个可停留焦点控件。
-/// 函数枚举窗口的子窗口并返回第一个可见、非禁用且具有WS_TABSTOP的控件句柄
-/// </summary>
-/// <param name="hWnd">父窗口</param>
-/// <returns>控件句柄</returns>
-inline HWND GetFirstTabStopCtrl(HWND hWnd)
-{
-	HWND hCtrl = NULL;
-	EnumChildWindows(hWnd,
-		[](HWND hWnd, LPARAM lParam)->BOOL
-		{
-			if (IsWindowVisible(hWnd) &&
-				IsWindowEnabled(hWnd) &&
-				IsBitSet(GetWindowLongPtrW(hWnd, GWL_STYLE), WS_TABSTOP))
-			{
-				*(HWND*)lParam = hWnd;
-				return FALSE;
-			}
-			return TRUE;
-		}, (LPARAM)&hCtrl);
-	return hCtrl;
-}
 
 /// <summary>
 /// 序列化对话框模板
@@ -535,9 +512,12 @@ inline HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& 
 		SendMessageW(hCtrl, WM_SETFONT, (WPARAM)hFont, FALSE);
 	}
 
-	HWND hFirstCtrl = GetFirstTabStopCtrl(hWnd);
+	HWND hFirstCtrl = GetNextDlgTabItem(hWnd, NULL, FALSE);
 	if (SendMessageW(hWnd, WM_INITDIALOG, (WPARAM)hFirstCtrl, (LPARAM)pParam))
+	{
+		hFirstCtrl = GetNextDlgTabItem(hWnd, NULL, FALSE);
 		SetFocus(hFirstCtrl);
+	}
 
 	ShowWindow(hWnd, SW_SHOW);
 	UpdateWindow(hWnd);

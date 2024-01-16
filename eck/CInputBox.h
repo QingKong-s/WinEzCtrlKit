@@ -138,10 +138,12 @@ public:
 		else
 			dwEDStyle = ES_AUTOHSCROLL;
 
-		m_ED.Create(m_pOpt->pszInitContent, 
+		m_ED.Create(m_pOpt->pszInitContent,
 			WS_TABSTOP | WS_GROUP | WS_VISIBLE | WS_CHILD | dwEDStyle, WS_EX_CLIENTEDGE,
 			0, 0, 0, 0, hDlg, IDC_ED);
-		m_BTOk.Create(L"确认输入(&O)", WS_TABSTOP | WS_GROUP | WS_CHILD | WS_VISIBLE, 0,
+		if (m_pOpt->uInputMode != CEditExt::InputMode::ReadOnly)
+			m_ED.SetInputMode(m_pOpt->uInputMode);
+		m_BTOk.Create(L"确认输入(&O)", WS_TABSTOP | WS_GROUP | WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 0,
 			0, 0, 0, 0, hDlg, IDOK);
 		m_BTCancel.Create(L"取消(&C)", WS_TABSTOP | WS_CHILD | WS_VISIBLE, 0,
 			0, 0, 0, 0, hDlg, IDCANCEL);
@@ -177,6 +179,7 @@ public:
 		UpdateDpiCtrlSize();
 		SetFontForWndAndCtrl(hDlg, m_hFont);
 		Show(SW_SHOW);
+		SetFocus(m_ED.HWnd);
 		return FALSE;
 	}
 

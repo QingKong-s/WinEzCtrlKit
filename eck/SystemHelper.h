@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* SystemHelper.h ： 系统相关帮助函数
+*
+* Copyright(C) 2023 QingKong
+*/
+#pragma once
 #include "Utility.h"
 #include "CException.h"
 #include "CFile.h"
@@ -95,16 +102,17 @@ inline BOOL SetClipboardString(PCWSTR pszText, int cch = -1, HWND hWnd = NULL)
 EckInline void DoEvents()
 {
 	MSG msg;
-	while (PeekMessageW(&msg, NULL, 0u, 0u, PM_REMOVE))
-	{
-		if (msg.message == WM_QUIT)
+	if (GetInputState())
+		while (PeekMessageW(&msg, NULL, 0u, 0u, PM_REMOVE))
 		{
-			PostQuitMessage((int)msg.wParam);
-			return;
+			if (msg.message == WM_QUIT)
+			{
+				PostQuitMessage((int)msg.wParam);
+				return;
+			}
+			TranslateMessage(&msg);
+			DispatchMessageW(&msg);
 		}
-		TranslateMessage(&msg);
-		DispatchMessageW(&msg);
-	}
 }
 
 /// <summary>
@@ -316,7 +324,7 @@ inline HRESULT GetCpuInfo(CPUINFO& ci)
 	HRESULT hr;
 	if (FAILED(hr = WmiConnectNamespace(pWbemSrv, pWbemLoc)))
 		return hr;
-	
+
 	VARIANT Var{};
 	IEnumWbemClassObject* pEnum;
 	if (FAILED(hr = pWbemSrv->ExecQuery(_bstr_t(L"WQL"), _bstr_t(L"Select * From Win32_Processor"),
@@ -537,5 +545,55 @@ EckInline HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,
 	void* pParameter = NULL, UINT* pThreadId = NULL, UINT dwCreationFlags = 0)
 {
 	return (HANDLE)_beginthreadex(0, 0, pStartAddress, pParameter, dwCreationFlags, pThreadId);
+}
+
+inline HICON GetWindowSmallIcon(HWND hWnd)
+{
+	HICON hIcon = (HICON)SendMessageW(hWnd, WM_GETICON, ICON_SMALL, 0);
+	if (!hIcon)
+	{
+		hIcon = (HICON)GetClassLongPtrW(hWnd, GCLP_HICONSM);
+		if (!hIcon)
+			hIcon = (HICON)SendMessageW(hWnd, WM_GETICON, ICON_SMALL2, 0);
+	}
+	return hIcon;
+}
+
+EckInline HICON GetWindowLargeIcon(HWND hWnd)
+{
+	HICON hIcon = (HICON)SendMessageW(hWnd, WM_GETICON, ICON_BIG, 0);
+	if (!hIcon)
+		hIcon = (HICON)GetClassLongPtrW(hWnd, GCLP_HICON);
+	return hIcon;
+}
+
+inline HICON GetWindowIcon(HWND hWnd, BOOL& bNeedDestroy, BOOL bSmall = FALSE)
+{
+	bNeedDestroy = FALSE;
+	const HICON hIcon = (bSmall ? GetWindowSmallIcon(hWnd) : GetWindowLargeIcon(hWnd));
+	if (hIcon)
+		return hIcon;
+
+	DWORD dwPid;
+	GetWindowThreadProcessId(hWnd, &dwPid);
+	if (!dwPid)
+		return NULL;
+	const HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, dwPid);
+	if (!hProcess)
+		return NULL;
+
+	WCHAR szPath[MAX_PATH];
+	DWORD cchBuf = MAX_PATH;
+	QueryFullProcessImageNameW(hProcess, 0, szPath, &cchBuf);
+	CloseHandle(hProcess);
+
+	SHFILEINFOW sfi;
+	const UINT uFlags = (bSmall ? (SHGFI_ICON | SHGFI_SMALLICON) : SHGFI_ICON);
+#pragma warning(suppress:6001)
+	if (!SHGetFileInfoW(szPath, 0, &sfi, sizeof(sfi), uFlags))
+		SHGetFileInfoW(szPath, FILE_ATTRIBUTE_NORMAL, &sfi, sizeof(sfi),
+			uFlags | SHGFI_USEFILEATTRIBUTES);
+	bNeedDestroy = (sfi.hIcon != NULL);
+	return sfi.hIcon;
 }
 ECK_NAMESPACE_END

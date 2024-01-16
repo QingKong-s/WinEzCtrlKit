@@ -271,19 +271,25 @@ EckInline BOOL IsFILETIMEZero(const FILETIME* pft)
 	return pft->dwLowDateTime == 0 && pft->dwHighDateTime == 0;
 }
 
-EckInline BOOL operator==(const FILETIME& ft1, const FILETIME& ft2)
+EckInline bool operator==(const FILETIME& ft1, const FILETIME& ft2)
 {
 	return CompareFileTime(&ft1, &ft2) == 0;
 }
 
-EckInline BOOL operator>(const FILETIME& ft1, const FILETIME& ft2)
+EckInline bool operator>(const FILETIME& ft1, const FILETIME& ft2)
 {
 	return CompareFileTime(&ft1, &ft2) == 1;
 }
 
-EckInline BOOL operator<(const FILETIME& ft1, const FILETIME& ft2)
+EckInline bool operator<(const FILETIME& ft1, const FILETIME& ft2)
 {
 	return CompareFileTime(&ft1, &ft2) == -1;
+}
+
+EckInline constexpr bool operator==(const RECT& rc1, const RECT& rc2)
+{
+	return rc1.left == rc2.left && rc1.top == rc2.top &&
+		rc1.right == rc2.right && rc1.bottom == rc2.bottom;
 }
 
 template<class T1, class T2>

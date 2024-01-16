@@ -98,7 +98,10 @@ protected:
 			EckDbgPrintFormatMessage(GetLastError());
 			EckDbgBreak();
 		}
-		return m_hWnd;
+		if (IsWindow(m_hWnd))
+			return m_hWnd;
+		else
+			return m_hWnd = NULL;
 #else
 		return CreateWindowExW(dwExStyle, pszClass, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, hInst, pParam);
@@ -106,7 +109,7 @@ protected:
 	}
 
 	template<class T>
-	EckInline void FillNmhdr(T& nm, UINT uCode)
+	EckInline void FillNmhdr(T& nm, UINT uCode) const
 	{
 		static_assert(sizeof(T) >= sizeof(NMHDR));
 		auto p = (NMHDR*)&nm;
@@ -116,13 +119,13 @@ protected:
 	}
 
 	template<class T>
-	EckInline LRESULT SendNotify(T& nm)
+	EckInline LRESULT SendNotify(T& nm) const
 	{
 		return SendMessageW(GetParent(GetHWND()), WM_NOTIFY, ((NMHDR*)&nm)->idFrom, (LPARAM)&nm);
 	}
 
 	template<class T>
-	EckInline LRESULT FillNmhdrAndSendNotify(T& nm, UINT uCode)
+	EckInline LRESULT FillNmhdrAndSendNotify(T& nm, UINT uCode) const
 	{
 		FillNmhdr(nm, uCode);
 		return SendNotify(nm);
@@ -726,7 +729,7 @@ public:
 		return SetWindowLongPtrW(m_hWnd, i, l);
 	}
 
-	[[nodiscard]] EckInline CRefStrW GetClsName()
+	[[nodiscard]] EckInline CRefStrW GetClsName() const
 	{
 		CRefStrW rs(256);
 		rs.ReSize(GetClassNameW(GetHWND(), rs.Data(), 256 + 1));
@@ -824,7 +827,7 @@ public:
 		EnableScrollBar(m_hWnd, iBarType, iOp);
 	}
 
-	EckInline int GetSbPos(int iType)
+	EckInline int GetSbPos(int iType) const
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -833,7 +836,7 @@ public:
 		return si.nPos;
 	}
 
-	EckInline int GetSbTrackPos(int iType)
+	EckInline int GetSbTrackPos(int iType) const
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -842,7 +845,7 @@ public:
 		return si.nTrackPos;
 	}
 
-	EckInline BOOL GetSbRange(int iType, int* piMin = NULL, int* piMax = NULL)
+	EckInline BOOL GetSbRange(int iType, int* piMin = NULL, int* piMax = NULL) const
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -855,7 +858,7 @@ public:
 		return b;
 	}
 
-	EckInline int GetSbPage(int iType)
+	EckInline int GetSbPage(int iType) const
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -864,13 +867,13 @@ public:
 		return si.nPage;
 	}
 
-	EckInline BOOL GetSbInfo(int iType, SCROLLINFO* psi)
+	EckInline BOOL GetSbInfo(int iType, SCROLLINFO* psi) const
 	{
 		psi->cbSize = sizeof(SCROLLINFO);
 		return GetScrollInfo(m_hWnd, iType, psi);
 	}
 
-	EckInline void SetSbPos(int iType, int iPos, BOOL bRedraw = TRUE)
+	EckInline void SetSbPos(int iType, int iPos, BOOL bRedraw = TRUE) const
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -879,7 +882,7 @@ public:
 		SetScrollInfo(m_hWnd, iType, &si, bRedraw);
 	}
 
-	EckInline void SetSbRange(int iType, int iMin, int iMax, BOOL bRedraw = TRUE)
+	EckInline void SetSbRange(int iType, int iMin, int iMax, BOOL bRedraw = TRUE) const
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -889,7 +892,7 @@ public:
 		si.nMax = iMax;
 	}
 
-	EckInline void SetSbMin(int iType, int iMin, BOOL bRedraw = TRUE)
+	EckInline void SetSbMin(int iType, int iMin, BOOL bRedraw = TRUE) const
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -899,7 +902,7 @@ public:
 		SetScrollInfo(m_hWnd, iType, &si, bRedraw);
 	}
 
-	EckInline void SetSbMax(int iType, int iMax, BOOL bRedraw = TRUE)
+	EckInline void SetSbMax(int iType, int iMax, BOOL bRedraw = TRUE) const
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -909,7 +912,7 @@ public:
 		SetScrollInfo(m_hWnd, iType, &si, bRedraw);
 	}
 
-	EckInline void SetSbPage(int iType, int iPage, BOOL bRedraw = TRUE)
+	EckInline void SetSbPage(int iType, int iPage, BOOL bRedraw = TRUE) const
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
@@ -918,7 +921,7 @@ public:
 		SetScrollInfo(m_hWnd, iType, &si, bRedraw);
 	}
 
-	EckInline void SetSbInfo(int iType, SCROLLINFO* psi, BOOL bRedraw = TRUE)
+	EckInline void SetSbInfo(int iType, SCROLLINFO* psi, BOOL bRedraw = TRUE) const
 	{
 		SetScrollInfo(m_hWnd, iType, psi, bRedraw);
 	}
