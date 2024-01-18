@@ -8,6 +8,8 @@
 #pragma once
 #include "Utility.h"
 #include "CException.h"
+#include "CRefStr.h"
+#include "CRefBin.h"
 
 #include <functional>
 
@@ -41,7 +43,10 @@ public:
 		else if (wcsncmp(pszPath, L"HKCC", 4u) == 0)
 			hKeyRoot = HKEY_CURRENT_CONFIG;
 		else
+		{
 			hKeyRoot = NULL;
+			cchSkip = 0;
+		}
 		return hKeyRoot;
 	}
 

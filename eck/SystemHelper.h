@@ -596,4 +596,11 @@ inline HICON GetWindowIcon(HWND hWnd, BOOL& bNeedDestroy, BOOL bSmall = FALSE)
 	bNeedDestroy = (sfi.hIcon != NULL);
 	return sfi.hIcon;
 }
+
+EckInline HFONT CreateDefFont()
+{
+	LOGFONTW lf;
+	SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0);
+	return CreateFontIndirectW(&lf);
+}
 ECK_NAMESPACE_END

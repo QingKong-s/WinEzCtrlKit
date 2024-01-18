@@ -2,13 +2,6 @@
 #include "CHeader.h"
 
 ECK_NAMESPACE_BEGIN
-EckInline HRESULT DrawListViewItemBackground(HTHEME hTheme, HDC hDC, int iPart, int iState, 
-	RECT& rcRow, long xActualRight)
-{
-
-	return S_OK;
-}
-
 EckInline HRESULT DrawListViewColumnDetail(HTHEME hTheme, HDC hDC, int x, int yTop, int yBottom)
 {
 	RECT rc{ x - 1,yTop,x,yBottom };

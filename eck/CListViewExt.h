@@ -1,4 +1,6 @@
-#pragma once
+﻿#pragma once
+ECK_DISABLE_ARITHMETIC_OVERFLOW_WARNING
+
 #include "CListView.h"
 #include "CtrlGraphics.h"
 
@@ -48,31 +50,33 @@ public:
 					return TRUE;
 				case CDDS_ITEMPREPAINT:
 				{
-					auto Header = GetHeaderCtrl();
-					const auto cCol = Header.GetItemCount();
-					auto psizeCol = (SIZE*)_malloca(cCol * sizeof(SIZE));
-					DrawListViewItemBackground(m_hTheme, m_iLVType, &Header, plvnmcd, cCol, psizeCol);
-					if (m_bOwnerData)
-					{
-						RECT rc;
+					//auto Header = GetHeaderCtrl();
+					//const auto cCol = Header.GetItemCount();
+					//auto prcCol = (RECT*)_malloca(cCol * sizeof(RECT));
+					//EckCheckMem(prcCol);
 
-						NMLVDISPINFOW nm{};
-						nm.item.iItem = (int)plvnmcd->nmcd.dwItemSpec;
-						nm.item.mask = LVIF_TEXT;
-						nm.hdr = plvnmcd->nmcd.hdr;
-						nm.hdr.code = LVN_GETDISPINFOW;
-						for (nm.item.iSubItem = 0; nm.item.iSubItem < cCol; ++nm.item.iSubItem)
-						{
-							rc.left = psizeCol[nm.item.iSubItem].cx;
-							rc.right = psizeCol[nm.item.iSubItem].cy;
-							rc.top = plvnmcd->nmcd.rc.top;
-							rc.bottom = plvnmcd->nmcd.rc.bottom;
-							SendNotify(nm);
-							DrawTextW(hDC, nm.item.pszText, -1, &rc,
-								DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
-						}
-					}
-					_freea(psizeCol);
+					//
+					//if (m_bOwnerData)
+					//{
+					//	RECT rc;
+					//	
+					//	NMLVDISPINFOW nm{};
+					//	nm.item.iItem = (int)plvnmcd->nmcd.dwItemSpec;
+					//	nm.item.mask = LVIF_TEXT;
+					//	nm.hdr = plvnmcd->nmcd.hdr;
+					//	nm.hdr.code = LVN_GETDISPINFOW;
+					//	for (nm.item.iSubItem = 0; nm.item.iSubItem < cCol; ++nm.item.iSubItem)
+					//	{
+					//		rc.left = prcCol[nm.item.iSubItem].cx;
+					//		rc.right = prcCol[nm.item.iSubItem].cy;
+					//		rc.top = plvnmcd->nmcd.rc.top;
+					//		rc.bottom = plvnmcd->nmcd.rc.bottom;
+					//		SendNotify(nm);
+					//		DrawTextW(hDC, nm.item.pszText, -1, &rc,
+					//			DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
+					//	}
+					//}
+					//_freea(prcCol);
 					lResult = CDRF_SKIPDEFAULT;
 				}
 				return TRUE;

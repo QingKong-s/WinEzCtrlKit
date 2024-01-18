@@ -422,8 +422,7 @@ EckInline constexpr HRESULT HResultFromBool(BOOL b)
 template<class T>
 EckInline constexpr T Abs(T x)
 {
-	if (x >= 0) return x;
-	else return -x;
+	return (x >= 0) ? x : -x;
 }
 
 template<class T>

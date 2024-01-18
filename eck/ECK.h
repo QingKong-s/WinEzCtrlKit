@@ -107,7 +107,7 @@ ECK_NAMESPACE_END
 // 自取反
 #define ECKBOOLNOT(x) ((x) = !(x))
 
-// lParam->POINT 用于处理鼠标消息   e.g. POINT pt = ECK_GET_PT_LPARAM(lParam);
+// lParam->POINT 用于处理鼠标消息   e.g. POINT pt ECK_GET_PT_LPARAM(lParam);
 #define ECK_GET_PT_LPARAM(lParam) { GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) }
 
 // lParam->size 用于处理WM_SIZE   e.g. ECK_GET_SIZE_LPARAM(cxClient, cyClient, lParam);
@@ -123,6 +123,8 @@ ECK_NAMESPACE_END
 #define ECKNOUNIQUEADDR
 #endif// ECKCXX20
 #pragma endregion
+
+#define ECK_DISABLE_ARITHMETIC_OVERFLOW_WARNING __pragma(warning(disable:26451))
 
 ECK_NAMESPACE_BEGIN
 #pragma region 类型
@@ -170,14 +172,13 @@ constexpr inline auto c_cchI64ToStrBuf = std::max({ c_cchI64ToStrBufNoRadix2,
 constexpr inline double Pi = 3.141592653589793;
 constexpr inline float PiF = static_cast<float>(Pi);
 
-/*子类化ID*/
 
 constexpr inline UINT SCID_DESIGN = 20230621'01u;
 constexpr inline UINT SCID_INERTIALSCROLLVIEW = 20231103'01u;
 /*-------------------*/
 /*控件通知代码*/
 #pragma warning(suppress:26454)// 算术溢出
-constexpr inline UINT NM_FIRST_ECK = (0u - 0x514B);
+constexpr inline UINT NM_FIRST_ECK = (0u - 0x514B * 0x514B);
 enum :UINT
 {
 	ECKPRIV_NM_FIRST_PLACEHOLDER___ = NM_FIRST_ECK,
@@ -188,6 +189,8 @@ enum :UINT
 	NM_TL_FILLCHILDREN,// NMTLFILLCHILDREN
 	NM_TL_GETDISPINFO,// NMTLGETDISPINFO
 	NM_TL_NODEEXPANDED,// NMTLNODEEXPANDED
+	NM_TL_HD_CLICK,// NMHEADER
+	NM_TL_FILLALLFLATITEM,// NMTLFILLALLFLATITEM
 };
 /*-------------------*/
 /*属性字符串*/
