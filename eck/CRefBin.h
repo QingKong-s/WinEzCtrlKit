@@ -610,6 +610,8 @@ public:
 		m_cbCapacity = m_cb;
 	}
 
+	[[nodiscard]] EckInline BOOL IsEmpty() const { return Size() == 0; }
+
 	[[nodiscard]] EckInline TIterator begin() { return Data(); }
 	[[nodiscard]] EckInline TIterator end() { return begin() + Size(); }
 	[[nodiscard]] EckInline TConstIterator begin() const { return Data(); }

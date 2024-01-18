@@ -31,6 +31,7 @@
 #include "eck\CTreeList.h"
 #include "eck\CInputBox.h"
 #include "eck\CFixedBlockCollection.h"
+#include "eck\CListViewExt.h"
 
 #define WCN_TEST L"CTestWindow"
 
@@ -56,12 +57,13 @@ private:
 	eck::CListBoxNew m_LBN;
 	eck::CAnimationBox m_AB{};
 	eck::CTreeList m_TL{};
+	eck::CListViewExt m_lve{};
 
 	eck::CFlowLayout m_lot{};
 
 	int m_iDpi = 96;
 
-	HFONT m_hFont = eck::EzFont(L"微软雅黑", 9);
+	HFONT m_hFont;// = eck::EzFont(L"微软雅黑", 9);
 	HBITMAP m_hbm = NULL;
 
 	HIMAGELIST m_il = NULL;
@@ -210,7 +212,7 @@ public:
 		std::vector<WNDDATA*> Children{};
 	};
 	eck::CFixedBlockCollection<WNDDATA> wdbuf{};
-	void EnumWnd(HWND hWnd, WNDDATA* data)
+	void EnumWnd(HWND hWnd, WNDDATA* data, std::vector<WNDDATA*>& fvec)
 	{
 		auto h = GetWindow(hWnd, GW_CHILD);
 		while (h)
@@ -225,17 +227,20 @@ public:
 				if (b)
 					DestroyIcon(hicon);
 				//EnumWnd(h, data->Children.emplace_back(new WNDDATA{ {},h }));
-				EnumWnd(h, data->Children.emplace_back(wdbuf.Alloc(1, eck::TLNODE{}, h, idx)));
+				auto p = wdbuf.Alloc(1, eck::TLNODE{}, h, idx);
+				fvec.emplace_back(p);
+				EnumWnd(h, data->Children.emplace_back(p), fvec);
 			}
 			h = GetWindow(h, GW_HWNDNEXT);
 		}
-		data->Node.cChildren = data->Children.size();
+		data->Node.cChildren = (int)data->Children.size();
 	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
-
 		static std::vector<WNDDATA*> data{};
+		static std::vector<WNDDATA*> flatdata{};
+		static int isortorder = 0;
 		switch (uMsg)
 		{
 		case WM_CREATE:
@@ -312,16 +317,22 @@ public:
 			m_il = ImageList_Create(eck::DpiScale(16, m_iDpi), eck::DpiScale(16, m_iDpi),
 				ILC_COLOR32 | ILC_ORIGINALSIZE, 0, 40);
 			data.push_back(wdbuf.Alloc(1));
-			EnumWnd(GetDesktopWindow(), data[0]);
+			EnumWnd(GetDesktopWindow(), data[0], flatdata);
 			m_TL.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
 				0, 0, 1200, 1000, hWnd, 106);
-			m_TL.InsertColumn(L"HWND", -1, 360);
-			m_TL.InsertColumn(L"szClsName", -1, 360);
-			m_TL.InsertColumn(L"szText", -1, 400);
+			auto& h = m_TL.GetHeader();
+			h.InsertItem(L"HWND", -1, 360);
+			h.InsertItem(L"szClsName", -1, 360);
+			h.InsertItem(L"szText", -1, 400);
 			m_TL.SetImageList(m_il);
-			m_TL.BuildTree();
-			eck::SetFontForWndAndCtrl(hWnd, m_hFont);
+			m_TL.SetWatermarkString(L"水印测试。\n我是第二行水印。");
+			//m_TL.BuildTree();
+			//m_TL.SetSingleSelect(TRUE);
+			//m_lve.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
+			//	0, 0, 1200, 1000, hWnd, 107);
 
+			m_hFont = eck::CreateDefFont();
+			eck::SetFontForWndAndCtrl(hWnd, m_hFont);
 
 			Test();
 		}
@@ -348,6 +359,13 @@ public:
 					}
 				}
 				return 0;
+				case eck::NM_TL_FILLALLFLATITEM:
+				{
+					auto p = (eck::NMTLFILLALLFLATITEM*)lParam;
+					p->cChildren = (int)flatdata.size();
+					p->pChildren = (eck::TLNODE**)flatdata.data();
+				}
+				return 0;
 				case eck::NM_TL_GETDISPINFO:
 				{
 					auto p = (eck::NMTLGETDISPINFO*)lParam;
@@ -355,22 +373,57 @@ public:
 					switch (p->Item.idxSubItem)
 					{
 					case 0:
-						pd->rs.Format(L"0x%08X", pd->hWnd);
+						if (pd->rs.IsEmpty())
+							pd->rs.Format(L"0x%08X", pd->hWnd);
 						p->Item.pszText = pd->rs.Data();
 						p->Item.cchText = pd->rs.Size();
 						break;
 					case 1:
-						pd->rs2 = eck::CWnd(pd->hWnd).GetClsName();
+						if (pd->rs2.IsEmpty())
+							pd->rs2 = eck::CWnd(pd->hWnd).GetClsName();
 						p->Item.pszText = pd->rs2.Data();
 						p->Item.cchText = pd->rs2.Size();
 						break;
 					case 2:
-						pd->rs3 = eck::CWnd(pd->hWnd).GetText();
+						if (pd->rs3.IsEmpty())
+							pd->rs3 = eck::CWnd(pd->hWnd).GetText();
 						p->Item.pszText = pd->rs3.Data();
 						p->Item.cchText = pd->rs3.Size();
 						break;
 					}
 					p->Item.idxImg = pd->idxImg;
+				}
+				return 0;
+				case eck::NM_TL_HD_CLICK:
+				{
+					auto p = (NMHEADERW*)lParam;
+					if (isortorder == 0)
+						isortorder = -1;
+					else if (isortorder == -1)
+						isortorder = 1;
+					else if (isortorder == 1)
+						isortorder = 0;
+
+					if (isortorder == 1)
+					{
+						std::sort(flatdata.begin(), flatdata.end(), [](const WNDDATA* p1, const WNDDATA* p2)
+							{
+								return p1->rs2 < p2->rs2;
+							});
+						m_TL.SetFlatMode(TRUE);
+					}
+					else if (isortorder == -1)
+					{
+						std::sort(flatdata.begin(), flatdata.end(), [](const WNDDATA* p1, const WNDDATA* p2)
+							{
+								return  p2->rs2 < p1->rs2;
+							});
+						m_TL.SetFlatMode(TRUE);
+					}
+					else
+						m_TL.SetFlatMode(FALSE);
+					m_TL.BuildTree();
+					m_TL.Redraw();
 				}
 				return 0;
 				}

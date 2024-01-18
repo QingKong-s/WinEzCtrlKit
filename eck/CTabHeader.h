@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "CUpDown.h"
+ECK_DISABLE_ARITHMETIC_OVERFLOW_WARNING
 
 ECK_NAMESPACE_BEGIN
 enum

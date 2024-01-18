@@ -397,4 +397,51 @@ inline POINT CalcCenterWndPos(HWND hParent, int cx, int cy)
 		};
 	}
 }
+
+/// <summary>
+/// 鼠标是否移动出拖放距离阈值。
+/// 给定起始点，判断自调用函数的瞬间起鼠标移动距离是否超过
+/// GetSystemMetrics(SM_CXDRAG)和GetSystemMetrics(SM_CYDRAG)
+/// </summary>
+/// <param name="hWnd">窗口句柄</param>
+/// <param name="x">起始X，相对屏幕</param>
+/// <param name="y">起始Y，相对屏幕</param>
+/// <returns>移动距离超出阈值返回TRUE，此时调用方可执行拖放操作；否则返回FALSE</returns>
+inline BOOL IsMouseMovedBeforeDragging(HWND hWnd, int x, int y)
+{
+	const int dxDrag = GetSystemMetrics(SM_CXDRAG);
+	const int dyDrag = GetSystemMetrics(SM_CYDRAG);
+	SetCapture(hWnd);
+	MSG msg;
+	while (GetCapture() == hWnd)
+	{
+		if (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			switch (msg.message)
+			{
+			case WM_LBUTTONUP:
+			case WM_LBUTTONDOWN:
+			case WM_RBUTTONUP:
+			case WM_RBUTTONDOWN:
+			case WM_MBUTTONUP:
+			case WM_MBUTTONDOWN:
+				ReleaseCapture();
+				TranslateMessage(&msg);
+				DispatchMessageW(&msg);
+				return FALSE;
+			case WM_MOUSEMOVE:
+				if (Abs(x - msg.pt.x) >= dxDrag && Abs(y - msg.pt.y) >= dyDrag)
+					return TRUE;
+				[[fallthrough]];
+			default:
+				TranslateMessage(&msg);
+				DispatchMessageW(&msg);
+				break;
+			}
+		}
+		else
+			WaitMessage();
+	}
+	return FALSE;
+}
 ECK_NAMESPACE_END

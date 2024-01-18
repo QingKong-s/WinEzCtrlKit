@@ -811,6 +811,8 @@ public:
 		return std::basic_string<TChar, TTraits, TAlloc1>(Data(), (size_t)Size());
 	}
 
+	[[nodiscard]] EckInline BOOL IsEmpty() const { return Size() == 0; }
+
 	[[nodiscard]] EckInline TIterator begin() { return Data(); }
 	[[nodiscard]] EckInline TIterator end() { return begin() + Size(); }
 	[[nodiscard]] EckInline TConstIterator begin() const { return Data(); }
