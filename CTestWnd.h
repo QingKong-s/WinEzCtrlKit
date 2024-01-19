@@ -205,7 +205,6 @@ public:
 	{
 		eck::TLNODE Node{};
 		HWND hWnd{};
-		int idxImg;
 		eck::CRefStrW rs{};
 		eck::CRefStrW rs2{};
 		eck::CRefStrW rs3{};
@@ -217,7 +216,7 @@ public:
 		auto h = GetWindow(hWnd, GW_CHILD);
 		while (h)
 		{
-			if (IsWindowVisible(h))
+			//if (IsWindowVisible(h))
 			{
 				BOOL b;
 				auto hicon = eck::GetWindowIcon(h, b, TRUE);
@@ -227,7 +226,7 @@ public:
 				if (b)
 					DestroyIcon(hicon);
 				//EnumWnd(h, data->Children.emplace_back(new WNDDATA{ {},h }));
-				auto p = wdbuf.Alloc(1, eck::TLNODE{}, h, idx);
+				auto p = wdbuf.Alloc(1, eck::TLNODE{ 0,0,0,0,idx }, h);
 				fvec.emplace_back(p);
 				EnumWnd(h, data->Children.emplace_back(p), fvec);
 			}
@@ -241,6 +240,8 @@ public:
 		static std::vector<WNDDATA*> data{};
 		static std::vector<WNDDATA*> flatdata{};
 		static int isortorder = 0;
+		static HDC hCDCBK;
+		static int cx, cy;
 		switch (uMsg)
 		{
 		case WM_CREATE:
@@ -314,6 +315,14 @@ public:
 			//m_lot.Add(&m_LBN, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 			m_iDpi = eck::GetDpi(hWnd);
 
+			hCDCBK = CreateCompatibleDC(NULL);
+			auto hbm = eck::CreateHBITMAP(LR"(E:\Desktop\Temp\DC802FE9979A460BBA8E757382343EB4.jpg)");
+			SelectObject(hCDCBK, hbm);
+			BITMAP bb;
+			GetObjectW(hbm, sizeof(bb), &bb);
+			cx = bb.bmWidth;
+			cy = bb.bmHeight;
+
 			m_il = ImageList_Create(eck::DpiScale(16, m_iDpi), eck::DpiScale(16, m_iDpi),
 				ILC_COLOR32 | ILC_ORIGINALSIZE, 0, 40);
 			data.push_back(wdbuf.Alloc(1));
@@ -326,7 +335,11 @@ public:
 			h.InsertItem(L"szText", -1, 400);
 			m_TL.SetImageList(m_il);
 			m_TL.SetWatermarkString(L"水印测试。\n我是第二行水印。");
-			//m_TL.BuildTree();
+			auto ull0 = GetTickCount64();
+			m_TL.BuildTree();
+			ull0 = GetTickCount64() - ull0;
+			EckDbgPrint(ull0);
+			//m_TL.SetBackgroundNotSolid(TRUE);
 			//m_TL.SetSingleSelect(TRUE);
 			//m_lve.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
 			//	0, 0, 1200, 1000, hWnd, 107);
@@ -347,9 +360,9 @@ public:
 				case eck::NM_TL_FILLCHILDREN:
 				{
 					auto p = (eck::NMTLFILLCHILDREN*)lParam;
-					if (!p->pParent)
+					if (p->bQueryRoot)
 					{
-						p->pParent = (eck::TLNODE*)data[0];
+						p->cTopItem = (int)data[0]->Children.size();
 						p->pChildren = (eck::TLNODE**)data[0]->Children.data();
 					}
 					else
@@ -373,25 +386,24 @@ public:
 					switch (p->Item.idxSubItem)
 					{
 					case 0:
-						if (pd->rs.IsEmpty())
+						if (pd->rs.IsEmpty() && IsWindow(pd->hWnd))
 							pd->rs.Format(L"0x%08X", pd->hWnd);
 						p->Item.pszText = pd->rs.Data();
 						p->Item.cchText = pd->rs.Size();
 						break;
 					case 1:
-						if (pd->rs2.IsEmpty())
+						if (pd->rs2.IsEmpty() && IsWindow(pd->hWnd))
 							pd->rs2 = eck::CWnd(pd->hWnd).GetClsName();
 						p->Item.pszText = pd->rs2.Data();
 						p->Item.cchText = pd->rs2.Size();
 						break;
 					case 2:
-						if (pd->rs3.IsEmpty())
+						if (pd->rs3.IsEmpty() && IsWindow(pd->hWnd))
 							pd->rs3 = eck::CWnd(pd->hWnd).GetText();
 						p->Item.pszText = pd->rs3.Data();
 						p->Item.cchText = pd->rs3.Size();
 						break;
 					}
-					p->Item.idxImg = pd->idxImg;
 				}
 				return 0;
 				case eck::NM_TL_HD_CLICK:
@@ -426,6 +438,56 @@ public:
 					m_TL.Redraw();
 				}
 				return 0;
+				case eck::NM_TL_CUSTOMDRAW:
+				{
+					auto p = (eck::NMTLCUSTOMDRAW*)lParam;
+					auto pcol = m_TL.GetColumnPosInfo();
+					if (p->iDrawStage == eck::TLCDD_PREFILLBK)
+					{
+						//RECT rc;
+						//GetClientRect(m_TL.HWnd, &rc);
+						//rc.top += m_TL.GetHeader().GetHeight();
+						//StretchBlt(p->hDC, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top,
+						//	hCDCBK, 0, 0,cx,cy, SRCCOPY);
+						//return eck::TLCDRF_SKIPDEFAULT;
+					}
+					else if (p->iDrawStage == eck::TLCDD_PREPAINTITEM)
+					{
+						auto pd = (WNDDATA*)p->pNode;
+						if (pd->rs2.IsEmpty() && IsWindow(pd->hWnd))
+							pd->rs2 = eck::CWnd(pd->hWnd).GetClsName();
+						UINT u = 0;
+						if (!pd->rs2.IsEmpty())
+						{
+							if (eck::FindStr(pd->rs2.Data(), L"Chrome") >= 0)
+							{
+								SetDCBrushColor(p->hDC, eck::Colorref::NeutralGray);
+								FillRect(p->hDC, p->prcItem, GetStockBrush(DC_BRUSH));
+								u |= eck::TLCDRF_BKGNDCHANGED;
+							}
+							else if (eck::FindStr(pd->rs2.Data(), L"TX") >= 0)
+							{
+								SetDCBrushColor(p->hDC, eck::Colorref::MoneyGreen);
+								FillRect(p->hDC, p->prcItem, GetStockBrush(DC_BRUSH));
+								u |= eck::TLCDRF_BKGNDCHANGED;
+							}
+						}
+
+						if (!IsWindow(pd->hWnd))
+						{
+							p->crText = eck::Colorref::Red;
+							u |= eck::TLCDRF_TEXTCLRCHANGED;
+						}
+
+						if (!IsWindowVisible(pd->hWnd))
+						{
+							p->crText = eck::Colorref::Gray;
+							u |= eck::TLCDRF_TEXTCLRCHANGED;
+						}
+						return u;
+					}
+				}
+				return eck::TLCDRF_NONE;
 				}
 			}
 		}

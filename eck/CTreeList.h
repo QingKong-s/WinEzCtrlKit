@@ -10,11 +10,12 @@
 #include "GraphicsHelper.h"
 #include "CtrlGraphics.h"
 
+#include <vssym32.h>
+
 ECK_NAMESPACE_BEGIN
 // 项目标志
 enum :UINT
 {
-	TLIF_ROOT = (1u << 0),
 	TLIF_CLOSED = (1u << 1),
 	TLIF_SELECTED = (1u << 2),
 	TLIF_HOTEXPANDBTN = (1u << 3),
@@ -23,10 +24,8 @@ enum :UINT
 enum :UINT
 {
 	TLIM_TEXT = (1u << 0),
-	TLIM_IMAGE = (1u << 1),
-	TLIM_CHILDREN = (1u << 2),
 
-	TLIM_ALL = TLIM_TEXT | TLIM_IMAGE | TLIM_CHILDREN,
+	TLIM_ALL = TLIM_TEXT,
 };
 // 部件
 enum
@@ -45,10 +44,11 @@ enum :UINT
 // 节点
 struct TLNODE
 {
-	UINT uFlags;
-	int cChildren;
-	int iLevel;
-	LPARAM lParam;
+	USHORT uFlags;	// TLIF_标志
+	short iLevel;	// 层次，根节点为1，此后逐层+1
+	int cChildren;	// 子节点数
+	int idxParent;	// 父节点索引，-1 = 根节点
+	int idxImg;		// 图像列表索引，-1 = 无效
 };
 // 项目
 struct TLITEM
@@ -57,9 +57,7 @@ struct TLITEM
 	int idxSubItem;
 	TLNODE* pNode;
 	UINT uFlags;
-	int cChildren;
 	int cchText;
-	int idxImg;
 	PCWSTR pszText;
 };
 // 命中测试结构
@@ -68,13 +66,18 @@ struct TLHITTEST
 	POINT pt;
 	int iPart;
 	UINT uFlags;
-	int idxSubItem;
+	int idxSubItemDisplay;
 };
 
 struct NMTLFILLCHILDREN
 {
 	NMHDR nmhdr;
-	TLNODE* pParent;	// 正在请求其子项目的父项
+	BOOL bQueryRoot;// 是否请求根节点
+	union
+	{
+		TLNODE* pParent;	// 正在请求其子项目的父项
+		int cTopItem;		// 根节点的数量
+	};
 	TLNODE** pChildren;	// 所有子项的数组
 };
 
@@ -97,6 +100,39 @@ struct NMTLTLNODEEXPANDED
 	TLNODE* pNode;
 };
 
+enum
+{
+	TLCDD_PREFILLBK,// 将要填充背景，仅使用hDC和rcItem
+	TLCDD_PREPAINTITEM,// 将要绘制项目
+};
+
+enum :UINT
+{
+	TLCDRF_NONE = 0,
+	TLCDRF_TEXTCLRCHANGED = (1u << 0),// 文本颜色已改变
+	TLCDRF_SKIPDEFAULT = (1u << 1),// 终止默认绘制
+	TLCDRF_BKGNDCHANGED = (1u << 2),// 背景已改变
+};
+
+struct NMTLCUSTOMDRAW
+{
+	NMHDR nmhdr;
+	HDC hDC;
+	const RECT* prcItem;
+	TLNODE* pNode;
+	int iDrawStage;
+
+	int idxItem;
+	int idxSubItem;
+
+	int iStateIdItem;
+	int iPartIdGlyph;
+	int iStateIdGlyph;
+
+	COLORREF crText;
+	COLORREF crTextBk;
+};
+
 class CTreeList;
 class CTLHeader final :public CHeader
 {
@@ -104,7 +140,7 @@ private:
 	CTreeList& m_TL;
 public:
 	CTLHeader(CTreeList& tl) :m_TL{ tl } {}
-	
+
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 };
 
@@ -118,10 +154,11 @@ private:
 	{
 		int iLeft;
 		int iRight;
+		int idxActual;// 这一项对应的实际项目索引
 	};
 
 	std::vector<TLNODE*> m_Item{};
-	std::vector<COL> m_vCol{};
+	std::vector<COL> m_vCol{};// 按显示顺序排列的列信息
 
 	CTLHeader m_Header{ *this };
 
@@ -129,6 +166,7 @@ private:
 	HTHEME m_hThemeLV = NULL;
 	HFONT m_hFont = NULL;
 	CEzCDC m_DC{};
+	COLORREF m_crBranchLine = CLR_INVALID;
 
 	int m_idxTopItem = 0;	// 第一可见项
 	int m_idxHot = -1;		// 热点项
@@ -157,15 +195,21 @@ private:
 	CRefStrW m_rsWatermark{};
 
 #ifdef _DEBUG
-	BITBOOL m_bDbgDrawIndex : 1 = 0;				// 【调试】绘制项目索引
+	BITBOOL m_bDbgDrawIndex : 1 = 1;				// 【调试】绘制项目索引
+	BITBOOL m_bDbgDrawMarkItem : 1 = 1;				// 【调试】绘制mark项
 #endif
 	BITBOOL m_bExpandBtnHot : 1 = FALSE;			// 展开按钮是否点燃
 	BITBOOL m_bDraggingSel : 1 = FALSE;				// 是否处于拖动选择状态
-	BITBOOL m_bFocusIndicatorVisible : 1 = FALSE;	// 焦点指示器是否可见
+#ifdef _DEBUG
+	BITBOOL m_bFocusIndicatorVisible : 1 = TRUE;	// 焦点指示器是否可见
+#else
+	BITBOOL m_bFocusIndicatorVisible : 1 = FALSE;
+#endif
 
 	BITBOOL m_bFlatMode : 1 = FALSE;					// 平面列表模式
 	BITBOOL m_bSingleSel : 1 = FALSE;					// 单选
 	BITBOOL m_bDisallowBeginDragInItemSpace : 1 = FALSE;// 禁止在项目内的空白区启动拖动选择
+	BITBOOL m_bBackgroundNotSolid : 1 = FALSE;			// 背景是否不是纯色
 
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 	ECK_DS_BEGIN(DPIS)
@@ -182,33 +226,44 @@ private:
 	/// </summary>
 	/// <param name="pParent">当前父项目</param>
 	/// <param name="pNode">子项目数组</param>
-	/// <param name="iLevel">层次</param>
+	/// <param name="iLevel">父项目层次</param>
 	void AddVirtualItem(TLNODE* pParent, TLNODE** pNode, int iLevel)
 	{
-		if (!IsBitSet(pParent->uFlags, TLIF_ROOT))
-			m_Item.emplace_back(pParent);
-		else
-			pParent->iLevel = 0;
-
+		m_Item.emplace_back(pParent);
+		pParent->iLevel = iLevel;
 		if (!IsBitSet(pParent->uFlags, TLIF_CLOSED))
 		{
+			const int idxCurrParent = (int)m_Item.size() - 1;
 			EckCounter(pParent->cChildren, i)
 			{
+				pNode[i]->idxParent = idxCurrParent;
 				NMTLFILLCHILDREN nm{};
 				nm.pParent = pNode[i];
-				nm.pParent->iLevel = iLevel + 1;
 				FillNmhdrAndSendNotify(nm, NM_TL_FILLCHILDREN);
 				AddVirtualItem(nm.pParent, nm.pChildren, iLevel + 1);
 			}
 		}
 	}
 
-	void PaintItem(HDC hDC, int idx, BOOL bDrawDivider = FALSE, BOOL bFillBk = FALSE)
+	void PaintItem(HDC hDC, int idx)
 	{
 		//---------------准备
 		const int x = m_dxContent;
 		const int y = (idx - m_idxTopItem) * m_cyItem + m_cyHeader;
 		const auto e = m_Item[idx];
+
+		RECT rcItem{ x,y,m_cxItem + x,y + m_cyItem };
+		const int cxIndent = CalcIndent(e);
+		RECT rc
+		{
+			x + m_Ds.cxTextMargin + cxIndent + m_cxImg,
+			rcItem.top,
+			0,
+			rcItem.bottom
+		};
+
+		HRGN hRgn = NULL;
+		COLORREF crOldText = CLR_INVALID, crOldTextBk = CLR_INVALID;
 
 		int iStateId;
 		if (IsBitSet(e->uFlags, TLIF_SELECTED) || (m_bSingleSel && m_idxSel == idx))
@@ -220,37 +275,51 @@ private:
 			iStateId = LISS_HOT;
 		else
 			iStateId = 0;
-		//---------------擦除
-		RECT rcItem{ x,y,m_cxClient,y + m_cyItem };
-		if (bFillBk)
-			FillRect(hDC, &rcItem, GetSysColorBrush(COLOR_WINDOW));
-		//---------------画列分隔线
-		if (bDrawDivider)
-			for (const auto& e : m_vCol)
-				DrawListViewColumnDetail(m_hThemeLV, hDC, e.iRight + x, rcItem.top, rcItem.bottom);
+
+		NMTLCUSTOMDRAW nmcd;
+		nmcd.hDC = hDC;
+		nmcd.prcItem = &rcItem;
+		nmcd.pNode = e;
+		nmcd.iDrawStage = TLCDD_PREPAINTITEM;
+		nmcd.idxItem = idx;
+		nmcd.idxSubItem = -1;
+		nmcd.iStateIdItem = iStateId;
+		nmcd.iPartIdGlyph = (m_bExpandBtnHot && m_idxHot == idx) ? TVP_HOTGLYPH : TVP_GLYPH;
+		nmcd.iStateIdGlyph = IsBitSet(e->uFlags, TLIF_CLOSED) ? GLPS_CLOSED : GLPS_OPENED;
+		nmcd.crText = nmcd.crTextBk = CLR_INVALID;
+		const UINT uCustom = (UINT)FillNmhdrAndSendNotify(nmcd, NM_TL_CUSTOMDRAW);
+
+		if (uCustom & TLCDRF_SKIPDEFAULT)
+			goto End;
+		if (uCustom & TLCDRF_BKGNDCHANGED)
+			PaintDivider(hDC, rcItem);
 		//---------------画背景
-		rcItem.right = m_cxItem + x;
 		if (iStateId)
 			DrawThemeBackground(m_hThemeLV, hDC, LVP_LISTITEM, iStateId, &rcItem, NULL);
 		if (m_bFocusIndicatorVisible && idx == m_idxFocus)
+		{
+			InflateRect(&rcItem, -1, -1);
 			DrawFocusRect(hDC, &rcItem);
+			InflateRect(&rcItem, 1, 1);
+		}
 		//---------------画文本
+		if (uCustom & TLCDRF_TEXTCLRCHANGED)
+		{
+			if (nmcd.crText != CLR_INVALID)
+				crOldText = SetTextColor(hDC, nmcd.crText);
+			if (nmcd.crTextBk != CLR_INVALID)
+				crOldTextBk = SetBkColor(hDC, nmcd.crTextBk);
+		}
+
 		NMTLGETDISPINFO nm;
 		nm.Item.pNode = e;
-		nm.Item.uMask = TLIM_TEXT | TLIM_IMAGE;
+		nm.Item.uMask = TLIM_TEXT;
 		FillNmhdr(nm, NM_TL_GETDISPINFO);
 
-		const int cxIndent = CalcIndent(e);
-		RECT rc
-		{
-			x + m_Ds.cxTextMargin + cxIndent + m_cxImg,
-			rcItem.top,
-			0,
-			rcItem.bottom
-		};
+		// 按可见顺序循环
 		EckCounter(m_vCol.size(), i)
 		{
-			nm.Item.idxSubItem = (int)i;
+			nm.Item.idxSubItem = m_vCol[i].idxActual;
 			nm.Item.cchText = 0;
 			nm.Item.pszText = NULL;
 			SendNotify(nm);
@@ -258,51 +327,74 @@ private:
 			rc.right = m_vCol[i].iRight + x - m_Ds.cxTextMargin;
 #pragma warning(suppress:6387)// nm.Item.pszText可能为NULL
 			DrawTextW(hDC, nm.Item.pszText, nm.Item.cchText, &rc,
-				DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX);
+				DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX | DT_NOCLIP);
 			rc.left = rc.right + m_Ds.cxTextMargin * 2;
 		}
-		//---------------画图片
-		HRGN hRgn = NULL;
-		if (nm.Item.idxImg >= 0 || e->cChildren)// 需要设置剪辑区
+		if (uCustom & TLCDRF_TEXTCLRCHANGED)
 		{
-			rcItem.left = 0;
-			rcItem.right = m_vCol.front().iRight;
-			hRgn = CreateRectRgnIndirect(&rcItem);
+			if (crOldText != CLR_INVALID)
+				SetTextColor(hDC, crOldText);
+			if (crOldTextBk != CLR_INVALID)
+				SetBkColor(hDC, crOldTextBk);
+		}
+		//---------------画图片
+		if (e->idxImg >= 0 || e->cChildren)// 需要设置剪辑区
+		{
+			rc.left = 0;
+			rc.right = m_vCol.front().iRight;
+			hRgn = CreateRectRgnIndirect(&rc);
 			SelectClipRgn(hDC, hRgn);
 			DeleteObject(hRgn);
 		}
-		if (nm.Item.idxImg >= 0)
+		if (e->idxImg >= 0)
 		{
-			EckAssert(nm.Item.idxImg < ImageList_GetImageCount(m_hImgList));
+			EckAssert(e->idxImg < ImageList_GetImageCount(m_hImgList));
 			RECT rcImg;
 			rcImg.left = x + cxIndent;
 			rcImg.top = y + (m_cyItem - m_cyImg) / 2;
 			rcImg.right = rcImg.left + m_cxImg;
 			rcImg.bottom = rcImg.top + m_cyImg;
-			ImageList_Draw(m_hImgList, nm.Item.idxImg, hDC, rcImg.left, rcImg.top, ILD_NORMAL);
+			ImageList_Draw(m_hImgList, e->idxImg, hDC, rcImg.left, rcImg.top, ILD_NORMAL);
 		}
 		//---------------画折叠按钮
+		int cLevel;
 		if (!m_bFlatMode && e->cChildren)
 		{
 			rc.left = x + cxIndent - m_sizeTVGlyph.cx;
 			rc.right = rc.left + m_sizeTVGlyph.cx;
 			rc.top += ((m_cyItem - m_sizeTVGlyph.cy) / 2);
 			rc.bottom = rc.top + m_sizeTVGlyph.cy;
-			DrawThemeBackground(m_hThemeTV, hDC,
-				(m_bExpandBtnHot && m_idxHot == idx) ? TVP_HOTGLYPH : TVP_GLYPH,
-				IsBitSet(e->uFlags, TLIF_CLOSED) ? GLPS_CLOSED : GLPS_OPENED,
-				&rc, NULL);
+			DrawThemeBackground(m_hThemeTV, hDC, nmcd.iPartIdGlyph, nmcd.iStateIdGlyph, &rc, NULL);
+			cLevel = e->iLevel - 1;
 		}
+		else
+			cLevel = e->iLevel;
+		////---------------画分支线
+		//for (int i = 0; i < cLevel; ++i)
+		//{
+		//	SetDCPenColor(hDC, m_crBranchLine);
+		//	SelectObject(hDC, GetStockBrush(DC_PEN));
+		//	const int xLine = x + i * m_sizeTVGlyph.cx + m_sizeTVGlyph.cx / 2;
+		//	MoveToEx(hDC, xLine, rcItem.top, NULL);
+		//	LineTo(hDC, xLine, rcItem.bottom);
+		//}
+
 		if (hRgn)
 			SelectClipRgn(hDC, NULL);
+	End:;
 #ifdef _DEBUG
+		const auto cr = SetTextColor(hDC, Colorref::Red);
 		if (m_bDbgDrawIndex)
+			DrawTextW(hDC, std::to_wstring(idx).c_str(), -1, (RECT*)&rcItem,
+				DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_NOCLIP);
+
+		if (m_bDbgDrawMarkItem && idx == m_idxMark && !m_vCol.empty())
 		{
-			const auto cr = SetTextColor(hDC, Colorref::Red);
-			GetItemRect(idx, rcItem);
-			DrawTextW(hDC, std::to_wstring(idx).c_str(), -1, &rcItem, DT_VCENTER | DT_SINGLELINE);
-			SetTextColor(hDC, cr);
+			rcItem.right = m_vCol.front().iRight;
+			DrawTextW(hDC, L"Mark", -1, (RECT*)&rcItem,
+				DT_VCENTER | DT_SINGLELINE | DT_RIGHT | DT_NOPREFIX | DT_NOCLIP);
 		}
+		SetTextColor(hDC, cr);
 #endif
 	}
 
@@ -318,7 +410,12 @@ private:
 
 	EckInline void PaintBk(HDC hDC, const RECT& rc)
 	{
-		FillRect(hDC, &rc, GetSysColorBrush(COLOR_WINDOW));
+		NMTLCUSTOMDRAW nm{};
+		nm.hDC = hDC;
+		nm.prcItem = &rc;
+		nm.iDrawStage = TLCDD_PREFILLBK;
+		if (!(FillNmhdrAndSendNotify(nm, NM_TL_CUSTOMDRAW) & TLCDRF_SKIPDEFAULT))
+			FillRect(hDC, &rc, GetSysColorBrush(COLOR_WINDOW));
 	}
 
 	EckInline void PaintDivider(HDC hDC, const RECT& rc)
@@ -344,25 +441,29 @@ private:
 		GetThemePartSize(m_hThemeTV, m_DC.GetDC(), TVP_GLYPH, GLPS_CLOSED, NULL, TS_TRUE, &m_sizeTVGlyph);
 	}
 
-	void UpdateColumnInfo(int idxBegin)
+	void UpdateColumnInfo()
 	{
-		int x;
-		if (idxBegin == 0)
-			x = 0;
-		else
-			x = m_vCol[idxBegin - 1].iRight;
+		int x = 0;
+		const int cCol = (int)m_vCol.size();
+
+		const auto piOrder = (int*)_malloca(sizeof(int) * cCol);
+		EckCheckMem(piOrder);
+		m_Header.GetOrderArray(piOrder, cCol);
 
 		HDITEMW hdi;
 		hdi.mask = HDI_WIDTH;
-		for (int i = idxBegin; i < (int)m_vCol.size(); ++i)
+		EckCounter(cCol, i)
 		{
-			m_Header.GetItem(i, &hdi);
+			const int idx = piOrder[i];
+			m_Header.GetItem(idx, &hdi);
 			auto& e = m_vCol[i];
 			e.iLeft = x;
 			e.iRight = x + hdi.cxy;
+			e.idxActual = idx;
 			x += hdi.cxy;
 		}
 		m_cxItem = m_vCol.back().iRight;
+		_freea(piOrder);
 	}
 
 	/// <summary>
@@ -526,6 +627,7 @@ private:
 						GetItemRect(i, rcItem);
 						const BOOL bIntersectOld = IsRectsIntersect(rcItem, rcOld);
 						const BOOL bIntersectNew = IsRectsIntersect(rcItem, m_rcDraggingSel);
+
 						if (msg.wParam & MK_CONTROL)
 						{
 							if (bIntersectOld != bIntersectNew)
@@ -626,7 +728,7 @@ private:
 		SelectObject(m_DC.GetDC(), m_hFont);
 	}
 
-	EckInline void CheckOldData()
+	void CheckOldData()
 	{
 		const int c = (int)m_Item.size();
 		if (m_idxHot >= c)
@@ -640,7 +742,27 @@ private:
 			m_idxMark = -1;
 		if (m_idxSel >= c)
 			m_idxSel = -1;
-		
+	}
+
+	/// <summary>
+	/// 检查项目索引数据是否在闭区间内，如果在，修改到建议的位置
+	/// </summary>
+	/// <param name="idxBegin">起始索引</param>
+	/// <param name="idxEnd">终止索引</param>
+	/// <param name="idxSuggestion">建议的索引</param>
+	void CheckOldDataRange(int idxBegin, int idxEnd, int idxSuggestion)
+	{
+		if (m_idxHot >= idxBegin && m_idxHot <= idxEnd)
+		{
+			m_idxHot = -1;// 强行修改点燃项到其他位置是没有道理的
+			m_bExpandBtnHot = FALSE;
+		}
+		if (m_idxFocus >= idxBegin && m_idxFocus <= idxEnd)
+			m_idxFocus = idxSuggestion;
+		if (m_idxMark >= idxBegin && m_idxMark <= idxEnd)
+			m_idxMark = idxSuggestion;
+		if (m_idxSel >= idxBegin && m_idxSel <= idxEnd)
+			m_idxSel = idxSuggestion;
 	}
 public:
 	ECK_CWND_SINGLEOWNER;
@@ -693,11 +815,7 @@ public:
 				const auto p = (NMHEADERW*)lParam;
 				if (IsBitSet(p->pitem->mask, HDI_WIDTH))
 				{
-					EckAssert(p->iItem >= 0 && p->iItem < (int)m_vCol.size());
-					auto& e = m_vCol[p->iItem];
-					const int iDelta = (p->pitem->cxy - (e.iRight - e.iLeft));
-					e.iRight += iDelta;
-					UpdateColumnInfo(p->iItem);
+					UpdateColumnInfo();
 					UpdateScrollBar();
 					SetWindowPos(m_Header.HWnd, NULL, m_dxContent, 0,
 						std::max(m_cxItem, m_cxClient), m_cyHeader, SWP_NOZORDER | SWP_NOACTIVATE);
@@ -705,12 +823,22 @@ public:
 				}
 			}
 			return FALSE;
+
 			case HDN_ITEMCLICKW:
 			{
 				auto nm = *(const NMHEADERW*)lParam;
 				FillNmhdrAndSendNotify(nm, NM_TL_HD_CLICK);
 			}
 			return 0;
+
+			case HDN_BEGINDRAG:
+			case HDN_ENDDRAG:
+				return (((NMHEADERW*)lParam)->iItem == 0);// 不允许拖动第一列
+
+			case NM_RELEASEDCAPTURE:
+				UpdateColumnInfo();
+				Redraw();
+				return 0;
 			}
 		}
 		return 0;
@@ -763,8 +891,13 @@ public:
 			SetSbInfo(SB_VERT, &si);
 			GetSbInfo(SB_VERT, &si);
 			ReCalcTopItem();
-			RECT rc{ 0,m_cyHeader,m_cxClient,m_cyClient };
-			ScrollWindowEx(hWnd, 0, (iOld - si.nPos) * m_cyItem, &rc, &rc, NULL, NULL, SW_INVALIDATE);
+			if (m_bBackgroundNotSolid)
+				Redraw();
+			else
+			{
+				RECT rc{ 0,m_cyHeader,m_cxClient,m_cyClient };
+				ScrollWindowEx(hWnd, 0, (iOld - si.nPos) * m_cyItem, &rc, &rc, NULL, NULL, SW_INVALIDATE);
+			}
 			UpdateWindow(hWnd);
 		}
 		return 0;
@@ -820,8 +953,13 @@ public:
 			SetSbInfo(SB_VERT, &si);
 			GetSbInfo(SB_VERT, &si);
 			ReCalcTopItem();
-			RECT rc{ 0,m_cyHeader,m_cxClient,m_cyClient };
-			ScrollWindowEx(hWnd, 0, (iOld - si.nPos) * m_cyItem, &rc, &rc, NULL, NULL, SW_INVALIDATE);
+			if (m_bBackgroundNotSolid)
+				Redraw();
+			else
+			{
+				RECT rc{ 0,m_cyHeader,m_cxClient,m_cyClient };
+				ScrollWindowEx(hWnd, 0, (iOld - si.nPos) * m_cyItem, &rc, &rc, NULL, NULL, SW_INVALIDATE);
+			}
 			UpdateWindow(hWnd);
 		}
 		return 0;
@@ -849,7 +987,7 @@ public:
 				//------------画项目
 				for (int i = idxTop; i <= idxBottom; ++i)
 					PaintItem(m_DC.GetDC(), i);
-				
+
 			}
 			else if (!m_rsWatermark.IsEmpty())
 			{
@@ -880,18 +1018,211 @@ public:
 
 		case WM_KEYDOWN:
 		{
+			const int idxOldFocus = m_idxFocus;
+			int idxOldSel;
+			int idxBottom = m_idxTopItem + (m_cyClient - m_cyHeader) / m_cyItem - 1;
+			if (idxBottom >= (int)m_Item.size())
+				idxBottom = (int)m_Item.size() - 1;
 			switch (wParam)
 			{
-			case VK_PRIOR:
-				ScrollV(-m_cyClient / m_cyItem);
-				break;
-			case VK_NEXT:
-				ScrollV(m_cyClient / m_cyItem);
-				break;
-
+			case VK_UP:
+			{
+				--m_idxFocus;
+				if (m_idxFocus < 0)
+					m_idxFocus = 0;
 			}
+			break;
+			case VK_DOWN:
+			{
+				if (m_idxFocus >= 0)
+				{
+					++m_idxFocus;
+					if (m_idxFocus >= (int)m_Item.size())
+						m_idxFocus = (int)m_Item.size() - 1;
+				}
+			}
+			break;
+			case VK_PRIOR:
+			{
+				if (m_idxFocus == m_idxTopItem)
+				{
+					m_idxFocus -= (m_cyClient - m_cyHeader) / m_cyItem;
+					if (m_idxFocus < 0)
+						m_idxFocus = 0;
+				}
+				else
+					m_idxFocus = m_idxTopItem;
+			}
+			break;
+			case VK_NEXT:
+			{
+				if (m_idxFocus == idxBottom)
+				{
+					m_idxFocus += (m_cyClient - m_cyHeader) / m_cyItem;
+					if (m_idxFocus >= (int)m_Item.size())
+						m_idxFocus = (int)m_Item.size() - 1;
+				}
+				else
+					m_idxFocus = idxBottom;
+			}
+			break;
+			case VK_LEFT:// 如果当前焦点项目已展开，折叠之，否则移至父项目
+			{
+				if (m_idxFocus >= 0)
+				{
+					const auto e = m_Item[m_idxFocus];
+					if (e->cChildren && !(e->uFlags & TLIF_CLOSED))// 已展开
+					{
+						ExpandItem(m_idxFocus, TVE_TOGGLE);
+						if (m_bSingleSel)
+							m_idxSel = m_idxFocus;
+						else
+						{
+							DeselectAll();
+							e->uFlags |= TLIF_SELECTED;
+						}
+						RECT rc;
+						GetItemRect(m_idxFocus, rc);
+						rc.right = m_cxClient;
+						rc.bottom = m_cyClient;
+						Redraw(rc);
+					}
+					else if (e->idxParent >= 0)// 未展开，而且不是根项目
+					{
+						if (m_bSingleSel)
+						{
+							idxOldSel = m_idxSel;
+							m_idxSel = m_idxFocus = e->idxParent;
+							if (idxOldSel != m_idxSel && idxOldSel >= 0)
+								RedrawItem(idxOldSel);
+							if (idxOldFocus != m_idxFocus && idxOldFocus >= 0)
+								RedrawItem(idxOldFocus);
+						}
+						else
+						{
+							DeselectAll();
+							m_idxFocus = e->idxParent;
+							m_Item[m_idxFocus]->uFlags |= TLIF_SELECTED;
+							Redraw();
+						}
+					}
+					UpdateWindow(hWnd);
+					goto SkipItemAdjust;
+				}
+			}
+			break;
+			case VK_RIGHT:// 如果当前焦点项目已折叠，展开之，否则移至第一个子项目
+			{
+				if (m_idxFocus >= 0)
+				{
+					const auto e = m_Item[m_idxFocus];
+					if (e->cChildren && (e->uFlags & TLIF_CLOSED))// 已折叠
+					{
+						ExpandItem(m_idxFocus, TVE_TOGGLE);
+						if (m_bSingleSel)
+							m_idxSel = m_idxFocus;
+						else
+						{
+							DeselectAll();
+							e->uFlags |= TLIF_SELECTED;
+						}
+						RECT rc;
+						GetItemRect(m_idxFocus, rc);
+						rc.right = m_cxClient;
+						rc.bottom = m_cyClient;
+						Redraw(rc);
+					}
+					else if (e->cChildren)// 有子项目
+					{
+						if (m_bSingleSel)
+						{
+							idxOldSel = m_idxSel;
+							m_idxSel = ++m_idxFocus;
+							if (idxOldSel != m_idxSel && idxOldSel >= 0)
+								RedrawItem(idxOldSel);
+							if (/*idxOldFocus != m_idxFocus && */idxOldFocus >= 0)
+								RedrawItem(idxOldFocus);
+						}
+						else
+						{
+							DeselectAll();
+							++m_idxFocus;
+							m_Item[m_idxFocus]->uFlags |= TLIF_SELECTED;
+							Redraw();
+						}
+					}
+					UpdateWindow(hWnd);
+					goto SkipItemAdjust;
+				}
+			}
+			break;
+			}
+
+			if (m_idxFocus >= 0)// 项目必须有效
+			{
+				const BOOL bCtrlPressed = GetAsyncKeyState(VK_CONTROL) & 0x8000;
+				const BOOL bShiftPressed = GetAsyncKeyState(VK_SHIFT) & 0x8000;
+				if (!bCtrlPressed && !bShiftPressed)// Ctrl或Shift按下，不修改mark
+					m_idxMark = m_idxFocus;
+				if (m_idxFocus != idxOldFocus)// 已改变
+				{
+					if (!bCtrlPressed)// Ctrl未按下
+					{
+						if (bShiftPressed)// Shift按下，执行范围选择
+						{
+							if (m_bSingleSel)// 单选不论，总是选中当前项
+							{
+								idxOldSel = m_idxSel;
+								m_idxSel = m_idxFocus;
+								RedrawItem(m_idxSel);
+								if (idxOldSel != m_idxSel && idxOldSel >= 0)
+									RedrawItem(idxOldSel);
+							}
+							else// 多选
+							{
+								if (m_idxMark >= 0)// mark有效，选择范围
+									OnlySelectRange(std::min(m_idxFocus, m_idxMark), std::max(m_idxFocus, m_idxMark));
+								else// mark无效，只选中当前项
+								{
+									DeselectAll();
+									m_Item[m_idxFocus]->uFlags |= TLIF_SELECTED;
+								}
+								Redraw();
+							}
+						}
+						else// Shift未按下
+						{
+							if (m_bSingleSel)
+							{
+								idxOldSel = m_idxSel;
+								m_idxSel = m_idxFocus;
+								RedrawItem(m_idxSel);
+								if (m_bFocusIndicatorVisible && idxOldFocus >= 0)
+									RedrawItem(idxOldFocus);
+							}
+							else
+							{
+								DeselectAll();
+								m_Item[m_idxFocus]->uFlags |= TLIF_SELECTED;
+								Redraw();
+							}
+						}
+					}
+					else// Ctrl按下，则只移动焦点，如果必要，重画焦点项
+					{
+						RedrawItem(m_idxFocus);
+						if (m_bFocusIndicatorVisible && idxOldFocus >= 0)
+							RedrawItem(idxOldFocus);
+					}
+
+					if (m_idxFocus < m_idxTopItem || m_idxFocus > idxBottom)
+						ScrollV(m_idxFocus - idxOldFocus);// 执行滚动
+					UpdateWindow(hWnd);
+				}
+			}
+		SkipItemAdjust:;
 		}
-		return 0;
+		break;
 
 		case WM_LBUTTONDOWN:
 		{
@@ -902,24 +1233,7 @@ public:
 			int idx = HitTest(tlht);
 			if (tlht.iPart == TLIP_EXPANDBTN)// 命中展开按钮
 			{
-				const auto e = m_Item[idx];
-				e->uFlags ^= TLIF_CLOSED;
-				if (e->uFlags & TLIF_CLOSED)// 若项目折叠，则清除所有子项的选中
-				{
-					int cChildren = e->cChildren;
-					for (int i = idx + 1; i < idx + 1 + cChildren; ++i)
-					{
-						const auto f = m_Item[i];
-						if (!(f->uFlags & TLIF_CLOSED))
-							cChildren += f->cChildren;
-						f->uFlags &= ~TLIF_SELECTED;
-					}
-				}
-
-				NMTLTLNODEEXPANDED nm{};
-				nm.pNode = e;
-				FillNmhdrAndSendNotify(nm, NM_TL_NODEEXPANDED);
-				BuildTree();
+				ExpandItem(idx, TVE_TOGGLE);// 翻转展开状态
 				Redraw();
 			}
 			else
@@ -946,6 +1260,7 @@ public:
 					if (!(wParam & (MK_CONTROL | MK_SHIFT)))// 若Ctrl和Shift都未按下，则清除所有项的选中
 						for (auto e : m_Item)
 							e->uFlags &= ~TLIF_SELECTED;
+
 					const int idxOldFocus = m_idxFocus;
 					if (idx >= 0)
 					{
@@ -955,16 +1270,9 @@ public:
 						{
 							const int idxBegin = std::min(idx, m_idxMark);
 							const int idxEnd = std::max(idx, m_idxMark);
-							int i;
-							// 清除前后选中
-							for (i = 0; i < idxBegin; ++i)
-								m_Item[i]->uFlags &= ~TLIF_SELECTED;
-							for (i = idxEnd + 1; i < (int)m_Item.size(); ++i)
-								m_Item[i]->uFlags &= ~TLIF_SELECTED;
-							// 范围选中
-							for (i = idxBegin; i <= idxEnd; ++i)
-								m_Item[i]->uFlags |= TLIF_SELECTED;
+							OnlySelectRange(idxBegin, idxEnd);
 							// Shift选择不修改mark
+							// m_idxMark = idx;
 							Redraw();
 						}
 						else if (wParam & MK_CONTROL)
@@ -991,7 +1299,7 @@ public:
 						if (IsMouseMovedBeforeDragging(hWnd, pt.x, pt.y))
 						{
 							m_idxHot = -1;// 清除热点
-							if ((wParam & MK_CONTROL) && idx >= 0)// 如果按了Ctrl那么把鼠标下的项目取消选中
+							if ((wParam & MK_CONTROL) && idx >= 0)// 如果按下了Ctrl那么把鼠标下的项目取消选中
 								m_Item[idx]->uFlags &= ~TLIF_SELECTED;
 							BeginDraggingSelect((UINT)wParam, tlht.pt.x, tlht.pt.y);
 							return 0;
@@ -1043,13 +1351,14 @@ public:
 			m_cyItem = m_Ds.cyItemDef;
 			m_DC.Create(hWnd);
 			UpdateDCAttr();
-			m_Header.Create(NULL, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS, 0,
+			m_Header.Create(NULL, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
 				0, 0, ClientWidth, m_Ds.cyHeaderDef, hWnd, TL_IDC_HEADER);
 			m_Header.SetExplorerTheme();
 			SetExplorerTheme();
 			m_hThemeTV = OpenThemeData(hWnd, L"TreeView");
 			m_hThemeLV = OpenThemeData(hWnd, L"ListView");
 			UpdateThemeInfo();
+			m_crBranchLine = GetSysColor(COLOR_GRAYTEXT);
 
 			SystemParametersInfoW(SPI_GETWHEELSCROLLLINES, 0, &m_cScrollLine, 0);
 
@@ -1085,6 +1394,7 @@ public:
 
 		case WM_SYSCOLORCHANGE:
 			SetTextColor(m_DC.GetDC(), GetSysColor(COLOR_WINDOWTEXT));
+			m_crBranchLine = GetSysColor(COLOR_GRAYTEXT);
 			Redraw();
 			break;
 
@@ -1119,7 +1429,7 @@ public:
 	void BuildTree()
 	{
 		m_Item.clear();
-		
+
 		if (m_bFlatMode)
 		{
 			NMTLFILLALLFLATITEM nm{};
@@ -1130,9 +1440,18 @@ public:
 		else
 		{
 			NMTLFILLCHILDREN nm{};
+			nm.bQueryRoot = TRUE;
 			FillNmhdrAndSendNotify(nm, NM_TL_FILLCHILDREN);
-			nm.pParent->uFlags |= TLIF_ROOT;
-			AddVirtualItem(nm.pParent, nm.pChildren, 0);
+			EckCounter(nm.cTopItem, i)
+			{
+				const int idxCurrParent = (int)m_Item.size();
+				NMTLFILLCHILDREN nm2{};
+				nm2.pParent = nm.pChildren[i];
+				nm2.pParent->idxParent = -1;
+				FillNmhdrAndSendNotify(nm2, NM_TL_FILLCHILDREN);
+
+				AddVirtualItem(nm2.pParent, nm2.pChildren, 1);
+			}
 		}
 
 		CheckOldData();
@@ -1170,9 +1489,9 @@ public:
 					return tlht.pt.x < e.iRight && tlht.pt.x > e.iLeft;
 				});
 			if (it == m_vCol.end())
-				tlht.idxSubItem = -1;
+				tlht.idxSubItemDisplay = -1;
 			else
-				tlht.idxSubItem = (int)std::distance(m_vCol.begin(), it);
+				tlht.idxSubItemDisplay = (int)std::distance(m_vCol.begin(), it);
 			const int y = GetItemY(idx);
 			const auto e = m_Item[idx];
 			RECT rc;
@@ -1190,7 +1509,7 @@ public:
 				}
 			}
 
-			if (m_hImgList)
+			if (m_hImgList && e->idxImg >= 0)
 			{
 				rc.left += (m_bFlatMode ? 0 : m_sizeTVGlyph.cx);
 				rc.top = y + (m_cyItem - m_cyImg) / 2;
@@ -1203,9 +1522,9 @@ public:
 				}
 			}
 
-			if (tlht.idxSubItem >= 0 && !(tlht.uFlags & TLHTF_NOHITTEXTLABEL))
+			if (tlht.idxSubItemDisplay >= 0 && !(tlht.uFlags & TLHTF_NOHITTEXTLABEL))
 			{
-				GetItemTextRect(idx, tlht.idxSubItem, rc);
+				GetItemTextRect(idx, tlht.idxSubItemDisplay, rc);
 				if (PtInRect(&rc, tlht.pt))
 				{
 					tlht.iPart = TLIP_TEXT;
@@ -1234,20 +1553,20 @@ public:
 		};
 	}
 
-	void GetItemTextRect(int idx, int idxSubItem, RECT& rc) const
+	void GetItemTextRect(int idx, int idxSubItemDisplay, RECT& rc) const
 	{
 		NMTLGETDISPINFO nm;
 		nm.Item.pNode = m_Item[idx];
 		nm.Item.uMask = TLIM_TEXT;
-		nm.Item.idxSubItem = idxSubItem;
+		nm.Item.idxSubItem = idxSubItemDisplay;
 		FillNmhdrAndSendNotify(nm, NM_TL_GETDISPINFO);
 		SIZE size;
 		GetTextExtentPoint32W(m_DC.GetDC(), nm.Item.pszText, nm.Item.cchText, &size);
 		rc.top = GetItemY(idx);
-		rc.left = m_vCol[idxSubItem].iLeft + m_Ds.cxTextMargin;
-		if (!idxSubItem)
-			rc.left += ((nm.Item.pNode->iLevel - 1) * m_sizeTVGlyph.cx + m_cxImg);
-		rc.right = rc.left + std::min(size.cx, (long)m_vCol[idxSubItem].iRight);
+		rc.left = m_vCol[idxSubItemDisplay].iLeft + m_Ds.cxTextMargin + m_dxContent;
+		if (!idxSubItemDisplay)
+			rc.left += (nm.Item.pNode->iLevel * m_sizeTVGlyph.cx + m_cxImg);
+		rc.right = rc.left + std::min(size.cx, (long)m_vCol[idxSubItemDisplay].iRight);
 		rc.top = rc.top + (m_cyItem - size.cy) / 2;
 		rc.bottom = rc.top + size.cy;
 	}
@@ -1362,6 +1681,118 @@ public:
 	EckInline void SetWatermarkString(PCWSTR pszText) { m_rsWatermark = pszText; }
 
 	EckInline const CRefStrW& GetWatermarkString() const { return m_rsWatermark; }
+
+	EckInline void SetBackgroundNotSolid(BOOL b) { m_bBackgroundNotSolid = b; }
+
+	EckInline BOOL GetBackgroundNotSolid() const { return m_bBackgroundNotSolid; }
+
+	EckInline const COL* GetColumnPosInfo() const { return m_vCol.data(); }
+
+	EckInline void DeselectAll()
+	{
+		EckAssert(m_bSingleSel == FALSE);
+		for (auto e : m_Item)
+			e->uFlags &= ~TLIF_SELECTED;
+	}
+
+	void DeselectRange(int idxBegin, int idxEnd)
+	{
+		if (m_bSingleSel && m_idxSel >= idxBegin && m_idxSel <= idxEnd)
+		{
+			m_idxSel = -1;
+			return;
+		}
+
+		for (int i = idxBegin; i <= idxEnd; ++i)
+			m_Item[i]->uFlags |= TLIF_SELECTED;
+	}
+
+	void DeselectChildren(int idxParent)
+	{
+		EckAssert(idxParent >= 0 && idxParent < (int)m_Item.size());
+
+		int cChildren = m_Item[idxParent]->cChildren;
+		for (int i = idxParent + 1; i < idxParent + 1 + cChildren; ++i)
+		{
+			const auto f = m_Item[i];
+			if (!(f->uFlags & TLIF_CLOSED))
+				cChildren += f->cChildren;
+			f->uFlags &= ~TLIF_SELECTED;
+		}
+		CheckOldDataRange(idxParent + 1, idxParent + cChildren, idxParent);// 限位
+	}
+
+	void OnlySelectRange(int idxBegin, int idxEnd)
+	{
+		if (m_bSingleSel)
+		{
+			m_idxSel = idxBegin;
+			return;
+		}
+		int i;
+		// 清除前后选中
+		for (i = 0; i < idxBegin; ++i)
+			m_Item[i]->uFlags &= ~TLIF_SELECTED;
+		for (i = idxEnd + 1; i < (int)m_Item.size(); ++i)
+			m_Item[i]->uFlags &= ~TLIF_SELECTED;
+		// 范围选中
+		for (i = idxBegin; i <= idxEnd; ++i)
+			m_Item[i]->uFlags |= TLIF_SELECTED;
+	}
+
+	EckInline void SelectItem(int idx, BOOL bSel)
+	{
+		EckAssert(idx >= 0 && idx < (int)m_Item.size());
+		if (m_bSingleSel)
+		{
+			m_idxSel = idx;
+			return;
+		}
+		if (bSel)
+			m_Item[idx]->uFlags |= TLIF_SELECTED;
+		else
+			m_Item[idx]->uFlags &= ~TLIF_SELECTED;
+	}
+
+	/// <summary>
+	/// 折叠项目
+	/// </summary>
+	/// <param name="idx">索引</param>
+	/// <param name="iOp">操作，可选下列值：
+	/// TVE_COLLAPSE - 折叠
+	/// TVE_EXPAND - 展开
+	/// TVE_TOGGLE - 反转折叠状态</param>
+	void ExpandItem(int idx, int iOp)
+	{
+		EckAssert(idx >= 0 && idx < (int)m_Item.size());
+
+		const auto e = m_Item[idx];
+		switch (iOp)
+		{
+		case TVE_COLLAPSE:
+			if (!(e->uFlags & TLIF_CLOSED))
+				ExpandItem(idx, TVE_TOGGLE);
+			return;
+		case TVE_EXPAND:
+			if (e->uFlags & TLIF_CLOSED)
+				ExpandItem(idx, TVE_TOGGLE);
+			return;
+		case TVE_TOGGLE:
+			break;
+		default:
+			EckDbgBreak();
+			return;
+		}
+
+		e->uFlags ^= TLIF_CLOSED;
+		if (e->uFlags & TLIF_CLOSED)// 若项目折叠，则清除所有子项的选中
+			DeselectChildren(idx);
+
+		NMTLTLNODEEXPANDED nm{};
+		nm.pNode = e;
+		FillNmhdrAndSendNotify(nm, NM_TL_NODEEXPANDED);
+		BuildTree();
+	}
 };
 
 LRESULT CTLHeader::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -1374,7 +1805,7 @@ LRESULT CTLHeader::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (lResult >= 0)
 		{
 			m_TL.m_vCol.emplace_back();
-			m_TL.UpdateColumnInfo(lResult);
+			m_TL.UpdateColumnInfo();
 		}
 		return lResult;
 
@@ -1382,9 +1813,15 @@ LRESULT CTLHeader::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		lResult = CHeader::OnMsg(hWnd, uMsg, wParam, lParam);
 		if (lResult)
 		{
-			m_TL.m_vCol.erase(m_TL.m_vCol.begin() + wParam);
-			m_TL.UpdateColumnInfo(lResult);
+			m_TL.m_vCol.pop_back();
+			m_TL.UpdateColumnInfo();
 		}
+		return lResult;
+
+	case HDM_SETORDERARRAY:
+		lResult = CHeader::OnMsg(hWnd, uMsg, wParam, lParam);
+		if (lResult)
+			m_TL.UpdateColumnInfo();
 		return lResult;
 	}
 	return CHeader::OnMsg(hWnd, uMsg, wParam, lParam);
