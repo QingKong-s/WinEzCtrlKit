@@ -64,7 +64,7 @@ public:
 
 	EckInline BOOL GetItem(int idx, HDITEMW* phdi)
 	{
-		return (BOOL)SendMsg(HDM_GETITEM, idx, (LPARAM)phdi);
+		return (BOOL)SendMsg(HDM_GETITEMW, idx, (LPARAM)phdi);
 	}
 
 	EckInline int GetItemCount()
@@ -101,9 +101,9 @@ public:
 		return aOrder;
 	}
 
-	EckInline BOOL GetOrderArray(int* piOrder)
+	EckInline BOOL GetOrderArray(int* piOrder, int cBuf)
 	{
-		return (BOOL)SendMsg(HDM_GETORDERARRAY, GetItemCount(), (LPARAM)piOrder);
+		return (BOOL)SendMsg(HDM_GETORDERARRAY, cBuf, (LPARAM)piOrder);
 	}
 
 	/// <summary>
@@ -130,7 +130,7 @@ public:
 		int idxImage = -1, int iFmt = HDF_LEFT, LPARAM lParam = 0)
 	{
 		if (idx < 0)
-			idx = GetItemCount();
+			idx = INT_MAX;
 		HDITEMW hdi;
 		hdi.mask = HDI_TEXT | HDI_FORMAT | HDI_LPARAM;
 		hdi.fmt = iFmt;
