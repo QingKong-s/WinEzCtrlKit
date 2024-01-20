@@ -200,6 +200,21 @@ public:
 	{
 		return (BOOL)SendMsg(HDM_SETORDERARRAY, GetItemCount(), (LPARAM)piOrder);
 	}
+
+	void RadioSetSortMark(int idx, int iFmt)
+	{
+		HDITEMW hdi;
+		hdi.mask = HDI_FORMAT;
+		int cItems = GetItemCount();
+		EckCounter(cItems, i)
+		{
+			GetItem(i, &hdi);
+			hdi.fmt &= ~(HDF_SORTDOWN | HDF_SORTUP);
+			if (i == idx)
+				hdi.fmt |= iFmt;
+			SetItem(i, &hdi);
+		}
+	}
 };
 
 ECK_NAMESPACE_END

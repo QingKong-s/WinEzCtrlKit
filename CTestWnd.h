@@ -205,9 +205,7 @@ public:
 	{
 		eck::TLNODE Node{};
 		HWND hWnd{};
-		eck::CRefStrW rs{};
-		eck::CRefStrW rs2{};
-		eck::CRefStrW rs3{};
+		eck::CRefStrW rs[3];
 		std::vector<WNDDATA*> Children{};
 	};
 	eck::CFixedBlockCollection<WNDDATA> wdbuf{};
@@ -226,13 +224,15 @@ public:
 				if (b)
 					DestroyIcon(hicon);
 				//EnumWnd(h, data->Children.emplace_back(new WNDDATA{ {},h }));
-				auto p = wdbuf.Alloc(1, eck::TLNODE{ 0,0,0,0,idx }, h);
+				auto p = wdbuf.Alloc(1, eck::TLNODE{ 0,0,0,idx,-1 }, h);
+				p->rs[0].Format(L"0x%08X", h);
+				p->rs[1] = eck::CWnd(h).GetClsName();
+				p->rs[2] = eck::CWnd(h).GetText();
 				fvec.emplace_back(p);
 				EnumWnd(h, data->Children.emplace_back(p), fvec);
 			}
 			h = GetWindow(h, GW_HWNDNEXT);
 		}
-		data->Node.cChildren = (int)data->Children.size();
 	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -246,14 +246,6 @@ public:
 		{
 		case WM_CREATE:
 		{
-			//m_Btn.Create(L"按钮测试", WS_CHILD | WS_VISIBLE, 0, 0, 0, 300, 70, hWnd, 101);
-			//m_lot.Add(&m_Btn, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
-
-			//m_Edit.Create(L"编辑框", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 0,
-			//	0, 0, 200, 100, hWnd, 102);
-			//m_Edit.SetFrameType(1);
-			//m_lot.Add(&m_Edit, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
-
 			//m_Label.Create(L"我是标签", WS_CHILD | WS_VISIBLE | WS_BORDER, 0, 0, 0, 300, 200, hWnd, 103);
 			//m_hbm = eck::CreateHBITMAP(LR"(E:\Desktop\Temp\111111.jpg)");
 			//m_Label.SetPic(m_hbm);
@@ -327,22 +319,30 @@ public:
 				ILC_COLOR32 | ILC_ORIGINALSIZE, 0, 40);
 			data.push_back(wdbuf.Alloc(1));
 			EnumWnd(GetDesktopWindow(), data[0], flatdata);
+
 			m_TL.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
 				0, 0, 1200, 1000, hWnd, 106);
 			auto& h = m_TL.GetHeader();
 			h.InsertItem(L"HWND", -1, 360);
 			h.InsertItem(L"szClsName", -1, 360);
 			h.InsertItem(L"szText", -1, 400);
+			m_TL.SetHasLines(TRUE);
 			m_TL.SetImageList(m_il);
 			m_TL.SetWatermarkString(L"水印测试。\n我是第二行水印。");
-			auto ull0 = GetTickCount64();
 			m_TL.BuildTree();
-			ull0 = GetTickCount64() - ull0;
-			EckDbgPrint(ull0);
 			//m_TL.SetBackgroundNotSolid(TRUE);
 			//m_TL.SetSingleSelect(TRUE);
 			//m_lve.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
 			//	0, 0, 1200, 1000, hWnd, 107);
+			m_lot.Add(&m_TL, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+
+			m_Edit.Create(L"", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 0,
+				0, 0, 200, 100, hWnd, 102);
+			m_Edit.SetFrameType(1);
+			m_lot.Add(&m_Edit, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+
+			m_Btn.Create(L"筛选", WS_CHILD | WS_VISIBLE, 0, 0, 0, 300, 70, hWnd, 101);
+			m_lot.Add(&m_Btn, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 
 			m_hFont = eck::CreateDefFont();
 			eck::SetFontForWndAndCtrl(hWnd, m_hFont);
@@ -362,21 +362,22 @@ public:
 					auto p = (eck::NMTLFILLCHILDREN*)lParam;
 					if (p->bQueryRoot)
 					{
-						p->cTopItem = (int)data[0]->Children.size();
+						p->cChildren = (int)data[0]->Children.size();
 						p->pChildren = (eck::TLNODE**)data[0]->Children.data();
 					}
 					else
 					{
 						auto pd = (WNDDATA*)p->pParent;
 						p->pChildren = (eck::TLNODE**)pd->Children.data();
+						p->cChildren = (int)pd->Children.size();
 					}
 				}
 				return 0;
 				case eck::NM_TL_FILLALLFLATITEM:
 				{
 					auto p = (eck::NMTLFILLALLFLATITEM*)lParam;
-					p->cChildren = (int)flatdata.size();
-					p->pChildren = (eck::TLNODE**)flatdata.data();
+					p->cItem = (int)flatdata.size();
+					p->pItems = (eck::TLNODE**)flatdata.data();
 				}
 				return 0;
 				case eck::NM_TL_GETDISPINFO:
@@ -386,22 +387,16 @@ public:
 					switch (p->Item.idxSubItem)
 					{
 					case 0:
-						if (pd->rs.IsEmpty() && IsWindow(pd->hWnd))
-							pd->rs.Format(L"0x%08X", pd->hWnd);
-						p->Item.pszText = pd->rs.Data();
-						p->Item.cchText = pd->rs.Size();
+						p->Item.pszText = pd->rs[0].Data();
+						p->Item.cchText = pd->rs[0].Size();
 						break;
 					case 1:
-						if (pd->rs2.IsEmpty() && IsWindow(pd->hWnd))
-							pd->rs2 = eck::CWnd(pd->hWnd).GetClsName();
-						p->Item.pszText = pd->rs2.Data();
-						p->Item.cchText = pd->rs2.Size();
+						p->Item.pszText = pd->rs[1].Data();
+						p->Item.cchText = pd->rs[1].Size();
 						break;
 					case 2:
-						if (pd->rs3.IsEmpty() && IsWindow(pd->hWnd))
-							pd->rs3 = eck::CWnd(pd->hWnd).GetText();
-						p->Item.pszText = pd->rs3.Data();
-						p->Item.cchText = pd->rs3.Size();
+						p->Item.pszText = pd->rs[2].Data();
+						p->Item.cchText = pd->rs[2].Size();
 						break;
 					}
 				}
@@ -409,26 +404,42 @@ public:
 				case eck::NM_TL_HD_CLICK:
 				{
 					auto p = (NMHEADERW*)lParam;
+
+					const int idxCol = p->iItem;
+					auto& H = m_TL.GetHeader();
+
+					int fmt;
 					if (isortorder == 0)
-						isortorder = -1;
-					else if (isortorder == -1)
+					{
 						isortorder = 1;
+						fmt = HDF_SORTUP;
+					}
 					else if (isortorder == 1)
+					{
+						isortorder = -1;
+						fmt = HDF_SORTDOWN;
+					}
+					else if (isortorder == -1)
+					{
 						isortorder = 0;
+						fmt = 0;
+					}
+					
+					H.RadioSetSortMark(idxCol, fmt);
 
 					if (isortorder == 1)
 					{
-						std::sort(flatdata.begin(), flatdata.end(), [](const WNDDATA* p1, const WNDDATA* p2)
+						std::sort(flatdata.begin(), flatdata.end(), [idxCol](const WNDDATA* p1, const WNDDATA* p2)
 							{
-								return p1->rs2 < p2->rs2;
+								return p1->rs[idxCol] < p2->rs[idxCol];
 							});
 						m_TL.SetFlatMode(TRUE);
 					}
 					else if (isortorder == -1)
 					{
-						std::sort(flatdata.begin(), flatdata.end(), [](const WNDDATA* p1, const WNDDATA* p2)
+						std::sort(flatdata.begin(), flatdata.end(), [idxCol](const WNDDATA* p1, const WNDDATA* p2)
 							{
-								return  p2->rs2 < p1->rs2;
+								return  p2->rs[idxCol] < p1->rs[idxCol];
 							});
 						m_TL.SetFlatMode(TRUE);
 					}
@@ -454,18 +465,16 @@ public:
 					else if (p->iDrawStage == eck::TLCDD_PREPAINTITEM)
 					{
 						auto pd = (WNDDATA*)p->pNode;
-						if (pd->rs2.IsEmpty() && IsWindow(pd->hWnd))
-							pd->rs2 = eck::CWnd(pd->hWnd).GetClsName();
 						UINT u = 0;
-						if (!pd->rs2.IsEmpty())
+						if (!pd->rs[1].IsEmpty())
 						{
-							if (eck::FindStr(pd->rs2.Data(), L"Chrome") >= 0)
+							if (eck::FindStr(pd->rs[1].Data(), L"Chrome") >= 0)
 							{
 								SetDCBrushColor(p->hDC, eck::Colorref::NeutralGray);
 								FillRect(p->hDC, p->prcItem, GetStockBrush(DC_BRUSH));
 								u |= eck::TLCDRF_BKGNDCHANGED;
 							}
-							else if (eck::FindStr(pd->rs2.Data(), L"TX") >= 0)
+							else if (eck::FindStr(pd->rs[1].Data(), L"TX") >= 0)
 							{
 								SetDCBrushColor(p->hDC, eck::Colorref::MoneyGreen);
 								FillRect(p->hDC, p->prcItem, GetStockBrush(DC_BRUSH));
@@ -502,6 +511,20 @@ public:
 		{
 			if ((HWND)lParam == m_Btn.GetHWND() && HIWORD(wParam) == BN_CLICKED)
 			{
+				auto rs = m_Edit.GetText();
+				if (rs.IsEmpty())
+					for (auto e : flatdata)
+						e->Node.uFlags &= ~eck::TLIF_INVISIBLE;
+				else
+					for (auto e : flatdata)
+						if (!e->rs[1].IsEmpty() && eck::FindStr(e->rs[1].Data(), rs.Data()) < 0)
+							e->Node.uFlags |= eck::TLIF_INVISIBLE;
+						else
+							e->Node.uFlags &= ~eck::TLIF_INVISIBLE;
+
+				m_TL.BuildTree();
+				m_TL.Redraw();
+
 				//TrayPopBalloon(101, L"气球测试", L"我是标题");
 				//m_Edit.SetClr(2, eck::Colorref::Azure);
 				//BkColor = eck::Colorref::DeepGray;
