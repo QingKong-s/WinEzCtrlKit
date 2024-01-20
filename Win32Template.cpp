@@ -89,11 +89,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	using namespace eck;
 	using namespace eck::Literals;
 
-	CRefStrW rsi(L"123456789");
-	rsi.Insert(2, L"插入一段文本");
-	EckDbgPrint(rsi);
-	rsi.Erase(4, 5);
-	EckDbgPrint(rsi);
+	//CRefStrW rsi(L"123456789");
+	//rsi.Insert(2, L"插入一段文本");
+	//EckDbgPrint(rsi);
+	//rsi.Erase(4, 5);
+	//EckDbgPrint(rsi);
 	//EckDbgBreak();
 
 	//auto date = CeToLunar({ 1902,6,20 });
@@ -114,66 +114,66 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	//EckDbgPrint(rb0.At<int>(7));
 	//EckAssert(rb0.At<int>(7) == 0);
-	auto bbbb = GetClipboardString();
-	EckDbgPrint(bbbb.Data());
+	//auto bbbb = GetClipboardString();
+	//EckDbgPrint(bbbb.Data());
 	//SetClipboardString(L"测试测试啊啊啊啊啊啊啊啊啊啊");
-	HDC hDC = GetDC(GetDesktopWindow());
+	//HDC hDC = GetDC(GetDesktopWindow());
 	//HBITMAP hbm = (HBITMAP)GetCurrentObject(hDC, OBJ_BITMAP);
 	//auto tt = GetBmpData(hbm, hDC);
 
-	CDib dib{};
-	dib.Create(hDC);
-	auto tt = dib.GetBmpData();
-	//WriteToFile(LR"(E:\Desktop\1234567.bmp)", tt);
+	//CDib dib{};
+	//dib.Create(hDC);
+	//auto tt = dib.GetBmpData();
+	////WriteToFile(LR"(E:\Desktop\1234567.bmp)", tt);
 
-	auto pbmi = (BITMAPINFO*)malloc(sizeof(BITMAPINFOHEADER) + 246 * sizeof(RGBQUAD));
-	ZeroMemory(pbmi, sizeof(BITMAPINFOHEADER));
+	//auto pbmi = (BITMAPINFO*)malloc(sizeof(BITMAPINFOHEADER) + 246 * sizeof(RGBQUAD));
+	//ZeroMemory(pbmi, sizeof(BITMAPINFOHEADER));
 
-	pbmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-	pbmi->bmiHeader.biWidth = (LONG)800;
-	pbmi->bmiHeader.biHeight = -(LONG)600;
-	pbmi->bmiHeader.biPlanes = 1;
-	pbmi->bmiHeader.biBitCount = 8;
-	pbmi->bmiHeader.biClrUsed = 246;
-	auto pclr = pbmi->bmiColors;
-	int r, g, b,i,inc;
-	for (i = 0, g = 0, inc = 8; g <= 0xFF; ++i, g += inc)
-	{
-		pclr[i] = { (BYTE)g,(BYTE)g,(BYTE)g,0 };
-		inc = (inc == 9 ? 8 : 9);
-	}
+	//pbmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	//pbmi->bmiHeader.biWidth = (LONG)800;
+	//pbmi->bmiHeader.biHeight = -(LONG)600;
+	//pbmi->bmiHeader.biPlanes = 1;
+	//pbmi->bmiHeader.biBitCount = 8;
+	//pbmi->bmiHeader.biClrUsed = 246;
+	//auto pclr = pbmi->bmiColors;
+	//int r, g, b,i,inc;
+	//for (i = 0, g = 0, inc = 8; g <= 0xFF; ++i, g += inc)
+	//{
+	//	pclr[i] = { (BYTE)g,(BYTE)g,(BYTE)g,0 };
+	//	inc = (inc == 9 ? 8 : 9);
+	//}
 
-	for (r = 0; r <= 0xFF; r += 0x33)
-		for (g = 0; g <= 0xFF; g += 0x33)
-			for (b = 0; b <= 0xFF; b += 0x33)
-			{
-				pclr[i] = { (BYTE)r,(BYTE)g,(BYTE)b,0 };
-				++i;
-			}
+	//for (r = 0; r <= 0xFF; r += 0x33)
+	//	for (g = 0; g <= 0xFF; g += 0x33)
+	//		for (b = 0; b <= 0xFF; b += 0x33)
+	//		{
+	//			pclr[i] = { (BYTE)r,(BYTE)g,(BYTE)b,0 };
+	//			++i;
+	//		}
 
-	auto hbm = CreateDIBSection(NULL, pbmi, DIB_RGB_COLORS, NULL, NULL, 0);
-	hDC = CreateCompatibleDC(0);
-	auto plp = (LOGPALETTE*)malloc(sizeof(LOGPALETTE) + 246 * sizeof(PALETTEENTRY));
-	plp->palVersion = 0x300;
-	plp->palNumEntries = 246;
-	memcpy(plp->palPalEntry, pclr, 246 * sizeof(PALETTEENTRY));
-	auto hpal = CreatePalette(plp);
+	//auto hbm = CreateDIBSection(NULL, pbmi, DIB_RGB_COLORS, NULL, NULL, 0);
+	//hDC = CreateCompatibleDC(0);
+	//auto plp = (LOGPALETTE*)malloc(sizeof(LOGPALETTE) + 246 * sizeof(PALETTEENTRY));
+	//plp->palVersion = 0x300;
+	//plp->palNumEntries = 246;
+	//memcpy(plp->palPalEntry, pclr, 246 * sizeof(PALETTEENTRY));
+	//auto hpal = CreatePalette(plp);
 
-	SelectObject(hDC, hbm);
-	SelectPalette(hDC, hpal, FALSE);
-	RealizePalette(hDC);
+	//SelectObject(hDC, hbm);
+	//SelectPalette(hDC, hpal, FALSE);
+	//RealizePalette(hDC);
 
-	EckCounter(246, i)
-	{
-		auto hbr = CreateSolidBrush(PALETTEINDEX(i));
-		RECT rc{ i * 800 / 246,0,(i + 1) * 800 / 246,600 };
-		FillRect(hDC, &rc, hbr);
+	//EckCounter(246, i)
+	//{
+	//	auto hbr = CreateSolidBrush(PALETTEINDEX(i));
+	//	RECT rc{ i * 800 / 246,0,(i + 1) * 800 / 246,600 };
+	//	FillRect(hDC, &rc, hbr);
 
-	}
+	//}
 
-	CDib dib1;
-	dib1.Create(hDC, 0, hpal);
-	tt = dib1.GetBmpData();
+	//CDib dib1;
+	//dib1.Create(hDC, 0, hpal);
+	//tt = dib1.GetBmpData();
 	//WriteToFile(LR"(E:\Desktop\palette_test.bmp)", tt);
 
 	//EckDbgBreak();
@@ -276,71 +276,71 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	//EckDbgPrint(CalcNextAlignBoundaryDistance(0, (void*)5, 4));
 	//return 0;
 
-	DLGTDLG Dlg{ 1,0xFFFF,0,0,WS_OVERLAPPEDWINDOW | WS_VISIBLE | DS_SETFONT ,3,0,0,240,100 };
-	Dlg.Caption = L"测试对话框";
-	Dlg.Font = { 9,400,FALSE,GB2312_CHARSET };
-	Dlg.rsFontName = L"微软雅黑";
+	//DLGTDLG Dlg{ 1,0xFFFF,0,0,WS_OVERLAPPEDWINDOW | WS_VISIBLE | DS_SETFONT ,3,0,0,240,100 };
+	//Dlg.Caption = L"测试对话框";
+	//Dlg.Font = { 9,400,FALSE,GB2312_CHARSET };
+	//Dlg.rsFontName = L"微软雅黑";
 
-	std::vector<DLGTITEM> Items;
-	DLGTITEM a;
+	//std::vector<DLGTITEM> Items;
+	//DLGTITEM a;
 
-	a = { 0,0,WS_VISIBLE | WS_CHILD,20,20,70,26,101 };
-	a.Class = WC_BUTTONW;
-	a.Caption = L"测试按钮87578678678";
-	Items.push_back(std::move(a));
+	//a = { 0,0,WS_VISIBLE | WS_CHILD,20,20,70,26,101 };
+	//a.Class = WC_BUTTONW;
+	//a.Caption = L"测试按钮87578678678";
+	//Items.push_back(std::move(a));
 
-	a = { 0,0,WS_VISIBLE | WS_CHILD,90,20,80,20,102 };
-	a.Class = TRACKBAR_CLASSW;
-	Items.push_back(std::move(a));
+	//a = { 0,0,WS_VISIBLE | WS_CHILD,90,20,80,20,102 };
+	//a.Class = TRACKBAR_CLASSW;
+	//Items.push_back(std::move(a));
 
-	a = { 0,0,WS_VISIBLE | WS_CHILD,20,60,80,20,102 };
-	a.Class = WC_EDITW;
-	a.Caption = L"测试编辑框";
-	Items.push_back(std::move(a));
+	//a = { 0,0,WS_VISIBLE | WS_CHILD,20,60,80,20,102 };
+	//a.Class = WC_EDITW;
+	//a.Caption = L"测试编辑框";
+	//Items.push_back(std::move(a));
 
-	CRefBin rb = SerializeDialogTemplate(Dlg, Items);
+	//CRefBin rb = SerializeDialogTemplate(Dlg, Items);
 
-	//HWND hDlg = CreateDialogIndirectParamW(NULL, (DLGTEMPLATE*)rb.m_pStream, NULL, DlgProc_About, 0);
-	//Dlg = {};
-	//Items.clear();
-	//DeserializeDialogTemplate(rb, Dlg, Items);
-	////HWND hDlg = CreateWindowFromDialogTemplate(Dlg, Items, NULL, NULL, hInstance, NULL, NULL, NULL, 0);
+	////HWND hDlg = CreateDialogIndirectParamW(NULL, (DLGTEMPLATE*)rb.m_pStream, NULL, DlgProc_About, 0);
+	////Dlg = {};
+	////Items.clear();
+	////DeserializeDialogTemplate(rb, Dlg, Items);
+	//////HWND hDlg = CreateWindowFromDialogTemplate(Dlg, Items, NULL, NULL, hInstance, NULL, NULL, NULL, 0);
 
-	PROPSHEETPAGEW psp[3]{};
-	psp[0].dwSize = sizeof(PROPSHEETPAGEW);
-	psp[0].dwFlags = PSP_HIDEHEADER;
-	psp[0].hInstance = hInstance;
-	psp[0].pszTemplate = MAKEINTRESOURCEW(IDD_ABOUT);
-	psp[0].pszTitle = L"测试测试测试测试1";
-	psp[0].pszHeaderSubTitle = L"标题标题";
-	psp[0].pfnDlgProc = DlgProc_1;
+	//PROPSHEETPAGEW psp[3]{};
+	//psp[0].dwSize = sizeof(PROPSHEETPAGEW);
+	//psp[0].dwFlags = PSP_HIDEHEADER;
+	//psp[0].hInstance = hInstance;
+	//psp[0].pszTemplate = MAKEINTRESOURCEW(IDD_ABOUT);
+	//psp[0].pszTitle = L"测试测试测试测试1";
+	//psp[0].pszHeaderSubTitle = L"标题标题";
+	//psp[0].pfnDlgProc = DlgProc_1;
 
-	psp[1].dwSize = sizeof(PROPSHEETPAGEW);
-	psp[1].dwFlags = PSP_DLGINDIRECT | PSP_USEHEADERTITLE | PSP_USEHEADERSUBTITLE;
-	psp[1].hInstance = hInstance;
-	psp[1].pResource = (DLGTEMPLATE*)rb.Data();
-	psp[1].pszTitle = L"测试测试测试测试2";
-	psp[1].pszHeaderSubTitle = L"标题标题";
+	//psp[1].dwSize = sizeof(PROPSHEETPAGEW);
+	//psp[1].dwFlags = PSP_DLGINDIRECT | PSP_USEHEADERTITLE | PSP_USEHEADERSUBTITLE;
+	//psp[1].hInstance = hInstance;
+	//psp[1].pResource = (DLGTEMPLATE*)rb.Data();
+	//psp[1].pszTitle = L"测试测试测试测试2";
+	//psp[1].pszHeaderSubTitle = L"标题标题";
 
-	psp[2].dwSize = sizeof(PROPSHEETPAGEW);
-	psp[2].dwFlags = PSP_HIDEHEADER;
-	psp[2].hInstance = hInstance;
-	psp[2].pszTemplate = MAKEINTRESOURCEW(IDD_ABOUT);
-	psp[2].pszTitle = L"测试测试测试测试3";
+	//psp[2].dwSize = sizeof(PROPSHEETPAGEW);
+	//psp[2].dwFlags = PSP_HIDEHEADER;
+	//psp[2].hInstance = hInstance;
+	//psp[2].pszTemplate = MAKEINTRESOURCEW(IDD_ABOUT);
+	//psp[2].pszTitle = L"测试测试测试测试3";
 
-	PROPSHEETHEADERW psh{};
+	//PROPSHEETHEADERW psh{};
 
-	psh.dwSize = sizeof(psh);
-	psh.dwFlags = PSH_USEHICON | PSH_PROPSHEETPAGE | PSH_USECALLBACK |
-		PSH_AEROWIZARD | PSH_WIZARD | PSH_HEADER;
-	//PSH_WIZARD97;
-	psh.hInstance = hInstance;
-	psh.hIcon = LoadIconW(NULL, IDI_WINLOGO);
-	psh.pszCaption = L"连接到 Internet";
-	psh.nPages = ARRAYSIZE(psp);
-	psh.nStartPage = 0;
-	psh.ppsp = psp;
-	psh.pfnCallback = PSProc;
+	//psh.dwSize = sizeof(psh);
+	//psh.dwFlags = PSH_USEHICON | PSH_PROPSHEETPAGE | PSH_USECALLBACK |
+	//	PSH_AEROWIZARD | PSH_WIZARD | PSH_HEADER;
+	////PSH_WIZARD97;
+	//psh.hInstance = hInstance;
+	//psh.hIcon = LoadIconW(NULL, IDI_WINLOGO);
+	//psh.pszCaption = L"连接到 Internet";
+	//psh.nPages = ARRAYSIZE(psp);
+	//psh.nStartPage = 0;
+	//psh.ppsp = psp;
+	//psh.pfnCallback = PSProc;
 
 	//PropertySheetW(&psh);
 
@@ -496,7 +496,7 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		//g_Menu.CreatePopup();
 		//rbMenuData = eck::ReadInFile(LR"(E:\Desktop\MenuData.bin)");
 		//g_Menu.AppendItems(rbMenuData.Data(), rbMenuData.Size());
-		
+
 		//hIcon = eck::CreateHICON(LR"(E:\Desktop\图标9.ico)");
 
 		//hIcon=eck::CreateHICON()
@@ -505,7 +505,7 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		g_iDpi = eck::GetDpi(hWnd);
 		g_hFont = eck::EzFont(L"微软雅黑", 9);
 
-		
+
 
 		//g_LBN = new eck::CListBoxNew;
 		//g_LBN->SetProc(pfnn);
@@ -551,7 +551,7 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		//MoveToEx(hDC, rcEllipse.left + (rcEllipse.right - rcEllipse.left) / 2,
 		//	rcEllipse.top + (rcEllipse.bottom - rcEllipse.top) / 2, 0);
 		//LineTo(hDC, pt.x, pt.y);
-		
+
 
 		//eck::DrawSpirograph(hDC, 260, 260, 260, 100, 30, 0.1);
 		//eck::DrawButterflyCurve(hDC, 400, 400,4.f,100,100,0.01);
@@ -923,7 +923,7 @@ LRESULT CALLBACK WndProc_Main(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		g_SPBH = new eck::CSplitBar;
 		g_SPBH->Create(NULL, WS_VISIBLE | WS_CHILD, 0, 300, 400, 600, 20, hWnd, 202);
 		g_SPBH->SetDirection(TRUE);*/
-eck::SetFontForWndAndCtrl(hWnd, g_hFont);
+		eck::SetFontForWndAndCtrl(hWnd, g_hFont);
 	}
 	return 0;
 
