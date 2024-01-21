@@ -3,10 +3,11 @@
 *
 * CTreeList.h ： 树列表
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2024 QingKong
 */
 #pragma once
 #include "CHeader.h"
+#include "CToolTip.h"
 #include "GraphicsHelper.h"
 #include "CtrlGraphics.h"
 
@@ -20,6 +21,8 @@ enum :UINT
 	TLIF_DISABLED = (1u << 3),
 	TLIF_INVISIBLE = (1u << 4),
 	TLIF_HASCHILDREN = (1u << 5),
+	TLIF_CHECKED = (1u << 6),
+	TLIF_DISABLECHECKBOX = (1u << 7),
 };
 
 // TLITEM掩码
@@ -33,10 +36,11 @@ enum :UINT
 // 部件
 enum
 {
-	TLIP_NONE,// 空白
-	TLIP_EXPANDBTN,// 展开按钮
-	TLIP_ICON,// 图标
-	TLIP_TEXT,// 文本
+	TLIP_NONE,		// 空白
+	TLIP_EXPANDBTN,	// 展开按钮
+	TLIP_ICON,		// 图标
+	TLIP_TEXT,		// 文本
+	TLIP_CHECKBOX,	// 检查框
 };
 
 // 命中测试标志
@@ -44,6 +48,8 @@ enum :UINT
 {
 	TLHTF_ONLYITEM = (1u << 0),
 	TLHTF_NOHITTEXTLABEL = (1u << 1),
+
+	TLHTF_NULLTEXT = (1u << 2),
 };
 
 // 节点
@@ -136,13 +142,23 @@ struct NMTLCUSTOMDRAW
 	COLORREF crTextBk;
 };
 
-struct NMTLPREEDIT
+enum :UINT
+{
+	TLEDF_BUILDINEDIT = (1u << 0),// 内置编辑框
+	TLEDF_DONTEDIT = (1u << 1),// 禁止编辑
+	TLEDF_CUSTOMEDIT = (1u << 2),// 自定义编辑
+	TLEDF_SHOULDSAVETEXT = (1u << 3),// 应保存文本
+};
+
+struct NMTLEDIT
 {
 	NMHDR nmhdr;
 	TLNODE* pNode;
 	int idx;
 	int idxSubItemDisplay;
+	int idxSubItem;
 	RECT rc;
+	UINT uFlags;
 };
 
 struct NMTLDBCLICK
@@ -153,9 +169,31 @@ struct NMTLDBCLICK
 	const TLHITTEST* pHitTest;
 };
 
+struct NMTLTTGETDISPINFO
+{
+	NMHDR nmhdr;
+	NMTTDISPINFOW* pttdi;
+	TLNODE* pNode;
+	int idx;
+	int idxSubItemDisplay;
+};
+
+struct NMTLTTPRESHOW
+{
+	NMHDR nmhdr;
+	TLNODE* pNode;
+	int idx;
+	int idxSubItemDisplay;
+	CToolTip* pToolTip;
+};
+
+
+
+
 class CTreeList;
 class CTLHeader final :public CHeader
 {
+	friend class CTreeList;
 private:
 	CTreeList& m_TL;
 public:
@@ -164,59 +202,96 @@ public:
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 };
 
+class CTLEditExt final :public CEditExt
+{
+	friend class CTreeList;
+private:
+	CTreeList& m_TL;
+	BOOL m_bChanged = FALSE;
+public:
+	CTLEditExt(CTreeList& tl) :m_TL{ tl } {}
+
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
+
+	BOOL OnNotifyMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult) override;
+};
+
 constexpr inline int TL_IDC_HEADER = 101;// 表头控件ID
+constexpr inline int TL_IDC_EDIT = 102;// 表头控件ID
+constexpr inline int TL_TLI_MAIN = 10;
 
 class CTreeList :public CWnd
 {
 	friend class CTLHeader;
+	friend class CTLEditExt;
 private:
 	struct COL
 	{
-		int iLeft;
-		int iRight;
-		int idxActual;// 这一项对应的实际项目索引
+		int iLeft;		// 左边界，相对于第一列的偏移量
+		int iRight;		// 右边界，相对于第一列的偏移量
+		int idxActual;	// 此项对应的实际项目索引
 	};
 
-	std::vector<TLNODE*> m_vItem{};
-	std::vector<COL> m_vCol{};// 按显示顺序排列的列信息
+	enum
+	{
+		IDT_EDITDELAY = 10
+	};
+	//--------控件
+	CTLHeader m_Header{ *this };		// 表头
+	CToolTip m_ToolTip{};				// 工具提示
+	CTLEditExt m_Edit{ *this };			// 编辑框
+	//--------图形
+	HTHEME m_hThemeTV = NULL;			// TreeView Theme
+	HTHEME m_hThemeLV = NULL;			// ListView Theme
+	HTHEME m_hThemeBT = NULL;			// Button Theme
+	HFONT m_hFont = NULL;				// 字体
+	CEzCDC m_DC{};						// 兼容DC
+	COLORREF m_crBranchLine = CLR_DEFAULT;			// 分支线颜色
+	//--------项目相关
+	std::vector<TLNODE*> m_vItem{};		// 项目列表
+	std::vector<COL> m_vCol{};			// 按显示顺序排列的列信息
 
-	CTLHeader m_Header{ *this };
+	int m_idxTopItem = 0;				// 第一可见项
+	int m_idxHot = -1;					// 热点项
+	int m_idxFocus = -1;				// 焦点项
+	int m_idxMark = -1;					// mark，范围选择用
+	int m_idxSel = -1;					// 选中的项，仅用于单选模式
 
-	HTHEME m_hThemeTV = NULL;
-	HTHEME m_hThemeLV = NULL;
-	HFONT m_hFont = NULL;
-	CEzCDC m_DC{};
-	COLORREF m_crBranchLine = CLR_DEFAULT;
+	int m_idxToolTip = -1;				// 工具提示项
+	int m_idxToolTipSubItemDisplay = -1;// 工具提示子项
 
-	int m_idxTopItem = 0;	// 第一可见项
-	int m_idxHot = -1;		// 热点项
-	int m_idxFocus = -1;	// 焦点项
-	int m_idxMark = -1;		// mark，范围选择用
-	int m_idxSel = -1;		// 选中的项，仅用于单选模式
+	int m_idxEditing = -1;				// 正在编辑的项
+	int m_idxEditingSubItemDisplay = -1;// 正在编辑的子项
+	//--------尺寸
+	int m_cxItem = 0,					// 项目宽度
+		m_cyItem = 0;					// 项目高度
+	int m_cxClient = 0,					// 客户区宽度
+		m_cyClient = 0;					// 客户区高度
 
-	int m_cxItem = 0,
-		m_cyItem = 0;
-	int m_cxClient = 0,
-		m_cyClient = 0;
-	SIZE m_sizeTVGlyph{};
-	int m_dxContent = 0;
-	int m_cyHeader = 0;
+	int m_dxContent = 0;				// 水平偏移量，总小于等于0
+	int m_cyHeader = 0;					// 表头高度
 
-	POINT m_ptDraggingSelStart{};
-	RECT m_rcDraggingSel{};
-
-	HIMAGELIST m_hImgList = NULL;
-	int m_cxImg = 0,
-		m_cyImg = 0;
-
-	int m_cScrollLine = 3;							// 一次滚动行数
-	int m_msDraggingSelScrollGap = 30;				// 拖动选择时自动滚动最小间隔
-
-	CRefStrW m_rsWatermark{};
-
+	SIZE m_sizeTVGlyph{};				// 展开按钮大小
+	SIZE m_sizeCheckBox{};				// 检查框大小
+	//--------拖动选择
+	POINT m_ptDraggingSelStart{};		// 拖动选择起点，以相对于第一项的偏移量表示
+	RECT m_rcDraggingSel{};				// 拖动选择矩形，以相对于第一项的偏移量表示
+	//--------图像列表
+	HIMAGELIST m_hImgList = NULL;		// 图像列表
+	int m_cxImg = 0,					// 图像宽度
+		m_cyImg = 0;					// 图像高度
+	//--------滚动
+	int m_cScrollLine = 3;				// 一次滚动行数
+	int m_cCharPreScrollH = 3;			// 一次滚动的字符数
+	int m_cxCharAve = 0;				// 当前字体的平均字符宽度
+	int m_msDraggingSelScrollGap = 30;	// 拖动选择时自动滚动最小间隔
+	//--------
+	CRefStrW m_rsWatermark{};			// 水印文本
+	//--------内部标志
 #ifdef _DEBUG
 	BITBOOL m_bDbgDrawIndex : 1 = 0;				// 【调试】绘制项目索引
 	BITBOOL m_bDbgDrawMarkItem : 1 = 0;				// 【调试】绘制mark项
+	BITBOOL m_bDbgDrawPartRect : 1 = 0;				// 【调试】绘制部件矩形	
 #endif
 	BITBOOL m_bExpandBtnHot : 1 = FALSE;			// 展开按钮是否点燃
 	BITBOOL m_bDraggingSel : 1 = FALSE;				// 是否处于拖动选择状态
@@ -226,22 +301,28 @@ private:
 	BITBOOL m_bFocusIndicatorVisible : 1 = FALSE;
 #endif
 	BITBOOL m_bHasFocus : 1 = FALSE;				// 是否有焦点
-
+	BITBOOL m_bWaitEditDelay : 1 = FALSE;			// 是否等待编辑
+	//--------风格
 	BITBOOL m_bFlatMode : 1 = FALSE;					// 平面列表模式
 	BITBOOL m_bFlatListFilter : 1 = FALSE;				// 平面列表模式下是否有不可见项目
 	BITBOOL m_bSingleSel : 1 = FALSE;					// 单选
 	BITBOOL m_bDisallowBeginDragInItemSpace : 1 = FALSE;// 禁止在项目内的空白区启动拖动选择
-	BITBOOL m_bBackgroundNotSolid : 1 = FALSE;			// 背景是否不是纯色
-	BITBOOL m_bHasLines : 1 = FALSE;					// 是否有分支线
-
-	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
+	BITBOOL m_bBackgroundNotSolid : 1 = FALSE;			// 背景不为纯色
+	BITBOOL m_bHasLines : 1 = FALSE;					// 分支线
+	BITBOOL m_bDisableAutoToolTip : 1 = FALSE;			// 禁止自动显示工具提示
+	BITBOOL m_bCheckBox : 1 = FALSE;					// 复选框
+	BITBOOL m_bDisableHScrollWithShift : 1 = FALSE;		// 禁止Shift+滚轮水平滚动
+	BITBOOL m_bDisableSelectAllWithCtrlA : 1 = FALSE;	// 禁止Ctrl+A全选
+	//--------DPI相关
+	int m_iDpi = USER_DEFAULT_SCREEN_DPI;	// DPI
 	ECK_DS_BEGIN(DPIS)
-		ECK_DS_ENTRY(cyHeaderDef, 26)
-		ECK_DS_ENTRY(cyItemDef, 24)
-		ECK_DS_ENTRY(cxTextMargin, 4)
+		ECK_DS_ENTRY(cyHeaderDef, 26)		// 默认表头高度
+		ECK_DS_ENTRY(cyItemDef, 24)			// 默认项目高度
+		ECK_DS_ENTRY(cxTextMargin, 4)		// 文本水平边距
+		ECK_DS_ENTRY(cxCBPadding, 2)		// 复选框水平边距
 		;
 	ECK_DS_END_VAR(m_Ds);
-
+	//--------
 
 	/// <summary>
 	/// 添加虚拟项目。
@@ -249,6 +330,7 @@ private:
 	/// </summary>
 	/// <param name="pParent">当前父项目</param>
 	/// <param name="pNode">子项目数组</param>
+	/// <param name="cChildren">pNode指向的元素数</param>
 	/// <param name="iLevel">父项目层次</param>
 	void AddVirtualItem(TLNODE* pParent, TLNODE** pNode, int cChildren, int iLevel)
 	{
@@ -256,13 +338,13 @@ private:
 		int idxCurrParent;
 		if (!(pParent->uFlags & TLIF_INVISIBLE))
 		{
-			m_vItem.emplace_back(pParent);
+			m_vItem.emplace_back(pParent);// 可视，直接尾插
 			idxCurrParent = (iLevel == 0 ? -1 : (int)m_vItem.size() - 1);
 		}
 		else
 		{
+			// 不可视，退回到最接近的可视父项
 			int idxTemp = pParent->idxParent;
-
 			while (idxTemp >= 0)
 			{
 				iLevel = m_vItem[idxTemp]->iLevel;
@@ -289,6 +371,7 @@ private:
 				pNode[i]->idxParent = idxCurrParent;
 				if (!(pNode[i]->uFlags & TLIF_INVISIBLE) && idxCurrParent >= 0)
 				{
+					// 确定同级项中的最后一个
 					const int idx = m_vItem[idxCurrParent]->idxLastEnd;
 					if (idx >= 0)
 						m_vItem[idx]->uFlags &= ~TLIF_HASNOTSIBLING;
@@ -318,14 +401,7 @@ private:
 		const auto e = m_vItem[idx];
 
 		RECT rcItem{ x,y,m_cxItem + x,y + m_cyItem };
-		const int cxIndent = CalcIndent(e);
-		RECT rc
-		{
-			x + m_Ds.cxTextMargin + cxIndent + m_cxImg,
-			rcItem.top,
-			0,
-			rcItem.bottom
-		};
+		RECT rc{ 0,rcItem.top,0,rcItem.bottom };
 
 		HRGN hRgn = NULL;
 		COLORREF crOldText = CLR_INVALID, crOldTextBk = CLR_INVALID;
@@ -372,69 +448,30 @@ private:
 			DrawFocusRect(hDC, &rcItem);
 			InflateRect(&rcItem, 1, 1);
 		}
-		//---------------画文本
-		if (uCustom & TLCDRF_TEXTCLRCHANGED)
-		{
-			if (nmcd.crText != CLR_INVALID)
-				crOldText = SetTextColor(hDC, nmcd.crText);
-			if (nmcd.crTextBk != CLR_INVALID)
-				crOldTextBk = SetBkColor(hDC, nmcd.crTextBk);
-		}
-
-		NMTLGETDISPINFO nm;
-		nm.Item.pNode = e;
-		nm.Item.uMask = TLIM_TEXT;
-		FillNmhdr(nm, NM_TL_GETDISPINFO);
-
-		// 按显示顺序循环
-		EckCounter(m_vCol.size(), i)
-		{
-			nm.Item.idxSubItem = m_vCol[i].idxActual;
-			nm.Item.cchText = 0;
-			nm.Item.pszText = NULL;
-			SendNotify(nm);
-
-			rc.right = m_vCol[i].iRight + x - m_Ds.cxTextMargin;
-#pragma warning(suppress:6387)// nm.Item.pszText可能为NULL
-			DrawTextW(hDC, nm.Item.pszText, nm.Item.cchText, &rc,
-				DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX | DT_NOCLIP);
-			rc.left = rc.right + m_Ds.cxTextMargin * 2;
-		}
-		if (uCustom & TLCDRF_TEXTCLRCHANGED)
-		{
-			if (crOldText != CLR_INVALID)
-				SetTextColor(hDC, crOldText);
-			if (crOldTextBk != CLR_INVALID)
-				SetBkColor(hDC, crOldTextBk);
-		}
-		//---------------画图片
+		//---------------
 		if (e->idxImg >= 0 || (e->uFlags & TLIF_HASCHILDREN))// 需要设置剪辑区
 		{
-			rc.left = 0;
-			rc.right = m_vCol.front().iRight;
-			hRgn = CreateRectRgnIndirect(&rc);
-			SelectClipRgn(hDC, hRgn);
-			DeleteObject(hRgn);
+			rc.left = x;
+			rc.right = m_vCol.front().iRight + x;
+			if (rc.right > 0)// 整个第一列都不可见，那么内容也不会绘制，不必设置剪辑区
+			{
+				hRgn = CreateRectRgnIndirect(&rc);
+				SelectClipRgn(hDC, hRgn);
+				DeleteObject(hRgn);
+			}
 		}
-		if (e->idxImg >= 0)
+		//---------------画展开按钮
+		rc.left = x + CalcGlyphIndentMinusGlyph(e);
+		if (!m_bFlatMode)
 		{
-			EckAssert(e->idxImg < ImageList_GetImageCount(m_hImgList));
-			RECT rcImg;
-			rcImg.left = x + cxIndent;
-			rcImg.top = y + (m_cyItem - m_cyImg) / 2;
-			rcImg.right = rcImg.left + m_cxImg;
-			rcImg.bottom = rcImg.top + m_cyImg;
-			ImageList_Draw(m_hImgList, e->idxImg, hDC, rcImg.left, rcImg.top, ILD_NORMAL);
-		}
-		//---------------画折叠按钮
-
-		if (!m_bFlatMode && (e->uFlags & TLIF_HASCHILDREN))
-		{
-			rc.left = x + cxIndent - m_sizeTVGlyph.cx;
 			rc.right = rc.left + m_sizeTVGlyph.cx;
-			rc.top += ((m_cyItem - m_sizeTVGlyph.cy) / 2);
-			rc.bottom = rc.top + m_sizeTVGlyph.cy;
-			DrawThemeBackground(m_hThemeTV, hDC, nmcd.iPartIdGlyph, nmcd.iStateIdGlyph, &rc, NULL);
+			if (e->uFlags & TLIF_HASCHILDREN)
+			{
+				rc.top += ((m_cyItem - m_sizeTVGlyph.cy) / 2);
+				rc.bottom = rc.top + m_sizeTVGlyph.cy;
+				DrawThemeBackground(m_hThemeTV, hDC, nmcd.iPartIdGlyph, nmcd.iStateIdGlyph, &rc, NULL);
+			}
+			rc.left = rc.right;
 		}
 		//---------------画分支线
 		if (m_bHasLines && !m_bFlatMode)
@@ -455,12 +492,9 @@ private:
 					const auto f = m_vItem[idxParent];
 
 					BOOL b = (f->uFlags & TLIF_HASNOTSIBLING);
-					if (b)
-						if ((f->uFlags & TLIF_HASCHILDREN))
-						{
-							if (f->uFlags & TLIF_CLOSED)
-								b = bLastItem;
-						}
+					if (b && (f->uFlags & TLIF_HASCHILDREN))
+						if (f->uFlags & TLIF_CLOSED)
+							b = bLastItem;
 
 					if (bLastItem = bLastItem && b)
 					{
@@ -479,9 +513,86 @@ private:
 			}
 			SelectObject(hDC, hOldPen);
 		}
+		//---------------画检查框
+		if (m_bCheckBox)
+		{
+			rc.left += m_Ds.cxCBPadding;
+			rc.top = rcItem.top + (m_cyItem - m_sizeCheckBox.cy) / 2;
+			rc.right = rc.left + m_sizeCheckBox.cx;
+			rc.bottom = rc.top + m_sizeCheckBox.cy;
+			if (e->uFlags & TLIF_CHECKED)
+				iStateId = ((e->uFlags & TLIF_DISABLECHECKBOX) ?
+					CBS_CHECKEDDISABLED : CBS_CHECKEDNORMAL);
+			else
+				iStateId = ((e->uFlags & TLIF_DISABLECHECKBOX) ?
+					CBS_UNCHECKEDDISABLED : CBS_UNCHECKEDNORMAL);
 
+			DrawThemeBackground(m_hThemeBT, hDC, BP_CHECKBOX, iStateId, &rc, NULL);
+			rc.left = rc.right + m_Ds.cxCBPadding;
+		}
+		//---------------画图片
+		if (m_hImgList)
+		{
+			if (e->idxImg >= 0)
+			{
+				EckAssert(e->idxImg < ImageList_GetImageCount(m_hImgList));
+				rc.top = y + (m_cyItem - m_cyImg) / 2;
+				ImageList_Draw(m_hImgList, e->idxImg, hDC, rc.left, rc.top, ILD_NORMAL);
+			}
+			rc.left += m_cxImg;
+		}
 		if (hRgn)
 			SelectClipRgn(hDC, NULL);
+
+		//---------------画文本
+		if (uCustom & TLCDRF_TEXTCLRCHANGED)
+		{
+			if (nmcd.crText != CLR_INVALID)
+				crOldText = SetTextColor(hDC, nmcd.crText);
+			if (nmcd.crTextBk != CLR_INVALID)
+				crOldTextBk = SetBkColor(hDC, nmcd.crTextBk);
+		}
+
+		NMTLGETDISPINFO nm;
+		nm.Item.pNode = e;
+		nm.Item.uMask = TLIM_TEXT;
+		FillNmhdr(nm, NM_TL_GETDISPINFO);
+
+		rc.left += m_Ds.cxTextMargin;
+		// 按显示顺序循环
+		EckCounter(m_vCol.size(), i)
+		{
+			rc.right = m_vCol[i].iRight + x - m_Ds.cxTextMargin;
+			if (rc.left >= m_cxClient)
+				break;
+			if (rc.right > 0)
+			{
+				nm.Item.idxSubItem = m_vCol[i].idxActual;
+				nm.Item.cchText = 0;
+				nm.Item.pszText = NULL;
+				SendNotify(nm);
+#pragma warning(suppress:6387)// nm.Item.pszText可能为NULL
+				DrawTextW(hDC, nm.Item.pszText, nm.Item.cchText, &rc,
+					DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX | DT_NOCLIP);
+			}
+			rc.left = rc.right + m_Ds.cxTextMargin * 2;
+#ifdef _DEBUG
+			if (m_bDbgDrawPartRect)
+			{
+				RECT rc2;
+				GetSubItemLabelRect(idx, i, rc2);
+				SetDCBrushColor(hDC, Colorref::Pink);
+				FrameRect(hDC, &rc2, GetStockBrush(DC_BRUSH));
+			}
+#endif
+		}
+		if (uCustom & TLCDRF_TEXTCLRCHANGED)
+		{
+			if (crOldText != CLR_INVALID)
+				SetTextColor(hDC, crOldText);
+			if (crOldTextBk != CLR_INVALID)
+				SetBkColor(hDC, crOldTextBk);
+		}
 	End:;
 #ifdef _DEBUG
 		const auto cr = SetTextColor(hDC, Colorref::Red);
@@ -497,17 +608,61 @@ private:
 				DT_VCENTER | DT_SINGLELINE | DT_RIGHT | DT_NOPREFIX | DT_NOCLIP);
 		}
 		SetTextColor(hDC, cr);
+
+		if (m_bDbgDrawPartRect)
+		{
+			if (e->uFlags & TLIF_HASCHILDREN)
+			{
+				SetDCBrushColor(hDC, Colorref::Green);
+				GetPartRect(idx, TLIP_EXPANDBTN, rc);
+				FrameRect(hDC, &rc, GetStockBrush(DC_BRUSH));
+			}
+			if (m_bCheckBox)
+			{
+				SetDCBrushColor(hDC, Colorref::Aqua);
+				GetPartRect(idx, TLIP_CHECKBOX, rc);
+				FrameRect(hDC, &rc, GetStockBrush(DC_BRUSH));
+			}
+			if (m_hImgList)
+			{
+				SetDCBrushColor(hDC, Colorref::Purple);
+				GetPartRect(idx, TLIP_ICON, rc);
+				FrameRect(hDC, &rc, GetStockBrush(DC_BRUSH));
+			}
+		}
 #endif
 	}
 
-	EckInline int CalcIndent(const TLNODE* e) const
+	/// <summary>
+	/// 计算展开按钮*及其*前置空白造成的缩进宽度
+	/// </summary>
+	EckInline int CalcGlyphIndent(const TLNODE* e) const
 	{
-		return (m_bFlatMode ? m_Ds.cxTextMargin/*边缘缩进*/ : (e->iLevel * m_sizeTVGlyph.cx));
+		return (m_bFlatMode ? 0 : (e->iLevel * m_sizeTVGlyph.cx));
 	}
 
-	EckInline int CalcIndentMinusGlyph(const TLNODE* e) const
+	/// <summary>
+	/// 计算展开按钮*的*前置空白造成的缩进宽度
+	/// </summary>
+	EckInline int CalcGlyphIndentMinusGlyph(const TLNODE* e) const
 	{
-		return (m_bFlatMode ? m_Ds.cxTextMargin/*边缘缩进*/ : ((e->iLevel - 1) * m_sizeTVGlyph.cx));
+		return (m_bFlatMode ? 0 : ((e->iLevel - 1) * m_sizeTVGlyph.cx));
+	}
+
+	/// <summary>
+	/// 计算展开按钮、复选框及其前置空白造成的缩进宽度
+	/// </summary>
+	EckInline int CalcCheckBoxIndent(const TLNODE* e) const
+	{
+		return CalcGlyphIndent(e) + (m_bCheckBox ? (m_sizeCheckBox.cx + m_Ds.cxCBPadding * 2) : 0);
+	}
+
+	/// <summary>
+	/// 计算展开按钮、复选框、图标及其前置空白造成的缩进宽度
+	/// </summary>
+	EckInline int CalcTotalIndent(const TLNODE* e) const
+	{
+		return CalcCheckBoxIndent(e) + m_cxImg;
 	}
 
 	EckInline void PaintBk(HDC hDC, const RECT& rc)
@@ -540,7 +695,10 @@ private:
 
 	EckInline void UpdateThemeInfo()
 	{
-		GetThemePartSize(m_hThemeTV, m_DC.GetDC(), TVP_GLYPH, GLPS_CLOSED, NULL, TS_TRUE, &m_sizeTVGlyph);
+		GetThemePartSize(m_hThemeTV, m_DC.GetDC(),
+			TVP_GLYPH, GLPS_CLOSED, NULL, TS_TRUE, &m_sizeTVGlyph);
+		GetThemePartSize(m_hThemeBT, m_DC.GetDC(),
+			BP_CHECKBOX, CBS_UNCHECKEDNORMAL, NULL, TS_TRUE, &m_sizeCheckBox);
 	}
 
 	void UpdateColumnInfo()
@@ -843,6 +1001,15 @@ private:
 		SetTextColor(m_DC.GetDC(), GetSysColor(COLOR_WINDOWTEXT));
 		SetBkMode(m_DC.GetDC(), TRANSPARENT);
 		SelectObject(m_DC.GetDC(), m_hFont);
+		TEXTMETRICW tm;
+		GetTextMetricsW(m_DC.GetDC(), &tm);
+		m_cxCharAve = tm.tmAveCharWidth;
+	}
+
+	void UpdateSystemParam()
+	{
+		SystemParametersInfoW(SPI_GETWHEELSCROLLLINES, 0, &m_cScrollLine, 0);
+		SystemParametersInfoW(SPI_GETWHEELSCROLLCHARS, 0, &m_cCharPreScrollH, 0);
 	}
 
 	void CheckOldData()
@@ -881,14 +1048,139 @@ private:
 		if (m_idxSel >= idxBegin && m_idxSel <= idxEnd)
 			m_idxSel = idxSuggestion;
 	}
+
+	EckInline void DismissToolTip()
+	{
+		if (m_idxToolTip >= 0 && m_idxToolTipSubItemDisplay >= 0)
+		{
+			m_ToolTip.Pop();
+			m_idxToolTip = m_idxToolTipSubItemDisplay = -1;
+		}
+	}
+
+	void EnterEditDelay(int idx, int idxSubItemDisplay)
+	{
+		CancelEditDelay();
+		m_bWaitEditDelay = TRUE;
+		m_idxEditing = idx;
+		m_idxEditingSubItemDisplay = idxSubItemDisplay;
+		SetTimer(m_hWnd, IDT_EDITDELAY, 600, NULL);
+	}
+
+	void CancelEditDelay()
+	{
+		if (m_bWaitEditDelay)
+		{
+			m_bWaitEditDelay = FALSE;
+			m_idxEditing = m_idxEditingSubItemDisplay = -1;
+			KillTimer(m_hWnd, IDT_EDITDELAY);
+		}
+	}
+
+	void OnLRButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		MSG msg{ hWnd,uMsg,wParam,lParam };
+		m_ToolTip.RelayEvent(&msg);
+
+		CancelEditDelay();
+		SetFocus(hWnd);
+		TLHITTEST tlht;
+		tlht.pt = ECK_GET_PT_LPARAM(lParam);
+		tlht.uFlags = 0;
+		int idx = HitTest(tlht);
+		if (tlht.iPart == TLIP_EXPANDBTN)// 命中展开按钮
+		{
+			ExpandItem(idx, TVE_TOGGLE);// 翻转展开状态
+			Redraw();
+		}
+		else if (tlht.iPart == TLIP_CHECKBOX)// 命中选择框
+		{
+			if (!(m_vItem[idx]->uFlags & (TLIF_DISABLED | TLIF_DISABLECHECKBOX)))
+				ToggleCheckItem(idx);
+			RedrawItem(idx);
+		}
+		else
+		{
+			if (m_bSingleSel)
+			{
+				if ((tlht.uFlags & TLHTF_NULLTEXT || tlht.iPart == TLIP_TEXT) &&
+					idx >= 0 && m_idxSel == idx)// 要么命中文本，要么在文本为空时命中空白
+					EnterEditDelay(idx, tlht.idxSubItemDisplay);
+				SelectItemForClick(idx, TRUE);
+				UpdateWindow(hWnd);
+			}
+			else
+			{
+				const BOOL bCurrItemSel = (idx >= 0 && m_vItem[idx]->uFlags & TLIF_SELECTED);
+				if (!(wParam & (MK_CONTROL | MK_SHIFT)))// 若Ctrl和Shift都未按下，则清除所有项的选中
+					DeselectAll();
+				if (idx >= 0)
+				{
+					if ((wParam & MK_SHIFT) && m_idxMark >= 0)
+					{
+						const int idxBegin = std::min(idx, m_idxMark);
+						const int idxEnd = std::max(idx, m_idxMark);
+						OnlySelectRange(idxBegin, idxEnd);
+						// Shift选择不修改mark
+						// m_idxMark = idx;
+						Redraw();
+					}
+					else if (wParam & MK_CONTROL)
+						ToggleSelectItem(idx);
+					else
+					{
+						if ((tlht.uFlags & TLHTF_NULLTEXT || tlht.iPart == TLIP_TEXT) &&
+							bCurrItemSel)// 要么命中文本，要么在文本为空时命中空白
+							EnterEditDelay(idx, tlht.idxSubItemDisplay);
+						SelectItemForClick(idx, TRUE);
+					}
+				}
+				Redraw();
+				UpdateWindow(hWnd);
+
+				if (idx < 0 || tlht.iPart == TLIP_NONE)// 空白处
+				{
+					POINT pt{ tlht.pt };
+					ClientToScreen(hWnd, &pt);
+					if (IsMouseMovedBeforeDragging(hWnd, pt.x, pt.y))
+					{
+						m_idxHot = -1;// 清除热点
+						if ((wParam & MK_CONTROL) && idx >= 0)// 如果按下了Ctrl那么把鼠标下的项目取消选中
+							m_vItem[idx]->uFlags &= ~TLIF_SELECTED;
+						BeginDraggingSelect((UINT)wParam, tlht.pt.x, tlht.pt.y);
+						return;
+					}
+				}
+
+				Redraw();
+				UpdateWindow(hWnd);
+			}
+		}
+	}
 public:
 	ECK_CWND_SINGLEOWNER;
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)
 		{
+		case WM_MBUTTONDOWN:
+			CancelEditDelay();
+			[[fallthrough]];
+		case WM_RBUTTONUP:
+		case WM_MBUTTONUP:
+		case WM_LBUTTONUP:
+		case WM_NCMOUSEMOVE:
+		{
+			MSG msg{ hWnd,uMsg,wParam,lParam };
+			m_ToolTip.RelayEvent(&msg);
+		}
+		break;
+
 		case WM_MOUSEMOVE:
 		{
+			MSG msg{ hWnd,uMsg,wParam,lParam };
+			m_ToolTip.RelayEvent(&msg);
+
 			TLHITTEST tlht;
 			tlht.pt = ECK_GET_PT_LPARAM(lParam);
 			tlht.uFlags = TLHTF_NOHITTEXTLABEL;
@@ -911,6 +1203,10 @@ public:
 				if (m_idxHot >= 0 && bExpBtnHot != m_bExpandBtnHot)
 					RedrawItem(m_idxHot);
 			}
+
+			if (idx != m_idxToolTip || tlht.idxSubItemDisplay != m_idxToolTipSubItemDisplay)
+				m_ToolTip.Pop();
+
 			TRACKMOUSEEVENT tme;
 			tme.cbSize = sizeof(tme);
 			tme.dwFlags = TME_LEAVE;
@@ -922,37 +1218,122 @@ public:
 		case WM_NOTIFY:
 		{
 			const auto pnmhdr = (NMHDR*)lParam;
-			if (pnmhdr->hwndFrom != m_Header.HWnd)
-				break;
-			switch (pnmhdr->code)
-			{
-			case HDN_ITEMCHANGEDW:
-			case HDN_ITEMCHANGINGW:
-			{
-				const auto p = (NMHEADERW*)lParam;
-				if (IsBitSet(p->pitem->mask, HDI_WIDTH))
+			if (pnmhdr->hwndFrom == m_Header.HWnd)
+				switch (pnmhdr->code)
 				{
-					UpdateColumnInfo();
-					UpdateScrollBar();
-					SetWindowPos(m_Header.HWnd, NULL, m_dxContent, 0,
-						std::max(m_cxItem, m_cxClient), m_cyHeader, SWP_NOZORDER | SWP_NOACTIVATE);
-					Redraw();
+				case HDN_ITEMCHANGEDW:
+				case HDN_ITEMCHANGINGW:
+				{
+					const auto p = (NMHEADERW*)lParam;
+					if (IsBitSet(p->pitem->mask, HDI_WIDTH))
+					{
+						UpdateColumnInfo();
+						UpdateScrollBar();
+						SetWindowPos(m_Header.HWnd, NULL, m_dxContent, 0,
+							std::max(m_cxItem, m_cxClient), m_cyHeader, SWP_NOZORDER | SWP_NOACTIVATE);
+						Redraw();
+					}
 				}
-			}
-			return FALSE;
+				return FALSE;
 
-			case HDN_ITEMCLICKW:
-			{
-				auto nm = *(const NMHEADERW*)lParam;
-				FillNmhdrAndSendNotify(nm, NM_TL_HD_CLICK);
-			}
-			return 0;
-
-			case NM_RELEASEDCAPTURE:
-				UpdateColumnInfo();
-				Redraw();
+				case HDN_ITEMCLICKW:
+				{
+					auto nm = *(const NMHEADERW*)lParam;
+					FillNmhdrAndSendNotify(nm, NM_TL_HD_CLICK);
+				}
 				return 0;
-			}
+
+				case NM_RELEASEDCAPTURE:
+					UpdateColumnInfo();
+					Redraw();
+					return 0;
+				}
+			else if (pnmhdr->hwndFrom == m_ToolTip.HWnd)
+				switch (pnmhdr->code)
+				{
+				case TTN_GETDISPINFOW:
+				{
+					auto p = (NMTTDISPINFOW*)lParam;
+					if (p->uFlags & TTF_IDISHWND)
+					{
+						if (p->hdr.idFrom != (UINT_PTR)hWnd)
+							return 0;
+					}
+					else
+					{
+						if (p->hdr.idFrom != TL_TLI_MAIN)
+							return 0;
+					}
+
+					const DWORD dwPos = GetMessagePos();
+					POINT pt ECK_GET_PT_LPARAM(dwPos);
+					ScreenToClient(hWnd, &pt);
+
+					TLHITTEST tlht;
+					tlht.pt = pt;
+					tlht.uFlags = TLHTF_ONLYITEM;
+					const int idx = HitTest(tlht);
+					if (idx >= 0)
+						if (m_bDisableAutoToolTip)
+						{
+							NMTLTTGETDISPINFO nm;
+							nm.pttdi = p;
+							nm.pNode = (idx >= 0 ? m_vItem[idx] : NULL);
+							nm.idx = idx;
+							nm.idxSubItemDisplay = tlht.idxSubItemDisplay;
+							if (FillNmhdrAndSendNotify(nm, NM_TL_GETDISPINFO))
+							{
+								m_idxToolTip = idx;
+								m_idxToolTipSubItemDisplay = tlht.idxSubItemDisplay;
+								return 0;
+							}
+						}
+						else
+						{
+							if (IsTextTooLong(idx, tlht.idxSubItemDisplay))
+							{
+								m_idxToolTip = idx;
+								m_idxToolTipSubItemDisplay = tlht.idxSubItemDisplay;
+								p->lpszText = (PWSTR)GetItemText(m_idxToolTip,
+									ColumnDisplayToActual(m_idxToolTipSubItemDisplay));
+								return 0;
+							}
+						}
+
+					m_idxToolTip = m_idxToolTipSubItemDisplay = -1;
+				}
+				return 0;
+				case TTN_SHOW:
+				{
+					if (m_idxToolTip >= 0 && m_idxToolTipSubItemDisplay >= 0)
+					{
+						if (m_bDisableAutoToolTip)
+						{
+							NMTLTTPRESHOW nm;
+							nm.pNode = m_vItem[m_idxToolTip];
+							nm.idx = m_idxToolTip;
+							nm.idxSubItemDisplay = m_idxToolTipSubItemDisplay;
+							nm.pToolTip = &m_ToolTip;
+							return FillNmhdrAndSendNotify(nm, NM_TL_TTPRESHOW);
+						}
+						else
+						{
+							RECT rc;
+							GetItemTextRect(m_idxToolTip, m_idxToolTipSubItemDisplay, rc);
+							ClientToScreen(hWnd, &rc);
+							m_ToolTip.AdjustRect(TRUE, &rc);
+							SetWindowPos(m_ToolTip.HWnd, HWND_TOPMOST,
+								rc.left, rc.top, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE);
+						}
+					}
+				}
+				return TRUE;
+				case TTN_POP:
+				{
+					m_idxToolTip = m_idxToolTipSubItemDisplay = -1;
+				}
+				return 0;
+				}
 		}
 		return 0;
 
@@ -1004,6 +1385,7 @@ public:
 			SetSbInfo(SB_VERT, &si);
 			GetSbInfo(SB_VERT, &si);
 			ReCalcTopItem();
+			DismissToolTip();
 			if (m_bBackgroundNotSolid)
 				Redraw();
 			else
@@ -1051,28 +1433,33 @@ public:
 			GetSbInfo(SB_HORZ, &si);
 			m_dxContent = -si.nPos;
 			m_Header.Left = m_dxContent;
+			DismissToolTip();
 			Redraw();
 		}
 		return 0;
 
 		case WM_MOUSEWHEEL:
 		{
-			SCROLLINFO si;
-			si.cbSize = sizeof(SCROLLINFO);
-			si.fMask = SIF_POS;
-			GetSbInfo(SB_VERT, &si);
-			const int iOld = si.nPos;
-			si.nPos += (-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA * m_cScrollLine);
-			SetSbInfo(SB_VERT, &si);
-			GetSbInfo(SB_VERT, &si);
-			ReCalcTopItem();
-			if (m_bBackgroundNotSolid)
-				Redraw();
+			if ((!(GetStyle() & WS_VSCROLL)) || (!m_bDisableHScrollWithShift && (wParam & MK_SHIFT)))
+				goto FallToHWheel;
+			const int cVisible = (m_cyClient - m_cyHeader) / m_cyItem;
+			const int dLine = -GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA * m_cScrollLine;
+			if (Abs(dLine) > cVisible)
+				ScrollV(SignVal(dLine) * GetSbPage(SB_VERT));
 			else
-			{
-				RECT rc{ 0,m_cyHeader,m_cxClient,m_cyClient };
-				ScrollWindowEx(hWnd, 0, (iOld - si.nPos) * m_cyItem, &rc, &rc, NULL, NULL, SW_INVALIDATE);
-			}
+				ScrollV(dLine);
+			UpdateWindow(hWnd);
+		}
+		return 0;
+
+		case WM_MOUSEHWHEEL:
+		{
+		FallToHWheel:
+			const int dx = -GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA * m_cCharPreScrollH * m_cxCharAve;
+			if (Abs(dx) > m_cxClient)
+				ScrollH(SignVal(dx) * m_cxClient);
+			else
+				ScrollH(dx);
 			UpdateWindow(hWnd);
 		}
 		return 0;
@@ -1126,11 +1513,19 @@ public:
 
 			UpdateScrollBar();
 			m_Header.Size = SIZE{ std::max(m_cxItem, m_cxClient),m_cyHeader };
+
+			TTTOOLINFOW ti;
+			ti.cbSize = sizeof(ti);
+			ti.hwnd = hWnd;
+			ti.uId = TL_TLI_MAIN;
+			ti.rect = { 0,0,m_cxClient,m_cyClient };
+			m_ToolTip.NewToolRect(&ti);
 		}
 		return 0;
 
 		case WM_KEYDOWN:
 		{
+			CancelEditDelay();
 			const int idxOldFocus = m_idxFocus;
 			int idxBottom = m_idxTopItem + (m_cyClient - m_cyHeader) / m_cyItem - 1;
 			if (idxBottom >= (int)m_vItem.size())
@@ -1252,6 +1647,14 @@ public:
 				}
 			}
 			break;
+			case 'A':
+				if (!m_bSingleSel && (GetAsyncKeyState(VK_CONTROL) & 0x8000))
+				{
+					OnlySelectRange(0, (int)m_vItem.size() - 1);
+					Redraw();
+					UpdateWindow(hWnd);
+				}
+				goto SkipItemAdjust;
 			}
 
 			if (m_idxFocus >= 0)// 项目必须有效
@@ -1309,67 +1712,9 @@ public:
 		break;
 
 		case WM_LBUTTONDOWN:
-		{
-			SetFocus(hWnd);
-			TLHITTEST tlht;
-			tlht.pt = ECK_GET_PT_LPARAM(lParam);
-			tlht.uFlags = 0;
-			int idx = HitTest(tlht);
-			if (tlht.iPart == TLIP_EXPANDBTN)// 命中展开按钮
-			{
-				ExpandItem(idx, TVE_TOGGLE);// 翻转展开状态
-				Redraw();
-			}
-			else
-			{
-				if (m_bSingleSel)
-				{
-					SelectItemForClick(idx, TRUE);
-					UpdateWindow(hWnd);
-				}
-				else
-				{
-					if (!(wParam & (MK_CONTROL | MK_SHIFT)))// 若Ctrl和Shift都未按下，则清除所有项的选中
-						DeselectAll();
-					if (idx >= 0)
-					{
-						if ((wParam & MK_SHIFT) && m_idxMark >= 0)
-						{
-							const int idxBegin = std::min(idx, m_idxMark);
-							const int idxEnd = std::max(idx, m_idxMark);
-							OnlySelectRange(idxBegin, idxEnd);
-							// Shift选择不修改mark
-							// m_idxMark = idx;
-							Redraw();
-						}
-						else if (wParam & MK_CONTROL)
-							ToggleSelectItem(idx);
-						else
-							SelectItemForClick(idx, TRUE);
-					}
-					Redraw();
-					UpdateWindow(hWnd);
-
-					if (idx < 0 || tlht.iPart == TLIP_NONE)// 空白处
-					{
-						POINT pt{ tlht.pt };
-						ClientToScreen(hWnd, &pt);
-						if (IsMouseMovedBeforeDragging(hWnd, pt.x, pt.y))
-						{
-							m_idxHot = -1;// 清除热点
-							if ((wParam & MK_CONTROL) && idx >= 0)// 如果按下了Ctrl那么把鼠标下的项目取消选中
-								m_vItem[idx]->uFlags &= ~TLIF_SELECTED;
-							BeginDraggingSelect((UINT)wParam, tlht.pt.x, tlht.pt.y);
-							return 0;
-						}
-					}
-
-					Redraw();
-					UpdateWindow(hWnd);
-				}
-			}
-		}
-		return 0;
+		case WM_RBUTTONDOWN:
+			OnLRButtonDown(hWnd, uMsg, wParam, lParam);
+			break;
 
 		case WM_LBUTTONDBLCLK:
 		{
@@ -1377,7 +1722,7 @@ public:
 			tlht.pt = ECK_GET_PT_LPARAM(lParam);
 			tlht.uFlags = TLHTF_NOHITTEXTLABEL;
 			HitTest(tlht);
-			if (tlht.iPart == TLIP_EXPANDBTN)
+			if (tlht.iPart == TLIP_EXPANDBTN || tlht.iPart == TLIP_CHECKBOX)
 				PostMsg(WM_LBUTTONDOWN, wParam, lParam);// 连击修正
 		}
 		return 0;
@@ -1401,6 +1746,21 @@ public:
 		}
 		break;
 
+		case WM_TIMER:
+		{
+			if (wParam != IDT_EDITDELAY)
+				break;
+			KillTimer(hWnd, IDT_EDITDELAY);
+			if (m_bWaitEditDelay && m_idxEditing >= 0)
+			{
+				const int idx = m_idxEditing;
+				const int idxSubItemDisplay = m_idxEditingSubItemDisplay;
+				CancelEditDelay();
+				EnterEdit(idx, idxSubItemDisplay);
+			}
+		}
+		return 0;
+
 		case WM_CREATE:
 		{
 			m_iDpi = GetDpi(hWnd);
@@ -1415,9 +1775,19 @@ public:
 			SetExplorerTheme();
 			m_hThemeTV = OpenThemeData(hWnd, L"TreeView");
 			m_hThemeLV = OpenThemeData(hWnd, L"ListView");
+			m_hThemeBT = OpenThemeData(hWnd, L"Button");
 			UpdateThemeInfo();
 			m_bHasFocus = (GetFocus() == hWnd);
-			SystemParametersInfoW(SPI_GETWHEELSCROLLLINES, 0, &m_cScrollLine, 0);
+			UpdateSystemParam();
+
+			m_ToolTip.Create(NULL, TTS_NOPREFIX, WS_EX_TRANSPARENT,
+				0, 0, 0, 0, hWnd, nullptr);
+			TTTOOLINFOW ti{ sizeof(TTTOOLINFOW) };
+			ti.uFlags = TTF_TRANSPARENT;
+			ti.hwnd = hWnd;
+			ti.uId = TL_TLI_MAIN;
+			ti.lpszText = LPSTR_TEXTCALLBACKW;
+			m_ToolTip.AddTool(&ti);
 
 			UpdateScrollBar();
 		}
@@ -1444,15 +1814,20 @@ public:
 			m_hThemeTV = OpenThemeData(hWnd, L"TreeView");
 			CloseThemeData(m_hThemeLV);
 			m_hThemeLV = OpenThemeData(hWnd, L"ListView");
+			CloseThemeData(m_hThemeBT);
+			m_hThemeBT = OpenThemeData(hWnd, L"Button");
 			UpdateThemeInfo();
+			UpdateDCAttr();
 			Redraw();
 		}
 		break;
 
 		case WM_SYSCOLORCHANGE:
-			SetTextColor(m_DC.GetDC(), GetSysColor(COLOR_WINDOWTEXT));
+		{
+			UpdateDCAttr();
 			Redraw();
-			break;
+		}
+		break;
 
 		case WM_SETFOCUS:
 		{
@@ -1486,12 +1861,13 @@ public:
 			m_hThemeTV = NULL;
 			CloseThemeData(m_hThemeLV);
 			m_hThemeLV = NULL;
+			CloseThemeData(m_hThemeBT);
+			m_hThemeBT = NULL;
 		}
 		break;
 
 		case WM_SETTINGCHANGE:
-			if (wParam == SPI_GETWHEELSCROLLLINES)
-				SystemParametersInfoW(SPI_GETWHEELSCROLLLINES, 0, &m_cScrollLine, 0);
+			UpdateSystemParam();
 			break;
 		}
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
@@ -1547,7 +1923,7 @@ public:
 				if (!(nm.pChildren[nm.cChildren - i - 1]->uFlags & TLIF_INVISIBLE) &&
 					!b)
 				{
-					nm.pChildren[nm.cChildren - i - 1]->uFlags |= TLIF_HASNOTSIBLING;
+					nm.pChildren[nm.cChildren - i - 1]->uFlags |= TLIF_HASNOTSIBLING;// 确定最后一个同级项中的最后一个
 					b = TRUE;
 				}
 
@@ -1575,34 +1951,32 @@ public:
 
 	int HitTest(TLHITTEST& tlht) const
 	{
+		tlht.idxSubItemDisplay = -1;
 		if (m_vCol.empty() || tlht.pt.x < 0 || tlht.pt.x > m_cxItem ||
 			tlht.pt.y < m_cyHeader || tlht.pt.y > m_cyClient)
 			return -1;
 		const int idx = ItemFromY(tlht.pt.y);
 		if (idx < 0)
 			return -1;
+		const auto it = std::find_if(m_vCol.begin(), m_vCol.end(), [&tlht](const COL& e)
+			{
+				return tlht.pt.x <= e.iRight && tlht.pt.x >= e.iLeft;
+			});
+		if (it != m_vCol.end())
+			tlht.idxSubItemDisplay = (int)std::distance(m_vCol.begin(), it);
 
 		if (!IsBitSet(tlht.uFlags, TLHTF_ONLYITEM))
 		{
 			tlht.iPart = TLIP_NONE;
-			const auto it = std::find_if(m_vCol.begin(), m_vCol.end(), [&tlht](const COL& e)
-				{
-					return tlht.pt.x < e.iRight && tlht.pt.x > e.iLeft;
-				});
-			if (it == m_vCol.end())
-				tlht.idxSubItemDisplay = -1;
-			else
-				tlht.idxSubItemDisplay = (int)std::distance(m_vCol.begin(), it);
+
 			const int y = GetItemY(idx);
 			const auto e = m_vItem[idx];
 			RECT rc;
-			rc.left = m_dxContent + CalcIndentMinusGlyph(e);
-
 			if (!m_bFlatMode && (e->uFlags & TLIF_HASCHILDREN))
 			{
-				rc.right = std::min(rc.left + m_sizeTVGlyph.cx, (long)m_vCol.front().iRight);
-				rc.top = y + (m_cyItem - m_sizeTVGlyph.cy) / 2;
-				rc.bottom = rc.top + m_sizeTVGlyph.cy;
+				GetPartRect(idx, TLIP_EXPANDBTN, rc);
+				if (rc.right > m_vCol.front().iRight)
+					rc.right = m_vCol.front().iRight;
 				if (PtInRect(&rc, tlht.pt))
 				{
 					tlht.iPart = TLIP_EXPANDBTN;
@@ -1610,12 +1984,23 @@ public:
 				}
 			}
 
+			if (m_bCheckBox)
+			{
+				GetPartRect(idx, TLIP_CHECKBOX, rc);
+				if (rc.right > m_vCol.front().iRight)
+					rc.right = m_vCol.front().iRight;
+				if (PtInRect(&rc, tlht.pt))
+				{
+					tlht.iPart = TLIP_CHECKBOX;
+					goto EndPartTest;
+				}
+			}
+
 			if (m_hImgList && e->idxImg >= 0)
 			{
-				rc.left += (m_bFlatMode ? 0 : m_sizeTVGlyph.cx);
-				rc.top = y + (m_cyItem - m_cyImg) / 2;
-				rc.right = std::min(rc.left + m_cxImg, (long)m_vCol.front().iRight);
-				rc.bottom = rc.top + m_cyImg;
+				GetPartRect(idx, TLIP_ICON, rc);
+				if (rc.right > m_vCol.front().iRight)
+					rc.right = m_vCol.front().iRight;
 				if (PtInRect(&rc, tlht.pt))
 				{
 					tlht.iPart = TLIP_ICON;
@@ -1626,7 +2011,9 @@ public:
 			if (tlht.idxSubItemDisplay >= 0 && !(tlht.uFlags & TLHTF_NOHITTEXTLABEL))
 			{
 				GetItemTextRect(idx, tlht.idxSubItemDisplay, rc);
-				if (PtInRect(&rc, tlht.pt))
+				if (IsRectEmpty(&rc))
+					tlht.uFlags |= TLHTF_NULLTEXT;
+				else if (PtInRect(&rc, tlht.pt))
 				{
 					tlht.iPart = TLIP_TEXT;
 					goto EndPartTest;
@@ -1642,6 +2029,44 @@ public:
 		return m_cyHeader + (idx - m_idxTopItem) * m_cyItem;
 	}
 
+	void GetPartRect(int idx, int iPart, RECT& rc) const
+	{
+		EckAssert(idx >= 0 && idx < (int)m_vItem.size());
+		rc.left = m_dxContent + CalcGlyphIndentMinusGlyph(m_vItem[idx]);
+		switch (iPart)
+		{
+		case TLIP_EXPANDBTN:
+			EckAssert(m_vItem[idx]->uFlags & TLIF_HASCHILDREN);
+			rc.left = m_dxContent + CalcGlyphIndentMinusGlyph(m_vItem[idx]);
+			rc.top = GetItemY(idx) + (m_cyItem - m_sizeTVGlyph.cy) / 2;
+			rc.right = rc.left + m_sizeTVGlyph.cx;
+			rc.bottom = rc.top + m_sizeTVGlyph.cy;
+			break;
+		case TLIP_CHECKBOX:
+			EckAssert(m_bCheckBox);
+			rc.left = m_dxContent + CalcCheckBoxIndent(m_vItem[idx]) -
+				m_sizeCheckBox.cx - m_Ds.cxCBPadding;
+			rc.top = GetItemY(idx) + (m_cyItem - m_sizeCheckBox.cy) / 2;
+			rc.right = rc.left + m_sizeCheckBox.cx;
+			rc.bottom = rc.top + m_sizeCheckBox.cy;
+			break;
+			break;
+		case TLIP_ICON:
+			EckAssert(m_hImgList);
+			rc.left = m_dxContent + CalcTotalIndent(m_vItem[idx]) - m_cxImg;
+			rc.top = GetItemY(idx) + (m_cyItem - m_cyImg) / 2;
+			rc.right = rc.left + m_cxImg;
+			rc.bottom = rc.top + m_cyImg;
+			break;
+		case TLIP_TEXT:
+			EckDbgPrint(L"** Warning ** 请使用GetSubItemLabelRect获取文本矩形");
+			break;
+		default:
+			EckDbgPrint(L"** Warning ** INVALID PART TYPE!");
+			break;
+		}
+	}
+
 	EckInline void GetItemRect(int idx, RECT& rc) const
 	{
 		EckAssert(idx >= 0 && idx < (int)m_vItem.size());
@@ -1654,19 +2079,85 @@ public:
 		};
 	}
 
-	void GetItemTextRect(int idx, int idxSubItemDisplay, RECT& rc) const
+	/// <summary>
+	/// 取子项目矩形
+	/// </summary>
+	/// <param name="idx"></param>
+	/// <param name="idxSubItemDisplay"></param>
+	/// <param name="rc"></param>
+	/// <param name="bExcludeIndent"></param>
+	/// <returns></returns>
+	EckInline void GetSubItemRect(int idx, int idxSubItemDisplay, RECT& rc,
+		BOOL bExcludeIndent = FALSE) const
+	{
+		EckAssert(idx >= 0 && idx < (int)m_vItem.size());
+		EckAssert(idxSubItemDisplay >= 0 && idxSubItemDisplay < (int)m_vCol.size());
+		rc.top = GetItemY(idx);
+		rc.bottom = rc.top + m_cyItem;
+		if (!idxSubItemDisplay && bExcludeIndent)
+			rc.left = CalcTotalIndent(m_vItem[idx]);
+		else
+			rc.left = m_vCol[idxSubItemDisplay].iLeft + m_dxContent;
+		rc.right = m_vCol[idxSubItemDisplay].iRight + m_dxContent;
+	}
+
+	/// <summary>
+	/// 取子项目文本可显示矩形
+	/// </summary>
+	/// <param name="idx"></param>
+	/// <param name="idxSubItemDisplay"></param>
+	/// <param name="rc"></param>
+	/// <returns></returns>
+	EckInline void GetSubItemLabelRect(int idx, int idxSubItemDisplay, RECT& rc) const
+	{
+		EckAssert(idx >= 0 && idx < (int)m_vItem.size());
+		EckAssert(idxSubItemDisplay >= 0 && idxSubItemDisplay < (int)m_vCol.size());
+		rc.top = GetItemY(idx);
+		rc.bottom = rc.top + m_cyItem;
+		if (!idxSubItemDisplay)
+			rc.left = CalcTotalIndent(m_vItem[idx]) + m_Ds.cxTextMargin;
+		else
+			rc.left = m_vCol[idxSubItemDisplay].iLeft + m_dxContent + m_Ds.cxTextMargin;
+		rc.right = m_vCol[idxSubItemDisplay].iRight + m_dxContent - m_Ds.cxTextMargin;
+	}
+
+	EckInline int ColumnDisplayToActual(int idxDisplay) const
+	{
+		EckAssert(idxDisplay >= 0 && idxDisplay < (int)m_vCol.size());
+		return m_vCol[idxDisplay].idxActual;
+	}
+
+	PCWSTR GetItemText(int idx, int idxSubItem, int* pcchText = NULL) const
 	{
 		NMTLGETDISPINFO nm;
 		nm.Item.pNode = m_vItem[idx];
 		nm.Item.uMask = TLIM_TEXT;
-		nm.Item.idxSubItem = idxSubItemDisplay;
+		nm.Item.idxSubItem = idxSubItem;
 		FillNmhdrAndSendNotify(nm, NM_TL_GETDISPINFO);
+		if (pcchText)
+			*pcchText = nm.Item.cchText;
+		return nm.Item.pszText;
+	}
+
+	BOOL IsTextTooLong(int idx, int idxSubItemDisplay) const
+	{
+		int cchText;
+		auto pszText = GetItemText(idx, ColumnDisplayToActual(idxSubItemDisplay), &cchText);
 		SIZE size;
-		GetTextExtentPoint32W(m_DC.GetDC(), nm.Item.pszText, nm.Item.cchText, &size);
+		GetTextExtentPoint32W(m_DC.GetDC(), pszText, cchText, &size);
+		return size.cx > m_vCol[idxSubItemDisplay].iRight - m_vCol[idxSubItemDisplay].iLeft - m_Ds.cxTextMargin * 2;
+	}
+
+	void GetItemTextRect(int idx, int idxSubItemDisplay, RECT& rc) const
+	{
+		int cchText;
+		auto pszText = GetItemText(idx, ColumnDisplayToActual(idxSubItemDisplay), &cchText);
+		SIZE size;
+		GetTextExtentPoint32W(m_DC.GetDC(), pszText, cchText, &size);
 		rc.top = GetItemY(idx);
 		rc.left = m_vCol[idxSubItemDisplay].iLeft + m_Ds.cxTextMargin + m_dxContent;
 		if (!idxSubItemDisplay)
-			rc.left += (nm.Item.pNode->iLevel * m_sizeTVGlyph.cx + m_cxImg);
+			rc.left += (m_vItem[idx]->iLevel * m_sizeTVGlyph.cx + m_cxImg);
 		rc.right = rc.left + std::min(size.cx, (long)m_vCol[idxSubItemDisplay].iRight);
 		rc.top = rc.top + (m_cyItem - size.cy) / 2;
 		rc.bottom = rc.top + size.cy;
@@ -1704,8 +2195,15 @@ public:
 		SetSbInfo(SB_VERT, &si);
 		GetSbInfo(SB_VERT, &si);
 		ReCalcTopItem();
-		RECT rc{ 0,m_cyHeader,m_cxClient,m_cyClient };
-		ScrollWindowEx(m_hWnd, 0, (iOld - si.nPos) * m_cyItem, &rc, &rc, NULL, NULL, SW_INVALIDATE);
+		DismissToolTip();
+		DismissEdit();
+		if (m_bBackgroundNotSolid)
+			Redraw();
+		else
+		{
+			RECT rc{ 0,m_cyHeader,m_cxClient,m_cyClient };
+			ScrollWindowEx(m_hWnd, 0, (iOld - si.nPos) * m_cyItem, &rc, &rc, NULL, NULL, SW_INVALIDATE);
+		}
 	}
 
 	void ScrollH(int xDelta)
@@ -1721,6 +2219,8 @@ public:
 		GetSbInfo(SB_HORZ, &si);
 		m_dxContent = -si.nPos;
 		m_Header.Left = m_dxContent;
+		DismissToolTip();
+		DismissEdit();
 		Redraw();
 	}
 
@@ -1973,6 +2473,168 @@ public:
 	EckInline void SetDisallowBeginDragInItemSpace(BOOL b) { m_bDisallowBeginDragInItemSpace = b; }
 
 	EckInline BOOL GetDisallowBeginDragInItemSpace() const { return m_bDisallowBeginDragInItemSpace; }
+
+	void EnsureVisible(int idx)
+	{
+		EckAssert(idx >= 0 && idx < (int)m_vItem.size());
+		if (idx < m_idxTopItem)
+			ScrollV(idx - m_idxTopItem);
+		else if (idx >= m_idxTopItem + (m_cyClient - m_cyHeader) / m_cyItem)
+			ScrollV(idx - m_idxTopItem - (m_cyClient - m_cyHeader) / m_cyItem + 1);
+	}
+
+	void SetFocusItem(int idx)
+	{
+		EckAssert(idx < (int)m_vItem.size());
+		std::swap(m_idxFocus, idx);
+		if (m_bFocusIndicatorVisible)
+		{
+			if (idx >= 0)
+				RedrawItem(idx);
+			if (m_idxFocus >= 0 && idx != m_idxFocus)
+				RedrawItem(m_idxFocus);
+		}
+	}
+
+	EckInline int GetFocusItem() const { return m_idxFocus; }
+
+	EckInline void SetMarkItem(int idx)
+	{
+		EckAssert(idx < (int)m_vItem.size());
+		m_idxMark = idx;
+	}
+
+	EckInline int GetMarkItem() const { return m_idxMark; }
+
+	void GetSelectedItems(std::vector<int>& v) const
+	{
+		v.clear();
+		if (m_bSingleSel && m_idxSel >= 0)
+			v.emplace_back(m_idxSel);
+		else
+			for (int i = 0; i < (int)m_vItem.size(); ++i)
+				if (m_vItem[i]->uFlags & TLIF_SELECTED)
+					v.emplace_back(i);
+	}
+
+	EckInline int GetCurrSel() const { return m_idxSel; }
+
+	EckInline void SetItemHeight(int cy)
+	{
+		std::swap(m_cyItem, cy);
+		if (m_cyItem != cy)
+			Redraw();
+	}
+
+	EckInline int GetItemHeight() const { return m_cyItem; }
+
+	EckInline void SetHeaderHeight(int cy)
+	{
+		std::swap(m_cyHeader, cy);
+		if (m_cyHeader != cy)
+		{
+			m_Header.Height = cy;
+			Redraw();
+		}
+	}
+
+	EckInline int GetHeaderHeight() const { return m_cyHeader; }
+
+	EckInline int GetFirstVisibleItem() const { return m_idxTopItem; }
+
+	EckInline int GetLastFullVisibleItem() const
+	{
+		return m_idxTopItem + (m_cyClient - m_cyHeader) / m_cyItem;
+	}
+
+	EckInline int GetLastPartialVisibleItem() const
+	{
+		const int cView = (m_cyClient - m_cyHeader) / m_cyItem;
+		if (cView * m_cyItem + m_cyHeader == m_cyClient)
+			return m_idxTopItem + cView - 1;
+		else
+			return m_idxTopItem + cView;
+	}
+
+	EckInline CToolTip& GetToolTip() { return m_ToolTip; }
+
+	EckInline void SetDisableAutoToolTip(BOOL b) { m_bDisableAutoToolTip = b; }
+
+	EckInline BOOL GetDisableAutoToolTip() const { return m_bDisableAutoToolTip; }
+
+	EckInline void SetHasCheckBox(BOOL b) { m_bCheckBox = b; }
+
+	EckInline BOOL GetHasCheckBox() const { return m_bCheckBox; }
+
+	EckInline void SetDisableHScrollWithShift(BOOL b) { m_bDisableHScrollWithShift = b; }
+
+	EckInline BOOL GetDisableHScrollWithShift() const { return m_bDisableHScrollWithShift; }
+
+	void EnterEdit(int idx, int idxSubItemDisplay)
+	{
+		DismissEdit();
+		NMTLEDIT nm;
+		nm.idx = idx;
+		nm.idxSubItemDisplay = idxSubItemDisplay;
+		nm.idxSubItem = ColumnDisplayToActual(idxSubItemDisplay);
+		nm.uFlags = TLEDF_BUILDINEDIT;
+		GetSubItemRect(idx, idxSubItemDisplay, nm.rc, TRUE);
+		FillNmhdrAndSendNotify(nm, NM_TL_PREEDIT);
+		if (nm.uFlags & TLEDF_DONTEDIT)
+			return;
+		m_idxEditing = idx;
+		m_idxEditingSubItemDisplay = idxSubItemDisplay;
+		if (nm.uFlags & TLEDF_BUILDINEDIT)
+		{
+			m_Edit.Create(GetItemText(idx, ColumnDisplayToActual(idxSubItemDisplay)),
+				WS_CHILD | ES_AUTOHSCROLL, WS_EX_CLIENTEDGE,
+				nm.rc.left, nm.rc.top, nm.rc.right - nm.rc.left, nm.rc.bottom - nm.rc.top, m_hWnd,
+				TL_IDC_EDIT);
+			m_Edit.SetFont(m_hFont);
+			m_Edit.Show(SW_SHOW);
+			m_Edit.m_bChanged = FALSE;
+			SetFocus(m_Edit.HWnd);
+		}
+	}
+
+	void DismissEdit(BOOL bNotifySave = FALSE)
+	{
+		if (m_bWaitEditDelay)
+		{
+			CancelEditDelay();
+			return;
+		}
+		if (m_idxEditing < 0)
+			return;
+		NMTLEDIT nm;
+		nm.idx = m_idxEditing;
+		nm.idxSubItemDisplay = m_idxEditingSubItemDisplay;
+		nm.idxSubItem = ColumnDisplayToActual(m_idxEditingSubItemDisplay);
+		if (m_Edit.HWnd)
+			nm.uFlags = TLEDF_BUILDINEDIT |
+			((bNotifySave && m_Edit.m_bChanged) ? TLEDF_SHOULDSAVETEXT : 0);
+		else
+			nm.uFlags = (bNotifySave ? TLEDF_SHOULDSAVETEXT : 0);
+
+		FillNmhdrAndSendNotify(nm, NM_TL_POSTEDIT);
+		m_idxEditing = m_idxEditingSubItemDisplay = -1;
+		if (nm.uFlags & TLEDF_BUILDINEDIT)
+			m_Edit.Destroy();
+	}
+
+	EckInline CTLEditExt& GetEdit() { return m_Edit; }
+
+	EckInline BOOL IsEditing() const { return m_idxEditing >= 0 && !m_bWaitEditDelay; }
+
+	EckInline void ToggleCheckItem(int idx)
+	{
+		EckAssert(idx >= 0 && idx < (int)m_vItem.size());
+		m_vItem[idx]->uFlags ^= TLIF_CHECKED;
+	}
+
+	EckInline void SetDisableSelectAllWithCtrlA(BOOL b) { m_bDisableSelectAllWithCtrlA = b; }
+
+	EckInline BOOL GetDisableSelectAllWithCtrlA() const { return m_bDisableSelectAllWithCtrlA; }
 };
 
 LRESULT CTLHeader::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -1981,6 +2643,7 @@ LRESULT CTLHeader::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	switch (uMsg)
 	{
 	case HDM_INSERTITEMW:
+		m_TL.DismissEdit();
 		lResult = CHeader::OnMsg(hWnd, uMsg, wParam, lParam);
 		if (lResult >= 0)
 		{
@@ -1990,6 +2653,7 @@ LRESULT CTLHeader::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return lResult;
 
 	case HDM_DELETEITEM:
+		m_TL.DismissEdit();
 		lResult = CHeader::OnMsg(hWnd, uMsg, wParam, lParam);
 		if (lResult)
 		{
@@ -1999,11 +2663,45 @@ LRESULT CTLHeader::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return lResult;
 
 	case HDM_SETORDERARRAY:
+		m_TL.DismissEdit();
 		lResult = CHeader::OnMsg(hWnd, uMsg, wParam, lParam);
 		if (lResult)
 			m_TL.UpdateColumnInfo();
 		return lResult;
 	}
 	return CHeader::OnMsg(hWnd, uMsg, wParam, lParam);
+}
+
+LRESULT CTLEditExt::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	switch (uMsg)
+	{
+	case WM_KEYDOWN:
+	{
+		switch (wParam)
+		{
+		case VK_RETURN:
+			m_TL.DismissEdit(TRUE);
+			break;
+		case VK_ESCAPE:
+			m_TL.DismissEdit();
+			break;
+		}
+	}
+	break;
+
+	case WM_KILLFOCUS:
+		m_TL.DismissEdit(TRUE);
+		break;
+	}
+
+	return CEditExt::OnMsg(hWnd, uMsg, wParam, lParam);
+}
+
+BOOL CTLEditExt::OnNotifyMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult)
+{
+	if (uMsg == WM_COMMAND && HIWORD(wParam) == EN_CHANGE)
+		m_bChanged = TRUE;
+	return CEditExt::OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult);
 }
 ECK_NAMESPACE_END

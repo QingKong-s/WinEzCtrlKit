@@ -326,6 +326,7 @@ public:
 			h.InsertItem(L"HWND", -1, 360);
 			h.InsertItem(L"szClsName", -1, 360);
 			h.InsertItem(L"szText", -1, 400);
+			m_TL.SetHasCheckBox(TRUE);
 			m_TL.SetHasLines(TRUE);
 			m_TL.SetImageList(m_il);
 			m_TL.SetWatermarkString(L"水印测试。\n我是第二行水印。");
@@ -497,6 +498,19 @@ public:
 					}
 				}
 				return eck::TLCDRF_NONE;
+				case eck::NM_TL_PREEDIT:
+				{
+					EckDbgPrint(L"Pre Edit");
+				}
+				return 0;
+				case eck::NM_TL_POSTEDIT:
+				{
+					auto p = (eck::NMTLEDIT*)lParam;
+					auto& Edit = m_TL.GetEdit();
+					EckDbgPrintFmt(L"Post Edit, Text = %s，Changed = %d",
+						Edit.GetText().Data(), !!(p->uFlags & eck::TLEDF_SHOULDSAVETEXT));
+				}
+				return 0;
 				}
 			}
 		}

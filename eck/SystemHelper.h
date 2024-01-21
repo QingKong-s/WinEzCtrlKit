@@ -547,30 +547,41 @@ EckInline HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,
 	return (HANDLE)_beginthreadex(0, 0, pStartAddress, pParameter, dwCreationFlags, pThreadId);
 }
 
-inline HICON GetWindowSmallIcon(HWND hWnd)
+inline HICON GetWindowSmallIcon(HWND hWnd, int msTimeOut = 300)
 {
-	HICON hIcon = (HICON)SendMessageW(hWnd, WM_GETICON, ICON_SMALL, 0);
+	HICON hIcon;
+	if (!SendMessageTimeoutW(hWnd, WM_GETICON, ICON_SMALL, 0,
+		SMTO_ABORTIFHUNG | SMTO_BLOCK | SMTO_ERRORONEXIT, msTimeOut, (DWORD_PTR*)&hIcon))
+		return NULL;
 	if (!hIcon)
 	{
 		hIcon = (HICON)GetClassLongPtrW(hWnd, GCLP_HICONSM);
 		if (!hIcon)
-			hIcon = (HICON)SendMessageW(hWnd, WM_GETICON, ICON_SMALL2, 0);
+		{
+			if (!SendMessageTimeoutW(hWnd, WM_GETICON, ICON_SMALL, 0,
+				SMTO_ABORTIFHUNG | SMTO_BLOCK | SMTO_ERRORONEXIT, msTimeOut, (DWORD_PTR*)&hIcon))
+				return NULL;
+		}
 	}
 	return hIcon;
 }
 
-EckInline HICON GetWindowLargeIcon(HWND hWnd)
+EckInline HICON GetWindowLargeIcon(HWND hWnd, int msTimeOut = 300)
 {
-	HICON hIcon = (HICON)SendMessageW(hWnd, WM_GETICON, ICON_BIG, 0);
+	HICON hIcon;
+	if (!SendMessageTimeoutW(hWnd, WM_GETICON, ICON_BIG, 0,
+		SMTO_ABORTIFHUNG | SMTO_BLOCK | SMTO_ERRORONEXIT, msTimeOut, (DWORD_PTR*)&hIcon))
+		return NULL;
 	if (!hIcon)
 		hIcon = (HICON)GetClassLongPtrW(hWnd, GCLP_HICON);
 	return hIcon;
 }
 
-inline HICON GetWindowIcon(HWND hWnd, BOOL& bNeedDestroy, BOOL bSmall = FALSE)
+inline HICON GetWindowIcon(HWND hWnd, BOOL& bNeedDestroy, BOOL bSmall = FALSE, int msTimeOut = 300)
 {
 	bNeedDestroy = FALSE;
-	const HICON hIcon = (bSmall ? GetWindowSmallIcon(hWnd) : GetWindowLargeIcon(hWnd));
+	const HICON hIcon = 
+		(bSmall ? GetWindowSmallIcon(hWnd, msTimeOut) : GetWindowLargeIcon(hWnd, msTimeOut));
 	if (hIcon)
 		return hIcon;
 

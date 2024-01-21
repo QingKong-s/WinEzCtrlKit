@@ -184,6 +184,7 @@
     <ClInclude Include="eck\CScrollView.h" />
     <ClInclude Include="eck\CSplitBar.h" />
     <ClInclude Include="eck\CStreamView.h" />
+    <ClInclude Include="eck\CToolTip.h" />
     <ClInclude Include="eck\CTreeList.h" />
     <ClInclude Include="eck\CtrlGraphics.h" />
     <ClInclude Include="eck\CWindowMask.h" />
