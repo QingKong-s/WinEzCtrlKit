@@ -54,6 +54,7 @@ namespace Colorref
 		Yellow            = 0x00FFFF,// 黄色
 		Magenta           = 0xFF00FF,// 品红/洋红
 		Cyan              = 0xFFFF00,// 艳青/青色
+		Aqua			  = Cyan,
 
 		Maroon            = 0x000080,// 红褐/暗红
 		OfficeGreen       = 0x008000,// 墨绿/暗绿
@@ -376,6 +377,12 @@ template<class T>
 EckInline constexpr BOOL Sign(T v)
 {
 	return v >= 0;
+}
+
+template<class T>
+EckInline constexpr BOOL SignVal(T v)
+{
+	return (v >= 0 ? 1 : -1);
 }
 
 EckInline constexpr SIZE_T Cch2Cb(int cch)

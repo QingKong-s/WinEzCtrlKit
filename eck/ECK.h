@@ -3,7 +3,7 @@
 *
 * ECK.h ： 公共头文件
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include <Windows.h>
@@ -192,6 +192,10 @@ enum :UINT
 	NM_TL_HD_CLICK,// NMHEADER
 	NM_TL_FILLALLFLATITEM,// NMTLFILLALLFLATITEM
 	NM_TL_CUSTOMDRAW,// NMTLCUSTOMDRAW
+	NM_TL_TTGETDISPINFO,// NMTLTTGETDISPINFO
+	NM_TL_TTPRESHOW,// NMTLTTPRESHOW
+	NM_TL_PREEDIT,// NMTLEDIT
+	NM_TL_POSTEDIT,// NMTLEDIT
 };
 /*-------------------*/
 /*属性字符串*/
