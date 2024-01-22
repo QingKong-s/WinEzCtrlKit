@@ -26,4 +26,22 @@ inline void DrawSelectionRect(HDC hDC, const RECT& rc)
 
 	FrameRect(hDC, &rc, GetSysColorBrush(COLOR_HIGHLIGHT));
 }
+
+inline void DrawPlusMinusGlyph(HDC hDC, BOOL bPlus, const RECT& rc, COLORREF crBorder, COLORREF crSign)
+{
+	SetDCBrushColor(hDC, crBorder);
+	FrameRect(hDC, &rc, GetStockBrush(DC_BRUSH));
+	SetDCPenColor(hDC, crSign);
+	const HGDIOBJ hOld = SelectObject(hDC, GetStockBrush(DC_PEN));
+	const int xMargin = (rc.right - rc.left) / 5;
+	MoveToEx(hDC, rc.left + xMargin, (rc.top + rc.bottom) / 2, NULL);
+	LineTo(hDC, rc.right - xMargin, (rc.top + rc.bottom) / 2);
+	if (bPlus)
+	{
+		const int yMargin = (rc.bottom - rc.top) / 5;
+		MoveToEx(hDC, (rc.left + rc.right) / 2, rc.top + yMargin, NULL);
+		LineTo(hDC, (rc.left + rc.right) / 2, rc.bottom - yMargin);
+	}
+	SelectObject(hDC, hOld);
+}
 ECK_NAMESPACE_END
