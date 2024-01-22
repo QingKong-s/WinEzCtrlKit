@@ -176,6 +176,7 @@ struct NMTLTTGETDISPINFO
 	TLNODE* pNode;
 	int idx;
 	int idxSubItemDisplay;
+	POINT pt;
 };
 
 struct NMTLTTPRESHOW
@@ -188,6 +189,21 @@ struct NMTLTTPRESHOW
 };
 
 
+enum :UINT
+{
+	TLMCM_HITTESTINFO = (1u << 0),
+};
+
+struct NMTLMOUSECLICK
+{
+	NMHDR nmhdr;
+	UINT uMask;
+	int idx;
+	int idxSubItemDisplay;
+	UINT uMsg;
+	WPARAM wParam;
+	LPARAM lParam;
+};
 
 
 class CTreeList;
@@ -207,18 +223,15 @@ class CTLEditExt final :public CEditExt
 	friend class CTreeList;
 private:
 	CTreeList& m_TL;
-	BOOL m_bChanged = FALSE;
 public:
 	CTLEditExt(CTreeList& tl) :m_TL{ tl } {}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
-
-	BOOL OnNotifyMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult) override;
 };
 
-constexpr inline int TL_IDC_HEADER = 101;// 表头控件ID
-constexpr inline int TL_IDC_EDIT = 102;// 表头控件ID
-constexpr inline int TL_TLI_MAIN = 10;
+constexpr inline int TL_IDC_HEADER = 101;	// 表头控件ID
+constexpr inline int TL_IDC_EDIT = 102;		// 编辑框控件ID
+constexpr inline int TL_TLI_MAIN = 10;		// 工具ID
 
 class CTreeList :public CWnd
 {
@@ -302,6 +315,7 @@ private:
 #endif
 	BITBOOL m_bHasFocus : 1 = FALSE;				// 是否有焦点
 	BITBOOL m_bWaitEditDelay : 1 = FALSE;			// 是否等待编辑
+	BITBOOL m_bBuildInEditChanged : 1 = FALSE;		// 内置编辑框内容是否已改变
 	//--------风格
 	BITBOOL m_bFlatMode : 1 = FALSE;					// 平面列表模式
 	BITBOOL m_bFlatListFilter : 1 = FALSE;				// 平面列表模式下是否有不可见项目
@@ -313,6 +327,7 @@ private:
 	BITBOOL m_bCheckBox : 1 = FALSE;					// 复选框
 	BITBOOL m_bDisableHScrollWithShift : 1 = FALSE;		// 禁止Shift+滚轮水平滚动
 	BITBOOL m_bDisableSelectAllWithCtrlA : 1 = FALSE;	// 禁止Ctrl+A全选
+	BITBOOL m_bEditLabel : 1 = FALSE;					// 编辑标签
 	//--------DPI相关
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;	// DPI
 	ECK_DS_BEGIN(DPIS)
@@ -631,38 +646,6 @@ private:
 			}
 		}
 #endif
-	}
-
-	/// <summary>
-	/// 计算展开按钮*及其*前置空白造成的缩进宽度
-	/// </summary>
-	EckInline int CalcGlyphIndent(const TLNODE* e) const
-	{
-		return (m_bFlatMode ? 0 : (e->iLevel * m_sizeTVGlyph.cx));
-	}
-
-	/// <summary>
-	/// 计算展开按钮*的*前置空白造成的缩进宽度
-	/// </summary>
-	EckInline int CalcGlyphIndentMinusGlyph(const TLNODE* e) const
-	{
-		return (m_bFlatMode ? 0 : ((e->iLevel - 1) * m_sizeTVGlyph.cx));
-	}
-
-	/// <summary>
-	/// 计算展开按钮、复选框及其前置空白造成的缩进宽度
-	/// </summary>
-	EckInline int CalcCheckBoxIndent(const TLNODE* e) const
-	{
-		return CalcGlyphIndent(e) + (m_bCheckBox ? (m_sizeCheckBox.cx + m_Ds.cxCBPadding * 2) : 0);
-	}
-
-	/// <summary>
-	/// 计算展开按钮、复选框、图标及其前置空白造成的缩进宽度
-	/// </summary>
-	EckInline int CalcTotalIndent(const TLNODE* e) const
-	{
-		return CalcCheckBoxIndent(e) + m_cxImg;
 	}
 
 	EckInline void PaintBk(HDC hDC, const RECT& rc)
@@ -1060,6 +1043,8 @@ private:
 
 	void EnterEditDelay(int idx, int idxSubItemDisplay)
 	{
+		if (!m_bEditLabel)
+			return;
 		CancelEditDelay();
 		m_bWaitEditDelay = TRUE;
 		m_idxEditing = idx;
@@ -1069,6 +1054,8 @@ private:
 
 	void CancelEditDelay()
 	{
+		if (!m_bEditLabel)
+			return;
 		if (m_bWaitEditDelay)
 		{
 			m_bWaitEditDelay = FALSE;
@@ -1111,31 +1098,38 @@ private:
 			}
 			else
 			{
-				const BOOL bCurrItemSel = (idx >= 0 && m_vItem[idx]->uFlags & TLIF_SELECTED);
+				int idxChangeBegin = -1, idxChangeEnd = -1;
 				if (!(wParam & (MK_CONTROL | MK_SHIFT)))// 若Ctrl和Shift都未按下，则清除所有项的选中
-					DeselectAll();
+				{
+					DeselectAll(idxChangeBegin, idxChangeEnd);
+					if (idxChangeBegin >= 0)
+						RedrawItem(idxChangeBegin, idxChangeEnd);
+				}
 				if (idx >= 0)
 				{
 					if ((wParam & MK_SHIFT) && m_idxMark >= 0)
 					{
-						const int idxBegin = std::min(idx, m_idxMark);
-						const int idxEnd = std::max(idx, m_idxMark);
-						OnlySelectRange(idxBegin, idxEnd);
+						int idxBegin = std::min(idx, m_idxMark);
+						int idxEnd = std::max(idx, m_idxMark);
+						OnlySelectRange(idxBegin, idxEnd, idxBegin, idxEnd);
 						// Shift选择不修改mark
 						// m_idxMark = idx;
-						Redraw();
+						if (idxBegin >= 0 && (idxBegin < idxChangeBegin || idxEnd > idxChangeEnd))
+							RedrawItem(idxBegin, idxEnd);
 					}
 					else if (wParam & MK_CONTROL)
-						ToggleSelectItem(idx);
+					{
+						ToggleSelectItemForClick(idx);
+						if (idx < idxChangeBegin || idx > idxChangeEnd)
+							RedrawItem(idx);
+					}
 					else
 					{
-						if ((tlht.uFlags & TLHTF_NULLTEXT || tlht.iPart == TLIP_TEXT) &&
-							bCurrItemSel)// 要么命中文本，要么在文本为空时命中空白
-							EnterEditDelay(idx, tlht.idxSubItemDisplay);
 						SelectItemForClick(idx, TRUE);
+						if (idx < idxChangeBegin || idx > idxChangeEnd)
+							RedrawItem(idx);
 					}
 				}
-				Redraw();
 				UpdateWindow(hWnd);
 
 				if (idx < 0 || tlht.iPart == TLIP_NONE)// 空白处
@@ -1152,12 +1146,54 @@ private:
 					}
 				}
 
-				Redraw();
-				UpdateWindow(hWnd);
+				if (uMsg == WM_LBUTTONDOWN &&// 必须左键触发
+					!(wParam & (MK_CONTROL | MK_SHIFT)) &&// Ctrl和Shift都未按下
+					(idxChangeBegin == idx && idxChangeEnd == idx))// 只有自己被选中
+				{
+					if ((tlht.uFlags & TLHTF_NULLTEXT ||
+						tlht.iPart == TLIP_TEXT))// 要么命中文本，要么在文本为空时命中空白
+						EnterEditDelay(idx, tlht.idxSubItemDisplay);
+				}
 			}
 		}
+
+		NMTLMOUSECLICK nm;
+		nm.uMask = TLMCM_HITTESTINFO;
+		nm.idx = idx;
+		nm.idxSubItemDisplay = tlht.idxSubItemDisplay;
+		nm.uMsg = uMsg;
+		nm.wParam = wParam;
+		nm.lParam = lParam;
+		FillNmhdrAndSendNotify(nm, NM_TL_MOUSECLICK);
 	}
 public:
+	ECKPROP(GetImageList, SetImageList)			HIMAGELIST ImageList;
+	ECKPROP(GetDraggingSelectScrollGap,
+		SetDraggingSelectScrollGap)				int DragSelScrollGap;
+	ECKPROP(GetSingleSelect, SetSingleSelect)	BOOL SingleSel;
+	ECKPROP(GetHasCheckBox, SetHasCheckBox)		BOOL CheckBox;
+	ECKPROP(GetFlatMode, SetFlatMode)			BOOL FlatMode;
+	ECKPROP(GetEditLabel, SetEditLabel)			BOOL EditLabel;
+	ECKPROP(GetDisableAutoToolTip,
+		SetDisableAutoToolTip)					BOOL DisableAutoToolTip;
+	ECKPROP(GetBackgroundNotSolid,
+		SetBackgroundNotSolid)					BOOL BkgndNotSolid;
+	ECKPROP(GetHasLines, SetHasLines)			BOOL HasLines;
+	ECKPROP(GetLineColor, SetLineColor)			COLORREF LineColor;
+	ECKPROP(GetUseFilterInFlatMode,
+		SetUseFilterInFlatMode)					BOOL UseFilterInFlatMode;
+	ECKPROP(GetDisallowBeginDragInItemSpace,
+		SetDisallowBeginDragInItemSpace)		BOOL DisallowBeginDragInItemSpace;
+	ECKPROP(GetFocusItem, SetFocusItem)			int FocusItem;
+	ECKPROP(GetMarkItem, SetMarkItem)			int MarkItem;
+	ECKPROP_R(GetCurrSel)						int CurrSelItem;
+	ECKPROP(GetItemHeight, SetItemHeight)		int ItemHeight;
+	ECKPROP(GetHeaderHeight, SetHeaderHeight)	int HeaderHeight;
+	ECKPROP(GetDisableHScrollWithShift,
+		SetDisableHScrollWithShift)				BOOL DisableHScrollWithShift;
+	ECKPROP(GetDisableSelectAllWithCtrlA,
+		SetDisableSelectAllWithCtrlA)			BOOL DisableSelectAllWithCtrlA;
+
 	ECK_CWND_SINGLEOWNER;
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
@@ -1168,7 +1204,15 @@ public:
 			[[fallthrough]];
 		case WM_RBUTTONUP:
 		case WM_MBUTTONUP:
-		case WM_LBUTTONUP:
+		{
+			NMTLMOUSECLICK nm;
+			nm.uMask = 0;
+			nm.uMsg = uMsg;
+			nm.wParam = wParam;
+			nm.lParam = lParam;
+			FillNmhdrAndSendNotify(nm, NM_TL_MOUSECLICK);
+		}
+		[[fallthrough]];
 		case WM_NCMOUSEMOVE:
 		{
 			MSG msg{ hWnd,uMsg,wParam,lParam };
@@ -1281,6 +1325,7 @@ public:
 							nm.pNode = (idx >= 0 ? m_vItem[idx] : NULL);
 							nm.idx = idx;
 							nm.idxSubItemDisplay = tlht.idxSubItemDisplay;
+							nm.pt = pt;
 							if (FillNmhdrAndSendNotify(nm, NM_TL_GETDISPINFO))
 							{
 								m_idxToolTip = idx;
@@ -1464,6 +1509,13 @@ public:
 		}
 		return 0;
 
+		case WM_COMMAND:
+		{
+			if (HIWORD(wParam) == EN_CHANGE && lParam == (LPARAM)m_Edit.HWnd)
+				m_bBuildInEditChanged = TRUE;
+		}
+		break;
+
 		case WM_ERASEBKGND:
 			return 0;
 
@@ -1525,7 +1577,10 @@ public:
 
 		case WM_KEYDOWN:
 		{
+			if (m_vItem.empty())
+				break;
 			CancelEditDelay();
+			int idxChangeBegin, idxChangeEnd;
 			const int idxOldFocus = m_idxFocus;
 			int idxBottom = m_idxTopItem + (m_cyClient - m_cyHeader) / m_cyItem - 1;
 			if (idxBottom >= (int)m_vItem.size())
@@ -1573,6 +1628,13 @@ public:
 					m_idxFocus = idxBottom;
 			}
 			break;
+			case VK_HOME:
+				m_idxFocus = 0;
+				break;
+			case VK_END:
+				m_idxFocus = (int)m_vItem.size() - 1;
+				break;
+
 			case VK_LEFT:// 如果当前焦点项目已展开，折叠之，否则移至父项目
 			{
 				if (m_idxFocus >= 0)
@@ -1585,7 +1647,7 @@ public:
 							SelectItemForClick(m_idxFocus, 0);
 						else
 						{
-							DeselectAll();
+							DeselectAll(idxChangeBegin, idxChangeEnd);
 							SelectItemForClick(m_idxFocus, TRUE);
 						}
 						RECT rc;
@@ -1600,16 +1662,17 @@ public:
 							SelectItemForClick(e->idxParent, 0);
 						else
 						{
-							DeselectAll();
+							DeselectAll(idxChangeBegin, idxChangeEnd);
 							SelectItemForClick(e->idxParent, TRUE);
-							Redraw();
+							if (idxChangeBegin >= 0)
+								RedrawItem(idxChangeBegin, idxChangeEnd);
+							RedrawItem(e->idxParent);
 						}
 					}
 					UpdateWindow(hWnd);
-					goto SkipItemAdjust;
 				}
 			}
-			break;
+			goto SkipItemAdjust;
 			case VK_RIGHT:// 如果当前焦点项目已折叠，展开之，否则移至第一个子项目
 			{
 				if (m_idxFocus >= 0)
@@ -1622,7 +1685,7 @@ public:
 							SelectItemForClick(m_idxFocus, 0);
 						else
 						{
-							DeselectAll();
+							DeselectAll(idxChangeBegin, idxChangeEnd);
 							SelectItemForClick(m_idxFocus, TRUE);
 						}
 						RECT rc;
@@ -1637,24 +1700,29 @@ public:
 							SelectItemForClick(m_idxFocus + 1, 0);
 						else
 						{
-							DeselectAll();
+							DeselectAll(idxChangeBegin, idxChangeEnd);
 							SelectItemForClick(m_idxFocus + 1, TRUE);
-							Redraw();
+							if (idxChangeBegin >= 0)
+								RedrawItem(idxChangeBegin, idxChangeEnd);
+							RedrawItem(e->idxParent);
 						}
 					}
 					UpdateWindow(hWnd);
 					goto SkipItemAdjust;
 				}
 			}
-			break;
+			goto SkipItemAdjust;
+
 			case 'A':
+			{
 				if (!m_bSingleSel && (GetAsyncKeyState(VK_CONTROL) & 0x8000))
 				{
-					OnlySelectRange(0, (int)m_vItem.size() - 1);
-					Redraw();
+					OnlySelectRange(0, (int)m_vItem.size() - 1, idxChangeBegin, idxChangeEnd);
+					RedrawItem(idxChangeBegin, idxChangeEnd);
 					UpdateWindow(hWnd);
 				}
-				goto SkipItemAdjust;
+			}
+			goto SkipItemAdjust;
 			}
 
 			if (m_idxFocus >= 0)// 项目必须有效
@@ -1674,13 +1742,16 @@ public:
 							else// 多选
 							{
 								if (m_idxMark >= 0)// mark有效，选择范围
-									OnlySelectRange(std::min(m_idxFocus, m_idxMark), std::max(m_idxFocus, m_idxMark));
+									OnlySelectRange(std::min(m_idxFocus, m_idxMark),
+										std::max(m_idxFocus, m_idxMark), idxChangeBegin, idxChangeEnd);
 								else// mark无效，只选中当前项
 								{
-									DeselectAll();
+									DeselectAll(idxChangeBegin, idxChangeEnd);
 									SelectItemForClick(m_idxFocus, TRUE);
+									if (m_idxFocus < idxChangeBegin || m_idxFocus > idxChangeEnd)
+										RedrawItem(m_idxFocus);
 								}
-								Redraw();
+								RedrawItem(idxChangeBegin, idxChangeEnd);
 							}
 						}
 						else// Shift未按下
@@ -1689,17 +1760,22 @@ public:
 								SelectItemForClick(m_idxFocus, 0);
 							else
 							{
-								DeselectAll();
+								DeselectAll(idxChangeBegin, idxChangeEnd);
 								SelectItemForClick(m_idxFocus, TRUE);
-								Redraw();
+								RedrawItem(idxChangeBegin, idxChangeEnd);
+								if (m_idxFocus < idxChangeBegin || m_idxFocus > idxChangeEnd)
+									RedrawItem(m_idxFocus);
 							}
 						}
 					}
 					else// Ctrl按下，则只移动焦点，如果必要，重画焦点项
 					{
-						RedrawItem(m_idxFocus);
-						if (m_bFocusIndicatorVisible && idxOldFocus >= 0)
-							RedrawItem(idxOldFocus);
+						if (m_bFocusIndicatorVisible)
+						{
+							RedrawItem(m_idxFocus);
+							if (idxOldFocus >= 0)
+								RedrawItem(idxOldFocus);
+						}
 					}
 
 					if (m_idxFocus < m_idxTopItem || m_idxFocus > idxBottom)
@@ -1715,6 +1791,20 @@ public:
 		case WM_RBUTTONDOWN:
 			OnLRButtonDown(hWnd, uMsg, wParam, lParam);
 			break;
+
+		case WM_LBUTTONUP:
+		{
+			NMTLMOUSECLICK nm;
+			nm.uMask = 0;
+			nm.uMsg = uMsg;
+			nm.wParam = wParam;
+			nm.lParam = lParam;
+			FillNmhdrAndSendNotify(nm, NM_TL_MOUSECLICK);
+
+			MSG msg{ hWnd,uMsg,wParam,lParam };
+			m_ToolTip.RelayEvent(&msg);
+		}
+		break;
 
 		case WM_LBUTTONDBLCLK:
 		{
@@ -2172,12 +2262,10 @@ public:
 
 	BOOL RedrawItem(int idxBegin, int idxEnd) const
 	{
-		RECT rc1, rc2;
-		GetItemRect(idxBegin, rc1);
-		GetItemRect(idxBegin, rc2);
-		rc1.top = std::min(rc1.top, rc2.top);
-		rc1.bottom = std::max(rc1.bottom, rc2.bottom);
-		return Redraw(rc2);
+		RECT rc;
+		GetItemRect(idxBegin, rc);
+		rc.bottom = GetItemY(idxEnd + 1);
+		return Redraw(rc);
 	}
 
 	EckInline CTLHeader& GetHeader() { return m_Header; }
@@ -2236,7 +2324,7 @@ public:
 
 	EckInline HIMAGELIST GetImageList() const { return m_hImgList; }
 
-	EckInline void SetDraggingSelectScrollGap(DWORD ms) { m_msDraggingSelScrollGap = ms; }
+	EckInline void SetDraggingSelectScrollGap(int ms) { m_msDraggingSelScrollGap = ms; }
 
 	EckInline int GetDraggingSelectScrollGap() const { return m_msDraggingSelScrollGap; }
 
@@ -2289,11 +2377,23 @@ public:
 
 	EckInline const COL* GetColumnPosInfo() const { return m_vCol.data(); }
 
-	EckInline void DeselectAll()
+	EckInline void DeselectAll(int& idxChangeBegin, int& idxChangeEnd)
 	{
 		m_idxSel = -1;
-		for (auto e : m_vItem)
-			e->uFlags &= ~TLIF_SELECTED;
+		int idx0 = -1, idx1 = -1;
+		EckCounter(m_vItem.size(), i)
+		{
+			const auto e = m_vItem[i];
+			if (e->uFlags & TLIF_SELECTED)
+			{
+				if (idx0 < 0)
+					idx0 = i;
+				idx1 = i;
+				m_vItem[i]->uFlags &= ~TLIF_SELECTED;
+			}
+		}
+		idxChangeBegin = idx0;
+		idxChangeEnd = idx1;
 	}
 
 	void DeselectRange(int idxBegin, int idxEnd)
@@ -2324,7 +2424,7 @@ public:
 		return std::max(0, i - idxParent - 1);
 	}
 
-	void OnlySelectRange(int idxBegin, int idxEnd)
+	void OnlySelectRange(int idxBegin, int idxEnd, int& idxChangeBegin, int& idxChangeEnd)
 	{
 		if (m_bSingleSel)
 		{
@@ -2332,15 +2432,41 @@ public:
 			return;
 		}
 		int i;
+		int idx0 = -1, idx1 = -1;
 		// 清除前后选中
 		for (i = 0; i < idxBegin; ++i)
-			m_vItem[i]->uFlags &= ~TLIF_SELECTED;
+		{
+			if (m_vItem[i]->uFlags & TLIF_SELECTED)
+			{
+				if (idx0 < 0)
+					idx0 = i;
+				idx1 = i;
+				m_vItem[i]->uFlags &= ~TLIF_SELECTED;
+			}
+		}
 		for (i = idxEnd + 1; i < (int)m_vItem.size(); ++i)
-			m_vItem[i]->uFlags &= ~TLIF_SELECTED;
+		{
+			if (m_vItem[i]->uFlags & TLIF_SELECTED)
+			{
+				if (idx0 < 0)
+					idx0 = i;
+				idx1 = i;
+				m_vItem[i]->uFlags &= ~TLIF_SELECTED;
+			}
+		}
 		// 范围选中
 		for (i = idxBegin; i <= idxEnd; ++i)
-			if (!(m_vItem[i]->uFlags & TLIF_DISABLED))
+		{
+			if (!(m_vItem[i]->uFlags & (TLIF_DISABLED | TLIF_SELECTED)))
+			{
+				if (idx0 < 0)
+					idx0 = i;
+				idx1 = i;
 				m_vItem[i]->uFlags |= TLIF_SELECTED;
+			}
+		}
+		idxChangeBegin = idx0;
+		idxChangeEnd = idx1;
 	}
 
 	// 选中项目，同步修改焦点和mark，多选时不会清除其他项目的选中，也不会重画
@@ -2358,14 +2484,13 @@ public:
 				m_idxMark = idx;
 			}
 
-			m_idxSel = idx;
-			if (idx >= 0)
+			if (idx >= 0 ? (!(m_vItem[idx]->uFlags & TLIF_DISABLED)) : TRUE)
 			{
-				m_idxFocus = idx;
-				m_idxMark = idx;
-				RedrawItem(idx);
+				m_idxSel = idx;
+				if (idx >= 0)
+					RedrawItem(idx);
 			}
-			if (idxOldSel >= 0 && idxOldSel != idx)
+			if (idxOldSel >= 0 && idxOldSel != m_idxSel)
 				RedrawItem(idxOldSel);
 			if (m_bFocusIndicatorVisible && idxOldFocus >= 0 && idxOldFocus != idx)
 				RedrawItem(idxOldFocus);
@@ -2384,11 +2509,14 @@ public:
 				m_idxMark = idx;
 			}
 			else
-				DeselectAll();
+			{
+				int iDummy1, iDummy2;
+				DeselectAll(iDummy1, iDummy2);
+			}
 		}
 	}
 
-	EckInline void ToggleSelectItem(int idx)
+	EckInline void ToggleSelectItemForClick(int idx)
 	{
 		if (m_bSingleSel)
 		{
@@ -2402,12 +2530,6 @@ public:
 	}
 
 	EckInline const std::vector<TLNODE*>& GetItems() const { return m_vItem; }
-
-	EckInline TLNODE* GetItem(int idx) const
-	{
-		EckAssert(idx >= 0 && idx < (int)m_vItem.size());
-		return m_vItem[idx];
-	}
 
 	/// <summary>
 	/// 折叠项目
@@ -2572,7 +2694,11 @@ public:
 
 	void EnterEdit(int idx, int idxSubItemDisplay)
 	{
+		if (!m_bEditLabel)
+			return;
+		EckAssert(idx >= 0 && idx < (int)m_vItem.size());
 		DismissEdit();
+		EnsureVisible(idx);
 		NMTLEDIT nm;
 		nm.idx = idx;
 		nm.idxSubItemDisplay = idxSubItemDisplay;
@@ -2592,13 +2718,15 @@ public:
 				TL_IDC_EDIT);
 			m_Edit.SetFont(m_hFont);
 			m_Edit.Show(SW_SHOW);
-			m_Edit.m_bChanged = FALSE;
+			m_bBuildInEditChanged = FALSE;
 			SetFocus(m_Edit.HWnd);
 		}
 	}
 
 	void DismissEdit(BOOL bNotifySave = FALSE)
 	{
+		if (!m_bEditLabel)
+			return;
 		if (m_bWaitEditDelay)
 		{
 			CancelEditDelay();
@@ -2612,7 +2740,7 @@ public:
 		nm.idxSubItem = ColumnDisplayToActual(m_idxEditingSubItemDisplay);
 		if (m_Edit.HWnd)
 			nm.uFlags = TLEDF_BUILDINEDIT |
-			((bNotifySave && m_Edit.m_bChanged) ? TLEDF_SHOULDSAVETEXT : 0);
+			((bNotifySave && m_bBuildInEditChanged) ? TLEDF_SHOULDSAVETEXT : 0);
 		else
 			nm.uFlags = (bNotifySave ? TLEDF_SHOULDSAVETEXT : 0);
 
@@ -2635,6 +2763,50 @@ public:
 	EckInline void SetDisableSelectAllWithCtrlA(BOOL b) { m_bDisableSelectAllWithCtrlA = b; }
 
 	EckInline BOOL GetDisableSelectAllWithCtrlA() const { return m_bDisableSelectAllWithCtrlA; }
+
+	EckInline void SetEditLabel(BOOL b)
+	{
+		if (m_bWaitEditDelay || m_idxEditing >= 0)
+		{
+			EckDbgPrintWithPos(L"** Warning ** 当前正在编辑，无法设置编辑标签");
+			return;
+		}
+		m_bEditLabel = b;
+	}
+
+	EckInline BOOL GetEditLabel() const { return m_bEditLabel; }
+
+	/// <summary>
+	/// 计算展开按钮*及其*前置空白造成的缩进宽度
+	/// </summary>
+	EckInline int CalcGlyphIndent(const TLNODE* e) const
+	{
+		return (m_bFlatMode ? 0 : (e->iLevel * m_sizeTVGlyph.cx));
+	}
+
+	/// <summary>
+	/// 计算展开按钮*的*前置空白造成的缩进宽度
+	/// </summary>
+	EckInline int CalcGlyphIndentMinusGlyph(const TLNODE* e) const
+	{
+		return (m_bFlatMode ? 0 : ((e->iLevel - 1) * m_sizeTVGlyph.cx));
+	}
+
+	/// <summary>
+	/// 计算展开按钮、复选框及其前置空白造成的缩进宽度
+	/// </summary>
+	EckInline int CalcCheckBoxIndent(const TLNODE* e) const
+	{
+		return CalcGlyphIndent(e) + (m_bCheckBox ? (m_sizeCheckBox.cx + m_Ds.cxCBPadding * 2) : 0);
+	}
+
+	/// <summary>
+	/// 计算展开按钮、复选框、图标及其前置空白造成的缩进宽度
+	/// </summary>
+	EckInline int CalcTotalIndent(const TLNODE* e) const
+	{
+		return CalcCheckBoxIndent(e) + m_cxImg;
+	}
 };
 
 LRESULT CTLHeader::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -2696,12 +2868,5 @@ LRESULT CTLEditExt::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 
 	return CEditExt::OnMsg(hWnd, uMsg, wParam, lParam);
-}
-
-BOOL CTLEditExt::OnNotifyMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult)
-{
-	if (uMsg == WM_COMMAND && HIWORD(wParam) == EN_CHANGE)
-		m_bChanged = TRUE;
-	return CEditExt::OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult);
 }
 ECK_NAMESPACE_END
