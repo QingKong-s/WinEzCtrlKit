@@ -430,7 +430,7 @@ public:
 	/// </summary>
 	EckInline BOOL Redraw() const
 	{
-		return InvalidateRect(m_hWnd, NULL, FALSE);
+		return RedrawWindow(m_hWnd, NULL, NULL, RDW_INVALIDATE | RDW_ERASE);
 	}
 
 	/// <summary>
@@ -438,7 +438,7 @@ public:
 	/// </summary>
 	EckInline BOOL Redraw(const RECT& rc) const
 	{
-		return InvalidateRect(m_hWnd, &rc, FALSE);
+		return RedrawWindow(m_hWnd, &rc, NULL, RDW_INVALIDATE | RDW_ERASE);
 	}
 
 	/// <summary>
