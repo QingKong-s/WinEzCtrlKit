@@ -1237,7 +1237,8 @@ private:
 				}
 				UpdateWindow(hWnd);
 
-				if (idx < 0 || tlht.iPart == TLIP_NONE)// 空白处
+				if (idx < 0 ||
+					(tlht.iPart == TLIP_NONE && !m_bDisallowBeginDragInItemSpace))// 空白处
 				{
 					POINT pt{ tlht.pt };
 					ClientToScreen(hWnd, &pt);
@@ -1451,6 +1452,20 @@ private:
 			if (m_idxFocus >= 0)
 				ExpandItemRecurse(m_idxFocus, TLEIO_COLLAPSE, TRUE);
 			return;
+		case VK_ADD:
+			if (bCtrlPressed)
+			{
+				const auto hCursorOld = SetCursor(LoadCursorW(NULL, IDC_WAIT));
+				EckCounter(m_vCol.size(), i)
+					AdjustColumnToFit((int)i);
+				SetCursor(hCursorOld);
+			}
+			else
+				ExpandItem(m_idxFocus, TLEIO_EXPAND, TRUE);
+			return;
+		case VK_SUBTRACT:
+			ExpandItem(m_idxFocus, TLEIO_COLLAPSE, TRUE);
+			return;
 		}
 
 		if (m_idxFocus >= 0)// 项目必须有效
@@ -1610,7 +1625,7 @@ public:
 				switch (pnmhdr->code)
 				{
 				case HDN_ITEMCHANGEDW:
-				case HDN_ITEMCHANGINGW:
+					//case HDN_ITEMCHANGINGW:
 				{
 					const auto p = (NMHEADERW*)lParam;
 					if (IsBitSet(p->pitem->mask, HDI_WIDTH))
@@ -1635,6 +1650,13 @@ public:
 					UpdateColumnInfo();
 					Redraw();
 					return 0;
+
+				case HDN_DIVIDERDBLCLICKW:
+				{
+					const auto p = (NMHEADERW*)lParam;
+					AdjustColumnToFit(p->iItem);
+				}
+				return 0;
 				}
 			else if (pnmhdr->hwndFrom == m_ToolTip.HWnd)
 				switch (pnmhdr->code)
@@ -1718,10 +1740,8 @@ public:
 				}
 				return TRUE;
 				case TTN_POP:
-				{
 					m_idxToolTip = m_idxToolTipSubItemDisplay = -1;
-				}
-				return 0;
+					return 0;
 				}
 		}
 		return 0;
@@ -3203,6 +3223,50 @@ public:
 	EckInline int CalcTotalIndent(const TLNODE* e) const
 	{
 		return CalcCheckBoxIndent(e) + m_cxImg;
+	}
+
+	void AdjustColumnToFit(int idxSubItemDisplay)
+	{
+		EckAssert(idxSubItemDisplay >= 0 && idxSubItemDisplay < (int)m_vCol.size());
+		if (m_vItem.empty())
+			return;
+		const int idxCol = ColumnDisplayToActual(idxSubItemDisplay);
+		HDITEMW hdi;
+		hdi.mask = HDI_WIDTH;
+		hdi.cxy = 0;
+
+		if (idxSubItemDisplay)
+		{
+			EckCounter(m_vItem.size(), i)
+			{
+				int cchText;
+				auto pszText = GetItemText(i, idxCol, &cchText);
+				SIZE size;
+				GetTextExtentPoint32W(m_DC.GetDC(), pszText, cchText, &size);
+				if (size.cx > hdi.cxy)
+					hdi.cxy = size.cx;
+			}
+			hdi.cxy += (m_Ds.cxTextMargin * 2);
+		}
+		else
+		{
+			TLNODE* MaxLevelNode = m_vItem.front();
+			EckCounter(m_vItem.size(), i)
+			{
+				int cchText;
+				auto pszText = GetItemText(i, idxCol, &cchText);
+				SIZE size;
+				GetTextExtentPoint32W(m_DC.GetDC(), pszText, cchText, &size);
+				if (size.cx > hdi.cxy)
+					hdi.cxy = size.cx;
+				if (m_vItem[i]->iLevel > MaxLevelNode->iLevel)
+					MaxLevelNode = m_vItem[i];
+			}
+			hdi.cxy += (CalcTotalIndent(MaxLevelNode) + m_Ds.cxTextMargin * 2);
+		}
+
+		m_Header.SetItem(idxCol, &hdi);
+		Redraw();
 	}
 };
 

@@ -327,6 +327,8 @@ public:
 			h.InsertItem(L"szClsName", -1, 360);
 			h.InsertItem(L"szText", -1, 400);
 			//m_TL.SetEditLabel(TRUE);
+			//auto& tl = m_TL.GetToolTip();
+			//tl.ModifyStyle(0, TTS_NOANIMATE);
 			m_TL.SetHasCheckBox(TRUE);
 			m_TL.SetHasLines(TRUE);
 			m_TL.SetImageList(m_il);
