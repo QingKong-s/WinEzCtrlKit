@@ -318,8 +318,8 @@ private:
 	CRefStrW m_rsWatermark{};			// 水印文本
 	//--------内部标志
 #ifdef _DEBUG
-	BITBOOL m_bDbgDrawIndex : 1 = 1;				// 【调试】绘制项目索引
-	BITBOOL m_bDbgDrawMarkItem : 1 = 1;				// 【调试】绘制mark项
+	BITBOOL m_bDbgDrawIndex : 1 = 0;				// 【调试】绘制项目索引
+	BITBOOL m_bDbgDrawMarkItem : 1 = 0;				// 【调试】绘制mark项
 	BITBOOL m_bDbgDrawPartRect : 1 = 0;				// 【调试】绘制部件矩形	
 #endif
 	BITBOOL m_bExpandBtnHot : 1 = FALSE;			// 展开按钮是否点燃
@@ -499,7 +499,7 @@ private:
 #endif // ECK_MACRO_SUPPORTCLASSICTHEME
 			if (iStateId)
 				DrawThemeBackground(m_hThemeLV, hDC, LVP_LISTITEM, iStateId, &rcItem, NULL);
-		if (idx == m_idxFocus && m_bFocusIndicatorVisible)
+		if (idx == m_idxFocus && m_bFocusIndicatorVisible && m_bHasFocus)
 		{
 			InflateRect(&rcItem, -1, -1);
 			DrawFocusRect(hDC, &rcItem);
@@ -923,15 +923,16 @@ private:
 					{
 						ullTime = ullTimeNow;
 						int xDelta = 0, yDelta = 0;
+						// 横向滚动
 						if (pt.x < 0)
 							xDelta = pt.x;
 						else if (pt.x > m_cxClient)
 							xDelta = pt.x - m_cxClient;
-
-						if (pt.y < 0)
-							yDelta = pt.y / m_cyItem - 1;
+						// 纵向滚动，向上舍入到整数行
+						if (pt.y < m_cyHeader)
+							yDelta = (pt.y - m_cyHeader + 1) / m_cyItem - 1;
 						else if (pt.y > m_cyClient)
-							yDelta = (pt.y - m_cyClient) / m_cyItem + 1;
+							yDelta = (pt.y - m_cyClient - 1) / m_cyItem + 1;
 
 						if (xDelta || yDelta)
 						{
@@ -1214,19 +1215,18 @@ private:
 				{
 					if ((wParam & MK_SHIFT) && m_idxMark >= 0)
 					{
-						int idxBegin = std::min(idx, m_idxMark);
-						int idxEnd = std::max(idx, m_idxMark);
-						SelectRangeForClick(idxBegin, idxEnd, idxBegin, idxEnd);
+						const int idxBegin = std::min(idx, m_idxMark);
+						const int idxEnd = std::max(idx, m_idxMark);
+						SelectRangeForClick(idxBegin, idxEnd, idxChangeBegin, idxChangeEnd);
 						// Shift选择不修改mark
 						// m_idxMark = idx;
-						if (idxBegin >= 0 && (idxBegin < idxChangeBegin || idxEnd > idxChangeEnd))
-							RedrawItem(idxBegin, idxEnd);
+						if (idxChangeBegin >= 0)
+							RedrawItem(idxChangeBegin, idxChangeEnd);
 					}
 					else if (wParam & MK_CONTROL)
 					{
 						ToggleSelectItemForClick(idx);
-						if (idx < idxChangeBegin || idx > idxChangeEnd)
-							RedrawItem(idx);
+						RedrawItem(idx);
 					}
 					else
 					{
@@ -1530,7 +1530,7 @@ public:
 		SetDisallowBeginDragInItemSpace)		BOOL DisallowBeginDragInItemSpace;
 	ECKPROP(GetFocusItem, SetFocusItem)			int FocusItem;
 	ECKPROP(GetMarkItem, SetMarkItem)			int MarkItem;
-	ECKPROP_R(GetCurrSel)						int CurrSelItem;
+	ECKPROP(GetCurrSel, SetCurrSel)				int CurrSelItem;
 	ECKPROP(GetItemHeight, SetItemHeight)		int ItemHeight;
 	ECKPROP(GetHeaderHeight, SetHeaderHeight)	int HeaderHeight;
 	ECKPROP(GetDisableHScrollWithShift,
@@ -1967,7 +1967,6 @@ public:
 				m_bFocusIndicatorVisible = TRUE;
 				break;
 			}
-			m_bFocusIndicatorVisible = TRUE;
 			if (m_bFocusIndicatorVisible != bOld && m_idxFocus >= 0)
 				RedrawItem(m_idxFocus);
 		}
@@ -2379,7 +2378,11 @@ public:
 		auto pszText = GetItemText(idx, ColumnDisplayToActual(idxSubItemDisplay), &cchText);
 		SIZE size;
 		GetTextExtentPoint32W(m_DC.GetDC(), pszText, cchText, &size);
-		return size.cx > m_vCol[idxSubItemDisplay].iRight - m_vCol[idxSubItemDisplay].iLeft - m_Ds.cxTextMargin * 2;
+		const int cxCol = m_vCol[idxSubItemDisplay].iRight - m_vCol[idxSubItemDisplay].iLeft;
+		if (idxSubItemDisplay)
+			return size.cx > cxCol - m_Ds.cxTextMargin * 2;
+		else
+			return size.cx > cxCol - CalcTotalIndent(m_vItem[idx]) - m_Ds.cxTextMargin * 2;
 	}
 
 	void GetItemTextRect(int idx, int idxSubItemDisplay, RECT& rc) const
@@ -2389,9 +2392,11 @@ public:
 		SIZE size;
 		GetTextExtentPoint32W(m_DC.GetDC(), pszText, cchText, &size);
 		rc.top = GetItemY(idx);
-		rc.left = m_vCol[idxSubItemDisplay].iLeft + m_Ds.cxTextMargin + m_dxContent;
-		if (!idxSubItemDisplay)
-			rc.left += (m_vItem[idx]->iLevel * m_sizeTVGlyph.cx + m_cxImg);
+
+		if (idxSubItemDisplay)
+			rc.left = m_vCol[idxSubItemDisplay].iLeft + m_Ds.cxTextMargin + m_dxContent;
+		else
+			rc.left = CalcTotalIndent(m_vItem[idx]) + m_Ds.cxTextMargin + m_dxContent;
 		rc.right = rc.left + std::min(size.cx, (long)m_vCol[idxSubItemDisplay].iRight);
 		rc.top = rc.top + (m_cyItem - size.cy) / 2;
 		rc.bottom = rc.top + size.cy;
@@ -2726,18 +2731,8 @@ public:
 		}
 		int i;
 		int idx0 = -1, idx1 = -1;
-		// 清除前后选中
+		// 清除前面选中
 		for (i = 0; i < idxBegin; ++i)
-		{
-			if (m_vItem[i]->uFlags & TLIF_SELECTED)
-			{
-				if (idx0 < 0)
-					idx0 = i;
-				idx1 = i;
-				m_vItem[i]->uFlags &= ~TLIF_SELECTED;
-			}
-		}
-		for (i = idxEnd + 1; i < (int)m_vItem.size(); ++i)
 		{
 			if (m_vItem[i]->uFlags & TLIF_SELECTED)
 			{
@@ -2756,6 +2751,17 @@ public:
 					idx0 = i;
 				idx1 = i;
 				m_vItem[i]->uFlags |= TLIF_SELECTED;
+			}
+		}
+		// 清除后面选中
+		for (i = idxEnd + 1; i < (int)m_vItem.size(); ++i)
+		{
+			if (m_vItem[i]->uFlags & TLIF_SELECTED)
+			{
+				if (idx0 < 0)
+					idx0 = i;
+				idx1 = i;
+				m_vItem[i]->uFlags &= ~TLIF_SELECTED;
 			}
 		}
 		idxChangeBegin = idx0;
@@ -3037,7 +3043,6 @@ public:
 		}
 	}
 #pragma endregion 项目状态
-
 
 	EckInline void SetItemHeight(int cy)
 	{
