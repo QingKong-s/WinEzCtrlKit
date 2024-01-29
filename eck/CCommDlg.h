@@ -6,64 +6,33 @@
 * Copyright(C) 2023 QingKong
 */
 #pragma once
-#include "ECK.h"
+#include "CDialog.h"
 
 #include <vector>
 
 #include <CommCtrl.h>
 
 ECK_NAMESPACE_BEGIN
+struct TASKDIALOGCTX
+{
+	TASKDIALOGCONFIG* ptdc;
+	int* piRadioButton;
+	BOOL* pbChecked;
+	HRESULT* phr;
+};
 
-class CTaskDialog
+class CTaskDialog :public CDialog
 {
 private:
-	struct ECKTDCTX
-	{
-		PFTASKDIALOGCALLBACK pProc;
-		LONG_PTR lRefData;
-		CTaskDialog* pThis;
-		TASKDIALOGCONFIG* ptdc;
-	};
-
-	static HRESULT CALLBACK TDCallBack(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LONG_PTR lRefData)
-	{
-		auto p = (ECKTDCTX*)lRefData;
-		switch (uMsg)
-		{
-		case TDN_DIALOG_CONSTRUCTED:
-			p->ptdc->pfCallback = p->pProc;
-			p->ptdc->lpCallbackData = p->lRefData;
-			p->pThis->m_hDlg = hWnd;
-			break;
-		case TDN_DESTROYED:
-			p->pThis->m_hDlg = NULL;
-			break;
-		}
-
-		if (p->pProc)
-			return p->pProc(hWnd, uMsg, wParam, lParam, p->lRefData);
-		else
-			return S_OK;
-	}
-
-	HWND m_hDlg = NULL;
-public:
 	std::vector<TASKDIALOG_BUTTON> m_aBtn{};// 所有按钮
 	std::vector<TASKDIALOG_BUTTON> m_aRadioBtn{};// 所有单选按钮
-
+public:
 	CTaskDialog() = default;
 
-	/// <summary>
-	/// 显示。
-	/// 此方法更新cButtons、pButtons、cRadioButtons、pRadioButtons和hwndParent字段，然后使用this数据调用TaskDialogIndirect
-	/// </summary>
-	/// <param name="hParent">父窗口句柄</param>
-	/// <param name="piRadioButton">接收单选框状态</param>
-	/// <param name="pbChecked">接收选择框状态</param>
-	/// <param name="phr">接收错误代码</param>
-	/// <returns>返回按钮ID</returns>
-	int Show(TASKDIALOGCONFIG* ptdc, int* piRadioButton = NULL, BOOL* pbChecked = NULL, HRESULT* phr = NULL)
+	INT_PTR DlgBox(HWND hParent, void* pData = NULL) override
 	{
+		auto pCtx = (TASKDIALOGCTX*)pData;
+		const auto ptdc = pCtx->ptdc;
 		ptdc->cButtons = (int)m_aBtn.size();
 		if (ptdc->cButtons)
 			ptdc->pButtons = m_aBtn.data();
@@ -76,67 +45,57 @@ public:
 		else
 			ptdc->pRadioButtons = NULL;
 
-		ECKTDCTX Ctx{ ptdc->pfCallback,ptdc->lpCallbackData,this };
-		ptdc->pfCallback = TDCallBack;
-		ptdc->lpCallbackData = (LONG_PTR)&Ctx;
+		ptdc->pfCallback = ptdc->pfCallback;
+		ptdc->lpCallbackData = ptdc->lpCallbackData;
 
 		int iButton = 0;
 		int iRadioButton = 0;
 		BOOL bChecked = FALSE;
-		HRESULT hr = TaskDialogIndirect(
-			ptdc,
-			&iButton,
-			piRadioButton ? piRadioButton : &iRadioButton,
-			pbChecked ? pbChecked : &bChecked);
-		if (phr)
-			*phr = hr;
+		BeginCbtHook(this);
+		HRESULT hr = TaskDialogIndirect(ptdc, &iButton,
+			pCtx->piRadioButton ? pCtx->piRadioButton : &iRadioButton,
+			pCtx->pbChecked ? pCtx->pbChecked : &bChecked);
+		if (pCtx->phr)
+			*pCtx->phr = hr;
 		return iButton;
 	}
 
-	EckInline HWND GetHWND()
-	{
-		return m_hDlg;
-	}
-
-	EckInline operator HWND()
-	{
-		return m_hDlg;
-	}
+	EckInline BOOL EndDlg(INT_PTR nResult) override { return FALSE; }
 
 	EckInline void ClickButton(int iID, BOOL bRadioButton = FALSE)
 	{
 		if (bRadioButton)
-			SendMessageW(m_hDlg, TDM_CLICK_RADIO_BUTTON, iID, 0);
+			SendMsg(TDM_CLICK_RADIO_BUTTON, iID, 0);
 		else
-			SendMessageW(m_hDlg, TDM_CLICK_BUTTON, iID, 0);
+			SendMsg(TDM_CLICK_BUTTON, iID, 0);
 	}
 
 	EckInline void ClickCheckBox(BOOL bChecked, BOOL bSetFocus = FALSE)
 	{
-		SendMessageW(m_hDlg, TDM_CLICK_VERIFICATION, bChecked, bSetFocus);
+		SendMsg(TDM_CLICK_VERIFICATION, bChecked, bSetFocus);
 	}
 
 	EckInline void ClickButton(BOOL bEnable, int iID, BOOL bRadioButton = FALSE)
 	{
 		if (bRadioButton)
-			SendMessageW(m_hDlg, TDM_ENABLE_RADIO_BUTTON, iID, bEnable);
+			SendMsg(TDM_ENABLE_RADIO_BUTTON, iID, bEnable);
 		else
-			SendMessageW(m_hDlg, TDM_ENABLE_BUTTON, iID, bEnable);
+			SendMsg(TDM_ENABLE_BUTTON, iID, bEnable);
 	}
 
 	EckInline void NavigatePage(TASKDIALOGCONFIG* pInfo)
 	{
-		SendMessageW(m_hDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)pInfo);
+		SendMsg(TDM_NAVIGATE_PAGE, 0, (LPARAM)pInfo);
 	}
 
 	EckInline void NavigatePage()
 	{
-		SendMessageW(m_hDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)this);
+		SendMsg(TDM_NAVIGATE_PAGE, 0, (LPARAM)this);
 	}
 
 	EckInline void SetShieldIcon(BOOL bShieldIcon, int iID)
 	{
-		SendMessageW(m_hDlg, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, iID, bShieldIcon);
+		SendMsg(TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, iID, bShieldIcon);
 	}
 
 	/// <summary>
@@ -147,27 +106,27 @@ public:
 	/// <param name="pszText">文本</param>
 	EckInline void SetElementText(UINT uType, PCWSTR pszText)
 	{
-		SendMessageW(m_hDlg, TDM_SET_ELEMENT_TEXT, uType, (LPARAM)pszText);
+		SendMsg(TDM_SET_ELEMENT_TEXT, uType, (LPARAM)pszText);
 	}
 
 	EckInline void SetMarqueePBShowing(BOOL bShowing)
 	{
-		SendMessageW(m_hDlg, TDM_SET_MARQUEE_PROGRESS_BAR, bShowing, 0);
+		SendMsg(TDM_SET_MARQUEE_PROGRESS_BAR, bShowing, 0);
 	}
 
 	EckInline void SetPBMarquee(BOOL bMarquee, UINT uAnimationGap = 0u)
 	{
-		SendMessageW(m_hDlg, TDM_SET_PROGRESS_BAR_MARQUEE, bMarquee, uAnimationGap);
+		SendMsg(TDM_SET_PROGRESS_BAR_MARQUEE, bMarquee, uAnimationGap);
 	}
 
 	EckInline void SetPBPos(int iPos)
 	{
-		SendMessageW(m_hDlg, TDM_SET_PROGRESS_BAR_POS, iPos, 0);
+		SendMsg(TDM_SET_PROGRESS_BAR_POS, iPos, 0);
 	}
 
 	EckInline void SetPBRange(int iMax, int iMin)
 	{
-		SendMessageW(m_hDlg, TDM_SET_PROGRESS_BAR_POS, 0, MAKELPARAM(iMin, iMax));
+		SendMsg(TDM_SET_PROGRESS_BAR_POS, 0, MAKELPARAM(iMin, iMax));
 	}
 
 	/// <summary>
@@ -176,7 +135,7 @@ public:
 	/// <param name="uState">状态，PBST_常量</param>
 	EckInline void SetPBState(UINT uState)
 	{
-		SendMessageW(m_hDlg, TDM_SET_PROGRESS_BAR_STATE, uState, 0);
+		SendMsg(TDM_SET_PROGRESS_BAR_STATE, uState, 0);
 	}
 
 	/// <summary>
@@ -187,7 +146,7 @@ public:
 	/// <param name="pszText">文本</param>
 	EckInline void UpdateElementText(UINT uType, PCWSTR pszText)
 	{
-		SendMessageW(m_hDlg, TDM_UPDATE_ELEMENT_TEXT, uType, (LPARAM)pszText);
+		SendMsg(TDM_UPDATE_ELEMENT_TEXT, uType, (LPARAM)pszText);
 	}
 
 	/// <summary>
@@ -197,16 +156,46 @@ public:
 	/// <param name="Icon">图标，可为HICON或PCWSTR，取决于创建对话框时的设置</param>
 	EckInline void UpdateIcon(UINT uType, HICON hIcon)
 	{
-		SendMessageW(m_hDlg, TDM_UPDATE_ICON, uType, (LPARAM)hIcon);
+		SendMsg(TDM_UPDATE_ICON, uType, (LPARAM)hIcon);
 	}
 
 	EckInline void UpdateIcon(UINT uType, PCWSTR pszIcon)
 	{
-		SendMessageW(m_hDlg, TDM_UPDATE_ICON, uType, (LPARAM)pszIcon);
+		SendMsg(TDM_UPDATE_ICON, uType, (LPARAM)pszIcon);
 	}
 };
 
+class CColorDialog :public CDialog
+{
+protected:
+	static UINT s_uMsgSetRgb;
+public:
+	CColorDialog() = default;
 
+	INT_PTR DlgBox(HWND hParent, void* pData = NULL) override
+	{
+		auto pcc = (CHOOSECOLORW*)pData;
+		pcc->hwndOwner = hParent;
+		BeginCbtHook(this);
+		return ChooseColorW((CHOOSECOLORW*)pData);
+	}
+
+	INT_PTR DlgBox(HWND hParent, COLORREF crInit = 0, DWORD dwFlags = 0, COLORREF* pcrCust = NULL)
+	{
+		static COLORREF crCust[16]{};
+		CHOOSECOLORW cc{ sizeof(cc) };
+		cc.hwndOwner = hParent;
+		cc.rgbResult = crInit;
+		cc.Flags = dwFlags;
+		cc.lpCustColors = (pcrCust ? pcrCust : crCust);
+		return DlgBox(hParent, &cc);
+	}
+
+	EckInline void SetRGB(COLORREF cr) const { SendMsg(s_uMsgSetRgb, 0, cr); }
+
+	EckInline BOOL EndDlg(INT_PTR nResult) override { return FALSE; }
+};
+inline UINT CColorDialog::s_uMsgSetRgb = RegisterWindowMessageW(SETRGBSTRINGW);
 
 EckInline int MsgBox(PCWSTR pszText, PCWSTR pszCaption = L"", UINT uType = 0, HWND hParent = NULL)
 {
