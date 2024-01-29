@@ -364,4 +364,5 @@ GpStatus WINGDIPAPI GdipBitmapUnlockBits(GpBitmap* bitmap, GpBitmapData* lockedB
 GpStatus WINGDIPAPI GdipSaveImageToFile(GpImage* image, GDIPCONST WCHAR* filename, GDIPCONST CLSID* clsidEncoder, GDIPCONST EncoderParameters* encoderParams);
 GpStatus WINGDIPAPI GdipGetImageDecoders(UINT numDecoders, UINT size, GpImageCodecInfo* decoders);
 GpStatus WINGDIPAPI GdipGetImageDecodersSize(UINT* numDecoders, UINT* size);
+GpStatus WINGDIPAPI GdipCreateFromHWND(HWND hwnd, GpGraphics** graphics);
 EXTERN_C_END

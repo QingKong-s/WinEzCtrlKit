@@ -88,7 +88,7 @@ public:
 
 	EckInline virtual INT_PTR DlgBox(HWND hParent, void* pData = NULL) { throw CDlgBoxOnPureCDialogException{}; }
 
-	EckInline virtual BOOL EndDlg(INT_PTR nResult) 
+	EckInline virtual BOOL EndDlg(INT_PTR nResult)
 	{ 
 		if (m_bModal)
 			return EndDialog(m_hWnd, nResult);

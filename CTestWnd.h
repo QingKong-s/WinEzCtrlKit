@@ -326,7 +326,7 @@ public:
 			h.InsertItem(L"HWND", -1, 360);
 			h.InsertItem(L"szClsName", -1, 360);
 			h.InsertItem(L"szText", -1, 400);
-			//m_TL.SetEditLabel(TRUE);
+			m_TL.SetEditLabel(TRUE);
 			//auto& tl = m_TL.GetToolTip();
 			//tl.ModifyStyle(0, TTS_NOANIMATE);
 			m_TL.SetHasCheckBox(TRUE);
@@ -514,6 +514,19 @@ public:
 						Edit.GetText().Data(), !!(p->uFlags & eck::TLEDF_SHOULDSAVETEXT));
 				}
 				return 0;
+
+				case eck::NM_TL_BEGINDRAG:
+				{
+					auto p = (eck::NMTLDRAG*)lParam;
+					EckDbgPrintFmt(L"Pre Drag, bRBtn = %d", p->bRBtn);
+				}
+				return 0;
+				case eck::NM_TL_ENDDRAG:
+				{
+					auto p = (eck::NMTLDRAG*)lParam;
+					EckDbgPrintFmt(L"Post Drag, bRBtn = %d", p->bRBtn);
+				}
+				return 0;
 				}
 			}
 		}
@@ -549,6 +562,16 @@ public:
 				//TotalMove = TRUE;
 				//Redraw();
 			}
+		}
+		break;
+		case WM_DPICHANGED:
+		{
+			const int iPrevDpi = m_iDpi;
+			m_iDpi = LOWORD(wParam);
+			const auto prc = (RECT*)lParam;
+			SetWindowPos(hWnd, NULL, prc->left, prc->top, prc->right - prc->left, prc->bottom - prc->top,
+				SWP_NOZORDER | SWP_NOACTIVATE);
+
 		}
 		break;
 		}
