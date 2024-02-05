@@ -241,7 +241,8 @@ inline HRESULT CreateWicBitmap(std::vector<IWICBitmap*>& vResult,
 	return S_OK;
 }
 
-inline HRESULT CreateWicBitmap(IWICBitmap*& pBmp, IWICBitmapDecoder* pDecoder)
+inline HRESULT CreateWicBitmap(IWICBitmap*& pBmp, IWICBitmapDecoder* pDecoder, 
+	int cxNew = -1, int cyNew = -1, const GUID& guidFmt = GUID_WICPixelFormat32bppPBGRA)
 {
 	HRESULT hr;
 	IWICBitmapFrameDecode* pFrameDecoder;
@@ -261,7 +262,7 @@ inline HRESULT CreateWicBitmap(IWICBitmap*& pBmp, IWICBitmapDecoder* pDecoder)
 		return hr;
 	}
 
-	hr = pConverter->Initialize(pFrameDecoder, GUID_WICPixelFormat32bppPBGRA,
+	hr = pConverter->Initialize(pFrameDecoder, guidFmt,
 		WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeMedianCut);
 	if (FAILED(hr))
 	{
@@ -269,13 +270,36 @@ inline HRESULT CreateWicBitmap(IWICBitmap*& pBmp, IWICBitmapDecoder* pDecoder)
 		return hr;
 	}
 
-	hr = g_pWicFactory->CreateBitmapFromSource(pConverter, WICBitmapNoCache, &pBmp);
+	IWICBitmapSource* pSrc = pConverter;
+	IWICBitmapScaler* pScaler = NULL;
+	if (cxNew > 0 && cyNew > 0)
+	{
+		hr = g_pWicFactory->CreateBitmapScaler(&pScaler);
+		if (FAILED(hr))
+		{
+			EckDbgPrintFormatMessage(hr);
+			return hr;
+		}
+
+		hr = pScaler->Initialize(pConverter, cxNew, cyNew, WICBitmapInterpolationModeFant);
+		if (FAILED(hr))
+		{
+			EckDbgPrintFormatMessage(hr);
+			return hr;
+		}
+
+		pSrc = pScaler;
+	}
+
+	hr = g_pWicFactory->CreateBitmapFromSource(pSrc, WICBitmapNoCache, &pBmp);
 	if (FAILED(hr))
 	{
 		EckDbgPrintFormatMessage(hr);
 		return hr;
 	}
 
+	if (pScaler)
+		pScaler->Release();
 	pConverter->Release();
 	pFrameDecoder->Release();
 	return S_OK;
@@ -874,5 +898,24 @@ inline GpStatus SaveGpImage(PCWSTR pszFile, GpImage* pImage, ImageType iType = I
 	if ((gps = GetGpEncoderClsid(GetImageMime(iType), clsid)) != GpStatus::GpOk)
 		return gps;
 	return GdipSaveImageToFile(pImage, pszFile, &clsid, NULL);
+}
+
+inline HRESULT LoadD2dBitmap(PCWSTR pszFile, ID2D1RenderTarget* pRT, ID2D1Bitmap*& pD2dBitmap,
+	int cxNew = -1, int cyNew = -1)
+{
+	HRESULT hr;
+	IWICBitmapDecoder* pDecoder;
+	if (FAILED(hr = CreateWicBitmapDecoder(pszFile, pDecoder)))
+		return hr;
+	IWICBitmap* pBitmap;
+	if (FAILED(hr = CreateWicBitmap(pBitmap, pDecoder, cxNew, cyNew)))
+	{
+		pDecoder->Release();
+		return hr;
+	}
+	pDecoder->Release();
+	hr = pRT->CreateBitmapFromWicBitmap(pBitmap, &pD2dBitmap);
+	pBitmap->Release();
+	return hr;
 }
 ECK_NAMESPACE_END

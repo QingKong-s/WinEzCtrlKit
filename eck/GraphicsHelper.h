@@ -1852,4 +1852,74 @@ inline BOOL DrawBackgroundImage(HDC hDC, HDC hdcBitmap, const RECT& rc, int cxIm
 	}
 	return FALSE;
 }
+
+inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, 
+	const D2D1_RECT_F& rc, float fDeviation = 3.f)
+{
+	HRESULT hr;
+	ID2D1Effect* pEffect;
+	if (FAILED(hr = pDC->CreateEffect(CLSID_D2D1GaussianBlur, &pEffect)))
+		return hr;
+	pEffect->SetValue(D2D1_GAUSSIANBLUR_PROP_BORDER_MODE, D2D1_BORDER_MODE_HARD);
+	pEffect->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, fDeviation);
+
+	ID2D1Bitmap* pBmpEffect;
+	if (FAILED(hr = pDC->CreateBitmap({ (UINT32)(rc.right - rc.left), (UINT32)(rc.bottom - rc.top) },
+		D2D1::BitmapProperties(pBmp->GetPixelFormat()), &pBmpEffect)))
+	{
+		pEffect->Release();
+		return hr;
+	}
+	const D2D1_RECT_U rcU{ (UINT32)rc.left, (UINT32)rc.top, (UINT32)rc.right, (UINT32)rc.bottom };
+	pBmpEffect->CopyFromBitmap(NULL, pBmp, &rcU);
+
+	pEffect->SetInput(0, pBmpEffect);
+
+	const auto iBlend = pDC->GetPrimitiveBlend();
+	pDC->SetPrimitiveBlend(D2D1_PRIMITIVE_BLEND_COPY);
+	pDC->DrawImage(pEffect, { rc.left,rc.top });
+	pDC->SetPrimitiveBlend(iBlend);
+
+	pBmpEffect->Release();
+	pEffect->Release();
+	return S_OK;
+}
+
+inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, ID2D1Bitmap*& pBmpWork, 
+	const D2D1_RECT_F& rc, float fDeviation = 3.f)
+{
+	HRESULT hr;
+	ID2D1Effect* pEffect;
+	hr = pDC->CreateEffect(CLSID_D2D1GaussianBlur, &pEffect);
+	if (FAILED(hr))
+		return hr;
+	pEffect->SetValue(D2D1_GAUSSIANBLUR_PROP_BORDER_MODE, D2D1_BORDER_MODE_HARD);
+	pEffect->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, fDeviation);
+
+	const D2D1_SIZE_U sizeNew{ (UINT32)(rc.right - rc.left), (UINT32)(rc.bottom - rc.top) };
+	const auto sizeOld = pBmpWork ? pBmpWork->GetSize() : D2D1_SIZE_F{};
+	if (sizeNew.width > sizeOld.width || sizeNew.height > sizeOld.height)
+	{
+		SafeRelease(pBmpWork);
+		if (FAILED(hr = pDC->CreateBitmap(sizeNew,
+			D2D1::BitmapProperties(pBmp->GetPixelFormat()), &pBmpWork)))
+		{
+			pEffect->Release();
+			return hr;
+		}
+	}
+
+	const D2D1_RECT_U rcU{ (UINT32)rc.left, (UINT32)rc.top, (UINT32)rc.right, (UINT32)rc.bottom };
+	pBmpWork->CopyFromBitmap(NULL, pBmp, &rcU);
+
+	pEffect->SetInput(0, pBmpWork);
+
+	const auto iBlend = pDC->GetPrimitiveBlend();
+	pDC->SetPrimitiveBlend(D2D1_PRIMITIVE_BLEND_COPY);
+	pDC->DrawImage(pEffect, { rc.left,rc.top });
+	pDC->SetPrimitiveBlend(iBlend);
+
+	pEffect->Release();
+	return S_OK;
+}
 ECK_NAMESPACE_END

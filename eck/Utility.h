@@ -233,6 +233,17 @@ EckInline constexpr COLORREF ARGBToColorref(ARGB argb)
 	return ReverseColorref(argb);
 }
 
+EckInline constexpr D2D1_COLOR_F ARGBToD2dColorF(ARGB argb)
+{
+	return D2D1_COLOR_F
+	{
+		GetIntegerByte<2>(argb) / 255.f,
+		GetIntegerByte<1>(argb) / 255.f,
+		GetIntegerByte<0>(argb) / 255.f,
+		GetIntegerByte<3>(argb) / 255.f
+	};
+}
+
 EckInline constexpr COLORREF ColorrefAlphaBlend(COLORREF cr, COLORREF crBK, BYTE byAlpha)
 {
 	return BytesToInteger<COLORREF>(
@@ -267,9 +278,9 @@ EckInline constexpr T pToI32(U p)
 	return (T)((ULONG_PTR)p);
 }
 
-EckInline BOOL IsFILETIMEZero(const FILETIME* pft)
+EckInline BOOL IsFILETIMEZero(const FILETIME& ft)
 {
-	return pft->dwLowDateTime == 0 && pft->dwHighDateTime == 0;
+	return ft.dwLowDateTime == 0 && ft.dwHighDateTime == 0;
 }
 
 EckInline bool operator==(const FILETIME& ft1, const FILETIME& ft2)
@@ -373,6 +384,13 @@ EckInline constexpr BOOL IsRectsIntersect(const RECT&rc1, const RECT&rc2)
 		std::max(rc1.top, rc2.top) < std::min(rc1.bottom, rc2.bottom);
 }
 
+EckInline constexpr BOOL IsRectsIntersect(const D2D1_RECT_F& rc1, const D2D1_RECT_F& rc2)
+{
+	return
+		std::max(rc1.left, rc2.left) < std::min(rc1.right, rc2.right) &&
+		std::max(rc1.top, rc2.top) < std::min(rc1.bottom, rc2.bottom);
+}
+
 template<class T>
 EckInline constexpr BOOL Sign(T v)
 {
@@ -458,7 +476,7 @@ constexpr inline size_t c_FNVOffsetBasis = 2166136261u;
 constexpr inline size_t c_FNVPrime = 16777619u;
 #endif// _WIN64
 
-EckInline size_t Fnv1aHash(PCBYTE p, size_t cb)
+EckInline constexpr size_t Fnv1aHash(PCBYTE p, size_t cb)
 {
 	size_t hash = c_FNVOffsetBasis;
 	EckCounter(cb, i)
@@ -473,4 +491,162 @@ EckInline size_t Fnv1aHash(PCBYTE p, size_t cb)
 #undef ccpIsInteger
 #pragma pop_macro("ccpIsInteger")
 #endif
+
+EckInline constexpr D2D1_COLOR_F ColorrefToD2dColorF(COLORREF cr, float fAlpha = 1.f)
+{
+	return D2D1_COLOR_F
+	{
+		GetRValue(cr) / 255.f,
+		GetGValue(cr) / 255.f,
+		GetBValue(cr) / 255.f,
+		fAlpha
+	};
+}
+
+EckInline constexpr void InflateRect(D2D1_RECT_F& rc, float dx, float dy)
+{
+	rc.left -= dx;
+	rc.top -= dy;
+	rc.right += dx;
+	rc.bottom += dy;
+}
+
+EckInline constexpr void InflateRect(RECT& rc, int dx, int dy)
+{
+	rc.left -= dx;
+	rc.top -= dy;
+	rc.right += dx;
+	rc.bottom += dy;
+}
+
+EckInline constexpr BOOL IntersectRect(D2D1_RECT_F& rcDst, const D2D1_RECT_F& rcSrc1, const D2D1_RECT_F& rcSrc2)
+{
+	rcDst.left = std::max(rcSrc1.left, rcSrc2.left);
+	rcDst.right = std::min(rcSrc1.right, rcSrc2.right);
+	if (rcDst.left < rcDst.right)
+	{
+		rcDst.top = std::max(rcSrc1.top, rcSrc2.top);
+		rcDst.bottom = std::min(rcSrc1.bottom, rcSrc2.bottom);
+		if (rcDst.top < rcDst.bottom)
+			return TRUE;
+	}
+	rcDst = {};
+	return FALSE;
+}
+
+EckInline constexpr BOOL IntersectRect(RECT& rcDst, const RECT& rcSrc1, const RECT& rcSrc2)
+{
+	rcDst.left = std::max(rcSrc1.left, rcSrc2.left);
+	rcDst.right = std::min(rcSrc1.right, rcSrc2.right);
+	if (rcDst.left < rcDst.right)
+	{
+		rcDst.top = std::max(rcSrc1.top, rcSrc2.top);
+		rcDst.bottom = std::min(rcSrc1.bottom, rcSrc2.bottom);
+		if (rcDst.top < rcDst.bottom)
+			return TRUE;
+	}
+	rcDst = {};
+	return FALSE;
+}
+
+EckInline constexpr void OffsetRect(D2D1_RECT_F& rc, float dx, float dy)
+{
+	rc.left += dx;
+	rc.top += dy;
+	rc.right += dx;
+	rc.bottom += dy;
+}
+
+EckInline constexpr void OffsetRect(RECT& rc, int dx, int dy)
+{
+	rc.left += dx;
+	rc.top += dy;
+	rc.right += dx;
+	rc.bottom += dy;
+}
+
+EckInline constexpr BOOL PtInRect(const RECT& rc, POINT pt)
+{
+	return ((pt.x >= rc.left) && (pt.x < rc.right) &&
+		(pt.y >= rc.top) && (pt.y < rc.bottom));
+}
+
+EckInline constexpr BOOL PtInRect(const D2D1_RECT_F& rc, D2D1_POINT_2F pt)
+{
+	return ((pt.x >= rc.left) && (pt.x < rc.right) &&
+		(pt.y >= rc.top) && (pt.y < rc.bottom));
+}
+
+EckInline constexpr BOOL IsRectEmpty(const RECT& rc)
+{
+	return rc.left >= rc.right || rc.top >= rc.bottom;
+}
+
+inline constexpr void UnionRect(RECT &rcDst,const RECT& rcSrc1,const RECT& rcSrc2)
+{
+	const BOOL b1 = IsRectEmpty(rcSrc1), b2 = IsRectEmpty(rcSrc2);
+	if (b1)
+	{
+		if (b2)
+			rcDst = {};
+		else
+			rcDst = rcSrc2;
+	}
+	else if (b2)
+		rcDst = rcSrc1;
+	else
+	{
+		rcDst.left = std::min(rcSrc1.left, rcSrc2.left);
+		rcDst.top = std::min(rcSrc1.top, rcSrc2.top);
+		rcDst.right = std::max(rcSrc1.right, rcSrc2.right);
+		rcDst.bottom = std::max(rcSrc1.bottom, rcSrc2.bottom);
+	}
+}
+
+EckInline constexpr BOOL IsRectEmpty(const D2D1_RECT_F& rc)
+{
+	return rc.left >= rc.right || rc.top >= rc.bottom;
+}
+
+inline constexpr void UnionRect(D2D1_RECT_F& rcDst, const D2D1_RECT_F& rcSrc1, const D2D1_RECT_F& rcSrc2)
+{
+	const BOOL b1 = IsRectEmpty(rcSrc1), b2 = IsRectEmpty(rcSrc2);
+	if (b1)
+	{
+		if (b2)
+			rcDst = {};
+		else
+			rcDst = rcSrc2;
+	}
+	else if (b2)
+		rcDst = rcSrc1;
+	else
+	{
+		rcDst.left = std::min(rcSrc1.left, rcSrc2.left);
+		rcDst.top = std::min(rcSrc1.top, rcSrc2.top);
+		rcDst.right = std::max(rcSrc1.right, rcSrc2.right);
+		rcDst.bottom = std::max(rcSrc1.bottom, rcSrc2.bottom);
+	}
+}
+
+EckInline constexpr bool operator==(const D2D1_RECT_F& rc1, const D2D1_RECT_F& rc2)
+{
+	return rc1.left == rc2.left && rc1.top == rc2.top &&
+		rc1.right == rc2.right && rc1.bottom == rc2.bottom;
+}
+
+EckInline constexpr bool operator==(const D2D1_POINT_2F& pt1, const D2D1_POINT_2F& pt2)
+{
+	return pt1.x == pt2.x && pt1.y == pt2.y;
+}
+
+EckInline constexpr bool operator==(const D2D1_SIZE_F& sz1, const D2D1_SIZE_F& sz2)
+{
+	return sz1.width == sz2.width && sz1.height == sz2.height;
+}
+
+EckInline constexpr bool operator==(const D2D1_SIZE_U& sz1, const D2D1_SIZE_U& sz2)
+{
+	return sz1.width == sz2.width && sz1.height == sz2.height;
+}
 ECK_NAMESPACE_END

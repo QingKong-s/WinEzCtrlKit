@@ -13,48 +13,61 @@ protected:
 	int m_iPos = 0;
 
 	int m_iViewSize = 0;
-public:
-	int GetMin() const
+	int m_iMinThumbSize = 0;
+
+	int m_oxyThumbCursor = 0;
+#ifdef _DEBUG
+	BOOL m_bLBtnDown = FALSE;
+#endif // _DEBUG
+
+	void RangeChanged()
 	{
-		return m_iMin;
+		if (!IsValid())
+		{
+			SetPosUncheck(GetMin());
+			return;
+		}
+		if (GetPos() < GetMin())
+			SetPosUncheck(GetMin());
+		else if (GetPos() > GetMaxWithPage())
+			SetPosUncheck(GetMaxWithPage());
 	}
+public:
+	EckInline int GetMin() const { return m_iMin; }
 
 	void SetMin(int iMin)
 	{
 		m_iMin = iMin;
+		RangeChanged();
 	}
 
-	int GetMax() const
-	{
-		return m_iMax;
-	}
+	EckInline int GetMax() const { return m_iMax; }
 
-	int GetMaxWithPage() const
-	{
-		return m_iMax - m_iPage - 1;
-	}
+	EckInline int GetMaxWithPage() const { return m_iMax - m_iPage + 1; }
 
 	void SetMax(int iMax)
 	{
 		m_iMax = iMax;
+		RangeChanged();
 	}
 
-	int GetPage() const
-	{
-		return m_iPage;
-	}
+	EckInline int GetPage() const { return m_iPage; }
 
 	void SetPage(int iPage)
 	{
 		m_iPage = iPage;
+		RangeChanged();
 	}
 
-	int GetPos() const
-	{
-		return m_iPos;
-	}
+	EckInline int GetPos() const { return m_iPos; }
 
 	void SetPos(int iPos)
+	{
+		m_iPos = iPos;
+		RangeChanged();
+	}
+
+	void SetPosUncheck(int iPos)
 	{
 		m_iPos = iPos;
 	}
@@ -63,33 +76,106 @@ public:
 	{
 		m_iMin = iMin;
 		m_iMax = iMax;
+		RangeChanged();
 	}
+
+	int GetRangeDistance() const
+	{
+		return GetMaxWithPage() - GetMin();
+	}
+
+	BOOL IsValid() const { return GetRangeDistance() > 0; }
 
 	void OnMouseWheel(int iDelta)
 	{
-		int iPos = m_iPos - iDelta * 60;
-		if (iPos < m_iMin)
-			iPos = m_iMin;
-		else if (iPos > m_iMax - m_iPage)
-			iPos = m_iMax - m_iPage;
+		if (!IsValid())
+			return;
+		int iPos = GetPos() + iDelta;
+		if (iPos < GetMin())
+			iPos = GetMin();
+		else if (iPos > GetMaxWithPage())
+			iPos = GetMaxWithPage();
 
 		SetPos(iPos);
 	}
 
 	float GetPrecent() const
 	{
-		int x = m_iMax - m_iMin - m_iPage;
-		if (x <= 0)
+		const int d = GetMaxWithPage() - GetMin();
+		if (d <= 0)
 			return 0.f;
 		else
-			return (float)m_iPos / (float)x;
+			return (float)(GetPos() - GetMin()) / (float)d;
+	}
+
+	EckInline void SetViewSize(int iViewSize) { m_iViewSize = iViewSize; }
+
+	EckInline int GetViewSize() const { return m_iViewSize; }
+
+	EckInline void SetMinThumbSize(int iMinThumbSize) { m_iMinThumbSize = iMinThumbSize; }
+
+	EckInline int GetMinThumbSize() const { return m_iMinThumbSize; }
+
+	EckInline int GetThumbSize() const
+	{
+		const int d = GetMax() - GetMin();
+		if (d <= 0)
+			return std::numeric_limits<int>::min();
+		const int i = GetPage() * GetViewSize() / d;
+		return std::max(GetMinThumbSize(), i);
+	}
+
+	EckInline int GetThumbPos(int iThumbSize) const
+	{
+		const int d = GetRangeDistance();
+		if (d <= 0)
+			return std::numeric_limits<int>::min();
+		return (GetPos() - GetMin()) * (GetViewSize() - iThumbSize) / d;
+	}
+
+	EckInline int GetThumbPos() const { return GetThumbPos(GetThumbSize()); }
+
+	EckInline void OnLButtonDown(int xy)
+	{
+#ifdef _DEBUG
+		EckAssert(!m_bLBtnDown);
+		m_bLBtnDown = TRUE;
+#endif // _DEBUG
+		if (!IsValid())
+			return;
+		EckAssert(xy >= GetThumbPos() && xy <= GetThumbPos() + GetThumbSize());
+		m_oxyThumbCursor = xy - GetThumbPos();
+	}
+
+	void OnMouseMove(int xy)
+	{
+		EckAssert(m_bLBtnDown);
+		if (!IsValid())
+			return;
+		const int d = GetRangeDistance();
+		if (d <= 0)
+			return;
+		int iPos = (xy - m_oxyThumbCursor) * d / (GetViewSize() - GetThumbSize());
+		if (iPos < GetMin())
+			iPos = GetMin();
+		else if (iPos > GetMaxWithPage())
+			iPos = GetMaxWithPage();
+		SetPos(iPos);
+	}
+
+	EckInline void OnLButtonUp()
+	{
+#ifdef _DEBUG
+		EckAssert(m_bLBtnDown);
+		m_bLBtnDown = FALSE;
+#endif // _DEBUG
 	}
 };
 
 class CInertialScrollView : public CScrollView
 {
 public:
-	using InertialScrollProc = void (*)(int, int, LPARAM);
+	using InertialScrollProc = void (*)(int iPos, int iPrevPos, LPARAM lParam);
 protected:
 	CMsgMmTimer m_Timer{};
 
@@ -150,6 +236,29 @@ public:
 	void OnMouseWheel2(int iDelta, InertialScrollProc pfnInertialScroll, LPARAM lParam)
 	{
 		SmoothScrollDelta(m_iDelta * iDelta, pfnInertialScroll, lParam);
+	}
+
+	void InterruptAnimation()
+	{
+		const auto iId = m_Timer.GetID();
+		if (!iId)
+			return;
+		m_Timer.KillTimer();
+		MSG msg;
+		while (PeekMessageW(&msg, NULL, 0u, 0u, PM_REMOVE))
+		{
+			if (msg.message == WM_QUIT)
+				PostQuitMessage((int)msg.wParam);// re-throw
+			else if (msg.message == s_uTimerNotify && msg.wParam == iId)
+				;// eat it
+			else
+			{
+				TranslateMessage(&msg);
+				DispatchMessageW(&msg);
+			}
+		}
+		m_iSustain = 0;
+		m_iDistance = 0;
 	}
 
 	void SmoothScrollDelta(int iDelta, InertialScrollProc pfnInertialScroll, LPARAM lParam)

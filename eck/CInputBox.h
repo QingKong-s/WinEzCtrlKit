@@ -48,6 +48,7 @@ private:
 	int m_cyTip = 0;
 	int m_cxClient = 0,
 		m_cyClient = 0;
+	int m_cySingleLineText = 0;
 
 	INPUTBOXOPT* m_pOpt = NULL;
 
@@ -57,7 +58,7 @@ private:
 	ECK_DS_BEGIN(DPIS)
 		ECK_DS_ENTRY(TextPadding, 6)
 		ECK_DS_ENTRY(Margin, 10)
-		ECK_DS_ENTRY(cyED, 26)
+		//ECK_DS_ENTRY(cyED, 26)
 		ECK_DS_ENTRY(cyMultiLineED, 100)
 		ECK_DS_ENTRY(cxBT, 80)
 		ECK_DS_ENTRY(cyBT, 32)
@@ -68,6 +69,16 @@ private:
 	{
 		IDC_ED = 101,
 	};
+
+	void UpdateTextMetrics()
+	{
+		HDC hCDC = CreateCompatibleDC(NULL);
+		SelectObject(hCDC, m_hFont);
+		TEXTMETRICW tm;
+		GetTextMetricsW(hCDC, &tm);
+		m_cySingleLineText = tm.tmHeight + m_Ds.TextPadding * 2;
+		DeleteDC(hCDC);
+	}
 
 	void UpdateDpi(int iDpi)
 	{
@@ -82,7 +93,7 @@ private:
 		const int cyED = (
 			IsBitSet(m_pOpt->uFlags, IPBF_MULTILINE) ?
 			m_cyClient - y - m_Ds.TextPadding - m_Ds.cyBT - m_Ds.Margin :
-			m_Ds.cyED);
+			m_cySingleLineText);
 		hDwp = DeferWindowPos(hDwp, m_ED.HWnd, NULL,
 			m_Ds.Margin,
 			y,
@@ -127,7 +138,8 @@ public:
 	BOOL OnInitDialog(HWND hDlg, HWND hFocus, LPARAM lParam) override
 	{
 		UpdateDpi(GetDpi(hDlg));
-		m_hFont = EzFont(L"微软雅黑", 9);
+		m_hFont = CreateDefFont();
+		UpdateTextMetrics();
 
 		SetExplorerTheme();
 		m_hTheme = OpenThemeData(hDlg, L"TextStyle");
@@ -158,7 +170,7 @@ public:
 		{
 			RECT rc{ 0,0, rcClient.right,
 				m_cyMainTip + m_cyTip + m_Ds.TextPadding * 3 + m_Ds.cyBT + m_Ds.Margin * 2 +
-				(IsBitSet(m_pOpt->uFlags,IPBF_MULTILINE) ? m_Ds.cyMultiLineED : m_Ds.cyED)
+				(IsBitSet(m_pOpt->uFlags,IPBF_MULTILINE) ? m_Ds.cyMultiLineED : m_cySingleLineText)
 			};
 #if _WIN32_WINNT >= _WIN32_WINNT_WIN10
 			AdjustWindowRectExForDpi(&rc, Style, FALSE, ExStyle, m_iDpi);
@@ -235,6 +247,7 @@ public:
 			SetFontForWndAndCtrl(hWnd, m_hFont);
 			DeleteObject(hOldFont);
 
+			UpdateTextMetrics();
 			UpdateThemeSize();
 			UpdateDpiCtrlSize();
 		}

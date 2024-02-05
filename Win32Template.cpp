@@ -78,8 +78,9 @@ int CALLBACK PSProc(HWND hDlg, UINT uMsg, LPARAM lParam)
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ PWSTR pszCmdLine, _In_ int nCmdShow)
 {
-	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+	//CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 	//CoInitialize(NULL);
+	OleInitialize(NULL);
 	if (eck::Init(hInstance) != eck::InitStatus::Ok)
 	{
 		MessageBoxW(NULL, L"初始化失败", L"", 0);
