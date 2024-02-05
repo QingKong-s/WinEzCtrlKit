@@ -97,6 +97,17 @@ EckInline void DpiScale(RECT& rc, int iDpi)
 	DpiScale(rc, iDpi, USER_DEFAULT_SCREEN_DPI);
 }
 
+EckInline void DpiScale(SIZE& size, int iDpiNew, int iDpiOld)
+{
+	size.cx = size.cx * iDpiNew / iDpiOld;
+	size.cy = size.cy * iDpiNew / iDpiOld;
+}
+
+EckInline void DpiScale(SIZE& size, int iDpi)
+{
+	DpiScale(size, iDpi, USER_DEFAULT_SCREEN_DPI);
+}
+
 /// <summary>
 /// 创建字体
 /// </summary>
@@ -228,7 +239,7 @@ EckInline HRESULT EnableWindowMica(HWND hWnd, DWM_SYSTEMBACKDROP_TYPE uType = DW
 }
 #endif
 
-inline LRESULT OnNcCalcSize(WPARAM wParam, LPARAM lParam, const MARGINS& Margins)
+inline LRESULT MsgOnNcCalcSize(WPARAM wParam, LPARAM lParam, const MARGINS& Margins)
 {
 	if (wParam)
 	{
@@ -247,6 +258,45 @@ inline LRESULT OnNcCalcSize(WPARAM wParam, LPARAM lParam, const MARGINS& Margins
 		prc->bottom -= Margins.cyBottomHeight;
 	}
 	return 0;
+}
+
+/// <summary>
+/// 按边距执行非客户区命中测试
+/// </summary>
+/// <param name="pt">测试点的坐标，相对客户区</param>
+/// <param name="Margins">边距</param>
+/// <param name="cxWnd">窗口宽度</param>
+/// <param name="cyWnd">窗口高度</param>
+/// <returns>若指定点在边框内，返回对应的测试代码，否则返回HTCAPTION</returns>
+inline LRESULT MsgOnNcHitTest(POINT pt, const MARGINS& Margins, int cxWnd, int cyWnd)
+{
+	if (pt.x < Margins.cxLeftWidth)
+	{
+		if (pt.y < Margins.cyTopHeight)
+			return HTTOPLEFT;
+		else if (pt.y > cyWnd - Margins.cyBottomHeight)
+			return HTBOTTOMLEFT;
+		else
+			return HTLEFT;
+	}
+	else if (pt.x > cxWnd - Margins.cxRightWidth)
+	{
+		if (pt.y < Margins.cyTopHeight)
+			return HTTOPRIGHT;
+		else if (pt.y > cyWnd - Margins.cyBottomHeight)
+			return HTBOTTOMRIGHT;
+		else
+			return HTRIGHT;
+	}
+	else
+	{
+		if (pt.y < Margins.cyTopHeight)
+			return HTTOP;
+		else if (pt.y > cyWnd - Margins.cyBottomHeight)
+			return HTBOTTOM;
+		else
+			return HTCAPTION;
+	}
 }
 
 template<class T>

@@ -188,7 +188,7 @@ private:
 					continue;
 				if (!m_InfoEx.uFileAttr || wfd.dwFileAttributes & m_InfoEx.uFileAttr)
 				{
-					if (m_InfoEx.ftMaxTime == m_InfoEx.ftMinTime || IsFILETIMEZero(&m_InfoEx.ftMaxTime))
+					if (m_InfoEx.ftMaxTime == m_InfoEx.ftMinTime || IsFILETIMEZero(m_InfoEx.ftMaxTime))
 						AddString(wfd.cFileName, NULL, CommInfo);
 					else if (wfd.ftCreationTime > m_InfoEx.ftMinTime && wfd.ftCreationTime < m_InfoEx.ftMaxTime)
 						AddString(wfd.cFileName, NULL, CommInfo);

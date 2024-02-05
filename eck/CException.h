@@ -45,7 +45,7 @@ struct CCreateDlgOnPureCDialogException :CException
 struct CMemException :CException
 {};
 
-#define EckCheckMem(p) if (!(p)) throw CMemException{};
+#define EckCheckMem(p) if (!(p)) throw ::eck::CMemException{};
 
 EckInline void DbgPrint(const CConstMsgException& e)
 {

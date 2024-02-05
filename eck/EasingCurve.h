@@ -37,7 +37,7 @@ struct CEasingAn
 ECK_EASING_NAMESPACE_BEGIN
 struct FOutCircle
 {
-	float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
+	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
 	{
 		fCurrTime = fCurrTime / fDuration - 1.f;
 		return fDistance * sqrt(1 - fCurrTime * fCurrTime) + fStart;
@@ -46,7 +46,7 @@ struct FOutCircle
 
 struct FOutSine
 {
-	float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
+	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
 	{
 		return fDistance * sinf(fCurrTime / fDuration * PiF / 2.f) + fStart;
 	}
@@ -54,7 +54,7 @@ struct FOutSine
 
 struct FOutCubic
 {
-	float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
+	EckInline constexpr float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
 	{
 		fCurrTime = fCurrTime / fDuration - 1.f;
 		return fDistance * (fCurrTime * fCurrTime * fCurrTime + 1.f) + fStart;
@@ -63,7 +63,7 @@ struct FOutCubic
 
 struct FOutExpo
 {
-	float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
+	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
 	{
 		if (fCurrTime == fDuration)
 			return fStart + fDistance;

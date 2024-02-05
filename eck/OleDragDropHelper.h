@@ -103,7 +103,7 @@ private:
 	std::vector<FORMATETC> m_vFormatEtc{};
 	std::vector<STGMEDIUM> m_vStgMedium{};
 
-	__forceinline auto FindFormat(FORMATETC* pFormatEtc)
+	EckInline auto FindFormat(FORMATETC* pFormatEtc)
 	{
 		return std::find_if(m_vFormatEtc.begin(), m_vFormatEtc.end(), [pFormatEtc](const FORMATETC& x)->bool
 			{

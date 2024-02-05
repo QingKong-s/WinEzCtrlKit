@@ -32,10 +32,542 @@
 #include "eck\CInputBox.h"
 #include "eck\CFixedBlockCollection.h"
 #include "eck\CListViewExt.h"
+#include "eck\DuiBase.h"
+#include "eck\CDuiLabel.h"
+#include "eck\CDuiButton.h"
+#include "eck\CDuiList.h"
 
 #define WCN_TEST L"CTestWindow"
 
 using eck::PCVOID;
+using eck::PCBYTE;
+
+struct MUSICINFO
+{
+	eck::CRefStrW rsTitle{};
+	eck::CRefStrW rsArtist{};
+	eck::CRefStrW rsAlbum{};
+	eck::CRefStrW rsComment{};
+	eck::CRefStrW rsLrc{};
+	IStream* pCoverData = NULL;
+};
+
+#pragma pack (push)
+#pragma pack (1)
+struct ID3v2_Header		// ID3v2标签头
+{
+	CHAR Header[3];		// "ID3"
+	BYTE Ver;			// 版本号
+	BYTE Revision;		// 副版本号
+	BYTE Flags;			// 标志
+	BYTE Size[4];		// 标签大小，28位数据，每个字节最高位不使用，包括标签头的10个字节和所有的标签帧
+};
+
+struct ID3v2_ExtHeader  // ID3v2扩展头
+{
+	BYTE ExtHeaderSize[4];  // 扩展头大小
+	BYTE Flags[2];          // 标志
+	BYTE PaddingSize[4];    // 空白大小
+};
+
+struct ID3v2_FrameHeader// ID3v2帧头
+{
+	CHAR ID[4];			// 帧标识
+	BYTE Size[4];		// 帧内容的大小，32位数据，不包括帧头
+	BYTE Flags[2];		// 存放标志
+};
+
+struct FLAC_Header      // Flac头
+{
+	BYTE by;
+	BYTE bySize[3];
+};
+#pragma pack (pop)
+
+inline DWORD SynchSafeIntToDWORD(PCBYTE p)
+{
+	return ((p[0] & 0x7F) << 21) | ((p[1] & 0x7F) << 14) | ((p[2] & 0x7F) << 7) | (p[3] & 0x7F);
+}
+
+inline eck::CRefStrW GetMP3ID3v2_ProcString(PCBYTE pStream, int cb, int iTextEncoding = -1)
+{
+	int iType = 0, cchBuf;
+	if (iTextEncoding == -1)
+	{
+		memcpy(&iType, pStream, 1);
+		++pStream;// 跳过文本编码标志
+		--cb;
+	}
+	else
+		iType = iTextEncoding;
+
+	eck::CRefStrW rsResult{};
+
+	switch (iType)
+	{
+	case 0:// ISO-8859-1，即Latin-1（拉丁语-1）
+		cchBuf = MultiByteToWideChar(CP_ACP, 0, (PCCH)pStream, cb, NULL, 0);
+		if (cchBuf == 0)
+			return {};
+		rsResult.ReSize(cchBuf);
+		MultiByteToWideChar(CP_ACP, 0, (PCCH)pStream, cb, rsResult.Data(), cchBuf);
+		break;
+	case 1:// UTF-16LE
+		if (*(PWSTR)pStream == L'\xFEFF')// 跳BOM（要不是算出来哈希值不一样我可能还真发现不了这个BOM的问题.....）
+		{
+			pStream += sizeof(WCHAR);
+			cb -= sizeof(WCHAR);
+		}
+		cchBuf = cb / sizeof(WCHAR);
+		rsResult.ReSize(cchBuf);
+		wcsncpy(rsResult.Data(), (PWSTR)pStream, cchBuf);
+		break;
+	case 2:// UTF-16BE
+		if (*(PWSTR)pStream == L'\xFFFE')// 跳BOM
+		{
+			pStream += sizeof(WCHAR);
+			cb -= sizeof(WCHAR);
+		}
+		cchBuf = cb / sizeof(WCHAR);
+		rsResult.ReSize(cchBuf);
+		LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_BYTEREV,
+			(PCWSTR)pStream, cchBuf, rsResult.Data(), cchBuf, NULL, NULL, 0);// 反转字节序
+		break;
+	case 3:// UTF-8
+		cchBuf = MultiByteToWideChar(CP_UTF8, 0, (PCCH)pStream, cb, NULL, 0);
+		if (cchBuf == 0)
+			return {};
+		rsResult.ReSize(cchBuf);
+		MultiByteToWideChar(CP_UTF8, 0, (PCCH)pStream, cb, rsResult.Data(), cchBuf);
+		break;
+	default:
+		EckDbgBreak();
+		break;
+	}
+
+	return rsResult;
+}
+
+inline BOOL GetMusicInfo(PCWSTR pszFile, MUSICINFO& mi)
+{
+	eck::CFile File;
+	if (File.Open(pszFile, eck::FCD_ONLYEXISTING, GENERIC_READ, FILE_SHARE_READ) == INVALID_HANDLE_VALUE)
+	{
+		EckDbgPrintFormatMessage(GetLastError());
+		return FALSE;
+	}
+	DWORD cbFile = File.GetSize32();
+
+	BYTE by[4];
+	File >> by;// 读文件头
+	if (memcmp(by, "ID3", 3) == 0)// ID3v2
+	{
+		if (cbFile < sizeof(ID3v2_Header))
+			return FALSE;
+
+		eck::CMappingFile2 mf(File);
+		eck::CMemReader r(mf.Create(), cbFile);
+
+		ID3v2_Header* pHeader;
+		r.SkipPointer(pHeader);
+		DWORD cbTotal = SynchSafeIntToDWORD(pHeader->Size);// 28位数据，包括标签头和扩展头
+		if (cbTotal > cbFile)
+			return FALSE;
+
+		PCVOID pEnd = r.Data() + cbTotal;
+
+		auto pExtHeader = (const ID3v2_ExtHeader*)r.Data();
+
+		if (pHeader->Ver == 3)// 2.3
+		{
+			if (pHeader->Flags & 0x20)// 有扩展头
+				r += (4 + eck::ReverseInteger(*(DWORD*)pExtHeader->ExtHeaderSize));
+		}
+		else if (pHeader->Ver == 4)// 2.4
+		{
+			if (pHeader->Flags & 0x20)// 有扩展头
+				r += SynchSafeIntToDWORD(pExtHeader->ExtHeaderSize);
+			// 2.4里变成了同步安全整数，而且这个尺寸包含了记录尺寸的四个字节
+		}
+
+		DWORD cbUnit;
+		ID3v2_FrameHeader* pFrame;
+		while (r < pEnd)
+		{
+			r.SkipPointer(pFrame);
+
+			if (pHeader->Ver == 3)
+				cbUnit = eck::ReverseInteger(*(DWORD*)pFrame->Size);// 2.3：32位数据，不包括帧头（偏4字节）
+			else if (pHeader->Ver == 4)
+				cbUnit = SynchSafeIntToDWORD(pFrame->Size);// 2.4：28位数据（同步安全整数）
+
+			if (memcmp(pFrame->ID, "TIT2", 4) == 0)// 标题
+			{
+				mi.rsTitle = GetMP3ID3v2_ProcString(r, cbUnit);
+				r += cbUnit;
+			}
+			else if (memcmp(pFrame->ID, "TPE1", 4) == 0)// 作者
+			{
+				mi.rsArtist = GetMP3ID3v2_ProcString(r, cbUnit);
+				r += cbUnit;
+			}
+			else if (memcmp(pFrame->ID, "TALB", 4) == 0)// 专辑
+			{
+				mi.rsAlbum = GetMP3ID3v2_ProcString(r, cbUnit);
+				r += cbUnit;
+			}
+			else if (memcmp(pFrame->ID, "USLT", 4) == 0)// 不同步歌词
+			{
+				/*
+				<帧头>（帧标识为USLT）
+				文本编码						$xx
+				自然语言代码					$xx xx xx
+				内容描述						<字符串> $00 (00)
+				歌词							<字符串>
+				*/
+				DWORD cb = cbUnit;
+
+				BYTE byEncodeingType;
+				r >> byEncodeingType;// 读文本编码
+
+				CHAR byLangCode[3];
+				r >> byLangCode;// 读自然语言代码
+
+				int t;
+				if (byEncodeingType == 0 || byEncodeingType == 3)// ISO-8859-1或UTF-8
+					t = (int)strlen((PCSTR)r.m_pMem) + 1;
+				else// UTF-16LE或UTF-16BE
+					t = ((int)wcslen((PCWSTR)r.m_pMem) + 1) * sizeof(WCHAR);
+				r += t;// 跳过内容描述
+
+				cb -= (t + 4);
+
+				mi.rsLrc = GetMP3ID3v2_ProcString(r, cb, byEncodeingType);
+				r += cb;
+			}
+			else if (memcmp(pFrame->ID, "COMM", 4) == 0)// 备注
+			{
+				/*
+				<帧头>（帧标识为COMM）
+				文本编码						$xx
+				自然语言代码					$xx xx xx
+				备注摘要						<字符串> $00 (00)
+				备注							<字符串>
+				*/
+				DWORD cb = cbUnit;
+
+				BYTE byEncodeingType;
+				r >> byEncodeingType;// 读文本编码
+
+				CHAR byLangCode[3];
+				r >> byLangCode;// 读自然语言代码
+
+				int t;
+				if (byEncodeingType == 0 || byEncodeingType == 3)// ISO-8859-1或UTF-8
+					t = (int)strlen((PCSTR)pFrame) + 1;
+				else// UTF-16LE或UTF-16BE
+					t = ((int)wcslen((PCWSTR)pFrame) + 1) * sizeof(WCHAR);
+				r += t;// 跳过备注摘要
+
+				cb -= (t + 4);
+				// 此时pFrame指向备注字符串
+				mi.rsComment = GetMP3ID3v2_ProcString(r, cb, byEncodeingType);
+				r += cb;
+			}
+			else if (memcmp(pFrame->ID, "APIC", 4) == 0)// 图片
+			{
+				/*
+				<帧头>（帧标识为APIC）
+				文本编码                        $xx
+				MIME 类型                       <ASCII字符串>$00（如'image/bmp'）
+				图片类型                        $xx
+				描述                            <字符串>$00(00)
+				<图片数据>
+				*/
+				DWORD cb = cbUnit;
+
+				BYTE byEncodeingType;
+				r >> byEncodeingType;// 读文本编码
+
+				int t;
+				t = (int)strlen((PCSTR)r.m_pMem);
+				r += (t + 2);// 跳过MIME类型字符串和图片类型
+
+				cb -= (t + 3);
+
+				if (byEncodeingType == 0 || byEncodeingType == 3)// ISO-8859-1或UTF-8
+					t = (int)strlen((PCSTR)r.m_pMem) + 1;
+				else// UTF-16LE或UTF-16BE
+					t = ((int)wcslen((PCWSTR)r.m_pMem) + 1) * sizeof(WCHAR);
+
+				r += t;
+				cb -= t;// 跳过描述字符串和结尾NULL
+
+				mi.pCoverData = SHCreateMemStream(r, cb);// 创建流对象
+				r += cb;
+			}
+			else
+				r += cbUnit;
+		}
+	}
+	else if (memcmp(by, "fLaC", 4) == 0)// Flac
+	{
+		FLAC_Header Header;
+		DWORD cbBlock;
+		UINT t;
+		char* pBuffer;
+		do
+		{
+			File >> Header;
+			cbBlock = Header.bySize[2] | Header.bySize[1] << 8 | Header.bySize[0] << 16;
+			switch (Header.by & 0x7F)
+			{
+			case 4:// 标签信息，注意：这一部分是小端序
+			{
+				File >> t;// 编码器信息大小
+				File += t;// 跳过编码器信息
+
+				UINT uCount;
+				File >> uCount;// 标签数量
+
+				for (UINT i = 0; i < uCount; ++i)
+				{
+					File >> t;// 标签大小
+
+					pBuffer = new char[t + 1];
+					File.Read(pBuffer, t);// 读标签
+					*(pBuffer + t) = '\0';
+
+					t = MultiByteToWideChar(CP_UTF8, 0, pBuffer, -1, NULL, 0);
+					PWSTR pszLabel = new WCHAR[t];
+					MultiByteToWideChar(CP_UTF8, 0, pBuffer, -1, pszLabel, t);// 转换编码，UTF-8到UTF-16LE
+					delete[] pBuffer;
+
+					int iPos = eck::FindStr(pszLabel, L"=");// 找等号
+					if (iPos != eck::INVALID_STR_POS)
+					{
+						int cch = t - iPos;
+						if (eck::FindStr(pszLabel, L"TITLE"))
+						{
+							mi.rsTitle.ReSize(cch);
+							wcscpy(mi.rsTitle.Data(), pszLabel + iPos);
+						}
+						else if (eck::FindStr(pszLabel, L"ALBUM"))
+						{
+							mi.rsAlbum.ReSize(cch);
+							wcscpy(mi.rsAlbum.Data(), pszLabel + iPos);
+						}
+						else if (eck::FindStr(pszLabel, L"ARTIST"))
+						{
+							mi.rsArtist.ReSize(cch);
+							wcscpy(mi.rsArtist.Data(), pszLabel + iPos);
+						}
+						else if (eck::FindStr(pszLabel, L"DESCRIPTION"))
+						{
+							mi.rsComment.ReSize(cch);
+							wcscpy(mi.rsComment.Data(), pszLabel + iPos);
+						}
+						else if (eck::FindStr(pszLabel, L"LYRICS"))
+						{
+							mi.rsLrc.ReSize(cch);
+							wcscpy(mi.rsLrc.Data(), pszLabel + iPos);
+						}
+					}
+
+					delete[] pszLabel;
+				}
+			}
+			break;
+			case 6:// 图片（大端序）
+			{
+				File += 4;// 跳过图片类型
+
+				File >> t;// MIME类型字符串长度
+				t = eck::ReverseInteger(t);// 大端序字节到整数，下同
+				File += t;// 跳过MIME类型字符串
+
+				File >> t;// 描述字符串长度
+				t = eck::ReverseInteger(t);
+				File += (t + 16);// 跳过描述字符串、宽度、高度、色深、索引图颜色数
+
+				File >> t;// 图片数据长度
+				t = eck::ReverseInteger(t);// 图片数据长度
+
+				pBuffer = new char[t];
+				File.Read(pBuffer, t);
+				mi.pCoverData = SHCreateMemStream((const BYTE*)pBuffer, t);// 创建流对象
+				delete[] pBuffer;
+			}
+			break;
+			default:
+				File += cbBlock;// 跳过块
+			}
+
+		} while (!(Header.by & 0x80));// 检查最高位，判断是不是最后一个块
+	}
+	return TRUE;
+}
+
+
+class CTestDui :public eck::Dui::CDuiWnd
+{
+public:
+	eck::Dui::CLabel m_Label{};
+	eck::Dui::CLabel m_Label2{};
+	eck::Dui::CButton m_Btn{};
+	eck::Dui::CList m_List{};
+
+	eck::CD2dImageList m_il{ 80, 80 };
+
+	struct ITEM
+	{
+		eck::CRefStrW rs;
+		int idxImg;
+	};
+	std::vector<ITEM> m_vItem{};
+
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
+	{
+		IWICBitmapDecoder* pDecoder;
+		IWICBitmap* pWicBmp;
+		ID2D1Bitmap* pBitmap;
+		switch (uMsg)
+		{
+		case eck::Dui::WM_DRAGENTER:
+		case eck::Dui::WM_DRAGOVER:
+		{
+			auto p = (eck::Dui::DRAGDROPINFO*)wParam;
+			*(p->pdwEffect) = DROPEFFECT_COPY;
+		}
+		case eck::Dui::WM_DRAGLEAVE:
+			return TRUE;
+		case eck::Dui::WM_DROP:
+		{
+			auto p = (eck::Dui::DRAGDROPINFO*)wParam;
+			FORMATETC fe = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+			STGMEDIUM sm{ TYMED_HGLOBAL };
+
+			if (p->pDataObj->GetData(&fe, &sm) == S_OK)
+			{
+				HDROP hDrop = (HDROP)sm.hGlobal;
+				UINT uFileCount = DragQueryFileW(hDrop, 0xFFFFFFFF, NULL, 0);
+				for (UINT i = 0; i < uFileCount; ++i)
+				{
+					WCHAR szFile[MAX_PATH];
+					DragQueryFileW(hDrop, i, szFile, ARRAYSIZE(szFile));
+					MUSICINFO mi;
+					GetMusicInfo(szFile, mi);
+					int idxImg = -1;
+					if(SUCCEEDED( eck::CreateWicBitmapDecoder(mi.pCoverData, pDecoder)))
+						if (SUCCEEDED(eck::CreateWicBitmap(pWicBmp, pDecoder, 80, 80)))
+							if (SUCCEEDED(GetD2D().GetDC()->CreateBitmapFromWicBitmap(pWicBmp, &pBitmap)))
+								idxImg = m_il.AddImage(pBitmap);
+					m_vItem.emplace_back(PathFindFileNameW(szFile), idxImg);
+					
+					eck::SafeRelease(pBitmap);
+					eck::SafeRelease(pDecoder);
+					eck::SafeRelease(pWicBmp);
+					
+					//m_Label2.SetText(mi.rsTitle);
+					//m_Label2.SetPic(mi.pCoverData);
+				}
+				DragFinish(hDrop);
+				m_List.SetItemCount((int)m_vItem.size());
+			}
+		}
+		return TRUE;
+
+		case WM_CREATE:
+		{
+			auto lResult = CDuiWnd::OnMsg(hWnd, uMsg, wParam, lParam);
+
+			eck::LoadD2dBitmap(LR"(E:\Desktop\Temp\壁纸.bmp)", GetD2D().GetDC(), pBitmap);
+
+			auto sizez = pBitmap->GetSize();
+			m_il.BindRenderTarget(GetD2D().GetDC());
+			//SetBkgBitmap(pBitmap);
+
+
+
+			m_List.Create(NULL, eck::Dui::DES_VISIBLE | eck::Dui::DES_HAS_TRANSPARENT_CHILD, 0,
+				50, 70, 600, 600, NULL, this, NULL);
+			m_List.SetTextFormat(GetDefTextFormat());
+			m_List.SetItemHeight(70.f);
+			m_List.SetImageSize(-1.f);
+			m_List.SetItemPadding(5.f);
+			/*m_vItem.resize(100);
+			EckCounter(m_vItem.size(), i)
+			{
+				m_il.AddImage(pBitmap);
+				m_vItem[i].rs = eck::ToStr(i);
+				m_vItem[i].pBitmap = pBitmap;
+			}
+			m_List.SetItemCount((int)m_vItem.size());*/
+			m_List.SetImageList(&m_il);
+			m_List.SetInsertMark(5);
+			m_List.SetTopExtraSpace(100);
+			m_List.SetBottomExtraSpace(100);
+
+			m_Label2.Create(L"测试标签😍😍", eck::Dui::DES_VISIBLE | eck::Dui::DES_BLURBKG | 0, 0,
+				0, 0, 600, 100, &m_List, this, NULL);
+			m_Label2.SetTextFormat(GetDefTextFormat());
+
+			m_Label.Create(L"我是标签",
+				eck::Dui::DES_VISIBLE | eck::Dui::DES_BLURBKG, 0,
+				0, 500, 600, 100, &m_List, this, NULL);
+			m_Label.SetTextFormat(GetDefTextFormat());
+
+			//m_Btn.Create(L"按钮测试按钮测试按钮测试", eck::Dui::DES_VISIBLE, 0,
+			//	100, 300, 300, 70, NULL, this, NULL);
+			//m_Btn.SetTextFormat(GetDefTextFormat());
+			//ID2D1Bitmap* pBmp;
+			//eck::LoadD2dBitmap(LR"(D:\@重要文件\@我的工程\PlayerNew\Res\Tempo.png)",
+			//	GetD2D().GetDC(), pBmp, 54, 54);
+			//m_Btn.SetImage(pBmp);
+			//pBmp->Release();
+
+			if (pBitmap)
+				pBitmap->Release();
+
+			EnableDragDrop(TRUE);
+			return lResult;
+		}
+		break;
+		}
+
+		return CDuiWnd::OnMsg(hWnd, uMsg, wParam, lParam);
+	}
+
+	LRESULT OnElemEvent(eck::Dui::CElem* pElem, UINT uMsg, WPARAM wParam, LPARAM lParam) override
+	{
+		using namespace eck::Dui;
+		switch (uMsg)
+		{
+		case LEE_GETDISPINFO:
+		{
+			auto p = (LEEDISPINFO*)lParam;
+			const auto& e = m_vItem[p->idx];
+			p->pszText = e.rs.Data();
+			p->cchText = e.rs.Size();
+			p->idxImg = e.idxImg;
+			//p->pImage = e.pBitmap;
+			//auto s = e.pBitmap->GetSize();
+			//p->cxImage = s.width;
+			//p->cyImage = s.height;
+		}
+		return 0;
+		}
+	}
+
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+	{
+		IntCreate(dwExStyle, WCN_TEST, pszText, dwStyle,
+			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, this);
+		return m_hWnd;
+	}
+};
 
 class CTestWnd :public eck::CForm
 {
@@ -58,6 +590,8 @@ private:
 	eck::CAnimationBox m_AB{};
 	eck::CTreeList m_TL{};
 	eck::CListViewExt m_lve{};
+
+	CTestDui m_Dui{};
 
 	eck::CFlowLayout m_lot{};
 
@@ -307,46 +841,92 @@ public:
 			//m_lot.Add(&m_LBN, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 			m_iDpi = eck::GetDpi(hWnd);
 
-			hCDCBK = CreateCompatibleDC(NULL);
-			auto hbm = eck::CreateHBITMAP(LR"(E:\Desktop\Temp\DC802FE9979A460BBA8E757382343EB4.jpg)");
-			SelectObject(hCDCBK, hbm);
-			BITMAP bb;
-			GetObjectW(hbm, sizeof(bb), &bb);
-			cx = bb.bmWidth;
-			cy = bb.bmHeight;
+			//hCDCBK = CreateCompatibleDC(NULL);
+			//auto hbm = eck::CreateHBITMAP(LR"(E:\Desktop\Temp\DC802FE9979A460BBA8E757382343EB4.jpg)");
+			//SelectObject(hCDCBK, hbm);
+			//BITMAP bb;
+			//GetObjectW(hbm, sizeof(bb), &bb);
+			//cx = bb.bmWidth;
+			//cy = bb.bmHeight;
 
-			m_il = ImageList_Create(eck::DpiScale(16, m_iDpi), eck::DpiScale(16, m_iDpi),
-				ILC_COLOR32 | ILC_ORIGINALSIZE, 0, 40);
-			data.push_back(wdbuf.Alloc(1));
-			EnumWnd(GetDesktopWindow(), data[0], flatdata);
+			//m_il = ImageList_Create(eck::DpiScale(16, m_iDpi), eck::DpiScale(16, m_iDpi),
+			//	ILC_COLOR32 | ILC_ORIGINALSIZE, 0, 40);
 
-			m_TL.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
-				0, 0, 1200, 1000, hWnd, 106);
-			auto& h = m_TL.GetHeader();
-			h.InsertItem(L"HWND", -1, 360);
-			h.InsertItem(L"szClsName", -1, 360);
-			h.InsertItem(L"szText", -1, 400);
-			m_TL.SetEditLabel(TRUE);
-			//auto& tl = m_TL.GetToolTip();
-			//tl.ModifyStyle(0, TTS_NOANIMATE);
-			m_TL.SetHasCheckBox(TRUE);
-			m_TL.SetHasLines(TRUE);
-			m_TL.SetImageList(m_il);
-			m_TL.SetWatermarkString(L"水印测试。\n我是第二行水印。");
-			m_TL.BuildTree();
-			//m_TL.SetBackgroundNotSolid(TRUE);
-			//m_TL.SetSingleSelect(TRUE);
-			//m_lve.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
-			//	0, 0, 1200, 1000, hWnd, 107);
-			m_lot.Add(&m_TL, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+			//HWND h = GetDesktopWindow();
+			//BOOL b;
+			//auto hicon = eck::GetWindowIcon(h, b, TRUE);
+			//int idx = -1;
+			//if (hicon)
+			//	idx = ImageList_AddIcon(m_il, hicon);
+			//if (b)
+			//	DestroyIcon(hicon);
 
-			m_Edit.Create(L"", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 0,
-				0, 0, 200, 100, hWnd, 102);
-			m_Edit.SetFrameType(1);
-			m_lot.Add(&m_Edit, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+			//data.push_back(wdbuf.Alloc(1, eck::TLNODE{ 0,0,0,idx,-1 }, h));
+			//auto p = data.back();
+			//p->rs[0].Format(L"0x%08X", h);
+			//p->rs[1] = eck::CWnd(h).GetClsName();
+			//p->rs[2] = eck::CWnd(h).GetText();
+			//EnumWnd(GetDesktopWindow(), data[0], flatdata);
 
-			m_Btn.Create(L"筛选", WS_CHILD | WS_VISIBLE, 0, 0, 0, 300, 70, hWnd, 101);
-			m_lot.Add(&m_Btn, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+			//h = HWND_MESSAGE;
+			//data.push_back(wdbuf.Alloc(1, eck::TLNODE{ 0,0,0,-1,-1 }, h));
+			//p = data.back();
+			//p->rs[0].Format(L"0x%08X", h);
+			//p->rs[1] = L"HWND_MESSAGE";
+			//p->rs[2] = L"HWND_MESSAGE";
+
+			//HWND hMo{};
+			//while (hMo = FindWindowExW(HWND_MESSAGE, hMo, 0, 0))
+			//{
+			//	BOOL b;
+			//	auto hicon = eck::GetWindowIcon(hMo, b, TRUE);
+			//	int idx = -1;
+			//	if (hicon)
+			//		idx = ImageList_AddIcon(m_il, hicon);
+			//	if (b)
+			//		DestroyIcon(hicon);
+			//	//EnumWnd(h, data->Children.emplace_back(new WNDDATA{ {},h }));
+			//	auto p0 = wdbuf.Alloc(1, eck::TLNODE{ 0,0,0,idx,-1 }, hMo);
+			//	p0->rs[0].Format(L"0x%08X", hMo);
+			//	p0->rs[1] = eck::CWnd(hMo).GetClsName();
+			//	p0->rs[2] = eck::CWnd(hMo).GetText();
+			//	flatdata.emplace_back(p0);
+			//	//p->Children.emplace_back(p0);
+			//	EnumWnd(hMo, p->Children.emplace_back(p0), flatdata);
+			//}
+
+			//m_TL.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
+			//	0, 0, 1200, 1000, hWnd, 106);
+			//auto& he = m_TL.GetHeader();
+			//he.InsertItem(L"HWND", -1, 360);
+			//he.InsertItem(L"szClsName", -1, 360);
+			//he.InsertItem(L"szText", -1, 400);
+			//m_TL.SetEditLabel(TRUE);
+			//EckDbgPrint(flatdata.size());
+			////auto& tl = m_TL.GetToolTip();
+			////tl.ModifyStyle(0, TTS_NOANIMATE);
+			//m_TL.SetHasCheckBox(TRUE);
+			//m_TL.SetHasLines(TRUE);
+			//m_TL.SetImageList(m_il);
+			//m_TL.SetWatermarkString(L"水印测试。\n我是第二行水印。");
+			//m_TL.BuildTree();
+			////m_TL.SetBackgroundNotSolid(TRUE);
+			////m_TL.SetSingleSelect(TRUE);
+			////m_lve.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
+			////	0, 0, 1200, 1000, hWnd, 107);
+			//m_lot.Add(&m_TL, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+
+			//m_Edit.Create(L"", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 0,
+			//	0, 0, 200, 100, hWnd, 102);
+			//m_Edit.SetFrameType(1);
+			//m_lot.Add(&m_Edit, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+
+			m_Btn.Create(L"筛选", WS_CHILD | WS_VISIBLE, 0, 900, 0, 300, 70, hWnd, 101);
+			//m_lot.Add(&m_Btn, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+			
+			RECT rcDui{ 0,0,900,700 };
+			m_Dui.Create(L"我是 Dui 窗口", WS_CHILD | WS_VISIBLE, 0, 0, 0, rcDui.right, rcDui.bottom, hWnd, 108);
+			m_Dui.Redraw(rcDui);
 
 			m_hFont = eck::CreateDefFont();
 			eck::SetFontForWndAndCtrl(hWnd, m_hFont);
@@ -366,8 +946,10 @@ public:
 					auto p = (eck::NMTLFILLCHILDREN*)lParam;
 					if (p->bQueryRoot)
 					{
-						p->cChildren = (int)data[0]->Children.size();
-						p->pChildren = (eck::TLNODE**)data[0]->Children.data();
+						p->cChildren = (int)data.size();
+						p->pChildren = (eck::TLNODE**)data.data();
+						/*p->cChildren = (int)data[0]->Children.size();
+						p->pChildren = (eck::TLNODE**)data[0]->Children.data();*/
 					}
 					else
 					{
@@ -541,6 +1123,11 @@ public:
 		{
 			if ((HWND)lParam == m_Btn.GetHWND() && HIWORD(wParam) == BN_CLICKED)
 			{
+				auto rc = m_Dui.m_Label2.GetRect();
+				m_Dui.m_Label2.SetRect({ rc.left + 10,rc.top ,rc.right + 10,rc.bottom });
+				m_Dui.CWnd::Redraw();
+				break;
+
 				auto rs = m_Edit.GetText();
 				if (rs.IsEmpty())
 					for (auto e : flatdata)
@@ -574,6 +1161,9 @@ public:
 
 		}
 		break;
+		case WM_DESTROY:
+			PostQuitMessage(0);
+			break;
 		}
 		return CForm::OnMsg(hWnd, uMsg, wParam, lParam);
 	}

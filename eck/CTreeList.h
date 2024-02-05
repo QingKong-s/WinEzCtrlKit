@@ -1474,8 +1474,11 @@ private:
 			if (!m_bSingleSel && (GetAsyncKeyState(VK_CONTROL) & 0x8000))
 			{
 				SelectRangeForClick(0, (int)m_vItem.size() - 1, idxChangeBegin, idxChangeEnd);
-				RedrawItem(idxChangeBegin, idxChangeEnd);
-				UpdateWindow(hWnd);
+				if (idxChangeBegin >= 0)
+				{
+					RedrawItem(idxChangeBegin, idxChangeEnd);
+					UpdateWindow(hWnd);
+				}
 			}
 		}
 		return;
@@ -3205,6 +3208,7 @@ public:
 				TL_IDC_EDIT);
 			m_Edit.SetFrameType(5);
 			m_Edit.SetFont(m_hFont);
+			m_Edit.SelAll();
 			m_Edit.Show(SW_SHOW);
 			m_bBuildInEditChanged = FALSE;
 			SetFocus(m_Edit.HWnd);
@@ -3305,7 +3309,7 @@ public:
 			EckCounter(m_vItem.size(), i)
 			{
 				int cchText;
-				const auto pszText = GetItemText(i, idxCol, &cchText);
+				const auto pszText = GetItemText((int)i, idxCol, &cchText);
 				SIZE size;
 				GetTextExtentPoint32W(m_DC.GetDC(), pszText, cchText, &size);
 				if (size.cx > hdi.cxy)
@@ -3319,7 +3323,7 @@ public:
 			EckCounter(m_vItem.size(), i)
 			{
 				int cchText;
-				const auto pszText = GetItemText(i, idxCol, &cchText);
+				const auto pszText = GetItemText((int)i, idxCol, &cchText);
 				SIZE size;
 				GetTextExtentPoint32W(m_DC.GetDC(), pszText, cchText, &size);
 				if (size.cx > hdi.cxy)

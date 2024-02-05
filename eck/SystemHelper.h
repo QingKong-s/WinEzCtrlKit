@@ -614,4 +614,29 @@ EckInline HFONT CreateDefFont()
 	SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0);
 	return CreateFontIndirectW(&lf);
 }
+
+EckInline BOOL GetDefFontInfo(LOGFONTW& lf)
+{
+	return SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0);
+}
+
+EckInline IDWriteTextFormat* CreateDefTextFormat(int iDpi = USER_DEFAULT_SCREEN_DPI, HRESULT* phr = NULL)
+{
+	LOGFONTW lf;
+	if (!GetDefFontInfo(lf))
+		return NULL;
+	IDWriteTextFormat* pTextFormat;
+	auto hr = g_pDwFactory->CreateTextFormat(
+		lf.lfFaceName,
+		NULL,
+		(DWRITE_FONT_WEIGHT)lf.lfWeight,
+		lf.lfItalic ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL,
+		DpiScaleF(Abs(lf.lfHeight), iDpi),
+		L"zh-cn",
+		&pTextFormat);
+	if (phr)
+		*phr = hr;
+	return pTextFormat;
+}
 ECK_NAMESPACE_END
