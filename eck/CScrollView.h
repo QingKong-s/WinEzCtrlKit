@@ -145,22 +145,18 @@ public:
 			return;
 		EckAssert(xy >= GetThumbPos() && xy <= GetThumbPos() + GetThumbSize());
 		m_oxyThumbCursor = xy - GetThumbPos();
+		EckDbgPrint(m_oxyThumbCursor);
 	}
 
-	void OnMouseMove(int xy)
+	EckInline void OnMouseMove(int xy)
 	{
 		EckAssert(m_bLBtnDown);
 		if (!IsValid())
 			return;
-		const int d = GetRangeDistance();
-		if (d <= 0)
-			return;
-		int iPos = (xy - m_oxyThumbCursor) * d / (GetViewSize() - GetThumbSize());
-		if (iPos < GetMin())
-			iPos = GetMin();
-		else if (iPos > GetMaxWithPage())
-			iPos = GetMaxWithPage();
-		SetPos(iPos);
+		SetPos(GetMin() +
+			(xy - m_oxyThumbCursor) *
+			GetRangeDistance() /
+			(GetViewSize() - GetThumbSize()));
 	}
 
 	EckInline void OnLButtonUp()
@@ -195,7 +191,7 @@ public:
 		m_Timer.SetMsg(s_uTimerNotify);
 	}
 
-	static LRESULT CALLBACK SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+	static LRESULT CALLBACK SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 	{
 		auto p = (CInertialScrollView*)dwRefData;
 		if (uMsg == s_uTimerNotify && wParam == p->m_Timer.GetID())

@@ -1857,54 +1857,66 @@ inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp,
 	const D2D1_RECT_F& rc, float fDeviation = 3.f)
 {
 	HRESULT hr;
-	ID2D1Effect* pEffect;
-	if (FAILED(hr = pDC->CreateEffect(CLSID_D2D1GaussianBlur, &pEffect)))
+	ID2D1Effect* pFxBlur;
+	if (FAILED(hr = pDC->CreateEffect(CLSID_D2D1GaussianBlur, &pFxBlur)))
 		return hr;
-	pEffect->SetValue(D2D1_GAUSSIANBLUR_PROP_BORDER_MODE, D2D1_BORDER_MODE_HARD);
-	pEffect->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, fDeviation);
+	pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_BORDER_MODE, D2D1_BORDER_MODE_HARD);
+	pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, fDeviation);
 
 	ID2D1Bitmap* pBmpEffect;
 	if (FAILED(hr = pDC->CreateBitmap({ (UINT32)(rc.right - rc.left), (UINT32)(rc.bottom - rc.top) },
 		D2D1::BitmapProperties(pBmp->GetPixelFormat()), &pBmpEffect)))
 	{
-		pEffect->Release();
+		pFxBlur->Release();
 		return hr;
 	}
 	const D2D1_RECT_U rcU{ (UINT32)rc.left, (UINT32)rc.top, (UINT32)rc.right, (UINT32)rc.bottom };
 	pBmpEffect->CopyFromBitmap(NULL, pBmp, &rcU);
 
-	pEffect->SetInput(0, pBmpEffect);
+	pFxBlur->SetInput(0, pBmpEffect);
 
 	const auto iBlend = pDC->GetPrimitiveBlend();
 	pDC->SetPrimitiveBlend(D2D1_PRIMITIVE_BLEND_COPY);
-	pDC->DrawImage(pEffect, { rc.left,rc.top });
+	pDC->DrawImage(pFxBlur, { rc.left,rc.top });
 	pDC->SetPrimitiveBlend(iBlend);
 
 	pBmpEffect->Release();
-	pEffect->Release();
+	pFxBlur->Release();
 	return S_OK;
 }
 
 inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, ID2D1Bitmap*& pBmpWork, 
 	const D2D1_RECT_F& rc, float fDeviation = 3.f)
 {
-	HRESULT hr;
-	ID2D1Effect* pEffect;
-	hr = pDC->CreateEffect(CLSID_D2D1GaussianBlur, &pEffect);
-	if (FAILED(hr))
-		return hr;
-	pEffect->SetValue(D2D1_GAUSSIANBLUR_PROP_BORDER_MODE, D2D1_BORDER_MODE_HARD);
-	pEffect->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, fDeviation);
-
 	const D2D1_SIZE_U sizeNew{ (UINT32)(rc.right - rc.left), (UINT32)(rc.bottom - rc.top) };
 	const auto sizeOld = pBmpWork ? pBmpWork->GetSize() : D2D1_SIZE_F{};
+	HRESULT hr;
+
+	ID2D1Effect* pFxBlur;
+	hr = pDC->CreateEffect(CLSID_D2D1GaussianBlur, &pFxBlur);
+	if (FAILED(hr))
+		return hr;
+	pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_BORDER_MODE, D2D1_BORDER_MODE_HARD);
+	pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, fDeviation);
+
+	ID2D1Effect* pFxCrop;
+	hr = pDC->CreateEffect(CLSID_D2D1Crop, &pFxCrop);
+	if (FAILED(hr))
+	{
+		pFxBlur->Release();
+		return hr;
+	}
+	pFxCrop->SetValue(D2D1_CROP_PROP_RECT,
+		D2D1::RectF(0.f, 0.f, (float)sizeNew.width, (float)sizeNew.height));
+
 	if (sizeNew.width > sizeOld.width || sizeNew.height > sizeOld.height)
 	{
 		SafeRelease(pBmpWork);
 		if (FAILED(hr = pDC->CreateBitmap(sizeNew,
 			D2D1::BitmapProperties(pBmp->GetPixelFormat()), &pBmpWork)))
 		{
-			pEffect->Release();
+			pFxBlur->Release();
+			pFxCrop->Release();
 			return hr;
 		}
 	}
@@ -1912,14 +1924,16 @@ inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, ID2D1Bitmap
 	const D2D1_RECT_U rcU{ (UINT32)rc.left, (UINT32)rc.top, (UINT32)rc.right, (UINT32)rc.bottom };
 	pBmpWork->CopyFromBitmap(NULL, pBmp, &rcU);
 
-	pEffect->SetInput(0, pBmpWork);
+	pFxCrop->SetInput(0, pBmpWork);
+	pFxBlur->SetInputEffect(0, pFxCrop);
 
 	const auto iBlend = pDC->GetPrimitiveBlend();
 	pDC->SetPrimitiveBlend(D2D1_PRIMITIVE_BLEND_COPY);
-	pDC->DrawImage(pEffect, { rc.left,rc.top });
+	pDC->DrawImage(pFxBlur, { rc.left,rc.top });
 	pDC->SetPrimitiveBlend(iBlend);
 
-	pEffect->Release();
+	pFxBlur->Release();
+	pFxCrop->Release();
 	return S_OK;
 }
 ECK_NAMESPACE_END
