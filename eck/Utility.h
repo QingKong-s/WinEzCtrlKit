@@ -211,7 +211,7 @@ EckInline constexpr TRet BytesToInteger(T... by)
 			++i;
 			return by << (8 * (i - 1));
 		};
-	return (TRet)(... | fn(by));
+	return (TRet)(... | fn((BYTE)by));
 }
 
 EckInline constexpr UINT ReverseColorref(COLORREF cr)

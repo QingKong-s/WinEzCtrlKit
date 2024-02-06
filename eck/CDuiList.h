@@ -95,7 +95,7 @@ private:
 		;
 	ECK_DS_END_VAR(m_DsF);
 
-	void DrawItem(int idx, const D2D1_RECT_F& rcReal)
+	void DrawItem(int idx)
 	{
 		auto& e = m_vItem[idx];
 		LEEDISPINFO es{ LEIM_TEXT | LEIM_IMAGE,idx };
@@ -108,6 +108,7 @@ private:
 		}
 
 		const float fRad = m_pWnd->GetDs().CommRrcRadius;
+		const D2D1_RECT_F rcReal{ MakeD2DRcF(GetRectInClient()) };
 		D2D1_ROUNDED_RECT rrc{ { rcReal.left,rcReal.top + GetItemY(idx),rcReal.right },fRad,fRad };
 		rrc.rect.bottom = rrc.rect.top + m_cyItem;
 
@@ -137,7 +138,7 @@ private:
 		rrc.rect.right = rrc.rect.left + m_cxyImage;
 		rrc.rect.top += yImage;
 		rrc.rect.bottom = rrc.rect.top + m_cxyImage;
-		if(es.pImg)
+		if (es.pImg)
 			m_pDC->DrawBitmap(es.pImg, rrc.rect, 1.f, D2D1_INTERPOLATION_MODE_LINEAR);
 		else if (m_pImgList && es.idxImg >= 0)
 			m_pImgList->Draw(es.idxImg, rrc.rect);
@@ -146,7 +147,7 @@ private:
 		{
 			m_pBrush->SetColor(D2D1::ColorF(0x000000));
 			m_pDC->DrawTextLayout(D2D1::Point2F(
-				rrc.rect.right + xImage, 
+				rrc.rect.right + xImage,
 				rcOld.top),
 				e.pLayout, m_pBrush);
 		}
@@ -155,9 +156,9 @@ private:
 	void ReCalcScroll()
 	{
 		m_Sv.SetMinThumbSize(m_DsF.minSBThumbSize);
-		m_Sv.SetViewSize(m_rc.bottom - m_rc.top);
-		m_Sv.SetRange(-m_cyTopExtra, m_vItem.size() * (m_cyItem + m_cyPadding) + m_cyBottomExtra);
-		m_Sv.SetPage(m_rc.bottom - m_rc.top);
+		m_Sv.SetViewSize(GetHeight() - m_cyTopExtra - m_cyBottomExtra);
+		m_Sv.SetRange(-m_cyTopExtra, (int)m_vItem.size() * (m_cyItem + m_cyPadding) + m_cyBottomExtra);
+		m_Sv.SetPage(GetHeight());
 	}
 
 	void ReCalcTopItem()
@@ -166,14 +167,27 @@ private:
 		m_oyTopItem = m_idxTop * (m_cyItem + m_cyPadding) - m_Sv.GetPos();
 	}
 
-	BOOL GetSBThumbRectFromClientRect(D2D1_RECT_F& rc)
+	BOOL GetSBThumbRectInClient(RECT& rc)
 	{
 		const int cyThumb = m_Sv.GetThumbSize();
 		const int yThumb = m_Sv.GetThumbPos(cyThumb);
 		if (cyThumb < 0 || yThumb < 0)
 			return FALSE;
-		rc.left = rc.right - m_DsF.cxSBThumb;
-		rc.top += yThumb;
+		rc.left = (long)(GetRectInClient().right - m_DsF.cxSBThumb);
+		rc.top = GetRectInClient().top + m_cyTopExtra + yThumb;
+		rc.right = (long)(rc.left + m_DsF.cxSBThumb);
+		rc.bottom = rc.top + cyThumb;
+		return TRUE;
+	}
+
+	BOOL GetSBThumbRectInClient(D2D1_RECT_F& rc)
+	{
+		const int cyThumb = m_Sv.GetThumbSize();
+		const int yThumb = m_Sv.GetThumbPos(cyThumb);
+		if (cyThumb < 0 || yThumb < 0)
+			return FALSE;
+		rc.left = GetRectInClientF().right - m_DsF.cxSBThumb;
+		rc.top = GetRectInClientF().top + m_cyTopExtra + yThumb;
 		rc.right = rc.left + m_DsF.cxSBThumb;
 		rc.bottom = rc.top + cyThumb;
 		return TRUE;
@@ -187,18 +201,20 @@ private:
 		if (cyThumb < 0 || yThumb < 0)
 			return FALSE;
 		rc.left = m_rc.right - m_rc.left - m_DsF.cxSBThumb;
-		rc.top = yThumb;
+		rc.top = m_cyTopExtra + yThumb;
 		rc.right = rc.left + m_DsF.cxSBThumb;
 		rc.bottom = rc.top + cyThumb;
 		return TRUE;
 	}
 
 	// 客户坐标
-	void PaintScrollBar(const D2D1_RECT_F& rcReal)
+	void PaintScrollBar()
 	{
 		const int cxThumb = (m_bHoverThumb ? m_DsF.cxSBThumb : m_DsF.cxSBThumbSmall);
-		D2D1_ROUNDED_RECT rrc{ rcReal,cxThumb / 2.f,m_DsF.cxSBThumb / 2.f };
-		if (!GetSBThumbRectFromClientRect(rrc.rect))
+		D2D1_ROUNDED_RECT rrc;
+		rrc.radiusX = cxThumb / 2.f;
+		rrc.radiusY = m_DsF.cxSBThumb / 2.f;
+		if (!GetSBThumbRectInClient(rrc.rect))
 			return;
 		if (!m_bHoverThumb)
 			rrc.rect.right = rrc.rect.left + m_DsF.cxSBThumbSmall;
@@ -208,11 +224,9 @@ private:
 
 	void RedrawThumb()
 	{
-		D2D1_RECT_F rc = m_rcf;
-		if (m_pParent)
-			m_pParent->ElemToParent(rc);
-		GetSBThumbRectFromClientRect(rc);
-		m_pWnd->Redraw(rc);
+		RECT rc;
+		GetSBThumbRectInClient(rc);
+		InvalidateRect(&rc);
 	}
 
 	void UpdateInsertMarkGeometry()
@@ -263,28 +277,61 @@ public:
 		m_vItem.resize(c);
 		ReCalcScroll();
 		ReCalcTopItem();
-		Redraw();
+		InvalidateRect();
 	}
 
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)
 		{
+		case WM_PAINT:
+		{
+			ELEMPAINTSTRU ps;
+			BeginPaint(ps, wParam, lParam);
+			m_pBrush->SetColor(D2D1::ColorF(0xffffff));
+			m_pDC->FillRectangle(ps.rcfClip, m_pBrush);
+			if (!m_vItem.empty())
+			{
+				auto rcClipElem = *ps.prcClip;
+				ClientToElem(rcClipElem);
+				const int idxBegin = std::max(ItemFromY(rcClipElem.top), 0);
+				const int idxEnd = std::min(ItemFromY(rcClipElem.bottom) + 1, (int)m_vItem.size() - 1);
+				for (size_t i = idxBegin; i <= idxEnd; ++i)
+					DrawItem(i);
+				PaintScrollBar();
+
+				if (m_idxInsertMark >= 0)
+				{
+					D2D1_RECT_F rcIm;
+					GetInsertMarkRect(rcIm);
+					if (rcIm.bottom > 0.f && rcIm.top < GetHeightF())
+					{
+						m_pDC1->SetTransform(D2D1::Matrix3x2F::Translation(
+							GetRectInClientF().left, GetRectInClientF().top + rcIm.top));
+						m_pBrush->SetColor(D2D1::ColorF(0x000000));
+						m_pDC1->DrawGeometryRealization(m_pGrInsertMark, m_pBrush);
+						m_pDC1->SetTransform(D2D1::Matrix3x2F::Identity());
+					}
+				}
+			}
+			EndPaint(ps);
+		}
+		return 0;
 		case WM_MOUSEMOVE:
 		{
 			LEHITTEST ht{ ECK_GET_PT_LPARAM(lParam) };
-			ParentToElem(ht.pt);
+			ClientToElem(ht.pt);
 
 			if (m_bThumbDrag)
 			{
-				m_Sv.OnMouseMove(ht.pt.y);
+				m_Sv.OnMouseMove(ht.pt.y - m_cyTopExtra);
 				ReCalcTopItem();
-				Redraw();
+				InvalidateRect();
 				return 0;
 			}
 
 			int idx = HitTest(ht);
-			
+
 			if (ht.bSBThumb != m_bHoverThumb)
 			{
 				m_bHoverThumb = ht.bSBThumb;
@@ -299,13 +346,13 @@ public:
 				{
 					GetItemRect(idx, rc);
 					ElemToParent(rc);
-					m_pWnd->Redraw(rc);
+					InvalidateRect(&rc);
 				}
 				if (m_idxHot >= 0)
 				{
 					GetItemRect(m_idxHot, rc);
 					ElemToParent(rc);
-					m_pWnd->Redraw(rc);
+					InvalidateRect(&rc);
 				}
 			}
 		}
@@ -319,8 +366,8 @@ public:
 				std::swap(m_idxHot, idx);
 				RECT rc;
 				GetItemRect(idx, rc);
-				ElemToParent(rc);
-				m_pWnd->Redraw(rc);
+				ElemToClient(rc);
+				InvalidateRect(&rc);
 			}
 
 			if (m_bHoverThumb)
@@ -338,7 +385,7 @@ public:
 				{
 					auto pThis = (CList*)lParam;
 					pThis->ReCalcTopItem();
-					pThis->Redraw();
+					pThis->InvalidateRect();
 				}, (LPARAM)this);
 		}
 		return 0;
@@ -351,20 +398,20 @@ public:
 		case WM_LBUTTONDOWN:
 		{
 			LEHITTEST ht{ ECK_GET_PT_LPARAM(lParam) };
-			ParentToElem(ht.pt);
+			ClientToElem(ht.pt);
 			int idx = HitTest(ht);
 			if (idx >= 0)
 			{
 				if (!(wParam & MK_CONTROL))
 					DeselectAll();
 				SelectItemForClick(idx);
-				Redraw();
+				InvalidateRect();
 			}
 			else if (ht.bSBThumb)
 			{
 				m_bThumbDrag = TRUE;
-				m_Sv.OnLButtonDown(ht.pt.y);
-				m_pWnd->SetCaptureElem(this);
+				m_Sv.OnLButtonDown(ht.pt.y - m_cyTopExtra);
+				SetCapture();
 			}
 		}
 		return 0;
@@ -416,37 +463,6 @@ public:
 		return 0;
 		}
 		return CElem::OnEvent(uMsg, wParam, lParam);
-	}
-
-	void OnRedraw(const D2D1_RECT_F& rcClip, float ox, float oy) override
-	{
-		ECK_DUI_BEGINREDRAW;
-		m_pBrush->SetColor(D2D1::ColorF(0xffffff));
-		m_pDC->FillRectangle(rcClip, m_pBrush);
-		if (!m_vItem.empty())
-		{
-			auto rcClipElem = MakeRect(rcClip);
-			ParentToElem(rcClipElem);
-			const int idxBegin = std::max(ItemFromY(rcClipElem.top - oy), 0);
-			const int idxEnd = std::min(ItemFromY(rcClipElem.bottom - oy) + 1, (int)m_vItem.size() - 1);
-			for (size_t i = idxBegin; i <= idxEnd; ++i)
-				DrawItem(i, rc);
-			PaintScrollBar(rc);
-
-			if (m_idxInsertMark >= 0)
-			{
-				D2D1_RECT_F rcIm;
-				GetInsertMarkRect(rcIm);
-				if (rcIm.bottom > 0.f && rcIm.top < GetHeightF())
-				{
-					m_pDC1->SetTransform(D2D1::Matrix3x2F::Translation(rc.left, rc.top + rcIm.top));
-					m_pBrush->SetColor(D2D1::ColorF(0x000000));
-					m_pDC1->DrawGeometryRealization(m_pGrInsertMark, m_pBrush);
-					m_pDC1->SetTransform(D2D1::Matrix3x2F::Identity());
-				}
-			}
-		}
-		ECK_DUI_ENDREDRAW;
 	}
 
 	int GetItemY(int idx) const
@@ -558,7 +574,8 @@ public:
 		m_idxInsertMark = idx;
 		D2D1_RECT_F rc;
 		GetInsertMarkRect(rc);
-		m_pWnd->Redraw(rc);
+		ElemToClient(rc);
+		InvalidateRectF(&rc);
 	}
 
 	void InvalidateCache(int idx)

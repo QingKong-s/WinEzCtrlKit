@@ -408,12 +408,17 @@ inline BOOL GetMusicInfo(PCWSTR pszFile, MUSICINFO& mi)
 	return TRUE;
 }
 
+class CMyPage :public eck::Dui::CElem
+{
+
+};
 
 class CTestDui :public eck::Dui::CDuiWnd
 {
 public:
 	eck::Dui::CLabel m_Label{};
 	eck::Dui::CLabel m_Label2{};
+	eck::Dui::CLabel m_Label3{};
 	eck::Dui::CButton m_Btn{};
 	eck::Dui::CList m_List{};
 
@@ -485,12 +490,13 @@ public:
 
 			auto sizez = pBitmap->GetSize();
 			m_il.BindRenderTarget(GetD2D().GetDC());
-			//SetBkgBitmap(pBitmap);
+			SetBkgBitmap(pBitmap);
 
-
-
-			m_List.Create(NULL, eck::Dui::DES_VISIBLE | eck::Dui::DES_HAS_TRANSPARENT_CHILD, 0,
-				50, 70, 600, 600, NULL, this, NULL);
+			m_Label3.Create(L"测试标签😍😍", eck::Dui::DES_VISIBLE | eck::Dui::DES_BLURBKG, 0,
+				100, 0, 800, 900, NULL, this, NULL);
+			eck::Dui::CElem* pElem = &m_Label3;
+			m_List.Create(NULL, eck::Dui::DES_VISIBLE, 0,
+				50, 70, 600, 600, pElem, this, NULL);
 			m_List.SetTextFormat(GetDefTextFormat());
 			m_List.SetItemHeight(70.f);
 			m_List.SetImageSize(-1.f);
@@ -504,7 +510,7 @@ public:
 			}
 			m_List.SetItemCount((int)m_vItem.size());*/
 			m_List.SetImageList(&m_il);
-			m_List.SetInsertMark(5);
+			//m_List.SetInsertMark(5);
 			m_List.SetTopExtraSpace(100);
 			m_List.SetBottomExtraSpace(100);
 
@@ -517,14 +523,14 @@ public:
 				0, 500, 600, 100, &m_List, this, NULL);
 			m_Label.SetTextFormat(GetDefTextFormat());
 
-			//m_Btn.Create(L"按钮测试按钮测试按钮测试", eck::Dui::DES_VISIBLE, 0,
-			//	100, 300, 300, 70, NULL, this, NULL);
-			//m_Btn.SetTextFormat(GetDefTextFormat());
-			//ID2D1Bitmap* pBmp;
-			//eck::LoadD2dBitmap(LR"(D:\@重要文件\@我的工程\PlayerNew\Res\Tempo.png)",
-			//	GetD2D().GetDC(), pBmp, 54, 54);
-			//m_Btn.SetImage(pBmp);
-			//pBmp->Release();
+			m_Btn.Create(L"按钮测试按钮测试按钮测试", eck::Dui::DES_VISIBLE, 0,
+				100, 300, 300, 70, NULL, this, NULL);
+			m_Btn.SetTextFormat(GetDefTextFormat());
+			ID2D1Bitmap* pBmp;
+			eck::LoadD2dBitmap(LR"(D:\@重要文件\@我的工程\PlayerNew\Res\Tempo.png)",
+				GetD2D().GetDC(), pBmp, 54, 54);
+			m_Btn.SetImage(pBmp);
+			pBmp->Release();
 
 			if (pBitmap)
 				pBitmap->Release();
@@ -926,7 +932,7 @@ public:
 			
 			RECT rcDui{ 0,0,900,700 };
 			m_Dui.Create(L"我是 Dui 窗口", WS_CHILD | WS_VISIBLE, 0, 0, 0, rcDui.right, rcDui.bottom, hWnd, 108);
-			m_Dui.Redraw(rcDui);
+			m_Dui.Redraw();
 
 			m_hFont = eck::CreateDefFont();
 			eck::SetFontForWndAndCtrl(hWnd, m_hFont);

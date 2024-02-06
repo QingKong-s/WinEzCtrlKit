@@ -17,6 +17,29 @@ public:
 	{
 		switch (uMsg)
 		{
+		case WM_PAINT:
+		{
+			ELEMPAINTSTRU ps;
+			BeginPaint(ps, wParam, lParam);
+
+			if (m_pTf && !m_rsText.IsEmpty())
+			{
+				m_pBrush->SetColor(m_clrText);
+				m_pDC->DrawTextW(m_rsText.Data(), m_rsText.Size(), m_pTf, GetRectInClientF(), m_pBrush,
+					D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
+			}
+
+			EndPaint(ps);
+		}
+		return 0;
+		case WM_ERASEBKGND:
+		{
+			auto pps = (ELEMPAINTSTRU*)lParam;
+
+			m_pBrush->SetColor(m_clrBk);
+			m_pDC->FillRectangle(pps->rcfClip, m_pBrush);
+		}
+		return 0;
 		case WM_CREATE:
 			m_pDC->CreateSolidColorBrush(D2D1::ColorF(0), &m_pBrush);
 			return 0;
@@ -26,26 +49,6 @@ public:
 			return 0;
 		}
 		return CElem::OnEvent(uMsg, wParam, lParam);
-	}
-
-	void OnRedraw(const D2D1_RECT_F& rcClip, float ox, float oy) override
-	{
-		ECK_DUI_BEGINREDRAW;
-
-		if (!(GetStyle() & DES_BLURBKG))
-		{
-			m_pBrush->SetColor(m_clrBk);
-			m_pDC->FillRectangle(rcClip, m_pBrush);
-		}
-
-		if (m_pTf && !m_rsText.IsEmpty())
-		{
-			m_pBrush->SetColor(m_clrText);
-			m_pDC->DrawTextW(m_rsText.Data(), m_rsText.Size(), m_pTf, rc, m_pBrush,
-				D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
-		}
-
-		ECK_DUI_ENDREDRAW;
 	}
 
 	void SetTextFormat(IDWriteTextFormat* pTf)

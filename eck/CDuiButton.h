@@ -47,12 +47,65 @@ public:
 	{
 		switch (uMsg)
 		{
+		case WM_PAINT:
+		{
+			ELEMPAINTSTRU ps;
+			BeginPaint(ps, wParam, lParam);
+			const float cxEdge = m_pWnd->GetDs().CommEdge;
+			const auto& rcfInClient = GetRectInClientF();
+			D2D1_ROUNDED_RECT rrc
+			{ 
+				rcfInClient,
+				m_pWnd->GetDs().CommRrcRadius,
+				m_pWnd->GetDs().CommRrcRadius
+			};
+
+			m_pBrush->SetColor(D2D1::ColorF((m_bHot || m_bLBtnDown) ? 0xfafbfa : 0xfefefd));
+			m_pDC->FillRoundedRectangle(rrc, m_pBrush);
+			m_pBrush->SetColor(D2D1::ColorF(0xecedeb));
+			InflateRect(rrc.rect, -cxEdge / 2.f, -cxEdge / 2.f);
+			m_pDC->DrawRoundedRectangle(rrc, m_pBrush, cxEdge);
+
+			if (!m_bLBtnDown)
+			{
+				D2D1_RECT_F rcBottom{ rcfInClient };
+				rcBottom.top = rcfInClient.bottom - rrc.radiusY;
+
+				m_pDC->PushAxisAlignedClip(rcBottom, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+				m_pBrush->SetColor(D2D1::ColorF(0xd3d3d2));
+				m_pDC->DrawRoundedRectangle(rrc, m_pBrush, cxEdge);
+				m_pDC->PopAxisAlignedClip();
+			}
+
+			float x = (GetWidthF() - m_pWnd->GetDs().CommMargin * 2 - m_sizeImg.width - m_cxText) / 2.f;
+			if (m_pImg)
+			{
+				float y = (GetHeightF() - m_sizeImg.height) / 2.f;
+				D2D1_RECT_F rcImg;
+				rcImg.left = rcfInClient.left + x;
+				rcImg.top = rcfInClient.top + y;
+				rcImg.right = rcImg.left + m_sizeImg.width;
+				rcImg.bottom = rcImg.top + m_sizeImg.height;
+				m_pDC->DrawBitmap(m_pImg, rcImg);
+				x += (m_sizeImg.width);
+			}
+
+			if (m_pLayout)
+			{
+				m_pBrush->SetColor(D2D1::ColorF(m_bLBtnDown ? 0x707070 : 0));
+				m_pDC->DrawTextLayout({ rcfInClient.left + x,rcfInClient.top + m_pWnd->GetDs().CommMargin }, m_pLayout, m_pBrush);
+			}
+
+			EndPaint(ps);
+		}
+		return 0;
+
 		case WM_MOUSEMOVE:
 		{
 			if (!m_bHot)
 			{
 				m_bHot = TRUE;
-				Redraw();
+				InvalidateRect();
 			}
 		}
 		return 0;
@@ -62,7 +115,7 @@ public:
 			if (m_bHot)
 			{
 				m_bHot = FALSE;
-				Redraw();
+				InvalidateRect();
 			}
 		}
 		return 0;
@@ -71,7 +124,7 @@ public:
 		{
 			m_bLBtnDown = TRUE;
 			m_pWnd->SetCaptureElem(this);
-			Redraw();
+			InvalidateRect();
 		}
 		return 0;
 
@@ -81,7 +134,7 @@ public:
 			{
 				m_bLBtnDown = FALSE;
 				m_pWnd->ReleaseCaptureElem();
-				Redraw();
+				InvalidateRect();
 				GenElemNotify(EE_COMMAND, 0, 0);
 			}
 		}
@@ -89,7 +142,7 @@ public:
 
 		case WM_SETTEXT:
 			UpdateTextLayout();
-			Redraw();
+			InvalidateRect();
 			return 0;
 
 		case WM_CREATE:
@@ -108,50 +161,6 @@ public:
 		return 0;
 		}
 		return CElem::OnEvent(uMsg, wParam, lParam);
-	}
-
-	void OnRedraw(const D2D1_RECT_F& rcClip, float ox, float oy) override
-	{
-		ECK_DUI_BEGINREDRAW;
-
-		const float cxEdge = m_pWnd->GetDs().CommEdge;
-		D2D1_ROUNDED_RECT rrc{ rc,m_pWnd->GetDs().CommRrcRadius,m_pWnd->GetDs().CommRrcRadius };
-
-		m_pBrush->SetColor(D2D1::ColorF((m_bHot || m_bLBtnDown) ? 0xfafbfa : 0xfefefd));
-		m_pDC->FillRoundedRectangle(rrc, m_pBrush);
-		m_pBrush->SetColor(D2D1::ColorF(0xecedeb));
-		InflateRect(rrc.rect, -cxEdge / 2.f, -cxEdge / 2.f);
-		m_pDC->DrawRoundedRectangle(rrc, m_pBrush, cxEdge);
-
-		if (!m_bLBtnDown)
-		{
-			D2D1_RECT_F rcBottom{ rc.left,rc.bottom - rrc.radiusY,rc.right,rc.bottom };
-			m_pDC->PushAxisAlignedClip(rcBottom, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-			m_pBrush->SetColor(D2D1::ColorF(0xd3d3d2));
-			m_pDC->DrawRoundedRectangle(rrc, m_pBrush, cxEdge);
-			m_pDC->PopAxisAlignedClip();
-		}
-
-		float x = (GetWidthF() - m_pWnd->GetDs().CommMargin * 2 - m_sizeImg.width - m_cxText) / 2.f;
-		if (m_pImg)
-		{
-			float y = (GetHeightF() - m_sizeImg.height) / 2.f;
-			D2D1_RECT_F rcImg;
-			rcImg.left = rc.left + x;
-			rcImg.top = rc.top + y;
-			rcImg.right = rcImg.left + m_sizeImg.width;
-			rcImg.bottom = rcImg.top + m_sizeImg.height;
-			m_pDC->DrawBitmap(m_pImg, rcImg);
-			x += (m_sizeImg.width);
-		}
-
-		if (m_pLayout)
-		{
-			m_pBrush->SetColor(D2D1::ColorF(m_bLBtnDown ? 0x707070 : 0));
-			m_pDC->DrawTextLayout({ rc.left + x,rc.top + m_pWnd->GetDs().CommMargin }, m_pLayout, m_pBrush);
-		}
-
-		ECK_DUI_ENDREDRAW;
 	}
 
 	void SetTextFormat(IDWriteTextFormat* pTf)

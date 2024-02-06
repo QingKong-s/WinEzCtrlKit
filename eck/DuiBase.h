@@ -31,27 +31,6 @@
 #		define ECK_DUI_DBG_DRAW_FRAME ;
 #endif
 
-#define ECK_DUI_BEGINREDRAW			\
-		auto rc = m_rcf;			\
-		OffsetRect(rc, ox, oy);		\
-		if (m_dwStyle & DES_BLURBKG)\
-		{							\
-			m_pDC->Flush();			\
-			m_pDC->PushAxisAlignedClip(rcClip, D2D1_ANTIALIAS_MODE_ALIASED);	\
-			BlurD2dDC(m_pDC, m_pWnd->GetD2D().GetBitmap(), m_pWnd->m_pBmpBlurCache, rc, 10.0f);		\
-		}							\
-		else						\
-			m_pDC->PushAxisAlignedClip(rcClip, D2D1_ANTIALIAS_MODE_ALIASED);	\
-
-#define ECK_DUI_BEGINREDRAW_NO_BLUR	\
-		auto rc = m_rcf;			\
-		OffsetRect(rc, ox, oy);		\
-		m_pDC->PushAxisAlignedClip(rcClip, D2D1_ANTIALIAS_MODE_ALIASED);		\
-
-#define ECK_DUI_ENDREDRAW			\
-		ECK_DUI_DBG_DRAW_FRAME;		\
-		m_pDC->PopAxisAlignedClip();\
-
 #define ECK_ELEMTOP			((CElem*)HWND_TOP)
 #define ECK_ELEMBOTTOM		((CElem*)HWND_BOTTOM)
 
@@ -64,9 +43,9 @@ enum
 	DES_BLURBKG = (1u << 0),
 	DES_DISABLE = (1u << 1),
 	DES_VISIBLE = (1u << 2),
-	DES_FOCUS_ON_CLICK = (1u << 3),
+	DES_PRIV_BITMAP = (1u << 3),
 	DES_TRANSPARENT = (1u << 4),
-	DES_HAS_TRANSPARENT_CHILD = (1u << 5),
+
 };
 
 // 元素产生的通知
@@ -95,28 +74,16 @@ enum
 	WM_DROP,
 };
 
-class CDuiWnd;
-class CDuiDropTarget :public CDropTarget
+
+enum
 {
-private:
-	CDuiWnd* m_pWnd = NULL;
-public:
-	CDuiDropTarget(CDuiWnd* pWnd) :m_pWnd(pWnd) {}
-
-	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppv)
-	{
-		const QITAB qit[]
-		{
-			QITABENT(CDuiDropTarget, IDropTarget),
-			{ 0 },
-		};
-		return QISearch(this, qit, riid, ppv);
-	}
-
-	HRESULT STDMETHODCALLTYPE DragEnter(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect);
-	HRESULT STDMETHODCALLTYPE DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect);
-	HRESULT STDMETHODCALLTYPE DragLeave(void);
-	HRESULT STDMETHODCALLTYPE Drop(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect);
+	EBPF_DO_NOT_FILLBK = (1u << 0),
+};
+struct ELEMPAINTSTRU
+{
+	D2D1_RECT_F rcfClip;
+	const RECT* prcClip;
+	RECT rcInvalid;
 };
 
 /// <summary>
@@ -133,15 +100,22 @@ protected:
 	CElem* m_pLastChild = NULL;
 	CDuiWnd* m_pWnd = NULL;
 	ID2D1DeviceContext* m_pDC = NULL;
+	ID2D1Bitmap* m_pPrivateBmp = NULL;
 
 	RECT m_rc{};
 	D2D1_RECT_F m_rcf{};
 
+	RECT m_rcInvalid{};// 客户坐标
+
+	RECT m_rcInClient{};
+	D2D1_RECT_F m_rcfInClient{};
+
 	CRefStrW m_rsText{};
 
 	DWORD m_dwStyle = 0;
-
 	DWORD m_dwExStyle = 0;
+
+	BITBOOL m_bAllowRedraw : 1 = FALSE;
 
 	BOOL IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, PCVOID pData = NULL);
@@ -159,28 +133,89 @@ protected:
 
 	CElem* HitTestChildUncheck(POINT pt)
 	{
-		ParentToElem(pt);
-		auto pElem = m_pFirstChild;
+		auto pElem = GetFirstChildElem();
 		while (pElem)
 		{
 			if (pElem->GetStyle() & DES_VISIBLE)
 			{
-				if (PtInRect(pElem->GetRect(), pt) &&
+				if (PtInRect(pElem->GetRectInClient(), pt) &&
 					pElem->CallEvent(WM_NCHITTEST, 0, MAKELPARAM(pt.x, pt.y)) != HTTRANSPARENT)
 				{
-					auto pChild = pElem->GetFirstChildElem();
-					if (pChild)
-					{
-						auto pHit = pChild->HitTestChild(pt);
-						if (pHit)
-							return pHit;
-					}
+					const auto pHit = pElem->HitTestChildUncheck(pt);
+					if (pHit)
+						return pHit;
 					return pElem;
 				}
 			}
 			pElem = pElem->GetNextElem();
 		}
 		return NULL;
+	}
+
+	void IRUnionTransparentElemRect(CElem* pLast, RECT& rcInClient)
+	{
+		while (pLast)
+		{
+			const auto& rcElem = pLast->GetRectInClient();
+			if (pLast->GetStyle() & DES_VISIBLE)
+			{
+				if (IsBitSet(pLast->GetStyle(), DES_TRANSPARENT))
+				{
+					if (IsRectsIntersect(rcInClient, rcElem))
+					{
+						pLast->m_rcInvalid = rcElem;// invalidate
+						UnionRect(rcInClient, rcInClient, rcElem);
+					}
+				}
+				else
+					IRUnionTransparentElemRect(pLast->GetLastChildElem(), rcInClient);
+			}
+			pLast = pLast->GetPrevElem();
+		}
+	}
+
+	void SRCorrectChildrenRectInClient()
+	{
+		auto pElem = GetFirstChildElem();
+		while (pElem)
+		{
+			pElem->m_rcInClient = pElem->m_rc;
+			pElem->m_rcfInClient = pElem->m_rcf;
+			OffsetRect(pElem->m_rcInClient, m_rcInClient.left, m_rcInClient.top);
+			OffsetRect(pElem->m_rcfInClient, m_rcfInClient.left, m_rcfInClient.top);
+			pElem->SRCorrectChildrenRectInClient();
+			pElem = pElem->GetNextElem();
+		}
+	}
+
+	EckInline void RedrawWnd(const RECT& rc)
+	{
+		RECT rcReal = rc;
+
+		CElem* pElem;
+		if (GetStyle() & DES_TRANSPARENT)
+			pElem = GetWnd()->GetLastChildElem();
+		else
+			pElem = this;
+
+		IRUnionTransparentElemRect(pElem, rcReal);
+		GetWnd()->RedrawDui(rcReal);
+	}
+
+	void DestroyPrivateBitmap()
+	{
+		SafeRelease(m_pPrivateBmp);
+	}
+
+	void UpdatePrivateBitmap()
+	{
+		DestroyPrivateBitmap();
+		m_pDC->CreateBitmap(
+			D2D1::SizeU(GetWidth(), GetHeight()),
+			NULL,
+			0,
+			D2D1::BitmapProperties(m_pDC->GetPixelFormat()),
+			&m_pPrivateBmp);
 	}
 public:
 	virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -192,14 +227,6 @@ public:
 		}
 		return 0;
 	}
-
-	/// <summary>
-	/// 重画
-	/// </summary>
-	/// <param name="rcClip">裁剪了父元素的矩形，相对客户区</param>
-	/// <param name="ox">x偏移</param>
-	/// <param name="oy">y偏移</param>
-	virtual void OnRedraw(const D2D1_RECT_F& rcClip, float ox, float oy) {}
 
 	EckInline LRESULT CallEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
@@ -214,7 +241,23 @@ public:
 	{
 		m_rc = rc;
 		m_rcf = MakeD2DRcF(rc);
+		m_rcInClient = rc;
+		m_rcfInClient = m_rcf;
+		if (m_pParent)
+		{
+			OffsetRect(
+				m_rcInClient,
+				m_pParent->GetRectInClient().left,
+				m_pParent->GetRectInClient().top);
+			OffsetRect(
+				m_rcfInClient,
+				m_pParent->GetRectInClientF().left,
+				m_pParent->GetRectInClientF().top);
+		}
+
+		SRCorrectChildrenRectInClient();
 		CallEvent(WM_SIZE, 0, 0);
+		InvalidateRect();
 	}
 
 	virtual BOOL Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
@@ -230,9 +273,8 @@ public:
 	EckInline CElem* GetParentElem() const { return m_pParent; }
 	EckInline CDuiWnd* GetWnd() const { return m_pWnd; }
 	EckInline ID2D1DeviceContext* GetD2DDC() const { return m_pDC; }
+
 	EckInline const CRefStrW& GetText() const { return m_rsText; }
-	EckInline DWORD GetStyle() const { return m_dwStyle; }
-	EckInline DWORD GetExStyle() const { return m_dwExStyle; }
 
 	EckInline void SetText(PCWSTR pszText)
 	{
@@ -240,16 +282,28 @@ public:
 		CallEvent(WM_SETTEXT, 0, 0);
 	}
 
+	EckInline DWORD GetStyle() const { return m_dwStyle; }
+
+	EckInline DWORD GetExStyle() const { return m_dwExStyle; }
+
 	EckInline void SetStyle(DWORD dwStyle)
 	{ 
 		if (dwStyle & DES_BLURBKG)
 			dwStyle |= DES_TRANSPARENT;
+
 		const auto dwOldStyle = m_dwStyle;
 		m_dwStyle = dwStyle;
+
+		if (!(dwOldStyle & DES_PRIV_BITMAP) && (dwStyle & DES_PRIV_BITMAP))
+			UpdatePrivateBitmap();
+		else if ((dwOldStyle & DES_PRIV_BITMAP) && !(dwStyle & DES_PRIV_BITMAP))
+			DestroyPrivateBitmap();
+
 		CallEvent(WM_STYLECHANGED, dwOldStyle, dwStyle);
 	}
 
 	EckInline void SetExStyle(DWORD dwExStyle) { m_dwExStyle = dwExStyle; }
+
 	EckInline CElem* GetNextElem() const { return m_pNext; }
 	EckInline CElem* GetPrevElem() const { return m_pPrev; }
 
@@ -276,7 +330,7 @@ public:
 		return HitTestChildUncheck(pt);
 	}
 
-	EckInline void ParentToElem(POINT& pt)
+	EckInline void ParentToElem(POINT& pt, CElem* pParentEnd = NULL)
 	{
 		auto pParent = this;
 		do
@@ -284,17 +338,17 @@ public:
 			pt.x -= pParent->GetRect().left;
 			pt.y -= pParent->GetRect().top;
 			pParent = pParent->GetParentElem();
-		} while (pParent);
+		} while (pParent != pParentEnd);
 	}
 
-	EckInline void ParentToElem(RECT& rc)
+	EckInline void ParentToElem(RECT& rc, CElem* pParentEnd = NULL)
 	{
 		auto pParent = this;
 		do
 		{
 			OffsetRect(rc, -pParent->GetRect().left, -pParent->GetRect().top);
 			pParent = pParent->GetParentElem();
-		} while (pParent);
+		} while (pParent != pParentEnd);
 	}
 
 	EckInline void ElemToParent(POINT& pt, CElem* pParentEnd = NULL)
@@ -328,6 +382,27 @@ public:
 		}
 	}
 
+	EckInline void ClientToElem(RECT& rc)
+	{
+		OffsetRect(rc, -m_rcInClient.left, -m_rcInClient.top);
+	}
+
+	EckInline void ClientToElem(POINT& pt)
+	{
+		pt.x -= m_rcInClient.left;
+		pt.y -= m_rcInClient.top;
+	}
+
+	EckInline void ElemToClient(RECT& rc)
+	{
+		OffsetRect(rc, m_rcInClient.left, m_rcInClient.top);
+	}
+
+	EckInline void ElemToClient(D2D1_RECT_F& rc)
+	{
+		OffsetRect(rc, m_rcfInClient.left, m_rcfInClient.top);
+	}
+
 	EckInline int GetWidth() const { return m_rc.right - m_rc.left; }
 
 	EckInline int GetHeight() const { return m_rc.bottom - m_rc.top; }
@@ -335,8 +410,6 @@ public:
 	EckInline float GetWidthF() const { return m_rcf.right - m_rcf.left; }
 
 	EckInline float GetHeightF() const { return m_rcf.bottom - m_rcf.top; }
-
-	EckInline void Redraw();
 
 	void SetZOrder(CElem* pElemAfter);
 
@@ -348,6 +421,50 @@ public:
 	}
 
 	EckInline LRESULT GenElemNotify(UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+	EckInline void SetRedraw(BOOL bRedraw)
+	{
+		if (bRedraw)
+		{
+			m_bAllowRedraw = TRUE;
+			if (!IsRectEmpty(m_rcInvalid))
+				RedrawWnd(m_rcInvalid);
+		}
+		else
+			m_bAllowRedraw = FALSE;
+	}
+
+	EckInline BOOL GetRedraw() const { return m_bAllowRedraw; }
+
+	void InvalidateRect(const RECT* prc = NULL);
+
+	void InvalidateRectF(const D2D1_RECT_F* prcf = NULL)
+	{
+		RECT rc;
+		if (prcf)
+		{
+			rc = MakeRect(*prcf);
+			InvalidateRect(&rc);
+		}
+		else
+			InvalidateRect(NULL);
+	}
+
+	const RECT& GetRectInClient() const { return m_rcInClient; }
+
+	const D2D1_RECT_F& GetRectInClientF() const { return m_rcfInClient; }
+
+	void BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uFlags = 0u);
+
+	EckInline void EndPaint(const ELEMPAINTSTRU& eps)
+	{
+		ECK_DUI_DBG_DRAW_FRAME;
+		m_pDC->PopAxisAlignedClip();
+	}
+
+	EckInline CElem* SetCapture();
+
+	EckInline void ReleaseCapture();
 };
 
 /// <summary>
@@ -384,39 +501,39 @@ private:
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 	ECK_DS_BEGIN(DPIS)
 		ECK_DS_ENTRY_F(CommEdge, 1.f)
-		ECK_DS_ENTRY_F(CommRrcRadius, 6.f)
+		ECK_DS_ENTRY_F(CommRrcRadius, 4.f)
 		ECK_DS_ENTRY_F(CommMargin, 4.f)
 		;
 	ECK_DS_END_VAR(m_Ds);
 
-	void RedrawElem(CElem* pElem, float ox, float oy, const D2D1_RECT_F& rc)
+	void RedrawElem(CElem* pElem, const RECT& rc)
 	{
-		D2D1_RECT_F rcClip;
+		RECT rcClip;
 		while (pElem)
 		{
 			if (pElem->GetStyle() & DES_VISIBLE)
 			{
-				auto rcElem = pElem->GetRectF();
-				OffsetRect(rcElem, ox, oy);
-				if (IntersectRect(rcClip, rcElem, rc))
+				if (pElem->GetRedraw())
 				{
-					if (pElem->GetStyle() & DES_HAS_TRANSPARENT_CHILD)
+					if (IntersectRect(rcClip, pElem->GetRectInClient(), rc))
 					{
-						auto pChild = pElem->GetFirstChildElem();
-						while (pChild)
+						if (pElem->GetStyle() & DES_PRIV_BITMAP)
 						{
-							D2D1_RECT_F rcChild = pChild->GetRectF();
-							OffsetRect(rcChild, rcElem.left, rcElem.top);
-							UnionRect(rcClip, rcClip, rcChild);
-							pChild = pChild->GetNextElem();
+							pElem->m_pDC->SetTarget(pElem->m_pPrivateBmp);
+							pElem->m_pDC->SetTransform(D2D1::Matrix3x2F::Identity());
 						}
+						else
+							pElem->m_pDC->SetTransform(D2D1::Matrix3x2F::Translation(
+								pElem->GetRectInClientF().left,
+								pElem->GetRectInClientF().top));
+						pElem->CallEvent(WM_PAINT, 0, (WPARAM)&rcClip);
+						RedrawElem(pElem->GetLastChildElem(), rcClip);
+						if (pElem->GetStyle() & DES_PRIV_BITMAP)
+							pElem->m_pDC->SetTarget(m_D2d.GetBitmap());
 					}
-					pElem->OnRedraw(rcClip, ox, oy);
 				}
-
-				RedrawElem(pElem->GetLastChildElem(), rcElem.left, rcElem.top, rcClip);
 			}
-			pElem = pElem->m_pPrev;
+			pElem = pElem->GetPrevElem();
 		}
 	}
 
@@ -442,6 +559,22 @@ private:
 		m_iDpi = iDpi;
 		UpdateDpiSizeF(m_Ds, iDpi);
 	}
+
+	EckInline void RedrawDui(const RECT& rc)
+	{
+		m_D2d.GetDC()->BeginDraw();
+		m_D2d.GetDC()->SetTransform(D2D1::Matrix3x2F::Identity());
+		FillBackground(MakeD2DRcF(rc));
+		RedrawElem(GetLastChildElem(), rc);
+		m_D2d.GetDC()->EndDraw();
+		m_D2d.GetSwapChain()->Present(0, 0);
+	}
+
+	EckInline void RedrawDui()
+	{
+		const RECT rcClient{ 0,0,m_cxClient,m_cyClient };
+		RedrawDui(rcClient);
+	}
 public:
 	ID2D1Bitmap* m_pBmpBlurCache = NULL;
 
@@ -451,17 +584,11 @@ public:
 		{
 			auto pElem = (m_pMouseCaptureElem ? m_pMouseCaptureElem : m_pCurrNcHitTestElem);
 			if (pElem)
-			{
 				pElem->CallEvent(uMsg, wParam, lParam);
-				if (uMsg == WM_LBUTTONDOWN &&
-					!(pElem->GetStyle() & DES_DISABLE) &&
-					(pElem->GetStyle() & DES_FOCUS_ON_CLICK))
-					SetFocusElem(pElem);
-			}
 
 			if (uMsg == WM_MOUSEMOVE)
 			{
-				if (/*!m_pMouseCaptureElem && */m_pHoverElem != pElem)
+				if (m_pHoverElem != pElem)
 				{
 					if (m_pHoverElem)
 						m_pHoverElem->CallEvent(WM_MOUSELEAVE, 0, 0);
@@ -503,7 +630,7 @@ public:
 			RECT rc;
 			GetUpdateRect(hWnd, &rc, FALSE);
 			ValidateRect(hWnd, NULL);
-			Redraw(rc);
+			RedrawDui(rc);
 		}
 		return 0;
 
@@ -596,27 +723,21 @@ public:
 		return 0;
 	}
 
-	EckInline void Redraw(const D2D1_RECT_F& rc)
-	{
-		m_D2d.GetDC()->BeginDraw();
-		FillBackground(rc);
-		RedrawElem(m_pLastChild, 0, 0, rc);
-		m_D2d.GetDC()->EndDraw();
-		m_D2d.GetSwapChain()->Present(0, 0);
-	}
-
-	EckInline void Redraw(const RECT& rc)
-	{
-		Redraw(MakeD2DRcF(rc));
-	}
-
 	EckInline const CEzD2D& GetD2D() const { return m_D2d; }
 
 	EckInline ID2D1Bitmap* GetBkgBitmap() const { return m_pBmpBkg; }
 
 	EckInline ID2D1SolidColorBrush* GetBkgBrush() const { return m_pBrBkg; }
 
-	EckInline void SetBkgBitmap(ID2D1Bitmap* pBmp) { m_pBmpBkg = pBmp; }
+	EckInline void SetBkgBitmap(ID2D1Bitmap* pBmp)
+	{
+		std::swap(m_pBmpBkg, pBmp);
+		if (m_pBmpBkg)
+			m_pBmpBkg->AddRef();
+		if (pBmp)
+			pBmp->Release();
+		RedrawDui();
+	}
 
 	void FillBackground(const D2D1_RECT_F& rc)
 	{
@@ -644,7 +765,7 @@ public:
 		{
 			if (pElem->GetStyle() & DES_VISIBLE)
 			{
-				if (PtInRect(pElem->GetRect(), pt) &&
+				if (PtInRect(pElem->GetRectInClient(), pt) &&
 					pElem->CallEvent(WM_NCHITTEST, 0, MAKELPARAM(pt.x, pt.y)) != HTTRANSPARENT)
 				{
 					auto pHit = pElem->HitTestChildUncheck(pt);
@@ -702,40 +823,22 @@ public:
 
 	EckInline int GetDpiValue() const { return m_iDpi; }
 
-	EckInline HRESULT EnableDragDrop(BOOL bEnable)
-	{
-		if (bEnable)
-		{
-			if (!m_pDropTarget)
-			{
-				m_pDropTarget = new CDuiDropTarget(this);
-				return RegisterDragDrop(m_hWnd, m_pDropTarget);
-			}
-		}
-		else
-		{
-			if (m_pDropTarget)
-			{
-				const auto hr = RevokeDragDrop(m_hWnd);
-				m_pDropTarget->Release();
-				m_pDropTarget = NULL;
-				return hr;
-			}
-		}
-		return S_FALSE;// indicate do nothing
-	}
+	EckInline HRESULT EnableDragDrop(BOOL bEnable);
 
 	EckInline auto GetDefTextFormat() const { return m_pDefTextFormat; }
 };
+
+
 
 BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, PCVOID pData)
 {
 	EckAssert(!m_pWnd && !m_pDC);
 
+	SetRedraw(FALSE);
 	if (dwStyle & DES_BLURBKG)
 		dwStyle |= DES_TRANSPARENT;
-	m_dwStyle = dwStyle;
+	SetStyle(dwStyle);
 	m_dwExStyle = dwExStyle;
 
 	m_pWnd = pWnd;
@@ -765,6 +868,7 @@ BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 
 	SetText(pszText);
 	SetRect({ x,y,x + cx,y + cy });
+	SetRedraw(TRUE);
 
 	if (CallEvent(WM_CREATE, 0, (LPARAM)pData))
 	{
@@ -814,13 +918,6 @@ void CElem::Destroy()
 	m_rsText.Clear();
 	m_dwStyle = 0;
 	m_dwExStyle = 0;
-}
-
-void CElem::Redraw()
-{
-	D2D1_RECT_F rc;
-	GetRectFAbs(rc);
-	m_pWnd->Redraw(rc);
 }
 
 void CElem::SetZOrder(CElem* pElemAfter)
@@ -893,98 +990,180 @@ LRESULT CElem::GenElemNotify(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return m_pWnd->OnElemEvent(this, uMsg, wParam, lParam);
 }
 
-
-
-HRESULT STDMETHODCALLTYPE CDuiDropTarget::DragEnter(IDataObject* pDataObj, DWORD grfKeyState,
-	POINTL pt, DWORD* pdwEffect)
+void CElem::InvalidateRect(const RECT* prc)
 {
-	m_pWnd->m_pDataObj = pDataObj;
-	POINT pt0{ pt.x, pt.y };
-	ScreenToClient(m_pWnd->HWnd, &pt0);
-	DRAGDROPINFO ddi{ pDataObj, grfKeyState, pt, pdwEffect };
-
-	if (m_pWnd->SendMsg(WM_DRAGENTER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
-		return ddi.hr;
-
-	auto pElem = m_pWnd->HitTest(pt0);
-	EckAssert(!m_pWnd->m_pDragDropElem);
-	m_pWnd->m_pDragDropElem = pElem;
-
-	if (pElem)
-		return pElem->CallEvent(WM_DRAGENTER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
+	if ((GetStyle() & DES_TRANSPARENT) || !prc)
+		m_rcInvalid = GetRectInClient();
 	else
-		return S_OK;
+	{
+		UnionRect(m_rcInvalid, m_rcInvalid, *prc);
+		IntersectRect(m_rcInvalid, m_rcInvalid, GetRectInClient());// 裁剪到元素矩形
+	}
+	if (!GetRedraw())
+		return;
+	RedrawWnd(m_rcInvalid);
 }
 
-HRESULT STDMETHODCALLTYPE CDuiDropTarget::DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
+void CElem::BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uFlags)
 {
-	POINT pt0{ pt.x, pt.y };
-	ScreenToClient(m_pWnd->HWnd, &pt0);
-	DRAGDROPINFO ddi{ NULL,grfKeyState, pt, pdwEffect };
+	eps.prcClip = (const RECT*)lParam;
+	eps.rcfClip = MakeD2DRcF(*eps.prcClip);
+	eps.rcInvalid = m_rcInvalid;
+	m_rcInvalid = {};
 
-	if (m_pWnd->SendMsg(WM_DRAGOVER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
-		return ddi.hr;
+	if (uFlags & EBPF_DO_NOT_FILLBK)
+		m_pDC->PushAxisAlignedClip(eps.rcfClip, D2D1_ANTIALIAS_MODE_ALIASED);
+	else
+		if (m_dwStyle & DES_BLURBKG)
+		{
+			m_pDC->Flush();
+			m_pDC->PushAxisAlignedClip(eps.rcfClip, D2D1_ANTIALIAS_MODE_ALIASED);
+			BlurD2dDC(m_pDC, m_pWnd->GetD2D().GetBitmap(), m_pWnd->m_pBmpBlurCache, eps.rcfClip, 10.0f);
+		}
+		else
+		{
+			m_pDC->PushAxisAlignedClip(eps.rcfClip, D2D1_ANTIALIAS_MODE_ALIASED);
+			CallEvent(WM_ERASEBKGND, 0, (LPARAM)&eps);
+		}
+}
 
-	auto pElem = m_pWnd->HitTest(pt0);
-	const auto pOldElem = m_pWnd->m_pDragDropElem;
-	m_pWnd->m_pDragDropElem = pElem;
+CElem* CElem::SetCapture() { return m_pWnd->SetCaptureElem(this); }
 
-	if (pOldElem != pElem)
+void CElem::ReleaseCapture() { m_pWnd->ReleaseCaptureElem(); }
+
+
+
+class CDuiDropTarget :public CDropTarget
+{
+private:
+	CDuiWnd* m_pWnd = NULL;
+public:
+	CDuiDropTarget(CDuiWnd* pWnd) :m_pWnd(pWnd) {}
+
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppv)
 	{
-		if (pOldElem)
-			pOldElem->CallEvent(WM_DRAGLEAVE, 0, 0);
+		const QITAB qit[]
+		{
+			QITABENT(CDuiDropTarget, IDropTarget),
+			{ 0 },
+		};
+		return QISearch(this, qit, riid, ppv);
+	}
+
+	HRESULT STDMETHODCALLTYPE DragEnter(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
+	{
+		m_pWnd->m_pDataObj = pDataObj;
+		POINT pt0{ pt.x, pt.y };
+		ScreenToClient(m_pWnd->HWnd, &pt0);
+		DRAGDROPINFO ddi{ pDataObj, grfKeyState, pt, pdwEffect };
+
+		if (m_pWnd->SendMsg(WM_DRAGENTER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
+			return ddi.hr;
+
+		auto pElem = m_pWnd->HitTest(pt0);
+		EckAssert(!m_pWnd->m_pDragDropElem);
+		m_pWnd->m_pDragDropElem = pElem;
+
+		if (pElem)
+			return pElem->CallEvent(WM_DRAGENTER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
+		else
+			return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
+	{
+		POINT pt0{ pt.x, pt.y };
+		ScreenToClient(m_pWnd->HWnd, &pt0);
+		DRAGDROPINFO ddi{ NULL,grfKeyState, pt, pdwEffect };
+
+		if (m_pWnd->SendMsg(WM_DRAGOVER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
+			return ddi.hr;
+
+		auto pElem = m_pWnd->HitTest(pt0);
+		const auto pOldElem = m_pWnd->m_pDragDropElem;
+		m_pWnd->m_pDragDropElem = pElem;
+
+		if (pOldElem != pElem)
+		{
+			if (pOldElem)
+				pOldElem->CallEvent(WM_DRAGLEAVE, 0, 0);
+			if (pElem)
+			{
+				ddi.pDataObj = m_pWnd->m_pDataObj;
+				return pElem->CallEvent(WM_DRAGENTER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
+			}
+		}
+		else if (pElem)
+			return pElem->CallEvent(WM_DRAGOVER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
+		else
+			return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE DragLeave(void)
+	{
+		if (m_pWnd->SendMsg(WM_DRAGLEAVE, 0, 0))
+		{
+			EckAssert(!m_pWnd->m_pDragDropElem);
+			m_pWnd->m_pDataObj = NULL;
+			return S_OK;
+		}
+		m_pWnd->m_pDataObj = NULL;
+
+		const auto pElem = m_pWnd->m_pDragDropElem;
 		if (pElem)
 		{
-			ddi.pDataObj = m_pWnd->m_pDataObj;
-			return pElem->CallEvent(WM_DRAGENTER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
+			m_pWnd->m_pDragDropElem = NULL;
+			return pElem->CallEvent(WM_DRAGLEAVE, 0, 0);
+		}
+		else
+			return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE Drop(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
+	{
+		POINT pt0{ pt.x, pt.y };
+		ScreenToClient(m_pWnd->HWnd, &pt0);
+		DRAGDROPINFO ddi{ pDataObj, grfKeyState, pt, pdwEffect };
+
+		if (m_pWnd->SendMsg(WM_DROP, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
+		{
+			EckAssert(!m_pWnd->m_pDragDropElem);
+			m_pWnd->m_pDataObj = NULL;
+			return S_OK;
+		}
+		m_pWnd->m_pDataObj = NULL;
+
+		auto pElem = m_pWnd->HitTest(pt0);
+		m_pWnd->m_pDragDropElem = NULL;
+		if (pElem)
+			return pElem->CallEvent(WM_DROP, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
+		else
+			return S_OK;
+	}
+};
+
+EckInline HRESULT CDuiWnd::EnableDragDrop(BOOL bEnable)
+{
+	if (bEnable)
+	{
+		if (!m_pDropTarget)
+		{
+			m_pDropTarget = new CDuiDropTarget(this);
+			return RegisterDragDrop(m_hWnd, m_pDropTarget);
 		}
 	}
-	else if (pElem)
-		return pElem->CallEvent(WM_DRAGOVER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
 	else
-		return S_OK;
+	{
+		if (m_pDropTarget)
+		{
+			const auto hr = RevokeDragDrop(m_hWnd);
+			m_pDropTarget->Release();
+			m_pDropTarget = NULL;
+			return hr;
+		}
+	}
+	return S_FALSE;// indicate do nothing
 }
 
-HRESULT STDMETHODCALLTYPE CDuiDropTarget::DragLeave(void)
-{
-	if (m_pWnd->SendMsg(WM_DRAGLEAVE, 0, 0))
-	{
-		EckAssert(!m_pWnd->m_pDragDropElem);
-		m_pWnd->m_pDataObj = NULL;
-		return S_OK;
-	}
-	m_pWnd->m_pDataObj = NULL;
-
-	const auto pElem = m_pWnd->m_pDragDropElem;
-	if (pElem)
-	{
-		m_pWnd->m_pDragDropElem = NULL;
-		return pElem->CallEvent(WM_DRAGLEAVE, 0, 0);
-	}
-	else
-		return S_OK;
-}
-
-HRESULT STDMETHODCALLTYPE CDuiDropTarget::Drop(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
-{
-	POINT pt0{ pt.x, pt.y };
-	ScreenToClient(m_pWnd->HWnd, &pt0);
-	DRAGDROPINFO ddi{ pDataObj, grfKeyState, pt, pdwEffect };
-
-	if (m_pWnd->SendMsg(WM_DROP, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
-	{
-		EckAssert(!m_pWnd->m_pDragDropElem);
-		m_pWnd->m_pDataObj = NULL;
-		return S_OK;
-	}
-	m_pWnd->m_pDataObj = NULL;
-
-	auto pElem = m_pWnd->HitTest(pt0);
-	m_pWnd->m_pDragDropElem = NULL;
-	if (pElem)
-		return pElem->CallEvent(WM_DROP, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
-	else
-		return S_OK;
-}
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
