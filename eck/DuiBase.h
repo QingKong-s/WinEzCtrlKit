@@ -9,6 +9,7 @@
 #include "CWnd.h"
 #include "GraphicsHelper.h"
 #include "OleDragDropHelper.h"
+#include "EasingCurve.h"
 
 #define ECK_DUI_NAMESPACE_BEGIN namespace Dui {
 #define ECK_DUI_NAMESPACE_END }
@@ -20,7 +21,7 @@
 				ID2D1SolidColorBrush* ECKPRIV_pBr___;				\
 				m_pDC->CreateSolidColorBrush(D2D1::ColorF(1.f, 0.f, 0.f, 1.f), &ECKPRIV_pBr___); \
 				if (ECKPRIV_pBr___) {								\
-					m_pDC->DrawRectangle(rc, ECKPRIV_pBr___, 1.f);	\
+					m_pDC->DrawRectangle(GetViewRectF(), ECKPRIV_pBr___, 1.f);	\
 					ECKPRIV_pBr___->Release();						\
 				}													\
 			}
@@ -43,9 +44,7 @@ enum
 	DES_BLURBKG = (1u << 0),
 	DES_DISABLE = (1u << 1),
 	DES_VISIBLE = (1u << 2),
-	DES_PRIV_BITMAP = (1u << 3),
-	DES_TRANSPARENT = (1u << 4),
-
+	DES_TRANSPARENT = (1u << 3),
 };
 
 // 元素产生的通知
@@ -65,13 +64,14 @@ struct DRAGDROPINFO
 	HRESULT hr;
 };
 
-// 仅用于元素
 enum
 {
 	WM_DRAGENTER = WM_USER_SAFE,
 	WM_DRAGOVER,
 	WM_DRAGLEAVE,
 	WM_DROP,
+
+	WM_PRIVBEGIN = 5000,
 };
 
 
@@ -81,9 +81,10 @@ enum
 };
 struct ELEMPAINTSTRU
 {
-	D2D1_RECT_F rcfClip;
-	const RECT* prcClip;
-	RECT rcInvalid;
+	D2D1_RECT_F rcfClip;		// 剪裁矩形，相对客户区
+	const RECT* prcClip;		// 剪裁矩形，相对客户区
+	RECT rcInvalid;				// 无效矩形，相对客户区
+	D2D1_RECT_F rcfClipInElem;	// 剪裁矩形，相对元素
 };
 
 /// <summary>
@@ -100,7 +101,6 @@ protected:
 	CElem* m_pLastChild = NULL;
 	CDuiWnd* m_pWnd = NULL;
 	ID2D1DeviceContext* m_pDC = NULL;
-	ID2D1Bitmap* m_pPrivateBmp = NULL;
 
 	RECT m_rc{};
 	D2D1_RECT_F m_rcf{};
@@ -188,35 +188,7 @@ protected:
 		}
 	}
 
-	EckInline void RedrawWnd(const RECT& rc)
-	{
-		RECT rcReal = rc;
-
-		CElem* pElem;
-		if (GetStyle() & DES_TRANSPARENT)
-			pElem = GetWnd()->GetLastChildElem();
-		else
-			pElem = this;
-
-		IRUnionTransparentElemRect(pElem, rcReal);
-		GetWnd()->RedrawDui(rcReal);
-	}
-
-	void DestroyPrivateBitmap()
-	{
-		SafeRelease(m_pPrivateBmp);
-	}
-
-	void UpdatePrivateBitmap()
-	{
-		DestroyPrivateBitmap();
-		m_pDC->CreateBitmap(
-			D2D1::SizeU(GetWidth(), GetHeight()),
-			NULL,
-			0,
-			D2D1::BitmapProperties(m_pDC->GetPixelFormat()),
-			&m_pPrivateBmp);
-	}
+	EckInline void RedrawWnd(const RECT& rc);
 public:
 	virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
@@ -260,6 +232,11 @@ public:
 		InvalidateRect();
 	}
 
+	EckInline void SetPos(int x, int y)
+	{
+		SetRect({ x,y,x + GetWidth(),y + GetHeight() });
+	}
+
 	virtual BOOL Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, PCVOID pData = NULL)
 	{
@@ -287,17 +264,12 @@ public:
 	EckInline DWORD GetExStyle() const { return m_dwExStyle; }
 
 	EckInline void SetStyle(DWORD dwStyle)
-	{ 
+	{
 		if (dwStyle & DES_BLURBKG)
 			dwStyle |= DES_TRANSPARENT;
 
 		const auto dwOldStyle = m_dwStyle;
 		m_dwStyle = dwStyle;
-
-		if (!(dwOldStyle & DES_PRIV_BITMAP) && (dwStyle & DES_PRIV_BITMAP))
-			UpdatePrivateBitmap();
-		else if ((dwOldStyle & DES_PRIV_BITMAP) && !(dwStyle & DES_PRIV_BITMAP))
-			DestroyPrivateBitmap();
 
 		CallEvent(WM_STYLECHANGED, dwOldStyle, dwStyle);
 	}
@@ -377,7 +349,7 @@ public:
 		auto pParent = this;
 		while (pParent != pParentEnd)
 		{
-			OffsetRect(rc, pParent->GetRect().left, pParent->GetRect().top);
+			OffsetRect(rc, pParent->GetRectF().left, pParent->GetRectF().top);
 			pParent = pParent->GetParentElem();
 		}
 	}
@@ -385,6 +357,11 @@ public:
 	EckInline void ClientToElem(RECT& rc)
 	{
 		OffsetRect(rc, -m_rcInClient.left, -m_rcInClient.top);
+	}
+
+	EckInline void ClientToElem(D2D1_RECT_F& rc)
+	{
+		OffsetRect(rc, -m_rcfInClient.left, -m_rcfInClient.top);
 	}
 
 	EckInline void ClientToElem(POINT& pt)
@@ -411,6 +388,15 @@ public:
 
 	EckInline float GetHeightF() const { return m_rcf.bottom - m_rcf.top; }
 
+	// TODO: 增加非客户区支持
+	EckInline int GetViewWidth() const { return GetWidth(); }
+
+	EckInline int GetViewHeight() const { return GetHeight(); }
+
+	EckInline float GetViewWidthF() const { return GetWidthF(); }
+
+	EckInline float GetViewHeightF() const { return GetHeightF(); }
+
 	void SetZOrder(CElem* pElemAfter);
 
 	EckInline void GetRectFAbs(D2D1_RECT_F& rc) const
@@ -426,6 +412,8 @@ public:
 	{
 		if (bRedraw)
 		{
+			if (m_bAllowRedraw)
+				return;
 			m_bAllowRedraw = TRUE;
 			if (!IsRectEmpty(m_rcInvalid))
 				RedrawWnd(m_rcInvalid);
@@ -465,6 +453,14 @@ public:
 	EckInline CElem* SetCapture();
 
 	EckInline void ReleaseCapture();
+
+	EckInline D2D1_RECT_F GetViewRectF() const
+	{
+		return { 0.f,0.f,GetViewWidthF(),GetViewHeightF() };
+	}
+
+	template<class T>
+	EckInline void InitEasingCurve(CEasingCurve<T>& ec);
 };
 
 /// <summary>
@@ -517,19 +513,11 @@ private:
 				{
 					if (IntersectRect(rcClip, pElem->GetRectInClient(), rc))
 					{
-						if (pElem->GetStyle() & DES_PRIV_BITMAP)
-						{
-							pElem->m_pDC->SetTarget(pElem->m_pPrivateBmp);
-							pElem->m_pDC->SetTransform(D2D1::Matrix3x2F::Identity());
-						}
-						else
-							pElem->m_pDC->SetTransform(D2D1::Matrix3x2F::Translation(
-								pElem->GetRectInClientF().left,
-								pElem->GetRectInClientF().top));
+						pElem->m_pDC->SetTransform(D2D1::Matrix3x2F::Translation(
+							pElem->GetRectInClientF().left,
+							pElem->GetRectInClientF().top));
 						pElem->CallEvent(WM_PAINT, 0, (WPARAM)&rcClip);
 						RedrawElem(pElem->GetLastChildElem(), rcClip);
-						if (pElem->GetStyle() & DES_PRIV_BITMAP)
-							pElem->m_pDC->SetTarget(m_D2d.GetBitmap());
 					}
 				}
 			}
@@ -636,7 +624,7 @@ public:
 
 		case WM_SIZE:
 			ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
-			m_D2d.ReSize(1, m_cxClient, m_cyClient, 0);
+			m_D2d.ReSize(2, m_cxClient, m_cyClient, 0);
 			break;
 
 		case WM_SETCURSOR:
@@ -661,7 +649,7 @@ public:
 				RECT rc;
 				GetClientRect(hWnd, &rc);
 
-				m_pDefTextFormat = CreateDefTextFormat(96);
+				m_pDefTextFormat = CreateDefTextFormat(m_iDpi);
 				m_pDefTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
 				m_D2d.Create(EZD2D_PARAM::MakeBitblt(hWnd,
@@ -868,7 +856,6 @@ BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 
 	SetText(pszText);
 	SetRect({ x,y,x + cx,y + cy });
-	SetRedraw(TRUE);
 
 	if (CallEvent(WM_CREATE, 0, (LPARAM)pData))
 	{
@@ -876,7 +863,10 @@ BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		return FALSE;
 	}
 	else
+	{
+		SetRedraw(TRUE);
 		return TRUE;
+	}
 }
 
 void CElem::Destroy()
@@ -1011,18 +1001,21 @@ void CElem::BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uF
 	eps.rcInvalid = m_rcInvalid;
 	m_rcInvalid = {};
 
+	eps.rcfClipInElem = MakeD2DRcF(*eps.prcClip);
+	ClientToElem(eps.rcfClipInElem);
 	if (uFlags & EBPF_DO_NOT_FILLBK)
-		m_pDC->PushAxisAlignedClip(eps.rcfClip, D2D1_ANTIALIAS_MODE_ALIASED);
+		m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
 	else
 		if (m_dwStyle & DES_BLURBKG)
 		{
 			m_pDC->Flush();
-			m_pDC->PushAxisAlignedClip(eps.rcfClip, D2D1_ANTIALIAS_MODE_ALIASED);
-			BlurD2dDC(m_pDC, m_pWnd->GetD2D().GetBitmap(), m_pWnd->m_pBmpBlurCache, eps.rcfClip, 10.0f);
+			m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
+			BlurD2dDC(m_pDC, m_pWnd->GetD2D().GetBitmap(), m_pWnd->m_pBmpBlurCache,
+				eps.rcfClip, { eps.rcfClipInElem.left,eps.rcfClipInElem.top }, 10.0f);
 		}
 		else
 		{
-			m_pDC->PushAxisAlignedClip(eps.rcfClip, D2D1_ANTIALIAS_MODE_ALIASED);
+			m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
 			CallEvent(WM_ERASEBKGND, 0, (LPARAM)&eps);
 		}
 }
@@ -1030,6 +1023,27 @@ void CElem::BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uF
 CElem* CElem::SetCapture() { return m_pWnd->SetCaptureElem(this); }
 
 void CElem::ReleaseCapture() { m_pWnd->ReleaseCaptureElem(); }
+
+void CElem::RedrawWnd(const RECT& rc)
+{
+	RECT rcReal = rc;
+
+	CElem* pElem;
+	if (GetStyle() & DES_TRANSPARENT)
+		pElem = GetWnd()->GetLastChildElem();
+	else
+		pElem = this;
+
+	IRUnionTransparentElemRect(pElem, rcReal);
+	GetWnd()->RedrawDui(rcReal);
+}
+
+template<class T>
+void CElem::InitEasingCurve(CEasingCurve<T>& ec)
+{
+	ec.SetWnd(GetWnd()->HWnd);
+	ec.SetParam((LPARAM)this);
+}
 
 
 
@@ -1065,7 +1079,7 @@ public:
 		m_pWnd->m_pDragDropElem = pElem;
 
 		if (pElem)
-			return pElem->CallEvent(WM_DRAGENTER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
+			return (HRESULT)pElem->CallEvent(WM_DRAGENTER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
 		else
 			return S_OK;
 	}
@@ -1090,13 +1104,12 @@ public:
 			if (pElem)
 			{
 				ddi.pDataObj = m_pWnd->m_pDataObj;
-				return pElem->CallEvent(WM_DRAGENTER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
+				return (HRESULT)pElem->CallEvent(WM_DRAGENTER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
 			}
 		}
 		else if (pElem)
-			return pElem->CallEvent(WM_DRAGOVER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
-		else
-			return S_OK;
+			return (HRESULT)pElem->CallEvent(WM_DRAGOVER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
+		return S_OK;
 	}
 
 	HRESULT STDMETHODCALLTYPE DragLeave(void)
@@ -1113,7 +1126,7 @@ public:
 		if (pElem)
 		{
 			m_pWnd->m_pDragDropElem = NULL;
-			return pElem->CallEvent(WM_DRAGLEAVE, 0, 0);
+			return (HRESULT)pElem->CallEvent(WM_DRAGLEAVE, 0, 0);
 		}
 		else
 			return S_OK;
@@ -1136,7 +1149,7 @@ public:
 		auto pElem = m_pWnd->HitTest(pt0);
 		m_pWnd->m_pDragDropElem = NULL;
 		if (pElem)
-			return pElem->CallEvent(WM_DROP, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
+			return (HRESULT)pElem->CallEvent(WM_DROP, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
 		else
 			return S_OK;
 	}

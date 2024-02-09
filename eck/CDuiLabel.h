@@ -25,7 +25,7 @@ public:
 			if (m_pTf && !m_rsText.IsEmpty())
 			{
 				m_pBrush->SetColor(m_clrText);
-				m_pDC->DrawTextW(m_rsText.Data(), m_rsText.Size(), m_pTf, GetRectInClientF(), m_pBrush,
+				m_pDC->DrawTextW(m_rsText.Data(), m_rsText.Size(), m_pTf, GetViewRectF(), m_pBrush,
 					D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
 			}
 

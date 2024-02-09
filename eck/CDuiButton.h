@@ -52,10 +52,9 @@ public:
 			ELEMPAINTSTRU ps;
 			BeginPaint(ps, wParam, lParam);
 			const float cxEdge = m_pWnd->GetDs().CommEdge;
-			const auto& rcfInClient = GetRectInClientF();
 			D2D1_ROUNDED_RECT rrc
 			{ 
-				rcfInClient,
+				GetViewRectF(),
 				m_pWnd->GetDs().CommRrcRadius,
 				m_pWnd->GetDs().CommRrcRadius
 			};
@@ -68,8 +67,8 @@ public:
 
 			if (!m_bLBtnDown)
 			{
-				D2D1_RECT_F rcBottom{ rcfInClient };
-				rcBottom.top = rcfInClient.bottom - rrc.radiusY;
+				D2D1_RECT_F rcBottom{ GetViewRectF() };
+				rcBottom.top = rcBottom.bottom - rrc.radiusY;
 
 				m_pDC->PushAxisAlignedClip(rcBottom, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
 				m_pBrush->SetColor(D2D1::ColorF(0xd3d3d2));
@@ -82,8 +81,8 @@ public:
 			{
 				float y = (GetHeightF() - m_sizeImg.height) / 2.f;
 				D2D1_RECT_F rcImg;
-				rcImg.left = rcfInClient.left + x;
-				rcImg.top = rcfInClient.top + y;
+				rcImg.left = x;
+				rcImg.top = y;
 				rcImg.right = rcImg.left + m_sizeImg.width;
 				rcImg.bottom = rcImg.top + m_sizeImg.height;
 				m_pDC->DrawBitmap(m_pImg, rcImg);
@@ -93,7 +92,7 @@ public:
 			if (m_pLayout)
 			{
 				m_pBrush->SetColor(D2D1::ColorF(m_bLBtnDown ? 0x707070 : 0));
-				m_pDC->DrawTextLayout({ rcfInClient.left + x,rcfInClient.top + m_pWnd->GetDs().CommMargin }, m_pLayout, m_pBrush);
+				m_pDC->DrawTextLayout({ x,m_pWnd->GetDs().CommMargin }, m_pLayout, m_pBrush);
 			}
 
 			EndPaint(ps);

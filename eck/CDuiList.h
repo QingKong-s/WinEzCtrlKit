@@ -104,12 +104,11 @@ private:
 		{
 			EckAssert(es.cchText > 0);
 			g_pDwFactory->CreateTextLayout(es.pszText, es.cchText, m_pTf,
-				GetWidthF() - m_pWnd->GetDs().CommMargin * 2, m_cyItem, &e.pLayout);
+				GetWidthF() - m_pWnd->GetDs().CommMargin * 2, (float)m_cyItem, &e.pLayout);
 		}
 
 		const float fRad = m_pWnd->GetDs().CommRrcRadius;
-		const D2D1_RECT_F rcReal{ MakeD2DRcF(GetRectInClient()) };
-		D2D1_ROUNDED_RECT rrc{ { rcReal.left,rcReal.top + GetItemY(idx),rcReal.right },fRad,fRad };
+		D2D1_ROUNDED_RECT rrc{ { 0.f,(float)GetItemY(idx),GetViewWidthF() },fRad,fRad};
 		rrc.rect.bottom = rrc.rect.top + m_cyItem;
 
 		UINT32 rgb = 0;
@@ -130,7 +129,7 @@ private:
 		}
 
 		const float xImage = m_pWnd->GetDs().CommMargin;
-		const float yImage = (m_cyItem - m_cxyImage) / 2;
+		const float yImage = (float)((m_cyItem - m_cxyImage) / 2);
 
 		auto rcOld = rrc.rect;
 
@@ -155,7 +154,7 @@ private:
 
 	void ReCalcScroll()
 	{
-		m_Sv.SetMinThumbSize(m_DsF.minSBThumbSize);
+		m_Sv.SetMinThumbSize((int)m_DsF.minSBThumbSize);
 		m_Sv.SetViewSize(GetHeight() - m_cyTopExtra - m_cyBottomExtra);
 		m_Sv.SetRange(-m_cyTopExtra, (int)m_vItem.size() * (m_cyItem + m_cyPadding) + m_cyBottomExtra);
 		m_Sv.SetPage(GetHeight());
@@ -200,8 +199,22 @@ private:
 		const int yThumb = m_Sv.GetThumbPos(cyThumb);
 		if (cyThumb < 0 || yThumb < 0)
 			return FALSE;
-		rc.left = m_rc.right - m_rc.left - m_DsF.cxSBThumb;
+		rc.left = GetViewWidth() - (long)m_DsF.cxSBThumb;
 		rc.top = m_cyTopExtra + yThumb;
+		rc.right = rc.left + (long)m_DsF.cxSBThumb;
+		rc.bottom = rc.top + cyThumb;
+		return TRUE;
+	}
+
+	// 元素坐标
+	BOOL GetSBThumbRect(D2D1_RECT_F& rc) const
+	{
+		const int cyThumb = m_Sv.GetThumbSize();
+		const int yThumb = m_Sv.GetThumbPos(cyThumb);
+		if (cyThumb < 0 || yThumb < 0)
+			return FALSE;
+		rc.left = GetViewWidthF() - m_DsF.cxSBThumb;
+		rc.top = (float)(m_cyTopExtra + yThumb);
 		rc.right = rc.left + m_DsF.cxSBThumb;
 		rc.bottom = rc.top + cyThumb;
 		return TRUE;
@@ -210,11 +223,10 @@ private:
 	// 客户坐标
 	void PaintScrollBar()
 	{
-		const int cxThumb = (m_bHoverThumb ? m_DsF.cxSBThumb : m_DsF.cxSBThumbSmall);
 		D2D1_ROUNDED_RECT rrc;
-		rrc.radiusX = cxThumb / 2.f;
+		rrc.radiusX = (m_bHoverThumb ? m_DsF.cxSBThumb : m_DsF.cxSBThumbSmall) / 2.f;
 		rrc.radiusY = m_DsF.cxSBThumb / 2.f;
-		if (!GetSBThumbRectInClient(rrc.rect))
+		if (!GetSBThumbRect(rrc.rect))
 			return;
 		if (!m_bHoverThumb)
 			rrc.rect.right = rrc.rect.left + m_DsF.cxSBThumbSmall;
@@ -289,14 +301,12 @@ public:
 			ELEMPAINTSTRU ps;
 			BeginPaint(ps, wParam, lParam);
 			m_pBrush->SetColor(D2D1::ColorF(0xffffff));
-			m_pDC->FillRectangle(ps.rcfClip, m_pBrush);
+			m_pDC->FillRectangle(ps.rcfClipInElem, m_pBrush);
 			if (!m_vItem.empty())
 			{
-				auto rcClipElem = *ps.prcClip;
-				ClientToElem(rcClipElem);
-				const int idxBegin = std::max(ItemFromY(rcClipElem.top), 0);
-				const int idxEnd = std::min(ItemFromY(rcClipElem.bottom) + 1, (int)m_vItem.size() - 1);
-				for (size_t i = idxBegin; i <= idxEnd; ++i)
+				const int idxBegin = std::max(ItemFromY((int)ps.rcfClipInElem.top), 0);
+				const int idxEnd = std::min(ItemFromY((int)ps.rcfClipInElem.bottom) + 1, (int)m_vItem.size() - 1);
+				for (int i = idxBegin; i <= idxEnd; ++i)
 					DrawItem(i);
 				PaintScrollBar();
 
@@ -317,6 +327,7 @@ public:
 			EndPaint(ps);
 		}
 		return 0;
+
 		case WM_MOUSEMOVE:
 		{
 			LEHITTEST ht{ ECK_GET_PT_LPARAM(lParam) };
@@ -499,7 +510,7 @@ public:
 	{
 		rc.left = 0.f;
 		rc.right = m_rcf.right - m_rcf.left;
-		rc.top = GetItemY(idx);
+		rc.top = (float)GetItemY(idx);
 		rc.bottom = rc.top + m_cyItem;
 	}
 
@@ -562,7 +573,7 @@ public:
 			return;
 		}
 		rc.left = 0.f;
-		rc.right = m_rc.right - m_rc.left;
+		rc.right = GetViewWidthF();
 		rc.top = GetItemY(m_idxInsertMark) - m_DsF.cyInsertMark * 2.f;
 		rc.bottom = rc.top + m_DsF.cyInsertMark * 5.f;
 	}
@@ -593,7 +604,7 @@ public:
 	void SetImageSize(int cxy)
 	{
 		if (cxy < 0)
-			m_cxyImage = m_cyItem - m_pWnd->GetDs().CommMargin * 2;
+			m_cxyImage = m_cyItem - (int)(m_pWnd->GetDs().CommMargin * 2.f);
 		else
 			m_cxyImage = cxy;
 	}

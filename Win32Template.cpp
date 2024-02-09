@@ -81,9 +81,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	//CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 	//CoInitialize(NULL);
 	OleInitialize(NULL);
-	if (eck::Init(hInstance) != eck::InitStatus::Ok)
+	if (eck::InitStatus b; (b = eck::Init(hInstance)) != eck::InitStatus::Ok)
 	{
-		MessageBoxW(NULL, L"初始化失败", L"", 0);
+		MessageBoxW(NULL, L"初始化失败", std::to_wstring((int)b).c_str(), 0);
 		return 1;
 	}
 

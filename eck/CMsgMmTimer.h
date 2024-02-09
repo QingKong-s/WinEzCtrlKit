@@ -35,8 +35,8 @@ public:
 	EckInline MMRESULT SetTimer(UINT uElapse, UINT uResolution = 20)
 	{
 		KillTimer();
-		m_ID = timeSetEvent(uElapse, uResolution, TimerProc, (DWORD_PTR)this, TIME_PERIODIC | TIME_KILL_SYNCHRONOUS);
-		return m_ID;
+		return m_ID = timeSetEvent(uElapse, uResolution, TimerProc, (DWORD_PTR)this, 
+			TIME_PERIODIC | TIME_KILL_SYNCHRONOUS);
 	}
 
 	EckInline void KillTimer()
@@ -53,7 +53,7 @@ public:
 					PostQuitMessage((int)msg.wParam);
 					return;
 				}
-				else if (msg.message == m_uNotifyMsg)
+				else if (msg.message == m_uNotifyMsg && msg.wParam == m_ID)
 					continue;
 				TranslateMessage(&msg);
 				DispatchMessageW(&msg);

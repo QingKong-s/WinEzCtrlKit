@@ -145,7 +145,6 @@ public:
 			return;
 		EckAssert(xy >= GetThumbPos() && xy <= GetThumbPos() + GetThumbSize());
 		m_oxyThumbCursor = xy - GetThumbPos();
-		EckDbgPrint(m_oxyThumbCursor);
 	}
 
 	EckInline void OnMouseMove(int xy)
@@ -240,19 +239,6 @@ public:
 		if (!iId)
 			return;
 		m_Timer.KillTimer();
-		MSG msg;
-		while (PeekMessageW(&msg, NULL, 0u, 0u, PM_REMOVE))
-		{
-			if (msg.message == WM_QUIT)
-				PostQuitMessage((int)msg.wParam);// re-throw
-			else if (msg.message == s_uTimerNotify && msg.wParam == iId)
-				;// eat it
-			else
-			{
-				TranslateMessage(&msg);
-				DispatchMessageW(&msg);
-			}
-		}
 		m_iSustain = 0;
 		m_iDistance = 0;
 	}

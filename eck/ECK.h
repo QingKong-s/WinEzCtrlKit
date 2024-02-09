@@ -22,12 +22,25 @@
 
 #pragma region 宏
 #if _MSVC_LANG > 201703L
-#define ECKCXX20 1
+#	define ECKCXX20 1
 #elif _MSVC_LANG > 201402L
-#define ECKCXX20 0
+#	define ECKCXX20 0
 #else
-#error "ECK Lib requires C++17 or later"
+#	error "ECK Lib requires C++17 or later"
 #endif
+
+#ifndef ECKDPIAPI
+#	if _WIN32_WINNT >= 0x0605
+#		define ECKDPIAPI 1
+#	else
+#		define ECKDPIAPI 0
+#	endif
+#else
+#	if _WIN32_WINNT < 0x0605
+#		error "dpi api requires _WIN32_WINNT >= 0x0605"
+#	endif
+#endif
+
 
 #define ECK_NAMESPACE_BEGIN		namespace eck {
 #define ECK_NAMESPACE_END		}
@@ -171,10 +184,6 @@ constexpr inline auto c_cchI64ToStrBuf = std::max({ c_cchI64ToStrBufNoRadix2,
 
 constexpr inline double Pi = 3.141592653589793;
 constexpr inline float PiF = static_cast<float>(Pi);
-
-
-constexpr inline UINT SCID_DESIGN = 20230621'01u;
-constexpr inline UINT SCID_INERTIALSCROLLVIEW = 20231103'01u;
 /*-------------------*/
 /*控件通知代码*/
 #pragma warning(suppress:26454)// 算术溢出
@@ -238,6 +247,13 @@ constexpr inline PCWSTR WCN_TREELIST = L"Eck.WndClass.TreeList";
 
 constexpr inline PCWSTR MSG_INERTIALSV = L"Eck.Message.InertialScrollView";
 constexpr inline PCWSTR MSGREG_FORMTRAY = L"Eck.Message.FormTray";
+constexpr inline PCWSTR MSGREG_EASING = L"Eck.Message.Easing";
+
+constexpr inline PCWSTR WPROP_EASING = L"Eck.Prop.Easing";
+
+constexpr inline UINT SCID_DESIGN = 20230621'01u;
+constexpr inline UINT SCID_INERTIALSCROLLVIEW = 20231103'01u;
+constexpr inline UINT SCID_EASING = 20240208'01u;
 
 enum class InitStatus
 {
@@ -307,10 +323,10 @@ struct ECKTHREADCTX;
 using FWndCreating = void(*)(HWND hWnd, CBT_CREATEWNDW* pcs, ECKTHREADCTX* pThreadCtx);
 struct ECKTHREADCTX
 {
-	std::unordered_map<HWND, CWnd*> hmWnd{};// HWND->CWnd*
-	HHOOK hhkTempCBT = NULL;// CBT钩子句柄
-	CWnd* pCurrWnd = NULL;// 当前正在创建窗口所属的CWnd指针
-	FWndCreating pfnWndCreatingProc = NULL;// 当前创建窗口时要调用的过程
+	std::unordered_map<HWND, CWnd*> hmWnd{};	// HWND->CWnd*
+	HHOOK hhkTempCBT = NULL;					// CBT钩子句柄
+	CWnd* pCurrWnd = NULL;						// 当前正在创建窗口所属的CWnd指针
+	FWndCreating pfnWndCreatingProc = NULL;		// 当前创建窗口时要调用的过程
 
 	EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
 	{

@@ -1886,7 +1886,7 @@ inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp,
 }
 
 inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, ID2D1Bitmap*& pBmpWork, 
-	const D2D1_RECT_F& rc, float fDeviation = 3.f)
+	const D2D1_RECT_F& rc, D2D1_POINT_2F ptDrawing, float fDeviation = 3.f)
 {
 	const D2D1_SIZE_U sizeNew{ (UINT32)(rc.right - rc.left), (UINT32)(rc.bottom - rc.top) };
 	const auto sizeOld = pBmpWork ? pBmpWork->GetSize() : D2D1_SIZE_F{};
@@ -1929,7 +1929,7 @@ inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, ID2D1Bitmap
 
 	const auto iBlend = pDC->GetPrimitiveBlend();
 	pDC->SetPrimitiveBlend(D2D1_PRIMITIVE_BLEND_COPY);
-	pDC->DrawImage(pFxBlur, { rc.left,rc.top });
+	pDC->DrawImage(pFxBlur, ptDrawing);
 	pDC->SetPrimitiveBlend(iBlend);
 
 	pFxBlur->Release();

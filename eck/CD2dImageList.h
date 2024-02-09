@@ -102,7 +102,7 @@ public:
 		Destroy();
 		HRESULT hr;
 
-		D2D1_SIZE_U size{ m_cx, ((m_cy + m_iPadding) * m_cImgPerPack) };
+		D2D1_SIZE_U size{ (UINT32)m_cx, (UINT32)((m_cy + m_iPadding) * m_cImgPerPack) };
 		ID2D1Bitmap* pBmp;
 		auto pf = pRT->GetPixelFormat();
 		pf.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
@@ -145,7 +145,7 @@ public:
 		const int y = CalcY(idxImg);
 		ReAlloc(m_cImg + 1);
 		auto pBmp = m_vBmp[idxPack];
-		const D2D1_POINT_2U ptDst{ 0,y };
+		const D2D1_POINT_2U ptDst{ 0,(UINT32)y };
 		D2D1_RECT_U rc;
 		if (!prcSrc)
 		{
@@ -262,7 +262,7 @@ public:
 		const int idxPack = CalcPackIndex(idxImg);
 		const int y = CalcYFromImgIndex(idxImg);
 		auto pBmp = m_vBmp[idxPack];
-		const D2D1_POINT_2U ptDst{ 0,y };
+		const D2D1_POINT_2U ptDst{ 0,(UINT32)y };
 		D2D1_RECT_U rc;
 		if (!prcSrc)
 		{

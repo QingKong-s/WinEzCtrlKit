@@ -608,22 +608,31 @@ inline HICON GetWindowIcon(HWND hWnd, BOOL& bNeedDestroy, BOOL bSmall = FALSE, i
 	return sfi.hIcon;
 }
 
-EckInline HFONT CreateDefFont()
+EckInline BOOL SystemParametersInfoDpi(UINT uAction, UINT uParam, PVOID pParam, UINT fWinIni, int iDpi)
+{
+#if ECKDPIAPI
+	return SystemParametersInfoForDpi(uAction, uParam, pParam, fWinIni, iDpi);
+#else
+	return SystemParametersInfoW(uAction, uParam, pParam, fWinIni);
+#endif
+}
+
+EckInline HFONT CreateDefFont(int iDpi = USER_DEFAULT_SCREEN_DPI)
 {
 	LOGFONTW lf;
-	SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0);
+	SystemParametersInfoDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0, iDpi);
 	return CreateFontIndirectW(&lf);
 }
 
-EckInline BOOL GetDefFontInfo(LOGFONTW& lf)
+EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 {
-	return SystemParametersInfoW(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0);
+	return SystemParametersInfoDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0, iDpi);
 }
 
 EckInline IDWriteTextFormat* CreateDefTextFormat(int iDpi = USER_DEFAULT_SCREEN_DPI, HRESULT* phr = NULL)
 {
 	LOGFONTW lf;
-	if (!GetDefFontInfo(lf))
+	if (!GetDefFontInfo(lf, iDpi))
 		return NULL;
 	IDWriteTextFormat* pTextFormat;
 	auto hr = g_pDwFactory->CreateTextFormat(
@@ -632,7 +641,7 @@ EckInline IDWriteTextFormat* CreateDefTextFormat(int iDpi = USER_DEFAULT_SCREEN_
 		(DWRITE_FONT_WEIGHT)lf.lfWeight,
 		lf.lfItalic ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
 		DWRITE_FONT_STRETCH_NORMAL,
-		DpiScaleF(Abs(lf.lfHeight), iDpi),
+		(float)Abs(lf.lfHeight),
 		L"zh-cn",
 		&pTextFormat);
 	if (phr)

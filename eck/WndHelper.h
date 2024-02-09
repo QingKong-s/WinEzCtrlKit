@@ -51,7 +51,7 @@ EckInline DWORD ModifyWindowStyle(HWND hWnd, DWORD dwNew, DWORD dwMask, int idx 
 
 EckInline int GetDpi(HWND hWnd)
 {
-#if _WIN32_WINNT >= _WIN32_WINNT_WIN10
+#if ECKDPIAPI
 	if (hWnd)
 		return GetDpiForWindow(hWnd);
 	else

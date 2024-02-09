@@ -473,9 +473,9 @@ EckPropCallBackRet CALLBACK SetProp_Edit(CWnd* pWnd, int idProp, EckCtrlPropValu
 	EckDCtrlDefSetProp;
 
 	auto p = (CEdit*)pWnd;
-	switch (idProp)
-	{
-	}
+	//switch (idProp)
+	//{
+	//}
 	return ESPR_NONE;
 }
 
