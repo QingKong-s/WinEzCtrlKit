@@ -168,6 +168,7 @@
     <ClInclude Include="eck\CDuiButton.h" />
     <ClInclude Include="eck\CDuiLabel.h" />
     <ClInclude Include="eck\CDuiList.h" />
+    <ClInclude Include="eck\CDuiTrackBar.h" />
     <ClInclude Include="eck\DuiBase.h" />
     <ClInclude Include="eck\CEditExt.h" />
     <ClInclude Include="eck\CException.h" />

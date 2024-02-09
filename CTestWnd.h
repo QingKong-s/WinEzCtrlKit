@@ -36,6 +36,7 @@
 #include "eck\CDuiLabel.h"
 #include "eck\CDuiButton.h"
 #include "eck\CDuiList.h"
+#include "eck\CDuiTrackBar.h"
 
 #define WCN_TEST L"CTestWindow"
 
@@ -408,11 +409,6 @@ inline BOOL GetMusicInfo(PCWSTR pszFile, MUSICINFO& mi)
 	return TRUE;
 }
 
-class CMyPage :public eck::Dui::CElem
-{
-
-};
-
 class CTestDui :public eck::Dui::CDuiWnd
 {
 public:
@@ -421,8 +417,10 @@ public:
 	eck::Dui::CLabel m_Label3{};
 	eck::Dui::CButton m_Btn{};
 	eck::Dui::CList m_List{};
+	eck::Dui::CTrackBar m_TB{};
 
 	eck::CD2dImageList m_il{ 80, 80 };
+	eck::CEasingCurve<eck::Easing::FOutExpo> m_ec{};
 
 	struct ITEM
 	{
@@ -433,8 +431,6 @@ public:
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
-		IWICBitmapDecoder* pDecoder;
-		IWICBitmap* pWicBmp;
 		ID2D1Bitmap* pBitmap;
 		switch (uMsg)
 		{
@@ -451,7 +447,9 @@ public:
 			auto p = (eck::Dui::DRAGDROPINFO*)wParam;
 			FORMATETC fe = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 			STGMEDIUM sm{ TYMED_HGLOBAL };
-
+			IWICBitmapDecoder* pDecoder{};
+			IWICBitmap* pWicBmp{};
+			ID2D1Bitmap* pBitmap{};
 			if (p->pDataObj->GetData(&fe, &sm) == S_OK)
 			{
 				HDROP hDrop = (HDROP)sm.hGlobal;
@@ -490,17 +488,18 @@ public:
 
 			auto sizez = pBitmap->GetSize();
 			m_il.BindRenderTarget(GetD2D().GetDC());
-			SetBkgBitmap(pBitmap);
+			//SetBkgBitmap(pBitmap);
 
 			m_Label3.Create(L"测试标签😍😍", eck::Dui::DES_VISIBLE | eck::Dui::DES_BLURBKG, 0,
-				100, 0, 800, 900, NULL, this, NULL);
+				0, 0, 800, 900, NULL, this, NULL);
 			eck::Dui::CElem* pElem = &m_Label3;
+			pElem = 0;
 			m_List.Create(NULL, eck::Dui::DES_VISIBLE, 0,
-				50, 70, 600, 600, pElem, this, NULL);
+				50, 70, 600, 600, pElem, this, NULL);// 50  70  650  670
 			m_List.SetTextFormat(GetDefTextFormat());
-			m_List.SetItemHeight(70.f);
-			m_List.SetImageSize(-1.f);
-			m_List.SetItemPadding(5.f);
+			m_List.SetItemHeight(70);
+			m_List.SetImageSize(-1);
+			m_List.SetItemPadding(5);
 			/*m_vItem.resize(100);
 			EckCounter(m_vItem.size(), i)
 			{
@@ -532,10 +531,26 @@ public:
 			m_Btn.SetImage(pBmp);
 			pBmp->Release();
 
+			m_TB.Create(NULL, eck::Dui::DES_VISIBLE | eck::Dui::DES_TRANSPARENT, 0,
+				100, 0, 700, 300, NULL, this, NULL);
+			m_TB.SetRange(0, 100);
+			m_TB.SetPos(50);
+			m_TB.SetTrackSize(20);
+			//m_TB.SetVertical(true);
+
 			if (pBitmap)
 				pBitmap->Release();
 
 			EnableDragDrop(TRUE);
+
+			m_ec.SetWnd(HWnd);
+			m_ec.SetParam((LPARAM)this);
+			m_ec.SetCallBack([](float fCurrValue, float fOldValue, LPARAM lParam)
+				{
+					auto p = (CTestDui*)lParam;
+					p->m_List.SetPos((int)fCurrValue, 70);
+					p->Redraw();
+				});
 			return lResult;
 		}
 		break;
@@ -560,6 +575,19 @@ public:
 			//auto s = e.pBitmap->GetSize();
 			//p->cxImage = s.width;
 			//p->cyImage = s.height;
+		}
+		return 0;
+		case EE_COMMAND:
+		{
+			if (pElem == &m_Btn)
+			{
+				static bool b{ 1 };
+				b = !b;
+				if (b)
+					m_ec.Begin(m_List.GetRect().left, 50 - m_List.GetRect().left, 400, 20);
+				else
+					m_ec.Begin(m_List.GetRect().left, 400.f - m_List.GetRect().left, 400, 20);
+			}
 		}
 		return 0;
 		}
@@ -934,7 +962,7 @@ public:
 			m_Dui.Create(L"我是 Dui 窗口", WS_CHILD | WS_VISIBLE, 0, 0, 0, rcDui.right, rcDui.bottom, hWnd, 108);
 			m_Dui.Redraw();
 
-			m_hFont = eck::CreateDefFont();
+			m_hFont = eck::CreateDefFont(m_iDpi);
 			eck::SetFontForWndAndCtrl(hWnd, m_hFont);
 
 			Test();

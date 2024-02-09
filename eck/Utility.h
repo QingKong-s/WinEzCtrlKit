@@ -16,6 +16,7 @@
 #include <string_view>
 #if ECKCXX20
 #include <concepts>
+#include <bit>
 #endif
 
 #include <windowsx.h>
@@ -577,6 +578,12 @@ EckInline constexpr BOOL PtInRect(const D2D1_RECT_F& rc, D2D1_POINT_2F pt)
 		(pt.y >= rc.top) && (pt.y < rc.bottom));
 }
 
+EckInline constexpr BOOL PtInRect(const D2D1_RECT_F& rc, POINT pt)
+{
+	return ((pt.x >= rc.left) && (pt.x < rc.right) &&
+		(pt.y >= rc.top) && (pt.y < rc.bottom));
+}
+
 EckInline constexpr BOOL IsRectEmpty(const RECT& rc)
 {
 	return rc.left >= rc.right || rc.top >= rc.bottom;
@@ -648,5 +655,21 @@ EckInline constexpr bool operator==(const D2D1_SIZE_F& sz1, const D2D1_SIZE_F& s
 EckInline constexpr bool operator==(const D2D1_SIZE_U& sz1, const D2D1_SIZE_U& sz2)
 {
 	return sz1.width == sz2.width && sz1.height == sz2.height;
+}
+
+template<class T1, class T2>
+EckInline constexpr T1 ReinterpretValue(T2 v)
+{
+	return std::bit_cast<T1>(v);
+}
+
+EckInline BOOL FloatEqual(float f1, float f2, float fEpsilon = FLT_EPSILON)
+{
+	return fabs(f1 - f2) < fEpsilon;
+}
+
+EckInline BOOL FloatEqual(double f1, double f2, double fEpsilon = DBL_EPSILON)
+{
+	return abs(f1 - f2) < fEpsilon;
 }
 ECK_NAMESPACE_END
