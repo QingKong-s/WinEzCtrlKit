@@ -245,6 +245,17 @@ EckInline constexpr D2D1_COLOR_F ARGBToD2dColorF(ARGB argb)
 	};
 }
 
+EckInline constexpr D2D1_COLOR_F RgbToD2dColorF(UINT rgb, float fAlpha = 1.f)
+{
+	return D2D1_COLOR_F
+	{
+		GetIntegerByte<2>(rgb) / 255.f,
+		GetIntegerByte<1>(rgb) / 255.f,
+		GetIntegerByte<0>(rgb) / 255.f,
+		fAlpha
+	};
+}
+
 EckInline constexpr COLORREF ColorrefAlphaBlend(COLORREF cr, COLORREF crBK, BYTE byAlpha)
 {
 	return BytesToInteger<COLORREF>(
@@ -671,5 +682,17 @@ EckInline BOOL FloatEqual(float f1, float f2, float fEpsilon = FLT_EPSILON)
 EckInline BOOL FloatEqual(double f1, double f2, double fEpsilon = DBL_EPSILON)
 {
 	return abs(f1 - f2) < fEpsilon;
+}
+
+EckInline constexpr BOOL PtInCircle(D2D1_POINT_2F pt, D2D1_POINT_2F ptCenter, float fRadius)
+{
+	return (pt.x - ptCenter.x) * (pt.x - ptCenter.x) + (pt.y - ptCenter.y) * (pt.y - ptCenter.y) <= 
+		fRadius * fRadius;
+}
+
+EckInline constexpr BOOL PtInCircle(POINT pt, POINT ptCenter, int iRadius)
+{
+	return (pt.x - ptCenter.x) * (pt.x - ptCenter.x) + (pt.y - ptCenter.y) * (pt.y - ptCenter.y) <=
+		iRadius * iRadius;
 }
 ECK_NAMESPACE_END

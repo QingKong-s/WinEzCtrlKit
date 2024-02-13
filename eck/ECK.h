@@ -184,6 +184,14 @@ constexpr inline auto c_cchI64ToStrBuf = std::max({ c_cchI64ToStrBufNoRadix2,
 
 constexpr inline double Pi = 3.141592653589793;
 constexpr inline float PiF = static_cast<float>(Pi);
+
+constexpr inline UINT CP_UTF16LE = 0xFFFFFFFF;
+constexpr inline UINT CP_UTF16BE = 0xFFFFFFFE;
+
+constexpr inline BYTE BOM_UTF16LE[]{ 0xFF,0xFE };
+constexpr inline BYTE BOM_UTF16BE[]{ 0xFE,0xFF };
+constexpr inline BYTE BOM_UTF8[]{ 0xEF,0xBB,0xBF };
+
 /*-------------------*/
 /*控件通知代码*/
 #pragma warning(suppress:26454)// 算术溢出

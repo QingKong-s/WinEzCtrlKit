@@ -1863,9 +1863,12 @@ inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp,
 	pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_BORDER_MODE, D2D1_BORDER_MODE_HARD);
 	pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, fDeviation);
 
+	float xDpi, yDpi;
+	pBmp->GetDpi(&xDpi, &yDpi);
+
 	ID2D1Bitmap* pBmpEffect;
 	if (FAILED(hr = pDC->CreateBitmap({ (UINT32)(rc.right - rc.left), (UINT32)(rc.bottom - rc.top) },
-		D2D1::BitmapProperties(pBmp->GetPixelFormat()), &pBmpEffect)))
+		D2D1::BitmapProperties(pBmp->GetPixelFormat(), xDpi, yDpi), & pBmpEffect)))
 	{
 		pFxBlur->Release();
 		return hr;
@@ -1912,8 +1915,10 @@ inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, ID2D1Bitmap
 	if (sizeNew.width > sizeOld.width || sizeNew.height > sizeOld.height)
 	{
 		SafeRelease(pBmpWork);
+		float xDpi, yDpi;
+		pBmp->GetDpi(&xDpi, &yDpi);
 		if (FAILED(hr = pDC->CreateBitmap(sizeNew,
-			D2D1::BitmapProperties(pBmp->GetPixelFormat()), &pBmpWork)))
+			D2D1::BitmapProperties(pBmp->GetPixelFormat(), xDpi, yDpi), &pBmpWork)))
 		{
 			pFxBlur->Release();
 			pFxCrop->Release();

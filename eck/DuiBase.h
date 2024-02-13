@@ -10,6 +10,7 @@
 #include "GraphicsHelper.h"
 #include "OleDragDropHelper.h"
 #include "EasingCurve.h"
+#include "CDuiColorTheme.h"
 
 #define ECK_DUI_NAMESPACE_BEGIN namespace Dui {
 #define ECK_DUI_NAMESPACE_END }
@@ -87,6 +88,18 @@ struct ELEMPAINTSTRU
 	D2D1_RECT_F rcfClipInElem;	// 剪裁矩形，相对元素
 };
 
+
+enum
+{
+	CTI_BUTTON,
+	CTI_LIST,
+	CTI_LABEL,
+	CTI_TRACKBAR,
+	CTI_CIRCLEBUTTON,
+
+	CTI_COUNT
+};
+
 /// <summary>
 /// DUI元素基类
 /// </summary>
@@ -101,6 +114,7 @@ protected:
 	CElem* m_pLastChild = NULL;
 	CDuiWnd* m_pWnd = NULL;
 	ID2D1DeviceContext* m_pDC = NULL;
+	CColorTheme* m_pColorTheme = NULL;
 
 	RECT m_rc{};
 	D2D1_RECT_F m_rcf{};
@@ -454,13 +468,25 @@ public:
 
 	EckInline void ReleaseCapture();
 
+	EckInline void SetFocus();
+
 	EckInline D2D1_RECT_F GetViewRectF() const
 	{
 		return { 0.f,0.f,GetViewWidthF(),GetViewHeightF() };
 	}
 
-	template<class T>
-	EckInline void InitEasingCurve(CEasingCurve<T>& ec);
+	EckInline void InitEasingCurve(CEasingCurve& ec);
+
+	EckInline void SetColorTheme(CColorTheme* pColorTheme)
+	{
+		std::swap(m_pColorTheme, pColorTheme);
+		if (m_pColorTheme)
+			m_pColorTheme->Ref();
+		if (pColorTheme)
+			pColorTheme->DeRef();
+	}
+
+	EckInline const CColorTheme* GetColorTheme() const { return m_pColorTheme; }
 };
 
 /// <summary>
@@ -489,10 +515,12 @@ private:
 
 	IDWriteTextFormat* m_pDefTextFormat = NULL;
 
-	UINT m_uLastError = S_OK;
+	CColorTheme* m_pStdColorTheme[CTI_COUNT]{};
 
 	int m_cxClient = 0;
 	int m_cyClient = 0;
+
+	BITBOOL m_bMouseCaptured : 1 = FALSE;
 
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 	ECK_DS_BEGIN(DPIS)
@@ -566,31 +594,85 @@ private:
 public:
 	ID2D1Bitmap* m_pBmpBlurCache = NULL;
 
+	CDuiWnd()
+	{
+		constexpr auto c_Black = ColorrefToD2dColorF(Colorref::Black);
+		constexpr auto c_White = ColorrefToD2dColorF(Colorref::White);
+		constexpr auto c_Gray = ColorrefToD2dColorF(Colorref::Gray);
+		constexpr auto c_DisableText = ColorrefToD2dColorF(Colorref::NeutralGray);
+		constexpr auto c_DisableBkg = RgbToD2dColorF(0xfbfbf9);
+		constexpr auto c_Unused = RgbToD2dColorF(0);
+		m_pStdColorTheme[CTI_BUTTON] = new CColorTheme{};
+		m_pStdColorTheme[CTI_BUTTON]->Set(
+			{
+				c_Black,c_Black,RgbToD2dColorF(0x707070),c_DisableText,
+				RgbToD2dColorF(0xfefefd),RgbToD2dColorF(0xfafbfa),RgbToD2dColorF(0xfafbfa),c_DisableBkg,RgbToD2dColorF(0xfafbfa),
+				RgbToD2dColorF(0xd3d3d2),RgbToD2dColorF(0xecedeb)
+			});
+
+		m_pStdColorTheme[CTI_LIST] = new CColorTheme{};
+		m_pStdColorTheme[CTI_LIST]->Set(
+			{
+				c_Black,c_Black,c_Black,c_DisableText,
+				c_White,{},{},c_DisableBkg,
+				c_Unused,c_Unused
+			});
+
+		m_pStdColorTheme[CTI_LABEL] = new CColorTheme{};
+		m_pStdColorTheme[CTI_LABEL]->Set(
+			{
+				c_Black,c_Black,c_Black,c_DisableText,
+				c_White,c_White,c_White,c_DisableBkg,
+				c_Unused,c_Unused
+			});
+
+		m_pStdColorTheme[CTI_TRACKBAR] = new CColorTheme{};
+		m_pStdColorTheme[CTI_TRACKBAR]->Set(
+			{
+				c_Unused,c_Unused,c_Unused,c_Unused,
+				RgbToD2dColorF(0xc6bfbe),c_Unused,RgbToD2dColorF(0x227988),c_DisableBkg,
+				c_Unused,c_Unused
+			});
+
+		m_pStdColorTheme[CTI_CIRCLEBUTTON] = new CColorTheme{};
+		m_pStdColorTheme[CTI_CIRCLEBUTTON]->Set(
+			{
+				c_Unused,c_Unused,c_Unused,c_Unused,
+				RgbToD2dColorF(0xededee, 0.7f),
+				RgbToD2dColorF(0xe1e1e2, 0.7f),
+				RgbToD2dColorF(0xe1e1e2, 0.9f),
+				c_DisableBkg,
+				RgbToD2dColorF(0xe1e1e2, 0.9f),
+				c_Unused,c_Unused
+			});
+	}
+
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		if (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST)
 		{
+			if (m_bMouseCaptured)
+			{
+				POINT pt ECK_GET_PT_LPARAM(lParam);
+				m_pCurrNcHitTestElem = HitTest(pt);
+			}
 			auto pElem = (m_pMouseCaptureElem ? m_pMouseCaptureElem : m_pCurrNcHitTestElem);
 			if (pElem)
 				pElem->CallEvent(uMsg, wParam, lParam);
 
 			if (uMsg == WM_MOUSEMOVE)
 			{
-				if (m_pHoverElem != pElem)
+				if (m_pHoverElem != m_pCurrNcHitTestElem)
 				{
 					if (m_pHoverElem)
 						m_pHoverElem->CallEvent(WM_MOUSELEAVE, 0, 0);
-					m_pHoverElem = pElem;
+					m_pHoverElem = m_pCurrNcHitTestElem;
 				}
 				TRACKMOUSEEVENT tme;
 				tme.cbSize = sizeof(tme);
 				tme.dwFlags = TME_LEAVE;
 				tme.hwndTrack = hWnd;
 				TrackMouseEvent(&tme);
-			}
-			else if (uMsg == WM_LBUTTONDBLCLK)
-			{
-				PostMsg(WM_LBUTTONDOWN, wParam, lParam);
 			}
 
 			return 0;
@@ -609,7 +691,7 @@ public:
 		{
 			POINT pt ECK_GET_PT_LPARAM(lParam);
 			ScreenToClient(hWnd, &pt);
-			m_pCurrNcHitTestElem = HitTest(pt);
+			m_pCurrNcHitTestElem = HitTest(pt); 
 		}
 		break;
 
@@ -628,9 +710,12 @@ public:
 			break;
 
 		case WM_SETCURSOR:
-			if (m_pCurrNcHitTestElem)
-				m_pCurrNcHitTestElem->CallEvent(uMsg, wParam, lParam);
-			break;
+		{
+			const auto pElem = (m_pMouseCaptureElem ? m_pMouseCaptureElem : m_pCurrNcHitTestElem);
+			if (pElem)
+				pElem->CallEvent(uMsg, wParam, lParam);
+		}
+		break;
 
 		case WM_MOUSELEAVE:
 			if (m_pHoverElem)
@@ -639,6 +724,18 @@ public:
 				m_pHoverElem = NULL;
 			}
 			break;
+
+		case WM_CAPTURECHANGED:
+		{
+			EckAssert(m_bMouseCaptured);
+			m_bMouseCaptured = FALSE;
+			if (m_pMouseCaptureElem)
+			{
+				m_pMouseCaptureElem->CallEvent(WM_CAPTURECHANGED, 0, NULL);
+				m_pMouseCaptureElem = NULL;
+			}
+		}
+		break;
 
 		case WM_CREATE:
 		{
@@ -770,6 +867,7 @@ public:
 
 	CElem* SetFocusElem(CElem* pElem)
 	{
+		SetFocus(HWnd);
 		auto pOld = m_pFocusElem;
 		if (pOld)
 			pOld->CallEvent(WM_KILLFOCUS, (WPARAM)pElem, 0);
@@ -785,20 +883,22 @@ public:
 		auto pOld = m_pMouseCaptureElem;
 		m_pMouseCaptureElem = pElem;
 		if (GetCapture() != m_hWnd)
+		{
 			SetCapture(m_hWnd);
+			m_bMouseCaptured = TRUE;
+		}
 		if (pOld)
 			pOld->CallEvent(WM_CAPTURECHANGED, 0, (LPARAM)pElem);
 		return pOld;
 	}
 
-	void ReleaseCaptureElem()
+	EckInline void ReleaseCaptureElem()
 	{
-		if (m_pMouseCaptureElem)
-		{
-			ReleaseCapture();
-			m_pMouseCaptureElem->CallEvent(WM_CAPTURECHANGED, 0, (LPARAM)m_pMouseCaptureElem);
-			m_pMouseCaptureElem = NULL;
-		}
+		ReleaseCapture();
+
+		// WM_CAPTURECHANGED will process it:
+		// m_pMouseCaptureElem->CallEvent(WM_CAPTURECHANGED, 0, NULL);
+		// m_pMouseCaptureElem = NULL;
 	}
 
 	EckInline CElem* GetCaptureElem() const { return m_pMouseCaptureElem; }
@@ -814,6 +914,8 @@ public:
 	EckInline HRESULT EnableDragDrop(BOOL bEnable);
 
 	EckInline auto GetDefTextFormat() const { return m_pDefTextFormat; }
+
+	EckInline auto GetDefColorTheme() const { return m_pStdColorTheme; }
 };
 
 
@@ -831,7 +933,6 @@ BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 
 	m_pWnd = pWnd;
 	m_pDC = pWnd->m_D2d.GetDC();
-
 #ifdef _DEBUG
 	if (pParent)
 		EckAssert(pParent->m_pWnd == pWnd);
@@ -853,6 +954,8 @@ BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		pParentFirstChild = this;
 		pParentLastChild = this;
 	}
+
+	CallEvent(WM_NCCREATE, 0, (LPARAM)pData);
 
 	SetText(pszText);
 	SetRect({ x,y,x + cx,y + cy });
@@ -1011,7 +1114,7 @@ void CElem::BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uF
 			m_pDC->Flush();
 			m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
 			BlurD2dDC(m_pDC, m_pWnd->GetD2D().GetBitmap(), m_pWnd->m_pBmpBlurCache,
-				eps.rcfClip, { eps.rcfClipInElem.left,eps.rcfClipInElem.top }, 10.0f);
+				eps.rcfClip, { eps.rcfClipInElem.left,eps.rcfClipInElem.top }, 10.f);
 		}
 		else
 		{
@@ -1023,6 +1126,8 @@ void CElem::BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uF
 CElem* CElem::SetCapture() { return m_pWnd->SetCaptureElem(this); }
 
 void CElem::ReleaseCapture() { m_pWnd->ReleaseCaptureElem(); }
+
+void CElem::SetFocus() { m_pWnd->SetFocusElem(this); }
 
 void CElem::RedrawWnd(const RECT& rc)
 {
@@ -1038,8 +1143,7 @@ void CElem::RedrawWnd(const RECT& rc)
 	GetWnd()->RedrawDui(rcReal);
 }
 
-template<class T>
-void CElem::InitEasingCurve(CEasingCurve<T>& ec)
+void CElem::InitEasingCurve(CEasingCurve& ec)
 {
 	ec.SetWnd(GetWnd()->HWnd);
 	ec.SetParam((LPARAM)this);

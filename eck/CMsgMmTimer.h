@@ -43,6 +43,7 @@ public:
 	{
 		if (m_ID)
 		{
+			const auto idOld = m_ID;
 			timeKillEvent(m_ID);
 			m_ID = 0;
 			MSG msg;
@@ -53,7 +54,7 @@ public:
 					PostQuitMessage((int)msg.wParam);
 					return;
 				}
-				else if (msg.message == m_uNotifyMsg && msg.wParam == m_ID)
+				else if (msg.message == m_uNotifyMsg && msg.wParam == idOld)
 					continue;
 				TranslateMessage(&msg);
 				DispatchMessageW(&msg);

@@ -10,6 +10,7 @@ private:
 	ID2D1Bitmap* m_pImg = NULL;				// 外部传入
 
 	ID2D1SolidColorBrush* m_pBrush = NULL;
+	ID2D1LinearGradientBrush* m_pLgBrush = NULL;
 	IDWriteTextLayout* m_pLayout = NULL;
 
 	D2D1_SIZE_F m_sizeImg{};
@@ -59,24 +60,28 @@ public:
 				m_pWnd->GetDs().CommRrcRadius
 			};
 
-			m_pBrush->SetColor(D2D1::ColorF((m_bHot || m_bLBtnDown) ? 0xfafbfa : 0xfefefd));
+			auto& ct = GetColorTheme()->Get();
+			const D2D1_COLOR_F* pcrText;
+
+			if (m_bHot)
+				if (m_bLBtnDown)
+					m_pBrush->SetColor(ct.crBkHotSel), pcrText = &ct.crTextSelected;
+				else
+					m_pBrush->SetColor(ct.crBkHot), pcrText = &ct.crTextHot;
+			else if (m_bLBtnDown)
+				m_pBrush->SetColor(ct.crBkSelected), pcrText = &ct.crTextSelected;
+			else
+				m_pBrush->SetColor(ct.crBkNormal), pcrText = &ct.crTextNormal;
 			m_pDC->FillRoundedRectangle(rrc, m_pBrush);
-			m_pBrush->SetColor(D2D1::ColorF(0xecedeb));
+
+			m_pBrush->SetColor(ct.crBorder);
 			InflateRect(rrc.rect, -cxEdge / 2.f, -cxEdge / 2.f);
 			m_pDC->DrawRoundedRectangle(rrc, m_pBrush, cxEdge);
 
 			if (!m_bLBtnDown)
-			{
-				D2D1_RECT_F rcBottom{ GetViewRectF() };
-				rcBottom.top = rcBottom.bottom - rrc.radiusY;
+				m_pDC->DrawRoundedRectangle(rrc, m_pLgBrush, cxEdge);
 
-				m_pDC->PushAxisAlignedClip(rcBottom, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-				m_pBrush->SetColor(D2D1::ColorF(0xd3d3d2));
-				m_pDC->DrawRoundedRectangle(rrc, m_pBrush, cxEdge);
-				m_pDC->PopAxisAlignedClip();
-			}
-
-			float x = (GetWidthF() - m_pWnd->GetDs().CommMargin * 2 - m_sizeImg.width - m_cxText) / 2.f;
+			float x = (GetViewWidthF() - m_pWnd->GetDs().CommMargin * 2 - m_sizeImg.width - m_cxText) / 2.f;
 			if (m_pImg)
 			{
 				float y = (GetHeightF() - m_sizeImg.height) / 2.f;
@@ -86,12 +91,12 @@ public:
 				rcImg.right = rcImg.left + m_sizeImg.width;
 				rcImg.bottom = rcImg.top + m_sizeImg.height;
 				m_pDC->DrawBitmap(m_pImg, rcImg);
-				x += (m_sizeImg.width);
+				x = m_pWnd->GetDs().CommMargin + m_sizeImg.width;
 			}
 
 			if (m_pLayout)
 			{
-				m_pBrush->SetColor(D2D1::ColorF(m_bLBtnDown ? 0x707070 : 0));
+				m_pBrush->SetColor(pcrText);
 				m_pDC->DrawTextLayout({ x,m_pWnd->GetDs().CommMargin }, m_pLayout, m_pBrush);
 			}
 
@@ -119,10 +124,12 @@ public:
 		}
 		return 0;
 
+		case WM_LBUTTONDBLCLK:// 连击修正
 		case WM_LBUTTONDOWN:
 		{
+			SetFocus();
 			m_bLBtnDown = TRUE;
-			m_pWnd->SetCaptureElem(this);
+			SetCapture();
 			InvalidateRect();
 		}
 		return 0;
@@ -132,10 +139,38 @@ public:
 			if (m_bLBtnDown)
 			{
 				m_bLBtnDown = FALSE;
-				m_pWnd->ReleaseCaptureElem();
+				ReleaseCapture();
 				InvalidateRect();
-				GenElemNotify(EE_COMMAND, 0, 0);
+				if (PtInRect(GetRectInClient(), ECK_GET_PT_LPARAM(lParam)))
+					GenElemNotify(EE_COMMAND, 0, 0);
 			}
+		}
+		return 0;
+
+		case WM_SIZE:
+		{
+			ID2D1GradientStopCollection* pGsc = NULL;
+			D2D1_GRADIENT_STOP gsc[2]
+			{
+				{ 0.f },
+				{ 1.f }
+			};
+			gsc[1].color = GetColorTheme()->Get().crShadow;
+
+			gsc[0].color = gsc[1].color;
+			gsc[0].color.a = 0.f;
+
+			m_pDC->CreateGradientStopCollection(gsc, 2, &pGsc);
+			EckAssert(pGsc);
+
+			SafeRelease(m_pLgBrush);
+			D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES Prop
+			{
+				{ 0,GetViewRectF().bottom - GetWnd()->GetDs().CommRrcRadius },
+				{ 0,GetViewRectF().bottom }
+			};
+			m_pDC->CreateLinearGradientBrush(Prop, pGsc, &m_pLgBrush);
+			pGsc->Release();
 		}
 		return 0;
 
@@ -144,6 +179,9 @@ public:
 			InvalidateRect();
 			return 0;
 
+		case WM_NCCREATE:
+			SetColorTheme(GetWnd()->GetDefColorTheme()[CTI_BUTTON]);
+			return 0;
 		case WM_CREATE:
 			m_pDC->CreateSolidColorBrush({}, &m_pBrush);
 			return 0;
@@ -154,6 +192,7 @@ public:
 			SafeRelease(m_pLayout);
 			SafeRelease(m_pTf);
 			SafeRelease(m_pImg);
+			SafeRelease(m_pLgBrush);
 			m_bHot = FALSE;
 			m_bLBtnDown = FALSE;
 		}

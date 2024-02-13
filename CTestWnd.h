@@ -37,6 +37,8 @@
 #include "eck\CDuiButton.h"
 #include "eck\CDuiList.h"
 #include "eck\CDuiTrackBar.h"
+#include "eck\CDuiCircleButton.h"
+#include "eck\CIni.h"
 
 #define WCN_TEST L"CTestWindow"
 
@@ -418,9 +420,10 @@ public:
 	eck::Dui::CButton m_Btn{};
 	eck::Dui::CList m_List{};
 	eck::Dui::CTrackBar m_TB{};
+	eck::Dui::CCircleButton m_CBtn{};
 
 	eck::CD2dImageList m_il{ 80, 80 };
-	eck::CEasingCurve<eck::Easing::FOutExpo> m_ec{};
+	eck::CEasingCurve m_ec{};
 
 	struct ITEM
 	{
@@ -510,8 +513,8 @@ public:
 			m_List.SetItemCount((int)m_vItem.size());*/
 			m_List.SetImageList(&m_il);
 			//m_List.SetInsertMark(5);
-			m_List.SetTopExtraSpace(100);
-			m_List.SetBottomExtraSpace(100);
+			//m_List.SetTopExtraSpace(100);
+			//m_List.SetBottomExtraSpace(100);
 
 			m_Label2.Create(L"测试标签😍😍", eck::Dui::DES_VISIBLE | eck::Dui::DES_BLURBKG | 0, 0,
 				0, 0, 600, 100, &m_List, this, NULL);
@@ -522,13 +525,21 @@ public:
 				0, 500, 600, 100, &m_List, this, NULL);
 			m_Label.SetTextFormat(GetDefTextFormat());
 
-			m_Btn.Create(L"按钮测试按钮测试按钮测试", eck::Dui::DES_VISIBLE, 0,
+			m_Btn.Create(L"按钮", eck::Dui::DES_VISIBLE | eck::Dui::DES_TRANSPARENT, 0,
 				100, 300, 300, 70, NULL, this, NULL);
 			m_Btn.SetTextFormat(GetDefTextFormat());
 			ID2D1Bitmap* pBmp;
 			eck::LoadD2dBitmap(LR"(D:\@重要文件\@我的工程\PlayerNew\Res\Tempo.png)",
 				GetD2D().GetDC(), pBmp, 54, 54);
 			m_Btn.SetImage(pBmp);
+			pBmp->Release();
+
+			m_CBtn.Create(NULL, eck::Dui::DES_VISIBLE | eck::Dui::DES_TRANSPARENT, 0,
+				150, 200, 60, 60, NULL, this, NULL);
+
+			eck::LoadD2dBitmap(LR"(D:\@重要文件\@我的工程\PlayerNew\Res\Speed.png)",
+				GetD2D().GetDC(), pBmp, 40, 40);
+			m_CBtn.SetImage(pBmp);
 			pBmp->Release();
 
 			m_TB.Create(NULL, eck::Dui::DES_VISIBLE | eck::Dui::DES_TRANSPARENT, 0,
@@ -583,14 +594,16 @@ public:
 			{
 				static bool b{ 1 };
 				b = !b;
-				if (b)
-					m_ec.Begin(m_List.GetRect().left, 50 - m_List.GetRect().left, 400, 20);
-				else
-					m_ec.Begin(m_List.GetRect().left, 400.f - m_List.GetRect().left, 400, 20);
+				//m_ec.
+				//if (b)
+				//	m_ec.Begin(m_List.GetRect().left, 50 - m_List.GetRect().left, 400, 20);
+				//else
+				//	m_ec.Begin(m_List.GetRect().left, 400.f - m_List.GetRect().left, 400, 20);
 			}
 		}
 		return 0;
 		}
+		return CDuiWnd::OnElemEvent(pElem, uMsg, wParam, lParam);
 	}
 
 	ECK_CWND_CREATE;
@@ -741,28 +754,56 @@ public:
 		//WriteToFile(LR"(E:\Desktop\123.png)", rb);
 		//EckDbgBreak();
 
-		CInputBox ib;
-		INPUTBOXOPT opt
-		{
-			L"输入框测试",
-			L"此 API 不参与 DPI 虚拟化",
-			L"BeginPaint 函数准备用于绘制的指定窗口，并使用有关绘制的信息填充 PAINTSTRUCT 结构。",
-			L"BeginPaint 函数会自动设置设备上下文的剪辑区域，以排除更新区域之外的任何区域。 更新区域由 InvalidateRect 或 InvalidateRgn"
-			" 函数以及系统在调整大小、移动、创建、滚动或影响工作区的任何其他操作后设置。"
-			" 如果更新区域标记为要擦除， BeginPaint 会将 WM_ERASEBKGND 消息发送到窗口。"
-			"\n应用程序不应调用 BeginPaint ，除非响应 WM_PAINT 消息。 对 BeginPaint 的每个调用都必须具有对 EndPaint 函数的相应调用。"
-			"\n如果插入点位于要绘制的区域， BeginPaint 会自动隐藏插入点以防止擦除它。"
-			"\n如果窗口的 类具有背景画笔， 则 BeginPaint 使用该画笔在返回之前擦除更新区域的背景。",
-			{},
-			IPBF_CENTERSCREEN | IPBF_FIXWIDTH //| IPBF_MULTILINE
-			,0,
-			0,
-			0,
-			0,
-		};
+		//CInputBox ib;
+		//INPUTBOXOPT opt
+		//{
+		//	L"输入框测试",
+		//	L"此 API 不参与 DPI 虚拟化",
+		//	L"BeginPaint 函数准备用于绘制的指定窗口，并使用有关绘制的信息填充 PAINTSTRUCT 结构。",
+		//	L"BeginPaint 函数会自动设置设备上下文的剪辑区域，以排除更新区域之外的任何区域。 更新区域由 InvalidateRect 或 InvalidateRgn"
+		//	" 函数以及系统在调整大小、移动、创建、滚动或影响工作区的任何其他操作后设置。"
+		//	" 如果更新区域标记为要擦除， BeginPaint 会将 WM_ERASEBKGND 消息发送到窗口。"
+		//	"\n应用程序不应调用 BeginPaint ，除非响应 WM_PAINT 消息。 对 BeginPaint 的每个调用都必须具有对 EndPaint 函数的相应调用。"
+		//	"\n如果插入点位于要绘制的区域， BeginPaint 会自动隐藏插入点以防止擦除它。"
+		//	"\n如果窗口的 类具有背景画笔， 则 BeginPaint 使用该画笔在返回之前擦除更新区域的背景。",
+		//	{},
+		//	IPBF_CENTERSCREEN | IPBF_FIXWIDTH //| IPBF_MULTILINE
+		//	,0,
+		//	0,
+		//	0,
+		//	0,
+		//};
 
 		//ib.DlgBox(HWnd, &opt);
 		//MsgBox(opt.rsInput.Data());
+		constexpr PCWSTR psz =
+		L"; 注释测试\n"
+		"[节名]\n"
+		"值1=123456\n"
+		R"(值\=2=字符串字符\;串转义测试\n换行;这是注释)""\n"
+		;
+
+		CIni ini{};
+		ini.SetText(psz);
+		ini.SetParseEscapeChar(1);
+		ini.SetParseComment(1);
+		ini.SetLineBreak(L"\n");
+
+		ini.WriteString(L"节名", L"值2", L"还是赤石大佬");
+		ini.WriteString(L"节名1", L"值2", L"还是赤石大佬1111111111");
+		auto str = ini.ReadString(L"节名", L"值=2");
+
+		//ini.DeleteKey(L"节名", L"值=2");
+		//str = ini.GetText();
+
+		//ini.DeleteSection(L"节名");
+		//str = ini.GetText();
+
+
+		ini.Save(LR"(E:\1.ini)");
+		int a = 0;
+
+		//CRefStrW rs = L"测试字符串";
 	}
 
 	BOOL PreTranslateMessage(const MSG& Msg) override

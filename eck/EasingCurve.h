@@ -6,36 +6,9 @@
 #define ECK_EASING_NAMESPACE_END }
 
 ECK_NAMESPACE_BEGIN
-
-template<class FAn>
-struct CEasingAn
-{
-	float m_fCurrTime = 0.f;
-	float m_fDuration = 0.f;
-	float m_fStart = 0.f;
-	float m_fDistance = 0.f;
-
-	EckInline void Begin(float fStart, float fDistance, float fDuration)
-	{
-		m_fStart = fStart;
-		m_fDistance = fDistance;
-		m_fDuration = fDuration;
-		m_fCurrTime = 0.f;
-	}
-
-	EckInline float Tick(float fElapse)
-	{
-		m_fCurrTime += fElapse;
-		return FAn{}(m_fCurrTime, m_fStart, m_fDistance, m_fDuration);
-	}
-
-	EckInline BOOL IsEnd()
-	{
-		return m_fCurrTime >= m_fDuration;
-	}
-};
-
 ECK_EASING_NAMESPACE_BEGIN
+using FAn = float(*)(float fCurrTime, float fStart, float fDistance, float fDuration);
+
 struct FInCircle
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -45,6 +18,11 @@ struct FInCircle
 	}
 };
 
+EckInline float InCircle(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInCircle{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FOutCircle
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -53,6 +31,11 @@ struct FOutCircle
 		return fDistance * sqrt(1 - fCurrTime * fCurrTime) + fStart;
 	}
 };
+
+EckInline float OutCircle(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FOutCircle{}(fCurrTime, fStart, fDistance, fDuration);
+}
 
 struct FInOutCircle
 {
@@ -69,6 +52,11 @@ struct FInOutCircle
 	}
 };
 
+EckInline float InOutCircle(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInOutCircle{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FInSine
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -76,6 +64,11 @@ struct FInSine
 		return -fDistance * cosf(fCurrTime / fDuration * PiF / 2.f) + fDistance + fStart;
 	}
 };
+
+EckInline float InSine(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInSine{}(fCurrTime, fStart, fDistance, fDuration);
+}
 
 struct FOutSine
 {
@@ -85,6 +78,11 @@ struct FOutSine
 	}
 };
 
+EckInline float OutSine(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FOutSine{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FInOutSine
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -92,6 +90,11 @@ struct FInOutSine
 		return -fDistance / 2.f * (cosf(PiF * fCurrTime / fDuration) - 1.f) + fStart;
 	}
 };
+
+EckInline float InOutSine(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInOutSine{}(fCurrTime, fStart, fDistance, fDuration);
+}
 
 struct FInQuad
 {
@@ -102,6 +105,11 @@ struct FInQuad
 	}
 };
 
+EckInline float InQuad(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInQuad{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FOutQuad
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -110,6 +118,11 @@ struct FOutQuad
 		return -fDistance * fCurrTime * (fCurrTime - 2.f) + fStart;
 	}
 };
+
+EckInline float OutQuad(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FOutQuad{}(fCurrTime, fStart, fDistance, fDuration);
+}
 
 struct FInOutQuad
 {
@@ -126,6 +139,11 @@ struct FInOutQuad
 	}
 };
 
+EckInline float InOutQuad(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInOutQuad{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FInCubic
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -135,6 +153,11 @@ struct FInCubic
 	}
 };
 
+EckInline float InCubic(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInCubic{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FOutCubic
 {
 	EckInline constexpr float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -143,6 +166,11 @@ struct FOutCubic
 		return fDistance * (fCurrTime * fCurrTime * fCurrTime + 1.f) + fStart;
 	}
 };
+
+EckInline float OutCubic(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FOutCubic{}(fCurrTime, fStart, fDistance, fDuration);
+}
 
 struct FInOutCubic
 {
@@ -159,6 +187,11 @@ struct FInOutCubic
 	}
 };
 
+EckInline float InOutCubic(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInOutCubic{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FInQuart
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -168,6 +201,11 @@ struct FInQuart
 	}
 };
 
+EckInline float InQuart(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInQuart{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FOutQuart
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -176,6 +214,11 @@ struct FOutQuart
 		return -fDistance * (fCurrTime * fCurrTime * fCurrTime * fCurrTime - 1.f) + fStart;
 	}
 };
+
+EckInline float OutQuart(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FOutQuart{}(fCurrTime, fStart, fDistance, fDuration);
+}
 
 struct FInOutQuart
 {
@@ -192,6 +235,11 @@ struct FInOutQuart
 	}
 };
 
+EckInline float InOutQuart(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInOutQuart{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FInQuint
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -201,6 +249,11 @@ struct FInQuint
 	}
 };
 
+EckInline float InQuint(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInQuint{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FOutQuint
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -209,6 +262,11 @@ struct FOutQuint
 		return fDistance * (fCurrTime * fCurrTime * fCurrTime * fCurrTime * fCurrTime + 1.f) + fStart;
 	}
 };
+
+EckInline float OutQuint(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FOutQuint{}(fCurrTime, fStart, fDistance, fDuration);
+}
 
 struct FInOutQuint
 {
@@ -225,6 +283,11 @@ struct FInOutQuint
 	}
 };
 
+EckInline float InOutQuint(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInOutQuint{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FInExpo
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -236,6 +299,11 @@ struct FInExpo
 	}
 };
 
+EckInline float InExpo(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInExpo{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FOutExpo
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -246,6 +314,11 @@ struct FOutExpo
 			return fDistance * (-powf(2.f, -10.f * fCurrTime / fDuration) + 1.f) + fStart;
 	}
 };
+
+EckInline float OutExpo(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FOutExpo{}(fCurrTime, fStart, fDistance, fDuration);
+}
 
 struct FInOutExpo
 {
@@ -266,6 +339,11 @@ struct FInOutExpo
 	}
 };
 
+EckInline float InOutExpo(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInOutExpo{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FInElastic
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -283,6 +361,11 @@ struct FInElastic
 	}
 };
 
+EckInline float InElastic(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInElastic{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FOutElastic
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -298,6 +381,11 @@ struct FOutElastic
 		}
 	}
 };
+
+EckInline float OutElastic(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FOutElastic{}(fCurrTime, fStart, fDistance, fDuration);
+}
 
 struct FInOutElastic
 {
@@ -319,6 +407,11 @@ struct FInOutElastic
 	}
 };
 
+EckInline float InOutElastic(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInOutElastic{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FInBack
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -329,6 +422,11 @@ struct FInBack
 	}
 };
 
+EckInline float InBack(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInBack{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FOutBack
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -338,6 +436,11 @@ struct FOutBack
 		return fDistance * (fCurrTime * fCurrTime * ((f + 1.f) * fCurrTime + f) + 1.f) + fStart;
 	}
 };
+
+EckInline float OutBack(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FOutBack{}(fCurrTime, fStart, fDistance, fDuration);
+}
 
 struct FInOutBack
 {
@@ -354,6 +457,11 @@ struct FInOutBack
 		}
 	}
 };
+
+EckInline float InOutBack(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInOutBack{}(fCurrTime, fStart, fDistance, fDuration);
+}
 
 struct FOutBounce
 {
@@ -380,6 +488,11 @@ struct FOutBounce
 	}
 };
 
+EckInline float OutBounce(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FOutBounce{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FInBounce
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -387,6 +500,11 @@ struct FInBounce
 		return fDistance - FOutBounce{}(fDuration - fCurrTime, 0.f, fDistance, fDuration) + fStart;
 	}
 };
+
+EckInline float InBounce(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInBounce{}(fCurrTime, fStart, fDistance, fDuration);
+}
 
 struct FInOutBounce
 {
@@ -399,6 +517,11 @@ struct FInOutBounce
 	}
 };
 
+EckInline float InOutBounce(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FInOutBounce{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FLinear
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -406,6 +529,11 @@ struct FLinear
 		return fDistance * fCurrTime / fDuration + fStart;
 	}
 };
+
+EckInline float Linear(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FLinear{}(fCurrTime, fStart, fDistance, fDuration);
+}
 
 struct FPunch
 {
@@ -424,6 +552,11 @@ struct FPunch
 	}
 };
 
+EckInline float Punch(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FPunch{}(fCurrTime, fStart, fDistance, fDuration);
+}
+
 struct FSpring
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
@@ -440,21 +573,29 @@ struct FSpring
 		}
 	}
 };
+
+EckInline float Spring(float fCurrTime, float fStart, float fDistance, float fDuration)
+{
+	return FSpring{}(fCurrTime, fStart, fDistance, fDuration);
+}
 ECK_EASING_NAMESPACE_END
 
 enum
 {
 	ECBF_DEF = 0,
-	ECBF_SUPERPOSE_CURRPOS = 1u << 0,
+	ECBF_CONTINUE = 1u << 1,
 };
 
-template<class FAn>
 class CEasingCurve
 {
 public:
 	using FCallBack = void(*)(float fCurrValue, float fOldValue, LPARAM lParam);
 private:
-	CEasingAn<FAn> m_Calc{};
+	float m_fCurrTime = 0.f;
+	float m_fDuration = 0.f;
+	float m_fStart = 0.f;
+	float m_fDistance = 0.f;
+
 	CMsgMmTimer m_Timer{};
 
 	float m_fElapse = 0.f;
@@ -462,30 +603,45 @@ private:
 
 	LPARAM m_lParam = 0;
 	FCallBack m_pfnCallBack = NULL;
+	Easing::FAn m_pfnAn = Easing::Linear;
 
 	BITBOOL m_bActive : 1 = FALSE;
+	BITBOOL m_bReverse : 1 = FALSE;
 
 	static UINT m_uMsgTimer;
+
+	BOOL Tick()
+	{
+		m_fCurrTime += m_fElapse;
+		BOOL bEnd = FALSE;
+		if (m_fCurrTime > m_fDuration)
+		{
+			EckAssert(m_fElapse > 0.f);
+			m_fCurrTime = m_fDuration;
+			bEnd = TRUE;
+		}
+		else if (m_fCurrTime < 0.f)
+		{
+			EckAssert(m_fElapse < 0.f);
+			m_fCurrTime = 0.f;
+			bEnd = TRUE;
+		}
+
+		m_fCurrValue = m_pfnAn(m_fCurrTime, m_fStart, m_fDistance, m_fDuration);
+		return bEnd;
+	}
 
 	static LRESULT CALLBACK SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 	{
 		auto p = (CEasingCurve*)lParam;
-		if (uMsg == p->m_uMsgTimer && wParam == p->m_Timer.GetID() && lParam == (LPARAM)p)
+		if (uMsg == m_uMsgTimer)
 		{
 			EckAssert(p->m_pfnCallBack);
 			const float fOldValue = p->m_fCurrValue;
-			p->m_fCurrValue = p->m_Calc.Tick(p->m_fElapse);
-
-			if (p->m_Calc.IsEnd())
-			{
-				p->m_fCurrValue = p->m_Calc.m_fStart + p->m_Calc.m_fDistance;
-				p->m_pfnCallBack(p->m_fCurrValue, fOldValue, p->m_lParam);
+			const auto bEnd = p->Tick();
+			p->m_pfnCallBack(p->m_fCurrValue, fOldValue, p->m_lParam);
+			if (bEnd)
 				p->End();
-			}
-			else
-			{
-				p->m_pfnCallBack(p->m_fCurrValue, fOldValue, p->m_lParam);
-			}
 			return 0;
 		}
 
@@ -504,7 +660,7 @@ public:
 		const auto hWnd = m_Timer.GetHWND();
 		if (IsWindow(hWnd))
 		{
-			UINT uRef = (UINT)GetPropW(hWnd, WPROP_EASING);
+			UINT uRef = pToI32<UINT>(GetPropW(hWnd, WPROP_EASING));
 			if (uRef == 1)
 			{
 				RemoveWindowSubclass(hWnd, SubclassProc, SCID_EASING);
@@ -544,7 +700,7 @@ public:
 	{
 		EckAssert(!m_Timer.GetID());
 		m_Timer.SetHWND(hWnd);
-		UINT uRef = (UINT)GetPropW(hWnd, WPROP_EASING);
+		UINT uRef = pToI32<UINT>(GetPropW(hWnd, WPROP_EASING));
 		if (!uRef)
 			SetWindowSubclass(hWnd, SubclassProc, SCID_EASING, 0);
 		++uRef;
@@ -553,23 +709,55 @@ public:
 
 	EckInline void SetCallBack(FCallBack pfnCallBack) { m_pfnCallBack = pfnCallBack; }
 
-	void Begin(float fStart, float fDistance, float fDuration, float fElapse, UINT uFlags = 0u)
+	EckInline void SetDuration(float fDuration) { m_fDuration = fDuration; }
+
+	EckInline void SetElapse(float fElapse)
+	{
+		if (m_bReverse)
+			m_fElapse = -fabs(fElapse);
+		else
+			m_fElapse = fabs(fElapse);
+	}
+
+	EckInline void SetRange(float fStart, float fDistance)
+	{
+		m_fStart = fStart;
+		m_fDistance = fDistance;
+	}
+
+	EckInline void SetCurrTime(float fCurrTime)
+	{ 
+		m_fCurrTime = fCurrTime - m_fElapse;
+		Tick();
+	}
+
+	EckInline void SetReverse(BOOL bReverse)
+	{
+		m_bReverse = bReverse;
+		SetElapse(m_fElapse);
+		if (!IsActive())
+			if (bReverse)
+				m_fCurrValue = m_fStart + m_fDistance;
+			else
+				m_fCurrValue = m_fStart;
+	}
+
+	void Begin(UINT uFlags = 0u)
 	{
 		m_bActive = TRUE;
-		if (uFlags & ECBF_SUPERPOSE_CURRPOS)
-			m_Calc.m_fDistance = m_Calc.m_fDistance - m_fCurrValue + fDistance;
-		else
+		if (!(uFlags & ECBF_CONTINUE))
 		{
-			m_Calc.Begin(fStart, fDistance, fDuration);
-			m_fElapse = fElapse;
+			SetCurrTime(0.f);
+			m_fCurrValue = m_fStart;
 		}
 
 		if (!m_Timer.GetID())
-			m_Timer.SetTimer((UINT)m_fElapse);
+			m_Timer.SetTimer((UINT)fabs(m_fElapse));
 	}
 
 	EckInline void End()
 	{
+		m_fCurrValue = m_fStart + m_fDistance;
 		m_Timer.KillTimer();
 		m_bActive = FALSE;
 	}
@@ -577,7 +765,21 @@ public:
 	EckInline BOOL IsActive() const { return m_bActive; }
 
 	EckInline float GetCurrValue() const { return m_fCurrValue; }
+
+	EckInline float GetCurrTime() const { return m_fCurrTime; }
+
+	EckInline float GetDuration() const { return m_fDuration; }
+
+	EckInline float GetElapse() const { return fabs(m_fElapse); }
+
+	EckInline float GetStart() const { return m_fStart; }
+
+	EckInline float GetDistance() const { return m_fDistance; }
+
+	EckInline BOOL GetReverse() const { return m_bReverse; }
+
+	EckInline void SetAnProc(Easing::FAn pfnAn) { m_pfnAn = pfnAn; }
 };
-template<class T>
-inline UINT CEasingCurve<T>::m_uMsgTimer = RegisterWindowMessageW(MSGREG_EASING);
+
+inline UINT CEasingCurve::m_uMsgTimer = RegisterWindowMessageW(MSGREG_EASING);
 ECK_NAMESPACE_END
