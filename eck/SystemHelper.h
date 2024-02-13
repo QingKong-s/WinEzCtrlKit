@@ -648,4 +648,17 @@ EckInline IDWriteTextFormat* CreateDefTextFormat(int iDpi = USER_DEFAULT_SCREEN_
 		*phr = hr;
 	return pTextFormat;
 }
+
+[[nodiscard]] CRefStrW Utf16RevByte(PCWSTR pszText, int cchText = -1)
+{
+	CRefStrW rs{};
+	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_BYTEREV, 
+		pszText, cchText, NULL, 0, NULL, NULL, 0);
+	if (!cchResult)
+		return rs;
+	rs.ReSize(cchResult);
+	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_BYTEREV,
+		pszText, cchText, rs.Data(), cchResult, NULL, NULL, 0);
+	return rs;
+}
 ECK_NAMESPACE_END

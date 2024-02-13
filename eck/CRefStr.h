@@ -457,6 +457,11 @@ public:
 		return PushBack(pszSrc, TCharTraits::Len(pszSrc));
 	}
 
+	EckInline int PushBack(const CRefStrT& rs)
+	{
+		return PushBack(rs.Data(), rs.Size());
+	}
+
 	EckInline TPointer PushBack(int cch)
 	{
 		EckAssert(cch >= 0);
@@ -464,11 +469,17 @@ public:
 		return Data() + Size() - cch;
 	}
 
+	EckInline void PushBackChar(TChar ch)
+	{
+		ReSizeExtra(Size() + 1);
+		TCharTraits::AssignChar(Data() + Size() - 1, ch);
+	}
+
 	/// <summary>
 	/// 尾删
 	/// </summary>
 	/// <param name="cch">删除长度</param>
-	EckInline void PopBack(int cch)
+	EckInline void PopBack(int cch = 1)
 	{
 		EckAssert(Size() >= cch);
 		m_cchText -= cch;
@@ -722,7 +733,7 @@ public:
 	/// </summary>
 	/// <param name="pos">位置</param>
 	/// <param name="cch">要擦除的字符数</param>
-	EckInline void Erase(int pos, int cch)
+	EckInline void Erase(int pos, int cch = 1)
 	{
 		EckAssert(Size() >= pos + cch);
 		TCharTraits::MoveEnd(
@@ -812,6 +823,29 @@ public:
 	}
 
 	[[nodiscard]] EckInline BOOL IsEmpty() const { return Size() == 0; }
+
+	template<class TTraits, class TAlloc1>
+	[[nodiscard]] EckInline int Find(const CRefStrT<TChar, TTraits, TAlloc1>& rs, int posStart = 0) const
+	{
+		if (IsEmpty())
+			return StrNPos;
+		return FindStr(Data(), rs.Data(), posStart);
+	}
+
+	[[nodiscard]] EckInline int Find(PCWSTR pszSub, int posStart = 0) const
+	{
+		if (IsEmpty())
+			return StrNPos;
+		return FindStr(Data(), pszSub, posStart);
+	}
+
+	template<class TTraits, class TAlloc1>
+	[[nodiscard]] EckInline int Find(const std::basic_string<TChar, TTraits, TAlloc1>& s, int posStart = 0) const
+	{
+		if (IsEmpty())
+			return StrNPos;
+		return FindStr(Data(), s.c_str(), posStart);
+	}
 
 	[[nodiscard]] EckInline TIterator begin() { return Data(); }
 	[[nodiscard]] EckInline TIterator end() { return begin() + Size(); }
@@ -1017,9 +1051,8 @@ EckInline void DbgPrint(const CRefStrT<CHAR, TCharTraits, TAlloc>& rs, int iType
 
 [[nodiscard]] EckInline CRefStrW ToStr(double x, int iPrecision = 6)
 {
-	CRefStrW rs(48);
-	_snwprintf_s(rs.Data(), rs.Size(), rs.Size(), L"%.*g", iPrecision, x);
-	rs.ReCalcLen();
+	CRefStrW rs{};
+	rs.Format(L"%.*g", iPrecision, x);
 	return rs;
 }
 

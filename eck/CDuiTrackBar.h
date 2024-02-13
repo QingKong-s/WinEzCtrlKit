@@ -19,7 +19,7 @@ private:
 
 	float m_cxyTrack = 0.0f;
 
-	CEasingCurve<Easing::FOutSine> m_Ec{};
+	CEasingCurve m_Ec{};
 
 	float GetCxyTrack()
 	{
@@ -92,7 +92,7 @@ public:
 				}
 				m_pBrush->SetColor(D2D1::ColorF(0xFFFFFF));
 				m_pDC->FillEllipse(ellipse, m_pBrush);
-				m_pBrush->SetColor(D2D1::ColorF(D2D1::ColorF::Gray, 0.7));
+				m_pBrush->SetColor(D2D1::ColorF(D2D1::ColorF::Gray, 0.7f));
 				m_pDC->DrawEllipse(ellipse, m_pBrush, 1.0f);
 
 				ellipse.radiusX = ellipse.radiusY = cxy * 3 / 6;// cxyTrack / 2.f;
@@ -141,8 +141,8 @@ public:
 			else if (!m_bHover)
 			{
 				m_bHover = TRUE;
-				m_Ec.Begin(m_Ec.GetCurrValue(), 1.0f, 100, 20);
-				//InvalidateRect();
+				m_Ec.SetReverse(FALSE);
+				m_Ec.Begin(ECBF_CONTINUE);
 			}
 		}
 		return 0;
@@ -152,7 +152,8 @@ public:
 			if (!m_bLBtnDown && m_bHover)
 			{
 				m_bHover = FALSE;
-				m_Ec.Begin(m_Ec.GetCurrValue(), -m_Ec.GetCurrValue(), 100, 20);
+				m_Ec.SetReverse(TRUE);
+				m_Ec.Begin(ECBF_CONTINUE);
 				//InvalidateRect();
 			}
 		}
@@ -178,6 +179,10 @@ public:
 		case WM_CREATE:
 		{
 			InitEasingCurve(m_Ec);
+			m_Ec.SetRange(0.f, 1.f);
+			m_Ec.SetDuration(160);
+			m_Ec.SetElapse(20);
+			m_Ec.SetAnProc(Easing::OutSine);
 			m_Ec.SetCallBack([](float fCurrValue, float fOldValue, LPARAM lParam)
 				{
 					auto pElem = (CElem*)lParam;
