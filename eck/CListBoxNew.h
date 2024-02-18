@@ -48,7 +48,7 @@ private:
 	CEzCDC m_DC{};
 	HFONT m_hFont = NULL;// 不需要释放
 
-	CWin8UxThemePainter m_StylePainter{};
+	HTHEME m_hTheme = NULL;
 
 	int m_cxClient = 0,
 		m_cyClient = 0;
@@ -119,6 +119,12 @@ private:
 			return 0;
 		case WM_GETFONT:
 			return (LRESULT)m_hFont;
+		case WM_THEMECHANGED:
+		{
+			CloseThemeData(m_hTheme);
+			m_hTheme = OpenThemeData(hWnd, L"ListView");
+		}
+		return 0;
 		case WM_CREATE:
 			return HANDLE_WM_CREATE(hWnd, wParam, lParam, OnCreate);
 		}
@@ -134,6 +140,9 @@ private:
 
 		m_DC.Create(hWnd);
 		SetBkMode(m_DC.GetDC(), TRANSPARENT);
+
+		SetExplorerTheme();
+		m_hTheme = OpenThemeData(hWnd, L"listView");
 
 		return TRUE;
 	}
@@ -153,6 +162,9 @@ private:
 		BeginPaint(hWnd, &ps);
 		const int idxTop = std::max(m_idxTop + (int)ps.rcPaint.top / m_cyItem - 1, m_idxTop);
 		const int idxBottom = std::min(m_idxTop + (int)ps.rcPaint.bottom / m_cyItem + 1, (int)m_vItem.size() - 1);
+
+		FillRect(m_DC.GetDC(), &ps.rcPaint, GetSysColorBrush(COLOR_WINDOW));
+
 		RECT rc;
 		GetItemRect(idxTop, rc);
 		for (int i = idxTop; i <= idxBottom; ++i)
@@ -310,7 +322,7 @@ private:
 	void RedrawItem(int idx, const RECT& rcItem)
 	{
 		const HDC hCDC = m_DC.GetDC();
-		int iState;
+		int iState = 0;
 
 		if (m_idxHot == idx)
 			if (IsItemSel(idx))
@@ -320,10 +332,8 @@ private:
 		else
 			if (IsItemSel(idx))
 				iState = LISS_SELECTED;
-			else
-				iState = LISS_NORMAL;
-
-		m_StylePainter.DrawThemeBackground(hCDC, LVP_LISTITEM, iState, rcItem, NULL);
+		if (iState)
+			DrawThemeBackground(m_hTheme, hCDC, LVP_LISTITEM, iState, &rcItem, NULL);
 
 		NMLBNGETDISPINFO nm;
 		nm.Item.idxItem = idx;

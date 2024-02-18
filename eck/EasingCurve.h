@@ -782,4 +782,32 @@ public:
 };
 
 inline UINT CEasingCurve::m_uMsgTimer = RegisterWindowMessageW(MSGREG_EASING);
+
+template<class FAn>
+struct CEasingAn
+{
+	float m_fCurrTime = 0.f;
+	float m_fDuration = 0.f;
+	float m_fStart = 0.f;
+	float m_fDistance = 0.f;
+
+	EckInline void Begin(float fStart, float fDistance, float fDuration)
+	{
+		m_fStart = fStart;
+		m_fDistance = fDistance;
+		m_fDuration = fDuration;
+		m_fCurrTime = 0.f;
+	}
+
+	EckInline float Tick(float fElapse)
+	{
+		m_fCurrTime += fElapse;
+		return FAn{}(m_fCurrTime, m_fStart, m_fDistance, m_fDuration);
+	}
+
+	EckInline BOOL IsEnd()
+	{
+		return m_fCurrTime >= m_fDuration;
+	}
+};
 ECK_NAMESPACE_END

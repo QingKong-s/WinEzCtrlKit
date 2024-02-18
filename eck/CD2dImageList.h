@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "Utility.h"
 
-#include <unordered_set>
+#include <set>
 
 ECK_NAMESPACE_BEGIN
 enum
@@ -23,7 +23,7 @@ private:
 	std::vector<ID2D1Bitmap*> m_vBmp{};
 	D2D1_PIXEL_FORMAT m_PixelFormat = D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UINT, D2D1_ALPHA_MODE_IGNORE);
 	std::vector<UINT> m_vFlags{};
-	std::unordered_set<int> m_hsStandby{};
+	std::set<int> m_hsStandby{};
 
 	int m_cx = 0;
 	int m_cy = 0;
@@ -251,12 +251,29 @@ public:
 	HRESULT DiscardImage(int idxImg)
 	{
 		EckAssert(idxImg >= 0 && idxImg < m_cImg);
-		m_vFlags[idxImg] = DILIF_INVALID;
+		if (m_hsStandby.find(idxImg) != m_hsStandby.end())
+		{
+			EckAssert((m_vFlags[idxImg] & DILIF_INVALID) == 0);
+			m_vFlags[idxImg] = DILIF_INVALID;
+			return S_OK;
+		}
+		else
+		{
+			EckAssert((m_vFlags[idxImg] & DILIF_INVALID) != 0);
+			return S_FALSE;
+		}
 	}
 
 	HRESULT ReplaceImage(int idxImg, ID2D1Bitmap* pBitmap, const D2D1_RECT_U* prcSrc = NULL)
 	{
-		EckAssert(idxImg >= 0 && idxImg < m_cImg);
+		if (idxImg < 0)
+		{
+			if (!m_hsStandby.empty())
+				idxImg = *m_hsStandby.begin();
+			else
+				return E_INVALIDARG;
+		}
+		EckAssert(idxImg < m_cImg);
 		EckAssert(pBitmap);
 		HRESULT hr;
 		const int idxPack = CalcPackIndex(idxImg);
@@ -278,6 +295,5 @@ public:
 		}
 		return S_OK;
 	}
-
 };
 ECK_NAMESPACE_END

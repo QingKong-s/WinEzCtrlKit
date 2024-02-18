@@ -27,6 +27,29 @@ inline void DrawSelectionRect(HDC hDC, const RECT& rc)
 	FrameRect(hDC, &rc, GetSysColorBrush(COLOR_HIGHLIGHT));
 }
 
+inline void DrawSelectionRect(HDC hDC, const RECT& rc, int cxFrame)
+{
+	HDC hCDC = CreateCompatibleDC(hDC);
+	HBITMAP hBitmap = CreateCompatibleBitmap(hDC, 1, 1);
+	SelectObject(hCDC, hBitmap);
+
+	constexpr RECT rcInt{ 0,0,1,1 };
+	FillRect(hCDC, &rcInt, GetSysColorBrush(COLOR_MENUHILIGHT));
+
+	BLENDFUNCTION bf{ .BlendOp = AC_SRC_OVER,.SourceConstantAlpha = 70 };
+	AlphaBlend(hDC, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top,
+		hCDC, 0, 0, 1, 1, bf);
+
+	DeleteDC(hCDC);
+	DeleteObject(hBitmap);
+
+	const auto hOldPen = SelectObject(hDC, CreatePen(PS_SOLID, cxFrame, GetSysColor(COLOR_HIGHLIGHT)));
+	const auto hOldBrush = SelectObject(hDC, GetStockObject(NULL_BRUSH));
+	Rectangle(hDC, rc.left, rc.top, rc.right, rc.bottom);
+	SelectObject(hDC, hOldBrush);
+	DeleteObject(SelectObject(hDC, hOldPen));
+}
+
 inline void DrawPlusMinusGlyph(HDC hDC, BOOL bPlus, const RECT& rc, COLORREF crBorder, COLORREF crSign)
 {
 	SetDCBrushColor(hDC, crBorder);

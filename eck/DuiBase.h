@@ -129,10 +129,12 @@ protected:
 	DWORD m_dwStyle = 0;
 	DWORD m_dwExStyle = 0;
 
+	int m_iId = 0;
+
 	BITBOOL m_bAllowRedraw : 1 = FALSE;
 
 	BOOL IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, PCVOID pData = NULL);
+		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId = 0, PCVOID pData = NULL);
 
 	void DestroyChild(CElem* pElem)
 	{
@@ -152,13 +154,13 @@ protected:
 		{
 			if (pElem->GetStyle() & DES_VISIBLE)
 			{
-				if (PtInRect(pElem->GetRectInClient(), pt) &&
-					pElem->CallEvent(WM_NCHITTEST, 0, MAKELPARAM(pt.x, pt.y)) != HTTRANSPARENT)
+				if (PtInRect(pElem->GetRectInClient(), pt))
 				{
 					const auto pHit = pElem->HitTestChildUncheck(pt);
 					if (pHit)
 						return pHit;
-					return pElem;
+					else if (pElem->CallEvent(WM_NCHITTEST, 0, MAKELPARAM(pt.x, pt.y)) != HTTRANSPARENT)
+						return pElem;
 				}
 			}
 			pElem = pElem->GetNextElem();
@@ -203,6 +205,34 @@ protected:
 	}
 
 	EckInline void RedrawWnd(const RECT& rc);
+
+	void IntSetRect(const RECT& rc)
+	{
+		m_rc = rc;
+		m_rcf = MakeD2DRcF(rc);
+		m_rcInClient = rc;
+		m_rcfInClient = m_rcf;
+		if (m_pParent)
+		{
+			OffsetRect(
+				m_rcInClient,
+				m_pParent->GetRectInClient().left,
+				m_pParent->GetRectInClient().top);
+			OffsetRect(
+				m_rcfInClient,
+				m_pParent->GetRectInClientF().left,
+				m_pParent->GetRectInClientF().top);
+		}
+
+		SRCorrectChildrenRectInClient();
+	}
+
+	EckInline void IntSetStyle(DWORD dwStyle)
+	{
+		if (dwStyle & DES_BLURBKG)
+			dwStyle |= DES_TRANSPARENT;
+		m_dwStyle = dwStyle;
+	}
 public:
 	virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
@@ -225,9 +255,20 @@ public:
 
 	EckInline void SetRect(const RECT& rc)
 	{
-		m_rc = rc;
-		m_rcf = MakeD2DRcF(rc);
-		m_rcInClient = rc;
+		RECT rcOld = m_rc;
+		IntSetRect(rc);
+		CallEvent(WM_MOVE, 0, 0);
+		CallEvent(WM_SIZE, 0, 0);
+		UnionRect(rcOld, rcOld, m_rc);
+		RedrawWnd(rcOld);
+	}
+
+	EckInline void SetPos(int x, int y)
+	{
+		RECT rcOld = m_rc;
+		m_rc = { x,y,x + GetWidth(),y + GetHeight() };
+		m_rcf = MakeD2DRcF(m_rc);
+		m_rcInClient = m_rc;
 		m_rcfInClient = m_rcf;
 		if (m_pParent)
 		{
@@ -242,19 +283,15 @@ public:
 		}
 
 		SRCorrectChildrenRectInClient();
-		CallEvent(WM_SIZE, 0, 0);
-		InvalidateRect();
-	}
-
-	EckInline void SetPos(int x, int y)
-	{
-		SetRect({ x,y,x + GetWidth(),y + GetHeight() });
+		CallEvent(WM_MOVE, 0, 0);
+		UnionRect(rcOld, rcOld, m_rc);
+		RedrawWnd(rcOld);
 	}
 
 	virtual BOOL Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, PCVOID pData = NULL)
+		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId = 0, PCVOID pData = NULL)
 	{
-		return IntCreate(pszText, dwStyle, dwExStyle, x, y, cx, cy, pParent, pWnd, pData);
+		return IntCreate(pszText, dwStyle, dwExStyle, x, y, cx, cy, pParent, pWnd, iId, pData);
 	}
 
 	void Destroy();
@@ -279,13 +316,9 @@ public:
 
 	EckInline void SetStyle(DWORD dwStyle)
 	{
-		if (dwStyle & DES_BLURBKG)
-			dwStyle |= DES_TRANSPARENT;
-
 		const auto dwOldStyle = m_dwStyle;
-		m_dwStyle = dwStyle;
-
-		CallEvent(WM_STYLECHANGED, dwOldStyle, dwStyle);
+		IntSetStyle(dwStyle);
+		CallEvent(WM_STYLECHANGED, dwOldStyle, m_dwStyle);
 	}
 
 	EckInline void SetExStyle(DWORD dwExStyle) { m_dwExStyle = dwExStyle; }
@@ -487,6 +520,21 @@ public:
 	}
 
 	EckInline const CColorTheme* GetColorTheme() const { return m_pColorTheme; }
+
+	EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		CallEvent(uMsg, wParam, lParam);
+		auto pElem = GetFirstChildElem();
+		while (pElem)
+		{
+			pElem->BroadcastEvent(uMsg, wParam, lParam);
+			pElem = pElem->GetNextElem();
+		}
+	}
+
+	EckInline void SetID(int iId) { m_iId = iId; }
+
+	EckInline int GetID() const { return m_iId; }
 };
 
 /// <summary>
@@ -582,6 +630,7 @@ private:
 		m_D2d.GetDC()->SetTransform(D2D1::Matrix3x2F::Identity());
 		FillBackground(MakeD2DRcF(rc));
 		RedrawElem(GetLastChildElem(), rc);
+		m_D2d.GetDC()->SetTransform(D2D1::Matrix3x2F::Identity());
 		m_D2d.GetDC()->EndDraw();
 		m_D2d.GetSwapChain()->Present(0, 0);
 	}
@@ -630,15 +679,15 @@ public:
 		m_pStdColorTheme[CTI_TRACKBAR]->Set(
 			{
 				c_Unused,c_Unused,c_Unused,c_Unused,
-				RgbToD2dColorF(0xc6bfbe),c_Unused,RgbToD2dColorF(0x227988),c_DisableBkg,
-				c_Unused,c_Unused
+				RgbToD2dColorF(0xc6bfbe),c_White/*滑块空白颜色*/,RgbToD2dColorF(0x227988),c_DisableBkg,c_Unused,
+				c_Unused,ColorrefToD2dColorF(Colorref::Gray, 0.5)/*滑块描边颜色*/
 			});
 
 		m_pStdColorTheme[CTI_CIRCLEBUTTON] = new CColorTheme{};
 		m_pStdColorTheme[CTI_CIRCLEBUTTON]->Set(
 			{
 				c_Unused,c_Unused,c_Unused,c_Unused,
-				RgbToD2dColorF(0xededee, 0.7f),
+				RgbToD2dColorF(0xededee, 0.4f),
 				RgbToD2dColorF(0xe1e1e2, 0.7f),
 				RgbToD2dColorF(0xe1e1e2, 0.9f),
 				c_DisableBkg,
@@ -821,11 +870,11 @@ public:
 			m_pBmpBkg->AddRef();
 		if (pBmp)
 			pBmp->Release();
-		RedrawDui();
 	}
 
 	void FillBackground(const D2D1_RECT_F& rc)
 	{
+		m_D2d.GetDC()->SetTransform(D2D1::Matrix3x2F::Identity());
 		if (m_pBrBkg)
 			m_D2d.GetDC()->FillRectangle(rc, m_pBrBkg);
 		if (m_pBmpBkg)
@@ -850,13 +899,12 @@ public:
 		{
 			if (pElem->GetStyle() & DES_VISIBLE)
 			{
-				if (PtInRect(pElem->GetRectInClient(), pt) &&
-					pElem->CallEvent(WM_NCHITTEST, 0, MAKELPARAM(pt.x, pt.y)) != HTTRANSPARENT)
+				if (PtInRect(pElem->GetRectInClient(), pt))
 				{
 					auto pHit = pElem->HitTestChildUncheck(pt);
 					if (pHit)
 						return pHit;
-					else
+					else if (pElem->CallEvent(WM_NCHITTEST, 0, MAKELPARAM(pt.x, pt.y)) != HTTRANSPARENT)
 						return pElem;
 				}
 			}
@@ -916,19 +964,29 @@ public:
 	EckInline auto GetDefTextFormat() const { return m_pDefTextFormat; }
 
 	EckInline auto GetDefColorTheme() const { return m_pStdColorTheme; }
+
+	EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		auto pElem = GetFirstChildElem();
+		while (pElem)
+		{
+			pElem->BroadcastEvent(uMsg, wParam, lParam);
+			pElem = pElem->GetNextElem();
+		}
+	}
 };
 
 
 
-BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-	int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, PCVOID pData)
+inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+	int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId, PCVOID pData)
 {
 	EckAssert(!m_pWnd && !m_pDC);
 
 	SetRedraw(FALSE);
 	if (dwStyle & DES_BLURBKG)
 		dwStyle |= DES_TRANSPARENT;
-	SetStyle(dwStyle);
+	IntSetStyle(dwStyle);
 	m_dwExStyle = dwExStyle;
 
 	m_pWnd = pWnd;
@@ -957,8 +1015,8 @@ BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 
 	CallEvent(WM_NCCREATE, 0, (LPARAM)pData);
 
-	SetText(pszText);
-	SetRect({ x,y,x + cx,y + cy });
+	m_rsText = pszText;
+	IntSetRect({ x,y,x + cx,y + cy });
 
 	if (CallEvent(WM_CREATE, 0, (LPARAM)pData))
 	{
@@ -967,12 +1025,14 @@ BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	}
 	else
 	{
+		CallEvent(WM_MOVE, 0, 0);
+		CallEvent(WM_SIZE, 0, 0);
 		SetRedraw(TRUE);
 		return TRUE;
 	}
 }
 
-void CElem::Destroy()
+inline void CElem::Destroy()
 {
 	m_pWnd->CorrectSingleElemMember(this);
 	CallEvent(WM_DESTROY, 0, 0);
@@ -1013,7 +1073,7 @@ void CElem::Destroy()
 	m_dwExStyle = 0;
 }
 
-void CElem::SetZOrder(CElem* pElemAfter)
+inline void CElem::SetZOrder(CElem* pElemAfter)
 {
 	auto& pParentLastChild = (m_pParent ? m_pParent->m_pLastChild : m_pWnd->m_pLastChild);
 	auto& pParentFirstChild = (m_pParent ? m_pParent->m_pFirstChild : m_pWnd->m_pFirstChild);
@@ -1078,12 +1138,12 @@ void CElem::SetZOrder(CElem* pElemAfter)
 	}
 }
 
-LRESULT CElem::GenElemNotify(UINT uMsg, WPARAM wParam, LPARAM lParam)
+EckInline LRESULT CElem::GenElemNotify(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	return m_pWnd->OnElemEvent(this, uMsg, wParam, lParam);
 }
 
-void CElem::InvalidateRect(const RECT* prc)
+inline void CElem::InvalidateRect(const RECT* prc)
 {
 	if ((GetStyle() & DES_TRANSPARENT) || !prc)
 		m_rcInvalid = GetRectInClient();
@@ -1097,7 +1157,7 @@ void CElem::InvalidateRect(const RECT* prc)
 	RedrawWnd(m_rcInvalid);
 }
 
-void CElem::BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uFlags)
+inline void CElem::BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uFlags)
 {
 	eps.prcClip = (const RECT*)lParam;
 	eps.rcfClip = MakeD2DRcF(*eps.prcClip);
@@ -1123,13 +1183,13 @@ void CElem::BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uF
 		}
 }
 
-CElem* CElem::SetCapture() { return m_pWnd->SetCaptureElem(this); }
+EckInline CElem* CElem::SetCapture() { return m_pWnd->SetCaptureElem(this); }
 
-void CElem::ReleaseCapture() { m_pWnd->ReleaseCaptureElem(); }
+EckInline void CElem::ReleaseCapture() { m_pWnd->ReleaseCaptureElem(); }
 
-void CElem::SetFocus() { m_pWnd->SetFocusElem(this); }
+EckInline void CElem::SetFocus() { m_pWnd->SetFocusElem(this); }
 
-void CElem::RedrawWnd(const RECT& rc)
+inline void CElem::RedrawWnd(const RECT& rc)
 {
 	RECT rcReal = rc;
 
@@ -1143,7 +1203,7 @@ void CElem::RedrawWnd(const RECT& rc)
 	GetWnd()->RedrawDui(rcReal);
 }
 
-void CElem::InitEasingCurve(CEasingCurve& ec)
+EckInline void CElem::InitEasingCurve(CEasingCurve& ec)
 {
 	ec.SetWnd(GetWnd()->HWnd);
 	ec.SetParam((LPARAM)this);
@@ -1259,7 +1319,7 @@ public:
 	}
 };
 
-EckInline HRESULT CDuiWnd::EnableDragDrop(BOOL bEnable)
+inline HRESULT CDuiWnd::EnableDragDrop(BOOL bEnable)
 {
 	if (bEnable)
 	{

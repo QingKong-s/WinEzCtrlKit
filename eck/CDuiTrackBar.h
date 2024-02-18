@@ -63,8 +63,9 @@ public:
 			D2D1_ROUNDED_RECT rrc;
 			const float cxyTrack = GetTrackRect(rrc.rect);
 			rrc.radiusX = rrc.radiusY = cxyTrack / 2.f;
+			auto& ct = GetColorTheme()->Get();
 
-			m_pBrush->SetColor(D2D1::ColorF(0xc6bfbe));
+			m_pBrush->SetColor(ct.crBkNormal);
 			m_pDC->FillRoundedRectangle(rrc, m_pBrush);
 
 			const float fScale = (m_fPos - m_fMin) / (m_fMax - m_fMin);
@@ -72,7 +73,7 @@ public:
 				rrc.rect.bottom = rrc.rect.top + (rrc.rect.bottom - rrc.rect.top) * fScale;
 			else
 				rrc.rect.right = rrc.rect.left + (rrc.rect.right - rrc.rect.left) * fScale;
-			m_pBrush->SetColor(D2D1::ColorF(0x227988));
+			m_pBrush->SetColor(ct.crBkSelected);
 			m_pDC->FillRoundedRectangle(rrc, m_pBrush);
 
 			if (m_bHover || m_Ec.IsActive())
@@ -90,13 +91,13 @@ public:
 					ellipse.point.x = rrc.rect.right;
 					ellipse.point.y = (rrc.rect.top + rrc.rect.bottom) / 2.f;
 				}
-				m_pBrush->SetColor(D2D1::ColorF(0xFFFFFF));
+				m_pBrush->SetColor(ct.crBkHot);
 				m_pDC->FillEllipse(ellipse, m_pBrush);
-				m_pBrush->SetColor(D2D1::ColorF(D2D1::ColorF::Gray, 0.7f));
+				m_pBrush->SetColor(ct.crBorder);
 				m_pDC->DrawEllipse(ellipse, m_pBrush, 1.0f);
 
 				ellipse.radiusX = ellipse.radiusY = cxy * 3 / 6;// cxyTrack / 2.f;
-				m_pBrush->SetColor(D2D1::ColorF(0x227988));
+				m_pBrush->SetColor(ct.crBkSelected);
 				m_pDC->FillEllipse(ellipse, m_pBrush);
 			}
 
@@ -175,6 +176,10 @@ public:
 			}
 		}
 		return 0;
+
+		case WM_NCCREATE:
+			SetColorTheme(GetWnd()->GetDefColorTheme()[CTI_TRACKBAR]);
+			return 0;
 
 		case WM_CREATE:
 		{
