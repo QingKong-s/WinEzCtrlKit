@@ -162,11 +162,13 @@
     <ClInclude Include="eck\CBk.h" />
     <ClInclude Include="eck\CComboBox.h" />
     <ClInclude Include="eck\CComboBoxEx.h" />
+    <ClInclude Include="eck\CComboBoxNew.h" />
     <ClInclude Include="eck\CD2dImageList.h" />
     <ClInclude Include="eck\CDialog.h" />
     <ClInclude Include="eck\CDrawPanel.h" />
     <ClInclude Include="eck\CDuiCircleButton.h" />
     <ClInclude Include="eck\CDuiButton.h" />
+    <ClInclude Include="eck\CDuiEdit.h" />
     <ClInclude Include="eck\CDuiLabel.h" />
     <ClInclude Include="eck\CDuiList.h" />
     <ClInclude Include="eck\CDuiColorTheme.h" />

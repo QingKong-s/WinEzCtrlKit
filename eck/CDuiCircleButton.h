@@ -11,6 +11,7 @@ private:
 	ID2D1SolidColorBrush* m_pBrush = NULL;
 
 	D2D1_SIZE_F m_sizeImg{};
+	D2D1_INTERPOLATION_MODE m_iInterpolation = D2D1_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC;
 
 	BITBOOL m_bHot : 1 = FALSE;
 	BITBOOL m_bLBtnDown : 1 = FALSE;
@@ -64,7 +65,7 @@ public:
 				rcImg.top = y;
 				rcImg.right = rcImg.left + m_sizeImg.width;
 				rcImg.bottom = rcImg.top + m_sizeImg.height;
-				m_pDC->DrawBitmap(m_pImg, rcImg);
+				m_pDC->DrawBitmap(m_pImg, rcImg, 1.f, m_iInterpolation);
 				x = m_pWnd->GetDs().CommMargin + m_sizeImg.width;
 			}
 
@@ -142,14 +143,19 @@ public:
 	{
 		std::swap(m_pImg, pImg);
 		if (m_pImg)
-		{
 			m_pImg->AddRef();
-			m_sizeImg = m_pImg->GetSize();
-		}
-		else
-			m_sizeImg = {};
 		if (pImg)
 			pImg->Release();
+	}
+
+	void SetImageSize(D2D1_SIZE_F size)
+	{
+		m_sizeImg = size;
+	}
+
+	void SetInterpolationMode(D2D1_INTERPOLATION_MODE iMode)
+	{
+		m_iInterpolation = iMode;
 	}
 };
 ECK_DUI_NAMESPACE_END

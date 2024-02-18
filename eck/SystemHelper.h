@@ -649,7 +649,7 @@ EckInline IDWriteTextFormat* CreateDefTextFormat(int iDpi = USER_DEFAULT_SCREEN_
 	return pTextFormat;
 }
 
-[[nodiscard]] CRefStrW Utf16RevByte(PCWSTR pszText, int cchText = -1)
+[[nodiscard]] inline CRefStrW Utf16RevByte(PCWSTR pszText, int cchText = -1)
 {
 	CRefStrW rs{};
 	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_BYTEREV, 
