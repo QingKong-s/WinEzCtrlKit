@@ -132,18 +132,20 @@ EckInline void DbgPrint(const std::basic_string<T, U, V>& str, BOOL bNewLine = T
 	DbgPrint(str.c_str(), bNewLine);
 }
 
-EckInline void DbgPrintLastError(BOOL bHex = FALSE, BOOL bNewLine = TRUE)
-{
-    DbgPrint(GetLastError(), bHex, bNewLine);
-}
-
 inline void DbgPrintFormatMessage(UINT uErrCode, BOOL bNewLine = TRUE)
 {
     PWSTR pszInfo;
-    FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, 
+    FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL,
         uErrCode, 0, (PWSTR)&pszInfo, 0, NULL);
     DbgPrint(pszInfo, bNewLine);
     LocalFree(pszInfo);
+}
+
+EckInline void DbgPrintLastError(BOOL bHex = FALSE, BOOL bNewLine = TRUE)
+{
+    const auto u = GetLastError();
+    DbgPrint(u, bHex, TRUE);
+    DbgPrintFormatMessage(u, bNewLine);
 }
 
 void DbgPrintWithPos(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg);

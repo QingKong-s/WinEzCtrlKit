@@ -18,22 +18,20 @@ protected:
 #endif
 	BOOL m_bModal = FALSE;
 
-	EckInline INT_PTR IntCreateModalDlg(HINSTANCE hInst, PCVOID pDlgTemplate, HWND hParent,
+	EckInline INT_PTR IntCreateModalDlg(HINSTANCE hInst, PCWSTR pszTemplate, HWND hParent,
 		LPARAM lParam = 0, FWndCreating pfnCreatingProc = NULL)
 	{
 		m_bModal = TRUE;
 		BeginCbtHook(this, pfnCreatingProc);
-		return DialogBoxIndirectParamW(hInst, (const DLGTEMPLATE*)pDlgTemplate,
-			hParent, EckDlgProc, lParam);
+		return DialogBoxParamW(hInst, pszTemplate, hParent, EckDlgProc, lParam);
 	}
 
-	EckInline HWND IntCreateModelessDlg(HINSTANCE hInst, PCVOID pDlgTemplate, HWND hParent,
+	EckInline HWND IntCreateModelessDlg(HINSTANCE hInst, PCWSTR pszTemplate, HWND hParent,
 		LPARAM lParam = 0, FWndCreating pfnCreatingProc = NULL)
 	{
 		m_bModal = FALSE;
 		BeginCbtHook(this, pfnCreatingProc);
-		const auto h = CreateDialogIndirectParamW(hInst, (const DLGTEMPLATE*)pDlgTemplate,
-			hParent, EckDlgProc, lParam);
+		const auto h = CreateDialogParamW(hInst, pszTemplate, hParent, EckDlgProc, lParam);
 		EckAssert(m_bDlgProcInit);
 		return h;
 	}
@@ -66,7 +64,7 @@ public:
 #endif // _DEBUG
 			break;
 		case WM_COMMAND:
-			if (HIWORD(wParam) == BN_CLICKED && lParam)
+			if (HIWORD(wParam) == BN_CLICKED)
 				switch (LOWORD(wParam))
 				{
 				case IDOK:
@@ -96,9 +94,15 @@ public:
 			return Destroy();
 	}
 
-	EckInline virtual void OnOk(HWND hCtrl) {}
+	EckInline virtual void OnOk(HWND hCtrl)
+	{
+		EndDlg(0);
+	}
 
-	EckInline virtual void OnCancel(HWND hCtrl) {}
+	EckInline virtual void OnCancel(HWND hCtrl)
+	{
+		EndDlg(0);
+	}
 };
 
 enum :UINT

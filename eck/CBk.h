@@ -20,10 +20,5 @@ public:
 			x, y, cx, cy, hParent, hMenu, g_hInstance, NULL);
 		return m_hWnd;
 	}
-
-	virtual void SetWindowProc(WNDPROC pfnWndProc)
-	{
-		SetWindowLongPtrW(m_hWnd, GWLP_WNDPROC, (LONG_PTR)pfnWndProc);
-	}
 };
 ECK_NAMESPACE_END

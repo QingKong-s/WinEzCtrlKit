@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Utility.h"
+#include "CRefBin.h"
 
 ECK_NAMESPACE_BEGIN
 enum
@@ -65,6 +66,13 @@ public:
 		if (!pdwRead)
 			pdwRead = &dw;
 		return ReadFile(m_hFile, pBuf, dwSize, pdwRead, NULL);
+	}
+
+	EckInline CRefBin ReadBin(DWORD dwSize)
+	{
+		CRefBin Bin(dwSize);
+		Read(Bin.Data(), dwSize);
+		return Bin;
 	}
 
 	EckInline BOOL Write(PCVOID pBuf, DWORD dwSize, DWORD* pdwWritten = NULL)

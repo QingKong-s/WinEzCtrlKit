@@ -334,7 +334,7 @@ public:
 		DestroyWindow(m_hToolTip);
 	}
 
-	BOOL OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult) override
+	LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed) override
 	{
 		switch (uMsg)
 		{
@@ -342,9 +342,9 @@ public:
 		{
 			if (m_InfoEx.cyItem <= 0)
 				break;
+			bProcessed = TRUE;
 			auto pmis = (MEASUREITEMSTRUCT*)lParam;
 			pmis->itemHeight = m_InfoEx.cyItem;
-			lResult = TRUE;
 		}
 		return TRUE;
 
@@ -353,6 +353,7 @@ public:
 			auto pdis = (DRAWITEMSTRUCT*)lParam;
 			if (pdis->itemID == -1)
 				break;
+			bProcessed = TRUE;
 			auto& Item = m_ItemsInfo[pdis->itemID];
 
 			HDC hDC = pdis->hDC;
@@ -454,12 +455,11 @@ public:
 
 			SetBkMode(hDC, TRANSPARENT);
 			DrawTextW(hDC, Item.rsCaption.Data(), -1, &rc, uDTFlags);
-			lResult = TRUE;
 		}
 		return TRUE;
 		}
 
-		return CListBox::OnNotifyMsg(hParent, uMsg, wParam, lParam, lResult);
+		return CListBox::OnNotifyMsg(hParent, uMsg, wParam, lParam, bProcessed);
 	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override

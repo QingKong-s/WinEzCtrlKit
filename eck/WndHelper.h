@@ -494,4 +494,15 @@ inline BOOL IsMouseMovedBeforeDragging(HWND hWnd, int x, int y)
 	}
 	return FALSE;
 }
+
+EckInline void BroadcastChildrenMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	const MSG msg{ NULL,uMsg,wParam,lParam };
+	EnumChildWindows(hWnd, [](HWND hWnd, LPARAM lParam)->BOOL
+		{
+			const auto pMsg = (const MSG*)lParam;
+			SendMessageW(hWnd, pMsg->message, pMsg->wParam, pMsg->lParam);
+			return TRUE;
+		}, (LPARAM)&msg);
+}
 ECK_NAMESPACE_END

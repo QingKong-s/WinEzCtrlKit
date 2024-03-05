@@ -229,8 +229,10 @@ EckInline constexpr ARGB ColorrefToARGB(COLORREF cr, BYTE byAlpha = 0xFF)
 	return ReverseColorref(cr) | (byAlpha << 24);
 }
 
-EckInline constexpr COLORREF ARGBToColorref(ARGB argb)
+EckInline constexpr COLORREF ARGBToColorref(ARGB argb, BYTE* pbyAlpha = NULL)
 {
+	if (pbyAlpha)
+		*pbyAlpha = GetIntegerByte<3>(argb);
 	return ReverseColorref(argb);
 }
 
@@ -449,6 +451,11 @@ EckInline constexpr UINT Gcd(UINT a, UINT b)
 EckInline constexpr GpRectF ToGpRectF(const RECT& rc)
 {
 	return { (REAL)rc.left,(REAL)rc.top,(REAL)(rc.right - rc.left),(REAL)(rc.bottom - rc.top) };
+}
+
+EckInline constexpr D2D1_POINT_2F MakeD2dPtF(POINT pt)
+{
+	return { (float)pt.x,(float)pt.y };
 }
 
 EckInline constexpr HRESULT HResultFromBool(BOOL b)
@@ -694,5 +701,26 @@ EckInline constexpr BOOL PtInCircle(POINT pt, POINT ptCenter, int iRadius)
 {
 	return (pt.x - ptCenter.x) * (pt.x - ptCenter.x) + (pt.y - ptCenter.y) * (pt.y - ptCenter.y) <=
 		iRadius * iRadius;
+}
+
+EckInline constexpr BOOL IsColorLight(BYTE r, BYTE g, BYTE b)
+{
+	return 5 * g + 2 * r + b > 8 * 128;
+}
+
+EckInline constexpr BOOL IsColorLightArgb(ARGB argb)
+{
+	return IsColorLight(
+		GetIntegerByte<2>(argb),
+		GetIntegerByte<1>(argb),
+		GetIntegerByte<0>(argb));
+}
+
+EckInline constexpr BOOL IsColorLightColorref(COLORREF cr)
+{
+	return IsColorLight(
+		GetIntegerByte<0>(cr),
+		GetIntegerByte<1>(cr),
+		GetIntegerByte<2>(cr));
 }
 ECK_NAMESPACE_END

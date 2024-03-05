@@ -156,7 +156,7 @@ inline HICON CreateHICON(PCWSTR pszFile)
 /// <param name="pBmp">WIC位图</param>
 /// <param name="hbmMask">掩码，若为NULL，则使用全1掩码</param>
 /// <returns>图标句柄</returns>
-inline HICON CreateHICON(IWICBitmap* pBmp, HBITMAP hbmMask)
+inline HICON CreateHICON(IWICBitmap* pBmp, HBITMAP hbmMask = NULL)
 {
 	const HBITMAP hbmColor = CreateHBITMAP(pBmp);
 	ICONINFO ii{};
@@ -329,8 +329,40 @@ EckInline HRESULT CreateWicBitmapDecoder(IStream* pStream,
 	IWICBitmapDecoder*& pDecoder)
 {
 	pDecoder = NULL;
-	return g_pWicFactory->CreateDecoderFromStream(pStream, NULL, 
+	return g_pWicFactory->CreateDecoderFromStream(pStream, NULL,
 		WICDecodeMetadataCacheOnDemand, &pDecoder);
+}
+
+inline HRESULT ScaleWicBitmap(IWICBitmap* pSrc, IWICBitmap*& pDst, int cx, int cy,
+	WICBitmapInterpolationMode iInterMode = WICBitmapInterpolationModeLinear)
+{
+	pDst = NULL;
+	IWICBitmapScaler* pScaler;
+	HRESULT hr = g_pWicFactory->CreateBitmapScaler(&pScaler);
+	if (FAILED(hr))
+	{
+		EckDbgPrintFormatMessage(hr);
+		return hr;
+	}
+
+	hr = pScaler->Initialize(pSrc, cx, cy, iInterMode);
+	if (FAILED(hr))
+	{
+		EckDbgPrintFormatMessage(hr);
+		pScaler->Release();
+		return hr;
+	}
+
+	hr = g_pWicFactory->CreateBitmapFromSource(pScaler, WICBitmapNoCache, &pDst);
+	if (FAILED(hr))
+	{
+		EckDbgPrintFormatMessage(hr);
+		pScaler->Release();
+		return hr;
+	}
+
+	pScaler->Release();
+	return S_OK;
 }
 
 struct ICONDIRENTRY
@@ -604,8 +636,6 @@ public:
 		bih.biCompression = BI_RGB;
 #pragma warning(suppress:6387)
 		m_hBitmap = CreateDIBSection(NULL, (const BITMAPINFO*)&bih, DIB_RGB_COLORS, NULL, NULL, 0);
-		if (!m_hBitmap)
-			return NULL;
 		return m_hBitmap;
 	}
 

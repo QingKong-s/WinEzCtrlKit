@@ -10,13 +10,13 @@
 #include "Utility.h"
 #include "GraphicsHelper.h"
 
+ECK_NAMESPACE_BEGIN
 struct NMSPBDRAGGED
 {
 	NMHDR nmhdr;
 	int xyPos;
 };
 
-ECK_NAMESPACE_BEGIN
 class CSplitBar :public CWnd
 {
 private:
@@ -195,6 +195,7 @@ public:
 			EndPaint(hWnd, &ps);
 		}
 		return 0;
+		case WM_LBUTTONDBLCLK:// 连击修正
 		case WM_LBUTTONDOWN:
 		{
 			SetFocus(hWnd);
@@ -245,10 +246,10 @@ public:
 		{
 			m_BKMark.Create(NULL, WS_POPUP | WS_DISABLED,
 				WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_NOACTIVATE,
-				-10000, -10000, 0, 0, hWnd, 0);
+				-32000, -32000, 0, 0, hWnd, 0);
 			UpdateMarkWndAlpha();
 			SetWindowLongPtrW(m_BKMark.GetHWND(), 0, (LONG_PTR)this);
-			m_BKMark.SetWindowProc(WndProc_Mark);
+			m_BKMark.SetWndProc(WndProc_Mark);
 			m_DC.Create(hWnd);
 		}
 		break;

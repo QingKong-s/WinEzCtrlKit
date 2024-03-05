@@ -546,8 +546,8 @@ struct FPunch
 			return fStart + fDistance;
 		else
 		{
-			const float fCurrTime = fCurrTime / fDuration - 1.f;
-			return fDistance * expf(-fCurrTime * f) * sinf(6.f * PiF * fCurrTime) + fDistance + fStart;
+			const float f1 = fCurrTime / fDuration - 1.f;
+			return fDistance * expf(-f1 * f) * sinf(6.f * PiF * f1) + fDistance + fStart;
 		}
 	}
 };
@@ -677,18 +677,16 @@ public:
 	CEasingCurve& operator=(const CEasingCurve&) = delete;
 	CEasingCurve(const CEasingCurve&) = delete;
 	
-	CEasingCurve(CEasingCurve&& x)
+	CEasingCurve(CEasingCurve&& x) noexcept
 	{
 		memcpy(this, &x, sizeof(CEasingCurve));
 		std::construct_at(&x);
-		CEasingCurve();
 	}
 
-	CEasingCurve& operator=(CEasingCurve&& x)
+	CEasingCurve& operator=(CEasingCurve&& x) noexcept
 	{
 		memcpy(this, &x, sizeof(CEasingCurve));
 		std::construct_at(&x);
-		CEasingCurve();
 		return *this;
 	}
 

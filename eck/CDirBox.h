@@ -204,7 +204,7 @@ public:
 		return CTreeView::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
-	BOOL OnNotifyMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult) override
+	LRESULT OnNotifyMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed) override
 	{
 		switch (uMsg)
 		{
@@ -215,6 +215,7 @@ public:
 			{
 			case TVN_ITEMEXPANDEDW:
 			{
+				bProcessed = TRUE;
 				auto pnmtv = (NMTREEVIEWW*)lParam;
 				if (pnmtv->action == TVE_EXPAND)
 				{
@@ -283,9 +284,10 @@ public:
 					SetRedraw(TRUE);
 				}
 			}
-			return TRUE;
+			return 0;
 			case TVN_SELCHANGEDW:
 			{
+				bProcessed = TRUE;
 				auto pnmtv = (NMTREEVIEWW*)lParam;
 				std::wstring sPath{};
 				WCHAR szBuf[MAX_PATH];
@@ -315,12 +317,12 @@ public:
 
 				m_sCurrPath = std::move(sPath);
 			}
-			return TRUE;
+			return 0;
 			}
 		}
 		break;
 		}
-		return CTreeView::OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult);
+		return CTreeView::OnNotifyMsg(hWnd, uMsg, wParam, lParam, bProcessed);
 	}
 
 	ECK_CWND_CREATE;

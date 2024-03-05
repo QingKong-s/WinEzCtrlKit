@@ -80,12 +80,13 @@ private:
 	constexpr static int c_iCPItemPadding = 2;
 	constexpr static int c_cxCPClrBlock = 20;
 public:
-	BOOL OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult) override
+	LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed) override
 	{
 		switch (uMsg)
 		{
 		case WM_DRAWITEM:
 		{
+			bProcessed = TRUE;
 			auto pdis = (DRAWITEMSTRUCT*)lParam;
 			COLORREF cr = c_ColorPickerPresetClr[pdis->itemID].cr;
 			HBRUSH hbr;
@@ -127,7 +128,6 @@ public:
 			rcText.left += (xClrBlock + cxClrBlock + iItemPadding);
 			DrawTextW(hDC, c_ColorPickerPresetClr[pdis->itemID].pszName, -1, &rcText,
 				DT_NOCLIP | DT_SINGLELINE | DT_VCENTER);
-			lResult = TRUE;
 		}
 		return TRUE;
 
@@ -135,6 +135,7 @@ public:
 		{
 			if (HIWORD(wParam) != CBN_SELCHANGE || (HWND)lParam != GetHWND())
 				break;
+			bProcessed = TRUE;
 			int idxCurrSel = (int)SendMessageW((HWND)lParam, CB_GETCURSEL, 0, 0);
 			COLORREF cr;
 			if (idxCurrSel == IdxCustom)
@@ -155,11 +156,11 @@ public:
 			NMCLPCLRCHANGED nm;
 			nm.cr = cr;
 			FillNmhdrAndSendNotify(nm, NM_CLP_CLRCHANGED);
-			return TRUE;
+			return 0;
 		}
 		break;
 		}
-		return CWnd::OnNotifyMsg(hParent, uMsg, wParam, lParam, lResult);
+		return CWnd::OnNotifyMsg(hParent, uMsg, wParam, lParam, bProcessed);
 	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override

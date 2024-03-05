@@ -161,6 +161,19 @@ enum GpImageLockMode
 	ImageLockModeWrite = 0x0002,
 	ImageLockModeUserInputBuf = 0x0004
 };
+enum GpInterpolationMode
+{
+	InterpolationModeInvalid,
+	InterpolationModeDefault,
+	InterpolationModeLowQuality,
+	InterpolationModeHighQuality,
+	InterpolationModeBilinear,
+	InterpolationModeBicubic,
+	InterpolationModeNearestNeighbor,
+	InterpolationModeHighQualityBilinear,
+	InterpolationModeHighQualityBicubic
+};
+
 
 typedef VOID(WINAPI* GpDebugEventProc)(GpDebugEventLevel level, CHAR* message);
 
@@ -365,4 +378,7 @@ GpStatus WINGDIPAPI GdipSaveImageToFile(GpImage* image, GDIPCONST WCHAR* filenam
 GpStatus WINGDIPAPI GdipGetImageDecoders(UINT numDecoders, UINT size, GpImageCodecInfo* decoders);
 GpStatus WINGDIPAPI GdipGetImageDecodersSize(UINT* numDecoders, UINT* size);
 GpStatus WINGDIPAPI GdipCreateFromHWND(HWND hwnd, GpGraphics** graphics);
+GpStatus WINGDIPAPI GdipSetInterpolationMode(GpGraphics* graphics, GpInterpolationMode interpolationMode);
+GpStatus WINGDIPAPI GdipSetSolidFillColor(GpSolidFill* brush, ARGB color);
+GpStatus WINGDIPAPI GdipSetPenColor(GpPen* pen, ARGB argb);
 EXTERN_C_END
