@@ -657,7 +657,6 @@ public:
 		//EckDbgPrint(eck::CalcDbcsStringCharCount(szA, ARRAYSIZE(szA) - 1));
 		//EckDbgBreak();
 		//EckDbgPrint(L"-----------------------");
-
 		//eck::CRegKey key(LR"(HKCU\Software\Test1)");
 		//eck::CRegKey key2{};
 		//key2.Create(LR"(HKCU\Qk\Software\Test1)");
@@ -685,7 +684,6 @@ public:
 		//		EckDbgPrint(rsName);
 		//		return FALSE;
 		//	});
-
 		//CPUINFO ci{};
 		//GetCpuInfo(ci);
 		////EckDbgPrint(L"-----------------------");
@@ -698,13 +696,10 @@ public:
 		//VARIANT var0{};
 		//WmiQueryClassProp(L"SELECT Description FROM Win32_Processor", L"Description", var0);
 		////EckDbgPrint( var0.bstrVal+2);
-
 		//FILEVERINFO fvi{};
 		//GetFileVerInfo(LR"(C:\Program Files\bilibili\哔哩哔哩.exe)", fvi);
-
 		//eck::CRefBin rb;
 		//KeyboardEvent(VK_CONTROL, 'A');
-
 		//CRefBin rbOlePic = ReadInFile(LR"(E:\Desktop\Temp\111111.bmp)");
 		//IStream* pStream = new CStreamView(rbOlePic);
 		//IPicture* pPic;
@@ -714,7 +709,6 @@ public:
 		//CRefStrW rs(L"测试测试123你好");
 		//rs.AppendFormat(L"整数 = %d，字符串 = %s。", 100, L"我是字符串");
 		//rs.Format(L"浮点 = %f", 120.3f);
-
 		//CRefStrA rsa("测试字符串");
 		//auto bstr1 = rsa.ToBSTR();
 		//auto bstr2 = rs.ToBSTR();

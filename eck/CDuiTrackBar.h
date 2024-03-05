@@ -4,6 +4,11 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
+enum
+{
+	TBE_POSCHANGED = EE_PRIVATE_BEGIN,
+};
+
 class CTrackBar :public CElem
 {
 private:
@@ -13,9 +18,13 @@ private:
 	BITBOOL m_bLBtnDown : 1 = FALSE;
 	BITBOOL m_bHover : 1 = FALSE;
 
+	BITBOOL m_bGenEventWhenDragging : 1 = FALSE;
+
 	float m_fPos = 0.0f;
 	float m_fMin = 0.0f;
 	float m_fMax = 100.0f;
+
+	float m_fDragPos = 0.f;
 
 	float m_cxyTrack = 0.0f;
 
@@ -50,6 +59,43 @@ private:
 		}
 		return cxyTrack;
 	}
+
+	void GetThumbCircle(float cxyTrack, const D2D1_RECT_F& rcTrack, D2D1_ELLIPSE& ellipse)
+	{
+		const float cxy = cxyTrack * 3.f / 4.f * m_Ec.GetCurrValue();
+		ellipse.radiusX = ellipse.radiusY = cxy;
+		if (m_bVertical)
+		{
+			ellipse.point.x = (rcTrack.left + rcTrack.right) / 2.f;
+			ellipse.point.y = rcTrack.bottom;
+		}
+		else
+		{
+			ellipse.point.x = rcTrack.right;
+			ellipse.point.y = (rcTrack.top + rcTrack.bottom) / 2.f;
+		}
+	}
+
+	EckInline void GetThumbCircle(D2D1_ELLIPSE& ellipse)
+	{
+		D2D1_RECT_F rc;
+		const auto cxy = GetTrackRect(rc);
+		const float fScale = (GetPos() - m_fMin) / (m_fMax - m_fMin);
+		if (m_bVertical)
+			rc.bottom = rc.top + (rc.bottom - rc.top) * fScale;
+		else
+			rc.right = rc.left + (rc.right - rc.left) * fScale;
+		GetThumbCircle(cxy, rc, ellipse);
+	}
+
+	void SetDragPos(float fPos)
+	{
+		m_fDragPos = fPos;
+		if (m_fDragPos < m_fMin)
+			m_fDragPos = m_fMin;
+		else if (m_fDragPos > m_fMax)
+			m_fDragPos = m_fMax;
+	}
 public:
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
@@ -68,7 +114,7 @@ public:
 			m_pBrush->SetColor(ct.crBkNormal);
 			m_pDC->FillRoundedRectangle(rrc, m_pBrush);
 
-			const float fScale = (m_fPos - m_fMin) / (m_fMax - m_fMin);
+			const float fScale = (GetPos() - m_fMin) / (m_fMax - m_fMin);
 			if (m_bVertical)
 				rrc.rect.bottom = rrc.rect.top + (rrc.rect.bottom - rrc.rect.top) * fScale;
 			else
@@ -79,24 +125,14 @@ public:
 			if (m_bHover || m_Ec.IsActive())
 			{
 				D2D1_ELLIPSE ellipse;
-				const float cxy = cxyTrack * 3.f / 4.f * m_Ec.GetCurrValue();
-				ellipse.radiusX = ellipse.radiusY = cxy;// cxyTrack * 3.f / 4.f;
-				if (m_bVertical)
-				{
-					ellipse.point.x = (rrc.rect.left + rrc.rect.right) / 2.f;
-					ellipse.point.y = rrc.rect.bottom;
-				}
-				else
-				{
-					ellipse.point.x = rrc.rect.right;
-					ellipse.point.y = (rrc.rect.top + rrc.rect.bottom) / 2.f;
-				}
+				GetThumbCircle(cxyTrack, rrc.rect, ellipse);
+
 				m_pBrush->SetColor(ct.crBkHot);
 				m_pDC->FillEllipse(ellipse, m_pBrush);
 				m_pBrush->SetColor(ct.crBorder);
 				m_pDC->DrawEllipse(ellipse, m_pBrush, 1.0f);
 
-				ellipse.radiusX = ellipse.radiusY = cxy * 3 / 6;// cxyTrack / 2.f;
+				ellipse.radiusX = ellipse.radiusY = (ellipse.radiusX / 2.f);
 				m_pBrush->SetColor(ct.crBkSelected);
 				m_pDC->FillEllipse(ellipse, m_pBrush);
 			}
@@ -124,19 +160,10 @@ public:
 				POINT pt ECK_GET_PT_LPARAM(lParam);
 				ClientToElem(pt);
 
-				D2D1_RECT_F rcTrack;
-				GetTrackRect(rcTrack);
+				SetDragPos(PtToPos(pt));
 
-				if (m_bVertical)
-				{
-					const float fScale = (pt.y - rcTrack.top) / (rcTrack.bottom - rcTrack.top);
-					SetPos(m_fMin + (m_fMax - m_fMin) * fScale);
-				}
-				else
-				{
-					const float fScale = (pt.x - rcTrack.left) / (rcTrack.right - rcTrack.left);
-					SetPos(m_fMin + (m_fMax - m_fMin) * fScale);
-				}
+				if (m_bGenEventWhenDragging)
+					GenElemNotify(TBE_POSCHANGED, 0, 0);
 				InvalidateRect();
 			}
 			else if (!m_bHover)
@@ -155,15 +182,29 @@ public:
 				m_bHover = FALSE;
 				m_Ec.SetReverse(TRUE);
 				m_Ec.Begin(ECBF_CONTINUE);
-				//InvalidateRect();
 			}
 		}
 		return 0;
 
 		case WM_LBUTTONDOWN:
 		{
-			m_bLBtnDown = TRUE;
-			SetCapture();
+			POINT pt ECK_GET_PT_LPARAM(lParam);
+			ClientToElem(pt);
+
+			D2D1_ELLIPSE ellipse;
+			GetThumbCircle(ellipse);
+			if (PtInCircle(MakeD2dPtF(pt), ellipse.point, ellipse.radiusX))
+			{
+				m_bLBtnDown = TRUE;
+				SetCapture();
+				m_fDragPos = PtToPos(pt);
+			}
+			else
+			{
+				SetPos(PtToPos(pt));
+				InvalidateRect();
+				GenElemNotify(TBE_POSCHANGED, 0, 0);
+			}
 		}
 		return 0;
 
@@ -171,8 +212,21 @@ public:
 		{
 			if (m_bLBtnDown)
 			{
+				POINT pt ECK_GET_PT_LPARAM(lParam);
+				ClientToElem(pt);
+
 				m_bLBtnDown = FALSE;
 				ReleaseCapture();
+				SetPos(PtToPos(pt));
+				InvalidateRect();
+				GenElemNotify(TBE_POSCHANGED, 0, 0);
+
+				if (m_bHover)
+				{
+					m_bHover = FALSE;
+					m_Ec.SetReverse(TRUE);
+					m_Ec.Begin(ECBF_CONTINUE);
+				}
 			}
 		}
 		return 0;
@@ -225,29 +279,51 @@ public:
 			m_fPos = m_fMax;
 	}
 
-	float GetPos() const
+	EckInline float GetPos() const
 	{
-		return m_fPos;
+		return m_bLBtnDown ? m_fDragPos : m_fPos;
 	}
 
-	void SetVertical(BOOL bVertical)
+	EckInline void SetVertical(BOOL bVertical)
 	{
 		m_bVertical = bVertical;
 	}
 
-	BOOL IsVertical() const
+	EckInline BOOL IsVertical() const
 	{
 		return m_bVertical;
 	}
 
-	void SetTrackSize(float cxyTrack)
+	EckInline void SetTrackSize(float cxyTrack)
 	{
 		m_cxyTrack = cxyTrack;
 	}
 
-	float GetTrackSize() const
+	EckInline float GetTrackSize() const
 	{
 		return m_cxyTrack;
+	}
+
+	EckInline void SetGenEventWhenDragging(BOOL bGenEventWhenDragging)
+	{
+		m_bGenEventWhenDragging = bGenEventWhenDragging;
+	}
+
+	float PtToPos(POINT pt)
+	{
+		D2D1_RECT_F rcTrack;
+		GetTrackRect(rcTrack);
+
+		if (m_bVertical)
+		{
+			const float fScale = (pt.y - rcTrack.top) / (rcTrack.bottom - rcTrack.top);
+			return m_fMin + (m_fMax - m_fMin) * fScale;
+		}
+		else
+		{
+			const float fScale = (pt.x - rcTrack.left) / (rcTrack.right - rcTrack.left);
+			return m_fMin + (m_fMax - m_fMin) * fScale;
+		}
 	}
 };
 ECK_DUI_NAMESPACE_END

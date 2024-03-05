@@ -12,6 +12,7 @@
 #include "CException.h"
 
 #include <optional>
+#include <functional>
 
 ECK_NAMESPACE_BEGIN
 inline constexpr int
@@ -73,12 +74,15 @@ class CWnd
 {
 	friend HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc);
 public:
-	WNDPROC m_pfnRealProc = DefWindowProcW;
+	using FMsgHook = std::function<LRESULT(HWND, UINT, WPARAM, LPARAM, BOOL& bProcessed)>;
+
 #ifdef ECK_CTRL_DESIGN_INTERFACE
 	DESIGNDATA_WND m_DDBase{};
 #endif
 protected:
 	HWND m_hWnd = NULL;
+	WNDPROC m_pfnRealProc = DefWindowProcW;
+	std::vector<FMsgHook> m_vFnMsgHook{};
 
 	static void WndCreatingSetLong(HWND hWnd, CBT_CREATEWNDW* pcs, ECKTHREADCTX* pThreadCtx)
 	{
@@ -135,6 +139,18 @@ protected:
 	{
 		return CWndFromHWND(hParent)->OnMsg(hParent, uMsg, wParam, lParam);
 	}
+
+	EckInline LRESULT CallMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		EckCounter(m_vFnMsgHook.size(), i)
+		{
+			BOOL bProcessed;
+			const auto lResult = m_vFnMsgHook[i].operator()(hWnd, uMsg, wParam, lParam, bProcessed);
+			if (bProcessed)
+				return lResult;
+		}
+		return OnMsg(hWnd, uMsg, wParam, lParam);
+	}
 public:
 	ECKPROP_R(GetHWND)					HWND		HWnd;			// 窗口句柄
 	ECKPROP(GetFont, SetFont)			HFONT		HFont;			// 字体句柄
@@ -155,23 +171,24 @@ public:
 	ECKPROP_R(GetClientWidth)			int			ClientWidth;
 	ECKPROP_R(GetClientHeight)			int			ClientHeight;
 
-	/// <summary>
-	/// EckWndProc
-	/// </summary>
-	static LRESULT CALLBACK WndProcMsgReflection(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+
+	static LRESULT CALLBACK EckWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		const auto pCtx = GetThreadCtx();
 		const auto p = pCtx->WmAt(hWnd);
 		EckAssert(p);
 
 		CWnd* pChild;
-		LRESULT lResult = 0;
+		BOOL bProcessed = FALSE;
 		switch (uMsg)
 		{
 		case WM_NOTIFY:
-			pChild = pCtx->WmAt(((NMHDR*)lParam)->hwndFrom);
-			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
-				return lResult;
+			if (pChild = pCtx->WmAt(((NMHDR*)lParam)->hwndFrom))
+			{
+				const auto lResult = pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, bProcessed);
+				if (bProcessed)
+					return lResult;
+			}
 			break;
 		case WM_HSCROLL:
 		case WM_VSCROLL:
@@ -185,38 +202,53 @@ public:
 		case WM_CTLCOLORDLG:
 		case WM_CTLCOLORSCROLLBAR:
 		case WM_CTLCOLORSTATIC:
-			pChild = pCtx->WmAt((HWND)lParam);
-			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
-				return lResult;
+			if (pChild = pCtx->WmAt((HWND)lParam))
+			{
+				const auto lResult = pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, bProcessed);
+				if (bProcessed)
+					return lResult;
+			}
 			break;
 		case WM_DRAWITEM:
-			pChild = pCtx->WmAt(((DRAWITEMSTRUCT*)lParam)->hwndItem);
-			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
-				return lResult;
+			if (pChild = pCtx->WmAt(((DRAWITEMSTRUCT*)lParam)->hwndItem))
+			{
+				const auto lResult = pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, bProcessed);
+				if (bProcessed)
+					return lResult;
+			}
 			break;
 		case WM_MEASUREITEM:
-			pChild = pCtx->WmAt(GetDlgItem(hWnd, ((MEASUREITEMSTRUCT*)lParam)->CtlID));
-			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
-				return lResult;
+			if (pChild = pCtx->WmAt(GetDlgItem(hWnd, ((MEASUREITEMSTRUCT*)lParam)->CtlID)))
+			{
+				const auto lResult = pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, bProcessed);
+				if (bProcessed)
+					return lResult;
+			}
 			break;
 		case WM_DELETEITEM:
-			pChild = pCtx->WmAt(((DELETEITEMSTRUCT*)lParam)->hwndItem);
-			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
-				return lResult;
+			if (pChild = pCtx->WmAt(((DELETEITEMSTRUCT*)lParam)->hwndItem))
+			{
+				const auto lResult = pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, bProcessed);
+				if (bProcessed)
+					return lResult;
+			}
 			break;
 		case WM_COMPAREITEM:
-			pChild = pCtx->WmAt(((COMPAREITEMSTRUCT*)lParam)->hwndItem);
-			if (pChild && pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult))
-				return lResult;
+			if (pChild = pCtx->WmAt(((COMPAREITEMSTRUCT*)lParam)->hwndItem))
+			{
+				const auto lResult = pChild->OnNotifyMsg(hWnd, uMsg, wParam, lParam, bProcessed);
+				if (bProcessed)
+					return lResult;
+			}
 			break;
 		case WM_NCDESTROY:// 窗口生命周期中的最后一个消息，在这里解绑HWND和CWnd，从窗口映射中清除无效内容
 		{
-			const auto lResult = p->OnMsg(hWnd, uMsg, wParam, lParam);
+			const auto lResult = p->CallMsgProc(hWnd, uMsg, wParam, lParam);
 			(void)p->CWnd::Detach();// 控件类可能不允许拆离，必须使用基类拆离
 			return lResult;
 		}
 		}
-		return p->OnMsg(hWnd, uMsg, wParam, lParam);
+		return p->CallMsgProc(hWnd, uMsg, wParam, lParam);
 	}
 
 	/// <summary>
@@ -341,11 +373,11 @@ public:
 	/// <param name="uMsg">消息</param>
 	/// <param name="wParam">wParam</param>
 	/// <param name="lParam">lParam</param>
-	/// <param name="lResult">消息返回值，调用本方法前保证其为0，仅当本方法返回TRUE时有效</param>
-	/// <returns>若返回TRUE，则不再将当前消息交由父窗口处理</returns>
-	EckInline virtual BOOL OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult)
+	/// <param name="bProcessed">若设为TRUE，则不再将当前消息交由父窗口处理，调用函数前保证其为FALSE</param>
+	/// <returns>消息返回值</returns>
+	EckInline virtual LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)
 	{
-		return FALSE;
+		return 0;
 	}
 
 	/// <summary>
@@ -650,7 +682,8 @@ public:
 	EckInline BOOL Destroy()
 	{
 		EckAssert(IsWindow(m_hWnd));
-		return DestroyWindow(m_hWnd);
+		auto b = DestroyWindow(m_hWnd);
+		return b;
 	}
 
 	/// <summary>
@@ -926,18 +959,42 @@ public:
 		SetScrollInfo(m_hWnd, iType, psi, bRedraw);
 	}
 
-	[[nodiscard]] int GetClientWidth() const
+	EckInline [[nodiscard]] int GetClientWidth() const
 	{
 		RECT rc;
 		GetClientRect(m_hWnd, &rc);
 		return rc.right;
 	}
 
-	[[nodiscard]] int GetClientHeight() const
+	EckInline [[nodiscard]] int GetClientHeight() const
 	{
 		RECT rc;
 		GetClientRect(m_hWnd, &rc);
 		return rc.bottom;
+	}
+
+	EckInline [[nodiscard]] BOOL IsValid() const
+	{
+		return IsWindow(m_hWnd);
+	}
+
+	EckInline WNDPROC SetWndProc(WNDPROC pfnWndProc)
+	{
+		std::swap(m_pfnRealProc, pfnWndProc);
+		return pfnWndProc;
+	}
+
+	EckInline void InstallMsgHook(const FMsgHook& fn, int idx = -1)
+	{
+		if (idx >= 0)
+			m_vFnMsgHook.emplace(m_vFnMsgHook.begin() + idx, fn);
+		else
+			m_vFnMsgHook.emplace_back(fn);
+	}
+
+	EckInline void UnInstallMsgHook(int idx)
+	{
+		m_vFnMsgHook.erase(m_vFnMsgHook.begin() + idx);
 	}
 };
 ECK_NAMESPACE_END

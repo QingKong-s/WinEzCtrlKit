@@ -80,14 +80,14 @@ struct CCharTraits<WCHAR>
 {
 	using TChar = WCHAR;
 	EckInline static int Len(PCWSTR psz) { return (int)wcslen(psz); }
-	EckInline static PWSTR Copy(PWSTR psz1, PCWSTR psz2, int cch) { return (PWSTR)memcpy(psz1, psz2, cch * sizeof(WCHAR)); }
+	EckInline static PWSTR Copy(PWSTR psz1, PCWSTR psz2, int cch) { return wmemcpy(psz1, psz2, cch); }
 	EckInline static PWSTR CopyEnd(PWSTR psz1, PCWSTR psz2, int cch)
 	{
 		auto r = Copy(psz1, psz2, cch);
 		*(psz1 + cch) = L'\0';
 		return r;
 	}
-	EckInline static PWSTR Move(PWSTR psz1, PCWSTR psz2, int cch) { return (PWSTR)memmove(psz1, psz2, cch * sizeof(WCHAR)); }
+	EckInline static PWSTR Move(PWSTR psz1, PCWSTR psz2, int cch) { return wmemmove(psz1, psz2, cch); }
 	EckInline static PWSTR MoveEnd(PWSTR psz1, PCWSTR psz2, int cch)
 	{
 		auto r = Move(psz1, psz2, cch);
@@ -1467,30 +1467,26 @@ EckInline void SplitStr(PWSTR pszText, PCWSTR pszDiv, std::vector<PWSTR>& aResul
 
 /// <summary>
 /// 删尾空。
-/// 函数从pszText的尾部开始向前步进到第一个非空格字符，然后返回这个字符的位置。
 /// 此函数不执行任何修改字符串的操作
 /// </summary>
 /// <param name="pszText">原始文本</param>
 /// <param name="cchText">文本长度</param>
-/// <returns>从字符串开头到最后一个非空格字符的长度</returns>
-[[nodiscard]] inline int RTrimStr(PCWSTR pszText, int cchText = -1)
+/// <returns>第一个非空格字符的下一个字符的指针，若字符串全为空格，则返回pszText</returns>
+[[nodiscard]] inline PCWSTR RTrimStr(PCWSTR pszText, int cchText = -1)
 {
 	if (cchText < 0)
 		cchText = (int)wcslen(pszText);
 	if (!cchText)
 		return 0;
 
-	PCWSTR pszTemp = pszText + cchText - 1;
-	WCHAR ch;
-	while (pszTemp != pszText)
+	for (PCWSTR pszTemp = pszText + cchText - 1; pszTemp >= pszText; --pszTemp)
 	{
-		ch = *pszTemp;
-		if (ch == L' ' || ch == L'　')
-			--pszTemp;
-		else
-			break;
+		const WCHAR ch = *pszTemp;
+		if (ch != L' ' && ch != L'　')
+			return pszTemp + 1;
 	}
-	return (int)(pszTemp - pszText);
+
+	return pszText;
 }
 
 /// <summary>
@@ -1499,15 +1495,16 @@ EckInline void SplitStr(PWSTR pszText, PCWSTR pszDiv, std::vector<PWSTR>& aResul
 /// 此函数不执行任何修改字符串的操作
 /// </summary>
 /// <param name="pszText">原始文本</param>
-/// <param name="piEndPos">接收RTrimStr返回值</param>
 /// <param name="cchText">文本长度</param>
-/// <returns>LTrimStr返回值</returns>
-[[nodiscard]] EckInline PCWSTR RLTrimStr(PCWSTR pszText, int* piEndPos, int cchText = -1)
+/// <returns>起始位置和结束位置指针，若无非空格字符，则返回{ NULL,NULL }</returns>
+[[nodiscard]] EckInline std::pair<PCWSTR, PCWSTR> RLTrimStr(PCWSTR pszText, int cchText = -1)
 {
-	auto pszLeft = LTrimStr(pszText);
-	auto posRight = RTrimStr(pszText, cchText);
-	*piEndPos = posRight;
-	return pszLeft;
+	const auto pszLeft = LTrimStr(pszText);
+	const auto pszRight = RTrimStr(pszText, cchText);
+	if (pszRight <= pszLeft)
+		return { NULL,NULL };
+	else
+		return { pszLeft,pszRight };
 }
 
 /// <summary>

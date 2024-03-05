@@ -92,7 +92,7 @@ private:
 		eck::LVSetItemHeight(m_hWnd, std::max(m_cyIcon, m_cySectionTitle + m_cySubTask + m_cxPadding * 2));
 	}
 public:
-	BOOL OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult) override
+	LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed) override
 	{
 		switch (uMsg)
 		{
@@ -102,6 +102,7 @@ public:
 			{
 			case NM_CUSTOMDRAW:
 			{
+				bProcessed = TRUE;
 				if (((NMHDR*)lParam)->hwndFrom!=GetHWND())
 					break;
 
@@ -110,8 +111,7 @@ public:
 				switch (pnmlcd->nmcd.dwDrawStage)
 				{
 				case CDDS_PREPAINT:
-					lResult = CDRF_NOTIFYITEMDRAW;
-					return TRUE;
+					return CDRF_NOTIFYITEMDRAW;
 				case CDDS_ITEMPREPAINT:
 				{
 					auto& Item = m_Items[pnmlcd->nmcd.dwItemSpec];
@@ -166,9 +166,8 @@ public:
 
 						rc.left += (sub.cx + m_cxSubTaskPadding * 2);
 					}
-					lResult = CDRF_SKIPDEFAULT;
 				}
-				return TRUE;
+				return CDRF_SKIPDEFAULT;
 				}
 			}
 			break;
@@ -177,7 +176,7 @@ public:
 		break;
 		}
 
-		return CListView::OnNotifyMsg(hParent, uMsg, wParam, lParam, lResult);
+		return CListView::OnNotifyMsg(hParent, uMsg, wParam, lParam, bProcessed);
 	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override

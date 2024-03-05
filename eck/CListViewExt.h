@@ -31,7 +31,7 @@ public:
 		return CListView::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
-	BOOL OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult) override
+	LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed) override
 	{
 		switch (uMsg)
 		{
@@ -41,13 +41,13 @@ public:
 			{
 			case NM_CUSTOMDRAW:
 			{
+				bProcessed = TRUE;
 				const auto plvnmcd = (NMLVCUSTOMDRAW*)lParam;
 				const auto hDC = plvnmcd->nmcd.hdc;
 				switch (plvnmcd->nmcd.dwDrawStage)
 				{
 				case CDDS_PREPAINT:
-					lResult = CDRF_NOTIFYITEMDRAW;
-					return TRUE;
+					return CDRF_NOTIFYITEMDRAW;
 				case CDDS_ITEMPREPAINT:
 				{
 					//auto Header = GetHeaderCtrl();
@@ -77,9 +77,8 @@ public:
 					//	}
 					//}
 					//_freea(prcCol);
-					lResult = CDRF_SKIPDEFAULT;
 				}
-				return TRUE;
+				return CDRF_SKIPDEFAULT;
 				}
 			}
 			break;
@@ -87,7 +86,7 @@ public:
 		}
 		break;
 		}
-		return FALSE;
+		return CListView::OnNotifyMsg(hParent, uMsg, wParam, lParam, bProcessed);
 	}
 };
 ECK_NAMESPACE_END

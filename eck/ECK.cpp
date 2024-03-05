@@ -282,7 +282,7 @@ HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc)
 			{
 				pCtx->pCurrWnd->m_pfnRealProc =
 					(WNDPROC)SetWindowLongPtrW((HWND)wParam, GWLP_WNDPROC,
-						(LONG_PTR)CWnd::WndProcMsgReflection);
+						(LONG_PTR)CWnd::EckWndProc);
 				EckAssert(!pCtx->pCurrWnd->m_hWnd);
 				pCtx->pCurrWnd->m_hWnd = (HWND)wParam;
 				pCtx->WmAdd((HWND)wParam, pCtx->pCurrWnd);
@@ -365,7 +365,7 @@ void DbgPrintFmt(PCWSTR pszFormat, ...)
 
 void DbgPrintWithPos(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg)
 {
-	DbgPrint(Format(L"%s(%u) -> %s\n\t%s\n", pszFile, iLine, pszFunc, pszMsg));
+	DbgPrint(Format(L"%s(%u) -> %s\n%s\n", pszFile, iLine, pszFunc, pszMsg));
 }
 
 const CRefStrW& GetRunningPath()
@@ -373,7 +373,7 @@ const CRefStrW& GetRunningPath()
 	return g_rsCurrDir;
 }
 
-inline void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
+void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 {
 	TASKDIALOGCONFIG tdc{ sizeof(TASKDIALOGCONFIG) };
 	tdc.pszMainInstruction = L"断言失败！";

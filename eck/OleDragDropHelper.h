@@ -219,7 +219,7 @@ public:
 				return hr;
 		}
 
-		auto it = FindFormat(pFormatEtc);
+		const auto it = FindFormat(pFormatEtc);
 		if (it == m_vFormatEtc.end())
 		{
 			m_vFormatEtc.emplace_back(*pFormatEtc);
@@ -240,18 +240,19 @@ public:
 		return SHCreateStdEnumFmtEtc((UINT)m_vFormatEtc.size(), m_vFormatEtc.data(), ppEnumFormatEtc);
 	}
 
-	HRESULT STDMETHODCALLTYPE DAdvise(FORMATETC* pFormatEtc, DWORD advf, IAdviseSink*, DWORD*)
+	HRESULT STDMETHODCALLTYPE DAdvise(FORMATETC*, DWORD, IAdviseSink*, DWORD*)
 	{
 		return OLE_E_ADVISENOTSUPPORTED;
 	}
 
-	HRESULT STDMETHODCALLTYPE DUnadvise(DWORD dwConnection)
+	HRESULT STDMETHODCALLTYPE DUnadvise(DWORD)
 	{
 		return OLE_E_ADVISENOTSUPPORTED;
 	}
 
 	HRESULT STDMETHODCALLTYPE EnumDAdvise(IEnumSTATDATA** ppEnumAdvise)
 	{
+		*ppEnumAdvise = NULL;
 		return OLE_E_ADVISENOTSUPPORTED;
 	}
 };

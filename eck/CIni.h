@@ -16,7 +16,7 @@ private:
 	WCHAR m_szLineBreak[3]{ L'\r',L'\n',L'\0' };
 	short m_cchLineBreak = 2;
 
-	BITBOOL m_bParseEscapeChar : 1 = FALSE;//  \[  \]  \=  \r  \n  \\  \;  \"
+	BITBOOL m_bParseEscapeChar : 1 = FALSE;//          \[  \]  \=  \r  \n  \\  \;  \"
 	BITBOOL m_bParseComment : 1 = FALSE;
 
 	int FindValuePos(PCWSTR pszSection, PCWSTR pszKey, 

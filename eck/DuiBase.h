@@ -52,6 +52,10 @@ enum
 enum
 {
 	EE_COMMAND = 1,
+	EE_KILLFOCUS,
+	EE_SETFOCUS,
+	EE_CLICK,
+	EE_RCLICK,
 
 	EE_PRIVATE_BEGIN = 0x4000
 };
@@ -75,11 +79,11 @@ enum
 	WM_PRIVBEGIN = 5000,
 };
 
-
 enum
 {
 	EBPF_DO_NOT_FILLBK = (1u << 0),
 };
+
 struct ELEMPAINTSTRU
 {
 	D2D1_RECT_F rcfClip;		// 剪裁矩形，相对客户区
@@ -87,7 +91,6 @@ struct ELEMPAINTSTRU
 	RECT rcInvalid;				// 无效矩形，相对客户区
 	D2D1_RECT_F rcfClipInElem;	// 剪裁矩形，相对元素
 };
-
 
 enum
 {
@@ -98,6 +101,11 @@ enum
 	CTI_CIRCLEBUTTON,
 
 	CTI_COUNT
+};
+
+struct DUINMHDR
+{
+	UINT uCode;
 };
 
 /// <summary>
@@ -240,6 +248,18 @@ public:
 		{
 		case WM_NCHITTEST:
 			return HTCLIENT;
+		case WM_KILLFOCUS:
+		{
+			DUINMHDR nm{ EE_KILLFOCUS };
+			GenElemNotifyParent(&nm);
+		}
+		return 0;
+		case WM_SETFOCUS:
+		{
+			DUINMHDR nm{ EE_SETFOCUS };
+			GenElemNotifyParent(&nm);
+		}
+		return 0;
 		}
 		return 0;
 	}
@@ -284,6 +304,21 @@ public:
 
 		SRCorrectChildrenRectInClient();
 		CallEvent(WM_MOVE, 0, 0);
+		UnionRect(rcOld, rcOld, m_rc);
+		RedrawWnd(rcOld);
+	}
+
+	EckInline void SetSize(int cx, int cy)
+	{
+		RECT rcOld = m_rc;
+		m_rc.right = m_rc.left + cx;
+		m_rc.bottom = m_rc.top + cy;
+		m_rcf.right = m_rcf.left + cx;
+		m_rcf.bottom = m_rcf.top + cy;
+		m_rcInClient.right = m_rcInClient.left + cx;
+		m_rcInClient.bottom = m_rcInClient.top + cy;
+		m_rcfInClient.right = m_rcfInClient.left + cx;
+		m_rcfInClient.bottom = m_rcfInClient.top + cy;
 		UnionRect(rcOld, rcOld, m_rc);
 		RedrawWnd(rcOld);
 	}
@@ -427,6 +462,12 @@ public:
 		OffsetRect(rc, m_rcfInClient.left, m_rcfInClient.top);
 	}
 
+	EckInline void ElemToClient(POINT& pt)
+	{
+		pt.x += m_rcInClient.left;
+		pt.y += m_rcInClient.top;
+	}
+
 	EckInline int GetWidth() const { return m_rc.right - m_rc.left; }
 
 	EckInline int GetHeight() const { return m_rc.bottom - m_rc.top; }
@@ -454,6 +495,14 @@ public:
 	}
 
 	EckInline LRESULT GenElemNotify(UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+	EckInline LRESULT GenElemNotifyParent(void* pnm)
+	{
+		if (GetParentElem())
+			return GetParentElem()->CallEvent(WM_NOTIFY, (WPARAM)this, (LPARAM)pnm);
+		else
+			return 0;
+	}
 
 	EckInline void SetRedraw(BOOL bRedraw)
 	{
@@ -535,6 +584,17 @@ public:
 	EckInline void SetID(int iId) { m_iId = iId; }
 
 	EckInline int GetID() const { return m_iId; }
+
+	EckInline void SetVisible(BOOL b)
+	{
+		DWORD dwStyle = GetStyle();
+		if (b)
+			dwStyle |= DES_VISIBLE;
+		else
+			dwStyle &= ~DES_VISIBLE;
+		SetStyle(dwStyle);
+		InvalidateRect();
+	}
 };
 
 /// <summary>
@@ -989,6 +1049,7 @@ inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	IntSetStyle(dwStyle);
 	m_dwExStyle = dwExStyle;
 
+	m_iId = iId;
 	m_pWnd = pWnd;
 	m_pDC = pWnd->m_D2d.GetDC();
 #ifdef _DEBUG
@@ -1140,7 +1201,11 @@ inline void CElem::SetZOrder(CElem* pElemAfter)
 
 EckInline LRESULT CElem::GenElemNotify(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	return m_pWnd->OnElemEvent(this, uMsg, wParam, lParam);
+	DUINMHDR nm{ EE_COMMAND };
+	if (!GenElemNotifyParent(&nm))
+		return m_pWnd->OnElemEvent(this, uMsg, wParam, lParam);
+	else
+		return 0;
 }
 
 inline void CElem::InvalidateRect(const RECT* prc)

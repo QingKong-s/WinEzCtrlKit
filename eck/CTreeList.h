@@ -293,6 +293,8 @@ private:
 	int m_idxEditing = -1;				// 正在编辑的项
 	int m_idxEditingSubItemDisplay = -1;// 正在编辑的子项
 
+	int m_idxCheckBoxLBtnDown = -1;		// 左键在选择框内按下的项目
+
 	int m_iLogicalTopLevel = 1;
 	//--------尺寸
 	int m_cxItem = 0,					// 项目宽度
@@ -1235,8 +1237,8 @@ private:
 			ExpandItem(idx, TLEIO_TOGGLE);// 翻转展开状态
 		else if (tlht.iPart == TLIP_CHECKBOX)// 命中选择框
 		{
-			ToggleCheckItemForClick(idx);
-			RedrawItem(idx);
+			m_idxCheckBoxLBtnDown = idx;
+			SetCapture(hWnd);
 		}
 		else
 		{
@@ -1485,7 +1487,7 @@ private:
 
 		case VK_SPACE:
 		{
-			if (m_idxFocus >= 0)// TODO : 会被输入法占用
+			if (m_idxFocus >= 0)// XXX : 会被输入法占用
 				if (bCtrlPressed)// 反转选中状态
 					ToggleSelectItemForClick(m_idxFocus);
 				else if (bShiftPressed)// 范围选择到焦点项
@@ -2010,9 +2012,26 @@ public:
 		case WM_RBUTTONDOWN:
 			OnLRButtonDown(hWnd, uMsg, wParam, lParam);
 			break;
-
-		case WM_RBUTTONUP:
 		case WM_LBUTTONUP:
+		{
+			if (m_idxCheckBoxLBtnDown >= 0)
+			{
+				EckAssert(m_bDraggingItem == FALSE);
+				TLHITTEST tlht;
+				tlht.pt = ECK_GET_PT_LPARAM(lParam);
+				tlht.uFlags = 0;
+				int idx = HitTest(tlht);
+				if (idx == m_idxCheckBoxLBtnDown && tlht.iPart == TLIP_CHECKBOX)
+				{
+					ToggleCheckItemForClick(m_idxCheckBoxLBtnDown);
+					RedrawItem(m_idxCheckBoxLBtnDown);
+				}
+				m_idxCheckBoxLBtnDown = -1;
+				ReleaseCapture();
+			}
+		}
+		[[fallthrough]];
+		case WM_RBUTTONUP:
 		{
 			if (m_bDraggingItem)
 			{
@@ -2422,7 +2441,7 @@ public:
 		rc.top = GetItemY(idx);
 		rc.bottom = rc.top + m_cyItem;
 		if (!idxSubItemDisplay && bExcludeIndent)
-			rc.left = CalcTotalIndent(m_vItem[idx]);
+			rc.left = CalcTotalIndent(m_vItem[idx]) + m_dxContent;
 		else
 			rc.left = m_vCol[idxSubItemDisplay].iLeft + m_dxContent;
 		rc.right = m_vCol[idxSubItemDisplay].iRight + m_dxContent;
@@ -2618,9 +2637,9 @@ public:
 
 	EckInline BOOL GetBackgroundNotSolid() const { return m_bBackgroundNotSolid; }
 
-	EckInline const COL* GetColumnPosInfo() const { return m_vCol.data(); }
+	EckInline const auto& GetColumnPosInfo() const { return m_vCol; }
 
-	EckInline const std::vector<TLNODE*>& GetItems() const { return m_vItem; }
+	EckInline const auto& GetItems() const { return m_vItem; }
 
 	EckInline void SetHasLines(BOOL b) { m_bHasLines = b; }
 

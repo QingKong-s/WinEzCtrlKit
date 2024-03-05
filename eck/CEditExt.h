@@ -340,7 +340,7 @@ public:
 		return CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
-	BOOL OnNotifyMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult) override
+	LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed) override
 	{
 		switch (uMsg)
 		{
@@ -349,22 +349,22 @@ public:
 		{
 			if ((HWND)lParam != m_hWnd)
 				break;
+			bProcessed = TRUE;
 			HBRUSH hbr;
 			if (m_hbrEditBK)
 				hbr = m_hbrEditBK;
 			else
-				hbr = (HBRUSH)DefNotifyMsg(hWnd, uMsg, wParam, lParam);
+				hbr = (HBRUSH)DefNotifyMsg(hParent, uMsg, wParam, lParam);
 			if (m_crText != CLR_DEFAULT)
 				SetTextColor((HDC)wParam, m_crText);
-			if (m_crBK != CLR_DEFAULT)
+			if (m_crTextBK != CLR_DEFAULT)
 				SetBkColor((HDC)wParam, m_crTextBK);
-			lResult = (LRESULT)hbr;
-			return TRUE;
+			return (LRESULT)hbr;
 		}
 		break;
 		}
 
-		return CEdit::OnNotifyMsg(hWnd, uMsg, wParam, lParam, lResult);
+		return CEdit::OnNotifyMsg(hParent, uMsg, wParam, lParam, bProcessed);
 	}
 
 	~CEditExt()
