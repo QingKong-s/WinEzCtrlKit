@@ -13,6 +13,8 @@
 
 #include <functional>
 
+#include <vssym32.h>
+
 ECK_NAMESPACE_BEGIN
 struct LBNITEM
 {
@@ -42,11 +44,12 @@ private:
 			};
 			UINT uFlags = 0u;
 		};
-
 	};
 
 	CEzCDC m_DC{};
 	HFONT m_hFont = NULL;// 不需要释放
+	HBRUSH m_hbrBkg = NULL;
+	COLORREF m_crText = GetSysColor(COLOR_WINDOWTEXT);
 
 	HTHEME m_hTheme = NULL;
 
@@ -58,78 +61,37 @@ private:
 	int m_idxSel = -1;
 	int m_idxHot = -1;
 	int m_idxTop = -1;
+	int m_idxMark = -1;
+	int m_idxFocus = -1;
 	int m_oyTop = 0;
 
 	std::vector<ITEM> m_vItem{};
 
-	union
-	{
-		struct
-		{
-			BITBOOL m_FbMultiSel : 1;
-		};
-		UINT m_uFlags = 0;
-	};
-
-#if ECKCXX20
-	BITBOOL m_bLBtnDown : 1 = FALSE;
-#else
-	union
-	{
-		struct
-		{
-			BITBOOL m_bLBtnDown : 1;
-		};
-		DWORD ECKPRIV_BITFIELD___ = 0;
-	};
+#ifdef _DEBUG
+	BITBOOL m_bDbgDrawMarkItem : 1 = 1;
 #endif
+	BITBOOL m_bMultiSel : 1 = 0;
+	BITBOOL m_bExtendSel : 1 = 1;
+
+	BITBOOL m_bLBtnDown : 1 = FALSE;
+	BITBOOL m_bUserItemHeight : 1 = FALSE;
+	BITBOOL m_bFocusIndicatorVisible : 1 = TRUE;
 
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 
 	ECK_DS_BEGIN(DPIS)
 		ECK_DS_ENTRY(cyItemDef, 24)
-		ECK_DS_ENTRY(cxSelBorder, 1)
+		ECK_DS_ENTRY(cxTextPadding, 3)
 		;
 	ECK_DS_END_VAR(m_Ds);
 
 
-	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
+	void UpdateColor()
 	{
-		switch (uMsg)
-		{
-		case WM_MOUSELEAVE:
-			return ECK_HANDLE_WM_MOUSELEAVE(hWnd, wParam, lParam, OnMouseLeave);
-		case WM_MOUSEMOVE:
-			return HANDLE_WM_MOUSEMOVE(hWnd, wParam, lParam, OnMouseMove);
-		case WM_SIZE:
-			return HANDLE_WM_SIZE(hWnd, wParam, lParam, OnSize);
-		case WM_PAINT:
-			return HANDLE_WM_PAINT(hWnd, wParam, lParam, OnPaint);
-		case WM_VSCROLL:
-			return HANDLE_WM_VSCROLL(hWnd, wParam, lParam, OnVScroll);
-		case WM_MOUSEWHEEL:
-			return HANDLE_WM_MOUSEWHEEL(hWnd, wParam, lParam, OnMouseWheel);
-		case WM_LBUTTONDOWN:
-			return HANDLE_WM_LBUTTONDOWN(hWnd, wParam, lParam, OnLButtonDown);
-		case WM_SETFONT:
-			m_hFont = (HFONT)wParam;
-			SelectObject(m_DC.GetDC(), m_hFont);
-			if (lParam)
-				Redraw();
-			return 0;
-		case WM_GETFONT:
-			return (LRESULT)m_hFont;
-		case WM_THEMECHANGED:
-		{
-			CloseThemeData(m_hTheme);
-			m_hTheme = OpenThemeData(hWnd, L"ListView");
-		}
-		return 0;
-		case WM_CREATE:
-			return HANDLE_WM_CREATE(hWnd, wParam, lParam, OnCreate);
-		}
-
-		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
+		DeleteObject(m_hbrBkg);
+		COLORREF cr;
+		GetItemsViewForeBackColor(m_crText, cr);
+		m_hbrBkg = CreateSolidBrush(cr);
 	}
 
 	BOOL OnCreate(HWND hWnd, CREATESTRUCTW* pcs)
@@ -142,8 +104,8 @@ private:
 		SetBkMode(m_DC.GetDC(), TRANSPARENT);
 
 		SetExplorerTheme();
-		m_hTheme = OpenThemeData(hWnd, L"listView");
-
+		m_hTheme = OpenThemeData(hWnd, L"ListView");
+		UpdateColor();
 		return TRUE;
 	}
 
@@ -163,13 +125,14 @@ private:
 		const int idxTop = std::max(m_idxTop + (int)ps.rcPaint.top / m_cyItem - 1, m_idxTop);
 		const int idxBottom = std::min(m_idxTop + (int)ps.rcPaint.bottom / m_cyItem + 1, (int)m_vItem.size() - 1);
 
-		FillRect(m_DC.GetDC(), &ps.rcPaint, GetSysColorBrush(COLOR_WINDOW));
+		FillRect(m_DC.GetDC(), &ps.rcPaint, m_hbrBkg);
+		SetTextColor(m_DC.GetDC(), m_crText);
 
 		RECT rc;
 		GetItemRect(idxTop, rc);
 		for (int i = idxTop; i <= idxBottom; ++i)
 		{
-			RedrawItem(i, rc);
+			PaintItem(i, rc);
 			rc.top += m_cyItem;
 			rc.bottom += m_cyItem;
 		}
@@ -219,20 +182,24 @@ private:
 
 	void OnMouseMove(HWND hWnd, int x, int y, UINT uKeyFlags)
 	{
-		int idxHot = HitTest(x, y);
-		if (idxHot == m_idxHot)
-			return;
-		std::swap(idxHot, m_idxHot);
-		RECT rcItem;
-		if (idxHot >= 0)
+		if (m_bLBtnDown)
 		{
-			GetItemRect(idxHot, rcItem);
-			Redraw(rcItem);
+			if (m_bExtendSel)
+			{
+
+			}
 		}
-		if (m_idxHot >= 0)
+		else
 		{
-			GetItemRect(m_idxHot, rcItem);
-			Redraw(rcItem);
+			int idxHot = HitTest(x, y);
+			if (idxHot == m_idxHot)
+				return;
+			std::swap(idxHot, m_idxHot);
+			RECT rcItem;
+			if (idxHot >= 0)
+				RedrawItem(idxHot);
+			if (m_idxHot >= 0)
+				RedrawItem(m_idxHot);
 		}
 
 		TRACKMOUSEEVENT tme;
@@ -254,46 +221,117 @@ private:
 		}
 	}
 
-	void OnLButtonDown(HWND hWnd, BOOL bDoubleClick, int x, int y, UINT uKeyFlags)
+	void SelectItemForClick(int idx)
 	{
-		m_bLBtnDown = TRUE;
-		//SetCapture(hWnd);
-		SetFocus(hWnd);
-		int idx = HitTest(x, y);
-		RECT rcItem;
-		if (m_FbMultiSel)
+		int idxChangedBegin = -1, idxChangedEnd = -1;
+		const int idxOldFocus = m_idxFocus;
+		if (idx >= 0)
+			m_idxFocus = idx;
+		if (m_bExtendSel)
 		{
-			//EckCounter(m_vItem.size(), i)
-			//{
-			//	if (m_vItem[i].bSel)
-			//	{
-			//		m_vItem[i].bSel = FALSE;
-			//		GetItemRect((int)i, rcItem);
-			//		Redraw(rcItem);
-			//	}
-			//}
-
+			if(GetAsyncKeyState(VK_CONTROL))
+			{
+				if (idx >= 0)
+				{
+					m_idxMark = idx;
+					ECKBOOLNOT(m_vItem[idx].bSel);
+					RedrawItem(idx);
+					if (idxOldFocus >= 0 && idxOldFocus != idx)
+						RedrawItem(idxOldFocus);
+				}
+			}
+			else if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
+			{
+				if (m_idxMark >= 0 && idx >= 0)
+					SelectRangeForClick(std::min(m_idxMark, idx),
+						std::max(m_idxMark, idx));
+			}
+			else
+			{
+				DeselectAll(idxChangedBegin, idxChangedEnd);
+				if (idxChangedBegin >= 0)
+					RedrawItem(idxChangedBegin, idxChangedEnd);
+				if (idx >= 0)
+				{
+					m_idxMark = idx;
+					m_vItem[idx].bSel = TRUE;
+					if (idxChangedBegin < 0 || (idx < idxChangedBegin || idx > idxChangedEnd))
+						RedrawItem(idx);
+				}
+			}
+		}
+		else if (m_bMultiSel)
+		{
 			if (idx >= 0)
 			{
 				ECKBOOLNOT(m_vItem[idx].bSel);
-				GetItemRect(idx, rcItem);
-				Redraw(rcItem);
+				RedrawItem(idx);
+				if (idxOldFocus >= 0 && idxOldFocus != idx)
+					RedrawItem(idxOldFocus);
 			}
 		}
 		else
 		{
-			std::swap(m_idxSel, idx);
-			if (idx >= 0)
+			if (m_idxSel != idx)
 			{
-				GetItemRect(idx, rcItem);
-				Redraw(rcItem);
-			}
-			if (m_idxSel >= 0)
-			{
-				GetItemRect(m_idxSel, rcItem);
-				Redraw(rcItem);
+				std::swap(m_idxSel, idx);
+				if (m_idxSel >= 0)
+					RedrawItem(m_idxSel);
+				if (idx >= 0)
+					RedrawItem(idx);
 			}
 		}
+	}
+
+	void SelectRangeForClick(int idxBegin, int idxEnd)
+	{
+		EckAssert(m_bExtendSel);
+		int i;
+		int idx0 = -1, idx1 = -1;
+		// 清除前面选中
+		for (i = 0; i < idxBegin; ++i)
+		{
+			if (m_vItem[i].bSel)
+			{
+				if (idx0 < 0)
+					idx0 = i;
+				idx1 = i;
+				m_vItem[i].bSel = FALSE;
+			}
+		}
+		// 范围选中
+		for (i = idxBegin; i <= idxEnd; ++i)
+		{
+			// if ()
+			{
+				if (idx0 < 0)
+					idx0 = i;
+				idx1 = i;
+				m_vItem[i].bSel = TRUE;
+			}
+		}
+		// 清除后面选中
+		for (i = idxEnd + 1; i < (int)m_vItem.size(); ++i)
+		{
+			if (m_vItem[i].bSel)
+			{
+				if (idx0 < 0)
+					idx0 = i;
+				idx1 = i;
+				m_vItem[i].bSel = FALSE;
+			}
+		}
+		if (idx0 >= 0)
+			RedrawItem(idx0, idx1);
+	}
+
+	void OnLButtonDown(HWND hWnd, BOOL bDoubleClick, int x, int y, UINT uKeyFlags)
+	{
+		m_bLBtnDown = TRUE;
+		SetCapture(hWnd);
+		SetFocus(hWnd);
+		int idx = HitTest(x, y);
+		SelectItemForClick(idx);
 	}
 
 	void OnMouseWheel(HWND hWnd, int xPos, int yPos, int zDelta, UINT uKeys)
@@ -311,7 +349,6 @@ private:
 		UpdateWindow(hWnd);
 	}
 
-
 	void ReCalcTopItem()
 	{
 		const int ySB = GetSbPos(SB_VERT);
@@ -319,7 +356,7 @@ private:
 		m_oyTop = m_idxTop * m_cyItem - ySB;
 	}
 
-	void RedrawItem(int idx, const RECT& rcItem)
+	void PaintItem(int idx, const RECT& rcItem)
 	{
 		const HDC hCDC = m_DC.GetDC();
 		int iState = 0;
@@ -334,13 +371,31 @@ private:
 				iState = LISS_SELECTED;
 		if (iState)
 			DrawThemeBackground(m_hTheme, hCDC, LVP_LISTITEM, iState, &rcItem, NULL);
+		if (m_bFocusIndicatorVisible && m_idxFocus == idx)
+		{
+			RECT rc{ rcItem };
+			InflateRect(rc, -1, -1);
+			DrawFocusRect(hCDC, &rc);
+		}
 
 		NMLBNGETDISPINFO nm;
 		nm.Item.idxItem = idx;
 		FillNmhdrAndSendNotify(nm, NM_LBN_GETDISPINFO);
 		if (nm.Item.pszText)
-			DrawTextW(hCDC, nm.Item.pszText, nm.Item.cchText, (RECT*)&rcItem,
-				DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+		{
+			RECT rc{ rcItem };
+			rc.left += m_Ds.cxTextPadding;
+			DrawTextW(hCDC, nm.Item.pszText, nm.Item.cchText, &rc,
+				DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_NOCLIP | DT_END_ELLIPSIS);
+		}
+#ifdef _DEBUG
+		if (m_bDbgDrawMarkItem && idx == m_idxMark)
+		{
+			const auto dummy1 = SetTextColor(hCDC, Colorref::Red);
+			DrawTextW(hCDC, L"Mark", -1, (RECT*)&rcItem, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_NOCLIP);
+			SetTextColor(hCDC, dummy1);
+		}
+#endif
 	}
 
 	void ReCalcScrollBar()
@@ -354,6 +409,194 @@ private:
 		SetSbInfo(SB_VERT, &si);
 	}
 public:
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
+	{
+		switch (uMsg)
+		{
+		case WM_MOUSELEAVE:
+			return ECK_HANDLE_WM_MOUSELEAVE(hWnd, wParam, lParam, OnMouseLeave);
+		case WM_MOUSEMOVE:
+			return HANDLE_WM_MOUSEMOVE(hWnd, wParam, lParam, OnMouseMove);
+		case WM_SIZE:
+			return HANDLE_WM_SIZE(hWnd, wParam, lParam, OnSize);
+		case WM_PAINT:
+			return HANDLE_WM_PAINT(hWnd, wParam, lParam, OnPaint);
+		case WM_VSCROLL:
+			return HANDLE_WM_VSCROLL(hWnd, wParam, lParam, OnVScroll);
+		case WM_MOUSEWHEEL:
+			return HANDLE_WM_MOUSEWHEEL(hWnd, wParam, lParam, OnMouseWheel);
+		case WM_LBUTTONDOWN:
+			return HANDLE_WM_LBUTTONDOWN(hWnd, wParam, lParam, OnLButtonDown);
+		case WM_LBUTTONUP:
+		{
+			if (m_bLBtnDown)
+			{
+				ReleaseCapture();
+				m_bLBtnDown = FALSE;
+			}
+		}
+		return 0;
+		case WM_KEYDOWN:
+		{
+			switch (wParam)
+			{
+			case VK_DOWN:
+			case VK_RIGHT:
+			{
+				EckAssert(m_idxFocus < GetItemCount());
+				if (m_idxFocus < 0)
+					break;
+				if (m_idxFocus == GetItemCount() - 1)
+				{
+					EnsureVisible(m_idxFocus);
+					break;
+				}
+				++m_idxFocus;
+				if (m_bExtendSel)
+					SelectItemForClick(m_idxFocus);
+				else if (m_bMultiSel)
+				{
+					if (m_bFocusIndicatorVisible)
+						RedrawItem(m_idxFocus - 1, m_idxFocus);
+				}
+				else
+					SelectItemForClick(m_idxFocus);
+				EnsureVisible(m_idxFocus);
+			}
+			return 0;
+
+			case VK_UP:
+			case VK_LEFT:
+			{
+				EckAssert(m_idxFocus < GetItemCount());
+				if (m_idxFocus < 0)
+					break;
+				if (m_idxFocus == 0)
+				{
+					EnsureVisible(m_idxFocus);
+					break;
+				}
+				--m_idxFocus;
+				if (m_bExtendSel)
+					SelectItemForClick(m_idxFocus);
+				else if (m_bMultiSel)
+				{
+					if (m_bFocusIndicatorVisible)
+						RedrawItem(m_idxFocus, m_idxFocus + 1);
+				}
+				else
+					SelectItemForClick(m_idxFocus);
+				EnsureVisible(m_idxFocus);
+			}
+			return 0;
+
+			case VK_SPACE:
+			{
+				if (m_bMultiSel && m_idxFocus >= 0)
+				{
+					ECKBOOLNOT(m_vItem[m_idxFocus].bSel);
+					RedrawItem(m_idxFocus);
+				}
+			}
+			return 0;
+
+			case VK_PRIOR:
+			{
+				const int idxOldFocus = m_idxFocus;
+				int idx = m_idxFocus;
+				if (idx == m_idxTop)
+				{
+					idx -= ((m_cyClient - (m_cyItem + m_oyTop)) / m_cyItem);
+					if (idx < 0)
+						idx = 0;
+				}
+				else
+					idx = m_idxTop;
+
+				if (m_bExtendSel)
+					SelectItemForClick(idx);
+				else if (m_bMultiSel)
+				{
+					m_idxFocus = idx;
+					if (m_idxFocus >= 0)
+						RedrawItem(m_idxFocus);
+					if (idxOldFocus >= 0 && idxOldFocus != m_idxFocus)
+						RedrawItem(idxOldFocus);
+				}
+				else
+					SelectItemForClick(idx);
+				EnsureVisible(idx);
+			}
+			return 0;
+			case VK_NEXT:
+			{
+				int idxBottom = m_idxTop + (m_cyClient - (m_cyItem + m_oyTop)) / m_cyItem;
+				if (idxBottom >= GetItemCount())
+					idxBottom = GetItemCount() - 1;
+
+				const int idxOldFocus = m_idxFocus;
+				int idx = m_idxFocus;
+				if (idx == idxBottom)
+				{
+					idx += (m_cyClient / m_cyItem);
+					if (idx >= GetItemCount())
+						idx = GetItemCount() - 1;
+				}
+				else
+					idx = idxBottom;
+
+				if (m_bExtendSel)
+					SelectItemForClick(idx);
+				else if (m_bMultiSel)
+				{
+					m_idxFocus = idx;
+					if (m_idxFocus >= 0)
+						RedrawItem(m_idxFocus);
+					if (idxOldFocus >= 0 && idxOldFocus != m_idxFocus)
+						RedrawItem(idxOldFocus);
+				}
+				else
+					SelectItemForClick(idx);
+				EnsureVisible(idx);
+			}
+			return 0;
+			}
+		}
+		return 0;
+		case WM_SETFONT:
+			m_hFont = (HFONT)wParam;
+			SelectObject(m_DC.GetDC(), m_hFont);
+			if (lParam)
+				Redraw();
+			return 0;
+		case WM_GETFONT:
+			return (LRESULT)m_hFont;
+		case WM_THEMECHANGED:
+		{
+			CloseThemeData(m_hTheme);
+			m_hTheme = OpenThemeData(hWnd, L"ListView");
+			UpdateColor();
+		}
+		return 0;
+		case WM_DPICHANGED_BEFOREPARENT:
+		{
+			m_iDpi = eck::GetDpi(hWnd);
+			UpdateDpiSize(m_Ds, m_iDpi);
+			if (!m_bUserItemHeight)
+				m_cyItem = m_Ds.cyItemDef;
+		}
+		return 0;
+		case WM_CREATE:
+			return HANDLE_WM_CREATE(hWnd, wParam, lParam, OnCreate);
+		case WM_DESTROY:
+			CloseThemeData(m_hTheme);
+			DeleteObject(m_hbrBkg);
+			return 0;
+		}
+
+		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
+	}
+
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
@@ -370,6 +613,8 @@ public:
 		ReCalcTopItem();
 	}
 
+	EckInline int GetItemCount() { return (int)m_vItem.size(); }
+
 	int HitTest(int x, int y)
 	{
 		if (x < 0 || x > m_cxClient || y < 0 || y > m_cyClient)
@@ -381,26 +626,104 @@ public:
 			return idx;
 	}
 
+	EckInline int GetItemY(int idx)
+	{
+		return m_oyTop + (m_cyItem * (idx - m_idxTop));
+	}
+
 	EckInline void GetItemRect(int idx, RECT& rc)
 	{
-		rc = { 0,m_oyTop + (m_cyItem * (idx - m_idxTop)),m_cxClient };
+		rc = { 0,GetItemY(idx),m_cxClient};
 		rc.bottom = rc.top + m_cyItem;
 	}
 
 	EckInline int GetCurrSel() const { return m_idxSel; }
 
-	EckInline void GetItemState(int idx, UINT uState)
+	EckInline UINT GetItemState(int idx)
 	{
-
+		return m_vItem[idx].uFlags;
 	}
 
 	EckInline BOOL IsItemSel(int idx)
 	{
-		if (m_FbMultiSel)
+		if (m_bMultiSel || m_bExtendSel)
 			return m_vItem[idx].bSel;
 		else
 			return m_idxSel == idx;
 	}
-};
 
+	EckInline void GetSelItem(std::vector<int>& v)
+	{
+		v.clear();
+		for (int i = 0; const auto & e : m_vItem)
+		{
+			if (e.bSel)
+				v.emplace_back(i);
+			++i;
+		}
+	}
+
+	EckInline void EnsureVisible(int idx)
+	{
+		RECT rc;
+		GetItemRect(idx, rc);
+		if (rc.bottom >= m_cyClient)
+			ScrollV(rc.bottom - m_cyClient);
+		else if (rc.top <= 0)
+			ScrollV(rc.top);
+	}
+
+	void ScrollV(int yDelta)
+	{
+		SCROLLINFO si;
+		si.cbSize = sizeof(si);
+		si.fMask = SIF_ALL;
+		GetSbInfo(SB_VERT, &si);
+		const int yOld = si.nPos;
+		si.nPos += yDelta;
+		si.fMask = SIF_POS;
+		SetSbInfo(SB_VERT, &si);
+		GetSbInfo(SB_VERT, &si);
+		ReCalcTopItem();
+		ScrollWindow(HWnd, 0, yOld - si.nPos, NULL, NULL);
+		UpdateWindow(HWnd);
+	}
+
+	void RedrawItem(int idx)
+	{
+		EckAssert(idx >= 0 && idx < GetItemCount());
+		RECT rc;
+		GetItemRect(idx, rc);
+		Redraw(rc);
+	}
+
+	void RedrawItem(int idxFrom, int idxTo)
+	{
+		EckAssert(idxFrom >= 0 && idxFrom < GetItemCount());
+		EckAssert(idxTo >= 0 && idxTo < GetItemCount());
+		EckAssert(idxFrom <= idxTo);
+		RECT rc;
+		GetItemRect(idxFrom, rc);
+		rc.bottom += (idxTo - idxFrom) * m_cyItem;
+		Redraw(rc);
+	}
+
+	void DeselectAll(int& idxChangedBegin, int& idxChangedEnd)
+	{
+		int idx0 = -1, idx1 = -1;
+		EckCounter(GetItemCount(), i)
+		{
+			auto& e = m_vItem[i];
+			if (e.bSel)
+			{
+				if (idx0 < 0)
+					idx0 = (int)i;
+				idx1 = (int)i;
+				e.bSel = FALSE;
+			}
+		}
+		idxChangedBegin = idx0;
+		idxChangedEnd = idx1;
+	}
+};
 ECK_NAMESPACE_END

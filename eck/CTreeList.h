@@ -11,6 +11,8 @@
 #include "GraphicsHelper.h"
 #include "CtrlGraphics.h"
 
+#include <vssym32.h>
+
 ECK_NAMESPACE_BEGIN
 // 项目标志
 enum :UINT
@@ -276,7 +278,11 @@ private:
 	HTHEME m_hThemeBT = NULL;			// Button Theme
 	HFONT m_hFont = NULL;				// 字体
 	CEzCDC m_DC{};						// 兼容DC
-	COLORREF m_crBranchLine = CLR_DEFAULT;			// 分支线颜色
+	COLORREF m_crBranchLine = CLR_DEFAULT;	// 分支线颜色
+	COLORREF m_crBkg = CLR_DEFAULT;			// 背景颜色
+	COLORREF m_crText = CLR_DEFAULT;		// 文本颜色
+	COLORREF m_crBkgTheme = 0xFFFFFF;
+	COLORREF m_crTextTheme = 0x000000;
 	//--------项目相关
 	std::vector<TLNODE*> m_vItem{};		// 项目列表
 	std::vector<COL> m_vCol{};			// 按显示顺序排列的列信息
@@ -646,6 +652,7 @@ private:
 			SelectClipRgn(hDC, NULL);
 
 		//---------------画文本
+		SetTextColor(hDC, m_crText == CLR_DEFAULT ? m_crTextTheme : m_crText);
 		if ((uCustom & TLCDRF_TEXTCLRCHANGED)
 #ifdef ECK_MACRO_SUPPORTCLASSICTHEME
 			|| bTextHighLight
@@ -751,7 +758,13 @@ private:
 		nm.prcItem = &rc;
 		nm.iDrawStage = TLCDD_PREFILLBK;
 		if (!(FillNmhdrAndSendNotify(nm, NM_TL_CUSTOMDRAW) & TLCDRF_SKIPDEFAULT))
-			FillRect(hDC, &rc, GetSysColorBrush(COLOR_WINDOW));
+		{
+			if (m_crBkg == CLR_DEFAULT)
+				SetDCBrushColor(hDC, m_crBkgTheme);
+			else
+				SetDCBrushColor(hDC, m_crBkg);
+			FillRect(hDC, &rc, GetStockBrush(DC_BRUSH));
+		}
 	}
 
 	EckInline void PaintDivider(HDC hDC, const RECT& rc)
@@ -795,6 +808,23 @@ private:
 #endif
 			GetThemePartSize(m_hThemeBT, m_DC.GetDC(),
 				BP_CHECKBOX, CBS_UNCHECKEDNORMAL, NULL, TS_TRUE, &m_sizeCheckBox);
+
+		const auto hThemeIV = OpenThemeData(NULL, L"ItemsView");
+		if (hThemeIV)
+		{
+			if (FAILED(GetThemeColor(hThemeIV, 0, 0, TMT_FILLCOLOR, &m_crBkgTheme)))
+				m_crBkgTheme = GetSysColor(COLOR_WINDOW);
+
+			if (FAILED(GetThemeColor(hThemeIV, 0, 0, TMT_TEXTCOLOR, &m_crText)))
+				m_crTextTheme = GetSysColor(COLOR_WINDOWTEXT);
+
+			CloseThemeData(hThemeIV);
+		}
+		else
+		{
+			m_crBkgTheme = GetSysColor(COLOR_WINDOW);
+			m_crText = GetSysColor(COLOR_WINDOWTEXT);
+		}
 	}
 
 	void UpdateColumnInfo()
@@ -2117,7 +2147,7 @@ public:
 			UpdateDCAttr();
 			m_Header.Create(NULL, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
 				0, 0, ClientWidth, m_Ds.cyHeaderDef, hWnd, TL_IDC_HEADER);
-			m_Header.SetExplorerTheme();
+			//SetWindowTheme(m_Header.HWnd, L"ItemsView", NULL);
 			SetExplorerTheme();
 			m_hThemeTV = OpenThemeData(hWnd, L"TreeView");
 			m_hThemeLV = OpenThemeData(hWnd, L"ListView");
@@ -3358,6 +3388,10 @@ public:
 	}
 
 	int GetColumnCount() const { return (int)m_vCol.size(); }
+
+	EckInline void SetTextClr(COLORREF cr) { m_crText = cr; }
+
+	EckInline void SetBkClr(COLORREF cr) { m_crBkg = cr; }
 };
 
 LRESULT CTLHeader::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

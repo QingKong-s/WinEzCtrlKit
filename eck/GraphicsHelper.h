@@ -1657,6 +1657,28 @@ inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF crGradient[], int
 	}
 }
 
+inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF cr1, COLORREF cr2, BOOL bV)
+{
+	TRIVERTEX tv[2] = { 0 };
+	tv[0].x = rc.left;
+	tv[0].y = rc.top;
+	tv[0].Red = GetRValue(cr1) << 8;
+	tv[0].Green = GetGValue(cr1) << 8;
+	tv[0].Blue = GetBValue(cr1) << 8;
+
+	tv[1].x = rc.right;
+	tv[1].y = rc.bottom;
+	tv[1].Red = GetRValue(cr2) << 8;
+	tv[1].Green = GetGValue(cr2) << 8;
+	tv[1].Blue = GetBValue(cr2) << 8;
+
+	GRADIENT_RECT gr;
+	gr.UpperLeft = 0;// 左上角坐标为第一个成员
+	gr.LowerRight = 1;// 右下角坐标为第二个成员
+
+	return GradientFill(hDC, tv, 2, &gr, 1, bV ? GRADIENT_FILL_RECT_V : GRADIENT_FILL_RECT_H);
+}
+
 enum
 {
 	DBGIF_TOPLEFT,// 左上

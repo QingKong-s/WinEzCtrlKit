@@ -152,14 +152,6 @@ public:
 
 	EckInline void SetImage(HANDLE hImage, UINT uType)
 	{
-		if (hImage)
-			if (m_bShowTextAndImage)
-				ModifyStyle(0, BS_BITMAP);
-			else
-				ModifyStyle(BS_BITMAP, BS_BITMAP);
-		else
-			ModifyStyle(0, BS_BITMAP);
-
 		SendMsg(BM_SETIMAGE, uType, (LPARAM)hImage);
 	}
 

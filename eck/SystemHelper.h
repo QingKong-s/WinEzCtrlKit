@@ -540,14 +540,13 @@ const CRefStrW& GetRunningPath();
 /// <param name="pThreadId">线程ID变量指针</param>
 /// <param name="dwCreationFlags">标志</param>
 /// <returns>线程句柄</returns>
-[[nodiscard("Thread handle has been leaked")]]
-EckInline HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,
+[[nodiscard]] EckInline HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,
 	void* pParameter = NULL, UINT* pThreadId = NULL, UINT dwCreationFlags = 0)
 {
 	return (HANDLE)_beginthreadex(0, 0, pStartAddress, pParameter, dwCreationFlags, pThreadId);
 }
 
-inline HICON GetWindowSmallIcon(HWND hWnd, int msTimeOut = 300)
+[[nodiscard]] inline HICON GetWindowSmallIcon(HWND hWnd, int msTimeOut = 300)
 {
 	HICON hIcon;
 	if (!SendMessageTimeoutW(hWnd, WM_GETICON, ICON_SMALL, 0,
@@ -566,7 +565,7 @@ inline HICON GetWindowSmallIcon(HWND hWnd, int msTimeOut = 300)
 	return hIcon;
 }
 
-EckInline HICON GetWindowLargeIcon(HWND hWnd, int msTimeOut = 300)
+[[nodiscard]] EckInline HICON GetWindowLargeIcon(HWND hWnd, int msTimeOut = 300)
 {
 	HICON hIcon;
 	if (!SendMessageTimeoutW(hWnd, WM_GETICON, ICON_BIG, 0,
@@ -577,7 +576,7 @@ EckInline HICON GetWindowLargeIcon(HWND hWnd, int msTimeOut = 300)
 	return hIcon;
 }
 
-inline HICON GetWindowIcon(HWND hWnd, BOOL& bNeedDestroy, BOOL bSmall = FALSE, int msTimeOut = 300)
+[[nodiscard]] inline HICON GetWindowIcon(HWND hWnd, BOOL& bNeedDestroy, BOOL bSmall = FALSE, int msTimeOut = 300)
 {
 	bNeedDestroy = FALSE;
 	const HICON hIcon = 
@@ -617,7 +616,7 @@ EckInline BOOL SystemParametersInfoDpi(UINT uAction, UINT uParam, PVOID pParam, 
 #endif
 }
 
-EckInline HFONT CreateDefFont(int iDpi = USER_DEFAULT_SCREEN_DPI)
+[[nodiscard]] EckInline HFONT CreateDefFont(int iDpi = USER_DEFAULT_SCREEN_DPI)
 {
 	LOGFONTW lf;
 	SystemParametersInfoDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0, iDpi);
@@ -629,7 +628,7 @@ EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 	return SystemParametersInfoDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0, iDpi);
 }
 
-EckInline IDWriteTextFormat* CreateDefTextFormat(int iDpi = USER_DEFAULT_SCREEN_DPI, HRESULT* phr = NULL)
+[[nodiscard]] EckInline IDWriteTextFormat* CreateDefTextFormat(int iDpi = USER_DEFAULT_SCREEN_DPI, HRESULT* phr = NULL)
 {
 	LOGFONTW lf;
 	if (!GetDefFontInfo(lf, iDpi))

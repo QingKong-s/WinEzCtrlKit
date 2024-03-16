@@ -9,12 +9,14 @@
 #include "ECK.h"
 #include "Utility.h"
 
+#include <vssym32.h>
+
 
 #define ECK_DS_BEGIN(StructName)	struct StructName {
 #define ECK_DS_END_VAR(VarName)		} VarName{};
 #define ECK_DS_END()				};
-#define ECK_DS_ENTRY(Name, Size)	const int o_##Name = Size; int Name = Size;
-#define ECK_DS_ENTRY_F(Name, Size)	const float o_##Name = Size; float Name = Size;
+#define ECK_DS_ENTRY(Name, Size)	const int	o_##Name = Size; int	Name = Size;
+#define ECK_DS_ENTRY_F(Name, Size)	const float o_##Name = Size; float	Name = Size;
 
 #define ECK_HANDLE_WM_MOUSELEAVE(hWnd, wParam, lParam, fn) \
 	((fn)((hWnd)), 0L)
@@ -504,5 +506,151 @@ EckInline void BroadcastChildrenMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 			SendMessageW(hWnd, pMsg->message, pMsg->wParam, pMsg->lParam);
 			return TRUE;
 		}, (LPARAM)&msg);
+}
+
+EckInline BOOL AllowDarkModeForWindow(HWND hWnd, BOOL bAllow)
+{
+#ifdef ECK_MACRO_DRAKMODE
+	return EckPriv___::pfnAllowDarkModeForWindow(hWnd, bAllow);
+#else
+	if (EckPriv___::pfnAllowDarkModeForWindow)
+		return EckPriv___::pfnAllowDarkModeForWindow(hWnd, bAllow);
+	return FALSE;
+#endif
+}
+
+EckInline PreferredAppMode SetPreferredAppMode(PreferredAppMode iMode)
+{
+	if (EckPriv___::pfnSetPreferredAppMode)
+		return EckPriv___::pfnSetPreferredAppMode(iMode);
+	else if (EckPriv___::pfnAllowDarkModeForApp)
+	{
+		EckPriv___::pfnAllowDarkModeForApp(
+			iMode == PreferredAppMode::AllowDark || iMode == PreferredAppMode::ForceDark);
+		return PreferredAppMode::Default;
+	}
+	return PreferredAppMode::Default;
+}
+
+EckInline BOOL IsDarkModeAllowedForWindow(HWND hWnd)
+{
+#ifdef ECK_MACRO_DRAKMODE
+	return EckPriv___::pfnIsDarkModeAllowedForWindow(hWnd);
+#else
+	if (EckPriv___::pfnIsDarkModeAllowedForWindow)
+		return EckPriv___::pfnIsDarkModeAllowedForWindow(hWnd);
+	return FALSE;
+#endif
+}
+
+EckInline BOOL ShouldAppUseDarkMode()
+{
+#ifdef ECK_MACRO_DRAKMODE
+	return EckPriv___::pfnShouldAppsUseDarkMode();
+#else
+	if (EckPriv___::pfnShouldAppsUseDarkMode)
+		return EckPriv___::pfnShouldAppsUseDarkMode();
+	return FALSE;
+#endif
+}
+
+EckInline void FlushMenuTheme()
+{
+#ifdef ECK_MACRO_DRAKMODE
+	EckPriv___::pfnFlushMenuThemes();
+#else
+	if (EckPriv___::pfnFlushMenuThemes)
+		EckPriv___::pfnFlushMenuThemes();
+#endif
+}
+
+EckInline void RefreshImmersiveColorPolicyState()
+{
+#ifdef ECK_MACRO_DRAKMODE
+	EckPriv___::pfnRefreshImmersiveColorPolicyState();
+#else
+	if (EckPriv___::pfnRefreshImmersiveColorPolicyState)
+		EckPriv___::pfnRefreshImmersiveColorPolicyState();
+#endif
+}
+
+EckInline BOOL GetIsImmersiveColorUsingHighContrast(IMMERSIVE_HC_CACHE_MODE iCacheMode)
+{
+#ifdef ECK_MACRO_DRAKMODE
+	return EckPriv___::pfnGetIsImmersiveColorUsingHighContrast(iCacheMode);
+#else
+	if (EckPriv___::pfnGetIsImmersiveColorUsingHighContrast)
+		return EckPriv___::pfnGetIsImmersiveColorUsingHighContrast(iCacheMode);
+	return FALSE;
+#endif
+}
+
+EckInline BOOL ShouldSystemUseDarkMode()
+{
+#ifdef ECK_MACRO_DRAKMODE
+	return EckPriv___::pfnShouldSystemUseDarkMode();
+#else
+	if (EckPriv___::pfnShouldSystemUseDarkMode)
+		return EckPriv___::pfnShouldSystemUseDarkMode();
+	return FALSE;
+#endif
+}
+
+EckInline BOOL IsDarkModeAllowedForApp()
+{
+#ifdef ECK_MACRO_DRAKMODE
+	return EckPriv___::pfnIsDarkModeAllowedForApp();
+#else
+	if (EckPriv___::pfnIsDarkModeAllowedForApp)
+		return EckPriv___::pfnIsDarkModeAllowedForApp();
+	return FALSE;
+#endif
+}
+
+EckInline HRESULT EnableWindowNcDarkMode(HWND hWnd, BOOL bAllow)
+{
+	if (g_bWin11_B22000)
+		return DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &bAllow, sizeof(bAllow));
+	else
+	{
+		WINDOWCOMPOSITIONATTRIBDATA t{ WCA_USEDARKMODECOLORS, &bAllow, sizeof(bAllow) };
+		return EckPriv___::pfnSetWindowCompositionAttribute(hWnd, &t) ? S_OK : E_FAIL;
+	}
+}
+
+EckInline BOOL IsColorSchemeChangeMessage(LPARAM lParam)
+{
+	return CompareStringOrdinal((PCWCH)lParam, -1, L"ImmersiveColorSet", -1, TRUE) == CSTR_EQUAL;
+}
+
+EckInline void RefreshImmersiveColorStuff()
+{
+	RefreshImmersiveColorPolicyState();
+	GetIsImmersiveColorUsingHighContrast(IHCM_REFRESH);
+}
+
+/// <summary>
+/// 取ItemsView前景背景色
+/// </summary>
+/// <param name="crText"></param>
+/// <param name="crBk"></param>
+inline void GetItemsViewForeBackColor(COLORREF& crText, COLORREF& crBk)
+{
+	const auto hThemeIV = OpenThemeData(NULL, L"ItemsView");
+	if (hThemeIV)
+	{
+		if (FAILED(GetThemeColor(hThemeIV, 0, 0, TMT_FILLCOLOR, &crBk)))
+			crBk = GetSysColor(COLOR_WINDOW);
+
+		if (FAILED(GetThemeColor(hThemeIV, 0, 0, TMT_TEXTCOLOR, &crText)))
+			crText = GetSysColor(COLOR_WINDOWTEXT);
+
+		CloseThemeData(hThemeIV);
+	}
+	else
+	{
+		crBk = GetSysColor(COLOR_WINDOW);
+		crText = GetSysColor(COLOR_WINDOWTEXT);
+	}
 }
 ECK_NAMESPACE_END

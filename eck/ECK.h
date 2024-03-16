@@ -42,8 +42,10 @@
 #endif
 
 
-#define ECK_NAMESPACE_BEGIN		namespace eck {
-#define ECK_NAMESPACE_END		}
+#define ECK_NAMESPACE_BEGIN			namespace eck {
+#define ECK_NAMESPACE_END			}
+#define ECK_PRIV_NAMESPACE_BEGIN	namespace EckPriv___ {
+#define ECK_PRIV_NAMESPACE_END		}
 
 ECK_NAMESPACE_BEGIN
 #if ECKCXX20
@@ -66,6 +68,25 @@ struct RemoveCVRef
 	using Type = RemoveCVRef_T<T>;
 };
 #endif// ECKCXX20
+
+template<class T>
+concept ccpIsIntOrEnum = std::is_integral_v<T> || std::is_enum_v<T>;
+
+template<ccpIsIntOrEnum T, bool = std::is_enum_v<T>>
+struct UnderlyingType
+{
+	using Type = std::underlying_type_t<T>;
+};
+
+template<ccpIsIntOrEnum T>
+struct UnderlyingType<T, false>
+{
+	using Type = T;
+};
+
+template<class T>
+using UnderlyingType_T = UnderlyingType<T>::Type;
+
 ECK_NAMESPACE_END
 
 #define EckInline				__forceinline
@@ -97,9 +118,11 @@ ECK_NAMESPACE_END
 // 定义只写属性字段
 #define ECKPROP_W(Setter)		__declspec(property(put = Setter))
 
+
+
 // 计次循环
-#define EckCounter(c, Var)						\
-	for(::eck::RemoveCVRef_T<decltype(c)> Var = 0; Var < (c); ++Var)
+#define EckCounter(c, Var) \
+	for(::eck::UnderlyingType_T<::eck::RemoveCVRef_T<decltype(c)>> Var = 0; Var < (c); ++Var)
 
 #define ECKPRIV_CounterNVMakeVarName2___(Name)	\
 	ECKPRIV_COUNT_##Name##___
@@ -192,6 +215,9 @@ constexpr inline BYTE BOM_UTF16LE[]{ 0xFF,0xFE };
 constexpr inline BYTE BOM_UTF16BE[]{ 0xFE,0xFF };
 constexpr inline BYTE BOM_UTF8[]{ 0xEF,0xBB,0xBF };
 
+constexpr inline COLORREF c_crDarkWnd = RGB(32, 32, 32);
+constexpr inline COLORREF c_crDarkBtnFace = 0x383838;
+
 /*-------------------*/
 /*控件通知代码*/
 #pragma warning(suppress:26454)// 算术溢出
@@ -236,6 +262,103 @@ extern ID2D1Device* g_pD2dDevice;
 extern IDXGIDevice1* g_pDxgiDevice;
 extern IDXGIFactory2* g_pDxgiFactory;
 
+extern BOOL g_bWin10_1607;
+extern BOOL g_bWin10_1809;
+extern BOOL g_bWin10_1903;
+extern BOOL g_bWin11_B22000;
+extern BOOL g_bAllowDark;
+
+enum IMMERSIVE_HC_CACHE_MODE
+{
+	IHCM_USE_CACHED_VALUE,
+	IHCM_REFRESH
+};
+
+enum class PreferredAppMode
+{
+	Default,
+	AllowDark,
+	ForceDark,
+	ForceLight,
+	Max
+};
+
+enum WINDOWCOMPOSITIONATTRIB
+{
+	WCA_UNDEFINED = 0,
+	WCA_NCRENDERING_ENABLED = 1,
+	WCA_NCRENDERING_POLICY = 2,
+	WCA_TRANSITIONS_FORCEDISABLED = 3,
+	WCA_ALLOW_NCPAINT = 4,
+	WCA_CAPTION_BUTTON_BOUNDS = 5,
+	WCA_NONCLIENT_RTL_LAYOUT = 6,
+	WCA_FORCE_ICONIC_REPRESENTATION = 7,
+	WCA_EXTENDED_FRAME_BOUNDS = 8,
+	WCA_HAS_ICONIC_BITMAP = 9,
+	WCA_THEME_ATTRIBUTES = 10,
+	WCA_NCRENDERING_EXILED = 11,
+	WCA_NCADORNMENTINFO = 12,
+	WCA_EXCLUDED_FROM_LIVEPREVIEW = 13,
+	WCA_VIDEO_OVERLAY_ACTIVE = 14,
+	WCA_FORCE_ACTIVEWINDOW_APPEARANCE = 15,
+	WCA_DISALLOW_PEEK = 16,
+	WCA_CLOAK = 17,
+	WCA_CLOAKED = 18,
+	WCA_ACCENT_POLICY = 19,
+	WCA_FREEZE_REPRESENTATION = 20,
+	WCA_EVER_UNCLOAKED = 21,
+	WCA_VISUAL_OWNER = 22,
+	WCA_HOLOGRAPHIC = 23,
+	WCA_EXCLUDED_FROM_DDA = 24,
+	WCA_PASSIVEUPDATEMODE = 25,
+	WCA_USEDARKMODECOLORS = 26,
+	WCA_LAST = 27
+};
+
+struct WINDOWCOMPOSITIONATTRIBDATA
+{
+	WINDOWCOMPOSITIONATTRIB Attrib;
+	PVOID pvData;
+	SIZE_T cbData;
+};
+
+ECK_PRIV_NAMESPACE_BEGIN
+using FRtlGetNtVersionNumbers = void(WINAPI*)(DWORD*, DWORD*, DWORD*);
+
+using FSetWindowCompositionAttribute = BOOL(WINAPI*)(HWND hWnd, WINDOWCOMPOSITIONATTRIBDATA*);
+// 1809 17763 暗色功能引入
+using FAllowDarkModeForWindow = BOOL(WINAPI*)(HWND hWnd, BOOL bAllow);
+using FAllowDarkModeForApp = BOOL(WINAPI*)(BOOL bAllow);
+using FIsDarkModeAllowedForWindow = BOOL(WINAPI*)(HWND hWnd);
+using FShouldAppsUseDarkMode = BOOL(WINAPI*)();
+
+using FFlushMenuThemes = void(WINAPI*)();
+
+using FRefreshImmersiveColorPolicyState = void(WINAPI*)();
+using FGetIsImmersiveColorUsingHighContrast = BOOL(WINAPI*)(IMMERSIVE_HC_CACHE_MODE mode);
+// 1903 18362
+using FShouldSystemUseDarkMode = BOOL(WINAPI*)();
+using FSetPreferredAppMode = PreferredAppMode(WINAPI*)(PreferredAppMode appMode);
+using FIsDarkModeAllowedForApp = BOOL(WINAPI*)();
+
+
+extern FAllowDarkModeForWindow			pfnAllowDarkModeForWindow;
+extern FAllowDarkModeForApp				pfnAllowDarkModeForApp;
+extern FIsDarkModeAllowedForWindow		pfnIsDarkModeAllowedForWindow;
+extern FShouldAppsUseDarkMode			pfnShouldAppsUseDarkMode;
+extern FFlushMenuThemes					pfnFlushMenuThemes;
+extern FRefreshImmersiveColorPolicyState		pfnRefreshImmersiveColorPolicyState;
+extern FGetIsImmersiveColorUsingHighContrast	pfnGetIsImmersiveColorUsingHighContrast;
+
+extern FShouldSystemUseDarkMode			pfnShouldSystemUseDarkMode;
+extern FSetPreferredAppMode				pfnSetPreferredAppMode;
+extern FIsDarkModeAllowedForApp			pfnIsDarkModeAllowedForApp;
+
+extern FRtlGetNtVersionNumbers			pfnRtlGetNtVersionNumbers;
+extern FSetWindowCompositionAttribute	pfnSetWindowCompositionAttribute;
+ECK_PRIV_NAMESPACE_END
+
+
 /*窗口类名*/
 
 constexpr inline PCWSTR WCN_LABEL = L"Eck.WndClass.Label";
@@ -272,7 +395,8 @@ enum class InitStatus
 	D2dFactoryError,
 	DxgiDeviceError,
 	DWriteFactoryError,
-	D3dDeviceError
+	D3dDeviceError,
+	UxThemeError,
 };
 
 enum :UINT
@@ -288,6 +412,8 @@ enum :UINT
 	EIF_NOINITD2D = 1u << 3,
 	// 不初始化DWrite
 	EIF_NOINITDWRITE = 1u << 4,
+	// 不适配暗色模式
+	EIF_NODARKMODE = 1u << 5,
 };
 
 constexpr inline D3D_FEATURE_LEVEL c_uDefD3dFeatureLevel[]
@@ -335,6 +461,8 @@ struct ECKTHREADCTX
 	HHOOK hhkTempCBT = NULL;					// CBT钩子句柄
 	CWnd* pCurrWnd = NULL;						// 当前正在创建窗口所属的CWnd指针
 	FWndCreating pfnWndCreatingProc = NULL;		// 当前创建窗口时要调用的过程
+	HHOOK hhkDarkMode = NULL;
+	BOOL bDarkMode = FALSE;
 
 	EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
 	{
@@ -343,14 +471,14 @@ struct ECKTHREADCTX
 
 	EckInline void WmRemove(HWND hWnd)
 	{
-		auto it = hmWnd.find(hWnd);
+		const auto it = hmWnd.find(hWnd);
 		if (it != hmWnd.end())
 			hmWnd.erase(it);
 	}
 
 	[[nodiscard]] EckInline CWnd* WmAt(HWND hWnd) const
 	{
-		auto it = hmWnd.find(hWnd);
+		const auto it = hmWnd.find(hWnd);
 		if (it != hmWnd.end())
 			return it->second;
 		else
@@ -411,4 +539,9 @@ BOOL PreTranslateMessage(const MSG& Msg);
 /// </summary>
 /// <param name="pfnFilter">应用程序定义的过滤器函数指针</param>
 void SetMsgFilter(FMsgFilter pfnFilter);
+
+EckInline void RtlGetNtVersionNumbers(DWORD* pdwMajor, DWORD* pdwMinor, DWORD* pdwBuild)
+{
+	EckPriv___::pfnRtlGetNtVersionNumbers(pdwMajor, pdwMinor, pdwBuild);
+}
 ECK_NAMESPACE_END

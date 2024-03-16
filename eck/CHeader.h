@@ -13,6 +13,10 @@ class CHeader :public CWnd
 {
 public:
 	ECK_CWND_NOSINGLEOWNER(CHeader)
+protected:
+#ifndef ECK_MACRO_NO_SUPPORT_DARKMODE
+	COLORREF m_crText = GetSysColor(COLOR_WINDOWTEXT);
+#endif
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
@@ -21,7 +25,71 @@ public:
 		return IntCreate(dwExStyle, WC_HEADERW, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, NULL, NULL);
 	}
+#ifndef ECK_MACRO_NO_SUPPORT_DARKMODE
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
+	{
+		switch (uMsg)
+		{
+		case WM_CREATE:
+		{
+			if (ShouldAppUseDarkMode())
+				SetWindowTheme(hWnd, L"ItemsView", NULL);
+			else
+				SetWindowTheme(hWnd, L"Explorer", NULL);
+		}
+		break;
+		case WM_THEMECHANGED:
+		{
+			COLORREF Dummy;
+			GetItemsViewForeBackColor(m_crText, Dummy);
+		}
+			break;
+		case WM_SETTINGCHANGE:
+		{
+			if (IsColorSchemeChangeMessage(lParam))
+				if (ShouldAppUseDarkMode())
+					SetWindowTheme(hWnd, L"ItemsView", NULL);
+				else
+					SetWindowTheme(hWnd, L"Explorer", NULL);
+		}
+		break;
+		}
+		return __super::OnMsg(hWnd, uMsg, wParam, lParam);
+	}
 
+	LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed) override
+	{
+		if (ShouldAppUseDarkMode())
+			switch (uMsg)
+			{
+			case WM_NOTIFY:
+			{
+				switch (((NMHDR*)lParam)->code)
+				{
+				case NM_CUSTOMDRAW:
+				{
+					bProcessed = TRUE;
+					const auto pnmcd = (NMCUSTOMDRAW*)lParam;
+					switch (pnmcd->dwDrawStage)
+					{
+					case CDDS_PREPAINT:
+						return CDRF_NOTIFYITEMDRAW;
+					case CDDS_ITEMPREPAINT:
+					{
+						const HDC hDC = pnmcd->hdc;
+						SetTextColor(hDC, m_crText);
+					}
+					return CDRF_DODEFAULT;
+					}
+				}
+				return CDRF_DODEFAULT;
+				}
+			}
+			break;
+			}
+		return __super::OnNotifyMsg(hParent, uMsg, wParam, lParam, bProcessed);
+	}
+#endif
 	/// <summary>
 	/// 清除筛选器
 	/// </summary>
@@ -126,7 +194,7 @@ public:
 		return (int)SendMsg(HDM_INSERTITEMW, idx, (LPARAM)phdi);
 	}
 
-	EckInline int InsertItem(PCWSTR pszText, int idx = -1, int cxItem = -1, 
+	EckInline int InsertItem(PCWSTR pszText, int idx = -1, int cxItem = -1,
 		int idxImage = -1, int iFmt = HDF_LEFT, LPARAM lParam = 0)
 	{
 		if (idx < 0)

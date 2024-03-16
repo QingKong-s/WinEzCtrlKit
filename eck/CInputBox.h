@@ -138,7 +138,7 @@ public:
 	BOOL OnInitDialog(HWND hDlg, HWND hFocus, LPARAM lParam) override
 	{
 		UpdateDpi(GetDpi(hDlg));
-		m_hFont = CreateDefFont();
+		m_hFont = CreateDefFont(m_iDpi);
 		UpdateTextMetrics();
 
 		SetExplorerTheme();
@@ -155,6 +155,7 @@ public:
 			0, 0, 0, 0, hDlg, IDC_ED);
 		if (m_pOpt->uInputMode != CEditExt::InputMode::ReadOnly)
 			m_ED.SetInputMode(m_pOpt->uInputMode);
+		m_ED.SetExplorerTheme();
 		m_BTOk.Create(L"确认输入(&O)", WS_TABSTOP | WS_GROUP | WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 0,
 			0, 0, 0, 0, hDlg, IDOK);
 		m_BTCancel.Create(L"取消(&C)", WS_TABSTOP | WS_CHILD | WS_VISIBLE, 0,
