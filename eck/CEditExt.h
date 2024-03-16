@@ -350,11 +350,9 @@ public:
 			if ((HWND)lParam != m_hWnd)
 				break;
 			bProcessed = TRUE;
-			HBRUSH hbr;
+			HBRUSH hbr = (HBRUSH)DefNotifyMsg(hParent, uMsg, wParam, lParam);
 			if (m_hbrEditBK)
 				hbr = m_hbrEditBK;
-			else
-				hbr = (HBRUSH)DefNotifyMsg(hParent, uMsg, wParam, lParam);
 			if (m_crText != CLR_DEFAULT)
 				SetTextColor((HDC)wParam, m_crText);
 			if (m_crTextBK != CLR_DEFAULT)

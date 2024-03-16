@@ -12,12 +12,12 @@ ECK_NAMESPACE_BEGIN
 class CStatic :public CWnd
 {
 public:
-	EckInline 
-	ECK_CWND_CREATE
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
-		m_hWnd = CreateWindowExW(dwExStyle, WC_STATICW, pszText, dwStyle,
+		return IntCreate(dwExStyle, WC_STATICW, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, NULL, NULL);
-		return m_hWnd;
 	}
 
 	EckInline HICON GetIcon() const
@@ -48,7 +48,7 @@ public:
 	/// <returns>先前的图像句柄</returns>
 	EckInline HANDLE SetImage(HANDLE h, UINT uType = IMAGE_BITMAP) const
 	{
-		return (HANDLE)SendMsg(STM_SETIMAGE, uType, (LPARAM)uType);
+		return (HANDLE)SendMsg(STM_SETIMAGE, uType, (LPARAM)h);
 	}
 };
 ECK_NAMESPACE_END

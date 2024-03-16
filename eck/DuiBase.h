@@ -33,8 +33,8 @@
 #		define ECK_DUI_DBG_DRAW_FRAME ;
 #endif
 
-#define ECK_ELEMTOP			((CElem*)HWND_TOP)
-#define ECK_ELEMBOTTOM		((CElem*)HWND_BOTTOM)
+#define ECK_ELEMTOP			((::eck::Dui::CElem*)HWND_TOP)
+#define ECK_ELEMBOTTOM		((::eck::Dui::CElem*)HWND_BOTTOM)
 
 
 ECK_NAMESPACE_BEGIN
@@ -605,6 +605,7 @@ class CDuiWnd :public CWnd
 	friend class CElem;
 	friend class CDuiDropTarget;
 private:
+	//------元素树------
 	CElem* m_pFirstChild = NULL;		// 第一个子元素
 	CElem* m_pLastChild = NULL;			// 最后一个子元素
 
@@ -612,11 +613,11 @@ private:
 	CElem* m_pCurrNcHitTestElem = NULL;	// 当前非客户区命中元素
 	CElem* m_pMouseCaptureElem = NULL;	// 当前鼠标捕获元素
 	CElem* m_pHoverElem = NULL;			// 当前鼠标悬停元素，for WM_MOUSELEAVE
+	//------拖放------
 	CElem* m_pDragDropElem = NULL;		// 当前拖放元素
-
-	IDataObject* m_pDataObj = NULL;		// 
+	IDataObject* m_pDataObj = NULL;
 	CDuiDropTarget* m_pDropTarget = NULL;
-
+	//------图形------
 	CEzD2D m_D2d{};
 	ID2D1Bitmap* m_pBmpBkg = NULL;
 	ID2D1SolidColorBrush* m_pBrBkg = NULL;
@@ -624,7 +625,7 @@ private:
 	IDWriteTextFormat* m_pDefTextFormat = NULL;
 
 	CColorTheme* m_pStdColorTheme[CTI_COUNT]{};
-
+	//------其他------
 	int m_cxClient = 0;
 	int m_cyClient = 0;
 
@@ -637,6 +638,8 @@ private:
 		ECK_DS_ENTRY_F(CommMargin, 4.f)
 		;
 	ECK_DS_END_VAR(m_Ds);
+
+	std::mutex m_Mutex{};
 
 	void RedrawElem(CElem* pElem, const RECT& rc)
 	{
@@ -771,7 +774,7 @@ public:
 
 			if (uMsg == WM_MOUSEMOVE)
 			{
-				if (m_pHoverElem != m_pCurrNcHitTestElem)
+				if (m_pHoverElem != m_pCurrNcHitTestElem && !m_bMouseCaptured)
 				{
 					if (m_pHoverElem)
 						m_pHoverElem->CallEvent(WM_MOUSELEAVE, 0, 0);
@@ -841,6 +844,11 @@ public:
 			if (m_pMouseCaptureElem)
 			{
 				m_pMouseCaptureElem->CallEvent(WM_CAPTURECHANGED, 0, NULL);
+				if (m_pHoverElem == m_pMouseCaptureElem)
+				{
+					m_pHoverElem->CallEvent(WM_MOUSELEAVE, 0, 0);
+					m_pHoverElem = NULL;
+				}
 				m_pMouseCaptureElem = NULL;
 			}
 		}

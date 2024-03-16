@@ -14,9 +14,11 @@ class CDialog :public CWnd
 {
 protected:
 #ifdef _DEBUG
-	BOOL m_bDlgProcInit = FALSE;
+	BITBOOL m_bDlgProcInit : 1 = FALSE;
 #endif
-	BOOL m_bModal = FALSE;
+	BITBOOL m_bModal : 1 = FALSE;
+	BITBOOL m_bClrDisableEdit : 1 = FALSE;
+	COLORREF m_crBkg = CLR_DEFAULT;
 
 	EckInline INT_PTR IntCreateModalDlg(HINSTANCE hInst, PCWSTR pszTemplate, HWND hParent,
 		LPARAM lParam = 0, FWndCreating pfnCreatingProc = NULL)
@@ -64,6 +66,7 @@ public:
 #endif // _DEBUG
 			break;
 		case WM_COMMAND:
+		{
 			if (HIWORD(wParam) == BN_CLICKED)
 				switch (LOWORD(wParam))
 				{
@@ -74,7 +77,24 @@ public:
 					OnCancel((HWND)lParam);
 					break;
 				}
-			break;
+		}
+		break;
+		case WM_CTLCOLORSTATIC:
+			if ((!m_bClrDisableEdit && CWnd((HWND)lParam).GetClsName() == WC_EDITW))
+				break;
+			[[fallthrough]];
+		case WM_CTLCOLORBTN:
+		case WM_CTLCOLORDLG:
+		case WM_CTLCOLOREDIT:
+		case WM_CTLCOLORLISTBOX:
+		{
+			if (m_crBkg != CLR_DEFAULT)
+			{
+				SetDCBrushColor((HDC)wParam, m_crBkg);
+				return (LRESULT)GetStockBrush(DC_BRUSH);
+			}
+		}
+		break;
 		}
 
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
@@ -102,6 +122,16 @@ public:
 	EckInline virtual void OnCancel(HWND hCtrl)
 	{
 		EndDlg(0);
+	}
+
+	EckInline void SetBkColor(COLORREF cr)
+	{
+		m_crBkg = cr;
+	}
+
+	EckInline void SetAllowColorDisableEdit(BOOL b)
+	{
+		m_bClrDisableEdit = b;
 	}
 };
 

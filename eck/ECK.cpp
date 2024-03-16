@@ -20,6 +20,30 @@ IDXGIFactory2* g_pDxgiFactory = NULL;
 
 DWORD g_dwTlsSlot = 0;
 
+ECK_PRIV_NAMESPACE_BEGIN
+FAllowDarkModeForWindow			pfnAllowDarkModeForWindow{};
+FAllowDarkModeForApp			pfnAllowDarkModeForApp{};
+FIsDarkModeAllowedForWindow		pfnIsDarkModeAllowedForWindow{};
+FShouldAppsUseDarkMode			pfnShouldAppsUseDarkMode{};
+FFlushMenuThemes				pfnFlushMenuThemes{};
+FRefreshImmersiveColorPolicyState		pfnRefreshImmersiveColorPolicyState{};
+FGetIsImmersiveColorUsingHighContrast	pfnGetIsImmersiveColorUsingHighContrast{};
+
+FShouldSystemUseDarkMode		pfnShouldSystemUseDarkMode{};
+FSetPreferredAppMode			pfnSetPreferredAppMode{};
+FIsDarkModeAllowedForApp		pfnIsDarkModeAllowedForApp{};
+
+FRtlGetNtVersionNumbers			pfnRtlGetNtVersionNumbers{};
+FSetWindowCompositionAttribute	pfnSetWindowCompositionAttribute{};
+ECK_PRIV_NAMESPACE_END
+
+BOOL g_bWin10_1607 = FALSE;
+BOOL g_bWin10_1809 = FALSE;
+BOOL g_bWin10_1903 = FALSE;
+BOOL g_bWin11_B22000 = FALSE;
+
+BOOL g_bAllowDark = FALSE;
+
 static BOOL DefMsgFilter(const MSG&)
 {
 	return FALSE;
@@ -204,6 +228,76 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		}
 	}
 
+	using namespace EckPriv___;
+	//////////////暗色模式支持、OS版本检测
+	const HMODULE hModUx = LoadLibraryW(L"UxTheme.dll");
+	*pdwErrCode = GetLastError();
+	if (!hModUx)
+		return InitStatus::UxThemeError;
+
+	const HMODULE hModNtdll = LoadLibraryW(L"ntdll.dll");
+	EckAssert(hModNtdll);
+	pfnRtlGetNtVersionNumbers = (FRtlGetNtVersionNumbers)
+		GetProcAddress(hModNtdll, "RtlGetNtVersionNumbers");
+	FreeLibrary(hModNtdll);
+
+	DWORD dwMajorVer, dwMinorVer, dwBuildNumber;
+	RtlGetNtVersionNumbers(&dwMajorVer, &dwMinorVer, &dwBuildNumber);
+	if (dwMajorVer >= 10 && dwBuildNumber >= 14393)
+	{
+		g_bWin10_1607 = TRUE;
+		if (dwBuildNumber >= 17763)
+		{
+			g_bWin10_1809 = TRUE;
+			if (dwBuildNumber > 18362)
+			{
+				g_bWin10_1903 = TRUE;
+				if (dwBuildNumber > 22000)
+					g_bWin11_B22000 = TRUE;
+			}
+
+			if (g_bWin10_1903)
+			{
+				pfnShouldSystemUseDarkMode = (FShouldSystemUseDarkMode)
+					GetProcAddress(hModUx, MAKEINTRESOURCEA(138));
+				pfnIsDarkModeAllowedForApp = (FIsDarkModeAllowedForApp)
+					GetProcAddress(hModUx, MAKEINTRESOURCEA(139));
+				pfnSetPreferredAppMode = (FSetPreferredAppMode)
+					GetProcAddress(hModUx, MAKEINTRESOURCEA(135));
+			}
+			else
+			{
+				pfnAllowDarkModeForApp = (FAllowDarkModeForApp)
+					GetProcAddress(hModUx, MAKEINTRESOURCEA(135));
+			}
+			pfnAllowDarkModeForWindow = (FAllowDarkModeForWindow)
+				GetProcAddress(hModUx, MAKEINTRESOURCEA(133));
+			pfnIsDarkModeAllowedForWindow = (FIsDarkModeAllowedForWindow)
+				GetProcAddress(hModUx, MAKEINTRESOURCEA(137));
+			pfnShouldAppsUseDarkMode = (FShouldAppsUseDarkMode)
+				GetProcAddress(hModUx, MAKEINTRESOURCEA(132));
+			pfnFlushMenuThemes = (FFlushMenuThemes)
+				GetProcAddress(hModUx, MAKEINTRESOURCEA(136));
+			pfnRefreshImmersiveColorPolicyState = (FRefreshImmersiveColorPolicyState)
+				GetProcAddress(hModUx, MAKEINTRESOURCEA(104));
+			pfnGetIsImmersiveColorUsingHighContrast = (FGetIsImmersiveColorUsingHighContrast)
+				GetProcAddress(hModUx, MAKEINTRESOURCEA(106));
+		}
+	}
+	FreeLibrary(hModUx);
+
+	const auto hModUser32 = LoadLibraryW(L"User32.dll");
+	EckAssert(hModUser32);
+	pfnSetWindowCompositionAttribute = (FSetWindowCompositionAttribute)
+		GetProcAddress(hModUser32, "SetWindowCompositionAttribute");
+	FreeLibrary(hModUser32);
+
+	if (!IsBitSet(pInitParam->uFlags, EIF_NODARKMODE))
+	{
+		SetPreferredAppMode(PreferredAppMode::AllowDark);
+		g_bAllowDark = TRUE;
+	}
+
 	return InitStatus::Ok;
 }
 
@@ -234,6 +328,23 @@ void ThreadInit()
 	EckAssert(!TlsGetValue(GetThreadCtxTlsSlot()));
 	const auto p = new ECKTHREADCTX{};
 	TlsSetValue(GetThreadCtxTlsSlot(), p);
+	p->hhkDarkMode = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
+		{
+			const auto* const p = GetThreadCtx();
+			if (iCode == HCBT_CREATEWND)
+			{
+				const auto lResult = CallNextHookEx(p->hhkDarkMode, iCode, wParam, lParam);
+				const auto hWnd = (HWND)wParam;
+				if (IsWindow(hWnd))
+				{
+					AllowDarkModeForWindow(hWnd, TRUE);
+					SetWindowTheme(hWnd, L"Explorer", NULL);
+				}
+
+				return lResult;
+			}
+			return CallNextHookEx(p->hhkDarkMode, iCode, wParam, lParam);
+		}, NULL, GetCurrentThreadId());
 }
 
 constexpr PCWSTR c_szErrInitStatus[]
@@ -264,6 +375,8 @@ void ThreadUnInit()
 		EckDbgBreak();
 	}
 #endif // _DEBUG
+	UnhookWindowsHookEx(p->hhkTempCBT);
+	UnhookWindowsHookEx(p->hhkDarkMode);
 	delete p;
 	TlsSetValue(GetThreadCtxTlsSlot(), NULL);
 }

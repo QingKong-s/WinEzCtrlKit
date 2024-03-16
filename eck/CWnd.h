@@ -304,6 +304,17 @@ public:
 		return hWnd;
 	}
 
+	EckInline void AttachNew(HWND hWnd)
+	{
+		Attach(hWnd);
+		m_pfnRealProc = SetWindowProc(hWnd, EckWndProc);
+	}
+
+	EckInline void DetachNew()
+	{
+		SetWindowProc(Detach(), m_pfnRealProc);
+	}
+
 	/// <summary>
 	/// 创建窗口
 	/// </summary>
@@ -349,6 +360,18 @@ public:
 	/// </summary>
 	EckInline virtual LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
+		//switch (uMsg)
+		//{
+		//case WM_CTLCOLORBTN:
+		//case WM_CTLCOLOREDIT:
+		//case WM_CTLCOLORDLG:
+		//case WM_CTLCOLORLISTBOX:
+		//case WM_CTLCOLORSCROLLBAR:
+		//case WM_CTLCOLORSTATIC:
+		//	SetDCBrushColor((HDC)wParam, 0x383838);
+		//	return (LRESULT)GetStockBrush(DC_BRUSH);
+		//	;
+		//}
 		return CallWindowProcW(m_pfnRealProc, hWnd, uMsg, wParam, lParam);
 	}
 
@@ -665,6 +688,11 @@ public:
 	EckInline HRESULT SetExplorerTheme() const
 	{
 		return SetWindowTheme(m_hWnd, L"Explorer", NULL);
+	}
+
+	EckInline HRESULT SetTheme(PCWSTR pszAppName, PCWSTR pszSubList = NULL) const
+	{
+		return SetWindowTheme(m_hWnd, pszAppName, pszSubList);
 	}
 
 	/// <summary>
