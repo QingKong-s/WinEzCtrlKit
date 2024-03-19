@@ -39,6 +39,7 @@
 #include "eck\CDuiTrackBar.h"
 #include "eck\CDuiCircleButton.h"
 #include "eck\CIni.h"
+#include "eck\CTreeListExt.h"
 
 #define WCN_TEST L"CTestWindow"
 
@@ -638,6 +639,7 @@ private:
 	eck::CTreeList m_TL{};
 	eck::CListViewExt m_lve{};
 	eck::CHeader m_HD{};
+	eck::CTreeListExt m_tle{};
 
 	CTestDui m_Dui{};
 
@@ -894,82 +896,82 @@ public:
 			//m_lot.Add(&m_LBN, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 			
 
-			//hCDCBK = CreateCompatibleDC(NULL);
-			//auto hbm = eck::CreateHBITMAP(LR"(E:\Desktop\Temp\DC802FE9979A460BBA8E757382343EB4.jpg)");
-			//SelectObject(hCDCBK, hbm);
-			//BITMAP bb;
-			//GetObjectW(hbm, sizeof(bb), &bb);
-			//cx = bb.bmWidth;
-			//cy = bb.bmHeight;
+			hCDCBK = CreateCompatibleDC(NULL);
+			auto hbm = eck::CreateHBITMAP(LR"(E:\Desktop\Temp\DC802FE9979A460BBA8E757382343EB4.jpg)");
+			SelectObject(hCDCBK, hbm);
+			BITMAP bb;
+			GetObjectW(hbm, sizeof(bb), &bb);
+			cx = bb.bmWidth;
+			cy = bb.bmHeight;
 
-			//m_il = ImageList_Create(eck::DpiScale(16, m_iDpi), eck::DpiScale(16, m_iDpi),
-			//	ILC_COLOR32 | ILC_ORIGINALSIZE, 0, 40);
+			m_il = ImageList_Create(eck::DpiScale(16, m_iDpi), eck::DpiScale(16, m_iDpi),
+				ILC_COLOR32 | ILC_ORIGINALSIZE, 0, 40);
 
-			//HWND h = GetDesktopWindow();
-			//BOOL b;
-			//auto hicon = eck::GetWindowIcon(h, b, TRUE);
-			//int idx = -1;
-			//if (hicon)
-			//	idx = ImageList_AddIcon(m_il, hicon);
-			//if (b)
-			//	DestroyIcon(hicon);
+			HWND h = GetDesktopWindow();
+			BOOL b;
+			auto hicon = eck::GetWindowIcon(h, b, TRUE);
+			int idx = -1;
+			if (hicon)
+				idx = ImageList_AddIcon(m_il, hicon);
+			if (b)
+				DestroyIcon(hicon);
 
-			//data.push_back(wdbuf.Alloc(1, eck::TLNODE{ 0,0,0,idx,-1 }, h));
-			//auto p = data.back();
-			//p->rs[0].Format(L"0x%08X", h);
-			//p->rs[1] = eck::CWnd(h).GetClsName();
-			//p->rs[2] = eck::CWnd(h).GetText();
-			//EnumWnd(GetDesktopWindow(), data[0], flatdata);
+			data.push_back(wdbuf.Alloc(1, eck::TLNODE{ 0,0,0,idx,-1 }, h));
+			auto p = data.back();
+			p->rs[0].Format(L"0x%08X", h);
+			p->rs[1] = eck::CWnd(h).GetClsName();
+			p->rs[2] = eck::CWnd(h).GetText();
+			EnumWnd(GetDesktopWindow(), data[0], flatdata);
 
-			//h = HWND_MESSAGE;
-			//data.push_back(wdbuf.Alloc(1, eck::TLNODE{ 0,0,0,-1,-1 }, h));
-			//p = data.back();
-			//p->rs[0].Format(L"0x%08X", h);
-			//p->rs[1] = L"HWND_MESSAGE";
-			//p->rs[2] = L"HWND_MESSAGE";
+			h = HWND_MESSAGE;
+			data.push_back(wdbuf.Alloc(1, eck::TLNODE{ 0,0,0,-1,-1 }, h));
+			p = data.back();
+			p->rs[0].Format(L"0x%08X", h);
+			p->rs[1] = L"HWND_MESSAGE";
+			p->rs[2] = L"HWND_MESSAGE";
 
-			//HWND hMo{};
-			//while ((hMo = FindWindowExW(HWND_MESSAGE, hMo, 0, 0)))
-			//{
-			//	BOOL b;
-			//	auto hicon = eck::GetWindowIcon(hMo, b, TRUE);
-			//	int idx = -1;
-			//	if (hicon)
-			//		idx = ImageList_AddIcon(m_il, hicon);
-			//	if (b)
-			//		DestroyIcon(hicon);
-			//	//EnumWnd(h, data->Children.emplace_back(new WNDDATA{ {},h }));
-			//	auto p0 = wdbuf.Alloc(1, eck::TLNODE{ 0,0,0,idx,-1 }, hMo);
-			//	p0->rs[0].Format(L"0x%08X", hMo);
-			//	p0->rs[1] = eck::CWnd(hMo).GetClsName();
-			//	p0->rs[2] = eck::CWnd(hMo).GetText();
-			//	flatdata.emplace_back(p0);
-			//	//p->Children.emplace_back(p0);
-			//	EnumWnd(hMo, p->Children.emplace_back(p0), flatdata);
-			//}
+			HWND hMo{};
+			while ((hMo = FindWindowExW(HWND_MESSAGE, hMo, 0, 0)))
+			{
+				BOOL b;
+				auto hicon = eck::GetWindowIcon(hMo, b, TRUE);
+				int idx = -1;
+				if (hicon)
+					idx = ImageList_AddIcon(m_il, hicon);
+				if (b)
+					DestroyIcon(hicon);
+				//EnumWnd(h, data->Children.emplace_back(new WNDDATA{ {},h }));
+				auto p0 = wdbuf.Alloc(1, eck::TLNODE{ 0,0,0,idx,-1 }, hMo);
+				p0->rs[0].Format(L"0x%08X", hMo);
+				p0->rs[1] = eck::CWnd(hMo).GetClsName();
+				p0->rs[2] = eck::CWnd(hMo).GetText();
+				flatdata.emplace_back(p0);
+				//p->Children.emplace_back(p0);
+				EnumWnd(hMo, p->Children.emplace_back(p0), flatdata);
+			}
 
-			//m_TL.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
-			//	0, 0, 1200, 1000, hWnd, 106);
-			//auto& he = m_TL.GetHeader();
-			//he.InsertItem(L"HWND", -1, 360);
-			//he.InsertItem(L"szClsName", -1, 360);
-			//he.InsertItem(L"szText", -1, 400);
-			//m_TL.SetEditLabel(TRUE);
-			////m_TL.SetTextClr(0xFFFFFF);
-			////m_TL.SetBkClr(RGB(25, 25, 25));
-			//EckDbgPrint(flatdata.size());
-			////auto& tl = m_TL.GetToolTip();
-			////tl.ModifyStyle(0, TTS_NOANIMATE);
-			//m_TL.SetHasCheckBox(TRUE);
-			//m_TL.SetHasLines(TRUE);
-			//m_TL.SetImageList(m_il);
-			//m_TL.SetWatermarkString(L"水印测试。\n我是第二行水印。");
-			//m_TL.BuildTree();
-			////m_TL.SetBackgroundNotSolid(TRUE);
-			////m_TL.SetSingleSelect(TRUE);
-			////m_lve.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
-			////	0, 0, 1200, 1000, hWnd, 107);
-			//m_lot.Add(&m_TL, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+			m_TL.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
+				0, 0, 1200, 1000, hWnd, 106);
+			auto& he = m_TL.GetHeader();
+			he.InsertItem(L"HWND", -1, 360);
+			he.InsertItem(L"szClsName", -1, 360);
+			he.InsertItem(L"szText", -1, 400);
+			m_TL.SetEditLabel(TRUE);
+			//m_TL.SetTextClr(0xFFFFFF);
+			//m_TL.SetBkClr(RGB(25, 25, 25));
+			EckDbgPrint(flatdata.size());
+			//auto& tl = m_TL.GetToolTip();
+			//tl.ModifyStyle(0, TTS_NOANIMATE);
+			m_TL.SetHasCheckBox(TRUE);
+			m_TL.SetHasLines(TRUE);
+			m_TL.SetImageList(m_il);
+			m_TL.SetWatermarkString(L"水印测试。\n我是第二行水印。");
+			m_TL.BuildTree();
+			//m_TL.SetBackgroundNotSolid(TRUE);
+			//m_TL.SetSingleSelect(TRUE);
+			//m_lve.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
+			//	0, 0, 1200, 1000, hWnd, 107);
+			m_lot.Add(&m_TL, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 
 			//m_LV.Create(NULL, WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | LVS_REPORT, 0,
 			//	0, 0, 500, 500, hWnd, 1111);
@@ -996,10 +998,31 @@ public:
 			//m_Btn.Create(L"筛选", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS, 0, 900, 0, 300, 70, hWnd, 101);
 			//m_lot.Add(&m_Btn, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 			
-			RECT rcDui{ 0,0,900,700 };
-			m_Dui.Create(L"我是 Dui 窗口", WS_CHILD | WS_VISIBLE, 0, 0, 0, rcDui.right, rcDui.bottom, hWnd, 108);
-			m_Dui.Redraw();
+			//RECT rcDui{ 0,0,900,700 };
+			//m_Dui.Create(L"我是 Dui 窗口", WS_CHILD | WS_VISIBLE, 0, 0, 0, rcDui.right, rcDui.bottom, hWnd, 108);
+			//m_Dui.Redraw();
 
+			m_tle.Create(0, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
+				0, 0, 800, 800, hWnd, 1010);
+			m_tle.GetHeader().InsertItem(L"第一栏", -1, 400);
+			m_tle.GetHeader().InsertItem(L"Col. 2", -1, 350);
+			auto hNode = m_tle.InsertItem(L"父项1");
+			eck::TLEXTITEM tlei{ eck::TLEIF_TEXT };
+			tlei.idxSubItem = 1;
+			EckCounter(10, i)
+			{
+				auto h =m_tle.InsertItem((eck::ToStr(i) + L" 子项测试").Data(), 0, hNode);
+				auto rs = eck::Format(L"你好我是第二列的第 %d 项", i);
+				tlei.pszText = rs.Data();
+				tlei.cchText = rs.Size();
+				m_tle.SetItem(h, tlei);
+			}
+
+
+			hNode = m_tle.InsertItem(L"父项2");
+			hNode = m_tle.InsertItem(L"父项3");
+			m_tle.BuildTree();
+			m_lot.Add(&m_tle, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 			m_hFont = eck::CreateDefFont(m_iDpi);
 			eck::SetFontForWndAndCtrl(hWnd, m_hFont);
 

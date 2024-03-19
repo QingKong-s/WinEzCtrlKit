@@ -6,14 +6,14 @@
 */
 
 #ifndef ECKMACRO_NO_COMCTL60
-#pragma comment(linker,"\"/manifestdependency:						\
-		type='win32'								\
-		name='Microsoft.Windows.Common-Controls'	\
-		version='6.0.0.0'							\
-		processorArchitecture='*'					\
-		publicKeyToken='6595b64144ccf1df'			\
-		language='*'								\
-	\"")
+//#pragma comment(linker,"\"/manifestdependency:						\
+//		type='win32'								\
+//		name='Microsoft.Windows.Common-Controls'	\
+//		version='6.0.0.0'							\
+//		processorArchitecture='*'					\
+//		publicKeyToken='6595b64144ccf1df'			\
+//		language='*'								\
+//	\"")
 #endif
 
 #ifndef ECKMACRO_NO_AUTO_ADD_LIB
@@ -27,9 +27,9 @@
 #pragma comment(lib,"dwrite.lib")
 #pragma comment(lib,"D3D11.lib")
 #pragma comment(lib,"dxguid.lib")
-#pragma comment(lib, "wbemuuid.lib")
-#pragma comment(lib, "Version.lib")
-#pragma comment(lib, "msimg32.lib")
+#pragma comment(lib,"wbemuuid.lib")
+#pragma comment(lib,"Version.lib")
+#pragma comment(lib,"msimg32.lib")
 #endif
 
 // ECKMACRO_NO_WIN11_22621  SDK版本是否>=22621

@@ -333,7 +333,7 @@ void ThreadInit()
 			const auto* const p = GetThreadCtx();
 			if (iCode == HCBT_CREATEWND)
 			{
-				const auto lResult = CallNextHookEx(p->hhkDarkMode, iCode, wParam, lParam);
+				//const auto lResult = CallNextHookEx(p->hhkDarkMode, iCode, wParam, lParam);
 				const auto hWnd = (HWND)wParam;
 				if (IsWindow(hWnd))
 				{
@@ -341,7 +341,7 @@ void ThreadInit()
 					SetWindowTheme(hWnd, L"Explorer", NULL);
 				}
 
-				return lResult;
+				//return lResult;
 			}
 			return CallNextHookEx(p->hhkDarkMode, iCode, wParam, lParam);
 		}, NULL, GetCurrentThreadId());
