@@ -1235,16 +1235,9 @@ private:
 						RedrawItem(idxChangeBegin, idxChangeEnd);
 				}
 				else if (wParam & MK_CONTROL)
-				{
 					ToggleSelectItemForClick(idx);
-					RedrawItem(idx);
-				}
 				else
-				{
 					SelectItemForClick(idx, TRUE);
-					if (idx < idxChangeBegin || idx > idxChangeEnd)
-						RedrawItem(idx);
-				}
 			}
 			UpdateWindow(m_hWnd);
 		}
@@ -1493,7 +1486,6 @@ private:
 						SelectItemForClick(m_idxFocus + 1, TRUE);
 						if (idxChangeBegin >= 0)
 							RedrawItem(idxChangeBegin, idxChangeEnd);
-						RedrawItem(e->idxParent);
 					}
 				}
 				UpdateWindow(hWnd);
@@ -2955,9 +2947,12 @@ public:
 						e->uFlags |= TLIF_SELECTED;
 					else
 						e->uFlags &= ~TLIF_SELECTED;
+				const auto idxOldFocus = m_idxFocus;
 				m_idxFocus = idx;
 				m_idxMark = idx;
 				RedrawItem(idx);
+				if (m_bFocusIndicatorVisible && idxOldFocus >= 0 && idxOldFocus != idx)
+					RedrawItem(idxOldFocus);
 			}
 			else
 			{

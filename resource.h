@@ -5,7 +5,6 @@
 #define IDD_ABOUT                       101
 #define IDR_MENU2                       130
 #define IDR_ECKWINDOW1                  131
-#define IDC_BUTTON1                     1005
 #define ID_32772                        32772
 #define ID_32778                        32778
 #define ID_32779                        32779

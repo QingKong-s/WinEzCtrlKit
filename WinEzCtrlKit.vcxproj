@@ -175,6 +175,7 @@
     <ClInclude Include="eck\CDuiTrackBar.h" />
     <ClInclude Include="eck\CIni.h" />
     <ClInclude Include="eck\CTrackBar.h" />
+    <ClInclude Include="eck\CTreeListExt.h" />
     <ClInclude Include="eck\DuiBase.h" />
     <ClInclude Include="eck\CEditExt.h" />
     <ClInclude Include="eck\CException.h" />

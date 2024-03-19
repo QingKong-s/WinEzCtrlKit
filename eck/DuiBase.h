@@ -581,6 +581,18 @@ public:
 		}
 	}
 
+	EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT lStop)
+	{
+		if (CallEvent(uMsg, wParam, lParam) == lStop)
+			return;
+		auto pElem = GetFirstChildElem();
+		while (pElem)
+		{
+			pElem->BroadcastEvent(uMsg, wParam, lParam, lStop);
+			pElem = pElem->GetNextElem();
+		}
+	}
+
 	EckInline void SetID(int iId) { m_iId = iId; }
 
 	EckInline int GetID() const { return m_iId; }
@@ -839,20 +851,26 @@ public:
 
 		case WM_CAPTURECHANGED:
 		{
-			EckAssert(m_bMouseCaptured);
-			m_bMouseCaptured = FALSE;
-			if (m_pMouseCaptureElem)
+			if (m_bMouseCaptured)
 			{
-				m_pMouseCaptureElem->CallEvent(WM_CAPTURECHANGED, 0, NULL);
-				if (m_pHoverElem == m_pMouseCaptureElem)
+				m_bMouseCaptured = FALSE;
+				if (m_pMouseCaptureElem)
 				{
-					m_pHoverElem->CallEvent(WM_MOUSELEAVE, 0, 0);
-					m_pHoverElem = NULL;
+					m_pMouseCaptureElem->CallEvent(WM_CAPTURECHANGED, 0, NULL);
+					if (m_pHoverElem == m_pMouseCaptureElem)
+					{
+						m_pHoverElem->CallEvent(WM_MOUSELEAVE, 0, 0);
+						m_pHoverElem = NULL;
+					}
+					m_pMouseCaptureElem = NULL;
 				}
-				m_pMouseCaptureElem = NULL;
 			}
 		}
 		break;
+
+		case WM_COMMAND:
+			BroadcastEvent(uMsg, wParam, lParam, TRUE);
+			return 0;
 
 		case WM_CREATE:
 		{
@@ -1039,6 +1057,16 @@ public:
 		while (pElem)
 		{
 			pElem->BroadcastEvent(uMsg, wParam, lParam);
+			pElem = pElem->GetNextElem();
+		}
+	}
+
+	EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT lStop)
+	{
+		auto pElem = GetFirstChildElem();
+		while (pElem)
+		{
+			pElem->BroadcastEvent(uMsg, wParam, lParam, lStop);
 			pElem = pElem->GetNextElem();
 		}
 	}
