@@ -9,14 +9,16 @@ private:
 	HWND m_hWnd = NULL;
 	LPARAM m_lParam = 0;
 	UINT m_uNotifyMsg = 0;
+	
 
 	static void CALLBACK TimerProc(UINT uTimerID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR dw1, DWORD_PTR dw2)
 	{
 		auto p = (CMsgMmTimer*)dwUser;
-
-		PostMessageW(p->m_hWnd, p->m_uNotifyMsg, uTimerID, p->m_lParam);
+		p->pfn(0, 0, 0, 0, 0, p->m_lParam);
+		//PostMessageW(p->m_hWnd, p->m_uNotifyMsg, uTimerID, p->m_lParam);
 	}
 public:
+	SUBCLASSPROC pfn = 0;
 	CMsgMmTimer() = default;
 	CMsgMmTimer(HWND hWnd, UINT uMsg) :m_hWnd{ hWnd }, m_uNotifyMsg{ uMsg }
 	{}

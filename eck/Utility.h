@@ -723,4 +723,20 @@ EckInline constexpr BOOL IsColorLightColorref(COLORREF cr)
 		GetIntegerByte<1>(cr),
 		GetIntegerByte<2>(cr));
 }
+
+EckInline constexpr bool IsGuidEqu(REFGUID x1, REFGUID x2)
+{
+	return
+		x1.Data1 == x2.Data1 &&
+		x1.Data2 == x2.Data2 &&
+		x1.Data3 == x2.Data3 &&
+		x1.Data4[0] == x2.Data4[0] &&
+		x1.Data4[1] == x2.Data4[1] &&
+		x1.Data4[2] == x2.Data4[2] &&
+		x1.Data4[3] == x2.Data4[3] &&
+		x1.Data4[4] == x2.Data4[4] &&
+		x1.Data4[5] == x2.Data4[5] &&
+		x1.Data4[6] == x2.Data4[6] &&
+		x1.Data4[7] == x2.Data4[7];
+}
 ECK_NAMESPACE_END

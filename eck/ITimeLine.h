@@ -1,0 +1,21 @@
+﻿#pragma once
+#include "ECK.h"
+
+ECK_NAMESPACE_BEGIN
+constexpr inline IID IID_ITimeLine
+{ 0xfaf92698, 0xd74, 0x4d14, { 0x90, 0xa5, 0x4e, 0x66, 0xc1, 0xa, 0x96, 0x30 } };
+
+ECK_COM_INTERFACE("FAF92698-0D74-4D14-90A5-4E66C10A9630")
+ITimeLine : public IUnknown
+{
+	/// <summary>
+	/// 滴答时间线
+	/// </summary>
+	void STDMETHODCALLTYPE Tick(int iMs);
+
+	/// <summary>
+	/// 时间线是否有效
+	/// </summary>
+	BOOL STDMETHODCALLTYPE IsValid();
+};
+ECK_NAMESPACE_END

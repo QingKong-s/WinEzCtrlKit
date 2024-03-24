@@ -30,6 +30,11 @@
 #pragma comment(lib,"wbemuuid.lib")
 #pragma comment(lib,"Version.lib")
 #pragma comment(lib,"msimg32.lib")
+#ifdef _WIN64
+#pragma comment(lib,"D:\\@重要文件\\@我的工程\\WinEzCtrlKit\\eck\\Detours\\detours_x64.lib")
+#else
+#pragma comment(lib,".\\Detours\\detours_x86.lib")
+#endif
 #endif
 
 // ECKMACRO_NO_WIN11_22621  SDK版本是否>=22621

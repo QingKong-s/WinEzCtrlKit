@@ -28,12 +28,12 @@ private:
 
 	float m_cxyTrack = 0.0f;
 
-	CEasingCurve m_Ec{};
+	CEasingCurve* m_pec = NULL;
 
 	float GetCxyTrack()
 	{
-		if (m_Ec.IsActive())
-			return  m_cxyTrack / 2.f + m_cxyTrack / 2.f * m_Ec.GetCurrValue();
+		if (m_pec->IsActive())
+			return  m_cxyTrack / 2.f + m_cxyTrack / 2.f * m_pec->GetCurrValue();
 		else
 			return (m_bHover ? m_cxyTrack : m_cxyTrack / 2.f);
 	}
@@ -62,7 +62,7 @@ private:
 
 	void GetThumbCircle(float cxyTrack, const D2D1_RECT_F& rcTrack, D2D1_ELLIPSE& ellipse)
 	{
-		const float cxy = cxyTrack * 3.f / 4.f * m_Ec.GetCurrValue();
+		const float cxy = cxyTrack * 3.f / 4.f * m_pec->GetCurrValue();
 		ellipse.radiusX = ellipse.radiusY = cxy;
 		if (m_bVertical)
 		{
@@ -122,7 +122,7 @@ public:
 			m_pBrush->SetColor(ct.crBkSelected);
 			m_pDC->FillRoundedRectangle(rrc, m_pBrush);
 
-			if (m_bHover || m_Ec.IsActive())
+			if (m_bHover || m_pec->IsActive())
 			{
 				D2D1_ELLIPSE ellipse;
 				GetThumbCircle(cxyTrack, rrc.rect, ellipse);
@@ -169,8 +169,9 @@ public:
 			else if (!m_bHover)
 			{
 				m_bHover = TRUE;
-				m_Ec.SetReverse(FALSE);
-				m_Ec.Begin(ECBF_CONTINUE);
+				m_pec->SetReverse(FALSE);
+				m_pec->Begin(ECBF_CONTINUE);
+				GetWnd()->WakeRenderThread();
 			}
 		}
 		return 0;
@@ -180,8 +181,9 @@ public:
 			if (!m_bLBtnDown && m_bHover)
 			{
 				m_bHover = FALSE;
-				m_Ec.SetReverse(TRUE);
-				m_Ec.Begin(ECBF_CONTINUE);
+				m_pec->SetReverse(TRUE);
+				m_pec->Begin(ECBF_CONTINUE);
+				GetWnd()->WakeRenderThread();
 			}
 		}
 		return 0;
@@ -224,8 +226,8 @@ public:
 				if (m_bHover)
 				{
 					m_bHover = FALSE;
-					m_Ec.SetReverse(TRUE);
-					m_Ec.Begin(ECBF_CONTINUE);
+					m_pec->SetReverse(TRUE);
+					m_pec->Begin(ECBF_CONTINUE);
 				}
 			}
 		}
@@ -237,16 +239,18 @@ public:
 
 		case WM_CREATE:
 		{
-			InitEasingCurve(m_Ec);
-			m_Ec.SetRange(0.f, 1.f);
-			m_Ec.SetDuration(160);
-			m_Ec.SetElapse(20);
-			m_Ec.SetAnProc(Easing::OutSine);
-			m_Ec.SetCallBack([](float fCurrValue, float fOldValue, LPARAM lParam)
+			m_pec = new CEasingCurve{};
+			InitEasingCurve(m_pec);
+			m_pec->SetRange(0.f, 1.f);
+			m_pec->SetDuration(160);
+			m_pec->SetElapse(20);
+			m_pec->SetAnProc(Easing::OutSine);
+			m_pec->SetCallBack([](float fCurrValue, float fOldValue, LPARAM lParam)
 				{
 					auto pElem = (CElem*)lParam;
 					pElem->InvalidateRect();
 				});
+
 			m_pDC->CreateSolidColorBrush({}, &m_pBrush);
 		}
 		return 0;
@@ -254,6 +258,7 @@ public:
 		case WM_DESTROY:
 		{
 			SafeRelease(m_pBrush);
+			SafeRelease(m_pec);
 		}
 		return 0;
 		}

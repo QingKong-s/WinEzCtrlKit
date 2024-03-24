@@ -452,17 +452,18 @@ inline POINT CalcCenterWndPos(HWND hParent, int cx, int cy)
 
 /// <summary>
 /// 鼠标是否移动出拖放距离阈值。
-/// 给定起始点，判断自调用函数的瞬间起鼠标移动距离是否超过
-/// GetSystemMetrics(SM_CXDRAG)和GetSystemMetrics(SM_CYDRAG)
+/// 给定起始点，判断自调用函数的瞬间起鼠标移动距离是否超过(dx, dy)
 /// </summary>
 /// <param name="hWnd">窗口句柄</param>
 /// <param name="x">起始X，相对屏幕</param>
 /// <param name="y">起始Y，相对屏幕</param>
+/// <param name="dx">x方向的阈值，若为负，则使用GetSystemMetrics(SM_CXDRAG)</param>
+/// <param name="dy">y方向的阈值，若为负，则使用GetSystemMetrics(SM_CYDRAG)</param>
 /// <returns>移动距离超出阈值返回TRUE，此时调用方可执行拖放操作；否则返回FALSE</returns>
-inline BOOL IsMouseMovedBeforeDragging(HWND hWnd, int x, int y)
+inline BOOL IsMouseMovedBeforeDragging(HWND hWnd, int x, int y, int dx = -1, int dy = -1)
 {
-	const int dxDrag = GetSystemMetrics(SM_CXDRAG);
-	const int dyDrag = GetSystemMetrics(SM_CYDRAG);
+	const int dxDrag = (dx < 0 ? GetSystemMetrics(SM_CXDRAG) : dx);
+	const int dyDrag = (dy < 0 ? GetSystemMetrics(SM_CYDRAG) : dy);
 	SetCapture(hWnd);
 	MSG msg;
 	while (GetCapture() == hWnd)
