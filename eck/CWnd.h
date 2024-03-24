@@ -690,6 +690,11 @@ public:
 		return SetWindowTheme(m_hWnd, L"Explorer", NULL);
 	}
 
+	EckInline HRESULT SetItemsViewTheme() const
+	{
+		return SetWindowTheme(m_hWnd, L"ItemsView", NULL);
+	}
+
 	EckInline HRESULT SetTheme(PCWSTR pszAppName, PCWSTR pszSubList = NULL) const
 	{
 		return SetWindowTheme(m_hWnd, pszAppName, pszSubList);

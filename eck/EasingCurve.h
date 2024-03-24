@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "ECK.h"
-#include "CMsgMmTimer.h"
+#include "ITimeLine.h"
 
 #define ECK_EASING_NAMESPACE_BEGIN namespace Easing {
 #define ECK_EASING_NAMESPACE_END }
@@ -568,8 +568,8 @@ struct FSpring
 			return fStart + fDistance;
 		else
 		{
-			const float fCurrTime = fCurrTime / fDuration - 1.f;
-			return -fDistance * expf(-fCurrTime * f) * sinf(2.f * PiF * fCurrTime / 0.3f) + fDistance + fStart;
+			const float g = fCurrTime / fDuration - 1.f;
+			return -fDistance * expf(-g * f) * sinf(2.f * PiF * g / 0.3f) + fDistance + fStart;
 		}
 	}
 };
@@ -586,7 +586,7 @@ enum
 	ECBF_CONTINUE = 1u << 1,
 };
 
-class CEasingCurve
+class CEasingCurve :public ITimeLine
 {
 public:
 	using FCallBack = void(*)(float fCurrValue, float fOldValue, LPARAM lParam);
@@ -595,8 +595,6 @@ private:
 	float m_fDuration = 0.f;
 	float m_fStart = 0.f;
 	float m_fDistance = 0.f;
-
-	CMsgMmTimer m_Timer{};
 
 	float m_fElapse = 0.f;
 	float m_fCurrValue = 0.f;
@@ -607,10 +605,9 @@ private:
 
 	BITBOOL m_bActive : 1 = FALSE;
 	BITBOOL m_bReverse : 1 = FALSE;
+	LONG m_cRef = 1;
 
-	static UINT m_uMsgTimer;
-
-	BOOL Tick()
+	EckInline BOOL IntTick()
 	{
 		m_fCurrTime += m_fElapse;
 		BOOL bEnd = FALSE;
@@ -630,80 +627,56 @@ private:
 		m_fCurrValue = m_pfnAn(m_fCurrTime, m_fStart, m_fDistance, m_fDuration);
 		return bEnd;
 	}
-
-	static LRESULT CALLBACK SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
-	{
-		auto p = (CEasingCurve*)lParam;
-		if (uMsg == m_uMsgTimer)
-		{
-			EckAssert(p->m_pfnCallBack);
-			const float fOldValue = p->m_fCurrValue;
-			const auto bEnd = p->Tick();
-			p->m_pfnCallBack(p->m_fCurrValue, fOldValue, p->m_lParam);
-			if (bEnd)
-				p->End();
-			return 0;
-		}
-
-		return DefSubclassProc(hWnd, uMsg, wParam, lParam);
-	}
 public:
-	CEasingCurve()
-	{
-		m_Timer.SetMsg(m_uMsgTimer);
-		m_Timer.SetParam((LPARAM)this);
-	}
-
+	ECK_DISABLE_COPY_MOVE_DEF_CONS(CEasingCurve)
+public:
 	~CEasingCurve()
 	{
 		End();
-		const auto hWnd = m_Timer.GetHWND();
-		if (IsWindow(hWnd))
+	}
+	// **IUnknown**
+	ULONG STDMETHODCALLTYPE AddRef(void) { return ++m_cRef; }
+
+	ULONG STDMETHODCALLTYPE Release(void)
+	{
+		if (m_cRef == 1)
 		{
-			UINT uRef = pToI32<UINT>(GetPropW(hWnd, WPROP_EASING));
-			if (uRef == 1)
-			{
-				RemoveWindowSubclass(hWnd, SubclassProc, SCID_EASING);
-				RemovePropW(hWnd, WPROP_EASING);
-			}
-			else
-			{
-				--uRef;
-				SetPropW(hWnd, WPROP_EASING, i32ToP<HANDLE>(uRef));
-			}
+			delete this;
+			return 0;
 		}
+		return --m_cRef;
 	}
 
-	CEasingCurve& operator=(const CEasingCurve&) = delete;
-	CEasingCurve(const CEasingCurve&) = delete;
-	
-	CEasingCurve(CEasingCurve&& x) noexcept
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** ppvObject)
 	{
-		memcpy(this, &x, sizeof(CEasingCurve));
-		std::construct_at(&x);
-	}
+		const static QITAB qit[]
+		{
+			QITABENT(CEasingCurve, ITimeLine),
+			{}
+		};
 
-	CEasingCurve& operator=(CEasingCurve&& x) noexcept
+		return QISearch(this, qit, iid, ppvObject);
+	}
+	// **ITimeLine**
+	void STDMETHODCALLTYPE Tick(int iMs)
 	{
-		memcpy(this, &x, sizeof(CEasingCurve));
-		std::construct_at(&x);
-		return *this;
+		EckAssert(m_pfnCallBack);
+		const float fOldValue = m_fCurrValue;
+		const auto bEnd = IntTick();
+		m_pfnCallBack(m_fCurrValue, fOldValue, m_lParam);
+
+		if (bEnd)
+			End();
 	}
 
+	EckInline BOOL STDMETHODCALLTYPE IsValid()
+	{
+		return m_bActive;
+	}
+	// 
 	EckInline void SetParam(LPARAM lParam) { m_lParam = lParam; }
 
 	EckInline LPARAM GetParam() const { return m_lParam; }
-
-	EckInline void SetWnd(HWND hWnd)
-	{
-		EckAssert(!m_Timer.GetID());
-		m_Timer.SetHWND(hWnd);
-		UINT uRef = pToI32<UINT>(GetPropW(hWnd, WPROP_EASING));
-		if (!uRef)
-			SetWindowSubclass(hWnd, SubclassProc, SCID_EASING, 0);
-		++uRef;
-		SetPropW(hWnd, WPROP_EASING, i32ToP<HANDLE>(uRef));
-	}
 
 	EckInline void SetCallBack(FCallBack pfnCallBack) { m_pfnCallBack = pfnCallBack; }
 
@@ -726,7 +699,7 @@ public:
 	EckInline void SetCurrTime(float fCurrTime)
 	{ 
 		m_fCurrTime = fCurrTime - m_fElapse;
-		Tick();
+		IntTick();
 	}
 
 	EckInline void SetReverse(BOOL bReverse)
@@ -748,16 +721,12 @@ public:
 			SetCurrTime(0.f);
 			m_fCurrValue = m_fStart;
 		}
-
-		if (!m_Timer.GetID())
-			m_Timer.SetTimer((UINT)fabs(m_fElapse));
 	}
 
 	EckInline void End()
 	{
-		m_fCurrValue = m_fStart + m_fDistance;
-		m_Timer.KillTimer();
 		m_bActive = FALSE;
+		m_fCurrValue = m_fStart + m_fDistance;
 	}
 
 	EckInline BOOL IsActive() const { return m_bActive; }
@@ -778,8 +747,6 @@ public:
 
 	EckInline void SetAnProc(Easing::FAn pfnAn) { m_pfnAn = pfnAn; }
 };
-
-inline UINT CEasingCurve::m_uMsgTimer = RegisterWindowMessageW(MSGREG_EASING);
 
 template<class FAn>
 struct CEasingAn

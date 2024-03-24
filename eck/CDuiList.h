@@ -7,7 +7,7 @@
 */
 #pragma once
 #include "DuiBase.h"
-#include "CScrollView.h"
+#include "CInertialScrollView.h"
 #include "CD2dImageList.h"
 
 #include <d2d1_2.h>
@@ -83,14 +83,14 @@ private:
 	IDWriteTextFormat* m_pTf = NULL;
 	ID2D1GeometryRealization* m_pGrInsertMark = NULL;
 
-	CInertialScrollView m_Sv{};	// 滚动视图
+	CInertialScrollView* m_psv = NULL;
 	CD2dImageList* m_pImgList = NULL;
 
 	BITBOOL m_bHoverThumb : 1 = FALSE;
 	BITBOOL m_bThumbDrag : 1 = FALSE;
 	BITBOOL m_bSingleSel : 1 = FALSE;
 
-	CEasingCurve m_EcThumb{};
+	CEasingCurve* m_pecThumb = NULL;
 
 	ECK_DS_BEGIN(DPIS)
 		ECK_DS_ENTRY_F(cxSBThumb, 8.f)
@@ -166,22 +166,22 @@ private:
 
 	void ReCalcScroll()
 	{
-		m_Sv.SetMinThumbSize((int)m_DsF.minSBThumbSize);
-		m_Sv.SetViewSize(GetHeight() - m_cyTopExtra - m_cyBottomExtra);
-		m_Sv.SetRange(-m_cyTopExtra, (int)m_vItem.size() * (m_cyItem + m_cyPadding) + m_cyBottomExtra);
-		m_Sv.SetPage(GetHeight());
+		m_psv->SetMinThumbSize((int)m_DsF.minSBThumbSize);
+		m_psv->SetViewSize(GetHeight() - m_cyTopExtra - m_cyBottomExtra);
+		m_psv->SetRange(-m_cyTopExtra, (int)m_vItem.size() * (m_cyItem + m_cyPadding) + m_cyBottomExtra);
+		m_psv->SetPage(GetHeight());
 	}
 
 	void ReCalcTopItem()
 	{
-		m_idxTop = m_Sv.GetPos() / (m_cyItem + m_cyPadding);
-		m_oyTopItem = m_idxTop * (m_cyItem + m_cyPadding) - m_Sv.GetPos();
+		m_idxTop = m_psv->GetPos() / (m_cyItem + m_cyPadding);
+		m_oyTopItem = m_idxTop * (m_cyItem + m_cyPadding) - m_psv->GetPos();
 	}
 
 	BOOL GetSBThumbRectInClient(RECT& rc)
 	{
-		const int cyThumb = m_Sv.GetThumbSize();
-		const int yThumb = m_Sv.GetThumbPos(cyThumb);
+		const int cyThumb = m_psv->GetThumbSize();
+		const int yThumb = m_psv->GetThumbPos(cyThumb);
 		if (cyThumb < 0 || yThumb < 0)
 			return FALSE;
 		rc.left = (long)(GetRectInClient().right - m_DsF.cxSBThumb);
@@ -193,8 +193,8 @@ private:
 
 	BOOL GetSBThumbRectInClient(D2D1_RECT_F& rc)
 	{
-		const int cyThumb = m_Sv.GetThumbSize();
-		const int yThumb = m_Sv.GetThumbPos(cyThumb);
+		const int cyThumb = m_psv->GetThumbSize();
+		const int yThumb = m_psv->GetThumbPos(cyThumb);
 		if (cyThumb < 0 || yThumb < 0)
 			return FALSE;
 		rc.left = GetRectInClientF().right - m_DsF.cxSBThumb;
@@ -207,8 +207,8 @@ private:
 	// 元素坐标
 	BOOL GetSBThumbRect(RECT& rc) const
 	{
-		const int cyThumb = m_Sv.GetThumbSize();
-		const int yThumb = m_Sv.GetThumbPos(cyThumb);
+		const int cyThumb = m_psv->GetThumbSize();
+		const int yThumb = m_psv->GetThumbPos(cyThumb);
 		if (cyThumb < 0 || yThumb < 0)
 			return FALSE;
 		rc.left = GetViewWidth() - (long)m_DsF.cxSBThumb;
@@ -221,8 +221,8 @@ private:
 	// 元素坐标
 	BOOL GetSBThumbRect(D2D1_RECT_F& rc) const
 	{
-		const int cyThumb = m_Sv.GetThumbSize();
-		const int yThumb = m_Sv.GetThumbPos(cyThumb);
+		const int cyThumb = m_psv->GetThumbSize();
+		const int yThumb = m_psv->GetThumbPos(cyThumb);
 		if (cyThumb < 0 || yThumb < 0)
 			return FALSE;
 		rc.left = GetViewWidthF() - m_DsF.cxSBThumb;
@@ -241,8 +241,8 @@ private:
 		if (!GetSBThumbRect(rrc.rect))
 			return;
 
-		if (m_EcThumb.IsActive())
-			rrc.rect.right  = rrc.rect.left + m_DsF.cxSBThumbSmall+(m_DsF.cxSBThumb - m_DsF.cxSBThumbSmall) * m_EcThumb.GetCurrValue();
+		if (m_pecThumb->IsActive())
+			rrc.rect.right  = rrc.rect.left + m_DsF.cxSBThumbSmall+(m_DsF.cxSBThumb - m_DsF.cxSBThumbSmall) * m_pecThumb->GetCurrValue();
 		else
 			if (!m_bHoverThumb)
 				rrc.rect.right = rrc.rect.left + m_DsF.cxSBThumbSmall;
@@ -310,6 +310,7 @@ public:
 
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
+		ECK_DUILOCK;
 		switch (uMsg)
 		{
 		case WM_PAINT:
@@ -351,7 +352,7 @@ public:
 
 			if (m_bThumbDrag)
 			{
-				m_Sv.OnMouseMove(ht.pt.y - m_cyTopExtra);
+				m_psv->OnMouseMove(ht.pt.y - m_cyTopExtra);
 				ReCalcTopItem();
 				InvalidateRect();
 				return 0;
@@ -362,19 +363,18 @@ public:
 			if (ht.bSBThumb != m_bHoverThumb)
 			{
 				m_bHoverThumb = ht.bSBThumb;
-				m_EcThumb.SetReverse(!m_bHoverThumb);
-				m_EcThumb.Begin(ECBF_CONTINUE);
+				m_pecThumb->SetReverse(!m_bHoverThumb);
+				m_pecThumb->Begin(ECBF_CONTINUE);
+				GetWnd()->WakeRenderThread();
 			}
 
 			if (idx != m_idxHot)
 			{
 				std::swap(m_idxHot, idx);
-				SetRedraw(FALSE);
 				if (idx >= 0)
 					RedrawItem(idx);
 				if (m_idxHot >= 0)
 					RedrawItem(m_idxHot);
-				SetRedraw(TRUE);
 			}
 		}
 		return 0;
@@ -392,21 +392,17 @@ public:
 				if (m_bHoverThumb)
 				{
 					m_bHoverThumb = FALSE;
-					m_EcThumb.SetReverse(TRUE);
-					m_EcThumb.Begin(ECBF_CONTINUE);
+					m_pecThumb->SetReverse(TRUE);
+					m_pecThumb->Begin(ECBF_CONTINUE);
+					GetWnd()->WakeRenderThread();
 				}
 		}
 		return 0;
 
 		case WM_MOUSEWHEEL:
 		{
-			m_Sv.OnMouseWheel2(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA,
-				[](int iPos, int iPrevPos, LPARAM lParam)
-				{
-					auto pThis = (CList*)lParam;
-					pThis->ReCalcTopItem();
-					pThis->InvalidateRect();
-				}, (LPARAM)this);
+			m_psv->OnMouseWheel2(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
+			GetWnd()->WakeRenderThread();
 		}
 		return 0;
 
@@ -438,7 +434,7 @@ public:
 			else if (ht.bSBThumb)
 			{
 				m_bThumbDrag = TRUE;
-				m_Sv.OnLButtonDown(ht.pt.y - m_cyTopExtra);
+				m_psv->OnLButtonDown(ht.pt.y - m_cyTopExtra);
 				SetCapture();
 			}
 		}
@@ -450,26 +446,37 @@ public:
 			{
 				m_bThumbDrag = FALSE;
 				m_pWnd->ReleaseCaptureElem();
-				m_Sv.OnLButtonUp();
+				m_psv->OnLButtonUp();
 			}
 		}
 		return 0;
 
 		case WM_CREATE:
 		{
-			InitEasingCurve(m_EcThumb);
-			m_EcThumb.SetAnProc(Easing::OutSine);
-			m_EcThumb.SetRange(0.f, 1.f);
-			m_EcThumb.SetDuration(160);
-			m_EcThumb.SetElapse(20);
-			m_EcThumb.SetAnProc(Easing::OutSine);
-			m_EcThumb.SetCallBack([](float f, float fOld, LPARAM lParam)
+			m_pecThumb = new CEasingCurve{};
+			InitEasingCurve(m_pecThumb);
+			m_pecThumb->SetAnProc(Easing::OutSine);
+			m_pecThumb->SetRange(0.f, 1.f);
+			m_pecThumb->SetDuration(160);
+			m_pecThumb->SetElapse(20);
+			m_pecThumb->SetAnProc(Easing::OutSine);
+			m_pecThumb->SetCallBack([](float f, float fOld, LPARAM lParam)
 				{
 					auto p = (CList*)lParam;
 					p->RedrawThumb();
 				});
+
+			m_psv = new CInertialScrollView{};
+			m_psv->SetCallBack([](int iPos, int iPrevPos, LPARAM lParam)
+				{
+					auto pThis = (CList*)lParam;
+					pThis->ReCalcTopItem();
+					pThis->InvalidateRect();
+				}, (LPARAM)this);
+			GetWnd()->RegisterTimeLine(m_psv);
+
 			UpdateDpiSizeF(m_DsF, m_pWnd->GetDpiValue());
-			m_Sv.SetHWND(m_pWnd->HWnd);
+
 			m_pDC->CreateSolidColorBrush({}, &m_pBrush);
 			m_pDC->QueryInterface(&m_pDC1);
 		}
@@ -493,11 +500,14 @@ public:
 				SafeRelease(e.pLayout);
 			m_vItem.clear();
 			SafeRelease(m_pGrInsertMark);
-			m_Sv.SetRange(0, 0);
+			m_psv->SetRange(0, 0);
 			m_pImgList = NULL;
 			m_bHoverThumb = FALSE;
 			m_bThumbDrag = FALSE;
 			m_bSingleSel = FALSE;
+
+			SafeRelease(m_pecThumb);
+			SafeRelease(m_psv);
 		}
 		return 0;
 		}

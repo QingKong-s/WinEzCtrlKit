@@ -116,6 +116,7 @@ public:
 	{
 		EckAssert(p ? TRUE : cb);
 		m_pStream = m_Alloc.allocate(m_cbCapacity);
+#pragma warning(suppress : 6387)// 可能是0
 		memcpy(Data(), p, cb);
 	}
 

@@ -29,6 +29,13 @@ struct NMLBNGETDISPINFO
 	LBNITEM Item;
 };
 
+struct NMLBNDRAG
+{
+	NMHDR nmhdr;
+	int idx;
+	UINT uKeyFlags;
+};
+
 
 class CListBoxNew :public CWnd
 {
@@ -41,6 +48,7 @@ private:
 			struct
 			{
 				BITBOOL bSel : 1;
+				BITBOOL bSlideSel : 1;
 			};
 			UINT uFlags = 0u;
 		};
@@ -70,12 +78,18 @@ private:
 #ifdef _DEBUG
 	BITBOOL m_bDbgDrawMarkItem : 1 = 1;
 #endif
-	BITBOOL m_bMultiSel : 1 = 0;
-	BITBOOL m_bExtendSel : 1 = 1;
+	BITBOOL m_bMultiSel : 1 = FALSE;
+	BITBOOL m_bExtendSel : 1 = 1;// FALSE;
+	BITBOOL m_bAllowDrag : 1 = FALSE;
 
 	BITBOOL m_bLBtnDown : 1 = FALSE;
 	BITBOOL m_bUserItemHeight : 1 = FALSE;
-	BITBOOL m_bFocusIndicatorVisible : 1 = TRUE;
+	BITBOOL m_bFocusIndicatorVisible : 1 =
+#ifdef _DEBUG
+		TRUE;
+#else
+		FALSE;
+#endif
 
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 
@@ -103,7 +117,7 @@ private:
 		m_DC.Create(hWnd);
 		SetBkMode(m_DC.GetDC(), TRANSPARENT);
 
-		SetExplorerTheme();
+		SetItemsViewTheme();
 		m_hTheme = OpenThemeData(hWnd, L"ListView");
 		UpdateColor();
 		return TRUE;
@@ -182,20 +196,12 @@ private:
 
 	void OnMouseMove(HWND hWnd, int x, int y, UINT uKeyFlags)
 	{
-		if (m_bLBtnDown)
-		{
-			if (m_bExtendSel)
-			{
-
-			}
-		}
-		else
+		if (!m_bLBtnDown)
 		{
 			int idxHot = HitTest(x, y);
 			if (idxHot == m_idxHot)
 				return;
 			std::swap(idxHot, m_idxHot);
-			RECT rcItem;
 			if (idxHot >= 0)
 				RedrawItem(idxHot);
 			if (m_idxHot >= 0)
@@ -229,7 +235,7 @@ private:
 			m_idxFocus = idx;
 		if (m_bExtendSel)
 		{
-			if(GetAsyncKeyState(VK_CONTROL))
+			if (GetAsyncKeyState(VK_CONTROL))
 			{
 				if (idx >= 0)
 				{
@@ -325,13 +331,165 @@ private:
 			RedrawItem(idx0, idx1);
 	}
 
+	void BeginDraggingSelect(int idxBegin)
+	{
+		MSG msg;
+		SetCapture(HWnd);
+		int idxOld = idxBegin;
+		for (auto& e : m_vItem)
+			e.bSlideSel = e.bSel;
+		int idxOldSelBegin = -1,
+			idxOldSelEnd = -1,
+			idxOld0 = -1,
+			idxOld1 = -1;
+		while (GetCapture() == HWnd)// 如果捕获改变则应立即退出拖动循环
+		{
+			if (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
+			{
+				switch (msg.message)
+				{
+				case WM_LBUTTONUP:
+				case WM_LBUTTONDOWN:
+				case WM_RBUTTONUP:
+				case WM_RBUTTONDOWN:
+				case WM_MBUTTONUP:
+				case WM_MBUTTONDOWN:
+					goto ExitDraggingLoop;
+
+				case WM_KEYDOWN:
+					if (msg.wParam == VK_ESCAPE)// ESC退出拖放是银河系的惯例
+						goto ExitDraggingLoop;
+					[[fallthrough]];
+				case WM_CHAR:
+				case WM_KEYUP:
+					break;// eat it
+
+				case WM_MOUSEWHEEL:
+				{
+					SetRedraw(FALSE);// 暂时禁止重画
+					TranslateMessage(&msg);
+					DispatchMessageW(&msg);
+					SetRedraw(TRUE);
+				}
+				break;
+
+				case WM_MOUSEMOVE:
+				{
+					const POINT pt ECK_GET_PT_LPARAM(msg.lParam);
+					//----------滚动
+					int yDelta = 0;
+					if (pt.y < 0)
+						yDelta = pt.y;
+					else if (pt.y > m_cyClient)
+						yDelta = pt.y - m_cyClient;
+
+					if (yDelta)
+					{
+						SetRedraw(FALSE);
+						ScrollV(yDelta);
+						SetRedraw(TRUE);
+					}
+					//----------选中
+					int idxCurr = HitTest(pt.x, pt.y);
+					if (idxCurr < 0)
+					{
+						if (pt.y < 0)
+							idxCurr = m_idxTop;
+						else if (pt.y > m_cyClient)
+						{
+							idxCurr = m_idxTop + (m_cyClient - m_oyTop) / m_cyItem;
+							if (idxCurr >= GetItemCount())
+								idxCurr = GetItemCount() - 1;
+						}
+					}
+
+					if (m_bExtendSel)
+					{
+						const int
+							// 闭区间
+							idxSelBegin = std::min(m_idxMark, idxCurr),
+							idxSelEnd = std::max(m_idxMark, idxCurr),
+							// 闭区间
+							idx0 = std::min({ m_idxMark,idxCurr,idxOld }),
+							idx1 = std::max({ m_idxMark,idxCurr,idxOld });
+						if (idxOldSelBegin != idxSelBegin && 
+							idxOldSelEnd != idxSelEnd &&
+							idxOld0 != idx0 && 
+							idxOld1 != idx1)
+						{
+							for (int i = idx0; i <= idx1; ++i)
+							{
+								auto& e = m_vItem[i];
+								if (idxSelBegin <= i && i <= idxSelEnd)
+									e.bSel = TRUE;
+								else
+									e.bSel = e.bSlideSel;
+							}
+							idxOld = idxCurr;
+						}
+					}
+					/*else if (m_bMultiSel)
+					{
+						// 不可能出现
+					}*/
+					else
+						SelectItemForClick(idxCurr);
+					Redraw();
+					UpdateWindow(HWnd);
+				}
+				break;
+
+				case WM_QUIT:
+					PostQuitMessage((int)msg.wParam);// re-throw
+					goto ExitDraggingLoop;
+
+				default:
+					TranslateMessage(&msg);
+					DispatchMessageW(&msg);
+					break;
+				}
+			}
+			else
+				WaitMessage();
+		}
+	ExitDraggingLoop:
+		ReleaseCapture();
+		m_bLBtnDown = FALSE;
+	}
+
 	void OnLButtonDown(HWND hWnd, BOOL bDoubleClick, int x, int y, UINT uKeyFlags)
 	{
 		m_bLBtnDown = TRUE;
-		SetCapture(hWnd);
 		SetFocus(hWnd);
-		int idx = HitTest(x, y);
+		const int idx = HitTest(x, y);
+		if (idx < 0)
+			return;
+		POINT ptScr{ x,y };
+		ClientToScreen(hWnd, &ptScr);
 		SelectItemForClick(idx);
+		/*
+		* 拖动动作：
+		* 模式		禁止拖放时	允许拖放时
+		* ------------------------------
+		* 单选		跟随选中		无
+		* 多选		无			无
+		* 扩展多选	范围选择		无
+		*/
+		if (IsMouseMovedBeforeDragging(hWnd, ptScr.x, ptScr.y, 0))// YEILD
+		{
+			if (!IsValid())// revalidate
+				return;
+			if (m_bAllowDrag)
+			{
+				SetCapture(hWnd);
+				NMLBNDRAG nm;
+				nm.idx = idx;
+				nm.uKeyFlags = uKeyFlags;
+				FillNmhdrAndSendNotify(nm, NM_LBN_BEGINDRAG);
+			}
+			else if (m_bExtendSel || (!m_bExtendSel && !m_bMultiSel))// 扩展多选或单选
+				BeginDraggingSelect(idx);
+		}
 	}
 
 	void OnMouseWheel(HWND hWnd, int xPos, int yPos, int zDelta, UINT uKeys)
@@ -431,8 +589,13 @@ public:
 		{
 			if (m_bLBtnDown)
 			{
+				POINT pt ECK_GET_PT_LPARAM(lParam);
 				ReleaseCapture();
 				m_bLBtnDown = FALSE;
+				NMLBNDRAG nm;
+				nm.idx = HitTest(pt.x, pt.y);
+				nm.uKeyFlags = (UINT)wParam;
+				FillNmhdrAndSendNotify(nm, NM_LBN_ENDDRAG);
 			}
 		}
 		return 0;

@@ -20,6 +20,8 @@
 #include <unordered_map>
 #include <type_traits>
 
+#include ".\Detours\detours.h"
+
 #pragma region 宏
 #if _MSVC_LANG > 201703L
 #	define ECKCXX20 1
@@ -149,6 +151,22 @@ ECK_NAMESPACE_END
 // lParam->size 用于处理WM_SIZE   e.g. ECK_GET_SIZE_LPARAM(cxClient, cyClient, lParam);
 #define ECK_GET_SIZE_LPARAM(cx,cy,lParam) (cx) = LOWORD(lParam); (cy) = HIWORD(lParam);
 
+#define ECK_DISABLE_COPY_MOVE(e)				\
+			e(const e&) = delete;				\
+			e& operator=(const e&) = delete;	\
+			e(e&&) = delete;					\
+			e& operator=(e&&) = delete;
+
+#define ECK_DISABLE_COPY_MOVE_DEF_CONS(e)		\
+			e() = default;						\
+			e(const e&) = delete;				\
+			e& operator=(const e&) = delete;	\
+			e(e&&) = delete;					\
+			e& operator=(e&&) = delete;
+
+#define ECK_COM_INTERFACE(iid)					\
+			__interface __declspec(uuid(iid))
+
 #if ECKCXX20
 #define ECKLIKELY [[likely]]
 #define ECKUNLIKELY [[unlikely]]
@@ -245,6 +263,8 @@ enum :UINT
 	NM_TL_ITEMCHECKED,// NMTLCOMMITEM
 	NM_TL_BEGINDRAG,// NMTLDRAG
 	NM_TL_ENDDRAG,// NMTLDRAG
+	NM_LBN_BEGINDRAG,// NMLBNDRAG
+	NM_LBN_ENDDRAG,// NMLBNDRAG
 };
 /*-------------------*/
 /*属性字符串*/
@@ -326,6 +346,8 @@ ECK_PRIV_NAMESPACE_BEGIN
 using FRtlGetNtVersionNumbers = void(WINAPI*)(DWORD*, DWORD*, DWORD*);
 
 using FSetWindowCompositionAttribute = BOOL(WINAPI*)(HWND hWnd, WINDOWCOMPOSITIONATTRIBDATA*);
+
+using FOpenNcThemeData = HTHEME(WINAPI*)(HWND hWnd, LPCWSTR pszClassList);
 // 1809 17763 暗色功能引入
 using FAllowDarkModeForWindow = BOOL(WINAPI*)(HWND hWnd, BOOL bAllow);
 using FAllowDarkModeForApp = BOOL(WINAPI*)(BOOL bAllow);
@@ -356,6 +378,7 @@ extern FIsDarkModeAllowedForApp			pfnIsDarkModeAllowedForApp;
 
 extern FRtlGetNtVersionNumbers			pfnRtlGetNtVersionNumbers;
 extern FSetWindowCompositionAttribute	pfnSetWindowCompositionAttribute;
+extern FOpenNcThemeData					pfnOpenNcThemeData;
 ECK_PRIV_NAMESPACE_END
 
 
@@ -376,14 +399,12 @@ constexpr inline PCWSTR WCN_LISTBOXNEW = L"Eck.WndClass.ListBoxNew";
 constexpr inline PCWSTR WCN_ANIMATIONBOX = L"Eck.WndClass.AnimationBox";
 constexpr inline PCWSTR WCN_TREELIST = L"Eck.WndClass.TreeList";
 
-constexpr inline PCWSTR MSG_INERTIALSV = L"Eck.Message.InertialScrollView";
 constexpr inline PCWSTR MSGREG_FORMTRAY = L"Eck.Message.FormTray";
 constexpr inline PCWSTR MSGREG_EASING = L"Eck.Message.Easing";
 
 constexpr inline PCWSTR WPROP_EASING = L"Eck.Prop.Easing";
 
 constexpr inline UINT SCID_DESIGN = 20230621'01u;
-constexpr inline UINT SCID_INERTIALSCROLLVIEW = 20231103'01u;
 constexpr inline UINT SCID_EASING = 20240208'01u;
 
 enum class InitStatus
@@ -429,7 +450,7 @@ constexpr inline D3D_FEATURE_LEVEL c_uDefD3dFeatureLevel[]
 
 struct INITPARAM
 {
-	D2D1_FACTORY_TYPE uD2dFactoryType = D2D1_FACTORY_TYPE_SINGLE_THREADED;
+	D2D1_FACTORY_TYPE uD2dFactoryType = D2D1_FACTORY_TYPE_MULTI_THREADED;
 	DWRITE_FACTORY_TYPE uDWriteFactoryType = DWRITE_FACTORY_TYPE_SHARED;
 	const D3D_FEATURE_LEVEL* pD3dFeatureLevel = c_uDefD3dFeatureLevel;
 	UINT cD3dFeatureLevel = ARRAYSIZE(c_uDefD3dFeatureLevel);
@@ -461,8 +482,6 @@ struct ECKTHREADCTX
 	HHOOK hhkTempCBT = NULL;					// CBT钩子句柄
 	CWnd* pCurrWnd = NULL;						// 当前正在创建窗口所属的CWnd指针
 	FWndCreating pfnWndCreatingProc = NULL;		// 当前创建窗口时要调用的过程
-	HHOOK hhkDarkMode = NULL;
-	BOOL bDarkMode = FALSE;
 
 	EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
 	{

@@ -35,6 +35,7 @@ FIsDarkModeAllowedForApp		pfnIsDarkModeAllowedForApp{};
 
 FRtlGetNtVersionNumbers			pfnRtlGetNtVersionNumbers{};
 FSetWindowCompositionAttribute	pfnSetWindowCompositionAttribute{};
+FOpenNcThemeData				pfnOpenNcThemeData{};
 ECK_PRIV_NAMESPACE_END
 
 BOOL g_bWin10_1607 = FALSE;
@@ -58,6 +59,33 @@ static void CALLBACK GdiplusDebug(GpDebugEventLevel dwLevel, CHAR* pszMsg)
 		DebugBreak();
 }
 #endif
+
+static auto s_pfnCreateWindowEx = CreateWindowExW;
+static EckPriv___::FOpenNcThemeData s_pfnOpenNcThemeData{};
+
+static HWND WINAPI NewCreateWindowExW(DWORD dwExStyle, PCWSTR lpClassName, PCWSTR lpWindowName,
+	DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu,
+	HINSTANCE hInstance, PVOID lpParam)
+{
+	HWND hWnd = s_pfnCreateWindowEx(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight,
+		hWndParent, hMenu, hInstance, lpParam);
+	if (hWnd)
+	{
+		AllowDarkModeForWindow(hWnd, TRUE);
+		//SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+		SetWindowTheme(hWnd, L"Explorer", NULL);
+		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+	}
+	return hWnd;
+}
+
+static HTHEME WINAPI NewOpenNcThemeData(HWND hWnd, PCWSTR pszClassList)
+{
+	if (wcscmp(pszClassList, L"ScrollBar") == 0)
+		return s_pfnOpenNcThemeData(NULL, L"Explorer::ScrollBar");
+	else ECKLIKELY
+		return s_pfnOpenNcThemeData(hWnd, pszClassList);
+}
 
 enum
 {
@@ -282,6 +310,9 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 				GetProcAddress(hModUx, MAKEINTRESOURCEA(104));
 			pfnGetIsImmersiveColorUsingHighContrast = (FGetIsImmersiveColorUsingHighContrast)
 				GetProcAddress(hModUx, MAKEINTRESOURCEA(106));
+			pfnOpenNcThemeData = (FOpenNcThemeData)
+				GetProcAddress(hModUx, MAKEINTRESOURCEA(49));
+			s_pfnOpenNcThemeData = pfnOpenNcThemeData;
 		}
 	}
 	FreeLibrary(hModUx);
@@ -297,6 +328,12 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		SetPreferredAppMode(PreferredAppMode::AllowDark);
 		g_bAllowDark = TRUE;
 	}
+
+	DetourTransactionBegin();
+	DetourAttach(&s_pfnCreateWindowEx, NewCreateWindowExW);
+	if (s_pfnOpenNcThemeData)
+		DetourAttach(&s_pfnOpenNcThemeData, NewOpenNcThemeData);
+	DetourTransactionCommit();
 
 	return InitStatus::Ok;
 }
@@ -328,23 +365,6 @@ void ThreadInit()
 	EckAssert(!TlsGetValue(GetThreadCtxTlsSlot()));
 	const auto p = new ECKTHREADCTX{};
 	TlsSetValue(GetThreadCtxTlsSlot(), p);
-	p->hhkDarkMode = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
-		{
-			const auto* const p = GetThreadCtx();
-			if (iCode == HCBT_CREATEWND)
-			{
-				//const auto lResult = CallNextHookEx(p->hhkDarkMode, iCode, wParam, lParam);
-				const auto hWnd = (HWND)wParam;
-				if (IsWindow(hWnd))
-				{
-					AllowDarkModeForWindow(hWnd, TRUE);
-					SetWindowTheme(hWnd, L"Explorer", NULL);
-				}
-
-				//return lResult;
-			}
-			return CallNextHookEx(p->hhkDarkMode, iCode, wParam, lParam);
-		}, NULL, GetCurrentThreadId());
 }
 
 constexpr PCWSTR c_szErrInitStatus[]
@@ -376,7 +396,6 @@ void ThreadUnInit()
 	}
 #endif // _DEBUG
 	UnhookWindowsHookEx(p->hhkTempCBT);
-	UnhookWindowsHookEx(p->hhkDarkMode);
 	delete p;
 	TlsSetValue(GetThreadCtxTlsSlot(), NULL);
 }

@@ -88,6 +88,7 @@ public:
 			TLEIF_TEXT | TLEIF_PARAM,
 			(PWSTR)pszText,
 			(int)wcslen(pszText),
+			0,
 			lParam
 		};
 		return InsertItem(tlei, hParent, idxPos);
