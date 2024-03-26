@@ -15,6 +15,8 @@ protected:
 	int m_iDuration = 400;	// 动画总时间
 	int m_iDelta = 80;		// 每次滚动的距离
 
+	int m_iCurrInterval = 0;
+
 	InertialScrollProc m_pfnCallBack = NULL;
 	LPARAM m_lParam = 0;
 
@@ -47,8 +49,9 @@ public:
 	// **ITimeLine**
 	void STDMETHODCALLTYPE Tick(int iMs)
 	{
+		m_iCurrInterval = iMs;
 		const int iPrevPos = GetPos();
-		m_iSustain += 20;
+		m_iSustain += iMs;
 		int iCurr = (int)Easing::FOutCubic{}((float)m_iSustain, (float)m_iStart,
 			(float)m_iDistance, (float)m_iDuration);
 		if (iCurr > GetMaxWithPage())
@@ -70,6 +73,11 @@ public:
 	EckInline BOOL STDMETHODCALLTYPE IsValid()
 	{
 		return m_bValid;
+	}
+
+	EckInline int STDMETHODCALLTYPE GetCurrTickInterval()
+	{
+		return m_iCurrInterval;
 	}
 	// 
 	EckInline void OnMouseWheel2(int iWheelDelta)
@@ -105,6 +113,8 @@ public:
 	}
 
 	EckInline void SetDuration(int iDuration) { m_iDuration = iDuration; }
+
+	EckInline int GetDuration() const { return m_iDuration; }
 
 	EckInline void SetDelta(int iDelta) { m_iDelta = iDelta; }
 };

@@ -596,8 +596,9 @@ private:
 	float m_fStart = 0.f;
 	float m_fDistance = 0.f;
 
-	float m_fElapse = 0.f;
 	float m_fCurrValue = 0.f;
+
+	int m_iCurrInterval = 0;
 
 	LPARAM m_lParam = 0;
 	FCallBack m_pfnCallBack = NULL;
@@ -607,19 +608,19 @@ private:
 	BITBOOL m_bReverse : 1 = FALSE;
 	LONG m_cRef = 1;
 
-	EckInline BOOL IntTick()
+	EckInline BOOL IntTick(float fMs)
 	{
-		m_fCurrTime += m_fElapse;
+		m_fCurrTime += fMs;
 		BOOL bEnd = FALSE;
 		if (m_fCurrTime > m_fDuration)
 		{
-			EckAssert(m_fElapse > 0.f);
+			EckAssert(fMs > 0.f);
 			m_fCurrTime = m_fDuration;
 			bEnd = TRUE;
 		}
 		else if (m_fCurrTime < 0.f)
 		{
-			EckAssert(m_fElapse < 0.f);
+			EckAssert(fMs < 0.f);
 			m_fCurrTime = 0.f;
 			bEnd = TRUE;
 		}
@@ -660,9 +661,10 @@ public:
 	// **ITimeLine**
 	void STDMETHODCALLTYPE Tick(int iMs)
 	{
+		m_iCurrInterval = iMs;
 		EckAssert(m_pfnCallBack);
 		const float fOldValue = m_fCurrValue;
-		const auto bEnd = IntTick();
+		const auto bEnd = IntTick((float)(m_bReverse ? -iMs : iMs));
 		m_pfnCallBack(m_fCurrValue, fOldValue, m_lParam);
 
 		if (bEnd)
@@ -673,6 +675,11 @@ public:
 	{
 		return m_bActive;
 	}
+
+	EckInline int STDMETHODCALLTYPE GetCurrTickInterval()
+	{
+		return m_iCurrInterval;
+	}
 	// 
 	EckInline void SetParam(LPARAM lParam) { m_lParam = lParam; }
 
@@ -682,14 +689,6 @@ public:
 
 	EckInline void SetDuration(float fDuration) { m_fDuration = fDuration; }
 
-	EckInline void SetElapse(float fElapse)
-	{
-		if (m_bReverse)
-			m_fElapse = -fabs(fElapse);
-		else
-			m_fElapse = fabs(fElapse);
-	}
-
 	EckInline void SetRange(float fStart, float fDistance)
 	{
 		m_fStart = fStart;
@@ -698,14 +697,12 @@ public:
 
 	EckInline void SetCurrTime(float fCurrTime)
 	{ 
-		m_fCurrTime = fCurrTime - m_fElapse;
-		IntTick();
+		m_fCurrTime = fCurrTime;
 	}
 
 	EckInline void SetReverse(BOOL bReverse)
 	{
 		m_bReverse = bReverse;
-		SetElapse(m_fElapse);
 		if (!IsActive())
 			if (bReverse)
 				m_fCurrValue = m_fStart + m_fDistance;
@@ -737,8 +734,6 @@ public:
 
 	EckInline float GetDuration() const { return m_fDuration; }
 
-	EckInline float GetElapse() const { return fabs(m_fElapse); }
-
 	EckInline float GetStart() const { return m_fStart; }
 
 	EckInline float GetDistance() const { return m_fDistance; }
@@ -767,6 +762,8 @@ struct CEasingAn
 	EckInline float Tick(float fElapse)
 	{
 		m_fCurrTime += fElapse;
+		if (IsEnd())
+			m_fCurrTime = m_fDuration;
 		return FAn{}(m_fCurrTime, m_fStart, m_fDistance, m_fDuration);
 	}
 
