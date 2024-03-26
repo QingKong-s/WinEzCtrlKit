@@ -11,9 +11,9 @@
 #include "OleDragDropHelper.h"
 #include "EasingCurve.h"
 #include "CDuiColorTheme.h"
-#include "CConditionVariable.h"
 #include "ITimeLine.h"
 #include "CEvent.h"
+#include "CCriticalSection.h"
 
 #define ECK_DUI_NAMESPACE_BEGIN namespace Dui {
 #define ECK_DUI_NAMESPACE_END }
@@ -598,6 +598,7 @@ private:
 		FillBackground(MakeD2DRcF(rc));
 		RedrawElem(GetLastChildElem(), rc);
 		m_D2d.GetDC()->SetTransform(D2D1::Matrix3x2F::Identity());
+
 		m_D2d.GetDC()->EndDraw();
 	}
 
@@ -610,72 +611,84 @@ private:
 #endif
 		std::thread t([this]()
 			{
-				constexpr int c_iMinGap = 20;
+				constexpr int c_iMinGap = 18;
 				const HANDLE hTimer = CreateWaitableTimerW(NULL, FALSE, NULL);
 				EckAssert(hTimer);
 				BOOL bThereAreActiveTimeLine;
 
 				WaitForSingleObject(m_evtRender.GetHEvent(), INFINITE);
+				ULONGLONG ullTime = GetTickCount64() - c_iMinGap;
 				for (;;)
 				{
 					bThereAreActiveTimeLine = FALSE;
 					m_cs.Enter();
-					auto ull = GetTickCount64();
+
 					if (m_bRenderThreadShouldExit)
 					{
 						m_cs.Leave();
 						break;
 					}
+
+					const auto ullCurrTime = GetTickCount64();
+					// 滴答所有时间线
+					int iDeltaTime = (int)(ullCurrTime - ullTime);
+					for (auto e : m_vTimeLine)
+					{
+						if (e->IsValid())
+							e->Tick(iDeltaTime);
+						bThereAreActiveTimeLine = bThereAreActiveTimeLine || e->IsValid();
+					}
+
+					const RECT rcClient{ 0,0,m_cxClient,m_cyClient };
 					if (m_bSizeChanged)
 					{
+						m_rcTotalInvalid = {};
 						m_D2d.ReSize(2, m_cxClient, m_cyClient, 0);
-						const RECT rcClient{ 0,0,m_cxClient,m_cyClient };
-						RedrawDui(rcClient);
 						m_bSizeChanged = FALSE;
-						m_cs.Leave();
-						m_D2d.GetSwapChain()->Present(0, 0);
+						if (m_cxClient && m_cyClient)
+						{
+							RedrawDui(rcClient);
+							m_cs.Leave();
+							m_D2d.GetSwapChain()->Present(1, 0);
+						}
+						else
+							m_cs.Leave();
 					}
 					else ECKLIKELY
 					{
-						//------------帧开始
-						// 滴答所有时间线
-						for (auto e : m_vTimeLine)
-						{
-							if (e->IsValid())
-								e->Tick(0);
-							bThereAreActiveTimeLine = bThereAreActiveTimeLine || e->IsValid();
-						}
 						// 更新脏矩形
 						RECT rc{ m_rcTotalInvalid };
+						IntersectRect(rc, rc, rcClient);
 						if (!IsRectEmpty(rc))
 						{
 							m_rcTotalInvalid = {};
-							const RECT rcClient{ 0,0,m_cxClient,m_cyClient };
-							IntersectRect(rc, rc, rcClient);
-
 							RedrawDui(rc);
 							m_cs.Leave();
 							// 呈现
 							DXGI_PRESENT_PARAMETERS pp{ 1,&rc };
-							m_D2d.GetSwapChain()->Present1(0, 0, &pp);
+							m_D2d.GetSwapChain()->Present1(1, 0, &pp);
 						}
 						else
 							m_cs.Leave();
-						//------------帧结束
 					}
-					ull = GetTickCount64() - ull;
+
+					iDeltaTime = (int)(GetTickCount64() - ullCurrTime);
+					ullTime = ullCurrTime;
 					if (bThereAreActiveTimeLine)
 					{
-						if (ull < c_iMinGap)// 延时
+						if (iDeltaTime < c_iMinGap)// 延时
 						{
 							const LARGE_INTEGER llDueTime
-							{ .QuadPart = -10 * (c_iMinGap - (int)ull) * 1000LL };
+							{ .QuadPart = -10 * (c_iMinGap - iDeltaTime) * 1000LL };
 							SetWaitableTimer(hTimer, &llDueTime, 0, NULL, NULL, 0);
 							WaitForSingleObject(hTimer, INFINITE);
 						}
 					}
 					else
+					{
 						WaitForSingleObject(m_evtRender.GetHEvent(), INFINITE);
+						ullTime = GetTickCount64() - c_iMinGap;
+					}
 				}
 
 				CancelWaitableTimer(hTimer);

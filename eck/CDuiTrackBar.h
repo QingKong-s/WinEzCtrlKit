@@ -242,8 +242,7 @@ public:
 			m_pec = new CEasingCurve{};
 			InitEasingCurve(m_pec);
 			m_pec->SetRange(0.f, 1.f);
-			m_pec->SetDuration(160);
-			m_pec->SetElapse(20);
+			m_pec->SetDuration(200);
 			m_pec->SetAnProc(Easing::OutSine);
 			m_pec->SetCallBack([](float fCurrValue, float fOldValue, LPARAM lParam)
 				{

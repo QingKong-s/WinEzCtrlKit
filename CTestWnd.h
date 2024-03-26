@@ -907,10 +907,10 @@ public:
 			//pSpirit->Turn(-eck::Deg2Rad(90.f));
 			//pSpirit->AutoMarch({ 10.f,20,600.f,0,FALSE });
 
-			//m_LBN.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL, 0,
-			//	0, 0, 700, 600, hWnd, 105);
-			//m_LBN.SetItemCount((int)vlb.size());
-			//m_lot.Add(&m_LBN, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+			m_LBN.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL, 0,
+				0, 0, 700, 600, hWnd, 105);
+			m_LBN.SetItemCount((int)vlb.size());
+			m_lot.Add(&m_LBN, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 			
 
 			//hCDCBK = CreateCompatibleDC(NULL);
@@ -1015,9 +1015,9 @@ public:
 			//m_Btn.Create(L"筛选", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS, 0, 900, 0, 300, 70, hWnd, 101);
 			//m_lot.Add(&m_Btn, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 			
-			RECT rcDui{ 0,0,900,700 };
-			m_Dui.Create(L"我是 Dui 窗口", WS_CHILD | WS_VISIBLE, 0, 0, 0, rcDui.right, rcDui.bottom, hWnd, 108);
-			m_Dui.Redraw();
+			//RECT rcDui{ 0,0,900,700 };
+			//m_Dui.Create(L"我是 Dui 窗口", WS_CHILD | WS_VISIBLE, 0, 0, 0, rcDui.right, rcDui.bottom, hWnd, 108);
+			//m_Dui.Redraw();
 			//m_lot.Add(&m_Dui, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 
 			/*m_tle.Create(0, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,

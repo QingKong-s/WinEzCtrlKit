@@ -1553,6 +1553,14 @@ template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = CAllocatorProcHea
 	return rs;
 }
 
+template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = CAllocatorProcHeap<CHAR, int>,
+	class T, class U>
+[[nodiscard]] EckInline CRefStrT<CHAR, TCharTraits, TAlloc> StrW2X(
+	const CRefStrT<WCHAR, T, U>& rs, int uCP = CP_ACP)
+{
+	return StrW2X(rs.Data(), rs.Size(), uCP);
+}
+
 template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = CAllocatorProcHeap<WCHAR, int>>
 [[nodiscard]] CRefStrT<WCHAR, TCharTraits, TAlloc> StrX2W(PCSTR pszText, int cch = -1, int uCP = CP_ACP)
 {

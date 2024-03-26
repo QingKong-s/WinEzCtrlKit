@@ -195,7 +195,6 @@
     <ClInclude Include="eck\CListViewExt.h" />
     <ClInclude Include="eck\CMemWalker.h" />
     <ClInclude Include="eck\CMenu.h" />
-    <ClInclude Include="eck\CMsgMmTimer.h" />
     <ClInclude Include="eck\CRefBinStream.h" />
     <ClInclude Include="eck\CRegKey.h" />
     <ClInclude Include="eck\CResSet.h" />

@@ -17,5 +17,10 @@ ITimeLine : public IUnknown
 	/// 时间线是否有效
 	/// </summary>
 	BOOL STDMETHODCALLTYPE IsValid();
+
+	/// <summary>
+	/// 取当前滴答间隔
+	/// </summary>
+	int STDMETHODCALLTYPE GetCurrTickInterval();
 };
 ECK_NAMESPACE_END

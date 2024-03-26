@@ -248,7 +248,8 @@ struct CEzD2D
 		SafeRelease(m_pBitmap);
 
 		HRESULT hr;
-		if (FAILED(hr = m_pSwapChain->ResizeBuffers(cBuffer, cx, cy, DXGI_FORMAT_UNKNOWN, uSwapChainFlags)))
+		if (FAILED(hr = m_pSwapChain->ResizeBuffers(cBuffer, 
+			std::max(8, cx), std::max(8, cy), DXGI_FORMAT_UNKNOWN, uSwapChainFlags)))
 		{
 			EckDbgPrintFormatMessage(hr);
 			EckDbgBreak();
