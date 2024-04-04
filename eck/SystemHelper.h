@@ -15,6 +15,7 @@
 
 #include <wbemcli.h>
 #include <comdef.h>
+#include <TlHelp32.h>
 
 ECK_NAMESPACE_BEGIN
 inline int CalcDbcsStringCharCount(PCSTR pszText, int cchText, UINT uCp = CP_ACP)
@@ -659,5 +660,26 @@ EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_BYTEREV,
 		pszText, cchText, rs.Data(), cchResult, NULL, NULL, 0);
 	return rs;
+}
+
+[[nodiscard]] inline UINT GetPID(PCWSTR pszImageName)
+{
+	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (hSnapshot == INVALID_HANDLE_VALUE)
+		return 0u;
+	PROCESSENTRY32W pe32;
+	pe32.dwSize = sizeof(pe32);
+	BOOL b = Process32FirstW(hSnapshot, &pe32);
+	while (b)
+	{
+		if (wcsicmp(pszImageName, pe32.szExeFile) == 0)
+		{
+			CloseHandle(hSnapshot);
+			return pe32.th32ProcessID;
+		}
+		b = Process32NextW(hSnapshot, &pe32);
+	}
+	CloseHandle(hSnapshot);
+	return 0u;
 }
 ECK_NAMESPACE_END

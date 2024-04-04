@@ -41,9 +41,12 @@ private:
 	COLORREF m_crText = CLR_DEFAULT;			// 文本颜色
 	COLORREF m_crTextBK = CLR_DEFAULT;			// 文本背景色
 	COLORREF m_crBK = CLR_DEFAULT;				// 编辑框背景色
+
+	COLORREF m_crDefText = CLR_INVALID;
+	COLORREF m_crDefBK = CLR_INVALID;
+
 	InputMode m_iInputMode = InputMode::Normal;	// 输入方式
 
-	HBRUSH m_hbrEditBK = NULL;	// 背景画刷
 	RECT m_rcMargins{};			// 边距
 	HWND m_hParent = NULL;		// 父窗口
 	int m_cyText = 0;			// 文本高度
@@ -306,10 +309,8 @@ public:
 			DeleteObject(hRgnBK);
 			DeleteObject(hRgnText);
 			// 填充背景
-			if (m_hbrEditBK)
-				FillRect(hDC, &rcWnd, m_hbrEditBK);
-			else
-				FillRect(hDC, &rcWnd, GetSysColorBrush(COLOR_WINDOW));
+			SetDCBrushColor(hDC, m_crBK != CLR_DEFAULT ? m_crBK : m_crDefBK);
+			FillRect(hDC, &rcWnd, GetStockBrush(DC_BRUSH));
 			ReleaseDC(hWnd, hDC);
 		}
 		return 0;
@@ -335,6 +336,15 @@ public:
 			}
 			return lResult;
 		}
+
+		case WM_CREATE:
+		case WM_THEMECHANGED:
+		{
+			const auto lResult = CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
+			GetItemsViewForeBackColor(m_crDefText, m_crDefBK);
+			return lResult;
+		}
+		break;
 		}
 
 		return CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
@@ -350,24 +360,15 @@ public:
 			if ((HWND)lParam != m_hWnd)
 				break;
 			bProcessed = TRUE;
-			HBRUSH hbr = (HBRUSH)DefNotifyMsg(hParent, uMsg, wParam, lParam);
-			if (m_hbrEditBK)
-				hbr = m_hbrEditBK;
-			if (m_crText != CLR_DEFAULT)
-				SetTextColor((HDC)wParam, m_crText);
-			if (m_crTextBK != CLR_DEFAULT)
-				SetBkColor((HDC)wParam, m_crTextBK);
-			return (LRESULT)hbr;
+			SetTextColor((HDC)wParam, m_crText != CLR_DEFAULT ? m_crText : m_crDefText);
+			SetBkColor((HDC)wParam, m_crTextBK != CLR_DEFAULT ? m_crTextBK : m_crDefBK);
+			SetDCBrushColor((HDC)wParam, m_crBK != CLR_DEFAULT ? m_crBK : m_crDefBK);
+			return (LRESULT)GetStockObject(DC_BRUSH);
 		}
 		break;
 		}
 
 		return CEdit::OnNotifyMsg(hParent, uMsg, wParam, lParam, bProcessed);
-	}
-
-	~CEditExt()
-	{
-		DeleteObject(m_hbrEditBK);
 	}
 
 	ECK_CWND_CREATE;
@@ -476,11 +477,6 @@ public:
 		case 0:m_crText = cr; break;
 		case 1:m_crTextBK = cr; break;
 		case 2:
-			DeleteObject(m_hbrEditBK);
-			if (cr != CLR_DEFAULT)
-				m_hbrEditBK = CreateSolidBrush(cr);
-			else
-				m_hbrEditBK = NULL;
 			m_crBK = cr;
 			SendMsg(WM_NCPAINT, 0, 0);
 			break;
@@ -548,5 +544,4 @@ public:
 		return m_chMask;
 	}
 };
-
 ECK_NAMESPACE_END

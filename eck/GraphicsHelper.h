@@ -248,7 +248,7 @@ struct CEzD2D
 		SafeRelease(m_pBitmap);
 
 		HRESULT hr;
-		if (FAILED(hr = m_pSwapChain->ResizeBuffers(cBuffer, 
+		if (FAILED(hr = m_pSwapChain->ResizeBuffers(cBuffer,
 			std::max(8, cx), std::max(8, cy), DXGI_FORMAT_UNKNOWN, uSwapChainFlags)))
 		{
 			EckDbgPrintFormatMessage(hr);
@@ -1876,7 +1876,7 @@ inline BOOL DrawBackgroundImage(HDC hDC, HDC hdcBitmap, const RECT& rc, int cxIm
 	return FALSE;
 }
 
-inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, 
+inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp,
 	const D2D1_RECT_F& rc, float fDeviation = 3.f)
 {
 	HRESULT hr;
@@ -1891,7 +1891,7 @@ inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp,
 
 	ID2D1Bitmap* pBmpEffect;
 	if (FAILED(hr = pDC->CreateBitmap({ (UINT32)(rc.right - rc.left), (UINT32)(rc.bottom - rc.top) },
-		D2D1::BitmapProperties(pBmp->GetPixelFormat(), xDpi, yDpi), & pBmpEffect)))
+		D2D1::BitmapProperties(pBmp->GetPixelFormat(), xDpi, yDpi), &pBmpEffect)))
 	{
 		pFxBlur->Release();
 		return hr;
@@ -1911,7 +1911,7 @@ inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp,
 	return S_OK;
 }
 
-inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, ID2D1Bitmap*& pBmpWork, 
+inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, ID2D1Bitmap*& pBmpWork,
 	const D2D1_RECT_F& rc, D2D1_POINT_2F ptDrawing, float fDeviation = 3.f)
 {
 	const D2D1_SIZE_U sizeNew{ (UINT32)(rc.right - rc.left), (UINT32)(rc.bottom - rc.top) };
@@ -1963,5 +1963,260 @@ inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, ID2D1Bitmap
 	pFxBlur->Release();
 	pFxCrop->Release();
 	return S_OK;
+}
+
+/// <summary>
+/// DW文本布局到路径几何形
+/// </summary>
+/// <param name="pLayout">DW文本布局</param>
+/// <param name="pRT">要在其上呈现的渲染目标</param>
+/// <param name="x">起始X</param>
+/// <param name="y">起始Y</param>
+/// <param name="pPathGeometry">结果路径几何形</param>
+/// <param name="pD2dFactory">D2D工厂，若为空则使用ECK工厂</param>
+/// <returns>HRESULT</returns>
+inline HRESULT GetTextLayoutPathGeometry(IDWriteTextLayout* pLayout, ID2D1RenderTarget* pRT,
+	float x, float y, ID2D1PathGeometry*& pPathGeometry, ID2D1Factory* pD2dFactory = NULL)
+{
+	class CSinkForwarder :public ID2D1SimplifiedGeometrySink
+	{
+	private:
+		LONG m_cRef = 1;
+		ID2D1SimplifiedGeometrySink* m_pSink = NULL;
+		float m_oxCurr = 0.f, m_oyCurr = 0.f;
+	public:
+		CSinkForwarder(ID2D1SimplifiedGeometrySink* pSink) :m_pSink{ pSink }
+		{
+			pSink->AddRef();
+		}
+
+		~CSinkForwarder()
+		{
+			m_pSink->Release();
+		}
+
+		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** ppvObj)
+		{
+			const static QITAB qit[]
+			{
+				QITABENT(CSinkForwarder, ID2D1SimplifiedGeometrySink),
+				{},
+			};
+			return QISearch(this, qit, iid, ppvObj);
+		}
+
+		ULONG STDMETHODCALLTYPE AddRef() { return ++m_cRef; }
+
+		ULONG STDMETHODCALLTYPE Release()
+		{
+			if (m_cRef == 1)
+			{
+				delete this;
+				return 0;
+			}
+			else
+				return --m_cRef;
+		}
+
+		STDMETHOD_(void, SetFillMode)(D2D1_FILL_MODE fillMode)
+		{
+			m_pSink->SetFillMode(fillMode);
+		}
+
+		STDMETHOD_(void, SetSegmentFlags)(D2D1_PATH_SEGMENT vertexFlags)
+		{
+			m_pSink->SetSegmentFlags(vertexFlags);
+		}
+
+		STDMETHOD_(void, BeginFigure)(D2D1_POINT_2F startPoint, D2D1_FIGURE_BEGIN figureBegin)
+		{
+			startPoint.x += m_oxCurr;
+			startPoint.y += m_oyCurr;
+			m_pSink->BeginFigure(startPoint, figureBegin);
+		}
+
+		STDMETHOD_(void, AddLines)(CONST D2D1_POINT_2F* points, UINT32 pointsCount)
+		{
+			if (m_oxCurr != 0.f || m_oyCurr != 0.f)
+			{
+				auto p = (D2D1_POINT_2F*)_malloca(pointsCount * sizeof(D2D1_POINT_2F));
+				EckAssert(p);
+				memcpy(p, points, pointsCount * sizeof(D2D1_POINT_2F));
+				EckCounter(pointsCount, i)
+				{
+					p[i].x += m_oxCurr;
+					p[i].y += m_oyCurr;
+				}
+				m_pSink->AddLines(p, pointsCount);
+				_freea(p);
+			}
+			else
+				m_pSink->AddLines(points, pointsCount);
+		}
+
+		STDMETHOD_(void, AddBeziers)(CONST D2D1_BEZIER_SEGMENT* beziers, UINT32 beziersCount)
+		{
+			if (m_oxCurr != 0.f || m_oyCurr != 0.f)
+			{
+				auto p = (D2D1_BEZIER_SEGMENT*)_malloca(beziersCount * sizeof(D2D1_BEZIER_SEGMENT));
+				EckAssert(p);
+				memcpy(p, beziers, beziersCount * sizeof(D2D1_BEZIER_SEGMENT));
+				EckCounter(beziersCount, i)
+				{
+					p[i].point1.x += m_oxCurr;
+					p[i].point1.y += m_oyCurr;
+					p[i].point2.x += m_oxCurr;
+					p[i].point2.y += m_oyCurr;
+					p[i].point3.x += m_oxCurr;
+					p[i].point3.y += m_oyCurr;
+				}
+				m_pSink->AddBeziers(p, beziersCount);
+				_freea(p);
+			}
+			else
+				m_pSink->AddBeziers(beziers, beziersCount);
+		}
+
+		STDMETHOD_(void, EndFigure)(D2D1_FIGURE_END figureEnd)
+		{
+			m_pSink->EndFigure(figureEnd);
+		}
+
+		STDMETHOD(Close)()
+		{
+			return m_pSink->Close();
+		}
+
+		void SetOffset(float ox, float oy)
+		{
+			m_oxCurr = ox;
+			m_oyCurr = oy;
+		}
+	};
+
+	class CTrFetchPath : public IDWriteTextRenderer
+	{
+	private:
+		ULONG m_uRef = 1;
+		ID2D1RenderTarget* m_pRT = NULL;
+		ID2D1Factory* m_pFactory = NULL;
+	public:
+		CTrFetchPath(ID2D1RenderTarget* pRT, ID2D1Factory* pFactory)
+			:m_pRT{ pRT }, m_pFactory{ pFactory }
+		{
+			pRT->AddRef();
+			pFactory->AddRef();
+		}
+
+		~CTrFetchPath()
+		{
+			m_pRT->Release();
+			m_pFactory->Release();
+		}
+
+		STDMETHOD(DrawGlyphRun)(
+			void* pClientDrawingContext,
+			FLOAT xOrgBaseline,
+			FLOAT yOrgBaseline,
+			DWRITE_MEASURING_MODE MeasuringMode,
+			DWRITE_GLYPH_RUN const* pGlyphRun,
+			DWRITE_GLYPH_RUN_DESCRIPTION const* pGlyphRunDesc,
+			IUnknown* pClientDrawingEffect)
+		{
+			const auto pMySink = (CSinkForwarder*)pClientDrawingContext;
+			pMySink->SetOffset(xOrgBaseline, yOrgBaseline);
+			return pGlyphRun->fontFace->GetGlyphRunOutline(pGlyphRun->fontEmSize, pGlyphRun->glyphIndices,
+				pGlyphRun->glyphAdvances, pGlyphRun->glyphOffsets, pGlyphRun->glyphCount,
+				pGlyphRun->isSideways, pGlyphRun->bidiLevel, pMySink);
+		}
+
+		STDMETHOD(DrawUnderline)(void* pClientDrawingContext, FLOAT xOrgBaseline, FLOAT yOrgBaseline,
+			DWRITE_UNDERLINE const* pUnderline, IUnknown* pClientDrawingEffect)
+		{
+			return E_NOTIMPL;
+		}
+
+		STDMETHOD(DrawStrikethrough)(void* pClientDrawingContext, FLOAT xOrgBaseline,
+			FLOAT yOrgBaseline, DWRITE_STRIKETHROUGH const* strikethrough, IUnknown* pClientDrawingEffect)
+		{
+			return E_NOTIMPL;
+		}
+
+		STDMETHOD(DrawInlineObject)(void* pClientDrawingContext, FLOAT xOrg, FLOAT yOrg,
+			IDWriteInlineObject* pInlineObject, BOOL bSideways, BOOL bRightToLeft, IUnknown* pClientDrawingEffect)
+		{
+			return E_NOTIMPL;
+		}
+
+		STDMETHOD(IsPixelSnappingDisabled)(void* pClientDrawingContext, BOOL* pbDisabled)
+		{
+			*pbDisabled = FALSE;
+			return S_OK;
+		}
+
+		STDMETHOD(GetCurrentTransform)(void* pClientDrawingContext, DWRITE_MATRIX* pMatrix)
+		{
+			m_pRT->GetTransform((D2D1_MATRIX_3X2_F*)pMatrix);
+			return S_OK;
+		}
+
+		STDMETHOD(GetPixelsPerDip)(void* pClientDrawingContext, FLOAT* pfPixelsPerDip)
+		{
+			float x, y;
+			m_pRT->GetDpi(&x, &y);
+			*pfPixelsPerDip = x / 96.f;
+			return S_OK;
+		}
+
+		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** ppvObj)
+		{
+			const static QITAB qit[]
+			{
+				QITABENT(CTrFetchPath, IDWriteTextRenderer),
+				QITABENT(CTrFetchPath, IDWritePixelSnapping),
+				{},
+			};
+			return QISearch(this, qit, iid, ppvObj);
+		}
+
+		ULONG STDMETHODCALLTYPE AddRef() { return ++m_uRef; }
+
+		ULONG STDMETHODCALLTYPE Release()
+		{
+			if (--m_uRef)
+				return m_uRef;
+			delete this;
+			return 0;
+		}
+	};
+
+	if (!pD2dFactory)
+		pD2dFactory = g_pD2dFactory;
+
+	HRESULT hr;
+	ID2D1PathGeometry* pPath;
+	ID2D1GeometrySink* pSink;
+	pD2dFactory->CreatePathGeometry(&pPath);
+	pPath->Open(&pSink);
+
+	const auto pTr = new CTrFetchPath(pRT, pD2dFactory);
+	const auto pMySink = new CSinkForwarder(pSink);
+
+	hr = pLayout->Draw(pMySink, pTr, x, y);
+	if (SUCCEEDED(hr))
+		hr = pMySink->Close();
+	pMySink->Release();
+	pSink->Release();
+
+	pTr->Release();
+
+	if (FAILED(hr))
+	{
+		pPath->Release();
+		pPathGeometry = NULL;
+	}
+	else
+		pPathGeometry = pPath;
+	return hr;
 }
 ECK_NAMESPACE_END

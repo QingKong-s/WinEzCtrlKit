@@ -18,7 +18,68 @@ typedef int (CALLBACK* PFNLVITEMCOMPARE)(LPARAM lParam1, LPARAM lParam2, LPARAM 
 typedef int (CALLBACK* PFNLVITEMCOMPAREEX)(int idx1, int idx2, LPARAM lParamSort);
 class CListView :public CWnd
 {
+private:
+	COLORREF m_crDefText{ CLR_INVALID };
+	COLORREF m_crDefBk{ CLR_INVALID };
+	BOOL m_bAutoDarkMode{ TRUE };
 public:
+	EckInline void SetAutoDarkMode(BOOL b) { m_bAutoDarkMode = b; }
+
+	EckInline void UpdateDefColor()
+	{
+		GetItemsViewForeBackColor(m_crDefText, m_crDefBk);
+		SetTextClr(m_crDefText);
+		SetBkClr(m_crDefBk);
+		SetTextBKClr(m_crDefBk);
+	}
+
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		switch (uMsg)
+		{
+		case WM_NOTIFY:
+		{
+			if (ShouldAppUseDarkMode())
+				switch (((NMHDR*)lParam)->code)
+				{
+				case NM_CUSTOMDRAW:
+				{
+					const auto pnmcd = (NMCUSTOMDRAW*)lParam;
+					switch (pnmcd->dwDrawStage)
+					{
+					case CDDS_PREPAINT:
+						return CDRF_NOTIFYITEMDRAW;
+					case CDDS_ITEMPREPAINT:
+					{
+						const HDC hDC = pnmcd->hdc;
+						SetTextColor(hDC, m_crDefText);
+					}
+					return CDRF_DODEFAULT;
+					}
+				}
+				return CDRF_DODEFAULT;
+				}
+		}
+		break;
+		case WM_CREATE:
+		{
+			const auto lResult = CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
+			SetItemsViewTheme();
+			GetHeaderCtrl().SetItemsViewTheme();
+			return lResult;
+		}
+		break;
+		case WM_THEMECHANGED:
+		{
+			const auto lResult = CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
+			UpdateDefColor();
+			return lResult;
+		}
+		break;
+		}
+		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
+	}
+
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
@@ -694,12 +755,12 @@ public:
 	/// </summary>
 	/// <param name="cr">颜色，或CLR_NONE指定无背景色</param>
 	/// <returns>成功返回TRUE，失败返回FALSE</returns>
-	EckInline BOOL SetBKColor(COLORREF cr) const
+	EckInline BOOL SetBkClr(COLORREF cr) const
 	{
 		return (BOOL)SendMsg(LVM_SETBKCOLOR, 0, cr);
 	}
 
-	EckInline BOOL SetBKImage(LVBKIMAGEW* plvbki) const
+	EckInline BOOL SetBkImage(LVBKIMAGEW* plvbki) const
 	{
 		return (BOOL)SendMsg(LVM_SETBKIMAGEW, 0, (LPARAM)plvbki);
 	}
@@ -898,12 +959,12 @@ public:
 		return (int)SendMsg(LVM_SETSELECTIONMARK, 0, idx);
 	}
 
-	EckInline COLORREF SetTextBKColor(COLORREF cr) const
+	EckInline COLORREF SetTextBKClr(COLORREF cr) const
 	{
 		return (COLORREF)SendMsg(LVM_SETTEXTBKCOLOR, 0, cr);
 	}
 
-	EckInline COLORREF SetTextColor(COLORREF cr) const
+	EckInline COLORREF SetTextClr(COLORREF cr) const
 	{
 		return (COLORREF)SendMsg(LVM_SETTEXTCOLOR, 0, cr);
 	}

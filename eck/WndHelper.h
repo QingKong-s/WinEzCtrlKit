@@ -38,6 +38,12 @@
 	ECK_STYLE_GETSET(Name, Style)
 
 ECK_NAMESPACE_BEGIN
+struct NMFOCUS
+{
+	NMHDR nmhdr;
+	HWND hWnd;
+};
+
 constexpr inline UINT WM_USER_SAFE = WM_USER + 3;
 
 constexpr inline UINT CS_STDWND = CS_DBLCLKS | CS_VREDRAW | CS_HREDRAW;
@@ -653,5 +659,59 @@ inline void GetItemsViewForeBackColor(COLORREF& crText, COLORREF& crBk)
 		crBk = GetSysColor(COLOR_WINDOW);
 		crText = GetSysColor(COLOR_WINDOWTEXT);
 	}
+}
+
+EckInline BOOL AdjustWindowRectExDpi(RECT* prc, DWORD dwStyle, BOOL bMenu, DWORD dwExStyle, UINT uDpi)
+{
+#if ECKDPIAPI
+	return AdjustWindowRectExForDpi(prc, dwStyle, bMenu, dwExStyle, uDpi);
+#else
+	return AdjustWindowRectEx(prc, dwStyle, bMenu, dwExStyle);
+#endif
+}
+
+/// <summary>
+/// 取窗口客户区尺寸。
+/// 在最小化时也有效
+/// </summary>
+/// <param name="hWnd">窗口句柄</param>
+/// <param name="rcClient">客户区尺寸，其中left和top总为0</param>
+/// <returns>成功返回TRUE，失败返回FALSE</returns>
+inline BOOL GetWindowClientRect(HWND hWnd, RECT& rcClient)
+{
+	const int iDpi = eck::GetDpi(hWnd);
+	RECT rcMainClient;
+	RECT rcNcOnly{};
+	WINDOWPLACEMENT wp;
+	wp.length = sizeof(wp);
+	if (eck::AdjustWindowRectExDpi(&rcNcOnly, GetWindowStyle(hWnd),
+		!!GetMenu(hWnd), GetWindowExStyle(hWnd), iDpi) &&
+		GetWindowPlacement(hWnd, &wp))
+	{
+		if (wp.flags & WPF_RESTORETOMAXIMIZED)
+		{
+			if (HMONITOR hMonitor;
+				hMonitor = MonitorFromRect(&wp.rcNormalPosition, MONITOR_DEFAULTTONULL))
+			{
+				MONITORINFO mi;
+				mi.cbSize = sizeof(mi);
+				GetMonitorInfoW(hMonitor, &mi);
+				rcMainClient = mi.rcMonitor;
+			}
+			else
+				return FALSE;
+		}
+		else
+			rcMainClient = wp.rcNormalPosition;
+		// 对齐到(0, 0)
+		eck::OffsetRect(rcMainClient, -rcMainClient.left, -rcMainClient.top);
+		// 减掉非客户区
+		rcMainClient.right -= (rcNcOnly.right - rcNcOnly.left);
+		rcMainClient.bottom -= (rcNcOnly.bottom - rcNcOnly.top);
+		rcClient = rcMainClient;
+		return TRUE;
+	}
+	else
+		return FALSE;
 }
 ECK_NAMESPACE_END

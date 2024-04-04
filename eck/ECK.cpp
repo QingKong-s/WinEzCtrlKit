@@ -60,24 +60,7 @@ static void CALLBACK GdiplusDebug(GpDebugEventLevel dwLevel, CHAR* pszMsg)
 }
 #endif
 
-static auto s_pfnCreateWindowEx = CreateWindowExW;
 static EckPriv___::FOpenNcThemeData s_pfnOpenNcThemeData{};
-
-static HWND WINAPI NewCreateWindowExW(DWORD dwExStyle, PCWSTR lpClassName, PCWSTR lpWindowName,
-	DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu,
-	HINSTANCE hInstance, PVOID lpParam)
-{
-	HWND hWnd = s_pfnCreateWindowEx(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight,
-		hWndParent, hMenu, hInstance, lpParam);
-	if (hWnd)
-	{
-		AllowDarkModeForWindow(hWnd, TRUE);
-		//SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
-		SetWindowTheme(hWnd, L"Explorer", NULL);
-		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
-	}
-	return hWnd;
-}
 
 static HTHEME WINAPI NewOpenNcThemeData(HWND hWnd, PCWSTR pszClassList)
 {
@@ -119,6 +102,7 @@ g_WndClassInfo[]
 	{ WCN_LISTBOXNEW },
 	{ WCN_ANIMATIONBOX },
 	{ WCN_TREELIST },
+	{ WCN_COMBOBOXNEW },
 };
 
 InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrCode)
@@ -326,14 +310,16 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	if (!IsBitSet(pInitParam->uFlags, EIF_NODARKMODE))
 	{
 		SetPreferredAppMode(PreferredAppMode::AllowDark);
-		g_bAllowDark = TRUE;
+		RefreshImmersiveColorStuff();
+		FlushMenuTheme();
 	}
 
-	DetourTransactionBegin();
-	DetourAttach(&s_pfnCreateWindowEx, NewCreateWindowExW);
 	if (s_pfnOpenNcThemeData)
+	{
+		DetourTransactionBegin();
 		DetourAttach(&s_pfnOpenNcThemeData, NewOpenNcThemeData);
-	DetourTransactionCommit();
+		DetourTransactionCommit();
+	}
 
 	return InitStatus::Ok;
 }
@@ -365,6 +351,56 @@ void ThreadInit()
 	EckAssert(!TlsGetValue(GetThreadCtxTlsSlot()));
 	const auto p = new ECKTHREADCTX{};
 	TlsSetValue(GetThreadCtxTlsSlot(), p);
+	p->hhkCbtDarkMode = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
+		{
+			constexpr static PCWSTR c_pszCommCtrlCls[]// 需要被设置主题的通用控件
+			{
+				WC_BUTTONW,
+				WC_HEADERW,
+				WC_LISTVIEWW,
+				TOOLBARCLASSNAMEW,
+				TOOLTIPS_CLASSW,
+				WC_TREEVIEWW,
+				UPDOWN_CLASSW,
+			};
+
+			const auto* const p = GetThreadCtx();
+			if (iCode == HCBT_CREATEWND && p->bEnableDarkModeHook)
+			{
+				const auto hWnd = (HWND)wParam;
+				AllowDarkModeForWindow(hWnd, TRUE);
+
+				const auto lResult = CallNextHookEx(p->hhkCbtDarkMode, iCode, wParam, lParam);
+				if (IsWindow(hWnd))
+				{
+					const auto itEnd = c_pszCommCtrlCls + ARRAYSIZE(c_pszCommCtrlCls);
+					const auto it = std::find_if(c_pszCommCtrlCls, itEnd,
+						[lParam, hWnd](PCWSTR psz)
+						{
+							auto p = (CBT_CREATEWNDW*)lParam;
+							if (IsPszId(p->lpcs->lpszClass))
+							{
+								WCHAR szCls[256];
+								GetClassNameW(hWnd, szCls, ARRAYSIZE(szCls));
+								return wcsicmp(szCls, psz) == 0;
+							}
+							else
+								return wcsicmp(p->lpcs->lpszClass, psz) == 0;
+						});
+
+					if (it != itEnd)
+					{
+						if (it == c_pszCommCtrlCls + 2)// LISTVIEW
+							SetWindowTheme(hWnd, L"ItemsView", NULL);
+						else ECKLIKELY
+							SetWindowTheme(hWnd, L"Explorer", NULL);
+					}
+				}
+				return lResult;
+			}
+
+			return CallNextHookEx(p->hhkCbtDarkMode, iCode, wParam, lParam);
+		}, NULL, GetCurrentThreadId());
 }
 
 constexpr PCWSTR c_szErrInitStatus[]
@@ -396,6 +432,7 @@ void ThreadUnInit()
 	}
 #endif // _DEBUG
 	UnhookWindowsHookEx(p->hhkTempCBT);
+	UnhookWindowsHookEx(p->hhkCbtDarkMode);
 	delete p;
 	TlsSetValue(GetThreadCtxTlsSlot(), NULL);
 }

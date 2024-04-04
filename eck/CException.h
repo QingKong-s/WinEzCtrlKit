@@ -52,13 +52,13 @@ EckInline void DbgPrint(const CConstMsgException& e)
 	OutputDebugStringW(e.GetMsg());
 }
 
-inline void DbgPrint(const CFmtMsgException& e)
-{
-	PWSTR pszInfo;
-	FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-		NULL, e.GetErrCode(), 0, (PWSTR)&pszInfo, 0, NULL);
-	OutputDebugStringW(Format(L"错误码 = %u，格式化信息 = %s", e.GetErrCode(), pszInfo).Data());
-	LocalFree(pszInfo);
-}
+//inline void DbgPrint(const CFmtMsgException& e)
+//{
+//	PWSTR pszInfo;
+//	FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+//		NULL, e.GetErrCode(), 0, (PWSTR)&pszInfo, 0, NULL);
+//	OutputDebugStringW(Format(L"错误码 = %u，格式化信息 = %s", e.GetErrCode(), pszInfo).Data());
+//	LocalFree(pszInfo);
+//}
 
 ECK_NAMESPACE_END

@@ -59,7 +59,7 @@ public:
 		EckCounter(m_vCtrl.size(), i)
 		{
 			auto& e = m_vCtrl[i];
-			e.pWnd->GetAppropriateSize(cxAppr, cyAppr);
+			e.pWnd->LoGetAppropriateSize(cxAppr, cyAppr);
 			if (IsBitSet(e.uFlags, FLF_FIXHEIGHT) || IsBitSet(e.uFlags, FLF_FIXWIDTH))
 			{
 				RECT rc;

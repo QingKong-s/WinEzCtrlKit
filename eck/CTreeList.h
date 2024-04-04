@@ -2139,7 +2139,6 @@ public:
 			UpdateDCAttr();
 			m_Header.Create(NULL, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
 				0, 0, ClientWidth, m_Ds.cyHeaderDef, hWnd, TL_IDC_HEADER);
-			//SetWindowTheme(m_Header.HWnd, L"ItemsView", NULL);
 			SetExplorerTheme();
 			m_hThemeTV = OpenThemeData(hWnd, L"TreeView");
 			m_hThemeLV = OpenThemeData(hWnd, L"ListView");

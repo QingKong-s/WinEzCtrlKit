@@ -458,7 +458,6 @@ public:
 			m_pecThumb->SetAnProc(Easing::OutSine);
 			m_pecThumb->SetRange(0.f, 1.f);
 			m_pecThumb->SetDuration(160);
-			m_pecThumb->SetElapse(20);
 			m_pecThumb->SetAnProc(Easing::OutSine);
 			m_pecThumb->SetCallBack([](float f, float fOld, LPARAM lParam)
 				{
