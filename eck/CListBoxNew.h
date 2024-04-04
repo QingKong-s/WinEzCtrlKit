@@ -7,11 +7,7 @@
 */
 #pragma once
 #include "CWnd.h"
-#include "GdiplusFlatDef.h"
-#include "CScrollBar.h"
-#include "StylePainter.h"
-
-#include <functional>
+#include "GraphicsHelper.h"
 
 #include <vssym32.h>
 
@@ -79,9 +75,10 @@ private:
 	BITBOOL m_bDbgDrawMarkItem : 1 = 1;
 #endif
 	BITBOOL m_bMultiSel : 1 = FALSE;
-	BITBOOL m_bExtendSel : 1 = 1;// FALSE;
+	BITBOOL m_bExtendSel : 1 = FALSE;
 	BITBOOL m_bAllowDrag : 1 = FALSE;
 
+	BITBOOL m_bHasFocus : 1 = FALSE;
 	BITBOOL m_bLBtnDown : 1 = FALSE;
 	BITBOOL m_bUserItemHeight : 1 = FALSE;
 	BITBOOL m_bFocusIndicatorVisible : 1 =
@@ -90,6 +87,10 @@ private:
 #else
 		FALSE;
 #endif
+	BITBOOL m_bNmDragging : 1 = FALSE;
+	BITBOOL m_bTrackComboBoxList : 1 = FALSE;
+
+	HWND m_hComboBox = NULL;
 
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 
@@ -136,19 +137,22 @@ private:
 	{
 		PAINTSTRUCT ps;
 		BeginPaint(hWnd, &ps);
-		const int idxTop = std::max(m_idxTop + (int)ps.rcPaint.top / m_cyItem - 1, m_idxTop);
-		const int idxBottom = std::min(m_idxTop + (int)ps.rcPaint.bottom / m_cyItem + 1, (int)m_vItem.size() - 1);
 
 		FillRect(m_DC.GetDC(), &ps.rcPaint, m_hbrBkg);
-		SetTextColor(m_DC.GetDC(), m_crText);
 
-		RECT rc;
-		GetItemRect(idxTop, rc);
-		for (int i = idxTop; i <= idxBottom; ++i)
+		const int idxTop = std::max(m_idxTop + (int)ps.rcPaint.top / m_cyItem - 1, m_idxTop);
+		const int idxBottom = std::min(m_idxTop + (int)ps.rcPaint.bottom / m_cyItem + 1, (int)m_vItem.size() - 1);
+		if (idxTop >= 0 && idxBottom >= 0)
 		{
-			PaintItem(i, rc);
-			rc.top += m_cyItem;
-			rc.bottom += m_cyItem;
+			SetTextColor(m_DC.GetDC(), m_crText);
+			RECT rc;
+			GetItemRect(idxTop, rc);
+			for (int i = idxTop; i <= idxBottom; ++i)
+			{
+				PaintItem(i, rc);
+				rc.top += m_cyItem;
+				rc.bottom += m_cyItem;
+			}
 		}
 		BitBltPs(&ps, m_DC.GetDC());
 		EndPaint(hWnd, &ps);
@@ -196,9 +200,32 @@ private:
 
 	void OnMouseMove(HWND hWnd, int x, int y, UINT uKeyFlags)
 	{
+		if (m_hComboBox)
+		{
+			EckAssert(m_bTrackComboBoxList);
+			RECT rcWnd, rcClient;
+			GetWindowRect(hWnd, &rcWnd);
+			ScreenToClient(hWnd, &rcWnd);
+			GetClientRect(hWnd, &rcClient);
+			if (!PtInRect(rcWnd, POINT{ x,y })&&
+				!PtInRect(rcWnd, POINT{ x,y }))// 在滚动条上
+			{
+				POINT ptScr{ x,y };
+				ClientToScreen(hWnd, &ptScr);
+				EckAssert(GetCapture() == hWnd);
+				ReleaseCapture();
+				SendMsg(
+					WM_NCMOUSEMOVE,
+					SendMsg(WM_NCHITTEST, 0, POINTTOPOINTS(ptScr)),
+					POINTTOPOINTS(ptScr));
+				SetCapture(hWnd);
+			}
+		}
+
 		if (!m_bLBtnDown)
 		{
 			int idxHot = HitTest(x, y);
+			EckDbgPrint(idxHot);
 			if (idxHot == m_idxHot)
 				return;
 			std::swap(idxHot, m_idxHot);
@@ -334,6 +361,7 @@ private:
 	void BeginDraggingSelect(int idxBegin)
 	{
 		MSG msg;
+		m_bLBtnDown = TRUE;
 		SetCapture(HWnd);
 		int idxOld = idxBegin;
 		for (auto& e : m_vItem)
@@ -459,11 +487,51 @@ private:
 
 	void OnLButtonDown(HWND hWnd, BOOL bDoubleClick, int x, int y, UINT uKeyFlags)
 	{
-		m_bLBtnDown = TRUE;
-		SetFocus(hWnd);
+		if (m_hComboBox)
+		{
+			m_bLBtnDown = TRUE;
+			EckAssert(m_bTrackComboBoxList);
+			RECT rc;
+			GetWindowRect(hWnd, &rc);
+			ScreenToClient(hWnd, &rc);
+			if (!PtInRect(rc, POINT{ x,y }))// 光标在窗口外
+			{
+				NMHDR nm;
+				FillNmhdr(nm, NM_LBN_DISMISS);
+				SendMessageW(m_hComboBox, WM_NOTIFY, nm.idFrom, (LPARAM)&nm);
+				return;
+			}
+			else if (GetClientRect(hWnd, &rc); !PtInRect(rc, POINT{ x,y }))// 试图拖动滚动条
+			{
+				POINT ptScr{ x,y };
+				ClientToScreen(hWnd, &ptScr);
+
+				EckAssert(GetCapture() == hWnd);
+				m_bLBtnDown = FALSE;
+				ReleaseCapture();
+				SendMsg(
+					WM_NCLBUTTONDOWN,
+					SendMsg(WM_NCHITTEST, 0, POINTTOPOINTS(ptScr)),
+					POINTTOPOINTS(ptScr));
+				ReleaseCapture();
+				SetCapture(hWnd);
+				m_bLBtnDown = TRUE;
+			}
+			else
+			{
+				SetCapture(hWnd);
+				NMHDR nm;
+				FillNmhdr(nm, NM_LBN_LBTNDOWN);
+				SendMessageW(m_hComboBox, WM_NOTIFY, nm.idFrom, (LPARAM)&nm);
+			}
+		}
+		else
+			SetFocus(hWnd);
+
 		const int idx = HitTest(x, y);
 		if (idx < 0)
 			return;
+
 		POINT ptScr{ x,y };
 		ClientToScreen(hWnd, &ptScr);
 		SelectItemForClick(idx);
@@ -475,13 +543,15 @@ private:
 		* 多选		无			无
 		* 扩展多选	范围选择		无
 		*/
-		if (IsMouseMovedBeforeDragging(hWnd, ptScr.x, ptScr.y, 0))// YEILD
+		if (IsMouseMovedBeforeDragging(hWnd, ptScr.x, ptScr.y, 0))// YEILD, ReleaseCapture
 		{
 			if (!IsValid())// revalidate
 				return;
+			m_bLBtnDown = TRUE;
+			SetCapture(hWnd);
 			if (m_bAllowDrag)
 			{
-				SetCapture(hWnd);
+				m_bNmDragging = TRUE;
 				NMLBNDRAG nm;
 				nm.idx = idx;
 				nm.uKeyFlags = uKeyFlags;
@@ -536,7 +606,7 @@ private:
 			DrawFocusRect(hCDC, &rc);
 		}
 
-		NMLBNGETDISPINFO nm;
+		NMLBNGETDISPINFO nm{};
 		nm.Item.idxItem = idx;
 		FillNmhdrAndSendNotify(nm, NM_LBN_GETDISPINFO);
 		if (nm.Item.pszText)
@@ -592,10 +662,22 @@ public:
 				POINT pt ECK_GET_PT_LPARAM(lParam);
 				ReleaseCapture();
 				m_bLBtnDown = FALSE;
-				NMLBNDRAG nm;
-				nm.idx = HitTest(pt.x, pt.y);
-				nm.uKeyFlags = (UINT)wParam;
-				FillNmhdrAndSendNotify(nm, NM_LBN_ENDDRAG);
+
+				if (m_bNmDragging)
+				{
+					NMLBNDRAG nm;
+					nm.idx = HitTest(pt.x, pt.y);
+					nm.uKeyFlags = (UINT)wParam;
+					FillNmhdrAndSendNotify(nm, NM_LBN_ENDDRAG);
+				}
+
+				if (m_hComboBox)
+				{
+					EckDbgPrint(L"dismiss up");
+					NMHDR nm;
+					FillNmhdr(nm, NM_LBN_DISMISS);
+					SendMessageW(m_hComboBox, WM_NOTIFY, nm.idFrom, (LPARAM)&nm);
+				}
 			}
 		}
 		return 0;
@@ -726,12 +808,46 @@ public:
 			}
 		}
 		return 0;
+
+		case WM_CAPTURECHANGED:
+		{
+			if (m_bLBtnDown)
+			{
+				POINT pt;
+				GetCursorPos(&pt);
+				ScreenToClient(hWnd, &pt);
+				SendMsg(WM_LBUTTONUP, 0, POINTTOPOINTS(pt));// HACK : wParam is ZERO
+			}
+		}
+		break;
+
+		case WM_SETFOCUS:
+		{
+			m_bHasFocus = TRUE;
+
+			NMFOCUS nm;
+			nm.hWnd = (HWND)wParam;
+			FillNmhdrAndSendNotify(nm, NM_SETFOCUS);
+		}
+		return 0;
+		case WM_KILLFOCUS:
+		{
+			m_bHasFocus = FALSE;
+
+			NMFOCUS nm;
+			nm.hWnd = (HWND)wParam;
+			FillNmhdrAndSendNotify(nm, NM_KILLFOCUS);
+		}
+		break;
+
 		case WM_SETFONT:
+		{
 			m_hFont = (HFONT)wParam;
 			SelectObject(m_DC.GetDC(), m_hFont);
 			if (lParam)
 				Redraw();
-			return 0;
+		}
+		return 0;
 		case WM_GETFONT:
 			return (LRESULT)m_hFont;
 		case WM_THEMECHANGED:
@@ -764,9 +880,8 @@ public:
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
-		IntCreate(dwExStyle, WCN_LISTBOXNEW, pszText, dwStyle,
+		return IntCreate(dwExStyle, WCN_LISTBOXNEW, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
-		return m_hWnd;
 	}
 
 	EckInline void SetItemCount(int cItem)
@@ -888,5 +1003,24 @@ public:
 		idxChangedBegin = idx0;
 		idxChangedEnd = idx1;
 	}
+
+	//----------------组合框交互----------------
+	EckInline void SetComboBox(HWND h) { m_hComboBox = h; }
+
+	void EnterTrack()
+	{
+		SetCapture(HWnd);
+		m_bTrackComboBoxList = TRUE;
+	}
+
+	void LeaveTrack()
+	{
+		if (m_bTrackComboBoxList)
+		{
+			ReleaseCapture();
+			m_bTrackComboBoxList = FALSE;
+		}
+	}
+	//-----------------------------------------
 };
 ECK_NAMESPACE_END

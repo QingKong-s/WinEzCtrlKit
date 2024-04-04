@@ -312,6 +312,15 @@
     <ClInclude Include="eck\CEvent.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\ILayout.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CLinearLayout.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CLayoutBase.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Win32Template.cpp">

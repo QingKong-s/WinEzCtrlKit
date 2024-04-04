@@ -178,6 +178,8 @@
     <ClInclude Include="eck\CEvent.h" />
     <ClInclude Include="eck\CInertialScrollView.h" />
     <ClInclude Include="eck\CIni.h" />
+    <ClInclude Include="eck\CLayoutBase.h" />
+    <ClInclude Include="eck\CLinearLayout.h" />
     <ClInclude Include="eck\CQueueTimer.h" />
     <ClInclude Include="eck\CSrwLock.h" />
     <ClInclude Include="eck\CTrackBar.h" />
@@ -207,6 +209,7 @@
     <ClInclude Include="eck\CtrlGraphics.h" />
     <ClInclude Include="eck\CWindowMask.h" />
     <ClInclude Include="eck\GraphicsHelper.h" />
+    <ClInclude Include="eck\ILayout.h" />
     <ClInclude Include="eck\ITimeLine.h" />
     <ClInclude Include="eck\OleDragDropHelper.h" />
     <ClInclude Include="eck\StrBinInterop.h" />

@@ -724,7 +724,7 @@ EckInline constexpr BOOL IsColorLightColorref(COLORREF cr)
 		GetIntegerByte<2>(cr));
 }
 
-EckInline constexpr bool IsGuidEqu(REFGUID x1, REFGUID x2)
+EckInline constexpr BOOL IsGuidEqu(REFGUID x1, REFGUID x2)
 {
 	return
 		x1.Data1 == x2.Data1 &&
@@ -738,5 +738,10 @@ EckInline constexpr bool IsGuidEqu(REFGUID x1, REFGUID x2)
 		x1.Data4[5] == x2.Data4[5] &&
 		x1.Data4[6] == x2.Data4[6] &&
 		x1.Data4[7] == x2.Data4[7];
+}
+
+EckInline constexpr BOOL IsPszId(PCWSTR p)
+{
+	return (((UINT_PTR)p) & (~((UINT_PTR)0xFFFF))) == 0;
 }
 ECK_NAMESPACE_END

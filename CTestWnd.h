@@ -40,6 +40,8 @@
 #include "eck\CDuiCircleButton.h"
 #include "eck\CIni.h"
 #include "eck\CTreeListExt.h"
+#include "eck\CComboBoxNew.h"
+#include "eck\CLinearLayout.h"
 
 #define WCN_TEST L"CTestWindow"
 
@@ -641,6 +643,11 @@ private:
 	eck::CListViewExt m_lve{};
 	eck::CHeader m_HD{};
 	eck::CTreeListExt m_tle{};
+	eck::CComboBoxNew m_cbn{};
+	eck::CPushButton m_btn[10]{};
+	eck::CPushButton m_btn2[6]{};
+	eck::CLinearLayoutH m_llh{};
+	eck::CLinearLayoutV m_llv{};
 
 	CTestDui m_Dui{};
 
@@ -840,6 +847,7 @@ public:
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
+		using namespace eck::Literals;
 		static std::vector<WNDDATA*> data{};
 		static std::vector<WNDDATA*> flatdata{};
 		static int isortorder = 0;
@@ -907,11 +915,16 @@ public:
 			//pSpirit->Turn(-eck::Deg2Rad(90.f));
 			//pSpirit->AutoMarch({ 10.f,20,600.f,0,FALSE });
 
-			m_LBN.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL, 0,
-				0, 0, 700, 600, hWnd, 105);
-			m_LBN.SetItemCount((int)vlb.size());
-			m_lot.Add(&m_LBN, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
-			
+			//m_cbn.Create(NULL, WS_CHILD | WS_VISIBLE, 0,
+			//	0, 0, 300, 60, hWnd, 2203);
+			//m_cbn.SetItemCount((int)vlb.size());
+			//m_lot.Add(&m_cbn, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+
+			//m_LBN.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL, 0,
+			//	0, 0, 700, 600, hWnd, 105);
+			//m_LBN.SetItemCount((int)vlb.size());
+			//m_lot.Add(&m_LBN, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+			//
 
 			//hCDCBK = CreateCompatibleDC(NULL);
 			//auto hbm = eck::CreateHBITMAP(LR"(E:\Desktop\Temp\DC802FE9979A460BBA8E757382343EB4.jpg)");
@@ -1009,7 +1022,7 @@ public:
 
 			//m_Edit.Create(L"", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL|WS_CLIPSIBLINGS, 0,
 			//	0, 0, 200, 100, hWnd, 102);
-			//m_Edit.SetFrameType(1);
+			//m_Edit.SetFrameType(5);
 			//m_lot.Add(&m_Edit, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 
 			//m_Btn.Create(L"筛选", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS, 0, 900, 0, 300, 70, hWnd, 101);
@@ -1035,16 +1048,42 @@ public:
 				tlei.cchText = rs.Size();
 				m_tle.SetItem(h, tlei);
 			}
-
-
 			hNode = m_tle.InsertItem(L"父项2");
 			hNode = m_tle.InsertItem(L"父项3");
 			m_tle.BuildTree();
 			m_lot.Add(&m_tle, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);*/
+
+			for (int i{}; auto& e : m_btn)
+			{
+				e.Create((L"按钮"_rs + eck::ToStr(i)).Data(), WS_VISIBLE | WS_CHILD, 0,
+					0, 0, 500, 50, hWnd, NULL);
+				m_llv.Add(&e, { 10,5 }, eck::LLF_FIXHEIGHT | eck::LLF_FIXWIDTH);
+				if (i == 4)
+				{
+					for (int j{}; auto & f : m_btn2)
+					{
+						f.Create((L"按钮"_rs + eck::ToStr(j)).Data(), WS_VISIBLE | WS_CHILD, 0,
+							0, 0, 50, 60, hWnd, NULL);
+						m_llh.Add(&f, {}, eck::LLF_FIXHEIGHT | eck::LLF_FIXWIDTH);
+						++j;
+					}
+					m_llv.Add(&m_llh, { 20 });
+				}
+				++i;
+			}
+
+
 			m_hFont = eck::CreateDefFont(m_iDpi);
 			eck::SetFontForWndAndCtrl(hWnd, m_hFont);
+			m_cbn.GetListBox().SetFont(m_hFont);
 
 			Test();
+
+			COLORREF dummy, crBkg;
+			eck::GetItemsViewForeBackColor(dummy, crBkg);
+			BkColor = crBkg;
+			eck::EnableWindowNcDarkMode(hWnd, eck::ShouldAppUseDarkMode());
+			Redraw();
 		}
 		return 0;
 		case WM_NOTIFY:
@@ -1165,7 +1204,7 @@ public:
 					{
 						auto pd = (WNDDATA*)p->pNode;
 						UINT u = 0;
-						if (!pd->rs[1].IsEmpty())
+						/*if (!pd->rs[1].IsEmpty())
 						{
 							if (eck::FindStr(pd->rs[1].Data(), L"Chrome") >= 0)
 							{
@@ -1179,7 +1218,7 @@ public:
 								FillRect(p->hDC, p->prcItem, GetStockBrush(DC_BRUSH));
 								u |= eck::TLCDRF_BKGNDCHANGED;
 							}
-						}
+						}*/
 
 						if (!IsWindow(pd->hWnd))
 						{
@@ -1237,12 +1276,26 @@ public:
 				return 0;
 				}
 			}
+			else if (pnm->hwndFrom == m_cbn.HWnd)
+			{
+				switch (pnm->code)
+				{
+				case eck::NM_LBN_GETDISPINFO:
+				{
+					auto p = (eck::NMLBNGETDISPINFO*)lParam;
+					p->Item.pszText = vlb[p->Item.idxItem].Data();
+					p->Item.cchText = vlb[p->Item.idxItem].Size();
+				}
+				return 0;
+				}
+			}
 		}
 		break;
 		case WM_SIZE:
 		{
 			const int cx = LOWORD(lParam), cy = HIWORD(lParam);
-			m_lot.Arrange(cx, cy);
+			//m_lot.Arrange(cx, cy);
+			m_llv.Arrange(cx, cy);
 		}
 		return 0;
 		case WM_COMMAND:
@@ -1299,6 +1352,7 @@ public:
 			if (eck::IsColorSchemeChangeMessage(lParam))
 			{
 				eck::RefreshImmersiveColorStuff();
+				eck::FlushMenuTheme();
 				eck::BroadcastChildrenMessage(hWnd, uMsg, wParam, lParam);
 				eck::BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, 0, 0);
 				COLORREF dummy, crBkg;

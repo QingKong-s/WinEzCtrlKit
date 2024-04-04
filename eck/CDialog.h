@@ -19,6 +19,8 @@ protected:
 	BITBOOL m_bModal : 1 = FALSE;
 	BITBOOL m_bClrDisableEdit : 1 = FALSE;
 	COLORREF m_crBkg = CLR_DEFAULT;
+	COLORREF m_crDefText = CLR_INVALID;
+	COLORREF m_crDefBkg = CLR_INVALID;
 
 	EckInline INT_PTR IntCreateModalDlg(HINSTANCE hInst, PCWSTR pszTemplate, HWND hParent,
 		LPARAM lParam = 0, FWndCreating pfnCreatingProc = NULL)
@@ -88,13 +90,17 @@ public:
 		case WM_CTLCOLOREDIT:
 		case WM_CTLCOLORLISTBOX:
 		{
-			if (m_crBkg != CLR_DEFAULT)
-			{
-				SetDCBrushColor((HDC)wParam, m_crBkg);
-				return (LRESULT)GetStockBrush(DC_BRUSH);
-			}
+			SetTextColor((HDC)wParam, m_crDefText);
+			SetBkColor((HDC)wParam, m_crBkg != CLR_DEFAULT ? m_crBkg : m_crDefBkg);
+			SetDCBrushColor((HDC)wParam, m_crBkg != CLR_DEFAULT ? m_crBkg : m_crDefBkg);
+			return (LRESULT)GetStockBrush(DC_BRUSH);
 		}
 		break;
+
+		case WM_CREATE:
+		case WM_THEMECHANGED:
+			GetItemsViewForeBackColor(m_crDefText, m_crDefBkg);
+			break;
 		}
 
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
@@ -124,7 +130,7 @@ public:
 		EndDlg(0);
 	}
 
-	EckInline void SetBkColor(COLORREF cr)
+	EckInline void SetBkClr(COLORREF cr)
 	{
 		m_crBkg = cr;
 	}

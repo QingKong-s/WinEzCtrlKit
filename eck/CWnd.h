@@ -10,6 +10,7 @@
 #include "WndHelper.h"
 #include "CMemWalker.h"
 #include "CException.h"
+#include "ILayout.h"
 
 #include <optional>
 #include <functional>
@@ -70,7 +71,7 @@ struct DESIGNDATA_WND
 	Class(HWND hWnd) { m_hWnd = hWnd; }
 
 
-class CWnd
+class CWnd :public ILayout
 {
 	friend HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc);
 public:
@@ -83,6 +84,7 @@ protected:
 	HWND m_hWnd = NULL;
 	WNDPROC m_pfnRealProc = DefWindowProcW;
 	std::vector<FMsgHook> m_vFnMsgHook{};
+	HDWP m_hDwpLayout = NULL;
 
 	static void WndCreatingSetLong(HWND hWnd, CBT_CREATEWNDW* pcs, ECKTHREADCTX* pThreadCtx)
 	{
@@ -408,12 +410,29 @@ public:
 	/// </summary>
 	/// <param name="cx">理想宽度</param>
 	/// <param name="cy">理想高度</param>
-	EckInline virtual void GetAppropriateSize(int& cx, int& cy) const
+	void LoGetAppropriateSize(int& cx, int& cy) override
 	{
 		RECT rc;
 		GetWindowRect(m_hWnd, &rc);
 		cx = rc.right - rc.left;
 		cy = rc.bottom - rc.top;
+	}
+
+	std::pair<int, int> LoGetPos()
+	{
+		const auto pt{ GetPosition() };
+		return { pt.x,pt.y };
+	}
+
+	std::pair<int, int> LoGetSize()
+	{
+		const auto size{ GetSize() };
+		return { size.cx,size.cy };
+	}
+
+	HWND LoGetHWND() override
+	{
+		return GetHWND();
 	}
 
 	EckInline static PCVOID SkipBaseData(PCVOID p)
@@ -806,7 +825,7 @@ public:
 	{
 		RECT rc;
 		GetWindowRect(m_hWnd, &rc);
-		::ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
+		ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
 		SetWindowPos(m_hWnd, NULL, i, rc.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
 	}
 
@@ -814,7 +833,7 @@ public:
 	{
 		RECT rc;
 		GetWindowRect(m_hWnd, &rc);
-		::ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
+		ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
 		return rc.left;
 	}
 
@@ -822,7 +841,7 @@ public:
 	{
 		RECT rc;
 		GetWindowRect(m_hWnd, &rc);
-		::ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
+		ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
 		SetWindowPos(m_hWnd, NULL, rc.left, i, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
 	}
 
@@ -830,7 +849,7 @@ public:
 	{
 		RECT rc;
 		GetWindowRect(m_hWnd, &rc);
-		::ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
+		ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
 		return rc.top;
 	}
 
@@ -873,6 +892,7 @@ public:
 	{
 		RECT rc;
 		GetWindowRect(m_hWnd, &rc);
+		ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
 		return { rc.left, rc.top };
 	}
 
