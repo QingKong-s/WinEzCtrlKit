@@ -152,7 +152,7 @@ void DbgPrintWithPos(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg);
 
 void DbgPrintWndMap();
 
-void DbgPrintFmt(PCWSTR pszFormat, ...);
+void DbgPrintFmt(_Printf_format_string_ PCWSTR pszFormat, ...);
 
 #define EckDbgPrintGLE              ::eck::DbgPrintLastError
 #define EckDbgPrint                 ::eck::DbgPrint

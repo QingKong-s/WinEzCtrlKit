@@ -37,6 +37,15 @@ inline constexpr int StrNPos = -1;
 		return StrNPos;
 }
 
+[[nodiscard]] EckInline int FindStrI(PCWSTR pszText, PCWSTR pszSub, int posStart = 0)
+{
+	PCWSTR pszFind = StrStrIW(pszText + posStart, pszSub);
+	if (pszFind)
+		return (int)(pszFind - pszText);
+	else
+		return StrNPos;
+}
+
 /// <summary>
 /// 寻找文本
 /// </summary>
@@ -47,6 +56,15 @@ inline constexpr int StrNPos = -1;
 [[nodiscard]] EckInline int FindStr(PCSTR pszText, PCSTR pszSub, int posStart = 0)
 {
 	PCSTR pszFind = strstr(pszText + posStart, pszSub);
+	if (pszFind)
+		return (int)(pszFind - pszText);
+	else
+		return StrNPos;
+}
+
+[[nodiscard]] EckInline int FindStrI(PCSTR pszText, PCSTR pszSub, int posStart = 0)
+{
+	PCSTR pszFind = StrStrIA(pszText + posStart, pszSub);
 	if (pszFind)
 		return (int)(pszFind - pszText);
 	else
@@ -758,7 +776,7 @@ public:
 		m_cchCapacity = m_cchText + 1;
 	}
 
-	EckInline int Format(TConstPointer pszFmt, ...)
+	EckInline int Format(_Printf_format_string_ TConstPointer pszFmt, ...)
 	{
 		va_list vl;
 		va_start(vl, pszFmt);
@@ -767,7 +785,7 @@ public:
 		return cch;
 	}
 
-	EckInline int FormatV(TConstPointer pszFmt, va_list vl)
+	EckInline int FormatV(_Printf_format_string_ TConstPointer pszFmt, va_list vl)
 	{
 		const int cch = TCharTraits::GetFormatCchV(pszFmt, vl);
 		if (cch <= 0)
@@ -777,7 +795,7 @@ public:
 		return cch;
 	}
 
-	EckInline int AppendFormat(TConstPointer pszFmt, ...)
+	EckInline int AppendFormat(_Printf_format_string_ TConstPointer pszFmt, ...)
 	{
 		va_list vl;
 		va_start(vl, pszFmt);
@@ -786,7 +804,7 @@ public:
 		return cch;
 	}
 
-	EckInline int AppendFormatV(TConstPointer pszFmt, va_list vl)
+	EckInline int AppendFormatV(_Printf_format_string_ TConstPointer pszFmt, va_list vl)
 	{
 		const int cch = TCharTraits::GetFormatCchV(pszFmt, vl);
 		if (cch <= 0)

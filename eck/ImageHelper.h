@@ -933,6 +933,7 @@ inline GpStatus SaveGpImage(PCWSTR pszFile, GpImage* pImage, ImageType iType = I
 inline HRESULT LoadD2dBitmap(PCWSTR pszFile, ID2D1RenderTarget* pRT, ID2D1Bitmap*& pD2dBitmap,
 	int cxNew = -1, int cyNew = -1)
 {
+	pD2dBitmap = NULL;
 	HRESULT hr;
 	IWICBitmapDecoder* pDecoder;
 	if (FAILED(hr = CreateWicBitmapDecoder(pszFile, pDecoder)))

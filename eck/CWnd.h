@@ -1050,4 +1050,10 @@ public:
 		m_vFnMsgHook.erase(m_vFnMsgHook.begin() + idx);
 	}
 };
+
+EckInline void AttachDlgItems(HWND hDlg, int cItem, CWnd* const* pWnd, const int* iId)
+{
+	EckCounter(cItem, i)
+		pWnd[i]->AttachNew(GetDlgItem(hDlg, iId[i]));
+}
 ECK_NAMESPACE_END

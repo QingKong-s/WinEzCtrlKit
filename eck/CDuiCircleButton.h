@@ -114,7 +114,10 @@ public:
 				ReleaseCapture();
 				InvalidateRect();
 				if (PtInBtn(ECK_GET_PT_LPARAM(lParam)))
-					GenElemNotify(EE_COMMAND, 0, 0);
+				{
+					DUINMHDR nm{ EE_COMMAND };
+					GenElemNotify(&nm);
+				}
 			}
 		}
 		return 0;

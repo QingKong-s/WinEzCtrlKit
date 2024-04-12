@@ -3,7 +3,7 @@
 *
 * SystemHelper.h ： 系统相关帮助函数
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include "Utility.h"
@@ -103,17 +103,16 @@ inline BOOL SetClipboardString(PCWSTR pszText, int cch = -1, HWND hWnd = NULL)
 EckInline void DoEvents()
 {
 	MSG msg;
-	if (GetInputState())
-		while (PeekMessageW(&msg, NULL, 0u, 0u, PM_REMOVE))
+	while (PeekMessageW(&msg, NULL, 0u, 0u, PM_REMOVE))
+	{
+		if (msg.message == WM_QUIT)
 		{
-			if (msg.message == WM_QUIT)
-			{
-				PostQuitMessage((int)msg.wParam);
-				return;
-			}
-			TranslateMessage(&msg);
-			DispatchMessageW(&msg);
+			PostQuitMessage((int)msg.wParam);
+			return;
 		}
+		TranslateMessage(&msg);
+		DispatchMessageW(&msg);
+	}
 }
 
 /// <summary>
@@ -285,7 +284,7 @@ inline HRESULT GetCpuInfo(CPUINFO& ci)
 	__cpuid(Register, 0);
 	std::swap(Register[2], Register[3]);
 	ci.rsVendor = StrX2W((PCSTR)&Register[1], 12);
-	if (ci.rsVendor == L"GenuineIntel")
+	/* */if (ci.rsVendor == L"GenuineIntel")
 		ci.rsVendor = L"Intel Corporation.";
 	else if (ci.rsVendor == L"AuthenticAMD" || ci.rsVendor == L"AMD ISBETTER")
 		ci.rsVendor = L"Advanced Micro Devices.";
@@ -443,7 +442,7 @@ inline BOOL GetFileVerInfo(PCWSTR pszFile, FILEVERINFO& fvi)
 	if (!cbBuf)
 		return FALSE;
 	void* pBuf = malloc(cbBuf);
-	EckAssert(pBuf);
+	EckCheckMem(pBuf);
 	if (!GetFileVersionInfoW(pszFile, 0, cbBuf, pBuf))
 	{
 		free(pBuf);
@@ -681,5 +680,76 @@ EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 	}
 	CloseHandle(hSnapshot);
 	return 0u;
+}
+
+EckInline HMONITOR MonitorFromRectByWorkArea(const RECT& rc, 
+	HMONITOR* phMonMain = NULL, HMONITOR* phMonNearest = NULL)
+{
+	struct CTX
+	{
+		const RECT& rc;
+		int iMinDistance;
+		int iMaxArea;
+		HMONITOR hMon;
+		HMONITOR hMonMain;
+		HMONITOR hMonNearest;
+	}
+	Ctx{ rc,INT_MAX };
+
+	EnumDisplayMonitors(NULL, NULL, [](HMONITOR hMonitor, HDC, RECT*, LPARAM lParam)->BOOL
+		{
+			const auto pCtx = (CTX*)lParam;
+
+			MONITORINFO mi;
+			mi.cbSize = sizeof(mi);
+			GetMonitorInfoW(hMonitor, &mi);
+			if (IsBitSet(mi.dwFlags, MONITORINFOF_PRIMARY))
+				pCtx->hMonMain = hMonitor;
+
+			RECT rc;
+			if (IntersectRect(rc, mi.rcWork, pCtx->rc))
+			{
+				const int iArea = (rc.right - rc.left) * (rc.bottom - rc.top);
+				if (iArea > pCtx->iMaxArea)
+				{
+					pCtx->iMaxArea = iArea;
+					pCtx->hMon = hMonitor;
+				}
+			}
+
+			const int dx = (pCtx->rc.left + pCtx->rc.right) / 2 - 
+				(mi.rcWork.left + mi.rcWork.right) / 2;
+			const int dy = (pCtx->rc.top + pCtx->rc.bottom) / 2 -
+				(mi.rcWork.top + mi.rcWork.bottom) / 2;
+			const int d = dx * dx + dy * dy;
+			if (d < pCtx->iMinDistance)
+			{
+				pCtx->iMinDistance = d;
+				pCtx->hMonNearest = hMonitor;
+			}
+			return TRUE;
+		}, (LPARAM)&Ctx);
+
+	if (phMonMain)
+		*phMonMain = Ctx.hMonMain;
+	if (phMonNearest)
+		*phMonNearest = Ctx.hMonNearest;
+	return Ctx.hMon;
+}
+
+inline CRefStrW GetFileNameFromPath(PCWSTR pszPath, int cchPath = -1)
+{
+	if (cchPath < 0)
+		cchPath = (int)wcslen(pszPath);
+	const PWSTR pTemp = (PWSTR)_malloca(Cch2Cb(cchPath));
+	EckCheckMem(pTemp);
+	wmemcpy(pTemp, pszPath, cchPath + 1);
+
+	const auto pszFileName = PathFindFileNameW(pTemp);
+	PathRemoveExtensionW(pszFileName);
+	const auto rs = CRefStrW(pszFileName);
+
+	_freea(pTemp);
+	return rs;
 }
 ECK_NAMESPACE_END

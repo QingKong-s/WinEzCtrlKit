@@ -53,13 +53,15 @@ enum
 };
 
 // 元素产生的通知
-enum
+enum :UINT
 {
 	EE_COMMAND = 1,
 	EE_KILLFOCUS,
 	EE_SETFOCUS,
 	EE_CLICK,
 	EE_RCLICK,
+	EE_HSCROLL,
+	EE_VSCROLL,
 
 	EE_PRIVATE_BEGIN = 0x4000
 };
@@ -92,7 +94,7 @@ struct ELEMPAINTSTRU
 {
 	D2D1_RECT_F rcfClip;		// 剪裁矩形，相对客户区
 	const RECT* prcClip;		// 剪裁矩形，相对客户区
-	RECT rcInvalid;				// 无效矩形，相对客户区
+	//RECT rcInvalid;				// 无效矩形，相对客户区
 	D2D1_RECT_F rcfClipInElem;	// 剪裁矩形，相对元素
 };
 
@@ -103,6 +105,7 @@ enum
 	CTI_LABEL,
 	CTI_TRACKBAR,
 	CTI_CIRCLEBUTTON,
+	CTI_SCROLLBAR,
 
 	CTI_COUNT
 };
@@ -163,7 +166,7 @@ protected:
 
 	CElem* HitTestChildUncheck(POINT pt)
 	{
-		auto pElem = GetFirstChildElem();
+		auto pElem = GetLastChildElem();
 		while (pElem)
 		{
 			if (pElem->GetStyle() & DES_VISIBLE)
@@ -177,7 +180,7 @@ protected:
 						return pElem;
 				}
 			}
-			pElem = pElem->GetNextElem();
+			pElem = pElem->GetPrevElem();
 		}
 		return NULL;
 	}
@@ -358,6 +361,12 @@ public:
 		pt.y -= m_rcInClient.top;
 	}
 
+	EckInline void ClientToElem(D2D1_POINT_2F& pt)
+	{
+		pt.x -= m_rcfInClient.left;
+		pt.y -= m_rcfInClient.top;
+	}
+
 	EckInline void ElemToClient(RECT& rc)
 	{
 		OffsetRect(rc, m_rcInClient.left, m_rcInClient.top);
@@ -372,6 +381,12 @@ public:
 	{
 		pt.x += m_rcInClient.left;
 		pt.y += m_rcInClient.top;
+	}
+
+	EckInline void ElemToClient(D2D1_POINT_2F& pt)
+	{
+		pt.x += m_rcfInClient.left;
+		pt.y += m_rcfInClient.top;
 	}
 
 	EckInline int GetWidth() const { return m_rc.right - m_rc.left; }
@@ -393,7 +408,7 @@ public:
 
 	void SetZOrder(CElem* pElemAfter);
 
-	EckInline LRESULT GenElemNotify(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	EckInline LRESULT GenElemNotify(void* pnm);
 
 	EckInline LRESULT GenElemNotifyParent(void* pnm)
 	{
@@ -534,11 +549,14 @@ private:
 	BITBOOL m_bRenderThreadShouldExit : 1 = FALSE;	// 渲染线程应当退出
 	BITBOOL m_bSizeChanged : 1 = FALSE;				// 渲染线程应当重设交换链大小
 
+	int m_iUserDpi = USER_DEFAULT_SCREEN_DPI;
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 	ECK_DS_BEGIN(DPIS)
 		ECK_DS_ENTRY_F(CommEdge, 1.f)
 		ECK_DS_ENTRY_F(CommRrcRadius, 4.f)
 		ECK_DS_ENTRY_F(CommMargin, 4.f)
+		ECK_DS_ENTRY_F(SBPadding, 3.f)
+		ECK_DS_ENTRY_F(CommSBCxy, 12.f)
 		;
 	ECK_DS_END_VAR(m_Ds);
 
@@ -582,12 +600,12 @@ private:
 						pElem->m_pDC->SetTransform(D2D1::Matrix3x2F::Translation(
 							pElem->GetRectInClientF().left,
 							pElem->GetRectInClientF().top));
-						pElem->CallEvent(WM_PAINT, 0, (WPARAM)&rcClip);
-						RedrawElem(pElem->GetLastChildElem(), rcClip);
+						pElem->CallEvent(WM_PAINT, 0, (LPARAM)&rcClip);
+						RedrawElem(pElem->GetFirstChildElem(), rcClip);
 					}
 				}
 			}
-			pElem = pElem->GetPrevElem();
+			pElem = pElem->GetNextElem();
 		}
 	}
 
@@ -596,7 +614,7 @@ private:
 		m_D2d.GetDC()->BeginDraw();
 		m_D2d.GetDC()->SetTransform(D2D1::Matrix3x2F::Identity());
 		FillBackground(MakeD2DRcF(rc));
-		RedrawElem(GetLastChildElem(), rc);
+		RedrawElem(GetFirstChildElem(), rc);
 		m_D2d.GetDC()->SetTransform(D2D1::Matrix3x2F::Identity());
 
 		m_D2d.GetDC()->EndDraw();
@@ -604,16 +622,12 @@ private:
 
 	EckInline void StartupRenderThread()
 	{
-#ifdef _DEBUG
-		static BOOL b__ = TRUE;
-		EckAssert(b__);
-		b__ = FALSE;
-#endif
 		std::thread t([this]()
 			{
 				constexpr int c_iMinGap = 18;
 				const HANDLE hTimer = CreateWaitableTimerW(NULL, FALSE, NULL);
 				EckAssert(hTimer);
+				const HANDLE hWait[]{ hTimer,m_evtRender.GetHEvent() };
 				BOOL bThereAreActiveTimeLine;
 
 				WaitForSingleObject(m_evtRender.GetHEvent(), INFINITE);
@@ -681,7 +695,7 @@ private:
 							const LARGE_INTEGER llDueTime
 							{ .QuadPart = -10 * (c_iMinGap - iDeltaTime) * 1000LL };
 							SetWaitableTimer(hTimer, &llDueTime, 0, NULL, NULL, 0);
-							WaitForSingleObject(hTimer, INFINITE);
+							WaitForMultipleObjects(ARRAYSIZE(hWait), hWait, FALSE, INFINITE);
 						}
 					}
 					else
@@ -750,6 +764,13 @@ public:
 				RgbToD2dColorF(0xe1e1e2, 0.9f),
 				c_DisableBkg,
 				RgbToD2dColorF(0xe1e1e2, 0.9f),
+				c_Unused,c_Unused
+			});
+		m_pStdColorTheme[CTI_SCROLLBAR] = new CColorTheme{};
+		m_pStdColorTheme[CTI_SCROLLBAR]->Set(
+			{
+				RgbToD2dColorF(0x85897e),c_Unused,c_Unused,c_Unused,
+				RgbToD2dColorF(0xffffff, 0.6f),c_Unused,c_Unused,c_Unused,c_Unused,
 				c_Unused,c_Unused
 			});
 	}
@@ -839,7 +860,7 @@ public:
 				if (m_pMouseCaptureElem)
 				{
 					m_pMouseCaptureElem->CallEvent(WM_CAPTURECHANGED, 0, NULL);
-					if (m_pHoverElem == m_pMouseCaptureElem)
+					if (m_pHoverElem != m_pMouseCaptureElem)
 					{
 						m_pHoverElem->CallEvent(WM_MOUSELEAVE, 0, 0);
 						m_pHoverElem = NULL;
@@ -973,7 +994,7 @@ public:
 
 	CElem* HitTest(POINT pt)
 	{
-		auto pElem = m_pFirstChild;
+		auto pElem = m_pLastChild;
 		while (pElem)
 		{
 			if (pElem->GetStyle() & DES_VISIBLE)
@@ -987,7 +1008,7 @@ public:
 						return pElem;
 				}
 			}
-			pElem = pElem->GetNextElem();
+			pElem = pElem->GetPrevElem();
 		}
 		return NULL;
 	}
@@ -1083,6 +1104,16 @@ public:
 		m_vTimeLine.emplace_back(ptl);
 	}
 
+	EckInline void UnregisterTimeLine(ITimeLine* ptl)
+	{
+		ECK_DUILOCKWND;
+		const auto it = std::find(m_vTimeLine.begin(), m_vTimeLine.end(), ptl);
+		EckAssert(it != m_vTimeLine.end());
+		const auto p = *it;
+		m_vTimeLine.erase(it);
+		p->Release();
+	}
+
 	EckInline void Redraw()
 	{
 		ECK_DUILOCKWND;
@@ -1122,12 +1153,12 @@ inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	auto& pParentFirstChild = (pParent ? pParent->m_pFirstChild : pWnd->m_pFirstChild);
 	m_pParent = pParent;
 
-	if (pParentFirstChild)
+	if (pParentLastChild)
 	{
-		m_pPrev = NULL;
-		m_pNext = pParentFirstChild;
-		m_pNext->m_pPrev = this;
-		pParentFirstChild = this;
+		m_pPrev = pParentLastChild;
+		m_pNext = NULL;
+		m_pPrev->m_pNext = this;
+		pParentLastChild = this;
 	}
 	else
 	{
@@ -1262,11 +1293,10 @@ inline void CElem::SetZOrder(CElem* pElemAfter)
 	}
 }
 
-EckInline LRESULT CElem::GenElemNotify(UINT uMsg, WPARAM wParam, LPARAM lParam)
+EckInline LRESULT CElem::GenElemNotify(void* pnm)
 {
-	DUINMHDR nm{ EE_COMMAND };
-	if (!GenElemNotifyParent(&nm))
-		return m_pWnd->OnElemEvent(this, uMsg, wParam, lParam);
+	if (!GenElemNotifyParent(pnm))
+		return m_pWnd->OnElemEvent(this, ((DUINMHDR*)pnm)->uCode, 0, (LPARAM)pnm);
 	else
 		return 0;
 }
@@ -1288,7 +1318,6 @@ inline void CElem::BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, 
 {
 	eps.prcClip = (const RECT*)lParam;
 	eps.rcfClip = MakeD2DRcF(*eps.prcClip);
-	eps.rcInvalid = m_rcInvalid;
 	m_rcInvalid = {};
 
 	eps.rcfClipInElem = MakeD2DRcF(*eps.prcClip);
@@ -1404,6 +1433,7 @@ EckInline void CElem::SetColorTheme(CColorTheme* pColorTheme)
 		m_pColorTheme->Ref();
 	if (pColorTheme)
 		pColorTheme->DeRef();
+	CallEvent(WM_THEMECHANGED, 0, 0);
 }
 
 
