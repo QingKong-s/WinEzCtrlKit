@@ -163,7 +163,10 @@ public:
 				SetDragPos(PtToPos(pt));
 
 				if (m_bGenEventWhenDragging)
-					GenElemNotify(TBE_POSCHANGED, 0, 0);
+				{
+					DUINMHDR nm{ TBE_POSCHANGED };
+					GenElemNotify(&nm);
+				}
 				InvalidateRect();
 			}
 			else if (!m_bHover)
@@ -205,7 +208,8 @@ public:
 			{
 				SetPos(PtToPos(pt));
 				InvalidateRect();
-				GenElemNotify(TBE_POSCHANGED, 0, 0);
+				DUINMHDR nm{ TBE_POSCHANGED };
+				GenElemNotify(&nm);
 			}
 		}
 		return 0;
@@ -221,7 +225,8 @@ public:
 				ReleaseCapture();
 				SetPos(PtToPos(pt));
 				InvalidateRect();
-				GenElemNotify(TBE_POSCHANGED, 0, 0);
+				DUINMHDR nm{ TBE_POSCHANGED };
+				GenElemNotify(&nm);
 
 				if (m_bHover)
 				{

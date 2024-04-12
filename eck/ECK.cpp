@@ -390,7 +390,7 @@ void ThreadInit()
 
 					if (it != itEnd)
 					{
-						if (it == c_pszCommCtrlCls + 2)// LISTVIEW
+						if (it == c_pszCommCtrlCls + 1 || it == c_pszCommCtrlCls + 2)// HEADER/LISTVIEW
 							SetWindowTheme(hWnd, L"ItemsView", NULL);
 						else ECKLIKELY
 							SetWindowTheme(hWnd, L"Explorer", NULL);
@@ -522,7 +522,7 @@ void DbgPrintWndMap()
 	OutputDebugStringW(s.Data());
 }
 
-void DbgPrintFmt(PCWSTR pszFormat, ...)
+void DbgPrintFmt(_Printf_format_string_ PCWSTR pszFormat, ...)
 {
 	va_list vl;
 	va_start(vl, pszFormat);

@@ -27,6 +27,8 @@ enum
 
 struct LEEDISPINFO
 {
+	DUINMHDR nmhdr{ LEE_GETDISPINFO };
+
 	UINT uFlags = 0;
 
 	int idx = 0;
@@ -103,8 +105,8 @@ private:
 	void DrawItem(int idx, const D2D1_RECT_F& rcPaint)
 	{
 		auto& e = m_vItem[idx];
-		LEEDISPINFO es{ LEIM_TEXT | LEIM_IMAGE,idx };
-		GenElemNotify(LEE_GETDISPINFO, 0, (LPARAM)&es);
+		LEEDISPINFO es{ {LEE_GETDISPINFO},LEIM_TEXT | LEIM_IMAGE,idx };
+		GenElemNotify(&es);
 		if (!e.pLayout && es.pszText)
 		{
 			EckAssert(es.cchText > 0);
@@ -458,7 +460,6 @@ public:
 			m_pecThumb->SetAnProc(Easing::OutSine);
 			m_pecThumb->SetRange(0.f, 1.f);
 			m_pecThumb->SetDuration(160);
-			m_pecThumb->SetAnProc(Easing::OutSine);
 			m_pecThumb->SetCallBack([](float f, float fOld, LPARAM lParam)
 				{
 					auto p = (CList*)lParam;

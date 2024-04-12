@@ -42,6 +42,7 @@
 #include "eck\CTreeListExt.h"
 #include "eck\CComboBoxNew.h"
 #include "eck\CLinearLayout.h"
+#include "eck\CDuiScrollBar.h"
 
 #define WCN_TEST L"CTestWindow"
 
@@ -424,6 +425,7 @@ public:
 	eck::Dui::CList m_List{};
 	eck::Dui::CTrackBar m_TB{};
 	eck::Dui::CCircleButton m_CBtn{};
+	eck::Dui::CScrollBar m_SB{};
 
 	eck::CD2dImageList m_il{ 80, 80 };
 	eck::CEasingCurve m_ec{};
@@ -492,7 +494,7 @@ public:
 
 			eck::LoadD2dBitmap(LR"(E:\Desktop\Temp\壁纸.bmp)", GetD2D().GetDC(), pBitmap);
 
-			auto sizez = pBitmap->GetSize();
+			//auto sizez = pBitmap->GetSize();
 			m_il.BindRenderTarget(GetD2D().GetDC());
 			//SetBkgBitmap(pBitmap);
 
@@ -552,8 +554,14 @@ public:
 			m_TB.SetTrackSize(20);
 			//m_TB.SetVertical(true);
 
-			if (pBitmap)
-				pBitmap->Release();
+			//if (pBitmap)
+			//	pBitmap->Release();
+
+			m_SB.Create(NULL, eck::Dui::DES_VISIBLE | eck::Dui::DES_TRANSPARENT, 0,
+				400, 300, GetDs().CommSBCxy, 300, NULL, this);
+			const auto psv = m_SB.GetScrollView();
+			psv->SetRange(-100, 100);
+			psv->SetPage(40);
 
 			EnableDragDrop(TRUE);
 
@@ -869,20 +877,42 @@ public:
 			//eck::EnableWindowNcDarkMode(hWnd, TRUE);
 			m_iDpi = eck::GetDpi(hWnd);
 
-			//m_lve.Create(0, WS_CHILD | WS_VISIBLE, 0,
-			//	0, 0, 800, 700, hWnd, 10002);
-			//m_lve.SetView(LV_VIEW_DETAILS);
-			//m_lve.SetLVExtendStyle(LVS_EX_DOUBLEBUFFER|LVS_EX_FULLROWSELECT);
+			auto hil = ImageList_Create(80, 80, ILC_COLOR32 | ILC_ORIGINALSIZE, 0, 20);
+			hFind = FindFirstFileW(LR"(H:\@存档的文件\@其他\图片素材库\64px\Kitchen (Food Beverage)\*.png)", &wfd);
+			do
+			{
+				IWICBitmapDecoder* pd;
+				eck::CreateWicBitmapDecoder(
+					(LR"(H:\@存档的文件\@其他\图片素材库\64px\Kitchen (Food Beverage)\)"_rs +
+						wfd.cFileName).Data(), pd);
+				IWICBitmap* pb;
+				eck::CreateWicBitmap(pb, pd, 80, 80);
+				const auto h = eck::CreateHICON(pb);
+				auto r = ImageList_AddIcon(hil, h);
+				r = 0;
+			} while (FindNextFileW(hFind, &wfd));
+			FindClose(hFind);
+			
+			m_lve.Create(0, WS_CHILD | WS_VISIBLE, WS_EX_CLIENTEDGE,
+				0, 0, 800, 700, hWnd, 10002);
+			m_lve.SetView(LV_VIEW_ICON);
+			m_lve.SetLVExtendStyle(LVS_EX_DOUBLEBUFFER|LVS_EX_FULLROWSELECT);
+			m_lve.SetImageList(hil, LVSIL_NORMAL);
+			m_lve.InsertColumn(L"Col. 1", -1, 210);
 
-			//m_lve.InsertColumn(L"Col. 1", -1, 210);
-			//m_lve.InsertColumn(L"Col. 2", -1, 210);
-			//m_lve.InsertColumn(L"Col. 3", -1, 210);
-			//m_lve.InsertColumn(L"Col. 4", -1, 210);
+			m_lve.InsertColumn(L"Col. 2", -1, 210);
+			m_lve.InsertColumn(L"Col. 3", -1, 210);
+			m_lve.InsertColumn(L"Col. 4", -1, 210);
 
-			//EckCounter(30, i)
-			//{
-			//	m_lve.InsertItem((std::to_wstring(i) + L" 项目测试").c_str());
-			//}
+			EckCounter(30, i)
+			{
+				m_lve.InsertItem((std::to_wstring(i) + L" 项目测试").c_str(), -1, 0, i);
+			}
+
+			RECT rc;
+			m_lve.GetItemRect(10, &rc, LVIR_ICON);
+
+			rc = {};
 
 			//m_Label.Create(L"我是标签", WS_CHILD | WS_VISIBLE | WS_BORDER, 0, 0, 0, 300, 200, hWnd, 103);
 			//m_hbm = eck::CreateHBITMAP(LR"(E:\Desktop\Temp\111111.jpg)");
@@ -1053,25 +1083,24 @@ public:
 			m_tle.BuildTree();
 			m_lot.Add(&m_tle, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);*/
 
-			for (int i{}; auto& e : m_btn)
-			{
-				e.Create((L"按钮"_rs + eck::ToStr(i)).Data(), WS_VISIBLE | WS_CHILD, 0,
-					0, 0, 500, 50, hWnd, NULL);
-				m_llv.Add(&e, { 10,5 }, eck::LLF_FIXHEIGHT | eck::LLF_FIXWIDTH);
-				if (i == 4)
-				{
-					for (int j{}; auto & f : m_btn2)
-					{
-						f.Create((L"按钮"_rs + eck::ToStr(j)).Data(), WS_VISIBLE | WS_CHILD, 0,
-							0, 0, 50, 60, hWnd, NULL);
-						m_llh.Add(&f, {}, eck::LLF_FIXHEIGHT | eck::LLF_FIXWIDTH);
-						++j;
-					}
-					m_llv.Add(&m_llh, { 20 });
-				}
-				++i;
-			}
-
+			//for (int i{}; auto& e : m_btn)
+			//{
+			//	e.Create((L"按钮"_rs + eck::ToStr(i)).Data(), WS_VISIBLE | WS_CHILD, 0,
+			//		0, 0, 500, 50, hWnd, NULL);
+			//	m_llv.Add(&e, { 10,5 }, eck::LLF_FIXHEIGHT | eck::LLF_FIXWIDTH);
+			//	if (i == 4)
+			//	{
+			//		for (int j{}; auto & f : m_btn2)
+			//		{
+			//			f.Create((L"按钮"_rs + eck::ToStr(j)).Data(), WS_VISIBLE | WS_CHILD, 0,
+			//				0, 0, 50, 60, hWnd, NULL);
+			//			m_llh.Add(&f, {}, eck::LLF_FIXHEIGHT | eck::LLF_FIXWIDTH);
+			//			++j;
+			//		}
+			//		m_llv.Add(&m_llh, { 20 });
+			//	}
+			//	++i;
+			//}
 
 			m_hFont = eck::CreateDefFont(m_iDpi);
 			eck::SetFontForWndAndCtrl(hWnd, m_hFont);

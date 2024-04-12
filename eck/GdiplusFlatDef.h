@@ -378,7 +378,8 @@ GpStatus WINGDIPAPI GdipSaveImageToFile(GpImage* image, GDIPCONST WCHAR* filenam
 GpStatus WINGDIPAPI GdipGetImageDecoders(UINT numDecoders, UINT size, GpImageCodecInfo* decoders);
 GpStatus WINGDIPAPI GdipGetImageDecodersSize(UINT* numDecoders, UINT* size);
 GpStatus WINGDIPAPI GdipCreateFromHWND(HWND hwnd, GpGraphics** graphics);
-GpStatus WINGDIPAPI GdipSetInterpolationMode(GpGraphics* graphics, GpInterpolationMode interpolationMode);
 GpStatus WINGDIPAPI GdipSetSolidFillColor(GpSolidFill* brush, ARGB color);
 GpStatus WINGDIPAPI GdipSetPenColor(GpPen* pen, ARGB argb);
+GpStatus WINGDIPAPI GdipSetInterpolationMode(GpGraphics* graphics, GpInterpolationMode interpolationMode);
+GpStatus WINGDIPAPI GdipGetInterpolationMode(GpGraphics* graphics, GpInterpolationMode* interpolationMode);
 EXTERN_C_END

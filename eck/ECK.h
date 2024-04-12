@@ -167,6 +167,8 @@ ECK_NAMESPACE_END
 #define ECK_COM_INTERFACE(iid)					\
 			__interface __declspec(uuid(iid))
 
+#define ECK_UNREACHABLE __assume(0)
+
 #if ECKCXX20
 #define ECKLIKELY [[likely]]
 #define ECKUNLIKELY [[unlikely]]

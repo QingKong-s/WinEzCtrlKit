@@ -3,7 +3,7 @@
 *
 * Utility.h ： 实用函数
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 
 #pragma once
@@ -24,28 +24,6 @@
 #include <Shlwapi.h>
 
 ECK_NAMESPACE_BEGIN
-template <class T1, class T2, bool = std::is_empty_v<T1> && !std::is_final_v<T1>>
-struct CompressedPair final : private T1
-{
-	T2 v2;
-
-	constexpr T1& GetFirst() noexcept { return *this; }
-
-	constexpr const T1& GetFirst() const noexcept { return *this; }
-};
-
-template <class T1, class T2>
-struct CompressedPair<T1, T2, false> final
-{
-	T1 v1;
-	T2 v2;
-
-	EckInline constexpr T1& GetFirst() noexcept { return v1; }
-
-	EckInline constexpr const T1& GetFirst() const noexcept { return v1; }
-};
-
-
 namespace Colorref
 {
 	inline constexpr COLORREF
@@ -460,7 +438,7 @@ EckInline constexpr D2D1_POINT_2F MakeD2dPtF(POINT pt)
 
 EckInline constexpr HRESULT HResultFromBool(BOOL b)
 {
-	return b ? S_OK : S_FALSE;
+	return b ? S_OK : E_FAIL;
 }
 
 template<class T>
@@ -743,5 +721,71 @@ EckInline constexpr BOOL IsGuidEqu(REFGUID x1, REFGUID x2)
 EckInline constexpr BOOL IsPszId(PCWSTR p)
 {
 	return (((UINT_PTR)p) & (~((UINT_PTR)0xFFFF))) == 0;
+}
+
+/// <summary>
+/// 调整矩形以完全包含。
+/// 函数以最小的距离偏移矩形使之完全处于参照矩形当中
+/// </summary>
+/// <param name="rc">要调整的矩形</param>
+/// <param name="rcRef">参照矩形</param>
+/// <returns>成功返回TRUE，失败返回FALSE</returns>
+inline constexpr BOOL AdjustRectIntoAnother(RECT& rc, const RECT& rcRef)
+{
+	if (rc.right - rc.left > rcRef.right - rcRef.left ||
+		rc.bottom - rc.top > rcRef.bottom - rcRef.top)
+		return FALSE;
+	int dxLeft = rcRef.left - rc.left;
+	if (dxLeft < 0)
+		dxLeft = INT_MAX;
+	int dxRight = rc.right - rcRef.right;
+	if (dxRight < 0)
+		dxRight = INT_MAX;
+	int dyTop = rcRef.top - rc.top;
+	if (dyTop < 0)
+		dyTop = INT_MAX;
+	int dyBottom = rc.bottom - rcRef.bottom;
+	if (dyBottom < 0)
+		dyBottom = INT_MAX;
+	OffsetRect(rc, std::min(dxLeft, dxRight), std::min(dyTop, dyBottom));
+	return TRUE;
+}
+
+/// <summary>
+/// 调整矩形以适应。
+/// 函数等比例缩放矩形使之成为包含于参照矩形的最大居中矩形
+/// </summary>
+/// <param name="rc">要调整的矩形</param>
+/// <param name="rcRef">参照矩形</param>
+/// <returns>成功返回TRUE，失败返回FALSE</returns>
+inline constexpr BOOL AdjustRectToFitAnother(RECT& rc, const RECT& rcRef)
+{
+	const int
+		cxMax = rcRef.right - rcRef.left,
+		cyMax = rcRef.bottom - rcRef.top,
+		cx0 = rc.right - rc.left,
+		cy0 = rc.bottom - rc.top;
+	if (cxMax <= 0 || cyMax <= 0 || cx0 <= 0 || cy0 <= 0)
+		return FALSE;
+	int cx, cy;
+	if (cxMax * cy0 > cx0 * cyMax)// y对齐
+	{
+		cy = cyMax;
+		cx = cx0 * cy / cy0;
+	}
+	else// x对齐
+	{
+		cx = cxMax;
+		cy = cx * cy0 / cx0;
+	}
+
+	rc =
+	{
+		rcRef.left + (cxMax - cx) / 2,
+		rcRef.top + (cyMax - cy) / 2,
+		cx,
+		cy
+	};
+	return TRUE;
 }
 ECK_NAMESPACE_END
