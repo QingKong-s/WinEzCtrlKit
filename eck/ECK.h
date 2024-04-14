@@ -36,10 +36,15 @@
 #		define ECKDPIAPI 1
 #	else
 #		define ECKDPIAPI 0
-#	endif
+#		ifndef WM_DPICHANGED_BEFOREPARENT// 不会触发这些消息，但为了通过编译在此将其定义
+#			define WM_DPICHANGED_BEFOREPARENT      0x02E2
+#			define WM_DPICHANGED_AFTERPARENT       0x02E3
+#			define WM_GETDPISCALEDSIZE             0x02E4
+#		endif// WM_DPICHANGED_BEFOREPARENT
+#	endif// _WIN32_WINNT >= 0x0605
 #else
 #	if _WIN32_WINNT < 0x0605
-#		error "dpi api requires _WIN32_WINNT >= 0x0605"
+#		error "Dpi api requires _WIN32_WINNT >= 0x0605 !!!"
 #	endif
 #endif
 

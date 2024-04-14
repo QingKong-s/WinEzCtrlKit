@@ -7,7 +7,7 @@ ECK_NAMESPACE_BEGIN
 class CInertialScrollView : public CScrollView, public ITimeLine
 {
 public:
-	using InertialScrollProc = void (*)(int iPos, int iPrevPos, LPARAM lParam);
+	using FInertialScrollProc = void (*)(int iPos, int iPrevPos, LPARAM lParam);
 protected:
 	int m_iStart = 0;		// 起始位置
 	int m_iDistance = 0;	// 当前动画应滚动的总距离
@@ -17,7 +17,7 @@ protected:
 
 	int m_iCurrInterval = 0;
 
-	InertialScrollProc m_pfnCallBack = NULL;
+	FInertialScrollProc m_pfnCallBack = NULL;
 	LPARAM m_lParam = 0;
 
 	LONG m_cRef = 1;
@@ -106,7 +106,7 @@ public:
 		m_bValid = TRUE;
 	}
 
-	EckInline void SetCallBack(InertialScrollProc pfnInertialScroll, LPARAM lParam)
+	EckInline void SetCallBack(FInertialScrollProc pfnInertialScroll, LPARAM lParam)
 	{
 		m_pfnCallBack = pfnInertialScroll;
 		m_lParam = lParam;

@@ -14,20 +14,21 @@
 #include "ITimeLine.h"
 #include "CEvent.h"
 #include "CCriticalSection.h"
+#include "ILayout.h"
 
 #define ECK_DUI_NAMESPACE_BEGIN namespace Dui {
 #define ECK_DUI_NAMESPACE_END }
 
 #ifdef _DEBUG
 #	if 0
-#		define ECK_DUI_DBG_DRAW_FRAME								\
-			{														\
-				ID2D1SolidColorBrush* ECKPRIV_pBr___;				\
+#		define ECK_DUI_DBG_DRAW_FRAME					\
+			{											\
+				ID2D1SolidColorBrush* ECKPRIV_pBr___;	\
 				m_pDC->CreateSolidColorBrush(D2D1::ColorF(1.f, 0.f, 0.f, 1.f), &ECKPRIV_pBr___); \
-				if (ECKPRIV_pBr___) {								\
+				if (ECKPRIV_pBr___) {					\
 					m_pDC->DrawRectangle(GetViewRectF(), ECKPRIV_pBr___, 1.f);	\
-					ECKPRIV_pBr___->Release();						\
-				}													\
+					ECKPRIV_pBr___->Release();			\
+				}										\
 			}
 #	else
 #		define ECK_DUI_DBG_DRAW_FRAME ;
@@ -94,7 +95,6 @@ struct ELEMPAINTSTRU
 {
 	D2D1_RECT_F rcfClip;		// 剪裁矩形，相对客户区
 	const RECT* prcClip;		// 剪裁矩形，相对客户区
-	//RECT rcInvalid;				// 无效矩形，相对客户区
 	D2D1_RECT_F rcfClipInElem;	// 剪裁矩形，相对元素
 };
 
@@ -120,7 +120,7 @@ struct DUINMHDR
 /// <summary>
 /// DUI元素基类
 /// </summary>
-class CElem
+class CElem :public ILayout
 {
 	friend class CDuiWnd;
 protected:
@@ -251,6 +251,37 @@ protected:
 		m_dwStyle = dwStyle;
 	}
 public:
+	void LoGetAppropriateSize(int& cx, int& cy) override
+	{
+		cx = GetWidth();
+		cy = GetHeight();
+	}
+
+	void LoSetPos(int x, int y) override
+	{
+		SetPos(x, y);
+	}
+
+	void LoSetSize(int cx, int cy) override
+	{
+		SetSize(cx, cy);
+	}
+
+	void LoSetPosSize(int x, int y, int cx, int cy) override
+	{
+		SetRect({ x,y,x + cx,y + cy });
+	}
+
+	std::pair<int, int> LoGetPos() override
+	{
+		return { GetRect().left,GetRect().top };
+	}
+
+	std::pair<int, int> LoGetSize() override
+	{
+		return { GetWidth(),GetHeight() };
+	}
+
 	virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		switch (uMsg)

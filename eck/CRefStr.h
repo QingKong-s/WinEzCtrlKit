@@ -3,7 +3,7 @@
 *
 * CRefStr.h ： 字符串
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #pragma warning (disable:4996)
@@ -30,20 +30,20 @@ inline constexpr int StrNPos = -1;
 /// <returns>位置，若未找到返回StrNPos</returns>
 [[nodiscard]] EckInline int FindStr(PCWSTR pszText, PCWSTR pszSub, int posStart = 0)
 {
-	PCWSTR pszFind = wcsstr(pszText + posStart, pszSub);
-	if (pszFind)
-		return (int)(pszFind - pszText);
-	else
-		return StrNPos;
+	const PCWSTR pszFind = wcsstr(pszText + posStart, pszSub);
+	return  pszFind ? (int)(pszFind - pszText) : StrNPos;
 }
 
 [[nodiscard]] EckInline int FindStrI(PCWSTR pszText, PCWSTR pszSub, int posStart = 0)
 {
-	PCWSTR pszFind = StrStrIW(pszText + posStart, pszSub);
-	if (pszFind)
-		return (int)(pszFind - pszText);
-	else
-		return StrNPos;
+	const PCWSTR pszFind = StrStrIW(pszText + posStart, pszSub);
+	return  pszFind ? (int)(pszFind - pszText) : StrNPos;
+}
+
+[[nodiscard]] EckInline int FindFirstOf(PCWSTR pszText, PCWSTR pszCharSet, int posStart = 0)
+{
+	const PCWSTR pszFind = wcspbrk(pszText + posStart, pszCharSet);
+	return  pszFind ? (int)(pszFind - pszText) : StrNPos;
 }
 
 /// <summary>
@@ -69,6 +69,120 @@ inline constexpr int StrNPos = -1;
 		return (int)(pszFind - pszText);
 	else
 		return StrNPos;
+}
+
+/// <summary>
+/// 删首空。
+/// 函数从pszText开始向后步进到第一个非空格字符，然后返回指向这个字符的指针。
+/// 此函数不执行任何修改字符串的操作
+/// </summary>
+/// <param name="pszText">原始文本</param>
+/// <returns>第一个非空格字符的指针</returns>
+[[nodiscard]] EckInline PCWSTR LTrimStr(PCWSTR pszText)
+{
+	WCHAR ch = *pszText;
+	while ((ch == L' ' || ch == L'　') && ch != L'\0')
+		ch = *++pszText;
+	return pszText;
+}
+
+/// <summary>
+/// 删首空。
+/// 函数从pszText开始向后步进到第一个非空格字符，然后返回指向这个字符的指针。
+/// 此函数不执行任何修改字符串的操作
+/// </summary>
+/// <param name="pszText">原始文本</param>
+/// <returns>第一个非空格字符的指针</returns>
+[[nodiscard]] EckInline PCSTR LTrimStr(PCSTR pszText)
+{
+	CHAR ch = *pszText;
+	while ((ch == ' ' || ch == '　') && ch != '\0')
+		ch = *++pszText;
+	return pszText;
+}
+
+/// <summary>
+/// 删尾空。
+/// 此函数不执行任何修改字符串的操作
+/// </summary>
+/// <param name="pszText">原始文本</param>
+/// <param name="cchText">文本长度</param>
+/// <returns>第一个非空格字符的下一个字符的指针，若字符串全为空格，则返回pszText</returns>
+[[nodiscard]] inline PCWSTR RTrimStr(PCWSTR pszText, int cchText = -1)
+{
+	if (cchText < 0)
+		cchText = (int)wcslen(pszText);
+	if (!cchText)
+		return 0;
+
+	for (PCWSTR pszTemp = pszText + cchText - 1; pszTemp >= pszText; --pszTemp)
+	{
+		const WCHAR ch = *pszTemp;
+		if (ch != L' ' && ch != L'　')
+			return pszTemp + 1;
+	}
+
+	return pszText;
+}
+
+/// <summary>
+/// 删尾空。
+/// 此函数不执行任何修改字符串的操作
+/// </summary>
+/// <param name="pszText">原始文本</param>
+/// <param name="cchText">文本长度</param>
+/// <returns>第一个非空格字符的下一个字符的指针，若字符串全为空格，则返回pszText</returns>
+[[nodiscard]] inline PCSTR RTrimStr(PCSTR pszText, int cchText = -1)
+{
+	if (cchText < 0)
+		cchText = (int)strlen(pszText);
+	if (!cchText)
+		return 0;
+
+	for (PCSTR pszTemp = pszText + cchText - 1; pszTemp >= pszText; --pszTemp)
+	{
+		const CHAR ch = *pszTemp;
+		if (ch != ' ' && ch != '　')
+			return pszTemp + 1;
+	}
+
+	return pszText;
+}
+
+/// <summary>
+/// 删首尾空。
+/// 函数内部简单地调用LTrimStr和RTrimStr获取首尾空信息。
+/// 此函数不执行任何修改字符串的操作
+/// </summary>
+/// <param name="pszText">原始文本</param>
+/// <param name="cchText">文本长度</param>
+/// <returns>起始位置和结束位置指针，若无非空格字符，则返回{ NULL,NULL }</returns>
+[[nodiscard]] EckInline std::pair<PCWSTR, PCWSTR> RLTrimStr(PCWSTR pszText, int cchText = -1)
+{
+	const auto pszLeft = LTrimStr(pszText);
+	const auto pszRight = RTrimStr(pszText, cchText);
+	if (pszRight <= pszLeft)
+		return { NULL,NULL };
+	else
+		return { pszLeft,pszRight };
+}
+
+/// <summary>
+/// 删首尾空。
+/// 函数内部简单地调用LTrimStr和RTrimStr获取首尾空信息。
+/// 此函数不执行任何修改字符串的操作
+/// </summary>
+/// <param name="pszText">原始文本</param>
+/// <param name="cchText">文本长度</param>
+/// <returns>起始位置和结束位置指针，若无非空格字符，则返回{ NULL,NULL }</returns>
+[[nodiscard]] EckInline std::pair<PCSTR, PCSTR> RLTrimStr(PCSTR pszText, int cchText = -1)
+{
+	const auto pszLeft = LTrimStr(pszText);
+	const auto pszRight = RTrimStr(pszText, cchText);
+	if (pszRight <= pszLeft)
+		return { NULL,NULL };
+	else
+		return { pszLeft,pszRight };
 }
 
 #if ECKCXX20
@@ -865,6 +979,36 @@ public:
 		return FindStr(Data(), s.c_str(), posStart);
 	}
 
+	void LTrim()
+	{
+		if (IsEmpty())
+			return;
+		const auto pszBegin = LTrimStr(Data());
+		const int cchNew = Size() - (int)(pszBegin - Data());
+		TCharTraits::Move(Data(), pszBegin, cchNew);
+		ReSize(cchNew);
+	}
+
+	void RTrim()
+	{
+		if (IsEmpty())
+			return;
+		const auto pszEnd = RTrimStr(Data(), Size());
+		ReSize((int)(pszEnd - Data()));
+	}
+
+	void RLTrim()
+	{
+		if (IsEmpty())
+			return;
+		auto [psz0, psz1] = RLTrimStr(Data(), Size());
+		if (!psz0)
+			return;
+		const int cchNew = (int)(psz1 - psz0);
+		TCharTraits::Move(Data(), psz0, cchNew);
+		ReSize(cchNew);
+	}
+
 	[[nodiscard]] EckInline TIterator begin() { return Data(); }
 	[[nodiscard]] EckInline TIterator end() { return begin() + Size(); }
 	[[nodiscard]] EckInline TConstIterator begin() const { return Data(); }
@@ -1344,7 +1488,7 @@ namespace Literals
 
 template<class TProcesser>
 inline void SplitStr(PCWSTR pszText, PCWSTR pszDiv, int cSubTextExpected, int cchText,
-	int cchDiv, TProcesser Processer)
+	int cchDiv, TProcesser&& Processer)
 {
 	if (cchText < 0)
 		cchText = (int)wcslen(pszText);
@@ -1365,6 +1509,34 @@ inline void SplitStr(PCWSTR pszText, PCWSTR pszDiv, int cSubTextExpected, int cc
 			return;
 		pszPrevFirst = pszFind + cchDiv;
 		pszFind = wcsstr(pszPrevFirst, pszDiv);
+	}
+
+	Processer(pszPrevFirst, (int)(pszText + cchText - pszPrevFirst));
+}
+
+template<class TProcesser>
+inline void SplitStrWithMultiChar(PCWSTR pszText, PCWSTR pszDiv, int cSubTextExpected, int cchText,
+	int cchDiv, TProcesser&& Processer)
+{
+	if (cchText < 0)
+		cchText = (int)wcslen(pszText);
+	if (cchDiv < 0)
+		cchDiv = (int)wcslen(pszDiv);
+	if (cSubTextExpected <= 0)
+		cSubTextExpected = INT_MAX;
+
+	PCWSTR pszFind = wcspbrk(pszText, pszDiv);
+	PCWSTR pszPrevFirst = pszText;
+	int c = 0;
+	while (pszFind)
+	{
+		if (Processer(pszPrevFirst, (int)(pszFind - pszPrevFirst)))
+			return;
+		++c;
+		if (c == cSubTextExpected)
+			return;
+		pszPrevFirst = pszFind + 1;
+		pszFind = wcspbrk(pszPrevFirst, pszDiv);
 	}
 
 	Processer(pszPrevFirst, (int)(pszText + cchText - pszPrevFirst));
@@ -1439,6 +1611,68 @@ EckInline void SplitStr(PWSTR pszText, PCWSTR pszDiv, std::vector<PWSTR>& aResul
 }
 
 /// <summary>
+/// 分割文本。
+/// 函数逐个克隆子文本并存入结果容器
+/// </summary>
+/// <param name="pszText">要分割的文本</param>
+/// <param name="pszDiv">分隔符</param>
+/// <param name="aResult">结果容器</param>
+/// <param name="cSubTextExpected">返回的最大子文本数</param>
+/// <param name="cchText">要分割的文本长度</param>
+/// <param name="cchDiv">分隔符长度</param>
+EckInline void SplitStrWithMultiChar(PCWSTR pszText, PCWSTR pszDiv, std::vector<CRefStrW>& aResult,
+	int cSubTextExpected = 0, int cchText = -1, int cchDiv = -1)
+{
+	SplitStrWithMultiChar(pszText, pszDiv, cSubTextExpected, cchText, cchDiv, [&](PCWSTR pszStart, int cchSub)
+		{
+			aResult.push_back(CRefStrW(pszStart, cchSub));
+			return FALSE;
+		});
+}
+
+/// <summary>
+/// 分割文本。
+/// 函数将每个子文本的位置信息存入结果容器，此函数不执行任何复制
+/// </summary>
+/// <param name="pszText">要分割的文本</param>
+/// <param name="pszDiv">分隔符</param>
+/// <param name="aResult">结果容器</param>
+/// <param name="cSubTextExpected">返回的最大子文本数</param>
+/// <param name="cchText">要分割的文本长度</param>
+/// <param name="cchDiv">分隔符长度</param>
+EckInline void SplitStrWithMultiChar(PCWSTR pszText, PCWSTR pszDiv, std::vector<SPLTEXTINFO>& aResult,
+	int cSubTextExpected = 0, int cchText = -1, int cchDiv = -1)
+{
+	SplitStrWithMultiChar(pszText, pszDiv, cSubTextExpected, cchText, cchDiv, [&](PCWSTR pszStart, int cchSub)
+		{
+			aResult.push_back({ pszStart,cchSub });
+			return FALSE;
+		});
+}
+
+/// <summary>
+/// 分割文本。
+/// 函数将每个分隔符的第一个字符更改为L'\0'，同时将每个子文本的位置信息存入容器
+/// </summary>
+/// <param name="pszText">要分割的文本，必须可写</param>
+/// <param name="pszDiv">分隔符</param>
+/// <param name="aResult">结果容器</param>
+/// <param name="cSubTextExpected">返回的最大子文本数</param>
+/// <param name="cchText">要分割的文本长度</param>
+/// <param name="cchDiv">分隔符长度</param>
+EckInline void SplitStrWithMultiChar(PWSTR pszText, PCWSTR pszDiv, std::vector<PWSTR>& aResult,
+	int cSubTextExpected = 0, int cchText = -1, int cchDiv = -1)
+{
+	SplitStrWithMultiChar(pszText, pszDiv, cSubTextExpected, cchText, cchDiv, [&](PCWSTR pszStart, int cchSub)
+		{
+			PWSTR psz = (PWSTR)pszStart;
+			*(psz + cchSub) = L'\0';
+			aResult.push_back(psz);
+			return FALSE;
+		});
+}
+
+/// <summary>
 /// 到全角
 /// </summary>
 /// <param name="pszText">原始文本</param>
@@ -1466,63 +1700,6 @@ EckInline void SplitStr(PWSTR pszText, PCWSTR pszDiv, std::vector<PWSTR>& aResul
 	rs.ReSize(cchResult);
 	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_HALFWIDTH, pszText, cchText, rs.Data(), cchResult, NULL, NULL, 0);
 	return rs;
-}
-
-/// <summary>
-/// 删首空。
-/// 函数从pszText开始向后步进到第一个非空格字符，然后返回指向这个字符的指针。
-/// 此函数不执行任何修改字符串的操作
-/// </summary>
-/// <param name="pszText">原始文本</param>
-/// <returns>第一个非空格字符的指针</returns>
-[[nodiscard]] EckInline PCWSTR LTrimStr(PCWSTR pszText)
-{
-	WCHAR ch = *pszText;
-	while ((ch == L' ' || ch == L'　') && ch != L'\0')
-		ch = *++pszText;
-	return pszText;
-}
-
-/// <summary>
-/// 删尾空。
-/// 此函数不执行任何修改字符串的操作
-/// </summary>
-/// <param name="pszText">原始文本</param>
-/// <param name="cchText">文本长度</param>
-/// <returns>第一个非空格字符的下一个字符的指针，若字符串全为空格，则返回pszText</returns>
-[[nodiscard]] inline PCWSTR RTrimStr(PCWSTR pszText, int cchText = -1)
-{
-	if (cchText < 0)
-		cchText = (int)wcslen(pszText);
-	if (!cchText)
-		return 0;
-
-	for (PCWSTR pszTemp = pszText + cchText - 1; pszTemp >= pszText; --pszTemp)
-	{
-		const WCHAR ch = *pszTemp;
-		if (ch != L' ' && ch != L'　')
-			return pszTemp + 1;
-	}
-
-	return pszText;
-}
-
-/// <summary>
-/// 删首尾空。
-/// 函数内部简单地调用LTrimStr和RTrimStr获取首尾空信息。
-/// 此函数不执行任何修改字符串的操作
-/// </summary>
-/// <param name="pszText">原始文本</param>
-/// <param name="cchText">文本长度</param>
-/// <returns>起始位置和结束位置指针，若无非空格字符，则返回{ NULL,NULL }</returns>
-[[nodiscard]] EckInline std::pair<PCWSTR, PCWSTR> RLTrimStr(PCWSTR pszText, int cchText = -1)
-{
-	const auto pszLeft = LTrimStr(pszText);
-	const auto pszRight = RTrimStr(pszText, cchText);
-	if (pszRight <= pszLeft)
-		return { NULL,NULL };
-	else
-		return { pszLeft,pszRight };
 }
 
 /// <summary>
@@ -1647,15 +1824,12 @@ EckInline CRefStrW Format(PCWSTR pszFmt, ...)
 #undef EckCRefStrTemp
 ECK_NAMESPACE_END
 
-namespace std
+template<class TChar, class TCharTraits, class TAlloc>
+struct std::hash<::eck::CRefStrT<TChar, TCharTraits, TAlloc>>
 {
-	template<class TChar, class TCharTraits, class TAlloc>
-	struct hash<::eck::CRefStrT<TChar, TCharTraits, TAlloc>>
+	[[nodiscard]] EckInline size_t operator()(
+		const ::eck::CRefStrT<TChar, TCharTraits, TAlloc>& rs) const noexcept
 	{
-		[[nodiscard]] EckInline size_t operator()(
-			const ::eck::CRefStrT<TChar, TCharTraits, TAlloc>& rs) const noexcept
-		{
-			return ::eck::Fnv1aHash((::eck::PCBYTE)rs.Data(), rs.Size() * sizeof(TChar));
-		}
-	};
-}
+		return ::eck::Fnv1aHash((::eck::PCBYTE)rs.Data(), rs.Size() * sizeof(TChar));
+	}
+};

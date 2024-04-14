@@ -1203,7 +1203,7 @@ public:
 	CMifptpGpBitmap New(TCoord Dimension) const
 	{
 		GpBitmap* pBitmap;
-		GdipCreateBitmapFromScan0(Dimension.x, Dimension.y, 0, GpPixelFormat::PixelFormat32bppPARGB, NULL, &pBitmap);
+		GdipCreateBitmapFromScan0(Dimension.x, Dimension.y, 0, GpPixelFormat::PF32bppPARGB, NULL, &pBitmap);
 		return CMifptpGpBitmap(pBitmap);
 	}
 
@@ -1227,7 +1227,7 @@ public:
 	{
 		const GpRect rc{ 0,0,m_cx,m_cy };
 		GdipBitmapLockBits(m_pBitmap, &rc, GpImageLockMode::ImageLockModeRead | GpImageLockMode::ImageLockModeWrite,
-			GpPixelFormat::PixelFormat32bppPARGB, &m_Data);
+			GpPixelFormat::PF32bppPARGB, &m_Data);
 	}
 
 	EckInline void UnLock()

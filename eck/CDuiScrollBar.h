@@ -175,9 +175,6 @@ public:
 					rc.left += cxyLeave;
 			m_pBr->SetColor(m_pColorTheme->Get().crTextNormal);
 			m_pDC->FillRectangle(rc, m_pBr);
-
-			m_pBr->SetColor(D2D1::ColorF(D2D1::ColorF::Red));
-			m_pDC->DrawRectangle(GetViewRectF(), m_pBr);
 			
 			EndPaint(ps);
 		}
@@ -203,6 +200,16 @@ public:
 			m_pDC->CreateSolidColorBrush({}, &m_pBr);
 		}
 		return 0;
+
+		case WM_DESTROY:
+		{
+			GetWnd()->UnregisterTimeLine(m_pec);
+			GetWnd()->UnregisterTimeLine(m_psv);
+			SafeRelease(m_pec);
+			SafeRelease(m_psv);
+			SafeRelease(m_pBr);
+		}
+		return 0;
 		}
 		return CElem::OnEvent(uMsg, wParam, lParam);
 	}
@@ -218,13 +225,13 @@ public:
 			{
 			case Part::Button1:
 				rc = { 0,0,cy,cy };
-				break;
+				return;
 			case Part::Button2:
 				rc = { cx - cy,0,cx,cy };
-				break;
+				return;
 			case Part::Track:
 				rc = { cy,0,cx - cy,cy };
-				break;
+				return;
 			case Part::Thumb:
 			{
 				const int cxyThumb = m_psv->GetThumbSize();
@@ -233,20 +240,20 @@ public:
 				rc.right = rc.left + cxyThumb;
 				rc.bottom = cy - GetWnd()->GetDs().SBPadding;
 			}
-			break;
+			return;
 			}
 		else
 			switch (eType)
 			{
 			case Part::Button1:
 				rc = { 0,0,cx,cx };
-				break;
+				return;
 			case Part::Button2:
 				rc = { 0,cy - cx,cx,cy };
-				break;
+				return;
 			case Part::Track:
 				rc = { 0,cx,cx,cy - cx };
-				break;
+				return;
 			case Part::Thumb:
 			{
 				const int cxyThumb = m_psv->GetThumbSize();
@@ -255,7 +262,7 @@ public:
 				rc.right = cx - GetWnd()->GetDs().SBPadding;
 				rc.bottom = rc.top + cxyThumb;
 			}
-			break;
+			return;
 			}
 		ECK_UNREACHABLE;
 	}
