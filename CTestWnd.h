@@ -672,6 +672,12 @@ public:
 	{
 		using namespace eck;
 		using namespace eck::Literals;
+
+		auto p = L"洛天依&乐正绫/Soda纯白";
+		std::vector<CRefStrW> v{};
+		SplitStrWithMultiChar(p, L"&/、", v);
+
+		p = 0;
 		//CHAR szA[]{ "123你好45" };
 		//EckDbgPrint(eck::CalcDbcsStringCharCount(szA, ARRAYSIZE(szA) - 1));
 		//EckDbgBreak();

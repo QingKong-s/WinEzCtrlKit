@@ -84,15 +84,15 @@ enum GpStringAlignment
 	StringAlignmentCenter,
 	StringAlignmentFar
 };
-enum GpUnit
+enum class GpUnit
 {
-	UnitWorld,
-	UnitDisplay,
-	UnitPixel,
-	UnitPoint,
-	UnitInch,
-	UnitDocument,
-	UnitMillimeter
+	World,
+	Display,
+	Pixel,
+	Point,
+	Inch,
+	Document,
+	Millimeter
 };
 enum GpStringFormatFlags
 {
@@ -107,34 +107,34 @@ enum GpStringFormatFlags
 	StringFormatFlagsNoClip                = 0x00004000,
 	StringFormatFlagsBypassGDI             = 0x80000000
 };
-enum GpPixelFormat
+enum class GpPixelFormat
 {
-	PixelFormatIndexed        = 0x00010000,
-	PixelFormatGDI            = 0x00020000,
-	PixelFormatAlpha          = 0x00040000,
-	PixelFormatPAlpha         = 0x00080000,
-	PixelFormatExtended       = 0x00100000,
-	PixelFormatCanonical      = 0x00200000,
+	Indexed        = 0x00010000,
+	GDI            = 0x00020000,
+	Alpha          = 0x00040000,
+	PAlpha         = 0x00080000,
+	Extended       = 0x00100000,
+	Canonical      = 0x00200000,
 
-	PixelFormatUndefined      = 0,
-	PixelFormatDontCare       = 0,
+	Undefined      = 0,
+	DontCare       = 0,
 
-	PixelFormat1bppIndexed    = (1 | (1 << 8) | PixelFormatIndexed | PixelFormatGDI),
-	PixelFormat4bppIndexed    = (2 | (4 << 8) | PixelFormatIndexed | PixelFormatGDI),
-	PixelFormat8bppIndexed    = (3 | (8 << 8) | PixelFormatIndexed | PixelFormatGDI),
-	PixelFormat16bppGrayScale = (4 | (16 << 8) | PixelFormatExtended),
-	PixelFormat16bppRGB555    = (5 | (16 << 8) | PixelFormatGDI),
-	PixelFormat16bppRGB565    = (6 | (16 << 8) | PixelFormatGDI),
-	PixelFormat16bppARGB1555  = (7 | (16 << 8) | PixelFormatAlpha | PixelFormatGDI),
-	PixelFormat24bppRGB       = (8 | (24 << 8) | PixelFormatGDI),
-	PixelFormat32bppRGB       = (9 | (32 << 8) | PixelFormatGDI),
-	PixelFormat32bppARGB      = (10 | (32 << 8) | PixelFormatAlpha | PixelFormatGDI | PixelFormatCanonical),
-	PixelFormat32bppPARGB     = (11 | (32 << 8) | PixelFormatAlpha | PixelFormatPAlpha | PixelFormatGDI),
-	PixelFormat48bppRGB       = (12 | (48 << 8) | PixelFormatExtended),
-	PixelFormat64bppARGB      = (13 | (64 << 8) | PixelFormatAlpha | PixelFormatCanonical | PixelFormatExtended),
-	PixelFormat64bppPARGB     = (14 | (64 << 8) | PixelFormatAlpha | PixelFormatPAlpha | PixelFormatExtended),
-	PixelFormat32bppCMYK      = (15 | (32 << 8)),
-	PixelFormatMax            = 16
+	PF1bppIndexed    = (1 | (1 << 8) | Indexed | GDI),
+	PF4bppIndexed    = (2 | (4 << 8) | Indexed | GDI),
+	PF8bppIndexed    = (3 | (8 << 8) | Indexed | GDI),
+	PF16bppGrayScale = (4 | (16 << 8) | Extended),
+	PF16bppRGB555    = (5 | (16 << 8) | GDI),
+	PF16bppRGB565    = (6 | (16 << 8) | GDI),
+	PF16bppARGB1555  = (7 | (16 << 8) | Alpha | GDI),
+	PF24bppRGB       = (8 | (24 << 8) | GDI),
+	PF32bppRGB       = (9 | (32 << 8) | GDI),
+	PF32bppARGB      = (10 | (32 << 8) | Alpha | GDI | Canonical),
+	PF32bppPARGB     = (11 | (32 << 8) | Alpha | PAlpha | GDI),
+	PF48bppRGB       = (12 | (48 << 8) | Extended),
+	PF64bppARGB      = (13 | (64 << 8) | Alpha | Canonical | Extended),
+	PF64bppPARGB     = (14 | (64 << 8) | Alpha | PAlpha | Extended),
+	PF32bppCMYK      = (15 | (32 << 8)),
+	Max            = 16
 };
 enum GpPathPointType {
 	PathPointTypeStart = 0,
@@ -163,15 +163,30 @@ enum GpImageLockMode
 };
 enum GpInterpolationMode
 {
-	InterpolationModeInvalid,
-	InterpolationModeDefault,
-	InterpolationModeLowQuality,
-	InterpolationModeHighQuality,
-	InterpolationModeBilinear,
-	InterpolationModeBicubic,
-	InterpolationModeNearestNeighbor,
-	InterpolationModeHighQualityBilinear,
-	InterpolationModeHighQualityBicubic
+	Invalid,
+	Default,
+	LowQuality,
+	HighQuality,
+	Bilinear,
+	Bicubic,
+	NearestNeighbor,
+	HighQualityBilinear,
+	HighQualityBicubic
+};
+enum class GpColorMatrixFlags
+{
+	Default = 0,
+	SkipGrays = 1,
+	AltGray = 2
+};
+enum class GpColorAdjustType {
+	Default,
+	Bitmap,
+	Brush,
+	Pen,
+	Text,
+	Count,
+	Any
 };
 
 
@@ -237,6 +252,9 @@ struct GpBitmapData
 	GpPixelFormat PixelFormat;// Integer that specifies the pixel format of the bitmap.
 	void* Scan0;// Pointer to the first(index 0) scan line of the bitmap.
 	UINT_PTR Reserved;// Reserved for future use.
+};
+struct GpColorMatrix {
+	REAL m[5][5];
 };
 
 
@@ -382,4 +400,73 @@ GpStatus WINGDIPAPI GdipSetSolidFillColor(GpSolidFill* brush, ARGB color);
 GpStatus WINGDIPAPI GdipSetPenColor(GpPen* pen, ARGB argb);
 GpStatus WINGDIPAPI GdipSetInterpolationMode(GpGraphics* graphics, GpInterpolationMode interpolationMode);
 GpStatus WINGDIPAPI GdipGetInterpolationMode(GpGraphics* graphics, GpInterpolationMode* interpolationMode);
+GpStatus WINGDIPAPI
+GdipCreateImageAttributes(GpImageAttributes** imageattr);
+
+GpStatus WINGDIPAPI
+GdipCloneImageAttributes(GDIPCONST GpImageAttributes* imageattr,
+	GpImageAttributes** cloneImageattr);
+
+GpStatus WINGDIPAPI
+GdipDisposeImageAttributes(GpImageAttributes* imageattr);
+
+GpStatus WINGDIPAPI
+GdipSetImageAttributesToIdentity(GpImageAttributes* imageattr,
+	GpColorAdjustType type);
+GpStatus WINGDIPAPI
+GdipResetImageAttributes(GpImageAttributes* imageattr,
+	GpColorAdjustType type);
+
+GpStatus WINGDIPAPI
+GdipSetImageAttributesColorMatrix(GpImageAttributes* imageattr,
+	GpColorAdjustType type,
+	BOOL enableFlag,
+	GDIPCONST GpColorMatrix* colorMatrix,
+	GDIPCONST GpColorMatrix* grayMatrix,
+	GpColorMatrixFlags flags);
+
+GpStatus WINGDIPAPI
+GdipSetImageAttributesThreshold(GpImageAttributes* imageattr,
+	GpColorAdjustType type,
+	BOOL enableFlag,
+	REAL threshold);
+
+GpStatus WINGDIPAPI
+GdipSetImageAttributesGamma(GpImageAttributes* imageattr,
+	GpColorAdjustType type,
+	BOOL enableFlag,
+	REAL gamma);
+
+GpStatus WINGDIPAPI
+GdipSetImageAttributesNoOp(GpImageAttributes* imageattr,
+	GpColorAdjustType type,
+	BOOL enableFlag);
+
+GpStatus WINGDIPAPI
+GdipSetImageAttributesColorKeys(GpImageAttributes* imageattr,
+	GpColorAdjustType type,
+	BOOL enableFlag,
+	ARGB colorLow,
+	ARGB colorHigh);
+
+GpStatus WINGDIPAPI
+GdipSetImageAttributesOutputChannelColorProfile(GpImageAttributes* imageattr,
+	GpColorAdjustType type,
+	BOOL enableFlag,
+	GDIPCONST
+	WCHAR* colorProfileFilename);
+
+GpStatus WINGDIPAPI
+GdipSetImageAttributesWrapMode(
+	GpImageAttributes* imageAttr,
+	GpWrapMode wrap,
+	ARGB argb,
+	BOOL clamp
+);
+
+GpStatus WINGDIPAPI
+GdipSetImageAttributesICMMode(
+	GpImageAttributes* imageAttr,
+	BOOL on
+);
 EXTERN_C_END

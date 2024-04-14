@@ -788,4 +788,24 @@ inline constexpr BOOL AdjustRectToFitAnother(RECT& rc, const RECT& rcRef)
 	};
 	return TRUE;
 }
+
+EckInline constexpr MARGINS MakeMargin(int i)
+{
+	return { i,i,i,i };
+}
+
+EckInline constexpr MARGINS MakeMarginTopBottom(int i)
+{
+	return { 0,0,i,i };
+}
+
+EckInline constexpr MARGINS MakeMarginLeftRight(int i)
+{
+	return { i,i,0,0 };
+}
+
+EckInline constexpr MARGINS MakeMarginHV(int h, int v)
+{
+	return { h,h,v,v };
+}
 ECK_NAMESPACE_END

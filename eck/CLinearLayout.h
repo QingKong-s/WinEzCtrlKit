@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CLinearLayout.h ： 线性布局
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "CLayoutBase.h"
 
 ECK_NAMESPACE_BEGIN
@@ -8,6 +15,10 @@ enum
 	LLF_FIXWIDTH = 1u << 0,
 	// 固定高度
 	LLF_FIXHEIGHT = 1u << 1,
+	// 宽度占据剩余部分
+	LLF_FILLWIDTH = 1u << 2,
+	// 高度占据剩余部分
+	LLF_FILLHEIGHT = 1u << 3,
 };
 
 class CLinearLayout :public CLayoutBase
@@ -20,16 +31,35 @@ protected:
 		UINT uFlags;
 		short cx;
 		short cy;
+		UINT uWeight;
 	};
 
 	std::vector<CTRL> m_vCtrl{};
 	Align m_eAlign = Align::Near;
+	BOOL m_bHasFillSizeCtrl = FALSE;
+
+	static void GetCtrlSize(const CTRL& e, int& cx, int& cy)
+	{
+		cx = 0, cy = 0;
+		if (e.uFlags & (LLF_FIXHEIGHT | LLF_FIXWIDTH))
+			cx = e.cx, cy = e.cy;
+		else
+		{
+			e.pCtrl->LoGetAppropriateSize(cx, cy);
+			if (e.uFlags & LLF_FIXHEIGHT)
+				cy = e.cy;
+			else if (e.uFlags & LLF_FIXWIDTH)
+				cx = e.cx;
+		}
+	}
 public:
-	void Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u)
+	void Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u, UINT uWeight = 0u)
 	{
 		pCtrl->LoSetParent(this);
 		const auto size = pCtrl->LoGetSize();
-		m_vCtrl.emplace_back(pCtrl, Margin, uFlags, (short)size.first, (short)size.second);
+		m_vCtrl.emplace_back(pCtrl, Margin, uFlags, (short)size.first, (short)size.second, uWeight);
+		if (uFlags & (LLF_FILLWIDTH | LLF_FILLWIDTH))
+			m_bHasFillSizeCtrl = TRUE;
 	}
 };
 
@@ -42,20 +72,32 @@ public:
 		HDWP hDwp = (hDwpParent ? hDwpParent : BeginDeferWindowPos((int)m_vCtrl.size()));
 
 		int x, y = m_y, cxAppr, cyAppr;
-
-		EckCounter(m_vCtrl.size(), i)
+		int cyLeave{};
+		UINT uTotalWeight{};
+		if (m_bHasFillSizeCtrl)
 		{
-			const auto& e = m_vCtrl[i];
-			if (e.uFlags & (LLF_FIXHEIGHT | LLF_FIXWIDTH))
-				cxAppr = e.cx, cyAppr = e.cy;
-			else
+			cyLeave = m_cy;
+			for (const auto& e : m_vCtrl)
 			{
-				e.pCtrl->LoGetAppropriateSize(cxAppr, cyAppr);
-				if (e.uFlags & LLF_FIXHEIGHT)
-					cyAppr = e.cy;
-				else if (e.uFlags & LLF_FIXWIDTH)
-					cxAppr = e.cx;
+				cyLeave -= (e.Margin.cyTopHeight + e.Margin.cyBottomHeight);
+				if (!(e.uFlags & LLF_FILLHEIGHT))
+				{
+					GetCtrlSize(e, cxAppr, cyAppr);
+					cyLeave -= cyAppr;
+				}
+				else
+					uTotalWeight += e.uWeight;
 			}
+		}
+
+		for (const auto& e : m_vCtrl)
+		{
+			if (!IsBitSet(e.uFlags, (LLF_FILLWIDTH | LLF_FILLHEIGHT)))
+				GetCtrlSize(e, cxAppr, cyAppr);
+			if (e.uFlags & LLF_FILLHEIGHT)
+				cyAppr = cyLeave * e.uWeight / uTotalWeight;
+			if (e.uFlags & LLF_FILLWIDTH)
+				cxAppr = m_cx - e.Margin.cxLeftWidth - e.Margin.cxRightWidth;
 
 			switch (m_eAlign)
 			{
@@ -72,7 +114,7 @@ public:
 				x = m_x + m_cx - cxAppr - e.Margin.cxRightWidth - e.Margin.cxLeftWidth;
 				break;
 			default:
-				__assume(0);
+				ECK_UNREACHABLE;
 			}
 
 			x += m_x;
@@ -99,19 +141,9 @@ public:
 	{
 		int cx{}, cy{}, cxAppr, cyAppr;
 
-		EckCounter(m_vCtrl.size(), i)
+		for (const auto& e : m_vCtrl)
 		{
-			const auto& e = m_vCtrl[i];
-			if (e.uFlags & (LLF_FIXHEIGHT | LLF_FIXWIDTH))
-				cxAppr = e.cx, cyAppr = e.cy;
-			else
-			{
-				e.pCtrl->LoGetAppropriateSize(cxAppr, cyAppr);
-				if (e.uFlags & LLF_FIXHEIGHT)
-					cyAppr = e.cy;
-				else if (e.uFlags & LLF_FIXWIDTH)
-					cxAppr = e.cx;
-			}
+			GetCtrlSize(e, cxAppr, cyAppr);
 			cx = std::max(cx, cxAppr + e.Margin.cxLeftWidth + e.Margin.cxRightWidth);
 			cy += (e.Margin.cyTopHeight + cyAppr + e.Margin.cyBottomHeight);
 		}
@@ -129,20 +161,31 @@ public:
 		HDWP hDwp = (hDwpParent ? hDwpParent : BeginDeferWindowPos((int)m_vCtrl.size()));
 
 		int x = m_x, y, cxAppr, cyAppr;
-
-		EckCounter(m_vCtrl.size(), i)
+		int cxLeave{};
+		UINT uTotalWeight{};
+		if (m_bHasFillSizeCtrl)
 		{
-			const auto& e = m_vCtrl[i];
-			if (e.uFlags & (LLF_FIXHEIGHT | LLF_FIXWIDTH))
-				cxAppr = e.cx, cyAppr = e.cy;
-			else
+			cxLeave = m_cx;
+			for (const auto& e : m_vCtrl)
 			{
-				e.pCtrl->LoGetAppropriateSize(cxAppr, cyAppr);
-				if (e.uFlags & LLF_FIXHEIGHT)
-					cyAppr = e.cy;
-				else if (e.uFlags & LLF_FIXWIDTH)
-					cxAppr = e.cx;
+				cxLeave -= (e.Margin.cxLeftWidth + e.Margin.cxRightWidth);
+				if (!(e.uFlags & LLF_FILLWIDTH))
+				{
+					GetCtrlSize(e, cxAppr, cyAppr);
+					cxLeave -= cxAppr;
+				}
+				else
+					uTotalWeight += e.uWeight;
 			}
+		}
+		for (const auto& e : m_vCtrl)
+		{
+			if (!IsBitSet(e.uFlags, (LLF_FILLWIDTH | LLF_FILLHEIGHT)))
+				GetCtrlSize(e, cxAppr, cyAppr);
+			if (e.uFlags & LLF_FILLHEIGHT)
+				cyAppr = m_cy - e.Margin.cyTopHeight - e.Margin.cyBottomHeight;
+			if (e.uFlags & LLF_FILLWIDTH)
+				cxAppr = cxLeave * e.uWeight / uTotalWeight;
 
 			switch (m_eAlign)
 			{
@@ -159,7 +202,7 @@ public:
 				y = m_y + m_cy - cyAppr - e.Margin.cyTopHeight - e.Margin.cyBottomHeight;
 				break;
 			default:
-				__assume(0);
+				ECK_UNREACHABLE;
 			}
 
 			x += e.Margin.cxLeftWidth;
