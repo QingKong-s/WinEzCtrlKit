@@ -10,6 +10,8 @@
 #include "CInertialScrollView.h"
 #include "CD2dImageList.h"
 
+#include "CDuiScrollBar.h"
+
 #include <d2d1_2.h>
 
 ECK_NAMESPACE_BEGIN
@@ -44,13 +46,19 @@ struct LEEDISPINFO
 struct LEHITTEST
 {
 	POINT pt;
-	BITBOOL bSBThumb : 1;
 };
 
 enum
 {
 	LEIF_SELECTED = (1u << 0),
 };
+
+enum class ListType
+{
+	List,
+	Icon,
+};
+
 
 class CList :public CElem
 {
@@ -60,24 +68,36 @@ private:
 		IDWriteTextLayout* pLayout = NULL;
 		UINT uFlags = 0;
 		float cxText = 0.f;
+		float cyText = 0.f;
 	};
 
 	std::vector<ITEM> m_vItem{};// 项目
-	int m_idxTop = 0;			// 第一个可见项
+	//-------------------通用
 	int m_idxHot = -1;			// 热点项
 	int m_idxSel = -1;			// 选中的项的索引，仅用于单选
 	int m_idxInsertMark = -1;	// 插入标记应当显示在哪一项之前
 	int m_idxFocus = -1;		// 焦点项
 	int m_idxMark = -1;			// 标记项
 
-	int m_cyItem = 0;			// 项目高度
-	int m_cyPadding = 0;		// 项目间距
-	int m_oyTopItem = 0;		// 小于等于零的值，指示第一可见项的遮挡高度
-
-	int m_cxyImage = 0;			// 图像大小
-
 	int m_cyTopExtra = 0;
 	int m_cyBottomExtra = 0;
+
+	int m_cyItem = 0;			// 项目高度
+	int m_cyPadding = 0;		// 项目间距
+
+	int m_cxImage = 0;			// 图像大小
+	int m_cyImage = 0;			// 图像大小
+
+
+	int m_oyTopItem = 0;		// 小于等于零的值，指示第一可见项的遮挡高度
+	int m_idxTop = 0;			// 第一个可见项
+	//-------------------列表模式
+
+	//-------------------图标模式
+	int m_cxItem = 0;
+	int m_cxPadding = 0;
+	int m_cItemPerRow = 0;
+
 
 	ID2D1DeviceContext1* m_pDC1 = NULL;// for geometry realization
 
@@ -85,14 +105,13 @@ private:
 	IDWriteTextFormat* m_pTf = NULL;
 	ID2D1GeometryRealization* m_pGrInsertMark = NULL;
 
+	CScrollBar m_SB{};
 	CInertialScrollView* m_psv = NULL;
 	CD2dImageList* m_pImgList = NULL;
 
-	BITBOOL m_bHoverThumb : 1 = FALSE;
-	BITBOOL m_bThumbDrag : 1 = FALSE;
-	BITBOOL m_bSingleSel : 1 = FALSE;
+	ListType m_eView = ListType::Icon;
 
-	CEasingCurve* m_pecThumb = NULL;
+	BITBOOL m_bSingleSel : 1 = FALSE;
 
 	ECK_DS_BEGIN(DPIS)
 		ECK_DS_ENTRY_F(cxSBThumb, 8.f)
@@ -102,16 +121,14 @@ private:
 		;
 	ECK_DS_END_VAR(m_DsF);
 
-	void DrawItem(int idx, const D2D1_RECT_F& rcPaint)
+	void LVPaintItem(int idx, const D2D1_RECT_F& rcPaint, const LEEDISPINFO& es)
 	{
 		auto& e = m_vItem[idx];
-		LEEDISPINFO es{ {LEE_GETDISPINFO},LEIM_TEXT | LEIM_IMAGE,idx };
-		GenElemNotify(&es);
 		if (!e.pLayout && es.pszText)
 		{
 			EckAssert(es.cchText > 0);
 			g_pDwFactory->CreateTextLayout(es.pszText, es.cchText, m_pTf,
-				GetWidthF() - m_pWnd->GetDs().CommMargin * 2, (float)m_cyItem, &e.pLayout);
+				GetWidthF() - m_pWnd->GetDs().CommMargin * 3 - m_cxImage, (float)m_cyItem, &e.pLayout);
 			if (e.pLayout)
 			{
 				DWRITE_TEXT_METRICS tm;
@@ -123,42 +140,40 @@ private:
 		}
 
 		const float fRad = m_pWnd->GetDs().CommRrcRadius;
-		D2D1_ROUNDED_RECT rrc{ { 0.f,(float)GetItemY(idx),GetViewWidthF() },fRad,fRad};
-		rrc.rect.bottom = rrc.rect.top + m_cyItem;
+		D2D1_RECT_F rc{ 0.f,(float)GetItemY(idx),GetViewWidthF() };
+		rc.bottom = rc.top + m_cyItem;
 
-		UINT32 rgb = 0;
+		const auto& cr = m_pColorTheme->Get();
 		BOOL bDoNotFill = FALSE;
 		if ((e.uFlags & LEIF_SELECTED) || (m_bSingleSel && m_idxSel == idx))
 			if (m_idxHot == idx)
-				rgb = 0xa8cbcb;
+				m_pBrush->SetColor(cr.crBkHotSel);
 			else
-				rgb = 0xe3eee8;
+				m_pBrush->SetColor(cr.crBkSelected);
 		else if (m_idxHot == idx)
-			rgb = 0xe0e2da;
+			m_pBrush->SetColor(cr.crBkHot);
 		else
 			bDoNotFill = TRUE;
+
 		if (!bDoNotFill)
-		{
-			m_pBrush->SetColor(D2D1::ColorF(rgb));
-			m_pDC->FillRoundedRectangle(rrc, m_pBrush);
-		}
+			m_pDC->FillRectangle(rc, m_pBrush);
 
 		const float xImage = m_pWnd->GetDs().CommMargin;
-		const float yImage = (float)((m_cyItem - m_cxyImage) / 2);
+		const float yImage = (float)((m_cyItem - m_cyImage) / 2);
 
-		auto rcOld = rrc.rect;
+		auto rcOld = rc;
 
-		rrc.rect.left += xImage;
-		rrc.rect.right = rrc.rect.left + m_cxyImage;
-		rrc.rect.top += yImage;
-		rrc.rect.bottom = rrc.rect.top + m_cxyImage;
-		if (!(rrc.rect.right <= rcPaint.left || rrc.rect.left >= rcPaint.right))
+		rc.left += xImage;
+		rc.right = rc.left + m_cxImage;
+		rc.top += yImage;
+		rc.bottom = rc.top + m_cyImage;
+		if (!(rc.right <= rcPaint.left || rc.left >= rcPaint.right))
 			if (es.pImg)
-				m_pDC->DrawBitmap(es.pImg, rrc.rect, 1.f, D2D1_INTERPOLATION_MODE_LINEAR);
+				m_pDC->DrawBitmap(es.pImg, rc, 1.f, D2D1_INTERPOLATION_MODE_LINEAR);
 			else if (m_pImgList && es.idxImg >= 0)
-				m_pImgList->Draw(es.idxImg, rrc.rect);
+				m_pImgList->Draw(es.idxImg, rc);
 
-		const float xText = rrc.rect.right + xImage;
+		const float xText = rc.right + xImage;
 		if (e.pLayout && !(xText + e.cxText <= rcPaint.left || xText >= rcPaint.right))
 		{
 			m_pBrush->SetColor(D2D1::ColorF(0x000000));
@@ -166,97 +181,127 @@ private:
 		}
 	}
 
+	void IVPaintItem(int idx, const D2D1_RECT_F& rcPaint, const LEEDISPINFO& es)
+	{
+		auto& e = m_vItem[idx];
+
+		D2D1_RECT_F rc;
+		GetItemRect(idx, rc);
+
+		const auto& cr = m_pColorTheme->Get();
+		BOOL bDoNotFill = FALSE;
+		if ((e.uFlags & LEIF_SELECTED) || (m_bSingleSel && m_idxSel == idx))
+			if (m_idxHot == idx)
+				m_pBrush->SetColor(cr.crBkHotSel);
+			else
+				m_pBrush->SetColor(cr.crBkSelected);
+		else if (m_idxHot == idx)
+			m_pBrush->SetColor(cr.crBkHot);
+		else
+			bDoNotFill = TRUE;
+
+		if (!bDoNotFill)
+			m_pDC->FillRectangle(rc, m_pBrush);
+
+		D2D1_RECT_F rcImg
+		{
+			rc.left + (m_cxItem - m_cxImage) / 2.f,
+			rc.top + m_pWnd->GetDs().CommMargin
+		};
+		rcImg.right = rcImg.left + m_cxImage;
+		rcImg.bottom = rcImg.top + m_cyImage;
+		if (!(rcImg.right <= rcPaint.left || rcImg.left >= rcPaint.right))
+			if (es.pImg)
+				m_pDC->DrawBitmap(es.pImg, rcImg, 1.f, D2D1_INTERPOLATION_MODE_LINEAR);
+			else if (m_pImgList && es.idxImg >= 0)
+				m_pImgList->Draw(es.idxImg, rcImg);
+
+		if (!e.pLayout && es.pszText)
+		{
+			EckAssert(es.cchText > 0);
+			g_pDwFactory->CreateTextLayout(es.pszText, es.cchText, m_pTf,
+				(float)m_cxItem, (float)(rc.bottom - rcImg.bottom), &e.pLayout);
+
+			if (e.pLayout)
+			{
+				e.pLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
+				e.pLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+				DWRITE_TEXT_METRICS tm;
+				e.pLayout->GetMetrics(&tm);
+				e.cxText = tm.width;
+				e.cyText = tm.height;
+			}
+			else
+				e.cxText = e.cyText = 0.f;
+		}
+
+		if (e.pLayout)
+		{
+			m_pBrush->SetColor(D2D1::ColorF(0x000000));
+			m_pDC->DrawTextLayout(D2D1::Point2F(rc.left, rcImg.bottom), e.pLayout, m_pBrush);
+		}
+	}
+
+	EckInline void DrawItem(int idx, const D2D1_RECT_F& rcPaint)
+	{
+		LEEDISPINFO es{ {LEE_GETDISPINFO},LEIM_TEXT | LEIM_IMAGE,idx };
+		GenElemNotify(&es);
+		switch (m_eView)
+		{
+		case ListType::List:
+			LVPaintItem(idx, rcPaint, es);
+			break;
+		case ListType::Icon:
+			IVPaintItem(idx, rcPaint, es);
+			break;
+		default:
+			ECK_UNREACHABLE;
+		}
+	}
+
 	void ReCalcScroll()
 	{
+		if (!m_cyItem || !m_cxItem)
+			return;
 		m_psv->SetMinThumbSize((int)m_DsF.minSBThumbSize);
-		m_psv->SetViewSize(GetHeight() - m_cyTopExtra - m_cyBottomExtra);
-		m_psv->SetRange(-m_cyTopExtra, (int)m_vItem.size() * (m_cyItem + m_cyPadding) + m_cyBottomExtra);
 		m_psv->SetPage(GetHeight());
+		switch (m_eView)
+		{
+		case ListType::List:
+			m_psv->SetRange(-m_cyTopExtra, (int)m_vItem.size() * (m_cyItem + m_cyPadding) + m_cyBottomExtra);
+			break;
+		case ListType::Icon:
+		{
+			m_cItemPerRow = (GetViewWidth() + m_cxPadding) / (m_cxItem + m_cxPadding);
+			const int cItemV = ((int)m_vItem.size() - 1) / m_cItemPerRow + 1;
+			m_psv->SetRange(-m_cyTopExtra, cItemV * (m_cyItem + m_cyPadding) + m_cyBottomExtra);
+		}
+		break;
+		default:
+			ECK_UNREACHABLE;
+		}
 	}
 
 	void ReCalcTopItem()
 	{
-		m_idxTop = m_psv->GetPos() / (m_cyItem + m_cyPadding);
-		m_oyTopItem = m_idxTop * (m_cyItem + m_cyPadding) - m_psv->GetPos();
-	}
-
-	BOOL GetSBThumbRectInClient(RECT& rc)
-	{
-		const int cyThumb = m_psv->GetThumbSize();
-		const int yThumb = m_psv->GetThumbPos(cyThumb);
-		if (cyThumb < 0 || yThumb < 0)
-			return FALSE;
-		rc.left = (long)(GetRectInClient().right - m_DsF.cxSBThumb);
-		rc.top = GetRectInClient().top + m_cyTopExtra + yThumb;
-		rc.right = (long)(rc.left + m_DsF.cxSBThumb);
-		rc.bottom = rc.top + cyThumb;
-		return TRUE;
-	}
-
-	BOOL GetSBThumbRectInClient(D2D1_RECT_F& rc)
-	{
-		const int cyThumb = m_psv->GetThumbSize();
-		const int yThumb = m_psv->GetThumbPos(cyThumb);
-		if (cyThumb < 0 || yThumb < 0)
-			return FALSE;
-		rc.left = GetRectInClientF().right - m_DsF.cxSBThumb;
-		rc.top = GetRectInClientF().top + m_cyTopExtra + yThumb;
-		rc.right = rc.left + m_DsF.cxSBThumb;
-		rc.bottom = rc.top + cyThumb;
-		return TRUE;
-	}
-
-	// 元素坐标
-	BOOL GetSBThumbRect(RECT& rc) const
-	{
-		const int cyThumb = m_psv->GetThumbSize();
-		const int yThumb = m_psv->GetThumbPos(cyThumb);
-		if (cyThumb < 0 || yThumb < 0)
-			return FALSE;
-		rc.left = GetViewWidth() - (long)m_DsF.cxSBThumb;
-		rc.top = m_cyTopExtra + yThumb;
-		rc.right = rc.left + (long)m_DsF.cxSBThumb;
-		rc.bottom = rc.top + cyThumb;
-		return TRUE;
-	}
-
-	// 元素坐标
-	BOOL GetSBThumbRect(D2D1_RECT_F& rc) const
-	{
-		const int cyThumb = m_psv->GetThumbSize();
-		const int yThumb = m_psv->GetThumbPos(cyThumb);
-		if (cyThumb < 0 || yThumb < 0)
-			return FALSE;
-		rc.left = GetViewWidthF() - m_DsF.cxSBThumb;
-		rc.top = (float)(m_cyTopExtra + yThumb);
-		rc.right = rc.left + m_DsF.cxSBThumb;
-		rc.bottom = rc.top + cyThumb;
-		return TRUE;
-	}
-
-	// 客户坐标
-	void PaintScrollBar()
-	{
-		D2D1_ROUNDED_RECT rrc;
-		rrc.radiusX = (m_bHoverThumb ? m_DsF.cxSBThumb : m_DsF.cxSBThumbSmall) / 2.f;
-		rrc.radiusY = m_DsF.cxSBThumb / 2.f;
-		if (!GetSBThumbRect(rrc.rect))
+		if (!m_cyItem || !m_cxItem)
 			return;
-
-		if (m_pecThumb->IsActive())
-			rrc.rect.right  = rrc.rect.left + m_DsF.cxSBThumbSmall+(m_DsF.cxSBThumb - m_DsF.cxSBThumbSmall) * m_pecThumb->GetCurrValue();
-		else
-			if (!m_bHoverThumb)
-				rrc.rect.right = rrc.rect.left + m_DsF.cxSBThumbSmall;
-		m_pBrush->SetColor(D2D1::ColorF(m_bHoverThumb ? 0xaeb0aa : 0xc8c9c4));
-		m_pDC->FillRoundedRectangle(rrc, m_pBrush);
-	}
-
-	void RedrawThumb()
-	{
-		RECT rc;
-		GetSBThumbRectInClient(rc);
-		InvalidateRect(&rc);
+		switch (m_eView)
+		{
+		case ListType::List:
+			m_idxTop = m_psv->GetPos() / (m_cyItem + m_cyPadding);
+			m_oyTopItem = m_idxTop * (m_cyItem + m_cyPadding) - m_psv->GetPos();
+			break;
+		case ListType::Icon:
+		{
+			const int cItemV = m_psv->GetPos() / (m_cyItem + m_cyPadding);
+			m_idxTop = cItemV * m_cItemPerRow;
+			m_oyTopItem = cItemV * (m_cyItem + m_cyPadding) - m_psv->GetPos();
+		}
+		break;
+		default:
+			ECK_UNREACHABLE;
+		}
 	}
 
 	void UpdateInsertMarkGeometry()
@@ -299,7 +344,27 @@ private:
 			D2D1::ComputeFlatteningTolerance(D2D1::Matrix3x2F::Identity()),
 			&m_pGrInsertMark);
 
-		m_pDC1->Release();
+		pPath->Release();
+	}
+
+	EckInline int IVLogItemFromX(int x) const
+	{
+		return x / (m_cxItem + m_cxPadding);
+	}
+
+	EckInline int IVLogItemFromY(int y) const
+	{
+		return (y - m_oyTopItem) / (m_cyItem + m_cyPadding);
+	}
+
+	EckInline std::pair<int, int> IVGetItemXY(int idx) const
+	{
+		const int idxV = (idx - m_idxTop) / m_cItemPerRow;
+		return
+		{
+			((idx - m_idxTop) % m_cItemPerRow) * (m_cxItem + m_cxPadding),
+			m_oyTopItem + idxV * (m_cyItem + m_cyPadding)
+		};
 	}
 public:
 	void SetItemCount(int c)
@@ -323,11 +388,29 @@ public:
 			m_pDC->FillRectangle(ps.rcfClipInElem, m_pBrush);
 			if (!m_vItem.empty())
 			{
-				const int idxBegin = std::max(ItemFromY((int)ps.rcfClipInElem.top), 0);
-				const int idxEnd = std::min(ItemFromY((int)ps.rcfClipInElem.bottom), (int)m_vItem.size() - 1);
-				for (int i = idxBegin; i <= idxEnd; ++i)
-					DrawItem(i, ps.rcfClipInElem);
-				PaintScrollBar();
+				switch (m_eView)
+				{
+				case ListType::List:
+				{
+					const int idxBegin = std::max(ItemFromY((int)ps.rcfClipInElem.top), 0);
+					const int idxEnd = std::min(ItemFromY((int)ps.rcfClipInElem.bottom), (int)m_vItem.size() - 1);
+					for (int i = idxBegin; i <= idxEnd; ++i)
+						DrawItem(i, ps.rcfClipInElem);
+				}
+				break;
+				case ListType::Icon:
+				{
+					LEHITTEST leht{ .pt = { (int)ps.rcfClipInElem.left,(int)ps.rcfClipInElem.top} };
+					const int idxBegin = std::max(HitTest(leht), 0);
+					leht.pt = { (int)ps.rcfClipInElem.right,(int)ps.rcfClipInElem.bottom };
+					const int idxEnd = std::min(HitTest(leht), (int)m_vItem.size() - 1);
+					for (int i = 0; i <= GetItemCount()-1; ++i)
+						DrawItem(i, ps.rcfClipInElem);
+				}
+				break;
+				default:
+					ECK_UNREACHABLE;
+				}
 
 				if (m_idxInsertMark >= 0)
 				{
@@ -352,23 +435,7 @@ public:
 			LEHITTEST ht{ ECK_GET_PT_LPARAM(lParam) };
 			ClientToElem(ht.pt);
 
-			if (m_bThumbDrag)
-			{
-				m_psv->OnMouseMove(ht.pt.y - m_cyTopExtra);
-				ReCalcTopItem();
-				InvalidateRect();
-				return 0;
-			}
-
 			int idx = HitTest(ht);
-
-			if (ht.bSBThumb != m_bHoverThumb)
-			{
-				m_bHoverThumb = ht.bSBThumb;
-				m_pecThumb->SetReverse(!m_bHoverThumb);
-				m_pecThumb->Begin(ECBF_CONTINUE);
-				GetWnd()->WakeRenderThread();
-			}
 
 			if (idx != m_idxHot)
 			{
@@ -389,15 +456,6 @@ public:
 				std::swap(m_idxHot, idx);
 				RedrawItem(idx);
 			}
-
-			if (!m_bThumbDrag)
-				if (m_bHoverThumb)
-				{
-					m_bHoverThumb = FALSE;
-					m_pecThumb->SetReverse(TRUE);
-					m_pecThumb->Begin(ECBF_CONTINUE);
-					GetWnd()->WakeRenderThread();
-				}
 		}
 		return 0;
 
@@ -408,10 +466,28 @@ public:
 		}
 		return 0;
 
+		case WM_NOTIFY:
+		{
+			if ((wParam == (WPARAM)&m_SB) && 
+				(((DUINMHDR*)lParam)->uCode == EE_VSCROLL))
+			{
+				ReCalcTopItem();
+				InvalidateRect();
+				return TRUE;
+			}
+		}
+		break;
+
 		case WM_SIZE:
+		{
+			ReCalcTopItem();
+			ReCalcScroll();
 			if (m_idxInsertMark >= 0)
 				UpdateInsertMarkGeometry();
-			return 0;
+			const auto cxSB = (int)GetWnd()->GetDs().CommSBCxy;
+			m_SB.SetRect({ GetViewWidth() - cxSB,0,GetViewWidth(),GetViewHeight() });
+		}
+		return 0;
 
 		case WM_LBUTTONDOWN:
 		{
@@ -433,47 +509,24 @@ public:
 					RedrawItem(idx);
 				SetRedraw(TRUE);
 			}
-			else if (ht.bSBThumb)
-			{
-				m_bThumbDrag = TRUE;
-				m_psv->OnLButtonDown(ht.pt.y - m_cyTopExtra);
-				SetCapture();
-			}
-		}
-		return 0;
-
-		case WM_LBUTTONUP:
-		{
-			if (m_bThumbDrag)
-			{
-				m_bThumbDrag = FALSE;
-				m_pWnd->ReleaseCaptureElem();
-				m_psv->OnLButtonUp();
-			}
 		}
 		return 0;
 
 		case WM_CREATE:
 		{
-			m_pecThumb = new CEasingCurve{};
-			InitEasingCurve(m_pecThumb);
-			m_pecThumb->SetAnProc(Easing::OutSine);
-			m_pecThumb->SetRange(0.f, 1.f);
-			m_pecThumb->SetDuration(160);
-			m_pecThumb->SetCallBack([](float f, float fOld, LPARAM lParam)
-				{
-					auto p = (CList*)lParam;
-					p->RedrawThumb();
-				});
+			m_pColorTheme = GetWnd()->GetDefColorTheme()[CTI_LIST];
+			m_pColorTheme->Ref();
 
-			m_psv = new CInertialScrollView{};
+			m_SB.Create(NULL, DES_VISIBLE, 0,
+				0, 0, 0, 0, this, GetWnd());
+			m_psv = m_SB.GetScrollView();
+			m_psv->AddRef();
 			m_psv->SetCallBack([](int iPos, int iPrevPos, LPARAM lParam)
 				{
 					auto pThis = (CList*)lParam;
 					pThis->ReCalcTopItem();
 					pThis->InvalidateRect();
 				}, (LPARAM)this);
-			GetWnd()->RegisterTimeLine(m_psv);
 
 			UpdateDpiSizeF(m_DsF, m_pWnd->GetDpiValue());
 
@@ -502,11 +555,8 @@ public:
 			SafeRelease(m_pGrInsertMark);
 			m_psv->SetRange(0, 0);
 			m_pImgList = NULL;
-			m_bHoverThumb = FALSE;
-			m_bThumbDrag = FALSE;
 			m_bSingleSel = FALSE;
 
-			SafeRelease(m_pecThumb);
 			SafeRelease(m_psv);
 		}
 		return 0;
@@ -514,13 +564,15 @@ public:
 		return CElem::OnEvent(uMsg, wParam, lParam);
 	}
 
-	int GetItemY(int idx) const
+	EckInline int GetItemY(int idx) const
 	{
+		EckAssert(m_eView == ListType::List);
 		return m_oyTopItem + (idx - m_idxTop) * (m_cyItem + m_cyPadding);
 	}
 
-	int ItemFromY(int y) const
+	EckInline int ItemFromY(int y) const
 	{
+		EckAssert(m_eView == ListType::List);
 		return m_idxTop + (y - m_oyTopItem) / (m_cyItem + m_cyPadding);
 	}
 
@@ -536,20 +588,64 @@ public:
 		ReCalcScroll();
 	}
 
+	void SetItemWidth(int cx)
+	{
+		m_cxItem = cx;
+		ReCalcScroll();
+	}
+
+	void SetItemPaddingH(int cx)
+	{
+		m_cxPadding = cx;
+		ReCalcScroll();
+	}
+
 	void GetItemRect(int idx, RECT& rc) const
 	{
-		rc.left = 0;
-		rc.right = GetViewWidth();
-		rc.top = GetItemY(idx);
-		rc.bottom = rc.top + m_cyItem;
+		switch (m_eView)
+		{
+		case ListType::List:
+			rc.left = 0;
+			rc.right = GetViewWidth();
+			rc.top = GetItemY(idx);
+			rc.bottom = rc.top + m_cyItem;
+			break;
+		case ListType::Icon:
+		{
+			const auto xy = IVGetItemXY(idx);
+			rc.left = xy.first;
+			rc.right = rc.left + m_cxItem;
+			rc.top = xy.second;
+			rc.bottom = rc.top + m_cyItem;
+		}
+		break;
+		default:
+			ECK_UNREACHABLE;
+		}
 	}
 
 	void GetItemRect(int idx, D2D1_RECT_F& rc) const
 	{
-		rc.left = 0.f;
-		rc.right = GetViewWidthF();
-		rc.top = (float)GetItemY(idx);
-		rc.bottom = rc.top + m_cyItem;
+		switch (m_eView)
+		{
+		case ListType::List:
+			rc.left = 0;
+			rc.right = GetViewWidthF();
+			rc.top = (float)GetItemY(idx);
+			rc.bottom = rc.top + m_cyItem;
+			break;
+		case ListType::Icon:
+		{
+			const auto xy = IVGetItemXY(idx);
+			rc.left = xy.first;
+			rc.right = rc.left + m_cxItem;
+			rc.top = xy.second;
+			rc.bottom = rc.top + m_cyItem;
+		}
+		break;
+		default:
+			ECK_UNREACHABLE;
+		}
 	}
 
 	// 元素坐标
@@ -558,18 +654,34 @@ public:
 		RECT rc{ 0,0,m_rc.right - m_rc.left,m_rc.bottom - m_rc.top };
 		if (!PtInRect(rc, leht.pt) || m_vItem.empty())
 			return -1;
-		if (GetSBThumbRect(rc))
-			if (PtInRect(rc, leht.pt))
-			{
-				leht.bSBThumb = TRUE;
-				return -1;
-			}
 
-		const int idx = ItemFromY(leht.pt.y);
-		if (idx >= 0 && idx < m_vItem.size())
+		switch(m_eView)
+		{
+		case ListType::List:
+		{
+			const int idx = ItemFromY(leht.pt.y);
+			if (idx >= 0 && idx < m_vItem.size())
+				return idx;
+			else
+				return -1;
+		}
+		break;
+
+		case ListType::Icon:
+		{
+			const int idxX = IVLogItemFromX(leht.pt.x);
+			if (idxX < 0 || idxX >= m_cItemPerRow)
+				return -1;
+			const int idxY = IVLogItemFromY(leht.pt.y);
+			const int idx = m_idxTop + idxX + idxY * m_cItemPerRow;
+			if (idx < 0 || idx >= GetItemCount())
+				return -1;
 			return idx;
-		else
-			return -1;
+		}
+		break;
+		default:
+			ECK_UNREACHABLE;
+		}
 	}
 
 	void DeselectAll(int& idxChangedBegin, int& idxChangedEnd)
@@ -609,6 +721,7 @@ public:
 	void SetImageList(CD2dImageList* pImgList)
 	{
 		m_pImgList = pImgList;
+		pImgList->GetImageSize(m_cxImage, m_cyImage);
 	}
 
 	void SetTextFormat(IDWriteTextFormat* pTf)
@@ -656,13 +769,13 @@ public:
 		}
 	}
 
-	void SetImageSize(int cxy)
-	{
-		if (cxy < 0)
-			m_cxyImage = m_cyItem - (int)(m_pWnd->GetDs().CommMargin * 2.f);
-		else
-			m_cxyImage = cxy;
-	}
+	//void SetImageSize(int cxy)
+	//{
+	//	if (cxy < 0)
+	//		m_cxyImage = m_cyItem - (int)(m_pWnd->GetDs().CommMargin * 2.f);
+	//	else
+	//		m_cxyImage = cxy;
+	//}
 
 	void SetTopExtraSpace(int cy)
 	{
@@ -680,15 +793,60 @@ public:
 
 	void RedrawItem(int idxBegin, int idxEnd)
 	{
-		RECT rc
+		EckAssert(idxEnd >= idxBegin);
+		switch (m_eView)
 		{
-			0,
-			GetItemY(idxBegin),
-			GetViewWidth(),
-			GetItemY(idxEnd) + m_cyItem
-		};
-		ElemToClient(rc);
-		InvalidateRect(&rc);
+		case ListType::List:
+		{
+			RECT rc
+			{
+				0,
+				GetItemY(idxBegin),
+				GetViewWidth(),
+				GetItemY(idxEnd) + m_cyItem
+			};
+			ElemToClient(rc);
+			InvalidateRect(&rc);
+		}
+		break;
+		case ListType::Icon:
+		{
+			if (idxBegin == idxEnd)
+				RedrawItem(idxBegin);
+			else
+			{
+				auto [x1, y1] = IVGetItemXY(idxBegin);
+				auto [x2, y2] = IVGetItemXY(idxEnd);
+				if (y1 == y2)
+				{
+					RECT rc
+					{
+						x1,
+						y1,
+						x2 + m_cxItem,
+						y2 + m_cyItem
+					};
+					ElemToClient(rc);
+					InvalidateRect(&rc);
+				}
+				else
+				{
+					RECT rc
+					{
+						0,
+						y1,
+						GetViewWidth(),
+						y2 + m_cyItem
+					};
+					ElemToClient(rc);
+					InvalidateRect(&rc);
+				}
+			}
+		}
+		break;
+		default:
+			ECK_UNREACHABLE;
+		}
 	}
 
 	void RedrawItem(int idx)
@@ -698,6 +856,8 @@ public:
 		ElemToClient(rc);
 		InvalidateRect(&rc);
 	}
+
+	int GetItemCount() const { return (int)m_vItem.size(); }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

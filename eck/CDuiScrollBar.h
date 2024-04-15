@@ -104,7 +104,9 @@ public:
 					m_psv->SetPos(ptf.y < rcf.top ?
 						m_psv->GetPos() - m_psv->GetPage() :
 						m_psv->GetPos() + m_psv->GetPage());
-				InvalidateRect();
+				DUINMHDR nm{ m_bHorz ? EE_HSCROLL : EE_VSCROLL };
+				if (!GenElemNotify(&nm))
+					InvalidateRect();
 			}
 		}
 		return 0;

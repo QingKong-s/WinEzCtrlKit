@@ -295,5 +295,11 @@ public:
 		}
 		return S_OK;
 	}
+
+	void GetImageSize(int& cx, int& cy)
+	{
+		cx = m_cx;
+		cy = m_cy;
+	}
 };
 ECK_NAMESPACE_END
