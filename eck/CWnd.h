@@ -48,7 +48,7 @@ struct DESIGNDATA_WND
 
 #define ECK_CWND_CREATE																\
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,						\
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)	\
+		int x, int y, int cx, int cy, HWND hParent, int nID, ::eck::PCVOID pData = NULL)	\
 	{																				\
 		return Create(pszText, dwStyle, dwExStyle, x, y, cx, cy,					\
 			hParent, ::eck::i32ToP<HMENU>(nID), pData);								\

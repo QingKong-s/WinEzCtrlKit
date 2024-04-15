@@ -764,10 +764,12 @@ public:
 
 		m_pStdColorTheme[CTI_LIST] = new CColorTheme{};
 		m_pStdColorTheme[CTI_LIST]->Set(
+			COLORTHEME
 			{
-				c_Black,c_Black,c_Black,c_DisableText,
-				c_White,{},{},c_DisableBkg,
-				c_Unused,c_Unused
+				.crTextNormal = c_Black,
+				.crBkHot = ColorrefToD2dColorF(Colorref::Black, 0.1f),
+				.crBkSelected = ColorrefToD2dColorF(Colorref::Black, 0.2f),
+				.crBkHotSel = ColorrefToD2dColorF(Colorref::Black, 0.3f),
 			});
 
 		m_pStdColorTheme[CTI_LABEL] = new CColorTheme{};
