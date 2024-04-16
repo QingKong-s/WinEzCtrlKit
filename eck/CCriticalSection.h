@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CCriticalSection.h ： 临界区
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN

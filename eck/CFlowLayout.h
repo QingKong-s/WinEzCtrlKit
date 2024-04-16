@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CFlowLayout.h ： 流式布局
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN

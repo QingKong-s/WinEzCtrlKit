@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CScrollView.h ： 滚动视图
+*
+* Copyright(C) 2023-2024 QingKong
+*/
+#pragma once
 #include "Utility.h"
 
 ECK_NAMESPACE_BEGIN

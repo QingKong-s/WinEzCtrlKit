@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CListViewExt.h ： 列表视图扩展
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 ECK_DISABLE_ARITHMETIC_OVERFLOW_WARNING
 
 #include "CListView.h"

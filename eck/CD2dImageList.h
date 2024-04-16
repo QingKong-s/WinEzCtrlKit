@@ -1,5 +1,13 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CD2dImageList.h ： D2D图像列表
+*
+* Copyright(C) 2023-2024 QingKong
+*/
+#pragma once
 #include "Utility.h"
+#include "CCriticalSection.h"
 
 #include <set>
 
@@ -33,6 +41,8 @@ private:
 
 	int m_cImgPerPack = 50;
 
+	CCriticalSection m_cs{};
+
 	void ReAlloc(int cImg)
 	{
 		if (cImg <= m_cImg)
@@ -65,7 +75,7 @@ private:
 	}
 public:
 	CD2dImageList() = default;
-	CD2dImageList(int cx, int cy, int iPadding = 4, int cImgPerPack = 50)
+	CD2dImageList(int cx, int cy, int iPadding = 1, int cImgPerPack = 50)
 		: m_cx(cx), m_cy(cy), m_iPadding(iPadding), m_cImgPerPack(cImgPerPack)
 	{
 	}
@@ -138,6 +148,7 @@ public:
 	/// <returns>新添加的图像的索引</returns>
 	int AddImage(ID2D1Bitmap* pBitmap, const D2D1_RECT_U* prcSrc = NULL, HRESULT* phr = NULL)
 	{
+		CCsGuard _{ m_cs };
 		EckAssert(pBitmap);
 		HRESULT hr;
 		const int idxPack = CalcPackIndex(m_cImg);
@@ -179,6 +190,7 @@ public:
 		D2D1_INTERPOLATION_MODE iInterpolationMode = D2D1_INTERPOLATION_MODE_LINEAR,
 		D2D1_MATRIX_4X4_F* pPerspectiveMatrix = NULL)
 	{
+		CCsGuard _{ m_cs };
 		EckAssert(idxImg >= 0 && idxImg < m_cImg);
 		const int idxPack = CalcPackIndex(idxImg);
 		const int y = CalcYFromImgIndex(idxImg);
@@ -207,6 +219,7 @@ public:
 	HRESULT Draw2(int idxImg, const D2D1_RECT_F& rcDst, float fAlpha = 1.f,
 		D2D1_BITMAP_INTERPOLATION_MODE iInterpolationMode = D2D1_BITMAP_INTERPOLATION_MODE_LINEAR)
 	{
+		CCsGuard _{ m_cs };
 		EckAssert(idxImg >= 0 && idxImg < m_cImg);
 		const int idxPack = CalcPackIndex(idxImg);
 		const int y = CalcYFromImgIndex(idxImg);
@@ -231,6 +244,7 @@ public:
 	/// <returns>HRESULT</returns>
 	HRESULT CreateAtlas(int idxImg, ID2D1Effect*& pEffectAtlas)
 	{
+		CCsGuard _{ m_cs };
 		EckAssert(idxImg >= 0 && idxImg < m_cImg);
 		pEffectAtlas = NULL;
 		HRESULT hr;
@@ -250,6 +264,7 @@ public:
 
 	HRESULT DiscardImage(int idxImg)
 	{
+		CCsGuard _{ m_cs };
 		EckAssert(idxImg >= 0 && idxImg < m_cImg);
 		if (m_hsStandby.find(idxImg) != m_hsStandby.end())
 		{
@@ -266,6 +281,7 @@ public:
 
 	HRESULT ReplaceImage(int idxImg, ID2D1Bitmap* pBitmap, const D2D1_RECT_U* prcSrc = NULL)
 	{
+		CCsGuard _{ m_cs };
 		if (idxImg < 0)
 		{
 			if (!m_hsStandby.empty())

@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CComboBoxEx.h ： 标准组合框Ex
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "CComboBox.h"
 
 ECK_NAMESPACE_BEGIN

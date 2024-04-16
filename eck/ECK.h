@@ -409,6 +409,7 @@ constexpr inline PCWSTR WCN_ANIMATIONBOX = L"Eck.WndClass.AnimationBox";
 constexpr inline PCWSTR WCN_TREELIST = L"Eck.WndClass.TreeList";
 constexpr inline PCWSTR WCN_COMBOBOXNEW = L"Eck.WndClass.ComboBoxNew";
 
+
 constexpr inline PCWSTR MSGREG_FORMTRAY = L"Eck.Message.FormTray";
 constexpr inline PCWSTR MSGREG_EASING = L"Eck.Message.Easing";
 

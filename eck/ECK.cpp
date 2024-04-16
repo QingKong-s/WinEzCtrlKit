@@ -1,4 +1,11 @@
-﻿#include "ECK.h"
+﻿/*
+* WinEzCtrlKit Library
+*
+* ECK.cpp ： MAIN
+*
+* Copyright(C) 2024 QingKong
+*/
+#include "ECK.h"
 #include "Utility.h"
 #include "CRefStr.h"
 #include "CWnd.h"
@@ -93,9 +100,9 @@ struct
 }
 g_WndClassInfo[]
 {
+	{ },
 	{ WCN_LABEL },
 	{ WCN_BK },
-	{ },
 	{ WCN_SPLITBAR },
 	{ WCN_DRAWPANEL },
 	{ WCN_DRAWPANELD2D },
@@ -137,8 +144,8 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		}
 	}
 
-	g_WndClassInfo[2].iType = RWCT_CUSTOM;
-	g_WndClassInfo[2].wc = { CS_STDWND,DefDlgProcW,0,DLGWINDOWEXTRA + sizeof(void*) * 2,
+	g_WndClassInfo[0].iType = RWCT_CUSTOM;
+	g_WndClassInfo[0].wc = { CS_STDWND,DefDlgProcW,0,DLGWINDOWEXTRA + sizeof(void*) * 2,
 	g_hInstance,NULL,LoadCursorW(NULL,IDC_ARROW),NULL,NULL,WCN_DLG };
 
 	for (const auto& e : g_WndClassInfo)

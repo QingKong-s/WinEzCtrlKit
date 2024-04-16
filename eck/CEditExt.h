@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CEditExt.h ： 编辑框扩展
+*
+* Copyright(C) 2023-2024 QingKong
+*/
+#pragma once
 #include "CEdit.h"
 
 ECK_NAMESPACE_BEGIN
@@ -37,7 +44,7 @@ public:
 		Double = 10,
 		DateTime = 11,
 	};
-private:
+protected:
 	COLORREF m_crText = CLR_DEFAULT;			// 文本颜色
 	COLORREF m_crTextBK = CLR_DEFAULT;			// 文本背景色
 	COLORREF m_crBK = CLR_DEFAULT;				// 编辑框背景色

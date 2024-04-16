@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CQueueTimer.h ： 队列定时器
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN

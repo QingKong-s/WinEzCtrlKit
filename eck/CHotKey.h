@@ -1,11 +1,19 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CHotKey.h ： 标准热键框
+*
+* Copyright(C) 2023-2024 QingKong
+*/
+#pragma once
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
 class CHotKey :public CWnd
 {
 public:
-	EckInline 
+	ECK_CWND_CREATE;
+	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL)
 	{
 		dwStyle |= WS_CHILD;

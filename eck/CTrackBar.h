@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CTrackBar.h ： 标准滑块条
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN

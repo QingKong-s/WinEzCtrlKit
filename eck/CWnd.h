@@ -3,7 +3,7 @@
 *
 * CWnd.h ： 窗口基类
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include "ECK.h"

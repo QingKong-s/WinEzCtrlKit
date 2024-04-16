@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CEvent.h ： 事件对象
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN

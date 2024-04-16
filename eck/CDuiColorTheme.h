@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CDuiColorTheme.h ： DUI颜色主题
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "CWnd.h"
 
 #define ECK_DUI_NAMESPACE_BEGIN namespace Dui {

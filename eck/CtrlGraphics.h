@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CtrlGraphics.h ： 控件图形帮助
+*
+* Copyright(C) 2023-2024 QingKong
+*/
+#pragma once
 #include "CHeader.h"
 
 ECK_NAMESPACE_BEGIN

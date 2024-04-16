@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* StrBinInterop.h ： 字符串字节集互操作
+*
+* Copyright(C) 2023 QingKong
+*/
+#pragma once
 #include "CRefBin.h"
 #include "CRefStr.h"
 

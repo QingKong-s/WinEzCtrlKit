@@ -226,6 +226,7 @@ private:
 			{
 				e.pLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
 				e.pLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+				e.pLayout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
 				DWRITE_TEXT_METRICS tm;
 				e.pLayout->GetMetrics(&tm);
 				e.cxText = tm.width;
@@ -238,7 +239,8 @@ private:
 		if (e.pLayout)
 		{
 			m_pBrush->SetColor(D2D1::ColorF(0x000000));
-			m_pDC->DrawTextLayout(D2D1::Point2F(rc.left, rcImg.bottom), e.pLayout, m_pBrush);
+			m_pDC->DrawTextLayout(D2D1::Point2F(rc.left, rcImg.bottom + m_pWnd->GetDs().CommMargin), 
+				e.pLayout, m_pBrush);
 		}
 	}
 
@@ -400,12 +402,35 @@ public:
 				break;
 				case ListType::Icon:
 				{
-					LEHITTEST leht{ .pt = { (int)ps.rcfClipInElem.left,(int)ps.rcfClipInElem.top} };
-					const int idxBegin = std::max(HitTest(leht), 0);
-					leht.pt = { (int)ps.rcfClipInElem.right,(int)ps.rcfClipInElem.bottom };
-					const int idxEnd = std::min(HitTest(leht), (int)m_vItem.size() - 1);
-					for (int i = 0; i <= GetItemCount()-1; ++i)
-						DrawItem(i, ps.rcfClipInElem);
+					int idxBegin, idxEnd, idxX, idxY;
+
+					idxX = IVLogItemFromX((int)ps.rcfClipInElem.left + 1);
+					if (idxX < 0 || idxX >= m_cItemPerRow)
+						idxBegin = -1;
+					else
+					{
+						idxY = IVLogItemFromY((int)ps.rcfClipInElem.top + 1);
+						idxBegin = m_idxTop + idxX + idxY * m_cItemPerRow;
+						if (idxBegin < 0 || idxBegin >= GetItemCount())
+							idxBegin = -1;
+					}
+
+					if (idxBegin >= 0)
+						for (int i = idxBegin; i < GetItemCount(); ++i)
+						{
+							if (IVGetItemXY(i).first >= (int)ps.rcfClipInElem.right)// 需要下移一行
+							{
+								i = idxBegin + m_cItemPerRow;
+								idxBegin = i;
+								if (i >= GetItemCount())
+									break;
+							}
+
+							if (IVGetItemXY(i).second >= (int)ps.rcfClipInElem.bottom)// Y方向重画完成
+								break;
+
+							DrawItem(i, ps.rcfClipInElem);
+						}
 				}
 				break;
 				default:
@@ -527,6 +552,7 @@ public:
 					pThis->ReCalcTopItem();
 					pThis->InvalidateRect();
 				}, (LPARAM)this);
+			m_psv->SetDelta(DpiScale(80, GetWnd()->GetDpiValue()));
 
 			UpdateDpiSizeF(m_DsF, m_pWnd->GetDpiValue());
 

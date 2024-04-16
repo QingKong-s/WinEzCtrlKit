@@ -43,11 +43,14 @@
 #include "eck\CComboBoxNew.h"
 #include "eck\CLinearLayout.h"
 #include "eck\CDuiScrollBar.h"
+#include "eck\CEditNcComp.h"
+#include "eck\CSrwLock.h"
 
 #define WCN_TEST L"CTestWindow"
 
 using eck::PCVOID;
 using eck::PCBYTE;
+using namespace eck::Literals;
 
 class CTestDui :public eck::Dui::CDuiWnd
 {
@@ -60,16 +63,26 @@ public:
 	eck::Dui::CTrackBar m_TB{};
 	eck::Dui::CCircleButton m_CBtn{};
 	eck::Dui::CScrollBar m_SB{};
-
-	eck::CD2dImageList m_il{ 160, 160 };
+	enum
+	{
+		cximg = 160,
+		cyimg = 160,
+	};
+	eck::CD2dImageList m_il{ cximg, cyimg };
 	eck::CEasingCurve m_ec{};
 
 	struct ITEM
 	{
-		eck::CRefStrW rs;
-		int idxImg;
+		eck::CRefStrW rsFile{};
+		eck::CRefStrW rs{};
+		int idxImg{ 0 };
 	};
 	std::vector<ITEM> m_vItem{};
+	eck::CSrwLock m_srw{};
+	enum
+	{
+		WM_UIUIUI = 114514
+	};
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
@@ -78,6 +91,7 @@ public:
 		{
 		case eck::Dui::WM_DRAGENTER:
 		case eck::Dui::WM_DRAGOVER:
+			return TRUE; 
 		{
 			auto p = (eck::Dui::DRAGDROPINFO*)wParam;
 			*(p->pdwEffect) = DROPEFFECT_COPY;
@@ -85,6 +99,7 @@ public:
 		case eck::Dui::WM_DRAGLEAVE:
 			return TRUE;
 		case eck::Dui::WM_DROP:
+			return TRUE;
 		{
 			auto p = (eck::Dui::DRAGDROPINFO*)wParam;
 			FORMATETC fe = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
@@ -105,7 +120,7 @@ public:
 						if (SUCCEEDED(eck::CreateWicBitmap(pWicBmp, pDecoder, 160, 160)))
 							if (SUCCEEDED(GetD2D().GetDC()->CreateBitmapFromWicBitmap(pWicBmp, &pBitmap)))
 								idxImg = m_il.AddImage(pBitmap);
-					m_vItem.emplace_back(PathFindFileNameW(szFile), idxImg);
+					//m_vItem.emplace_back(PathFindFileNameW(szFile), idxImg);
 
 					eck::SafeRelease(pBitmap);
 					eck::SafeRelease(pDecoder);
@@ -132,16 +147,51 @@ public:
 
 			//m_Label3.Create(L"测试标签😍😍", eck::Dui::DES_VISIBLE | eck::Dui::DES_BLURBKG, 0,
 			//	0, 0, 800, 900, NULL, this, NULL);
-			eck::Dui::CElem* pElem = &m_Label3;
+			WIN32_FIND_DATAW wfd;
+			HANDLE hFind = FindFirstFileW(LR"(H:\@重要文件\@其他\Pic\may_ena_\*.jpg)", &wfd);
+			int c = 0;
+			do
+			{
+				m_vItem.emplace_back(LR"(H:\@重要文件\@其他\Pic\may_ena_\)"_rs + wfd.cFileName, wfd.cFileName);
+				++c;
+				if (c == -100)
+					break;
+			} while (FindNextFileW(hFind, &wfd));
+			FindClose(hFind);
+
+			eck::LoadD2dBitmap(LR"(D:\@重要文件\@我的工程\PlayerNew\Res\DefCover.png)", GetD2D().GetDC(),
+				pBitmap, cximg, cyimg);
+			m_il.AddImage(pBitmap);
+
+			std::thread t([this]
+				{
+					for (int i{}; auto & e : m_vItem)
+					{
+						ID2D1Bitmap* p;
+						eck::LoadD2dBitmap(e.rsFile.Data(), GetD2D().GetDC(),
+							p, cximg, cyimg);
+						const int idx = m_il.AddImage(p);
+						p->Release();
+						m_srw.EnterWrite();
+						e.idxImg = idx;
+						m_srw.LeaveWrite();
+						PostMsg(WM_UIUIUI, i, 0);
+						++i;
+					}
+				});
+			t.detach();
+
+			eck::Dui::CElem* pElem = NULL; &m_Label3;
 			pElem = 0;
 			m_List.Create(NULL, eck::Dui::DES_VISIBLE, 0,
 				10, 10, ClientWidth - 20, ClientHeight - 20, pElem, this, NULL);// 50  70  650  670
 			m_List.SetTextFormat(GetDefTextFormat());
-			m_List.SetItemHeight(300);
+			m_List.SetItemHeight(240);
 			m_List.SetItemWidth(200);
 			//m_List.SetImageSize(-1);
 			m_List.SetItemPadding(5);
 			m_List.SetItemPaddingH(5);
+			m_List.SetItemCount((int)m_vItem.size());
 			/*m_vItem.resize(100);
 			EckCounter(m_vItem.size(), i)
 			{
@@ -211,6 +261,12 @@ public:
 			return lResult;
 		}
 		break;
+
+		case WM_UIUIUI:
+		{
+			m_List.RedrawItem((int)wParam);
+		}
+		return 0;
 		}
 
 		return CDuiWnd::OnMsg(hWnd, uMsg, wParam, lParam);
@@ -224,10 +280,12 @@ public:
 		case LEE_GETDISPINFO:
 		{
 			auto p = (LEEDISPINFO*)lParam;
+			m_srw.EnterRead();
 			const auto& e = m_vItem[p->idx];
 			p->pszText = e.rs.Data();
 			p->cchText = e.rs.Size();
 			p->idxImg = e.idxImg;
+			m_srw.LeaveRead();
 			//p->pImage = e.pBitmap;
 			//auto s = e.pBitmap->GetSize();
 			//p->cxImage = s.width;
@@ -290,6 +348,7 @@ private:
 	eck::CPushButton m_btn2[6]{};
 	eck::CLinearLayoutH m_llh{};
 	eck::CLinearLayoutV m_llv{};
+	eck::CEditNcComp m_enc{};
 
 	CTestDui m_Dui{};
 
@@ -698,10 +757,14 @@ public:
 			//m_Btn.Create(L"筛选", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS, 0, 900, 0, 300, 70, hWnd, 101);
 			//m_lot.Add(&m_Btn, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 			
-			RECT rcDui{ 0,0,900,700 };
+			RECT rcDui{ 0,0,1800,1000 };
 			m_Dui.Create(L"我是 Dui 窗口", WS_CHILD | WS_VISIBLE, 0, 0, 0, rcDui.right, rcDui.bottom, hWnd, 108);
 			m_Dui.Redraw();
 			m_lot.Add(&m_Dui, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+
+			m_enc.Create(L"示例编辑框", WS_VISIBLE | WS_CHILD, WS_EX_CLIENTEDGE,
+				0, 0, 200, 40, hWnd, 0);
+			m_lot.Add(&m_enc, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 
 			/*m_tle.Create(0, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
 				0, 0, 800, 800, hWnd, 1010);
@@ -963,8 +1026,8 @@ public:
 		case WM_SIZE:
 		{
 			const int cx = LOWORD(lParam), cy = HIWORD(lParam);
-			//m_lot.Arrange(cx, cy);
-			m_llv.Arrange(cx, cy);
+			m_lot.Arrange(cx, cy);
+			//m_llv.Arrange(cx, cy);
 		}
 		return 0;
 		case WM_COMMAND:

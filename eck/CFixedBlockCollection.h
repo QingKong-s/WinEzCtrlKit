@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CFixBlockCollection.h ： 定长内存集合
+*
+* Copyright(C) 2023 QingKong
+*/
+#pragma once
 #include "CAllocator.h"
 #include "Utility.h"
 

@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* Env.h ： 外部环境
+*
+* Copyright(C) 2023-2024 QingKong
+*/
+#pragma once
 /*
 * 若要使用DPI感知，添加清单文件".\eck\Others\DpiAwarePreMonV2.manifest"，
 * 仅使用'系统DPI感知'和'每显示器DPI感知V2'，不使用'每显示器DPI感知V1'，代码也

@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CMemWalker.h ： 指针跟踪爬行器
+*
+* Copyright(C) 2023 QingKong
+*/
+#pragma once
 #include "CRefBin.h"
 #include "CRefStr.h"
 
