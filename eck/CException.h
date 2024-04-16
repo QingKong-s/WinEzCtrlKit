@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CException.h ： 异常
+*
+* Copyright(C) 2023 QingKong
+*/
+#pragma once
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN

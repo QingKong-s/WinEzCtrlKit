@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CDuiEdit.h ： DUI编辑框
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "DuiBase.h"
 
 ECK_NAMESPACE_BEGIN

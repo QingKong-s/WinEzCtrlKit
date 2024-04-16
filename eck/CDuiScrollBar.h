@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CDuiScrollBar.h ： DUI滚动条
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "DuiBase.h"
 #include "CInertialScrollView.h"
 
@@ -181,6 +188,15 @@ public:
 			EndPaint(ps);
 		}
 		return 0;
+
+		case WM_MOUSEWHEEL:
+		case WM_MOUSEHWHEEL:
+		{
+			const auto p = GetParentElem();
+			if (p)
+				return p->CallEvent(uMsg, wParam, lParam);
+		}
+		break;
 
 		case WM_CREATE:
 		{

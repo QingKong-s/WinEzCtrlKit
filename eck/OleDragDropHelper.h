@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* OleDragDropHelper.h ： OLE拖放预实现接口
+*
+* Copyright(C) 2023 QingKong
+*/
+#pragma once
 #include "ECK.h"
 
 #include <Windows.h>

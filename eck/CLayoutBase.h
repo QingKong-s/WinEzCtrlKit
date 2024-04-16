@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CLayoutBase.h ： 布局基类
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "ILayout.h"
 
 ECK_NAMESPACE_BEGIN

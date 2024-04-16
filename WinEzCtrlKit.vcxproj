@@ -154,8 +154,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Manifest>
-      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
-      <AdditionalManifestFiles>%(AdditionalManifestFiles)</AdditionalManifestFiles>
+      <EnableDpiAwareness>false</EnableDpiAwareness>
+      <AdditionalManifestFiles>.\eck\Others\DpiAwarePreMonV2.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -180,7 +180,9 @@
     <ClInclude Include="eck\CDuiColorTheme.h" />
     <ClInclude Include="eck\CDuiScrollBar.h" />
     <ClInclude Include="eck\CDuiTrackBar.h" />
+    <ClInclude Include="eck\CEditNcComp.h" />
     <ClInclude Include="eck\CEvent.h" />
+    <ClInclude Include="eck\CFontPicker.h" />
     <ClInclude Include="eck\CInertialScrollView.h" />
     <ClInclude Include="eck\CIni.h" />
     <ClInclude Include="eck\CLayoutBase.h" />

@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CComboBoxNew.h ： 组合框
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "CListBoxNew.h"
 #include "CEditExt.h"
 

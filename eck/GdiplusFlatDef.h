@@ -3,7 +3,7 @@
 *
 * GdiplusFlatDef.h ： GDI+Flat定义
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include <Windows.h>

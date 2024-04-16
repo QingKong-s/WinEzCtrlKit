@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CInputBox.h ： 输入框
+*
+* Copyright(C) 2023-2024 QingKong
+*/
+#pragma once
 #include "CDialog.h"
 #include "CEditExt.h"
 #include "CButton.h"

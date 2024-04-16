@@ -117,6 +117,8 @@ struct DUINMHDR
 
 #define ECK_DUILOCK		::eck::CCsGuard ECKPRIV_DUI_LOCK_GUARD(*(GetWnd()->GetCriticalSection()))
 #define ECK_DUILOCKWND	::eck::CCsGuard ECKPRIV_DUI_LOCK_GUARD(*GetCriticalSection())
+
+
 /// <summary>
 /// DUI元素基类
 /// </summary>
@@ -653,7 +655,7 @@ private:
 
 	EckInline void StartupRenderThread()
 	{
-		std::thread t([this]()
+		std::thread t([this]
 			{
 				constexpr int c_iMinGap = 18;
 				const HANDLE hTimer = CreateWaitableTimerW(NULL, FALSE, NULL);

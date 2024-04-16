@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* EasingCurve.h ： 缓动曲线
+*
+* Copyright(C) 2023-2024 QingKong
+*/
+#pragma once
 #include "ECK.h"
 #include "ITimeLine.h"
 

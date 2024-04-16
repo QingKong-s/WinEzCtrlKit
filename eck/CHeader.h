@@ -3,7 +3,7 @@
 *
 * CHeader.h ： 标准表头
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include "CWnd.h"

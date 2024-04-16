@@ -1,3 +1,10 @@
+/*
+* WinEzCtrlKit Library
+*
+* CPropertySheet.h ： 标准属性表
+*
+* Copyright(C) 2023 QingKong
+*/
 #pragma once
 #include "CWnd.h"
 

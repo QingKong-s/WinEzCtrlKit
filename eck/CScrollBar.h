@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CScrollBar.h ： 标准滚动条
+*
+* Copyright(C) 2023 QingKong
+*/
+#pragma once
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN

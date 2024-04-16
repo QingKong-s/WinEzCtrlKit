@@ -1,3 +1,10 @@
+/*
+* WinEzCtrlKit Library
+*
+* CProgressBar.h ： 标准进度条
+*
+* Copyright(C) 2024 QingKong
+*/
 #pragma once
 #include "CWnd.h"
 
