@@ -18,16 +18,70 @@ protected:
 #endif
 	BITBOOL m_bModal : 1 = FALSE;
 	BITBOOL m_bClrDisableEdit : 1 = FALSE;
+	BITBOOL m_bUseDefBkClr : 1 = TRUE;
 	COLORREF m_crBkg = CLR_DEFAULT;
-	COLORREF m_crDefText = CLR_INVALID;
-	COLORREF m_crDefBkg = CLR_INVALID;
+	INT_PTR m_iResult = 0;
+	HWND m_hTop = NULL;
+	
+
+	EckInline HWND PreModal(HWND hParent)
+	{
+		m_bModal = TRUE;
+		return GetSafeOwner(hParent, &m_hTop);
+	}
+
+	EckInline void PostModal()
+	{
+		if (!m_hTop)
+			return;
+		m_bModal = FALSE;
+		EnableWindow(m_hTop, TRUE);
+		m_hTop = NULL;
+	}
+
+	void MsgLoop()
+	{
+		MSG msg;
+		while (GetMessageW(&msg, NULL, 0, 0))
+		{
+			if (!eck::PreTranslateMessage(msg))
+			{
+				if (!IsDialogMessageW(m_hWnd, &msg))
+				{
+					TranslateMessage(&msg);
+					DispatchMessageW(&msg);
+				}
+			}
+		}
+	}
 
 	EckInline INT_PTR IntCreateModalDlg(HINSTANCE hInst, PCWSTR pszTemplate, HWND hParent,
 		LPARAM lParam = 0, FWndCreating pfnCreatingProc = NULL)
 	{
 		m_bModal = TRUE;
+
+		const HWND hOwner = PreModal(hParent);
+		BOOL bNeedEnableOwner;
+		if (hOwner && hOwner != GetDesktopWindow() && IsWindowEnabled(hOwner))
+		{
+			bNeedEnableOwner = TRUE;
+			EnableWindow(hOwner, FALSE);
+		}
+		else
+			bNeedEnableOwner = FALSE;
+
 		BeginCbtHook(this, pfnCreatingProc);
-		return DialogBoxParamW(hInst, pszTemplate, hParent, EckDlgProc, lParam);
+		CreateDialogParamW(hInst, pszTemplate, hParent, EckDlgProc, lParam);
+		EckAssert(m_bDlgProcInit);
+
+		MsgLoop();
+		if (bNeedEnableOwner)
+			EnableWindow(hOwner, TRUE);
+		if (hParent)
+			SetActiveWindow(hParent);
+		PostModal();
+		Destroy();
+		return m_iResult;
 	}
 
 	EckInline HWND IntCreateModelessDlg(HINSTANCE hInst, PCWSTR pszTemplate, HWND hParent,
@@ -67,6 +121,10 @@ public:
 			m_bDlgProcInit = FALSE;
 #endif // _DEBUG
 			break;
+		case WM_DESTROY:
+			m_bModal = FALSE;
+			m_iResult = 0;
+			break;
 		case WM_COMMAND:
 		{
 			if (HIWORD(wParam) == BN_CLICKED)
@@ -90,17 +148,13 @@ public:
 		case WM_CTLCOLOREDIT:
 		case WM_CTLCOLORLISTBOX:
 		{
-			SetTextColor((HDC)wParam, m_crDefText);
-			SetBkColor((HDC)wParam, m_crBkg != CLR_DEFAULT ? m_crBkg : m_crDefBkg);
-			SetDCBrushColor((HDC)wParam, m_crBkg != CLR_DEFAULT ? m_crBkg : m_crDefBkg);
+			const auto* const ptc = GetThreadCtx();
+			SetTextColor((HDC)wParam, ptc->crDefText);
+			SetBkColor((HDC)wParam, m_crBkg != CLR_DEFAULT ? m_crBkg : ptc->crDefBkg);
+			SetDCBrushColor((HDC)wParam, m_crBkg != CLR_DEFAULT ? m_crBkg : ptc->crDefBkg);
 			return (LRESULT)GetStockBrush(DC_BRUSH);
 		}
 		break;
-
-		case WM_CREATE:
-		case WM_THEMECHANGED:
-			GetItemsViewForeBackColor(m_crDefText, m_crDefBkg);
-			break;
 		}
 
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
@@ -113,9 +167,13 @@ public:
 	EckInline virtual INT_PTR DlgBox(HWND hParent, void* pData = NULL) { throw CDlgBoxOnPureCDialogException{}; }
 
 	EckInline virtual BOOL EndDlg(INT_PTR nResult)
-	{ 
+	{
+		m_iResult = nResult;
 		if (m_bModal)
-			return EndDialog(m_hWnd, nResult);
+		{
+			PostQuitMessage(0);
+			return TRUE;
+		}
 		else
 			return Destroy();
 	}
@@ -139,6 +197,8 @@ public:
 	{
 		m_bClrDisableEdit = b;
 	}
+
+	EckInline void SetUseDefBkColor(BOOL b) { m_bUseDefBkClr = b; }
 };
 
 enum :UINT
@@ -153,40 +213,6 @@ public:
 	constexpr static LONG_PTR OcbPtr1 = DLGWINDOWEXTRA;
 	constexpr static LONG_PTR OcbPtr2 = DLGWINDOWEXTRA + sizeof(void*);
 protected:
-	HWND m_hTop = NULL;
-	INT_PTR m_iResult = 0;
-
-	EckInline HWND PreModal(HWND hParent)
-	{
-		m_bModal = TRUE;
-		return GetSafeOwner(hParent, &m_hTop);
-	}
-
-	EckInline void PostModal()
-	{
-		if (!m_hTop)
-			return;
-		m_bModal = FALSE;
-		EnableWindow(m_hTop, TRUE);
-		m_hTop = NULL;
-	}
-
-	void MsgLoop()
-	{
-		MSG msg;
-		while (GetMessageW(&msg, NULL, 0, 0))
-		{
-			if (!eck::PreTranslateMessage(msg))
-			{
-				if (!IsDialogMessageW(m_hWnd, &msg))
-				{
-					TranslateMessage(&msg);
-					DispatchMessageW(&msg);
-				}
-			}
-		}
-	}
-
 	INT_PTR IntCreateModalDlg(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
 		UINT uDlgFlags = 0u, FWndCreating pfnCreatingProc = NULL)
@@ -203,7 +229,7 @@ protected:
 
 		IntCreateModelessDlg(dwExStyle, pszClass, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, hInst, pParam, uDlgFlags, pfnCreatingProc);
-		
+
 		MsgLoop();
 		if (bNeedEnableOwner)
 			EnableWindow(hOwner, TRUE);
@@ -240,18 +266,6 @@ protected:
 			}
 		}
 		return m_hWnd;
-	}
-public:
-	EckInline BOOL EndDlg(INT_PTR nResult) override
-	{
-		m_iResult = nResult;
-		if (m_bModal)
-		{
-			PostQuitMessage(0);
-			return TRUE;
-		}
-		else
-			return Destroy();
 	}
 };
 ECK_NAMESPACE_END

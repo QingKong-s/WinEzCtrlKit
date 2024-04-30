@@ -6,6 +6,10 @@
 * Copyright(C) 2023-2024 QingKong
 */
 #pragma once
+#define GDIPVER 0x110
+
+#include <comdef.h>
+
 #include <Windows.h>
 #include <Uxtheme.h>
 #include <vsstyle.h>
@@ -18,6 +22,7 @@
 #include <assert.h>
 
 #include <unordered_map>
+#include <unordered_set>
 #include <type_traits>
 
 #include ".\Detours\detours.h"
@@ -281,8 +286,43 @@ enum :UINT
 /*-------------------*/
 ECK_NAMESPACE_END
 #include "DbgHelper.h"
-#include "GdiplusFlatDef.h"
+#include <gdiplus.h>
 ECK_NAMESPACE_BEGIN
+namespace GpNameSpace
+{
+	using namespace Gdiplus::DllExports;
+#define ECK_USING_GDIP_TYPE(Type) using Type = ::Gdiplus::Type
+
+	ECK_USING_GDIP_TYPE(GpGraphics);
+	ECK_USING_GDIP_TYPE(GpFontCollection);
+	ECK_USING_GDIP_TYPE(GpFontFamily);
+	ECK_USING_GDIP_TYPE(GpFont);
+	ECK_USING_GDIP_TYPE(GpStringFormat);
+	ECK_USING_GDIP_TYPE(GpPen);
+	ECK_USING_GDIP_TYPE(GpPath);
+	ECK_USING_GDIP_TYPE(GpBrush);
+	ECK_USING_GDIP_TYPE(GpSolidFill);
+	ECK_USING_GDIP_TYPE(GpLineGradient);
+	ECK_USING_GDIP_TYPE(GpImage);
+	ECK_USING_GDIP_TYPE(GpImageAttributes);
+	using GpEffect = Gdiplus::CGpEffect;
+	ECK_USING_GDIP_TYPE(GpBitmap);
+	ECK_USING_GDIP_TYPE(GpRegion);
+	ECK_USING_GDIP_TYPE(GpMatrix);
+	ECK_USING_GDIP_TYPE(ARGB);
+	ECK_USING_GDIP_TYPE(REAL);
+	ECK_USING_GDIP_TYPE(GpStatus);
+	ECK_USING_GDIP_TYPE(GpRectF);
+	ECK_USING_GDIP_TYPE(GpRect);
+	ECK_USING_GDIP_TYPE(GpPointF);
+	ECK_USING_GDIP_TYPE(GpPoint);
+	ECK_USING_GDIP_TYPE(GdiplusStartupInput);
+	using Gdiplus::GdiplusShutdown;
+	using Gdiplus::GdiplusStartup;
+}
+using namespace GpNameSpace;
+
+
 extern HINSTANCE g_hInstance;
 extern IWICImagingFactory* g_pWicFactory;
 extern ID2D1Factory1* g_pD2dFactory;
@@ -356,7 +396,15 @@ using FRtlGetNtVersionNumbers = void(WINAPI*)(DWORD*, DWORD*, DWORD*);
 
 using FSetWindowCompositionAttribute = BOOL(WINAPI*)(HWND hWnd, WINDOWCOMPOSITIONATTRIBDATA*);
 
+// UxTheme
 using FOpenNcThemeData = HTHEME(WINAPI*)(HWND hWnd, LPCWSTR pszClassList);
+using FOpenThemeData = HTHEME(WINAPI*)(HWND, LPCWSTR);
+using FDrawThemeText = HRESULT(WINAPI*)(_In_ HTHEME, HDC, int, int, LPCWSTR, int, DWORD, DWORD, LPCRECT);
+using FOpenThemeDataForDpi = HTHEME(WINAPI*)(HWND, LPCWSTR, UINT);
+using FDrawThemeBackgroundEx = HRESULT(WINAPI*)(HTHEME, HDC, int, int, LPCRECT, const DTBGOPTS*);
+using FDrawThemeBackground = HRESULT(WINAPI*)(HTHEME, HDC, int, int, LPCRECT, LPCRECT);
+using FGetThemeColor = HRESULT(WINAPI*)(HTHEME, int, int, int, COLORREF*);
+using FCloseThemeData = HRESULT(WINAPI*)(HTHEME);
 // 1809 17763 暗色功能引入
 using FAllowDarkModeForWindow = BOOL(WINAPI*)(HWND hWnd, BOOL bAllow);
 using FAllowDarkModeForApp = BOOL(WINAPI*)(BOOL bAllow);
@@ -489,15 +537,25 @@ struct ECKTHREADCTX;
 using FWndCreating = void(*)(HWND hWnd, CBT_CREATEWNDW* pcs, ECKTHREADCTX* pThreadCtx);
 struct ECKTHREADCTX
 {
-	std::unordered_map<HWND, CWnd*> hmWnd{};	// HWND->CWnd*
-	HHOOK hhkTempCBT = NULL;					// CBT钩子句柄
-	CWnd* pCurrWnd = NULL;						// 当前正在创建窗口所属的CWnd指针
-	FWndCreating pfnWndCreatingProc = NULL;		// 当前创建窗口时要调用的过程
-	HHOOK hhkCbtDarkMode = NULL;				// 设置允许暗色CBT钩子句柄
-	BOOL bEnableDarkModeHook = TRUE;			// 是否允许暗色CBT钩子设置窗口
+	//-------窗口映射
+	std::unordered_map<HWND, CWnd*> hmWnd{};// HWND->CWnd*
+	std::unordered_map<HWND, CWnd*> hmTopWnd{};// 顶级窗口映射
+	HHOOK hhkTempCBT{};					// CBT钩子句柄
+	CWnd* pCurrWnd{};					// 当前正在创建窗口所属的CWnd指针
+	FWndCreating pfnWndCreatingProc{};	// 当前创建窗口时要调用的过程
+	//-------暗色处理
+	HHOOK hhkCbtDarkMode{};		// 设置允许暗色CBT钩子句柄
+	BOOL bEnableDarkModeHook{ TRUE };	// 是否允许暗色CBT钩子设置窗口，设为FALSE可暂停HOOK
+	BOOL bAutoNcDark{ TRUE };
+	COLORREF crDefText{};		// 默认前景色
+	COLORREF crDefBkg{};		// 默认背景色
+	COLORREF crDefBtnFace{};	// 默认BtnFace颜色
+	std::unordered_map<HTHEME, int> hsButtonTheme{};
+	std::unordered_map<HTHEME, int> hsTaskDialogTheme{};
 
 	EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
 	{
+		EckAssert(IsWindow(hWnd) && pWnd);
 		hmWnd.insert(std::make_pair(hWnd, pWnd));
 	}
 
@@ -506,6 +564,10 @@ struct ECKTHREADCTX
 		const auto it = hmWnd.find(hWnd);
 		if (it != hmWnd.end())
 			hmWnd.erase(it);
+#ifdef _DEBUG
+		else
+			EckDbgPrintFmt(L"** WARNING ** 从窗口映射中移除%p时失败。", hWnd);
+#endif
 	}
 
 	[[nodiscard]] EckInline CWnd* WmAt(HWND hWnd) const
@@ -516,6 +578,76 @@ struct ECKTHREADCTX
 		else
 			return NULL;
 	}
+
+	EckInline void TwmAdd(HWND hWnd, CWnd* pWnd)
+	{
+		EckAssert(IsWindow(hWnd) && pWnd);
+		EckAssert((GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_CHILD) != WS_CHILD);
+		hmTopWnd.insert(std::make_pair(hWnd, pWnd));
+	}
+
+	EckInline void TwmRemove(HWND hWnd)
+	{
+		const auto it = hmTopWnd.find(hWnd);
+		if (it != hmTopWnd.end())
+			hmTopWnd.erase(it);
+	}
+
+	[[nodiscard]] EckInline CWnd* TwmAt(HWND hWnd) const
+	{
+		const auto it = hmTopWnd.find(hWnd);
+		if (it != hmTopWnd.end())
+			return it->second;
+		else
+			return NULL;
+	}
+
+	void SetNcDarkModeForAllTopWnd(BOOL bDark);
+
+	void UpdateDefColor();
+
+	void OnThemeOpen(HTHEME hTheme, PCWSTR pszClassList)
+	{
+		if (_wcsicmp(pszClassList, L"Button") == 0)
+			++hsButtonTheme[hTheme];
+		else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 ||
+			_wcsicmp(pszClassList, L"TaskDialogStyle") == 0)
+			++hsTaskDialogTheme[hTheme];
+	}
+
+	void OnThemeClose(HTHEME hTheme)
+	{
+		{
+			const auto it = hsButtonTheme.find(hTheme);
+			if (it != hsButtonTheme.end())
+			{
+				EckAssert(it->second > 0);
+				if (!--it->second)
+					hsButtonTheme.erase(it);
+			}
+		}
+		{
+			const auto it = hsTaskDialogTheme.find(hTheme);
+			if (it != hsTaskDialogTheme.end())
+			{
+				EckAssert(it->second > 0);
+				if (!--it->second)
+					hsTaskDialogTheme.erase(it);
+			}
+		}
+	}
+
+	EckInline BOOL IsThemeButton(HTHEME hTheme) const
+	{
+		return hsButtonTheme.find(hTheme) != hsButtonTheme.end();
+	}
+
+	EckInline BOOL IsThemeTaskDialog(HTHEME hTheme) const
+	{
+		return hsTaskDialogTheme.find(hTheme) != hsTaskDialogTheme.end();
+	}
+
+	void SendThemeChangedToAllTopWindow();
 };
 
 /// <summary>
@@ -525,7 +657,7 @@ struct ECKTHREADCTX
 
 /// <summary>
 /// 初始化线程上下文。
-/// 在调用线程上初始化线程上下文，如果线程使用了ECK的窗口对象，则必须调用此函数
+/// 在调用线程上初始化线程上下文，在使用任何ECK窗口功能前必须调用此函数
 /// </summary>
 void ThreadInit();
 
@@ -577,3 +709,7 @@ EckInline void RtlGetNtVersionNumbers(DWORD* pdwMajor, DWORD* pdwMinor, DWORD* p
 	EckPriv___::pfnRtlGetNtVersionNumbers(pdwMajor, pdwMinor, pdwBuild);
 }
 ECK_NAMESPACE_END
+
+#ifndef ECK_MACRO_NO_USING_GDIPLUS
+using namespace eck::GpNameSpace;
+#endif// !define(ECK_MACRO_NO_USING_GDIPLUS)

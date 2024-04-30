@@ -9,7 +9,6 @@
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
-
 class CScrollBar :public CWnd
 {
 private:

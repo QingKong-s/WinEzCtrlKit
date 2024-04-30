@@ -55,7 +55,6 @@ protected:
 	InputMode m_iInputMode = InputMode::Normal;	// 输入方式
 
 	RECT m_rcMargins{};			// 边距
-	HWND m_hParent = NULL;		// 父窗口
 	int m_cyText = 0;			// 文本高度
 
 	WCHAR m_chMask = 0;			// 掩码字符
@@ -86,6 +85,19 @@ protected:
 		DeleteDC(hCDC);
 	}
 public:
+	void AttachNew(HWND hWnd) override
+	{
+		CWnd::AttachNew(hWnd);
+		const auto dwStyle = GetStyle();
+		m_bMultiLine = IsBitSet(dwStyle, ES_MULTILINE);
+		m_bAutoWrap = (m_bMultiLine ? IsBitSet(dwStyle, ES_AUTOHSCROLL) : FALSE);
+
+
+		GetItemsViewForeBackColor(m_crDefText, m_crDefBK);
+		UpdateTextInfo();
+		FrameChanged();
+	}
+
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)
@@ -402,7 +414,7 @@ public:
 				SetMultiLine(p->bMultiLine);
 				SetAutoWrap(p->bAutoWrap);
 				if (m_bMultiLine)
-					dwStyle |= ES_MULTILINE | ES_AUTOVSCROLL | (m_bAutoWrap ? ES_AUTOHSCROLL : 0);
+					dwStyle |= (ES_MULTILINE | ES_AUTOVSCROLL | (m_bAutoWrap ? ES_AUTOHSCROLL : 0));
 				else
 					dwStyle |= ES_AUTOHSCROLL;
 				break;
@@ -440,11 +452,9 @@ public:
 			else
 				dwStyle |= ES_AUTOHSCROLL;
 
-			m_hWnd = IntCreate(dwExStyle, WC_EDITW, pszText, dwStyle,
+			IntCreate(dwExStyle, WC_EDITW, pszText, dwStyle,
 				x, y, cx, cy, hParent, hMenu, NULL, NULL);
 		}
-
-		m_hParent = hParent;
 
 		if (!GetMultiLine())
 		{

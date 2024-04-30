@@ -52,15 +52,6 @@ protected:
 				cx = e.cx;
 		}
 	}
-public:
-	void Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u, UINT uWeight = 0u)
-	{
-		pCtrl->LoSetParent(this);
-		const auto size = pCtrl->LoGetSize();
-		m_vCtrl.emplace_back(pCtrl, Margin, uFlags, (short)size.first, (short)size.second, uWeight);
-		if (uFlags & (LLF_FILLWIDTH | LLF_FILLWIDTH))
-			m_bHasFillSizeCtrl = TRUE;
-	}
 };
 
 class CLinearLayoutV :public CLinearLayout
@@ -149,6 +140,17 @@ public:
 		}
 		cx_ = cx;
 		cy_ = cy;
+	}
+
+	void Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u, UINT uWeight = 0u)
+	{
+		pCtrl->LoSetParent(this);
+		const auto size = pCtrl->LoGetSize();
+		m_vCtrl.emplace_back(pCtrl, Margin, uFlags, (short)size.first, (short)size.second, uWeight);
+		if (uFlags & (LLF_FILLWIDTH | LLF_FILLWIDTH))
+			m_bHasFillSizeCtrl = TRUE;
+		m_cy += (size.second + Margin.cyTopHeight + Margin.cyBottomHeight);
+		m_cx = std::max(m_cx, size.first);
 	}
 };
 
@@ -248,6 +250,17 @@ public:
 		}
 		cx_ = cx;
 		cy_ = cy;
+	}
+
+	void Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u, UINT uWeight = 0u)
+	{
+		pCtrl->LoSetParent(this);
+		const auto size = pCtrl->LoGetSize();
+		m_vCtrl.emplace_back(pCtrl, Margin, uFlags, (short)size.first, (short)size.second, uWeight);
+		if (uFlags & (LLF_FILLWIDTH | LLF_FILLWIDTH))
+			m_bHasFillSizeCtrl = TRUE;
+		m_cx += (size.first + Margin.cxLeftWidth + Margin.cxRightWidth);
+		m_cy = std::max(m_cy, size.second);
 	}
 };
 ECK_NAMESPACE_END

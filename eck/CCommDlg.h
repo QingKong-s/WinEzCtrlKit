@@ -16,51 +16,125 @@ ECK_NAMESPACE_BEGIN
 struct TASKDIALOGCTX
 {
 	TASKDIALOGCONFIG* ptdc;
-	int* piRadioButton;
-	BOOL* pbChecked;
-	HRESULT* phr;
+	int iRadioButton;
+	BOOL bChecked;
+	HRESULT hr;
 };
 
 class CTaskDialog :public CDialog
 {
-private:
-	std::vector<TASKDIALOG_BUTTON> m_aBtn{};// 所有按钮
-	std::vector<TASKDIALOG_BUTTON> m_aRadioBtn{};// 所有单选按钮
-public:
-	CTaskDialog() = default;
+protected:
+	std::vector<TASKDIALOG_BUTTON> m_vBtn{};// 所有按钮
+	std::vector<TASKDIALOG_BUTTON> m_vRadioBtn{};// 所有单选按钮
 
+	TASKDIALOGCTX* m_pParam{};
+	PFTASKDIALOGCALLBACK m_pfnRealCallBack{};
+	LONG_PTR m_lRealRefData{};
+
+	static LRESULT CALLBACK EckTdLinkParentSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
+		UINT_PTR uSubclassId, DWORD_PTR lRefData)
+	{
+		if (ShouldAppUseDarkMode())
+			switch (uMsg)
+			{
+			case WM_PAINT:
+			{
+				PAINTSTRUCT ps;
+				BeginPaint(hWnd, &ps);
+				FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(BLACK_BRUSH));
+				EndPaint(hWnd, &ps);
+			}
+			return 0;
+			case WM_CTLCOLORSTATIC:
+				SetTextColor((HDC)wParam, GetThreadCtx()->crDefText);
+				SetBkColor((HDC)wParam, GetThreadCtx()->crDefBkg);
+				return (LRESULT)GetStockBrush(BLACK_BRUSH);// 防止展开时出现闪烁的白色部分
+			}
+		return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+	}
+
+	static HRESULT CALLBACK EckTdCallBack(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LONG_PTR lRefData)
+	{
+		auto p = (CTaskDialog*)lRefData;
+		switch (uMsg)
+		{
+		case TDN_NAVIGATED:
+		case TDN_DIALOG_CONSTRUCTED:
+		{
+			EnumChildWindows(hWnd, [](HWND hWnd, LPARAM lParam)->BOOL
+				{
+					if (_wcsicmp(CWnd(hWnd).GetClsName().Data(), WC_LINK) == 0)
+						SetWindowSubclass(GetParent(hWnd), EckTdLinkParentSubclassProc, 0, 0);
+					SetWindowTheme(hWnd, L"Explorer", NULL);
+					return TRUE;
+				}, 0);
+		}
+		break;
+		}
+
+		return p->OnTdNotify(hWnd, uMsg, wParam, lParam);
+	}
+public:
 	INT_PTR DlgBox(HWND hParent, void* pData = NULL) override
 	{
 		auto pCtx = (TASKDIALOGCTX*)pData;
 		const auto ptdc = pCtx->ptdc;
-		ptdc->cButtons = (int)m_aBtn.size();
-		if (ptdc->cButtons)
-			ptdc->pButtons = m_aBtn.data();
-		else
-			ptdc->pButtons = NULL;
+		if (!m_vBtn.empty())
+		{
+			ptdc->cButtons = (int)m_vBtn.size();
+			if (ptdc->cButtons)
+				ptdc->pButtons = m_vBtn.data();
+			else
+				ptdc->pButtons = NULL;
+		}
 
-		ptdc->cRadioButtons = (int)m_aRadioBtn.size();
-		if (ptdc->cRadioButtons)
-			ptdc->pRadioButtons = m_aRadioBtn.data();
-		else
-			ptdc->pRadioButtons = NULL;
+		if (!m_vRadioBtn.empty())
+		{
+			ptdc->cRadioButtons = (int)m_vRadioBtn.size();
+			if (ptdc->cRadioButtons)
+				ptdc->pRadioButtons = m_vRadioBtn.data();
+			else
+				ptdc->pRadioButtons = NULL;
+		}
 
-		ptdc->pfCallback = ptdc->pfCallback;
-		ptdc->lpCallbackData = ptdc->lpCallbackData;
+		m_pfnRealCallBack = ptdc->pfCallback;
+		m_lRealRefData = ptdc->lpCallbackData;
+		ptdc->pfCallback = EckTdCallBack;
+		ptdc->lpCallbackData = (LONG_PTR)this;
 
-		int iButton = 0;
-		int iRadioButton = 0;
-		BOOL bChecked = FALSE;
+		int iButton{};
 		BeginCbtHook(this);
-		HRESULT hr = TaskDialogIndirect(ptdc, &iButton,
-			pCtx->piRadioButton ? pCtx->piRadioButton : &iRadioButton,
-			pCtx->pbChecked ? pCtx->pbChecked : &bChecked);
-		if (pCtx->phr)
-			*pCtx->phr = hr;
+		pCtx->hr = TaskDialogIndirect(ptdc, &iButton,
+			&pCtx->iRadioButton, &pCtx->bChecked);
 		return iButton;
 	}
 
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
+	{
+		switch (uMsg)
+		{
+		case WM_PAINT:
+		{
+			PAINTSTRUCT ps;
+			BeginPaint(hWnd, &ps);
+			SetDCBrushColor(ps.hdc, GetThreadCtx()->crDefBkg);
+			FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
+			EndPaint(hWnd, &ps);
+		}
+		return 0;
+		}
+		return CDialog::OnMsg(hWnd, uMsg, wParam, lParam);
+	}
+
 	EckInline BOOL EndDlg(INT_PTR nResult) override { return FALSE; }
+
+	virtual HRESULT OnTdNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		if (m_pfnRealCallBack)
+			return m_pfnRealCallBack(hWnd, uMsg, wParam, lParam, m_lRealRefData);
+		else
+			return S_OK;
+	}
 
 	EckInline void ClickButton(int iID, BOOL bRadioButton = FALSE)
 	{
@@ -90,7 +164,7 @@ public:
 
 	EckInline void NavigatePage()
 	{
-		SendMsg(TDM_NAVIGATE_PAGE, 0, (LPARAM)this);
+		SendMsg(TDM_NAVIGATE_PAGE, 0, (LPARAM)m_pParam->ptdc);
 	}
 
 	EckInline void SetShieldIcon(BOOL bShieldIcon, int iID)
@@ -163,12 +237,18 @@ public:
 	{
 		SendMsg(TDM_UPDATE_ICON, uType, (LPARAM)pszIcon);
 	}
+
+	EckInline void ClearButtonVector() { m_vBtn.clear(); }
+
+	EckInline void ClearRadioButtonVector() { m_vRadioBtn.clear(); }
 };
 
 class CColorDialog :public CDialog
 {
-protected:
+public:
 	static UINT s_uMsgSetRgb;
+protected:
+	COLORREF m_crCust[16]{};
 public:
 	CColorDialog() = default;
 
@@ -176,18 +256,19 @@ public:
 	{
 		auto pcc = (CHOOSECOLORW*)pData;
 		pcc->hwndOwner = hParent;
+		if (pcc->lpCustColors)
+			pcc->lpCustColors = m_crCust;
 		BeginCbtHook(this);
 		return ChooseColorW((CHOOSECOLORW*)pData);
 	}
 
 	INT_PTR DlgBox(HWND hParent, COLORREF crInit = 0, DWORD dwFlags = 0, COLORREF* pcrCust = NULL)
 	{
-		static COLORREF crCust[16]{};
 		CHOOSECOLORW cc{ sizeof(cc) };
 		cc.hwndOwner = hParent;
 		cc.rgbResult = crInit;
 		cc.Flags = dwFlags;
-		cc.lpCustColors = (pcrCust ? pcrCust : crCust);
+		cc.lpCustColors = (pcrCust ? pcrCust : m_crCust);
 		return DlgBox(hParent, &cc);
 	}
 

@@ -1424,9 +1424,9 @@ namespace Literals
 /// <param name="cchText">要在其中寻找的字符串长度</param>
 /// <param name="pszSub">要寻找的字符串指针</param>
 /// <param name="cchSub">要寻找的字符串长度</param>
-/// <param name="posStart">起始位置</param>
+/// <param name="posStart">起始位置，若为-1则从尾部开始</param>
 /// <returns>位置，若未找到返回StrNPos</returns>
-[[nodiscard]] inline int FindStrRev(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = 0)
+[[nodiscard]] inline int FindStrRev(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = -1)
 {
 	if (cchText < 0)
 		cchText = (int)wcslen(pszText);
@@ -1434,8 +1434,10 @@ namespace Literals
 		cchSub = (int)wcslen(pszSub);
 	if (!cchText || !cchSub || cchText < cchSub)
 		return StrNPos;
+	if (posStart < 0)
+		posStart = cchText - 1;
 
-	for (PCWSTR pCurr = pszText + cchText - posStart - cchSub; pCurr >= pszText; --pCurr)
+	for (PCWSTR pCurr = pszText + posStart - cchSub; pCurr >= pszText; --pCurr)
 	{
 		if (wcsncmp(pCurr, pszSub, cchSub) == 0)
 			return (int)(pCurr - pszText);
@@ -1450,7 +1452,7 @@ namespace Literals
 /// <param name="rsSub">要寻找的字符串</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回StrNPos</returns>
-[[nodiscard]] EckInline int FindStrRev(const CRefStrW& rsText, const CRefStrW& rsSub, int posStart = 0)
+[[nodiscard]] EckInline int FindStrRev(const CRefStrW& rsText, const CRefStrW& rsSub, int posStart = -1)
 {
 	return FindStrRev(rsText.Data(), rsText.Size(), rsSub.Data(), posStart, rsSub.Size());
 }
@@ -1466,7 +1468,7 @@ namespace Literals
 /// <param name="cchSub">要寻找的字符串长度</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回StrNPos</returns>
-[[nodiscard]] EckInline int FindStrRevNcs(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = 0)
+[[nodiscard]] EckInline int FindStrRevNcs(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = -1)
 {
 	auto rsText = ToUpperCase(pszText, cchText), rsSub = ToUpperCase(pszSub, cchSub);
 	return FindStrRev(rsText.Data(), rsText.Size(), rsSub.Data(), posStart, rsSub.Size());
@@ -1481,7 +1483,7 @@ namespace Literals
 /// <param name="rsSub">要寻找的字符串</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回StrNPos</returns>
-[[nodiscard]] EckInline int FindStrRevNcs(const CRefStrW& rsText, const CRefStrW& rsSub, int posStart = 0)
+[[nodiscard]] EckInline int FindStrRevNcs(const CRefStrW& rsText, const CRefStrW& rsSub, int posStart = -1)
 {
 	return FindStrRevNcs(rsText.Data(), rsText.Size(), rsSub.Data(), posStart, rsSub.Size());
 }

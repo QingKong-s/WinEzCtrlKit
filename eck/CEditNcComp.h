@@ -1,4 +1,4 @@
-/*
+﻿/*
 * WinEzCtrlKit Library
 *
 * CEditNcComp.h ： EditExt非客户区组件基类
@@ -13,7 +13,7 @@ class CEditNcComp :public CEditExt
 {
 protected:
 	RECT m_rcBtn{};
-	int m_cxBtn{30};
+	int m_cxBtn{};
 
 	BITBOOL m_bBtnHot : 1 = FALSE;
 	BITBOOL m_bLBtnDown : 1 = FALSE;
@@ -51,12 +51,13 @@ public:
 			RECT rc;
 			GetWindowRect(hWnd, &rc);
 
+			const int cxBtn = (m_cxBtn ? m_cxBtn : DpiScale(20, GetDpi(hWnd)));
 			m_rcBtn.right = m_rcMargins.left + cxClient;
-			m_rcBtn.left = m_rcBtn.right - m_cxBtn;
+			m_rcBtn.left = m_rcBtn.right - cxBtn;
 			m_rcBtn.top = m_rcMargins.top;
 			m_rcBtn.bottom = rc.bottom - rc.top - m_rcMargins.bottom;
 
-			prcClient->right -= m_cxBtn;
+			prcClient->right -= cxBtn;
 			return lResult;
 		}
 		break;
@@ -185,5 +186,13 @@ public:
 	{
 
 	}
+
+	EckInline void SetBtnSize(int i) 
+	{ 
+		m_cxBtn = i; 
+		FrameChanged();
+	}
+
+	EckInline int GetBtnSize() const { return m_cxBtn; }
 };
 ECK_NAMESPACE_END

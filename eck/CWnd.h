@@ -243,6 +243,33 @@ public:
 					return lResult;
 			}
 			break;
+		case WM_STYLECHANGED:
+		{
+			if (wParam == GWL_STYLE)
+			{
+				const auto* const pss = (STYLESTRUCT*)lParam;
+				if (!IsBitSet(pss->styleNew, WS_CHILD) && IsBitSet(pss->styleOld, WS_CHILD))
+				{
+					const auto pCtx = GetThreadCtx();
+					EckAssert(!pCtx->TwmAt(hWnd));
+					pCtx->TwmAdd(hWnd, p);
+				}
+
+				if (IsBitSet(pss->styleNew, WS_CHILD) && !IsBitSet(pss->styleOld, WS_CHILD))
+				{
+					const auto pCtx = GetThreadCtx();
+					EckAssert(pCtx->TwmAt(hWnd));
+					pCtx->TwmRemove(hWnd);
+				}
+			}
+		}
+		break;
+		case WM_CREATE:
+		{
+			if (pCtx->bAutoNcDark && pCtx->TwmAt(hWnd) == p)
+				EnableWindowNcDarkMode(hWnd, ShouldAppUseDarkMode());
+		}
+		break;
 		case WM_NCDESTROY:// 窗口生命周期中的最后一个消息，在这里解绑HWND和CWnd，从窗口映射中清除无效内容
 		{
 			const auto lResult = p->CallMsgProc(hWnd, uMsg, wParam, lParam);
@@ -289,6 +316,8 @@ public:
 		EckAssert(!pCtx->WmAt(hWnd));// 新句柄必须未被CWnd持有
 		m_hWnd = hWnd;
 		pCtx->WmAdd(hWnd, this);
+		if (!IsBitSet(GetStyle(), WS_CHILD))
+			pCtx->TwmAdd(hWnd, this);
 	}
 
 	/// <summary>
@@ -303,16 +332,17 @@ public:
 		const auto pCtx = GetThreadCtx();
 		EckAssert(pCtx->WmAt(hWnd) == this);// 检查匹配性
 		pCtx->WmRemove(hWnd);
+		pCtx->TwmRemove(hWnd);
 		return hWnd;
 	}
 
-	EckInline void AttachNew(HWND hWnd)
+	EckInline virtual void AttachNew(HWND hWnd)
 	{
-		Attach(hWnd);
+		CWnd::Attach(hWnd);
 		m_pfnRealProc = SetWindowProc(hWnd, EckWndProc);
 	}
 
-	EckInline void DetachNew()
+	EckInline virtual void DetachNew()
 	{
 		SetWindowProc(Detach(), m_pfnRealProc);
 	}
@@ -362,18 +392,6 @@ public:
 	/// </summary>
 	EckInline virtual LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		//switch (uMsg)
-		//{
-		//case WM_CTLCOLORBTN:
-		//case WM_CTLCOLOREDIT:
-		//case WM_CTLCOLORDLG:
-		//case WM_CTLCOLORLISTBOX:
-		//case WM_CTLCOLORSCROLLBAR:
-		//case WM_CTLCOLORSTATIC:
-		//	SetDCBrushColor((HDC)wParam, 0x383838);
-		//	return (LRESULT)GetStockBrush(DC_BRUSH);
-		//	;
-		//}
 		return CallWindowProcW(m_pfnRealProc, hWnd, uMsg, wParam, lParam);
 	}
 

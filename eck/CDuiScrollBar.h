@@ -151,12 +151,6 @@ public:
 			ELEMPAINTSTRU ps;
 			BeginPaint(ps, wParam, lParam);
 
-			if (m_bHot)
-			{
-				m_pBr->SetColor(m_pColorTheme->Get().crBkNormal);
-				m_pDC->FillRectangle(ps.rcfClipInElem, m_pBr);
-			}
-
 			D2D1_RECT_F rc;
 			GetPartRect(rc, Part::Thumb);
 			float cxyLeave, cxyMin;
@@ -172,19 +166,33 @@ public:
 			}
 			if (m_pec->IsActive())
 			{
+				auto cr = m_pColorTheme->Get().crBkNormal;
+				cr.a *= m_pec->GetCurrValue();
+				m_pBr->SetColor(cr);
+				m_pDC->FillRectangle(ps.rcfClipInElem, m_pBr);
 				if (m_bHorz)
 					rc.top = rc.bottom - cxyMin - cxyLeave * m_pec->GetCurrValue();
 				else
 					rc.left = rc.right - cxyMin - cxyLeave * m_pec->GetCurrValue();
 			}
-			else if (!m_bHot)
-				if (m_bHorz)
-					rc.top += cxyLeave;
+			else
+			{
+				if (!m_bHot)
+				{
+					if (m_bHorz)
+						rc.top += cxyLeave;
+					else
+						rc.left += cxyLeave;
+				}
 				else
-					rc.left += cxyLeave;
+				{
+					m_pBr->SetColor(m_pColorTheme->Get().crBkNormal);
+					m_pDC->FillRectangle(ps.rcfClipInElem, m_pBr);
+				}
+			}
 			m_pBr->SetColor(m_pColorTheme->Get().crTextNormal);
 			m_pDC->FillRectangle(rc, m_pBr);
-			
+
 			EndPaint(ps);
 		}
 		return 0;
