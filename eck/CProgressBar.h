@@ -1,4 +1,4 @@
-/*
+﻿/*
 * WinEzCtrlKit Library
 *
 * CProgressBar.h ： 标准进度条

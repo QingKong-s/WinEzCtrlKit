@@ -7,7 +7,6 @@
 */
 #pragma once
 #include "Utility.h"
-#include "GdiplusFlatDef.h"
 #include "MathHelper.h"
 #include "CStreamView.h"
 #include "CRefBinStream.h"
@@ -32,7 +31,7 @@ inline HBITMAP CreateHBITMAP(PCVOID pData, SIZE_T cbData)
 	GpBitmap* pBitmap;
 	auto pStream = new CStreamView(pData, cbData);
 
-	if (GdipCreateBitmapFromStream(pStream, &pBitmap) != GpStatus::GpOk)
+	if (GdipCreateBitmapFromStream(pStream, &pBitmap) != Gdiplus::Ok)
 	{
 		pStream->LeaveRelease();
 		return NULL;
@@ -60,7 +59,7 @@ inline HBITMAP CreateHBITMAP(PCWSTR pszFile)
 	HBITMAP hbm;
 	GpBitmap* pBitmap;
 
-	if (GdipCreateBitmapFromFile(pszFile, &pBitmap) != GpStatus::GpOk)
+	if (GdipCreateBitmapFromFile(pszFile, &pBitmap) != Gdiplus::Ok)
 		return NULL;
 
 	if (GdipCreateHBITMAPFromBitmap(pBitmap, &hbm, 0))
@@ -109,7 +108,7 @@ inline HICON CreateHICON(PCVOID pData, SIZE_T cbData)
 	GpBitmap* pBitmap;
 	auto pStream = new CStreamView(pData, cbData);
 
-	if (GdipCreateBitmapFromStream(pStream, &pBitmap) != GpStatus::GpOk)
+	if (GdipCreateBitmapFromStream(pStream, &pBitmap) != Gdiplus::Ok)
 	{
 		pStream->LeaveRelease();
 		return NULL;
@@ -137,7 +136,7 @@ inline HICON CreateHICON(PCWSTR pszFile)
 	HICON hIcon;
 	GpBitmap* pBitmap;
 
-	if (GdipCreateBitmapFromFile(pszFile, &pBitmap) != GpStatus::GpOk)
+	if (GdipCreateBitmapFromFile(pszFile, &pBitmap) != Gdiplus::Ok)
 		return NULL;
 
 	if (GdipCreateHICONFromBitmap(pBitmap, &hIcon))
@@ -757,15 +756,15 @@ EckInline constexpr PCWSTR GetImageMime(ImageType iType)
 	return c_szImgMime[(int)iType];
 }
 
-inline GpStatus GetGpEncoderClsid(PCWSTR pszType, CLSID& clsid)
+inline Gdiplus::GpStatus GetGpEncoderClsid(PCWSTR pszType, CLSID& clsid)
 {
-	GpStatus gps;
+	Gdiplus::GpStatus gps;
 	UINT cEncoders, cbEncoders;
-	if ((gps = GdipGetImageEncodersSize(&cEncoders, &cbEncoders)) != GpStatus::GpOk)
+	if ((gps = GdipGetImageEncodersSize(&cEncoders, &cbEncoders)) != Gdiplus::Ok)
 		return gps;
-	auto pEncoders = (GpImageCodecInfo*)malloc(cbEncoders);
+	auto pEncoders = (Gdiplus::ImageCodecInfo*)malloc(cbEncoders);
 	EckAssert(pEncoders);
-	if ((gps = GdipGetImageEncoders(cEncoders, cbEncoders, pEncoders)) != GpStatus::GpOk)
+	if ((gps = GdipGetImageEncoders(cEncoders, cbEncoders, pEncoders)) != Gdiplus::Ok)
 	{
 		free(pEncoders);
 		return gps;
@@ -777,12 +776,12 @@ inline GpStatus GetGpEncoderClsid(PCWSTR pszType, CLSID& clsid)
 		{
 			clsid = pEncoders[i].Clsid;
 			free(pEncoders);
-			return GpStatus::GpOk;
+			return Gdiplus::Ok;
 		}
 	}
 	free(pEncoders);
 	clsid = GUID_NULL;
-	return GpStatus::GpUnknownImageFormat;
+	return Gdiplus::UnknownImageFormat;
 }
 
 EckInline GUID GetWicEncoderGuid(ImageType iType)
@@ -901,16 +900,16 @@ inline HRESULT SaveWicBitmap(PCWSTR pszFile, IWICBitmap* pBitmap, ImageType iTyp
 	return hr;
 }
 
-inline GpStatus SaveGpImage(IStream* pStream, GpImage* pImage, ImageType iType = ImageType::Png)
+inline Gdiplus::GpStatus SaveGpImage(IStream* pStream, Gdiplus::GpImage* pImage, ImageType iType = ImageType::Png)
 {
 	CLSID clsid;
-	GpStatus gps;
-	if ((gps = GetGpEncoderClsid(GetImageMime(iType), clsid)) != GpStatus::GpOk)
+	Gdiplus::GpStatus gps;
+	if ((gps = GetGpEncoderClsid(GetImageMime(iType), clsid)) != Gdiplus::Ok)
 		return gps;
 	return GdipSaveImageToStream(pImage, pStream, &clsid, NULL);
 }
 
-inline CRefBin SaveGpImage(GpImage* pImage, ImageType iType = ImageType::Png, GpStatus* pgps = NULL)
+inline CRefBin SaveGpImage(Gdiplus::GpImage* pImage, ImageType iType = ImageType::Png, Gdiplus::GpStatus* pgps = NULL)
 {
 	CRefBin rb{};
 	auto pStream = new CRefBinStream(rb);
@@ -921,11 +920,11 @@ inline CRefBin SaveGpImage(GpImage* pImage, ImageType iType = ImageType::Png, Gp
 	return rb;
 }
 
-inline GpStatus SaveGpImage(PCWSTR pszFile, GpImage* pImage, ImageType iType = ImageType::Png)
+inline Gdiplus::GpStatus SaveGpImage(PCWSTR pszFile, Gdiplus::GpImage* pImage, ImageType iType = ImageType::Png)
 {
 	CLSID clsid;
-	GpStatus gps;
-	if ((gps = GetGpEncoderClsid(GetImageMime(iType), clsid)) != GpStatus::GpOk)
+	Gdiplus::GpStatus gps;
+	if ((gps = GetGpEncoderClsid(GetImageMime(iType), clsid)) != Gdiplus::Ok)
 		return gps;
 	return GdipSaveImageToFile(pImage, pszFile, &clsid, NULL);
 }

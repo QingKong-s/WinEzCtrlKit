@@ -490,7 +490,10 @@ inline BOOL IsMouseMovedBeforeDragging(HWND hWnd, int x, int y, int dx = -1, int
 				return FALSE;
 			case WM_MOUSEMOVE:
 				if (Abs(x - msg.pt.x) >= dxDrag && Abs(y - msg.pt.y) >= dyDrag)
+				{
+					ReleaseCapture();
 					return TRUE;
+				}
 				[[fallthrough]];
 			default:
 				TranslateMessage(&msg);
@@ -501,6 +504,7 @@ inline BOOL IsMouseMovedBeforeDragging(HWND hWnd, int x, int y, int dx = -1, int
 		else
 			WaitMessage();
 	}
+	ReleaseCapture();
 	return FALSE;
 }
 
@@ -643,21 +647,21 @@ EckInline void RefreshImmersiveColorStuff()
 /// <param name="crBk"></param>
 inline void GetItemsViewForeBackColor(COLORREF& crText, COLORREF& crBk)
 {
-	const auto hThemeIV = OpenThemeData(NULL, L"ItemsView");
-	if (hThemeIV)
+	crBk = GetSysColor(COLOR_WINDOW);
+	crText = GetSysColor(COLOR_WINDOWTEXT);
+	if (ShouldAppUseDarkMode())
 	{
-		if (FAILED(GetThemeColor(hThemeIV, 0, 0, TMT_FILLCOLOR, &crBk)))
-			crBk = GetSysColor(COLOR_WINDOW);
+		const auto hThemeIV = OpenThemeData(NULL, L"ItemsView");
+		if (hThemeIV)
+		{
+			if (FAILED(GetThemeColor(hThemeIV, 0, 0, TMT_FILLCOLOR, &crBk)))
+				crBk = GetSysColor(COLOR_WINDOW);
 
-		if (FAILED(GetThemeColor(hThemeIV, 0, 0, TMT_TEXTCOLOR, &crText)))
-			crText = GetSysColor(COLOR_WINDOWTEXT);
+			if (FAILED(GetThemeColor(hThemeIV, 0, 0, TMT_TEXTCOLOR, &crText)))
+				crText = GetSysColor(COLOR_WINDOWTEXT);
 
-		CloseThemeData(hThemeIV);
-	}
-	else
-	{
-		crBk = GetSysColor(COLOR_WINDOW);
-		crText = GetSysColor(COLOR_WINDOWTEXT);
+			CloseThemeData(hThemeIV);
+		}
 	}
 }
 
@@ -684,7 +688,7 @@ inline BOOL GetWindowClientRect(HWND hWnd, RECT& rcClient)
 	RECT rcNcOnly{};
 	WINDOWPLACEMENT wp;
 	wp.length = sizeof(wp);
-	if (eck::AdjustWindowRectExDpi(&rcNcOnly, GetWindowStyle(hWnd),
+	if (AdjustWindowRectExDpi(&rcNcOnly, GetWindowStyle(hWnd),
 		!!GetMenu(hWnd), GetWindowExStyle(hWnd), iDpi) &&
 		GetWindowPlacement(hWnd, &wp))
 	{
@@ -704,7 +708,7 @@ inline BOOL GetWindowClientRect(HWND hWnd, RECT& rcClient)
 		else
 			rcMainClient = wp.rcNormalPosition;
 		// 对齐到(0, 0)
-		eck::OffsetRect(rcMainClient, -rcMainClient.left, -rcMainClient.top);
+		OffsetRect(rcMainClient, -rcMainClient.left, -rcMainClient.top);
 		// 减掉非客户区
 		rcMainClient.right -= (rcNcOnly.right - rcNcOnly.left);
 		rcMainClient.bottom -= (rcNcOnly.bottom - rcNcOnly.top);

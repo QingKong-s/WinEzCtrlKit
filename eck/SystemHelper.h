@@ -671,7 +671,7 @@ EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 	BOOL b = Process32FirstW(hSnapshot, &pe32);
 	while (b)
 	{
-		if (wcsicmp(pszImageName, pe32.szExeFile) == 0)
+		if (_wcsicmp(pszImageName, pe32.szExeFile) == 0)
 		{
 			CloseHandle(hSnapshot);
 			return pe32.th32ProcessID;
@@ -751,5 +751,10 @@ inline CRefStrW GetFileNameFromPath(PCWSTR pszPath, int cchPath = -1)
 
 	_freea(pTemp);
 	return rs;
+}
+
+EckInline BOOL SystemTimeToULongLong(const SYSTEMTIME& st, ULONGLONG& ull)
+{
+	return SystemTimeToFileTime(&st, (FILETIME*)&ull);
 }
 ECK_NAMESPACE_END

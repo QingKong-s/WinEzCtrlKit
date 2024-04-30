@@ -98,6 +98,10 @@ private:
 	int m_cxPadding = 0;
 	int m_cItemPerRow = 0;
 
+	POINT m_ptDragSelStart{};
+	RECT m_rcDragSel{};
+	int m_dCursorToItemMax = 0;
+
 
 	ID2D1DeviceContext1* m_pDC1 = NULL;// for geometry realization
 
@@ -112,6 +116,8 @@ private:
 	ListType m_eView = ListType::Icon;
 
 	BITBOOL m_bSingleSel : 1 = FALSE;
+
+	BITBOOL m_bDraggingSel : 1 = FALSE;
 
 	ECK_DS_BEGIN(DPIS)
 		ECK_DS_ENTRY_F(cxSBThumb, 8.f)
@@ -176,7 +182,7 @@ private:
 		const float xText = rc.right + xImage;
 		if (e.pLayout && !(xText + e.cxText <= rcPaint.left || xText >= rcPaint.right))
 		{
-			m_pBrush->SetColor(D2D1::ColorF(0x000000));
+			m_pBrush->SetColor(cr.crTextNormal);
 			m_pDC->DrawTextLayout(D2D1::Point2F(xText, rcOld.top), e.pLayout, m_pBrush);
 		}
 	}
@@ -238,7 +244,7 @@ private:
 
 		if (e.pLayout)
 		{
-			m_pBrush->SetColor(D2D1::ColorF(0x000000));
+			m_pBrush->SetColor(cr.crTextNormal);
 			m_pDC->DrawTextLayout(D2D1::Point2F(rc.left, rcImg.bottom + m_pWnd->GetDs().CommMargin), 
 				e.pLayout, m_pBrush);
 		}
@@ -368,6 +374,76 @@ private:
 			m_oyTopItem + idxV * (m_cyItem + m_cyPadding)
 		};
 	}
+
+	EckInline void DragSelMouseMove(POINT pt, WPARAM wParam)
+	{
+		EckAssert(m_bDraggingSel);
+		RECT rcOld{ m_rcDragSel };
+
+		m_rcDragSel = MakeRect(pt, m_ptDragSelStart);
+
+		RECT rcJudge;
+		UnionRect(rcJudge, rcOld, m_rcDragSel);
+
+		int idxBegin, idxX, idxY;
+
+		idxX = IVLogItemFromX(rcJudge.left + 1);
+		if (idxX < 0 || idxX >= m_cItemPerRow)
+			idxBegin = -1;
+		else
+		{
+			idxY = IVLogItemFromY(rcJudge.top + 1);
+			idxBegin = m_idxTop + idxX + idxY * m_cItemPerRow;
+			if (idxBegin < 0 || idxBegin >= GetItemCount())
+				idxBegin = -1;
+		}
+
+		RECT rcItem;
+		if (idxBegin >= 0)
+			for (int i = idxBegin; i < GetItemCount(); ++i)
+			{
+				auto& e = m_vItem[i];
+				if (IVGetItemXY(i).first >= (int)rcJudge.right)// 需要下移一行
+				{
+					i = idxBegin + m_cItemPerRow;
+					idxBegin = i;
+					if (i >= GetItemCount())
+						break;
+				}
+
+				if (IVGetItemXY(i).second >= (int)rcJudge.bottom)// Y方向判断完成
+					break;
+
+				GetItemRect(i, rcItem);
+				const BOOL bIntersectOld = IsRectsIntersect(rcItem, rcOld);
+				const BOOL bIntersectNew = IsRectsIntersect(rcItem, m_rcDragSel);
+
+				if (wParam & MK_CONTROL)
+				{
+					if (bIntersectOld != bIntersectNew)
+						e.uFlags ^= LEIF_SELECTED;// 翻转选中状态
+				}
+				else
+				{
+					if (bIntersectOld && !bIntersectNew)
+						e.uFlags &= ~LEIF_SELECTED;// 先前选中但是现在未选中，清除选中状态
+					else if (!bIntersectOld && bIntersectNew)
+						e.uFlags |= LEIF_SELECTED;// 先前未选中但是现在选中，设置选中状态
+					// mark设为离光标最远的选中项（标准ListView的行为）
+					if (bIntersectNew && !(wParam & (MK_CONTROL | MK_SHIFT)))
+					{
+						const int d = (pt.x - rcItem.left) * (pt.x - rcItem.left) +
+							(pt.y - rcItem.top) * (pt.y - rcItem.top);
+						if (d > m_dCursorToItemMax)
+						{
+							m_dCursorToItemMax = d;
+							m_idxMark = i;
+						}
+					}
+				}
+			}
+		InvalidateRect();
+	}
 public:
 	void SetItemCount(int c)
 	{
@@ -386,8 +462,6 @@ public:
 		{
 			ELEMPAINTSTRU ps;
 			BeginPaint(ps, wParam, lParam);
-			m_pBrush->SetColor(D2D1::ColorF(0xffffff));
-			m_pDC->FillRectangle(ps.rcfClipInElem, m_pBrush);
 			if (!m_vItem.empty())
 			{
 				switch (m_eView)
@@ -402,7 +476,7 @@ public:
 				break;
 				case ListType::Icon:
 				{
-					int idxBegin, idxEnd, idxX, idxY;
+					int idxBegin, idxX, idxY;
 
 					idxX = IVLogItemFromX((int)ps.rcfClipInElem.left + 1);
 					if (idxX < 0 || idxX >= m_cItemPerRow)
@@ -451,6 +525,23 @@ public:
 					}
 				}
 			}
+
+			const auto& crs = GetColorTheme()->Get();
+
+			if (m_bDraggingSel)
+			{
+				auto cr = crs.crBkHot;
+				cr.a *= 0.7;
+				m_pBrush->SetColor(cr);
+				m_pDC->FillRectangle(MakeD2DRcF(m_rcDragSel), m_pBrush);
+
+				cr = crs.crBkSelected;
+				cr.a *= 0.7;
+				m_pBrush->SetColor(cr);
+				m_pDC->DrawRectangle(MakeD2DRcF(m_rcDragSel), m_pBrush, 3.f);
+			}
+
+			ECK_DUI_DBG_DRAW_FRAME;
 			EndPaint(ps);
 		}
 		return 0;
@@ -459,6 +550,12 @@ public:
 		{
 			LEHITTEST ht{ ECK_GET_PT_LPARAM(lParam) };
 			ClientToElem(ht.pt);
+
+			if (m_bDraggingSel)
+			{
+				DragSelMouseMove(ht.pt, wParam);
+				return 0;
+			}
 
 			int idx = HitTest(ht);
 
@@ -516,8 +613,9 @@ public:
 
 		case WM_LBUTTONDOWN:
 		{
+			POINT pt ECK_GET_PT_LPARAM(lParam);
 			SetFocus();
-			LEHITTEST ht{ ECK_GET_PT_LPARAM(lParam) };
+			LEHITTEST ht{ pt };
 			ClientToElem(ht.pt);
 			int idx = HitTest(ht);
 
@@ -533,6 +631,47 @@ public:
 				if (idx < idxChangedBegin || idx > idxChangedEnd)
 					RedrawItem(idx);
 				SetRedraw(TRUE);
+			}
+			else
+			{
+				ClientToScreen(GetWnd()->HWnd, &pt);
+				if (IsMouseMovedBeforeDragging(GetWnd()->HWnd, pt.x, pt.y))
+				{
+					if (!GetWnd()->IsValid())
+						return 0;
+					SetCapture();
+					m_bDraggingSel = TRUE;
+					m_rcDragSel = {};
+					m_ptDragSelStart = ht.pt;
+					m_dCursorToItemMax = INT_MIN;
+				}
+				else
+				{
+					DeselectAll(idxChangedBegin, idxChangedEnd);
+					if (idxChangedBegin >= 0)
+						RedrawItem(idxChangedBegin, idxChangedEnd);
+				}
+			}
+		}
+		return 0;
+
+		case WM_LBUTTONUP:
+		{
+			if (m_bDraggingSel)
+			{
+				m_bDraggingSel = FALSE;
+				ReleaseCapture();
+				InvalidateRect();
+			}
+		}
+		return 0;
+
+		case WM_CAPTURECHANGED:
+		{
+			if (m_bDraggingSel)
+			{
+				m_bDraggingSel = FALSE;
+				InvalidateRect();
 			}
 		}
 		return 0;
@@ -663,9 +802,9 @@ public:
 		case ListType::Icon:
 		{
 			const auto xy = IVGetItemXY(idx);
-			rc.left = xy.first;
+			rc.left = (float)xy.first;
 			rc.right = rc.left + m_cxItem;
-			rc.top = xy.second;
+			rc.top = (float)xy.second;
 			rc.bottom = rc.top + m_cyItem;
 		}
 		break;

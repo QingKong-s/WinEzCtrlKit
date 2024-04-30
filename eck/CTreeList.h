@@ -983,7 +983,7 @@ private:
 					}
 					//----------准备坐标
 					RECT rcOld = m_rcDraggingSel;
-					OffsetRect(&rcOld, m_dxContent, -m_idxTopItem * m_cyItem);// 转客户坐标
+					OffsetRect(rcOld, m_dxContent, -m_idxTopItem * m_cyItem);// 转客户坐标
 
 					const POINT ptStart
 					{
@@ -1004,7 +1004,7 @@ private:
 
 					if (rcOld == m_rcDraggingSel)// 范围未变，退出
 					{
-						OffsetRect(&m_rcDraggingSel, -m_dxContent, m_idxTopItem * m_cyItem);
+						OffsetRect(m_rcDraggingSel, -m_dxContent, m_idxTopItem * m_cyItem);
 						break;
 					}
 					//----------准备范围
@@ -3388,7 +3388,7 @@ public:
 	EckInline void SetBkClr(COLORREF cr) { m_crBkg = cr; }
 };
 
-LRESULT CTLHeader::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+inline LRESULT CTLHeader::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	LRESULT lResult;
 	switch (uMsg)
@@ -3423,7 +3423,7 @@ LRESULT CTLHeader::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return CHeader::OnMsg(hWnd, uMsg, wParam, lParam);
 }
 
-LRESULT CTLEditExt::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+inline LRESULT CTLEditExt::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{
