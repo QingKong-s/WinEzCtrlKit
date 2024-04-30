@@ -21,39 +21,6 @@ private:
 	int m_cxClient = 0, m_cyClient = 0;
 	HBRUSH m_hbrBK = NULL;
 
-	static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-	{
-		auto p = (CDrawPanel*)GetWindowLongPtrW(hWnd, 0);
-		switch (uMsg)
-		{
-		case WM_PAINT:
-		{
-			PAINTSTRUCT ps;
-			BeginPaint(hWnd, &ps);
-			BitBltPs(&ps, p->m_DC.GetDC());
-			EndPaint(hWnd, &ps);
-		}
-		return 0;
-		case WM_SIZE:
-			return HANDLE_WM_SIZE(hWnd, wParam, lParam, p->OnSize);
-		case WM_CREATE:
-		{
-			RECT rc;
-			GetClientRect(hWnd, &rc);
-			p->m_DC.Create(hWnd);
-			FillRect(p->m_DC.GetDC(), &rc, p->m_hbrBK);
-			GdipCreateFromHDC(p->m_DC.GetDC(), &p->m_pGraphics);
-			GdipSetSmoothingMode(p->m_pGraphics, SmoothingModeHighQuality);
-		}
-		return 0;
-		case WM_NCCREATE:
-			p = (CDrawPanel*)((CREATESTRUCTW*)lParam)->lpCreateParams;
-			SetWindowLongPtrW(hWnd, 0, (LONG_PTR)p);
-			break;
-		}
-		return DefWindowProcW(hWnd, uMsg, wParam, lParam);
-	}
-
 	void OnSize(HWND hWnd, UINT uState, int cx, int cy)
 	{
 		HDC hDC = GetDC(hWnd);
@@ -77,22 +44,38 @@ private:
 
 		GdipDeleteGraphics(m_pGraphics);
 		GdipCreateFromHDC(m_DC.GetDC(), &m_pGraphics);
-		GdipSetSmoothingMode(m_pGraphics, SmoothingModeHighQuality);
+		GdipSetSmoothingMode(m_pGraphics, Gdiplus::SmoothingModeHighQuality);
 
 		m_cxClient = cx;
 		m_cyClient = cy;
 	}
 public:
-	static ATOM RegisterWndClass()
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
-		WNDCLASSW wc{};
-		wc.cbWndExtra = sizeof(void*);
-		wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
-		wc.hInstance = eck::g_hInstance;
-		wc.lpfnWndProc = WndProc;
-		wc.lpszClassName = WCN_DRAWPANEL;
-		wc.style = CS_VREDRAW | CS_HREDRAW | CS_DBLCLKS;
-		return RegisterClassW(&wc);
+		switch (uMsg)
+		{
+		case WM_PAINT:
+		{
+			PAINTSTRUCT ps;
+			BeginPaint(hWnd, &ps);
+			BitBltPs(&ps, m_DC.GetDC());
+			EndPaint(hWnd, &ps);
+		}
+		return 0;
+		case WM_SIZE:
+			return HANDLE_WM_SIZE(hWnd, wParam, lParam, OnSize);
+		case WM_CREATE:
+		{
+			RECT rc;
+			GetClientRect(hWnd, &rc);
+			m_DC.Create(hWnd);
+			FillRect(m_DC.GetDC(), &rc, m_hbrBK);
+			GdipCreateFromHDC(m_DC.GetDC(), &m_pGraphics);
+			GdipSetSmoothingMode(m_pGraphics, Gdiplus::SmoothingModeHighQuality);
+		}
+		return 0;
+		}
+		return DefWindowProcW(hWnd, uMsg, wParam, lParam);
 	}
 
 	ECK_CWND_CREATE;

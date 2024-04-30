@@ -21,12 +21,12 @@ private:
 		COLORREF crTextBk;
 		COLORREF crBk;
 	};
-	HTHEME m_hTheme = NULL;
+	HTHEME m_hTheme{};
 	int m_iViewType = LV_VIEW_DETAILS;
-	HIMAGELIST m_hIL = NULL;
-	SIZE m_sizeILBit{};
+	HIMAGELIST m_hIL[4]{};
+	SIZE m_sizeIL[4]{};
 	COLORREF m_crDefText = CLR_INVALID;
-
+	
 	BITBOOL m_bOwnerData : 1 = FALSE;
 	BITBOOL m_bCustomDraw : 1 = 1;
 
@@ -49,7 +49,7 @@ public:
 		{
 			switch (((NMHDR*)lParam)->code)
 			{
-			case NM_CUSTOMDRAW:
+			case NM_CUSTOMDRAW:// for Header
 			{
 				const auto pnmcd = (NMCUSTOMDRAW*)lParam;
 				switch (pnmcd->dwDrawStage)
@@ -87,6 +87,7 @@ public:
 			return lResult;
 		}
 		break;
+		// ListView message HACK
 		case LVM_SETVIEW:
 		{
 			const auto lResult = CListView::OnMsg(hWnd, uMsg, wParam, lParam);
@@ -94,15 +95,19 @@ public:
 				m_iViewType = (int)wParam;
 			return lResult;
 		}
-		
+		break;
 		case LVM_SETIMAGELIST:
 		{
 			const auto lResult = CListView::OnMsg(hWnd, uMsg, wParam, lParam);
-			m_hIL = (HIMAGELIST)lParam;
-			ImageList_GetIconSize(m_hIL, (int*)&m_sizeILBit.cx, (int*)&m_sizeILBit.cy);
+			if (wParam >= 0 && wParam <= 3)
+			{
+				m_hIL[wParam] = (HIMAGELIST)lParam;
+				ImageList_GetIconSize(m_hIL[wParam],
+					(int*)&m_sizeIL[wParam].cx, (int*)&m_sizeIL[wParam].cy);
+			}
 			return lResult;
 		}
-
+		break;
 		}
 		return CListView::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
@@ -131,12 +136,6 @@ public:
 					const auto hDC = pnmlvcd->nmcd.hdc;
 					const int idx = (int)pnmlvcd->nmcd.dwItemSpec;
 
-					auto Header = GetHeaderCtrl();
-					const auto cCol = Header.GetItemCount();
-
-					if (idx == 10)
-						FillRect(hDC, &pnmlvcd->nmcd.rc, CreateSolidBrush(Colorref::Red));
-
 					int iState;
 					if (GetItemState(idx, LVIS_SELECTED) == LVIS_SELECTED)// 选中
 					{
@@ -152,43 +151,72 @@ public:
 					if (iState)
 						DrawThemeBackground(m_hTheme, hDC, LVP_LISTITEM, iState,
 							&pnmlvcd->nmcd.rc, NULL);
-					
+
+					const auto hIL = m_hIL[m_iViewType];
+					const auto sizeIL = m_sizeIL[m_iViewType];
 					RECT rc;
 					LVITEMW li;
-					if (m_hIL)
+
+					if (hIL)
 					{
 						li.mask = LVIF_IMAGE;
 						li.iItem = idx;
 						li.iSubItem = 0;
 						GetItem(&li);
 						GetItemRect(idx, &rc, LVIR_ICON);
-						RECT rc0{ 0,0,m_sizeILBit.cx,m_sizeILBit.cy };
+						RECT rc0{ 0,0,sizeIL.cx,sizeIL.cy };
 						AdjustRectToFitAnother(rc0, rc);
-						ImageList_Draw(m_hIL, li.iImage, hDC,
+						ImageList_Draw(hIL, li.iImage, hDC,
 							rc0.left, rc0.top, ILD_NORMAL | ILD_TRANSPARENT);
 					}
 
 					WCHAR sz[MAX_PATH];
-					li.mask = LVIF_TEXT;
+					li.mask = LVIF_TEXT | LVIF_IMAGE;
 					li.pszText = sz;
 					li.cchTextMax = MAX_PATH;
 					li.iItem = idx;
 
 					SetBkMode(hDC, TRANSPARENT);
 					SetTextColor(hDC, m_crDefText);// HACK : 增加文本背景支持
-					HDITEMW hdi;
-					hdi.mask = HDI_FORMAT;
-					for (li.iSubItem = 0; li.iSubItem < cCol; ++li.iSubItem)
+
+					if (m_iViewType == LV_VIEW_DETAILS)
 					{
-						GetSubItemRect(idx, li.iSubItem, &rc, LVIR_LABEL);
+						auto Header = GetHeaderCtrl();
+						const auto cCol = Header.GetItemCount();
+						HDITEMW hdi;
+						hdi.mask = HDI_FORMAT;
+						int cxImg = 0;
+						for (li.iSubItem = 0; li.iSubItem < cCol; ++li.iSubItem)
+						{
+							GetItem(&li);
+							if (li.iSubItem != 0 && li.iImage >= 0 && hIL)
+							{
+								RECT rcImg;
+								GetSubItemRect(idx, li.iSubItem, &rcImg, LVIR_ICON);
+								ImageList_Draw(hIL, li.iImage, hDC,
+									rcImg.left, rcImg.top, ILD_NORMAL | ILD_TRANSPARENT);
+								cxImg = rcImg.right - rcImg.left;
+							}
+							else
+								cxImg = 0;
+
+							Header.GetItem(li.iSubItem, &hdi);
+							UINT uDtFlags = DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX | DT_SINGLELINE;
+							if (IsBitSet(hdi.fmt, HDF_RIGHT))
+								uDtFlags |= DT_RIGHT;
+							else if (IsBitSet(hdi.fmt, HDF_CENTER))
+								uDtFlags |= DT_CENTER;
+							GetSubItemRect(idx, li.iSubItem, &rc, LVIR_LABEL);
+							rc.left += cxImg;
+							DrawTextW(hDC, li.pszText, -1, &rc, uDtFlags);
+						}
+					}
+					else
+					{
 						GetItem(&li);
-						Header.GetItem(li.iSubItem, &hdi);
-						UINT uDtFlags = DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX | DT_SINGLELINE;
-						if (IsBitSet(hdi.fmt, HDF_RIGHT))
-							uDtFlags |= DT_RIGHT;
-						else if (IsBitSet(hdi.fmt, HDF_CENTER))
-							uDtFlags |= DT_CENTER;
-						DrawTextW(hDC, li.pszText, -1, &rc, uDtFlags);
+						GetItemRect(idx, &rc, LVIR_LABEL);
+						DrawTextW(hDC, li.pszText, -1, &rc, 
+							DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX | DT_SINGLELINE | DT_CENTER);
 					}
 				}
 				return CDRF_SKIPDEFAULT;

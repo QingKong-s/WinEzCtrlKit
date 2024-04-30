@@ -18,7 +18,7 @@ typedef int (CALLBACK* PFNLVITEMCOMPARE)(LPARAM lParam1, LPARAM lParam2, LPARAM 
 typedef int (CALLBACK* PFNLVITEMCOMPAREEX)(int idx1, int idx2, LPARAM lParamSort);
 class CListView :public CWnd
 {
-private:
+protected:
 	COLORREF m_crDefText{ CLR_INVALID };
 	COLORREF m_crDefBk{ CLR_INVALID };
 	BOOL m_bAutoDarkMode{ TRUE };
@@ -935,7 +935,15 @@ public:
 		LVITEMW li;
 		li.iSubItem = idxSubItem;
 		li.pszText = (PWSTR)pszText;
-		return (BOOL)SendMsg(LVM_SETITEMTEXTW, idx, (LPARAM)&li);
+		return SetItemText(idx, &li);
+	}
+
+	EckInline BOOL SetItemText(int idx, PCWSTR pszText) const
+	{
+		LVITEMW li;
+		li.iSubItem = 0;
+		li.pszText = (PWSTR)pszText;
+		return SetItemText(idx, &li);
 	}
 
 	EckInline BOOL SetItemText(int idx, LVITEMW* pli) const

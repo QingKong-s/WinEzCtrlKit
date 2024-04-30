@@ -26,12 +26,11 @@ private:
 			uID(uID), uFlags(uFlags), dwState(dwState), hIcon(hIcon), rsTip(pszTip) {}
 #endif
 	};
-	HBRUSH m_hbrBk = GetSysColorBrush(COLOR_BTNFACE);
 	HBITMAP m_hbmBk = NULL;
 	int m_cxImage = 0,
 		m_cyImage = 0;
 	int m_iBkImageMode = DBGIF_TOPLEFT;
-	COLORREF m_crBk = GetSysColor(COLOR_BTNFACE);
+	COLORREF m_crBk = CLR_DEFAULT;
 
 	int m_cxClient = 0,
 		m_cyClient = 0;
@@ -43,6 +42,7 @@ private:
 	BITBOOL m_bFullWndImage : 1 = FALSE;
 	BITBOOL m_bEscClose : 1 = FALSE;
 	BITBOOL m_bTotalMove : 1 = FALSE;
+	BITBOOL m_bClrDisableEdit : 1 = FALSE;
 #else
 	union
 	{
@@ -66,13 +66,8 @@ public:
 	ECKPROP(GetMoveable, SetMoveable)			BOOL		Moveable;		// 可否移动
 	ECKPROP(GetEscClose, SetEscClose)			BOOL		EscClose;		// ESC关闭
 	ECKPROP(GetTotalMove, SetTotalMove)			BOOL		TotalMove;		// 随意移动
-	ECKPROP(GetBkColor, SetBkColor)				COLORREF	BkColor;		// 背景颜色
+	ECKPROP(GetBkClr, SetBkClr)					COLORREF	BkColor;		// 背景颜色
 	ECKPROP_R(GetBkImageSize)					SIZE		BkImageSize;	// 背景图片大小
-
-	~CForm()
-	{
-		DeleteObject(m_hbrBk);
-	}
 
 	BOOL PreTranslateMessage(const MSG& Msg) override
 	{
@@ -106,6 +101,22 @@ public:
 	{
 		switch (uMsg)
 		{
+		case WM_CTLCOLORSTATIC:
+			if ((!m_bClrDisableEdit && CWnd((HWND)lParam).GetClsName() == WC_EDITW))
+				break;
+			[[fallthrough]];
+		case WM_CTLCOLORBTN:
+		case WM_CTLCOLORDLG:
+		case WM_CTLCOLOREDIT:
+		case WM_CTLCOLORLISTBOX:
+		{
+			const auto* const ptc = GetThreadCtx();
+			SetTextColor((HDC)wParam, ptc->crDefText);
+			SetBkColor((HDC)wParam, m_crBk != CLR_DEFAULT ? m_crBk : ptc->crDefBkg);
+			SetDCBrushColor((HDC)wParam, m_crBk != CLR_DEFAULT ? m_crBk : ptc->crDefBkg);
+			return (LRESULT)GetStockBrush(DC_BRUSH);
+		}
+		break;
 		case WM_SIZE:
 			ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
 			return 0;
@@ -113,7 +124,8 @@ public:
 		{
 			PAINTSTRUCT ps;
 			BeginPaint(hWnd, &ps);
-			FillRect(ps.hdc, &ps.rcPaint, m_hbrBk);
+			SetDCBrushColor(ps.hdc, m_crBk == CLR_DEFAULT ? GetThreadCtx()->crDefBkg : m_crBk);
+			FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
 			if (m_hbmBk)
 			{
 				HDC hCDC = CreateCompatibleDC(ps.hdc);
@@ -220,14 +232,12 @@ public:
 
 	EckInline BOOL GetTotalMove() const { return m_bTotalMove; }
 
-	EckInline void SetBkColor(COLORREF crBk)
+	EckInline void SetBkClr(COLORREF crBk)
 	{
 		m_crBk = crBk;
-		DeleteObject(m_hbrBk);
-		m_hbrBk = CreateSolidBrush(crBk);
 	}
 
-	EckInline COLORREF GetBkColor() const { return m_crBk; }
+	EckInline COLORREF GetBkClr() const { return m_crBk; }
 
 	EckInline SIZE GetBkImageSize() const { return { m_cxImage,m_cyImage }; }
 

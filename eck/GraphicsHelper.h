@@ -60,6 +60,26 @@ struct CEzCDC
 		return m_hCDC;
 	}
 
+	HDC Create32(HWND hWnd, int cx = 0, int cy = 0)
+	{
+		Destroy();
+		HDC hDC = ::GetDC(hWnd);
+		if (cx < 0 || cy < 0)
+		{
+			RECT rc;
+			GetClientRect(hWnd, &rc);
+			cx = rc.right;
+			cy = rc.bottom;
+		}
+		m_hCDC = CreateCompatibleDC(hDC);
+		CDib dib{};
+		dib.Create(cx, -cy);
+		m_hBmp = dib.Detach();
+		m_hOld = SelectObject(m_hCDC, m_hBmp);
+		ReleaseDC(hWnd, hDC);
+		return m_hCDC;
+	}
+
 	void ReSize(HWND hWnd, int cx = 0, int cy = 0)
 	{
 		EckAssert(!!m_hCDC && !!m_hBmp && !!m_hOld);
@@ -79,6 +99,29 @@ struct CEzCDC
 		m_hOld = SelectObject(m_hCDC, m_hBmp);
 		ReleaseDC(hWnd, hDC);
 	}
+
+	void ReSize32(HWND hWnd, int cx = 0, int cy = 0)
+	{
+		EckAssert(!!m_hCDC && !!m_hBmp && !!m_hOld);
+		if (cx < 0 || cy < 0)
+		{
+			RECT rc;
+			GetClientRect(hWnd, &rc);
+			cx = rc.right;
+			cy = rc.bottom;
+		}
+
+		HDC hDC = ::GetDC(hWnd);
+		SelectObject(m_hCDC, m_hOld);
+		DeleteObject(m_hBmp);
+
+		CDib dib{};
+		dib.Create(cx, -cy);
+		m_hBmp = dib.Detach();
+		m_hOld = SelectObject(m_hCDC, m_hBmp);
+		ReleaseDC(hWnd, hDC);
+	}
+
 
 	EckInline constexpr HDC GetDC() const { return m_hCDC; }
 
@@ -399,14 +442,14 @@ EckInline BOOL DrawSpirograph(HDC hDC, int xCenter, int yCenter, int rOut, int r
 /// <param name="iOffsetPtPen">描绘点距内圆圆心的偏移</param>
 /// <param name="fStep">步长</param>
 /// <returns>GdipDrawLines返回值</returns>
-EckInline GpStatus DrawSpirograph(GpGraphics* pGraphics, GpPen* pPen, float xCenter, float yCenter, float rOut, float rInt,
+EckInline Gdiplus::GpStatus DrawSpirograph(GpGraphics* pGraphics, GpPen* pPen, float xCenter, float yCenter, float rOut, float rInt,
 	float fOffsetPtPen, float fStep = 0.1f)
 {
 	std::vector<GpPointF> vPt{};
 	CalcSpirographPoint<float>(vPt, rOut, rInt, fOffsetPtPen, fStep);
 	std::transform(std::execution::par_unseq, vPt.begin(), vPt.end(), vPt.begin(), [xCenter, yCenter](GpPointF& pt)
 		{
-			return GpPointF{ pt.x + xCenter,yCenter - pt.y };
+			return GpPointF{ pt.X + xCenter,yCenter - pt.Y };
 		});
 	return GdipDrawLines(pGraphics, pPen, vPt.data(), (int)vPt.size());
 }
@@ -561,14 +604,14 @@ EckInline BOOL DrawButterflyCurve(HDC hDC, int xCenter, int yCenter, float fDefo
 /// <param name="fScaleY">Y方向缩放</param>
 /// <param name="fStep">步长</param>
 /// <returns>GdipDrawLines返回值</returns>
-EckInline GpStatus DrawButterflyCurve(GpGraphics* pGraphics, GpPen* pPen, int xCenter, int yCenter, float fDeformationCoefficient = 4.f,
+EckInline Gdiplus::GpStatus DrawButterflyCurve(GpGraphics* pGraphics, GpPen* pPen, int xCenter, int yCenter, float fDeformationCoefficient = 4.f,
 	float fScaleX = 100.f, float fScaleY = 100.f, float fStep = 0.01f)
 {
 	std::vector<GpPointF> vPt{};
 	CalcButterflyCurvePoint<float>(vPt, fDeformationCoefficient, fScaleX, fScaleY, fStep);
 	std::transform(std::execution::par_unseq, vPt.begin(), vPt.end(), vPt.begin(), [xCenter, yCenter](GpPointF& pt)
 		{
-			return GpPointF{ pt.x + xCenter,yCenter - pt.y };
+			return GpPointF{ pt.X + xCenter,yCenter - pt.Y };
 		});
 	return GdipDrawLines(pGraphics, pPen, vPt.data(), (int)vPt.size());
 }
@@ -675,14 +718,14 @@ EckInline BOOL DrawRoseCurve(HDC hDC, int xCenter, int yCenter, float a = 300.f,
 /// <param name="n">花瓣数量参数</param>
 /// <param name="fStep">步长</param>
 /// <returns>GdipDrawLines返回值</returns>
-EckInline GpStatus DrawRoseCurve(GpGraphics* pGraphics, GpPen* pPen, float xCenter, float yCenter,
+EckInline Gdiplus::GpStatus DrawRoseCurve(GpGraphics* pGraphics, GpPen* pPen, float xCenter, float yCenter,
 	float a = 300.f, float n = 10.f, float fStep = 0.01f)
 {
 	std::vector<GpPointF> vPt{};
 	CalcRoseCurvePoint<float>(vPt, a, n, fStep);
 	std::transform(std::execution::par_unseq, vPt.begin(), vPt.end(), vPt.begin(), [xCenter, yCenter](GpPointF& pt)
 		{
-			return GpPointF{ pt.x + xCenter,yCenter - pt.y };
+			return GpPointF{ pt.X + xCenter,yCenter - pt.Y };
 		});
 	return GdipDrawLines(pGraphics, pPen, vPt.data(), (int)vPt.size());
 }
@@ -838,14 +881,14 @@ inline BOOL DrawRegularStar(HDC hDC, int xCenter, int yCenter,
 /// <param name="fAngle">起始点相对X轴正方向的旋转角度</param>
 /// <param name="bLinkStar">是否连接为星形</param>
 /// <returns>GdipDrawLines返回值</returns>
-inline GpStatus DrawRegularStar(GpGraphics* pGraphics, GpPen* pPen, float xCenter, float yCenter,
+inline Gdiplus::GpStatus DrawRegularStar(GpGraphics* pGraphics, GpPen* pPen, float xCenter, float yCenter,
 	float r, int n, float fAngle = Deg2Rad(90.f), BOOL bLinkStar = TRUE)
 {
 	std::vector<GpPointF> vPt{};
 	CalcRegularStar(vPt, r, n, fAngle, bLinkStar);
 	std::transform(vPt.begin(), vPt.end(), vPt.begin(), [xCenter, yCenter](GpPointF& pt)
 		{
-			return GpPointF{ pt.x + xCenter,yCenter - pt.y };
+			return GpPointF{ pt.X + xCenter,yCenter - pt.Y };
 		});
 
 	if (n % 2 || !bLinkStar)
@@ -1183,7 +1226,7 @@ class CMifptpGpBitmap
 {
 private:
 	GpBitmap* m_pBitmap = NULL;
-	GpBitmapData m_Data{};
+	Gdiplus::BitmapData m_Data{};
 	int m_cx = 0,
 		m_cy = 0;
 public:
@@ -1198,7 +1241,7 @@ public:
 		GdipGetImageHeight(pBitmap, (UINT*)&m_cy);
 	}
 
-	EckInline constexpr static TCoord MakeCoord(int x, int y) { return { x,y }; }
+	EckInline static TCoord MakeCoord(int x, int y) { return { x,y }; }
 
 	EckInline constexpr static TColorComp GetColorComp(TColor cr, int k) { return ((BYTE*)&cr)[k]; }
 
@@ -1210,18 +1253,18 @@ public:
 	CMifptpGpBitmap New(TCoord Dimension) const
 	{
 		GpBitmap* pBitmap;
-		GdipCreateBitmapFromScan0(Dimension.x, Dimension.y, 0, GpPixelFormat::PF32bppPARGB, NULL, &pBitmap);
+		GdipCreateBitmapFromScan0(Dimension.X, Dimension.Y, 0, PixelFormat32bppPARGB, NULL, &pBitmap);
 		return CMifptpGpBitmap(pBitmap);
 	}
 
 	EckInline TColor GetPixel(TCoord pt) const
 	{
-		return *(((TColor*)(((BYTE*)m_Data.Scan0) + pt.y * m_Data.Stride)) + pt.x);
+		return *(((TColor*)(((BYTE*)m_Data.Scan0) + pt.Y * m_Data.Stride)) + pt.X);
 	}
 
 	EckInline void SetPixel(TCoord pt, TColor cr)
 	{
-		*(((TColor*)(((BYTE*)m_Data.Scan0) + pt.y * m_Data.Stride)) + pt.x) = cr;
+		*(((TColor*)(((BYTE*)m_Data.Scan0) + pt.Y * m_Data.Stride)) + pt.X) = cr;
 	}
 
 	EckInline int GetWidth() const { return m_cx; }
@@ -1233,8 +1276,8 @@ public:
 	EckInline void Lock()
 	{
 		const GpRect rc{ 0,0,m_cx,m_cy };
-		GdipBitmapLockBits(m_pBitmap, &rc, GpImageLockMode::ImageLockModeRead | GpImageLockMode::ImageLockModeWrite,
-			GpPixelFormat::PF32bppPARGB, &m_Data);
+		GdipBitmapLockBits(m_pBitmap, &rc, Gdiplus::ImageLockModeRead | Gdiplus::ImageLockModeWrite,
+			PixelFormat32bppPARGB, &m_Data);
 	}
 
 	EckInline void UnLock()
@@ -1972,6 +2015,218 @@ inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, ID2D1Bitmap
 	return S_OK;
 }
 
+class CSinkForwarder :public ID2D1SimplifiedGeometrySink
+{
+private:
+	LONG m_cRef = 1;
+	ID2D1SimplifiedGeometrySink* m_pSink = NULL;
+	float m_oxCurr = 0.f, m_oyCurr = 0.f;
+public:
+	CSinkForwarder(ID2D1SimplifiedGeometrySink* pSink) :m_pSink{ pSink }
+	{
+		pSink->AddRef();
+	}
+
+	~CSinkForwarder()
+	{
+		m_pSink->Release();
+	}
+
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** ppvObj)
+	{
+		const static QITAB qit[]
+		{
+			QITABENT(CSinkForwarder, ID2D1SimplifiedGeometrySink),
+			{},
+		};
+		return QISearch(this, qit, iid, ppvObj);
+	}
+
+	ULONG STDMETHODCALLTYPE AddRef() { return ++m_cRef; }
+
+	ULONG STDMETHODCALLTYPE Release()
+	{
+		if (m_cRef == 1)
+		{
+			delete this;
+			return 0;
+		}
+		else
+			return --m_cRef;
+	}
+
+	STDMETHOD_(void, SetFillMode)(D2D1_FILL_MODE fillMode)
+	{
+		m_pSink->SetFillMode(fillMode);
+	}
+
+	STDMETHOD_(void, SetSegmentFlags)(D2D1_PATH_SEGMENT vertexFlags)
+	{
+		m_pSink->SetSegmentFlags(vertexFlags);
+	}
+
+	STDMETHOD_(void, BeginFigure)(D2D1_POINT_2F startPoint, D2D1_FIGURE_BEGIN figureBegin)
+	{
+		startPoint.x += m_oxCurr;
+		startPoint.y += m_oyCurr;
+		m_pSink->BeginFigure(startPoint, figureBegin);
+	}
+
+	STDMETHOD_(void, AddLines)(CONST D2D1_POINT_2F* points, UINT32 pointsCount)
+	{
+		if (m_oxCurr != 0.f || m_oyCurr != 0.f)
+		{
+			auto p = (D2D1_POINT_2F*)_malloca(pointsCount * sizeof(D2D1_POINT_2F));
+			EckAssert(p);
+			memcpy(p, points, pointsCount * sizeof(D2D1_POINT_2F));
+			EckCounter(pointsCount, i)
+			{
+				p[i].x += m_oxCurr;
+				p[i].y += m_oyCurr;
+			}
+			m_pSink->AddLines(p, pointsCount);
+			_freea(p);
+		}
+		else
+			m_pSink->AddLines(points, pointsCount);
+	}
+
+	STDMETHOD_(void, AddBeziers)(CONST D2D1_BEZIER_SEGMENT* beziers, UINT32 beziersCount)
+	{
+		if (m_oxCurr != 0.f || m_oyCurr != 0.f)
+		{
+			auto p = (D2D1_BEZIER_SEGMENT*)_malloca(beziersCount * sizeof(D2D1_BEZIER_SEGMENT));
+			EckAssert(p);
+			memcpy(p, beziers, beziersCount * sizeof(D2D1_BEZIER_SEGMENT));
+			EckCounter(beziersCount, i)
+			{
+				p[i].point1.x += m_oxCurr;
+				p[i].point1.y += m_oyCurr;
+				p[i].point2.x += m_oxCurr;
+				p[i].point2.y += m_oyCurr;
+				p[i].point3.x += m_oxCurr;
+				p[i].point3.y += m_oyCurr;
+			}
+			m_pSink->AddBeziers(p, beziersCount);
+			_freea(p);
+		}
+		else
+			m_pSink->AddBeziers(beziers, beziersCount);
+	}
+
+	STDMETHOD_(void, EndFigure)(D2D1_FIGURE_END figureEnd)
+	{
+		m_pSink->EndFigure(figureEnd);
+	}
+
+	STDMETHOD(Close)()
+	{
+		return m_pSink->Close();
+	}
+
+	void SetOffset(float ox, float oy)
+	{
+		m_oxCurr = ox;
+		m_oyCurr = oy;
+	}
+};
+
+class CTrFetchPath : public IDWriteTextRenderer
+{
+private:
+	ULONG m_uRef = 1;
+	ID2D1RenderTarget* m_pRT = NULL;
+	ID2D1Factory* m_pFactory = NULL;
+public:
+	CTrFetchPath(ID2D1RenderTarget* pRT, ID2D1Factory* pFactory)
+		:m_pRT{ pRT }, m_pFactory{ pFactory }
+	{
+		pRT->AddRef();
+		pFactory->AddRef();
+	}
+
+	~CTrFetchPath()
+	{
+		m_pRT->Release();
+		m_pFactory->Release();
+	}
+
+	STDMETHOD(DrawGlyphRun)(
+		void* pClientDrawingContext,
+		FLOAT xOrgBaseline,
+		FLOAT yOrgBaseline,
+		DWRITE_MEASURING_MODE MeasuringMode,
+		DWRITE_GLYPH_RUN const* pGlyphRun,
+		DWRITE_GLYPH_RUN_DESCRIPTION const* pGlyphRunDesc,
+		IUnknown* pClientDrawingEffect)
+	{
+		const auto pMySink = (CSinkForwarder*)pClientDrawingContext;
+		pMySink->SetOffset(xOrgBaseline, yOrgBaseline);
+		return pGlyphRun->fontFace->GetGlyphRunOutline(pGlyphRun->fontEmSize, pGlyphRun->glyphIndices,
+			pGlyphRun->glyphAdvances, pGlyphRun->glyphOffsets, pGlyphRun->glyphCount,
+			pGlyphRun->isSideways, pGlyphRun->bidiLevel, pMySink);
+	}
+
+	STDMETHOD(DrawUnderline)(void* pClientDrawingContext, FLOAT xOrgBaseline, FLOAT yOrgBaseline,
+		DWRITE_UNDERLINE const* pUnderline, IUnknown* pClientDrawingEffect)
+	{
+		return E_NOTIMPL;
+	}
+
+	STDMETHOD(DrawStrikethrough)(void* pClientDrawingContext, FLOAT xOrgBaseline,
+		FLOAT yOrgBaseline, DWRITE_STRIKETHROUGH const* strikethrough, IUnknown* pClientDrawingEffect)
+	{
+		return E_NOTIMPL;
+	}
+
+	STDMETHOD(DrawInlineObject)(void* pClientDrawingContext, FLOAT xOrg, FLOAT yOrg,
+		IDWriteInlineObject* pInlineObject, BOOL bSideways, BOOL bRightToLeft, IUnknown* pClientDrawingEffect)
+	{
+		return E_NOTIMPL;
+	}
+
+	STDMETHOD(IsPixelSnappingDisabled)(void* pClientDrawingContext, BOOL* pbDisabled)
+	{
+		*pbDisabled = FALSE;
+		return S_OK;
+	}
+
+	STDMETHOD(GetCurrentTransform)(void* pClientDrawingContext, DWRITE_MATRIX* pMatrix)
+	{
+		m_pRT->GetTransform((D2D1_MATRIX_3X2_F*)pMatrix);
+		return S_OK;
+	}
+
+	STDMETHOD(GetPixelsPerDip)(void* pClientDrawingContext, FLOAT* pfPixelsPerDip)
+	{
+		float x, y;
+		m_pRT->GetDpi(&x, &y);
+		*pfPixelsPerDip = x / 96.f;
+		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** ppvObj)
+	{
+		const static QITAB qit[]
+		{
+			QITABENT(CTrFetchPath, IDWriteTextRenderer),
+			QITABENT(CTrFetchPath, IDWritePixelSnapping),
+			{},
+		};
+		return QISearch(this, qit, iid, ppvObj);
+	}
+
+	ULONG STDMETHODCALLTYPE AddRef() { return ++m_uRef; }
+
+	ULONG STDMETHODCALLTYPE Release()
+	{
+		if (--m_uRef)
+			return m_uRef;
+		delete this;
+		return 0;
+	}
+};
+
 /// <summary>
 /// DW文本布局到路径几何形
 /// </summary>
@@ -1985,218 +2240,6 @@ inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, ID2D1Bitmap
 inline HRESULT GetTextLayoutPathGeometry(IDWriteTextLayout* pLayout, ID2D1RenderTarget* pRT,
 	float x, float y, ID2D1PathGeometry*& pPathGeometry, ID2D1Factory* pD2dFactory = NULL)
 {
-	class CSinkForwarder :public ID2D1SimplifiedGeometrySink
-	{
-	private:
-		LONG m_cRef = 1;
-		ID2D1SimplifiedGeometrySink* m_pSink = NULL;
-		float m_oxCurr = 0.f, m_oyCurr = 0.f;
-	public:
-		CSinkForwarder(ID2D1SimplifiedGeometrySink* pSink) :m_pSink{ pSink }
-		{
-			pSink->AddRef();
-		}
-
-		~CSinkForwarder()
-		{
-			m_pSink->Release();
-		}
-
-		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** ppvObj)
-		{
-			const static QITAB qit[]
-			{
-				QITABENT(CSinkForwarder, ID2D1SimplifiedGeometrySink),
-				{},
-			};
-			return QISearch(this, qit, iid, ppvObj);
-		}
-
-		ULONG STDMETHODCALLTYPE AddRef() { return ++m_cRef; }
-
-		ULONG STDMETHODCALLTYPE Release()
-		{
-			if (m_cRef == 1)
-			{
-				delete this;
-				return 0;
-			}
-			else
-				return --m_cRef;
-		}
-
-		STDMETHOD_(void, SetFillMode)(D2D1_FILL_MODE fillMode)
-		{
-			m_pSink->SetFillMode(fillMode);
-		}
-
-		STDMETHOD_(void, SetSegmentFlags)(D2D1_PATH_SEGMENT vertexFlags)
-		{
-			m_pSink->SetSegmentFlags(vertexFlags);
-		}
-
-		STDMETHOD_(void, BeginFigure)(D2D1_POINT_2F startPoint, D2D1_FIGURE_BEGIN figureBegin)
-		{
-			startPoint.x += m_oxCurr;
-			startPoint.y += m_oyCurr;
-			m_pSink->BeginFigure(startPoint, figureBegin);
-		}
-
-		STDMETHOD_(void, AddLines)(CONST D2D1_POINT_2F* points, UINT32 pointsCount)
-		{
-			if (m_oxCurr != 0.f || m_oyCurr != 0.f)
-			{
-				auto p = (D2D1_POINT_2F*)_malloca(pointsCount * sizeof(D2D1_POINT_2F));
-				EckAssert(p);
-				memcpy(p, points, pointsCount * sizeof(D2D1_POINT_2F));
-				EckCounter(pointsCount, i)
-				{
-					p[i].x += m_oxCurr;
-					p[i].y += m_oyCurr;
-				}
-				m_pSink->AddLines(p, pointsCount);
-				_freea(p);
-			}
-			else
-				m_pSink->AddLines(points, pointsCount);
-		}
-
-		STDMETHOD_(void, AddBeziers)(CONST D2D1_BEZIER_SEGMENT* beziers, UINT32 beziersCount)
-		{
-			if (m_oxCurr != 0.f || m_oyCurr != 0.f)
-			{
-				auto p = (D2D1_BEZIER_SEGMENT*)_malloca(beziersCount * sizeof(D2D1_BEZIER_SEGMENT));
-				EckAssert(p);
-				memcpy(p, beziers, beziersCount * sizeof(D2D1_BEZIER_SEGMENT));
-				EckCounter(beziersCount, i)
-				{
-					p[i].point1.x += m_oxCurr;
-					p[i].point1.y += m_oyCurr;
-					p[i].point2.x += m_oxCurr;
-					p[i].point2.y += m_oyCurr;
-					p[i].point3.x += m_oxCurr;
-					p[i].point3.y += m_oyCurr;
-				}
-				m_pSink->AddBeziers(p, beziersCount);
-				_freea(p);
-			}
-			else
-				m_pSink->AddBeziers(beziers, beziersCount);
-		}
-
-		STDMETHOD_(void, EndFigure)(D2D1_FIGURE_END figureEnd)
-		{
-			m_pSink->EndFigure(figureEnd);
-		}
-
-		STDMETHOD(Close)()
-		{
-			return m_pSink->Close();
-		}
-
-		void SetOffset(float ox, float oy)
-		{
-			m_oxCurr = ox;
-			m_oyCurr = oy;
-		}
-	};
-
-	class CTrFetchPath : public IDWriteTextRenderer
-	{
-	private:
-		ULONG m_uRef = 1;
-		ID2D1RenderTarget* m_pRT = NULL;
-		ID2D1Factory* m_pFactory = NULL;
-	public:
-		CTrFetchPath(ID2D1RenderTarget* pRT, ID2D1Factory* pFactory)
-			:m_pRT{ pRT }, m_pFactory{ pFactory }
-		{
-			pRT->AddRef();
-			pFactory->AddRef();
-		}
-
-		~CTrFetchPath()
-		{
-			m_pRT->Release();
-			m_pFactory->Release();
-		}
-
-		STDMETHOD(DrawGlyphRun)(
-			void* pClientDrawingContext,
-			FLOAT xOrgBaseline,
-			FLOAT yOrgBaseline,
-			DWRITE_MEASURING_MODE MeasuringMode,
-			DWRITE_GLYPH_RUN const* pGlyphRun,
-			DWRITE_GLYPH_RUN_DESCRIPTION const* pGlyphRunDesc,
-			IUnknown* pClientDrawingEffect)
-		{
-			const auto pMySink = (CSinkForwarder*)pClientDrawingContext;
-			pMySink->SetOffset(xOrgBaseline, yOrgBaseline);
-			return pGlyphRun->fontFace->GetGlyphRunOutline(pGlyphRun->fontEmSize, pGlyphRun->glyphIndices,
-				pGlyphRun->glyphAdvances, pGlyphRun->glyphOffsets, pGlyphRun->glyphCount,
-				pGlyphRun->isSideways, pGlyphRun->bidiLevel, pMySink);
-		}
-
-		STDMETHOD(DrawUnderline)(void* pClientDrawingContext, FLOAT xOrgBaseline, FLOAT yOrgBaseline,
-			DWRITE_UNDERLINE const* pUnderline, IUnknown* pClientDrawingEffect)
-		{
-			return E_NOTIMPL;
-		}
-
-		STDMETHOD(DrawStrikethrough)(void* pClientDrawingContext, FLOAT xOrgBaseline,
-			FLOAT yOrgBaseline, DWRITE_STRIKETHROUGH const* strikethrough, IUnknown* pClientDrawingEffect)
-		{
-			return E_NOTIMPL;
-		}
-
-		STDMETHOD(DrawInlineObject)(void* pClientDrawingContext, FLOAT xOrg, FLOAT yOrg,
-			IDWriteInlineObject* pInlineObject, BOOL bSideways, BOOL bRightToLeft, IUnknown* pClientDrawingEffect)
-		{
-			return E_NOTIMPL;
-		}
-
-		STDMETHOD(IsPixelSnappingDisabled)(void* pClientDrawingContext, BOOL* pbDisabled)
-		{
-			*pbDisabled = FALSE;
-			return S_OK;
-		}
-
-		STDMETHOD(GetCurrentTransform)(void* pClientDrawingContext, DWRITE_MATRIX* pMatrix)
-		{
-			m_pRT->GetTransform((D2D1_MATRIX_3X2_F*)pMatrix);
-			return S_OK;
-		}
-
-		STDMETHOD(GetPixelsPerDip)(void* pClientDrawingContext, FLOAT* pfPixelsPerDip)
-		{
-			float x, y;
-			m_pRT->GetDpi(&x, &y);
-			*pfPixelsPerDip = x / 96.f;
-			return S_OK;
-		}
-
-		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** ppvObj)
-		{
-			const static QITAB qit[]
-			{
-				QITABENT(CTrFetchPath, IDWriteTextRenderer),
-				QITABENT(CTrFetchPath, IDWritePixelSnapping),
-				{},
-			};
-			return QISearch(this, qit, iid, ppvObj);
-		}
-
-		ULONG STDMETHODCALLTYPE AddRef() { return ++m_uRef; }
-
-		ULONG STDMETHODCALLTYPE Release()
-		{
-			if (--m_uRef)
-				return m_uRef;
-			delete this;
-			return 0;
-		}
-	};
-
 	if (!pD2dFactory)
 		pD2dFactory = g_pD2dFactory;
 
@@ -2210,6 +2253,63 @@ inline HRESULT GetTextLayoutPathGeometry(IDWriteTextLayout* pLayout, ID2D1Render
 	const auto pMySink = new CSinkForwarder(pSink);
 
 	hr = pLayout->Draw(pMySink, pTr, x, y);
+	if (SUCCEEDED(hr))
+		hr = pMySink->Close();
+	pMySink->Release();
+	pSink->Release();
+
+	pTr->Release();
+
+	if (FAILED(hr))
+	{
+		pPath->Release();
+		pPathGeometry = NULL;
+	}
+	else
+		pPathGeometry = pPath;
+	return hr;
+}
+
+/// <summary>
+/// DW文本布局到路径几何形
+/// </summary>
+/// <param name="pLayout">DW文本布局</param>
+/// <param name="pRT">要在其上呈现的渲染目标</param>
+/// <param name="x">起始X</param>
+/// <param name="y">起始Y</param>
+/// <param name="pPathGeometry">结果路径几何形</param>
+/// <param name="pD2dFactory">D2D工厂，若为空则使用ECK工厂</param>
+/// <returns>HRESULT</returns>
+inline HRESULT GetTextLayoutPathGeometry(IDWriteTextLayout* const* pLayout, int cLayout, const float* cyPadding, 
+	ID2D1RenderTarget* pRT, float* x, float yStart, ID2D1PathGeometry*& pPathGeometry, ID2D1Factory* pD2dFactory = NULL)
+{
+	if (!pD2dFactory)
+		pD2dFactory = g_pD2dFactory;
+
+	HRESULT hr = S_OK;
+	ID2D1PathGeometry* pPath;
+	ID2D1GeometrySink* pSink;
+	pD2dFactory->CreatePathGeometry(&pPath);
+	pPath->Open(&pSink);
+
+	const auto pTr = new CTrFetchPath(pRT, pD2dFactory);
+	const auto pMySink = new CSinkForwarder(pSink);
+
+	DWRITE_TEXT_METRICS tm;
+	EckCounter(cLayout, i)
+	{
+		if (pLayout[i])
+		{
+			hr = pLayout[i]->Draw(pMySink, pTr, x[i], yStart);
+			if (FAILED(hr))
+				break;
+			pLayout[i]->GetMetrics(&tm);
+			yStart += (tm.height + cyPadding[i]);
+		}
+		else
+			yStart += cyPadding[i];
+	}
+
 	if (SUCCEEDED(hr))
 		hr = pMySink->Close();
 	pMySink->Release();

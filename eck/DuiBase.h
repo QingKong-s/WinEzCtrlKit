@@ -657,10 +657,9 @@ private:
 	{
 		std::thread t([this]
 			{
-				constexpr int c_iMinGap = 18;
+				constexpr int c_iMinGap = 16;
 				const HANDLE hTimer = CreateWaitableTimerW(NULL, FALSE, NULL);
 				EckAssert(hTimer);
-				const HANDLE hWait[]{ hTimer,m_evtRender.GetHEvent() };
 				BOOL bThereAreActiveTimeLine;
 
 				WaitForSingleObject(m_evtRender.GetHEvent(), INFINITE);
@@ -728,7 +727,7 @@ private:
 							const LARGE_INTEGER llDueTime
 							{ .QuadPart = -10 * (c_iMinGap - iDeltaTime) * 1000LL };
 							SetWaitableTimer(hTimer, &llDueTime, 0, NULL, NULL, 0);
-							WaitForMultipleObjects(ARRAYSIZE(hWait), hWait, FALSE, INFINITE);
+							WaitForSingleObject(hTimer, INFINITE);
 						}
 					}
 					else
@@ -773,6 +772,14 @@ public:
 				.crBkSelected = ColorrefToD2dColorF(Colorref::Black, 0.2f),
 				.crBkHotSel = ColorrefToD2dColorF(Colorref::Black, 0.3f),
 			});
+		m_pStdColorTheme[CTI_LIST]->Set(
+			COLORTHEME
+			{
+				.crTextNormal = c_White,
+				.crBkHot = ColorrefToD2dColorF(Colorref::White, 0.3f),
+				.crBkSelected = ColorrefToD2dColorF(Colorref::White, 0.4f),
+				.crBkHotSel = ColorrefToD2dColorF(Colorref::White, 0.5f),
+			});
 
 		m_pStdColorTheme[CTI_LABEL] = new CColorTheme{};
 		m_pStdColorTheme[CTI_LABEL]->Set(
@@ -806,6 +813,12 @@ public:
 			{
 				RgbToD2dColorF(0x85897e),c_Unused,c_Unused,c_Unused,
 				RgbToD2dColorF(0xffffff, 0.6f),c_Unused,c_Unused,c_Unused,c_Unused,
+				c_Unused,c_Unused
+			});
+		m_pStdColorTheme[CTI_SCROLLBAR]->Set(
+			{
+				RgbToD2dColorF(0x85897e),c_Unused,c_Unused,c_Unused,
+				RgbToD2dColorF(0xffffff, 0.2f),c_Unused,c_Unused,c_Unused,c_Unused,
 				c_Unused,c_Unused
 			});
 	}
@@ -926,7 +939,8 @@ public:
 					g_pDxgiFactory, g_pDxgiDevice, g_pD2dDevice, rc.right, rc.bottom));
 				m_D2d.GetDC()->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
 
-				m_D2d.GetDC()->CreateSolidColorBrush(D2D1::ColorF(1.f, 1.f, 1.f, 1.f), &m_pBrBkg);
+				const auto crBkg = D2D1::ColorF(0x191919);
+				m_D2d.GetDC()->CreateSolidColorBrush(crBkg, &m_pBrBkg);
 				m_cxClient = rc.right;
 				m_cyClient = rc.bottom;
 
@@ -996,7 +1010,9 @@ public:
 
 	EckInline ID2D1Bitmap* GetBkgBitmap() const { return m_pBmpBkg; }
 
-	EckInline ID2D1SolidColorBrush* GetBkgBrush() const { return m_pBrBkg; }
+	EckInline ID2D1SolidColorBrush* GetBkgBrush() const { 
+		return m_pBrBkg; 
+	}
 
 	EckInline void SetBkgBitmap(ID2D1Bitmap* pBmp)
 	{

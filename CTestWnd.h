@@ -45,6 +45,8 @@
 #include "eck\CDuiScrollBar.h"
 #include "eck\CEditNcComp.h"
 #include "eck\CSrwLock.h"
+#include "eck\CFontPicker.h"
+#include "eck\CColorPickBlock.h"
 
 #define WCN_TEST L"CTestWindow"
 
@@ -165,6 +167,7 @@ public:
 
 			std::thread t([this]
 				{
+					//return;
 					for (int i{}; auto & e : m_vItem)
 					{
 						ID2D1Bitmap* p;
@@ -370,7 +373,6 @@ public:
 		std::vector<CRefStrW> v{};
 		SplitStrWithMultiChar(p, L"&/、", v);
 
-		p = 0;
 		//CHAR szA[]{ "123你好45" };
 		//EckDbgPrint(eck::CalcDbcsStringCharCount(szA, ARRAYSIZE(szA) - 1));
 		//EckDbgBreak();
@@ -437,7 +439,7 @@ public:
 		//rsva.AppendFormat(L"整数 = %d，字符串 = %s。", 100, L"我是字符串");
 		//rsva.MakeRepeatedStrSequence(L"123456", 6, 1000);
 
-		//GpImage* pbmp;
+		//Gdiplus::GpImage* pbmp;
 		//GdipLoadImageFromFile(LR"(E:\Desktop\Temp\111111.bmp)", &pbmp);
 		//auto rb = SaveGpImage(pbmp, ImageType::Png);
 		//WriteToFile(LR"(E:\Desktop\111111.png)", rb);
@@ -554,6 +556,8 @@ public:
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
+		//LRESULT lr;
+		//DwmDefWindowProc(hWnd, uMsg, wParam, lParam, &lr);
 		using namespace eck::Literals;
 		static std::vector<WNDDATA*> data{};
 		static std::vector<WNDDATA*> flatdata{};
@@ -565,6 +569,9 @@ public:
 		{
 		case WM_CREATE:
 		{
+			eck::GetThreadCtx()->UpdateDefColor();
+			//auto mar = eck::MakeMargin(-1);
+			//DwmExtendFrameIntoClientArea(hWnd, &mar);
 			WIN32_FIND_DATAW wfd;
 			HANDLE hFind = FindFirstFileW(LR"(D:\@重要文件\@音乐\*.mp3)", &wfd);
 			do
@@ -587,25 +594,35 @@ public:
 			//	IWICBitmap* pb;
 			//	eck::CreateWicBitmap(pb, pd, 80, 80);
 			//	const auto h = eck::CreateHICON(pb);
-			//	auto r = ImageList_AddIcon(hil, h);
-			//	r = 0;
+			//	ImageList_AddIcon(hil, h);
 			//} while (FindNextFileW(hFind, &wfd));
 			//FindClose(hFind);
 			//
 			//m_lve.Create(0, WS_CHILD | WS_VISIBLE, WS_EX_CLIENTEDGE,
 			//	0, 0, 800, 700, hWnd, 10002);
 			//m_lve.SetView(LV_VIEW_ICON);
-			//m_lve.SetLVExtendStyle(LVS_EX_DOUBLEBUFFER|LVS_EX_FULLROWSELECT);
 			//m_lve.SetImageList(hil, LVSIL_NORMAL);
+			//m_lve.SetLVExtendStyle(LVS_EX_DOUBLEBUFFER|LVS_EX_FULLROWSELECT| LVS_EX_SUBITEMIMAGES|LVS_EX_BORDERSELECT);
+			//
 			//m_lve.InsertColumn(L"Col. 1", -1, 210);
-
 			//m_lve.InsertColumn(L"Col. 2", -1, 210);
 			//m_lve.InsertColumn(L"Col. 3", -1, 210);
 			//m_lve.InsertColumn(L"Col. 4", -1, 210);
 
+			//LVITEMW li;
+			//li.mask = LVIF_IMAGE;
 			//EckCounter(30, i)
 			//{
-			//	m_lve.InsertItem((std::to_wstring(i) + L" 项目测试").c_str(), -1, 0, i);
+			//	const int idx = m_lve.InsertItem((std::to_wstring(i) + L" 项目测试").c_str(), -1, 0, i);
+			//	m_lve.SetItemText(idx, 1, L"测试子项111");
+			//	m_lve.SetItemText(idx, 2, L"测试子项 二");
+			//	if (i % 2)
+			//	{
+			//		li.iItem = idx;
+			//		li.iSubItem = 2;
+			//		li.iImage = 4;
+			//		m_lve.SetItem(&li);
+			//	}
 			//}
 
 			//RECT rc;
@@ -762,9 +779,19 @@ public:
 			m_Dui.Redraw();
 			m_lot.Add(&m_Dui, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 
-			m_enc.Create(L"示例编辑框", WS_VISIBLE | WS_CHILD, WS_EX_CLIENTEDGE,
-				0, 0, 200, 40, hWnd, 0);
-			m_lot.Add(&m_enc, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+			//m_enc.Create(L"示例编辑框", WS_VISIBLE | WS_CHILD, WS_EX_CLIENTEDGE,
+			//	0, 0, 200, 40, hWnd, 0);
+			//m_lot.Add(&m_enc, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+
+			//auto pfp = new eck::CFontPicker{};
+			//pfp->Create(NULL, WS_CHILD | WS_VISIBLE, WS_EX_CLIENTEDGE,
+			//	0, 0, 260, 40, hWnd, 0);
+			//m_lot.Add(pfp, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+
+			//auto pcpb = new eck::CColorPickBlock{};
+			//pcpb->Create(NULL, WS_CHILD | WS_VISIBLE|SS_NOTIFY, WS_EX_CLIENTEDGE,
+			//	0, 0, 40, 40, hWnd, 0);
+			//m_lot.Add(pcpb, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 
 			/*m_tle.Create(0, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
 				0, 0, 800, 800, hWnd, 1010);
@@ -1081,6 +1108,8 @@ public:
 			PostQuitMessage(0);
 			break;
 		case WM_SETTINGCHANGE:
+			eck::GetThreadCtx()->UpdateDefColor();
+
 			if (eck::IsColorSchemeChangeMessage(lParam))
 			{
 				eck::RefreshImmersiveColorStuff();
@@ -1093,6 +1122,9 @@ public:
 				eck::EnableWindowNcDarkMode(hWnd, eck::ShouldAppUseDarkMode());
 				Redraw();
 			}
+			break;
+		case WM_SYSCOLORCHANGE:
+			eck::GetThreadCtx()->UpdateDefColor();
 			break;
 		}
 		return CForm::OnMsg(hWnd, uMsg, wParam, lParam);
