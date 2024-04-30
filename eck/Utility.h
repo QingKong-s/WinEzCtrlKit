@@ -290,11 +290,13 @@ EckInline bool operator<(const FILETIME& ft1, const FILETIME& ft2)
 	return CompareFileTime(&ft1, &ft2) == -1;
 }
 
+#if defined(D3D11_NO_HELPERS) || !defined(__d3d11_h__)
 EckInline constexpr bool operator==(const RECT& rc1, const RECT& rc2)
 {
 	return rc1.left == rc2.left && rc1.top == rc2.top &&
 		rc1.right == rc2.right && rc1.bottom == rc2.bottom;
 }
+#endif
 
 template<class T1, class T2>
 EckInline constexpr BOOL IsBitSet(T1 dw1, T2 dw2)
@@ -426,7 +428,7 @@ EckInline constexpr UINT Gcd(UINT a, UINT b)
 	}
 }
 
-EckInline constexpr GpRectF ToGpRectF(const RECT& rc)
+EckInline GpRectF ToGpRectF(const RECT& rc)
 {
 	return { (REAL)rc.left,(REAL)rc.top,(REAL)(rc.right - rc.left),(REAL)(rc.bottom - rc.top) };
 }
@@ -807,5 +809,13 @@ EckInline constexpr MARGINS MakeMarginLeftRight(int i)
 EckInline constexpr MARGINS MakeMarginHV(int h, int v)
 {
 	return { h,h,v,v };
+}
+
+EckInline constexpr COLORREF AdjustColorrefLuma(COLORREF cr, int iPrecent)
+{
+	return RGB(
+		std::min(GetRValue(cr) * iPrecent / 100, 0xFF),
+		std::min(GetGValue(cr) * iPrecent / 100, 0xFF),
+		std::min(GetBValue(cr) * iPrecent / 100, 0xFF));
 }
 ECK_NAMESPACE_END

@@ -103,10 +103,22 @@ public:
 	}
 
 	template<class T>
-	EckInline CFile& operator<<(T& Buf)
+	EckInline CFile& operator<<(const T& Buf)
 	{
 		Write(&Buf, sizeof(T));
 		return *this;
+	}
+
+	template<class T, class U, class V>
+	EckInline CFile& operator<<(const CRefStrT<T, U, V>& Buf)
+	{
+		if (Buf.IsEmpty())
+			return *this << U::CharTerminatingNull();
+		else
+		{
+			Write(Buf.Data(), Cch2Cb(Buf.Size()));
+			return *this;
+		}
 	}
 
 	EckInline CFile& operator+=(LONG l)

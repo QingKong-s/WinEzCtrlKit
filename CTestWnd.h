@@ -45,6 +45,8 @@
 #include "eck\CDuiScrollBar.h"
 #include "eck\CEditNcComp.h"
 #include "eck\CSrwLock.h"
+#include "eck\CFontPicker.h"
+#include "eck\CColorPickBlock.h"
 
 #define WCN_TEST L"CTestWindow"
 
@@ -165,6 +167,7 @@ public:
 
 			std::thread t([this]
 				{
+					//return;
 					for (int i{}; auto & e : m_vItem)
 					{
 						ID2D1Bitmap* p;
@@ -370,7 +373,66 @@ public:
 		std::vector<CRefStrW> v{};
 		SplitStrWithMultiChar(p, L"&/、", v);
 
-		p = 0;
+		static TASKDIALOGCONFIG page1 = {};
+		static TASKDIALOGCONFIG page2 = {};
+
+		// PAGE 1
+		const TASKDIALOG_BUTTON radio[] = { {10, L"Radio button\nwith two lines"},
+											{11, L"The second radio button is disabled"},
+											{12, L"Just a normal radio button"} };
+
+		const TASKDIALOG_BUTTON commands[] = { {10, L"Command button\nwith two lines"},
+												{11, L"Disabled command button"},
+												{12, L"Command button with shield"},
+												{13, L"Disabled command button with shield"},
+												{14, L"Normal command button"} };
+		page1.cbSize = sizeof(TASKDIALOGCONFIG);
+		page1.dwFlags = TDF_ENABLE_HYPERLINKS | TDF_USE_COMMAND_LINKS | TDF_EXPAND_FOOTER_AREA | TDF_SHOW_MARQUEE_PROGRESS_BAR;
+		page1.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+		page1.pszWindowTitle = L"Dark Task Dialog Sample";
+		page1.pszMainIcon = TD_INFORMATION_ICON;
+		page1.pszMainInstruction = L"SFTRS::DarkTaskDialog";
+		page1.pszContent = L"This task dialog sample showcases most of the controls a task dialog can contain.\n\
+You can dynamically control the theme here using the following links : \n\n\
+<A HREF=\"off\">Switch to light theme</A>\n\<A HREF=\"on\">Switch to dark theme</A>\n\n\
+Additionally, there is <A HREF=\"page2\">another page</A> added for testing purposes.\n\n\
+Other controls are available below.";
+		page1.pszContent = L"只是一段测试...";
+		page1.cButtons = 5;
+		page1.pButtons = commands;
+		page1.nDefaultButton = TDCBF_CLOSE_BUTTON;
+		page1.cRadioButtons = 3;
+		page1.pRadioButtons = radio;
+		page1.pszVerificationText = L"Verification text";
+		page1.pszExpandedInformation = L"Expanded information.\n\
+Can be multiline and contain links. For example:\n\
+<A HREF=\"off\">Switch to light theme</A>\n\
+<A HREF=\"on\">Switch to dark theme</A>";
+		page1.pszExpandedControlText = L"Hide expanded information";
+		page1.pszCollapsedControlText = L"Show expanded information";
+		page1.pszFooterIcon = TD_SHIELD_ICON;
+		page1.pszFooter = L"This is the footer area.\n\
+It can also be multiline and contain links. For example, here is the link to <A HREF=\"page2\">page #2</A>.";
+
+
+
+		// PAGE 2
+		const TASKDIALOG_BUTTON commandsP2[] = { {10, L"Return to first page"} };
+		page2.cbSize = sizeof(TASKDIALOGCONFIG);
+		page2.pszWindowTitle = L"page #2";
+		page2.pszMainIcon = MAKEINTRESOURCE(-8);
+		page2.pszMainInstruction = L"TaskDialog Page #2";
+		page2.pszContent = L"This is mostly empty page 2 of sample TaskDialog";
+		page2.cButtons = 1;
+		page2.pButtons = commandsP2;
+
+		TASKDIALOGCTX tdctx{ &page1 };
+		CTaskDialog td{};
+		//MsgBox(L"123");
+
+		td.DlgBox(HWnd, &tdctx);
+
+
 		//CHAR szA[]{ "123你好45" };
 		//EckDbgPrint(eck::CalcDbcsStringCharCount(szA, ARRAYSIZE(szA) - 1));
 		//EckDbgBreak();
@@ -437,7 +499,7 @@ public:
 		//rsva.AppendFormat(L"整数 = %d，字符串 = %s。", 100, L"我是字符串");
 		//rsva.MakeRepeatedStrSequence(L"123456", 6, 1000);
 
-		//GpImage* pbmp;
+		//Gdiplus::GpImage* pbmp;
 		//GdipLoadImageFromFile(LR"(E:\Desktop\Temp\111111.bmp)", &pbmp);
 		//auto rb = SaveGpImage(pbmp, ImageType::Png);
 		//WriteToFile(LR"(E:\Desktop\111111.png)", rb);
@@ -554,6 +616,8 @@ public:
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
+		//LRESULT lr;
+		//DwmDefWindowProc(hWnd, uMsg, wParam, lParam, &lr);
 		using namespace eck::Literals;
 		static std::vector<WNDDATA*> data{};
 		static std::vector<WNDDATA*> flatdata{};
@@ -565,6 +629,9 @@ public:
 		{
 		case WM_CREATE:
 		{
+			eck::GetThreadCtx()->UpdateDefColor();
+			//auto mar = eck::MakeMargin(-1);
+			//DwmExtendFrameIntoClientArea(hWnd, &mar);
 			WIN32_FIND_DATAW wfd;
 			HANDLE hFind = FindFirstFileW(LR"(D:\@重要文件\@音乐\*.mp3)", &wfd);
 			do
@@ -587,25 +654,35 @@ public:
 			//	IWICBitmap* pb;
 			//	eck::CreateWicBitmap(pb, pd, 80, 80);
 			//	const auto h = eck::CreateHICON(pb);
-			//	auto r = ImageList_AddIcon(hil, h);
-			//	r = 0;
+			//	ImageList_AddIcon(hil, h);
 			//} while (FindNextFileW(hFind, &wfd));
 			//FindClose(hFind);
 			//
 			//m_lve.Create(0, WS_CHILD | WS_VISIBLE, WS_EX_CLIENTEDGE,
 			//	0, 0, 800, 700, hWnd, 10002);
 			//m_lve.SetView(LV_VIEW_ICON);
-			//m_lve.SetLVExtendStyle(LVS_EX_DOUBLEBUFFER|LVS_EX_FULLROWSELECT);
 			//m_lve.SetImageList(hil, LVSIL_NORMAL);
+			//m_lve.SetLVExtendStyle(LVS_EX_DOUBLEBUFFER|LVS_EX_FULLROWSELECT| LVS_EX_SUBITEMIMAGES|LVS_EX_BORDERSELECT);
+			//
 			//m_lve.InsertColumn(L"Col. 1", -1, 210);
-
 			//m_lve.InsertColumn(L"Col. 2", -1, 210);
 			//m_lve.InsertColumn(L"Col. 3", -1, 210);
 			//m_lve.InsertColumn(L"Col. 4", -1, 210);
 
+			//LVITEMW li;
+			//li.mask = LVIF_IMAGE;
 			//EckCounter(30, i)
 			//{
-			//	m_lve.InsertItem((std::to_wstring(i) + L" 项目测试").c_str(), -1, 0, i);
+			//	const int idx = m_lve.InsertItem((std::to_wstring(i) + L" 项目测试").c_str(), -1, 0, i);
+			//	m_lve.SetItemText(idx, 1, L"测试子项111");
+			//	m_lve.SetItemText(idx, 2, L"测试子项 二");
+			//	if (i % 2)
+			//	{
+			//		li.iItem = idx;
+			//		li.iSubItem = 2;
+			//		li.iImage = 4;
+			//		m_lve.SetItem(&li);
+			//	}
 			//}
 
 			//RECT rc;
@@ -762,9 +839,19 @@ public:
 			m_Dui.Redraw();
 			m_lot.Add(&m_Dui, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 
-			m_enc.Create(L"示例编辑框", WS_VISIBLE | WS_CHILD, WS_EX_CLIENTEDGE,
-				0, 0, 200, 40, hWnd, 0);
-			m_lot.Add(&m_enc, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+			//m_enc.Create(L"示例编辑框", WS_VISIBLE | WS_CHILD, WS_EX_CLIENTEDGE,
+			//	0, 0, 200, 40, hWnd, 0);
+			//m_lot.Add(&m_enc, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+
+			//auto pfp = new eck::CFontPicker{};
+			//pfp->Create(NULL, WS_CHILD | WS_VISIBLE, WS_EX_CLIENTEDGE,
+			//	0, 0, 260, 40, hWnd, 0);
+			//m_lot.Add(pfp, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+
+			//auto pcpb = new eck::CColorPickBlock{};
+			//pcpb->Create(NULL, WS_CHILD | WS_VISIBLE|SS_NOTIFY, WS_EX_CLIENTEDGE,
+			//	0, 0, 40, 40, hWnd, 0);
+			//m_lot.Add(pcpb, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 
 			/*m_tle.Create(0, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
 				0, 0, 800, 800, hWnd, 1010);
@@ -1081,6 +1168,8 @@ public:
 			PostQuitMessage(0);
 			break;
 		case WM_SETTINGCHANGE:
+			eck::GetThreadCtx()->UpdateDefColor();
+
 			if (eck::IsColorSchemeChangeMessage(lParam))
 			{
 				eck::RefreshImmersiveColorStuff();
@@ -1093,6 +1182,9 @@ public:
 				eck::EnableWindowNcDarkMode(hWnd, eck::ShouldAppUseDarkMode());
 				Redraw();
 			}
+			break;
+		case WM_SYSCOLORCHANGE:
+			eck::GetThreadCtx()->UpdateDefColor();
 			break;
 		}
 		return CForm::OnMsg(hWnd, uMsg, wParam, lParam);

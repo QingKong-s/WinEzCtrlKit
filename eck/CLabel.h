@@ -286,13 +286,15 @@ public:
 		}
 		break;
 
-		case WM_WINDOWPOSCHANGED:
+		case WM_WINDOWPOSCHANGING:
 		{
-			LRESULT lResult = DefWindowProcW(hWnd, uMsg, wParam, lParam);
 			if (m_Info.bTransparent)
-				Redraw();
-			return lResult;
+			{
+				const auto pwp = (WINDOWPOS*)lParam;
+				pwp->flags |= SWP_NOCOPYBITS;
+			}
 		}
+		break;
 
 		case WM_SIZE:
 		{
@@ -376,6 +378,8 @@ public:
 
 		case WM_SETTEXT:
 			m_rsText = (PWSTR)lParam;
+			CalcPartsRect();
+			Redraw();
 			return TRUE;
 		case WM_GETTEXTLENGTH:
 			return m_rsText.Size();
@@ -389,18 +393,6 @@ public:
 		}
 
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
-	}
-
-	static ATOM RegisterWndClass()
-	{
-		WNDCLASSW wc{};
-		wc.cbWndExtra = sizeof(void*);
-		wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
-		wc.hInstance = eck::g_hInstance;
-		wc.lpfnWndProc = DefWindowProcW;
-		wc.lpszClassName = WCN_LABEL;
-		wc.style = CS_DBLCLKS | CS_PARENTDC;
-		return RegisterClassW(&wc);
 	}
 
 	ECK_CWND_CREATE;
@@ -438,7 +430,7 @@ public:
 			RECT rc{ 0,0,m_cxClient,m_cyClient };
 			HWND hParent = GetParent(m_hWnd);
 			MapWindowPoints(m_hWnd, hParent, (POINT*)&rc, 2);
-			RedrawWindow(hParent, &rc, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+			RedrawWindow(hParent, &rc, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
 		}
 		else
 		{

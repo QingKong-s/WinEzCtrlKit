@@ -9,6 +9,7 @@
 #include "Utility.h"
 #include "CRefStr.h"
 #include "CWnd.h"
+#include "GraphicsHelper.h"
 
 #include <Shlwapi.h>
 #include <d3d11.h>
@@ -50,8 +51,6 @@ BOOL g_bWin10_1809 = FALSE;
 BOOL g_bWin10_1903 = FALSE;
 BOOL g_bWin11_B22000 = FALSE;
 
-BOOL g_bAllowDark = FALSE;
-
 static BOOL DefMsgFilter(const MSG&)
 {
 	return FALSE;
@@ -59,23 +58,252 @@ static BOOL DefMsgFilter(const MSG&)
 FMsgFilter g_pfnMsgFilter = DefMsgFilter;
 
 #ifdef _DEBUG
-static void CALLBACK GdiplusDebug(GpDebugEventLevel dwLevel, CHAR* pszMsg)
+static void WINAPI GdiplusDebug(Gdiplus::DebugEventLevel dwLevel, CHAR* pszMsg)
 {
 	DbgPrint(StrX2W(pszMsg).Data());
-	if (dwLevel == DebugEventLevelFatal)
+	if (dwLevel == Gdiplus::DebugEventLevelFatal)
 		DebugBreak();
 }
 #endif
 
+#pragma region(UxTheme Fixer)
 static EckPriv___::FOpenNcThemeData s_pfnOpenNcThemeData{};
+static EckPriv___::FOpenThemeData s_pfnOpenThemeData{ OpenThemeData };
+static EckPriv___::FDrawThemeText s_pfnDrawThemeText{ DrawThemeText };
+static EckPriv___::FOpenThemeDataForDpi s_pfnOpenThemeDataForDpi{ OpenThemeDataForDpi };
+static EckPriv___::FDrawThemeBackgroundEx s_pfnDrawThemeBackgroundEx{ DrawThemeBackgroundEx };
+static EckPriv___::FDrawThemeBackground s_pfnDrawThemeBackground{ DrawThemeBackground };
+static EckPriv___::FGetThemeColor s_pfnGetThemeColor{ GetThemeColor };
+static EckPriv___::FCloseThemeData s_pfnCloseThemeData{ CloseThemeData };
 
 static HTHEME WINAPI NewOpenNcThemeData(HWND hWnd, PCWSTR pszClassList)
 {
-	if (wcscmp(pszClassList, L"ScrollBar") == 0)
-		return s_pfnOpenNcThemeData(NULL, L"Explorer::ScrollBar");
+	if (_wcsicmp(pszClassList, L"ScrollBar") == 0)
+		return s_pfnOpenNcThemeData(NULL, L"Explorer::ScrollBar");// for nc scrollbar
 	else ECKLIKELY
 		return s_pfnOpenNcThemeData(hWnd, pszClassList);
 }
+
+static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
+{
+	HTHEME hTheme;
+	if (ShouldAppUseDarkMode())
+	{
+		if (_wcsicmp(pszClassList, L"Combobox") == 0)
+			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Combobox");
+		else if (_wcsicmp(pszClassList, L"Edit") == 0)
+			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Edit");
+		else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 || _wcsicmp(pszClassList, L"TaskDialogStyle") == 0)
+			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_Explorer::TaskDialog");
+		else
+			hTheme = s_pfnOpenThemeData(hWnd, pszClassList);
+	}
+	else
+		hTheme = s_pfnOpenThemeData(hWnd, pszClassList);
+	GetThreadCtx()->OnThemeOpen(hTheme, pszClassList);
+	return hTheme;
+}
+
+static HTHEME WINAPI NewOpenThemeDataForDpi(HWND hWnd, PCWSTR pszClassList, UINT uDpi)
+{
+	HTHEME hTheme;
+	if (ShouldAppUseDarkMode())
+	{
+		if (_wcsicmp(pszClassList, L"Combobox") == 0)
+			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_CFD::Combobox", uDpi);
+		else if (_wcsicmp(pszClassList, L"Edit") == 0)
+			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_CFD::Edit", uDpi);
+		else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 || _wcsicmp(pszClassList, L"TaskDialogStyle") == 0)
+			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_Explorer::TaskDialog", uDpi);
+		else
+			hTheme = s_pfnOpenThemeDataForDpi(hWnd, pszClassList, uDpi);
+	}
+	else
+		hTheme = s_pfnOpenThemeDataForDpi(hWnd, pszClassList, uDpi);
+	GetThreadCtx()->OnThemeOpen(hTheme, pszClassList);
+	return hTheme;
+}
+
+static HRESULT WINAPI NewDrawThemeText(HTHEME hTheme, HDC hdc, int iPartId, int iStateId, LPCWSTR pszText,
+	int cchText, DWORD dwTextFlags, DWORD dwTextFlags2, LPCRECT pRect)
+{
+	const auto* const ptc = GetThreadCtx();
+	if (ShouldAppUseDarkMode() && ptc->IsThemeButton(hTheme))
+		switch (iPartId)
+		{
+		case BP_CHECKBOX:
+		case BP_GROUPBOX:
+		case BP_RADIOBUTTON:
+		{
+			if (ShouldAppUseDarkMode())
+			{
+				DTTOPTS dtt;
+				dtt.dwSize = sizeof(dtt);
+				dtt.dwFlags = DTT_TEXTCOLOR;
+				dtt.crText = ptc->crDefText;
+				dwTextFlags &= ~DT_CALCRECT;
+				return DrawThemeTextEx(hTheme, hdc, iPartId, iStateId,
+					pszText, cchText, dwTextFlags, (RECT*)pRect, &dtt);
+			}
+		}
+		break;
+		}
+	return s_pfnDrawThemeText(hTheme, hdc, iPartId, iStateId, pszText, cchText,
+		dwTextFlags, dwTextFlags2, pRect);
+}
+
+static HRESULT DtbAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
+	const RECT* prc, const DTBGOPTS& Opt, float fPercent = 0.8f)
+{
+	CEzCDC DC{};
+	RECT rcReal{ 0,0,prc->right - prc->left, prc->bottom - prc->top };
+	DC.Create32(NULL, rcReal.right, rcReal.bottom);
+
+	auto RealOpt{ Opt };
+	RealOpt.rcClip = {};
+	RealOpt.dwFlags &= ~DTBG_CLIPRECT;
+	const auto hr = s_pfnDrawThemeBackgroundEx(hTheme, DC.GetDC(), iPartId, iStateId, &rcReal, &RealOpt);
+	if (FAILED(hr))
+		return hr;
+	BITMAP bmp;
+	GetObjectW(DC.GetBitmap(), sizeof(bmp), &bmp);
+	GpBitmap* pBitmap;
+	GdipCreateBitmapFromScan0(rcReal.right, rcReal.bottom, bmp.bmWidthBytes,
+		PixelFormat32bppARGB, (BYTE*)bmp.bmBits, &pBitmap);
+	GpImageAttributes* pIA;
+	GdipCreateImageAttributes(&pIA);
+
+	const Gdiplus::ColorMatrix mat
+	{
+		1, 0, 0, 0, 0,
+		0, 1, 0, 0, 0,
+		0, 0, 1, 0, 0,
+		0, 0, 0, 1, 0,
+		fPercent, fPercent, fPercent, 0, 1
+	};
+	GdipSetImageAttributesColorMatrix(pIA, Gdiplus::ColorAdjustTypeDefault, TRUE, &mat,
+		NULL, Gdiplus::ColorMatrixFlagsDefault);
+	GpGraphics* pGraphics;
+	GdipCreateFromHDC(hDC, &pGraphics);
+	if (Opt.dwFlags & DTBG_CLIPRECT)
+	{
+		GdipSetClipRectI(pGraphics, Opt.rcClip.left, Opt.rcClip.top,
+			Opt.rcClip.right - Opt.rcClip.left, Opt.rcClip.bottom - Opt.rcClip.top,
+			Gdiplus::CombineModeReplace);
+	}
+	GdipDrawImageRectRectI(pGraphics, pBitmap, prc->left, prc->top, rcReal.right, rcReal.bottom,
+		0, 0, rcReal.right, rcReal.bottom, Gdiplus::UnitPixel, pIA, NULL, NULL);
+	GdipDeleteGraphics(pGraphics);
+	GdipDisposeImage(pBitmap);
+	GdipDisposeImageAttributes(pIA);
+	return S_OK;
+}
+
+EckInline static HRESULT DtbAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
+	const RECT* prc, const RECT* prcClip, float fPercent = 0.8f)
+{
+	DTBGOPTS opt;
+	opt.dwSize = sizeof(DTBGOPTS);
+	opt.dwFlags = 0u;
+	if (prcClip)
+	{
+		opt.dwFlags |= DTBG_CLIPRECT;
+		opt.rcClip = *prcClip;
+	}
+	return DtbAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, opt, fPercent);
+}
+
+static HRESULT WINAPI NewDrawThemeBackgroundEx(HTHEME hTheme, HDC hdc, int iPartId, int iStateId,
+	LPCRECT pRect, const DTBGOPTS* pOptions)
+{
+	if (ShouldAppUseDarkMode())
+	{
+		const auto* const ptc = GetThreadCtx();
+		if (ptc->IsThemeTaskDialog(hTheme))
+			switch (iPartId)
+			{
+			case TDLG_SECONDARYPANEL:
+				iPartId = TDLG_FOOTNOTEPANE;
+				break;
+			case TDLG_FOOTNOTESEPARATOR:
+				return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, *pOptions, -0.67f);
+			}
+		if (ptc->IsThemeButton(hTheme))
+			switch (iPartId)
+			{
+			case BP_COMMANDLINKGLYPH:
+				return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, *pOptions, 0.3f);
+			case BP_COMMANDLINK:
+				return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, *pOptions, 0.9f);
+			}
+	}
+	return s_pfnDrawThemeBackgroundEx(hTheme, hdc, iPartId, iStateId, pRect, pOptions);
+}
+
+static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hdc, int iPartId, int iStateId,
+	LPCRECT pRect, LPCRECT pClipRect)
+{
+	if (ShouldAppUseDarkMode())
+	{
+		const auto* const ptc = GetThreadCtx();
+		if (ptc->IsThemeTaskDialog(hTheme))
+			switch (iPartId)
+			{
+			case TDLG_SECONDARYPANEL:
+				iPartId = TDLG_FOOTNOTEPANE;
+				break;
+			case TDLG_FOOTNOTESEPARATOR:
+				return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, -0.67f);
+			}
+		if (ptc->IsThemeButton(hTheme))
+			switch (iPartId)
+			{
+			case BP_COMMANDLINKGLYPH:
+				return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, 0.3f);
+			case BP_COMMANDLINK:
+				return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, 0.9f);
+			}
+	}
+	return s_pfnDrawThemeBackground(hTheme, hdc, iPartId, iStateId, pRect, pClipRect);
+}
+
+static HRESULT WINAPI NewGetThemeColor(HTHEME hTheme, int iPartId, int iStateId, int iPropId, COLORREF* pColor)
+{
+	const auto* const ptc = GetThreadCtx();
+	if (ShouldAppUseDarkMode() && ptc->IsThemeTaskDialog(hTheme))
+		switch (iPartId)
+		{
+		case TDLG_CONTENTPANE:
+		case TDLG_EXPANDEDCONTENT:
+		case TDLG_EXPANDOTEXT:
+		case TDLG_VERIFICATIONTEXT:
+		case TDLG_FOOTNOTEPANE:
+		case TDLG_RADIOBUTTONPANE:
+		{
+			if (iPropId == TMT_TEXTCOLOR)
+				*pColor = ptc->crDefText;
+			else
+				break;
+		}
+		return S_OK;
+
+		case TDLG_MAININSTRUCTIONPANE:
+		{
+			const auto hr = s_pfnGetThemeColor(hTheme, iPartId, iStateId, iPropId, pColor);
+			*pColor = AdjustColorrefLuma(*pColor, 300);
+			return hr;
+		}
+		break;
+		}
+	return s_pfnGetThemeColor(hTheme, iPartId, iStateId, iPropId, pColor);
+}
+
+static HRESULT WINAPI NewCloseThemeData(HTHEME hTheme)
+{
+	GetThreadCtx()->OnThemeClose(hTheme);
+	return s_pfnCloseThemeData(hTheme);
+}
+#pragma endregion
 
 enum
 {
@@ -136,8 +364,8 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 #ifdef _DEBUG
 		gpsi.DebugEventCallback = GdiplusDebug;
 #endif
-		GpStatus uGpRet = GdiplusStartup(&g_uGpToken, &gpsi, NULL);
-		if (uGpRet != GpStatus::GpOk)
+		Gdiplus::GpStatus uGpRet = GdiplusStartup(&g_uGpToken, &gpsi, NULL);
+		if (uGpRet != Gdiplus::Ok)
 		{
 			*pdwErrCode = uGpRet;
 			return InitStatus::GdiplusInitError;
@@ -171,7 +399,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			}
 			break;
 		default:
-			__assume(0);
+			ECK_UNREACHABLE;
 		}
 	}
 
@@ -321,13 +549,18 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		FlushMenuTheme();
 	}
 
+	DetourTransactionBegin();
 	if (s_pfnOpenNcThemeData)
-	{
-		DetourTransactionBegin();
 		DetourAttach(&s_pfnOpenNcThemeData, NewOpenNcThemeData);
-		DetourTransactionCommit();
-	}
-
+	s_pfnOpenThemeData = OpenThemeData;
+	DetourAttach(&s_pfnOpenThemeData, NewOpenThemeData);
+	DetourAttach(&s_pfnDrawThemeText, NewDrawThemeText);
+	DetourAttach(&s_pfnOpenThemeDataForDpi, NewOpenThemeDataForDpi);
+	DetourAttach(&s_pfnDrawThemeBackgroundEx, NewDrawThemeBackgroundEx);
+	DetourAttach(&s_pfnDrawThemeBackground, NewDrawThemeBackground);
+	DetourAttach(&s_pfnGetThemeColor, NewGetThemeColor);
+	DetourAttach(&s_pfnCloseThemeData, NewCloseThemeData);
+	DetourTransactionCommit();
 	return InitStatus::Ok;
 }
 
@@ -358,6 +591,7 @@ void ThreadInit()
 	EckAssert(!TlsGetValue(GetThreadCtxTlsSlot()));
 	const auto p = new ECKTHREADCTX{};
 	TlsSetValue(GetThreadCtxTlsSlot(), p);
+	p->UpdateDefColor();
 	p->hhkCbtDarkMode = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
 		{
 			constexpr static PCWSTR c_pszCommCtrlCls[]// 需要被设置主题的通用控件
@@ -369,6 +603,7 @@ void ThreadInit()
 				TOOLTIPS_CLASSW,
 				WC_TREEVIEWW,
 				UPDOWN_CLASSW,
+				WC_SCROLLBARW
 			};
 
 			const auto* const p = GetThreadCtx();
@@ -389,10 +624,10 @@ void ThreadInit()
 							{
 								WCHAR szCls[256];
 								GetClassNameW(hWnd, szCls, ARRAYSIZE(szCls));
-								return wcsicmp(szCls, psz) == 0;
+								return _wcsicmp(szCls, psz) == 0;
 							}
 							else
-								return wcsicmp(p->lpcs->lpszClass, psz) == 0;
+								return _wcsicmp(p->lpcs->lpszClass, psz) == 0;
 						});
 
 					if (it != itEnd)
@@ -456,14 +691,17 @@ HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc)
 			const auto pCtx = GetThreadCtx();
 			if (iCode == HCBT_CREATEWND)
 			{
+				const auto pcbtcw = (CBT_CREATEWNDW*)lParam;
 				pCtx->pCurrWnd->m_pfnRealProc =
 					(WNDPROC)SetWindowLongPtrW((HWND)wParam, GWLP_WNDPROC,
 						(LONG_PTR)CWnd::EckWndProc);
 				EckAssert(!pCtx->pCurrWnd->m_hWnd);
 				pCtx->pCurrWnd->m_hWnd = (HWND)wParam;
 				pCtx->WmAdd((HWND)wParam, pCtx->pCurrWnd);
+				if (!IsBitSet(pcbtcw->lpcs->style, WS_CHILD))
+					pCtx->TwmAdd((HWND)wParam, pCtx->pCurrWnd);
 				if (pCtx->pfnWndCreatingProc)
-					pCtx->pfnWndCreatingProc((HWND)wParam, (CBT_CREATEWNDW*)lParam, pCtx);
+					pCtx->pfnWndCreatingProc((HWND)wParam, pcbtcw, pCtx);
 				EndCbtHook();
 			}
 			return CallNextHookEx(pCtx->hhkTempCBT, iCode, wParam, lParam);
@@ -557,9 +795,9 @@ void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 
 	constexpr TASKDIALOG_BUTTON Btns[]
 	{
-		{100,L"终止程序"},
-		{101,L"调试程序"},
-		{102,L"继续运行"},
+		{ 100,L"终止程序" },
+		{ 101,L"调试程序" },
+		{ 102,L"继续运行" },
 	};
 	tdc.pButtons = Btns;
 	tdc.cButtons = ARRAYSIZE(Btns);
@@ -586,5 +824,17 @@ void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 	case 102:
 		return;
 	}
+}
+
+void ECKTHREADCTX::SetNcDarkModeForAllTopWnd(BOOL bDark)
+{
+	for (const auto& e : hmTopWnd)
+		EnableWindowNcDarkMode(e.first, bDark);
+}
+
+void ECKTHREADCTX::UpdateDefColor()
+{
+	GetItemsViewForeBackColor(crDefText, crDefBkg);
+	crDefBtnFace = (ShouldAppUseDarkMode() ? 0x303030 : GetSysColor(COLOR_BTNFACE));
 }
 ECK_NAMESPACE_END

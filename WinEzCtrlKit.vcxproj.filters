@@ -72,9 +72,6 @@
     <ClInclude Include="eck\ECK.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\GdiplusFlatDef.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\ImageHelper.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
@@ -334,6 +331,12 @@
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CEditNcComp.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CColorPickBlock.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CLink.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
   </ItemGroup>

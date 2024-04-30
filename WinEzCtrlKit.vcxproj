@@ -164,6 +164,7 @@
     <ClInclude Include="eck\CAnimationBox.h" />
     <ClInclude Include="eck\CArray.h" />
     <ClInclude Include="eck\CBk.h" />
+    <ClInclude Include="eck\CColorPickBlock.h" />
     <ClInclude Include="eck\CComboBox.h" />
     <ClInclude Include="eck\CComboBoxEx.h" />
     <ClInclude Include="eck\CComboBoxNew.h" />
@@ -187,6 +188,7 @@
     <ClInclude Include="eck\CIni.h" />
     <ClInclude Include="eck\CLayoutBase.h" />
     <ClInclude Include="eck\CLinearLayout.h" />
+    <ClInclude Include="eck\CLink.h" />
     <ClInclude Include="eck\CProgressBar.h" />
     <ClInclude Include="eck\CQueueTimer.h" />
     <ClInclude Include="eck\CSrwLock.h" />
@@ -253,7 +255,6 @@
     <ClInclude Include="eck\EasingCurve.h" />
     <ClInclude Include="eck\ECK.h" />
     <ClInclude Include="eck\Env.h" />
-    <ClInclude Include="eck\GdiplusFlatDef.h" />
     <ClInclude Include="eck\ImageHelper.h" />
     <ClInclude Include="eck\LunarDateLib.h" />
     <ClInclude Include="eck\MathHelper.h" />

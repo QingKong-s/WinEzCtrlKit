@@ -32,10 +32,7 @@ private:
 	int m_xyMin = 0,
 		m_xyMax = 0;
 
-	HBRUSH m_hbrBK = GetSysColorBrush(COLOR_WINDOW);
-	HBRUSH m_hbrMark = CreateSolidBrush(0xFFCC66);
-
-	COLORREF m_crBK = GetSysColor(COLOR_WINDOW);
+	COLORREF m_crBK = CLR_DEFAULT;
 	COLORREF m_crMark = 0xFFCC66;
 	BYTE m_byMarkAlpha = 0xA0;
 
@@ -63,7 +60,8 @@ private:
 		{
 			PAINTSTRUCT ps;
 			BeginPaint(hWnd, &ps);
-			FillRect(ps.hdc, &ps.rcPaint, p->m_hbrMark);
+			SetDCBrushColor(ps.hdc, p->m_crMark);
+			FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
 			EndPaint(hWnd, &ps);
 		}
 		return 0;
@@ -137,12 +135,6 @@ private:
 		return xyPos;
 	}
 public:
-	~CSplitBar()
-	{
-		DeleteObject(m_hbrBK);
-		DeleteObject(m_hbrMark);
-	}
-
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)
@@ -191,7 +183,8 @@ public:
 		{
 			PAINTSTRUCT ps;
 			BeginPaint(hWnd, &ps);
-			FillRect(ps.hdc, &ps.rcPaint, m_hbrBK);
+			SetDCBrushColor(ps.hdc, m_crBK == CLR_DEFAULT ? GetThreadCtx()->crDefBkg : m_crBK);
+			FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
 			EndPaint(hWnd, &ps);
 		}
 		return 0;
@@ -253,9 +246,6 @@ public:
 			m_DC.Create(hWnd);
 		}
 		break;
-		case WM_DESTROY:
-			m_BKMark.Destroy();
-			return 0;
 		}
 
 		return DefWindowProcW(hWnd, uMsg, wParam, lParam);
@@ -280,15 +270,11 @@ public:
 		if (i == 0)
 		{
 			m_crBK = cr;
-			DeleteObject(m_hbrBK);
-			m_hbrBK = CreateSolidBrush(cr);
 			Redraw();
 		}
 		else if (i == 1)
 		{
 			m_crMark = cr;
-			DeleteObject(m_hbrMark);
-			m_hbrMark = CreateSolidBrush(cr);
 			if (m_BKMark.IsVisible())
 				m_BKMark.Redraw();
 		}
