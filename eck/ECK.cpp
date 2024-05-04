@@ -10,6 +10,7 @@
 #include "CRefStr.h"
 #include "CWnd.h"
 #include "GraphicsHelper.h"
+#include "CCommDlg.h"
 
 #include <Shlwapi.h>
 #include <d3d11.h>
@@ -75,6 +76,29 @@ static EckPriv___::FDrawThemeBackgroundEx s_pfnDrawThemeBackgroundEx{ DrawThemeB
 static EckPriv___::FDrawThemeBackground s_pfnDrawThemeBackground{ DrawThemeBackground };
 static EckPriv___::FGetThemeColor s_pfnGetThemeColor{ GetThemeColor };
 static EckPriv___::FCloseThemeData s_pfnCloseThemeData{ CloseThemeData };
+static EckPriv___::FDrawThemeParentBackground s_pfnDrawThemeParentBackground{ DrawThemeParentBackground };
+
+static HRESULT WINAPI NewDrawThemeParentBackground(HWND hWnd, HDC hDC, const RECT* prc)
+{
+	const auto hr = s_pfnDrawThemeParentBackground(hWnd, hDC, prc);
+	if (hr != S_OK)// include S_FALSE
+	{
+		WCHAR sz[ARRAYSIZE(WC_TABCONTROLW)];
+		if (GetClassNameW(hWnd, sz, ARRAYSIZE(sz)) != ARRAYSIZE(WC_TABCONTROLW) - 1)
+			return hr;
+		if (wcscmp(sz, WC_TABCONTROLW) != 0)
+			return hr;
+		RECT rc;
+		if (!prc)
+		{
+			GetClientRect(hWnd, &rc);
+			prc = &rc;
+		}
+		SetDCBrushColor(hDC, GetThreadCtx()->crDefBkg);
+		FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
+	}
+	return S_OK;
+}
 
 static HTHEME WINAPI NewOpenNcThemeData(HWND hWnd, PCWSTR pszClassList)
 {
@@ -127,15 +151,15 @@ static HTHEME WINAPI NewOpenThemeDataForDpi(HWND hWnd, PCWSTR pszClassList, UINT
 static HRESULT WINAPI NewDrawThemeText(HTHEME hTheme, HDC hdc, int iPartId, int iStateId, LPCWSTR pszText,
 	int cchText, DWORD dwTextFlags, DWORD dwTextFlags2, LPCRECT pRect)
 {
-	const auto* const ptc = GetThreadCtx();
-	if (ShouldAppUseDarkMode() && ptc->IsThemeButton(hTheme))
-		switch (iPartId)
-		{
-		case BP_CHECKBOX:
-		case BP_GROUPBOX:
-		case BP_RADIOBUTTON:
-		{
-			if (ShouldAppUseDarkMode())
+	if (ShouldAppUseDarkMode() )
+	{
+		const auto* const ptc = GetThreadCtx();
+		if (ptc->IsThemeButton(hTheme))
+			switch (iPartId)
+			{
+			case BP_CHECKBOX:
+			case BP_GROUPBOX:
+			case BP_RADIOBUTTON:
 			{
 				DTTOPTS dtt;
 				dtt.dwSize = sizeof(dtt);
@@ -145,9 +169,34 @@ static HRESULT WINAPI NewDrawThemeText(HTHEME hTheme, HDC hdc, int iPartId, int 
 				return DrawThemeTextEx(hTheme, hdc, iPartId, iStateId,
 					pszText, cchText, dwTextFlags, (RECT*)pRect, &dtt);
 			}
-		}
-		break;
-		}
+			break;
+			}
+		if (ptc->IsThemeTab(hTheme))
+			/*switch (iPartId)
+			{
+			case TABP_TABITEM:
+			case TABP_TABITEMLEFTEDGE:
+			case TABP_TABITEMRIGHTEDGE:
+			case TABP_TABITEMBOTHEDGE:
+			case TABP_TOPTABITEM:
+			case TABP_TOPTABITEMLEFTEDGE:
+			case TABP_TOPTABITEMRIGHTEDGE:
+			case TABP_TOPTABITEMBOTHEDGE:
+			case TABP_PANE:
+			case TABP_BODY:
+			case TABP_AEROWIZARDBODY:*/
+			{
+				DTTOPTS dtt;
+				dtt.dwSize = sizeof(dtt);
+				dtt.dwFlags = DTT_TEXTCOLOR;
+				dtt.crText = ptc->crDefText;
+				dwTextFlags &= ~DT_CALCRECT;
+				return DrawThemeTextEx(hTheme, hdc, iPartId, iStateId,
+					pszText, cchText, dwTextFlags, (RECT*)pRect, &dtt);
+			}
+			/*break;
+			}*/
+	}
 	return s_pfnDrawThemeText(hTheme, hdc, iPartId, iStateId, pszText, cchText,
 		dwTextFlags, dwTextFlags2, pRect);
 }
@@ -263,6 +312,44 @@ static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hdc, int iPartId
 			case BP_COMMANDLINK:
 				return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, 0.9f);
 			}
+		if (ptc->IsThemeTab(hTheme))
+			switch (iPartId)
+			{
+			case TABP_TABITEM:
+			case TABP_TABITEMLEFTEDGE:
+			case TABP_TABITEMRIGHTEDGE:
+			case TABP_TABITEMBOTHEDGE:
+			case TABP_TOPTABITEM:
+			case TABP_TOPTABITEMLEFTEDGE:
+			case TABP_TOPTABITEMRIGHTEDGE:
+			case TABP_TOPTABITEMBOTHEDGE:
+			{
+				float f;
+				switch (iStateId)
+				{
+				case TIS_NORMAL:
+					f = -0.75f;
+					break;
+				case TIS_HOT:
+					f = -0.8f;
+					break;
+				case TIS_FOCUSED:
+				case TIS_SELECTED:
+					f = -0.86f;
+					break;
+				case TIS_DISABLED:
+					f = -0.6f;
+					break;
+				default:
+					return E_INVALIDARG;
+				}
+				return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, f);
+			}
+			case TABP_PANE:
+			case TABP_BODY:
+			case TABP_AEROWIZARDBODY:
+				return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, -0.86f);
+			}
 	}
 	return s_pfnDrawThemeBackground(hTheme, hdc, iPartId, iStateId, pRect, pClipRect);
 }
@@ -338,6 +425,7 @@ g_WndClassInfo[]
 	{ WCN_ANIMATIONBOX },
 	{ WCN_TREELIST },
 	{ WCN_COMBOBOXNEW },
+	{ WCN_PICTUREBOX },
 };
 
 InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrCode)
@@ -552,7 +640,6 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	DetourTransactionBegin();
 	if (s_pfnOpenNcThemeData)
 		DetourAttach(&s_pfnOpenNcThemeData, NewOpenNcThemeData);
-	s_pfnOpenThemeData = OpenThemeData;
 	DetourAttach(&s_pfnOpenThemeData, NewOpenThemeData);
 	DetourAttach(&s_pfnDrawThemeText, NewDrawThemeText);
 	DetourAttach(&s_pfnOpenThemeDataForDpi, NewOpenThemeDataForDpi);
@@ -560,6 +647,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	DetourAttach(&s_pfnDrawThemeBackground, NewDrawThemeBackground);
 	DetourAttach(&s_pfnGetThemeColor, NewGetThemeColor);
 	DetourAttach(&s_pfnCloseThemeData, NewCloseThemeData);
+	DetourAttach(&s_pfnDrawThemeParentBackground, NewDrawThemeParentBackground);
 	DetourTransactionCommit();
 	return InitStatus::Ok;
 }
@@ -810,10 +898,10 @@ void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 
 	tdc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS;
 
-	BOOL t;
-	int iBtn;
-	TaskDialogIndirect(&tdc, &iBtn, &t, &t);
-	switch (iBtn)
+	TASKDIALOGCTX Ctx{ &tdc };
+	CTaskDialog td;
+
+	switch (td.DlgBox(NULL, &Ctx))
 	{
 	case 100:
 		ExitProcess(0);

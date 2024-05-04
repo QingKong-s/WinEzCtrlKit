@@ -75,7 +75,7 @@ public:
 		}
 		return 0;
 		}
-		return DefWindowProcW(hWnd, uMsg, wParam, lParam);
+		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
 	ECK_CWND_CREATE;
@@ -122,18 +122,6 @@ private:
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 public:
-	static ATOM RegisterWndClass()
-	{
-		WNDCLASSW wc{};
-		wc.cbWndExtra = sizeof(void*);
-		wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
-		wc.hInstance = eck::g_hInstance;
-		wc.lpfnWndProc = DefWindowProcW;
-		wc.lpszClassName = WCN_DRAWPANELD2D;
-		wc.style = CS_VREDRAW | CS_HREDRAW | CS_DBLCLKS;
-		return RegisterClassW(&wc);
-	}
-
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override

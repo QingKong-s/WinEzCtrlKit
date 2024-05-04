@@ -1002,7 +1002,7 @@ private:
 						pt.y = m_cyClient;
 					m_rcDraggingSel = MakeRect(ptStart, pt);// 制矩形
 
-					if (rcOld == m_rcDraggingSel)// 范围未变，退出
+					if (EquRect(rcOld, m_rcDraggingSel))// 范围未变，退出
 					{
 						OffsetRect(m_rcDraggingSel, -m_dxContent, m_idxTopItem * m_cyItem);
 						break;
@@ -2141,7 +2141,7 @@ public:
 				0, 0, ClientWidth, m_Ds.cyHeaderDef, hWnd, TL_IDC_HEADER);
 			SetExplorerTheme();
 			m_hThemeTV = OpenThemeData(hWnd, L"TreeView");
-			m_hThemeLV = OpenThemeData(hWnd, L"ListView");
+			m_hThemeLV = OpenThemeData(NULL, L"ItemsView::ListView");
 			m_hThemeBT = OpenThemeData(hWnd, L"Button");
 			UpdateThemeInfo();
 			m_bHasFocus = (GetFocus() == hWnd);
@@ -2230,6 +2230,16 @@ public:
 			m_hThemeLV = NULL;
 			CloseThemeData(m_hThemeBT);
 			m_hThemeBT = NULL;
+			m_ToolTip.Destroy();
+			m_vItem.clear();
+			m_vCol.clear();
+			m_rsWatermark = {};
+			m_hImgList = NULL;
+			m_cxImg = m_cyImg = 0;
+			m_idxTopItem = 0;
+			m_idxHot = m_idxFocus = m_idxMark = m_idxSel = m_idxToolTip = m_idxToolTipSubItemDisplay =
+				m_idxEditing = m_idxEditingSubItemDisplay = m_idxCheckBoxLBtnDown = -1;
+			m_iLogicalTopLevel = 1;
 		}
 		break;
 

@@ -290,13 +290,20 @@ EckInline bool operator<(const FILETIME& ft1, const FILETIME& ft2)
 	return CompareFileTime(&ft1, &ft2) == -1;
 }
 
-#if defined(D3D11_NO_HELPERS) || !defined(__d3d11_h__)
-EckInline constexpr bool operator==(const RECT& rc1, const RECT& rc2)
+//微软你妈死了
+//#if defined(D3D11_NO_HELPERS) || !defined(__d3d11_h__)
+//EckInline constexpr bool operator==(const RECT& rc1, const RECT& rc2)
+//{
+//	return rc1.left == rc2.left && rc1.top == rc2.top &&
+//		rc1.right == rc2.right && rc1.bottom == rc2.bottom;
+//}
+//#endif
+
+EckInline constexpr BOOL EquRect(const RECT& rc1, const RECT& rc2)
 {
 	return rc1.left == rc2.left && rc1.top == rc2.top &&
 		rc1.right == rc2.right && rc1.bottom == rc2.bottom;
 }
-#endif
 
 template<class T1, class T2>
 EckInline constexpr BOOL IsBitSet(T1 dw1, T2 dw2)
@@ -404,12 +411,22 @@ EckInline constexpr SIZE_T Cch2Cb(int cch)
 
 EckInline constexpr D2D1_RECT_F MakeD2DRcF(const RECT& rc)
 {
-	return D2D1_RECT_F{ (float)rc.left, (float)rc.top, (float)rc.right, (float)rc.bottom };
+	return { (float)rc.left, (float)rc.top, (float)rc.right, (float)rc.bottom };
+}
+
+EckInline constexpr D2D1_RECT_F MakeD2DRcF(float x, float y, float cx, float cy)
+{
+	return { x, y, x + cx, y + cy };
 }
 
 EckInline constexpr RECT MakeRect(const D2D1_RECT_F& rc)
 {
 	return { (LONG)rc.left, (LONG)rc.top, (LONG)rc.right, (LONG)rc.bottom };
+}
+
+EckInline constexpr RECT MakeRect(int x, int y, int cx, int cy)
+{
+	return { x, y, x + cx, y + cy };
 }
 
 EckInline constexpr UINT Gcd(UINT a, UINT b)

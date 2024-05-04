@@ -531,12 +531,12 @@ public:
 			if (m_bDraggingSel)
 			{
 				auto cr = crs.crBkHot;
-				cr.a *= 0.7;
+				cr.a *= 0.7f;
 				m_pBrush->SetColor(cr);
 				m_pDC->FillRectangle(MakeD2DRcF(m_rcDragSel), m_pBrush);
 
 				cr = crs.crBkSelected;
-				cr.a *= 0.7;
+				cr.a *= 0.7f;
 				m_pBrush->SetColor(cr);
 				m_pDC->DrawRectangle(MakeD2DRcF(m_rcDragSel), m_pBrush, 3.f);
 			}

@@ -47,6 +47,8 @@
 #include "eck\CSrwLock.h"
 #include "eck\CFontPicker.h"
 #include "eck\CColorPickBlock.h"
+#include "eck\CDuiEdit.h"
+#include "eck\CTab.h"
 
 #define WCN_TEST L"CTestWindow"
 
@@ -167,7 +169,7 @@ public:
 
 			std::thread t([this]
 				{
-					//return;
+					return;
 					for (int i{}; auto & e : m_vItem)
 					{
 						ID2D1Bitmap* p;
@@ -186,27 +188,27 @@ public:
 
 			eck::Dui::CElem* pElem = NULL; &m_Label3;
 			pElem = 0;
-			m_List.Create(NULL, eck::Dui::DES_VISIBLE, 0,
-				10, 10, ClientWidth - 20, ClientHeight - 20, pElem, this, NULL);// 50  70  650  670
-			m_List.SetTextFormat(GetDefTextFormat());
-			m_List.SetItemHeight(240);
-			m_List.SetItemWidth(200);
-			//m_List.SetImageSize(-1);
-			m_List.SetItemPadding(5);
-			m_List.SetItemPaddingH(5);
-			m_List.SetItemCount((int)m_vItem.size());
-			/*m_vItem.resize(100);
-			EckCounter(m_vItem.size(), i)
-			{
-				m_il.AddImage(pBitmap);
-				m_vItem[i].rs = eck::ToStr(i);
-				m_vItem[i].pBitmap = pBitmap;
-			}
-			m_List.SetItemCount((int)m_vItem.size());*/
-			m_List.SetImageList(&m_il);
-			//m_List.SetInsertMark(5);
+			//m_List.Create(NULL, eck::Dui::DES_VISIBLE, 0,
+			//	10, 10, ClientWidth - 20, ClientHeight - 20, pElem, this, NULL);// 50  70  650  670
+			//m_List.SetTextFormat(GetDefTextFormat());
+			//m_List.SetItemHeight(240);
+			//m_List.SetItemWidth(200);
+			////m_List.SetImageSize(-1);
+			//m_List.SetItemPadding(5);
+			//m_List.SetItemPaddingH(5);
+			//m_List.SetItemCount((int)m_vItem.size());
+			///*m_vItem.resize(100);
+			//EckCounter(m_vItem.size(), i)
+			//{
+			//	m_il.AddImage(pBitmap);
+			//	m_vItem[i].rs = eck::ToStr(i);
+			//	m_vItem[i].pBitmap = pBitmap;
+			//}
+			//m_List.SetItemCount((int)m_vItem.size());*/
+			//m_List.SetImageList(&m_il);
+			///*m_List.SetInsertMark(5);
 			//m_List.SetTopExtraSpace(100);
-			//m_List.SetBottomExtraSpace(100);
+			//m_List.SetBottomExtraSpace(100);*/
 
 			/*m_Label2.Create(L"测试标签😍😍", eck::Dui::DES_VISIBLE | eck::Dui::DES_BLURBKG | 0, 0,
 				0, 0, 600, 100, &m_List, this, NULL);
@@ -249,6 +251,30 @@ public:
 			//const auto psv = m_SB.GetScrollView();
 			//psv->SetRange(-100, 100);
 			//psv->SetPage(40);
+
+			auto psz =
+				L"应用程序😱😱😭😅😡😎调用此函数以获取一组对应于一系列文本位置的命中测试指标。主要用法之一是实现文本字符串的突出显示选择。\n"
+				L"当 hitTestMetrics 的缓冲区大小太小，无法容纳函数计算的所有区域时，函数返回E_NOT_SUFFICIENT_BUFFER，这等效于 HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER) 。"
+				L"在这种情况下，函数将输出值 * actualHitTestMetricsCount 设置为计算的几何图形数。\n"
+				L"应用程序负责分配更大的新缓冲区，并再次调用函数。"
+				L"应用程序😱😱😭😅😡😎调用此函数以获取一组对应于一系列文本位置的命中测试指标。主要用法之一是实现文本字符串的突出显示选择。\n"
+				L"当 hitTestMetrics 的缓冲区大小太小，无法容纳函数计算的所有区域时，函数返回E_NOT_SUFFICIENT_BUFFER，这等效于 HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER) 。"
+				L"在这种情况下，函数将输出值 * actualHitTestMetricsCount 设置为计算的几何图形数。\n"
+				L"应用程序负责分配更大的新缓冲区，并再次调用函数。";
+			auto ped = new eck::Dui::CEdit{};
+			ped->Create(psz, eck::Dui::DES_VISIBLE | eck::Dui::DES_TRANSPARENT, 0,
+				100, 0, 600, 600, NULL, this);
+			IDWriteTextFormat* ptf;
+			eck::g_pDwFactory->CreateTextFormat(
+				L"微软雅黑",
+				NULL,
+				DWRITE_FONT_WEIGHT_NORMAL,
+				DWRITE_FONT_STYLE_NORMAL,
+				DWRITE_FONT_STRETCH_NORMAL,
+				30.f,
+				L"zh-cn",
+				& ptf);
+			ped->SetTextFormat(ptf);
 
 			EnableDragDrop(TRUE);
 
@@ -583,6 +609,17 @@ public:
 			//eck::EnableWindowNcDarkMode(hWnd, TRUE);
 			m_iDpi = eck::GetDpi(hWnd);
 
+			auto ptab = new eck::CTab{};
+			ptab->Create(NULL, WS_CHILD | WS_VISIBLE, 0,
+				100, 130, 400, 300, hWnd, 0);
+			ptab->InsertItem(L"Tab 0");
+			ptab->InsertItem(L"子夹 1");
+			ptab->InsertItem(L"子夹 2");
+			ptab->InsertItem(L"哈哈哈哈哈哈哈哈");
+			ptab->InsertItem(L"测试测试");
+			ptab->InsertItem(L"Tabbbbb");
+
+
 			//auto hil = ImageList_Create(80, 80, ILC_COLOR32 | ILC_ORIGINALSIZE, 0, 20);
 			//hFind = FindFirstFileW(LR"(H:\@存档的文件\@其他\图片素材库\64px\Kitchen (Food Beverage)\*.png)", &wfd);
 			//do
@@ -774,10 +811,10 @@ public:
 			//m_Btn.Create(L"筛选", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS, 0, 900, 0, 300, 70, hWnd, 101);
 			//m_lot.Add(&m_Btn, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 			
-			RECT rcDui{ 0,0,1800,1000 };
-			m_Dui.Create(L"我是 Dui 窗口", WS_CHILD | WS_VISIBLE, 0, 0, 0, rcDui.right, rcDui.bottom, hWnd, 108);
-			m_Dui.Redraw();
-			m_lot.Add(&m_Dui, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
+			//RECT rcDui{ 0,0,1800,1000 };
+			//m_Dui.Create(L"我是 Dui 窗口", WS_CHILD | WS_VISIBLE, 0, 0, 0, rcDui.right, rcDui.bottom, hWnd, 108);
+			//m_Dui.Redraw();
+			//m_lot.Add(&m_Dui, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 
 			//m_enc.Create(L"示例编辑框", WS_VISIBLE | WS_CHILD, WS_EX_CLIENTEDGE,
 			//	0, 0, 200, 40, hWnd, 0);

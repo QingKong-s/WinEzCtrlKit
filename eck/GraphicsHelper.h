@@ -1757,6 +1757,14 @@ inline BOOL DrawBackgroundImage32(HDC hDC, HDC hdcBitmap, const RECT& rc, int cx
 	const int
 		cx = rc.right - rc.left,
 		cy = rc.bottom - rc.top;
+	if (cxImage <= 0 || cyImage <= 0)
+	{
+		BITMAP bmp;
+		if (!GetObjectW(GetCurrentObject(hdcBitmap, OBJ_BITMAP), sizeof(bmp), &bmp))
+			return FALSE;
+		cxImage = bmp.bmWidth;
+		cyImage = bmp.bmHeight;
+	}
 	switch (iMode)
 	{
 	case DBGIF_TOPLEFT:// 居左上
@@ -1828,7 +1836,6 @@ inline BOOL DrawBackgroundImage32(HDC hDC, HDC hdcBitmap, const RECT& rc, int cx
 		break;
 	default:
 		EckDbgBreak();
-		EckDbgPrintWithPos(L"无效标志");
 	}
 	return FALSE;
 }
@@ -1921,9 +1928,107 @@ inline BOOL DrawBackgroundImage(HDC hDC, HDC hdcBitmap, const RECT& rc, int cxIm
 		break;
 	default:
 		EckDbgBreak();
-		EckDbgPrintWithPos(L"无效标志");
 	}
 	return FALSE;
+}
+
+/// <summary>
+/// 画背景图像。
+/// 通用背景图像绘制函数
+/// </summary>
+/// <param name="hDC">设备场景</param>
+/// <param name="hdcBitmap">图像场景</param>
+/// <param name="rc">矩形</param>
+/// <param name="cxImage">图像宽度</param>
+/// <param name="cyImage">图像高度</param>
+/// <param name="iMode">模式，DBGIF_常量</param>
+/// <param name="bFullRgnImage">是否尽量充满目标区域</param>
+/// <returns>BitBlt的返回值</returns>
+inline GpStatus DrawBackgroundImage(GpGraphics* pGraphics, GpImage* pImage, const RECT& rc, int cxImage, int cyImage,
+	int iMode, BOOL bFullRgnImage)
+{
+	const int
+		cx = rc.right - rc.left,
+		cy = rc.bottom - rc.top;
+	if (cxImage <= 0 || cyImage <= 0)
+	{
+		GdipGetImageWidth(pImage, (UINT*)&cxImage);
+		GdipGetImageHeight(pImage, (UINT*)&cyImage);
+	}
+	switch (iMode)
+	{
+	case DBGIF_TOPLEFT:// 居左上
+	{
+		if (bFullRgnImage)
+		{
+			if (!cyImage || !cxImage)
+				break;
+			int cxRgn, cyRgn;
+
+			cxRgn = cy * cxImage / cyImage;
+			if (cxRgn < cx)// 先尝试y对齐，看x方向是否充满窗口
+			{
+				cxRgn = cx;
+				cyRgn = cx * cyImage / cxImage;
+			}
+			else
+				cyRgn = cy;
+
+			return GdipDrawImageRectI(pGraphics, pImage, 0, 0, cxRgn, cyRgn);
+		}
+		else
+			return GdipDrawImageRectI(pGraphics, pImage, 0, 0, cxImage, cyImage);
+	}
+	break;
+	case DBGIF_TILE:// 平铺
+	{
+		for (int i = 0; i < (cx - 1) / cxImage + 1; ++i)
+			for (int j = 0; j < (cy - 1) / cyImage + 1; ++j)
+			{
+				const auto b = GdipDrawImageRectI(pGraphics, pImage,
+					i * cxImage, j * cyImage, cxImage, cyImage);
+				if (b != Gdiplus::Ok)
+					return b;
+			}
+	}
+	return Gdiplus::Ok;
+	case DBGIF_CENTER:// 居中
+	{
+		if (bFullRgnImage)
+		{
+			if (!cyImage || !cxImage)
+				break;
+			int cxRgn, cyRgn;
+			int x, y;
+
+			cxRgn = cy * cxImage / cyImage;
+			if (cxRgn < cx)// 先尝试y对齐，看x方向是否充满窗口
+			{
+				cxRgn = cx;
+				cyRgn = cx * cyImage / cxImage;
+				x = 0;
+				y = (cy - cyRgn) / 2;
+			}
+			else
+			{
+				cyRgn = cy;
+				x = (cx - cxRgn) / 2;
+				y = 0;
+			}
+
+			return GdipDrawImageRectI(pGraphics, pImage, x, y, cxRgn, cyRgn);
+		}
+		else
+			return GdipDrawImageRectI(pGraphics, pImage,
+				(cx - cxImage) / 2, (cy - cyImage) / 2, cxImage, cyImage);
+	}
+	break;
+	case DBGIF_STRETCH:// 缩放
+		return GdipDrawImageRectI(pGraphics, pImage, 0, 0, cx, cy);
+	default:
+		EckDbgBreak();
+	}
+	return Gdiplus::InvalidParameter;
 }
 
 inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp,
@@ -2280,7 +2385,7 @@ inline HRESULT GetTextLayoutPathGeometry(IDWriteTextLayout* pLayout, ID2D1Render
 /// <param name="pPathGeometry">结果路径几何形</param>
 /// <param name="pD2dFactory">D2D工厂，若为空则使用ECK工厂</param>
 /// <returns>HRESULT</returns>
-inline HRESULT GetTextLayoutPathGeometry(IDWriteTextLayout* const* pLayout, int cLayout, const float* cyPadding, 
+inline HRESULT GetTextLayoutPathGeometry(IDWriteTextLayout* const* pLayout, int cLayout, const float* cyPadding,
 	ID2D1RenderTarget* pRT, float* x, float yStart, ID2D1PathGeometry*& pPathGeometry, ID2D1Factory* pD2dFactory = NULL)
 {
 	if (!pD2dFactory)

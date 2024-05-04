@@ -60,5 +60,12 @@ public:
 	EckInline void LoSetParent(ILayout* p) override { m_pParent = p; }
 
 	EckInline HDWP LoGetCurrHDWP() override { return m_hDwp; }
+
+	virtual void Clear()
+	{
+		m_x = m_y = m_cx = m_cy = 0;
+		m_pParent = NULL;
+		m_hDwp = NULL;
+	}
 };
 ECK_NAMESPACE_END

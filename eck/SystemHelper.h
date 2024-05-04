@@ -134,7 +134,7 @@ inline CRefBin ReadInFile(PCWSTR pszFile)
 	GetFileSizeEx(hFile, &i64);
 	if (i64.QuadPart > 1'073'741'824i64)// 大于1G，不读
 	{
-		EckDbgPrintFmt(L"文件太大! 尺寸 = %i64", i64.QuadPart);
+		EckDbgPrintFmt(L"文件太大! 尺寸 = %I64d", i64.QuadPart);
 		CloseHandle(hFile);
 		return {};
 	}

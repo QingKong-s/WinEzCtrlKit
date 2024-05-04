@@ -20,7 +20,7 @@
 #define ECK_DUI_NAMESPACE_END }
 
 #ifdef _DEBUG
-#	if 0
+#	if 1
 #		define ECK_DUI_DBG_DRAW_FRAME					\
 			{											\
 				ID2D1SolidColorBrush* ECKPRIV_pBr___;	\
@@ -854,7 +854,7 @@ public:
 			return 0;
 		}
 
-		if (uMsg >= WM_KEYFIRST && uMsg <= WM_KEYLAST)
+		if (uMsg >= WM_KEYFIRST && uMsg <= WM_IME_KEYLAST)
 		{
 			if (m_pFocusElem)
 				m_pFocusElem->CallEvent(uMsg, wParam, lParam);
@@ -899,6 +899,10 @@ public:
 				m_pHoverElem = NULL;
 			}
 			break;
+		case WM_CHAR:
+		case WM_SYSCHAR:
+		case WM_UNICHAR:
+		case WM_SYSKEYDOWN:
 
 		case WM_CAPTURECHANGED:
 		{
@@ -937,7 +941,7 @@ public:
 
 				m_D2d.Create(EZD2D_PARAM::MakeFlip(hWnd,
 					g_pDxgiFactory, g_pDxgiDevice, g_pD2dDevice, rc.right, rc.bottom));
-				m_D2d.GetDC()->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
+				m_D2d.GetDC()->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
 
 				const auto crBkg = D2D1::ColorF(0x191919);
 				m_D2d.GetDC()->CreateSolidColorBrush(crBkg, &m_pBrBkg);
@@ -1067,6 +1071,8 @@ public:
 	CElem* SetFocusElem(CElem* pElem)
 	{
 		SetFocus(HWnd);
+		if (m_pFocusElem == pElem)
+			return pElem;
 		auto pOld = m_pFocusElem;
 		if (pOld)
 			pOld->CallEvent(WM_KILLFOCUS, (WPARAM)pElem, 0);

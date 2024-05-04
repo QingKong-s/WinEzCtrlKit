@@ -189,8 +189,10 @@
     <ClInclude Include="eck\CLayoutBase.h" />
     <ClInclude Include="eck\CLinearLayout.h" />
     <ClInclude Include="eck\CLink.h" />
+    <ClInclude Include="eck\CPictureBox.h" />
     <ClInclude Include="eck\CProgressBar.h" />
     <ClInclude Include="eck\CQueueTimer.h" />
+    <ClInclude Include="eck\CSplitLayout.h" />
     <ClInclude Include="eck\CSrwLock.h" />
     <ClInclude Include="eck\CTrackBar.h" />
     <ClInclude Include="eck\CTreeListExt.h" />

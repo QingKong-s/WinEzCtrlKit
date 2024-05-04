@@ -32,6 +32,11 @@ struct NMLBNDRAG
 	UINT uKeyFlags;
 };
 
+struct NMLBNCUSTOMDRAW
+{
+	NMECKCTRLCUSTOMDRAW nmcd;
+};
+
 
 class CListBoxNew :public CWnd
 {
@@ -207,7 +212,7 @@ private:
 			GetWindowRect(hWnd, &rcWnd);
 			ScreenToClient(hWnd, &rcWnd);
 			GetClientRect(hWnd, &rcClient);
-			if (!PtInRect(rcWnd, POINT{ x,y })&&
+			if (!PtInRect(rcWnd, POINT{ x,y }) &&
 				!PtInRect(rcWnd, POINT{ x,y }))// 在滚动条上
 			{
 				POINT ptScr{ x,y };
@@ -440,9 +445,9 @@ private:
 							// 闭区间
 							idx0 = std::min({ m_idxMark,idxCurr,idxOld }),
 							idx1 = std::max({ m_idxMark,idxCurr,idxOld });
-						if (idxOldSelBegin != idxSelBegin && 
+						if (idxOldSelBegin != idxSelBegin &&
 							idxOldSelEnd != idxSelEnd &&
-							idxOld0 != idx0 && 
+							idxOld0 != idx0 &&
 							idxOld1 != idx1)
 						{
 							for (int i = idx0; i <= idx1; ++i)
@@ -587,8 +592,16 @@ private:
 	void PaintItem(int idx, const RECT& rcItem)
 	{
 		const HDC hCDC = m_DC.GetDC();
-		int iState = 0;
 
+		NMLBNCUSTOMDRAW cd{};
+		cd.nmcd.hDC = hCDC;
+		cd.nmcd.iStage = NMECDS_PREDRAW;
+		cd.nmcd.rcItem = rcItem;
+		cd.nmcd.idx = idx;
+		if (FillNmhdrAndSendNotify(cd, NM_LBN_CUSTOMDRAW) == NMECDR_SKIPDEF)
+			return;
+
+		int iState = 0;
 		if (m_idxHot == idx)
 			if (IsItemSel(idx))
 				iState = LISS_HOTSELECTED;
@@ -605,6 +618,10 @@ private:
 			InflateRect(rc, -1, -1);
 			DrawFocusRect(hCDC, &rc);
 		}
+
+		cd.nmcd.iStage = NMECDS_POSTDRAWBK;
+		if (SendNotify(cd) == NMECDR_SKIPDEF)
+			return;
 
 		NMLBNGETDISPINFO nm{};
 		nm.Item.idxItem = idx;
@@ -868,9 +885,21 @@ public:
 		case WM_CREATE:
 			return HANDLE_WM_CREATE(hWnd, wParam, lParam, OnCreate);
 		case WM_DESTROY:
+		{
 			CloseThemeData(m_hTheme);
+			m_hTheme = NULL;
 			DeleteObject(m_hbrBkg);
-			return 0;
+			m_hbrBkg = NULL;
+			m_hFont = NULL;
+			m_cyItem = 24;
+			m_idxSel = m_idxHot = m_idxTop = m_idxMark = m_idxFocus = -1;
+			m_oyTop = 0;
+			m_vItem.clear();
+			m_bHasFocus = m_bLBtnDown = m_bUserItemHeight =
+				m_bNmDragging = m_bTrackComboBoxList = FALSE;
+			m_hComboBox = NULL;
+		}
+		return 0;
 		}
 
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
@@ -911,7 +940,7 @@ public:
 
 	EckInline void GetItemRect(int idx, RECT& rc)
 	{
-		rc = { 0,GetItemY(idx),m_cxClient};
+		rc = { 0,GetItemY(idx),m_cxClient };
 		rc.bottom = rc.top + m_cyItem;
 	}
 
@@ -1003,6 +1032,10 @@ public:
 		idxChangedBegin = idx0;
 		idxChangedEnd = idx1;
 	}
+
+	EckInline void SetItemHeight(int cy) { m_cyItem = cy; }
+
+	EckInline int GetItemHeight() const { return m_cyItem; }
 
 	//----------------组合框交互----------------
 	EckInline void SetComboBox(HWND h) { m_hComboBox = h; }

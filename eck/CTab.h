@@ -16,10 +16,27 @@ public:
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
-		dwStyle |= WS_CHILD;
-		m_hWnd = CreateWindowExW(0, WC_TABCONTROLW, NULL, dwStyle,
+		return IntCreate(0, WC_TABCONTROLW, NULL, dwStyle,
 			x, y, cx, cy, hParent, hMenu, NULL, NULL);
-		return m_hWnd;
+	}
+
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
+	{
+		switch (uMsg)
+		{
+		case WM_PAINT:
+		{
+			PAINTSTRUCT ps;
+			BeginPaint(hWnd, &ps);
+			CEzCDC DC{};
+			DC.Create(hWnd, ps.rcPaint.right, ps.rcPaint.bottom);
+			CWnd::OnMsg(hWnd, WM_PAINT, (WPARAM)DC.GetDC(), lParam);
+			BitBltPs(&ps, DC.GetDC());
+			EndPaint(hWnd, &ps);
+		}
+		return 0;
+		}
+		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
 	/// <summary>
@@ -186,7 +203,5 @@ public:
 	{
 		SendMsg(TCM_SETTOOLTIPS, (WPARAM)hToolTip, 0);
 	}
-
-
 };
 ECK_NAMESPACE_END
