@@ -231,6 +231,7 @@ struct CCharTraits<WCHAR>
 	EckInline static constexpr void Cut(PWSTR psz, int cch) { AssignChar(psz + cch, CharTerminatingNull()); }
 	EckInline static constexpr WCHAR CharSpace() { return L' '; }
 	EckInline static int Compare(PCWSTR psz1, PCWSTR psz2) { return wcscmp(psz1, psz2); }
+	EckInline static int Compare(PCWSTR psz1, PCWSTR psz2, int cch) { return wcsncmp(psz1, psz2, cch); }
 	EckInline static int Find(PCWSTR pszText, PCWSTR pszSub, int posStart = 0) { return FindStr(pszText, pszSub, posStart); }
 	EckInline static int FormatV(PWSTR pszBuf, PCWSTR pszFmt, va_list vl) { return vswprintf(pszBuf, pszFmt, vl); }
 	EckInline static int GetFormatCchV(PCWSTR pszFmt, va_list vl) { return _vscwprintf(pszFmt, vl); }
@@ -260,6 +261,7 @@ struct CCharTraits<CHAR>
 	EckInline static constexpr void Cut(PSTR psz, int cch) { AssignChar(psz + cch, CharTerminatingNull()); }
 	EckInline static constexpr CHAR CharSpace() { return ' '; }
 	EckInline static int Compare(PCSTR psz1, PCSTR psz2) { return strcmp(psz1, psz2); }
+	EckInline static int Compare(PCSTR psz1, PCSTR psz2, int cch) { return strncmp(psz1, psz2, cch); }
 	EckInline static int Find(PCSTR pszText, PCSTR pszSub, int posStart = 0) { return FindStr(pszText, pszSub, posStart); }
 	EckInline static int FormatV(PSTR pszBuf, PCSTR pszFmt, va_list vl) { return vsprintf(pszBuf, pszFmt, vl); }
 	EckInline static int GetFormatCchV(PCSTR pszFmt, va_list vl) { return _vscprintf(pszFmt, vl); }
@@ -820,7 +822,7 @@ public:
 	/// <param name="pos">位置</param>
 	/// <param name="pszText">字符串</param>
 	/// <param name="cchText">字符数</param>
-	EckInline void Insert(int pos, PCWSTR pszText, int cchText)
+	EckInline void Insert(int pos, TConstPointer pszText, int cchText)
 	{
 		EckAssert(pos <= Size());
 		EckAssert(pszText ? (cchText >= 0) : (cchText == 0));
@@ -838,7 +840,7 @@ public:
 		Insert(pos, rs.Data(), rs.Size());
 	}
 
-	EckInline void Insert(int pos, PCWSTR pszText)
+	EckInline void Insert(int pos, TConstPointer pszText)
 	{
 		Insert(pos, pszText, TCharTraits::Len(pszText));
 	}
@@ -858,6 +860,17 @@ public:
 			Data() + pos,
 			Size() - cchText - pos);
 		return Data() + pos;
+	}
+
+	EckInline void InsertChar(int pos, TChar ch)
+	{
+		EckAssert(pos <= Size());
+		ReSizeExtra(Size() + 1);
+		TCharTraits::MoveEnd(
+			Data() + pos + 1,
+			Data() + pos,
+			Size() - 1 - pos);
+		TCharTraits::AssignChar(Data() + pos, ch);
 	}
 
 	/// <summary>
@@ -964,7 +977,7 @@ public:
 		return FindStr(Data(), rs.Data(), posStart);
 	}
 
-	[[nodiscard]] EckInline int Find(PCWSTR pszSub, int posStart = 0) const
+	[[nodiscard]] EckInline int Find(TConstPointer pszSub, int posStart = 0) const
 	{
 		if (IsEmpty())
 			return StrNPos;
@@ -1007,6 +1020,15 @@ public:
 		const int cchNew = (int)(psz1 - psz0);
 		TCharTraits::Move(Data(), psz0, cchNew);
 		ReSize(cchNew);
+	}
+
+	BOOL IsStartOf(TConstPointer psz, int cch = -1) const
+	{
+		if (cch < 0)
+			cch = TCharTraits::Len(psz);
+		if (cch == 0 || Size() < cch)
+			return FALSE;
+		return TCharTraits::Compare(Data(), psz, cch) == 0;
 	}
 
 	[[nodiscard]] EckInline TIterator begin() { return Data(); }

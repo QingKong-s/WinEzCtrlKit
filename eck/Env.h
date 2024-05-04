@@ -37,6 +37,7 @@
 #pragma comment(lib,"wbemuuid.lib")
 #pragma comment(lib,"Version.lib")
 #pragma comment(lib,"msimg32.lib")
+#pragma comment(lib,"Imm32.lib")
 #ifdef _WIN64
 #pragma comment(lib,"D:\\@重要文件\\@我的工程\\WinEzCtrlKit\\eck\\Detours\\detours_x64.lib")
 #else

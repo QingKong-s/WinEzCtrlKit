@@ -157,6 +157,7 @@ ECK_NAMESPACE_END
 
 // lParam->POINT 用于处理鼠标消息   e.g. POINT pt ECK_GET_PT_LPARAM(lParam);
 #define ECK_GET_PT_LPARAM(lParam) { GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) }
+#define ECK_GET_PT_LPARAM_F(lParam) { (float)GET_X_LPARAM(lParam),(float)GET_Y_LPARAM(lParam) }
 
 // lParam->size 用于处理WM_SIZE   e.g. ECK_GET_SIZE_LPARAM(cxClient, cyClient, lParam);
 #define ECK_GET_SIZE_LPARAM(cx,cy,lParam) { (cx) = LOWORD(lParam); (cy) = HIWORD(lParam); }
@@ -248,6 +249,8 @@ constexpr inline BYTE BOM_UTF8[]{ 0xEF,0xBB,0xBF };
 constexpr inline COLORREF c_crDarkWnd = RGB(32, 32, 32);
 constexpr inline COLORREF c_crDarkBtnFace = 0x383838;
 
+constexpr inline UINT c_Neg1U{ (UINT)-1 };
+
 /*-------------------*/
 /*控件通知代码*/
 #pragma warning(suppress:26454)// 算术溢出
@@ -279,6 +282,27 @@ enum :UINT
 	NM_LBN_ENDDRAG,			// NMLBNDRAG
 	NM_LBN_DISMISS,			// NMHDR
 	NM_LBN_LBTNDOWN,		// NMHDR
+	NM_LBN_CUSTOMDRAW,		// NMLBNCUSTOMDRAW
+	NM_PKB_OWNERDRAW,		// NMPKBOWNERDRAW
+};
+
+enum
+{
+	NMECDS_PREDRAW,
+	NMECDS_POSTDRAWBK,
+
+	NMECDR_DODEF = 0,
+	NMECDR_SKIPDEF,
+	NMECDR_PRIV_BEGIN,
+};
+
+struct NMECKCTRLCUSTOMDRAW
+{
+	NMHDR nmhdr;
+	int idx;
+	int iStage;
+	HDC hDC;
+	RECT rcItem;
 };
 /*-------------------*/
 /*属性字符串*/
@@ -394,10 +418,10 @@ struct WINDOWCOMPOSITIONATTRIBDATA
 ECK_PRIV_NAMESPACE_BEGIN
 using FRtlGetNtVersionNumbers = void(WINAPI*)(DWORD*, DWORD*, DWORD*);
 
-using FSetWindowCompositionAttribute = BOOL(WINAPI*)(HWND hWnd, WINDOWCOMPOSITIONATTRIBDATA*);
+using FSetWindowCompositionAttribute = BOOL(WINAPI*)(HWND , WINDOWCOMPOSITIONATTRIBDATA*);
 
 // UxTheme
-using FOpenNcThemeData = HTHEME(WINAPI*)(HWND hWnd, LPCWSTR pszClassList);
+using FOpenNcThemeData = HTHEME(WINAPI*)(HWND , LPCWSTR );
 using FOpenThemeData = HTHEME(WINAPI*)(HWND, LPCWSTR);
 using FDrawThemeText = HRESULT(WINAPI*)(_In_ HTHEME, HDC, int, int, LPCWSTR, int, DWORD, DWORD, LPCRECT);
 using FOpenThemeDataForDpi = HTHEME(WINAPI*)(HWND, LPCWSTR, UINT);
@@ -405,19 +429,20 @@ using FDrawThemeBackgroundEx = HRESULT(WINAPI*)(HTHEME, HDC, int, int, LPCRECT, 
 using FDrawThemeBackground = HRESULT(WINAPI*)(HTHEME, HDC, int, int, LPCRECT, LPCRECT);
 using FGetThemeColor = HRESULT(WINAPI*)(HTHEME, int, int, int, COLORREF*);
 using FCloseThemeData = HRESULT(WINAPI*)(HTHEME);
+using FDrawThemeParentBackground = HRESULT(WINAPI*)(HWND , HDC , const RECT* );
 // 1809 17763 暗色功能引入
-using FAllowDarkModeForWindow = BOOL(WINAPI*)(HWND hWnd, BOOL bAllow);
-using FAllowDarkModeForApp = BOOL(WINAPI*)(BOOL bAllow);
-using FIsDarkModeAllowedForWindow = BOOL(WINAPI*)(HWND hWnd);
+using FAllowDarkModeForWindow = BOOL(WINAPI*)(HWND , BOOL );
+using FAllowDarkModeForApp = BOOL(WINAPI*)(BOOL );
+using FIsDarkModeAllowedForWindow = BOOL(WINAPI*)(HWND );
 using FShouldAppsUseDarkMode = BOOL(WINAPI*)();
 
 using FFlushMenuThemes = void(WINAPI*)();
 
 using FRefreshImmersiveColorPolicyState = void(WINAPI*)();
-using FGetIsImmersiveColorUsingHighContrast = BOOL(WINAPI*)(IMMERSIVE_HC_CACHE_MODE mode);
+using FGetIsImmersiveColorUsingHighContrast = BOOL(WINAPI*)(IMMERSIVE_HC_CACHE_MODE );
 // 1903 18362
 using FShouldSystemUseDarkMode = BOOL(WINAPI*)();
-using FSetPreferredAppMode = PreferredAppMode(WINAPI*)(PreferredAppMode appMode);
+using FSetPreferredAppMode = PreferredAppMode(WINAPI*)(PreferredAppMode );
 using FIsDarkModeAllowedForApp = BOOL(WINAPI*)();
 
 
@@ -456,6 +481,7 @@ constexpr inline PCWSTR WCN_LISTBOXNEW = L"Eck.WndClass.ListBoxNew";
 constexpr inline PCWSTR WCN_ANIMATIONBOX = L"Eck.WndClass.AnimationBox";
 constexpr inline PCWSTR WCN_TREELIST = L"Eck.WndClass.TreeList";
 constexpr inline PCWSTR WCN_COMBOBOXNEW = L"Eck.WndClass.ComboBoxNew";
+constexpr inline PCWSTR WCN_PICTUREBOX = L"Eck.WndClass.PictureBox";
 
 
 constexpr inline PCWSTR MSGREG_FORMTRAY = L"Eck.Message.FormTray";
@@ -552,6 +578,7 @@ struct ECKTHREADCTX
 	COLORREF crDefBtnFace{};	// 默认BtnFace颜色
 	std::unordered_map<HTHEME, int> hsButtonTheme{};
 	std::unordered_map<HTHEME, int> hsTaskDialogTheme{};
+	std::unordered_map<HTHEME, int> hsTabTheme{};
 
 	EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
 	{
@@ -608,11 +635,13 @@ struct ECKTHREADCTX
 
 	void OnThemeOpen(HTHEME hTheme, PCWSTR pszClassList)
 	{
-		if (_wcsicmp(pszClassList, L"Button") == 0)
+		if (wcsstr(pszClassList, L"Button"))
 			++hsButtonTheme[hTheme];
 		else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 ||
 			_wcsicmp(pszClassList, L"TaskDialogStyle") == 0)
 			++hsTaskDialogTheme[hTheme];
+		else if (_wcsicmp(pszClassList, L"Tab") == 0)
+			++hsTabTheme[hTheme];
 	}
 
 	void OnThemeClose(HTHEME hTheme)
@@ -635,6 +664,15 @@ struct ECKTHREADCTX
 					hsTaskDialogTheme.erase(it);
 			}
 		}
+		{
+			const auto it = hsTabTheme.find(hTheme);
+			if (it != hsTabTheme.end())
+			{
+				EckAssert(it->second > 0);
+				if (!--it->second)
+					hsTabTheme.erase(it);
+			}
+		}
 	}
 
 	EckInline BOOL IsThemeButton(HTHEME hTheme) const
@@ -645,6 +683,11 @@ struct ECKTHREADCTX
 	EckInline BOOL IsThemeTaskDialog(HTHEME hTheme) const
 	{
 		return hsTaskDialogTheme.find(hTheme) != hsTaskDialogTheme.end();
+	}
+
+	EckInline BOOL IsThemeTab(HTHEME hTheme) const
+	{
+		return hsTabTheme.find(hTheme) != hsTabTheme.end();
 	}
 
 	void SendThemeChangedToAllTopWindow();

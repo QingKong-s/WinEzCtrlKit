@@ -63,5 +63,4 @@ public:
 		m_cbCurrFree = m_cbCurr = 0;
 	}
 };
-
 ECK_NAMESPACE_END

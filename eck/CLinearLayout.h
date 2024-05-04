@@ -93,13 +93,11 @@ public:
 			switch (m_eAlign)
 			{
 			case Align::Near:
-				x = e.Margin.cxLeftWidth;
+				x = m_x + e.Margin.cxLeftWidth;
 				break;
 			case Align::Center:
-				x = e.Margin.cxLeftWidth +
-					m_x +
-					(m_cx - cxAppr +
-						e.Margin.cxLeftWidth + e.Margin.cxRightWidth) / 2;
+				x = m_x + e.Margin.cxLeftWidth +
+					(m_cx - (cxAppr + e.Margin.cxLeftWidth + e.Margin.cxRightWidth)) / 2;
 				break;
 			case Align::Far:
 				x = m_x + m_cx - cxAppr - e.Margin.cxRightWidth - e.Margin.cxLeftWidth;
@@ -108,7 +106,6 @@ public:
 				ECK_UNREACHABLE;
 			}
 
-			x += m_x;
 			y += e.Margin.cyTopHeight;
 
 			const auto hWnd = e.pCtrl->LoGetHWND();
@@ -192,13 +189,11 @@ public:
 			switch (m_eAlign)
 			{
 			case Align::Near:
-				y = e.Margin.cyTopHeight;
+				y = m_y + e.Margin.cyTopHeight;
 				break;
 			case Align::Center:
-				y = e.Margin.cyTopHeight +
-					m_y +
-					(m_cy - cyAppr +
-						e.Margin.cyTopHeight + e.Margin.cyBottomHeight) / 2;
+				y = m_y + e.Margin.cyTopHeight +
+					(m_cy - (cyAppr + e.Margin.cyTopHeight + e.Margin.cyBottomHeight)) / 2;
 				break;
 			case Align::Far:
 				y = m_y + m_cy - cyAppr - e.Margin.cyTopHeight - e.Margin.cyBottomHeight;
@@ -208,7 +203,6 @@ public:
 			}
 
 			x += e.Margin.cxLeftWidth;
-			y += m_y;
 
 			const auto hWnd = e.pCtrl->LoGetHWND();
 			if (hWnd)
