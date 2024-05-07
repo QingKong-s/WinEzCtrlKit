@@ -121,6 +121,7 @@ public:
 		m_cxImage = bmp.bmWidth;
 		m_cyImage = bmp.bmHeight;
 		m_b32BppHBitmap = (bmp.bmBitsPixel == 32);
+		return TRUE;
 	}
 
 	GpStatus SetImage(GpImage* p)

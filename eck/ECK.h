@@ -483,14 +483,9 @@ constexpr inline PCWSTR WCN_TREELIST = L"Eck.WndClass.TreeList";
 constexpr inline PCWSTR WCN_COMBOBOXNEW = L"Eck.WndClass.ComboBoxNew";
 constexpr inline PCWSTR WCN_PICTUREBOX = L"Eck.WndClass.PictureBox";
 
-
 constexpr inline PCWSTR MSGREG_FORMTRAY = L"Eck.Message.FormTray";
-constexpr inline PCWSTR MSGREG_EASING = L"Eck.Message.Easing";
-
-constexpr inline PCWSTR WPROP_EASING = L"Eck.Prop.Easing";
 
 constexpr inline UINT SCID_DESIGN = 20230621'01u;
-constexpr inline UINT SCID_EASING = 20240208'01u;
 
 enum class InitStatus
 {
@@ -579,6 +574,7 @@ struct ECKTHREADCTX
 	std::unordered_map<HTHEME, int> hsButtonTheme{};
 	std::unordered_map<HTHEME, int> hsTaskDialogTheme{};
 	std::unordered_map<HTHEME, int> hsTabTheme{};
+	std::unordered_map<HTHEME, std::pair<int, HTHEME>> hsToolBarTheme{};
 
 	EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
 	{
@@ -633,16 +629,7 @@ struct ECKTHREADCTX
 
 	void UpdateDefColor();
 
-	void OnThemeOpen(HTHEME hTheme, PCWSTR pszClassList)
-	{
-		if (wcsstr(pszClassList, L"Button"))
-			++hsButtonTheme[hTheme];
-		else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 ||
-			_wcsicmp(pszClassList, L"TaskDialogStyle") == 0)
-			++hsTaskDialogTheme[hTheme];
-		else if (_wcsicmp(pszClassList, L"Tab") == 0)
-			++hsTabTheme[hTheme];
-	}
+	void OnThemeOpen(HTHEME hTheme, PCWSTR pszClassList);
 
 	void OnThemeClose(HTHEME hTheme)
 	{
@@ -673,6 +660,18 @@ struct ECKTHREADCTX
 					hsTabTheme.erase(it);
 			}
 		}
+		{
+			const auto it = hsToolBarTheme.find(hTheme);
+			if (it != hsToolBarTheme.end())
+			{
+				EckAssert(it->second.first > 0);
+				if (!--it->second.first)
+				{
+					CloseThemeData(it->second.second);
+					hsToolBarTheme.erase(it);
+				}
+			}
+		}
 	}
 
 	EckInline BOOL IsThemeButton(HTHEME hTheme) const
@@ -688,6 +687,23 @@ struct ECKTHREADCTX
 	EckInline BOOL IsThemeTab(HTHEME hTheme) const
 	{
 		return hsTabTheme.find(hTheme) != hsTabTheme.end();
+	}
+
+	EckInline BOOL IsThemeToolBar(HTHEME hTheme, HTHEME* phThemeLV = NULL) const
+	{
+		if (phThemeLV)
+		{
+			const auto it = hsToolBarTheme.find(hTheme);
+			if (it != hsToolBarTheme.end())
+			{
+				*phThemeLV = it->second.second;
+				return TRUE;
+			}
+			else
+				return FALSE;
+		}
+		else
+			return hsToolBarTheme.find(hTheme) != hsToolBarTheme.end();
 	}
 
 	void SendThemeChangedToAllTopWindow();
