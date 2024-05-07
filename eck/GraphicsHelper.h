@@ -2431,4 +2431,34 @@ inline HRESULT GetTextLayoutPathGeometry(IDWriteTextLayout* const* pLayout, int 
 		pPathGeometry = pPath;
 	return hr;
 }
+
+struct SAVE_DC_CLIP
+{
+	HRGN hRgn;
+};
+
+EckInline SAVE_DC_CLIP SaveDcClip(HDC hDC)
+{
+	SAVE_DC_CLIP sdc{ CreateRectRgn(0,0,1,1) };
+	if (GetClipRgn(hDC, sdc.hRgn) == 1)
+		return sdc;
+	else
+	{
+		DeleteObject(sdc.hRgn);
+		return {};
+	}
+}
+
+EckInline BOOL RestoreDcClip(HDC hDC, SAVE_DC_CLIP sdc)
+{
+	const auto b = (SelectClipRgn(hDC, sdc.hRgn) == ERROR);
+	if (sdc.hRgn)
+		DeleteObject(sdc.hRgn);
+	return b;
+}
+
+EckInline int IntersectClipRect(HDC hDC, const RECT& rc)
+{
+	return IntersectClipRect(hDC, rc.left, rc.top, rc.right, rc.bottom);
+}
 ECK_NAMESPACE_END

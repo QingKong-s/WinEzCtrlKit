@@ -49,6 +49,9 @@
 #include "eck\CColorPickBlock.h"
 #include "eck\CDuiEdit.h"
 #include "eck\CTab.h"
+#include "eck\CTrackBar.h"
+#include "eck\CToolBar.h"
+#include "eck\CHotKey.h"
 
 #define WCN_TEST L"CTestWindow"
 
@@ -618,22 +621,57 @@ public:
 			ptab->InsertItem(L"哈哈哈哈哈哈哈哈");
 			ptab->InsertItem(L"测试测试");
 			ptab->InsertItem(L"Tabbbbb");
+			m_lot.Add(ptab);
+
+			auto ptb = new eck::CTrackBar{};
+			ptb->Create(NULL, WS_CHILD | WS_VISIBLE, 0,
+				100, 450, 400, 40, hWnd, 0);
+			m_lot.Add(ptb);
 
 
-			//auto hil = ImageList_Create(80, 80, ILC_COLOR32 | ILC_ORIGINALSIZE, 0, 20);
-			//hFind = FindFirstFileW(LR"(H:\@存档的文件\@其他\图片素材库\64px\Kitchen (Food Beverage)\*.png)", &wfd);
-			//do
-			//{
-			//	IWICBitmapDecoder* pd;
-			//	eck::CreateWicBitmapDecoder(
-			//		(LR"(H:\@存档的文件\@其他\图片素材库\64px\Kitchen (Food Beverage)\)"_rs +
-			//			wfd.cFileName).Data(), pd);
-			//	IWICBitmap* pb;
-			//	eck::CreateWicBitmap(pb, pd, 80, 80);
-			//	const auto h = eck::CreateHICON(pb);
-			//	ImageList_AddIcon(hil, h);
-			//} while (FindNextFileW(hFind, &wfd));
-			//FindClose(hFind);
+			auto hil = ImageList_Create(80, 80, ILC_COLOR32 | ILC_ORIGINALSIZE, 0, 20);
+			auto path = LR"(H:\@重要文件\@其他\Pic\may_ena_\)"_rs;
+			hFind = FindFirstFileW((path + LR"(*.jpg)").Data(), &wfd);
+			int i{};
+			do
+			{
+				IWICBitmapDecoder* pd;
+				eck::CreateWicBitmapDecoder(
+					(path + wfd.cFileName).Data(), pd);
+				IWICBitmap* pb;
+				eck::CreateWicBitmap(pb, pd, 80, 80);
+				const auto h = eck::CreateHICON(pb);
+				ImageList_AddIcon(hil, h);
+				if (i == 0)
+					break;
+				++i;
+			} while (FindNextFileW(hFind, &wfd));
+			FindClose(hFind);
+			auto ptbb = new eck::CToolBar{};
+			ptbb->Create(NULL, WS_CHILD | WS_VISIBLE | TBSTYLE_LIST |TBSTYLE_TRANSPARENT | TBSTYLE_WRAPABLE |
+				CCS_NORESIZE | CCS_NOPARENTALIGN | CCS_NODIVIDER, 0,
+				100, 500, 1400, 120, hWnd, 0);
+			ptbb->SetButtonStructSize();
+			int idx = 3;
+			TBBUTTON TBBtns[]
+			{
+				{ idx+0,0,TBSTATE_ENABLED,0,{},0,(INT_PTR)L"按钮" },
+				{ idx+1,0,0,0,{},0,(INT_PTR)L"钮钮2" },
+				{ idx+2,0,TBSTATE_ENABLED,0,{},0,(INT_PTR)L"钮钮3" },
+				{ idx+3,0,TBSTATE_ENABLED,BTNS_SEP,{},0,0 },
+				{ idx+4,0,TBSTATE_ENABLED,BTNS_WHOLEDROPDOWN | BTNS_DROPDOWN,{},0,(INT_PTR)L"钮钮4" },
+				{ idx+5,0,TBSTATE_ENABLED,0,{},0,(INT_PTR)L"钮钮5" },
+				{ idx+6,0,TBSTATE_ENABLED,0,{},0,(INT_PTR)L"钮钮6" },
+			};
+			ptbb->SetImageList(hil);
+			ptbb->AddButtons(ARRAYSIZE(TBBtns), TBBtns);
+			m_lot.Add(ptbb);
+
+			auto photk = new eck::CHotKey{};
+			photk->Create(NULL, WS_CHILD | WS_VISIBLE, 0,
+				0, 0, 400, 30, hWnd, 0);
+			m_lot.Add(photk);
+
 			//
 			//m_lve.Create(0, WS_CHILD | WS_VISIBLE, WS_EX_CLIENTEDGE,
 			//	0, 0, 800, 700, hWnd, 10002);
@@ -1176,7 +1214,7 @@ public:
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
-		IntCreate(dwExStyle, WCN_TEST, pszText, dwStyle,
+		IntCreate(dwExStyle, WCN_TEST, pszText, dwStyle | WS_CLIPCHILDREN,
 			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, this);
 		EckDbgPrintWndMap();
 		return m_hWnd;

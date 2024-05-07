@@ -137,6 +137,15 @@ public:
 			EndPaint(hWnd, &ps);
 		}
 		return 0;
+		case WM_ERASEBKGND:
+		{
+			const auto hDC = (HDC)wParam;
+			RECT rc;
+			GetClipBox(hDC, &rc);
+			SetDCBrushColor(hDC, m_crBk == CLR_DEFAULT ? GetThreadCtx()->crDefBkg : m_crBk);
+			FillRect(hDC, &rc, GetStockBrush(DC_BRUSH));
+		}
+		return TRUE;
 		case WM_DESTROY:
 		{
 			for (const auto& e : m_Tray)
@@ -278,7 +287,7 @@ public:
 			});
 		if (it == m_Tray.end())
 		{
-			EckDbgPrint(L"试图修改未经内部维护的托盘图标");
+			EckDbgPrint(L"** WARNING ** 试图修改未经内部维护的托盘图标");
 			return FALSE;
 		}
 		EckAssert(uFlags == (uFlags & ~(NIF_ICON | NIF_TIP | NIF_STATE)));
@@ -316,7 +325,7 @@ public:
 			});
 		if (it == m_Tray.end())
 		{
-			EckDbgPrint(L"试图删除未经内部维护的托盘图标");
+			EckDbgPrint(L"** WARNING ** 试图删除未经内部维护的托盘图标");
 			return FALSE;
 		}
 		NOTIFYICONDATAW nid;

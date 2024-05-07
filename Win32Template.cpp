@@ -377,7 +377,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	//UpdateWindow(hWnd);
 	CTestWnd::RegisterWndClass();
 	CTestWnd w;
-	w.Create(L"示例Win32程序", WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, 0, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, 0);
+	w.Create(L"示例Win32程序", WS_OVERLAPPEDWINDOW, 0, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, 0);
 	w.Show(SW_SHOW);
 
 	while (GetMessageW(&msg, NULL, 0, 0))
