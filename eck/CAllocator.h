@@ -103,9 +103,21 @@ struct CAllocatorVA
 
 	static TSize s_cbPage;
 
+	constexpr CAllocatorVA() noexcept {}
+
+	constexpr CAllocatorVA(const CAllocatorVA&) noexcept = default;
+
+	template <class U>
+	constexpr CAllocatorVA(const CAllocatorVA<U>&) noexcept {}
+
+	constexpr ~CAllocatorVA() = default;
+
+	constexpr CAllocatorVA& operator=(const CAllocatorVA&) = default;
+
 	[[nodiscard]] EckInline T* allocate(size_type c)
 	{
 		auto p = (T*)VirtualAlloc(NULL, c * sizeof(value_type), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+		ZeroMemory(p, c * sizeof(value_type));
 		if (p)
 			return p;
 		else
@@ -168,4 +180,38 @@ public:
 			return c + c / 2;
 	}
 };
+
+template<class T,class TSize = size_t>
+struct CDefAllocator :public std::allocator<T>
+{
+	using size_type = TSize;
+
+	constexpr CDefAllocator() noexcept {}
+
+	constexpr CDefAllocator(const CDefAllocator&) noexcept = default;
+
+	template <class U>
+	constexpr CDefAllocator(const CDefAllocator<U>&) noexcept {}
+
+	constexpr ~CDefAllocator() = default;
+
+	constexpr CDefAllocator& operator=(const CDefAllocator&) = default;
+
+	EckInline constexpr void deallocate(T* const p, const TSize c)
+	{
+		__super::deallocate(p, (size_t)c);
+	}
+
+	EckInline [[nodiscard]] constexpr __declspec(allocator) T* allocate(const TSize c)
+	{
+		return __super::allocate((size_t)c);
+	}
+};
+
+template<class T1, class TSize1, class T2, class TSize2>
+EckInline constexpr bool operator==(const CDefAllocator<T1, TSize1>& a1, 
+	const CDefAllocator<T2, TSize2>& a2) noexcept
+{
+	return true;
+}
 ECK_NAMESPACE_END

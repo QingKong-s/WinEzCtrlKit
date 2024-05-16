@@ -11,6 +11,8 @@
 ECK_NAMESPACE_BEGIN
 struct ILayout
 {
+	virtual ~ILayout() {}
+
 	/// <summary>
 	/// 取理想尺寸
 	/// </summary>

@@ -345,6 +345,9 @@
     <ClInclude Include="eck\CPictureBox.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\PchInc.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Win32Template.cpp">

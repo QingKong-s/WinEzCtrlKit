@@ -7,6 +7,7 @@
 */
 #pragma once
 #include "CEditNcComp.h"
+#include "CCommDlg.h"
 
 ECK_NAMESPACE_BEGIN
 struct FONTPICKERINFO
@@ -82,7 +83,8 @@ public:
 		cf.hwndOwner = HWnd;
 		cf.lpLogFont = &lf;
 		cf.Flags = m_dwCfFlags | (bHasInfo ? CF_INITTOLOGFONTSTRUCT : 0u);
-		if (ChooseFontW(&cf))
+		CFontDialog dlg{};
+		if (dlg.DlgBox(NULL,&cf))
 		{
 			WCHAR szBuf[LF_FACESIZE + c_cchI32ToStrBufNoRadix2 * 2 + 5];
 			swprintf_s(szBuf, L"%s,%d,%d", lf.lfFaceName, cf.iPointSize / 10, lf.lfWeight);

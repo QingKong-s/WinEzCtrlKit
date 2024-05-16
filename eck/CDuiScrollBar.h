@@ -208,7 +208,7 @@ public:
 
 		case WM_CREATE:
 		{
-			m_pColorTheme = GetWnd()->GetDefColorTheme()[CTI_SCROLLBAR];
+			SwitchDefColorTheme(CTI_SCROLLBAR, ShouldAppUseDarkMode());
 			m_pec = new CEasingCurve{};
 			InitEasingCurve(m_pec);
 			m_pec->SetCallBack([](float fOld, float f, LPARAM lParam)
@@ -226,6 +226,10 @@ public:
 			m_pDC->CreateSolidColorBrush({}, &m_pBr);
 		}
 		return 0;
+
+		case WM_COLORSCHEMECHANGED:
+			SwitchDefColorTheme(CTI_SCROLLBAR, wParam);
+			return 0;
 
 		case WM_DESTROY:
 		{

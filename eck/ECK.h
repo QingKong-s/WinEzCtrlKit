@@ -8,8 +8,6 @@
 #pragma once
 #define GDIPVER 0x110
 
-#include <comdef.h>
-
 #include <Windows.h>
 #include <Uxtheme.h>
 #include <vsstyle.h>
@@ -18,6 +16,8 @@
 #include <dwrite.h>
 #include <d2d1_1.h>
 #include <dxgi1_2.h>
+#include <Shlwapi.h>
+#include <d3d11.h>
 
 #include <assert.h>
 
@@ -530,11 +530,11 @@ constexpr inline D3D_FEATURE_LEVEL c_uDefD3dFeatureLevel[]
 
 struct INITPARAM
 {
+	UINT uFlags = EIF_DEFAULT;
 	D2D1_FACTORY_TYPE uD2dFactoryType = D2D1_FACTORY_TYPE_MULTI_THREADED;
 	DWRITE_FACTORY_TYPE uDWriteFactoryType = DWRITE_FACTORY_TYPE_SHARED;
 	const D3D_FEATURE_LEVEL* pD3dFeatureLevel = c_uDefD3dFeatureLevel;
 	UINT cD3dFeatureLevel = ARRAYSIZE(c_uDefD3dFeatureLevel);
-	UINT uFlags = EIF_DEFAULT;
 };
 
 /// <summary>

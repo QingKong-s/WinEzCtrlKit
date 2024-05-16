@@ -49,11 +49,9 @@ protected:
 	COLORREF m_crTextBK = CLR_DEFAULT;			// 文本背景色
 	COLORREF m_crBK = CLR_DEFAULT;				// 编辑框背景色
 
-	COLORREF m_crDefText = CLR_INVALID;
-	COLORREF m_crDefBK = CLR_INVALID;
-
 	InputMode m_iInputMode = InputMode::Normal;	// 输入方式
 
+	RECT m_rcWnd{};
 	RECT m_rcMargins{};			// 边距
 	int m_cyText = 0;			// 文本高度
 
@@ -84,6 +82,17 @@ protected:
 		m_cyText = tm.tmHeight;
 		DeleteDC(hCDC);
 	}
+
+	EckInline constexpr RECT GetSingleLineTextRect()
+	{
+		return
+		{
+			0,
+			(m_rcWnd.bottom - m_cyText) / 2,
+			m_rcWnd.right,
+			(m_rcWnd.bottom - m_cyText) / 2 + m_cyText
+		};
+	}
 public:
 	void AttachNew(HWND hWnd) override
 	{
@@ -92,8 +101,6 @@ public:
 		m_bMultiLine = IsBitSet(dwStyle, ES_MULTILINE);
 		m_bAutoWrap = (m_bMultiLine ? IsBitSet(dwStyle, ES_AUTOHSCROLL) : FALSE);
 
-
-		GetItemsViewForeBackColor(m_crDefText, m_crDefBK);
 		UpdateTextInfo();
 		FrameChanged();
 	}
@@ -301,34 +308,23 @@ public:
 			CEdit::OnMsg(hWnd, uMsg, wParam, lParam);// 画默认边框
 			if (GetMultiLine())
 				return 0;
-
-			RECT rcWnd, rcText;
-			HDC hDC = GetWindowDC(hWnd);
-			// 取非客户区矩形
-			GetWindowRect(hWnd, &rcWnd);
-			rcWnd.right -= rcWnd.left;
-			rcWnd.bottom -= rcWnd.top;
-			rcWnd.left = 0;
-			rcWnd.top = 0;
-			// 制文本矩形
-			rcText.left = 0;
-			rcText.top = (rcWnd.bottom - m_cyText) / 2;
-			rcText.right = rcWnd.right;
-			rcText.bottom = rcText.top + m_cyText;
+			const HDC hDC = GetWindowDC(hWnd);
+			RECT rcWnd{ m_rcWnd };
+			const RECT rcText{ GetSingleLineTextRect() };
 			// 非客户区矩形减掉边框
 			rcWnd.left += m_rcMargins.left;
 			rcWnd.top += m_rcMargins.top;
 			rcWnd.right -= m_rcMargins.right;
 			rcWnd.bottom -= m_rcMargins.bottom;
 			// 异或合并，剪辑
-			HRGN hRgnBK = CreateRectRgnIndirect(&rcWnd);
-			HRGN hRgnText = CreateRectRgnIndirect(&rcText);
+			const HRGN hRgnBK = CreateRectRgnIndirect(&rcWnd);
+			const HRGN hRgnText = CreateRectRgnIndirect(&rcText);
 			CombineRgn(hRgnBK, hRgnBK, hRgnText, RGN_XOR);
 			SelectClipRgn(hDC, hRgnBK);
 			DeleteObject(hRgnBK);
 			DeleteObject(hRgnText);
 			// 填充背景
-			SetDCBrushColor(hDC, m_crBK != CLR_DEFAULT ? m_crBK : m_crDefBK);
+			SetDCBrushColor(hDC, m_crBK != CLR_DEFAULT ? m_crBK : GetThreadCtx()->crDefBkg);
 			FillRect(hDC, &rcWnd, GetStockBrush(DC_BRUSH));
 			ReleaseDC(hWnd, hDC);
 		}
@@ -345,6 +341,14 @@ public:
 			return lResult;
 		}
 
+		case WM_WINDOWPOSCHANGED:
+		{
+			const auto* const pwp = (WINDOWPOS*)lParam;
+			m_rcWnd.right = pwp->cx;
+			m_rcWnd.bottom = pwp->cy;
+		}
+		break;
+
 		case WM_NCHITTEST:
 		{
 			auto lResult = CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
@@ -352,18 +356,11 @@ public:
 			{
 				if (lResult == HTNOWHERE)
 					lResult = HTCLIENT;
+				else if (lResult == HTBORDER)
+					return HTCLIENT;
 			}
 			return lResult;
 		}
-
-		case WM_CREATE:
-		case WM_THEMECHANGED:
-		{
-			const auto lResult = CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
-			GetItemsViewForeBackColor(m_crDefText, m_crDefBK);
-			return lResult;
-		}
-		break;
 		}
 
 		return CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
@@ -376,12 +373,11 @@ public:
 		case WM_CTLCOLOREDIT:
 		case WM_CTLCOLORSTATIC:
 		{
-			if ((HWND)lParam != m_hWnd)
-				break;
 			bProcessed = TRUE;
-			SetTextColor((HDC)wParam, m_crText != CLR_DEFAULT ? m_crText : m_crDefText);
-			SetBkColor((HDC)wParam, m_crTextBK != CLR_DEFAULT ? m_crTextBK : m_crDefBK);
-			SetDCBrushColor((HDC)wParam, m_crBK != CLR_DEFAULT ? m_crBK : m_crDefBK);
+			const auto* const ptc = GetThreadCtx();
+			SetTextColor((HDC)wParam, m_crText != CLR_DEFAULT ? m_crText : ptc->crDefText);
+			SetBkColor((HDC)wParam, m_crTextBK != CLR_DEFAULT ? m_crTextBK : ptc->crDefBkg);
+			SetDCBrushColor((HDC)wParam, m_crBK != CLR_DEFAULT ? m_crBK : ptc->crDefBkg);
 			return (LRESULT)GetStockObject(DC_BRUSH);
 		}
 		break;

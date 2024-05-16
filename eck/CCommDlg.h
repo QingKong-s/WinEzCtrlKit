@@ -250,12 +250,9 @@ public:
 protected:
 	COLORREF m_crCust[16]{};
 public:
-	CColorDialog() = default;
-
 	INT_PTR DlgBox(HWND hParent, void* pData = NULL) override
 	{
 		auto pcc = (CHOOSECOLORW*)pData;
-		pcc->hwndOwner = hParent;
 		if (pcc->lpCustColors)
 			pcc->lpCustColors = m_crCust;
 		BeginCbtHook(this);
@@ -277,6 +274,21 @@ public:
 	EckInline BOOL EndDlg(INT_PTR nResult) override { return FALSE; }
 };
 inline UINT CColorDialog::s_uMsgSetRgb = RegisterWindowMessageW(SETRGBSTRINGW);
+
+class CFontDialog :public CDialog
+{
+public:
+	static UINT s_uMsgSetRgb;
+public:
+	INT_PTR DlgBox(HWND hParent, void* pData = NULL) override
+	{
+		auto pcf = (CHOOSEFONTW*)pData;
+		BeginCbtHook(this);
+		return ChooseFontW((CHOOSEFONTW*)pData);
+	}
+
+	EckInline BOOL EndDlg(INT_PTR nResult) override { return FALSE; }
+};
 
 EckInline int MsgBox(PCWSTR pszText, PCWSTR pszCaption = L"", UINT uType = 0, HWND hParent = NULL)
 {

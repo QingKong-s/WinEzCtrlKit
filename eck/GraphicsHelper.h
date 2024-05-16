@@ -40,6 +40,7 @@ struct CEzCDC
 		std::swap(m_hCDC, x.m_hCDC);
 		std::swap(m_hBmp, x.m_hBmp);
 		std::swap(m_hOld, x.m_hOld);
+		return *this;
 	}
 
 	HDC Create(HWND hWnd, int cx = 0, int cy = 0)
@@ -1220,6 +1221,9 @@ public:
 
 	EckInline void Lock() const {}
 	EckInline void UnLock() const {}
+
+	EckInline constexpr static int GetX(TCoord c) { return c.x; }
+	EckInline constexpr static int GetY(TCoord c) { return c.y; }
 };
 
 class CMifptpGpBitmap
@@ -1253,7 +1257,7 @@ public:
 	CMifptpGpBitmap New(TCoord Dimension) const
 	{
 		GpBitmap* pBitmap;
-		GdipCreateBitmapFromScan0(Dimension.X, Dimension.Y, 0, PixelFormat32bppPARGB, NULL, &pBitmap);
+		GdipCreateBitmapFromScan0(Dimension.X, Dimension.Y, 0, PixelFormat32bppARGB, NULL, &pBitmap);
 		return CMifptpGpBitmap(pBitmap);
 	}
 
@@ -1284,6 +1288,9 @@ public:
 	{
 		GdipBitmapUnlockBits(m_pBitmap, &m_Data);
 	}
+
+	EckInline static int GetX(TCoord c) { return c.X; }
+	EckInline static int GetY(TCoord c) { return c.Y; }
 };
 
 /// <summary>
@@ -1305,22 +1312,28 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 		return FALSE;
 	const auto [itMinY, itMaxY] = std::minmax_element(pptDst, pptDst + cPt, [](const TCoord& pt1, const TCoord& pt2)->bool
 		{
-			return pt1.y < pt2.y;
+			return TBmpHandler::GetY(pt1) < TBmpHandler::GetY(pt2);
 		});
 	const auto [itMinX, itMaxX] = std::minmax_element(pptDst, pptDst + cPt, [](const TCoord& pt1, const TCoord& pt2)->bool
 		{
-			return pt1.x < pt2.x;
+			return TBmpHandler::GetX(pt1) < TBmpHandler::GetX(pt2);
 		});
-	const int cyPolygon = itMaxY->y - itMinY->y + 1;
-	const int cxPolygon = itMaxX->x - itMinX->x + 1;
+	const int cyPolygon = TBmpHandler::GetY(*itMaxY) - TBmpHandler::GetY(*itMinY) + 1;
+	const int cxPolygon = TBmpHandler::GetX(*itMaxX) - TBmpHandler::GetX(*itMinX) + 1;
 	if (cxPolygon <= 0 || cyPolygon <= 0)
 		return FALSE;
 
 	NewBmp = Bmp.New(TBmpHandler::MakeCoord(cxPolygon, cyPolygon));
 	std::vector<TCoord> vPtDst(cPt);
 	EckCounter(cPt, i)
-		vPtDst[i] = TCoord{ pptDst[i].x - itMinX->x,pptDst[i].y - itMinY->y };
-	const int yMax = vPtDst[std::distance(pptDst, itMaxY)].y;
+	{
+		vPtDst[i] = TCoord
+		{
+			TBmpHandler::GetX(pptDst[i]) - TBmpHandler::GetX(*itMinX),
+			TBmpHandler::GetY(pptDst[i]) - TBmpHandler::GetY(*itMinY)
+		};
+	}
+	const int yMax = TBmpHandler::GetY(vPtDst[std::distance(pptDst, itMaxY)]);
 
 	struct EDGE
 	{
@@ -1331,10 +1344,10 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 		float dRx;
 		float dRy;
 		int yMax;
-		int yMin;
+		int xPtYMax;// y最大的点的x坐标
 	};
 
-	std::unordered_map<int, std::vector<EDGE*>> ET(cyPolygon);
+	std::unordered_map<int, std::vector<EDGE*>> ET{};
 	using TETIt = typename std::unordered_map<int, std::vector<EDGE*>>::iterator;
 	EckCounter(cPt, i)
 	{
@@ -1342,32 +1355,33 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 		const auto& pt2 = vPtDst[(i + 1) % cPt];
 		const auto& ptSrc1 = pptSrc[i];
 		const auto& ptSrc2 = pptSrc[(i + 1) % cPt];
-		if (pt1.y == pt2.y)
+		if (TBmpHandler::GetY(pt1) == TBmpHandler::GetY(pt2))
 			continue;
 		auto p = new EDGE;
 		int yMax, yMin;
-		if (pt1.y < pt2.y)
+		if (TBmpHandler::GetY(pt1) < TBmpHandler::GetY(pt2))
 		{
-			p->x = (float)pt1.x;
-			p->Rx = (float)ptSrc1.x;
-			p->Ry = (float)ptSrc1.y;
-			yMax = (int)pt2.y;
-			yMin = (int)pt1.y;
+			p->x = (float)TBmpHandler::GetX(pt1);
+			p->Rx = (float)TBmpHandler::GetX(ptSrc1);
+			p->Ry = (float)TBmpHandler::GetY(ptSrc1);
+			p->xPtYMax = (int)TBmpHandler::GetX(pt2);
+			yMax = (int)TBmpHandler::GetY(pt2);
+			yMin = (int)TBmpHandler::GetY(pt1);
 		}
 		else
 		{
-			p->x = (float)pt2.x;
-			p->Rx = (float)ptSrc2.x;
-			p->Ry = (float)ptSrc2.y;
-			yMax = (int)pt1.y;
-			yMin = (int)pt2.y;
+			p->x = (float)TBmpHandler::GetX(pt2);
+			p->Rx = (float)TBmpHandler::GetX(ptSrc2);
+			p->Ry = (float)TBmpHandler::GetY(ptSrc2);
+			p->xPtYMax = (int)TBmpHandler::GetX(pt1);
+			yMax = (int)TBmpHandler::GetY(pt1);
+			yMin = (int)TBmpHandler::GetY(pt2);
 		}
-		p->dx = (float)(pt1.x - pt2.x) / (float)(pt1.y - pt2.y);
+		p->dx = (float)(TBmpHandler::GetX(pt1) - TBmpHandler::GetX(pt2)) / (float)(TBmpHandler::GetY(pt1) - TBmpHandler::GetY(pt2));
 		p->yMax = yMax;
-		p->yMin = yMin;
-		p->dRx = (float)(ptSrc1.x - ptSrc2.x) / (float)(pt1.y - pt2.y);
-		p->dRy = (float)(ptSrc1.y - ptSrc2.y) / (float)(pt1.y - pt2.y);
-		ET[yMin].emplace_back(p);
+		p->dRx = (float)(TBmpHandler::GetX(ptSrc1) - TBmpHandler::GetX(ptSrc2)) / (float)(TBmpHandler::GetY(pt1) - TBmpHandler::GetY(pt2));
+		p->dRy = (float)(TBmpHandler::GetY(ptSrc1) - TBmpHandler::GetY(ptSrc2)) / (float)(TBmpHandler::GetY(pt1) - TBmpHandler::GetY(pt2));
+		ET[yMin].push_back(p);
 	}
 
 	for (auto& x : ET)
@@ -1386,6 +1400,46 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 
 	Bmp.Lock();
 	NewBmp.Lock();
+	struct YAAINFO
+	{
+		float k;
+		float b;
+		float x0;
+		float x1;
+	};
+
+	std::vector<YAAINFO> vPrevYAA[2]{};// 均为向下采样
+	auto fnDoYAA = [&](int y, float k, float b, float x0, float x1, bool bSampleDirection)
+		{
+			if (y > 350)
+				;// EckDbgBreak();
+			for (int x = x0; x <= x1; ++x)
+			{
+				const float yReal = k * x + b;
+				const float e = (bSampleDirection ? yReal - y : y - yReal);// cr[0]的权值
+				if (e > 1.f)
+					continue;
+				const int y2 = (bSampleDirection ? y - 1 : y + 1);
+				if (y2 >= 0 && y2 < NewBmp.GetHeight())
+				{
+					const typename TBmpHandler::TColor cr[2]
+					{
+						NewBmp.GetPixel(TBmpHandler::MakeCoord(x,y)),
+						NewBmp.GetPixel(TBmpHandler::MakeCoord(x,y2))
+					};
+					typename TBmpHandler::TColorComp crNew[4];
+					EckCounter(4, k)
+					{
+						crNew[k] = (typename TBmpHandler::TColorComp)(
+							TBmpHandler::GetColorComp(cr[0], k) * (1.f - e) +
+							TBmpHandler::GetColorComp(cr[1], k) * e);
+					}
+					NewBmp.SetPixel(TBmpHandler::MakeCoord(x, y), TBmpHandler::MakeColor(crNew));
+					//NewBmp.SetPixel(TBmpHandler::MakeCoord(x, y), 0xFFFF0000);
+				}
+			}
+		};
+	size_t idxCurrPrevYAA{};
 	for (int y = 0; y <= yMax; ++y)
 	{
 		if (TETIt it; (it = ET.find(y)) != ET.end())
@@ -1417,7 +1471,66 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 				const float dRyy = (pL->Ry - pR->Ry) / (float)(pL->x - pR->x);
 				float Rxx = pL->Rx;
 				float Ryy = pL->Ry;
-				for (int x = (int)pL->x; x <= (int)pR->x; ++x)
+
+				const float kL = 1.f / pL->dx;
+				const float kR = 1.f / pR->dx;
+
+				const float bL = pL->yMax - kL * pL->xPtYMax;
+				const float bR = pR->yMax - kR * pR->xPtYMax;
+
+				float xL, xL1, xR, xR1;
+				bool bYAAL, bYAAR, bSampleDirectionL, bSampleDirectionR;// TRUE = 下面为外部
+				if (kL == 0.f || kL == INFINITY ||
+					(kL <= -1.f || kL >= 1.f) ||
+					y == 0)
+				{
+					bYAAL = false;
+				}
+				else
+				{
+					bYAAL = true;
+					if (kL < 0.f)
+					{
+						bSampleDirectionL = FALSE;
+						xL = (y - bL) / kL;
+						xL1 = (y - 1 - bL) / kL;
+					}
+					else
+					{
+						bSampleDirectionL = TRUE;
+						xL = (y - bL) / kL;
+						xL1 = (y + 1 - bL) / kL;
+					}
+				}
+
+				if (kR == 0.f || kR == INFINITY ||
+					(kR <= -1.f || kR >= 1.f) ||
+					y == 0)
+				{
+					bYAAR = false;
+				}
+				else
+				{
+					bYAAR = true;
+					if (kR < 0.f)
+					{
+						bSampleDirectionR = TRUE;
+						xR = (y + 1 - bR) / kR;
+						xR1 = (y - bR) / kR;
+					}
+					else
+					{
+						bSampleDirectionR = FALSE;
+						xR = (y - 1 - bR) / kR;
+						xR1 = (y - bR) / kR;
+					}
+				}
+
+				const int xBegin = (int)ceilf(pL->x);
+				const int xEnd = (int)floorf(pR->x);
+				int x = xBegin;
+				BOOL bAddL{}, bAddR{}, bSmpL{}, bSmpR{};
+				for (; x <= xEnd; ++x)
 				{
 					int x0 = (int)floorf(Rxx);
 					float fRateX = Rxx - x0;
@@ -1462,10 +1575,89 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 							TBmpHandler::GetColorComp(cr[2], k) * fRateX * (1 - fRateY) +
 							TBmpHandler::GetColorComp(cr[3], k) * (1 - fRateX) * (1 - fRateY));
 					}
+					if (bYAAL && (x >= xL && x <= xL1))
+					{
+						if (bSampleDirectionL)
+						{
+							if (!bSmpL)
+							{
+								bSmpL = TRUE;
+								fnDoYAA(y, kL, bL, xL, xL1, true);
+							}
+						}
+						else if (!bAddL)
+						{
+							bAddL = TRUE;
+							vPrevYAA[idxCurrPrevYAA].emplace_back(kL, bL, xL, xL1);
+						}
+						goto SkipNormalSetPixel;
+					}
 
+					if (bYAAR && (x >= xR && x <= xR1))
+					{
+						if (bSampleDirectionR)
+						{
+							if (!bSmpR)
+							{
+								bSmpR = TRUE;
+								fnDoYAA(y, kR, bR, xR, xR1, true);
+							}
+						}
+						else if (!bAddR)
+						{
+							bAddR = TRUE;
+							vPrevYAA[idxCurrPrevYAA].emplace_back(kR, bR, xR, xR1);
+						}
+						goto SkipNormalSetPixel;
+					}
 					NewBmp.SetPixel(TBmpHandler::MakeCoord(x, y), TBmpHandler::MakeColor(crNew));
+				SkipNormalSetPixel:
 					Rxx += dRxx;
 					Ryy += dRyy;
+
+					if (x == xBegin && (kL <= -1.f || kL >= 1.f))
+					{
+						const float e = 1.f - (x - pL->x);// cr[0]的权值
+						const int x2 = x - 1;
+						if (x2 >= 0)
+						{
+							const typename TBmpHandler::TColor cr[2]
+							{
+								NewBmp.GetPixel(TBmpHandler::MakeCoord(x,y)),
+								NewBmp.GetPixel(TBmpHandler::MakeCoord(x2,y))
+							};
+							typename TBmpHandler::TColorComp crNew[4];
+							EckCounter(4, k)
+							{
+								crNew[k] = (typename TBmpHandler::TColorComp)(
+									TBmpHandler::GetColorComp(cr[0], k) * (1.f - e) +
+									TBmpHandler::GetColorComp(cr[1], k) * e);
+							}
+							NewBmp.SetPixel(TBmpHandler::MakeCoord(x2, y), TBmpHandler::MakeColor(crNew));
+						}
+					}
+				}
+
+				if (--x >= 0 && (kR <= -1.f || kR >= 1.f))
+				{
+					const float e = 1.f - (pR->x - x);// cr[0]的权值
+					const int x2 = x + 1;
+					if (x2 < NewBmp.GetWidth())
+					{
+						const typename TBmpHandler::TColor cr[2]
+						{
+							NewBmp.GetPixel(TBmpHandler::MakeCoord(x,y)),
+							NewBmp.GetPixel(TBmpHandler::MakeCoord(x2,y))
+						};
+						typename TBmpHandler::TColorComp crNew[4];
+						EckCounter(4, k)
+						{
+							crNew[k] = (typename TBmpHandler::TColorComp)(
+								TBmpHandler::GetColorComp(cr[0], k) * (1.f - e) +
+								TBmpHandler::GetColorComp(cr[1], k) * e);
+						}
+						NewBmp.SetPixel(TBmpHandler::MakeCoord(x2, y), TBmpHandler::MakeColor(crNew));
+					}
 				}
 			}
 
@@ -1476,6 +1668,11 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 				e->Ry += e->dRy;
 			}
 		}
+
+		idxCurrPrevYAA = (idxCurrPrevYAA + 1) % 2;
+		for (const auto& e : vPrevYAA[idxCurrPrevYAA])
+			fnDoYAA(y - 1, e.k, e.b, e.x0, e.x1, false);
+		vPrevYAA[idxCurrPrevYAA].clear();
 	}
 	NewBmp.UnLock();
 	Bmp.UnLock();
