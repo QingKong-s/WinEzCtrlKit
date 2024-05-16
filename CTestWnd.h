@@ -52,6 +52,7 @@
 #include "eck\CTrackBar.h"
 #include "eck\CToolBar.h"
 #include "eck\CHotKey.h"
+#include "eck\CLink.h"
 
 #define WCN_TEST L"CTestWindow"
 
@@ -585,8 +586,6 @@ public:
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
-		//LRESULT lr;
-		//DwmDefWindowProc(hWnd, uMsg, wParam, lParam, &lr);
 		using namespace eck::Literals;
 		static std::vector<WNDDATA*> data{};
 		static std::vector<WNDDATA*> flatdata{};
@@ -603,74 +602,115 @@ public:
 			//DwmExtendFrameIntoClientArea(hWnd, &mar);
 			WIN32_FIND_DATAW wfd;
 			HANDLE hFind = FindFirstFileW(LR"(D:\@重要文件\@音乐\*.mp3)", &wfd);
+			int iii{};
 			do
 			{
 				vlb.emplace_back(wfd.cFileName);
+				if (iii == -5)
+					break;
+				++iii;
 			} while (FindNextFileW(hFind, &wfd));
 			FindClose(hFind);
 			//BkColor = 0;
 			//eck::EnableWindowNcDarkMode(hWnd, TRUE);
 			m_iDpi = eck::GetDpi(hWnd);
 
-			auto ptab = new eck::CTab{};
-			ptab->Create(NULL, WS_CHILD | WS_VISIBLE, 0,
-				100, 130, 400, 300, hWnd, 0);
-			ptab->InsertItem(L"Tab 0");
-			ptab->InsertItem(L"子夹 1");
-			ptab->InsertItem(L"子夹 2");
-			ptab->InsertItem(L"哈哈哈哈哈哈哈哈");
-			ptab->InsertItem(L"测试测试");
-			ptab->InsertItem(L"Tabbbbb");
-			m_lot.Add(ptab);
-
-			auto ptb = new eck::CTrackBar{};
-			ptb->Create(NULL, WS_CHILD | WS_VISIBLE, 0,
-				100, 450, 400, 40, hWnd, 0);
-			m_lot.Add(ptb);
-
-
-			auto hil = ImageList_Create(80, 80, ILC_COLOR32 | ILC_ORIGINALSIZE, 0, 20);
-			auto path = LR"(H:\@重要文件\@其他\Pic\may_ena_\)"_rs;
-			hFind = FindFirstFileW((path + LR"(*.jpg)").Data(), &wfd);
-			int i{};
-			do
+			m_DP.Create(NULL, WS_CHILD | WS_VISIBLE, 0,
+				0, 0, 700, 700, hWnd, 0);
+			auto hdcDp = m_DP.GetHDC();
+			GpBitmap* pbmp;
+			GdipCreateBitmapFromFile(LR"(E:\Desktop\1672063057657.jpg)", &pbmp);
+			GdipGetImageWidth(pbmp, (UINT*)&cx);
+			GdipGetImageHeight(pbmp, (UINT*)&cy);
+			eck::CMifptpGpBitmap BmpGp(pbmp);
+			eck::CMifptpGpBitmap NewBmpGp{};
+			GpPoint ptS1[]
 			{
-				IWICBitmapDecoder* pd;
-				eck::CreateWicBitmapDecoder(
-					(path + wfd.cFileName).Data(), pd);
-				IWICBitmap* pb;
-				eck::CreateWicBitmap(pb, pd, 80, 80);
-				const auto h = eck::CreateHICON(pb);
-				ImageList_AddIcon(hil, h);
-				if (i == 0)
-					break;
-				++i;
-			} while (FindNextFileW(hFind, &wfd));
-			FindClose(hFind);
-			auto ptbb = new eck::CToolBar{};
-			ptbb->Create(NULL, WS_CHILD | WS_VISIBLE | TBSTYLE_LIST |TBSTYLE_TRANSPARENT | TBSTYLE_WRAPABLE |
-				CCS_NORESIZE | CCS_NOPARENTALIGN | CCS_NODIVIDER, 0,
-				100, 500, 1400, 120, hWnd, 0);
-			ptbb->SetButtonStructSize();
-			int idx = 3;
-			TBBUTTON TBBtns[]
-			{
-				{ idx+0,0,TBSTATE_ENABLED,0,{},0,(INT_PTR)L"按钮" },
-				{ idx+1,0,0,0,{},0,(INT_PTR)L"钮钮2" },
-				{ idx+2,0,TBSTATE_ENABLED,0,{},0,(INT_PTR)L"钮钮3" },
-				{ idx+3,0,TBSTATE_ENABLED,BTNS_SEP,{},0,0 },
-				{ idx+4,0,TBSTATE_ENABLED,BTNS_WHOLEDROPDOWN | BTNS_DROPDOWN,{},0,(INT_PTR)L"钮钮4" },
-				{ idx+5,0,TBSTATE_ENABLED,0,{},0,(INT_PTR)L"钮钮5" },
-				{ idx+6,0,TBSTATE_ENABLED,0,{},0,(INT_PTR)L"钮钮6" },
+				{0,0},
+				{cx,0},
+				{cx,cy},
+				{0,cy},
 			};
-			ptbb->SetImageList(hil);
-			ptbb->AddButtons(ARRAYSIZE(TBBtns), TBBtns);
-			m_lot.Add(ptbb);
 
-			auto photk = new eck::CHotKey{};
-			photk->Create(NULL, WS_CHILD | WS_VISIBLE, 0,
-				0, 0, 400, 30, hWnd, 0);
-			m_lot.Add(photk);
+			GpPoint ptD1[]
+			{
+				{0,0},
+				{cx + 100,70},
+				{cx,cy - 100},
+				{50,cy + 20},
+
+			};
+			auto time = GetTickCount64();
+			eck::MakeImageFromPolygonToPolygon(BmpGp, NewBmpGp, ptS1, ptD1, ARRAYSIZE(ptD1));
+			time = GetTickCount64() - time;
+			//MessageBoxW(0, std::format(L"{}", time).c_str(), 0, 0);
+			RECT rcdp{ 0,0,700,700 };
+			FillRect(m_DP.GetHDC(), &rcdp, GetStockBrush(WHITE_BRUSH));
+			GdipDrawImage(m_DP.GetGraphics(), NewBmpGp.GetGpBitmap(), 0, 0);
+			m_DP.Redraw();
+			//auto plink = new eck::CLink{};
+			//plink->Create(LR"(使用的第三方库：<a href="https://www.un4seen.com/">Bass</a>、)",
+			//	WS_CHILD | WS_VISIBLE, 0, 0, 0, 600, 40, hWnd, 990);
+
+			//auto ptab = new eck::CTab{};
+			//ptab->Create(NULL, WS_CHILD | WS_VISIBLE, 0,
+			//	100, 130, 400, 300, hWnd, 0);
+			//ptab->InsertItem(L"Tab 0");
+			//ptab->InsertItem(L"子夹 1");
+			//ptab->InsertItem(L"子夹 2");
+			//ptab->InsertItem(L"哈哈哈哈哈哈哈哈");
+			//ptab->InsertItem(L"测试测试");
+			//ptab->InsertItem(L"Tabbbbb");
+			//m_lot.Add(ptab);
+
+			//auto ptb = new eck::CTrackBar{};
+			//ptb->Create(NULL, WS_CHILD | WS_VISIBLE, 0,
+			//	100, 450, 400, 40, hWnd, 0);
+			//m_lot.Add(ptb);
+
+
+			//auto hil = ImageList_Create(80, 80, ILC_COLOR32 | ILC_ORIGINALSIZE, 0, 20);
+			//auto path = LR"(H:\@重要文件\@其他\Pic\may_ena_\)"_rs;
+			//hFind = FindFirstFileW((path + LR"(*.jpg)").Data(), &wfd);
+			//int i{};
+			//do
+			//{
+			//	IWICBitmapDecoder* pd;
+			//	eck::CreateWicBitmapDecoder(
+			//		(path + wfd.cFileName).Data(), pd);
+			//	IWICBitmap* pb;
+			//	eck::CreateWicBitmap(pb, pd, 80, 80);
+			//	const auto h = eck::CreateHICON(pb);
+			//	ImageList_AddIcon(hil, h);
+			//	if (i == 0)
+			//		break;
+			//	++i;
+			//} while (FindNextFileW(hFind, &wfd));
+			//FindClose(hFind);
+			//auto ptbb = new eck::CToolBar{};
+			//ptbb->Create(NULL, WS_CHILD | WS_VISIBLE | TBSTYLE_LIST |TBSTYLE_TRANSPARENT | TBSTYLE_WRAPABLE |
+			//	CCS_NORESIZE | CCS_NOPARENTALIGN | CCS_NODIVIDER, 0,
+			//	100, 500, 1400, 120, hWnd, 0);
+			//ptbb->SetButtonStructSize();
+			//int idx = 3;
+			//TBBUTTON TBBtns[]
+			//{
+			//	{ idx+0,0,TBSTATE_ENABLED,0,{},0,(INT_PTR)L"按钮" },
+			//	{ idx+1,0,0,0,{},0,(INT_PTR)L"钮钮2" },
+			//	{ idx+2,0,TBSTATE_ENABLED,0,{},0,(INT_PTR)L"钮钮3" },
+			//	{ idx+3,0,TBSTATE_ENABLED,BTNS_SEP,{},0,0 },
+			//	{ idx+4,0,TBSTATE_ENABLED,BTNS_WHOLEDROPDOWN | BTNS_DROPDOWN,{},0,(INT_PTR)L"钮钮4" },
+			//	{ idx+5,0,TBSTATE_ENABLED,0,{},0,(INT_PTR)L"钮钮5" },
+			//	{ idx+6,0,TBSTATE_ENABLED,0,{},0,(INT_PTR)L"钮钮6" },
+			//};
+			//ptbb->SetImageList(hil);
+			//ptbb->AddButtons(ARRAYSIZE(TBBtns), TBBtns);
+			//m_lot.Add(ptbb);
+
+			//auto photk = new eck::CHotKey{};
+			//photk->Create(NULL, WS_CHILD | WS_VISIBLE, 0,
+			//	0, 0, 400, 30, hWnd, 0);
+			//m_lot.Add(photk);
 
 			//
 			//m_lve.Create(0, WS_CHILD | WS_VISIBLE, WS_EX_CLIENTEDGE,
@@ -741,11 +781,11 @@ public:
 			//m_cbn.SetItemCount((int)vlb.size());
 			//m_lot.Add(&m_cbn, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 
-			//m_LBN.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | WS_VSCROLL, 0,
+			//m_LBN.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER, 0,
 			//	0, 0, 700, 600, hWnd, 105);
 			//m_LBN.SetItemCount((int)vlb.size());
+			////m_LBN.SetItemHeight(260);
 			//m_lot.Add(&m_LBN, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
-			//
 
 			//hCDCBK = CreateCompatibleDC(NULL);
 			//auto hbm = eck::CreateHBITMAP(LR"(E:\Desktop\Temp\DC802FE9979A460BBA8E757382343EB4.jpg)");
@@ -861,6 +901,7 @@ public:
 			//auto pfp = new eck::CFontPicker{};
 			//pfp->Create(NULL, WS_CHILD | WS_VISIBLE, WS_EX_CLIENTEDGE,
 			//	0, 0, 260, 40, hWnd, 0);
+			////pfp->SetClr(2, 0xFFFFFF);
 			//m_lot.Add(pfp, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
 
 			//auto pcpb = new eck::CColorPickBlock{};
@@ -1202,7 +1243,8 @@ public:
 			eck::GetThreadCtx()->UpdateDefColor();
 			break;
 		}
-		return CForm::OnMsg(hWnd, uMsg, wParam, lParam);
+		
+		return __super::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
 	static ATOM RegisterWndClass()

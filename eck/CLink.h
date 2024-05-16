@@ -27,10 +27,12 @@ public:
 			{
 			case WM_CTLCOLORSTATIC:
 			{
-				const auto lResult = CWnd::OnNotifyMsg(hParent, uMsg, wParam, lParam, bProcessed);
 				bProcessed = TRUE;
-				SetTextColor((HDC)wParam, GetThreadCtx()->crDefText);
-				return lResult;
+				const auto* const ptc = GetThreadCtx();
+				SetTextColor((HDC)wParam, ptc->crDefText);
+				SetDCBrushColor((HDC)wParam, ptc->crDefBkg);
+				SetBkColor((HDC)wParam, ptc->crDefBkg);
+				return (LRESULT)GetStockBrush(DC_BRUSH);
 			}
 			}
 		return CWnd::OnNotifyMsg(hParent, uMsg, wParam, lParam, bProcessed);
@@ -46,7 +48,7 @@ public:
 		return (int)SendMsg(LM_GETIDEALSIZE, cxMax, (LPARAM)psize);
 	}
 
-	EckInline BOOL GetItem(LITEM*pli)
+	EckInline BOOL GetItem(LITEM* pli)
 	{
 		return (BOOL)SendMsg(LM_GETITEM, 0, (LPARAM)pli);
 	}

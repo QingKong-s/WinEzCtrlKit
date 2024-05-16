@@ -193,7 +193,7 @@ concept ccpIsStdChar = std::is_same_v<TChar, CHAR> || std::is_same_v<TChar, WCHA
 #define ccpIsStdChar class
 #endif// ECKCXX20
 template<ccpIsStdChar TChar>
-using TRefStrDefAlloc = CAllocatorProcHeap<TChar, int>;
+using TRefStrDefAlloc = CDefAllocator<TChar, int>;
 
 template<ccpIsStdChar TChar_, class TCharTraits_, class TAlloc_>
 class CRefStrT;
@@ -560,12 +560,16 @@ public:
 	/// 拆离指针
 	/// </summary>
 	/// <returns>指针，必须通过与当前分配器相等的分配器解分配</returns>
-	[[nodiscard]] EckInline TPointer Detach()
+	[[nodiscard]] EckInline TPointer Detach(int& cchCapacity, int& cchText)
 	{
 		const auto pOld = m_pszText;
-		m_cchCapacity = 0;
-		m_cchText = 0;
 		m_pszText = NULL;
+
+		cchCapacity = m_cchCapacity;
+		m_cchCapacity = 0;
+
+		cchText = m_cchText;
+		m_cchText = 0;
 		return pOld;
 	}
 
@@ -1762,7 +1766,7 @@ EckInline void SplitStrWithMultiChar(PWSTR pszText, PCWSTR pszDiv, std::vector<P
 	return rs;
 }
 
-template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = CAllocatorProcHeap<CHAR, int>>
+template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<CHAR>>
 [[nodiscard]] CRefStrT<CHAR, TCharTraits, TAlloc> StrW2X(PCWSTR pszText, int cch = -1, int uCP = CP_ACP)
 {
 	int cchBuf = WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, NULL, 0, NULL, NULL);
@@ -1772,7 +1776,7 @@ template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = CAllocatorProcHea
 	return rs;
 }
 
-template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = CAllocatorProcHeap<CHAR, int>,
+template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<CHAR>,
 	class T, class U>
 [[nodiscard]] EckInline CRefStrT<CHAR, TCharTraits, TAlloc> StrW2X(
 	const CRefStrT<WCHAR, T, U>& rs, int uCP = CP_ACP)
@@ -1780,7 +1784,7 @@ template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = CAllocatorProcHea
 	return StrW2X(rs.Data(), rs.Size(), uCP);
 }
 
-template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = CAllocatorProcHeap<WCHAR, int>>
+template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>>
 [[nodiscard]] CRefStrT<WCHAR, TCharTraits, TAlloc> StrX2W(PCSTR pszText, int cch = -1, int uCP = CP_ACP)
 {
 	int cchBuf = MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, NULL, 0);

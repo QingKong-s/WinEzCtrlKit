@@ -5,15 +5,9 @@
 *
 * Copyright(C) 2023-2024 QingKong
 */
-#include "ECK.h"
-#include "Utility.h"
-#include "CRefStr.h"
-#include "CWnd.h"
-#include "GraphicsHelper.h"
-#include "CCommDlg.h"
-
-#include <Shlwapi.h>
-#include <d3d11.h>
+#ifdef ECK_MACRO_MYDBG
+#include "PchInc.h"
+#endif// ECK_MACRO_MYDBG
 
 ECK_NAMESPACE_BEGIN
 CRefStrW g_rsCurrDir{};
@@ -788,6 +782,9 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	*pdwErrCode = GetLastError();
 	if (!hModUx)
 		return InitStatus::UxThemeError;
+	pfnOpenNcThemeData = (FOpenNcThemeData)
+		GetProcAddress(hModUx, MAKEINTRESOURCEA(49));
+	s_pfnOpenNcThemeData = pfnOpenNcThemeData;
 
 	const HMODULE hModNtdll = LoadLibraryW(L"ntdll.dll");
 	EckAssert(hModNtdll);
@@ -836,9 +833,6 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 				GetProcAddress(hModUx, MAKEINTRESOURCEA(104));
 			pfnGetIsImmersiveColorUsingHighContrast = (FGetIsImmersiveColorUsingHighContrast)
 				GetProcAddress(hModUx, MAKEINTRESOURCEA(106));
-			pfnOpenNcThemeData = (FOpenNcThemeData)
-				GetProcAddress(hModUx, MAKEINTRESOURCEA(49));
-			s_pfnOpenNcThemeData = pfnOpenNcThemeData;
 		}
 	}
 	FreeLibrary(hModUx);
@@ -854,30 +848,33 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		SetPreferredAppMode(PreferredAppMode::AllowDark);
 		RefreshImmersiveColorStuff();
 		FlushMenuTheme();
-	}
-
-	DetourTransactionBegin();
-	if (s_pfnOpenNcThemeData)
+		DetourTransactionBegin();
 		DetourAttach(&s_pfnOpenNcThemeData, NewOpenNcThemeData);
-	DetourAttach(&s_pfnOpenThemeData, NewOpenThemeData);
-	DetourAttach(&s_pfnDrawThemeText, NewDrawThemeText);
-	DetourAttach(&s_pfnOpenThemeDataForDpi, NewOpenThemeDataForDpi);
-	DetourAttach(&s_pfnDrawThemeBackgroundEx, NewDrawThemeBackgroundEx);
-	DetourAttach(&s_pfnDrawThemeBackground, NewDrawThemeBackground);
-	DetourAttach(&s_pfnGetThemeColor, NewGetThemeColor);
-	DetourAttach(&s_pfnCloseThemeData, NewCloseThemeData);
-	DetourAttach(&s_pfnDrawThemeParentBackground, NewDrawThemeParentBackground);
-	DetourTransactionCommit();
+		DetourAttach(&s_pfnOpenThemeData, NewOpenThemeData);
+		DetourAttach(&s_pfnDrawThemeText, NewDrawThemeText);
+		DetourAttach(&s_pfnOpenThemeDataForDpi, NewOpenThemeDataForDpi);
+		DetourAttach(&s_pfnDrawThemeBackgroundEx, NewDrawThemeBackgroundEx);
+		DetourAttach(&s_pfnDrawThemeBackground, NewDrawThemeBackground);
+		DetourAttach(&s_pfnGetThemeColor, NewGetThemeColor);
+		DetourAttach(&s_pfnCloseThemeData, NewCloseThemeData);
+		DetourAttach(&s_pfnDrawThemeParentBackground, NewDrawThemeParentBackground);
+		DetourTransactionCommit();
+	}
 	return InitStatus::Ok;
 }
 
 void UnInit()
 {
-	TlsFree(g_dwTlsSlot);
-	g_dwTlsSlot = 0;
+	if (g_dwTlsSlot)
+	{
+		TlsFree(g_dwTlsSlot);
+		g_dwTlsSlot = 0;
+	}
 	if (g_uGpToken)
+	{
 		GdiplusShutdown(g_uGpToken);
-	g_uGpToken = 0u;
+		g_uGpToken = 0u;
+	}
 	g_hInstance = NULL;
 	g_rsCurrDir.Clear();
 	SafeRelease(g_pWicFactory);
@@ -910,10 +907,10 @@ void ThreadInit()
 				TOOLTIPS_CLASSW,
 				WC_TREEVIEWW,
 				UPDOWN_CLASSW,
-				WC_SCROLLBARW
+				WC_SCROLLBARW,
 			};
 
-			constexpr int c_cchMaxClsBuf = std::max(
+			constexpr int c_cchMaxClsBuf = (int)std::max(
 				{
 					ARRAYSIZE(WC_BUTTONW),
 					ARRAYSIZE(WC_HEADERW),
@@ -922,7 +919,7 @@ void ThreadInit()
 					ARRAYSIZE(TOOLTIPS_CLASSW),
 					ARRAYSIZE(WC_TREEVIEWW),
 					ARRAYSIZE(UPDOWN_CLASSW),
-					ARRAYSIZE(WC_SCROLLBARW)
+					ARRAYSIZE(WC_SCROLLBARW),
 				});
 
 			const auto* const p = GetThreadCtx();
@@ -1006,7 +1003,7 @@ HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc)
 	pCtx->pCurrWnd = pCurrWnd;
 	pCtx->pfnWndCreatingProc = pfnCreatingProc;
 	EckAssert(!pCtx->hhkTempCBT);
-	HHOOK hHook = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
+	pCtx->hhkTempCBT = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
 		{
 			const auto pCtx = GetThreadCtx();
 			if (iCode == HCBT_CREATEWND)
@@ -1026,7 +1023,6 @@ HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc)
 			}
 			return CallNextHookEx(pCtx->hhkTempCBT, iCode, wParam, lParam);
 		}, NULL, GetCurrentThreadId());
-	pCtx->hhkTempCBT = hHook;
 	return pCtx->hhkTempCBT;
 }
 

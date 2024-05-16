@@ -82,6 +82,7 @@ enum
 	WM_DRAGOVER,
 	WM_DRAGLEAVE,
 	WM_DROP,
+	WM_COLORSCHEMECHANGED,
 
 	WM_PRIVBEGIN = 5000,
 };
@@ -96,18 +97,6 @@ struct ELEMPAINTSTRU
 	D2D1_RECT_F rcfClip;		// 剪裁矩形，相对客户区
 	const RECT* prcClip;		// 剪裁矩形，相对客户区
 	D2D1_RECT_F rcfClipInElem;	// 剪裁矩形，相对元素
-};
-
-enum
-{
-	CTI_BUTTON,
-	CTI_LIST,
-	CTI_LABEL,
-	CTI_TRACKBAR,
-	CTI_CIRCLEBUTTON,
-	CTI_SCROLLBAR,
-
-	CTI_COUNT
 };
 
 struct DUINMHDR
@@ -252,6 +241,8 @@ protected:
 			dwStyle |= (DES_TRANSPARENT | DES_CONTENT_EXPAND);
 		m_dwStyle = dwStyle;
 	}
+
+	void SwitchDefColorTheme(int idxTheme, WPARAM bDark);
 public:
 	void LoGetAppropriateSize(int& cx, int& cy) override
 	{
@@ -565,6 +556,7 @@ private:
 	IDWriteTextFormat* m_pDefTextFormat = NULL;
 
 	CColorTheme* m_pStdColorTheme[CTI_COUNT]{};
+	CColorTheme* m_pStdColorThemeDark[CTI_COUNT]{};
 
 	CCriticalSection m_cs{};
 
@@ -747,82 +739,6 @@ private:
 public:
 	ID2D1Bitmap* m_pBmpBlurCache = NULL;
 
-	CDuiWnd()
-	{
-		constexpr auto c_Black = ColorrefToD2dColorF(Colorref::Black);
-		constexpr auto c_White = ColorrefToD2dColorF(Colorref::White);
-		constexpr auto c_Gray = ColorrefToD2dColorF(Colorref::Gray);
-		constexpr auto c_DisableText = ColorrefToD2dColorF(Colorref::NeutralGray);
-		constexpr auto c_DisableBkg = RgbToD2dColorF(0xfbfbf9);
-		constexpr auto c_Unused = RgbToD2dColorF(0);
-		m_pStdColorTheme[CTI_BUTTON] = new CColorTheme{};
-		m_pStdColorTheme[CTI_BUTTON]->Set(
-			{
-				c_Black,c_Black,RgbToD2dColorF(0x707070),c_DisableText,
-				RgbToD2dColorF(0xfefefd),RgbToD2dColorF(0xfafbfa),RgbToD2dColorF(0xfafbfa),c_DisableBkg,RgbToD2dColorF(0xfafbfa),
-				RgbToD2dColorF(0xd3d3d2),RgbToD2dColorF(0xecedeb)
-			});
-
-		m_pStdColorTheme[CTI_LIST] = new CColorTheme{};
-		m_pStdColorTheme[CTI_LIST]->Set(
-			COLORTHEME
-			{
-				.crTextNormal = c_Black,
-				.crBkHot = ColorrefToD2dColorF(Colorref::Black, 0.1f),
-				.crBkSelected = ColorrefToD2dColorF(Colorref::Black, 0.2f),
-				.crBkHotSel = ColorrefToD2dColorF(Colorref::Black, 0.3f),
-			});
-		m_pStdColorTheme[CTI_LIST]->Set(
-			COLORTHEME
-			{
-				.crTextNormal = c_White,
-				.crBkHot = ColorrefToD2dColorF(Colorref::White, 0.3f),
-				.crBkSelected = ColorrefToD2dColorF(Colorref::White, 0.4f),
-				.crBkHotSel = ColorrefToD2dColorF(Colorref::White, 0.5f),
-			});
-
-		m_pStdColorTheme[CTI_LABEL] = new CColorTheme{};
-		m_pStdColorTheme[CTI_LABEL]->Set(
-			{
-				c_Black,c_Black,c_Black,c_DisableText,
-				c_White,c_White,c_White,c_DisableBkg,
-				c_Unused,c_Unused
-			});
-
-		m_pStdColorTheme[CTI_TRACKBAR] = new CColorTheme{};
-		m_pStdColorTheme[CTI_TRACKBAR]->Set(
-			{
-				c_Unused,c_Unused,c_Unused,c_Unused,
-				RgbToD2dColorF(0xc6bfbe),c_White/*滑块空白颜色*/,RgbToD2dColorF(0x227988),c_DisableBkg,c_Unused,
-				c_Unused,ColorrefToD2dColorF(Colorref::Gray, 0.5)/*滑块描边颜色*/
-			});
-
-		m_pStdColorTheme[CTI_CIRCLEBUTTON] = new CColorTheme{};
-		m_pStdColorTheme[CTI_CIRCLEBUTTON]->Set(
-			{
-				c_Unused,c_Unused,c_Unused,c_Unused,
-				RgbToD2dColorF(0xededee, 0.4f),
-				RgbToD2dColorF(0xe1e1e2, 0.7f),
-				RgbToD2dColorF(0xe1e1e2, 0.9f),
-				c_DisableBkg,
-				RgbToD2dColorF(0xe1e1e2, 0.9f),
-				c_Unused,c_Unused
-			});
-		m_pStdColorTheme[CTI_SCROLLBAR] = new CColorTheme{};
-		m_pStdColorTheme[CTI_SCROLLBAR]->Set(
-			{
-				RgbToD2dColorF(0x85897e),c_Unused,c_Unused,c_Unused,
-				RgbToD2dColorF(0xffffff, 0.6f),c_Unused,c_Unused,c_Unused,c_Unused,
-				c_Unused,c_Unused
-			});
-		m_pStdColorTheme[CTI_SCROLLBAR]->Set(
-			{
-				RgbToD2dColorF(0x85897e),c_Unused,c_Unused,c_Unused,
-				RgbToD2dColorF(0xffffff, 0.2f),c_Unused,c_Unused,c_Unused,c_Unused,
-				c_Unused,c_Unused
-			});
-	}
-
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		if (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST)
@@ -867,7 +783,7 @@ public:
 		{
 			POINT pt ECK_GET_PT_LPARAM(lParam);
 			ScreenToClient(hWnd, &pt);
-			m_pCurrNcHitTestElem = HitTest(pt); 
+			m_pCurrNcHitTestElem = HitTest(pt);
 		}
 		break;
 
@@ -899,10 +815,6 @@ public:
 				m_pHoverElem = NULL;
 			}
 			break;
-		case WM_CHAR:
-		case WM_SYSCHAR:
-		case WM_UNICHAR:
-		case WM_SYSKEYDOWN:
 
 		case WM_CAPTURECHANGED:
 		{
@@ -923,9 +835,22 @@ public:
 		}
 		break;
 
+		case WM_GETOBJECT:
+		{
+
+		}
+		return 0;
+
 		case WM_COMMAND:// 应用程序可能需要使用菜单
 			BroadcastEvent(uMsg, wParam, lParam, TRUE);
 			return 0;
+
+		case WM_SETTINGCHANGE:
+		{
+			if (IsColorSchemeChangeMessage(lParam))
+				BroadcastEvent(WM_COLORSCHEMECHANGED, ShouldAppUseDarkMode(), 0);
+		}
+		break;
 
 		case WM_CREATE:
 		{
@@ -935,6 +860,9 @@ public:
 				UpdateDpi(GetDpi(hWnd));
 				RECT rc;
 				GetClientRect(hWnd, &rc);
+
+				MakeStdThemeLight(m_pStdColorTheme);
+				MakeStdThemeDark(m_pStdColorThemeDark);
 
 				m_pDefTextFormat = CreateDefTextFormat(m_iDpi);
 				m_pDefTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
@@ -973,14 +901,15 @@ public:
 
 		case WM_DESTROY:
 		{
+			// 终止渲染线程
 			m_cs.Enter();
 			m_bRenderThreadShouldExit = TRUE;
 			WakeRenderThread();
 			m_cs.Leave();
 			WaitForSingleObject(m_hthRender, INFINITE);// 等待渲染线程退出
-			CloseHandle(m_hthRender); 
+			CloseHandle(m_hthRender);
 			m_hthRender = NULL;
-
+			// 销毁所有元素
 			auto pElem = m_pFirstChild;
 			while (pElem)
 			{
@@ -990,12 +919,29 @@ public:
 			}
 			m_pFirstChild = m_pLastChild = NULL;
 			m_pFocusElem = m_pCurrNcHitTestElem = NULL;
-
+			// 销毁图形堆栈
 			m_D2d.Destroy();
-			if (m_pBmpBkg)
-				m_pBmpBkg->Release();
-			if (m_pBrBkg)
-				m_pBrBkg->Release();
+			SafeRelease(m_pBmpBkg);
+			SafeRelease(m_pBrBkg);
+			SafeRelease(m_pDefTextFormat);
+			// 销毁其他接口
+			SafeRelease(m_pDataObj);
+			SafeRelease(m_pDropTarget);
+
+			for (auto& p : m_pStdColorTheme)
+			{
+				p->DeRef();
+				p = NULL;
+			}
+			for (auto& p : m_pStdColorThemeDark)
+			{
+				p->DeRef();
+				p = NULL;
+			}
+
+			for (const auto p : m_vTimeLine)
+				p->Release();
+			m_vTimeLine.clear();
 
 			m_cxClient = m_cyClient = 0;
 		}
@@ -1014,8 +960,8 @@ public:
 
 	EckInline ID2D1Bitmap* GetBkgBitmap() const { return m_pBmpBkg; }
 
-	EckInline ID2D1SolidColorBrush* GetBkgBrush() const { 
-		return m_pBrBkg; 
+	EckInline ID2D1SolidColorBrush* GetBkgBrush() const {
+		return m_pBrBkg;
 	}
 
 	EckInline void SetBkgBitmap(ID2D1Bitmap* pBmp)
@@ -1122,6 +1068,8 @@ public:
 
 	EckInline auto GetDefColorTheme() const { return m_pStdColorTheme; }
 
+	EckInline auto GetDefColorThemeDark() const { return m_pStdColorThemeDark; }
+
 	EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		auto pElem = GetFirstChildElem();
@@ -1188,6 +1136,14 @@ inline void CElem::IRCheckAndInvalid()
 
 	GetWnd()->UnionInvalidRect(rcReal);
 	GetWnd()->WakeRenderThread();
+}
+
+inline void CElem::SwitchDefColorTheme(int idxTheme, WPARAM bDark)
+{
+	auto pctDark = GetWnd()->GetDefColorThemeDark()[CTI_SCROLLBAR];
+	auto pctLight = GetWnd()->GetDefColorTheme()[CTI_SCROLLBAR];
+	if (m_pColorTheme == pctLight || m_pColorTheme == pctDark || !m_pColorTheme)
+		SetColorTheme(bDark ? pctDark : pctLight);
 }
 
 inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
@@ -1276,6 +1232,9 @@ inline void CElem::Destroy()
 	m_pLastChild = NULL;
 	m_pWnd = NULL;
 	m_pDC = NULL;
+
+	if (m_pColorTheme)
+		m_pColorTheme->DeRef();
 
 	m_rc = {};
 	m_rcf = {};

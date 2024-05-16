@@ -574,7 +574,8 @@ private:
 		si.fMask = SIF_POS;
 		GetSbInfo(SB_VERT, &si);
 		const int yOld = si.nPos;
-		si.nPos += (-zDelta / WHEEL_DELTA * m_cyItem * 3);
+		const int cyDeltaLine = (m_cyItem * 3 >= m_cyClient) ? (m_cyClient * 2 / 3) : m_cyItem * 3;
+		si.nPos += (-zDelta / WHEEL_DELTA * cyDeltaLine);
 		SetSbInfo(SB_VERT, &si);
 		GetSbInfo(SB_VERT, &si);
 		ReCalcTopItem();
@@ -652,6 +653,19 @@ private:
 		si.nMax = (int)m_vItem.size() * m_cyItem;
 		si.nPage = m_cyClient;
 		SetSbInfo(SB_VERT, &si);
+	}
+
+	void CheckOldData()
+	{
+		const int c = (int)m_vItem.size();
+		if (m_idxHot >= c)
+			m_idxHot = -1;
+		if (m_idxFocus >= c)
+			m_idxFocus = -1;
+		if (m_idxMark >= c)
+			m_idxMark = -1;
+		if (m_idxSel >= c)
+			m_idxSel = -1;
 	}
 public:
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -916,6 +930,7 @@ public:
 	EckInline void SetItemCount(int cItem)
 	{
 		m_vItem.resize(cItem);
+		CheckOldData();
 		ReCalcScrollBar();
 		ReCalcTopItem();
 	}
@@ -1033,7 +1048,12 @@ public:
 		idxChangedEnd = idx1;
 	}
 
-	EckInline void SetItemHeight(int cy) { m_cyItem = cy; }
+	EckInline void SetItemHeight(int cy)
+	{
+		m_cyItem = cy; 
+		ReCalcScrollBar();
+		ReCalcTopItem();
+	}
 
 	EckInline int GetItemHeight() const { return m_cyItem; }
 

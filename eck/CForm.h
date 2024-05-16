@@ -169,17 +169,17 @@ public:
 		}
 		else if (uMsg == s_uTaskbarCreatedMsg)
 		{
+			NOTIFYICONDATAW nid;
+			nid.cbSize = sizeof(nid);
+			nid.hWnd = hWnd;
+			nid.uCallbackMessage = s_uTrayMsg;
 			for (const auto& e : m_Tray)
 			{
-				NOTIFYICONDATAW nid;
-				nid.cbSize = sizeof(nid);
-				nid.hWnd = hWnd;
 				nid.uID = e.uID;
 				nid.uFlags = e.uFlags | NIF_MESSAGE;
-				nid.uCallbackMessage = s_uTrayMsg;
 				nid.dwState = nid.dwStateMask = e.dwState;
 				nid.hIcon = e.hIcon;
-				if (e.rsTip.Data())
+				if (e.rsTip.IsEmpty())
 					wcscpy_s(nid.szTip, e.rsTip.Data());
 				Shell_NotifyIconW(NIM_SETVERSION, &nid);
 				Shell_NotifyIconW(NIM_ADD, &nid);

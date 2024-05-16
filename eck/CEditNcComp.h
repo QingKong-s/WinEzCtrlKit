@@ -169,9 +169,10 @@ public:
 		}
 		else
 		{
-			SetDCBrushColor(hDC, m_crBK != CLR_DEFAULT ? m_crBK : m_crDefBK);
+			const auto* const ptc = GetThreadCtx();
+			SetDCBrushColor(hDC, m_crBK != CLR_DEFAULT ? m_crBK : ptc->crDefBkg);
 			FillRect(hDC, &m_rcBtn, GetStockBrush(DC_BRUSH));
-			crOld = SetTextColor(hDC, m_crText != CLR_DEFAULT ? m_crText : m_crDefText);
+			crOld = SetTextColor(hDC, m_crText != CLR_DEFAULT ? m_crText : ptc->crDefText);
 		}
 
 		const int iOldMode = SetBkMode(hDC, TRANSPARENT);

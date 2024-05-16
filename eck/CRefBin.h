@@ -61,7 +61,7 @@ inline constexpr size_t BinNPos = std::numeric_limits<size_t>{}.max();
 	return BinNPos;
 }
 
-using TRefBinDefAllocator = CAllocatorProcHeap<BYTE>;
+using TRefBinDefAllocator = CDefAllocator<BYTE>;
 
 template<class TAlloc_ = TRefBinDefAllocator>
 class CRefBinT
@@ -346,11 +346,15 @@ public:
 	/// 拆离指针
 	/// </summary>
 	/// <returns></returns>
-	[[nodiscard]] EckInline BYTE* Detach()
+	[[nodiscard]] EckInline BYTE* Detach(size_t& cbCapacity, size_t& cb)
 	{
 		const auto pTemp = m_pStream;
 		m_pStream = NULL;
+
+		cbCapacity = m_cbCapacity;
 		m_cbCapacity = 0u;
+
+		cb = m_cb;
 		m_cb = 0u;
 		return pTemp;
 	}
@@ -629,7 +633,7 @@ public:
 
 using CRefBin = CRefBinT<TRefBinDefAllocator>;
 
-template<class TAlloc = CAllocatorProcHeap<BYTE>, class TAlloc1, class TAlloc2>
+template<class TAlloc = TRefBinDefAllocator, class TAlloc1, class TAlloc2>
 CRefBinT<TAlloc> operator+(const CRefBinT<TAlloc1>& rb1, const CRefBinT<TAlloc2>& rb2)
 {
 	CRefBinT<TAlloc> rb(rb1.Size() + rb2.Size());
@@ -861,15 +865,12 @@ EckInline void SplitBin(const CRefBin& rb, const CRefBin& rbDiv,
 }
 ECK_NAMESPACE_END
 
-namespace std
+template<class TAlloc>
+struct std::hash<::eck::CRefBinT<TAlloc>>
 {
-	template<class TAlloc>
-	struct hash<::eck::CRefBinT<TAlloc>>
+	[[nodiscard]] EckInline size_t operator()(
+		const ::eck::CRefBinT<TAlloc>& rb) const noexcept
 	{
-		[[nodiscard]] EckInline size_t operator()(
-			const ::eck::CRefBinT<TAlloc>& rb) const noexcept
-		{
-			return ::eck::Fnv1aHash(rb.Data(), rb.Size());
-		}
-	};
-}
+		return ::eck::Fnv1aHash(rb.Data(), rb.Size());
+	}
+};
