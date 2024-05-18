@@ -189,6 +189,8 @@
     <ClInclude Include="eck\CLayoutBase.h" />
     <ClInclude Include="eck\CLinearLayout.h" />
     <ClInclude Include="eck\CLink.h" />
+    <ClInclude Include="eck\CStreamWalker.h" />
+    <ClInclude Include="eck\MediaTag.h" />
     <ClInclude Include="eck\CPictureBox.h" />
     <ClInclude Include="eck\CProgressBar.h" />
     <ClInclude Include="eck\CQueueTimer.h" />

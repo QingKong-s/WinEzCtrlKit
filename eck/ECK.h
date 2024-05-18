@@ -251,6 +251,9 @@ constexpr inline COLORREF c_crDarkBtnFace = 0x383838;
 
 constexpr inline UINT c_Neg1U{ (UINT)-1 };
 
+constexpr inline LARGE_INTEGER LiZero{};
+constexpr inline ULARGE_INTEGER UliMax{ .QuadPart = 0xFFFF'FFFF'FFFF'FFFF };
+
 /*-------------------*/
 /*控件通知代码*/
 #pragma warning(suppress:26454)// 算术溢出
