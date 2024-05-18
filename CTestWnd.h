@@ -53,6 +53,7 @@
 #include "eck\CToolBar.h"
 #include "eck\CHotKey.h"
 #include "eck\CLink.h"
+#include "eck\MediaTag.h"
 
 #define WCN_TEST L"CTestWindow"
 
@@ -398,10 +399,42 @@ public:
 	{
 		using namespace eck;
 		using namespace eck::Literals;
+		using namespace eck::MediaTag;
 
-		auto p = L"洛天依&乐正绫/Soda纯白";
-		std::vector<CRefStrW> v{};
-		SplitStrWithMultiChar(p, L"&/、", v);
+		//CStreamWalker sw{};
+		//SHCreateStreamOnFileEx(LR"(E:\Desktop\1.bin)", STGM_READWRITE, FILE_ATTRIBUTE_NORMAL,
+		//	FALSE, NULL, &sw.m_pStream);
+		//constexpr auto cbfile = 10000;
+		//sw.GetStream()->SetSize(ToUli(cbfile));
+		//sw.MoveToBegin();
+		//BYTE* by = new BYTE[cbfile];
+		//EckCounter(cbfile, i)
+		//{
+		//	by[i] = i % 0xFF;
+		//}
+		//sw.Write(by, cbfile);
+
+		//sw.Insert(ToUli(8), ToUli(4));
+		//sw.MoveToBegin() += 8;
+		//BYTE by2[4];
+		//memset(by2, 0xFF, 4);
+		//sw << by2;
+
+		//sw.Erase(ToUli(8), ToUli(5));
+		//sw.GetStream()->Release();
+
+		CMediaFile file(LR"(F:\@QQ文件\639582106\FileRecv\かめりあ - Exit This Earth's Atomosphere (かめりあ's 'PLANETARY／／200STEP' Remix).flac)");
+
+		EckDbgPrint(!!(file.DetectTag() & (TAG_ID3V2_3 | TAG_ID3V2_4)));
+
+		MUSICINFO mi{};
+		//CID3v2 id3(file);
+		//id3.ReadTag(mi);
+		
+		CFlac flac(file);
+		flac.ReadTag(mi);
+		int a = 0;
+		
 
 		//CHAR szA[]{ "123你好45" };
 		//EckDbgPrint(eck::CalcDbcsStringCharCount(szA, ARRAYSIZE(szA) - 1));

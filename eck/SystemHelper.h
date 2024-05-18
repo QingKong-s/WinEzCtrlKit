@@ -757,4 +757,39 @@ EckInline BOOL SystemTimeToULongLong(const SYSTEMTIME& st, ULONGLONG& ull)
 {
 	return SystemTimeToFileTime(&st, (FILETIME*)&ull);
 }
+
+CRefStrW FormatDate(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlags = 0u,
+	PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT)
+{
+	const int cchDate = GetDateFormatEx(pszLocale, dwFlags, &st, pszFmt, NULL, 0, NULL);
+	if (!cchDate)
+		return {};
+	CRefStrW rs(cchDate);
+	GetDateFormatEx(pszLocale, dwFlags, &st, pszFmt, rs.Data(), cchDate, NULL);
+	return rs;
+}
+
+CRefStrW FormatTime(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlags = 0u,
+	PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT)
+{
+	const int cchTime = GetTimeFormatEx(pszLocale, dwFlags, &st, pszFmt, NULL, 0);
+	if (!cchTime)
+		return {};
+	CRefStrW rs(cchTime);
+	GetTimeFormatEx(pszLocale, dwFlags, &st, pszFmt, rs.Data(), cchTime);
+	return rs;
+}
+
+CRefStrW FormatDateTime(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlags = 0u,
+	PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT)
+{
+	const int cchDate = GetDateFormatEx(pszLocale, dwFlags, &st, pszFmt, NULL, 0, NULL);
+	const int cchTime = GetTimeFormatEx(pszLocale, dwFlags, &st, pszFmt, NULL, 0);
+	if (!cchDate || !cchTime)
+		return {};
+	CRefStrW rs(cchTime + cchDate - 1);
+	GetDateFormatEx(pszLocale, dwFlags, &st, pszFmt, rs.Data(), cchDate, NULL);
+	GetTimeFormatEx(pszLocale, dwFlags, &st, pszFmt, rs.Data() + cchDate - 1, cchTime);
+	return rs;
+}
 ECK_NAMESPACE_END

@@ -14,6 +14,7 @@
 #include <process.h>
 
 #include <string_view>
+#include <memory>
 #if ECKCXX20
 #include <concepts>
 #include <bit>
@@ -24,6 +25,20 @@
 #include <Shlwapi.h>
 
 ECK_NAMESPACE_BEGIN
+
+template<class T>
+struct VADeleter
+{
+	void operator()(T* p)
+	{
+		VirtualFree(p, 0, MEM_RELEASE);
+	}
+};
+
+template<class T>
+using UniquePtrVA = std::unique_ptr<T, VADeleter<T>>;
+
+
 namespace Colorref
 {
 	inline constexpr COLORREF
@@ -834,5 +849,126 @@ EckInline constexpr COLORREF AdjustColorrefLuma(COLORREF cr, int iPrecent)
 		std::min(GetRValue(cr) * iPrecent / 100, 0xFF),
 		std::min(GetGValue(cr) * iPrecent / 100, 0xFF),
 		std::min(GetBValue(cr) * iPrecent / 100, 0xFF));
+}
+
+EckInline constexpr ULARGE_INTEGER operator+(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
+{
+	return ULARGE_INTEGER{ .QuadPart = x1.QuadPart + x2.QuadPart };
+}
+
+EckInline constexpr ULARGE_INTEGER operator+(ULARGE_INTEGER x1, ULONGLONG x2)
+{
+	return ULARGE_INTEGER{ .QuadPart = x1.QuadPart + x2 };
+}
+
+EckInline constexpr ULARGE_INTEGER operator-(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
+{
+	return ULARGE_INTEGER{ .QuadPart = x1.QuadPart - x2.QuadPart };
+}
+
+EckInline constexpr ULARGE_INTEGER operator-(ULARGE_INTEGER x1, ULONGLONG x2)
+{
+	return ULARGE_INTEGER{ .QuadPart = x1.QuadPart - x2 };
+}
+
+EckInline constexpr std::strong_ordering operator<=>(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
+{
+	return x1.QuadPart <=> x2.QuadPart;
+}
+
+EckInline constexpr bool operator==(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
+{
+	return x1.QuadPart == x2.QuadPart;
+}
+
+EckInline constexpr bool operator==(ULARGE_INTEGER x1, ULONGLONG x2)
+{
+	return x1.QuadPart == x2;
+}
+
+EckInline constexpr std::strong_ordering operator<=>(ULARGE_INTEGER x1, ULONGLONG x2)
+{
+	return x1.QuadPart <=> x2;
+}
+
+EckInline constexpr LARGE_INTEGER operator+(LARGE_INTEGER x1, LARGE_INTEGER x2)
+{
+	return LARGE_INTEGER{ .QuadPart = x1.QuadPart + x2.QuadPart };
+}
+
+EckInline constexpr LARGE_INTEGER operator+(LARGE_INTEGER x1, LONGLONG x2)
+{
+	return LARGE_INTEGER{ .QuadPart = x1.QuadPart + x2 };
+}
+
+EckInline constexpr LARGE_INTEGER operator-(LARGE_INTEGER x1, LARGE_INTEGER x2)
+{
+	return LARGE_INTEGER{ .QuadPart = x1.QuadPart - x2.QuadPart };
+}
+
+EckInline constexpr LARGE_INTEGER operator-(LARGE_INTEGER x1, LONGLONG x2)
+{
+	return LARGE_INTEGER{ .QuadPart = x1.QuadPart - x2 };
+}
+
+EckInline constexpr LARGE_INTEGER& operator-=(LARGE_INTEGER& x1, LARGE_INTEGER x2)
+{
+	x1.QuadPart -= x2.QuadPart;
+	return x1;
+}
+
+EckInline constexpr LARGE_INTEGER operator-=(LARGE_INTEGER& x1, LONGLONG x2)
+{
+	x1.QuadPart -= x2;
+	return x1;
+}
+
+EckInline constexpr LARGE_INTEGER& operator+=(LARGE_INTEGER& x1, LARGE_INTEGER x2)
+{
+	x1.QuadPart += x2.QuadPart;
+	return x1;
+}
+
+EckInline constexpr LARGE_INTEGER operator+=(LARGE_INTEGER& x1, LONGLONG x2)
+{
+	x1.QuadPart += x2;
+	return x1;
+}
+
+EckInline constexpr std::strong_ordering operator<=>(LARGE_INTEGER x1, LARGE_INTEGER x2)
+{
+	return x1.QuadPart <=> x2.QuadPart;
+}
+
+EckInline constexpr std::strong_ordering operator<=>(LARGE_INTEGER x1, LONGLONG x2)
+{
+	return x1.QuadPart <=> x2;
+}
+
+EckInline constexpr LARGE_INTEGER ToLi(ULARGE_INTEGER x)
+{
+	return LARGE_INTEGER{ .QuadPart = (LONGLONG)x.QuadPart };
+}
+
+EckInline constexpr LARGE_INTEGER ToLi(LONGLONG x)
+{
+	return LARGE_INTEGER{ .QuadPart = x };
+}
+
+EckInline constexpr ULARGE_INTEGER ToUli(LARGE_INTEGER x)
+{
+	return ULARGE_INTEGER{ .QuadPart = (ULONGLONG)x.QuadPart };
+}
+
+EckInline constexpr ULARGE_INTEGER ToUli(ULONGLONG x)
+{
+	return ULARGE_INTEGER{ .QuadPart = x };
+}
+
+template<class T, size_t N>
+EckInline constexpr void ArrAssign(T(&x1)[N], const T(&x2)[N])
+{
+	EckCounter(N, i)
+		x1[i] = x2[i];
 }
 ECK_NAMESPACE_END
