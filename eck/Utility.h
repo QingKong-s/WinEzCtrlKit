@@ -273,6 +273,12 @@ EckInline constexpr T ReverseInteger(T i)
 	return i;
 }
 
+EckInline constexpr void ReverseByteOrder(BYTE* p, size_t cb)
+{
+	std::reverse(p, p + cb);
+}
+
+
 template<class T, class U>
 EckInline constexpr T i32ToP(U i)
 {
