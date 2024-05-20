@@ -593,6 +593,11 @@ public:
 		Insert(pos, il.begin(), il.size());
 	}
 
+	EckInline void Insert(size_t pos, BYTE by)
+	{
+		Insert(pos, &by, 1u);
+	}
+
 	EckInline void Erase(size_t pos, size_t cb)
 	{
 		EckAssert(Size() >= pos + cb);
@@ -776,9 +781,14 @@ template<class TProcesser>
 inline void SplitBin(PCVOID p, SIZE_T cbSize, PCVOID pDiv, SIZE_T cbDiv, int cBinExpected, TProcesser Processer)
 {
 	SIZE_T pos = FindBin(p, cbSize, pDiv, cbDiv);
+	if (pos == BinNPos)
+	{
+		Processer((BYTE*)p, cbSize);
+		return;
+	}
 	SIZE_T posPrevFirst = 0u;
 	int c = 0;
-	while (pos != BinNPos)
+	do
 	{
 		Processer((BYTE*)p + posPrevFirst, pos - posPrevFirst);
 		++c;
@@ -786,7 +796,7 @@ inline void SplitBin(PCVOID p, SIZE_T cbSize, PCVOID pDiv, SIZE_T cbDiv, int cBi
 			return;
 		posPrevFirst = pos + cbDiv;
 		pos = FindBin(p, cbSize, pDiv, cbDiv, posPrevFirst);
-	}
+	} while (pos != BinNPos);
 
 	Processer((BYTE*)p + posPrevFirst, pos + cbSize - posPrevFirst);
 }

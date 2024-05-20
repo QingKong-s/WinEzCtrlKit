@@ -204,10 +204,23 @@ struct CMemWalker
 		return *this;
 	}
 
+	EckInline CMemWalker& WriteAndRevByte(PCVOID pSrc, SIZE_T cb)
+	{
+		Write(pSrc, cb);
+		ReverseByteOrder(Data() - cb, cb);
+		return *this;
+	}
+
 	template<class T>
 	EckInline CMemWalker& operator<<(const T& Data)
 	{
-		return Write(&Data, sizeof(Data));
+		return Write(&Data, sizeof(T));
+	}
+
+	template<class T>
+	EckInline CMemWalker& WriteAndRevByte(const T& Data)
+	{
+		return WriteAndRevByte(&Data, sizeof(T));
 	}
 
 	template<class T, class U>
@@ -245,14 +258,12 @@ struct CMemWalker
 	EckInline CMemWalker& operator+=(SIZE_T cb)
 	{
 		m_pMem += cb;
-		EckDbgCheckMemRange(m_pBase, m_cbMax, m_pMem);
 		return *this;
 	}
 
 	EckInline CMemWalker& operator-=(SIZE_T cb)
 	{
 		m_pMem -= cb;
-		EckDbgCheckMemRange(m_pBase, m_cbMax, m_pMem);
 		return *this;
 	}
 
@@ -289,9 +300,9 @@ struct CMemWalker
 	template<class T, class U, class V>
 	EckInline CMemWalker& operator>>(CRefStrT<T, U, V>& x)
 	{
-		const int cch = U::Len(Data());
+		const int cch = U::Len((const T*)Data());
 		x.ReSize(cch);
-		return Read(x.Data(), (cch + 1) * sizeof(WCHAR));
+		return Read(x.Data(), (cch + 1) * sizeof(T));
 	}
 
 	EckInline constexpr CMemWalker& MoveToBegin()
@@ -313,9 +324,14 @@ struct CMemWalker
 		return *this;
 	}
 
-	EckInline constexpr SIZE_T GetLeaveSize()
+	EckInline constexpr SIZE_T GetLeaveSize() const
 	{
 		return m_pBase + m_cbMax - m_pMem;
+	}
+	
+	EckInline constexpr BOOL IsEnd() const
+	{
+		return m_pMem >= m_pBase + m_cbMax;
 	}
 };
 ECK_NAMESPACE_END

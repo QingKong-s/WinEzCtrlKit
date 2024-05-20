@@ -52,7 +52,16 @@ enum :UINT
 	MIF_DATE_STRING = 1u << 3,	// 用当前本地设置格式化日期为字符串
 	MIF_SPLIT_ARTIST_IN_ID3V2_3 = 1u << 4,	// 用ID3v2.3规定的斜杠("/")分割艺术家列表
 	MIF_SCAN_ALL_FRAME = 1u << 5,			// 扫描并存储标签中的所有记录
+	MIF_APPEND_TAG = 1u << 6,	// 在文件尾部追加标签（如果标记系统允许）
 };
+// ID3帧写入选项
+enum :BYTE
+{
+	MTID3F_PREPEND = 1u << 0,	// 将该帧置于文件头部的标签
+	MTID3F_APPEND = 1u << 1,	// 将该帧置于文件尾部的标签
+	MTID3F_DIRTY = 1u << 2,		// 数据已被修改
+};
+
 // 解析结果错误码
 enum class Result
 {
@@ -60,6 +69,9 @@ enum class Result
 	TagErr,
 	TextEncodingErr,
 	TooLargeData,
+	InvalidEnumVal,
+	LenErr,
+	InvalidVal,
 };
 // 图片类型
 enum class PicType
@@ -299,15 +311,24 @@ enum :UINT
 enum :UINT
 {
 	// ----状态----
-	ID3V2FF_TAG_ALTER_PRESERVATION = 1u << 15,      // 标签修改后应丢弃
-	ID3V2FF_FILE_ALTER_PRESERVATION = 1u << 14,     // 文件修改后应丢弃
-	ID3V2FF_READ_ONLY = 1u << 13,                   // 只读
+	ID3V24FF_TAG_ALTER_PRESERVATION = 1u << 6,      // 标签修改后应丢弃
+	ID3V24FF_FILE_ALTER_PRESERVATION = 1u << 5,     // 文件修改后应丢弃
+	ID3V24FF_READ_ONLY = 1u << 4,                   // 只读
 	// ----格式----
-	ID3V2FF_HAS_GROUP_IDENTITY = 1u << 6,           // 含组标志（1B）
-	ID3V2FF_COMPRESSION = 1u << 3,                  // 已压缩（zlib）
-	ID3V2FF_ENCRYPTION = 1u << 2,                   // 已加密（1B，指示加密方式）
-	ID3V2FF_UNSYNCHRONIZATION = 1u << 1,            // 不同步
-	ID3V2FF_HAS_DATA_LENGTH_INDICATOR = 1u << 0,    // 含长度指示（4B，同步安全整数）
+	ID3V24FF_HAS_GROUP_IDENTITY = 1u << 6,           // 含组标志（1B）
+	ID3V24FF_COMPRESSION = 1u << 3,                  // 已压缩（zlib）
+	ID3V24FF_ENCRYPTION = 1u << 2,                   // 已加密（1B，指示加密方式）
+	ID3V24FF_UNSYNCHRONIZATION = 1u << 1,            // 不同步
+	ID3V24FF_HAS_DATA_LENGTH_INDICATOR = 1u << 0,    // 含长度指示（4B，同步安全整数）
+
+	// ----状态----
+	ID3V23FF_TAG_ALTER_PRESERVATION = 1u << 7,      // 标签修改后应丢弃
+	ID3V23FF_FILE_ALTER_PRESERVATION = 1u << 6,     // 文件修改后应丢弃
+	ID3V23FF_READ_ONLY = 1u << 5,                   // 只读
+	// ----格式----
+	ID3V23FF_HAS_GROUP_IDENTITY = 1u << 7,           // 含组标志（1B）
+	ID3V23FF_COMPRESSION = 1u << 6,                  // 已压缩（zlib）
+	ID3V23FF_ENCRYPTION = 1u << 5,                   // 已加密（1B，指示加密方式）
 };
 
 /// <summary>
@@ -318,6 +339,14 @@ enum :UINT
 EckInline constexpr static DWORD SynchSafeIntToDWORD(PCBYTE p)
 {
 	return ((p[0] & 0x7F) << 21) | ((p[1] & 0x7F) << 14) | ((p[2] & 0x7F) << 7) | (p[3] & 0x7F);
+}
+
+EckInline constexpr static void DwordToSynchSafeInt(BYTE* p, DWORD dw)
+{
+	p[3] = (dw) & 0b0111'1111;
+	p[2] = (dw >> 7) & 0b0111'1111;
+	p[1] = (dw >> 14) & 0b0111'1111;
+	p[0] = (dw >> 21) & 0b0111'1111;
 }
 
 class CMediaFile
@@ -417,12 +446,16 @@ private:
 		CFrame(CID3v2& id3, const ID3v2_FrameHeader& Header, DWORD cbFrame) :
 			m_w(id3.m_Stream), m_Header(Header), m_cbFrame(cbFrame),
 			m_bUnsync(id3.m_Header.Flags& ID3V2HF_UNSYNCHRONIZATION),
-			m_rbFrame(cbFrame) {}
+			m_rbFrame(cbFrame)
+		{
+			if (!m_bUnsync && id3.m_Header.Ver == 4)
+				m_bUnsync = !!(m_Header.Flags[1] & ID3V24FF_UNSYNCHRONIZATION);
+		}
 
 		std::pair<CMemWalker, DWORD> Begin()
 		{
 			m_w.Read(m_rbFrame.Data(), m_cbFrame);
-			if ((m_Header.Flags[1] & ID3V2FF_UNSYNCHRONIZATION) || m_bUnsync)
+			if (m_bUnsync)
 				m_rbFrame.ReplaceSubBin({ 0xFF, 0x00 }, { 0xFF });// 恢复不同步处理
 			return
 			{
@@ -456,17 +489,27 @@ private:
 		switch (iType)
 		{
 		case 0:// ISO-8859-1
-			if (bHasTNull) cb = (int)strlen((PCSTR)w.Data());
-			cchBuf = MultiByteToWideChar(CP_ACP/*keep ANSI encoding tag happy*/, 0,
-				(PCCH)w.Data(), cb, NULL, 0);
-			if (cchBuf == 0)
-				return {};
-			rsResult.ReSize(cchBuf);
-			MultiByteToWideChar(CP_ACP, 0, (PCCH)w.Data(), cb, rsResult.Data(), cchBuf);
-			cbTNull = 1u;
+			if (bHasTNull)
+			{
+				cb = (int)strlen((PCSTR)w.Data());
+				cbTNull = 1u;
+			}
+
+			if (cchBuf = MultiByteToWideChar(CP_ACP/*keep ANSI encoding tag happy*/, 0,
+				(PCCH)w.Data(), cb, NULL, 0))
+			{
+				rsResult.ReSize(cchBuf);
+				MultiByteToWideChar(CP_ACP, 0, (PCCH)w.Data(), cb, rsResult.Data(), cchBuf);
+			}
 			break;
+
 		case 1:// UTF-16LE
-			if (bHasTNull) cb = (int)wcslen((PCWSTR)w.Data());
+			if (bHasTNull)
+			{
+				cb = (int)wcslen((PCWSTR)w.Data()) * sizeof(WCHAR);
+				cbTNull = 2u;
+			}
+
 			if (*(PWSTR)w.Data() == L'\xFEFF')// 跳BOM
 			{
 				w += sizeof(WCHAR);
@@ -478,34 +521,49 @@ private:
 				cb -= sizeof(WCHAR);
 				goto Utf16BE;
 			}
-			cchBuf = cb / sizeof(WCHAR);
-			rsResult.ReSize(cchBuf);
-			wcsncpy(rsResult.Data(), (PWSTR)w.Data(), cchBuf);
-			cbTNull = 2u;
+
+			if (cb)
+			{
+				cchBuf = cb / sizeof(WCHAR);
+				rsResult.ReSize(cchBuf);
+				wcsncpy(rsResult.Data(), (PWSTR)w.Data(), cchBuf);
+			}
 			break;
+
 		case 2:// UTF-16BE
-			if (bHasTNull) cb = (int)wcslen((PCWSTR)w.Data());
+			if (bHasTNull)
+			{
+				cb = (int)wcslen((PCWSTR)w.Data()) * sizeof(WCHAR);
+				cbTNull = 2u;
+			}
+
 			if (*(PWSTR)w.Data() == L'\xFFFE')// 跳BOM
 			{
 				w += sizeof(WCHAR);
 				cb -= sizeof(WCHAR);
 			}
 		Utf16BE:
-			cchBuf = cb / sizeof(WCHAR);
-			rsResult.ReSize(cchBuf);
-			LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_BYTEREV,
-				(PCWSTR)w.Data(), cchBuf, rsResult.Data(), cchBuf, NULL, NULL, 0);// 反转字节序
-			cbTNull = 2u;
+			if (cb)
+			{
+				cchBuf = cb / sizeof(WCHAR);
+				rsResult.ReSize(cchBuf);
+				LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_BYTEREV,
+					(PCWSTR)w.Data(), cchBuf, rsResult.Data(), cchBuf, NULL, NULL, 0);
+			}
 			break;
+
 		case 3:// UTF-8
-			if (bHasTNull) cb = (int)strlen((PCSTR)w.Data());
-			cchBuf = MultiByteToWideChar(CP_UTF8, 0, (PCCH)w.Data(), cb, NULL, 0);
-			if (cchBuf == 0)
-				return {};
-			rsResult.ReSize(cchBuf);
-			MultiByteToWideChar(CP_UTF8, 0, (PCCH)w.Data(), cb, rsResult.Data(), cchBuf);
-			++cb;
-			cbTNull = 1u;
+			if (bHasTNull)
+			{
+				cb = (int)strlen((PCSTR)w.Data());
+				cbTNull = 1u;
+			}
+
+			if (cchBuf = MultiByteToWideChar(CP_UTF8, 0, (PCCH)w.Data(), cb, NULL, 0))
+			{
+				rsResult.ReSize(cchBuf);
+				MultiByteToWideChar(CP_UTF8, 0, (PCCH)w.Data(), cb, rsResult.Data(), cchBuf);
+			}
 			break;
 		default:
 			EckDbgBreak();
@@ -620,39 +678,266 @@ public:
 		Max
 	};
 
+#define ECK_DECL_ID3FRAME_CLONE(x) \
+	FRAME* Clone() override { return new x{ *this }; }
+
 	struct FRAME
 	{
-		CHAR Id[4];
-		BYTE uFlags[2];
+		CHAR Id[4]{};
+		BYTE uFlags[2]{};
+		BYTE byAddtFlags{};// MTID3F_常量
+
+		virtual ~FRAME() {}
+
+		virtual Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) = 0;
+
+		virtual FRAME* Clone() = 0;
+	protected:
+		CMemWalker PreSerialize(CRefBin& rb, ID3v2_Header* phdr, size_t cbFrame)
+		{
+			auto w{ CMemWalker(rb.PushBack(
+				sizeof(ID3v2_FrameHeader) + cbFrame) + sizeof(ID3v2_FrameHeader), cbFrame) };
+			ID3v2_FrameHeader* pfhdr;
+			w.SkipPointer(pfhdr);
+			memcpy(pfhdr->ID, Id, 4);
+			memcpy(pfhdr->Flags, &uFlags, 2);
+			if (phdr->Ver == 4)
+				DwordToSynchSafeInt(pfhdr->Size, (DWORD)cbFrame);
+			else
+				*(DWORD*)pfhdr->Size = ReverseInteger((DWORD)cbFrame);
+			return w;
+		}
+
+		void PostSerialize(CRefBin& rb, ID3v2_Header* phdr, size_t cbFrame)
+		{
+			EckAssert(rb.Size() >= sizeof(ID3v2_Header) + cbFrame);
+			if (phdr->Ver == 4)
+			{
+				if (uFlags[1] & ID3V24FF_COMPRESSION)
+				{
+					// TODO:压缩
+				}
+
+				if (phdr->Flags & ID3V2HF_UNSYNCHRONIZATION || uFlags[1] & ID3V24FF_UNSYNCHRONIZATION)
+				{
+					for (size_t i = rb.Size() - cbFrame; i < rb.Size() - 1; ++i)
+					{
+						if (rb[i] == 0xFF &&
+							(rb[i + 1] == 0 || IsBitSet(rb[i + 1], 0b1110'0000)))
+							rb.Insert(i + 1, 0);
+					}
+				}
+			}
+			else
+			{
+				if (uFlags[1] & ID3V24FF_COMPRESSION)
+				{
+					// TODO:压缩
+				}
+
+				if (phdr->Flags & ID3V2HF_UNSYNCHRONIZATION)
+				{
+					for (size_t i = rb.Size() - cbFrame; i < rb.Size() - 1; ++i)
+					{
+						if (rb[i] == 0xFF &&
+							(rb[i + 1] == 0 || IsBitSet(rb[i + 1], 0b1110'0000)))
+							rb.Insert(i + 1, 0);
+					}
+				}
+			}
+		}
+
+		static CRefBin CovertTextEncoding(const CRefStrW& rsStr,
+			TextEncoding eEncoding, BOOL bAddTerNull = FALSE)
+		{
+			CRefBin rb{};
+			if (rsStr.IsEmpty())
+			{
+				if (bAddTerNull)
+					switch (eEncoding)
+					{
+					case TextEncoding::Latin1:
+					case TextEncoding::UTF8:
+						rb.ReSize(1);
+						rb.Front() = 0;
+						break;
+					case TextEncoding::UTF16LE:
+					case TextEncoding::UTF16BE:
+						rb.ReSize(2);
+						rb[0] = 0;
+						rb[1] = 0;
+						break;
+					}
+				return rb;
+			}
+
+			switch (eEncoding)
+			{
+			case TextEncoding::Latin1:
+				if (int cchBuf; cchBuf = WideCharToMultiByte(CP_ACP, 0,
+					rsStr.Data(), rsStr.Size(), NULL, 0, NULL, NULL))
+				{
+					rb.ReSize(bAddTerNull ? cchBuf + 1 : cchBuf);
+					WideCharToMultiByte(CP_ACP, 0,
+						rsStr.Data(), rsStr.Size(), (PSTR)rb.Data(), cchBuf, NULL, NULL);
+					if (bAddTerNull)
+						rb.Back() = 0;
+				}
+				break;
+
+			case TextEncoding::UTF16LE:
+				rb.ReSize(rsStr.ByteSize() + 2 - (bAddTerNull ? 0 : sizeof(WCHAR)));
+				memcpy(rb.Data(), BOM_UTF16LE, 2);
+				memcpy(rb.Data() + 2, rsStr.Data(), rsStr.ByteSize() - (bAddTerNull ? 0 : sizeof(WCHAR)));
+				break;
+
+			case TextEncoding::UTF16BE:
+				rb.ReSize(rsStr.ByteSize() - (bAddTerNull ? 0 : sizeof(WCHAR)));
+				LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_BYTEREV,
+					rsStr.Data(), rsStr.Size() + (bAddTerNull ? 1 : 0),
+					(PWSTR)rb.Data(), rsStr.Size() + (bAddTerNull ? 1 : 0), NULL, NULL, 0);
+				break;
+
+			case TextEncoding::UTF8:
+				if (int cchBuf; cchBuf = WideCharToMultiByte(CP_UTF8, 0,
+					rsStr.Data(), rsStr.Size(), NULL, 0, NULL, NULL))
+				{
+					rb.ReSize(bAddTerNull ? cchBuf + 1 : cchBuf);
+					WideCharToMultiByte(CP_UTF8, 0,
+						rsStr.Data(), rsStr.Size(), (PSTR)rb.Data(), cchBuf, NULL, NULL);
+					if (bAddTerNull)
+						rb.Back() = 0;
+				}
+				break;
+			default:
+				EckDbgBreak();
+				break;
+			}
+			return rb;
+		}
+
+		static CRefBin CovertTextEncoding(const std::vector<CRefStrW>& v,
+			TextEncoding eEncoding, BOOL bAddTerNull = FALSE)
+		{
+			if (v.size() == 1u)
+				return CovertTextEncoding(v.front(), eEncoding, bAddTerNull);
+			CRefStrW rs{};
+			int cch{};
+			for (const auto& e : v)
+				cch += (e.Size() + 1);
+			rs.ReSize(bAddTerNull ? cch : cch - 1);
+			for (PWSTR psz = rs.Data(); const auto & e : v)
+			{
+				wmemcpy(psz, e.Data(), e.Size() + 1);
+				psz += (e.Size() + 1);
+			}
+			return CovertTextEncoding(rs, eEncoding, bAddTerNull);
+		}
 	};
 
 	struct UFID :public FRAME
 	{
-		CRefStrA rsEmail;
-		CRefBin rbOwnerData;
+		CRefStrA rsEmail{};
+		CRefBin rbOwnerData{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const size_t cbFrame = rsEmail.Size() + 1 + rbOwnerData.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << rsEmail << rbOwnerData;
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(UFID)
 	};
 
 	struct TEXTFRAME :public FRAME
 	{
-		TextEncoding eEncoding;
-		std::vector<CRefStrW> vText;
+		TextEncoding eEncoding{};
+		std::vector<CRefStrW> vText{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const auto rbText = CovertTextEncoding(vText, eEncoding);
+			size_t cbFrame = 1 + rbText.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << eEncoding << rbText;
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(TEXTFRAME)
 	};
 
-	struct TWXXX :public FRAME
+	struct TXXX :public FRAME
 	{
-		TextEncoding eEncoding;
-		CRefStrW rsDesc;
-		CRefStrW rsText;
+		TextEncoding eEncoding{};
+		CRefStrW rsDesc{};
+		CRefStrW rsText{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			CRefBin rbDesc = CovertTextEncoding(rsDesc, eEncoding, TRUE);
+			CRefBin rbText = CovertTextEncoding(rsText, eEncoding);
+			const size_t cbFrame = 1 + rbDesc.Size() + rbText.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << eEncoding << rbDesc << rbText;
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(TXXX)
 	};
 
 	struct LINKFRAME :public FRAME
 	{
-		CRefStrA rsUrl;
+		CRefStrA rsUrl{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			auto w = PreSerialize(rb, phdr, rsUrl.Size());
+			w.Write(rsUrl.Data(), rsUrl.Size());
+			PostSerialize(rb, phdr, rsUrl.Size());
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(LINKFRAME)
+	};
+
+	struct WXXX :public FRAME
+	{
+		TextEncoding eEncoding{};
+		CRefStrW rsDesc{};
+		CRefStrA rsUrl{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			auto rbDesc = CovertTextEncoding(rsDesc, eEncoding, TRUE);
+			const size_t cbFrame = 1 + rbDesc.Size() + rsUrl.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << eEncoding << rbDesc;
+			w.Write(rsUrl.Data(), rsUrl.Size());
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(WXXX)
 	};
 
 	struct MCID :public FRAME
 	{
-		CRefBin rbToc;
+		CRefBin rbToc{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			auto w = PreSerialize(rb, phdr, rbToc.Size());
+			w << rbToc;
+			PostSerialize(rb, phdr, rbToc.Size());
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(MCID)
 	};
 
 	struct ETCO :public FRAME
@@ -663,8 +948,21 @@ public:
 			UINT uTimestamp;
 		};
 
-		TimestampFmt eTimestampFmt;
-		std::vector<EVENT> vEvent;
+		TimestampFmt eTimestampFmt{};
+		std::vector<EVENT> vEvent{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const size_t cbFrame = 1 + 5 * vEvent.size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << eTimestampFmt;
+			for (const auto& e : vEvent)
+				(w << e.eType).WriteAndRevByte(e.uTimestamp);
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(ETCO)
 	};
 
 	struct MLLT :public FRAME
@@ -674,225 +972,565 @@ public:
 			std::bitset<256> ByteOffset;
 			std::bitset<256> MillisecondsOffset;
 		};
-		USHORT cMpegFrame;
-		UINT cByte;
-		UINT cMilliseconds;
-		BYTE cByteOffsetVal;
-		BYTE cMillisecondsOffsetVal;
-		std::vector<REF> vRef;
+		USHORT cMpegFrame{};
+		UINT cByte{};
+		UINT cMilliseconds{};
+		BYTE cByteOffsetValBit{};
+		BYTE cMillisecondsOffsetValBit{};
+		std::vector<REF> vRef{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const size_t cbFrame = 0;
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			// TODO:位
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(MLLT)
 	};
 
 	struct SYTC :public FRAME
 	{
 		struct TEMPO
 		{
-			BYTE bpm[2];
-			UINT uTimestamp;
+			USHORT bpm{};
+			UINT uTimestamp{};
 		};
-		TimestampFmt eTimestampFmt;
-		std::vector<TEMPO> vTempo;
+		TimestampFmt eTimestampFmt{};
+		std::vector<TEMPO> vTempo{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			size_t cbFrame = 1 + vTempo.size() * 5;
+			for (const auto& e : vTempo)
+				if (e.bpm >= 0xFF)
+					++cbFrame;
+				else if (e.bpm > 510)
+					return Result::InvalidVal;
+
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << eTimestampFmt;
+			for (const auto& e : vTempo)
+			{
+				if (e.bpm >= 0xFF)
+					w << (BYTE)0xFF << (BYTE)(e.bpm - 0xFF);
+				else
+					w << (BYTE)e.bpm;
+				w.WriteAndRevByte(e.uTimestamp);
+			}
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(SYTC)
 	};
 
 	struct USLT :public FRAME
 	{
-		TextEncoding eEncoding;
-		CHAR byLang[3];
-		CRefStrW rsDesc;
-		CRefStrW rsLrc;
+		TextEncoding eEncoding{};
+		CHAR byLang[3]{};
+		CRefStrW rsDesc{};
+		CRefStrW rsLrc{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const auto rbDesc = CovertTextEncoding(rsDesc, eEncoding, TRUE);
+			const auto rbLrc = CovertTextEncoding(rsLrc, eEncoding);
+			const size_t cbFrame = 4 + rbDesc.Size() + rbLrc.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << eEncoding << byLang << rbDesc << rbLrc;
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(USLT)
 	};
 
 	struct SYLT :public FRAME
 	{
 		struct SYNC
 		{
-			CRefStrW rsText;
-			UINT uTimestamp;
+			CRefStrW rsText{};
+			UINT uTimestamp{};
 		};
 
-		TextEncoding eEncoding;
-		CHAR byLang[3];
-		TimestampFmt eTimestampFmt;
-		LrcContentType eContent;
-		CRefStrW rsDesc;
-		std::vector<SYNC> vSync;
+		TextEncoding eEncoding{};
+		CHAR byLang[3]{};
+		TimestampFmt eTimestampFmt{};
+		LrcContentType eContent{};
+		CRefStrW rsDesc{};
+		std::vector<SYNC> vSync{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const auto rbDesc = CovertTextEncoding(rsDesc, eEncoding, TRUE);
+			size_t cbFrame = 6 + rbDesc.Size() + vSync.size() * 4;
+
+			std::vector<CRefBin> vLrc(vSync.size());
+			EckCounter(vSync.size(), i)
+			{
+				vLrc[i] = CovertTextEncoding(vSync[i].rsText, eEncoding, TRUE);
+				cbFrame += vLrc[i].Size();
+			}
+
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << eEncoding << byLang << eTimestampFmt << rbDesc;
+			EckCounter(vSync.size(), i)
+				(w << vLrc[i]).WriteAndRevByte(vSync[i].uTimestamp);
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(SYLT)
 	};
 
 	struct COMM :public FRAME
 	{
-		TextEncoding eEncoding;
-		CHAR byLang[3];
-		CRefStrW rsDesc;
-		CRefStrW rsText;
+		TextEncoding eEncoding{};
+		CHAR byLang[3]{};
+		CRefStrW rsDesc{};
+		CRefStrW rsText{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const auto rbDesc = CovertTextEncoding(rsDesc, eEncoding, TRUE);
+			const auto rbText = CovertTextEncoding(rsText, eEncoding);
+			const size_t cbFrame = 4 + rbDesc.Size() + rbText.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << eEncoding << byLang << rbDesc << rbText;
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(COMM)
 	};
 
 	struct RVA2 :public FRAME
 	{
 		struct CHANNEL
 		{
-			ChannelType eChannel;
-			BYTE cPeekVolBit;
-			short shVol;
-			std::bitset<256> PeekVol;
+			ChannelType eChannel{};
+			BYTE cPeekVolBit{};
+			short shVol{};
+			std::bitset<256> PeekVol{};
 		};
-		CRefStrA rsId;
-		std::vector<CHANNEL> vChannel;
+		CRefStrA rsId{};
+		std::vector<CHANNEL> vChannel{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const size_t cbFrame = 0;
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			// TODO:位
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(RVA2)
 	};
 
 	struct EQU2 :public FRAME
 	{
 		struct POINT
 		{
-			USHORT uFreq;	// 单位1/2Hz
-			short shVol;
+			USHORT uFreq{};	// 单位1/2Hz
+			short shVol{};
 		};
-		Interpolation eInterpolation;
-		std::vector<POINT> vPoint;
+		Interpolation eInterpolation{};
+		CRefStrA rsId{};
+		std::vector<POINT> vPoint{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const size_t cbFrame = 2 + rsId.Size() + vPoint.size() * 4;
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << eInterpolation << rsId;
+			for (auto e : vPoint)
+				w.WriteAndRevByte(e.uFreq).WriteAndRevByte(e.shVol);
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(EQU2)
 	};
 
 	struct RVRB :public FRAME
 	{
-		USHORT Left;
-		USHORT Right;
-		BYTE bouncesLeft;
-		BYTE bouncesRight;
-		BYTE FeedbackLeftToLeft;
-		BYTE FeedbackLeftToRight;
-		BYTE FeedbackRightToRight;
-		BYTE FeedbackRightToLeft;
-		BYTE PremixLeftToRight;
-		BYTE PremixRightToLeft;
+		USHORT Left{};
+		USHORT Right{};
+		BYTE BouncesLeft{};
+		BYTE BouncesRight{};
+		BYTE FeedbackLeftToLeft{};
+		BYTE FeedbackLeftToRight{};
+		BYTE FeedbackRightToRight{};
+		BYTE FeedbackRightToLeft{};
+		BYTE PremixLeftToRight{};
+		BYTE PremixRightToLeft{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			constexpr size_t cbFrame = 12;
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w.WriteAndRevByte(Left).WriteAndRevByte(Right).Write(&BouncesLeft, 8);
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(RVRB)
 	};
 
 	struct APIC :public FRAME
 	{
-		MUSICPIC pic;
+		TextEncoding eTextEncoding{};
+		PicType eType{};
+		CRefStrA rsMime{};
+		CRefStrW rsDesc{};
+		CRefBin rbData{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const auto rbDesc = CovertTextEncoding(rsDesc, eTextEncoding, TRUE);
+			const size_t cbFrame = 3 + rsMime.Size() + rbDesc.Size() + rbData.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << eTextEncoding << eType << rsMime << rbDesc << rbData;
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(APIC)
 	};
 
 	struct GEOB :public FRAME
 	{
-		TextEncoding eEncoding;
-		CRefStrA rsMime;
-		CRefStrW rsDesc;
-		CRefBin rbObj;
+		TextEncoding eTextEncoding{};
+		CRefStrA rsMime{};
+		CRefStrW rsFile{};
+		CRefStrW rsDesc{};
+		CRefBin rbObj{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const auto rbFile = CovertTextEncoding(rsFile, eTextEncoding, TRUE);
+			const auto rbDesc = CovertTextEncoding(rsDesc, eTextEncoding, TRUE);
+			const size_t cbFrame = 2 + rsMime.Size() + rbFile.Size() + rbDesc.Size() + rbObj.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << eTextEncoding << rsMime << rbFile << rbDesc << rbObj;
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(GEOB)
 	};
 
 	struct PCNT :public FRAME
 	{
-		ULONGLONG cPlay;
+		ULONGLONG cPlay{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			size_t cbFrame = 4;
+			for (int i = 7; i >= 4; --i)
+			{
+				if (GetIntegerByte(cPlay, i))
+				{
+					cbFrame = i + 1;
+					break;
+				}
+			}
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w.WriteAndRevByte(&cPlay, cbFrame);
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(PCNT)
 	};
 
 	struct POPM :public FRAME
 	{
-		CRefStrA rsEmail;
-		BYTE byRating;
-		ULONGLONG cPlay;
+		CRefStrA rsEmail{};
+		BYTE byRating{};
+		ULONGLONG cPlay{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			size_t cbPlayCount = 4;
+			for (int i = 7; i >= 4; --i)
+			{
+				if (GetIntegerByte(cPlay, i))
+				{
+					cbPlayCount = i + 1;
+					break;
+				}
+			}
+			const size_t cbFrame = 2 + rsEmail.Size() + cbPlayCount;
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << rsEmail << byRating;
+			w.WriteAndRevByte(&cPlay, cbPlayCount);
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(POPM)
+	};
+
+	struct RBUF :public FRAME
+	{
+		UINT cbBuf{};
+		BYTE b{};
+		UINT ocbNextTag{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			constexpr size_t cbFrame = 8;
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w.WriteAndRevByte(&cbBuf, 3) << b;
+			w.WriteAndRevByte(ocbNextTag);
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(RBUF)
 	};
 
 	struct AENC :public FRAME
 	{
-		CRefStrA rsOwnerId;
-		USHORT usPreviewBegin;
-		USHORT usPreviewLength;
-		CRefBin rbData;
+		CRefStrA rsOwnerId{};
+		USHORT usPreviewBegin{};
+		USHORT usPreviewLength{};
+		CRefBin rbData{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const size_t cbFrame = 5 + rsOwnerId.Size() + rbData.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << rsOwnerId;
+			w.WriteAndRevByte(usPreviewBegin).WriteAndRevByte(usPreviewLength);
+			w << rbData;
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(AENC)
 	};
 
 	struct LINK :public FRAME
 	{
-		CHAR IdTarget[4];
-		CRefStrA rsUrl;
-		CRefStrA rsAdditional;
+		CHAR IdTarget[4]{};
+		CRefStrA rsUrl{};
+		CRefStrA rsAdditional{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const size_t cbFrame = 5 + rsUrl.Size() + rsUrl.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << IdTarget << rsUrl << rsAdditional;
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(LINK)
 	};
 
 	struct POSS :public FRAME
 	{
-		TimestampFmt eTimestamp;
-		UINT uTime;
+		TimestampFmt eTimestamp{};
+		UINT uTime{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const size_t cbFrame = 5;
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			(w << eTimestamp).WriteAndRevByte(uTime);
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(POSS)
 	};
 
 	struct USER :public FRAME
 	{
-		TextEncoding eEncoding;
-		CHAR byLang[3];
-		CRefStrW rsText;
+		TextEncoding eEncoding{};
+		CHAR byLang[3]{};
+		CRefStrW rsText{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const auto rbText = CovertTextEncoding(rsText, eEncoding);
+			const size_t cbFrame = 4 + rbText.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << eEncoding << byLang << rbText;
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(USER)
 	};
 
 	struct OWNE :public FRAME
 	{
-		TextEncoding eEncoding;
-		CRefStrA rsPrice;
-		CHAR szDate[8];
-		CRefStrW rsSeller;
+		TextEncoding eEncoding{};
+		CRefStrA rsPrice{};
+		CHAR szDate[8]{};
+		CRefStrW rsSeller{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const auto rbSeller = CovertTextEncoding(rsSeller, eEncoding);
+			const size_t cbFrame = 10 + rsPrice.Size() + rbSeller.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << eEncoding << rsPrice << szDate << rbSeller;
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(OWNE)
 	};
 
 	struct COMR :public FRAME
 	{
-		TextEncoding eEncoding;
+		TextEncoding eEncoding{};
+		ReceivedWay eReceivedWay{};
+		CRefStrA rsPrice{};
+		CHAR szDate[8]{};
+		CRefStrA rsUrl{};
+		CRefStrW rsSeller{};
+		CRefStrW rsDesc{};
+		CRefStrA rsMime{};
+		CRefBin rbLogo{};
 
-		CRefStrA rsPrice;
-		CHAR szDate[8];
-		CRefStrA rsUrl;
-		CRefStrW rsSeller;
-		CRefStrW rsDesc;
-		CRefStrA rsMime;
-		CRefBin rbLogo;
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const auto rbSeller = CovertTextEncoding(rsSeller, eEncoding, TRUE);
+			const auto rbDesc = CovertTextEncoding(rsDesc, eEncoding, TRUE);
+
+			const size_t cbFrame = 13 + rsPrice.Size() + rsUrl.Size() +
+				rbSeller.Size() + rbDesc.Size() + rsMime.Size() + rbLogo.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << eEncoding << eReceivedWay << rsPrice << szDate << rsUrl <<
+				rbSeller << rbDesc << rsMime << rbLogo;
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(COMR)
 	};
 
 	struct ENCR :public FRAME
 	{
-		CRefStrA rsEmail;
-		BYTE byMethod;
-		CRefBin rbData;
+		CRefStrA rsEmail{};
+		BYTE byMethod{};
+		CRefBin rbData{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const size_t cbFrame = 2 + rsEmail.Size() + rbData.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << rsEmail << byMethod << rbData;
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(ENCR)
 	};
 
 	struct GRID :public FRAME
 	{
-		CRefStrA rsEmail;
-		BYTE byId;
-		CRefBin rbData;
+		CRefStrA rsEmail{};
+		BYTE byId{};
+		CRefBin rbData{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const size_t cbFrame = 2 + rsEmail.Size() + rbData.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << rsEmail << byId << rbData;
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(GRID)
 	};
 
 	struct PRIV :public FRAME
 	{
-		CRefStrA rsEmail;
-		CRefBin rbData;
+		CRefStrA rsEmail{};
+		CRefBin rbData{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const size_t cbFrame = 1 + rsEmail.Size() + rbData.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << rsEmail << rbData;
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(PRIV)
 	};
 
 	struct SIGN :public FRAME
 	{
-		BYTE byGroupId;
-		CRefBin rbData;
+		BYTE byGroupId{};
+		CRefBin rbData{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const size_t cbFrame = 1 + rbData.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << byGroupId << rbData;
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(SIGN)
 	};
 
 	struct SEEK :public FRAME
 	{
-		UINT ocbNextTag;
+		UINT ocbNextTag{};
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			constexpr size_t cbFrame = 4;
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w.WriteAndRevByte(ocbNextTag);
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(SEEK)
 	};
 	// TODO:ASPI
 private:
 	std::vector<FRAME*> m_vFrame{};
 
-	class CFrame2
+	struct CFrame2
 	{
-	private:
 		CStreamWalker& m_w;
 		const ID3v2_FrameHeader& m_Header{};
 		CRefBin m_rbFrame{};
 		DWORD m_cbFrame{};
 		BOOL m_bUnsync = FALSE;
-	public:
+
 		CFrame2(CID3v2& id3, const ID3v2_FrameHeader& Header, DWORD cbFrame, FRAME* pFrame) :
 			m_w(id3.m_Stream), m_Header(Header), m_cbFrame(cbFrame),
 			m_bUnsync(id3.m_Header.Flags& ID3V2HF_UNSYNCHRONIZATION),
 			m_rbFrame(cbFrame)
 		{
 			memcpy(pFrame->Id, Header.ID, 4);
-			memcpy(pFrame->uFlags, Header.Flags, 2);
+			memcpy(&pFrame->uFlags, Header.Flags, 2);
+			if (!m_bUnsync && id3.m_Header.Ver == 4)
+				m_bUnsync = !!(m_Header.Flags[1] & ID3V24FF_UNSYNCHRONIZATION);
 		}
 
 		std::pair<CMemWalker, DWORD> Begin()
 		{
 			m_w.Read(m_rbFrame.Data(), m_cbFrame);
-			if ((m_Header.Flags[1] & ID3V2FF_UNSYNCHRONIZATION) || m_bUnsync)
+			if (m_bUnsync)
 				m_rbFrame.ReplaceSubBin({ 0xFF, 0x00 }, { 0xFF });// 恢复不同步处理
 			return
 			{
@@ -967,29 +1605,29 @@ public:
 			m_Stream >> FrameHdr;
 
 			cbExtra = 0;
-			if (FrameHdr.Flags[1] & ID3V2FF_HAS_GROUP_IDENTITY)
-				cbExtra += 1;// 跳过组标识符
-			if (FrameHdr.Flags[1] & ID3V2FF_ENCRYPTION)
-				cbExtra += 1;// 跳过加密类型标识符
-			if (FrameHdr.Flags[1] & ID3V2FF_HAS_DATA_LENGTH_INDICATOR)
-				cbExtra += 4;// 跳过数据长度指示器
-
 			if (m_Header.Ver == 3)
+			{
 				cbUnit = ReverseInteger(*(DWORD*)FrameHdr.Size);// v2.3：32位数据，不包括帧头（偏4字节）
+				if (FrameHdr.Flags[1] & ID3V23FF_HAS_GROUP_IDENTITY)
+					cbExtra += 1;// 跳过组标识符
+				if (FrameHdr.Flags[1] & ID3V23FF_ENCRYPTION)
+					cbExtra += 1;// 跳过加密类型标识符
+				if (FrameHdr.Flags[1] & ID3V23FF_COMPRESSION)
+					cbExtra += 4;// 跳过数据长度指示器
+			}
 			else/* if (m_Header.Ver == 4)*/
+			{
+				if (FrameHdr.Flags[1] & ID3V24FF_HAS_GROUP_IDENTITY)
+					cbExtra += 1;// 跳过组标识符
+				if (FrameHdr.Flags[1] & ID3V24FF_ENCRYPTION)
+					cbExtra += 1;// 跳过加密类型标识符
+				if (FrameHdr.Flags[1] & ID3V24FF_HAS_DATA_LENGTH_INDICATOR)
+					cbExtra += 4;// 跳过数据长度指示器
 				cbUnit = SynchSafeIntToDWORD(FrameHdr.Size);// v2.4：28位数据（同步安全整数）
+			}
 			cbUnit -= cbExtra;
 			m_Stream += cbExtra;
 			// TODO:处理压缩帧
-			if (FrameHdr.Flags[1] & (ID3V2FF_COMPRESSION | ID3V2FF_ENCRYPTION))
-			{
-#ifdef _DEBUG
-				CRefStrA rs(FrameHdr.ID, 4);
-				EckDbgPrintWithPos((StrX2W(rs.Data(), rs.Size()) + L"：暂不支持压缩和加密帧").Data());
-#endif
-				m_Stream += cbUnit;
-				continue;
-			}
 
 			if ((mi.uMask & MIM_TITLE) && memcmp(FrameHdr.ID, "TIT2", 4) == 0)// 标题
 			{
@@ -1169,6 +1807,9 @@ public:
 
 	Result ReadTag(UINT uFlags)
 	{
+		for (auto e : m_vFrame)
+			delete e;
+		m_vFrame.clear();
 		if (!m_cbTag)
 			return Result::TagErr;
 
@@ -1183,29 +1824,30 @@ public:
 			m_Stream >> FrameHdr;
 
 			cbExtra = 0;
-			if (FrameHdr.Flags[1] & ID3V2FF_HAS_GROUP_IDENTITY)
-				cbExtra += 1;// 跳过组标识符
-			if (FrameHdr.Flags[1] & ID3V2FF_ENCRYPTION)
-				cbExtra += 1;// 跳过加密类型标识符
-			if (FrameHdr.Flags[1] & ID3V2FF_HAS_DATA_LENGTH_INDICATOR)
-				cbExtra += 4;// 跳过数据长度指示器
-
 			if (m_Header.Ver == 3)
+			{
 				cbUnit = ReverseInteger(*(DWORD*)FrameHdr.Size);// v2.3：32位数据，不包括帧头（偏4字节）
+				if (FrameHdr.Flags[1] & ID3V23FF_HAS_GROUP_IDENTITY)
+					cbExtra += 1;// 跳过组标识符
+				if (FrameHdr.Flags[1] & ID3V23FF_ENCRYPTION)
+					cbExtra += 1;// 跳过加密类型标识符
+				if (FrameHdr.Flags[1] & ID3V23FF_COMPRESSION)
+					cbExtra += 4;// 跳过数据长度指示器
+			}
 			else/* if (m_Header.Ver == 4)*/
+			{
+				if (FrameHdr.Flags[1] & ID3V24FF_HAS_GROUP_IDENTITY)
+					cbExtra += 1;// 跳过组标识符
+				if (FrameHdr.Flags[1] & ID3V24FF_ENCRYPTION)
+					cbExtra += 1;// 跳过加密类型标识符
+				if (FrameHdr.Flags[1] & ID3V24FF_HAS_DATA_LENGTH_INDICATOR)
+					cbExtra += 4;// 跳过数据长度指示器
 				cbUnit = SynchSafeIntToDWORD(FrameHdr.Size);// v2.4：28位数据（同步安全整数）
+			}
 			cbUnit -= cbExtra;
 			m_Stream += cbExtra;
 			// TODO:处理压缩帧
-			if (FrameHdr.Flags[1] & (ID3V2FF_COMPRESSION | ID3V2FF_ENCRYPTION))
-			{
-#ifdef _DEBUG
-				CRefStrA rs(FrameHdr.ID, 4);
-				EckDbgPrintWithPos((StrX2W(rs.Data(), rs.Size()) + L"：暂不支持压缩和加密帧").Data());
-#endif
-				m_Stream += cbUnit;
-				continue;
-			}
+
 #define ECK_HIT_ID3FRAME(x) (memcmp(FrameHdr.ID, #x, 4) == 0)
 			if (ECK_HIT_ID3FRAME(UFID))
 			{
@@ -1225,9 +1867,9 @@ public:
 					m_vFrame.push_back(p);
 				}
 			}
-			else if (ECK_HIT_ID3FRAME(TXXX) || ECK_HIT_ID3FRAME(WXXX))
+			else if (ECK_HIT_ID3FRAME(TXXX))
 			{
-				const auto p = new TWXXX{};
+				const auto p = new TXXX{};
 				CFrame2 f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Begin();
 
@@ -1238,20 +1880,523 @@ public:
 					return Result::TextEncodingErr;
 				}
 				p->rsDesc = GetID3v2_ProcString(w, -1, p->eEncoding);
+				p->rsText = GetID3v2_ProcString(w, (int)w.GetLeaveSize(), p->eEncoding);
 				m_vFrame.push_back(p);
 			}
 			else if (ECK_HIT_ID3FRAME(MCID))
 			{
+				const auto p = new MCID{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				p->rbToc = std::move(f.m_rbFrame);
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(WXXX))
+			{
+				const auto p = new WXXX{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
 
+				w >> p->eEncoding;
+				if (p->eEncoding >= TextEncoding::Max)
+				{
+					delete p;
+					return Result::TextEncodingErr;
+				}
+				p->rsDesc = GetID3v2_ProcString(w, -1, p->eEncoding);
+				p->rsUrl.DupString((PCSTR)w.Data(), (int)w.GetLeaveSize());
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(ETCO))
+			{
+				const auto p = new ETCO{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+
+				w >> p->eTimestampFmt;
+				if (p->eTimestampFmt >= TimestampFmt::Max)
+				{
+					delete p;
+					return Result::InvalidEnumVal;
+				}
+				if ((cb - 1) % 5)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				EckCounterNV((cb - 1) / 5)
+				{
+					auto& e = p->vEvent.emplace_back();
+					w >> e.eType >> e.uTimestamp;
+				}
+
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(MLLT))
+			{
+				const auto p = new MLLT{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+
+				(w >> p->cMpegFrame)
+					.Read(&p->cByte, 3)
+					.Read(&p->cMilliseconds, 3)
+					>> p->cByteOffsetValBit
+					>> p->cMillisecondsOffsetValBit;
+				auto& e = p->vRef.emplace_back();
+				// TODO:位
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(SYTC))
+			{
+				const auto p = new SYTC{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				w >> p->eTimestampFmt;
+				BYTE by;
+				Result result{ Result::Ok };
+				while (!w.IsEnd())
+				{
+					auto& e = p->vTempo.emplace_back();
+					w >> by;
+					if (by == 0xFF)
+					{
+						if (w.IsEnd())
+						{
+							result = Result::LenErr;
+							goto Failed;
+						}
+						w >> by;
+						e.bpm = 255 + by;
+					}
+					else
+						e.bpm = by;
+					if (w.IsEnd())
+					{
+						result = Result::LenErr;
+						goto Failed;
+					}
+					w >> e.uTimestamp;
+				}
+				m_vFrame.push_back(p);
+				goto Ok;
+			Failed:
+				delete p;
+				return result;
+			Ok:;
+			}
+			else if (ECK_HIT_ID3FRAME(USLT))
+			{
+				const auto p = new USLT{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 4)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+
+				w >> p->eEncoding;
+				if (p->eEncoding >= TextEncoding::Max)
+				{
+					delete p;
+					return Result::TextEncodingErr;
+				}
+				w >> p->byLang;
+				p->rsDesc = GetID3v2_ProcString(w, -1, p->eEncoding);
+				p->rsLrc = GetID3v2_ProcString(w, (int)w.GetLeaveSize(), p->eEncoding);
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(SYLT))
+			{
+				const auto p = new SYLT{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 7)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+
+				w >> p->eEncoding;
+				if (p->eEncoding >= TextEncoding::Max)
+				{
+					delete p;
+					return Result::TextEncodingErr;
+				}
+				w >> p->byLang >> p->eTimestampFmt >> p->eContent;
+				p->rsDesc = GetID3v2_ProcString(w, -1, p->eEncoding);
+				while (!w.IsEnd())
+				{
+					auto& e = p->vSync.emplace_back();
+					e.rsText = GetID3v2_ProcString(w, -1, p->eEncoding);
+					if (w.IsEnd())
+					{
+						delete p;
+						return Result::LenErr;
+					}
+					w >> e.uTimestamp;
+				}
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(COMM))
+			{
+				const auto p = new COMM{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 5)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				w >> p->eEncoding;
+				if (p->eEncoding >= TextEncoding::Max)
+				{
+					delete p;
+					return Result::TextEncodingErr;
+				}
+				w >> p->byLang;
+				p->rsDesc = GetID3v2_ProcString(w, -1, p->eEncoding);
+				p->rsText = GetID3v2_ProcString(w, (int)w.GetLeaveSize(), p->eEncoding);
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(RVA2))
+			{
+				const auto p = new RVA2{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 5)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+
+				w >> p->rsId;
+				while (!w.IsEnd())
+				{
+					auto& e = p->vChannel.emplace_back();
+					w >> e.eChannel >> e.shVol >> e.cPeekVolBit;
+					if (e.cPeekVolBit)
+					{
+						// TODO:位
+					}
+				}
+
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(EQU2))
+			{
+				const auto p = new EQU2{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 6)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+
+				w >> p->eInterpolation >> p->rsId;
+				if (w.GetLeaveSize() % 4)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				const auto cPoint = w.GetLeaveSize() / 4;
+				EckCounterNV(cPoint)
+				{
+					auto& e = p->vPoint.emplace_back();
+					w >> e;
+				}
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(RVRB))
+			{
+				const auto p = new RVRB{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb != 12)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				w.Read(&p->Left, 12);
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(APIC))
+			{
+				const auto p = new APIC{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 5)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+
+				w >> p->eTextEncoding >> p->rsMime >> p->eType;
+				p->rsDesc = GetID3v2_ProcString(w, -1, p->eTextEncoding);
+				p->rbData.DupStream(w.Data(), w.GetLeaveSize());
+
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(GEOB))
+			{
+				const auto p = new GEOB{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 4)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				w >> p->eTextEncoding >> p->rsMime;
+				p->rsFile = GetID3v2_ProcString(w, -1, p->eTextEncoding);
+				p->rsDesc = GetID3v2_ProcString(w, -1, p->eTextEncoding);
+				p->rbObj.DupStream(w.Data(), w.GetLeaveSize());
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(PCNT))
+			{
+				const auto p = new PCNT{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 4)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				w.Read(&p->cPlay, std::min(cb, (DWORD)8u));// 截断到8字节
+
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(POPM))
+			{
+				const auto p = new POPM{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 6)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				w >> p->rsEmail >> p->byRating;
+				w.Read(&p->cPlay, std::min(w.GetLeaveSize(), (SIZE_T)8u));// 截断到8字节
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(RBUF))
+			{
+				const auto p = new RBUF{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb != 8)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				w.Read(&p->cbBuf, 3) >> p->b >> p->ocbNextTag;
+
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(AENC))
+			{
+				const auto p = new AENC{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 5)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				w >> p->rsOwnerId >> p->usPreviewBegin >> p->usPreviewLength;
+				p->rbData.DupStream(w.Data(), w.GetLeaveSize());
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(LINK))
+			{
+				const auto p = new LINK{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 5)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				w >> p->IdTarget >> p->rsUrl;
+				p->rsAdditional.DupString((PCSTR)w.Data(), (int)w.GetLeaveSize());
+
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(POSS))
+			{
+				const auto p = new POSS{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb != 5)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				w >> p->eTimestamp >> p->uTime;
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(USER))
+			{
+				const auto p = new USER{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 4)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				w >> p->eEncoding >> p->byLang;
+				p->rsText = GetID3v2_ProcString(w, (int)w.GetLeaveSize(), p->eEncoding);
+
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(OWNE))
+			{
+				const auto p = new OWNE{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 10)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				w >> p->eEncoding >> p->rsPrice >> p->szDate;
+				p->rsSeller = GetID3v2_ProcString(w, (int)w.GetLeaveSize(), p->eEncoding);
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(COMR))
+			{
+				const auto p = new COMR{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 15)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+
+				w >> p->eEncoding >> p->rsPrice >> p->szDate >> p->rsUrl >> p->eReceivedWay;
+				p->rsSeller = GetID3v2_ProcString(w, -1, p->eEncoding);
+				p->rsDesc = GetID3v2_ProcString(w, -1, p->eEncoding);
+				w >> p->rsMime;
+				p->rbLogo.DupStream(w.Data(), w.GetLeaveSize());
+
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(ENCR))
+			{
+				const auto p = new ENCR{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 2)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				w >> p->rsEmail >> p->byMethod;
+				p->rbData.DupStream(w.Data(), w.GetLeaveSize());
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(GRID))
+			{
+				const auto p = new GRID{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 2)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				w >> p->rsEmail >> p->byId;
+				p->rbData.DupStream(w.Data(), w.GetLeaveSize());
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(PRIV))
+			{
+				const auto p = new PRIV{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 1)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				w >> p->rsEmail;
+
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(SIGN))
+			{
+				const auto p = new SIGN{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb < 1)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				w >> p->byGroupId;
+				p->rbData.DupStream(w.Data(), w.GetLeaveSize());
+				m_vFrame.push_back(p);
+			}
+			else if (ECK_HIT_ID3FRAME(SEEK))
+			{
+				const auto p = new SEEK{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				if (cb != 4)
+				{
+					delete p;
+					return Result::LenErr;
+				}
+				w >> p->ocbNextTag;
+				m_vFrame.push_back(p);
+			}
+			//else if (ECK_HIT_ID3FRAME(ASPI))
+			//{
+			//	const auto p = new ASPI{};
+			//	CFrame2 f(*this, FrameHdr, cbUnit, p);
+			//	auto [w, cb] = f.Begin();
+
+
+			//	m_vFrame.push_back(p);
+			//}
+			else if (FrameHdr.ID[0] == 'T')
+			{
+				const auto p = new TEXTFRAME{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				w >> p->eEncoding;
+				auto rs = GetID3v2_ProcString(w, cb - 1, p->eEncoding);
+				SplitBin(rs.Data(), rs.ByteSize() - sizeof(WCHAR), L"\0", sizeof(WCHAR), 0,
+					[pFrame = p](PCVOID p, SIZE_T cb)
+					{
+						pFrame->vText.emplace_back((PCWSTR)p, (int)(cb / sizeof(WCHAR)));
+					});
+				m_vFrame.push_back(p);
+			}
+			else if (FrameHdr.ID[0] == 'W')
+			{
+				const auto p = new LINKFRAME{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				auto [w, cb] = f.Begin();
+				p->rsUrl.DupString((PCSTR)w.Data(), (int)cb);
+				m_vFrame.push_back(p);
 			}
 		}
 		return Result::Ok;
 	}
 
-	BOOL WriteTag(MUSICINFO& mi)
+	Result WriteTag(UINT uFlags)
 	{
 
 	}
+
+	EckInline auto& GetFrameList() { return m_vFrame; }
 };
 
 class CFlac

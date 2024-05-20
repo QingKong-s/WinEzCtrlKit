@@ -1411,9 +1411,7 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 	std::vector<YAAINFO> vPrevYAA[2]{};// 均为向下采样
 	auto fnDoYAA = [&](int y, float k, float b, float x0, float x1, bool bSampleDirection)
 		{
-			if (y > 350)
-				;// EckDbgBreak();
-			for (int x = x0; x <= x1; ++x)
+			for (int x = (int)x0; x <= (int)x1; ++x)
 			{
 				const float yReal = k * x + b;
 				const float e = (bSampleDirection ? yReal - y : y - yReal);// cr[0]的权值

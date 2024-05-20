@@ -133,7 +133,7 @@ struct CStreamWalker
 	EckInline CRefBin ReadBin(SIZE_T cb)
 	{
 		CRefBin rb(cb);
-		Read(rb.Data(), cb);
+		Read(rb.Data(), (ULONG)cb);
 		return rb;
 	}
 

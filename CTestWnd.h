@@ -423,13 +423,13 @@ public:
 		//sw.Erase(ToUli(8), ToUli(5));
 		//sw.GetStream()->Release();
 
-		CMediaFile file(LR"(F:\@QQ文件\639582106\FileRecv\かめりあ - Exit This Earth's Atomosphere (かめりあ's 'PLANETARY／／200STEP' Remix).flac)");
-
+		//CMediaFile file(LR"(F:\@QQ文件\639582106\FileRecv\かめりあ - Exit This Earth's Atomosphere (かめりあ's 'PLANETARY／／200STEP' Remix).flac)");
+		CMediaFile file(LR"(E:\Desktop\3.mp3)");
 		EckDbgPrint(!!(file.DetectTag() & (TAG_ID3V2_3 | TAG_ID3V2_4)));
 
 		MUSICINFO mi{};
-		//CID3v2 id3(file);
-		//id3.ReadTag(mi);
+		CID3v2 id3(file);
+		id3.ReadTag(0);
 		
 		CFlac flac(file);
 		flac.ReadTag(mi);
