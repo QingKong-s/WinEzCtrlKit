@@ -19,9 +19,9 @@ private:
 	D2D1_RECT_F m_rcfTextAera{};
 
 	BITBOOL m_bUserTextAera : 1 = FALSE;
-	UINT32 m_uSelBegin{ c_Neg1U };
+	UINT32 m_uSelBegin{ Neg1U };
 	UINT32 m_cSel{};
-	UINT32 m_uBtnSelStart{ c_Neg1U };
+	UINT32 m_uBtnSelStart{ Neg1U };
 
 	CScrollBar m_SBH{};
 	CScrollBar m_SBV{};
@@ -65,7 +65,7 @@ public:
 			{
 				const float oy = -(float)m_SBV.GetScrollView()->GetPos();
 				const float ox = 0.f;
-				if (m_uSelBegin != c_Neg1U)
+				if (m_uSelBegin != Neg1U)
 				{
 					UINT32 cActualLine;
 					m_pLayout->GetLineMetrics(NULL, 0, &cActualLine);
@@ -168,7 +168,7 @@ public:
 			case VK_BACK:
 			{
 				ECK_DUILOCK;
-				if (m_uSelBegin != c_Neg1U)
+				if (m_uSelBegin != Neg1U)
 				{
 					if (m_cSel)
 					{
@@ -193,7 +193,7 @@ public:
 			case VK_DELETE:
 			{
 				ECK_DUILOCK;
-				if (m_uSelBegin != c_Neg1U)
+				if (m_uSelBegin != Neg1U)
 				{
 					if (m_cSel)
 					{
@@ -231,7 +231,7 @@ public:
 			{
 				ECK_DUILOCK;
 				if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) &&
-					m_uSelBegin != c_Neg1U)
+					m_uSelBegin != Neg1U)
 				{
 					const auto rs = GetClipboardString(GetWnd()->HWnd);
 					if (!rs.IsEmpty())
@@ -244,7 +244,7 @@ public:
 			{
 				ECK_DUILOCK;
 				if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) &&
-					m_uSelBegin != c_Neg1U && m_cSel)
+					m_uSelBegin != Neg1U && m_cSel)
 					SetClipboardString(m_rsText.Data() + m_uSelBegin, m_cSel, GetWnd()->HWnd);
 			}
 			break;
@@ -257,7 +257,7 @@ public:
 			const WCHAR ch = (WCHAR)wParam;
 			if (ch >= 32 && ch <= 126)
 			{
-				if (m_uSelBegin != c_Neg1U)
+				if (m_uSelBegin != Neg1U)
 				{
 					ECK_DUILOCK;
 					if (m_cSel)
@@ -278,7 +278,7 @@ public:
 		{
 			ECK_DUILOCK;
 			if (!IsBitSet(lParam, GCS_RESULTSTR) ||
-				m_uSelBegin == c_Neg1U)
+				m_uSelBegin == Neg1U)
 				break;
 			const HIMC hImc = ImmGetContext(GetWnd()->HWnd);
 			const int cch = ImmGetCompositionStringW(hImc, GCS_RESULTSTR, NULL, 0) / sizeof(WCHAR);
@@ -403,7 +403,7 @@ public:
 	EckInline BOOL Copy()
 	{
 		ECK_DUILOCK;
-		if (m_uSelBegin == c_Neg1U || m_cSel == 0)
+		if (m_uSelBegin == Neg1U || m_cSel == 0)
 			return FALSE;
 		return SetClipboardString(m_rsText.Data() + m_uSelBegin, m_cSel, GetWnd()->HWnd);
 	}
@@ -411,7 +411,7 @@ public:
 	EckInline BOOL Cut()
 	{
 		ECK_DUILOCK;
-		if (m_uSelBegin == c_Neg1U || m_cSel == 0)
+		if (m_uSelBegin == Neg1U || m_cSel == 0)
 			return FALSE;
 		const BOOL b = SetClipboardString(m_rsText.Data() + m_uSelBegin, m_cSel, GetWnd()->HWnd);
 		m_rsText.Erase(m_uSelBegin, m_cSel);

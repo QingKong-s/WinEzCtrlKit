@@ -249,10 +249,13 @@ constexpr inline BYTE BOM_UTF8[]{ 0xEF,0xBB,0xBF };
 constexpr inline COLORREF c_crDarkWnd = RGB(32, 32, 32);
 constexpr inline COLORREF c_crDarkBtnFace = 0x383838;
 
-constexpr inline UINT c_Neg1U{ (UINT)-1 };
+constexpr inline UINT Neg1U{ (UINT)-1 };
 
 constexpr inline LARGE_INTEGER LiZero{};
 constexpr inline ULARGE_INTEGER UliMax{ .QuadPart = 0xFFFF'FFFF'FFFF'FFFF };
+
+constexpr inline size_t SizeTMax{ std::numeric_limits<size_t>::max() };
+constexpr inline SIZE_T SIZETMax{ (SIZE_T)SizeTMax };
 
 /*-------------------*/
 /*控件通知代码*/

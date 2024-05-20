@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "CRefStr.h"
 #include "CRefBin.h"
 
@@ -144,7 +144,7 @@ struct CStreamWalker
 			return;
 
 		IStream* pSelf;
-		if (SUCCEEDED(m_pStream->Clone(&pSelf)))// ����֧�ֿ�¡��������ʹ����CopyToʵ��
+		if (SUCCEEDED(m_pStream->Clone(&pSelf)))// 若流支持克隆，则优先使用其CopyTo实现
 		{
 			MoveTo(posSrc);
 			pSelf->Seek(ToLi(posDst), STREAM_SEEK_SET, NULL);
@@ -176,7 +176,7 @@ struct CStreamWalker
 
 		const auto posSrcEnd = posSrc + cbSize;
 		const auto posDstEnd = posDst + cbSize;
-		if (posDst > posSrc)// �Ӻ���ǰ����
+		if (posDst > posSrc)// 从后向前复制
 		{
 			LARGE_INTEGER posRead = ToLi(posSrcEnd - cbBuf);
 			LARGE_INTEGER posWrite = ToLi(posDstEnd - cbBuf);
@@ -228,7 +228,7 @@ struct CStreamWalker
 				}
 			}
 		}
-		else// ��ǰ�����
+		else// 从前向后复制
 		{
 			LARGE_INTEGER posRead = ToLi(posSrc);
 			LARGE_INTEGER posWrite = ToLi(posDst);
