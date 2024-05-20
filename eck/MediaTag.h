@@ -1,7 +1,7 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* MediaTag.h £º Ã½ÌåÔªÊı¾İ½âÎö
+* MediaTag.h ï¼š åª’ä½“å…ƒæ•°æ®è§£æ
 *
 * Copyright(C) 2024 QingKong
 */
@@ -19,17 +19,18 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_MEDIATAG_NAMESPACE_BEGIN
-// ±êÇ©ÀàĞÍ
+// æ ‡ç­¾ç±»å‹
 enum :UINT
 {
 	TAG_INVALID = 0u,
 	TAG_NONE = 1u << 0,
 	TAG_ID3V1 = 1u << 1,
-	TAG_ID3V2_3 = 1u << 2,
-	TAG_ID3V2_4 = 1u << 3,
-	TAG_FLAC = 1u << 4,
+	TAG_ID3V1Ext = 1u << 2,
+	TAG_ID3V2_3 = 1u << 3,
+	TAG_ID3V2_4 = 1u << 4,
+	TAG_FLAC = 1u << 5,
 };
-// ÔªÊı¾İÀàĞÍ
+// å…ƒæ•°æ®ç±»å‹
 enum MediaInfoFlags :UINT
 {
 	MIM_TITLE = 1u << 0,
@@ -43,26 +44,26 @@ enum MediaInfoFlags :UINT
 
 	MIM_ALL = 0xFFFFFFFF
 };
-// ±êÇ©¶ÁĞ´±êÖ¾
+// æ ‡ç­¾è¯»å†™æ ‡å¿—
 enum :UINT
 {
-	MIF_JOIN_ARTIST = 1u << 0,	// ÓÃÖ¸¶¨µÄ·Ö¸ô·ûÁ¬½Ó¶à¸öÒÕÊõ¼Ò
-	MIF_JOIN_COMMENT = 1u << 1,	// ÓÃÖ¸¶¨µÄ·Ö¸ô·ûÁ¬½Ó¶à¸ö±¸×¢
-	MIF_ALLOW_PADDING = 1u << 2,// ÔÊĞí±£Áô¿Õ°×Ìî³äÒÔ·ÀÖ¹ÖØĞ´Õû¸öÎÄ¼ş
-	MIF_DATE_STRING = 1u << 3,	// ÓÃµ±Ç°±¾µØÉèÖÃ¸ñÊ½»¯ÈÕÆÚÎª×Ö·û´®
-	MIF_SPLIT_ARTIST_IN_ID3V2_3 = 1u << 4,	// ÓÃID3v2.3¹æ¶¨µÄĞ±¸Ü("/")·Ö¸îÒÕÊõ¼ÒÁĞ±í
-	MIF_SCAN_ALL_FRAME = 1u << 5,			// É¨Ãè²¢´æ´¢±êÇ©ÖĞµÄËùÓĞ¼ÇÂ¼
-	MIF_APPEND_TAG = 1u << 6,	// ÔÚÎÄ¼şÎ²²¿×·¼Ó±êÇ©£¨Èç¹û±ê¼ÇÏµÍ³ÔÊĞí£©
+	MIF_JOIN_ARTIST = 1u << 0,	// ç”¨æŒ‡å®šçš„åˆ†éš”ç¬¦è¿æ¥å¤šä¸ªè‰ºæœ¯å®¶
+	MIF_JOIN_COMMENT = 1u << 1,	// ç”¨æŒ‡å®šçš„åˆ†éš”ç¬¦è¿æ¥å¤šä¸ªå¤‡æ³¨
+	MIF_ALLOW_PADDING = 1u << 2,// å…è®¸ä¿ç•™ç©ºç™½å¡«å……ä»¥é˜²æ­¢é‡å†™æ•´ä¸ªæ–‡ä»¶
+	MIF_DATE_STRING = 1u << 3,	// ç”¨å½“å‰æœ¬åœ°è®¾ç½®æ ¼å¼åŒ–æ—¥æœŸä¸ºå­—ç¬¦ä¸²
+	MIF_SPLIT_ARTIST_IN_ID3V2_3 = 1u << 4,	// ç”¨ID3v2.3è§„å®šçš„æ–œæ ("/")åˆ†å‰²è‰ºæœ¯å®¶åˆ—è¡¨
+	MIF_SCAN_ALL_FRAME = 1u << 5,			// æ‰«æå¹¶å­˜å‚¨æ ‡ç­¾ä¸­çš„æ‰€æœ‰è®°å½•
+	MIF_APPEND_TAG = 1u << 6,	// åœ¨æ–‡ä»¶å°¾éƒ¨è¿½åŠ æ ‡ç­¾ï¼ˆå¦‚æœæ ‡è®°ç³»ç»Ÿå…è®¸ï¼‰
 };
-// ID3Ö¡Ğ´ÈëÑ¡Ïî
+// ID3å¸§å†™å…¥é€‰é¡¹
 enum :BYTE
 {
-	MTID3F_PREPEND = 1u << 0,	// ½«¸ÃÖ¡ÖÃÓÚÎÄ¼şÍ·²¿µÄ±êÇ©
-	MTID3F_APPEND = 1u << 1,	// ½«¸ÃÖ¡ÖÃÓÚÎÄ¼şÎ²²¿µÄ±êÇ©
-	MTID3F_DIRTY = 1u << 2,		// Êı¾İÒÑ±»ĞŞ¸Ä
+	MTID3F_PREPEND = 1u << 0,	// å°†è¯¥å¸§ç½®äºæ–‡ä»¶å¤´éƒ¨çš„æ ‡ç­¾
+	MTID3F_APPEND = 1u << 1,	// å°†è¯¥å¸§ç½®äºæ–‡ä»¶å°¾éƒ¨çš„æ ‡ç­¾
+	MTID3F_DIRTY = 1u << 2,		// æ•°æ®å·²è¢«ä¿®æ”¹
 };
 
-// ½âÎö½á¹û´íÎóÂë
+// è§£æç»“æœé”™è¯¯ç 
 enum class Result
 {
 	Ok,
@@ -72,60 +73,61 @@ enum class Result
 	InvalidEnumVal,
 	LenErr,
 	InvalidVal,
+	IllegalRepeat,
 };
-// Í¼Æ¬ÀàĞÍ
+// å›¾ç‰‡ç±»å‹
 enum class PicType
 {
-	Invalid = -1,       // ÈÎºÎÎŞĞ§µÄÖµ
-	Begin___ = 0,       // £¡ÆğÊ¼Õ¼Î»
-	Other = Begin___,   // ÆäËû
-	FileIcon32x32,      // 32¡Á32´óĞ¡ÎÄ¼şÍ¼±ê£¨½öPNG£©
-	OtherFileIcon,      // ÆäËûÍ¼±ê
-	CoverFront,         // ·âÃæ
-	CoverBack,          // ·âµ×
-	LeafletPage,        // Ğû´«Í¼
-	Media,              // ÊµÌåÃ½½éÕÕÆ¬
-	LeadArtist,         // ÒÕÊõ¼ÒÕÕÆ¬
-	Artist,             // Ñİ³ªÕßÕÕÆ¬
-	Conductor,          // Ö¸»ÓÕßÕÕÆ¬
-	Band,               // ÀÖ¶Ó/¾çÍÅÕÕÆ¬
-	Composer,           // ×÷Çú¼ÒÕÕÆ¬
-	Lyricist,           // ×÷´ÊÕßÕÕÆ¬
-	RecordingLocation,  // Â¼Òô³¡µØÕÕÆ¬
-	DuringRecording,    // Â¼Òô¹ı³ÌÕÕÆ¬
-	DuringPerformance,  // ±íÑİ¹ı³ÌÕÕÆ¬
-	MovieCapture,       // ÊÓÆµ½ØÍ¼
-	ABrightColouredFish,// ÑŞÓãÍ¼
-	Illustration,       // ²å»­
-	BandLogotype,       // ÒÕÊõ¼Ò/ÒÕÊõÍÅ¶ÓLogo
-	PublisherLogotype,  // ·¢ĞĞÉÌ/¹¤×÷ÊÒLogo
-	End___              // £¡ÖÕÖ¹Õ¼Î»
+	Invalid = -1,       // ä»»ä½•æ— æ•ˆçš„å€¼
+	Begin___ = 0,       // ï¼èµ·å§‹å ä½
+	Other = Begin___,   // å…¶ä»–
+	FileIcon32x32,      // 32Ã—32å¤§å°æ–‡ä»¶å›¾æ ‡ï¼ˆä»…PNGï¼‰
+	OtherFileIcon,      // å…¶ä»–å›¾æ ‡
+	CoverFront,         // å°é¢
+	CoverBack,          // å°åº•
+	LeafletPage,        // å®£ä¼ å›¾
+	Media,              // å®ä½“åª’ä»‹ç…§ç‰‡
+	LeadArtist,         // è‰ºæœ¯å®¶ç…§ç‰‡
+	Artist,             // æ¼”å”±è€…ç…§ç‰‡
+	Conductor,          // æŒ‡æŒ¥è€…ç…§ç‰‡
+	Band,               // ä¹é˜Ÿ/å‰§å›¢ç…§ç‰‡
+	Composer,           // ä½œæ›²å®¶ç…§ç‰‡
+	Lyricist,           // ä½œè¯è€…ç…§ç‰‡
+	RecordingLocation,  // å½•éŸ³åœºåœ°ç…§ç‰‡
+	DuringRecording,    // å½•éŸ³è¿‡ç¨‹ç…§ç‰‡
+	DuringPerformance,  // è¡¨æ¼”è¿‡ç¨‹ç…§ç‰‡
+	MovieCapture,       // è§†é¢‘æˆªå›¾
+	ABrightColouredFish,// è‰³é±¼å›¾
+	Illustration,       // æ’ç”»
+	BandLogotype,       // è‰ºæœ¯å®¶/è‰ºæœ¯å›¢é˜ŸLogo
+	PublisherLogotype,  // å‘è¡Œå•†/å·¥ä½œå®¤Logo
+	End___              // ï¼ç»ˆæ­¢å ä½
 };
 
 constexpr inline PCWSTR c_pszPicType[]
 {
-	L"ÎŞĞ§Í¼Æ¬ÀàĞÍ",
-	L"ÆäËû",
-	L"32¡Á32ÎÄ¼şÍ¼±ê",
-	L"ÆäËûÍ¼±ê",
-	L"·âÃæ",
-	L"·âµ×",
-	L"Ğû´«Í¼",
-	L"ÊµÌåÃ½½éÕÕÆ¬",
-	L"ÒÕÊõ¼ÒÕÕÆ¬",
-	L"Ñİ³ªÕßÕÕÆ¬",
-	L"Ö¸»ÓÕßÕÕÆ¬",
-	L"ÀÖ¶Ó/¾çÍÅÕÕÆ¬",
-	L"×÷Çú¼ÒÕÕÆ¬",
-	L"×÷´ÊÕßÕÕÆ¬",
-	L"Â¼Òô³¡µØÕÕÆ¬",
-	L"Â¼Òô¹ı³ÌÕÕÆ¬",
-	L"±íÑİ¹ı³ÌÕÕÆ¬",
-	L"ÊÓÆµ½ØÍ¼",
-	L"ÑŞÓãÍ¼",
-	L"²å»­",
-	L"ÒÕÊõ¼Ò/ÒÕÊõÍÅ¶ÓLogo",
-	L"·¢ĞĞÉÌ/¹¤×÷ÊÒLogo",
+	L"æ— æ•ˆå›¾ç‰‡ç±»å‹",
+	L"å…¶ä»–",
+	L"32Ã—32æ–‡ä»¶å›¾æ ‡",
+	L"å…¶ä»–å›¾æ ‡",
+	L"å°é¢",
+	L"å°åº•",
+	L"å®£ä¼ å›¾",
+	L"å®ä½“åª’ä»‹ç…§ç‰‡",
+	L"è‰ºæœ¯å®¶ç…§ç‰‡",
+	L"æ¼”å”±è€…ç…§ç‰‡",
+	L"æŒ‡æŒ¥è€…ç…§ç‰‡",
+	L"ä¹é˜Ÿ/å‰§å›¢ç…§ç‰‡",
+	L"ä½œæ›²å®¶ç…§ç‰‡",
+	L"ä½œè¯è€…ç…§ç‰‡",
+	L"å½•éŸ³åœºåœ°ç…§ç‰‡",
+	L"å½•éŸ³è¿‡ç¨‹ç…§ç‰‡",
+	L"è¡¨æ¼”è¿‡ç¨‹ç…§ç‰‡",
+	L"è§†é¢‘æˆªå›¾",
+	L"è‰³é±¼å›¾",
+	L"æ’ç”»",
+	L"è‰ºæœ¯å®¶/è‰ºæœ¯å›¢é˜ŸLogo",
+	L"å‘è¡Œå•†/å·¥ä½œå®¤Logo",
 };
 
 EckInline constexpr PCWSTR PicTypeToString(PicType e)
@@ -144,25 +146,25 @@ struct MUSICPIC
 
 struct MUSICINFO
 {
-	UINT uMask{ MIM_ALL };		// Ö¸¶¨Óû¶ÁÈ¡ĞÅÏ¢ÀàĞÍµÄÑÚÂë
-	UINT uMaskRead{};			// º¯Êı·µ»ØºóÉèÖÃÒÑ¶ÁÈ¡µÄĞÅÏ¢
-	PCWSTR pszArtistDiv = L"¡¢";	// ÈôÉèÖÃÁËMIF_JOIN_ARTIST£¬Ôò´Ë×Ö¶ÎÖ¸Ê¾·Ö¸ô·û
-	PCWSTR pszCommDiv = L"\n";	// ÈôÉèÖÃÁËMIF_JOIN_COMMENT£¬Ôò´Ë×Ö¶ÎÖ¸Ê¾·Ö¸ô·û
-	UINT uFlag{};		// ²Ù×÷±êÖ¾
+	UINT uMask{ MIM_ALL };		// æŒ‡å®šæ¬²è¯»å–ä¿¡æ¯ç±»å‹çš„æ©ç 
+	UINT uMaskRead{};			// å‡½æ•°è¿”å›åè®¾ç½®å·²è¯»å–çš„ä¿¡æ¯
+	PCWSTR pszArtistDiv = L"ã€";	// è‹¥è®¾ç½®äº†MIF_JOIN_ARTISTï¼Œåˆ™æ­¤å­—æ®µæŒ‡ç¤ºåˆ†éš”ç¬¦
+	PCWSTR pszCommDiv = L"\n";	// è‹¥è®¾ç½®äº†MIF_JOIN_COMMENTï¼Œåˆ™æ­¤å­—æ®µæŒ‡ç¤ºåˆ†éš”ç¬¦
+	UINT uFlag{};		// æ“ä½œæ ‡å¿—
 
-	CRefStrW rsTitle{}; // ±êÌâ
+	CRefStrW rsTitle{}; // æ ‡é¢˜
 	std::variant<std::vector<CRefStrW>, CRefStrW>
-		Artist{};		// ÒÕÊõ¼Ò
-	CRefStrW rsAlbum{}; // ×¨¼­
+		Artist{};		// è‰ºæœ¯å®¶
+	CRefStrW rsAlbum{}; // ä¸“è¾‘
 	std::variant<std::vector<CRefStrW>, CRefStrW>
-		Comment{};		// ±¸×¢
-	CRefStrW rsLrc{};	// ¸è´Ê
-	CRefStrW rsGenre{};	// Á÷ÅÉ
+		Comment{};		// å¤‡æ³¨
+	CRefStrW rsLrc{};	// æ­Œè¯
+	CRefStrW rsGenre{};	// æµæ´¾
 	std::variant<SYSTEMTIME, CRefStrW>
-		Date{};			// Â¼ÖÆÈÕÆÚ
-	std::vector<MUSICPIC> vImage{};// Í¼Æ¬
+		Date{};			// å½•åˆ¶æ—¥æœŸ
+	std::vector<MUSICPIC> vImage{};// å›¾ç‰‡
 
-	// È¡Ö÷·âÃæ¡£º¯Êı±éÀúÍ¼Æ¬ÁĞ±í£¬È»ºó°´ÕÕ ·âÃæ > ·âµ× > µÚÒ»·ùÍ¼Æ¬ µÄÓÅÏÈ¼¶Ë³Ğò·µ»ØÖ¸¶¨µÄÍ¼Æ¬£¬ÈôÊ§°ÜÔò·µ»ØNULL
+	// å–ä¸»å°é¢ã€‚å‡½æ•°éå†å›¾ç‰‡åˆ—è¡¨ï¼Œç„¶åæŒ‰ç…§ å°é¢ > å°åº• > ç¬¬ä¸€å¹…å›¾ç‰‡ çš„ä¼˜å…ˆçº§é¡ºåºè¿”å›æŒ‡å®šçš„å›¾ç‰‡ï¼Œè‹¥å¤±è´¥åˆ™è¿”å›NULL
 	const MUSICPIC* GetMainCover() const
 	{
 		if (vImage.empty())
@@ -251,30 +253,30 @@ struct MUSICINFO
 };
 
 
-struct ID3v2_Header		// ID3v2±êÇ©Í·
+struct ID3v2_Header		// ID3v2æ ‡ç­¾å¤´
 {
 	CHAR Header[3];		// "ID3"
-	BYTE Ver;			// °æ±¾ºÅ
-	BYTE Revision;		// ¸±°æ±¾ºÅ
-	BYTE Flags;			// ±êÖ¾
-	BYTE Size[4];		// ±êÇ©´óĞ¡£¬28Î»Êı¾İ£¬Ã¿¸ö×Ö½Ú×î¸ßÎ»²»Ê¹ÓÃ£¬°üÀ¨±êÇ©Í·µÄ10¸ö×Ö½ÚºÍËùÓĞµÄ±êÇ©Ö¡
+	BYTE Ver;			// ç‰ˆæœ¬å·
+	BYTE Revision;		// å‰¯ç‰ˆæœ¬å·
+	BYTE Flags;			// æ ‡å¿—
+	BYTE Size[4];		// æ ‡ç­¾å¤§å°ï¼Œ28ä½æ•°æ®ï¼Œæ¯ä¸ªå­—èŠ‚æœ€é«˜ä½ä¸ä½¿ç”¨ï¼ŒåŒ…æ‹¬æ ‡ç­¾å¤´çš„10ä¸ªå­—èŠ‚å’Œæ‰€æœ‰çš„æ ‡ç­¾å¸§
 };
 
-struct ID3v2_ExtHeader  // ID3v2À©Õ¹Í·
+struct ID3v2_ExtHeader  // ID3v2æ‰©å±•å¤´
 {
-	BYTE ExtHeaderSize[4];  // À©Õ¹Í·´óĞ¡
-	BYTE Flags[2];          // ±êÖ¾
-	BYTE PaddingSize[4];    // ¿Õ°×´óĞ¡
+	BYTE ExtHeaderSize[4];  // æ‰©å±•å¤´å¤§å°
+	BYTE Flags[2];          // æ ‡å¿—
+	BYTE PaddingSize[4];    // ç©ºç™½å¤§å°
 };
 
-struct ID3v2_FrameHeader// ID3v2Ö¡Í·
+struct ID3v2_FrameHeader// ID3v2å¸§å¤´
 {
-	CHAR ID[4];			// Ö¡±êÊ¶
-	BYTE Size[4];		// Ö¡ÄÚÈİµÄ´óĞ¡£¬32Î»Êı¾İ£¬²»°üÀ¨Ö¡Í·
-	BYTE Flags[2];		// ´æ·Å±êÖ¾
+	CHAR ID[4];			// å¸§æ ‡è¯†
+	BYTE Size[4];		// å¸§å†…å®¹çš„å¤§å°ï¼Œ32ä½æ•°æ®ï¼Œä¸åŒ…æ‹¬å¸§å¤´
+	BYTE Flags[2];		// å­˜æ”¾æ ‡å¿—
 };
 
-struct FLAC_BlockHeader      // FlacÍ·
+struct FLAC_BlockHeader      // Flacå¤´
 {
 	BYTE by;
 	BYTE bySize[3];
@@ -286,56 +288,56 @@ static_assert(alignof(ID3v2_FrameHeader) == 1);
 static_assert(alignof(FLAC_BlockHeader) == 1);
 
 
-// ID3v2Í·±êÖ¾
+// ID3v2å¤´æ ‡å¿—
 enum :UINT
 {
-	ID3V2HF_UNSYNCHRONIZATION = 1u << 7,            // ²»Í¬²½
-	ID3V2HF_EXTENDED_HEADER = 1u << 6,              // º¬À©Õ¹Í·
-	ID3V2HF_EXPERIMENTAL = 1u << 5,                 // ÊµÑéĞÔ±êÇ©
+	ID3V2HF_UNSYNCHRONIZATION = 1u << 7,            // ä¸åŒæ­¥
+	ID3V2HF_EXTENDED_HEADER = 1u << 6,              // å«æ‰©å±•å¤´
+	ID3V2HF_EXPERIMENTAL = 1u << 5,                 // å®éªŒæ€§æ ‡ç­¾
 	// ----Only ID3v2.4----
-	ID3V2HF_FOOTER = 1u << 4,                       // º¬Ò³½Å
+	ID3V2HF_FOOTER = 1u << 4,                       // å«é¡µè„š
 };
 
-// ID3v2À©Õ¹Í·±êÖ¾
+// ID3v2æ‰©å±•å¤´æ ‡å¿—
 enum :UINT
 {
 	// ----Only ID3v2.3----
-	ID3V23EH_CRC_DATA_PRESENT = 1u << 7,            // º¬CRCÊı¾İ
+	ID3V23EH_CRC_DATA_PRESENT = 1u << 7,            // å«CRCæ•°æ®
 	// ----Only ID3v2.4----
-	ID3V24EH_UPDATE = 1u << 6,                      // ¸üĞÂ±êÖ¾
-	ID3V24EH_CRC_DATA_PRESENT = 1u << 5,            // º¬CRCÊı¾İ
-	ID3V24EH_RESTRICTIONS = 1u << 4,                // ÏŞÖÆ±êÇ©³ß´ç
+	ID3V24EH_UPDATE = 1u << 6,                      // æ›´æ–°æ ‡å¿—
+	ID3V24EH_CRC_DATA_PRESENT = 1u << 5,            // å«CRCæ•°æ®
+	ID3V24EH_RESTRICTIONS = 1u << 4,                // é™åˆ¶æ ‡ç­¾å°ºå¯¸
 };
 
-// ID3v2Ö¡±êÖ¾
+// ID3v2å¸§æ ‡å¿—
 enum :UINT
 {
-	// ----×´Ì¬----
-	ID3V24FF_TAG_ALTER_PRESERVATION = 1u << 6,      // ±êÇ©ĞŞ¸ÄºóÓ¦¶ªÆú
-	ID3V24FF_FILE_ALTER_PRESERVATION = 1u << 5,     // ÎÄ¼şĞŞ¸ÄºóÓ¦¶ªÆú
-	ID3V24FF_READ_ONLY = 1u << 4,                   // Ö»¶Á
-	// ----¸ñÊ½----
-	ID3V24FF_HAS_GROUP_IDENTITY = 1u << 6,           // º¬×é±êÖ¾£¨1B£©
-	ID3V24FF_COMPRESSION = 1u << 3,                  // ÒÑÑ¹Ëõ£¨zlib£©
-	ID3V24FF_ENCRYPTION = 1u << 2,                   // ÒÑ¼ÓÃÜ£¨1B£¬Ö¸Ê¾¼ÓÃÜ·½Ê½£©
-	ID3V24FF_UNSYNCHRONIZATION = 1u << 1,            // ²»Í¬²½
-	ID3V24FF_HAS_DATA_LENGTH_INDICATOR = 1u << 0,    // º¬³¤¶ÈÖ¸Ê¾£¨4B£¬Í¬²½°²È«ÕûÊı£©
+	// ----çŠ¶æ€----
+	ID3V24FF_TAG_ALTER_PRESERVATION = 1u << 6,      // æ ‡ç­¾ä¿®æ”¹ååº”ä¸¢å¼ƒ
+	ID3V24FF_FILE_ALTER_PRESERVATION = 1u << 5,     // æ–‡ä»¶ä¿®æ”¹ååº”ä¸¢å¼ƒ
+	ID3V24FF_READ_ONLY = 1u << 4,                   // åªè¯»
+	// ----æ ¼å¼----
+	ID3V24FF_HAS_GROUP_IDENTITY = 1u << 6,           // å«ç»„æ ‡å¿—ï¼ˆ1Bï¼‰
+	ID3V24FF_COMPRESSION = 1u << 3,                  // å·²å‹ç¼©ï¼ˆzlibï¼‰
+	ID3V24FF_ENCRYPTION = 1u << 2,                   // å·²åŠ å¯†ï¼ˆ1Bï¼ŒæŒ‡ç¤ºåŠ å¯†æ–¹å¼ï¼‰
+	ID3V24FF_UNSYNCHRONIZATION = 1u << 1,            // ä¸åŒæ­¥
+	ID3V24FF_HAS_DATA_LENGTH_INDICATOR = 1u << 0,    // å«é•¿åº¦æŒ‡ç¤ºï¼ˆ4Bï¼ŒåŒæ­¥å®‰å…¨æ•´æ•°ï¼‰
 
-	// ----×´Ì¬----
-	ID3V23FF_TAG_ALTER_PRESERVATION = 1u << 7,      // ±êÇ©ĞŞ¸ÄºóÓ¦¶ªÆú
-	ID3V23FF_FILE_ALTER_PRESERVATION = 1u << 6,     // ÎÄ¼şĞŞ¸ÄºóÓ¦¶ªÆú
-	ID3V23FF_READ_ONLY = 1u << 5,                   // Ö»¶Á
-	// ----¸ñÊ½----
-	ID3V23FF_HAS_GROUP_IDENTITY = 1u << 7,           // º¬×é±êÖ¾£¨1B£©
-	ID3V23FF_COMPRESSION = 1u << 6,                  // ÒÑÑ¹Ëõ£¨zlib£©
-	ID3V23FF_ENCRYPTION = 1u << 5,                   // ÒÑ¼ÓÃÜ£¨1B£¬Ö¸Ê¾¼ÓÃÜ·½Ê½£©
+	// ----çŠ¶æ€----
+	ID3V23FF_TAG_ALTER_PRESERVATION = 1u << 7,      // æ ‡ç­¾ä¿®æ”¹ååº”ä¸¢å¼ƒ
+	ID3V23FF_FILE_ALTER_PRESERVATION = 1u << 6,     // æ–‡ä»¶ä¿®æ”¹ååº”ä¸¢å¼ƒ
+	ID3V23FF_READ_ONLY = 1u << 5,                   // åªè¯»
+	// ----æ ¼å¼----
+	ID3V23FF_HAS_GROUP_IDENTITY = 1u << 7,           // å«ç»„æ ‡å¿—ï¼ˆ1Bï¼‰
+	ID3V23FF_COMPRESSION = 1u << 6,                  // å·²å‹ç¼©ï¼ˆzlibï¼‰
+	ID3V23FF_ENCRYPTION = 1u << 5,                   // å·²åŠ å¯†ï¼ˆ1Bï¼ŒæŒ‡ç¤ºåŠ å¯†æ–¹å¼ï¼‰
 };
 
 /// <summary>
-/// Í¬²½°²È«ÕûÊıµ½32Î»Ğ¡¶ËÕûÊı
+/// åŒæ­¥å®‰å…¨æ•´æ•°åˆ°32ä½å°ç«¯æ•´æ•°
 /// </summary>
-/// <param name="p">ÊäÈë×Ö½ÚÁ÷</param>
-/// <returns>×ª»»½á¹û</returns>
+/// <param name="p">è¾“å…¥å­—èŠ‚æµ</param>
+/// <returns>è½¬æ¢ç»“æœ</returns>
 EckInline constexpr static DWORD SynchSafeIntToDWORD(PCBYTE p)
 {
 	return ((p[0] & 0x7F) << 21) | ((p[1] & 0x7F) << 14) | ((p[2] & 0x7F) << 7) | (p[3] & 0x7F);
@@ -349,34 +351,144 @@ EckInline constexpr static void DwordToSynchSafeInt(BYTE* p, DWORD dw)
 	p[0] = (dw >> 21) & 0b0111'1111;
 }
 
+struct ID3LOCATION
+{
+	SIZE_T posV2{ SIZETMax };
+	SIZE_T posV2Footer{ SIZETMax };
+	SIZE_T posV2FooterHdr{ SIZETMax };
+	SIZE_T posV1{ SIZETMax };
+	SIZE_T posV1Ext{ SIZETMax };
+	SIZE_T posApeV1{ SIZETMax };
+	SIZE_T posApeV2{ SIZETMax };
+};
+
 class CMediaFile
 {
+	friend class CID3v1;
 	friend class CID3v2;
+	friend class CFlac;
 private:
 	IStream* m_pStream{};
 	UINT m_uTagType{};
 
-	UINT DetectID3v2()
+	ID3LOCATION m_Id3Loc{};
+
+	UINT DetectID3(ID3LOCATION& Id3Loc)
 	{
+		UINT uRet{};
+		BYTE by[16];
+		auto fnIsLegalHdr = [](const ID3v2_Header& hdr)->BOOL
+			{
+				return hdr.Ver < 0xFF && hdr.Revision < 0xFF &&
+					(hdr.Flags & 0b1111) == 0 &&
+					hdr.Size[0] < 0x80 && hdr.Size[1] < 0x80 && hdr.Size[2] < 0x80 && hdr.Size[3] < 0x80 &&
+					SynchSafeIntToDWORD(hdr.Size) != 0;
+			};
 		CStreamWalker w(m_pStream);
-		w.MoveToBegin();
+		const auto cbSize = (SIZE_T)w.GetSize().QuadPart;
+		// æŸ¥æ‰¾ID3v1
+		if (cbSize > 128u)
+		{
+			w.GetStream()->Seek(ToLi(-128), STREAM_SEEK_END, NULL);
+			w.Read(by, 3);
+			if (memcmp(by, "TAG", 3) == 0)
+			{
+				Id3Loc.posV1 = (SIZE_T)w.GetPos().QuadPart - 3;
+				uRet |= TAG_ID3V1;
+			}
+			if (cbSize > 128u + 227u)
+			{
+				w.GetStream()->Seek(ToLi(-(128 + 227)), STREAM_SEEK_END, NULL);
+				w.Read(by, 4);
+				if (memcmp(by, "TAG+", 4) == 0)
+				{
+					Id3Loc.posV1Ext = (SIZE_T)w.GetPos().QuadPart - 4;
+					uRet |= TAG_ID3V1Ext;
+				}
+			}
+		}
+		// æŸ¥æ‰¾ID3v2
 		ID3v2_Header hdr;
-		w >> hdr;
-		if (w.GetLastRWSize() != sizeof(hdr))
-			return TAG_INVALID;
-		if (memcmp(hdr.Header, "ID3", 3u) == 0 ||
-			SynchSafeIntToDWORD(hdr.Size) != 0)
+		if (cbSize > 10u)
 		{
-			if (hdr.Ver == 3)
-				return TAG_ID3V2_3;
-			if (hdr.Ver == 4)
-				return TAG_ID3V2_4;
+			w.MoveToBegin() >> hdr;
+			if (memcmp(hdr.Header, "ID3", 3u) == 0 &&
+				fnIsLegalHdr(hdr))
+			{
+				// è‹¥å·²æ‰¾åˆ°æ ‡ç­¾å¤´ï¼Œåˆ™ä½¿ç”¨å…¶å†…éƒ¨çš„SEEKå¸§æ¥å¯»æ‰¾å°¾éƒ¨æ ‡ç­¾ï¼Œå› æ­¤æ­¤å¤„ä¸éœ€è¦ç»§ç»­æŸ¥æ‰¾æ ‡ç­¾å°¾
+				Id3Loc.posV2 = 0u;
+				if (hdr.Ver == 3)
+					uRet |= TAG_ID3V2_3;
+				else if (hdr.Ver == 4)
+					uRet |= TAG_ID3V2_4;
+			}
+			else
+			{
+				// è‹¥æœªæ‰¾åˆ°æ ‡ç­¾å¤´ï¼Œåˆ™åº”ä»å°¾éƒ¨æ‰«æï¼Œæ£€æŸ¥æ˜¯å¦æœ‰è¿½åŠ æ ‡ç­¾
+				if (Id3Loc.posV1Ext != SIZETMax)
+				{
+					if (cbSize > 128u + 227u + 10u)
+					{
+						w.MoveTo(Id3Loc.posV1Ext - 10) >> hdr;
+						if (memcmp(hdr.Header, "3DI", 3u) == 0 &&
+							fnIsLegalHdr(hdr))
+						{
+							SIZE_T cbFrames = SynchSafeIntToDWORD(hdr.Size);
+							if (cbSize >= 128u + 227u + 10u + cbFrames)
+							{
+								Id3Loc.posV2FooterHdr = (SIZE_T)w.GetPos().QuadPart - 10u;
+								Id3Loc.posV2Footer = Id3Loc.posV2FooterHdr - cbFrames;
+								if (hdr.Ver == 3)
+									uRet |= TAG_ID3V2_3;
+								else if (hdr.Ver == 4)
+									uRet |= TAG_ID3V2_4;
+							}
+						}
+					}
+				}
+				else if (Id3Loc.posV1 != SIZETMax)
+				{
+					if (cbSize > 128u + 10u)
+					{
+						w.MoveTo(Id3Loc.posV1 - 10) >> hdr;
+						if (memcmp(hdr.Header, "3DI", 3u) == 0 &&
+							fnIsLegalHdr(hdr))
+						{
+							SIZE_T cbFrames = SynchSafeIntToDWORD(hdr.Size);
+							if (cbSize >= 128u + 10u + cbFrames)
+							{
+								Id3Loc.posV2FooterHdr = (SIZE_T)w.GetPos().QuadPart - 10u;
+								Id3Loc.posV2Footer = Id3Loc.posV2FooterHdr - cbFrames;
+								if (hdr.Ver == 3)
+									uRet |= TAG_ID3V2_3;
+								else if (hdr.Ver == 4)
+									uRet |= TAG_ID3V2_4;
+							}
+						}
+					}
+				}
+				else
+				{
+					w.GetStream()->Seek(ToLi(-10), STREAM_SEEK_END, NULL);
+					w >> hdr;
+					if (memcmp(hdr.Header, "3DI", 3u) == 0 &&
+						fnIsLegalHdr(hdr))
+					{
+						SIZE_T cbFrames = SynchSafeIntToDWORD(hdr.Size);
+						if (cbSize >= 10u + cbFrames)
+						{
+							Id3Loc.posV2FooterHdr = (SIZE_T)w.GetPos().QuadPart - 10u;
+							Id3Loc.posV2Footer = Id3Loc.posV2FooterHdr - cbFrames;
+							if (hdr.Ver == 3)
+								uRet |= TAG_ID3V2_3;
+							else if (hdr.Ver == 4)
+								uRet |= TAG_ID3V2_4;
+						}
+					}
+				}
+			}
 		}
-		else
-		{
-			// TODO:²éÕÒ±êÇ©Î²
-		}
-		return TAG_INVALID;
+		return uRet;
 	}
 
 	BOOL DetectFlac()
@@ -410,7 +522,7 @@ public:
 	UINT DetectTag()
 	{
 		m_uTagType = 0u;
-		m_uTagType |= DetectID3v2();
+		m_uTagType |= DetectID3(m_Id3Loc);
 		if (DetectFlac())
 			m_uTagType |= TAG_FLAC;
 		return m_uTagType;
@@ -434,6 +546,8 @@ private:
 	ID3v2_ExtHeader m_ExtHdr{};
 	DWORD m_cbTag{};
 
+	SIZE_T m_posAppendTag{ SIZETMax };
+
 	class CFrame
 	{
 	private:
@@ -456,7 +570,7 @@ private:
 		{
 			m_w.Read(m_rbFrame.Data(), m_cbFrame);
 			if (m_bUnsync)
-				m_rbFrame.ReplaceSubBin({ 0xFF, 0x00 }, { 0xFF });// »Ö¸´²»Í¬²½´¦Àí
+				m_rbFrame.ReplaceSubBin({ 0xFF, 0x00 }, { 0xFF });// æ¢å¤ä¸åŒæ­¥å¤„ç†
 			return
 			{
 				CMemWalker(m_rbFrame.Data(), m_rbFrame.Size()),
@@ -466,12 +580,12 @@ private:
 	};
 
 	/// <summary>
-	/// °´Ö¸¶¨±àÂë´¦ÀíÎÄ±¾
+	/// æŒ‰æŒ‡å®šç¼–ç å¤„ç†æ–‡æœ¬
 	/// </summary>
-	/// <param name="pStream">×Ö½ÚÁ÷Ö¸Õë£»Î´Ö¸¶¨iTextEncodingÊ±Ö¸ÏòÕû¸öÎÄ±¾Ö¡£¬Ö¸¶¨iTextEncodingÊ±Ö¸Ïò×Ö·û´®</param>
-	/// <param name="iLength">³¤¶È£»Î´Ö¸¶¨iTextEncodingÊ±±íÊ¾Õû¸öÎÄ±¾Ö¡³¤¶È£¨°üÀ¨1BµÄ±àÂë±ê¼Ç£¬²»º¬½áÎ²NULL£©£¬Ö¸¶¨iTextEncodingÊ±±íÊ¾×Ö·û´®³¤¶È£¨²»º¬½áÎ²NULL£©</param>
-	/// <param name="iTextEncoding">×Ô¶¨ÒåÎÄ±¾±àÂë£»-1£¨È±Ê¡£©Ö¸Ê¾´¦ÀíµÄÊÇÎÄ±¾Ö¡</param>
-	/// <returns>·µ»Ø´¦ÀíÍê±ÏµÄÎÄ±¾</returns>
+	/// <param name="pStream">å­—èŠ‚æµæŒ‡é’ˆï¼›æœªæŒ‡å®šiTextEncodingæ—¶æŒ‡å‘æ•´ä¸ªæ–‡æœ¬å¸§ï¼ŒæŒ‡å®šiTextEncodingæ—¶æŒ‡å‘å­—ç¬¦ä¸²</param>
+	/// <param name="iLength">é•¿åº¦ï¼›æœªæŒ‡å®šiTextEncodingæ—¶è¡¨ç¤ºæ•´ä¸ªæ–‡æœ¬å¸§é•¿åº¦ï¼ˆåŒ…æ‹¬1Bçš„ç¼–ç æ ‡è®°ï¼Œä¸å«ç»“å°¾NULLï¼‰ï¼ŒæŒ‡å®šiTextEncodingæ—¶è¡¨ç¤ºå­—ç¬¦ä¸²é•¿åº¦ï¼ˆä¸å«ç»“å°¾NULLï¼‰</param>
+	/// <param name="iTextEncoding">è‡ªå®šä¹‰æ–‡æœ¬ç¼–ç ï¼›-1ï¼ˆç¼ºçœï¼‰æŒ‡ç¤ºå¤„ç†çš„æ˜¯æ–‡æœ¬å¸§</param>
+	/// <returns>è¿”å›å¤„ç†å®Œæ¯•çš„æ–‡æœ¬</returns>
 	static CRefStrW GetID3v2_ProcString(CMemWalker& w, int cb, int iTextEncoding = -1)
 	{
 		const BOOL bHasTNull = (cb < 0);
@@ -480,7 +594,7 @@ private:
 		if (iTextEncoding == -1)
 		{
 			iType = *w.Data();
-			w += 1;// Ìø¹ıÎÄ±¾±àÂë±êÖ¾
+			w += 1;// è·³è¿‡æ–‡æœ¬ç¼–ç æ ‡å¿—
 			--cb;
 		}
 
@@ -510,7 +624,7 @@ private:
 				cbTNull = 2u;
 			}
 
-			if (*(PWSTR)w.Data() == L'\xFEFF')// ÌøBOM
+			if (*(PWSTR)w.Data() == L'\xFEFF')// è·³BOM
 			{
 				w += sizeof(WCHAR);
 				cb -= sizeof(WCHAR);
@@ -537,7 +651,7 @@ private:
 				cbTNull = 2u;
 			}
 
-			if (*(PWSTR)w.Data() == L'\xFFFE')// ÌøBOM
+			if (*(PWSTR)w.Data() == L'\xFFFE')// è·³BOM
 			{
 				w += sizeof(WCHAR);
 				cb -= sizeof(WCHAR);
@@ -578,37 +692,37 @@ private:
 public:
 	enum class EventType :BYTE
 	{
-		Padding,				// Ìî³ä(ÎŞÒâÒå)
-		EndOfInitialSilence,	// ³õÊ¼¾²Òô½áÊø
-		IntroStart,				// Ç°×à¿ªÊ¼
-		MainPartStart,			// Ö÷Ìå²¿·Ö¿ªÊ¼
-		OutroStart,				// ĞòÇú¿ªÊ¼
-		OutroEnd,				// Æ¬Î²Çú½áÊø
-		VerseStart,				// Ê«¾ä¿ªÊ¼
-		RefrainStart,			// ÖØ³ª¿ªÊ¼
-		InterludeStart,			// ²åÇú¿ªÊ¼
-		ThemeStart,				// Ö÷Ìâ¿ªÊ¼
-		VariationStart,			// ±ä×à¿ªÊ¼
-		KeyChange,				// µ÷ĞÔ±ä»¯
-		TimeChange,				// Ê±¼ä±ä»¯
-		MomentaryUnwantedNoise,	// Ë²Ê±ÔëÒô("Å¾"¡¢"àèÅ¾"ºÍ"àÛàÛ"Éù)
-		SustainedNoise,			// ³ÖĞøÔëÒô
-		SustainedNoiseEnd,		// ³ÖĞøÔëÒô½áÊø
-		IntroEnd,				// Ç°×à½áÊø
-		MainPartEnd,			// Ö÷Ìå²¿·Ö½áÊø
-		VerseEnd,				// Ê«¾ä½áÊø
-		RefrainEnd,				// ÖØ³ª½áÊø
-		ThemeEnd,				// Ö÷Ìâ½áÊø
-		Profanity,				// Ôà»° **(½öID3v2.4)**
-		ProfanityEnd,			// Ôà»°½áÊø **(½öID3v2.4)**
+		Padding,				// å¡«å……(æ— æ„ä¹‰)
+		EndOfInitialSilence,	// åˆå§‹é™éŸ³ç»“æŸ
+		IntroStart,				// å‰å¥å¼€å§‹
+		MainPartStart,			// ä¸»ä½“éƒ¨åˆ†å¼€å§‹
+		OutroStart,				// åºæ›²å¼€å§‹
+		OutroEnd,				// ç‰‡å°¾æ›²ç»“æŸ
+		VerseStart,				// è¯—å¥å¼€å§‹
+		RefrainStart,			// é‡å”±å¼€å§‹
+		InterludeStart,			// æ’æ›²å¼€å§‹
+		ThemeStart,				// ä¸»é¢˜å¼€å§‹
+		VariationStart,			// å˜å¥å¼€å§‹
+		KeyChange,				// è°ƒæ€§å˜åŒ–
+		TimeChange,				// æ—¶é—´å˜åŒ–
+		MomentaryUnwantedNoise,	// ç¬æ—¶å™ªéŸ³("å•ª"ã€"å™¼å•ª"å’Œ"å™—å™—"å£°)
+		SustainedNoise,			// æŒç»­å™ªéŸ³
+		SustainedNoiseEnd,		// æŒç»­å™ªéŸ³ç»“æŸ
+		IntroEnd,				// å‰å¥ç»“æŸ
+		MainPartEnd,			// ä¸»ä½“éƒ¨åˆ†ç»“æŸ
+		VerseEnd,				// è¯—å¥ç»“æŸ
+		RefrainEnd,				// é‡å”±ç»“æŸ
+		ThemeEnd,				// ä¸»é¢˜ç»“æŸ
+		Profanity,				// è„è¯ **(ä»…ID3v2.4)**
+		ProfanityEnd,			// è„è¯ç»“æŸ **(ä»…ID3v2.4)**
 
-		InvalidBeginV2_4,		// £¡ÎŞĞ§Çø¿ªÊ¼ **(½öID3v2.4)**
-		InvalidEnd = 0xFC,		// £¡ÎŞĞ§Çø½áÊø
+		InvalidBeginV2_4,		// ï¼æ— æ•ˆåŒºå¼€å§‹ **(ä»…ID3v2.4)**
+		InvalidEnd = 0xFC,		// ï¼æ— æ•ˆåŒºç»“æŸ
 
-		AudioEnd = 0xFD,		// ÒôÆµ½áÊø(¾²Òô¿ªÊ¼)
-		AudioFileEnds,			// ÒôÆµÎÄ¼ş½áÊø
+		AudioEnd = 0xFD,		// éŸ³é¢‘ç»“æŸ(é™éŸ³å¼€å§‹)
+		AudioFileEnds,			// éŸ³é¢‘æ–‡ä»¶ç»“æŸ
 
-		InvalidBeginV2_3 = Profanity,// ÎŞĞ§Çø¿ªÊ¼ **(½öID3v2.3)**
+		InvalidBeginV2_3 = Profanity,// æ— æ•ˆåŒºå¼€å§‹ **(ä»…ID3v2.3)**
 	};
 
 	enum class TimestampFmt :BYTE
@@ -631,36 +745,36 @@ public:
 
 	enum class LrcContentType :BYTE
 	{
-		Other,				// ÆäËû
-		Lyrics,				// ¸è´Ê
-		TextTranscription,	// ÎÄ×Ö×ªÂ¼
-		Movement,			// ÀÖÕÂ/ÀÖ¶ÎÃû³Æ(Èç"Adagio")¡£
-		Events,				// ÊÂ¼ş(Èç"ÌÃ¼ªÚ­µÂµÇ³¡")
-		Chord,				// ºÍÏÒ(Èç"Bb F Fsus")
-		Trivia,				// Ğ¡½Ú/µ¯³öÊ½ĞÅÏ¢
-		WebpageUrl,			// ÍøÒ³URL
-		ImageUrl,			// Í¼Æ¬URL
+		Other,				// å…¶ä»–
+		Lyrics,				// æ­Œè¯
+		TextTranscription,	// æ–‡å­—è½¬å½•
+		Movement,			// ä¹ç« /ä¹æ®µåç§°(å¦‚"Adagio")ã€‚
+		Events,				// äº‹ä»¶(å¦‚"å ‚å‰è¯ƒå¾·ç™»åœº")
+		Chord,				// å’Œå¼¦(å¦‚"Bb F Fsus")
+		Trivia,				// å°èŠ‚/å¼¹å‡ºå¼ä¿¡æ¯
+		WebpageUrl,			// ç½‘é¡µURL
+		ImageUrl,			// å›¾ç‰‡URL
 		Max
 	};
 
 	enum class ChannelType :BYTE
 	{
-		Other,			// ÆäËû
-		MasterVolume,	// Ö÷ÒôÁ¿
-		FrontRight,		// Ç°ÓÒ
-		FrontLeft,		// Ç°×ó
-		BackRight,		// ºóÓÒ
-		BackLeft,		// ºó×ó
-		FrontCentre,	// Ç°ÖĞ
-		BackCentre,		// ºóÖĞ
-		Subwoofer,		// µÍÒôÅÚ
+		Other,			// å…¶ä»–
+		MasterVolume,	// ä¸»éŸ³é‡
+		FrontRight,		// å‰å³
+		FrontLeft,		// å‰å·¦
+		BackRight,		// åå³
+		BackLeft,		// åå·¦
+		FrontCentre,	// å‰ä¸­
+		BackCentre,		// åä¸­
+		Subwoofer,		// ä½éŸ³ç‚®
 		Max
 	};
 
 	enum class Interpolation :BYTE
 	{
-		Band,	// ²»½øĞĞ²åÖµ¡£´ÓÒ»¸öµ÷Õû¼¶±ğµ½ÁíÒ»¸öµ÷Õû¼¶±ğµÄÌø±ä·¢ÉúÔÚÁ½¸öµ÷ÕûµãÖ®¼äµÄÖĞ¼äÎ»ÖÃ¡£
-		Linear,	// µ÷ÕûµãÖ®¼äµÄ²åÖµÊÇÏßĞÔµÄ¡£
+		Band,	// ä¸è¿›è¡Œæ’å€¼ã€‚ä»ä¸€ä¸ªè°ƒæ•´çº§åˆ«åˆ°å¦ä¸€ä¸ªè°ƒæ•´çº§åˆ«çš„è·³å˜å‘ç”Ÿåœ¨ä¸¤ä¸ªè°ƒæ•´ç‚¹ä¹‹é—´çš„ä¸­é—´ä½ç½®ã€‚
+		Linear,	// è°ƒæ•´ç‚¹ä¹‹é—´çš„æ’å€¼æ˜¯çº¿æ€§çš„ã€‚
 		Max
 	};
 
@@ -683,9 +797,10 @@ public:
 
 	struct FRAME
 	{
-		CHAR Id[4]{};
-		BYTE uFlags[2]{};
-		BYTE byAddtFlags{};// MTID3F_³£Á¿
+		CHAR Id[4]{};		// å¸§æ ‡è¯†
+		BYTE uFlags[2]{};	// æ ‡å¿—
+		BYTE byAddtFlags{};	// MTID3F_å¸¸é‡
+		UINT cbRead{};		// è¯»å…¥æ—¶çš„é•¿åº¦ï¼ˆåŒ…æ‹¬å¸§å¤´ï¼‰ï¼Œä¾¿äºæ£€æµ‹ä¿®æ”¹
 
 		virtual ~FRAME() {}
 
@@ -715,7 +830,7 @@ public:
 			{
 				if (uFlags[1] & ID3V24FF_COMPRESSION)
 				{
-					// TODO:Ñ¹Ëõ
+					// TODO:å‹ç¼©
 				}
 
 				if (phdr->Flags & ID3V2HF_UNSYNCHRONIZATION || uFlags[1] & ID3V24FF_UNSYNCHRONIZATION)
@@ -732,7 +847,7 @@ public:
 			{
 				if (uFlags[1] & ID3V24FF_COMPRESSION)
 				{
-					// TODO:Ñ¹Ëõ
+					// TODO:å‹ç¼©
 				}
 
 				if (phdr->Flags & ID3V2HF_UNSYNCHRONIZATION)
@@ -957,7 +1072,7 @@ public:
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w << eTimestampFmt;
 			for (const auto& e : vEvent)
-				(w << e.eType).WriteAndRevByte(e.uTimestamp);
+				(w << e.eType).WriteRev(e.uTimestamp);
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
 		}
@@ -983,7 +1098,7 @@ public:
 		{
 			const size_t cbFrame = 0;
 			auto w = PreSerialize(rb, phdr, cbFrame);
-			// TODO:Î»
+			// TODO:ä½
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
 		}
@@ -1018,7 +1133,7 @@ public:
 					w << (BYTE)0xFF << (BYTE)(e.bpm - 0xFF);
 				else
 					w << (BYTE)e.bpm;
-				w.WriteAndRevByte(e.uTimestamp);
+				w.WriteRev(e.uTimestamp);
 			}
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
@@ -1078,7 +1193,7 @@ public:
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w << eEncoding << byLang << eTimestampFmt << rbDesc;
 			EckCounter(vSync.size(), i)
-				(w << vLrc[i]).WriteAndRevByte(vSync[i].uTimestamp);
+				(w << vLrc[i]).WriteRev(vSync[i].uTimestamp);
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
 		}
@@ -1123,7 +1238,7 @@ public:
 		{
 			const size_t cbFrame = 0;
 			auto w = PreSerialize(rb, phdr, cbFrame);
-			// TODO:Î»
+			// TODO:ä½
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
 		}
@@ -1135,7 +1250,7 @@ public:
 	{
 		struct POINT
 		{
-			USHORT uFreq{};	// µ¥Î»1/2Hz
+			USHORT uFreq{};	// å•ä½1/2Hz
 			short shVol{};
 		};
 		Interpolation eInterpolation{};
@@ -1148,7 +1263,7 @@ public:
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w << eInterpolation << rsId;
 			for (auto e : vPoint)
-				w.WriteAndRevByte(e.uFreq).WriteAndRevByte(e.shVol);
+				w.WriteRev(e.uFreq).WriteRev(e.shVol);
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
 		}
@@ -1173,7 +1288,7 @@ public:
 		{
 			constexpr size_t cbFrame = 12;
 			auto w = PreSerialize(rb, phdr, cbFrame);
-			w.WriteAndRevByte(Left).WriteAndRevByte(Right).Write(&BouncesLeft, 8);
+			w.WriteRev(Left).WriteRev(Right).Write(&BouncesLeft, 8);
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
 		}
@@ -1240,7 +1355,7 @@ public:
 				}
 			}
 			auto w = PreSerialize(rb, phdr, cbFrame);
-			w.WriteAndRevByte(&cPlay, cbFrame);
+			w.WriteRev(&cPlay, cbFrame);
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
 		}
@@ -1268,7 +1383,7 @@ public:
 			const size_t cbFrame = 2 + rsEmail.Size() + cbPlayCount;
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w << rsEmail << byRating;
-			w.WriteAndRevByte(&cPlay, cbPlayCount);
+			w.WriteRev(&cPlay, cbPlayCount);
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
 		}
@@ -1286,8 +1401,8 @@ public:
 		{
 			constexpr size_t cbFrame = 8;
 			auto w = PreSerialize(rb, phdr, cbFrame);
-			w.WriteAndRevByte(&cbBuf, 3) << b;
-			w.WriteAndRevByte(ocbNextTag);
+			w.WriteRev(&cbBuf, 3) << b;
+			w.WriteRev(ocbNextTag);
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
 		}
@@ -1307,7 +1422,7 @@ public:
 			const size_t cbFrame = 5 + rsOwnerId.Size() + rbData.Size();
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w << rsOwnerId;
-			w.WriteAndRevByte(usPreviewBegin).WriteAndRevByte(usPreviewLength);
+			w.WriteRev(usPreviewBegin).WriteRev(usPreviewLength);
 			w << rbData;
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
@@ -1343,7 +1458,7 @@ public:
 		{
 			const size_t cbFrame = 5;
 			auto w = PreSerialize(rb, phdr, cbFrame);
-			(w << eTimestamp).WriteAndRevByte(uTime);
+			(w << eTimestamp).WriteRev(uTime);
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
 		}
@@ -1497,14 +1612,31 @@ public:
 		{
 			constexpr size_t cbFrame = 4;
 			auto w = PreSerialize(rb, phdr, cbFrame);
-			w.WriteAndRevByte(ocbNextTag);
+			w.WriteRev(ocbNextTag);
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
 		}
 
 		ECK_DECL_ID3FRAME_CLONE(SEEK)
 	};
+
 	// TODO:ASPI
+
+	struct OTHERFRAME :public FRAME
+	{
+		CRefBin rbData;
+
+		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
+		{
+			const size_t cbFrame = rbData.Size();
+			auto w = PreSerialize(rb, phdr, cbFrame);
+			w << rbData;
+			PostSerialize(rb, phdr, cbFrame);
+			return Result::Ok;
+		}
+
+		ECK_DECL_ID3FRAME_CLONE(OTHERFRAME)
+	};
 private:
 	std::vector<FRAME*> m_vFrame{};
 
@@ -1521,6 +1653,7 @@ private:
 			m_bUnsync(id3.m_Header.Flags& ID3V2HF_UNSYNCHRONIZATION),
 			m_rbFrame(cbFrame)
 		{
+			pFrame->cbRead = cbFrame + 10;
 			memcpy(pFrame->Id, Header.ID, 4);
 			memcpy(&pFrame->uFlags, Header.Flags, 2);
 			if (!m_bUnsync && id3.m_Header.Ver == 4)
@@ -1531,7 +1664,7 @@ private:
 		{
 			m_w.Read(m_rbFrame.Data(), m_cbFrame);
 			if (m_bUnsync)
-				m_rbFrame.ReplaceSubBin({ 0xFF, 0x00 }, { 0xFF });// »Ö¸´²»Í¬²½´¦Àí
+				m_rbFrame.ReplaceSubBin({ 0xFF, 0x00 }, { 0xFF });// æ¢å¤ä¸åŒæ­¥å¤„ç†
 			return
 			{
 				CMemWalker(m_rbFrame.Data(), m_rbFrame.Size()),
@@ -1544,311 +1677,52 @@ private:
 	{
 		return GetID3v2_ProcString(w, cb, (int)iTextEncoding);
 	}
-public:
-	ECK_DISABLE_COPY_MOVE(CID3v2)
-public:
-	CID3v2(CMediaFile& File) :m_File{ File }, m_Stream(File.GetStream())
+
+	DWORD PreJudgeFrame(ID3v2_FrameHeader& FrameHdr)
 	{
-		m_Stream.GetStream()->AddRef();
-		m_Stream.MoveToBegin();
-		m_Stream >> m_Header;
-		m_cbTag = SynchSafeIntToDWORD(m_Header.Size);
-		if (m_Header.Ver == 3)// 2.3
+		m_Stream >> FrameHdr;
+		DWORD cbExtra{}, cbUnit;
+		if (m_Header.Ver == 3)
 		{
-			if (m_Header.Flags & 0x20)// ÓĞÀ©Õ¹Í·
-			{
-				m_Stream >> m_ExtHdr;
-				const int cb = ReverseInteger(*(DWORD*)m_ExtHdr.ExtHeaderSize) - 6;
-				if (cb < 0)
-					m_cbTag = 0u;
-				else
-					m_Stream += cb;
-			}
+			cbUnit = ReverseInteger(*(DWORD*)FrameHdr.Size);// v2.3ï¼š32ä½æ•°æ®ï¼Œä¸åŒ…æ‹¬å¸§å¤´ï¼ˆå4å­—èŠ‚ï¼‰
+			if (FrameHdr.Flags[1] & ID3V23FF_HAS_GROUP_IDENTITY)
+				cbExtra += 1;// è·³è¿‡ç»„æ ‡è¯†ç¬¦
+			if (FrameHdr.Flags[1] & ID3V23FF_ENCRYPTION)
+				cbExtra += 1;// è·³è¿‡åŠ å¯†ç±»å‹æ ‡è¯†ç¬¦
+			if (FrameHdr.Flags[1] & ID3V23FF_COMPRESSION)
+				cbExtra += 4;// è·³è¿‡æ•°æ®é•¿åº¦æŒ‡ç¤ºå™¨
 		}
-		else if (m_Header.Ver == 4)// 2.4
+		else/* if (m_Header.Ver == 4)*/
 		{
-			if (m_Header.Flags & 0x20)// ÓĞÀ©Õ¹Í·
-			{
-				m_Stream >> m_ExtHdr;
-				const int cb = SynchSafeIntToDWORD(m_ExtHdr.ExtHeaderSize) - 10;
-				if (cb < 0)
-					m_cbTag = 0u;
-				else
-					m_Stream += cb;
-			}
-			// 2.4Àï±ä³ÉÁËÍ¬²½°²È«ÕûÊı£¬¶øÇÒÕâ¸ö³ß´ç°üº¬ÁË¼ÇÂ¼³ß´çµÄËÄ¸ö×Ö½Ú
+			if (FrameHdr.Flags[1] & ID3V24FF_HAS_GROUP_IDENTITY)
+				cbExtra += 1;// è·³è¿‡ç»„æ ‡è¯†ç¬¦
+			if (FrameHdr.Flags[1] & ID3V24FF_ENCRYPTION)
+				cbExtra += 1;// è·³è¿‡åŠ å¯†ç±»å‹æ ‡è¯†ç¬¦
+			if (FrameHdr.Flags[1] & ID3V24FF_HAS_DATA_LENGTH_INDICATOR)
+				cbExtra += 4;// è·³è¿‡æ•°æ®é•¿åº¦æŒ‡ç¤ºå™¨
+			cbUnit = SynchSafeIntToDWORD(FrameHdr.Size);// v2.4ï¼š28ä½æ•°æ®ï¼ˆåŒæ­¥å®‰å…¨æ•´æ•°ï¼‰
 		}
-		else
-		{
-			m_cbTag = 0u;
-			EckDbgPrintWithPos(L"Î´Ê¶±ğµÄID3°æ±¾");
-			EckDbgBreak();
-		}
+		cbUnit -= cbExtra;
+		m_Stream += cbExtra;
+		// TODO:å¤„ç†å‹ç¼©å¸§
+		return cbUnit;
 	}
-
-	~CID3v2() { m_Stream.GetStream()->Release(); }
-
-	BOOL ReadTag(MUSICINFO& mi)
-	{
-		mi.Clear();
-		if (!m_cbTag)
-			return FALSE;
-
-		DWORD cbUnit;
-		ID3v2_FrameHeader FrameHdr;
-		DWORD cbExtra;
-
-		ULARGE_INTEGER uliSize = m_Stream.GetSize();
-		auto pos = m_Stream.GetPos();
-		while (m_Stream.GetPos().QuadPart < m_cbTag)
-		{
-			m_Stream >> FrameHdr;
-
-			cbExtra = 0;
-			if (m_Header.Ver == 3)
-			{
-				cbUnit = ReverseInteger(*(DWORD*)FrameHdr.Size);// v2.3£º32Î»Êı¾İ£¬²»°üÀ¨Ö¡Í·£¨Æ«4×Ö½Ú£©
-				if (FrameHdr.Flags[1] & ID3V23FF_HAS_GROUP_IDENTITY)
-					cbExtra += 1;// Ìø¹ı×é±êÊ¶·û
-				if (FrameHdr.Flags[1] & ID3V23FF_ENCRYPTION)
-					cbExtra += 1;// Ìø¹ı¼ÓÃÜÀàĞÍ±êÊ¶·û
-				if (FrameHdr.Flags[1] & ID3V23FF_COMPRESSION)
-					cbExtra += 4;// Ìø¹ıÊı¾İ³¤¶ÈÖ¸Ê¾Æ÷
-			}
-			else/* if (m_Header.Ver == 4)*/
-			{
-				if (FrameHdr.Flags[1] & ID3V24FF_HAS_GROUP_IDENTITY)
-					cbExtra += 1;// Ìø¹ı×é±êÊ¶·û
-				if (FrameHdr.Flags[1] & ID3V24FF_ENCRYPTION)
-					cbExtra += 1;// Ìø¹ı¼ÓÃÜÀàĞÍ±êÊ¶·û
-				if (FrameHdr.Flags[1] & ID3V24FF_HAS_DATA_LENGTH_INDICATOR)
-					cbExtra += 4;// Ìø¹ıÊı¾İ³¤¶ÈÖ¸Ê¾Æ÷
-				cbUnit = SynchSafeIntToDWORD(FrameHdr.Size);// v2.4£º28Î»Êı¾İ£¨Í¬²½°²È«ÕûÊı£©
-			}
-			cbUnit -= cbExtra;
-			m_Stream += cbExtra;
-			// TODO:´¦ÀíÑ¹ËõÖ¡
-
-			if ((mi.uMask & MIM_TITLE) && memcmp(FrameHdr.ID, "TIT2", 4) == 0)// ±êÌâ
-			{
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-				mi.rsTitle = GetID3v2_ProcString(w, cb);
-				mi.uMaskRead |= MIM_TITLE;
-			}
-			else if ((mi.uMask & MIM_ARTIST) && memcmp(FrameHdr.ID, "TPE1", 4) == 0)// ×÷Õß
-			{
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-				mi.AppendArtist(GetID3v2_ProcString(w, cb));
-				mi.uMaskRead |= MIM_ARTIST;
-			}
-			else if ((mi.uMask & MIM_ALBUM) && memcmp(FrameHdr.ID, "TALB", 4) == 0)// ×¨¼­
-			{
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-				mi.rsAlbum = GetID3v2_ProcString(w, cb);
-				mi.uMaskRead |= MIM_ALBUM;
-			}
-			else if ((mi.uMask & MIM_LRC) && memcmp(FrameHdr.ID, "USLT", 4) == 0)// ²»Í¬²½¸è´Ê
-			{
-				/*
-				<Ö¡Í·>£¨Ö¡±êÊ¶ÎªUSLT£©
-				ÎÄ±¾±àÂë						$xx
-				×ÔÈ»ÓïÑÔ´úÂë					$xx xx xx
-				ÄÚÈİÃèÊö						<×Ö·û´®> $00 (00)
-				¸è´Ê							<×Ö·û´®>
-				*/
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-
-				BYTE byEncodeType;
-				w >> byEncodeType;// ¶ÁÎÄ±¾±àÂë
-
-				CHAR byLangCode[3];
-				w >> byLangCode;// ¶Á×ÔÈ»ÓïÑÔ´úÂë
-
-				UINT t;
-				if (byEncodeType == 0 || byEncodeType == 3)// ISO-8859-1»òUTF-8
-					t = (int)strlen((PCSTR)w.Data()) + 1;
-				else// UTF-16LE»òUTF-16BE
-					t = ((int)wcslen((PCWSTR)w.Data()) + 1) * sizeof(WCHAR);
-				w += t;// Ìø¹ıÄÚÈİÃèÊö
-
-				cb -= (t + 4);
-
-				mi.rsLrc = GetID3v2_ProcString(w, cb, byEncodeType);
-				mi.uMaskRead |= MIM_LRC;
-			}
-			else if ((mi.uMask & MIM_COMMENT) && memcmp(FrameHdr.ID, "COMM", 4) == 0)// ±¸×¢
-			{
-				/*
-				<Ö¡Í·>£¨Ö¡±êÊ¶ÎªCOMM£©
-				ÎÄ±¾±àÂë						$xx
-				×ÔÈ»ÓïÑÔ´úÂë					$xx xx xx
-				±¸×¢ÕªÒª						<×Ö·û´®> $00 (00)
-				±¸×¢							<×Ö·û´®>
-				*/
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-
-				BYTE byEncodeType;
-				w >> byEncodeType;// ¶ÁÎÄ±¾±àÂë
-
-				CHAR byLangCode[3];
-				w >> byLangCode;// ¶Á×ÔÈ»ÓïÑÔ´úÂë
-
-				UINT t;
-				if (byEncodeType == 0 || byEncodeType == 3)// ISO-8859-1»òUTF-8
-					t = (int)strlen((PCSTR)w.Data()) + 1;
-				else// UTF-16LE»òUTF-16BE
-					t = ((int)wcslen((PCWSTR)w.Data()) + 1) * sizeof(WCHAR);
-				w += t;// Ìø¹ı±¸×¢ÕªÒª
-
-				cb -= (t + 4);
-
-				mi.AppendComment(GetID3v2_ProcString(w, cb, byEncodeType));
-				mi.uMaskRead |= MIM_COMMENT;
-			}
-			else if ((mi.uMask & MIM_COVER) && memcmp(FrameHdr.ID, "APIC", 4) == 0)// Í¼Æ¬
-			{
-				/*
-				<Ö¡Í·>£¨Ö¡±êÊ¶ÎªAPIC£©
-				ÎÄ±¾±àÂë                        $xx
-				MIME ÀàĞÍ                       <ASCII×Ö·û´®>$00£¨Èç'image/bmp'£©
-				Í¼Æ¬ÀàĞÍ                        $xx
-				ÃèÊö                            <×Ö·û´®>$00(00)
-				<Í¼Æ¬Êı¾İ>
-				*/
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-
-				MUSICPIC Pic{};
-
-				BYTE byEncodeType;
-				w >> byEncodeType;// ¶ÁÎÄ±¾±àÂë
-
-				BYTE byType;
-
-				UINT t;
-				t = (int)strlen((PCSTR)w.Data());
-				CRefStrA rsMime((PCSTR)w.Data(), t);
-				Pic.rsMime = StrX2W(rsMime.Data(), rsMime.Size());
-				w += (t + 1);// Ìø¹ıMIMEÀàĞÍ×Ö·û´®
-
-				w >> byType;// Í¼Æ¬ÀàĞÍ
-				if (byType < (BYTE)PicType::Begin___ || byType >= (BYTE)PicType::End___)
-					Pic.eType = PicType::Invalid;
-				else
-					Pic.eType = (PicType)byType;
-
-				Pic.rsDesc = GetID3v2_ProcString(w, -1, byEncodeType);
-				Pic.bLink = (Pic.rsDesc == L"-->");
-
-				if (Pic.bLink)
-					Pic.varPic = GetID3v2_ProcString(w, (int)w.GetLeaveSize(), byEncodeType);
-				else
-					Pic.varPic = CRefBin(w.Data(), cb);
-				mi.vImage.push_back(std::move(Pic));
-				mi.uMaskRead |= MIM_COVER;
-			}
-			else if ((mi.uMask & MIM_GENRE) && memcmp(FrameHdr.ID, "TCON", 4) == 0)// Á÷ÅÉ
-			{
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-				mi.rsGenre = GetID3v2_ProcString(w, cb);
-				mi.uMaskRead |= MIM_GENRE;
-			}
-			else if ((mi.uMask & MIM_DATE) && memcmp(FrameHdr.ID, "TYER", 4) == 0 && m_Header.Ver == 3)// Äê´ú
-			{
-				// TODO:±¾µØ¸ñÊ½»¯
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-				auto rsDate = GetID3v2_ProcString(w, cb);
-				if (rsDate.Size() == 4)
-				{
-					if (mi.uFlag & MIF_DATE_STRING)
-						mi.Date = std::move(rsDate);
-					else
-						mi.Date = SYSTEMTIME{ .wYear = (WORD)_wtoi(rsDate.Data()) };
-					mi.uMaskRead |= MIM_DATE;
-				}
-			}
-			else if ((mi.uMask & MIM_DATE) && memcmp(FrameHdr.ID, "TDRC", 4) == 0 && m_Header.Ver == 4)// Äê´ú
-			{
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-				auto rsDate = GetID3v2_ProcString(w, cb);
-				if (rsDate.Size() >= 4)
-				{
-					if (mi.uFlag & MIF_DATE_STRING)
-					{
-						mi.Date = std::move(rsDate);
-						mi.uMaskRead |= MIM_DATE;
-					}
-					else
-					{
-						SYSTEMTIME st{};
-						if (swscanf(rsDate.Data(), L"%hd-%hd-%hdT%hd:%hd:%hd",
-							&st.wYear, &st.wMonth, &st.wDay,
-							&st.wHour, &st.wMinute, &st.wSecond) > 0)
-						{
-							mi.Date = st;
-							mi.uMaskRead |= MIM_DATE;
-						}
-					}
-				}
-			}
-			else
-				m_Stream += cbUnit;
-		}
-		return TRUE;
-	}
-
-	Result ReadTag(UINT uFlags)
-	{
-		for (auto e : m_vFrame)
-			delete e;
-		m_vFrame.clear();
-		if (!m_cbTag)
-			return Result::TagErr;
-
-		DWORD cbUnit;
-		ID3v2_FrameHeader FrameHdr;
-		DWORD cbExtra;
-
-		ULARGE_INTEGER uliSize = m_Stream.GetSize();
-		auto pos = m_Stream.GetPos();
-		while (m_Stream.GetPos().QuadPart < m_cbTag)
-		{
-			m_Stream >> FrameHdr;
-
-			cbExtra = 0;
-			if (m_Header.Ver == 3)
-			{
-				cbUnit = ReverseInteger(*(DWORD*)FrameHdr.Size);// v2.3£º32Î»Êı¾İ£¬²»°üÀ¨Ö¡Í·£¨Æ«4×Ö½Ú£©
-				if (FrameHdr.Flags[1] & ID3V23FF_HAS_GROUP_IDENTITY)
-					cbExtra += 1;// Ìø¹ı×é±êÊ¶·û
-				if (FrameHdr.Flags[1] & ID3V23FF_ENCRYPTION)
-					cbExtra += 1;// Ìø¹ı¼ÓÃÜÀàĞÍ±êÊ¶·û
-				if (FrameHdr.Flags[1] & ID3V23FF_COMPRESSION)
-					cbExtra += 4;// Ìø¹ıÊı¾İ³¤¶ÈÖ¸Ê¾Æ÷
-			}
-			else/* if (m_Header.Ver == 4)*/
-			{
-				if (FrameHdr.Flags[1] & ID3V24FF_HAS_GROUP_IDENTITY)
-					cbExtra += 1;// Ìø¹ı×é±êÊ¶·û
-				if (FrameHdr.Flags[1] & ID3V24FF_ENCRYPTION)
-					cbExtra += 1;// Ìø¹ı¼ÓÃÜÀàĞÍ±êÊ¶·û
-				if (FrameHdr.Flags[1] & ID3V24FF_HAS_DATA_LENGTH_INDICATOR)
-					cbExtra += 4;// Ìø¹ıÊı¾İ³¤¶ÈÖ¸Ê¾Æ÷
-				cbUnit = SynchSafeIntToDWORD(FrameHdr.Size);// v2.4£º28Î»Êı¾İ£¨Í¬²½°²È«ÕûÊı£©
-			}
-			cbUnit -= cbExtra;
-			m_Stream += cbExtra;
-			// TODO:´¦ÀíÑ¹ËõÖ¡
 
 #define ECK_HIT_ID3FRAME(x) (memcmp(FrameHdr.ID, #x, 4) == 0)
+	Result ParseFrameBody(SIZE_T posEnd)
+	{
+		auto fnIsLegalFrameId = [](const CHAR* ch)->BOOL
+			{
+				return memcmp(ch, "ID3", 3) != 0 && memcmp(ch, "3DI", 3) != 0 &&
+					isalnum(ch[0]) && isalnum(ch[1]) && isalnum(ch[2]) && isalnum(ch[3]);
+			};
+
+		posEnd = std::min(posEnd, m_Stream.GetSize().QuadPart);
+		ID3v2_FrameHeader FrameHdr;
+		while ((SIZE_T)m_Stream.GetPos().QuadPart < posEnd)
+		{
+			const auto cbUnit = PreJudgeFrame(FrameHdr);
+
 			if (ECK_HIT_ID3FRAME(UFID))
 			{
 				const auto p = new UFID{};
@@ -1927,7 +1801,7 @@ public:
 				EckCounterNV((cb - 1) / 5)
 				{
 					auto& e = p->vEvent.emplace_back();
-					w >> e.eType >> e.uTimestamp;
+					(w >> e.eType).ReadRev(e.uTimestamp);
 				}
 
 				m_vFrame.push_back(p);
@@ -1938,13 +1812,13 @@ public:
 				CFrame2 f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Begin();
 
-				(w >> p->cMpegFrame)
-					.Read(&p->cByte, 3)
-					.Read(&p->cMilliseconds, 3)
+				w.ReadRev(p->cMpegFrame)
+					.ReadRev(&p->cByte, 3)
+					.ReadRev(&p->cMilliseconds, 3)
 					>> p->cByteOffsetValBit
 					>> p->cMillisecondsOffsetValBit;
 				auto& e = p->vRef.emplace_back();
-				// TODO:Î»
+				// TODO:ä½
 				m_vFrame.push_back(p);
 			}
 			else if (ECK_HIT_ID3FRAME(SYTC))
@@ -1976,7 +1850,7 @@ public:
 						result = Result::LenErr;
 						goto Failed;
 					}
-					w >> e.uTimestamp;
+					w.ReadRev(e.uTimestamp);
 				}
 				m_vFrame.push_back(p);
 				goto Ok;
@@ -2035,7 +1909,7 @@ public:
 						delete p;
 						return Result::LenErr;
 					}
-					w >> e.uTimestamp;
+					w.ReadRev(e.uTimestamp);
 				}
 				m_vFrame.push_back(p);
 			}
@@ -2078,7 +1952,7 @@ public:
 					w >> e.eChannel >> e.shVol >> e.cPeekVolBit;
 					if (e.cPeekVolBit)
 					{
-						// TODO:Î»
+						// TODO:ä½ï¼Œå¤§å°ç«¯
 					}
 				}
 
@@ -2105,7 +1979,7 @@ public:
 				EckCounterNV(cPoint)
 				{
 					auto& e = p->vPoint.emplace_back();
-					w >> e;
+					w.ReadRev(e.uFreq).ReadRev(e.shVol);
 				}
 				m_vFrame.push_back(p);
 			}
@@ -2119,7 +1993,7 @@ public:
 					delete p;
 					return Result::LenErr;
 				}
-				w.Read(&p->Left, 12);
+				w.ReadRev(p->Left).ReadRev(p->Right).Read(&p->BouncesLeft, 8);
 				m_vFrame.push_back(p);
 			}
 			else if (ECK_HIT_ID3FRAME(APIC))
@@ -2165,7 +2039,7 @@ public:
 					delete p;
 					return Result::LenErr;
 				}
-				w.Read(&p->cPlay, std::min(cb, (DWORD)8u));// ½Ø¶Ïµ½8×Ö½Ú
+				w.ReadRev(&p->cPlay, std::min(cb, (DWORD)8u));// æˆªæ–­åˆ°8å­—èŠ‚
 
 				m_vFrame.push_back(p);
 			}
@@ -2180,7 +2054,7 @@ public:
 					return Result::LenErr;
 				}
 				w >> p->rsEmail >> p->byRating;
-				w.Read(&p->cPlay, std::min(w.GetLeaveSize(), (SIZE_T)8u));// ½Ø¶Ïµ½8×Ö½Ú
+				w.ReadRev(&p->cPlay, std::min(w.GetLeaveSize(), (SIZE_T)8u));// æˆªæ–­åˆ°8å­—èŠ‚
 				m_vFrame.push_back(p);
 			}
 			else if (ECK_HIT_ID3FRAME(RBUF))
@@ -2193,7 +2067,7 @@ public:
 					delete p;
 					return Result::LenErr;
 				}
-				w.Read(&p->cbBuf, 3) >> p->b >> p->ocbNextTag;
+				(w.ReadRev(&p->cbBuf, 3) >> p->b).ReadRev(p->ocbNextTag);
 
 				m_vFrame.push_back(p);
 			}
@@ -2207,7 +2081,8 @@ public:
 					delete p;
 					return Result::LenErr;
 				}
-				w >> p->rsOwnerId >> p->usPreviewBegin >> p->usPreviewLength;
+				w >> p->rsOwnerId;
+				w.ReadRev(p->usPreviewBegin).ReadRev(p->usPreviewLength);
 				p->rbData.DupStream(w.Data(), w.GetLeaveSize());
 				m_vFrame.push_back(p);
 			}
@@ -2236,7 +2111,7 @@ public:
 					delete p;
 					return Result::LenErr;
 				}
-				w >> p->eTimestamp >> p->uTime;
+				(w >> p->eTimestamp).ReadRev(p->uTime);
 				m_vFrame.push_back(p);
 			}
 			else if (ECK_HIT_ID3FRAME(USER))
@@ -2353,7 +2228,13 @@ public:
 					delete p;
 					return Result::LenErr;
 				}
-				w >> p->ocbNextTag;
+				w.ReadRev(p->ocbNextTag);
+				if (m_posAppendTag != SIZETMax)
+				{
+					delete p;
+					return Result::IllegalRepeat;
+				}
+				m_posAppendTag = p->ocbNextTag + (SIZE_T)m_Stream.GetPos().QuadPart;
 				m_vFrame.push_back(p);
 			}
 			//else if (ECK_HIT_ID3FRAME(ASPI))
@@ -2361,8 +2242,6 @@ public:
 			//	const auto p = new ASPI{};
 			//	CFrame2 f(*this, FrameHdr, cbUnit, p);
 			//	auto [w, cb] = f.Begin();
-
-
 			//	m_vFrame.push_back(p);
 			//}
 			else if (FrameHdr.ID[0] == 'T')
@@ -2387,7 +2266,283 @@ public:
 				p->rsUrl.DupString((PCSTR)w.Data(), (int)cb);
 				m_vFrame.push_back(p);
 			}
+			else if (fnIsLegalFrameId(FrameHdr.ID))
+			{
+				const auto p = new OTHERFRAME{};
+				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				f.Begin();
+				p->rbData = std::move(f.m_rbFrame);
+				m_vFrame.push_back(p);
+			}
+			else
+				break;
 		}
+	}
+public:
+	ECK_DISABLE_COPY_MOVE(CID3v2)
+public:
+	CID3v2(CMediaFile& File) :m_File{ File }, m_Stream(File.GetStream())
+	{
+		m_Stream.GetStream()->AddRef();
+		if (m_File.m_Id3Loc.posV2 != SIZETMax)
+			m_Stream.MoveTo(m_File.m_Id3Loc.posV2);
+		else if (m_File.m_Id3Loc.posV2Footer != SIZETMax)
+			m_Stream.MoveTo(m_File.m_Id3Loc.posV2FooterHdr);
+		else
+			return;
+		m_Stream >> m_Header;
+		m_cbTag = SynchSafeIntToDWORD(m_Header.Size);
+		if (m_Header.Ver == 3)// 2.3
+		{
+			if (m_Header.Flags & 0x20)// æœ‰æ‰©å±•å¤´
+			{
+				m_Stream >> m_ExtHdr;
+				const int cb = ReverseInteger(*(DWORD*)m_ExtHdr.ExtHeaderSize) - 6;
+				if (cb < 0)
+					m_cbTag = 0u;
+				else
+					m_Stream += cb;
+			}
+		}
+		else if (m_Header.Ver == 4)// 2.4
+		{
+			if (m_Header.Flags & 0x20)// æœ‰æ‰©å±•å¤´
+			{
+				m_Stream >> m_ExtHdr;
+				const int cb = SynchSafeIntToDWORD(m_ExtHdr.ExtHeaderSize) - 10;
+				if (cb < 0)
+					m_cbTag = 0u;
+				else
+					m_Stream += cb;
+			}
+			// 2.4é‡Œå˜æˆäº†åŒæ­¥å®‰å…¨æ•´æ•°ï¼Œè€Œä¸”è¿™ä¸ªå°ºå¯¸åŒ…å«äº†è®°å½•å°ºå¯¸çš„å››ä¸ªå­—èŠ‚
+		}
+		else
+		{
+			m_cbTag = 0u;
+			EckDbgPrintWithPos(L"æœªè¯†åˆ«çš„ID3ç‰ˆæœ¬");
+			EckDbgBreak();
+		}
+	}
+
+	~CID3v2() { m_Stream.GetStream()->Release(); }
+
+	BOOL ReadTag(MUSICINFO& mi)
+	{
+		mi.Clear();
+		if (!m_cbTag)
+			return FALSE;
+		m_Stream.MoveTo(m_File.m_Id3Loc.posV2 + 10u);
+		ID3v2_FrameHeader FrameHdr;
+		while (m_Stream.GetPos().QuadPart < m_cbTag)
+		{
+			const auto cbUnit = PreJudgeFrame(FrameHdr);
+
+			if ((mi.uMask & MIM_TITLE) && ECK_HIT_ID3FRAME(TIT2))// æ ‡é¢˜
+			{
+				CFrame f(*this, FrameHdr, cbUnit);
+				auto [w, cb] = f.Begin();
+				mi.rsTitle = GetID3v2_ProcString(w, cb);
+				mi.uMaskRead |= MIM_TITLE;
+			}
+			else if ((mi.uMask & MIM_ARTIST) && ECK_HIT_ID3FRAME(TPE1))// ä½œè€…
+			{
+				CFrame f(*this, FrameHdr, cbUnit);
+				auto [w, cb] = f.Begin();
+				mi.AppendArtist(GetID3v2_ProcString(w, cb));
+				mi.uMaskRead |= MIM_ARTIST;
+			}
+			else if ((mi.uMask & MIM_ALBUM) && ECK_HIT_ID3FRAME(TALB))// ä¸“è¾‘
+			{
+				CFrame f(*this, FrameHdr, cbUnit);
+				auto [w, cb] = f.Begin();
+				mi.rsAlbum = GetID3v2_ProcString(w, cb);
+				mi.uMaskRead |= MIM_ALBUM;
+			}
+			else if ((mi.uMask & MIM_LRC) && ECK_HIT_ID3FRAME(USLT))// ä¸åŒæ­¥æ­Œè¯
+			{
+				/*
+				<å¸§å¤´>ï¼ˆå¸§æ ‡è¯†ä¸ºUSLTï¼‰
+				æ–‡æœ¬ç¼–ç 						$xx
+				è‡ªç„¶è¯­è¨€ä»£ç 					$xx xx xx
+				å†…å®¹æè¿°						<å­—ç¬¦ä¸²> $00 (00)
+				æ­Œè¯							<å­—ç¬¦ä¸²>
+				*/
+				CFrame f(*this, FrameHdr, cbUnit);
+				auto [w, cb] = f.Begin();
+
+				BYTE byEncodeType;
+				w >> byEncodeType;// è¯»æ–‡æœ¬ç¼–ç 
+
+				CHAR byLangCode[3];
+				w >> byLangCode;// è¯»è‡ªç„¶è¯­è¨€ä»£ç 
+
+				UINT t;
+				if (byEncodeType == 0 || byEncodeType == 3)// ISO-8859-1æˆ–UTF-8
+					t = (int)strlen((PCSTR)w.Data()) + 1;
+				else// UTF-16LEæˆ–UTF-16BE
+					t = ((int)wcslen((PCWSTR)w.Data()) + 1) * sizeof(WCHAR);
+				w += t;// è·³è¿‡å†…å®¹æè¿°
+
+				cb -= (t + 4);
+
+				mi.rsLrc = GetID3v2_ProcString(w, cb, byEncodeType);
+				mi.uMaskRead |= MIM_LRC;
+			}
+			else if ((mi.uMask & MIM_COMMENT) && ECK_HIT_ID3FRAME(COMM))// å¤‡æ³¨
+			{
+				/*
+				<å¸§å¤´>ï¼ˆå¸§æ ‡è¯†ä¸ºCOMMï¼‰
+				æ–‡æœ¬ç¼–ç 						$xx
+				è‡ªç„¶è¯­è¨€ä»£ç 					$xx xx xx
+				å¤‡æ³¨æ‘˜è¦						<å­—ç¬¦ä¸²> $00 (00)
+				å¤‡æ³¨							<å­—ç¬¦ä¸²>
+				*/
+				CFrame f(*this, FrameHdr, cbUnit);
+				auto [w, cb] = f.Begin();
+
+				BYTE byEncodeType;
+				w >> byEncodeType;// è¯»æ–‡æœ¬ç¼–ç 
+
+				CHAR byLangCode[3];
+				w >> byLangCode;// è¯»è‡ªç„¶è¯­è¨€ä»£ç 
+
+				UINT t;
+				if (byEncodeType == 0 || byEncodeType == 3)// ISO-8859-1æˆ–UTF-8
+					t = (int)strlen((PCSTR)w.Data()) + 1;
+				else// UTF-16LEæˆ–UTF-16BE
+					t = ((int)wcslen((PCWSTR)w.Data()) + 1) * sizeof(WCHAR);
+				w += t;// è·³è¿‡å¤‡æ³¨æ‘˜è¦
+
+				cb -= (t + 4);
+
+				mi.AppendComment(GetID3v2_ProcString(w, cb, byEncodeType));
+				mi.uMaskRead |= MIM_COMMENT;
+			}
+			else if ((mi.uMask & MIM_COVER) && ECK_HIT_ID3FRAME(APIC))// å›¾ç‰‡
+			{
+				/*
+				<å¸§å¤´>ï¼ˆå¸§æ ‡è¯†ä¸ºAPICï¼‰
+				æ–‡æœ¬ç¼–ç                         $xx
+				MIME ç±»å‹                       <ASCIIå­—ç¬¦ä¸²>$00ï¼ˆå¦‚'image/bmp'ï¼‰
+				å›¾ç‰‡ç±»å‹                        $xx
+				æè¿°                            <å­—ç¬¦ä¸²>$00(00)
+				<å›¾ç‰‡æ•°æ®>
+				*/
+				CFrame f(*this, FrameHdr, cbUnit);
+				auto [w, cb] = f.Begin();
+
+				MUSICPIC Pic{};
+
+				BYTE byEncodeType;
+				w >> byEncodeType;// è¯»æ–‡æœ¬ç¼–ç 
+
+				BYTE byType;
+
+				UINT t;
+				t = (int)strlen((PCSTR)w.Data());
+				CRefStrA rsMime((PCSTR)w.Data(), t);
+				Pic.rsMime = StrX2W(rsMime.Data(), rsMime.Size());
+				w += (t + 1);// è·³è¿‡MIMEç±»å‹å­—ç¬¦ä¸²
+
+				w >> byType;// å›¾ç‰‡ç±»å‹
+				if (byType < (BYTE)PicType::Begin___ || byType >= (BYTE)PicType::End___)
+					Pic.eType = PicType::Invalid;
+				else
+					Pic.eType = (PicType)byType;
+
+				Pic.rsDesc = GetID3v2_ProcString(w, -1, byEncodeType);
+				Pic.bLink = (Pic.rsDesc == L"-->");
+
+				if (Pic.bLink)
+					Pic.varPic = GetID3v2_ProcString(w, (int)w.GetLeaveSize(), byEncodeType);
+				else
+					Pic.varPic = CRefBin(w.Data(), cb);
+				mi.vImage.push_back(std::move(Pic));
+				mi.uMaskRead |= MIM_COVER;
+			}
+			else if ((mi.uMask & MIM_GENRE) && ECK_HIT_ID3FRAME(TCON))// æµæ´¾
+			{
+				CFrame f(*this, FrameHdr, cbUnit);
+				auto [w, cb] = f.Begin();
+				mi.rsGenre = GetID3v2_ProcString(w, cb);
+				mi.uMaskRead |= MIM_GENRE;
+			}
+			else if ((mi.uMask & MIM_DATE) && ECK_HIT_ID3FRAME(TYER) && m_Header.Ver == 3)// å¹´ä»£
+			{
+				// TODO:æœ¬åœ°æ ¼å¼åŒ–
+				CFrame f(*this, FrameHdr, cbUnit);
+				auto [w, cb] = f.Begin();
+				auto rsDate = GetID3v2_ProcString(w, cb);
+				if (rsDate.Size() == 4)
+				{
+					if (mi.uFlag & MIF_DATE_STRING)
+						mi.Date = std::move(rsDate);
+					else
+						mi.Date = SYSTEMTIME{ .wYear = (WORD)_wtoi(rsDate.Data()) };
+					mi.uMaskRead |= MIM_DATE;
+				}
+			}
+			else if ((mi.uMask & MIM_DATE) && ECK_HIT_ID3FRAME(TDRC) && m_Header.Ver == 4)// å¹´ä»£
+			{
+				CFrame f(*this, FrameHdr, cbUnit);
+				auto [w, cb] = f.Begin();
+				auto rsDate = GetID3v2_ProcString(w, cb);
+				if (rsDate.Size() >= 4)
+				{
+					if (mi.uFlag & MIF_DATE_STRING)
+					{
+						mi.Date = std::move(rsDate);
+						mi.uMaskRead |= MIM_DATE;
+					}
+					else
+					{
+						SYSTEMTIME st{};
+						if (swscanf(rsDate.Data(), L"%hd-%hd-%hdT%hd:%hd:%hd",
+							&st.wYear, &st.wMonth, &st.wDay,
+							&st.wHour, &st.wMinute, &st.wSecond) > 0)
+						{
+							mi.Date = st;
+							mi.uMaskRead |= MIM_DATE;
+						}
+					}
+				}
+			}
+			else
+				m_Stream += cbUnit;
+		}
+		return TRUE;
+	}
+
+	Result ReadTag(UINT uFlags)
+	{
+		for (auto e : m_vFrame)
+			delete e;
+		m_vFrame.clear();
+		m_posAppendTag = SIZETMax;
+		if (!m_cbTag)
+			return Result::TagErr;
+		Result r;
+		if (m_File.m_Id3Loc.posV2 != SIZETMax)
+		{
+			m_Stream.MoveTo(m_File.m_Id3Loc.posV2 + 10u);
+			r = ParseFrameBody(m_File.m_Id3Loc.posV2 + m_cbTag);
+			if (r != Result::Ok)
+				return r;
+			if (m_posAppendTag != SIZETMax && 
+				m_posAppendTag + 10u < m_Stream.GetSize())// è‹¥æ‰¾åˆ°äº†SEEKå¸§ï¼Œåˆ™ç§»è‡³å…¶æŒ‡ç¤ºçš„ä½ç½®ç»§ç»­è§£æ
+			{
+				m_Stream.MoveTo(m_posAppendTag);
+				r = ParseFrameBody(m_posAppendTag + m_cbTag);
+			}
+		}
+		else if (m_File.m_Id3Loc.posV2Footer != SIZETMax)
+		{
+			m_Stream.MoveTo(m_File.m_Id3Loc.posV2Footer);
+			r = ParseFrameBody(m_File.m_Id3Loc.posV2Footer + m_cbTag);
+		}
+		else
+			return Result::TagErr;
 		return Result::Ok;
 	}
 
@@ -2428,21 +2583,21 @@ public:
 				return FALSE;
 			switch (Header.by & 0x7F)
 			{
-			case 4:// ±êÇ©ĞÅÏ¢£¬×¢Òâ£ºÕâÒ»²¿·ÖÊÇĞ¡¶ËĞò
+			case 4:// æ ‡ç­¾ä¿¡æ¯ï¼Œæ³¨æ„ï¼šè¿™ä¸€éƒ¨åˆ†æ˜¯å°ç«¯åº
 			{
-				m_Stream >> t;// ±àÂëÆ÷ĞÅÏ¢´óĞ¡
-				m_Stream += t;// Ìø¹ı±àÂëÆ÷ĞÅÏ¢
+				m_Stream >> t;// ç¼–ç å™¨ä¿¡æ¯å¤§å°
+				m_Stream += t;// è·³è¿‡ç¼–ç å™¨ä¿¡æ¯
 
 				UINT uCount;
-				m_Stream >> uCount;// ±êÇ©ÊıÁ¿
+				m_Stream >> uCount;// æ ‡ç­¾æ•°é‡
 
 				EckCounterNV(uCount)
 				{
-					m_Stream >> t;// ±êÇ©´óĞ¡
+					m_Stream >> t;// æ ‡ç­¾å¤§å°
 
 					CRefStrA u8Label(t);
-					m_Stream.Read(u8Label.Data(), t);// ¶Á±êÇ©
-					int iPos = u8Label.Find("=");// ÕÒµÈºÅ
+					m_Stream.Read(u8Label.Data(), t);// è¯»æ ‡ç­¾
+					int iPos = u8Label.Find("=");// æ‰¾ç­‰å·
 					if (iPos == StrNPos)
 						continue;
 					++iPos;
@@ -2480,7 +2635,7 @@ public:
 					else if ((mi.uMask & MIM_DATE) && u8Label.IsStartOf("DATE"))
 					{
 						WORD y, m{}, d{};
-						// TODO:ÈÕÆÚ´¦Àí
+						// TODO:æ—¥æœŸå¤„ç†
 						if (sscanf(u8Label.Data() + iPos, "%hd-%hd-%hd", &y, &m, &d) >= 1)
 							mi.Date = SYSTEMTIME{ .wYear = y,.wMonth = m,.wDay = d };
 						mi.uMaskRead |= MIM_DATE;
@@ -2492,28 +2647,28 @@ public:
 						MUSICPIC Pic{};
 
 						DWORD dwType;
-						r >> dwType;// Í¼Æ¬ÀàĞÍ
+						r >> dwType;// å›¾ç‰‡ç±»å‹
 						if (dwType < (BYTE)PicType::Begin___ || dwType >= (BYTE)PicType::End___)
 							Pic.eType = PicType::Invalid;
 						else
 							Pic.eType = (PicType)dwType;
 
-						r >> t;// ³¤¶È
+						r >> t;// é•¿åº¦
 						t = ReverseInteger(t);
 						CRefStrA rsMime(t);
-						r.Read(rsMime.Data(), t);// MIMEÀàĞÍ×Ö·û´®
+						r.Read(rsMime.Data(), t);// MIMEç±»å‹å­—ç¬¦ä¸²
 						Pic.rsMime = StrX2W(rsMime.Data(), rsMime.Size());
 
-						r >> t;// ÃèÊö×Ö·û´®³¤¶È
+						r >> t;// æè¿°å­—ç¬¦ä¸²é•¿åº¦
 						t = ReverseInteger(t);
 						CRefStrA u8Desc(t);
-						r.Read(u8Desc.Data(), t);// MIMEÀàĞÍ×Ö·û´®
+						r.Read(u8Desc.Data(), t);// MIMEç±»å‹å­—ç¬¦ä¸²
 						Pic.rsDesc = StrX2W(u8Desc.Data(), u8Desc.Size(), CP_UTF8);
 
-						r += 16;// Ìø¹ı¿í¶È¡¢¸ß¶È¡¢É«Éî¡¢Ë÷ÒıÍ¼ÑÕÉ«Êı
+						r += 16;// è·³è¿‡å®½åº¦ã€é«˜åº¦ã€è‰²æ·±ã€ç´¢å¼•å›¾é¢œè‰²æ•°
 
-						r >> t;// Í¼Æ¬Êı¾İ³¤¶È
-						t = ReverseInteger(t);// Í¼Æ¬Êı¾İ³¤¶È
+						r >> t;// å›¾ç‰‡æ•°æ®é•¿åº¦
+						t = ReverseInteger(t);// å›¾ç‰‡æ•°æ®é•¿åº¦
 
 						Pic.bLink = (Pic.rsMime == L"-->");
 
@@ -2534,35 +2689,35 @@ public:
 				}
 			}
 			break;
-			case 6:// Í¼Æ¬£¨´ó¶ËĞò£©
+			case 6:// å›¾ç‰‡ï¼ˆå¤§ç«¯åºï¼‰
 			{
 				if (mi.uMask & MIM_COVER)
 				{
 					MUSICPIC Pic{};
 
 					DWORD dwType;
-					m_Stream >> dwType;// Í¼Æ¬ÀàĞÍ
+					m_Stream >> dwType;// å›¾ç‰‡ç±»å‹
 					if (dwType < (BYTE)PicType::Begin___ || dwType >= (BYTE)PicType::End___)
 						Pic.eType = PicType::Invalid;
 					else
 						Pic.eType = (PicType)dwType;
 
-					m_Stream >> t;// ³¤¶È
+					m_Stream >> t;// é•¿åº¦
 					t = ReverseInteger(t);
 					CRefStrA rsMime(t);
-					m_Stream.Read(rsMime.Data(), t);// MIMEÀàĞÍ×Ö·û´®
+					m_Stream.Read(rsMime.Data(), t);// MIMEç±»å‹å­—ç¬¦ä¸²
 					Pic.rsMime = StrX2W(rsMime.Data(), rsMime.Size());
 
-					m_Stream >> t;// ÃèÊö×Ö·û´®³¤¶È
+					m_Stream >> t;// æè¿°å­—ç¬¦ä¸²é•¿åº¦
 					t = ReverseInteger(t);
 					CRefStrA u8Desc(t);
-					m_Stream.Read(u8Desc.Data(), t);// MIMEÀàĞÍ×Ö·û´®
+					m_Stream.Read(u8Desc.Data(), t);// MIMEç±»å‹å­—ç¬¦ä¸²
 					Pic.rsDesc = StrX2W(u8Desc.Data(), u8Desc.Size(), CP_UTF8);
 
-					m_Stream += 16;// Ìø¹ı¿í¶È¡¢¸ß¶È¡¢É«Éî¡¢Ë÷ÒıÍ¼ÑÕÉ«Êı
+					m_Stream += 16;// è·³è¿‡å®½åº¦ã€é«˜åº¦ã€è‰²æ·±ã€ç´¢å¼•å›¾é¢œè‰²æ•°
 
-					m_Stream >> t;// Í¼Æ¬Êı¾İ³¤¶È
-					t = ReverseInteger(t);// Í¼Æ¬Êı¾İ³¤¶È
+					m_Stream >> t;// å›¾ç‰‡æ•°æ®é•¿åº¦
+					t = ReverseInteger(t);// å›¾ç‰‡æ•°æ®é•¿åº¦
 
 					Pic.bLink = (Pic.rsMime == L"-->");
 
@@ -2582,10 +2737,10 @@ public:
 			}
 			break;
 			default:
-				m_Stream += cbBlock;// Ìø¹ı¿é
+				m_Stream += cbBlock;// è·³è¿‡å—
 			}
 
-		} while (!(Header.by & 0x80));// ¼ì²é×î¸ßÎ»£¬ÅĞ¶ÏÊÇ²»ÊÇ×îºóÒ»¸ö¿é
+		} while (!(Header.by & 0x80));// æ£€æŸ¥æœ€é«˜ä½ï¼Œåˆ¤æ–­æ˜¯ä¸æ˜¯æœ€åä¸€ä¸ªå—
 		return TRUE;
 	}
 };

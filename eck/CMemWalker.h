@@ -204,7 +204,7 @@ struct CMemWalker
 		return *this;
 	}
 
-	EckInline CMemWalker& WriteAndRevByte(PCVOID pSrc, SIZE_T cb)
+	EckInline CMemWalker& WriteRev(PCVOID pSrc, SIZE_T cb)
 	{
 		Write(pSrc, cb);
 		ReverseByteOrder(Data() - cb, cb);
@@ -218,9 +218,9 @@ struct CMemWalker
 	}
 
 	template<class T>
-	EckInline CMemWalker& WriteAndRevByte(const T& Data)
+	EckInline CMemWalker& WriteRev(const T& Data)
 	{
-		return WriteAndRevByte(&Data, sizeof(T));
+		return WriteRev(&Data, sizeof(T));
 	}
 
 	template<class T, class U>
@@ -291,10 +291,23 @@ struct CMemWalker
 		return *this;
 	}
 
+	EckInline CMemWalker& ReadRev(void* pDst, SIZE_T cb)
+	{
+		Read(pDst, cb);
+		ReverseByteOrder((BYTE*)pDst, cb);
+		return *this;
+	}
+
 	template<class T>
 	EckInline CMemWalker& operator>>(T& Data)
 	{
 		return Read(&Data, sizeof(Data));
+	}
+
+	template<class T>
+	EckInline CMemWalker& ReadRev(T& Data)
+	{
+		return ReadRev(&Data, sizeof(T));
 	}
 
 	template<class T, class U, class V>
