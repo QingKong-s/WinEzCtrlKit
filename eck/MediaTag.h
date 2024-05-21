@@ -58,9 +58,9 @@ enum :UINT
 // ID3帧写入选项
 enum :BYTE
 {
-	MTID3F_PREPEND = 1u << 0,	// 将该帧置于文件头部的标签
-	MTID3F_APPEND = 1u << 1,	// 将该帧置于文件尾部的标签
-	MTID3F_DIRTY = 1u << 2,		// 数据已被修改
+	MTID3F_PREPEND = 0,		// 将该帧置于文件头部的标签，这是默认值
+	MTID3F_APPEND = 1u << 0,// 将该帧置于文件尾部的标签
+	MTID3F_DIRTY = 1u << 1,	// 数据已被修改
 };
 
 // 解析结果错误码
@@ -76,7 +76,7 @@ enum class Result
 	IllegalRepeat,
 };
 // 图片类型
-enum class PicType
+enum class PicType :BYTE
 {
 	Invalid = -1,       // 任何无效的值
 	Begin___ = 0,       // ！起始占位
@@ -385,7 +385,7 @@ private:
 					SynchSafeIntToDWORD(hdr.Size) != 0;
 			};
 		CStreamWalker w(m_pStream);
-		const auto cbSize = (SIZE_T)w.GetSize().QuadPart;
+		const auto cbSize = w.GetSizeT();
 		// 查找ID3v1
 		if (cbSize > 128u)
 		{
@@ -393,7 +393,7 @@ private:
 			w.Read(by, 3);
 			if (memcmp(by, "TAG", 3) == 0)
 			{
-				Id3Loc.posV1 = (SIZE_T)w.GetPos().QuadPart - 3;
+				Id3Loc.posV1 = w.GetPos() - 3u;
 				uRet |= TAG_ID3V1;
 			}
 			if (cbSize > 128u + 227u)
@@ -402,7 +402,7 @@ private:
 				w.Read(by, 4);
 				if (memcmp(by, "TAG+", 4) == 0)
 				{
-					Id3Loc.posV1Ext = (SIZE_T)w.GetPos().QuadPart - 4;
+					Id3Loc.posV1Ext = w.GetPos() - 4u;
 					uRet |= TAG_ID3V1Ext;
 				}
 			}
@@ -436,7 +436,7 @@ private:
 							SIZE_T cbFrames = SynchSafeIntToDWORD(hdr.Size);
 							if (cbSize >= 128u + 227u + 10u + cbFrames)
 							{
-								Id3Loc.posV2FooterHdr = (SIZE_T)w.GetPos().QuadPart - 10u;
+								Id3Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
 								Id3Loc.posV2Footer = Id3Loc.posV2FooterHdr - cbFrames;
 								if (hdr.Ver == 3)
 									uRet |= TAG_ID3V2_3;
@@ -457,7 +457,7 @@ private:
 							SIZE_T cbFrames = SynchSafeIntToDWORD(hdr.Size);
 							if (cbSize >= 128u + 10u + cbFrames)
 							{
-								Id3Loc.posV2FooterHdr = (SIZE_T)w.GetPos().QuadPart - 10u;
+								Id3Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
 								Id3Loc.posV2Footer = Id3Loc.posV2FooterHdr - cbFrames;
 								if (hdr.Ver == 3)
 									uRet |= TAG_ID3V2_3;
@@ -477,7 +477,7 @@ private:
 						SIZE_T cbFrames = SynchSafeIntToDWORD(hdr.Size);
 						if (cbSize >= 10u + cbFrames)
 						{
-							Id3Loc.posV2FooterHdr = (SIZE_T)w.GetPos().QuadPart - 10u;
+							Id3Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
 							Id3Loc.posV2Footer = Id3Loc.posV2FooterHdr - cbFrames;
 							if (hdr.Ver == 3)
 								uRet |= TAG_ID3V2_3;
@@ -547,6 +547,7 @@ private:
 	DWORD m_cbTag{};
 
 	SIZE_T m_posAppendTag{ SIZETMax };
+	DWORD m_cbPrependTag{};
 
 	class CFrame
 	{
@@ -792,8 +793,14 @@ public:
 		Max
 	};
 
-#define ECK_DECL_ID3FRAME_CLONE(x) \
-	FRAME* Clone() override { return new x{ *this }; }
+#define ECK_DECL_ID3FRAME_METHOD(x) \
+	FRAME* Clone() override { return new x{ *this }; } \
+	x() { memcpy(Id, #x, 4); }
+
+#define ECK_DECL_ID3FRAME_METHOD2(x) \
+	FRAME* Clone() override { return new x{ *this }; } \
+	x() = default; \
+	x(PCSTR psz) { memcpy(Id, psz, 4); }
 
 	struct FRAME
 	{
@@ -810,8 +817,8 @@ public:
 	protected:
 		CMemWalker PreSerialize(CRefBin& rb, ID3v2_Header* phdr, size_t cbFrame)
 		{
-			auto w{ CMemWalker(rb.PushBack(
-				sizeof(ID3v2_FrameHeader) + cbFrame) + sizeof(ID3v2_FrameHeader), cbFrame) };
+			const auto cbTotal = sizeof(ID3v2_FrameHeader) + cbFrame;
+			CMemWalker w(rb.PushBack(cbTotal), cbTotal);
 			ID3v2_FrameHeader* pfhdr;
 			w.SkipPointer(pfhdr);
 			memcpy(pfhdr->ID, Id, 4);
@@ -964,7 +971,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(UFID)
+		ECK_DECL_ID3FRAME_METHOD(UFID)
 	};
 
 	struct TEXTFRAME :public FRAME
@@ -982,7 +989,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(TEXTFRAME)
+		ECK_DECL_ID3FRAME_METHOD2(TEXTFRAME)
 	};
 
 	struct TXXX :public FRAME
@@ -1002,7 +1009,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(TXXX)
+		ECK_DECL_ID3FRAME_METHOD(TXXX)
 	};
 
 	struct LINKFRAME :public FRAME
@@ -1017,7 +1024,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(LINKFRAME)
+		ECK_DECL_ID3FRAME_METHOD2(LINKFRAME)
 	};
 
 	struct WXXX :public FRAME
@@ -1037,7 +1044,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(WXXX)
+		ECK_DECL_ID3FRAME_METHOD(WXXX)
 	};
 
 	struct MCID :public FRAME
@@ -1052,7 +1059,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(MCID)
+		ECK_DECL_ID3FRAME_METHOD(MCID)
 	};
 
 	struct ETCO :public FRAME
@@ -1077,7 +1084,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(ETCO)
+		ECK_DECL_ID3FRAME_METHOD(ETCO)
 	};
 
 	struct MLLT :public FRAME
@@ -1103,7 +1110,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(MLLT)
+		ECK_DECL_ID3FRAME_METHOD(MLLT)
 	};
 
 	struct SYTC :public FRAME
@@ -1139,7 +1146,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(SYTC)
+		ECK_DECL_ID3FRAME_METHOD(SYTC)
 	};
 
 	struct USLT :public FRAME
@@ -1160,7 +1167,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(USLT)
+		ECK_DECL_ID3FRAME_METHOD(USLT)
 	};
 
 	struct SYLT :public FRAME
@@ -1198,7 +1205,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(SYLT)
+		ECK_DECL_ID3FRAME_METHOD(SYLT)
 	};
 
 	struct COMM :public FRAME
@@ -1219,7 +1226,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(COMM)
+		ECK_DECL_ID3FRAME_METHOD(COMM)
 	};
 
 	struct RVA2 :public FRAME
@@ -1243,7 +1250,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(RVA2)
+		ECK_DECL_ID3FRAME_METHOD(RVA2)
 	};
 
 	struct EQU2 :public FRAME
@@ -1268,7 +1275,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(EQU2)
+		ECK_DECL_ID3FRAME_METHOD(EQU2)
 	};
 
 	struct RVRB :public FRAME
@@ -1293,7 +1300,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(RVRB)
+		ECK_DECL_ID3FRAME_METHOD(RVRB)
 	};
 
 	struct APIC :public FRAME
@@ -1309,12 +1316,12 @@ public:
 			const auto rbDesc = CovertTextEncoding(rsDesc, eTextEncoding, TRUE);
 			const size_t cbFrame = 3 + rsMime.Size() + rbDesc.Size() + rbData.Size();
 			auto w = PreSerialize(rb, phdr, cbFrame);
-			w << eTextEncoding << eType << rsMime << rbDesc << rbData;
+			w << eTextEncoding << rsMime << eType  << rbDesc << rbData;
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(APIC)
+		ECK_DECL_ID3FRAME_METHOD(APIC)
 	};
 
 	struct GEOB :public FRAME
@@ -1336,7 +1343,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(GEOB)
+		ECK_DECL_ID3FRAME_METHOD(GEOB)
 	};
 
 	struct PCNT :public FRAME
@@ -1360,7 +1367,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(PCNT)
+		ECK_DECL_ID3FRAME_METHOD(PCNT)
 	};
 
 	struct POPM :public FRAME
@@ -1388,7 +1395,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(POPM)
+		ECK_DECL_ID3FRAME_METHOD(POPM)
 	};
 
 	struct RBUF :public FRAME
@@ -1407,7 +1414,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(RBUF)
+		ECK_DECL_ID3FRAME_METHOD(RBUF)
 	};
 
 	struct AENC :public FRAME
@@ -1428,7 +1435,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(AENC)
+		ECK_DECL_ID3FRAME_METHOD(AENC)
 	};
 
 	struct LINK :public FRAME
@@ -1446,7 +1453,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(LINK)
+		ECK_DECL_ID3FRAME_METHOD(LINK)
 	};
 
 	struct POSS :public FRAME
@@ -1463,7 +1470,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(POSS)
+		ECK_DECL_ID3FRAME_METHOD(POSS)
 	};
 
 	struct USER :public FRAME
@@ -1482,7 +1489,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(USER)
+		ECK_DECL_ID3FRAME_METHOD(USER)
 	};
 
 	struct OWNE :public FRAME
@@ -1502,7 +1509,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(OWNE)
+		ECK_DECL_ID3FRAME_METHOD(OWNE)
 	};
 
 	struct COMR :public FRAME
@@ -1531,7 +1538,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(COMR)
+		ECK_DECL_ID3FRAME_METHOD(COMR)
 	};
 
 	struct ENCR :public FRAME
@@ -1549,7 +1556,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(ENCR)
+		ECK_DECL_ID3FRAME_METHOD(ENCR)
 	};
 
 	struct GRID :public FRAME
@@ -1567,7 +1574,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(GRID)
+		ECK_DECL_ID3FRAME_METHOD(GRID)
 	};
 
 	struct PRIV :public FRAME
@@ -1584,7 +1591,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(PRIV)
+		ECK_DECL_ID3FRAME_METHOD(PRIV)
 	};
 
 	struct SIGN :public FRAME
@@ -1601,7 +1608,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(SIGN)
+		ECK_DECL_ID3FRAME_METHOD(SIGN)
 	};
 
 	struct SEEK :public FRAME
@@ -1617,7 +1624,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(SEEK)
+		ECK_DECL_ID3FRAME_METHOD(SEEK)
 	};
 
 	// TODO:ASPI
@@ -1635,7 +1642,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_CLONE(OTHERFRAME)
+		ECK_DECL_ID3FRAME_METHOD(OTHERFRAME)
 	};
 private:
 	std::vector<FRAME*> m_vFrame{};
@@ -1709,7 +1716,7 @@ private:
 	}
 
 #define ECK_HIT_ID3FRAME(x) (memcmp(FrameHdr.ID, #x, 4) == 0)
-	Result ParseFrameBody(SIZE_T posEnd)
+	Result ParseFrameBody(SIZE_T posEnd, SIZE_T* pposActualEnd = NULL)
 	{
 		auto fnIsLegalFrameId = [](const CHAR* ch)->BOOL
 			{
@@ -1719,7 +1726,7 @@ private:
 
 		posEnd = std::min(posEnd, m_Stream.GetSize().QuadPart);
 		ID3v2_FrameHeader FrameHdr;
-		while ((SIZE_T)m_Stream.GetPos().QuadPart < posEnd)
+		while (m_Stream.GetPos() < posEnd)
 		{
 			const auto cbUnit = PreJudgeFrame(FrameHdr);
 
@@ -2234,7 +2241,7 @@ private:
 					delete p;
 					return Result::IllegalRepeat;
 				}
-				m_posAppendTag = p->ocbNextTag + (SIZE_T)m_Stream.GetPos().QuadPart;
+				m_posAppendTag = p->ocbNextTag + m_Stream.GetPos();
 				m_vFrame.push_back(p);
 			}
 			//else if (ECK_HIT_ID3FRAME(ASPI))
@@ -2275,8 +2282,15 @@ private:
 				m_vFrame.push_back(p);
 			}
 			else
-				break;
+			{
+				if (pposActualEnd)
+					*pposActualEnd = m_Stream.GetPos() - 10;
+				return Result::Ok;
+			}
 		}
+		if (pposActualEnd)
+			*pposActualEnd = posEnd;
+		return Result::Ok;
 	}
 public:
 	ECK_DISABLE_COPY_MOVE(CID3v2)
@@ -2291,7 +2305,7 @@ public:
 		else
 			return;
 		m_Stream >> m_Header;
-		m_cbTag = SynchSafeIntToDWORD(m_Header.Size);
+		m_cbPrependTag = m_cbTag = SynchSafeIntToDWORD(m_Header.Size);
 		if (m_Header.Ver == 3)// 2.3
 		{
 			if (m_Header.Flags & 0x20)// 有扩展头
@@ -2334,7 +2348,7 @@ public:
 			return FALSE;
 		m_Stream.MoveTo(m_File.m_Id3Loc.posV2 + 10u);
 		ID3v2_FrameHeader FrameHdr;
-		while (m_Stream.GetPos().QuadPart < m_cbTag)
+		while (m_Stream.GetPos() < m_cbTag)
 		{
 			const auto cbUnit = PreJudgeFrame(FrameHdr);
 
@@ -2523,12 +2537,15 @@ public:
 		if (!m_cbTag)
 			return Result::TagErr;
 		Result r;
+		SIZE_T posActualEnd;
 		if (m_File.m_Id3Loc.posV2 != SIZETMax)
 		{
 			m_Stream.MoveTo(m_File.m_Id3Loc.posV2 + 10u);
-			r = ParseFrameBody(m_File.m_Id3Loc.posV2 + m_cbTag);
+			r = ParseFrameBody(m_File.m_Id3Loc.posV2 + m_cbTag, &posActualEnd);
 			if (r != Result::Ok)
 				return r;
+			if (posActualEnd < m_File.m_Id3Loc.posV2 + m_cbTag)// 可能有填充或追加标签
+				m_cbPrependTag = posActualEnd - m_File.m_Id3Loc.posV2;
 			if (m_posAppendTag != SIZETMax && 
 				m_posAppendTag + 10u < m_Stream.GetSize())// 若找到了SEEK帧，则移至其指示的位置继续解析
 			{
@@ -2538,6 +2555,7 @@ public:
 		}
 		else if (m_File.m_Id3Loc.posV2Footer != SIZETMax)
 		{
+			m_cbPrependTag = 0u;
 			m_Stream.MoveTo(m_File.m_Id3Loc.posV2Footer);
 			r = ParseFrameBody(m_File.m_Id3Loc.posV2Footer + m_cbTag);
 		}
@@ -2548,10 +2566,74 @@ public:
 
 	Result WriteTag(UINT uFlags)
 	{
+		const BOOL bOnlyAppend = m_File.m_Id3Loc.posV2Footer != SIZETMax && 
+			m_File.m_Id3Loc.posV2 == SIZETMax;
+		const BOOL bShouldAppend = (uFlags & MIF_APPEND_TAG);
+		ID3v2_Header Hdr{ m_Header }, HdrFooter{ m_Header };
+		CRefBin rbPrepend{}, rbAppend{};
+		for (const auto e : m_vFrame)
+		{
+			if (bShouldAppend || (e->byAddtFlags & MTID3F_APPEND))
+				e->SerializeData(rbAppend, &Hdr);
+			else
+				e->SerializeData(rbPrepend, &Hdr);
+		}
 
+		const auto cbFrames = (DWORD)(rbPrepend.Size() + rbAppend.Size());
+		if (!rbPrepend.IsEmpty())
+		{
+			DwordToSynchSafeInt(Hdr.Size, cbFrames);
+			memcpy(Hdr.Header, "ID3", 3);
+			// TODO:扩展头
+			if (m_File.m_Id3Loc.posV2 != SIZETMax)
+			{
+				m_Stream.MoveTo(m_File.m_Id3Loc.posV2) << Hdr;
+				if (m_cbPrependTag < rbPrepend.Size())
+				{
+					m_Stream.Insert(ToUli(m_File.m_Id3Loc.posV2 + 10 + m_cbPrependTag),
+						ToUli(rbPrepend.Size() - m_cbPrependTag));
+					m_Stream.MoveTo(m_File.m_Id3Loc.posV2 + 10);
+				}
+				else
+				{
+					// TODO:Padding
+					//const auto cbPadding = m_cbPrependTag - rbPrepend.Size();
+					//if (cbPadding)
+					//{
+					//	if (uFlags & MIF_ALLOW_PADDING)
+					//	{
+					//		m_Stream.MoveTo(m_File.m_Id3Loc.posV2 + 10 + m_cbPrependTag);
+					//	}
+					//}
+				}
+			}
+			else
+			{
+				m_Stream.Insert(ToUli(0),
+					ToUli(rbPrepend.Size() + 10));
+				m_Stream.MoveToBegin() << Hdr;
+			}
+			m_Stream << rbPrepend;
+		}
+		m_Stream.GetStream()->Commit(STGC_DEFAULT);
+		return Result::Ok;
 	}
 
 	EckInline auto& GetFrameList() { return m_vFrame; }
+
+	EckInline auto& GetHeader() { return m_Header; }
+
+	EckInline FRAME* GetFrame(PCSTR Id)
+	{
+		const auto it = std::find_if(m_vFrame.begin(), m_vFrame.end(),
+			[Id](const FRAME* pf)
+			{
+				return memcmp(pf->Id, Id, 4) == 0;
+			});
+		if (it == m_vFrame.end())
+			return NULL;
+		return *it;
+	}
 };
 
 class CFlac
