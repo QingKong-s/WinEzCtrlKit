@@ -116,11 +116,11 @@ struct CStreamWalker
 		return *this;
 	}
 
-	EckInline ULARGE_INTEGER GetPos()
+	EckInline SIZE_T GetPos()
 	{
 		ULARGE_INTEGER uli{};
 		m_hrLastErr = m_pStream->Seek(LiZero, STREAM_SEEK_CUR, &uli);
-		return uli;
+		return (SIZE_T)uli.QuadPart;
 	}
 
 	EckInline ULARGE_INTEGER GetSize()
@@ -128,6 +128,11 @@ struct CStreamWalker
 		STATSTG ss;
 		m_hrLastErr = m_pStream->Stat(&ss, STATFLAG_NONAME);
 		return ss.cbSize;
+	}
+
+	EckInline SIZE_T GetSizeT()
+	{
+		return (SIZE_T)GetSize().QuadPart;
 	}
 
 	EckInline CRefBin ReadBin(SIZE_T cb)

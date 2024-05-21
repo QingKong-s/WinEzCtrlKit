@@ -428,11 +428,39 @@ public:
 		EckDbgPrint(!!(file.DetectTag() & (TAG_ID3V2_3 | TAG_ID3V2_4)));
 
 		MUSICINFO mi{};
-		CID3v2 id3(file);
-		id3.ReadTag(0);
+		auto id3 = new CID3v2(file);
+		id3->ReadTag(0);
+		auto& vf = id3->GetFrameList();
+		auto ptf = new CID3v2::TEXTFRAME("XTST");
+		vf.push_back(ptf);
+		ptf->eEncoding = CID3v2::TextEncoding::UTF8;
+		ptf->vText.emplace_back(L"ABCTest--__1230 /CBA");
 		
-		CFlac flac(file);
-		flac.ReadTag(mi);
+		{
+			auto pf = (CID3v2::TEXTFRAME*)id3->GetFrame("TIT2");
+			if(pf)
+			pf->vText.front() = L"哈哈哈哈测试测试测试测试123abc————---aaaa";
+		}
+
+		{
+			auto pf = (CID3v2::TEXTFRAME*)id3->GetFrame("TPE1");
+			if (pf)
+				pf->vText.front() = L"操你妈的艺术家测试";
+		}
+
+		{
+			auto pf = new CID3v2::APIC{};
+			pf->eTextEncoding = CID3v2::TextEncoding::UTF16LE;
+			pf->rsDesc = L"这是图片描述ABC哈哈哈";
+			pf->rsMime = "image/jpeg";
+			pf->rbData = ReadInFile(LR"(E:\Desktop\123.jpg)");
+			pf->eType = PicType::LeadArtist;
+			vf.push_back(pf);
+		}
+		id3->WriteTag(0);
+		
+		//CFlac flac(file);
+		//flac.ReadTag(mi);
 		int a = 0;
 		
 
