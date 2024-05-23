@@ -100,49 +100,49 @@ public:
 		{
 		case eck::Dui::WM_DRAGENTER:
 		case eck::Dui::WM_DRAGOVER:
-			return TRUE; 
-		{
-			auto p = (eck::Dui::DRAGDROPINFO*)wParam;
-			*(p->pdwEffect) = DROPEFFECT_COPY;
-		}
+			return TRUE;
+			{
+				auto p = (eck::Dui::DRAGDROPINFO*)wParam;
+				*(p->pdwEffect) = DROPEFFECT_COPY;
+			}
 		case eck::Dui::WM_DRAGLEAVE:
 			return TRUE;
 		case eck::Dui::WM_DROP:
 			return TRUE;
-		{
-			auto p = (eck::Dui::DRAGDROPINFO*)wParam;
-			FORMATETC fe = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-			STGMEDIUM sm{ TYMED_HGLOBAL };
-			IWICBitmapDecoder* pDecoder{};
-			IWICBitmap* pWicBmp{};
-			ID2D1Bitmap* pBitmap{};
-			if (p->pDataObj->GetData(&fe, &sm) == S_OK)
 			{
-				HDROP hDrop = (HDROP)sm.hGlobal;
-				UINT uFileCount = DragQueryFileW(hDrop, 0xFFFFFFFF, NULL, 0);
-				for (UINT i = 0; i < uFileCount; ++i)
+				auto p = (eck::Dui::DRAGDROPINFO*)wParam;
+				FORMATETC fe = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+				STGMEDIUM sm{ TYMED_HGLOBAL };
+				IWICBitmapDecoder* pDecoder{};
+				IWICBitmap* pWicBmp{};
+				ID2D1Bitmap* pBitmap{};
+				if (p->pDataObj->GetData(&fe, &sm) == S_OK)
 				{
-					WCHAR szFile[MAX_PATH];
-					DragQueryFileW(hDrop, i, szFile, ARRAYSIZE(szFile));
-					int idxImg = -1;
-					if (SUCCEEDED(eck::CreateWicBitmapDecoder(szFile, pDecoder)))
-						if (SUCCEEDED(eck::CreateWicBitmap(pWicBmp, pDecoder, 160, 160)))
-							if (SUCCEEDED(GetD2D().GetDC()->CreateBitmapFromWicBitmap(pWicBmp, &pBitmap)))
-								idxImg = m_il.AddImage(pBitmap);
-					//m_vItem.emplace_back(PathFindFileNameW(szFile), idxImg);
+					HDROP hDrop = (HDROP)sm.hGlobal;
+					UINT uFileCount = DragQueryFileW(hDrop, 0xFFFFFFFF, NULL, 0);
+					for (UINT i = 0; i < uFileCount; ++i)
+					{
+						WCHAR szFile[MAX_PATH];
+						DragQueryFileW(hDrop, i, szFile, ARRAYSIZE(szFile));
+						int idxImg = -1;
+						if (SUCCEEDED(eck::CreateWicBitmapDecoder(szFile, pDecoder)))
+							if (SUCCEEDED(eck::CreateWicBitmap(pWicBmp, pDecoder, 160, 160)))
+								if (SUCCEEDED(GetD2D().GetDC()->CreateBitmapFromWicBitmap(pWicBmp, &pBitmap)))
+									idxImg = m_il.AddImage(pBitmap);
+						//m_vItem.emplace_back(PathFindFileNameW(szFile), idxImg);
 
-					eck::SafeRelease(pBitmap);
-					eck::SafeRelease(pDecoder);
-					eck::SafeRelease(pWicBmp);
-					
-					//m_Label2.SetText(mi.rsTitle);
-					//m_Label2.SetPic(mi.pCoverData);
+						eck::SafeRelease(pBitmap);
+						eck::SafeRelease(pDecoder);
+						eck::SafeRelease(pWicBmp);
+
+						//m_Label2.SetText(mi.rsTitle);
+						//m_Label2.SetPic(mi.pCoverData);
+					}
+					DragFinish(hDrop);
+					m_List.SetItemCount((int)m_vItem.size());
 				}
-				DragFinish(hDrop);
-				m_List.SetItemCount((int)m_vItem.size());
 			}
-		}
-		return TRUE;
+			return TRUE;
 
 		case WM_CREATE:
 		{
@@ -278,7 +278,7 @@ public:
 				DWRITE_FONT_STRETCH_NORMAL,
 				30.f,
 				L"zh-cn",
-				& ptf);
+				&ptf);
 			ped->SetTextFormat(ptf);
 
 			EnableDragDrop(TRUE);
@@ -424,7 +424,7 @@ public:
 		//sw.GetStream()->Release();
 
 		//CMediaFile file(LR"(F:\@QQ文件\639582106\FileRecv\かめりあ - Exit This Earth's Atomosphere (かめりあ's 'PLANETARY／／200STEP' Remix).flac)");
-		CMediaFile file(LR"(E:\Desktop\3.mp3)");
+		CMediaFile file(LR"(E:\Desktop\4.mp3)");
 		EckDbgPrint(!!(file.DetectTag() & (TAG_ID3V2_3 | TAG_ID3V2_4)));
 
 		MUSICINFO mi{};
@@ -435,20 +435,31 @@ public:
 		vf.push_back(ptf);
 		ptf->eEncoding = CID3v2::TextEncoding::UTF8;
 		ptf->vText.emplace_back(L"ABCTest--__1230 /CBA");
-		
+
 		{
 			auto pf = (CID3v2::TEXTFRAME*)id3->GetFrame("TIT2");
-			if(pf)
+			if (!pf)
+			{
+				pf = new CID3v2::TEXTFRAME("TIT2");
+				vf.push_back(pf);
+				pf->vText.emplace_back();
+			}
 			pf->vText.front() = L"哈哈哈哈测试测试测试测试123abc————---aaaa";
 		}
 
 		{
 			auto pf = (CID3v2::TEXTFRAME*)id3->GetFrame("TPE1");
-			if (pf)
-				pf->vText.front() = L"操你妈的艺术家测试";
+			if (!pf)
+			{
+				pf = new CID3v2::TEXTFRAME("TPE1");
+				vf.push_back(pf);
+				pf->vText.emplace_back();
+			}
+			pf->vText.front() = L"操你妈的艺术家测试";
 		}
 
 		{
+
 			auto pf = new CID3v2::APIC{};
 			pf->eTextEncoding = CID3v2::TextEncoding::UTF16LE;
 			pf->rsDesc = L"这是图片描述ABC哈哈哈";
@@ -457,12 +468,12 @@ public:
 			pf->eType = PicType::LeadArtist;
 			vf.push_back(pf);
 		}
-		id3->WriteTag(0);
-		
+		id3->WriteTag(MIF_APPEND_TAG);
+
 		//CFlac flac(file);
 		//flac.ReadTag(mi);
 		int a = 0;
-		
+
 
 		//CHAR szA[]{ "123你好45" };
 		//EckDbgPrint(eck::CalcDbcsStringCharCount(szA, ARRAYSIZE(szA) - 1));
@@ -949,7 +960,7 @@ public:
 
 			//m_Btn.Create(L"筛选", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS, 0, 900, 0, 300, 70, hWnd, 101);
 			//m_lot.Add(&m_Btn, eck::FLF_FIXWIDTH | eck::FLF_FIXHEIGHT);
-			
+
 			//RECT rcDui{ 0,0,1800,1000 };
 			//m_Dui.Create(L"我是 Dui 窗口", WS_CHILD | WS_VISIBLE, 0, 0, 0, rcDui.right, rcDui.bottom, hWnd, 108);
 			//m_Dui.Redraw();
@@ -1098,7 +1109,7 @@ public:
 						isortorder = 0;
 						fmt = 0;
 					}
-					
+
 					H.RadioSetSortMark(idxCol, fmt);
 
 					if (isortorder == 1)
@@ -1304,7 +1315,7 @@ public:
 			eck::GetThreadCtx()->UpdateDefColor();
 			break;
 		}
-		
+
 		return __super::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 

@@ -758,7 +758,7 @@ EckInline BOOL SystemTimeToULongLong(const SYSTEMTIME& st, ULONGLONG& ull)
 	return SystemTimeToFileTime(&st, (FILETIME*)&ull);
 }
 
-CRefStrW FormatDate(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlags = 0u,
+inline CRefStrW FormatDate(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlags = 0u,
 	PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT)
 {
 	const int cchDate = GetDateFormatEx(pszLocale, dwFlags, &st, pszFmt, NULL, 0, NULL);
@@ -769,7 +769,7 @@ CRefStrW FormatDate(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlags = 0u,
 	return rs;
 }
 
-CRefStrW FormatTime(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlags = 0u,
+inline CRefStrW FormatTime(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlags = 0u,
 	PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT)
 {
 	const int cchTime = GetTimeFormatEx(pszLocale, dwFlags, &st, pszFmt, NULL, 0);
@@ -780,7 +780,7 @@ CRefStrW FormatTime(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlags = 0u,
 	return rs;
 }
 
-CRefStrW FormatDateTime(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlags = 0u,
+inline CRefStrW FormatDateTime(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlags = 0u,
 	PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT)
 {
 	const int cchDate = GetDateFormatEx(pszLocale, dwFlags, &st, pszFmt, NULL, 0, NULL);

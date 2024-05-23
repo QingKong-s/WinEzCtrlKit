@@ -1316,7 +1316,7 @@ public:
 			const auto rbDesc = CovertTextEncoding(rsDesc, eTextEncoding, TRUE);
 			const size_t cbFrame = 3 + rsMime.Size() + rbDesc.Size() + rbData.Size();
 			auto w = PreSerialize(rb, phdr, cbFrame);
-			w << eTextEncoding << rsMime << eType  << rbDesc << rbData;
+			w << eTextEncoding << rsMime << eType << rbDesc << rbData;
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
 		}
@@ -2329,7 +2329,6 @@ public:
 				else
 					m_Stream += cb;
 			}
-			// 2.4里变成了同步安全整数，而且这个尺寸包含了记录尺寸的四个字节
 		}
 		else
 		{
@@ -2546,9 +2545,19 @@ public:
 				return r;
 			if (posActualEnd < m_File.m_Id3Loc.posV2 + m_cbTag)// 可能有填充或追加标签
 				m_cbPrependTag = posActualEnd - m_File.m_Id3Loc.posV2;
-			if (m_posAppendTag != SIZETMax && 
-				m_posAppendTag + 10u < m_Stream.GetSize())// 若找到了SEEK帧，则移至其指示的位置继续解析
+			if (m_cbPrependTag > m_cbTag)
 			{
+				EckDbgPrintWithPos(L"查找到的预置标签末尾超出标签头指示的长度");
+				return Result::TagErr;
+			}
+			if (m_posAppendTag != SIZETMax)// 若找到了SEEK帧，则移至其指示的位置继续解析，此时不可能含有空白填充
+			{
+				if (m_posAppendTag + 10u >= m_Stream.GetSize()/*SEEK帧信息错误*/ ||
+					m_posAppendTag + (m_cbTag - m_cbPrependTag) >= m_Stream.GetSize())
+				{
+					EckDbgPrintWithPos(L"追加标签末尾超出文件长度");
+					return Result::TagErr;
+				}
 				m_Stream.MoveTo(m_posAppendTag);
 				r = ParseFrameBody(m_posAppendTag + m_cbTag);
 			}
@@ -2566,10 +2575,12 @@ public:
 
 	Result WriteTag(UINT uFlags)
 	{
-		const BOOL bOnlyAppend = m_File.m_Id3Loc.posV2Footer != SIZETMax && 
+		const BOOL bOnlyAppend = m_File.m_Id3Loc.posV2Footer != SIZETMax &&
 			m_File.m_Id3Loc.posV2 == SIZETMax;
 		const BOOL bShouldAppend = (uFlags & MIF_APPEND_TAG);
-		ID3v2_Header Hdr{ m_Header }, HdrFooter{ m_Header };
+		ID3v2_Header Hdr{ m_Header };
+		if (Hdr.Ver != 3 && Hdr.Ver != 4)
+			Hdr.Ver = 4;
 		CRefBin rbPrepend{}, rbAppend{};
 		for (const auto e : m_vFrame)
 		{
@@ -2579,33 +2590,128 @@ public:
 				e->SerializeData(rbPrepend, &Hdr);
 		}
 
+		const BOOL bAllowPadding = (uFlags & MIF_ALLOW_PADDING) &&
+			!(!rbPrepend.IsEmpty() && !rbAppend.IsEmpty());
+
 		const auto cbFrames = (DWORD)(rbPrepend.Size() + rbAppend.Size());
+		DwordToSynchSafeInt(Hdr.Size, cbFrames);
+		// 写入追加标签
+		if (!rbAppend.IsEmpty())
+		{
+			if (m_File.m_Id3Loc.posV2Footer != SIZETMax)
+			{
+				if (m_cbTag < rbAppend.Size())
+				{
+					m_Stream.Insert(ToUli(m_File.m_Id3Loc.posV2Footer + m_cbTag),
+						ToUli(rbAppend.Size() - m_cbTag));
+				}
+				else
+				{
+					const auto cbPadding = m_cbTag - rbAppend.Size();
+					if (cbPadding)
+					{
+						if (bAllowPadding && cbPadding < 4096)
+						{
+							m_Stream.MoveTo(m_File.m_Id3Loc.posV2Footer + rbAppend.Size());
+							void* p = VirtualAlloc(0, cbPadding, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+							EckCheckMem(p);
+							m_Stream.Write(p, cbPadding);
+							VirtualFree(p, 0, MEM_RELEASE);
+						}
+						else
+						{
+							m_Stream.Erase(ToUli(m_File.m_Id3Loc.posV2Footer + rbAppend.Size()),
+								ToUli(cbPadding));
+						}
+					}
+				}
+				m_Stream.MoveTo(m_File.m_Id3Loc.posV2Footer);
+			}
+			else if (m_posAppendTag != SIZETMax)
+			{
+				EckAssert(m_cbTag != SIZETMax);
+				const auto cbOldAppend = m_cbTag - m_cbPrependTag;
+				if (cbOldAppend < rbAppend.Size())
+				{
+					m_Stream.Insert(ToUli(m_posAppendTag + cbOldAppend),
+						ToUli(rbAppend.Size() - cbOldAppend));
+				}
+				else
+				{
+					const auto cbPadding = cbOldAppend - rbAppend.Size();
+					if (cbPadding)
+					{
+						if (bAllowPadding && cbPadding < 4096)
+						{
+							m_Stream.MoveTo(m_posAppendTag + rbAppend.Size());
+							void* p = VirtualAlloc(0, cbPadding, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+							EckCheckMem(p);
+							m_Stream.Write(p, cbPadding);
+							VirtualFree(p, 0, MEM_RELEASE);
+						}
+						else
+						{
+							m_Stream.Erase(ToUli(m_posAppendTag + rbAppend.Size()),
+								ToUli(cbPadding));
+						}
+					}
+				}
+				m_Stream.MoveTo(m_posAppendTag);
+			}
+			else
+			{
+				SIZE_T posInsert;
+				if (m_File.m_Id3Loc.posV1Ext != SIZETMax)
+					posInsert = m_File.m_Id3Loc.posV1Ext;
+				else if (m_File.m_Id3Loc.posV1 != SIZETMax)
+					posInsert = m_File.m_Id3Loc.posV1;
+				else
+					posInsert = m_Stream.GetSizeT();
+				m_Stream.Insert(ToUli(posInsert), ToUli(rbAppend.Size() + 10));
+				m_Stream.MoveTo(posInsert);
+			}
+			memcpy(Hdr.Header, "3DI", 3);
+			// TODO:扩展头
+			m_Stream << rbAppend << Hdr;
+		}
+		else if (m_File.m_Id3Loc.posV2Footer != SIZETMax)// 删除先前的追加标签
+		{
+			m_Stream.Erase(ToUli(m_File.m_Id3Loc.posV2Footer), ToUli(m_cbTag - m_cbPrependTag + 10));
+		}
+		// 写入预置标签
 		if (!rbPrepend.IsEmpty())
 		{
-			DwordToSynchSafeInt(Hdr.Size, cbFrames);
 			memcpy(Hdr.Header, "ID3", 3);
 			// TODO:扩展头
 			if (m_File.m_Id3Loc.posV2 != SIZETMax)
 			{
-				m_Stream.MoveTo(m_File.m_Id3Loc.posV2) << Hdr;
-				if (m_cbPrependTag < rbPrepend.Size())
+				const auto cbPrepend = (m_posAppendTag == SIZETMax ? m_cbTag : m_cbPrependTag);
+				if (cbPrepend < rbPrepend.Size())
 				{
 					m_Stream.Insert(ToUli(m_File.m_Id3Loc.posV2 + 10 + m_cbPrependTag),
 						ToUli(rbPrepend.Size() - m_cbPrependTag));
-					m_Stream.MoveTo(m_File.m_Id3Loc.posV2 + 10);
 				}
 				else
 				{
-					// TODO:Padding
-					//const auto cbPadding = m_cbPrependTag - rbPrepend.Size();
-					//if (cbPadding)
-					//{
-					//	if (uFlags & MIF_ALLOW_PADDING)
-					//	{
-					//		m_Stream.MoveTo(m_File.m_Id3Loc.posV2 + 10 + m_cbPrependTag);
-					//	}
-					//}
+					const auto cbPadding = cbPrepend - rbPrepend.Size();
+					if (cbPadding)
+					{
+						if (bAllowPadding && cbPadding < 4096)
+						{
+							m_Stream.MoveTo(m_File.m_Id3Loc.posV2 + 10 + rbPrepend.Size());
+							void* p = VirtualAlloc(0, cbPadding, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+							EckCheckMem(p);
+							m_Stream.Write(p, cbPadding);
+							VirtualFree(p, 0, MEM_RELEASE);
+						}
+						else
+						{
+							m_Stream.Erase(ToUli(m_File.m_Id3Loc.posV2 + 10 + rbPrepend.Size()),
+								ToUli(cbPadding));
+						}
+					}
 				}
+				m_Stream.MoveTo(m_File.m_Id3Loc.posV2) << Hdr;
 			}
 			else
 			{
@@ -2614,6 +2720,10 @@ public:
 				m_Stream.MoveToBegin() << Hdr;
 			}
 			m_Stream << rbPrepend;
+		}
+		else if (m_File.m_Id3Loc.posV2 != SIZETMax)// 删除先前的预置标签
+		{
+			m_Stream.Erase(ToUli(m_File.m_Id3Loc.posV2), ToUli(m_cbPrependTag + 10));
 		}
 		m_Stream.GetStream()->Commit(STGC_DEFAULT);
 		return Result::Ok;
