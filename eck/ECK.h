@@ -437,19 +437,19 @@ using FGetThemeColor = HRESULT(WINAPI*)(HTHEME, int, int, int, COLORREF*);
 using FCloseThemeData = HRESULT(WINAPI*)(HTHEME);
 using FDrawThemeParentBackground = HRESULT(WINAPI*)(HWND , HDC , const RECT* );
 // 1809 17763 暗色功能引入
-using FAllowDarkModeForWindow = BOOL(WINAPI*)(HWND , BOOL );
-using FAllowDarkModeForApp = BOOL(WINAPI*)(BOOL );
-using FIsDarkModeAllowedForWindow = BOOL(WINAPI*)(HWND );
-using FShouldAppsUseDarkMode = BOOL(WINAPI*)();
+using FAllowDarkModeForWindow = bool(WINAPI*)(HWND , BOOL );
+using FAllowDarkModeForApp = bool(WINAPI*)(BOOL );
+using FIsDarkModeAllowedForWindow = bool(WINAPI*)(HWND );
+using FShouldAppsUseDarkMode = bool(WINAPI*)();
 
 using FFlushMenuThemes = void(WINAPI*)();
 
 using FRefreshImmersiveColorPolicyState = void(WINAPI*)();
-using FGetIsImmersiveColorUsingHighContrast = BOOL(WINAPI*)(IMMERSIVE_HC_CACHE_MODE );
+using FGetIsImmersiveColorUsingHighContrast = bool(WINAPI*)(IMMERSIVE_HC_CACHE_MODE );
 // 1903 18362
-using FShouldSystemUseDarkMode = BOOL(WINAPI*)();
+using FShouldSystemUseDarkMode = bool(WINAPI*)();
 using FSetPreferredAppMode = PreferredAppMode(WINAPI*)(PreferredAppMode );
-using FIsDarkModeAllowedForApp = BOOL(WINAPI*)();
+using FIsDarkModeAllowedForApp = bool(WINAPI*)();
 
 
 extern FAllowDarkModeForWindow			pfnAllowDarkModeForWindow;

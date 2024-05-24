@@ -282,6 +282,15 @@ struct FLAC_BlockHeader      // Flac头
 	BYTE bySize[3];
 };
 
+struct APE_Header
+{
+	CHAR byPreamble[8];
+	DWORD dwVer;
+	DWORD cItems;
+	DWORD dwFlags;
+	CHAR byReserved[8];
+};
+
 static_assert(alignof(ID3v2_Header) == 1);
 static_assert(alignof(ID3v2_ExtHeader) == 1);
 static_assert(alignof(ID3v2_FrameHeader) == 1);
@@ -358,8 +367,7 @@ struct ID3LOCATION
 	SIZE_T posV2FooterHdr{ SIZETMax };
 	SIZE_T posV1{ SIZETMax };
 	SIZE_T posV1Ext{ SIZETMax };
-	SIZE_T posApeV1{ SIZETMax };
-	SIZE_T posApeV2{ SIZETMax };
+	SIZE_T posApe{ SIZETMax };
 };
 
 class CMediaFile
@@ -405,6 +413,25 @@ private:
 					Id3Loc.posV1Ext = w.GetPos() - 4u;
 					uRet |= TAG_ID3V1Ext;
 				}
+			}
+		}
+		// 查找APE
+		SIZE_T cbID3v1{};
+		if (Id3Loc.posV1Ext != SIZETMax)
+			cbID3v1 = 227u + 128u;
+		else if (Id3Loc.posV1 != SIZETMax)
+			cbID3v1 = 128u;
+		if (cbSize > cbID3v1 + 32u)
+		{
+			w.GetStream()->Seek(ToLi(-SSIZE_T(cbID3v1 + 32u)), STREAM_SEEK_END, NULL);
+			APE_Header Hdr;
+			w >> Hdr;
+			if (memcmp(Hdr.byPreamble, "APETAGEX", 8) == 0 &&
+				(Hdr.dwVer == 1000u || Hdr.dwVer == 2000u) &&
+				(Hdr.dwFlags & 0b0001'1111'1111'1111'1111'1111'1111'1000u) == 0 &&
+				*(ULONGLONG*)Hdr.byReserved == 0ull)
+			{
+				Id3Loc.posApe = cbSize - (cbID3v1 + 32u);
 			}
 		}
 		// 查找ID3v2
@@ -534,6 +561,122 @@ class CID3v1
 private:
 	CMediaFile& m_File;
 	CStreamWalker m_Stream{};
+
+	enum class Speed :BYTE
+	{
+		None,
+		Slow,
+		Middle,
+		Fast,
+		VeryFast
+	};
+
+	struct INFO
+	{
+		CRefStrA rsTitle{};
+		CRefStrA rsArtist{};
+		CRefStrA rsAlbum{};
+		CRefStrA rsComment{};
+		USHORT usYear{};
+		BYTE byTrack{};
+		BYTE byGenre{};
+		Speed eSpeed{};
+		CRefStrA rsGenre{};
+		UINT uBeginSec{};
+		UINT uEndSec{};
+	};
+
+	INFO m_Info{};
+public:
+	CID3v1(CMediaFile& File) :m_File{ File }, m_Stream(File.GetStream())
+	{
+
+	}
+
+	Result ReadTag(UINT uFlags)
+	{
+		if (m_File.m_Id3Loc.posV1 == SIZETMax)
+			return Result::TagErr;
+		if (m_File.m_Id3Loc.posV1Ext == SIZETMax)
+		{
+			m_Stream.MoveTo(m_File.m_Id3Loc.posV1 + 3);
+			m_Info.rsTitle.ReSize(30);
+			m_Stream.Read(m_Info.rsTitle.Data(), 30);
+			if (!m_Info.rsTitle[29])
+				m_Info.rsTitle.ReCalcLen();
+
+			m_Info.rsArtist.ReSize(30);
+			m_Stream.Read(m_Info.rsArtist.Data(), 30);
+			if (!m_Info.rsArtist[29])
+				m_Info.rsArtist.ReCalcLen();
+
+			m_Info.rsAlbum.ReSize(30);
+			m_Stream.Read(m_Info.rsAlbum.Data(), 30);
+			if (!m_Info.rsAlbum[29])
+				m_Info.rsAlbum.ReCalcLen();
+		}
+		else
+		{
+			m_Stream.MoveTo(m_File.m_Id3Loc.posV1Ext + 4);
+			m_Info.rsTitle.ReSize(60);
+			m_Stream.Read(m_Info.rsTitle.Data(), 60);
+			if (!m_Info.rsTitle[59])
+				m_Info.rsTitle.ReCalcLen();
+
+			m_Info.rsArtist.ReSize(60);
+			m_Stream.Read(m_Info.rsArtist.Data(), 60);
+			if (!m_Info.rsArtist[59])
+				m_Info.rsArtist.ReCalcLen();
+
+			m_Info.rsAlbum.ReSize(60);
+			m_Stream.Read(m_Info.rsAlbum.Data(), 60);
+			if (!m_Info.rsAlbum[59])
+				m_Info.rsAlbum.ReCalcLen();
+
+			m_Stream >> m_Info.eSpeed;
+
+			m_Info.rsGenre.ReSize(30);
+			m_Stream.Read(m_Info.rsGenre.Data(), 30);
+			if (!m_Info.rsGenre[29])
+				m_Info.rsGenre.ReCalcLen();
+
+			CHAR ch[7];
+			ch[6] = '\0';
+			m_Stream.Read(ch, 6);
+			USHORT us0{}, us1{};
+			sscanf(ch, "%hu:%hu", &us0, &us1);
+			m_Stream.Read(ch, 6);
+			us0 = us1 = 0;
+			sscanf(ch, "%hu:%hu", &us0, &us1);
+			m_Stream.MoveTo(m_File.m_Id3Loc.posV1 + 93);
+		}
+
+		CHAR ch[5];
+		m_Stream.Read(ch, 4);
+		ch[4] = '\0';
+		m_Info.usYear = (USHORT)atoi(ch);
+
+		m_Info.rsComment.ReSize(30);
+		m_Stream.Read(m_Info.rsComment.Data(), 30);
+		if (!m_Info.rsComment[28])
+		{
+			m_Info.rsComment.ReCalcLen();
+			m_Info.byTrack = m_Info.rsComment[29];
+		}
+		else
+		{
+			m_Info.byTrack = 0;
+			if (!m_Info.rsComment[29])
+				m_Info.rsComment.ReSize(29);
+		}
+		m_Stream >> m_Info.byGenre;
+		return Result::Ok;
+	}
+
+	Result WriteTag(UINT uFlags)
+	{
+
+	}
 };
 
 class CID3v2
@@ -793,13 +936,13 @@ public:
 		Max
 	};
 
-#define ECK_DECL_ID3FRAME_METHOD(x) \
-	FRAME* Clone() override { return new x{ *this }; } \
+#define ECK_DECL_ID3FRAME_METHOD(x)						\
+	FRAME* Clone() override { return new x{ *this }; }	\
 	x() { memcpy(Id, #x, 4); }
 
-#define ECK_DECL_ID3FRAME_METHOD2(x) \
-	FRAME* Clone() override { return new x{ *this }; } \
-	x() = default; \
+#define ECK_DECL_ID3FRAME_METHOD2(x)					\
+	FRAME* Clone() override { return new x{ *this }; }	\
+	x() = default;										\
 	x(PCSTR psz) { memcpy(Id, psz, 4); }
 
 	struct FRAME
@@ -2311,6 +2454,7 @@ public:
 			if (m_Header.Flags & 0x20)// 有扩展头
 			{
 				m_Stream >> m_ExtHdr;
+				// 2.3中尺寸总为6或10
 				const int cb = ReverseInteger(*(DWORD*)m_ExtHdr.ExtHeaderSize) - 6;
 				if (cb < 0)
 					m_cbTag = 0u;
@@ -2323,6 +2467,7 @@ public:
 			if (m_Header.Flags & 0x20)// 有扩展头
 			{
 				m_Stream >> m_ExtHdr;
+				// 2.4中为同步安全整数，而且这个尺寸包含了记录尺寸的四个字节
 				const int cb = SynchSafeIntToDWORD(m_ExtHdr.ExtHeaderSize) - 10;
 				if (cb < 0)
 					m_cbTag = 0u;
