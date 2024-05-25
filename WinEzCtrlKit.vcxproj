@@ -161,7 +161,6 @@
   <ItemGroup>
     <ClInclude Include="CTestWnd.h" />
     <ClInclude Include="eck\CAllocator.h" />
-    <ClInclude Include="eck\CAnimationBox.h" />
     <ClInclude Include="eck\CArray.h" />
     <ClInclude Include="eck\CBk.h" />
     <ClInclude Include="eck\CColorPickBlock.h" />
@@ -189,6 +188,7 @@
     <ClInclude Include="eck\CLayoutBase.h" />
     <ClInclude Include="eck\CLinearLayout.h" />
     <ClInclude Include="eck\CLink.h" />
+    <ClInclude Include="eck\CScrollBarHook.h" />
     <ClInclude Include="eck\CStreamWalker.h" />
     <ClInclude Include="eck\MediaTag.h" />
     <ClInclude Include="eck\CPictureBox.h" />
@@ -229,7 +229,6 @@
     <ClInclude Include="eck\OleDragDropHelper.h" />
     <ClInclude Include="eck\PchInc.h" />
     <ClInclude Include="eck\StrBinInterop.h" />
-    <ClInclude Include="eck\StylePainter.h" />
     <ClInclude Include="eck\CTab.h" />
     <ClInclude Include="eck\CTabHeader.h" />
     <ClInclude Include="eck\CTaskGroupList.h" />
@@ -269,7 +268,6 @@
     <ClInclude Include="eck\WndHelper.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="Win32Template.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\CScrollBar.h" />

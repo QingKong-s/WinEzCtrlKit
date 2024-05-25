@@ -15,6 +15,7 @@
 #include "CEvent.h"
 #include "CCriticalSection.h"
 #include "ILayout.h"
+#include "SystemHelper.h"
 
 #define ECK_DUI_NAMESPACE_BEGIN namespace Dui {
 #define ECK_DUI_NAMESPACE_END }
