@@ -27,9 +27,6 @@
     <ClInclude Include="Resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Win32Template.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CButton.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
@@ -186,9 +183,6 @@
     <ClInclude Include="eck\CListBoxNew.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\StylePainter.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CMenu.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
@@ -205,9 +199,6 @@
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CException.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
-    <ClInclude Include="eck\CAnimationBox.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CRegKey.h">
@@ -352,6 +343,9 @@
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CStreamWalker.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CScrollBarHook.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
   </ItemGroup>
