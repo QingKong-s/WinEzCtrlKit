@@ -51,7 +51,7 @@ struct CStreamWalker
 	template<class T>
 	EckInline CStreamWalker& operator<<(const CRefBinT<T>& Data)
 	{
-		return Write(Data.Data(), Data.Size());
+		return Write(Data.Data(), (ULONG)Data.Size());
 	}
 
 	template<class T, class U, class V>
