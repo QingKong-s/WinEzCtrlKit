@@ -316,6 +316,7 @@ struct NMECKCTRLCUSTOMDRAW
 /*-------------------*/
 ECK_NAMESPACE_END
 #include "DbgHelper.h"
+#pragma warning(suppress:5260)
 #include <gdiplus.h>
 ECK_NAMESPACE_BEGIN
 namespace GpNameSpace

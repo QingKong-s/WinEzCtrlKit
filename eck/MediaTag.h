@@ -78,7 +78,7 @@ enum class Result
 // 图片类型
 enum class PicType :BYTE
 {
-	Invalid = -1,       // 任何无效的值
+	Invalid = 0xFF,     // 任何无效的值
 	Begin___ = 0,       // ！起始占位
 	Other = Begin___,   // 其他
 	FileIcon32x32,      // 32×32大小文件图标（仅PNG）
@@ -644,11 +644,14 @@ public:
 			ch[6] = '\0';
 			m_Stream.Read(ch, 6);
 			USHORT us0{}, us1{};
-			sscanf(ch, "%hu:%hu", &us0, &us1);
+			(void)sscanf(ch, "%hu:%hu", &us0, &us1);
+			m_Info.uBeginSec = us0 * 60 + us1;
+
 			m_Stream.Read(ch, 6);
 			us0 = us1 = 0;
-			sscanf(ch, "%hu:%hu", &us0, &us1);
+			(void)sscanf(ch, "%hu:%hu", &us0, &us1);
 			m_Stream.MoveTo(m_File.m_Id3Loc.posV1 + 93);
+			m_Info.uEndSec = us0 * 60 + us1;
 		}
 
 		CHAR ch[5];
@@ -2689,7 +2692,7 @@ public:
 			if (r != Result::Ok)
 				return r;
 			if (posActualEnd < m_File.m_Id3Loc.posV2 + m_cbTag)// 可能有填充或追加标签
-				m_cbPrependTag = posActualEnd - m_File.m_Id3Loc.posV2;
+				m_cbPrependTag = (DWORD)(posActualEnd - m_File.m_Id3Loc.posV2);
 			if (m_cbPrependTag > m_cbTag)
 			{
 				EckDbgPrintWithPos(L"查找到的预置标签末尾超出标签头指示的长度");
@@ -2760,7 +2763,7 @@ public:
 							m_Stream.MoveTo(m_File.m_Id3Loc.posV2Footer + rbAppend.Size());
 							void* p = VirtualAlloc(0, cbPadding, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 							EckCheckMem(p);
-							m_Stream.Write(p, cbPadding);
+							m_Stream.Write(p, (ULONG)cbPadding);
 							VirtualFree(p, 0, MEM_RELEASE);
 						}
 						else
@@ -2791,7 +2794,7 @@ public:
 							m_Stream.MoveTo(m_posAppendTag + rbAppend.Size());
 							void* p = VirtualAlloc(0, cbPadding, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 							EckCheckMem(p);
-							m_Stream.Write(p, cbPadding);
+							m_Stream.Write(p, (ULONG)cbPadding);
 							VirtualFree(p, 0, MEM_RELEASE);
 						}
 						else
@@ -2846,7 +2849,7 @@ public:
 							m_Stream.MoveTo(m_File.m_Id3Loc.posV2 + 10 + rbPrepend.Size());
 							void* p = VirtualAlloc(0, cbPadding, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 							EckCheckMem(p);
-							m_Stream.Write(p, cbPadding);
+							m_Stream.Write(p, (ULONG)cbPadding);
 							VirtualFree(p, 0, MEM_RELEASE);
 						}
 						else
