@@ -53,9 +53,8 @@ public:
 			dwStyle |= UDS_ARROWKEYS;
 		if (m_Info.bHotTrack)
 			dwStyle |= UDS_HOTTRACK;
-		m_hWnd = CreateWindowExW(dwExStyle, WC_BUTTONW, pszText, dwStyle,
+		return IntCreate(dwExStyle, UPDOWN_CLASSW, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, NULL, NULL);
-		return m_hWnd;
 	}
 
 	EckInline void SetDirection(int iDirection)

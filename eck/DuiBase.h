@@ -21,21 +21,17 @@
 #define ECK_DUI_NAMESPACE_END }
 
 #ifdef _DEBUG
-#	if 1
-#		define ECK_DUI_DBG_DRAW_FRAME					\
-			{											\
-				ID2D1SolidColorBrush* ECKPRIV_pBr___;	\
-				m_pDC->CreateSolidColorBrush(D2D1::ColorF(1.f, 0.f, 0.f, 1.f), &ECKPRIV_pBr___); \
-				if (ECKPRIV_pBr___) {					\
-					m_pDC->DrawRectangle(GetViewRectF(), ECKPRIV_pBr___, 1.f);	\
-					ECKPRIV_pBr___->Release();			\
-				}										\
-			}
-#	else
-#		define ECK_DUI_DBG_DRAW_FRAME ;
-#	endif
+#	define ECK_DUI_DBG_DRAW_FRAME					\
+		{											\
+			ID2D1SolidColorBrush* ECKPRIV_pBr___;	\
+			m_pDC->CreateSolidColorBrush(D2D1::ColorF(1.f, 0.f, 0.f, 1.f), &ECKPRIV_pBr___); \
+			if (ECKPRIV_pBr___) {					\
+				m_pDC->DrawRectangle(GetViewRectF(), ECKPRIV_pBr___, 1.f);	\
+				ECKPRIV_pBr___->Release();			\
+			}										\
+		}
 #else
-#		define ECK_DUI_DBG_DRAW_FRAME ;
+#	define ECK_DUI_DBG_DRAW_FRAME ;
 #endif
 
 #define ECK_ELEMTOP			((::eck::Dui::CElem*)HWND_TOP)
@@ -469,7 +465,6 @@ public:
 
 	EckInline void EndPaint(const ELEMPAINTSTRU& eps)
 	{
-		ECK_DUI_DBG_DRAW_FRAME;
 		m_pDC->PopAxisAlignedClip();
 	}
 
