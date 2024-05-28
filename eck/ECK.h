@@ -425,10 +425,10 @@ struct WINDOWCOMPOSITIONATTRIBDATA
 ECK_PRIV_NAMESPACE_BEGIN
 using FRtlGetNtVersionNumbers = void(WINAPI*)(DWORD*, DWORD*, DWORD*);
 
-using FSetWindowCompositionAttribute = BOOL(WINAPI*)(HWND , WINDOWCOMPOSITIONATTRIBDATA*);
+using FSetWindowCompositionAttribute = BOOL(WINAPI*)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
 
 // UxTheme
-using FOpenNcThemeData = HTHEME(WINAPI*)(HWND , LPCWSTR );
+using FOpenNcThemeData = HTHEME(WINAPI*)(HWND, LPCWSTR);
 using FOpenThemeData = HTHEME(WINAPI*)(HWND, LPCWSTR);
 using FDrawThemeText = HRESULT(WINAPI*)(_In_ HTHEME, HDC, int, int, LPCWSTR, int, DWORD, DWORD, LPCRECT);
 using FOpenThemeDataForDpi = HTHEME(WINAPI*)(HWND, LPCWSTR, UINT);
@@ -436,20 +436,20 @@ using FDrawThemeBackgroundEx = HRESULT(WINAPI*)(HTHEME, HDC, int, int, LPCRECT, 
 using FDrawThemeBackground = HRESULT(WINAPI*)(HTHEME, HDC, int, int, LPCRECT, LPCRECT);
 using FGetThemeColor = HRESULT(WINAPI*)(HTHEME, int, int, int, COLORREF*);
 using FCloseThemeData = HRESULT(WINAPI*)(HTHEME);
-using FDrawThemeParentBackground = HRESULT(WINAPI*)(HWND , HDC , const RECT* );
+using FDrawThemeParentBackground = HRESULT(WINAPI*)(HWND, HDC, const RECT*);
 // 1809 17763 暗色功能引入
-using FAllowDarkModeForWindow = bool(WINAPI*)(HWND , BOOL );
-using FAllowDarkModeForApp = bool(WINAPI*)(BOOL );
-using FIsDarkModeAllowedForWindow = bool(WINAPI*)(HWND );
+using FAllowDarkModeForWindow = bool(WINAPI*)(HWND, BOOL);
+using FAllowDarkModeForApp = bool(WINAPI*)(BOOL);
+using FIsDarkModeAllowedForWindow = bool(WINAPI*)(HWND);
 using FShouldAppsUseDarkMode = bool(WINAPI*)();
 
 using FFlushMenuThemes = void(WINAPI*)();
 
 using FRefreshImmersiveColorPolicyState = void(WINAPI*)();
-using FGetIsImmersiveColorUsingHighContrast = bool(WINAPI*)(IMMERSIVE_HC_CACHE_MODE );
+using FGetIsImmersiveColorUsingHighContrast = bool(WINAPI*)(IMMERSIVE_HC_CACHE_MODE);
 // 1903 18362
 using FShouldSystemUseDarkMode = bool(WINAPI*)();
-using FSetPreferredAppMode = PreferredAppMode(WINAPI*)(PreferredAppMode );
+using FSetPreferredAppMode = PreferredAppMode(WINAPI*)(PreferredAppMode);
 using FIsDarkModeAllowedForApp = bool(WINAPI*)();
 
 
@@ -566,15 +566,15 @@ using FWndCreating = void(*)(HWND hWnd, CBT_CREATEWNDW* pcs, ECKTHREADCTX* pThre
 struct ECKTHREADCTX
 {
 	//-------窗口映射
-	std::unordered_map<HWND, CWnd*> hmWnd{};// HWND->CWnd*
-	std::unordered_map<HWND, CWnd*> hmTopWnd{};// 顶级窗口映射
+	std::unordered_map<HWND, CWnd*> hmWnd{};	// HWND->CWnd*
+	std::unordered_map<HWND, CWnd*> hmTopWnd{};	// 顶级窗口映射
 	HHOOK hhkTempCBT{};					// CBT钩子句柄
 	CWnd* pCurrWnd{};					// 当前正在创建窗口所属的CWnd指针
 	FWndCreating pfnWndCreatingProc{};	// 当前创建窗口时要调用的过程
 	//-------暗色处理
-	HHOOK hhkCbtDarkMode{};		// 设置允许暗色CBT钩子句柄
+	HHOOK hhkCbtDarkMode{};				// 设置允许暗色CBT钩子句柄
 	BOOL bEnableDarkModeHook{ TRUE };	// 是否允许暗色CBT钩子设置窗口，设为FALSE可暂停HOOK
-	BOOL bAutoNcDark{ TRUE };
+	BOOL bAutoNcDark{ TRUE };			// 自动调整非客户区暗色
 	COLORREF crDefText{};		// 默认前景色
 	COLORREF crDefBkg{};		// 默认背景色
 	COLORREF crDefBtnFace{};	// 默认BtnFace颜色
@@ -582,6 +582,8 @@ struct ECKTHREADCTX
 	std::unordered_map<HTHEME, int> hsTaskDialogTheme{};
 	std::unordered_map<HTHEME, int> hsTabTheme{};
 	std::unordered_map<HTHEME, std::pair<int, HTHEME>> hsToolBarTheme{};
+	std::unordered_map<HTHEME, int> hsAeroWizardTheme{};
+	std::unordered_map<HTHEME, std::pair<int, HTHEME>> hsDateTimePickerTheme{};
 
 	EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
 	{
@@ -638,48 +640,7 @@ struct ECKTHREADCTX
 
 	void OnThemeOpen(HTHEME hTheme, PCWSTR pszClassList);
 
-	void OnThemeClose(HTHEME hTheme)
-	{
-		{
-			const auto it = hsButtonTheme.find(hTheme);
-			if (it != hsButtonTheme.end())
-			{
-				EckAssert(it->second > 0);
-				if (!--it->second)
-					hsButtonTheme.erase(it);
-			}
-		}
-		{
-			const auto it = hsTaskDialogTheme.find(hTheme);
-			if (it != hsTaskDialogTheme.end())
-			{
-				EckAssert(it->second > 0);
-				if (!--it->second)
-					hsTaskDialogTheme.erase(it);
-			}
-		}
-		{
-			const auto it = hsTabTheme.find(hTheme);
-			if (it != hsTabTheme.end())
-			{
-				EckAssert(it->second > 0);
-				if (!--it->second)
-					hsTabTheme.erase(it);
-			}
-		}
-		{
-			const auto it = hsToolBarTheme.find(hTheme);
-			if (it != hsToolBarTheme.end())
-			{
-				EckAssert(it->second.first > 0);
-				if (!--it->second.first)
-				{
-					CloseThemeData(it->second.second);
-					hsToolBarTheme.erase(it);
-				}
-			}
-		}
-	}
+	void OnThemeClose(HTHEME hTheme);
 
 	EckInline BOOL IsThemeButton(HTHEME hTheme) const
 	{
@@ -711,6 +672,28 @@ struct ECKTHREADCTX
 		}
 		else
 			return hsToolBarTheme.find(hTheme) != hsToolBarTheme.end();
+	}
+
+	EckInline BOOL IsThemeAeroWizard(HTHEME hTheme) const
+	{
+		return hsAeroWizardTheme.find(hTheme) != hsAeroWizardTheme.end();
+	}
+
+	EckInline BOOL IsThemeDateTimePicker(HTHEME hTheme, HTHEME* phThemeCBB = NULL) const
+	{
+		if (phThemeCBB)
+		{
+			const auto it = hsDateTimePickerTheme.find(hTheme);
+			if (it != hsDateTimePickerTheme.end())
+			{
+				*phThemeCBB = it->second.second;
+				return TRUE;
+			}
+			else
+				return FALSE;
+		}
+		else
+			return hsDateTimePickerTheme.find(hTheme) != hsDateTimePickerTheme.end();
 	}
 
 	void SendThemeChangedToAllTopWindow();

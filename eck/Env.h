@@ -38,11 +38,11 @@
 #pragma comment(lib,"Version.lib")
 #pragma comment(lib,"msimg32.lib")
 #pragma comment(lib,"Imm32.lib")
-#ifdef _WIN64
-#pragma comment(lib,"eck\\Detours\\detours_x64.lib")
-#else
-#pragma comment(lib,"eck\\Detours\\detours_x86.lib")
-#endif
+#	ifdef _WIN64
+#		pragma comment(lib,"eck\\Detours\\detours_x64.lib")
+#	else
+#		pragma comment(lib,"eck\\Detours\\detours_x86.lib")
+#	endif
 #endif
 
 // ECKMACRO_NO_WIN11_22621  SDK版本是否>=22621

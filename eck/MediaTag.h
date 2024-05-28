@@ -47,13 +47,15 @@ enum MediaInfoFlags :UINT
 // 标签读写标志
 enum :UINT
 {
-	MIF_JOIN_ARTIST = 1u << 0,	// 用指定的分隔符连接多个艺术家
-	MIF_JOIN_COMMENT = 1u << 1,	// 用指定的分隔符连接多个备注
-	MIF_ALLOW_PADDING = 1u << 2,// 允许保留空白填充以防止重写整个文件
-	MIF_DATE_STRING = 1u << 3,	// 用当前本地设置格式化日期为字符串
+	MIF_JOIN_ARTIST = 1u << 0,		// 用指定的分隔符连接多个艺术家
+	MIF_JOIN_COMMENT = 1u << 1,		// 用指定的分隔符连接多个备注
+	MIF_ALLOW_PADDING = 1u << 2,	// 允许保留空白填充以防止重写整个文件
+	MIF_DATE_STRING = 1u << 3,		// 用当前本地设置格式化日期为字符串
 	MIF_SPLIT_ARTIST_IN_ID3V2_3 = 1u << 4,	// 用ID3v2.3规定的斜杠("/")分割艺术家列表
 	MIF_SCAN_ALL_FRAME = 1u << 5,			// 扫描并存储标签中的所有记录
-	MIF_APPEND_TAG = 1u << 6,	// 在文件尾部追加标签（如果标记系统允许）
+	MIF_APPEND_TAG = 1u << 6,		// 在文件尾部追加标签（如果标记系统允许）
+	MIF_SYNC_OTHER_TAG = 1u << 7,	// 当存在其他标签时同步其信息
+	MIF_CREATE_ID3V1_EXT = 1u << 8,	// 创建ID3v1扩展信息
 };
 // ID3帧写入选项
 enum :BYTE
@@ -678,7 +680,108 @@ public:
 
 	Result WriteTag(UINT uFlags)
 	{
+		BYTE byDummy[60]{};
+		size_t cb;
+		CHAR szBuf[c_cchI32ToStrBufNoRadix2 * 2 + 1];
 
+		if (m_File.m_Id3Loc.posV1Ext == SIZETMax)
+			if (uFlags & MIF_CREATE_ID3V1_EXT)
+			{
+				if (m_File.m_Id3Loc.posV1 == SIZETMax)
+					m_Stream.MoveToEnd();
+				else
+				{
+					m_Stream.Insert(ToUli(m_File.m_Id3Loc.posV1), ToUli(227));
+					m_Stream.GetStream()->Seek(ToLi(-(128 + 227)), STREAM_SEEK_END, NULL);
+				}
+				m_Stream.Write("TAG+", 4);
+			}
+			else
+				goto SkipID3v1Ext;
+		else
+			m_Stream.MoveTo(m_File.m_Id3Loc.posV1Ext + 4);
+
+		cb = std::min(m_Info.rsTitle.ByteSize() - 1, (size_t)60);
+		if (cb)
+			m_Stream.Write(m_Info.rsTitle.Data(), cb);
+		if (cb != 60)
+			m_Stream.Write(byDummy, 60 - cb);
+
+		cb = std::min(m_Info.rsArtist.ByteSize() - 1, (size_t)60);
+		if (cb)
+			m_Stream.Write(m_Info.rsArtist.Data(), cb);
+		if (cb != 60)
+			m_Stream.Write(byDummy, 60 - cb);
+
+		cb = std::min(m_Info.rsAlbum.ByteSize() - 1, (size_t)60);
+		if (cb)
+			m_Stream.Write(m_Info.rsAlbum.Data(), cb);
+		if (cb != 60)
+			m_Stream.Write(byDummy, 60 - cb);
+
+		m_Stream << m_Info.eSpeed;
+
+		cb = std::min(m_Info.rsGenre.ByteSize() - 1, (size_t)30);
+		if (cb)
+			m_Stream.Write(m_Info.rsGenre.Data(), cb);
+		if (cb != 30)
+			m_Stream.Write(byDummy, 30 - cb);
+
+		if (m_Info.uBeginSec / 60 > 999)
+			m_Stream.Write(byDummy, 6);
+		else
+		{
+			sprintf(szBuf, "%03d:%02d",
+				m_Info.uBeginSec / 60, m_Info.uBeginSec % 60);
+			m_Stream.Write(szBuf, 6);
+		}
+
+		if (m_Info.uEndSec / 60 > 999)
+			m_Stream.Write(byDummy, 6);
+		else
+		{
+			sprintf(szBuf, "%03d:%02d",
+				m_Info.uEndSec / 60, m_Info.uEndSec % 60);
+			m_Stream.Write(szBuf, 6);
+		}
+	SkipID3v1Ext:
+		if (m_File.m_Id3Loc.posV1 == SIZETMax)
+		{
+			m_Stream.MoveToEnd();
+			m_Stream.Write("TAG", 3);
+		}
+		else
+			m_Stream.MoveTo(m_File.m_Id3Loc.posV1 + 3);
+
+		cb = std::min(m_Info.rsTitle.ByteSize() - 1, (size_t)30);
+		if (cb)
+			m_Stream.Write(m_Info.rsTitle.Data(), cb);
+		if (cb != 30)
+			m_Stream.Write(byDummy, 30 - cb);
+
+		cb = std::min(m_Info.rsArtist.ByteSize() - 1, (size_t)30);
+		if (cb)
+			m_Stream.Write(m_Info.rsArtist.Data(), cb);
+		if (cb != 30)
+			m_Stream.Write(byDummy, 30 - cb);
+
+		cb = std::min(m_Info.rsAlbum.ByteSize() - 1, (size_t)30);
+		if (cb)
+			m_Stream.Write(m_Info.rsAlbum.Data(), cb);
+		if (cb != 30)
+			m_Stream.Write(byDummy, 30 - cb);
+
+		sprintf(szBuf, "%04hu", m_Info.usYear);
+
+		cb = std::min(m_Info.rsComment.ByteSize() - 1, (size_t)30);
+		if (cb)
+			m_Stream.Write(m_Info.rsComment.Data(), cb);
+		if (cb <= 28)
+			m_Stream.Write(byDummy, 29 - cb) << m_Info.byTrack;
+		else if (cb != 30)
+			m_Stream.Write(byDummy, 30 - cb);
+
+		m_Stream << m_Info.byGenre;
 	}
 };
 

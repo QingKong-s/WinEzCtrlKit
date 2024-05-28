@@ -20,6 +20,14 @@ ECK_NAMESPACE_BEGIN
 class CTreeView :public CWnd
 {
 public:
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+	{
+		return IntCreate(0, WC_TREEVIEWW, pszText, dwStyle,
+			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+	}
+
 	EckInline void SetCheckBox(BOOL bCheckBox)
 	{
 		ModifyStyle(bCheckBox ? TVS_CHECKBOXES : 0, TVS_CHECKBOXES);

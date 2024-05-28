@@ -170,6 +170,7 @@
     <ClInclude Include="eck\CConditionVariable.h" />
     <ClInclude Include="eck\CCriticalSection.h" />
     <ClInclude Include="eck\CD2dImageList.h" />
+    <ClInclude Include="eck\CDateTimePicker.h" />
     <ClInclude Include="eck\CDialog.h" />
     <ClInclude Include="eck\CDrawPanel.h" />
     <ClInclude Include="eck\CDuiCircleButton.h" />

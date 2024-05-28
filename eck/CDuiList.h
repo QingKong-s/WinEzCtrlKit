@@ -455,7 +455,6 @@ public:
 
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
-		ECK_DUILOCK;
 		switch (uMsg)
 		{
 		case WM_PAINT:
@@ -548,6 +547,7 @@ public:
 
 		case WM_MOUSEMOVE:
 		{
+			ECK_DUILOCK;
 			LEHITTEST ht{ ECK_GET_PT_LPARAM(lParam) };
 			ClientToElem(ht.pt);
 
@@ -572,6 +572,7 @@ public:
 
 		case WM_MOUSELEAVE:
 		{
+			ECK_DUILOCK;
 			if (m_idxHot >= 0)
 			{
 				int idx = -1;
@@ -583,6 +584,7 @@ public:
 
 		case WM_MOUSEWHEEL:
 		{
+			ECK_DUILOCK;
 			m_psv->OnMouseWheel2(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
 			GetWnd()->WakeRenderThread();
 		}
@@ -590,7 +592,8 @@ public:
 
 		case WM_NOTIFY:
 		{
-			if ((wParam == (WPARAM)&m_SB) && 
+			ECK_DUILOCK;
+			if ((wParam == (WPARAM)&m_SB) &&
 				(((DUINMHDR*)lParam)->uCode == EE_VSCROLL))
 			{
 				ReCalcTopItem();
@@ -602,6 +605,7 @@ public:
 
 		case WM_SIZE:
 		{
+			ECK_DUILOCK;
 			ReCalcTopItem();
 			ReCalcScroll();
 			if (m_idxInsertMark >= 0)
@@ -613,6 +617,7 @@ public:
 
 		case WM_LBUTTONDOWN:
 		{
+			ECK_DUILOCK;
 			POINT pt ECK_GET_PT_LPARAM(lParam);
 			SetFocus();
 			LEHITTEST ht{ pt };
@@ -657,6 +662,7 @@ public:
 
 		case WM_LBUTTONUP:
 		{
+			ECK_DUILOCK;
 			if (m_bDraggingSel)
 			{
 				m_bDraggingSel = FALSE;
@@ -668,6 +674,7 @@ public:
 
 		case WM_CAPTURECHANGED:
 		{
+			ECK_DUILOCK;
 			if (m_bDraggingSel)
 			{
 				m_bDraggingSel = FALSE;
@@ -702,6 +709,7 @@ public:
 
 		case WM_DESTROY:
 		{
+			ECK_DUILOCK;
 			m_idxTop = 0;
 			m_idxHot = -1;
 			m_idxSel = -1;
