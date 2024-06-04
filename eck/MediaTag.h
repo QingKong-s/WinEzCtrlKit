@@ -2999,9 +2999,17 @@ public:
 
 class CFlac
 {
+public:
+	struct ITEM
+	{
+		CRefStrW rsKey;
+		CRefStrW rsValue;
+	};
 private:
 	CMediaFile& m_File;
 	CStreamWalker m_Stream{};
+
+	std::vector<ITEM> m_vItem{};
 public:
 	ECK_DISABLE_COPY_MOVE(CFlac)
 public:
@@ -3185,6 +3193,11 @@ public:
 
 		} while (!(Header.by & 0x80));// 检查最高位，判断是不是最后一个块
 		return TRUE;
+	}
+
+	Result ReadTag(UINT uFlags)
+	{
+
 	}
 };
 ECK_MEDIATAG_NAMESPACE_END

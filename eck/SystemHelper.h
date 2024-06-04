@@ -302,8 +302,6 @@ inline HRESULT GetCpuInfo(CPUINFO& ci)
 		ci.rsVendor = L"Rise.";
 	else if (ci.rsVendor == L"GenuineTMx86" || ci.rsVendor == L"TransmetaCPU")
 		ci.rsVendor = L"Transmeta.";
-	else
-		ci.rsVendor = L"未知制造商";
 	// 取商标
 	char szBrand[49];
 	for (int i = 0x80000002; i <= 0x80000004; ++i)
@@ -579,7 +577,7 @@ const CRefStrW& GetRunningPath();
 [[nodiscard]] inline HICON GetWindowIcon(HWND hWnd, BOOL& bNeedDestroy, BOOL bSmall = FALSE, int msTimeOut = 300)
 {
 	bNeedDestroy = FALSE;
-	const HICON hIcon = 
+	const HICON hIcon =
 		(bSmall ? GetWindowSmallIcon(hWnd, msTimeOut) : GetWindowLargeIcon(hWnd, msTimeOut));
 	if (hIcon)
 		return hIcon;
@@ -651,7 +649,7 @@ EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 [[nodiscard]] inline CRefStrW Utf16RevByte(PCWSTR pszText, int cchText = -1)
 {
 	CRefStrW rs{};
-	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_BYTEREV, 
+	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_BYTEREV,
 		pszText, cchText, NULL, 0, NULL, NULL, 0);
 	if (!cchResult)
 		return rs;
@@ -663,7 +661,7 @@ EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 
 [[nodiscard]] inline UINT GetPID(PCWSTR pszImageName)
 {
-	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	const HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	if (hSnapshot == INVALID_HANDLE_VALUE)
 		return 0u;
 	PROCESSENTRY32W pe32;
@@ -682,7 +680,7 @@ EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 	return 0u;
 }
 
-EckInline HMONITOR MonitorFromRectByWorkArea(const RECT& rc, 
+EckInline HMONITOR MonitorFromRectByWorkArea(const RECT& rc,
 	HMONITOR* phMonMain = NULL, HMONITOR* phMonNearest = NULL)
 {
 	struct CTX
@@ -717,7 +715,7 @@ EckInline HMONITOR MonitorFromRectByWorkArea(const RECT& rc,
 				}
 			}
 
-			const int dx = (pCtx->rc.left + pCtx->rc.right) / 2 - 
+			const int dx = (pCtx->rc.left + pCtx->rc.right) / 2 -
 				(mi.rcWork.left + mi.rcWork.right) / 2;
 			const int dy = (pCtx->rc.top + pCtx->rc.bottom) / 2 -
 				(mi.rcWork.top + mi.rcWork.bottom) / 2;
@@ -791,5 +789,109 @@ inline CRefStrW FormatDateTime(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlag
 	GetDateFormatEx(pszLocale, dwFlags, &st, pszFmt, rs.Data(), cchDate, NULL);
 	GetTimeFormatEx(pszLocale, dwFlags, &st, pszFmt, rs.Data() + cchDate - 1, cchTime);
 	return rs;
+}
+
+namespace EckPriv___
+{
+	inline void IntEnumFileRecurse(CRefStrW& rs, int cchDir, PCWSTR pszPat,
+		std::vector<CRefStrW>& vResult, WIN32_FIND_DATAW* pwfd)
+	{
+		auto hFind = FindFirstFileExW(rs.Data(), FindExInfoBasic, pwfd,
+			FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
+		if (hFind != INVALID_HANDLE_VALUE)
+		{
+			do
+			{
+				if ((pwfd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+				{
+					if (*pwfd->cFileName != L'.')
+					{
+						rs.PopBack(rs.Size() - cchDir);
+						rs.PushBack(pwfd->cFileName);
+						rs.PushBackChar(L'\\');
+						const int cchNewDir = rs.Size();
+						rs.PushBack(pszPat);
+						IntEnumFileRecurse(rs, cchNewDir, pszPat, vResult, pwfd);
+					}
+				}
+				else
+				{
+					if (!pszPat || *pszPat == L'\0' || *pszPat == L'*')
+					{
+						rs.PopBack(rs.Size() - cchDir);
+						vResult.emplace_back(rs + pwfd->cFileName);
+					}
+					else
+					{
+						const auto pszExt = PathFindExtensionW(pwfd->cFileName);
+						if (_wcsicmp(pszExt, pszPat) == 0)
+							vResult.emplace_back(rs + pwfd->cFileName);
+					}
+				}
+			} while (FindNextFileW(hFind, pwfd));
+			FindClose(hFind);
+		}
+
+		rs.PopBack(rs.Size() - cchDir);
+		rs += L'*';
+		hFind = FindFirstFileExW(rs.Data(), FindExInfoBasic, pwfd,
+			FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
+		if (hFind != INVALID_HANDLE_VALUE)
+		{
+			do
+			{
+				if ((pwfd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+				{
+					if (*pwfd->cFileName != L'.')
+					{
+						rs.PopBack(rs.Size() - cchDir);
+						rs.PushBack(pwfd->cFileName);
+						rs.PushBackChar(L'\\');
+						const int cchNewDir = rs.Size();
+						rs.PushBack(pszPat);
+						IntEnumFileRecurse(rs, cchNewDir, pszPat, vResult, pwfd);
+					}
+				}
+			} while (FindNextFileW(hFind, pwfd));
+			FindClose(hFind);
+		}
+	}
+}
+
+/// <summary>
+/// 递归枚举文件
+/// </summary>
+/// <param name="pszPath">目录</param>
+/// <param name="pszFilePat">文件名或通配符</param>
+/// <param name="vResult">枚举结果，不会清空该容器</param>
+/// <returns>成功返回TRUE，失败返回FALSE</returns>
+inline BOOL EnumFileRecurse(PCWSTR pszPath, PCWSTR pszFilePat, std::vector<CRefStrW>& vResult)
+{
+	if (!PathIsDirectoryW(pszPath))
+		return FALSE;
+	CRefStrW rs(pszPath);
+	if (rs.Back() != L'\\')
+		rs += L'\\';
+	const int cchDir = rs.Size();
+	rs += pszFilePat;
+	WIN32_FIND_DATAW wfd{};
+	EckPriv___::IntEnumFileRecurse(rs, cchDir, pszFilePat, vResult, &wfd);
+	return TRUE;
+}
+
+/// <summary>
+/// 递归枚举文件
+/// </summary>
+/// <param name="pszPath">完整文件名，可含通配符</param>
+/// <param name="vResult">枚举结果，不会清空该容器</param>
+/// <returns>成功返回TRUE，失败返回FALSE</returns>
+EckInline BOOL EnumFileRecurse(PCWSTR pszPath, std::vector<CRefStrW>& vResult)
+{
+	const auto pszFileName = PathFindFileNameW(pszPath);
+	if (pszFileName == pszPath)
+		return FALSE;
+	const CRefStrW rs(pszPath, int(pszFileName - pszPath));
+	EckAssert(rs.Back() == L'\\');
+	return EnumFileRecurse(rs.Data(), pszFileName, vResult);
 }
 ECK_NAMESPACE_END
