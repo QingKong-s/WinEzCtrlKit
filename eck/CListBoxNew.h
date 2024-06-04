@@ -207,24 +207,24 @@ private:
 	{
 		if (m_hComboBox)
 		{
-			EckAssert(m_bTrackComboBoxList);
-			RECT rcWnd, rcClient;
-			GetWindowRect(hWnd, &rcWnd);
-			ScreenToClient(hWnd, &rcWnd);
-			GetClientRect(hWnd, &rcClient);
-			if (!PtInRect(rcWnd, POINT{ x,y }) &&
-				!PtInRect(rcWnd, POINT{ x,y }))// 在滚动条上
-			{
-				POINT ptScr{ x,y };
-				ClientToScreen(hWnd, &ptScr);
-				EckAssert(GetCapture() == hWnd);
-				ReleaseCapture();
-				SendMsg(
-					WM_NCMOUSEMOVE,
-					SendMsg(WM_NCHITTEST, 0, POINTTOPOINTS(ptScr)),
-					POINTTOPOINTS(ptScr));
-				SetCapture(hWnd);
-			}
+			//EckAssert(m_bTrackComboBoxList);
+			//RECT rcWnd, rcClient;
+			//GetWindowRect(hWnd, &rcWnd);
+			//ScreenToClient(hWnd, &rcWnd);
+			//GetClientRect(hWnd, &rcClient);
+			//if (!PtInRect(rcWnd, POINT{ x,y }) &&
+			//	!PtInRect(rcWnd, POINT{ x,y }))// 在滚动条上
+			//{
+			//	POINT ptScr{ x,y };
+			//	ClientToScreen(hWnd, &ptScr);
+			//	EckAssert(GetCapture() == hWnd);
+			//	ReleaseCapture();
+			//	SendMsg(
+			//		WM_NCMOUSEMOVE,
+			//		SendMsg(WM_NCHITTEST, 0, POINTTOPOINTS(ptScr)),
+			//		POINTTOPOINTS(ptScr));
+			//	SetCapture(hWnd);
+			//}
 		}
 
 		if (!m_bLBtnDown)

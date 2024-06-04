@@ -84,7 +84,6 @@ protected:
 	HWND m_hWnd = NULL;
 	WNDPROC m_pfnRealProc = DefWindowProcW;
 	std::vector<FMsgHook> m_vFnMsgHook{};
-	HDWP m_hDwpLayout = NULL;
 
 	static void WndCreatingSetLong(HWND hWnd, CBT_CREATEWNDW* pcs, ECKTHREADCTX* pThreadCtx)
 	{
@@ -295,6 +294,8 @@ public:
 	/// <param name="hWnd"></param>
 	CWnd(HWND hWnd) :m_hWnd{ hWnd } {}
 
+	ECK_DISABLE_COPY_MOVE(CWnd);
+
 	virtual ~CWnd()
 	{
 #ifdef _DEBUG
@@ -423,11 +424,6 @@ public:
 		return 0;
 	}
 
-	/// <summary>
-	/// 取理想尺寸
-	/// </summary>
-	/// <param name="cx">理想宽度</param>
-	/// <param name="cy">理想高度</param>
 	void LoGetAppropriateSize(int& cx, int& cy) override
 	{
 		RECT rc;
@@ -436,13 +432,13 @@ public:
 		cy = rc.bottom - rc.top;
 	}
 
-	std::pair<int, int> LoGetPos()
+	std::pair<int, int> LoGetPos() override
 	{
 		const auto pt{ GetPosition() };
 		return { pt.x,pt.y };
 	}
 
-	std::pair<int, int> LoGetSize()
+	std::pair<int, int> LoGetSize() override
 	{
 		const auto size{ GetSize() };
 		return { size.cx,size.cy };

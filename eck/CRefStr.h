@@ -494,6 +494,12 @@ public:
 		return *this;
 	}
 
+	EckInline CRefStrT& operator+=(TChar ch)
+	{
+		PushBackChar(ch);
+		return *this;
+	}
+
 	[[nodiscard]] EckInline TAlloc GetAllocator() const { return m_Alloc; }
 
 	[[nodiscard]] EckInline int Size() const { return m_cchText; }
@@ -620,6 +626,8 @@ public:
 	EckInline void PopBack(int cch = 1)
 	{
 		EckAssert(Size() >= cch);
+		if (!cch)
+			return;
 		m_cchText -= cch;
 		TCharTraits::Cut(Data(), Size());
 	}
