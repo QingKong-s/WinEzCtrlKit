@@ -18,9 +18,9 @@ struct CStreamWalker
 
 	EckInline constexpr ULONG GetLastRWSize() const { return m_cbLastReadWrite; }
 
-	EckInline CStreamWalker& Write(PCVOID pSrc, ULONG cb)
+	EckInline CStreamWalker& Write(PCVOID pSrc, SIZE_T cb)
 	{
-		m_hrLastErr = m_pStream->Write(pSrc, cb, &m_cbLastReadWrite);
+		m_hrLastErr = m_pStream->Write(pSrc, (ULONG)cb, &m_cbLastReadWrite);
 		return *this;
 	}
 
@@ -74,9 +74,9 @@ struct CStreamWalker
 		return *this;
 	}
 
-	EckInline CStreamWalker& Read(void* pDst, ULONG cb)
+	EckInline CStreamWalker& Read(void* pDst, SIZE_T cb)
 	{
-		m_hrLastErr = m_pStream->Read(pDst, cb, &m_cbLastReadWrite);
+		m_hrLastErr = m_pStream->Read(pDst, (ULONG)cb, &m_cbLastReadWrite);
 		return *this;
 	}
 

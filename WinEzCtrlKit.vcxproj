@@ -179,6 +179,7 @@
     <ClInclude Include="eck\CDuiLabel.h" />
     <ClInclude Include="eck\CDuiList.h" />
     <ClInclude Include="eck\CDuiColorTheme.h" />
+    <ClInclude Include="eck\CDuiMenu.h" />
     <ClInclude Include="eck\CDuiScrollBar.h" />
     <ClInclude Include="eck\CDuiTrackBar.h" />
     <ClInclude Include="eck\CEditNcComp.h" />

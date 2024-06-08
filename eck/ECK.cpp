@@ -62,15 +62,15 @@ static void WINAPI GdiplusDebug(Gdiplus::DebugEventLevel dwLevel, CHAR* pszMsg)
 #endif
 
 #pragma region(UxTheme DarkMode Fixer)
-static EckPriv___::FOpenNcThemeData			s_pfnOpenNcThemeData{};
-static EckPriv___::FOpenThemeData			s_pfnOpenThemeData{ OpenThemeData };
-static EckPriv___::FDrawThemeText			s_pfnDrawThemeText{ DrawThemeText };
-static EckPriv___::FOpenThemeDataForDpi		s_pfnOpenThemeDataForDpi{ OpenThemeDataForDpi };
-static EckPriv___::FDrawThemeBackgroundEx	s_pfnDrawThemeBackgroundEx{ DrawThemeBackgroundEx };
-static EckPriv___::FDrawThemeBackground		s_pfnDrawThemeBackground{ DrawThemeBackground };
-static EckPriv___::FGetThemeColor			s_pfnGetThemeColor{ GetThemeColor };
-static EckPriv___::FCloseThemeData			s_pfnCloseThemeData{ CloseThemeData };
-static EckPriv___::FDrawThemeParentBackground s_pfnDrawThemeParentBackground{ DrawThemeParentBackground };
+static EckPriv::FOpenNcThemeData			s_pfnOpenNcThemeData{};
+static EckPriv::FOpenThemeData			s_pfnOpenThemeData{ OpenThemeData };
+static EckPriv::FDrawThemeText			s_pfnDrawThemeText{ DrawThemeText };
+static EckPriv::FOpenThemeDataForDpi		s_pfnOpenThemeDataForDpi{ OpenThemeDataForDpi };
+static EckPriv::FDrawThemeBackgroundEx	s_pfnDrawThemeBackgroundEx{ DrawThemeBackgroundEx };
+static EckPriv::FDrawThemeBackground		s_pfnDrawThemeBackground{ DrawThemeBackground };
+static EckPriv::FGetThemeColor			s_pfnGetThemeColor{ GetThemeColor };
+static EckPriv::FCloseThemeData			s_pfnCloseThemeData{ CloseThemeData };
+static EckPriv::FDrawThemeParentBackground s_pfnDrawThemeParentBackground{ DrawThemeParentBackground };
 
 static HRESULT WINAPI NewDrawThemeParentBackground(HWND hWnd, HDC hDC, const RECT* prc)
 {
@@ -101,7 +101,6 @@ static HTHEME WINAPI NewOpenNcThemeData(HWND hWnd, PCWSTR pszClassList)
 
 static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
 {
-	EckDbgPrint(pszClassList);
 	HTHEME hTheme;
 	if (ShouldAppUseDarkMode())
 	{
@@ -813,6 +812,8 @@ g_WndClassInfo[]
 	{ WCN_TREELIST },
 	{ WCN_COMBOBOXNEW },
 	{ WCN_PICTUREBOX },
+	{ WCN_DUIHOST },
+	{ WCN_DUIMENU },
 };
 
 InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrCode)
@@ -950,7 +951,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		}
 	}
 
-	using namespace EckPriv___;
+	using namespace EckPriv;
 	//////////////暗色模式支持、OS版本检测
 	const HMODULE hModUx = LoadLibraryW(L"UxTheme.dll");
 	*pdwErrCode = GetLastError();

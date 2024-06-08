@@ -1,4 +1,4 @@
-/*
+﻿/*
 * WinEzCtrlKit Library
 *
 * CPropertySheet.h ： 标准属性表
