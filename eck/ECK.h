@@ -56,7 +56,7 @@
 
 #define ECK_NAMESPACE_BEGIN			namespace eck {
 #define ECK_NAMESPACE_END			}
-#define ECK_PRIV_NAMESPACE_BEGIN	namespace EckPriv___ {
+#define ECK_PRIV_NAMESPACE_BEGIN	namespace EckPriv {
 #define ECK_PRIV_NAMESPACE_END		}
 
 ECK_NAMESPACE_BEGIN
@@ -489,6 +489,8 @@ constexpr inline PCWSTR WCN_ANIMATIONBOX = L"Eck.WndClass.AnimationBox";
 constexpr inline PCWSTR WCN_TREELIST = L"Eck.WndClass.TreeList";
 constexpr inline PCWSTR WCN_COMBOBOXNEW = L"Eck.WndClass.ComboBoxNew";
 constexpr inline PCWSTR WCN_PICTUREBOX = L"Eck.WndClass.PictureBox";
+constexpr inline PCWSTR WCN_DUIHOST = L"Eck.WndClass.DuiHost";
+constexpr inline PCWSTR WCN_DUIMENU = L"Eck.WndClass.DuiMenu";
 
 constexpr inline PCWSTR MSGREG_FORMTRAY = L"Eck.Message.FormTray";
 
@@ -755,7 +757,7 @@ void SetMsgFilter(FMsgFilter pfnFilter);
 
 EckInline void RtlGetNtVersionNumbers(DWORD* pdwMajor, DWORD* pdwMinor, DWORD* pdwBuild)
 {
-	EckPriv___::pfnRtlGetNtVersionNumbers(pdwMajor, pdwMinor, pdwBuild);
+	EckPriv::pfnRtlGetNtVersionNumbers(pdwMajor, pdwMinor, pdwBuild);
 }
 ECK_NAMESPACE_END
 

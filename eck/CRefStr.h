@@ -1043,6 +1043,15 @@ public:
 		return TCharTraits::Compare(Data(), psz, cch) == 0;
 	}
 
+	EckInline CRefStrT SubStr(int posStart, int cch) const
+	{
+		EckAssert(posStart >= 0 && posStart < Size());
+		if (cch < 0)
+			cch = Size() - posStart;
+		EckAssert(cch != 0 && posStart + cch <= Size());
+		return CRefStrT(Data() + posStart, cch);
+	}
+
 	[[nodiscard]] EckInline TIterator begin() { return Data(); }
 	[[nodiscard]] EckInline TIterator end() { return begin() + Size(); }
 	[[nodiscard]] EckInline TConstIterator begin() const { return Data(); }

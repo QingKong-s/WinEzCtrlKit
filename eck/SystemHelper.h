@@ -492,7 +492,7 @@ inline BOOL GetFileVerInfo(PCWSTR pszFile, FILEVERINFO& fvi)
 	return TRUE;
 }
 
-namespace EckPriv___
+namespace EckPriv
 {
 	template<class T>
 	EckInline constexpr INPUT KeyboardEventGetArg(T wVk)
@@ -517,7 +517,7 @@ template<class...T>
 /// <returns>SendInput的返回值</returns>
 inline UINT KeyboardEvent(T...wVk)
 {
-	INPUT Args[]{ EckPriv___::KeyboardEventGetArg(wVk)... };
+	INPUT Args[]{ EckPriv::KeyboardEventGetArg(wVk)... };
 	INPUT input[ARRAYSIZE(Args) * 2];
 	memcpy(input, Args, sizeof(Args));
 	for (auto& e : Args)
@@ -791,7 +791,7 @@ inline CRefStrW FormatDateTime(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlag
 	return rs;
 }
 
-namespace EckPriv___
+namespace EckPriv
 {
 	inline void IntEnumFileRecurse(CRefStrW& rs, int cchDir, PCWSTR pszPat,
 		std::vector<CRefStrW>& vResult, WIN32_FIND_DATAW* pwfd)
@@ -875,7 +875,7 @@ inline BOOL EnumFileRecurse(PCWSTR pszPath, PCWSTR pszFilePat, std::vector<CRefS
 	const int cchDir = rs.Size();
 	rs += pszFilePat;
 	WIN32_FIND_DATAW wfd{};
-	EckPriv___::IntEnumFileRecurse(rs, cchDir, pszFilePat, vResult, &wfd);
+	EckPriv::IntEnumFileRecurse(rs, cchDir, pszFilePat, vResult, &wfd);
 	return TRUE;
 }
 

@@ -522,21 +522,21 @@ EckInline void BroadcastChildrenMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 EckInline BOOL AllowDarkModeForWindow(HWND hWnd, BOOL bAllow)
 {
 #ifdef ECK_MACRO_DRAKMODE
-	return EckPriv___::pfnAllowDarkModeForWindow(hWnd, bAllow);
+	return EckPriv::pfnAllowDarkModeForWindow(hWnd, bAllow);
 #else
-	if (EckPriv___::pfnAllowDarkModeForWindow)
-		return EckPriv___::pfnAllowDarkModeForWindow(hWnd, bAllow);
+	if (EckPriv::pfnAllowDarkModeForWindow)
+		return EckPriv::pfnAllowDarkModeForWindow(hWnd, bAllow);
 	return FALSE;
 #endif
 }
 
 EckInline PreferredAppMode SetPreferredAppMode(PreferredAppMode iMode)
 {
-	if (EckPriv___::pfnSetPreferredAppMode)
-		return EckPriv___::pfnSetPreferredAppMode(iMode);
-	else if (EckPriv___::pfnAllowDarkModeForApp)
+	if (EckPriv::pfnSetPreferredAppMode)
+		return EckPriv::pfnSetPreferredAppMode(iMode);
+	else if (EckPriv::pfnAllowDarkModeForApp)
 	{
-		EckPriv___::pfnAllowDarkModeForApp(
+		EckPriv::pfnAllowDarkModeForApp(
 			iMode == PreferredAppMode::AllowDark || iMode == PreferredAppMode::ForceDark);
 		return PreferredAppMode::Default;
 	}
@@ -546,10 +546,10 @@ EckInline PreferredAppMode SetPreferredAppMode(PreferredAppMode iMode)
 EckInline BOOL IsDarkModeAllowedForWindow(HWND hWnd)
 {
 #ifdef ECK_MACRO_DRAKMODE
-	return EckPriv___::pfnIsDarkModeAllowedForWindow(hWnd);
+	return EckPriv::pfnIsDarkModeAllowedForWindow(hWnd);
 #else
-	if (EckPriv___::pfnIsDarkModeAllowedForWindow)
-		return EckPriv___::pfnIsDarkModeAllowedForWindow(hWnd);
+	if (EckPriv::pfnIsDarkModeAllowedForWindow)
+		return EckPriv::pfnIsDarkModeAllowedForWindow(hWnd);
 	return FALSE;
 #endif
 }
@@ -557,10 +557,10 @@ EckInline BOOL IsDarkModeAllowedForWindow(HWND hWnd)
 EckInline BOOL ShouldAppUseDarkMode()
 {
 #ifdef ECK_MACRO_DRAKMODE
-	return EckPriv___::pfnShouldAppsUseDarkMode();
+	return EckPriv::pfnShouldAppsUseDarkMode();
 #else
-	if (EckPriv___::pfnShouldAppsUseDarkMode)
-		return EckPriv___::pfnShouldAppsUseDarkMode();
+	if (EckPriv::pfnShouldAppsUseDarkMode)
+		return EckPriv::pfnShouldAppsUseDarkMode();
 	return FALSE;
 #endif
 }
@@ -568,30 +568,30 @@ EckInline BOOL ShouldAppUseDarkMode()
 EckInline void FlushMenuTheme()
 {
 #ifdef ECK_MACRO_DRAKMODE
-	EckPriv___::pfnFlushMenuThemes();
+	EckPriv::pfnFlushMenuThemes();
 #else
-	if (EckPriv___::pfnFlushMenuThemes)
-		EckPriv___::pfnFlushMenuThemes();
+	if (EckPriv::pfnFlushMenuThemes)
+		EckPriv::pfnFlushMenuThemes();
 #endif
 }
 
 EckInline void RefreshImmersiveColorPolicyState()
 {
 #ifdef ECK_MACRO_DRAKMODE
-	EckPriv___::pfnRefreshImmersiveColorPolicyState();
+	EckPriv::pfnRefreshImmersiveColorPolicyState();
 #else
-	if (EckPriv___::pfnRefreshImmersiveColorPolicyState)
-		EckPriv___::pfnRefreshImmersiveColorPolicyState();
+	if (EckPriv::pfnRefreshImmersiveColorPolicyState)
+		EckPriv::pfnRefreshImmersiveColorPolicyState();
 #endif
 }
 
 EckInline BOOL GetIsImmersiveColorUsingHighContrast(IMMERSIVE_HC_CACHE_MODE iCacheMode)
 {
 #ifdef ECK_MACRO_DRAKMODE
-	return EckPriv___::pfnGetIsImmersiveColorUsingHighContrast(iCacheMode);
+	return EckPriv::pfnGetIsImmersiveColorUsingHighContrast(iCacheMode);
 #else
-	if (EckPriv___::pfnGetIsImmersiveColorUsingHighContrast)
-		return EckPriv___::pfnGetIsImmersiveColorUsingHighContrast(iCacheMode);
+	if (EckPriv::pfnGetIsImmersiveColorUsingHighContrast)
+		return EckPriv::pfnGetIsImmersiveColorUsingHighContrast(iCacheMode);
 	return FALSE;
 #endif
 }
@@ -599,10 +599,10 @@ EckInline BOOL GetIsImmersiveColorUsingHighContrast(IMMERSIVE_HC_CACHE_MODE iCac
 EckInline BOOL ShouldSystemUseDarkMode()
 {
 #ifdef ECK_MACRO_DRAKMODE
-	return EckPriv___::pfnShouldSystemUseDarkMode();
+	return EckPriv::pfnShouldSystemUseDarkMode();
 #else
-	if (EckPriv___::pfnShouldSystemUseDarkMode)
-		return EckPriv___::pfnShouldSystemUseDarkMode();
+	if (EckPriv::pfnShouldSystemUseDarkMode)
+		return EckPriv::pfnShouldSystemUseDarkMode();
 	return FALSE;
 #endif
 }
@@ -610,10 +610,10 @@ EckInline BOOL ShouldSystemUseDarkMode()
 EckInline BOOL IsDarkModeAllowedForApp()
 {
 #ifdef ECK_MACRO_DRAKMODE
-	return EckPriv___::pfnIsDarkModeAllowedForApp();
+	return EckPriv::pfnIsDarkModeAllowedForApp();
 #else
-	if (EckPriv___::pfnIsDarkModeAllowedForApp)
-		return EckPriv___::pfnIsDarkModeAllowedForApp();
+	if (EckPriv::pfnIsDarkModeAllowedForApp)
+		return EckPriv::pfnIsDarkModeAllowedForApp();
 	return FALSE;
 #endif
 }
@@ -625,7 +625,7 @@ EckInline HRESULT EnableWindowNcDarkMode(HWND hWnd, BOOL bAllow)
 	else
 	{
 		WINDOWCOMPOSITIONATTRIBDATA t{ WCA_USEDARKMODECOLORS, &bAllow, sizeof(bAllow) };
-		return EckPriv___::pfnSetWindowCompositionAttribute(hWnd, &t) ? S_OK : E_FAIL;
+		return EckPriv::pfnSetWindowCompositionAttribute(hWnd, &t) ? S_OK : E_FAIL;
 	}
 }
 
