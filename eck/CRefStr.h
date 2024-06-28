@@ -1872,7 +1872,7 @@ ECK_NAMESPACE_END
 template<class TChar, class TCharTraits, class TAlloc>
 struct std::hash<::eck::CRefStrT<TChar, TCharTraits, TAlloc>>
 {
-	[[nodiscard]] EckInline size_t operator()(
+	[[nodiscard]] EckInline constexpr size_t operator()(
 		const ::eck::CRefStrT<TChar, TCharTraits, TAlloc>& rs) const noexcept
 	{
 		return ::eck::Fnv1aHash((::eck::PCBYTE)rs.Data(), rs.Size() * sizeof(TChar));

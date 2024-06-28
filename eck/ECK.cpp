@@ -62,12 +62,12 @@ static void WINAPI GdiplusDebug(Gdiplus::DebugEventLevel dwLevel, CHAR* pszMsg)
 #endif
 
 #pragma region(UxTheme DarkMode Fixer)
-static EckPriv::FOpenNcThemeData			s_pfnOpenNcThemeData{};
+static EckPriv::FOpenNcThemeData		s_pfnOpenNcThemeData{};
 static EckPriv::FOpenThemeData			s_pfnOpenThemeData{ OpenThemeData };
 static EckPriv::FDrawThemeText			s_pfnDrawThemeText{ DrawThemeText };
-static EckPriv::FOpenThemeDataForDpi		s_pfnOpenThemeDataForDpi{ OpenThemeDataForDpi };
+static EckPriv::FOpenThemeDataForDpi	s_pfnOpenThemeDataForDpi{ OpenThemeDataForDpi };
 static EckPriv::FDrawThemeBackgroundEx	s_pfnDrawThemeBackgroundEx{ DrawThemeBackgroundEx };
-static EckPriv::FDrawThemeBackground		s_pfnDrawThemeBackground{ DrawThemeBackground };
+static EckPriv::FDrawThemeBackground	s_pfnDrawThemeBackground{ DrawThemeBackground };
 static EckPriv::FGetThemeColor			s_pfnGetThemeColor{ GetThemeColor };
 static EckPriv::FCloseThemeData			s_pfnCloseThemeData{ CloseThemeData };
 static EckPriv::FDrawThemeParentBackground s_pfnDrawThemeParentBackground{ DrawThemeParentBackground };

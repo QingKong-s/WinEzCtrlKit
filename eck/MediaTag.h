@@ -1970,7 +1970,7 @@ private:
 					isalnum(ch[0]) && isalnum(ch[1]) && isalnum(ch[2]) && isalnum(ch[3]);
 			};
 
-		posEnd = std::min(posEnd, m_Stream.GetSize().QuadPart);
+		posEnd = std::min(posEnd, (SIZE_T)m_Stream.GetSize().QuadPart);
 		ID3v2_FrameHeader FrameHdr;
 		while (m_Stream.GetPos() < posEnd)
 		{
@@ -2292,7 +2292,7 @@ private:
 					delete p;
 					return Result::LenErr;
 				}
-				w.ReadRev(&p->cPlay, std::min(cb, (DWORD)8u));// 截断到8字节
+				w.ReadRev(&p->cPlay, std::min(cb, 8ul));// 截断到8字节
 
 				m_vFrame.push_back(p);
 			}

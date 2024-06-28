@@ -21,9 +21,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="targetver.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="Resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -189,9 +186,6 @@
     <ClInclude Include="eck\GraphicsHelper.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="CTestWnd.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CFlowLayout.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
@@ -354,11 +348,17 @@
     <ClInclude Include="eck\CDuiMenu.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="CTestWnd.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CBitSet.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Win32Template.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="eck\ECK.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
@@ -367,6 +367,9 @@
     </ClCompile>
     <ClCompile Include="eck\DesignerDef.cpp">
       <Filter>ECK Src</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

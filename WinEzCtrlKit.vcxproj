@@ -162,6 +162,7 @@
     <ClInclude Include="CTestWnd.h" />
     <ClInclude Include="eck\CAllocator.h" />
     <ClInclude Include="eck\CArray.h" />
+    <ClInclude Include="eck\CBitSet.h" />
     <ClInclude Include="eck\CBk.h" />
     <ClInclude Include="eck\CColorPickBlock.h" />
     <ClInclude Include="eck\CComboBox.h" />
@@ -275,7 +276,7 @@
     <ClCompile Include="eck\CScrollBar.h" />
     <ClCompile Include="eck\DesignerDef.cpp" />
     <ClCompile Include="eck\ECK.cpp" />
-    <ClCompile Include="Win32Template.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Win32Template.rc" />
