@@ -5,7 +5,6 @@
 *
 * Copyright(C) 2023-2024 QingKong
 */
-
 #pragma once
 #include "ECK.h"
 
@@ -984,5 +983,29 @@ EckInline constexpr void ArrAssign(T(&x1)[N], const T(&x2)[N])
 {
 	EckCounter(N, i)
 		x1[i] = x2[i];
+}
+
+template<ccpIsInteger T>
+EckInline constexpr T GetLowNBits(T x, size_t n)
+{
+	return x & ((T{ 1 } << n) - T{ 1 });
+}
+
+template<ccpIsInteger T>
+EckInline constexpr T GetHighNBits(T x, size_t n)
+{
+	return (x >> n) & ((T{ 1 } << n) - T{ 1 });
+}
+
+template<ccpIsInteger T>
+EckInline constexpr T ClearLowNBits(T x, size_t n)
+{
+	return x & ~((T{ 1 } << n) - T{ 1 });
+}
+
+template<ccpIsInteger T>
+EckInline constexpr T ClearHighNBits(T x, size_t n)
+{
+	return x & ((T{ 1 } << (sizeof(T) * 8 - n)) - T{ 1 });
 }
 ECK_NAMESPACE_END

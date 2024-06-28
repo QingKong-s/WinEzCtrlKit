@@ -424,7 +424,6 @@ struct WINDOWCOMPOSITIONATTRIBDATA
 
 ECK_PRIV_NAMESPACE_BEGIN
 using FRtlGetNtVersionNumbers = void(WINAPI*)(DWORD*, DWORD*, DWORD*);
-
 using FSetWindowCompositionAttribute = BOOL(WINAPI*)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
 
 // UxTheme

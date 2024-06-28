@@ -170,7 +170,7 @@ public:
 	/// <param name="rb">字节集</param>
 	EckInline void SerializeData(CRefBin& rb)
 	{
-		auto pHeader = rb.PushBack<DATAHEADER>();
+		const auto pHeader = rb.PushBack<DATAHEADER>();
 		pHeader->iVer = c_DataVer1;
 		pHeader->cItem = GetItemCount();
 		ForMenuItemSave(rb, m_hMenu);
