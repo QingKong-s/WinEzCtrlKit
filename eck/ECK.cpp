@@ -1331,6 +1331,8 @@ void ECKTHREADCTX::UpdateDefColor()
 
 void ECKTHREADCTX::OnThemeOpen(HTHEME hTheme, PCWSTR pszClassList)
 {
+	if (!hTheme)
+		return;
 	if (wcsstr(pszClassList, L"Button"))
 		++hsButtonTheme[hTheme];
 	else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 ||

@@ -7,17 +7,14 @@
 */
 #pragma once
 #include "Utility.h"
-#include "MathHelper.h"
 #include "CStreamView.h"
 #include "CRefBinStream.h"
-
-#include <execution>
-#include <unordered_map>
-
-#include <DirectXMath.h>
-#include <dxgi1_2.h>
+#include "ComPtr.h"
 
 ECK_NAMESPACE_BEGIN
+// 32bppBGRA
+constexpr inline GUID DefWicPixelFormat
+	ECK_GUID(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x0f);
 
 /// <summary>
 /// 从字节流创建HBITMAP
@@ -106,7 +103,7 @@ inline HICON CreateHICON(PCVOID pData, SIZE_T cbData)
 {
 	HICON hIcon;
 	GpBitmap* pBitmap;
-	auto pStream = new CStreamView(pData, cbData);
+	const auto pStream = new CStreamView(pData, cbData);
 
 	if (GdipCreateBitmapFromStream(pStream, &pBitmap) != Gdiplus::Ok)
 	{
@@ -182,126 +179,18 @@ inline HICON CreateHICON(IWICBitmap* pBmp, HBITMAP hbmMask = NULL)
 	return hIcon;
 }
 
-/// <summary>
-/// 创建WIC位图
-/// </summary>
-/// <param name="vResult">各帧位图</param>
-/// <param name="pDecoder">解码器</param>
-/// <param name="pWicFactory">WIC工厂</param>
-/// <returns>成功返回S_OK，失败返回错误代码</returns>
-inline HRESULT CreateWicBitmap(std::vector<IWICBitmap*>& vResult,
-	IWICBitmapDecoder* pDecoder, IWICImagingFactory* pWicFactory)
+inline HRESULT ScaleWicBitmap(IWICBitmapSource* pSrc, IWICBitmap*& pDst, int cx, int cy,
+	WICBitmapInterpolationMode eInterMode = WICBitmapInterpolationModeLinear)
 {
-	vResult.clear();
+	pDst = NULL;
+	ComPtr<IWICBitmapScaler> pScaler;
 	HRESULT hr;
-	IWICBitmapFrameDecode* pFrameDecoder;
-	IWICFormatConverter* pConverter;
-
-	UINT cFrame;
-	pDecoder->GetFrameCount(&cFrame);
-	vResult.resize(cFrame);
-	EckCounter(cFrame, i)
-	{
-		hr = pDecoder->GetFrame(i, &pFrameDecoder);
-		if (FAILED(hr))
-		{
-			EckDbgPrintFormatMessage(hr);
-			return hr;
-		}
-
-		hr = pWicFactory->CreateFormatConverter(&pConverter);
-		if (FAILED(hr))
-		{
-			EckDbgPrintFormatMessage(hr);
-			return hr;
-		}
-
-		hr = pConverter->Initialize(pFrameDecoder, GUID_WICPixelFormat32bppPBGRA,
-			WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeMedianCut);
-		if (FAILED(hr))
-		{
-			EckDbgPrintFormatMessage(hr);
-			return hr;
-		}
-
-		IWICBitmap* pWicBitmap;
-		hr = pWicFactory->CreateBitmapFromSource(pConverter, WICBitmapNoCache, &pWicBitmap);
-		if (FAILED(hr))
-		{
-			EckDbgPrintFormatMessage(hr);
-			return hr;
-		}
-
-		pConverter->Release();
-		vResult[i] = pWicBitmap;
-		pFrameDecoder->Release();
-	}
-
-	return S_OK;
-}
-
-inline HRESULT CreateWicBitmap(IWICBitmap*& pBmp, IWICBitmapDecoder* pDecoder, 
-	int cxNew = -1, int cyNew = -1, const GUID& guidFmt = GUID_WICPixelFormat32bppPBGRA)
-{
-	HRESULT hr;
-	IWICBitmapFrameDecode* pFrameDecoder;
-	IWICFormatConverter* pConverter;
-
-	hr = pDecoder->GetFrame(0, &pFrameDecoder);
-	if (FAILED(hr))
-	{
-		EckDbgPrintFormatMessage(hr);
+	if (FAILED(hr = g_pWicFactory->CreateBitmapScaler(&pScaler)))
 		return hr;
-	}
-
-	hr = g_pWicFactory->CreateFormatConverter(&pConverter);
-	if (FAILED(hr))
-	{
-		EckDbgPrintFormatMessage(hr);
+	if (FAILED(hr = pScaler->Initialize(pSrc, cx, cy, eInterMode)))
 		return hr;
-	}
-
-	hr = pConverter->Initialize(pFrameDecoder, guidFmt,
-		WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeMedianCut);
-	if (FAILED(hr))
-	{
-		EckDbgPrintFormatMessage(hr);
-		return hr;
-	}
-
-	IWICBitmapSource* pSrc = pConverter;
-	IWICBitmapScaler* pScaler = NULL;
-	if (cxNew > 0 && cyNew > 0)
-	{
-		hr = g_pWicFactory->CreateBitmapScaler(&pScaler);
-		if (FAILED(hr))
-		{
-			EckDbgPrintFormatMessage(hr);
-			return hr;
-		}
-
-		hr = pScaler->Initialize(pConverter, cxNew, cyNew, WICBitmapInterpolationModeFant);
-		if (FAILED(hr))
-		{
-			EckDbgPrintFormatMessage(hr);
-			return hr;
-		}
-
-		pSrc = pScaler;
-	}
-
-	hr = g_pWicFactory->CreateBitmapFromSource(pSrc, WICBitmapNoCache, &pBmp);
-	if (FAILED(hr))
-	{
-		EckDbgPrintFormatMessage(hr);
-		return hr;
-	}
-
-	if (pScaler)
-		pScaler->Release();
-	pConverter->Release();
-	pFrameDecoder->Release();
-	return S_OK;
+	return g_pWicFactory->CreateBitmapFromSource(pScaler.Get(),
+		WICBitmapNoCache, &pDst);
 }
 
 /// <summary>
@@ -312,7 +201,6 @@ inline HRESULT CreateWicBitmap(IWICBitmap*& pBmp, IWICBitmapDecoder* pDecoder,
 /// <returns>成功返回S_OK，失败返回错误代码</returns>
 EckInline HRESULT CreateWicBitmapDecoder(PCWSTR pszFile, IWICBitmapDecoder*& pDecoder)
 {
-	pDecoder = NULL;
 	return g_pWicFactory->CreateDecoderFromFilename(pszFile, NULL, GENERIC_READ,
 		WICDecodeMetadataCacheOnDemand, &pDecoder);
 }
@@ -327,119 +215,117 @@ EckInline HRESULT CreateWicBitmapDecoder(PCWSTR pszFile, IWICBitmapDecoder*& pDe
 EckInline HRESULT CreateWicBitmapDecoder(IStream* pStream,
 	IWICBitmapDecoder*& pDecoder)
 {
-	pDecoder = NULL;
 	return g_pWicFactory->CreateDecoderFromStream(pStream, NULL,
 		WICDecodeMetadataCacheOnDemand, &pDecoder);
 }
 
-inline HRESULT ScaleWicBitmap(IWICBitmap* pSrc, IWICBitmap*& pDst, int cx, int cy,
-	WICBitmapInterpolationMode iInterMode = WICBitmapInterpolationModeLinear)
+/// <summary>
+/// 创建WIC位图
+/// </summary>
+/// <param name="vResult">各帧位图</param>
+/// <param name="pDecoder">解码器</param>
+/// <param name="pWicFactory">WIC工厂</param>
+/// <returns>成功返回S_OK，失败返回错误代码</returns>
+inline HRESULT CreateWicBitmap(std::vector<IWICBitmap*>& vResult,
+	IWICBitmapDecoder* pDecoder,const GUID& guidFmt = GUID_WICPixelFormat32bppBGRA)
 {
-	pDst = NULL;
-	IWICBitmapScaler* pScaler;
-	HRESULT hr = g_pWicFactory->CreateBitmapScaler(&pScaler);
-	if (FAILED(hr))
+	HRESULT hr;
+	UINT cFrame;
+	pDecoder->GetFrameCount(&cFrame);
+	vResult.resize(cFrame);
+	GUID guidSrcFmt;
+	EckCounter(cFrame, i)
 	{
-		EckDbgPrintFormatMessage(hr);
-		return hr;
+		ComPtr<IWICBitmapFrameDecode> pFrameDecoder;
+		if (FAILED(hr = pDecoder->GetFrame(i, &pFrameDecoder)))
+			return hr;
+		pFrameDecoder->GetPixelFormat(&guidSrcFmt);
+		if (guidSrcFmt == guidFmt)
+		{
+			hr = g_pWicFactory->CreateBitmapFromSource(pFrameDecoder.Get(), WICBitmapNoCache, &vResult[i]);
+			if (FAILED(hr))
+				return hr;
+		}
+		else
+		{
+			ComPtr<IWICFormatConverter> pConverter;
+			if (FAILED(hr = g_pWicFactory->CreateFormatConverter(&pConverter)))
+				return hr;
+			hr = pConverter->Initialize(pFrameDecoder.Get(), guidFmt,
+				WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeMedianCut);
+			if (FAILED(hr))
+				return hr;
+			hr = g_pWicFactory->CreateBitmapFromSource(pConverter.Get(), WICBitmapNoCache, &vResult[i]);
+			if (FAILED(hr))
+				return hr;
+		}
 	}
-
-	hr = pScaler->Initialize(pSrc, cx, cy, iInterMode);
-	if (FAILED(hr))
-	{
-		EckDbgPrintFormatMessage(hr);
-		pScaler->Release();
-		return hr;
-	}
-
-	hr = g_pWicFactory->CreateBitmapFromSource(pScaler, WICBitmapNoCache, &pDst);
-	if (FAILED(hr))
-	{
-		EckDbgPrintFormatMessage(hr);
-		pScaler->Release();
-		return hr;
-	}
-
-	pScaler->Release();
 	return S_OK;
 }
 
-struct ICONDIRENTRY
+inline HRESULT CreateWicBitmap(IWICBitmap*& pBmp, IWICBitmapDecoder* pDecoder,
+	int cxNew = -1, int cyNew = -1, const GUID& guidFmt = DefWicPixelFormat,
+	WICBitmapInterpolationMode eInterMode = WICBitmapInterpolationModeLinear)
 {
-	BYTE  bWidth;          // Width, in pixels, of the image
-	BYTE  bHeight;         // Height, in pixels, of the image
-	BYTE  bColorCount;     // Number of colors in image (0 if >=8bpp)
-	BYTE  bReserved;       // Reserved ( must be 0)
-	WORD  wPlanes;         // Color Planes
-	WORD  wBitCount;       // Bits per pixel
-	DWORD dwBytesInRes;    // How many bytes in this resource?
-	DWORD dwImageOffset;   // Where in the file is this image?
-};
+	HRESULT hr;
+	GUID guidSrcFmt;
+	ComPtr<IWICBitmapFrameDecode> pFrameDecoder;
+	ComPtr<IWICFormatConverter> pConverter;
+	if (FAILED(hr = pDecoder->GetFrame(0, &pFrameDecoder)))
+		return hr;
+	if (FAILED(hr = g_pWicFactory->CreateFormatConverter(&pConverter)))
+		return hr;
+	pFrameDecoder->GetPixelFormat(&guidSrcFmt);
+	ComPtr<IWICBitmapSource> pSrc;
+	if (guidSrcFmt == guidFmt)
+		pSrc = pFrameDecoder;
+	else
+	{
+		ComPtr<IWICFormatConverter> pConverter;
+		if (FAILED(hr = g_pWicFactory->CreateFormatConverter(&pConverter)))
+			return hr;
+		hr = pConverter->Initialize(pFrameDecoder.Get(), guidFmt,
+			WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeMedianCut);
+		if (FAILED(hr))
+			return hr;
+		pSrc = pConverter;
+	}
 
-struct ICONDIR
+	if (cxNew > 0 && cyNew > 0)
+		return ScaleWicBitmap(pSrc.Get(), pBmp, cxNew, cyNew, eInterMode);
+	else
+		return g_pWicFactory->CreateBitmapFromSource(pSrc.Get(), WICBitmapNoCache, &pBmp);
+}
+
+inline HRESULT CreateWicBitmap(IWICBitmap*& pBmp, PCWSTR psz,
+	int cxNew = -1, int cyNew = -1, const GUID& guidFmt = DefWicPixelFormat,
+	WICBitmapInterpolationMode eInterMode = WICBitmapInterpolationModeLinear)
 {
-	WORD         idReserved;   // Reserved (must be 0)
-	WORD         idType;       // Resource Type (1 for icons)
-	WORD         idCount;      // How many images?
-	// ICONDIRENTRY idEntries[1]; // An entry for each image (idCount of 'em)
-};
+	IWICBitmapDecoder* pDecoder;
+	HRESULT hr = CreateWicBitmapDecoder(psz, pDecoder);
+	if (FAILED(hr))
+		return hr;
+	hr = CreateWicBitmap(pBmp, pDecoder, cxNew, cyNew, guidFmt, eInterMode);
+	pDecoder->Release();
+	return hr;
+}
 
-class CIcoFileReader
+inline HRESULT CreateWicBitmap(IWICBitmap*& pBmp, IStream* pStream,
+	int cxNew = -1, int cyNew = -1, const GUID& guidFmt = DefWicPixelFormat,
+	WICBitmapInterpolationMode eInterMode = WICBitmapInterpolationModeLinear)
 {
-private:
-	PCBYTE m_pData = NULL;
-	const ICONDIR* m_pHeader = NULL;
-	const ICONDIRENTRY* m_pEntry = NULL;
-public:
-	EckInline int AnalyzeData(PCBYTE pData)
-	{
-		m_pData = pData;
-		m_pHeader = (ICONDIR*)pData;
-		m_pEntry = (ICONDIRENTRY*)(pData + sizeof(ICONDIR));
-		return m_pHeader->idCount;
-	}
-
-	EckInline auto GetHeader() const { return m_pHeader; }
-
-	EckInline auto GetEntry() const { return m_pEntry; }
-
-	EckInline PCVOID GetIconData(int idx) const
-	{
-		EckAssert(idx >= 0 && idx < GetIconCount());
-		return m_pData + m_pEntry[idx].dwImageOffset;
-	}
-
-	EckInline DWORD GetIconDataSize(int idx) const
-	{
-		EckAssert(idx >= 0 && idx < GetIconCount());
-		return m_pEntry[idx].dwBytesInRes;
-	}
-
-	EckInline int GetIconCount() const { return m_pHeader->idCount; }
-
-	EckInline int FindIcon(int cx, int cy) const
-	{
-		EckCounter(GetIconCount(), i)
-		{
-			if (m_pEntry[i].bWidth == cx && m_pEntry[i].bHeight == cy)
-				return i;
-		}
-		return -1;
-	}
-
-	EckInline HICON CreateHICON(int idx, int cx = 0, int cy = 0, UINT uFlags = 0u) const
-	{
-		EckAssert(idx >= 0 && idx < GetIconCount());
-		return CreateIconFromResourceEx((BYTE*)GetIconData(idx), GetIconDataSize(idx),
-			TRUE, 0x00030000, cx, cy, uFlags);
-	}
-
-	auto At(int idx) const { EckAssert(idx >= 0 && idx < GetIconCount()); return m_pEntry + idx; }
-};
+	IWICBitmapDecoder* pDecoder;
+	HRESULT hr = CreateWicBitmapDecoder(pStream, pDecoder);
+	if (FAILED(hr))
+		return hr;
+	hr = CreateWicBitmap(pBmp, pDecoder, cxNew, cyNew, guidFmt, eInterMode);
+	pDecoder->Release();
+	return hr;
+}
 
 EckInline WORD GetPaletteEntryCount(HPALETTE hPalette)
 {
-	WORD w = 0;
+	WORD w{};
 	GetObjectW(hPalette, sizeof(w), &w);
 	return w;
 }
@@ -449,12 +335,9 @@ class CDib
 private:
 	HBITMAP m_hBitmap = NULL;
 public:
-	CDib() = default;
-	CDib(const CDib&) = delete;
-	CDib& operator=(const CDib&) = delete;
+	ECK_DISABLE_COPY_DEF_CONS(CDib);
 
-	CDib(CDib&& x) noexcept
-		:m_hBitmap{ x.m_hBitmap } {}
+	CDib(CDib&& x) noexcept :m_hBitmap{ x.m_hBitmap } {}
 	CDib& operator=(CDib&& x) noexcept { m_hBitmap = x.m_hBitmap; }
 
 	~CDib() { Destroy(); }
@@ -663,8 +546,8 @@ public:
 		GetObjectW(m_hBitmap, sizeof(ds), &ds);
 		const size_t cbTotal = GetBmpDataSize();
 		CRefBin rb(cbTotal);
-		auto pfh = (BITMAPFILEHEADER*)rb.Data();
-		auto pih = (BITMAPINFOHEADER*)(pfh + 1);
+		const auto pfh = (BITMAPFILEHEADER*)rb.Data();
+		const auto pih = (BITMAPINFOHEADER*)(pfh + 1);
 		// 制文件头
 		pfh->bfType = 0x4D42;// BM
 		pfh->bfSize = (DWORD)cbTotal;
@@ -701,13 +584,18 @@ public:
 		m_hBitmap = NULL;
 	}
 
-	EckInline HBITMAP Attach(HBITMAP hBitmap)
+	EckInline void Attach(HBITMAP hBitmap)
 	{
-		std::swap(m_hBitmap, hBitmap);
-		return hBitmap;
+		DeleteObject(m_hBitmap);
+		m_hBitmap = hBitmap;
 	}
 
-	[[nodiscard]] EckInline HBITMAP Detach() { return Attach(NULL); }
+	[[nodiscard]] EckInline HBITMAP Detach()
+	{
+		HBITMAP hBitmap = m_hBitmap;
+		m_hBitmap = NULL;
+		return hBitmap;
+	}
 };
 
 enum class ImageType
@@ -762,7 +650,7 @@ inline Gdiplus::GpStatus GetGpEncoderClsid(PCWSTR pszType, CLSID& clsid)
 	UINT cEncoders, cbEncoders;
 	if ((gps = GdipGetImageEncodersSize(&cEncoders, &cbEncoders)) != Gdiplus::Ok)
 		return gps;
-	auto pEncoders = (Gdiplus::ImageCodecInfo*)malloc(cbEncoders);
+	const auto pEncoders = (Gdiplus::ImageCodecInfo*)malloc(cbEncoders);
 	EckAssert(pEncoders);
 	if ((gps = GdipGetImageEncoders(cEncoders, cbEncoders, pEncoders)) != Gdiplus::Ok)
 	{
@@ -784,7 +672,7 @@ inline Gdiplus::GpStatus GetGpEncoderClsid(PCWSTR pszType, CLSID& clsid)
 	return Gdiplus::UnknownImageFormat;
 }
 
-EckInline GUID GetWicEncoderGuid(ImageType iType)
+EckInline const GUID& GetWicEncoderGuid(ImageType iType)
 {
 	return c_guidWicEncoder[(int)iType];
 }
@@ -792,33 +680,23 @@ EckInline GUID GetWicEncoderGuid(ImageType iType)
 inline HRESULT SaveWicBitmap(IStream* pStream, IWICBitmap* pBitmap, ImageType iType = ImageType::Png)
 {
 	HRESULT hr;
-	GUID guid = GetWicEncoderGuid(iType);
-	IWICBitmapEncoder* pEncoder;
-	if (FAILED(hr = g_pWicFactory->CreateEncoder(guid, NULL, &pEncoder)))
+	ComPtr<IWICBitmapEncoder> pEncoder;
+	if (FAILED(hr = g_pWicFactory->CreateEncoder(GetWicEncoderGuid(iType), NULL, &pEncoder)))
 		return hr;
-	pEncoder->Initialize(pStream, WICBitmapEncoderNoCache);
-	IWICBitmapFrameEncode* pFrame;
-	IPropertyBag2* pPropBag;
+	if (FAILED(hr = pEncoder->Initialize(pStream, WICBitmapEncoderNoCache)))
+		return hr;
+	ComPtr<IWICBitmapFrameEncode> pFrame;
 #pragma warning(suppress:6001)// 使用未初始化的内存
-	if (FAILED(hr = pEncoder->CreateNewFrame(&pFrame, &pPropBag)))
-	{
-		pEncoder->Release();
+	if (FAILED(hr = pEncoder->CreateNewFrame(&pFrame, NULL)))
 		return hr;
-	}
-
-	if (FAILED(hr = pFrame->Initialize(pPropBag)))
-	{
-		pFrame->Release();
-		pEncoder->Release();
-		pPropBag->Release();
+	if (FAILED(hr = pFrame->Initialize(NULL)))
 		return hr;
-	}
 	// 尺寸
 	UINT cx, cy;
 	pBitmap->GetSize(&cx, &cy);
 	pFrame->SetSize(cx, cy);
 	// 像素格式
-	WICPixelFormatGUID guidFmt;
+	GUID guidFmt;
 	pBitmap->GetPixelFormat(&guidFmt);
 	pFrame->SetPixelFormat(&guidFmt);
 	// 分辨率
@@ -827,10 +705,10 @@ inline HRESULT SaveWicBitmap(IStream* pStream, IWICBitmap* pBitmap, ImageType iT
 	pFrame->SetResolution(xDpi, yDpi);
 
 	const WICRect rc{ 0,0,(int)cx,(int)cy };
-	IWICBitmapLock* pLock;
+	ComPtr<IWICBitmapLock> pLock;
 	if (FAILED(hr = pBitmap->Lock(&rc, WICBitmapLockRead, &pLock)))// 取位图锁
-		goto Exit1;
-
+		return hr;
+	// 取跨步
 	UINT uStride;
 	pLock->GetStride(&uStride);
 
@@ -840,48 +718,33 @@ inline HRESULT SaveWicBitmap(IStream* pStream, IWICBitmap* pBitmap, ImageType iT
 	if (iAptType == APTTYPE_MTA)// 多线程套间无法使用位图锁读取数据
 	{
 		const auto cbBuf = cy * uStride;
-		auto pData = VirtualAlloc(NULL, cbBuf, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-		EckAssert(pData);
-		if (FAILED(hr = pBitmap->CopyPixels(NULL, uStride, cbBuf, (BYTE*)pData)))
-		{
-			VirtualFree(pData, 0, MEM_RELEASE);
-			goto Exit;
-		}
-		if (FAILED(hr = pFrame->WritePixels(cy, uStride, cbBuf, (BYTE*)pData)))// 写入
-		{
-			VirtualFree(pData, 0, MEM_RELEASE);
-			goto Exit;
-		}
-		VirtualFree(pData, 0, MEM_RELEASE);
+		UniquePtrVA<void> pData(VirtualAlloc(NULL, cbBuf, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
+		EckCheckMem(pData.get());
+		if (FAILED(hr = pBitmap->CopyPixels(NULL, uStride, cbBuf, (BYTE*)pData.get())))
+			return hr;
+		if (FAILED(hr = pFrame->WritePixels(cy, uStride, cbBuf, (BYTE*)pData.get())))// 写入
+			return hr;
 	}
 	else
 	{
 		UINT cbBuf;
 		WICInProcPointer pData;
 		if (FAILED(hr = pLock->GetDataPointer(&cbBuf, &pData)))
-			goto Exit;
+			return hr;
 #pragma warning(suppress:6387)// 可能为NULL
 		if (FAILED(hr = pFrame->WritePixels(cy, uStride, cbBuf, pData)))// 写入
-			goto Exit;
+			return hr;
 	}
-	
-	hr = pFrame->Commit();// 提交帧
-	if (SUCCEEDED(hr))
-		hr = pEncoder->Commit();// 提交编码器
-Exit:
-	pLock->Release();
-Exit1:
-	pFrame->Release();
-	pEncoder->Release();
-	pPropBag->Release();
-	return hr;
+	if (FAILED(hr = pFrame->Commit()))// 提交帧
+		return hr;
+	return pEncoder->Commit();// 提交编码器
 }
 
 inline CRefBin SaveWicBitmap(IWICBitmap* pBitmap, ImageType iType = ImageType::Png, HRESULT* phr = NULL)
 {
 	CRefBin rb{};
-	auto pStream = new CRefBinStream(rb);
-	auto hr = SaveWicBitmap(pStream, pBitmap, iType);
+	const auto pStream = new CRefBinStream(rb);
+	const auto hr = SaveWicBitmap(pStream, pBitmap, iType);
 	if (phr)
 		*phr = hr;
 	pStream->LeaveRelease();
@@ -891,13 +754,12 @@ inline CRefBin SaveWicBitmap(IWICBitmap* pBitmap, ImageType iType = ImageType::P
 inline HRESULT SaveWicBitmap(PCWSTR pszFile, IWICBitmap* pBitmap, ImageType iType = ImageType::Png)
 {
 	HRESULT hr;
-	IWICStream* pStream;
+	ComPtr<IWICStream> pStream;
 	if (FAILED(hr = g_pWicFactory->CreateStream(&pStream)))
 		return hr;
-	pStream->InitializeFromFilename(pszFile, GENERIC_READ | GENERIC_WRITE);
-	hr = SaveWicBitmap(pStream, pBitmap, iType);
-	pStream->Release();
-	return hr;
+	if (FAILED(hr = pStream->InitializeFromFilename(pszFile, GENERIC_WRITE)))
+		return hr;
+	return SaveWicBitmap(pStream.Get(), pBitmap, iType);
 }
 
 inline Gdiplus::GpStatus SaveGpImage(IStream* pStream, Gdiplus::GpImage* pImage, ImageType iType = ImageType::Png)
@@ -912,8 +774,8 @@ inline Gdiplus::GpStatus SaveGpImage(IStream* pStream, Gdiplus::GpImage* pImage,
 inline CRefBin SaveGpImage(Gdiplus::GpImage* pImage, ImageType iType = ImageType::Png, Gdiplus::GpStatus* pgps = NULL)
 {
 	CRefBin rb{};
-	auto pStream = new CRefBinStream(rb);
-	auto gps = SaveGpImage(pStream, pImage, iType);
+	const auto pStream = new CRefBinStream(rb);
+	const auto gps = SaveGpImage(pStream, pImage, iType);
 	pStream->LeaveRelease();
 	if (pgps)
 		*pgps = gps;
@@ -934,18 +796,12 @@ inline HRESULT LoadD2dBitmap(PCWSTR pszFile, ID2D1RenderTarget* pRT, ID2D1Bitmap
 {
 	pD2dBitmap = NULL;
 	HRESULT hr;
-	IWICBitmapDecoder* pDecoder;
-	if (FAILED(hr = CreateWicBitmapDecoder(pszFile, pDecoder)))
+	ComPtr<IWICBitmapDecoder> pDecoder;
+	if (FAILED(hr = CreateWicBitmapDecoder(pszFile, pDecoder.RefOf())))
 		return hr;
-	IWICBitmap* pBitmap;
-	if (FAILED(hr = CreateWicBitmap(pBitmap, pDecoder, cxNew, cyNew)))
-	{
-		pDecoder->Release();
+	ComPtr<IWICBitmap> pBitmap;
+	if (FAILED(hr = CreateWicBitmap(pBitmap.RefOf(), pDecoder.Get(), cxNew, cyNew)))
 		return hr;
-	}
-	pDecoder->Release();
-	hr = pRT->CreateBitmapFromWicBitmap(pBitmap, &pD2dBitmap);
-	pBitmap->Release();
-	return hr;
+	return pRT->CreateBitmapFromWicBitmap(pBitmap.Get(), &pD2dBitmap);
 }
 ECK_NAMESPACE_END

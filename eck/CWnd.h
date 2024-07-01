@@ -6,7 +6,6 @@
 * Copyright(C) 2023-2024 QingKong
 */
 #pragma once
-#include "ECK.h"
 #include "WndHelper.h"
 #include "CMemWalker.h"
 #include "CException.h"

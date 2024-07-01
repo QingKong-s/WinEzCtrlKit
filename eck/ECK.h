@@ -18,12 +18,14 @@
 #include <dxgi1_2.h>
 #include <Shlwapi.h>
 #include <d3d11.h>
+#include <windowsx.h>
 
 #include <assert.h>
 
 #include <unordered_map>
 #include <unordered_set>
 #include <type_traits>
+#include <execution>
 
 #include ".\Detours\detours.h"
 
@@ -83,6 +85,9 @@ struct RemoveCVRef
 
 template<class T>
 concept ccpIsIntOrEnum = std::is_integral_v<T> || std::is_enum_v<T>;
+
+template<class T>
+concept ccpIsComInterface = std::is_base_of_v<IUnknown, std::remove_cvref_t<T>>;
 
 template<ccpIsIntOrEnum T, bool = std::is_enum_v<T>>
 struct UnderlyingType
@@ -162,23 +167,35 @@ ECK_NAMESPACE_END
 // lParam->size 用于处理WM_SIZE   e.g. ECK_GET_SIZE_LPARAM(cxClient, cyClient, lParam);
 #define ECK_GET_SIZE_LPARAM(cx,cy,lParam) { (cx) = LOWORD(lParam); (cy) = HIWORD(lParam); }
 
-#define ECK_DISABLE_COPY_MOVE(e)				\
-			e(const e&) = delete;				\
-			e& operator=(const e&) = delete;	\
-			e(e&&) = delete;					\
+#define ECK_DISABLE_COPY_MOVE(e)			\
+			e(const e&) = delete;			\
+			e& operator=(const e&) = delete;\
+			e(e&&) = delete;				\
 			e& operator=(e&&) = delete;
 
-#define ECK_DISABLE_COPY_MOVE_DEF_CONS(e)		\
-			e() = default;						\
-			e(const e&) = delete;				\
-			e& operator=(const e&) = delete;	\
-			e(e&&) = delete;					\
+#define ECK_DISABLE_COPY_MOVE_DEF_CONS(e)	\
+			e() = default;					\
+			e(const e&) = delete;			\
+			e& operator=(const e&) = delete;\
+			e(e&&) = delete;				\
 			e& operator=(e&&) = delete;
 
-#define ECK_COM_INTERFACE(iid)					\
+#define ECK_DISABLE_COPY(e)					\
+			e(const e&) = delete;			\
+			e& operator=(const e&) = delete;
+
+#define ECK_DISABLE_COPY_DEF_CONS(e)		\
+			e() = default;					\
+			e(const e&) = delete;			\
+			e& operator=(const e&) = delete;
+
+#define ECK_COM_INTERFACE(iid)				\
 			__interface __declspec(uuid(iid))
 
 #define ECK_UNREACHABLE __assume(0)
+
+#define ECK_GUID(l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
+			{ l, w1, w2, { b1, b2,  b3,  b4,  b5,  b6,  b7,  b8 } }
 
 #if ECKCXX20
 #define ECKLIKELY [[likely]]
@@ -256,6 +273,12 @@ constexpr inline ULARGE_INTEGER UliMax{ .QuadPart = 0xFFFF'FFFF'FFFF'FFFF };
 
 constexpr inline size_t SizeTMax{ std::numeric_limits<size_t>::max() };
 constexpr inline SIZE_T SIZETMax{ (SIZE_T)SizeTMax };
+
+#ifdef _DEBUG
+constexpr inline BOOL Dbg{ TRUE };
+#else
+constexpr inline BOOL Dbg{ FALSE };
+#endif
 
 /*-------------------*/
 /*控件通知代码*/
