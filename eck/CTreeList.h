@@ -257,12 +257,16 @@ class CTreeList :public CWnd
 public:
 	enum
 	{
-		TLI_MAIN = 10,	// 工具ID
+		// 工具ID
+		TLI_MAIN = 10,
 		// 控件ID
-		IDC_HEADER = 101,// 第一列表头
-		IDC_HEADER2,// 后续列的表头
+		IDC_HEADER = 101,	// 第一列表头
+		IDC_HEADERFIXED,	// 后续列的表头
 		IDC_EDIT,	// 编辑框
-		IDC_SB,		// 滚动条
+		IDC_SBV,	// 滚动条
+		IDC_SBH,	// 滚动条
+		// 定时器ID
+		IDT_EDITDELAY = 10
 	};
 private:
 	struct COL
@@ -271,17 +275,13 @@ private:
 		int iRight;		// 右边界，相对于第一列的偏移量
 		int idxActual;	// 此项对应的实际项目索引
 	};
-
-	enum
-	{
-		IDT_EDITDELAY = 10
-	};
 	//--------控件
 	CTLHeader m_Header{ *this };		// 表头
-	CTLHeader m_Header2{ *this };		// 表头
+	CTLHeader m_HeaderFixed{ *this };	// 表头
 	CToolTip m_ToolTip{};				// 工具提示
 	CTLEditExt m_Edit{ *this };			// 编辑框
-	CScrollBar m_SB{};					// 滚动条
+	CScrollBar m_SBV{};					// 滚动条
+	CScrollBar m_SBH{};					// 滚动条
 	//--------图形
 	HTHEME m_hThemeTV = NULL;			// TreeView主题
 	HTHEME m_hThemeLV = NULL;			// ItemsView主题
@@ -336,22 +336,18 @@ private:
 	CRefStrW m_rsWatermark{};			// 水印文本
 	//--------内部标志
 #ifdef _DEBUG
-	BITBOOL m_bDbgDrawIndex : 1 = 0;				// 【调试】绘制项目索引
-	BITBOOL m_bDbgDrawMarkItem : 1 = 0;				// 【调试】绘制mark项
-	BITBOOL m_bDbgDrawPartRect : 1 = 0;				// 【调试】绘制部件矩形	
+	BITBOOL m_bDbgDrawIndex : 1 = 0;			// 【调试】绘制项目索引
+	BITBOOL m_bDbgDrawMarkItem : 1 = 0;			// 【调试】绘制mark项
+	BITBOOL m_bDbgDrawPartRect : 1 = 0;			// 【调试】绘制部件矩形	
 #endif
-	BITBOOL m_bExpandBtnHot : 1 = FALSE;			// 展开按钮是否点燃
-	BITBOOL m_bDraggingSel : 1 = FALSE;				// 是否处于拖动选择状态
-#ifdef _DEBUG
-	BITBOOL m_bFocusIndicatorVisible : 1 = TRUE;	// 焦点指示器是否可见
-#else
-	BITBOOL m_bFocusIndicatorVisible : 1 = FALSE;
-#endif
-	BITBOOL m_bHasFocus : 1 = FALSE;				// 是否有焦点
-	BITBOOL m_bWaitEditDelay : 1 = FALSE;			// 是否等待编辑
-	BITBOOL m_bBuildInEditChanged : 1 = FALSE;		// 内置编辑框内容是否已改变
-	BITBOOL m_bDraggingItem : 1 = FALSE;			// 正在拖动项目
-	BITBOOL m_bRDragging : 1 = FALSE;				// 正在右键拖动
+	BITBOOL m_bExpandBtnHot : 1 = FALSE;		// 展开按钮是否点燃
+	BITBOOL m_bDraggingSel : 1 = FALSE;			// 是否处于拖动选择状态
+	BITBOOL m_bFocusIndicatorVisible : 1 = Dbg;	// 焦点指示器是否可见
+	BITBOOL m_bHasFocus : 1 = FALSE;			// 是否有焦点
+	BITBOOL m_bWaitEditDelay : 1 = FALSE;		// 是否等待编辑
+	BITBOOL m_bBuildInEditChanged : 1 = FALSE;	// 内置编辑框内容是否已改变
+	BITBOOL m_bDraggingItem : 1 = FALSE;		// 正在拖动项目
+	BITBOOL m_bRDragging : 1 = FALSE;			// 正在右键拖动
 	//--------风格
 	BITBOOL m_bFlatMode : 1 = FALSE;					// 平面列表模式
 	BITBOOL m_bFlatListFilter : 1 = FALSE;				// 平面列表模式下是否有不可见项目
@@ -835,21 +831,42 @@ private:
 
 		const auto piOrder = (int*)_malloca(sizeof(int) * cCol);
 		EckCheckMem(piOrder);
-		m_Header.GetOrderArray(piOrder, cCol);
-
-		HDITEMW hdi;
-		hdi.mask = HDI_WIDTH;
-		EckCounter(cCol, i)
+		if (m_bSplitCol0)
 		{
-			const int idx = piOrder[i];
-			m_Header.GetItem(idx, &hdi);
-			auto& e = m_vCol[i];
-			e.iLeft = x;
-			e.iRight = x + hdi.cxy;
-			e.idxActual = idx;
-			x += hdi.cxy;
+			m_Header.GetOrderArray(piOrder + 1, cCol - 1);
+
+			HDITEMW hdi;
+			hdi.mask = HDI_WIDTH;
+			EckCounter(cCol, i)
+			{
+				const int idx = piOrder[i];
+				m_Header.GetItem(idx, &hdi);
+				auto& e = m_vCol[i];
+				e.iLeft = x;
+				e.iRight = x + hdi.cxy;
+				e.idxActual = idx;
+				x += hdi.cxy;
+			}
+			m_cxItem = m_vCol.back().iRight;
 		}
-		m_cxItem = m_vCol.back().iRight;
+		else
+		{
+			m_Header.GetOrderArray(piOrder, cCol);
+
+			HDITEMW hdi;
+			hdi.mask = HDI_WIDTH;
+			EckCounter(cCol, i)
+			{
+				const int idx = piOrder[i];
+				m_Header.GetItem(idx, &hdi);
+				auto& e = m_vCol[i];
+				e.iLeft = x;
+				e.iRight = x + hdi.cxy;
+				e.idxActual = idx;
+				x += hdi.cxy;
+			}
+			m_cxItem = m_vCol.back().iRight;
+		}
 		_freea(piOrder);
 	}
 
@@ -1744,6 +1761,10 @@ public:
 				}
 				return 0;
 				}
+			else if (pnmhdr->hwndFrom == m_HeaderFixed.HWnd)
+			{
+
+			}
 			else if (pnmhdr->hwndFrom == m_ToolTip.HWnd)
 				switch (pnmhdr->code)
 				{
@@ -2140,8 +2161,8 @@ public:
 			UpdateDCAttr();
 			m_Header.Create(NULL, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
 				0, 0, ClientWidth, m_Ds.cyHeaderDef, hWnd, IDC_HEADER);
-			m_Header2.Create(NULL, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
-				0, 0, ClientWidth, m_Ds.cyHeaderDef, hWnd, IDC_HEADER);
+			m_HeaderFixed.Create(NULL, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
+				0, 0, ClientWidth, m_Ds.cyHeaderDef, hWnd, IDC_HEADERFIXED);
 			SetExplorerTheme();
 			m_hThemeTV = OpenThemeData(hWnd, L"TreeView");
 			m_hThemeLV = OpenThemeData(NULL, L"ItemsView::ListView");
@@ -2159,9 +2180,10 @@ public:
 			ti.lpszText = LPSTR_TEXTCALLBACKW;
 			m_ToolTip.AddTool(&ti);
 
-			m_SB.Create(NULL, WS_CHILD | (m_bSplitCol0 ? WS_VISIBLE : 0), 0,
-				0, 0, 0, 0, hWnd, IDC_SB);
-
+			m_SBV.Create(NULL, WS_CHILD | (m_bSplitCol0 ? WS_VISIBLE : 0) | SBS_VERT, 0,
+				0, 0, 0, 0, hWnd, IDC_SBV);
+			m_SBH.Create(NULL, WS_CHILD | (m_bSplitCol0 ? WS_VISIBLE : 0) | SBS_HORZ, 0,
+				0, 0, 0, 0, hWnd, IDC_SBH);
 			UpdateScrollBar();
 		}
 		return 0;

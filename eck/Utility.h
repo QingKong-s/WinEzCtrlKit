@@ -8,20 +8,11 @@
 #pragma once
 #include "ECK.h"
 
-#include <math.h>
-#include <time.h>
-#include <process.h>
-
-#include <string_view>
 #include <memory>
 #if ECKCXX20
 #include <concepts>
 #include <bit>
 #endif
-
-#include <windowsx.h>
-#include <d2d1_1.h>
-#include <Shlwapi.h>
 
 ECK_NAMESPACE_BEGIN
 
