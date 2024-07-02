@@ -187,6 +187,7 @@
     <ClInclude Include="eck\CEvent.h" />
     <ClInclude Include="eck\CFontPicker.h" />
     <ClInclude Include="eck\ComPtr.h" />
+    <ClInclude Include="eck\EnDeCode.h" />
     <ClInclude Include="eck\GeometryRender.h" />
     <ClInclude Include="eck\MultiFrameImage.h" />
     <ClInclude Include="eck\CInertialScrollView.h" />

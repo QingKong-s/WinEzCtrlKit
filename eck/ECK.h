@@ -149,6 +149,9 @@ ECK_NAMESPACE_END
 // 计次循环，无变量名参数
 #define EckCounterNV(c)			EckCounter((c), ECKPRIV_CounterNVMakeVarName___(__LINE__))
 
+// 无限循环
+#define EckLoop()				while (true)
+
 // 可空
 #define EckOpt(Type, Name)		std::optional<Type> Name
 // 可空，默认为空
@@ -218,6 +221,7 @@ using PCBYTE = const BYTE*;
 using PCVOID = const void*;
 using ECKENUM = BYTE;
 using SSIZE_T = std::make_signed_t<SIZE_T>;
+using UINTBE = UINT;
 #pragma endregion
 
 namespace Literals
@@ -231,7 +235,13 @@ namespace Literals
 	{
 		return (short)x;
 	}
+
+	EckInline constexpr BYTE operator""_by(ULONGLONG x)
+	{
+		return (BYTE)x;
+	}
 }
+using namespace Literals;
 
 enum class Align
 {

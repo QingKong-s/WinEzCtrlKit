@@ -2,7 +2,7 @@
 * WinEzCtrlKit Library
 *
 * CRefBinStream.h ： 字节集流
-* 
+*
 * Copyright(C) 2023 QingKong
 */
 #pragma once
@@ -12,27 +12,20 @@
 
 ECK_NAMESPACE_BEGIN
 /// <summary>
-/// 字节集流类
-/// 底层为CRefBinT的IStream实现
-/// 本类非线程安全
+/// 字节集流。
+/// CRefBinT的IStream实现。
+/// 非线程安全
 /// </summary>
-/// <typeparam name="TAlloc"></typeparam>
 template<class TAlloc>
 class CRefBinStreamT :public IStream
 {
 private:
-	ULONG m_cRef = 1;
+	ULONG m_cRef{ 1ul };
 
 	CRefBinT<TAlloc>& m_rb;
-	BYTE* m_pSeek = NULL;
+	size_t m_posSeek{};
 public:
-	CRefBinStreamT(CRefBinT<TAlloc>& rb) :m_rb{ rb }, m_pSeek{ rb.Data() } {}
-
-	EckInline void SetRefBin(CRefBinT<TAlloc>& rb)
-	{
-		m_rb = rb;
-		m_pSeek = rb.Data();
-	}
+	CRefBinStreamT(CRefBinT<TAlloc>& rb) :m_rb{ rb } {}
 
 	EckInline void LeaveRelease()
 	{
@@ -41,18 +34,6 @@ public:
 #else
 		Release();
 #endif
-	}
-
-	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject)
-	{
-		const QITAB qit[]
-		{
-			QITABENT(CRefBinStreamT, IStream),
-			QITABENT(CRefBinStreamT, ISequentialStream),
-			{}
-		};
-
-		return QISearch(this, qit, riid, ppvObject);
 	}
 
 	ULONG STDMETHODCALLTYPE AddRef(void)
@@ -72,67 +53,89 @@ public:
 		return --m_cRef;
 	}
 
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject)
+	{
+		const QITAB qit[]
+		{
+			QITABENT(CRefBinStreamT, IStream),
+			QITABENT(CRefBinStreamT, ISequentialStream),
+			{}
+		};
+
+		return QISearch(this, qit, riid, ppvObject);
+	}
+
 	HRESULT STDMETHODCALLTYPE Read(void* pv, ULONG cb, ULONG* pcbRead)
 	{
+		ULONG Dummy;
+		if (!pcbRead) pcbRead = &Dummy;
 		if (!pv)
-			return STG_E_INVALIDPOINTER;
-		HRESULT hr = S_OK;
-		if (m_pSeek + cb > m_rb.Data() + m_rb.Size())
 		{
-			cb = (ULONG)(m_rb.Data() + m_rb.Size() - m_pSeek);
+			*pcbRead = 0;
+			return STG_E_INVALIDPOINTER;
+		}
+		if (m_posSeek > m_rb.Size())
+		{
+			*pcbRead = 0;
+			return S_FALSE;
+		}
+		HRESULT hr;
+		if (m_posSeek + cb > m_rb.Size())
+		{
+			cb = (ULONG)(m_rb.Size() - m_posSeek);
 			hr = S_FALSE;
 		}
-		memcpy(pv, m_pSeek, cb);
-		m_pSeek += cb;
-		if (pcbRead)
-			*pcbRead = cb;
+		else
+			hr = S_OK;
+		memcpy(pv, m_rb.Data() + m_posSeek, cb);
+		m_posSeek += cb;
+		*pcbRead = cb;
 		return hr;
 	}
 
 	HRESULT STDMETHODCALLTYPE Write(const void* pv, ULONG cb, ULONG* pcbWritten)
 	{
+		ULONG Dummy;
+		if (!pcbWritten) pcbWritten = &Dummy;
 		if (!pv)
-			return STG_E_INVALIDPOINTER;
-		const size_t ocbOld = m_pSeek - m_rb.Data();
-		if (ocbOld + cb > m_rb.Size())
 		{
-			m_rb.ReSizeExtra(ocbOld + cb);
-			m_pSeek = m_rb.Data() + ocbOld;
+			*pcbWritten = 0;
+			return STG_E_INVALIDPOINTER;
 		}
-		memcpy(m_pSeek, pv, cb);
-		m_pSeek += cb;
-		if (pcbWritten)
-			*pcbWritten = cb;
+		if (m_posSeek + cb > m_rb.Size())
+			m_rb.ReSizeExtra(m_posSeek + cb);
+		memcpy(m_rb.Data() + m_posSeek, pv, cb);
+		m_posSeek += cb;
+		*pcbWritten = cb;
 		return S_OK;
 	}
 
 	HRESULT STDMETHODCALLTYPE Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition)
 	{
+		ULARGE_INTEGER Dummy;
+		if (!plibNewPosition) plibNewPosition = &Dummy;
 		switch (dwOrigin)
 		{
 		case SEEK_SET:// 这种情况dlibMove应视为无符号
-			if ((SIZE_T)dlibMove.QuadPart > m_rb.Size())
-				return STG_E_INVALIDFUNCTION;
-			m_pSeek = m_rb.Data() + (SIZE_T)dlibMove.QuadPart;
-			if (plibNewPosition)
-				plibNewPosition->QuadPart = dlibMove.QuadPart;
+			m_posSeek = (size_t)dlibMove.QuadPart;
+			*plibNewPosition = ToUli(dlibMove);
 			return S_OK;
+
 		case SEEK_CUR:
 		{
-			const auto ocbNew = (SIZE_T)((SSIZE_T)dlibMove.QuadPart + (m_pSeek - m_rb.Data()));
-			if (ocbNew > m_rb.Size() || ocbNew < 0)
+			const ptrdiff_t ocbNew = (ptrdiff_t)dlibMove.QuadPart + m_posSeek;
+			if (ocbNew < 0)// 落在流开始之前
 				return STG_E_INVALIDFUNCTION;
-			m_pSeek = m_rb.Data() + ocbNew;
-			if (plibNewPosition)
-				plibNewPosition->QuadPart = ocbNew;
+			m_posSeek = (size_t)ocbNew;
+			plibNewPosition->QuadPart = m_posSeek;
 		}
 		return S_OK;
+
 		case SEEK_END:
-			if (dlibMove.QuadPart < -(SSIZE_T)m_rb.Size() || dlibMove.QuadPart>0)
+			if (dlibMove.QuadPart < -(ptrdiff_t)m_rb.Size())// 落在流开始之前
 				return STG_E_INVALIDFUNCTION;
-			m_pSeek = m_rb.Data() + m_rb.Size() + (SIZE_T)dlibMove.QuadPart;
-			if (plibNewPosition)
-				plibNewPosition->QuadPart = (LONGLONG)((SSIZE_T)m_rb.Size() + dlibMove.QuadPart);
+			m_posSeek = (size_t)m_rb.Size() + dlibMove.QuadPart;
+			plibNewPosition->QuadPart = m_posSeek;
 			return S_OK;
 		}
 		return STG_E_INVALIDFUNCTION;
@@ -140,23 +143,33 @@ public:
 
 	HRESULT STDMETHODCALLTYPE SetSize(ULARGE_INTEGER libNewSize)
 	{
-		const size_t ocbOld = m_pSeek - m_rb.Data();
 		m_rb.ReSizeExtra((size_t)libNewSize.QuadPart);
-		m_pSeek = m_rb.Data() + ocbOld;
 		return S_OK;
 	}
 
-	HRESULT STDMETHODCALLTYPE CopyTo(IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten)
+	HRESULT STDMETHODCALLTYPE CopyTo(IStream* pstm, ULARGE_INTEGER cb,
+		ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten)
 	{
 		if (!pstm)
 			return STG_E_INVALIDPOINTER;
-		if (m_pSeek + cb.QuadPart > m_rb.Data() + m_rb.Size())
-			cb.QuadPart = m_rb.Size();
+		if (m_posSeek >= m_rb.Size())
+		{
+			if (pcbRead)
+				pcbRead->QuadPart = 0u;
+			if (pcbWritten)
+				pcbWritten->QuadPart = 0u;
+			return S_FALSE;
+		}
 
+		ULONG cbRead;
+		if (m_posSeek + cb.LowPart > m_rb.Size())
+			cbRead = (ULONG)(m_rb.Size() - m_posSeek);
+		else
+			cbRead = cb.LowPart;
 		ULONG cbWritten;
-		pstm->Write(m_pSeek, cb.LowPart, &cbWritten);
+		pstm->Write(m_rb.Data() + m_posSeek, cbRead, &cbWritten);
 		if (pcbRead)
-			pcbRead->QuadPart = cbWritten;
+			pcbRead->QuadPart = cbRead;
 		if (pcbWritten)
 			pcbWritten->QuadPart = cbWritten;
 		return S_OK;
@@ -164,7 +177,7 @@ public:
 
 	HRESULT STDMETHODCALLTYPE Commit(DWORD grfCommitFlags)
 	{
-		return E_NOTIMPL;
+		return S_OK;
 	}
 
 	HRESULT STDMETHODCALLTYPE Revert(void)
@@ -193,8 +206,10 @@ public:
 
 	HRESULT STDMETHODCALLTYPE Clone(IStream** ppstm)
 	{
-		*ppstm = NULL;
-		return E_NOTIMPL;
+		const auto p = new CRefBinStreamT(m_rb);
+		p->m_posSeek = m_posSeek;
+		*ppstm = p;
+		return S_OK;
 	}
 };
 

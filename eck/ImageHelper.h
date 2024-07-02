@@ -677,64 +677,21 @@ EckInline const GUID& GetWicEncoderGuid(ImageType iType)
 	return c_guidWicEncoder[(int)iType];
 }
 
-inline HRESULT SaveWicBitmap(IStream* pStream, IWICBitmap* pBitmap, ImageType iType = ImageType::Png)
+inline HRESULT SaveWicBitmap(IStream* pStream, IWICBitmapSource* pBitmap, ImageType iType = ImageType::Png)
 {
 	HRESULT hr;
 	ComPtr<IWICBitmapEncoder> pEncoder;
+	ComPtr<IWICBitmapFrameEncode> pFrame;
 	if (FAILED(hr = g_pWicFactory->CreateEncoder(GetWicEncoderGuid(iType), NULL, &pEncoder)))
 		return hr;
 	if (FAILED(hr = pEncoder->Initialize(pStream, WICBitmapEncoderNoCache)))
 		return hr;
-	ComPtr<IWICBitmapFrameEncode> pFrame;
-#pragma warning(suppress:6001)// 使用未初始化的内存
 	if (FAILED(hr = pEncoder->CreateNewFrame(&pFrame, NULL)))
 		return hr;
 	if (FAILED(hr = pFrame->Initialize(NULL)))
 		return hr;
-	// 尺寸
-	UINT cx, cy;
-	pBitmap->GetSize(&cx, &cy);
-	pFrame->SetSize(cx, cy);
-	// 像素格式
-	GUID guidFmt;
-	pBitmap->GetPixelFormat(&guidFmt);
-	pFrame->SetPixelFormat(&guidFmt);
-	// 分辨率
-	double xDpi, yDpi;
-	pBitmap->GetResolution(&xDpi, &yDpi);
-	pFrame->SetResolution(xDpi, yDpi);
-
-	const WICRect rc{ 0,0,(int)cx,(int)cy };
-	ComPtr<IWICBitmapLock> pLock;
-	if (FAILED(hr = pBitmap->Lock(&rc, WICBitmapLockRead, &pLock)))// 取位图锁
+	if (FAILED(hr = pFrame->WriteSource(pBitmap, NULL)))
 		return hr;
-	// 取跨步
-	UINT uStride;
-	pLock->GetStride(&uStride);
-
-	APTTYPE iAptType;
-	APTTYPEQUALIFIER iAptQualifier;
-	(void)CoGetApartmentType(&iAptType, &iAptQualifier);
-	if (iAptType == APTTYPE_MTA)// 多线程套间无法使用位图锁读取数据
-	{
-		const auto cbBuf = cy * uStride;
-		UniquePtrVA<void> pData(VirtualAlloc(NULL, cbBuf, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
-		EckCheckMem(pData.get());
-		if (FAILED(hr = pBitmap->CopyPixels(NULL, uStride, cbBuf, (BYTE*)pData.get())))
-			return hr;
-		if (FAILED(hr = pFrame->WritePixels(cy, uStride, cbBuf, (BYTE*)pData.get())))// 写入
-			return hr;
-	}
-	else
-	{
-		UINT cbBuf;
-		WICInProcPointer pData;
-		if (FAILED(hr = pLock->GetDataPointer(&cbBuf, &pData)))
-			return hr;
-#pragma warning(suppress:6387)// 可能为NULL
-		if (FAILED(hr = pFrame->WritePixels(cy, uStride, cbBuf, pData)))// 写入
-			return hr;
-	}
 	if (FAILED(hr = pFrame->Commit()))// 提交帧
 		return hr;
 	return pEncoder->Commit();// 提交编码器
