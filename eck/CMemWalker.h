@@ -346,5 +346,10 @@ struct CMemWalker
 	{
 		return m_pMem >= m_pBase + m_cbMax;
 	}
+
+	EckInline constexpr SIZE_T GetPos() const
+	{
+		return m_pMem - m_pBase;
+	}
 };
 ECK_NAMESPACE_END
