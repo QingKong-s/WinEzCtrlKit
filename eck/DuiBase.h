@@ -17,6 +17,8 @@
 #include "ILayout.h"
 #include "SystemHelper.h"
 
+#include <dcomp.h>
+
 #define ECK_DUI_NAMESPACE_BEGIN namespace Dui {
 #define ECK_DUI_NAMESPACE_END }
 
@@ -570,6 +572,11 @@ private:
 	BITBOOL m_bRenderThreadShouldExit : 1 = FALSE;	// 渲染线程应当退出
 	BITBOOL m_bSizeChanged : 1 = FALSE;				// 渲染线程应当重设交换链大小
 
+	IDCompositionDevice* m_pDcDevice{};
+	IDCompositionTarget* m_pDcTarget{};
+	IDCompositionVisual* m_pDcVisual{};
+	IDCompositionSurface* m_pDcSurface{};
+
 	int m_iUserDpi = USER_DEFAULT_SCREEN_DPI;
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 	ECK_DS_BEGIN(DPIS)
@@ -632,13 +639,35 @@ private:
 
 	void RedrawDui(const RECT& rc)
 	{
+		HRESULT hr;
+		IDXGISurface1* pDxgiSurface = NULL;
+		POINT pt{rc.left,rc.top};
+		hr=m_pDcSurface->BeginDraw(&rc, IID_PPV_ARGS(&pDxgiSurface), &pt);
+		const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
+		{
+			{DXGI_FORMAT_B8G8R8A8_UNORM,D2D1_ALPHA_MODE_PREMULTIPLIED},
+			96,
+			96,
+			D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+			NULL
+		};
+
+		ID2D1Bitmap1* pBitmap = NULL;
+		hr = m_D2d.GetDC()->CreateBitmapFromDxgiSurface(pDxgiSurface, &D2dBmpProp, &pBitmap);
+
+		m_D2d.GetDC()->SetTarget(pBitmap);
 		m_D2d.GetDC()->BeginDraw();
 		m_D2d.GetDC()->SetTransform(D2D1::Matrix3x2F::Identity());
 		FillBackground(MakeD2DRcF(rc));
 		RedrawElem(GetFirstChildElem(), rc);
 		m_D2d.GetDC()->SetTransform(D2D1::Matrix3x2F::Identity());
+		hr=m_D2d.GetDC()->EndDraw();
+		hr = m_pDcSurface->EndDraw();
 
-		m_D2d.GetDC()->EndDraw();
+		pBitmap->Release();
+		pDxgiSurface->Release();
+
+		m_pDcDevice->Commit();
 	}
 
 	EckInline void StartupRenderThread()
@@ -677,13 +706,21 @@ private:
 					if (m_bSizeChanged)
 					{
 						m_rcTotalInvalid = {};
-						m_D2d.ReSize(2, m_cxClient, m_cyClient, 0);
+						IDCompositionSurface* pDcSurface = NULL;
+						m_pDcDevice->CreateSurface(m_cxClient, m_cyClient,
+							DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ALPHA_MODE_PREMULTIPLIED, &pDcSurface);
+						m_pDcVisual->SetContent(pDcSurface);
+						if(m_pDcSurface)
+						m_pDcSurface->Release();
+						m_pDcSurface = pDcSurface;
+
+						//m_D2d.ReSize(2, m_cxClient, m_cyClient, 0);
 						m_bSizeChanged = FALSE;
 						if (m_cxClient && m_cyClient)
 						{
 							RedrawDui(rcClient);
 							m_cs.Leave();
-							m_D2d.GetSwapChain()->Present(1, 0);
+							//m_D2d.GetSwapChain()->Present(1, 0);
 						}
 						else
 							m_cs.Leave();
@@ -699,8 +736,8 @@ private:
 							RedrawDui(rc);
 							m_cs.Leave();
 							// 呈现
-							DXGI_PRESENT_PARAMETERS pp{ 1,&rc };
-							m_D2d.GetSwapChain()->Present1(1, 0, &pp);
+							/*DXGI_PRESENT_PARAMETERS pp{ 1,&rc };
+							m_D2d.GetSwapChain()->Present1(1, 0, &pp);*/
 						}
 						else
 							m_cs.Leave();
@@ -863,14 +900,30 @@ public:
 				m_pDefTextFormat = CreateDefTextFormat(m_iDpi);
 				m_pDefTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
-				m_D2d.Create(EZD2D_PARAM::MakeFlip(hWnd,
-					g_pDxgiFactory, g_pDxgiDevice, g_pD2dDevice, rc.right, rc.bottom));
+				DCompositionCreateDevice2(g_pDxgiDevice, IID_PPV_ARGS(&m_pDcDevice));
+				m_pDcDevice->CreateTargetForHwnd(hWnd, TRUE, &m_pDcTarget);
+				m_pDcDevice->CreateVisual(&m_pDcVisual);
+				auto hr = m_pDcDevice->CreateSurface(std::max(rc.right,1l),std::max( rc.bottom,1l),
+					DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ALPHA_MODE_PREMULTIPLIED, &m_pDcSurface);
+				m_pDcVisual->SetContent(m_pDcSurface);
+				m_pDcTarget->SetRoot(m_pDcVisual);
+				m_pDcVisual->SetOffsetX(0.f);
+				m_pDcVisual->SetOffsetY(0.f);
+				m_pDcDevice->Commit();
+
+				auto opt = EZD2D_PARAM::MakeFlip(0, g_pDxgiFactory, g_pDxgiDevice, g_pD2dDevice, 0, 0);
+				g_pD2dDevice->CreateDeviceContext(opt.uDcOptions, &m_D2d.m_pDC);
+
+				/*m_D2d.Create(EZD2D_PARAM::MakeFlip(hWnd,
+					g_pDxgiFactory, g_pDxgiDevice, g_pD2dDevice, rc.right, rc.bottom));*/
 				m_D2d.GetDC()->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
 
 				const auto crBkg = D2D1::ColorF(0x191919);
 				m_D2d.GetDC()->CreateSolidColorBrush(crBkg, &m_pBrBkg);
 				m_cxClient = rc.right;
 				m_cyClient = rc.bottom;
+
+				m_rcTotalInvalid = { 0,0,m_cxClient,m_cyClient };
 
 				m_evtRender.NoSignal();
 				StartupRenderThread();

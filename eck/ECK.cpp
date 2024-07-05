@@ -813,7 +813,7 @@ g_WndClassInfo[]
 	{ WCN_COMBOBOXNEW },
 	{ WCN_PICTUREBOX },
 	{ WCN_DUIHOST },
-	{ WCN_DUIMENU },
+	{ WCN_VECDRAWPANEL },
 };
 
 InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrCode)

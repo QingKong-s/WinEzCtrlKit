@@ -200,6 +200,33 @@ ECK_NAMESPACE_END
 #define ECK_GUID(l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
 			{ l, w1, w2, { b1, b2,  b3,  b4,  b5,  b6,  b7,  b8 } }
 
+#define ECK_ENUM_BIT_FLAGS(Type)								\
+			EckInline constexpr Type operator&(Type a, Type b)  \
+			{													\
+				return Type((std::underlying_type_t<Type>)a &	\
+					(std::underlying_type_t<Type>)b);			\
+			}													\
+			EckInline constexpr Type operator|(Type a, Type b)	\
+			{													\
+				return Type((std::underlying_type_t<Type>)a |	\
+					(std::underlying_type_t<Type>)b);			\
+			}													\
+			EckInline constexpr Type operator~(Type a)			\
+			{													\
+				return Type(~(std::underlying_type_t<Type>)a);	\
+			}													\
+			EckInline constexpr Type operator^(Type a, Type b)	\
+			{													\
+				return Type((std::underlying_type_t<Type>)a ^	\
+					(std::underlying_type_t<Type>)b);			\
+			}
+
+#define ECK_ENUM_BIT_FLAGS_FRIEND(Type)							\
+			friend constexpr Type operator&(Type a, Type b);	\
+			friend constexpr Type operator|(Type a, Type b);	\
+			friend constexpr Type operator~(Type a);			\
+			friend constexpr Type operator^(Type a, Type b);
+
 #if ECKCXX20
 #define ECKLIKELY [[likely]]
 #define ECKUNLIKELY [[unlikely]]
@@ -522,7 +549,7 @@ constexpr inline PCWSTR WCN_TREELIST = L"Eck.WndClass.TreeList";
 constexpr inline PCWSTR WCN_COMBOBOXNEW = L"Eck.WndClass.ComboBoxNew";
 constexpr inline PCWSTR WCN_PICTUREBOX = L"Eck.WndClass.PictureBox";
 constexpr inline PCWSTR WCN_DUIHOST = L"Eck.WndClass.DuiHost";
-constexpr inline PCWSTR WCN_DUIMENU = L"Eck.WndClass.DuiMenu";
+constexpr inline PCWSTR WCN_VECDRAWPANEL = L"Eck.WndClass.VectorDrawPanel";
 
 constexpr inline PCWSTR MSGREG_FORMTRAY = L"Eck.Message.FormTray";
 
