@@ -1721,13 +1721,13 @@ public:
 /// <param name="pD2dFactory">D2D工厂，若为空则使用ECK工厂</param>
 /// <returns>HRESULT</returns>
 inline HRESULT GetTextLayoutPathGeometry(IDWriteTextLayout* pLayout, ID2D1RenderTarget* pRT,
-	float x, float y, ID2D1PathGeometry*& pPathGeometry, ID2D1Factory* pD2dFactory = NULL)
+	float x, float y, ID2D1PathGeometry1*& pPathGeometry, ID2D1Factory1* pD2dFactory = NULL)
 {
 	if (!pD2dFactory)
 		pD2dFactory = g_pD2dFactory;
 
 	HRESULT hr;
-	ID2D1PathGeometry* pPath;
+	ID2D1PathGeometry1* pPath;
 	ID2D1GeometrySink* pSink;
 	pD2dFactory->CreatePathGeometry(&pPath);
 	pPath->Open(&pSink);

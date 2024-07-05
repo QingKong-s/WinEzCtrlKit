@@ -10,6 +10,7 @@
 #include "CToolTip.h"
 #include "GraphicsHelper.h"
 #include "CtrlGraphics.h"
+#include "CScrollBar.h"
 
 #include <vssym32.h>
 

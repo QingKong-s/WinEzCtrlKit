@@ -115,6 +115,8 @@ public:
 		D2D1_SIZE_U size{ (UINT32)m_cx, (UINT32)((m_cy + m_iPadding) * m_cImgPerPack) };
 		ID2D1Bitmap* pBmp;
 		auto pf = pRT->GetPixelFormat();
+		if (pf.format == DXGI_FORMAT_UNKNOWN)
+			pf.format = DXGI_FORMAT_B8G8R8A8_UNORM;
 		pf.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
 		if (FAILED(hr = pRT->CreateBitmap(size, D2D1::BitmapProperties(pf), &pBmp)))
 			return hr;

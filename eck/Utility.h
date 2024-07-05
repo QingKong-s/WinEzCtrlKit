@@ -999,4 +999,33 @@ EckInline constexpr T ClearHighNBits(T x, size_t n)
 {
 	return x & ((T{ 1 } << (sizeof(T) * 8 - n)) - T{ 1 });
 }
+
+EckInline constexpr D2D1_ELLIPSE CreateD2dEllipse(float x, float y, float w, float h)
+{
+	return D2D1_ELLIPSE{ { x + w / 2.f,y + h / 2.f },w / 2.f,h / 2.f };
+}
+
+EckInline constexpr D2D1_POINT_2F operator-(D2D1_POINT_2F pt1, D2D1_POINT_2F pt2)
+{
+	return D2D1_POINT_2F{ pt1.x - pt2.x,pt1.y - pt2.y };
+}
+
+EckInline constexpr D2D1_POINT_2F operator+(D2D1_POINT_2F pt1, D2D1_POINT_2F pt2)
+{
+	return D2D1_POINT_2F{ pt1.x + pt2.x,pt1.y + pt2.y };
+}
+
+EckInline constexpr D2D1_POINT_2F operator-= (D2D1_POINT_2F& pt1, D2D1_POINT_2F pt2)
+{
+	pt1.x -= pt2.x;
+	pt1.y -= pt2.y;
+	return pt1;
+}
+
+EckInline constexpr D2D1_POINT_2F operator+= (D2D1_POINT_2F& pt1, D2D1_POINT_2F pt2)
+{
+	pt1.x += pt2.x;
+	pt1.y += pt2.y;
+	return pt1;
+}
 ECK_NAMESPACE_END

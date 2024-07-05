@@ -12,9 +12,9 @@
 #include "ComPtr.h"
 
 ECK_NAMESPACE_BEGIN
-// 32bppBGRA
+// 32bppPBGRA   D2D要求预乘
 constexpr inline GUID DefWicPixelFormat
-	ECK_GUID(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x0f);
+	ECK_GUID(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x10);
 
 /// <summary>
 /// 从字节流创建HBITMAP
@@ -759,6 +759,9 @@ inline HRESULT LoadD2dBitmap(PCWSTR pszFile, ID2D1RenderTarget* pRT, ID2D1Bitmap
 	ComPtr<IWICBitmap> pBitmap;
 	if (FAILED(hr = CreateWicBitmap(pBitmap.RefOf(), pDecoder.Get(), cxNew, cyNew)))
 		return hr;
+	GUID guid;;
+	pBitmap->GetPixelFormat(&guid);
+	//if (guid != GUID_WICPixelFormat32bppBGRA)
 	return pRT->CreateBitmapFromWicBitmap(pBitmap.Get(), &pD2dBitmap);
 }
 ECK_NAMESPACE_END
