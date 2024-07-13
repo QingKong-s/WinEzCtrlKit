@@ -189,7 +189,7 @@ public:
 		dwStyle |= (WS_CHILD | WS_VSCROLL | CBS_OWNERDRAWFIXED | CBS_DROPDOWNLIST);
 		m_iDpi = GetDpi(hParent);
 		m_hWnd = IntCreate(0, WC_COMBOBOXW, NULL, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL, WndCreatingSetLong);
+			x, y, cx, cy, hParent, hMenu, NULL, NULL, NULL);
 		SetRedraw(FALSE);
 		InitStorage(ARRAYSIZE(c_ColorPickerPresetClr), 0);
 		for (auto& x : c_ColorPickerPresetClr)

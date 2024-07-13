@@ -81,7 +81,7 @@ inline BOOL SetClipboardString(PCWSTR pszText, int cch = -1, HWND hWnd = NULL)
 	EmptyClipboard();
 	if (cch < 0)
 		cch = (int)wcslen(pszText);
-	const SIZE_T cb = Cch2Cb(cch);
+	const SIZE_T cb = Cch2CbW(cch);
 
 	HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, cb);
 	if (hGlobal)
@@ -739,7 +739,7 @@ inline CRefStrW GetFileNameFromPath(PCWSTR pszPath, int cchPath = -1)
 {
 	if (cchPath < 0)
 		cchPath = (int)wcslen(pszPath);
-	const PWSTR pTemp = (PWSTR)_malloca(Cch2Cb(cchPath));
+	const PWSTR pTemp = (PWSTR)_malloca(Cch2CbW(cchPath));
 	EckCheckMem(pTemp);
 	wmemcpy(pTemp, pszPath, cchPath + 1);
 

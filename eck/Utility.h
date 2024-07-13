@@ -420,9 +420,14 @@ EckInline constexpr BOOL SignVal(T v)
 	return (v >= 0 ? 1 : -1);
 }
 
-EckInline constexpr SIZE_T Cch2Cb(int cch)
+EckInline constexpr SIZE_T Cch2CbW(int cch)
 {
 	return (cch + 1) * sizeof(WCHAR);
+}
+
+EckInline constexpr SIZE_T Cch2CbA(int cch)
+{
+	return (cch + 1) * sizeof(CHAR);
 }
 
 EckInline constexpr D2D1_RECT_F MakeD2DRcF(const RECT& rc)

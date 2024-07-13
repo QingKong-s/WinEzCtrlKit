@@ -68,7 +68,7 @@ private:
 			mii.wID = pItem->uID;
 			mii.dwItemData = (ULONG_PTR)pItem->uData;
 			mii.dwTypeData = (PWSTR)r.Data();
-			r += Cch2Cb(pItem->cchText);
+			r += Cch2CbW(pItem->cchText);
 			if (pItem->cSubItem)
 			{
 				mii.hSubMenu = CreatePopupMenu();
