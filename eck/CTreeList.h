@@ -390,7 +390,7 @@ private:
 		int idxCurrParent;
 		if (!(pParent->uFlags & TLIF_INVISIBLE))
 		{
-			m_vItem.emplace_back(pParent);// 可视，直接尾插
+			m_vItem.push_back(pParent);// 可视，直接尾插
 			idxCurrParent = (iLevel == 0 ? -1 : (int)m_vItem.size() - 1);
 		}
 		else

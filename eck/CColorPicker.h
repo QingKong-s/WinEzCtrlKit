@@ -165,18 +165,16 @@ public:
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
-		auto p = (CColorPicker*)CWndFromHWND(hWnd);
-		EckAssert(p);
 		switch (uMsg)
 		{
 		case WM_DPICHANGED_AFTERPARENT:
 		{
-			const int iDpiOld = p->m_iDpi;
-			p->m_iDpi = GetDpi(hWnd);
+			const int iDpiOld = m_iDpi;
+			m_iDpi = GetDpi(hWnd);
 			SendMessageW(hWnd, CB_SETITEMHEIGHT, -1,
-				DpiScale((int)SendMessageW(hWnd, CB_GETITEMHEIGHT, 0, 0), p->m_iDpi, iDpiOld));
+				DpiScale((int)SendMessageW(hWnd, CB_GETITEMHEIGHT, 0, 0), m_iDpi, iDpiOld));
 			SendMessageW(hWnd, CB_SETITEMHEIGHT, 0,
-				DpiScale((int)SendMessageW(hWnd, CB_GETITEMHEIGHT, 0, 0), p->m_iDpi, iDpiOld));
+				DpiScale((int)SendMessageW(hWnd, CB_GETITEMHEIGHT, 0, 0), m_iDpi, iDpiOld));
 		}
 		return 0;
 		}

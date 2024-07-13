@@ -11,7 +11,7 @@ struct CStreamWalker
 
 	CStreamWalker() = default;
 
-	CStreamWalker(IStream* p)
+	constexpr CStreamWalker(IStream* p)
 	{
 		m_pStream = p;
 	}
@@ -116,6 +116,12 @@ struct CStreamWalker
 		return *this;
 	}
 
+	EckInline CStreamWalker& MoveTo(SSIZE_T x)
+	{
+		m_hrLastErr = m_pStream->Seek(ToLi((LONGLONG)x), STREAM_SEEK_SET, NULL);
+		return *this;
+	}
+
 	EckInline SIZE_T GetPos()
 	{
 		ULARGE_INTEGER uli{};
@@ -123,16 +129,23 @@ struct CStreamWalker
 		return (SIZE_T)uli.QuadPart;
 	}
 
-	EckInline ULARGE_INTEGER GetSize()
+	EckInline ULARGE_INTEGER GetPosUli()
+	{
+		ULARGE_INTEGER uli{};
+		m_hrLastErr = m_pStream->Seek(LiZero, STREAM_SEEK_CUR, &uli);
+		return uli;
+	}
+
+	EckInline ULARGE_INTEGER GetSizeUli()
 	{
 		STATSTG ss;
 		m_hrLastErr = m_pStream->Stat(&ss, STATFLAG_NONAME);
 		return ss.cbSize;
 	}
 
-	EckInline SIZE_T GetSizeT()
+	EckInline SIZE_T GetSize()
 	{
-		return (SIZE_T)GetSize().QuadPart;
+		return (SIZE_T)GetSizeUli().QuadPart;
 	}
 
 	EckInline CRefBin ReadBin(SIZE_T cb)
@@ -144,7 +157,7 @@ struct CStreamWalker
 
 	void MoveData(ULARGE_INTEGER posDst, ULARGE_INTEGER posSrc, ULARGE_INTEGER cbSize)
 	{
-		EckAssert(posSrc < GetSize() && posSrc + cbSize <= GetSize());
+		EckAssert(posSrc < GetSizeUli() && posSrc + cbSize <= GetSizeUli());
 		if (posDst == posSrc || cbSize == 0ull)
 			return;
 
@@ -285,22 +298,37 @@ struct CStreamWalker
 		}
 	}
 
+	EckInline void MoveData(SIZE_T posDst, SIZE_T posSrc, SIZE_T cbSize)
+	{
+		MoveData(ToUli(posDst), ToUli(posSrc), ToUli(cbSize));
+	}
+
 	void Insert(ULARGE_INTEGER pos, ULARGE_INTEGER cbSize)
 	{
 		if (cbSize == 0ull)
 			return;
-		const auto uliStrmSize = GetSize();
-		m_pStream->SetSize(GetSize() + cbSize);
+		const auto uliStrmSize = GetSizeUli();
+		m_pStream->SetSize(GetSizeUli() + cbSize);
 		if (pos != uliStrmSize)
 			MoveData(pos + cbSize, pos, uliStrmSize - pos);
+	}
+
+	EckInline void Insert(SIZE_T pos, SIZE_T cbSize)
+	{
+		Insert(ToUli(pos), ToUli(cbSize));
 	}
 
 	void Erase(ULARGE_INTEGER pos, ULARGE_INTEGER cbSize)
 	{
 		if (cbSize == 0ull)
 			return;
-		EckAssert(pos < GetSize() && pos + cbSize <= GetSize());
+		EckAssert(pos < GetSizeUli() && pos + cbSize <= GetSizeUli());
 		MoveData(pos, pos + cbSize, cbSize);
+	}
+
+	EckInline void Erase(SIZE_T pos, SIZE_T cbSize)
+	{
+		Erase(ToUli(pos), ToUli(cbSize));
 	}
 };
 ECK_NAMESPACE_END

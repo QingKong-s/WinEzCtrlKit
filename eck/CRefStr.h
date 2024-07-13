@@ -71,6 +71,24 @@ inline constexpr int StrNPos = -1;
 		return StrNPos;
 }
 
+[[nodiscard]] EckInline int FindChar(PCWSTR pszText, WCHAR ch, int posStart = 0)
+{
+	const PCWSTR pszFind = wcschr(pszText + posStart, ch);
+	if (pszFind)
+		return (int)(pszFind - pszText);
+	else
+		return StrNPos;
+}
+
+[[nodiscard]] EckInline int FindChar(PCSTR pszText, CHAR ch, int posStart = 0)
+{
+	const PCSTR pszFind = strchr(pszText + posStart, ch);
+	if (pszFind)
+		return (int)(pszFind - pszText);
+	else
+		return StrNPos;
+}
+
 /// <summary>
 /// 删首空。
 /// 函数从pszText开始向后步进到第一个非空格字符，然后返回指向这个字符的指针。
@@ -235,6 +253,7 @@ struct CCharTraits<WCHAR>
 	EckInline static int Find(PCWSTR pszText, PCWSTR pszSub, int posStart = 0) { return FindStr(pszText, pszSub, posStart); }
 	EckInline static int FormatV(PWSTR pszBuf, PCWSTR pszFmt, va_list vl) { return vswprintf(pszBuf, pszFmt, vl); }
 	EckInline static int GetFormatCchV(PCWSTR pszFmt, va_list vl) { return _vscwprintf(pszFmt, vl); }
+	EckInline static int FindChar(PCWSTR pszText, WCHAR ch, int posStart = 0) { return FindChar(pszText, ch, posStart); }
 };
 
 template<>
@@ -265,6 +284,7 @@ struct CCharTraits<CHAR>
 	EckInline static int Find(PCSTR pszText, PCSTR pszSub, int posStart = 0) { return FindStr(pszText, pszSub, posStart); }
 	EckInline static int FormatV(PSTR pszBuf, PCSTR pszFmt, va_list vl) { return vsprintf(pszBuf, pszFmt, vl); }
 	EckInline static int GetFormatCchV(PCSTR pszFmt, va_list vl) { return _vscprintf(pszFmt, vl); }
+	EckInline static int FindChar(PCSTR pszText, CHAR ch, int posStart = 0) { return FindChar(pszText, ch, posStart); }
 };
 
 template<ccpIsStdChar TChar>
@@ -1002,6 +1022,13 @@ public:
 		if (IsEmpty())
 			return StrNPos;
 		return FindStr(Data(), s.c_str(), posStart);
+	}
+
+	[[nodiscard]] EckInline int FindChar(TChar ch, int posStart = 0) const
+	{
+		if (IsEmpty())
+			return StrNPos;
+		return TCharTraits::FindChar(Data(), ch, posStart);
 	}
 
 	void LTrim()
@@ -1854,6 +1881,16 @@ inline CRefStrW BinToFriendlyString(PCBYTE pData, SIZE_T cb, int iType)
 EckInline CRefStrW Format(PCWSTR pszFmt, ...)
 {
 	CRefStrW rs{};
+	va_list vl;
+	va_start(vl, pszFmt);
+	rs.FormatV(pszFmt, vl);
+	va_end(vl);
+	return rs;
+}
+
+EckInline CRefStrA Format(PCSTR pszFmt, ...)
+{
+	CRefStrA rs{};
 	va_list vl;
 	va_start(vl, pszFmt);
 	rs.FormatV(pszFmt, vl);

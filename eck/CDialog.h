@@ -13,16 +13,33 @@ ECK_NAMESPACE_BEGIN
 class CDialog :public CWnd
 {
 protected:
-#ifdef _DEBUG
-	BITBOOL m_bDlgProcInit : 1 = FALSE;
-#endif
-	BITBOOL m_bModal : 1 = FALSE;
-	BITBOOL m_bClrDisableEdit : 1 = FALSE;
-	BITBOOL m_bUseDefBkClr : 1 = TRUE;
-	COLORREF m_crBkg = CLR_DEFAULT;
 	INT_PTR m_iResult = 0;
 	HWND m_hTop = NULL;
-	
+	COLORREF m_crBkg = CLR_DEFAULT;
+
+#if ECKCXX20
+	BITBOOL m_bUseDefBkClr : 1 = TRUE;
+#	ifdef _DEBUG
+	BITBOOL m_bDlgProcInit : 1 = FALSE;
+#	endif
+	BITBOOL m_bModal : 1 = FALSE;
+	BITBOOL m_bClrDisableEdit : 1 = FALSE;
+#else
+	union
+	{
+		struct
+		{
+			BITBOOL m_bUseDefBkClr : 1;
+#	ifdef _DEBUG
+			BITBOOL m_bDlgProcInit : 1;
+#	endif
+			BITBOOL m_bModal : 1;
+			BITBOOL m_bClrDisableEdit : 1;
+		};
+		BITBOOL ECKPRIV_BITBOOL_DUMMY{ 0b1 };
+	};
+#endif
+
 
 	EckInline HWND PreModal(HWND hParent)
 	{

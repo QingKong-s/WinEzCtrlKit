@@ -29,6 +29,12 @@ protected:
 		SendMsg(WM_NCPAINT, 0, 0);
 	}
 public:
+	void SerializeData(CRefBin& rb)
+	{
+		CEditExt::SerializeData(rb);
+
+	}
+
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)
