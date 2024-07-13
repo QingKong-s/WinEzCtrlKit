@@ -294,4 +294,9 @@ EckInline int MsgBox(PCWSTR pszText, PCWSTR pszCaption = L"", UINT uType = 0, HW
 {
 	return MessageBoxW(hParent, pszText, pszCaption, uType);
 }
+
+EckInline int MsgBox(const CRefStrW& rs, PCWSTR pszCaption = L"", UINT uType = 0, HWND hParent = NULL)
+{
+	return MessageBoxW(hParent, rs.Data(), pszCaption, uType);
+}
 ECK_NAMESPACE_END

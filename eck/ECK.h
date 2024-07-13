@@ -72,6 +72,14 @@ struct RemoveCVRef
 	using Type = std::remove_cvref_t<T>;
 };
 
+template<class T>
+concept ccpIsIntOrEnum = std::is_integral_v<T> || std::is_enum_v<T>;
+
+template<class T>
+concept ccpIsComInterface = std::is_base_of_v<IUnknown, std::remove_cvref_t<T>>;
+
+template<class T>
+concept ccpIsInteger = std::integral<T>;
 #else//	ECKCXX20
 template <class T>
 using RemoveCVRef_T = std::remove_cv_t<std::remove_reference_t<T>>;
@@ -83,11 +91,8 @@ struct RemoveCVRef
 };
 #endif// ECKCXX20
 
-template<class T>
-concept ccpIsIntOrEnum = std::is_integral_v<T> || std::is_enum_v<T>;
-
-template<class T>
-concept ccpIsComInterface = std::is_base_of_v<IUnknown, std::remove_cvref_t<T>>;
+#pragma push_macro("ccpIsIntOrEnum")
+#define ccpIsIntOrEnum class
 
 template<ccpIsIntOrEnum T, bool = std::is_enum_v<T>>
 struct UnderlyingType
@@ -103,6 +108,8 @@ struct UnderlyingType<T, false>
 
 template<class T>
 using UnderlyingType_T = UnderlyingType<T>::Type;
+
+#pragma pop_macro("ccpIsIntOrEnum")
 
 ECK_NAMESPACE_END
 
@@ -295,6 +302,7 @@ constexpr inline float PiF = static_cast<float>(Pi);
 
 constexpr inline UINT CP_UTF16LE = 0xFFFFFFFF;
 constexpr inline UINT CP_UTF16BE = 0xFFFFFFFE;
+constexpr inline UINT CP_ASCII = 0xFFFFFFFD;
 
 constexpr inline BYTE BOM_UTF16LE[]{ 0xFF,0xFE };
 constexpr inline BYTE BOM_UTF16BE[]{ 0xFE,0xFF };
@@ -306,7 +314,11 @@ constexpr inline COLORREF c_crDarkBtnFace = 0x383838;
 constexpr inline UINT Neg1U{ (UINT)-1 };
 
 constexpr inline LARGE_INTEGER LiZero{};
+#if ECKCXX20
 constexpr inline ULARGE_INTEGER UliMax{ .QuadPart = 0xFFFF'FFFF'FFFF'FFFF };
+#else
+constexpr ULARGE_INTEGER UliMax{ 0xFFFF'FFFF, 0xFFFF'FFFF };
+#endif
 
 constexpr inline size_t SizeTMax{ std::numeric_limits<size_t>::max() };
 constexpr inline SIZE_T SIZETMax{ (SIZE_T)SizeTMax };

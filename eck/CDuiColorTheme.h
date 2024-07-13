@@ -6,6 +6,7 @@
 * Copyright(C) 2024 QingKong
 */
 #pragma once
+#if ECKCXX20
 #include "CWnd.h"
 
 #define ECK_DUI_NAMESPACE_BEGIN namespace Dui {
@@ -212,3 +213,6 @@ inline void MakeStdThemeDark(CColorTheme** pTheme)
 }
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
+#else
+#error "EckDui requires C++20"
+#endif// ECKCXX20

@@ -9,6 +9,14 @@ private:
 	COLORREF m_cr{ CLR_INVALID };
 	DWORD m_dwCCFlags{ CC_FULLOPEN };
 public:
+	void SerializeData(CRefBin& rb)
+	{
+		CWnd::SerializeData(rb);
+		constexpr auto cbSize = sizeof(m_crCust) + sizeof(m_cr) + sizeof(m_dwCCFlags);
+		CMemWriter w(rb.PushBack(cbSize), cbSize);
+		w << m_crCust << m_cr << m_dwCCFlags;
+	}
+
 	void AttachNew(HWND hWnd) override
 	{
 		CWnd::AttachNew(hWnd);

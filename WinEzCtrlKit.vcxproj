@@ -186,10 +186,14 @@
     <ClInclude Include="eck\CEditNcComp.h" />
     <ClInclude Include="eck\CEvent.h" />
     <ClInclude Include="eck\CFontPicker.h" />
+    <ClInclude Include="eck\CHexEdit.h" />
     <ClInclude Include="eck\ComPtr.h" />
     <ClInclude Include="eck\CVectorDrawPanel.h" />
     <ClInclude Include="eck\EnDeCode.h" />
     <ClInclude Include="eck\GeometryRender.h" />
+    <ClInclude Include="eck\MediaTagFlac.h" />
+    <ClInclude Include="eck\MediaTagID3v1.h" />
+    <ClInclude Include="eck\MediaTagID3v2.h" />
     <ClInclude Include="eck\MultiFrameImage.h" />
     <ClInclude Include="eck\CInertialScrollView.h" />
     <ClInclude Include="eck\CIni.h" />

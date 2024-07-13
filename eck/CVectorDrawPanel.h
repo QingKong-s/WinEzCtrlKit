@@ -11,6 +11,7 @@
 
 #include <d2d1_2.h>
 
+#if ECKCXX20
 ECK_NAMESPACE_BEGIN
 class CVectorDrawPanel : public CWnd
 {
@@ -591,3 +592,6 @@ public:
 
 ECK_ENUM_BIT_FLAGS(CVectorDrawPanel::Type);
 ECK_NAMESPACE_END
+#else
+#error "CVectorDrawPanel.h requires C++20"
+#endif // ECKCXX20

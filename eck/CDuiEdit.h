@@ -6,6 +6,7 @@
 * Copyright(C) 2024 QingKong
 */
 #pragma once
+#if ECKCXX20
 #include "CDuiScrollBar.h"
 
 ECK_NAMESPACE_BEGIN
@@ -438,3 +439,6 @@ public:
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
+#else
+#error "EckDui requires C++20"
+#endif// ECKCXX20
