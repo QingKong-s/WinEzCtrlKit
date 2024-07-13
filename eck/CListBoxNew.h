@@ -37,13 +37,21 @@ struct NMLBNCUSTOMDRAW
 	NMECKCTRLCUSTOMDRAW nmcd;
 };
 
+#pragma pack(push, ECK_CTRLDATA_ALIGN)
+struct CTRLDATA_LBN
+{
+	int iVer = 0;
+
+
+	// 
+};
+#pragma pack(pop)
 
 class CListBoxNew :public CWnd
 {
 private:
 	struct ITEM
 	{
-		CRefStrW rsText{};
 		union
 		{
 			struct
@@ -57,8 +65,6 @@ private:
 
 	CEzCDC m_DC{};
 	HFONT m_hFont = NULL;// 不需要释放
-	HBRUSH m_hbrBkg = NULL;
-	COLORREF m_crText = GetSysColor(COLOR_WINDOWTEXT);
 
 	HTHEME m_hTheme = NULL;
 
@@ -67,6 +73,8 @@ private:
 
 	int m_cyItem = 24;
 
+	COLORREF m_crBkg = CLR_DEFAULT;
+	COLORREF m_crText = CLR_DEFAULT;
 	int m_idxSel = -1;
 	int m_idxHot = -1;
 	int m_idxTop = -1;
@@ -106,14 +114,6 @@ private:
 	ECK_DS_END_VAR(m_Ds);
 
 
-	void UpdateColor()
-	{
-		DeleteObject(m_hbrBkg);
-		COLORREF cr;
-		GetItemsViewForeBackColor(m_crText, cr);
-		m_hbrBkg = CreateSolidBrush(cr);
-	}
-
 	BOOL OnCreate(HWND hWnd, CREATESTRUCTW* pcs)
 	{
 		m_iDpi = GetDpi(hWnd);
@@ -125,7 +125,6 @@ private:
 
 		SetItemsViewTheme();
 		m_hTheme = OpenThemeData(hWnd, L"ListView");
-		UpdateColor();
 		return TRUE;
 	}
 
@@ -143,13 +142,17 @@ private:
 		PAINTSTRUCT ps;
 		BeginPaint(hWnd, &ps);
 
-		FillRect(m_DC.GetDC(), &ps.rcPaint, m_hbrBkg);
+		const auto* const ptc = GetThreadCtx();
+		SetDCBrushColor(m_DC.GetDC(),
+			(m_crBkg == CLR_DEFAULT) ? ptc->crDefBkg : m_crBkg);
+		FillRect(m_DC.GetDC(), &ps.rcPaint, GetStockBrush(DC_BRUSH));
 
 		const int idxTop = std::max(m_idxTop + (int)ps.rcPaint.top / m_cyItem - 1, m_idxTop);
 		const int idxBottom = std::min(m_idxTop + (int)ps.rcPaint.bottom / m_cyItem + 1, (int)m_vItem.size() - 1);
 		if (idxTop >= 0 && idxBottom >= 0)
 		{
-			SetTextColor(m_DC.GetDC(), m_crText);
+			SetTextColor(m_DC.GetDC(),
+				(m_crText == CLR_DEFAULT) ? ptc->crDefText : m_crText);
 			RECT rc;
 			GetItemRect(idxTop, rc);
 			for (int i = idxTop; i <= idxBottom; ++i)
@@ -885,7 +888,6 @@ public:
 		{
 			CloseThemeData(m_hTheme);
 			m_hTheme = OpenThemeData(hWnd, L"ListView");
-			UpdateColor();
 		}
 		return 0;
 		case WM_DPICHANGED_BEFOREPARENT:
@@ -902,8 +904,6 @@ public:
 		{
 			CloseThemeData(m_hTheme);
 			m_hTheme = NULL;
-			DeleteObject(m_hbrBkg);
-			m_hbrBkg = NULL;
 			m_hFont = NULL;
 			m_cyItem = 24;
 			m_idxSel = m_idxHot = m_idxTop = m_idxMark = m_idxFocus = -1;

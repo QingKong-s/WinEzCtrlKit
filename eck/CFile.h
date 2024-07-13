@@ -116,7 +116,7 @@ public:
 			return *this << U::CharTerminatingNull();
 		else
 		{
-			Write(Buf.Data(), (DWORD)Cch2Cb(Buf.Size()));
+			Write(Buf.Data(), (DWORD)Cch2CbW(Buf.Size()));
 			return *this;
 		}
 	}

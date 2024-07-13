@@ -89,10 +89,10 @@ struct RemoveCVRef
 {
 	using Type = RemoveCVRef_T<T>;
 };
-#endif// ECKCXX20
 
 #pragma push_macro("ccpIsIntOrEnum")
 #define ccpIsIntOrEnum class
+#endif// ECKCXX20
 
 template<ccpIsIntOrEnum T, bool = std::is_enum_v<T>>
 struct UnderlyingType
@@ -106,7 +106,7 @@ struct UnderlyingType<T, false>
 	using Type = T;
 };
 
-template<class T>
+template<ccpIsIntOrEnum T>
 using UnderlyingType_T = UnderlyingType<T>::Type;
 
 #pragma pop_macro("ccpIsIntOrEnum")
@@ -116,7 +116,11 @@ ECK_NAMESPACE_END
 #define EckInline				__forceinline
 
 // 控件序列化数据对齐
-#define ECK_CTRLDATA_ALIGN		4
+#ifdef _WIN64
+#	define ECK_CTRLDATA_ALIGN	8
+#else
+#	define ECK_CTRLDATA_ALIGN	4
+#endif
 
 #define ECKPRIV_ECKWIDE2___(x)	L##x
 // ANSI字符串到宽字符串

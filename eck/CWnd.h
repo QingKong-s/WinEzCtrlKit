@@ -15,12 +15,16 @@
 #include <functional>
 
 ECK_NAMESPACE_BEGIN
-inline constexpr int
-DATAVER_STD_1 = 1;
-#pragma pack(push, ECK_CTRLDATA_ALIGN)
-struct CREATEDATA_STD
+enum :UINT
 {
-	int iVer_Std;
+	CDF_W_HSB = (1u << 0),
+	CDF_W_VSB = (1u << 1),
+};
+#pragma pack(push, ECK_CTRLDATA_ALIGN)
+struct CTRLDATA_WND
+{
+	UINT uFlags;
+	int iVer;
 	int cchText;
 	DWORD dwStyle;
 	DWORD dwExStyle;
@@ -76,18 +80,22 @@ class CWnd :public ILayout
 public:
 	using FMsgHook = std::function<LRESULT(HWND, UINT, WPARAM, LPARAM, BOOL& bProcessed)>;
 
+	constexpr static UINT_PTR MsgHookTop = (UINT_PTR)-1;
+
 #ifdef ECK_CTRL_DESIGN_INTERFACE
 	DESIGNDATA_WND m_DDBase{};
 #endif
 protected:
+	struct MSG_HOOK_NODE
+	{
+		UINT_PTR uId;
+		FMsgHook fn;
+		MSG_HOOK_NODE* pNext;
+	};
+
 	HWND m_hWnd = NULL;
 	WNDPROC m_pfnRealProc = DefWindowProcW;
-	std::vector<FMsgHook> m_vFnMsgHook{};
-
-	static void WndCreatingSetLong(HWND hWnd, CBT_CREATEWNDW* pcs, ECKTHREADCTX* pThreadCtx)
-	{
-		SetWindowLongPtrW(hWnd, 0, (LONG_PTR)pThreadCtx->pCurrWnd);
-	}
+	MSG_HOOK_NODE* m_pMsgHookHead = NULL;
 
 	EckInline HWND IntCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
@@ -142,12 +150,14 @@ protected:
 
 	EckInline LRESULT CallMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		EckCounter(m_vFnMsgHook.size(), i)
+		auto pNode = m_pMsgHookHead;
+		while (pNode)
 		{
-			BOOL bProcessed;
-			const auto lResult = m_vFnMsgHook[i].operator()(hWnd, uMsg, wParam, lParam, bProcessed);
+			BOOL bProcessed = FALSE;
+			const auto lResult = pNode->fn(hWnd, uMsg, wParam, lParam, bProcessed);
 			if (bProcessed)
 				return lResult;
+			pNode = pNode->pNext;
 		}
 		return OnMsg(hWnd, uMsg, wParam, lParam);
 	}
@@ -302,6 +312,7 @@ public:
 		if (m_hWnd)
 			EckAssert(((GetThreadCtx()->WmAt(m_hWnd) == this) ? (!m_hWnd) : TRUE));
 #endif // _DEBUG
+		ClearMsgHooks();
 	}
 
 	/// <summary>
@@ -375,14 +386,33 @@ public:
 	virtual void SerializeData(CRefBin& rb)
 	{
 		CRefStrW rsText = GetText();
-		const SIZE_T cbSize = sizeof(CREATEDATA_STD) + rsText.ByteSize();
+		const auto dwStyle = GetStyle();
+
+		const SIZE_T cbSize = sizeof(CTRLDATA_WND) + rsText.ByteSize() +
+			(IsBitSet(dwStyle, WS_HSCROLL) ? sizeof(SCROLLINFO) : 0) +
+			(IsBitSet(dwStyle, WS_VSCROLL) ? sizeof(SCROLLINFO) : 0);
+
 		CMemWriter w(rb.PushBack(cbSize), cbSize);
-		CREATEDATA_STD* p;
+		CTRLDATA_WND* p;
 		w.SkipPointer(p);
-		p->iVer_Std = DATAVER_STD_1;
+		p->iVer = 0;
 		p->cchText = rsText.Size();
-		p->dwStyle = GetStyle();
+		p->dwStyle = dwStyle;
 		p->dwExStyle = GetExStyle();
+		p->uFlags = 0u;
+		SCROLLINFO* psi;
+		if (IsBitSet(dwStyle, WS_HSCROLL))
+		{
+			p->uFlags |= CDF_W_HSB;
+			w.SkipPointer(psi);
+			GetSbInfo(SB_HORZ, psi);
+		}
+		if (IsBitSet(dwStyle, WS_VSCROLL))
+		{
+			p->uFlags |= CDF_W_VSB;
+			w.SkipPointer(psi);
+			GetSbInfo(SB_VERT, psi);
+		}
 
 		w << rsText;
 	}
@@ -448,11 +478,10 @@ public:
 		return GetHWND();
 	}
 
-	EckInline static PCVOID SkipBaseData(PCVOID p)
+	[[nodiscard]] EckInline constexpr static PCVOID SkipBaseData(PCVOID p)
 	{
-		return (PCBYTE)p +
-			sizeof(CREATEDATA_STD) +
-			(((const CREATEDATA_STD*)p)->cchText + 1) * sizeof(WCHAR);
+		return (PCBYTE)p + sizeof(CTRLDATA_WND) +
+			Cch2CbW(((const CTRLDATA_WND*)p)->cchText);
 	}
 
 	/// <summary>
@@ -478,7 +507,7 @@ public:
 			rcPos = rc;
 		}
 
-		auto pData = (CREATEDATA_STD*)rb.Data();
+		auto pData = (CTRLDATA_WND*)rb.Data();
 		if (dwNewStyle.has_value())
 			pData->dwStyle = dwNewStyle.value();
 		if (dwNewExStyle.has_value())
@@ -1050,17 +1079,55 @@ public:
 		return pfnWndProc;
 	}
 
-	EckInline void InstallMsgHook(const FMsgHook& fn, int idx = -1)
+	void InstallMsgHook(const FMsgHook& fn, UINT_PTR uId, UINT_PTR uIdAfter = MsgHookTop)
 	{
-		if (idx >= 0)
-			m_vFnMsgHook.emplace(m_vFnMsgHook.begin() + idx, fn);
+		EckAssert(uId != MsgHookTop);
+		if (m_pMsgHookHead)
+		{
+			auto p = m_pMsgHookHead;
+			if (uIdAfter != MsgHookTop)
+				while (p->uId != uIdAfter && p->pNext)
+					p = p->pNext;
+			const auto pNew = new MSG_HOOK_NODE{ uId,fn };
+			pNew->pNext = p->pNext;
+			p->pNext = pNew;
+		}
 		else
-			m_vFnMsgHook.emplace_back(fn);
+			m_pMsgHookHead = new MSG_HOOK_NODE{ uId,fn };
 	}
 
-	EckInline void UnInstallMsgHook(int idx)
+	void UnInstallMsgHook(UINT_PTR uId)
 	{
-		m_vFnMsgHook.erase(m_vFnMsgHook.begin() + idx);
+		if (m_pMsgHookHead)
+		{
+			auto p = m_pMsgHookHead;
+			if (p->uId == uId)
+			{
+				m_pMsgHookHead = p->pNext;
+				delete p;
+				return;
+			}
+			while (p->pNext && p->pNext->uId != uId)
+				p = p->pNext;
+			if (p->pNext)
+			{
+				auto pDel = p->pNext;
+				p->pNext = pDel->pNext;
+				delete pDel;
+			}
+		}
+	}
+
+	EckInline void ClearMsgHooks()
+	{
+		auto pNode = m_pMsgHookHead;
+		while (pNode)
+		{
+			const auto p = pNode->pNext;
+			delete pNode;
+			pNode = p;
+		}
+		m_pMsgHookHead = NULL;
 	}
 };
 
