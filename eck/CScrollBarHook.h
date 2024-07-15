@@ -104,19 +104,24 @@ public:
 		s_cs.Enter();
 		if (!s_cHookRef)
 		{
-			s_cHookRef = 1;
+			s_pfnSetScrollInfo = SetScrollInfo;
+			s_pfnGetScrollInfo = GetScrollInfo;
+			s_pfnShowScrollBar = ShowScrollBar;
+
 			DetourTransactionBegin();
 			DetourAttach(&s_pfnSetScrollInfo, NewSetScrollInfo);
 			DetourAttach(&s_pfnGetScrollInfo, NewGetScrollInfo);
 			DetourAttach(&s_pfnShowScrollBar, NewShowScrollBar);
 			DetourTransactionCommit();
+			DetourUpdateThread(GetCurrentThread());
 		}
+		++s_cHookRef;
 		s_cs.Leave();
 
-		//pWnd->InstallMsgHook([this](HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)->LRESULT
-		//	{
+		pWnd->InstallMsgHook([this](HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)->LRESULT
+			{
 
-		//	});
+			}, MHI_SCROLLBAR_HOOK);
 
 	}
 
@@ -124,7 +129,7 @@ public:
 
 inline int								CScrollBarHook::s_cHookRef{};
 inline CCriticalSection					CScrollBarHook::s_cs{};
-inline CScrollBarHook::FSetScrollInfo	CScrollBarHook::s_pfnSetScrollInfo{ SetScrollInfo };
-inline CScrollBarHook::FGetScrollInfo	CScrollBarHook::s_pfnGetScrollInfo{ GetScrollInfo };
-inline CScrollBarHook::FShowScrollBar	CScrollBarHook::s_pfnShowScrollBar{ ShowScrollBar };
+inline CScrollBarHook::FSetScrollInfo	CScrollBarHook::s_pfnSetScrollInfo{};
+inline CScrollBarHook::FGetScrollInfo	CScrollBarHook::s_pfnGetScrollInfo{};
+inline CScrollBarHook::FShowScrollBar	CScrollBarHook::s_pfnShowScrollBar{};
 ECK_NAMESPACE_END
