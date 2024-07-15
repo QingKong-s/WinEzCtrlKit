@@ -91,11 +91,20 @@ protected:
 		UINT_PTR uId;
 		FMsgHook fn;
 		MSG_HOOK_NODE* pNext;
+		UINT uFlags;
+		int cEnter;
+	};
+
+	enum :UINT
+	{
+		SUBCLSNF_PROTECTED = (1u << 0),
+		SUBCLSNF_DELETED = (1u << 1),
 	};
 
 	HWND m_hWnd = NULL;
 	WNDPROC m_pfnRealProc = DefWindowProcW;
 	MSG_HOOK_NODE* m_pMsgHookHead = NULL;
+	int m_cMsgHookDeleted = 0;
 
 	EckInline HWND IntCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
@@ -150,14 +159,49 @@ protected:
 
 	EckInline LRESULT CallMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		auto pNode = m_pMsgHookHead;
-		while (pNode)
+		if (m_pMsgHookHead)
 		{
-			BOOL bProcessed = FALSE;
-			const auto lResult = pNode->fn(hWnd, uMsg, wParam, lParam, bProcessed);
-			if (bProcessed)
-				return lResult;
-			pNode = pNode->pNext;
+			auto pNode = m_pMsgHookHead;
+			do
+			{
+				if (pNode->uFlags & SUBCLSNF_DELETED)
+					continue;
+				++pNode->cEnter;
+				// CALL
+				BOOL bProcessed = FALSE;
+				const auto lResult = pNode->fn(hWnd, uMsg, wParam, lParam, bProcessed);
+				if (bProcessed)
+					return lResult;
+				--pNode->cEnter;
+				
+			} while (pNode = pNode->pNext);
+
+			// 删除所有进入计数为0且标记为删除的节点
+			EckAssert(m_cMsgHookDeleted >= 0);
+			if (m_cMsgHookDeleted)
+			{
+				pNode = m_pMsgHookHead;
+				MSG_HOOK_NODE* pPrev{};
+				do
+				{
+					if (pNode->cEnter == 0 && pNode->uFlags & SUBCLSNF_DELETED)
+					{
+						if (pPrev)
+							pPrev->pNext = pNode->pNext;
+						else
+							m_pMsgHookHead = pNode->pNext;
+						const auto pNext = pNode->pNext;
+						delete pNode;
+						pNode = pNext;
+						--m_cMsgHookDeleted;
+					}
+					else
+					{
+						pPrev = pNode;
+						pNode = pNode->pNext;
+					}
+				} while (pNode);
+			}
 		}
 		return OnMsg(hWnd, uMsg, wParam, lParam);
 	}
@@ -312,7 +356,18 @@ public:
 		if (m_hWnd)
 			EckAssert(((GetThreadCtx()->WmAt(m_hWnd) == this) ? (!m_hWnd) : TRUE));
 #endif // _DEBUG
-		ClearMsgHooks();
+		// 清理消息钩子
+		if (m_pMsgHookHead)
+		{
+			auto pNode = m_pMsgHookHead;
+			do
+			{
+				const auto pNext = pNode->pNext;
+				delete pNode;
+				pNode = pNext;
+			} while (pNode);
+		}
+		m_cMsgHookDeleted = 0;
 	}
 
 	/// <summary>
@@ -1078,56 +1133,54 @@ public:
 		std::swap(m_pfnRealProc, pfnWndProc);
 		return pfnWndProc;
 	}
-
+private:
+	MSG_HOOK_NODE* FindMsgHook(UINT_PTR uId) const
+	{
+		auto p = m_pMsgHookHead;
+		while (p)
+		{
+			if (p->uId == uId)
+				return p;
+			p = p->pNext;
+		}
+		return nullptr;
+	}
+public:
 	void InstallMsgHook(const FMsgHook& fn, UINT_PTR uId, UINT_PTR uIdAfter = MsgHookTop)
 	{
 		EckAssert(uId != MsgHookTop);
+		const auto pNew = new MSG_HOOK_NODE{ uId,fn };
 		if (m_pMsgHookHead)
 		{
-			auto p = m_pMsgHookHead;
-			if (uIdAfter != MsgHookTop)
-				while (p->uId != uIdAfter && p->pNext)
-					p = p->pNext;
-			const auto pNew = new MSG_HOOK_NODE{ uId,fn };
-			pNew->pNext = p->pNext;
-			p->pNext = pNew;
+			if (uIdAfter == MsgHookTop)
+			{
+				pNew->pNext = m_pMsgHookHead;
+				m_pMsgHookHead = pNew;
+			}
+			else
+			{
+				const auto pAfter = FindMsgHook(uIdAfter);
+				if (pAfter)
+				{
+					pNew->pNext = pAfter->pNext;
+					pAfter->pNext = pNew;
+				}
+				else
+				{
+					pNew->pNext = m_pMsgHookHead;
+					m_pMsgHookHead = pNew;
+				}
+			}
 		}
 		else
-			m_pMsgHookHead = new MSG_HOOK_NODE{ uId,fn };
+			m_pMsgHookHead = pNew;
 	}
 
 	void UnInstallMsgHook(UINT_PTR uId)
 	{
-		if (m_pMsgHookHead)
-		{
-			auto p = m_pMsgHookHead;
-			if (p->uId == uId)
-			{
-				m_pMsgHookHead = p->pNext;
-				delete p;
-				return;
-			}
-			while (p->pNext && p->pNext->uId != uId)
-				p = p->pNext;
-			if (p->pNext)
-			{
-				auto pDel = p->pNext;
-				p->pNext = pDel->pNext;
-				delete pDel;
-			}
-		}
-	}
-
-	EckInline void ClearMsgHooks()
-	{
-		auto pNode = m_pMsgHookHead;
-		while (pNode)
-		{
-			const auto p = pNode->pNext;
-			delete pNode;
-			pNode = p;
-		}
-		m_pMsgHookHead = NULL;
+		const auto p = FindMsgHook(uId);
+		if (p)
+			p->uFlags |= SUBCLSNF_DELETED;
 	}
 };
 

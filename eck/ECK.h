@@ -339,7 +339,7 @@ constexpr inline BOOL Dbg{ FALSE };
 constexpr inline UINT NM_FIRST_ECK = (0u - 0x514Bu * 0x514Bu);
 enum :UINT
 {
-	ECKPRIV_NM_FIRST_PLACEHOLDER___ = NM_FIRST_ECK,
+	ECKPRIV_NM_FIRST_PLACEHOLDER = NM_FIRST_ECK,
 	NM_CLP_CLRCHANGED,		// NMCLPCLRCHANGED
 	NM_SPB_DRAGGED,			// NMSPBDRAGGED
 	NM_TGL_TASKCLICKED,		// NMTGLCLICKED
@@ -386,6 +386,15 @@ struct NMECKCTRLCUSTOMDRAW
 	HDC hDC;
 	RECT rcItem;
 };
+
+// 消息钩子保留范围[1, 4095]
+constexpr inline UINT_PTR MsgHookIdUserBegin = 4096;
+enum :UINT_PTR
+{
+	ECKPRIV_MHI_FIRST_PLACEHOLDER = 1,
+	MHI_SCROLLBAR_HOOK,
+	MHI_HEADER_HOOK
+};
 /*-------------------*/
 /*属性字符串*/
 
@@ -423,7 +432,11 @@ namespace GpNameSpace
 	ECK_USING_GDIP_TYPE(GpRect);
 	ECK_USING_GDIP_TYPE(GpPointF);
 	ECK_USING_GDIP_TYPE(GpPoint);
+	ECK_USING_GDIP_TYPE(GpSizeF);
+	using GpSize = ::Gdiplus::Size;
 	ECK_USING_GDIP_TYPE(GdiplusStartupInput);
+	ECK_USING_GDIP_TYPE(GpFillMode);
+
 	using Gdiplus::GdiplusShutdown;
 	using Gdiplus::GdiplusStartup;
 }
