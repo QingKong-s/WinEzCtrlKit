@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* MediaTagID3v2.h ： ID3v2读写
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "MediaTag.h"
 
 ECK_NAMESPACE_BEGIN
@@ -13,7 +20,7 @@ private:
 	ID3v2_ExtHeader m_ExtHdr{};
 	DWORD m_cbTag{};
 
-	SIZE_T m_posAppendTag{ SIZETMax };
+	SIZE_T m_posAppendTag{ SIZETMax };// 根据SEEK帧查找到的追加标签位置
 	DWORD m_cbPrependTag{};
 
 	class CFrame
@@ -279,7 +286,6 @@ public:
 	ECK_DECL_ID3FRAME_METHOD_CLONE(x)		\
 	x() = default;							\
 	x(PCSTR psz) { memcpy(Id, psz, 4); }
-
 
 
 	struct FRAME
@@ -1115,6 +1121,12 @@ public:
 
 		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
 		{
+#ifdef _DEBUG
+			if (phdr->Ver == 3)
+				EckAssert(uFlags[0] & (ID3V23FF_TAG_ALTER_DISCARD | ID3V23FF_FILE_ALTER_DISCARD));
+			else if (phdr->Ver == 4)
+				EckAssert(uFlags[0] & (ID3V24FF_TAG_ALTER_DISCARD | ID3V24FF_FILE_ALTER_DISCARD));
+#endif
 			constexpr size_t cbFrame = 4;
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w.WriteRev(ocbNextTag);
@@ -1508,6 +1520,7 @@ private:
 	}
 
 #define ECK_HIT_ID3FRAME(x) (memcmp(FrameHdr.ID, #x, 4) == 0)
+
 	Result ParseFrameBody(SIZE_T posEnd, SIZE_T* pposActualEnd = NULL)
 	{
 		posEnd = std::min(posEnd, (SIZE_T)m_Stream.GetSizeUli().QuadPart);
@@ -1544,7 +1557,7 @@ private:
 				if (p->eEncoding >= TextEncoding::Max)
 				{
 					delete p;
-					return Result::TextEncodingErr;
+					return Result::IllegalEnum_TextEncoding;
 				}
 				p->rsDesc = GetID3v2_ProcString(w, -1, p->eEncoding);
 				p->rsText = GetID3v2_ProcString(w, (int)w.GetLeaveSize(), p->eEncoding);
@@ -1568,7 +1581,7 @@ private:
 				if (p->eEncoding >= TextEncoding::Max)
 				{
 					delete p;
-					return Result::TextEncodingErr;
+					return Result::IllegalEnum_TextEncoding;
 				}
 				p->rsDesc = GetID3v2_ProcString(w, -1, p->eEncoding);
 				p->rsUrl.DupString((PCSTR)w.Data(), (int)w.GetLeaveSize());
@@ -1682,7 +1695,7 @@ private:
 				if (p->eEncoding >= TextEncoding::Max)
 				{
 					delete p;
-					return Result::TextEncodingErr;
+					return Result::IllegalEnum_TextEncoding;
 				}
 				w >> p->byLang;
 				p->rsDesc = GetID3v2_ProcString(w, -1, p->eEncoding);
@@ -1704,7 +1717,7 @@ private:
 				if (p->eEncoding >= TextEncoding::Max)
 				{
 					delete p;
-					return Result::TextEncodingErr;
+					return Result::IllegalEnum_TextEncoding;
 				}
 				w >> p->byLang >> p->eTimestampFmt >> p->eContent;
 				p->rsDesc = GetID3v2_ProcString(w, -1, p->eEncoding);
@@ -1735,7 +1748,7 @@ private:
 				if (p->eEncoding >= TextEncoding::Max)
 				{
 					delete p;
-					return Result::TextEncodingErr;
+					return Result::IllegalEnum_TextEncoding;
 				}
 				w >> p->byLang;
 				p->rsDesc = GetID3v2_ProcString(w, -1, p->eEncoding);
@@ -2278,178 +2291,102 @@ public:
 
 	~CID3v2() { m_Stream.GetStream()->Release(); }
 
-	BOOL ReadTag(MUSICINFO& mi)
+	Result SimpleExtract(MUSICINFO& mi)
 	{
 		mi.Clear();
-		if (!m_cbTag)
-			return FALSE;
-		m_Stream.MoveTo(m_File.m_Id3Loc.posV2 + 10u);
-		ID3v2_FrameHeader FrameHdr;
-		while (m_Stream.GetPos() < m_cbTag)
+		if (m_vFrame.empty())
+			return Result::NoTag;
+		for (const auto e : m_vFrame)
 		{
-			const auto cbUnit = PreJudgeFrame(FrameHdr);
-
-			if ((mi.uMask & MIM_TITLE) && ECK_HIT_ID3FRAME(TIT2))// 标题
+			if ((mi.uMask & MIM_TITLE) && memcmp(e->Id, "TIT2", 4) == 0)
 			{
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-				mi.rsTitle = GetID3v2_ProcString(w, cb);
-				mi.uMaskRead |= MIM_TITLE;
+				const auto p = DynCast<TEXTFRAME*>(e);
+				if (!p->vText.empty())
+				{
+					mi.rsTitle = p->vText[0];
+					mi.uMaskRead |= MIM_TITLE;
+				}
 			}
-			else if ((mi.uMask & MIM_ARTIST) && ECK_HIT_ID3FRAME(TPE1))// 作者
+			else if ((mi.uMask & MIM_ARTIST) && memcmp(e->Id, "TPE1", 4) == 0)
 			{
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-				mi.AppendArtist(GetID3v2_ProcString(w, cb));
-				mi.uMaskRead |= MIM_ARTIST;
+				const auto p = DynCast<TEXTFRAME*>(e);
+				for (const auto& e : p->vText)
+				{
+					mi.AppendArtist(e);
+					mi.uMaskRead |= MIM_ARTIST;
+				}
 			}
-			else if ((mi.uMask & MIM_ALBUM) && ECK_HIT_ID3FRAME(TALB))// 专辑
+			else if ((mi.uMask & MIM_ALBUM) && memcmp(e->Id, "TALB", 4) == 0)
 			{
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-				mi.rsAlbum = GetID3v2_ProcString(w, cb);
-				mi.uMaskRead |= MIM_ALBUM;
+				const auto p = DynCast<TEXTFRAME*>(e);
+				if (!p->vText.empty())
+				{
+					mi.rsAlbum = p->vText[0];
+					mi.uMaskRead |= MIM_ALBUM;
+				}
 			}
-			else if ((mi.uMask & MIM_LRC) && ECK_HIT_ID3FRAME(USLT))// 不同步歌词
+			else if ((mi.uMask & MIM_LRC) && memcmp(e->Id, "USLT", 4) == 0)
 			{
-				/*
-				<帧头>（帧标识为USLT）
-				文本编码						$xx
-				自然语言代码					$xx xx xx
-				内容描述						<字符串> $00 (00)
-				歌词							<字符串>
-				*/
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-
-				BYTE byEncodeType;
-				w >> byEncodeType;// 读文本编码
-
-				CHAR byLangCode[3];
-				w >> byLangCode;// 读自然语言代码
-
-				UINT t;
-				if (byEncodeType == 0 || byEncodeType == 3)// ISO-8859-1或UTF-8
-					t = (int)strlen((PCSTR)w.Data()) + 1;
-				else// UTF-16LE或UTF-16BE
-					t = ((int)wcslen((PCWSTR)w.Data()) + 1) * sizeof(WCHAR);
-				w += t;// 跳过内容描述
-
-				cb -= (t + 4);
-
-				mi.rsLrc = GetID3v2_ProcString(w, cb, byEncodeType);
+				const auto p = DynCast<USLT*>(e);
+				mi.rsLrc = p->rsLrc;
 				mi.uMaskRead |= MIM_LRC;
 			}
-			else if ((mi.uMask & MIM_COMMENT) && ECK_HIT_ID3FRAME(COMM))// 备注
+			else if ((mi.uMask & MIM_COMMENT) && memcmp(e->Id, "COMM", 4) == 0)
 			{
-				/*
-				<帧头>（帧标识为COMM）
-				文本编码						$xx
-				自然语言代码					$xx xx xx
-				备注摘要						<字符串> $00 (00)
-				备注							<字符串>
-				*/
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-
-				BYTE byEncodeType;
-				w >> byEncodeType;// 读文本编码
-
-				CHAR byLangCode[3];
-				w >> byLangCode;// 读自然语言代码
-
-				UINT t;
-				if (byEncodeType == 0 || byEncodeType == 3)// ISO-8859-1或UTF-8
-					t = (int)strlen((PCSTR)w.Data()) + 1;
-				else// UTF-16LE或UTF-16BE
-					t = ((int)wcslen((PCWSTR)w.Data()) + 1) * sizeof(WCHAR);
-				w += t;// 跳过备注摘要
-
-				cb -= (t + 4);
-
-				mi.AppendComment(GetID3v2_ProcString(w, cb, byEncodeType));
+				const auto p = DynCast<COMM*>(e);
+				mi.AppendComment(p->rsText);
 				mi.uMaskRead |= MIM_COMMENT;
 			}
-			else if ((mi.uMask & MIM_COVER) && ECK_HIT_ID3FRAME(APIC))// 图片
+			else if ((mi.uMask & MIM_COVER) && memcmp(e->Id, "APIC", 4) == 0)
 			{
-				/*
-				<帧头>（帧标识为APIC）
-				文本编码                        $xx
-				MIME 类型                       <ASCII字符串>$00（如'image/bmp'）
-				图片类型                        $xx
-				描述                            <字符串>$00(00)
-				<图片数据>
-				*/
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-
+				const auto p = DynCast<APIC*>(e);
 				MUSICPIC Pic{};
-
-				BYTE byEncodeType;
-				w >> byEncodeType;// 读文本编码
-
-				BYTE byType;
-
-				UINT t;
-				t = (int)strlen((PCSTR)w.Data());
-				CRefStrA rsMime((PCSTR)w.Data(), t);
-				Pic.rsMime = StrX2W(rsMime.Data(), rsMime.Size());
-				w += (t + 1);// 跳过MIME类型字符串
-
-				w >> byType;// 图片类型
-				if (byType < (BYTE)PicType::Begin___ || byType >= (BYTE)PicType::End___)
-					Pic.eType = PicType::Invalid;
-				else
-					Pic.eType = (PicType)byType;
-
-				Pic.rsDesc = GetID3v2_ProcString(w, -1, byEncodeType);
-				Pic.bLink = (Pic.rsDesc == L"-->");
-
+				Pic.eType = p->eType;
+				Pic.rsDesc = p->rsDesc;
+				Pic.rsMime = StrX2W(p->rsMime);
+				Pic.bLink = (p->rsMime == "-->");
 				if (Pic.bLink)
-					Pic.varPic = GetID3v2_ProcString(w, (int)w.GetLeaveSize(), byEncodeType);
+					Pic.varPic = StrX2W((PCSTR)p->rbData.Data(), (int)p->rbData.Size());
 				else
-					Pic.varPic = CRefBin(w.Data(), cb);
-				mi.vImage.push_back(std::move(Pic));
+					Pic.varPic = p->rbData;
+				mi.vImage.emplace_back(std::move(Pic));
 				mi.uMaskRead |= MIM_COVER;
 			}
-			else if ((mi.uMask & MIM_GENRE) && ECK_HIT_ID3FRAME(TCON))// 流派
+			else if ((mi.uMask & MIM_GENRE) && memcmp(e->Id, "TCON", 4) == 0)
 			{
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-				mi.rsGenre = GetID3v2_ProcString(w, cb);
-				mi.uMaskRead |= MIM_GENRE;
+				const auto p = DynCast<TEXTFRAME*>(e);
+				if (!p->vText.empty())
+				{
+					mi.rsGenre = p->vText[0];
+					mi.uMaskRead |= MIM_GENRE;
+				}
 			}
-			else if ((mi.uMask & MIM_DATE) && ECK_HIT_ID3FRAME(TYER) && m_Header.Ver == 3)// 年代
+			else if ((mi.uMask & MIM_DATE) && memcmp(e->Id, "TYER", 4) == 0)
 			{
-				// TODO:本地格式化
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-				auto rsDate = GetID3v2_ProcString(w, cb);
-				if (rsDate.Size() == 4)
+				const auto p = DynCast<TEXTFRAME*>(e);
+				if (!p->vText.empty())
 				{
 					if (mi.uFlag & MIF_DATE_STRING)
-						mi.Date = std::move(rsDate);
+						mi.Date = p->vText[0];
 					else
-						mi.Date = SYSTEMTIME{ .wYear = (WORD)_wtoi(rsDate.Data()) };
+						mi.Date = SYSTEMTIME{ .wYear = (WORD)_wtoi(p->vText[0].Data()) };
 					mi.uMaskRead |= MIM_DATE;
 				}
 			}
-			else if ((mi.uMask & MIM_DATE) && ECK_HIT_ID3FRAME(TDRC) && m_Header.Ver == 4)// 年代
+			else if ((mi.uMask & MIM_DATE) && memcmp(e->Id, "TDRC", 4) == 0)
 			{
-				CFrame f(*this, FrameHdr, cbUnit);
-				auto [w, cb] = f.Begin();
-				auto rsDate = GetID3v2_ProcString(w, cb);
-				if (rsDate.Size() >= 4)
+				const auto p = DynCast<TEXTFRAME*>(e);
+				if (!p->vText.empty())
 				{
 					if (mi.uFlag & MIF_DATE_STRING)
 					{
-						mi.Date = std::move(rsDate);
+						mi.Date = p->vText[0];
 						mi.uMaskRead |= MIM_DATE;
 					}
 					else
 					{
 						SYSTEMTIME st{};
-						if (swscanf(rsDate.Data(), L"%hd-%hd-%hdT%hd:%hd:%hd",
+						if (swscanf(p->vText[0].Data(), L"%hd-%hd-%hdT%hd:%hd:%hd",
 							&st.wYear, &st.wMonth, &st.wDay,
 							&st.wHour, &st.wMinute, &st.wSecond) > 0)
 						{
@@ -2457,12 +2394,11 @@ public:
 							mi.uMaskRead |= MIM_DATE;
 						}
 					}
+					mi.uMaskRead |= MIM_DATE;
 				}
 			}
-			else
-				m_Stream += cbUnit;
 		}
-		return TRUE;
+		return Result::Ok;
 	}
 
 	Result ReadTag(UINT uFlags)
@@ -2472,7 +2408,7 @@ public:
 		m_vFrame.clear();
 		m_posAppendTag = SIZETMax;
 		if (!m_cbTag)
-			return Result::TagErr;
+			return Result::NoTag;
 		Result r;
 		SIZE_T posActualEnd;
 		if (m_File.m_Id3Loc.posV2 != SIZETMax)
@@ -2517,7 +2453,11 @@ public:
 			m_File.m_Id3Loc.posV2 == SIZETMax;
 		const BOOL bShouldAppend = (uFlags & MIF_APPEND_TAG);
 		ID3v2_Header Hdr{ m_Header };
-		if (Hdr.Ver != 3 && Hdr.Ver != 4)
+		if (uFlags & MIF_CREATE_ID3V2_3)
+			Hdr.Ver = 3;
+		else if (uFlags & MIF_CREATE_ID3V2_4)
+			Hdr.Ver = 4;
+		else if (Hdr.Ver != 3 && Hdr.Ver != 4)
 			Hdr.Ver = 4;
 		CRefBin rbPrepend{}, rbAppend{};
 		for (const auto e : m_vFrame)
@@ -2533,6 +2473,7 @@ public:
 
 		const auto cbFrames = (DWORD)(rbPrepend.Size() + rbAppend.Size());
 		DwordToSynchSafeInt(Hdr.Size, cbFrames);
+		SIZE_T posAppendBegin{ SIZETMax };
 		// 写入追加标签
 		if (!rbAppend.IsEmpty())
 		{
@@ -2546,21 +2487,10 @@ public:
 				else
 				{
 					const auto cbPadding = m_cbTag - rbAppend.Size();
-					if (cbPadding)
+					if (cbPadding)// 无论如何都不对追加标签使用填充
 					{
-						if (bAllowPadding && cbPadding < 4096)
-						{
-							m_Stream.MoveTo(m_File.m_Id3Loc.posV2Footer + rbAppend.Size());
-							void* p = VirtualAlloc(0, cbPadding, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-							EckCheckMem(p);
-							m_Stream.Write(p, (ULONG)cbPadding);
-							VirtualFree(p, 0, MEM_RELEASE);
-						}
-						else
-						{
-							m_Stream.Erase(ToUli(m_File.m_Id3Loc.posV2Footer + rbAppend.Size()),
-								ToUli(cbPadding));
-						}
+						m_Stream.Erase(ToUli(m_File.m_Id3Loc.posV2Footer + rbAppend.Size()),
+							ToUli(cbPadding));
 					}
 				}
 				m_Stream.MoveTo(m_File.m_Id3Loc.posV2Footer);
@@ -2577,21 +2507,10 @@ public:
 				else
 				{
 					const auto cbPadding = cbOldAppend - rbAppend.Size();
-					if (cbPadding)
+					if (cbPadding)// 无论如何都不对追加标签使用填充
 					{
-						if (bAllowPadding && cbPadding < 4096)
-						{
-							m_Stream.MoveTo(m_posAppendTag + rbAppend.Size());
-							void* p = VirtualAlloc(0, cbPadding, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-							EckCheckMem(p);
-							m_Stream.Write(p, (ULONG)cbPadding);
-							VirtualFree(p, 0, MEM_RELEASE);
-						}
-						else
-						{
-							m_Stream.Erase(ToUli(m_posAppendTag + rbAppend.Size()),
-								ToUli(cbPadding));
-						}
+						m_Stream.Erase(ToUli(m_posAppendTag + rbAppend.Size()),
+							ToUli(cbPadding));
 					}
 				}
 				m_Stream.MoveTo(m_posAppendTag);
@@ -2609,6 +2528,7 @@ public:
 				m_Stream.MoveTo(posInsert);
 			}
 			memcpy(Hdr.Header, "3DI", 3);
+			posAppendBegin = m_Stream.GetPos();
 			// TODO:扩展头
 			m_Stream << rbAppend << Hdr;
 		}
@@ -2619,8 +2539,6 @@ public:
 		// 写入预置标签
 		if (!rbPrepend.IsEmpty())
 		{
-			memcpy(Hdr.Header, "ID3", 3);
-			// TODO:扩展头
 			if (m_File.m_Id3Loc.posV2 != SIZETMax)
 			{
 				const auto cbPrepend = (m_posAppendTag == SIZETMax ? m_cbTag : m_cbPrependTag);
@@ -2634,7 +2552,7 @@ public:
 					const auto cbPadding = cbPrepend - rbPrepend.Size();
 					if (cbPadding)
 					{
-						if (bAllowPadding && cbPadding < 4096)
+						if (bAllowPadding && cbPadding < 1024 && rbAppend.IsEmpty())
 						{
 							m_Stream.MoveTo(m_File.m_Id3Loc.posV2 + 10 + rbPrepend.Size());
 							void* p = VirtualAlloc(0, cbPadding, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
@@ -2649,19 +2567,31 @@ public:
 						}
 					}
 				}
-				m_Stream.MoveTo(m_File.m_Id3Loc.posV2) << Hdr;
+				m_Stream.MoveTo(m_File.m_Id3Loc.posV2 - 10);
 			}
 			else
 			{
-				m_Stream.Insert(ToUli(0),
-					ToUli(rbPrepend.Size() + 10));
-				m_Stream.MoveToBegin() << Hdr;
+				m_Stream.Insert(0u, rbPrepend.Size() + 10u);
+				m_Stream.MoveToBegin();
 			}
-			m_Stream << rbPrepend;
+
+			if (posAppendBegin != SIZETMax)// 补下SEEK帧
+			{
+				SEEK seek{};
+				seek.uFlags[0] |= (Hdr.Ver == 3 ?
+					(ID3V23FF_FILE_ALTER_DISCARD | ID3V23FF_TAG_ALTER_DISCARD) :
+					(ID3V24FF_FILE_ALTER_DISCARD | ID3V24FF_TAG_ALTER_DISCARD));
+				seek.ocbNextTag = posAppendBegin - m_cbPrependTag;
+				seek.SerializeData(rbPrepend, &Hdr);
+			}
+
+			memcpy(Hdr.Header, "ID3", 3);
+			// TODO:扩展头
+			m_Stream << Hdr << rbPrepend;
 		}
 		else if (m_File.m_Id3Loc.posV2 != SIZETMax)// 删除先前的预置标签
 		{
-			m_Stream.Erase(ToUli(m_File.m_Id3Loc.posV2), ToUli(m_cbPrependTag + 10));
+			m_Stream.Erase(m_File.m_Id3Loc.posV2, m_cbPrependTag + 10u);
 		}
 		m_Stream.GetStream()->Commit(STGC_DEFAULT);
 		return Result::Ok;

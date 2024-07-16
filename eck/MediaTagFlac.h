@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* MediaTagFlac.h ： Flac注释读写
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "MediaTag.h"
 
 ECK_NAMESPACE_BEGIN
@@ -14,7 +21,6 @@ public:
 
 	enum class BlockType : BYTE
 	{
-
 		StreamInfo = 0,
 		Padding = 1,
 		Application = 2,
@@ -33,8 +39,8 @@ public:
 
 	struct STREAMINFO
 	{
-		USHORT cbMinBlock;
-		USHORT cbMaxBlock;
+		USHORT cBlockSampleMin;
+		USHORT cBlockSampleMax;
 		DWORD cbMinFrame;
 		DWORD cbMaxFrame;
 		DWORD cSampleRate;
@@ -102,117 +108,65 @@ public:
 	CFlac(CMediaFile& File) :m_File{ File }, m_Stream(File.GetStream())
 	{
 		m_Stream.GetStream()->AddRef();
-		m_Stream.MoveToBegin() += 4;
 	}
 
 	~CFlac() { m_Stream.GetStream()->Release(); }
 
-	BOOL ReadTag(MUSICINFO& mi)
+	Result SimpleExtract(MUSICINFO& mi)
 	{
-		FLAC_BlockHeader Header;
-		DWORD cbBlock;
-		UINT t;
-		do
+		for (const auto& e : m_vItem)
 		{
-			m_Stream >> Header;
-			cbBlock = Header.bySize[2] | Header.bySize[1] << 8 | Header.bySize[0] << 16;
-			if (cbBlock <= 0)
-				return FALSE;
-			switch (Header.by & 0x7F)
+			if ((mi.uFlag & MIM_TITLE) && e.rsKey == "TITLE")
 			{
-			case 4:// 标签信息，注意：这一部分是小端序
+				mi.rsTitle = e.rsValue;
+				mi.uMaskRead |= MIM_TITLE;
+			}
+			else if ((mi.uFlag & MIM_ARTIST) && e.rsKey == "ARTIST")
 			{
-				m_Stream >> t;// 编码器信息大小
-				m_Stream += t;// 跳过编码器信息
-
-				UINT uCount;
-				m_Stream >> uCount;// 标签数量
-
-				EckCounterNV(uCount)
+				mi.AppendArtist(e.rsValue);
+				mi.uMaskRead |= MIM_ARTIST;
+			}
+			else if ((mi.uFlag & MIM_ALBUM) && e.rsKey == "ALBUM")
+			{
+				mi.rsAlbum = e.rsValue;
+				mi.uMaskRead |= MIM_ALBUM;
+			}
+			else if ((mi.uFlag & MIM_LRC) && e.rsKey == "LYRICS")
+			{
+				mi.rsLrc = e.rsValue;
+				mi.uMaskRead |= MIM_LRC;
+			}
+			else if ((mi.uFlag & MIM_COMMENT) && e.rsKey == "DESCRIPTION")
+			{
+				mi.AppendComment(e.rsValue);
+				mi.uMaskRead |= MIM_COMMENT;
+			}
+			else if ((mi.uFlag & MIM_GENRE) && e.rsKey == "GENRE")
+			{
+				mi.rsGenre = e.rsValue;
+				mi.uMaskRead |= MIM_GENRE;
+			}
+			else if ((mi.uFlag & MIM_DATE) && e.rsKey == "DATE")
+			{
+				WORD y, m{}, d{};
+				if (swscanf(e.rsValue.Data(), L"%hd-%hd-%hd", &y, &m, &d) >= 1)
 				{
-					m_Stream >> t;// 标签大小
-
-					CRefStrA u8Label(t);
-					m_Stream.Read(u8Label.Data(), t);// 读标签
-					int iPos = u8Label.Find("=");// 找等号
-					if (iPos == StrNPos)
-						continue;
-					++iPos;
-					const int cchActual = u8Label.Size() - iPos;
-					if ((mi.uMask & MIM_TITLE) && u8Label.IsStartOf("TITLE"))
-					{
-						mi.rsTitle = StrX2W(u8Label.Data() + iPos, cchActual, CP_UTF8);
-						mi.uMaskRead |= MIM_TITLE;
-					}
-					else if ((mi.uMask & MIM_ARTIST) && u8Label.IsStartOf("ARTIST"))
-					{
-						mi.AppendArtist(StrX2W(u8Label.Data() + iPos, cchActual, CP_UTF8));
-						mi.uMaskRead |= MIM_ARTIST;
-					}
-					else if ((mi.uMask & MIM_ALBUM) && u8Label.IsStartOf("ALBUM"))
-					{
-						mi.rsAlbum = StrX2W(u8Label.Data() + iPos, cchActual, CP_UTF8);
-						mi.uMaskRead |= MIM_ALBUM;
-					}
-					else if ((mi.uMask & MIM_LRC) && u8Label.IsStartOf("LYRICS"))
-					{
-						mi.rsLrc = StrX2W(u8Label.Data() + iPos, cchActual, CP_UTF8);
-						mi.uMaskRead |= MIM_LRC;
-					}
-					else if ((mi.uMask & MIM_COMMENT) && u8Label.IsStartOf("DESCRIPTION"))
-					{
-						mi.AppendComment(StrX2W(u8Label.Data() + iPos, cchActual, CP_UTF8));
-						mi.uMaskRead |= MIM_COMMENT;
-					}
-					else if ((mi.uMask & MIM_GENRE) && u8Label.IsStartOf("GENRE"))
-					{
-						mi.rsGenre = StrX2W(u8Label.Data() + iPos, cchActual, CP_UTF8);
-						mi.uMaskRead |= MIM_GENRE;
-					}
-					else if ((mi.uMask & MIM_DATE) && u8Label.IsStartOf("DATE"))
-					{
-						WORD y, m{}, d{};
-						// TODO:日期处理
-						if (sscanf(u8Label.Data() + iPos, "%hd-%hd-%hd", &y, &m, &d) >= 1)
-							mi.Date = SYSTEMTIME{ .wYear = y,.wMonth = m,.wDay = d };
-						mi.uMaskRead |= MIM_DATE;
-					}
-					else if ((mi.uMask & MIM_COVER) && u8Label.IsStartOf("METADATA_BLOCK_PICTURE"))
-					{
-						auto rb = Base64Decode(u8Label.Data() + iPos, cchActual);
-						MUSICPIC Pic{};
-						ParseImageBlock(rb, Pic);
-						mi.vImage.push_back(std::move(Pic));
-						mi.uMaskRead |= MIM_COVER;
-					}
+					mi.Date = SYSTEMTIME{ .wYear = y,.wMonth = m,.wDay = d };
+					mi.uMaskRead |= MIM_DATE;
 				}
 			}
-			break;
-			case 6:// 图片（大端序）
-			{
-				if (mi.uMask & MIM_COVER)
-				{
-					CRefBin rb(cbBlock);
-					m_Stream.Read(rb.Data(), cbBlock);
-					MUSICPIC Pic{};
-					ParseImageBlock(rb, Pic);
-					mi.vImage.push_back(std::move(Pic));
-					mi.uMaskRead |= MIM_COVER;
-				}
-				else
-					m_Stream += cbBlock;
-			}
-			break;
-			default:
-				m_Stream += cbBlock;// 跳过块
-			}
-
-		} while (!(Header.by & 0x80));// 检查最高位，判断是不是最后一个块
-		return TRUE;
+		}
+		if ((mi.uFlag & MIM_COVER) && !m_vPic.empty())
+		{
+			for (const auto& e : m_vPic)
+				mi.vImage.emplace_back(e);
+			mi.uMaskRead |= MIM_COVER;
+		}
 	}
 
 	Result ReadTag(UINT uFlags)
 	{
+		m_Stream.MoveToBegin() += 4;
 		FLAC_BlockHeader Header;
 		DWORD cbBlock;
 		UINT t;
@@ -224,12 +178,17 @@ public:
 				return Result::LenErr;
 			switch (Header.by & 0x7F)
 			{
-			case 0:
+			case 0:// 流信息
 			{
-				m_Stream >> m_si.cbMinBlock >> m_si.cbMaxBlock;
-				//m_Stream.(&m_si.cbMinFrame, 3).Read(&m_si.cbMaxFrame, 3);
-
-
+				m_Stream >> m_si.cBlockSampleMin >> m_si.cBlockSampleMax;
+				m_Stream.ReadRev(&m_si.cbMinFrame, 3).Read(&m_si.cbMaxFrame, 3);
+				ULONGLONG ull;
+				m_Stream >> ull;
+				m_si.cSampleRate = (UINT)GetLowNBits(ull, 20);
+				m_si.cChannels = (BYTE)GetLowNBits(ull >> 20, 3) + 1;
+				m_si.cBitsPerSample = (BYTE)GetLowNBits(ull >> 23, 5) + 1;
+				m_si.ullTotalSamples = GetHighNBits(ull, 36);
+				m_Stream.Read(m_si.Md5, 16);
 			}
 			break;
 			case 4:// 标签信息，注意：这一部分是小端序
@@ -251,9 +210,19 @@ public:
 						continue;
 					++iPos;
 					const int cchActual = u8.Size() - iPos;
-					m_vItem.emplace_back(
-						u8.SubStr(0, iPos - 1),
-						StrX2W(u8.Data() + iPos, cchActual, CP_UTF8));
+					if (u8.IsStartOf("METADATA_BLOCK_PICTURE"))
+					{
+						auto rb = Base64Decode(u8.Data() + iPos, cchActual);
+						MUSICPIC Pic{};
+						ParseImageBlock(rb, Pic);
+						m_vPic.emplace_back(std::move(Pic));
+					}
+					else ECKLIKELY
+					{
+						m_vItem.emplace_back(
+							u8.SubStr(0, iPos - 1),
+							StrX2W(u8.Data() + iPos, cchActual, CP_UTF8));
+					}
 				}
 			}
 			break;
@@ -263,7 +232,7 @@ public:
 				m_Stream.Read(rb.Data(), cbBlock);
 				MUSICPIC Pic{};
 				ParseImageBlock(rb, Pic);
-				m_vPic.push_back(std::move(Pic));
+				m_vPic.emplace_back(std::move(Pic));
 			}
 			break;
 			default:

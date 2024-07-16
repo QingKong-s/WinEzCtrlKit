@@ -176,9 +176,9 @@ public:
 	{
 		if (pData)
 		{
-			auto pBase = (const CREATEDATA_STD*)pData;
+			auto pBase = (const CTRLDATA_WND*)pData;
 			auto p = (const CREATEDATA_PUSHBUTTON*)SkipBaseData(pData);
-			if (pBase->iVer_Std != DATAVER_STD_1)
+			if (pBase->iVer != CDV_WND_1)
 			{
 				EckDbgBreak();
 				return NULL;
@@ -298,9 +298,9 @@ public:
 	{
 		if (pData)
 		{
-			auto pBase = (const CREATEDATA_STD*)pData;
+			auto pBase = (const CTRLDATA_WND*)pData;
 			auto p = (const CREATEDATA_CHECKBUTTON*)SkipBaseData(pData);
-			if (pBase->iVer_Std != DATAVER_STD_1)
+			if (pBase->iVer != CDV_WND_1)
 			{
 				EckDbgBreak();
 				return NULL;
@@ -486,9 +486,9 @@ public:
 	{
 		if (pData)
 		{
-			auto pBase = (const CREATEDATA_STD*)pData;
+			auto pBase = (const CTRLDATA_WND*)pData;
 			auto p = (const CREATEDATA_COMMANDLINK*)SkipBaseData(pData);
-			if (pBase->iVer_Std != DATAVER_STD_1)
+			if (pBase->iVer != CDV_WND_1)
 			{
 				EckDbgBreak();
 				return NULL;

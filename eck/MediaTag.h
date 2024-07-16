@@ -57,6 +57,8 @@ enum :UINT
 	MIF_APPEND_TAG = 1u << 6,		// 在文件尾部追加标签（如果标记系统允许）
 	MIF_SYNC_OTHER_TAG = 1u << 7,	// 当存在其他标签时同步其信息
 	MIF_CREATE_ID3V1_EXT = 1u << 8,	// 创建ID3v1扩展信息
+	MIF_CREATE_ID3V2_3 = 1u << 9,		// 创建ID3v2.3标签
+	MIF_CREATE_ID3V2_4 = 1u << 10,		// 创建ID3v2.4标签
 };
 // ID3帧写入选项
 enum :BYTE
@@ -70,8 +72,8 @@ enum :BYTE
 enum class Result
 {
 	Ok,
-	TagErr,
-	TextEncodingErr,
+	TagErr,				// 标签识别出错
+	IllegalEnum_TextEncoding,
 	TooLargeData,
 	InvalidEnumVal,
 	LenErr,
@@ -79,6 +81,7 @@ enum class Result
 	IllegalRepeat,
 	EmptyData,			// 某数据为空
 	ReservedDataErr,	// 保留部分或未定义部分填入错误信息
+	NoTag,				// 文件中无标签或标签还未被读入
 };
 // 图片类型
 enum class PicType :BYTE
@@ -233,6 +236,29 @@ struct MUSICINFO
 		}
 	}
 
+	void AppendArtist(const CRefStrW& rs_)
+	{
+		if (uFlag & MIF_JOIN_ARTIST)
+		{
+			if (Artist.index() == 0)
+				Artist.emplace<1>();
+			auto& rs = std::get<1>(Artist);
+			if (rs.IsEmpty())
+				rs = rs_;
+			else
+			{
+				rs.PushBack(pszArtistDiv);
+				rs.PushBack(rs_);
+			}
+		}
+		else
+		{
+			if (Artist.index() == 1)
+				Artist.emplace<0>();
+			std::get<0>(Artist).emplace_back(rs_);
+		}
+	}
+
 	void AppendComment(CRefStrW&& rs_)
 	{
 		if (uFlag & MIF_JOIN_COMMENT)
@@ -253,6 +279,29 @@ struct MUSICINFO
 			if (Comment.index() == 1)
 				Comment.emplace<0>();
 			std::get<0>(Comment).emplace_back(std::move(rs_));
+		}
+	}
+
+	void AppendComment(const CRefStrW& rs_)
+	{
+		if (uFlag & MIF_JOIN_COMMENT)
+		{
+			if (Comment.index() == 0)
+				Comment.emplace<1>();
+			auto& rs = std::get<1>(Comment);
+			if (rs.IsEmpty())
+				rs = rs_;
+			else
+			{
+				rs.PushBack(pszCommDiv);
+				rs.PushBack(rs_);
+			}
+		}
+		else
+		{
+			if (Comment.index() == 1)
+				Comment.emplace<0>();
+			std::get<0>(Comment).emplace_back(rs_);
 		}
 	}
 };
@@ -380,6 +429,7 @@ class CMediaFile
 	friend class CID3v1;
 	friend class CID3v2;
 	friend class CFlac;
+	friend class CMpegInfo;
 private:
 	IStream* m_pStream{};
 	UINT m_uTagType{};

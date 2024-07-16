@@ -40,6 +40,8 @@ struct CTRLDATA_WND
 };
 #pragma pack(pop)
 
+constexpr inline int CDV_WND_1 = 0;
+
 #ifdef ECK_CTRL_DESIGN_INTERFACE
 struct DESIGNDATA_WND
 {
@@ -1143,7 +1145,7 @@ private:
 				return p;
 			p = p->pNext;
 		}
-		return nullptr;
+		return NULL;
 	}
 public:
 	void InstallMsgHook(const FMsgHook& fn, UINT_PTR uId, UINT_PTR uIdAfter = MsgHookTop)
