@@ -829,23 +829,32 @@ private:
 	{
 		int x = 0;
 		const int cCol = (int)m_vCol.size();
+		if (!cCol)
+			return;
 
 		const auto piOrder = (int*)_malloca(sizeof(int) * cCol);
 		EckCheckMem(piOrder);
 		if (m_bSplitCol0)
 		{
-			m_Header.GetOrderArray(piOrder + 1, cCol - 1);
-
 			HDITEMW hdi;
 			hdi.mask = HDI_WIDTH;
-			EckCounter(cCol, i)
+
+			m_HeaderFixed.GetItem(0, &hdi);
+			auto& e = m_vCol.front();
+			e.iLeft = 0;
+			e.iRight = hdi.cxy;
+			e.idxActual = 0;
+
+			m_Header.GetOrderArray(piOrder, cCol - 1);
+
+			EckCounter(cCol - 1, i)
 			{
 				const int idx = piOrder[i];
 				m_Header.GetItem(idx, &hdi);
-				auto& e = m_vCol[i];
+				auto& e = m_vCol[i + 1];
 				e.iLeft = x;
 				e.iRight = x + hdi.cxy;
-				e.idxActual = idx;
+				e.idxActual = idx + 1;
 				x += hdi.cxy;
 			}
 			m_cxItem = m_vCol.back().iRight;
@@ -924,6 +933,14 @@ private:
 		si.fMask = SIF_POS;
 		GetSbInfo(SB_HORZ, &si);
 		m_dxContent = -si.nPos;
+	}
+
+	void UpdateHeaderPos()
+	{
+		if (m_bSplitCol0)
+			m_Header.Left = m_dxContent + m_vCol.front().iRight;
+		else
+			m_Header.Left = m_dxContent;
 	}
 
 	void BeginDraggingSelect(UINT uMk, int xBegin, int yBegin)
@@ -1762,9 +1779,25 @@ public:
 				}
 				return 0;
 				}
-			else if (pnmhdr->hwndFrom == m_HeaderFixed.HWnd)
+			else if (m_bSplitCol0 && pnmhdr->hwndFrom == m_HeaderFixed.HWnd)
 			{
-
+				switch (pnmhdr->code)
+				{
+				case HDN_ITEMCHANGEDW:
+					//case HDN_ITEMCHANGINGW:
+				{
+					const auto p = (NMHEADERW*)lParam;
+					if (IsBitSet(p->pitem->mask, HDI_WIDTH))
+					{
+						UpdateColumnInfo();
+						UpdateScrollBar();
+						SetWindowPos(m_HeaderFixed.HWnd, NULL, 0, 0,
+							m_vCol.front().iRight, m_cyHeader, SWP_NOZORDER | SWP_NOACTIVATE);
+						Redraw();
+					}
+				}
+				return FALSE;
+				}
 			}
 			else if (pnmhdr->hwndFrom == m_ToolTip.HWnd)
 				switch (pnmhdr->code)
@@ -1952,7 +1985,7 @@ public:
 			SetSbInfo(SB_HORZ, &si);
 			GetSbInfo(SB_HORZ, &si);
 			m_dxContent = -si.nPos;
-			m_Header.Left = m_dxContent;
+			UpdateHeaderPos();
 			Redraw();
 		}
 		return 0;
@@ -2162,8 +2195,8 @@ public:
 			UpdateDCAttr();
 			m_Header.Create(NULL, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
 				0, 0, ClientWidth, m_Ds.cyHeaderDef, hWnd, IDC_HEADER);
-			m_HeaderFixed.Create(NULL, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
-				0, 0, ClientWidth, m_Ds.cyHeaderDef, hWnd, IDC_HEADERFIXED);
+			//m_HeaderFixed.Create(NULL, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
+			//	0, 0, ClientWidth, m_Ds.cyHeaderDef, hWnd, IDC_HEADERFIXED);
 			SetExplorerTheme();
 			m_hThemeTV = OpenThemeData(hWnd, L"TreeView");
 			m_hThemeLV = OpenThemeData(NULL, L"ItemsView::ListView");

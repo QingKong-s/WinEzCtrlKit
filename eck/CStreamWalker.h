@@ -11,10 +11,7 @@ struct CStreamWalker
 
 	CStreamWalker() = default;
 
-	constexpr CStreamWalker(IStream* p)
-	{
-		m_pStream = p;
-	}
+	constexpr CStreamWalker(IStream* p) :m_pStream{ p } {}
 
 	EckInline constexpr ULONG GetLastRWSize() const { return m_cbLastReadWrite; }
 
@@ -60,7 +57,7 @@ struct CStreamWalker
 		return Write(Data.Data(), Data.ByteSize());
 	}
 
-	EckInline auto GetStream() { return m_pStream; }
+	EckInline constexpr auto GetStream() const { return m_pStream; }
 
 	EckInline CStreamWalker& operator+=(SIZE_T cb)
 	{
@@ -78,6 +75,12 @@ struct CStreamWalker
 	{
 		m_hrLastErr = m_pStream->Read(pDst, (ULONG)cb, &m_cbLastReadWrite);
 		return *this;
+	}
+
+	EckInline CStreamWalker& ReadRev(void* pDst, SIZE_T cb)
+	{
+		Read(pDst, cb);
+		ReverseByteOrder((BYTE*)pDst, cb);
 	}
 
 	template<class T>
@@ -324,11 +327,22 @@ struct CStreamWalker
 			return;
 		EckAssert(pos < GetSizeUli() && pos + cbSize <= GetSizeUli());
 		MoveData(pos, pos + cbSize, cbSize);
+		ReSize(GetSizeUli() - cbSize);
 	}
 
 	EckInline void Erase(SIZE_T pos, SIZE_T cbSize)
 	{
 		Erase(ToUli(pos), ToUli(cbSize));
+	}
+
+	EckInline BOOL ReSize(ULARGE_INTEGER cbSize)
+	{
+		return SUCCEEDED(m_hrLastErr = m_pStream->SetSize(cbSize));
+	}
+
+	EckInline BOOL ReSize(SIZE_T cbSize)
+	{
+		return ReSize(ToUli(cbSize));
 	}
 };
 ECK_NAMESPACE_END

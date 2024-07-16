@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* MediaTagID3v1.h ： ID3v1读写
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "MediaTag.h"
 
 ECK_NAMESPACE_BEGIN
@@ -242,7 +249,7 @@ public:
 	Result ReadTag(UINT uFlags)
 	{
 		if (m_File.m_Id3Loc.posV1 == SIZETMax)
-			return Result::TagErr;
+			return Result::NoTag;
 		if (m_File.m_Id3Loc.posV1Ext == SIZETMax)
 		{
 			m_Stream.MoveTo(m_File.m_Id3Loc.posV1 + 3);

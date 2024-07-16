@@ -1838,6 +1838,14 @@ template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<
 	return rs;
 }
 
+template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>,
+	class T, class U>
+[[nodiscard]] EckInline CRefStrT<WCHAR, TCharTraits, TAlloc> StrX2W(
+	const CRefStrT<CHAR, T, U>& rs, int uCP = CP_ACP)
+{
+	return StrX2W(rs.Data(), rs.Size(), uCP);
+}
+
 /// <summary>
 /// 字节集到友好字符串表示
 /// </summary>

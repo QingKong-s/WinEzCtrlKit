@@ -58,9 +58,9 @@ public:
 	{
 		if (pData)
 	{
-		auto pBase = (const CREATEDATA_STD*)pData;
+		auto pBase = (const CTRLDATA_WND*)pData;
 		auto p = (const CREATEDATA_EDIT*)SkipBaseData(pData);
-		if (pBase->iVer_Std != DATAVER_STD_1)
+		if (pBase->iVer != CDV_WND_1)
 		{
 			EckDbgBreak();
 			return NULL;

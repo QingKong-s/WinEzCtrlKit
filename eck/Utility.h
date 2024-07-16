@@ -1340,6 +1340,19 @@ EckInline constexpr auto DivUpper(T x, U y)
 	return (x - 1) / y + 1;
 }
 
+template<class T, class U>
+EckInline T DynCast(U p)
+{
+#ifdef _DEBUG
+	const auto p1 = dynamic_cast<T>(p);
+	if (!p1)
+		throw std::bad_cast();
+	return p1;
+#else
+	return (T)p;
+#endif// _DEBUG
+}
+
 #if !ECKCXX20
 #undef ccpIsInteger
 #pragma pop_macro("ccpIsInteger")

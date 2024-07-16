@@ -109,8 +109,9 @@ struct UnderlyingType<T, false>
 template<ccpIsIntOrEnum T>
 using UnderlyingType_T = UnderlyingType<T>::Type;
 
+#if !ECKCXX20
 #pragma pop_macro("ccpIsIntOrEnum")
-
+#endif// !ECKCXX20
 ECK_NAMESPACE_END
 
 #define EckInline				__forceinline

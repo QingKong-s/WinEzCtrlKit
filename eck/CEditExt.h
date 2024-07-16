@@ -56,6 +56,9 @@ protected:
 	int m_cyText = 0;			// 文本高度
 
 	WCHAR m_chMask = 0;			// 掩码字符
+	CRefStrW m_rsCueBanner{};		// 输入提示
+	BOOL m_bEmpty{};
+	BOOL m_bHasFocus{};
 #if ECKCXX20
 	BITBOOL m_bMultiLine : 1 = FALSE;			// 多行
 	BITBOOL m_bAutoWrap : 1 = TRUE;				// 自动换行
@@ -109,6 +112,36 @@ public:
 	{
 		switch (uMsg)
 		{
+		/*case WM_PAINT:
+		{
+			auto a = !GetWindowTextLengthW(hWnd);
+			auto b = !m_rsCueBanner.IsEmpty();
+			auto c = m_bMultiLine;
+			if (m_bMultiLine && !m_rsCueBanner.IsEmpty() && !GetWindowTextLengthW(hWnd)&&0)
+			{
+				HDC hDC;
+				PAINTSTRUCT ps;
+				if(wParam)
+					hDC = (HDC)wParam;
+				else
+				{
+					BeginPaint(hWnd, &ps);
+					hDC = ps.hdc;
+				}
+				CWnd::OnMsg(hWnd, WM_PAINT, (WPARAM)hDC, 0);
+				RECT rcText;
+				GetRect(&rcText);
+				const auto crOld = SetTextColor(hDC, GetSysColor(COLOR_GRAYTEXT));
+				DrawTextW(hDC, m_rsCueBanner.Data(), m_rsCueBanner.Size(), &rcText,
+					DT_WORDBREAK | DT_NOPREFIX | DT_EDITCONTROL);
+				SetTextColor(hDC, crOld);
+				if (!wParam)
+					EndPaint(hWnd, &ps);
+				return 0;
+			}
+		}
+		break;*/
+
 		case WM_KEYDOWN:
 			if (wParam == 'A')
 				if (GetKeyState(VK_CONTROL) & 0x80000000)
@@ -265,6 +298,16 @@ public:
 		}
 		break;
 
+		case EM_SETCUEBANNER:
+		{
+			LRESULT lResult;
+			if ((lResult = CEdit::OnMsg(hWnd, uMsg, wParam, lParam))||m_bMultiLine)
+			{
+				m_rsCueBanner.DupString((PCWSTR)lParam);
+			}
+			return lResult;
+		}
+
 		case WM_NCCALCSIZE:
 		{
 			if (!GetMultiLine())
@@ -392,10 +435,10 @@ public:
 	{
 		if (pData)
 		{
-			auto pBase = (const CREATEDATA_STD*)pData;
+			auto pBase = (const CTRLDATA_WND*)pData;
 			auto pEditBase = (const CREATEDATA_EDIT*)CWnd::SkipBaseData(pBase);
 			auto p = (const CREATEDATA_EDITEXT*)CEdit::SkipBaseData(pEditBase);
-			if (pBase->iVer_Std != DATAVER_STD_1)
+			if (pBase->iVer != CDV_WND_1)
 			{
 				EckDbgBreak();
 				return NULL;
