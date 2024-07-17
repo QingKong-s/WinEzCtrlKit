@@ -255,9 +255,14 @@ EckInline constexpr COLORREF ColorrefAlphaBlend(COLORREF cr, COLORREF crBK, BYTE
 template<ccpIsInteger T>
 EckInline constexpr T ReverseInteger(T i)
 {
-	auto p = (BYTE*)&i;
-	std::reverse(p, p + sizeof(T));
-	return i;
+	if constexpr (sizeof(T) == 8)
+		return (T)_byteswap_uint64((UINT64)i);
+	else if constexpr (sizeof(T) == 4)
+		return (T)_byteswap_ulong((ULONG)i);
+	else if constexpr (sizeof(T) == 2)
+		return (T)_byteswap_ushort((USHORT)i);
+	else
+		return i;
 }
 
 EckInline constexpr void ReverseByteOrder(BYTE* p, size_t cb)
