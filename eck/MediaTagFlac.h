@@ -7,10 +7,11 @@
 */
 #pragma once
 #include "MediaTag.h"
+#include "StrBinInterop.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_MEDIATAG_NAMESPACE_BEGIN
-class CFlac
+class CFlac :public CTag
 {
 public:
 	struct ITEM
@@ -49,16 +50,28 @@ public:
 		ULONGLONG ullTotalSamples;
 		BYTE Md5[16];
 	};
-private:
-	CMediaFile& m_File;
-	CStreamWalker m_Stream{};
 
+	struct IMAGE
+	{
+		PicType eType{};
+		CRefStrA rsMime{};
+		CRefStrW rsDesc{};
+		CRefBin rbData{};
+		UINT cx;
+		UINT cy;
+		UINT bpp;
+		UINT cColor;
+	};
+private:
 	std::vector<ITEM> m_vItem{};	// 所有Vorbis注释
-	std::vector<MUSICPIC> m_vPic{};	// 所有图片
+	std::vector<IMAGE> m_vPic{};	// 所有图片
 	std::vector<BLOCK> m_vBlock{};	// 其他块，STREAMINFO、Vorbis注释、图片和填充除外
 	STREAMINFO m_si{};				// Flac流信息
 
 	CRefStrW m_rsVendor{};
+
+	SIZE_T m_posStreamInfoEnd{ SIZETMax };
+	SIZE_T m_posFlacTagEnd{ SIZETMax };
 
 	static void ParseImageBlock(CRefBin& rb, MUSICPIC& Pic)
 	{
@@ -71,30 +84,26 @@ private:
 		else
 			Pic.eType = (PicType)dwType;
 
-		r >> t;// 长度
-		t = ReverseInteger(t);
-		CRefStrA rsMime(t);
-		r.Read(rsMime.Data(), t);// MIME类型字符串
-		Pic.rsMime = StrX2W(rsMime.Data(), rsMime.Size());
+		r.ReadRev(t);// 长度
+		Pic.rsMime.ReSize(t);
+		r.Read(Pic.rsMime.Data(), t);// MIME类型字符串
 
-		r >> t;// 描述字符串长度
-		t = ReverseInteger(t);
+		r.ReadRev(t);// 描述字符串长度
 		CRefStrA u8Desc(t);
 		r.Read(u8Desc.Data(), t);// MIME类型字符串
-		Pic.rsDesc = StrX2W(u8Desc.Data(), u8Desc.Size(), CP_UTF8);
+		Pic.rsDesc = StrX2W(u8Desc, CP_UTF8);
 
 		r += 16;// 跳过宽度、高度、色深、索引图颜色数
 
-		r >> t;// 图片数据长度
-		t = ReverseInteger(t);// 图片数据长度
+		r.ReadRev(t);// 图片数据长度
 
-		Pic.bLink = (Pic.rsMime == L"-->");
+		Pic.bLink = (Pic.rsMime == "-->");
 
 		if (Pic.bLink)
 		{
 			CRefStrA u8(t);
 			r.Read(u8.Data(), t);
-			Pic.varPic = StrX2W(u8.Data(), u8.Size(), CP_UTF8);
+			Pic.varPic = StrX2W(u8, CP_UTF8);
 		}
 		else
 		{
@@ -105,12 +114,7 @@ private:
 public:
 	ECK_DISABLE_COPY_MOVE(CFlac)
 public:
-	CFlac(CMediaFile& File) :m_File{ File }, m_Stream(File.GetStream())
-	{
-		m_Stream.GetStream()->AddRef();
-	}
-
-	~CFlac() { m_Stream.GetStream()->Release(); }
+	CFlac(CMediaFile& File) :CTag(File) {}
 
 	Result SimpleExtract(MUSICINFO& mi)
 	{
@@ -166,7 +170,9 @@ public:
 
 	Result ReadTag(UINT uFlags)
 	{
-		m_Stream.MoveToBegin() += 4;
+		if (m_File.m_Id3Loc.posFlac == SIZETMax)
+			return Result::NoTag;
+		m_Stream.MoveTo(m_File.m_Id3Loc.posFlac);
 		FLAC_BlockHeader Header;
 		DWORD cbBlock;
 		UINT t;
@@ -174,7 +180,7 @@ public:
 		{
 			m_Stream >> Header;
 			cbBlock = Header.bySize[2] | Header.bySize[1] << 8 | Header.bySize[0] << 16;
-			if (cbBlock <= 0)
+			if (!cbBlock)
 				return Result::LenErr;
 			switch (Header.by & 0x7F)
 			{
@@ -189,13 +195,16 @@ public:
 				m_si.cBitsPerSample = (BYTE)GetLowNBits(ull >> 23, 5) + 1;
 				m_si.ullTotalSamples = GetHighNBits(ull, 36);
 				m_Stream.Read(m_si.Md5, 16);
+				m_posStreamInfoEnd = m_Stream.GetPos();
 			}
 			break;
-			case 4:// 标签信息，注意：这一部分是小端序
+			case 4:// Vorbis注释（小端）
 			{
 				m_Stream >> t;// 编码器信息大小
 				CRefStrA u8(t);
 				m_Stream.Read(u8.Data(), t);
+
+				m_rsVendor = StrX2W(u8, CP_UTF8);
 
 				UINT cItem;
 				m_Stream >> cItem;// 标签数量
@@ -226,7 +235,7 @@ public:
 				}
 			}
 			break;
-			case 6:// 图片（大端序）
+			case 6:// 图片
 			{
 				CRefBin rb(cbBlock);
 				m_Stream.Read(rb.Data(), cbBlock);
@@ -243,12 +252,77 @@ public:
 			}
 			break;
 			}
-
-		} while (!(Header.by & 0x80));// 检查最高位，判断是不是最后一个块
+		} while (!(Header.by & 0x80));
+		m_posFlacTagEnd = m_Stream.GetPos();
 		return Result::Ok;
 	}
 
 	Result WriteTag(UINT uFlags)
+	{
+		if (m_File.m_Id3Loc.posFlac == SIZETMax)
+			return Result::NoTag;
+
+		CRefBin rbVorbis{}, rbImage{};
+		// 序列化Vorbis注释
+		rbVorbis.PushBack(4u);// 悬而未决
+		if (!m_rsVendor.IsEmpty())
+		{
+			const int cchVendor = WideCharToMultiByte(CP_UTF8, 0, m_rsVendor.Data(), m_rsVendor.Size(),
+				NULL, 0, NULL, NULL);
+			WideCharToMultiByte(CP_UTF8, 0, m_rsVendor.Data(), m_rsVendor.Size(),
+				(CHAR*)rbVorbis.PushBack(cchVendor), cchVendor, NULL, NULL);
+		}
+		rbVorbis << (UINT)m_vItem.size();
+		for (const auto& e : m_vItem)
+		{
+			rbVorbis << e.rsKey;
+			rbVorbis.Back() = '=';
+			const int cchValue = WideCharToMultiByte(CP_UTF8, 0, e.rsValue.Data(), e.rsValue.Size(),
+				NULL, 0, NULL, NULL);
+			WideCharToMultiByte(CP_UTF8, 0, e.rsValue.Data(), e.rsValue.Size(),
+				(CHAR*)rbVorbis.PushBack(cchValue), cchValue, NULL, NULL);
+		}
+		const auto cbData = (UINT)rbVorbis.Size();
+		const auto phdr = (FLAC_BlockHeader*)rbVorbis.Data();
+		phdr->bySize[0] = GetIntegerByte<2>(cbData);
+		phdr->bySize[1] = GetIntegerByte<1>(cbData);
+		phdr->bySize[2] = GetIntegerByte<0>(cbData);
+		phdr->by = 0_by;
+		// 序列化图片
+		for (const auto& e : m_vPic)
+		{
+			const auto cbCurr = rbImage.Size();
+			rbImage.PushBack(4u);// 悬而未决
+			rbImage << ReverseInteger((UINT)e.eType)
+				<< ReverseInteger(e.rsMime.Size())
+				<< e.rsMime;
+			rbImage.PopBack(1);
+			const int cchDesc = WideCharToMultiByte(CP_UTF8, 0, e.rsDesc.Data(), e.rsDesc.Size(),
+				NULL, 0, NULL, NULL);
+			rbImage << ReverseInteger(cchDesc);
+			WideCharToMultiByte(CP_UTF8, 0, e.rsDesc.Data(), e.rsDesc.Size(),
+				(CHAR*)rbImage.PushBack(cchDesc), cchDesc, NULL, NULL);
+			rbImage << ReverseInteger(e.cx)
+				<< ReverseInteger(e.cy)
+				<< ReverseInteger(e.bpp)
+				<< ReverseInteger(e.cColor)
+				<< ReverseInteger((UINT)e.rbData.Size())
+				<< e.rbData;
+			const auto cbData = (UINT)(rbImage.Size() - cbCurr - 4);
+			const auto phdr = (FLAC_BlockHeader*)(rbImage.Data() - cbData - 4);
+			phdr->bySize[0] = GetIntegerByte<2>(cbData);
+			phdr->bySize[1] = GetIntegerByte<1>(cbData);
+			phdr->bySize[2] = GetIntegerByte<0>(cbData);
+			phdr->by = 0_by;
+		}
+		auto cb = rbVorbis.Size() + rbImage.Size();
+		for (const auto& e : m_vBlock)
+			cb += (e.rbData.Size() + 4);
+
+
+	}
+
+	Result Shrink(UINT uFlags)
 	{
 
 	}

@@ -10,17 +10,16 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_MEDIATAG_NAMESPACE_BEGIN
-class CID3v2
+class CID3v2 :public CTag
 {
 private:
-	CMediaFile& m_File;
-	CStreamWalker m_Stream{};
+
 
 	ID3v2_Header m_Header{};
 	ID3v2_ExtHeader m_ExtHdr{};
 	DWORD m_cbTag{};
 
-	SIZE_T m_posAppendTag{ SIZETMax };// 根据SEEK帧查找到的追加标签位置
+	SIZE_T m_SeekVal{ SIZETMax };// 根据SEEK帧查找到的追加标签位置
 	DWORD m_cbPrependTag{};
 
 	class CFrame
@@ -293,7 +292,6 @@ public:
 		CHAR Id[4]{};		// 帧标识
 		BYTE uFlags[2]{};	// 标志，[0] = 状态，[1] = 格式
 		BYTE byAddtFlags{};	// MTID3F_常量
-		UINT cbRead{};		// 读入时的长度（包括帧头），便于检测修改
 
 		virtual ~FRAME() {}
 
@@ -301,6 +299,14 @@ public:
 
 		virtual FRAME* Clone() const = 0;
 	protected:
+		EckInline constexpr void AddFileAlterDiscardFlag(ID3v2_Header* phdr)
+		{
+			if (phdr->Ver == 3)
+				uFlags[0] |= ID3V23FF_FILE_ALTER_DISCARD;
+			else
+				uFlags[0] |= ID3V24FF_FILE_ALTER_DISCARD;
+		}
+
 		CMemWalker PreSerialize(CRefBin& rb, ID3v2_Header* phdr, size_t cbFrame)
 		{
 			const auto cbTotal = sizeof(ID3v2_FrameHeader) + cbFrame;
@@ -469,6 +475,8 @@ public:
 		{
 			const auto rbText = CovertTextEncoding(vText, eEncoding);
 			size_t cbFrame = 1 + rbText.Size();
+			if (memcmp(Id, "TENC", 4) == 0 || memcmp(Id, "TLEN", 4) == 0)
+				AddFileAlterDiscardFlag(phdr);
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w << eEncoding << rbText;
 			PostSerialize(rb, phdr, cbFrame);
@@ -562,6 +570,7 @@ public:
 		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
 		{
 			const size_t cbFrame = 1 + 5 * vEvent.size();
+			AddFileAlterDiscardFlag(phdr);
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w << eTimestampFmt;
 			for (const auto& e : vEvent)
@@ -595,6 +604,7 @@ public:
 				cByteOffsetValBit > 64 || cMillisecondsOffsetValBit > 64)
 				return Result::InvalidVal;
 			const size_t cbFrame = 0;
+			AddFileAlterDiscardFlag(phdr);
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w.WriteRev(cMpegFrame).WriteRev(&cByte, 3).WriteRev(&cMilliseconds, 3);
 			w << cByteOffsetValBit << cMillisecondsOffsetValBit;
@@ -629,6 +639,7 @@ public:
 				else if (e.bpm > 510)
 					return Result::InvalidVal;
 
+			AddFileAlterDiscardFlag(phdr);
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w << eTimestampFmt;
 			for (const auto& e : vTempo)
@@ -694,6 +705,7 @@ public:
 				cbFrame += vLrc[i].Size();
 			}
 
+			AddFileAlterDiscardFlag(phdr);
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w << eEncoding << byLang << eTimestampFmt << rbDesc;
 			EckCounter(vSync.size(), i)
@@ -741,6 +753,7 @@ public:
 		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
 		{
 			const size_t cbFrame = 0;
+			AddFileAlterDiscardFlag(phdr);
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w << rsId;
 			for (const auto& e : vChannel)
@@ -771,6 +784,7 @@ public:
 		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
 		{
 			const size_t cbFrame = 2 + rsId.Size() + vPoint.size() * 4;
+			AddFileAlterDiscardFlag(phdr);
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w << eInterpolation << rsId;
 			for (auto e : vPoint)
@@ -809,7 +823,7 @@ public:
 
 	struct APIC :public FRAME
 	{
-		TextEncoding eTextEncoding{};
+		TextEncoding eEncoding{};
 		PicType eType{};
 		CRefStrA rsMime{};
 		CRefStrW rsDesc{};
@@ -817,10 +831,10 @@ public:
 
 		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
 		{
-			const auto rbDesc = CovertTextEncoding(rsDesc, eTextEncoding, TRUE);
+			const auto rbDesc = CovertTextEncoding(rsDesc, eEncoding, TRUE);
 			const size_t cbFrame = 3 + rsMime.Size() + rbDesc.Size() + rbData.Size();
 			auto w = PreSerialize(rb, phdr, cbFrame);
-			w << eTextEncoding << rsMime << eType << rbDesc << rbData;
+			w << eEncoding << rsMime << eType << rbDesc << rbData;
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
 		}
@@ -830,7 +844,7 @@ public:
 
 	struct GEOB :public FRAME
 	{
-		TextEncoding eTextEncoding{};
+		TextEncoding eEncoding{};
 		CRefStrA rsMime{};
 		CRefStrW rsFile{};
 		CRefStrW rsDesc{};
@@ -838,11 +852,11 @@ public:
 
 		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
 		{
-			const auto rbFile = CovertTextEncoding(rsFile, eTextEncoding, TRUE);
-			const auto rbDesc = CovertTextEncoding(rsDesc, eTextEncoding, TRUE);
+			const auto rbFile = CovertTextEncoding(rsFile, eEncoding, TRUE);
+			const auto rbDesc = CovertTextEncoding(rsDesc, eEncoding, TRUE);
 			const size_t cbFrame = 2 + rsMime.Size() + rbFile.Size() + rbDesc.Size() + rbObj.Size();
 			auto w = PreSerialize(rb, phdr, cbFrame);
-			w << eTextEncoding << rsMime << rbFile << rbDesc << rbObj;
+			w << eEncoding << rsMime << rbFile << rbDesc << rbObj;
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
 		}
@@ -931,6 +945,7 @@ public:
 		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
 		{
 			const size_t cbFrame = 5 + rsOwnerId.Size() + rbData.Size();
+			AddFileAlterDiscardFlag(phdr);
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w << rsOwnerId;
 			w.WriteRev(usPreviewBegin).WriteRev(usPreviewLength);
@@ -968,6 +983,7 @@ public:
 		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
 		{
 			const size_t cbFrame = 5;
+			AddFileAlterDiscardFlag(phdr);
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			(w << eTimestamp).WriteRev(uTime);
 			PostSerialize(rb, phdr, cbFrame);
@@ -1121,13 +1137,8 @@ public:
 
 		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
 		{
-#ifdef _DEBUG
-			if (phdr->Ver == 3)
-				EckAssert(uFlags[0] & (ID3V23FF_TAG_ALTER_DISCARD | ID3V23FF_FILE_ALTER_DISCARD));
-			else if (phdr->Ver == 4)
-				EckAssert(uFlags[0] & (ID3V24FF_TAG_ALTER_DISCARD | ID3V24FF_FILE_ALTER_DISCARD));
-#endif
 			constexpr size_t cbFrame = 4;
+			AddFileAlterDiscardFlag(phdr);
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w.WriteRev(ocbNextTag);
 			PostSerialize(rb, phdr, cbFrame);
@@ -1148,6 +1159,7 @@ public:
 		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
 		{
 			const size_t cbFrame = 10 + vIndex.size() * 2;
+			AddFileAlterDiscardFlag(phdr);
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w.WriteRev(S).WriteRev(L).WriteRev(N) << b;
 			for (const auto e : vIndex)
@@ -1172,7 +1184,7 @@ public:
 			return Result::Ok;
 		}
 
-		ECK_DECL_ID3FRAME_METHOD(OTHERFRAME)
+		ECK_DECL_ID3FRAME_METHOD_ID(OTHERFRAME)
 	};
 
 	//---------v2.3---------
@@ -1202,10 +1214,10 @@ public:
 				psz += (e.rsName.Size() + 1);
 			}
 
-			const auto rb = CovertTextEncoding(rs, eEncoding, TRUE);
-			const size_t cbFrame = 1 + rb.Size();
+			const auto rbText = CovertTextEncoding(rs, eEncoding, TRUE);
+			const size_t cbFrame = 1 + rbText.Size();
 			auto w = PreSerialize(rb, phdr, cbFrame);
-			w << eEncoding << rb;
+			w << eEncoding << rbText;
 			PostSerialize(rb, phdr, cbFrame);
 			return Result::Ok;
 		}
@@ -1242,6 +1254,7 @@ public:
 				cbFrame += (cbField * 2);
 			if (byCtrl & 0b0010'0000)// 低音
 				cbFrame += (cbField * 2);
+			AddFileAlterDiscardFlag(phdr);
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w << byCtrl << cBits;
 			w.WriteRev(&rVol, cbField)
@@ -1286,6 +1299,7 @@ public:
 		{
 			const size_t cbField = (cBits + 1) / 8 - 1;
 			const size_t cbFrame = 1 + vAdjust.size() * (2 + cbField);
+			AddFileAlterDiscardFlag(phdr);
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w << cBits;
 			for (const auto& e : vAdjust)
@@ -1337,6 +1351,7 @@ public:
 		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
 		{
 			constexpr size_t cbFrame = 1 + 3 + 8 + (8 + 1) * 10;
+			AddFileAlterDiscardFlag(phdr);
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			constexpr CHAR szLang[3]{ 'X','X','X' };
 			w << TextEncoding::Latin1 << szLang << "iTunesNORM";
@@ -1401,6 +1416,7 @@ public:
 					return Result::InvalidVal;
 			}
 			const size_t cbFrame = 1 + 22 + rsVal.Size();
+			AddFileAlterDiscardFlag(phdr);
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			constexpr CHAR c_szKey[4][22]
 			{
@@ -1428,6 +1444,7 @@ public:
 		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
 		{
 			const size_t cbFrame = 4 + 2 + 2;
+			AddFileAlterDiscardFlag(phdr);
 			auto w = PreSerialize(rb, phdr, cbFrame);
 			w.WriteRev(ulPeak).WriteRev(usTrackGain).WriteRev(usAlbumGain);
 			PostSerialize(rb, phdr, cbFrame);
@@ -1464,7 +1481,6 @@ private:
 			m_bUnsync(id3.m_Header.Flags& ID3V2HF_UNSYNCHRONIZATION),
 			m_rbFrame(cbFrame)
 		{
-			pFrame->cbRead = cbFrame + 10;
 			memcpy(pFrame->Id, Header.ID, 4);
 			memcpy(&pFrame->uFlags, Header.Flags, 2);
 			if (!m_bUnsync && id3.m_Header.Ver == 4)
@@ -1856,8 +1872,8 @@ private:
 					return Result::LenErr;
 				}
 
-				w >> p->eTextEncoding >> p->rsMime >> p->eType;
-				p->rsDesc = GetID3v2_ProcString(w, -1, p->eTextEncoding);
+				w >> p->eEncoding >> p->rsMime >> p->eType;
+				p->rsDesc = GetID3v2_ProcString(w, -1, p->eEncoding);
 				p->rbData.DupStream(w.Data(), w.GetLeaveSize());
 
 				m_vFrame.push_back(p);
@@ -1872,9 +1888,9 @@ private:
 					delete p;
 					return Result::LenErr;
 				}
-				w >> p->eTextEncoding >> p->rsMime;
-				p->rsFile = GetID3v2_ProcString(w, -1, p->eTextEncoding);
-				p->rsDesc = GetID3v2_ProcString(w, -1, p->eTextEncoding);
+				w >> p->eEncoding >> p->rsMime;
+				p->rsFile = GetID3v2_ProcString(w, -1, p->eEncoding);
+				p->rsDesc = GetID3v2_ProcString(w, -1, p->eEncoding);
 				p->rbObj.DupStream(w.Data(), w.GetLeaveSize());
 				m_vFrame.push_back(p);
 			}
@@ -2078,12 +2094,12 @@ private:
 					return Result::LenErr;
 				}
 				w.ReadRev(p->ocbNextTag);
-				if (m_posAppendTag != SIZETMax)
+				if (m_SeekVal != SIZETMax)
 				{
 					delete p;
 					return Result::IllegalRepeat;
 				}
-				m_posAppendTag = p->ocbNextTag + m_Stream.GetPos();
+				m_SeekVal = p->ocbNextTag;
 				m_vFrame.push_back(p);
 			}
 			else if (ECK_HIT_ID3FRAME(ASPI))
@@ -2102,11 +2118,11 @@ private:
 					delete p;
 					return Result::InvalidVal;
 				}
-				const auto cb = p->b / 8;
+				const auto cbField = p->b / 8;
 				while (!w.IsEnd())
 				{
 					auto& e = p->vIndex.emplace_back();
-					if (cb == 1)
+					if (cbField == 1)
 						w >> e;
 					else
 						w.ReadRev(e);
@@ -2244,7 +2260,7 @@ private:
 public:
 	ECK_DISABLE_COPY_MOVE(CID3v2)
 public:
-	CID3v2(CMediaFile& File) :m_File{ File }, m_Stream(File.GetStream())
+	CID3v2(CMediaFile& File) :CTag(File)
 	{
 		m_Stream.GetStream()->AddRef();
 		if (m_File.m_Id3Loc.posV2 != SIZETMax)
@@ -2289,9 +2305,14 @@ public:
 		}
 	}
 
-	~CID3v2() { m_Stream.GetStream()->Release(); }
+	~CID3v2()
+	{
+		m_Stream.GetStream()->Release();
+		for (const auto e : m_vFrame)
+			delete e;
+	}
 
-	Result SimpleExtract(MUSICINFO& mi)
+	Result SimpleExtract(MUSICINFO& mi) override
 	{
 		mi.Clear();
 		if (m_vFrame.empty())
@@ -2343,7 +2364,7 @@ public:
 				MUSICPIC Pic{};
 				Pic.eType = p->eType;
 				Pic.rsDesc = p->rsDesc;
-				Pic.rsMime = StrX2W(p->rsMime);
+				Pic.rsMime = p->rsMime;
 				Pic.bLink = (p->rsMime == "-->");
 				if (Pic.bLink)
 					Pic.varPic = StrX2W((PCSTR)p->rbData.Data(), (int)p->rbData.Size());
@@ -2401,12 +2422,122 @@ public:
 		return Result::Ok;
 	}
 
-	Result ReadTag(UINT uFlags)
+	Result SimpleExtractMove(MUSICINFO& mi) override
+	{
+		mi.Clear();
+		if (m_vFrame.empty())
+			return Result::NoTag;
+		for (const auto e : m_vFrame)
+		{
+			if ((mi.uMask & MIM_TITLE) && memcmp(e->Id, "TIT2", 4) == 0)
+			{
+				const auto p = DynCast<TEXTFRAME*>(e);
+				if (!p->vText.empty())
+				{
+					mi.rsTitle = std::move(p->vText[0]);
+					mi.uMaskRead |= MIM_TITLE;
+				}
+			}
+			else if ((mi.uMask & MIM_ARTIST) && memcmp(e->Id, "TPE1", 4) == 0)
+			{
+				const auto p = DynCast<TEXTFRAME*>(e);
+				for (auto& e : p->vText)
+				{
+					mi.AppendArtist(std::move(e));
+					mi.uMaskRead |= MIM_ARTIST;
+				}
+			}
+			else if ((mi.uMask & MIM_ALBUM) && memcmp(e->Id, "TALB", 4) == 0)
+			{
+				const auto p = DynCast<TEXTFRAME*>(e);
+				if (!p->vText.empty())
+				{
+					mi.rsAlbum = std::move(p->vText[0]);
+					mi.uMaskRead |= MIM_ALBUM;
+				}
+			}
+			else if ((mi.uMask & MIM_LRC) && memcmp(e->Id, "USLT", 4) == 0)
+			{
+				const auto p = DynCast<USLT*>(e);
+				mi.rsLrc = std::move(p->rsLrc);
+				mi.uMaskRead |= MIM_LRC;
+			}
+			else if ((mi.uMask & MIM_COMMENT) && memcmp(e->Id, "COMM", 4) == 0)
+			{
+				const auto p = DynCast<COMM*>(e);
+				mi.AppendComment(std::move(p->rsText));
+				mi.uMaskRead |= MIM_COMMENT;
+			}
+			else if ((mi.uMask & MIM_COVER) && memcmp(e->Id, "APIC", 4) == 0)
+			{
+				const auto p = DynCast<APIC*>(e);
+				MUSICPIC Pic{};
+				Pic.eType = p->eType;
+				Pic.rsDesc = std::move(p->rsDesc);
+				Pic.rsMime = std::move(p->rsMime);
+				Pic.bLink = (Pic.rsMime == "-->");
+				if (Pic.bLink)
+					Pic.varPic = StrX2W((PCSTR)p->rbData.Data(), (int)p->rbData.Size());
+				else
+					Pic.varPic = std::move(p->rbData);
+				mi.vImage.emplace_back(std::move(Pic));
+				mi.uMaskRead |= MIM_COVER;
+			}
+			else if ((mi.uMask & MIM_GENRE) && memcmp(e->Id, "TCON", 4) == 0)
+			{
+				const auto p = DynCast<TEXTFRAME*>(e);
+				if (!p->vText.empty())
+				{
+					mi.rsGenre = std::move(p->vText[0]);
+					mi.uMaskRead |= MIM_GENRE;
+				}
+			}
+			else if ((mi.uMask & MIM_DATE) && memcmp(e->Id, "TYER", 4) == 0)
+			{
+				const auto p = DynCast<TEXTFRAME*>(e);
+				if (!p->vText.empty())
+				{
+					if (mi.uFlag & MIF_DATE_STRING)
+						mi.Date = std::move(p->vText[0]);
+					else
+						mi.Date = SYSTEMTIME{ .wYear = (WORD)_wtoi(p->vText[0].Data()) };
+					mi.uMaskRead |= MIM_DATE;
+				}
+			}
+			else if ((mi.uMask & MIM_DATE) && memcmp(e->Id, "TDRC", 4) == 0)
+			{
+				const auto p = DynCast<TEXTFRAME*>(e);
+				if (!p->vText.empty())
+				{
+					if (mi.uFlag & MIF_DATE_STRING)
+					{
+						mi.Date = std::move(p->vText[0]);
+						mi.uMaskRead |= MIM_DATE;
+					}
+					else
+					{
+						SYSTEMTIME st{};
+						if (swscanf(p->vText[0].Data(), L"%hd-%hd-%hdT%hd:%hd:%hd",
+							&st.wYear, &st.wMonth, &st.wDay,
+							&st.wHour, &st.wMinute, &st.wSecond) > 0)
+						{
+							mi.Date = st;
+							mi.uMaskRead |= MIM_DATE;
+						}
+					}
+					mi.uMaskRead |= MIM_DATE;
+				}
+			}
+		}
+		return Result::Ok;
+	}
+
+	Result ReadTag(UINT uFlags) override
 	{
 		for (auto e : m_vFrame)
 			delete e;
 		m_vFrame.clear();
-		m_posAppendTag = SIZETMax;
+		m_SeekVal = SIZETMax;
 		if (!m_cbTag)
 			return Result::NoTag;
 		Result r;
@@ -2424,16 +2555,18 @@ public:
 				EckDbgPrintWithPos(L"查找到的预置标签末尾超出标签头指示的长度");
 				return Result::TagErr;
 			}
-			if (m_posAppendTag != SIZETMax)// 若找到了SEEK帧，则移至其指示的位置继续解析，此时不可能含有空白填充
+			if (m_SeekVal != SIZETMax)// 若找到了SEEK帧，则移至其指示的位置继续解析，此时不可能含有空白填充
 			{
-				if (m_posAppendTag + 10u >= m_Stream.GetSizeUli()/*SEEK帧信息错误*/ ||
-					m_posAppendTag + (m_cbTag - m_cbPrependTag) >= m_Stream.GetSizeUli())
+				if (m_File.m_Id3Loc.posV2 == SIZETMax || m_cbPrependTag == 0)
+					return Result::TagErr;
+				m_SeekVal += (m_cbPrependTag + m_File.m_Id3Loc.posV2);
+				if (m_SeekVal >= m_Stream.GetSizeUli() - 10)
 				{
 					EckDbgPrintWithPos(L"追加标签末尾超出文件长度");
 					return Result::TagErr;
 				}
-				m_Stream.MoveTo(m_posAppendTag);
-				r = ParseFrameBody(m_posAppendTag + m_cbTag);
+				m_Stream.MoveTo(m_SeekVal);
+				r = ParseFrameBody(m_SeekVal + m_cbTag);
 			}
 		}
 		else if (m_File.m_Id3Loc.posV2Footer != SIZETMax)
@@ -2447,7 +2580,7 @@ public:
 		return Result::Ok;
 	}
 
-	Result WriteTag(UINT uFlags)
+	Result WriteTag(UINT uFlags) override
 	{
 		const BOOL bOnlyAppend = m_File.m_Id3Loc.posV2Footer != SIZETMax &&
 			m_File.m_Id3Loc.posV2 == SIZETMax;
@@ -2460,8 +2593,11 @@ public:
 		else if (Hdr.Ver != 3 && Hdr.Ver != 4)
 			Hdr.Ver = 4;
 		CRefBin rbPrepend{}, rbAppend{};
+		BOOL bSeekFrameFound = FALSE;
 		for (const auto e : m_vFrame)
 		{
+			if (!bSeekFrameFound && memcmp(e->Id, "SEEK", 4) == 0)
+				bSeekFrameFound = TRUE;
 			if (bShouldAppend || (e->byAddtFlags & MTID3F_APPEND))
 				e->SerializeData(rbAppend, &Hdr);
 			else
@@ -2473,7 +2609,7 @@ public:
 
 		const auto cbFrames = (DWORD)(rbPrepend.Size() + rbAppend.Size());
 		DwordToSynchSafeInt(Hdr.Size, cbFrames);
-		SIZE_T posAppendBegin{ SIZETMax };
+		SIZE_T cbBody{ SIZETMax };
 		// 写入追加标签
 		if (!rbAppend.IsEmpty())
 		{
@@ -2495,13 +2631,13 @@ public:
 				}
 				m_Stream.MoveTo(m_File.m_Id3Loc.posV2Footer);
 			}
-			else if (m_posAppendTag != SIZETMax)
+			else if (m_SeekVal != SIZETMax)
 			{
 				EckAssert(m_cbTag != SIZETMax);
 				const auto cbOldAppend = m_cbTag - m_cbPrependTag;
 				if (cbOldAppend < rbAppend.Size())
 				{
-					m_Stream.Insert(ToUli(m_posAppendTag + cbOldAppend),
+					m_Stream.Insert(ToUli(m_SeekVal + cbOldAppend),
 						ToUli(rbAppend.Size() - cbOldAppend));
 				}
 				else
@@ -2509,11 +2645,11 @@ public:
 					const auto cbPadding = cbOldAppend - rbAppend.Size();
 					if (cbPadding)// 无论如何都不对追加标签使用填充
 					{
-						m_Stream.Erase(ToUli(m_posAppendTag + rbAppend.Size()),
+						m_Stream.Erase(ToUli(m_SeekVal + rbAppend.Size()),
 							ToUli(cbPadding));
 					}
 				}
-				m_Stream.MoveTo(m_posAppendTag);
+				m_Stream.MoveTo(m_SeekVal);
 			}
 			else
 			{
@@ -2528,7 +2664,11 @@ public:
 				m_Stream.MoveTo(posInsert);
 			}
 			memcpy(Hdr.Header, "3DI", 3);
-			posAppendBegin = m_Stream.GetPos();
+			auto a = m_Stream.GetPos();
+			if (m_File.m_Id3Loc.posV2 == SIZETMax)
+				cbBody = m_Stream.GetPos();
+			else
+				cbBody = m_Stream.GetPos() - m_cbPrependTag - m_File.m_Id3Loc.posV2 - 10;
 			// TODO:扩展头
 			m_Stream << rbAppend << Hdr;
 		}
@@ -2539,9 +2679,18 @@ public:
 		// 写入预置标签
 		if (!rbPrepend.IsEmpty())
 		{
+			if (!bSeekFrameFound && cbBody != SIZETMax)// 补下SEEK帧
+			{
+				SEEK seek{};
+				seek.uFlags[0] |= (Hdr.Ver == 3 ?
+					ID3V23FF_FILE_ALTER_DISCARD : ID3V24FF_FILE_ALTER_DISCARD);
+				seek.ocbNextTag = (UINT)cbBody;
+				seek.SerializeData(rbPrepend, &Hdr);
+			}
+
 			if (m_File.m_Id3Loc.posV2 != SIZETMax)
 			{
-				const auto cbPrepend = (m_posAppendTag == SIZETMax ? m_cbTag : m_cbPrependTag);
+				const auto cbPrepend = (m_SeekVal == SIZETMax ? m_cbTag : m_cbPrependTag);
 				if (cbPrepend < rbPrepend.Size())
 				{
 					m_Stream.Insert(ToUli(m_File.m_Id3Loc.posV2 + 10 + m_cbPrependTag),
@@ -2567,22 +2716,12 @@ public:
 						}
 					}
 				}
-				m_Stream.MoveTo(m_File.m_Id3Loc.posV2 - 10);
+				m_Stream.MoveTo(m_File.m_Id3Loc.posV2);
 			}
 			else
 			{
 				m_Stream.Insert(0u, rbPrepend.Size() + 10u);
 				m_Stream.MoveToBegin();
-			}
-
-			if (posAppendBegin != SIZETMax)// 补下SEEK帧
-			{
-				SEEK seek{};
-				seek.uFlags[0] |= (Hdr.Ver == 3 ?
-					(ID3V23FF_FILE_ALTER_DISCARD | ID3V23FF_TAG_ALTER_DISCARD) :
-					(ID3V24FF_FILE_ALTER_DISCARD | ID3V24FF_TAG_ALTER_DISCARD));
-				seek.ocbNextTag = posAppendBegin - m_cbPrependTag;
-				seek.SerializeData(rbPrepend, &Hdr);
 			}
 
 			memcpy(Hdr.Header, "ID3", 3);
@@ -2601,16 +2740,117 @@ public:
 
 	EckInline auto& GetHeader() { return m_Header; }
 
-	EckInline FRAME* GetFrame(PCSTR Id)
+	FRAME* GetFrame(PCSTR Id)
 	{
-		const auto it = std::find_if(m_vFrame.begin(), m_vFrame.end(),
-			[Id](const FRAME* pf)
-			{
-				return memcmp(pf->Id, Id, 4) == 0;
-			});
-		if (it == m_vFrame.end())
-			return NULL;
-		return *it;
+		for (const auto e : m_vFrame)
+		{
+			if (memcmp(e->Id, Id, 4) == 0)
+				return e;
+		}
+		return NULL;
+	}
+
+	std::vector<FRAME*> GetFrameList(PCSTR Id)
+	{
+		std::vector<FRAME*> v{};
+		for (const auto e : m_vFrame)
+		{
+			if (memcmp(e->Id, Id, 4) == 0)
+				v.push_back(e);
+		}
+		return v;
+	}
+
+	FRAME* CreateFrame(PCSTR Id)
+	{
+		FRAME* p;
+		if (memcmp(Id, "UFID", 4) == 0)
+			p = new UFID{};
+		else if (memcmp(Id, "TXXX", 4) == 0)
+			p = new TXXX{};
+		else if (memcmp(Id, "WXXX", 4) == 0)
+			p = new WXXX{};
+		else if (memcmp(Id, "MCID", 4) == 0)
+			p = new MCID{};
+		else if (memcmp(Id, "ETCO", 4) == 0)
+			p = new ETCO{};
+		else if (memcmp(Id, "MLLT", 4) == 0)
+			p = new MLLT{};
+		else if (memcmp(Id, "SYTC", 4) == 0)
+			p = new SYTC{};
+		else if (memcmp(Id, "USLT", 4) == 0)
+			p = new USLT{};
+		else if (memcmp(Id, "SYLT", 4) == 0)
+			p = new SYLT{};
+		else if (memcmp(Id, "COMM", 4) == 0)
+			p = new COMM{};
+		else if (memcmp(Id, "RVA2", 4) == 0)
+			p = new RVA2{};
+		else if (memcmp(Id, "EQU2", 4) == 0)
+			p = new EQU2{};
+		else if (memcmp(Id, "RVRB", 4) == 0)
+			p = new RVRB{};
+		else if (memcmp(Id, "APIC", 4) == 0)
+			p = new APIC{};
+		else if (memcmp(Id, "GEOB", 4) == 0)
+			p = new GEOB{};
+		else if (memcmp(Id, "PCNT", 4) == 0)
+			p = new PCNT{};
+		else if (memcmp(Id, "POPM", 4) == 0)
+			p = new POPM{};
+		else if (memcmp(Id, "RBUF", 4) == 0)
+			p = new RBUF{};
+		else if (memcmp(Id, "AENC", 4) == 0)
+			p = new AENC{};
+		else if (memcmp(Id, "LINK", 4) == 0)
+			p = new LINK{};
+		else if (memcmp(Id, "POSS", 4) == 0)
+			p = new POSS{};
+		else if (memcmp(Id, "USER", 4) == 0)
+			p = new USER{};
+		else if (memcmp(Id, "OWNE", 4) == 0)
+			p = new OWNE{};
+		else if (memcmp(Id, "COMR", 4) == 0)
+			p = new COMR{};
+		else if (memcmp(Id, "ENCR", 4) == 0)
+			p = new ENCR{};
+		else if (memcmp(Id, "GRID", 4) == 0)
+			p = new GRID{};
+		else if (memcmp(Id, "PRIV", 4) == 0)
+			p = new PRIV{};
+		else if (memcmp(Id, "SIGN", 4) == 0)
+			p = new SIGN{};
+		else if (memcmp(Id, "SEEK", 4) == 0)
+			p = new SEEK{};
+		else if (memcmp(Id, "ASPI", 4) == 0)
+			p = new ASPI{};
+		else if (memcmp(Id, "IPLS", 4) == 0)
+			p = new IPLS{};
+		else if (memcmp(Id, "RVAD", 4) == 0)
+			p = new RVAD{};
+		else if (memcmp(Id, "EQUA", 4) == 0)
+			p = new EQUA{};
+		else if (memcmp(Id, "RGAD", 4) == 0)
+			p = new RGAD{};
+		else if (memcmp(Id, "XRVA", 4) == 0)
+			p = new XRVA{};
+		else if (Id[0] == 'T')
+			p = new TEXTFRAME(Id);
+		else if (Id[0] == 'W')
+			p = new LINKFRAME(Id);
+		else
+			p = new OTHERFRAME(Id);
+		m_vFrame.push_back(p);
+		return p;
+	}
+
+	EckInline FRAME* GetOrCreateFrame(PCSTR Id)
+	{
+		auto p = GetFrame(Id);
+		if (p)
+			return p;
+		else
+			return CreateFrame(Id);
 	}
 };
 ECK_MEDIATAG_NAMESPACE_END

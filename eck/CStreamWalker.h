@@ -160,10 +160,9 @@ struct CStreamWalker
 
 	void MoveData(ULARGE_INTEGER posDst, ULARGE_INTEGER posSrc, ULARGE_INTEGER cbSize)
 	{
-		EckAssert(posSrc < GetSizeUli() && posSrc + cbSize <= GetSizeUli());
 		if (posDst == posSrc || cbSize == 0ull)
 			return;
-
+		EckAssert(posSrc < GetSizeUli() && posSrc + cbSize <= GetSizeUli());
 		IStream* pSelf;
 		if (SUCCEEDED(m_pStream->Clone(&pSelf)))// 若流支持克隆，则优先使用其CopyTo实现
 		{
@@ -325,8 +324,9 @@ struct CStreamWalker
 	{
 		if (cbSize == 0ull)
 			return;
-		EckAssert(pos < GetSizeUli() && pos + cbSize <= GetSizeUli());
-		MoveData(pos, pos + cbSize, cbSize);
+		const auto cbTotal = GetSizeUli();
+		EckAssert(pos < cbTotal && pos + cbSize <= cbTotal);
+		MoveData(pos, pos + cbSize, cbTotal - pos - cbSize);
 		ReSize(GetSizeUli() - cbSize);
 	}
 

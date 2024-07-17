@@ -211,12 +211,9 @@ constexpr inline ID3_GENRE Genre[]
 	{L"迷幻驰放",L"Psybient"},
 };
 
-class CID3v1
+class CID3v1 :public CTag
 {
 private:
-	CMediaFile& m_File;
-	CStreamWalker m_Stream{};
-
 	enum class Speed :BYTE
 	{
 		None,
@@ -244,9 +241,69 @@ private:
 
 	INFO m_Info{};
 public:
-	CID3v1(CMediaFile& File) :m_File{ File }, m_Stream(File.GetStream()) {}
+	CID3v1(CMediaFile& File) :CTag(File) {}
 
-	Result ReadTag(UINT uFlags)
+	Result SimpleExtract(MUSICINFO& mi) override
+	{
+		mi.Clear();
+		if (m_File.m_Id3Loc.posV1 == SIZETMax)
+			return Result::NoTag;
+		if (mi.uMask & MIM_TITLE)
+		{
+			mi.rsTitle = StrX2W(m_Info.rsTitle);
+			mi.uMaskRead |= MIM_TITLE;
+		}
+		if (mi.uMask & MIM_ARTIST)
+		{
+			mi.AppendArtist(StrX2W(m_Info.rsArtist));
+			mi.uMaskRead |= MIM_ARTIST;
+		}
+		if (mi.uMask & MIM_ALBUM)
+		{
+			mi.rsAlbum = StrX2W(m_Info.rsAlbum);
+			mi.uMaskRead |= MIM_ALBUM;
+		}
+		if (mi.uMask & MIM_COMMENT)
+		{
+			mi.AppendComment(StrX2W(m_Info.rsComment));
+			mi.uMaskRead |= MIM_COMMENT;
+		}
+		if (mi.uMask & MIM_GENRE)
+		{
+			if (m_Info.rsGenre.IsEmpty())
+			{
+				if (m_Info.byGenre < ARRAYSIZE(Genre))
+				{
+					mi.rsGenre = Genre[m_Info.byGenre].EnName;
+					mi.uMaskRead |= MIM_GENRE;
+				}
+			}
+			else
+			{
+				mi.rsGenre = StrX2W(m_Info.rsGenre);
+				mi.uMaskRead |= MIM_GENRE;
+			}
+		}
+		if (mi.uMask & MIM_DATE)
+		{
+			if (m_Info.usYear)
+			{
+				if (mi.uFlag & MIF_DATE_STRING)
+					mi.Date = Format(L"%04d", m_Info.usYear);
+				else
+					mi.Date = SYSTEMTIME{ .wYear = m_Info.usYear };
+				mi.uMaskRead |= MIM_DATE;
+			}
+		}
+		return Result::Ok;
+	}
+
+	Result SimpleExtractMove(MUSICINFO& mi) override
+	{
+		return SimpleExtract(mi);
+	}
+
+	Result ReadTag(UINT uFlags) override
 	{
 		if (m_File.m_Id3Loc.posV1 == SIZETMax)
 			return Result::NoTag;
@@ -329,7 +386,7 @@ public:
 		return Result::Ok;
 	}
 
-	Result WriteTag(UINT uFlags)
+	Result WriteTag(UINT uFlags) override
 	{
 		BYTE byDummy[60]{};
 		size_t cb;

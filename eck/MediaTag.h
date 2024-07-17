@@ -48,17 +48,31 @@ enum MediaInfoFlags :UINT
 // 标签读写标志
 enum :UINT
 {
-	MIF_JOIN_ARTIST = 1u << 0,		// 用指定的分隔符连接多个艺术家
-	MIF_JOIN_COMMENT = 1u << 1,		// 用指定的分隔符连接多个备注
-	MIF_ALLOW_PADDING = 1u << 2,	// 允许保留空白填充以防止重写整个文件
-	MIF_DATE_STRING = 1u << 3,		// 用当前本地设置格式化日期为字符串
-	MIF_SPLIT_ARTIST_IN_ID3V2_3 = 1u << 4,	// 用ID3v2.3规定的斜杠("/")分割艺术家列表
-	MIF_SCAN_ALL_FRAME = 1u << 5,			// 扫描并存储标签中的所有记录
-	MIF_APPEND_TAG = 1u << 6,		// 在文件尾部追加标签（如果标记系统允许）
-	MIF_SYNC_OTHER_TAG = 1u << 7,	// 当存在其他标签时同步其信息
-	MIF_CREATE_ID3V1_EXT = 1u << 8,	// 创建ID3v1扩展信息
-	MIF_CREATE_ID3V2_3 = 1u << 9,		// 创建ID3v2.3标签
-	MIF_CREATE_ID3V2_4 = 1u << 10,		// 创建ID3v2.4标签
+	//											| ID3v1	| ID3v2 | Flac	|
+	// 用指定的分隔符连接多个艺术家
+	MIF_JOIN_ARTIST = 1u << 0,				//	|		|	T	|	T	|
+	// 用指定的分隔符连接多个备注
+	MIF_JOIN_COMMENT = 1u << 1,				// 	|		|	T	|	T	|
+	// 允许保留空白填充
+	MIF_ALLOW_PADDING = 1u << 2,			// 	|		|	T	|	T	|
+	// 用当前本地设置格式化日期为字符串
+	MIF_DATE_STRING = 1u << 3,				// 	|	T	|	T	|	T	|
+	// 用ID3v2.3规定的斜杠("/")分割艺术家列表
+	MIF_SPLIT_ARTIST_IN_ID3V2_3 = 1u << 4,	// 	|		|	T	|		|
+	// 移除其他标记系统
+	MIF_REMOVE_OTHER_TAG = 1u << 5,			// 	|	T	|	T	|	T	|
+	// 在文件尾部追加标签
+	MIF_APPEND_TAG = 1u << 6,				// 	|		|	T	|		|
+	// 当存在其他标签时同步其信息
+	MIF_SYNC_OTHER_TAG = 1u << 7,			// 	|	T	|	T	|	T	|
+	// 创建ID3v1扩展信息
+	MIF_CREATE_ID3V1_EXT = 1u << 8,			// 	|	T	|		|		|
+	// 创建ID3v2.3标签
+	MIF_CREATE_ID3V2_3 = 1u << 9,			// 	|		|	T	|		|
+	// 创建ID3v2.4标签
+	MIF_CREATE_ID3V2_4 = 1u << 10,			// 	|		|	T	|		|
+	// 移除空白填充
+	MIF_REMOVE_PADDING = 1u << 11,			// 	|		|	T	|	T	|
 };
 // ID3帧写入选项
 enum :BYTE
@@ -148,7 +162,7 @@ struct MUSICPIC
 	PicType eType;
 	BOOL bLink;
 	CRefStrW rsDesc;
-	CRefStrW rsMime;
+	CRefStrA rsMime;
 	std::variant<CRefBin, CRefStrW> varPic;
 };
 
@@ -422,6 +436,7 @@ struct ID3LOCATION
 	SIZE_T posV1{ SIZETMax };
 	SIZE_T posV1Ext{ SIZETMax };
 	SIZE_T posApe{ SIZETMax };
+	SIZE_T posFlac{ SIZETMax };
 };
 
 class CMediaFile
@@ -576,10 +591,22 @@ private:
 	BOOL DetectFlac()
 	{
 		CStreamWalker w(m_pStream);
-		w.MoveToBegin();
+		if (m_Id3Loc.posV2 == SIZETMax)
+			w.MoveToBegin();
+		else
+			w.MoveTo(m_Id3Loc.posV2);
 		BYTE by[4];
 		w >> by;
-		return memcmp(by, "fLaC", 4) == 0;
+		if (memcmp(by, "fLaC", 4) == 0)
+		{
+			m_Id3Loc.posFlac = w.GetPos() - 4u;
+			return TRUE;
+		}
+		else
+		{
+			m_Id3Loc.posFlac = SIZETMax;
+			return FALSE;
+		}
 	}
 public:
 	ECK_DISABLE_COPY_MOVE(CMediaFile)
@@ -609,6 +636,30 @@ public:
 			m_uTagType |= TAG_FLAC;
 		return m_uTagType;
 	}
+};
+
+class CTag
+{
+protected:
+	CMediaFile& m_File;
+	CStreamWalker m_Stream{};
+
+	CTag(CMediaFile& File) :m_File{ File }, m_Stream(File.GetStream())
+	{
+		m_Stream.GetStream()->AddRef();
+	}
+
+	~CTag()
+	{
+		m_Stream.GetStream()->Release();
+	}
+
+	ECK_DISABLE_COPY_MOVE(CTag)
+public:
+	virtual Result SimpleExtract(MUSICINFO& mi) = 0;
+	virtual Result SimpleExtractMove(MUSICINFO& mi) = 0;
+	virtual Result ReadTag(UINT uFlags) = 0;
+	virtual Result WriteTag(UINT uFlags) = 0;
 };
 ECK_MEDIATAG_NAMESPACE_END
 ECK_NAMESPACE_END
