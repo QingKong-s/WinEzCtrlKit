@@ -250,6 +250,8 @@ struct CCharTraits<WCHAR>
 	EckInline static constexpr WCHAR CharSpace() { return L' '; }
 	EckInline static int Compare(PCWSTR psz1, PCWSTR psz2) { return wcscmp(psz1, psz2); }
 	EckInline static int Compare(PCWSTR psz1, PCWSTR psz2, int cch) { return wcsncmp(psz1, psz2, cch); }
+	EckInline static int CompareI(PCWSTR psz1, PCWSTR psz2) { return wcsicmp(psz1, psz2); }
+	EckInline static int CompareI(PCWSTR psz1, PCWSTR psz2, int cch) { return wcsnicmp(psz1, psz2, cch); }
 	EckInline static int Find(PCWSTR pszText, PCWSTR pszSub, int posStart = 0) { return FindStr(pszText, pszSub, posStart); }
 	EckInline static int FormatV(PWSTR pszBuf, PCWSTR pszFmt, va_list vl) { return vswprintf(pszBuf, pszFmt, vl); }
 	EckInline static int GetFormatCchV(PCWSTR pszFmt, va_list vl) { return _vscwprintf(pszFmt, vl); }
@@ -281,6 +283,8 @@ struct CCharTraits<CHAR>
 	EckInline static constexpr CHAR CharSpace() { return ' '; }
 	EckInline static int Compare(PCSTR psz1, PCSTR psz2) { return strcmp(psz1, psz2); }
 	EckInline static int Compare(PCSTR psz1, PCSTR psz2, int cch) { return strncmp(psz1, psz2, cch); }
+	EckInline static int CompareI(PCSTR psz1, PCSTR psz2) { return stricmp(psz1, psz2); }
+	EckInline static int CompareI(PCSTR psz1, PCSTR psz2, int cch) { return strnicmp(psz1, psz2, cch); }
 	EckInline static int Find(PCSTR pszText, PCSTR pszSub, int posStart = 0) { return FindStr(pszText, pszSub, posStart); }
 	EckInline static int FormatV(PSTR pszBuf, PCSTR pszFmt, va_list vl) { return vsprintf(pszBuf, pszFmt, vl); }
 	EckInline static int GetFormatCchV(PCSTR pszFmt, va_list vl) { return _vscprintf(pszFmt, vl); }
@@ -1061,7 +1065,7 @@ public:
 		ReSize(cchNew);
 	}
 
-	BOOL IsStartOf(TConstPointer psz, int cch = -1) const
+	[[nodiscard]] BOOL IsStartOf(TConstPointer psz, int cch = -1) const
 	{
 		if (cch < 0)
 			cch = TCharTraits::Len(psz);
@@ -1070,13 +1074,32 @@ public:
 		return TCharTraits::Compare(Data(), psz, cch) == 0;
 	}
 
-	EckInline CRefStrT SubStr(int posStart, int cch) const
+	[[nodiscard]] BOOL IsStartOfI(TConstPointer psz, int cch = -1) const
+	{
+		if (cch < 0)
+			cch = TCharTraits::Len(psz);
+		if (cch == 0 || Size() < cch)
+			return FALSE;
+		return TCharTraits::CompareI(Data(), psz, cch) == 0;
+	}
+
+	[[nodiscard]] EckInline CRefStrT SubStr(int posStart, int cch) const
 	{
 		EckAssert(posStart >= 0 && posStart < Size());
 		if (cch < 0)
 			cch = Size() - posStart;
 		EckAssert(cch != 0 && posStart + cch <= Size());
 		return CRefStrT(Data() + posStart, cch);
+	}
+
+	[[nodiscard]] EckInline int Compare(TConstPointer psz) const
+	{
+		return TCharTraits::Compare(Data(), psz);
+	}
+
+	[[nodiscard]] EckInline int CompareI(TConstPointer psz) const
+	{
+		return TCharTraits::CompareI(Data(), psz);
 	}
 
 	[[nodiscard]] EckInline TIterator begin() { return Data(); }

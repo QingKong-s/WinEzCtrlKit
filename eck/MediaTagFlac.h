@@ -1,7 +1,7 @@
 ﻿/*
 * WinEzCtrlKit Library
 *
-* MediaTagFlac.h ： Flac注释读写
+* MediaTagFlac.h ： Flac元数据读写
 *
 * Copyright(C) 2024 QingKong
 */
@@ -73,11 +73,11 @@ private:
 	SIZE_T m_posStreamInfoEnd{ SIZETMax };
 	SIZE_T m_posFlacTagEnd{ SIZETMax };
 
-	static void ParseImageBlock(CRefBin& rb, MUSICPIC& Pic)
+	static void ParseImageBlock(CRefBin& rb, IMAGE& Pic)
 	{
 		CMemWalker r(rb.Data(), rb.Size());
-		DWORD t;
-		DWORD dwType;
+		UINT t;
+		UINT dwType;
 		r >> dwType;// 图片类型
 		if (dwType < (BYTE)PicType::Begin___ || dwType >= (BYTE)PicType::End___)
 			Pic.eType = PicType::Invalid;
@@ -93,64 +93,53 @@ private:
 		r.Read(u8Desc.Data(), t);// MIME类型字符串
 		Pic.rsDesc = StrX2W(u8Desc, CP_UTF8);
 
-		r += 16;// 跳过宽度、高度、色深、索引图颜色数
+		r.ReadRev(Pic.cx).ReadRev(Pic.cy).ReadRev(Pic.bpp).ReadRev(Pic.cColor);
 
 		r.ReadRev(t);// 图片数据长度
 
-		Pic.bLink = (Pic.rsMime == "-->");
-
-		if (Pic.bLink)
-		{
-			CRefStrA u8(t);
-			r.Read(u8.Data(), t);
-			Pic.varPic = StrX2W(u8, CP_UTF8);
-		}
-		else
-		{
-			rb.Erase(0, r.Data() - rb.Data());
-			Pic.varPic = std::move(rb);
-		}
+		rb.Erase(0, r.Data() - rb.Data());
+		Pic.rbData = std::move(rb);
 	}
 public:
 	ECK_DISABLE_COPY_MOVE(CFlac)
 public:
 	CFlac(CMediaFile& File) :CTag(File) {}
 
-	Result SimpleExtract(MUSICINFO& mi)
+	Result SimpleExtract(MUSICINFO& mi) override
 	{
 		for (const auto& e : m_vItem)
 		{
-			if ((mi.uFlag & MIM_TITLE) && e.rsKey == "TITLE")
+			if ((mi.uFlag & MIM_TITLE) && e.rsKey.CompareI( "TITLE"))
 			{
 				mi.rsTitle = e.rsValue;
 				mi.uMaskRead |= MIM_TITLE;
 			}
-			else if ((mi.uFlag & MIM_ARTIST) && e.rsKey == "ARTIST")
+			else if ((mi.uFlag & MIM_ARTIST) && e.rsKey.CompareI("ARTIST"))
 			{
 				mi.AppendArtist(e.rsValue);
 				mi.uMaskRead |= MIM_ARTIST;
 			}
-			else if ((mi.uFlag & MIM_ALBUM) && e.rsKey == "ALBUM")
+			else if ((mi.uFlag & MIM_ALBUM) && e.rsKey.CompareI("ALBUM"))
 			{
 				mi.rsAlbum = e.rsValue;
 				mi.uMaskRead |= MIM_ALBUM;
 			}
-			else if ((mi.uFlag & MIM_LRC) && e.rsKey == "LYRICS")
+			else if ((mi.uFlag & MIM_LRC) && e.rsKey.CompareI("LYRICS"))
 			{
 				mi.rsLrc = e.rsValue;
 				mi.uMaskRead |= MIM_LRC;
 			}
-			else if ((mi.uFlag & MIM_COMMENT) && e.rsKey == "DESCRIPTION")
+			else if ((mi.uFlag & MIM_COMMENT) && e.rsKey.CompareI("DESCRIPTION"))
 			{
 				mi.AppendComment(e.rsValue);
 				mi.uMaskRead |= MIM_COMMENT;
 			}
-			else if ((mi.uFlag & MIM_GENRE) && e.rsKey == "GENRE")
+			else if ((mi.uFlag & MIM_GENRE) && e.rsKey.CompareI("GENRE"))
 			{
 				mi.rsGenre = e.rsValue;
 				mi.uMaskRead |= MIM_GENRE;
 			}
-			else if ((mi.uFlag & MIM_DATE) && e.rsKey == "DATE")
+			else if ((mi.uFlag & MIM_DATE) && e.rsKey.CompareI("DATE"))
 			{
 				WORD y, m{}, d{};
 				if (swscanf(e.rsValue.Data(), L"%hd-%hd-%hd", &y, &m, &d) >= 1)
@@ -163,16 +152,25 @@ public:
 		if ((mi.uFlag & MIM_COVER) && !m_vPic.empty())
 		{
 			for (const auto& e : m_vPic)
-				mi.vImage.emplace_back(e);
+			{
+				const BOOL bLink = (e.rsMime == "-->");
+				if (bLink)
+					mi.vImage.emplace_back(e.eType, TRUE, e.rsDesc, e.rsMime,
+						StrX2W((PCSTR)e.rbData.Data(), (int)e.rbData.Size(), CP_UTF8));
+				else ECKLIKELY
+					mi.vImage.emplace_back(e.eType, FALSE, e.rsDesc, e.rsMime,
+						e.rbData);
+			}
 			mi.uMaskRead |= MIM_COVER;
 		}
+		return Result::Ok;
 	}
 
-	Result ReadTag(UINT uFlags)
+	Result ReadTag(UINT uFlags) override
 	{
 		if (m_File.m_Id3Loc.posFlac == SIZETMax)
 			return Result::NoTag;
-		m_Stream.MoveTo(m_File.m_Id3Loc.posFlac);
+		m_Stream.MoveTo(m_File.m_Id3Loc.posFlac) += 4;
 		FLAC_BlockHeader Header;
 		DWORD cbBlock;
 		UINT t;
@@ -219,12 +217,10 @@ public:
 						continue;
 					++iPos;
 					const int cchActual = u8.Size() - iPos;
-					if (u8.IsStartOf("METADATA_BLOCK_PICTURE"))
+					if (u8.IsStartOfI("METADATA_BLOCK_PICTURE"))
 					{
 						auto rb = Base64Decode(u8.Data() + iPos, cchActual);
-						MUSICPIC Pic{};
-						ParseImageBlock(rb, Pic);
-						m_vPic.emplace_back(std::move(Pic));
+						ParseImageBlock(rb, m_vPic.emplace_back());
 					}
 					else ECKLIKELY
 					{
@@ -239,16 +235,19 @@ public:
 			{
 				CRefBin rb(cbBlock);
 				m_Stream.Read(rb.Data(), cbBlock);
-				MUSICPIC Pic{};
-				ParseImageBlock(rb, Pic);
-				m_vPic.emplace_back(std::move(Pic));
+				ParseImageBlock(rb, m_vPic.emplace_back());
 			}
 			break;
 			default:
 			{
-				CRefBin rb(cbBlock);
-				m_Stream.Read(rb.Data(), cbBlock);
-				m_vBlock.emplace_back((BlockType)(Header.by & 0x7F), std::move(rb));
+				if ((Header.by & 0x7F) == (BYTE)BlockType::Padding)
+					m_Stream += cbBlock;
+				else
+				{
+					CRefBin rb(cbBlock);
+					m_Stream.Read(rb.Data(), cbBlock);
+					m_vBlock.emplace_back((BlockType)(Header.by & 0x7F), std::move(rb));
+				}
 			}
 			break;
 			}
@@ -257,7 +256,7 @@ public:
 		return Result::Ok;
 	}
 
-	Result WriteTag(UINT uFlags)
+	Result WriteTag(UINT uFlags) override
 	{
 		if (m_File.m_Id3Loc.posFlac == SIZETMax)
 			return Result::NoTag;
@@ -265,29 +264,35 @@ public:
 		CRefBin rbVorbis{}, rbImage{};
 		// 序列化Vorbis注释
 		rbVorbis.PushBack(4u);// 悬而未决
-		if (!m_rsVendor.IsEmpty())
+		if (m_rsVendor.IsEmpty())
+			rbVorbis << 0u;
+		else
 		{
 			const int cchVendor = WideCharToMultiByte(CP_UTF8, 0, m_rsVendor.Data(), m_rsVendor.Size(),
 				NULL, 0, NULL, NULL);
+			rbVorbis << cchVendor;
 			WideCharToMultiByte(CP_UTF8, 0, m_rsVendor.Data(), m_rsVendor.Size(),
 				(CHAR*)rbVorbis.PushBack(cchVendor), cchVendor, NULL, NULL);
 		}
 		rbVorbis << (UINT)m_vItem.size();
 		for (const auto& e : m_vItem)
 		{
-			rbVorbis << e.rsKey;
-			rbVorbis.Back() = '=';
+			if (e.rsKey.IsEmpty())
+				continue;
 			const int cchValue = WideCharToMultiByte(CP_UTF8, 0, e.rsValue.Data(), e.rsValue.Size(),
 				NULL, 0, NULL, NULL);
+			rbVorbis << UINT(cchValue + 1 + e.rsKey.Size())
+				<< e.rsKey;
+			rbVorbis.Back() = '=';
 			WideCharToMultiByte(CP_UTF8, 0, e.rsValue.Data(), e.rsValue.Size(),
 				(CHAR*)rbVorbis.PushBack(cchValue), cchValue, NULL, NULL);
 		}
-		const auto cbData = (UINT)rbVorbis.Size();
-		const auto phdr = (FLAC_BlockHeader*)rbVorbis.Data();
+		const auto cbData = (UINT)rbVorbis.Size() - 4;
+		auto phdr = (FLAC_BlockHeader*)rbVorbis.Data();
 		phdr->bySize[0] = GetIntegerByte<2>(cbData);
 		phdr->bySize[1] = GetIntegerByte<1>(cbData);
 		phdr->bySize[2] = GetIntegerByte<0>(cbData);
-		phdr->by = 0_by;
+		phdr->by = (BYTE)BlockType::VorbisComment;
 		// 序列化图片
 		for (const auto& e : m_vPic)
 		{
@@ -309,22 +314,87 @@ public:
 				<< ReverseInteger((UINT)e.rbData.Size())
 				<< e.rbData;
 			const auto cbData = (UINT)(rbImage.Size() - cbCurr - 4);
-			const auto phdr = (FLAC_BlockHeader*)(rbImage.Data() - cbData - 4);
+			const auto phdr = (FLAC_BlockHeader*)(rbImage.Data() + cbCurr);
 			phdr->bySize[0] = GetIntegerByte<2>(cbData);
 			phdr->bySize[1] = GetIntegerByte<1>(cbData);
 			phdr->bySize[2] = GetIntegerByte<0>(cbData);
-			phdr->by = 0_by;
+			phdr->by = (BYTE)BlockType::Picture;
 		}
 		auto cb = rbVorbis.Size() + rbImage.Size();
 		for (const auto& e : m_vBlock)
 			cb += (e.rbData.Size() + 4);
-
-
+		const auto cbAvailable = m_posFlacTagEnd - m_posStreamInfoEnd;
+		BOOL bHasEnd{};
+		if (cbAvailable > cb)
+		{
+			UINT cbPadding = (UINT)(cbAvailable - cb);
+			if ((uFlags & MIF_REMOVE_PADDING) || cbPadding > 1024)
+				m_Stream.Erase(m_posStreamInfoEnd + cb, cbPadding);
+			else
+			{
+				bHasEnd = TRUE;
+				cbPadding -= 4;
+				m_Stream.MoveTo(m_posStreamInfoEnd + cb)
+					<< BYTE(0b1000'0000 | 1)// 这种情况下填充肯定为最后一个块
+					<< GetIntegerByte<2>(cbPadding)
+					<< GetIntegerByte<1>(cbPadding)
+					<< GetIntegerByte<0>(cbPadding);
+				void* p = VirtualAlloc(NULL, cbPadding, MEM_COMMIT, PAGE_READWRITE);
+				EckCheckMem(p);
+				m_Stream.Write(p, cbPadding);
+				VirtualFree(p, 0, MEM_RELEASE);
+			}
+		}
+		else if (cbAvailable < cb)
+			m_Stream.Insert(m_posFlacTagEnd, cb - cbAvailable);
+		m_Stream.MoveTo(m_posStreamInfoEnd);
+		m_Stream << rbVorbis << rbImage;
+		EckCounter(m_vBlock.size(), i)
+		{
+			const auto& e = m_vBlock[i];
+			if (!bHasEnd && i == m_vBlock.size() - 1)
+				m_Stream << BYTE(0b1000'0000_by | (BYTE)e.eType);
+			else
+				m_Stream << (BYTE)e.eType;
+			const UINT cbData = (UINT)e.rbData.Size();
+			m_Stream << GetIntegerByte<2>(cbData)
+				<< GetIntegerByte<1>(cbData)
+				<< GetIntegerByte<0>(cbData)
+				<< e.rbData;
+		}
+		m_Stream.GetStream()->Commit(STGC_DEFAULT);
+		return Result::Ok;
 	}
 
-	Result Shrink(UINT uFlags)
-	{
+	auto& GetVorbisComments() { return m_vItem; }
 
+	auto& GetImages() { return m_vPic; }
+
+	auto& GetBlocks() { return m_vBlock; }
+
+	const auto& GetStreamInfo() const { return m_si; }
+
+	auto& GetVendor() { return m_rsVendor; }
+
+	const auto& GetVendor() const { return m_rsVendor; }
+
+	size_t GetVorbisComment(PCSTR pszKey) const
+	{
+		EckCounter(m_vItem.size(), i)
+		{
+			if (m_vItem[i].rsKey.CompareI(pszKey) == 0)
+				return i;
+		}
+		return SizeTMax;
+	}
+
+	auto& GetOrCreateVorbisComment(PCSTR pszKey)
+	{
+		const auto i = GetVorbisComment(pszKey);
+		if (i == SizeTMax)
+			return m_vItem.emplace_back(pszKey);
+		else
+			return m_vItem[i];
 	}
 };
 ECK_MEDIATAG_NAMESPACE_END

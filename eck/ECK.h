@@ -240,8 +240,8 @@ ECK_NAMESPACE_END
 			friend constexpr Type operator^(Type a, Type b);
 
 #if ECKCXX20
-#define ECKLIKELY [[likely]]
-#define ECKUNLIKELY [[unlikely]]
+#define ECKLIKELY		[[likely]]
+#define ECKUNLIKELY		[[unlikely]]
 #define ECKNOUNIQUEADDR [[no_unique_address]]
 #else//	!ECKCXX20
 #define ECKLIKELY

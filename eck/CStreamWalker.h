@@ -81,6 +81,7 @@ struct CStreamWalker
 	{
 		Read(pDst, cb);
 		ReverseByteOrder((BYTE*)pDst, cb);
+		return *this;
 	}
 
 	template<class T>
