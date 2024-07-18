@@ -298,11 +298,6 @@ public:
 		return Result::Ok;
 	}
 
-	Result SimpleExtractMove(MUSICINFO& mi) override
-	{
-		return SimpleExtract(mi);
-	}
-
 	Result ReadTag(UINT uFlags) override
 	{
 		if (m_File.m_Id3Loc.posV1 == SIZETMax)

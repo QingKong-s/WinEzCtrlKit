@@ -48,38 +48,39 @@ enum MediaInfoFlags :UINT
 // 标签读写标志
 enum :UINT
 {
-	//											| ID3v1	| ID3v2 | Flac	|
+	//												| ID3v1	| ID3v2 | Flac	|  APE	|
 	// 用指定的分隔符连接多个艺术家
-	MIF_JOIN_ARTIST = 1u << 0,				//	|		|	T	|	T	|
+	MIF_JOIN_ARTIST = 1u << 0,					//	|		|	T	|	T	|	T	|
 	// 用指定的分隔符连接多个备注
-	MIF_JOIN_COMMENT = 1u << 1,				// 	|		|	T	|	T	|
+	MIF_JOIN_COMMENT = 1u << 1,					// 	|		|	T	|	T	|	T	|
 	// 允许保留空白填充
-	MIF_ALLOW_PADDING = 1u << 2,			// 	|		|	T	|	T	|
+	MIF_ALLOW_PADDING = 1u << 2,				// 	|		|	T	|	T	|		|
 	// 用当前本地设置格式化日期为字符串
-	MIF_DATE_STRING = 1u << 3,				// 	|	T	|	T	|	T	|
+	MIF_DATE_STRING = 1u << 3,					// 	|	T	|	T	|	T	|	T	|
 	// 用ID3v2.3规定的斜杠("/")分割艺术家列表
-	MIF_SPLIT_ARTIST_IN_ID3V2_3 = 1u << 4,	// 	|		|	T	|		|
+	MIF_SPLIT_ARTIST_IN_ID3V2_3 = 1u << 4,		// 	|		|	T	|		|		|
 	// 移除其他标记系统
-	MIF_REMOVE_OTHER_TAG = 1u << 5,			// 	|	T	|	T	|	T	|
+	MIF_REMOVE_OTHER_TAG = 1u << 5,				// 	|	T	|	T	|	T	|	T	|
 	// 在文件尾部追加标签
-	MIF_APPEND_TAG = 1u << 6,				// 	|		|	T	|		|
+	MIF_APPEND_TAG = 1u << 6,					// 	|		|	T	|		|	T	|
 	// 当存在其他标签时同步其信息
-	MIF_SYNC_OTHER_TAG = 1u << 7,			// 	|	T	|	T	|	T	|
+	MIF_SYNC_OTHER_TAG = 1u << 7,				// 	|	T	|	T	|	T	|	T	|
 	// 创建ID3v1扩展信息
-	MIF_CREATE_ID3V1_EXT = 1u << 8,			// 	|	T	|		|		|
+	MIF_CREATE_ID3V1_EXT = 1u << 8,				// 	|	T	|		|		|		|
 	// 创建ID3v2.3标签
-	MIF_CREATE_ID3V2_3 = 1u << 9,			// 	|		|	T	|		|
+	MIF_CREATE_ID3V2_3 = 1u << 9,				// 	|		|	T	|		|		|
 	// 创建ID3v2.4标签
-	MIF_CREATE_ID3V2_4 = 1u << 10,			// 	|		|	T	|		|
+	MIF_CREATE_ID3V2_4 = 1u << 10,				// 	|		|	T	|		|		|
 	// 移除空白填充
-	MIF_REMOVE_PADDING = 1u << 11,			// 	|		|	T	|	T	|
+	MIF_REMOVE_PADDING = 1u << 11,				// 	|		|	T	|	T	|		|
+	// 写入METADATA_BLOCK_PICTURE而不是图片块
+	MIF_WRITE_METADATA_BLOCK_PICTURE = 1u << 12,//	|		|		|	T	|		|
 };
 // ID3帧写入选项
 enum :BYTE
 {
 	MTID3F_PREPEND = 0,		// 将该帧置于文件头部的标签，这是默认值
 	MTID3F_APPEND = 1u << 0,// 将该帧置于文件尾部的标签
-	MTID3F_DIRTY = 1u << 1,	// 数据已被修改
 };
 
 // 错误码
@@ -643,7 +644,7 @@ class CTag
 protected:
 	CMediaFile& m_File;
 	CStreamWalker m_Stream{};
-
+public:
 	CTag(CMediaFile& File) :m_File{ File }, m_Stream(File.GetStream())
 	{
 		m_Stream.GetStream()->AddRef();
@@ -655,9 +656,12 @@ protected:
 	}
 
 	ECK_DISABLE_COPY_MOVE(CTag)
-public:
+
 	virtual Result SimpleExtract(MUSICINFO& mi) = 0;
-	virtual Result SimpleExtractMove(MUSICINFO& mi) = 0;
+	virtual Result SimpleExtractMove(MUSICINFO& mi)
+	{
+		return SimpleExtract(mi);
+	}
 	virtual Result ReadTag(UINT uFlags) = 0;
 	virtual Result WriteTag(UINT uFlags) = 0;
 };
