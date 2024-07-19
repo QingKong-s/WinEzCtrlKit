@@ -231,13 +231,33 @@ ECK_NAMESPACE_END
 			{													\
 				return Type((std::underlying_type_t<Type>)a ^	\
 					(std::underlying_type_t<Type>)b);			\
+			}													\
+			EckInline constexpr Type& operator&=(Type& a, Type b)	\
+			{													\
+				a = a & b;										\
+				return a;										\
+			}													\
+			EckInline constexpr Type& operator|=(Type& a, Type b)	\
+			{													\
+				a = a | b;										\
+				return a;										\
+			}													\
+			EckInline constexpr Type& operator^=(Type& a, Type b)	\
+			{													\
+				a = a ^ b;										\
+				return a;										\
 			}
+
+
 
 #define ECK_ENUM_BIT_FLAGS_FRIEND(Type)							\
 			friend constexpr Type operator&(Type a, Type b);	\
 			friend constexpr Type operator|(Type a, Type b);	\
 			friend constexpr Type operator~(Type a);			\
-			friend constexpr Type operator^(Type a, Type b);
+			friend constexpr Type operator^(Type a, Type b);	\
+			friend constexpr Type& operator&=(Type& a, Type b);	\
+			friend constexpr Type& operator|=(Type& a, Type b);	\
+			friend constexpr Type& operator^=(Type& a, Type b);
 
 #if ECKCXX20
 #define ECKLIKELY		[[likely]]

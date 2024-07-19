@@ -103,12 +103,11 @@ private:
 
 	Result InitForWriteTag()
 	{
-		if (m_File.m_Id3Loc.posFlac == SIZETMax)
+		if (m_File.m_Loc.posFlac == SIZETMax)
 			return Result::NoTag;
-		m_Stream.MoveTo(m_File.m_Id3Loc.posFlac) += 4;
+		m_Stream.MoveTo(m_File.m_Loc.posFlac) += 4;
 		FLAC_BlockHeader Header;
 		DWORD cbBlock;
-		UINT t;
 		do
 		{
 			m_Stream >> Header;
@@ -197,9 +196,9 @@ public:
 
 	Result ReadTag(UINT uFlags) override
 	{
-		if (m_File.m_Id3Loc.posFlac == SIZETMax)
+		if (m_File.m_Loc.posFlac == SIZETMax)
 			return Result::NoTag;
-		m_Stream.MoveTo(m_File.m_Id3Loc.posFlac) += 4;
+		m_Stream.MoveTo(m_File.m_Loc.posFlac) += 4;
 		FLAC_BlockHeader Header;
 		DWORD cbBlock;
 		UINT t;
@@ -287,7 +286,7 @@ public:
 
 	Result WriteTag(UINT uFlags) override
 	{
-		if (m_File.m_Id3Loc.posFlac == SIZETMax)
+		if (m_File.m_Loc.posFlac == SIZETMax)
 			return Result::NoTag;
 		if (m_posFlacTagEnd == SIZETMax || m_posStreamInfoEnd == SIZETMax)
 			InitForWriteTag();

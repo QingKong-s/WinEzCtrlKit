@@ -7,6 +7,7 @@
 */
 #pragma once
 #include "CRefBin.h"
+#include "IMem.h"
 
 #include <Shlwapi.h>
 
@@ -17,7 +18,7 @@ ECK_NAMESPACE_BEGIN
 /// 非线程安全
 /// </summary>
 template<class TAlloc>
-class CRefBinStreamT :public IStream
+class CRefBinStreamT :public IStream, public IMem
 {
 private:
 	ULONG m_cRef{ 1ul };
@@ -59,6 +60,7 @@ public:
 		{
 			QITABENT(CRefBinStreamT, IStream),
 			QITABENT(CRefBinStreamT, ISequentialStream),
+			QITABENT(CRefBinStreamT, IMem),
 			{}
 		};
 
@@ -87,7 +89,7 @@ public:
 		}
 		else
 			hr = S_OK;
-		memcpy(pv, m_rb.Data() + m_posSeek, cb);
+		memmove(pv, m_rb.Data() + m_posSeek, cb);
 		m_posSeek += cb;
 		*pcbRead = cb;
 		return hr;
@@ -104,7 +106,7 @@ public:
 		}
 		if (m_posSeek + cb > m_rb.Size())
 			m_rb.ReSizeExtra(m_posSeek + cb);
-		memcpy(m_rb.Data() + m_posSeek, pv, cb);
+		memmove(m_rb.Data() + m_posSeek, pv, cb);
 		m_posSeek += cb;
 		*pcbWritten = cb;
 		return S_OK;
@@ -210,6 +212,25 @@ public:
 		p->m_posSeek = m_posSeek;
 		*ppstm = p;
 		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE MemGetPtr(void** ppvData, SIZE_T* pcbData)
+	{
+		*ppvData = m_rb.Data();
+		*pcbData = m_rb.Size();
+		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE MemLock(void** ppvData, SIZE_T* pcbData)
+	{
+		*ppvData = NULL;
+		*pcbData = 0u;
+		return E_NOTIMPL;
+	}
+
+	HRESULT STDMETHODCALLTYPE MemUnlock()
+	{
+		return E_NOTIMPL;
 	}
 };
 

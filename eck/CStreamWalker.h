@@ -1,6 +1,14 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CStreamWalker.h ： IStream封装
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "CRefStr.h"
 #include "CRefBin.h"
+#include "IMem.h"
 
 ECK_NAMESPACE_BEGIN
 struct CStreamWalker
@@ -347,5 +355,7 @@ struct CStreamWalker
 	}
 
 	EckInline HRESULT GetLastErr() const { return m_hrLastErr; }
+
+	EckInline IStream* operator->() const { return m_pStream; }
 };
 ECK_NAMESPACE_END
