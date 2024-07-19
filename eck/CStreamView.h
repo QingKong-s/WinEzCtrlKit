@@ -8,11 +8,12 @@
 */
 #pragma once
 #include "CRefBin.h"
+#include "IMem.h"
 
 #include <Shlwapi.h>
 
 ECK_NAMESPACE_BEGIN
-class CStreamView :public IStream
+class CStreamView :public IStream, public IMem
 {
 private:
 	ULONG m_cRef = 1;
@@ -72,6 +73,7 @@ public:
 		{
 			QITABENT(CStreamView, IStream),
 			QITABENT(CStreamView, ISequentialStream),
+			QITABENT(CStreamView, IMem),
 			{}
 		};
 
@@ -100,7 +102,7 @@ public:
 		}
 		else
 			hr = S_OK;
-		memcpy(pv, m_pSeek, cb);
+		memmove(pv, m_pSeek, cb);
 		m_pSeek += cb;
 		*pcbRead = cb;
 		return hr;
@@ -211,6 +213,25 @@ public:
 		pStream->m_pSeek = m_pSeek;
 		*ppstm = pStream;
 		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE MemGetPtr(void** ppvData, SIZE_T* pcbData)
+	{
+		*ppvData = (void*)m_pMem;
+		*pcbData = m_cbSize;
+		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE MemLock(void** ppvData, SIZE_T* pcbData)
+	{
+		*ppvData = NULL;
+		*pcbData = 0u;
+		return E_NOTIMPL;
+	}
+
+	HRESULT STDMETHODCALLTYPE MemUnlock()
+	{
+		return E_NOTIMPL;
 	}
 };
 ECK_NAMESPACE_END

@@ -32,8 +32,9 @@ enum :UINT
 	TAG_FLAC = 1u << 5,
 };
 // 元数据类型
-enum MediaInfoFlags :UINT
+enum MIMASKS :UINT
 {
+	MIM_NONE = 0u,
 	MIM_TITLE = 1u << 0,
 	MIM_ARTIST = 1u << 1,
 	MIM_ALBUM = 1u << 2,
@@ -45,8 +46,10 @@ enum MediaInfoFlags :UINT
 
 	MIM_ALL = 0xFFFFFFFF
 };
+ECK_ENUM_BIT_FLAGS(MIMASKS);
+
 // 标签读写标志
-enum :UINT
+enum MIFLAGS :UINT
 {
 	//												| ID3v1	| ID3v2 | Flac	|  APE	|
 	// 用指定的分隔符连接多个艺术家
@@ -73,14 +76,19 @@ enum :UINT
 	MIF_CREATE_ID3V2_4 = 1u << 10,				// 	|		|	T	|		|		|
 	// 移除空白填充
 	MIF_REMOVE_PADDING = 1u << 11,				// 	|		|	T	|	T	|		|
-	// 写入METADATA_BLOCK_PICTURE而不是图片块
+	// 写入图片到为Vorbis注释而不是图片块
 	MIF_WRITE_METADATA_BLOCK_PICTURE = 1u << 12,//	|		|		|	T	|		|
+	// 创建ID3v2扩展头
+	MIF_CREATE_ID3V2_EXT_HEADER = 1u << 13,		// 	|		|	T	|		|		|
 };
+ECK_ENUM_BIT_FLAGS(MIFLAGS);
+
 // ID3帧写入选项
 enum :BYTE
 {
-	MTID3F_PREPEND = 0,		// 将该帧置于文件头部的标签，这是默认值
-	MTID3F_APPEND = 1u << 0,// 将该帧置于文件尾部的标签
+	MIIWF_PREPEND_ID3V2_4 = 0,			// 将该帧置于文件头部的标签，这是默认值
+	MIIWF_APPEND_ID3V2_4 = 1u << 0,		// 将该帧置于文件尾部的标签
+	MIIWF_WRITE_METADATA_BLOCK_PICTURE = 1u << 1,	// 将该图片写入为Vorbis注释中的METADATA_BLOCK_PICTURE
 };
 
 // 错误码
@@ -88,16 +96,17 @@ enum class Result
 {
 	Ok,
 	TagErr,				// 标签识别出错
-	IllegalEnum_TextEncoding,
-	TooLargeData,
-	InvalidEnumVal,
-	LenErr,
-	InvalidVal,
-	IllegalRepeat,
+	IllegalEnum_TextEncoding,	// 非法文本编码值
+	TooLargeData,		// 某数据长度超出限制
+	InvalidEnumVal,		// 枚举值无效
+	LenErr,				// 长度字段无效（如过短）
+	InvalidVal,			// 值无效
+	IllegalRepeat,		// 非法重复
 	EmptyData,			// 某数据为空
 	ReservedDataErr,	// 保留部分或未定义部分填入错误信息
 	NoTag,				// 文件中无标签或标签还未被读入
 	MpegSyncFailed,		// MPEG同步失败
+	NotSupport,			// 不支持请求的操作
 };
 // 图片类型
 enum class PicType :BYTE
@@ -170,11 +179,11 @@ struct MUSICPIC
 
 struct MUSICINFO
 {
-	UINT uMask{ MIM_ALL };		// 指定欲读取信息类型的掩码
-	UINT uMaskRead{};			// 函数返回后设置已读取的信息
+	MIMASKS uMask{ MIM_ALL };		// 指定欲读取信息类型的掩码
+	MIMASKS uMaskRead{};			// 函数返回后设置已读取的信息
 	PCWSTR pszArtistDiv = L"、";	// 若设置了MIF_JOIN_ARTIST，则此字段指示分隔符
 	PCWSTR pszCommDiv = L"\n";	// 若设置了MIF_JOIN_COMMENT，则此字段指示分隔符
-	UINT uFlag{};		// 操作标志
+	MIFLAGS uFlag{};		// 操作标志
 
 	CRefStrW rsTitle{}; // 标题
 	std::variant<std::vector<CRefStrW>, CRefStrW>
@@ -218,7 +227,7 @@ struct MUSICINFO
 
 	void Clear()
 	{
-		uMaskRead = 0u;
+		uMaskRead = MIM_NONE;
 		rsTitle.Clear();
 		Artist.emplace<0>();
 		rsAlbum.Clear();
@@ -332,13 +341,6 @@ struct ID3v2_Header		// ID3v2标签头
 	BYTE Size[4];		// 标签大小，28位数据，每个字节最高位不使用，包括标签头的10个字节和所有的标签帧
 };
 
-struct ID3v2_ExtHeader  // ID3v2扩展头
-{
-	BYTE ExtHeaderSize[4];  // 扩展头大小
-	BYTE Flags[2];          // 标志
-	BYTE PaddingSize[4];    // 空白大小
-};
-
 struct ID3v2_FrameHeader// ID3v2帧头
 {
 	CHAR ID[4];			// 帧标识
@@ -362,7 +364,6 @@ struct APE_Header
 };
 
 static_assert(alignof(ID3v2_Header) == 1);
-static_assert(alignof(ID3v2_ExtHeader) == 1);
 static_assert(alignof(ID3v2_FrameHeader) == 1);
 static_assert(alignof(FLAC_BlockHeader) == 1);
 
@@ -430,16 +431,7 @@ EckInline constexpr static void DwordToSynchSafeInt(BYTE* p, DWORD dw)
 	p[0] = (dw >> 21) & 0b0111'1111;
 }
 
-struct ID3LOCATION
-{
-	SIZE_T posV2{ SIZETMax };
-	SIZE_T posV2Footer{ SIZETMax };
-	SIZE_T posV2FooterHdr{ SIZETMax };
-	SIZE_T posV1{ SIZETMax };
-	SIZE_T posV1Ext{ SIZETMax };
-	SIZE_T posApe{ SIZETMax };
-	SIZE_T posFlac{ SIZETMax };
-};
+
 
 class CMediaFile
 {
@@ -451,9 +443,18 @@ private:
 	IStream* m_pStream{};
 	UINT m_uTagType{};
 
-	ID3LOCATION m_Id3Loc{};
+	struct TAG_LOCATION
+	{
+		SIZE_T posV2{ SIZETMax };
+		SIZE_T posV2Footer{ SIZETMax };
+		SIZE_T posV2FooterHdr{ SIZETMax };
+		SIZE_T posV1{ SIZETMax };
+		SIZE_T posV1Ext{ SIZETMax };
+		SIZE_T posApe{ SIZETMax };
+		SIZE_T posFlac{ SIZETMax };
+	}  m_Loc{};
 
-	UINT DetectID3(ID3LOCATION& Id3Loc)
+	UINT DetectID3(TAG_LOCATION& Id3Loc)
 	{
 		UINT uRet{};
 		BYTE by[16];
@@ -593,20 +594,20 @@ private:
 	BOOL DetectFlac()
 	{
 		CStreamWalker w(m_pStream);
-		if (m_Id3Loc.posV2 == SIZETMax)
+		if (m_Loc.posV2 == SIZETMax)
 			w.MoveToBegin();
 		else
-			w.MoveTo(m_Id3Loc.posV2);
+			w.MoveTo(m_Loc.posV2);
 		BYTE by[4];
 		w >> by;
 		if (memcmp(by, "fLaC", 4) == 0)
 		{
-			m_Id3Loc.posFlac = w.GetPos() - 4u;
+			m_Loc.posFlac = w.GetPos() - 4u;
 			return TRUE;
 		}
 		else
 		{
-			m_Id3Loc.posFlac = SIZETMax;
+			m_Loc.posFlac = SIZETMax;
 			return FALSE;
 		}
 	}
@@ -633,10 +634,15 @@ public:
 	UINT DetectTag()
 	{
 		m_uTagType = 0u;
-		m_uTagType |= DetectID3(m_Id3Loc);
+		m_uTagType |= DetectID3(m_Loc);
 		if (DetectFlac())
 			m_uTagType |= TAG_FLAC;
 		return m_uTagType;
+	}
+
+	void OnFileChanged()
+	{
+		DetectTag();
 	}
 };
 
@@ -656,15 +662,25 @@ public:
 		m_Stream.GetStream()->Release();
 	}
 
-	ECK_DISABLE_COPY_MOVE(CTag)
+	ECK_DISABLE_COPY_MOVE(CTag);
 
 	virtual Result SimpleExtract(MUSICINFO& mi) = 0;
+
 	virtual Result SimpleExtractMove(MUSICINFO& mi)
 	{
 		return SimpleExtract(mi);
 	}
+
+	virtual Result SimpleExtractProperty()
+	{
+		return Result::NotSupport;
+	}
+
 	virtual Result ReadTag(UINT uFlags) = 0;
+
 	virtual Result WriteTag(UINT uFlags) = 0;
+
+	virtual void Reset() = 0;
 };
 ECK_MEDIATAG_NAMESPACE_END
 ECK_NAMESPACE_END

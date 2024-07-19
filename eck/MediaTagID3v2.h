@@ -13,45 +13,11 @@ ECK_MEDIATAG_NAMESPACE_BEGIN
 class CID3v2 :public CTag
 {
 private:
-
-
 	ID3v2_Header m_Header{};
-	ID3v2_ExtHeader m_ExtHdr{};
-	DWORD m_cbTag{};
 
-	SIZE_T m_SeekVal{ SIZETMax };// 根据SEEK帧查找到的追加标签位置
-	DWORD m_cbPrependTag{};
-
-	class CFrame
-	{
-	private:
-		CStreamWalker& m_w;
-		const ID3v2_FrameHeader& m_Header{};
-		CRefBin m_rbFrame{};
-		DWORD m_cbFrame{};
-		BOOL m_bUnsync = FALSE;
-	public:
-		CFrame(CID3v2& id3, const ID3v2_FrameHeader& Header, DWORD cbFrame) :
-			m_w(id3.m_Stream), m_Header(Header), m_cbFrame(cbFrame),
-			m_bUnsync(id3.m_Header.Flags& ID3V2HF_UNSYNCHRONIZATION),
-			m_rbFrame(cbFrame)
-		{
-			if (!m_bUnsync && id3.m_Header.Ver == 4)
-				m_bUnsync = !!(m_Header.Flags[1] & ID3V24FF_UNSYNCHRONIZATION);
-		}
-
-		std::pair<CMemWalker, DWORD> Begin()
-		{
-			m_w.Read(m_rbFrame.Data(), m_cbFrame);
-			if (m_bUnsync)
-				m_rbFrame.ReplaceSubBin({ 0xFF, 0x00 }, { 0xFF });// 恢复不同步处理
-			return
-			{
-				CMemWalker(m_rbFrame.Data(), m_rbFrame.Size()),
-				(DWORD)m_rbFrame.Size()
-			};
-		}
-	};
+	SIZE_T m_cbTag{};				// 标签长度
+	SIZE_T m_SeekVal{ SIZETMax };	// 根据SEEK帧查找到的追加标签位置
+	SIZE_T m_cbPrependTag{};		// 预置标签长度
 
 	/// <summary>
 	/// 按指定编码处理文本
@@ -164,6 +130,57 @@ private:
 		return rsResult;
 	}
 public:
+	enum class TagSizeRestriction :BYTE
+	{
+		Max128Frames_1MB,
+		Max64Frames_128KB,
+		Max32Frames_40KB,
+		Max32Frames_4KB,
+	};
+
+	enum class TextEncodingRestriction :BYTE
+	{
+		No,
+		OnlyLatin1OrU8
+	};
+
+	enum class TextFieldSizeRestriction :BYTE
+	{
+		No,
+		Max1024Char,
+		Max128Char,
+		Max30Char,
+	};
+
+	enum class ImageFormatRestriction :BYTE
+	{
+		No,
+		OnlyPngOrJpeg
+	};
+
+	enum class ImageSizeRestriction :BYTE
+	{
+		No,
+		Max256x256,
+		Max64x64,
+		Only64x64
+	};
+
+	struct EXTHDR_INFO
+	{
+		BYTE bTagAlter : 1;		// ID3v2.4 Only
+		BYTE bCrc : 1;
+		BYTE bRestrictions : 1;	// ID3v2.4 Only
+		BYTE bPaddingSize : 1;	// ID3v2.3 Only
+		TagSizeRestriction eTagSize;			// ID3v2.4 Only
+		TextEncodingRestriction eTextEncoding;	// ID3v2.4 Only
+		TextFieldSizeRestriction eTextFieldSize;// ID3v2.4 Only
+		ImageFormatRestriction eImageFormat;	// ID3v2.4 Only
+		ImageSizeRestriction eImageSize;		// ID3v2.4 Only
+		UINT uCrc;
+		UINT cbPadding;			// ID3v2.3 Only
+	};
+
 	enum class EventType :BYTE
 	{
 		Padding,				// 填充(无意义)
@@ -291,7 +308,7 @@ public:
 	{
 		CHAR Id[4]{};		// 帧标识
 		BYTE uFlags[2]{};	// 标志，[0] = 状态，[1] = 格式
-		BYTE byAddtFlags{};	// MTID3F_常量
+		BYTE byAddtFlags{};	// MIIWF_常量
 
 		virtual ~FRAME() {}
 
@@ -1468,7 +1485,9 @@ public:
 private:
 	std::vector<FRAME*> m_vFrame{};
 
-	struct CFrame2
+	EXTHDR_INFO m_ExtHdrInfo{};
+
+	struct CFrameProcesser
 	{
 		CStreamWalker& m_w;
 		const ID3v2_FrameHeader& m_Header{};
@@ -1476,7 +1495,7 @@ private:
 		DWORD m_cbFrame{};
 		BOOL m_bUnsync = FALSE;
 
-		CFrame2(CID3v2& id3, const ID3v2_FrameHeader& Header, DWORD cbFrame, FRAME* pFrame) :
+		CFrameProcesser(CID3v2& id3, const ID3v2_FrameHeader& Header, DWORD cbFrame, FRAME* pFrame) :
 			m_w(id3.m_Stream), m_Header(Header), m_cbFrame(cbFrame),
 			m_bUnsync(id3.m_Header.Flags& ID3V2HF_UNSYNCHRONIZATION),
 			m_rbFrame(cbFrame)
@@ -1548,7 +1567,7 @@ private:
 			if (ECK_HIT_ID3FRAME(UFID))
 			{
 				const auto p = new UFID{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 
 				w >> p->rsEmail;
@@ -1566,7 +1585,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(TXXX))
 			{
 				const auto p = new TXXX{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 
 				w >> p->eEncoding;
@@ -1582,7 +1601,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(MCID))
 			{
 				const auto p = new MCID{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				p->rbToc = std::move(f.m_rbFrame);
 				m_vFrame.push_back(p);
@@ -1590,7 +1609,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(WXXX))
 			{
 				const auto p = new WXXX{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 
 				w >> p->eEncoding;
@@ -1606,7 +1625,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(ETCO))
 			{
 				const auto p = new ETCO{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 
 				w >> p->eTimestampFmt;
@@ -1631,7 +1650,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(MLLT))
 			{
 				const auto p = new MLLT{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 
 				w.ReadRev(p->cMpegFrame)
@@ -1661,7 +1680,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(SYTC))
 			{
 				const auto p = new SYTC{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				w >> p->eTimestampFmt;
 				BYTE by;
@@ -1699,7 +1718,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(USLT))
 			{
 				const auto p = new USLT{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 4)
 				{
@@ -1721,7 +1740,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(SYLT))
 			{
 				const auto p = new SYLT{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 7)
 				{
@@ -1753,7 +1772,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(COMM))
 			{
 				const auto p = new COMM{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 5)
 				{
@@ -1803,7 +1822,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(RVA2))
 			{
 				const auto p = new RVA2{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 5)
 				{
@@ -1826,7 +1845,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(EQU2))
 			{
 				const auto p = new EQU2{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 6)
 				{
@@ -1851,7 +1870,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(RVRB))
 			{
 				const auto p = new RVRB{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb != 12)
 				{
@@ -1864,7 +1883,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(APIC))
 			{
 				const auto p = new APIC{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 5)
 				{
@@ -1881,7 +1900,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(GEOB))
 			{
 				const auto p = new GEOB{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 4)
 				{
@@ -1897,7 +1916,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(PCNT))
 			{
 				const auto p = new PCNT{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 4)
 				{
@@ -1911,7 +1930,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(POPM))
 			{
 				const auto p = new POPM{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 6)
 				{
@@ -1925,7 +1944,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(RBUF))
 			{
 				const auto p = new RBUF{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb != 8)
 				{
@@ -1939,7 +1958,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(AENC))
 			{
 				const auto p = new AENC{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 5)
 				{
@@ -1954,7 +1973,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(LINK))
 			{
 				const auto p = new LINK{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 5)
 				{
@@ -1969,7 +1988,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(POSS))
 			{
 				const auto p = new POSS{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb != 5)
 				{
@@ -1982,7 +2001,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(USER))
 			{
 				const auto p = new USER{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 4)
 				{
@@ -1997,7 +2016,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(OWNE))
 			{
 				const auto p = new OWNE{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 10)
 				{
@@ -2011,7 +2030,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(COMR))
 			{
 				const auto p = new COMR{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 15)
 				{
@@ -2030,7 +2049,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(ENCR))
 			{
 				const auto p = new ENCR{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 2)
 				{
@@ -2044,7 +2063,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(GRID))
 			{
 				const auto p = new GRID{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 2)
 				{
@@ -2058,7 +2077,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(PRIV))
 			{
 				const auto p = new PRIV{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 1)
 				{
@@ -2072,7 +2091,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(SIGN))
 			{
 				const auto p = new SIGN{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 1)
 				{
@@ -2086,7 +2105,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(SEEK))
 			{
 				const auto p = new SEEK{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb != 4)
 				{
@@ -2105,7 +2124,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(ASPI))
 			{
 				const auto p = new ASPI{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 12)
 				{
@@ -2132,7 +2151,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(IPLS))
 			{
 				const auto p = new IPLS{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 1)
 				{
@@ -2158,7 +2177,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(RVAD))
 			{
 				const auto p = new RVAD{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 2)
 				{
@@ -2199,7 +2218,7 @@ private:
 			else if (ECK_HIT_ID3FRAME(EQUA))
 			{
 				const auto p = new EQUA{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				if (cb < 1)
 				{
@@ -2219,7 +2238,7 @@ private:
 			else if (FrameHdr.ID[0] == 'T')
 			{
 				const auto p = new TEXTFRAME{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				w >> p->eEncoding;
 				auto rs = GetID3v2_ProcString(w, cb - 1, p->eEncoding);
@@ -2233,7 +2252,7 @@ private:
 			else if (FrameHdr.ID[0] == 'W')
 			{
 				const auto p = new LINKFRAME{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				auto [w, cb] = f.Prepare();
 				p->rsUrl.DupString((PCSTR)w.Data(), (int)cb);
 				m_vFrame.push_back(p);
@@ -2241,7 +2260,7 @@ private:
 			else if (IsLegalFrameId(FrameHdr.ID))
 			{
 				const auto p = new OTHERFRAME{};
-				CFrame2 f(*this, FrameHdr, cbUnit, p);
+				CFrameProcesser f(*this, FrameHdr, cbUnit, p);
 				f.Prepare();
 				p->rbData = std::move(f.m_rbFrame);
 				m_vFrame.push_back(p);
@@ -2257,57 +2276,96 @@ private:
 			*pposActualEnd = posEnd;
 		return Result::Ok;
 	}
-public:
-	ECK_DISABLE_COPY_MOVE(CID3v2)
-public:
-	CID3v2(CMediaFile& File) :CTag(File)
+
+	Result InitForWrite()
 	{
-		m_Stream.GetStream()->AddRef();
-		if (m_File.m_Id3Loc.posV2 != SIZETMax)
-			m_Stream.MoveTo(m_File.m_Id3Loc.posV2);
-		else if (m_File.m_Id3Loc.posV2Footer != SIZETMax)
-			m_Stream.MoveTo(m_File.m_Id3Loc.posV2FooterHdr);
+
+	}
+
+	// 初始化m_cbTag、m_cbPrependTag、m_Header、m_ExtHdrInfo
+	Result PreReadWrite()
+	{
+		if (m_File.m_Loc.posV2 != SIZETMax)
+			m_Stream.MoveTo(m_File.m_Loc.posV2);
+		else if (m_File.m_Loc.posV2Footer != SIZETMax)
+			m_Stream.MoveTo(m_File.m_Loc.posV2FooterHdr);
 		else
-			return;
+		{
+			return Result::NoTag;
+			m_cbPrependTag = m_cbTag = 0u;
+		}
 		m_Stream >> m_Header;
 		m_cbPrependTag = m_cbTag = SynchSafeIntToDWORD(m_Header.Size);
+		m_ExtHdrInfo = {};
 		if (m_Header.Ver == 3)// 2.3
 		{
-			if (m_Header.Flags & 0x20)// 有扩展头
+			if (m_Header.Flags & 0x20)
 			{
-				m_Stream >> m_ExtHdr;
-				// 2.3中尺寸总为6或10
-				const int cb = ReverseInteger(*(DWORD*)m_ExtHdr.ExtHeaderSize) - 6;
-				if (cb < 0)
-					m_cbTag = 0u;
-				else
-					m_Stream += cb;
+				m_ExtHdrInfo.bPaddingSize = TRUE;
+				UINT cb;
+				BYTE byFlags[2];
+				UINT cbPadding;
+				m_Stream >> cb >> byFlags >> cbPadding;
+				cb = ReverseInteger(cb);
+				if (cb != 6 && cb != 10)
+					return Result::TagErr;
+				if (byFlags[0] & 0b1000'0000)
+				{
+					UINT uCrc;
+					m_Stream >> uCrc;
+					m_ExtHdrInfo.bCrc = TRUE;
+					m_ExtHdrInfo.uCrc = ReverseInteger(uCrc);
+				}
 			}
+			return Result::Ok;
 		}
 		else if (m_Header.Ver == 4)// 2.4
 		{
-			if (m_Header.Flags & 0x20)// 有扩展头
+			if (m_Header.Flags & 0x20)
 			{
-				m_Stream >> m_ExtHdr;
-				// 2.4中为同步安全整数，而且这个尺寸包含了记录尺寸的四个字节
-				const int cb = SynchSafeIntToDWORD(m_ExtHdr.ExtHeaderSize) - 10;
-				if (cb < 0)
-					m_cbTag = 0u;
-				else
-					m_Stream += cb;
+				UINT cb;
+				BYTE byFlags;
+				m_Stream >> cb;
+				m_Stream += 1;
+				m_Stream >> byFlags;
+
+				m_ExtHdrInfo.bTagAlter = !!(byFlags & 0b0100'0000);
+				if (byFlags & 0b0010'0000)
+				{
+					m_ExtHdrInfo.bCrc = TRUE;
+					BYTE t[5];
+					m_Stream >> t;
+					m_ExtHdrInfo.uCrc = ((t[0] & 0x7F) << 28) | ((t[1] & 0x7F) << 21) |
+						((t[2] & 0x7F) << 14) | ((t[3] & 0x7F) << 7) | (t[4] & 0x7F);
+				}
+				if (byFlags & 0b0001'0000)
+				{
+					m_ExtHdrInfo.bRestrictions = TRUE;
+					BYTE t;
+					m_Stream >> t;
+					m_ExtHdrInfo.eTagSize = TagSizeRestriction((t >> 6) & 0b11);
+					m_ExtHdrInfo.eTextEncoding = TextEncodingRestriction((t >> 5) & 1);
+					m_ExtHdrInfo.eTextFieldSize = TextFieldSizeRestriction((t >> 3) & 0b11);
+					m_ExtHdrInfo.eImageFormat = ImageFormatRestriction((t >> 2) & 1);
+					m_ExtHdrInfo.eImageSize = ImageSizeRestriction(t & 0b11);
+				}
 			}
+			return Result::Ok;
 		}
 		else
 		{
 			m_cbTag = 0u;
 			EckDbgPrintWithPos(L"未识别的ID3版本");
-			EckDbgBreak();
+			return Result::TagErr;
 		}
 	}
+public:
+	ECK_DISABLE_COPY_MOVE(CID3v2)
+public:
+	CID3v2(CMediaFile& File) :CTag(File) {}
 
 	~CID3v2()
 	{
-		m_Stream.GetStream()->Release();
 		for (const auto e : m_vFrame)
 			delete e;
 	}
@@ -2534,22 +2592,23 @@ public:
 
 	Result ReadTag(UINT uFlags) override
 	{
+		Result r;
+		if (!m_cbTag)
+			if ((r = PreReadWrite()) != Result::Ok)
+				return r;
 		for (auto e : m_vFrame)
 			delete e;
 		m_vFrame.clear();
 		m_SeekVal = SIZETMax;
-		if (!m_cbTag)
-			return Result::NoTag;
-		Result r;
 		SIZE_T posActualEnd;
-		if (m_File.m_Id3Loc.posV2 != SIZETMax)
+		if (m_File.m_Loc.posV2 != SIZETMax)
 		{
-			m_Stream.MoveTo(m_File.m_Id3Loc.posV2 + 10u);
-			r = ParseFrameBody(m_File.m_Id3Loc.posV2 + m_cbTag, &posActualEnd);
+			m_Stream.MoveTo(m_File.m_Loc.posV2 + 10u);
+			r = ParseFrameBody(m_File.m_Loc.posV2 + m_cbTag, &posActualEnd);
 			if (r != Result::Ok)
 				return r;
-			if (posActualEnd < m_File.m_Id3Loc.posV2 + m_cbTag)// 可能有填充或追加标签
-				m_cbPrependTag = (DWORD)(posActualEnd - m_File.m_Id3Loc.posV2);
+			if (posActualEnd < m_File.m_Loc.posV2 + m_cbTag)// 可能有填充或追加标签
+				m_cbPrependTag = (DWORD)(posActualEnd - m_File.m_Loc.posV2);
 			if (m_cbPrependTag > m_cbTag)
 			{
 				EckDbgPrintWithPos(L"查找到的预置标签末尾超出标签头指示的长度");
@@ -2557,9 +2616,9 @@ public:
 			}
 			if (m_SeekVal != SIZETMax)// 若找到了SEEK帧，则移至其指示的位置继续解析，此时不可能含有空白填充
 			{
-				if (m_File.m_Id3Loc.posV2 == SIZETMax || m_cbPrependTag == 0)
+				if (m_File.m_Loc.posV2 == SIZETMax || m_cbPrependTag == 0)
 					return Result::TagErr;
-				m_SeekVal += (m_cbPrependTag + m_File.m_Id3Loc.posV2);
+				m_SeekVal += (m_cbPrependTag + m_File.m_Loc.posV2);
 				if (m_SeekVal >= m_Stream.GetSizeUli() - 10)
 				{
 					EckDbgPrintWithPos(L"追加标签末尾超出文件长度");
@@ -2569,11 +2628,11 @@ public:
 				r = ParseFrameBody(m_SeekVal + m_cbTag);
 			}
 		}
-		else if (m_File.m_Id3Loc.posV2Footer != SIZETMax)
+		else if (m_File.m_Loc.posV2Footer != SIZETMax)
 		{
 			m_cbPrependTag = 0u;
-			m_Stream.MoveTo(m_File.m_Id3Loc.posV2Footer);
-			r = ParseFrameBody(m_File.m_Id3Loc.posV2Footer + m_cbTag);
+			m_Stream.MoveTo(m_File.m_Loc.posV2Footer);
+			r = ParseFrameBody(m_File.m_Loc.posV2Footer + m_cbTag);
 		}
 		else
 			return Result::TagErr;
@@ -2582,8 +2641,11 @@ public:
 
 	Result WriteTag(UINT uFlags) override
 	{
-		const BOOL bOnlyAppend = m_File.m_Id3Loc.posV2Footer != SIZETMax &&
-			m_File.m_Id3Loc.posV2 == SIZETMax;
+		if (!m_cbTag)
+			if (Result r; (r = PreReadWrite()) != Result::Ok)
+				return r;
+		const BOOL bOnlyAppend = m_File.m_Loc.posV2Footer != SIZETMax &&
+			m_File.m_Loc.posV2 == SIZETMax;
 		const BOOL bShouldAppend = (uFlags & MIF_APPEND_TAG);
 		ID3v2_Header Hdr{ m_Header };
 		if (uFlags & MIF_CREATE_ID3V2_3)
@@ -2591,15 +2653,18 @@ public:
 		else if (uFlags & MIF_CREATE_ID3V2_4)
 			Hdr.Ver = 4;
 		else if (Hdr.Ver != 3 && Hdr.Ver != 4)
-			Hdr.Ver = 4;
+			Hdr.Ver = 3;
 		CRefBin rbPrepend{}, rbAppend{};
 		BOOL bSeekFrameFound = FALSE;
 		for (const auto e : m_vFrame)
 		{
 			if (!bSeekFrameFound && memcmp(e->Id, "SEEK", 4) == 0)
 				bSeekFrameFound = TRUE;
-			if (bShouldAppend || (e->byAddtFlags & MTID3F_APPEND))
+			if (bShouldAppend || (e->byAddtFlags & MIIWF_APPEND_ID3V2_4))
+			{
 				e->SerializeData(rbAppend, &Hdr);
+				Hdr.Ver = 4;
+			}
 			else
 				e->SerializeData(rbPrepend, &Hdr);
 		}
@@ -2610,14 +2675,15 @@ public:
 		const auto cbFrames = (DWORD)(rbPrepend.Size() + rbAppend.Size());
 		DwordToSynchSafeInt(Hdr.Size, cbFrames);
 		SIZE_T cbBody{ SIZETMax };
-		// 写入追加标签
+		SIZE_T dHdrFooterToEnd{ SIZETMax };
+		//-----------------写入追加标签-----------------
 		if (!rbAppend.IsEmpty())
 		{
-			if (m_File.m_Id3Loc.posV2Footer != SIZETMax)
+			if (m_File.m_Loc.posV2Footer != SIZETMax)
 			{
 				if (m_cbTag < rbAppend.Size())
 				{
-					m_Stream.Insert(ToUli(m_File.m_Id3Loc.posV2Footer + m_cbTag),
+					m_Stream.Insert(ToUli(m_File.m_Loc.posV2Footer + m_cbTag),
 						ToUli(rbAppend.Size() - m_cbTag));
 				}
 				else
@@ -2625,11 +2691,11 @@ public:
 					const auto cbPadding = m_cbTag - rbAppend.Size();
 					if (cbPadding)// 无论如何都不对追加标签使用填充
 					{
-						m_Stream.Erase(ToUli(m_File.m_Id3Loc.posV2Footer + rbAppend.Size()),
+						m_Stream.Erase(ToUli(m_File.m_Loc.posV2Footer + rbAppend.Size()),
 							ToUli(cbPadding));
 					}
 				}
-				m_Stream.MoveTo(m_File.m_Id3Loc.posV2Footer);
+				m_Stream.MoveTo(m_File.m_Loc.posV2Footer);
 			}
 			else if (m_SeekVal != SIZETMax)
 			{
@@ -2654,30 +2720,44 @@ public:
 			else
 			{
 				SIZE_T posInsert;
-				if (m_File.m_Id3Loc.posV1Ext != SIZETMax)
-					posInsert = m_File.m_Id3Loc.posV1Ext;
-				else if (m_File.m_Id3Loc.posV1 != SIZETMax)
-					posInsert = m_File.m_Id3Loc.posV1;
+				if (m_File.m_Loc.posV1Ext != SIZETMax)
+					posInsert = m_File.m_Loc.posV1Ext;
+				else if (m_File.m_Loc.posV1 != SIZETMax)
+					posInsert = m_File.m_Loc.posV1;
 				else
 					posInsert = m_Stream.GetSize();
 				m_Stream.Insert(ToUli(posInsert), ToUli(rbAppend.Size() + 10));
 				m_Stream.MoveTo(posInsert);
 			}
-			memcpy(Hdr.Header, "3DI", 3);
-			auto a = m_Stream.GetPos();
-			if (m_File.m_Id3Loc.posV2 == SIZETMax)
+			if (m_File.m_Loc.posV2 == SIZETMax)
 				cbBody = m_Stream.GetPos();
 			else
-				cbBody = m_Stream.GetPos() - m_cbPrependTag - m_File.m_Id3Loc.posV2 - 10;
-			// TODO:扩展头
-			m_Stream << rbAppend << Hdr;
+				cbBody = m_Stream.GetPos() - m_cbPrependTag - m_File.m_Loc.posV2 - 10;
+			m_Stream << rbAppend;
+			if (rbPrepend.IsEmpty())
+			{
+				DwordToSynchSafeInt(Hdr.Size, (DWORD)rbPrepend.Size());
+				memcpy(Hdr.Header, "3DI", 3);
+				m_Stream << Hdr;
+			}
+			else
+				dHdrFooterToEnd = m_Stream.GetSize() - m_Stream.GetPos();
 		}
-		else if (m_File.m_Id3Loc.posV2Footer != SIZETMax)// 删除先前的追加标签
+		else if (m_File.m_Loc.posV2Footer != SIZETMax)// 删除先前的追加标签
 		{
-			m_Stream.Erase(ToUli(m_File.m_Id3Loc.posV2Footer), ToUli(m_cbTag - m_cbPrependTag + 10));
+			m_Stream.Erase(ToUli(m_File.m_Loc.posV2Footer), ToUli(m_cbTag - m_cbPrependTag + 10));
 		}
-		// 写入预置标签
-		if (!rbPrepend.IsEmpty())
+
+		//-----------------写入预置标签-----------------
+
+		// 预置部分的长度，包含标签头，不含填充
+		SIZE_T cbPrependTotal
+		{
+			rbPrepend.Size() +
+			((rbPrepend.IsEmpty() || (uFlags & MIF_CREATE_ID3V2_EXT_HEADER)) ? 10 : 0)
+		};
+
+		if (cbPrependTotal)
 		{
 			if (!bSeekFrameFound && cbBody != SIZETMax)// 补下SEEK帧
 			{
@@ -2686,24 +2766,67 @@ public:
 					ID3V23FF_FILE_ALTER_DISCARD : ID3V24FF_FILE_ALTER_DISCARD);
 				seek.ocbNextTag = (UINT)cbBody;
 				seek.SerializeData(rbPrepend, &Hdr);
+				cbPrependTotal += 14;
 			}
 
-			if (m_File.m_Id3Loc.posV2 != SIZETMax)
-			{
-				const auto cbPrepend = (m_SeekVal == SIZETMax ? m_cbTag : m_cbPrependTag);
-				if (cbPrepend < rbPrepend.Size())
+			auto cbTotal = rbPrepend.Size() + rbAppend.Size();// 填充大小悬而未决
+			BYTE byExtHdr[24];
+			SIZE_T cbExtHdr{};
+			UINT* pcbPaddingExtHdrV23{};
+			if (uFlags & MIF_CREATE_ID3V2_EXT_HEADER)// XXX:暂不支持计算CRC
+				if (Hdr.Ver == 3)
 				{
-					m_Stream.Insert(ToUli(m_File.m_Id3Loc.posV2 + 10 + m_cbPrependTag),
+					EckAssert(rbAppend.IsEmpty());
+					CMemWalker w(byExtHdr, sizeof(byExtHdr));
+					w << ReverseInteger(6u) << 0_us;
+					w.SkipPointer(pcbPaddingExtHdrV23);// 填充大小悬而未决
+					cbTotal += 6;
+					cbExtHdr = 6;
+				}
+				else
+				{
+					CMemWalker w(byExtHdr, sizeof(byExtHdr));
+					BYTE byFlags{};
+					BYTE cbExt{};
+					BYTE byRestrictions{};
+					if (m_ExtHdrInfo.bTagAlter)
+						byFlags |= ID3V24EH_UPDATE;
+					if (m_ExtHdrInfo.bRestrictions)
+					{
+						byFlags |= ID3V24EH_RESTRICTIONS;
+						++cbExt;
+						byRestrictions |= ((BYTE)m_ExtHdrInfo.eTagSize << 6);
+						byRestrictions |= ((BYTE)m_ExtHdrInfo.eTextEncoding << 5);
+						byRestrictions |= ((BYTE)m_ExtHdrInfo.eTextFieldSize << 3);
+						byRestrictions |= ((BYTE)m_ExtHdrInfo.eImageFormat << 2);
+						byRestrictions |= ((BYTE)m_ExtHdrInfo.eImageSize);
+					}
+					cbExtHdr = cbExt + 6;
+					DwordToSynchSafeInt(byExtHdr, (DWORD)cbExtHdr);
+					w += 4;
+					w << cbExt << byFlags;
+					if (m_ExtHdrInfo.bRestrictions)
+						w << byRestrictions;
+					cbTotal += cbExtHdr;
+				}
+
+			SIZE_T cbPadding{};
+
+			if (m_File.m_Loc.posV2 != SIZETMax)
+			{
+				const auto cbPrependOld = (m_SeekVal == SIZETMax ? m_cbTag : m_cbPrependTag);
+				if (cbPrependOld < cbPrependTotal)
+				{
+					m_Stream.Insert(ToUli(m_File.m_Loc.posV2 + 10 + m_cbPrependTag),
 						ToUli(rbPrepend.Size() - m_cbPrependTag));
 				}
 				else
 				{
-					const auto cbPadding = cbPrepend - rbPrepend.Size();
-					if (cbPadding)
+					if (cbPadding = cbPrependOld - cbPrependTotal)
 					{
 						if (bAllowPadding && cbPadding < 1024 && rbAppend.IsEmpty())
 						{
-							m_Stream.MoveTo(m_File.m_Id3Loc.posV2 + 10 + rbPrepend.Size());
+							m_Stream.MoveTo(m_File.m_Loc.posV2 + 10 + rbPrepend.Size());
 							void* p = VirtualAlloc(0, cbPadding, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 							EckCheckMem(p);
 							m_Stream.Write(p, (ULONG)cbPadding);
@@ -2711,36 +2834,67 @@ public:
 						}
 						else
 						{
-							m_Stream.Erase(ToUli(m_File.m_Id3Loc.posV2 + 10 + rbPrepend.Size()),
+							m_Stream.Erase(ToUli(m_File.m_Loc.posV2 + 10 + rbPrepend.Size()),
 								ToUli(cbPadding));
+							cbPadding = 0u;
 						}
 					}
 				}
-				m_Stream.MoveTo(m_File.m_Id3Loc.posV2);
+				m_Stream.MoveTo(m_File.m_Loc.posV2);
 			}
 			else
 			{
 				m_Stream.Insert(0u, rbPrepend.Size() + 10u);
 				m_Stream.MoveToBegin();
 			}
-
+			cbTotal += cbPadding;// cbTotal Completed
+			if (pcbPaddingExtHdrV23)
+				*pcbPaddingExtHdrV23 = ReverseInteger((UINT)cbPadding);// ExtHdr Padding Completed
+			// 准备头
 			memcpy(Hdr.Header, "ID3", 3);
-			// TODO:扩展头
-			m_Stream << Hdr << rbPrepend;
+			if (!rbAppend.IsEmpty())
+				Hdr.Flags |= ID3V2HF_FOOTER;// 含标签尾
+			DwordToSynchSafeInt(Hdr.Size, (DWORD)cbTotal);
+			// 写入
+			m_Stream << Hdr;
+			if (cbExtHdr)
+				m_Stream.Write(byExtHdr, cbExtHdr);
+			m_Stream << rbPrepend;
+			// 若标签尾写入挂起，完成之
+			if (dHdrFooterToEnd != SIZETMax)
+			{
+				m_Stream->Seek(ToLi(dHdrFooterToEnd), STREAM_SEEK_END, NULL);
+				memcpy(Hdr.Header, "3DI", 3);
+				m_Stream << Hdr;
+			}
 		}
-		else if (m_File.m_Id3Loc.posV2 != SIZETMax)// 删除先前的预置标签
+		else if (m_File.m_Loc.posV2 != SIZETMax)// 删除先前的预置标签
 		{
-			m_Stream.Erase(m_File.m_Id3Loc.posV2, m_cbPrependTag + 10u);
+			m_Stream.Erase(m_File.m_Loc.posV2, m_cbPrependTag + 10u);
 		}
-		m_Stream.GetStream()->Commit(STGC_DEFAULT);
+		m_Stream->Commit(STGC_DEFAULT);
 		return Result::Ok;
+	}
+
+	void Reset() override
+	{
+		for (const auto e : m_vFrame)
+			delete e;
+		m_vFrame.clear();
+		m_Header = {};
+		m_ExtHdrInfo = {};
+		m_cbTag = 0u;
+		m_cbPrependTag = 0u;
+		m_SeekVal = SIZETMax;
 	}
 
 	EckInline auto& GetFrameList() { return m_vFrame; }
 
-	EckInline auto& GetHeader() { return m_Header; }
+	EckInline const auto& GetFrameList() const { return m_vFrame; }
 
-	FRAME* GetFrame(PCSTR Id)
+	EckInline const auto& GetHeader() const { return m_Header; }
+
+	FRAME* GetFrame(PCSTR Id) const
 	{
 		for (const auto e : m_vFrame)
 		{
@@ -2750,7 +2904,7 @@ public:
 		return NULL;
 	}
 
-	std::vector<FRAME*> GetFrameList(PCSTR Id)
+	std::vector<FRAME*> GetFrameList(PCSTR Id) const
 	{
 		std::vector<FRAME*> v{};
 		for (const auto e : m_vFrame)
@@ -2852,6 +3006,10 @@ public:
 		else
 			return CreateFrame(Id);
 	}
+
+	EckInline auto& GetExtHdrInfo() { return m_ExtHdrInfo; }
+
+	EckInline const auto& GetExtHdrInfo() const { return m_ExtHdrInfo; }
 };
 ECK_MEDIATAG_NAMESPACE_END
 ECK_NAMESPACE_END

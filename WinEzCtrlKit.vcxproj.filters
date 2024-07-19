@@ -387,6 +387,9 @@
     <ClInclude Include="eck\MediaTagMpeg.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\IMem.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">

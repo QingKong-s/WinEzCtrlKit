@@ -246,7 +246,7 @@ public:
 	Result SimpleExtract(MUSICINFO& mi) override
 	{
 		mi.Clear();
-		if (m_File.m_Id3Loc.posV1 == SIZETMax)
+		if (m_File.m_Loc.posV1 == SIZETMax)
 			return Result::NoTag;
 		if (mi.uMask & MIM_TITLE)
 		{
@@ -300,11 +300,11 @@ public:
 
 	Result ReadTag(UINT uFlags) override
 	{
-		if (m_File.m_Id3Loc.posV1 == SIZETMax)
+		if (m_File.m_Loc.posV1 == SIZETMax)
 			return Result::NoTag;
-		if (m_File.m_Id3Loc.posV1Ext == SIZETMax)
+		if (m_File.m_Loc.posV1Ext == SIZETMax)
 		{
-			m_Stream.MoveTo(m_File.m_Id3Loc.posV1 + 3);
+			m_Stream.MoveTo(m_File.m_Loc.posV1 + 3);
 			m_Info.rsTitle.ReSize(30);
 			m_Stream.Read(m_Info.rsTitle.Data(), 30);
 			if (!m_Info.rsTitle[29])
@@ -322,7 +322,7 @@ public:
 		}
 		else
 		{
-			m_Stream.MoveTo(m_File.m_Id3Loc.posV1Ext + 4);
+			m_Stream.MoveTo(m_File.m_Loc.posV1Ext + 4);
 			m_Info.rsTitle.ReSize(60);
 			m_Stream.Read(m_Info.rsTitle.Data(), 60);
 			if (!m_Info.rsTitle[59])
@@ -355,7 +355,7 @@ public:
 			m_Stream.Read(ch, 6);
 			us0 = us1 = 0;
 			(void)sscanf(ch, "%hu:%hu", &us0, &us1);
-			m_Stream.MoveTo(m_File.m_Id3Loc.posV1 + 93);
+			m_Stream.MoveTo(m_File.m_Loc.posV1 + 93);
 			m_Info.uEndSec = us0 * 60 + us1;
 		}
 
@@ -387,14 +387,14 @@ public:
 		size_t cb;
 		CHAR szBuf[c_cchI32ToStrBufNoRadix2 * 2 + 1];
 
-		if (m_File.m_Id3Loc.posV1Ext == SIZETMax)
+		if (m_File.m_Loc.posV1Ext == SIZETMax)
 			if (uFlags & MIF_CREATE_ID3V1_EXT)
 			{
-				if (m_File.m_Id3Loc.posV1 == SIZETMax)
+				if (m_File.m_Loc.posV1 == SIZETMax)
 					m_Stream.MoveToEnd();
 				else
 				{
-					m_Stream.Insert(ToUli(m_File.m_Id3Loc.posV1), ToUli(227));
+					m_Stream.Insert(ToUli(m_File.m_Loc.posV1), ToUli(227));
 					m_Stream.GetStream()->Seek(ToLi(-(128 + 227)), STREAM_SEEK_END, NULL);
 				}
 				m_Stream.Write("TAG+", 4);
@@ -402,7 +402,7 @@ public:
 			else
 				goto SkipID3v1Ext;
 		else
-			m_Stream.MoveTo(m_File.m_Id3Loc.posV1Ext + 4);
+			m_Stream.MoveTo(m_File.m_Loc.posV1Ext + 4);
 
 		cb = std::min(m_Info.rsTitle.ByteSize() - 1, (size_t)60);
 		if (cb)
@@ -448,13 +448,13 @@ public:
 			m_Stream.Write(szBuf, 6);
 		}
 	SkipID3v1Ext:
-		if (m_File.m_Id3Loc.posV1 == SIZETMax)
+		if (m_File.m_Loc.posV1 == SIZETMax)
 		{
 			m_Stream.MoveToEnd();
 			m_Stream.Write("TAG", 3);
 		}
 		else
-			m_Stream.MoveTo(m_File.m_Id3Loc.posV1 + 3);
+			m_Stream.MoveTo(m_File.m_Loc.posV1 + 3);
 
 		cb = std::min(m_Info.rsTitle.ByteSize() - 1, (size_t)30);
 		if (cb)
