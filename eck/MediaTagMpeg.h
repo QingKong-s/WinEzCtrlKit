@@ -44,7 +44,7 @@ class CMpegInfo
 public:
 	enum class Version :BYTE
 	{
-		Mpeg25,
+		Mpeg2_5,
 		Reserved,
 		Mpeg2,
 		Mpeg1,
@@ -91,22 +91,26 @@ public:
 		BITBOOL bOriginal : 1;
 	};
 
+	/*
 	struct MPEG_HEADER
 	{
-		UINT Sync : 11;
-		UINT Version : 2;
-		UINT Layer : 2;
-		UINT bCrc : 1;
-		UINT BitrateIndex : 4;
-		UINT SampleRateIndex : 2;
-		UINT bPadding : 1;
-		UINT bPrivate : 1;
-		UINT Channel : 2;
-		UINT ExtMode : 2;
-		UINT bCopyright : 1;
-		UINT bOriginal : 1;
 		UINT Emphasis : 2;
+		UINT bOriginal : 1;
+		UINT bCopyright : 1;
+		UINT ExtMode : 2;
+		UINT Channel : 2;
+
+		UINT bPrivate : 1;
+		UINT bPadding : 1;
+		UINT SampleRateIndex : 2;
+		UINT BitrateIndex : 4;
+
+		UINT bCrc : 1;
+		UINT Layer : 2;
+		UINT Version : 2;
+		UINT Sync : 11;
 	};
+	*/
 
 	CMediaFile& m_File;
 	CStreamWalker m_Stream{};
@@ -117,6 +121,15 @@ public:
 	CMpegInfo(CMediaFile& File) :m_File{ File }, m_Stream(File.GetStream())
 	{
 		m_Stream.GetStream()->AddRef();
+	}
+
+	~CMpegInfo()
+	{
+		m_Stream.GetStream()->Release();
+	}
+
+	Result Read()
+	{
 		if (m_File.m_Id3Loc.posV2 != SIZETMax)
 		{
 			m_Stream.MoveTo(m_File.m_Id3Loc.posV2);
@@ -124,33 +137,75 @@ public:
 			m_Stream >> Hdr;
 			m_posBegin = SynchSafeIntToDWORD(Hdr.Size) + 10 + m_File.m_Id3Loc.posV2;// 跳过ID3v2以避免错误同步
 		}
-
+		else
+			m_posBegin = 0;
+		m_Stream.MoveTo(m_posBegin);
 		// 同步到MPEG头
-		MPEG_HEADER Hdr;
-		m_Stream >> Hdr;
-		if (Hdr.Sync != 0b111'1111'1111)
+		BYTE byHdr[4]{};
+		m_Stream >> byHdr;
+		if (byHdr[0] != 0xFF && (byHdr[1] & 0b1110'0000_by) != 0b1110'0000_by)
 		{
-		RetrySunc:
 			// 没有同步字节，重新同步
+			m_Stream.MoveTo(m_posBegin);
+			BYTE* pBuf = (BYTE*)VirtualAlloc(NULL, 4096, MEM_COMMIT, PAGE_READWRITE);
+			UniquePtrVA<BYTE> _(pBuf);
+			EckCheckMem(pBuf);
+			constexpr size_t cbSegment = 1024;
+			BYTE bySync[2]{};
+			for (;;)
+			{
+				m_Stream.Read(pBuf, cbSegment);
+				if (size_t cbLastRead; (cbLastRead = (size_t)m_Stream.GetLastRWSize()) < cbSegment)
+				{
+					if (!cbLastRead || FAILED(m_Stream.GetLastErr()))
+						break;
+					for (auto p = pBuf; p < pBuf + cbLastRead; ++p)
+					{
+						bySync[0] = bySync[1];
+						bySync[1] = *p;
+						if (bySync[0] == 0xFF && (bySync[1] & 0b1110'0000_by) == 0b1110'0000)
+						{
+							m_posBegin += (p - pBuf - 1);
+							m_Stream.MoveTo(m_posBegin)>>byHdr;
+							goto SyncSucceed;
+						}
+					}
+					m_posBegin += cbLastRead;
+				}
+				else
+				{
+					for (auto p = pBuf; p < pBuf + cbSegment; ++p)
+					{
+						bySync[0] = bySync[1];
+						bySync[1] = *p;
+						if (bySync[0] == 0xFF && (bySync[1] & 0b1110'0000_by) == 0b1110'0000)
+						{
+							m_posBegin += (p - pBuf - 1);
+							m_Stream.MoveTo(m_posBegin) >> byHdr;
+							goto SyncSucceed;
+						}
+					}
+					m_posBegin += cbSegment;
+				}
+			}
+			return Result::MpegSyncFailed;
 		}
+	SyncSucceed:
+		m_Info.eVersion = Version((byHdr[1] >> 3) & 0b11_by);
+		m_Info.eLayer = Layer((byHdr[1] >> 1) & 0b11_by);
+		m_Info.bCrc = byHdr[1] & 1_by;
 
-		m_Info.eVersion = (Version)Hdr.Version;
-		m_Info.eLayer = (Layer)Hdr.Layer;
-		m_Info.BitrateIndex = Hdr.BitrateIndex;
-		m_Info.SampleRateIndex = Hdr.SampleRateIndex;
-		m_Info.eChannel = (Channel)Hdr.Channel;
-		m_Info.eEmphasis = (Emphasis)Hdr.Emphasis;
-		m_Info.eExtMode = Hdr.ExtMode;
-		m_Info.bCrc = Hdr.bCrc;
-		m_Info.bPadding = Hdr.bPadding;
-		m_Info.bPrivate = Hdr.bPrivate;
-		m_Info.bCopyright = Hdr.bCopyright;
-		m_Info.bOriginal = Hdr.bOriginal;
-	}
+		m_Info.BitrateIndex = (byHdr[2] >> 4) & 0b1111_by;
+		m_Info.SampleRateIndex = (byHdr[2] >> 2) & 0b11_by;
+		m_Info.bPadding = (byHdr[2] >> 1) & 1_by;
+		m_Info.bPrivate = byHdr[2] & 1_by;
 
-	~CMpegInfo()
-	{
-		m_Stream.GetStream()->Release();
+		m_Info.eChannel = Channel((byHdr[3] >> 6) & 0b11_by);
+		m_Info.eExtMode = (byHdr[3] >> 4) & 0b11_by;
+		m_Info.bCopyright = (byHdr[3] >> 3) & 1_by;
+		m_Info.bOriginal = (byHdr[3] >> 2) & 1_by;
+		m_Info.eEmphasis = Emphasis(byHdr[3] & 0b11_by);
+		return Result::Ok;
 	}
 
 	const auto& GetInfo() const{ return m_Info; }
@@ -177,7 +232,7 @@ public:
 		{
 			case Version::Mpeg1: idxVer = 0; break;
 			case Version::Mpeg2: idxVer = 1; break;
-			case Version::Mpeg25: idxVer = 2; break;
+			case Version::Mpeg2_5: idxVer = 2; break;
 			default: idxVer = 0; return 0;
 		}
 
@@ -186,7 +241,7 @@ public:
 
 	/// <summary>
 	/// 计算每帧持续时间。
-	/// 因ID3v2中某些字段可以MPEG帧作时长单位，故提供此方法
+	/// 因ID3v2中某些字段可以用MPEG帧作时长单位，故提供此方法
 	/// </summary>
 	/// <returns>以毫秒计的帧持续时间</returns>
 	double CalcDurationPerFrame() const
@@ -196,7 +251,7 @@ public:
 		{
 		case Version::Mpeg1: idxVer = 0; break;
 		case Version::Mpeg2: idxVer = 1; break;
-		case Version::Mpeg25: idxVer = 2; break;
+		case Version::Mpeg2_5: idxVer = 2; break;
 		default: idxVer = 0; return 0.;
 		}
 

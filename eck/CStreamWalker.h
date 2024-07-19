@@ -345,5 +345,7 @@ struct CStreamWalker
 	{
 		return ReSize(ToUli(cbSize));
 	}
+
+	EckInline HRESULT GetLastErr() const { return m_hrLastErr; }
 };
 ECK_NAMESPACE_END

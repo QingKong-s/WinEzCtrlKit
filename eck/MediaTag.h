@@ -97,6 +97,7 @@ enum class Result
 	EmptyData,			// 某数据为空
 	ReservedDataErr,	// 保留部分或未定义部分填入错误信息
 	NoTag,				// 文件中无标签或标签还未被读入
+	MpegSyncFailed,		// MPEG同步失败
 };
 // 图片类型
 enum class PicType :BYTE

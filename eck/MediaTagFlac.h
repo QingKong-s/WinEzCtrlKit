@@ -100,6 +100,35 @@ private:
 		rb.Erase(0, r.Data() - rb.Data());
 		Pic.rbData = std::move(rb);
 	}
+
+	Result InitForWriteTag()
+	{
+		if (m_File.m_Id3Loc.posFlac == SIZETMax)
+			return Result::NoTag;
+		m_Stream.MoveTo(m_File.m_Id3Loc.posFlac) += 4;
+		FLAC_BlockHeader Header;
+		DWORD cbBlock;
+		UINT t;
+		do
+		{
+			m_Stream >> Header;
+			cbBlock = Header.bySize[2] | Header.bySize[1] << 8 | Header.bySize[0] << 16;
+			if (!cbBlock)
+				return Result::LenErr;
+			switch (Header.by & 0x7F)
+			{
+			case 0:// 流信息
+				m_Stream += cbBlock;
+				m_posStreamInfoEnd = m_Stream.GetPos();
+			break;
+			default:
+				m_Stream += cbBlock;
+			break;
+			}
+		} while (!(Header.by & 0x80));
+		m_posFlacTagEnd = m_Stream.GetPos();
+		return Result::Ok;
+	}
 public:
 	ECK_DISABLE_COPY_MOVE(CFlac)
 public:
@@ -184,8 +213,8 @@ public:
 			{
 			case 0:// 流信息
 			{
-				m_Stream >> m_si.cBlockSampleMin >> m_si.cBlockSampleMax;
-				m_Stream.ReadRev(&m_si.cbMinFrame, 3).Read(&m_si.cbMaxFrame, 3);
+				m_Stream.ReadRev(&m_si.cBlockSampleMin, 2).ReadRev(&m_si.cBlockSampleMax, 2)
+					.ReadRev(&m_si.cbMinFrame, 3).Read(&m_si.cbMaxFrame, 3);
 				ULONGLONG ull;
 				m_Stream >> ull;
 				m_si.cSampleRate = (UINT)GetLowNBits(ull, 20);
@@ -260,7 +289,10 @@ public:
 	{
 		if (m_File.m_Id3Loc.posFlac == SIZETMax)
 			return Result::NoTag;
-
+		if (m_posFlacTagEnd == SIZETMax || m_posStreamInfoEnd == SIZETMax)
+			InitForWriteTag();
+		if (m_posFlacTagEnd == SIZETMax || m_posStreamInfoEnd == SIZETMax)
+			return Result::TagErr;
 		CRefBin rbVorbis{}, rbImage{};
 		// 序列化Vorbis注释
 		rbVorbis.PushBack(4u);// 悬而未决
@@ -294,6 +326,10 @@ public:
 		phdr->bySize[2] = GetIntegerByte<0>(cbData);
 		phdr->by = (BYTE)BlockType::VorbisComment;
 		// 序列化图片
+		size_t cbImageGuess{};
+		for (const auto& e : m_vPic)
+			cbImageGuess += (e.rsMime.Size() + e.rsDesc.Size() * 2 + e.rbData.Size() + 40);
+		rbImage.Reserve(cbImageGuess);
 		for (const auto& e : m_vPic)
 		{
 			const auto cbCurr = rbImage.Size();
@@ -323,6 +359,7 @@ public:
 		auto cb = rbVorbis.Size() + rbImage.Size();
 		for (const auto& e : m_vBlock)
 			cb += (e.rbData.Size() + 4);
+		// 写入
 		const auto cbAvailable = m_posFlacTagEnd - m_posStreamInfoEnd;
 		BOOL bHasEnd{};
 		if (cbAvailable > cb)
@@ -335,7 +372,7 @@ public:
 				bHasEnd = TRUE;
 				cbPadding -= 4;
 				m_Stream.MoveTo(m_posStreamInfoEnd + cb)
-					<< BYTE(0b1000'0000 | 1)// 这种情况下填充肯定为最后一个块
+					<< BYTE(0b1000'0000 | (BYTE)BlockType::Padding)// 这种情况下填充肯定为最后一个块
 					<< GetIntegerByte<2>(cbPadding)
 					<< GetIntegerByte<1>(cbPadding)
 					<< GetIntegerByte<0>(cbPadding);
@@ -368,9 +405,15 @@ public:
 
 	auto& GetVorbisComments() { return m_vItem; }
 
+	const auto& GetVorbisComments() const { return m_vItem; }
+
 	auto& GetImages() { return m_vPic; }
 
+	const auto& GetImages() const { return m_vPic; }
+
 	auto& GetBlocks() { return m_vBlock; }
+
+	const auto& GetBlocks() const { return m_vBlock; }
 
 	const auto& GetStreamInfo() const { return m_si; }
 
