@@ -184,7 +184,7 @@ struct CStreamWalker
 		}
 		
 		constexpr SIZE_T cbBuf = 4096u;
-		void* pBuf = VirtualAlloc(NULL, cbBuf, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+		void* pBuf = VAlloc(cbBuf);
 		if (!pBuf)
 		{
 			m_hrLastErr = HRESULT_FROM_WIN32(GetLastError());

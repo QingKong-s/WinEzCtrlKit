@@ -10,10 +10,6 @@
 #include "Utility.h"
 #include "CComboBox.h"
 
-#include <memory>
-
-#include <CommCtrl.h>
-
 ECK_NAMESPACE_BEGIN
 // 颜色选择器 颜色被改变通知结构
 struct NMCLPCLRCHANGED

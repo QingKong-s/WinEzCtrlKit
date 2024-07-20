@@ -10,7 +10,7 @@
 
 #include <vector>
 
-#include <CommCtrl.h>
+#include <commdlg.h>
 
 ECK_NAMESPACE_BEGIN
 struct TASKDIALOGCTX

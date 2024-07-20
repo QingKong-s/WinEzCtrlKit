@@ -137,7 +137,7 @@ public:
 	{
 		for (const auto& e : m_vItem)
 		{
-			if ((mi.uFlag & MIM_TITLE) && e.rsKey.CompareI( "TITLE"))
+			if ((mi.uFlag & MIM_TITLE) && e.rsKey.CompareI("TITLE"))
 			{
 				mi.rsTitle = e.rsValue;
 				mi.uMaskRead |= MIM_TITLE;
@@ -375,10 +375,10 @@ public:
 					<< GetIntegerByte<2>(cbPadding)
 					<< GetIntegerByte<1>(cbPadding)
 					<< GetIntegerByte<0>(cbPadding);
-				void* p = VirtualAlloc(NULL, cbPadding, MEM_COMMIT, PAGE_READWRITE);
+				void* p = VAlloc(cbPadding);
 				EckCheckMem(p);
 				m_Stream.Write(p, cbPadding);
-				VirtualFree(p, 0, MEM_RELEASE);
+				VFree(p);
 			}
 		}
 		else if (cbAvailable < cb)

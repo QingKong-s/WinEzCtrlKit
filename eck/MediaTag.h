@@ -470,7 +470,7 @@ private:
 		// 查找ID3v1
 		if (cbSize > 128u)
 		{
-			w.GetStream()->Seek(ToLi(-128), STREAM_SEEK_END, NULL);
+			w->Seek(ToLi(-128), STREAM_SEEK_END, NULL);
 			w.Read(by, 3);
 			if (memcmp(by, "TAG", 3) == 0)
 			{
@@ -479,7 +479,7 @@ private:
 			}
 			if (cbSize > 128u + 227u)
 			{
-				w.GetStream()->Seek(ToLi(-(128 + 227)), STREAM_SEEK_END, NULL);
+				w->Seek(ToLi(-(128 + 227)), STREAM_SEEK_END, NULL);
 				w.Read(by, 4);
 				if (memcmp(by, "TAG+", 4) == 0)
 				{
@@ -496,7 +496,7 @@ private:
 			cbID3v1 = 128u;
 		if (cbSize > cbID3v1 + 32u)
 		{
-			w.GetStream()->Seek(ToLi(-SSIZE_T(cbID3v1 + 32u)), STREAM_SEEK_END, NULL);
+			w->Seek(ToLi(-SSIZE_T(cbID3v1 + 32u)), STREAM_SEEK_END, NULL);
 			APE_Header Hdr;
 			w >> Hdr;
 			if (memcmp(Hdr.byPreamble, "APETAGEX", 8) == 0 &&
@@ -569,7 +569,7 @@ private:
 				}
 				else
 				{
-					w.GetStream()->Seek(ToLi(-10), STREAM_SEEK_END, NULL);
+					w->Seek(ToLi(-10), STREAM_SEEK_END, NULL);
 					w >> hdr;
 					if (memcmp(hdr.Header, "3DI", 3u) == 0 &&
 						fnIsLegalHdr(hdr))
@@ -654,12 +654,12 @@ protected:
 public:
 	CTag(CMediaFile& File) :m_File{ File }, m_Stream(File.GetStream())
 	{
-		m_Stream.GetStream()->AddRef();
+		m_Stream->AddRef();
 	}
 
 	~CTag()
 	{
-		m_Stream.GetStream()->Release();
+		m_Stream->Release();
 	}
 
 	ECK_DISABLE_COPY_MOVE(CTag);

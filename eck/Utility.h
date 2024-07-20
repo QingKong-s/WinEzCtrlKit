@@ -15,13 +15,25 @@
 #endif
 
 ECK_NAMESPACE_BEGIN
+EckInline void* VAlloc(SIZE_T cb)
+{
+	void* p{};
+	(void)NtAllocateVirtualMemory(NtCurrentProcess(), &p, 0, &cb, MEM_COMMIT, PAGE_READWRITE);
+	return p;
+}
+
+EckInline NTSTATUS VFree(void* p)
+{
+	SIZE_T cb{};
+	return NtFreeVirtualMemory(NtCurrentProcess(), &p, &cb, MEM_RELEASE);
+}
 
 template<class T>
 struct VADeleter
 {
 	void operator()(T* p)
 	{
-		VirtualFree(p, 0, MEM_RELEASE);
+		VFree(p);
 	}
 };
 
