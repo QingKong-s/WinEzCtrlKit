@@ -80,7 +80,7 @@ private:
 			{
 				cchBuf = cb / sizeof(WCHAR);
 				rsResult.ReSize(cchBuf);
-				wcsncpy(rsResult.Data(), (PWSTR)w.Data(), cchBuf);
+				wmemcpy(rsResult.Data(), (PWSTR)w.Data(), cchBuf);
 			}
 			break;
 
@@ -2161,11 +2161,17 @@ private:
 				w >> p->eEncoding;
 				auto rs = GetID3v2_ProcString(w, cb - 1, p->eEncoding);
 				std::vector<CRefStrW> v{};
-				SplitBin(rs.Data(), rs.ByteSize() - sizeof(WCHAR), L"\0", sizeof(WCHAR), 0,
-					[&v](PCVOID p, SIZE_T cb)
+				if (!rs.IsEmpty())
+				{
+					const auto itBegin = rs.begin();
+					const auto itEnd = rs.end();
+					for (auto it = itBegin; it <= itEnd; )
 					{
-						v.emplace_back((PCWSTR)p, (int)(cb / sizeof(WCHAR)));
-					});
+						const int cch = (int)wcslen(it);
+						v.emplace_back(it, cch);
+						it += (cch + 1);
+					}
+				}
 				p->vMap.resize(v.size() / 2);
 				for (size_t i{}; i < v.size(); i += 2)
 				{
@@ -2242,11 +2248,17 @@ private:
 				auto [w, cb] = f.Prepare();
 				w >> p->eEncoding;
 				auto rs = GetID3v2_ProcString(w, cb - 1, p->eEncoding);
-				SplitBin(rs.Data(), rs.ByteSize() - sizeof(WCHAR), L"\0", sizeof(WCHAR), 0,
-					[pFrame = p](PCVOID p, SIZE_T cb)
+				if (!rs.IsEmpty())
+				{
+					const auto itBegin = rs.begin();
+					const auto itEnd = rs.end();
+					for (auto it = itBegin; it <= itEnd; )
 					{
-						pFrame->vText.emplace_back((PCWSTR)p, (int)(cb / sizeof(WCHAR)));
-					});
+						const int cch = (int)wcslen(it);
+						p->vText.emplace_back(it, cch);
+						it += (cch + 1);
+					}
+				}
 				m_vFrame.push_back(p);
 			}
 			else if (FrameHdr.ID[0] == 'W')
@@ -2275,11 +2287,6 @@ private:
 		if (pposActualEnd)
 			*pposActualEnd = posEnd;
 		return Result::Ok;
-	}
-
-	Result InitForWrite()
-	{
-
 	}
 
 	// 初始化m_cbTag、m_cbPrependTag、m_Header、m_ExtHdrInfo
@@ -2827,10 +2834,10 @@ public:
 						if (bAllowPadding && cbPadding < 1024 && rbAppend.IsEmpty())
 						{
 							m_Stream.MoveTo(m_File.m_Loc.posV2 + 10 + rbPrepend.Size());
-							void* p = VirtualAlloc(0, cbPadding, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+							void* p = VAlloc(cbPadding);
 							EckCheckMem(p);
 							m_Stream.Write(p, (ULONG)cbPadding);
-							VirtualFree(p, 0, MEM_RELEASE);
+							VFree(p);
 						}
 						else
 						{

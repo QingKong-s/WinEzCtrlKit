@@ -36,7 +36,6 @@ FShouldSystemUseDarkMode		pfnShouldSystemUseDarkMode{};
 FSetPreferredAppMode			pfnSetPreferredAppMode{};
 FIsDarkModeAllowedForApp		pfnIsDarkModeAllowedForApp{};
 
-FRtlGetNtVersionNumbers			pfnRtlGetNtVersionNumbers{};
 FSetWindowCompositionAttribute	pfnSetWindowCompositionAttribute{};
 FOpenNcThemeData				pfnOpenNcThemeData{};
 ECK_PRIV_NAMESPACE_END
@@ -960,12 +959,6 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	pfnOpenNcThemeData = (FOpenNcThemeData)
 		GetProcAddress(hModUx, MAKEINTRESOURCEA(49));
 	s_pfnOpenNcThemeData = pfnOpenNcThemeData;
-
-	const HMODULE hModNtdll = LoadLibraryW(L"ntdll.dll");
-	EckAssert(hModNtdll);
-	pfnRtlGetNtVersionNumbers = (FRtlGetNtVersionNumbers)
-		GetProcAddress(hModNtdll, "RtlGetNtVersionNumbers");
-	FreeLibrary(hModNtdll);
 
 	DWORD dwMajorVer, dwMinorVer, dwBuildNumber;
 	RtlGetNtVersionNumbers(&dwMajorVer, &dwMinorVer, &dwBuildNumber);

@@ -8,7 +8,12 @@
 #pragma once
 #define GDIPVER 0x110
 
-#include <Windows.h>
+#include "PhNt/phnt_windows.h"
+#include "PhNt/phnt.h"
+
+//#include <Windows.h>
+//#include <windowsx.h>
+
 #include <Uxtheme.h>
 #include <vsstyle.h>
 #include <dwmapi.h>
@@ -18,7 +23,6 @@
 #include <dxgi1_2.h>
 #include <Shlwapi.h>
 #include <d3d11.h>
-#include <windowsx.h>
 
 #include <assert.h>
 
@@ -26,6 +30,7 @@
 #include <unordered_set>
 #include <type_traits>
 #include <execution>
+#include <memory>
 
 #include ".\Detours\detours.h"
 
@@ -533,7 +538,6 @@ struct WINDOWCOMPOSITIONATTRIBDATA
 };
 
 ECK_PRIV_NAMESPACE_BEGIN
-using FRtlGetNtVersionNumbers = void(WINAPI*)(DWORD*, DWORD*, DWORD*);
 using FSetWindowCompositionAttribute = BOOL(WINAPI*)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
 
 // UxTheme
@@ -574,7 +578,6 @@ extern FShouldSystemUseDarkMode			pfnShouldSystemUseDarkMode;
 extern FSetPreferredAppMode				pfnSetPreferredAppMode;
 extern FIsDarkModeAllowedForApp			pfnIsDarkModeAllowedForApp;
 
-extern FRtlGetNtVersionNumbers			pfnRtlGetNtVersionNumbers;
 extern FSetWindowCompositionAttribute	pfnSetWindowCompositionAttribute;
 extern FOpenNcThemeData					pfnOpenNcThemeData;
 ECK_PRIV_NAMESPACE_END
@@ -863,11 +866,6 @@ BOOL PreTranslateMessage(const MSG& Msg);
 /// </summary>
 /// <param name="pfnFilter">应用程序定义的过滤器函数指针</param>
 void SetMsgFilter(FMsgFilter pfnFilter);
-
-EckInline void RtlGetNtVersionNumbers(DWORD* pdwMajor, DWORD* pdwMinor, DWORD* pdwBuild)
-{
-	EckPriv::pfnRtlGetNtVersionNumbers(pdwMajor, pdwMinor, pdwBuild);
-}
 ECK_NAMESPACE_END
 
 #ifndef ECK_MACRO_NO_USING_GDIPLUS
