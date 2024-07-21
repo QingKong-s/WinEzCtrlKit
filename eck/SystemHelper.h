@@ -199,16 +199,21 @@ inline HRESULT WmiConnectNamespace(IWbemServices*& pWbemSrv, IWbemLocator*& pWbe
 		return hr;
 	if (FAILED(hr = pWbemLoc->ConnectServer(_bstr_t(L"ROOT\\CIMV2"),
 		NULL, NULL, 0, NULL, 0, 0, &pWbemSrv)))
-		goto Exit1;
+	{
+		pWbemLoc->Release();
+		pWbemLoc = NULL;
+		return hr;
+	}
 	if (FAILED(hr = CoSetProxyBlanket(pWbemSrv, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL,
 		RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE)))
-		goto Exit2;
+	{
+		pWbemSrv->Release();
+		pWbemSrv = NULL;
+		pWbemLoc->Release();
+		pWbemLoc = NULL;
+		return hr;
+	}
 	return S_OK;
-Exit2:
-	pWbemSrv->Release();
-Exit1:
-	pWbemLoc->Release();
-	return hr;
 }
 
 /// <summary>
@@ -222,20 +227,16 @@ Exit1:
 inline HRESULT WmiQueryClassProp(PCWSTR pszWql, PCWSTR pszProp, VARIANT& Var, IWbemServices* pWbemSrv)
 {
 	HRESULT hr;
-	IEnumWbemClassObject* pEnum;
+	ComPtr<IEnumWbemClassObject> pEnum;
 	if (FAILED(hr = pWbemSrv->ExecQuery(_bstr_t(L"WQL"), _bstr_t(pszWql),
 		WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnum)))
-		goto Exit1;
-	IWbemClassObject* pClsObj;
+		return hr;
+	ComPtr<IWbemClassObject> pClsObj;
 	ULONG ulReturned;
 	hr = pEnum->Next(WBEM_INFINITE, 1, &pClsObj, &ulReturned);
-	if (ulReturned != 1)
-		goto Exit1;
-	hr = pClsObj->Get(pszProp, 0, &Var, NULL, NULL);
-	pClsObj->Release();
-Exit1:
-	pEnum->Release();
-	return hr;
+	if (FAILED(hr) || ulReturned != 1)
+		return hr;
+	return pClsObj->Get(pszProp, 0, &Var, NULL, NULL);
 }
 
 /// <summary>
@@ -441,11 +442,10 @@ inline BOOL GetFileVerInfo(PCWSTR pszFile, FILEVERINFO& fvi)
 		return FALSE;
 	void* pBuf = malloc(cbBuf);
 	EckCheckMem(pBuf);
+	UniquePtrCrtMA<void> _(pBuf);
 	if (!GetFileVersionInfoW(pszFile, 0, cbBuf, pBuf))
-	{
-		free(pBuf);
 		return FALSE;
-	}
+
 	struct
 	{
 		WORD wLanguage;
@@ -453,10 +453,8 @@ inline BOOL GetFileVerInfo(PCWSTR pszFile, FILEVERINFO& fvi)
 	}*pLangCp;
 	UINT cbLangCp;
 	if (!VerQueryValueW(pBuf, LR"(\VarFileInfo\Translation)", (void**)&pLangCp, &cbLangCp))
-	{
-		free(pBuf);
 		return FALSE;
-	}
+
 	WCHAR szLangCp[9];
 	_swprintf(szLangCp, L"%04X%04X", pLangCp[0].wLanguage, pLangCp[0].wCodePage);
 	CRefStrW rsSub = CRefStrW(LR"(\StringFileInfo\)") + szLangCp + L"\\";
@@ -487,8 +485,6 @@ inline BOOL GetFileVerInfo(PCWSTR pszFile, FILEVERINFO& fvi)
 	fvi.OriginalFilename.DupString((PCWSTR)pStr, (int)cchStr);
 	VerQueryValueW(pBuf, (rsSub + L"SpecialBuild").Data(), &pStr, &cchStr);
 	fvi.SpecialBuild.DupString((PCWSTR)pStr, (int)cchStr);
-
-	free(pBuf);
 	return TRUE;
 }
 
@@ -544,6 +540,98 @@ const CRefStrW& GetRunningPath();
 	return (HANDLE)_beginthreadex(0, 0, pStartAddress, pParameter, dwCreationFlags, pThreadId);
 }
 
+inline NTSTATUS NtPathToDosPath(CRefStrW& rsBuf)
+{
+	RTL_UNICODE_STRING_BUFFER Buf{ rsBuf.ToNtStringBuf() };
+	NTSTATUS nts = RtlNtPathNameToDosPathName(0, &Buf, NULL, NULL);
+	if (NT_SUCCESS(nts))
+	{
+		rsBuf.ReSize(Buf.String.Length / sizeof(WCHAR));
+		goto Success;
+	}
+	else if (nts == STATUS_NO_MEMORY ||
+		nts == STATUS_BUFFER_TOO_SMALL ||
+		nts == STATUS_INFO_LENGTH_MISMATCH)
+	{
+		rsBuf.Reserve(rsBuf.Size() + MAX_PATH);
+		Buf = rsBuf.ToNtStringBuf();
+		nts = RtlNtPathNameToDosPathName(0, &Buf, NULL, NULL);
+		if (NT_SUCCESS(nts))
+		{
+			rsBuf.ReSize(Buf.String.Length / sizeof(WCHAR));
+			rsBuf.ShrinkToFit();
+			goto Success;
+		}
+	}
+	rsBuf.Clear();
+	return nts;
+Success:
+	if (rsBuf.IsEmpty())
+		return STATUS_SUCCESS;
+	// 替换设备名
+	// TODO:支持网络位置
+	if (rsBuf.Front() == L'\\')
+	{
+		WCHAR szDriver[53];
+		WCHAR szLinkTarget[200];
+		if (GetLogicalDriveStringsW(ARRAYSIZE(szDriver), szDriver))
+			for (auto p = szDriver; *p; p += 4)
+			{
+				*(p + 2) = L'\0';
+				const int cch = (int)QueryDosDeviceW(p, szLinkTarget, ARRAYSIZE(szLinkTarget)) - 2;
+				if (cch > 0)
+				{
+					szLinkTarget[cch] = L'\\';
+					if (rsBuf.IsStartOfI(szLinkTarget, cch))
+					{
+						rsBuf.Replace(0, cch, p, 2);
+						break;
+					}
+				}
+			}
+	}
+	return STATUS_SUCCESS;
+}
+
+inline NTSTATUS GetProcessPath(UINT uPID, CRefStrW& rsPath, BOOL bDosPath = TRUE)
+{
+	SYSTEM_PROCESS_ID_INFORMATION spii{ .ProcessId = i32ToP<HANDLE>(uPID) };
+	NTSTATUS nts = NtQuerySystemInformation(SystemProcessIdInformation, &spii, sizeof(spii), NULL);
+	if (spii.ImageName.MaximumLength && nts == STATUS_INFO_LENGTH_MISMATCH)
+	{
+		rsPath.ReSize(spii.ImageName.MaximumLength);
+		spii.ImageName.Buffer = rsPath.Data();
+		spii.ImageName.Length = 0;
+		nts = NtQuerySystemInformation(SystemProcessIdInformation, &spii, sizeof(spii), NULL);
+		if (NT_SUCCESS(nts))
+		{
+			if (bDosPath)
+				return NtPathToDosPath(rsPath);
+			else
+				return STATUS_SUCCESS;
+		}
+	}
+	rsPath.Clear();
+	return nts;
+}
+
+inline BOOL GetProcessPath(HANDLE hProcess, CRefStrW& rsPath, BOOL bDosPath = TRUE)
+{
+	DWORD cch{ MAX_PATH };
+	rsPath.ReSize(cch);
+	if (QueryFullProcessImageNameW(hProcess, bDosPath ? 0 : PROCESS_NAME_NATIVE,
+		rsPath.Data(), &cch))
+	{
+		rsPath.ReSize(cch);
+		return TRUE;
+	}
+	else
+	{
+		rsPath.Clear();
+		return FALSE;
+	}
+}
+
 [[nodiscard]] inline HICON GetWindowSmallIcon(HWND hWnd, int msTimeOut = 300)
 {
 	HICON hIcon;
@@ -586,20 +674,15 @@ const CRefStrW& GetRunningPath();
 	GetWindowThreadProcessId(hWnd, &dwPid);
 	if (!dwPid)
 		return NULL;
-	const HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, dwPid);
-	if (!hProcess)
+	CRefStrW rsPath{};
+	if (!NT_SUCCESS(GetProcessPath(dwPid, rsPath)))
 		return NULL;
-
-	WCHAR szPath[MAX_PATH];
-	DWORD cchBuf = MAX_PATH;
-	QueryFullProcessImageNameW(hProcess, 0, szPath, &cchBuf);
-	CloseHandle(hProcess);
 
 	SHFILEINFOW sfi;
 	const UINT uFlags = (bSmall ? (SHGFI_ICON | SHGFI_SMALLICON) : SHGFI_ICON);
 #pragma warning(suppress:6001)
-	if (!SHGetFileInfoW(szPath, 0, &sfi, sizeof(sfi), uFlags))
-		SHGetFileInfoW(szPath, FILE_ATTRIBUTE_NORMAL, &sfi, sizeof(sfi),
+	if (!SHGetFileInfoW(rsPath.Data(), 0, &sfi, sizeof(sfi), uFlags))
+		SHGetFileInfoW(rsPath.Data(), FILE_ATTRIBUTE_NORMAL, &sfi, sizeof(sfi),
 			uFlags | SHGFI_USEFILEATTRIBUTES);
 	bNeedDestroy = (sfi.hIcon != NULL);
 	return sfi.hIcon;
@@ -895,81 +978,13 @@ EckInline BOOL EnumFileRecurse(PCWSTR pszPath, std::vector<CRefStrW>& vResult)
 	return EnumFileRecurse(rs.Data(), pszFileName, vResult);
 }
 
-inline NTSTATUS NtPathToDosPath(CRefStrW& rsBuf)
+struct MODULE_INFO
 {
-	RTL_UNICODE_STRING_BUFFER Buf{ .String = rsBuf.ToNtString(),
-	.ByteBuffer = { .Buffer = (PUCHAR)rsBuf.Data(),.Size = rsBuf.ByteCapacity() } };
-	NTSTATUS nts = RtlNtPathNameToDosPathName(0, &Buf, NULL, NULL);
-	if (NT_SUCCESS(nts))
-	{
-		rsBuf.ReSize(Buf.String.Length / sizeof(WCHAR));
-		goto Success;
-	}
-	else if (nts == STATUS_NO_MEMORY ||
-		nts == STATUS_BUFFER_TOO_SMALL ||
-		nts == STATUS_INFO_LENGTH_MISMATCH)
-	{
-		rsBuf.Reserve(rsBuf.Size() + MAX_PATH);
-		Buf.String = rsBuf.ToNtString();
-		nts = RtlNtPathNameToDosPathName(0, &Buf, NULL, NULL);
-		if (NT_SUCCESS(nts))
-		{
-			rsBuf.ReSize(Buf.String.Length / sizeof(WCHAR));
-			rsBuf.ShrinkToFit();
-			goto Success;
-		}
-	}
-	rsBuf.Clear();
-	return nts;
-Success:
-	if (rsBuf.IsEmpty())
-		return STATUS_SUCCESS;
-	// 替换设备名
-	// TODO:支持网络位置
-	if (rsBuf.Front() == L'\\')
-	{
-		WCHAR szDriver[53];
-		WCHAR szLinkTarget[200];
-		if (GetLogicalDriveStringsW(ARRAYSIZE(szDriver), szDriver))
-			for (auto p = szDriver; *p; p += 4)
-			{
-				*(p + 2) = L'\0';
-				const int cch = (int)QueryDosDeviceW(p, szLinkTarget, ARRAYSIZE(szLinkTarget)) - 2;
-				if (cch > 0)
-				{
-					szLinkTarget[cch] = L'\\';
-					if (rsBuf.IsStartOfI(szLinkTarget, cch))
-					{
-						rsBuf.Replace(0, cch, p);
-						break;
-					}
-				}
-			}
-	}
-	return STATUS_SUCCESS;
-}
-
-inline NTSTATUS GetProcessPath(UINT uPID, CRefStrW& rsDosPath, BOOL bDosPath = TRUE)
-{
-	SYSTEM_PROCESS_ID_INFORMATION spii{ .ProcessId = i32ToP<HANDLE>(uPID) };
-	NTSTATUS nts = NtQuerySystemInformation(SystemProcessIdInformation, &spii, sizeof(spii), NULL);
-	if (spii.ImageName.MaximumLength && nts == STATUS_INFO_LENGTH_MISMATCH)
-	{
-		rsDosPath.ReSize(spii.ImageName.MaximumLength);
-		spii.ImageName.Buffer = rsDosPath.Data();
-		spii.ImageName.Length = 0;
-		nts = NtQuerySystemInformation(SystemProcessIdInformation, &spii, sizeof(spii), NULL);
-		if (NT_SUCCESS(nts))
-		{
-			if (bDosPath)
-				return NtPathToDosPath(rsDosPath);
-			else
-				return STATUS_SUCCESS;
-		}
-	}
-	rsDosPath.Clear();
-	return nts;
-}
+	CRefStrW rsModuleName;
+	CRefStrW rsModulePath;
+	void* BaseAddress;
+	SIZE_T cbImage;
+};
 
 struct THREAD_INFO
 {
@@ -995,8 +1010,8 @@ struct PROCESS_INFO
 	SIZE_T cbPeakQuotaPagedPoolUsage;	// 峰值页面缓冲池
 	SIZE_T cbQuotaNonPagedPoolUsage;	// 非页面缓冲池
 	SIZE_T cbPeakQuotaNonPagedPoolUsage;// 峰值非页面缓冲池
-	SIZE_T cbPagefileUsage;				// 已提交
-	SIZE_T cbPeakPagefileUsage;			// 峰值已提交
+	SIZE_T cbPageFileUsage;				// 已提交
+	SIZE_T cbPeakPageFileUsage;			// 峰值已提交
 	CRefStrW rsFilePath;	// 进程路径
 	std::vector<THREAD_INFO> vThreads;	// 线程信息
 };
@@ -1044,7 +1059,7 @@ inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags =
 
 		if (uFlags & EPF_PROCESS_PATH)
 			GetProcessPath(e.uPID, e.rsFilePath);
-		
+
 		if (uFlags & EPF_THREAD_INFO)
 		{
 			e.vThreads.resize(pspi->NumberOfThreads);
@@ -1065,5 +1080,83 @@ inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags =
 		pspi = PtrStepCb(pspi, pspi->NextEntryOffset);
 	}
 	return STATUS_SUCCESS;
+}
+
+EckInline void* GetProcessPeb(HANDLE hProcess,NTSTATUS* pnts = NULL)
+{
+	PROCESS_BASIC_INFORMATION pbi;
+	NTSTATUS nts;
+	if (!NT_SUCCESS(nts = NtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(pbi), NULL)))
+	{
+		if (pnts)
+			*pnts = nts;
+		return NULL;
+	}
+	if (pnts)
+		*pnts = STATUS_SUCCESS;
+	return pbi.PebBaseAddress;
+}
+
+inline NTSTATUS EnumProcessModules(HANDLE hProcess, std::vector<MODULE_INFO>& vResult)
+{
+	NTSTATUS nts;
+	// 取PEB
+	UINT_PTR pPeb = (UINT_PTR)GetProcessPeb(hProcess, &nts);
+	if (!pPeb)
+		return nts;
+	// 取PEB_LDR_DATA
+	PEB_LDR_DATA LdrData;
+	UINT_PTR pLdr;
+	if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)(pPeb + offsetof(PEB, Ldr)),
+		&pLdr, sizeof(pLdr), NULL)))
+		return nts;
+	if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)pLdr,
+		&LdrData, sizeof(LdrData), NULL)))
+		return nts;
+	if (!LdrData.Initialized)
+		return STATUS_UNSUCCESSFUL;
+
+	LDR_DATA_TABLE_ENTRY Entry;// 不要使用Win7之后添加的字段
+	UINT_PTR pBegin = pLdr + offsetof(PEB_LDR_DATA, InLoadOrderModuleList);
+	for (UINT_PTR p = (UINT_PTR)LdrData.InLoadOrderModuleList.Flink; p != pBegin; )
+	{
+		if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)p,
+			&Entry, LDR_DATA_TABLE_ENTRY_SIZE_WIN7, NULL)))
+			return nts;
+		if (Entry.DllBase)
+		{
+			auto& e = vResult.emplace_back();
+			if (Entry.BaseDllName.Length)
+			{
+				const int cch = Entry.BaseDllName.Length / sizeof(WCHAR);
+				e.rsModuleName.ReSize(cch);
+				if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)Entry.BaseDllName.Buffer,
+					e.rsModuleName.Data(), cch*sizeof(WCHAR), NULL)))
+					return nts;
+			}
+			if (Entry.FullDllName.Length)
+			{
+				const int cch = Entry.FullDllName.Length / sizeof(WCHAR);
+				e.rsModulePath.ReSize(cch);
+				if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)Entry.FullDllName.Buffer,
+					e.rsModulePath.Data(), cch*sizeof(WCHAR), NULL)))
+					return nts;
+			}
+			e.BaseAddress = (void*)Entry.DllBase;
+			e.cbImage = Entry.SizeOfImage;
+		}
+		p = (UINT_PTR)Entry.InLoadOrderLinks.Flink;
+	}
+}
+
+inline HANDLE OpenProcess(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwProcessId)
+{
+	OBJECT_ATTRIBUTES oa;
+	InitializeObjectAttributes(&oa, NULL, bInheritHandle ? OBJ_INHERIT : 0, NULL, NULL);
+	CLIENT_ID cid{ pToI32<HANDLE>(dwProcessId) };
+	HANDLE hProcess = NULL;
+	if (NT_SUCCESS(NtOpenProcess(&hProcess, dwDesiredAccess, &oa, &cid)))
+		return hProcess;
+	return NULL;
 }
 ECK_NAMESPACE_END
