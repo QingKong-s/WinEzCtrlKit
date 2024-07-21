@@ -4127,6 +4127,8 @@ typedef struct _RTL_BUFFER
     PUCHAR StaticBuffer;
     SIZE_T Size;
     SIZE_T StaticSize;
+    SIZE_T ReservedForAllocatedSize;
+    PVOID ReservedForIMalloc;
 } RTL_BUFFER, *PRTL_BUFFER;
 
 // rev
@@ -4136,6 +4138,11 @@ typedef struct _RTL_UNICODE_STRING_BUFFER
     RTL_BUFFER ByteBuffer;
     UCHAR MinimumStaticBufferForTerminalNul[2];
 } RTL_UNICODE_STRING_BUFFER, *PRTL_UNICODE_STRING_BUFFER;
+
+#define RTL_NT_PATH_NAME_TO_DOS_PATH_NAME_AMBIGUOUS   (0x00000001)
+#define RTL_NT_PATH_NAME_TO_DOS_PATH_NAME_UNC         (0x00000002)
+#define RTL_NT_PATH_NAME_TO_DOS_PATH_NAME_DRIVE       (0x00000003)
+#define RTL_NT_PATH_NAME_TO_DOS_PATH_NAME_ALREADY_DOS (0x00000004)
 
 // rev
 NTSYSAPI

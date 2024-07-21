@@ -308,7 +308,7 @@ public:
 	{
 		CHAR Id[4]{};		// 帧标识
 		BYTE uFlags[2]{};	// 标志，[0] = 状态，[1] = 格式
-		BYTE byAddtFlags{};	// MIIWF_常量
+		MIIWFLAG byAddtFlags{};
 
 		virtual ~FRAME() {}
 

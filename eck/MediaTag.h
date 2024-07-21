@@ -83,13 +83,14 @@ enum MIFLAGS :UINT
 };
 ECK_ENUM_BIT_FLAGS(MIFLAGS);
 
-// ID3帧写入选项
-enum :BYTE
+// 标签单元写入选项
+enum MIIWFLAG :BYTE
 {
 	MIIWF_PREPEND_ID3V2_4 = 0,			// 将该帧置于文件头部的标签，这是默认值
 	MIIWF_APPEND_ID3V2_4 = 1u << 0,		// 将该帧置于文件尾部的标签
 	MIIWF_WRITE_METADATA_BLOCK_PICTURE = 1u << 1,	// 将该图片写入为Vorbis注释中的METADATA_BLOCK_PICTURE
 };
+ECK_ENUM_BIT_FLAGS(MIIWFLAG);
 
 // 错误码
 enum class Result
@@ -350,7 +351,7 @@ struct ID3v2_FrameHeader// ID3v2帧头
 
 struct FLAC_BlockHeader      // Flac头
 {
-	BYTE by;
+	BYTE eType;
 	BYTE bySize[3];
 };
 
@@ -448,13 +449,15 @@ private:
 		SIZE_T posV2{ SIZETMax };
 		SIZE_T posV2Footer{ SIZETMax };
 		SIZE_T posV2FooterHdr{ SIZETMax };
+		SIZE_T cbID3v2{};// 若无标签头则为0，若有标签头则与头中的Size字段相同，暂不处理预置/追加组合的判长
+
 		SIZE_T posV1{ SIZETMax };
 		SIZE_T posV1Ext{ SIZETMax };
 		SIZE_T posApe{ SIZETMax };
 		SIZE_T posFlac{ SIZETMax };
 	}  m_Loc{};
 
-	UINT DetectID3(TAG_LOCATION& Id3Loc)
+	UINT DetectID3()
 	{
 		UINT uRet{};
 		BYTE by[16];
@@ -474,7 +477,7 @@ private:
 			w.Read(by, 3);
 			if (memcmp(by, "TAG", 3) == 0)
 			{
-				Id3Loc.posV1 = w.GetPos() - 3u;
+				m_Loc.posV1 = w.GetPos() - 3u;
 				uRet |= TAG_ID3V1;
 			}
 			if (cbSize > 128u + 227u)
@@ -483,16 +486,16 @@ private:
 				w.Read(by, 4);
 				if (memcmp(by, "TAG+", 4) == 0)
 				{
-					Id3Loc.posV1Ext = w.GetPos() - 4u;
+					m_Loc.posV1Ext = w.GetPos() - 4u;
 					uRet |= TAG_ID3V1Ext;
 				}
 			}
 		}
 		// 查找APE
 		SIZE_T cbID3v1{};
-		if (Id3Loc.posV1Ext != SIZETMax)
+		if (m_Loc.posV1Ext != SIZETMax)
 			cbID3v1 = 227u + 128u;
-		else if (Id3Loc.posV1 != SIZETMax)
+		else if (m_Loc.posV1 != SIZETMax)
 			cbID3v1 = 128u;
 		if (cbSize > cbID3v1 + 32u)
 		{
@@ -504,7 +507,7 @@ private:
 				(Hdr.dwFlags & 0b0001'1111'1111'1111'1111'1111'1111'1000u) == 0 &&
 				*(ULONGLONG*)Hdr.byReserved == 0ull)
 			{
-				Id3Loc.posApe = cbSize - (cbID3v1 + 32u);
+				m_Loc.posApe = cbSize - (cbID3v1 + 32u);
 			}
 		}
 		// 查找ID3v2
@@ -516,7 +519,8 @@ private:
 				fnIsLegalHdr(hdr))
 			{
 				// 若已找到标签头，则使用其内部的SEEK帧来寻找尾部标签，因此此处不需要继续查找标签尾
-				Id3Loc.posV2 = 0u;
+				m_Loc.cbID3v2 = SynchSafeIntToDWORD(hdr.Size);
+				m_Loc.posV2 = 0u;
 				if (hdr.Ver == 3)
 					uRet |= TAG_ID3V2_3;
 				else if (hdr.Ver == 4)
@@ -525,19 +529,19 @@ private:
 			else
 			{
 				// 若未找到标签头，则应从尾部扫描，检查是否有追加标签
-				if (Id3Loc.posV1Ext != SIZETMax)
+				if (m_Loc.posV1Ext != SIZETMax)
 				{
 					if (cbSize > 128u + 227u + 10u)
 					{
-						w.MoveTo(Id3Loc.posV1Ext - 10) >> hdr;
+						w.MoveTo(m_Loc.posV1Ext - 10) >> hdr;
 						if (memcmp(hdr.Header, "3DI", 3u) == 0 &&
 							fnIsLegalHdr(hdr))
 						{
 							SIZE_T cbFrames = SynchSafeIntToDWORD(hdr.Size);
 							if (cbSize >= 128u + 227u + 10u + cbFrames)
 							{
-								Id3Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
-								Id3Loc.posV2Footer = Id3Loc.posV2FooterHdr - cbFrames;
+								m_Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
+								m_Loc.posV2Footer = m_Loc.posV2FooterHdr - cbFrames;
 								if (hdr.Ver == 3)
 									uRet |= TAG_ID3V2_3;
 								else if (hdr.Ver == 4)
@@ -546,19 +550,19 @@ private:
 						}
 					}
 				}
-				else if (Id3Loc.posV1 != SIZETMax)
+				else if (m_Loc.posV1 != SIZETMax)
 				{
 					if (cbSize > 128u + 10u)
 					{
-						w.MoveTo(Id3Loc.posV1 - 10) >> hdr;
+						w.MoveTo(m_Loc.posV1 - 10) >> hdr;
 						if (memcmp(hdr.Header, "3DI", 3u) == 0 &&
 							fnIsLegalHdr(hdr))
 						{
 							SIZE_T cbFrames = SynchSafeIntToDWORD(hdr.Size);
 							if (cbSize >= 128u + 10u + cbFrames)
 							{
-								Id3Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
-								Id3Loc.posV2Footer = Id3Loc.posV2FooterHdr - cbFrames;
+								m_Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
+								m_Loc.posV2Footer = m_Loc.posV2FooterHdr - cbFrames;
 								if (hdr.Ver == 3)
 									uRet |= TAG_ID3V2_3;
 								else if (hdr.Ver == 4)
@@ -577,8 +581,8 @@ private:
 						SIZE_T cbFrames = SynchSafeIntToDWORD(hdr.Size);
 						if (cbSize >= 10u + cbFrames)
 						{
-							Id3Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
-							Id3Loc.posV2Footer = Id3Loc.posV2FooterHdr - cbFrames;
+							m_Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
+							m_Loc.posV2Footer = m_Loc.posV2FooterHdr - cbFrames;
 							if (hdr.Ver == 3)
 								uRet |= TAG_ID3V2_3;
 							else if (hdr.Ver == 4)
@@ -597,9 +601,10 @@ private:
 		if (m_Loc.posV2 == SIZETMax)
 			w.MoveToBegin();
 		else
-			w.MoveTo(m_Loc.posV2);
+			w.MoveTo(m_Loc.posV2 + m_Loc.cbID3v2 + 10);
 		BYTE by[4];
 		w >> by;
+		// XXX: 若失配则向后查找
 		if (memcmp(by, "fLaC", 4) == 0)
 		{
 			m_Loc.posFlac = w.GetPos() - 4u;
@@ -633,8 +638,9 @@ public:
 
 	UINT DetectTag()
 	{
+		m_Loc = {};
 		m_uTagType = 0u;
-		m_uTagType |= DetectID3(m_Loc);
+		m_uTagType |= DetectID3();
 		if (DetectFlac())
 			m_uTagType |= TAG_FLAC;
 		return m_uTagType;
@@ -643,6 +649,10 @@ public:
 	void OnFileChanged()
 	{
 		DetectTag();
+	}
+
+	Result SimpleExtract(MUSICINFO& mi)
+	{
 	}
 };
 

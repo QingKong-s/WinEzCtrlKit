@@ -242,7 +242,6 @@
     <ClInclude Include="eck\ITimeLine.h" />
     <ClInclude Include="eck\OleDragDropHelper.h" />
     <ClInclude Include="eck\PchInc.h" />
-    <ClInclude Include="eck\StrBinInterop.h" />
     <ClInclude Include="eck\CTab.h" />
     <ClInclude Include="eck\CTabHeader.h" />
     <ClInclude Include="eck\CTaskGroupList.h" />
@@ -279,6 +278,7 @@
     <ClInclude Include="eck\ResStruct.h" />
     <ClInclude Include="eck\SystemHelper.h" />
     <ClInclude Include="eck\Utility.h" />
+    <ClInclude Include="eck\Utility2.h" />
     <ClInclude Include="eck\WndHelper.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />

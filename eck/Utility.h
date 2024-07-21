@@ -154,6 +154,18 @@ EckInline constexpr SIZE_T AlignMemSize(SIZE_T cbSize, SIZE_T cbAlign)
 		return (cbSize / cbAlign + 1) * cbAlign;
 }
 
+template<class T>
+EckInline constexpr T* PtrStepCb(T* p, SSIZE_T d)
+{
+	return (T*)((BYTE*)p + d);
+}
+
+template<class T>
+EckInline constexpr const T* PtrStepCb(const T* p, SSIZE_T d)
+{
+	return (const T*)((BYTE*)p + d);
+}
+
 #if !ECKCXX20
 #pragma push_macro("ccpIsInteger")
 #define ccpIsInteger class

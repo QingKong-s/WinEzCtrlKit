@@ -210,9 +210,6 @@
     <ClInclude Include="eck\CMemWalker.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\StrBinInterop.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CListViewExt.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
@@ -388,6 +385,9 @@
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\IMem.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\Utility2.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
   </ItemGroup>

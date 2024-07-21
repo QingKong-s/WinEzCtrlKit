@@ -539,7 +539,7 @@ public:
 		if (cchText < 0)
 			cchText = (int)wcslen(pszText);
 		if (FAILED(hr = g_pDwFactory->CreateTextLayout(pszText, (UINT32)cchText,
-			m_pTf, m_cxClient, m_cyClient, &pLayout)))
+			m_pTf, (float)m_cxClient, (float)m_cyClient, &pLayout)))
 			return hr;
 		ID2D1PathGeometry1* pPath;
 		if (FAILED(hr = GetTextLayoutPathGeometry(pLayout.Get(), m_pDC1, 0.f, 0.f, pPath)))
