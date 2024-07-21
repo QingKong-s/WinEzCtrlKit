@@ -1086,7 +1086,7 @@ inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF crGradient[], int
 	}
 }
 
-inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF cr1, COLORREF cr2, BOOL bV)
+inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF cr1, COLORREF cr2, BOOL bVertical)
 {
 	TRIVERTEX tv[2] = { 0 };
 	tv[0].x = rc.left;
@@ -1102,18 +1102,19 @@ inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF cr1, COLORREF cr2
 	tv[1].Blue = GetBValue(cr2) << 8;
 
 	GRADIENT_RECT gr;
-	gr.UpperLeft = 0;// 左上角坐标为第一个成员
-	gr.LowerRight = 1;// 右下角坐标为第二个成员
+	gr.UpperLeft = 0;	// 左上角坐标为第一个成员
+	gr.LowerRight = 1;	// 右下角坐标为第二个成员
 
-	return GradientFill(hDC, tv, 2, &gr, 1, bV ? GRADIENT_FILL_RECT_V : GRADIENT_FILL_RECT_H);
+	return GradientFill(hDC, tv, 2, &gr, 1, bVertical ? GRADIENT_FILL_RECT_V : GRADIENT_FILL_RECT_H);
 }
 
-enum
+enum class BkImgMode
 {
-	DBGIF_TOPLEFT,// 左上
-	DBGIF_TILE,// 平铺
-	DBGIF_CENTER,// 居中
-	DBGIF_STRETCH,// 缩放
+	TopLeft,// 左上
+	Tile,	// 平铺
+	Center,	// 居中
+	Stretch,// 缩放
+	StretchKeepAspectRatio,// 缩放保持纵横比
 };
 
 /// <summary>
@@ -1129,7 +1130,7 @@ enum
 /// <param name="bFullRgnImage">是否尽量充满目标区域</param>
 /// <returns>AlphaBlend的返回值</returns>
 inline BOOL DrawBackgroundImage32(HDC hDC, HDC hdcBitmap, const RECT& rc, int cxImage, int cyImage,
-	int iMode, BOOL bFullRgnImage)
+	BkImgMode iMode, BOOL bFullRgnImage)
 {
 	constexpr BLENDFUNCTION bf{ AC_SRC_OVER,0,255,AC_SRC_ALPHA };
 	const int
@@ -1143,79 +1144,65 @@ inline BOOL DrawBackgroundImage32(HDC hDC, HDC hdcBitmap, const RECT& rc, int cx
 		cxImage = bmp.bmWidth;
 		cyImage = bmp.bmHeight;
 	}
+
 	switch (iMode)
 	{
-	case DBGIF_TOPLEFT:// 居左上
+	case BkImgMode::TopLeft:// 居左上
 	{
 		if (bFullRgnImage)
 		{
-			if (!cyImage || !cxImage)
-				break;
-			int cxRgn, cyRgn;
-
-			cxRgn = cy * cxImage / cyImage;
-			if (cxRgn < cx)// 先尝试y对齐，看x方向是否充满窗口
-			{
-				cxRgn = cx;
-				cyRgn = cx * cyImage / cxImage;
-			}
-			else
-				cyRgn = cy;
-
-			return AlphaBlend(hDC, 0, 0, cxRgn, cyRgn, hdcBitmap, 0, 0, cxImage, cyImage, bf);
+			RECT rc1{ 0,0,cxImage,cyImage };
+			AdjustRectToFillAnother(rc1, rc);
+			return AlphaBlend(hDC, rc.left, rc.top, rc1.right - rc1.left, rc1.bottom - rc1.top,
+				hdcBitmap, 0, 0, cxImage, cyImage, bf);
 		}
 		else
-			return AlphaBlend(hDC, 0, 0, cxImage, cyImage, hdcBitmap, 0, 0, cxImage, cyImage, bf);
-	}
-	break;
-	case DBGIF_TILE:// 平铺
-	{
-		BOOL b = TRUE;
-		for (int i = 0; i < (cx - 1) / cxImage + 1; ++i)
-			for (int j = 0; j < (cy - 1) / cyImage + 1; ++j)
-				b = AlphaBlend(hDC, i * cxImage, j * cyImage, cxImage, cyImage,
-					hdcBitmap, 0, 0, cxImage, cyImage, bf) && b;
-		return b;
-	}
-	break;
-	case DBGIF_CENTER:// 居中
-	{
-		if (bFullRgnImage)
-		{
-			if (!cyImage || !cxImage)
-				break;
-			int cxRgn, cyRgn;
-			int x, y;
-
-			cxRgn = cy * cxImage / cyImage;
-			if (cxRgn < cx)// 先尝试y对齐，看x方向是否充满窗口
-			{
-				cxRgn = cx;
-				cyRgn = cx * cyImage / cxImage;
-				x = 0;
-				y = (cy - cyRgn) / 2;
-			}
-			else
-			{
-				cyRgn = cy;
-				x = (cx - cxRgn) / 2;
-				y = 0;
-			}
-
-			return AlphaBlend(hDC, x, y, cxRgn, cyRgn, hdcBitmap, 0, 0, cxImage, cyImage, bf);
-		}
-		else
-			return AlphaBlend(hDC, (cx - cxImage) / 2, (cy - cyImage) / 2, cxImage, cyImage,
+			return AlphaBlend(hDC, rc.left, rc.top, cxImage, cyImage,
 				hdcBitmap, 0, 0, cxImage, cyImage, bf);
 	}
-	break;
-	case DBGIF_STRETCH:// 缩放
-		return AlphaBlend(hDC, 0, 0, cx, cy, hdcBitmap, 0, 0, cxImage, cyImage, bf);
-		break;
-	default:
-		EckDbgBreak();
+	ECK_UNREACHABLE;
+
+	case BkImgMode::Tile:// 平铺
+	{
+		EckCounter(DivUpper(cx, cxImage), i)
+		{
+			EckCounter(DivUpper(cy, cyImage), j)
+				if (!AlphaBlend(hDC, rc.left + i * cxImage, rc.top + j * cyImage, cxImage, cyImage,
+					hdcBitmap, 0, 0, cxImage, cyImage, bf))
+					return FALSE;
+		}
+		return TRUE;
 	}
-	return FALSE;
+	ECK_UNREACHABLE;
+
+	case BkImgMode::Center:// 居中
+	{
+		if (bFullRgnImage)
+		{
+			RECT rc1{ 0,0,cxImage,cyImage };
+			AdjustRectToFillAnother(rc1, rc);
+			return AlphaBlend(hDC, rc1.left, rc1.top, rc1.right - rc1.left, rc1.bottom - rc1.top,
+				hdcBitmap, 0, 0, cxImage, cyImage, bf);
+		}
+		else
+			return AlphaBlend(hDC, rc.left + (cx - cxImage) / 2, rc.top + (cy - cyImage) / 2, cxImage, cyImage,
+				hdcBitmap, 0, 0, cxImage, cyImage, bf);
+	}
+	ECK_UNREACHABLE;
+
+	case BkImgMode::Stretch:// 缩放
+		return AlphaBlend(hDC, rc.left, rc.top, cx, cy, hdcBitmap, 0, 0, cxImage, cyImage, bf);
+
+	case BkImgMode::StretchKeepAspectRatio:// 缩放保持纵横比
+	{
+		RECT rc1{ 0,0,cxImage,cyImage };
+		AdjustRectToFitAnother(rc1, rc);
+		return AlphaBlend(hDC, rc1.left, rc1.top, rc1.right - rc1.left, rc1.bottom - rc1.top,
+			hdcBitmap, 0, 0, cxImage, cyImage, bf);
+	}
+	ECK_UNREACHABLE;
+	}
+	ECK_UNREACHABLE;
 }
 
 /// <summary>
@@ -1231,83 +1218,77 @@ inline BOOL DrawBackgroundImage32(HDC hDC, HDC hdcBitmap, const RECT& rc, int cx
 /// <param name="bFullRgnImage">是否尽量充满目标区域</param>
 /// <returns>BitBlt的返回值</returns>
 inline BOOL DrawBackgroundImage(HDC hDC, HDC hdcBitmap, const RECT& rc, int cxImage, int cyImage,
-	int iMode, BOOL bFullRgnImage)
+	BkImgMode iMode, BOOL bFullRgnImage)
 {
 	const int
 		cx = rc.right - rc.left,
 		cy = rc.bottom - rc.top;
+	if (cxImage <= 0 || cyImage <= 0)
+	{
+		BITMAP bmp;
+		if (!GetObjectW(GetCurrentObject(hdcBitmap, OBJ_BITMAP), sizeof(bmp), &bmp))
+			return FALSE;
+		cxImage = bmp.bmWidth;
+		cyImage = bmp.bmHeight;
+	}
+
 	switch (iMode)
 	{
-	case DBGIF_TOPLEFT:// 居左上
+	case BkImgMode::TopLeft:// 居左上
 	{
 		if (bFullRgnImage)
 		{
-			if (!cyImage || !cxImage)
-				break;
-			int cxRgn, cyRgn;
-
-			cxRgn = cy * cxImage / cyImage;
-			if (cxRgn < cx)// 先尝试y对齐，看x方向是否充满窗口
-			{
-				cxRgn = cx;
-				cyRgn = cx * cyImage / cxImage;
-			}
-			else
-				cyRgn = cy;
-
-			return BitBlt(hDC, 0, 0, cxRgn, cyRgn, hdcBitmap, 0, 0, SRCCOPY);
+			RECT rc1{ 0,0,cxImage,cyImage };
+			AdjustRectToFillAnother(rc1, rc);
+			return BitBlt(hDC, rc.left, rc.top, rc1.right - rc1.left, rc1.bottom - rc1.top,
+				hdcBitmap, 0, 0, SRCCOPY);
 		}
 		else
-			return BitBlt(hDC, 0, 0, cxImage, cyImage, hdcBitmap, 0, 0, SRCCOPY);
+			return BitBlt(hDC, rc.left, rc.top, cxImage, cyImage, hdcBitmap, 0, 0, SRCCOPY);
 	}
-	break;
-	case DBGIF_TILE:// 平铺
+	ECK_UNREACHABLE;
+
+	case BkImgMode::Tile:// 平铺
 	{
-		BOOL b = TRUE;
-		for (int i = 0; i < (cx - 1) / cxImage + 1; ++i)
-			for (int j = 0; j < (cy - 1) / cyImage + 1; ++j)
-				b = BitBlt(hDC, i * cxImage, j * cyImage, cxImage, cyImage,
-					hdcBitmap, 0, 0, SRCCOPY) && b;
-		return b;
+		EckCounter(DivUpper(cx, cxImage), i)
+		{
+			EckCounter(DivUpper(cy, cyImage), j)
+				if (!BitBlt(hDC, rc.left + i * cxImage, rc.top + j * cyImage, cxImage, cyImage,
+					hdcBitmap, 0, 0, SRCCOPY))
+					return FALSE;
+		}
+		return TRUE;
 	}
-	case DBGIF_CENTER:// 居中
+	ECK_UNREACHABLE;
+
+	case BkImgMode::Center:// 居中
 	{
 		if (bFullRgnImage)
 		{
-			if (!cyImage || !cxImage)
-				break;
-			int cxRgn, cyRgn;
-			int x, y;
-
-			cxRgn = cy * cxImage / cyImage;
-			if (cxRgn < cx)// 先尝试y对齐，看x方向是否充满窗口
-			{
-				cxRgn = cx;
-				cyRgn = cx * cyImage / cxImage;
-				x = 0;
-				y = (cy - cyRgn) / 2;
-			}
-			else
-			{
-				cyRgn = cy;
-				x = (cx - cxRgn) / 2;
-				y = 0;
-			}
-
-			return BitBlt(hDC, x, y, cxRgn, cyRgn, hdcBitmap, 0, 0, SRCCOPY);
+			RECT rc1{ 0,0,cxImage,cyImage };
+			AdjustRectToFillAnother(rc1, rc);
+			return BitBlt(hDC, rc1.left, rc1.top, rc1.right - rc1.left, rc1.bottom - rc1.top,
+				hdcBitmap, 0, 0, SRCCOPY);
 		}
 		else
 			return BitBlt(hDC, (cx - cxImage) / 2, (cy - cyImage) / 2, cxImage, cyImage,
 				hdcBitmap, 0, 0, SRCCOPY);
 	}
-	break;
-	case DBGIF_STRETCH:// 缩放
-		return BitBlt(hDC, 0, 0, cx, cy, hdcBitmap, 0, 0, SRCCOPY);
-		break;
-	default:
-		EckDbgBreak();
+	ECK_UNREACHABLE;
+
+	case BkImgMode::Stretch:// 缩放
+		return BitBlt(hDC, rc.left, rc.top, cx, cy, hdcBitmap, 0, 0, SRCCOPY);
+
+	case BkImgMode::StretchKeepAspectRatio:// 缩放保持纵横比
+	{
+		RECT rc1{ 0,0,cxImage,cyImage };
+		AdjustRectToFitAnother(rc1, rc);
+		return BitBlt(hDC, rc1.left, rc1.top, rc1.right - rc1.left, rc1.bottom - rc1.top,
+			hdcBitmap, 0, 0, SRCCOPY);
 	}
-	return FALSE;
+	ECK_UNREACHABLE;
+	}
+	ECK_UNREACHABLE;
 }
 
 /// <summary>
@@ -1323,7 +1304,7 @@ inline BOOL DrawBackgroundImage(HDC hDC, HDC hdcBitmap, const RECT& rc, int cxIm
 /// <param name="bFullRgnImage">是否尽量充满目标区域</param>
 /// <returns>BitBlt的返回值</returns>
 inline GpStatus DrawBackgroundImage(GpGraphics* pGraphics, GpImage* pImage, const RECT& rc, int cxImage, int cyImage,
-	int iMode, BOOL bFullRgnImage)
+	BkImgMode iMode, BOOL bFullRgnImage)
 {
 	const int
 		cx = rc.right - rc.left,
@@ -1333,80 +1314,65 @@ inline GpStatus DrawBackgroundImage(GpGraphics* pGraphics, GpImage* pImage, cons
 		GdipGetImageWidth(pImage, (UINT*)&cxImage);
 		GdipGetImageHeight(pImage, (UINT*)&cyImage);
 	}
+
 	switch (iMode)
 	{
-	case DBGIF_TOPLEFT:// 居左上
+	case BkImgMode::TopLeft:// 居左上
 	{
 		if (bFullRgnImage)
 		{
-			if (!cyImage || !cxImage)
-				break;
-			int cxRgn, cyRgn;
-
-			cxRgn = cy * cxImage / cyImage;
-			if (cxRgn < cx)// 先尝试y对齐，看x方向是否充满窗口
-			{
-				cxRgn = cx;
-				cyRgn = cx * cyImage / cxImage;
-			}
-			else
-				cyRgn = cy;
-
-			return GdipDrawImageRectI(pGraphics, pImage, 0, 0, cxRgn, cyRgn);
+			RECT rc1{ 0,0,cxImage,cyImage };
+			AdjustRectToFillAnother(rc1, rc);
+			return GdipDrawImageRectI(pGraphics, pImage,
+				rc.left, rc.top, rc1.right - rc1.left, rc1.bottom - rc1.top);
 		}
 		else
-			return GdipDrawImageRectI(pGraphics, pImage, 0, 0, cxImage, cyImage);
+			return GdipDrawImageRectI(pGraphics, pImage, rc.left, rc.top, cxImage, cyImage);
 	}
-	break;
-	case DBGIF_TILE:// 平铺
+	ECK_UNREACHABLE;
+
+	case BkImgMode::Tile:// 平铺
 	{
-		for (int i = 0; i < (cx - 1) / cxImage + 1; ++i)
-			for (int j = 0; j < (cy - 1) / cyImage + 1; ++j)
-			{
-				const auto b = GdipDrawImageRectI(pGraphics, pImage,
-					i * cxImage, j * cyImage, cxImage, cyImage);
-				if (b != Gdiplus::Ok)
-					return b;
-			}
+		GpStatus gps;
+		EckCounter(DivUpper(cx, cxImage), i)
+		{
+			EckCounter(DivUpper(cy, cyImage), j)
+				if ((gps = GdipDrawImageRectI(pGraphics, pImage,
+					i * cxImage, j * cyImage, cxImage, cyImage)) != Gdiplus::Ok)
+					return gps;
+		}
+		return Gdiplus::Ok;
 	}
-	return Gdiplus::Ok;
-	case DBGIF_CENTER:// 居中
+	ECK_UNREACHABLE;
+
+	case BkImgMode::Center:// 居中
 	{
 		if (bFullRgnImage)
 		{
-			if (!cyImage || !cxImage)
-				break;
-			int cxRgn, cyRgn;
-			int x, y;
-
-			cxRgn = cy * cxImage / cyImage;
-			if (cxRgn < cx)// 先尝试y对齐，看x方向是否充满窗口
-			{
-				cxRgn = cx;
-				cyRgn = cx * cyImage / cxImage;
-				x = 0;
-				y = (cy - cyRgn) / 2;
-			}
-			else
-			{
-				cyRgn = cy;
-				x = (cx - cxRgn) / 2;
-				y = 0;
-			}
-
-			return GdipDrawImageRectI(pGraphics, pImage, x, y, cxRgn, cyRgn);
+			RECT rc1{ 0,0,cxImage,cyImage };
+			AdjustRectToFillAnother(rc1, rc);
+			return GdipDrawImageRectI(pGraphics, pImage,
+				rc1.left, rc1.top, rc1.right - rc1.left, rc1.bottom - rc1.top);
 		}
 		else
 			return GdipDrawImageRectI(pGraphics, pImage,
-				(cx - cxImage) / 2, (cy - cyImage) / 2, cxImage, cyImage);
+				rc.left + (cx - cxImage) / 2, rc.top + (cy - cyImage) / 2, cxImage, cyImage);
 	}
-	break;
-	case DBGIF_STRETCH:// 缩放
-		return GdipDrawImageRectI(pGraphics, pImage, 0, 0, cx, cy);
-	default:
-		EckDbgBreak();
+	ECK_UNREACHABLE;
+
+	case BkImgMode::Stretch:// 缩放
+		return GdipDrawImageRectI(pGraphics, pImage, rc.left, rc.top, cx, cy);
+
+	case BkImgMode::StretchKeepAspectRatio:// 缩放保持纵横比
+	{
+		RECT rc1{ 0,0,cxImage,cyImage };
+		AdjustRectToFitAnother(rc1, rc);
+		return GdipDrawImageRectI(pGraphics, pImage,
+			rc1.left, rc1.top, rc1.right - rc1.left, rc1.bottom - rc1.top);
 	}
-	return Gdiplus::InvalidParameter;
+	ECK_UNREACHABLE;
+	}
+	ECK_UNREACHABLE;
 }
 
 inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp,

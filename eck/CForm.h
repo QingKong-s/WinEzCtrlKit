@@ -29,7 +29,7 @@ private:
 	HBITMAP m_hbmBk = NULL;
 	int m_cxImage = 0,
 		m_cyImage = 0;
-	int m_iBkImageMode = DBGIF_TOPLEFT;
+	BkImg m_iBkImageMode = BkImg::TopLeft;
 	COLORREF m_crBk = CLR_DEFAULT;
 
 	int m_cxClient = 0,
@@ -212,7 +212,7 @@ public:
 		m_cyImage = bm.bmHeight;
 	}
 
-	EckInline void SetBkImageMode(int iMode) { EckAssert(iMode >= 0 && iMode <= 3); m_iBkImageMode = iMode; }
+	EckInline void SetBkImageMode(BkImg iMode) { m_iBkImageMode = iMode; }
 
 	EckInline int GetBkImageMode() const { return m_iBkImageMode; }
 

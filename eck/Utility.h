@@ -829,9 +829,9 @@ inline constexpr BOOL AdjustRectIntoAnother(RECT& rc, const RECT& rcRef)
 
 /// <summary>
 /// 调整矩形以适应。
-/// 函数等比例缩放矩形使之成为包含于参照矩形的最大居中矩形
+/// 函数等宽高比缩放矩形使之成为完全包含于参照矩形之中的最大矩形
 /// </summary>
-/// <param name="rc">要调整的矩形</param>
+/// <param name="rc">欲调整的矩形</param>
 /// <param name="rcRef">参照矩形</param>
 /// <returns>成功返回TRUE，失败返回FALSE</returns>
 inline constexpr BOOL AdjustRectToFitAnother(RECT& rc, const RECT& rcRef)
@@ -865,6 +865,51 @@ inline constexpr BOOL AdjustRectToFitAnother(RECT& rc, const RECT& rcRef)
 		rcRef.top + (cyMax - cy) / 2,
 		cx,
 		cy
+	};
+	return TRUE;
+}
+
+/// <summary>
+/// 调整矩形以充满。
+/// 函数等宽高比缩放矩形使之成为完全覆盖参照矩形内容的最小矩形（可能超出参照矩形）
+/// </summary>
+/// <param name="rc">欲调整的矩形</param>
+/// <param name="rcRef">参照矩形</param>
+/// <returns>成功返回TRUE，失败返回FALSE</returns>
+inline constexpr BOOL AdjustRectToFillAnother(RECT& rc, const RECT& rcRef)
+{
+	const int
+		cxMax = rcRef.right - rcRef.left,
+		cyMax = rcRef.bottom - rcRef.top,
+		cx0 = rc.right - rc.left,
+		cy0 = rc.bottom - rc.top;
+	if (cxMax <= 0 || cyMax <= 0 || cx0 <= 0 || cy0 <= 0)
+		return FALSE;
+
+	int cxRgn, cyRgn;
+	int x, y;
+
+	cxRgn = cyMax * cx0 / cy0;
+	if (cxRgn < cxMax)// 先尝试y对齐，看x方向是否充满
+	{
+		cxRgn = cxMax;
+		cyRgn = cxMax * cy0 / cx0;
+		x = 0;
+		y = (cyMax - cyRgn) / 2;
+	}
+	else
+	{
+		cyRgn = cyMax;
+		x = (cxMax - cxRgn) / 2;
+		y = 0;
+	}
+
+	rc =
+	{
+		rcRef.left + x,
+		rcRef.top + y,
+		rcRef.left + x + cxRgn,
+		rcRef.top + y + cyRgn
 	};
 	return TRUE;
 }

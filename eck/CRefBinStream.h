@@ -136,7 +136,7 @@ public:
 		case SEEK_END:
 			if (dlibMove.QuadPart < -(ptrdiff_t)m_rb.Size())// 落在流开始之前
 				return STG_E_INVALIDFUNCTION;
-			m_posSeek = (size_t)m_rb.Size() + dlibMove.QuadPart;
+			m_posSeek = m_rb.Size() + (size_t)dlibMove.QuadPart;
 			plibNewPosition->QuadPart = m_posSeek;
 			return S_OK;
 		}

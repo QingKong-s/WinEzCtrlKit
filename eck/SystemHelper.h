@@ -1147,6 +1147,7 @@ inline NTSTATUS EnumProcessModules(HANDLE hProcess, std::vector<MODULE_INFO>& vR
 		}
 		p = (UINT_PTR)Entry.InLoadOrderLinks.Flink;
 	}
+	return STATUS_SUCCESS;
 }
 
 inline HANDLE OpenProcess(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwProcessId)
