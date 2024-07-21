@@ -38,7 +38,19 @@ struct VADeleter
 };
 
 template<class T>
+struct CrtMADeleter
+{
+	void operator()(T* p)
+	{
+		free(p);
+	}
+};
+
+template<class T>
 using UniquePtrVA = std::unique_ptr<T, VADeleter<T>>;
+
+template<class T>
+using UniquePtrCrtMA = std::unique_ptr<T, CrtMADeleter<T>>;
 
 
 namespace Colorref
