@@ -834,7 +834,7 @@ public:
 		case ListType::List:
 		{
 			const int idx = ItemFromY(leht.pt.y);
-			if (idx >= 0 && idx < m_vItem.size())
+			if (idx >= 0 && idx < (int)m_vItem.size())
 				return idx;
 			else
 				return -1;
@@ -938,7 +938,7 @@ public:
 				SafeRelease(e.pLayout);
 		else
 		{
-			EckAssert(idx < m_vItem.size());
+			EckAssert(idx < (int)m_vItem.size());
 			SafeRelease(m_vItem[idx].pLayout);
 		}
 	}

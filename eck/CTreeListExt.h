@@ -113,7 +113,7 @@ public:
 		if (tlei.uMask & TLEIF_TEXT)
 		{
 			EckAssert(tlei.idxSubItem >= 0 && tlei.idxSubItem < GetColumnCount());
-			if (hNode->vText.size() <= tlei.idxSubItem)
+			if ((int)hNode->vText.size() <= tlei.idxSubItem)
 				hNode->vText.resize(tlei.idxSubItem + 1);
 			hNode->vText[tlei.idxSubItem].DupString(tlei.pszText, tlei.cchText);
 		}
@@ -129,7 +129,7 @@ public:
 			EckAssert(tlei.cchText >= 0);
 			if (tlei.cchText)
 			{
-				if (hNode->vText.size() <= tlei.idxSubItem)
+				if ((int)hNode->vText.size() <= tlei.idxSubItem)
 					*tlei.pszText = L'\0';
 				else
 					hNode->vText[tlei.idxSubItem].CopyTo(tlei.pszText, tlei.cchText);

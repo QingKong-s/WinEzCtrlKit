@@ -28,7 +28,7 @@ private:
 	int m_cxImage{},
 		m_cyImage{};
 	int m_iScale{ 100 };
-	int m_iViewMode{ DBGIF_TOPLEFT };
+	BkImgMode m_iViewMode{ BkImgMode::TopLeft };
 
 	COLORREF m_crBk{ CLR_DEFAULT };
 
@@ -61,7 +61,7 @@ public:
 			SetDCBrushColor(ps.hdc, m_crBk == CLR_DEFAULT ? GetThreadCtx()->crDefBkg : m_crBk);
 			FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
 
-			if (m_bScalable)
+			if (m_bScalable)// TODO:缩放
 			{
 				if (m_bOwnerDraw)
 				{
@@ -86,15 +86,15 @@ public:
 						m_iViewMode, m_bFullRgnImage);
 					GdipDeleteGraphics(pGraphics);
 				}
-				else if(m_hBitmap)
+				else if (m_hBitmap)
 				{
 					const auto hCDC = CreateCompatibleDC(ps.hdc);
 					SelectObject(hCDC, m_hBitmap);
 					if (m_b32BppHBitmap)
-						DrawBackgroundImage32(ps.hdc, hCDC, m_rcClient, m_cxImage, m_cyImage, 
+						DrawBackgroundImage32(ps.hdc, hCDC, m_rcClient, m_cxImage, m_cyImage,
 							m_iViewMode, m_bFullRgnImage);
 					else
-						DrawBackgroundImage(ps.hdc, hCDC, m_rcClient, m_cxImage, m_cyImage,
+						DrawBackgroundImage32(ps.hdc, hCDC, m_rcClient, m_cxImage, m_cyImage,
 							m_iViewMode, m_bFullRgnImage);
 					DeleteDC(hCDC);
 				}
@@ -105,7 +105,6 @@ public:
 		case WM_SIZE:
 		{
 			ECK_GET_SIZE_LPARAM(m_rcClient.right, m_rcClient.bottom, lParam);
-
 		}
 		return 0;
 		}
@@ -138,9 +137,34 @@ public:
 		return Gdiplus::Ok;
 	}
 
-	EckInline void SetViewMode(int i)
+	EckInline constexpr void SetViewMode(BkImgMode i)
 	{
 		m_iViewMode = i;
+	}
+
+	EckInline constexpr BkImgMode GetViewMode() const
+	{
+		return m_iViewMode;
+	}
+
+	EckInline constexpr void SetFullRgnImage(BOOL b)
+	{
+		m_bFullRgnImage = b;
+	}
+
+	EckInline constexpr BOOL GetFullRgnImage() const
+	{
+		return m_bFullRgnImage;
+	}
+
+	EckInline constexpr void SetBkgColor(COLORREF cr)
+	{
+		m_crBk = cr;
+	}
+
+	EckInline constexpr COLORREF GetBkgColor() const
+	{
+		return m_crBk;
 	}
 };
 ECK_NAMESPACE_END
