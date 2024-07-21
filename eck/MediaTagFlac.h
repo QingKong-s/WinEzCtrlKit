@@ -7,7 +7,7 @@
 */
 #pragma once
 #include "MediaTag.h"
-#include "StrBinInterop.h"
+#include "Utility2.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_MEDIATAG_NAMESPACE_BEGIN
@@ -61,6 +61,7 @@ public:
 		UINT cy;
 		UINT bpp;
 		UINT cColor;
+		MIIWFLAG byAddtFlags;
 	};
 private:
 	std::vector<ITEM> m_vItem{};	// 所有Vorbis注释
@@ -114,19 +115,46 @@ private:
 			cbBlock = Header.bySize[2] | Header.bySize[1] << 8 | Header.bySize[0] << 16;
 			if (!cbBlock)
 				return Result::LenErr;
-			switch (Header.by & 0x7F)
+			switch (Header.eType & 0x7F)
 			{
 			case 0:// 流信息
 				m_Stream += cbBlock;
 				m_posStreamInfoEnd = m_Stream.GetPos();
-			break;
+				break;
 			default:
 				m_Stream += cbBlock;
-			break;
+				break;
 			}
-		} while (!(Header.by & 0x80));
+		} while (!(Header.eType & 0x80));
 		m_posFlacTagEnd = m_Stream.GetPos();
 		return Result::Ok;
+	}
+
+	void SerializeImage(const IMAGE& e, CRefBin& rbImage)
+	{
+		const auto cbCurr = rbImage.Size();
+		rbImage.PushBack(4u);// 悬而未决
+		rbImage << ReverseInteger((UINT)e.eType)
+			<< ReverseInteger(e.rsMime.Size())
+			<< e.rsMime;
+		rbImage.PopBack(1);
+		const int cchDesc = WideCharToMultiByte(CP_UTF8, 0, e.rsDesc.Data(), e.rsDesc.Size(),
+			NULL, 0, NULL, NULL);
+		rbImage << ReverseInteger(cchDesc);
+		WideCharToMultiByte(CP_UTF8, 0, e.rsDesc.Data(), e.rsDesc.Size(),
+			(CHAR*)rbImage.PushBack(cchDesc), cchDesc, NULL, NULL);
+		rbImage << ReverseInteger(e.cx)
+			<< ReverseInteger(e.cy)
+			<< ReverseInteger(e.bpp)
+			<< ReverseInteger(e.cColor)
+			<< ReverseInteger((UINT)e.rbData.Size())
+			<< e.rbData;
+		const auto cbData = (UINT)(rbImage.Size() - cbCurr - 4);
+		const auto phdr = (FLAC_BlockHeader*)(rbImage.Data() + cbCurr);
+		phdr->bySize[0] = GetIntegerByte<2>(cbData);
+		phdr->bySize[1] = GetIntegerByte<1>(cbData);
+		phdr->bySize[2] = GetIntegerByte<0>(cbData);
+		phdr->eType = (BYTE)BlockType::Picture;
 	}
 public:
 	ECK_DISABLE_COPY_MOVE(CFlac)
@@ -208,7 +236,7 @@ public:
 			cbBlock = Header.bySize[2] | Header.bySize[1] << 8 | Header.bySize[0] << 16;
 			if (!cbBlock)
 				return Result::LenErr;
-			switch (Header.by & 0x7F)
+			switch (Header.eType & 0x7F)
 			{
 			case 0:// 流信息
 			{
@@ -268,18 +296,18 @@ public:
 			break;
 			default:
 			{
-				if ((Header.by & 0x7F) == (BYTE)BlockType::Padding)
+				if ((Header.eType & 0x7F) == (BYTE)BlockType::Padding)
 					m_Stream += cbBlock;
 				else
 				{
 					CRefBin rb(cbBlock);
 					m_Stream.Read(rb.Data(), cbBlock);
-					m_vBlock.emplace_back((BlockType)(Header.by & 0x7F), std::move(rb));
+					m_vBlock.emplace_back((BlockType)(Header.eType & 0x7F), std::move(rb));
 				}
 			}
 			break;
 			}
-		} while (!(Header.by & 0x80));
+		} while (!(Header.eType & 0x80));
 		m_posFlacTagEnd = m_Stream.GetPos();
 		return Result::Ok;
 	}
@@ -293,6 +321,7 @@ public:
 		if (m_posFlacTagEnd == SIZETMax || m_posStreamInfoEnd == SIZETMax)
 			return Result::TagErr;
 		CRefBin rbVorbis{}, rbImage{};
+
 		// 序列化Vorbis注释
 		rbVorbis.PushBack(4u);// 悬而未决
 		if (m_rsVendor.IsEmpty())
@@ -305,7 +334,9 @@ public:
 			WideCharToMultiByte(CP_UTF8, 0, m_rsVendor.Data(), m_rsVendor.Size(),
 				(CHAR*)rbVorbis.PushBack(cchVendor), cchVendor, NULL, NULL);
 		}
-		rbVorbis << (UINT)m_vItem.size();
+		size_t posCommCount = rbVorbis.Size();
+		UINT cComm = (UINT)m_vItem.size();
+		rbVorbis << 0u;// 悬而未决
 		for (const auto& e : m_vItem)
 		{
 			if (e.rsKey.IsEmpty())
@@ -318,43 +349,42 @@ public:
 			WideCharToMultiByte(CP_UTF8, 0, e.rsValue.Data(), e.rsValue.Size(),
 				(CHAR*)rbVorbis.PushBack(cchValue), cchValue, NULL, NULL);
 		}
-		const auto cbData = (UINT)rbVorbis.Size() - 4;
-		auto phdr = (FLAC_BlockHeader*)rbVorbis.Data();
-		phdr->bySize[0] = GetIntegerByte<2>(cbData);
-		phdr->bySize[1] = GetIntegerByte<1>(cbData);
-		phdr->bySize[2] = GetIntegerByte<0>(cbData);
-		phdr->by = (BYTE)BlockType::VorbisComment;
+
 		// 序列化图片
 		size_t cbImageGuess{};
 		for (const auto& e : m_vPic)
 			cbImageGuess += (e.rsMime.Size() + e.rsDesc.Size() * 2 + e.rbData.Size() + 40);
 		rbImage.Reserve(cbImageGuess);
+		CRefBin rbTemp{};
+		constexpr CHAR szMetaDataBlockPicture[]{ "METADATA_BLOCK_PICTURE" };
 		for (const auto& e : m_vPic)
 		{
-			const auto cbCurr = rbImage.Size();
-			rbImage.PushBack(4u);// 悬而未决
-			rbImage << ReverseInteger((UINT)e.eType)
-				<< ReverseInteger(e.rsMime.Size())
-				<< e.rsMime;
-			rbImage.PopBack(1);
-			const int cchDesc = WideCharToMultiByte(CP_UTF8, 0, e.rsDesc.Data(), e.rsDesc.Size(),
-				NULL, 0, NULL, NULL);
-			rbImage << ReverseInteger(cchDesc);
-			WideCharToMultiByte(CP_UTF8, 0, e.rsDesc.Data(), e.rsDesc.Size(),
-				(CHAR*)rbImage.PushBack(cchDesc), cchDesc, NULL, NULL);
-			rbImage << ReverseInteger(e.cx)
-				<< ReverseInteger(e.cy)
-				<< ReverseInteger(e.bpp)
-				<< ReverseInteger(e.cColor)
-				<< ReverseInteger((UINT)e.rbData.Size())
-				<< e.rbData;
-			const auto cbData = (UINT)(rbImage.Size() - cbCurr - 4);
-			const auto phdr = (FLAC_BlockHeader*)(rbImage.Data() + cbCurr);
-			phdr->bySize[0] = GetIntegerByte<2>(cbData);
-			phdr->bySize[1] = GetIntegerByte<1>(cbData);
-			phdr->bySize[2] = GetIntegerByte<0>(cbData);
-			phdr->by = (BYTE)BlockType::Picture;
+			if ((e.byAddtFlags & MIIWF_WRITE_METADATA_BLOCK_PICTURE) ||
+				(uFlags & MIF_WRITE_METADATA_BLOCK_PICTURE))
+			{
+				rbTemp.Reserve(e.rsMime.Size() + e.rsDesc.Size() * 2 + e.rbData.Size() + 40);
+				SerializeImage(e, rbTemp);
+				auto rs = Base64Encode(rbTemp.Data() + 4, rbTemp.Size() - 4);
+				rbTemp.Clear();
+				rbVorbis << UINT(rs.Size() + sizeof(szMetaDataBlockPicture));
+				rbVorbis << szMetaDataBlockPicture;
+				rbVorbis.Back() = '=';
+				rbVorbis << rs;
+				++cComm;
+			}
+			else
+				SerializeImage(e, rbImage);
 		}
+
+		*(UINT*)(rbVorbis.Data() + posCommCount) = cComm;
+
+		const auto cbData = (UINT)rbVorbis.Size() - 4;
+		auto phdrVorbisComm = (FLAC_BlockHeader*)rbVorbis.Data();
+		phdrVorbisComm->bySize[0] = GetIntegerByte<2>(cbData);
+		phdrVorbisComm->bySize[1] = GetIntegerByte<1>(cbData);
+		phdrVorbisComm->bySize[2] = GetIntegerByte<0>(cbData);
+		phdrVorbisComm->eType = (BYTE)BlockType::VorbisComment;
+
 		auto cb = rbVorbis.Size() + rbImage.Size();
 		for (const auto& e : m_vBlock)
 			cb += (e.rbData.Size() + 4);
@@ -382,9 +412,13 @@ public:
 			}
 		}
 		else if (cbAvailable < cb)
+		{
 			m_Stream.Insert(m_posFlacTagEnd, cb - cbAvailable);
+			if (m_vBlock.empty())
+				phdrVorbisComm->eType |= 0b1000'0000;
+		}
 		m_Stream.MoveTo(m_posStreamInfoEnd);
-		m_Stream << rbVorbis << rbImage;
+		m_Stream << rbImage << rbVorbis;
 		EckCounter(m_vBlock.size(), i)
 		{
 			const auto& e = m_vBlock[i];
@@ -400,6 +434,17 @@ public:
 		}
 		m_Stream.GetStream()->Commit(STGC_DEFAULT);
 		return Result::Ok;
+	}
+
+	void Reset() override
+	{
+		m_vItem.clear();
+		m_vPic.clear();
+		m_vBlock.clear();
+		m_si = {};
+		m_rsVendor.Clear();
+		m_posFlacTagEnd = SIZETMax;
+		m_posStreamInfoEnd = SIZETMax;
 	}
 
 	auto& GetVorbisComments() { return m_vItem; }

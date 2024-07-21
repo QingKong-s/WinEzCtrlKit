@@ -315,6 +315,8 @@ public:
 	using TReverseIterator = std::reverse_iterator<TIterator>;
 	using TConstReverseIterator = std::reverse_iterator<TConstIterator>;
 
+	using TNtString = std::conditional_t<std::is_same_v<TChar, CHAR>, ANSI_STRING, UNICODE_STRING>;
+
 	static_assert(std::is_same_v<typename TAllocTraits::size_type, int>);
 private:
 	TPointer m_pszText = NULL;
@@ -335,6 +337,7 @@ public:
 		: m_cchCapacity{ cchInit + 1 }, m_cchText{ cchInit }
 	{
 		m_pszText = m_Alloc.allocate(m_cchCapacity);
+		TCharTraits::Cut(m_pszText, cchInit);
 	}
 
 	/// <summary>
@@ -346,6 +349,7 @@ public:
 		: m_cchText{ cchInit }, m_cchCapacity{ cchInit + 1 }, m_Alloc{ Al }
 	{
 		m_pszText = m_Alloc.allocate(m_cchCapacity);
+		TCharTraits::Cut(m_pszText, cchInit);
 	}
 
 	/// <summary>
@@ -419,6 +423,9 @@ public:
 		m_pszText = m_Alloc.allocate(m_cchCapacity);
 		TCharTraits::CopyEnd(Data(), x.c_str(), x.size());
 	}
+
+	explicit CRefStrT(TNtString nts, const TAlloc& Al = TAlloc{})
+		:CRefStrT(nts.Buffer, (int)nts.Length, Al) {}
 
 	~CRefStrT()
 	{
@@ -526,13 +533,19 @@ public:
 
 	[[nodiscard]] EckInline TAlloc GetAllocator() const { return m_Alloc; }
 
-	[[nodiscard]] EckInline int Size() const { return m_cchText; }
+	[[nodiscard]] EckInline constexpr int Size() const { return m_cchText; }
 
-	[[nodiscard]] EckInline size_t ByteSize() const { return (m_cchText + 1) * sizeof(TChar); }
+	[[nodiscard]] EckInline constexpr size_t ByteSize() const { return (m_cchText + 1) * sizeof(TChar); }
 
-	[[nodiscard]] EckInline TPointer Data() { return m_pszText; }
+	[[nodiscard]] EckInline constexpr size_t ByteSizePure() const { return m_cchText * sizeof(TChar); }
 
-	[[nodiscard]] EckInline TConstPointer Data() const { return m_pszText; }
+	[[nodiscard]] EckInline constexpr int Capacity() const { return m_cchCapacity; }
+
+	[[nodiscard]] EckInline constexpr size_t ByteCapacity() const { return m_cchCapacity * sizeof(TChar); }
+
+	[[nodiscard]] EckInline constexpr TPointer Data() { return m_pszText; }
+
+	[[nodiscard]] EckInline constexpr TConstPointer Data() const { return m_pszText; }
 
 	/// <summary>
 	/// 克隆字符串。
@@ -549,6 +562,11 @@ public:
 		ReSizeExtra(cchSrc);
 		TCharTraits::CopyEnd(Data(), pszSrc, cchSrc);
 		return cchSrc;
+	}
+
+	void DupString(TNtString nts)
+	{
+		DupString((TConstPointer)nts.Buffer, (int)nts.Length);
 	}
 
 	EckInline int DupBSTR(BSTR bstr)
@@ -1100,6 +1118,35 @@ public:
 	[[nodiscard]] EckInline int CompareI(TConstPointer psz) const
 	{
 		return TCharTraits::CompareI(Data(), psz);
+	}
+
+	[[nodiscard]] EckInline constexpr TNtString ToNtString()
+	{
+		return TNtString{ (USHORT)ByteSizePure(),(USHORT)ByteCapacity(),Data() };
+	}
+
+	[[nodiscard]] EckInline constexpr RTL_UNICODE_STRING_BUFFER ToNtStringBuf()
+	{
+		if constexpr (std::is_same_v<TChar, WCHAR>)
+		{
+#if ECKCXX20
+			return RTL_UNICODE_STRING_BUFFER
+			{
+				.String = ToNtString(),
+				.ByteBuffer = { .Buffer = (PUCHAR)Data(),.Size = ByteCapacity() },
+			};
+#else
+			RTL_UNICODE_STRING_BUFFER Buf{ ToNtString() };
+			Buf.ByteBuffer.Buffer = (PUCHAR)Data();
+			Buf.ByteBuffer.Size = ByteCapacity();
+			return Buf;
+#endif// ECKCXX20
+		}
+		else
+		{
+			EckDbgBreak();
+			return {};
+		}
 	}
 
 	[[nodiscard]] EckInline TIterator begin() { return Data(); }

@@ -894,4 +894,176 @@ EckInline BOOL EnumFileRecurse(PCWSTR pszPath, std::vector<CRefStrW>& vResult)
 	EckAssert(rs.Back() == L'\\');
 	return EnumFileRecurse(rs.Data(), pszFileName, vResult);
 }
+
+inline NTSTATUS NtPathToDosPath(CRefStrW& rsBuf)
+{
+	RTL_UNICODE_STRING_BUFFER Buf{ .String = rsBuf.ToNtString(),
+	.ByteBuffer = { .Buffer = (PUCHAR)rsBuf.Data(),.Size = rsBuf.ByteCapacity() } };
+	NTSTATUS nts = RtlNtPathNameToDosPathName(0, &Buf, NULL, NULL);
+	if (NT_SUCCESS(nts))
+	{
+		rsBuf.ReSize(Buf.String.Length / sizeof(WCHAR));
+		goto Success;
+	}
+	else if (nts == STATUS_NO_MEMORY ||
+		nts == STATUS_BUFFER_TOO_SMALL ||
+		nts == STATUS_INFO_LENGTH_MISMATCH)
+	{
+		rsBuf.Reserve(rsBuf.Size() + MAX_PATH);
+		Buf.String = rsBuf.ToNtString();
+		nts = RtlNtPathNameToDosPathName(0, &Buf, NULL, NULL);
+		if (NT_SUCCESS(nts))
+		{
+			rsBuf.ReSize(Buf.String.Length / sizeof(WCHAR));
+			rsBuf.ShrinkToFit();
+			goto Success;
+		}
+	}
+	rsBuf.Clear();
+	return nts;
+Success:
+	if (rsBuf.IsEmpty())
+		return STATUS_SUCCESS;
+	// 替换设备名
+	// TODO:支持网络位置
+	if (rsBuf.Front() == L'\\')
+	{
+		WCHAR szDriver[53];
+		WCHAR szLinkTarget[200];
+		if (GetLogicalDriveStringsW(ARRAYSIZE(szDriver), szDriver))
+			for (auto p = szDriver; *p; p += 4)
+			{
+				*(p + 2) = L'\0';
+				const int cch = (int)QueryDosDeviceW(p, szLinkTarget, ARRAYSIZE(szLinkTarget)) - 2;
+				if (cch > 0)
+				{
+					szLinkTarget[cch] = L'\\';
+					if (rsBuf.IsStartOfI(szLinkTarget, cch))
+					{
+						rsBuf.Replace(0, cch, p);
+						break;
+					}
+				}
+			}
+	}
+	return STATUS_SUCCESS;
+}
+
+inline NTSTATUS GetProcessPath(UINT uPID, CRefStrW& rsDosPath, BOOL bDosPath = TRUE)
+{
+	SYSTEM_PROCESS_ID_INFORMATION spii{ .ProcessId = i32ToP<HANDLE>(uPID) };
+	NTSTATUS nts = NtQuerySystemInformation(SystemProcessIdInformation, &spii, sizeof(spii), NULL);
+	if (spii.ImageName.MaximumLength && nts == STATUS_INFO_LENGTH_MISMATCH)
+	{
+		rsDosPath.ReSize(spii.ImageName.MaximumLength);
+		spii.ImageName.Buffer = rsDosPath.Data();
+		spii.ImageName.Length = 0;
+		nts = NtQuerySystemInformation(SystemProcessIdInformation, &spii, sizeof(spii), NULL);
+		if (NT_SUCCESS(nts))
+		{
+			if (bDosPath)
+				return NtPathToDosPath(rsDosPath);
+			else
+				return STATUS_SUCCESS;
+		}
+	}
+	rsDosPath.Clear();
+	return nts;
+}
+
+struct THREAD_INFO
+{
+	UINT uTID;
+	UINT_PTR AddrStart;
+	KPRIORITY Priority;
+	KPRIORITY BasePriority;
+};
+
+struct PROCESS_INFO
+{
+	CRefStrW rsImageName;	// 进程名
+	ULONG uPID;				// 进程ID
+	ULONG uParentPID;		// 父进程ID
+	ULONG cThreads;			// 线程数
+	ULONG uSessionID;		// 会话ID
+	ULONG cHandles;			// 句柄数
+	ULONG cPageFaults;		// 页面错误数
+	SIZE_T cbPrivateWorkingSet;			// 专用工作集
+	SIZE_T cbWorkingSet;				// 工作集
+	SIZE_T cbPeakWorkingSet;			// 峰值工作集
+	SIZE_T cbQuotaPagedPoolUsage;		// 页面缓冲池
+	SIZE_T cbPeakQuotaPagedPoolUsage;	// 峰值页面缓冲池
+	SIZE_T cbQuotaNonPagedPoolUsage;	// 非页面缓冲池
+	SIZE_T cbPeakQuotaNonPagedPoolUsage;// 峰值非页面缓冲池
+	SIZE_T cbPagefileUsage;				// 已提交
+	SIZE_T cbPeakPagefileUsage;			// 峰值已提交
+	CRefStrW rsFilePath;	// 进程路径
+	std::vector<THREAD_INFO> vThreads;	// 线程信息
+};
+
+enum EPFLAGS :UINT
+{
+	EPF_NONE = 0u,
+	EPF_THREAD_INFO = 1u << 0,
+	EPF_PROCESS_PATH = 1u << 1,
+	EPF_PROCESS_MODULES = 1u << 2,
+};
+ECK_ENUM_BIT_FLAGS(EPFLAGS);
+
+inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags = EPF_NONE)
+{
+	ULONG cb;
+	NTSTATUS nts = NtQuerySystemInformation(SystemProcessInformation, NULL, 0, &cb);
+	if (!cb)
+		return nts;
+	BYTE* pBuf = (BYTE*)VAlloc(cb);
+	UniquePtrVA<BYTE> _(pBuf);
+	if (!NT_SUCCESS(nts = NtQuerySystemInformation(SystemProcessInformation, pBuf, cb, &cb)))
+		return nts;
+	vResult.reserve(150u);
+	auto pspi = (SYSTEM_PROCESS_INFORMATION*)pBuf;
+	for (;;)
+	{
+		auto& e = vResult.emplace_back(
+			CRefStrW(pspi->ImageName),
+			pToI32<ULONG>(pspi->UniqueProcessId),
+			pToI32<ULONG>(pspi->InheritedFromUniqueProcessId),
+			pspi->NumberOfThreads,
+			pspi->SessionId,
+			pspi->HandleCount,
+			pspi->PageFaultCount,
+			(SIZE_T)pspi->WorkingSetPrivateSize.QuadPart,
+			pspi->WorkingSetSize,
+			pspi->PeakWorkingSetSize,
+			pspi->QuotaPagedPoolUsage,
+			pspi->QuotaPeakPagedPoolUsage,
+			pspi->QuotaNonPagedPoolUsage,
+			pspi->QuotaPeakNonPagedPoolUsage,
+			pspi->PagefileUsage,
+			pspi->PeakPagefileUsage);
+
+		if (uFlags & EPF_PROCESS_PATH)
+			GetProcessPath(e.uPID, e.rsFilePath);
+		
+		if (uFlags & EPF_THREAD_INFO)
+		{
+			e.vThreads.resize(pspi->NumberOfThreads);
+			SYSTEM_THREAD_INFORMATION* const pBegin = pspi->Threads;
+			SYSTEM_THREAD_INFORMATION* const pEnd = pBegin + pspi->NumberOfThreads;
+			for (auto p = pBegin; p < pEnd; ++p)
+			{
+				auto& t = e.vThreads[p - pBegin];
+				t.uTID = pToI32<ULONG>(p->ClientId.UniqueThread);
+				t.AddrStart = p->StartAddress;
+				t.Priority = p->Priority;
+				t.BasePriority = p->BasePriority;
+			}
+		}
+
+		if (pspi->NextEntryOffset == 0)
+			break;
+		pspi = PtrStepCb(pspi, pspi->NextEntryOffset);
+	}
+	return STATUS_SUCCESS;
+}
 ECK_NAMESPACE_END
