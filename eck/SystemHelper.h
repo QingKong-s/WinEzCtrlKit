@@ -978,6 +978,144 @@ EckInline BOOL EnumFileRecurse(PCWSTR pszPath, std::vector<CRefStrW>& vResult)
 	return EnumFileRecurse(rs.Data(), pszFileName, vResult);
 }
 
+namespace EckPriv
+{
+	UINT OpenInExplorerThread(void* pParam)
+	{
+		const auto pvPath = (std::vector<CRefStrW>*)pParam;
+		if (FAILED(CoInitialize(NULL)))
+		{
+			delete pvPath;
+			return 0;
+		}
+
+		std::unordered_map<std::wstring_view, int> hmPaths{};// 文件夹路径->vPIDL索引
+		std::vector<std::pair<LPITEMIDLIST, std::vector<LPITEMIDLIST>>> vPIDL{};// { 文件夹PIDL,{文件PIDL} }
+		LPITEMIDLIST pIDL;
+
+		int idxCurr = 0;
+
+		PWSTR pszFileName;
+		PCWSTR pszPath;
+		for (const auto& x : *pvPath)
+		{
+			pszPath = x.Data();
+			pszFileName = PathFindFileNameW(pszPath);
+			if (pszFileName != pszPath)
+			{
+				const std::wstring_view svTemp(pszPath, pszFileName - pszPath);
+				auto it = hmPaths.find(svTemp);
+				if (it == hmPaths.end())
+				{
+					WCHAR ch = *(pszFileName - 1);
+					*(pszFileName - 1) = L'\0';
+					if (FAILED(SHParseDisplayName(pszPath, NULL, &pIDL, 0, NULL)))// 文件夹转PIDL
+					{
+						*(pszFileName - 1) = ch;
+						continue;
+					}
+					*(pszFileName - 1) = ch;
+
+					it = hmPaths.insert(std::make_pair(svTemp, idxCurr)).first;
+					++idxCurr;
+
+					auto& x = vPIDL.emplace_back(pIDL, std::vector<LPITEMIDLIST>());
+					if (FAILED(SHParseDisplayName(pszPath, NULL, &pIDL, 0, NULL)))// 文件转PIDL
+						continue;
+					x.second.emplace_back(pIDL);
+				}
+				else
+				{
+					SHParseDisplayName(pszPath, NULL, &pIDL, 0, NULL);// 文件转PIDL
+					vPIDL[it->second].second.emplace_back(pIDL);
+				}
+			}
+		}
+
+		for (const auto& x : vPIDL)
+		{
+			SHOpenFolderAndSelectItems(x.first, (UINT)x.second.size(), (LPCITEMIDLIST*)x.second.data(), 0);
+			CoTaskMemFree(x.first);
+			for (const auto pidl : x.second)
+				CoTaskMemFree(pidl);
+		}
+
+		delete pvPath;
+		CoUninitialize();
+		return 0;
+	}
+}
+
+/// <summary>
+/// 在资源管理器中打开。
+/// 可一次性传递多个文件，且父目录可以不同
+/// </summary>
+/// <param name="vPath">路径</param>
+EckInline void OpenInExplorer(const std::vector<CRefStrW>& vPath)
+{
+	CloseHandle(CrtCreateThread(EckPriv::OpenInExplorerThread, new std::vector{ vPath }));
+}
+
+/// <summary>
+/// 在资源管理器中打开。
+/// 可一次性传递多个文件，且父目录可以不同
+/// </summary>
+/// <param name="pvPath">路径vector指针，必须使用new分配且传递后不可再使用</param>
+EckInline void OpenInExplorer(std::vector<CRefStrW>* pvPath)
+{
+	CloseHandle(CrtCreateThread(EckPriv::OpenInExplorerThread, pvPath));
+}
+
+/// <summary>
+/// 在资源管理器中打开
+/// </summary>
+/// <param name="pszFolder">文件夹路径</param>
+/// <param name="vFile">文件路径，必须全部在pszFolder指定的文件夹之下</param>
+/// <returns>HRESULT</returns>
+EckInline HRESULT OpenInExplorer(PCWSTR pszFolder, const std::vector<CRefStrW>& vFile)
+{
+	HRESULT hr;
+	LPITEMIDLIST pIDL;
+	if (FAILED(hr = SHParseDisplayName(pszFolder, NULL, &pIDL, 0, NULL)))
+		return hr;
+	std::vector<LPITEMIDLIST> vPIDL(vFile.size());
+	for (auto& e : vFile)
+	{
+		if (FAILED(hr = SHParseDisplayName(e.Data(), NULL, &vPIDL.emplace_back(), 0, NULL)))
+			goto CleanupAndRet;
+	}
+	hr = SHOpenFolderAndSelectItems(pIDL, (UINT)vPIDL.size(), vPIDL.data(), 0);
+CleanupAndRet:
+	CoTaskMemFree(pIDL);
+	for (const auto e : vPIDL)
+		CoTaskMemFree(e);
+	return hr;
+}
+
+inline HRESULT OpenInExplorer(PCWSTR pszFile)
+{
+	const auto psz = PathFindFileNameW(pszFile);
+	if (psz == pszFile)
+		return E_INVALIDARG;
+	const int cbFolder = Cch2CbW(psz - pszFile - 1);
+	const auto pszFolder = (PWSTR)_malloca(cbFolder);
+	EckCheckMem(pszFolder);
+	wmemcpy(pszFolder, pszFile, cbFolder);
+	*(pszFolder + cbFolder / sizeof(WCHAR) - 1) = L'\0';
+	LPITEMIDLIST pIdlFolder, pIdlFile;
+	HRESULT hr;
+	if (FAILED(hr = SHParseDisplayName(pszFolder, NULL, &pIdlFolder, 0, NULL)))
+		goto CleanupAndRet;
+	if (FAILED(hr = SHParseDisplayName(psz, NULL, &pIdlFile, 0, NULL)))
+		goto CleanupAndRet;
+	hr = SHOpenFolderAndSelectItems(pIdlFolder, 1, &pIdlFile, 0);
+CleanupAndRet:
+	CoTaskMemFree(pIdlFolder);
+	CoTaskMemFree(pIdlFile);
+	_freea(pszFolder);
+	return hr;
+}
+
 struct MODULE_INFO
 {
 	CRefStrW rsModuleName;
@@ -985,6 +1123,59 @@ struct MODULE_INFO
 	void* BaseAddress;
 	SIZE_T cbImage;
 };
+
+inline NTSTATUS EnumProcessModules(HANDLE hProcess, std::vector<MODULE_INFO>& vResult)
+{
+	NTSTATUS nts;
+	// 取PEB
+	UINT_PTR pPeb = (UINT_PTR)GetProcessPeb(hProcess, &nts);
+	if (!pPeb)
+		return nts;
+	// 取PEB_LDR_DATA
+	PEB_LDR_DATA LdrData;
+	UINT_PTR pLdr;
+	if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)(pPeb + offsetof(PEB, Ldr)),
+		&pLdr, sizeof(pLdr), NULL)))
+		return nts;
+	if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)pLdr,
+		&LdrData, sizeof(LdrData), NULL)))
+		return nts;
+	if (!LdrData.Initialized)
+		return STATUS_UNSUCCESSFUL;
+
+	LDR_DATA_TABLE_ENTRY Entry;// 不要使用Win7之后添加的字段
+	UINT_PTR pBegin = pLdr + offsetof(PEB_LDR_DATA, InLoadOrderModuleList);
+	for (UINT_PTR p = (UINT_PTR)LdrData.InLoadOrderModuleList.Flink; p != pBegin; )
+	{
+		if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)p,
+			&Entry, LDR_DATA_TABLE_ENTRY_SIZE_WIN7, NULL)))
+			return nts;
+		if (Entry.DllBase)
+		{
+			auto& e = vResult.emplace_back();
+			if (Entry.BaseDllName.Length)
+			{
+				const int cch = Entry.BaseDllName.Length / sizeof(WCHAR);
+				e.rsModuleName.ReSize(cch);
+				if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)Entry.BaseDllName.Buffer,
+					e.rsModuleName.Data(), cch * sizeof(WCHAR), NULL)))
+					return nts;
+			}
+			if (Entry.FullDllName.Length)
+			{
+				const int cch = Entry.FullDllName.Length / sizeof(WCHAR);
+				e.rsModulePath.ReSize(cch);
+				if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)Entry.FullDllName.Buffer,
+					e.rsModulePath.Data(), cch * sizeof(WCHAR), NULL)))
+					return nts;
+			}
+			e.BaseAddress = (void*)Entry.DllBase;
+			e.cbImage = Entry.SizeOfImage;
+		}
+		p = (UINT_PTR)Entry.InLoadOrderLinks.Flink;
+	}
+	return STATUS_SUCCESS;
+}
 
 struct THREAD_INFO
 {
@@ -1014,6 +1205,7 @@ struct PROCESS_INFO
 	SIZE_T cbPeakPageFileUsage;			// 峰值已提交
 	CRefStrW rsFilePath;	// 进程路径
 	std::vector<THREAD_INFO> vThreads;	// 线程信息
+	std::vector<MODULE_INFO> vModules;	// 模块信息
 };
 
 enum EPFLAGS :UINT
@@ -1021,7 +1213,7 @@ enum EPFLAGS :UINT
 	EPF_NONE = 0u,
 	EPF_THREAD_INFO = 1u << 0,
 	EPF_PROCESS_PATH = 1u << 1,
-	EPF_PROCESS_MODULES = 1u << 2,
+	EPF_MODULE_INFO = 1u << 2,
 };
 ECK_ENUM_BIT_FLAGS(EPFLAGS);
 
@@ -1075,6 +1267,13 @@ inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags =
 			}
 		}
 
+		if (uFlags & EPF_MODULE_INFO)
+		{
+			const auto hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, e.uPID);
+			EnumProcessModules(hProcess, e.vModules);
+			NtClose(hProcess);
+		}
+
 		if (pspi->NextEntryOffset == 0)
 			break;
 		pspi = PtrStepCb(pspi, pspi->NextEntryOffset);
@@ -1082,7 +1281,7 @@ inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags =
 	return STATUS_SUCCESS;
 }
 
-EckInline void* GetProcessPeb(HANDLE hProcess,NTSTATUS* pnts = NULL)
+EckInline void* GetProcessPeb(HANDLE hProcess, NTSTATUS* pnts = NULL)
 {
 	PROCESS_BASIC_INFORMATION pbi;
 	NTSTATUS nts;
@@ -1095,59 +1294,6 @@ EckInline void* GetProcessPeb(HANDLE hProcess,NTSTATUS* pnts = NULL)
 	if (pnts)
 		*pnts = STATUS_SUCCESS;
 	return pbi.PebBaseAddress;
-}
-
-inline NTSTATUS EnumProcessModules(HANDLE hProcess, std::vector<MODULE_INFO>& vResult)
-{
-	NTSTATUS nts;
-	// 取PEB
-	UINT_PTR pPeb = (UINT_PTR)GetProcessPeb(hProcess, &nts);
-	if (!pPeb)
-		return nts;
-	// 取PEB_LDR_DATA
-	PEB_LDR_DATA LdrData;
-	UINT_PTR pLdr;
-	if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)(pPeb + offsetof(PEB, Ldr)),
-		&pLdr, sizeof(pLdr), NULL)))
-		return nts;
-	if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)pLdr,
-		&LdrData, sizeof(LdrData), NULL)))
-		return nts;
-	if (!LdrData.Initialized)
-		return STATUS_UNSUCCESSFUL;
-
-	LDR_DATA_TABLE_ENTRY Entry;// 不要使用Win7之后添加的字段
-	UINT_PTR pBegin = pLdr + offsetof(PEB_LDR_DATA, InLoadOrderModuleList);
-	for (UINT_PTR p = (UINT_PTR)LdrData.InLoadOrderModuleList.Flink; p != pBegin; )
-	{
-		if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)p,
-			&Entry, LDR_DATA_TABLE_ENTRY_SIZE_WIN7, NULL)))
-			return nts;
-		if (Entry.DllBase)
-		{
-			auto& e = vResult.emplace_back();
-			if (Entry.BaseDllName.Length)
-			{
-				const int cch = Entry.BaseDllName.Length / sizeof(WCHAR);
-				e.rsModuleName.ReSize(cch);
-				if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)Entry.BaseDllName.Buffer,
-					e.rsModuleName.Data(), cch*sizeof(WCHAR), NULL)))
-					return nts;
-			}
-			if (Entry.FullDllName.Length)
-			{
-				const int cch = Entry.FullDllName.Length / sizeof(WCHAR);
-				e.rsModulePath.ReSize(cch);
-				if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)Entry.FullDllName.Buffer,
-					e.rsModulePath.Data(), cch*sizeof(WCHAR), NULL)))
-					return nts;
-			}
-			e.BaseAddress = (void*)Entry.DllBase;
-			e.cbImage = Entry.SizeOfImage;
-		}
-		p = (UINT_PTR)Entry.InLoadOrderLinks.Flink;
-	}
-	return STATUS_SUCCESS;
 }
 
 inline HANDLE OpenProcess(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwProcessId)

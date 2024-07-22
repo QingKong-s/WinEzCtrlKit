@@ -487,7 +487,7 @@ public:
 		return m_cxChar * D.cCol;
 	}
 
-	EckInline int InsertCharColumn(UINT uCodePage, int idx = -1)
+	int InsertCharColumn(UINT uCodePage, int idx = -1)
 	{
 		const BOOL bUtf16 = (uCodePage == CP_UTF16LE || uCodePage == CP_UTF16BE);
 		CPINFOEXW cpi;
