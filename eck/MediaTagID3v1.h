@@ -385,7 +385,7 @@ public:
 	{
 		BYTE byDummy[60]{};
 		size_t cb;
-		CHAR szBuf[c_cchI32ToStrBufNoRadix2 * 2 + 1];
+		CHAR szBuf[CchI32ToStrBufNoRadix2 * 2 + 1];
 
 		if (m_File.m_Loc.posV1Ext == SIZETMax)
 			if (uFlags & MIF_CREATE_ID3V1_EXT)

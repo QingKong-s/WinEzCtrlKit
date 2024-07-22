@@ -1321,7 +1321,7 @@ EckInline void DbgPrint(const CRefStrT<CHAR, TCharTraits, TAlloc>& rs, int iType
 
 [[nodiscard]] EckInline CRefStrW ToStr(int x, int iRadix = 10)
 {
-	CRefStrW rs(c_cchI32ToStrBuf);
+	CRefStrW rs(CchI32ToStrBuf);
 	_itow(x, rs.Data(), iRadix);
 	rs.ReCalcLen();
 	return rs;
@@ -1329,7 +1329,7 @@ EckInline void DbgPrint(const CRefStrT<CHAR, TCharTraits, TAlloc>& rs, int iType
 
 [[nodiscard]] EckInline CRefStrW ToStr(UINT x, int iRadix = 10)
 {
-	CRefStrW rs(c_cchI32ToStrBuf);
+	CRefStrW rs(CchI32ToStrBuf);
 	_ultow(x, rs.Data(), iRadix);
 	rs.ReCalcLen();
 	return rs;
@@ -1337,7 +1337,7 @@ EckInline void DbgPrint(const CRefStrT<CHAR, TCharTraits, TAlloc>& rs, int iType
 
 [[nodiscard]] EckInline CRefStrW ToStr(LONGLONG x, int iRadix = 10)
 {
-	CRefStrW rs(c_cchI64ToStrBuf);
+	CRefStrW rs(CchI64ToStrBuf);
 	_i64tow(x, rs.Data(), iRadix);
 	rs.ReCalcLen();
 	return rs;
@@ -1345,7 +1345,7 @@ EckInline void DbgPrint(const CRefStrT<CHAR, TCharTraits, TAlloc>& rs, int iType
 
 [[nodiscard]] EckInline CRefStrW ToStr(ULONGLONG x, int iRadix = 10)
 {
-	CRefStrW rs(c_cchI64ToStrBuf);
+	CRefStrW rs(CchI64ToStrBuf);
 	_ui64tow(x, rs.Data(), iRadix);
 	rs.ReCalcLen();
 	return rs;
