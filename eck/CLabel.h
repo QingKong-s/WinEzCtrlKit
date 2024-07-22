@@ -15,7 +15,7 @@
 ECK_NAMESPACE_BEGIN
 struct ECKLABELDATA
 {
-	BkImg iBKPicMode;	// 底图模式，0 - 居左上  1 - 平铺  2 - 居中  3 - 缩放
+	BkImgMode iBKPicMode;	// 底图模式，0 - 居左上  1 - 平铺  2 - 居中  3 - 缩放
 	int iAlignH;			// 横向对齐
 	int iAlignV;			// 纵向对齐
 	COLORREF crText;		// 文本颜色
@@ -490,13 +490,13 @@ public:
 	/// <summary>
 	/// 置底图方式
 	/// </summary>
-	EckInline void SetBKPicMode(BkImg iBKPicMode)
+	EckInline void SetBKPicMode(BkImgMode iBKPicMode)
 	{
 		m_Info.iBKPicMode = iBKPicMode;
 		Redraw();
 	}
 
-	EckInline int GetBKPicMode()
+	EckInline BkImgMode GetBKPicMode()
 	{
 		return m_Info.iBKPicMode;
 	}

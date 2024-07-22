@@ -21,7 +21,7 @@ void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine);
 
 inline void DbgPrint(int i, BOOL bHex = FALSE, BOOL bNewLine = TRUE)
 {
-    WCHAR buf[c_cchI32ToStrBufNoRadix2];
+    WCHAR buf[CchI32ToStrBufNoRadix2];
     const PCWSTR pszFmt = (bHex ? L"0x%08X" : L"%d");
     swprintf_s(buf, pszFmt, i);
     OutputDebugStringW(buf);
@@ -31,7 +31,7 @@ inline void DbgPrint(int i, BOOL bHex = FALSE, BOOL bNewLine = TRUE)
 
 inline void DbgPrint(DWORD i, BOOL bHex = FALSE, BOOL bNewLine = TRUE)
 {
-    WCHAR buf[c_cchI32ToStrBufNoRadix2];
+    WCHAR buf[CchI32ToStrBufNoRadix2];
     const PCWSTR pszFmt = (bHex ? L"0x%08X" : L"%lu");
     swprintf_s(buf, pszFmt, i);
     OutputDebugStringW(buf);
@@ -41,7 +41,7 @@ inline void DbgPrint(DWORD i, BOOL bHex = FALSE, BOOL bNewLine = TRUE)
 
 inline void DbgPrint(LONGLONG i, BOOL bHex = FALSE, BOOL bNewLine = TRUE)
 {
-    WCHAR buf[c_cchI64ToStrBufNoRadix2];
+    WCHAR buf[CchI64ToStrBufNoRadix2];
     const PCWSTR pszFmt = (bHex ? L"0x%016I64X" : L"%I64d");
     swprintf_s(buf, pszFmt, i);
     OutputDebugStringW(buf);
@@ -51,7 +51,7 @@ inline void DbgPrint(LONGLONG i, BOOL bHex = FALSE, BOOL bNewLine = TRUE)
 
 inline void DbgPrint(ULONGLONG i, BOOL bHex = FALSE, BOOL bNewLine = TRUE)
 {
-    WCHAR buf[c_cchI64ToStrBufNoRadix2];
+    WCHAR buf[CchI64ToStrBufNoRadix2];
     const PCWSTR pszFmt = (bHex ? L"0x%016I64X" : L"%I64u");
     swprintf_s(buf, pszFmt, i);
     OutputDebugStringW(buf);

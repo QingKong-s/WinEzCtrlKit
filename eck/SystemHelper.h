@@ -313,7 +313,7 @@ inline HRESULT GetCpuInfo(CPUINFO& ci)
 	szBrand[48] = '\0';
 	ci.rsBrand = StrX2W(szBrand);
 	// 取序列号
-	ci.rsSerialNum.ReSize(c_cchI32ToStrBuf * 2);
+	ci.rsSerialNum.ReSize(CchI32ToStrBuf * 2);
 	__cpuid(Register, 1);
 	int cch = swprintf(ci.rsSerialNum.Data(), L"%08X%08X", Register[3], Register[0]);
 	ci.rsSerialNum.ReSize(cch);

@@ -128,7 +128,7 @@ EckInline void DpiScale(SIZE& size, int iDpi)
 /// <param name="hWnd">计算高度时的参照窗口，将使用此窗口的DC来度量，默认使用桌面窗口</param>
 /// <returns>字体句柄</returns>
 EckInline HFONT EzFont(PCWSTR pszFontName, int iPoint, int iWeight = 400, BOOL bItalic = FALSE,
-	BOOL bUnderline = FALSE, BOOL bStrikeOut = FALSE, HWND hWnd = NULL, DWORD dwCharSet = GB2312_CHARSET)
+	BOOL bUnderline = FALSE, BOOL bStrikeOut = FALSE, HWND hWnd = NULL, DWORD dwCharSet = DEFAULT_CHARSET)
 {
 	HDC hDC = GetDC(hWnd);
 	int iSize;

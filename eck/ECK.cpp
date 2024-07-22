@@ -813,6 +813,7 @@ g_WndClassInfo[]
 	{ WCN_PICTUREBOX },
 	{ WCN_DUIHOST },
 	{ WCN_VECDRAWPANEL },
+	{ WCN_HEXEDIT }
 };
 
 InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrCode)

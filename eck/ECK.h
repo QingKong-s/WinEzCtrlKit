@@ -314,17 +314,17 @@ enum class Align
 	Far
 };
 
-constexpr inline auto c_cchI32ToStrBufNoRadix2 = std::max({
+constexpr inline auto CchI32ToStrBufNoRadix2 = std::max({
 	_MAX_ITOSTR_BASE16_COUNT,_MAX_ITOSTR_BASE10_COUNT,_MAX_ITOSTR_BASE8_COUNT,
 	_MAX_LTOSTR_BASE16_COUNT ,_MAX_LTOSTR_BASE10_COUNT ,_MAX_LTOSTR_BASE8_COUNT,
 	_MAX_ULTOSTR_BASE16_COUNT,_MAX_ULTOSTR_BASE10_COUNT,_MAX_ULTOSTR_BASE8_COUNT });
-constexpr inline auto c_cchI64ToStrBufNoRadix2 = std::max({
+constexpr inline auto CchI64ToStrBufNoRadix2 = std::max({
 	_MAX_I64TOSTR_BASE16_COUNT,_MAX_I64TOSTR_BASE10_COUNT,_MAX_I64TOSTR_BASE8_COUNT,
 	_MAX_U64TOSTR_BASE16_COUNT,_MAX_U64TOSTR_BASE10_COUNT,_MAX_U64TOSTR_BASE8_COUNT });
 
-constexpr inline auto c_cchI32ToStrBuf = std::max({ c_cchI32ToStrBufNoRadix2,
+constexpr inline auto CchI32ToStrBuf = std::max({ CchI32ToStrBufNoRadix2,
 	_MAX_ITOSTR_BASE2_COUNT,_MAX_LTOSTR_BASE2_COUNT,_MAX_ULTOSTR_BASE2_COUNT });
-constexpr inline auto c_cchI64ToStrBuf = std::max({ c_cchI64ToStrBufNoRadix2,
+constexpr inline auto CchI64ToStrBuf = std::max({ CchI64ToStrBufNoRadix2,
 	_MAX_I64TOSTR_BASE2_COUNT,_MAX_U64TOSTR_BASE2_COUNT });
 
 constexpr inline double Pi = 3.141592653589793;
@@ -603,6 +603,7 @@ constexpr inline PCWSTR WCN_COMBOBOXNEW = L"Eck.WndClass.ComboBoxNew";
 constexpr inline PCWSTR WCN_PICTUREBOX = L"Eck.WndClass.PictureBox";
 constexpr inline PCWSTR WCN_DUIHOST = L"Eck.WndClass.DuiHost";
 constexpr inline PCWSTR WCN_VECDRAWPANEL = L"Eck.WndClass.VectorDrawPanel";
+constexpr inline PCWSTR WCN_HEXEDIT = L"Eck.WndClass.HexEdit";
 
 constexpr inline PCWSTR MSGREG_FORMTRAY = L"Eck.Message.FormTray";
 

@@ -29,7 +29,7 @@ private:
 	HBITMAP m_hbmBk = NULL;
 	int m_cxImage = 0,
 		m_cyImage = 0;
-	BkImg m_iBkImageMode = BkImg::TopLeft;
+	BkImgMode m_iBkImageMode = BkImgMode::TopLeft;
 	COLORREF m_crBk = CLR_DEFAULT;
 
 	int m_cxClient = 0,
@@ -61,7 +61,7 @@ protected:
 	static UINT s_uTaskbarCreatedMsg;
 public:
 	ECKPROP(GetBkImage, SetBkImage)				HBITMAP		BkImage;		// 背景图片
-	ECKPROP(GetBkImageMode, SetBkImageMode)		int			BkImageMode;	// 背景图片模式
+	ECKPROP(GetBkImageMode, SetBkImageMode)		BkImgMode	BkImageMode;	// 背景图片模式
 	ECKPROP(GetFullWndImage, SetFullWndImage)	BOOL		FullWndImage;	// 全窗口绘制背景图片
 	ECKPROP(GetMoveable, SetMoveable)			BOOL		Moveable;		// 可否移动
 	ECKPROP(GetEscClose, SetEscClose)			BOOL		EscClose;		// ESC关闭
@@ -212,9 +212,9 @@ public:
 		m_cyImage = bm.bmHeight;
 	}
 
-	EckInline void SetBkImageMode(BkImg iMode) { m_iBkImageMode = iMode; }
+	EckInline void SetBkImageMode(BkImgMode iMode) { m_iBkImageMode = iMode; }
 
-	EckInline int GetBkImageMode() const { return m_iBkImageMode; }
+	EckInline BkImgMode GetBkImageMode() const { return m_iBkImageMode; }
 
 	EckInline void SetFullWndImage(BOOL bFullWndImage) { m_bFullWndImage = bFullWndImage; }
 
