@@ -10,7 +10,6 @@
 
 #include <Windows.h>
 #include <Shlwapi.h>
-#include <ShlObj_core.h>
 
 #include <vector>
 #include <algorithm>

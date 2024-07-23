@@ -23,6 +23,7 @@
 #include <dxgi1_2.h>
 #include <Shlwapi.h>
 #include <d3d11.h>
+#include <ShlObj.h>
 
 #include <assert.h>
 
@@ -286,6 +287,8 @@ using PCVOID = const void*;
 using ECKENUM = BYTE;
 using SSIZE_T = std::make_signed_t<SIZE_T>;
 using UINTBE = UINT;
+using PITEMIDLIST = LPITEMIDLIST;
+using PCITEMIDLIST = LPCITEMIDLIST;
 #pragma endregion
 
 namespace Literals
@@ -459,7 +462,7 @@ namespace GpNameSpace
 	ECK_USING_GDIP_TYPE(GpPointF);
 	ECK_USING_GDIP_TYPE(GpPoint);
 	ECK_USING_GDIP_TYPE(GpSizeF);
-	using GpSize = ::Gdiplus::Size;
+	using GpSize = Gdiplus::Size;
 	ECK_USING_GDIP_TYPE(GdiplusStartupInput);
 	ECK_USING_GDIP_TYPE(GpFillMode);
 
@@ -468,6 +471,22 @@ namespace GpNameSpace
 }
 using namespace GpNameSpace;
 
+struct NTVER
+{
+	ULONG uMajor;
+	ULONG uMinor;
+	ULONG uBuild;
+};
+
+enum :ULONG
+{
+	WINB_1607 = 14393,
+	WINB_1809 = 17763,
+	WINB_1903 = 18362,
+	WINB_11_21H2 = 22000,
+};
+
+extern NTVER g_NtVer;
 
 extern HINSTANCE g_hInstance;
 extern IWICImagingFactory* g_pWicFactory;
@@ -476,12 +495,6 @@ extern IDWriteFactory* g_pDwFactory;
 extern ID2D1Device* g_pD2dDevice;
 extern IDXGIDevice1* g_pDxgiDevice;
 extern IDXGIFactory2* g_pDxgiFactory;
-
-extern BOOL g_bWin10_1607;
-extern BOOL g_bWin10_1809;
-extern BOOL g_bWin10_1903;
-extern BOOL g_bWin11_B22000;
-extern BOOL g_bAllowDark;
 
 enum IMMERSIVE_HC_CACHE_MODE
 {

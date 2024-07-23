@@ -620,7 +620,7 @@ EckInline BOOL IsDarkModeAllowedForApp()
 
 EckInline HRESULT EnableWindowNcDarkMode(HWND hWnd, BOOL bAllow)
 {
-	if (g_bWin11_B22000)
+	if (g_NtVer.uBuild > WINB_11_21H2)
 		return DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &bAllow, sizeof(bAllow));
 	else
 	{

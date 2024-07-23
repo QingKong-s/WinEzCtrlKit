@@ -742,28 +742,58 @@ EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 	return rs;
 }
 
-[[nodiscard]] inline UINT GetPID(PCWSTR pszImageName)
+inline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, UINT& uPid)
 {
-	const HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-	if (hSnapshot == INVALID_HANDLE_VALUE)
-		return 0u;
-	PROCESSENTRY32W pe32;
-	pe32.dwSize = sizeof(pe32);
-	BOOL b = Process32FirstW(hSnapshot, &pe32);
-	while (b)
+	uPid = 0u;
+	ULONG cb;
+	NTSTATUS nts = NtQuerySystemInformation(SystemProcessInformation, NULL, 0, &cb);
+	if (!cb)
+		return nts;
+	BYTE* pBuf = (BYTE*)VAlloc(cb);
+	UniquePtrVA<BYTE> _(pBuf);
+	if (!NT_SUCCESS(nts = NtQuerySystemInformation(SystemProcessInformation, pBuf, cb, &cb)))
+		return nts;
+	SYSTEM_PROCESS_INFORMATION* pspi = (SYSTEM_PROCESS_INFORMATION*)pBuf;
+	for (;;)
 	{
-		if (_wcsicmp(pszImageName, pe32.szExeFile) == 0)
+		if (wcsnicmp(pszImageName, pspi->ImageName.Buffer, pspi->ImageName.Length) == 0)
 		{
-			CloseHandle(hSnapshot);
-			return pe32.th32ProcessID;
+			uPid = pToI32<UINT>(pspi->UniqueProcessId);
+			return STATUS_SUCCESS;
 		}
-		b = Process32NextW(hSnapshot, &pe32);
+		if (pspi->NextEntryOffset == 0)
+			break;
+		pspi = PtrStepCb(pspi, pspi->NextEntryOffset);
 	}
-	CloseHandle(hSnapshot);
-	return 0u;
+	return STATUS_NOT_FOUND;
 }
 
-EckInline HMONITOR MonitorFromRectByWorkArea(const RECT& rc,
+inline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, std::vector<UINT>& vPid)
+{
+	ULONG cb;
+	NTSTATUS nts = NtQuerySystemInformation(SystemProcessInformation, NULL, 0, &cb);
+	if (!cb)
+		return nts;
+	BYTE* pBuf = (BYTE*)VAlloc(cb);
+	UniquePtrVA<BYTE> _(pBuf);
+	if (!NT_SUCCESS(nts = NtQuerySystemInformation(SystemProcessInformation, pBuf, cb, &cb)))
+		return nts;
+	SYSTEM_PROCESS_INFORMATION* pspi = (SYSTEM_PROCESS_INFORMATION*)pBuf;
+	for (;;)
+	{
+		if (wcsnicmp(pszImageName, pspi->ImageName.Buffer, pspi->ImageName.Length) == 0)
+		{
+			vPid.push_back(pToI32<UINT>(pspi->UniqueProcessId));
+			return STATUS_SUCCESS;
+		}
+		if (pspi->NextEntryOffset == 0)
+			break;
+		pspi = PtrStepCb(pspi, pspi->NextEntryOffset);
+	}
+	return STATUS_NOT_FOUND;
+}
+
+[[nodiscard]] EckInline HMONITOR MonitorFromRectByWorkArea(const RECT& rc,
 	HMONITOR* phMonMain = NULL, HMONITOR* phMonNearest = NULL)
 {
 	struct CTX
@@ -1075,16 +1105,16 @@ EckInline void OpenInExplorer(std::vector<CRefStrW>* pvPath)
 EckInline HRESULT OpenInExplorer(PCWSTR pszFolder, const std::vector<CRefStrW>& vFile)
 {
 	HRESULT hr;
-	LPITEMIDLIST pIDL;
+	PITEMIDLIST pIDL;
 	if (FAILED(hr = SHParseDisplayName(pszFolder, NULL, &pIDL, 0, NULL)))
 		return hr;
-	std::vector<LPITEMIDLIST> vPIDL(vFile.size());
+	std::vector<PITEMIDLIST> vPIDL(vFile.size());
 	for (auto& e : vFile)
 	{
 		if (FAILED(hr = SHParseDisplayName(e.Data(), NULL, &vPIDL.emplace_back(), 0, NULL)))
 			goto CleanupAndRet;
 	}
-	hr = SHOpenFolderAndSelectItems(pIDL, (UINT)vPIDL.size(), vPIDL.data(), 0);
+	hr = SHOpenFolderAndSelectItems(pIDL, (UINT)vPIDL.size(), (PCITEMIDLIST*)vPIDL.data(), 0);
 CleanupAndRet:
 	CoTaskMemFree(pIDL);
 	for (const auto e : vPIDL)
@@ -1097,23 +1127,38 @@ inline HRESULT OpenInExplorer(PCWSTR pszFile)
 	const auto psz = PathFindFileNameW(pszFile);
 	if (psz == pszFile)
 		return E_INVALIDARG;
-	const int cbFolder = Cch2CbW(psz - pszFile - 1);
+	const size_t cbFolder = Cch2CbW(int(psz - pszFile - 1));
 	const auto pszFolder = (PWSTR)_malloca(cbFolder);
 	EckCheckMem(pszFolder);
 	wmemcpy(pszFolder, pszFile, cbFolder);
 	*(pszFolder + cbFolder / sizeof(WCHAR) - 1) = L'\0';
-	LPITEMIDLIST pIdlFolder, pIdlFile;
+	PITEMIDLIST pIdlFolder, pIdlFile;
 	HRESULT hr;
 	if (FAILED(hr = SHParseDisplayName(pszFolder, NULL, &pIdlFolder, 0, NULL)))
 		goto CleanupAndRet;
 	if (FAILED(hr = SHParseDisplayName(psz, NULL, &pIdlFile, 0, NULL)))
 		goto CleanupAndRet;
-	hr = SHOpenFolderAndSelectItems(pIdlFolder, 1, &pIdlFile, 0);
+	hr = SHOpenFolderAndSelectItems(pIdlFolder, 1, (PCITEMIDLIST*)&pIdlFile, 0);
 CleanupAndRet:
 	CoTaskMemFree(pIdlFolder);
 	CoTaskMemFree(pIdlFile);
 	_freea(pszFolder);
 	return hr;
+}
+
+EckInline void* GetProcessPeb(HANDLE hProcess, NTSTATUS* pnts = NULL)
+{
+	PROCESS_BASIC_INFORMATION pbi;
+	NTSTATUS nts;
+	if (!NT_SUCCESS(nts = NtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(pbi), NULL)))
+	{
+		if (pnts)
+			*pnts = nts;
+		return NULL;
+	}
+	if (pnts)
+		*pnts = STATUS_SUCCESS;
+	return pbi.PebBaseAddress;
 }
 
 struct MODULE_INFO
@@ -1188,8 +1233,8 @@ struct THREAD_INFO
 struct PROCESS_INFO
 {
 	CRefStrW rsImageName;	// 进程名
-	ULONG uPID;				// 进程ID
-	ULONG uParentPID;		// 父进程ID
+	ULONG uPid;				// 进程ID
+	ULONG uParentPid;		// 父进程ID
 	ULONG cThreads;			// 线程数
 	ULONG uSessionID;		// 会话ID
 	ULONG cHandles;			// 句柄数
@@ -1250,7 +1295,7 @@ inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags =
 			pspi->PeakPagefileUsage);
 
 		if (uFlags & EPF_PROCESS_PATH)
-			GetProcessPath(e.uPID, e.rsFilePath);
+			GetProcessPath(e.uPid, e.rsFilePath);
 
 		if (uFlags & EPF_THREAD_INFO)
 		{
@@ -1269,7 +1314,7 @@ inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags =
 
 		if (uFlags & EPF_MODULE_INFO)
 		{
-			const auto hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, e.uPID);
+			const auto hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, e.uPid);
 			EnumProcessModules(hProcess, e.vModules);
 			NtClose(hProcess);
 		}
@@ -1281,29 +1326,44 @@ inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags =
 	return STATUS_SUCCESS;
 }
 
-EckInline void* GetProcessPeb(HANDLE hProcess, NTSTATUS* pnts = NULL)
-{
-	PROCESS_BASIC_INFORMATION pbi;
-	NTSTATUS nts;
-	if (!NT_SUCCESS(nts = NtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(pbi), NULL)))
-	{
-		if (pnts)
-			*pnts = nts;
-		return NULL;
-	}
-	if (pnts)
-		*pnts = STATUS_SUCCESS;
-	return pbi.PebBaseAddress;
-}
-
-inline HANDLE OpenProcess(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwProcessId)
+inline HANDLE OpenProcess(DWORD dwDesiredAccess, BOOL bInheritHandle, UINT uProcessId)
 {
 	OBJECT_ATTRIBUTES oa;
 	InitializeObjectAttributes(&oa, NULL, bInheritHandle ? OBJ_INHERIT : 0, NULL, NULL);
-	CLIENT_ID cid{ pToI32<HANDLE>(dwProcessId) };
-	HANDLE hProcess = NULL;
+	CLIENT_ID cid{ pToI32<HANDLE>(uProcessId) };
+	HANDLE hProcess;
 	if (NT_SUCCESS(NtOpenProcess(&hProcess, dwDesiredAccess, &oa, &cid)))
 		return hProcess;
 	return NULL;
+}
+
+/// <summary>
+/// 调整进程令牌特权
+/// </summary>
+/// <param name="hProcess">进程句柄，必须具有PROCESS_QUERY_LIMITED_INFORMATION权限</param>
+/// <param name="pszPrivilege">特权名</param>
+/// <param name="bEnable">是否启用</param>
+/// <returns>NTSTATUS</returns>
+inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess, PCWSTR pszPrivilege, BOOL bEnable)
+{
+	HANDLE hToken;
+	NTSTATUS nts = NtOpenProcessToken(hProcess, TOKEN_ADJUST_PRIVILEGES, &hToken);
+	if (!NT_SUCCESS(nts))
+		return nts;
+	UNICODE_STRING usPrivilege;
+	RtlInitUnicodeString(&usPrivilege, pszPrivilege);
+
+	TOKEN_PRIVILEGES tp;
+	if (!NT_SUCCESS(nts = LsaLookupPrivilegeValue(hToken, &usPrivilege, &tp.Privileges[0].Luid)))
+	{
+		NtClose(hToken);
+		return nts;
+	}
+
+	tp.PrivilegeCount = 1;
+	tp.Privileges[0].Attributes = bEnable ? SE_PRIVILEGE_ENABLED : 0;
+	nts = NtAdjustPrivilegesToken(hToken, FALSE, &tp, 0, NULL, NULL);
+	NtClose(hToken);
+	return nts;
 }
 ECK_NAMESPACE_END
