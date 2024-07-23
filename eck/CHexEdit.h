@@ -84,11 +84,11 @@ private:
 
 	void UpdateDataMetrics()
 	{
-		m_cRow = DivUpper(m_cbData, D.cCol);
+		m_cRow = (int)DivUpper(m_cbData, D.cCol);
 		WCHAR szBuf[CchI64ToStrBufNoRadix2];
 		m_cxAddress = swprintf(szBuf, (D.bHexAddress ? L"%08Ix" : L"%08Iu"), m_cbData) * m_cxChar + D.cxGap;
 		m_cxData = (m_cxChar * 2 + D.cxGap) * D.cCol;
-		m_cxContent = m_cxAddress + m_cxData + D.cxGap + (m_vCharCol.size() * (m_cxChar * D.cCol + D.cxGap));
+		m_cxContent = m_cxAddress + m_cxData + D.cxGap + int(m_vCharCol.size() * (m_cxChar * D.cCol + D.cxGap));
 	}
 
 	void UpdateScrollBar()

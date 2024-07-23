@@ -11,9 +11,9 @@
 ECK_NAMESPACE_BEGIN
 struct CEzCDC
 {
-	HDC m_hCDC = NULL;
-	HBITMAP m_hBmp = NULL;
-	HGDIOBJ m_hOld = NULL;
+	HDC m_hCDC{};
+	HBITMAP m_hBmp{};
+	HGDIOBJ m_hOld{};
 
 	CEzCDC() = default;
 	CEzCDC(const CEzCDC&) = delete;
@@ -122,7 +122,6 @@ struct CEzCDC
 		m_hOld = SelectObject(m_hCDC, m_hBmp);
 		ReleaseDC(hWnd, hDC);
 	}
-
 
 	EckInline constexpr HDC GetDC() const { return m_hCDC; }
 

@@ -11,17 +11,19 @@
 
 ECK_NAMESPACE_BEGIN
 CRefStrW g_rsCurrDir{};
-ULONG_PTR g_uGpToken = 0u;
+ULONG_PTR g_uGpToken{};
 
-HINSTANCE g_hInstance = NULL;
-IWICImagingFactory* g_pWicFactory = NULL;
-ID2D1Factory1* g_pD2dFactory = NULL;
-IDWriteFactory* g_pDwFactory = NULL;
-ID2D1Device* g_pD2dDevice = NULL;
-IDXGIDevice1* g_pDxgiDevice = NULL;
-IDXGIFactory2* g_pDxgiFactory = NULL;
+HINSTANCE g_hInstance{};
+IWICImagingFactory* g_pWicFactory{};
+ID2D1Factory1* g_pD2dFactory{};
+IDWriteFactory* g_pDwFactory{};
+ID2D1Device* g_pD2dDevice{};
+IDXGIDevice1* g_pDxgiDevice{};
+IDXGIFactory2* g_pDxgiFactory{};
 
-DWORD g_dwTlsSlot = 0;
+DWORD g_dwTlsSlot{};
+
+NTVER g_NtVer{};
 
 ECK_PRIV_NAMESPACE_BEGIN
 FAllowDarkModeForWindow			pfnAllowDarkModeForWindow{};
@@ -39,11 +41,6 @@ FIsDarkModeAllowedForApp		pfnIsDarkModeAllowedForApp{};
 FSetWindowCompositionAttribute	pfnSetWindowCompositionAttribute{};
 FOpenNcThemeData				pfnOpenNcThemeData{};
 ECK_PRIV_NAMESPACE_END
-
-BOOL g_bWin10_1607 = FALSE;
-BOOL g_bWin10_1809 = FALSE;
-BOOL g_bWin10_1903 = FALSE;
-BOOL g_bWin11_B22000 = FALSE;
 
 static BOOL DefMsgFilter(const MSG&)
 {
@@ -953,6 +950,8 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 
 	using namespace EckPriv;
 	//////////////暗色模式支持、OS版本检测
+	RtlGetNtVersionNumbers(&g_NtVer.uMajor, &g_NtVer.uMinor, &g_NtVer.uBuild);
+
 	const HMODULE hModUx = LoadLibraryW(L"UxTheme.dll");
 	*pdwErrCode = GetLastError();
 	if (!hModUx)
@@ -961,22 +960,11 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		GetProcAddress(hModUx, MAKEINTRESOURCEA(49));
 	s_pfnOpenNcThemeData = pfnOpenNcThemeData;
 
-	DWORD dwMajorVer, dwMinorVer, dwBuildNumber;
-	RtlGetNtVersionNumbers(&dwMajorVer, &dwMinorVer, &dwBuildNumber);
-	if (dwMajorVer >= 10 && dwBuildNumber >= 14393)
+	if (g_NtVer.uMajor >= 10 && g_NtVer.uBuild >= WINB_1607)
 	{
-		g_bWin10_1607 = TRUE;
-		if (dwBuildNumber >= 17763)
+		if (g_NtVer.uBuild >= WINB_1809)
 		{
-			g_bWin10_1809 = TRUE;
-			if (dwBuildNumber > 18362)
-			{
-				g_bWin10_1903 = TRUE;
-				if (dwBuildNumber > 22000)
-					g_bWin11_B22000 = TRUE;
-			}
-
-			if (g_bWin10_1903)
+			if (g_NtVer.uBuild > WINB_1903)
 			{
 				pfnShouldSystemUseDarkMode = (FShouldSystemUseDarkMode)
 					GetProcAddress(hModUx, MAKEINTRESOURCEA(138));
