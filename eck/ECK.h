@@ -56,6 +56,7 @@
 #		endif// WM_DPICHANGED_BEFOREPARENT
 #	endif// _WIN32_WINNT >= 0x0605
 #else
+#	define ECKDPIAPI 0
 #	if _WIN32_WINNT < 0x0605
 #		error "Dpi api requires _WIN32_WINNT >= 0x0605 !!!"
 #	endif
