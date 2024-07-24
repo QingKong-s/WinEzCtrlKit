@@ -10,6 +10,7 @@
 #include "CException.h"
 #include "CFile.h"
 #include "CRefBin.h"
+#include "EnDeCode.h"
 
 #include <intrin.h>
 
@@ -1161,6 +1162,17 @@ EckInline void* GetProcessPeb(HANDLE hProcess, NTSTATUS* pnts = NULL)
 	return pbi.PebBaseAddress;
 }
 
+inline HANDLE NaOpenProcess(DWORD dwDesiredAccess, BOOL bInheritHandle, UINT uProcessId)
+{
+	OBJECT_ATTRIBUTES oa;
+	InitializeObjectAttributes(&oa, NULL, bInheritHandle ? OBJ_INHERIT : 0, NULL, NULL);
+	CLIENT_ID cid{ pToI32<HANDLE>(uProcessId) };
+	HANDLE hProcess;
+	if (NT_SUCCESS(NtOpenProcess(&hProcess, dwDesiredAccess, &oa, &cid)))
+		return hProcess;
+	return NULL;
+}
+
 struct MODULE_INFO
 {
 	CRefStrW rsModuleName;
@@ -1314,7 +1326,7 @@ inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags =
 
 		if (uFlags & EPF_MODULE_INFO)
 		{
-			const auto hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, e.uPid);
+			const auto hProcess = NaOpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, e.uPid);
 			EnumProcessModules(hProcess, e.vModules);
 			NtClose(hProcess);
 		}
@@ -1324,17 +1336,6 @@ inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags =
 		pspi = PtrStepCb(pspi, pspi->NextEntryOffset);
 	}
 	return STATUS_SUCCESS;
-}
-
-inline HANDLE OpenProcess(DWORD dwDesiredAccess, BOOL bInheritHandle, UINT uProcessId)
-{
-	OBJECT_ATTRIBUTES oa;
-	InitializeObjectAttributes(&oa, NULL, bInheritHandle ? OBJ_INHERIT : 0, NULL, NULL);
-	CLIENT_ID cid{ pToI32<HANDLE>(uProcessId) };
-	HANDLE hProcess;
-	if (NT_SUCCESS(NtOpenProcess(&hProcess, dwDesiredAccess, &oa, &cid)))
-		return hProcess;
-	return NULL;
 }
 
 /// <summary>
@@ -1366,4 +1367,324 @@ inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess, PCWSTR pszPrivilege, BOO
 	NtClose(hToken);
 	return nts;
 }
+
+/// <summary>
+/// 打开文件
+/// </summary>
+/// <param name="pusFile">文件的NT路径</param>
+/// <param name="dwAccess">CreateFileW --> dwAccess</param>
+/// <param name="dwShareMode">CreateFileW --> dwShareMode</param>
+/// <param name="dwOptions">ZwCreateFile --> CreateOptions</param>
+/// <param name="bInheritHandle">句柄是否可继承</param>
+/// <param name="hRootDirectory">根目录</param>
+/// <param name="pnts">错误码</param>
+/// <param name="pIoStatus">IO状态</param>
+/// <returns>成功返回文件句柄，失败返回INVALID_HANDLE_VALUE</returns>
+inline HANDLE NaOpenFile(UNICODE_STRING* pusFile, DWORD dwAccess, DWORD dwShareMode, DWORD dwOptions = 0u,
+	BOOL bInheritHandle = FALSE, HANDLE hRootDirectory = NULL, NTSTATUS* pnts = NULL, NTSTATUS* pIoStatus = NULL)
+{
+	OBJECT_ATTRIBUTES oa;
+	InitializeObjectAttributes(&oa, pusFile, OBJ_CASE_INSENSITIVE, hRootDirectory, NULL);
+	HANDLE hFile;
+	NTSTATUS nts;
+	IO_STATUS_BLOCK iost;
+	nts = NtOpenFile(&hFile, dwAccess, &oa, &iost, dwShareMode, 0);
+	if (pnts)
+		*pnts = nts;
+	if (pIoStatus)
+		*pIoStatus = iost.Status;
+	if (NT_SUCCESS(nts))
+		return hFile;
+	return INVALID_HANDLE_VALUE;
+}
+
+/// <summary>
+/// 打开文件。
+/// 封装与CreateFileW相近的Native API调用，不支持打开控制台
+/// </summary>
+/// <param name="pszFile">文件路径</param>
+/// <param name="dwAccess">CreateFileW --> dwAccess，注意CreateFileW总是追加SYNCHRONIZE | FILE_READ_ATTRIBUTES，考虑使用FILE_GENERIC_*</param>
+/// <param name="dwShareMode">CreateFileW --> dwShareMode</param>
+/// <param name="dwOptions">ZwCreateFile --> CreateOptions</param>
+/// <param name="bInheritHandle">句柄是否可继承</param>
+/// <param name="pnts">错误码</param>
+/// <param name="pIoStatus">IO状态</param>
+/// <returns>成功返回文件句柄，失败返回INVALID_HANDLE_VALUE</returns>
+inline HANDLE NaOpenFile(PCWSTR pszFile, DWORD dwAccess, DWORD dwShareMode, DWORD dwOptions = 0u,
+	BOOL bInheritHandle = FALSE, NTSTATUS* pnts = NULL, NTSTATUS* pIoStatus = NULL)
+{
+	UNICODE_STRING usFile;
+	RtlInitUnicodeString(&usFile, pszFile);
+	if (!RtlDosPathNameToNtPathName_U(pszFile, &usFile, NULL, NULL))
+	{
+		if (pnts)
+			*pnts = STATUS_OBJECT_PATH_NOT_FOUND;
+		return INVALID_HANDLE_VALUE;
+	}
+	const auto hFile = NaOpenFile(&usFile, dwAccess, dwShareMode, dwOptions,
+		bInheritHandle, NULL, pIoStatus, pnts);
+	RtlFreeHeap(RtlProcessHeap(), 0, usFile.Buffer);
+	return hFile;
+}
+
+inline NTSTATUS NaDeviceIoControl(HANDLE hDevice, DWORD dwIoControlCode, PVOID pInBuf, DWORD cbInBuf,
+	PVOID pOutBuf, DWORD cbOutBuf, PDWORD pcbReturned = NULL)
+{
+	NTSTATUS nts;
+	IO_STATUS_BLOCK iosb;
+	if ((dwIoControlCode >> 16) == FILE_DEVICE_FILE_SYSTEM)
+	{
+		nts = NtFsControlFile(hDevice, NULL, NULL, NULL, &iosb,
+			dwIoControlCode, pInBuf, cbInBuf, pOutBuf, cbOutBuf);
+	}
+	else
+	{
+		nts = NtDeviceIoControlFile(hDevice, NULL, NULL, NULL, &iosb,
+			dwIoControlCode, pInBuf, cbInBuf, pOutBuf, cbOutBuf);
+	}
+
+	if (nts == STATUS_PENDING)
+	{
+		NtWaitForSingleObject(hDevice, FALSE, NULL);
+		nts = iosb.Status;
+	}
+	if (pcbReturned)
+		*pcbReturned = (DWORD)iosb.Information;
+	return nts;
+}
+
+using GETVERSIONOUTPARAMS = GETVERSIONINPARAMS;
+
+#define IDE_ATAPI_IDENTIFY				0xA1
+#define IDE_ATA_IDENTIFY				0xEC
+
+#define FILE_DEVICE_SCSI				0x0000001b
+#define IOCTL_SCSI_MINIPORT_IDENTIFY	((FILE_DEVICE_SCSI << 16) + 0x0501)
+#define IOCTL_SCSI_MINIPORT				0x0004D008
+
+#pragma pack(push, 1)
+typedef struct _IDENTIFY_DATA
+{
+	USHORT GeneralConfiguration;            // 00 00
+	USHORT NumberOfCylinders;               // 02  1
+	USHORT Reserved1;                       // 04  2
+	USHORT NumberOfHeads;                   // 06  3
+	USHORT UnformattedBytesPerTrack;        // 08  4
+	USHORT UnformattedBytesPerSector;       // 0A  5
+	USHORT SectorsPerTrack;                 // 0C  6
+	USHORT VendorUnique1[3];                // 0E  7-9
+	USHORT SerialNumber[10];                // 14  10-19
+	USHORT BufferType;                      // 28  20
+	USHORT BufferSectorSize;                // 2A  21
+	USHORT NumberOfEccBytes;                // 2C  22
+	USHORT FirmwareRevision[4];             // 2E  23-26
+	USHORT ModelNumber[20];                 // 36  27-46
+	UCHAR  MaximumBlockTransfer;            // 5E  47
+	UCHAR  VendorUnique2;                   // 5F
+	USHORT DoubleWordIo;                    // 60  48
+	USHORT Capabilities;                    // 62  49
+	USHORT Reserved2;                       // 64  50
+	UCHAR  VendorUnique3;                   // 66  51
+	UCHAR  PioCycleTimingMode;              // 67
+	UCHAR  VendorUnique4;                   // 68  52
+	UCHAR  DmaCycleTimingMode;              // 69
+	USHORT TranslationFieldsValid : 1;      // 6A  53
+	USHORT Reserved3 : 15;
+	USHORT NumberOfCurrentCylinders;        // 6C  54
+	USHORT NumberOfCurrentHeads;            // 6E  55
+	USHORT CurrentSectorsPerTrack;          // 70  56
+	ULONG  CurrentSectorCapacity;           // 72  57-58
+	USHORT CurrentMultiSectorSetting;       //     59
+	ULONG  UserAddressableSectors;          //     60-61
+	USHORT SingleWordDMASupport : 8;        //     62
+	USHORT SingleWordDMAActive : 8;
+	USHORT MultiWordDMASupport : 8;         //     63
+	USHORT MultiWordDMAActive : 8;
+	USHORT AdvancedPIOModes : 8;            //     64
+	USHORT Reserved4 : 8;
+	USHORT MinimumMWXferCycleTime;          //     65
+	USHORT RecommendedMWXferCycleTime;      //     66
+	USHORT MinimumPIOCycleTime;             //     67
+	USHORT MinimumPIOCycleTimeIORDY;        //     68
+	USHORT Reserved5[2];                    //     69-70
+	USHORT ReleaseTimeOverlapped;           //     71
+	USHORT ReleaseTimeServiceCommand;       //     72
+	USHORT MajorRevision;                   //     73
+	USHORT MinorRevision;                   //     74
+	USHORT Reserved6[50];                   //     75-126
+	USHORT SpecialFunctionsEnabled;         //     127
+	USHORT Reserved7[128];                  //     128-255
+} IDENTIFY_DATA, * PIDENTIFY_DATA;
+#pragma pack(pop)
+
+typedef struct _SRB_IO_CONTROL
+{
+	ULONG HeaderLength;
+	UCHAR Signature[8];
+	ULONG Timeout;
+	ULONG ControlCode;
+	ULONG ReturnCode;
+	ULONG Length;
+} SRB_IO_CONTROL, * PSRB_IO_CONTROL;
+
+namespace EckPriv
+{
+	inline UINT CalcDriveIdentifierFromIdentifyData(const IDENTIFY_DATA* pidd)
+	{
+		UINT u{}, s{};
+		const auto pu = (BYTE*)&u;
+		EckCounter(40, i)
+		{
+			if (i % 2 == 0)
+			{
+				pu[1] = ((BYTE*)(pidd->ModelNumber))[i];
+				s += u;
+			}
+			else
+				pu[0] = ((BYTE*)(pidd->ModelNumber))[i];
+		}
+		EckCounter(8, i)
+		{
+			if (i % 2 == 0)
+			{
+				pu[1] = ((BYTE*)(pidd->FirmwareRevision))[i];
+				s += u;
+			}
+			else
+				pu[0] = ((BYTE*)(pidd->FirmwareRevision))[i];
+		}
+		EckCounter(20, i)
+		{
+			if (i % 2 == 0)
+			{
+				pu[1] = ((BYTE*)(pidd->SerialNumber))[i];
+				s += u;
+			}
+			else
+				pu[0] = ((BYTE*)(pidd->SerialNumber))[i];
+		}
+		const UINT t = pidd->BufferSectorSize + pidd->SectorsPerTrack +
+			pidd->NumberOfHeads + pidd->NumberOfCylinders;
+		const ULONGLONG r = t * 65536ull + s;
+		if (r <= 0xFFFF'FFFFull)
+			return (UINT)r;
+		else
+			return ((t - 1) % 65535 + 1) * 65536 + s % 65535;
+	}
+}
+
+/// <summary>
+/// 取硬盘特征字
+/// </summary>
+/// <param name="idxDrive">物理硬盘索引</param>
+/// <param name="pnts">NTSTATUS</param>
+/// <returns>成功返回特征字，失败返回0</returns>
+inline UINT GetPhysicalDriveIdentifier(int idxDrive, NTSTATUS* pnts = NULL)
+{
+	NTSTATUS nts;
+	if (!pnts)
+		pnts = &nts;
+	WCHAR szDevice[48];
+	swprintf(szDevice, LR"(\\.\PhysicalDrive%d)", idxDrive);
+	HANDLE hDevice = NaOpenFile(szDevice, FILE_GENERIC_READ | FILE_GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE);
+	if (hDevice != INVALID_HANDLE_VALUE)
+	{
+		GETVERSIONOUTPARAMS gvop{};
+		if (NT_SUCCESS(*pnts = NaDeviceIoControl(hDevice, SMART_GET_VERSION,
+			NULL, 0, &gvop, sizeof(gvop))))
+		{
+			SENDCMDINPARAMS scip
+			{
+				.cBufferSize = 512,
+				.irDriveRegs =
+				{
+					.bSectorCountReg = 1,
+					.bSectorNumberReg = 1,
+					.bDriveHeadReg = BYTE(0xA0 | ((idxDrive & 1) << 4)),
+					.bCommandReg = BYTE((gvop.bIDEDeviceMap >> idxDrive & 0x10) ?
+							IDE_ATAPI_IDENTIFY : IDE_ATA_IDENTIFY)
+				},
+				.bDriveNumber = (BYTE)idxDrive
+			};
+			const auto pscop = (SENDCMDOUTPARAMS*)_alloca(
+				sizeof(SENDCMDOUTPARAMS) - 1/*bBuffer*/ + 512);
+
+			if (NT_SUCCESS(*pnts = NaDeviceIoControl(hDevice, SMART_RCV_DRIVE_DATA,
+				&scip, sizeof(scip) - 1/*bBuffer*/, pscop, sizeof(SENDCMDOUTPARAMS))))
+			{
+				NtClose(hDevice);
+				return EckPriv::CalcDriveIdentifierFromIdentifyData(
+					(const IDENTIFY_DATA*)pscop->bBuffer);
+			}
+		}
+		NtClose(hDevice);
+	}
+
+	swprintf(szDevice, LR"(\\.\SCSI%d:)", idxDrive);
+	hDevice = NaOpenFile(szDevice, FILE_GENERIC_READ | FILE_GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE);
+	if (hDevice != INVALID_HANDLE_VALUE)
+	{
+		constexpr size_t cbIn = sizeof(SRB_IO_CONTROL) + sizeof(SENDCMDINPARAMS) - 1/*bBuffer*/;
+		BYTE byDummy1[cbIn]{};
+		const auto psrbic = (SRB_IO_CONTROL*)byDummy1;
+		const auto pscip = (SENDCMDINPARAMS*)(psrbic + 1);
+		ZeroMemory(psrbic, cbIn);
+
+		psrbic->HeaderLength = sizeof(SRB_IO_CONTROL);
+		memcpy(psrbic->Signature, "SCSIDISK", 8);
+		psrbic->Timeout = 200;
+		psrbic->Length = sizeof(SENDCMDOUTPARAMS) - 1/*bBuffer*/ + 512;
+		psrbic->ControlCode = IOCTL_SCSI_MINIPORT_IDENTIFY;
+
+		pscip->cBufferSize = 512;
+		pscip->irDriveRegs.bSectorCountReg = 1;
+		pscip->irDriveRegs.bSectorNumberReg = 1;
+		pscip->irDriveRegs.bDriveHeadReg = BYTE(0xA0 | ((idxDrive & 1) << 4)),
+			pscip->irDriveRegs.bCommandReg = IDE_ATA_IDENTIFY;
+		pscip->bDriveNumber = idxDrive;
+
+		constexpr size_t cbOut = sizeof(SRB_IO_CONTROL) +
+			sizeof(SENDCMDOUTPARAMS) - 1/*bBuffer*/ + 512;
+		BYTE byDummy2[cbOut]{};
+
+		const auto pscop = ((SENDCMDOUTPARAMS*)(byDummy2 + sizeof(SRB_IO_CONTROL)));
+
+		if (NT_SUCCESS(*pnts = NaDeviceIoControl(hDevice, IOCTL_SCSI_MINIPORT,
+			psrbic, cbIn, byDummy2, cbOut)))
+		{
+			NtClose(hDevice);
+			return EckPriv::CalcDriveIdentifierFromIdentifyData(
+				(const IDENTIFY_DATA*)pscop->bBuffer);
+		}
+		NtClose(hDevice);
+	}
+
+	swprintf(szDevice, LR"(\\.\PhysicalDrive%d)", idxDrive);
+	hDevice = NaOpenFile(szDevice, FILE_GENERIC_READ | FILE_GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE);
+	if (hDevice != INVALID_HANDLE_VALUE)
+	{
+		STORAGE_PROPERTY_QUERY spq
+		{
+			.PropertyId = StorageDeviceProperty,
+			.QueryType = PropertyStandardQuery
+		};
+
+		constexpr DWORD cbBuf = 4096;
+		void* pBuf = VAlloc(cbBuf);
+		DWORD cbRet{};
+		if (NT_SUCCESS(*pnts = NaDeviceIoControl(hDevice, IOCTL_STORAGE_QUERY_PROPERTY,
+			&spq, sizeof(spq), pBuf, cbBuf, &cbRet)))
+		{
+			if (cbRet)
+			{
+				NtClose(hDevice);
+				return CalcCrc32(pBuf, cbRet);
+			}
+		}
+		NtClose(hDevice);
+	}
+	return 0u;
+}
+
+
 ECK_NAMESPACE_END

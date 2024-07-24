@@ -24,7 +24,7 @@ EckInline void* VAlloc(SIZE_T cb)
 
 EckInline NTSTATUS VFree(void* p)
 {
-	SIZE_T cb{};
+	SIZE_T cb;
 	return NtFreeVirtualMemory(NtCurrentProcess(), &p, &cb, MEM_RELEASE);
 }
 
