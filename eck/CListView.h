@@ -39,7 +39,7 @@ public:
 		{
 		case WM_NOTIFY:
 		{
-			if (ShouldAppUseDarkMode())
+			if (ShouldAppsUseDarkMode())
 				switch (((NMHDR*)lParam)->code)
 				{
 				case NM_CUSTOMDRAW:

@@ -882,7 +882,7 @@ public:
 		case WM_SETTINGCHANGE:
 		{
 			if (IsColorSchemeChangeMessage(lParam))
-				BroadcastEvent(WM_COLORSCHEMECHANGED, ShouldAppUseDarkMode(), 0);
+				BroadcastEvent(WM_COLORSCHEMECHANGED, ShouldAppsUseDarkMode(), 0);
 		}
 		break;
 

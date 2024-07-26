@@ -16,7 +16,6 @@
 
 #include <wbemcli.h>
 #include <comdef.h>
-#include <TlHelp32.h>
 
 ECK_NAMESPACE_BEGIN
 inline int CalcDbcsStringCharCount(PCSTR pszText, int cchText, UINT uCp = CP_ACP)
@@ -594,9 +593,9 @@ Success:
 	return STATUS_SUCCESS;
 }
 
-inline NTSTATUS GetProcessPath(UINT uPID, CRefStrW& rsPath, BOOL bDosPath = TRUE)
+inline NTSTATUS GetProcessPath(UINT uPid, CRefStrW& rsPath, BOOL bDosPath = TRUE)
 {
-	SYSTEM_PROCESS_ID_INFORMATION spii{ .ProcessId = i32ToP<HANDLE>(uPID) };
+	SYSTEM_PROCESS_ID_INFORMATION spii{ .ProcessId = i32ToP<HANDLE>(uPid) };
 	NTSTATUS nts = NtQuerySystemInformation(SystemProcessIdInformation, &spii, sizeof(spii), NULL);
 	if (spii.ImageName.MaximumLength && nts == STATUS_INFO_LENGTH_MISMATCH)
 	{
@@ -1181,6 +1180,12 @@ struct MODULE_INFO
 	SIZE_T cbImage;
 };
 
+/// <summary>
+/// 枚举进程模块
+/// </summary>
+/// <param name="hProcess">进程句柄，必须具有PROCESS_QUERY_INFORMATION | PROCESS_VM_READ权限</param>
+/// <param name="vResult">枚举结果，不会清空该容器</param>
+/// <returns>NTSTATUS</returns>
 inline NTSTATUS EnumProcessModules(HANDLE hProcess, std::vector<MODULE_INFO>& vResult)
 {
 	NTSTATUS nts;
@@ -1199,7 +1204,7 @@ inline NTSTATUS EnumProcessModules(HANDLE hProcess, std::vector<MODULE_INFO>& vR
 		return nts;
 	if (!LdrData.Initialized)
 		return STATUS_UNSUCCESSFUL;
-
+	
 	LDR_DATA_TABLE_ENTRY Entry;// 不要使用Win7之后添加的字段
 	UINT_PTR pBegin = pLdr + offsetof(PEB_LDR_DATA, InLoadOrderModuleList);
 	for (UINT_PTR p = (UINT_PTR)LdrData.InLoadOrderModuleList.Flink; p != pBegin; )
@@ -1274,6 +1279,12 @@ enum EPFLAGS :UINT
 };
 ECK_ENUM_BIT_FLAGS(EPFLAGS);
 
+/// <summary>
+/// 枚举进程
+/// </summary>
+/// <param name="vResult">枚举结果，不会清空该容器</param>
+/// <param name="uFlags">EPF_常量</param>
+/// <returns>NTSTATUS</returns>
 inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags = EPF_NONE)
 {
 	ULONG cb;
@@ -1465,55 +1476,55 @@ using GETVERSIONOUTPARAMS = GETVERSIONINPARAMS;
 #pragma pack(push, 1)
 typedef struct _IDENTIFY_DATA
 {
-	USHORT GeneralConfiguration;            // 00 00
-	USHORT NumberOfCylinders;               // 02  1
-	USHORT Reserved1;                       // 04  2
-	USHORT NumberOfHeads;                   // 06  3
-	USHORT UnformattedBytesPerTrack;        // 08  4
-	USHORT UnformattedBytesPerSector;       // 0A  5
-	USHORT SectorsPerTrack;                 // 0C  6
-	USHORT VendorUnique1[3];                // 0E  7-9
-	USHORT SerialNumber[10];                // 14  10-19
-	USHORT BufferType;                      // 28  20
-	USHORT BufferSectorSize;                // 2A  21
-	USHORT NumberOfEccBytes;                // 2C  22
-	USHORT FirmwareRevision[4];             // 2E  23-26
-	USHORT ModelNumber[20];                 // 36  27-46
-	UCHAR  MaximumBlockTransfer;            // 5E  47
-	UCHAR  VendorUnique2;                   // 5F
-	USHORT DoubleWordIo;                    // 60  48
-	USHORT Capabilities;                    // 62  49
-	USHORT Reserved2;                       // 64  50
-	UCHAR  VendorUnique3;                   // 66  51
-	UCHAR  PioCycleTimingMode;              // 67
-	UCHAR  VendorUnique4;                   // 68  52
-	UCHAR  DmaCycleTimingMode;              // 69
-	USHORT TranslationFieldsValid : 1;      // 6A  53
+	USHORT GeneralConfiguration;
+	USHORT NumberOfCylinders;
+	USHORT Reserved1;
+	USHORT NumberOfHeads;
+	USHORT UnformattedBytesPerTrack;
+	USHORT UnformattedBytesPerSector;
+	USHORT SectorsPerTrack;
+	USHORT VendorUnique1[3];
+	USHORT SerialNumber[10];
+	USHORT BufferType;
+	USHORT BufferSectorSize;
+	USHORT NumberOfEccBytes;
+	USHORT FirmwareRevision[4];
+	USHORT ModelNumber[20];
+	UCHAR  MaximumBlockTransfer;
+	UCHAR  VendorUnique2;
+	USHORT DoubleWordIo;
+	USHORT Capabilities;
+	USHORT Reserved2;
+	UCHAR  VendorUnique3;
+	UCHAR  PioCycleTimingMode;
+	UCHAR  VendorUnique4;
+	UCHAR  DmaCycleTimingMode;
+	USHORT TranslationFieldsValid : 1;
 	USHORT Reserved3 : 15;
-	USHORT NumberOfCurrentCylinders;        // 6C  54
-	USHORT NumberOfCurrentHeads;            // 6E  55
-	USHORT CurrentSectorsPerTrack;          // 70  56
-	ULONG  CurrentSectorCapacity;           // 72  57-58
-	USHORT CurrentMultiSectorSetting;       //     59
-	ULONG  UserAddressableSectors;          //     60-61
-	USHORT SingleWordDMASupport : 8;        //     62
+	USHORT NumberOfCurrentCylinders;
+	USHORT NumberOfCurrentHeads;
+	USHORT CurrentSectorsPerTrack;
+	ULONG  CurrentSectorCapacity;
+	USHORT CurrentMultiSectorSetting;
+	ULONG  UserAddressableSectors;
+	USHORT SingleWordDMASupport : 8;
 	USHORT SingleWordDMAActive : 8;
-	USHORT MultiWordDMASupport : 8;         //     63
+	USHORT MultiWordDMASupport : 8;
 	USHORT MultiWordDMAActive : 8;
-	USHORT AdvancedPIOModes : 8;            //     64
+	USHORT AdvancedPIOModes : 8;
 	USHORT Reserved4 : 8;
-	USHORT MinimumMWXferCycleTime;          //     65
-	USHORT RecommendedMWXferCycleTime;      //     66
-	USHORT MinimumPIOCycleTime;             //     67
-	USHORT MinimumPIOCycleTimeIORDY;        //     68
-	USHORT Reserved5[2];                    //     69-70
-	USHORT ReleaseTimeOverlapped;           //     71
-	USHORT ReleaseTimeServiceCommand;       //     72
-	USHORT MajorRevision;                   //     73
-	USHORT MinorRevision;                   //     74
-	USHORT Reserved6[50];                   //     75-126
-	USHORT SpecialFunctionsEnabled;         //     127
-	USHORT Reserved7[128];                  //     128-255
+	USHORT MinimumMWXferCycleTime;
+	USHORT RecommendedMWXferCycleTime;
+	USHORT MinimumPIOCycleTime;
+	USHORT MinimumPIOCycleTimeIORDY;
+	USHORT Reserved5[2];
+	USHORT ReleaseTimeOverlapped;
+	USHORT ReleaseTimeServiceCommand;
+	USHORT MajorRevision;
+	USHORT MinorRevision;
+	USHORT Reserved6[50];
+	USHORT SpecialFunctionsEnabled;
+	USHORT Reserved7[128];
 } IDENTIFY_DATA, * PIDENTIFY_DATA;
 #pragma pack(pop)
 
@@ -1529,40 +1540,15 @@ typedef struct _SRB_IO_CONTROL
 
 namespace EckPriv
 {
-	inline UINT CalcDriveIdentifierFromIdentifyData(const IDENTIFY_DATA* pidd)
+	inline constexpr UINT CalcDriveIdentifierFromIdentifyData(const IDENTIFY_DATA* pidd)
 	{
-		UINT u{}, s{};
-		const auto pu = (BYTE*)&u;
-		EckCounter(40, i)
-		{
-			if (i % 2 == 0)
-			{
-				pu[1] = ((BYTE*)(pidd->ModelNumber))[i];
-				s += u;
-			}
-			else
-				pu[0] = ((BYTE*)(pidd->ModelNumber))[i];
-		}
-		EckCounter(8, i)
-		{
-			if (i % 2 == 0)
-			{
-				pu[1] = ((BYTE*)(pidd->FirmwareRevision))[i];
-				s += u;
-			}
-			else
-				pu[0] = ((BYTE*)(pidd->FirmwareRevision))[i];
-		}
-		EckCounter(20, i)
-		{
-			if (i % 2 == 0)
-			{
-				pu[1] = ((BYTE*)(pidd->SerialNumber))[i];
-				s += u;
-			}
-			else
-				pu[0] = ((BYTE*)(pidd->SerialNumber))[i];
-		}
+		UINT s{};
+		for (const auto e : pidd->ModelNumber)
+			s += e;
+		for (const auto e : pidd->FirmwareRevision)
+			s += e;
+		for (const auto e : pidd->SerialNumber)
+			s += e;
 		const UINT t = pidd->BufferSectorSize + pidd->SectorsPerTrack +
 			pidd->NumberOfHeads + pidd->NumberOfCylinders;
 		const ULONGLONG r = t * 65536ull + s;
@@ -1671,6 +1657,7 @@ inline UINT GetPhysicalDriveIdentifier(int idxDrive, NTSTATUS* pnts = NULL)
 
 		constexpr DWORD cbBuf = 4096;
 		void* pBuf = VAlloc(cbBuf);
+		UniquePtrVA<void> _(pBuf);
 		DWORD cbRet{};
 		if (NT_SUCCESS(*pnts = NaDeviceIoControl(hDevice, IOCTL_STORAGE_QUERY_PROPERTY,
 			&spq, sizeof(spq), pBuf, cbBuf, &cbRet)))
@@ -1685,6 +1672,4 @@ inline UINT GetPhysicalDriveIdentifier(int idxDrive, NTSTATUS* pnts = NULL)
 	}
 	return 0u;
 }
-
-
 ECK_NAMESPACE_END

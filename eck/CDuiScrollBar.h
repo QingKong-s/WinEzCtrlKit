@@ -209,7 +209,7 @@ public:
 
 		case WM_CREATE:
 		{
-			SwitchDefColorTheme(CTI_SCROLLBAR, ShouldAppUseDarkMode());
+			SwitchDefColorTheme(CTI_SCROLLBAR, ShouldAppsUseDarkMode());
 			m_pec = new CEasingCurve{};
 			InitEasingCurve(m_pec);
 			m_pec->SetCallBack([](float fOld, float f, LPARAM lParam)

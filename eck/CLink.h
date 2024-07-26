@@ -22,7 +22,7 @@ public:
 
 	LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed) override
 	{
-		if (ShouldAppUseDarkMode())
+		if (ShouldAppsUseDarkMode())
 			switch (uMsg)
 			{
 			case WM_CTLCOLORSTATIC:

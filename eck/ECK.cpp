@@ -9,6 +9,24 @@
 #include "PchInc.h"
 #endif// ECK_MACRO_MYDBG
 
+// For Private API
+
+FSetWindowCompositionAttribute	pfnSetWindowCompositionAttribute{};
+
+FAllowDarkModeForWindow			pfnAllowDarkModeForWindow{};
+FAllowDarkModeForApp			pfnAllowDarkModeForApp{};
+FIsDarkModeAllowedForWindow		pfnIsDarkModeAllowedForWindow{};
+FShouldAppsUseDarkMode			pfnShouldAppsUseDarkMode{};
+FFlushMenuThemes				pfnFlushMenuThemes{};
+FRefreshImmersiveColorPolicyState		pfnRefreshImmersiveColorPolicyState{};
+FGetIsImmersiveColorUsingHighContrast	pfnGetIsImmersiveColorUsingHighContrast{};
+
+FShouldSystemUseDarkMode		pfnShouldSystemUseDarkMode{};
+FSetPreferredAppMode			pfnSetPreferredAppMode{};
+FIsDarkModeAllowedForApp		pfnIsDarkModeAllowedForApp{};
+
+FOpenNcThemeData				pfnOpenNcThemeData{};
+
 ECK_NAMESPACE_BEGIN
 CRefStrW g_rsCurrDir{};
 ULONG_PTR g_uGpToken{};
@@ -25,22 +43,53 @@ DWORD g_dwTlsSlot{};
 
 NTVER g_NtVer{};
 
-ECK_PRIV_NAMESPACE_BEGIN
-FAllowDarkModeForWindow			pfnAllowDarkModeForWindow{};
-FAllowDarkModeForApp			pfnAllowDarkModeForApp{};
-FIsDarkModeAllowedForWindow		pfnIsDarkModeAllowedForWindow{};
-FShouldAppsUseDarkMode			pfnShouldAppsUseDarkMode{};
-FFlushMenuThemes				pfnFlushMenuThemes{};
-FRefreshImmersiveColorPolicyState		pfnRefreshImmersiveColorPolicyState{};
-FGetIsImmersiveColorUsingHighContrast	pfnGetIsImmersiveColorUsingHighContrast{};
+void EckInitPrivateApi()
+{
+	const auto hModUser32 = LoadLibraryW(L"User32.dll");
+	EckAssert(hModUser32);
+	pfnSetWindowCompositionAttribute = (FSetWindowCompositionAttribute)
+		GetProcAddress(hModUser32, "SetWindowCompositionAttribute");
+	FreeLibrary(hModUser32);
 
-FShouldSystemUseDarkMode		pfnShouldSystemUseDarkMode{};
-FSetPreferredAppMode			pfnSetPreferredAppMode{};
-FIsDarkModeAllowedForApp		pfnIsDarkModeAllowedForApp{};
+	const HMODULE hModUx = LoadLibraryW(L"UxTheme.dll");
+	EckAssert(hModUx);
+	pfnOpenNcThemeData = (FOpenNcThemeData)
+		GetProcAddress(hModUx, MAKEINTRESOURCEA(49));
 
-FSetWindowCompositionAttribute	pfnSetWindowCompositionAttribute{};
-FOpenNcThemeData				pfnOpenNcThemeData{};
-ECK_PRIV_NAMESPACE_END
+	if (g_NtVer.uMajor >= 10 && g_NtVer.uBuild >= WINVER_1607)
+	{
+		if (g_NtVer.uBuild >= WINVER_1809)
+		{
+			if (g_NtVer.uBuild > WINVER_1903)
+			{
+				pfnShouldSystemUseDarkMode = (FShouldSystemUseDarkMode)
+					GetProcAddress(hModUx, MAKEINTRESOURCEA(138));
+				pfnIsDarkModeAllowedForApp = (FIsDarkModeAllowedForApp)
+					GetProcAddress(hModUx, MAKEINTRESOURCEA(139));
+				pfnSetPreferredAppMode = (FSetPreferredAppMode)
+					GetProcAddress(hModUx, MAKEINTRESOURCEA(135));
+			}
+			else
+			{
+				pfnAllowDarkModeForApp = (FAllowDarkModeForApp)
+					GetProcAddress(hModUx, MAKEINTRESOURCEA(135));
+			}
+			pfnAllowDarkModeForWindow = (FAllowDarkModeForWindow)
+				GetProcAddress(hModUx, MAKEINTRESOURCEA(133));
+			pfnIsDarkModeAllowedForWindow = (FIsDarkModeAllowedForWindow)
+				GetProcAddress(hModUx, MAKEINTRESOURCEA(137));
+			pfnShouldAppsUseDarkMode = (FShouldAppsUseDarkMode)
+				GetProcAddress(hModUx, MAKEINTRESOURCEA(132));
+			pfnFlushMenuThemes = (FFlushMenuThemes)
+				GetProcAddress(hModUx, MAKEINTRESOURCEA(136));
+			pfnRefreshImmersiveColorPolicyState = (FRefreshImmersiveColorPolicyState)
+				GetProcAddress(hModUx, MAKEINTRESOURCEA(104));
+			pfnGetIsImmersiveColorUsingHighContrast = (FGetIsImmersiveColorUsingHighContrast)
+				GetProcAddress(hModUx, MAKEINTRESOURCEA(106));
+		}
+	}
+	FreeLibrary(hModUx);
+}
 
 static BOOL DefMsgFilter(const MSG&)
 {
@@ -58,22 +107,31 @@ static void WINAPI GdiplusDebug(Gdiplus::DebugEventLevel dwLevel, CHAR* pszMsg)
 #endif
 
 #pragma region(UxTheme DarkMode Fixer)
-static EckPriv::FOpenNcThemeData		s_pfnOpenNcThemeData{};
-static EckPriv::FOpenThemeData			s_pfnOpenThemeData{ OpenThemeData };
-static EckPriv::FDrawThemeText			s_pfnDrawThemeText{ DrawThemeText };
-static EckPriv::FOpenThemeDataForDpi	s_pfnOpenThemeDataForDpi{ OpenThemeDataForDpi };
-static EckPriv::FDrawThemeBackgroundEx	s_pfnDrawThemeBackgroundEx{ DrawThemeBackgroundEx };
-static EckPriv::FDrawThemeBackground	s_pfnDrawThemeBackground{ DrawThemeBackground };
-static EckPriv::FGetThemeColor			s_pfnGetThemeColor{ GetThemeColor };
-static EckPriv::FCloseThemeData			s_pfnCloseThemeData{ CloseThemeData };
-static EckPriv::FDrawThemeParentBackground s_pfnDrawThemeParentBackground{ DrawThemeParentBackground };
+using FOpenThemeData = HTHEME(WINAPI*)(HWND, LPCWSTR);
+using FDrawThemeText = HRESULT(WINAPI*)(_In_ HTHEME, HDC, int, int, LPCWSTR, int, DWORD, DWORD, LPCRECT);
+using FOpenThemeDataForDpi = HTHEME(WINAPI*)(HWND, LPCWSTR, UINT);
+using FDrawThemeBackgroundEx = HRESULT(WINAPI*)(HTHEME, HDC, int, int, LPCRECT, const DTBGOPTS*);
+using FDrawThemeBackground = HRESULT(WINAPI*)(HTHEME, HDC, int, int, LPCRECT, LPCRECT);
+using FGetThemeColor = HRESULT(WINAPI*)(HTHEME, int, int, int, COLORREF*);
+using FCloseThemeData = HRESULT(WINAPI*)(HTHEME);
+using FDrawThemeParentBackground = HRESULT(WINAPI*)(HWND, HDC, const RECT*);
+
+static FOpenNcThemeData		s_pfnOpenNcThemeData{};
+static FOpenThemeData		s_pfnOpenThemeData{ OpenThemeData };
+static FDrawThemeText		s_pfnDrawThemeText{ DrawThemeText };
+static FOpenThemeDataForDpi	s_pfnOpenThemeDataForDpi{ OpenThemeDataForDpi };
+static FDrawThemeBackgroundEx		s_pfnDrawThemeBackgroundEx{ DrawThemeBackgroundEx };
+static FDrawThemeBackground	s_pfnDrawThemeBackground{ DrawThemeBackground };
+static FGetThemeColor		s_pfnGetThemeColor{ GetThemeColor };
+static FCloseThemeData		s_pfnCloseThemeData{ CloseThemeData };
+static FDrawThemeParentBackground	s_pfnDrawThemeParentBackground{ DrawThemeParentBackground };
 
 static HRESULT WINAPI NewDrawThemeParentBackground(HWND hWnd, HDC hDC, const RECT* prc)
 {
 	const auto hr = s_pfnDrawThemeParentBackground(hWnd, hDC, prc);
 	if (hr != S_OK)// include S_FALSE
 	{
-		if (!ShouldAppUseDarkMode())
+		if (!ShouldAppsUseDarkMode())
 			return hr;
 		RECT rc;
 		if (!prc)
@@ -98,7 +156,7 @@ static HTHEME WINAPI NewOpenNcThemeData(HWND hWnd, PCWSTR pszClassList)
 static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
 {
 	HTHEME hTheme;
-	if (ShouldAppUseDarkMode())
+	if (ShouldAppsUseDarkMode())
 	{
 		if (_wcsicmp(pszClassList, L"Combobox") == 0)
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Combobox");
@@ -118,7 +176,7 @@ static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
 static HTHEME WINAPI NewOpenThemeDataForDpi(HWND hWnd, PCWSTR pszClassList, UINT uDpi)
 {
 	HTHEME hTheme;
-	if (ShouldAppUseDarkMode())
+	if (ShouldAppsUseDarkMode())
 	{
 		if (_wcsicmp(pszClassList, L"Combobox") == 0)
 			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_CFD::Combobox", uDpi);
@@ -139,7 +197,7 @@ static HTHEME WINAPI NewOpenThemeDataForDpi(HWND hWnd, PCWSTR pszClassList, UINT
 static HRESULT WINAPI NewDrawThemeText(HTHEME hTheme, HDC hdc, int iPartId, int iStateId, LPCWSTR pszText,
 	int cchText, DWORD dwTextFlags, DWORD dwTextFlags2, LPCRECT pRect)
 {
-	if (ShouldAppUseDarkMode() && !IsBitSet(dwTextFlags, DT_CALCRECT))
+	if (ShouldAppsUseDarkMode() && !IsBitSet(dwTextFlags, DT_CALCRECT))
 	{
 		const auto* const ptc = GetThreadCtx();
 		if (ptc->IsThemeButton(hTheme))
@@ -269,7 +327,7 @@ EckInline static HRESULT DtbAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int 
 static HRESULT WINAPI NewDrawThemeBackgroundEx(HTHEME hTheme, HDC hdc, int iPartId, int iStateId,
 	LPCRECT pRect, const DTBGOPTS* pOptions)
 {
-	if (ShouldAppUseDarkMode())
+	if (ShouldAppsUseDarkMode())
 	{
 		const auto* const ptc = GetThreadCtx();
 		if (ptc->IsThemeTaskDialog(hTheme))
@@ -465,7 +523,7 @@ static HRESULT WINAPI NewDrawThemeBackgroundEx(HTHEME hTheme, HDC hdc, int iPart
 static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hdc, int iPartId, int iStateId,
 	LPCRECT pRect, LPCRECT pClipRect)
 {
-	if (ShouldAppUseDarkMode())
+	if (ShouldAppsUseDarkMode())
 	{
 		const auto* const ptc = GetThreadCtx();
 		if (ptc->IsThemeTaskDialog(hTheme))
@@ -679,7 +737,7 @@ static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hdc, int iPartId
 
 static HRESULT WINAPI NewGetThemeColor(HTHEME hTheme, int iPartId, int iStateId, int iPropId, COLORREF* pColor)
 {
-	if (ShouldAppUseDarkMode())
+	if (ShouldAppsUseDarkMode())
 	{
 		const auto* const ptc = GetThreadCtx();
 		if (ptc->IsThemeTaskDialog(hTheme))
@@ -823,13 +881,23 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	if (!pInitParam)
 		pInitParam = &ip;
 	*pdwErrCode = 0;
-
-	g_dwTlsSlot = TlsAlloc();
+	//////////////保存实例句柄
 	g_hInstance = hInstance;
 
+	//////////////OS版本检测
+	RtlGetNtVersionNumbers(&g_NtVer.uMajor, &g_NtVer.uMinor, &g_NtVer.uBuild);
+
+	//////////////初始化Private API
+	EckInitPrivateApi();
+
+	//////////////线程上下文Tls槽
+	g_dwTlsSlot = TlsAlloc();
+
+	//////////////初始化线程上下文
 	if (!IsBitSet(pInitParam->uFlags, EIF_NOINITTHREAD))
 		ThreadInit();
 
+	//////////////初始化GDI+
 	if (!IsBitSet(pInitParam->uFlags, EIF_NOINITGDIPLUS))
 	{
 		GdiplusStartupInput gpsi{};
@@ -845,6 +913,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		}
 	}
 
+	//////////////注册窗口类
 	g_WndClassInfo[0].iType = RWCT_CUSTOM;
 	g_WndClassInfo[0].wc = { CS_STDWND,DefDlgProcW,0,DLGWINDOWEXTRA + sizeof(void*) * 2,
 	g_hInstance,NULL,LoadCursorW(NULL,IDC_ARROW),NULL,NULL,WCN_DLG };
@@ -876,6 +945,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		}
 	}
 
+	//////////////获取运行目录
 	g_rsCurrDir.ReSize(32768);
 	GetModuleFileNameW(NULL, g_rsCurrDir.Data(), g_rsCurrDir.Size());
 	PathRemoveFileSpecW(g_rsCurrDir.Data());
@@ -948,64 +1018,13 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		}
 	}
 
-	using namespace EckPriv;
-	//////////////暗色模式支持、OS版本检测
-	RtlGetNtVersionNumbers(&g_NtVer.uMajor, &g_NtVer.uMinor, &g_NtVer.uBuild);
-
-	const HMODULE hModUx = LoadLibraryW(L"UxTheme.dll");
-	*pdwErrCode = GetLastError();
-	if (!hModUx)
-		return InitStatus::UxThemeError;
-	pfnOpenNcThemeData = (FOpenNcThemeData)
-		GetProcAddress(hModUx, MAKEINTRESOURCEA(49));
-	s_pfnOpenNcThemeData = pfnOpenNcThemeData;
-
-	if (g_NtVer.uMajor >= 10 && g_NtVer.uBuild >= WINB_1607)
-	{
-		if (g_NtVer.uBuild >= WINB_1809)
-		{
-			if (g_NtVer.uBuild > WINB_1903)
-			{
-				pfnShouldSystemUseDarkMode = (FShouldSystemUseDarkMode)
-					GetProcAddress(hModUx, MAKEINTRESOURCEA(138));
-				pfnIsDarkModeAllowedForApp = (FIsDarkModeAllowedForApp)
-					GetProcAddress(hModUx, MAKEINTRESOURCEA(139));
-				pfnSetPreferredAppMode = (FSetPreferredAppMode)
-					GetProcAddress(hModUx, MAKEINTRESOURCEA(135));
-			}
-			else
-			{
-				pfnAllowDarkModeForApp = (FAllowDarkModeForApp)
-					GetProcAddress(hModUx, MAKEINTRESOURCEA(135));
-			}
-			pfnAllowDarkModeForWindow = (FAllowDarkModeForWindow)
-				GetProcAddress(hModUx, MAKEINTRESOURCEA(133));
-			pfnIsDarkModeAllowedForWindow = (FIsDarkModeAllowedForWindow)
-				GetProcAddress(hModUx, MAKEINTRESOURCEA(137));
-			pfnShouldAppsUseDarkMode = (FShouldAppsUseDarkMode)
-				GetProcAddress(hModUx, MAKEINTRESOURCEA(132));
-			pfnFlushMenuThemes = (FFlushMenuThemes)
-				GetProcAddress(hModUx, MAKEINTRESOURCEA(136));
-			pfnRefreshImmersiveColorPolicyState = (FRefreshImmersiveColorPolicyState)
-				GetProcAddress(hModUx, MAKEINTRESOURCEA(104));
-			pfnGetIsImmersiveColorUsingHighContrast = (FGetIsImmersiveColorUsingHighContrast)
-				GetProcAddress(hModUx, MAKEINTRESOURCEA(106));
-		}
-	}
-	FreeLibrary(hModUx);
-
-	const auto hModUser32 = LoadLibraryW(L"User32.dll");
-	EckAssert(hModUser32);
-	pfnSetWindowCompositionAttribute = (FSetWindowCompositionAttribute)
-		GetProcAddress(hModUser32, "SetWindowCompositionAttribute");
-	FreeLibrary(hModUser32);
-
 	if (!IsBitSet(pInitParam->uFlags, EIF_NODARKMODE))
 	{
 		SetPreferredAppMode(PreferredAppMode::AllowDark);
 		RefreshImmersiveColorStuff();
 		FlushMenuTheme();
 		DetourTransactionBegin();
+		s_pfnOpenNcThemeData = pfnOpenNcThemeData;
 		DetourAttach(&s_pfnOpenNcThemeData, NewOpenNcThemeData);
 		DetourAttach(&s_pfnOpenThemeData, NewOpenThemeData);
 		DetourAttach(&s_pfnDrawThemeText, NewDrawThemeText);
@@ -1121,7 +1140,7 @@ void ThreadInit()
 
 constexpr PCWSTR c_szErrInitStatus[]
 {
-	L"操作成功完成。",
+	L"操作成功完成",
 	L"注册窗口类失败",
 	L"GDI+初始化失败",
 	L"WIC初始化失败",
@@ -1308,7 +1327,7 @@ void ECKTHREADCTX::SetNcDarkModeForAllTopWnd(BOOL bDark)
 void ECKTHREADCTX::UpdateDefColor()
 {
 	GetItemsViewForeBackColor(crDefText, crDefBkg);
-	crDefBtnFace = (ShouldAppUseDarkMode() ? 0x303030 : GetSysColor(COLOR_BTNFACE));
+	crDefBtnFace = (ShouldAppsUseDarkMode() ? 0x303030 : GetSysColor(COLOR_BTNFACE));
 }
 
 void ECKTHREADCTX::OnThemeOpen(HTHEME hTheme, PCWSTR pszClassList)
@@ -1325,7 +1344,7 @@ void ECKTHREADCTX::OnThemeOpen(HTHEME hTheme, PCWSTR pszClassList)
 	else if (_wcsicmp(pszClassList, L"ToolBar") == 0)
 	{
 		auto& e = hsToolBarTheme[hTheme];
-		if (!e.first && ShouldAppUseDarkMode())
+		if (!e.first && ShouldAppsUseDarkMode())
 			e.second = s_pfnOpenThemeData(NULL, L"ItemsView::ListView");
 		++e.first;
 	}
@@ -1335,7 +1354,7 @@ void ECKTHREADCTX::OnThemeOpen(HTHEME hTheme, PCWSTR pszClassList)
 	else if (_wcsicmp(pszClassList, L"DatePicker") == 0)
 	{
 		auto& e = hsDateTimePickerTheme[hTheme];
-		if (!e.first && ShouldAppUseDarkMode())
+		if (!e.first && ShouldAppsUseDarkMode())
 			e.second = s_pfnOpenThemeData(NULL, L"DarkMode_CFD::ComboBox");
 		++e.first;
 	}

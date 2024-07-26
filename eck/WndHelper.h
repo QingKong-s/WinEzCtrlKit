@@ -519,113 +519,14 @@ EckInline void BroadcastChildrenMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 		}, (LPARAM)&msg);
 }
 
-EckInline BOOL AllowDarkModeForWindow(HWND hWnd, BOOL bAllow)
-{
-#ifdef ECK_MACRO_DRAKMODE
-	return EckPriv::pfnAllowDarkModeForWindow(hWnd, bAllow);
-#else
-	if (EckPriv::pfnAllowDarkModeForWindow)
-		return EckPriv::pfnAllowDarkModeForWindow(hWnd, bAllow);
-	return FALSE;
-#endif
-}
-
-EckInline PreferredAppMode SetPreferredAppMode(PreferredAppMode iMode)
-{
-	if (EckPriv::pfnSetPreferredAppMode)
-		return EckPriv::pfnSetPreferredAppMode(iMode);
-	else if (EckPriv::pfnAllowDarkModeForApp)
-	{
-		EckPriv::pfnAllowDarkModeForApp(
-			iMode == PreferredAppMode::AllowDark || iMode == PreferredAppMode::ForceDark);
-		return PreferredAppMode::Default;
-	}
-	return PreferredAppMode::Default;
-}
-
-EckInline BOOL IsDarkModeAllowedForWindow(HWND hWnd)
-{
-#ifdef ECK_MACRO_DRAKMODE
-	return EckPriv::pfnIsDarkModeAllowedForWindow(hWnd);
-#else
-	if (EckPriv::pfnIsDarkModeAllowedForWindow)
-		return EckPriv::pfnIsDarkModeAllowedForWindow(hWnd);
-	return FALSE;
-#endif
-}
-
-EckInline BOOL ShouldAppUseDarkMode()
-{
-#ifdef ECK_MACRO_DRAKMODE
-	return EckPriv::pfnShouldAppsUseDarkMode();
-#else
-	if (EckPriv::pfnShouldAppsUseDarkMode)
-		return EckPriv::pfnShouldAppsUseDarkMode();
-	return FALSE;
-#endif
-}
-
-EckInline void FlushMenuTheme()
-{
-#ifdef ECK_MACRO_DRAKMODE
-	EckPriv::pfnFlushMenuThemes();
-#else
-	if (EckPriv::pfnFlushMenuThemes)
-		EckPriv::pfnFlushMenuThemes();
-#endif
-}
-
-EckInline void RefreshImmersiveColorPolicyState()
-{
-#ifdef ECK_MACRO_DRAKMODE
-	EckPriv::pfnRefreshImmersiveColorPolicyState();
-#else
-	if (EckPriv::pfnRefreshImmersiveColorPolicyState)
-		EckPriv::pfnRefreshImmersiveColorPolicyState();
-#endif
-}
-
-EckInline BOOL GetIsImmersiveColorUsingHighContrast(IMMERSIVE_HC_CACHE_MODE iCacheMode)
-{
-#ifdef ECK_MACRO_DRAKMODE
-	return EckPriv::pfnGetIsImmersiveColorUsingHighContrast(iCacheMode);
-#else
-	if (EckPriv::pfnGetIsImmersiveColorUsingHighContrast)
-		return EckPriv::pfnGetIsImmersiveColorUsingHighContrast(iCacheMode);
-	return FALSE;
-#endif
-}
-
-EckInline BOOL ShouldSystemUseDarkMode()
-{
-#ifdef ECK_MACRO_DRAKMODE
-	return EckPriv::pfnShouldSystemUseDarkMode();
-#else
-	if (EckPriv::pfnShouldSystemUseDarkMode)
-		return EckPriv::pfnShouldSystemUseDarkMode();
-	return FALSE;
-#endif
-}
-
-EckInline BOOL IsDarkModeAllowedForApp()
-{
-#ifdef ECK_MACRO_DRAKMODE
-	return EckPriv::pfnIsDarkModeAllowedForApp();
-#else
-	if (EckPriv::pfnIsDarkModeAllowedForApp)
-		return EckPriv::pfnIsDarkModeAllowedForApp();
-	return FALSE;
-#endif
-}
-
 EckInline HRESULT EnableWindowNcDarkMode(HWND hWnd, BOOL bAllow)
 {
-	if (g_NtVer.uBuild > WINB_11_21H2)
+	if (g_NtVer.uBuild > WINVER_11_21H2)
 		return DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &bAllow, sizeof(bAllow));
 	else
 	{
 		WINDOWCOMPOSITIONATTRIBDATA t{ WCA_USEDARKMODECOLORS, &bAllow, sizeof(bAllow) };
-		return EckPriv::pfnSetWindowCompositionAttribute(hWnd, &t) ? S_OK : E_FAIL;
+		return SetWindowCompositionAttribute(hWnd, &t) ? S_OK : E_FAIL;
 	}
 }
 
@@ -649,7 +550,7 @@ inline void GetItemsViewForeBackColor(COLORREF& crText, COLORREF& crBk)
 {
 	crBk = GetSysColor(COLOR_WINDOW);
 	crText = GetSysColor(COLOR_WINDOWTEXT);
-	if (ShouldAppUseDarkMode())
+	if (ShouldAppsUseDarkMode())
 	{
 		const auto hThemeIV = OpenThemeData(NULL, L"ItemsView");
 		if (hThemeIV)
