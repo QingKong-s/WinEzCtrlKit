@@ -314,7 +314,6 @@ EckInline constexpr T ReverseByteOrder(T& i)
 	return i;
 }
 
-
 template<class T, class U>
 EckInline constexpr T i32ToP(U i)
 {
@@ -325,26 +324,6 @@ template<class T, class U>
 EckInline constexpr T pToI32(U p)
 {
 	return (T)((ULONG_PTR)p);
-}
-
-EckInline BOOL IsFILETIMEZero(const FILETIME& ft)
-{
-	return ft.dwLowDateTime == 0 && ft.dwHighDateTime == 0;
-}
-
-EckInline bool operator==(const FILETIME& ft1, const FILETIME& ft2)
-{
-	return CompareFileTime(&ft1, &ft2) == 0;
-}
-
-EckInline bool operator>(const FILETIME& ft1, const FILETIME& ft2)
-{
-	return CompareFileTime(&ft1, &ft2) == 1;
-}
-
-EckInline bool operator<(const FILETIME& ft1, const FILETIME& ft2)
-{
-	return CompareFileTime(&ft1, &ft2) == -1;
 }
 
 //微软你妈死了
@@ -366,18 +345,6 @@ template<class T1, class T2>
 EckInline constexpr BOOL IsBitSet(T1 dw1, T2 dw2)
 {
 	return (dw1 & dw2) == dw2;
-}
-
-EckInline void ScreenToClient(HWND hWnd, RECT* prc)
-{
-	::ScreenToClient(hWnd, (POINT*)prc);
-	::ScreenToClient(hWnd, ((POINT*)prc) + 1);
-}
-
-EckInline void ClientToScreen(HWND hWnd, RECT* prc)
-{
-	::ClientToScreen(hWnd, (POINT*)prc);
-	::ClientToScreen(hWnd, ((POINT*)prc) + 1);
 }
 
 inline constexpr RECT MakeRect(POINT pt1, POINT pt2)

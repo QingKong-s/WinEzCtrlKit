@@ -189,7 +189,6 @@
     <ClInclude Include="eck\CHexEdit.h" />
     <ClInclude Include="eck\ComPtr.h" />
     <ClInclude Include="eck\CVectorDrawPanel.h" />
-    <ClInclude Include="eck\EnDeCode.h" />
     <ClInclude Include="eck\GeometryRender.h" />
     <ClInclude Include="eck\IMem.h" />
     <ClInclude Include="eck\Lyric.h" />
@@ -278,6 +277,7 @@
     <ClInclude Include="eck\LunarDateLib.h" />
     <ClInclude Include="eck\MathHelper.h" />
     <ClInclude Include="eck\ResStruct.h" />
+    <ClInclude Include="eck\ShellHelper.h" />
     <ClInclude Include="eck\SystemHelper.h" />
     <ClInclude Include="eck\Utility.h" />
     <ClInclude Include="eck\Utility2.h" />
