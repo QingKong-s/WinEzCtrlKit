@@ -8,6 +8,7 @@
 */
 #pragma once
 #include "CListBox.h"
+#include "Utility2.h"
 
 #include <algorithm>
 

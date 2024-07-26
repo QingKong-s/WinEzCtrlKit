@@ -7,7 +7,6 @@
 */
 #pragma once
 #include "ImageHelper.h"
-#include "EnDeCode.h"
 
 ECK_NAMESPACE_BEGIN
 struct ICONDIRENTRY

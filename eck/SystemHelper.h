@@ -7,10 +7,10 @@
 */
 #pragma once
 #include "Utility.h"
+#include "Utility2.h"
 #include "CException.h"
 #include "CFile.h"
 #include "CRefBin.h"
-#include "EnDeCode.h"
 
 #include <intrin.h>
 
@@ -18,19 +18,6 @@
 #include <comdef.h>
 
 ECK_NAMESPACE_BEGIN
-inline int CalcDbcsStringCharCount(PCSTR pszText, int cchText, UINT uCp = CP_ACP)
-{
-	int c = 0;
-	for (auto p = pszText; p < pszText + cchText; ++c)
-	{
-		if (IsDBCSLeadByteEx(uCp, *p))
-			p += 2;
-		else
-			p += 1;
-	}
-	return c;
-}
-
 inline COLORREF GetCursorPosColor()
 {
 	POINT pt;
@@ -39,80 +26,6 @@ inline COLORREF GetCursorPosColor()
 	const auto cr = GetPixel(hDC, pt.x, pt.y);
 	ReleaseDC(NULL, hDC);
 	return cr;
-}
-
-inline CRefStrW GetClipboardString(HWND hWnd = NULL)
-{
-	if (!OpenClipboard(hWnd))
-	{
-		EckDbgPrintFmt(L"剪贴板打开失败，当前所有者 = %p", GetClipboardOwner());
-		return {};
-	}
-	if (IsClipboardFormatAvailable(CF_UNICODETEXT))
-	{
-		const HANDLE hData = GetClipboardData(CF_UNICODETEXT);
-		if (hData)
-		{
-			const void* pData = GlobalLock(hData);
-			if (pData)
-			{
-				const auto cb = GlobalSize(hData);
-				const int cch = (int)(cb / sizeof(WCHAR));
-				CRefStrW rs(cch);
-				memcpy(rs.Data(), pData, cch * sizeof(WCHAR));
-				*(rs.Data() + cch) = L'\0';
-				GlobalUnlock(hData);
-				CloseClipboard();
-				return rs;
-			}
-		}
-	}
-	CloseClipboard();
-	return {};
-}
-
-inline BOOL SetClipboardString(PCWSTR pszText, int cch = -1, HWND hWnd = NULL)
-{
-	if (!OpenClipboard(hWnd))
-	{
-		EckDbgPrintFmt(L"剪贴板打开失败，当前所有者 = %p", GetClipboardOwner());
-		return FALSE;
-	}
-	EmptyClipboard();
-	if (cch < 0)
-		cch = (int)wcslen(pszText);
-	const SIZE_T cb = Cch2CbW(cch);
-
-	HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, cb);
-	if (hGlobal)
-	{
-		void* pData = GlobalLock(hGlobal);
-		if (pData)
-		{
-			memcpy(pData, pszText, cb);
-			GlobalUnlock(hGlobal);
-			SetClipboardData(CF_UNICODETEXT, hGlobal);
-			CloseClipboard();
-			return TRUE;
-		}
-	}
-	CloseClipboard();
-	return FALSE;
-}
-
-EckInline void DoEvents()
-{
-	MSG msg;
-	while (PeekMessageW(&msg, NULL, 0u, 0u, PM_REMOVE))
-	{
-		if (msg.message == WM_QUIT)
-		{
-			PostQuitMessage((int)msg.wParam);
-			return;
-		}
-		TranslateMessage(&msg);
-		DispatchMessageW(&msg);
-	}
 }
 
 /// <summary>
@@ -729,19 +642,6 @@ EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 	return pTextFormat;
 }
 
-[[nodiscard]] inline CRefStrW Utf16RevByte(PCWSTR pszText, int cchText = -1)
-{
-	CRefStrW rs{};
-	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_BYTEREV,
-		pszText, cchText, NULL, 0, NULL, NULL, 0);
-	if (!cchResult)
-		return rs;
-	rs.ReSize(cchResult);
-	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_BYTEREV,
-		pszText, cchText, rs.Data(), cchResult, NULL, NULL, 0);
-	return rs;
-}
-
 inline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, UINT& uPid)
 {
 	uPid = 0u;
@@ -1204,7 +1104,7 @@ inline NTSTATUS EnumProcessModules(HANDLE hProcess, std::vector<MODULE_INFO>& vR
 		return nts;
 	if (!LdrData.Initialized)
 		return STATUS_UNSUCCESSFUL;
-	
+
 	LDR_DATA_TABLE_ENTRY Entry;// 不要使用Win7之后添加的字段
 	UINT_PTR pBegin = pLdr + offsetof(PEB_LDR_DATA, InLoadOrderModuleList);
 	for (UINT_PTR p = (UINT_PTR)LdrData.InLoadOrderModuleList.Flink; p != pBegin; )
@@ -1383,27 +1283,25 @@ inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess, PCWSTR pszPrivilege, BOO
 /// 打开文件
 /// </summary>
 /// <param name="pusFile">文件的NT路径</param>
-/// <param name="dwAccess">CreateFileW --> dwAccess</param>
+/// <param name="dwAccess">CreateFileW --> dwAccess，注意CreateFileW总是追加SYNCHRONIZE | FILE_READ_ATTRIBUTES，考虑使用FILE_GENERIC_*</param>
 /// <param name="dwShareMode">CreateFileW --> dwShareMode</param>
-/// <param name="dwOptions">ZwCreateFile --> CreateOptions</param>
-/// <param name="bInheritHandle">句柄是否可继承</param>
-/// <param name="hRootDirectory">根目录</param>
+/// <param name="dwOptions">NtCreateFile --> CreateOptions</param>
 /// <param name="pnts">错误码</param>
-/// <param name="pIoStatus">IO状态</param>
+/// <param name="piost">IO状态</param>
+/// <param name="bInheritHandle">句柄是否可继承</param>
+/// <param name="hRootDirectory">根目录句柄</param>
 /// <returns>成功返回文件句柄，失败返回INVALID_HANDLE_VALUE</returns>
 inline HANDLE NaOpenFile(UNICODE_STRING* pusFile, DWORD dwAccess, DWORD dwShareMode, DWORD dwOptions = 0u,
-	BOOL bInheritHandle = FALSE, HANDLE hRootDirectory = NULL, NTSTATUS* pnts = NULL, NTSTATUS* pIoStatus = NULL)
+	NTSTATUS* pnts = NULL, IO_STATUS_BLOCK* piost = NULL, BOOL bInheritHandle = FALSE, HANDLE hRootDirectory = NULL)
 {
 	OBJECT_ATTRIBUTES oa;
 	InitializeObjectAttributes(&oa, pusFile, OBJ_CASE_INSENSITIVE, hRootDirectory, NULL);
 	HANDLE hFile;
 	NTSTATUS nts;
 	IO_STATUS_BLOCK iost;
-	nts = NtOpenFile(&hFile, dwAccess, &oa, &iost, dwShareMode, 0);
+	nts = NtOpenFile(&hFile, dwAccess, &oa, piost ? piost : &iost, dwShareMode, 0);
 	if (pnts)
 		*pnts = nts;
-	if (pIoStatus)
-		*pIoStatus = iost.Status;
 	if (NT_SUCCESS(nts))
 		return hFile;
 	return INVALID_HANDLE_VALUE;
@@ -1416,13 +1314,13 @@ inline HANDLE NaOpenFile(UNICODE_STRING* pusFile, DWORD dwAccess, DWORD dwShareM
 /// <param name="pszFile">文件路径</param>
 /// <param name="dwAccess">CreateFileW --> dwAccess，注意CreateFileW总是追加SYNCHRONIZE | FILE_READ_ATTRIBUTES，考虑使用FILE_GENERIC_*</param>
 /// <param name="dwShareMode">CreateFileW --> dwShareMode</param>
-/// <param name="dwOptions">ZwCreateFile --> CreateOptions</param>
-/// <param name="bInheritHandle">句柄是否可继承</param>
+/// <param name="dwOptions">NtCreateFile --> CreateOptions</param>
 /// <param name="pnts">错误码</param>
-/// <param name="pIoStatus">IO状态</param>
+/// <param name="piost">IO状态</param>
+/// <param name="bInheritHandle">句柄是否可继承</param>
 /// <returns>成功返回文件句柄，失败返回INVALID_HANDLE_VALUE</returns>
 inline HANDLE NaOpenFile(PCWSTR pszFile, DWORD dwAccess, DWORD dwShareMode, DWORD dwOptions = 0u,
-	BOOL bInheritHandle = FALSE, NTSTATUS* pnts = NULL, NTSTATUS* pIoStatus = NULL)
+	NTSTATUS* pnts = NULL, IO_STATUS_BLOCK* piost = NULL, BOOL bInheritHandle = FALSE)
 {
 	UNICODE_STRING usFile;
 	RtlInitUnicodeString(&usFile, pszFile);
@@ -1433,7 +1331,76 @@ inline HANDLE NaOpenFile(PCWSTR pszFile, DWORD dwAccess, DWORD dwShareMode, DWOR
 		return INVALID_HANDLE_VALUE;
 	}
 	const auto hFile = NaOpenFile(&usFile, dwAccess, dwShareMode, dwOptions,
-		bInheritHandle, NULL, pIoStatus, pnts);
+		pnts, piost, bInheritHandle);
+	RtlFreeHeap(RtlProcessHeap(), 0, usFile.Buffer);
+	return hFile;
+}
+
+/// <summary>
+/// 打开文件
+/// </summary>
+/// <param name="pusFile">文件的NT路径</param>
+/// <param name="dwAccess">CreateFileW --> dwAccess</param>
+/// <param name="dwShareMode">CreateFileW --> dwShareMode</param>
+/// <param name="dwOptions">NtCreateFile --> CreateOptions</param>
+/// <param name="dwCreationDisposition">NtCreateFile --> CreateDisposition</param>
+/// <param name="pnts">错误码</param>
+/// <param name="piost">IO状态</param>
+/// <param name="dwAttributes">若创建文件，则此参数指定文件属性</param>
+/// <param name="cbInit">若创建文件，则此参数指定初始大小</param>
+/// <param name="bInheritHandle">句柄是否可继承</param>
+/// <param name="hRootDirectory">根目录句柄</param>
+/// <returns>成功返回文件句柄，失败返回INVALID_HANDLE_VALUE</returns>
+inline HANDLE NaCreateFile(UNICODE_STRING* pusFile, DWORD dwAccess, DWORD dwShareMode, DWORD dwOptions,
+	DWORD dwCreationDisposition, NTSTATUS* pnts = NULL, IO_STATUS_BLOCK* piost = NULL,
+	DWORD dwAttributes = FILE_ATTRIBUTE_NORMAL, ULONGLONG cbInit = 0ll,
+	BOOL bInheritHandle = FALSE, HANDLE hRootDirectory = NULL)
+{
+	OBJECT_ATTRIBUTES oa;
+	InitializeObjectAttributes(&oa, pusFile, OBJ_CASE_INSENSITIVE, hRootDirectory, NULL);
+	HANDLE hFile;
+	NTSTATUS nts;
+	IO_STATUS_BLOCK iost;
+	LARGE_INTEGER li{ .QuadPart = (LONGLONG)cbInit };
+	nts = NtCreateFile(&hFile, dwAccess, &oa, piost ? piost : &iost, &li,
+		dwAttributes, dwShareMode, dwCreationDisposition, dwOptions, NULL, 0);
+	if (pnts)
+		*pnts = nts;
+	if (NT_SUCCESS(nts))
+		return hFile;
+	return INVALID_HANDLE_VALUE;
+}
+
+/// <summary>
+/// 打开文件。
+/// 封装与CreateFileW相近的Native API调用，不支持打开控制台
+/// </summary>
+/// <param name="pusFile">文件路径</param>
+/// <param name="dwAccess">CreateFileW --> dwAccess</param>
+/// <param name="dwShareMode">CreateFileW --> dwShareMode</param>
+/// <param name="dwOptions">NtCreateFile --> CreateOptions</param>
+/// <param name="dwCreationDisposition">NtCreateFile --> CreateDisposition</param>
+/// <param name="pnts">错误码</param>
+/// <param name="piost">IO状态</param>
+/// <param name="dwAttributes">若创建文件，则此参数指定文件属性</param>
+/// <param name="cbInit">若创建文件，则此参数指定初始大小</param>
+/// <param name="bInheritHandle">句柄是否可继承</param>
+/// <returns>成功返回文件句柄，失败返回INVALID_HANDLE_VALUE</returns>
+inline HANDLE NaCreateFile(PCWSTR pszFile, DWORD dwAccess, DWORD dwShareMode, DWORD dwOptions,
+	DWORD dwCreationDisposition, NTSTATUS* pnts = NULL, IO_STATUS_BLOCK* piost = NULL,
+	DWORD dwAttributes = FILE_ATTRIBUTE_NORMAL, ULONGLONG cbInit = 0ll,
+	BOOL bInheritHandle = FALSE)
+{
+	UNICODE_STRING usFile;
+	RtlInitUnicodeString(&usFile, pszFile);
+	if (!RtlDosPathNameToNtPathName_U(pszFile, &usFile, NULL, NULL))
+	{
+		if (pnts)
+			*pnts = STATUS_OBJECT_PATH_NOT_FOUND;
+		return INVALID_HANDLE_VALUE;
+	}
+	const auto hFile = NaCreateFile(&usFile, dwAccess, dwShareMode, dwOptions,
+		dwCreationDisposition, pnts, piost, dwAttributes, cbInit, bInheritHandle);
 	RtlFreeHeap(RtlProcessHeap(), 0, usFile.Buffer);
 	return hFile;
 }

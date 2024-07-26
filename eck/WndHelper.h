@@ -619,4 +619,31 @@ inline BOOL GetWindowClientRect(HWND hWnd, RECT& rcClient)
 	else
 		return FALSE;
 }
+
+EckInline void DoEvents()
+{
+	MSG msg;
+	while (PeekMessageW(&msg, NULL, 0u, 0u, PM_REMOVE))
+	{
+		if (msg.message == WM_QUIT)
+		{
+			PostQuitMessage((int)msg.wParam);
+			return;
+		}
+		TranslateMessage(&msg);
+		DispatchMessageW(&msg);
+	}
+}
+
+EckInline void ScreenToClient(HWND hWnd, RECT* prc)
+{
+	::ScreenToClient(hWnd, (POINT*)prc);
+	::ScreenToClient(hWnd, ((POINT*)prc) + 1);
+}
+
+EckInline void ClientToScreen(HWND hWnd, RECT* prc)
+{
+	::ClientToScreen(hWnd, (POINT*)prc);
+	::ClientToScreen(hWnd, ((POINT*)prc) + 1);
+}
 ECK_NAMESPACE_END

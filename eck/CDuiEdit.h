@@ -8,6 +8,7 @@
 #pragma once
 #if ECKCXX20
 #include "CDuiScrollBar.h"
+#include "ShellHelper.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
