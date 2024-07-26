@@ -321,7 +321,7 @@ public:
 		case WM_CREATE:
 		{
 			if (pCtx->bAutoNcDark && pCtx->TwmAt(hWnd) == p)
-				EnableWindowNcDarkMode(hWnd, ShouldAppUseDarkMode());
+				EnableWindowNcDarkMode(hWnd, ShouldAppsUseDarkMode());
 		}
 		break;
 		case WM_NCDESTROY:// 窗口生命周期中的最后一个消息，在这里解绑HWND和CWnd，从窗口映射中清除无效内容

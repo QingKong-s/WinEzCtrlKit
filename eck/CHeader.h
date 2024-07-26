@@ -32,7 +32,7 @@ public:
 		{
 		case WM_CREATE:
 		{
-			if (ShouldAppUseDarkMode())
+			if (ShouldAppsUseDarkMode())
 				SetWindowTheme(hWnd, L"ItemsView", NULL);
 			else
 				SetWindowTheme(hWnd, L"Explorer", NULL);
@@ -47,7 +47,7 @@ public:
 		case WM_SETTINGCHANGE:
 		{
 			if (IsColorSchemeChangeMessage(lParam))
-				if (ShouldAppUseDarkMode())
+				if (ShouldAppsUseDarkMode())
 					SetWindowTheme(hWnd, L"ItemsView", NULL);
 				else
 					SetWindowTheme(hWnd, L"Explorer", NULL);
@@ -59,7 +59,7 @@ public:
 
 	LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed) override
 	{
-		if (ShouldAppUseDarkMode())
+		if (ShouldAppsUseDarkMode())
 			switch (uMsg)
 			{
 			case WM_NOTIFY:

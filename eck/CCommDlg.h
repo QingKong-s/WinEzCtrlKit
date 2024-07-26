@@ -34,7 +34,7 @@ protected:
 	static LRESULT CALLBACK EckTdLinkParentSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
 		UINT_PTR uSubclassId, DWORD_PTR lRefData)
 	{
-		if (ShouldAppUseDarkMode())
+		if (ShouldAppsUseDarkMode())
 			switch (uMsg)
 			{
 			case WM_PAINT:

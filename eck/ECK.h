@@ -8,13 +8,11 @@
 #pragma once
 #define GDIPVER 0x110
 
-#include "PhNt/phnt_windows.h"
-#include "PhNt/phnt.h"
-
+#include "PrivateApi.h"
 //#include <Windows.h>
 //#include <windowsx.h>
+//#include <Uxtheme.h>
 
-#include <Uxtheme.h>
 #include <vsstyle.h>
 #include <dwmapi.h>
 #include <wincodec.h>
@@ -481,10 +479,10 @@ struct NTVER
 
 enum :ULONG
 {
-	WINB_1607 = 14393,
-	WINB_1809 = 17763,
-	WINB_1903 = 18362,
-	WINB_11_21H2 = 22000,
+	WINVER_1607 = 14393,
+	WINVER_1809 = 17763,
+	WINVER_1903 = 18362,
+	WINVER_11_21H2 = 22000,
 };
 
 extern NTVER g_NtVer;
@@ -496,106 +494,6 @@ extern IDWriteFactory* g_pDwFactory;
 extern ID2D1Device* g_pD2dDevice;
 extern IDXGIDevice1* g_pDxgiDevice;
 extern IDXGIFactory2* g_pDxgiFactory;
-
-enum IMMERSIVE_HC_CACHE_MODE
-{
-	IHCM_USE_CACHED_VALUE,
-	IHCM_REFRESH
-};
-
-enum class PreferredAppMode
-{
-	Default,
-	AllowDark,
-	ForceDark,
-	ForceLight,
-	Max
-};
-
-enum WINDOWCOMPOSITIONATTRIB
-{
-	WCA_UNDEFINED = 0,
-	WCA_NCRENDERING_ENABLED = 1,
-	WCA_NCRENDERING_POLICY = 2,
-	WCA_TRANSITIONS_FORCEDISABLED = 3,
-	WCA_ALLOW_NCPAINT = 4,
-	WCA_CAPTION_BUTTON_BOUNDS = 5,
-	WCA_NONCLIENT_RTL_LAYOUT = 6,
-	WCA_FORCE_ICONIC_REPRESENTATION = 7,
-	WCA_EXTENDED_FRAME_BOUNDS = 8,
-	WCA_HAS_ICONIC_BITMAP = 9,
-	WCA_THEME_ATTRIBUTES = 10,
-	WCA_NCRENDERING_EXILED = 11,
-	WCA_NCADORNMENTINFO = 12,
-	WCA_EXCLUDED_FROM_LIVEPREVIEW = 13,
-	WCA_VIDEO_OVERLAY_ACTIVE = 14,
-	WCA_FORCE_ACTIVEWINDOW_APPEARANCE = 15,
-	WCA_DISALLOW_PEEK = 16,
-	WCA_CLOAK = 17,
-	WCA_CLOAKED = 18,
-	WCA_ACCENT_POLICY = 19,
-	WCA_FREEZE_REPRESENTATION = 20,
-	WCA_EVER_UNCLOAKED = 21,
-	WCA_VISUAL_OWNER = 22,
-	WCA_HOLOGRAPHIC = 23,
-	WCA_EXCLUDED_FROM_DDA = 24,
-	WCA_PASSIVEUPDATEMODE = 25,
-	WCA_USEDARKMODECOLORS = 26,
-	WCA_LAST = 27
-};
-
-struct WINDOWCOMPOSITIONATTRIBDATA
-{
-	WINDOWCOMPOSITIONATTRIB Attrib;
-	PVOID pvData;
-	SIZE_T cbData;
-};
-
-ECK_PRIV_NAMESPACE_BEGIN
-using FSetWindowCompositionAttribute = BOOL(WINAPI*)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
-
-// UxTheme
-using FOpenNcThemeData = HTHEME(WINAPI*)(HWND, LPCWSTR);
-using FOpenThemeData = HTHEME(WINAPI*)(HWND, LPCWSTR);
-using FDrawThemeText = HRESULT(WINAPI*)(_In_ HTHEME, HDC, int, int, LPCWSTR, int, DWORD, DWORD, LPCRECT);
-using FOpenThemeDataForDpi = HTHEME(WINAPI*)(HWND, LPCWSTR, UINT);
-using FDrawThemeBackgroundEx = HRESULT(WINAPI*)(HTHEME, HDC, int, int, LPCRECT, const DTBGOPTS*);
-using FDrawThemeBackground = HRESULT(WINAPI*)(HTHEME, HDC, int, int, LPCRECT, LPCRECT);
-using FGetThemeColor = HRESULT(WINAPI*)(HTHEME, int, int, int, COLORREF*);
-using FCloseThemeData = HRESULT(WINAPI*)(HTHEME);
-using FDrawThemeParentBackground = HRESULT(WINAPI*)(HWND, HDC, const RECT*);
-// 1809 17763 暗色功能引入
-using FAllowDarkModeForWindow = bool(WINAPI*)(HWND, BOOL);
-using FAllowDarkModeForApp = bool(WINAPI*)(BOOL);
-using FIsDarkModeAllowedForWindow = bool(WINAPI*)(HWND);
-using FShouldAppsUseDarkMode = bool(WINAPI*)();
-
-using FFlushMenuThemes = void(WINAPI*)();
-
-using FRefreshImmersiveColorPolicyState = void(WINAPI*)();
-using FGetIsImmersiveColorUsingHighContrast = bool(WINAPI*)(IMMERSIVE_HC_CACHE_MODE);
-// 1903 18362
-using FShouldSystemUseDarkMode = bool(WINAPI*)();
-using FSetPreferredAppMode = PreferredAppMode(WINAPI*)(PreferredAppMode);
-using FIsDarkModeAllowedForApp = bool(WINAPI*)();
-
-
-extern FAllowDarkModeForWindow			pfnAllowDarkModeForWindow;
-extern FAllowDarkModeForApp				pfnAllowDarkModeForApp;
-extern FIsDarkModeAllowedForWindow		pfnIsDarkModeAllowedForWindow;
-extern FShouldAppsUseDarkMode			pfnShouldAppsUseDarkMode;
-extern FFlushMenuThemes					pfnFlushMenuThemes;
-extern FRefreshImmersiveColorPolicyState		pfnRefreshImmersiveColorPolicyState;
-extern FGetIsImmersiveColorUsingHighContrast	pfnGetIsImmersiveColorUsingHighContrast;
-
-extern FShouldSystemUseDarkMode			pfnShouldSystemUseDarkMode;
-extern FSetPreferredAppMode				pfnSetPreferredAppMode;
-extern FIsDarkModeAllowedForApp			pfnIsDarkModeAllowedForApp;
-
-extern FSetWindowCompositionAttribute	pfnSetWindowCompositionAttribute;
-extern FOpenNcThemeData					pfnOpenNcThemeData;
-ECK_PRIV_NAMESPACE_END
-
 
 /*窗口类名*/
 
@@ -633,7 +531,6 @@ enum class InitStatus
 	DxgiDeviceError,
 	DWriteFactoryError,
 	D3dDeviceError,
-	UxThemeError,
 };
 
 enum :UINT

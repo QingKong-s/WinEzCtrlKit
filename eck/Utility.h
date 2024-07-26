@@ -56,48 +56,48 @@ using UniquePtrCrtMA = std::unique_ptr<T, CrtMADeleter<T>>;
 namespace Colorref
 {
 	inline constexpr COLORREF
-		Red               = 0x0000FF,// 红色
-		Green             = 0x00FF00,// 绿色
-		Blue              = 0xFF0000,// 蓝色
-		Yellow            = 0x00FFFF,// 黄色
-		Magenta           = 0xFF00FF,// 品红/洋红
-		Cyan              = 0xFFFF00,// 艳青/青色
-		Aqua			  = Cyan,
+		Red = 0x0000FF,// 红色
+		Green = 0x00FF00,// 绿色
+		Blue = 0xFF0000,// 蓝色
+		Yellow = 0x00FFFF,// 黄色
+		Magenta = 0xFF00FF,// 品红/洋红
+		Cyan = 0xFFFF00,// 艳青/青色
+		Aqua = Cyan,
 
-		Maroon            = 0x000080,// 红褐/暗红
-		OfficeGreen       = 0x008000,// 墨绿/暗绿
-		Olive             = 0x008080,// 褐绿/暗黄
-		NavyBlue          = 0x800000,// 藏青/暗蓝
-		Patriarch         = 0x800080,// 紫红/暗洋红
-		Teal              = 0x808000,// 深青/暗青
+		Maroon = 0x000080,// 红褐/暗红
+		OfficeGreen = 0x008000,// 墨绿/暗绿
+		Olive = 0x008080,// 褐绿/暗黄
+		NavyBlue = 0x800000,// 藏青/暗蓝
+		Patriarch = 0x800080,// 紫红/暗洋红
+		Teal = 0x808000,// 深青/暗青
 
-		Silver            = 0xC0C0C0,// 浅灰/亮灰
-		MoneyGreen        = 0xC0DCC0,// 美元绿
-		LightBlue         = 0xF0CAA6,// 浅蓝/天蓝
+		Silver = 0xC0C0C0,// 浅灰/亮灰
+		MoneyGreen = 0xC0DCC0,// 美元绿
+		LightBlue = 0xF0CAA6,// 浅蓝/天蓝
 
-		Gray              = 0x808080,// 灰色/暗灰
-		NeutralGray       = 0xA4A0A0,// 中性灰
-		MilkyWhite        = 0xF0FBFF,// 乳白
+		Gray = 0x808080,// 灰色/暗灰
+		NeutralGray = 0xA4A0A0,// 中性灰
+		MilkyWhite = 0xF0FBFF,// 乳白
 
-		Black             = 0x000000,// 黑色
-		White             = 0xFFFFFF,// 白色
+		Black = 0x000000,// 黑色
+		White = 0xFFFFFF,// 白色
 
-		BlueGray          = 0xFF8080,// 蓝灰
-		PurplishBlue      = 0xE03058,// 藏蓝
-		TenderGreen       = 0x00E080,// 嫩绿
-		Turquoise         = 0x80E000,// 青绿
-		YellowishBrown    = 0x0060C0,// 黄褐
-		Pink              = 0xFFA8FF,// 粉红
-		BrightYellow      = 0x00D8D8,// 嫩黄
-		JadeWhite         = 0xECECEC,// 银白
-		Purple            = 0xFF0090,// 紫色
-		Azure             = 0xFF8800,// 天蓝
-		Celadon           = 0x80A080,// 灰绿
-		CyanBlue          = 0xC06000,// 青蓝
-		Orange            = 0x0080FF,// 橙黄
-		Peachblow         = 0x8050FF,// 桃红
-		HibiscusRed       = 0xC080FF,// 芙红
-		DeepGray          = 0x606060// 深灰
+		BlueGray = 0xFF8080,// 蓝灰
+		PurplishBlue = 0xE03058,// 藏蓝
+		TenderGreen = 0x00E080,// 嫩绿
+		Turquoise = 0x80E000,// 青绿
+		YellowishBrown = 0x0060C0,// 黄褐
+		Pink = 0xFFA8FF,// 粉红
+		BrightYellow = 0x00D8D8,// 嫩黄
+		JadeWhite = 0xECECEC,// 银白
+		Purple = 0xFF0090,// 紫色
+		Azure = 0xFF8800,// 天蓝
+		Celadon = 0x80A080,// 灰绿
+		CyanBlue = 0xC06000,// 青蓝
+		Orange = 0x0080FF,// 橙黄
+		Peachblow = 0x8050FF,// 桃红
+		HibiscusRed = 0xC080FF,// 芙红
+		DeepGray = 0x606060// 深灰
 		;
 }
 
@@ -428,14 +428,14 @@ EckInline void RandSeed(UINT uSeed)
 EckInline void RandSeed()
 {
 	srand((UINT)time(NULL));
-} 
+}
 
 EckInline int Rand(int iMin = INT_MIN, int iMax = INT_MAX)
 {
 	return rand() % ((LONGLONG)iMax - (LONGLONG)iMin + 1ll) + (LONGLONG)iMin;
 }
 
-EckInline constexpr BOOL IsRectsIntersect(const RECT&rc1, const RECT&rc2)
+EckInline constexpr BOOL IsRectsIntersect(const RECT& rc1, const RECT& rc2)
 {
 	return
 		std::max(rc1.left, rc2.left) < std::min(rc1.right, rc2.right) &&
@@ -661,7 +661,7 @@ EckInline constexpr BOOL IsRectEmpty(const RECT& rc)
 	return rc.left >= rc.right || rc.top >= rc.bottom;
 }
 
-inline constexpr void UnionRect(RECT &rcDst,const RECT& rcSrc1,const RECT& rcSrc2)
+inline constexpr void UnionRect(RECT& rcDst, const RECT& rcSrc1, const RECT& rcSrc2)
 {
 	const BOOL b1 = IsRectEmpty(rcSrc1), b2 = IsRectEmpty(rcSrc2);
 	if (b1)
@@ -747,7 +747,7 @@ EckInline BOOL FloatEqual(double f1, double f2, double fEpsilon = DBL_EPSILON)
 
 EckInline constexpr BOOL PtInCircle(D2D1_POINT_2F pt, D2D1_POINT_2F ptCenter, float fRadius)
 {
-	return (pt.x - ptCenter.x) * (pt.x - ptCenter.x) + (pt.y - ptCenter.y) * (pt.y - ptCenter.y) <= 
+	return (pt.x - ptCenter.x) * (pt.x - ptCenter.x) + (pt.y - ptCenter.y) * (pt.y - ptCenter.y) <=
 		fRadius * fRadius;
 }
 
@@ -1430,6 +1430,8 @@ template<class T, class U>
 EckInline T DynCast(U p)
 {
 #ifdef _DEBUG
+	if (!p)
+		return nullptr;
 	const auto p1 = dynamic_cast<T>(p);
 	if (!p1)
 		throw std::bad_cast();
@@ -1437,6 +1439,48 @@ EckInline T DynCast(U p)
 #else
 	return (T)p;
 #endif// _DEBUG
+}
+
+[[nodiscard]] inline constexpr BOOL IsTextUTF8(PCSTR ps, size_t cb)
+{
+	DWORD cbChar{};
+	BOOL bAllAscii{ TRUE };
+	EckCounter(cb, i)
+	{
+		const auto by = ps[i];
+		if ((by & 0x80) != 0)
+			bAllAscii = FALSE;
+		if (cbChar == 0)
+		{
+			if (by >= 0x80)
+			{
+				if (by >= 0xFC && by <= 0xFD)
+					cbChar = 6;
+				else if (by >= 0xF8)
+					cbChar = 5;
+				else if (by >= 0xF0)
+					cbChar = 4;
+				else if (by >= 0xE0)
+					cbChar = 3;
+				else if (by >= 0xC0)
+					cbChar = 2;
+				else
+					return FALSE;
+				cbChar--;
+			}
+		}
+		else
+		{
+			if ((by & 0xC0) != 0x80)
+				return FALSE;
+			cbChar--;
+		}
+	}
+	if (cbChar > 0)
+		return FALSE;
+	if (bAllAscii)
+		return FALSE;
+	return TRUE;
 }
 
 #if !ECKCXX20

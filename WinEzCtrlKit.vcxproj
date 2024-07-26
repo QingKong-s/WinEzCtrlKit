@@ -192,6 +192,7 @@
     <ClInclude Include="eck\EnDeCode.h" />
     <ClInclude Include="eck\GeometryRender.h" />
     <ClInclude Include="eck\IMem.h" />
+    <ClInclude Include="eck\Lyric.h" />
     <ClInclude Include="eck\MediaTagFlac.h" />
     <ClInclude Include="eck\MediaTagID3v1.h" />
     <ClInclude Include="eck\MediaTagID3v2.h" />
@@ -241,6 +242,7 @@
     <ClInclude Include="eck\ILayout.h" />
     <ClInclude Include="eck\ITimeLine.h" />
     <ClInclude Include="eck\OleDragDropHelper.h" />
+    <ClInclude Include="eck\PrivateApi.h" />
     <ClInclude Include="eck\PchInc.h" />
     <ClInclude Include="eck\CTab.h" />
     <ClInclude Include="eck\CTabHeader.h" />
