@@ -90,7 +90,7 @@ inline CRefBin Base64Decode(PCSTR psz, int cch)
 	return rb;
 }
 
-CRefStrA Base64Encode(PCVOID p_, size_t cb)
+inline CRefStrA Base64Encode(PCVOID p_, size_t cb)
 {
 	PCBYTE p = (PCBYTE)p_;
 	CRefStrA rs(int(4 * ((cb + 2) / 3)));

@@ -527,6 +527,14 @@ public:
 	}
 };
 
+enum class PresentMode
+{
+	BitBltSwapChain,
+	FlipSwapChain,
+	DCompositionSurface,
+	WindowRenderTarget,
+};
+
 /// <summary>
 /// DUI窗体类
 /// </summary>
@@ -578,6 +586,10 @@ private:
 	IDCompositionVisual* m_pDcVisual{};
 	IDCompositionSurface* m_pDcSurface{};
 
+	ID2D1HwndRenderTarget* m_pHwndRenderTarget{};
+
+	PresentMode m_ePresentMode = PresentMode::DCompositionSurface;
+
 	int m_iUserDpi = USER_DEFAULT_SCREEN_DPI;
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 	ECK_DS_BEGIN(DPIS)
@@ -612,7 +624,7 @@ private:
 		UpdateDpiSizeF(m_Ds, iDpi);
 	}
 
-	void RedrawElem(CElem* pElem, const RECT& rc)
+	void RedrawElem(CElem* pElem, const RECT& rc, float ox, float oy)
 	{
 		RECT rcClip;
 		while (pElem)
@@ -627,10 +639,10 @@ private:
 							pElem->m_rcInvalid = pElem->GetRectInClient();
 
 						pElem->m_pDC->SetTransform(D2D1::Matrix3x2F::Translation(
-							pElem->GetRectInClientF().left,
-							pElem->GetRectInClientF().top));
+							pElem->GetRectInClientF().left + ox,
+							pElem->GetRectInClientF().top + oy));
 						pElem->CallEvent(WM_PAINT, 0, (LPARAM)&rcClip);
-						RedrawElem(pElem->GetFirstChildElem(), rcClip);
+						RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
 					}
 				}
 			}
@@ -640,35 +652,57 @@ private:
 
 	void RedrawDui(const RECT& rc)
 	{
-		HRESULT hr;
-		IDXGISurface1* pDxgiSurface = NULL;
-		POINT pt{rc.left,rc.top};
-		hr=m_pDcSurface->BeginDraw(&rc, IID_PPV_ARGS(&pDxgiSurface), &pt);
-		const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
+		switch (m_ePresentMode)
 		{
-			{DXGI_FORMAT_B8G8R8A8_UNORM,D2D1_ALPHA_MODE_PREMULTIPLIED},
-			96,
-			96,
-			D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-			NULL
-		};
+		case eck::Dui::PresentMode::BitBltSwapChain:
+		case eck::Dui::PresentMode::FlipSwapChain:
+		case eck::Dui::PresentMode::WindowRenderTarget:
+		{
+			m_D2d.GetDC()->BeginDraw();
+			m_D2d.GetDC()->SetTransform(D2D1::Matrix3x2F::Identity());
+			FillBackground(MakeD2DRcF(rc));
+			RedrawElem(GetFirstChildElem(), rc, 0.f, 0.f);
+			m_D2d.GetDC()->EndDraw();
+		}
+		return;
+		case eck::Dui::PresentMode::DCompositionSurface:
+		{
+			HRESULT hr;
+			IDXGISurface1* pDxgiSurface = NULL;
+			POINT ptOffset;
+			m_pDcSurface->BeginDraw(&rc, IID_PPV_ARGS(&pDxgiSurface), &ptOffset);
+			const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
+			{
+				{ DXGI_FORMAT_B8G8R8A8_UNORM,D2D1_ALPHA_MODE_IGNORE },
+				96,
+				96,
+				D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+				NULL
+			};
 
-		ID2D1Bitmap1* pBitmap = NULL;
-		hr = m_D2d.GetDC()->CreateBitmapFromDxgiSurface(pDxgiSurface, &D2dBmpProp, &pBitmap);
+			ID2D1Bitmap1* pBitmap = NULL;
+			m_D2d.GetDC()->CreateBitmapFromDxgiSurface(pDxgiSurface, &D2dBmpProp, &pBitmap);
 
-		m_D2d.GetDC()->SetTarget(pBitmap);
-		m_D2d.GetDC()->BeginDraw();
-		m_D2d.GetDC()->SetTransform(D2D1::Matrix3x2F::Identity());
-		FillBackground(MakeD2DRcF(rc));
-		RedrawElem(GetFirstChildElem(), rc);
-		m_D2d.GetDC()->SetTransform(D2D1::Matrix3x2F::Identity());
-		hr=m_D2d.GetDC()->EndDraw();
-		hr = m_pDcSurface->EndDraw();
+			m_D2d.GetDC()->SetTarget(pBitmap);
+			m_D2d.GetDC()->BeginDraw();
+			ptOffset.x -= rc.left;
+			ptOffset.y -= rc.top;
+			RECT rcReal{ rc };
+			OffsetRect(rcReal, ptOffset.x, ptOffset.y);
+			m_D2d.GetDC()->SetTransform(D2D1::Matrix3x2F::Identity());
+			FillBackground(MakeD2DRcF(rcReal));
+			RedrawElem(GetFirstChildElem(), rc, (float)ptOffset.x, (float)ptOffset.y);
+			m_D2d.GetDC()->EndDraw();
+			m_pDcSurface->EndDraw();
 
-		pBitmap->Release();
-		pDxgiSurface->Release();
+			pBitmap->Release();
+			pDxgiSurface->Release();
 
-		m_pDcDevice->Commit();
+			m_pDcDevice->Commit();
+		}
+		return;
+		}
+		ECK_UNREACHABLE;
 	}
 
 	EckInline void StartupRenderThread()
@@ -696,7 +730,7 @@ private:
 					const auto ullCurrTime = GetTickCount64();
 					// 滴答所有时间线
 					int iDeltaTime = (int)(ullCurrTime - ullTime);
-					for (auto e : m_vTimeLine)
+					for (const auto e : m_vTimeLine)
 					{
 						if (e->IsValid())
 							e->Tick(iDeltaTime);
@@ -707,21 +741,42 @@ private:
 					if (m_bSizeChanged)
 					{
 						m_rcTotalInvalid = {};
-						IDCompositionSurface* pDcSurface = NULL;
-						m_pDcDevice->CreateSurface(m_cxClient, m_cyClient,
-							DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ALPHA_MODE_PREMULTIPLIED, &pDcSurface);
-						m_pDcVisual->SetContent(pDcSurface);
-						if(m_pDcSurface)
-						m_pDcSurface->Release();
-						m_pDcSurface = pDcSurface;
 
-						//m_D2d.ReSize(2, m_cxClient, m_cyClient, 0);
+						switch (m_ePresentMode)
+						{
+						case eck::Dui::PresentMode::BitBltSwapChain:
+							m_D2d.ReSize(1, m_cxClient, m_cyClient, 0);
+							break;
+						case eck::Dui::PresentMode::FlipSwapChain:
+							m_D2d.ReSize(2, m_cxClient, m_cyClient, 0);
+							break;
+						case eck::Dui::PresentMode::DCompositionSurface:
+						{
+							IDCompositionSurface* pDcSurface = NULL;
+							m_pDcDevice->CreateSurface(m_cxClient, m_cyClient,
+								DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ALPHA_MODE_PREMULTIPLIED, &pDcSurface);
+							m_pDcVisual->SetContent(pDcSurface);
+							if (m_pDcSurface)
+								m_pDcSurface->Release();
+							m_pDcSurface = pDcSurface;
+							m_pDcVisual->SetContent(m_pDcSurface);
+						}
+						break;
+						case eck::Dui::PresentMode::WindowRenderTarget:
+							m_pHwndRenderTarget->Resize(D2D1::SizeU(m_cxClient, m_cyClient));
+							break;
+						default:
+							ECK_UNREACHABLE;
+						}
+
 						m_bSizeChanged = FALSE;
 						if (m_cxClient && m_cyClient)
 						{
 							RedrawDui(rcClient);
 							m_cs.Leave();
-							//m_D2d.GetSwapChain()->Present(1, 0);
+							if (m_ePresentMode == eck::Dui::PresentMode::BitBltSwapChain ||
+								m_ePresentMode == eck::Dui::PresentMode::FlipSwapChain)
+								m_D2d.GetSwapChain()->Present(1, 0);
 						}
 						else
 							m_cs.Leave();
@@ -737,8 +792,18 @@ private:
 							RedrawDui(rc);
 							m_cs.Leave();
 							// 呈现
-							/*DXGI_PRESENT_PARAMETERS pp{ 1,&rc };
-							m_D2d.GetSwapChain()->Present1(1, 0, &pp);*/
+							switch (m_ePresentMode)
+							{
+							case eck::Dui::PresentMode::BitBltSwapChain:
+								m_D2d.GetSwapChain()->Present(1, 0);
+								break;
+							case eck::Dui::PresentMode::FlipSwapChain:
+							{
+								DXGI_PRESENT_PARAMETERS pp{ 1,&rc };
+								m_D2d.GetSwapChain()->Present1(1, 0, &pp);
+							}
+							break;
+							}
 						}
 						else
 							m_cs.Leave();
@@ -901,22 +966,57 @@ public:
 				m_pDefTextFormat = CreateDefTextFormat(m_iDpi);
 				m_pDefTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
-				DCompositionCreateDevice2(g_pDxgiDevice, IID_PPV_ARGS(&m_pDcDevice));
-				m_pDcDevice->CreateTargetForHwnd(hWnd, TRUE, &m_pDcTarget);
-				m_pDcDevice->CreateVisual(&m_pDcVisual);
-				auto hr = m_pDcDevice->CreateSurface(std::max(rc.right,1l),std::max( rc.bottom,1l),
-					DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ALPHA_MODE_PREMULTIPLIED, &m_pDcSurface);
-				m_pDcVisual->SetContent(m_pDcSurface);
-				m_pDcTarget->SetRoot(m_pDcVisual);
-				m_pDcVisual->SetOffsetX(0.f);
-				m_pDcVisual->SetOffsetY(0.f);
-				m_pDcDevice->Commit();
+				rc.right = std::max(rc.right, 8L);
+				rc.bottom = std::max(rc.bottom, 8L);
+				switch (m_ePresentMode)
+				{
+				case eck::Dui::PresentMode::BitBltSwapChain:
+					m_D2d.Create(EZD2D_PARAM::MakeBitblt(hWnd, g_pDxgiFactory, g_pDxgiDevice,
+						g_pD2dDevice, rc.right, rc.bottom));
+					break;
+				case eck::Dui::PresentMode::FlipSwapChain:
+					m_D2d.Create(EZD2D_PARAM::MakeFlip(hWnd, g_pDxgiFactory, g_pDxgiDevice,
+						g_pD2dDevice, rc.right, rc.bottom));
+					break;
+				case eck::Dui::PresentMode::DCompositionSurface:
+				{
+					g_pD2dDevice->CreateDeviceContext(
+						EZD2D_PARAM::MakeFlip(0, NULL, NULL, NULL, 0, 0).uDcOptions, &m_D2d.m_pDC);
 
-				auto opt = EZD2D_PARAM::MakeFlip(0, g_pDxgiFactory, g_pDxgiDevice, g_pD2dDevice, 0, 0);
-				g_pD2dDevice->CreateDeviceContext(opt.uDcOptions, &m_D2d.m_pDC);
+					DCompositionCreateDevice2(g_pDxgiDevice, IID_PPV_ARGS(&m_pDcDevice));
+					m_pDcDevice->CreateTargetForHwnd(hWnd, TRUE, &m_pDcTarget);
+					m_pDcDevice->CreateVisual(&m_pDcVisual);
+					auto hr = m_pDcDevice->CreateSurface(std::max(rc.right, 1l), std::max(rc.bottom, 1l),
+						DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ALPHA_MODE_IGNORE, &m_pDcSurface);
+					m_pDcVisual->SetContent(m_D2d.GetSwapChain());
+					m_pDcTarget->SetRoot(m_pDcVisual);
+					m_pDcVisual->SetOffsetX(0.f);
+					m_pDcVisual->SetOffsetY(0.f);
+					m_pDcDevice->Commit();
+				}
+				break;
+				case eck::Dui::PresentMode::WindowRenderTarget:
+				{
+					D2D1_RENDER_TARGET_PROPERTIES RtProp;
+					RtProp.type = D2D1_RENDER_TARGET_TYPE_DEFAULT;
+					RtProp.pixelFormat = { DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE };
+					RtProp.dpiX = 96.f;
+					RtProp.dpiY = 96.f;
+					RtProp.usage = D2D1_RENDER_TARGET_USAGE_NONE;
+					RtProp.minLevel = D2D1_FEATURE_LEVEL_DEFAULT;
+					D2D1_HWND_RENDER_TARGET_PROPERTIES HwRtProp;
+					HwRtProp.hwnd = hWnd;
+					HwRtProp.pixelSize = D2D1::SizeU(rc.right, rc.bottom);
+					HwRtProp.presentOptions = D2D1_PRESENT_OPTIONS_NONE;
+					g_pD2dFactory->CreateHwndRenderTarget(RtProp, HwRtProp, &m_pHwndRenderTarget);
+					const auto hr = m_pHwndRenderTarget->QueryInterface(&m_D2d.m_pDC);
+					EckAssert(SUCCEEDED(hr));
+				}
+				break;
+				default:
+					ECK_UNREACHABLE;
+				}
 
-				/*m_D2d.Create(EZD2D_PARAM::MakeFlip(hWnd,
-					g_pDxgiFactory, g_pDxgiDevice, g_pD2dDevice, rc.right, rc.bottom));*/
 				m_D2d.GetDC()->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
 
 				const auto crBkg = D2D1::ColorF(0x191919);
@@ -974,6 +1074,11 @@ public:
 			SafeRelease(m_pBmpBkg);
 			SafeRelease(m_pBrBkg);
 			SafeRelease(m_pDefTextFormat);
+			SafeRelease(m_pHwndRenderTarget);
+			SafeRelease(m_pDcSurface);
+			SafeRelease(m_pDcTarget);
+			SafeRelease(m_pDcVisual);
+			SafeRelease(m_pDcDevice);
 			// 销毁其他接口
 			SafeRelease(m_pDataObj);
 			SafeRelease(m_pDropTarget);

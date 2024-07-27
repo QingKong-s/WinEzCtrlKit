@@ -185,6 +185,18 @@ struct EZD2D_PARAM
 			D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW
 		};
 	}
+
+	EckInline static EZD2D_PARAM MakeComp(HWND hWnd, IDXGIFactory2* pDxgiFactory,
+		IDXGIDevice* pDxgiDevice, ID2D1Device* pD2dDevice, int cx, int cy)
+	{
+		return
+		{
+			hWnd,pDxgiFactory,pDxgiDevice,pD2dDevice,(UINT)cx,(UINT)cy,
+			2,DXGI_SCALING_STRETCH,DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,DXGI_ALPHA_MODE_IGNORE,0,
+			D2D1_DEVICE_CONTEXT_OPTIONS_ENABLE_MULTITHREADED_OPTIMIZATIONS,D2D1_ALPHA_MODE_IGNORE,
+			D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW
+		};
+	}
 };
 
 struct CEzD2D
@@ -268,6 +280,74 @@ struct CEzD2D
 		const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
 		{
 			{DXGI_FORMAT_B8G8R8A8_UNORM,Param.uBmpAlphaMode},
+			96,
+			96,
+			Param.uBmpOptions,
+			NULL
+		};
+
+		if (FAILED(hr = m_pDC->CreateBitmapFromDxgiSurface(pSurface, &D2dBmpProp, &m_pBitmap)))
+		{
+			SafeRelease(m_pSwapChain);
+			SafeRelease(m_pDC);
+			pSurface->Release();
+			EckDbgPrintFormatMessage(hr);
+			EckDbgBreak();
+			return hr;
+		}
+
+		pSurface->Release();
+		m_pDC->SetTarget(m_pBitmap);
+		return S_OK;
+	}
+
+	HRESULT	CreateComp(const EZD2D_PARAM& Param)
+	{
+		const DXGI_SWAP_CHAIN_DESC1 DxgiSwapChainDesc
+		{
+			Param.cx,
+			Param.cy,
+			DXGI_FORMAT_B8G8R8A8_UNORM,
+			FALSE,
+			{1, 0},
+			DXGI_USAGE_RENDER_TARGET_OUTPUT,
+			Param.cBuffer,
+			Param.uScaling,
+			Param.uSwapEffect,
+			Param.uAlphaMode,
+			Param.uFlags
+		};
+
+		HRESULT hr;
+		if (FAILED(hr = Param.pDxgiFactory->CreateSwapChainForComposition(Param.pDxgiDevice,
+			&DxgiSwapChainDesc, NULL, &m_pSwapChain)))
+		{
+			EckDbgPrintFormatMessage(hr);
+			EckDbgBreak();
+			return hr;
+		}
+
+		if (FAILED(hr = Param.pD2dDevice->CreateDeviceContext(Param.uDcOptions, &m_pDC)))
+		{
+			SafeRelease(m_pSwapChain);
+			EckDbgPrintFormatMessage(hr);
+			EckDbgBreak();
+			return hr;
+		}
+
+		IDXGISurface1* pSurface;
+		if (FAILED(hr = m_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pSurface))))
+		{
+			SafeRelease(m_pSwapChain);
+			SafeRelease(m_pDC);
+			EckDbgPrintFormatMessage(hr);
+			EckDbgBreak();
+			return hr;
+		}
+
+		const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
+		{
+			{ DXGI_FORMAT_B8G8R8A8_UNORM,Param.uBmpAlphaMode },
 			96,
 			96,
 			Param.uBmpOptions,
