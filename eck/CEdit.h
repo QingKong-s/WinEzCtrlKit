@@ -57,46 +57,46 @@ public:
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
 		if (pData)
-	{
-		auto pBase = (const CTRLDATA_WND*)pData;
-		auto p = (const CREATEDATA_EDIT*)SkipBaseData(pData);
-		if (pBase->iVer != CDV_WND_1)
 		{
-			EckDbgBreak();
-			return NULL;
+			auto pBase = (const CTRLDATA_WND*)pData;
+			auto p = (const CREATEDATA_EDIT*)SkipBaseData(pData);
+			if (pBase->iVer != CDV_WND_1)
+			{
+				EckDbgBreak();
+				return NULL;
+			}
+
+			BOOL bVisible = IsBitSet(pBase->dwStyle, WS_VISIBLE);
+			dwStyle = pBase->dwStyle & ~WS_VISIBLE;
+
+			IntCreate(pBase->dwExStyle, WC_EDITW, pBase->Text(), dwStyle,
+				x, y, cx, cy, hParent, hMenu, NULL, NULL);
+
+			switch (p->iVer)
+			{
+			case DATAVER_EDIT_1:
+				SetPasswordChar(p->chPassword);
+				SetTransformMode((TransMode)p->eTransMode);
+				SetSel(p->iSelStart, p->iSelEnd);
+				SetMargins(p->iLeftMargin, p->iRightMargin);
+				SetCueBanner(p->CueBanner(), TRUE);
+				SetLimitText(p->cchMax);
+				break;
+			default:
+				EckDbgBreak();
+				break;
+			}
+			if (bVisible)
+				ShowWindow(m_hWnd, SW_SHOWNOACTIVATE);
 		}
-
-		BOOL bVisible = IsBitSet(pBase->dwStyle, WS_VISIBLE);
-		dwStyle = pBase->dwStyle & ~WS_VISIBLE;
-
-		m_hWnd = CreateWindowExW(pBase->dwExStyle, WC_EDITW, pBase->Text(), dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
-
-		switch (p->iVer)
+		else
 		{
-		case DATAVER_EDIT_1:
-			SetPasswordChar(p->chPassword);
-			SetTransformMode((TransMode)p->eTransMode);
-			SetSel(p->iSelStart, p->iSelEnd);
-			SetMargins(p->iLeftMargin, p->iRightMargin);
-			SetCueBanner(p->CueBanner(), TRUE);
-			SetLimitText(p->cchMax);
-			break;
-		default:
-			EckDbgBreak();
-			break;
-		}
-		if (bVisible)
-			ShowWindow(m_hWnd, SW_SHOWNOACTIVATE);
-	}
-	else
-	{
-		dwStyle |= WS_CHILD;
+			dwStyle |= WS_CHILD;
 
-		m_hWnd = CreateWindowExW(dwExStyle, WC_EDITW, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
-	}
-	return m_hWnd;
+			IntCreate(dwExStyle, WC_EDITW, pszText, dwStyle,
+				x, y, cx, cy, hParent, hMenu, NULL, NULL);
+		}
+		return m_hWnd;
 	}
 
 	void SerializeData(CRefBin& rb) override

@@ -202,7 +202,7 @@ public:
 		p = x;
 	}
 
-	EckInline ULONG Clear()
+	EckInline ULONG Clear() noexcept
 	{
 		return ReleaseItRet();
 	}
