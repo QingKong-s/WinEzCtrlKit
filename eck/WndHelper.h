@@ -72,27 +72,27 @@ EckInline int GetDpi(HWND hWnd)
 #endif
 }
 
-EckInline int DpiScale(int i, int iDpiNew, int iDpiOld)
+EckInline constexpr int DpiScale(int i, int iDpiNew, int iDpiOld)
 {
 	return i * iDpiNew / iDpiOld;
 }
 
-EckInline int DpiScale(int i, int iDpi)
+EckInline constexpr int DpiScale(int i, int iDpi)
 {
 	return DpiScale(i, iDpi, USER_DEFAULT_SCREEN_DPI);
 }
 
-EckInline float DpiScaleF(float i, int iDpiNew, int iDpiOld)
+EckInline constexpr float DpiScaleF(float i, int iDpiNew, int iDpiOld)
 {
 	return i * iDpiNew / iDpiOld;
 }
 
-EckInline float DpiScaleF(float i, int iDpi)
+EckInline constexpr float DpiScaleF(float i, int iDpi)
 {
 	return DpiScaleF(i, iDpi, USER_DEFAULT_SCREEN_DPI);
 }
 
-EckInline void DpiScale(RECT& rc, int iDpiNew, int iDpiOld)
+EckInline constexpr void DpiScale(RECT& rc, int iDpiNew, int iDpiOld)
 {
 	rc.left = rc.left * iDpiNew / iDpiOld;
 	rc.top = rc.top * iDpiNew / iDpiOld;
@@ -100,18 +100,18 @@ EckInline void DpiScale(RECT& rc, int iDpiNew, int iDpiOld)
 	rc.bottom = rc.bottom * iDpiNew / iDpiOld;
 }
 
-EckInline void DpiScale(RECT& rc, int iDpi)
+EckInline constexpr void DpiScale(RECT& rc, int iDpi)
 {
 	DpiScale(rc, iDpi, USER_DEFAULT_SCREEN_DPI);
 }
 
-EckInline void DpiScale(SIZE& size, int iDpiNew, int iDpiOld)
+EckInline constexpr void DpiScale(SIZE& size, int iDpiNew, int iDpiOld)
 {
 	size.cx = size.cx * iDpiNew / iDpiOld;
 	size.cy = size.cy * iDpiNew / iDpiOld;
 }
 
-EckInline void DpiScale(SIZE& size, int iDpi)
+EckInline constexpr void DpiScale(SIZE& size, int iDpi)
 {
 	DpiScale(size, iDpi, USER_DEFAULT_SCREEN_DPI);
 }
@@ -230,6 +230,11 @@ EckInline BOOL BitBltPs(const PAINTSTRUCT* pps, HDC hdcSrc)
 		SRCCOPY);
 }
 
+EckInline BOOL BitBltPs(const PAINTSTRUCT& pps, HDC hdcSrc)
+{
+	return BitBltPs(&pps, hdcSrc);
+}
+
 EckInline WNDPROC SetWindowProc(HWND hWnd, WNDPROC pfnWndProc)
 {
 	return (WNDPROC)SetWindowLongPtrW(hWnd, GWLP_WNDPROC, (LONG_PTR)pfnWndProc);
@@ -247,7 +252,7 @@ EckInline HRESULT EnableWindowMica(HWND hWnd, DWM_SYSTEMBACKDROP_TYPE uType = DW
 }
 #endif
 
-inline LRESULT MsgOnNcCalcSize(WPARAM wParam, LPARAM lParam, const MARGINS& Margins)
+inline constexpr LRESULT MsgOnNcCalcSize(WPARAM wParam, LPARAM lParam, const MARGINS& Margins)
 {
 	if (wParam)
 	{
@@ -276,7 +281,7 @@ inline LRESULT MsgOnNcCalcSize(WPARAM wParam, LPARAM lParam, const MARGINS& Marg
 /// <param name="cxWnd">窗口宽度</param>
 /// <param name="cyWnd">窗口高度</param>
 /// <returns>若指定点在边框内，返回对应的测试代码，否则返回HTCAPTION</returns>
-inline LRESULT MsgOnNcHitTest(POINT pt, const MARGINS& Margins, int cxWnd, int cyWnd)
+inline constexpr LRESULT MsgOnNcHitTest(POINT pt, const MARGINS& Margins, int cxWnd, int cyWnd)
 {
 	if (pt.x < Margins.cxLeftWidth)
 	{
@@ -308,14 +313,14 @@ inline LRESULT MsgOnNcHitTest(POINT pt, const MARGINS& Margins, int cxWnd, int c
 }
 
 template<class T>
-EckInline void UpdateDpiSize(T& Dpis, int iDpi)
+EckInline constexpr void UpdateDpiSize(T& Dpis, int iDpi)
 {
 	for (int* p = ((int*)&Dpis) + 1; p < PtrSkipType(&Dpis); p += 2)
 		*p = DpiScale(*(p - 1), iDpi);
 }
 
 template<class T>
-EckInline void UpdateDpiSizeF(T& Dpis, int iDpi)
+EckInline constexpr void UpdateDpiSizeF(T& Dpis, int iDpi)
 {
 	for (float* p = ((float*)&Dpis) + 1; p < PtrSkipType(&Dpis); p += 2)
 		*p = DpiScaleF(*(p - 1), iDpi);

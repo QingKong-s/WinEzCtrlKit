@@ -27,9 +27,7 @@ inline CRefStrW GetClipboardString(HWND hWnd = NULL)
 			{
 				const auto cb = GlobalSize(hData);
 				const int cch = (int)(cb / sizeof(WCHAR));
-				CRefStrW rs(cch);
-				memcpy(rs.Data(), pData, cch * sizeof(WCHAR));
-				*(rs.Data() + cch) = L'\0';
+				CRefStrW rs((PCWSTR)pData, cch);
 				GlobalUnlock(hData);
 				CloseClipboard();
 				return rs;
@@ -52,7 +50,7 @@ inline BOOL SetClipboardString(PCWSTR pszText, int cch = -1, HWND hWnd = NULL)
 		cch = (int)wcslen(pszText);
 	const SIZE_T cb = Cch2CbW(cch);
 
-	HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, cb);
+	const HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, cb);
 	if (hGlobal)
 	{
 		void* pData = GlobalLock(hGlobal);

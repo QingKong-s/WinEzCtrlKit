@@ -94,6 +94,7 @@ private:
 
 	int m_iDpi{ USER_DEFAULT_SCREEN_DPI };
 
+	SIZE_T m_posDragSelStart{ SIZETMax };
 
 	CTRLDATA_HEXEDIT D{};
 
@@ -112,7 +113,7 @@ private:
 	{
 		m_cRow = (int)DivUpper(m_cbData, D.cCol);
 		WCHAR szBuf[CchI64ToStrBufNoRadix2];
-		m_cxAddress = swprintf(szBuf, (D.bHexAddress ? L"%08Ix" : L"%08Iu"), m_cbData) * m_cxChar + D.cxGap;
+		m_cxAddress = swprintf(szBuf, (D.bHexAddress ? L"%08Ix" : L"%08Iu"), m_cbData) * m_cxChar + D.cxGap * 2;
 		m_cxData = (m_cxChar * 2 + D.cxGap) * D.cCol;
 		m_cxContent = m_cxAddress + m_cxData + D.cxGap + int(m_vCharCol.size() * (GetCharColumnWidth() + D.cxGap));
 	}
@@ -165,7 +166,7 @@ private:
 		DrawTextW(hDC, L"Offset", -1, &rcT,
 			DT_SINGLELINE | DT_CENTER | DT_VCENTER | DT_NOPREFIX);
 
-		const int xData = xStart + m_cxAddress + D.cxGap;
+		const int xData = xStart + m_cxAddress;
 		int x = xData;
 		EckCounter(D.cCol, i)
 		{
@@ -176,7 +177,7 @@ private:
 
 		x = xData + GetDataRegionWidth();
 		const int cxCharCol = GetCharColumnWidth();
-		RECT rcCharCol{ x,0,x + cxCharCol + D.cxGap,m_cyChar };
+		RECT rcCharCol{ x,0,x + cxCharCol,m_cyChar };
 		for (auto& e : m_vCharCol)
 		{
 			e.xOrg = rcCharCol.left;
@@ -184,7 +185,7 @@ private:
 			DrawTextW(hDC, e.rsName.Data(), e.rsName.Size(), &rcCharCol,
 				DT_SINGLELINE | DT_RIGHT | DT_VCENTER | DT_NOPREFIX);
 			rcCharCol.right += D.cxGap;
-			OffsetRect(rcCharCol, cxCharCol + D.cxGap, 0);
+			OffsetRect(rcCharCol, cxCharCol, 0);
 		}
 
 		// 画数据
@@ -317,7 +318,7 @@ private:
 		MoveToEx(hDC, 0, m_cyChar, NULL);
 		LineTo(hDC, xStart + m_cxContent, m_cyChar);
 		// 偏移分隔线
-		x = xStart + m_cxAddress + D.cxGap / 2;
+		x = xStart + m_cxAddress - D.cxGap / 2;
 		MoveToEx(hDC, x, 0, NULL);
 		LineTo(hDC, x, m_cyClient);
 		// 数据分组
@@ -381,6 +382,31 @@ public:
 			m_bLBtnDown = TRUE;
 			SetFocus(hWnd);
 			SetCapture(hWnd);
+			HEHITTEST heht;
+			heht.pt = ECK_GET_PT_LPARAM(lParam);
+			const auto pos = HitTest(heht);
+			if ((heht.bHitData || heht.bHitChar))
+				m_posDragSelStart = pos;
+
+			//EckDbgPrintFmt(L"HitTest: pos = %Id, idxRow = %d, idxCol = %d, idxCharCol = %d\n"
+			//	L"bHitContent = %d",
+			//	pos, heht.idxRowInView, heht.idxCol, heht.idxCharCol,
+			//	(BOOL)heht.bHitContent);
+		}
+		break;
+
+		case WM_MOUSEMOVE:
+		{
+			if (m_bLBtnDown)
+			{
+				HEHITTEST heht;
+				heht.pt = ECK_GET_PT_LPARAM(lParam);
+				const auto pos = HitTest(heht);
+				if ((heht.bHitData || heht.bHitChar) && heht.bHitContent)
+				{
+
+				}
+			}
 		}
 		break;
 
@@ -587,7 +613,7 @@ public:
 
 	EckInline constexpr int GetCharColumnWidth() const
 	{
-		return (m_cxChar + 1) * D.cCol;
+		return (m_cxChar + 1) * D.cCol + D.cxGap;
 	}
 
 	EckInline constexpr int GetHeaderHeight() const
@@ -668,8 +694,9 @@ public:
 	{
 		const int xStart = -GetSbPos(SB_HORZ);
 		heht.uFlags = 0u;
-		heht.idxRowInView = -1;
-		if (heht.pt.x < 0 || heht.pt.x > std::min(xStart - m_cxContent, m_cxClient) ||
+		heht.idxRowInView = heht.idxCol = heht.idxCharCol = -1;
+
+		if (heht.pt.x < 0 || heht.pt.x > std::min(xStart + m_cxContent, m_cxClient) ||
 			heht.pt.y < 0 || heht.pt.y > GetPartialVisibleRowCount() * GetRowHeight() + GetHeaderHeight())
 			return SizeTMax;
 		if (heht.pt.y < GetHeaderHeight())
@@ -679,23 +706,34 @@ public:
 		}
 		heht.idxRowInView = (heht.pt.y - GetHeaderHeight()) / GetRowHeight();
 		int x = xStart + m_cxAddress;
-		if (heht.pt.x < x)
+		if (heht.pt.x < x)// 地址
 		{
 			heht.bHitAddress = TRUE;
-			if (heht.pt.y < heht.idxRowInView * GetRowHeight() - D.cyGap)
+			if (heht.pt.y < GetHeaderHeight() + heht.idxRowInView * GetRowHeight() - D.cyGap)
 				heht.bHitContent = TRUE;
 			return SizeTMax;
 		}
-		else 
+		else if (heht.pt.x < x + m_cxData)// 数据
 		{
-			if (heht.pt.x < x + m_cxData && heht.pt.x >= x)
-			{
-				heht.bHitData = TRUE;
-
-			}
+			heht.bHitData = TRUE;
+			heht.idxCol = (heht.pt.x - x) / GetColumnWidth();
+			if (heht.pt.y < GetHeaderHeight() + (heht.idxRowInView + 1) * GetRowHeight() - D.cyGap &&
+				heht.pt.x < x + GetColumnWidth() * (heht.idxCol + 1) - D.cxGap)
+				heht.bHitContent = TRUE;
+			return m_posFirstVisible + heht.idxRowInView * D.cCol + heht.idxCol;
 		}
-
-
+		else if (heht.pt.x < xStart + m_cxContent)// 字符
+		{
+			heht.bHitChar = TRUE;
+			heht.idxCharCol = (heht.pt.x - x - m_cxData) / GetCharColumnWidth();
+			heht.idxCol = (heht.pt.x - x - m_cxData - heht.idxCharCol * GetCharColumnWidth()) / m_cxChar;
+			if (heht.pt.y < GetHeaderHeight() + (heht.idxRowInView + 1) * GetRowHeight() - D.cyGap &&
+				heht.pt.x < x + m_cxData + (heht.idxCharCol + 1) * GetCharColumnWidth() - m_cxChar - D.cxGap)
+				heht.bHitContent = TRUE;
+		}
+		else
+			heht.idxRowInView = -1;
+		return SizeTMax;
 	}
 };
 ECK_NAMESPACE_END
