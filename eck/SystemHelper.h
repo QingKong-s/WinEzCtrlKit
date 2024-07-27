@@ -11,6 +11,7 @@
 #include "CException.h"
 #include "CFile.h"
 #include "CRefBin.h"
+#include "ComPtr.h"
 
 #include <intrin.h>
 
@@ -764,7 +765,7 @@ EckInline BOOL EnumFileRecurse(PCWSTR pszPath, std::vector<CRefStrW>& vResult)
 
 namespace EckPriv
 {
-	UINT OpenInExplorerThread(void* pParam)
+	inline UINT OpenInExplorerThread(void* pParam)
 	{
 		const auto pvPath = (std::vector<CRefStrW>*)pParam;
 		if (FAILED(CoInitialize(NULL)))
