@@ -31,19 +31,19 @@ inline constexpr int StrNPos = -1;
 [[nodiscard]] EckInline int FindStr(PCWSTR pszText, PCWSTR pszSub, int posStart = 0)
 {
 	const PCWSTR pszFind = wcsstr(pszText + posStart, pszSub);
-	return  pszFind ? (int)(pszFind - pszText) : StrNPos;
+	return pszFind ? (int)(pszFind - pszText) : StrNPos;
 }
 
 [[nodiscard]] EckInline int FindStrI(PCWSTR pszText, PCWSTR pszSub, int posStart = 0)
 {
 	const PCWSTR pszFind = StrStrIW(pszText + posStart, pszSub);
-	return  pszFind ? (int)(pszFind - pszText) : StrNPos;
+	return pszFind ? (int)(pszFind - pszText) : StrNPos;
 }
 
 [[nodiscard]] EckInline int FindFirstOf(PCWSTR pszText, PCWSTR pszCharSet, int posStart = 0)
 {
 	const PCWSTR pszFind = wcspbrk(pszText + posStart, pszCharSet);
-	return  pszFind ? (int)(pszFind - pszText) : StrNPos;
+	return pszFind ? (int)(pszFind - pszText) : StrNPos;
 }
 
 /// <summary>
