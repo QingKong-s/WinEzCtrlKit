@@ -24,6 +24,7 @@
 #include <ShlObj.h>
 
 #include <assert.h>
+#include <crtdbg.h>
 
 #include <unordered_map>
 #include <unordered_set>

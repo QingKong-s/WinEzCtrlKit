@@ -241,6 +241,7 @@
     <ClInclude Include="eck\GraphicsHelper.h" />
     <ClInclude Include="eck\ILayout.h" />
     <ClInclude Include="eck\ITimeLine.h" />
+    <ClInclude Include="eck\NetworkHelper.h" />
     <ClInclude Include="eck\OleDragDropHelper.h" />
     <ClInclude Include="eck\PrivateApi.h" />
     <ClInclude Include="eck\PchInc.h" />

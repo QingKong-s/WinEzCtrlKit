@@ -98,14 +98,14 @@ inline void MakeStdThemeLight(CColorTheme** pTheme)
 			.crBkSelected = ColorrefToD2dColorF(Colorref::Black, 0.2f),
 			.crBkHotSel = ColorrefToD2dColorF(Colorref::Black, 0.3f),
 		});
-	pTheme[CTI_LIST]->Set(
-		COLORTHEME
-		{
-			.crTextNormal = c_White,
-			.crBkHot = ColorrefToD2dColorF(Colorref::White, 0.3f),
-			.crBkSelected = ColorrefToD2dColorF(Colorref::White, 0.4f),
-			.crBkHotSel = ColorrefToD2dColorF(Colorref::White, 0.5f),
-		});
+	//pTheme[CTI_LIST]->Set(
+	//	COLORTHEME
+	//	{
+	//		.crTextNormal = c_White,
+	//		.crBkHot = ColorrefToD2dColorF(Colorref::White, 0.3f),
+	//		.crBkSelected = ColorrefToD2dColorF(Colorref::White, 0.4f),
+	//		.crBkHotSel = ColorrefToD2dColorF(Colorref::White, 0.5f),
+	//	});
 
 	pTheme[CTI_LABEL] = new CColorTheme{};
 	pTheme[CTI_LABEL]->Set(

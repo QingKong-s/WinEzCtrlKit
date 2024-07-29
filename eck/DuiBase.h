@@ -529,10 +529,11 @@ public:
 
 enum class PresentMode
 {
-	BitBltSwapChain,
-	FlipSwapChain,
-	DCompositionSurface,
-	WindowRenderTarget,
+	//						|  等待	|				透明混合					|
+	BitBltSwapChain,	//	|	0	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|
+	FlipSwapChain,		//	|	1	|不支持									|
+	DCompositionSurface,//	|	0	|支持，建议加入WS_EX_NOREDIRECTIONBITMAP	|	
+	WindowRenderTarget,	//  |	1	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|
 };
 
 /// <summary>
@@ -576,10 +577,13 @@ private:
 	int m_cxClient = 0;
 	int m_cyClient = 0;
 
-	BITBOOL m_bMouseCaptured : 1 = FALSE;
-	BITBOOL m_bHasDirty : 1 = FALSE;
+	BITBOOL m_bMouseCaptured : 1 = FALSE;	// 鼠标是否被捕获
+	BITBOOL m_bTransparent : 1 = FALSE;		// 窗口是透明的
 	BITBOOL m_bRenderThreadShouldExit : 1 = FALSE;	// 渲染线程应当退出
-	BITBOOL m_bSizeChanged : 1 = FALSE;				// 渲染线程应当重设交换链大小
+	BITBOOL m_bSizeChanged : 1 = FALSE;				// 渲染线程应当重设图面大小
+
+	D2D1_ALPHA_MODE m_eAlphaMode{ D2D1_ALPHA_MODE_IGNORE };
+	DXGI_ALPHA_MODE m_eDxgiAlphaMode{ DXGI_ALPHA_MODE_IGNORE };
 
 	IDCompositionDevice* m_pDcDevice{};
 	IDCompositionTarget* m_pDcTarget{};
@@ -588,7 +592,7 @@ private:
 
 	ID2D1HwndRenderTarget* m_pHwndRenderTarget{};
 
-	PresentMode m_ePresentMode = PresentMode::DCompositionSurface;
+	PresentMode m_ePresentMode = PresentMode::FlipSwapChain;
 
 	int m_iUserDpi = USER_DEFAULT_SCREEN_DPI;
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
@@ -658,22 +662,30 @@ private:
 		case eck::Dui::PresentMode::FlipSwapChain:
 		case eck::Dui::PresentMode::WindowRenderTarget:
 		{
-			m_D2d.GetDC()->BeginDraw();
-			m_D2d.GetDC()->SetTransform(D2D1::Matrix3x2F::Identity());
-			FillBackground(MakeD2DRcF(rc));
+			const auto pDC = m_D2d.GetDC();
+			pDC->BeginDraw();
+			pDC->SetTransform(D2D1::Matrix3x2F::Identity());
+			const auto rcF = MakeD2DRcF(rc);
+			if (m_bTransparent)
+			{
+				pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+				pDC->Clear({});
+				pDC->PopAxisAlignedClip();
+			}
+			FillBackground(rcF);
 			RedrawElem(GetFirstChildElem(), rc, 0.f, 0.f);
-			m_D2d.GetDC()->EndDraw();
+			pDC->EndDraw();
 		}
 		return;
 		case eck::Dui::PresentMode::DCompositionSurface:
 		{
-			HRESULT hr;
+			const auto pDC = m_D2d.GetDC();
 			IDXGISurface1* pDxgiSurface = NULL;
 			POINT ptOffset;
 			m_pDcSurface->BeginDraw(&rc, IID_PPV_ARGS(&pDxgiSurface), &ptOffset);
 			const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
 			{
-				{ DXGI_FORMAT_B8G8R8A8_UNORM,D2D1_ALPHA_MODE_IGNORE },
+				{ DXGI_FORMAT_B8G8R8A8_UNORM,m_eAlphaMode },
 				96,
 				96,
 				D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
@@ -681,18 +693,20 @@ private:
 			};
 
 			ID2D1Bitmap1* pBitmap = NULL;
-			m_D2d.GetDC()->CreateBitmapFromDxgiSurface(pDxgiSurface, &D2dBmpProp, &pBitmap);
+			pDC->CreateBitmapFromDxgiSurface(pDxgiSurface, &D2dBmpProp, &pBitmap);
 
-			m_D2d.GetDC()->SetTarget(pBitmap);
-			m_D2d.GetDC()->BeginDraw();
+			pDC->SetTarget(pBitmap);
+			pDC->BeginDraw();
+			if (m_bTransparent)
+				pDC->Clear({});
 			ptOffset.x -= rc.left;
 			ptOffset.y -= rc.top;
 			RECT rcReal{ rc };
 			OffsetRect(rcReal, ptOffset.x, ptOffset.y);
-			m_D2d.GetDC()->SetTransform(D2D1::Matrix3x2F::Identity());
+			pDC->SetTransform(D2D1::Matrix3x2F::Identity());
 			FillBackground(MakeD2DRcF(rcReal));
 			RedrawElem(GetFirstChildElem(), rc, (float)ptOffset.x, (float)ptOffset.y);
-			m_D2d.GetDC()->EndDraw();
+			pDC->EndDraw();
 			m_pDcSurface->EndDraw();
 
 			pBitmap->Release();
@@ -745,16 +759,18 @@ private:
 						switch (m_ePresentMode)
 						{
 						case eck::Dui::PresentMode::BitBltSwapChain:
-							m_D2d.ReSize(1, m_cxClient, m_cyClient, 0);
+							m_D2d.ReSize(1, m_cxClient, m_cyClient, 0, m_eAlphaMode);
 							break;
 						case eck::Dui::PresentMode::FlipSwapChain:
-							m_D2d.ReSize(2, m_cxClient, m_cyClient, 0);
+							m_D2d.ReSize(2, m_cxClient, m_cyClient, 0, m_eAlphaMode);
 							break;
 						case eck::Dui::PresentMode::DCompositionSurface:
 						{
 							IDCompositionSurface* pDcSurface = NULL;
 							m_pDcDevice->CreateSurface(m_cxClient, m_cyClient,
-								DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ALPHA_MODE_PREMULTIPLIED, &pDcSurface);
+								DXGI_FORMAT_B8G8R8A8_UNORM,
+								m_bTransparent ? DXGI_ALPHA_MODE_PREMULTIPLIED : DXGI_ALPHA_MODE_IGNORE,
+								&pDcSurface);
 							m_pDcVisual->SetContent(pDcSurface);
 							if (m_pDcSurface)
 								m_pDcSurface->Release();
@@ -776,7 +792,7 @@ private:
 							m_cs.Leave();
 							if (m_ePresentMode == eck::Dui::PresentMode::BitBltSwapChain ||
 								m_ePresentMode == eck::Dui::PresentMode::FlipSwapChain)
-								m_D2d.GetSwapChain()->Present(1, 0);
+								m_D2d.GetSwapChain()->Present(0, 0);
 						}
 						else
 							m_cs.Leave();
@@ -795,12 +811,12 @@ private:
 							switch (m_ePresentMode)
 							{
 							case eck::Dui::PresentMode::BitBltSwapChain:
-								m_D2d.GetSwapChain()->Present(1, 0);
+								m_D2d.GetSwapChain()->Present(0, 0);
 								break;
 							case eck::Dui::PresentMode::FlipSwapChain:
 							{
 								DXGI_PRESENT_PARAMETERS pp{ 1,&rc };
-								m_D2d.GetSwapChain()->Present1(1, 0, &pp);
+								m_D2d.GetSwapChain()->Present1(0, 0, &pp);
 							}
 							break;
 							}
@@ -971,13 +987,22 @@ public:
 				switch (m_ePresentMode)
 				{
 				case eck::Dui::PresentMode::BitBltSwapChain:
-					m_D2d.Create(EZD2D_PARAM::MakeBitblt(hWnd, g_pDxgiFactory, g_pDxgiDevice,
-						g_pD2dDevice, rc.right, rc.bottom));
-					break;
+				{
+					auto Param = EZD2D_PARAM::MakeBitblt(hWnd, g_pDxgiFactory, g_pDxgiDevice,
+						g_pD2dDevice, rc.right, rc.bottom);
+					Param.uBmpAlphaMode = m_eAlphaMode;
+					m_D2d.Create(Param);
+				}
+
+				break;
 				case eck::Dui::PresentMode::FlipSwapChain:
-					m_D2d.Create(EZD2D_PARAM::MakeFlip(hWnd, g_pDxgiFactory, g_pDxgiDevice,
-						g_pD2dDevice, rc.right, rc.bottom));
-					break;
+				{
+					auto Param = EZD2D_PARAM::MakeFlip(hWnd, g_pDxgiFactory, g_pDxgiDevice,
+						g_pD2dDevice, rc.right, rc.bottom);
+					Param.uBmpAlphaMode = m_eAlphaMode;
+					m_D2d.Create(Param);
+				}
+				break;
 				case eck::Dui::PresentMode::DCompositionSurface:
 				{
 					g_pD2dDevice->CreateDeviceContext(
@@ -986,8 +1011,10 @@ public:
 					DCompositionCreateDevice2(g_pDxgiDevice, IID_PPV_ARGS(&m_pDcDevice));
 					m_pDcDevice->CreateTargetForHwnd(hWnd, TRUE, &m_pDcTarget);
 					m_pDcDevice->CreateVisual(&m_pDcVisual);
-					auto hr = m_pDcDevice->CreateSurface(std::max(rc.right, 1l), std::max(rc.bottom, 1l),
-						DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ALPHA_MODE_IGNORE, &m_pDcSurface);
+					auto hr = m_pDcDevice->CreateSurface(rc.right, rc.bottom,
+						DXGI_FORMAT_B8G8R8A8_UNORM,
+						m_eDxgiAlphaMode,
+						&m_pDcSurface);
 					m_pDcVisual->SetContent(m_D2d.GetSwapChain());
 					m_pDcTarget->SetRoot(m_pDcVisual);
 					m_pDcVisual->SetOffsetX(0.f);
@@ -999,7 +1026,7 @@ public:
 				{
 					D2D1_RENDER_TARGET_PROPERTIES RtProp;
 					RtProp.type = D2D1_RENDER_TARGET_TYPE_DEFAULT;
-					RtProp.pixelFormat = { DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE };
+					RtProp.pixelFormat = { DXGI_FORMAT_B8G8R8A8_UNORM, m_eAlphaMode };
 					RtProp.dpiX = 96.f;
 					RtProp.dpiY = 96.f;
 					RtProp.usage = D2D1_RENDER_TARGET_USAGE_NONE;
@@ -1019,8 +1046,11 @@ public:
 
 				m_D2d.GetDC()->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
 
-				const auto crBkg = D2D1::ColorF(0x191919);
-				m_D2d.GetDC()->CreateSolidColorBrush(crBkg, &m_pBrBkg);
+				if (!m_bTransparent)
+				{
+					const auto crBkg = ColorrefToD2dColorF(GetThreadCtx()->crDefBkg);
+					m_D2d.GetDC()->CreateSolidColorBrush(crBkg, &m_pBrBkg);
+				}
 				m_cxClient = rc.right;
 				m_cyClient = rc.bottom;
 
@@ -1280,6 +1310,33 @@ public:
 		m_rcTotalInvalid = { 0,0,m_cxClient,m_cyClient };
 		WakeRenderThread();
 	}
+
+	/// <summary>
+	/// 置呈现模式。
+	/// 必须在创建窗口之前调用
+	/// </summary>
+	EckInline void SetPresentMode(PresentMode ePresentMode)
+	{
+		EckAssert(!IsValid());
+		m_ePresentMode = ePresentMode;
+	}
+
+	EckInline constexpr PresentMode GetPresentMode() const { return m_ePresentMode; }
+
+	/// <summary>
+	/// 置透明模式。
+	/// 必须在创建窗口之前调用。
+	/// 设置透明后不会生成默认背景画刷，渲染开始前总是清除图面，并且在呈现时不忽略Alpha通道。这在渲染到带背景材料的窗口时尤为有用
+	/// </summary>
+	/// <param name="bTransparent">是否透明</param>
+	EckInline constexpr void SetTransparent(BOOL bTransparent)
+	{
+		m_bTransparent = bTransparent;
+		m_eAlphaMode = (bTransparent ? D2D1_ALPHA_MODE_PREMULTIPLIED : D2D1_ALPHA_MODE_IGNORE);
+		m_eDxgiAlphaMode = (bTransparent ? DXGI_ALPHA_MODE_PREMULTIPLIED : DXGI_ALPHA_MODE_IGNORE);
+	}
+
+	EckInline constexpr BOOL GetTransparent() const { return m_bTransparent; }
 };
 
 inline void CElem::IRCheckAndInvalid()

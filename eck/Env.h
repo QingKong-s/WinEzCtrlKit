@@ -40,6 +40,7 @@
 #pragma comment(lib,"Imm32.lib")
 #pragma comment(lib,"ntdll.lib")
 #pragma comment(lib,"Advpack.lib")
+#pragma comment(lib,"Winhttp.lib")
 #	ifdef _WIN64
 #		pragma comment(lib,"eck\\Detours\\detours_x64.lib")
 #	else

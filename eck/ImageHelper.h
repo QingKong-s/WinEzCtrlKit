@@ -222,7 +222,7 @@ EckInline HRESULT CreateWicBitmapDecoder(IStream* pStream,
 /// <summary>
 /// 创建WIC位图
 /// </summary>
-/// <param name="vResult">各帧位图</param>
+/// <param name="vResult">各帧位图，不会清空该容器</param>
 /// <param name="pDecoder">解码器</param>
 /// <param name="pWicFactory">WIC工厂</param>
 /// <returns>成功返回S_OK，失败返回错误代码</returns>
@@ -232,7 +232,7 @@ inline HRESULT CreateWicBitmap(std::vector<IWICBitmap*>& vResult,
 	HRESULT hr;
 	UINT cFrame;
 	pDecoder->GetFrameCount(&cFrame);
-	vResult.resize(cFrame);
+	vResult.reserve(vResult.size() + cFrame);
 	GUID guidSrcFmt;
 	EckCounter(cFrame, i)
 	{
@@ -242,9 +242,11 @@ inline HRESULT CreateWicBitmap(std::vector<IWICBitmap*>& vResult,
 		pFrameDecoder->GetPixelFormat(&guidSrcFmt);
 		if (guidSrcFmt == guidFmt)
 		{
-			hr = g_pWicFactory->CreateBitmapFromSource(pFrameDecoder.Get(), WICBitmapNoCache, &vResult[i]);
+			IWICBitmap* pBitmap;
+			hr = g_pWicFactory->CreateBitmapFromSource(pFrameDecoder.Get(), WICBitmapNoCache, &pBitmap);
 			if (FAILED(hr))
 				return hr;
+			vResult.push_back(pBitmap);
 		}
 		else
 		{
@@ -255,9 +257,11 @@ inline HRESULT CreateWicBitmap(std::vector<IWICBitmap*>& vResult,
 				WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeMedianCut);
 			if (FAILED(hr))
 				return hr;
-			hr = g_pWicFactory->CreateBitmapFromSource(pConverter.Get(), WICBitmapNoCache, &vResult[i]);
+			IWICBitmap* pBitmap;
+			hr = g_pWicFactory->CreateBitmapFromSource(pConverter.Get(), WICBitmapNoCache, &pBitmap);
 			if (FAILED(hr))
 				return hr;
+			vResult.push_back(pBitmap);
 		}
 	}
 	return S_OK;

@@ -7,6 +7,7 @@
 */
 #pragma once
 #include "ImageHelper.h"
+#include "CStreamWalker.h"
 
 ECK_NAMESPACE_BEGIN
 struct ICONDIRENTRY
