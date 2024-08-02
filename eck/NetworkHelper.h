@@ -22,7 +22,21 @@ struct WinHttpHandleDeleter
 
 using UniquePtrWinHttpHandle = std::unique_ptr<std::remove_pointer_t<HINTERNET>, WinHttpHandleDeleter>;
 
-inline CRefBin RequestUrl(PCWSTR pszUrl, PCWSTR pszMethod,
+/// <summary>
+/// 访问URL
+/// </summary>
+/// <param name="pszUrl">URL</param>
+/// <param name="pszMethod">请求方式，默认为GET</param>
+/// <param name="pData">请求数据</param>
+/// <param name="cbData">请求数据长度</param>
+/// <param name="pszHeader">请求头</param>
+/// <param name="pszCookies">Cookies</param>
+/// <param name="bAutoHeader">自动补全请求头</param>
+/// <param name="prsResponseHeaders">返回响应头</param>
+/// <param name="pszProxy">代理</param>
+/// <param name="pszUserAgent">UA</param>
+/// <returns>成功返回请求到的数据，失败返回空字节集</returns>
+inline CRefBin RequestUrl(PCWSTR pszUrl, PCWSTR pszMethod = L"GET",
 	void* pData = NULL, SIZE_T cbData = 0u,
 	PCWSTR pszHeader = NULL, PCWSTR pszCookies = NULL, BOOL bAutoHeader = TRUE, CRefStrW* prsResponseHeaders = NULL,
 	PCWSTR pszProxy = NULL, PCWSTR pszUserAgent = NULL)

@@ -138,7 +138,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions);NOMINMAX;;ECK_MACRO_MYDBG</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions);NOMINMAX;ECK_MACRO_MYDBG;_WIN32_WINNT=0x603</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -182,7 +182,9 @@
     <ClInclude Include="eck\CDuiColorTheme.h" />
     <ClInclude Include="eck\CDuiMenu.h" />
     <ClInclude Include="eck\CDuiScrollBar.h" />
+    <ClInclude Include="eck\CDuiTitleBar.h" />
     <ClInclude Include="eck\CDuiTrackBar.h" />
+    <ClInclude Include="eck\CDwmWndPartMgr.h" />
     <ClInclude Include="eck\CEditNcComp.h" />
     <ClInclude Include="eck\CEvent.h" />
     <ClInclude Include="eck\CFontPicker.h" />
@@ -190,6 +192,7 @@
     <ClInclude Include="eck\ComPtr.h" />
     <ClInclude Include="eck\CRichEdit.h" />
     <ClInclude Include="eck\CVectorDrawPanel.h" />
+    <ClInclude Include="eck\DistortImage.h" />
     <ClInclude Include="eck\GeometryRender.h" />
     <ClInclude Include="eck\IMem.h" />
     <ClInclude Include="eck\Lyric.h" />

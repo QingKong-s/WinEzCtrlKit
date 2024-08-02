@@ -1831,7 +1831,7 @@ typedef enum _DIRECTORY_NOTIFY_INFORMATION_CLASS
 //    WCHAR FileName[1];
 //} FILE_NOTIFY_INFORMATION, *PFILE_NOTIFY_INFORMATION;
 
-#if !defined(NTDDI_WIN10_RS5) || (NTDDI_VERSION < NTDDI_WIN10_RS5)
+#if 0 && (!defined(NTDDI_WIN10_RS5) || (NTDDI_VERSION < NTDDI_WIN10_RS5))
 typedef struct _FILE_NOTIFY_EXTENDED_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -1861,7 +1861,7 @@ typedef struct _FILE_NOTIFY_EXTENDED_INFORMATION
 #define FILE_NAME_FLAG_BOTH          0x03 // NTFS+DOS combined name
 #define FILE_NAME_FLAGS_UNSPECIFIED  0x80 // not specified by file system (do not combine with other flags)
 
-#if !defined(NTDDI_WIN10_NI) || (NTDDI_VERSION < NTDDI_WIN10_NI)
+#if 0 && (!defined(NTDDI_WIN10_NI) || (NTDDI_VERSION < NTDDI_WIN10_NI))
 typedef struct _FILE_NOTIFY_FULL_INFORMATION
 {
     ULONG NextEntryOffset;

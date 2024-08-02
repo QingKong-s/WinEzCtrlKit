@@ -119,7 +119,7 @@ using FDrawThemeParentBackground = HRESULT(WINAPI*)(HWND, HDC, const RECT*);
 static FOpenNcThemeData		s_pfnOpenNcThemeData{};
 static FOpenThemeData		s_pfnOpenThemeData{ OpenThemeData };
 static FDrawThemeText		s_pfnDrawThemeText{ DrawThemeText };
-static FOpenThemeDataForDpi	s_pfnOpenThemeDataForDpi{ OpenThemeDataForDpi };
+static FOpenThemeDataForDpi	s_pfnOpenThemeDataForDpi{};// DPI API引入较晚，动态加载之
 static FDrawThemeBackgroundEx		s_pfnDrawThemeBackgroundEx{ DrawThemeBackgroundEx };
 static FDrawThemeBackground	s_pfnDrawThemeBackground{ DrawThemeBackground };
 static FGetThemeColor		s_pfnGetThemeColor{ GetThemeColor };
@@ -1028,7 +1028,11 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		DetourAttach(&s_pfnOpenNcThemeData, NewOpenNcThemeData);
 		DetourAttach(&s_pfnOpenThemeData, NewOpenThemeData);
 		DetourAttach(&s_pfnDrawThemeText, NewDrawThemeText);
-		DetourAttach(&s_pfnOpenThemeDataForDpi, NewOpenThemeDataForDpi);
+		const HMODULE hModUx = LoadLibraryW(L"UxTheme.dll");
+		EckAssert(hModUx);
+		if (s_pfnOpenThemeDataForDpi = (FOpenThemeDataForDpi)GetProcAddress(hModUx, "OpenThemeDataForDpi"))
+			DetourAttach(&s_pfnOpenThemeDataForDpi, NewOpenThemeDataForDpi);
+		FreeLibrary(hModUx);
 		DetourAttach(&s_pfnDrawThemeBackgroundEx, NewDrawThemeBackgroundEx);
 		DetourAttach(&s_pfnDrawThemeBackground, NewDrawThemeBackground);
 		DetourAttach(&s_pfnGetThemeColor, NewGetThemeColor);

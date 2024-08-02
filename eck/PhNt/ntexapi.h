@@ -4018,7 +4018,7 @@ typedef union _SYSTEM_INTERRUPT_STEERING_INFORMATION_OUTPUT
     };
 } SYSTEM_INTERRUPT_STEERING_INFORMATION_OUTPUT, *PSYSTEM_INTERRUPT_STEERING_INFORMATION_OUTPUT;
 
-#if !defined(NTDDI_WIN10_FE) || (NTDDI_VERSION < NTDDI_WIN10_FE)
+#if 0 && (!defined(NTDDI_WIN10_FE) || (NTDDI_VERSION < NTDDI_WIN10_FE))
 // private
 typedef struct _SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION
 {
@@ -4912,19 +4912,46 @@ typedef enum _ALTERNATIVE_ARCHITECTURE_TYPE
 #define SHARED_GLOBAL_FLAGS_QPC_BYPASS_A73_ERRATA (0x40)
 #define SHARED_GLOBAL_FLAGS_QPC_BYPASS_USE_RDTSCP (0x80)
 
+typedef struct _XSTATE_CONFIGURATION_BEFORE_21H2
+{
+    ULONG64 EnabledFeatures;
+    ULONG64 EnabledVolatileFeatures;
+    ULONG Size;
+    union
+    {
+        ULONG ControlFlags;
+        struct
+        {
+            ULONG OptimizedSave : 1;
+            ULONG CompactionEnabled : 1;
+        };
+    };
+    XSTATE_FEATURE Features[MAXIMUM_XSTATE_FEATURES];
+    ULONG64 EnabledSupervisorFeatures;
+    ULONG64 AlignedFeatures;
+    ULONG AllFeatureSize;
+    ULONG AllFeatures[MAXIMUM_XSTATE_FEATURES];
+    ULONG64 EnabledUserVisibleSupervisorFeatures;
+} XSTATE_CONFIGURATION_BEFORE_21H2, * PXSTATE_CONFIGURATION_BEFORE_21H2;
 
 typedef struct _KUSER_SHARED_DATA
 {
+    //=========3.5=========
+
     //
     // Current low 32-bit of tick count and tick count multiplier.
-    //
-    // N.B. The tick count is updated each time the clock ticks.
-    //
+	//
+	// N.B. The tick count is updated each time the clock ticks.
+	//
 
-    ULONG TickCountLowDeprecated;
-    ULONG TickCountMultiplier;
+	// union
+	// {
+		// ULONG volatile TickCountLow;// 3.5 to 5.1 only, we ignore it(qk)
+	ULONG TickCountLowDeprecated;// 5.1
+	// };
+	ULONG TickCountMultiplier;
 
-    //
+	//
     // Current 64-bit interrupt time in 100ns units.
     //
 
@@ -4960,11 +4987,17 @@ typedef struct _KUSER_SHARED_DATA
 
     WCHAR NtSystemRoot[260];
 
+    //=========4.0=========
+    
     //
     // Maximum stack trace depth if tracing enabled.
     //
 
-    ULONG MaxStackTraceDepth;
+	// union
+	// {
+		// ULONG DosDeviceMap;// 4.0 only, we ignore it (qk)
+	ULONG MaxStackTraceDepth;// 5.0
+	// };
 
     //
     // Crypto exponent value.
@@ -4977,40 +5010,48 @@ typedef struct _KUSER_SHARED_DATA
     //
 
     ULONG TimeZoneId;
-    ULONG LargePageMinimum;
+
+    // union 
+    // {
+    //  UCHAR DosDeviceDriveType [0x20];// 4.0 only, we ignore it (qk)
+    //  struct
+    //  {
+    ULONG LargePageMinimum;// 5.2
 
     //
     // This value controls the AIT Sampling rate.
     //
 
-    ULONG AitSamplingValue;
+    ULONG AitSamplingValue;// 6.2
 
     //
     // This value controls switchback processing.
     //
 
-    ULONG AppCompatFlag;
+    ULONG AppCompatFlag;// 6.2
 
     //
     // Current Kernel Root RNG state seed version
     //
 
-    ULONGLONG RNGSeedVersion;
+    ULONGLONG RNGSeedVersion;// 6.2
 
     //
     // This value controls assertion failure handling.
     //
 
-    ULONG GlobalValidationRunlevel;
+    ULONG GlobalValidationRunlevel;// 6.2
 
-    volatile LONG TimeZoneBiasStamp;
+    volatile LONG TimeZoneBiasStamp;// 6.2
 
     //
     // The shared collective build number undecorated with C or F.
     // GetVersionEx hides the real number
     //
 
-    ULONG NtBuildNumber;
+    ULONG NtBuildNumber;// 10.0
+    //  };
+    //};
 
     //
     // Product type.
@@ -5020,9 +5061,14 @@ typedef struct _KUSER_SHARED_DATA
     //
 
     NT_PRODUCT_TYPE NtProductType;
+
     BOOLEAN ProductTypeIsValid;
-    BOOLEAN Reserved0[1];
-    USHORT NativeProcessorArchitecture;
+
+    // spare space of align, nt6.2 defined it(qk)
+
+    BOOLEAN Reserved0[1];// 6.2
+
+    USHORT NativeProcessorArchitecture;// 6.2
 
     //
     // The NT Version.
@@ -5049,6 +5095,8 @@ typedef struct _KUSER_SHARED_DATA
     ULONG Reserved1;
     ULONG Reserved3;
 
+    //=========5.0=========
+
     //
     // Time slippage while in debugger.
     //
@@ -5061,11 +5109,13 @@ typedef struct _KUSER_SHARED_DATA
 
     ALTERNATIVE_ARCHITECTURE_TYPE AlternativeArchitecture;
 
+    // align(qk)
+
     //
     // Boot sequence, incremented for each boot attempt by the OS loader.
     //
 
-    ULONG BootId;
+    ULONG BootId;// 10.0
 
     //
     // If the system is an evaluation unit, the following field contains the
@@ -5083,7 +5133,9 @@ typedef struct _KUSER_SHARED_DATA
     //      an accurate result.
     //
 
-    ULONG SuiteMask;
+    ULONG SuiteMask;// late 4.0
+
+    //=========5.1/5.2=========
 
     //
     // TRUE if a kernel debugger is connected/enabled.
@@ -5095,6 +5147,9 @@ typedef struct _KUSER_SHARED_DATA
     // Mitigation policies.
     //
 
+#if NTDDI_VERSION >= NTDDI_WINXP && NTDDI_VERSION <= NTDDI_WIN7
+    UCHAR NXSupportPolicy;
+#else
     union
     {
         UCHAR MitigationPolicies;
@@ -5106,14 +5161,21 @@ typedef struct _KUSER_SHARED_DATA
             UCHAR Reserved : 2;
         };
     };
+#endif
+
+    // align(qk)
 
     //
     // Measured duration of a single processor yield, in cycles. This is used by
     // lock packages to determine how many times to spin waiting for a state
     // change before blocking.
     //
-
+    
+#if NTDDI_VERSION >= NTDDI_WIN8 && NTDDI_VERSION <= NTDDI_WIN10_RS5// 6.2 - 1809
+    UCHAR Reserved6[2];
+#elif NTDDI_VERSION > NTDDI_WIN10_RS5// 1903
     USHORT CyclesPerYield;
+#endif
 
     //
     // Current console session Id. Always zero on non-TS systems.
@@ -5161,16 +5223,31 @@ typedef struct _KUSER_SHARED_DATA
 
     BOOLEAN SafeBootMode;
 
-    //
-    // Virtualization flags.
-    //
-
+    // align(qk)
+    
+#if NTDDI_VERSION == NTDDI_WIN7// 6.1 only
     union
     {
+        UCHAR TscQpcData;
+        struct
+        {
+            UCHAR TscQpcEnabled : 1;        // 0x01
+            UCHAR TscQpcSpareFlag : 1;      // 0x02
+            UCHAR TscQpcShift : 6;          // 0xFC
+        };
+    };
+    UCHAR TscQpcPad[2];
+#elif NTDDI_VERSION >= NTDDI_WIN8 && NTDDI_VERSION <= NTDDI_WIN10_TH2// 6.2 - 1511
+    UCHAR Reserved12[3];
+#else// 1607
+    union
+    {
+        //
+        // Virtualization flags.
+        //
+
         UCHAR VirtualizationFlags;
-
 #if defined(_ARM64_)
-
         //
         // N.B. Keep this bitfield in sync with the one in arc.w.
         //
@@ -5181,9 +5258,7 @@ typedef struct _KUSER_SHARED_DATA
             UCHAR QcSlIsSupported : 1;
             UCHAR : 6;
         };
-
 #endif
-
     };
 
     //
@@ -5191,6 +5266,7 @@ typedef struct _KUSER_SHARED_DATA
     //
 
     UCHAR Reserved12[2];
+#endif
 
     //
     // This is a packed bitfield that contains various flags concerning
@@ -5201,6 +5277,9 @@ typedef struct _KUSER_SHARED_DATA
     //      API for an accurate result
     //
 
+    // union
+    // {
+    //      ULONG TraceLogging;// 5.1-5.2 only, we ignore it(qk)
     union
     {
         ULONG SharedDataFlags;
@@ -5225,8 +5304,9 @@ typedef struct _KUSER_SHARED_DATA
             ULONG SpareBits                 : 21;
         } DUMMYSTRUCTNAME2;
     } DUMMYUNIONNAME2;
+    // };
 
-    ULONG DataFlagsPad[1];
+    ULONG DataFlagsPad[1];// 6.1
 
     //
     // Depending on the processor, the code for fast system call will differ,
@@ -5235,21 +5315,41 @@ typedef struct _KUSER_SHARED_DATA
     // N.B. The following field is only used on 32-bit systems.
     //
 
+    // union
+    // {
+    //      ULONGLONG Fill0;// early 5.1, early 5.2 only
     ULONGLONG TestRetInstruction;
+    // };
+
+#if NTDDI_VERSION >= NTDDI_WINXP && NTDDI_VERSION <= NTDDI_WIN7
+    ULONG SystemCall;
+    ULONG SystemCallReturn;
+#else
     LONGLONG QpcFrequency;
+#endif
+
+#if NTDDI_VERSION <= NTDDI_WIN10
+    ULONGLONG SystemCallPad[3];
+#else
 
     //
     // On AMD64, this value is initialized to a nonzero value if the system
     // operates with an altered view of the system service call mechanism.
     //
 
-    ULONG SystemCall;
+    ULONG SystemCall;// 1511
+
+#if NTDDI_VERSION >= NTDDI_WIN10_TH2 && NTDDI_VERSION <= NTDDI_WIN10_19H1
+    ULONG SystemCallPad0;
+#else
+    // TODO : UserCetAvailableEnvironments
 
     //
     // Reserved field - do not use. Used to be UserCetAvailableEnvironments.
     //
 
     ULONG Reserved2;
+#endif
 
     //
     //
@@ -5262,7 +5362,7 @@ typedef struct _KUSER_SHARED_DATA
     //
 
     ULONGLONG SystemCallPad[1];
-
+#endif
     //
     // The 64-bit tick count.
     //
@@ -5271,11 +5371,13 @@ typedef struct _KUSER_SHARED_DATA
     {
         volatile KSYSTEM_TIME TickCount;
         volatile ULONG64 TickCountQuad;
+#if NTDDI_VERSION >= NTDDI_WIN7
         struct
         {
             ULONG ReservedTickCountOverlay[3];
             ULONG TickCountPad[1];
         } DUMMYSTRUCTNAME;
+#endif
     } DUMMYUNIONNAME3;
 
     //
@@ -5283,7 +5385,12 @@ typedef struct _KUSER_SHARED_DATA
     //
 
     ULONG Cookie;
-    ULONG CookiePad[1];
+
+    //=========6.x=========
+
+    // align (qk)
+
+    ULONG CookiePad[1];// 6.1
 
     //
     // Client id of the process having the focus in the current
@@ -5293,8 +5400,15 @@ typedef struct _KUSER_SHARED_DATA
     //      RtlGetConsoleSessionForegroundProcessId API for an accurate result.
     //
 
-    LONGLONG ConsoleSessionForegroundProcessId;
+    LONGLONG ConsoleSessionForegroundProcessId;// 6.0
 
+#if NTDDI_VERSION >= NTDDI_VISTA && NTDDI_VERSION <= NTDDI_WIN7
+    ULONG Wow64SharedInformation[0x10];
+#else
+
+#if NTDDI_VERSION == NTDDI_WIN8
+    ULONGLONG volatile TimeUpdateSequence;
+#else
     //
     // N.B. The following data is used to implement the precise time
     //      services. It is aligned on a 64-byte cache-line boundary and
@@ -5304,32 +5418,39 @@ typedef struct _KUSER_SHARED_DATA
     //
 
     ULONGLONG TimeUpdateLock;
+#endif// NTDDI_VERSION == NTDDI_WIN8
 
     //
     // The performance counter value used to establish the current system time.
     //
 
-    ULONGLONG BaselineSystemTimeQpc;
+    ULONGLONG BaselineSystemTimeQpc;// 6.2
 
     //
     // The performance counter value used to compute the last interrupt time.
     //
 
-    ULONGLONG BaselineInterruptTimeQpc;
+    ULONGLONG BaselineInterruptTimeQpc;// 6.2
 
     //
     // The scaled number of system time seconds represented by a single
     // performance count (this value may vary to achieve time synchronization).
     //
 
-    ULONGLONG QpcSystemTimeIncrement;
+    ULONGLONG QpcSystemTimeIncrement;// 6.2
 
     //
     // The scaled number of interrupt time seconds represented by a single
     // performance count (this value is constant after the system is booted).
     //
 
-    ULONGLONG QpcInterruptTimeIncrement;
+    ULONGLONG QpcInterruptTimeIncrement;// 6.2
+
+#if NTDDI_VERSION >= NTDDI_WIN8 && NTDDI_VERSION <= NTDDI_WINBLUE
+    ULONG QpcSystemTimeIncrement32;
+
+    ULONG QpcInterruptTimeIncrement32;
+#endif
 
     //
     // The scaling shift count applied to the performance counter system time
@@ -5345,11 +5466,14 @@ typedef struct _KUSER_SHARED_DATA
 
     UCHAR QpcInterruptTimeIncrementShift;
 
+#if NTDDI_VERSION >= NTDDI_WIN8 && NTDDI_VERSION <= NTDDI_WINBLUE
+    UCHAR Reserved8[0x0E];
+#else
     //
     // The count of unparked processors.
     //
 
-    USHORT UnparkedProcessorCount;
+    USHORT UnparkedProcessorCount;// 10.0
 
     //
     // A bitmask of enclave features supported on this system.
@@ -5358,58 +5482,77 @@ typedef struct _KUSER_SHARED_DATA
     //      accurate result.
     //
 
-    ULONG EnclaveFeatureMask[4];
+    ULONG EnclaveFeatureMask[4];// 1511
 
     //
     // Current coverage round for telemetry based coverage.
     //
 
-    ULONG TelemetryCoverageRound;
+    ULONG TelemetryCoverageRound;// 1709
+#endif// NTDDI_VERSION >= NTDDI_WIN8 && NTDDI_VERSION <= NTDDI_WINBLUE
+#endif// NTDDI_VERSION >= NTDDI_VISTA && NTDDI_VERSION <= NTDDI_WIN7
 
+#if NTDDI_VERSION >= NTDDI_VISTA && NTDDI_VERSION < NTDDI_WIN7
+    USHORT UserModeGlobalLogger[8];
+    ULONG HeapTracingPid[2];
+    ULONG CritSecTracingPid[2];
+#else
     //
     // The following field is used for ETW user mode global logging
     // (UMGL).
     //
 
-    USHORT UserModeGlobalLogger[16];
+    USHORT UserModeGlobalLogger[16];// 6.1
+#endif
 
     //
     // Settings that can enable the use of Image File Execution Options
     // from HKCU in addition to the original HKLM.
     //
 
-    ULONG ImageFileExecutionOptions;
+    ULONG ImageFileExecutionOptions;// 6.0
 
     //
     // Generation of the kernel structure holding system language information
     //
 
-    ULONG LangGenerationCount;
+    ULONG LangGenerationCount;// 6.1
 
+#if NTDDI_VERSION >= NTDDI_VISTA && NTDDI_VERSION < NTDDI_WIN7
+    union {
+        ULONGLONG AffinityPad;
+        ULONG ActiveProcessorAffinity;
+    };
+#else
     //
     // Reserved (available for reuse).
     //
 
     ULONGLONG Reserved4;
+#endif
 
     //
     // Current 64-bit interrupt time bias in 100ns units.
     //
 
-    volatile ULONGLONG InterruptTimeBias;
+    volatile ULONGLONG InterruptTimeBias;// 6.0
 
     //
     // Current 64-bit performance counter bias, in performance counter units
     // before the shift is applied.
     //
 
-    volatile ULONGLONG QpcBias;
+    volatile ULONGLONG QpcBias;// 6.3    6.1 to 6.2 named TscQpcBias
 
     //
     // Number of active processors and groups.
     //
 
     ULONG ActiveProcessorCount;
+
+#if NTDDI_VERSION == NTDDI_WIN7
+    USHORT volatile ActiveGroupCount;
+#else
     volatile UCHAR ActiveGroupCount;
 
     //
@@ -5417,6 +5560,7 @@ typedef struct _KUSER_SHARED_DATA
     //
 
     UCHAR Reserved9;
+#endif
 
     union
     {
@@ -5437,16 +5581,27 @@ typedef struct _KUSER_SHARED_DATA
 
             UCHAR QpcShift;
         };
-    };
+    };// 6.3         6.2 named Tsq-
 
+#if NTDDI_VERSION == NTDDI_WIN7
+    ULONG volatile AitSamplingValue;
+    ULONG volatile AppCompatFlag;
+    ULONGLONG SystemDllNativeRelocation;
+    ULONG SystemDllWowRelocation;
+    ULONG XStatePad[1];
+#else
     LARGE_INTEGER TimeZoneBiasEffectiveStart;
     LARGE_INTEGER TimeZoneBiasEffectiveEnd;
-
+#endif
     //
     // Extended processor state configuration
     //
 
+#if NTDDI_VERSION < NTDDI_WIN10_FE
+    XSTATE_CONFIGURATION_BEFORE_21H2 XState;
+#else
     XSTATE_CONFIGURATION XState;
+#endif
 
     KSYSTEM_TIME FeatureConfigurationChangeStamp;
     ULONG Spare;
@@ -5455,6 +5610,8 @@ typedef struct _KUSER_SHARED_DATA
 
     ULONG InternsReserved[210];
 } KUSER_SHARED_DATA, *PKUSER_SHARED_DATA;
+
+
 
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountLowDeprecated) == 0x0);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountMultiplier) == 0x4);
@@ -5488,28 +5645,65 @@ C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, AlternativeArchitecture) == 0x2c0);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemExpirationDate) == 0x2c8);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SuiteMask) == 0x2d0);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, KdDebuggerEnabled) == 0x2d4);
+
+#if NTDDI_VERSION >= NTDDI_WINXP && NTDDI_VERSION <= NTDDI_WIN7
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NXSupportPolicy) == 0x2d5);
+#else
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, MitigationPolicies) == 0x2d5);
+#endif
+
+#if NTDDI_VERSION >= NTDDI_WIN8 && NTDDI_VERSION <= NTDDI_WIN10_RS5
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved6) == 0x2d6);
+#else
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, CyclesPerYield) == 0x2d6);
+#endif
+
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ActiveConsoleId) == 0x2d8);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, DismountCount) == 0x2dc);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ComPlusPackage) == 0x2e0);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, LastSystemRITEventTickCount) == 0x2e4);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NumberOfPhysicalPages) == 0x2e8);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SafeBootMode) == 0x2ec);
+
+#if NTDDI_VERSION == NTDDI_WIN7
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TscQpcData) == 0x2ed);
+#elif NTDDI_VERSION >= NTDDI_WIN8 && NTDDI_VERSION <= NTDDI_WIN10_TH2
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved12) == 0x2ed);
+#else
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, VirtualizationFlags) == 0x2ed);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved12) == 0x2ee);
+#endif
+
 #if defined(_MSC_EXTENSIONS)
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SharedDataFlags) == 0x2f0);
 #endif
+
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TestRetInstruction) == 0x2f8);
+
+#if NTDDI_VERSION >= NTDDI_WINXP && NTDDI_VERSION <= NTDDI_WIN7
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCall) == 0x300);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCallReturn) == 0x0304);
+#else
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcFrequency) == 0x300);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCall) == 0x308);
+#endif
+
+#if NTDDI_VERSION <= NTDDI_WIN10
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCallPad) == 0x308);
+#else
+#   if NTDDI_VERSION >= NTDDI_WIN10_TH2 && NTDDI_VERSION <= NTDDI_WIN10_19H1
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCallPad0) == 0x30c);
+#   else
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved2) == 0x30c);
+#   endif
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCall) == 0x308);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCallPad) == 0x318); // previously 0x310
+#endif
+
 #if defined(_MSC_EXTENSIONS)
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCount) == 0x320);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountQuad) == 0x320);
 #endif
+
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Cookie) == 0x330);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ConsoleSessionForegroundProcessId) == 0x338);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeUpdateLock) == 0x340);
@@ -5517,11 +5711,21 @@ C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, BaselineSystemTimeQpc) == 0x348);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, BaselineInterruptTimeQpc) == 0x350);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcSystemTimeIncrement) == 0x358);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcInterruptTimeIncrement) == 0x360);
+
+#if NTDDI_VERSION >= NTDDI_WIN8 && NTDDI_VERSION <= NTDDI_WINBLUE
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcSystemTimeIncrement32) == 0x368);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcInterruptTimeIncrement32) == 0x36C);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcSystemTimeIncrementShift) == 0x0370);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcInterruptTimeIncrementShift) == 0x0371);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved8) == 0x0372);
+#else
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcSystemTimeIncrementShift) == 0x368);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcInterruptTimeIncrementShift) == 0x369);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, UnparkedProcessorCount) == 0x36a);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, EnclaveFeatureMask) == 0x36c);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TelemetryCoverageRound) == 0x37c);
+#endif
+
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, UserModeGlobalLogger) == 0x380);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ImageFileExecutionOptions) == 0x3a0);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, LangGenerationCount) == 0x3a4);
@@ -5540,15 +5744,15 @@ C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, XState) == 0x3d8);
 #if !defined(NTDDI_WIN10_FE) || (NTDDI_VERSION < NTDDI_WIN10_FE)
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp) == 0x710);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask) == 0x720);
-#if !defined(WINDOWS_IGNORE_PACKING_MISMATCH)
-C_ASSERT(sizeof(KUSER_SHARED_DATA) == 0x728);
-#endif
+//#if !defined(WINDOWS_IGNORE_PACKING_MISMATCH)
+//C_ASSERT(sizeof(KUSER_SHARED_DATA) == 0x728);
+//#endif
 #else
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp) == 0x720);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask) == 0x730);
-#if !defined(WINDOWS_IGNORE_PACKING_MISMATCH)
-C_ASSERT(sizeof(KUSER_SHARED_DATA) == 0xa80);
-#endif
+//#if !defined(WINDOWS_IGNORE_PACKING_MISMATCH)
+//C_ASSERT(sizeof(KUSER_SHARED_DATA) == 0xa80);
+//#endif
 #endif
 
 #define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)
