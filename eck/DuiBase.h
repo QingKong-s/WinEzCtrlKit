@@ -6,7 +6,6 @@
 * Copyright(C) 2024 QingKong
 */
 #pragma once
-#if ECKCXX20
 #include "CWnd.h"
 #include "GraphicsHelper.h"
 #include "OleDragDropHelper.h"
@@ -17,9 +16,10 @@
 #include "CCriticalSection.h"
 #include "ILayout.h"
 #include "SystemHelper.h"
+#include "CDwmWndPartMgr.h"
 
 #include <dcomp.h>
-
+#if ECKCXX20
 #define ECK_DUI_NAMESPACE_BEGIN namespace Dui {
 #define ECK_DUI_NAMESPACE_END }
 
@@ -162,7 +162,7 @@ protected:
 		}
 	}
 
-	CElem* HitTestChildUncheck(POINT pt)
+	CElem* HitTestChildUncheck(POINT pt, LRESULT* pResult = NULL)
 	{
 		auto pElem = GetLastChildElem();
 		while (pElem)
@@ -171,11 +171,16 @@ protected:
 			{
 				if (PtInRect(pElem->GetRectInClient(), pt))
 				{
-					const auto pHit = pElem->HitTestChildUncheck(pt);
+					const auto pHit = pElem->HitTestChildUncheck(pt, pResult);
 					if (pHit)
 						return pHit;
-					else if (pElem->CallEvent(WM_NCHITTEST, 0, MAKELPARAM(pt.x, pt.y)) != HTTRANSPARENT)
+					else if (LRESULT lResult;
+						(lResult = pElem->CallEvent(WM_NCHITTEST, 0, MAKELPARAM(pt.x, pt.y))) != HTTRANSPARENT)
+					{
+						if (pResult)
+							*pResult = lResult;
 						return pElem;
+					}
 				}
 			}
 			pElem = pElem->GetPrevElem();
@@ -220,7 +225,7 @@ protected:
 			OffsetRect(pElem->m_rcInClient, m_rcInClient.left, m_rcInClient.top);
 			OffsetRect(pElem->m_rcfInClient, m_rcfInClient.left, m_rcfInClient.top);
 			if ((pElem->GetStyle() & DES_COMPOSITED) &&
-				(pElem->GetStyle() & DES_INPLACE_COMP))
+				!(pElem->GetStyle() & DES_INPLACE_COMP))
 			{
 				pElem->m_rcPostCompositedInClient = pElem->m_rcPostComposited;
 				OffsetRect(pElem->m_rcPostCompositedInClient, m_rcInClient.left, m_rcInClient.top);
@@ -338,10 +343,19 @@ public:
 		return 0;
 	}
 
-	virtual LRESULT OnComposite()
+	/// <summary>
+	/// 元素内容渲染完毕。
+	/// 此方法简单调用DrawBitmap，若要自定义混合方案应覆写本方法
+	/// </summary>
+	/// <param name="rcClip">剪辑矩形</param>
+	/// <param name="ox">X偏移</param>
+	/// <param name="oy">Y偏移</param>
+	/// <returns>保留，必须返回0</returns>
+	virtual LRESULT OnComposite(const RECT& rcClip, float ox, float oy)
 	{
 		EckAssert(GetStyle() & DES_COMPOSITED);
-		m_pDC->DrawBitmap(m_pBitmapComp, m_rcf, 1.f, D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
+		m_pDC->DrawBitmap(m_pBitmapComp, { ox,oy,ox + GetWidthF(),oy + GetHeightF() },
+			1.f, D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
 		return 0;
 	}
 
@@ -577,15 +591,23 @@ public:
 			GetRectInClient().left,
 			GetRectInClient().top);
 	}
+
+	EckInline const RECT& GetWholeRect() const
+	{
+		return ((
+			(GetStyle() & DES_COMPOSITED) && !(GetStyle() & DES_INPLACE_COMP)) ?
+			GetPostCompositedRectInClient() :
+			GetRectInClient());
+	}
 };
 
 enum class PresentMode
 {
-	//						|  等待	|				透明混合					|
-	BitBltSwapChain,	//	|	0	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|
-	FlipSwapChain,		//	|	1	|不支持									|
-	DCompositionSurface,//	|	0	|支持，建议加入WS_EX_NOREDIRECTIONBITMAP	|	
-	WindowRenderTarget,	//  |	1	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|
+	//						|  等待	|				透明混合					|	 备注	|
+	BitBltSwapChain,	//	|	0	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|  性能极差	|
+	FlipSwapChain,		//	|	1	|不支持									|  性能极好	|
+	DCompositionSurface,//	|	0	|支持，建议加入WS_EX_NOREDIRECTIONBITMAP	|  建议使用	|
+	WindowRenderTarget,	//  |	1	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|  兼容性好	|
 };
 
 /// <summary>
@@ -686,49 +708,45 @@ private:
 		RECT rcClip;
 		while (pElem)
 		{
-			if (pElem->GetStyle() & DES_VISIBLE)
+			if ((pElem->GetStyle() & DES_VISIBLE) && pElem->GetRedraw())
 			{
-				if (pElem->GetRedraw())
+				const auto& rcElem = pElem->GetWholeRect();
+				if (IntersectRect(rcClip, rcElem, rc))
 				{
-					const auto& rcElem = ((
-						(pElem->GetStyle() & DES_COMPOSITED) && !(pElem->GetStyle() & DES_INPLACE_COMP)) ?
-						pElem->GetPostCompositedRectInClient() :
-						pElem->GetRectInClient());
-					if (IntersectRect(rcClip, rcElem, rc))
+					if (IsRectEmpty(pElem->m_rcInvalid))
+						pElem->m_rcInvalid = pElem->GetRectInClient();
+					ID2D1Image* pOldTarget{};
+					BOOL bNeedComposite = FALSE;
+					if (pElem->GetStyle() & DES_COMPOSITED)
 					{
-						if (IsRectEmpty(pElem->m_rcInvalid))
-							pElem->m_rcInvalid = pElem->GetRectInClient();
-						ID2D1Image* pOldTarget{};
-						BOOL bNeedComposite = FALSE;
-						if (pElem->GetStyle() & DES_COMPOSITED)
-						{
-							pDC->EndDraw();
-							pDC->GetTarget(&pOldTarget);
-							pDC->BeginDraw();
-							pDC->SetTarget(pElem->m_pBitmapComp);
-							pDC->SetTransform(D2D1::Matrix3x2F::Identity());
-							bNeedComposite = TRUE;
-						}
-						else
-						{
-							pDC->SetTransform(D2D1::Matrix3x2F::Translation(
-								pElem->GetRectInClientF().left + ox,
-								pElem->GetRectInClientF().top + oy));
-						}
-						pElem->CallEvent(WM_PAINT, 0, (LPARAM)&rcClip);
-						if (bNeedComposite)
-						{
-							const auto hr=m_D2d.GetDC()->EndDraw();
-							pDC->BeginDraw();
-							pDC->SetTarget(pOldTarget);
-							pOldTarget->Release();
-							pDC->SetTransform(D2D1::Matrix3x2F::Translation(
-								pElem->GetRectInClientF().left + ox,
-								pElem->GetRectInClientF().top + oy));
-							pElem->OnComposite();
-						}
-						RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
+						pDC->Flush();
+						pDC->GetTarget(&pOldTarget);
+						pDC->SetTarget(pElem->m_pBitmapComp);
+						pDC->SetTransform(D2D1::Matrix3x2F::Identity());
+						bNeedComposite = TRUE;
 					}
+					else
+					{
+						pDC->SetTransform(D2D1::Matrix3x2F::Translation(
+							pElem->GetRectInClientF().left + ox,
+							pElem->GetRectInClientF().top + oy));
+					}
+					pElem->CallEvent(WM_PAINT, 0, (LPARAM)&rcClip);
+					if (bNeedComposite)
+					{
+						RedrawElem(pElem->GetFirstChildElem(), rcClip,
+							-pElem->GetRectInClientF().left,
+							-pElem->GetRectInClientF().top);
+						pDC->Flush();
+						pDC->SetTarget(pOldTarget);
+						pOldTarget->Release();
+						pDC->SetTransform(D2D1::Matrix3x2F::Translation(
+							pElem->GetRectInClientF().left + ox,
+							pElem->GetRectInClientF().top + oy));
+						pElem->OnComposite(rcClip, ox, oy);
+					}
+					else
+						RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
 				}
 			}
 			pElem = pElem->GetNextElem();
@@ -804,6 +822,7 @@ private:
 	{
 		std::thread t([this]
 			{
+				ThreadInit();
 				constexpr int c_iMinGap = 16;
 				const HANDLE hTimer = CreateWaitableTimerW(NULL, FALSE, NULL);
 				EckAssert(hTimer);
@@ -927,15 +946,17 @@ private:
 
 				CancelWaitableTimer(hTimer);
 				CloseHandle(hTimer);
+				ThreadUnInit();
 			});
-			NtDuplicateObject(NtCurrentProcess(), t.native_handle(),
-				NtCurrentProcess(), &m_hthRender, 0, 0, 
-				DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES);
+		NtDuplicateObject(NtCurrentProcess(), t.native_handle(),
+			NtCurrentProcess(), &m_hthRender, 0, 0,
+			DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES);
 		t.detach();
 	}
 public:
 	ID2D1Bitmap* m_pBmpBlurCache = NULL;
 
+	// 一般不覆写此方法
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
@@ -949,7 +970,7 @@ public:
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
-		if (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST)
+		if ((uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST))
 		{
 			if (m_bMouseCaptured)
 			{
@@ -960,7 +981,7 @@ public:
 			if (pElem)
 				pElem->CallEvent(uMsg, wParam, lParam);
 
-			if (uMsg == WM_MOUSEMOVE)
+			if (uMsg == WM_MOUSEMOVE)// 移出监听
 			{
 				if (m_pHoverElem != m_pCurrNcHitTestElem && !m_bMouseCaptured)
 				{
@@ -977,6 +998,44 @@ public:
 
 			return 0;
 		}
+		else if (uMsg >= WM_NCMOUSEMOVE && uMsg <= WM_NCXBUTTONDBLCLK)
+		{
+			if (m_bMouseCaptured)
+			{
+				POINT pt ECK_GET_PT_LPARAM(lParam);
+				ScreenToClient(hWnd, &pt);
+				m_pCurrNcHitTestElem = HitTest(pt);
+			}
+			auto pElem = (m_pMouseCaptureElem ? m_pMouseCaptureElem : m_pCurrNcHitTestElem);
+			if (pElem)
+				pElem->CallEvent(uMsg, wParam, lParam);
+
+			if (uMsg == WM_NCMOUSEMOVE)// 移出监听
+			{
+				if (m_pHoverElem != m_pCurrNcHitTestElem && !m_bMouseCaptured)
+				{
+					if (m_pHoverElem)
+						m_pHoverElem->CallEvent(WM_MOUSELEAVE, 0, 0);
+					m_pHoverElem = m_pCurrNcHitTestElem;
+				}
+				TRACKMOUSEEVENT tme;
+				tme.cbSize = sizeof(tme);
+				tme.dwFlags = TME_LEAVE | TME_NONCLIENT;
+				tme.hwndTrack = hWnd;
+				TrackMouseEvent(&tme);
+			}
+			else if (uMsg == WM_NCLBUTTONDOWN)// 修正放开事件
+			{
+				if (pElem)
+				{
+					const auto lResult = CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
+					POINT pt;
+					GetCursorPos(&pt);
+					pElem->CallEvent(WM_NCLBUTTONUP, wParam, MAKELPARAM(pt.x, pt.y));
+					return lResult;
+				}
+			}
+		}
 
 		if (uMsg >= WM_KEYFIRST && uMsg <= WM_IME_KEYLAST)
 		{
@@ -991,7 +1050,9 @@ public:
 		{
 			POINT pt ECK_GET_PT_LPARAM(lParam);
 			ScreenToClient(hWnd, &pt);
-			m_pCurrNcHitTestElem = HitTest(pt);
+			LRESULT lResult;
+			if (m_pCurrNcHitTestElem = HitTest(pt, &lResult))
+				return lResult;
 		}
 		break;
 
@@ -1028,6 +1089,7 @@ public:
 		}
 		break;
 
+		case WM_NCMOUSELEAVE:
 		case WM_MOUSELEAVE:
 			if (m_pHoverElem)
 			{
@@ -1098,7 +1160,6 @@ public:
 					Param.uBmpAlphaMode = m_eAlphaMode;
 					m_D2d.Create(Param);
 				}
-
 				break;
 				case PresentMode::FlipSwapChain:
 				{
@@ -1283,20 +1344,26 @@ public:
 		}
 	}
 
-	CElem* HitTest(POINT pt)
+	CElem* HitTest(POINT pt, LRESULT* pResult = NULL)
 	{
 		auto pElem = m_pLastChild;
+		LRESULT l;
 		while (pElem)
 		{
 			if (pElem->GetStyle() & DES_VISIBLE)
 			{
 				if (PtInRect(pElem->GetRectInClient(), pt))
 				{
-					auto pHit = pElem->HitTestChildUncheck(pt);
+					auto pHit = pElem->HitTestChildUncheck(pt, pResult);
 					if (pHit)
 						return pHit;
-					else if (pElem->CallEvent(WM_NCHITTEST, 0, MAKELPARAM(pt.x, pt.y)) != HTTRANSPARENT)
+					else if (LRESULT lResult;
+						(lResult = pElem->CallEvent(WM_NCHITTEST, 0, MAKELPARAM(pt.x, pt.y))) != HTTRANSPARENT)
+					{
+						if (pResult)
+							*pResult = lResult;
 						return pElem;
+					}
 				}
 			}
 			pElem = pElem->GetPrevElem();
@@ -1639,11 +1706,11 @@ inline void CElem::InvalidateRect(const RECT* prc)
 {
 	ECK_DUILOCK;
 	if ((GetStyle() & DES_CONTENT_EXPAND) || !prc)
-		m_rcInvalid = GetRectInClient();
+		m_rcInvalid = GetWholeRect();
 	else
 	{
 		UnionRect(m_rcInvalid, m_rcInvalid, *prc);
-		IntersectRect(m_rcInvalid, m_rcInvalid, GetRectInClient());// 裁剪到元素矩形
+		IntersectRect(m_rcInvalid, m_rcInvalid, GetWholeRect());// 裁剪到元素矩形
 	}
 	IRCheckAndInvalid();
 }
@@ -1687,18 +1754,20 @@ EckInline void CElem::InitEasingCurve(CEasingCurve* pec)
 
 inline void CElem::SetRect(const RECT& rc)
 {
-	RECT rcOld = m_rcInClient;
+	ECK_DUILOCK;
+	RECT rcOld = GetWholeRect();
 	IntSetRect(rc);
 	CallEvent(WM_MOVE, 0, 0);
 	CallEvent(WM_SIZE, 0, 0);
-	UnionRect(rcOld, rcOld, m_rcInClient);
+	UnionRect(rcOld, rcOld, GetWholeRect());
 	m_rcInvalid = m_rcInClient;
 	IRCheckAndInvalid();
 }
 
 inline void CElem::SetPos(int x, int y)
 {
-	RECT rcOld = m_rcInClient;
+	ECK_DUILOCK;
+	RECT rcOld = GetWholeRect();
 	m_rc = { x,y,x + GetWidth(),y + GetHeight() };
 	m_rcf = MakeD2DRcF(m_rc);
 	m_rcInClient = m_rc;
@@ -1717,7 +1786,7 @@ inline void CElem::SetPos(int x, int y)
 
 	SRCorrectChildrenRectInClient();
 	CallEvent(WM_MOVE, 0, 0);
-	UnionRect(rcOld, rcOld, m_rcInClient);
+	UnionRect(rcOld, rcOld, GetWholeRect());
 	m_rcInvalid = m_rcInClient;
 	IRCheckAndInvalid();
 }
@@ -1725,7 +1794,7 @@ inline void CElem::SetPos(int x, int y)
 inline void CElem::SetSize(int cx, int cy)
 {
 	ECK_DUILOCK;
-	RECT rcOld = m_rcInClient;
+	RECT rcOld = GetWholeRect();
 	m_rc.right = m_rc.left + cx;
 	m_rc.bottom = m_rc.top + cy;
 	m_rcf.right = m_rcf.left + cx;
@@ -1734,7 +1803,7 @@ inline void CElem::SetSize(int cx, int cy)
 	m_rcInClient.bottom = m_rcInClient.top + cy;
 	m_rcfInClient.right = m_rcfInClient.left + cx;
 	m_rcfInClient.bottom = m_rcfInClient.top + cy;
-	UnionRect(rcOld, rcOld, m_rcInClient);
+	UnionRect(rcOld, rcOld, GetWholeRect());
 	m_rcInvalid = m_rcInClient;
 	IRCheckAndInvalid();
 }

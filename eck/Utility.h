@@ -881,6 +881,44 @@ inline constexpr BOOL AdjustRectToFillAnother(RECT& rc, const RECT& rcRef)
 	return TRUE;
 }
 
+/// <summary>
+/// 居中矩形。
+/// 函数使矩形居中于参照矩形
+/// </summary>
+/// <param name="rc">欲调整的矩形</param>
+/// <param name="rcRef">参照矩形</param>
+inline constexpr void CenterRect(RECT& rc, const RECT& rcRef)
+{
+	const int
+		cx = rc.right - rc.left,
+		cy = rc.bottom - rc.top,
+		cxRef = rcRef.right - rcRef.left,
+		cyRef = rcRef.bottom - rcRef.top;
+	rc.left = rcRef.left + (cxRef - cx) / 2;
+	rc.top = rcRef.top + (cyRef - cy) / 2;
+	rc.right = rc.left + cx;
+	rc.bottom = rc.top + cy;
+}
+
+/// <summary>
+/// 居中矩形。
+/// 函数使矩形居中于参照矩形
+/// </summary>
+/// <param name="rc">欲调整的矩形</param>
+/// <param name="rcRef">参照矩形</param>
+inline constexpr void CenterRect(D2D1_RECT_F& rc, const D2D1_RECT_F& rcRef)
+{
+	const float
+		cx = rc.right - rc.left,
+		cy = rc.bottom - rc.top,
+		cxRef = rcRef.right - rcRef.left,
+		cyRef = rcRef.bottom - rcRef.top;
+	rc.left = rcRef.left + (cxRef - cx) / 2;
+	rc.top = rcRef.top + (cyRef - cy) / 2;
+	rc.right = rc.left + cx;
+	rc.bottom = rc.top + cy;
+}
+
 EckInline constexpr MARGINS MakeMargin(int i)
 {
 	return { i,i,i,i };
@@ -1448,6 +1486,17 @@ EckInline T DynCast(U p)
 	if (bAllAscii)
 		return FALSE;
 	return TRUE;
+}
+
+EckInline constexpr MARGINS D2dRcFToMargins(const D2D1_RECT_F& rc)
+{
+	return MARGINS{ (int)rc.left, (int)rc.top, (int)rc.right, (int)rc.bottom };
+}
+
+EckInline constexpr D2D1_RECT_F MarginsToD2dRcF(const MARGINS& m)
+{
+	return D2D1_RECT_F{ (float)m.cxLeftWidth,(float)m.cyTopHeight,
+		(float)m.cxRightWidth,(float)m.cyBottomHeight };
 }
 
 #if !ECKCXX20

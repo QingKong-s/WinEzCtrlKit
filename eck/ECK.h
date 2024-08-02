@@ -8,6 +8,8 @@
 #pragma once
 #define GDIPVER 0x110
 
+//#define _WIN32_WINNT 0x0602
+
 #include "PrivateApi.h"
 //#include <Windows.h>
 //#include <windowsx.h>
@@ -361,6 +363,17 @@ constexpr inline BOOL Dbg{ TRUE };
 #else
 constexpr inline BOOL Dbg{ FALSE };
 #endif
+
+// TITLEBARINFOEX索引
+enum
+{
+	TIIDX_TITLE_BAR,
+	TIIDX_RESERVED,
+	TIIDX_MIN,
+	TIIDX_MAX,
+	TIIDX_HELP,
+	TIIDX_CLOSE,
+};
 
 /*-------------------*/
 /*控件通知代码*/

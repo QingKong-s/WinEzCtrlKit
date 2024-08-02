@@ -201,6 +201,7 @@ inline HRESULT ScaleWicBitmap(IWICBitmapSource* pSrc, IWICBitmap*& pDst, int cx,
 /// <returns>成功返回S_OK，失败返回错误代码</returns>
 EckInline HRESULT CreateWicBitmapDecoder(PCWSTR pszFile, IWICBitmapDecoder*& pDecoder)
 {
+	pDecoder = NULL;
 	return g_pWicFactory->CreateDecoderFromFilename(pszFile, NULL, GENERIC_READ,
 		WICDecodeMetadataCacheOnDemand, &pDecoder);
 }
@@ -215,6 +216,7 @@ EckInline HRESULT CreateWicBitmapDecoder(PCWSTR pszFile, IWICBitmapDecoder*& pDe
 EckInline HRESULT CreateWicBitmapDecoder(IStream* pStream,
 	IWICBitmapDecoder*& pDecoder)
 {
+	pDecoder = NULL;
 	return g_pWicFactory->CreateDecoderFromStream(pStream, NULL,
 		WICDecodeMetadataCacheOnDemand, &pDecoder);
 }

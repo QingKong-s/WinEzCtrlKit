@@ -262,4 +262,10 @@ inline int CalcDbcsStringCharCount(PCSTR pszText, int cchText, UINT uCp = CP_ACP
 	}
 	return c;
 }
+
+EckInline void FreeSTRRET(const STRRET& strret)
+{
+	if (strret.uType == STRRET_WSTR)
+		CoTaskMemFree(strret.pOleStr);
+}
 ECK_NAMESPACE_END
