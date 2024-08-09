@@ -40,7 +40,7 @@ protected:
 	COLORTHEME m_Theme{};
 public:
 	CColorTheme() = default;
-	CColorTheme(const COLORTHEME& Theme) :m_Theme(Theme){}
+	CColorTheme(const COLORTHEME& Theme) :m_Theme(Theme) {}
 
 	EckInline ULONG Ref() { return ++m_cRef; }
 

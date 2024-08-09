@@ -8,8 +8,6 @@
 #pragma once
 #define GDIPVER 0x110
 
-//#define _WIN32_WINNT 0x0602
-
 #include "PrivateApi.h"
 //#include <Windows.h>
 //#include <windowsx.h>
@@ -282,16 +280,20 @@ ECK_NAMESPACE_END
 
 ECK_NAMESPACE_BEGIN
 #pragma region 类型
-using SCHAR = signed char;
-using BITBOOL = UINT;
-using PCBYTE = const BYTE*;
-using PCVOID = const void*;
-using ECKENUM = BYTE;
-using SSIZE_T = std::make_signed_t<SIZE_T>;
-using UINTBE = UINT;
-using PITEMIDLIST = LPITEMIDLIST;
-using PCITEMIDLIST = LPCITEMIDLIST;
+namespace BaseType
+{
+	using SCHAR = signed char;
+	using BITBOOL = UINT;
+	using PCBYTE = const BYTE*;
+	using PCVOID = const void*;
+	using ECKENUM = BYTE;
+	using SSIZE_T = std::make_signed_t<SIZE_T>;
+	using UINTBE = UINT;
+	using PITEMIDLIST = LPITEMIDLIST;
+	using PCITEMIDLIST = LPCITEMIDLIST;
+}
 #pragma endregion
+using namespace BaseType;
 
 namespace Literals
 {
@@ -797,3 +799,7 @@ ECK_NAMESPACE_END
 #ifndef ECK_MACRO_NO_USING_GDIPLUS
 using namespace eck::GpNameSpace;
 #endif// !define(ECK_MACRO_NO_USING_GDIPLUS)
+
+#ifndef ECK_MACRO_NO_USING_BASE_TYPES
+using namespace eck::BaseType;
+#endif// !define(ECK_MACRO_NO_USING_BASE_TYPES)

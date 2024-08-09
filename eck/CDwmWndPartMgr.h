@@ -127,7 +127,7 @@ enum class DwmWPartState
 class CDwmWndPartMgr
 {
 private:
-	constexpr static size_t PartCount = 91;
+	constexpr static int PartCount = 91;
 	std::vector<DWMW_PART_INFO> m_Item{ PartCount };
 	HTHEME m_hTheme{};
 	HINSTANCE m_hInstStyle{};
@@ -158,7 +158,7 @@ public:
 	{
 		Clear();
 		m_hTheme = hTheme;
-		for (size_t i = 0; i < PartCount; ++i)
+		for (int i = 0; i < PartCount; ++i)
 			QueryAtlasInfo(i, m_Item[i]);
 	}
 
@@ -187,7 +187,7 @@ public:
 				m_hInstStyle = NULL;
 				return HRESULT_FROM_WIN32(GetLastError());
 			}
-			for (size_t i = 0; i < PartCount; ++i)
+			for (int i = 0; i < PartCount; ++i)
 				QueryAtlasInfo(i, m_Item[i]);
 			CoTaskMemFree(pszWinDir);
 			m_bSelfOpenTheme = TRUE;

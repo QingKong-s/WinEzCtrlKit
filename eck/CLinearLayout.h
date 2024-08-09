@@ -59,8 +59,7 @@ class CLinearLayoutV :public CLinearLayout
 public:
 	void LoCommit() override
 	{
-		const HDWP hDwpParent = (m_pParent ? m_pParent->LoGetCurrHDWP() : NULL);
-		HDWP hDwp = (hDwpParent ? hDwpParent : BeginDeferWindowPos((int)m_vCtrl.size()));
+		HDWP hDwp = PreArrange(m_vCtrl.size());
 
 		int x, y = m_y, cxAppr, cyAppr;
 		int cyLeave{};
@@ -121,8 +120,8 @@ public:
 			}
 			y += (cyAppr + e.Margin.cyBottomHeight);
 		}
-		if (!hDwpParent)
-			EndDeferWindowPos(hDwp);
+
+		PostArrange(hDwp);
 	}
 
 	void LoGetAppropriateSize(int& cx_, int& cy_) override
@@ -141,7 +140,6 @@ public:
 
 	void Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u, UINT uWeight = 0u)
 	{
-		pCtrl->LoSetParent(this);
 		const auto size = pCtrl->LoGetSize();
 		m_vCtrl.emplace_back(pCtrl, Margin, uFlags, (short)size.first, (short)size.second, uWeight);
 		if (uFlags & (LLF_FILLWIDTH | LLF_FILLWIDTH))
@@ -156,8 +154,7 @@ class CLinearLayoutH :public CLinearLayout
 public:
 	void LoCommit() override
 	{
-		const HDWP hDwpParent = (m_pParent ? m_pParent->LoGetCurrHDWP() : NULL);
-		HDWP hDwp = (hDwpParent ? hDwpParent : BeginDeferWindowPos((int)m_vCtrl.size()));
+		HDWP hDwp = PreArrange(m_vCtrl.size());
 
 		int x = m_x, y, cxAppr, cyAppr;
 		int cxLeave{};
@@ -217,8 +214,8 @@ public:
 			}
 			x += (cxAppr + e.Margin.cxRightWidth);
 		}
-		if (!hDwpParent)
-			EndDeferWindowPos(hDwp);
+
+		PostArrange(hDwp);
 	}
 
 	void LoGetAppropriateSize(int& cx_, int& cy_) override
@@ -248,7 +245,6 @@ public:
 
 	void Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u, UINT uWeight = 0u)
 	{
-		pCtrl->LoSetParent(this);
 		const auto size = pCtrl->LoGetSize();
 		m_vCtrl.emplace_back(pCtrl, Margin, uFlags, (short)size.first, (short)size.second, uWeight);
 		if (uFlags & (LLF_FILLWIDTH | LLF_FILLWIDTH))

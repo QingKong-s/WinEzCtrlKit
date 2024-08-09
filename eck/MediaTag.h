@@ -180,11 +180,11 @@ struct MUSICPIC
 
 struct MUSICINFO
 {
-	MIMASKS uMask{ MIM_ALL };		// 指定欲读取信息类型的掩码
-	MIMASKS uMaskRead{};			// 函数返回后设置已读取的信息
+	MIMASKS uMask{ MIM_ALL };	// 指定欲读取信息类型的掩码
+	MIMASKS uMaskRead{};		// 函数返回后设置已读取的信息
 	PCWSTR pszArtistDiv = L"、";	// 若设置了MIF_JOIN_ARTIST，则此字段指示分隔符
 	PCWSTR pszCommDiv = L"\n";	// 若设置了MIF_JOIN_COMMENT，则此字段指示分隔符
-	MIFLAGS uFlag{};		// 操作标志
+	MIFLAGS uFlag{};	// 操作标志
 
 	CRefStrW rsTitle{}; // 标题
 	std::variant<std::vector<CRefStrW>, CRefStrW>
@@ -339,17 +339,17 @@ struct ID3v2_Header		// ID3v2标签头
 	BYTE Ver;			// 版本号
 	BYTE Revision;		// 副版本号
 	BYTE Flags;			// 标志
-	BYTE Size[4];		// 标签大小，28位数据，每个字节最高位不使用，包括标签头的10个字节和所有的标签帧
+	BYTE Size[4];		// 标签大小
 };
 
 struct ID3v2_FrameHeader// ID3v2帧头
 {
 	CHAR ID[4];			// 帧标识
-	BYTE Size[4];		// 帧内容的大小，32位数据，不包括帧头
-	BYTE Flags[2];		// 存放标志
+	BYTE Size[4];		// 帧内容大小
+	BYTE Flags[2];		// 标志
 };
 
-struct FLAC_BlockHeader      // Flac头
+struct FLAC_BlockHeader // Flac头
 {
 	BYTE eType;
 	BYTE bySize[3];

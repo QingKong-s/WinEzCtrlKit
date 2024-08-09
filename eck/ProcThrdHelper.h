@@ -53,7 +53,7 @@ inline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, UINT& uPid)
 	if (!NT_SUCCESS(nts = NtQuerySystemInformation(SystemProcessInformation, pBuf, cb, &cb)))
 		return nts;
 	SYSTEM_PROCESS_INFORMATION* pspi = (SYSTEM_PROCESS_INFORMATION*)pBuf;
-	for (;;)
+	EckLoop()
 	{
 		if (wcsnicmp(pszImageName, pspi->ImageName.Buffer, pspi->ImageName.Length) == 0)
 		{
@@ -78,7 +78,7 @@ inline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, std::vector<UINT>& vPid
 	if (!NT_SUCCESS(nts = NtQuerySystemInformation(SystemProcessInformation, pBuf, cb, &cb)))
 		return nts;
 	SYSTEM_PROCESS_INFORMATION* pspi = (SYSTEM_PROCESS_INFORMATION*)pBuf;
-	for (;;)
+	EckLoop()
 	{
 		if (wcsnicmp(pszImageName, pspi->ImageName.Buffer, pspi->ImageName.Length) == 0)
 		{
@@ -232,7 +232,7 @@ inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags =
 		return nts;
 	vResult.reserve(150u);
 	auto pspi = (SYSTEM_PROCESS_INFORMATION*)pBuf;
-	for (;;)
+	EckLoop()
 	{
 		auto& e = vResult.emplace_back(
 			CRefStrW(pspi->ImageName),

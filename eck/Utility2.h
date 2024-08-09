@@ -268,4 +268,6 @@ EckInline void FreeSTRRET(const STRRET& strret)
 	if (strret.uType == STRRET_WSTR)
 		CoTaskMemFree(strret.pOleStr);
 }
+
+EckInline const auto* UserSharedData() { return USER_SHARED_DATA; }
 ECK_NAMESPACE_END

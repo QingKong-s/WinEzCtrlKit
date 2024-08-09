@@ -188,6 +188,7 @@
     <ClInclude Include="eck\CEditNcComp.h" />
     <ClInclude Include="eck\CEvent.h" />
     <ClInclude Include="eck\CFontPicker.h" />
+    <ClInclude Include="eck\CFrameLayout.h" />
     <ClInclude Include="eck\CHexEdit.h" />
     <ClInclude Include="eck\ComPtr.h" />
     <ClInclude Include="eck\CRichEdit.h" />
@@ -299,9 +300,6 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Win32Template.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="eckwindo.bin" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

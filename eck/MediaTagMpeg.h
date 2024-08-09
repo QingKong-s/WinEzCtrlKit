@@ -152,7 +152,7 @@ public:
 			EckCheckMem(pBuf);
 			constexpr size_t cbSegment = 1024;
 			BYTE bySync[2]{};
-			for (;;)
+			EckLoop()
 			{
 				m_Stream.Read(pBuf, cbSegment);
 				if (size_t cbLastRead; (cbLastRead = (size_t)m_Stream.GetLastRWSize()) < cbSegment)

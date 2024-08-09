@@ -210,7 +210,7 @@ struct CStreamWalker
 			LARGE_INTEGER posRead = ToLi(posSrcEnd - cbBuf);
 			LARGE_INTEGER posWrite = ToLi(posDstEnd - cbBuf);
 			const LARGE_INTEGER liPosSrc = ToLi(posSrc);
-			for (;;)
+			EckLoop()
 			{
 				MoveTo(posRead);
 				Read(pBuf, cbBuf);
@@ -262,7 +262,7 @@ struct CStreamWalker
 			LARGE_INTEGER posRead = ToLi(posSrc);
 			LARGE_INTEGER posWrite = ToLi(posDst);
 			const LARGE_INTEGER liPosSrcEnd = ToLi(posSrcEnd);
-			for (;;)
+			EckLoop()
 			{
 				MoveTo(posRead);
 				Read(pBuf, cbBuf);

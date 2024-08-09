@@ -628,7 +628,7 @@ public:
 
 	EckInline constexpr int GetFirstVisibleRow() const
 	{
-		return m_posFirstVisible / D.cCol;
+		return int(m_posFirstVisible / D.cCol);
 	}
 
 	int InsertCharColumn(UINT uCodePage, int idx = -1)

@@ -103,10 +103,10 @@ protected:
 		SUBCLSNF_DELETED = (1u << 1),
 	};
 
-	HWND m_hWnd = NULL;
-	WNDPROC m_pfnRealProc = DefWindowProcW;
-	MSG_HOOK_NODE* m_pMsgHookHead = NULL;
-	int m_cMsgHookDeleted = 0;
+	HWND m_hWnd{};
+	WNDPROC m_pfnRealProc{ DefWindowProcW };
+	MSG_HOOK_NODE* m_pMsgHookHead{};
+	int m_cMsgHookDeleted{};
 
 	EckInline HWND IntCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
@@ -175,7 +175,7 @@ protected:
 				if (bProcessed)
 					return lResult;
 				--pNode->cEnter;
-				
+
 			} while (pNode = pNode->pNext);
 
 			// 删除所有进入计数为0且标记为删除的节点
@@ -224,8 +224,8 @@ public:
 	ECKPROP(GetHeight, SetHeight)		int			Height;			// 高度
 	ECKPROP(GetPosition, SetPosition)	POINT		Position;		// 位置
 	ECKPROP(GetSize, SetSize)			SIZE		Size;			// 尺寸
-	ECKPROP_R(GetClientWidth)			int			ClientWidth;
-	ECKPROP_R(GetClientHeight)			int			ClientHeight;
+	ECKPROP_R(GetClientWidth)			int			ClientWidth;	// 客户区宽度
+	ECKPROP_R(GetClientHeight)			int			ClientHeight;	// 客户区高度
 
 
 	static LRESULT CALLBACK EckWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -518,6 +518,24 @@ public:
 		cy = rc.bottom - rc.top;
 	}
 
+	void LoSetPos(int x, int y) override
+	{
+		SetWindowPos(m_hWnd, NULL, x, y, 0, 0,
+			SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+	}
+
+	void LoSetSize(int cx, int cy) override
+	{
+		SetWindowPos(m_hWnd, NULL, 0, 0, cx, cy,
+			SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+	}
+
+	void LoSetPosSize(int x, int y, int cx, int cy)  override
+	{
+		SetWindowPos(m_hWnd, NULL, x, y, cx, cy,
+			SWP_NOZORDER | SWP_NOACTIVATE);
+	}
+
 	std::pair<int, int> LoGetPos() override
 	{
 		const auto pt{ GetPosition() };
@@ -528,6 +546,11 @@ public:
 	{
 		const auto size{ GetSize() };
 		return { size.cx,size.cy };
+	}
+
+	void LoShow(BOOL bShow) override
+	{
+		ShowWindow(m_hWnd, bShow ? SW_SHOW : SW_HIDE);
 	}
 
 	HWND LoGetHWND() override
@@ -582,7 +605,7 @@ public:
 	[[nodiscard]] EckInline HWND GetHWND() const { return m_hWnd; }
 
 	/// <summary>
-	/// 边框已更改
+	/// 强制重新核算非客户区
 	/// </summary>
 	EckInline void FrameChanged() const
 	{

@@ -1100,7 +1100,7 @@ void ThreadInit()
 					ARRAYSIZE(WC_TREEVIEWW),
 					ARRAYSIZE(UPDOWN_CLASSW),
 					ARRAYSIZE(WC_SCROLLBARW),
-				});
+				}) + 1;
 
 			const auto* const p = GetThreadCtx();
 			if (iCode == HCBT_CREATEWND && p->bEnableDarkModeHook)
@@ -1112,10 +1112,10 @@ void ThreadInit()
 				const auto lResult = CallNextHookEx(p->hhkCbtDarkMode, iCode, wParam, lParam);
 				if (IsWindow(hWnd))
 				{
-					const BOOL bPszIsId = IsPszId(pccw->lpcs->lpszClass);
+					const BOOL bPszIsId = IS_INTRESOURCE(pccw->lpcs->lpszClass);
 					WCHAR szCls[c_cchMaxClsBuf];
 					if (bPszIsId)
-						GetClassNameW(hWnd, szCls, ARRAYSIZE(szCls));
+						GetClassNameW(hWnd, szCls, c_cchMaxClsBuf);
 
 					const auto itEnd = c_pszCommCtrlCls + ARRAYSIZE(c_pszCommCtrlCls);
 					const auto it = std::find_if(c_pszCommCtrlCls, itEnd,

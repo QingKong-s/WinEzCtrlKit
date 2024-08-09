@@ -354,7 +354,7 @@ inline HWND GetSafeOwner(HWND hParent, HWND* phWndTop)
 		hWnd = GetParent(hWnd);
 
 	HWND hWndTop = hWnd, hWndTemp = hWnd;
-	for (;;)
+	EckLoop()
 	{
 		if (hWndTemp == NULL)
 			break;
