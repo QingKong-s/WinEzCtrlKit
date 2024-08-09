@@ -414,6 +414,9 @@
     <ClInclude Include="eck\DistortImage.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\CFrameLayout.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">
@@ -433,10 +436,5 @@
     <ResourceCompile Include="Win32Template.rc">
       <Filter>资源文件</Filter>
     </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="eckwindo.bin">
-      <Filter>资源文件</Filter>
-    </None>
   </ItemGroup>
 </Project>

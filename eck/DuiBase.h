@@ -19,6 +19,8 @@
 #include "CDwmWndPartMgr.h"
 
 #include <dcomp.h>
+#include <oleacc.h>
+
 #if ECKCXX20
 #define ECK_DUI_NAMESPACE_BEGIN namespace Dui {
 #define ECK_DUI_NAMESPACE_END }
@@ -145,6 +147,7 @@ protected:
 	DWORD m_dwExStyle = 0;
 
 	int m_iId = 0;
+	int m_cChildren{};
 
 	BITBOOL m_bAllowRedraw : 1 = TRUE;
 
@@ -310,6 +313,11 @@ public:
 	std::pair<int, int> LoGetSize() override
 	{
 		return { GetWidth(),GetHeight() };
+	}
+
+	void LoShow(BOOL bShow) override
+	{
+		SetVisible(bShow);
 	}
 
 	virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -488,8 +496,20 @@ public:
 
 	void SetZOrder(CElem* pElemAfter);
 
+	/// <summary>
+	/// 生成元素通知。
+	/// 若GenElemNotifyParent返回0，则通知窗口
+	/// </summary>
+	/// <param name="pnm">通知结构，第一个字段必须为DUINMHDR</param>
+	/// <returns>处理方的返回值</returns>
 	EckInline LRESULT GenElemNotify(void* pnm);
 
+	/// <summary>
+	/// 生成元素通知。
+	/// 向父元素发送通知，若无父元素，返回0
+	/// </summary>
+	/// <param name="pnm">通知结构，第一个字段必须为DUINMHDR</param>
+	/// <returns>处理方的返回值</returns>
 	EckInline LRESULT GenElemNotifyParent(void* pnm)
 	{
 		if (GetParentElem())
@@ -668,6 +688,10 @@ private:
 
 	PresentMode m_ePresentMode = PresentMode::FlipSwapChain;
 
+	IAccessible* m_pStdAcc{};
+
+	int m_cChildren{};
+
 	int m_iUserDpi = USER_DEFAULT_SCREEN_DPI;
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 	ECK_DS_BEGIN(DPIS)
@@ -830,7 +854,7 @@ private:
 
 				WaitForSingleObject(m_evtRender.GetHEvent(), INFINITE);
 				ULONGLONG ullTime = GetTickCount64() - c_iMinGap;
-				for (;;)
+				EckLoop()
 				{
 					bThereAreActiveTimeLine = FALSE;
 					m_cs.Enter();
@@ -1347,7 +1371,6 @@ public:
 	CElem* HitTest(POINT pt, LRESULT* pResult = NULL)
 	{
 		auto pElem = m_pLastChild;
-		LRESULT l;
 		while (pElem)
 		{
 			if (pElem->GetStyle() & DES_VISIBLE)
@@ -1509,6 +1532,8 @@ public:
 	}
 
 	EckInline constexpr BOOL GetTransparent() const { return m_bTransparent; }
+
+	EckInline constexpr int GetChildrenCount() const { return m_cChildren; }
 };
 
 inline void CElem::IRCheckAndInvalid()
@@ -1550,6 +1575,10 @@ inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	auto& pParentLastChild = (pParent ? pParent->m_pLastChild : pWnd->m_pLastChild);
 	auto& pParentFirstChild = (pParent ? pParent->m_pFirstChild : pWnd->m_pFirstChild);
 	m_pParent = pParent;
+	if (m_pParent)
+		++m_pParent->m_cChildren;
+	else
+		++m_pWnd->m_cChildren;
 
 	if (pParentLastChild)
 	{
@@ -1586,6 +1615,10 @@ inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 inline void CElem::Destroy()
 {
 	ECK_DUILOCK;
+	if (m_pParent)
+		--m_pParent->m_cChildren;
+	else
+		--m_pWnd->m_cChildren;
 	m_pWnd->CorrectSingleElemMember(this);
 	CallEvent(WM_DESTROY, 0, 0);
 	DestroyChild(this);
@@ -1875,6 +1908,213 @@ inline void CElem::SetVisible(BOOL b)
 }
 
 
+class CAccServer :public IAccessible
+{
+private:
+	LONG m_cRef{ 1 };
+	CDuiWnd& m_Wnd;
+	IAccessible* m_pStdAcc{};
+public:
+	CAccServer(CDuiWnd& wnd) :m_Wnd(wnd)
+	{
+		CreateStdAccessibleObject(m_Wnd.HWnd, OBJID_CLIENT, IID_IAccessible, (void**)&m_pStdAcc);
+	}
+
+	~CAccServer()
+	{
+		if (m_pStdAcc)
+			m_pStdAcc->Release();
+	}
+
+	BOOL IsAlive() const { return m_Wnd.IsValid(); }
+
+	// IUnknown
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppv) override
+	{
+		QITAB qit[]
+		{
+			QITABENT(CAccServer, IDispatch),
+			QITABENT(CAccServer, IAccessible),
+			{ 0 },
+		};
+		return QISearch(this, qit, riid, ppv);
+	}
+
+	ULONG STDMETHODCALLTYPE AddRef(void) override
+	{
+		return ++m_cRef;
+	}
+
+	ULONG STDMETHODCALLTYPE Release(void) override
+	{
+		if (m_cRef == 1)
+		{
+			delete this;
+			return 0;
+		}
+		else
+			return --m_cRef;
+	}
+
+	// IDispatch
+	HRESULT STDMETHODCALLTYPE GetTypeInfoCount(UINT* pctinfo) override
+	{
+		*pctinfo = 0;
+		return E_NOTIMPL;
+	}
+
+	HRESULT STDMETHODCALLTYPE GetTypeInfo(UINT iTInfo, LCID lcid, ITypeInfo** ppTInfo) override
+	{
+		*ppTInfo = NULL;
+		return E_NOTIMPL;
+	}
+
+	HRESULT STDMETHODCALLTYPE GetIDsOfNames(REFIID riid, LPOLESTR* rgszNames, UINT cNames, LCID lcid, DISPID* rgDispId) override
+	{
+		*rgszNames = NULL;
+		*rgDispId = 0;
+		return E_NOTIMPL;
+	}
+
+	HRESULT STDMETHODCALLTYPE Invoke(DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlags,
+		DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr) override
+	{
+		pDispParams = NULL;
+		pVarResult->vt = VT_EMPTY;
+		pExcepInfo = NULL;
+		puArgErr = NULL;
+		if (!IsAlive())
+			return RPC_E_DISCONNECTED;
+		return E_NOTIMPL;
+	}
+
+	// IAccessible
+	HRESULT STDMETHODCALLTYPE get_accParent(IDispatch** ppdispParent)
+	{
+		if (!IsAlive())
+		{
+			*ppdispParent = NULL;
+			return RPC_E_DISCONNECTED;
+		}
+		return m_pStdAcc->get_accParent(ppdispParent);
+	}
+
+	HRESULT STDMETHODCALLTYPE get_accChildCount(long* pcountChildren) override
+	{
+		if (!IsAlive())
+		{
+			*pcountChildren = 0;
+			return RPC_E_DISCONNECTED;
+		}
+		*pcountChildren = m_Wnd.GetChildrenCount();
+		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE get_accChild(VARIANT varChild, IDispatch** ppdispChild) override
+	{
+		//if (varChild.vt != VT_I4)
+		//{
+		//	*ppdispChild = NULL;
+		//	return E_INVALIDARG;
+		//}
+		//if (!IsAlive())
+		//{
+		//	*ppdispChild = NULL;
+		//	return RPC_E_DISCONNECTED;
+		//}
+		//if (varChild.lVal < 1 || varChild.lVal > m_Wnd.GetChildrenCount())
+		//{
+		//	*ppdispChild = NULL;
+		//	return E_INVALIDARG;
+		//}
+
+		//auto pElem = m_Wnd.GetFirstChildElem();
+		//EckCounterNV(varChild.lVal)
+		//	pElem = pElem->GetNextElem();
+		//
+		//if (!pElem)
+		//{
+		//	*ppdispChild = NULL;
+		//	return E_INVALIDARG;
+		//}
+		//return pElem->QueryInterface(IID_IDispatch, (void**)ppdispChild);
+	}
+
+	HRESULT STDMETHODCALLTYPE get_accName(
+		VARIANT varChild,
+		BSTR* pszName) override;
+
+	HRESULT STDMETHODCALLTYPE get_accValue(
+		VARIANT varChild,
+		BSTR* pszValue) override;
+
+	HRESULT STDMETHODCALLTYPE get_accDescription(
+		VARIANT varChild,
+		BSTR* pszDescription) override;
+
+	HRESULT STDMETHODCALLTYPE get_accRole(
+		VARIANT varChild,
+		VARIANT* pvarRole) override;
+
+	HRESULT STDMETHODCALLTYPE get_accState(
+		VARIANT varChild,
+		VARIANT* pvarState) override;
+
+	HRESULT STDMETHODCALLTYPE get_accHelp(
+		VARIANT varChild,
+		BSTR* pszHelp) override;
+
+	HRESULT STDMETHODCALLTYPE get_accHelpTopic(
+		BSTR* pszHelpFile,
+		VARIANT varChild,
+		long* pidTopic) override;
+
+	HRESULT STDMETHODCALLTYPE get_accKeyboardShortcut(
+		VARIANT varChild,
+		BSTR* pszKeyboardShortcut) override;
+
+	HRESULT STDMETHODCALLTYPE get_accFocus(
+		VARIANT* pvarChild) override;
+
+	HRESULT STDMETHODCALLTYPE get_accSelection(
+		VARIANT* pvarChildren) override;
+
+	HRESULT STDMETHODCALLTYPE get_accDefaultAction(
+		VARIANT varChild,
+		BSTR* pszDefaultAction) override;
+
+	HRESULT STDMETHODCALLTYPE accSelect(
+		long flagsSelect,
+		VARIANT varChild) override;
+
+	HRESULT STDMETHODCALLTYPE accLocation(
+		long* pxLeft,
+		long* pyTop,
+		long* pcxWidth,
+		long* pcyHeight,
+		VARIANT varChild) override;
+
+	HRESULT STDMETHODCALLTYPE accNavigate(
+		long navDir,
+		VARIANT varStart,
+		VARIANT* pvarEndUpAt) override;
+
+	HRESULT STDMETHODCALLTYPE accHitTest(
+		long xLeft,
+		long yTop,
+		VARIANT* pvarChild) override;
+
+	HRESULT STDMETHODCALLTYPE accDoDefaultAction(
+		VARIANT varChild) override;
+
+	HRESULT STDMETHODCALLTYPE put_accName(
+		VARIANT varChild,
+		BSTR szName) override;
+
+	HRESULT STDMETHODCALLTYPE put_accValue(
+		VARIANT varChild,
+		BSTR szValue) override;
+};
 
 class CDuiDropTarget :public CDropTarget
 {

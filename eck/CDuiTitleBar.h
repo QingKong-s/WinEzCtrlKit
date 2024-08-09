@@ -230,15 +230,15 @@ public:
 	{
 		if (g_NtVer.uMajor == 6 && (g_NtVer.uMinor == 2 || g_NtVer.uMinor == 3))
 		{
-			m_cxClose = DpiScaleF(46, GetWnd()->GetDpiValue());
+			m_cxClose = DpiScale(46, GetWnd()->GetDpiValue());
 			m_cxMaxMin = m_cxClose * 80 / 150;
-			m_cyBtn = DpiScaleF(21, GetWnd()->GetDpiValue());
+			m_cyBtn = DpiScale(21, GetWnd()->GetDpiValue());
 		}
 		else
 		{
-			m_cxClose = DpiScaleF(46, GetWnd()->GetDpiValue());
+			m_cxClose = DpiScale(46, GetWnd()->GetDpiValue());
 			m_cxMaxMin = m_cxClose;
-			m_cyBtn = DpiScaleF(41, GetWnd()->GetDpiValue());
+			m_cyBtn = DpiScale(31, GetWnd()->GetDpiValue());
 		}
 	}
 

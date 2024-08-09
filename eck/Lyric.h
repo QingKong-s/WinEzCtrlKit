@@ -492,7 +492,7 @@ BOOL ParseLrc(PCVOID p, SIZE_T cbMem, std::vector<LRCINFO>& Result, std::vector<
 			continue;// 不合法，跳过这一行
 		}
 
-		for (;;)// 行中循环取标签
+		EckLoop()// 行中循环取标签
 		{
 		GetLabelLoopBegin:
 			pszTimeLabel = pszLine + pos1 + 1;
@@ -554,7 +554,7 @@ BOOL ParseLrc(PCVOID p, SIZE_T cbMem, std::vector<LRCINFO>& Result, std::vector<
 					}
 					else// 如果不合法，跳过当前左中括号重试
 					{
-						for (;;)
+						EckLoop()
 						{
 							pos3 = eck::FindStr(pszLine, L"[", pos3 + 1);// 找下一个左中括号
 							if (pos3 < 0)

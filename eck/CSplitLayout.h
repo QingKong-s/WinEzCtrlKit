@@ -39,12 +39,6 @@ public:
 		m_bScaleMode = bScaleMode;
 	}
 
-	void LoGetAppropriateSize(int& cx, int& cy) override
-	{
-		cx = m_cx;
-		cy = m_cy;
-	}
-
 	void Clear() override
 	{
 		CLayoutBase::Clear();
@@ -58,13 +52,12 @@ class CSplitLayoutH :public CSplitLayout
 public:
 	void LoCommit() override
 	{
-		const HDWP hDwpParent = (m_pParent ? m_pParent->LoGetCurrHDWP() : NULL);
-		HDWP hDwp = (hDwpParent ? hDwpParent : BeginDeferWindowPos((int)m_vCtrl.size()));
+		HDWP hDwp = PreArrange(m_vCtrl.size());
 		int x = m_x, y, cx, cy;
 		int cxLeave{};
 		UINT uTotalWeight{};
 
-		for (int i{}; const auto& e : m_vCtrl)
+		for (int i{}; const auto & e : m_vCtrl)
 		{
 			if (m_bScaleMode)
 				cx = e.uWeight * m_cx / m_uTotalWeight;
@@ -111,16 +104,14 @@ public:
 			}
 			x += (cx + e.Margin.cxRightWidth);
 		}
-		if (!hDwpParent)
-			EndDeferWindowPos(hDwp);
+		PostArrange(hDwp);
 	}
 
-	void Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u, 
+	void Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u,
 		UINT uWeight = 0u, Align eAlign = Align::Near)
 	{
-		pCtrl->LoSetParent(this);
 		const auto size = pCtrl->LoGetSize();
-		m_vCtrl.emplace_back(pCtrl, Margin, uFlags, eAlign, 
+		m_vCtrl.emplace_back(pCtrl, Margin, uFlags, eAlign,
 			(short)size.first, (short)size.second, uWeight);
 		m_uTotalWeight += uWeight;
 		m_cx += (size.first + Margin.cxLeftWidth + Margin.cxRightWidth);
@@ -133,8 +124,7 @@ class CSplitLayoutV :public CSplitLayout
 public:
 	void LoCommit() override
 	{
-		const HDWP hDwpParent = (m_pParent ? m_pParent->LoGetCurrHDWP() : NULL);
-		HDWP hDwp = (hDwpParent ? hDwpParent : BeginDeferWindowPos((int)m_vCtrl.size()));
+		HDWP hDwp = PreArrange(m_vCtrl.size());
 		int x, y = m_y, cx, cy;
 		int cxLeave{};
 		UINT uTotalWeight{};
@@ -186,14 +176,12 @@ public:
 			}
 			y += (cy + e.Margin.cyBottomHeight);
 		}
-		if (!hDwpParent)
-			EndDeferWindowPos(hDwp);
+		PostArrange(hDwp);
 	}
 
 	void Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u,
 		UINT uWeight = 0u, Align eAlign = Align::Near)
 	{
-		pCtrl->LoSetParent(this);
 		const auto size = pCtrl->LoGetSize();
 		m_vCtrl.emplace_back(pCtrl, Margin, uFlags, eAlign,
 			(short)size.first, (short)size.second, uWeight);
