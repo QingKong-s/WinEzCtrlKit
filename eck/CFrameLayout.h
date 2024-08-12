@@ -150,5 +150,16 @@ public:
 		}
 		PostArrange(hDwp);
 	}
+
+	void ShowFrame(int idx)
+	{
+		EckAssert(idx >= 0 && idx < (int)m_vCtrl.size());
+		int i{};
+		m_vCtrl[idx].pCtrl->LoShow(TRUE);
+		for (; i < idx; ++i)
+			m_vCtrl[i].pCtrl->LoShow(FALSE);
+		for (i = idx + 1; i < (int)m_vCtrl.size(); ++i)
+			m_vCtrl[i].pCtrl->LoShow(FALSE);
+	}
 };
 ECK_NAMESPACE_END

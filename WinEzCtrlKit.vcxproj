@@ -160,6 +160,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CTestWnd.h" />
+    <ClInclude Include="eck\CSignal.h" />
     <ClInclude Include="eck\CAllocator.h" />
     <ClInclude Include="eck\CArray.h" />
     <ClInclude Include="eck\CBitSet.h" />

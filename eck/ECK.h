@@ -31,6 +31,8 @@
 #include <type_traits>
 #include <execution>
 #include <memory>
+#include <optional>
+#include <functional>
 
 #include ".\Detours\detours.h"
 
