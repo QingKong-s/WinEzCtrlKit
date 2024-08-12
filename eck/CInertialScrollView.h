@@ -14,7 +14,7 @@ ECK_NAMESPACE_BEGIN
 class CInertialScrollView : public CScrollView, public ITimeLine
 {
 public:
-	using FInertialScrollProc = void (*)(int iPos, int iPrevPos, LPARAM lParam);
+	using FInertialScrollProc = void(*)(int iPos, int iPrevPos, LPARAM lParam);
 protected:
 	int m_iStart = 0;		// 起始位置
 	int m_iDistance = 0;	// 当前动画应滚动的总距离

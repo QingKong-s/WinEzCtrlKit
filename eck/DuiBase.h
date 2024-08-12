@@ -68,7 +68,7 @@ enum :UINT
 	EE_HSCROLL,
 	EE_VSCROLL,
 
-	EE_PRIVATE_BEGIN = 0x4000
+	EE_PRIVATE_BEGIN = 0x0400
 };
 
 struct DRAGDROPINFO
@@ -88,7 +88,7 @@ enum
 	WM_DROP,
 	WM_COLORSCHEMECHANGED,
 
-	WM_PRIVBEGIN = 5000,
+	WM_PRIVBEGIN = 0x0400,
 };
 
 enum
@@ -621,6 +621,7 @@ public:
 	}
 };
 
+// DUI图形系统呈现模式
 enum class PresentMode
 {
 	//						|  等待	|				透明混合					|	 备注	|
@@ -1260,12 +1261,15 @@ public:
 			SetWindowPos(hWnd, NULL,
 				prc->left, prc->top, prc->right - prc->left, prc->bottom - prc->top,
 				SWP_NOZORDER | SWP_NOACTIVATE);
+			BroadcastEvent(WM_DPICHANGED, HIWORD(wParam), 0);
 		}
 		return 0;
 
 		case WM_DPICHANGED_AFTERPARENT:// for child window
 		{
-			UpdateDpi(GetDpi(hWnd));
+			const int iDpi = GetDpi(hWnd);
+			UpdateDpi(iDpi);
+			BroadcastEvent(WM_DPICHANGED, iDpi, 0);
 		}
 		return 0;
 

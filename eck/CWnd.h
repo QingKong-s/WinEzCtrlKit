@@ -11,9 +11,6 @@
 #include "CException.h"
 #include "ILayout.h"
 
-#include <optional>
-#include <functional>
-
 ECK_NAMESPACE_BEGIN
 enum :UINT
 {
