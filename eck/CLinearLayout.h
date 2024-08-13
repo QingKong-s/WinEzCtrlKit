@@ -142,7 +142,7 @@ public:
 	{
 		const auto size = pCtrl->LoGetSize();
 		m_vCtrl.emplace_back(pCtrl, Margin, uFlags, (short)size.first, (short)size.second, uWeight);
-		if (uFlags & (LLF_FILLWIDTH | LLF_FILLWIDTH))
+		if (uFlags & (LLF_FILLWIDTH | LLF_FILLHEIGHT))
 			m_bHasFillSizeCtrl = TRUE;
 		m_cy += (size.second + Margin.cyTopHeight + Margin.cyBottomHeight);
 		m_cx = std::max(m_cx, size.first);
@@ -247,7 +247,7 @@ public:
 	{
 		const auto size = pCtrl->LoGetSize();
 		m_vCtrl.emplace_back(pCtrl, Margin, uFlags, (short)size.first, (short)size.second, uWeight);
-		if (uFlags & (LLF_FILLWIDTH | LLF_FILLWIDTH))
+		if (uFlags & (LLF_FILLWIDTH | LLF_FILLHEIGHT))
 			m_bHasFillSizeCtrl = TRUE;
 		m_cx += (size.first + Margin.cxLeftWidth + Margin.cxRightWidth);
 		m_cy = std::max(m_cy, size.second);

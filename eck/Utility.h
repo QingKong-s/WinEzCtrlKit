@@ -1499,6 +1499,28 @@ EckInline constexpr D2D1_RECT_F MarginsToD2dRcF(const MARGINS& m)
 		(float)m.cxRightWidth,(float)m.cyBottomHeight };
 }
 
+EckInline constexpr CHAR ByteToHex(BYTE x)
+{
+	return x > 9 ? x + 55 : x + 48;
+}
+
+EckInline constexpr CHAR ByteToHexLower(BYTE x)
+{
+	return x > 9 ? x + 87 : x + 48;
+}
+
+EckInline constexpr BYTE ByteFromHex(CHAR x)
+{
+	if (x >= 'A' && x <= 'Z')
+		return x - 'A' + 10;
+	else if (x >= 'a' && x <= 'z')
+		return x - 'a' + 10;
+	else if (x >= '0' && x <= '9')
+		return x - '0';
+	else
+		return 0;
+}
+
 #if !ECKCXX20
 #undef ccpIsInteger
 #pragma pop_macro("ccpIsInteger")

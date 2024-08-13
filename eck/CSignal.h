@@ -201,18 +201,18 @@ public:
 		IntConnect(pfn, uId, uIdAfter);
 	}
 
-	EckInline void Connect(CCallbackTable& ct, UINT_PTR uId, UINT_PTR uIdAfter = Top)
+	EckInline void Connect(CSignal& sig, UINT_PTR uId, UINT_PTR uIdAfter = Top)
 	{
-		EckAssert(&ct != this);
+		EckAssert(&sig != this);
 		if constexpr (std::is_same_v<TIntercept, Intercept_T>)
 			IntConnect([&](TArgs&& ...args, BOOL& bProcessed)->TRet
 				{
-					return ct.Emit(std::forward<TArgs>(args)...);
+					return sig.Emit(std::forward<TArgs>(args)...);
 				}, uId, uIdAfter);
 		else
 			IntConnect([&](TArgs&& ...args)->TRet
 				{
-					ct.Emit(std::forward<TArgs>(args)...);
+					sig.Emit(std::forward<TArgs>(args)...);
 				}, uId, uIdAfter);
 	}
 
