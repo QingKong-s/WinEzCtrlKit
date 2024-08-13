@@ -818,7 +818,6 @@ private:
 
 			ID2D1Bitmap1* pBitmap = NULL;
 			pDC->CreateBitmapFromDxgiSurface(pDxgiSurface, &D2dBmpProp, &pBitmap);
-
 			pDC->SetTarget(pBitmap);
 			pDC->BeginDraw();
 			if (m_bTransparent)
@@ -828,8 +827,12 @@ private:
 			RECT rcReal{ rc };
 			OffsetRect(rcReal, ptOffset.x, ptOffset.y);
 			pDC->SetTransform(D2D1::Matrix3x2F::Identity());
+
+			m_D2d.m_pBitmap = pBitmap;
 			FillBackground(MakeD2DRcF(rcReal));
 			RedrawElem(GetFirstChildElem(), rc, (float)ptOffset.x, (float)ptOffset.y);
+			m_D2d.m_pBitmap = NULL;
+
 			pDC->EndDraw();
 			m_pDcSurface->EndDraw();
 

@@ -270,4 +270,127 @@ EckInline void FreeSTRRET(const STRRET& strret)
 }
 
 EckInline const auto* UserSharedData() { return USER_SHARED_DATA; }
+
+/// <summary>
+/// URL编码
+/// </summary>
+/// <param name="pszText">原始字符串，编码取决于调用方，通常为UTF-8</param></param>
+/// <param name="cchText">原始字符串长度</param>
+/// <returns>结果</returns>
+inline CRefStrA UrlEncode(PCSTR pszText, int cchText = -1)
+{
+	CRefStrA rs{};
+	if (cchText < 0)
+		cchText = (int)strlen(pszText);
+	rs.Reserve(cchText + cchText / 2);
+	CHAR ch;
+	const auto pszEnd = pszText + cchText;
+	for (ch = *pszText; pszText < pszEnd; ch = *++pszText)
+	{
+		if (isalnum((BYTE)ch) || (ch == '-') || (ch == '_') || (ch == '.') || (ch == '~'))
+			rs.PushBackChar(ch);
+		else if (ch == ' ')
+			rs.PushBackChar('+');
+		else
+		{
+			rs.PushBackChar('%');
+			rs.PushBackChar(ByteToHex((BYTE)ch >> 4));
+			rs.PushBackChar(ByteToHex((BYTE)ch & 0b1111));
+		}
+	}
+	return rs;
+}
+
+EckInline CRefStrA UrlEncode(const char8_t* pszText, int cchText = -1)
+{
+	return UrlEncode((PCSTR)pszText, cchText);
+}
+
+/// <summary>
+/// URL解码
+/// </summary>
+/// <param name="pszText">编码字符串</param>
+/// <param name="cchText">编码字符串长度</param>
+/// <returns>结果</returns>
+inline CRefStrA UrlDecode(PCSTR pszText, int cchText = -1)
+{
+	CRefStrA rs{};
+	if (cchText < 0)
+		cchText = (int)strlen(pszText);
+	rs.Reserve(cchText);
+	CHAR ch;
+	const auto pszEnd = pszText + cchText;
+	for (ch = *pszText; pszText < pszEnd; ch = *++pszText)
+	{
+		if (ch == '+')
+			rs.PushBackChar(' ');
+		else if (ch == '%')
+		{
+			EckAssert(pszText + 2 < pszEnd);
+			const BYTE h = ByteFromHex(*++pszText);
+			const BYTE l = ByteFromHex(*++pszText);
+			rs.PushBackChar((h << 4) + l);
+		}
+		else
+			rs.PushBackChar(ch);
+	}
+	return rs;
+}
+
+/// <summary>
+/// 计算MD5
+/// </summary>
+/// <param name="pData">字节流</param>
+/// <param name="cbData">字节流长度</param>
+/// <param name="pResult">结果缓冲区，至少16字节</param>
+/// <returns>NTSTATUS</returns>
+inline NTSTATUS CalcMd5(PCVOID pData, SIZE_T cbData, void* pResult)
+{
+	NTSTATUS nts;
+	BCRYPT_ALG_HANDLE hAlg;
+	DWORD cbHashObject, cbHash;
+	ULONG cbRet;
+	BCRYPT_HASH_HANDLE hHash{};
+	UCHAR* pHashObject{};
+	if (!NT_SUCCESS(nts = BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_MD5_ALGORITHM, NULL, 0)))
+		return nts;
+	if (!NT_SUCCESS(nts = BCryptGetProperty(hAlg, BCRYPT_OBJECT_LENGTH, (PBYTE)&cbHashObject,
+		sizeof(DWORD), &cbRet, 0)))
+		goto TidyUp;
+	pHashObject = (UCHAR*)_malloca(cbHashObject);
+	if (!NT_SUCCESS(nts = BCryptCreateHash(hAlg, &hHash, pHashObject, cbHashObject,
+		NULL, 0, 0)))
+		goto TidyUp;
+	if (!NT_SUCCESS(nts = BCryptHashData(hHash, (BYTE*)pData, (ULONG)cbData, 0)))
+		goto TidyUp;
+	if (!NT_SUCCESS(nts = BCryptFinishHash(hHash, (UCHAR*)pResult, 16, 0)))
+		goto TidyUp;
+TidyUp:
+	if (hHash)
+		BCryptDestroyHash(hHash);
+	BCryptCloseAlgorithmProvider(hAlg, 0);
+	if (pHashObject)
+		_freea(pHashObject);
+	return nts;
+}
+
+EckInline constexpr void Md5ToStringUpper(PCVOID pMd5, PWSTR pszResult)
+{
+	EckCounter((size_t)16, i)
+	{
+		const BYTE b = ((BYTE*)pMd5)[i];
+		pszResult[i * 2] = ByteToHex(b >> 4);
+		pszResult[i * 2 + 1] = ByteToHex(b & 0b1111);
+	}
+}
+
+EckInline constexpr void Md5ToStringLower(PCVOID pMd5, PWSTR pszResult)
+{
+	EckCounter((size_t)16, i)
+	{
+		const BYTE b = ((BYTE*)pMd5)[i];
+		pszResult[i * 2] = ByteToHexLower(b >> 4);
+		pszResult[i * 2 + 1] = ByteToHexLower(b & 0b1111);
+	}
+}
 ECK_NAMESPACE_END

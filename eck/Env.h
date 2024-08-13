@@ -41,6 +41,7 @@
 #pragma comment(lib,"ntdll.lib")
 #pragma comment(lib,"Advpack.lib")
 #pragma comment(lib,"Winhttp.lib")
+#pragma comment(lib,"Bcrypt.lib")
 #	ifdef _WIN64
 #		pragma comment(lib,"eck\\Detours\\detours_x64.lib")
 #	else
