@@ -9,6 +9,8 @@
 #include "CRefBin.h"
 #include "CRefStr.h"
 
+#include "ZLib/zlib.h"
+
 ECK_NAMESPACE_BEGIN
 inline constexpr BYTE c_Base64DecodeTable[]
 {
@@ -274,7 +276,7 @@ EckInline const auto* UserSharedData() { return USER_SHARED_DATA; }
 /// <summary>
 /// URL编码
 /// </summary>
-/// <param name="pszText">原始字符串，编码取决于调用方，通常为UTF-8</param></param>
+/// <param name="pszText">原始字符串，编码取决于调用方，通常为UTF-8</param>
 /// <param name="cchText">原始字符串长度</param>
 /// <returns>结果</returns>
 inline CRefStrA UrlEncode(PCSTR pszText, int cchText = -1)
@@ -289,8 +291,8 @@ inline CRefStrA UrlEncode(PCSTR pszText, int cchText = -1)
 	{
 		if (isalnum((BYTE)ch) || (ch == '-') || (ch == '_') || (ch == '.') || (ch == '~'))
 			rs.PushBackChar(ch);
-		else if (ch == ' ')
-			rs.PushBackChar('+');
+		//else if (ch == ' ')
+		//	rs.PushBackChar('+');
 		else
 		{
 			rs.PushBackChar('%');
@@ -348,7 +350,7 @@ inline NTSTATUS CalcMd5(PCVOID pData, SIZE_T cbData, void* pResult)
 {
 	NTSTATUS nts;
 	BCRYPT_ALG_HANDLE hAlg;
-	DWORD cbHashObject, cbHash;
+	DWORD cbHashObject;
 	ULONG cbRet;
 	BCRYPT_HASH_HANDLE hHash{};
 	UCHAR* pHashObject{};
@@ -378,7 +380,7 @@ EckInline constexpr void Md5ToStringUpper(PCVOID pMd5, PWSTR pszResult)
 {
 	EckCounter((size_t)16, i)
 	{
-		const BYTE b = ((BYTE*)pMd5)[i];
+		const BYTE b = ((PCBYTE)pMd5)[i];
 		pszResult[i * 2] = ByteToHex(b >> 4);
 		pszResult[i * 2 + 1] = ByteToHex(b & 0b1111);
 	}
@@ -388,9 +390,121 @@ EckInline constexpr void Md5ToStringLower(PCVOID pMd5, PWSTR pszResult)
 {
 	EckCounter((size_t)16, i)
 	{
-		const BYTE b = ((BYTE*)pMd5)[i];
+		const BYTE b = ((PCBYTE)pMd5)[i];
 		pszResult[i * 2] = ByteToHexLower(b >> 4);
 		pszResult[i * 2 + 1] = ByteToHexLower(b & 0b1111);
 	}
+}
+
+EckInline constexpr void Md5ToStringUpper(PCVOID pMd5, PSTR pszResult)
+{
+	EckCounter((size_t)16, i)
+	{
+		const BYTE b = ((PCBYTE)pMd5)[i];
+		pszResult[i * 2] = ByteToHex(b >> 4);
+		pszResult[i * 2 + 1] = ByteToHex(b & 0b1111);
+	}
+}
+
+EckInline constexpr void Md5ToStringLower(PCVOID pMd5, PSTR pszResult)
+{
+	EckCounter((size_t)16, i)
+	{
+		const BYTE b = ((PCBYTE)pMd5)[i];
+		pszResult[i * 2] = ByteToHexLower(b >> 4);
+		pszResult[i * 2 + 1] = ByteToHexLower(b & 0b1111);
+	}
+}
+
+EckInline ULONGLONG GetUnixTimestamp()
+{
+	ULONGLONG ull;
+	GetSystemTimeAsFileTime((FILETIME*)&ull);
+	ull -= 116444736000000000;
+	ull /= 10000ull;
+	return ull;
+}
+
+EckInline HANDLE DuplicateStdThreadHandle(std::thread& thr)
+{
+	HANDLE hThread{};
+	NtDuplicateObject(NtCurrentProcess(), thr.native_handle(), NtCurrentProcess(), &hThread,
+		0, 0, DUPLICATE_SAME_ATTRIBUTES | DUPLICATE_SAME_ACCESS);
+	return hThread;
+}
+
+/// <summary>
+/// 合法化文件名。
+/// 将路径中的非法字符替换为指定字符。
+/// 函数原地工作
+/// </summary>
+/// <param name="pszPath">文件名</param>
+/// <param name="chReplace">替换为</param>
+EckInline void LegalizePath(PWSTR pszPath, WCHAR chReplace = L'_')
+{
+	auto p{ pszPath };
+	while (p = wcspbrk(p, LR"(\/:*?"<>|)"))
+	{
+		*p = chReplace;
+		++p;
+	}
+}
+
+inline std::span<const BYTE> GetResource(PCWSTR pszName,PCWSTR pszType)
+{
+	const auto hRes = FindResourceW(NULL, pszName, pszType);
+	if(!hRes)
+		return {};
+	const auto hGlobal = LoadResource(NULL, hRes);
+	if(!hGlobal)
+		return {};
+	const auto pRes = LockResource(hGlobal);
+	if(!pRes)
+		return {};
+	const auto cbRes = SizeofResource(NULL, hRes);
+	if(!cbRes)
+		return {};
+	return { (PCBYTE)pRes,cbRes };
+}
+
+inline int ZLibDecompress(PCVOID pOrg, SIZE_T cbOrg, void* pResult, SIZE_T cbResult)
+{
+
+}
+
+EckInline int ZLibDecompress(PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult)
+{
+	int iRet;
+	z_stream zs{};
+	if ((iRet = inflateInit(&zs)) != Z_OK)
+		return iRet;
+	zs.next_in = (Bytef*)pOrg;
+	zs.avail_in = (uInt)cbOrg;
+
+	rbResult.ReSize(cbOrg);
+	zs.next_out = rbResult.Data();
+	zs.avail_out = (uInt)rbResult.Size();
+	EckLoop()
+	{
+		iRet = inflate(&zs, Z_NO_FLUSH);
+		if (iRet == Z_STREAM_END)// 解压完成
+		{
+			rbResult.PopBack(zs.avail_out);
+			break;
+		}
+		else if (iRet == Z_BUF_ERROR)// 缓冲区不足
+		{
+			rbResult.PopBack(zs.avail_out);
+			zs.next_out = rbResult.PushBack(cbOrg / 2);
+			zs.avail_out = (uInt)(cbOrg / 2);
+		}
+		else if (iRet != Z_OK)// 出错
+		{
+			rbResult.Clear();
+			break;
+		}
+	}
+	inflateEnd(&zs);
+	return iRet;
 }
 ECK_NAMESPACE_END

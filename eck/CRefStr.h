@@ -90,6 +90,34 @@ inline constexpr int StrNPos = -1;
 }
 
 /// <summary>
+/// 倒找文本
+/// </summary>
+/// <param name="pszText">要在其中寻找的字符串指针</param>
+/// <param name="cchText">要在其中寻找的字符串长度</param>
+/// <param name="pszSub">要寻找的字符串指针</param>
+/// <param name="cchSub">要寻找的字符串长度</param>
+/// <param name="posStart">起始位置，若为-1则从尾部开始</param>
+/// <returns>位置，若未找到返回StrNPos</returns>
+[[nodiscard]] inline int FindStrRev(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = -1)
+{
+	if (cchText < 0)
+		cchText = (int)wcslen(pszText);
+	if (cchSub < 0)
+		cchSub = (int)wcslen(pszSub);
+	if (!cchText || !cchSub || cchText < cchSub)
+		return StrNPos;
+	if (posStart < 0)
+		posStart = cchText - 1;
+
+	for (PCWSTR pCurr = pszText + posStart - cchSub; pCurr >= pszText; --pCurr)
+	{
+		if (wcsncmp(pCurr, pszSub, cchSub) == 0)
+			return (int)(pCurr - pszText);
+	}
+	return StrNPos;
+}
+
+/// <summary>
 /// 删首空。
 /// 函数从pszText开始向后步进到第一个非空格字符，然后返回指向这个字符的指针。
 /// 此函数不执行任何修改字符串的操作
@@ -781,13 +809,15 @@ public:
 		if (cchNew < 0)
 			cchNew = TCharTraits::Len(pszNew);
 		const int cchOrg = Size();
-		ReSizeExtra(Size() + cchNew - cchReplacing);
+		const int cchAfter = Size() + cchNew - cchReplacing;
+		Reserve(cchAfter);
 		TCharTraits::Move(
 			Data() + posStart + cchNew,
 			Data() + posStart + cchReplacing,
 			cchOrg - posStart - cchReplacing);
 		if (pszNew)
 			TCharTraits::Copy(Data() + posStart, pszNew, cchNew);
+		ReSize(cchAfter);
 	}
 
 	/// <summary>
@@ -1072,6 +1102,13 @@ public:
 		if (IsEmpty())
 			return StrNPos;
 		return FindStr(Data(), s.c_str(), posStart);
+	}
+
+	[[nodiscard]] EckInline int RFind(TConstPointer pszSub, int cchSub = -1, int posStart = -1) const
+	{
+		if (IsEmpty())
+			return StrNPos;
+		return FindStrRev(Data(), Size(), pszSub, cchSub, posStart);
 	}
 
 	[[nodiscard]] EckInline int FindChar(TChar ch, int posStart = 0) const
@@ -1588,34 +1625,6 @@ namespace Literals
 /// <summary>
 /// 倒找文本
 /// </summary>
-/// <param name="pszText">要在其中寻找的字符串指针</param>
-/// <param name="cchText">要在其中寻找的字符串长度</param>
-/// <param name="pszSub">要寻找的字符串指针</param>
-/// <param name="cchSub">要寻找的字符串长度</param>
-/// <param name="posStart">起始位置，若为-1则从尾部开始</param>
-/// <returns>位置，若未找到返回StrNPos</returns>
-[[nodiscard]] inline int FindStrRev(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = -1)
-{
-	if (cchText < 0)
-		cchText = (int)wcslen(pszText);
-	if (cchSub < 0)
-		cchSub = (int)wcslen(pszSub);
-	if (!cchText || !cchSub || cchText < cchSub)
-		return StrNPos;
-	if (posStart < 0)
-		posStart = cchText - 1;
-
-	for (PCWSTR pCurr = pszText + posStart - cchSub; pCurr >= pszText; --pCurr)
-	{
-		if (wcsncmp(pCurr, pszSub, cchSub) == 0)
-			return (int)(pCurr - pszText);
-	}
-	return StrNPos;
-}
-
-/// <summary>
-/// 倒找文本
-/// </summary>
 /// <param name="rsText">要在其中寻找的字符串</param>
 /// <param name="rsSub">要寻找的字符串</param>
 /// <param name="posStart">起始位置</param>
@@ -1912,6 +1921,10 @@ template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<C
 [[nodiscard]] CRefStrT<CHAR, TCharTraits, TAlloc> StrW2X(PCWSTR pszText, int cch = -1, int uCP = CP_ACP)
 {
 	int cchBuf = WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, NULL, 0, NULL, NULL);
+	if (!cchBuf)
+		return {};
+	if (cch == -1)
+		--cchBuf;
 	CRefStrT<CHAR, TCharTraits, TAlloc> rs(cchBuf);
 	WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, rs.Data(), cchBuf, NULL, NULL);
 	*(rs.Data() + cchBuf) = '\0';
@@ -1930,6 +1943,10 @@ template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<
 [[nodiscard]] CRefStrT<WCHAR, TCharTraits, TAlloc> StrX2W(PCSTR pszText, int cch = -1, int uCP = CP_ACP)
 {
 	int cchBuf = MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, NULL, 0);
+	if (!cchBuf)
+		return {};
+	if (cch == -1)
+		--cchBuf;
 	CRefStrT<WCHAR, TCharTraits, TAlloc> rs(cchBuf);
 	MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, rs.Data(), cchBuf);
 	*(rs.Data() + cchBuf) = '\0';

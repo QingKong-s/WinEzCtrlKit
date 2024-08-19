@@ -22,23 +22,24 @@ struct WinHttpHandleDeleter
 
 using UniquePtrWinHttpHandle = std::unique_ptr<std::remove_pointer_t<HINTERNET>, WinHttpHandleDeleter>;
 
-/// <summary>
-/// 访问URL
-/// </summary>
-/// <param name="pszUrl">URL</param>
-/// <param name="pszMethod">请求方式，默认为GET</param>
-/// <param name="pData">请求数据</param>
-/// <param name="cbData">请求数据长度</param>
-/// <param name="pszHeader">请求头</param>
-/// <param name="pszCookies">Cookies</param>
-/// <param name="bAutoHeader">自动补全请求头</param>
-/// <param name="prsResponseHeaders">返回响应头</param>
-/// <param name="pszProxy">代理</param>
-/// <param name="pszUserAgent">UA</param>
-/// <returns>成功返回请求到的数据，失败返回空字节集</returns>
-inline CRefBin RequestUrl(PCWSTR pszUrl, PCWSTR pszMethod = L"GET",
+
+inline std::wstring_view HeaderGetParam(PCWSTR pszHeader, PCWSTR pszName, int cchName = -1)
+{
+	const auto pos = FindStrI(pszHeader, pszName);
+	if (pos == StrNPos)
+		return {};
+	const auto posEnd = FindStrI(pszHeader, L"\r\n", pos);
+	if (posEnd == StrNPos)
+		return {};
+	if (cchName < 0)
+		cchName = (int)wcslen(pszName);
+	return { pszHeader + pos + cchName + 2, size_t(posEnd - pos - cchName - 2) };
+}
+
+template<class FPostConnect>
+inline BOOL RequestUrl(FPostConnect&& fn, BOOL bRealRequest, PCWSTR pszUrl, PCWSTR pszMethod = L"GET",
 	void* pData = NULL, SIZE_T cbData = 0u,
-	PCWSTR pszHeader = NULL, PCWSTR pszCookies = NULL, BOOL bAutoHeader = TRUE, CRefStrW* prsResponseHeaders = NULL,
+	PCWSTR pszHeader = NULL, PCWSTR pszCookies = NULL, BOOL bAutoHeader = TRUE,
 	PCWSTR pszProxy = NULL, PCWSTR pszUserAgent = NULL)
 {
 	URL_COMPONENTSW urlc{ sizeof(urlc) };
@@ -46,16 +47,16 @@ inline CRefBin RequestUrl(PCWSTR pszUrl, PCWSTR pszMethod = L"GET",
 		urlc.dwUrlPathLength = urlc.dwExtraInfoLength = 1;
 	// 分解URL
 	if (!WinHttpCrackUrl(pszUrl, -1, 0, &urlc))
-		return {};
+		return FALSE;
 	const UniquePtrWinHttpHandle hSession(WinHttpOpen(pszUserAgent,
 		pszProxy ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_NO_PROXY,
 		pszProxy, WINHTTP_NO_PROXY_BYPASS, 0));
 	if (!hSession)
-		return {};
+		return FALSE;
 	const CRefStrW rsHost(urlc.lpszHostName, urlc.dwHostNameLength);
 	const UniquePtrWinHttpHandle hConnect(WinHttpConnect(hSession.get(), rsHost.Data(), urlc.nPort, 0));
 	if (!hConnect)
-		return {};
+		return FALSE;
 	CRefStrW rsPath{};
 	rsPath.Reserve(urlc.dwUrlPathLength + urlc.dwExtraInfoLength + 1);
 	if (urlc.dwUrlPathLength)
@@ -67,7 +68,7 @@ inline CRefBin RequestUrl(PCWSTR pszUrl, PCWSTR pszMethod = L"GET",
 		NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
 		(urlc.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)));
 	if (!hRequest)
-		return {};
+		return FALSE;
 	// 忽略证书错误
 	ULONG uSecurityFlags = SECURITY_FLAG_IGNORE_CERT_CN_INVALID |
 		SECURITY_FLAG_IGNORE_CERT_DATE_INVALID |
@@ -112,37 +113,88 @@ inline CRefBin RequestUrl(PCWSTR pszUrl, PCWSTR pszMethod = L"GET",
 	else
 	{
 		pszHeaderFinal = pszHeader;
-		cchHeaderFinal = -1;
+		cchHeaderFinal = (DWORD)wcslen(pszHeader);
 	}
+
 	if (pszHeaderFinal)
-		WinHttpAddRequestHeaders(hRequest.get(), pszHeaderFinal, cchHeaderFinal, WINHTTP_ADDREQ_FLAG_ADD);
-	if (!WinHttpSendRequest(hRequest.get(), WINHTTP_NO_ADDITIONAL_HEADERS, 0,
-		pData, (DWORD)cbData, (DWORD)cbData, 0))
-		return {};
-	if (!WinHttpReceiveResponse(hRequest.get(), NULL))
-		return {};
-	DWORD cbAvailable, cbRead;
-	CRefBin rb{};
-	while (WinHttpQueryDataAvailable(hRequest.get(), &cbAvailable))
-	{
-		if (!cbAvailable)
-			break;
-		if (!WinHttpReadData(hRequest.get(), rb.PushBack(cbAvailable), cbAvailable, &cbRead))
-			return {};
-		rb.PopBack(cbAvailable - cbRead);
-	}
-	if (prsResponseHeaders)
-	{
-		DWORD cbHeaders = 0;
-		WinHttpQueryHeaders(hRequest.get(), WINHTTP_QUERY_RAW_HEADERS_CRLF,
-			WINHTTP_HEADER_NAME_BY_INDEX, NULL, &cbHeaders, WINHTTP_NO_HEADER_INDEX);
-		if (cbHeaders)
+		if (!WinHttpAddRequestHeaders(hRequest.get(), pszHeaderFinal, cchHeaderFinal, WINHTTP_ADDREQ_FLAG_ADD))
 		{
-			prsResponseHeaders->ReSize(cbHeaders);
-			WinHttpQueryHeaders(hRequest.get(), WINHTTP_QUERY_RAW_HEADERS_CRLF,
-				WINHTTP_HEADER_NAME_BY_INDEX, prsResponseHeaders->Data(), &cbHeaders, WINHTTP_NO_HEADER_INDEX);
+			EckDbgPrintFormatMessage(GetLastError());
+			return FALSE;
 		}
+	if(bRealRequest)
+	{
+		if (!WinHttpSendRequest(hRequest.get(), WINHTTP_NO_ADDITIONAL_HEADERS, 0,
+			pData, (DWORD)cbData, (DWORD)cbData, 0))
+			return FALSE;
+		if (!WinHttpReceiveResponse(hRequest.get(), NULL))
+			return FALSE;
 	}
+	
+	return fn(hSession.get(), hConnect.get(), hRequest.get());
+}
+
+
+/// <summary>
+/// 访问URL
+/// </summary>
+/// <param name="pszUrl">URL</param>
+/// <param name="pszMethod">请求方式，默认为GET</param>
+/// <param name="pData">请求数据</param>
+/// <param name="cbData">请求数据长度</param>
+/// <param name="pszHeader">请求头</param>
+/// <param name="pszCookies">Cookies</param>
+/// <param name="bAutoHeader">自动补全请求头</param>
+/// <param name="prsResponseHeaders">返回响应头</param>
+/// <param name="pszProxy">代理</param>
+/// <param name="pszUserAgent">UA</param>
+/// <returns>成功返回请求到的数据，失败返回空字节集</returns>
+inline CRefBin RequestUrl(PCWSTR pszUrl, PCWSTR pszMethod = L"GET",
+	void* pData = NULL, SIZE_T cbData = 0u,
+	PCWSTR pszHeader = NULL, PCWSTR pszCookies = NULL, BOOL bAutoHeader = TRUE, 
+	CRefStrW* prsResponseHeaders = NULL,
+	PCWSTR pszProxy = NULL, PCWSTR pszUserAgent = NULL)
+{
+	CRefBin rb{};
+	if (!RequestUrl([&](HINTERNET hSession, HINTERNET hConnect, HINTERNET hRequest) -> BOOL
+		{
+			eck::CRefStrW rsResponseHeaders{};
+			DWORD cbHeaders = 0;
+			WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_RAW_HEADERS_CRLF,
+				WINHTTP_HEADER_NAME_BY_INDEX, NULL, &cbHeaders, WINHTTP_NO_HEADER_INDEX);
+			if (cbHeaders)
+			{
+				rsResponseHeaders.ReSize(cbHeaders / sizeof(WCHAR) - 1);
+				WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_RAW_HEADERS_CRLF,
+					WINHTTP_HEADER_NAME_BY_INDEX, rsResponseHeaders.Data(), &cbHeaders, WINHTTP_NO_HEADER_INDEX);
+			}
+			const auto svContentLength = HeaderGetParam(rsResponseHeaders.Data(), L"Content-Length");
+			if (!svContentLength.empty())
+			{
+				const auto cbContent = _wtoll(svContentLength.data());// 将在第一个非数字字符处停止
+				if (cbContent > 1'073'741'824i64)// 大于1G，不读
+				{
+					if (prsResponseHeaders)
+						*prsResponseHeaders = std::move(rsResponseHeaders);
+					return FALSE;
+				}
+				rb.Reserve((size_t)cbContent);
+			}
+			if (prsResponseHeaders)
+				*prsResponseHeaders = std::move(rsResponseHeaders);
+			DWORD cbAvailable, cbRead;
+			while (WinHttpQueryDataAvailable(hRequest, &cbAvailable))
+			{
+				if (!cbAvailable)
+					break;
+				if (!WinHttpReadData(hRequest, rb.PushBack(cbAvailable), cbAvailable, &cbRead))
+					return FALSE;
+				rb.PopBack(cbAvailable - cbRead);
+			}
+			return TRUE;
+		}, TRUE, pszUrl, pszMethod, pData, cbData,
+		pszHeader, pszCookies, bAutoHeader, pszProxy, pszUserAgent))
+		return {};
 	return rb;
 }
 ECK_NAMESPACE_END

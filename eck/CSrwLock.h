@@ -21,7 +21,7 @@ public:
 		InitializeSRWLock(&m_srw);
 	}
 
-	EckInline void EnterRead()
+	_Acquires_shared_lock_(m_srw) EckInline void EnterRead()
 	{
 		AcquireSRWLockShared(&m_srw);
 	}
@@ -31,12 +31,12 @@ public:
 		return TryAcquireSRWLockShared(&m_srw);
 	}
 
-	EckInline void LeaveRead()
+	_Releases_shared_lock_(m_srw) EckInline void LeaveRead()
 	{
 		ReleaseSRWLockShared(&m_srw);
 	}
 
-	EckInline void EnterWrite()
+	_Acquires_exclusive_lock_(m_srw) EckInline void EnterWrite()
 	{
 		AcquireSRWLockExclusive(&m_srw);
 	}
@@ -46,7 +46,7 @@ public:
 		return TryAcquireSRWLockExclusive(&m_srw);
 	}
 
-	EckInline void LeaveWrite()
+	_Releases_exclusive_lock_(m_srw) EckInline void LeaveWrite()
 	{
 #pragma warning(suppress : 26110)// 加锁顺序错误
 		ReleaseSRWLockExclusive(&m_srw);

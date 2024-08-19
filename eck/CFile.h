@@ -160,6 +160,11 @@ public:
 	{
 		FlushFileBuffers(m_hFile);
 	}
+
+	EckInline BOOL IsValid()
+	{
+		return m_hFile != INVALID_HANDLE_VALUE && m_hFile;
+	}
 };
 
 class CMappingFile

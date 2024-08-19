@@ -33,6 +33,7 @@
 #include <memory>
 #include <optional>
 #include <functional>
+#include <span>
 
 #include ".\Detours\detours.h"
 
@@ -368,6 +369,8 @@ constexpr inline BOOL Dbg{ TRUE };
 constexpr inline BOOL Dbg{ FALSE };
 #endif
 
+constexpr inline BLENDFUNCTION BlendFuncAlpha{ AC_SRC_OVER,0,255,AC_SRC_ALPHA };
+
 // TITLEBARINFOEX索引
 enum
 {
@@ -431,6 +434,13 @@ struct NMECKCTRLCUSTOMDRAW
 	int iStage;
 	HDC hDC;
 	RECT rcItem;
+};
+
+struct NMECKMOUSENOTIFY
+{
+	NMHDR nmhdr;
+	POINT pt;
+	UINT uKeyFlags;
 };
 
 // 消息钩子保留范围[1, 4095]
