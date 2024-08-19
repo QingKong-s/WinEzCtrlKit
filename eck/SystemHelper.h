@@ -624,7 +624,7 @@ EckInline BOOL SystemTimeToULongLong(const SYSTEMTIME& st, ULONGLONG& ull)
 	return SystemTimeToFileTime(&st, (FILETIME*)&ull);
 }
 
-inline CRefStrW FormatDate(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlags = 0u,
+inline CRefStrW FormatDate(const SYSTEMTIME& st, PCWSTR pszFmt = NULL, DWORD dwFlags = 0u,
 	PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT)
 {
 	const int cchDate = GetDateFormatEx(pszLocale, dwFlags, &st, pszFmt, NULL, 0, NULL);
@@ -635,7 +635,7 @@ inline CRefStrW FormatDate(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlags = 
 	return rs;
 }
 
-inline CRefStrW FormatTime(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlags = 0u,
+inline CRefStrW FormatTime(const SYSTEMTIME& st, PCWSTR pszFmt = NULL, DWORD dwFlags = 0u,
 	PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT)
 {
 	const int cchTime = GetTimeFormatEx(pszLocale, dwFlags, &st, pszFmt, NULL, 0);
@@ -646,16 +646,18 @@ inline CRefStrW FormatTime(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlags = 
 	return rs;
 }
 
-inline CRefStrW FormatDateTime(const SYSTEMTIME& st, PCWSTR pszFmt, DWORD dwFlags = 0u,
+inline CRefStrW FormatDateTime(const SYSTEMTIME& st,
+	PCWSTR pszFmtDate = NULL, PCWSTR pszFmtTime = NULL, DWORD dwFlags = 0u,
 	PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT)
 {
-	const int cchDate = GetDateFormatEx(pszLocale, dwFlags, &st, pszFmt, NULL, 0, NULL);
-	const int cchTime = GetTimeFormatEx(pszLocale, dwFlags, &st, pszFmt, NULL, 0);
+	const int cchDate = GetDateFormatEx(pszLocale, dwFlags, &st, pszFmtDate, NULL, 0, NULL);
+	const int cchTime = GetTimeFormatEx(pszLocale, dwFlags, &st, pszFmtTime, NULL, 0);
 	if (!cchDate || !cchTime)
 		return {};
-	CRefStrW rs(cchTime + cchDate - 1);
-	GetDateFormatEx(pszLocale, dwFlags, &st, pszFmt, rs.Data(), cchDate, NULL);
-	GetTimeFormatEx(pszLocale, dwFlags, &st, pszFmt, rs.Data() + cchDate - 1, cchTime);
+	CRefStrW rs(cchTime + cchDate - 2 + 1);
+	GetDateFormatEx(pszLocale, dwFlags, &st, pszFmtDate, rs.Data(), cchDate, NULL);
+	GetTimeFormatEx(pszLocale, dwFlags, &st, pszFmtTime, rs.Data() + cchDate, cchTime);
+	rs[cchDate - 1] = L' ';
 	return rs;
 }
 

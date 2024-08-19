@@ -57,11 +57,11 @@ public:
 		CRefStrA rsMime{};
 		CRefStrW rsDesc{};
 		CRefBin rbData{};
-		UINT cx;
-		UINT cy;
-		UINT bpp;
-		UINT cColor;
-		MIIWFLAG byAddtFlags;
+		UINT cx{};
+		UINT cy{};
+		UINT bpp{};
+		UINT cColor{};
+		MIIWFLAG byAddtFlags{};
 	};
 private:
 	std::vector<ITEM> m_vItem{};	// 所有Vorbis注释
@@ -135,9 +135,8 @@ private:
 		const auto cbCurr = rbImage.Size();
 		rbImage.PushBack(4u);// 悬而未决
 		rbImage << ReverseInteger((UINT)e.eType)
-			<< ReverseInteger(e.rsMime.Size())
-			<< e.rsMime;
-		rbImage.PopBack(1);
+			<< ReverseInteger(e.rsMime.Size());
+		rbImage.PushBack(e.rsMime.Data(), e.rsMime.Size());
 		const int cchDesc = WideCharToMultiByte(CP_UTF8, 0, e.rsDesc.Data(), e.rsDesc.Size(),
 			NULL, 0, NULL, NULL);
 		rbImage << ReverseInteger(cchDesc);

@@ -857,6 +857,7 @@ g_WndClassInfo[]
 {
 	{ },
 	{ WCN_LABEL },
+	{ WCN_FORM },
 	{ WCN_BK },
 	{ WCN_SPLITBAR },
 	{ WCN_DRAWPANEL },
@@ -1437,3 +1438,14 @@ void ECKTHREADCTX::SendThemeChangedToAllTopWindow()
 	}
 }
 ECK_NAMESPACE_END
+
+#pragma push_macro("free")
+#pragma push_macro("malloc")
+#pragma push_macro("realloc")
+#undef free
+#undef malloc
+#undef realloc
+#include "yyjson/yyjson.c"
+#pragma pop_macro("free")
+#pragma pop_macro("malloc")
+#pragma pop_macro("realloc")

@@ -848,6 +848,8 @@ public:
 
 		Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) override
 		{
+			if (rsMime.IsEmpty())
+				rsMime = "";
 			const auto rbDesc = CovertTextEncoding(rsDesc, eEncoding, TRUE);
 			const size_t cbFrame = 3 + rsMime.Size() + rbDesc.Size() + rbData.Size();
 			auto w = PreSerialize(rb, phdr, cbFrame);

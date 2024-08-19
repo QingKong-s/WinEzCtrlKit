@@ -83,7 +83,7 @@ struct CEzCDC
 
 	void ReSize(HWND hWnd, int cx = 0, int cy = 0)
 	{
-		EckAssert(!!m_hCDC && !!m_hBmp && !!m_hOld);
+		EckAssert(m_hCDC);
 		if (cx < 0 || cy < 0)
 		{
 			RECT rc;

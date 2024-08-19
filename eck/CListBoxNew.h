@@ -93,6 +93,7 @@ private:
 
 	BITBOOL m_bHasFocus : 1 = FALSE;
 	BITBOOL m_bLBtnDown : 1 = FALSE;
+	BITBOOL m_bRBtnDown : 1 = FALSE;
 	BITBOOL m_bUserItemHeight : 1 = FALSE;
 	BITBOOL m_bFocusIndicatorVisible : 1 =
 #ifdef _DEBUG
@@ -233,7 +234,6 @@ private:
 		if (!m_bLBtnDown)
 		{
 			int idxHot = HitTest(x, y);
-			EckDbgPrint(idxHot);
 			if (idxHot == m_idxHot)
 				return;
 			std::swap(idxHot, m_idxHot);
@@ -687,6 +687,28 @@ public:
 			return HANDLE_WM_VSCROLL(hWnd, wParam, lParam, OnVScroll);
 		case WM_MOUSEWHEEL:
 			return HANDLE_WM_MOUSEWHEEL(hWnd, wParam, lParam, OnMouseWheel);
+		case WM_RBUTTONDOWN:
+		{
+			m_bRBtnDown = TRUE;
+			SetCapture(hWnd);
+		}
+		return 0;
+		case WM_RBUTTONUP:
+		{
+			if (m_bRBtnDown)
+			{
+				ReleaseCapture();
+				m_bRBtnDown = FALSE;
+				NMECKMOUSENOTIFY nm;
+				nm.pt = ECK_GET_PT_LPARAM(lParam);
+				if (nm.pt.x >= 0 && nm.pt.x < m_cxClient && nm.pt.y >= 0 && nm.pt.y < m_cyClient)
+				{
+					nm.uKeyFlags = (UINT)wParam;
+					FillNmhdrAndSendNotify(nm, NM_RCLICK);
+				}
+			}
+		}
+		return 0;
 		case WM_LBUTTONDOWN:
 			return HANDLE_WM_LBUTTONDOWN(hWnd, wParam, lParam, OnLButtonDown);
 		case WM_LBUTTONUP:
@@ -852,6 +874,7 @@ public:
 				ScreenToClient(hWnd, &pt);
 				SendMsg(WM_LBUTTONUP, 0, POINTTOPOINTS(pt));// HACK : wParam is ZERO
 			}
+			m_bRBtnDown = FALSE;
 		}
 		break;
 
@@ -1075,5 +1098,12 @@ public:
 		}
 	}
 	//-----------------------------------------
+	EckInline constexpr void SetMultiSel(BOOL bMultiSel) { m_bMultiSel = bMultiSel; }
+
+	EckInline constexpr BOOL GetMultiSel() const { return m_bMultiSel; }
+
+	EckInline constexpr void SetExtendSel(BOOL bExtendSel) { m_bExtendSel = bExtendSel; }
+
+	EckInline constexpr BOOL GetExtendSel() const { return m_bExtendSel; }
 };
 ECK_NAMESPACE_END

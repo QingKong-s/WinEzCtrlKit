@@ -17,6 +17,7 @@ struct CTRLDATA_HEXEDIT
 	BITBOOL bShowChar : 1;
 	BITBOOL bShowHeader : 1;
 	BITBOOL bHexAddress : 1;
+	BITBOOL bCaretInFirstNum : 1;
 
 	COLORREF crOddCol;
 	COLORREF crEvenCol;
@@ -24,6 +25,7 @@ struct CTRLDATA_HEXEDIT
 
 	UINT cCharCol;
 
+	int idxCaretCol{};// 若为负值则显示在数据区，否则指定字符区的某列索引
 	size_t posCaret{};
 	size_t posSelStart{};
 	size_t posSelEnd{};
@@ -336,6 +338,26 @@ private:
 		MoveToEx(hDC, x, 0, NULL);
 		LineTo(hDC, x, m_cyClient);
 	}
+
+	void UpdateCaretPos()
+	{
+		ShowCaret(HWnd);
+		const int idxV = D.posCaret / D.cCol - GetSbPos(SB_VERT);
+		const int idxH = D.posCaret % D.cCol;
+		if(D.idxCaretCol < 0)
+		{
+			SetCaretPos(
+				-GetSbPos(SB_HORZ) + m_cxAddress + GetColumnWidth() * idxH + (D.bCaretInFirstNum ? 0 : m_cxChar),
+				GetHeaderHeight() + idxV * GetRowHeight());
+		}
+		else
+		{
+			SetCaretPos(
+				-GetSbPos(SB_HORZ) + m_cxAddress + m_cxData + m_cxChar * idxH +
+				GetCharColumnWidth() * D.idxCaretCol,
+				GetHeaderHeight() + idxV * GetRowHeight());
+		}
+	}
 public:
 	CHexEdit()
 	{
@@ -369,11 +391,13 @@ public:
 
 		case WM_PAINT:
 		{
+			HideCaret(hWnd);
 			PAINTSTRUCT ps;
 			BeginPaint(hWnd, &ps);
 			OnPaint(m_DC.GetDC(), ps.rcPaint);
 			BitBltPs(&ps, m_DC.GetDC());
 			EndPaint(hWnd, &ps);
+			ShowCaret(hWnd);
 		}
 		break;
 
@@ -386,7 +410,15 @@ public:
 			heht.pt = ECK_GET_PT_LPARAM(lParam);
 			const auto pos = HitTest(heht);
 			if ((heht.bHitData || heht.bHitChar))
+			{
 				m_posDragSelStart = pos;
+				D.posCaret = pos;
+				D.idxCaretCol = (heht.bHitChar ? heht.idxCharCol : -1);
+				D.bCaretInFirstNum = (heht.bHitData ? heht.bFirstNumber : FALSE);
+				UpdateCaretPos();
+			}
+
+			
 
 			//EckDbgPrintFmt(L"HitTest: pos = %Id, idxRow = %d, idxCol = %d, idxCharCol = %d\n"
 			//	L"bHitContent = %d",
@@ -493,6 +525,7 @@ public:
 			RECT rc{ 0,m_cyChar + D.cyGap,m_cxClient,m_cyClient };
 			ScrollWindowEx(hWnd, 0, (iOld - si.nPos) * (m_cyChar + D.cyGap), &rc, &rc, NULL, NULL, SW_INVALIDATE);
 			UpdateWindow(hWnd);
+			UpdateCaretPos();
 		}
 		return 0;
 
@@ -534,6 +567,7 @@ public:
 			ScrollWindowEx(hWnd, iOld - si.nPos, 0,
 				NULL, NULL, NULL, NULL, SW_INVALIDATE);
 			UpdateWindow(hWnd);
+			UpdateCaretPos();
 		}
 		return 0;
 
@@ -669,6 +703,7 @@ public:
 			ScrollWindowEx(HWnd, 0, (iOld - si.nPos) * (m_cyChar + D.cyGap), &rc, &rc,
 				NULL, NULL, SW_INVALIDATE);
 			UpdateWindow(HWnd);
+			UpdateCaretPos();
 		}
 	}
 
@@ -687,6 +722,7 @@ public:
 			ScrollWindowEx(HWnd, iOld - si.nPos, 0, NULL, NULL,
 				NULL, NULL, SW_INVALIDATE);
 			UpdateWindow(HWnd);
+			UpdateCaretPos();
 		}
 	}
 
@@ -720,6 +756,8 @@ public:
 			if (heht.pt.y < GetHeaderHeight() + (heht.idxRowInView + 1) * GetRowHeight() - D.cyGap &&
 				heht.pt.x < x + GetColumnWidth() * (heht.idxCol + 1) - D.cxGap)
 				heht.bHitContent = TRUE;
+			const int xHalf = x + heht.idxCol * GetColumnWidth() + m_cxChar;
+			heht.bFirstNumber = (heht.pt.x < xHalf);
 			return m_posFirstVisible + heht.idxRowInView * D.cCol + heht.idxCol;
 		}
 		else if (heht.pt.x < xStart + m_cxContent)// 字符
@@ -730,6 +768,7 @@ public:
 			if (heht.pt.y < GetHeaderHeight() + (heht.idxRowInView + 1) * GetRowHeight() - D.cyGap &&
 				heht.pt.x < x + m_cxData + (heht.idxCharCol + 1) * GetCharColumnWidth() - m_cxChar - D.cxGap)
 				heht.bHitContent = TRUE;
+			return m_posFirstVisible + heht.idxRowInView * D.cCol + heht.idxCol;
 		}
 		else
 			heht.idxRowInView = -1;
