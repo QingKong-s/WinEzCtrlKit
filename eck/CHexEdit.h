@@ -1,3 +1,10 @@
+ï»¿/*
+* WinEzCtrlKit Library
+*
+* CHexEdit.h ï¼š åå…­è¿›åˆ¶ç¼–è¾‘æ¡†
+*
+* Copyright(C) 2024 QingKong
+*/
 #pragma once
 #include "CWnd.h"
 #include "GraphicsHelper.h"
@@ -25,7 +32,7 @@ struct CTRLDATA_HEXEDIT
 
 	UINT cCharCol;
 
-	int idxCaretCol{};// ÈôÎª¸ºÖµÔòÏÔÊ¾ÔÚÊı¾İÇø£¬·ñÔòÖ¸¶¨×Ö·ûÇøµÄÄ³ÁĞË÷Òı
+	int idxCaretCol{};// è‹¥ä¸ºè´Ÿå€¼åˆ™æ˜¾ç¤ºåœ¨æ•°æ®åŒºï¼Œå¦åˆ™æŒ‡å®šå­—ç¬¦åŒºçš„æŸåˆ—ç´¢å¼•
 	size_t posCaret{};
 	size_t posSelStart{};
 	size_t posSelEnd{};
@@ -34,23 +41,23 @@ struct CTRLDATA_HEXEDIT
 
 struct HEHITTEST
 {
-	POINT pt;			// ²âÊÔµã
+	POINT pt;			// æµ‹è¯•ç‚¹
 	union
 	{
 		struct
 		{
-			BITBOOL bHitData : 1;		// ÃüÖĞÊı¾İÇø
-			BITBOOL bHitAddress : 1;	// ÃüÖĞµØÖ·
-			BITBOOL bHitHeader : 1;		// ÃüÖĞ±íÍ·
-			BITBOOL bHitChar : 1;		// ÃüÖĞ×Ö·ûÇø
-			BITBOOL bFirstNumber : 1;	// ÊÇ·ñÃüÖĞ×ó±ßÒ»Î»Êı×Ö£¬½öÃüÖĞÊı¾İÇøÊ±ÓĞĞ§
-			BITBOOL bHitContent : 1;	// ÃüÖĞÁËÄÚÈİ¶ø²»ÊÇ¿Õ°×
+			BITBOOL bHitData : 1;		// å‘½ä¸­æ•°æ®åŒº
+			BITBOOL bHitAddress : 1;	// å‘½ä¸­åœ°å€
+			BITBOOL bHitHeader : 1;		// å‘½ä¸­è¡¨å¤´
+			BITBOOL bHitChar : 1;		// å‘½ä¸­å­—ç¬¦åŒº
+			BITBOOL bFirstNumber : 1;	// æ˜¯å¦å‘½ä¸­å·¦è¾¹ä¸€ä½æ•°å­—ï¼Œä»…å‘½ä¸­æ•°æ®åŒºæ—¶æœ‰æ•ˆ
+			BITBOOL bHitContent : 1;	// å‘½ä¸­äº†å†…å®¹è€Œä¸æ˜¯ç©ºç™½
 		};
 		UINT uFlags;
 	};
-	int idxCol;			// ÃüÖĞµÄÁĞË÷Òı£¬½öÃüÖĞÊı¾İÇø»ò×Ö·ûÇøÊ±ÓĞĞ§
-	int idxRowInView;	// ÃüÖĞµÄĞĞË÷Òı£¬Ïà¶ÔÏÔÊ¾µÄµÚÒ»ĞĞ
-	int idxCharCol;		// ÃüÖĞµÄ×Ö·ûÇøÀ¸Ë÷Òı£¬½öÃüÖĞ×Ö·ûÇøÊ±ÓĞĞ§
+	int idxCol;			// å‘½ä¸­çš„åˆ—ç´¢å¼•ï¼Œä»…å‘½ä¸­æ•°æ®åŒºæˆ–å­—ç¬¦åŒºæ—¶æœ‰æ•ˆ
+	int idxRowInView;	// å‘½ä¸­çš„è¡Œç´¢å¼•ï¼Œç›¸å¯¹æ˜¾ç¤ºçš„ç¬¬ä¸€è¡Œ
+	int idxCharCol;		// å‘½ä¸­çš„å­—ç¬¦åŒºæ ç´¢å¼•ï¼Œä»…å‘½ä¸­å­—ç¬¦åŒºæ—¶æœ‰æ•ˆ
 };
 
 class CHexEdit : public CWnd
@@ -159,7 +166,7 @@ private:
 	void OnPaint(HDC hDC, const RECT& rcPaint)
 	{
 		WCHAR szBuf[CchI64ToStrBufNoRadix2];
-		// »­ÁĞÍ·
+		// ç”»åˆ—å¤´
 		int xStart = -GetSbPos(SB_HORZ);
 
 		SetDCBrushColor(hDC, GetThreadCtx()->crDefBkg);
@@ -190,7 +197,7 @@ private:
 			OffsetRect(rcCharCol, cxCharCol, 0);
 		}
 
-		// »­Êı¾İ
+		// ç”»æ•°æ®
 		if (m_pData)
 		{
 			WCHAR szCharW[2]{};
@@ -315,15 +322,15 @@ private:
 		EndDrawData:;
 		}
 
-		// »­·Ö¸ôÏß
-		// ÁĞÍ··Ö¸ôÏß
+		// ç”»åˆ†éš”çº¿
+		// åˆ—å¤´åˆ†éš”çº¿
 		MoveToEx(hDC, 0, m_cyChar, NULL);
 		LineTo(hDC, xStart + m_cxContent, m_cyChar);
-		// Æ«ÒÆ·Ö¸ôÏß
+		// åç§»åˆ†éš”çº¿
 		x = xStart + m_cxAddress - D.cxGap / 2;
 		MoveToEx(hDC, x, 0, NULL);
 		LineTo(hDC, x, m_cyClient);
-		// Êı¾İ·Ö×é
+		// æ•°æ®åˆ†ç»„
 		if (D.cColPerGroup)
 		{
 			for (int i = 0; i < D.cCol - D.cColPerGroup; i += D.cColPerGroup)
@@ -742,14 +749,14 @@ public:
 		}
 		heht.idxRowInView = (heht.pt.y - GetHeaderHeight()) / GetRowHeight();
 		int x = xStart + m_cxAddress;
-		if (heht.pt.x < x)// µØÖ·
+		if (heht.pt.x < x)// åœ°å€
 		{
 			heht.bHitAddress = TRUE;
 			if (heht.pt.y < GetHeaderHeight() + heht.idxRowInView * GetRowHeight() - D.cyGap)
 				heht.bHitContent = TRUE;
 			return SizeTMax;
 		}
-		else if (heht.pt.x < x + m_cxData)// Êı¾İ
+		else if (heht.pt.x < x + m_cxData)// æ•°æ®
 		{
 			heht.bHitData = TRUE;
 			heht.idxCol = (heht.pt.x - x) / GetColumnWidth();
@@ -760,7 +767,7 @@ public:
 			heht.bFirstNumber = (heht.pt.x < xHalf);
 			return m_posFirstVisible + heht.idxRowInView * D.cCol + heht.idxCol;
 		}
-		else if (heht.pt.x < xStart + m_cxContent)// ×Ö·û
+		else if (heht.pt.x < xStart + m_cxContent)// å­—ç¬¦
 		{
 			heht.bHitChar = TRUE;
 			heht.idxCharCol = (heht.pt.x - x - m_cxData) / GetCharColumnWidth();

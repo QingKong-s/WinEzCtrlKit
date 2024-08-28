@@ -869,7 +869,8 @@ g_WndClassInfo[]
 	{ WCN_PICTUREBOX },
 	{ WCN_DUIHOST },
 	{ WCN_VECDRAWPANEL },
-	{ WCN_HEXEDIT }
+	{ WCN_HEXEDIT },
+	{ WCN_HITTER },
 };
 
 InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrCode)
@@ -1445,7 +1446,7 @@ ECK_NAMESPACE_END
 #undef free
 #undef malloc
 #undef realloc
-#include "yyjson/yyjson.c"
+#include "YyJson/yyjson.c"
 #pragma pop_macro("free")
 #pragma pop_macro("malloc")
 #pragma pop_macro("realloc")

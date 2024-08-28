@@ -420,6 +420,15 @@
     <ClInclude Include="eck\CSignal.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\Json.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\MediaTagApe.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CHitter.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">

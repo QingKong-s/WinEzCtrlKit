@@ -160,6 +160,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CTestWnd.h" />
+    <ClInclude Include="eck\CHitter.h" />
+    <ClInclude Include="eck\Json.h" />
     <ClInclude Include="eck\CSignal.h" />
     <ClInclude Include="eck\CAllocator.h" />
     <ClInclude Include="eck\CArray.h" />
@@ -198,6 +200,7 @@
     <ClInclude Include="eck\GeometryRender.h" />
     <ClInclude Include="eck\IMem.h" />
     <ClInclude Include="eck\Lyric.h" />
+    <ClInclude Include="eck\MediaTagApe.h" />
     <ClInclude Include="eck\MediaTagFlac.h" />
     <ClInclude Include="eck\MediaTagID3v1.h" />
     <ClInclude Include="eck\MediaTagID3v2.h" />

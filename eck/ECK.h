@@ -415,6 +415,7 @@ enum :UINT
 	NM_LBN_LBTNDOWN,		// NMHDR
 	NM_LBN_CUSTOMDRAW,		// NMLBNCUSTOMDRAW
 	NM_PKB_OWNERDRAW,		// NMPKBOWNERDRAW
+	NM_HTT_SEL,				// NMHTTSEL
 };
 
 enum
@@ -451,10 +452,29 @@ enum :UINT_PTR
 	MHI_SCROLLBAR_HOOK,
 	MHI_HEADER_HOOK
 };
-/*-------------------*/
-/*属性字符串*/
 
-/*-------------------*/
+struct BIT128
+{
+	union
+	{
+		UINT64 u64[2];
+		UINT32 u32[4];
+		UINT16 u16[8];
+		BYTE u8[16];
+	};
+};
+
+struct BIT256
+{
+	union
+	{
+		BIT128 bit128[2];
+		UINT64 u64[4];
+		UINT32 u32[8];
+		UINT16 u16[16];
+		BYTE u8[32];
+	};
+};
 ECK_NAMESPACE_END
 #include "DbgHelper.h"
 #pragma warning(suppress:5260)
@@ -544,6 +564,7 @@ constexpr inline PCWSTR WCN_PICTUREBOX = L"Eck.WndClass.PictureBox";
 constexpr inline PCWSTR WCN_DUIHOST = L"Eck.WndClass.DuiHost";
 constexpr inline PCWSTR WCN_VECDRAWPANEL = L"Eck.WndClass.VectorDrawPanel";
 constexpr inline PCWSTR WCN_HEXEDIT = L"Eck.WndClass.HexEdit";
+constexpr inline PCWSTR WCN_HITTER = L"Eck.WndClass.Hitter";
 
 constexpr inline PCWSTR MSGREG_FORMTRAY = L"Eck.Message.FormTray";
 

@@ -423,7 +423,7 @@ EckInline constexpr BOOL Sign(T v)
 }
 
 template<class T>
-EckInline constexpr BOOL SignVal(T v)
+EckInline constexpr T SignVal(T v)
 {
 	return (v >= 0 ? 1 : -1);
 }
@@ -495,8 +495,8 @@ EckInline constexpr T Abs(T x)
 	return (x >= 0) ? x : -x;
 }
 
-template<class T>
-EckInline constexpr T SetSign(T x, T iSign)
+template<class T, class U>
+EckInline constexpr T SetSign(T x, U iSign)
 {
 	if (iSign > 0) return Abs(x);
 	if (iSign < 0) return -Abs(x);
@@ -1519,6 +1519,17 @@ EckInline constexpr BYTE ByteFromHex(CHAR x)
 		return x - '0';
 	else
 		return 0;
+}
+
+EckInline constexpr LPARAM MakeKeyStrokeFlag(USHORT cRepeat, UINT uScanCode, BOOL bExtended,
+	BOOL bAlt, BOOL bPreviousState, BOOL bTransition)
+{
+	EckAssert(bExtended == 0 || bExtended == 1);
+	EckAssert(bAlt == 0 || bAlt == 1);
+	EckAssert(bPreviousState == 0 || bPreviousState == 1);
+	EckAssert(bTransition == 0 || bTransition == 1);
+	return cRepeat | (uScanCode << 16) | (bExtended << 24) | (bAlt << 29) |
+		(bPreviousState << 30) | (bTransition << 31);
 }
 
 #if !ECKCXX20

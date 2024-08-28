@@ -1274,4 +1274,43 @@ inline UINT GetPhysicalDriveIdentifier(int idxDrive, NTSTATUS* pnts = NULL)
 	}
 	return 0u;
 }
+
+inline void InputChar(WCHAR ch, BOOL bExtended = FALSE, BOOL bReplaceEndOfLine = TRUE)
+{
+	INPUT input[2]{ {.type = INPUT_KEYBOARD } };
+	if (bReplaceEndOfLine && (ch == L'\r' || ch == L'\n'))
+		input[0].ki.wVk = VK_RETURN;
+	else
+	{
+		input[0].ki.wScan = ch;
+		input[0].ki.dwFlags = KEYEVENTF_UNICODE;
+	}
+
+	input[1] = input[0];
+	input[1].ki.dwFlags |= KEYEVENTF_KEYUP;
+	SendInput(ARRAYSIZE(input), input, sizeof(input));
+}
+
+inline void InputChar(PCWSTR pszText, int cchText = -1,
+	BOOL bExtended = FALSE, BOOL bReplaceEndOfLine = TRUE)
+{
+	if (cchText < 0)
+		cchText = (int)wcslen(pszText);
+	if (bReplaceEndOfLine)
+		for (int i{}; i < cchText;)
+		{
+			auto ch = pszText[i++];
+			if (ch == L'\r' && i < cchText && pszText[i] == L'\n')
+			{
+				ch = L'\n';
+				++i;
+			}
+			InputChar(ch, bExtended);
+		}
+	else
+	{
+		EckCounter(cchText, i)
+			InputChar(pszText[i], bExtended);
+	}
+}
 ECK_NAMESPACE_END

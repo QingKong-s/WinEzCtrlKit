@@ -322,10 +322,7 @@ public:
 		}
 		else
 		{
-			dwStyle &= ~(BS_PUSHBUTTON | BS_DEFPUSHBUTTON | BS_SPLITBUTTON | BS_DEFSPLITBUTTON | BS_COMMANDLINK | BS_DEFCOMMANDLINK);
 			dwStyle |= WS_CHILD;
-			if (!IsBitSet(dwStyle, BS_RADIOBUTTON | BS_AUTORADIOBUTTON | BS_CHECKBOX | BS_AUTOCHECKBOX | BS_3STATE | BS_AUTO3STATE))
-				dwStyle |= BS_AUTORADIOBUTTON;
 			m_hWnd = IntCreate(dwExStyle, WC_BUTTONW, pszText, dwStyle,
 				x, y, cx, cy, hParent, hMenu, NULL, NULL);
 		}
