@@ -24,29 +24,53 @@
 #endif
 
 #ifndef ECKMACRO_NO_AUTO_ADD_LIB
-#pragma comment(lib,"Gdiplus.lib")
-#pragma comment(lib,"ComCtl32.lib")
-#pragma comment(lib,"Shlwapi.lib")
-#pragma comment(lib,"UxTheme.lib")
-#pragma comment(lib,"Dwmapi.lib")
-#pragma comment(lib,"Winmm.lib")
-#pragma comment(lib,"D2d1.lib")
-#pragma comment(lib,"dwrite.lib")
-#pragma comment(lib,"D3D11.lib")
-#pragma comment(lib,"dxguid.lib")
-#pragma comment(lib,"wbemuuid.lib")
-#pragma comment(lib,"Version.lib")
-#pragma comment(lib,"msimg32.lib")
-#pragma comment(lib,"Imm32.lib")
-#pragma comment(lib,"ntdll.lib")
-#pragma comment(lib,"Advpack.lib")
-#pragma comment(lib,"Winhttp.lib")
-#pragma comment(lib,"Bcrypt.lib")
-#	ifdef _WIN64
+#pragma comment(lib, "Gdiplus.lib")
+#pragma comment(lib, "ComCtl32.lib")
+#pragma comment(lib, "Shlwapi.lib")
+#pragma comment(lib, "UxTheme.lib")
+#pragma comment(lib, "Dwmapi.lib")
+#pragma comment(lib, "Winmm.lib")
+#pragma comment(lib, "D2d1.lib")
+#pragma comment(lib, "dwrite.lib")
+#pragma comment(lib, "D3D11.lib")
+#pragma comment(lib, "dxguid.lib")
+#pragma comment(lib, "wbemuuid.lib")
+#pragma comment(lib, "Version.lib")
+#pragma comment(lib, "msimg32.lib")
+#pragma comment(lib, "Imm32.lib")
+#pragma comment(lib, "ntdll.lib")
+#pragma comment(lib, "Advpack.lib")
+#pragma comment(lib, "Winhttp.lib")
+#pragma comment(lib, "Bcrypt.lib")
+
+#ifdef _WIN64
+#	ifdef _DEBUG
+#		pragma comment(lib,"eck\\Detours\\detours_x64d.lib")
+#	else
 #		pragma comment(lib,"eck\\Detours\\detours_x64.lib")
+#	endif
+#else
+#	ifdef _DEBUG
+#		pragma comment(lib,"eck\\Detours\\detours_x86d.lib")
 #	else
 #		pragma comment(lib,"eck\\Detours\\detours_x86.lib")
 #	endif
+#endif
+
+#ifdef _WIN64
+#	ifdef _DEBUG
+#		pragma comment(lib,"eck\\ZLib\\zlib_x64d.lib")
+#	else
+#		pragma comment(lib,"eck\\ZLib\\zlib_x64.lib")
+#	endif
+#else
+#	ifdef _DEBUG
+#		pragma comment(lib,"eck\\ZLib\\zlib_x86d.lib")
+#	else
+#		pragma comment(lib,"eck\\ZLib\\zlib_x86.lib")
+#	endif
+#endif
+
 #endif
 
 // ECKMACRO_NO_WIN11_22621  SDK版本是否>=22621

@@ -12,6 +12,7 @@
 #include "CMemWalker.h"
 #include "CBitSet.h"
 #include "CException.h"
+#include "Utility2.h"
 
 #include <variant>
 
@@ -30,6 +31,7 @@ enum :UINT
 	TAG_ID3V2_3 = 1u << 3,
 	TAG_ID3V2_4 = 1u << 4,
 	TAG_FLAC = 1u << 5,
+	TAG_APE = 1u << 6,
 };
 // 元数据类型
 enum MIMASKS :UINT
@@ -108,6 +110,7 @@ enum class Result
 	NoTag,				// 文件中无标签或标签还未被读入
 	MpegSyncFailed,		// MPEG同步失败
 	NotSupport,			// 不支持请求的操作
+	OutOfMemory,		// 内存不足
 };
 // 图片类型
 enum class PicType :BYTE
@@ -359,6 +362,7 @@ struct APE_Header
 {
 	CHAR byPreamble[8];
 	DWORD dwVer;
+	DWORD cbBody;
 	DWORD cItems;
 	DWORD dwFlags;
 	CHAR byReserved[8];
@@ -414,6 +418,14 @@ enum :UINT
 	ID3V23FF_ENCRYPTION = 1u << 5,             // 已加密（1B，指示加密方式）
 };
 
+enum :UINT
+{
+	APE_READ_ONLY = 1u << 0,
+	APE_HEADER = 1u << 29,
+	APE_HAS_FOOTER = 1u << 30,
+	APE_HAS_HEADER = 1u << 31,
+};
+
 /// <summary>
 /// 同步安全整数到32位小端整数
 /// </summary>
@@ -432,6 +444,21 @@ EckInline constexpr static void DwordToSynchSafeInt(BYTE* p, DWORD dw)
 	p[0] = (dw >> 21) & 0b0111'1111;
 }
 
+inline constexpr BOOL IsLegalID3v2Header(const ID3v2_Header& hdr)
+{
+	return hdr.Ver < 0xFF && hdr.Revision < 0xFF &&
+		(hdr.Flags & 0b1111) == 0 &&
+		hdr.Size[0] < 0x80 && hdr.Size[1] < 0x80 && hdr.Size[2] < 0x80 && hdr.Size[3] < 0x80 &&
+		SynchSafeIntToDWORD(hdr.Size) != 0;
+}
+
+inline BOOL IsLegalApeHeader(const APE_Header& hdr)
+{
+	return memcmp(hdr.byPreamble, "APETAGEX", 8) == 0 &&
+		(hdr.dwVer == 1000u || hdr.dwVer == 2000u) &&
+		(hdr.dwFlags & 0b0001'1111'1111'1111'1111'1111'1111'1000u) == 0 &&
+		*(ULONGLONG*)hdr.byReserved == 0ull;
+}
 
 
 class CMediaFile
@@ -440,6 +467,7 @@ class CMediaFile
 	friend class CID3v2;
 	friend class CFlac;
 	friend class CMpegInfo;
+	friend class CApe;
 private:
 	IStream* m_pStream{};
 	UINT m_uTagType{};
@@ -449,25 +477,26 @@ private:
 		SIZE_T posV2{ SIZETMax };
 		SIZE_T posV2Footer{ SIZETMax };
 		SIZE_T posV2FooterHdr{ SIZETMax };
-		SIZE_T cbID3v2{};// 若无标签头则为0，若有标签头则与头中的Size字段相同，暂不处理预置/追加组合的判长
+		SIZE_T cbID3v2{};// 若无标签头则为0，若有标签头则与头中的Size字段相同，不处理预置/追加组合的判长
 
 		SIZE_T posV1{ SIZETMax };
 		SIZE_T posV1Ext{ SIZETMax };
+
+		SIZE_T posApeHdr{ SIZETMax };
 		SIZE_T posApe{ SIZETMax };
+		SIZE_T posApeTag{ SIZETMax };
+		SIZE_T cbApeTag{};
+
 		SIZE_T posFlac{ SIZETMax };
 	}  m_Loc{};
 
 	UINT DetectID3()
 	{
+		m_Loc = TAG_LOCATION{};
+
 		UINT uRet{};
 		BYTE by[16];
-		auto fnIsLegalHdr = [](const ID3v2_Header& hdr)->BOOL
-			{
-				return hdr.Ver < 0xFF && hdr.Revision < 0xFF &&
-					(hdr.Flags & 0b1111) == 0 &&
-					hdr.Size[0] < 0x80 && hdr.Size[1] < 0x80 && hdr.Size[2] < 0x80 && hdr.Size[3] < 0x80 &&
-					SynchSafeIntToDWORD(hdr.Size) != 0;
-			};
+
 		CStreamWalker w(m_pStream);
 		const auto cbSize = w.GetSize();
 		// 查找ID3v1
@@ -502,21 +531,39 @@ private:
 			w->Seek(ToLi(-SSIZE_T(cbID3v1 + 32u)), STREAM_SEEK_END, NULL);
 			APE_Header Hdr;
 			w >> Hdr;
-			if (memcmp(Hdr.byPreamble, "APETAGEX", 8) == 0 &&
-				(Hdr.dwVer == 1000u || Hdr.dwVer == 2000u) &&
-				(Hdr.dwFlags & 0b0001'1111'1111'1111'1111'1111'1111'1000u) == 0 &&
-				*(ULONGLONG*)Hdr.byReserved == 0ull)
+			if (IsLegalApeHeader(Hdr) && !(Hdr.dwFlags & APE_HEADER))
 			{
-				m_Loc.posApe = cbSize - (cbID3v1 + 32u);
+				m_Loc.posApeHdr = cbSize - (cbID3v1 + 32u);
+				m_Loc.posApe = m_Loc.posApeHdr + 32u - Hdr.cbBody;
+				m_Loc.cbApeTag = Hdr.cbBody;
+				if (Hdr.dwFlags & APE_HAS_HEADER)
+				{
+					m_Loc.posApeTag = m_Loc.posApe - 32u;
+					m_Loc.cbApeTag += 32u;
+				}
+				else
+					m_Loc.posApeTag = m_Loc.posApe;
+				uRet |= TAG_APE;
+			}
+			else
+			{
+				w.MoveToBegin() >> Hdr;
+				if (IsLegalApeHeader(Hdr) && (Hdr.dwFlags & APE_HEADER))
+				{
+					m_Loc.posApeHdr = 0u;
+					m_Loc.posApe = 32u;
+					m_Loc.posApeTag = m_Loc.posApeHdr;
+					m_Loc.cbApeTag = Hdr.cbBody + 32u;
+				}
 			}
 		}
+
 		// 查找ID3v2
-		ID3v2_Header hdr;
 		if (cbSize > 10u)
 		{
+			ID3v2_Header hdr;
 			w.MoveToBegin() >> hdr;
-			if (memcmp(hdr.Header, "ID3", 3u) == 0 &&
-				fnIsLegalHdr(hdr))
+			if (memcmp(hdr.Header, "ID3", 3u) == 0 && IsLegalID3v2Header(hdr))
 			{
 				// 若已找到标签头，则使用其内部的SEEK帧来寻找尾部标签，因此此处不需要继续查找标签尾
 				m_Loc.cbID3v2 = SynchSafeIntToDWORD(hdr.Size);
@@ -528,16 +575,16 @@ private:
 			}
 			else
 			{
+				SIZE_T cbFrames{};
 				// 若未找到标签头，则应从尾部扫描，检查是否有追加标签
 				if (m_Loc.posV1Ext != SIZETMax)
 				{
 					if (cbSize > 128u + 227u + 10u)
 					{
 						w.MoveTo(m_Loc.posV1Ext - 10) >> hdr;
-						if (memcmp(hdr.Header, "3DI", 3u) == 0 &&
-							fnIsLegalHdr(hdr))
+						if (memcmp(hdr.Header, "3DI", 3u) == 0 && IsLegalID3v2Header(hdr))
 						{
-							SIZE_T cbFrames = SynchSafeIntToDWORD(hdr.Size);
+							cbFrames = SynchSafeIntToDWORD(hdr.Size);
 							if (cbSize >= 128u + 227u + 10u + cbFrames)
 							{
 								m_Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
@@ -555,10 +602,9 @@ private:
 					if (cbSize > 128u + 10u)
 					{
 						w.MoveTo(m_Loc.posV1 - 10) >> hdr;
-						if (memcmp(hdr.Header, "3DI", 3u) == 0 &&
-							fnIsLegalHdr(hdr))
+						if (memcmp(hdr.Header, "3DI", 3u) == 0 && IsLegalID3v2Header(hdr))
 						{
-							SIZE_T cbFrames = SynchSafeIntToDWORD(hdr.Size);
+							cbFrames = SynchSafeIntToDWORD(hdr.Size);
 							if (cbSize >= 128u + 10u + cbFrames)
 							{
 								m_Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
@@ -575,10 +621,9 @@ private:
 				{
 					w->Seek(ToLi(-10), STREAM_SEEK_END, NULL);
 					w >> hdr;
-					if (memcmp(hdr.Header, "3DI", 3u) == 0 &&
-						fnIsLegalHdr(hdr))
+					if (memcmp(hdr.Header, "3DI", 3u) == 0 && IsLegalID3v2Header(hdr))
 					{
-						SIZE_T cbFrames = SynchSafeIntToDWORD(hdr.Size);
+						cbFrames = SynchSafeIntToDWORD(hdr.Size);
 						if (cbSize >= 10u + cbFrames)
 						{
 							m_Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
@@ -587,6 +632,67 @@ private:
 								uRet |= TAG_ID3V2_3;
 							else if (hdr.Ver == 4)
 								uRet |= TAG_ID3V2_4;
+						}
+					}
+				}
+
+				m_Loc.cbID3v2 = cbFrames;
+			}
+
+			if (m_Loc.cbID3v2 && m_Loc.posApe == SIZETMax)
+			{
+				APE_Header Hdr{};
+				if (m_Loc.posV2 != SIZETMax)// 检查预置ID3v2后面
+				{
+					w.MoveTo(m_Loc.posV2 + m_Loc.cbID3v2 + 10u) >> Hdr;
+					if (IsLegalApeHeader(Hdr) && (Hdr.dwFlags & APE_HEADER))
+					{
+						m_Loc.posApeHdr = m_Loc.posV2 + m_Loc.cbID3v2 + 10u;
+						m_Loc.posApe = m_Loc.posApe + 32u;
+						m_Loc.posApeTag = m_Loc.posApeHdr;
+						m_Loc.cbApeTag = Hdr.cbBody + 32u;
+						uRet |= TAG_APE;
+					}
+				}
+				else if (m_Loc.posV2Footer != SIZETMax &&
+					m_Loc.posV2Footer >= m_Loc.cbID3v2 + 32u)// 检查追加ID3v2前面
+				{
+					w.MoveTo(m_Loc.posV2Footer - m_Loc.cbID3v2 - 32u) >> Hdr;
+					if (IsLegalApeHeader(Hdr) && !(Hdr.dwFlags & APE_HEADER))
+					{
+						m_Loc.posApeHdr = m_Loc.posV2Footer - m_Loc.cbID3v2 - 32u;
+						m_Loc.posApe = m_Loc.posApeHdr + 32u - Hdr.cbBody;
+						m_Loc.cbApeTag = Hdr.cbBody;
+						if (Hdr.dwFlags & APE_HAS_HEADER)
+						{
+							m_Loc.posApeTag = m_Loc.posApe - 32u;
+							m_Loc.cbApeTag += 32u;
+						}
+						else
+							m_Loc.posApeTag = m_Loc.posApe;
+						uRet |= TAG_APE;
+					}
+					else
+					{
+						ID3v2_Header Id3Hdr{};
+						w.MoveTo(m_Loc.posV2Footer - m_Loc.cbID3v2 - 10u) >> Id3Hdr;
+						if (IsLegalID3v2Header(Id3Hdr))
+						{
+							w.MoveTo(m_Loc.posV2Footer - m_Loc.cbID3v2 - 32u - 10u) >> Hdr;
+							if (IsLegalApeHeader(Hdr) && !(Hdr.dwFlags & APE_HEADER))
+							{
+								m_Loc.posApeHdr = m_Loc.posV2Footer - m_Loc.cbID3v2 - 32u - 10u;
+								m_Loc.posApe = m_Loc.posApeHdr + 32u - Hdr.cbBody;
+								m_Loc.cbApeTag = Hdr.cbBody;
+								if (Hdr.dwFlags & APE_HAS_HEADER)
+								{
+									m_Loc.posApeTag = m_Loc.posApe - 32u;
+									m_Loc.cbApeTag += 32u;
+								}
+								else
+									m_Loc.posApeTag = m_Loc.posApe;
+								uRet |= TAG_APE;
+							}
 						}
 					}
 				}

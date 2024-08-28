@@ -1204,6 +1204,12 @@ public:
 		if (p)
 			p->uFlags |= SUBCLSNF_DELETED;
 	}
+
+	EckInline void SetTopMost(BOOL bTopMost) const
+	{
+		SetWindowPos(m_hWnd, bTopMost ? HWND_TOPMOST : HWND_NOTOPMOST, 
+			0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+	}
 };
 
 EckInline void AttachDlgItems(HWND hDlg, int cItem, CWnd* const* pWnd, const int* iId)

@@ -239,7 +239,7 @@ public:
 		Other,				// 其他
 		Lyrics,				// 歌词
 		TextTranscription,	// 文字转录
-		Movement,			// 乐章/乐段名称(如"Adagio")。
+		Movement,			// 乐章/乐段名称(如"Adagio")
 		Events,				// 事件(如"堂吉诃德登场")
 		Chord,				// 和弦(如"Bb F Fsus")
 		Trivia,				// 小节/弹出式信息

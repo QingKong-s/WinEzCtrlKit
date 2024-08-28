@@ -450,19 +450,19 @@ EckInline void LegalizePath(PWSTR pszPath, WCHAR chReplace = L'_')
 	}
 }
 
-inline std::span<const BYTE> GetResource(PCWSTR pszName,PCWSTR pszType)
+inline std::span<const BYTE> GetResource(PCWSTR pszName, PCWSTR pszType)
 {
 	const auto hRes = FindResourceW(NULL, pszName, pszType);
-	if(!hRes)
+	if (!hRes)
 		return {};
 	const auto hGlobal = LoadResource(NULL, hRes);
-	if(!hGlobal)
+	if (!hGlobal)
 		return {};
 	const auto pRes = LockResource(hGlobal);
-	if(!pRes)
+	if (!pRes)
 		return {};
 	const auto cbRes = SizeofResource(NULL, hRes);
-	if(!cbRes)
+	if (!cbRes)
 		return {};
 	return { (PCBYTE)pRes,cbRes };
 }
@@ -506,5 +506,55 @@ EckInline int ZLibDecompress(PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult)
 	}
 	inflateEnd(&zs);
 	return iRet;
+}
+
+template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<CHAR>>
+[[nodiscard]] CRefStrT<CHAR, TCharTraits, TAlloc> StrW2U8(PCWSTR pszText, int cch = -1)
+{
+	int cchBuf = WideCharToMultiByte(CP_UTF8, 0, pszText, cch, NULL, 0, NULL, NULL);
+	if (!cchBuf)
+		return {};
+	if (cch == -1)
+		--cchBuf;
+	CRefStrT<CHAR, TCharTraits, TAlloc> rs(cchBuf);
+	WideCharToMultiByte(CP_UTF8, 0, pszText, cch, rs.Data(), cchBuf, NULL, NULL);
+	*(rs.Data() + cchBuf) = '\0';
+	return rs;
+}
+
+template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<CHAR>,
+	class T, class U>
+[[nodiscard]] EckInline CRefStrT<CHAR, TCharTraits, TAlloc> StrW2U8(
+	const CRefStrT<WCHAR, T, U>& rs)
+{
+	return StrW2U8<TCharTraits, TAlloc>(rs.Data(), rs.Size());
+}
+
+template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>>
+[[nodiscard]] CRefStrT<WCHAR, TCharTraits, TAlloc> StrU82W(PCSTR pszText, int cch = -1)
+{
+	int cchBuf = MultiByteToWideChar(CP_UTF8, 0, pszText, cch, NULL, 0);
+	if (!cchBuf)
+		return {};
+	if (cch == -1)
+		--cchBuf;
+	CRefStrT<WCHAR, TCharTraits, TAlloc> rs(cchBuf);
+	MultiByteToWideChar(CP_UTF8, 0, pszText, cch, rs.Data(), cchBuf);
+	*(rs.Data() + cchBuf) = '\0';
+	return rs;
+}
+
+template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>,
+	class T, class U>
+[[nodiscard]] EckInline CRefStrT<WCHAR, TCharTraits, TAlloc> StrU82W(
+	const CRefStrT<CHAR, T, U>& rs)
+{
+	return StrU82W<TCharTraits, TAlloc>(rs.Data(), rs.Size());
+}
+
+template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>, class T>
+[[nodiscard]] EckInline CRefStrT<WCHAR, TCharTraits, TAlloc> StrU82W(const CRefBinT<T>& rb)
+{
+	return StrU82W<TCharTraits, TAlloc>(rb.Data(), (int)rb.Size());
 }
 ECK_NAMESPACE_END

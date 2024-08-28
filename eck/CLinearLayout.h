@@ -52,6 +52,10 @@ protected:
 				cx = e.cx;
 		}
 	}
+public:
+	EckInline constexpr void SetAlign(Align eAlign) { m_eAlign = eAlign; }
+
+	EckInline constexpr Align GetAlign() const { return m_eAlign; }
 };
 
 class CLinearLayoutV :public CLinearLayout

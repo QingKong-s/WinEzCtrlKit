@@ -187,7 +187,7 @@ EckInline HFONT ReCreateFontForDpiChanged(HFONT hFont, int iDpiNew, int iDpiOld,
 EckInline HFONT ResetFontForDpiChanged(HWND hWnd, int iDpiNew, int iDpiOld, BOOL bRedraw = TRUE, BOOL bDeletePrevFont = FALSE)
 {
 	HFONT hFontNew = ReCreateFontForDpiChanged(
-		(HFONT)SendMessageW(hWnd, WM_GETFONT, 0, 0), 
+		(HFONT)SendMessageW(hWnd, WM_GETFONT, 0, 0),
 		iDpiNew, iDpiOld, bDeletePrevFont);
 	SendMessageW(hWnd, WM_SETFONT, (WPARAM)hFontNew, bRedraw);
 	return hFontNew;
@@ -650,5 +650,124 @@ EckInline void ClientToScreen(HWND hWnd, RECT* prc)
 {
 	::ClientToScreen(hWnd, (POINT*)prc);
 	::ClientToScreen(hWnd, ((POINT*)prc) + 1);
+}
+
+EckInline void MsgOnDpiChanged(HWND hWnd, LPARAM lParam)
+{
+	const auto prc = (RECT*)lParam;
+	SetWindowPos(hWnd, NULL,
+		prc->left,
+		prc->top,
+		prc->right - prc->left,
+		prc->bottom - prc->top,
+		SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+inline LRESULT GenerateCharMsg(HWND hWnd, WCHAR ch, BOOL bExtended = FALSE)
+{
+	switch (ch)
+	{
+	case 58:
+	case 59:
+		ch = VK_OEM_1;
+		break;
+	case 43:
+		ch = VK_OEM_PLUS;
+		break;
+	case 44:
+		ch = VK_OEM_COMMA;
+		break;
+	case 45:
+		ch = VK_OEM_MINUS;
+		break;
+	case 46:
+		ch = VK_OEM_PERIOD;
+		break;
+	case 47:
+	case 63:
+		ch = VK_OEM_2;
+		break;
+	case 96:
+	case 126:
+		ch = VK_OEM_3;
+		break;
+	default:
+		if (ch >= 97 && ch <= 122)
+			ch -= 32;
+		break;
+	}
+	const auto uScanCode = MapVirtualKeyW(ch, MAPVK_VK_TO_VSC);
+	return PostMessageW(hWnd, WM_CHAR, ch, MakeKeyStrokeFlag(1, uScanCode, bExtended, FALSE, FALSE, FALSE));
+}
+
+inline void GenerateCharMsg(HWND hWnd, PCWSTR pszText, int cchText = -1,
+	BOOL bExtended = FALSE, BOOL bReplaceEndOfLine = TRUE)
+{
+	if (cchText < 0)
+		cchText = (int)wcslen(pszText);
+	if (bReplaceEndOfLine)
+		for (int i{}; i < cchText;)
+		{
+			auto ch = pszText[i++];
+			if (ch == L'\r' && i < cchText && pszText[i] == L'\n')
+			{
+				ch = L'\n';
+				++i;
+			}
+			GenerateCharMsg(hWnd, ch, bExtended);
+		}
+	else
+	{
+		EckCounter(cchText, i)
+			GenerateCharMsg(hWnd, pszText[i], bExtended);
+	}
+}
+
+inline HWND WndFromPoint(POINT pt, UINT uFlags = CWP_SKIPINVISIBLE)
+{
+	const HWND hParent = WindowFromPoint(pt);
+	if (!hParent)
+		return NULL;
+	POINT pt0{ pt };
+	ScreenToClient(hParent, &pt0);
+
+	HWND hChild0{ hParent }, hChild1;
+	EckLoop()
+	{
+		pt0 = pt;
+		ScreenToClient(hParent, &pt0);
+		hChild1 = ChildWindowFromPointEx(hChild0, pt0, uFlags);
+		if (!hChild1 || hChild1 == hChild0)
+			return hChild0;
+		hChild0 = hChild1;
+	}
+}
+
+enum class KeyType
+{
+	Down,
+	Up,
+	Press,
+};
+
+inline void GenerateKeyMsg(HWND hWnd, UINT Vk, KeyType eType, BOOL bExtended = FALSE)
+{
+	switch (eType)
+	{
+	case KeyType::Down:
+		PostMessageW(hWnd, bExtended ? WM_SYSKEYDOWN : WM_KEYDOWN, Vk,
+			MakeKeyStrokeFlag(1, MapVirtualKeyW(Vk, MAPVK_VK_TO_VSC), bExtended, FALSE, FALSE, FALSE));
+		break;
+	case KeyType::Up:
+		PostMessageW(hWnd, bExtended ? WM_SYSKEYUP : WM_KEYUP, Vk,
+			MakeKeyStrokeFlag(1, MapVirtualKeyW(Vk, MAPVK_VK_TO_VSC), bExtended, FALSE, TRUE, TRUE));
+		break;
+	case KeyType::Press:
+		GenerateKeyMsg(hWnd, Vk, KeyType::Down, bExtended);
+		GenerateKeyMsg(hWnd, Vk, KeyType::Up, bExtended);
+		break;
+	default:
+		ECK_UNREACHABLE;
+	}
 }
 ECK_NAMESPACE_END
