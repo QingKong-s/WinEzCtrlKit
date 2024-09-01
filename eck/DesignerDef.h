@@ -143,29 +143,9 @@ struct CAllocator1
 		return (T*)HeapAlloc(GetProcessHeap(), 0, c * sizeof(T));
 	}
 
-	static T* ReAlloc(T* pOrg, TSize c)
-	{
-		return (T*)HeapReAlloc(GetProcessHeap(), 0, pOrg, c * sizeof(T));
-	}
-
-	static T* AllocZ(TSize c)
-	{
-		return (T*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, c * sizeof(T));
-	}
-
-	static T* ReAllocZ(T* pOrg, TSize c)
-	{
-		return (T*)HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, pOrg, c * sizeof(T));
-	}
-
 	static void Free(T* p)
 	{
-		HeapFree(GetProcessHeap(), 0, p);
-	}
-
-	static TSize MakeCapacity(TSize c)
-	{
-		return c * 2;
+		std::allocator<T>().deallocate(p, 0);
 	}
 };
 

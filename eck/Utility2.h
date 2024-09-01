@@ -555,6 +555,6 @@ template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<
 template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>, class T>
 [[nodiscard]] EckInline CRefStrT<WCHAR, TCharTraits, TAlloc> StrU82W(const CRefBinT<T>& rb)
 {
-	return StrU82W<TCharTraits, TAlloc>(rb.Data(), (int)rb.Size());
+	return StrU82W<TCharTraits, TAlloc>((PCSTR)rb.Data(), (int)rb.Size());
 }
 ECK_NAMESPACE_END

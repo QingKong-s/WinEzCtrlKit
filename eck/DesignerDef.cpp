@@ -194,9 +194,12 @@ EckPropCallBackRet CALLBACK GetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropVa
 	}
 	break;
 	case CPID_TEXT:
+	{
 		*pbProcessed = TRUE;
-		pProp->Vpsz = pWnd->GetText().Detach();
-		return ESPR_NEEDFREE;
+		int dummy;
+		pProp->Vpsz = pWnd->GetText().Detach(dummy, dummy);
+	}
+	return ESPR_NEEDFREE;
 	case CPID_VISIBLE:
 		*pbProcessed = TRUE;
 		pProp->Vb = pWnd->m_DDBase.bVisible;

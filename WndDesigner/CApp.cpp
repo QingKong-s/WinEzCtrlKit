@@ -1,4 +1,5 @@
-#include "CApp.h"
+#include "pch.h"
+
 CApp* App = NULL;
 
 void CApp::Init(HINSTANCE hInstance)

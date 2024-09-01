@@ -487,7 +487,7 @@ public:
 		{
 			dwStyle |= WS_CHILD;
 			if (m_bMultiLine)
-				dwStyle |= ES_MULTILINE | ES_AUTOVSCROLL | (m_bAutoWrap ? ES_AUTOHSCROLL : 0);
+				dwStyle |= (ES_MULTILINE | ES_AUTOVSCROLL | (m_bAutoWrap ? 0 : ES_AUTOHSCROLL));
 			else
 				dwStyle |= ES_AUTOHSCROLL;
 

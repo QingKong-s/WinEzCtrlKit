@@ -1,57 +1,46 @@
-﻿#include "CSizer.h"
-LRESULT CALLBACK CSizerBlock::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+﻿#include "pch.h"
+
+LRESULT CSizerBlock::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	auto p = (CSizerBlock*)GetWindowLongPtrW(hWnd, 0);
 	switch (uMsg)
 	{
 	case WM_SIZE:
-		p->m_rcClient = { 0,0,LOWORD(lParam),HIWORD(lParam) };
+		m_rcClient = { 0,0,LOWORD(lParam),HIWORD(lParam) };
 		return 0;
 
 	case WM_PAINT:
 	{
 		PAINTSTRUCT ps;
 		BeginPaint(hWnd, &ps);
-		HGDIOBJ hOldBrush = SelectObject(ps.hdc, p->m_hbrBlock);
-		Rectangle(ps.hdc, 0, 0, p->m_rcClient.right, p->m_rcClient.bottom);
+		HGDIOBJ hOldBrush = SelectObject(ps.hdc, m_hbrBlock);
+		Rectangle(ps.hdc, 0, 0, m_rcClient.right, m_rcClient.bottom);
 		SelectObject(ps.hdc, hOldBrush);
 		EndPaint(hWnd, &ps);
 	}
 	return 0;
 
 	case WM_SETCURSOR:
-		SetCursor(p->m_hCursor);
+		SetCursor(m_hCursor);
 		return 0;
 
 	case WM_MOUSEMOVE:
-		p->m_pSizer->OnBlockMouseMove(p, lParam);
+		m_pSizer->OnBlockMouseMove(this, lParam);
 		return 0;
 
 	case WM_LBUTTONDOWN:
-		p->m_pSizer->OnBlockLButtonDown(p, lParam);
+		m_pSizer->OnBlockLButtonDown(this, lParam);
 		return 0;
 
 	case WM_LBUTTONUP:
-		p->m_pSizer->OnBlockLButtonUp(p, lParam);
+		m_pSizer->OnBlockLButtonUp(this, lParam);
 		return 0;
+
+	case WM_CREATE:
+		m_hbrBlock = CreateSolidBrush(eck::Colorref::Teal);
+		break;
 	}
 
-	return DefWindowProcW(hWnd, uMsg, wParam, lParam);
-}
-
-HWND CSizerBlock::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-	int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData)
-{
-	m_hWnd = CreateWindowExW(dwExStyle, eck::WCN_BK, pszText, dwStyle,
-		x, y, cx, cy, hParent, eck::hMenu, eck::g_hInstance, NULL);
-
-	m_hbrBlock = CreateSolidBrush(eck::Colorref::Teal);
-
-	m_rcClient = { 0,0,cx,cy };
-
-	SetWindowLongPtrW(m_hWnd, 0, (LONG_PTR)this);
-	SetWindowLongPtrW(m_hWnd, GWLP_WNDPROC, (LONG_PTR)WndProc);
-	return m_hWnd;
+	return __super::OnMsg(hWnd, uMsg, wParam, lParam);
 }
 
 void CSizerBlock::BindSizer(CSizer* pSizer, SizerHTCode uType)
@@ -133,41 +122,41 @@ void CSizer::MoveToTargetWindow()
 	GetWindowRect(m_hWorkWnd, &rc);
 	eck::ScreenToClient(m_hBK, &rc);
 
-	SetWindowPos(m_Block[0], NULL,
+	SetWindowPos(m_Block[0].HWnd, NULL,
 		rc.left - m_sizeBlock,
 		rc.top - m_sizeBlock,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-	SetWindowPos(m_Block[1], NULL,
+	SetWindowPos(m_Block[1].HWnd, NULL,
 		rc.left + (rc.right - rc.left - m_sizeBlock) / 2,
 		rc.top - m_sizeBlock,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-	SetWindowPos(m_Block[2], NULL,
+	SetWindowPos(m_Block[2].HWnd, NULL,
 		rc.right,
 		rc.top - m_sizeBlock,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-	SetWindowPos(m_Block[3], NULL,
+	SetWindowPos(m_Block[3].HWnd, NULL,
 		rc.left - m_sizeBlock,
 		rc.top + (rc.bottom - rc.top - m_sizeBlock) / 2,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-	SetWindowPos(m_Block[4], NULL,
+	SetWindowPos(m_Block[4].HWnd, NULL,
 		rc.right,
 		rc.top + (rc.bottom - rc.top - m_sizeBlock) / 2,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-	SetWindowPos(m_Block[5], NULL,
+	SetWindowPos(m_Block[5].HWnd, NULL,
 		rc.left - m_sizeBlock,
 		rc.bottom,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-	SetWindowPos(m_Block[6], NULL,
+	SetWindowPos(m_Block[6].HWnd, NULL,
 		rc.left + (rc.right - rc.left - m_sizeBlock) / 2,
 		rc.bottom,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-	SetWindowPos(m_Block[7], NULL,
+	SetWindowPos(m_Block[7].HWnd, NULL,
 		rc.right,
 		rc.bottom,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
 
 	for (auto& x : m_Block)
-		SetWindowPos(x, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+		SetWindowPos(x.HWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 	SetWindowPos(m_hBottomWorkWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
 }
 

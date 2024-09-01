@@ -357,7 +357,7 @@ constexpr inline LARGE_INTEGER LiZero{};
 #if ECKCXX20
 constexpr inline ULARGE_INTEGER UliMax{ .QuadPart = 0xFFFF'FFFF'FFFF'FFFF };
 #else
-constexpr ULARGE_INTEGER UliMax{ 0xFFFF'FFFF, 0xFFFF'FFFF };
+constexpr inline ULARGE_INTEGER UliMax{ 0xFFFF'FFFF, 0xFFFF'FFFF };
 #endif
 
 constexpr inline size_t SizeTMax{ std::numeric_limits<size_t>::max() };
@@ -369,18 +369,16 @@ constexpr inline BOOL Dbg{ TRUE };
 constexpr inline BOOL Dbg{ FALSE };
 #endif
 
+#ifdef _WIN64
+constexpr inline BOOL Win64{ TRUE };
+#else
+constexpr inline BOOL Win64{ FALSE };
+#endif
+
 constexpr inline BLENDFUNCTION BlendFuncAlpha{ AC_SRC_OVER,0,255,AC_SRC_ALPHA };
 
-// TITLEBARINFOEX索引
-enum
-{
-	TIIDX_TITLE_BAR,
-	TIIDX_RESERVED,
-	TIIDX_MIN,
-	TIIDX_MAX,
-	TIIDX_HELP,
-	TIIDX_CLOSE,
-};
+template<BYTE Alpha>
+constexpr inline BLENDFUNCTION BlendFuncAlphaN{ AC_SRC_OVER,0,Alpha,AC_SRC_ALPHA };
 
 /*-------------------*/
 /*控件通知代码*/
@@ -453,27 +451,23 @@ enum :UINT_PTR
 	MHI_HEADER_HOOK
 };
 
-struct BIT128
+union BIT128
 {
-	union
-	{
-		UINT64 u64[2];
-		UINT32 u32[4];
-		UINT16 u16[8];
-		BYTE u8[16];
-	};
+	UINT64 u64[2];
+	UINT32 u32[4];
+	UINT16 u16[8];
+	BYTE u8[16];
 };
 
-struct BIT256
+using MD5 = BIT128;
+
+union BIT256
 {
-	union
-	{
-		BIT128 bit128[2];
-		UINT64 u64[4];
-		UINT32 u32[8];
-		UINT16 u16[16];
-		BYTE u8[32];
-	};
+	BIT128 bit128[2];
+	UINT64 u64[4];
+	UINT32 u32[8];
+	UINT16 u16[16];
+	BYTE u8[32];
 };
 ECK_NAMESPACE_END
 #include "DbgHelper.h"

@@ -894,11 +894,12 @@ inline HRESULT OpenInExplorer(PCWSTR pszFile)
 	if (FAILED(hr = SHParseDisplayName(pszFolder, NULL, &pIdlFolder, 0, NULL)))
 		goto CleanupAndRet;
 	if (FAILED(hr = SHParseDisplayName(psz, NULL, &pIdlFile, 0, NULL)))
-		goto CleanupAndRet;
+		goto CleanupAndRet1;
 	hr = SHOpenFolderAndSelectItems(pIdlFolder, 1, (PCITEMIDLIST*)&pIdlFile, 0);
+CleanupAndRet1:
+	CoTaskMemFree(pIdlFile);
 CleanupAndRet:
 	CoTaskMemFree(pIdlFolder);
-	CoTaskMemFree(pIdlFile);
 	_freea(pszFolder);
 	return hr;
 }
@@ -1288,7 +1289,7 @@ inline void InputChar(WCHAR ch, BOOL bExtended = FALSE, BOOL bReplaceEndOfLine =
 
 	input[1] = input[0];
 	input[1].ki.dwFlags |= KEYEVENTF_KEYUP;
-	SendInput(ARRAYSIZE(input), input, sizeof(input));
+	SendInput(ARRAYSIZE(input), input, sizeof(INPUT));
 }
 
 inline void InputChar(PCWSTR pszText, int cchText = -1,

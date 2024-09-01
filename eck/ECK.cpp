@@ -1243,25 +1243,17 @@ void SetMsgFilter(FMsgFilter pfnFilter)
 
 void DbgPrintWndMap()
 {
-	auto pCtx = GetThreadCtx();
+	const auto* const pCtx = GetThreadCtx();
 	auto s = Format(L"当前线程（TID = %u）窗口映射表内容：\n", GetCurrentThreadId());
-	CRefStrW rs{};
 	for (const auto& e : pCtx->hmWnd)
 	{
-		auto rsText = e.second->GetText();
-		if (!rsText.Data())
-			rsText = L" ";
-		auto rsCls = e.second->GetClsName();
-		if (!rsCls.Data())
-			rsCls = L" ";
-		rs.Format(L"\tCWnd指针 = 0x%0p，HWND = 0x%0p，标题 = %s，类名 = %s\n",
+		s.AppendFormat(L"\tCWnd指针 = 0x%0p，HWND = 0x%0p，标题 = %s，类名 = %s\n",
 			e.second,
 			e.first,
-			rsText.Data(),
-			rsCls.Data());
-		s += rs.Data();
+			e.second->GetText().Data(),
+			e.second->GetClsName().Data());
 	}
-	s += Format(L"共有%u个窗口\n", pCtx->hmWnd.size());
+	s.AppendFormat(L"共有%u个窗口\n", pCtx->hmWnd.size());
 	OutputDebugStringW(s.Data());
 }
 

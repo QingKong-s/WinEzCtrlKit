@@ -22,15 +22,19 @@ inline CRefStrW GetClipboardString(HWND hWnd = NULL)
 		const HANDLE hData = GetClipboardData(CF_UNICODETEXT);
 		if (hData)
 		{
-			const void* pData = GlobalLock(hData);
-			if (pData)
+			int cch = (int)(GlobalSize(hData) / sizeof(WCHAR));
+			if (cch)
 			{
-				const auto cb = GlobalSize(hData);
-				const int cch = (int)(cb / sizeof(WCHAR));
-				CRefStrW rs((PCWSTR)pData, cch);
-				GlobalUnlock(hData);
-				CloseClipboard();
-				return rs;
+				const void* pData = GlobalLock(hData);
+				if (pData)
+				{
+					if (*((PCWSTR)pData + cch - 1) == L'\0')
+						--cch;
+					CRefStrW rs((PCWSTR)pData, cch);
+					GlobalUnlock(hData);
+					CloseClipboard();
+					return rs;
+				}
 			}
 		}
 	}

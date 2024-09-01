@@ -123,7 +123,9 @@ private:
 
 		auto& Info = m_pTabCtx->AllCtrls[hWnd];
 
-		m_aData.emplace_back(Info.pWnd->SerializeData());
+		eck::CRefBin rb{};
+		Info.pWnd->SerializeData(rb);
+		m_aData.emplace_back(std::move(rb));
 		m_cbTotal += (m_aData.back().Size() + sizeof(eck::FTCTRLDATA));
 	}
 public:
@@ -208,7 +210,7 @@ public:
 	eck::CRefBin Serialize()
 	{
 		eck::CRefBin rb(m_cbTotal);
-		Serialize(rb);
+		Serialize(rb.Data());
 		return rb;
 	}
 };
@@ -277,6 +279,7 @@ public:
 #define CNM_PROPLISTNOTIFY	(WM_USER + 1)
 class CWndMain :public eck::CWnd
 {
+	friend class CWorkWnd;
 private:
 	enum
 	{
@@ -316,7 +319,6 @@ private:
 
 	HMENU m_hMenuWorkWnd = NULL;
 
-
 	int m_cxInfo, m_cxCtrlBox;
 
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
@@ -355,8 +357,6 @@ private:
 
 	void OnMenuSaveWndTable(HWND hWnd);
 
-	LRESULT OnNotify(HWND hWnd, int idCtrl, NMHDR* pnmhdr);
-
 	void OnSize(HWND hWnd, UINT nType, int cxClient, int cyClient);
 
 	void OnDpiChanged(HWND hWnd, int iDpiX, int iDpiY, RECT* prc);
@@ -384,8 +384,6 @@ private:
 
 	void OnCtrlMouseMove(HWND hWnd, int x, int y, CTRLSUBCLASSCTX* p);
 #pragma endregion
-
-	static LRESULT CALLBACK WndProc_WorkWnd(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	void OnWWLButtonUp(HWND hWnd, int x, int y, UINT uKeyFlags, TABCTX* p);
 
@@ -528,14 +526,14 @@ private:
 		m_CBBCtrl.SetItemData(idxComboBox, (LPARAM)pWnd->GetHWND());
 
 		pTabCtx->AllCtrls.insert(std::make_pair(pWnd->GetHWND(), std::move(CtrlInfo)));
-		SetWindowSubclass(pWnd->GetHWND(), SubclassProc_Ctrl, SCID_DESIGN, (DWORD_PTR)pCtx);
+		SetWindowSubclass(pWnd->GetHWND(), SubclassProc_Ctrl, eck::SCID_DESIGN, (DWORD_PTR)pCtx);
 		return pWnd;
 	}
 
 	void DestroyCtrl(TABCTX* pTabCtx, HWND hWnd)
 	{
 		auto& Info = pTabCtx->AllCtrls[hWnd];
-		RemoveWindowSubclass(hWnd, SubclassProc_Ctrl, SCID_DESIGN);
+		RemoveWindowSubclass(hWnd, SubclassProc_Ctrl, eck::SCID_DESIGN);
 		DestroyWindow(hWnd);
 		pTabCtx->AllCtrls.erase(hWnd);
 
@@ -551,6 +549,13 @@ private:
 public:
 	static ATOM RegisterWndClass();
 
-	
 	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+	{
+		return IntCreate(dwExStyle, WCN_WDMAIN, pszText, dwStyle,
+			x, y, cx, cy, hParent, NULL, App->GetHInstance(), NULL);
+	}
+
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 };
