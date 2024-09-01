@@ -114,7 +114,7 @@ public:
 	CRefBinT(PCVOID p, size_t cb, const TAlloc& Al = TAlloc{})
 		: m_cb{ cb }, m_cbCapacity{ cb }, m_Alloc{ Al }
 	{
-		EckAssert(p ? TRUE : cb);
+		EckAssert(p ? TRUE : (cb == 0));
 		m_pStream = m_Alloc.allocate(m_cbCapacity);
 #pragma warning(suppress : 6387)// 可能是0
 		memcpy(Data(), p, cb);

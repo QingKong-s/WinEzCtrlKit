@@ -3,20 +3,27 @@
 
 #include "..\eck\CBk.h"
 
+struct TABCTX;
+
 class CWorkWnd :public eck::CBk
 {
 private:
 	friend class CWndMain;
 
-	HBRUSH m_hbrWorkWindow = NULL;
+	HBRUSH m_hbrWorkWindow{};
 	eck::CEzCDC m_mdcGridPoint{};
-	BOOL m_bRBtnDown = FALSE;
+	BOOL m_bRBtnDown{};
 
-	EckInline 
-	ECK_CWND_CREATE
+	TABCTX* m_pCtx{};
+public:
+	CWorkWnd(TABCTX* pCtx) :m_pCtx{ pCtx } {}
+
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
-		m_hWnd = CreateWindowExW(dwExStyle, eck::WCN_BK, pszText, dwStyle,
-			x, y, cx, cy, hParent, eck::hMenu, eck::g_hInstance, NULL);
+		m_hWnd = IntCreate(dwExStyle, eck::WCN_BK, pszText, dwStyle,
+			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, NULL);
 
 		int cxPointGap = eck::DpiScale(8, eck::GetDpi(m_hWnd));
 		RECT rc{ 0,0,cxPointGap * 4,cxPointGap * 4 };
@@ -38,6 +45,8 @@ private:
 	{
 		return 8;
 	}
+
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 };
 
 class CWorkWndBk :public eck::CBk
@@ -51,12 +60,13 @@ private:
 
 	static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 public:
-	EckInline 
-	ECK_CWND_CREATE
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
-		m_hWnd = CreateWindowExW(dwExStyle, eck::WCN_BK, pszText, dwStyle,
-			x, y, cx, cy, hParent, eck::hMenu, eck::g_hInstance, NULL);
-		SetWindowProc(WndProc);
-		return m_hWnd;
+		return IntCreate(dwExStyle, eck::WCN_BK, pszText, dwStyle,
+			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, NULL);
 	}
+
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 };

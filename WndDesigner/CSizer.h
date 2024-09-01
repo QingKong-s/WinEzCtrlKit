@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "CApp.h"
-#include "..\eck\CBk.h"
+
+#include "eck\CBk.h"
 
 class CSizer;
 
@@ -28,10 +29,15 @@ private:
 	SizerHTCode m_uType = SizerHTCode::None;
 	HCURSOR m_hCursor = NULL;
 
-	static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 public:
-	
 	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+	{
+		return IntCreate(dwExStyle, eck::WCN_BK, pszText, dwStyle,
+			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, NULL);
+	}
 
 	EckInline void SetWindowProc(WNDPROC pfnWndProc)
 	{
@@ -63,7 +69,7 @@ public:
 	~CSizer()
 	{
 		for (auto& x : m_Block)
-			DestroyWindow(x);
+			x.Destroy();
 		DeleteObject(m_hPen);
 	}
 
@@ -89,7 +95,7 @@ public:
 	{
 		int iShow = (bShow ? SW_SHOWNOACTIVATE : SW_HIDE);
 		for (auto& x : m_Block)
-			ShowWindow(x, iShow);
+			x.Show(iShow);
 	}
 private:
 	RECT SizerMakeRect(POINT ptCursor, SizerHTCode uType);

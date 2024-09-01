@@ -1,43 +1,4 @@
-﻿#include "CWndMain.h"
-#include "resource.h"
-
-LRESULT CWndMain::WndProc(HWND hWnd, UINT uMsg , WPARAM wParam, LPARAM lParam)
-{
-	auto p = (CWndMain*)GetWindowLongPtrW(hWnd, 0);
-	switch (uMsg)
-	{
-	case WM_NCCREATE:
-		p = (CWndMain*)((CREATESTRUCTW*)lParam)->lpCreateParams;
-		SetWindowLongPtrW(hWnd, 0, (LONG_PTR)p);
-		break;
-
-	case WM_CREATE:
-		return HANDLE_WM_CREATE(hWnd, wParam, lParam, p->OnCreate);
-
-	case WM_MEASUREITEM:
-		return HANDLE_WM_MEASUREITEM(hWnd, wParam, lParam, p->OnMeasureItem);
-
-	case WM_DRAWITEM:
-		return HANDLE_WM_DRAWITEM(hWnd, wParam, lParam, p->OnDrawItem);
-
-	case WM_COMMAND:
-		return HANDLE_WM_COMMAND(hWnd, wParam, lParam, p->OnCommand);
-
-	case WM_NOTIFY:
-		return HANDLE_WM_NOTIFY(hWnd, wParam, lParam, p->OnNotify);
-
-	case WM_SIZE:
-		return HANDLE_WM_SIZE(hWnd, wParam, lParam, p->OnSize);
-
-	case WM_DPICHANGED:
-		return ECK_HANDLE_WM_DPICHANGED(hWnd, wParam, lParam, p->OnDpiChanged);
-
-	case CNM_PROPLISTNOTIFY:
-		return p->OnPropListNotify(hWnd, wParam, lParam);
-	}
-
-	return DefWindowProcW(hWnd, uMsg, wParam, lParam);
-}
+﻿#include "pch.h"	
 
 BOOL CWndMain::OnCreate(HWND hWnd, CREATESTRUCTW* pcs)
 {
@@ -58,15 +19,15 @@ BOOL CWndMain::OnCreate(HWND hWnd, CREATESTRUCTW* pcs)
 	m_cxInfo = DPI(240);
 	m_cxCtrlBox = DPI(180);
 
-	m_TBProj.Create(NULL, WS_VISIBLE, 0, 0, 0, 0, 0, hWnd, IDC_TC_PROJ);
+	m_TBProj.Create(NULL, WS_CHILD| WS_VISIBLE, 0, 0, 0, 0, 0, hWnd, IDC_TC_PROJ);
 	{
-		m_CBBCtrl.Create(NULL, WS_VISIBLE | CBS_DROPDOWNLIST | CBS_SORT,
+		m_CBBCtrl.Create(NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | CBS_SORT,
 			0, 0, 50, 50, 0, hWnd, IDC_CBB_CTRL);
 		m_CBBCtrl.SetItemHeight(m_Ds.cyComboBox);
 
-		m_LVProp.Create(NULL, WS_VISIBLE | WS_BORDER /*| LVS_NOCOLUMNHEADER*/ | LVS_REPORT,
+		m_LVProp.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER /*| LVS_NOCOLUMNHEADER*/ | LVS_REPORT,
 			0, 0, 0, 0, 0, hWnd, IDC_LV_CTRLINFO);
-		eck::LVSetItemHeight(m_LVProp, DPI(24));
+		eck::LVSetItemHeight(m_LVProp.HWnd, DPI(24));
 		LVCOLUMNW lc;
 		lc.mask = LVCF_TEXT | LVCF_WIDTH;
 		lc.pszText = (PWSTR)L"属性";
@@ -80,15 +41,15 @@ BOOL CWndMain::OnCreate(HWND hWnd, CREATESTRUCTW* pcs)
 		m_LVProp.SetNotifyMsg(CNM_PROPLISTNOTIFY);
 
 		m_EDDesc.SetMultiLine(TRUE);
-		m_EDDesc.Create(NULL, WS_VISIBLE | ES_AUTOVSCROLL, 0, 0, 0, 0, 0, hWnd, IDC_ED_DESC);
+		m_EDDesc.Create(NULL, WS_CHILD | WS_VISIBLE | ES_AUTOVSCROLL, 0, 0, 0, 0, 0, hWnd, IDC_ED_DESC);
 		m_EDDesc.SetFrameType(3);
 	}
 
-	m_LBCtrl.Create(NULL, WS_VISIBLE | WS_BORDER | LBS_NOINTEGRALHEIGHT | LBS_OWNERDRAWFIXED | LBS_NOTIFY | LBS_NODATA,
+	m_LBCtrl.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | LBS_NOINTEGRALHEIGHT | LBS_OWNERDRAWFIXED | LBS_NOTIFY | LBS_NODATA,
 		0, 0, 0, 0, 0, hWnd, IDC_LB_CTRL);
 	m_LBCtrl.SetCount(ARRAYSIZE(eck::s_EckDesignAllCtrl) + 1);
 
-	m_Tab.Create(NULL, WS_VISIBLE | TCS_SINGLELINE, 0, 0, 0, 0, 0, hWnd, IDC_TC_MAIN);
+	m_Tab.Create(NULL,WS_CHILD| WS_VISIBLE | TCS_SINGLELINE, 0, 0, 0, 0, 0, hWnd, IDC_TC_MAIN);
 
 	eck::SetFontForWndAndCtrl(hWnd, m_hFontComm);
 
@@ -105,7 +66,7 @@ void CWndMain::OnMeasureItem(HWND hWnd, MEASUREITEMSTRUCT* pmis)
 
 void CWndMain::OnDrawItem(HWND hWnd, const DRAWITEMSTRUCT* pdis)
 {
-	if (pdis->hwndItem == m_LBCtrl)
+	if (pdis->hwndItem == m_LBCtrl.HWnd)
 	{
 		HDC hDC = pdis->hDC;
 		if (eck::IsBitSet(pdis->itemState, ODS_SELECTED))
@@ -287,7 +248,7 @@ void CWndMain::OnMenuSaveWndTable(HWND hWnd)
 		}, (LPARAM)&Serializer);
 
 	eck::CRefBin rb(Serializer.GetDataSize() + sizeof(eck::FORMTABLEHEADER) + sizeof(eck::FORMTABLE_INDEXENTRY));
-	eck::CMemWriter w(rb, rb.Size());
+	eck::CMemWriter w(rb.Data(), rb.Size());
 
 	eck::FORMTABLEHEADER* pHeader;
 	w.SkipPointer(pHeader);
@@ -296,29 +257,13 @@ void CWndMain::OnMenuSaveWndTable(HWND hWnd)
 
 	eck::FORMTABLE_INDEXENTRY* pEntry;
 	w.SkipPointer(pEntry);
-	pEntry->cbSize = (UINT)rb.m_cb;
+	pEntry->cbSize = (UINT)rb.Size();
 	pEntry->iID = 101;
 	pEntry->uOffset = sizeof(eck::FORMTABLEHEADER) + sizeof(eck::FORMTABLE_INDEXENTRY);
 
 	Serializer.Serialize(w);
 
 	eck::WriteToFile(LR"(E:\Desktop\1.eckft)", rb);
-}
-
-LRESULT CWndMain::OnNotify(HWND hWnd, int idCtrl, NMHDR* pnmhdr)
-{
-	switch (pnmhdr->code)
-	{
-	case TCN_SELCHANGE:
-	{
-		if (pnmhdr->hwndFrom != m_Tab)
-			break;
-		for (auto x : m_vTabs)
-			ShowWindow(x->pBK->GetHWND(), SW_HIDE);
-		ShowWindow(m_vTabs[m_Tab.GetCurSel()]->pBK->GetHWND(), SW_SHOWNOACTIVATE);
-	}
-	return 0;
-	}
 }
 
 void CWndMain::OnSize(HWND hWnd, UINT nType, int cxClient, int cyClient)
@@ -334,7 +279,7 @@ void CWndMain::OnSize(HWND hWnd, UINT nType, int cxClient, int cyClient)
 	{
 		//HDWP hDwp2 = BeginDeferWindowPos(10);
 		auto hDwp2 = hDwp;
-		hDwp2 = DeferWindowPos(hDwp2, m_CBBCtrl, NULL,
+		hDwp2 = DeferWindowPos(hDwp2, m_CBBCtrl.HWnd, NULL,
 			m_Ds.iPadding,
 			m_Ds.iPadding,
 			m_cxInfo,
@@ -344,14 +289,14 @@ void CWndMain::OnSize(HWND hWnd, UINT nType, int cxClient, int cyClient)
 		int y = m_Ds.iPadding + m_Ds.cyComboBox;
 
 		int cyLVProp = cyClient - y - DPI(80) - m_Ds.iPadding * 3;
-		hDwp2 = DeferWindowPos(hDwp2, m_LVProp, NULL,
+		hDwp2 = DeferWindowPos(hDwp2, m_LVProp.HWnd, NULL,
 			m_Ds.iPadding,
 			y + m_Ds.iPadding,
 			m_cxInfo,
 			cyLVProp,
 			SWP_NOZORDER);
 
-		hDwp2 = DeferWindowPos(hDwp2, m_EDDesc, NULL,
+		hDwp2 = DeferWindowPos(hDwp2, m_EDDesc.HWnd, NULL,
 			m_Ds.iPadding,
 			y + cyLVProp + m_Ds.iPadding * 2,
 			m_cxInfo,
@@ -363,14 +308,14 @@ void CWndMain::OnSize(HWND hWnd, UINT nType, int cxClient, int cyClient)
 	}
 
 	int cyBK = cyClient - m_Ds.iPadding * 2;
-	hDwp = DeferWindowPos(hDwp, m_Tab, NULL,
+	hDwp = DeferWindowPos(hDwp, m_Tab.HWnd, NULL,
 		m_cxInfo + DPI(6) + m_Ds.iPadding,
 		m_Ds.iPadding,
 		cxClient - m_cxInfo - m_cxCtrlBox - m_Ds.iPadding * 2 - DPI(6) * 2,
 		cyBK,
 		SWP_NOZORDER);
 
-	hDwp = DeferWindowPos(hDwp, m_LBCtrl, NULL,
+	hDwp = DeferWindowPos(hDwp, m_LBCtrl.HWnd, NULL,
 		cxClient - m_cxCtrlBox - m_Ds.iPadding,
 		m_Ds.iPadding,
 		m_cxCtrlBox,
@@ -380,9 +325,9 @@ void CWndMain::OnSize(HWND hWnd, UINT nType, int cxClient, int cyClient)
 	EndDeferWindowPos(hDwp);
 
 	RECT rc;
-	GetWindowRect(m_Tab, &rc);
+	GetWindowRect(m_Tab.HWnd, &rc);
 	m_Tab.AdjustRect(&rc, FALSE);
-	eck::ScreenToClient(m_Tab, &rc);
+	eck::ScreenToClient(m_Tab.HWnd, &rc);
 	for (auto x : m_vTabs)
 		SetWindowPos(x->pBK->GetHWND(), NULL, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, SWP_NOZORDER);
 }
@@ -394,7 +339,7 @@ void CWndMain::OnDpiChanged(HWND hWnd, int iDpiX, int iDpiY, RECT* prc)
 	UpdateDpi();
 	ImageList_Destroy(eck::LVSetItemHeight(m_LVProp.GetHWND(), DPI(24)));
 
-	eck::OnDpiChanged_Parent_PreMonV2(hWnd, m_iDpi, iOldDpi);
+	//eck::MsgOnDpiChanged(hWnd, m_iDpi, iOldDpi);
 }
 
 LRESULT CWndMain::OnPropListNotify(HWND hWnd, WPARAM wParam, LPARAM lParam)
@@ -679,65 +624,6 @@ void CWndMain::OnCtrlMouseMove(HWND hWnd, int x, int y, CTRLSUBCLASSCTX* p)
 }
 #pragma endregion
 
-LRESULT CWndMain::WndProc_WorkWnd(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	auto p = (TABCTX*)GetWindowLongPtrW(hWnd, 0);
-
-	switch (uMsg)
-	{
-	case WM_PAINT:
-	{
-		PAINTSTRUCT ps;
-		BeginPaint(hWnd, &ps);
-		FillRect(ps.hdc, &ps.rcPaint, p->pWorkWnd->m_hbrWorkWindow);
-		EndPaint(hWnd, &ps);
-	}
-	return 0;
-
-	case WM_MOVE:
-		for (auto x : p->pMultiSelMarker)
-			x->MoveToTargetWindow();
-		return 0;
-
-	case WM_SETCURSOR:
-	{
-		if (p->pThis->m_bPlacingCtrl)
-		{
-			SetCursor(LoadCursorW(NULL, IDC_CROSS));
-			return 0;
-		}
-	}
-	break;
-
-	case WM_LBUTTONDOWN:
-		p->pThis->m_CtrlPlacing.OnLButtonDown(p, hWnd, lParam);
-		return 0;
-
-	case WM_LBUTTONUP:
-		p->pThis->OnWWLButtonUp(hWnd, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), wParam, p);
-		return 0;
-
-	case WM_MOUSEMOVE:
-		p->pThis->m_CtrlPlacing.OnMouseMove(p, hWnd, lParam);
-		return 0;
-
-	case WM_CLOSE:
-		return 0;
-
-	case WM_RBUTTONDOWN:
-	{
-		SetCapture(hWnd);
-		p->pWorkWnd->m_bRBtnDown = TRUE;
-	}
-	return 0;
-
-	case WM_RBUTTONUP:
-		p->pThis->OnWWRButtonUp(hWnd, wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), p);
-		return 0;
-	}
-	return DefWindowProcW(hWnd, uMsg, wParam, lParam);
-}
-
 void CWndMain::OnWWLButtonUp(HWND hWnd, int x, int y, UINT uKeyFlags, TABCTX* p)
 {
 	if (!m_CtrlPlacing.IsLBtnDown())
@@ -771,7 +657,7 @@ void CWndMain::OnWWLButtonUp(HWND hWnd, int x, int y, UINT uKeyFlags, TABCTX* p)
 			{
 				hCtrl = x.second.pWnd->GetHWND();
 				GetWindowRect(hCtrl, &rcCtrl);
-				if (eck::IsRectsIntersect(&rc, &rcCtrl))
+				if (eck::IsRectsIntersect(rc, rcCtrl))
 					AddMultiSel(p, hCtrl);
 			}
 		}
@@ -817,15 +703,15 @@ void CWndMain::NewTab(int posTab)
 	m_Tab.InsertItem(L"新窗体", posTab);
 
 	auto pCtx = new TABCTX;
-	pCtx->pBK = new CWorkWndBk;
-	pCtx->pWorkWnd = new CWorkWnd;
+	pCtx->pBK = new CWorkWndBk{};
+	pCtx->pWorkWnd = new CWorkWnd(pCtx);
 	pCtx->pThis = this;
 
-	pCtx->pBK->Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | WS_CLIPSIBLINGS, 0, 0, 0, 0, 0, m_Tab, IDC_BK_MAIN);
+	pCtx->pBK->Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | WS_CLIPSIBLINGS, 0,
+		0, 0, 0, 0, m_Tab.HWnd, IDC_BK_MAIN);
 
 	pCtx->pWorkWnd->Create(NULL, WS_CHILD | WS_VISIBLE | WS_CAPTION | WS_SYSMENU | WS_CLIPSIBLINGS,
 		0, m_Ds.iPadding, m_Ds.iPadding, DPI(400), DPI(300), pCtx->pBK->GetHWND(), IDC_BK_WORKWND);
-	pCtx->pWorkWnd->SetWindowProc(WndProc_WorkWnd);
 	SetWindowLongPtrW(pCtx->pWorkWnd->GetHWND(), 0, (LONG_PTR)pCtx);
 
 	SetWindowPos(pCtx->pWorkWnd->GetHWND(), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
@@ -841,7 +727,7 @@ ATOM CWndMain::RegisterWndClass()
 {
 	WNDCLASSEXW wcex{ sizeof(WNDCLASSEXW) };
 	wcex.style = CS_HREDRAW | CS_VREDRAW;
-	wcex.lpfnWndProc = CWndMain::WndProc;
+	wcex.lpfnWndProc = DefWindowProcW;
 	wcex.hInstance = App->GetHInstance();
 	wcex.hIcon = LoadIconW(NULL, IDI_APPLICATION);
 	wcex.hCursor = LoadCursorW(NULL, IDC_ARROW);
@@ -852,12 +738,53 @@ ATOM CWndMain::RegisterWndClass()
 	return RegisterClassExW(&wcex);
 }
 
-HWND CWndMain::Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-	int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData)
+LRESULT CWndMain::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	m_hWnd = CreateWindowExW(dwExStyle, WCN_WDMAIN, pszText, dwStyle,
-		x, y, cx, cy, hParent, NULL, App->GetHInstance(), this);
-	return m_hWnd;
+	switch (uMsg)
+	{
+	case WM_CREATE:
+		return HANDLE_WM_CREATE(hWnd, wParam, lParam, OnCreate);
+
+	case WM_MEASUREITEM:
+		return HANDLE_WM_MEASUREITEM(hWnd, wParam, lParam, OnMeasureItem);
+
+	case WM_DRAWITEM:
+		return HANDLE_WM_DRAWITEM(hWnd, wParam, lParam, OnDrawItem);
+
+	case WM_COMMAND:
+		return HANDLE_WM_COMMAND(hWnd, wParam, lParam, OnCommand);
+
+	case WM_NOTIFY:
+	{
+		const auto* const pnmhdr = (NMHDR*)lParam;
+		switch (pnmhdr->code)
+		{
+		case TCN_SELCHANGE:
+		{
+			if (pnmhdr->hwndFrom == m_Tab.HWnd)
+			{
+				for (auto x : m_vTabs)
+					ShowWindow(x->pBK->GetHWND(), SW_HIDE);
+				ShowWindow(m_vTabs[m_Tab.GetCurSel()]->pBK->GetHWND(), SW_SHOWNOACTIVATE);
+		return 0;
+			}
+		}
+		break;
+		}
+	}
+	break;
+
+	case WM_SIZE:
+		return HANDLE_WM_SIZE(hWnd, wParam, lParam, OnSize);
+
+	case WM_DPICHANGED:
+		return ECK_HANDLE_WM_DPICHANGED(hWnd, wParam, lParam, OnDpiChanged);
+
+	case CNM_PROPLISTNOTIFY:
+		return OnPropListNotify(hWnd, wParam, lParam);
+	}
+
+	return __super::OnMsg(hWnd, uMsg, wParam, lParam);
 }
 
 void CCtrlPlacingEventHandler::OnLButtonDown(TABCTX* pTabCtx, HWND hWnd, LPARAM lParam)

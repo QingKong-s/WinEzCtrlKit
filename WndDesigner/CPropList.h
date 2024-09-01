@@ -6,7 +6,6 @@
 #include "..\eck\CRefStr.h"
 #include "..\eck\CBk.h"
 #include "..\eck\CListView.h"
-#include "..\eck\CSubclassMgr.h"
 #include "..\eck\DesignerDef.h"
 #include "..\eck\CButton.h"
 #include "..\eck\CEditExt.h"
@@ -20,8 +19,6 @@ enum
 
 class CPropList :public eck::CListView
 {
-	SUBCLASS_MGR_DECL(CPropList)
-		SUBCLASS_REF_MGR_DECL(CPropList, eck::ObjRecorderRefPlaceholder)
 private:
 	struct ITEM
 	{
@@ -109,8 +106,8 @@ private:
 			Val.Vpsz = std::get<1>(Item.Val).Data();
 		else if (Item.Val.index() == 2)
 		{
-			Val.Vbin.pData = std::get<2>(Item.Val);
-			Val.Vbin.cbSize = std::get<2>(Item.Val).m_cb;
+			Val.Vbin.pData = std::get<2>(Item.Val).Data();
+			Val.Vbin.cbSize = std::get<2>(Item.Val).Size();
 		}
 		eck::s_EckDesignAllCtrl[m_idxInfo].pfnSetProp(m_pWnd, Item.iID, &Val);
 		if (m_uNotifyMsg)
@@ -165,12 +162,6 @@ private:
 		m_Items.clear();
 		RefreshCount();
 	}
-
-	static LRESULT CALLBACK SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
-		UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
-
-	static LRESULT CALLBACK SubclassProc_Parent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
-		UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 public:
 	void GetPropFromCtrl(int idxItem)
 	{
@@ -207,9 +198,9 @@ public:
 		{
 			SaveEditingInfo(m_idxCurrEdit);
 		}
-		ShowWindow(m_Edit, SW_HIDE);
-		ShowWindow(m_ComboBox, SW_HIDE);
-		ShowWindow(m_Button, SW_HIDE);
+		m_Edit.Show(SW_HIDE);
+		m_ComboBox.Show(SW_HIDE);
+		m_Button.Show(SW_HIDE);
 		m_idxCurrEdit = -1;
 	}
 
@@ -244,12 +235,13 @@ public:
 		RefreshCount();
 	}
 
-	EckInline 
-	ECK_CWND_CREATE
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL)
 	{
 		dwStyle |= (WS_CHILD | LVS_OWNERDATA | LVS_SINGLESEL | LVS_SHOWSELALWAYS);
-		m_hWnd = CreateWindowExW(dwExStyle, WC_LISTVIEWW, pszText, dwStyle,
-			x, y, cx, cy, hParent, eck::hMenu, NULL, NULL);
+		IntCreate(dwExStyle, WC_LISTVIEWW, pszText, dwStyle,
+			x, y, cx, cy, hParent, hMenu, NULL, NULL);
 
 		UpdateDpiSize();
 
@@ -257,11 +249,12 @@ public:
 		m_ComboBox.Create(NULL, CBS_DROPDOWNLIST, 0, 0, 0, 0, 0, m_hWnd, IDC_COMBOBOX);
 		m_Button.Create(L"...", 0, 0, 0, 0, 0, 0, m_hWnd, IDC_BUTTON);
 
-		m_SM.AddSubclass(m_hWnd, this);
-		m_SMRef.AddRef(GetParent(m_hWnd), eck::ObjRecorderRefPlaceholderVal);
-
 		return m_hWnd;
 	}
+
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
+
+	LRESULT OnNotifyMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed) override;
 
 	EckInline void SetNotifyMsg(UINT uMsg)
 	{
