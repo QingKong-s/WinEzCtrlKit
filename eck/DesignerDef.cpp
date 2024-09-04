@@ -1,5 +1,4 @@
 ﻿#include "DesignerDef.h"
-
 #include "CButton.h"
 #include "CEdit.h"
 

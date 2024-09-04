@@ -79,6 +79,9 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FloatingPointModel>Precise</FloatingPointModel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -102,6 +105,9 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -122,6 +128,9 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FloatingPointModel>Precise</FloatingPointModel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -146,6 +155,9 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -287,6 +299,7 @@
     <ClInclude Include="eck\LunarDateLib.h" />
     <ClInclude Include="eck\MathHelper.h" />
     <ClInclude Include="eck\ProcThrdHelper.h" />
+    <ClInclude Include="eck\CRelativeLayout.h" />
     <ClInclude Include="eck\ResStruct.h" />
     <ClInclude Include="eck\ShellHelper.h" />
     <ClInclude Include="eck\SystemHelper.h" />
@@ -297,10 +310,11 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CTestWnd.cpp" />
     <ClCompile Include="eck\CScrollBar.h" />
     <ClCompile Include="eck\DesignerDef.cpp" />
     <ClCompile Include="eck\ECK.cpp" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="t_main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Win32Template.rc" />

@@ -429,6 +429,9 @@
     <ClInclude Include="eck\CHitter.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\CRelativeLayout.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">
@@ -440,7 +443,10 @@
     <ClCompile Include="eck\DesignerDef.cpp">
       <Filter>ECK Src</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="t_main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CTestWnd.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

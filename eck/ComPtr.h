@@ -46,7 +46,7 @@ private:
 			return 0;
 	}
 public:
-	constexpr ComPtr() noexcept {}
+	ComPtr() = default;
 
 	constexpr ComPtr(std::nullptr_t) noexcept {}
 
