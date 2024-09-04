@@ -7,7 +7,7 @@
 */
 #pragma once
 #include "CRefStr.h"
-#include "ComPtr.h"
+#include "ImageHelper.h"
 
 ECK_NAMESPACE_BEGIN
 inline CRefStrW GetClipboardString(HWND hWnd = NULL)
@@ -19,7 +19,7 @@ inline CRefStrW GetClipboardString(HWND hWnd = NULL)
 	}
 	if (IsClipboardFormatAvailable(CF_UNICODETEXT))
 	{
-		const HANDLE hData = GetClipboardData(CF_UNICODETEXT);
+		const HGLOBAL hData = GetClipboardData(CF_UNICODETEXT);
 		if (hData)
 		{
 			int cch = (int)(GlobalSize(hData) / sizeof(WCHAR));
@@ -69,6 +69,59 @@ inline BOOL SetClipboardString(PCWSTR pszText, int cch = -1, HWND hWnd = NULL)
 	}
 	CloseClipboard();
 	return FALSE;
+}
+
+inline HBITMAP GetClipboardBitmap(HWND hWnd = NULL)
+{
+	if (!OpenClipboard(hWnd))
+	{
+		EckDbgPrintFmt(L"剪贴板打开失败，当前所有者 = %p", GetClipboardOwner());
+		return NULL;
+	}
+	if (IsClipboardFormatAvailable(CF_DIB))
+	{
+		const HANDLE hData = GetClipboardData(CF_DIB);
+		if (hData)
+		{
+			const auto cb = GlobalSize(hData);
+			if (cb >= sizeof(BITMAPINFOHEADER))
+			{
+				const void* pData = GlobalLock(hData);
+				if (pData)
+				{
+					CDib dib{};
+					dib.Create(pData);
+					GlobalUnlock(hData);
+					CloseClipboard();
+					return dib.Detach();
+				}
+			}
+		}
+	}
+	CloseClipboard();
+	return {};
+}
+
+inline CRefBin GetClipboardDib(HWND hWnd = NULL)
+{
+	if (!OpenClipboard(hWnd))
+	{
+		EckDbgPrintFmt(L"剪贴板打开失败，当前所有者 = %p", GetClipboardOwner());
+		return {};
+	}
+	if (IsClipboardFormatAvailable(CF_DIB))
+	{
+		const HGLOBAL hData = GetClipboardData(CF_DIB);
+		if (hData)
+		{
+			CRefBin rb(GlobalLock(hData), GlobalSize(hData));
+			GlobalUnlock(hData);
+			CloseClipboard();
+			return rb;
+		}
+	}
+	CloseClipboard();
+	return {};
 }
 
 inline HRESULT CreateShortcut(PCWSTR pszLinkFile, PCWSTR pszTarget, int iCmdShow = SW_SHOW,

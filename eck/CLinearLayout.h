@@ -15,13 +15,18 @@ enum
 	LLF_FIXWIDTH = 1u << 0,
 	// 固定高度
 	LLF_FIXHEIGHT = 1u << 1,
+	// 固定大小
+	LLF_FIXSIZE = LLF_FIXWIDTH | LLF_FIXHEIGHT,
+
 	// 宽度占据剩余部分
 	LLF_FILLWIDTH = 1u << 2,
 	// 高度占据剩余部分
 	LLF_FILLHEIGHT = 1u << 3,
+	// 大小占据剩余部分
+	LLF_FILLSIZE = LLF_FILLWIDTH | LLF_FILLHEIGHT,
 };
 
-class CLinearLayout :public CLayoutBase
+class CLinearLayoutBase :public CLayoutBase
 {
 protected:
 	struct CTRL
@@ -58,7 +63,7 @@ public:
 	EckInline constexpr Align GetAlign() const { return m_eAlign; }
 };
 
-class CLinearLayoutV :public CLinearLayout
+class CLinearLayoutV :public CLinearLayoutBase
 {
 public:
 	void LoCommit() override
@@ -153,7 +158,7 @@ public:
 	}
 };
 
-class CLinearLayoutH :public CLinearLayout
+class CLinearLayoutH :public CLinearLayoutBase
 {
 public:
 	void LoCommit() override

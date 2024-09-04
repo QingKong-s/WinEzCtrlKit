@@ -10,6 +10,7 @@
 #include "CMemWalker.h"
 #include "CException.h"
 #include "ILayout.h"
+#include "CSignal.h"
 
 ECK_NAMESPACE_BEGIN
 enum :UINT
@@ -100,6 +101,11 @@ protected:
 		SUBCLSNF_DELETED = (1u << 1),
 	};
 
+#ifdef _DEBUG
+public:
+	CRefStrW DbgTag{};
+protected:
+#endif
 	HWND m_hWnd{};
 	WNDPROC m_pfnRealProc{ DefWindowProcW };
 	MSG_HOOK_NODE* m_pMsgHookHead{};

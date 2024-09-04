@@ -25,7 +25,7 @@ enum
 	FLF_ALIGNBOTTOM = 1u << 4,
 };
 
-class CFlowLayout :public CLayoutBase
+class CFlowLayoutH :public CLayoutBase
 {
 private:
 	struct ITEM
