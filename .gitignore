@@ -373,3 +373,5 @@ FodyWeavers.xsd
 /CTestWnd.h
 /main.cpp
 /CTestWnd.h
+/CTestWnd.cpp
+/t_main.cpp
