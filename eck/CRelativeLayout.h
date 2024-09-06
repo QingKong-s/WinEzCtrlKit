@@ -14,32 +14,22 @@
 ECK_NAMESPACE_BEGIN
 enum :UINT
 {
-	RLF_FIXWIDTH = 1u << 0,	// 固定宽度
-	RLF_FIXHEIGHT = 1u << 1,// 固定高度
-	RLF_FIXSIZE = RLF_FIXWIDTH | RLF_FIXHEIGHT,// 固定大小
-
 	// 以下标志指示四边确定性，一般仅供内部使用
-
-	RLF_DTM_L = 1u << 31,
-	RLF_DTM_R = 1u << 30,
-	RLF_DTM_T = 1u << 29,
-	RLF_DTM_B = 1u << 28,
+	RLF_DTM_L = 1u << 31,// 左边确定
+	RLF_DTM_R = 1u << 30,// 右边确定
+	RLF_DTM_T = 1u << 29,// 上边确定
+	RLF_DTM_B = 1u << 28,// 下边确定
 
 	RLF_DTM_ALL = RLF_DTM_L | RLF_DTM_R | RLF_DTM_T | RLF_DTM_B,
 };
 
 #define ECK_RL_PARENT ((ILayout*)((UINT_PTR)-1))
 
-class CRelativeLayout : public CLayoutBase
+class CRelativeLayout final :public CLayoutBase
 {
 private:
-	struct ITEM
+	struct ITEM : public ITEMBASE
 	{
-		ILayout* pCtrl;
-		MARGINS Margin;
-		UINT uFlags;
-		int cx;
-		int cy;
 		RECT rcTemp;
 		ILayout* pLeftOf;
 		ILayout* pRightOf;
@@ -56,13 +46,13 @@ private:
 public:
 	EckInline ITEM& Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0)
 	{
-		const auto [cx, cy] = pCtrl->LoGetSize();
 		auto& e = m_hmItem[pCtrl];
 		e.pCtrl = pCtrl;
 		e.Margin = Margin;
 		e.uFlags = uFlags;
-		e.cx = cx;
-		e.cy = cy;
+		const auto size = e.pCtrl->LoGetSize();
+		e.cx = (short)size.first;
+		e.cy = (short)size.second;
 		return e;
 	}
 
@@ -73,17 +63,25 @@ public:
 		size_t cNoDetermined{ m_hmItem.size() };
 		for (auto& [_, e] : m_hmItem)
 		{
-			e.rcTemp = { .right = e.cx,.bottom = e.cy };
+			e.rcTemp.left = e.rcTemp.top = 0;
+			if (e.uFlags & LF_FIX_WIDTH)
+				e.rcTemp.right = e.cx;
+			else
+				e.rcTemp.right = m_cx;
+			if (e.uFlags & LF_FIX_HEIGHT)
+				e.rcTemp.bottom = e.cy;
+			else
+				e.rcTemp.bottom = m_cy;
+
 			e.uFlags &= ~RLF_DTM_ALL;
 
-			if (e.uFlags & RLF_FIXWIDTH)
+			if (e.uFlags & LF_FIX_WIDTH)
 			{
 				if (!e.pLeftOf && !e.pRightAlign && !e.pRightOf && !e.pLeftAlign)
 				{
-					e.uFlags |= RLF_DTM_R;
-					//e.rcTemp.left = e.Margin.cxLeftWidth;
-					e.uFlags |= RLF_DTM_L;
-					//e.rcTemp.right = m_cx - e.Margin.cxRightWidth;
+					e.uFlags |= (RLF_DTM_R | RLF_DTM_L);
+					e.rcTemp.left = e.Margin.cxLeftWidth;
+					e.rcTemp.right = e.rcTemp.left + e.cx;
 				}
 			}
 			else
@@ -100,14 +98,13 @@ public:
 				}
 			}
 
-			if (e.uFlags & RLF_FIXHEIGHT)
+			if (e.uFlags & LF_FIX_HEIGHT)
 			{
 				if (!e.pTopOf && !e.pBottomAlign && !e.pBottomOf && !e.pTopAlign)
 				{
-					e.uFlags |= RLF_DTM_B;
-					//e.rcTemp.top = e.Margin.cyTopHeight;
-					e.uFlags |= RLF_DTM_T;
-					//e.rcTemp.bottom = m_cy - e.Margin.cyBottomHeight;
+					e.uFlags |= (RLF_DTM_B | RLF_DTM_T);
+					e.rcTemp.top = e.Margin.cyTopHeight;
+					e.rcTemp.bottom = e.rcTemp.top + e.cy;
 				}
 			}
 			else
@@ -154,7 +151,7 @@ public:
 								goto EndR;
 						}
 						e.rcTemp.right = t + e.Margin.cxLeftWidth;
-						if (e.uFlags & RLF_FIXWIDTH)
+						if (e.uFlags & LF_FIX_WIDTH)
 							e.rcTemp.left = e.rcTemp.right - e.cx;
 						e.uFlags |= RLF_DTM_R;
 					}
@@ -176,13 +173,13 @@ public:
 									goto EndR;
 							}
 						}
-						if (e.uFlags & RLF_FIXWIDTH)
+						if (e.uFlags & LF_FIX_WIDTH)
 							e.rcTemp.left = e.rcTemp.right - e.cx;
 						e.uFlags |= RLF_DTM_R;
 					}
 					else
 					{
-						if (e.uFlags & RLF_FIXWIDTH)
+						if (e.uFlags & LF_FIX_WIDTH)
 						{
 							if (e.uFlags & RLF_DTM_L)
 								e.uFlags |= RLF_DTM_R;
@@ -209,7 +206,7 @@ public:
 								goto EndL;
 						}
 						e.rcTemp.left = t + e.Margin.cxLeftWidth;
-						if (e.uFlags & RLF_FIXWIDTH)
+						if (e.uFlags & LF_FIX_WIDTH)
 							e.rcTemp.right = e.rcTemp.left + e.cx;
 						e.uFlags |= RLF_DTM_L;
 					}
@@ -230,13 +227,13 @@ public:
 									goto EndL;
 							}
 						}
-						if (e.uFlags & RLF_FIXWIDTH)
+						if (e.uFlags & LF_FIX_WIDTH)
 							e.rcTemp.right = e.rcTemp.left + e.cx;
 						e.uFlags |= RLF_DTM_L;
 					}
 					else
 					{
-						if (e.uFlags & RLF_FIXWIDTH)
+						if (e.uFlags & LF_FIX_WIDTH)
 						{
 							if (e.uFlags & RLF_DTM_R)
 								e.uFlags |= RLF_DTM_L;
@@ -249,10 +246,6 @@ public:
 
 				if (!(e.uFlags & RLF_DTM_B))
 				{
-					//if (wcscmp(((CWnd*)e.pCtrl)->m_pszDbgTag, L"按钮3") == 0)
-					//{
-					//	int a{};
-					//}
 					if (e.pTopOf)
 					{
 						EckAssert(e.pLeftOf != ECK_RL_PARENT);
@@ -267,7 +260,7 @@ public:
 								goto EndB;
 						}
 						e.rcTemp.bottom = t - e.Margin.cyBottomHeight;
-						if (e.uFlags & RLF_FIXHEIGHT)
+						if (e.uFlags & LF_FIX_HEIGHT)
 							e.rcTemp.top = e.rcTemp.bottom - e.cy;
 						e.uFlags |= RLF_DTM_B;
 					}
@@ -289,15 +282,15 @@ public:
 									goto EndB;
 							}
 						}
-						if (e.uFlags & RLF_FIXHEIGHT)
+						if (e.uFlags & LF_FIX_HEIGHT)
 							e.rcTemp.top = e.rcTemp.bottom - e.cy;
 						e.uFlags |= RLF_DTM_B;
 					}
 					else
 					{
-						if (e.uFlags & RLF_FIXHEIGHT)
+						if (e.uFlags & LF_FIX_HEIGHT)
 						{
-							if(e.uFlags & RLF_DTM_T)
+							if (e.uFlags & RLF_DTM_T)
 								e.uFlags |= RLF_DTM_B;
 						}
 						else
@@ -322,7 +315,7 @@ public:
 								goto EndT;
 						}
 						e.rcTemp.top = t + e.Margin.cyTopHeight;
-						if (e.uFlags & RLF_FIXHEIGHT)
+						if (e.uFlags & LF_FIX_HEIGHT)
 							e.rcTemp.bottom = e.rcTemp.top + e.cy;
 						e.uFlags |= RLF_DTM_T;
 					}
@@ -343,13 +336,13 @@ public:
 									goto EndT;
 							}
 						}
-						if (e.uFlags & RLF_FIXHEIGHT)
+						if (e.uFlags & LF_FIX_HEIGHT)
 							e.rcTemp.bottom = e.rcTemp.top + e.cy;
 						e.uFlags |= RLF_DTM_T;
 					}
 					else
 					{
-						if (e.uFlags & RLF_FIXHEIGHT)
+						if (e.uFlags & LF_FIX_HEIGHT)
 						{
 							if (e.uFlags & RLF_DTM_B)
 								e.uFlags |= RLF_DTM_T;
@@ -380,10 +373,31 @@ public:
 					e.rcTemp.right - e.rcTemp.left, e.rcTemp.bottom - e.rcTemp.top,
 					SWP_NOZORDER | SWP_NOACTIVATE);
 			else
+			{
 				pCtrl->LoSetPosSize(e.rcTemp.left, e.rcTemp.top,
 					e.rcTemp.right - e.rcTemp.left, e.rcTemp.bottom - e.rcTemp.top);
+				pCtrl->LoCommit();
+			}
 		}
 		PostArrange(hDwp);
 	}
+
+	void Clear() override
+	{
+		CLayoutBase::Clear();
+		m_hmItem.clear();
+	}
+
+	void Refresh() override
+	{
+		for (auto& [_, e] : m_hmItem)
+		{
+			const auto size = e.pCtrl->LoGetSize();
+			e.cx = (short)size.first;
+			e.cy = (short)size.second;
+		}
+	}
+
+	EckInline constexpr auto& GetList() { return m_hmItem; }
 };
 ECK_NAMESPACE_END

@@ -8,186 +8,131 @@
 #pragma once
 #include "CLayoutBase.h"
 
-enum :UINT
-{
-	// 固定宽度或高度，若未设置该标志，则将其宽度或高度充满到布局尺寸
-	SLF_FIXWH = 1u << 0,
-};
-
 ECK_NAMESPACE_BEGIN
 class CSplitLayout :public CLayoutBase
 {
 protected:
-	struct CTRL
+	struct ITEM :public ITEMBASE
 	{
-		ILayout* pCtrl;
-		MARGINS Margin;
-		UINT uFlags;
-		Align eAlign;
-		short cx;
-		short cy;
 		UINT uWeight;
+
+		ITEM() = default;
+		constexpr ITEM(ILayout* pCtrl, const MARGINS& Margin, UINT uFlags, short cx, short cy,
+			UINT uWeight)
+			: ITEMBASE{ pCtrl, Margin, uFlags, cx, cy }, uWeight{ uWeight } {}
 	};
 
-	std::vector<CTRL> m_vCtrl{};
+	std::vector<ITEM> m_vItem{};
 	UINT m_uTotalWeight{};
 	BOOL m_bScaleMode{ TRUE };
 public:
-	EckInline void SetScaleMode(BOOL bScaleMode)
-	{
-		EckAssert(m_vCtrl.empty());
-		m_bScaleMode = bScaleMode;
-	}
+	EckInline constexpr void SetScaleMode(BOOL bScaleMode) { m_bScaleMode = bScaleMode; }
+
+	EckInline constexpr BOOL GetScaleMode() const { return m_bScaleMode; }
 
 	void Clear() override
 	{
 		CLayoutBase::Clear();
-		m_vCtrl.clear();
+		m_vItem.clear();
 		m_uTotalWeight = 0u;
 	}
+
+	EckInline constexpr auto& GetList() { return m_vItem; }
 };
 
-class CSplitLayoutH :public CSplitLayout
+class CSplitLayoutH final :public CSplitLayout
 {
 public:
 	void LoCommit() override
 	{
-		HDWP hDwp = PreArrange(m_vCtrl.size());
-		int x = m_x, y, cx, cy;
-		int cxLeave{};
-		UINT uTotalWeight{};
-
-		for (int i{}; const auto & e : m_vCtrl)
+		HDWP hDwp = PreArrange(m_vItem.size());
+		int x, y, cx, cy;
+		int xStep{ m_x }, cxTemp;
+		for (int i{}; const auto & e : m_vItem)
 		{
 			if (m_bScaleMode)
-				cx = e.uWeight * m_cx / m_uTotalWeight;
+				cxTemp = e.uWeight * m_cx / m_uTotalWeight;
 			else
-				cx = ((i == (int)m_vCtrl.size() - 1) ? (m_cx - x) : (m_vCtrl[i + 1].uWeight - x));
-			cx -= (e.Margin.cxLeftWidth + e.Margin.cxRightWidth);
-			if (e.uFlags & SLF_FIXWH)
-			{
-				cy = e.cy;
-				switch (e.eAlign)
-				{
-				case Align::Near:
-					y = m_y + e.Margin.cyTopHeight;
-					break;
-				case Align::Center:
-					y = m_y + e.Margin.cyTopHeight +
-						(m_cy - (cy + e.Margin.cyTopHeight + e.Margin.cyBottomHeight)) / 2;
-					break;
-				case Align::Far:
-					y = m_y + m_cy - cy - e.Margin.cyTopHeight - e.Margin.cyBottomHeight;
-					break;
-				default:
-					ECK_UNREACHABLE;
-				}
-			}
-			else
-			{
-				cy = m_cy;
-				y = m_y + e.Margin.cyTopHeight;
-			}
-
-			x += e.Margin.cxLeftWidth;
-
-			const auto hWnd = e.pCtrl->LoGetHWND();
-			if (hWnd)
-			{
-				hDwp = DeferWindowPos(hDwp, hWnd, NULL,
-					x, y, cx, cy, SWP_NOZORDER | SWP_NOACTIVATE);
-			}
-			else
-			{
-				e.pCtrl->LoSetPosSize(x, y, cx, cy);
-				e.pCtrl->LoCommit();
-			}
-			x += (cx + e.Margin.cxRightWidth);
+				cxTemp = ((i == (int)m_vItem.size() - 1) ?
+					(m_cx - xStep) : (m_vItem[i + 1].uWeight - xStep));
+			CalcCtrlPosSize(e, { xStep,m_y,cxTemp,m_cy }, x, y, cx, cy);
+			MoveCtrlPosSize(e, hDwp, x, y, cx, cy);
+			xStep += cxTemp;
 		}
 		PostArrange(hDwp);
 	}
 
-	void Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u,
-		UINT uWeight = 0u, Align eAlign = Align::Near)
+	void Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u, UINT uWeight = 0u)
 	{
 		const auto size = pCtrl->LoGetSize();
-		m_vCtrl.emplace_back(pCtrl, Margin, uFlags, eAlign,
+		m_vItem.emplace_back(pCtrl, Margin, uFlags,
+			(short)size.first, (short)size.second, uWeight);
+		m_uTotalWeight += uWeight;
+		m_cx += (size.first + Margin.cxLeftWidth + Margin.cxRightWidth);
+		m_cy = std::max(m_cy, size.second + Margin.cyTopHeight + Margin.cyBottomHeight);
+	}
+
+	void Refresh() override
+	{
+		m_uTotalWeight = 0u;
+		m_cx = m_cy = 0;
+		for (auto& e : m_vItem)
+		{
+			const auto size = e.pCtrl->LoGetSize();
+			e.cx = (short)size.first;
+			e.cy = (short)size.second;
+			m_uTotalWeight += e.uWeight;
+			m_cx += (size.first + e.Margin.cxLeftWidth + e.Margin.cxRightWidth);
+			m_cy = std::max(m_cy, size.second + e.Margin.cyTopHeight + e.Margin.cyBottomHeight);
+		}
+	}
+};
+
+class CSplitLayoutV final :public CSplitLayout
+{
+public:
+	void LoCommit() override
+	{
+		HDWP hDwp = PreArrange(m_vItem.size());
+		int x, y, cx, cy;
+		int yStep{ m_y }, cyTemp;
+		for (int i{}; const auto & e : m_vItem)
+		{
+			if (m_bScaleMode)
+				cyTemp = e.uWeight * m_cy / m_uTotalWeight;
+			else
+				cyTemp = ((i == (int)m_vItem.size() - 1) ?
+					(m_cy - yStep) : (m_vItem[i + 1].uWeight - yStep));
+			CalcCtrlPosSize(e, { m_x,yStep,m_cx,cyTemp }, x, y, cx, cy);
+			MoveCtrlPosSize(e, hDwp, x, y, cx, cy);
+			yStep += cyTemp;
+		}
+		PostArrange(hDwp);
+	}
+
+	void Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u, UINT uWeight = 0u)
+	{
+		const auto size = pCtrl->LoGetSize();
+		m_vItem.emplace_back(pCtrl, Margin, uFlags,
 			(short)size.first, (short)size.second, uWeight);
 		m_uTotalWeight += uWeight;
 		m_cx += (size.first + Margin.cxLeftWidth + Margin.cxRightWidth);
 		m_cy = std::max(m_cy, size.second);
 	}
-};
 
-class CSplitLayoutV :public CSplitLayout
-{
-public:
-	void LoCommit() override
+	void Refresh() override
 	{
-		HDWP hDwp = PreArrange(m_vCtrl.size());
-		int x, y = m_y, cx, cy;
-		int cxLeave{};
-		UINT uTotalWeight{};
-
-		for (int i{}; const auto & e : m_vCtrl)
+		m_uTotalWeight = 0u;
+		m_cx = m_cy = 0;
+		for (auto& e : m_vItem)
 		{
-			if (m_bScaleMode)
-				cy = e.uWeight * m_cy / m_uTotalWeight;
-			else
-				cy = ((i == (int)m_vCtrl.size() - 1) ? (m_cy - y) : (m_vCtrl[i + 1].uWeight - y));
-			cy -= (e.Margin.cyTopHeight + e.Margin.cyBottomHeight);
-			if (e.uFlags & SLF_FIXWH)
-			{
-				cx = e.cx;
-				switch (e.eAlign)
-				{
-				case Align::Near:
-					x = m_x + e.Margin.cxLeftWidth;
-					break;
-				case Align::Center:
-					x = m_x + e.Margin.cxLeftWidth +
-						(m_cx - (cx + e.Margin.cxLeftWidth + e.Margin.cxRightWidth)) / 2;
-					break;
-				case Align::Far:
-					x = m_x + m_cx - cx - e.Margin.cxRightWidth - e.Margin.cxLeftWidth;
-					break;
-				default:
-					ECK_UNREACHABLE;
-				}
-			}
-			else
-			{
-				cx = m_cx;
-				x = m_x + e.Margin.cxLeftWidth;
-			}
-
-			y += e.Margin.cyTopHeight;
-
-			const auto hWnd = e.pCtrl->LoGetHWND();
-			if (hWnd)
-			{
-				hDwp = DeferWindowPos(hDwp, hWnd, NULL,
-					x, y, cx, cy, SWP_NOZORDER | SWP_NOACTIVATE);
-			}
-			else
-			{
-				e.pCtrl->LoSetPosSize(x, y, cx, cy);
-				e.pCtrl->LoCommit();
-			}
-			y += (cy + e.Margin.cyBottomHeight);
+			const auto size = e.pCtrl->LoGetSize();
+			e.cx = (short)size.first;
+			e.cy = (short)size.second;
+			m_uTotalWeight += e.uWeight;
+			m_cx += (size.first + e.Margin.cxLeftWidth + e.Margin.cxRightWidth);
+			m_cy = std::max(m_cy, size.second + e.Margin.cyTopHeight + e.Margin.cyBottomHeight);
 		}
-		PostArrange(hDwp);
-	}
-
-	void Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u,
-		UINT uWeight = 0u, Align eAlign = Align::Near)
-	{
-		const auto size = pCtrl->LoGetSize();
-		m_vCtrl.emplace_back(pCtrl, Margin, uFlags, eAlign,
-			(short)size.first, (short)size.second, uWeight);
-		m_uTotalWeight += uWeight;
-		m_cx += (size.first + Margin.cxLeftWidth + Margin.cxRightWidth);
-		m_cy = std::max(m_cy, size.second);
 	}
 };
 ECK_NAMESPACE_END

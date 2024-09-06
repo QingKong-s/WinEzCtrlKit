@@ -173,6 +173,7 @@
   <ItemGroup>
     <ClInclude Include="CTestWnd.h" />
     <ClInclude Include="eck\CHitter.h" />
+    <ClInclude Include="eck\CTableLayout.h" />
     <ClInclude Include="eck\Json.h" />
     <ClInclude Include="eck\CSignal.h" />
     <ClInclude Include="eck\CAllocator.h" />
