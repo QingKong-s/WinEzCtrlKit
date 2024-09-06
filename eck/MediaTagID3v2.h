@@ -2826,14 +2826,14 @@ public:
 				const auto cbPrependOld = (m_SeekVal == SIZETMax ? m_cbTag : m_cbPrependTag);
 				if (cbPrependOld < cbPrependTotal)
 				{
-					m_Stream.Insert(ToUli(m_File.m_Loc.posV2 + 10 + m_cbPrependTag),
-						ToUli(rbPrepend.Size() - m_cbPrependTag));
+					m_Stream.Insert(m_File.m_Loc.posV2 + 10 + m_cbPrependTag,
+						rbPrepend.Size() - m_cbPrependTag);
 				}
 				else
 				{
 					if (cbPadding = cbPrependOld - cbPrependTotal)
 					{
-						if (bAllowPadding && cbPadding < 1024 && rbAppend.IsEmpty())
+						if (bAllowPadding && cbPadding <= 1024 && rbAppend.IsEmpty())
 						{
 							m_Stream.MoveTo(m_File.m_Loc.posV2 + 10 + rbPrepend.Size());
 							void* p = VAlloc(cbPadding);
@@ -2843,8 +2843,7 @@ public:
 						}
 						else
 						{
-							m_Stream.Erase(ToUli(m_File.m_Loc.posV2 + 10 + rbPrepend.Size()),
-								ToUli(cbPadding));
+							m_Stream.Erase(m_File.m_Loc.posV2 + 10 + rbPrepend.Size(), cbPadding);
 							cbPadding = 0u;
 						}
 					}

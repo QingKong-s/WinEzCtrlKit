@@ -474,23 +474,24 @@ private:
 
 	struct TAG_LOCATION
 	{
-		SIZE_T posV2{ SIZETMax };
-		SIZE_T posV2Footer{ SIZETMax };
-		SIZE_T posV2FooterHdr{ SIZETMax };
-		SIZE_T cbID3v2{};// 若无标签头则为0，若有标签头则与头中的Size字段相同，不处理预置/追加组合的判长
+		SIZE_T posV2{ SIZETMax };		// ID3v2标签头的位置
+		SIZE_T posV2Footer{ SIZETMax };		// ID3v2标签尾内容的位置
+		SIZE_T posV2FooterHdr{ SIZETMax };	// ID3v2标签尾结构位置
+		SIZE_T cbID3v2{};				// 若无标签头则为0，若有标签头则与头中的Size字段相同，不处理预置/追加组合的判长
 
-		SIZE_T posV1{ SIZETMax };
-		SIZE_T posV1Ext{ SIZETMax };
+		SIZE_T posV1{ SIZETMax };		// ID3v1位置
+		SIZE_T posV1Ext{ SIZETMax };	// 扩展ID3v1位置
 
-		SIZE_T posApeHdr{ SIZETMax };
-		SIZE_T posApe{ SIZETMax };
-		SIZE_T posApeTag{ SIZETMax };
-		SIZE_T cbApeTag{};
+		SIZE_T posApeHdr{ SIZETMax };	// APE标签头/尾结构的位置
+		SIZE_T posApe{ SIZETMax };		// APE标签内容开始位置
+		SIZE_T posApeTag{ SIZETMax };	// APE标签开始位置
+		SIZE_T cbApeTag{};				// 整个标签的大小
+		BOOL bPrependApe{};				// 是否为预置APE标签
 
-		SIZE_T posFlac{ SIZETMax };
+		SIZE_T posFlac{ SIZETMax };		// Flac标签头位置
 	}  m_Loc{};
 
-	UINT DetectID3()
+	UINT DetectID3_APE()
 	{
 		m_Loc = TAG_LOCATION{};
 
@@ -544,6 +545,7 @@ private:
 				else
 					m_Loc.posApeTag = m_Loc.posApe;
 				uRet |= TAG_APE;
+				m_Loc.bPrependApe = FALSE;
 			}
 			else
 			{
@@ -554,6 +556,8 @@ private:
 					m_Loc.posApe = 32u;
 					m_Loc.posApeTag = m_Loc.posApeHdr;
 					m_Loc.cbApeTag = Hdr.cbBody + 32u;
+					uRet |= TAG_APE;
+					m_Loc.bPrependApe = TRUE;
 				}
 			}
 		}
@@ -575,17 +579,58 @@ private:
 			}
 			else
 			{
-				SIZE_T cbFrames{};
-				// 若未找到标签头，则应从尾部扫描，检查是否有追加标签
-				if (m_Loc.posV1Ext != SIZETMax)
+				// TODO:检查ape前后
 				{
-					if (cbSize > 128u + 227u + 10u)
+					SIZE_T cbFrames{};
+					// 若未找到标签头，则应从尾部扫描，检查是否有追加标签
+					if (m_Loc.posV1Ext != SIZETMax)
 					{
-						w.MoveTo(m_Loc.posV1Ext - 10) >> hdr;
+						if (cbSize > 128u + 227u + 10u)
+						{
+							w.MoveTo(m_Loc.posV1Ext - 10) >> hdr;
+							if (memcmp(hdr.Header, "3DI", 3u) == 0 && IsLegalID3v2Header(hdr))
+							{
+								cbFrames = SynchSafeIntToDWORD(hdr.Size);
+								if (cbSize >= 128u + 227u + 10u + cbFrames)
+								{
+									m_Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
+									m_Loc.posV2Footer = m_Loc.posV2FooterHdr - cbFrames;
+									if (hdr.Ver == 3)
+										uRet |= TAG_ID3V2_3;
+									else if (hdr.Ver == 4)
+										uRet |= TAG_ID3V2_4;
+								}
+							}
+						}
+					}
+					else if (m_Loc.posV1 != SIZETMax)
+					{
+						if (cbSize > 128u + 10u)
+						{
+							w.MoveTo(m_Loc.posV1 - 10) >> hdr;
+							if (memcmp(hdr.Header, "3DI", 3u) == 0 && IsLegalID3v2Header(hdr))
+							{
+								cbFrames = SynchSafeIntToDWORD(hdr.Size);
+								if (cbSize >= 128u + 10u + cbFrames)
+								{
+									m_Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
+									m_Loc.posV2Footer = m_Loc.posV2FooterHdr - cbFrames;
+									if (hdr.Ver == 3)
+										uRet |= TAG_ID3V2_3;
+									else if (hdr.Ver == 4)
+										uRet |= TAG_ID3V2_4;
+								}
+							}
+						}
+					}
+					else
+					{
+						w->Seek(ToLi(-10), STREAM_SEEK_END, NULL);
+						w >> hdr;
 						if (memcmp(hdr.Header, "3DI", 3u) == 0 && IsLegalID3v2Header(hdr))
 						{
 							cbFrames = SynchSafeIntToDWORD(hdr.Size);
-							if (cbSize >= 128u + 227u + 10u + cbFrames)
+							if (cbSize >= 10u + cbFrames)
 							{
 								m_Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
 								m_Loc.posV2Footer = m_Loc.posV2FooterHdr - cbFrames;
@@ -596,47 +641,9 @@ private:
 							}
 						}
 					}
-				}
-				else if (m_Loc.posV1 != SIZETMax)
-				{
-					if (cbSize > 128u + 10u)
-					{
-						w.MoveTo(m_Loc.posV1 - 10) >> hdr;
-						if (memcmp(hdr.Header, "3DI", 3u) == 0 && IsLegalID3v2Header(hdr))
-						{
-							cbFrames = SynchSafeIntToDWORD(hdr.Size);
-							if (cbSize >= 128u + 10u + cbFrames)
-							{
-								m_Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
-								m_Loc.posV2Footer = m_Loc.posV2FooterHdr - cbFrames;
-								if (hdr.Ver == 3)
-									uRet |= TAG_ID3V2_3;
-								else if (hdr.Ver == 4)
-									uRet |= TAG_ID3V2_4;
-							}
-						}
-					}
-				}
-				else
-				{
-					w->Seek(ToLi(-10), STREAM_SEEK_END, NULL);
-					w >> hdr;
-					if (memcmp(hdr.Header, "3DI", 3u) == 0 && IsLegalID3v2Header(hdr))
-					{
-						cbFrames = SynchSafeIntToDWORD(hdr.Size);
-						if (cbSize >= 10u + cbFrames)
-						{
-							m_Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
-							m_Loc.posV2Footer = m_Loc.posV2FooterHdr - cbFrames;
-							if (hdr.Ver == 3)
-								uRet |= TAG_ID3V2_3;
-							else if (hdr.Ver == 4)
-								uRet |= TAG_ID3V2_4;
-						}
-					}
-				}
 
-				m_Loc.cbID3v2 = cbFrames;
+					m_Loc.cbID3v2 = cbFrames;
+				}
 			}
 
 			if (m_Loc.cbID3v2 && m_Loc.posApe == SIZETMax)
@@ -652,6 +659,7 @@ private:
 						m_Loc.posApeTag = m_Loc.posApeHdr;
 						m_Loc.cbApeTag = Hdr.cbBody + 32u;
 						uRet |= TAG_APE;
+						m_Loc.bPrependApe = TRUE;
 					}
 				}
 				else if (m_Loc.posV2Footer != SIZETMax &&
@@ -671,6 +679,7 @@ private:
 						else
 							m_Loc.posApeTag = m_Loc.posApe;
 						uRet |= TAG_APE;
+						m_Loc.bPrependApe = FALSE;
 					}
 					else
 					{
@@ -692,6 +701,7 @@ private:
 								else
 									m_Loc.posApeTag = m_Loc.posApe;
 								uRet |= TAG_APE;
+								m_Loc.bPrependApe = FALSE;
 							}
 						}
 					}
@@ -728,12 +738,14 @@ public:
 	CMediaFile(IStream* pStream) : m_pStream{ pStream }
 	{
 		m_pStream->AddRef();
+		DetectTag();
 	}
 
 	CMediaFile(PCWSTR pszFile, DWORD grfMode = STGM_READWRITE,
 		DWORD dwAttr = FILE_ATTRIBUTE_NORMAL, BOOL bCreate = FALSE)
 	{
 		SHCreateStreamOnFileEx(pszFile, grfMode, dwAttr, bCreate, NULL, &m_pStream);
+		DetectTag();
 	}
 
 	~CMediaFile() { m_pStream->Release(); }
@@ -746,7 +758,7 @@ public:
 	{
 		m_Loc = {};
 		m_uTagType = 0u;
-		m_uTagType |= DetectID3();
+		m_uTagType |= DetectID3_APE();
 		if (DetectFlac())
 			m_uTagType |= TAG_FLAC;
 		return m_uTagType;
