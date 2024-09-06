@@ -14,7 +14,7 @@ struct NoIntercept_T {};
 
 /// <summary>
 /// 信号。
-/// 应自行管理槽所关联对象与信号的生命周期，每个槽带有一个ID，其中CSignal::Top=(UINT_PTR)-1保留
+/// 应自行管理槽所关联对象与信号的生命周期
 /// </summary>
 /// <typeparam name="TIntercept">设为Intercept_T以指示信号可被拦截，在槽的尾部增加bProcessed参数指示是否拦截</typeparam>
 /// <typeparam name="TRet">返回值类型</typeparam>
@@ -41,8 +41,6 @@ public:
 		std::function<TRet(TArgs..., BOOL& bProcessed)>,
 		std::function<TRet(TArgs...)>
 	>;
-
-	constexpr static UINT_PTR Top = (UINT_PTR)-1;
 private:
 	struct NODE
 	{
@@ -67,8 +65,9 @@ public:
 	/// 发射
 	/// </summary>
 	/// <param name="...args">参数</param>
+	/// <param name="bProcessed">是否被拦截</param>
 	/// <returns>若某槽拦截信号，则返回该槽的返回值，否则返回返回值类型的默认构造结果</returns>
-	TRet Emit(TArgs&& ...args)
+	TRet Emit2([[maybe_unused]] BOOL& bProcessed, TArgs ...args)
 	{
 		if (m_pHead)
 		{
@@ -83,21 +82,19 @@ public:
 				{
 					if constexpr (std::is_same_v<TRet, void>)
 					{
-						BOOL bProcessed = FALSE;
-						pNode->fn(std::forward<TArgs>(args)..., bProcessed);
+						pNode->fn(args..., bProcessed);
 						if (bProcessed)
 							return;
 					}
 					else
 					{
-						BOOL bProcessed = FALSE;
-						const auto lResult = pNode->fn(std::forward<TArgs>(args)..., bProcessed);
+						const auto r = pNode->fn(args..., bProcessed);
 						if (bProcessed)
-							return lResult;
+							return r;
 					}
 				}
 				else
-					pNode->fn(std::forward<TArgs>(args)...);
+					pNode->fn(args...);
 				--pNode->cEnter;
 			} while (pNode = pNode->pNext);
 
@@ -131,6 +128,17 @@ public:
 		if constexpr (!std::is_same_v<TRet, void>)
 			return {};
 	}
+
+	/// <summary>
+	/// 发射
+	/// </summary>
+	/// <param name="...args">参数</param>
+	/// <returns>若某槽拦截信号，则返回该槽的返回值，否则返回返回值类型的默认构造结果</returns>
+	EckInline TRet Emit(TArgs ...args)
+	{
+		BOOL bProcessed{};
+		return Emit2(bProcessed, args...);
+	}
 private:
 	NODE* FindEntry(UINT_PTR uId) const
 	{
@@ -144,13 +152,12 @@ private:
 		return NULL;
 	}
 
-	void IntConnect(FProc&& fn, UINT_PTR uId, UINT_PTR uIdAfter)
+	void IntConnect(FProc&& fn, UINT_PTR uId, BOOL bInsertToEnd, UINT_PTR uIdAfter)
 	{
-		EckAssert(uId != Top);
 		const auto pNew = new NODE{ uId,std::move(fn) };
 		if (m_pHead)
 		{
-			if (uIdAfter == Top)
+			if (bInsertToEnd)
 			{
 				pNew->pNext = m_pHead;
 				m_pHead = pNew;
@@ -176,44 +183,47 @@ private:
 
 	template <class TCls, size_t... Index>
 	void IntConnect(TCls* pThis, FProcMethodPtr<TCls> pfnMethod, std::index_sequence<Index...>,
-		UINT_PTR uId, UINT_PTR uIdAfter)
+		UINT_PTR uId, BOOL bInsertToEnd, UINT_PTR uIdAfter)
 	{
-		IntConnect(std::bind(pfnMethod, pThis, std::_Ph<Index + 1>{}...), uId, uIdAfter);
+		IntConnect(std::bind(pfnMethod, pThis, std::_Ph<Index + 1>{}...), uId, bInsertToEnd, uIdAfter);
 	}
 public:
 	template<class TProc>
-	EckInline void Connect(TProc fn, UINT_PTR uId, UINT_PTR uIdAfter = Top)
+	EckInline void Connect(TProc fn, UINT_PTR uId, BOOL bInsertToEnd = TRUE, UINT_PTR uIdAfter = 0u)
 	{
-		IntConnect(fn, uId, uIdAfter);
+		IntConnect(fn, uId, bInsertToEnd, uIdAfter);
 	}
 
 	template<class TCls>
-	EckInline void Connect(TCls* pThis, FProcMethodPtr<TCls> pfnMethod, UINT_PTR uId, UINT_PTR uIdAfter = Top)
+	EckInline void Connect(TCls* pThis, FProcMethodPtr<TCls> pfnMethod, UINT_PTR uId,
+		BOOL bInsertToEnd = TRUE, UINT_PTR uIdAfter = 0u)
 	{
 		if constexpr (std::is_same_v<TIntercept, Intercept_T>)
-			IntConnect(pThis, pfnMethod, std::make_index_sequence<sizeof...(TArgs) + 1>{}, uId, uIdAfter);
+			IntConnect(pThis, pfnMethod, std::make_index_sequence<sizeof...(TArgs) + 1>{}, uId,
+				bInsertToEnd, uIdAfter);
 		else
-			IntConnect(pThis, pfnMethod, std::make_index_sequence<sizeof...(TArgs)>{}, uId, uIdAfter);
+			IntConnect(pThis, pfnMethod, std::make_index_sequence<sizeof...(TArgs)>{}, uId,
+				bInsertToEnd, uIdAfter);
 	}
 
-	EckInline void Connect(FProcPtr pfn, UINT_PTR uId, UINT_PTR uIdAfter = Top)
+	EckInline void Connect(FProcPtr pfn, UINT_PTR uId, BOOL bInsertToEnd = TRUE, UINT_PTR uIdAfter = 0u)
 	{
-		IntConnect(pfn, uId, uIdAfter);
+		IntConnect(pfn, uId, bInsertToEnd, uIdAfter);
 	}
 
-	EckInline void Connect(CSignal& sig, UINT_PTR uId, UINT_PTR uIdAfter = Top)
+	EckInline void Connect(CSignal& sig, UINT_PTR uId, BOOL bInsertToEnd = TRUE, UINT_PTR uIdAfter = 0u)
 	{
 		EckAssert(&sig != this);
 		if constexpr (std::is_same_v<TIntercept, Intercept_T>)
-			IntConnect([&](TArgs&& ...args, BOOL& bProcessed)->TRet
+			IntConnect([&](TArgs ...args, BOOL& bProcessed)->TRet
 				{
-					return sig.Emit(std::forward<TArgs>(args)...);
-				}, uId, uIdAfter);
+					return sig.Emit(args...);
+				}, uId, bInsertToEnd, uIdAfter);
 		else
-			IntConnect([&](TArgs&& ...args)->TRet
+			IntConnect([&](TArgs ...args)->TRet
 				{
-					sig.Emit(std::forward<TArgs>(args)...);
-				}, uId, uIdAfter);
+					sig.Emit(args...);
+				}, uId, bInsertToEnd, uIdAfter);
 	}
 
 	BOOL Disconnect(UINT_PTR uId)
