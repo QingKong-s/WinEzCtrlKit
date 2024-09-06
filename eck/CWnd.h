@@ -78,38 +78,17 @@ class CWnd :public ILayout
 {
 	friend HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc);
 public:
-	using FMsgHook = std::function<LRESULT(HWND, UINT, WPARAM, LPARAM, BOOL& bProcessed)>;
-
-	constexpr static UINT_PTR MsgHookTop = (UINT_PTR)-1;
-
 #ifdef ECK_CTRL_DESIGN_INTERFACE
 	DESIGNDATA_WND m_DDBase{};
 #endif
-protected:
-	struct MSG_HOOK_NODE
-	{
-		UINT_PTR uId;
-		FMsgHook fn;
-		MSG_HOOK_NODE* pNext;
-		UINT uFlags;
-		int cEnter;
-	};
-
-	enum :UINT
-	{
-		SUBCLSNF_PROTECTED = (1u << 0),
-		SUBCLSNF_DELETED = (1u << 1),
-	};
 
 #ifdef _DEBUG
-public:
 	CRefStrW DbgTag{};
-protected:
 #endif
+protected:
 	HWND m_hWnd{};
 	WNDPROC m_pfnRealProc{ DefWindowProcW };
-	MSG_HOOK_NODE* m_pMsgHookHead{};
-	int m_cMsgHookDeleted{};
+	CSignal<Intercept_T, LRESULT, HWND, UINT, WPARAM, LPARAM> m_Sig{};
 
 	EckInline HWND IntCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
@@ -164,50 +143,10 @@ protected:
 
 	EckInline LRESULT CallMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		if (m_pMsgHookHead)
-		{
-			auto pNode = m_pMsgHookHead;
-			do
-			{
-				if (pNode->uFlags & SUBCLSNF_DELETED)
-					continue;
-				++pNode->cEnter;
-				// CALL
-				BOOL bProcessed = FALSE;
-				const auto lResult = pNode->fn(hWnd, uMsg, wParam, lParam, bProcessed);
-				if (bProcessed)
-					return lResult;
-				--pNode->cEnter;
-
-			} while (pNode = pNode->pNext);
-
-			// 删除所有进入计数为0且标记为删除的节点
-			EckAssert(m_cMsgHookDeleted >= 0);
-			if (m_cMsgHookDeleted)
-			{
-				pNode = m_pMsgHookHead;
-				MSG_HOOK_NODE* pPrev{};
-				do
-				{
-					if (pNode->cEnter == 0 && pNode->uFlags & SUBCLSNF_DELETED)
-					{
-						if (pPrev)
-							pPrev->pNext = pNode->pNext;
-						else
-							m_pMsgHookHead = pNode->pNext;
-						const auto pNext = pNode->pNext;
-						delete pNode;
-						pNode = pNext;
-						--m_cMsgHookDeleted;
-					}
-					else
-					{
-						pPrev = pNode;
-						pNode = pNode->pNext;
-					}
-				} while (pNode);
-			}
-		}
+		BOOL bProcessed{};
+		const auto r = m_Sig.Emit2(bProcessed, hWnd, uMsg, wParam, lParam);
+		if (bProcessed)
+			return r;
 		return OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 public:
@@ -361,18 +300,6 @@ public:
 		if (m_hWnd)
 			EckAssert(((GetThreadCtx()->WmAt(m_hWnd) == this) ? (!m_hWnd) : TRUE));
 #endif // _DEBUG
-		// 清理消息钩子
-		if (m_pMsgHookHead)
-		{
-			auto pNode = m_pMsgHookHead;
-			do
-			{
-				const auto pNext = pNode->pNext;
-				delete pNode;
-				pNode = pNext;
-			} while (pNode);
-		}
-		m_cMsgHookDeleted = 0;
 	}
 
 	/// <summary>
@@ -1161,61 +1088,14 @@ public:
 		std::swap(m_pfnRealProc, pfnWndProc);
 		return pfnWndProc;
 	}
-private:
-	MSG_HOOK_NODE* FindMsgHook(UINT_PTR uId) const
-	{
-		auto p = m_pMsgHookHead;
-		while (p)
-		{
-			if (p->uId == uId)
-				return p;
-			p = p->pNext;
-		}
-		return NULL;
-	}
-public:
-	void InstallMsgHook(const FMsgHook& fn, UINT_PTR uId, UINT_PTR uIdAfter = MsgHookTop)
-	{
-		EckAssert(uId != MsgHookTop);
-		const auto pNew = new MSG_HOOK_NODE{ uId,fn };
-		if (m_pMsgHookHead)
-		{
-			if (uIdAfter == MsgHookTop)
-			{
-				pNew->pNext = m_pMsgHookHead;
-				m_pMsgHookHead = pNew;
-			}
-			else
-			{
-				const auto pAfter = FindMsgHook(uIdAfter);
-				if (pAfter)
-				{
-					pNew->pNext = pAfter->pNext;
-					pAfter->pNext = pNew;
-				}
-				else
-				{
-					pNew->pNext = m_pMsgHookHead;
-					m_pMsgHookHead = pNew;
-				}
-			}
-		}
-		else
-			m_pMsgHookHead = pNew;
-	}
-
-	void UnInstallMsgHook(UINT_PTR uId)
-	{
-		const auto p = FindMsgHook(uId);
-		if (p)
-			p->uFlags |= SUBCLSNF_DELETED;
-	}
 
 	EckInline void SetTopMost(BOOL bTopMost) const
 	{
-		SetWindowPos(m_hWnd, bTopMost ? HWND_TOPMOST : HWND_NOTOPMOST, 
+		SetWindowPos(m_hWnd, bTopMost ? HWND_TOPMOST : HWND_NOTOPMOST,
 			0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 	}
+
+	EckInline constexpr [[nodiscard]] auto& GetSignal() { return m_Sig; }
 };
 
 EckInline void AttachDlgItems(HWND hDlg, int cItem, CWnd* const* pWnd, const int* iId)

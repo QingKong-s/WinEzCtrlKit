@@ -9,8 +9,6 @@
 #include "CLayoutBase.h"
 #include "Utility.h"
 
-#include <stack>
-
 ECK_NAMESPACE_BEGIN
 enum :UINT
 {

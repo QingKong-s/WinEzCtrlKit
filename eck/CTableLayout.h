@@ -1,3 +1,10 @@
+/*
+* WinEzCtrlKit Library
+*
+* CTableLayout.h ： 表格布局
+*
+* Copyright(C) 2024 QingKong
+*/
 #pragma once
 #include "CLayoutBase.h"
 #include "CArray.h"
