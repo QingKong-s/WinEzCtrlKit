@@ -9,123 +9,295 @@
 #include "CLayoutBase.h"
 
 ECK_NAMESPACE_BEGIN
-enum
+enum :UINT
 {
-	// 固定宽度
-	FLF_FIXWIDTH = 1u << 0,
-	// 固定高度
-	FLF_FIXHEIGHT = 1u << 1,
 	// 在前方插入换行
-	FLF_BREAKLINE = 1u << 2,
-	// 对齐到所在行的顶边
-	FLF_ALIGNTOP = 1u << 3,
-	// 对齐到所在行的中间，这是默认值
-	FLF_ALIGNCENTER = 0,
-	// 对齐到所在行的底边
-	FLF_ALIGNBOTTOM = 1u << 4,
+	FLF_BREAKLINE = 1u << 15,
 };
 
-class CFlowLayoutH :public CLayoutBase
+class CFlowLayoutBase :public CLayoutBase
 {
-private:
-	struct ITEM
+protected:
+	struct ITEM :public ITEMBASE
 	{
-		ILayout* pCtrl;
-		UINT uFlags;
-		RECT rcPos;// 左顶宽高
+		RCWH rcPos;
+
+		ITEM() = default;
+		constexpr ITEM(ILayout* pCtrl, const MARGINS& Margin, UINT uFlags, short cx, short cy)
+			: ITEMBASE{ pCtrl, Margin, uFlags, cx, cy } {}
 	};
 
-	std::vector<ITEM> m_vCtrl{};
-
-	MARGINS m_LineMargin{};
-	int m_cxCtrlPadding{};
-	int m_cyCtrlPadding{};
+	std::vector<ITEM> m_vItem{};
 public:
-	EckInline int Add(ILayout* pCtrl, UINT uFlags = 0)
+	EckInline size_t Add(ILayout* pCtrl, const MARGINS& Margin = {}, const UINT uFlags = 0)
 	{
-		m_vCtrl.emplace_back(pCtrl, uFlags, RECT{});
-		return (int)m_vCtrl.size() - 1;
+		const auto size = pCtrl->LoGetSize();
+		m_vItem.emplace_back(pCtrl, Margin, uFlags, (short)size.first, (short)size.second);
+		return m_vItem.size() - 1;
 	}
 
+	void Refresh() override
+	{
+		for (auto& e : m_vItem)
+		{
+			const auto size = e.pCtrl->LoGetSize();
+			e.cx = (short)size.first;
+			e.cy = (short)size.second;
+		}
+	}
+
+	void Clear() override
+	{
+		CLayoutBase::Clear();
+		m_vItem.clear();
+	}
+
+	EckInline constexpr auto& GetList() { return m_vItem; }
+};
+
+class CFlowLayoutH final :public CFlowLayoutBase
+{
+private:
+	void MoveCtrl(ITEM& e, HDWP& hDwp, int cyLineMax, int y)
+	{
+		if (e.uFlags & LF_FIX_HEIGHT)
+			switch (GetSingleAlignFromFlags(e.uFlags))
+			{
+			case LF_ALIGN_NEAR:
+				e.rcPos.y = y;
+				break;
+			case LF_ALIGN_CENTER:
+				e.rcPos.y = y + (cyLineMax - (e.rcPos.cy + e.Margin.cyTopHeight + e.Margin.cyBottomHeight)) / 2;
+				break;
+			case LF_ALIGN_FAR:
+				e.rcPos.y = y + cyLineMax - e.rcPos.cy - e.Margin.cyBottomHeight;
+				break;
+			default:
+				ECK_UNREACHABLE;
+			}
+		else if (e.uFlags & LF_FILL_HEIGHT)
+		{
+			e.rcPos.y = y + e.Margin.cyTopHeight;
+			e.rcPos.cy = cyLineMax - e.Margin.cyBottomHeight - e.Margin.cyTopHeight;
+		}
+
+		if (const auto hWnd = e.pCtrl->LoGetHWND())
+		{
+			if (e.uFlags & LF_FIX_HEIGHT)
+				hDwp = DeferWindowPos(hDwp, hWnd, NULL, e.rcPos.x, e.rcPos.y, 0, 0,
+					SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE);
+			else
+				hDwp = DeferWindowPos(hDwp, hWnd, NULL, e.rcPos.x, e.rcPos.y, e.rcPos.cx, e.rcPos.cy,
+					SWP_NOZORDER | SWP_NOACTIVATE);
+		}
+		else
+		{
+			if (e.uFlags & LF_FIX_HEIGHT)
+				e.pCtrl->LoSetPos(e.rcPos.x, e.rcPos.y);
+			else
+				e.pCtrl->LoSetPosSize(e.rcPos.x, e.rcPos.y, e.rcPos.cx, e.rcPos.cy);
+			e.pCtrl->LoCommit();
+		}
+	}
+public:
 	void LoCommit() override
 	{
-		const int cxMax = m_cx - m_LineMargin.cxLeftWidth - m_LineMargin.cxRightWidth;
-		HDWP hDwp = PreArrange(m_vCtrl.size());
-		int x = m_y + m_LineMargin.cxLeftWidth;
-		int y = m_x + m_LineMargin.cyTopHeight;
+		HDWP hDwp = PreArrange(m_vItem.size());
+		int x = m_x;
+		int y = m_y;
 		int cxAppr, cyAppr;
 		int cyLineMax = 0;
 		int idxInLine = 0;
-		EckCounter(m_vCtrl.size(), i)
+		EckCounter(m_vItem.size(), i)
 		{
-			auto& e = m_vCtrl[i];
-			e.pCtrl->LoGetAppropriateSize(cxAppr, cyAppr);
-			if ((e.uFlags & FLF_FIXHEIGHT) || (e.uFlags & FLF_FIXWIDTH))
+			auto& e = m_vItem[i];
+			if (IsBitSet(e.uFlags, LF_FIX))
 			{
-				const auto size = e.pCtrl->LoGetSize();
-				if (e.uFlags & FLF_FIXWIDTH)
-					cxAppr = size.first;
-				if (e.uFlags & FLF_FIXHEIGHT)
-					cyAppr = size.second;
+				cxAppr = e.cx;
+				cyAppr = e.cy;
+			}
+			else
+			{
+				e.pCtrl->LoGetAppropriateSize(cxAppr, cyAppr);
+				if (e.uFlags & LF_FIX_WIDTH)
+					cxAppr = e.cx;
+				if (e.uFlags & LF_FIX_HEIGHT)
+					cyAppr = e.cy;
 			}
 
-			if (x + cxAppr <= cxMax || idxInLine == 0)
+			const auto xt = x + e.Margin.cxLeftWidth + e.Margin.cxRightWidth + cxAppr;
+			if (xt <= m_x + m_cx || (e.uFlags & FLF_BREAKLINE) ||
+				idxInLine == 0/*无论有没有空间，至少要放下一个控件*/)
 			{
-				if (cyAppr > cyLineMax)
-					cyLineMax = cyAppr;
-				e.rcPos.left = x;
-				e.rcPos.right = cxAppr;
-				e.rcPos.bottom = cyAppr;
+				const int cyReal = cyAppr + e.Margin.cyTopHeight + e.Margin.cyBottomHeight;
+				if (cyReal > cyLineMax)
+					cyLineMax = cyReal;
+				e.rcPos.x = x + e.Margin.cxLeftWidth;
+				e.rcPos.cx = cxAppr;
+				e.rcPos.cy = cyAppr;
 				++idxInLine;
-				x += (cxAppr + m_cxCtrlPadding);
+				x = xt;
 			}
 			else// 开始新行
 			{
+				// 归位上一行
 				for (size_t j = i - idxInLine; j < i; ++j)
-				{
-					auto& f = m_vCtrl[j];
-					f.rcPos.top = y + (cyLineMax - f.rcPos.bottom) / 2;
-					if (const auto hWnd = f.pCtrl->LoGetHWND())
-						hDwp = DeferWindowPos(hDwp, hWnd, NULL,
-							f.rcPos.left, f.rcPos.top, f.rcPos.right, f.rcPos.bottom,
-							SWP_NOZORDER | SWP_NOACTIVATE);
-					else
-					{
-						f.pCtrl->LoSetPosSize(f.rcPos.left, f.rcPos.top, f.rcPos.right, f.rcPos.bottom);
-						f.pCtrl->LoCommit();
-					}
-				}
-				y += (m_LineMargin.cyTopHeight + cyLineMax);
+					MoveCtrl(m_vItem[j], hDwp, cyLineMax, y);
+
+				// 重置行参数
+				x = m_x;
+				y += cyLineMax;
 				cyLineMax = 0;
-				x = m_x + m_LineMargin.cxLeftWidth;
 				idxInLine = 0;
 
-				if (cyAppr > cyLineMax)
-					cyLineMax = cyAppr;
-				e.rcPos.left = x;
-				e.rcPos.right = cxAppr;
-				e.rcPos.bottom = cyAppr;
+				// 本行第一个控件
+				const int cyReal = cyAppr + e.Margin.cyTopHeight + e.Margin.cyBottomHeight;
+				if (cyReal > cyLineMax)
+					cyLineMax = cyReal;
+				e.rcPos.x = x + e.Margin.cxLeftWidth;
+				e.rcPos.cx = cxAppr;
+				e.rcPos.cy = cyAppr;
 				++idxInLine;
-				x += (cxAppr + m_cxCtrlPadding);
+				x += (e.Margin.cxLeftWidth + e.Margin.cxRightWidth + cxAppr);
 			}
 		}
-		if (idxInLine)
-			for (size_t j = m_vCtrl.size() - idxInLine; j < m_vCtrl.size(); ++j)
-			{
-				auto& f = m_vCtrl[j];
-				f.rcPos.top = y + (cyLineMax - f.rcPos.bottom) / 2;
-				if (const auto hWnd = f.pCtrl->LoGetHWND())
-					hDwp = DeferWindowPos(hDwp, hWnd, NULL,
-						f.rcPos.left, f.rcPos.top, f.rcPos.right, f.rcPos.bottom,
-						SWP_NOZORDER | SWP_NOACTIVATE);
-				else
-				{
-					f.pCtrl->LoSetPosSize(f.rcPos.left, f.rcPos.top, f.rcPos.right, f.rcPos.bottom);
-					f.pCtrl->LoCommit();
-				}
-			}
+		for (size_t j = m_vItem.size() - idxInLine; j < m_vItem.size(); ++j)
+			MoveCtrl(m_vItem[j], hDwp, cyLineMax, y);
 		PostArrange(hDwp);
+	}
+
+	void LoGetAppropriateSize(int& cx, int& cy) override
+	{
+		cx = 0;
+		cy = 0;
+		for (const auto& e : m_vItem)
+		{
+			cx += e.cx + e.Margin.cxLeftWidth + e.Margin.cxRightWidth;
+			cy = std::max(cy, e.cy + e.Margin.cyTopHeight + e.Margin.cyBottomHeight);
+		}
 	}
 };
 
+class CFlowLayoutV final :public CFlowLayoutBase
+{
+private:
+	void MoveCtrl(ITEM& e, HDWP& hDwp, int cxLineMax, int x)
+	{
+		if (e.uFlags & LF_FIX_WIDTH)
+			switch (GetSingleAlignFromFlags(e.uFlags))
+			{
+			case LF_ALIGN_NEAR:
+				e.rcPos.x = x;
+				break;
+			case LF_ALIGN_CENTER:
+				e.rcPos.x = x + (cxLineMax - (e.rcPos.cx + e.Margin.cxLeftWidth + e.Margin.cxRightWidth)) / 2;
+				break;
+			case LF_ALIGN_FAR:
+				e.rcPos.x = x + cxLineMax - e.rcPos.cx - e.Margin.cxRightWidth;
+				break;
+			default:
+				ECK_UNREACHABLE;
+			}
+		else if (e.uFlags & LF_FILL_WIDTH)
+		{
+			e.rcPos.x = x + e.Margin.cxLeftWidth;
+			e.rcPos.cx = cxLineMax - e.Margin.cxLeftWidth - e.Margin.cxRightWidth;
+		}
+
+		if (const auto hWnd = e.pCtrl->LoGetHWND())
+		{
+			if (e.uFlags & LF_FIX_WIDTH)
+				hDwp = DeferWindowPos(hDwp, hWnd, NULL, e.rcPos.x, e.rcPos.y, 0, 0,
+					SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE);
+			else
+				hDwp = DeferWindowPos(hDwp, hWnd, NULL, e.rcPos.x, e.rcPos.y, e.rcPos.cx, e.rcPos.cy,
+					SWP_NOZORDER | SWP_NOACTIVATE);
+		}
+		else
+		{
+			if (e.uFlags & LF_FIX_WIDTH)
+				e.pCtrl->LoSetPos(e.rcPos.x, e.rcPos.y);
+			else
+				e.pCtrl->LoSetPosSize(e.rcPos.x, e.rcPos.y, e.rcPos.cx, e.rcPos.cy);
+			e.pCtrl->LoCommit();
+		}
+	}
+public:
+	void LoCommit() override
+	{
+		HDWP hDwp = PreArrange(m_vItem.size());
+		int x = m_x;
+		int y = m_y;
+		int cxAppr, cyAppr;
+		int cxLineMax = 0;
+		int idxInLine = 0;
+		EckCounter(m_vItem.size(), i)
+		{
+			auto& e = m_vItem[i];
+			if (IsBitSet(e.uFlags, LF_FIX))
+			{
+				cxAppr = e.cx;
+				cyAppr = e.cy;
+			}
+			else
+			{
+				e.pCtrl->LoGetAppropriateSize(cxAppr, cyAppr);
+				if (e.uFlags & LF_FIX_WIDTH)
+					cxAppr = e.cx;
+				if (e.uFlags & LF_FIX_HEIGHT)
+					cyAppr = e.cy;
+			}
+
+			const auto yt = y + e.Margin.cyTopHeight + e.Margin.cyBottomHeight + cyAppr;
+			if (yt <= m_y + m_cy || (e.uFlags & FLF_BREAKLINE) ||
+				idxInLine == 0/*无论有没有空间，至少要放下一个控件*/)
+			{
+				const int cxReal = cxAppr + e.Margin.cxLeftWidth + e.Margin.cxRightWidth;
+				if (cxReal > cxLineMax)
+					cxLineMax = cxReal;
+				e.rcPos.y = y + e.Margin.cyTopHeight;
+				e.rcPos.cy = cyAppr;
+				e.rcPos.cx = cxAppr;
+				++idxInLine;
+				y = yt;
+			}
+			else// 开始新行
+			{
+				// 归位上一行
+				for (size_t j = i - idxInLine; j < i; ++j)
+					MoveCtrl(m_vItem[j], hDwp, cxLineMax, x);
+
+				// 重置行参数
+				y = m_y;
+				x += cxLineMax;
+				cxLineMax = 0;
+				idxInLine = 0;
+
+				// 本行第一个控件
+				const int cxReal = cxAppr + e.Margin.cxLeftWidth + e.Margin.cxRightWidth;
+				if (cxReal > cxLineMax)
+					cxLineMax = cxReal;
+				e.rcPos.y = y + e.Margin.cyTopHeight;
+				e.rcPos.cy = cyAppr;
+				e.rcPos.cx = cxAppr;
+				++idxInLine;
+				y += (e.Margin.cyTopHeight + e.Margin.cyBottomHeight + cyAppr);
+			}
+		}
+		for (size_t j = m_vItem.size() - idxInLine; j < m_vItem.size(); ++j)
+			MoveCtrl(m_vItem[j], hDwp, cxLineMax, x);
+		PostArrange(hDwp);
+	}
+
+	void LoGetAppropriateSize(int& cx, int& cy) override
+	{
+		cx = 0;
+		cy = 0;
+		for (const auto& e : m_vItem)
+		{
+			cx = std::max(cx, e.cx + e.Margin.cxLeftWidth + e.Margin.cxRightWidth);
+			cy += e.cy + e.Margin.cyTopHeight + e.Margin.cyBottomHeight;
+		}
+	}
+};
 ECK_NAMESPACE_END

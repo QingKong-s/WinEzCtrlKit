@@ -11,7 +11,7 @@
 ECK_NAMESPACE_BEGIN
 struct ILayout
 {
-	virtual ~ILayout() {}
+	virtual ~ILayout() = default;
 
 	/// <summary>
 	/// 取理想尺寸

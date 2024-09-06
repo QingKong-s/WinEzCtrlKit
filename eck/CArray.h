@@ -61,13 +61,13 @@ public:
 		return x;
 	}
 
-	EckInline TElem* AddressOf() { return e; }
+	EckInline TElem* AddrOf() { return e; }
 
-	EckInline const TElem* AddressOf() const { return e; }
+	EckInline const TElem* AddrOf() const { return e; }
 
-	EckInline TElem& GetData() { return *e; }
+	EckInline TElem& Data() { return *e; }
 
-	EckInline const TElem& GetData() const { return *e; }
+	EckInline const TElem& Data() const { return *e; }
 };
 
 template<class TElem, class TAllocator = std::allocator<TElem>>

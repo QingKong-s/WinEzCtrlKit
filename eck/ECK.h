@@ -469,6 +469,14 @@ union BIT256
 	UINT16 u16[16];
 	BYTE u8[32];
 };
+
+struct RCWH
+{
+	int x;
+	int y;
+	int cx;
+	int cy;
+};
 ECK_NAMESPACE_END
 #include "DbgHelper.h"
 #pragma warning(suppress:5260)
