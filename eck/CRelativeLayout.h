@@ -40,6 +40,9 @@ private:
 		ILayout* pRightAlign;
 		ILayout* pTopAlign;
 		ILayout* pBottomAlign;
+
+		ILayout* pCenterH;
+		ILayout* pCenterV;
 	};
 
 	std::unordered_map<ILayout*, ITEM> m_hmItem{};
@@ -75,51 +78,53 @@ public:
 
 			e.uFlags &= ~RLF_DTM_ALL;
 
-			if (e.uFlags & LF_FIX_WIDTH)
-			{
-				if (!e.pLeftOf && !e.pRightAlign && !e.pRightOf && !e.pLeftAlign)
+			if (!e.pCenterH)
+				if (e.uFlags & LF_FIX_WIDTH)
 				{
-					e.uFlags |= (RLF_DTM_R | RLF_DTM_L);
-					e.rcTemp.left = e.Margin.cxLeftWidth;
-					e.rcTemp.right = e.rcTemp.left + e.cx;
+					if (!e.pLeftOf && !e.pRightAlign && !e.pRightOf && !e.pLeftAlign)
+					{
+						e.uFlags |= (RLF_DTM_R | RLF_DTM_L);
+						e.rcTemp.left = e.Margin.cxLeftWidth;
+						e.rcTemp.right = e.rcTemp.left + e.cx;
+					}
 				}
-			}
-			else
-			{
-				if (!e.pLeftOf && !e.pRightAlign)
+				else
 				{
-					e.uFlags |= RLF_DTM_R;
-					e.rcTemp.left = e.Margin.cxLeftWidth;
+					if (!e.pLeftOf && !e.pRightAlign)
+					{
+						e.uFlags |= RLF_DTM_R;
+						e.rcTemp.left = e.Margin.cxLeftWidth;
+					}
+					if (!e.pRightOf && !e.pLeftAlign)
+					{
+						e.uFlags |= RLF_DTM_L;
+						e.rcTemp.right = m_cx - e.Margin.cxRightWidth;
+					}
 				}
-				if (!e.pRightOf && !e.pLeftAlign)
-				{
-					e.uFlags |= RLF_DTM_L;
-					e.rcTemp.right = m_cx - e.Margin.cxRightWidth;
-				}
-			}
 
-			if (e.uFlags & LF_FIX_HEIGHT)
-			{
-				if (!e.pTopOf && !e.pBottomAlign && !e.pBottomOf && !e.pTopAlign)
+			if (!e.pCenterV)
+				if (e.uFlags & LF_FIX_HEIGHT)
 				{
-					e.uFlags |= (RLF_DTM_B | RLF_DTM_T);
-					e.rcTemp.top = e.Margin.cyTopHeight;
-					e.rcTemp.bottom = e.rcTemp.top + e.cy;
+					if (!e.pTopOf && !e.pBottomAlign && !e.pBottomOf && !e.pTopAlign)
+					{
+						e.uFlags |= (RLF_DTM_B | RLF_DTM_T);
+						e.rcTemp.top = e.Margin.cyTopHeight;
+						e.rcTemp.bottom = e.rcTemp.top + e.cy;
+					}
 				}
-			}
-			else
-			{
-				if (!e.pTopOf && !e.pBottomAlign)
+				else
 				{
-					e.uFlags |= RLF_DTM_B;
-					e.rcTemp.top = e.Margin.cyTopHeight;
+					if (!e.pTopOf && !e.pBottomAlign)
+					{
+						e.uFlags |= RLF_DTM_B;
+						e.rcTemp.top = e.Margin.cyTopHeight;
+					}
+					if (!e.pBottomOf && !e.pTopAlign)
+					{
+						e.uFlags |= RLF_DTM_T;
+						e.rcTemp.bottom = m_cy - e.Margin.cyBottomHeight;
+					}
 				}
-				if (!e.pBottomOf && !e.pTopAlign)
-				{
-					e.uFlags |= RLF_DTM_T;
-					e.rcTemp.bottom = m_cy - e.Margin.cyBottomHeight;
-				}
-			}
 
 			if (IsBitSet(e.uFlags, RLF_DTM_ALL))
 				--cNoDetermined;
@@ -134,6 +139,77 @@ public:
 			{
 				if (IsBitSet(e.uFlags, RLF_DTM_ALL))
 					continue;
+
+				if (e.pCenterH && !(e.uFlags & (RLF_DTM_L | RLF_DTM_R)))
+				{
+					if (e.pCenterH == ECK_RL_PARENT)
+					{
+						e.rcTemp.left = m_x + e.Margin.cxLeftWidth +
+							(m_cx - e.cx - e.Margin.cxLeftWidth - e.Margin.cxRightWidth) / 2;
+						e.rcTemp.right = e.rcTemp.left + e.cx;
+					}
+					else
+					{
+						const auto it = m_hmItem.find(e.pCenterH);
+						if (it == m_hmItem.end())
+						{
+							e.rcTemp.left = e.pCenterH->LoGetPos().first + e.Margin.cxLeftWidth +
+								(e.pCenterH->LoGetSize().first - e.cx) / 2;
+							e.rcTemp.right = e.rcTemp.left + e.cx;
+						}
+						else
+						{
+							const auto& f = it->second;
+							if (IsBitSet(f.uFlags, RLF_DTM_L | RLF_DTM_R))
+							{
+								e.rcTemp.left = f.rcTemp.left + e.Margin.cxLeftWidth +
+									(f.rcTemp.right - f.rcTemp.left - e.cx) / 2;
+								e.rcTemp.right = e.rcTemp.left + e.cx;
+							}
+							else
+								goto EndCenterH;
+						}
+					}
+					e.uFlags |= (RLF_DTM_L | RLF_DTM_R);
+				EndCenterH:;
+				}
+
+				if (e.pCenterV && !(e.uFlags & (RLF_DTM_T | RLF_DTM_B)))
+				{
+					if (e.pCenterV)
+					{
+						if (e.pCenterV == ECK_RL_PARENT)
+						{
+							e.rcTemp.top = m_y + e.Margin.cyTopHeight +
+								(m_cy - e.cy - e.Margin.cyTopHeight - e.Margin.cyBottomHeight) / 2;
+							e.rcTemp.bottom = e.rcTemp.top + e.cy;
+						}
+						else
+						{
+							const auto it = m_hmItem.find(e.pCenterV);
+							if (it == m_hmItem.end())
+							{
+								e.rcTemp.top = e.pCenterV->LoGetPos().second + e.Margin.cyTopHeight +
+									(e.pCenterV->LoGetSize().second - e.cy) / 2;
+								e.rcTemp.bottom = e.rcTemp.top + e.cy;
+							}
+							else
+							{
+								const auto& f = it->second;
+								if (IsBitSet(f.uFlags, RLF_DTM_T | RLF_DTM_B))
+								{
+									e.rcTemp.top = f.rcTemp.top + e.Margin.cyTopHeight +
+										(f.rcTemp.bottom - f.rcTemp.top - e.cy) / 2;
+									e.rcTemp.bottom = e.rcTemp.top + e.cy;
+								}
+								else
+									goto EndCenterV;
+							}
+						}
+						e.uFlags |= (RLF_DTM_T | RLF_DTM_B);
+					EndCenterV:;
+					}
+				}
 
 				if (!(e.uFlags & RLF_DTM_R))
 				{
@@ -158,7 +234,7 @@ public:
 					else if (e.pRightAlign)
 					{
 						if (e.pRightAlign == ECK_RL_PARENT)
-							e.rcTemp.right = m_cx - e.Margin.cxRightWidth;
+							e.rcTemp.right = m_x + m_cx - e.Margin.cxRightWidth;
 						else
 						{
 							const auto it = m_hmItem.find(e.pRightAlign);
@@ -213,7 +289,7 @@ public:
 					else if (e.pLeftAlign)
 					{
 						if (e.pLeftAlign == ECK_RL_PARENT)
-							e.rcTemp.left = e.Margin.cxLeftWidth;
+							e.rcTemp.left = m_x + e.Margin.cxLeftWidth;
 						else
 						{
 							const auto it = m_hmItem.find(e.pLeftAlign);
@@ -267,7 +343,7 @@ public:
 					else if (e.pBottomAlign)
 					{
 						if (e.pBottomAlign == ECK_RL_PARENT)
-							e.rcTemp.bottom = m_cy - e.Margin.cyBottomHeight;
+							e.rcTemp.bottom = m_y + m_cy - e.Margin.cyBottomHeight;
 						else
 						{
 							const auto it = m_hmItem.find(e.pBottomAlign);
@@ -322,7 +398,7 @@ public:
 					else if (e.pTopAlign)
 					{
 						if (e.pTopAlign == ECK_RL_PARENT)
-							e.rcTemp.top = e.Margin.cyTopHeight;
+							e.rcTemp.top = m_y + e.Margin.cyTopHeight;
 						else
 						{
 							const auto it = m_hmItem.find(e.pTopAlign);
