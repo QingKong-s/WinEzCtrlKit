@@ -1,7 +1,7 @@
 ﻿/*
 * WinEzCtrlKit Library
 *
-* MathHelper.h ： 数学帮助
+* MathHelper.h ： 数学帮助函数
 *
 * Copyright(C) 2023 QingKong
 */
@@ -193,12 +193,12 @@ inline void CalcDistortMatrix(const D2D1_RECT_F& rcOrg,
 /// </summary>
 EckInline D2D1::Matrix3x2F D2dMatrixReflection(float A, float B, float C)
 {
-	const float fASqPlusBSq = A * A + B * B;
-	const float t = -2.f * A * B / fASqPlusBSq;
+	const float t = A * A + B * B;
+	const float u = -2.f * A * B / t;
 	return D2D1::Matrix3x2F(
-		1.f - 2.f * A * A / fASqPlusBSq, t,
-		t, 1.f - 2.f * B * B / fASqPlusBSq,
-		-2.f * A * C / fASqPlusBSq, -2.f * B * C / fASqPlusBSq);
+		1.f - 2.f * A * A / t, u,
+		u, 1.f - 2.f * B * B / t,
+		-2.f * A * C / t, -2.f * B * C / t);
 }
 
 /// <summary>
@@ -324,16 +324,16 @@ EckInline constexpr XFORM XFORMShear(float xFactor, float yFactor, float x, floa
 /// </summary>
 EckInline constexpr XFORM XFORMReflection(float A, float B, float C)
 {
-	const float fASqPlusBSq = A * A + B * B;
-	const float t = -2.f * A * B / fASqPlusBSq;
+	const float t = A * A + B * B;
+	const float u = -2.f * A * B / t;
 	return
 	{
-		1.f - 2.f * A * A / fASqPlusBSq,
-		t,
-		t,
-		1.f - 2.f * B * B / fASqPlusBSq,
-		-2.f * A * C / fASqPlusBSq,
-		-2.f * B * C / fASqPlusBSq
+		1.f - 2.f * A * A / t,
+		u,
+		u,
+		1.f - 2.f * B * B / t,
+		-2.f * A * C / t,
+		-2.f * B * C / t
 	};
 }
 
