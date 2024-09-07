@@ -8,7 +8,6 @@
 #pragma once
 #include "Utility.h"
 #include "Utility2.h"
-#include "CException.h"
 #include "CFile.h"
 #include "CRefBin.h"
 #include "ComPtr.h"

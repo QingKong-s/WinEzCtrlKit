@@ -110,7 +110,7 @@ public:
 		APE_Header Hdr;
 		memcpy(Hdr.byPreamble, "APETAGEX", 8);
 		Hdr.dwVer = 2000;
-		Hdr.cbBody = cbBody + 32;
+		Hdr.cbBody = DWORD(cbBody + 32);
 		Hdr.cItems = (DWORD)m_vItem.size();
 		Hdr.dwFlags = APE_HAS_HEADER | APE_HAS_FOOTER;
 		ZeroMemory(Hdr.byReserved, sizeof(Hdr.byReserved));

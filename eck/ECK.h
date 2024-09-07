@@ -257,8 +257,6 @@ ECK_NAMESPACE_END
 				return a;										\
 			}
 
-
-
 #define ECK_ENUM_BIT_FLAGS_FRIEND(Type)							\
 			friend constexpr Type operator&(Type a, Type b);	\
 			friend constexpr Type operator|(Type a, Type b);	\
@@ -280,6 +278,17 @@ ECK_NAMESPACE_END
 #pragma endregion
 
 #define ECK_DISABLE_ARITHMETIC_OVERFLOW_WARNING __pragma(warning(disable:26451))
+
+#ifdef _DEBUG
+#define EckCheckMem(p)	\
+			if (!(p))	\
+			{			\
+				OutputDebugStringW(L"内存分配失败: " ECK_FILEW "(" ECK_LINEW ")\r\n"); \
+				abort();\
+			}
+#else
+#define EckCheckMem(p) ((void)(p))
+#endif
 
 ECK_NAMESPACE_BEGIN
 #pragma region 类型

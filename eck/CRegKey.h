@@ -7,7 +7,6 @@
 */
 #pragma once
 #include "Utility.h"
-#include "CException.h"
 #include "CRefStr.h"
 #include "CRefBin.h"
 
@@ -50,34 +49,36 @@ public:
 		return hKeyRoot;
 	}
 
-	CRegKey() = default;
-	CRegKey(const CRegKey&) = delete;
-
-	CRegKey(CRegKey&& x) noexcept :m_hKey{ x.m_hKey } { x.m_hKey = NULL; }
+	ECK_DISABLE_COPY_DEF_CONS(CRegKey);
 
 	/// <summary>
 	/// 构造自路径
 	/// </summary>
 	/// <param name="pszKey">注册项路径，应当以HKLM、HKCU、HKCR、HKU、HKCC五者其中之一开头</param>
 	/// <param name="dwAccess">访问权限</param>
-	CRegKey(PCWSTR pszPath, REGSAM dwAccess = KEY_READ | KEY_WRITE)
+	CRegKey(PCWSTR pszPath, REGSAM dwAccess = KEY_READ | KEY_WRITE, LSTATUS* plStatus = NULL)
 	{
 		if (!pszPath)
 			return;
 		int cchSkip = 0;
-		auto hKeyRoot = AnalyzeFullPath(pszPath, cchSkip);
-		if (!hKeyRoot)
-			throw CConstMsgException(L"无法识别的根项");
-		auto r = Open(hKeyRoot, pszPath + cchSkip, dwAccess);
-		if (r != ERROR_SUCCESS)
-			throw CFmtMsgException(r);
+		if (const auto hKeyRoot = AnalyzeFullPath(pszPath, cchSkip))
+		{
+			auto r = Open(hKeyRoot, pszPath + cchSkip, dwAccess);
+			if (plStatus)
+				*plStatus = r;
+		}
+		else
+		{
+			if (plStatus)
+				*plStatus = ERROR_INVALID_PARAMETER;
+		}
 	}
 
-	CRegKey(HKEY hKey, PCWSTR pszKey, REGSAM dwAccess = KEY_READ | KEY_WRITE)
+	CRegKey(HKEY hKey, PCWSTR pszKey, REGSAM dwAccess = KEY_READ | KEY_WRITE, LSTATUS* plStatus = NULL)
 	{
 		auto r = Open(hKey, pszKey, dwAccess);
-		if (r != ERROR_SUCCESS)
-			throw CFmtMsgException(r);
+		if (plStatus)
+			*plStatus = r;
 	}
 
 	CRegKey(HKEY hKey) :m_hKey{ hKey } {}
@@ -87,8 +88,9 @@ public:
 		Close();
 	}
 
-	CRegKey& operator=(const CRegKey&) = delete;
-	CRegKey& operator=(CRegKey&& x) noexcept
+	constexpr CRegKey(CRegKey&& x) noexcept :m_hKey{ x.m_hKey } { x.m_hKey = NULL; }
+
+	constexpr CRegKey& operator=(CRegKey&& x) noexcept
 	{
 		std::swap(m_hKey, x.m_hKey);
 	}

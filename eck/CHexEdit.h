@@ -349,7 +349,7 @@ private:
 	void UpdateCaretPos()
 	{
 		ShowCaret(HWnd);
-		const int idxV = D.posCaret / D.cCol - GetSbPos(SB_VERT);
+		const int idxV = int(D.posCaret / D.cCol - GetSbPos(SB_VERT));
 		const int idxH = D.posCaret % D.cCol;
 		if(D.idxCaretCol < 0)
 		{

@@ -8,7 +8,6 @@
 #pragma once
 #include "WndHelper.h"
 #include "CMemWalker.h"
-#include "CException.h"
 #include "ILayout.h"
 #include "CSignal.h"
 
@@ -57,7 +56,7 @@ struct DESIGNDATA_WND
 			hParent, ::eck::i32ToP<HMENU>(nID), pData);								\
 	}
 
-#define ECK_CWND_SINGLEOWNER													\
+#define ECK_CWND_SINGLEOWNER													/*\
 	[[nodiscard]] EckInline static constexpr BOOL IsSingleOwner() { return TRUE; }	\
 	void Attach(HWND hWnd) override													\
 	{																				\
@@ -66,10 +65,10 @@ struct DESIGNDATA_WND
 	HWND Detach() override															\
 	{																				\
 		throw ::eck::CDetachSingleOwnerWndException{};								\
-	}																				\
+	}																				\*/
 
 #define ECK_CWND_NOSINGLEOWNER(Class)												\
-	[[nodiscard]] EckInline static constexpr BOOL IsSingleOwner() { return FALSE; }	\
+	/*[[nodiscard]] EckInline static constexpr BOOL IsSingleOwner() { return FALSE; }*/	\
 	Class() = default;																\
 	Class(HWND hWnd) { m_hWnd = hWnd; }
 
@@ -362,7 +361,9 @@ public:
 	virtual HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL)
 	{
-		throw CConstMsgException(L"调用了CWnd的Create方法");
+		EckDbgPrintWithPos(L"** ERROR ** CWnd::Create未实现");
+		EckDbgBreak();
+		abort();
 	}
 
 	/// <summary>
