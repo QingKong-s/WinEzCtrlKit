@@ -11,7 +11,6 @@
 #include "CStreamWalker.h"
 #include "CMemWalker.h"
 #include "CBitSet.h"
-#include "CException.h"
 #include "Utility2.h"
 
 #include <variant>

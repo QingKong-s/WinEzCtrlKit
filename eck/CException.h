@@ -6,66 +6,67 @@
 * Copyright(C) 2023 QingKong
 */
 #pragma once
-#include "ECK.h"
+#include "CRefStr.h"
 
 ECK_NAMESPACE_BEGIN
 struct CException
 {
 	CException() = default;
-	virtual ~CException() {}
+
+	virtual ~CException() = default;
+
+	virtual PCWSTR What() const { return L"未知异常"; }
 };
 
 struct CConstMsgException :CException
 {
-	PCWSTR m_pszMsg = NULL;
+	PCWSTR m_pszMsg{};
 
 	CConstMsgException() = default;
-	CConstMsgException(PCWSTR pszMsg) :m_pszMsg{ pszMsg } {}
 
-	PCWSTR GetMsg() const { return m_pszMsg; }
+	constexpr CConstMsgException(PCWSTR pszMsg) :m_pszMsg{ pszMsg } {}
+
+	PCWSTR What() const override { return m_pszMsg; }
 };
 
 struct CFmtMsgException :CException
 {
-	DWORD m_dwErr = 0;
-	CFmtMsgException() = default;
-	CFmtMsgException(DWORD dwErr) :m_dwErr{ dwErr } {}
+	DWORD m_dwErr{};
+	CRefStrW m_rsMsg{};
 
-	DWORD GetErrCode() const { return m_dwErr; }
+	CFmtMsgException() = default;
+
+	CFmtMsgException(DWORD dwErr) :m_dwErr{ dwErr }
+	{
+		Format();
+	}
+
+	void Format()
+	{
+		PWSTR pszInfo;
+		FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL,
+			m_dwErr, 0, (PWSTR)&pszInfo, 0, NULL);
+		if (pszInfo)
+		{
+			m_rsMsg.Format(L"(%u) %s", m_dwErr, pszInfo);
+			LocalFree(pszInfo);
+		}
+		else
+			m_rsMsg.Format(L"(%u) 未知错误", m_dwErr);
+	}
+
+	PCWSTR What() const override { return m_rsMsg.Data(); }
 };
 
-struct CAttachSingleOwnerWndException :CException
-{};
-
-struct CDetachSingleOwnerWndException :CException
-{};
-
-struct CCreateOnPureCWndException :CException
-{};
-
-struct CDlgBoxOnPureCDialogException :CException
-{};
-
-struct CCreateDlgOnPureCDialogException :CException
-{};
-
 struct CMemException :CException
-{};
-
-#define EckCheckMem(p) if (!(p)) throw ::eck::CMemException{};
-
-EckInline void DbgPrint(const CConstMsgException& e)
 {
-	OutputDebugStringW(e.GetMsg());
+	CMemException() = default;
+
+	PCWSTR What() const override { return L"内存分配失败"; }
+};
+
+EckInline void DbgPrint(CException& e)
+{
+	OutputDebugStringW(e.What());
 }
-
-//inline void DbgPrint(const CFmtMsgException& e)
-//{
-//	PWSTR pszInfo;
-//	FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-//		NULL, e.GetErrCode(), 0, (PWSTR)&pszInfo, 0, NULL);
-//	OutputDebugStringW(Format(L"错误码 = %u，格式化信息 = %s", e.GetErrCode(), pszInfo).Data());
-//	LocalFree(pszInfo);
-//}
-
 ECK_NAMESPACE_END

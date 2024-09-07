@@ -179,9 +179,19 @@ public:
 
 	EckInline virtual BOOL OnInitDialog(HWND hDlg, HWND hFocus, LPARAM lParam) { return TRUE; }
 
-	EckInline virtual HWND CreateDlg(HWND hParent, void* pData = NULL) { throw CCreateDlgOnPureCDialogException{}; }
+	EckInline virtual HWND CreateDlg(HWND hParent, void* pData = NULL) 
+	{ 
+		EckDbgPrintWithPos(L"** ERROR ** 未实现方法");
+		EckDbgBreak();
+		abort();
+	}
 
-	EckInline virtual INT_PTR DlgBox(HWND hParent, void* pData = NULL) { throw CDlgBoxOnPureCDialogException{}; }
+	EckInline virtual INT_PTR DlgBox(HWND hParent, void* pData = NULL)
+	{ 
+		EckDbgPrintWithPos(L"** ERROR ** 未实现方法");
+		EckDbgBreak();
+		abort();
+	}
 
 	EckInline virtual BOOL EndDlg(INT_PTR nResult)
 	{

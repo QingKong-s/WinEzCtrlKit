@@ -7,7 +7,6 @@
 */
 #pragma once
 #include "CRefStr.h"
-#include "CException.h"
 #include "CFile.h"
 
 ECK_NAMESPACE_BEGIN
