@@ -36,6 +36,24 @@ public:
 		return m_vItem.size() - 1;
 	}
 
+	void LoOnDpiChanged(int iDpi) override
+	{
+		Refresh();
+		for (auto& e : m_vItem)
+		{
+			ReCalcDpiSize(e, iDpi);
+			e.pCtrl->LoOnDpiChanged(iDpi);
+		}
+		m_iDpi = iDpi;
+	}
+
+	void LoInitDpi(int iDpi) override
+	{
+		m_iDpi = iDpi;
+		for (auto& e : m_vItem)
+			e.pCtrl->LoInitDpi(iDpi);
+	}
+
 	void Refresh() override
 	{
 		for (auto& e : m_vItem)

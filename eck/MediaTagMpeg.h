@@ -252,7 +252,7 @@ public:
 		case Version::Mpeg1: idxVer = 0; break;
 		case Version::Mpeg2: idxVer = 1; break;
 		case Version::Mpeg2_5: idxVer = 2; break;
-		default: idxVer = 0; return 0.;
+		default: return 0.;
 		}
 
 		size_t idxLayer;
@@ -261,7 +261,7 @@ public:
 		case Layer::Layer1: idxLayer = 0; break;
 		case Layer::Layer2: idxLayer = 1; break;
 		case Layer::Layer3: idxLayer = 2; break;
-		default: idxLayer = 0; return 0.;
+		default: return 0.;
 		}
 
 		return (double)MpegSampleCountTable[idxVer][idxLayer] / (double)GetSampleRate() * 1000.;

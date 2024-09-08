@@ -26,6 +26,24 @@ protected:
 	UINT m_uTotalWeight{};
 	BOOL m_bScaleMode{ TRUE };
 public:
+	void LoOnDpiChanged(int iDpi) override
+	{
+		Refresh();
+		for (auto& e : m_vItem)
+		{
+			ReCalcDpiSize(e, iDpi);
+			e.pCtrl->LoOnDpiChanged(iDpi);
+		}
+		m_iDpi = iDpi;
+	}
+
+	void LoInitDpi(int iDpi) override
+	{
+		m_iDpi = iDpi;
+		for (auto& e : m_vItem)
+			e.pCtrl->LoInitDpi(iDpi);
+	}
+
 	EckInline constexpr void SetScaleMode(BOOL bScaleMode) { m_bScaleMode = bScaleMode; }
 
 	EckInline constexpr BOOL GetScaleMode() const { return m_bScaleMode; }

@@ -467,12 +467,7 @@ inline std::span<const BYTE> GetResource(PCWSTR pszName, PCWSTR pszType)
 	return { (PCBYTE)pRes,cbRes };
 }
 
-inline int ZLibDecompress(PCVOID pOrg, SIZE_T cbOrg, void* pResult, SIZE_T cbResult)
-{
-
-}
-
-EckInline int ZLibDecompress(PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult)
+inline int ZLibDecompress(PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult)
 {
 	int iRet;
 	z_stream zs{};

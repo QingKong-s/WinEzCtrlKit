@@ -72,11 +72,10 @@ public:
 		}
 		return 0;
 
+		case WM_DPICHANGED_BEFOREPARENT:
 		case WM_CREATE:
-		{
 			m_hcDef = LoadCursorW(NULL, IDC_CROSS);
-		}
-		break;
+			break;
 		}
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
