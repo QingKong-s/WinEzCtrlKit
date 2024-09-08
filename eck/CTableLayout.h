@@ -26,14 +26,14 @@ private:
 	{
 		int idxRow;
 		int idxCol;
-		int nRowSpan;
-		int nColSpan;
+		int cRowSpan;
+		int cColSpan;
 
 		ITEM() = default;
 		constexpr ITEM(ILayout* pCtrl, const MARGINS& Margin, UINT uFlags, short cx, short cy,
 			int idxRow, int idxCol, int nRowSpan, int nColSpan)
 			: ITEMBASE{ pCtrl, Margin, uFlags, cx, cy }, idxRow{ idxRow }, idxCol{ idxCol },
-			nRowSpan{ nRowSpan }, nColSpan{ nColSpan } {}
+			cRowSpan{ nRowSpan }, cColSpan{ nColSpan } {}
 	};
 
 	struct CELL
@@ -56,10 +56,10 @@ private:
 		EckAssert(m_eCellSizeMode == TlCellMode::Auto && L"单元格尺寸必须活动");
 		const int cx = e.cx + e.Margin.cxLeftWidth + e.Margin.cxRightWidth;
 		const int cy = e.cy + e.Margin.cyTopHeight + e.Margin.cyBottomHeight;
-		if (e.nRowSpan)
+		if (e.cRowSpan)
 		{
-			const auto d = cy / (e.nRowSpan + 1);
-			for (int i = 0; i < e.nRowSpan; ++i)
+			const auto d = cy / (e.cRowSpan + 1);
+			for (int i = 0; i < e.cRowSpan; ++i)
 			{
 				auto& t = m_Table[e.idxRow + i][e.idxCol].Data().cy;
 				t = std::max(t, d);
@@ -71,10 +71,10 @@ private:
 			t = std::max(t, cy);
 		}
 
-		if (e.nColSpan)
+		if (e.cColSpan)
 		{
-			const auto d = cx / (e.nColSpan + 1);
-			for (int i = 0; i < e.nColSpan; ++i)
+			const auto d = cx / (e.cColSpan + 1);
+			for (int i = 0; i < e.cColSpan; ++i)
 			{
 				auto& t = m_Table[e.idxRow][e.idxCol + i].Data().cx;
 				t = std::max(t, d);
@@ -97,6 +97,24 @@ public:
 		if (m_eCellSizeMode == TlCellMode::Auto)
 			UpdateCellSize(e);
 		return m_vItem.size() - 1;
+	}
+
+	void LoOnDpiChanged(int iDpi) override
+	{
+		Refresh();
+		for (auto& e : m_vItem)
+		{
+			ReCalcDpiSize(e, iDpi);
+			e.pCtrl->LoOnDpiChanged(iDpi);
+		}
+		m_iDpi = iDpi;
+	}
+
+	void LoInitDpi(int iDpi) override
+	{
+		m_iDpi = iDpi;
+		for (auto& e : m_vItem)
+			e.pCtrl->LoInitDpi(iDpi);
 	}
 
 	void SetRowCol(int cRow, int cCol)

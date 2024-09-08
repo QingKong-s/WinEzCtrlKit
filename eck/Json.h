@@ -183,6 +183,11 @@ public:
 
 	EckInline [[nodiscard]] size_t GetLen() const { return yyjson_get_len(m_pVal); }
 
+	EckInline [[nodiscard]] CRefStrW GetStrW() const
+	{
+		return StrX2W(GetStr(), (int)GetLen(), CP_UTF8);
+	}
+
 	EckInline bool EqualStr(PCSTR pszStr) const { return yyjson_equals_str(m_pVal, pszStr); }
 
 	EckInline bool EqualStr(PCSTR pszStr, size_t cchStr) const { return yyjson_equals_strn(m_pVal, pszStr, cchStr); }
@@ -503,6 +508,11 @@ public:
 	EckInline [[nodiscard]] PCSTR GetStr() const { return yyjson_mut_get_str(m_pVal); }
 
 	EckInline [[nodiscard]] size_t GetLen() const { return yyjson_mut_get_len(m_pVal); }
+
+	EckInline [[nodiscard]] CRefStrW GetStrW() const
+	{
+		return StrX2W(GetStr(), (int)GetLen(), CP_UTF8);
+	}
 
 	EckInline [[nodiscard]] bool EqualStr(PCSTR pszStr) const { return yyjson_mut_equals_str(m_pVal, pszStr); }
 
@@ -925,7 +935,7 @@ struct CJsonMutObjProxy
 };
 
 
-EckInline CMutJson CJson::Clone(const YyAlc* pAlc) const
+EckInline [[nodiscard]] CMutJson CJson::Clone(const YyAlc* pAlc) const
 {
 	return CMutJson(yyjson_doc_mut_copy(m_pDoc, pAlc));
 }

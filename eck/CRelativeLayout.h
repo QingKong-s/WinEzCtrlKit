@@ -456,6 +456,24 @@ public:
 		PostArrange(hDwp);
 	}
 
+	void LoOnDpiChanged(int iDpi) override
+	{
+		Refresh();
+		for (auto& [_, e] : m_hmItem)
+		{
+			ReCalcDpiSize(e, iDpi);
+			e.pCtrl->LoOnDpiChanged(iDpi);
+		}
+		m_iDpi = iDpi;
+	}
+
+	void LoInitDpi(int iDpi) override
+	{
+		m_iDpi = iDpi;
+		for (auto& [_, e] : m_hmItem)
+			e.pCtrl->LoInitDpi(iDpi);
+	}
+
 	void Clear() override
 	{
 		CLayoutBase::Clear();

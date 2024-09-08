@@ -1,3 +1,10 @@
+/*
+* WinEzCtrlKit Library
+*
+* PrivateApi.h £º Î´¹«¿ªAPIÉùÃ÷
+*
+* Copyright(C) 2024 QingKong
+*/
 #pragma once
 #include "PhNt/phnt_windows.h"
 #include "PhNt/phnt.h"
@@ -236,5 +243,4 @@ FORCEINLINE HTHEME OpenNcThemeData(HWND hWnd, PCWSTR pszClassList)
 {
 	return pfnOpenNcThemeData(hWnd, pszClassList);
 }
-
 EXTERN_C_END

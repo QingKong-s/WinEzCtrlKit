@@ -37,5 +37,11 @@ struct ILayout
 
 	// 若当前类为窗口，则返回窗口句柄
 	virtual HWND LoGetHWND() { return NULL; }
+
+	// 初始化布局所用DPI，通常仅对非原子布局生效
+	virtual void LoInitDpi(int iDpi) {}
+
+	// 布局的DPI已改变，通常仅对非原子布局生效
+	virtual void LoOnDpiChanged(int iDpi) {}
 };
 ECK_NAMESPACE_END

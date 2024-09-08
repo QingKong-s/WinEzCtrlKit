@@ -41,6 +41,24 @@ public:
 		PostArrange(hDwp);
 	}
 
+	void LoOnDpiChanged(int iDpi) override
+	{
+		Refresh();
+		for (auto& e : m_vItem)
+		{
+			ReCalcDpiSize(e, iDpi);
+			e.pCtrl->LoOnDpiChanged(iDpi);
+		}
+		m_iDpi = iDpi;
+	}
+
+	void LoInitDpi(int iDpi) override
+	{
+		m_iDpi = iDpi;
+		for (auto& e : m_vItem)
+			e.pCtrl->LoInitDpi(iDpi);
+	}
+
 	void ShowFrame(int idx)
 	{
 		EckAssert(idx >= 0 && idx < (int)m_vItem.size());

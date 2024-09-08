@@ -55,6 +55,7 @@ protected:
 		m_y{},
 		m_cx{},
 		m_cy{};
+	int m_iDpi{ USER_DEFAULT_SCREEN_DPI };
 	BOOL m_bUseDwp{ TRUE };
 #ifdef _DEBUG
 	BOOL m_bPrePostBalanced{};
@@ -176,6 +177,16 @@ protected:
 			e.pCtrl->LoCommit();
 		}
 	}
+
+	EckInline constexpr void ReCalcDpiSize(ITEMBASE& e, int iDpiNew)
+	{
+		e.cx = DpiScale(e.cx, iDpiNew, m_iDpi);
+		e.cy = DpiScale(e.cy, iDpiNew, m_iDpi);
+		e.Margin.cxLeftWidth = DpiScale(e.Margin.cxLeftWidth, iDpiNew, m_iDpi);
+		e.Margin.cyTopHeight = DpiScale(e.Margin.cyTopHeight, iDpiNew, m_iDpi);
+		e.Margin.cxRightWidth = DpiScale(e.Margin.cxRightWidth, iDpiNew, m_iDpi);
+		e.Margin.cyBottomHeight = DpiScale(e.Margin.cyBottomHeight, iDpiNew, m_iDpi);
+	}
 public:
 	EckInline static constexpr UINT GetAlignFromFlags(UINT u)
 	{
@@ -280,5 +291,7 @@ public:
 #endif
 		EndDeferWindowPos(hDwp);
 	}
+
+	EckInline constexpr int GetDpi() const { return m_iDpi; }
 };
 ECK_NAMESPACE_END

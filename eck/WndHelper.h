@@ -770,4 +770,60 @@ inline void GenerateKeyMsg(HWND hWnd, UINT Vk, KeyType eType, BOOL bExtended = F
 		ECK_UNREACHABLE;
 	}
 }
+
+/// <summary>
+/// 提供对亮暗切换的默认处理。
+/// 一般仅用于**主**顶级窗口，除了产生相关更新消息外还更新当前线程上下文的默认颜色
+/// </summary>
+EckInline BOOL MsgOnSettingChangeMainWnd(HWND hWnd, WPARAM wParam, LPARAM lParam)
+{
+	if (IsColorSchemeChangeMessage(lParam))
+	{
+		RefreshImmersiveColorStuff();
+		FlushMenuTheme();
+		GetThreadCtx()->UpdateDefColor();
+		BroadcastChildrenMessage(hWnd, WM_SETTINGCHANGE, wParam, lParam);
+		BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, 0, 0);
+		EnableWindowNcDarkMode(hWnd, ShouldAppsUseDarkMode());
+		return TRUE;
+	}
+	else
+		return FALSE;
+}
+
+/// <summary>
+/// 提供对亮暗切换的默认处理。
+/// 一般仅用于顶级窗口
+/// </summary>
+EckInline BOOL MsgOnSettingChange(HWND hWnd, WPARAM wParam, LPARAM lParam)
+{
+	if (IsColorSchemeChangeMessage(lParam))
+	{
+		BroadcastChildrenMessage(hWnd, WM_SETTINGCHANGE, wParam, lParam);
+		BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, 0, 0);
+		EnableWindowNcDarkMode(hWnd, ShouldAppsUseDarkMode());
+		return TRUE;
+	}
+	else
+		return FALSE;
+}
+
+/// <summary>
+/// 提供对WM_SYSCOLORCHANGE的默认处理。
+/// 一般仅用于**主**顶级窗口，除了向子窗口广播消息外还更新当前线程上下文的默认颜色
+/// </summary>
+EckInline void MsgOnSysColorChangeMainWnd(HWND hWnd, WPARAM wParam, LPARAM lParam)
+{
+	GetThreadCtx()->UpdateDefColor();
+	BroadcastChildrenMessage(hWnd, WM_SYSCOLORCHANGE, wParam, lParam);
+}
+
+/// <summary>
+/// 提供对WM_SYSCOLORCHANGE的默认处理。
+/// 一般仅用于顶级窗口
+/// </summary>
+EckInline void MsgOnSysColorChange(HWND hWnd, WPARAM wParam, LPARAM lParam)
+{
+	BroadcastChildrenMessage(hWnd, WM_SYSCOLORCHANGE, wParam, lParam);
+}
 ECK_NAMESPACE_END
