@@ -178,7 +178,7 @@ protected:
 		}
 	}
 
-	EckInline constexpr void ReCalcDpiSize(ITEMBASE& e, int iDpiNew)
+	EckInline void ReCalcDpiSize(ITEMBASE& e, int iDpiNew)
 	{
 		e.cx = DpiScale(e.cx, iDpiNew, m_iDpi);
 		e.cy = DpiScale(e.cy, iDpiNew, m_iDpi);
@@ -186,6 +186,8 @@ protected:
 		e.Margin.cyTopHeight = DpiScale(e.Margin.cyTopHeight, iDpiNew, m_iDpi);
 		e.Margin.cxRightWidth = DpiScale(e.Margin.cxRightWidth, iDpiNew, m_iDpi);
 		e.Margin.cyBottomHeight = DpiScale(e.Margin.cyBottomHeight, iDpiNew, m_iDpi);
+		if (e.uFlags & LF_FIX)
+			e.pCtrl->LoSetSize(e.cx, e.cy);
 	}
 public:
 	EckInline static constexpr UINT GetAlignFromFlags(UINT u)
