@@ -1,5 +1,23 @@
 # WinEzCtrlKit
 
+## 截图
+
+### 流式布局测试
+
+![流式布局测试](./Screenshot/流式布局.gif)
+
+### 帧布局测试
+
+![帧布局测试](./Screenshot/帧布局.gif)
+
+### 消息路由
+
+![消息路由](./Screenshot/消息路由.png)
+
+### 暗色支持
+
+![暗色支持](./Screenshot/暗色支持.gif)
+
 ## 使用的第三方库
 
 **[Detours](https://github.com/microsoft/Detours)**

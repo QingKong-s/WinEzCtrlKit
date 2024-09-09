@@ -144,8 +144,8 @@ public:
 			}
 
 			const auto xt = x + e.Margin.cxLeftWidth + e.Margin.cxRightWidth + cxAppr;
-			if (xt <= m_x + m_cx || (e.uFlags & FLF_BREAKLINE) ||
-				idxInLine == 0/*无论有没有空间，至少要放下一个控件*/)
+			if (!(e.uFlags & FLF_BREAKLINE) &&
+				(xt <= m_x + m_cx || idxInLine == 0/*无论有没有空间，至少要放下一个控件*/))
 			{
 				const int cyReal = cyAppr + e.Margin.cyTopHeight + e.Margin.cyBottomHeight;
 				if (cyReal > cyLineMax)
@@ -267,8 +267,8 @@ public:
 			}
 
 			const auto yt = y + e.Margin.cyTopHeight + e.Margin.cyBottomHeight + cyAppr;
-			if (yt <= m_y + m_cy || (e.uFlags & FLF_BREAKLINE) ||
-				idxInLine == 0/*无论有没有空间，至少要放下一个控件*/)
+			if (!(e.uFlags & FLF_BREAKLINE) &&
+				(yt <= m_y + m_cy || idxInLine == 0/*无论有没有空间，至少要放下一个控件*/))
 			{
 				const int cxReal = cxAppr + e.Margin.cxLeftWidth + e.Margin.cxRightWidth;
 				if (cxReal > cxLineMax)
