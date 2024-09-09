@@ -826,4 +826,29 @@ EckInline void MsgOnSysColorChange(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
 	BroadcastChildrenMessage(hWnd, WM_SYSCOLORCHANGE, wParam, lParam);
 }
+
+EckInline HDC BeginPaint(HWND hWnd, WPARAM wParam, PAINTSTRUCT& ps, int cx, int cy)
+{
+	if (wParam)
+	{
+		ps.hdc = (HDC)wParam;
+		ps.rcPaint = { 0,0,cx,cy };
+		return ps.hdc;
+	}
+	else
+		return BeginPaint(hWnd, &ps);
+}
+
+EckInline HDC BeginPaint(HWND hWnd, WPARAM wParam, PAINTSTRUCT& ps)
+{
+	RECT rc;
+	GetClientRect(hWnd, &rc);
+	return BeginPaint(hWnd, wParam, ps, rc.right, rc.bottom);
+}
+
+EckInline void EndPaint(HWND hWnd, WPARAM wParam, const PAINTSTRUCT& ps)
+{
+	if (!wParam)
+		EndPaint(hWnd, &ps);
+}
 ECK_NAMESPACE_END

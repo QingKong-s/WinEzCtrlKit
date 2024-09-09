@@ -56,12 +56,13 @@ protected:
 	int m_cyText = 0;			// 文本高度
 
 	WCHAR m_chMask = 0;			// 掩码字符
-	CRefStrW m_rsCueBanner{};		// 输入提示
-	BOOL m_bEmpty{};
-	BOOL m_bHasFocus{};
+	CRefStrW m_rsCueBanner{};	// 输入提示
 #if ECKCXX20
 	BITBOOL m_bMultiLine : 1 = FALSE;			// 多行
 	BITBOOL m_bAutoWrap : 1 = TRUE;				// 自动换行
+	BITBOOL m_bMultiLineCueBanner : 1 = TRUE;	// 多行提示
+
+	BITBOOL m_bEmpty : 1 = FALSE;
 #else// ECKCXX20
 	union
 	{
@@ -69,8 +70,10 @@ protected:
 		{
 			BITBOOL m_bMultiLine : 1;			// 多行
 			BITBOOL m_bAutoWrap : 1;			// 自动换行
+			BITBOOL m_bMultiLineCueBanner : 1;	// 多行提示
+			BITBOOL m_bEmpty : 1;
 		};
-		DWORD m_dwFlags = 0b10;
+		DWORD m_dwFlags = 0b0110;
 	};
 
 #endif// ECKCXX20
@@ -103,6 +106,7 @@ public:
 		const auto dwStyle = GetStyle();
 		m_bMultiLine = IsBitSet(dwStyle, ES_MULTILINE);
 		m_bAutoWrap = (m_bMultiLine ? IsBitSet(dwStyle, ES_AUTOHSCROLL) : FALSE);
+		m_bEmpty = !GetWindowTextLengthW(hWnd);
 
 		UpdateTextInfo();
 		FrameChanged();
@@ -112,35 +116,30 @@ public:
 	{
 		switch (uMsg)
 		{
-		/*case WM_PAINT:
+		case WM_PAINT:
 		{
-			auto a = !GetWindowTextLengthW(hWnd);
-			auto b = !m_rsCueBanner.IsEmpty();
-			auto c = m_bMultiLine;
-			if (m_bMultiLine && !m_rsCueBanner.IsEmpty() && !GetWindowTextLengthW(hWnd)&&0)
+			if (m_bMultiLineCueBanner && m_bMultiLine && m_bEmpty &&
+				!m_rsCueBanner.IsEmpty())
 			{
-				HDC hDC;
 				PAINTSTRUCT ps;
-				if(wParam)
-					hDC = (HDC)wParam;
-				else
-				{
-					BeginPaint(hWnd, &ps);
-					hDC = ps.hdc;
-				}
-				CWnd::OnMsg(hWnd, WM_PAINT, (WPARAM)hDC, 0);
+				BeginPaint(hWnd, wParam, ps, 0, 0);
+
+				CEdit::OnMsg(hWnd, WM_PAINT, (WPARAM)ps.hdc, 0);
 				RECT rcText;
 				GetRect(&rcText);
-				const auto crOld = SetTextColor(hDC, GetSysColor(COLOR_GRAYTEXT));
-				DrawTextW(hDC, m_rsCueBanner.Data(), m_rsCueBanner.Size(), &rcText,
+
+				const auto hOld = SelectObject(ps.hdc, HFont);
+				const auto crOld = SetTextColor(ps.hdc, GetSysColor(COLOR_GRAYTEXT));
+				DrawTextW(ps.hdc, m_rsCueBanner.Data(), m_rsCueBanner.Size(), &rcText,
 					DT_WORDBREAK | DT_NOPREFIX | DT_EDITCONTROL);
-				SetTextColor(hDC, crOld);
-				if (!wParam)
-					EndPaint(hWnd, &ps);
+				SetTextColor(ps.hdc, crOld);
+				SelectObject(ps.hdc, hOld);
+
+				EndPaint(hWnd, wParam, ps);
 				return 0;
 			}
 		}
-		break;*/
+		break;
 
 		case WM_KEYDOWN:
 			if (wParam == 'A')
@@ -301,7 +300,7 @@ public:
 		case EM_SETCUEBANNER:
 		{
 			LRESULT lResult;
-			if ((lResult = CEdit::OnMsg(hWnd, uMsg, wParam, lParam))||m_bMultiLine)
+			if ((lResult = CEdit::OnMsg(hWnd, uMsg, wParam, lParam)) || m_bMultiLine)
 			{
 				m_rsCueBanner.DupString((PCWSTR)lParam);
 			}
@@ -404,6 +403,10 @@ public:
 			}
 			return lResult;
 		}
+
+		case WM_CREATE:
+			m_bEmpty = !wcslen(((CREATESTRUCTW*)lParam)->lpszName);
+			break;
 		}
 
 		return CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
@@ -422,6 +425,23 @@ public:
 			SetBkColor((HDC)wParam, m_crTextBK != CLR_DEFAULT ? m_crTextBK : ptc->crDefBkg);
 			SetDCBrushColor((HDC)wParam, m_crBK != CLR_DEFAULT ? m_crBK : ptc->crDefBkg);
 			return (LRESULT)GetStockObject(DC_BRUSH);
+		}
+		break;
+
+		case WM_COMMAND:
+		{
+			if (HIWORD(wParam) == EN_UPDATE)
+			{
+				if (m_bMultiLineCueBanner)
+				{
+					const auto bEmpty = !GetWindowTextLengthW(HWnd);
+					if (m_bEmpty != bEmpty)
+					{
+						m_bEmpty = bEmpty;
+						Redraw();
+					}
+				}
+			}
 		}
 		break;
 		}
@@ -599,5 +619,18 @@ public:
 	{
 		return m_chMask;
 	}
+
+	EckInline void SetMultiLineCueBanner(BOOL bMultiLineCueBanner)
+	{
+		m_bMultiLineCueBanner = bMultiLineCueBanner;
+		const auto bEmpty = !GetWindowTextLengthW(HWnd);
+		if (m_bEmpty != bEmpty)
+		{
+			m_bEmpty = bEmpty;
+			Redraw();
+		}
+	}
+
+	EckInline constexpr BOOL GetMultiLineCueBanner() const { return m_bMultiLineCueBanner; }
 };
 ECK_NAMESPACE_END
