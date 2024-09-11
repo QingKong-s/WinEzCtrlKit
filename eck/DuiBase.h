@@ -55,6 +55,7 @@ enum
 	DES_CONTENT_EXPAND = (1u << 4),	// 更新时必须更新整个元素，若设置了DES_BLURBKG，则强制设置此标志
 	DES_COMPOSITED = (1u << 5),		// 渲染到独立的图面，然后与主图面混合
 	DES_INPLACE_COMP = (1u << 6),	// 混合矩形完全包含在元素矩形中
+	DES_EXTERNAL_CONTENT = (1u << 7),// 使用某外部图面作为DComp视觉对象的内容
 };
 
 // 元素产生的通知
@@ -119,35 +120,39 @@ class CElem :public ILayout
 {
 	friend class CDuiWnd;
 protected:
-	CElem* m_pNext = NULL;
-	CElem* m_pPrev = NULL;
-	CElem* m_pParent = NULL;
-	CElem* m_pFirstChild = NULL;
-	CElem* m_pLastChild = NULL;
-	CDuiWnd* m_pWnd = NULL;
-	ID2D1DeviceContext* m_pDC = NULL;
-	CColorTheme* m_pColorTheme = NULL;
+	CElem* m_pNext{};
+	CElem* m_pPrev{};
+	CElem* m_pParent{};
+	CElem* m_pFirstChild{};
+	CElem* m_pLastChild{};
+	CDuiWnd* m_pWnd{};
+	ID2D1DeviceContext* m_pDC{};
+	CColorTheme* m_pColorTheme{};
 
-	ID2D1Bitmap1* m_pBitmapComp = NULL;
+	ID2D1Bitmap1* m_pBitmapComp{};
 
-	RECT m_rc{};
-	D2D1_RECT_F m_rcf{};
+	RECT m_rc{};		// 元素矩形，相对父元素
+	D2D1_RECT_F m_rcf{};// 元素矩形，相对父元素
+	RECT m_rcInClient{};// 元素矩形，相对客户区
+	D2D1_RECT_F m_rcfInClient{};// 元素矩形，相对客户区
 
-	RECT m_rcInvalid{};		// 客户坐标
+	RECT m_rcInvalid{};	// 无效矩形，相对客户区
 
-	RECT m_rcInClient{};
-	D2D1_RECT_F m_rcfInClient{};
 
 	RECT m_rcPostComposited{};	// 混合到主图面的矩形，至少完全包含元素矩形
 	RECT m_rcPostCompositedInClient{};	// 混合到主图面的矩形，相对于客户区
 
 	CRefStrW m_rsText{};
 
-	DWORD m_dwStyle = 0;
-	DWORD m_dwExStyle = 0;
+	DWORD m_dwStyle{};
+	DWORD m_dwExStyle{};
 
-	int m_iId = 0;
+	int m_iId{};
 	int m_cChildren{};
+
+	IDCompositionVisual* m_pDcVisual{};
+	IDCompositionSurface* m_pDcSurface{};
+	IUnknown* m_pDcContent{};
 
 	BITBOOL m_bAllowRedraw : 1 = TRUE;
 
@@ -283,6 +288,10 @@ protected:
 	void SwitchDefColorTheme(int idxTheme, WPARAM bDark);
 
 	void ReCreateCompBitmap();
+
+	void ReCreateDCompVisual();
+
+	void ReSizeDCompVisual();
 public:
 	void LoGetAppropriateSize(int& cx, int& cy) override
 	{
@@ -320,36 +329,7 @@ public:
 		SetVisible(bShow);
 	}
 
-	virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
-	{
-		switch (uMsg)
-		{
-		case WM_NCHITTEST:
-			return HTCLIENT;
-		case WM_KILLFOCUS:
-		{
-			DUINMHDR nm{ EE_KILLFOCUS };
-			GenElemNotifyParent(&nm);
-		}
-		return 0;
-		case WM_SETFOCUS:
-		{
-			DUINMHDR nm{ EE_SETFOCUS };
-			GenElemNotifyParent(&nm);
-		}
-		return 0;
-
-		case WM_SIZE:
-		{
-			if (GetStyle() & DES_COMPOSITED)
-			{
-				ReCreateCompBitmap();
-			}
-		}
-		return 0;
-		}
-		return 0;
-	}
+	virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	/// <summary>
 	/// 元素内容渲染完毕。
@@ -629,6 +609,7 @@ enum class PresentMode
 	FlipSwapChain,		//	|	1	|不支持									|  性能极好	|
 	DCompositionSurface,//	|	0	|支持，建议加入WS_EX_NOREDIRECTIONBITMAP	|  建议使用	|
 	WindowRenderTarget,	//  |	1	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|  兼容性好	|
+	AllDComp,			//	与DCompositionSurface相同，但所有元素都使用DComp合成
 };
 
 /// <summary>
@@ -681,6 +662,7 @@ private:
 	DXGI_ALPHA_MODE m_eDxgiAlphaMode{ DXGI_ALPHA_MODE_IGNORE };
 
 	IDCompositionDevice* m_pDcDevice{};
+	IDCompositionDevice3* m_pDcDevice3{};
 	IDCompositionTarget* m_pDcTarget{};
 	IDCompositionVisual* m_pDcVisual{};
 	IDCompositionSurface* m_pDcSurface{};
@@ -731,47 +713,93 @@ private:
 	{
 		const auto pDC = m_D2d.GetDC();
 		RECT rcClip;
+		IDXGISurface1* pDxgiSurface{};
+		ID2D1Image* pOldTarget{};
+		BOOL bNeedComposite{};
+		ID2D1Bitmap1* pBitmap{};
 		while (pElem)
 		{
 			if ((pElem->GetStyle() & DES_VISIBLE) && pElem->GetRedraw())
 			{
 				const auto& rcElem = pElem->GetWholeRect();
-				if (IntersectRect(rcClip, rcElem, rc))
+				if (IntersectRect(rcClip, rcElem, rc) &&
+					!(pElem->GetStyle() & DES_EXTERNAL_CONTENT))
 				{
 					if (IsRectEmpty(pElem->m_rcInvalid))
 						pElem->m_rcInvalid = pElem->GetRectInClient();
-					ID2D1Image* pOldTarget{};
-					BOOL bNeedComposite = FALSE;
-					if (pElem->GetStyle() & DES_COMPOSITED)
+					if(!IsRectEmpty(pElem->m_rcInvalid))
 					{
-						pDC->Flush();
-						pDC->GetTarget(&pOldTarget);
-						pDC->SetTarget(pElem->m_pBitmapComp);
-						pDC->SetTransform(D2D1::Matrix3x2F::Identity());
-						bNeedComposite = TRUE;
+						if (IsElemUseDComp())// 使用DComp合成
+						{
+							RECT rcUpdate{ pElem->m_rcInvalid };
+							IntersectRect(rcUpdate, rcUpdate, rc);
+							pElem->ClientToElem(rcUpdate);
+							POINT ptOffset{};
+							const auto hr = pElem->m_pDcSurface->BeginDraw(
+								&rcUpdate, IID_PPV_ARGS(&pDxgiSurface), &ptOffset);
+							if (FAILED(hr))
+								pElem->m_pDcSurface->BeginDraw(NULL, IID_PPV_ARGS(&pDxgiSurface), &ptOffset);
+							else
+							{
+								ptOffset.x -= rcUpdate.left;
+								ptOffset.y -= rcUpdate.top;
+							}
+
+							const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
+							{
+								{ DXGI_FORMAT_B8G8R8A8_UNORM,m_eAlphaMode },
+								96,
+								96,
+								D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+								NULL
+							};
+							pDC->CreateBitmapFromDxgiSurface(pDxgiSurface, &D2dBmpProp, &pBitmap);
+							pDC->BeginDraw();
+							pDC->SetTarget(pBitmap);
+							pDC->SetTransform(D2D1::Matrix3x2F::Translation(ptOffset.x, ptOffset.y));
+							bNeedComposite = FALSE;
+						}
+						else if (pElem->GetStyle() & DES_COMPOSITED)// 手动合成
+						{
+							pDC->Flush();
+							pDC->GetTarget(&pOldTarget);
+							pDC->SetTarget(pElem->m_pBitmapComp);
+							pDC->SetTransform(D2D1::Matrix3x2F::Identity());
+							bNeedComposite = TRUE;
+						}
+						else// 直接渲染
+						{
+							pDC->SetTransform(D2D1::Matrix3x2F::Translation(
+								pElem->GetRectInClientF().left + ox,
+								pElem->GetRectInClientF().top + oy));
+							bNeedComposite = FALSE;
+						}
+						pElem->CallEvent(WM_PAINT, 0, (LPARAM)&rcClip);
+						if (IsElemUseDComp())
+						{
+							pDC->EndDraw();
+							pDC->SetTarget(NULL);
+							pBitmap->Release();
+							pDxgiSurface->Release();
+							pElem->m_pDcSurface->EndDraw();
+							RedrawElem(pElem->GetFirstChildElem(), rcClip, 0.f, 0.f);
+						}
+						else if (bNeedComposite)
+						{
+							RedrawElem(pElem->GetFirstChildElem(), rcClip,
+								-pElem->GetRectInClientF().left,
+								-pElem->GetRectInClientF().top);
+							pDC->Flush();
+							pDC->SetTarget(pOldTarget);
+							pOldTarget->Release();
+							pDC->SetTransform(D2D1::Matrix3x2F::Translation(
+								pElem->GetRectInClientF().left + ox,
+								pElem->GetRectInClientF().top + oy));
+							pElem->OnComposite(rcClip, ox, oy);
+						}
+						else
+							RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
 					}
-					else
-					{
-						pDC->SetTransform(D2D1::Matrix3x2F::Translation(
-							pElem->GetRectInClientF().left + ox,
-							pElem->GetRectInClientF().top + oy));
-					}
-					pElem->CallEvent(WM_PAINT, 0, (LPARAM)&rcClip);
-					if (bNeedComposite)
-					{
-						RedrawElem(pElem->GetFirstChildElem(), rcClip,
-							-pElem->GetRectInClientF().left,
-							-pElem->GetRectInClientF().top);
-						pDC->Flush();
-						pDC->SetTarget(pOldTarget);
-						pOldTarget->Release();
-						pDC->SetTransform(D2D1::Matrix3x2F::Translation(
-							pElem->GetRectInClientF().left + ox,
-							pElem->GetRectInClientF().top + oy));
-						pElem->OnComposite(rcClip, ox, oy);
-					}
-					else
-						RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
 				}
 			}
 			pElem = pElem->GetNextElem();
@@ -802,9 +830,10 @@ private:
 		}
 		return;
 		case PresentMode::DCompositionSurface:
+		case PresentMode::AllDComp:
 		{
 			const auto pDC = m_D2d.GetDC();
-			IDXGISurface1* pDxgiSurface = NULL;
+			/*IDXGISurface1* pDxgiSurface = NULL;
 			POINT ptOffset;
 			m_pDcSurface->BeginDraw(&rc, IID_PPV_ARGS(&pDxgiSurface), &ptOffset);
 			const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
@@ -830,15 +859,25 @@ private:
 
 			m_D2d.m_pBitmap = pBitmap;
 			FillBackground(MakeD2DRcF(rcReal));
-			RedrawElem(GetFirstChildElem(), rc, (float)ptOffset.x, (float)ptOffset.y);
+			if (!IsElemUseDComp())
+				RedrawElem(GetFirstChildElem(), rc, (float)ptOffset.x, (float)ptOffset.y);
+
 			m_D2d.m_pBitmap = NULL;
 
 			pDC->EndDraw();
+			pDC->SetTarget(NULL);
 			m_pDcSurface->EndDraw();
 
 			pBitmap->Release();
-			pDxgiSurface->Release();
+			pDxgiSurface->Release();*/
 
+			if (IsElemUseDComp())
+			{
+				//pDC->BeginDraw();
+				RedrawElem(GetFirstChildElem(), rc, 0.f, 0.f);
+				//pDC->EndDraw();
+			}
+			
 			m_pDcDevice->Commit();
 		}
 		return;
@@ -893,6 +932,7 @@ private:
 							m_D2d.ReSize(2, m_cxClient, m_cyClient, 0, m_eAlphaMode);
 							break;
 						case PresentMode::DCompositionSurface:
+						case PresentMode::AllDComp:
 						{
 							IDCompositionSurface* pDcSurface = NULL;
 							m_pDcDevice->CreateSurface(m_cxClient, m_cyClient,
@@ -989,8 +1029,9 @@ public:
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
 	{
-		if (m_ePresentMode == PresentMode::DCompositionSurface ||
-			m_ePresentMode == PresentMode::FlipSwapChain)
+		if (m_ePresentMode == PresentMode::FlipSwapChain ||
+			m_ePresentMode == PresentMode::DCompositionSurface ||
+			m_ePresentMode == PresentMode::AllDComp)
 			dwExStyle |= WS_EX_NOREDIRECTIONBITMAP;
 		return IntCreate(dwExStyle, WCN_DUIHOST, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, g_hInstance, NULL);
@@ -1198,18 +1239,20 @@ public:
 				}
 				break;
 				case PresentMode::DCompositionSurface:
+				case PresentMode::AllDComp:
 				{
 					g_pD2dDevice->CreateDeviceContext(
 						EZD2D_PARAM::MakeFlip(0, NULL, NULL, NULL, 0, 0).uDcOptions, &m_D2d.m_pDC);
 
-					DCompositionCreateDevice2(g_pDxgiDevice, IID_PPV_ARGS(&m_pDcDevice));
+					DCompositionCreateDevice3(g_pDxgiDevice, IID_PPV_ARGS(&m_pDcDevice));
+					m_pDcDevice->QueryInterface(&m_pDcDevice3);
 					m_pDcDevice->CreateTargetForHwnd(hWnd, TRUE, &m_pDcTarget);
 					m_pDcDevice->CreateVisual(&m_pDcVisual);
-					auto hr = m_pDcDevice->CreateSurface(rc.right, rc.bottom,
+					m_pDcDevice->CreateSurface(rc.right, rc.bottom,
 						DXGI_FORMAT_B8G8R8A8_UNORM,
 						m_eDxgiAlphaMode,
 						&m_pDcSurface);
-					m_pDcVisual->SetContent(m_D2d.GetSwapChain());
+					m_pDcVisual->SetContent(m_pDcSurface);
 					m_pDcTarget->SetRoot(m_pDcVisual);
 					m_pDcVisual->SetOffsetX(0.f);
 					m_pDcVisual->SetOffsetY(0.f);
@@ -1541,6 +1584,8 @@ public:
 	EckInline constexpr BOOL GetTransparent() const { return m_bTransparent; }
 
 	EckInline constexpr int GetChildrenCount() const { return m_cChildren; }
+
+	EckInline constexpr BOOL IsElemUseDComp() const { return m_ePresentMode == PresentMode::AllDComp; }
 };
 
 inline void CElem::IRCheckAndInvalid()
@@ -1605,6 +1650,12 @@ inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 
 	m_rsText = pszText;
 	IntSetRect({ x,y,x + cx,y + cy });
+
+	if (GetWnd()->IsElemUseDComp())
+		ReCreateDCompVisual();
+
+	m_pDcVisual->SetOffsetX(x);
+	m_pDcVisual->SetOffsetY(y);
 
 	if (CallEvent(WM_CREATE, 0, (LPARAM)pData))
 	{
@@ -1792,6 +1843,43 @@ EckInline void CElem::InitEasingCurve(CEasingCurve* pec)
 	GetWnd()->RegisterTimeLine(pec);
 }
 
+inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	switch (uMsg)
+	{
+	case WM_NCHITTEST:
+		return HTCLIENT;
+	case WM_ERASEBKGND:
+	{
+		if (GetWnd()->IsElemUseDComp())
+			m_pDC->Clear({});
+	}
+	return 1;
+	case WM_KILLFOCUS:
+	{
+		DUINMHDR nm{ EE_KILLFOCUS };
+		GenElemNotifyParent(&nm);
+	}
+	return 0;
+	case WM_SETFOCUS:
+	{
+		DUINMHDR nm{ EE_SETFOCUS };
+		GenElemNotifyParent(&nm);
+	}
+	return 0;
+
+	case WM_SIZE:
+	{
+		if (m_pDcVisual && !(GetStyle() & DES_EXTERNAL_CONTENT))
+			ReSizeDCompVisual();
+		else if (GetStyle() & DES_COMPOSITED)
+			ReCreateCompBitmap();
+	}
+	return 0;
+	}
+	return 0;
+}
+
 inline void CElem::SetRect(const RECT& rc)
 {
 	ECK_DUILOCK;
@@ -1892,6 +1980,56 @@ inline void CElem::ReCreateCompBitmap()
 	BmpProp.colorContext = NULL;
 	m_pDC->CreateBitmap(D2D1::SizeU(std::max(1, GetWidth()), std::max(1, GetHeight())), NULL, 0,
 		BmpProp, &m_pBitmapComp);
+}
+
+inline void CElem::ReCreateDCompVisual()
+{
+	ECK_DUILOCK;
+	EckAssert(GetWnd()->IsElemUseDComp());
+	SafeRelease(m_pDcVisual);
+	SafeRelease(m_pDcContent);
+	SafeRelease(m_pDcSurface);
+	const auto pDevice = m_pWnd->m_pDcDevice;
+	pDevice->CreateVisual(&m_pDcVisual);
+	auto cx = std::max(1, GetWidth()), cy = std::max(1, GetHeight());
+	pDevice->CreateSurface(std::max(1, GetWidth()), std::max(1, GetHeight()),
+		DXGI_FORMAT_B8G8R8A8_UNORM, m_pWnd->m_eDxgiAlphaMode, &m_pDcSurface);
+	m_pDcContent = m_pDcSurface;
+	m_pDcContent->AddRef();
+	m_pDcVisual->SetContent(m_pDcContent);
+	const auto pParent = GetParentElem();
+	IDCompositionVisual* pRefVisual;
+	BOOL bInsertAbove;
+	if (GetPrevElem())
+	{
+		pRefVisual = GetPrevElem()->m_pDcVisual;
+		bInsertAbove = TRUE;
+	}
+	else if (GetNextElem())
+	{
+		pRefVisual = GetNextElem()->m_pDcVisual;
+		bInsertAbove = FALSE;
+	}
+	else
+	{
+		pRefVisual = NULL;
+		bInsertAbove = FALSE;
+	}
+	if (pParent)
+		pParent->m_pDcVisual->AddVisual(m_pDcVisual, bInsertAbove, pRefVisual);
+	else
+		m_pWnd->m_pDcVisual->AddVisual(m_pDcVisual, bInsertAbove, pRefVisual);
+}
+
+inline void CElem::ReSizeDCompVisual()
+{
+	ECK_DUILOCK;
+	m_pDcSurface->Release();
+	GetWnd()->m_pDcDevice->CreateSurface(std::max(1, GetWidth()), std::max(1, GetHeight()),
+		DXGI_FORMAT_B8G8R8A8_UNORM, GetWnd()->m_eDxgiAlphaMode, &m_pDcSurface);
+	m_pDcVisual->SetContent(m_pDcSurface);
+	m_pDcVisual->SetOffsetX(GetRectF().left);
+	m_pDcVisual->SetOffsetY(GetRectF().top);
 }
 
 inline void CElem::SetStyle(DWORD dwStyle)
@@ -2252,7 +2390,7 @@ inline HRESULT CDuiWnd::EnableDragDrop(BOOL bEnable)
 		}
 	}
 	return S_FALSE;// indicate do nothing
-}
+		}
 
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

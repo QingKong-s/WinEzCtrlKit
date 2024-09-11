@@ -145,6 +145,7 @@ public:
 			else
 				m_psv->SetViewSize(cy - 2 * cx);
 		}
+		break;
 		return 0;
 
 		case WM_PAINT:

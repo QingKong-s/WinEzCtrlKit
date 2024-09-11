@@ -420,7 +420,7 @@ EckInline ULONGLONG GetUnixTimestamp()
 {
 	ULONGLONG ull;
 	GetSystemTimeAsFileTime((FILETIME*)&ull);
-	ull -= 116444736000000000;
+	ull -= 116444736000000000ull;
 	ull /= 10000ull;
 	return ull;
 }

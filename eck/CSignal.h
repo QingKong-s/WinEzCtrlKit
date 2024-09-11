@@ -59,7 +59,7 @@ private:
 	NODE* m_pHead{};
 	int m_cDeleted{};
 public:
-	ECK_DISABLE_COPY_DEF_CONS(CSignal);
+	ECK_DISABLE_COPY_MOVE_DEF_CONS(CSignal);
 
 	/// <summary>
 	/// 发射
@@ -106,7 +106,7 @@ public:
 				NODE* pPrev{};
 				do
 				{
-					if (pNode->cEnter == 0 && pNode->uFlags & NF_DELETED)
+					if (pNode->cEnter == 0 && (pNode->uFlags & NF_DELETED))
 					{
 						if (pPrev)
 							pPrev->pNext = pNode->pNext;
@@ -217,7 +217,14 @@ public:
 		if constexpr (std::is_same_v<TIntercept, Intercept_T>)
 			IntConnect([&](TArgs ...args, BOOL& bProcessed)->TRet
 				{
-					return sig.Emit(args...);
+					if constexpr (std::is_same_v<TRet, void>)
+						sig.Emit2(bProcessed, args...);
+					else
+					{
+						const auto r = sig.Emit2(bProcessed, args...);
+						if (bProcessed)
+							return r;
+					}
 				}, uId, bInsertToEnd, uIdAfter);
 		else
 			IntConnect([&](TArgs ...args)->TRet

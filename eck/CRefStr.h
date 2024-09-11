@@ -619,7 +619,7 @@ public:
 			return DupString((TConstPointer)((PCBYTE)pidl + strret.uOffset));
 		case STRRET_CSTR:
 			if constexpr (std::is_same_v<TChar, CHAR>)
-			return DupString(strret.cStr);
+				return DupString(strret.cStr);
 			else
 			{
 				const int cch = MultiByteToWideChar(CP_ACP, 0, strret.cStr, -1, NULL, 0);
@@ -1198,7 +1198,7 @@ public:
 			return RTL_UNICODE_STRING_BUFFER
 			{
 				.String = ToNtString(),
-				.ByteBuffer = { .Buffer = (PUCHAR)Data(),.Size = ByteCapacity() },
+				.ByteBuffer = {.Buffer = (PUCHAR)Data(),.Size = ByteCapacity() },
 			};
 #else
 			RTL_UNICODE_STRING_BUFFER Buf{ ToNtString() };
@@ -1208,10 +1208,7 @@ public:
 #endif// ECKCXX20
 		}
 		else
-		{
-			EckDbgBreak();
 			return {};
-		}
 	}
 
 	[[nodiscard]] EckInline TIterator begin() { return Data(); }
@@ -1908,10 +1905,10 @@ EckInline void SplitStrWithMultiChar(PWSTR pszText, PCWSTR pszDiv, std::vector<P
 					ch = *++pszText;
 				return (int)(pszText - pszOrg);
 			}(pszText);
-			rs.PushBack(pszText, posTemp);
+		rs.PushBack(pszText, posTemp);
 
-			posTemp += (int)(LTrimStr(pszText) - pszText);
-			pszText += posTemp;
+		posTemp += (int)(LTrimStr(pszText) - pszText);
+		pszText += posTemp;
 	}
 
 	return rs;
