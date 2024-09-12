@@ -359,10 +359,10 @@ public:
 		case WM_SIZE:
 		{
 			ECK_DUILOCK;
-			m_rcfTextAera = { 15,5,GetViewWidthF() - 10,5 + GetViewHeightF() - 10 };
+			m_rcfTextAera = { 15,5,GetWidthF() - 10,5 + GetHeightF() - 10 };
 			const int cx = (int)GetWnd()->GetDs().CommSBCxy;
-			const int x = GetViewWidth() - cx;
-			m_SBV.SetRect({ x,0,x + cx,GetViewHeight() });
+			const int x = GetWidth() - cx;
+			m_SBV.SetRect({ x,0,x + cx,GetHeight() });
 		}
 		return 0;
 

@@ -263,7 +263,7 @@ public:
 	{
 		RECT rc{ GetWidth() - m_cxClose - m_cxMaxMin * 2 , 0, GetWidth(), m_cyBtn };
 		ElemToClient(rc);
-		InvalidateRect(&rc);
+		InvalidateRect(rc);
 	}
 
 	EckInline constexpr void SetRefWnd(HWND hWnd) { m_hRefWnd = hWnd; }

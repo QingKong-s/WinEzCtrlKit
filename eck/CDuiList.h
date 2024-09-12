@@ -147,7 +147,7 @@ private:
 		}
 
 		const float fRad = m_pWnd->GetDs().CommRrcRadius;
-		D2D1_RECT_F rc{ 0.f,(float)GetItemY(idx),GetViewWidthF() };
+		D2D1_RECT_F rc{ 0.f,(float)GetItemY(idx),GetWidthF() };
 		rc.bottom = rc.top + m_cyItem;
 
 		const auto& cr = m_pColorTheme->Get();
@@ -281,7 +281,7 @@ private:
 			break;
 		case ListType::Icon:
 		{
-			m_cItemPerRow = (GetViewWidth() + m_cxPadding) / (m_cxItem + m_cxPadding);
+			m_cItemPerRow = (GetWidth() + m_cxPadding) / (m_cxItem + m_cxPadding);
 			const int cItemV = ((int)m_vItem.size() - 1) / m_cItemPerRow + 1;
 			m_psv->SetRange(-m_cyTopExtra, cItemV * (m_cyItem + m_cyPadding) + m_cyBottomExtra);
 		}
@@ -612,7 +612,7 @@ public:
 			if (m_idxInsertMark >= 0)
 				UpdateInsertMarkGeometry();
 			const auto cxSB = (int)GetWnd()->GetDs().CommSBCxy;
-			m_SB.SetRect({ GetViewWidth() - cxSB,0,GetViewWidth(),GetViewHeight() });
+			m_SB.SetRect({ GetWidth() - cxSB,0,GetWidth(),GetHeight() });
 		}
 		return 0;
 
@@ -780,7 +780,7 @@ public:
 		{
 		case ListType::List:
 			rc.left = 0;
-			rc.right = GetViewWidth();
+			rc.right = GetWidth();
 			rc.top = GetItemY(idx);
 			rc.bottom = rc.top + m_cyItem;
 			break;
@@ -804,7 +804,7 @@ public:
 		{
 		case ListType::List:
 			rc.left = 0;
-			rc.right = GetViewWidthF();
+			rc.right = GetWidthF();
 			rc.top = (float)GetItemY(idx);
 			rc.bottom = rc.top + m_cyItem;
 			break;
@@ -915,7 +915,7 @@ public:
 			return;
 		}
 		rc.left = 0.f;
-		rc.right = GetViewWidthF();
+		rc.right = GetWidthF();
 		rc.top = GetItemY(m_idxInsertMark) - m_DsF.cyInsertMark * 2.f;
 		rc.bottom = rc.top + m_DsF.cyInsertMark * 5.f;
 	}
@@ -928,7 +928,7 @@ public:
 		D2D1_RECT_F rc;
 		GetInsertMarkRect(rc);
 		ElemToClient(rc);
-		InvalidateRectF(&rc);
+		InvalidateRect(rc);
 	}
 
 	void InvalidateCache(int idx)
@@ -976,11 +976,11 @@ public:
 			{
 				0,
 				GetItemY(idxBegin),
-				GetViewWidth(),
+				GetWidth(),
 				GetItemY(idxEnd) + m_cyItem
 			};
 			ElemToClient(rc);
-			InvalidateRect(&rc);
+			InvalidateRect(rc);
 		}
 		break;
 		case ListType::Icon:
@@ -1001,7 +1001,7 @@ public:
 						y2 + m_cyItem
 					};
 					ElemToClient(rc);
-					InvalidateRect(&rc);
+					InvalidateRect(rc);
 				}
 				else
 				{
@@ -1009,11 +1009,11 @@ public:
 					{
 						0,
 						y1,
-						GetViewWidth(),
+						GetWidth(),
 						y2 + m_cyItem
 					};
 					ElemToClient(rc);
-					InvalidateRect(&rc);
+					InvalidateRect(rc);
 				}
 			}
 		}
@@ -1028,7 +1028,7 @@ public:
 		RECT rc;
 		GetItemRect(idx, rc);
 		ElemToClient(rc);
-		InvalidateRect(&rc);
+		InvalidateRect(rc);
 	}
 
 	int GetItemCount() const { return (int)m_vItem.size(); }

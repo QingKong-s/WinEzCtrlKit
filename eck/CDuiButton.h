@@ -89,7 +89,7 @@ public:
 			if (!m_bLBtnDown)
 				m_pDC->DrawRoundedRectangle(rrc, m_pLgBrush, cxEdge);
 
-			float x = (GetViewWidthF() - m_pWnd->GetDs().CommMargin * 2 - m_sizeImg.width - m_cxText) / 2.f;
+			float x = (GetWidthF() - m_pWnd->GetDs().CommMargin * 2 - m_sizeImg.width - m_cxText) / 2.f;
 			if (m_pImg)
 			{
 				float y = (GetHeightF() - m_sizeImg.height) / 2.f;

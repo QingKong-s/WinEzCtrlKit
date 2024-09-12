@@ -26,7 +26,7 @@ private:
 
 	BOOL PtInBtn(POINT ptInClient)
 	{
-		const int iRad = std::min(GetViewWidth(), GetViewHeight()) / 2;
+		const int iRad = std::min(GetWidth(), GetHeight()) / 2;
 		const POINT ptCenter
 		{
 			GetRectInClient().left + iRad,
@@ -44,10 +44,10 @@ public:
 			ELEMPAINTSTRU ps;
 			BeginPaint(ps, wParam, lParam);
 
-			const float fRadius = std::min(GetViewWidthF(), GetViewHeightF()) / 2.f;
+			const float fRadius = std::min(GetWidthF(), GetHeightF()) / 2.f;
 			D2D1_ELLIPSE ellipse
 			{
-				{GetViewWidthF() / 2.f, GetViewHeightF() / 2.f},
+				{GetWidthF() / 2.f, GetHeightF() / 2.f},
 				fRadius, fRadius
 			};
 
@@ -64,7 +64,7 @@ public:
 				m_pBrush->SetColor(ct.crBkNormal);
 			m_pDC->FillEllipse(ellipse, m_pBrush);
 
-			float x = (GetViewWidthF() - m_sizeImg.width) / 2.f;
+			float x = (GetWidthF() - m_sizeImg.width) / 2.f;
 			if (m_pImg)
 			{
 				float y = (GetHeightF() - m_sizeImg.height) / 2.f;
