@@ -405,7 +405,7 @@ public:
 		}
 
 		case WM_CREATE:
-			m_bEmpty = !wcslen(((CREATESTRUCTW*)lParam)->lpszName);
+			m_bEmpty = !((CREATESTRUCTW*)lParam)->lpszName || !wcslen(((CREATESTRUCTW*)lParam)->lpszName);
 			break;
 		}
 

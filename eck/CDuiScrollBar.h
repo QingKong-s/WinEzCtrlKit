@@ -32,6 +32,13 @@ private:
 	BITBOOL m_bDragThumb : 1 = FALSE;
 	BITBOOL m_bTransparentTrack : 1 = TRUE;
 public:
+	BOOL Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId = 0, PCVOID pData = NULL) override
+	{
+		dwStyle |= DES_TRANSPARENT;
+		return CElem::Create(pszText, dwStyle, dwExStyle, x, y, cx, cy, pParent, pWnd, iId, pData);
+	}
+
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)
@@ -68,7 +75,7 @@ public:
 			{
 				POINT pt ECK_GET_PT_LPARAM(lParam);
 				ClientToElem(pt);
-				m_psv->OnMouseMove((int)(m_bHorz ? pt.x - GetViewHeightF() : pt.y - GetViewWidthF()));
+				m_psv->OnMouseMove((int)(m_bHorz ? pt.x - GetHeightF() : pt.y - GetWidthF()));
 				DUINMHDR nm{ m_bHorz ? EE_HSCROLL : EE_VSCROLL };
 				if (!GenElemNotify(&nm))
 					InvalidateRect();
@@ -100,7 +107,7 @@ public:
 			if (PtInRect(rcf, ptf))
 			{
 				m_bDragThumb = TRUE;
-				m_psv->OnLButtonDown((int)(m_bHorz ? pt.x - GetViewHeightF() : pt.y - GetViewWidthF()));
+				m_psv->OnLButtonDown((int)(m_bHorz ? pt.x - GetHeightF() : pt.y - GetWidthF()));
 			}
 			else
 			{
@@ -138,8 +145,8 @@ public:
 		return 0;
 		case WM_SIZE:
 		{
-			const auto cx = GetViewWidth(),
-				cy = GetViewHeight();
+			const auto cx = GetWidth(),
+				cy = GetHeight();
 			if (m_bHorz)
 				m_psv->SetViewSize(cx - 2 * cy);
 			else
@@ -250,8 +257,8 @@ public:
 
 	void GetPartRect(D2D1_RECT_F& rc, Part eType)
 	{
-		const auto cx = GetViewWidthF(),
-			cy = GetViewHeightF();
+		const auto cx = GetWidthF(),
+			cy = GetHeightF();
 		if (m_bHorz)
 			switch (eType)
 			{
