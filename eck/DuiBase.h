@@ -17,6 +17,7 @@
 #include "ILayout.h"
 #include "SystemHelper.h"
 #include "CDwmWndPartMgr.h"
+#include "CSignal.h"
 
 #include <dcomp.h>
 #include <oleacc.h>
@@ -82,15 +83,26 @@ struct DRAGDROPINFO
 	HRESULT hr;
 };
 
+class CElem;
+struct COMP_INFO
+{
+	const D2D1_RECT_F* prc;
+	CElem* pElem;
+};
+
 enum
 {
-	WM_DRAGENTER = WM_USER_SAFE,
+	ECKPRIV_EWM_PLACEHOLDER = WM_USER_SAFE,
+	WM_DRAGENTER,
 	WM_DRAGOVER,
 	WM_DRAGLEAVE,
 	WM_DROP,
-	WM_COLORSCHEMECHANGED,
 
-	WM_PRIVBEGIN = 0x0400,
+	EWM_COLORSCHEMECHANGED,// 颜色主题改变
+	EWM_COMPOSITE,	// 指示手动混合元素执行混合，(COMP_INFO*, 0)
+	EWM_COMP_POS,	// 指示手动混合元素执行坐标变换，(POINT*待变换坐标, BOOL是否从标准点转换为混合后的点)
+
+	EWM_PRIVBEGIN,
 };
 
 enum
@@ -130,8 +142,6 @@ protected:
 	ID2D1DeviceContext* m_pDC{};	// DC
 	CColorTheme* m_pColorTheme{};	// 颜色主题
 
-	ID2D1Bitmap1* m_pBitmapComp{};
-
 	RECT m_rc{};			// 元素矩形，相对父元素
 	D2D1_RECT_F m_rcf{};	// 元素矩形，相对父元素
 	RECT m_rcInClient{};	// 元素矩形，相对客户区
@@ -151,6 +161,8 @@ protected:
 	IDCompositionVisual* m_pDcVisual{};		// DComp视觉对象
 	IDCompositionSurface* m_pDcSurface{};	// DComp表面
 	IUnknown* m_pDcContent{};				// DComp内容
+
+	CSignal<Intercept_T, LRESULT, UINT, WPARAM, LPARAM> m_Sig{};// 信号
 
 	BOOL IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId = 0, PCVOID pData = NULL);
@@ -263,22 +275,11 @@ protected:
 		{
 			if (!(dwStyle & DES_INPLACE_COMP))
 				dwStyle |= DES_CONTENT_EXPAND;
-			EckAssert(!m_pBitmapComp);
-			ReCreateCompBitmap();
-		}
-
-		if ((m_dwStyle & DES_COMPOSITED) && !(dwStyle & DES_COMPOSITED))
-		{
-			EckAssert(m_pBitmapComp);
-			m_pBitmapComp->Release();
-			m_pBitmapComp = NULL;
 		}
 		m_dwStyle = dwStyle;
 	}
 
 	void SwitchDefColorTheme(int idxTheme, WPARAM bDark);
-
-	void ReCreateCompBitmap();
 
 	void ReCreateDCompVisual();
 
@@ -337,24 +338,12 @@ public:
 
 	virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-	/// <summary>
-	/// 元素内容渲染完毕。
-	/// 此方法简单调用DrawBitmap，若要自定义混合方案应覆写本方法
-	/// </summary>
-	/// <param name="rcClip">剪辑矩形</param>
-	/// <param name="ox">X偏移</param>
-	/// <param name="oy">Y偏移</param>
-	/// <returns>保留，必须返回0</returns>
-	virtual LRESULT OnComposite(const RECT& rcClip, float ox, float oy)
-	{
-		EckAssert(GetStyle() & DES_COMPOSITED);
-		m_pDC->DrawBitmap(m_pBitmapComp, { ox,oy,ox + GetWidthF(),oy + GetHeightF() },
-			1.f, D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
-		return 0;
-	}
-
 	EckInline LRESULT CallEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
+		BOOL bProcessed{};
+		const auto r = m_Sig.Emit2(bProcessed, uMsg, wParam, lParam);
+		if (bProcessed)
+			return r;
 		return OnEvent(uMsg, wParam, lParam);
 	}
 
@@ -619,6 +608,10 @@ public:
 			GetPostCompositedRectInClient() :
 			GetRectInClient());
 	}
+
+	EckInline constexpr ID2D1Bitmap1* GetCompBitmap() const;
+
+	EckInline constexpr auto& GetSignal() { return m_Sig; }
 };
 
 // DUI图形系统呈现模式
@@ -669,6 +662,10 @@ private:
 
 	ID2D1HwndRenderTarget* m_pHwndRenderTarget{};	// 窗口渲染目标，仅当呈现模式为窗口渲染目标时有效
 
+	ID2D1Bitmap1* m_pBmpCache{};	// 缓存位图，模糊或独立混合等可在其上进行
+	int m_cxCache{};// 缓存位图宽度
+	int m_cyCache{};// 缓存位图高度
+
 	CColorTheme* m_pStdColorTheme[CTI_COUNT]{};		// 默认亮色主题
 	CColorTheme* m_pStdColorThemeDark[CTI_COUNT]{};	// 默认暗色主题
 
@@ -679,7 +676,7 @@ private:
 	std::vector<ITimeLine*> m_vTimeLine{};	// 所有时间线
 
 	size_t m_cInvalidRect{};	// 无效矩形数量
-	RECT m_InvalidRect[MaxIR]{};	// 无效矩形数组
+	RECT m_InvalidRect[MaxIR]{};// 无效矩形数组
 	//------其他------
 	int m_cxClient = 0;		// 客户区宽度
 	int m_cyClient = 0;		// 客户区高度
@@ -734,6 +731,7 @@ private:
 
 	EckInline constexpr size_t IsIRIntersect(const RECT& rc) const
 	{
+		__assume(m_cInvalidRect <= MaxIR);
 		EckCounter(m_cInvalidRect, i)
 		{
 			if (IsRectsIntersect(rc, m_InvalidRect[i]))
@@ -750,6 +748,7 @@ private:
 		ID2D1Image* pOldTarget{};
 		BOOL bNeedComposite{};
 		ID2D1Bitmap1* pBitmap{};
+		COMP_INFO ci;
 		while (pElem)
 		{
 			const auto& rcElem = pElem->GetRectInClient();
@@ -795,7 +794,8 @@ private:
 			{
 				pDC->Flush();
 				pDC->GetTarget(&pOldTarget);
-				pDC->SetTarget(pElem->m_pBitmapComp);
+				CacheReserve(rcElem.right - rcElem.left, rcElem.bottom - rcElem.top);
+				pDC->SetTarget(GetCacheBitmap());
 				pDC->SetTransform(D2D1::Matrix3x2F::Identity());
 				bNeedComposite = TRUE;
 			}
@@ -818,16 +818,17 @@ private:
 			}
 			else if (bNeedComposite)
 			{
-				RedrawElem(pElem->GetFirstChildElem(), rcClip,
-					-pElem->GetRectInClientF().left,
-					-pElem->GetRectInClientF().top);
+				const D2D1_RECT_F rcF{ 0.f,0.f,pElem->GetWidthF(),pElem->GetHeightF() };
 				pDC->Flush();
 				pDC->SetTarget(pOldTarget);
 				pOldTarget->Release();
 				pDC->SetTransform(D2D1::Matrix3x2F::Translation(
 					pElem->GetRectInClientF().left + ox,
 					pElem->GetRectInClientF().top + oy));
-				pElem->OnComposite(rcClip, ox, oy);
+				ci.prc = &rcF;
+				ci.pElem = pElem;
+				pElem->CallEvent(EWM_COMPOSITE, (WPARAM)&ci, 0);
+				RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
 			}
 			else
 				RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
@@ -838,6 +839,7 @@ private:
 
 	void RedrawDui(const RECT& rc)
 	{
+		__assume(m_cInvalidRect <= MaxIR);
 		switch (m_ePresentMode)
 		{
 		case PresentMode::BitBltSwapChain:
@@ -1008,6 +1010,7 @@ private:
 					{
 						// 更新脏矩形
 						RECT rc{};
+						__assume(m_cInvalidRect <= MaxIR);
 						if (m_cInvalidRect)
 						{
 							const auto cRc = m_cInvalidRect;
@@ -1073,8 +1076,6 @@ private:
 		t.detach();
 	}
 public:
-	ID2D1Bitmap* m_pBmpBlurCache = NULL;
-
 	// 一般不覆写此方法
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
@@ -1249,7 +1250,7 @@ public:
 		case WM_SETTINGCHANGE:
 		{
 			if (IsColorSchemeChangeMessage(lParam))
-				BroadcastEvent(WM_COLORSCHEMECHANGED, ShouldAppsUseDarkMode(), 0);
+				BroadcastEvent(EWM_COLORSCHEMECHANGED, ShouldAppsUseDarkMode(), 0);
 		}
 		break;
 
@@ -1432,13 +1433,11 @@ public:
 		return 0;
 	}
 
-	EckInline const CEzD2D& GetD2D() const { return m_D2d; }
+	EckInline constexpr const CEzD2D& GetD2D() const { return m_D2d; }
 
-	EckInline ID2D1Bitmap* GetBkgBitmap() const { return m_pBmpBkg; }
+	EckInline constexpr ID2D1Bitmap* GetBkgBitmap() const { return m_pBmpBkg; }
 
-	EckInline ID2D1SolidColorBrush* GetBkgBrush() const {
-		return m_pBrBkg;
-	}
+	EckInline constexpr ID2D1SolidColorBrush* GetBkgBrush() const { return m_pBrBkg; }
 
 	EckInline void SetBkgBitmap(ID2D1Bitmap* pBmp)
 	{
@@ -1575,6 +1574,7 @@ public:
 
 	EckInline void UnionInvalidRect(const RECT& rc)
 	{
+		__assume(m_cInvalidRect <= MaxIR);
 		// 此种情况无法保存无效区域广义并之内、每个无效区域之外的已绘制内容，必须退化为单个无效矩形
 		if (m_ePresentMode == PresentMode::DCompositionSurface)
 		{
@@ -1664,10 +1664,33 @@ public:
 
 	EckInline constexpr BOOL IsElemUseDComp() const { return m_ePresentMode == PresentMode::AllDComp; }
 
-	EckInline constexpr BOOL IsUseSwapChain() const
+	EckInline constexpr ID2D1Bitmap1* GetCacheBitmap() const { return m_pBmpCache; }
+
+	void CacheReserve(int cx, int cy)
 	{
-		return m_ePresentMode == PresentMode::BitBltSwapChain ||
-			m_ePresentMode == PresentMode::FlipSwapChain;
+		if (cx > m_cxCache || cy > m_cyCache)
+		{
+			if (m_pBmpCache)
+				m_pBmpCache->Release();
+			m_cxCache = cx;
+			m_cyCache = cy;
+			const D2D1_BITMAP_PROPERTIES1 Prop
+			{
+				{ DXGI_FORMAT_B8G8R8A8_UNORM,D2D1_ALPHA_MODE_PREMULTIPLIED },
+				(float)m_iUserDpi, (float)m_iUserDpi,
+				D2D1_BITMAP_OPTIONS_TARGET
+			};
+			m_D2d.GetDC()->CreateBitmap(D2D1::SizeU(m_cxCache, m_cyCache),
+				NULL, 0, Prop, &m_pBmpCache);
+		}
+	}
+
+	void CacheClear()
+	{
+		if (m_pBmpCache)
+			m_pBmpCache->Release();
+		m_pBmpCache = NULL;
+		m_cxCache = m_cyCache = 0;
 	}
 };
 
@@ -1901,7 +1924,7 @@ inline void CElem::BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, 
 		{
 			m_pDC->Flush();
 			m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
-			BlurD2dDC(m_pDC, m_pWnd->GetD2D().GetBitmap(), m_pWnd->m_pBmpBlurCache,
+			BlurD2dDC(m_pDC, GetWnd()->GetD2D().GetBitmap(), GetWnd()->GetCacheBitmap(),
 				eps.rcfClip, { eps.rcfClipInElem.left,eps.rcfClipInElem.top }, 10.f);
 		}
 		else
@@ -1931,10 +1954,22 @@ inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return HTCLIENT;
 	case WM_ERASEBKGND:
 	{
-		if (GetWnd()->IsElemUseDComp())
+		if (GetWnd()->IsElemUseDComp() || (GetStyle() & DES_COMPOSITED))
 			m_pDC->Clear({});
 	}
 	return 1;
+	case EWM_COMPOSITE:
+	{
+		if (GetParentElem())
+			return GetParentElem()->CallEvent(uMsg, wParam, lParam);
+		else
+		{
+			EckAssert(GetStyle() & DES_COMPOSITED);
+			m_pDC->DrawBitmap(GetCompBitmap(), (D2D1_RECT_F*)wParam,
+				1.f, D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
+		}
+	}
+	return 0;
 	case WM_KILLFOCUS:
 	{
 		DUINMHDR nm{ EE_KILLFOCUS };
@@ -1945,6 +1980,13 @@ inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		DUINMHDR nm{ EE_SETFOCUS };
 		GenElemNotifyParent(&nm);
+	}
+	return 0;
+	case WM_MOVE:
+	case WM_SIZE:
+	{
+		if (GetStyle() & DES_COMPOSITED)
+			SetPostCompositedRect(GetRect());
 	}
 	return 0;
 	}
@@ -2014,21 +2056,6 @@ inline void CElem::SetColorTheme(CColorTheme* pColorTheme)
 	if (pColorTheme)
 		pColorTheme->DeRef();
 	CallEvent(WM_THEMECHANGED, 0, 0);
-}
-
-inline void CElem::ReCreateCompBitmap()
-{
-	ECK_DUILOCK;
-	if (m_pBitmapComp)
-		m_pBitmapComp->Release();
-	D2D1_BITMAP_PROPERTIES1 BmpProp;
-	BmpProp.pixelFormat = { DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED };
-	BmpProp.dpiX = 96.f;
-	BmpProp.dpiY = 96.f;
-	BmpProp.bitmapOptions = D2D1_BITMAP_OPTIONS_TARGET;
-	BmpProp.colorContext = NULL;
-	m_pDC->CreateBitmap(D2D1::SizeU(std::max(1, GetWidth()), std::max(1, GetHeight())), NULL, 0,
-		BmpProp, &m_pBitmapComp);
 }
 
 inline void CElem::ReCreateDCompVisual()
@@ -2124,6 +2151,11 @@ inline void CElem::SetVisible(BOOL b)
 			return;
 	SetStyle(dwStyle);
 	InvalidateRect();
+}
+
+inline constexpr EckInline ID2D1Bitmap1* CElem::GetCompBitmap() const
+{
+	return GetWnd()->GetCacheBitmap();
 }
 
 

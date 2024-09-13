@@ -980,12 +980,14 @@ inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp,
 	return S_OK;
 }
 
-inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, ID2D1Bitmap*& pBmpWork,
+inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, ID2D1Bitmap* pBmpWork,
 	const D2D1_RECT_F& rc, D2D1_POINT_2F ptDrawing, float fDeviation = 3.f)
 {
-	const D2D1_SIZE_U sizeNew{ (UINT32)(rc.right - rc.left), (UINT32)(rc.bottom - rc.top) };
-	const auto sizeOld = pBmpWork ? pBmpWork->GetSize() : D2D1_SIZE_F{};
 	HRESULT hr;
+
+	const D2D1_RECT_U rcU{ (UINT32)rc.left, (UINT32)rc.top, (UINT32)rc.right, (UINT32)rc.bottom };
+	if (FAILED(hr = pBmpWork->CopyFromBitmap(NULL, pBmp, &rcU)))
+		return hr;
 
 	ID2D1Effect* pFxBlur;
 	hr = pDC->CreateEffect(CLSID_D2D1GaussianBlur, &pFxBlur);
@@ -1002,24 +1004,7 @@ inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, ID2D1Bitmap
 		return hr;
 	}
 	pFxCrop->SetValue(D2D1_CROP_PROP_RECT,
-		D2D1::RectF(0.f, 0.f, (float)sizeNew.width, (float)sizeNew.height));
-
-	if (sizeNew.width > sizeOld.width || sizeNew.height > sizeOld.height)
-	{
-		SafeRelease(pBmpWork);
-		float xDpi, yDpi;
-		pBmp->GetDpi(&xDpi, &yDpi);
-		if (FAILED(hr = pDC->CreateBitmap(sizeNew,
-			D2D1::BitmapProperties(pBmp->GetPixelFormat(), xDpi, yDpi), &pBmpWork)))
-		{
-			pFxBlur->Release();
-			pFxCrop->Release();
-			return hr;
-		}
-	}
-
-	const D2D1_RECT_U rcU{ (UINT32)rc.left, (UINT32)rc.top, (UINT32)rc.right, (UINT32)rc.bottom };
-	pBmpWork->CopyFromBitmap(NULL, pBmp, &rcU);
+		D2D1::RectF(0.f, 0.f, rc.right - rc.left, rc.bottom - rc.top));
 
 	pFxCrop->SetInput(0, pBmpWork);
 	pFxBlur->SetInputEffect(0, pFxCrop);

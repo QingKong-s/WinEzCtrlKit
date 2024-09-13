@@ -236,7 +236,7 @@ public:
 		}
 		return 0;
 
-		case WM_COLORSCHEMECHANGED:
+		case EWM_COLORSCHEMECHANGED:
 			SwitchDefColorTheme(CTI_SCROLLBAR, wParam);
 			return 0;
 
