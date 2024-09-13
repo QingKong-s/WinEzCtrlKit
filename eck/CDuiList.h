@@ -689,7 +689,7 @@ public:
 			m_pColorTheme = GetWnd()->GetDefColorTheme()[CTI_LIST];
 			m_pColorTheme->Ref();
 
-			m_SB.Create(NULL, DES_VISIBLE, 0,
+			m_SB.Create(NULL, DES_VISIBLE|DES_COMPOSITED, 0,
 				0, 0, 0, 0, this, GetWnd());
 			m_psv = m_SB.GetScrollView();
 			m_psv->AddRef();
