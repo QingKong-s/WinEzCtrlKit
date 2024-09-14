@@ -9,6 +9,8 @@
 #include "CRefStr.h"
 #include "CRefBin.h"
 
+#include <array>
+
 #pragma push_macro("free")
 #pragma push_macro("malloc")
 #pragma push_macro("realloc")
@@ -38,6 +40,32 @@ using YyObjIter = yyjson_obj_iter;
 using YyMutObjIter = yyjson_mut_obj_iter;
 using YyPtrErr = yyjson_ptr_err;
 using YyPtrCtx = yyjson_ptr_ctx;
+
+enum class JInitValType :UINT
+{
+	Invalid,
+	Null,
+	Bool,
+	Int,
+	Int64,
+	UInt64,
+	Real,
+	String,
+	StringW,
+	Object,
+	ArrayPh,
+	StdString,
+	StdStringView,
+	StdU8String,
+	StdU8StringView,
+	StdStringW,
+	StdStringViewW,
+	RefStrA,
+	RefStrW,
+	RefBin,
+};
+ECK_ENUM_BIT_FLAGS(JInitValType);
+
 
 EckInline BOOL YyLocateStringPos(PCSTR pszText, size_t cchText, size_t ocbPos,
 	size_t& nLine, size_t& nCol, size_t& nChar)
@@ -271,26 +299,31 @@ public:
 	template<class TAlloc>
 	CJson(const CRefBinT<TAlloc>& rb, YyReadFlag uFlags = 0,
 		const YyAlc* pAlc = NULL, YyReadErr* pErr = NULL)
-		:CJson((PCSTR)rb.Data(), rb.Size(), uFlags, pAlc, pErr) {}
+		:CJson((PCSTR)rb.Data(), rb.Size(), uFlags, pAlc, pErr) {
+	}
 
 	template<class TTraits, class TAlloc>
 	CJson(const CRefStrT<CHAR, TTraits, TAlloc>& rs, YyReadFlag uFlags = 0,
 		const YyAlc* pAlc = NULL, YyReadErr* pErr = NULL)
-		: CJson(rs.Data(), rs.Size(), uFlags, pAlc, pErr) {}
+		: CJson(rs.Data(), rs.Size(), uFlags, pAlc, pErr) {
+	}
 
 	template<class TTraits, class TAlloc>
 	CJson(const std::basic_string<CHAR, TTraits, TAlloc>& s, YyReadFlag uFlags = 0,
 		const YyAlc* pAlc = NULL, YyReadErr* pErr = NULL)
-		: CJson(s.c_str(), s.size(), uFlags, pAlc, pErr) {}
+		: CJson(s.c_str(), s.size(), uFlags, pAlc, pErr) {
+	}
 
 	template<class TTraits>
 	CJson(const std::basic_string_view<CHAR, TTraits>& sv, YyReadFlag uFlags = 0,
 		const YyAlc* pAlc = NULL, YyReadErr* pErr = NULL)
-		: CJson(sv.data(), sv.size(), uFlags, pAlc, pErr) {}
+		: CJson(sv.data(), sv.size(), uFlags, pAlc, pErr) {
+	}
 
 	CJson(const char8_t* pszJson, size_t cchJson = SizeTMax, YyReadFlag uFlags = 0,
 		const YyAlc* pAlc = NULL, YyReadErr* pErr = NULL)
-		:CJson((PCSTR)pszJson, cchJson, uFlags, pAlc, pErr) {}
+		:CJson((PCSTR)pszJson, cchJson, uFlags, pAlc, pErr) {
+	}
 
 	constexpr CJson(YyDoc* pDoc) : m_pDoc{ pDoc } {}
 
@@ -443,6 +476,76 @@ struct CJsonObjProxy
 };
 
 
+
+class CJsonMutVal;
+class CMutJson;
+
+struct JArr_T {};
+
+struct CJsonInitProxy
+{
+	JInitValType eType{};
+	union
+	{
+		bool b;
+		uint64_t u64;
+		int64_t i64;
+		int i;
+		double d;
+		PCSTR s;
+		PCWSTR ws;
+		const std::initializer_list<CJsonInitProxy>* pObj;
+		const std::string* pStdStr;
+		const std::u8string* pStdU8Str;
+		const std::wstring* pStdStrW;
+		const std::string_view* pStdStrView;
+		const std::u8string_view* pStdU8StrView;
+		const std::wstring_view* pStdStrViewW;
+		const CRefStrA* pRefStrA;
+		const CRefStrW* pRefStrW;
+		const CRefBin* pRefBin;
+	} Val;
+
+	CJsonInitProxy(bool b) :eType{ JInitValType::Bool } { Val.b = b; }
+
+	CJsonInitProxy(uint64_t u64) :eType{ JInitValType::UInt64 } { Val.u64 = u64; }
+
+	CJsonInitProxy(int64_t i64) :eType{ JInitValType::Int64 } { Val.i64 = i64; }
+
+	CJsonInitProxy(int i) :eType{ JInitValType::Int } { Val.i = i; }
+
+	CJsonInitProxy(double d) :eType{ JInitValType::Real } { Val.d = d; }
+
+	CJsonInitProxy(const char* s) :eType{ JInitValType::String } { Val.s = s; }
+
+	CJsonInitProxy(const char8_t* s) :eType{ JInitValType::String } { Val.s = (PCSTR)s; }
+
+	CJsonInitProxy(const wchar_t* ws) :eType{ JInitValType::StringW } { Val.ws = ws; }
+
+	CJsonInitProxy(JArr_T) :eType{ JInitValType::ArrayPh } { Val.pObj = NULL; }
+
+	CJsonInitProxy(const std::initializer_list<CJsonInitProxy>& il) :eType{ JInitValType::Object } { Val.pObj = &il; }
+
+	CJsonInitProxy(const std::string& s) :eType{ JInitValType::StdString } { Val.pStdStr = &s; }
+
+	CJsonInitProxy(const std::u8string& s) :eType{ JInitValType::StdU8String } { Val.pStdU8Str = &s; }
+
+	CJsonInitProxy(const std::wstring& ws) :eType{ JInitValType::StdStringW } { Val.pStdStrW = &ws; }
+
+	CJsonInitProxy(const std::string_view& sv) :eType{ JInitValType::StdStringView } { Val.pStdStrView = &sv; }
+
+	CJsonInitProxy(const std::u8string_view& sv) :eType{ JInitValType::StdU8StringView } { Val.pStdU8StrView = &sv; }
+
+	CJsonInitProxy(const std::wstring_view& sv) :eType{ JInitValType::StdStringViewW } { Val.pStdStrViewW = &sv; }
+
+	CJsonInitProxy(const CRefStrA& rs) :eType{ JInitValType::RefStrA } { Val.pRefStrA = &rs; }
+
+	CJsonInitProxy(const CRefStrW& rs) :eType{ JInitValType::RefStrW } { Val.pRefStrW = &rs; }
+
+	CJsonInitProxy(const CRefBin& rb) :eType{ JInitValType::RefBin } { Val.pRefBin = &rb; }
+
+	CJsonMutVal ToMutVal(const CMutJson& Doc) const;
+};
 
 class CJsonMutVal
 {
@@ -639,15 +742,13 @@ class CMutJson
 private:
 	YyMutDoc* m_pDoc{};
 public:
-	ECK_DISABLE_COPY_DEF_CONS(CMutJson);
+	ECK_DISABLE_COPY(CMutJson);
 
-	CMutJson(const YyAlc* pAlc) : m_pDoc{ yyjson_mut_doc_new(pAlc) } {}
+	CMutJson() : m_pDoc{ yyjson_mut_doc_new(NULL) } {}
 
-	CMutJson(const CJson& Doc, const YyAlc* pAlc = NULL)
-		: m_pDoc{ yyjson_doc_mut_copy(Doc.GetDocPtr(), pAlc) } {}
+	CMutJson(const CJson& Doc, const YyAlc* pAlc = NULL) : m_pDoc{ yyjson_doc_mut_copy(Doc.GetDocPtr(), pAlc) } {}
 
-	CMutJson(const CMutJson& Doc, const YyAlc* pAlc = NULL)
-		: m_pDoc{ yyjson_mut_doc_mut_copy(Doc.GetDocPtr(), pAlc) } {}
+	CMutJson(const CMutJson& Doc, const YyAlc* pAlc = NULL) : m_pDoc{ yyjson_mut_doc_mut_copy(Doc.GetDocPtr(), pAlc) } {}
 
 	constexpr CMutJson(YyMutDoc* pDoc) : m_pDoc{ pDoc } {}
 
@@ -660,6 +761,18 @@ public:
 	}
 
 	~CMutJson() { Free(); }
+
+	EckInline void Create(const YyAlc* pAlc = NULL) { m_pDoc = yyjson_mut_doc_new(pAlc); }
+
+	EckInline void Create(const CJson& Doc, const YyAlc* pAlc = NULL)
+	{
+		m_pDoc = yyjson_doc_mut_copy(Doc.GetDocPtr(), pAlc);
+	}
+
+	EckInline void Create(const CMutJson& Doc, const YyAlc* pAlc = NULL)
+	{
+		m_pDoc = yyjson_mut_doc_mut_copy(Doc.GetDocPtr(), pAlc);
+	}
 
 	EckInline [[nodiscard]] constexpr BOOL IsValid() const { return !!m_pDoc; }
 
@@ -703,9 +816,9 @@ public:
 			cchPtr == SizeTMax ? strlen(pszPtr) : cchPtr, pCtx, pErr));
 	}
 
-	EckInline [[nodiscard]] PSTR Write(size_t* pcchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
+	EckInline [[nodiscard]] PSTR Write(size_t& cchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
 	{
-		return yyjson_mut_write_opts(m_pDoc, uFlags, pAlc, pcchOut, pErr);
+		return yyjson_mut_write_opts(m_pDoc, uFlags, pAlc, &cchOut, pErr);
 	}
 
 	EckInline BOOL Write(PCSTR pszFile, YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
@@ -751,6 +864,14 @@ public:
 	EckInline [[nodiscard]] CJsonMutVal NewStrCpy(PCSTR pszVal, size_t cchVal = SizeTMax) const
 	{
 		return CJsonMutVal(yyjson_mut_strncpy(m_pDoc, pszVal, cchVal == SizeTMax ? strlen(pszVal) : cchVal));
+	}
+
+	EckInline [[nodiscard]] CJsonMutVal NewStrCpy(PCWSTR pszVal, size_t cchVal = SizeTMax) const
+	{
+		if (cchVal == SizeTMax)
+			cchVal = wcslen(pszVal);
+		const auto u8 = StrW2X(pszVal, (int)cchVal, CP_UTF8);
+		return NewStrCpy(u8.Data(), u8.Size());
 	}
 
 	EckInline [[nodiscard]] CJsonMutVal NewArr() const { return CJsonMutVal(yyjson_mut_arr(m_pDoc)); }
@@ -846,7 +967,80 @@ public:
 	{
 		return EckPriv::JsonValAt(*this, pszKey);
 	}
+
+	EckInline CMutJson& operator=(CJsonInitProxy x)
+	{
+		SetRoot(x.ToMutVal(*this));
+		return *this;
+	}
 };
+
+CJsonMutVal CJsonInitProxy::ToMutVal(const CMutJson& Doc) const
+{
+	switch (eType)
+	{
+	case JInitValType::Null:
+		return Doc.NewNull();
+	case JInitValType::Bool:
+		return Doc.NewBool(Val.b);
+	case JInitValType::Int:
+		return Doc.NewInt(Val.i);
+	case JInitValType::Int64:
+		return Doc.NewInt64(Val.i64);
+	case JInitValType::UInt64:
+		return Doc.NewUInt64(Val.u64);
+	case JInitValType::Real:
+		return Doc.NewReal(Val.d);
+	case JInitValType::String:
+		return Doc.NewStrCpy(Val.s);
+	case JInitValType::Object:
+	{
+		if (Val.pObj->begin()->eType == JInitValType::ArrayPh)
+		{
+			CJsonMutVal Ret{ Doc.NewArr() };
+			for (auto it = Val.pObj->begin() + 1; it != Val.pObj->end(); ++it)
+				Ret.ArrPushBack(it->ToMutVal(Doc));
+			return Ret;
+		}
+		else
+		{
+			EckAssert(Val.pObj->size() % 2 == 0 && L"对象键值总数必须为偶数");
+			CJsonMutVal Ret{ Doc.NewObj() };
+			CJsonMutVal Key{ NULL };
+			for (size_t i{}; const auto & e : *Val.pObj)
+			{
+				if (i % 2 == 0)
+					Key = e.ToMutVal(Doc);
+				else
+					Ret.ObjInsert(i / 2, Key, e.ToMutVal(Doc));
+				++i;
+			}
+			return Ret;
+		}
+	}
+	ECK_UNREACHABLE;
+	case JInitValType::StdString:
+		return Doc.NewStrCpy(Val.pStdStr->data(), Val.pStdStr->size());
+	case JInitValType::StdStringView:
+		return Doc.NewStrCpy(Val.pStdStrView->data(), Val.pStdStrView->size());
+	case JInitValType::StdU8String:
+		return Doc.NewStrCpy((const char*)(Val.pStdU8Str->data()), Val.pStdU8Str->size());
+	case JInitValType::StdU8StringView:
+		return Doc.NewStrCpy((const char*)(Val.pStdU8StrView->data()), Val.pStdU8StrView->size());
+	case JInitValType::StdStringW:
+		return Doc.NewStrCpy(Val.pStdStrW->data(), Val.pStdStrW->size());
+	case JInitValType::StdStringViewW:
+		return Doc.NewStrCpy(Val.pStdStrViewW->data(), Val.pStdStrViewW->size());
+	case JInitValType::RefStrA:
+		return Doc.NewStrCpy(Val.pRefStrA->Data(), Val.pRefStrA->Size());
+	case JInitValType::RefStrW:
+		return Doc.NewStrCpy(Val.pRefStrW->Data(), Val.pRefStrW->Size());
+	case JInitValType::RefBin:
+		return Doc.NewStrCpy((PCSTR)Val.pRefBin->Data(), Val.pRefBin->Size());
+	}
+	EckDbgBreak();
+	return { NULL };
+}
 
 struct CJsonMutArrIter
 {
@@ -933,6 +1127,8 @@ struct CJsonMutObjProxy
 
 	EckInline CJsonMutObjIter end() const { return CJsonMutObjIter{}; }
 };
+
+
 
 
 EckInline [[nodiscard]] CMutJson CJson::Clone(const YyAlc* pAlc) const

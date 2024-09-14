@@ -1,7 +1,7 @@
 ﻿/*
 * WinEzCtrlKit Library
 *
-* CScrollView.h ： 滚动视图
+* CScrollView.h ： 虚拟滚动条
 *
 * Copyright(C) 2023-2024 QingKong
 */
@@ -25,7 +25,7 @@ protected:
 	BOOL m_bLBtnDown = FALSE;
 #endif // _DEBUG
 
-	void RangeChanged()
+	void constexpr RangeChanged()
 	{
 		if (!IsValid())
 		{
@@ -38,60 +38,60 @@ protected:
 			SetPosUncheck(GetMaxWithPage());
 	}
 public:
-	EckInline int GetMin() const { return m_iMin; }
+	EckInline constexpr int GetMin() const { return m_iMin; }
 
-	void SetMin(int iMin)
+	EckInline constexpr void SetMin(int iMin)
 	{
 		m_iMin = iMin;
 		RangeChanged();
 	}
 
-	EckInline int GetMax() const { return m_iMax; }
+	EckInline constexpr int GetMax() const { return m_iMax; }
 
-	EckInline int GetMaxWithPage() const { return m_iMax - m_iPage + 1; }
+	EckInline constexpr int GetMaxWithPage() const { return m_iMax - m_iPage + 1; }
 
-	void SetMax(int iMax)
+	EckInline constexpr void SetMax(int iMax)
 	{
 		m_iMax = iMax;
 		RangeChanged();
 	}
 
-	EckInline int GetPage() const { return m_iPage; }
+	EckInline constexpr int GetPage() const { return m_iPage; }
 
-	void SetPage(int iPage)
+	EckInline constexpr void SetPage(int iPage)
 	{
 		m_iPage = iPage;
 		RangeChanged();
 	}
 
-	EckInline int GetPos() const { return m_iPos; }
+	EckInline constexpr int GetPos() const { return m_iPos; }
 
-	void SetPos(int iPos)
+	EckInline constexpr void SetPos(int iPos)
 	{
 		m_iPos = iPos;
 		RangeChanged();
 	}
 
-	void SetPosUncheck(int iPos)
+	EckInline constexpr void SetPosUncheck(int iPos)
 	{
 		m_iPos = iPos;
 	}
 
-	void SetRange(int iMin, int iMax)
+	EckInline constexpr void SetRange(int iMin, int iMax)
 	{
 		m_iMin = iMin;
 		m_iMax = iMax;
 		RangeChanged();
 	}
 
-	int GetRangeDistance() const
+	EckInline constexpr int GetRangeDistance() const
 	{
 		return GetMaxWithPage() - GetMin();
 	}
 
-	BOOL IsValid() const { return GetRangeDistance() > 0; }
+	EckInline constexpr BOOL IsValid() const { return GetRangeDistance() > 0; }
 
-	void OnMouseWheel(int iDelta)
+	constexpr void OnMouseWheel(int iDelta)
 	{
 		if (!IsValid())
 			return;
@@ -104,7 +104,7 @@ public:
 		SetPos(iPos);
 	}
 
-	float GetPrecent() const
+	constexpr float GetPrecent() const
 	{
 		const int d = GetMaxWithPage() - GetMin();
 		if (d <= 0)
@@ -113,15 +113,15 @@ public:
 			return (float)(GetPos() - GetMin()) / (float)d;
 	}
 
-	EckInline void SetViewSize(int iViewSize) { m_iViewSize = iViewSize; }
+	EckInline constexpr void SetViewSize(int iViewSize) { m_iViewSize = iViewSize; }
 
-	EckInline int GetViewSize() const { return m_iViewSize; }
+	EckInline constexpr int GetViewSize() const { return m_iViewSize; }
 
-	EckInline void SetMinThumbSize(int iMinThumbSize) { m_iMinThumbSize = iMinThumbSize; }
+	EckInline constexpr void SetMinThumbSize(int iMinThumbSize) { m_iMinThumbSize = iMinThumbSize; }
 
-	EckInline int GetMinThumbSize() const { return m_iMinThumbSize; }
+	EckInline constexpr int GetMinThumbSize() const { return m_iMinThumbSize; }
 
-	EckInline int GetThumbSize() const
+	EckInline constexpr int GetThumbSize() const
 	{
 		const int d = GetMax() - GetMin();
 		if (d <= 0)
@@ -130,7 +130,7 @@ public:
 		return std::max(GetMinThumbSize(), i);
 	}
 
-	EckInline int GetThumbPos(int iThumbSize) const
+	EckInline constexpr int GetThumbPos(int iThumbSize) const
 	{
 		const int d = GetRangeDistance();
 		if (d <= 0)
@@ -138,9 +138,9 @@ public:
 		return (GetPos() - GetMin()) * (GetViewSize() - iThumbSize) / d;
 	}
 
-	EckInline int GetThumbPos() const { return GetThumbPos(GetThumbSize()); }
+	EckInline constexpr int GetThumbPos() const { return GetThumbPos(GetThumbSize()); }
 
-	EckInline void OnLButtonDown(int xy)
+	EckInline constexpr void OnLButtonDown(int xy)
 	{
 #ifdef _DEBUG
 		EckAssert(!m_bLBtnDown);
@@ -152,7 +152,7 @@ public:
 		m_oxyThumbCursor = xy - GetThumbPos();
 	}
 
-	EckInline void OnMouseMove(int xy)
+	EckInline constexpr void OnMouseMove(int xy)
 	{
 		EckAssert(m_bLBtnDown);
 		if (!IsValid())
@@ -163,7 +163,7 @@ public:
 			(GetViewSize() - GetThumbSize()));
 	}
 
-	EckInline void OnLButtonUp()
+	EckInline constexpr void OnLButtonUp()
 	{
 #ifdef _DEBUG
 		EckAssert(m_bLBtnDown);
