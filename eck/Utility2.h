@@ -552,4 +552,14 @@ template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<
 {
 	return StrU82W<TCharTraits, TAlloc>((PCSTR)rb.Data(), (int)rb.Size());
 }
+
+EckInline NTSTATUS WaitWaitableObject(HANDLE hObject, LONGLONG llMilliseconds)
+{
+	return NtWaitForSingleObject(hObject, FALSE, (LARGE_INTEGER*)&llMilliseconds);
+}
+
+EckInline NTSTATUS WaitWaitableObject(HANDLE hObject, LARGE_INTEGER* pliMilliseconds = nullptr)
+{
+	return NtWaitForSingleObject(hObject, FALSE, pliMilliseconds);
+}
 ECK_NAMESPACE_END

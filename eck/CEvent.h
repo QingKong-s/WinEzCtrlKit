@@ -18,27 +18,35 @@ public:
 public:
 	EckInline CEvent()
 	{
-		m_h = CreateEventW(NULL, FALSE, FALSE, NULL);
+		OBJECT_ATTRIBUTES oa;
+		InitOA(oa);
+		NtCreateEvent(&m_h, EVENT_ALL_ACCESS, &oa, SynchronizationEvent, FALSE);
 	}
 
-	EckInline CEvent(SECURITY_ATTRIBUTES* psa, BOOL bManualReset, BOOL bInitSignal, PCWSTR pszName)
+	EckInline CEvent(PCWSTR pszName, BOOL bManualReset, BOOL bInitSignal, BOOL bInheritHandle = FALSE)
 	{
-		m_h = CreateEventW(psa, bManualReset, bInitSignal, pszName);
+		UNICODE_STRING us;
+		if (pszName)
+			RtlInitUnicodeString(&us, pszName);
+		OBJECT_ATTRIBUTES oa;
+		InitOA(oa, (pszName ? &us : nullptr), (bInheritHandle ? OBJ_INHERIT : 0));
+		NtCreateEvent(&m_h, EVENT_ALL_ACCESS, &oa,
+			bManualReset ? NotificationEvent : SynchronizationEvent, FALSE);
 	}
 
 	EckInline ~CEvent()
 	{
-		CloseHandle(m_h);
+		NtClose(m_h);
 	}
 
-	EckInline BOOL Signal()
+	EckInline NTSTATUS Signal(LONG* lPrevState = nullptr)
 	{
-		return SetEvent(m_h);
+		return NtSetEvent(m_h, lPrevState);
 	}
 
-	EckInline BOOL NoSignal()
+	EckInline NTSTATUS NoSignal(LONG* lPrevState = nullptr)
 	{
-		return ResetEvent(m_h);
+		return NtResetEvent(m_h, lPrevState);
 	}
 
 	EckInline HANDLE GetHEvent() const { return m_h; }
