@@ -9,8 +9,6 @@
 #include "CRefStr.h"
 #include "CRefBin.h"
 
-#include <array>
-
 #pragma push_macro("free")
 #pragma push_macro("malloc")
 #pragma push_macro("realloc")
@@ -506,6 +504,8 @@ struct CJsonInitProxy
 		const CRefBin* pRefBin;
 	} Val;
 
+	CJsonInitProxy(std::nullptr_t) :eType{ JInitValType::Null } { Val.pObj = NULL; }
+
 	CJsonInitProxy(bool b) :eType{ JInitValType::Bool } { Val.b = b; }
 
 	CJsonInitProxy(uint64_t u64) :eType{ JInitValType::UInt64 } { Val.u64 = u64; }
@@ -709,14 +709,28 @@ public:
 
 	EckInline BOOL ObjRotate(size_t idx) const { return yyjson_mut_obj_rotate(m_pVal, idx); }
 
-	EckInline [[nodiscard]] PSTR Write(size_t* pcchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
+	EckInline [[nodiscard]] PSTR Write(size_t& cchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
 	{
-		return yyjson_mut_val_write_opts(m_pVal, uFlags, pAlc, pcchOut, pErr);
+		return yyjson_mut_val_write_opts(m_pVal, uFlags, pAlc, &cchOut, pErr);
 	}
 
 	EckInline BOOL Write(PCSTR pszFile, YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
 	{
 		return yyjson_mut_val_write_file(pszFile, m_pVal, uFlags, pAlc, pErr);
+	}
+
+	EckInline [[nodiscard]] CRefStrW WriteW(YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
+	{
+		size_t cchOut;
+		const auto pszU8 = Write(cchOut, uFlags, pAlc, pErr);
+		if (!pszU8)
+			return {};
+		const auto rs = StrX2W(pszU8, (int)cchOut, CP_UTF8);
+		if (pAlc)
+			pAlc->free(pAlc->ctx, pszU8);
+		else
+			free(pszU8);
+		return rs;
 	}
 
 	EckInline [[nodiscard]] CJsonMutVal ValAt(PCSTR pszPtr, size_t cchPtr = SizeTMax,
@@ -824,6 +838,20 @@ public:
 	EckInline BOOL Write(PCSTR pszFile, YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
 	{
 		return yyjson_mut_write_file(pszFile, m_pDoc, uFlags, pAlc, pErr);
+	}
+
+	EckInline [[nodiscard]] CRefStrW WriteW(YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
+	{
+		size_t cchOut;
+		const auto pszU8 = Write(cchOut, uFlags, pAlc, pErr);
+		if (!pszU8)
+			return {};
+		const auto rs = StrX2W(pszU8, (int)cchOut, CP_UTF8);
+		if (pAlc)
+			pAlc->free(pAlc->ctx, pszU8);
+		else
+			free(pszU8);
+		return rs;
 	}
 
 	EckInline [[nodiscard]] CMutJson Clone() const { return CMutJson(yyjson_mut_doc_mut_copy(m_pDoc, NULL)); }
@@ -1127,7 +1155,6 @@ struct CJsonMutObjProxy
 
 	EckInline CJsonMutObjIter end() const { return CJsonMutObjIter{}; }
 };
-
 
 
 
