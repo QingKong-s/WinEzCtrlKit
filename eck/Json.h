@@ -16,9 +16,6 @@
 #undef malloc
 #undef realloc
 #include "YyJson/yyjson.h"
-#pragma pop_macro("free")
-#pragma pop_macro("malloc")
-#pragma pop_macro("realloc")
 
 ECK_NAMESPACE_BEGIN
 using YyReadFlag = yyjson_read_flag;
@@ -52,15 +49,6 @@ enum class JInitValType :UINT
 	StringW,
 	Object,
 	ArrayPh,
-	StdString,
-	StdStringView,
-	StdU8String,
-	StdU8StringView,
-	StdStringW,
-	StdStringViewW,
-	RefStrA,
-	RefStrW,
-	RefBin,
 };
 ECK_ENUM_BIT_FLAGS(JInitValType);
 
@@ -483,6 +471,7 @@ struct JArr_T {};
 struct CJsonInitProxy
 {
 	JInitValType eType{};
+	UINT cch{ UINT_MAX };
 	union
 	{
 		bool b;
@@ -493,15 +482,6 @@ struct CJsonInitProxy
 		PCSTR s;
 		PCWSTR ws;
 		const std::initializer_list<CJsonInitProxy>* pObj;
-		const std::string* pStdStr;
-		const std::u8string* pStdU8Str;
-		const std::wstring* pStdStrW;
-		const std::string_view* pStdStrView;
-		const std::u8string_view* pStdU8StrView;
-		const std::wstring_view* pStdStrViewW;
-		const CRefStrA* pRefStrA;
-		const CRefStrW* pRefStrW;
-		const CRefBin* pRefBin;
 	} Val;
 
 	CJsonInitProxy(std::nullptr_t) :eType{ JInitValType::Null } { Val.pObj = NULL; }
@@ -526,23 +506,65 @@ struct CJsonInitProxy
 
 	CJsonInitProxy(const std::initializer_list<CJsonInitProxy>& il) :eType{ JInitValType::Object } { Val.pObj = &il; }
 
-	CJsonInitProxy(const std::string& s) :eType{ JInitValType::StdString } { Val.pStdStr = &s; }
+	template<class TTraits, class TAlloc>
+	CJsonInitProxy(const std::basic_string<char, TTraits, TAlloc>& s)
+		: eType{ JInitValType::String } {
+		Val.s = s.data(); cch = (UINT)s.size();
+	}
 
-	CJsonInitProxy(const std::u8string& s) :eType{ JInitValType::StdU8String } { Val.pStdU8Str = &s; }
+	template<class TTraits, class TAlloc>
+	CJsonInitProxy(const std::basic_string<char8_t, TTraits, TAlloc>& s)
+		: eType{ JInitValType::String } {
+		Val.s = (PCSTR)s.data(); cch = (UINT)s.size();
+	}
 
-	CJsonInitProxy(const std::wstring& ws) :eType{ JInitValType::StdStringW } { Val.pStdStrW = &ws; }
+	template<class TTraits, class TAlloc>
+	CJsonInitProxy(const std::basic_string<WCHAR, TTraits, TAlloc>& s)
+		: eType{ JInitValType::StringW } {
+		Val.ws = s.data(); cch = (UINT)s.size();
+	}
 
-	CJsonInitProxy(const std::string_view& sv) :eType{ JInitValType::StdStringView } { Val.pStdStrView = &sv; }
+	template<class TTraits>
+	CJsonInitProxy(const std::basic_string_view<char, TTraits>& s)
+		: eType{ JInitValType::String } {
+		Val.s = s.data(); cch = (UINT)s.size();
+	}
 
-	CJsonInitProxy(const std::u8string_view& sv) :eType{ JInitValType::StdU8StringView } { Val.pStdU8StrView = &sv; }
+	template<class TTraits>
+	CJsonInitProxy(const std::basic_string_view<char8_t, TTraits>& s)
+		: eType{ JInitValType::String } {
+		Val.s = (PCSTR)s.data(); cch = (UINT)s.size();
+	}
 
-	CJsonInitProxy(const std::wstring_view& sv) :eType{ JInitValType::StdStringViewW } { Val.pStdStrViewW = &sv; }
+	template<class TTraits>
+	CJsonInitProxy(const std::basic_string_view<WCHAR, TTraits>& s)
+		: eType{ JInitValType::StringW } {
+		Val.ws = s.data(); cch = (UINT)s.size();
+	}
 
-	CJsonInitProxy(const CRefStrA& rs) :eType{ JInitValType::RefStrA } { Val.pRefStrA = &rs; }
+	template<class TTraits, class TAlloc>
+	CJsonInitProxy(const CRefStrT<char, TTraits, TAlloc>& rs)
+		: eType{ JInitValType::String } {
+		Val.s = rs.Data(); cch = (UINT)rs.Size();
+	}
 
-	CJsonInitProxy(const CRefStrW& rs) :eType{ JInitValType::RefStrW } { Val.pRefStrW = &rs; }
+	template<class TTraits, class TAlloc>
+	CJsonInitProxy(const CRefStrT<char8_t, TTraits, TAlloc>& rs)
+		: eType{ JInitValType::String } {
+		Val.s = (PCSTR)rs.Data(); cch = (UINT)rs.Size();
+	}
 
-	CJsonInitProxy(const CRefBin& rb) :eType{ JInitValType::RefBin } { Val.pRefBin = &rb; }
+	template<class TTraits, class TAlloc>
+	CJsonInitProxy(const CRefStrT<WCHAR, TTraits, TAlloc>& rs)
+		: eType{ JInitValType::StringW } {
+		Val.ws = rs.Data(); cch = (UINT)rs.Size();
+	}
+
+	template<class TAlloc>
+	CJsonInitProxy(const CRefBinT<TAlloc>& rb)
+		: eType{ JInitValType::String } {
+		Val.s = (PCSTR)rb.Data(); cch = (UINT)rb.Size();
+	}
 
 	CJsonMutVal ToMutVal(const CMutJson& Doc) const;
 };
@@ -1020,7 +1042,13 @@ CJsonMutVal CJsonInitProxy::ToMutVal(const CMutJson& Doc) const
 	case JInitValType::Real:
 		return Doc.NewReal(Val.d);
 	case JInitValType::String:
-		return Doc.NewStrCpy(Val.s);
+		return Doc.NewStrCpy(Val.s, cch == UINT_MAX ? strlen(Val.s) : cch);
+	case JInitValType::StringW:
+	{
+		const auto u8 = StrW2X(Val.ws, (int)cch, CP_UTF8);
+		return Doc.NewStrCpy(u8.Data(), u8.Size());
+	}
+	ECK_UNREACHABLE;
 	case JInitValType::Object:
 	{
 		if (Val.pObj->begin()->eType == JInitValType::ArrayPh)
@@ -1047,24 +1075,6 @@ CJsonMutVal CJsonInitProxy::ToMutVal(const CMutJson& Doc) const
 		}
 	}
 	ECK_UNREACHABLE;
-	case JInitValType::StdString:
-		return Doc.NewStrCpy(Val.pStdStr->data(), Val.pStdStr->size());
-	case JInitValType::StdStringView:
-		return Doc.NewStrCpy(Val.pStdStrView->data(), Val.pStdStrView->size());
-	case JInitValType::StdU8String:
-		return Doc.NewStrCpy((const char*)(Val.pStdU8Str->data()), Val.pStdU8Str->size());
-	case JInitValType::StdU8StringView:
-		return Doc.NewStrCpy((const char*)(Val.pStdU8StrView->data()), Val.pStdU8StrView->size());
-	case JInitValType::StdStringW:
-		return Doc.NewStrCpy(Val.pStdStrW->data(), Val.pStdStrW->size());
-	case JInitValType::StdStringViewW:
-		return Doc.NewStrCpy(Val.pStdStrViewW->data(), Val.pStdStrViewW->size());
-	case JInitValType::RefStrA:
-		return Doc.NewStrCpy(Val.pRefStrA->Data(), Val.pRefStrA->Size());
-	case JInitValType::RefStrW:
-		return Doc.NewStrCpy(Val.pRefStrW->Data(), Val.pRefStrW->Size());
-	case JInitValType::RefBin:
-		return Doc.NewStrCpy((PCSTR)Val.pRefBin->Data(), Val.pRefBin->Size());
 	}
 	EckDbgBreak();
 	return { NULL };
@@ -1183,3 +1193,7 @@ EckInline [[nodiscard]] CJsonMutObjProxy CJsonMutVal::AsObj() const
 	return CJsonMutObjProxy(*this);
 }
 ECK_NAMESPACE_END
+
+#pragma pop_macro("free")
+#pragma pop_macro("malloc")
+#pragma pop_macro("realloc")

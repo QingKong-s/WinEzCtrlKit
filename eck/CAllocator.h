@@ -16,7 +16,7 @@ template<class T, class TSize = size_t>
 struct CAllocatorHeap
 {
 private:
-	HANDLE m_hHeap = GetProcessHeap();
+	HANDLE m_hHeap = RtlProcessHeap();
 	DWORD m_dwSerialize = 0;
 
 	template<class T1, class TSize1, class T2, class TSize2>
@@ -28,7 +28,7 @@ public:
 
 	[[nodiscard]] EckInline T* allocate(size_type c)
 	{
-		auto p = (T*)HeapAlloc(m_hHeap, m_dwSerialize, c * sizeof(value_type));
+		auto p = (T*)RtlAllocateHeap(m_hHeap, m_dwSerialize, c * sizeof(value_type));
 		if (p)
 			return p;
 		else
@@ -37,8 +37,8 @@ public:
 
 	EckInline void deallocate(T* p, size_type c)
 	{
-		EckAssert(HeapSize(m_hHeap, m_dwSerialize, p) / sizeof(value_type) == c);
-		HeapFree(m_hHeap, m_dwSerialize, p);
+		EckAssert(RtlSizeHeap(m_hHeap, m_dwSerialize, p) / sizeof(value_type) == c);
+		RtlFreeHeap(m_hHeap, m_dwSerialize, p);
 	}
 
 	EckInline void SetHeapSerialize(BOOL b) { m_dwSerialize = (b ? 0 : HEAP_NO_SERIALIZE); }
@@ -116,7 +116,7 @@ struct CAllocatorVA
 
 	[[nodiscard]] EckInline T* allocate(size_type c)
 	{
-		auto p = (T*)VirtualAlloc(nullptr, c * sizeof(value_type), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+		auto p = (T*)VAlloc(c * sizeof(value_type));
 		ZeroMemory(p, c * sizeof(value_type));
 		if (p)
 			return p;
@@ -126,7 +126,7 @@ struct CAllocatorVA
 
 	EckInline void deallocate(T* p, size_type c)
 	{
-		VirtualFree(p, 0, MEM_RELEASE);
+		VFree(p);
 	}
 
 	EckInline static TSize MakeCapacity(TSize c)
