@@ -1538,6 +1538,17 @@ EckInline constexpr void RectCornerToPoint(const D2D1_RECT_F& rc, D2D1_POINT_2F*
 	ppt[3] = D2D1_POINT_2F{ rc.right,rc.bottom };
 }
 
+EckInline constexpr void InitOA(OBJECT_ATTRIBUTES& oa, PUNICODE_STRING pusName = NULL,
+	ULONG ulAttr = 0u, HANDLE hRootDir = NULL, PSECURITY_DESCRIPTOR pSecDesc = NULL)
+{
+	oa.Length = sizeof(OBJECT_ATTRIBUTES);
+	oa.RootDirectory = hRootDir;
+	oa.ObjectName = pusName;
+	oa.Attributes = ulAttr;
+	oa.SecurityDescriptor = pSecDesc;
+	oa.SecurityQualityOfService = NULL;
+}
+
 #if !ECKCXX20
 #undef ccpIsInteger
 #pragma pop_macro("ccpIsInteger")

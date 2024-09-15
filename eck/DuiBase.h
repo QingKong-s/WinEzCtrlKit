@@ -928,11 +928,14 @@ private:
 			{
 				ThreadInit();
 				constexpr int c_iMinGap = 16;
-				const HANDLE hTimer = CreateWaitableTimerW(NULL, FALSE, NULL);
+				HANDLE hTimer;
+				OBJECT_ATTRIBUTES oa;
+				InitOA(oa);
+				NtCreateTimer(&hTimer, TIMER_ALL_ACCESS, &oa, SynchronizationTimer);
 				EckAssert(hTimer);
 				BOOL bThereAreActiveTimeLine;
 
-				WaitForSingleObject(m_evtRender.GetHEvent(), INFINITE);
+				NtWaitForSingleObject(m_evtRender.GetHEvent(), FALSE, nullptr);
 				ULONGLONG ullTime = GetTickCount64() - c_iMinGap;
 				EckLoop()
 				{
@@ -1055,21 +1058,22 @@ private:
 					{
 						if (iDeltaTime < c_iMinGap)// 延时
 						{
-							const LARGE_INTEGER llDueTime
+							LARGE_INTEGER llDueTime
 							{ .QuadPart = -10 * (c_iMinGap - iDeltaTime) * 1000LL };
-							SetWaitableTimer(hTimer, &llDueTime, 0, NULL, NULL, 0);
-							WaitForSingleObject(hTimer, INFINITE);
+							NtSetTimer(hTimer, &llDueTime, nullptr, nullptr, FALSE, 0, nullptr);
+							//	SetWaitableTimer(hTimer, &llDueTime, 0, NULL, NULL, 0);
+							WaitWaitableObject(hTimer);
 						}
 					}
 					else
 					{
-						WaitForSingleObject(m_evtRender.GetHEvent(), INFINITE);
+						WaitWaitableObject(m_evtRender.GetHEvent());
 						ullTime = GetTickCount64() - c_iMinGap;
 					}
 				}
 
-				CancelWaitableTimer(hTimer);
-				CloseHandle(hTimer);
+				NtCancelTimer(hTimer,nullptr);
+				NtClose(hTimer);
 				ThreadUnInit();
 			});
 		m_hthRender = DuplicateStdThreadHandle(t);
