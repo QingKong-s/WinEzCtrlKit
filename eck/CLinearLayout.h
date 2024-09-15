@@ -145,7 +145,7 @@ public:
 			const auto hWnd = e.pCtrl->LoGetHWND();
 			if (hWnd)
 			{
-				hDwp = DeferWindowPos(hDwp, hWnd, NULL,
+				hDwp = DeferWindowPos(hDwp, hWnd, nullptr,
 					x, y, cxAppr, cyAppr, SWP_NOZORDER | SWP_NOACTIVATE);
 			}
 			else
@@ -255,7 +255,7 @@ public:
 			const auto hWnd = e.pCtrl->LoGetHWND();
 			if (hWnd)
 			{
-				hDwp = DeferWindowPos(hDwp, hWnd, NULL,
+				hDwp = DeferWindowPos(hDwp, hWnd, nullptr,
 					x, y, cxAppr, cyAppr, SWP_NOZORDER | SWP_NOACTIVATE);
 			}
 			else

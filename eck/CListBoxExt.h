@@ -92,28 +92,28 @@ class CListBoxExt :public CListBox
 public:
 	EXELISTBOXDATA m_InfoEx{};
 	//////////图像列表相关
-	HIMAGELIST m_hImageList       = NULL;   // 图像列表句柄
+	HIMAGELIST m_hImageList       = nullptr;   // 图像列表句柄
 	int m_cxImage                 = 0,
 		m_cyImage                 = 0;      // 图像列表尺寸
 	//////////文件框相关
 	CRefStrW m_rsDir{};
 	CRefStrW m_rsFilePattern{};
 	//////////通用信息
-	HBRUSH m_hbrBK                = NULL;   // 通用表项背景画刷
-	HBRUSH m_hbrSelBK             = NULL;   // 通用选择表项背景画刷
+	HBRUSH m_hbrBK                = nullptr;   // 通用表项背景画刷
+	HBRUSH m_hbrSelBK             = nullptr;   // 通用选择表项背景画刷
 	int m_idxChecked              = -1;     // 选中的项目，仅单选模式有效
-	HTHEME m_hTheme               = NULL;   // 主题句柄，绘制选择框时用
+	HTHEME m_hTheme               = nullptr;   // 主题句柄，绘制选择框时用
 	int m_cxCheckBox              = 0;      // 选择框尺寸
 	std::vector<LBITEMINFO> m_ItemsInfo{};	// 所有项目
-	HWND m_hToolTip               = NULL;   // 工具提示窗口句柄
+	HWND m_hToolTip               = nullptr;   // 工具提示窗口句柄
 	TTTOOLINFOW m_ti
 	{
 		sizeof(TTTOOLINFOW),
 		TTF_ABSOLUTE | TTF_TRACK,
-		NULL,
+		nullptr,
 		TTID_LBITEM
 	};										// 工具提示信息
-	HWND m_hParent				= NULL;
+	HWND m_hParent				= nullptr;
 private:
 	void UpdateThemeInfo()
 	{
@@ -121,7 +121,7 @@ private:
 		m_hTheme = OpenThemeData(m_hWnd, L"Button");
 		HDC hDC = GetDC(m_hWnd);
 		SIZE size;
-		GetThemePartSize(m_hTheme, hDC, BP_CHECKBOX, CBS_CHECKEDNORMAL, NULL, TS_DRAW, &size);
+		GetThemePartSize(m_hTheme, hDC, BP_CHECKBOX, CBS_CHECKEDNORMAL, nullptr, TS_DRAW, &size);
 		m_cxCheckBox = size.cx;
 		ReleaseDC(m_hWnd, hDC);
 	}
@@ -190,9 +190,9 @@ private:
 				if (!m_InfoEx.uFileAttr || wfd.dwFileAttributes & m_InfoEx.uFileAttr)
 				{
 					if (m_InfoEx.ftMaxTime == m_InfoEx.ftMinTime || IsFILETIMEZero(m_InfoEx.ftMaxTime))
-						AddString(wfd.cFileName, NULL, CommInfo);
+						AddString(wfd.cFileName, nullptr, CommInfo);
 					else if (wfd.ftCreationTime > m_InfoEx.ftMinTime && wfd.ftCreationTime < m_InfoEx.ftMaxTime)
-						AddString(wfd.cFileName, NULL, CommInfo);
+						AddString(wfd.cFileName, nullptr, CommInfo);
 				}
 			} while (FindNextFileW(hFind, &wfd));
 			FindClose(hFind);
@@ -203,7 +203,7 @@ private:
 		_freea(pszPath);
 	}
 
-	int HitTestCheckBox(POINT pt, int* pidxItem = NULL)
+	int HitTestCheckBox(POINT pt, int* pidxItem = nullptr)
 	{
 		POINT ptScr = pt;
 		ClientToScreen(m_hWnd, &ptScr);
@@ -414,7 +414,7 @@ public:
 					else
 						iStateID = Item.Info.bDisabled ? CBS_UNCHECKEDDISABLED : CBS_UNCHECKEDNORMAL;
 				}
-				DrawThemeBackground(m_hTheme, hDC, iPartID, iStateID, &rc, NULL);
+				DrawThemeBackground(m_hTheme, hDC, iPartID, iStateID, &rc, nullptr);
 				rc.right += c_LBPadding;
 				rc.left = rc.right;
 			}
@@ -564,7 +564,7 @@ public:
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		dwStyle |= WS_CHILD;
 
@@ -579,13 +579,13 @@ public:
 			dwStyle |= LBS_DISABLENOSCROLL;
 
 		
-		m_hWnd = CreateWindowExW(dwExStyle, WC_LISTBOXW, NULL, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+		m_hWnd = CreateWindowExW(dwExStyle, WC_LISTBOXW, nullptr, dwStyle,
+			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 		m_hParent = hParent;
 
-		m_hToolTip = CreateWindowExW(0, TOOLTIPS_CLASSW, NULL,
+		m_hToolTip = CreateWindowExW(0, TOOLTIPS_CLASSW, nullptr,
 			WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP | (m_InfoEx.bBalloonToolTip ? TTS_BALLOON : 0),
-			0, 0, 0, 0, NULL, NULL, NULL, NULL);
+			0, 0, 0, 0, nullptr, nullptr, nullptr, nullptr);
 
 		if (m_Info.bDragList)
 			SetDragList(m_Info.bDragList);
@@ -602,7 +602,7 @@ public:
 		int idx = (int)SendMessageW(m_hWnd, LB_INSERTSTRING, iPos, (LPARAM)L"");
 		if (idx == LB_ERR)
 			return -1;
-		LBITEMINFO Item{ pszString,pszTip,NULL,NULL,CommInfo };
+		LBITEMINFO Item{ pszString,pszTip,nullptr,nullptr,CommInfo };
 		if (CommInfo.crBK != CLR_DEFAULT)
 			Item.hbrBK = CreateSolidBrush(CommInfo.crBK);
 		if (CommInfo.crSelBK != CLR_DEFAULT)
@@ -633,7 +633,7 @@ public:
 		int idx = (int)SendMessageW(m_hWnd, LB_ADDSTRING, 0, (LPARAM)L"");
 		if (idx == LB_ERR)
 			return -1;
-		LBITEMINFO Item{ pszString,pszTip,NULL,NULL,CommInfo };
+		LBITEMINFO Item{ pszString,pszTip,nullptr,nullptr,CommInfo };
 		if (CommInfo.crBK != CLR_DEFAULT)
 			Item.hbrBK = CreateSolidBrush(CommInfo.crBK);
 		if (CommInfo.crSelBK != CLR_DEFAULT)
@@ -659,7 +659,7 @@ public:
 	void SetItem(int idx, PCWSTR pszString, PCWSTR pszTip, const LBITEMCOMMINFO& CommInfo)
 	{
 		LBITEMINFO& Item = m_ItemsInfo[idx];
-		Item = { pszString,pszTip,NULL,NULL,CommInfo };
+		Item = { pszString,pszTip,nullptr,nullptr,CommInfo };
 		if (CommInfo.crBK != CLR_DEFAULT)
 			Item.hbrBK = CreateSolidBrush(CommInfo.crBK);
 		if (CommInfo.crSelBK != CLR_DEFAULT)

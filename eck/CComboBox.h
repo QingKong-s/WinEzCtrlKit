@@ -30,11 +30,11 @@ public:
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		dwStyle |= WS_CHILD;
-		m_hWnd = IntCreate(0, WC_COMBOBOXW, NULL, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+		m_hWnd = IntCreate(0, WC_COMBOBOXW, nullptr, dwStyle,
+			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 		return m_hWnd;
 	}
 
@@ -149,7 +149,7 @@ public:
 		return (BOOL)SendMsg(CB_GETDROPPEDWIDTH, 0, 0);
 	}
 
-	EckInline void GetEditSel(DWORD* pdwStart = NULL, DWORD* pdwEnd = NULL)
+	EckInline void GetEditSel(DWORD* pdwStart = nullptr, DWORD* pdwEnd = nullptr)
 	{
 		SendMsg(CB_GETEDITSEL, (WPARAM)pdwStart, (LPARAM)pdwEnd);
 	}

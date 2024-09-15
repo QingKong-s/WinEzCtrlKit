@@ -64,9 +64,9 @@ private:
 	};
 
 	CEzCDC m_DC{};
-	HFONT m_hFont = NULL;// 不需要释放
+	HFONT m_hFont = nullptr;// 不需要释放
 
-	HTHEME m_hTheme = NULL;
+	HTHEME m_hTheme = nullptr;
 
 	int m_cxClient = 0,
 		m_cyClient = 0;
@@ -104,7 +104,7 @@ private:
 	BITBOOL m_bNmDragging : 1 = FALSE;
 	BITBOOL m_bTrackComboBoxList : 1 = FALSE;
 
-	HWND m_hComboBox = NULL;
+	HWND m_hComboBox = nullptr;
 
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 
@@ -203,7 +203,7 @@ private:
 		SetSbInfo(SB_VERT, &si);
 		GetSbInfo(SB_VERT, &si);
 		ReCalcTopItem();
-		ScrollWindow(hWnd, 0, yOld - si.nPos, NULL, NULL);
+		ScrollWindow(hWnd, 0, yOld - si.nPos, nullptr, nullptr);
 		UpdateWindow(hWnd);
 	}
 
@@ -380,7 +380,7 @@ private:
 			idxOld1 = -1;
 		while (GetCapture() == HWnd)// 如果捕获改变则应立即退出拖动循环
 		{
-			if (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
+			if (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
 			{
 				switch (msg.message)
 				{
@@ -582,7 +582,7 @@ private:
 		SetSbInfo(SB_VERT, &si);
 		GetSbInfo(SB_VERT, &si);
 		ReCalcTopItem();
-		ScrollWindow(hWnd, 0, yOld - si.nPos, NULL, NULL);
+		ScrollWindow(hWnd, 0, yOld - si.nPos, nullptr, nullptr);
 		UpdateWindow(hWnd);
 	}
 
@@ -615,7 +615,7 @@ private:
 			if (IsItemSel(idx))
 				iState = LISS_SELECTED;
 		if (iState)
-			DrawThemeBackground(m_hTheme, hCDC, LVP_LISTITEM, iState, &rcItem, NULL);
+			DrawThemeBackground(m_hTheme, hCDC, LVP_LISTITEM, iState, &rcItem, nullptr);
 		if (m_bFocusIndicatorVisible && m_idxFocus == idx)
 		{
 			RECT rc{ rcItem };
@@ -926,15 +926,15 @@ public:
 		case WM_DESTROY:
 		{
 			CloseThemeData(m_hTheme);
-			m_hTheme = NULL;
-			m_hFont = NULL;
+			m_hTheme = nullptr;
+			m_hFont = nullptr;
 			m_cyItem = 24;
 			m_idxSel = m_idxHot = m_idxTop = m_idxMark = m_idxFocus = -1;
 			m_oyTop = 0;
 			m_vItem.clear();
 			m_bHasFocus = m_bLBtnDown = m_bUserItemHeight =
 				m_bNmDragging = m_bTrackComboBoxList = FALSE;
-			m_hComboBox = NULL;
+			m_hComboBox = nullptr;
 		}
 		return 0;
 		}
@@ -944,7 +944,7 @@ public:
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		return IntCreate(dwExStyle, WCN_LISTBOXNEW, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
@@ -1030,7 +1030,7 @@ public:
 		SetSbInfo(SB_VERT, &si);
 		GetSbInfo(SB_VERT, &si);
 		ReCalcTopItem();
-		ScrollWindow(HWnd, 0, yOld - si.nPos, NULL, NULL);
+		ScrollWindow(HWnd, 0, yOld - si.nPos, nullptr, nullptr);
 		UpdateWindow(HWnd);
 	}
 

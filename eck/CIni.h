@@ -20,7 +20,7 @@ private:
 	BITBOOL m_bParseComment : 1 = FALSE;
 
 	int FindValuePos(PCWSTR pszSection, PCWSTR pszKey, 
-		int* pposSectionEnd = NULL, int* pposKeyBegin = NULL) const
+		int* pposSectionEnd = nullptr, int* pposKeyBegin = nullptr) const
 	{
 		if (pposSectionEnd)
 			*pposSectionEnd = StrNPos;
@@ -540,7 +540,7 @@ public:
 	BOOL DeleteKey(PCWSTR pszSection, PCWSTR pszKey)
 	{
 		int posKeyBegin;
-		const int pos0 = FindValuePos(pszSection, pszKey, NULL, &posKeyBegin);
+		const int pos0 = FindValuePos(pszSection, pszKey, nullptr, &posKeyBegin);
 		if (pos0 == StrNPos)
 			return FALSE;
 		const int pos1 = FindValueEndPos(pos0);
@@ -568,41 +568,41 @@ public:
 		CRefBin rb{};
 		if (uCp == CP_UTF16LE)
 		{
-			const HANDLE hFile = CreateFileW(pszFileName, GENERIC_WRITE, FILE_SHARE_READ, NULL,
-				CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+			const HANDLE hFile = CreateFileW(pszFileName, GENERIC_WRITE, FILE_SHARE_READ, nullptr,
+				CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 			if (hFile == INVALID_HANDLE_VALUE)
 				return FALSE;
 
 			DWORD dwWritten;
 			if (bAddBom)
-				WriteFile(hFile, BOM_UTF16LE, ARRAYSIZE(BOM_UTF16LE), &dwWritten, NULL);
-			const BOOL b = WriteFile(hFile, m_rsText.Data(), (DWORD)m_rsText.ByteSize(), &dwWritten, NULL);
+				WriteFile(hFile, BOM_UTF16LE, ARRAYSIZE(BOM_UTF16LE), &dwWritten, nullptr);
+			const BOOL b = WriteFile(hFile, m_rsText.Data(), (DWORD)m_rsText.ByteSize(), &dwWritten, nullptr);
 			CloseHandle(hFile);
 			return b;
 		}
 		else if (uCp == CP_UTF16BE)
 		{
 			const int cchBuf = LCMapStringEx(LOCALE_NAME_INVARIANT, LCMAP_BYTEREV,
-				m_rsText.Data(), m_rsText.Size(), NULL, 0, NULL, NULL, 0);
+				m_rsText.Data(), m_rsText.Size(), nullptr, 0, nullptr, nullptr, 0);
 			if (cchBuf == 0)
 				return FALSE;
 			rb.ReSize((cchBuf + 1) * sizeof(WCHAR));
 			int cbSkip = (bAddBom ? 2 : 0);
 			memcpy(rb.Data(), BOM_UTF16BE, cbSkip);
 			LCMapStringEx(LOCALE_NAME_INVARIANT, LCMAP_BYTEREV,
-				m_rsText.Data(), m_rsText.Size(), (PWSTR)(rb.Data() + cbSkip), cchBuf, NULL, NULL, 0);
+				m_rsText.Data(), m_rsText.Size(), (PWSTR)(rb.Data() + cbSkip), cchBuf, nullptr, nullptr, 0);
 		}
 		else
 		{
 			const int cchBuf = WideCharToMultiByte(uCp, 0, m_rsText.Data(), m_rsText.Size(), 
-				NULL, 0, NULL, NULL);
+				nullptr, 0, nullptr, nullptr);
 			if (cchBuf == 0)
 				return FALSE;
 			rb.ReSize(cchBuf + 3);
 			int cbSkip = ((bAddBom && uCp == CP_UTF8) ? 3 : 0);
 			memcpy(rb.Data(), BOM_UTF8, cbSkip);
 			WideCharToMultiByte(uCp, 0, m_rsText.Data(), m_rsText.Size(), 
-				(PSTR)rb.Data() + cbSkip, cchBuf, NULL, NULL);
+				(PSTR)rb.Data() + cbSkip, cchBuf, nullptr, nullptr);
 		}
 		return WriteToFile(pszFileName, rb);
 	}

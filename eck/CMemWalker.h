@@ -12,9 +12,9 @@
 ECK_NAMESPACE_BEGIN
 struct CMemWriter
 {
-	BYTE* m_pMem = NULL;
+	BYTE* m_pMem = nullptr;
 #ifdef _DEBUG
-	BYTE* m_pBase = NULL;
+	BYTE* m_pBase = nullptr;
 	SIZE_T m_cbMax = 0u;
 #endif
 
@@ -108,9 +108,9 @@ struct CMemWriter
 
 struct CMemReader
 {
-	const BYTE* m_pMem = NULL;
+	const BYTE* m_pMem = nullptr;
 #ifdef _DEBUG
-	const BYTE* m_pBase = NULL;
+	const BYTE* m_pBase = nullptr;
 	SIZE_T m_cbMax = 0u;
 #endif
 
@@ -185,8 +185,8 @@ struct CMemReader
 
 struct CMemWalker
 {
-	BYTE* m_pMem = NULL;
-	BYTE* m_pBase = NULL;
+	BYTE* m_pMem = nullptr;
+	BYTE* m_pBase = nullptr;
 	SIZE_T m_cbMax = 0u;
 
 	CMemWalker(PVOID p, SIZE_T cbMax)

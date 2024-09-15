@@ -13,10 +13,10 @@ class CProgressBar :public CWnd
 {
 public:
 	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
-		return IntCreate(0, PROGRESS_CLASSW, NULL, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+		return IntCreate(0, PROGRESS_CLASSW, nullptr, dwStyle,
+			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 	}
 
 	EckInline int DeltaPos(int iDelta)
@@ -48,12 +48,12 @@ public:
 
 	EckInline int GetMin()
 	{
-		return (int)SendMsg(PBM_GETRANGE, TRUE, NULL);
+		return (int)SendMsg(PBM_GETRANGE, TRUE, nullptr);
 	}
 
 	EckInline int GetMax()
 	{
-		return (int)SendMsg(PBM_GETRANGE, FALSE, NULL);
+		return (int)SendMsg(PBM_GETRANGE, FALSE, nullptr);
 	}
 
 	/// <summary>

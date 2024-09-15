@@ -34,7 +34,7 @@ struct CREATEDATA_EDIT
 		if (cchCueBanner)
 			return (PCWSTR)PtrSkipType(this);
 		else
-			return NULL;
+			return nullptr;
 	}
 };
 #pragma pack(pop)
@@ -54,7 +54,7 @@ public:
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		if (pData)
 		{
@@ -63,14 +63,14 @@ public:
 			if (pBase->iVer != CDV_WND_1)
 			{
 				EckDbgBreak();
-				return NULL;
+				return nullptr;
 			}
 
 			BOOL bVisible = IsBitSet(pBase->dwStyle, WS_VISIBLE);
 			dwStyle = pBase->dwStyle & ~WS_VISIBLE;
 
 			IntCreate(pBase->dwExStyle, WC_EDITW, pBase->Text(), dwStyle,
-				x, y, cx, cy, hParent, hMenu, NULL, NULL);
+				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 
 			switch (p->iVer)
 			{
@@ -94,7 +94,7 @@ public:
 			dwStyle |= WS_CHILD;
 
 			IntCreate(dwExStyle, WC_EDITW, pszText, dwStyle,
-				x, y, cx, cy, hParent, hMenu, NULL, NULL);
+				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 		}
 		return m_hWnd;
 	}
@@ -137,7 +137,7 @@ public:
 	/// <param name="pt">坐标，相对客户区</param>
 	/// <param name="piPosInLine">接收行中位置变量，可为NULL，失败设置为-1</param>
 	/// <returns>返回字符位置，失败返回-1</returns>
-	int CharFromPos(POINT pt, int* piPosInLine = NULL)
+	int CharFromPos(POINT pt, int* piPosInLine = nullptr)
 	{
 		int iPos;
 		DWORD dwRet = (DWORD)SendMsg(EM_CHARFROMPOS, 0, MAKELPARAM(pt.x, pt.y));

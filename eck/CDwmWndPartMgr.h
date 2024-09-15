@@ -137,8 +137,8 @@ private:
 	void QueryAtlasInfo(int iPart, DWMW_PART_INFO& Info)
 	{
 		GetThemeRect(m_hTheme, iPart, 0, TMT_ATLASRECT, &Info.rcInAtlas);
-		GetThemeMargins(m_hTheme, NULL, iPart, 0, TMT_CONTENTMARGINS, NULL, &Info.mgContent);
-		GetThemeMargins(m_hTheme, NULL, iPart, 0, TMT_SIZINGMARGINS, NULL, &Info.mgSizing);
+		GetThemeMargins(m_hTheme, nullptr, iPart, 0, TMT_CONTENTMARGINS, nullptr, &Info.mgContent);
+		GetThemeMargins(m_hTheme, nullptr, iPart, 0, TMT_SIZINGMARGINS, nullptr, &Info.mgSizing);
 		GetThemeInt(m_hTheme, iPart, 0, TMT_IMAGECOUNT, &Info.cSubImage);
 	}
 public:
@@ -167,7 +167,7 @@ public:
 		Clear();
 		PWSTR pszWinDir;
 		HRESULT hr;
-		if (SUCCEEDED(hr = SHGetKnownFolderPath(FOLDERID_Windows, KF_FLAG_DEFAULT, NULL, &pszWinDir)))
+		if (SUCCEEDED(hr = SHGetKnownFolderPath(FOLDERID_Windows, KF_FLAG_DEFAULT, nullptr, &pszWinDir)))
 		{
 			constexpr WCHAR szFile[]{ LR"(\Resources\Themes\aero\aero.msstyles)" };
 			const size_t cchWinDir = wcslen(pszWinDir);
@@ -180,11 +180,11 @@ public:
 			m_hInstStyle = LoadLibraryExW(pszBuf, 0, LOAD_LIBRARY_AS_DATAFILE);
 			if (!m_hInstStyle)
 				return HRESULT_FROM_WIN32(GetLastError());
-			m_hTheme = OpenThemeData(NULL, L"DWMWINDOW");
+			m_hTheme = OpenThemeData(nullptr, L"DWMWINDOW");
 			if (!m_hTheme)
 			{
 				FreeLibrary(m_hInstStyle);
-				m_hInstStyle = NULL;
+				m_hInstStyle = nullptr;
 				return HRESULT_FROM_WIN32(GetLastError());
 			}
 			for (int i = 0; i < PartCount; ++i)
@@ -220,7 +220,7 @@ public:
 	/// <param name="pExtra">返回额外信息，可选</param>
 	/// <returns>成功返回TRUE，失败返回FALSE</returns>
 	BOOL GetPartRect(RECT& rc, RECT& rcBkg, DwmWndPart ePart, DwmWPartState eState,
-		BOOL bDark, BOOL bActive, int iDpi, DWMW_GET_PART_EXTRA* pExtra = NULL) const
+		BOOL bDark, BOOL bActive, int iDpi, DWMW_GET_PART_EXTRA* pExtra = nullptr) const
 	{
 		if (g_NtVer.uBuild < WINVER_1809 && bDark)
 			return FALSE;

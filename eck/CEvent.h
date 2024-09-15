@@ -12,7 +12,7 @@ ECK_NAMESPACE_BEGIN
 class CEvent
 {
 private:
-	HANDLE m_h = NULL;
+	HANDLE m_h = nullptr;
 public:
 	ECK_DISABLE_COPY_MOVE(CEvent)
 public:

@@ -116,7 +116,7 @@ struct CAllocatorVA
 
 	[[nodiscard]] EckInline T* allocate(size_type c)
 	{
-		auto p = (T*)VirtualAlloc(NULL, c * sizeof(value_type), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+		auto p = (T*)VirtualAlloc(nullptr, c * sizeof(value_type), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 		ZeroMemory(p, c * sizeof(value_type));
 		if (p)
 			return p;

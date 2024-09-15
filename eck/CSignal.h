@@ -149,7 +149,7 @@ private:
 				return p;
 			p = p->pNext;
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	void IntConnect(FProc&& fn, UINT_PTR uId, BOOL bInsertToEnd, UINT_PTR uIdAfter)

@@ -69,13 +69,13 @@ struct CStreamWalker
 
 	EckInline CStreamWalker& operator+=(SIZE_T cb)
 	{
-		m_hrLastErr = m_pStream->Seek({ .QuadPart = (LONGLONG)cb }, STREAM_SEEK_CUR, NULL);
+		m_hrLastErr = m_pStream->Seek({ .QuadPart = (LONGLONG)cb }, STREAM_SEEK_CUR, nullptr);
 		return *this;
 	}
 
 	EckInline CStreamWalker& operator-=(SIZE_T cb)
 	{
-		m_hrLastErr = m_pStream->Seek({ .QuadPart = -(LONGLONG)cb }, STREAM_SEEK_CUR, NULL);
+		m_hrLastErr = m_pStream->Seek({ .QuadPart = -(LONGLONG)cb }, STREAM_SEEK_CUR, nullptr);
 		return *this;
 	}
 
@@ -100,37 +100,37 @@ struct CStreamWalker
 
 	EckInline CStreamWalker& MoveToBegin()
 	{
-		m_hrLastErr = m_pStream->Seek(LiZero, STREAM_SEEK_SET, NULL);
+		m_hrLastErr = m_pStream->Seek(LiZero, STREAM_SEEK_SET, nullptr);
 		return *this;
 	}
 
 	EckInline CStreamWalker& MoveToEnd()
 	{
-		m_hrLastErr = m_pStream->Seek(LiZero, STREAM_SEEK_END, NULL);
+		m_hrLastErr = m_pStream->Seek(LiZero, STREAM_SEEK_END, nullptr);
 		return *this;
 	}
 
 	EckInline CStreamWalker& MoveTo(LARGE_INTEGER li)
 	{
-		m_hrLastErr = m_pStream->Seek(li, STREAM_SEEK_SET, NULL);
+		m_hrLastErr = m_pStream->Seek(li, STREAM_SEEK_SET, nullptr);
 		return *this;
 	}
 
 	EckInline CStreamWalker& MoveTo(ULARGE_INTEGER uli)
 	{
-		m_hrLastErr = m_pStream->Seek(ToLi(uli), STREAM_SEEK_SET, NULL);
+		m_hrLastErr = m_pStream->Seek(ToLi(uli), STREAM_SEEK_SET, nullptr);
 		return *this;
 	}
 
 	EckInline CStreamWalker& MoveTo(SIZE_T x)
 	{
-		m_hrLastErr = m_pStream->Seek(ToLi((LONGLONG)x), STREAM_SEEK_SET, NULL);
+		m_hrLastErr = m_pStream->Seek(ToLi((LONGLONG)x), STREAM_SEEK_SET, nullptr);
 		return *this;
 	}
 
 	EckInline CStreamWalker& MoveTo(SSIZE_T x)
 	{
-		m_hrLastErr = m_pStream->Seek(ToLi((LONGLONG)x), STREAM_SEEK_SET, NULL);
+		m_hrLastErr = m_pStream->Seek(ToLi((LONGLONG)x), STREAM_SEEK_SET, nullptr);
 		return *this;
 	}
 
@@ -176,8 +176,8 @@ struct CStreamWalker
 		if (SUCCEEDED(m_pStream->Clone(&pSelf)))// 若流支持克隆，则优先使用其CopyTo实现
 		{
 			MoveTo(posSrc);
-			pSelf->Seek(ToLi(posDst), STREAM_SEEK_SET, NULL);
-			const auto hr = m_pStream->CopyTo(pSelf, cbSize, NULL, NULL);
+			pSelf->Seek(ToLi(posDst), STREAM_SEEK_SET, nullptr);
+			const auto hr = m_pStream->CopyTo(pSelf, cbSize, nullptr, nullptr);
 			pSelf->Release();
 			if (SUCCEEDED(hr))
 				return;

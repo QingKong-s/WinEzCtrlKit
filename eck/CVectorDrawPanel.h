@@ -133,7 +133,7 @@ private:
 		{
 			pSink->Release();
 			pPath->Release();
-			pPath = NULL;
+			pPath = nullptr;
 			return hr;
 		}
 		pSink->Release();
@@ -185,7 +185,7 @@ private:
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		return IntCreate(dwExStyle, WCN_VECDRAWPANEL, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, this);
@@ -204,7 +204,7 @@ public:
 				D2D1_RECT_F rcBound;
 				const auto hr = e.pPath->GetBounds(m_matWorld * e.mat, &rcBound);
 				if (rcBound.left > rcBound.right || rcBound.top > rcBound.bottom || FAILED(hr))
-					e.pPath->GetWidenedBounds(e.cxStroke, NULL, m_matWorld * e.mat, &rcBound);
+					e.pPath->GetWidenedBounds(e.cxStroke, nullptr, m_matWorld * e.mat, &rcBound);
 				if (m_bMark)
 				{
 					auto rc{ m_rcMark };
@@ -286,7 +286,7 @@ public:
 			m_pBrMark = pBr;
 			m_matWorld = D2D1::Matrix3x2F::Identity();
 
-			g_pDwFactory->CreateTextFormat(L"Î¢ÈíÑÅºÚ", NULL, DWRITE_FONT_WEIGHT_NORMAL,
+			g_pDwFactory->CreateTextFormat(L"Î¢ÈíÑÅºÚ", nullptr, DWRITE_FONT_WEIGHT_NORMAL,
 				DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 70.f, L"zh-cn", &m_pTfDef);
 			SetCurrTextFormat(m_pTfDef);
 		}
@@ -571,7 +571,7 @@ public:
 
 	void Redraw()
 	{
-		RedrawGeometry(NULL);
+		RedrawGeometry(nullptr);
 	}
 
 	void Redraw(const D2D1_RECT_F& rcPaint)

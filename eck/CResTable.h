@@ -40,7 +40,7 @@ private:
 		ResType uType;
 	};
 
-	BYTE* m_pData = NULL;
+	BYTE* m_pData = nullptr;
 
 	TTableResSet& m_ResSet;
 	std::unordered_map<int, OFFSETENTRY> m_OffsetTable{};
@@ -135,7 +135,7 @@ public:
 	{
 		auto it = m_OffsetTable.find(iID);
 		if (it == m_OffsetTable.end())
-			return NULL;
+			return nullptr;
 		*pcbRes = it->second.cbSize;
 		return m_pData + it->second.cbOffset;
 	}

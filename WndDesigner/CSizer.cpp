@@ -51,19 +51,19 @@ void CSizerBlock::BindSizer(CSizer* pSizer, SizerHTCode uType)
 	{
 	case SizerHTCode::LeftTop:
 	case SizerHTCode::RightBottom:
-		m_hCursor = LoadCursorW(NULL, IDC_SIZENWSE);
+		m_hCursor = LoadCursorW(nullptr, IDC_SIZENWSE);
 		break;
 	case SizerHTCode::RightTop:
 	case SizerHTCode::LeftBottom:
-		m_hCursor = LoadCursorW(NULL, IDC_SIZENESW);
+		m_hCursor = LoadCursorW(nullptr, IDC_SIZENESW);
 		break;
 	case SizerHTCode::Left:
 	case SizerHTCode::Right:
-		m_hCursor = LoadCursorW(NULL, IDC_SIZEWE);
+		m_hCursor = LoadCursorW(nullptr, IDC_SIZEWE);
 		break;
 	case SizerHTCode::Top:
 	case SizerHTCode::Bottom:
-		m_hCursor = LoadCursorW(NULL, IDC_SIZENS);
+		m_hCursor = LoadCursorW(nullptr, IDC_SIZENS);
 		break;
 	}
 }
@@ -76,21 +76,21 @@ void CSizer::Create(HWND hBK, HWND hBottomWorkWnd)
 	m_hBottomWorkWnd = hBottomWorkWnd;
 	constexpr DWORD dwStyle = WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 	constexpr DWORD dwExStyle = WS_EX_TOPMOST;
-	m_Block[0].Create(NULL, dwStyle, dwExStyle, 0, 0, m_sizeBlock, m_sizeBlock, hBK, 30000);
+	m_Block[0].Create(nullptr, dwStyle, dwExStyle, 0, 0, m_sizeBlock, m_sizeBlock, hBK, 30000);
 	m_Block[0].BindSizer(this, SizerHTCode::LeftTop);
-	m_Block[1].Create(NULL, dwStyle, dwExStyle, 0, 0, m_sizeBlock, m_sizeBlock, hBK, 30001);
+	m_Block[1].Create(nullptr, dwStyle, dwExStyle, 0, 0, m_sizeBlock, m_sizeBlock, hBK, 30001);
 	m_Block[1].BindSizer(this, SizerHTCode::Top);
-	m_Block[2].Create(NULL, dwStyle, dwExStyle, 0, 0, m_sizeBlock, m_sizeBlock, hBK, 30002);
+	m_Block[2].Create(nullptr, dwStyle, dwExStyle, 0, 0, m_sizeBlock, m_sizeBlock, hBK, 30002);
 	m_Block[2].BindSizer(this, SizerHTCode::RightTop);
-	m_Block[3].Create(NULL, dwStyle, dwExStyle, 0, 0, m_sizeBlock, m_sizeBlock, hBK, 30003);
+	m_Block[3].Create(nullptr, dwStyle, dwExStyle, 0, 0, m_sizeBlock, m_sizeBlock, hBK, 30003);
 	m_Block[3].BindSizer(this, SizerHTCode::Left);
-	m_Block[4].Create(NULL, dwStyle, dwExStyle, 0, 0, m_sizeBlock, m_sizeBlock, hBK, 30004);
+	m_Block[4].Create(nullptr, dwStyle, dwExStyle, 0, 0, m_sizeBlock, m_sizeBlock, hBK, 30004);
 	m_Block[4].BindSizer(this, SizerHTCode::Right);
-	m_Block[5].Create(NULL, dwStyle, dwExStyle, 0, 0, m_sizeBlock, m_sizeBlock, hBK, 30005);
+	m_Block[5].Create(nullptr, dwStyle, dwExStyle, 0, 0, m_sizeBlock, m_sizeBlock, hBK, 30005);
 	m_Block[5].BindSizer(this, SizerHTCode::LeftBottom);
-	m_Block[6].Create(NULL, dwStyle, dwExStyle, 0, 0, m_sizeBlock, m_sizeBlock, hBK, 30006);
+	m_Block[6].Create(nullptr, dwStyle, dwExStyle, 0, 0, m_sizeBlock, m_sizeBlock, hBK, 30006);
 	m_Block[6].BindSizer(this, SizerHTCode::Bottom);
-	m_Block[7].Create(NULL, dwStyle, dwExStyle, 0, 0, m_sizeBlock, m_sizeBlock, hBK, 30007);
+	m_Block[7].Create(nullptr, dwStyle, dwExStyle, 0, 0, m_sizeBlock, m_sizeBlock, hBK, 30007);
 	m_Block[7].BindSizer(this, SizerHTCode::RightBottom);
 
 	m_hPen = CreatePen(PS_SOLID, 2, eck::Colorref::Red);
@@ -122,35 +122,35 @@ void CSizer::MoveToTargetWindow()
 	GetWindowRect(m_hWorkWnd, &rc);
 	eck::ScreenToClient(m_hBK, &rc);
 
-	SetWindowPos(m_Block[0].HWnd, NULL,
+	SetWindowPos(m_Block[0].HWnd, nullptr,
 		rc.left - m_sizeBlock,
 		rc.top - m_sizeBlock,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-	SetWindowPos(m_Block[1].HWnd, NULL,
+	SetWindowPos(m_Block[1].HWnd, nullptr,
 		rc.left + (rc.right - rc.left - m_sizeBlock) / 2,
 		rc.top - m_sizeBlock,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-	SetWindowPos(m_Block[2].HWnd, NULL,
+	SetWindowPos(m_Block[2].HWnd, nullptr,
 		rc.right,
 		rc.top - m_sizeBlock,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-	SetWindowPos(m_Block[3].HWnd, NULL,
+	SetWindowPos(m_Block[3].HWnd, nullptr,
 		rc.left - m_sizeBlock,
 		rc.top + (rc.bottom - rc.top - m_sizeBlock) / 2,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-	SetWindowPos(m_Block[4].HWnd, NULL,
+	SetWindowPos(m_Block[4].HWnd, nullptr,
 		rc.right,
 		rc.top + (rc.bottom - rc.top - m_sizeBlock) / 2,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-	SetWindowPos(m_Block[5].HWnd, NULL,
+	SetWindowPos(m_Block[5].HWnd, nullptr,
 		rc.left - m_sizeBlock,
 		rc.bottom,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-	SetWindowPos(m_Block[6].HWnd, NULL,
+	SetWindowPos(m_Block[6].HWnd, nullptr,
 		rc.left + (rc.right - rc.left - m_sizeBlock) / 2,
 		rc.bottom,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-	SetWindowPos(m_Block[7].HWnd, NULL,
+	SetWindowPos(m_Block[7].HWnd, nullptr,
 		rc.right,
 		rc.bottom,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
@@ -246,10 +246,10 @@ void CSizer::OnBlockLButtonUp(CSizerBlock* pBlock, LPARAM lParam)
 	MapWindowRect(m_hBK, m_hWorkWndParent, &rc);
 	rc.right -= rc.left;
 	rc.bottom -= rc.top;
-	SetWindowPos(m_hWorkWnd, NULL, rc.left, rc.top, rc.right, rc.bottom, SWP_NOZORDER | SWP_NOACTIVATE);
+	SetWindowPos(m_hWorkWnd, nullptr, rc.left, rc.top, rc.right, rc.bottom, SWP_NOZORDER | SWP_NOACTIVATE);
 	MoveToTargetWindow();
 
-	InvalidateRect(m_hBK, NULL, FALSE);
+	InvalidateRect(m_hBK, nullptr, FALSE);
 	UpdateWindow(m_hBK);
 }
 

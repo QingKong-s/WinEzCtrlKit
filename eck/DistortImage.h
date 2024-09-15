@@ -5,7 +5,7 @@ ECK_NAMESPACE_BEGIN
 class CMifptpHBITMAP
 {
 private:
-	HBITMAP m_hBitmap = NULL;
+	HBITMAP m_hBitmap = nullptr;
 	BITMAP m_Bmp{};
 public:
 	using TColor = COLORREF;
@@ -33,7 +33,7 @@ public:
 		bmi.bmiHeader.biPlanes = 1;
 		bmi.bmiHeader.biBitCount = 32;
 #pragma warning (suppress:6387)// ¿ÉÄÜÎªNULL
-		const HBITMAP hbm = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, NULL, NULL, 0);
+		const HBITMAP hbm = CreateDIBSection(nullptr, &bmi, DIB_RGB_COLORS, nullptr, nullptr, 0);
 		return CMifptpHBITMAP(hbm);
 	}
 
@@ -63,7 +63,7 @@ public:
 class CMifptpGpBitmap
 {
 private:
-	GpBitmap* m_pBitmap = NULL;
+	GpBitmap* m_pBitmap = nullptr;
 	Gdiplus::BitmapData m_Data{};
 	int m_cx = 0,
 		m_cy = 0;
@@ -91,7 +91,7 @@ public:
 	CMifptpGpBitmap New(TCoord Dimension) const
 	{
 		GpBitmap* pBitmap;
-		GdipCreateBitmapFromScan0(Dimension.X, Dimension.Y, 0, PixelFormat32bppARGB, NULL, &pBitmap);
+		GdipCreateBitmapFromScan0(Dimension.X, Dimension.Y, 0, PixelFormat32bppARGB, nullptr, &pBitmap);
 		return CMifptpGpBitmap(pBitmap);
 	}
 

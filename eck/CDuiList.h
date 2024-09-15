@@ -37,9 +37,9 @@ struct LEEDISPINFO
 	int idx = 0;
 
 	int cchText = 0;
-	PCWSTR pszText = NULL;
+	PCWSTR pszText = nullptr;
 
-	ID2D1Bitmap* pImg = NULL;
+	ID2D1Bitmap* pImg = nullptr;
 
 	int idxImg = -1;
 };
@@ -66,7 +66,7 @@ class CList :public CElem
 private:
 	struct ITEM
 	{
-		IDWriteTextLayout* pLayout = NULL;
+		IDWriteTextLayout* pLayout = nullptr;
 		UINT uFlags = 0;
 		float cxText = 0.f;
 		float cyText = 0.f;
@@ -104,15 +104,15 @@ private:
 	int m_dCursorToItemMax = 0;
 
 
-	ID2D1DeviceContext1* m_pDC1 = NULL;// for geometry realization
+	ID2D1DeviceContext1* m_pDC1 = nullptr;// for geometry realization
 
-	ID2D1SolidColorBrush* m_pBrush = NULL;
-	IDWriteTextFormat* m_pTf = NULL;
-	ID2D1GeometryRealization* m_pGrInsertMark = NULL;
+	ID2D1SolidColorBrush* m_pBrush = nullptr;
+	IDWriteTextFormat* m_pTf = nullptr;
+	ID2D1GeometryRealization* m_pGrInsertMark = nullptr;
 
 	CScrollBar m_SB{};
-	CInertialScrollView* m_psv = NULL;
-	CD2dImageList* m_pImgList = NULL;
+	CInertialScrollView* m_psv = nullptr;
+	CD2dImageList* m_pImgList = nullptr;
 
 	ListType m_eView = ListType::Icon;
 
@@ -689,7 +689,7 @@ public:
 			m_pColorTheme = GetWnd()->GetDefColorTheme()[CTI_LIST];
 			m_pColorTheme->Ref();
 
-			m_SB.Create(NULL, DES_VISIBLE|DES_COMPOSITED, 0,
+			m_SB.Create(nullptr, DES_VISIBLE|DES_COMPOSITED, 0,
 				0, 0, 0, 0, this, GetWnd());
 			m_psv = m_SB.GetScrollView();
 			m_psv->AddRef();
@@ -728,7 +728,7 @@ public:
 			m_vItem.clear();
 			SafeRelease(m_pGrInsertMark);
 			m_psv->SetRange(0, 0);
-			m_pImgList = NULL;
+			m_pImgList = nullptr;
 			m_bSingleSel = FALSE;
 
 			SafeRelease(m_psv);

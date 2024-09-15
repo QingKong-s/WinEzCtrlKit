@@ -20,7 +20,7 @@ enum
 class CTrackBar :public CElem
 {
 private:
-	ID2D1SolidColorBrush* m_pBrush = NULL;
+	ID2D1SolidColorBrush* m_pBrush = nullptr;
 
 	BITBOOL m_bVertical : 1 = FALSE;
 	BITBOOL m_bLBtnDown : 1 = FALSE;
@@ -36,7 +36,7 @@ private:
 
 	float m_cxyTrack = 0.0f;
 
-	CEasingCurve* m_pec = NULL;
+	CEasingCurve* m_pec = nullptr;
 
 	float GetCxyTrack()
 	{

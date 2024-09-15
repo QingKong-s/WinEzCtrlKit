@@ -443,7 +443,7 @@ public:
 		{
 			const auto hWnd = pCtrl->LoGetHWND();
 			if (hWnd)
-				hDwp = DeferWindowPos(hDwp, hWnd, NULL, e.rcTemp.left, e.rcTemp.top,
+				hDwp = DeferWindowPos(hDwp, hWnd, nullptr, e.rcTemp.left, e.rcTemp.top,
 					e.rcTemp.right - e.rcTemp.left, e.rcTemp.bottom - e.rcTemp.top,
 					SWP_NOZORDER | SWP_NOACTIVATE);
 			else

@@ -1,6 +1,6 @@
 #include "pch.h"
 
-CApp* App = NULL;
+CApp* App = nullptr;
 
 void CApp::Init(HINSTANCE hInstance)
 {

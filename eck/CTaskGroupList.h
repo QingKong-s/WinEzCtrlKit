@@ -54,10 +54,10 @@ private:
 
 	std::vector<TASKITEM> m_Items{};
 
-	HTHEME m_hthControlPanel = NULL;
-	HTHEME m_hthListView = NULL;
-	HDC m_hCDCAuxiliary = NULL;
-	HIMAGELIST m_hImageList = NULL;
+	HTHEME m_hthControlPanel = nullptr;
+	HTHEME m_hthListView = nullptr;
+	HDC m_hCDCAuxiliary = nullptr;
+	HIMAGELIST m_hImageList = nullptr;
 
 	int m_iIdealWidth = 0;
 	int m_cxClient = 0;
@@ -89,11 +89,11 @@ private:
 
 		RECT rc;
 		GetThemeTextExtent(m_hthControlPanel, m_hCDCAuxiliary, CPANEL_SECTIONTITLELINK, CPSTL_NORMAL,
-			L"bp", -1, DT_SINGLELINE, NULL, &rc);
+			L"bp", -1, DT_SINGLELINE, nullptr, &rc);
 		m_cySectionTitle = rc.bottom - rc.top;
 
 		GetThemeTextExtent(m_hthControlPanel, m_hCDCAuxiliary, CPANEL_CONTENTLINK, CPCL_NORMAL,
-			L"bp", -1, DT_SINGLELINE, NULL, &rc);
+			L"bp", -1, DT_SINGLELINE, nullptr, &rc);
 		m_cySubTask = rc.bottom - rc.top;
 
 		eck::LVSetItemHeight(m_hWnd, std::max(m_cyIcon, m_cySectionTitle + m_cySubTask + m_cxPadding * 2));
@@ -139,7 +139,7 @@ public:
 						iState = 0;
 
 					if (iState)
-						DrawThemeBackground(m_hthListView, hDC, LVP_LISTITEM, iState, &pnmlcd->nmcd.rc, NULL);
+						DrawThemeBackground(m_hthListView, hDC, LVP_LISTITEM, iState, &pnmlcd->nmcd.rc, nullptr);
 					//////////////////////画图标
 					int x = cxPadding + pnmlcd->nmcd.rc.left, y = cxPadding + pnmlcd->nmcd.rc.top;
 					if (Item.idxImage >= 0)
@@ -153,7 +153,7 @@ public:
 						iState = CPSTL_NORMAL;
 					RECT rc{ x,pnmlcd->nmcd.rc.top,pnmlcd->nmcd.rc.right,pnmlcd->nmcd.rc.bottom };
 					DrawThemeTextEx(m_hthControlPanel, hDC, CPANEL_SECTIONTITLELINK, iState,
-						Item.rsText.Data(), Item.rsText.Size(), DT_SINGLELINE, &rc, NULL);
+						Item.rsText.Data(), Item.rsText.Size(), DT_SINGLELINE, &rc, nullptr);
 					//////////////////////画子任务
 					rc.top += (m_cySectionTitle + cxPadding);
 
@@ -169,7 +169,7 @@ public:
 							iState = CPCL_NORMAL;
 
 						DrawThemeTextEx(m_hthControlPanel, hDC, CPANEL_CONTENTLINK, iState,
-							sub.rsText.Data(), sub.rsText.Size(), DT_SINGLELINE, &rc, NULL);
+							sub.rsText.Data(), sub.rsText.Size(), DT_SINGLELINE, &rc, nullptr);
 
 						rc.left += (sub.cx + m_cxSubTaskPadding * 2);
 					}
@@ -338,12 +338,12 @@ public:
 			for (auto& x : m_Items)
 			{
 				GetThemeTextExtent(m_hthControlPanel, m_hCDCAuxiliary, CPANEL_SECTIONTITLELINK, CPSTL_NORMAL,
-					x.rsText.Data(), x.rsText.Size(), DT_SINGLELINE, NULL, &rc);
+					x.rsText.Data(), x.rsText.Size(), DT_SINGLELINE, nullptr, &rc);
 				x.cx = rc.right - rc.left;
 				for (auto& y : x.SubTasks)
 				{
 					GetThemeTextExtent(m_hthControlPanel, m_hCDCAuxiliary, CPANEL_CONTENTLINK, CPTL_NORMAL,
-						y.rsText.Data(), y.rsText.Size(), DT_SINGLELINE, NULL, &rc);
+						y.rsText.Data(), y.rsText.Size(), DT_SINGLELINE, nullptr, &rc);
 					y.cx = rc.right - rc.left;
 				}
 			}
@@ -364,7 +364,7 @@ public:
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		dwStyle |= (WS_CHILD | LVS_NOCOLUMNHEADER);
 		dwStyle &= ~(LVS_OWNERDATA | LVS_OWNERDRAWFIXED);
@@ -375,11 +375,11 @@ public:
 			dwStyle |= LVS_REPORT;
 		}
 		m_hWnd = CreateWindowExW(dwExStyle, WC_LISTVIEWW, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 
 		SetExplorerTheme();
 
-		m_hCDCAuxiliary = CreateCompatibleDC(NULL);
+		m_hCDCAuxiliary = CreateCompatibleDC(nullptr);
 
 		int iDpi = GetDpi(m_hWnd);
 		m_cxPadding = DpiScale(c_iPadding, iDpi);
@@ -398,13 +398,13 @@ public:
 	}
 
 	int InsertTask(PCWSTR pszText, int idx = -1, int idxImage = -1,
-		TGLSUBTASK* pSubTask = NULL, int cSubTask = 0)
+		TGLSUBTASK* pSubTask = nullptr, int cSubTask = 0)
 	{
 		TASKITEM Item{ pszText,idxImage };
 		RECT rc;
 
 		GetThemeTextExtent(m_hthControlPanel, m_hCDCAuxiliary, CPANEL_SECTIONTITLELINK, CPSTL_NORMAL,
-			Item.rsText.Data(), Item.rsText.Size(), DT_SINGLELINE, NULL, &rc);
+			Item.rsText.Data(), Item.rsText.Size(), DT_SINGLELINE, nullptr, &rc);
 		Item.cx = rc.right - rc.left;
 		EckCounter(cSubTask, i)
 		{
@@ -412,7 +412,7 @@ public:
 			SubTask.rsText = pSubTask[i].pszText;
 			SubTask.uFlags = pSubTask[i].uFlags;
 			GetThemeTextExtent(m_hthControlPanel, m_hCDCAuxiliary, CPANEL_CONTENTLINK, CPTL_NORMAL,
-				SubTask.rsText.Data(), SubTask.rsText.Size(), DT_SINGLELINE, NULL, &rc);
+				SubTask.rsText.Data(), SubTask.rsText.Size(), DT_SINGLELINE, nullptr, &rc);
 			SubTask.cx = rc.right - rc.left;
 			Item.SubTasks.emplace_back(std::move(SubTask));
 		}
@@ -472,7 +472,7 @@ public:
 		return hOld;
 	}
 
-	UINT HitTestTask(RECT* prcItem, int idxItem, POINT pt, int* pidxSubTask = NULL)
+	UINT HitTestTask(RECT* prcItem, int idxItem, POINT pt, int* pidxSubTask = nullptr)
 	{
 		RECT rc;
 		rc.left = prcItem->left + m_cxPadding;

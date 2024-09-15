@@ -14,10 +14,10 @@ class CBk :public CWnd
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		m_hWnd = IntCreate(dwExStyle, WCN_BK, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, g_hInstance, NULL);
+			x, y, cx, cy, hParent, hMenu, g_hInstance, nullptr);
 		return m_hWnd;
 	}
 };

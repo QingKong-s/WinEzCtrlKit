@@ -37,7 +37,7 @@ private:
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		dwStyle |= (WS_CHILD | UDS_SETBUDDYINT);
 		switch (m_Info.iBuddyAlign)
@@ -54,7 +54,7 @@ public:
 		if (m_Info.bHotTrack)
 			dwStyle |= UDS_HOTTRACK;
 		return IntCreate(dwExStyle, UPDOWN_CLASSW, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 	}
 
 	EckInline void SetDirection(int iDirection)
@@ -81,7 +81,7 @@ public:
 		SendMsg(UDM_SETRANGE32, iMin, iMax);
 	}
 
-	EckInline void GetRange(int* piMin = NULL, int* piMax = NULL)
+	EckInline void GetRange(int* piMin = nullptr, int* piMax = nullptr)
 	{
 		SendMsg(UDM_GETRANGE32, (WPARAM)piMin, (LPARAM)piMax);
 	}

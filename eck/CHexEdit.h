@@ -324,11 +324,11 @@ private:
 
 		// 画分隔线
 		// 列头分隔线
-		MoveToEx(hDC, 0, m_cyChar, NULL);
+		MoveToEx(hDC, 0, m_cyChar, nullptr);
 		LineTo(hDC, xStart + m_cxContent, m_cyChar);
 		// 偏移分隔线
 		x = xStart + m_cxAddress - D.cxGap / 2;
-		MoveToEx(hDC, x, 0, NULL);
+		MoveToEx(hDC, x, 0, nullptr);
 		LineTo(hDC, x, m_cyClient);
 		// 数据分组
 		if (D.cColPerGroup)
@@ -336,13 +336,13 @@ private:
 			for (int i = 0; i < D.cCol - D.cColPerGroup; i += D.cColPerGroup)
 			{
 				x += (m_cxChar * 2 + D.cxGap) * D.cColPerGroup;
-				MoveToEx(hDC, x, 0, NULL);
+				MoveToEx(hDC, x, 0, nullptr);
 				LineTo(hDC, x, m_cyClient);
 			}
 		}
 		x = xData +
 			(m_cxChar * 2 + D.cxGap) * D.cCol - D.cxGap / 2;
-		MoveToEx(hDC, x, 0, NULL);
+		MoveToEx(hDC, x, 0, nullptr);
 		LineTo(hDC, x, m_cyClient);
 	}
 
@@ -378,7 +378,7 @@ public:
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		return IntCreate(dwExStyle, WCN_HEXEDIT, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
@@ -530,7 +530,7 @@ public:
 			GetSbInfo(SB_VERT, &si);
 			ReCalcFirstVisible(si.nPos);
 			RECT rc{ 0,m_cyChar + D.cyGap,m_cxClient,m_cyClient };
-			ScrollWindowEx(hWnd, 0, (iOld - si.nPos) * (m_cyChar + D.cyGap), &rc, &rc, NULL, NULL, SW_INVALIDATE);
+			ScrollWindowEx(hWnd, 0, (iOld - si.nPos) * (m_cyChar + D.cyGap), &rc, &rc, nullptr, nullptr, SW_INVALIDATE);
 			UpdateWindow(hWnd);
 			UpdateCaretPos();
 		}
@@ -572,7 +572,7 @@ public:
 			SetSbInfo(SB_HORZ, &si);
 			GetSbInfo(SB_HORZ, &si);
 			ScrollWindowEx(hWnd, iOld - si.nPos, 0,
-				NULL, NULL, NULL, NULL, SW_INVALIDATE);
+				nullptr, nullptr, nullptr, nullptr, SW_INVALIDATE);
 			UpdateWindow(hWnd);
 			UpdateCaretPos();
 		}
@@ -589,7 +589,7 @@ public:
 
 		case WM_SETFOCUS:
 			m_bFocus = TRUE;
-			CreateCaret(hWnd, NULL, m_cxChar, m_cyChar);
+			CreateCaret(hWnd, nullptr, m_cxChar, m_cyChar);
 			return 0;
 
 		case WM_KILLFOCUS:
@@ -708,7 +708,7 @@ public:
 			ReCalcFirstVisible(si.nPos);
 			RECT rc{ 0,m_cyChar + D.cyGap,m_cxClient,m_cyClient };
 			ScrollWindowEx(HWnd, 0, (iOld - si.nPos) * (m_cyChar + D.cyGap), &rc, &rc,
-				NULL, NULL, SW_INVALIDATE);
+				nullptr, nullptr, SW_INVALIDATE);
 			UpdateWindow(HWnd);
 			UpdateCaretPos();
 		}
@@ -726,8 +726,8 @@ public:
 		GetSbInfo(SB_HORZ, &si);
 		if (iOld != si.nPos)
 		{
-			ScrollWindowEx(HWnd, iOld - si.nPos, 0, NULL, NULL,
-				NULL, NULL, SW_INVALIDATE);
+			ScrollWindowEx(HWnd, iOld - si.nPos, 0, nullptr, nullptr,
+				nullptr, nullptr, SW_INVALIDATE);
 			UpdateWindow(HWnd);
 			UpdateCaretPos();
 		}

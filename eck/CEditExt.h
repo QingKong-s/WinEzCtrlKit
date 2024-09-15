@@ -81,7 +81,7 @@ protected:
 	void UpdateTextInfo()
 	{
 		HFONT hFont = (HFONT)SendMsg(WM_GETFONT, 0, 0);
-		HDC hCDC = CreateCompatibleDC(NULL);
+		HDC hCDC = CreateCompatibleDC(nullptr);
 		SelectObject(hCDC, hFont);
 		TEXTMETRICW tm;
 		GetTextMetricsW(hCDC, &tm);
@@ -200,7 +200,7 @@ public:
 			PWSTR pszText;
 			int cchText;
 
-			PCWSTR pszCorrectValue = NULL;
+			PCWSTR pszCorrectValue = nullptr;
 			switch (m_iInputMode)
 			{
 			case InputMode::Byte:
@@ -451,7 +451,7 @@ public:
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		if (pData)
 		{
@@ -461,7 +461,7 @@ public:
 			if (pBase->iVer != CDV_WND_1)
 			{
 				EckDbgBreak();
-				return NULL;
+				return nullptr;
 			}
 
 			BOOL bVisible = IsBitSet(pBase->dwStyle, WS_VISIBLE);
@@ -482,7 +482,7 @@ public:
 				break;
 			}
 			m_hWnd = IntCreate(pBase->dwExStyle, WC_EDITW, pBase->Text(), dwStyle,
-				x, y, cx, cy, hParent, hMenu, NULL, NULL);
+				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 
 			switch (p->iVer)
 			{
@@ -512,7 +512,7 @@ public:
 				dwStyle |= ES_AUTOHSCROLL;
 
 			IntCreate(dwExStyle, WC_EDITW, pszText, dwStyle,
-				x, y, cx, cy, hParent, hMenu, NULL, NULL);
+				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 		}
 
 		if (!GetMultiLine())

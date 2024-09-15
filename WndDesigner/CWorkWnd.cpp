@@ -38,7 +38,7 @@ LRESULT CWorkWnd::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		if (m_pCtx->pThis->m_bPlacingCtrl)
 		{
-			SetCursor(LoadCursorW(NULL, IDC_CROSS));
+			SetCursor(LoadCursorW(nullptr, IDC_CROSS));
 			return 0;
 		}
 	}

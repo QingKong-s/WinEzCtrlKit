@@ -45,7 +45,7 @@ struct CREATEDATA_COMMANDLINK
 		if (cchNote)
 			return (PCWSTR)PtrSkipType(this);
 		else
-			return NULL;
+			return nullptr;
 	}
 };
 
@@ -172,7 +172,7 @@ class CPushButton :public CButton
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		if (pData)
 		{
@@ -181,11 +181,11 @@ public:
 			if (pBase->iVer != CDV_WND_1)
 			{
 				EckDbgBreak();
-				return NULL;
+				return nullptr;
 			}
 
 			m_hWnd = IntCreate(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), pBase->dwStyle,
-				x, y, cx, cy, hParent, hMenu, NULL, NULL);
+				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 
 			switch (p->iVer)
 			{
@@ -201,7 +201,7 @@ public:
 		{
 			dwStyle |= WS_CHILD;
 			m_hWnd = IntCreate(dwExStyle, WC_BUTTONW, pszText, dwStyle,
-				x, y, cx, cy, hParent, hMenu, NULL, NULL);
+				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 		}
 
 		return m_hWnd;
@@ -294,7 +294,7 @@ class CCheckButton :public CButton
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		if (pData)
 		{
@@ -303,11 +303,11 @@ public:
 			if (pBase->iVer != CDV_WND_1)
 			{
 				EckDbgBreak();
-				return NULL;
+				return nullptr;
 			}
 
 			m_hWnd = IntCreate(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), pBase->dwStyle,
-				x, y, cx, cy, hParent, hMenu, NULL, NULL);
+				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 
 			switch (p->iVer)
 			{
@@ -324,7 +324,7 @@ public:
 		{
 			dwStyle |= WS_CHILD;
 			m_hWnd = IntCreate(dwExStyle, WC_BUTTONW, pszText, dwStyle,
-				x, y, cx, cy, hParent, hMenu, NULL, NULL);
+				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 		}
 
 		/*
@@ -479,7 +479,7 @@ private:
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		if (pData)
 		{
@@ -488,11 +488,11 @@ public:
 			if (pBase->iVer != CDV_WND_1)
 			{
 				EckDbgBreak();
-				return NULL;
+				return nullptr;
 			}
 
 			m_hWnd = IntCreate(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), pBase->dwStyle,
-				x, y, cx, cy, hParent, hMenu, NULL, NULL);
+				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 
 			switch (p->iVer)
 			{
@@ -512,7 +512,7 @@ public:
 			if (!IsBitSet(dwStyle, BS_COMMANDLINK | BS_DEFCOMMANDLINK))
 				dwStyle |= BS_COMMANDLINK;
 			m_hWnd = IntCreate(dwExStyle, WC_BUTTONW, pszText, dwStyle,
-				x, y, cx, cy, hParent, hMenu, NULL, NULL);
+				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 		}
 
 		return m_hWnd;

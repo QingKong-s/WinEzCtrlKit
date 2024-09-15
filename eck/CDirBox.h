@@ -31,10 +31,10 @@ private:
 	ECKDIRBOXDATA m_Info{};
 
 	CRefStrW m_rsDir{};
-	IImageList* m_pIImageList = NULL;
+	IImageList* m_pIImageList = nullptr;
 	int m_cyImage = 0;
 	std::wstring m_sCurrPath{};
-	HWND m_hParent = NULL;
+	HWND m_hParent = nullptr;
 
 	void EnumFile(PCWSTR pszFile, HTREEITEM hParentItem)
 	{
@@ -59,7 +59,7 @@ private:
 
 		WIN32_FIND_DATAW wfd;
 		HANDLE hFind;
-		HTREEITEM hNewItem = NULL, hItemAfterDir = TVI_FIRST, hItemAfterFile = TVI_LAST;
+		HTREEITEM hNewItem = nullptr, hItemAfterDir = TVI_FIRST, hItemAfterFile = TVI_LAST;
 
 		hFind = FindFirstFileW(pszPath, &wfd);
 		if (hFind != INVALID_HANDLE_VALUE)
@@ -134,7 +134,7 @@ private:
 	}
 public:
 	HTREEITEM InsertItem(PCWSTR pszText, PWSTR pszNextLevelPath, int cchNextLevelPath,
-		HTREEITEM hParentItem, HTREEITEM hItemAfter, BOOL* pbHasChildPath = NULL)
+		HTREEITEM hParentItem, HTREEITEM hItemAfter, BOOL* pbHasChildPath = nullptr)
 	{
 		if (pbHasChildPath)
 			*pbHasChildPath = FALSE;
@@ -144,10 +144,10 @@ public:
 		SHFILEINFOW sfi{};
 		WIN32_FIND_DATAW wfd;
 		HANDLE hFind;
-		HTREEITEM hNewItem = NULL;
+		HTREEITEM hNewItem = nullptr;
 
 		if (!SHGetFileInfoW(pszNextLevelPath, 0, &sfi, sizeof(SHFILEINFOW), SHGFI_SYSICONINDEX | SHGFI_SMALLICON))
-			return NULL;
+			return nullptr;
 		tis.hParent = hParentItem;
 		tis.hInsertAfter = hItemAfter;
 		tis.itemex.mask = TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_TEXT;
@@ -327,12 +327,12 @@ public:
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		dwStyle |= WS_CHILD;
 
-		m_hWnd = CreateWindowExW(dwExStyle, WC_TREEVIEWW, NULL, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+		m_hWnd = CreateWindowExW(dwExStyle, WC_TREEVIEWW, nullptr, dwStyle,
+			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 
 		int cxImage;
 		SHGetImageList(SHIL_SMALL, IID_PPV_ARGS(&m_pIImageList));

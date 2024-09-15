@@ -17,9 +17,9 @@ class CDrawPanel :public CWnd
 {
 private:
 	CEzCDC m_DC{};
-	GpGraphics* m_pGraphics = NULL;
+	GpGraphics* m_pGraphics = nullptr;
 	int m_cxClient = 0, m_cyClient = 0;
-	HBRUSH m_hbrBK = NULL;
+	HBRUSH m_hbrBK = nullptr;
 
 	void OnSize(HWND hWnd, UINT uState, int cx, int cy)
 	{
@@ -80,7 +80,7 @@ public:
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		m_hWnd = IntCreate(dwExStyle, WCN_DRAWPANEL, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
@@ -109,7 +109,7 @@ private:
 		switch (uMsg)
 		{
 		case WM_PAINT:
-			ValidateRect(hWnd, NULL);
+			ValidateRect(hWnd, nullptr);
 			m_D2D.GetSwapChain()->Present(0, 0);
 			return 0;
 		case WM_SIZE:
@@ -124,7 +124,7 @@ private:
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		m_hWnd = IntCreate(dwExStyle, WCN_DRAWPANELD2D, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, g_hInstance, this);

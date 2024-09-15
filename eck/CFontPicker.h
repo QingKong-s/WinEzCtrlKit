@@ -65,7 +65,7 @@ public:
 
 	eck::CRefStrW ToInfo(FONTPICKERINFO& fpi)
 	{
-		fpi.pszFontName = NULL;
+		fpi.pszFontName = nullptr;
 		auto rs = GetText();
 		const int iPos = FindFontName(rs);
 
@@ -84,7 +84,7 @@ public:
 		cf.lpLogFont = &lf;
 		cf.Flags = m_dwCfFlags | (bHasInfo ? CF_INITTOLOGFONTSTRUCT : 0u);
 		CFontDialog dlg{};
-		if (dlg.DlgBox(NULL,&cf))
+		if (dlg.DlgBox(nullptr,&cf))
 		{
 			WCHAR szBuf[LF_FACESIZE + CchI32ToStrBufNoRadix2 * 2 + 5];
 			swprintf_s(szBuf, L"%s,%d,%d", lf.lfFaceName, cf.iPointSize / 10, lf.lfWeight);

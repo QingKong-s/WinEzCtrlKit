@@ -20,7 +20,7 @@ public:
 	void AttachNew(HWND hWnd) override
 	{
 		CWnd::AttachNew(hWnd);
-		SetText(NULL);
+		SetText(nullptr);
 		Redraw();
 	}
 
@@ -29,7 +29,7 @@ public:
 		switch (uMsg)
 		{
 		case WM_CREATE:
-			((CREATESTRUCTW*)lParam)->lpszName = NULL;
+			((CREATESTRUCTW*)lParam)->lpszName = nullptr;
 			break;
 
 		case WM_LBUTTONDBLCLK:

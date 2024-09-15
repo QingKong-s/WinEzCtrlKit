@@ -14,12 +14,12 @@ ECK_DUI_NAMESPACE_BEGIN
 class CButton :public CElem
 {
 private:
-	IDWriteTextFormat* m_pTf = NULL;		// 外部传入
-	ID2D1Bitmap* m_pImg = NULL;				// 外部传入
+	IDWriteTextFormat* m_pTf = nullptr;		// 外部传入
+	ID2D1Bitmap* m_pImg = nullptr;				// 外部传入
 
-	ID2D1SolidColorBrush* m_pBrush = NULL;
-	ID2D1LinearGradientBrush* m_pLgBrush = NULL;
-	IDWriteTextLayout* m_pLayout = NULL;
+	ID2D1SolidColorBrush* m_pBrush = nullptr;
+	ID2D1LinearGradientBrush* m_pLgBrush = nullptr;
+	IDWriteTextLayout* m_pLayout = nullptr;
 
 	D2D1_SIZE_F m_sizeImg{};
 	float m_cxText = 0.f;
@@ -160,7 +160,7 @@ public:
 
 		case WM_SIZE:
 		{
-			ID2D1GradientStopCollection* pGsc = NULL;
+			ID2D1GradientStopCollection* pGsc = nullptr;
 			D2D1_GRADIENT_STOP gsc[2]
 			{
 				{ 0.f },

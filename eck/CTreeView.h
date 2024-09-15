@@ -22,10 +22,10 @@ class CTreeView :public CWnd
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		return IntCreate(0, WC_TREEVIEWW, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 	}
 
 	EckInline void SetCheckBox(BOOL bCheckBox)
@@ -426,7 +426,7 @@ public:
 
 	EckInline HTREEITEM GetCurrSel()
 	{
-		return GetNextItem(NULL, TVGN_CARET);
+		return GetNextItem(nullptr, TVGN_CARET);
 	}
 
 	EckInline HTREEITEM GetFirstChildItem(HTREEITEM hItem)
@@ -436,17 +436,17 @@ public:
 
 	EckInline HTREEITEM GetDropTargetItem()
 	{
-		return GetNextItem(NULL, TVGN_DROPHILITE);
+		return GetNextItem(nullptr, TVGN_DROPHILITE);
 	}
 
 	EckInline HTREEITEM GetFirstVisibleItem()
 	{
-		return GetNextItem(NULL, TVGN_FIRSTVISIBLE);
+		return GetNextItem(nullptr, TVGN_FIRSTVISIBLE);
 	}
 
 	EckInline HTREEITEM GetLastVisibleItem()
 	{
-		return GetNextItem(NULL, TVGN_LASTVISIBLE);
+		return GetNextItem(nullptr, TVGN_LASTVISIBLE);
 	}
 
 	EckInline HTREEITEM GetNextSiblingItem(HTREEITEM hItem)
@@ -481,7 +481,7 @@ public:
 
 	EckInline HTREEITEM GetRootItem()
 	{
-		return GetNextItem(NULL, TVGN_ROOT);
+		return GetNextItem(nullptr, TVGN_ROOT);
 	}
 
 	EckInline int GetScrollTime()
@@ -510,7 +510,7 @@ public:
 	/// <param name="pt">测试点，相对客户区</param>
 	/// <param name="puFlags">接收测试结果标志，TVHT_常量</param>
 	/// <returns>项目句柄</returns>
-	EckInline HTREEITEM HitTest(POINT pt, UINT* puFlags = NULL)
+	EckInline HTREEITEM HitTest(POINT pt, UINT* puFlags = nullptr)
 	{
 		TVHITTESTINFO tvhti{ pt };
 		SendMsg(TVM_HITTEST, 0, (LPARAM)&tvhti);

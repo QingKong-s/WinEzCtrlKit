@@ -20,10 +20,10 @@ protected:
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		return IntCreate(dwExStyle, WC_HEADERW, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 	}
 #ifndef ECK_MACRO_NO_SUPPORT_DARKMODE
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -33,9 +33,9 @@ public:
 		case WM_CREATE:
 		{
 			if (ShouldAppsUseDarkMode())
-				SetWindowTheme(hWnd, L"ItemsView", NULL);
+				SetWindowTheme(hWnd, L"ItemsView", nullptr);
 			else
-				SetWindowTheme(hWnd, L"Explorer", NULL);
+				SetWindowTheme(hWnd, L"Explorer", nullptr);
 		}
 		break;
 		case WM_THEMECHANGED:
@@ -48,9 +48,9 @@ public:
 		{
 			if (IsColorSchemeChangeMessage(lParam))
 				if (ShouldAppsUseDarkMode())
-					SetWindowTheme(hWnd, L"ItemsView", NULL);
+					SetWindowTheme(hWnd, L"ItemsView", nullptr);
 				else
-					SetWindowTheme(hWnd, L"Explorer", NULL);
+					SetWindowTheme(hWnd, L"Explorer", nullptr);
 		}
 		break;
 		}

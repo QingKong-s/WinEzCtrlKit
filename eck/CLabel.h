@@ -44,14 +44,14 @@ private:
 
 	int m_cxClient = 0,
 		m_cyClient = 0;			// 客户区大小
-	HDC m_hCDC = NULL;			// 后台兼容DC
-	HDC m_hcdcHelper = NULL;	// 画位图使用的辅助DC
-	HBITMAP m_hBitmap = NULL;	// 后台兼容位图
-	HGDIOBJ m_hOld1 = NULL;		// 后台DC旧位图句柄
-	HGDIOBJ m_hOld2 = NULL;		// 辅助DC旧位图句柄
+	HDC m_hCDC = nullptr;			// 后台兼容DC
+	HDC m_hcdcHelper = nullptr;	// 画位图使用的辅助DC
+	HBITMAP m_hBitmap = nullptr;	// 后台兼容位图
+	HGDIOBJ m_hOld1 = nullptr;		// 后台DC旧位图句柄
+	HGDIOBJ m_hOld2 = nullptr;		// 辅助DC旧位图句柄
 
-	HBITMAP m_hbmBK = NULL;		// 底图
-	HBITMAP m_hbmPic = NULL;	// 图片
+	HBITMAP m_hbmBK = nullptr;		// 底图
+	HBITMAP m_hbmPic = nullptr;	// 图片
 	int m_cxBKPic = 0,
 		m_cyBKPic = 0;			// 底图大小
 
@@ -60,7 +60,7 @@ private:
 	RECT m_rcPartPic{};			// 缓存的图片矩形
 	RECT m_rcPartText{};		// 缓存的文本矩形
 
-	HFONT m_hFont = NULL;
+	HFONT m_hFont = nullptr;
 	CRefStrW m_rsText{};
 
 	static ATOM m_atomLabel;	// 标签类原子
@@ -397,7 +397,7 @@ public:
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		dwStyle |= WS_CHILD;
 		m_hWnd = IntCreate(dwExStyle, WCN_LABEL, pszText, dwStyle,
@@ -430,11 +430,11 @@ public:
 			RECT rc{ 0,0,m_cxClient,m_cyClient };
 			HWND hParent = GetParent(m_hWnd);
 			MapWindowPoints(m_hWnd, hParent, (POINT*)&rc, 2);
-			RedrawWindow(hParent, &rc, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+			RedrawWindow(hParent, &rc, nullptr, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
 		}
 		else
 		{
-			InvalidateRect(m_hWnd, NULL, FALSE);
+			InvalidateRect(m_hWnd, nullptr, FALSE);
 			UpdateWindow(m_hWnd);
 		}
 	}

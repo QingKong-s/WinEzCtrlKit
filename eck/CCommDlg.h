@@ -65,7 +65,7 @@ protected:
 				{
 					if (_wcsicmp(CWnd(hWnd).GetClsName().Data(), WC_LINK) == 0)
 						SetWindowSubclass(GetParent(hWnd), EckTdLinkParentSubclassProc, 0, 0);
-					SetWindowTheme(hWnd, L"Explorer", NULL);
+					SetWindowTheme(hWnd, L"Explorer", nullptr);
 					return TRUE;
 				}, 0);
 		}
@@ -75,7 +75,7 @@ protected:
 		return p->OnTdNotify(hWnd, uMsg, wParam, lParam);
 	}
 public:
-	INT_PTR DlgBox(HWND hParent, void* pData = NULL) override
+	INT_PTR DlgBox(HWND hParent, void* pData = nullptr) override
 	{
 		auto pCtx = (TASKDIALOGCTX*)pData;
 		const auto ptdc = pCtx->ptdc;
@@ -85,7 +85,7 @@ public:
 			if (ptdc->cButtons)
 				ptdc->pButtons = m_vBtn.data();
 			else
-				ptdc->pButtons = NULL;
+				ptdc->pButtons = nullptr;
 		}
 
 		if (!m_vRadioBtn.empty())
@@ -94,7 +94,7 @@ public:
 			if (ptdc->cRadioButtons)
 				ptdc->pRadioButtons = m_vRadioBtn.data();
 			else
-				ptdc->pRadioButtons = NULL;
+				ptdc->pRadioButtons = nullptr;
 		}
 
 		m_pfnRealCallBack = ptdc->pfCallback;
@@ -250,7 +250,7 @@ public:
 protected:
 	COLORREF m_crCust[16]{};
 public:
-	INT_PTR DlgBox(HWND hParent, void* pData = NULL) override
+	INT_PTR DlgBox(HWND hParent, void* pData = nullptr) override
 	{
 		auto pcc = (CHOOSECOLORW*)pData;
 		if (pcc->lpCustColors)
@@ -259,7 +259,7 @@ public:
 		return ChooseColorW((CHOOSECOLORW*)pData);
 	}
 
-	INT_PTR DlgBox(HWND hParent, COLORREF crInit = 0, DWORD dwFlags = 0, COLORREF* pcrCust = NULL)
+	INT_PTR DlgBox(HWND hParent, COLORREF crInit = 0, DWORD dwFlags = 0, COLORREF* pcrCust = nullptr)
 	{
 		CHOOSECOLORW cc{ sizeof(cc) };
 		cc.hwndOwner = hParent;
@@ -280,7 +280,7 @@ class CFontDialog :public CDialog
 public:
 	static UINT s_uMsgSetRgb;
 public:
-	INT_PTR DlgBox(HWND hParent, void* pData = NULL) override
+	INT_PTR DlgBox(HWND hParent, void* pData = nullptr) override
 	{
 		auto pcf = (CHOOSEFONTW*)pData;
 		BeginCbtHook(this);
@@ -290,12 +290,12 @@ public:
 	EckInline BOOL EndDlg(INT_PTR nResult) override { return FALSE; }
 };
 
-EckInline int MsgBox(PCWSTR pszText, PCWSTR pszCaption = L"", UINT uType = 0, HWND hParent = NULL)
+EckInline int MsgBox(PCWSTR pszText, PCWSTR pszCaption = L"", UINT uType = 0, HWND hParent = nullptr)
 {
 	return MessageBoxW(hParent, pszText, pszCaption, uType);
 }
 
-EckInline int MsgBox(const CRefStrW& rs, PCWSTR pszCaption = L"", UINT uType = 0, HWND hParent = NULL)
+EckInline int MsgBox(const CRefStrW& rs, PCWSTR pszCaption = L"", UINT uType = 0, HWND hParent = nullptr)
 {
 	return MessageBoxW(hParent, rs.Data(), pszCaption, uType);
 }

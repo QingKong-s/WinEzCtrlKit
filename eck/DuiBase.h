@@ -165,7 +165,7 @@ protected:
 	CSignal<Intercept_T, LRESULT, UINT, WPARAM, LPARAM> m_Sig{};// 信号
 
 	BOOL IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId = 0, PCVOID pData = NULL);
+		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId = 0, PCVOID pData = nullptr);
 
 	void DestroyChild(CElem* pElem)
 	{
@@ -178,7 +178,7 @@ protected:
 		}
 	}
 
-	CElem* HitTestChildUncheck(POINT pt, LRESULT* pResult = NULL)
+	CElem* HitTestChildUncheck(POINT pt, LRESULT* pResult = nullptr)
 	{
 		auto pElem = GetLastChildElem();
 		while (pElem)
@@ -201,7 +201,7 @@ protected:
 			}
 			pElem = pElem->GetPrevElem();
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	void IRUnionContentExpandElemRect(CElem* pLast, RECT& rcInClient)
@@ -358,7 +358,7 @@ public:
 	void SetSize(int cx, int cy);
 
 	virtual BOOL Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId = 0, PCVOID pData = NULL)
+		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId = 0, PCVOID pData = nullptr)
 	{
 		return IntCreate(pszText, dwStyle, dwExStyle, x, y, cx, cy, pParent, pWnd, iId, pData);
 	}
@@ -404,7 +404,7 @@ public:
 	EckInline CElem* HitTestChild(POINT pt)
 	{
 		if (!IsVisible())
-			return NULL;
+			return nullptr;
 		return HitTestChildUncheck(pt);
 	}
 
@@ -709,9 +709,9 @@ private:
 	void CorrectSingleElemMember(CElem* pElem)
 	{
 		if (m_pFocusElem == pElem)
-			m_pFocusElem = NULL;
+			m_pFocusElem = nullptr;
 		if (m_pCurrNcHitTestElem == pElem)
-			m_pCurrNcHitTestElem = NULL;
+			m_pCurrNcHitTestElem = nullptr;
 		if (m_pMouseCaptureElem == pElem)
 			ReleaseCaptureElem();
 		if (m_pHoverElem == pElem)
@@ -769,7 +769,7 @@ private:
 				const auto hr = pElem->m_pDcSurface->BeginDraw(
 					&rcUpdate, IID_PPV_ARGS(&pDxgiSurface), &ptOffset);
 				if (FAILED(hr))
-					pElem->m_pDcSurface->BeginDraw(NULL, IID_PPV_ARGS(&pDxgiSurface), &ptOffset);
+					pElem->m_pDcSurface->BeginDraw(nullptr, IID_PPV_ARGS(&pDxgiSurface), &ptOffset);
 				else
 				{
 					ptOffset.x -= rcUpdate.left;
@@ -782,7 +782,7 @@ private:
 					96,
 					96,
 					D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-					NULL
+					nullptr
 				};
 				pDC->CreateBitmapFromDxgiSurface(pDxgiSurface, &D2dBmpProp, &pBitmap);
 				pDC->BeginDraw();
@@ -810,7 +810,7 @@ private:
 			if (IsElemUseDComp())
 			{
 				pDC->EndDraw();
-				pDC->SetTarget(NULL);
+				pDC->SetTarget(nullptr);
 				pBitmap->Release();
 				pDxgiSurface->Release();
 				pElem->m_pDcSurface->EndDraw();
@@ -868,7 +868,7 @@ private:
 		case PresentMode::AllDComp:
 		{
 			const auto pDC = m_D2d.GetDC();
-			IDXGISurface1* pDxgiSurface = NULL;
+			IDXGISurface1* pDxgiSurface = nullptr;
 			POINT ptOffset;
 			m_pDcSurface->BeginDraw(&rc, IID_PPV_ARGS(&pDxgiSurface), &ptOffset);
 			ptOffset.x -= rc.left;
@@ -879,10 +879,10 @@ private:
 				96,
 				96,
 				D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-				NULL
+				nullptr
 			};
 
-			ID2D1Bitmap1* pBitmap = NULL;
+			ID2D1Bitmap1* pBitmap = nullptr;
 			pDC->CreateBitmapFromDxgiSurface(pDxgiSurface, &D2dBmpProp, &pBitmap);
 			pDC->SetTarget(pBitmap);
 			pDC->BeginDraw();
@@ -904,10 +904,10 @@ private:
 			if (!IsElemUseDComp())
 				RedrawElem(GetFirstChildElem(), rc, (float)ptOffset.x, (float)ptOffset.y);
 
-			m_D2d.m_pBitmap = NULL;
+			m_D2d.m_pBitmap = nullptr;
 
 			pDC->EndDraw();
-			pDC->SetTarget(NULL);
+			pDC->SetTarget(nullptr);
 			pBitmap->Release();
 			pDxgiSurface->Release();
 			m_pDcSurface->EndDraw();
@@ -972,7 +972,7 @@ private:
 						case PresentMode::DCompositionSurface:
 						case PresentMode::AllDComp:
 						{
-							IDCompositionSurface* pDcSurface = NULL;
+							IDCompositionSurface* pDcSurface = nullptr;
 							m_pDcDevice->CreateSurface(m_cxClient, m_cyClient,
 								DXGI_FORMAT_B8G8R8A8_UNORM,
 								m_bTransparent ? DXGI_ALPHA_MODE_PREMULTIPLIED : DXGI_ALPHA_MODE_IGNORE,
@@ -1083,14 +1083,14 @@ public:
 	// 一般不覆写此方法
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		if (m_ePresentMode == PresentMode::FlipSwapChain ||
 			m_ePresentMode == PresentMode::DCompositionSurface ||
 			m_ePresentMode == PresentMode::AllDComp)
 			dwExStyle |= WS_EX_NOREDIRECTIONBITMAP;
 		return IntCreate(dwExStyle, WCN_DUIHOST, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, g_hInstance, NULL);
+			x, y, cx, cy, hParent, hMenu, g_hInstance, nullptr);
 	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -1187,12 +1187,12 @@ public:
 			{
 				RECT rcInvalid;
 				GetUpdateRect(hWnd, &rcInvalid, FALSE);
-				ValidateRect(hWnd, NULL);
+				ValidateRect(hWnd, nullptr);
 				UnionInvalidRect(rcInvalid);
 				WakeRenderThread();
 			}
 			else
-				ValidateRect(hWnd, NULL);
+				ValidateRect(hWnd, nullptr);
 		}
 		return 0;
 
@@ -1218,7 +1218,7 @@ public:
 			if (m_pHoverElem)
 			{
 				m_pHoverElem->CallEvent(WM_MOUSELEAVE, 0, 0);
-				m_pHoverElem = NULL;
+				m_pHoverElem = nullptr;
 			}
 			break;
 
@@ -1233,9 +1233,9 @@ public:
 					if (m_pHoverElem != m_pMouseCaptureElem)
 					{
 						m_pHoverElem->CallEvent(WM_MOUSELEAVE, 0, 0);
-						m_pHoverElem = NULL;
+						m_pHoverElem = nullptr;
 					}
-					m_pMouseCaptureElem = NULL;
+					m_pMouseCaptureElem = nullptr;
 				}
 			}
 		}
@@ -1297,7 +1297,7 @@ public:
 				case PresentMode::AllDComp:
 				{
 					g_pD2dDevice->CreateDeviceContext(
-						EZD2D_PARAM::MakeFlip(0, NULL, NULL, NULL, 0, 0).uDcOptions, &m_D2d.m_pDC);
+						EZD2D_PARAM::MakeFlip(0, nullptr, nullptr, nullptr, 0, 0).uDcOptions, &m_D2d.m_pDC);
 
 					DCompositionCreateDevice3(g_pDxgiDevice, IID_PPV_ARGS(&m_pDcDevice));
 					m_pDcDevice->QueryInterface(&m_pDcDevice3);
@@ -1360,7 +1360,7 @@ public:
 		{
 			UpdateDpi(HIWORD(wParam));
 			auto prc = (const RECT*)lParam;
-			SetWindowPos(hWnd, NULL,
+			SetWindowPos(hWnd, nullptr,
 				prc->left, prc->top, prc->right - prc->left, prc->bottom - prc->top,
 				SWP_NOZORDER | SWP_NOACTIVATE);
 			BroadcastEvent(WM_DPICHANGED, HIWORD(wParam), 0);
@@ -1384,7 +1384,7 @@ public:
 			m_cs.Leave();
 			WaitForSingleObject(m_hthRender, INFINITE);// 等待渲染线程退出
 			NtClose(m_hthRender);
-			m_hthRender = NULL;
+			m_hthRender = nullptr;
 			// 销毁所有元素
 			auto pElem = m_pFirstChild;
 			while (pElem)
@@ -1393,8 +1393,8 @@ public:
 				pElem->Destroy();
 				pElem = pNext;
 			}
-			m_pFirstChild = m_pLastChild = NULL;
-			m_pFocusElem = m_pCurrNcHitTestElem = NULL;
+			m_pFirstChild = m_pLastChild = nullptr;
+			m_pFocusElem = m_pCurrNcHitTestElem = nullptr;
 			// 销毁图形堆栈
 			m_D2d.Destroy();
 			SafeRelease(m_pBmpBkg);
@@ -1412,12 +1412,12 @@ public:
 			for (auto& p : m_pStdColorTheme)
 			{
 				p->DeRef();
-				p = NULL;
+				p = nullptr;
 			}
 			for (auto& p : m_pStdColorThemeDark)
 			{
 				p->DeRef();
-				p = NULL;
+				p = nullptr;
 			}
 
 			for (const auto p : m_vTimeLine)
@@ -1472,7 +1472,7 @@ public:
 		}
 	}
 
-	CElem* HitTest(POINT pt, LRESULT* pResult = NULL)
+	CElem* HitTest(POINT pt, LRESULT* pResult = nullptr)
 	{
 		auto pElem = m_pLastChild;
 		while (pElem)
@@ -1495,7 +1495,7 @@ public:
 			}
 			pElem = pElem->GetPrevElem();
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	CElem* SetFocusElem(CElem* pElem)
@@ -1685,7 +1685,7 @@ public:
 				D2D1_BITMAP_OPTIONS_TARGET
 			};
 			m_D2d.GetDC()->CreateBitmap(D2D1::SizeU(m_cxCache, m_cyCache),
-				NULL, 0, Prop, &m_pBmpCache);
+				nullptr, 0, Prop, &m_pBmpCache);
 		}
 	}
 
@@ -1693,7 +1693,7 @@ public:
 	{
 		if (m_pBmpCache)
 			m_pBmpCache->Release();
-		m_pBmpCache = NULL;
+		m_pBmpCache = nullptr;
 		m_cxCache = m_cyCache = 0;
 	}
 };
@@ -1733,13 +1733,13 @@ inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	if (pParentLastChild)
 	{
 		m_pPrev = pParentLastChild;
-		m_pNext = NULL;
+		m_pNext = nullptr;
 		m_pPrev->m_pNext = this;
 		pParentLastChild = this;
 	}
 	else
 	{
-		m_pPrev = m_pNext = NULL;
+		m_pPrev = m_pNext = nullptr;
 		pParentFirstChild = this;
 		pParentLastChild = this;
 	}
@@ -1799,13 +1799,13 @@ inline void CElem::Destroy()
 			m_pWnd->m_pLastChild = m_pPrev;
 	}
 
-	m_pNext = NULL;
-	m_pPrev = NULL;
-	m_pParent = NULL;
-	m_pFirstChild = NULL;
-	m_pLastChild = NULL;
-	m_pWnd = NULL;
-	m_pDC = NULL;
+	m_pNext = nullptr;
+	m_pPrev = nullptr;
+	m_pParent = nullptr;
+	m_pFirstChild = nullptr;
+	m_pLastChild = nullptr;
+	m_pWnd = nullptr;
+	m_pDC = nullptr;
 
 	if (m_pColorTheme)
 		m_pColorTheme->DeRef();
@@ -1832,7 +1832,7 @@ inline void CElem::SetZOrder(CElem* pElemAfter)
 			else
 				pParentLastChild = m_pPrev;
 
-			m_pPrev = NULL;
+			m_pPrev = nullptr;
 			m_pNext = pParentFirstChild;
 			if (m_pNext)
 				m_pNext->m_pPrev = this;
@@ -1850,7 +1850,7 @@ inline void CElem::SetZOrder(CElem* pElemAfter)
 			else
 				pParentFirstChild = m_pNext;
 
-			m_pNext = NULL;
+			m_pNext = nullptr;
 			m_pPrev = pParentLastChild;
 			if (m_pPrev)
 				m_pPrev->m_pNext = this;
@@ -2092,7 +2092,7 @@ inline void CElem::ReCreateDCompVisual()
 	}
 	else
 	{
-		pRefVisual = NULL;
+		pRefVisual = nullptr;
 		bInsertAbove = FALSE;
 	}
 	if (pParent)
@@ -2220,13 +2220,13 @@ public:
 
 	HRESULT STDMETHODCALLTYPE GetTypeInfo(UINT iTInfo, LCID lcid, ITypeInfo** ppTInfo) override
 	{
-		*ppTInfo = NULL;
+		*ppTInfo = nullptr;
 		return E_NOTIMPL;
 	}
 
 	HRESULT STDMETHODCALLTYPE GetIDsOfNames(REFIID riid, LPOLESTR* rgszNames, UINT cNames, LCID lcid, DISPID* rgDispId) override
 	{
-		*rgszNames = NULL;
+		*rgszNames = nullptr;
 		*rgDispId = 0;
 		return E_NOTIMPL;
 	}
@@ -2234,10 +2234,10 @@ public:
 	HRESULT STDMETHODCALLTYPE Invoke(DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlags,
 		DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr) override
 	{
-		pDispParams = NULL;
+		pDispParams = nullptr;
 		pVarResult->vt = VT_EMPTY;
-		pExcepInfo = NULL;
-		puArgErr = NULL;
+		pExcepInfo = nullptr;
+		puArgErr = nullptr;
 		if (!IsAlive())
 			return RPC_E_DISCONNECTED;
 		return E_NOTIMPL;
@@ -2248,7 +2248,7 @@ public:
 	{
 		if (!IsAlive())
 		{
-			*ppdispParent = NULL;
+			*ppdispParent = nullptr;
 			return RPC_E_DISCONNECTED;
 		}
 		return m_pStdAcc->get_accParent(ppdispParent);
@@ -2374,7 +2374,7 @@ public:
 class CDuiDropTarget :public CDropTarget
 {
 private:
-	CDuiWnd* m_pWnd = NULL;
+	CDuiWnd* m_pWnd = nullptr;
 public:
 	CDuiDropTarget(CDuiWnd* pWnd) :m_pWnd(pWnd) {}
 
@@ -2412,7 +2412,7 @@ public:
 	{
 		POINT pt0{ pt.x, pt.y };
 		ScreenToClient(m_pWnd->HWnd, &pt0);
-		DRAGDROPINFO ddi{ NULL,grfKeyState, pt, pdwEffect };
+		DRAGDROPINFO ddi{ nullptr,grfKeyState, pt, pdwEffect };
 
 		if (m_pWnd->SendMsg(WM_DRAGOVER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
 			return ddi.hr;
@@ -2441,15 +2441,15 @@ public:
 		if (m_pWnd->SendMsg(WM_DRAGLEAVE, 0, 0))
 		{
 			EckAssert(!m_pWnd->m_pDragDropElem);
-			m_pWnd->m_pDataObj = NULL;
+			m_pWnd->m_pDataObj = nullptr;
 			return S_OK;
 		}
-		m_pWnd->m_pDataObj = NULL;
+		m_pWnd->m_pDataObj = nullptr;
 
 		const auto pElem = m_pWnd->m_pDragDropElem;
 		if (pElem)
 		{
-			m_pWnd->m_pDragDropElem = NULL;
+			m_pWnd->m_pDragDropElem = nullptr;
 			return (HRESULT)pElem->CallEvent(WM_DRAGLEAVE, 0, 0);
 		}
 		else
@@ -2465,13 +2465,13 @@ public:
 		if (m_pWnd->SendMsg(WM_DROP, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
 		{
 			EckAssert(!m_pWnd->m_pDragDropElem);
-			m_pWnd->m_pDataObj = NULL;
+			m_pWnd->m_pDataObj = nullptr;
 			return S_OK;
 		}
-		m_pWnd->m_pDataObj = NULL;
+		m_pWnd->m_pDataObj = nullptr;
 
 		auto pElem = m_pWnd->HitTest(pt0);
-		m_pWnd->m_pDragDropElem = NULL;
+		m_pWnd->m_pDragDropElem = nullptr;
 		if (pElem)
 			return (HRESULT)pElem->CallEvent(WM_DROP, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
 		else
@@ -2495,7 +2495,7 @@ inline HRESULT CDuiWnd::EnableDragDrop(BOOL bEnable)
 		{
 			const auto hr = RevokeDragDrop(m_hWnd);
 			m_pDropTarget->Release();
-			m_pDropTarget = NULL;
+			m_pDropTarget = nullptr;
 			return hr;
 		}
 	}

@@ -53,7 +53,7 @@ struct CWindowPosSetting
 		if (bMaximized)
 			return ShowWindow(hWnd, SW_SHOWMAXIMIZED);
 		else
-			return SetWindowPos(hWnd, NULL, x, y, cx, cy, SWP_NOZORDER);
+			return SetWindowPos(hWnd, nullptr, x, y, cx, cy, SWP_NOZORDER);
 	}
 
 	CRefStrW ToString()
@@ -67,7 +67,7 @@ struct CWindowPosSetting
 		if (IsRectEmpty(rcWnd))
 			return WPSEV_ERROR;
 		HMONITOR hMonNearest;
-		if (MonitorFromRectByWorkArea(rcWnd, NULL, &hMonNearest))
+		if (MonitorFromRectByWorkArea(rcWnd, nullptr, &hMonNearest))
 			return WPSEV_GOOD_RECT;
 		if (!hMonNearest)
 			return WPSEV_ERROR;
