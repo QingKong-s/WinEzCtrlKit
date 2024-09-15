@@ -292,7 +292,7 @@ ECK_NAMESPACE_END
 
 ECK_NAMESPACE_BEGIN
 #pragma region 类型
-namespace BaseType
+inline namespace BaseType
 {
 	using SCHAR = signed char;
 	using BITBOOL = UINT;
@@ -305,9 +305,8 @@ namespace BaseType
 	using PCITEMIDLIST = LPCITEMIDLIST;
 }
 #pragma endregion
-using namespace BaseType;
 
-namespace Literals
+inline namespace Literals
 {
 	EckInline constexpr WORD operator""_us(ULONGLONG x)
 	{
@@ -324,7 +323,6 @@ namespace Literals
 		return (BYTE)x;
 	}
 }
-using namespace Literals;
 
 enum class Align
 {
@@ -491,7 +489,7 @@ ECK_NAMESPACE_END
 #pragma warning(suppress:5260)
 #include <gdiplus.h>
 ECK_NAMESPACE_BEGIN
-namespace GpNameSpace
+inline namespace GpNameSpace
 {
 	using namespace Gdiplus::DllExports;
 #define ECK_USING_GDIP_TYPE(Type) using Type = ::Gdiplus::Type
@@ -527,7 +525,6 @@ namespace GpNameSpace
 	using Gdiplus::GdiplusShutdown;
 	using Gdiplus::GdiplusStartup;
 }
-using namespace GpNameSpace;
 
 struct NTVER
 {
