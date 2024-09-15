@@ -17,7 +17,7 @@ private:
 		SIZE_T cbSize;
 	};
 
-	BYTE* m_pData = NULL;
+	BYTE* m_pData = nullptr;
 
 	std::unordered_map<int, OFFSETENTRY> m_OffsetTable{};
 
@@ -57,7 +57,7 @@ public:
 	{
 		auto it = m_OffsetTable.find(iID);
 		if (it == m_OffsetTable.end())
-			return NULL;
+			return nullptr;
 		*pcbRes = it->second.cbSize;
 		return m_pData + it->second.cbOffset;
 	}
@@ -131,9 +131,9 @@ public:
 class CCtrlsDeserializer
 {
 private:
-	PCBYTE m_pData = NULL;
-	const FTCTRLDATAHEADER* m_pHeader = NULL;
-	CMemReader m_r{ NULL };
+	PCBYTE m_pData = nullptr;
+	const FTCTRLDATAHEADER* m_pHeader = nullptr;
+	CMemReader m_r{ nullptr };
 
 	struct PARENTINFO
 	{
@@ -143,7 +143,7 @@ private:
 	};
 	std::stack<PARENTINFO> m_stackParentInfo{};
 
-	HWND m_hParent = NULL;
+	HWND m_hParent = nullptr;
 public:
 	CCtrlsDeserializer() = default;
 	CCtrlsDeserializer(PCVOID pData, SIZE_T cbMax = 0u)
@@ -186,7 +186,7 @@ public:
 					m_stackParentInfo.pop();
 			}
 			else
-				m_hParent = NULL;
+				m_hParent = nullptr;
 
 			hWnd = Processor(p, pCtrlData, m_hParent);
 			if (p->cChildren)
@@ -218,13 +218,13 @@ public:
 /// <param name="pData">数据</param>
 /// <returns>成功返回CWnd指针，调用者负责使用delete释放，失败返回NULL</returns>
 EckInline CWnd* CommCreateCtrl(int idxClass, PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-	int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
+	int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = nullptr)
 {
 	if (idxClass < 0 || idxClass >= ARRAYSIZE(s_EckDesignAllCtrl))
 	{
 		EckDbgPrintWithPos(L"类索引超出范围");
 		EckDbgBreak();
-		return NULL;
+		return nullptr;
 	}
 
 	auto pWnd = s_EckDesignAllCtrl[idxClass].pfnCreate((PCBYTE)pData, pszText, dwStyle, dwExStyle,
@@ -240,7 +240,7 @@ EckInline CWnd* CommCreateCtrl(int idxClass, PCWSTR pszText, DWORD dwStyle, DWOR
 /// <param name="pFormData">窗体数据，以FTCTRLDATAHEADER开头</param>
 /// <param name="pWnds">指向vector变量的指针，函数将创建的指针按次序装载到容器中，若为NULL则不保留指针</param>
 /// <returns>成功返回TRUE，失败返回FALSE</returns>
-EckInline BOOL LoadForm(HWND hBK, PCVOID pFormData, std::vector<CWnd*>* pWnds = NULL)
+EckInline BOOL LoadForm(HWND hBK, PCVOID pFormData, std::vector<CWnd*>* pWnds = nullptr)
 {
 	int iDpi = GetDpi(hBK);
 	CCtrlsDeserializer Deserializer(pFormData);
@@ -256,7 +256,7 @@ EckInline BOOL LoadForm(HWND hBK, PCVOID pFormData, std::vector<CWnd*>* pWnds = 
 				hParent = hBK;
 			RECT rc = p->rc;
 			DpiScale(rc, iDpi);
-			auto pWnd = CommCreateCtrl(p->idxInfo, NULL, 0, 0,
+			auto pWnd = CommCreateCtrl(p->idxInfo, nullptr, 0, 0,
 				rc.left, rc.top, rc.right, rc.bottom, hParent, 0, pCtrlData);
 			HWND hWnd;
 			if (pWnds)

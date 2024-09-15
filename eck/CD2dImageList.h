@@ -27,7 +27,7 @@ enum
 class CD2dImageList
 {
 private:
-	ID2D1DeviceContext* m_pDC = NULL;
+	ID2D1DeviceContext* m_pDC = nullptr;
 	std::vector<ID2D1Bitmap*> m_vBmp{};
 	D2D1_PIXEL_FORMAT m_PixelFormat = D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UINT, D2D1_ALPHA_MODE_IGNORE);
 	std::vector<UINT> m_vFlags{};
@@ -63,7 +63,7 @@ private:
 					(UINT32)m_cx, 
 					(UINT32)((m_cy + m_iPadding) * m_cImgPerPack) 
 				}, 
-				NULL, 
+				nullptr, 
 				0, 
 				D2D1::BitmapProperties(pf), 
 				&pBmp)))
@@ -148,7 +148,7 @@ public:
 	/// <param name="pBitmap">图像，像素格式（包括Alpha模式）必须兼容，这是CopyFromBitmap的基本要求</param>
 	/// <param name="prcSrc">源矩形</param>
 	/// <returns>新添加的图像的索引</returns>
-	int AddImage(ID2D1Bitmap* pBitmap, const D2D1_RECT_U* prcSrc = NULL, HRESULT* phr = NULL)
+	int AddImage(ID2D1Bitmap* pBitmap, const D2D1_RECT_U* prcSrc = nullptr, HRESULT* phr = nullptr)
 	{
 		CCsGuard _{ m_cs };
 		EckAssert(pBitmap);
@@ -190,7 +190,7 @@ public:
 	/// <returns>HRESULT</returns>
 	HRESULT Draw(int idxImg, const D2D1_RECT_F& rcDst, float fAlpha = 1.f,
 		D2D1_INTERPOLATION_MODE iInterpolationMode = D2D1_INTERPOLATION_MODE_LINEAR,
-		D2D1_MATRIX_4X4_F* pPerspectiveMatrix = NULL)
+		D2D1_MATRIX_4X4_F* pPerspectiveMatrix = nullptr)
 	{
 		CCsGuard _{ m_cs };
 		EckAssert(idxImg >= 0 && idxImg < m_cImg);
@@ -248,7 +248,7 @@ public:
 	{
 		CCsGuard _{ m_cs };
 		EckAssert(idxImg >= 0 && idxImg < m_cImg);
-		pEffectAtlas = NULL;
+		pEffectAtlas = nullptr;
 		HRESULT hr;
 		const int idxPack = CalcPackIndex(idxImg);
 		const int y = CalcYFromImgIndex(idxImg);
@@ -281,7 +281,7 @@ public:
 		}
 	}
 
-	HRESULT ReplaceImage(int idxImg, ID2D1Bitmap* pBitmap, const D2D1_RECT_U* prcSrc = NULL)
+	HRESULT ReplaceImage(int idxImg, ID2D1Bitmap* pBitmap, const D2D1_RECT_U* prcSrc = nullptr)
 	{
 		CCsGuard _{ m_cs };
 		if (idxImg < 0)

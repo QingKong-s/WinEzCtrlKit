@@ -12,7 +12,7 @@ ECK_NAMESPACE_BEGIN
 EckInline HRESULT DrawListViewColumnDetail(HTHEME hTheme, HDC hDC, int x, int yTop, int yBottom)
 {
 	const RECT rc{ x - 1,yTop,x,yBottom };
-	return DrawThemeBackground(hTheme, hDC, LVP_COLUMNDETAIL, 0, &rc, NULL);
+	return DrawThemeBackground(hTheme, hDC, LVP_COLUMNDETAIL, 0, &rc, nullptr);
 }
 
 inline void DrawSelectionRect(HDC hDC, const RECT& rc)
@@ -64,12 +64,12 @@ inline void DrawPlusMinusGlyph(HDC hDC, BOOL bPlus, const RECT& rc, COLORREF crB
 	SetDCPenColor(hDC, crSign);
 	const HGDIOBJ hOld = SelectObject(hDC, GetStockBrush(DC_PEN));
 	const int xMargin = (rc.right - rc.left) / 5;
-	MoveToEx(hDC, rc.left + xMargin, (rc.top + rc.bottom) / 2, NULL);
+	MoveToEx(hDC, rc.left + xMargin, (rc.top + rc.bottom) / 2, nullptr);
 	LineTo(hDC, rc.right - xMargin, (rc.top + rc.bottom) / 2);
 	if (bPlus)
 	{
 		const int yMargin = (rc.bottom - rc.top) / 5;
-		MoveToEx(hDC, (rc.left + rc.right) / 2, rc.top + yMargin, NULL);
+		MoveToEx(hDC, (rc.left + rc.right) / 2, rc.top + yMargin, nullptr);
 		LineTo(hDC, (rc.left + rc.right) / 2, rc.bottom - yMargin);
 	}
 	SelectObject(hDC, hOld);

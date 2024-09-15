@@ -13,10 +13,10 @@ class CTrackBar : public CWnd
 {
 public:
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
-		return IntCreate(0, TRACKBAR_CLASSW, NULL, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+		return IntCreate(0, TRACKBAR_CLASSW, nullptr, dwStyle,
+			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 	}
 
 	EckInline void ClearSel(BOOL bRedraw)

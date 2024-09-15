@@ -32,7 +32,7 @@ struct CTRLDATA_WND
 		if (cchText)
 			return (PCWSTR)PtrSkipType(this);
 		else
-			return NULL;
+			return nullptr;
 	}
 };
 #pragma pack(pop)
@@ -50,7 +50,7 @@ struct DESIGNDATA_WND
 
 #define ECK_CWND_CREATE																\
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,						\
-		int x, int y, int cx, int cy, HWND hParent, int nID, ::eck::PCVOID pData = NULL)	\
+		int x, int y, int cx, int cy, HWND hParent, int nID, ::eck::PCVOID pData = nullptr)	\
 	{																				\
 		return Create(pszText, dwStyle, dwExStyle, x, y, cx, cy,					\
 			hParent, ::eck::i32ToP<HMENU>(nID), pData);								\
@@ -91,7 +91,7 @@ protected:
 
 	EckInline HWND IntCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
-		FWndCreating pfnCreatingProc = NULL)
+		FWndCreating pfnCreatingProc = nullptr)
 	{
 		BeginCbtHook(this, pfnCreatingProc);
 #ifdef _DEBUG
@@ -105,7 +105,7 @@ protected:
 		if (IsWindow(m_hWnd))
 			return m_hWnd;
 		else
-			return m_hWnd = NULL;
+			return m_hWnd = nullptr;
 #else
 		return CreateWindowExW(dwExStyle, pszClass, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, hInst, pParam);
@@ -324,7 +324,7 @@ public:
 	/// <returns>本类持有的旧句柄</returns>
 	[[nodiscard]] virtual HWND Detach()
 	{
-		HWND hWnd = NULL;
+		HWND hWnd = nullptr;
 		std::swap(hWnd, m_hWnd);
 		const auto pCtx = GetThreadCtx();
 		EckAssert(pCtx->WmAt(hWnd) == this);// 检查匹配性
@@ -348,7 +348,7 @@ public:
 	/// 创建窗口
 	/// </summary>
 	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = NULL)
+		int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = nullptr)
 	{
 		return Create(pszText, dwStyle, dwExStyle, x, y, cx, cy,
 			hParent, i32ToP<HMENU>(nID), pData);
@@ -359,7 +359,7 @@ public:
 	/// 不能调用基类的此方法
 	/// </summary>
 	virtual HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL)
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr)
 	{
 		EckDbgPrintWithPos(L"** ERROR ** CWnd::Create未实现");
 		EckDbgBreak();
@@ -451,19 +451,19 @@ public:
 
 	void LoSetPos(int x, int y) override
 	{
-		SetWindowPos(m_hWnd, NULL, x, y, 0, 0,
+		SetWindowPos(m_hWnd, nullptr, x, y, 0, 0,
 			SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
 	}
 
 	void LoSetSize(int cx, int cy) override
 	{
-		SetWindowPos(m_hWnd, NULL, 0, 0, cx, cy,
+		SetWindowPos(m_hWnd, nullptr, 0, 0, cx, cy,
 			SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
 	}
 
 	void LoSetPosSize(int x, int y, int cx, int cy)  override
 	{
-		SetWindowPos(m_hWnd, NULL, x, y, cx, cy,
+		SetWindowPos(m_hWnd, nullptr, x, y, cx, cy,
 			SWP_NOZORDER | SWP_NOACTIVATE);
 	}
 
@@ -525,7 +525,7 @@ public:
 			pData->dwExStyle = dwNewExStyle.value();
 
 		Destroy();
-		return Create(NULL, 0, 0,
+		return Create(nullptr, 0, 0,
 			rcPos.value().left, rcPos.value().top, rcPos.value().right, rcPos.value().bottom,
 			hParent, iID, rb.Data());
 	}
@@ -540,7 +540,7 @@ public:
 	/// </summary>
 	EckInline void FrameChanged() const
 	{
-		SetWindowPos(m_hWnd, NULL, 0, 0, 0, 0,
+		SetWindowPos(m_hWnd, nullptr, 0, 0, 0, 0,
 			SWP_NOZORDER | SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 	}
 
@@ -557,7 +557,7 @@ public:
 	/// </summary>
 	EckInline BOOL Redraw() const
 	{
-		return RedrawWindow(m_hWnd, NULL, NULL, RDW_INVALIDATE | RDW_ERASE);
+		return RedrawWindow(m_hWnd, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE);
 	}
 
 	/// <summary>
@@ -565,7 +565,7 @@ public:
 	/// </summary>
 	EckInline BOOL Redraw(const RECT& rc) const
 	{
-		return RedrawWindow(m_hWnd, &rc, NULL, RDW_INVALIDATE | RDW_ERASE);
+		return RedrawWindow(m_hWnd, &rc, nullptr, RDW_INVALIDATE | RDW_ERASE);
 	}
 
 	/// <summary>
@@ -759,15 +759,15 @@ public:
 	/// <returns></returns>
 	EckInline HRESULT SetExplorerTheme() const
 	{
-		return SetWindowTheme(m_hWnd, L"Explorer", NULL);
+		return SetWindowTheme(m_hWnd, L"Explorer", nullptr);
 	}
 
 	EckInline HRESULT SetItemsViewTheme() const
 	{
-		return SetWindowTheme(m_hWnd, L"ItemsView", NULL);
+		return SetWindowTheme(m_hWnd, L"ItemsView", nullptr);
 	}
 
-	EckInline HRESULT SetTheme(PCWSTR pszAppName, PCWSTR pszSubList = NULL) const
+	EckInline HRESULT SetTheme(PCWSTR pszAppName, PCWSTR pszSubList = nullptr) const
 	{
 		return SetWindowTheme(m_hWnd, pszAppName, pszSubList);
 	}
@@ -777,7 +777,7 @@ public:
 	/// </summary>
 	EckInline BOOL Move(int x, int y, int cx, int cy, BOOL bNoActive = FALSE) const
 	{
-		return SetWindowPos(m_hWnd, NULL, x, y, cx, cy, SWP_NOZORDER | (bNoActive ? SWP_NOACTIVATE : 0));
+		return SetWindowPos(m_hWnd, nullptr, x, y, cx, cy, SWP_NOZORDER | (bNoActive ? SWP_NOACTIVATE : 0));
 	}
 
 	/// <summary>
@@ -879,7 +879,7 @@ public:
 		RECT rc;
 		GetWindowRect(m_hWnd, &rc);
 		ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
-		SetWindowPos(m_hWnd, NULL, i, rc.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+		SetWindowPos(m_hWnd, nullptr, i, rc.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
 	}
 
 	[[nodiscard]] int GetLeft() const
@@ -895,7 +895,7 @@ public:
 		RECT rc;
 		GetWindowRect(m_hWnd, &rc);
 		ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
-		SetWindowPos(m_hWnd, NULL, rc.left, i, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+		SetWindowPos(m_hWnd, nullptr, rc.left, i, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
 	}
 
 	[[nodiscard]] int GetTop() const
@@ -910,7 +910,7 @@ public:
 	{
 		RECT rc;
 		GetWindowRect(m_hWnd, &rc);
-		SetWindowPos(m_hWnd, NULL, 0, 0, i, rc.bottom - rc.top,
+		SetWindowPos(m_hWnd, nullptr, 0, 0, i, rc.bottom - rc.top,
 			SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
 	}
 
@@ -925,7 +925,7 @@ public:
 	{
 		RECT rc;
 		GetWindowRect(m_hWnd, &rc);
-		SetWindowPos(m_hWnd, NULL, 0, 0, rc.right - rc.left, i,
+		SetWindowPos(m_hWnd, nullptr, 0, 0, rc.right - rc.left, i,
 			SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
 	}
 
@@ -938,7 +938,7 @@ public:
 
 	EckInline void SetPosition(POINT pt) const
 	{
-		SetWindowPos(m_hWnd, NULL, pt.x, pt.y, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+		SetWindowPos(m_hWnd, nullptr, pt.x, pt.y, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
 	}
 
 	[[nodiscard]] EckInline POINT GetPosition() const
@@ -951,7 +951,7 @@ public:
 
 	EckInline void SetSize(SIZE sz) const
 	{
-		SetWindowPos(m_hWnd, NULL, 0, 0, sz.cx, sz.cy, SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+		SetWindowPos(m_hWnd, nullptr, 0, 0, sz.cx, sz.cy, SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
 	}
 
 	[[nodiscard]] EckInline SIZE GetSize() const
@@ -984,7 +984,7 @@ public:
 		return si.nTrackPos;
 	}
 
-	EckInline BOOL GetSbRange(int iType, int* piMin = NULL, int* piMax = NULL) const
+	EckInline BOOL GetSbRange(int iType, int* piMin = nullptr, int* piMax = nullptr) const
 	{
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);

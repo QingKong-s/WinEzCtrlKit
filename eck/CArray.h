@@ -86,7 +86,7 @@ public:
 	using TReverseIterator = std::reverse_iterator<TIterator>;
 	using TConstReverseIterator = std::reverse_iterator<TConstIterator>;
 private:
-	TElem* m_pMem = NULL;
+	TElem* m_pMem = nullptr;
 	size_t m_cCount = 0u;
 	size_t m_cCapacity = 0u;
 	std::vector<size_t> m_Dim{};
@@ -130,7 +130,7 @@ public:
 		:m_pMem{ x.m_pMem }, m_cCount{ x.m_cCount }, m_cCapacity{ x.m_cCapacity },
 		m_Dim{ std::move(x.m_Dim) }, m_Alloc{ std::move(x.m_Alloc) }
 	{
-		x.m_pMem = NULL;
+		x.m_pMem = nullptr;
 		x.m_cCount = x.m_cCapacity = 0u;
 		x.m_Dim.clear();
 	}

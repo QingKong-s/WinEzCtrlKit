@@ -14,9 +14,9 @@ ECK_DUI_NAMESPACE_BEGIN
 class CCircleButton :public CElem
 {
 private:
-	ID2D1Bitmap* m_pImg = NULL;				// 外部传入
+	ID2D1Bitmap* m_pImg = nullptr;				// 外部传入
 
-	ID2D1SolidColorBrush* m_pBrush = NULL;
+	ID2D1SolidColorBrush* m_pBrush = nullptr;
 
 	D2D1_SIZE_F m_sizeImg{};
 	D2D1_INTERPOLATION_MODE m_iInterpolation = D2D1_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC;

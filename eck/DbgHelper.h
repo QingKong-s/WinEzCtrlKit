@@ -135,8 +135,8 @@ EckInline void DbgPrint(const std::basic_string<T, U, V>& str, BOOL bNewLine = T
 inline void DbgPrintFormatMessage(UINT uErrCode, BOOL bNewLine = TRUE)
 {
     PWSTR pszInfo;
-    FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL,
-        uErrCode, 0, (PWSTR)&pszInfo, 0, NULL);
+    FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, nullptr,
+        uErrCode, 0, (PWSTR)&pszInfo, 0, nullptr);
     DbgPrint(pszInfo, bNewLine);
     LocalFree(pszInfo);
 }

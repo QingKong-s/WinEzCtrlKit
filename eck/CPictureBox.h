@@ -44,7 +44,7 @@ private:
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		return IntCreate(dwExStyle, WCN_PICTUREBOX, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, g_hInstance, this);

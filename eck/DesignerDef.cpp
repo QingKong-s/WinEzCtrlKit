@@ -12,7 +12,7 @@ CWnd* CALLBACK Create_Button(PCBYTE pData, ECK_CREATE_CTRL_EXTRA_ARGS)
 	else
 	{
 		delete p;
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -25,7 +25,7 @@ CWnd* CALLBACK Create_CheckButton(PCBYTE pData, ECK_CREATE_CTRL_EXTRA_ARGS)
 	else
 	{
 		delete p;
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -38,7 +38,7 @@ CWnd* CALLBACK Create_CommandLink(PCBYTE pData, ECK_CREATE_CTRL_EXTRA_ARGS)
 	else
 	{
 		delete p;
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -51,7 +51,7 @@ CWnd* CALLBACK Create_Edit(PCBYTE pData, ECK_CREATE_CTRL_EXTRA_ARGS)
 	else
 	{
 		delete p;
-		return NULL;
+		return nullptr;
 	}
 }
 ECK_NAMESPACE_END

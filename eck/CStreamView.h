@@ -18,8 +18,8 @@ class CStreamView :public IStream, public IMem
 private:
 	ULONG m_cRef = 1;
 
-	PCBYTE m_pMem = NULL;
-	PCBYTE m_pSeek = NULL;
+	PCBYTE m_pMem = nullptr;
+	PCBYTE m_pSeek = nullptr;
 	SIZE_T m_cbSize = 0u;
 public:
 	CStreamView() = default;
@@ -224,7 +224,7 @@ public:
 
 	HRESULT STDMETHODCALLTYPE MemLock(void** ppvData, SIZE_T* pcbData)
 	{
-		*ppvData = NULL;
+		*ppvData = nullptr;
 		*pcbData = 0u;
 		return E_NOTIMPL;
 	}

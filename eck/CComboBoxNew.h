@@ -66,9 +66,9 @@ public:
 
 			SetExplorerTheme();
 
-			m_LB.Create(NULL, WS_POPUP | WS_BORDER, 
+			m_LB.Create(nullptr, WS_POPUP | WS_BORDER, 
 				WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE|WS_EX_TOPMOST,
-				0, 0, 0, 0, hWnd, NULL);
+				0, 0, 0, 0, hWnd, nullptr);
 			SetWindowLongPtrW(m_LB.HWnd, GWLP_HWNDPARENT, (LONG_PTR)hWnd);
 			m_LB.SetComboBox(hWnd);
 
@@ -98,10 +98,10 @@ public:
 				else
 					iState = CBRO_NORMAL;
 				DrawThemeBackground(m_hTheme, m_DC.GetDC(), 
-					CP_READONLY, iState, &rc, NULL);
+					CP_READONLY, iState, &rc, nullptr);
 				rc.left = rc.right - m_Ds.cxDropBtn;
 				DrawThemeBackground(m_hTheme, m_DC.GetDC(),
-					CP_DROPDOWNBUTTONRIGHT, CBXSR_NORMAL, &rc, NULL);
+					CP_DROPDOWNBUTTONRIGHT, CBXSR_NORMAL, &rc, nullptr);
 			}
 			break;
 
@@ -194,7 +194,7 @@ public:
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		return IntCreate(dwExStyle, WCN_COMBOBOXNEW, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
@@ -209,7 +209,7 @@ public:
 		Redraw();
 		RECT rc;
 		GetWindowRect(HWnd, &rc);
-		SetWindowPos(m_LB.HWnd, NULL,
+		SetWindowPos(m_LB.HWnd, nullptr,
 			rc.left, rc.bottom,
 			m_cxLB < 0 ? m_Ds.cxDefLB : m_cxLB,
 			m_cyLB < 0 ? m_Ds.cxDefLB : m_cyLB,

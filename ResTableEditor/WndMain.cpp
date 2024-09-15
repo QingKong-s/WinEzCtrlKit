@@ -16,8 +16,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	wcex.style = CS_HREDRAW | CS_VREDRAW;
 	wcex.lpfnWndProc = WndProc_Main;
 	wcex.hInstance = hInstance;
-	wcex.hIcon = LoadIconW(NULL, IDI_APPLICATION);
-	wcex.hCursor = LoadCursorW(NULL, IDC_ARROW);
+	wcex.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
+	wcex.hCursor = LoadCursorW(nullptr, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 	wcex.lpszClassName = WCN_MAIN;
 	//wcex.cbClsExtra =
@@ -28,14 +28,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		return 1;
 
 	HWND hWnd = CreateWindowExW(0, WCN_MAIN, L"示例Win32程序", WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
+		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 	if (!hWnd)
 		return 1;
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 
 	MSG msg;
-	while (GetMessageW(&msg, NULL, 0, 0))
+	while (GetMessageW(&msg, nullptr, 0, 0))
 	{
 		TranslateMessage(&msg);
 		DispatchMessageW(&msg);

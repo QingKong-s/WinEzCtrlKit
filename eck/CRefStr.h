@@ -208,7 +208,7 @@ inline constexpr int StrNPos = -1;
 	const auto pszLeft = LTrimStr(pszText);
 	const auto pszRight = RTrimStr(pszText, cchText);
 	if (pszRight <= pszLeft)
-		return { NULL,NULL };
+		return { nullptr,nullptr };
 	else
 		return { pszLeft,pszRight };
 }
@@ -226,7 +226,7 @@ inline constexpr int StrNPos = -1;
 	const auto pszLeft = LTrimStr(pszText);
 	const auto pszRight = RTrimStr(pszText, cchText);
 	if (pszRight <= pszLeft)
-		return { NULL,NULL };
+		return { nullptr,nullptr };
 	else
 		return { pszLeft,pszRight };
 }
@@ -347,7 +347,7 @@ public:
 
 	static_assert(std::is_same_v<typename TAllocTraits::size_type, int>);
 private:
-	TPointer m_pszText = NULL;
+	TPointer m_pszText = nullptr;
 	int m_cchText = 0;
 	int m_cchCapacity = 0;
 
@@ -422,7 +422,7 @@ public:
 		:m_pszText{ x.m_pszText }, m_cchText{ x.m_cchText }, m_cchCapacity{ x.m_cchCapacity },
 		m_Alloc{ std::move(x.m_Alloc) }
 	{
-		x.m_pszText = NULL;
+		x.m_pszText = nullptr;
 		x.m_cchText = x.m_cchCapacity = 0;
 	}
 
@@ -439,7 +439,7 @@ public:
 				TCharTraits::CopyEnd(Data(), x.Data(), x.Size());
 			}
 		}
-		x.m_pszText = NULL;
+		x.m_pszText = nullptr;
 		x.m_cchText = x.m_cchCapacity = 0;
 	}
 
@@ -479,7 +479,7 @@ public:
 			{
 				m_Alloc = x.m_Alloc;
 				m_Alloc.deallocate(m_pszText, m_cchCapacity);
-				m_pszText = NULL;
+				m_pszText = nullptr;
 				m_cchText = m_cchCapacity = 0;
 			}
 			else if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
@@ -608,7 +608,7 @@ public:
 		}
 	}
 
-	int DupSTRRET(const STRRET& strret, PITEMIDLIST pidl = NULL)
+	int DupSTRRET(const STRRET& strret, PITEMIDLIST pidl = nullptr)
 	{
 		switch (strret.uType)
 		{
@@ -622,7 +622,7 @@ public:
 				return DupString(strret.cStr);
 			else
 			{
-				const int cch = MultiByteToWideChar(CP_ACP, 0, strret.cStr, -1, NULL, 0);
+				const int cch = MultiByteToWideChar(CP_ACP, 0, strret.cStr, -1, nullptr, 0);
 				if (cch > 1)
 				{
 					ReSize(cch);
@@ -649,7 +649,7 @@ public:
 		m_Alloc.deallocate(m_pszText, m_cchCapacity);
 		if (!psz)
 		{
-			m_pszText = NULL;
+			m_pszText = nullptr;
 			m_cchText = m_cchCapacity = 0;
 		}
 		else
@@ -667,7 +667,7 @@ public:
 	[[nodiscard]] EckInline TPointer Detach(int& cchCapacity, int& cchText)
 	{
 		const auto pOld = m_pszText;
-		m_pszText = NULL;
+		m_pszText = nullptr;
 
 		cchCapacity = m_cchCapacity;
 		m_cchCapacity = 0;
@@ -1437,9 +1437,9 @@ namespace Literals
 [[nodiscard]] EckInline CRefStrW ToLowerCase(PCWSTR pszText, int cchText = -1)
 {
 	CRefStrW rs;
-	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_LOWERCASE, pszText, cchText, NULL, 0, NULL, NULL, 0);
+	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_LOWERCASE, pszText, cchText, nullptr, 0, nullptr, nullptr, 0);
 	rs.ReSize(cchResult);
-	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_LOWERCASE, pszText, cchText, rs.Data(), cchResult, NULL, NULL, 0);
+	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_LOWERCASE, pszText, cchText, rs.Data(), cchResult, nullptr, nullptr, 0);
 	return rs;
 }
 
@@ -1452,9 +1452,9 @@ namespace Literals
 [[nodiscard]] EckInline CRefStrW ToUpperCase(PCWSTR pszText, int cchText = -1)
 {
 	CRefStrW rs;
-	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_UPPERCASE, pszText, cchText, NULL, 0, NULL, NULL, 0);
+	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_UPPERCASE, pszText, cchText, nullptr, 0, nullptr, nullptr, 0);
 	rs.ReSize(cchResult);
-	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_UPPERCASE, pszText, cchText, rs.Data(), cchResult, NULL, NULL, 0);
+	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_UPPERCASE, pszText, cchText, rs.Data(), cchResult, nullptr, nullptr, 0);
 	return rs;
 }
 
@@ -1857,9 +1857,9 @@ EckInline void SplitStrWithMultiChar(PWSTR pszText, PCWSTR pszDiv, std::vector<P
 [[nodiscard]] EckInline CRefStrW ToFullWidth(PCWSTR pszText, int cchText = -1)
 {
 	CRefStrW rs;
-	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_FULLWIDTH, pszText, cchText, NULL, 0, NULL, NULL, 0);
+	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_FULLWIDTH, pszText, cchText, nullptr, 0, nullptr, nullptr, 0);
 	rs.ReSize(cchResult);
-	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_FULLWIDTH, pszText, cchText, rs.Data(), cchResult, NULL, NULL, 0);
+	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_FULLWIDTH, pszText, cchText, rs.Data(), cchResult, nullptr, nullptr, 0);
 	return rs;
 }
 
@@ -1872,9 +1872,9 @@ EckInline void SplitStrWithMultiChar(PWSTR pszText, PCWSTR pszDiv, std::vector<P
 [[nodiscard]] EckInline CRefStrW ToHalfWidth(PCWSTR pszText, int cchText = -1)
 {
 	CRefStrW rs;
-	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_HALFWIDTH, pszText, cchText, NULL, 0, NULL, NULL, 0);
+	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_HALFWIDTH, pszText, cchText, nullptr, 0, nullptr, nullptr, 0);
 	rs.ReSize(cchResult);
-	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_HALFWIDTH, pszText, cchText, rs.Data(), cchResult, NULL, NULL, 0);
+	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_HALFWIDTH, pszText, cchText, rs.Data(), cchResult, nullptr, nullptr, 0);
 	return rs;
 }
 
@@ -1917,13 +1917,13 @@ EckInline void SplitStrWithMultiChar(PWSTR pszText, PCWSTR pszDiv, std::vector<P
 template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<CHAR>>
 [[nodiscard]] CRefStrT<CHAR, TCharTraits, TAlloc> StrW2X(PCWSTR pszText, int cch = -1, int uCP = CP_ACP)
 {
-	int cchBuf = WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, NULL, 0, NULL, NULL);
+	int cchBuf = WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, nullptr, 0, nullptr, nullptr);
 	if (!cchBuf)
 		return {};
 	if (cch == -1)
 		--cchBuf;
 	CRefStrT<CHAR, TCharTraits, TAlloc> rs(cchBuf);
-	WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, rs.Data(), cchBuf, NULL, NULL);
+	WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, rs.Data(), cchBuf, nullptr, nullptr);
 	*(rs.Data() + cchBuf) = '\0';
 	return rs;
 }
@@ -1939,7 +1939,7 @@ template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<C
 template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>>
 [[nodiscard]] CRefStrT<WCHAR, TCharTraits, TAlloc> StrX2W(PCSTR pszText, int cch = -1, int uCP = CP_ACP)
 {
-	int cchBuf = MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, NULL, 0);
+	int cchBuf = MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, nullptr, 0);
 	if (!cchBuf)
 		return {};
 	if (cch == -1)

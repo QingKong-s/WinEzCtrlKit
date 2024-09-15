@@ -16,7 +16,7 @@ ECK_NAMESPACE_BEGIN
 class CRegKey
 {
 private:
-	HKEY m_hKey = NULL;
+	HKEY m_hKey = nullptr;
 public:
 	static HKEY AnalyzeFullPath(PCWSTR pszPath, int& cchSkip)
 	{
@@ -43,7 +43,7 @@ public:
 			hKeyRoot = HKEY_CURRENT_CONFIG;
 		else
 		{
-			hKeyRoot = NULL;
+			hKeyRoot = nullptr;
 			cchSkip = 0;
 		}
 		return hKeyRoot;
@@ -56,7 +56,7 @@ public:
 	/// </summary>
 	/// <param name="pszKey">注册项路径，应当以HKLM、HKCU、HKCR、HKU、HKCC五者其中之一开头</param>
 	/// <param name="dwAccess">访问权限</param>
-	CRegKey(PCWSTR pszPath, REGSAM dwAccess = KEY_READ | KEY_WRITE, LSTATUS* plStatus = NULL)
+	CRegKey(PCWSTR pszPath, REGSAM dwAccess = KEY_READ | KEY_WRITE, LSTATUS* plStatus = nullptr)
 	{
 		if (!pszPath)
 			return;
@@ -74,7 +74,7 @@ public:
 		}
 	}
 
-	CRegKey(HKEY hKey, PCWSTR pszKey, REGSAM dwAccess = KEY_READ | KEY_WRITE, LSTATUS* plStatus = NULL)
+	CRegKey(HKEY hKey, PCWSTR pszKey, REGSAM dwAccess = KEY_READ | KEY_WRITE, LSTATUS* plStatus = nullptr)
 	{
 		auto r = Open(hKey, pszKey, dwAccess);
 		if (plStatus)
@@ -88,7 +88,7 @@ public:
 		Close();
 	}
 
-	constexpr CRegKey(CRegKey&& x) noexcept :m_hKey{ x.m_hKey } { x.m_hKey = NULL; }
+	constexpr CRegKey(CRegKey&& x) noexcept :m_hKey{ x.m_hKey } { x.m_hKey = nullptr; }
 
 	constexpr CRegKey& operator=(CRegKey&& x) noexcept
 	{
@@ -101,14 +101,14 @@ public:
 		return hKey;
 	}
 
-	[[nodiscard]] EckInline HKEY Detach() { return Attach(NULL); }
+	[[nodiscard]] EckInline HKEY Detach() { return Attach(nullptr); }
 
 	[[nodiscard]] EckInline HKEY GetHKey() const { return m_hKey; }
 
 	EckInline LSTATUS Close()
 	{
 		auto r = RegCloseKey(m_hKey);
-		m_hKey = NULL;
+		m_hKey = nullptr;
 		return r;
 	}
 
@@ -133,8 +133,8 @@ public:
 	}
 
 	EckInline LSTATUS Create(HKEY hKey, PCWSTR pszSubKey, REGSAM dwAccess = KEY_READ | KEY_WRITE,
-		DWORD dwOptions = REG_OPTION_NON_VOLATILE, DWORD* pdwDisposition = NULL,
-		PWSTR pszClass = NULL, SECURITY_ATTRIBUTES* psa = NULL)
+		DWORD dwOptions = REG_OPTION_NON_VOLATILE, DWORD* pdwDisposition = nullptr,
+		PWSTR pszClass = nullptr, SECURITY_ATTRIBUTES* psa = nullptr)
 	{
 		Close();
 		return RegCreateKeyExW(hKey, pszSubKey, 0, pszClass, dwOptions,
@@ -142,8 +142,8 @@ public:
 	}
 
 	EckInline LSTATUS Create(PCWSTR pszPath, REGSAM dwAccess = KEY_READ | KEY_WRITE,
-		DWORD dwOptions = REG_OPTION_NON_VOLATILE, DWORD* pdwDisposition = NULL,
-		PWSTR pszClass = NULL, SECURITY_ATTRIBUTES* psa = NULL)
+		DWORD dwOptions = REG_OPTION_NON_VOLATILE, DWORD* pdwDisposition = nullptr,
+		PWSTR pszClass = nullptr, SECURITY_ATTRIBUTES* psa = nullptr)
 	{
 		int cchSkip = 0;
 		auto hKeyRoot = AnalyzeFullPath(pszPath, cchSkip);
@@ -173,18 +173,18 @@ public:
 	}
 
 	EckInline LSTATUS EnumKey(DWORD idx, PWSTR pszKeyNameBuf, DWORD* pcchKeyNameBuf,
-		PWSTR pszClassNameBuf = NULL, DWORD* pcchClassName = NULL, FILETIME* pftLastWrite = NULL)
+		PWSTR pszClassNameBuf = nullptr, DWORD* pcchClassName = nullptr, FILETIME* pftLastWrite = nullptr)
 	{
-		return RegEnumKeyExW(m_hKey, idx, pszKeyNameBuf, pcchKeyNameBuf, NULL,
+		return RegEnumKeyExW(m_hKey, idx, pszKeyNameBuf, pcchKeyNameBuf, nullptr,
 			pszClassNameBuf, pcchClassName, pftLastWrite);
 	}
 
-	int EnumKey(const std::function<BOOL(CRefStrW& rsName)>& fn, LSTATUS* plStatus = NULL)
+	int EnumKey(const std::function<BOOL(CRefStrW& rsName)>& fn, LSTATUS* plStatus = nullptr)
 	{
 		if (plStatus)
 			*plStatus = ERROR_SUCCESS;
 		DWORD cchMaxSub = 0;
-		QueryInfo(NULL, NULL, NULL, &cchMaxSub);
+		QueryInfo(nullptr, nullptr, nullptr, &cchMaxSub);
 		DWORD idx = 0;
 		CRefStrW rs(cchMaxSub);
 		DWORD dw = cchMaxSub + 1;
@@ -207,13 +207,13 @@ public:
 	}
 
 	EckInline LSTATUS EnumValue(DWORD idx, PWSTR pszValueNameBuf, DWORD* pcchValueNameBuf,
-		void* pDataBuf = NULL, DWORD* pcbDataBuf = NULL, DWORD* pdwType = NULL)
+		void* pDataBuf = nullptr, DWORD* pcbDataBuf = nullptr, DWORD* pdwType = nullptr)
 	{
 		return RegEnumValueW(m_hKey, idx, pszValueNameBuf, pcchValueNameBuf,
-			NULL, pdwType, (BYTE*)pDataBuf, pcbDataBuf);
+			nullptr, pdwType, (BYTE*)pDataBuf, pcbDataBuf);
 	}
 
-	int EnumValue(const std::function<BOOL(CRefStrW& rsName, DWORD dwType)>& fn, LSTATUS* plStatus = NULL)
+	int EnumValue(const std::function<BOOL(CRefStrW& rsName, DWORD dwType)>& fn, LSTATUS* plStatus = nullptr)
 	{
 		if (plStatus)
 			*plStatus = ERROR_SUCCESS;
@@ -223,7 +223,7 @@ public:
 		DWORD dw = c_cchMax;
 		DWORD dwType;
 		LSTATUS lStatus;
-		while ((lStatus = EnumValue(idx, rs.Data(), &dw, NULL, NULL, &dwType)) != ERROR_NO_MORE_ITEMS)
+		while ((lStatus = EnumValue(idx, rs.Data(), &dw, nullptr, nullptr, &dwType)) != ERROR_NO_MORE_ITEMS)
 		{
 			++idx;
 			if (lStatus != ERROR_SUCCESS)
@@ -246,7 +246,7 @@ public:
 	}
 
 	EckInline LSTATUS GetValue(PCWSTR pszSubKey, PCWSTR pszValue, void* pBuf, DWORD* pcbBuf,
-		DWORD dwFlags = 0u, DWORD* pdwType = NULL)
+		DWORD dwFlags = 0u, DWORD* pdwType = nullptr)
 	{
 		return RegGetValueW(m_hKey, pszSubKey, pszValue, dwFlags, pdwType, pBuf, pcbBuf);
 	}
@@ -260,14 +260,14 @@ public:
 	/// <param name="dwFlags">标志，本函数将自动添加类型限制标志</param>
 	/// <param name="plStatus">接收错误码变量的可选指针</param>
 	/// <returns>数据</returns>
-	[[nodiscard]] CRefBin GetValueBin(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
+	[[nodiscard]] CRefBin GetValueBin(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = nullptr)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
 		dwFlags |= RRF_RT_REG_BINARY;
 		if (plStatus)
 			*plStatus = ERROR_SUCCESS;
 		DWORD cb = 0u;
-		LSTATUS lStatus = GetValue(pszSubKey, pszValue, NULL, &cb, dwFlags);
+		LSTATUS lStatus = GetValue(pszSubKey, pszValue, nullptr, &cb, dwFlags);
 		if (lStatus == ERROR_SUCCESS)
 		{
 			if (cb)
@@ -284,7 +284,7 @@ public:
 		return {};
 	}
 
-	[[nodiscard]] DWORD GetValueDword(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
+	[[nodiscard]] DWORD GetValueDword(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = nullptr)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
 		dwFlags |= RRF_RT_REG_DWORD;
@@ -299,7 +299,7 @@ public:
 		return 0u;
 	}
 
-	[[nodiscard]] ULONGLONG GetValueQword(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
+	[[nodiscard]] ULONGLONG GetValueQword(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = nullptr)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
 		dwFlags |= RRF_RT_REG_QWORD;
@@ -315,14 +315,14 @@ public:
 		return 0u;
 	}
 
-	[[nodiscard]] CRefStrW GetValueStr(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = NULL)
+	[[nodiscard]] CRefStrW GetValueStr(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = nullptr)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
 		dwFlags |= RRF_RT_REG_SZ;
 		if (plStatus)
 			*plStatus = ERROR_SUCCESS;
 		DWORD cb = 0u;
-		LSTATUS lStatus = GetValue(pszSubKey, pszValue, NULL, &cb, dwFlags);
+		LSTATUS lStatus = GetValue(pszSubKey, pszValue, nullptr, &cb, dwFlags);
 		if (lStatus == ERROR_SUCCESS)
 		{
 			if (cb)
@@ -339,28 +339,28 @@ public:
 		return {};
 	}
 
-	EckInline LSTATUS QueryInfo(PWSTR pszClassBuf = NULL, DWORD* pcchClassBuf = NULL, DWORD* pcSubKeys = NULL,
-		DWORD* pcchMaxSubKeyLen = NULL, DWORD* pcchMaxClassLen = NULL, DWORD* pcValues = NULL,
-		DWORD* pcchMaxValueNameLen = NULL, DWORD* pcbMaxValueLen = NULL, DWORD* pcbSecurityDescriptor = NULL,
-		FILETIME* pftLastWriteTime = NULL)
+	EckInline LSTATUS QueryInfo(PWSTR pszClassBuf = nullptr, DWORD* pcchClassBuf = nullptr, DWORD* pcSubKeys = nullptr,
+		DWORD* pcchMaxSubKeyLen = nullptr, DWORD* pcchMaxClassLen = nullptr, DWORD* pcValues = nullptr,
+		DWORD* pcchMaxValueNameLen = nullptr, DWORD* pcbMaxValueLen = nullptr, DWORD* pcbSecurityDescriptor = nullptr,
+		FILETIME* pftLastWriteTime = nullptr)
 	{
-		return RegQueryInfoKeyW(m_hKey, pszClassBuf, pcchClassBuf, NULL, pcSubKeys,
+		return RegQueryInfoKeyW(m_hKey, pszClassBuf, pcchClassBuf, nullptr, pcSubKeys,
 			pcchMaxSubKeyLen, pcchMaxClassLen, pcValues, pcchMaxValueNameLen,
 			pcbMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime);
 	}
 
-	EckInline LSTATUS QueryValue(PCWSTR pszValue, void* pBuf, DWORD* pcbBuf, DWORD* pdwType = NULL)
+	EckInline LSTATUS QueryValue(PCWSTR pszValue, void* pBuf, DWORD* pcbBuf, DWORD* pdwType = nullptr)
 	{
-		return RegQueryValueExW(m_hKey, pszValue, NULL, pdwType, (BYTE*)pBuf, pcbBuf);
+		return RegQueryValueExW(m_hKey, pszValue, nullptr, pdwType, (BYTE*)pBuf, pcbBuf);
 	}
 
-	[[nodiscard]] CRefBin QueryValueBin(PCWSTR pszValue, LSTATUS* plStatus = NULL)
+	[[nodiscard]] CRefBin QueryValueBin(PCWSTR pszValue, LSTATUS* plStatus = nullptr)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
 		if (plStatus)
 			*plStatus = ERROR_SUCCESS;
 		DWORD cb = 0u;
-		LSTATUS lStatus = QueryValue(pszValue, NULL, &cb);
+		LSTATUS lStatus = QueryValue(pszValue, nullptr, &cb);
 		if (lStatus == ERROR_SUCCESS)
 		{
 			if (cb)
@@ -377,7 +377,7 @@ public:
 		return {};
 	}
 
-	[[nodiscard]] DWORD QueryValueDword(PCWSTR pszValue, LSTATUS* plStatus = NULL)
+	[[nodiscard]] DWORD QueryValueDword(PCWSTR pszValue, LSTATUS* plStatus = nullptr)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
 		if (plStatus)
@@ -391,7 +391,7 @@ public:
 		return 0u;
 	}
 
-	[[nodiscard]] ULONGLONG QueryValueQword(PCWSTR pszValue, LSTATUS* plStatus = NULL)
+	[[nodiscard]] ULONGLONG QueryValueQword(PCWSTR pszValue, LSTATUS* plStatus = nullptr)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
 		if (plStatus)
@@ -406,13 +406,13 @@ public:
 		return 0u;
 	}
 
-	[[nodiscard]] CRefStrW QueryValueStr(PCWSTR pszValue, LSTATUS* plStatus = NULL)
+	[[nodiscard]] CRefStrW QueryValueStr(PCWSTR pszValue, LSTATUS* plStatus = nullptr)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
 		if (plStatus)
 			*plStatus = ERROR_SUCCESS;
 		DWORD cb = 0u;
-		LSTATUS lStatus = QueryValue(pszValue, NULL, &cb);
+		LSTATUS lStatus = QueryValue(pszValue, nullptr, &cb);
 		if (lStatus == ERROR_SUCCESS)
 		{
 			if (cb)
@@ -461,7 +461,7 @@ public:
 
 	EckInline LSTATUS SetValue(PCWSTR pszValue, PCVOID pData, DWORD cbData, DWORD dwType)
 	{
-		return RegSetValueExW(m_hKey, pszValue, NULL, dwType, (PCBYTE)pData, cbData);
+		return RegSetValueExW(m_hKey, pszValue, nullptr, dwType, (PCBYTE)pData, cbData);
 	}
 
 	EckInline LSTATUS SetValue(PCWSTR pszValue, DWORD dwData)

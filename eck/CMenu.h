@@ -14,7 +14,7 @@ ECK_NAMESPACE_BEGIN
 class CMenu
 {
 private:
-	HMENU m_hMenu = NULL;
+	HMENU m_hMenu = nullptr;
 
 	EckInline static constexpr UINT PosBool2UINT(BOOL bPosition) { return bPosition ? MF_BYPOSITION : MF_BYCOMMAND; }
 
@@ -30,7 +30,7 @@ private:
 		{
 			mii.fMask = MIIM_DATA | MIIM_FTYPE | MIIM_ID | MIIM_STATE | MIIM_STRING | MIIM_SUBMENU;
 			mii.cch = 0;
-			mii.dwTypeData = NULL;
+			mii.dwTypeData = nullptr;
 			GetMenuItemInfoW(hMenu, i, TRUE, &mii);
 			++mii.cch;
 			pItem = (ITEM*)rb.PushBack(sizeof(ITEM) + mii.cch * sizeof(WCHAR));
@@ -75,7 +75,7 @@ private:
 				ForMenuItemRead(r, mii.hSubMenu, pItem->cSubItem);
 			}
 			else
-				mii.hSubMenu = NULL;
+				mii.hSubMenu = nullptr;
 			InsertMenuItemW(hMenu, i, TRUE, &mii);
 		}
 	}
@@ -100,7 +100,7 @@ public:
 
 	struct INITITEM
 	{
-		PCWSTR pszText = NULL;
+		PCWSTR pszText = nullptr;
 		UINT uID = 0u;
 		UINT uFlags = 0u;
 	};
@@ -133,7 +133,7 @@ public:
 	CMenu(CMenu&& x) noexcept
 		:m_hMenu{ x.m_hMenu }
 	{
-		x.m_hMenu = NULL;
+		x.m_hMenu = nullptr;
 	}
 
 	CMenu& operator=(const CMenu&) = delete;
@@ -184,7 +184,7 @@ public:
 
 	[[nodiscard]] EckInline HMENU Detach()
 	{
-		return Attach(NULL);
+		return Attach(nullptr);
 	}
 
 	[[nodiscard]] EckInline HMENU GetHMenu() const { return m_hMenu; }
@@ -270,7 +270,7 @@ public:
 
 	EckInline BOOL Destroy()
 	{
-		return DestroyMenu(Attach(NULL));
+		return DestroyMenu(Attach(nullptr));
 	}
 
 	EckInline int EnableItem(UINT uPos, UINT uFlags, BOOL bPosition = FALSE)
@@ -469,7 +469,7 @@ public:
 
 	EckInline BOOL TrackPopupMenu(HWND hWnd, int x, int y, UINT uFlags = 0u)
 	{
-		return ::TrackPopupMenu(m_hMenu, uFlags, x, y, 0, hWnd, NULL);
+		return ::TrackPopupMenu(m_hMenu, uFlags, x, y, 0, hWnd, nullptr);
 	}
 
 	EckInline BOOL TrackPopupMenuEx(HWND hWnd, int x, int y, UINT uFlags, TPMPARAMS* ptpmp)

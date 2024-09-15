@@ -14,11 +14,11 @@ class CComboBoxEx :public CComboBox
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL)
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr)
 	{
 		dwStyle |= WS_CHILD;
-		m_hWnd = IntCreate(0, WC_COMBOBOXEXW, NULL, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+		m_hWnd = IntCreate(0, WC_COMBOBOXEXW, nullptr, dwStyle,
+			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 		return m_hWnd;
 	}
 	/// <summary>

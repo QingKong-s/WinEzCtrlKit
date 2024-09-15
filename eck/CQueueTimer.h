@@ -12,7 +12,7 @@ ECK_NAMESPACE_BEGIN
 class CTimerQueue
 {
 private:
-	HANDLE m_hQueue = NULL;
+	HANDLE m_hQueue = nullptr;
 public:
 	ECK_DISABLE_COPY_MOVE(CTimerQueue)
 public:
@@ -29,7 +29,7 @@ public:
 	EckInline BOOL Delete(HANDLE hEvent)
 	{
 		const auto b = DeleteTimerQueueEx(m_hQueue, hEvent);
-		m_hQueue = NULL;
+		m_hQueue = nullptr;
 		return b;
 	}
 };
@@ -37,8 +37,8 @@ public:
 class CQueueTimer
 {
 private:
-	HANDLE m_hTimer = NULL;
-	HANDLE m_hQueue = NULL;
+	HANDLE m_hTimer = nullptr;
+	HANDLE m_hQueue = nullptr;
 public:
 	ECK_DISABLE_COPY_MOVE_DEF_CONS(CQueueTimer)
 public:

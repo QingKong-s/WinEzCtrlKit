@@ -42,14 +42,14 @@ private:
 		ECK_DS_ENTRY(cxDefItemPadding, 4);
 	ECK_DS_END_VAR(m_Dpis);
 
-	HFONT m_hFont = NULL;
+	HFONT m_hFont = nullptr;
 	UINT m_uNotifyMsg = 0u;
 	std::vector<ITEM> m_Items{};
-	HWND m_hParent = NULL;
+	HWND m_hParent = nullptr;
 
-	HDC m_hCDC = NULL;
-	HBITMAP m_hBitmap = NULL;
-	HGDIOBJ m_hOldBmp = NULL;
+	HDC m_hCDC = nullptr;
+	HBITMAP m_hBitmap = nullptr;
+	HGDIOBJ m_hOldBmp = nullptr;
 
 	CUpDown m_UpDown{};
 
@@ -139,7 +139,7 @@ public:
 
 			p->m_iDpi = GetDpi(hWnd);
 			UpdateDpiSize(p->m_Dpis, p->m_iDpi);
-			p->m_UpDown.Create(NULL, WS_CHILD | UDS_HORZ, 0,
+			p->m_UpDown.Create(nullptr, WS_CHILD | UDS_HORZ, 0,
 				0, 0, p->m_Dpis.cxUpDown, p->m_Dpis.cyUpDown, hWnd, IDC_UPDOWN);
 		}
 		return 0;
@@ -176,7 +176,7 @@ public:
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		dwStyle |= WS_CHILD;
 		m_hWnd = IntCreate(dwExStyle, WCN_TABHEADER, pszText, dwStyle,

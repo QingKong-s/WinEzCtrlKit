@@ -14,7 +14,7 @@ class CDialog :public CWnd
 {
 protected:
 	INT_PTR m_iResult = 0;
-	HWND m_hTop = NULL;
+	HWND m_hTop = nullptr;
 	COLORREF m_crBkg = CLR_DEFAULT;
 
 #if ECKCXX20
@@ -53,13 +53,13 @@ protected:
 			return;
 		m_bModal = FALSE;
 		EnableWindow(m_hTop, TRUE);
-		m_hTop = NULL;
+		m_hTop = nullptr;
 	}
 
 	void MsgLoop()
 	{
 		MSG msg;
-		while (GetMessageW(&msg, NULL, 0, 0))
+		while (GetMessageW(&msg, nullptr, 0, 0))
 		{
 			if (!eck::PreTranslateMessage(msg))
 			{
@@ -73,7 +73,7 @@ protected:
 	}
 
 	EckInline INT_PTR IntCreateModalDlg(HINSTANCE hInst, PCWSTR pszTemplate, HWND hParent,
-		LPARAM lParam = 0, FWndCreating pfnCreatingProc = NULL)
+		LPARAM lParam = 0, FWndCreating pfnCreatingProc = nullptr)
 	{
 		m_bModal = TRUE;
 
@@ -102,7 +102,7 @@ protected:
 	}
 
 	EckInline HWND IntCreateModelessDlg(HINSTANCE hInst, PCWSTR pszTemplate, HWND hParent,
-		LPARAM lParam = 0, FWndCreating pfnCreatingProc = NULL)
+		LPARAM lParam = 0, FWndCreating pfnCreatingProc = nullptr)
 	{
 		m_bModal = FALSE;
 		BeginCbtHook(this, pfnCreatingProc);
@@ -179,14 +179,14 @@ public:
 
 	EckInline virtual BOOL OnInitDialog(HWND hDlg, HWND hFocus, LPARAM lParam) { return TRUE; }
 
-	EckInline virtual HWND CreateDlg(HWND hParent, void* pData = NULL) 
+	EckInline virtual HWND CreateDlg(HWND hParent, void* pData = nullptr) 
 	{ 
 		EckDbgPrintWithPos(L"** ERROR ** 未实现方法");
 		EckDbgBreak();
 		abort();
 	}
 
-	EckInline virtual INT_PTR DlgBox(HWND hParent, void* pData = NULL)
+	EckInline virtual INT_PTR DlgBox(HWND hParent, void* pData = nullptr)
 	{ 
 		EckDbgPrintWithPos(L"** ERROR ** 未实现方法");
 		EckDbgBreak();
@@ -242,7 +242,7 @@ public:
 protected:
 	INT_PTR IntCreateModalDlg(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
-		UINT uDlgFlags = 0u, FWndCreating pfnCreatingProc = NULL)
+		UINT uDlgFlags = 0u, FWndCreating pfnCreatingProc = nullptr)
 	{
 		const HWND hOwner = PreModal(hParent);
 		BOOL bNeedEnableOwner;
@@ -269,13 +269,13 @@ protected:
 
 	HWND IntCreateModelessDlg(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
-		UINT uDlgFlags = 0u, FWndCreating pfnCreatingProc = NULL)
+		UINT uDlgFlags = 0u, FWndCreating pfnCreatingProc = nullptr)
 	{
 		POINT pt;
 		if (IsBitSet(uDlgFlags, DLGNCF_CENTERPARENT))
 			pt = CalcCenterWndPos(hParent, cx, cy);
 		else if (IsBitSet(uDlgFlags, DLGNCF_CENTERSCREEN))
-			pt = CalcCenterWndPos(NULL, cx, cy);
+			pt = CalcCenterWndPos(nullptr, cx, cy);
 		else
 			pt = { x,y };
 
@@ -285,10 +285,10 @@ protected:
 
 		if (m_hWnd)
 		{
-			HWND hFirstCtrl = GetNextDlgTabItem(m_hWnd, NULL, FALSE);
+			HWND hFirstCtrl = GetNextDlgTabItem(m_hWnd, nullptr, FALSE);
 			if (SendMsg(WM_INITDIALOG, (WPARAM)hFirstCtrl, (LPARAM)pParam))
 			{
-				hFirstCtrl = GetNextDlgTabItem(m_hWnd, NULL, FALSE);
+				hFirstCtrl = GetNextDlgTabItem(m_hWnd, nullptr, FALSE);
 				SetFocus(hFirstCtrl);
 			}
 		}

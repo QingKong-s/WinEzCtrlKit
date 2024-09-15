@@ -150,7 +150,7 @@ public:
 						iState = 0;
 					if (iState)
 						DrawThemeBackground(m_hTheme, hDC, LVP_LISTITEM, iState,
-							&pnmlvcd->nmcd.rc, NULL);
+							&pnmlvcd->nmcd.rc, nullptr);
 
 					const auto hIL = m_hIL[m_iViewType];
 					const auto sizeIL = m_sizeIL[m_iViewType];

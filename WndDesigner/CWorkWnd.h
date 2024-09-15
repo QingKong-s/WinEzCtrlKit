@@ -20,10 +20,10 @@ public:
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		m_hWnd = IntCreate(dwExStyle, eck::WCN_BK, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, NULL);
+			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, nullptr);
 
 		int cxPointGap = eck::DpiScale(8, eck::GetDpi(m_hWnd));
 		RECT rc{ 0,0,cxPointGap * 4,cxPointGap * 4 };
@@ -54,7 +54,7 @@ class CWorkWndBk :public eck::CBk
 private:
 	friend class CWndMain;
 
-	HBRUSH m_hbrWorkWindow = NULL;
+	HBRUSH m_hbrWorkWindow = nullptr;
 	eck::CEzCDC m_mdcGridPoint{};
 	BOOL m_bRBtnDown = FALSE;
 
@@ -62,10 +62,10 @@ private:
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		return IntCreate(dwExStyle, eck::WCN_BK, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, NULL);
+			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, nullptr);
 	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;

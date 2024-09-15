@@ -14,10 +14,10 @@ class CTab :public CWnd
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
-		return IntCreate(0, WC_TABCONTROLW, NULL, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+		return IntCreate(0, WC_TABCONTROLW, nullptr, dwStyle,
+			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -180,7 +180,7 @@ public:
 		return (BOOL)SendMsg(TCM_SETITEMEXTRA, cbExtra, 0);
 	}
 
-	void SetItemSize(int cx, int cy, int* piOldWidth = NULL, int* piOldHeight = NULL)
+	void SetItemSize(int cx, int cy, int* piOldWidth = nullptr, int* piOldHeight = nullptr)
 	{
 		DWORD dwRet = (DWORD)SendMsg(TCM_SETITEMSIZE, 0, MAKELPARAM(cx, cy));
 		if (piOldWidth)

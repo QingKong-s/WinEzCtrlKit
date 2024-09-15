@@ -112,7 +112,7 @@ public:
 		return (HPROPSHEETPAGE)SendMsg(PSM_INDEXTOPAGE, idx, 0);
 	}
 
-	EckInline BOOL InsertPage(HPROPSHEETPAGE hPage, HPROPSHEETPAGE hInsertAfter = NULL)
+	EckInline BOOL InsertPage(HPROPSHEETPAGE hPage, HPROPSHEETPAGE hInsertAfter = nullptr)
 	{
 		return (BOOL)SendMsg(PSM_INSERTPAGE, (WPARAM)hInsertAfter, (LPARAM)hPage);
 	}
@@ -162,7 +162,7 @@ public:
 
 	EckInline void DeletePage(int idx)
 	{
-		SendMsg(PSM_REMOVEPAGE, idx, NULL);
+		SendMsg(PSM_REMOVEPAGE, idx, nullptr);
 	}
 
 	EckInline void DeletePage(HPROPSHEETPAGE hPage)
@@ -182,7 +182,7 @@ public:
 
 	EckInline BOOL SetCurSel(int idx)
 	{
-		return (BOOL)SendMsg(PSM_SETCURSEL, idx, NULL);
+		return (BOOL)SendMsg(PSM_SETCURSEL, idx, nullptr);
 	}
 
 	EckInline BOOL SetCurSel(HPROPSHEETPAGE hPage)

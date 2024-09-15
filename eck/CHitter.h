@@ -20,10 +20,10 @@ private:
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		return IntCreate(0, WCN_HITTER, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, g_hInstance, NULL);
+			x, y, cx, cy, hParent, hMenu, g_hInstance, nullptr);
 	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -48,7 +48,7 @@ public:
 				ReleaseCapture();
 				NMHTTSEL nm;
 				GetCursorPos(&nm.pt);
-				SetCursor(NULL);
+				SetCursor(nullptr);
 				FillNmhdrAndSendNotify(nm, NM_HTT_SEL);
 			}
 			return 0;
@@ -74,7 +74,7 @@ public:
 
 		case WM_DPICHANGED_BEFOREPARENT:
 		case WM_CREATE:
-			m_hcDef = LoadCursorW(NULL, IDC_CROSS);
+			m_hcDef = LoadCursorW(nullptr, IDC_CROSS);
 			break;
 		}
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);

@@ -46,9 +46,9 @@ struct CTRLSUBCLASSCTX
 
 struct WDCTRLINFO
 {
-	eck::CWnd* pWnd = NULL;
+	eck::CWnd* pWnd = nullptr;
 	int idxInfo = -1;
-	CTRLSUBCLASSCTX* pSubclassCtx = NULL;
+	CTRLSUBCLASSCTX* pSubclassCtx = nullptr;
 
 	WDCTRLINFO() = default;
 
@@ -57,8 +57,8 @@ struct WDCTRLINFO
 		pWnd = x.pWnd;
 		idxInfo = x.idxInfo;
 		pSubclassCtx = x.pSubclassCtx;
-		x.pWnd = NULL;
-		x.pSubclassCtx = NULL;
+		x.pWnd = nullptr;
+		x.pSubclassCtx = nullptr;
 		x.idxInfo = -1;
 	}
 
@@ -71,8 +71,8 @@ struct WDCTRLINFO
 
 struct TABCTX
 {
-	CWorkWndBk* pBK = NULL;
-	CWorkWnd* pWorkWnd = NULL;
+	CWorkWndBk* pBK = nullptr;
+	CWorkWnd* pWorkWnd = nullptr;
 	std::vector<CSizer*> pMultiSelMarker{};
 	std::unordered_set<HWND> SelCtrl{};
 	std::unordered_map<HWND, WDCTRLINFO> AllCtrls{};
@@ -102,7 +102,7 @@ private:
 	std::vector<eck::CRefBin> m_aData{};// 所有数据
 	int m_minLeft = INT_MAX, m_minTop = INT_MAX;// 最小的左边和顶边
 
-	TABCTX* m_pTabCtx = NULL;
+	TABCTX* m_pTabCtx = nullptr;
 
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 
@@ -221,8 +221,8 @@ class CCtrlPlacingEventHandler
 	POINT m_ptStart{};
 	HDC m_hDC{};
 	RECT m_rcLast{};
-	HGDIOBJ m_hOld = NULL;
-	HPEN m_hPen = NULL;
+	HGDIOBJ m_hOld = nullptr;
+	HPEN m_hPen = nullptr;
 public:
 	void UpdateDpiSize(int iDpi)
 	{
@@ -311,13 +311,13 @@ private:
 	std::vector<TABCTX*> m_vTabs{};
 	int m_idxCurrTab = -1;
 
-	HFONT m_hFontComm = NULL;
-	HFONT m_hFontCtrlBox = NULL;
+	HFONT m_hFontComm = nullptr;
+	HFONT m_hFontCtrlBox = nullptr;
 
 	BOOL m_bPlacingCtrl = FALSE;
 	CCtrlPlacingEventHandler m_CtrlPlacing{};
 
-	HMENU m_hMenuWorkWnd = NULL;
+	HMENU m_hMenuWorkWnd = nullptr;
 
 	int m_cxInfo, m_cxCtrlBox;
 
@@ -494,9 +494,9 @@ private:
 
 
 
-	HDC m_hDC = NULL;
-	HPEN m_hPen = NULL;
-	HGDIOBJ m_hOld = NULL;
+	HDC m_hDC = nullptr;
+	HPEN m_hPen = nullptr;
+	HGDIOBJ m_hOld = nullptr;
 
 	BOOL m_bCtrlLBtnDown = FALSE;
 	BOOL m_bCtrlRBtnDown = FALSE;
@@ -551,10 +551,10 @@ public:
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		return IntCreate(dwExStyle, WCN_WDMAIN, pszText, dwStyle,
-			x, y, cx, cy, hParent, NULL, App->GetHInstance(), NULL);
+			x, y, cx, cy, hParent, nullptr, App->GetHInstance(), nullptr);
 	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;

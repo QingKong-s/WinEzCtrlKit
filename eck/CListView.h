@@ -82,11 +82,11 @@ public:
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		dwStyle |= WS_CHILD;
 		m_hWnd = IntCreate(dwExStyle, WC_LISTVIEWW, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 		return m_hWnd;
 	}
 
@@ -100,7 +100,7 @@ public:
 	/// <param name="piApprWidth">接收理想宽度</param>
 	/// <param name="piApprHeight">接收理想高度</param>
 	EckInline void ApproximateViewRect(int cItems = -1, int cxRef = -1, int cyRef = -1,
-		int* piApprWidth = NULL, int* piApprHeight = NULL) const
+		int* piApprWidth = nullptr, int* piApprHeight = nullptr) const
 	{
 		DWORD dwRet = (DWORD)SendMsg(LVM_APPROXIMATEVIEWRECT, cItems, MAKEWPARAM(cxRef, cyRef));
 		if (piApprWidth)
@@ -308,7 +308,7 @@ public:
 
 	EckInline void GetGroupMetrics(LVGROUPMETRICS* plvgm) const
 	{
-		SendMsg(LVM_GETGROUPMETRICS, NULL, (LPARAM)plvgm);
+		SendMsg(LVM_GETGROUPMETRICS, 0, (LPARAM)plvgm);
 	}
 
 	/// <summary>
@@ -420,7 +420,7 @@ public:
 		return (BOOL)SendMsg(LVM_GETITEMPOSITION, idx, (LPARAM)ppt);
 	}
 
-	EckInline void GetItemSpacing(BOOL bSmallIconView, int* pxSpacing = NULL, int* pySpacing = NULL) const
+	EckInline void GetItemSpacing(BOOL bSmallIconView, int* pxSpacing = nullptr, int* pySpacing = nullptr) const
 	{
 		DWORD dwRet = (DWORD)SendMsg(LVM_GETITEMSPACING, bSmallIconView, 0);
 		if (pxSpacing)
@@ -732,7 +732,7 @@ public:
 
 	EckInline void RemoveGroup() const
 	{
-		SendMsg(LVM_REMOVEALLGROUPS, NULL, NULL);
+		SendMsg(LVM_REMOVEALLGROUPS, 0, 0);
 	}
 
 	/// <summary>
@@ -742,7 +742,7 @@ public:
 	/// <returns>成功返回组索引，失败返回-1</returns>
 	EckInline int RemoveGroup(int iGroupID) const
 	{
-		return (int)SendMsg(LVM_REMOVEGROUP, iGroupID, NULL);
+		return (int)SendMsg(LVM_REMOVEGROUP, iGroupID, 0);
 	}
 
 	EckInline BOOL Scroll(int deltaH = 0, int deltaV = 0) const

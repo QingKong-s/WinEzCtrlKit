@@ -24,7 +24,7 @@ protected:
 
 	int m_iCurrInterval = 0;
 
-	FInertialScrollProc m_pfnCallBack = NULL;
+	FInertialScrollProc m_pfnCallBack = nullptr;
 	LPARAM m_lParam = 0;
 
 	LONG m_cRef = 1;

@@ -223,7 +223,7 @@ public:
 
 	HRESULT STDMETHODCALLTYPE MemLock(void** ppvData, SIZE_T* pcbData)
 	{
-		*ppvData = NULL;
+		*ppvData = nullptr;
 		*pcbData = 0u;
 		return E_NOTIMPL;
 	}

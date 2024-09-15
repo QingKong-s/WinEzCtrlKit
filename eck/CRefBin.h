@@ -75,7 +75,7 @@ public:
 	using TReverseIterator = std::reverse_iterator<TIterator>;
 	using TConstReverseIterator = std::reverse_iterator<TConstIterator>;
 private:
-	BYTE* m_pStream = NULL;
+	BYTE* m_pStream = nullptr;
 	size_t m_cb = 0u;
 	size_t m_cbCapacity = 0u;
 
@@ -140,7 +140,7 @@ public:
 		:m_pStream{ x.m_pStream }, m_cb{ x.m_cb }, m_cbCapacity{ x.m_cbCapacity },
 		m_Alloc{ std::move(x.m_Alloc) }
 	{
-		x.m_pStream = NULL;
+		x.m_pStream = nullptr;
 		x.m_cb = x.m_cbCapacity = 0u;
 	}
 
@@ -157,7 +157,7 @@ public:
 				memcpy(Data(), x.Data(), x.Size());
 			}
 		}
-		x.m_pStream = NULL;
+		x.m_pStream = nullptr;
 		x.m_cb = x.m_cbCapacity = 0u;
 	}
 
@@ -185,7 +185,7 @@ public:
 			{
 				m_Alloc = x.m_Alloc;
 				m_Alloc.deallocate(m_pStream, m_cbCapacity);
-				m_pStream = NULL;
+				m_pStream = nullptr;
 				m_cb = m_cbCapacity = 0;
 			}
 			else if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
@@ -331,7 +331,7 @@ public:
 		m_Alloc.deallocate(m_pStream, m_cbCapacity);
 		if (!p)
 		{
-			m_pStream = NULL;
+			m_pStream = nullptr;
 			m_cb = m_cbCapacity = 0u;
 		}
 		else
@@ -349,7 +349,7 @@ public:
 	[[nodiscard]] EckInline BYTE* Detach(size_t& cbCapacity, size_t& cb)
 	{
 		const auto pTemp = m_pStream;
-		m_pStream = NULL;
+		m_pStream = nullptr;
 
 		cbCapacity = m_cbCapacity;
 		m_cbCapacity = 0u;
@@ -416,7 +416,7 @@ public:
 	/// <param name="cbReplacing">替换长度</param>
 	/// <param name="pNew">用作替换的字节集指针</param>
 	/// <param name="cbNew">用作替换的字节集长度</param>
-	EckInline void Replace(size_t posStart, size_t cbReplacing, PCVOID pNew = NULL, size_t cbNew = 0u)
+	EckInline void Replace(size_t posStart, size_t cbReplacing, PCVOID pNew = nullptr, size_t cbNew = 0u)
 	{
 		EckAssert(cbNew ? (!!pNew) : TRUE);
 		const size_t cbOrg = Size();

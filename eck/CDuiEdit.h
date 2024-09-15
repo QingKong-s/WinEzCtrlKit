@@ -15,9 +15,9 @@ ECK_DUI_NAMESPACE_BEGIN
 class CEdit :public CElem
 {
 private:
-	IDWriteTextFormat* m_pFormat = NULL;
-	IDWriteTextLayout* m_pLayout = NULL;
-	ID2D1SolidColorBrush* m_pBr = NULL;
+	IDWriteTextFormat* m_pFormat = nullptr;
+	IDWriteTextLayout* m_pLayout = nullptr;
+	ID2D1SolidColorBrush* m_pBr = nullptr;
 	D2D1_RECT_F m_rcfTextAera{};
 
 	BITBOOL m_bUserTextAera : 1 = FALSE;
@@ -73,7 +73,7 @@ public:
 				if (m_uSelBegin != Neg1U)
 				{
 					UINT32 cActualLine;
-					m_pLayout->GetLineMetrics(NULL, 0, &cActualLine);
+					m_pLayout->GetLineMetrics(nullptr, 0, &cActualLine);
 					DWRITE_TEXT_METRICS tm;
 					m_pLayout->GetMetrics(&tm);
 
@@ -120,7 +120,7 @@ public:
 		return 0;
 
 		case WM_SETCURSOR:
-			SetCursor(LoadCursorW(NULL, IDC_IBEAM));
+			SetCursor(LoadCursorW(nullptr, IDC_IBEAM));
 			return TRUE;
 
 		case WM_MOUSEMOVE:
@@ -286,7 +286,7 @@ public:
 				m_uSelBegin == Neg1U)
 				break;
 			const HIMC hImc = ImmGetContext(GetWnd()->HWnd);
-			const int cch = ImmGetCompositionStringW(hImc, GCS_RESULTSTR, NULL, 0) / sizeof(WCHAR);
+			const int cch = ImmGetCompositionStringW(hImc, GCS_RESULTSTR, nullptr, 0) / sizeof(WCHAR);
 			if (cch)
 			{
 				CRefStrW rs(cch);
@@ -379,7 +379,7 @@ public:
 
 		case WM_CREATE:
 		{
-			m_SBV.Create(NULL, DES_VISIBLE| DES_COMPOSITED, 0, 0, 0, 0, 0, this, GetWnd());
+			m_SBV.Create(nullptr, DES_VISIBLE| DES_COMPOSITED, 0, 0, 0, 0, 0, this, GetWnd());
 			m_SBV.GetScrollView()->SetCallBack([](int iPos, int iPrevPos, LPARAM lParam)
 				{
 					//if (iPos != iPrevPos)

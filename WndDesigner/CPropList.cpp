@@ -197,7 +197,7 @@ LRESULT CPropList::OnNotifyMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 				FillRect(hDC, &rcHItem, GetSysColorBrush(COLOR_WINDOW));
 
-				PCWSTR pszVal = NULL;
+				PCWSTR pszVal = nullptr;
 
 				std::wstring sVal;
 				switch (Item.uType)

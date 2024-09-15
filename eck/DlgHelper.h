@@ -171,7 +171,7 @@ inline CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLG
 		cbTotal += ((Dlg.rsFontName.Size() + 1) * sizeof(WCHAR));
 	}
 
-	cbTotal += CalcNextAlignBoundaryDistance(NULL, (PCVOID)cbTotal, sizeof(DWORD));
+	cbTotal += CalcNextAlignBoundaryDistance(nullptr, (PCVOID)cbTotal, sizeof(DWORD));
 
 	cbTotal += (Items.size() * (
 		sizeof(DLGITEMTHEADER) /*头*/ +
@@ -191,7 +191,7 @@ inline CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLG
 		if (x.rbExtra.Size())
 			cbTotal += AlignMemSize(x.rbExtra.Size(), 2);
 
-		cbTotal += CalcNextAlignBoundaryDistance(NULL, (PCVOID)cbTotal, sizeof(DWORD));
+		cbTotal += CalcNextAlignBoundaryDistance(nullptr, (PCVOID)cbTotal, sizeof(DWORD));
 	}
 
 	CRefBin rb;
@@ -394,11 +394,11 @@ inline BOOL DeserializeDialogTemplate(PCVOID pTemplate, DLGTDLG& Dlg, std::vecto
 /// <returns>成功返回窗口句柄，失败返回NULL</returns>
 inline HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& Items,
 	WNDPROC pfnWndProc, HWND hParent, HINSTANCE hInstance,
-	void* pParam = NULL, HMENU* phMenu = NULL, HFONT* phFont = NULL, UINT uFlags = 0)
+	void* pParam = nullptr, HMENU* phMenu = nullptr, HFONT* phFont = nullptr, UINT uFlags = 0)
 {
 	using namespace eck::Literals;
 	if (Dlg.wVer != 1_us || Dlg.wSignature != 0xFFFF_us || (SIZE_T)Dlg.cDlgItems != Items.size())
-		return NULL;
+		return nullptr;
 	PCWSTR pszClass, pszCaption, pszMenu;
 	if (Dlg.Class)
 	{
@@ -414,7 +414,7 @@ inline HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& 
 	if (Dlg.Caption)
 		pszCaption = (*Dlg.Caption).Data();
 	else
-		pszCaption = NULL;
+		pszCaption = nullptr;
 
 	HMENU hMenu;
 	if (Dlg.Menu)
@@ -427,15 +427,15 @@ inline HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& 
 		hMenu = LoadMenuW(hInstance, pszMenu);
 	}
 	else
-		hMenu = NULL;
+		hMenu = nullptr;
 
 	HFONT hFont;
 	BOOL bHasFontStru = IsBitSet(Dlg.dwStyle, DS_SETFONT) || IsBitSet(Dlg.dwStyle, DS_SHELLFONT);
 	if (bHasFontStru)
 		hFont = EzFont(Dlg.rsFontName.Data(), Dlg.Font.wPoint, Dlg.Font.wWeight,
-			Dlg.Font.bItalic, FALSE, FALSE, NULL, Dlg.Font.byCharSet);
+			Dlg.Font.bItalic, FALSE, FALSE, nullptr, Dlg.Font.byCharSet);
 	else
-		hFont = NULL;
+		hFont = nullptr;
 
 	RECT rc{ Dlg.x,Dlg.y,Dlg.cx,Dlg.cy };
 	int xBaseUnit, yBaseUnit;
@@ -443,7 +443,7 @@ inline HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& 
 	{
 		if (IsBitSet(Dlg.dwStyle, DS_SETFONT) || IsBitSet(Dlg.dwStyle, DS_SHELLFONT))
 		{
-			HDC hCDC = CreateCompatibleDC(NULL);
+			HDC hCDC = CreateCompatibleDC(nullptr);
 			SelectObject(hCDC, hFont);
 			SIZE size;
 			GetTextExtentPoint32W(hCDC, L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 52, &size);
@@ -472,7 +472,7 @@ inline HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& 
 	rc.right += rc.left;
 	rc.bottom += rc.top;
 #if _WIN32_WINNT >= _WIN32_WINNT_WIN10
-	AdjustWindowRectExForDpi(&rc, Dlg.dwStyle, hMenu != NULL, Dlg.dwExStyle, GetDpi(hParent));
+	AdjustWindowRectExForDpi(&rc, Dlg.dwStyle, hMenu != nullptr, Dlg.dwExStyle, GetDpi(hParent));
 #else
 	AdjustWindowRectEx(&rc, Dlg.dwStyle, hMenu != NULL, Dlg.dwExStyle);
 #endif // _WIN32_WINNT >= _WIN32_WINNT_WIN10
@@ -512,10 +512,10 @@ inline HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& 
 		SendMessageW(hCtrl, WM_SETFONT, (WPARAM)hFont, FALSE);
 	}
 
-	HWND hFirstCtrl = GetNextDlgTabItem(hWnd, NULL, FALSE);
+	HWND hFirstCtrl = GetNextDlgTabItem(hWnd, nullptr, FALSE);
 	if (SendMessageW(hWnd, WM_INITDIALOG, (WPARAM)hFirstCtrl, (LPARAM)pParam))
 	{
-		hFirstCtrl = GetNextDlgTabItem(hWnd, NULL, FALSE);
+		hFirstCtrl = GetNextDlgTabItem(hWnd, nullptr, FALSE);
 		SetFocus(hFirstCtrl);
 	}
 

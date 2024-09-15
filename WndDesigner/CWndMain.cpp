@@ -19,13 +19,13 @@ BOOL CWndMain::OnCreate(HWND hWnd, CREATESTRUCTW* pcs)
 	m_cxInfo = DPI(240);
 	m_cxCtrlBox = DPI(180);
 
-	m_TBProj.Create(NULL, WS_CHILD| WS_VISIBLE, 0, 0, 0, 0, 0, hWnd, IDC_TC_PROJ);
+	m_TBProj.Create(nullptr, WS_CHILD| WS_VISIBLE, 0, 0, 0, 0, 0, hWnd, IDC_TC_PROJ);
 	{
-		m_CBBCtrl.Create(NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | CBS_SORT,
+		m_CBBCtrl.Create(nullptr, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | CBS_SORT,
 			0, 0, 50, 50, 0, hWnd, IDC_CBB_CTRL);
 		m_CBBCtrl.SetItemHeight(m_Ds.cyComboBox);
 
-		m_LVProp.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER /*| LVS_NOCOLUMNHEADER*/ | LVS_REPORT,
+		m_LVProp.Create(nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER /*| LVS_NOCOLUMNHEADER*/ | LVS_REPORT,
 			0, 0, 0, 0, 0, hWnd, IDC_LV_CTRLINFO);
 		eck::LVSetItemHeight(m_LVProp.HWnd, DPI(24));
 		LVCOLUMNW lc;
@@ -41,15 +41,15 @@ BOOL CWndMain::OnCreate(HWND hWnd, CREATESTRUCTW* pcs)
 		m_LVProp.SetNotifyMsg(CNM_PROPLISTNOTIFY);
 
 		m_EDDesc.SetMultiLine(TRUE);
-		m_EDDesc.Create(NULL, WS_CHILD | WS_VISIBLE | ES_AUTOVSCROLL, 0, 0, 0, 0, 0, hWnd, IDC_ED_DESC);
+		m_EDDesc.Create(nullptr, WS_CHILD | WS_VISIBLE | ES_AUTOVSCROLL, 0, 0, 0, 0, 0, hWnd, IDC_ED_DESC);
 		m_EDDesc.SetFrameType(3);
 	}
 
-	m_LBCtrl.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | LBS_NOINTEGRALHEIGHT | LBS_OWNERDRAWFIXED | LBS_NOTIFY | LBS_NODATA,
+	m_LBCtrl.Create(nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER | LBS_NOINTEGRALHEIGHT | LBS_OWNERDRAWFIXED | LBS_NOTIFY | LBS_NODATA,
 		0, 0, 0, 0, 0, hWnd, IDC_LB_CTRL);
 	m_LBCtrl.SetCount(ARRAYSIZE(eck::s_EckDesignAllCtrl) + 1);
 
-	m_Tab.Create(NULL,WS_CHILD| WS_VISIBLE | TCS_SINGLELINE, 0, 0, 0, 0, 0, hWnd, IDC_TC_MAIN);
+	m_Tab.Create(nullptr,WS_CHILD| WS_VISIBLE | TCS_SINGLELINE, 0, 0, 0, 0, 0, hWnd, IDC_TC_MAIN);
 
 	eck::SetFontForWndAndCtrl(hWnd, m_hFontComm);
 
@@ -189,7 +189,7 @@ void CWndMain::OnMenuPaste(HWND hWnd)
 			if (!hParent)
 				hParent = pTabCtx->pWorkWnd->GetHWND();
 
-			auto pWnd = This.CreateCtrl(p->idxInfo + 1, pCtrlData, pTabCtx, NULL, 0, 0,
+			auto pWnd = This.CreateCtrl(p->idxInfo + 1, pCtrlData, pTabCtx, nullptr, 0, 0,
 				rc.left, rc.top, rc.right, rc.bottom, hParent, 0);
 			return pWnd->GetHWND();
 		});
@@ -279,7 +279,7 @@ void CWndMain::OnSize(HWND hWnd, UINT nType, int cxClient, int cyClient)
 	{
 		//HDWP hDwp2 = BeginDeferWindowPos(10);
 		auto hDwp2 = hDwp;
-		hDwp2 = DeferWindowPos(hDwp2, m_CBBCtrl.HWnd, NULL,
+		hDwp2 = DeferWindowPos(hDwp2, m_CBBCtrl.HWnd, nullptr,
 			m_Ds.iPadding,
 			m_Ds.iPadding,
 			m_cxInfo,
@@ -289,14 +289,14 @@ void CWndMain::OnSize(HWND hWnd, UINT nType, int cxClient, int cyClient)
 		int y = m_Ds.iPadding + m_Ds.cyComboBox;
 
 		int cyLVProp = cyClient - y - DPI(80) - m_Ds.iPadding * 3;
-		hDwp2 = DeferWindowPos(hDwp2, m_LVProp.HWnd, NULL,
+		hDwp2 = DeferWindowPos(hDwp2, m_LVProp.HWnd, nullptr,
 			m_Ds.iPadding,
 			y + m_Ds.iPadding,
 			m_cxInfo,
 			cyLVProp,
 			SWP_NOZORDER);
 
-		hDwp2 = DeferWindowPos(hDwp2, m_EDDesc.HWnd, NULL,
+		hDwp2 = DeferWindowPos(hDwp2, m_EDDesc.HWnd, nullptr,
 			m_Ds.iPadding,
 			y + cyLVProp + m_Ds.iPadding * 2,
 			m_cxInfo,
@@ -308,14 +308,14 @@ void CWndMain::OnSize(HWND hWnd, UINT nType, int cxClient, int cyClient)
 	}
 
 	int cyBK = cyClient - m_Ds.iPadding * 2;
-	hDwp = DeferWindowPos(hDwp, m_Tab.HWnd, NULL,
+	hDwp = DeferWindowPos(hDwp, m_Tab.HWnd, nullptr,
 		m_cxInfo + DPI(6) + m_Ds.iPadding,
 		m_Ds.iPadding,
 		cxClient - m_cxInfo - m_cxCtrlBox - m_Ds.iPadding * 2 - DPI(6) * 2,
 		cyBK,
 		SWP_NOZORDER);
 
-	hDwp = DeferWindowPos(hDwp, m_LBCtrl.HWnd, NULL,
+	hDwp = DeferWindowPos(hDwp, m_LBCtrl.HWnd, nullptr,
 		cxClient - m_cxCtrlBox - m_Ds.iPadding,
 		m_Ds.iPadding,
 		m_cxCtrlBox,
@@ -329,7 +329,7 @@ void CWndMain::OnSize(HWND hWnd, UINT nType, int cxClient, int cyClient)
 	m_Tab.AdjustRect(&rc, FALSE);
 	eck::ScreenToClient(m_Tab.HWnd, &rc);
 	for (auto x : m_vTabs)
-		SetWindowPos(x->pBK->GetHWND(), NULL, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, SWP_NOZORDER);
+		SetWindowPos(x->pBK->GetHWND(), nullptr, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, SWP_NOZORDER);
 }
 
 void CWndMain::OnDpiChanged(HWND hWnd, int iDpiX, int iDpiY, RECT* prc)
@@ -441,9 +441,9 @@ LRESULT CWndMain::SubclassProc_Ctrl(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 BOOL CWndMain::OnCtrlSetCursor(HWND hWnd, HWND hWndCursor, UINT nHitTest, UINT uMsg)
 {
 	if (m_bPlacingCtrl)
-		SetCursor(LoadCursorW(NULL, IDC_CROSS));
+		SetCursor(LoadCursorW(nullptr, IDC_CROSS));
 	else
-		SetCursor(LoadCursorW(NULL, IDC_ARROW));
+		SetCursor(LoadCursorW(nullptr, IDC_ARROW));
 	return TRUE;
 }
 
@@ -461,7 +461,7 @@ void CWndMain::OnCtrlRButtonUp(HWND hWnd, int x, int y, UINT uFlags)
 	ReleaseCapture();
 	POINT pt{ x,y };
 	ClientToScreen(hWnd, &pt);
-	TrackPopupMenu(m_hMenuWorkWnd, TPM_RIGHTBUTTON, pt.x, pt.y, 0, m_hWnd, NULL);
+	TrackPopupMenu(m_hMenuWorkWnd, TPM_RIGHTBUTTON, pt.x, pt.y, 0, m_hWnd, nullptr);
 }
 
 void CWndMain::OnCtrlMove(HWND hWnd, int x, int y)
@@ -548,7 +548,7 @@ void CWndMain::OnCtrlLButtonUp(HWND hWnd, UINT uKeyFlags, int x, int y, CTRLSUBC
 		RECT rc = eck::MakeRect(PtAlign(pt, iUnit), PtAlign(m_CtrlPlacing.GetStartPoint(), iUnit));
 		MapWindowRect(hBK, hWnd, &rc);
 
-		auto pWnd = CreateCtrl(idxCurrClass, NULL, pTabCtx, eck::s_EckDesignAllCtrl[idxCurrClass - 1].pszName, WS_CHILD | WS_VISIBLE, 0,
+		auto pWnd = CreateCtrl(idxCurrClass, nullptr, pTabCtx, eck::s_EckDesignAllCtrl[idxCurrClass - 1].pszName, WS_CHILD | WS_VISIBLE, 0,
 			rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, hWnd, 0);
 		SingleSel(pTabCtx, pWnd->GetHWND());
 		return;
@@ -581,7 +581,7 @@ void CWndMain::OnCtrlLButtonUp(HWND hWnd, UINT uKeyFlags, int x, int y, CTRLSUBC
 		OffsetRect(&rc, dx, dy);
 		MapWindowRect(hBK, GetParent(hCurrCtrl), &rc);
 
-		SetWindowPos(hCurrCtrl, NULL, rc.left, rc.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+		SetWindowPos(hCurrCtrl, nullptr, rc.left, rc.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
 	}
 
 	for (auto x : aSelSizer)
@@ -673,7 +673,7 @@ void CWndMain::OnWWLButtonUp(HWND hWnd, int x, int y, UINT uKeyFlags, TABCTX* p)
 		}
 		MapWindowRect(hBK, hWnd, &rc);
 
-		auto pWnd = CreateCtrl(idxCurr, NULL, p, eck::s_EckDesignAllCtrl[idxCurr - 1].pszName, WS_CHILD | WS_VISIBLE, 0,
+		auto pWnd = CreateCtrl(idxCurr, nullptr, p, eck::s_EckDesignAllCtrl[idxCurr - 1].pszName, WS_CHILD | WS_VISIBLE, 0,
 			rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, hWnd, 0);
 		SingleSel(p, pWnd->GetHWND());
 	}
@@ -688,7 +688,7 @@ void CWndMain::OnWWRButtonUp(HWND hWnd, UINT uKeyFlags, int x, int y, TABCTX* p)
 	pWW->m_bRBtnDown = FALSE;
 	POINT pt{ x,y };
 	ClientToScreen(hWnd, &pt);
-	TrackPopupMenu(m_hMenuWorkWnd, TPM_RIGHTBUTTON, pt.x, pt.y, 0, m_hWnd, NULL);
+	TrackPopupMenu(m_hMenuWorkWnd, TPM_RIGHTBUTTON, pt.x, pt.y, 0, m_hWnd, nullptr);
 }
 
 
@@ -707,10 +707,10 @@ void CWndMain::NewTab(int posTab)
 	pCtx->pWorkWnd = new CWorkWnd(pCtx);
 	pCtx->pThis = this;
 
-	pCtx->pBK->Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | WS_CLIPSIBLINGS, 0,
+	pCtx->pBK->Create(nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER | WS_CLIPSIBLINGS, 0,
 		0, 0, 0, 0, m_Tab.HWnd, IDC_BK_MAIN);
 
-	pCtx->pWorkWnd->Create(NULL, WS_CHILD | WS_VISIBLE | WS_CAPTION | WS_SYSMENU | WS_CLIPSIBLINGS,
+	pCtx->pWorkWnd->Create(nullptr, WS_CHILD | WS_VISIBLE | WS_CAPTION | WS_SYSMENU | WS_CLIPSIBLINGS,
 		0, m_Ds.iPadding, m_Ds.iPadding, DPI(400), DPI(300), pCtx->pBK->GetHWND(), IDC_BK_WORKWND);
 	SetWindowLongPtrW(pCtx->pWorkWnd->GetHWND(), 0, (LONG_PTR)pCtx);
 
@@ -729,8 +729,8 @@ ATOM CWndMain::RegisterWndClass()
 	wcex.style = CS_HREDRAW | CS_VREDRAW;
 	wcex.lpfnWndProc = DefWindowProcW;
 	wcex.hInstance = App->GetHInstance();
-	wcex.hIcon = LoadIconW(NULL, IDI_APPLICATION);
-	wcex.hCursor = LoadCursorW(NULL, IDC_ARROW);
+	wcex.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
+	wcex.hCursor = LoadCursorW(nullptr, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
 	wcex.lpszClassName = WCN_WDMAIN;
 	wcex.lpszMenuName = MAKEINTRESOURCEW(IDM_MAIN);

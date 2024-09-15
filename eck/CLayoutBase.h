@@ -164,10 +164,10 @@ protected:
 	{
 		if (const auto hWnd = e.pCtrl->LoGetHWND())
 			if (IsBitSet(e.uFlags, LF_FIX))
-				hDwp = DeferWindowPos(hDwp, hWnd, NULL, x, y, 0, 0,
+				hDwp = DeferWindowPos(hDwp, hWnd, nullptr, x, y, 0, 0,
 					SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE);
 			else
-				hDwp = DeferWindowPos(hDwp, hWnd, NULL, x, y, cx, cy, SWP_NOACTIVATE | SWP_NOZORDER);
+				hDwp = DeferWindowPos(hDwp, hWnd, nullptr, x, y, cx, cy, SWP_NOACTIVATE | SWP_NOZORDER);
 		else
 		{
 			if (IsBitSet(e.uFlags, LF_FIX))
@@ -282,7 +282,7 @@ public:
 		if (m_bUseDwp)
 			return BeginDeferWindowPos((int)cWindows);
 		else
-			return NULL;
+			return nullptr;
 	}
 
 	void PostArrange(HDWP hDwp)

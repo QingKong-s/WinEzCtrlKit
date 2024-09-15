@@ -44,8 +44,8 @@ struct CFmtMsgException :CException
 	void Format()
 	{
 		PWSTR pszInfo;
-		FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL,
-			m_dwErr, 0, (PWSTR)&pszInfo, 0, NULL);
+		FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, nullptr,
+			m_dwErr, 0, (PWSTR)&pszInfo, 0, nullptr);
 		if (pszInfo)
 		{
 			m_rsMsg.Format(L"(%u) %s", m_dwErr, pszInfo);

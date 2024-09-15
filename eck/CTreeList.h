@@ -284,10 +284,10 @@ private:
 	CScrollBar m_SBV{};					// 滚动条
 	CScrollBar m_SBH{};					// 滚动条
 	//--------图形
-	HTHEME m_hThemeTV = NULL;			// TreeView主题
-	HTHEME m_hThemeLV = NULL;			// ItemsView主题
-	HTHEME m_hThemeBT = NULL;			// Button主题
-	HFONT m_hFont = NULL;				// 字体
+	HTHEME m_hThemeTV = nullptr;			// TreeView主题
+	HTHEME m_hThemeLV = nullptr;			// ItemsView主题
+	HTHEME m_hThemeBT = nullptr;			// Button主题
+	HFONT m_hFont = nullptr;				// 字体
 	CEzCDC m_DC{};						// 兼容DC
 	COLORREF m_crBranchLine = CLR_DEFAULT;	// 分支线颜色
 	COLORREF m_crBkg = CLR_DEFAULT;			// 背景颜色
@@ -324,7 +324,7 @@ private:
 	POINT m_ptDraggingSelStart{};		// 拖动选择起点，以相对于第一项的偏移量表示
 	RECT m_rcDraggingSel{};				// 拖动选择矩形，以相对于第一项的偏移量表示
 	//--------图像列表
-	HIMAGELIST m_hImgList = NULL;		// 图像列表
+	HIMAGELIST m_hImgList = nullptr;		// 图像列表
 	int m_cxImg = 0,					// 图像宽度
 		m_cyImg = 0;					// 图像高度
 	//--------滚动
@@ -520,7 +520,7 @@ private:
 		else
 #endif // ECK_MACRO_SUPPORTCLASSICTHEME
 			if (iStateId)
-				DrawThemeBackground(m_hThemeLV, hDC, LVP_LISTITEM, iStateId, &rcItem, NULL);
+				DrawThemeBackground(m_hThemeLV, hDC, LVP_LISTITEM, iStateId, &rcItem, nullptr);
 		if (idx == m_idxFocus && m_bFocusIndicatorVisible && m_bHasFocus)
 		{
 			InflateRect(rcItem, -1, -1);
@@ -571,7 +571,7 @@ private:
 				}
 				else
 #endif// ECK_MACRO_SUPPORTCLASSICTHEME
-					DrawThemeBackground(m_hThemeTV, hDC, nmcd.iPartIdGlyph, nmcd.iStateIdGlyph, &rc, NULL);
+					DrawThemeBackground(m_hThemeTV, hDC, nmcd.iPartIdGlyph, nmcd.iStateIdGlyph, &rc, nullptr);
 			}
 			rc.left = rc.right;
 		}
@@ -601,13 +601,13 @@ private:
 					if (bLastItem = bLastItem && b)
 					{
 						const int yBottom = rcItem.top + m_cyItem * 4 / 5;
-						MoveToEx(hDC, xLine, rcItem.top, NULL);
+						MoveToEx(hDC, xLine, rcItem.top, nullptr);
 						LineTo(hDC, xLine, yBottom);
 						LineTo(hDC, xLine + m_sizeTVGlyph.cx / 2, yBottom);
 					}
 					else
 					{
-						MoveToEx(hDC, xLine, rcItem.top, NULL);
+						MoveToEx(hDC, xLine, rcItem.top, nullptr);
 						LineTo(hDC, xLine, rcItem.bottom);
 					}
 					idxParent = m_vItem[idxParent]->idxParent;
@@ -646,7 +646,7 @@ private:
 					else
 						iStateId = ((e->uFlags & TLIF_DISABLECHECKBOX) ?
 							CBS_UNCHECKEDDISABLED : CBS_UNCHECKEDNORMAL);
-					DrawThemeBackground(m_hThemeBT, hDC, BP_CHECKBOX, iStateId, &rc, NULL);
+					DrawThemeBackground(m_hThemeBT, hDC, BP_CHECKBOX, iStateId, &rc, nullptr);
 #ifdef ECK_MACRO_SUPPORTCLASSICTHEME
 				}
 #endif
@@ -664,7 +664,7 @@ private:
 			rc.left += m_cxImg;
 		}
 		if (hRgn)
-			SelectClipRgn(hDC, NULL);
+			SelectClipRgn(hDC, nullptr);
 
 		//---------------画文本
 		SetTextColor(hDC, m_crText == CLR_DEFAULT ? GetThreadCtx()->crDefText : m_crText);
@@ -698,7 +698,7 @@ private:
 			{
 				nm.Item.idxSubItem = m_vCol[i].idxActual;
 				nm.Item.cchText = 0;
-				nm.Item.pszText = NULL;
+				nm.Item.pszText = nullptr;
 				SendNotify(nm);
 #pragma warning(suppress:6387)// nm.Item.pszText可能为NULL
 				DrawTextW(hDC, nm.Item.pszText, nm.Item.cchText, &rc,
@@ -815,14 +815,14 @@ private:
 		else
 #endif
 			GetThemePartSize(m_hThemeTV, m_DC.GetDC(),
-				TVP_GLYPH, GLPS_CLOSED, NULL, TS_TRUE, &m_sizeTVGlyph);
+				TVP_GLYPH, GLPS_CLOSED, nullptr, TS_TRUE, &m_sizeTVGlyph);
 #ifdef ECK_MACRO_SUPPORTCLASSICTHEME
 		if (!m_hThemeBT)
 			m_sizeCheckBox = { GetSystemMetrics(SM_CXSMICON),GetSystemMetrics(SM_CYSMICON) };
 		else
 #endif
 			GetThemePartSize(m_hThemeBT, m_DC.GetDC(),
-				BP_CHECKBOX, CBS_UNCHECKEDNORMAL, NULL, TS_TRUE, &m_sizeCheckBox);
+				BP_CHECKBOX, CBS_UNCHECKEDNORMAL, nullptr, TS_TRUE, &m_sizeCheckBox);
 	}
 
 	void UpdateColumnInfo()
@@ -957,7 +957,7 @@ private:
 		SetCapture(m_hWnd);
 		while (GetCapture() == m_hWnd)// 如果捕获改变则应立即退出拖动循环
 		{
-			if (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
+			if (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
 			{
 				switch (msg.message)
 				{
@@ -1228,7 +1228,7 @@ private:
 		m_bWaitEditDelay = TRUE;
 		m_idxEditing = idx;
 		m_idxEditingSubItemDisplay = idxSubItemDisplay;
-		SetTimer(m_hWnd, IDT_EDITDELAY, 600, NULL);
+		SetTimer(m_hWnd, IDT_EDITDELAY, 600, nullptr);
 	}
 
 	void CancelEditDelay()
@@ -1573,7 +1573,7 @@ private:
 		case VK_ADD:
 			if (bCtrlPressed)
 			{
-				const auto hCursorOld = SetCursor(LoadCursorW(NULL, IDC_WAIT));
+				const auto hCursorOld = SetCursor(LoadCursorW(nullptr, IDC_WAIT));
 				EckCounter(m_vCol.size(), i)
 					AdjustColumnToFit((int)i);
 				SetCursor(hCursorOld);
@@ -1683,7 +1683,7 @@ public:
 		{
 			NMTLMOUSECLICK nm;
 			nm.idx = -1;
-			nm.pHitTestInfo = NULL;
+			nm.pHitTestInfo = nullptr;
 			nm.uMsg = uMsg;
 			nm.wParam = wParam;
 			nm.lParam = lParam;
@@ -1750,7 +1750,7 @@ public:
 					{
 						UpdateColumnInfo();
 						UpdateScrollBar();
-						SetWindowPos(m_Header.HWnd, NULL, m_dxContent, 0,
+						SetWindowPos(m_Header.HWnd, nullptr, m_dxContent, 0,
 							std::max(m_cxItem, m_cxClient), m_cyHeader, SWP_NOZORDER | SWP_NOACTIVATE);
 						Redraw();
 					}
@@ -1791,7 +1791,7 @@ public:
 					{
 						UpdateColumnInfo();
 						UpdateScrollBar();
-						SetWindowPos(m_HeaderFixed.HWnd, NULL, 0, 0,
+						SetWindowPos(m_HeaderFixed.HWnd, nullptr, 0, 0,
 							m_vCol.front().iRight, m_cyHeader, SWP_NOZORDER | SWP_NOACTIVATE);
 						Redraw();
 					}
@@ -1829,7 +1829,7 @@ public:
 						{
 							NMTLTTGETDISPINFO nm;
 							nm.pttdi = p;
-							nm.pNode = (idx >= 0 ? m_vItem[idx] : NULL);
+							nm.pNode = (idx >= 0 ? m_vItem[idx] : nullptr);
 							nm.idx = idx;
 							nm.idxSubItemDisplay = tlht.idxSubItemDisplay;
 							nm.pt = pt;
@@ -1942,7 +1942,7 @@ public:
 			else
 			{
 				RECT rc{ 0,m_cyHeader,m_cxClient,m_cyClient };
-				ScrollWindowEx(hWnd, 0, (iOld - si.nPos) * m_cyItem, &rc, &rc, NULL, NULL, SW_INVALIDATE);
+				ScrollWindowEx(hWnd, 0, (iOld - si.nPos) * m_cyItem, &rc, &rc, nullptr, nullptr, SW_INVALIDATE);
 			}
 			UpdateWindow(hWnd);
 		}
@@ -2121,7 +2121,7 @@ public:
 					NMTLDRAG nm;
 					nm.bRBtn = m_bRDragging;
 					nm.uKeyFlags = (UINT)wParam;
-					nm.pHitTestInfo = NULL;
+					nm.pHitTestInfo = nullptr;
 					nm.idx = -1;
 					FillNmhdrAndSendNotify(nm, NM_TL_ENDDRAG);
 				}
@@ -2129,7 +2129,7 @@ public:
 
 			NMTLMOUSECLICK nm;
 			nm.idx = -1;
-			nm.pHitTestInfo = NULL;
+			nm.pHitTestInfo = nullptr;
 			nm.uMsg = uMsg;
 			nm.wParam = wParam;
 			nm.lParam = lParam;
@@ -2193,19 +2193,19 @@ public:
 			m_cyItem = m_Ds.cyItemDef;
 			m_DC.Create(hWnd);
 			UpdateDCAttr();
-			m_Header.Create(NULL, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
+			m_Header.Create(nullptr, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
 				0, 0, ClientWidth, m_Ds.cyHeaderDef, hWnd, IDC_HEADER);
 			//m_HeaderFixed.Create(NULL, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
 			//	0, 0, ClientWidth, m_Ds.cyHeaderDef, hWnd, IDC_HEADERFIXED);
 			SetExplorerTheme();
 			m_hThemeTV = OpenThemeData(hWnd, L"TreeView");
-			m_hThemeLV = OpenThemeData(NULL, L"ItemsView::ListView");
+			m_hThemeLV = OpenThemeData(nullptr, L"ItemsView::ListView");
 			m_hThemeBT = OpenThemeData(hWnd, L"Button");
 			UpdateThemeInfo();
 			m_bHasFocus = (GetFocus() == hWnd);
 			UpdateSystemParam();
 
-			m_ToolTip.Create(NULL, TTS_NOPREFIX, WS_EX_TRANSPARENT,
+			m_ToolTip.Create(nullptr, TTS_NOPREFIX, WS_EX_TRANSPARENT,
 				0, 0, 0, 0, hWnd, nullptr);
 			TTTOOLINFOW ti{ sizeof(TTTOOLINFOW) };
 			ti.uFlags = TTF_TRANSPARENT;
@@ -2214,9 +2214,9 @@ public:
 			ti.lpszText = LPSTR_TEXTCALLBACKW;
 			m_ToolTip.AddTool(&ti);
 
-			m_SBV.Create(NULL, WS_CHILD | (m_bSplitCol0 ? WS_VISIBLE : 0) | SBS_VERT, 0,
+			m_SBV.Create(nullptr, WS_CHILD | (m_bSplitCol0 ? WS_VISIBLE : 0) | SBS_VERT, 0,
 				0, 0, 0, 0, hWnd, IDC_SBV);
-			m_SBH.Create(NULL, WS_CHILD | (m_bSplitCol0 ? WS_VISIBLE : 0) | SBS_HORZ, 0,
+			m_SBH.Create(nullptr, WS_CHILD | (m_bSplitCol0 ? WS_VISIBLE : 0) | SBS_HORZ, 0,
 				0, 0, 0, 0, hWnd, IDC_SBH);
 			UpdateScrollBar();
 		}
@@ -2287,16 +2287,16 @@ public:
 		case WM_DESTROY:
 		{
 			CloseThemeData(m_hThemeTV);
-			m_hThemeTV = NULL;
+			m_hThemeTV = nullptr;
 			CloseThemeData(m_hThemeLV);
-			m_hThemeLV = NULL;
+			m_hThemeLV = nullptr;
 			CloseThemeData(m_hThemeBT);
-			m_hThemeBT = NULL;
+			m_hThemeBT = nullptr;
 			m_ToolTip.Destroy();
 			m_vItem.clear();
 			m_vCol.clear();
 			m_rsWatermark = {};
-			m_hImgList = NULL;
+			m_hImgList = nullptr;
 			m_cxImg = m_cyImg = 0;
 			m_idxTopItem = 0;
 			m_idxHot = m_idxFocus = m_idxMark = m_idxSel = m_idxToolTip = m_idxToolTipSubItemDisplay =
@@ -2313,10 +2313,10 @@ public:
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		return IntCreate(dwExStyle, WCN_TREELIST, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, NULL);
+			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, nullptr);
 	}
 
 	/// <summary>
@@ -2565,7 +2565,7 @@ public:
 		return m_vCol[idxDisplay].idxActual;
 	}
 
-	PCWSTR GetItemText(int idx, int idxSubItem, int* pcchText = NULL) const
+	PCWSTR GetItemText(int idx, int idxSubItem, int* pcchText = nullptr) const
 	{
 		NMTLGETDISPINFO nm;
 		nm.Item.pNode = m_vItem[idx];
@@ -2644,7 +2644,7 @@ public:
 		else
 		{
 			RECT rc{ 0,m_cyHeader,m_cxClient,m_cyClient };
-			ScrollWindowEx(m_hWnd, 0, (iOld - si.nPos) * m_cyItem, &rc, &rc, NULL, NULL, SW_INVALIDATE);
+			ScrollWindowEx(m_hWnd, 0, (iOld - si.nPos) * m_cyItem, &rc, &rc, nullptr, nullptr, SW_INVALIDATE);
 		}
 	}
 
@@ -3213,7 +3213,7 @@ public:
 			nmfc.nmhdr.code = NM_TL_FILLCHILDREN;
 			nmfc.bQueryRoot = FALSE;
 			nmfc.cChildren = 0;
-			nmfc.pChildren = NULL;
+			nmfc.pChildren = nullptr;
 			nmfc.pParent = e;
 			switch (iOp)
 			{

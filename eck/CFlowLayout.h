@@ -102,10 +102,10 @@ private:
 		if (const auto hWnd = e.pCtrl->LoGetHWND())
 		{
 			if (e.uFlags & LF_FIX_HEIGHT)
-				hDwp = DeferWindowPos(hDwp, hWnd, NULL, e.rcPos.x, e.rcPos.y, 0, 0,
+				hDwp = DeferWindowPos(hDwp, hWnd, nullptr, e.rcPos.x, e.rcPos.y, 0, 0,
 					SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE);
 			else
-				hDwp = DeferWindowPos(hDwp, hWnd, NULL, e.rcPos.x, e.rcPos.y, e.rcPos.cx, e.rcPos.cy,
+				hDwp = DeferWindowPos(hDwp, hWnd, nullptr, e.rcPos.x, e.rcPos.y, e.rcPos.cx, e.rcPos.cy,
 					SWP_NOZORDER | SWP_NOACTIVATE);
 		}
 		else
@@ -225,10 +225,10 @@ private:
 		if (const auto hWnd = e.pCtrl->LoGetHWND())
 		{
 			if (e.uFlags & LF_FIX_WIDTH)
-				hDwp = DeferWindowPos(hDwp, hWnd, NULL, e.rcPos.x, e.rcPos.y, 0, 0,
+				hDwp = DeferWindowPos(hDwp, hWnd, nullptr, e.rcPos.x, e.rcPos.y, 0, 0,
 					SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE);
 			else
-				hDwp = DeferWindowPos(hDwp, hWnd, NULL, e.rcPos.x, e.rcPos.y, e.rcPos.cx, e.rcPos.cy,
+				hDwp = DeferWindowPos(hDwp, hWnd, nullptr, e.rcPos.x, e.rcPos.y, e.rcPos.cx, e.rcPos.cy,
 					SWP_NOZORDER | SWP_NOACTIVATE);
 		}
 		else

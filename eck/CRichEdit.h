@@ -17,10 +17,10 @@ class CRichEdit : public CWnd
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		return IntCreate(dwExStyle, MSFTEDIT_CLASS, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 	}
 
 	/// <summary>
@@ -29,7 +29,7 @@ public:
 	/// <param name="iType">AURL_*</param>
 	/// <param name="pszUrlPatterns">为NULL使用默认URL方案，否则为自定义URL方案，如（news:http:ftp:telnet:），最多50个</param>
 	/// <returns>HRESULT</returns>
-	EckInline HRESULT AutoUrlDetect(int iType, PCWSTR pszUrlPatterns = NULL)
+	EckInline HRESULT AutoUrlDetect(int iType, PCWSTR pszUrlPatterns = nullptr)
 	{
 		return (HRESULT)SendMsg(EM_AUTOURLDETECT, iType, (LPARAM)pszUrlPatterns);
 	}

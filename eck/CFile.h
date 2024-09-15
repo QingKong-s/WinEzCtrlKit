@@ -26,7 +26,7 @@ public:
 	CFile() = default;
 	CFile(PCWSTR pszFile, DWORD dwMode = OPEN_EXISTING, DWORD dwAccess = GENERIC_READ,
 		DWORD dwShareMode = 0, DWORD dwAttr = FILE_ATTRIBUTE_NORMAL)
-		:m_hFile{ CreateFileW(pszFile, dwAccess, dwShareMode, NULL, dwMode, dwAttr, NULL) }
+		:m_hFile{ CreateFileW(pszFile, dwAccess, dwShareMode, nullptr, dwMode, dwAttr, nullptr) }
 	{}
 
 	~CFile()
@@ -47,7 +47,7 @@ public:
 		DWORD dwShareMode = 0, DWORD dwAttr = FILE_ATTRIBUTE_NORMAL)
 	{
 		Close();
-		return (m_hFile = CreateFileW(pszFile, dwAccess, dwShareMode, NULL, dwMode, dwAttr, NULL));
+		return (m_hFile = CreateFileW(pszFile, dwAccess, dwShareMode, nullptr, dwMode, dwAttr, nullptr));
 	}
 
 	EckInline HANDLE GetHandle()
@@ -64,15 +64,15 @@ public:
 
 	EckInline DWORD GetSize32()
 	{
-		return GetFileSize(m_hFile, NULL);
+		return GetFileSize(m_hFile, nullptr);
 	}
 
-	EckInline BOOL Read(void* pBuf, DWORD dwSize, DWORD* pdwRead = NULL)
+	EckInline BOOL Read(void* pBuf, DWORD dwSize, DWORD* pdwRead = nullptr)
 	{
 		DWORD dw;
 		if (!pdwRead)
 			pdwRead = &dw;
-		return ReadFile(m_hFile, pBuf, dwSize, pdwRead, NULL);
+		return ReadFile(m_hFile, pBuf, dwSize, pdwRead, nullptr);
 	}
 
 	EckInline CRefBin ReadBin(DWORD dwSize)
@@ -82,12 +82,12 @@ public:
 		return Bin;
 	}
 
-	EckInline BOOL Write(PCVOID pBuf, DWORD dwSize, DWORD* pdwWritten = NULL)
+	EckInline BOOL Write(PCVOID pBuf, DWORD dwSize, DWORD* pdwWritten = nullptr)
 	{
 		DWORD dw;
 		if (!pdwWritten)
 			pdwWritten = &dw;
-		return WriteFile(m_hFile, pBuf, dwSize, pdwWritten, NULL);
+		return WriteFile(m_hFile, pBuf, dwSize, pdwWritten, nullptr);
 	}
 
 	EckInline BOOL End()
@@ -123,37 +123,37 @@ public:
 
 	EckInline CFile& operator+=(LONG l)
 	{
-		SetFilePointer(m_hFile, l, NULL, FILE_CURRENT);
+		SetFilePointer(m_hFile, l, nullptr, FILE_CURRENT);
 		return *this;
 	}
 
 	EckInline CFile& operator-=(LONG l)
 	{
-		SetFilePointer(m_hFile, -l, NULL, FILE_CURRENT);
+		SetFilePointer(m_hFile, -l, nullptr, FILE_CURRENT);
 		return *this;
 	}
 
 	EckInline CFile& MoveToBegin()
 	{
-		SetFilePointer(m_hFile, 0, NULL, FILE_BEGIN);
+		SetFilePointer(m_hFile, 0, nullptr, FILE_BEGIN);
 		return *this;
 	}
 
 	EckInline CFile& MoveToEnd()
 	{
-		SetFilePointer(m_hFile, 0, NULL, FILE_END);
+		SetFilePointer(m_hFile, 0, nullptr, FILE_END);
 		return *this;
 	}
 
 	EckInline CFile& MoveTo(LONG l)
 	{
-		SetFilePointer(m_hFile, l, NULL, FILE_BEGIN);
+		SetFilePointer(m_hFile, l, nullptr, FILE_BEGIN);
 		return *this;
 	}
 
 	EckInline DWORD GetCurrPos()
 	{
-		return SetFilePointer(m_hFile, 0, NULL, FILE_CURRENT);
+		return SetFilePointer(m_hFile, 0, nullptr, FILE_CURRENT);
 	}
 
 	EckInline void Flush()
@@ -171,8 +171,8 @@ class CMappingFile
 {
 private:
 	CFile m_File{};
-	HANDLE m_hMapping = NULL;
-	void* m_pFile = NULL;
+	HANDLE m_hMapping = nullptr;
+	void* m_pFile = nullptr;
 public:
 	~CMappingFile()
 	{
@@ -186,8 +186,8 @@ public:
 			UnmapViewOfFile(m_pFile);
 			CloseHandle(m_hMapping);
 			m_File.Close();
-			m_pFile = NULL;
-			m_hMapping = NULL;
+			m_pFile = nullptr;
+			m_hMapping = nullptr;
 		}
 	}
 
@@ -196,20 +196,20 @@ public:
 		DWORD dwShareMode = 0, DWORD dwAttr = FILE_ATTRIBUTE_NORMAL)
 	{
 		if (m_File.Open(pszFile, dwMode, dwAccess, dwShareMode, dwAttr) == INVALID_HANDLE_VALUE)
-			return NULL;
+			return nullptr;
 		DWORD dwSize = m_File.GetSize32();
-		m_hMapping = CreateFileMappingW(m_File.GetHandle(), NULL, dwProtect, 0, dwSize, NULL);
+		m_hMapping = CreateFileMappingW(m_File.GetHandle(), nullptr, dwProtect, 0, dwSize, nullptr);
 		if (!m_hMapping)
 		{
 			m_File.Close();
-			return NULL;
+			return nullptr;
 		}
 		m_pFile = MapViewOfFile(m_hMapping, dwMap, 0, 0, dwSize);
 		if (!m_hMapping)
 		{
 			CloseHandle(m_hMapping);
 			m_File.Close();
-			return NULL;
+			return nullptr;
 		}
 		return m_pFile;
 	}
@@ -234,8 +234,8 @@ class CMappingFile2
 {
 private:
 	CFile& m_File;
-	HANDLE m_hMapping = NULL;
-	void* m_pFile = NULL;
+	HANDLE m_hMapping = nullptr;
+	void* m_pFile = nullptr;
 public:
 	CMappingFile2() = delete;
 	CMappingFile2(CFile& File) : m_File(File) {}
@@ -258,26 +258,26 @@ public:
 		{
 			UnmapViewOfFile(m_pFile);
 			CloseHandle(m_hMapping);
-			m_pFile = NULL;
-			m_hMapping = NULL;
+			m_pFile = nullptr;
+			m_hMapping = nullptr;
 		}
 	}
 
 	void* Create(DWORD dwMap = FILE_MAP_READ, DWORD dwProtect = PAGE_READONLY)
 	{
 		DWORD dwSize = m_File.GetSize32();
-		m_hMapping = CreateFileMappingW(m_File.GetHandle(), NULL, dwProtect, 0, dwSize, NULL);
+		m_hMapping = CreateFileMappingW(m_File.GetHandle(), nullptr, dwProtect, 0, dwSize, nullptr);
 		if (!m_hMapping)
 		{
 			m_File.Close();
-			return NULL;
+			return nullptr;
 		}
 		m_pFile = MapViewOfFile(m_hMapping, dwMap, 0, 0, dwSize);
 		if (!m_hMapping)
 		{
 			CloseHandle(m_hMapping);
 			m_File.Close();
-			return NULL;
+			return nullptr;
 		}
 		return m_pFile;
 	}

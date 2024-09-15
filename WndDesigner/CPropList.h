@@ -49,7 +49,7 @@ private:
 
 	int m_idxInfo = -1;
 
-	eck::CWnd* m_pWnd = NULL;
+	eck::CWnd* m_pWnd = nullptr;
 
 	void UpdateDpiSize(int iDpi = 0)
 	{
@@ -204,7 +204,7 @@ public:
 		m_idxCurrEdit = -1;
 	}
 
-	EckInline void SetPropClass(int idxInfo = -1, eck::CWnd* pWnd = NULL)
+	EckInline void SetPropClass(int idxInfo = -1, eck::CWnd* pWnd = nullptr)
 	{
 		if (m_idxCurrEdit >= 0)
 			SaveEditingInfo(m_idxCurrEdit);
@@ -237,16 +237,16 @@ public:
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL)
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr)
 	{
 		dwStyle |= (WS_CHILD | LVS_OWNERDATA | LVS_SINGLESEL | LVS_SHOWSELALWAYS);
 		IntCreate(dwExStyle, WC_LISTVIEWW, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 
 		UpdateDpiSize();
 
-		m_Edit.Create(NULL, ES_WANTRETURN, 0, 0, 0, 0, 0, m_hWnd, IDC_EDIT);
-		m_ComboBox.Create(NULL, CBS_DROPDOWNLIST, 0, 0, 0, 0, 0, m_hWnd, IDC_COMBOBOX);
+		m_Edit.Create(nullptr, ES_WANTRETURN, 0, 0, 0, 0, 0, m_hWnd, IDC_EDIT);
+		m_ComboBox.Create(nullptr, CBS_DROPDOWNLIST, 0, 0, 0, 0, 0, m_hWnd, IDC_COMBOBOX);
 		m_Button.Create(L"...", 0, 0, 0, 0, 0, 0, m_hWnd, IDC_BUTTON);
 
 		return m_hWnd;

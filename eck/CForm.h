@@ -26,7 +26,7 @@ private:
 			uID(uID), uFlags(uFlags), dwState(dwState), hIcon(hIcon), rsTip(pszTip) {}
 #endif
 	};
-	HBITMAP m_hbmBk = NULL;
+	HBITMAP m_hbmBk = nullptr;
 	int m_cxImage = 0,
 		m_cyImage = 0;
 	BkImgMode m_iBkImageMode = BkImgMode::TopLeft;
@@ -195,10 +195,10 @@ public:
 	}
 
 	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		return IntCreate(dwExStyle, WCN_FORM, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, g_hInstance, NULL);
+			x, y, cx, cy, hParent, hMenu, g_hInstance, nullptr);
 	}
 
 	EckInline HBITMAP GetBkImage() const { return m_hbmBk; }
@@ -278,8 +278,8 @@ public:
 		return TRUE;
 	}
 
-	BOOL TrayModify(UINT uID, UINT uFlags, HICON hIcon = NULL,
-		PCWSTR pszTip = NULL, DWORD dwState = 0u)
+	BOOL TrayModify(UINT uID, UINT uFlags, HICON hIcon = nullptr,
+		PCWSTR pszTip = nullptr, DWORD dwState = 0u)
 	{
 		auto it = std::find_if(m_Tray.begin(), m_Tray.end(), [uID](const TRAY& x)
 			{
@@ -353,8 +353,8 @@ public:
 		return Shell_NotifyIconW(NIM_SETFOCUS, &nid);
 	}
 
-	BOOL TrayPopBalloon(UINT uID, PCWSTR pszContent, PCWSTR pszTitle = NULL,
-		HICON hBalloonIcon = NULL, DWORD dwInfoFlags = 0u, BOOL bRealTime = FALSE)
+	BOOL TrayPopBalloon(UINT uID, PCWSTR pszContent, PCWSTR pszTitle = nullptr,
+		HICON hBalloonIcon = nullptr, DWORD dwInfoFlags = 0u, BOOL bRealTime = FALSE)
 	{
 		NOTIFYICONDATAW nid;
 		nid.cbSize = sizeof(nid);

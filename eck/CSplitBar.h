@@ -76,7 +76,7 @@ private:
 
 	EckInline void MoveMark(int x, int y)
 	{
-		SetWindowPos(m_BKMark.GetHWND(), NULL, x, y, 0, 0,
+		SetWindowPos(m_BKMark.GetHWND(), nullptr, x, y, 0, 0,
 			SWP_NOZORDER | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
 	}
 
@@ -142,9 +142,9 @@ public:
 		case WM_SETCURSOR:
 		{
 			if (m_bHorizontal)
-				SetCursor(LoadCursorW(NULL, IDC_SIZENS));
+				SetCursor(LoadCursorW(nullptr, IDC_SIZENS));
 			else
-				SetCursor(LoadCursorW(NULL, IDC_SIZEWE));
+				SetCursor(LoadCursorW(nullptr, IDC_SIZEWE));
 		}
 		return 0;
 		case WM_MOUSEMOVE:
@@ -175,7 +175,7 @@ public:
 		{
 			ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
 			m_DC.ReSize(hWnd, m_cxClient, m_cyClient);
-			SetWindowPos(m_BKMark.GetHWND(), NULL, 0, 0, m_cxClient, m_cyClient,
+			SetWindowPos(m_BKMark.GetHWND(), nullptr, 0, 0, m_cxClient, m_cyClient,
 				SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
 		}
 		return 0;
@@ -237,7 +237,7 @@ public:
 		return 0;
 		case WM_NCCREATE:
 		{
-			m_BKMark.Create(NULL, WS_POPUP | WS_DISABLED,
+			m_BKMark.Create(nullptr, WS_POPUP | WS_DISABLED,
 				WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_NOACTIVATE,
 				-32000, -32000, 0, 0, hWnd, 0);
 			UpdateMarkWndAlpha();
@@ -253,7 +253,7 @@ public:
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		m_hWnd = IntCreate(dwExStyle, WCN_SPLITBAR, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, g_hInstance, this);

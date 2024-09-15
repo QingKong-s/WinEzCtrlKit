@@ -61,7 +61,7 @@ private:
 		delete hNode;
 	}
 public:
-	HTLENODE InsertItem(const TLEXTITEM& tlei, HTLENODE hParent = NULL, int idxPos = -1)
+	HTLENODE InsertItem(const TLEXTITEM& tlei, HTLENODE hParent = nullptr, int idxPos = -1)
 	{
 		const auto p = new TLEXTNODE{};
 		SetItem(p, tlei);
@@ -81,7 +81,7 @@ public:
 		return p;
 	}
 
-	EckInline HTLENODE InsertItem(PCWSTR pszText, LPARAM lParam = 0, HTLENODE hParent = NULL, int idxPos = -1)
+	EckInline HTLENODE InsertItem(PCWSTR pszText, LPARAM lParam = 0, HTLENODE hParent = nullptr, int idxPos = -1)
 	{
 		const TLEXTITEM tlei
 		{

@@ -23,20 +23,20 @@ class CSizerBlock :public eck::CBk
 private:
 	friend class CSizer;
 
-	HBRUSH m_hbrBlock = NULL;
+	HBRUSH m_hbrBlock = nullptr;
 	RECT m_rcClient{};
-	CSizer* m_pSizer = NULL;
+	CSizer* m_pSizer = nullptr;
 	SizerHTCode m_uType = SizerHTCode::None;
-	HCURSOR m_hCursor = NULL;
+	HCURSOR m_hCursor = nullptr;
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		return IntCreate(dwExStyle, eck::WCN_BK, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, NULL);
+			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, nullptr);
 	}
 
 	EckInline void SetWindowProc(WNDPROC pfnWndProc)
@@ -52,16 +52,16 @@ class CSizer
 {
 private:
 	friend class CSizerBlock;
-	HWND m_hBK = NULL;
-	HWND m_hBottomWorkWnd = NULL;
-	HWND m_hWorkWnd = NULL;
-	HWND m_hWorkWndParent = NULL;
+	HWND m_hBK = nullptr;
+	HWND m_hBottomWorkWnd = nullptr;
+	HWND m_hWorkWnd = nullptr;
+	HWND m_hWorkWndParent = nullptr;
 	int m_sizeBlock = 0;
 	CSizerBlock m_Block[8]{};
 
-	HDC m_hDC = NULL;
-	HPEN m_hPen = NULL;
-	HGDIOBJ m_hOld = NULL;
+	HDC m_hDC = nullptr;
+	HPEN m_hPen = nullptr;
+	HGDIOBJ m_hOld = nullptr;
 	RECT m_rcOrg{};
 	RECT m_rcLast{};
 	BOOL m_bLBtnDown = FALSE;

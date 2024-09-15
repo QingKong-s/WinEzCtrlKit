@@ -49,7 +49,7 @@ private:
 	CPushButton m_BTOk{};
 	CPushButton m_BTCancel{};
 
-	HTHEME m_hTheme = NULL;
+	HTHEME m_hTheme = nullptr;
 
 	int m_cyMainTip = 0;
 	int m_cyTip = 0;
@@ -57,9 +57,9 @@ private:
 		m_cyClient = 0;
 	int m_cySingleLineText = 0;
 
-	INPUTBOXOPT* m_pOpt = NULL;
+	INPUTBOXOPT* m_pOpt = nullptr;
 
-	HFONT m_hFont = NULL;
+	HFONT m_hFont = nullptr;
 
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 	ECK_DS_BEGIN(DPIS)
@@ -79,7 +79,7 @@ private:
 
 	void UpdateTextMetrics()
 	{
-		HDC hCDC = CreateCompatibleDC(NULL);
+		HDC hCDC = CreateCompatibleDC(nullptr);
 		SelectObject(hCDC, m_hFont);
 		TEXTMETRICW tm;
 		GetTextMetricsW(hCDC, &tm);
@@ -101,20 +101,20 @@ private:
 			IsBitSet(m_pOpt->uFlags, IPBF_MULTILINE) ?
 			m_cyClient - y - m_Ds.TextPadding - m_Ds.cyBT - m_Ds.Margin :
 			m_cySingleLineText);
-		hDwp = DeferWindowPos(hDwp, m_ED.HWnd, NULL,
+		hDwp = DeferWindowPos(hDwp, m_ED.HWnd, nullptr,
 			m_Ds.Margin,
 			y,
 			m_cxClient - m_Ds.Margin * 2,
 			cyED,
 			SWP_NOZORDER | SWP_NOACTIVATE);
 		y = m_cyClient - m_Ds.Margin - m_Ds.cyBT;
-		hDwp = DeferWindowPos(hDwp, m_BTCancel.HWnd, NULL,
+		hDwp = DeferWindowPos(hDwp, m_BTCancel.HWnd, nullptr,
 			m_cxClient - m_Ds.Margin - m_Ds.cxBT,
 			y,
 			m_Ds.cxBT,
 			m_Ds.cyBT,
 			SWP_NOZORDER | SWP_NOACTIVATE);
-		hDwp = DeferWindowPos(hDwp, m_BTOk.HWnd, NULL,
+		hDwp = DeferWindowPos(hDwp, m_BTOk.HWnd, nullptr,
 			m_cxClient - m_Ds.Margin - m_Ds.cxBT * 2 - m_Ds.TextPadding,
 			y,
 			m_Ds.cxBT,
@@ -126,7 +126,7 @@ private:
 
 	void UpdateThemeSize()
 	{
-		HDC hCDC = CreateCompatibleDC(NULL);
+		HDC hCDC = CreateCompatibleDC(nullptr);
 		RECT rc{ 0,0,m_cxClient - m_Ds.Margin * 2,m_cyClient };
 		DTTOPTS dttops{ sizeof(DTTOPTS),DTT_CALCRECT };
 		auto hr = DrawThemeTextEx(m_hTheme, hCDC, TEXT_MAININSTRUCTION, 0, m_pOpt->pszMainTip, -1,
@@ -189,10 +189,10 @@ public:
 			if (IsBitSet(m_pOpt->uFlags, IPBF_CENTERPARENT))
 				pt = CalcCenterWndPos(GetParent(hDlg), rc.right - rc.left, rc.bottom - rc.top);
 			else if (IsBitSet(m_pOpt->uFlags, IPBF_CENTERSCREEN))
-				pt = CalcCenterWndPos(NULL, rc.right - rc.left, rc.bottom - rc.top);
+				pt = CalcCenterWndPos(nullptr, rc.right - rc.left, rc.bottom - rc.top);
 			else
 				pt = { m_pOpt->x,m_pOpt->y };
-			SetWindowPos(hDlg, NULL, pt.x, pt.y, rc.right - rc.left, rc.bottom - rc.top, 
+			SetWindowPos(hDlg, nullptr, pt.x, pt.y, rc.right - rc.left, rc.bottom - rc.top, 
 				SWP_NOZORDER | SWP_NOACTIVATE);
 		}
 
@@ -241,7 +241,7 @@ public:
 		case WM_DPICHANGED:
 		{
 			const auto prc = (RECT*)lParam;
-			SetWindowPos(hWnd, NULL, 
+			SetWindowPos(hWnd, nullptr, 
 				prc->left, prc->top, prc->right - prc->left, prc->bottom - prc->top, 
 				SWP_NOZORDER | SWP_NOACTIVATE);
 
@@ -270,9 +270,9 @@ public:
 		case WM_NCDESTROY:
 		{
 			CloseThemeData(m_hTheme);
-			m_hTheme = NULL;
+			m_hTheme = nullptr;
 			DeleteObject(m_hFont);
-			m_hFont = NULL;
+			m_hFont = nullptr;
 		}
 		break;
 		}
@@ -292,7 +292,7 @@ public:
 		EndDlg(FALSE);
 	}
 
-	INT_PTR DlgBox(HWND hParent, void* pData = NULL) override
+	INT_PTR DlgBox(HWND hParent, void* pData = nullptr) override
 	{
 		if (!pData)
 		{
@@ -305,7 +305,7 @@ public:
 			WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX |
 			(IsBitSet(m_pOpt->uFlags, IPBF_RESIZEABLE) ? (WS_SIZEBOX | WS_MAXIMIZEBOX) : 0),
 			m_pOpt->x, m_pOpt->y, m_pOpt->cx ? m_pOpt->cx : DpiScale(400, GetDpi(hParent)), m_pOpt->cy,
-			NULL, NULL, g_hInstance, pData, m_pOpt->uFlags & IPBF_DLGFLAGSMASK);
+			nullptr, nullptr, g_hInstance, pData, m_pOpt->uFlags & IPBF_DLGFLAGSMASK);
 		return m_iResult;
 	}
 };

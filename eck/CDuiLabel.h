@@ -15,8 +15,8 @@ ECK_DUI_NAMESPACE_BEGIN
 class CLabel : public CElem
 {
 private:
-	IDWriteTextFormat* m_pTf = NULL;// 外部传入
-	ID2D1SolidColorBrush* m_pBrush = NULL;
+	IDWriteTextFormat* m_pTf = nullptr;// 外部传入
+	ID2D1SolidColorBrush* m_pBrush = nullptr;
 
 	D2D1_COLOR_F m_clrText = D2D1::ColorF(0);
 	D2D1_COLOR_F m_clrBk = D2D1::ColorF(0xFFFFFF);

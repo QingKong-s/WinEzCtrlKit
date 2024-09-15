@@ -148,7 +148,7 @@ static HRESULT WINAPI NewDrawThemeParentBackground(HWND hWnd, HDC hDC, const REC
 static HTHEME WINAPI NewOpenNcThemeData(HWND hWnd, PCWSTR pszClassList)
 {
 	if (_wcsicmp(pszClassList, L"ScrollBar") == 0)
-		return s_pfnOpenNcThemeData(NULL, L"Explorer::ScrollBar");// for nc scrollbar
+		return s_pfnOpenNcThemeData(nullptr, L"Explorer::ScrollBar");// for nc scrollbar
 	else ECKLIKELY
 		return s_pfnOpenNcThemeData(hWnd, pszClassList);
 }
@@ -268,7 +268,7 @@ static HRESULT DtbAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 {
 	RECT rcReal{ 0,0,prc->right - prc->left, prc->bottom - prc->top };
 	CEzCDC DC{};
-	DC.Create32(NULL, rcReal.right, rcReal.bottom);
+	DC.Create32(nullptr, rcReal.right, rcReal.bottom);
 
 	auto RealOpt{ Opt };
 	RealOpt.rcClip = {};
@@ -293,7 +293,7 @@ static HRESULT DtbAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 		fPercent, fPercent, fPercent, 0, 1
 	};
 	GdipSetImageAttributesColorMatrix(pIA, Gdiplus::ColorAdjustTypeDefault, TRUE, &mat,
-		NULL, Gdiplus::ColorMatrixFlagsDefault);
+		nullptr, Gdiplus::ColorMatrixFlagsDefault);
 	GpGraphics* pGraphics;
 	GdipCreateFromHDC(hDC, &pGraphics);
 	if (Opt.dwFlags & DTBG_CLIPRECT)
@@ -303,7 +303,7 @@ static HRESULT DtbAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 			Gdiplus::CombineModeReplace);
 	}
 	GdipDrawImageRectRectI(pGraphics, pBitmap, prc->left, prc->top, rcReal.right, rcReal.bottom,
-		0, 0, rcReal.right, rcReal.bottom, Gdiplus::UnitPixel, pIA, NULL, NULL);
+		0, 0, rcReal.right, rcReal.bottom, Gdiplus::UnitPixel, pIA, nullptr, nullptr);
 	GdipDeleteGraphics(pGraphics);
 	GdipDisposeImage(pBitmap);
 	GdipDisposeImageAttributes(pIA);
@@ -840,7 +840,7 @@ enum
 
 struct EZREGWNDINFO
 {
-	PCWSTR pszClass = NULL;
+	PCWSTR pszClass = nullptr;
 	UINT uClassStyle = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
 };
 
@@ -907,7 +907,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 #ifdef _DEBUG
 		gpsi.DebugEventCallback = GdiplusDebug;
 #endif
-		Gdiplus::GpStatus uGpRet = GdiplusStartup(&g_uGpToken, &gpsi, NULL);
+		Gdiplus::GpStatus uGpRet = GdiplusStartup(&g_uGpToken, &gpsi, nullptr);
 		if (uGpRet != Gdiplus::Ok)
 		{
 			*pdwErrCode = uGpRet;
@@ -918,7 +918,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	//////////////注册窗口类
 	g_WndClassInfo[0].iType = RWCT_CUSTOM;
 	g_WndClassInfo[0].wc = { CS_STDWND,DefDlgProcW,0,DLGWINDOWEXTRA + sizeof(void*) * 2,
-	g_hInstance,NULL,LoadCursorW(NULL,IDC_ARROW),NULL,NULL,WCN_DLG };
+	g_hInstance,nullptr,LoadCursorW(nullptr,IDC_ARROW),nullptr,nullptr,WCN_DLG };
 
 	for (const auto& e : g_WndClassInfo)
 	{
@@ -949,7 +949,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 
 	//////////////获取运行目录
 	g_rsCurrDir.ReSize(32768);
-	GetModuleFileNameW(NULL, g_rsCurrDir.Data(), g_rsCurrDir.Size());
+	GetModuleFileNameW(nullptr, g_rsCurrDir.Data(), g_rsCurrDir.Size());
 	PathRemoveFileSpecW(g_rsCurrDir.Data());
 	g_rsCurrDir.ReCalcLen();
 	g_rsCurrDir.ShrinkToFit();
@@ -980,12 +980,12 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		}
 		//////////////创建DXGI工厂
 		ID3D11Device* pD3DDevice;
-		hr = D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, D3D11_CREATE_DEVICE_BGRA_SUPPORT
+		hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT
 #ifndef NDEBUG
 			| D3D11_CREATE_DEVICE_DEBUG
 #endif // !NDEBUG
 			, pInitParam->pD3dFeatureLevel, pInitParam->cD3dFeatureLevel,
-			D3D11_SDK_VERSION, &pD3DDevice, NULL, NULL);
+			D3D11_SDK_VERSION, &pD3DDevice, nullptr, nullptr);
 		if (FAILED(hr))
 		{
 			*pdwErrCode = hr;
@@ -1011,7 +1011,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	//////////////创建WIC工厂
 	if (!IsBitSet(pInitParam->uFlags, EIF_NOINITWIC))
 	{
-		hr = CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&g_pWicFactory));
+		hr = CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&g_pWicFactory));
 		if (FAILED(hr))
 		{
 			*pdwErrCode = hr;
@@ -1057,7 +1057,7 @@ void UnInit()
 		GdiplusShutdown(g_uGpToken);
 		g_uGpToken = 0u;
 	}
-	g_hInstance = NULL;
+	g_hInstance = nullptr;
 	g_rsCurrDir.Clear();
 	SafeRelease(g_pWicFactory);
 	SafeRelease(g_pD2dFactory);
@@ -1132,16 +1132,16 @@ void ThreadInit()
 					if (it != itEnd)
 					{
 						if (it == c_pszCommCtrlCls + 1 || it == c_pszCommCtrlCls + 2)// HEADER/LISTVIEW
-							SetWindowTheme(hWnd, L"ItemsView", NULL);
+							SetWindowTheme(hWnd, L"ItemsView", nullptr);
 						else ECKLIKELY
-							SetWindowTheme(hWnd, L"Explorer", NULL);
+							SetWindowTheme(hWnd, L"Explorer", nullptr);
 					}
 				}
 				return lResult;
 			}
 
 			return CallNextHookEx(p->hhkCbtDarkMode, iCode, wParam, lParam);
-		}, NULL, GetCurrentThreadId());
+		}, nullptr, GetCurrentThreadId());
 }
 
 constexpr PCWSTR c_szErrInitStatus[]
@@ -1175,7 +1175,7 @@ void ThreadUnInit()
 	UnhookWindowsHookEx(p->hhkTempCBT);
 	UnhookWindowsHookEx(p->hhkCbtDarkMode);
 	delete p;
-	TlsSetValue(GetThreadCtxTlsSlot(), NULL);
+	TlsSetValue(GetThreadCtxTlsSlot(), nullptr);
 }
 
 HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc)
@@ -1204,7 +1204,7 @@ HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc)
 				EndCbtHook();
 			}
 			return CallNextHookEx(pCtx->hhkTempCBT, iCode, wParam, lParam);
-		}, NULL, GetCurrentThreadId());
+		}, nullptr, GetCurrentThreadId());
 	return pCtx->hhkTempCBT;
 }
 
@@ -1213,7 +1213,7 @@ void EndCbtHook()
 	const auto pCtx = GetThreadCtx();
 	EckAssert(pCtx->hhkTempCBT);
 	UnhookWindowsHookEx(pCtx->hhkTempCBT);
-	pCtx->hhkTempCBT = NULL;
+	pCtx->hhkTempCBT = nullptr;
 }
 
 BOOL PreTranslateMessage(const MSG& Msg)
@@ -1293,7 +1293,7 @@ void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 	tdc.cButtons = ARRAYSIZE(Btns);
 	tdc.nDefaultButton = 101;
 	WCHAR szPath[MAX_PATH]{};
-	GetModuleFileNameW(NULL, szPath, MAX_PATH);
+	GetModuleFileNameW(nullptr, szPath, MAX_PATH);
 	const auto rsContent = Format(L"程序位置：%s\n\n源文件：%s\n\n行号：%s\n\n测试表达式：%s",
 		szPath, pszFile, pszLine, pszMsg);
 	tdc.pszContent = rsContent.Data();
@@ -1303,7 +1303,7 @@ void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 	TASKDIALOGCTX Ctx{ &tdc };
 	CTaskDialog td;
 
-	switch (td.DlgBox(NULL, &Ctx))
+	switch (td.DlgBox(nullptr, &Ctx))
 	{
 	case 100:
 		ExitProcess(0);
@@ -1343,7 +1343,7 @@ void ECKTHREADCTX::OnThemeOpen(HTHEME hTheme, PCWSTR pszClassList)
 	{
 		auto& e = hsToolBarTheme[hTheme];
 		if (!e.first && ShouldAppsUseDarkMode())
-			e.second = s_pfnOpenThemeData(NULL, L"ItemsView::ListView");
+			e.second = s_pfnOpenThemeData(nullptr, L"ItemsView::ListView");
 		++e.first;
 	}
 	else if (_wcsicmp(pszClassList, L"AeroWizard") == 0 ||
@@ -1353,7 +1353,7 @@ void ECKTHREADCTX::OnThemeOpen(HTHEME hTheme, PCWSTR pszClassList)
 	{
 		auto& e = hsDateTimePickerTheme[hTheme];
 		if (!e.first && ShouldAppsUseDarkMode())
-			e.second = s_pfnOpenThemeData(NULL, L"DarkMode_CFD::ComboBox");
+			e.second = s_pfnOpenThemeData(nullptr, L"DarkMode_CFD::ComboBox");
 		++e.first;
 	}
 }
@@ -1427,7 +1427,7 @@ void ECKTHREADCTX::SendThemeChangedToAllTopWindow()
 	for (const auto& e : hmTopWnd)
 	{
 		BroadcastChildrenMessage(e.first, WM_THEMECHANGED, 0, 0);
-		RedrawWindow(e.first, NULL, NULL, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW);
+		RedrawWindow(e.first, nullptr, nullptr, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW);
 	}
 }
 ECK_NAMESPACE_END

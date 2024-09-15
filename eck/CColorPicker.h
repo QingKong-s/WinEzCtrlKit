@@ -143,7 +143,7 @@ public:
 				if (ChooseColorW(&cc))
 				{
 					m_crCustom = cc.rgbResult;
-					InvalidateRect((HWND)lParam, NULL, FALSE);
+					InvalidateRect((HWND)lParam, nullptr, FALSE);
 				}
 				cr = m_crCustom;
 			}
@@ -180,12 +180,12 @@ public:
 	
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		dwStyle |= (WS_CHILD | WS_VSCROLL | CBS_OWNERDRAWFIXED | CBS_DROPDOWNLIST);
 		m_iDpi = GetDpi(hParent);
-		m_hWnd = IntCreate(0, WC_COMBOBOXW, NULL, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL, NULL);
+		m_hWnd = IntCreate(0, WC_COMBOBOXW, nullptr, dwStyle,
+			x, y, cx, cy, hParent, hMenu, nullptr, nullptr, nullptr);
 		SetRedraw(FALSE);
 		InitStorage(ARRAYSIZE(c_ColorPickerPresetClr), 0);
 		for (auto& x : c_ColorPickerPresetClr)

@@ -32,11 +32,11 @@ protected:
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = NULL) override
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
 		dwStyle |= WS_CHILD;
-		m_hWnd = CreateWindowExW(0, WC_LISTBOXW, NULL, dwStyle,
-			x, y, cx, cy, hParent, hMenu, NULL, NULL);
+		m_hWnd = CreateWindowExW(0, WC_LISTBOXW, nullptr, dwStyle,
+			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 		return m_hWnd;
 	}
 
