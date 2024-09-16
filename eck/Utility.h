@@ -56,48 +56,48 @@ using UniquePtrCrtMA = std::unique_ptr<T, CrtMADeleter<T>>;
 namespace Colorref
 {
 	inline constexpr COLORREF
-		Red            = 0x0000FF,// 红色
-		Green          = 0x00FF00,// 绿色
-		Blue           = 0xFF0000,// 蓝色
-		Yellow         = 0x00FFFF,// 黄色
-		Magenta        = 0xFF00FF,// 品红/洋红
-		Cyan           = 0xFFFF00,// 艳青/青色
-		Aqua           = Cyan,
+		Red = 0x0000FF,			// 红色
+		Green = 0x00FF00,		// 绿色
+		Blue = 0xFF0000,		// 蓝色
+		Yellow = 0x00FFFF,		// 黄色
+		Magenta = 0xFF00FF,		// 品红/洋红
+		Cyan = 0xFFFF00,		// 艳青/青色
+		Aqua = Cyan,
 
-		Maroon         = 0x000080,// 红褐/暗红
-		OfficeGreen    = 0x008000,// 墨绿/暗绿
-		Olive          = 0x008080,// 褐绿/暗黄
-		NavyBlue       = 0x800000,// 藏青/暗蓝
-		Patriarch      = 0x800080,// 紫红/暗洋红
-		Teal           = 0x808000,// 深青/暗青
+		Maroon = 0x000080,		// 红褐/暗红
+		OfficeGreen = 0x008000,	// 墨绿/暗绿
+		Olive = 0x008080,		// 褐绿/暗黄
+		NavyBlue = 0x800000,	// 藏青/暗蓝
+		Patriarch = 0x800080,	// 紫红/暗洋红
+		Teal = 0x808000,		// 深青/暗青
 
-		Silver         = 0xC0C0C0,// 浅灰/亮灰
-		MoneyGreen     = 0xC0DCC0,// 美元绿
-		LightBlue      = 0xF0CAA6,// 浅蓝/天蓝
+		Silver = 0xC0C0C0,		// 浅灰/亮灰
+		MoneyGreen = 0xC0DCC0,	// 美元绿
+		LightBlue = 0xF0CAA6,	// 浅蓝/天蓝
 
-		Gray           = 0x808080,// 灰色/暗灰
-		NeutralGray    = 0xA4A0A0,// 中性灰
-		MilkyWhite     = 0xF0FBFF,// 乳白
+		Gray = 0x808080,		// 灰色/暗灰
+		NeutralGray = 0xA4A0A0,	// 中性灰
+		MilkyWhite = 0xF0FBFF,	// 乳白
 
-		Black          = 0x000000,// 黑色
-		White          = 0xFFFFFF,// 白色
+		Black = 0x000000,		// 黑色
+		White = 0xFFFFFF,		// 白色
 
-		BlueGray       = 0xFF8080,// 蓝灰
-		PurplishBlue   = 0xE03058,// 藏蓝
-		TenderGreen    = 0x00E080,// 嫩绿
-		Turquoise      = 0x80E000,// 青绿
+		BlueGray = 0xFF8080,	// 蓝灰
+		PurplishBlue = 0xE03058,// 藏蓝
+		TenderGreen = 0x00E080,	// 嫩绿
+		Turquoise = 0x80E000,	// 青绿
 		YellowishBrown = 0x0060C0,// 黄褐
-		Pink           = 0xFFA8FF,// 粉红
-		BrightYellow   = 0x00D8D8,// 嫩黄
-		JadeWhite      = 0xECECEC,// 银白
-		Purple         = 0xFF0090,// 紫色
-		Azure          = 0xFF8800,// 天蓝
-		Celadon        = 0x80A080,// 灰绿
-		CyanBlue       = 0xC06000,// 青蓝
-		Orange         = 0x0080FF,// 橙黄
-		Peachblow      = 0x8050FF,// 桃红
-		HibiscusRed    = 0xC080FF,// 芙红
-		DeepGray       = 0x606060// 深灰
+		Pink = 0xFFA8FF,		// 粉红
+		BrightYellow = 0x00D8D8,// 嫩黄
+		JadeWhite = 0xECECEC,	// 银白
+		Purple = 0xFF0090,		// 紫色
+		Azure = 0xFF8800,		// 天蓝
+		Celadon = 0x80A080,		// 灰绿
+		CyanBlue = 0xC06000,	// 青蓝
+		Orange = 0x0080FF,		// 橙黄
+		Peachblow = 0x8050FF,	// 桃红
+		HibiscusRed = 0xC080FF,	// 芙红
+		DeepGray = 0x606060		// 深灰
 		;
 }
 
@@ -411,7 +411,13 @@ EckInline constexpr BOOL IsRectsIntersect(const RECT& rc1, const RECT& rc2)
 EckInline constexpr BOOL IsRectsIntersect(const D2D1_RECT_F& rc1, const D2D1_RECT_F& rc2)
 {
 	return !(std::max(rc1.left, rc2.left) > std::min(rc1.right, rc2.right) ||
-			std::max(rc1.top, rc2.top) > std::min(rc1.bottom, rc2.bottom));
+		std::max(rc1.top, rc2.top) > std::min(rc1.bottom, rc2.bottom));
+}
+
+EckInline constexpr BOOL IsRectsIntersect(const RCWH& rc1, const RCWH& rc2)
+{
+	return !(std::max(rc1.x, rc2.x) > std::min(rc1.x + rc2.cx, rc2.x + rc2.cx) ||
+		std::max(rc1.y, rc2.y) > std::min(rc1.y + rc2.cy, rc2.y + rc2.cy));
 }
 
 template<class T>
@@ -557,6 +563,14 @@ EckInline constexpr void InflateRect(RECT& rc, int dx, int dy)
 	rc.bottom += dy;
 }
 
+EckInline constexpr void InflateRect(RCWH& rc, int dx, int dy)
+{
+	rc.x -= dx;
+	rc.y -= dy;
+	rc.cx += dx;
+	rc.cy += dy;
+}
+
 EckInline constexpr BOOL IntersectRect(D2D1_RECT_F& rcDst, const D2D1_RECT_F& rcSrc1, const D2D1_RECT_F& rcSrc2)
 {
 	rcDst.left = std::max(rcSrc1.left, rcSrc2.left);
@@ -587,6 +601,21 @@ EckInline constexpr BOOL IntersectRect(RECT& rcDst, const RECT& rcSrc1, const RE
 	return FALSE;
 }
 
+EckInline constexpr BOOL IntersectRect(RCWH& rcDst, const RCWH& rcSrc1, const RCWH& rcSrc2)
+{
+	rcDst.x = std::max(rcSrc1.x, rcSrc2.x);
+	rcDst.cx = std::min(rcSrc1.x + rcSrc1.cx, rcSrc2.x + rcSrc2.cx) - rcDst.x;
+	if (rcDst.cx > 0)
+	{
+		rcDst.y = std::max(rcSrc1.y, rcSrc2.y);
+		rcDst.cy = std::min(rcSrc1.y + rcSrc1.cy, rcSrc2.y + rcSrc2.cy) - rcDst.y;
+		if (rcDst.cy > 0)
+			return TRUE;
+	}
+	rcDst = {};
+	return FALSE;
+}
+
 EckInline constexpr void OffsetRect(D2D1_RECT_F& rc, float dx, float dy)
 {
 	rc.left += dx;
@@ -601,6 +630,12 @@ EckInline constexpr void OffsetRect(RECT& rc, int dx, int dy)
 	rc.top += dy;
 	rc.right += dx;
 	rc.bottom += dy;
+}
+
+EckInline constexpr void OffsetRect(RCWH& rc, int dx, int dy)
+{
+	rc.x += dx;
+	rc.y += dy;
 }
 
 EckInline constexpr BOOL PtInRect(const RECT& rc, POINT pt)
@@ -673,6 +708,32 @@ inline constexpr void UnionRect(D2D1_RECT_F& rcDst, const D2D1_RECT_F& rcSrc1, c
 	}
 }
 
+EckInline constexpr BOOL IsRectEmpty(const RCWH& rc)
+{
+	return rc.cx <= 0 || rc.cy <= 0;
+}
+
+inline constexpr void UnionRect(RCWH& rcDst, const RCWH& rcSrc1, const RCWH& rcSrc2)
+{
+	const BOOL b1 = IsRectEmpty(rcSrc1), b2 = IsRectEmpty(rcSrc2);
+	if (b1)
+	{
+		if (b2)
+			rcDst = {};
+		else
+			rcDst = rcSrc2;
+	}
+	else if (b2)
+		rcDst = rcSrc1;
+	else
+	{
+		rcDst.x = std::min(rcSrc1.x, rcSrc2.x);
+		rcDst.y = std::min(rcSrc1.y, rcSrc2.y);
+		rcDst.cx = std::max(rcSrc1.x + rcSrc1.cx, rcSrc2.x + rcSrc2.cx) - rcDst.x;
+		rcDst.cy = std::max(rcSrc1.y + rcSrc1.cy, rcSrc2.y + rcSrc2.cy) - rcDst.y;
+	}
+}
+
 EckInline constexpr bool operator==(const D2D1_RECT_F& rc1, const D2D1_RECT_F& rc2)
 {
 	return rc1.left == rc2.left && rc1.top == rc2.top &&
@@ -692,6 +753,11 @@ EckInline constexpr bool operator==(const D2D1_SIZE_F& sz1, const D2D1_SIZE_F& s
 EckInline constexpr bool operator==(const D2D1_SIZE_U& sz1, const D2D1_SIZE_U& sz2)
 {
 	return sz1.width == sz2.width && sz1.height == sz2.height;
+}
+
+EckInline constexpr bool operator==(const RCWH& rc1, const RCWH& rc2)
+{
+	return rc1.x == rc2.x && rc1.y == rc2.y && rc1.cx == rc2.cx && rc1.cy == rc2.cy;
 }
 
 template<class T1, class T2>
@@ -1547,6 +1613,11 @@ EckInline constexpr void InitOA(OBJECT_ATTRIBUTES& oa, PUNICODE_STRING pusName =
 	oa.Attributes = ulAttr;
 	oa.SecurityDescriptor = pSecDesc;
 	oa.SecurityQualityOfService = NULL;
+}
+
+EckInline constexpr RCWH ToRCWH(const RECT& rc)
+{
+	return RCWH{ rc.left,rc.top,rc.right - rc.left,rc.bottom - rc.top };
 }
 
 #if !ECKCXX20
