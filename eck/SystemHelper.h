@@ -1314,96 +1314,227 @@ inline void InputChar(PCWSTR pszText, int cchText = -1,
 	}
 }
 
-/// <summary>
-/// 快照
-/// </summary>
-/// <param name="pBmp">返回WIC位图</param>
-/// <param name="pD3dDevice">要使用的D3D11设备，必须与目标适配器关联</param>
-/// <param name="msTimeout">帧超时</param>
-/// <param name="idxAdapter">适配器索引</param>
-/// <param name="idxOutput">输出索引</param>
-/// <returns>HRESULT</returns>
-inline HRESULT Snapshot(IWICBitmap*& pBmp, ID3D11Device* pD3dDevice = nullptr,
-	UINT msTimeout = 500, UINT idxAdapter = 0u, UINT idxOutput = 0u)
+struct SNP_OUTPUT
 {
-	pBmp = nullptr;
+	UINT idxOutput;
+	ComPtr<IDXGIOutput1> pOutput;
+	RCWH rc;
+};
+
+struct SNP_ADAPTER
+{
+	UINT idxAdapter;
+	ComPtr<IDXGIAdapter> pAdapter;
+	std::vector<SNP_OUTPUT> vOutput;
+};
+
+struct SNP_CURSOR
+{
+	CRefBin rbCursor;
+	DXGI_OUTDUPL_POINTER_SHAPE_INFO ShapeInfo;
+	DXGI_OUTDUPL_POINTER_POSITION Position;
+};
+
+using SNP_F1 = HRESULT(*)(size_t cOutput, const RCWH& rcBound);
+using SNP_F2 = HRESULT(*)(size_t cOutput, const RCWH& rcBound, const SNP_OUTPUT& Output,
+	const D3D11_MAPPED_SUBRESOURCE& MappedRes, const SNP_CURSOR& Cursor);
+
+//using F1 = SNP_F1;
+//using F2 = SNP_F2;
+template<class F1, class F2>
+inline HRESULT IntSnapshot(F1 fnPreFetch, F2 fnFetch, const RCWH& rc, BOOL bCursor, UINT msTimeout = 500)
+{
 	HRESULT hr;
 
-	ComPtr<IDXGIAdapter> pAdapter;
-	g_pDxgiFactory->EnumAdapters(idxAdapter, &pAdapter);
+	std::vector<SNP_ADAPTER> vAdapter{};
+	UINT idxAdapter = 0u;
+	UINT idxOutput = 0u;
 
-	ComPtr<ID3D11Device> pDevice;
-	ComPtr<ID3D11DeviceContext> pDC;
+	IDXGIAdapter* pAdapter;
+	IDXGIOutput* pOutput;
 
-	if (!pD3dDevice)
+	RCWH rcBound{};
+	size_t cOutput{};// Optimize for single output
+	while (SUCCEEDED(g_pDxgiFactory->EnumAdapters(idxAdapter, &pAdapter)))
 	{
-		hr = D3D11CreateDevice(pAdapter.Get(), D3D_DRIVER_TYPE_UNKNOWN,
-			nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT
-#ifdef _DEBUG
-			| D3D11_CREATE_DEVICE_DEBUG
-#endif // _DEBUG
-			, nullptr, 0,
-			D3D11_SDK_VERSION, &pDevice, nullptr, &pDC);
-		if (FAILED(hr))
-			return hr;
-		pD3dDevice = pDevice.Get();
-	}
-	else
-		pD3dDevice->GetImmediateContext(&pDC);
-
-	ComPtr<IDXGIOutput> pOutput0;
-	ComPtr<IDXGIOutput1> pOutput;
-	if (FAILED(hr = pAdapter->EnumOutputs(idxOutput, &pOutput0)))
-		return hr;
-	pOutput0.As(pOutput);
-
-	ComPtr<IDXGIOutputDuplication> pDup;
-	if (FAILED(hr = pOutput->DuplicateOutput(pD3dDevice, &pDup)))
-		return hr;
-
-	ComPtr<IDXGIResource> pResource;
-	DXGI_OUTDUPL_FRAME_INFO FrameInfo;
-	pDup->ReleaseFrame();
-	EckCounterNV(100)
-	{
-		if (FAILED(hr = pDup->AcquireNextFrame(msTimeout, &FrameInfo, &pResource)))
-			return hr;
-		if (!FrameInfo.TotalMetadataBufferSize)
+		auto& e = vAdapter.emplace_back(idxAdapter, pAdapter);
+		while (SUCCEEDED(pAdapter->EnumOutputs(idxOutput, &pOutput)))
 		{
-			pResource->Release();
+			DXGI_OUTPUT_DESC Desc;
+			if (SUCCEEDED(pOutput->GetDesc(&Desc)))
+			{
+				RCWH rcTemp;
+				if (IntersectRect(rcTemp, rc, ToRCWH(Desc.DesktopCoordinates)))
+				{
+					++cOutput;
+					UnionRect(rcBound, rcBound, rcTemp);
+					IDXGIOutput1* pOutput1;
+					pOutput->QueryInterface(&pOutput1);
+					e.vOutput.emplace_back(idxOutput, pOutput1, rcTemp);
+				}
+			}
+			pOutput->Release();
+			++idxOutput;
+		}
+		if (e.vOutput.empty())
+			vAdapter.pop_back();
+		++idxAdapter;
+	}
+	if (vAdapter.empty())
+		return E_FAIL;
+
+	if (FAILED(hr = fnPreFetch(cOutput, rcBound)))
+		return hr;
+
+	for (const auto& e : vAdapter)
+	{
+		for (const auto& f : e.vOutput)
+		{
+			ComPtr<ID3D11Device> pDevice;
+			ComPtr<ID3D11DeviceContext> pDC;
+
+			hr = D3D11CreateDevice(e.pAdapter.Get(), D3D_DRIVER_TYPE_UNKNOWN,
+				nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT
+#ifdef _DEBUG
+				| D3D11_CREATE_DEVICE_DEBUG
+#endif // _DEBUG
+				, nullptr, 0,
+				D3D11_SDK_VERSION, &pDevice, nullptr, &pDC);
+			if (FAILED(hr))
+				return hr;
+
+			ComPtr<IDXGIOutputDuplication> pDup;
+			if (FAILED(hr = f.pOutput->DuplicateOutput(pDevice.Get(), &pDup)))
+				return hr;
+
+			ComPtr<IDXGIResource> pResource;
+			DXGI_OUTDUPL_FRAME_INFO FrameInfo;
+			pDup->ReleaseFrame();
+			EckCounterNV(100)
+			{
+				if (FAILED(hr = pDup->AcquireNextFrame(msTimeout, &FrameInfo, &pResource)))
+					return hr;
+				if (!FrameInfo.TotalMetadataBufferSize)
+				{
+					pResource->Release();
+					pDup->ReleaseFrame();
+				}
+				else
+					goto ResourceOk;
+			}
+			return ERROR_TIMEOUT;
+		ResourceOk:
+			SNP_CURSOR Cursor{};
+			if (bCursor && FrameInfo.PointerShapeBufferSize
+				&& FrameInfo.PointerPosition.Visible)
+			{
+				Cursor.rbCursor.ReSize(FrameInfo.PointerShapeBufferSize);
+				UINT Dummy;
+				pDup->GetFramePointerShape(FrameInfo.PointerShapeBufferSize,
+					Cursor.rbCursor.Data(), &Dummy, &Cursor.ShapeInfo);
+				Cursor.Position = FrameInfo.PointerPosition;
+			}
+
+			ComPtr<ID3D11Texture2D> pTexture;
+			pResource.As(pTexture);
+
+			D3D11_TEXTURE2D_DESC Desc;
+			pTexture->GetDesc(&Desc);
+			Desc.BindFlags = 0;
+			Desc.MiscFlags = 0;
+			Desc.Usage = D3D11_USAGE_STAGING;// 回读
+			Desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+
+			ComPtr<ID3D11Texture2D> pTex;
+			if (FAILED(hr = pDevice->CreateTexture2D(&Desc, nullptr, &pTex)))
+				return hr;
+			pDC->CopyResource(pTex.Get(), pTexture.Get());
+			pDC->Flush();
+
+			D3D11_MAPPED_SUBRESOURCE MappedRes;
+			if (FAILED(hr = pDC->Map(pTex.Get(), 0, D3D11_MAP_READ, 0, &MappedRes)))
+				return hr;
+
+			hr = fnFetch(cOutput, rcBound, f, MappedRes, Cursor);
+
+			pDC->Unmap(pTex.Get(), 0);
 			pDup->ReleaseFrame();
 		}
-		else
-			goto ResourceOk;
 	}
-	return ERROR_TIMEOUT;
-ResourceOk:
-	ComPtr<ID3D11Texture2D> pTexture;
-	pResource.As(pTexture);
 
-	D3D11_TEXTURE2D_DESC Desc;
-	pTexture->GetDesc(&Desc);
-	Desc.BindFlags = 0;
-	Desc.MiscFlags = 0;
-	Desc.Usage = D3D11_USAGE_STAGING;// 回读
-	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-
-	ComPtr<ID3D11Texture2D> pTex;
-	if (FAILED(hr = pD3dDevice->CreateTexture2D(&Desc, nullptr, &pTex)))
-		return hr;
-	pDC->CopyResource(pTex.Get(), pTexture.Get());
-	pDC->Flush();
-
-	D3D11_MAPPED_SUBRESOURCE MappedResource;
-	if (FAILED(hr = pDC->Map(pTex.Get(), 0, D3D11_MAP_READ, 0, &MappedResource)))
-		return hr;
-
-	hr = g_pWicFactory->CreateBitmapFromMemory(Desc.Width, Desc.Height,
-		GUID_WICPixelFormat32bppBGRA, MappedResource.RowPitch, MappedResource.RowPitch * Desc.Height,
-		(BYTE*)MappedResource.pData, &pBmp);
-
-	pDC->Unmap(pTex.Get(), 0);
-	pDup->ReleaseFrame();
 	return hr;
+}
+
+inline HRESULT Snapshot(IWICBitmap*& pBmp, const RCWH& rc, BOOL bCursor = FALSE, UINT msTimeout = 500)
+{
+	pBmp = nullptr;
+	ComPtr<IWICBitmap> pBitmap;
+	ComPtr<IWICBitmapLock> pLock;
+	BYTE* pBits{};
+	UINT cbStride{};
+
+	const auto hr = IntSnapshot([&](size_t cOutput, const RCWH& rcBound) -> HRESULT
+		{
+			if (cOutput != 1 || bCursor)
+			{
+				auto hr = g_pWicFactory->CreateBitmap(rcBound.cx, rcBound.cy,
+					GUID_WICPixelFormat32bppBGRA, WICBitmapCacheOnDemand, &pBitmap);
+				if (FAILED(hr))
+					return hr;
+				if (FAILED(hr = pBitmap->Lock(NULL, WICBitmapLockWrite, &pLock)))
+					return hr;
+				// TODO: 处理多线程套间
+				pLock->GetDataPointer(&cbStride, &pBits);
+				pLock->GetStride(&cbStride);
+			}
+			return S_OK;
+		},
+		[&](size_t cOutput, const RCWH& rcBound, const SNP_OUTPUT& Output,
+			const D3D11_MAPPED_SUBRESOURCE& MappedRes, const SNP_CURSOR& Cursor) -> HRESULT
+		{
+			if (cOutput != 1 || bCursor)
+			{
+				RCWH rcDst = Output.rc;
+				OffsetRect(rcDst, -rcBound.x, -rcBound.y);
+
+				BYTE* pDst = pBits + rcDst.y * cbStride + rcDst.x * 4;
+				for (int y = Output.rc.y; y < Output.rc.y + Output.rc.cy; ++y)
+				{
+					memcpy(pDst,
+						(BYTE*)MappedRes.pData + Output.rc.x * 4 + y * MappedRes.RowPitch,
+						Output.rc.cx * 4);
+					pDst = pDst + cbStride;
+				}
+				//// TODO: 处理光标
+				//if (!Cursor.rbCursor.IsEmpty())
+				//{
+				//	switch (Cursor.ShapeInfo.Type)
+				//	{
+				//	case DXGI_OUTDUPL_POINTER_SHAPE_TYPE_COLOR:
+				//	{
+
+				//	}
+				//	break;
+				//	case DXGI_OUTDUPL_POINTER_SHAPE_TYPE_MONOCHROME:
+				//	case DXGI_OUTDUPL_POINTER_SHAPE_TYPE_MASKED_COLOR:
+				//	}
+				//}
+			}
+			else
+				return g_pWicFactory->CreateBitmapFromMemory(
+					Output.rc.cx, Output.rc.cy,
+					GUID_WICPixelFormat32bppBGRA,
+					MappedRes.RowPitch,
+					MappedRes.RowPitch * Output.rc.cy,
+					(BYTE*)MappedRes.pData + Output.rc.x * 4 + Output.rc.y * MappedRes.RowPitch,
+					&pBmp);
+			return S_OK;
+		}, rc, bCursor, msTimeout);
+
+	if (FAILED(hr))
+		return hr;
+	if (pBitmap.Get())
+		pBmp = pBitmap.Detach();
+	return S_OK;
 }
 ECK_NAMESPACE_END

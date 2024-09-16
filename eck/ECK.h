@@ -466,7 +466,10 @@ union BIT128
 	BYTE u8[16];
 };
 
-using MD5 = BIT128;
+struct MD5
+{
+	BIT128 v;
+};
 
 union BIT256
 {
