@@ -533,7 +533,7 @@ EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 	if (!GetDefFontInfo(lf, iDpi))
 		return NULL;
 	IDWriteTextFormat* pTextFormat;
-	auto hr = g_pDwFactory->CreateTextFormat(
+	const auto hr = g_pDwFactory->CreateTextFormat(
 		lf.lfFaceName,
 		NULL,
 		(DWRITE_FONT_WEIGHT)lf.lfWeight,
@@ -839,7 +839,7 @@ namespace EckPriv
 /// <param name="vPath">路径</param>
 EckInline void OpenInExplorer(const std::vector<CRefStrW>& vPath)
 {
-	CloseHandle(CrtCreateThread(EckPriv::OpenInExplorerThread, new std::vector{ vPath }));
+	NtClose(CrtCreateThread(EckPriv::OpenInExplorerThread, new std::vector{ vPath }));
 }
 
 /// <summary>
@@ -849,7 +849,7 @@ EckInline void OpenInExplorer(const std::vector<CRefStrW>& vPath)
 /// <param name="pvPath">路径vector指针，必须使用new分配且传递后不可再使用</param>
 EckInline void OpenInExplorer(std::vector<CRefStrW>* pvPath)
 {
-	CloseHandle(CrtCreateThread(EckPriv::OpenInExplorerThread, pvPath));
+	NtClose(CrtCreateThread(EckPriv::OpenInExplorerThread, pvPath));
 }
 
 /// <summary>
@@ -1312,5 +1312,98 @@ inline void InputChar(PCWSTR pszText, int cchText = -1,
 		EckCounter(cchText, i)
 			InputChar(pszText[i], bExtended);
 	}
+}
+
+/// <summary>
+/// 快照
+/// </summary>
+/// <param name="pBmp">返回WIC位图</param>
+/// <param name="pD3dDevice">要使用的D3D11设备，必须与目标适配器关联</param>
+/// <param name="msTimeout">帧超时</param>
+/// <param name="idxAdapter">适配器索引</param>
+/// <param name="idxOutput">输出索引</param>
+/// <returns>HRESULT</returns>
+inline HRESULT Snapshot(IWICBitmap*& pBmp, ID3D11Device* pD3dDevice = nullptr,
+	UINT msTimeout = 500, UINT idxAdapter = 0u, UINT idxOutput = 0u)
+{
+	pBmp = nullptr;
+	HRESULT hr;
+
+	ComPtr<IDXGIAdapter> pAdapter;
+	g_pDxgiFactory->EnumAdapters(idxAdapter, &pAdapter);
+
+	ComPtr<ID3D11Device> pDevice;
+	ComPtr<ID3D11DeviceContext> pDC;
+
+	if (!pD3dDevice)
+	{
+		hr = D3D11CreateDevice(pAdapter.Get(), D3D_DRIVER_TYPE_UNKNOWN,
+			nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT
+#ifdef _DEBUG
+			| D3D11_CREATE_DEVICE_DEBUG
+#endif // _DEBUG
+			, nullptr, 0,
+			D3D11_SDK_VERSION, &pDevice, nullptr, &pDC);
+		if (FAILED(hr))
+			return hr;
+		pD3dDevice = pDevice.Get();
+	}
+	else
+		pD3dDevice->GetImmediateContext(&pDC);
+
+	ComPtr<IDXGIOutput> pOutput0;
+	ComPtr<IDXGIOutput1> pOutput;
+	if (FAILED(hr = pAdapter->EnumOutputs(idxOutput, &pOutput0)))
+		return hr;
+	pOutput0.As(pOutput);
+
+	ComPtr<IDXGIOutputDuplication> pDup;
+	if (FAILED(hr = pOutput->DuplicateOutput(pD3dDevice, &pDup)))
+		return hr;
+
+	ComPtr<IDXGIResource> pResource;
+	DXGI_OUTDUPL_FRAME_INFO FrameInfo;
+	pDup->ReleaseFrame();
+	EckCounterNV(100)
+	{
+		if (FAILED(hr = pDup->AcquireNextFrame(msTimeout, &FrameInfo, &pResource)))
+			return hr;
+		if (!FrameInfo.TotalMetadataBufferSize)
+		{
+			pResource->Release();
+			pDup->ReleaseFrame();
+		}
+		else
+			goto ResourceOk;
+	}
+	return ERROR_TIMEOUT;
+ResourceOk:
+	ComPtr<ID3D11Texture2D> pTexture;
+	pResource.As(pTexture);
+
+	D3D11_TEXTURE2D_DESC Desc;
+	pTexture->GetDesc(&Desc);
+	Desc.BindFlags = 0;
+	Desc.MiscFlags = 0;
+	Desc.Usage = D3D11_USAGE_STAGING;// 回读
+	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+
+	ComPtr<ID3D11Texture2D> pTex;
+	if (FAILED(hr = pD3dDevice->CreateTexture2D(&Desc, nullptr, &pTex)))
+		return hr;
+	pDC->CopyResource(pTex.Get(), pTexture.Get());
+	pDC->Flush();
+
+	D3D11_MAPPED_SUBRESOURCE MappedResource;
+	if (FAILED(hr = pDC->Map(pTex.Get(), 0, D3D11_MAP_READ, 0, &MappedResource)))
+		return hr;
+
+	hr = g_pWicFactory->CreateBitmapFromMemory(Desc.Width, Desc.Height,
+		GUID_WICPixelFormat32bppBGRA, MappedResource.RowPitch, MappedResource.RowPitch * Desc.Height,
+		(BYTE*)MappedResource.pData, &pBmp);
+
+	pDC->Unmap(pTex.Get(), 0);
+	pDup->ReleaseFrame();
+	return hr;
 }
 ECK_NAMESPACE_END

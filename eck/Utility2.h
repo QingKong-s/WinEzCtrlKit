@@ -416,15 +416,6 @@ EckInline constexpr void Md5ToStringLower(PCVOID pMd5, PSTR pszResult)
 	}
 }
 
-EckInline ULONGLONG GetUnixTimestamp()
-{
-	ULONGLONG ull;
-	GetSystemTimeAsFileTime((FILETIME*)&ull);
-	ull -= 116444736000000000ull;
-	ull /= 10000ull;
-	return ull;
-}
-
 EckInline HANDLE DuplicateStdThreadHandle(std::thread& thr)
 {
 	HANDLE hThread{};

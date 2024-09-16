@@ -1,3 +1,10 @@
+/*
+* WinEzCtrlKit Library
+*
+* ProcThrdHelper.h ： 进程线程
+*
+* Copyright(C) 2024 QingKong
+*/
 #pragma once
 #include "SystemHelper.h"
 
