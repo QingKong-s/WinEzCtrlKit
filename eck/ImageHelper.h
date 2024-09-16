@@ -14,7 +14,7 @@
 ECK_NAMESPACE_BEGIN
 // 32bppPBGRA   D2D要求预乘
 constexpr inline GUID DefWicPixelFormat
-	ECK_GUID(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x10);
+ECK_GUID(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x10);
 
 /// <summary>
 /// 从字节流创建HBITMAP
@@ -229,7 +229,7 @@ EckInline HRESULT CreateWicBitmapDecoder(IStream* pStream,
 /// <param name="pWicFactory">WIC工厂</param>
 /// <returns>成功返回S_OK，失败返回错误代码</returns>
 inline HRESULT CreateWicBitmap(std::vector<IWICBitmap*>& vResult,
-	IWICBitmapDecoder* pDecoder,const GUID& guidFmt = GUID_WICPixelFormat32bppBGRA)
+	IWICBitmapDecoder* pDecoder, const GUID& guidFmt = GUID_WICPixelFormat32bppBGRA)
 {
 	HRESULT hr;
 	UINT cFrame;
@@ -356,23 +356,38 @@ public:
 	/// 最后使用BitBlt拷贝位图数据
 	/// </summary>
 	/// <param name="hDC">设备场景</param>
-	/// <param name="iTopToBottom">位图原点选项，&lt;0 - 自上而下  >=0 - 自下而上</param>
+	/// <param name="bTopToBottom">位图原点选项，TRUE = 自上而下</param>
 	/// <param name="hPalette">调色板句柄</param>
+	/// <param name="rc">要复制的矩形区域，若为空则复制整个位图</param>
 	/// <returns>创建的DIB节</returns>
-	HBITMAP Create(HDC hDC, int iTopToBottom = 0, HPALETTE hPalette = NULL)
+	HBITMAP Create(HDC hDC, BOOL bTopToBottom = FALSE, HPALETTE hPalette = NULL, const RCWH& rc = {})
 	{
 		Destroy();
 		BITMAP bmp;
 		if (!GetObjectW(GetCurrentObject(hDC, OBJ_BITMAP), sizeof(bmp), &bmp))
 			return NULL;
+		int x, y, cx, cy;
+		if (IsRectEmpty(rc))
+		{
+			x = y = 0;
+			cx = bmp.bmWidth;
+			cy = Abs(bmp.bmHeight);
+		}
+		else
+		{
+			x = rc.x;
+			y = rc.y;
+			cx = rc.cx;
+			cy = rc.cy;
+		}
 		const int cPalEntry = (hPalette ? GetPaletteEntryCount(hPalette) : 0);
 		const size_t cbBmi = sizeof(BITMAPINFOHEADER) + cPalEntry * sizeof(RGBQUAD);
 		auto pbmi = (BITMAPINFO*)malloc(cbBmi);
 		EckAssert(pbmi);
 		ZeroMemory(pbmi, cbBmi);
 		pbmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-		pbmi->bmiHeader.biWidth = bmp.bmWidth;
-		pbmi->bmiHeader.biHeight = SetSign(bmp.bmHeight, (LONG)iTopToBottom);
+		pbmi->bmiHeader.biWidth = cx;
+		pbmi->bmiHeader.biHeight = (bTopToBottom ? -cy : cy);
 		pbmi->bmiHeader.biPlanes = 1;
 		pbmi->bmiHeader.biBitCount = bmp.bmBitsPixel;
 		pbmi->bmiHeader.biCompression = BI_RGB;
@@ -396,7 +411,7 @@ public:
 			SelectPalette(hCDC, hPalette, FALSE);
 			RealizePalette(hCDC);
 		}
-		BitBlt(hCDC, 0, 0, bmp.bmWidth, bmp.bmHeight, hDC, 0, 0, SRCCOPY);
+		BitBlt(hCDC, 0, 0, cx, cy, hDC, x, y, SRCCOPY);
 		DeleteDC(hCDC);
 		return m_hBitmap;
 	}
@@ -604,6 +619,71 @@ public:
 	}
 };
 
+enum class SnapshotDib
+{
+	Dib,
+	Ddb,
+	DibTopToBottom,
+};
+
+EckInline HBITMAP Snapshot(HWND hWnd, const RCWH& rc, BOOL bCursor, SnapshotDib eDib = SnapshotDib::Ddb)
+{
+	if (IsRectEmpty(rc))
+		GetClientRect(hWnd, (RECT*)&rc);
+	if (IsRectEmpty(rc))
+		return NULL;
+	const HDC hDC = GetDC(hWnd);
+	CURSORINFO ci{};
+	ICONINFO ii{};
+	int cxCursor{}, cyCursor{};
+	if (bCursor)
+	{
+		ci.cbSize = sizeof(ci);
+		GetCursorInfo(&ci);
+		if (ci.flags == CURSOR_SHOWING)
+		{
+			ScreenToClient(hWnd, &ci.ptScreenPos);
+			GetIconInfo(ci.hCursor, &ii);
+			BITMAP Bmp;
+			GetObjectW(ii.hbmColor, sizeof(Bmp), &Bmp);
+			cxCursor = Bmp.bmWidth;
+			cyCursor = Bmp.bmHeight;
+			if (ii.hbmMask)
+				DeleteObject(ii.hbmMask);
+			if (ii.hbmColor)
+				DeleteObject(ii.hbmColor);
+		}
+	}
+	if (eDib == SnapshotDib::Ddb)
+	{
+		const auto hBmp = CreateCompatibleBitmap(hDC, rc.cx, rc.cy);
+		const auto hCDC = CreateCompatibleDC(hDC);
+		SelectObject(hCDC, hBmp);
+		BitBlt(hCDC, 0, 0, rc.cx, rc.cy, hDC, rc.x, rc.y, SRCCOPY);
+		if (cxCursor)
+		{
+			DrawIconEx(hCDC, ci.ptScreenPos.x, ci.ptScreenPos.y,
+				ci.hCursor, cxCursor, cyCursor, 0, NULL, DI_NORMAL);
+		}
+		DeleteDC(hCDC);
+		return hBmp;
+	}
+	else
+	{
+		CDib dib;
+		dib.Create(hDC, eDib == SnapshotDib::DibTopToBottom, NULL, rc);
+		if (cxCursor)
+		{
+			const auto hCDC = CreateCompatibleDC(hDC);
+			SelectObject(hCDC, dib.GetHBitmap());
+			DrawIconEx(hCDC, ci.ptScreenPos.x, ci.ptScreenPos.y,
+				ci.hCursor, cxCursor, cyCursor, 0, NULL, DI_NORMAL);
+			DeleteDC(hCDC);
+		}
+		return dib.Detach();
+	}
+}
+
 enum class ImageType
 {
 	Unknown,
@@ -642,7 +722,7 @@ const inline GUID c_guidWicEncoder[]
 	GUID_ContainerFormatDds,
 };
 
-static_assert((int)ImageType::MaxValue == ARRAYSIZE(c_szImgMime) && 
+static_assert((int)ImageType::MaxValue == ARRAYSIZE(c_szImgMime) &&
 	ARRAYSIZE(c_szImgMime) == ARRAYSIZE(c_guidWicEncoder));
 
 EckInline constexpr PCWSTR GetImageMime(ImageType iType)
@@ -765,9 +845,6 @@ inline HRESULT LoadD2dBitmap(PCWSTR pszFile, ID2D1RenderTarget* pRT, ID2D1Bitmap
 	ComPtr<IWICBitmap> pBitmap;
 	if (FAILED(hr = CreateWicBitmap(pBitmap.RefOf(), pDecoder.Get(), cxNew, cyNew)))
 		return hr;
-	GUID guid;;
-	pBitmap->GetPixelFormat(&guid);
-	//if (guid != GUID_WICPixelFormat32bppBGRA)
 	return pRT->CreateBitmapFromWicBitmap(pBitmap.Get(), &pD2dBitmap);
 }
 ECK_NAMESPACE_END
