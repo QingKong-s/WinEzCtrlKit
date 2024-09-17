@@ -1161,24 +1161,25 @@ namespace EckPriv
 	}
 }
 
+using FGetDiskID = NTSTATUS(*)(PCVOID pData, size_t cbData, BOOL bIdentifyData);
+
 /// <summary>
 /// 取硬盘特征字
 /// </summary>
+/// <param name="fnProcessData">处理数据回调</param>
 /// <param name="idxDrive">物理硬盘索引</param>
-/// <param name="pnts">NTSTATUS</param>
-/// <returns>成功返回特征字，失败返回0</returns>
-inline UINT GetPhysicalDriveIdentifier(int idxDrive, NTSTATUS* pnts = NULL)
+/// <returns>NTSTATUS</returns>
+template<class F>
+inline NTSTATUS IntGetPhysicalDriveIdentifier(F fnProcessData, int idxDrive)
 {
 	NTSTATUS nts;
-	if (!pnts)
-		pnts = &nts;
 	WCHAR szDevice[48];
 	swprintf(szDevice, LR"(\\.\PhysicalDrive%d)", idxDrive);
 	HANDLE hDevice = NaOpenFile(szDevice, FILE_GENERIC_READ | FILE_GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE);
 	if (hDevice != INVALID_HANDLE_VALUE)
 	{
 		GETVERSIONOUTPARAMS gvop{};
-		if (NT_SUCCESS(*pnts = NaDeviceIoControl(hDevice, SMART_GET_VERSION,
+		if (NT_SUCCESS(nts = NaDeviceIoControl(hDevice, SMART_GET_VERSION,
 			NULL, 0, &gvop, sizeof(gvop))))
 		{
 			SENDCMDINPARAMS scip
@@ -1197,12 +1198,11 @@ inline UINT GetPhysicalDriveIdentifier(int idxDrive, NTSTATUS* pnts = NULL)
 			const auto pscop = (SENDCMDOUTPARAMS*)_alloca(
 				sizeof(SENDCMDOUTPARAMS) - 1/*bBuffer*/ + 512);
 
-			if (NT_SUCCESS(*pnts = NaDeviceIoControl(hDevice, SMART_RCV_DRIVE_DATA,
+			if (NT_SUCCESS(nts = NaDeviceIoControl(hDevice, SMART_RCV_DRIVE_DATA,
 				&scip, sizeof(scip) - 1/*bBuffer*/, pscop, sizeof(SENDCMDOUTPARAMS))))
 			{
 				NtClose(hDevice);
-				return EckPriv::CalcDriveIdentifierFromIdentifyData(
-					(const IDENTIFY_DATA*)pscop->bBuffer);
+				return fnProcessData(pscop->bBuffer, sizeof(IDENTIFY_DATA), TRUE);
 			}
 		}
 		NtClose(hDevice);
@@ -1237,12 +1237,11 @@ inline UINT GetPhysicalDriveIdentifier(int idxDrive, NTSTATUS* pnts = NULL)
 
 		const auto pscop = ((SENDCMDOUTPARAMS*)(byDummy2 + sizeof(SRB_IO_CONTROL)));
 
-		if (NT_SUCCESS(*pnts = NaDeviceIoControl(hDevice, IOCTL_SCSI_MINIPORT,
+		if (NT_SUCCESS(nts = NaDeviceIoControl(hDevice, IOCTL_SCSI_MINIPORT,
 			psrbic, cbIn, byDummy2, cbOut)))
 		{
 			NtClose(hDevice);
-			return EckPriv::CalcDriveIdentifierFromIdentifyData(
-				(const IDENTIFY_DATA*)pscop->bBuffer);
+			return fnProcessData(pscop->bBuffer, sizeof(IDENTIFY_DATA), FALSE);
 		}
 		NtClose(hDevice);
 	}
@@ -1258,21 +1257,37 @@ inline UINT GetPhysicalDriveIdentifier(int idxDrive, NTSTATUS* pnts = NULL)
 		};
 
 		constexpr DWORD cbBuf = 4096;
-		void* pBuf = VAlloc(cbBuf);
-		UniquePtrVA<void> _(pBuf);
+		UniquePtrVA<void> pBuf(VAlloc(cbBuf));
 		DWORD cbRet{};
-		if (NT_SUCCESS(*pnts = NaDeviceIoControl(hDevice, IOCTL_STORAGE_QUERY_PROPERTY,
-			&spq, sizeof(spq), pBuf, cbBuf, &cbRet)))
+		if (NT_SUCCESS(nts = NaDeviceIoControl(hDevice, IOCTL_STORAGE_QUERY_PROPERTY,
+			&spq, sizeof(spq), pBuf.get(), cbBuf, &cbRet)))
 		{
 			if (cbRet)
 			{
 				NtClose(hDevice);
-				return CalcCrc32(pBuf, cbRet);
+				return fnProcessData(pBuf.get(), cbRet, FALSE);
 			}
 		}
 		NtClose(hDevice);
 	}
-	return 0u;
+	return STATUS_ACCESS_DENIED;
+}
+
+EckInline NTSTATUS GetPhysicalDriveIdentifierCrc32(int idxDrive, UINT& uCrc32)
+{
+	return IntGetPhysicalDriveIdentifier([&](PCVOID pData, size_t cbData, BOOL)->NTSTATUS
+		{
+			uCrc32 = CalcCrc32(pData, cbData);
+			return STATUS_SUCCESS;
+		}, idxDrive);
+}
+
+EckInline NTSTATUS GetPhysicalDriveIdentifierMd5(int idxDrive, void* pMd5)
+{
+	return IntGetPhysicalDriveIdentifier([&](PCVOID pData, size_t cbData, BOOL)->NTSTATUS
+		{
+			return CalcMd5(pData, cbData, pMd5);
+		}, idxDrive);
 }
 
 inline void InputChar(WCHAR ch, BOOL bExtended = FALSE, BOOL bReplaceEndOfLine = TRUE)
@@ -1335,12 +1350,10 @@ struct SNP_CURSOR
 	DXGI_OUTDUPL_POINTER_POSITION Position;
 };
 
-using SNP_F1 = HRESULT(*)(size_t cOutput, const RCWH& rcBound);
-using SNP_F2 = HRESULT(*)(size_t cOutput, const RCWH& rcBound, const SNP_OUTPUT& Output,
+using FSnapshotPreFetch = HRESULT(*)(size_t cOutput, const RCWH& rcBound);
+using FSnapshotFetch = HRESULT(*)(size_t cOutput, const RCWH& rcBound, const SNP_OUTPUT& Output,
 	const D3D11_MAPPED_SUBRESOURCE& MappedRes, const SNP_CURSOR& Cursor);
 
-//using F1 = SNP_F1;
-//using F2 = SNP_F2;
 template<class F1, class F2>
 inline HRESULT IntSnapshot(F1 fnPreFetch, F2 fnFetch, const RCWH& rc, BOOL bCursor, UINT msTimeout = 500)
 {
@@ -1355,6 +1368,8 @@ inline HRESULT IntSnapshot(F1 fnPreFetch, F2 fnFetch, const RCWH& rc, BOOL bCurs
 
 	RCWH rcBound{};
 	size_t cOutput{};// Optimize for single output
+
+	const BOOL bEmpty = IsRectEmpty(rc);
 	while (SUCCEEDED(g_pDxgiFactory->EnumAdapters(idxAdapter, &pAdapter)))
 	{
 		auto& e = vAdapter.emplace_back(idxAdapter, pAdapter);
@@ -1363,8 +1378,15 @@ inline HRESULT IntSnapshot(F1 fnPreFetch, F2 fnFetch, const RCWH& rc, BOOL bCurs
 			DXGI_OUTPUT_DESC Desc;
 			if (SUCCEEDED(pOutput->GetDesc(&Desc)))
 			{
-				RCWH rcTemp;
-				if (IntersectRect(rcTemp, rc, ToRCWH(Desc.DesktopCoordinates)))
+				if (bEmpty)
+				{
+					++cOutput;
+					UnionRect(rcBound, rcBound, ToRCWH(Desc.DesktopCoordinates));
+					IDXGIOutput1* pOutput1;
+					pOutput->QueryInterface(&pOutput1);
+					e.vOutput.emplace_back(idxOutput, pOutput1, ToRCWH(Desc.DesktopCoordinates));
+				}
+				else if (RCWH rcTemp; IntersectRect(rcTemp, rc, ToRCWH(Desc.DesktopCoordinates)))
 				{
 					++cOutput;
 					UnionRect(rcBound, rcBound, rcTemp);
@@ -1410,10 +1432,20 @@ inline HRESULT IntSnapshot(F1 fnPreFetch, F2 fnFetch, const RCWH& rc, BOOL bCurs
 			ComPtr<IDXGIResource> pResource;
 			DXGI_OUTDUPL_FRAME_INFO FrameInfo;
 			pDup->ReleaseFrame();
+			SNP_CURSOR Cursor{};
 			EckCounterNV(100)
 			{
 				if (FAILED(hr = pDup->AcquireNextFrame(msTimeout, &FrameInfo, &pResource)))
 					return hr;
+				if (bCursor && FrameInfo.PointerShapeBufferSize
+					&& FrameInfo.PointerPosition.Visible)
+				{
+					Cursor.rbCursor.ReSize(FrameInfo.PointerShapeBufferSize);
+					UINT Dummy;
+					pDup->GetFramePointerShape(FrameInfo.PointerShapeBufferSize,
+						Cursor.rbCursor.Data(), &Dummy, &Cursor.ShapeInfo);
+					Cursor.Position = FrameInfo.PointerPosition;
+				}
 				if (!FrameInfo.TotalMetadataBufferSize)
 				{
 					pResource->Release();
@@ -1424,17 +1456,6 @@ inline HRESULT IntSnapshot(F1 fnPreFetch, F2 fnFetch, const RCWH& rc, BOOL bCurs
 			}
 			return ERROR_TIMEOUT;
 		ResourceOk:
-			SNP_CURSOR Cursor{};
-			if (bCursor && FrameInfo.PointerShapeBufferSize
-				&& FrameInfo.PointerPosition.Visible)
-			{
-				Cursor.rbCursor.ReSize(FrameInfo.PointerShapeBufferSize);
-				UINT Dummy;
-				pDup->GetFramePointerShape(FrameInfo.PointerShapeBufferSize,
-					Cursor.rbCursor.Data(), &Dummy, &Cursor.ShapeInfo);
-				Cursor.Position = FrameInfo.PointerPosition;
-			}
-
 			ComPtr<ID3D11Texture2D> pTexture;
 			pResource.As(pTexture);
 
@@ -1505,20 +1526,77 @@ inline HRESULT Snapshot(IWICBitmap*& pBmp, const RCWH& rc, BOOL bCursor = FALSE,
 						Output.rc.cx * 4);
 					pDst = pDst + cbStride;
 				}
-				//// TODO: 处理光标
-				//if (!Cursor.rbCursor.IsEmpty())
-				//{
-				//	switch (Cursor.ShapeInfo.Type)
-				//	{
-				//	case DXGI_OUTDUPL_POINTER_SHAPE_TYPE_COLOR:
-				//	{
 
-				//	}
-				//	break;
-				//	case DXGI_OUTDUPL_POINTER_SHAPE_TYPE_MONOCHROME:
-				//	case DXGI_OUTDUPL_POINTER_SHAPE_TYPE_MASKED_COLOR:
-				//	}
-				//}
+				if (!Cursor.rbCursor.IsEmpty())
+				{
+					POINT ptCursor{ Cursor.Position.Position };
+					ptCursor.x += Output.rc.x;
+					ptCursor.y += Output.rc.y;
+					ptCursor.x -= rcBound.x;
+					ptCursor.y -= rcBound.y;
+					switch (Cursor.ShapeInfo.Type)
+					{
+					case DXGI_OUTDUPL_POINTER_SHAPE_TYPE_COLOR:
+					{
+						EckCounter(Cursor.ShapeInfo.Height, i)
+						{
+							EckCounter(Cursor.ShapeInfo.Width, j)
+							{
+								const auto dwSrc = *(DWORD*)(Cursor.rbCursor.Data() +
+									i * Cursor.ShapeInfo.Pitch + j * 4);
+								const auto pdwDst = (DWORD*)(pBits +
+									(ptCursor.y + i) * cbStride + (ptCursor.x + j) * 4);
+								*pdwDst = ArgbAlphaBlend(dwSrc, *pdwDst);
+							}
+						}
+					}
+					break;
+					case DXGI_OUTDUPL_POINTER_SHAPE_TYPE_MONOCHROME:
+					{
+						BYTE byMask = 0b1000'0000;
+						EckCounter(Cursor.ShapeInfo.Height / 2, i)
+						{
+							EckCounter(Cursor.ShapeInfo.Width, j)
+							{
+								const auto bySrcAnd = (*(Cursor.rbCursor.Data() +
+									i * Cursor.ShapeInfo.Pitch + j / 8)) & byMask;
+								const auto bySrcXor = (*(Cursor.rbCursor.Data() +
+									(i + Cursor.ShapeInfo.Height / 2) * Cursor.ShapeInfo.Pitch +
+									j / 8)) & byMask;
+								const auto pdwDst = (DWORD*)(pBits +
+									(ptCursor.y + i) * cbStride + (ptCursor.x + j) * 4);
+
+								*pdwDst = (*pdwDst & (bySrcAnd ? 0xFFFFFFFF : 0xFF000000)) ^
+									(bySrcXor ? 0x00FFFFFF : 0x00000000);
+
+								if (byMask == 1)
+									byMask = 0b1000'0000;
+								else
+									byMask >>= 1;
+							}
+						}
+					}
+					break;
+					case DXGI_OUTDUPL_POINTER_SHAPE_TYPE_MASKED_COLOR:
+					{
+						EckCounter(Cursor.ShapeInfo.Height, i)
+						{
+							EckCounter(Cursor.ShapeInfo.Width, j)
+							{
+								const auto dwSrc = *(DWORD*)(Cursor.rbCursor.Data() +
+									i * Cursor.ShapeInfo.Pitch + j * 4);
+								const auto pdwDst = (DWORD*)(pBits +
+									(ptCursor.y + i) * cbStride + (ptCursor.x + j) * 4);
+								if (dwSrc & 0xFF000000)
+									*pdwDst = (*pdwDst ^ dwSrc) | 0xFF000000;
+								else
+									*pdwDst = dwSrc | 0xFF000000;
+							}
+						}
+					}
+					break;
+					}
+				}
 			}
 			else
 				return g_pWicFactory->CreateBitmapFromMemory(
