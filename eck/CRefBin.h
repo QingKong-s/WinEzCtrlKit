@@ -265,36 +265,38 @@ public:
 	[[nodiscard]] EckInline TAlloc GetAllocator() const { return m_Alloc; }
 
 	template<class T>
-	[[nodiscard]] EckInline T& AtType(size_t idx)
+	[[nodiscard]] EckInline constexpr T& AtType(size_t idx)
 	{
 		EckAssert(idx * sizeof(T) <= Size() - sizeof(T));
 		return *((T*)Data() + idx);
 	}
 
 	template<class T>
-	[[nodiscard]] EckInline const T& AtType(size_t idx) const
+	[[nodiscard]] EckInline constexpr const T& AtType(size_t idx) const
 	{
 		EckAssert(idx * sizeof(T) <= Size() - sizeof(T));
 		return *((const T*)Data() + idx);
 	}
 
-	[[nodiscard]] EckInline BYTE& At(size_t idx) { EckAssert(idx < Size()); return *(Data() + idx); }
+	[[nodiscard]] EckInline constexpr BYTE& At(size_t idx) { EckAssert(idx < Size()); return *(Data() + idx); }
 
-	[[nodiscard]] EckInline BYTE At(size_t idx) const { EckAssert(idx < Size()); return *(Data() + idx); }
+	[[nodiscard]] EckInline constexpr BYTE At(size_t idx) const { EckAssert(idx < Size()); return *(Data() + idx); }
 
-	[[nodiscard]] EckInline BYTE& Front() { return At(0); }
+	[[nodiscard]] EckInline constexpr BYTE& Front() { return At(0); }
 
-	[[nodiscard]] EckInline BYTE Front() const { return At(0); }
+	[[nodiscard]] EckInline constexpr BYTE Front() const { return At(0); }
 
-	[[nodiscard]] EckInline BYTE& Back() { return At(Size() - 1); }
+	[[nodiscard]] EckInline constexpr BYTE& Back() { return At(Size() - 1); }
 
-	[[nodiscard]] EckInline BYTE Back() const { return At(Size() - 1); }
+	[[nodiscard]] EckInline constexpr BYTE Back() const { return At(Size() - 1); }
 
-	[[nodiscard]] EckInline BYTE* Data() { return m_pStream; }
+	[[nodiscard]] EckInline constexpr BYTE* Data() { return m_pStream; }
 
-	[[nodiscard]] EckInline const BYTE* Data() const { return m_pStream; }
+	[[nodiscard]] EckInline constexpr const BYTE* Data() const { return m_pStream; }
 
-	[[nodiscard]] EckInline size_t Size() const { return m_cb; }
+	[[nodiscard]] EckInline constexpr size_t Size() const { return m_cb; }
+
+	[[nodiscard]] EckInline constexpr size_t Capacity() const { return m_cbCapacity; }
 
 	/// <summary>
 	/// 克隆字节集。
@@ -547,6 +549,12 @@ public:
 		return (T*)PushBack(sizeof(T));
 	}
 
+	EckInline BYTE* PushBackNoExtra(size_t cb)
+	{
+		ReSize(m_cb + cb);
+		return Data() + m_cb - cb;
+	}
+
 	/// <summary>
 	/// 尾删
 	/// </summary>
@@ -621,6 +629,8 @@ public:
 	}
 
 	[[nodiscard]] EckInline BOOL IsEmpty() const { return Size() == 0; }
+
+	EckInline void ExtendToCapacity() { m_cb = Capacity(); }
 
 	[[nodiscard]] EckInline TIterator begin() { return Data(); }
 	[[nodiscard]] EckInline TIterator end() { return begin() + Size(); }

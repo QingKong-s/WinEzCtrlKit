@@ -717,6 +717,13 @@ public:
 		TCharTraits::AssignChar(Data() + Size() - 1, ch);
 	}
 
+	EckInline TPointer PushBackNoExtra(int cch)
+	{
+		EckAssert(cch >= 0);
+		ReSize(Size() + cch);
+		return Data() + Size() - cch;
+	}
+
 	/// <summary>
 	/// 尾删
 	/// </summary>
@@ -1209,6 +1216,15 @@ public:
 		}
 		else
 			return {};
+	}
+
+	EckInline void ExtendToCapacity()
+	{
+		if (Capacity())
+		{
+			m_cchText = Capacity() - 1;
+			TCharTraits::Cut(Data(), m_cchText);
+		}
 	}
 
 	[[nodiscard]] EckInline TIterator begin() { return Data(); }

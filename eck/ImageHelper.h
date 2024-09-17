@@ -626,7 +626,7 @@ enum class SnapshotDib
 	DibTopToBottom,
 };
 
-EckInline HBITMAP Snapshot(HWND hWnd, const RCWH& rc, BOOL bCursor, SnapshotDib eDib = SnapshotDib::Ddb)
+inline HBITMAP Snapshot(HWND hWnd, const RCWH& rc, BOOL bCursor, SnapshotDib eDib = SnapshotDib::Ddb)
 {
 	if (IsRectEmpty(rc))
 		GetClientRect(hWnd, (RECT*)&rc);
