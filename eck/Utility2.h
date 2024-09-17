@@ -688,7 +688,7 @@ struct NTCOM_HDR
 /// <param name="rbResult">压缩结果</param>
 /// <param name="uEngine">选项</param>
 /// <returns>NTSTATUS</returns>
-EckInline NTSTATUS Compress(PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult,
+inline NTSTATUS Compress(PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult,
 	USHORT uEngine = COMPRESSION_FORMAT_LZNT1)
 {
 	NTSTATUS nts;
@@ -736,7 +736,7 @@ EckInline NTSTATUS Compress(PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult,
 /// <param name="cbOrg">已压缩数据长度</param>
 /// <param name="rbResult">解压结果</param>
 /// <returns>NTSTATUS</returns>
-EckInline NTSTATUS Decompress(PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult)
+inline NTSTATUS Decompress(PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult)
 {
 	if (cbOrg < sizeof(NTCOM_HDR))
 		return STATUS_UNSUPPORTED_COMPRESSION;

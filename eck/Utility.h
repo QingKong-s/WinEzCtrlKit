@@ -277,10 +277,20 @@ EckInline constexpr D2D1_COLOR_F RgbToD2dColorF(UINT rgb, float fAlpha = 1.f)
 EckInline constexpr COLORREF ColorrefAlphaBlend(COLORREF cr, COLORREF crBK, BYTE byAlpha)
 {
 	return BytesToInteger<COLORREF>(
-		GetIntegerByte<0>(crBK) * byAlpha / 0xFF + GetIntegerByte<0>(cr) * (0xFF - byAlpha) / 0xFF,
-		GetIntegerByte<1>(crBK) * byAlpha / 0xFF + GetIntegerByte<1>(cr) * (0xFF - byAlpha) / 0xFF,
-		GetIntegerByte<2>(crBK) * byAlpha / 0xFF + GetIntegerByte<2>(cr) * (0xFF - byAlpha) / 0xFF,
+		GetIntegerByte<0>(cr) * byAlpha / 0xFF + GetIntegerByte<0>(crBK) * (0xFF - byAlpha) / 0xFF,
+		GetIntegerByte<1>(cr) * byAlpha / 0xFF + GetIntegerByte<1>(crBK) * (0xFF - byAlpha) / 0xFF,
+		GetIntegerByte<2>(cr) * byAlpha / 0xFF + GetIntegerByte<2>(crBK) * (0xFF - byAlpha) / 0xFF,
 		0);
+}
+
+EckInline constexpr ARGB ArgbAlphaBlend(ARGB cr, ARGB crBK)
+{
+	const BYTE byAlpha = GetIntegerByte<3>(cr);
+	return BytesToInteger<ARGB>(
+		GetIntegerByte<0>(cr) * byAlpha / 0xFF + GetIntegerByte<0>(crBK) * (0xFF - byAlpha) / 0xFF,
+		GetIntegerByte<1>(cr) * byAlpha / 0xFF + GetIntegerByte<1>(crBK) * (0xFF - byAlpha) / 0xFF,
+		GetIntegerByte<2>(cr) * byAlpha / 0xFF + GetIntegerByte<2>(crBK) * (0xFF - byAlpha) / 0xFF,
+		GetIntegerByte<3>(cr) * byAlpha / 0xFF + GetIntegerByte<3>(crBK) * (0xFF - byAlpha) / 0xFF);
 }
 
 /// <summary>
