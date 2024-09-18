@@ -766,7 +766,7 @@ EckInline BOOL EnumFileRecurse(PCWSTR pszPath, std::vector<CRefStrW>& vResult)
 
 namespace EckPriv
 {
-	inline UINT OpenInExplorerThread(void* pParam)
+	inline UINT __stdcall OpenInExplorerThread(void* pParam)
 	{
 		const auto pvPath = (std::vector<CRefStrW>*)pParam;
 		if (FAILED(CoInitialize(NULL)))
@@ -920,7 +920,7 @@ inline HANDLE NaOpenProcess(DWORD dwDesiredAccess, BOOL bInheritHandle, UINT uPr
 /// <param name="pusFile">文件的NT路径</param>
 /// <param name="dwAccess">CreateFileW --> dwAccess，注意CreateFileW总是追加SYNCHRONIZE | FILE_READ_ATTRIBUTES，考虑使用FILE_GENERIC_*</param>
 /// <param name="dwShareMode">CreateFileW --> dwShareMode</param>
-/// <param name="dwOptions">NtCreateFile --> CreateOptions</param>
+/// <param name="dwOptions">NtOpenFile --> OpenOptions</param>
 /// <param name="pnts">错误码</param>
 /// <param name="piost">IO状态</param>
 /// <param name="bInheritHandle">句柄是否可继承</param>
@@ -934,7 +934,7 @@ inline HANDLE NaOpenFile(UNICODE_STRING* pusFile, DWORD dwAccess, DWORD dwShareM
 	HANDLE hFile;
 	NTSTATUS nts;
 	IO_STATUS_BLOCK iost;
-	nts = NtOpenFile(&hFile, dwAccess, &oa, piost ? piost : &iost, dwShareMode, 0);
+	nts = ZwOpenFile(&hFile, dwAccess, &oa, piost ? piost : &iost, dwShareMode, dwOptions);
 	if (pnts)
 		*pnts = nts;
 	if (NT_SUCCESS(nts))
@@ -949,7 +949,7 @@ inline HANDLE NaOpenFile(UNICODE_STRING* pusFile, DWORD dwAccess, DWORD dwShareM
 /// <param name="pszFile">文件路径</param>
 /// <param name="dwAccess">CreateFileW --> dwAccess，注意CreateFileW总是追加SYNCHRONIZE | FILE_READ_ATTRIBUTES，考虑使用FILE_GENERIC_*</param>
 /// <param name="dwShareMode">CreateFileW --> dwShareMode</param>
-/// <param name="dwOptions">NtCreateFile --> CreateOptions</param>
+/// <param name="dwOptions">NtOpenFile --> OpenOptions</param>
 /// <param name="pnts">错误码</param>
 /// <param name="piost">IO状态</param>
 /// <param name="bInheritHandle">句柄是否可继承</param>
@@ -1273,18 +1273,30 @@ inline NTSTATUS IntGetPhysicalDriveIdentifier(F fnProcessData, int idxDrive)
 	return STATUS_ACCESS_DENIED;
 }
 
+/// <summary>
+/// 取硬盘特征字
+/// </summary>
+/// <param name="idxDrive">物理硬盘索引</param>
+/// <param name="uCrc32">返回CRC32</param>
+/// <returns>NTSTATUS</returns>
 EckInline NTSTATUS GetPhysicalDriveIdentifierCrc32(int idxDrive, UINT& uCrc32)
 {
-	return IntGetPhysicalDriveIdentifier([&](PCVOID pData, size_t cbData, BOOL)->NTSTATUS
+	return IntGetPhysicalDriveIdentifier([&uCrc32](PCVOID pData, size_t cbData, BOOL)->NTSTATUS
 		{
 			uCrc32 = CalcCrc32(pData, cbData);
 			return STATUS_SUCCESS;
 		}, idxDrive);
 }
 
+/// <summary>
+/// 取硬盘特征字
+/// </summary>
+/// <param name="idxDrive">物理硬盘索引</param>
+/// <param name="pMd5">返回MD5，至少16字节</param>
+/// <returns>NTSTATUS</returns>
 EckInline NTSTATUS GetPhysicalDriveIdentifierMd5(int idxDrive, void* pMd5)
 {
-	return IntGetPhysicalDriveIdentifier([&](PCVOID pData, size_t cbData, BOOL)->NTSTATUS
+	return IntGetPhysicalDriveIdentifier([pMd5](PCVOID pData, size_t cbData, BOOL)->NTSTATUS
 		{
 			return CalcMd5(pData, cbData, pMd5);
 		}, idxDrive);
@@ -1354,6 +1366,17 @@ using FSnapshotPreFetch = HRESULT(*)(size_t cOutput, const RCWH& rcBound);
 using FSnapshotFetch = HRESULT(*)(size_t cOutput, const RCWH& rcBound, const SNP_OUTPUT& Output,
 	const D3D11_MAPPED_SUBRESOURCE& MappedRes, const SNP_CURSOR& Cursor);
 
+/// <summary>
+/// 快照
+/// </summary>
+/// <typeparam name="F1"></typeparam>
+/// <typeparam name="F2"></typeparam>
+/// <param name="fnPreFetch">捕获前预处理回调</param>
+/// <param name="fnFetch">获取纹理数据回调</param>
+/// <param name="rc">矩形，为空则捕获所有输出</param>
+/// <param name="bCursor">是否捕获鼠标指针</param>
+/// <param name="msTimeout">帧超时</param>
+/// <returns>HRESULT</returns>
 template<class F1, class F2>
 inline HRESULT IntSnapshot(F1 fnPreFetch, F2 fnFetch, const RCWH& rc, BOOL bCursor, UINT msTimeout = 500)
 {
@@ -1486,6 +1509,14 @@ inline HRESULT IntSnapshot(F1 fnPreFetch, F2 fnFetch, const RCWH& rc, BOOL bCurs
 	return hr;
 }
 
+/// <summary>
+/// 快照
+/// </summary>
+/// <param name="pBmp">返回WIC位图</param>
+/// <param name="rc">矩形，为空则捕获所有输出</param>
+/// <param name="bCursor">是否捕获鼠标指针</param>
+/// <param name="msTimeout">帧超时</param>
+/// <returns>HRESULT</returns>
 inline HRESULT Snapshot(IWICBitmap*& pBmp, const RCWH& rc, BOOL bCursor = FALSE, UINT msTimeout = 500)
 {
 	pBmp = nullptr;
@@ -1614,5 +1645,20 @@ inline HRESULT Snapshot(IWICBitmap*& pBmp, const RCWH& rc, BOOL bCursor = FALSE,
 	if (pBitmap.Get())
 		pBmp = pBitmap.Detach();
 	return S_OK;
+}
+
+inline LONGLONG GetFileSize(PCWSTR pszFile, NTSTATUS* pnts = nullptr)
+{
+	const auto hFile = NaOpenFile(pszFile, 0, FILE_SHARE_READ, 0, pnts);
+	if (hFile == INVALID_HANDLE_VALUE)
+		return 0;
+	IO_STATUS_BLOCK iosb;
+	FILE_STANDARD_INFORMATION fsi;
+	fsi.EndOfFile.QuadPart = 0;
+	const auto nts = NtQueryInformationFile(hFile, &iosb, &fsi, sizeof(fsi), FileStandardInformation);
+	if (pnts)
+		*pnts = nts;
+	NtClose(hFile);
+	return fsi.EndOfFile.QuadPart;
 }
 ECK_NAMESPACE_END

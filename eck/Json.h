@@ -73,7 +73,7 @@ namespace EckPriv
 			const auto pszKey1 = (PSTR)_malloca(cchKey + 1);
 			EckCheckMem(pszKey1);
 			*pszKey1 = '/';
-			memcpy(pszKey1 + 1, pszKey, cchKey);// 包含结尾NULL
+			memcpy(pszKey1 + 1, pszKey, cchKey);// 包含结尾nullptr
 			const auto r = This.ValAt(pszKey1, cchKey);
 			_freea(pszKey1);
 			return r;
@@ -240,17 +240,17 @@ public:
 
 	EckInline [[nodiscard]] CJsonVal ObjGetVal(CJsonVal Key) const { return CJsonVal(yyjson_obj_iter_get_val(Key.GetValPtr())); }
 
-	EckInline [[nodiscard]] PSTR Write(size_t* pcchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
+	EckInline [[nodiscard]] PSTR Write(size_t* pcchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
 	{
 		return yyjson_val_write_opts(m_pVal, uFlags, pAlc, pcchOut, pErr);
 	}
 
-	EckInline BOOL Write(PCSTR pszFile, YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
+	EckInline BOOL Write(PCSTR pszFile, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
 	{
 		return yyjson_val_write_file(pszFile, m_pVal, uFlags, pAlc, pErr);
 	}
 
-	EckInline [[nodiscard]] CJsonVal ValAt(PCSTR pszPtr, size_t cchPtr = SizeTMax, YyPtrErr* pErr = NULL) const
+	EckInline [[nodiscard]] CJsonVal ValAt(PCSTR pszPtr, size_t cchPtr = SizeTMax, YyPtrErr* pErr = nullptr) const
 	{
 		return CJsonVal(yyjson_ptr_getx(m_pVal, pszPtr,
 			cchPtr == SizeTMax ? strlen(pszPtr) : cchPtr, pErr));
@@ -276,7 +276,7 @@ private:
 public:
 	ECK_DISABLE_COPY_DEF_CONS(CJson);
 	CJson(PCSTR pszJson, size_t cchJson = SizeTMax, YyReadFlag uFlags = 0,
-		const YyAlc* pAlc = NULL, YyReadErr* pErr = NULL)
+		const YyAlc* pAlc = nullptr, YyReadErr* pErr = nullptr)
 	{
 		m_pDoc = yyjson_read_opts((PSTR)pszJson, cchJson == SizeTMax ? strlen(pszJson) : cchJson,
 			uFlags, pAlc, pErr);
@@ -284,30 +284,30 @@ public:
 
 	template<class TAlloc>
 	CJson(const CRefBinT<TAlloc>& rb, YyReadFlag uFlags = 0,
-		const YyAlc* pAlc = NULL, YyReadErr* pErr = NULL)
+		const YyAlc* pAlc = nullptr, YyReadErr* pErr = nullptr)
 		:CJson((PCSTR)rb.Data(), rb.Size(), uFlags, pAlc, pErr) {
 	}
 
 	template<class TTraits, class TAlloc>
 	CJson(const CRefStrT<CHAR, TTraits, TAlloc>& rs, YyReadFlag uFlags = 0,
-		const YyAlc* pAlc = NULL, YyReadErr* pErr = NULL)
+		const YyAlc* pAlc = nullptr, YyReadErr* pErr = nullptr)
 		: CJson(rs.Data(), rs.Size(), uFlags, pAlc, pErr) {
 	}
 
 	template<class TTraits, class TAlloc>
 	CJson(const std::basic_string<CHAR, TTraits, TAlloc>& s, YyReadFlag uFlags = 0,
-		const YyAlc* pAlc = NULL, YyReadErr* pErr = NULL)
+		const YyAlc* pAlc = nullptr, YyReadErr* pErr = nullptr)
 		: CJson(s.c_str(), s.size(), uFlags, pAlc, pErr) {
 	}
 
 	template<class TTraits>
 	CJson(const std::basic_string_view<CHAR, TTraits>& sv, YyReadFlag uFlags = 0,
-		const YyAlc* pAlc = NULL, YyReadErr* pErr = NULL)
+		const YyAlc* pAlc = nullptr, YyReadErr* pErr = nullptr)
 		: CJson(sv.data(), sv.size(), uFlags, pAlc, pErr) {
 	}
 
 	CJson(const char8_t* pszJson, size_t cchJson = SizeTMax, YyReadFlag uFlags = 0,
-		const YyAlc* pAlc = NULL, YyReadErr* pErr = NULL)
+		const YyAlc* pAlc = nullptr, YyReadErr* pErr = nullptr)
 		:CJson((PCSTR)pszJson, cchJson, uFlags, pAlc, pErr) {
 	}
 
@@ -332,14 +332,14 @@ public:
 		if (m_pDoc)
 		{
 			yyjson_doc_free(m_pDoc);
-			m_pDoc = NULL;
+			m_pDoc = nullptr;
 		}
 	}
 
 	EckInline [[nodiscard]] constexpr YyDoc* Detach()
 	{
 		YyDoc* pDoc = m_pDoc;
-		m_pDoc = NULL;
+		m_pDoc = nullptr;
 		return pDoc;
 	}
 
@@ -356,22 +356,22 @@ public:
 
 	EckInline [[nodiscard]] size_t GetValCount() const { return yyjson_doc_get_val_count(m_pDoc); }
 
-	EckInline [[nodiscard]] CJsonVal ValAt(PCSTR pszPtr, size_t cchPtr = SizeTMax, YyPtrErr* pErr = NULL) const
+	EckInline [[nodiscard]] CJsonVal ValAt(PCSTR pszPtr, size_t cchPtr = SizeTMax, YyPtrErr* pErr = nullptr) const
 	{
 		return CJsonVal(yyjson_doc_ptr_getx(m_pDoc, pszPtr, cchPtr == SizeTMax ? strlen(pszPtr) : cchPtr, pErr));
 	}
 
-	EckInline [[nodiscard]] PSTR Write(size_t* pcchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
+	EckInline [[nodiscard]] PSTR Write(size_t* pcchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
 	{
 		return yyjson_write_opts(m_pDoc, uFlags, pAlc, pcchOut, pErr);
 	}
 
-	EckInline BOOL Write(PCSTR pszFile, YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
+	EckInline BOOL Write(PCSTR pszFile, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
 	{
 		return yyjson_write_file(pszFile, m_pDoc, uFlags, pAlc, pErr);
 	}
 
-	EckInline [[nodiscard]] CMutJson Clone(const YyAlc* pAlc = NULL) const;
+	EckInline [[nodiscard]] CMutJson Clone(const YyAlc* pAlc = nullptr) const;
 
 	EckInline [[nodiscard]] CJsonVal operator[](PCSTR pszKey) const
 	{
@@ -484,7 +484,7 @@ struct CJsonInitProxy
 		const std::initializer_list<CJsonInitProxy>* pObj;
 	} Val;
 
-	CJsonInitProxy(std::nullptr_t) :eType{ JInitValType::Null } { Val.pObj = NULL; }
+	CJsonInitProxy(std::nullptr_t) :eType{ JInitValType::Null } { Val.pObj = nullptr; }
 
 	CJsonInitProxy(bool b) :eType{ JInitValType::Bool } { Val.b = b; }
 
@@ -502,7 +502,7 @@ struct CJsonInitProxy
 
 	CJsonInitProxy(const wchar_t* ws) :eType{ JInitValType::StringW } { Val.ws = ws; }
 
-	CJsonInitProxy(JArr_T) :eType{ JInitValType::ArrayPh } { Val.pObj = NULL; }
+	CJsonInitProxy(JArr_T) :eType{ JInitValType::ArrayPh } { Val.pObj = nullptr; }
 
 	CJsonInitProxy(const std::initializer_list<CJsonInitProxy>& il) :eType{ JInitValType::Object } { Val.pObj = &il; }
 
@@ -731,17 +731,17 @@ public:
 
 	EckInline BOOL ObjRotate(size_t idx) const { return yyjson_mut_obj_rotate(m_pVal, idx); }
 
-	EckInline [[nodiscard]] PSTR Write(size_t& cchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
+	EckInline [[nodiscard]] PSTR Write(size_t& cchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
 	{
 		return yyjson_mut_val_write_opts(m_pVal, uFlags, pAlc, &cchOut, pErr);
 	}
 
-	EckInline BOOL Write(PCSTR pszFile, YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
+	EckInline BOOL Write(PCSTR pszFile, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
 	{
 		return yyjson_mut_val_write_file(pszFile, m_pVal, uFlags, pAlc, pErr);
 	}
 
-	EckInline [[nodiscard]] CRefStrW WriteW(YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
+	EckInline [[nodiscard]] CRefStrW WriteW(YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
 	{
 		size_t cchOut;
 		const auto pszU8 = Write(cchOut, uFlags, pAlc, pErr);
@@ -756,7 +756,7 @@ public:
 	}
 
 	EckInline [[nodiscard]] CJsonMutVal ValAt(PCSTR pszPtr, size_t cchPtr = SizeTMax,
-		YyPtrCtx* pCtx = NULL, YyPtrErr* pErr = NULL) const
+		YyPtrCtx* pCtx = nullptr, YyPtrErr* pErr = nullptr) const
 	{
 		return CJsonMutVal(yyjson_mut_ptr_getx(m_pVal, pszPtr,
 			cchPtr == SizeTMax ? strlen(pszPtr) : cchPtr, pCtx, pErr));
@@ -780,11 +780,11 @@ private:
 public:
 	ECK_DISABLE_COPY(CMutJson);
 
-	CMutJson() : m_pDoc{ yyjson_mut_doc_new(NULL) } {}
+	CMutJson() : m_pDoc{ yyjson_mut_doc_new(nullptr) } {}
 
-	CMutJson(const CJson& Doc, const YyAlc* pAlc = NULL) : m_pDoc{ yyjson_doc_mut_copy(Doc.GetDocPtr(), pAlc) } {}
+	CMutJson(const CJson& Doc, const YyAlc* pAlc = nullptr) : m_pDoc{ yyjson_doc_mut_copy(Doc.GetDocPtr(), pAlc) } {}
 
-	CMutJson(const CMutJson& Doc, const YyAlc* pAlc = NULL) : m_pDoc{ yyjson_mut_doc_mut_copy(Doc.GetDocPtr(), pAlc) } {}
+	CMutJson(const CMutJson& Doc, const YyAlc* pAlc = nullptr) : m_pDoc{ yyjson_mut_doc_mut_copy(Doc.GetDocPtr(), pAlc) } {}
 
 	constexpr CMutJson(YyMutDoc* pDoc) : m_pDoc{ pDoc } {}
 
@@ -798,14 +798,14 @@ public:
 
 	~CMutJson() { Free(); }
 
-	EckInline void Create(const YyAlc* pAlc = NULL) { m_pDoc = yyjson_mut_doc_new(pAlc); }
+	EckInline void Create(const YyAlc* pAlc = nullptr) { m_pDoc = yyjson_mut_doc_new(pAlc); }
 
-	EckInline void Create(const CJson& Doc, const YyAlc* pAlc = NULL)
+	EckInline void Create(const CJson& Doc, const YyAlc* pAlc = nullptr)
 	{
 		m_pDoc = yyjson_doc_mut_copy(Doc.GetDocPtr(), pAlc);
 	}
 
-	EckInline void Create(const CMutJson& Doc, const YyAlc* pAlc = NULL)
+	EckInline void Create(const CMutJson& Doc, const YyAlc* pAlc = nullptr)
 	{
 		m_pDoc = yyjson_mut_doc_mut_copy(Doc.GetDocPtr(), pAlc);
 	}
@@ -819,14 +819,14 @@ public:
 		if (m_pDoc)
 		{
 			yyjson_mut_doc_free(m_pDoc);
-			m_pDoc = NULL;
+			m_pDoc = nullptr;
 		}
 	}
 
 	EckInline [[nodiscard]] constexpr YyMutDoc* Detach()
 	{
 		YyMutDoc* pDoc = m_pDoc;
-		m_pDoc = NULL;
+		m_pDoc = nullptr;
 		return pDoc;
 	}
 
@@ -846,23 +846,23 @@ public:
 	EckInline BOOL SetValuePoolSize(size_t cb) const { return yyjson_mut_doc_set_val_pool_size(m_pDoc, cb); }
 
 	EckInline [[nodiscard]] CJsonMutVal ValAt(PCSTR pszPtr, size_t cchPtr = SizeTMax,
-		YyPtrCtx* pCtx = NULL, YyPtrErr* pErr = NULL) const
+		YyPtrCtx* pCtx = nullptr, YyPtrErr* pErr = nullptr) const
 	{
 		return CJsonMutVal(yyjson_mut_doc_ptr_getx(m_pDoc, pszPtr,
 			cchPtr == SizeTMax ? strlen(pszPtr) : cchPtr, pCtx, pErr));
 	}
 
-	EckInline [[nodiscard]] PSTR Write(size_t& cchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
+	EckInline [[nodiscard]] PSTR Write(size_t& cchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
 	{
 		return yyjson_mut_write_opts(m_pDoc, uFlags, pAlc, &cchOut, pErr);
 	}
 
-	EckInline BOOL Write(PCSTR pszFile, YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
+	EckInline BOOL Write(PCSTR pszFile, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
 	{
 		return yyjson_mut_write_file(pszFile, m_pDoc, uFlags, pAlc, pErr);
 	}
 
-	EckInline [[nodiscard]] CRefStrW WriteW(YyWriteFlag uFlags = 0, YyAlc* pAlc = NULL, YyWriteErr* pErr = NULL)
+	EckInline [[nodiscard]] CRefStrW WriteW(YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
 	{
 		size_t cchOut;
 		const auto pszU8 = Write(cchOut, uFlags, pAlc, pErr);
@@ -876,9 +876,9 @@ public:
 		return rs;
 	}
 
-	EckInline [[nodiscard]] CMutJson Clone() const { return CMutJson(yyjson_mut_doc_mut_copy(m_pDoc, NULL)); }
+	EckInline [[nodiscard]] CMutJson Clone() const { return CMutJson(yyjson_mut_doc_mut_copy(m_pDoc, nullptr)); }
 
-	EckInline [[nodiscard]] CJson CloneImut() const { return CJson(yyjson_mut_doc_imut_copy(m_pDoc, NULL)); }
+	EckInline [[nodiscard]] CJson CloneImut() const { return CJson(yyjson_mut_doc_imut_copy(m_pDoc, nullptr)); }
 
 	EckInline [[nodiscard]] CJsonMutVal NewRaw(PCSTR pszRaw, size_t cchRaw = SizeTMax) const
 	{
@@ -1062,7 +1062,7 @@ CJsonMutVal CJsonInitProxy::ToMutVal(const CMutJson& Doc) const
 		{
 			EckAssert(Val.pObj->size() % 2 == 0 && L"对象键值总数必须为偶数");
 			CJsonMutVal Ret{ Doc.NewObj() };
-			CJsonMutVal Key{ NULL };
+			CJsonMutVal Key{ nullptr };
 			for (size_t i{}; const auto & e : *Val.pObj)
 			{
 				if (i % 2 == 0)
@@ -1077,7 +1077,7 @@ CJsonMutVal CJsonInitProxy::ToMutVal(const CMutJson& Doc) const
 	ECK_UNREACHABLE;
 	}
 	EckDbgBreak();
-	return { NULL };
+	return { nullptr };
 }
 
 struct CJsonMutArrIter

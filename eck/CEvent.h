@@ -6,49 +6,48 @@
 * Copyright(C) 2024 QingKong
 */
 #pragma once
-#include "ECK.h"
+#include "CWaitableObject.h"
 
 ECK_NAMESPACE_BEGIN
-class CEvent
+class CEvent : public CWaitableObject
 {
-private:
-	HANDLE m_h = nullptr;
 public:
-	ECK_DISABLE_COPY_MOVE(CEvent)
-public:
-	EckInline CEvent()
+	CEvent()
 	{
 		OBJECT_ATTRIBUTES oa;
 		InitOA(oa);
-		NtCreateEvent(&m_h, EVENT_ALL_ACCESS, &oa, SynchronizationEvent, FALSE);
+		NtCreateEvent(&m_hObj, EVENT_ALL_ACCESS, &oa, SynchronizationEvent, FALSE);
 	}
 
-	EckInline CEvent(PCWSTR pszName, BOOL bManualReset, BOOL bInitSignal, BOOL bInheritHandle = FALSE)
+	CEvent(PCWSTR pszName, BOOL bManualReset, BOOL bInitSignal, BOOL bInheritHandle = FALSE)
 	{
 		UNICODE_STRING us;
 		if (pszName)
 			RtlInitUnicodeString(&us, pszName);
 		OBJECT_ATTRIBUTES oa;
 		InitOA(oa, (pszName ? &us : nullptr), (bInheritHandle ? OBJ_INHERIT : 0));
-		NtCreateEvent(&m_h, EVENT_ALL_ACCESS, &oa,
+		NtCreateEvent(&m_hObj, EVENT_ALL_ACCESS, &oa,
 			bManualReset ? NotificationEvent : SynchronizationEvent, FALSE);
 	}
 
-	EckInline ~CEvent()
+	EckInline NTSTATUS Signal()
 	{
-		NtClose(m_h);
+		return NtSetEvent(m_hObj, nullptr);
 	}
 
-	EckInline NTSTATUS Signal(LONG* lPrevState = nullptr)
+	EckInline NTSTATUS Signal(LONG& lPrevState)
 	{
-		return NtSetEvent(m_h, lPrevState);
+		return NtSetEvent(m_hObj, &lPrevState);
 	}
 
-	EckInline NTSTATUS NoSignal(LONG* lPrevState = nullptr)
+	EckInline NTSTATUS NoSignal()
 	{
-		return NtResetEvent(m_h, lPrevState);
+		return NtClearEvent(m_hObj);
 	}
 
-	EckInline HANDLE GetHEvent() const { return m_h; }
+	EckInline NTSTATUS NoSignal(LONG& lPrevState)
+	{
+		return NtResetEvent(m_hObj, &lPrevState);
+	}
 };
 ECK_NAMESPACE_END
