@@ -12,6 +12,8 @@ ECK_NAMESPACE_BEGIN
 class CStatic :public CWnd
 {
 public:
+	ECK_RTTI(CStatic);
+
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
@@ -51,4 +53,5 @@ public:
 		return (HANDLE)SendMsg(STM_SETIMAGE, uType, (LPARAM)h);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CStatic, CWnd);
 ECK_NAMESPACE_END

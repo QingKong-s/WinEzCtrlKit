@@ -33,6 +33,8 @@ enum
 
 class CTaskGroupList :public CListView
 {
+public:
+	ECK_RTTI(CTaskGroupList);
 private:
 	const static int c_iPadding = 4;
 	const static int c_iSubTaskPadding = 8;
@@ -507,5 +509,5 @@ public:
 		return TGLP_NONE;
 	}
 };
-
+ECK_RTTI_IMPL_BASE_INLINE(CTaskGroupList, CListView);
 ECK_NAMESPACE_END

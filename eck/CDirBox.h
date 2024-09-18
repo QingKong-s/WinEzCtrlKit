@@ -133,6 +133,8 @@ private:
 		}
 	}
 public:
+	ECK_RTTI(CDirBox);
+
 	HTREEITEM InsertItem(PCWSTR pszText, PWSTR pszNextLevelPath, int cchNextLevelPath,
 		HTREEITEM hParentItem, HTREEITEM hItemAfter, BOOL* pbHasChildPath = nullptr)
 	{
@@ -449,4 +451,5 @@ public:
 		FillCtrl();
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CDirBox, CTreeView);
 ECK_NAMESPACE_END

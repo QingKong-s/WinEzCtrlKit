@@ -14,6 +14,8 @@ ECK_DISABLE_ARITHMETIC_OVERFLOW_WARNING
 ECK_NAMESPACE_BEGIN
 class CListViewExt :public CListView
 {
+public:
+	ECK_RTTI(CListViewExt);
 private:
 	struct ITEMINFO
 	{
@@ -230,4 +232,5 @@ public:
 		return CListView::OnNotifyMsg(hParent, uMsg, wParam, lParam, bProcessed);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CListViewExt, CListView);
 ECK_NAMESPACE_END

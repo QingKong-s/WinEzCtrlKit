@@ -18,6 +18,8 @@ typedef int (CALLBACK* PFNLVITEMCOMPARE)(LPARAM lParam1, LPARAM lParam2, LPARAM 
 typedef int (CALLBACK* PFNLVITEMCOMPAREEX)(int idx1, int idx2, LPARAM lParamSort);
 class CListView :public CWnd
 {
+public:
+	ECK_RTTI(CListView);
 protected:
 	COLORREF m_crDefText{ CLR_INVALID };
 	COLORREF m_crDefBk{ CLR_INVALID };
@@ -1067,4 +1069,5 @@ public:
 		return -1;
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CListView, CWnd);
 ECK_NAMESPACE_END

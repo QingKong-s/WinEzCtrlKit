@@ -12,6 +12,8 @@ ECK_NAMESPACE_BEGIN
 class CBk :public CWnd
 {
 public:
+	ECK_RTTI(CBk);
+
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
@@ -21,4 +23,5 @@ public:
 		return m_hWnd;
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CBk, CWnd);
 ECK_NAMESPACE_END

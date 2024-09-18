@@ -21,6 +21,8 @@ struct NMCLPCLRCHANGED
 class CColorPicker :public CComboBox
 {
 public:
+	ECK_RTTI(CColorPicker);
+
 	constexpr static int IdxCustom = 1;
 private:
 	COLORREF m_crCustom = CLR_INVALID;
@@ -229,4 +231,5 @@ public:
 		SendMsg(CB_SETCURSEL, idx, 0);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CColorPicker, CComboBox);
 ECK_NAMESPACE_END

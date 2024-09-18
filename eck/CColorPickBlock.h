@@ -9,6 +9,8 @@ private:
 	COLORREF m_cr{ CLR_INVALID };
 	DWORD m_dwCCFlags{ CC_FULLOPEN };
 public:
+	ECK_RTTI(CColorPickBlock);
+
 	void SerializeData(CRefBin& rb)
 	{
 		CWnd::SerializeData(rb);
@@ -89,4 +91,5 @@ public:
 		m_dwCCFlags = dwFlags;
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CColorPickBlock, CStatic);
 ECK_NAMESPACE_END

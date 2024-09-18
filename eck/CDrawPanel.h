@@ -50,6 +50,8 @@ private:
 		m_cyClient = cy;
 	}
 public:
+	ECK_RTTI(CDrawPanel);
+
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)
@@ -98,11 +100,23 @@ public:
 		m_hbrBK = hbr;
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CDrawPanel, CWnd);
 
 class CDrawPanelD2D :public CWnd
 {
 private:
 	CEzD2D m_D2D{};
+public:
+	ECK_RTTI(CDrawPanelD2D);
+
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
+	{
+		m_hWnd = IntCreate(dwExStyle, WCN_DRAWPANELD2D, pszText, dwStyle,
+			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
+		return m_hWnd;
+	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
@@ -121,18 +135,10 @@ private:
 		}
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
-public:
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		m_hWnd = IntCreate(dwExStyle, WCN_DRAWPANELD2D, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
-		return m_hWnd;
-	}
 
 	EckInline ID2D1DeviceContext* GetDC() const { return m_D2D.GetDC(); }
 
 	EckInline IDXGISwapChain1* GetSwapChain() const { return m_D2D.GetSwapChain(); }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CDrawPanelD2D, CWnd);
 ECK_NAMESPACE_END

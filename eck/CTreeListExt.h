@@ -36,6 +36,8 @@ struct TLEXTITEM
 
 class CTreeListExt :public CTreeList
 {
+public:
+	ECK_RTTI(CTreeListExt);
 private:
 	std::vector<TLEXTNODE*> m_vRoot{};
 	std::vector<TLEXTNODE*> m_vFlat{};
@@ -202,4 +204,5 @@ public:
 
 	EckInline BOOL GetMaintainFlatList() const { return m_bMaintainFlatList; }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CTreeListExt, CTreeList);
 ECK_NAMESPACE_END

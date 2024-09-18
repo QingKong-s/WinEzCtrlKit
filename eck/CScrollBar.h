@@ -11,6 +11,8 @@
 ECK_NAMESPACE_BEGIN
 class CScrollBar :public CWnd
 {
+public:
+	ECK_RTTI(CScrollBar);
 private:
 	BOOL m_bDisableNoScroll = FALSE;
 public:
@@ -151,4 +153,5 @@ public:
 		SetScrollInfo(m_hWnd, SB_CTL, psi, bRedraw);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CScrollBar, CWnd);
 ECK_NAMESPACE_END

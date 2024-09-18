@@ -13,6 +13,7 @@ ECK_NAMESPACE_BEGIN
 class CComboBoxNew :public CWnd
 {
 public:
+	ECK_RTTI(CComboBoxNew);
 	enum class View
 	{
 		DropDown,
@@ -234,4 +235,5 @@ public:
 
 	EckInline auto& GetListBox() { return m_LB; }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CComboBoxNew, CWnd);
 ECK_NAMESPACE_END

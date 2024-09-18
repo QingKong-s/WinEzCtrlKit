@@ -45,6 +45,8 @@ protected:
 	// 默认提示横幅缓冲区长度，不含结尾NULL
 	constexpr static int c_cchMaxCueBanner = 260;
 public:
+	ECK_RTTI(CEdit);
+
 	enum class TransMode
 	{
 		None,
@@ -676,4 +678,5 @@ public:
 			return Align::Near;
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CEdit, CWnd);
 ECK_NAMESPACE_END

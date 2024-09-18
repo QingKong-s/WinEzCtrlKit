@@ -172,7 +172,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CTestWnd.h" />
+    <ClInclude Include="eck\CBorderLayout.h" />
     <ClInclude Include="eck\CHitter.h" />
+    <ClInclude Include="eck\CObject.h" />
     <ClInclude Include="eck\CTableLayout.h" />
     <ClInclude Include="eck\CWaitableObject.h" />
     <ClInclude Include="eck\CWaitableTimer.h" />
@@ -303,6 +305,7 @@
     <ClInclude Include="eck\ImageHelper.h" />
     <ClInclude Include="eck\LunarDateLib.h" />
     <ClInclude Include="eck\MathHelper.h" />
+    <ClInclude Include="eck\CProcessorUsage.h" />
     <ClInclude Include="eck\ProcThrdHelper.h" />
     <ClInclude Include="eck\CRelativeLayout.h" />
     <ClInclude Include="eck\ResStruct.h" />

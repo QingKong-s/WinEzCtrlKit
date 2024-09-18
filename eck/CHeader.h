@@ -12,6 +12,8 @@ ECK_NAMESPACE_BEGIN
 class CHeader :public CWnd
 {
 public:
+	ECK_RTTI(CHeader);
+
 	ECK_CWND_NOSINGLEOWNER(CHeader)
 protected:
 #ifndef ECK_MACRO_NO_SUPPORT_DARKMODE
@@ -284,5 +286,5 @@ public:
 		}
 	}
 };
-
+ECK_RTTI_IMPL_BASE_INLINE(CHeader, CWnd);
 ECK_NAMESPACE_END

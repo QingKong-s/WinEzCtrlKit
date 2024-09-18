@@ -6,6 +6,7 @@
 * Copyright(C) 2023-2024 QingKong
 */
 #pragma once
+#include "CObject.h"
 #include "WndHelper.h"
 #include "CMemWalker.h"
 #include "ILayout.h"
@@ -73,10 +74,12 @@ struct DESIGNDATA_WND
 	Class(HWND hWnd) { m_hWnd = hWnd; }
 
 
-class CWnd :public ILayout
+class CWnd :public CObject, public ILayout
 {
 	friend HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc);
 public:
+	ECK_RTTI(CWnd);
+
 #ifdef ECK_CTRL_DESIGN_INTERFACE
 	DESIGNDATA_WND m_DDBase{};
 #endif
@@ -1098,6 +1101,7 @@ public:
 
 	EckInline constexpr [[nodiscard]] auto& GetSignal() { return m_Sig; }
 };
+ECK_RTTI_IMPL_INLINE(CWnd);
 
 EckInline void AttachDlgItems(HWND hDlg, int cItem, CWnd* const* pWnd, const int* iId)
 {

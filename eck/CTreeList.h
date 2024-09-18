@@ -256,6 +256,8 @@ class CTreeList :public CWnd
 	friend class CTLHeader;
 	friend class CTLEditExt;
 public:
+	ECK_RTTI(CTreeList);
+
 	enum
 	{
 		// 工具ID
@@ -3500,6 +3502,7 @@ public:
 
 	EckInline void SetBkClr(COLORREF cr) { m_crBkg = cr; }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CTreeList, CWnd);
 
 inline LRESULT CTLHeader::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {

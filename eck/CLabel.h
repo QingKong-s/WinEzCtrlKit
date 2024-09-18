@@ -39,6 +39,8 @@ struct ECKLABELDATA
 
 class CLabel :public CWnd
 {
+public:
+	ECK_RTTI(CLabel);
 private:
 	ECKLABELDATA m_Info{};
 
@@ -693,4 +695,5 @@ public:
 		return m_Info.iMousePassingThrough;
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CLabel, CWnd);
 ECK_NAMESPACE_END

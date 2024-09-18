@@ -12,7 +12,8 @@ ECK_NAMESPACE_BEGIN
 class CToolTip :public CWnd
 {
 public:
-	ECK_CWND_NOSINGLEOWNER(CToolTip);
+	ECK_RTTI(CToolTip);
+
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
@@ -208,4 +209,5 @@ public:
 		SendMsg(TTM_UPDATETIPTEXTW, 0, (LPARAM)pti);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CToolTip, CWnd);
 ECK_NAMESPACE_END

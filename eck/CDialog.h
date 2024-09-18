@@ -111,6 +111,8 @@ protected:
 		return h;
 	}
 public:
+	ECK_RTTI(CDialog);
+
 	static INT_PTR CALLBACK EckDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		const auto pDlg = dynamic_cast<CDialog*>(CWndFromHWND(hDlg));
@@ -227,6 +229,7 @@ public:
 
 	EckInline void SetUseDefBkColor(BOOL b) { m_bUseDefBkClr = b; }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CDialog, CWnd);
 
 enum :UINT
 {
@@ -237,6 +240,8 @@ enum :UINT
 class CDialogNew :public CDialog
 {
 public:
+	ECK_RTTI(CDialogNew);
+
 	constexpr static LONG_PTR OcbPtr1 = DLGWINDOWEXTRA;
 	constexpr static LONG_PTR OcbPtr2 = DLGWINDOWEXTRA + sizeof(void*);
 protected:
@@ -295,4 +300,5 @@ protected:
 		return m_hWnd;
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CDialogNew, CDialog);
 ECK_NAMESPACE_END

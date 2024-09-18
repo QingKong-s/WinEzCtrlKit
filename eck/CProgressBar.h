@@ -12,6 +12,8 @@ ECK_NAMESPACE_BEGIN
 class CProgressBar :public CWnd
 {
 public:
+	ECK_RTTI(CProgressBar);
+
 	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
@@ -125,4 +127,5 @@ public:
 		return (int)SendMsg(PBM_STEPIT, 0, 0);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CProgressBar, CWnd);
 ECK_NAMESPACE_END

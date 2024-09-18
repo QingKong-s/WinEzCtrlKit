@@ -49,6 +49,8 @@ struct CTRLDATA_LBN
 
 class CListBoxNew :public CWnd
 {
+public:
+	ECK_RTTI(CListBoxNew);
 private:
 	struct ITEM
 	{
@@ -1106,4 +1108,5 @@ public:
 
 	EckInline constexpr BOOL GetExtendSel() const { return m_bExtendSel; }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CListBoxNew, CWnd);
 ECK_NAMESPACE_END

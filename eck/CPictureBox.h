@@ -19,6 +19,8 @@ struct NMPKBOWNERDRAW
 
 class CPictureBox :public CWnd
 {
+public:
+	ECK_RTTI(CPictureBox);
 private:
 	HBITMAP m_hBitmap{};
 	GpImage* m_pGpImage{};
@@ -167,4 +169,5 @@ public:
 		return m_crBk;
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CPictureBox, CWnd);
 ECK_NAMESPACE_END

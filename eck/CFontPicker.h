@@ -19,6 +19,8 @@ struct FONTPICKERINFO
 
 class CFontPicker :public CEditNcComp
 {
+public:
+	ECK_RTTI(CFontPicker);
 private:
 	DWORD m_dwCfFlags = CF_SCREENFONTS | CF_FORCEFONTEXIST | CF_NOVERTFONTS;
 
@@ -92,4 +94,5 @@ public:
 		}
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CFontPicker, CEditNcComp);
 ECK_NAMESPACE_END
