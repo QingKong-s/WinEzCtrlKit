@@ -12,6 +12,9 @@ ECK_NAMESPACE_BEGIN
 class CTrackBar : public CWnd
 {
 public:
+	ECK_RTTI(CTrackBar);
+
+	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
@@ -195,4 +198,5 @@ public:
 		return (HWND)SendMsg(TBM_SETTOOLTIPS, (WPARAM)hToolTips, 0);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CTrackBar, CWnd);
 ECK_NAMESPACE_END

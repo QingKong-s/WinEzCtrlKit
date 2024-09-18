@@ -12,6 +12,8 @@ ECK_NAMESPACE_BEGIN
 class CToolBar :public CWnd
 {
 public:
+	ECK_RTTI(CToolBar);
+
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
@@ -491,4 +493,5 @@ public:
 		SendMsg(TB_SETTOOLTIPS, (WPARAM)hToolTip, 0);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CToolBar, CWnd);
 ECK_NAMESPACE_END

@@ -44,6 +44,8 @@ struct INPUTBOXOPT
 
 class CInputBox final :public CDialogNew
 {
+public:
+	ECK_RTTI(CInputBox);
 private:
 	CEditExt m_ED{};
 	CPushButton m_BTOk{};
@@ -309,4 +311,5 @@ public:
 		return m_iResult;
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CInputBox, CDialogNew);
 ECK_NAMESPACE_END

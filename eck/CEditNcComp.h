@@ -11,6 +11,8 @@
 ECK_NAMESPACE_BEGIN
 class CEditNcComp :public CEditExt
 {
+public:
+	ECK_RTTI(CEditNcComp);
 protected:
 	RECT m_rcBtn{};
 	int m_cxBtn{};
@@ -202,4 +204,5 @@ public:
 
 	EckInline int GetBtnSize() const { return m_cxBtn; }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CEditNcComp, CEditExt);
 ECK_NAMESPACE_END

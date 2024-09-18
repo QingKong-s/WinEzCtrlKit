@@ -12,6 +12,8 @@ ECK_NAMESPACE_BEGIN
 class CLink :public CWnd
 {
 public:
+	ECK_RTTI(CLink);
+
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
@@ -63,4 +65,5 @@ public:
 		return (BOOL)SendMsg(LM_SETITEM, 0, (LPARAM)pli);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CLink, CWnd);
 ECK_NAMESPACE_END

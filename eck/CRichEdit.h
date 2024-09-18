@@ -15,6 +15,8 @@ ECK_NAMESPACE_BEGIN
 class CRichEdit : public CWnd
 {
 public:
+	ECK_RTTI(CRichEdit);
+
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
@@ -508,4 +510,5 @@ public:
 		return (int)SendMsg(EM_STREAMOUT, uFlags, (LPARAM)es);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CRichEdit, CWnd);
 ECK_NAMESPACE_END

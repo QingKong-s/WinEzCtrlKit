@@ -20,6 +20,8 @@ ECK_NAMESPACE_BEGIN
 class CTreeView :public CWnd
 {
 public:
+	ECK_RTTI(CTreeView);
+
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
@@ -662,5 +664,5 @@ public:
 		return (BOOL)SendMsg(TVM_SORTCHILDRENCB, 0, (LPARAM)&tvscb);
 	}
 };
-
+ECK_RTTI_IMPL_BASE_INLINE(CTreeView, CWnd);
 ECK_NAMESPACE_END

@@ -75,6 +75,7 @@ protected:
 		return p->OnTdNotify(hWnd, uMsg, wParam, lParam);
 	}
 public:
+	ECK_RTTI(CTaskDialog);
 	INT_PTR DlgBox(HWND hParent, void* pData = nullptr) override
 	{
 		auto pCtx = (TASKDIALOGCTX*)pData;
@@ -242,10 +243,13 @@ public:
 
 	EckInline void ClearRadioButtonVector() { m_vRadioBtn.clear(); }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CTaskDialog, CDialog);
 
 class CColorDialog :public CDialog
 {
 public:
+	ECK_RTTI(CColorDialog);
+
 	static UINT s_uMsgSetRgb;
 protected:
 	COLORREF m_crCust[16]{};
@@ -273,12 +277,13 @@ public:
 
 	EckInline BOOL EndDlg(INT_PTR nResult) override { return FALSE; }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CColorDialog, CDialog);
 inline UINT CColorDialog::s_uMsgSetRgb = RegisterWindowMessageW(SETRGBSTRINGW);
 
 class CFontDialog :public CDialog
 {
 public:
-	static UINT s_uMsgSetRgb;
+	ECK_RTTI(CFontDialog);
 public:
 	INT_PTR DlgBox(HWND hParent, void* pData = nullptr) override
 	{
@@ -289,6 +294,7 @@ public:
 
 	EckInline BOOL EndDlg(INT_PTR nResult) override { return FALSE; }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CFontDialog, CDialog);
 
 EckInline int MsgBox(PCWSTR pszText, PCWSTR pszCaption = L"", UINT uType = 0, HWND hParent = nullptr)
 {

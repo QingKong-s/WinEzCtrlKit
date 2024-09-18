@@ -62,6 +62,8 @@ struct HEHITTEST
 
 class CHexEdit : public CWnd
 {
+public:
+	ECK_RTTI(CHexEdit);
 private:
 	struct CHAR_COL
 	{
@@ -782,4 +784,5 @@ public:
 		return SizeTMax;
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CHexEdit, CWnd);
 ECK_NAMESPACE_END

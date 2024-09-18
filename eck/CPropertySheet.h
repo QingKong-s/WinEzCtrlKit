@@ -12,6 +12,8 @@ ECK_NAMESPACE_BEGIN
 class CPropertySheet :public CWnd
 {
 public:
+	ECK_RTTI(CPropertySheet);
+
 	EckInline INT_PTR Create(const PROPSHEETHEADERW* ppsh)
 	{
 		INT_PTR lRet = PropertySheetW(ppsh);
@@ -260,5 +262,5 @@ public:
 		SendMsg(PSM_UNCHANGED, (WPARAM)hPage, 0);
 	}
 };
-
+ECK_RTTI_IMPL_BASE_INLINE(CPropertySheet, CWnd);
 ECK_NAMESPACE_END

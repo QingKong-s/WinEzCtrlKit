@@ -12,6 +12,8 @@ ECK_NAMESPACE_BEGIN
 class CTab :public CWnd
 {
 public:
+	ECK_RTTI(CTab);
+
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
@@ -204,4 +206,5 @@ public:
 		SendMsg(TCM_SETTOOLTIPS, (WPARAM)hToolTip, 0);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CTab, CWnd);
 ECK_NAMESPACE_END

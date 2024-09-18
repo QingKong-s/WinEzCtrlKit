@@ -13,6 +13,8 @@
 ECK_NAMESPACE_BEGIN
 class CForm :public CWnd
 {
+public:
+	ECK_RTTI(CForm);
 private:
 	struct TRAY
 	{
@@ -375,6 +377,7 @@ public:
 		return Shell_NotifyIconW(NIM_MODIFY, &nid);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CForm, CWnd);
 inline UINT CForm::s_uTrayMsg = RegisterWindowMessageW(MSGREG_FORMTRAY);
 inline UINT CForm::s_uTaskbarCreatedMsg = RegisterWindowMessageW(L"TaskbarCreated");
 ECK_NAMESPACE_END

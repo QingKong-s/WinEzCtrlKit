@@ -65,9 +65,7 @@ class CButton :public CWnd
 protected:
 	BOOL m_bShowTextAndImage = FALSE;
 public:
-	CButton() {}
-
-	~CButton() {}
+	ECK_RTTI(CButton);
 
 	/// <summary>
 	/// 置图片文本同时显示
@@ -164,12 +162,15 @@ public:
 	{
 		return IsBitSet(GetStyle(), BS_MULTILINE);
 	}
-};                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+}; 
+ECK_RTTI_IMPL_BASE_INLINE(CButton, CWnd);
 
 // 普通按钮
 class CPushButton :public CButton
 {
 public:
+	ECK_RTTI(CPushButton);
+
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
@@ -287,11 +288,14 @@ public:
 		return (IsBitSet(dwStyle, BS_DEFSPLITBUTTON) || IsBitSet(dwStyle, BS_DEFPUSHBUTTON));
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CPushButton, CButton);
 
 // 选择框
 class CCheckButton :public CButton
 {
 public:
+	ECK_RTTI(CCheckButton);
+
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
@@ -470,6 +474,7 @@ public:
 		return IsBitSet(GetStyle(), BS_LEFTTEXT);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CCheckButton, CButton);
 
 // 命令链接
 class CCommandLink :public CButton
@@ -477,6 +482,8 @@ class CCommandLink :public CButton
 private:
 	BITBOOL m_bShieldIcon : 1;
 public:
+	ECK_RTTI(CCommandLink);
+
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
@@ -608,4 +615,5 @@ public:
 		return IsBitSet(dwStyle, BS_DEFCOMMANDLINK);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CCommandLink, CButton);
 ECK_NAMESPACE_END

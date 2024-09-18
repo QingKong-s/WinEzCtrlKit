@@ -43,6 +43,9 @@ DWORD g_dwTlsSlot{};
 
 NTVER g_NtVer{};
 
+
+ClassInfo* g_pClassInfo{};
+
 void EckInitPrivateApi()
 {
 	const auto hModUser32 = LoadLibraryW(L"User32.dll");

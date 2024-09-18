@@ -25,6 +25,8 @@ struct ECKLISTBOXINFO
 
 class CListBox :public CWnd
 {
+public:
+	ECK_RTTI(CListBox);
 protected:
 	ECKLISTBOXINFO m_Info{};
 
@@ -437,5 +439,6 @@ public:
 		return (SendMsg(LB_SETTOPINDEX, idx, 0) != LB_ERR);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CListBox, CWnd);
 inline UINT CListBox::m_uMsgDragList = RegisterWindowMessageW(DRAGLISTMSGSTRING);
 ECK_NAMESPACE_END

@@ -19,6 +19,8 @@ struct NMSPBDRAGGED
 
 class CSplitBar :public CWnd
 {
+public:
+	ECK_RTTI(CSplitBar);
 private:
 	CBk m_BKMark{};
 	CEzCDC m_DC{};
@@ -314,4 +316,5 @@ public:
 		m_bHorizontal = bHorizontal;
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CSplitBar, CWnd);
 ECK_NAMESPACE_END

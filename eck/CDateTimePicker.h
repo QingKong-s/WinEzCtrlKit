@@ -5,6 +5,8 @@ ECK_NAMESPACE_BEGIN
 class CDateTimePicker :public CWnd
 {
 public:
+	ECK_RTTI(CDateTimePicker);
+
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
@@ -88,4 +90,5 @@ public:
 		return (BOOL)SendMsg(DTM_SETSYSTEMTIME, 0, (LPARAM)pst);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CDateTimePicker, CWnd);
 ECK_NAMESPACE_END

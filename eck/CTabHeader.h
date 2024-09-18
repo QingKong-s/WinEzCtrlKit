@@ -22,6 +22,8 @@ struct TABHEADERITEM
 
 class CTabHeader :public CWnd
 {
+public:
+	ECK_RTTI(CTabHeader);
 private:
 	static constexpr int IDC_UPDOWN = 30001;
 	struct ITEM
@@ -244,4 +246,5 @@ public:
 
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CTabHeader, CWnd);
 ECK_NAMESPACE_END

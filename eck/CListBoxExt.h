@@ -90,6 +90,8 @@ constexpr int c_LBPadding = 3;
 class CListBoxExt :public CListBox
 {
 public:
+	ECK_RTTI(CListBoxExt);
+
 	EXELISTBOXDATA m_InfoEx{};
 	//////////图像列表相关
 	HIMAGELIST m_hImageList       = nullptr;   // 图像列表句柄
@@ -913,4 +915,5 @@ public:
 		return m_InfoEx.bBalloonToolTip;
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CListBoxExt, CListBox);
 ECK_NAMESPACE_END

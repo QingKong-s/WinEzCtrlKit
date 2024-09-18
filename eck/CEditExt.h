@@ -100,6 +100,8 @@ protected:
 		};
 	}
 public:
+	ECK_RTTI(CEditExt);
+
 	void AttachNew(HWND hWnd) override
 	{
 		CWnd::AttachNew(hWnd);
@@ -633,4 +635,5 @@ public:
 
 	EckInline constexpr BOOL GetMultiLineCueBanner() const { return m_bMultiLineCueBanner; }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CEditExt, CEdit);
 ECK_NAMESPACE_END

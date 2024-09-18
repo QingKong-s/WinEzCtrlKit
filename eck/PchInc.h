@@ -5,6 +5,7 @@
 #include "CWnd.h"
 #include "GraphicsHelper.h"
 #include "CCommDlg.h"
+#include "CObject.h"
 
 #pragma push_macro("free")
 #pragma push_macro("malloc")

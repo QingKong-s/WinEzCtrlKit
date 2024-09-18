@@ -12,6 +12,8 @@ ECK_NAMESPACE_BEGIN
 class CHotKey :public CWnd
 {
 public:
+	ECK_RTTI(CHotKey);
+
 	ECK_CWND_CREATE;
 	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr)
@@ -44,4 +46,5 @@ public:
 		SendMsg(HKM_SETRULES, uInvalid, uReplace);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CHotKey, CWnd);
 ECK_NAMESPACE_END

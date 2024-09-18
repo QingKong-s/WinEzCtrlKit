@@ -11,6 +11,8 @@ struct NMHTTSEL
 
 class CHitter : public CWnd
 {
+public:
+	ECK_RTTI(CHitter);
 private:
 	HCURSOR m_hcNormal{};
 	HCURSOR m_hcHit{};
@@ -88,4 +90,5 @@ public:
 
 	EckInline constexpr HCURSOR GetHitCursor() const { return m_hcHit; }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CHitter, CWnd);
 ECK_NAMESPACE_END
