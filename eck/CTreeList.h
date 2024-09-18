@@ -952,7 +952,7 @@ private:
 		m_bDraggingSel = TRUE;
 		MSG msg;
 		GetCursorPos(&msg.pt);
-		auto ullTime = GetTickCount64();
+		auto ullTime = NtGetTickCount64();
 
 		SetCapture(m_hWnd);
 		while (GetCapture() == m_hWnd)// 如果捕获改变则应立即退出拖动循环
@@ -990,7 +990,7 @@ private:
 				case WM_MOUSEMOVE:
 				{
 					POINT pt ECK_GET_PT_LPARAM(msg.lParam);
-					const auto ullTimeNow = GetTickCount64();
+					const auto ullTimeNow = NtGetTickCount64();
 					//----------滚动
 					if (ullTimeNow - ullTime >= m_msDraggingSelScrollGap)
 					{

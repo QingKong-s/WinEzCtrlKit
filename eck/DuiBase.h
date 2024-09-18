@@ -935,8 +935,8 @@ private:
 				EckAssert(hTimer);
 				BOOL bThereAreActiveTimeLine;
 
-				NtWaitForSingleObject(m_evtRender.GetHEvent(), FALSE, nullptr);
-				ULONGLONG ullTime = GetTickCount64() - c_iMinGap;
+				WaitObject(m_evtRender);
+				ULONGLONG ullTime = NtGetTickCount64() - c_iMinGap;
 				EckLoop()
 				{
 					bThereAreActiveTimeLine = FALSE;
@@ -948,7 +948,7 @@ private:
 						break;
 					}
 
-					const auto ullCurrTime = GetTickCount64();
+					const auto ullCurrTime = NtGetTickCount64();
 					// 滴答所有时间线
 					int iDeltaTime = (int)(ullCurrTime - ullTime);
 					for (const auto e : m_vTimeLine)
@@ -1052,7 +1052,7 @@ private:
 							m_cs.Leave();
 					}
 
-					iDeltaTime = (int)(GetTickCount64() - ullCurrTime);
+					iDeltaTime = (int)(NtGetTickCount64() - ullCurrTime);
 					ullTime = ullCurrTime;
 					if (bThereAreActiveTimeLine)
 					{
@@ -1061,14 +1061,13 @@ private:
 							LARGE_INTEGER llDueTime
 							{ .QuadPart = -10 * (c_iMinGap - iDeltaTime) * 1000LL };
 							NtSetTimer(hTimer, &llDueTime, nullptr, nullptr, FALSE, 0, nullptr);
-							//	SetWaitableTimer(hTimer, &llDueTime, 0, NULL, NULL, 0);
-							WaitWaitableObject(hTimer);
+							WaitObject(hTimer);
 						}
 					}
 					else
 					{
-						WaitWaitableObject(m_evtRender.GetHEvent());
-						ullTime = GetTickCount64() - c_iMinGap;
+						WaitObject(m_evtRender);
+						ullTime = NtGetTickCount64() - c_iMinGap;
 					}
 				}
 

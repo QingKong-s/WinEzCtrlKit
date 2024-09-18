@@ -174,6 +174,8 @@
     <ClInclude Include="CTestWnd.h" />
     <ClInclude Include="eck\CHitter.h" />
     <ClInclude Include="eck\CTableLayout.h" />
+    <ClInclude Include="eck\CWaitableObject.h" />
+    <ClInclude Include="eck\CWaitableTimer.h" />
     <ClInclude Include="eck\DateTimeHelper.h" />
     <ClInclude Include="eck\Json.h" />
     <ClInclude Include="eck\CSignal.h" />
