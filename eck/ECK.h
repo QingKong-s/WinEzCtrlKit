@@ -639,7 +639,7 @@ struct INITPARAM
 /// <param name="pInitParam">指向初始化参数的可选指针</param>
 /// <param name="pdwErrCode">指向接收错误码变量的可选指针</param>
 /// <returns>错误代码</returns>
-InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam = NULL, DWORD* pdwErrCode = NULL);
+InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam = nullptr, DWORD* pdwErrCode = nullptr);
 
 void UnInit();
 
@@ -694,7 +694,7 @@ struct ECKTHREADCTX
 		if (it != hmWnd.end())
 			return it->second;
 		else
-			return NULL;
+			return nullptr;
 	}
 
 	EckInline void TwmAdd(HWND hWnd, CWnd* pWnd)
@@ -717,7 +717,7 @@ struct ECKTHREADCTX
 		if (it != hmTopWnd.end())
 			return it->second;
 		else
-			return NULL;
+			return nullptr;
 	}
 
 	void SetNcDarkModeForAllTopWnd(BOOL bDark);
@@ -743,7 +743,7 @@ struct ECKTHREADCTX
 		return hsTabTheme.find(hTheme) != hsTabTheme.end();
 	}
 
-	EckInline BOOL IsThemeToolBar(HTHEME hTheme, HTHEME* phThemeLV = NULL) const
+	EckInline BOOL IsThemeToolBar(HTHEME hTheme, HTHEME* phThemeLV = nullptr) const
 	{
 		if (phThemeLV)
 		{
@@ -765,7 +765,7 @@ struct ECKTHREADCTX
 		return hsAeroWizardTheme.find(hTheme) != hsAeroWizardTheme.end();
 	}
 
-	EckInline BOOL IsThemeDateTimePicker(HTHEME hTheme, HTHEME* phThemeCBB = NULL) const
+	EckInline BOOL IsThemeDateTimePicker(HTHEME hTheme, HTHEME* phThemeCBB = nullptr) const
 	{
 		if (phThemeCBB)
 		{
@@ -818,7 +818,7 @@ void ThreadUnInit();
 	return GetThreadCtx()->WmAt(hWnd);
 }
 
-HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc = NULL);
+HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc = nullptr);
 
 void EndCbtHook();
 

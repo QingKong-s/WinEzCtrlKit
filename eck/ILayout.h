@@ -36,7 +36,7 @@ struct ILayout
 	virtual void LoCommit() {}
 
 	// 若当前类为窗口，则返回窗口句柄
-	virtual HWND LoGetHWND() { return NULL; }
+	virtual HWND LoGetHWND() { return nullptr; }
 
 	// 初始化布局所用DPI，通常仅对非原子布局生效
 	virtual void LoInitDpi(int iDpi) {}

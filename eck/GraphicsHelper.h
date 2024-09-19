@@ -19,9 +19,9 @@ struct CEzCDC
 	CEzCDC(const CEzCDC&) = delete;
 	CEzCDC(CEzCDC&& x) noexcept :m_hCDC{ x.m_hCDC }, m_hBmp{ x.m_hBmp }, m_hOld{ x.m_hOld }
 	{
-		x.m_hCDC = NULL;
-		x.m_hBmp = NULL;
-		x.m_hOld = NULL;
+		x.m_hCDC = nullptr;
+		x.m_hBmp = nullptr;
+		x.m_hOld = nullptr;
 	}
 
 	CEzCDC(HWND hWnd, int cx = 0, int cy = 0)
@@ -134,20 +134,20 @@ struct CEzCDC
 			SelectObject(m_hCDC, m_hOld);
 			DeleteObject(m_hBmp);
 			DeleteDC(m_hCDC);
-			m_hCDC = NULL;
-			m_hBmp = NULL;
-			m_hOld = NULL;
+			m_hCDC = nullptr;
+			m_hBmp = nullptr;
+			m_hOld = nullptr;
 		}
 	}
 };
 
 struct EZD2D_PARAM
 {
-	HWND hWnd = NULL;
+	HWND hWnd = nullptr;
 
-	IDXGIFactory2* pDxgiFactory = NULL;
-	IDXGIDevice* pDxgiDevice = NULL;
-	ID2D1Device* pD2dDevice = NULL;
+	IDXGIFactory2* pDxgiFactory = nullptr;
+	IDXGIDevice* pDxgiDevice = nullptr;
+	ID2D1Device* pD2dDevice = nullptr;
 
 	UINT cx = 8;
 	UINT cy = 8;
@@ -201,18 +201,18 @@ struct EZD2D_PARAM
 
 struct CEzD2D
 {
-	ID2D1DeviceContext* m_pDC = NULL;
-	IDXGISwapChain1* m_pSwapChain = NULL;
-	ID2D1Bitmap1* m_pBitmap = NULL;
+	ID2D1DeviceContext* m_pDC = nullptr;
+	IDXGISwapChain1* m_pSwapChain = nullptr;
+	ID2D1Bitmap1* m_pBitmap = nullptr;
 
 	CEzD2D() = default;
 	CEzD2D(const CEzD2D&) = delete;
 	CEzD2D(CEzD2D&& x) noexcept
 		:m_pDC{ x.m_pDC }, m_pSwapChain{ x.m_pSwapChain }, m_pBitmap{ x.m_pBitmap }
 	{
-		x.m_pDC = NULL;
-		x.m_pSwapChain = NULL;
-		x.m_pBitmap = NULL;
+		x.m_pDC = nullptr;
+		x.m_pSwapChain = nullptr;
+		x.m_pBitmap = nullptr;
 	}
 
 	CEzD2D(const EZD2D_PARAM& Param)
@@ -252,7 +252,7 @@ struct CEzD2D
 
 		HRESULT hr;
 		if (FAILED(hr = Param.pDxgiFactory->CreateSwapChainForHwnd(Param.pDxgiDevice, Param.hWnd,
-			&DxgiSwapChainDesc, NULL, NULL, &m_pSwapChain)))
+			&DxgiSwapChainDesc, nullptr, nullptr, &m_pSwapChain)))
 		{
 			EckDbgPrintFormatMessage(hr);
 			EckDbgBreak();
@@ -283,7 +283,7 @@ struct CEzD2D
 			96,
 			96,
 			Param.uBmpOptions,
-			NULL
+			nullptr
 		};
 
 		if (FAILED(hr = m_pDC->CreateBitmapFromDxgiSurface(pSurface, &D2dBmpProp, &m_pBitmap)))
@@ -320,7 +320,7 @@ struct CEzD2D
 
 		HRESULT hr;
 		if (FAILED(hr = Param.pDxgiFactory->CreateSwapChainForComposition(Param.pDxgiDevice,
-			&DxgiSwapChainDesc, NULL, &m_pSwapChain)))
+			&DxgiSwapChainDesc, nullptr, &m_pSwapChain)))
 		{
 			EckDbgPrintFormatMessage(hr);
 			EckDbgBreak();
@@ -351,7 +351,7 @@ struct CEzD2D
 			96,
 			96,
 			Param.uBmpOptions,
-			NULL
+			nullptr
 		};
 
 		if (FAILED(hr = m_pDC->CreateBitmapFromDxgiSurface(pSurface, &D2dBmpProp, &m_pBitmap)))
@@ -374,7 +374,7 @@ struct CEzD2D
 		D2D1_BITMAP_OPTIONS uBmpOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW)
 	{
 		EckAssert(!!m_pDC && !!m_pSwapChain && !!m_pBitmap);
-		m_pDC->SetTarget(NULL);
+		m_pDC->SetTarget(nullptr);
 		SafeRelease(m_pBitmap);
 
 		HRESULT hr;
@@ -401,7 +401,7 @@ struct CEzD2D
 			96,
 			96,
 			uBmpOptions,
-			NULL
+			nullptr
 		};
 
 		if (FAILED(hr = m_pDC->CreateBitmapFromDxgiSurface(pSurface, &D2dBmpProp, &m_pBitmap)))
@@ -966,7 +966,7 @@ inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp,
 		return hr;
 	}
 	const D2D1_RECT_U rcU{ (UINT32)rc.left, (UINT32)rc.top, (UINT32)rc.right, (UINT32)rc.bottom };
-	pBmpEffect->CopyFromBitmap(NULL, pBmp, &rcU);
+	pBmpEffect->CopyFromBitmap(nullptr, pBmp, &rcU);
 
 	pFxBlur->SetInput(0, pBmpEffect);
 
@@ -986,7 +986,7 @@ inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, ID2D1Bitmap
 	HRESULT hr;
 
 	const D2D1_RECT_U rcU{ (UINT32)rc.left, (UINT32)rc.top, (UINT32)rc.right, (UINT32)rc.bottom };
-	if (FAILED(hr = pBmpWork->CopyFromBitmap(NULL, pBmp, &rcU)))
+	if (FAILED(hr = pBmpWork->CopyFromBitmap(nullptr, pBmp, &rcU)))
 		return hr;
 
 	ID2D1Effect* pFxBlur;
@@ -1023,7 +1023,7 @@ class CSinkForwarder :public ID2D1SimplifiedGeometrySink
 {
 private:
 	LONG m_cRef = 1;
-	ID2D1SimplifiedGeometrySink* m_pSink = NULL;
+	ID2D1SimplifiedGeometrySink* m_pSink = nullptr;
 	float m_oxCurr = 0.f, m_oyCurr = 0.f;
 public:
 	CSinkForwarder(ID2D1SimplifiedGeometrySink* pSink) :m_pSink{ pSink }
@@ -1139,8 +1139,8 @@ class CTrFetchPath : public IDWriteTextRenderer
 {
 private:
 	ULONG m_uRef = 1;
-	ID2D1RenderTarget* m_pRT = NULL;
-	ID2D1Factory* m_pFactory = NULL;
+	ID2D1RenderTarget* m_pRT = nullptr;
+	ID2D1Factory* m_pFactory = nullptr;
 public:
 	CTrFetchPath(ID2D1RenderTarget* pRT, ID2D1Factory* pFactory)
 		:m_pRT{ pRT }, m_pFactory{ pFactory }
@@ -1242,7 +1242,7 @@ public:
 /// <param name="pD2dFactory">D2D工厂</param>
 /// <returns>HRESULT</returns>
 inline HRESULT GetTextLayoutPathGeometry(IDWriteTextLayout* pLayout, ID2D1RenderTarget* pRT,
-	float x, float y, ID2D1PathGeometry1*& pPathGeometry, ID2D1Factory1* pD2dFactory = NULL)
+	float x, float y, ID2D1PathGeometry1*& pPathGeometry, ID2D1Factory1* pD2dFactory = nullptr)
 {
 	if (!pD2dFactory)
 		pD2dFactory = g_pD2dFactory;
@@ -1267,7 +1267,7 @@ inline HRESULT GetTextLayoutPathGeometry(IDWriteTextLayout* pLayout, ID2D1Render
 	if (FAILED(hr))
 	{
 		pPath->Release();
-		pPathGeometry = NULL;
+		pPathGeometry = nullptr;
 	}
 	else
 		pPathGeometry = pPath;
@@ -1287,7 +1287,7 @@ inline HRESULT GetTextLayoutPathGeometry(IDWriteTextLayout* pLayout, ID2D1Render
 /// <param name="pD2dFactory">D2D工厂</param>
 /// <returns>HRESULT</returns>
 inline HRESULT GetTextLayoutPathGeometry(IDWriteTextLayout* const* pLayout, int cLayout, const float* cyPadding,
-	ID2D1RenderTarget* pRT, float* x, float yStart, ID2D1PathGeometry*& pPathGeometry, ID2D1Factory* pD2dFactory = NULL)
+	ID2D1RenderTarget* pRT, float* x, float yStart, ID2D1PathGeometry*& pPathGeometry, ID2D1Factory* pD2dFactory = nullptr)
 {
 	if (!pD2dFactory)
 		pD2dFactory = g_pD2dFactory;
@@ -1326,7 +1326,7 @@ inline HRESULT GetTextLayoutPathGeometry(IDWriteTextLayout* const* pLayout, int 
 	if (FAILED(hr))
 	{
 		pPath->Release();
-		pPathGeometry = NULL;
+		pPathGeometry = nullptr;
 	}
 	else
 		pPathGeometry = pPath;
@@ -1417,46 +1417,46 @@ inline GpStatus DrawImageFromGrid(GpGraphics* pGraphics, GpImage* pImage,
 	GdipDrawImageRectRectI(pGraphics, pImage,
 		xDst, yDst, Margins.cxLeftWidth, Margins.cyTopHeight,
 		xSrc, ySrc, Margins.cxLeftWidth, Margins.cyTopHeight,
-		eUnit, pIA, NULL, NULL);
+		eUnit, pIA, nullptr, nullptr);
 	// 上
 	GdipDrawImageRectRectI(pGraphics, pImage,
 		xDst + Margins.cxLeftWidth, yDst, cxDst - Margins.cxRightWidth - Margins.cxLeftWidth, Margins.cyTopHeight,
 		xSrc + Margins.cxLeftWidth, ySrc, cxSrc - Margins.cxRightWidth - Margins.cxLeftWidth, Margins.cyTopHeight,
-		eUnit, pIA, NULL, NULL);
+		eUnit, pIA, nullptr, nullptr);
 	// 右上
 	GdipDrawImageRectRectI(pGraphics, pImage,
 		xDst + cxDst - Margins.cxRightWidth, yDst, Margins.cxRightWidth, Margins.cyTopHeight,
 		xSrc + cxSrc - Margins.cxRightWidth, ySrc, Margins.cxRightWidth, Margins.cyTopHeight,
-		eUnit, pIA, NULL, NULL);
+		eUnit, pIA, nullptr, nullptr);
 	// 左
 	GdipDrawImageRectRectI(pGraphics, pImage,
 		xDst, yDst + Margins.cyTopHeight, Margins.cxLeftWidth, cyDst - Margins.cyBottomHeight - Margins.cyTopHeight,
 		xSrc, ySrc + Margins.cyTopHeight, Margins.cxLeftWidth, cySrc - Margins.cyBottomHeight - Margins.cyTopHeight,
-		eUnit, pIA, NULL, NULL);
+		eUnit, pIA, nullptr, nullptr);
 	// 右
 	GdipDrawImageRectRectI(pGraphics, pImage,
 		xDst + cxDst - Margins.cxRightWidth, yDst + Margins.cyTopHeight, Margins.cxRightWidth, cyDst - Margins.cyBottomHeight - Margins.cyTopHeight,
 		xSrc + cxSrc - Margins.cxRightWidth, ySrc + Margins.cyTopHeight, Margins.cxRightWidth, cySrc - Margins.cyBottomHeight - Margins.cyTopHeight,
-		eUnit, pIA, NULL, NULL);
+		eUnit, pIA, nullptr, nullptr);
 	// 左下
 	GdipDrawImageRectRectI(pGraphics, pImage,
 		xDst, yDst + cyDst - Margins.cyBottomHeight, Margins.cxLeftWidth, Margins.cyBottomHeight,
 		xSrc, ySrc + cySrc - Margins.cyBottomHeight, Margins.cxLeftWidth, Margins.cyBottomHeight,
-		eUnit, pIA, NULL, NULL);
+		eUnit, pIA, nullptr, nullptr);
 	// 下
 	GdipDrawImageRectRectI(pGraphics, pImage,
 		xDst + Margins.cxLeftWidth, yDst + cyDst - Margins.cyBottomHeight, cxDst - Margins.cxRightWidth - Margins.cxLeftWidth, Margins.cyBottomHeight,
 		xSrc + Margins.cxLeftWidth, ySrc + cySrc - Margins.cyBottomHeight, cxSrc - Margins.cxRightWidth - Margins.cxLeftWidth, Margins.cyBottomHeight,
-		eUnit, pIA, NULL, NULL);
+		eUnit, pIA, nullptr, nullptr);
 	// 右下
 	GdipDrawImageRectRectI(pGraphics, pImage,
 		xDst + cxDst - Margins.cxRightWidth, yDst + cyDst - Margins.cyBottomHeight, Margins.cxRightWidth, Margins.cyBottomHeight,
 		xSrc + cxSrc - Margins.cxRightWidth, ySrc + cySrc - Margins.cyBottomHeight, Margins.cxRightWidth, Margins.cyBottomHeight,
-		eUnit, pIA, NULL, NULL);
+		eUnit, pIA, nullptr, nullptr);
 	// 中
 	return GdipDrawImageRectRectI(pGraphics, pImage,
 		xDst + Margins.cxLeftWidth, yDst + Margins.cyTopHeight, cxDst - Margins.cxRightWidth - Margins.cxLeftWidth, cyDst - Margins.cyBottomHeight - Margins.cyTopHeight,
 		xSrc + Margins.cxLeftWidth, ySrc + Margins.cyTopHeight, cxSrc - Margins.cxRightWidth - Margins.cxLeftWidth, cySrc - Margins.cyBottomHeight - Margins.cyTopHeight,
-		eUnit, pIA, NULL, NULL);
+		eUnit, pIA, nullptr, nullptr);
 }
 ECK_NAMESPACE_END

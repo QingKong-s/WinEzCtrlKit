@@ -10,7 +10,7 @@
 #include "ImageHelper.h"
 
 ECK_NAMESPACE_BEGIN
-inline CRefStrW GetClipboardString(HWND hWnd = NULL)
+inline CRefStrW GetClipboardString(HWND hWnd = nullptr)
 {
 	if (!OpenClipboard(hWnd))
 	{
@@ -42,7 +42,7 @@ inline CRefStrW GetClipboardString(HWND hWnd = NULL)
 	return {};
 }
 
-inline BOOL SetClipboardString(PCWSTR pszText, int cch = -1, HWND hWnd = NULL)
+inline BOOL SetClipboardString(PCWSTR pszText, int cch = -1, HWND hWnd = nullptr)
 {
 	if (!OpenClipboard(hWnd))
 	{
@@ -71,12 +71,12 @@ inline BOOL SetClipboardString(PCWSTR pszText, int cch = -1, HWND hWnd = NULL)
 	return FALSE;
 }
 
-inline HBITMAP GetClipboardBitmap(HWND hWnd = NULL)
+inline HBITMAP GetClipboardBitmap(HWND hWnd = nullptr)
 {
 	if (!OpenClipboard(hWnd))
 	{
 		EckDbgPrintFmt(L"剪贴板打开失败，当前所有者 = %p", GetClipboardOwner());
-		return NULL;
+		return nullptr;
 	}
 	if (IsClipboardFormatAvailable(CF_DIB))
 	{
@@ -102,7 +102,7 @@ inline HBITMAP GetClipboardBitmap(HWND hWnd = NULL)
 	return {};
 }
 
-inline CRefBin GetClipboardDib(HWND hWnd = NULL)
+inline CRefBin GetClipboardDib(HWND hWnd = nullptr)
 {
 	if (!OpenClipboard(hWnd))
 	{
@@ -130,7 +130,7 @@ inline HRESULT CreateShortcut(PCWSTR pszLinkFile, PCWSTR pszTarget, int iCmdShow
 {
 	HRESULT hr;
 	ComPtr<IShellLinkW> pShellLink;
-	if (FAILED(hr = CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pShellLink))))
+	if (FAILED(hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pShellLink))))
 		return hr;
 	if (FAILED(hr = pShellLink->SetPath(pszTarget)))
 		return hr;

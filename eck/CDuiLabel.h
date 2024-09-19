@@ -6,9 +6,9 @@
 * Copyright(C) 2024 QingKong
 */
 #pragma once
-#if ECKCXX20
 #include "DuiBase.h"
 
+#if ECKCXX20
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 

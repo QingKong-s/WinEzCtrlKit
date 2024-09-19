@@ -128,7 +128,7 @@ EckInline constexpr void DpiScale(SIZE& size, int iDpi)
 /// <param name="hWnd">计算高度时的参照窗口，将使用此窗口的DC来度量，默认使用桌面窗口</param>
 /// <returns>字体句柄</returns>
 EckInline HFONT EzFont(PCWSTR pszFontName, int iPoint, int iWeight = 400, BOOL bItalic = FALSE,
-	BOOL bUnderline = FALSE, BOOL bStrikeOut = FALSE, HWND hWnd = NULL, DWORD dwCharSet = DEFAULT_CHARSET)
+	BOOL bUnderline = FALSE, BOOL bStrikeOut = FALSE, HWND hWnd = nullptr, DWORD dwCharSet = DEFAULT_CHARSET)
 {
 	HDC hDC = GetDC(hWnd);
 	int iSize;
@@ -154,7 +154,7 @@ EckInline void SetFontForWndAndCtrl(HWND hWnd, HFONT hFont, BOOL bRedraw = FALSE
 			return TRUE;
 		}, (LPARAM)hFont);
 	if (bRedraw)
-		RedrawWindow(hWnd, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+		RedrawWindow(hWnd, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
 }
 
 /// <summary>
@@ -347,34 +347,34 @@ inline HWND GetThreadFirstWindow(DWORD dwTid)
 inline HWND GetSafeOwner(HWND hParent, HWND* phWndTop)
 {
 	HWND hWnd = hParent;
-	if (hWnd == NULL)
+	if (hWnd == nullptr)
 		hWnd = GetThreadFirstWindow(GetCurrentThreadId());
 
-	while (hWnd != NULL && (GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_CHILD))
+	while (hWnd != nullptr && (GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_CHILD))
 		hWnd = GetParent(hWnd);
 
 	HWND hWndTop = hWnd, hWndTemp = hWnd;
 	EckLoop()
 	{
-		if (hWndTemp == NULL)
+		if (hWndTemp == nullptr)
 			break;
 		else
 			hWndTop = hWndTemp;
 		hWndTemp = GetParent(hWndTop);
 	}
 
-	if (hParent == NULL && hWnd != NULL)
+	if (hParent == nullptr && hWnd != nullptr)
 		hWnd = GetLastActivePopup(hWnd);
 
-	if (phWndTop != NULL)
+	if (phWndTop != nullptr)
 	{
-		if (hWndTop != NULL && IsWindowEnabled(hWndTop) && hWndTop != hWnd)
+		if (hWndTop != nullptr && IsWindowEnabled(hWndTop) && hWndTop != hWnd)
 		{
 			*phWndTop = hWndTop;
 			EnableWindow(hWndTop, FALSE);
 		}
 		else
-			*phWndTop = NULL;
+			*phWndTop = nullptr;
 	}
 
 	return hWnd;
@@ -387,11 +387,11 @@ EckInline WNDPROC GetClassWndProc(HINSTANCE hInstance, PCWSTR pszClass)
 	return wcex.lpfnWndProc;
 }
 
-inline ATOM EzRegisterWndClass(PCWSTR pszClass, UINT uStyle = CS_STDWND, HBRUSH hbrBK = NULL)
+inline ATOM EzRegisterWndClass(PCWSTR pszClass, UINT uStyle = CS_STDWND, HBRUSH hbrBK = nullptr)
 {
 	WNDCLASSW wc{};
 	wc.cbWndExtra = sizeof(void*);
-	wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
+	wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
 	wc.hInstance = g_hInstance;
 	wc.lpfnWndProc = DefWindowProcW;
 	wc.lpszClassName = pszClass;
@@ -402,8 +402,8 @@ inline ATOM EzRegisterWndClass(PCWSTR pszClass, UINT uStyle = CS_STDWND, HBRUSH 
 
 EckInline HMONITOR GetPrimaryMonitor()
 {
-	HMONITOR hMonitor = NULL;
-	EnumDisplayMonitors(NULL, NULL, [](HMONITOR hMonitor, HDC, RECT*, LPARAM lParam)->BOOL
+	HMONITOR hMonitor = nullptr;
+	EnumDisplayMonitors(nullptr, nullptr, [](HMONITOR hMonitor, HDC, RECT*, LPARAM lParam)->BOOL
 		{
 			MONITORINFO mi;
 			mi.cbSize = sizeof(mi);
@@ -449,7 +449,7 @@ inline POINT CalcCenterWndPos(HWND hParent, int cx, int cy)
 	}
 	else
 	{
-		const auto hMonitor = GetOwnerMonitor(NULL);
+		const auto hMonitor = GetOwnerMonitor(nullptr);
 		MONITORINFO mi;
 		mi.cbSize = sizeof(mi);
 		GetMonitorInfoW(hMonitor, &mi);
@@ -479,7 +479,7 @@ inline BOOL IsMouseMovedBeforeDragging(HWND hWnd, int x, int y, int dx = -1, int
 	MSG msg;
 	while (GetCapture() == hWnd)
 	{
-		if (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
+		if (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
 		{
 			switch (msg.message)
 			{
@@ -515,7 +515,7 @@ inline BOOL IsMouseMovedBeforeDragging(HWND hWnd, int x, int y, int dx = -1, int
 
 EckInline void BroadcastChildrenMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	const MSG msg{ NULL,uMsg,wParam,lParam };
+	const MSG msg{ nullptr,uMsg,wParam,lParam };
 	EnumChildWindows(hWnd, [](HWND hWnd, LPARAM lParam)->BOOL
 		{
 			const auto pMsg = (const MSG*)lParam;
@@ -557,7 +557,7 @@ inline void GetItemsViewForeBackColor(COLORREF& crText, COLORREF& crBk)
 	crText = GetSysColor(COLOR_WINDOWTEXT);
 	if (ShouldAppsUseDarkMode())
 	{
-		const auto hThemeIV = OpenThemeData(NULL, L"ItemsView");
+		const auto hThemeIV = OpenThemeData(nullptr, L"ItemsView");
 		if (hThemeIV)
 		{
 			if (FAILED(GetThemeColor(hThemeIV, 0, 0, TMT_FILLCOLOR, &crBk)))
@@ -628,7 +628,7 @@ inline BOOL GetWindowClientRect(HWND hWnd, RECT& rcClient)
 EckInline void DoEvents()
 {
 	MSG msg;
-	while (PeekMessageW(&msg, NULL, 0u, 0u, PM_REMOVE))
+	while (PeekMessageW(&msg, nullptr, 0u, 0u, PM_REMOVE))
 	{
 		if (msg.message == WM_QUIT)
 		{
@@ -655,7 +655,7 @@ EckInline void ClientToScreen(HWND hWnd, RECT* prc)
 EckInline void MsgOnDpiChanged(HWND hWnd, LPARAM lParam)
 {
 	const auto prc = (RECT*)lParam;
-	SetWindowPos(hWnd, NULL,
+	SetWindowPos(hWnd, nullptr,
 		prc->left,
 		prc->top,
 		prc->right - prc->left,
@@ -727,7 +727,7 @@ inline HWND WndFromPoint(POINT pt, UINT uFlags = CWP_SKIPINVISIBLE)
 {
 	const HWND hParent = WindowFromPoint(pt);
 	if (!hParent)
-		return NULL;
+		return nullptr;
 	POINT pt0{ pt };
 	ScreenToClient(hParent, &pt0);
 

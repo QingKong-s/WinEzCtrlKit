@@ -204,7 +204,7 @@ struct MUSICINFO
 	const MUSICPIC* GetMainCover() const
 	{
 		if (vImage.empty())
-			return NULL;
+			return nullptr;
 		auto it = std::find_if(vImage.begin(), vImage.end(),
 			[](const MUSICPIC& e) { return e.eType == PicType::CoverFront; });
 		if (it == vImage.end())
@@ -502,7 +502,7 @@ private:
 		// 查找ID3v1
 		if (cbSize > 128u)
 		{
-			w->Seek(ToLi(-128), STREAM_SEEK_END, NULL);
+			w->Seek(ToLi(-128), STREAM_SEEK_END, nullptr);
 			w.Read(by, 3);
 			if (memcmp(by, "TAG", 3) == 0)
 			{
@@ -511,7 +511,7 @@ private:
 			}
 			if (cbSize > 128u + 227u)
 			{
-				w->Seek(ToLi(-(128 + 227)), STREAM_SEEK_END, NULL);
+				w->Seek(ToLi(-(128 + 227)), STREAM_SEEK_END, nullptr);
 				w.Read(by, 4);
 				if (memcmp(by, "TAG+", 4) == 0)
 				{
@@ -528,7 +528,7 @@ private:
 			cbID3v1 = 128u;
 		if (cbSize > cbID3v1 + 32u)
 		{
-			w->Seek(ToLi(-SSIZE_T(cbID3v1 + 32u)), STREAM_SEEK_END, NULL);
+			w->Seek(ToLi(-SSIZE_T(cbID3v1 + 32u)), STREAM_SEEK_END, nullptr);
 			APE_Header Hdr;
 			w >> Hdr;
 			if (IsLegalApeHeader(Hdr) && !(Hdr.dwFlags & APE_HEADER))
@@ -624,7 +624,7 @@ private:
 					}
 					else
 					{
-						w->Seek(ToLi(-10), STREAM_SEEK_END, NULL);
+						w->Seek(ToLi(-10), STREAM_SEEK_END, nullptr);
 						w >> hdr;
 						if (memcmp(hdr.Header, "3DI", 3u) == 0 && IsLegalID3v2Header(hdr))
 						{
@@ -743,7 +743,7 @@ public:
 	CMediaFile(PCWSTR pszFile, DWORD grfMode = STGM_READWRITE,
 		DWORD dwAttr = FILE_ATTRIBUTE_NORMAL, BOOL bCreate = FALSE)
 	{
-		SHCreateStreamOnFileEx(pszFile, grfMode, dwAttr, bCreate, NULL, &m_pStream);
+		SHCreateStreamOnFileEx(pszFile, grfMode, dwAttr, bCreate, nullptr, &m_pStream);
 		DetectTag();
 	}
 

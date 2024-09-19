@@ -245,7 +245,7 @@ EckInline constexpr ARGB ColorrefToARGB(COLORREF cr, BYTE byAlpha = 0xFF)
 	return ReverseColorref(cr) | (byAlpha << 24);
 }
 
-EckInline constexpr COLORREF ARGBToColorref(ARGB argb, BYTE* pbyAlpha = NULL)
+EckInline constexpr COLORREF ARGBToColorref(ARGB argb, BYTE* pbyAlpha = nullptr)
 {
 	if (pbyAlpha)
 		*pbyAlpha = GetIntegerByte<3>(argb);
@@ -404,7 +404,7 @@ EckInline void RandSeed(UINT uSeed)
 
 EckInline void RandSeed()
 {
-	srand((UINT)time(NULL));
+	srand((UINT)time(nullptr));
 }
 
 EckInline int Rand(int iMin = INT_MIN, int iMax = INT_MAX)
@@ -523,7 +523,7 @@ EckInline void SafeRelease(TInterface*& pUnk)
 	if (pUnk)
 	{
 		pUnk->Release();
-		pUnk = NULL;
+		pUnk = nullptr;
 	}
 }
 
@@ -1614,15 +1614,15 @@ EckInline constexpr void RectCornerToPoint(const D2D1_RECT_F& rc, D2D1_POINT_2F*
 	ppt[3] = D2D1_POINT_2F{ rc.right,rc.bottom };
 }
 
-EckInline constexpr void InitOA(OBJECT_ATTRIBUTES& oa, PUNICODE_STRING pusName = NULL,
-	ULONG ulAttr = 0u, HANDLE hRootDir = NULL, PSECURITY_DESCRIPTOR pSecDesc = NULL)
+EckInline constexpr void InitOA(OBJECT_ATTRIBUTES& oa, PUNICODE_STRING pusName = nullptr,
+	ULONG ulAttr = 0u, HANDLE hRootDir = nullptr, PSECURITY_DESCRIPTOR pSecDesc = nullptr)
 {
 	oa.Length = sizeof(OBJECT_ATTRIBUTES);
 	oa.RootDirectory = hRootDir;
 	oa.ObjectName = pusName;
 	oa.Attributes = ulAttr;
 	oa.SecurityDescriptor = pSecDesc;
-	oa.SecurityQualityOfService = NULL;
+	oa.SecurityQualityOfService = nullptr;
 }
 
 EckInline constexpr RCWH ToRCWH(const RECT& rc)

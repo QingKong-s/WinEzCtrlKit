@@ -223,12 +223,12 @@ EckInline CRefBinT<TAlloc>& operator<<(CRefBinT<TAlloc>& rb, const T& t)
 {
 	CRefStrW rs{};
 	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_BYTEREV,
-		pszText, cchText, NULL, 0, NULL, NULL, 0);
+		pszText, cchText, nullptr, 0, nullptr, nullptr, 0);
 	if (!cchResult)
 		return rs;
 	rs.ReSize(cchResult);
 	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_BYTEREV,
-		pszText, cchText, rs.Data(), cchResult, NULL, NULL, 0);
+		pszText, cchText, rs.Data(), cchResult, nullptr, nullptr, 0);
 	return rs;
 }
 
@@ -354,14 +354,14 @@ inline NTSTATUS CalcMd5(PCVOID pData, SIZE_T cbData, void* pResult)
 	ULONG cbRet;
 	BCRYPT_HASH_HANDLE hHash{};
 	UCHAR* pHashObject{};
-	if (!NT_SUCCESS(nts = BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_MD5_ALGORITHM, NULL, 0)))
+	if (!NT_SUCCESS(nts = BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_MD5_ALGORITHM, nullptr, 0)))
 		return nts;
 	if (!NT_SUCCESS(nts = BCryptGetProperty(hAlg, BCRYPT_OBJECT_LENGTH, (BYTE*)&cbHashObject,
 		sizeof(DWORD), &cbRet, 0)))
 		goto TidyUp;
 	pHashObject = (UCHAR*)_malloca(cbHashObject);
 	if (!NT_SUCCESS(nts = BCryptCreateHash(hAlg, &hHash, pHashObject, cbHashObject,
-		NULL, 0, 0)))
+		nullptr, 0, 0)))
 		goto TidyUp;
 	if (!NT_SUCCESS(nts = BCryptHashData(hHash, (BYTE*)pData, (ULONG)cbData, 0)))
 		goto TidyUp;
@@ -443,16 +443,16 @@ EckInline void LegalizePath(PWSTR pszPath, WCHAR chReplace = L'_')
 
 inline std::span<const BYTE> GetResource(PCWSTR pszName, PCWSTR pszType)
 {
-	const auto hRes = FindResourceW(NULL, pszName, pszType);
+	const auto hRes = FindResourceW(nullptr, pszName, pszType);
 	if (!hRes)
 		return {};
-	const auto hGlobal = LoadResource(NULL, hRes);
+	const auto hGlobal = LoadResource(nullptr, hRes);
 	if (!hGlobal)
 		return {};
 	const auto pRes = LockResource(hGlobal);
 	if (!pRes)
 		return {};
-	const auto cbRes = SizeofResource(NULL, hRes);
+	const auto cbRes = SizeofResource(nullptr, hRes);
 	if (!cbRes)
 		return {};
 	return { (PCBYTE)pRes,cbRes };
@@ -614,13 +614,13 @@ inline int GZipCompress(PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult, int iLevel
 template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<CHAR>>
 [[nodiscard]] CRefStrT<CHAR, TCharTraits, TAlloc> StrW2U8(PCWSTR pszText, int cch = -1)
 {
-	int cchBuf = WideCharToMultiByte(CP_UTF8, 0, pszText, cch, NULL, 0, NULL, NULL);
+	int cchBuf = WideCharToMultiByte(CP_UTF8, 0, pszText, cch, nullptr, 0, nullptr, nullptr);
 	if (!cchBuf)
 		return {};
 	if (cch == -1)
 		--cchBuf;
 	CRefStrT<CHAR, TCharTraits, TAlloc> rs(cchBuf);
-	WideCharToMultiByte(CP_UTF8, 0, pszText, cch, rs.Data(), cchBuf, NULL, NULL);
+	WideCharToMultiByte(CP_UTF8, 0, pszText, cch, rs.Data(), cchBuf, nullptr, nullptr);
 	*(rs.Data() + cchBuf) = '\0';
 	return rs;
 }
@@ -636,7 +636,7 @@ template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<C
 template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>>
 [[nodiscard]] CRefStrT<WCHAR, TCharTraits, TAlloc> StrU82W(PCSTR pszText, int cch = -1)
 {
-	int cchBuf = MultiByteToWideChar(CP_UTF8, 0, pszText, cch, NULL, 0);
+	int cchBuf = MultiByteToWideChar(CP_UTF8, 0, pszText, cch, nullptr, 0);
 	if (!cchBuf)
 		return {};
 	if (cch == -1)
