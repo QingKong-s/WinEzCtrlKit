@@ -7,6 +7,7 @@
 */
 #pragma once
 #include "CHeader.h"
+#include "CEditExt.h"
 #include "CToolTip.h"
 #include "GraphicsHelper.h"
 #include "CtrlGraphics.h"

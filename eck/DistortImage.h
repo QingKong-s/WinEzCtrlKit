@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
@@ -32,7 +32,7 @@ public:
 		bmi.bmiHeader.biHeight = -Dimension.y;
 		bmi.bmiHeader.biPlanes = 1;
 		bmi.bmiHeader.biBitCount = 32;
-#pragma warning (suppress:6387)// ¿ÉÄÜÎªNULL
+#pragma warning (suppress:6387)// å¯èƒ½ä¸ºNULL
 		const HBITMAP hbm = CreateDIBSection(nullptr, &bmi, DIB_RGB_COLORS, nullptr, nullptr, 0);
 		return CMifptpHBITMAP(hbm);
 	}
@@ -128,18 +128,19 @@ public:
 };
 
 /// <summary>
-/// Éú³ÉÅ¤ÇúÍ¼Ïñ¡£
-/// Éú³É´ÓÔ­Í¼ÏñÉÏµÄ¶à±ßĞÎÇøÓòÓ³Éäµ½Ä¿±ê¶à±ßĞÎÇøÓòµÄÅ¤ÇúÍ¼Ïñ£¬º¯Êı½«¶à±ßĞÎµÄÍâ½Ó¾ØĞÎÓëĞÂÎ»Í¼µÄ(0,0)¶ÔÆë
+/// ç”Ÿæˆæ‰­æ›²å›¾åƒã€‚
+/// ç”Ÿæˆä»åŸå›¾åƒä¸Šçš„å¤šè¾¹å½¢åŒºåŸŸæ˜ å°„åˆ°ç›®æ ‡å¤šè¾¹å½¢åŒºåŸŸçš„æ‰­æ›²å›¾åƒï¼Œå‡½æ•°å°†å¤šè¾¹å½¢çš„å¤–æ¥çŸ©å½¢ä¸æ–°ä½å›¾çš„(0,0)å¯¹é½
 /// </summary>
-/// <param name="Bmp">ÊäÈëÎ»Í¼´¦ÀíÆ÷</param>
-/// <param name="NewBmp">½á¹ûÎ»Í¼´¦ÀíÆ÷£¬Ó¦×ÔĞĞÊÍ·ÅÏà¹Ø×ÊÔ´</param>
-/// <param name="pptSrc">Ô´¶à±ßĞÎÇøÓò</param>
-/// <param name="pptDst">Ä¿±ê¶à±ßĞÎÇøÓò</param>
-/// <param name="cPt">¶¥µãÊı</param>
+/// <param name="Bmp">è¾“å…¥ä½å›¾å¤„ç†å™¨</param>
+/// <param name="NewBmp">ç»“æœä½å›¾å¤„ç†å™¨ï¼Œåº”è‡ªè¡Œé‡Šæ”¾ç›¸å…³èµ„æº</param>
+/// <param name="pptSrc">æºå¤šè¾¹å½¢åŒºåŸŸ</param>
+/// <param name="pptDst">ç›®æ ‡å¤šè¾¹å½¢åŒºåŸŸ</param>
+/// <param name="cPt">é¡¶ç‚¹æ•°</param>
+/// <param name="pptOffset">è¾“å‡ºåç§»é‡</param>
 /// <returns></returns>
 template<class TBmpHandler, class TCoord>
 inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
-	const TCoord* pptSrc, const TCoord* pptDst, int cPt)
+	const TCoord* pptSrc, const TCoord* pptDst, int cPt, POINT* pptOffset = nullptr)
 {
 	static_assert(std::is_same_v<TCoord, typename TBmpHandler::TCoord>);
 	if (cPt < 3)
@@ -156,6 +157,11 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 	const int cxPolygon = TBmpHandler::GetX(*itMaxX) - TBmpHandler::GetX(*itMinX) + 1;
 	if (cxPolygon <= 0 || cyPolygon <= 0)
 		return FALSE;
+	if (pptOffset)
+	{
+		pptOffset->x = TBmpHandler::GetX(*itMinX);
+		pptOffset->y = TBmpHandler::GetY(*itMinY);
+	}
 
 	NewBmp = Bmp.New(TBmpHandler::MakeCoord(cxPolygon, cyPolygon));
 	std::vector<TCoord> vPtDst(cPt);
@@ -178,7 +184,7 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 		float dRx;
 		float dRy;
 		int yMax;
-		int xPtYMax;// y×î´óµÄµãµÄx×ø±ê
+		int xPtYMax;// yæœ€å¤§çš„ç‚¹çš„xåæ ‡
 	};
 
 	std::unordered_map<int, std::vector<EDGE*>> ET{};
@@ -234,41 +240,30 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 
 	Bmp.Lock();
 	NewBmp.Lock();
-	struct YAAINFO
-	{
-		float k;
-		float b;
-		float x0;
-		float x1;
-	};
-
-	std::vector<YAAINFO> vPrevYAA[2]{};// ¾ùÎªÏòÏÂ²ÉÑù
-	auto fnDoYAA = [&](int y, float k, float b, float x0, float x1, bool bSampleDirection)
+	auto DoYAA = [&](int x, int y, float k, float b, bool bSampleDirection)
 		{
-			for (int x = (int)x0; x <= (int)x1; ++x)
+			const float yReal = k * x + b;
+			float e = (bSampleDirection ? yReal - y : y - yReal);// cr[0]çš„æƒå€¼
+			if (e > 1.f)
+				return;
+			e = 1.f - e;
+			const int y2 = (bSampleDirection ? y + 1 : y - 1);
+			if (y2 >= 0 && y2 < NewBmp.GetHeight())
 			{
-				const float yReal = k * x + b;
-				const float e = (bSampleDirection ? yReal - y : y - yReal);// cr[0]µÄÈ¨Öµ
-				if (e > 1.f)
-					continue;
-				const int y2 = (bSampleDirection ? y - 1 : y + 1);
-				if (y2 >= 0 && y2 < NewBmp.GetHeight())
+				const typename TBmpHandler::TColor cr[2]
 				{
-					const typename TBmpHandler::TColor cr[2]
-					{
-						NewBmp.GetPixel(TBmpHandler::MakeCoord(x,y)),
-						NewBmp.GetPixel(TBmpHandler::MakeCoord(x,y2))
-					};
-					typename TBmpHandler::TColorComp crNew[4];
-					EckCounter(4, k)
-					{
-						crNew[k] = (typename TBmpHandler::TColorComp)(
-							TBmpHandler::GetColorComp(cr[0], k) * (1.f - e) +
-							TBmpHandler::GetColorComp(cr[1], k) * e);
-					}
-					NewBmp.SetPixel(TBmpHandler::MakeCoord(x, y), TBmpHandler::MakeColor(crNew));
-					//NewBmp.SetPixel(TBmpHandler::MakeCoord(x, y), 0xFFFF0000);
+					NewBmp.GetPixel(TBmpHandler::MakeCoord(x,y)),
+					NewBmp.GetPixel(TBmpHandler::MakeCoord(x,y2))
+				};
+				typename TBmpHandler::TColorComp crNew[4];
+				EckCounter(4, k)
+				{
+					crNew[k] = (typename TBmpHandler::TColorComp)(
+						TBmpHandler::GetColorComp(cr[0], k) * (1.f - e) +
+						TBmpHandler::GetColorComp(cr[1], k) * e);
 				}
+				NewBmp.SetPixel(TBmpHandler::MakeCoord(x, y), TBmpHandler::MakeColor(crNew));
+				//NewBmp.SetPixel(TBmpHandler::MakeCoord(x, y), 0xFFFF0000);
 			}
 		};
 	size_t idxCurrPrevYAA{};
@@ -310,60 +305,61 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 				const float bL = pL->yMax - kL * pL->xPtYMax;
 				const float bR = pR->yMax - kR * pR->xPtYMax;
 
+				// å½“å‰é«˜åº¦å¯¹åº”å·¦è¾¹æˆ–å³è¾¹çº¿æ®µçš„è¾¹ç•Œï¼Œå¿…é¡»å››èˆäº”å…¥ä»¥å¤„ç†è¾¹ç•Œæƒ…å†µ
 				float xL, xL1, xR, xR1;
-				bool bYAAL, bYAAR, bSampleDirectionL, bSampleDirectionR;// TRUE = ÏÂÃæÎªÍâ²¿
+				BOOL bYAAL, bYAAR, bSampleDirectionL, bSampleDirectionR;// TRUE = ä¸‹é¢ä¸ºå¤–éƒ¨
 				if (kL == 0.f || kL == INFINITY ||
 					(kL <= -1.f || kL >= 1.f) ||
-					y == 0)
+					y == 0)// æ°´å¹³æˆ–å‚ç›´çº¿ï¼Œæˆ–æ–œç‡ä¸åŒ¹é…ï¼Œæ— éœ€åèµ°æ ·
 				{
-					bYAAL = false;
+					bYAAL = FALSE;
 				}
 				else
 				{
-					bYAAL = true;
+					bYAAL = TRUE;
 					if (kL < 0.f)
 					{
 						bSampleDirectionL = FALSE;
-						xL = (y - bL) / kL;
-						xL1 = (y - 1 - bL) / kL;
+						xL = roundf((y - bL) / kL);
+						xL1 = roundf((y - 1 - bL) / kL);
 					}
 					else
 					{
 						bSampleDirectionL = TRUE;
-						xL = (y - bL) / kL;
-						xL1 = (y + 1 - bL) / kL;
+						xL = roundf((y - bL) / kL);
+						xL1 = roundf((y + 1 - bL) / kL);
 					}
 				}
 
 				if (kR == 0.f || kR == INFINITY ||
 					(kR <= -1.f || kR >= 1.f) ||
-					y == 0)
+					y == 0)// æ°´å¹³æˆ–å‚ç›´çº¿ï¼Œæˆ–æ–œç‡ä¸åŒ¹é…ï¼Œæ— éœ€åèµ°æ ·
 				{
-					bYAAR = false;
+					bYAAR = FALSE;
 				}
 				else
 				{
-					bYAAR = true;
+					bYAAR = TRUE;
 					if (kR < 0.f)
 					{
 						bSampleDirectionR = TRUE;
-						xR = (y + 1 - bR) / kR;
-						xR1 = (y - bR) / kR;
+						xR = roundf((y + 1 - bR) / kR);
+						xR1 = roundf((y - bR) / kR);
 					}
 					else
 					{
 						bSampleDirectionR = FALSE;
-						xR = (y - 1 - bR) / kR;
-						xR1 = (y - bR) / kR;
+						xR = roundf((y - 1 - bR) / kR);
+						xR1 = roundf((y - bR) / kR);
 					}
 				}
 
 				const int xBegin = (int)ceilf(pL->x);
 				const int xEnd = (int)floorf(pR->x);
 				int x = xBegin;
-				BOOL bAddL{}, bAddR{}, bSmpL{}, bSmpR{};
 				for (; x <= xEnd; ++x)
 				{
+					// å·²çŸ¥åŸå›¾æµ®ç‚¹ä½ç½®(Rxx, Ryy)ï¼Œæ’å€¼å¾—åˆ°é¢œè‰²
 					int x0 = (int)floorf(Rxx);
 					float fRateX = Rxx - x0;
 					if (x0 < 0)
@@ -407,49 +403,21 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 							TBmpHandler::GetColorComp(cr[2], k) * fRateX * (1 - fRateY) +
 							TBmpHandler::GetColorComp(cr[3], k) * (1 - fRateX) * (1 - fRateY));
 					}
+
+					NewBmp.SetPixel(TBmpHandler::MakeCoord(x, y), TBmpHandler::MakeColor(crNew));
+
 					if (bYAAL && (x >= xL && x <= xL1))
-					{
-						if (bSampleDirectionL)
-						{
-							if (!bSmpL)
-							{
-								bSmpL = TRUE;
-								fnDoYAA(y, kL, bL, xL, xL1, true);
-							}
-						}
-						else if (!bAddL)
-						{
-							bAddL = TRUE;
-							vPrevYAA[idxCurrPrevYAA].emplace_back(kL, bL, xL, xL1);
-						}
-						goto SkipNormalSetPixel;
-					}
+						DoYAA(x, y, kL, bL, bSampleDirectionL);
 
 					if (bYAAR && (x >= xR && x <= xR1))
-					{
-						if (bSampleDirectionR)
-						{
-							if (!bSmpR)
-							{
-								bSmpR = TRUE;
-								fnDoYAA(y, kR, bR, xR, xR1, true);
-							}
-						}
-						else if (!bAddR)
-						{
-							bAddR = TRUE;
-							vPrevYAA[idxCurrPrevYAA].emplace_back(kR, bR, xR, xR1);
-						}
-						goto SkipNormalSetPixel;
-					}
-					NewBmp.SetPixel(TBmpHandler::MakeCoord(x, y), TBmpHandler::MakeColor(crNew));
-				SkipNormalSetPixel:
+						DoYAA(x, y, kR, bR, bSampleDirectionR);
+
 					Rxx += dRxx;
 					Ryy += dRyy;
 
 					if (x == xBegin && (kL <= -1.f || kL >= 1.f))
 					{
-						const float e = 1.f - (x - pL->x);// cr[0]µÄÈ¨Öµ
+						const float e = 1.f - (x - pL->x);// cr[0]çš„æƒå€¼
 						const int x2 = x - 1;
 						if (x2 >= 0)
 						{
@@ -472,7 +440,7 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 
 				if (--x >= 0 && (kR <= -1.f || kR >= 1.f))
 				{
-					const float e = 1.f - (pR->x - x);// cr[0]µÄÈ¨Öµ
+					const float e = 1.f - (pR->x - x);// cr[0]çš„æƒå€¼
 					const int x2 = x + 1;
 					if (x2 < NewBmp.GetWidth())
 					{
@@ -500,15 +468,9 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 				e->Ry += e->dRy;
 			}
 		}
-
-		idxCurrPrevYAA = (idxCurrPrevYAA + 1) % 2;
-		for (const auto& e : vPrevYAA[idxCurrPrevYAA])
-			fnDoYAA(y - 1, e.k, e.b, e.x0, e.x1, false);
-		vPrevYAA[idxCurrPrevYAA].clear();
 	}
 	NewBmp.UnLock();
 	Bmp.UnLock();
 	return TRUE;
 }
-
 ECK_NAMESPACE_END

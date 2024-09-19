@@ -8,6 +8,8 @@
 #pragma once
 #include "ImageHelper.h"
 #include "CStreamWalker.h"
+#include "CMemWalker.h"
+#include "Utility2.h"
 
 ECK_NAMESPACE_BEGIN
 struct ICONDIRENTRY
@@ -260,7 +262,7 @@ public:
 		HRESULT hr;
 		PROPVARIANT Var{};
 		ComPtr<IWICBitmapEncoder> pEncoder;
-		g_pWicFactory->CreateEncoder(GUID_ContainerFormatGif, NULL, &pEncoder);
+		g_pWicFactory->CreateEncoder(GUID_ContainerFormatGif, nullptr, &pEncoder);
 		if (FAILED(hr = pEncoder->Initialize(pStream, WICBitmapEncoderNoCache)))
 			return hr;
 		// 写循环次数
@@ -315,9 +317,9 @@ public:
 			ComPtr<IWICBitmapFrameEncode> pFrameEncode;
 			ComPtr<IWICMetadataQueryWriter> pMdWriter;
 
-			if (FAILED(hr = pEncoder->CreateNewFrame(&pFrameEncode, NULL)))
+			if (FAILED(hr = pEncoder->CreateNewFrame(&pFrameEncode, nullptr)))
 				return hr;
-			if (FAILED(hr = pFrameEncode->Initialize(NULL)))
+			if (FAILED(hr = pFrameEncode->Initialize(nullptr)))
 				return hr;
 			if (FAILED(hr = pFrameEncode->GetMetadataQueryWriter(&pMdWriter)))
 				return hr;
@@ -382,11 +384,11 @@ public:
 				if (FAILED(hr))
 					return hr;
 				pFrameEncode->SetPalette(pPalette.Get());
-				if (FAILED(hr = pFrameEncode->WriteSource(pConverter.Get(), NULL)))
+				if (FAILED(hr = pFrameEncode->WriteSource(pConverter.Get(), nullptr)))
 					return hr;
 			}
 			else
-				if (FAILED(hr = pFrameEncode->WriteSource(e.pBitmap, NULL)))
+				if (FAILED(hr = pFrameEncode->WriteSource(e.pBitmap, nullptr)))
 					return hr;
 			if (FAILED(hr = pFrameEncode->Commit()))
 				return hr;
@@ -457,12 +459,12 @@ public:
 				<< ReverseInteger(CalcCrc32(byBuf + 4, wkChunk.GetPos() - 4));
 			wkChunk.MoveToBegin();
 			// 写IDAT或fdAT
-			pPngStream->Seek(ToLi(0), STREAM_SEEK_SET, NULL);
+			pPngStream->Seek(ToLi(0), STREAM_SEEK_SET, nullptr);
 
 			HRESULT hr;
 			ComPtr<IWICBitmapEncoder> pEncoder;
 			ComPtr<IWICBitmapFrameEncode> pFrame;
-			if (FAILED(hr = g_pWicFactory->CreateEncoder(GUID_ContainerFormatPng, NULL, &pEncoder)))
+			if (FAILED(hr = g_pWicFactory->CreateEncoder(GUID_ContainerFormatPng, nullptr, &pEncoder)))
 				return hr;
 			if (FAILED(hr = pEncoder->Initialize(pPngStream.Get(), WICBitmapEncoderNoCache)))
 				return hr;
@@ -485,14 +487,14 @@ public:
 			}
 			else
 			{
-				if (FAILED(hr = pEncoder->CreateNewFrame(&pFrame, NULL)))
+				if (FAILED(hr = pEncoder->CreateNewFrame(&pFrame, nullptr)))
 					return hr;
-				if (FAILED(hr = pFrame->Initialize(NULL)))
+				if (FAILED(hr = pFrame->Initialize(nullptr)))
 					return hr;
 			}
 			GUID guidFmt{ GUID_WICPixelFormat32bppBGRA };
 			pFrame->SetPixelFormat(&guidFmt);
-			if (FAILED(hr = pFrame->WriteSource(e.pBitmap, NULL)))
+			if (FAILED(hr = pFrame->WriteSource(e.pBitmap, nullptr)))
 				return hr;
 			if (FAILED(hr = pFrame->Commit()))
 				return hr;
@@ -508,9 +510,9 @@ public:
 					if (bFirstFrame)// 复制第一帧IHDR到流首部
 					{
 						const auto pos = w.GetPos();
-						w.GetStream()->Seek(ToLi(posIhdr), STREAM_SEEK_SET, NULL);
+						w.GetStream()->Seek(ToLi(posIhdr), STREAM_SEEK_SET, nullptr);
 						w.Write(wt.Data() - 8, CbIHDR);
-						w.GetStream()->Seek(ToLi(pos), STREAM_SEEK_SET, NULL);
+						w.GetStream()->Seek(ToLi(pos), STREAM_SEEK_SET, nullptr);
 					}
 					wt += (cbChunkData + 4);// 跳过数据和CRC
 				}
@@ -559,7 +561,7 @@ public:
 	{
 		HRESULT hr;
 		ComPtr<IWICBitmapEncoder> pEncoder;
-		g_pWicFactory->CreateEncoder(GUID_ContainerFormatTiff, NULL, &pEncoder);
+		g_pWicFactory->CreateEncoder(GUID_ContainerFormatTiff, nullptr, &pEncoder);
 		if (FAILED(hr = pEncoder->Initialize(pStream, WICBitmapEncoderNoCache)))
 			return hr;
 		for (const auto& e : m_Frames)
@@ -584,12 +586,12 @@ public:
 			}
 			else
 			{
-				if (FAILED(hr = pEncoder->CreateNewFrame(&pFrameEncode, NULL)))
+				if (FAILED(hr = pEncoder->CreateNewFrame(&pFrameEncode, nullptr)))
 					return hr;
-				if (FAILED(hr = pFrameEncode->Initialize(NULL)))
+				if (FAILED(hr = pFrameEncode->Initialize(nullptr)))
 					return hr;
 			}
-			if (FAILED(hr = pFrameEncode->WriteSource(e.pBitmap, NULL)))
+			if (FAILED(hr = pFrameEncode->WriteSource(e.pBitmap, nullptr)))
 				return hr;
 			if (FAILED(hr = pFrameEncode->Commit()))
 				return hr;
@@ -601,9 +603,9 @@ public:
 class CIcoFileReader
 {
 private:
-	PCBYTE m_pData = NULL;
-	const ICONDIR* m_pHeader = NULL;
-	const ICONDIRENTRY* m_pEntry = NULL;
+	PCBYTE m_pData = nullptr;
+	const ICONDIR* m_pHeader = nullptr;
+	const ICONDIRENTRY* m_pEntry = nullptr;
 public:
 	CIcoFileReader(PCBYTE pData)
 	{

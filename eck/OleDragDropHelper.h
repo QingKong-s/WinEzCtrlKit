@@ -40,14 +40,14 @@ inline HGLOBAL DuplicateHGlobal(HGLOBAL hGlobalSrc, HRESULT& hr, UINT uFlags)
 	if (!hGlobalDst)
 	{
 		hr = E_OUTOFMEMORY;
-		return NULL;
+		return nullptr;
 	}
 
 	hr = CopyHGlobal(hGlobalDst, hGlobalSrc);
 	if (FAILED(hr))
 	{
 		GlobalFree(hGlobalDst);
-		return NULL;
+		return nullptr;
 	}
 	return hGlobalDst;
 }
@@ -258,7 +258,7 @@ public:
 
 	HRESULT STDMETHODCALLTYPE EnumDAdvise(IEnumSTATDATA** ppEnumAdvise)
 	{
-		*ppEnumAdvise = NULL;
+		*ppEnumAdvise = nullptr;
 		return OLE_E_ADVISENOTSUPPORTED;
 	}
 };

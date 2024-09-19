@@ -20,6 +20,7 @@
 #include "CSignal.h"
 
 #include <dcomp.h>
+#include <dcomp.h>
 #include <oleacc.h>
 
 #if ECKCXX20

@@ -115,11 +115,11 @@ EckInline Gdiplus::GpStatus DrawSpirograph(GpGraphics* pGraphics, GpPen* pPen, f
 
 struct DRAW_SPIROGRAPH_D2D_PARAM
 {
-	ID2D1Factory* pFactory = NULL;// D2D工厂
-	ID2D1RenderTarget* pRT = NULL;// D2D渲染目标
-	ID2D1Brush* pBrush = NULL;// D2D画刷
+	ID2D1Factory* pFactory = nullptr;// D2D工厂
+	ID2D1RenderTarget* pRT = nullptr;// D2D渲染目标
+	ID2D1Brush* pBrush = nullptr;// D2D画刷
 	float cxStroke = 1.f;// 笔画宽度
-	ID2D1StrokeStyle* pStrokeStyle = NULL;// 笔画样式
+	ID2D1StrokeStyle* pStrokeStyle = nullptr;// 笔画样式
 	float xCenter = 0.f;// 中心点X
 	float yCenter = 0.f;// 中心点Y
 	float rOut = 0.f;// 外圆半径
@@ -134,10 +134,10 @@ struct DRAW_SPIROGRAPH_D2D_PARAM
 /// <param name="Info">参数</param>
 /// <param name="ppPathGeometry">接收路径几何形变量的指针</param>
 /// <returns>构建路径几何形时的失败信息，无法判断绘制操作成功与否，调用方应检查EndDraw返回值</returns>
-inline HRESULT DrawSpirograph(const DRAW_SPIROGRAPH_D2D_PARAM& Info, ID2D1PathGeometry** ppPathGeometry = NULL)
+inline HRESULT DrawSpirograph(const DRAW_SPIROGRAPH_D2D_PARAM& Info, ID2D1PathGeometry** ppPathGeometry = nullptr)
 {
 	if (ppPathGeometry)
-		*ppPathGeometry = NULL;
+		*ppPathGeometry = nullptr;
 	std::vector<D2D1_POINT_2F> vPt{};
 	CalcSpirographPoint<float>(vPt, Info.rOut, Info.rInt, Info.fOffsetPtPen, Info.fStep);
 	std::transform(std::execution::par_unseq, vPt.begin(), vPt.end(), vPt.begin(), [&Info](D2D1_POINT_2F& pt)
@@ -231,11 +231,11 @@ EckInline Gdiplus::GpStatus DrawButterflyCurve(GpGraphics* pGraphics, GpPen* pPe
 
 struct DRAW_BUTTERFLYCURVE_D2D_PARAM
 {
-	ID2D1Factory* pFactory = NULL;// D2D工厂
-	ID2D1RenderTarget* pRT = NULL;// D2D渲染目标
-	ID2D1Brush* pBrush = NULL;// D2D画刷
+	ID2D1Factory* pFactory = nullptr;// D2D工厂
+	ID2D1RenderTarget* pRT = nullptr;// D2D渲染目标
+	ID2D1Brush* pBrush = nullptr;// D2D画刷
 	float cxStroke = 1.f;// 笔画宽度
-	ID2D1StrokeStyle* pStrokeStyle = NULL;// 笔画样式
+	ID2D1StrokeStyle* pStrokeStyle = nullptr;// 笔画样式
 	float xCenter = 0.f;// 中心点X
 	float yCenter = 0.f;// 中心点Y
 	float fDeformationCoefficient = 4.f;// 变形系数
@@ -251,10 +251,10 @@ struct DRAW_BUTTERFLYCURVE_D2D_PARAM
 /// <param name="ppPathGeometry">接收路径几何形变量的指针</param>
 /// <returns>构建路径几何形时的失败信息，无法判断绘制操作成功与否，调用方应检查EndDraw返回值</returns>
 inline HRESULT DrawButterflyCurve(const DRAW_BUTTERFLYCURVE_D2D_PARAM& Info,
-	ID2D1PathGeometry** ppPathGeometry = NULL)
+	ID2D1PathGeometry** ppPathGeometry = nullptr)
 {
 	if (ppPathGeometry)
-		*ppPathGeometry = NULL;
+		*ppPathGeometry = nullptr;
 	std::vector<D2D1_POINT_2F> vPt{};
 	CalcButterflyCurvePoint<float>(vPt, Info.fDeformationCoefficient, Info.fScaleX, Info.fScaleY, Info.fStep);
 	std::transform(std::execution::par_unseq, vPt.begin(), vPt.end(), vPt.begin(), [&Info](D2D1_POINT_2F& pt)
@@ -345,11 +345,11 @@ EckInline Gdiplus::GpStatus DrawRoseCurve(GpGraphics* pGraphics, GpPen* pPen, fl
 
 struct DRAW_ROSECURVE_D2D_PARAM
 {
-	ID2D1Factory* pFactory = NULL;// D2D工厂
-	ID2D1RenderTarget* pRT = NULL;// D2D渲染目标
-	ID2D1Brush* pBrush = NULL;// D2D画刷
+	ID2D1Factory* pFactory = nullptr;// D2D工厂
+	ID2D1RenderTarget* pRT = nullptr;// D2D渲染目标
+	ID2D1Brush* pBrush = nullptr;// D2D画刷
 	float cxStroke = 1.f;// 笔画宽度
-	ID2D1StrokeStyle* pStrokeStyle = NULL;// 笔画样式
+	ID2D1StrokeStyle* pStrokeStyle = nullptr;// 笔画样式
 	float xCenter = 0.f;// 中心点X
 	float yCenter = 0.f;// 中心点Y
 	float fDeformationCoefficient = 4.f;// 变形系数
@@ -365,10 +365,10 @@ struct DRAW_ROSECURVE_D2D_PARAM
 /// <param name="ppPathGeometry">接收路径几何形变量的指针</param>
 /// <returns>构建路径几何形时的失败信息，无法判断绘制操作成功与否，调用方应检查EndDraw返回值</returns>
 inline HRESULT DrawRoseCurve(const DRAW_ROSECURVE_D2D_PARAM& Info,
-	ID2D1PathGeometry** ppPathGeometry = NULL)
+	ID2D1PathGeometry** ppPathGeometry = nullptr)
 {
 	if (ppPathGeometry)
-		*ppPathGeometry = NULL;
+		*ppPathGeometry = nullptr;
 	std::vector<D2D1_POINT_2F> vPt{};
 	CalcRoseCurvePoint<float>(vPt, Info.a, Info.n, Info.fStep);
 	std::transform(std::execution::par_unseq, vPt.begin(), vPt.end(), vPt.begin(), [&Info](D2D1_POINT_2F& pt)
@@ -515,11 +515,11 @@ inline Gdiplus::GpStatus DrawRegularStar(GpGraphics* pGraphics, GpPen* pPen, flo
 
 struct DRAW_REGULARSTAR_D2D_PARAM
 {
-	ID2D1Factory* pFactory = NULL;// D2D工厂
-	ID2D1RenderTarget* pRT = NULL;// D2D渲染目标
-	ID2D1Brush* pBrush = NULL;// D2D画刷
+	ID2D1Factory* pFactory = nullptr;// D2D工厂
+	ID2D1RenderTarget* pRT = nullptr;// D2D渲染目标
+	ID2D1Brush* pBrush = nullptr;// D2D画刷
 	float cxStroke = 1.f;// 笔画宽度
-	ID2D1StrokeStyle* pStrokeStyle = NULL;// 笔画样式
+	ID2D1StrokeStyle* pStrokeStyle = nullptr;// 笔画样式
 	float xCenter = 0.f;// 中心点X
 	float yCenter = 0.f;// 中心点Y
 	float r = 300;// 外接圆半径
@@ -535,10 +535,10 @@ struct DRAW_REGULARSTAR_D2D_PARAM
 /// <param name="ppPathGeometry">接收路径几何形变量的指针</param>
 /// <returns>构建路径几何形时的失败信息，无法判断绘制操作成功与否，调用方应检查EndDraw返回值</returns>
 inline HRESULT DrawRegularStar(const DRAW_REGULARSTAR_D2D_PARAM& Info,
-	ID2D1PathGeometry** ppPathGeometry = NULL)
+	ID2D1PathGeometry** ppPathGeometry = nullptr)
 {
 	if (ppPathGeometry)
-		*ppPathGeometry = NULL;
+		*ppPathGeometry = nullptr;
 	std::vector<D2D1_POINT_2F> vPt{};
 	CalcRegularStar(vPt, Info.r, Info.n, Info.fAngle, Info.bLinkStar);
 	std::transform(vPt.begin(), vPt.end(), vPt.begin(), [&Info](D2D1_POINT_2F& pt)

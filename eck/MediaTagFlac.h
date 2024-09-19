@@ -138,10 +138,10 @@ private:
 			<< ReverseInteger(e.rsMime.Size());
 		rbImage.PushBack(e.rsMime.Data(), e.rsMime.Size());
 		const int cchDesc = WideCharToMultiByte(CP_UTF8, 0, e.rsDesc.Data(), e.rsDesc.Size(),
-			NULL, 0, NULL, NULL);
+			nullptr, 0, nullptr, nullptr);
 		rbImage << ReverseInteger(cchDesc);
 		WideCharToMultiByte(CP_UTF8, 0, e.rsDesc.Data(), e.rsDesc.Size(),
-			(CHAR*)rbImage.PushBack(cchDesc), cchDesc, NULL, NULL);
+			(CHAR*)rbImage.PushBack(cchDesc), cchDesc, nullptr, nullptr);
 		rbImage << ReverseInteger(e.cx)
 			<< ReverseInteger(e.cy)
 			<< ReverseInteger(e.bpp)
@@ -328,10 +328,10 @@ public:
 		else
 		{
 			const int cchVendor = WideCharToMultiByte(CP_UTF8, 0, m_rsVendor.Data(), m_rsVendor.Size(),
-				NULL, 0, NULL, NULL);
+				nullptr, 0, nullptr, nullptr);
 			rbVorbis << cchVendor;
 			WideCharToMultiByte(CP_UTF8, 0, m_rsVendor.Data(), m_rsVendor.Size(),
-				(CHAR*)rbVorbis.PushBack(cchVendor), cchVendor, NULL, NULL);
+				(CHAR*)rbVorbis.PushBack(cchVendor), cchVendor, nullptr, nullptr);
 		}
 		size_t posCommCount = rbVorbis.Size();
 		UINT cComm = (UINT)m_vItem.size();
@@ -341,12 +341,12 @@ public:
 			if (e.rsKey.IsEmpty())
 				continue;
 			const int cchValue = WideCharToMultiByte(CP_UTF8, 0, e.rsValue.Data(), e.rsValue.Size(),
-				NULL, 0, NULL, NULL);
+				nullptr, 0, nullptr, nullptr);
 			rbVorbis << UINT(cchValue + 1 + e.rsKey.Size())
 				<< e.rsKey;
 			rbVorbis.Back() = '=';
 			WideCharToMultiByte(CP_UTF8, 0, e.rsValue.Data(), e.rsValue.Size(),
-				(CHAR*)rbVorbis.PushBack(cchValue), cchValue, NULL, NULL);
+				(CHAR*)rbVorbis.PushBack(cchValue), cchValue, nullptr, nullptr);
 		}
 
 		// 序列化图片

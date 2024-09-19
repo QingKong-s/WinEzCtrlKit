@@ -38,9 +38,9 @@ inline std::wstring_view HeaderGetParam(PCWSTR pszHeader, PCWSTR pszName, int cc
 
 template<class FPostConnect>
 inline BOOL RequestUrl(FPostConnect&& fn, BOOL bRealRequest, PCWSTR pszUrl, PCWSTR pszMethod = L"GET",
-	void* pData = NULL, SIZE_T cbData = 0u,
-	PCWSTR pszHeader = NULL, PCWSTR pszCookies = NULL, BOOL bAutoHeader = TRUE,
-	PCWSTR pszProxy = NULL, PCWSTR pszUserAgent = NULL)
+	void* pData = nullptr, SIZE_T cbData = 0u,
+	PCWSTR pszHeader = nullptr, PCWSTR pszCookies = nullptr, BOOL bAutoHeader = TRUE,
+	PCWSTR pszProxy = nullptr, PCWSTR pszUserAgent = nullptr)
 {
 	URL_COMPONENTSW urlc{ sizeof(urlc) };
 	urlc.dwSchemeLength = urlc.dwHostNameLength =
@@ -65,7 +65,7 @@ inline BOOL RequestUrl(FPostConnect&& fn, BOOL bRealRequest, PCWSTR pszUrl, PCWS
 		rsPath.PushBackChar(L'/');
 	rsPath.PushBack(urlc.lpszExtraInfo, urlc.dwExtraInfoLength);
 	const UniquePtrWinHttpHandle hRequest(WinHttpOpenRequest(hConnect.get(), pszMethod, rsPath.Data(),
-		NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
+		nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
 		(urlc.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)));
 	if (!hRequest)
 		return FALSE;
@@ -100,7 +100,7 @@ inline BOOL RequestUrl(FPostConnect&& fn, BOOL bRealRequest, PCWSTR pszUrl, PCWS
 			rsHeader.PushBack(L"Content-Type: application/x-www-form-urlencoded\r\n");
 		const auto pos = FindStrI(pszHeader, L"Connection: keep-alive");
 		if (pos != StrNPos)
-			rsHeader.ReplaceSubStr(L"Connection: keep-alive\r\n", -1, NULL, 0, pos, 1);
+			rsHeader.ReplaceSubStr(L"Connection: keep-alive\r\n", -1, nullptr, 0, pos, 1);
 		if (pszCookies && (!pszHeader || FindStrI(pszHeader, L"Cookie:") == StrNPos))
 		{
 			rsHeader.PushBack(L"Cookie: ");
@@ -127,7 +127,7 @@ inline BOOL RequestUrl(FPostConnect&& fn, BOOL bRealRequest, PCWSTR pszUrl, PCWS
 		if (!WinHttpSendRequest(hRequest.get(), WINHTTP_NO_ADDITIONAL_HEADERS, 0,
 			pData, (DWORD)cbData, (DWORD)cbData, 0))
 			return FALSE;
-		if (!WinHttpReceiveResponse(hRequest.get(), NULL))
+		if (!WinHttpReceiveResponse(hRequest.get(), nullptr))
 			return FALSE;
 	}
 	
@@ -150,10 +150,10 @@ inline BOOL RequestUrl(FPostConnect&& fn, BOOL bRealRequest, PCWSTR pszUrl, PCWS
 /// <param name="pszUserAgent">UA</param>
 /// <returns>成功返回请求到的数据，失败返回空字节集</returns>
 inline CRefBin RequestUrl(PCWSTR pszUrl, PCWSTR pszMethod = L"GET",
-	void* pData = NULL, SIZE_T cbData = 0u,
-	PCWSTR pszHeader = NULL, PCWSTR pszCookies = NULL, BOOL bAutoHeader = TRUE, 
-	CRefStrW* prsResponseHeaders = NULL,
-	PCWSTR pszProxy = NULL, PCWSTR pszUserAgent = NULL)
+	void* pData = nullptr, SIZE_T cbData = 0u,
+	PCWSTR pszHeader = nullptr, PCWSTR pszCookies = nullptr, BOOL bAutoHeader = TRUE, 
+	CRefStrW* prsResponseHeaders = nullptr,
+	PCWSTR pszProxy = nullptr, PCWSTR pszUserAgent = nullptr)
 {
 	CRefBin rb{};
 	if (!RequestUrl([&](HINTERNET hSession, HINTERNET hConnect, HINTERNET hRequest) -> BOOL
@@ -161,7 +161,7 @@ inline CRefBin RequestUrl(PCWSTR pszUrl, PCWSTR pszMethod = L"GET",
 			eck::CRefStrW rsResponseHeaders{};
 			DWORD cbHeaders = 0;
 			WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_RAW_HEADERS_CRLF,
-				WINHTTP_HEADER_NAME_BY_INDEX, NULL, &cbHeaders, WINHTTP_NO_HEADER_INDEX);
+				WINHTTP_HEADER_NAME_BY_INDEX, nullptr, &cbHeaders, WINHTTP_NO_HEADER_INDEX);
 			if (cbHeaders)
 			{
 				rsResponseHeaders.ReSize(cbHeaders / sizeof(WCHAR) - 1);

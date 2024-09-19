@@ -50,7 +50,7 @@ private:
 			}
 
 			if (cchBuf = MultiByteToWideChar(CP_ACP/*keep ANSI encoding tag happy*/, 0,
-				(PCCH)w.Data(), cb, NULL, 0))
+				(PCCH)w.Data(), cb, nullptr, 0))
 			{
 				rsResult.ReSize(cchBuf);
 				MultiByteToWideChar(CP_ACP, 0, (PCCH)w.Data(), cb, rsResult.Data(), cchBuf);
@@ -102,7 +102,7 @@ private:
 				cchBuf = cb / sizeof(WCHAR);
 				rsResult.ReSize(cchBuf);
 				LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_BYTEREV,
-					(PCWSTR)w.Data(), cchBuf, rsResult.Data(), cchBuf, NULL, NULL, 0);
+					(PCWSTR)w.Data(), cchBuf, rsResult.Data(), cchBuf, nullptr, nullptr, 0);
 			}
 			break;
 
@@ -113,7 +113,7 @@ private:
 				cbTNull = 1u;
 			}
 
-			if (cchBuf = MultiByteToWideChar(CP_UTF8, 0, (PCCH)w.Data(), cb, NULL, 0))
+			if (cchBuf = MultiByteToWideChar(CP_UTF8, 0, (PCCH)w.Data(), cb, nullptr, 0))
 			{
 				rsResult.ReSize(cchBuf);
 				MultiByteToWideChar(CP_UTF8, 0, (PCCH)w.Data(), cb, rsResult.Data(), cchBuf);
@@ -406,11 +406,11 @@ public:
 			{
 			case TextEncoding::Latin1:
 				if (int cchBuf; cchBuf = WideCharToMultiByte(CP_ACP, 0,
-					rsStr.Data(), rsStr.Size(), NULL, 0, NULL, NULL))
+					rsStr.Data(), rsStr.Size(), nullptr, 0, nullptr, nullptr))
 				{
 					rb.ReSize(bAddTerNull ? cchBuf + 1 : cchBuf);
 					WideCharToMultiByte(CP_ACP, 0,
-						rsStr.Data(), rsStr.Size(), (PSTR)rb.Data(), cchBuf, NULL, NULL);
+						rsStr.Data(), rsStr.Size(), (PSTR)rb.Data(), cchBuf, nullptr, nullptr);
 					if (bAddTerNull)
 						rb.Back() = 0;
 				}
@@ -426,16 +426,16 @@ public:
 				rb.ReSize(rsStr.ByteSize() - (bAddTerNull ? 0 : sizeof(WCHAR)));
 				LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_BYTEREV,
 					rsStr.Data(), rsStr.Size() + (bAddTerNull ? 1 : 0),
-					(PWSTR)rb.Data(), rsStr.Size() + (bAddTerNull ? 1 : 0), NULL, NULL, 0);
+					(PWSTR)rb.Data(), rsStr.Size() + (bAddTerNull ? 1 : 0), nullptr, nullptr, 0);
 				break;
 
 			case TextEncoding::UTF8:
 				if (int cchBuf; cchBuf = WideCharToMultiByte(CP_UTF8, 0,
-					rsStr.Data(), rsStr.Size(), NULL, 0, NULL, NULL))
+					rsStr.Data(), rsStr.Size(), nullptr, 0, nullptr, nullptr))
 				{
 					rb.ReSize(bAddTerNull ? cchBuf + 1 : cchBuf);
 					WideCharToMultiByte(CP_UTF8, 0,
-						rsStr.Data(), rsStr.Size(), (PSTR)rb.Data(), cchBuf, NULL, NULL);
+						rsStr.Data(), rsStr.Size(), (PSTR)rb.Data(), cchBuf, nullptr, nullptr);
 					if (bAddTerNull)
 						rb.Back() = 0;
 				}
@@ -1558,7 +1558,7 @@ private:
 
 #define ECK_HIT_ID3FRAME(x) (memcmp(FrameHdr.ID, #x, 4) == 0)
 
-	Result ParseFrameBody(SIZE_T posEnd, SIZE_T* pposActualEnd = NULL)
+	Result ParseFrameBody(SIZE_T posEnd, SIZE_T* pposActualEnd = nullptr)
 	{
 		posEnd = std::min(posEnd, (SIZE_T)m_Stream.GetSizeUli().QuadPart);
 		ID3v2_FrameHeader FrameHdr;
@@ -1797,25 +1797,25 @@ private:
 					auto pszBegin =
 						(p->rsText.Front() == L' ' ? p->rsText.Data() + 1 : p->rsText.Data());
 
-					p2->rAdjust = wcstoul(pszBegin, NULL, 16);
+					p2->rAdjust = wcstoul(pszBegin, nullptr, 16);
 					pszBegin += 9;
-					p2->lAdjust = wcstoul(pszBegin, NULL, 16);
+					p2->lAdjust = wcstoul(pszBegin, nullptr, 16);
 					pszBegin += 9;
-					p2->rAdjust2 = wcstoul(pszBegin, NULL, 16);
+					p2->rAdjust2 = wcstoul(pszBegin, nullptr, 16);
 					pszBegin += 9;
-					p2->lAdjust2 = wcstoul(pszBegin, NULL, 16);
+					p2->lAdjust2 = wcstoul(pszBegin, nullptr, 16);
 					pszBegin += 9;
-					p2->Dummy4 = wcstoul(pszBegin, NULL, 16);
+					p2->Dummy4 = wcstoul(pszBegin, nullptr, 16);
 					pszBegin += 9;
-					p2->Dummy5 = wcstoul(pszBegin, NULL, 16);
+					p2->Dummy5 = wcstoul(pszBegin, nullptr, 16);
 					pszBegin += 9;
-					p2->rPeak = wcstoul(pszBegin, NULL, 16);
+					p2->rPeak = wcstoul(pszBegin, nullptr, 16);
 					pszBegin += 9;
-					p2->lPeak = wcstoul(pszBegin, NULL, 16);
+					p2->lPeak = wcstoul(pszBegin, nullptr, 16);
 					pszBegin += 9;
-					p2->Dummy8 = wcstoul(pszBegin, NULL, 16);
+					p2->Dummy8 = wcstoul(pszBegin, nullptr, 16);
 					pszBegin += 9;
-					p2->Dummy9 = wcstoul(pszBegin, NULL, 16);
+					p2->Dummy9 = wcstoul(pszBegin, nullptr, 16);
 					m_vFrame.push_back(p);
 				}
 				else
@@ -2871,7 +2871,7 @@ public:
 			// 若标签尾写入挂起，完成之
 			if (dHdrFooterToEnd != SIZETMax)
 			{
-				m_Stream->Seek(ToLi(dHdrFooterToEnd), STREAM_SEEK_END, NULL);
+				m_Stream->Seek(ToLi(dHdrFooterToEnd), STREAM_SEEK_END, nullptr);
 				memcpy(Hdr.Header, "3DI", 3);
 				m_Stream << Hdr;
 			}
@@ -2909,7 +2909,7 @@ public:
 			if (memcmp(e->Id, Id, 4) == 0)
 				return e;
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	std::vector<FRAME*> GetFrameList(PCSTR Id) const

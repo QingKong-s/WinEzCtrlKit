@@ -12,13 +12,13 @@ ECK_NAMESPACE_BEGIN
 inline NTSTATUS GetProcessPath(UINT uPid, CRefStrW& rsPath, BOOL bDosPath = TRUE)
 {
 	SYSTEM_PROCESS_ID_INFORMATION spii{ .ProcessId = i32ToP<HANDLE>(uPid) };
-	NTSTATUS nts = NtQuerySystemInformation(SystemProcessIdInformation, &spii, sizeof(spii), NULL);
+	NTSTATUS nts = NtQuerySystemInformation(SystemProcessIdInformation, &spii, sizeof(spii), nullptr);
 	if (spii.ImageName.MaximumLength && nts == STATUS_INFO_LENGTH_MISMATCH)
 	{
 		rsPath.ReSize(spii.ImageName.MaximumLength);
 		spii.ImageName.Buffer = rsPath.Data();
 		spii.ImageName.Length = 0;
-		nts = NtQuerySystemInformation(SystemProcessIdInformation, &spii, sizeof(spii), NULL);
+		nts = NtQuerySystemInformation(SystemProcessIdInformation, &spii, sizeof(spii), nullptr);
 		if (NT_SUCCESS(nts))
 		{
 			if (bDosPath)
@@ -52,7 +52,7 @@ inline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, UINT& uPid)
 {
 	uPid = 0u;
 	ULONG cb;
-	NTSTATUS nts = NtQuerySystemInformation(SystemProcessInformation, NULL, 0, &cb);
+	NTSTATUS nts = NtQuerySystemInformation(SystemProcessInformation, nullptr, 0, &cb);
 	if (!cb)
 		return nts;
 	BYTE* pBuf = (BYTE*)VAlloc(cb);
@@ -77,7 +77,7 @@ inline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, UINT& uPid)
 inline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, std::vector<UINT>& vPid)
 {
 	ULONG cb;
-	NTSTATUS nts = NtQuerySystemInformation(SystemProcessInformation, NULL, 0, &cb);
+	NTSTATUS nts = NtQuerySystemInformation(SystemProcessInformation, nullptr, 0, &cb);
 	if (!cb)
 		return nts;
 	BYTE* pBuf = (BYTE*)VAlloc(cb);
@@ -99,15 +99,15 @@ inline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, std::vector<UINT>& vPid
 	return STATUS_NOT_FOUND;
 }
 
-EckInline void* GetProcessPeb(HANDLE hProcess, NTSTATUS* pnts = NULL)
+EckInline void* GetProcessPeb(HANDLE hProcess, NTSTATUS* pnts = nullptr)
 {
 	PROCESS_BASIC_INFORMATION pbi;
 	NTSTATUS nts;
-	if (!NT_SUCCESS(nts = NtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(pbi), NULL)))
+	if (!NT_SUCCESS(nts = NtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(pbi), nullptr)))
 	{
 		if (pnts)
 			*pnts = nts;
-		return NULL;
+		return nullptr;
 	}
 	if (pnts)
 		*pnts = STATUS_SUCCESS;
@@ -139,10 +139,10 @@ inline NTSTATUS EnumProcessModules(HANDLE hProcess, std::vector<MODULE_INFO>& vR
 	PEB_LDR_DATA LdrData;
 	UINT_PTR pLdr;
 	if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)(pPeb + offsetof(PEB, Ldr)),
-		&pLdr, sizeof(pLdr), NULL)))
+		&pLdr, sizeof(pLdr), nullptr)))
 		return nts;
 	if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)pLdr,
-		&LdrData, sizeof(LdrData), NULL)))
+		&LdrData, sizeof(LdrData), nullptr)))
 		return nts;
 	if (!LdrData.Initialized)
 		return STATUS_UNSUCCESSFUL;
@@ -152,7 +152,7 @@ inline NTSTATUS EnumProcessModules(HANDLE hProcess, std::vector<MODULE_INFO>& vR
 	for (UINT_PTR p = (UINT_PTR)LdrData.InLoadOrderModuleList.Flink; p != pBegin; )
 	{
 		if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)p,
-			&Entry, LDR_DATA_TABLE_ENTRY_SIZE_WIN7, NULL)))
+			&Entry, LDR_DATA_TABLE_ENTRY_SIZE_WIN7, nullptr)))
 			return nts;
 		if (Entry.DllBase)
 		{
@@ -162,7 +162,7 @@ inline NTSTATUS EnumProcessModules(HANDLE hProcess, std::vector<MODULE_INFO>& vR
 				const int cch = Entry.BaseDllName.Length / sizeof(WCHAR);
 				e.rsModuleName.ReSize(cch);
 				if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)Entry.BaseDllName.Buffer,
-					e.rsModuleName.Data(), cch * sizeof(WCHAR), NULL)))
+					e.rsModuleName.Data(), cch * sizeof(WCHAR), nullptr)))
 					return nts;
 			}
 			if (Entry.FullDllName.Length)
@@ -170,7 +170,7 @@ inline NTSTATUS EnumProcessModules(HANDLE hProcess, std::vector<MODULE_INFO>& vR
 				const int cch = Entry.FullDllName.Length / sizeof(WCHAR);
 				e.rsModulePath.ReSize(cch);
 				if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)Entry.FullDllName.Buffer,
-					e.rsModulePath.Data(), cch * sizeof(WCHAR), NULL)))
+					e.rsModulePath.Data(), cch * sizeof(WCHAR), nullptr)))
 					return nts;
 			}
 			e.BaseAddress = (void*)Entry.DllBase;
@@ -230,7 +230,7 @@ ECK_ENUM_BIT_FLAGS(EPFLAGS);
 inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags = EPF_NONE)
 {
 	ULONG cb;
-	NTSTATUS nts = NtQuerySystemInformation(SystemProcessInformation, NULL, 0, &cb);
+	NTSTATUS nts = NtQuerySystemInformation(SystemProcessInformation, nullptr, 0, &cb);
 	if (!cb)
 		return nts;
 	BYTE* pBuf = (BYTE*)VAlloc(cb);
@@ -316,7 +316,7 @@ inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess, PCWSTR pszPrivilege, BOO
 
 	tp.PrivilegeCount = 1;
 	tp.Privileges[0].Attributes = bEnable ? SE_PRIVILEGE_ENABLED : 0;
-	nts = NtAdjustPrivilegesToken(hToken, FALSE, &tp, 0, NULL, NULL);
+	nts = NtAdjustPrivilegesToken(hToken, FALSE, &tp, 0, nullptr, nullptr);
 	NtClose(hToken);
 	return nts;
 }
@@ -326,7 +326,7 @@ inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess, PCWSTR pszPrivilege, BOO
 	HICON hIcon;
 	if (!SendMessageTimeoutW(hWnd, WM_GETICON, ICON_SMALL, 0,
 		SMTO_ABORTIFHUNG | SMTO_BLOCK | SMTO_ERRORONEXIT, msTimeOut, (DWORD_PTR*)&hIcon))
-		return NULL;
+		return nullptr;
 	if (!hIcon)
 	{
 		hIcon = (HICON)GetClassLongPtrW(hWnd, GCLP_HICONSM);
@@ -334,7 +334,7 @@ inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess, PCWSTR pszPrivilege, BOO
 		{
 			if (!SendMessageTimeoutW(hWnd, WM_GETICON, ICON_SMALL, 0,
 				SMTO_ABORTIFHUNG | SMTO_BLOCK | SMTO_ERRORONEXIT, msTimeOut, (DWORD_PTR*)&hIcon))
-				return NULL;
+				return nullptr;
 		}
 	}
 	return hIcon;
@@ -345,7 +345,7 @@ inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess, PCWSTR pszPrivilege, BOO
 	HICON hIcon;
 	if (!SendMessageTimeoutW(hWnd, WM_GETICON, ICON_BIG, 0,
 		SMTO_ABORTIFHUNG | SMTO_BLOCK | SMTO_ERRORONEXIT, msTimeOut, (DWORD_PTR*)&hIcon))
-		return NULL;
+		return nullptr;
 	if (!hIcon)
 		hIcon = (HICON)GetClassLongPtrW(hWnd, GCLP_HICON);
 	return hIcon;
@@ -362,10 +362,10 @@ inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess, PCWSTR pszPrivilege, BOO
 	DWORD dwPid;
 	GetWindowThreadProcessId(hWnd, &dwPid);
 	if (!dwPid)
-		return NULL;
+		return nullptr;
 	CRefStrW rsPath{};
 	if (!NT_SUCCESS(GetProcessPath(dwPid, rsPath)))
-		return NULL;
+		return nullptr;
 
 	SHFILEINFOW sfi;
 	const UINT uFlags = (bSmall ? (SHGFI_ICON | SHGFI_SMALLICON) : SHGFI_ICON);
@@ -373,7 +373,7 @@ inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess, PCWSTR pszPrivilege, BOO
 	if (!SHGetFileInfoW(rsPath.Data(), 0, &sfi, sizeof(sfi), uFlags))
 		SHGetFileInfoW(rsPath.Data(), FILE_ATTRIBUTE_NORMAL, &sfi, sizeof(sfi),
 			uFlags | SHGFI_USEFILEATTRIBUTES);
-	bNeedDestroy = (sfi.hIcon != NULL);
+	bNeedDestroy = (sfi.hIcon != nullptr);
 	return sfi.hIcon;
 }
 ECK_NAMESPACE_END

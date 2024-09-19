@@ -31,14 +31,14 @@ inline HBITMAP CreateHBITMAP(PCVOID pData, SIZE_T cbData)
 	if (GdipCreateBitmapFromStream(pStream, &pBitmap) != Gdiplus::Ok)
 	{
 		pStream->LeaveRelease();
-		return NULL;
+		return nullptr;
 	}
 
 	if (GdipCreateHBITMAPFromBitmap(pBitmap, &hbm, 0))
 	{
 		GdipDisposeImage(pBitmap);
 		pStream->LeaveRelease();
-		return NULL;
+		return nullptr;
 	}
 
 	GdipDisposeImage(pBitmap);
@@ -57,12 +57,12 @@ inline HBITMAP CreateHBITMAP(PCWSTR pszFile)
 	GpBitmap* pBitmap;
 
 	if (GdipCreateBitmapFromFile(pszFile, &pBitmap) != Gdiplus::Ok)
-		return NULL;
+		return nullptr;
 
 	if (GdipCreateHBITMAPFromBitmap(pBitmap, &hbm, 0))
 	{
 		GdipDisposeImage(pBitmap);
-		return NULL;
+		return nullptr;
 	}
 
 	GdipDisposeImage(pBitmap);
@@ -85,11 +85,11 @@ inline HBITMAP CreateHBITMAP(IWICBitmap* pBmp)
 	bmi.bmiHeader.biPlanes = 1;
 	bmi.bmiHeader.biBitCount = 32;
 	void* pDibBits;
-	const HDC hDC = GetDC(NULL);
-	const HBITMAP hBitmap = CreateDIBSection(hDC, &bmi, 0, &pDibBits, NULL, 0);
-	ReleaseDC(NULL, hDC);
+	const HDC hDC = GetDC(nullptr);
+	const HBITMAP hBitmap = CreateDIBSection(hDC, &bmi, 0, &pDibBits, nullptr, 0);
+	ReleaseDC(nullptr, hDC);
 
-	pBmp->CopyPixels(NULL, cx * 4, cx * cy * 4, (BYTE*)pDibBits);// GDI将每行位图数据对齐到DWORD
+	pBmp->CopyPixels(nullptr, cx * 4, cx * cy * 4, (BYTE*)pDibBits);// GDI将每行位图数据对齐到DWORD
 	return hBitmap;
 }
 
@@ -108,14 +108,14 @@ inline HICON CreateHICON(PCVOID pData, SIZE_T cbData)
 	if (GdipCreateBitmapFromStream(pStream, &pBitmap) != Gdiplus::Ok)
 	{
 		pStream->LeaveRelease();
-		return NULL;
+		return nullptr;
 	}
 
 	if (GdipCreateHICONFromBitmap(pBitmap, &hIcon))
 	{
 		GdipDisposeImage(pBitmap);
 		pStream->LeaveRelease();
-		return NULL;
+		return nullptr;
 	}
 
 	GdipDisposeImage(pBitmap);
@@ -134,12 +134,12 @@ inline HICON CreateHICON(PCWSTR pszFile)
 	GpBitmap* pBitmap;
 
 	if (GdipCreateBitmapFromFile(pszFile, &pBitmap) != Gdiplus::Ok)
-		return NULL;
+		return nullptr;
 
 	if (GdipCreateHICONFromBitmap(pBitmap, &hIcon))
 	{
 		GdipDisposeImage(pBitmap);
-		return NULL;
+		return nullptr;
 	}
 
 	GdipDisposeImage(pBitmap);
@@ -150,9 +150,9 @@ inline HICON CreateHICON(PCWSTR pszFile)
 /// 从WIC位图创建HICON
 /// </summary>
 /// <param name="pBmp">WIC位图</param>
-/// <param name="hbmMask">掩码，若为NULL，则使用全1掩码</param>
+/// <param name="hbmMask">掩码，若为nullptr，则使用全1掩码</param>
 /// <returns>图标句柄</returns>
-inline HICON CreateHICON(IWICBitmap* pBmp, HBITMAP hbmMask = NULL)
+inline HICON CreateHICON(IWICBitmap* pBmp, HBITMAP hbmMask = nullptr)
 {
 	const HBITMAP hbmColor = CreateHBITMAP(pBmp);
 	ICONINFO ii{};
@@ -160,8 +160,8 @@ inline HICON CreateHICON(IWICBitmap* pBmp, HBITMAP hbmMask = NULL)
 	{
 		UINT cx, cy;
 		pBmp->GetSize(&cx, &cy);
-		ii.hbmMask = CreateBitmap(cx, cy, 1, 1, NULL);
-		const HDC hCDC = CreateCompatibleDC(NULL);
+		ii.hbmMask = CreateBitmap(cx, cy, 1, 1, nullptr);
+		const HDC hCDC = CreateCompatibleDC(nullptr);
 		const HGDIOBJ hOld = SelectObject(hCDC, ii.hbmMask);
 		const RECT rc{ 0,0,(long)cx,(long)cy };
 		FillRect(hCDC, &rc, (HBRUSH)GetStockObject(WHITE_BRUSH));
@@ -182,7 +182,7 @@ inline HICON CreateHICON(IWICBitmap* pBmp, HBITMAP hbmMask = NULL)
 inline HRESULT ScaleWicBitmap(IWICBitmapSource* pSrc, IWICBitmap*& pDst, int cx, int cy,
 	WICBitmapInterpolationMode eInterMode = WICBitmapInterpolationModeLinear)
 {
-	pDst = NULL;
+	pDst = nullptr;
 	ComPtr<IWICBitmapScaler> pScaler;
 	HRESULT hr;
 	if (FAILED(hr = g_pWicFactory->CreateBitmapScaler(&pScaler)))
@@ -201,8 +201,8 @@ inline HRESULT ScaleWicBitmap(IWICBitmapSource* pSrc, IWICBitmap*& pDst, int cx,
 /// <returns>成功返回S_OK，失败返回错误代码</returns>
 EckInline HRESULT CreateWicBitmapDecoder(PCWSTR pszFile, IWICBitmapDecoder*& pDecoder)
 {
-	pDecoder = NULL;
-	return g_pWicFactory->CreateDecoderFromFilename(pszFile, NULL, GENERIC_READ,
+	pDecoder = nullptr;
+	return g_pWicFactory->CreateDecoderFromFilename(pszFile, nullptr, GENERIC_READ,
 		WICDecodeMetadataCacheOnDemand, &pDecoder);
 }
 
@@ -216,8 +216,8 @@ EckInline HRESULT CreateWicBitmapDecoder(PCWSTR pszFile, IWICBitmapDecoder*& pDe
 EckInline HRESULT CreateWicBitmapDecoder(IStream* pStream,
 	IWICBitmapDecoder*& pDecoder)
 {
-	pDecoder = NULL;
-	return g_pWicFactory->CreateDecoderFromStream(pStream, NULL,
+	pDecoder = nullptr;
+	return g_pWicFactory->CreateDecoderFromStream(pStream, nullptr,
 		WICDecodeMetadataCacheOnDemand, &pDecoder);
 }
 
@@ -256,7 +256,7 @@ inline HRESULT CreateWicBitmap(std::vector<IWICBitmap*>& vResult,
 			if (FAILED(hr = g_pWicFactory->CreateFormatConverter(&pConverter)))
 				return hr;
 			hr = pConverter->Initialize(pFrameDecoder.Get(), guidFmt,
-				WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeMedianCut);
+				WICBitmapDitherTypeNone, nullptr, 0.0f, WICBitmapPaletteTypeMedianCut);
 			if (FAILED(hr))
 				return hr;
 			IWICBitmap* pBitmap;
@@ -291,7 +291,7 @@ inline HRESULT CreateWicBitmap(IWICBitmap*& pBmp, IWICBitmapDecoder* pDecoder,
 		if (FAILED(hr = g_pWicFactory->CreateFormatConverter(&pConverter)))
 			return hr;
 		hr = pConverter->Initialize(pFrameDecoder.Get(), guidFmt,
-			WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeMedianCut);
+			WICBitmapDitherTypeNone, nullptr, 0.0f, WICBitmapPaletteTypeMedianCut);
 		if (FAILED(hr))
 			return hr;
 		pSrc = pConverter;
@@ -339,7 +339,7 @@ EckInline WORD GetPaletteEntryCount(HPALETTE hPalette)
 class CDib
 {
 private:
-	HBITMAP m_hBitmap = NULL;
+	HBITMAP m_hBitmap = nullptr;
 public:
 	ECK_DISABLE_COPY_DEF_CONS(CDib);
 
@@ -360,12 +360,12 @@ public:
 	/// <param name="hPalette">调色板句柄</param>
 	/// <param name="rc">要复制的矩形区域，若为空则复制整个位图</param>
 	/// <returns>创建的DIB节</returns>
-	HBITMAP Create(HDC hDC, BOOL bTopToBottom = FALSE, HPALETTE hPalette = NULL, const RCWH& rc = {})
+	HBITMAP Create(HDC hDC, BOOL bTopToBottom = FALSE, HPALETTE hPalette = nullptr, const RCWH& rc = {})
 	{
 		Destroy();
 		BITMAP bmp;
 		if (!GetObjectW(GetCurrentObject(hDC, OBJ_BITMAP), sizeof(bmp), &bmp))
-			return NULL;
+			return nullptr;
 		int x, y, cx, cy;
 		if (IsRectEmpty(rc))
 		{
@@ -400,10 +400,10 @@ public:
 				pbmi->bmiColors[i].rgbReserved = 0;
 		}
 #pragma warning(suppress:6387)
-		m_hBitmap = CreateDIBSection(NULL, pbmi, DIB_RGB_COLORS, NULL, NULL, 0);
+		m_hBitmap = CreateDIBSection(nullptr, pbmi, DIB_RGB_COLORS, nullptr, nullptr, 0);
 		free(pbmi);
 		if (!m_hBitmap)
-			return NULL;
+			return nullptr;
 		HDC hCDC = CreateCompatibleDC(hDC);
 		SelectObject(hCDC, m_hBitmap);
 		if (hPalette)
@@ -422,9 +422,9 @@ public:
 	/// 若给定数据具有BI_JPEG或BI_PNG，则总是创建32位DIB节
 	/// </summary>
 	/// <param name="pData">位图数据</param>
-	/// <param name="hDC">要使用调色板的DC，若该参数为NULL，则使用DIB_RGB_COLORS创建DIB节，否则使用DIB_PAL_COLORS</param>
+	/// <param name="hDC">要使用调色板的DC，若该参数为nullptr，则使用DIB_RGB_COLORS创建DIB节，否则使用DIB_PAL_COLORS</param>
 	/// <returns>创建的DIB节</returns>
-	HBITMAP Create(PCVOID pData, HDC hDC = NULL)
+	HBITMAP Create(PCVOID pData, HDC hDC = nullptr)
 	{
 		Destroy();
 		PCBYTE p = (PCBYTE)pData;
@@ -445,7 +445,7 @@ public:
 			auto pbih = (const BITMAPINFOHEADER*)p;
 			const BOOL bBitFields = (pbih->biCompression == BI_BITFIELDS);
 			if (pbih->biCompression != BI_RGB && !bBitFields)
-				return NULL;
+				return nullptr;
 			pBitsData =
 				(ocbBits ?
 					(p - sizeof(BITMAPFILEHEADER) + ocbBits) :
@@ -457,9 +457,9 @@ public:
 				(((((pbih->biWidth * pbih->biBitCount) + 31) & ~31) >> 3) * pbih->biHeight));
 			void* pBits;
 			m_hBitmap = CreateDIBSection(hDC, (const BITMAPINFO*)pbih,
-				(hDC ? DIB_PAL_COLORS : DIB_RGB_COLORS), &pBits, NULL, 0);
+				(hDC ? DIB_PAL_COLORS : DIB_RGB_COLORS), &pBits, nullptr, 0);
 			if (!m_hBitmap)
-				return NULL;
+				return nullptr;
 			memcpy(pBits, pBitsData, cbBits);
 		}
 		break;
@@ -480,14 +480,14 @@ public:
 				if (FAILED(CreateWicBitmapDecoder(pStream, pDecoder)))
 				{
 					pStream->LeaveRelease();
-					return NULL;
+					return nullptr;
 				}
 				pStream->LeaveRelease();
 				IWICBitmap* pBitmap;
 				if (FAILED(CreateWicBitmap(pBitmap, pDecoder)))
 				{
 					pDecoder->Release();
-					return NULL;
+					return nullptr;
 				}
 				m_hBitmap = CreateHBITMAP(pBitmap);
 				pDecoder->Release();
@@ -503,20 +503,20 @@ public:
 				memcpy(pbmi + 1, p + sizeof(BITMAPV4HEADER), pV4->bV4ClrUsed * sizeof(RGBQUAD));
 				void* pBits;
 				m_hBitmap = CreateDIBSection(hDC, pbmi,
-					(hDC ? DIB_PAL_COLORS : DIB_RGB_COLORS), &pBits, NULL, 0);
+					(hDC ? DIB_PAL_COLORS : DIB_RGB_COLORS), &pBits, nullptr, 0);
 				free(pbmi);
 				if (!m_hBitmap)
-					return NULL;
+					return nullptr;
 #pragma warning(suppress:6001)// 未初始化内存
 				memcpy(pBits, pBitsData, cbBits);
 			}
 			else
-				return NULL;
+				return nullptr;
 		}
 		break;
 		default:
 			EckDbgPrintWithPos(L"无法识别的位图格式");
-			return NULL;
+			return nullptr;
 		}
 		return m_hBitmap;
 	}
@@ -538,7 +538,7 @@ public:
 		bih.biBitCount = 32;
 		bih.biCompression = BI_RGB;
 #pragma warning(suppress:6387)
-		m_hBitmap = CreateDIBSection(NULL, (const BITMAPINFO*)&bih, DIB_RGB_COLORS, NULL, NULL, 0);
+		m_hBitmap = CreateDIBSection(nullptr, (const BITMAPINFO*)&bih, DIB_RGB_COLORS, nullptr, nullptr, 0);
 		return m_hBitmap;
 	}
 
@@ -588,7 +588,7 @@ public:
 		const size_t cbPalette = sizeof(RGBQUAD) * ds.dsBmih.biClrUsed;
 		if (cbPalette)
 		{
-			HDC hCDC = CreateCompatibleDC(NULL);
+			HDC hCDC = CreateCompatibleDC(nullptr);
 			SelectObject(hCDC, m_hBitmap);
 			GetDIBColorTable(hCDC, 0, ds.dsBmih.biClrUsed, (RGBQUAD*)(pih + 1));
 			DeleteDC(hCDC);
@@ -602,7 +602,7 @@ public:
 	EckInline void Destroy()
 	{
 		DeleteObject(m_hBitmap);
-		m_hBitmap = NULL;
+		m_hBitmap = nullptr;
 	}
 
 	EckInline void Attach(HBITMAP hBitmap)
@@ -614,7 +614,7 @@ public:
 	[[nodiscard]] EckInline HBITMAP Detach()
 	{
 		HBITMAP hBitmap = m_hBitmap;
-		m_hBitmap = NULL;
+		m_hBitmap = nullptr;
 		return hBitmap;
 	}
 };
@@ -631,7 +631,7 @@ inline HBITMAP Snapshot(HWND hWnd, const RCWH& rc, BOOL bCursor, SnapshotDib eDi
 	if (IsRectEmpty(rc))
 		GetClientRect(hWnd, (RECT*)&rc);
 	if (IsRectEmpty(rc))
-		return NULL;
+		return nullptr;
 	const HDC hDC = GetDC(hWnd);
 	CURSORINFO ci{};
 	ICONINFO ii{};
@@ -663,7 +663,7 @@ inline HBITMAP Snapshot(HWND hWnd, const RCWH& rc, BOOL bCursor, SnapshotDib eDi
 		if (cxCursor)
 		{
 			DrawIconEx(hCDC, ci.ptScreenPos.x, ci.ptScreenPos.y,
-				ci.hCursor, cxCursor, cyCursor, 0, NULL, DI_NORMAL);
+				ci.hCursor, cxCursor, cyCursor, 0, nullptr, DI_NORMAL);
 		}
 		DeleteDC(hCDC);
 		return hBmp;
@@ -671,13 +671,13 @@ inline HBITMAP Snapshot(HWND hWnd, const RCWH& rc, BOOL bCursor, SnapshotDib eDi
 	else
 	{
 		CDib dib;
-		dib.Create(hDC, eDib == SnapshotDib::DibTopToBottom, NULL, rc);
+		dib.Create(hDC, eDib == SnapshotDib::DibTopToBottom, nullptr, rc);
 		if (cxCursor)
 		{
 			const auto hCDC = CreateCompatibleDC(hDC);
 			SelectObject(hCDC, dib.GetHBitmap());
 			DrawIconEx(hCDC, ci.ptScreenPos.x, ci.ptScreenPos.y,
-				ci.hCursor, cxCursor, cyCursor, 0, NULL, DI_NORMAL);
+				ci.hCursor, cxCursor, cyCursor, 0, nullptr, DI_NORMAL);
 			DeleteDC(hCDC);
 		}
 		return dib.Detach();
@@ -768,22 +768,22 @@ inline HRESULT SaveWicBitmap(IStream* pStream, IWICBitmapSource* pBitmap, ImageT
 	HRESULT hr;
 	ComPtr<IWICBitmapEncoder> pEncoder;
 	ComPtr<IWICBitmapFrameEncode> pFrame;
-	if (FAILED(hr = g_pWicFactory->CreateEncoder(GetWicEncoderGuid(iType), NULL, &pEncoder)))
+	if (FAILED(hr = g_pWicFactory->CreateEncoder(GetWicEncoderGuid(iType), nullptr, &pEncoder)))
 		return hr;
 	if (FAILED(hr = pEncoder->Initialize(pStream, WICBitmapEncoderNoCache)))
 		return hr;
-	if (FAILED(hr = pEncoder->CreateNewFrame(&pFrame, NULL)))
+	if (FAILED(hr = pEncoder->CreateNewFrame(&pFrame, nullptr)))
 		return hr;
-	if (FAILED(hr = pFrame->Initialize(NULL)))
+	if (FAILED(hr = pFrame->Initialize(nullptr)))
 		return hr;
-	if (FAILED(hr = pFrame->WriteSource(pBitmap, NULL)))
+	if (FAILED(hr = pFrame->WriteSource(pBitmap, nullptr)))
 		return hr;
 	if (FAILED(hr = pFrame->Commit()))// 提交帧
 		return hr;
 	return pEncoder->Commit();// 提交编码器
 }
 
-inline CRefBin SaveWicBitmap(IWICBitmap* pBitmap, ImageType iType = ImageType::Png, HRESULT* phr = NULL)
+inline CRefBin SaveWicBitmap(IWICBitmap* pBitmap, ImageType iType = ImageType::Png, HRESULT* phr = nullptr)
 {
 	CRefBin rb{};
 	const auto pStream = new CRefBinStream(rb);
@@ -811,10 +811,10 @@ inline Gdiplus::GpStatus SaveGpImage(IStream* pStream, Gdiplus::GpImage* pImage,
 	Gdiplus::GpStatus gps;
 	if ((gps = GetGpEncoderClsid(GetImageMime(iType), clsid)) != Gdiplus::Ok)
 		return gps;
-	return GdipSaveImageToStream(pImage, pStream, &clsid, NULL);
+	return GdipSaveImageToStream(pImage, pStream, &clsid, nullptr);
 }
 
-inline CRefBin SaveGpImage(Gdiplus::GpImage* pImage, ImageType iType = ImageType::Png, Gdiplus::GpStatus* pgps = NULL)
+inline CRefBin SaveGpImage(Gdiplus::GpImage* pImage, ImageType iType = ImageType::Png, Gdiplus::GpStatus* pgps = nullptr)
 {
 	CRefBin rb{};
 	const auto pStream = new CRefBinStream(rb);
@@ -831,13 +831,13 @@ inline Gdiplus::GpStatus SaveGpImage(PCWSTR pszFile, Gdiplus::GpImage* pImage, I
 	Gdiplus::GpStatus gps;
 	if ((gps = GetGpEncoderClsid(GetImageMime(iType), clsid)) != Gdiplus::Ok)
 		return gps;
-	return GdipSaveImageToFile(pImage, pszFile, &clsid, NULL);
+	return GdipSaveImageToFile(pImage, pszFile, &clsid, nullptr);
 }
 
 inline HRESULT LoadD2dBitmap(PCWSTR pszFile, ID2D1RenderTarget* pRT, ID2D1Bitmap*& pD2dBitmap,
 	int cxNew = -1, int cyNew = -1)
 {
-	pD2dBitmap = NULL;
+	pD2dBitmap = nullptr;
 	HRESULT hr;
 	ComPtr<IWICBitmapDecoder> pDecoder;
 	if (FAILED(hr = CreateWicBitmapDecoder(pszFile, pDecoder.RefOf())))

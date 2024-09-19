@@ -395,7 +395,7 @@ public:
 				else
 				{
 					m_Stream.Insert(ToUli(m_File.m_Loc.posV1), ToUli(227));
-					m_Stream.GetStream()->Seek(ToLi(-(128 + 227)), STREAM_SEEK_END, NULL);
+					m_Stream.GetStream()->Seek(ToLi(-(128 + 227)), STREAM_SEEK_END, nullptr);
 				}
 				m_Stream.Write("TAG+", 4);
 			}

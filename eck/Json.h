@@ -50,7 +50,6 @@ enum class JInitValType :UINT
 	Object,
 	ArrayPh,
 };
-ECK_ENUM_BIT_FLAGS(JInitValType);
 
 
 EckInline BOOL YyLocateStringPos(PCSTR pszText, size_t cchText, size_t ocbPos,
@@ -79,7 +78,7 @@ namespace EckPriv
 			return r;
 		}
 		else
-			return This.ValAt(pszKey);
+			return This.ValAt(pszKey, cchKey);
 	}
 
 	template<class TThis, class T>
