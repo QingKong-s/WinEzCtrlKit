@@ -9,7 +9,7 @@
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
-struct ILayout
+struct __declspec(novtable) ILayout
 {
 	virtual ~ILayout() = default;
 

@@ -156,7 +156,8 @@ ECK_NAMESPACE_END
 // 定义只写属性字段
 #define ECKPROP_W(Setter)		__declspec(property(put = Setter))
 
-
+#define EckCopyConstStringA(pszDst, Src) memcpy(pszDst, Src, ARRAYSIZE(Src))
+#define EckCopyConstStringW(pszDst, Src) wmemcpy(pszDst, Src, ARRAYSIZE(Src))
 
 // 计次循环
 #define EckCounter(c, Var) \

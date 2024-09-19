@@ -1,3 +1,10 @@
+﻿/*
+* WinEzCtrlKit Library
+*
+* CObject.h : RTTI基类
+*
+* Copyright(C) 2024 QingKong
+*/
 #pragma once
 #include "ECK.h"
 
@@ -28,7 +35,8 @@ struct ClassInfoRegister
 	}
 };
 
-class CObject
+// 绝对不能直接实例化此类
+class __declspec(novtable) CObject
 {
 private:
 	static ClassInfoRegister s_ClassInfoRegister_CObject;

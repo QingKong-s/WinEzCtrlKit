@@ -164,7 +164,7 @@ public:
 
 	EckInline void DeletePage(int idx)
 	{
-		SendMsg(PSM_REMOVEPAGE, idx, nullptr);
+		SendMsg(PSM_REMOVEPAGE, idx, 0);
 	}
 
 	EckInline void DeletePage(HPROPSHEETPAGE hPage)
@@ -184,7 +184,7 @@ public:
 
 	EckInline BOOL SetCurSel(int idx)
 	{
-		return (BOOL)SendMsg(PSM_SETCURSEL, idx, nullptr);
+		return (BOOL)SendMsg(PSM_SETCURSEL, idx, 0);
 	}
 
 	EckInline BOOL SetCurSel(HPROPSHEETPAGE hPage)

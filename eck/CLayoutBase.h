@@ -39,7 +39,7 @@ enum :UINT
 // 低15位为通用标志
 constexpr inline int LayoutFlagsBitsBegin{ 15 };
 
-class CLayoutBase :public ILayout
+class __declspec(novtable) CLayoutBase :public ILayout
 {
 protected:
 	struct ITEMBASE

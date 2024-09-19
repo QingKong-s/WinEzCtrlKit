@@ -36,9 +36,6 @@
     <ClInclude Include="eck\CEdit.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CFileDlg.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CCommDlg.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
