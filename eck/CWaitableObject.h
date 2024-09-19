@@ -1,7 +1,7 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* CWaitableObject.h : ¿ÉµÈ´ı¶ÔÏó
+* CWaitableObject.h : å¯ç­‰å¾…å¯¹è±¡
 *
 * Copyright(C) 2024 QingKong
 */
@@ -19,9 +19,9 @@ public:
 
 	~CWaitableObject() { NtClose(m_hObj); }
 
-	constexpr CWaitableObject(CWaitableObject&& x) noexcept
+	constexpr CWaitableObject(CWaitableObject&& x) noexcept: m_hObj{ x.m_hObj }
 	{
-		std::swap(m_hObj, x.m_hObj);
+		x.m_hObj = nullptr;
 	}
 
 	constexpr CWaitableObject& operator=(CWaitableObject&& x) noexcept

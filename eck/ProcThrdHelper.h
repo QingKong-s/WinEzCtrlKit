@@ -80,11 +80,10 @@ inline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, std::vector<UINT>& vPid
 	NTSTATUS nts = NtQuerySystemInformation(SystemProcessInformation, nullptr, 0, &cb);
 	if (!cb)
 		return nts;
-	BYTE* pBuf = (BYTE*)VAlloc(cb);
-	UniquePtrVA<BYTE> _(pBuf);
-	if (!NT_SUCCESS(nts = NtQuerySystemInformation(SystemProcessInformation, pBuf, cb, &cb)))
+	UniquePtrVA<BYTE> pBuf((BYTE*)VAlloc(cb));
+	if (!NT_SUCCESS(nts = NtQuerySystemInformation(SystemProcessInformation, pBuf.get(), cb, &cb)))
 		return nts;
-	SYSTEM_PROCESS_INFORMATION* pspi = (SYSTEM_PROCESS_INFORMATION*)pBuf;
+	SYSTEM_PROCESS_INFORMATION* pspi = (SYSTEM_PROCESS_INFORMATION*)pBuf.get();
 	EckLoop()
 	{
 		if (wcsnicmp(pszImageName, pspi->ImageName.Buffer, pspi->ImageName.Length) == 0)

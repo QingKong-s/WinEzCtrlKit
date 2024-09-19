@@ -371,32 +371,56 @@ inline BOOL GetFileVerInfo(PCWSTR pszFile, FILEVERINFO& fvi)
 	WCHAR szLangCp[9];
 	_swprintf(szLangCp, L"%04X%04X", pLangCp[0].wLanguage, pLangCp[0].wCodePage);
 	CRefStrW rsSub = CRefStrW(LR"(\StringFileInfo\)") + szLangCp + L"\\";
+	const auto pszName = rsSub.PushBackNoExtra(20);
 
 	void* pStr;
 	UINT cchStr;
-	VerQueryValueW(pBuf, (rsSub + L"Comment").Data(), &pStr, &cchStr);
+	EckCopyConstStringW(pszName, L"Comment");
+	VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
 	fvi.Comment.DupString((PCWSTR)pStr, (int)cchStr);
-	VerQueryValueW(pBuf, (rsSub + L"InternalName").Data(), &pStr, &cchStr);
+
+	EckCopyConstStringW(pszName, L"InternalName");
+	VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
 	fvi.InternalName.DupString((PCWSTR)pStr, (int)cchStr);
-	VerQueryValueW(pBuf, (rsSub + L"ProductName").Data(), &pStr, &cchStr);
+
+	EckCopyConstStringW(pszName, L"ProductName");
+	VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
 	fvi.ProductName.DupString((PCWSTR)pStr, (int)cchStr);
-	VerQueryValueW(pBuf, (rsSub + L"CompanyName").Data(), &pStr, &cchStr);
+
+	EckCopyConstStringW(pszName, L"CompanyName");
+	VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
 	fvi.CompanyName.DupString((PCWSTR)pStr, (int)cchStr);
-	VerQueryValueW(pBuf, (rsSub + L"LegalCopyright").Data(), &pStr, &cchStr);
+
+	EckCopyConstStringW(pszName, L"LegalCopyright");
+	VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
 	fvi.LegalCopyright.DupString((PCWSTR)pStr, (int)cchStr);
-	VerQueryValueW(pBuf, (rsSub + L"ProductVersion").Data(), &pStr, &cchStr);
+
+	EckCopyConstStringW(pszName, L"ProductVersion");
+	VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
 	fvi.ProductVersion.DupString((PCWSTR)pStr, (int)cchStr);
-	VerQueryValueW(pBuf, (rsSub + L"FileDescription").Data(), &pStr, &cchStr);
+
+	EckCopyConstStringW(pszName, L"FileDescription");
+	VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
 	fvi.FileDescription.DupString((PCWSTR)pStr, (int)cchStr);
-	VerQueryValueW(pBuf, (rsSub + L"LegalTrademarks").Data(), &pStr, &cchStr);
+
+	EckCopyConstStringW(pszName, L"LegalTrademarks");
+	VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
 	fvi.LegalTrademarks.DupString((PCWSTR)pStr, (int)cchStr);
-	VerQueryValueW(pBuf, (rsSub + L"PrivateBuild").Data(), &pStr, &cchStr);
+
+	EckCopyConstStringW(pszName, L"PrivateBuild");
+	VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
 	fvi.PrivateBuild.DupString((PCWSTR)pStr, (int)cchStr);
-	VerQueryValueW(pBuf, (rsSub + L"FileVersion").Data(), &pStr, &cchStr);
+
+	EckCopyConstStringW(pszName, L"FileVersion");
+	VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
 	fvi.FileVersion.DupString((PCWSTR)pStr, (int)cchStr);
-	VerQueryValueW(pBuf, (rsSub + L"OriginalFilename").Data(), &pStr, &cchStr);
+
+	EckCopyConstStringW(pszName, L"OriginalFilename");
+	VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
 	fvi.OriginalFilename.DupString((PCWSTR)pStr, (int)cchStr);
-	VerQueryValueW(pBuf, (rsSub + L"SpecialBuild").Data(), &pStr, &cchStr);
+
+	EckCopyConstStringW(pszName, L"SpecialBuild");
+	VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
 	fvi.SpecialBuild.DupString((PCWSTR)pStr, (int)cchStr);
 	return TRUE;
 }
@@ -1573,6 +1597,9 @@ inline HRESULT Snapshot(IWICBitmap*& pBmp, const RCWH& rc, BOOL bCursor = FALSE,
 						{
 							EckCounter(Cursor.ShapeInfo.Width, j)
 							{
+								if (ptCursor.x < 0 || ptCursor.y < 0 || 
+									ptCursor.x >= rcBound.cx || ptCursor.y >= rcBound.cy)
+									continue;
 								const auto dwSrc = *(DWORD*)(Cursor.rbCursor.Data() +
 									i * Cursor.ShapeInfo.Pitch + j * 4);
 								const auto pdwDst = (DWORD*)(pBits +
@@ -1589,6 +1616,9 @@ inline HRESULT Snapshot(IWICBitmap*& pBmp, const RCWH& rc, BOOL bCursor = FALSE,
 						{
 							EckCounter(Cursor.ShapeInfo.Width, j)
 							{
+								if (ptCursor.x < 0 || ptCursor.y < 0 ||
+									ptCursor.x >= rcBound.cx || ptCursor.y >= rcBound.cy)
+									continue; 
 								const auto bySrcAnd = (*(Cursor.rbCursor.Data() +
 									i * Cursor.ShapeInfo.Pitch + j / 8)) & byMask;
 								const auto bySrcXor = (*(Cursor.rbCursor.Data() +
@@ -1614,6 +1644,9 @@ inline HRESULT Snapshot(IWICBitmap*& pBmp, const RCWH& rc, BOOL bCursor = FALSE,
 						{
 							EckCounter(Cursor.ShapeInfo.Width, j)
 							{
+								if (ptCursor.x < 0 || ptCursor.y < 0 ||
+									ptCursor.x >= rcBound.cx || ptCursor.y >= rcBound.cy)
+									continue;
 								const auto dwSrc = *(DWORD*)(Cursor.rbCursor.Data() +
 									i * Cursor.ShapeInfo.Pitch + j * 4);
 								const auto pdwDst = (DWORD*)(pBits +
@@ -1651,10 +1684,10 @@ inline LONGLONG GetFileSize(PCWSTR pszFile, NTSTATUS* pnts = nullptr)
 {
 	const auto hFile = NaOpenFile(pszFile, 0, FILE_SHARE_READ, 0, pnts);
 	if (hFile == INVALID_HANDLE_VALUE)
-		return 0;
+		return 0ll;
 	IO_STATUS_BLOCK iosb;
 	FILE_STANDARD_INFORMATION fsi;
-	fsi.EndOfFile.QuadPart = 0;
+	fsi.EndOfFile.QuadPart = 0ll;
 	const auto nts = NtQueryInformationFile(hFile, &iosb, &fsi, sizeof(fsi), FileStandardInformation);
 	if (pnts)
 		*pnts = nts;

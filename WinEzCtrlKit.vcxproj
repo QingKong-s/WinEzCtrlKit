@@ -285,7 +285,6 @@
     <ClInclude Include="eck\CColorPicker.h" />
     <ClInclude Include="eck\CDirBox.h" />
     <ClInclude Include="eck\CEdit.h" />
-    <ClInclude Include="eck\CFileDlg.h" />
     <ClInclude Include="eck\CCommDlg.h" />
     <ClInclude Include="eck\CLabel.h" />
     <ClInclude Include="eck\CListBox.h" />
