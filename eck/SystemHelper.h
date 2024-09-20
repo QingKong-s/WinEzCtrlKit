@@ -1219,8 +1219,9 @@ inline NTSTATUS IntGetPhysicalDriveIdentifier(F fnProcessData, int idxDrive)
 				},
 				.bDriveNumber = (BYTE)idxDrive
 			};
-			const auto pscop = (SENDCMDOUTPARAMS*)_alloca(
-				sizeof(SENDCMDOUTPARAMS) - 1/*bBuffer*/ + 512);
+
+			BYTE byDummy2[sizeof(SENDCMDOUTPARAMS) - 1/*bBuffer*/ + 512]{};
+			const auto pscop = (SENDCMDOUTPARAMS*)byDummy2;
 
 			if (NT_SUCCESS(nts = NaDeviceIoControl(hDevice, SMART_RCV_DRIVE_DATA,
 				&scip, sizeof(scip) - 1/*bBuffer*/, pscop, sizeof(SENDCMDOUTPARAMS))))
@@ -1589,17 +1590,23 @@ inline HRESULT Snapshot(IWICBitmap*& pBmp, const RCWH& rc, BOOL bCursor = FALSE,
 					ptCursor.y += Output.rc.y;
 					ptCursor.x -= rcBound.x;
 					ptCursor.y -= rcBound.y;
+#pragma warning(suppress: 26813)// 使用位与检查标志
+					const int cyReal = ((Cursor.ShapeInfo.Type == DXGI_OUTDUPL_POINTER_SHAPE_TYPE_MONOCHROME) ?
+						Cursor.ShapeInfo.Height / 2 : Cursor.ShapeInfo.Height);
+					const int yStart = (ptCursor.y < 0 ? -ptCursor.y : 0);
+					const int yEnd = (ptCursor.y + cyReal > rcBound.cy ?
+						rcBound.cy - ptCursor.y : cyReal);
+					const int xStart = (ptCursor.x < 0 ? -ptCursor.x : 0);
+					const int xEnd = (ptCursor.x + (int)Cursor.ShapeInfo.Width > rcBound.cx ?
+						rcBound.cx - ptCursor.x : Cursor.ShapeInfo.Width);
 					switch (Cursor.ShapeInfo.Type)
 					{
 					case DXGI_OUTDUPL_POINTER_SHAPE_TYPE_COLOR:
 					{
-						EckCounter(Cursor.ShapeInfo.Height, i)
+						for (int i = yStart; i < yEnd; ++i)
 						{
-							EckCounter(Cursor.ShapeInfo.Width, j)
+							for (int j = xStart; j < xEnd; ++j)
 							{
-								if (ptCursor.x < 0 || ptCursor.y < 0 || 
-									ptCursor.x >= rcBound.cx || ptCursor.y >= rcBound.cy)
-									continue;
 								const auto dwSrc = *(DWORD*)(Cursor.rbCursor.Data() +
 									i * Cursor.ShapeInfo.Pitch + j * 4);
 								const auto pdwDst = (DWORD*)(pBits +
@@ -1612,13 +1619,10 @@ inline HRESULT Snapshot(IWICBitmap*& pBmp, const RCWH& rc, BOOL bCursor = FALSE,
 					case DXGI_OUTDUPL_POINTER_SHAPE_TYPE_MONOCHROME:
 					{
 						BYTE byMask = 0b1000'0000;
-						EckCounter(Cursor.ShapeInfo.Height / 2, i)
+						for (int i = yStart; i < yEnd; ++i)
 						{
-							EckCounter(Cursor.ShapeInfo.Width, j)
+							for (int j = xStart; j < xEnd; ++j)
 							{
-								if (ptCursor.x < 0 || ptCursor.y < 0 ||
-									ptCursor.x >= rcBound.cx || ptCursor.y >= rcBound.cy)
-									continue; 
 								const auto bySrcAnd = (*(Cursor.rbCursor.Data() +
 									i * Cursor.ShapeInfo.Pitch + j / 8)) & byMask;
 								const auto bySrcXor = (*(Cursor.rbCursor.Data() +
@@ -1640,13 +1644,10 @@ inline HRESULT Snapshot(IWICBitmap*& pBmp, const RCWH& rc, BOOL bCursor = FALSE,
 					break;
 					case DXGI_OUTDUPL_POINTER_SHAPE_TYPE_MASKED_COLOR:
 					{
-						EckCounter(Cursor.ShapeInfo.Height, i)
+						for (int i = yStart; i < yEnd; ++i)
 						{
-							EckCounter(Cursor.ShapeInfo.Width, j)
+							for (int j = xStart; j < xEnd; ++j)
 							{
-								if (ptCursor.x < 0 || ptCursor.y < 0 ||
-									ptCursor.x >= rcBound.cx || ptCursor.y >= rcBound.cy)
-									continue;
 								const auto dwSrc = *(DWORD*)(Cursor.rbCursor.Data() +
 									i * Cursor.ShapeInfo.Pitch + j * 4);
 								const auto pdwDst = (DWORD*)(pBits +
@@ -1682,7 +1683,7 @@ inline HRESULT Snapshot(IWICBitmap*& pBmp, const RCWH& rc, BOOL bCursor = FALSE,
 
 inline LONGLONG GetFileSize(PCWSTR pszFile, NTSTATUS* pnts = nullptr)
 {
-	const auto hFile = NaOpenFile(pszFile, 0, FILE_SHARE_READ, 0, pnts);
+	const auto hFile = NaOpenFile(pszFile, FILE_READ_ATTRIBUTES, FILE_SHARE_READ, 0, pnts);
 	if (hFile == INVALID_HANDLE_VALUE)
 		return 0ll;
 	IO_STATUS_BLOCK iosb;

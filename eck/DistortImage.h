@@ -271,7 +271,6 @@ inline BOOL MakeImageFromPolygonToPolygon(TBmpHandler& Bmp, TBmpHandler& NewBmp,
 						TBmpHandler::GetColorComp(cr[1], k) * e);
 				}
 				NewBmp.SetPixel(TBmpHandler::MakeCoord(x, y), TBmpHandler::MakeColor(crNew));
-				//NewBmp.SetPixel(TBmpHandler::MakeCoord(x, y), 0xFFFF0000);
 			}
 		};
 	size_t idxCurrPrevYAA{};
