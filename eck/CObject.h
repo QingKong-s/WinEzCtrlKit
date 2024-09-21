@@ -73,7 +73,10 @@ inline ClassInfoRegister CObject::s_ClassInfoRegister_CObject(&CObject::s_ClassI
 template<class T>
 inline CObject* RttiStdNewObject()
 {
-	return new T{};
+	if constexpr (std::is_abstract_v<T>)
+		return nullptr;
+	else
+		return new T{};
 }
 
 #define ECK_RTTI(Cls) \

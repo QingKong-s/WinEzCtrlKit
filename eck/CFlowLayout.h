@@ -17,6 +17,8 @@ enum :UINT
 
 class CFlowLayoutBase :public CLayoutBase
 {
+public:
+	ECK_RTTI(CFlowLayoutBase);
 protected:
 	struct ITEM :public ITEMBASE
 	{
@@ -72,9 +74,12 @@ public:
 
 	EckInline constexpr auto& GetList() { return m_vItem; }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CFlowLayoutBase, CLayoutBase);
 
 class CFlowLayoutH final :public CFlowLayoutBase
 {
+public:
+	ECK_RTTI(CFlowLayoutH);
 private:
 	void MoveCtrl(ITEM& e, HDWP& hDwp, int cyLineMax, int y)
 	{
@@ -195,9 +200,12 @@ public:
 		}
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CFlowLayoutH, CFlowLayoutBase);
 
 class CFlowLayoutV final :public CFlowLayoutBase
 {
+public:
+	ECK_RTTI(CFlowLayoutV);
 private:
 	void MoveCtrl(ITEM& e, HDWP& hDwp, int cxLineMax, int x)
 	{
@@ -318,4 +326,5 @@ public:
 		}
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CFlowLayoutV, CFlowLayoutBase);
 ECK_NAMESPACE_END

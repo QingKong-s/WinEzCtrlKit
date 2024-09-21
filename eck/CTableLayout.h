@@ -19,6 +19,8 @@ enum class TlCellMode
 
 class CTableLayout final :public CLayoutBase
 {
+public:
+	ECK_RTTI(CTableLayout);
 private:
 	static constexpr int InvalidCellSize = INT_MIN;
 
@@ -230,4 +232,5 @@ public:
 	// È¡µ×²ã±í¸ñ
 	EckInline constexpr auto& GetTable() { return m_Table; }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CTableLayout, CLayoutBase);
 ECK_NAMESPACE_END

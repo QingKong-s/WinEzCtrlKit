@@ -74,7 +74,7 @@ struct DESIGNDATA_WND
 	Class(HWND hWnd) { m_hWnd = hWnd; }
 
 
-class CWnd :public CObject, public ILayout
+class CWnd : public ILayout
 {
 	friend HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc);
 public:

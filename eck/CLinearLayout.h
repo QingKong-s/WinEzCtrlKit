@@ -30,6 +30,8 @@ enum
 
 class CLinearLayoutBase :public CLayoutBase
 {
+public:
+	ECK_RTTI(CLinearLayoutBase);
 protected:
 	struct ITEM :public ITEMBASE
 	{
@@ -88,10 +90,13 @@ public:
 	// 取底层列表
 	EckInline constexpr auto& GetList() { return m_vItem; }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CLinearLayoutBase, CLayoutBase);
 
 class CLinearLayoutV final :public CLinearLayoutBase
 {
 public:
+	ECK_RTTI(CLinearLayoutV);
+
 	void LoCommit() override
 	{
 		HDWP hDwp = PreArrange(m_vItem.size());
@@ -198,10 +203,13 @@ public:
 		}
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CLinearLayoutV, CLinearLayoutBase);
 
 class CLinearLayoutH final :public CLinearLayoutBase
 {
 public:
+	ECK_RTTI(CLinearLayoutH);
+
 	void LoCommit() override
 	{
 		HDWP hDwp = PreArrange(m_vItem.size());
@@ -318,4 +326,5 @@ public:
 		}
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CLinearLayoutH, CLinearLayoutBase);
 ECK_NAMESPACE_END

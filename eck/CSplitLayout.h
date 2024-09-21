@@ -9,8 +9,10 @@
 #include "CLayoutBase.h"
 
 ECK_NAMESPACE_BEGIN
-class CSplitLayout :public CLayoutBase
+class CSplitLayoutBase :public CLayoutBase
 {
+public:
+	ECK_RTTI(CSplitLayoutBase);
 protected:
 	struct ITEM :public ITEMBASE
 	{
@@ -57,10 +59,13 @@ public:
 
 	EckInline constexpr auto& GetList() { return m_vItem; }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CSplitLayoutBase, CLayoutBase);
 
-class CSplitLayoutH final :public CSplitLayout
+class CSplitLayoutH final :public CSplitLayoutBase
 {
 public:
+	ECK_RTTI(CSplitLayoutH);
+
 	void LoCommit() override
 	{
 		HDWP hDwp = PreArrange(m_vItem.size());
@@ -105,10 +110,13 @@ public:
 		}
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CSplitLayoutH, CSplitLayoutBase);
 
-class CSplitLayoutV final :public CSplitLayout
+class CSplitLayoutV final :public CSplitLayoutBase
 {
 public:
+	ECK_RTTI(CSplitLayoutV);
+
 	void LoCommit() override
 	{
 		HDWP hDwp = PreArrange(m_vItem.size());
@@ -153,4 +161,5 @@ public:
 		}
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CSplitLayoutV, CSplitLayoutBase);
 ECK_NAMESPACE_END

@@ -25,6 +25,8 @@ enum :UINT
 
 class CRelativeLayout final :public CLayoutBase
 {
+public:
+	ECK_RTTI(CRelativeLayout);
 private:
 	struct ITEM : public ITEMBASE
 	{
@@ -492,4 +494,5 @@ public:
 
 	EckInline constexpr auto& GetList() { return m_hmItem; }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CRelativeLayout, CLayoutBase);
 ECK_NAMESPACE_END

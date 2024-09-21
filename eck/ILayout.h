@@ -6,12 +6,12 @@
 * Copyright(C) 2024 QingKong
 */
 #pragma once
-#include "ECK.h"
+#include "CObject.h"
 
 ECK_NAMESPACE_BEGIN
-struct __declspec(novtable) ILayout
+struct __declspec(novtable) ILayout : public CObject
 {
-	virtual ~ILayout() = default;
+	ECK_RTTI(ILayout);
 
 	/// <summary>
 	/// 取理想尺寸
@@ -44,4 +44,5 @@ struct __declspec(novtable) ILayout
 	// 布局的DPI已改变，通常仅对非原子布局生效
 	virtual void LoOnDpiChanged(int iDpi) {}
 };
+ECK_RTTI_IMPL_BASE_INLINE(ILayout, CObject);
 ECK_NAMESPACE_END
