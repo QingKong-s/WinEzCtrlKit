@@ -3,7 +3,7 @@
 *
 * CBorderLayout.h : 边框布局
 *
-* Copyright(C) 2023-2024 QingKong
+* Copyright(C) 2024 QingKong
 */
 #pragma once
 #include "CLayoutBase.h"
@@ -20,6 +20,8 @@ enum
 
 class CBorderLayoutBase : public CLayoutBase
 {
+public:
+	ECK_RTTI(CBorderLayoutBase);
 protected:
 	enum
 	{
@@ -31,7 +33,7 @@ protected:
 
 	struct ITEM :ITEMBASE {};
 
-	ITEM m_vItem[5];
+	ITEM m_vItem[5]{};
 public:
 	void Add(ILayout* pCtrl, int nType, const MARGINS& Margin = {}, UINT uFlags = 0u)
 	{
@@ -76,11 +78,21 @@ public:
 		for (auto& e : m_vItem)
 			e.pCtrl->LoInitDpi(iDpi);
 	}
+
+	void Clear() override
+	{
+		CLayoutBase::Clear();
+		for (auto& e : m_vItem)
+			e.pCtrl = nullptr;
+	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CBorderLayoutBase, CLayoutBase);
 
 class CBorderLayoutV : public CBorderLayoutBase
 {
 public:
+	ECK_RTTI(CBorderLayoutV);
+
 	void LoCommit() override
 	{
 		int x, y, cx, cy;
@@ -123,10 +135,13 @@ public:
 		PostArrange(hDwp);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CBorderLayoutV, CBorderLayoutBase);
 
 class CBorderLayoutH : public CBorderLayoutBase
 {
 public:
+	ECK_RTTI(CBorderLayoutH);
+
 	void LoCommit() override
 	{
 		int x, y, cx, cy;
@@ -169,4 +184,5 @@ public:
 		PostArrange(hDwp);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CBorderLayoutH, CBorderLayoutBase);
 ECK_NAMESPACE_END

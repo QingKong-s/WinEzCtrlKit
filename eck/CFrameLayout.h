@@ -11,6 +11,8 @@
 ECK_NAMESPACE_BEGIN
 class CFrameLayout final :public CLayoutBase
 {
+public:
+	ECK_RTTI(CFrameLayout);
 private:
 	struct ITEM :public ITEMBASE
 	{
@@ -88,4 +90,5 @@ public:
 
 	EckInline constexpr auto& GetList() { return m_vItem; }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CFrameLayout, CLayoutBase);
 ECK_NAMESPACE_END

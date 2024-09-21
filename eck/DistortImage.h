@@ -123,7 +123,7 @@ public:
 	{
 		const GpRect rc{ 0,0,m_cx,m_cy };
 		GdipBitmapLockBits(m_pBitmap, &rc, Gdiplus::ImageLockModeRead | Gdiplus::ImageLockModeWrite,
-			PixelFormat32bppPARGB, &m_Data);
+			PixelFormat32bppARGB, &m_Data);
 	}
 
 	EckInline void UnLock()
@@ -137,7 +137,7 @@ public:
 
 /// <summary>
 /// 生成扭曲图像。
-/// 生成从原图像上的多边形区域映射到目标多边形区域的扭曲图像，函数将多边形的外接矩形与新位图的(0,0)对齐
+/// 生成从原图像上的多边形区域映射到目标多边形区域的扭曲图像，函数将多边形的外接矩形与新位图的(0, 0)对齐
 /// </summary>
 /// <param name="Bmp">输入位图处理器</param>
 /// <param name="NewBmp">结果位图处理器，应自行释放相关资源</param>

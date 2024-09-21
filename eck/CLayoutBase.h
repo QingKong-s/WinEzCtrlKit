@@ -41,6 +41,8 @@ constexpr inline int LayoutFlagsBitsBegin{ 15 };
 
 class __declspec(novtable) CLayoutBase :public ILayout
 {
+public:
+	ECK_RTTI(CLayoutBase);
 protected:
 	struct ITEMBASE
 	{
@@ -296,4 +298,5 @@ public:
 
 	EckInline constexpr int GetDpi() const { return m_iDpi; }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CLayoutBase, ILayout);
 ECK_NAMESPACE_END

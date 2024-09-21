@@ -499,21 +499,37 @@ inline namespace GpNameSpace
 #define ECK_USING_GDIP_TYPE(Type) using Type = ::Gdiplus::Type
 
 	ECK_USING_GDIP_TYPE(GpGraphics);
-	ECK_USING_GDIP_TYPE(GpFontCollection);
+
+	ECK_USING_GDIP_TYPE(GpBrush);
+	ECK_USING_GDIP_TYPE(GpTexture);
+	ECK_USING_GDIP_TYPE(GpSolidFill);
+	ECK_USING_GDIP_TYPE(GpLineGradient);
+	ECK_USING_GDIP_TYPE(GpPathGradient);
+	ECK_USING_GDIP_TYPE(GpHatch);
+
+	ECK_USING_GDIP_TYPE(GpPen);
+	ECK_USING_GDIP_TYPE(GpCustomLineCap);
+	ECK_USING_GDIP_TYPE(GpAdjustableArrowCap);
+
+	ECK_USING_GDIP_TYPE(GpImage);
+	ECK_USING_GDIP_TYPE(GpBitmap);
+	ECK_USING_GDIP_TYPE(GpMetafile);
+	ECK_USING_GDIP_TYPE(GpImageAttributes);
+	using GpEffect = Gdiplus::CGpEffect;
+
+	ECK_USING_GDIP_TYPE(GpPath);
+	ECK_USING_GDIP_TYPE(GpRegion);
+	ECK_USING_GDIP_TYPE(GpPathIterator);
+
 	ECK_USING_GDIP_TYPE(GpFontFamily);
 	ECK_USING_GDIP_TYPE(GpFont);
 	ECK_USING_GDIP_TYPE(GpStringFormat);
-	ECK_USING_GDIP_TYPE(GpPen);
-	ECK_USING_GDIP_TYPE(GpPath);
-	ECK_USING_GDIP_TYPE(GpBrush);
-	ECK_USING_GDIP_TYPE(GpSolidFill);
-	ECK_USING_GDIP_TYPE(GpLineGradient);
-	ECK_USING_GDIP_TYPE(GpImage);
-	ECK_USING_GDIP_TYPE(GpImageAttributes);
-	using GpEffect = Gdiplus::CGpEffect;
-	ECK_USING_GDIP_TYPE(GpBitmap);
-	ECK_USING_GDIP_TYPE(GpRegion);
-	ECK_USING_GDIP_TYPE(GpMatrix);
+	ECK_USING_GDIP_TYPE(GpFontCollection);
+	ECK_USING_GDIP_TYPE(GpInstalledFontCollection);
+	ECK_USING_GDIP_TYPE(GpPrivateFontCollection);
+
+	ECK_USING_GDIP_TYPE(GpCachedBitmap);
+
 	ECK_USING_GDIP_TYPE(ARGB);
 	ECK_USING_GDIP_TYPE(REAL);
 	ECK_USING_GDIP_TYPE(GpStatus);
@@ -523,6 +539,7 @@ inline namespace GpNameSpace
 	ECK_USING_GDIP_TYPE(GpPoint);
 	ECK_USING_GDIP_TYPE(GpSizeF);
 	using GpSize = Gdiplus::Size;
+	ECK_USING_GDIP_TYPE(GpMatrix);
 	ECK_USING_GDIP_TYPE(GdiplusStartupInput);
 	ECK_USING_GDIP_TYPE(GpFillMode);
 
