@@ -172,6 +172,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CTestWnd.h" />
+    <ClInclude Include="eck\CArray2D.h" />
     <ClInclude Include="eck\CBorderLayout.h" />
     <ClInclude Include="eck\CHitter.h" />
     <ClInclude Include="eck\CObject.h" />
