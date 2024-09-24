@@ -383,9 +383,4 @@ inline void CalcBezierControlPoints(std::vector<TPt>& vPt, const TPt* pPt, int c
 	_freea(piLineLen);
 	_freea(pptMid);
 }
-
-EckInline void TransformPoint()
-{
-
-}
 ECK_NAMESPACE_END

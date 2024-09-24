@@ -100,6 +100,24 @@ EckInline [[nodiscard]] constexpr int GetDateDays(const SYSTEMTIME& st)
 	return GetDateDays(CEDate{ st.wYear, (BYTE)st.wMonth, (BYTE)st.wDay });
 }
 
+/// <summary>
+/// 年内序数转日期
+/// </summary>
+/// <param name="st">wYear指定年份，wDay指定年内序数，函数返回后wMonth和wDay会被修改为常规日期</param>
+EckInline constexpr void GetNumOfDaysDate(SYSTEMTIME& st)
+{
+	int t = st.wDay;
+	for (st.wMonth = 1; st.wMonth <= 12; ++st.wMonth)
+	{
+		const int cDays = GetMonthDays(st.wYear, st.wMonth);
+		if (t > cDays)
+			t -= cDays;
+		else
+			break;
+	}
+	st.wDay = (WORD)t;
+}
+
 // 到NT时间，即从1601年1月1日0时0分0秒起到某时间经过的毫秒数
 [[nodiscard]] inline constexpr ULONGLONG ToFileTimeMs(const SYSTEMTIME& st)
 {
@@ -311,6 +329,7 @@ EckInline [[nodiscard]] constexpr  LONGLONG TimeElapsedMillisecond(const SYSTEMT
 	return (ToFileTimeMs(st2) - ToFileTimeMs(st1)) / 1;
 }
 
+// 取Unix时间戳，以毫秒计
 EckInline [[nodiscard]] ULONGLONG GetUnixTimestamp()
 {
 	ULONGLONG ull;

@@ -179,6 +179,7 @@
     <ClInclude Include="eck\CWaitableObject.h" />
     <ClInclude Include="eck\CWaitableTimer.h" />
     <ClInclude Include="eck\DateTimeHelper.h" />
+    <ClInclude Include="eck\ISO8601Time.h" />
     <ClInclude Include="eck\Json.h" />
     <ClInclude Include="eck\CSignal.h" />
     <ClInclude Include="eck\CAllocator.h" />
@@ -309,6 +310,7 @@
     <ClInclude Include="eck\CRelativeLayout.h" />
     <ClInclude Include="eck\ResStruct.h" />
     <ClInclude Include="eck\ShellHelper.h" />
+    <ClInclude Include="eck\CImageMat.h" />
     <ClInclude Include="eck\SystemHelper.h" />
     <ClInclude Include="eck\Utility.h" />
     <ClInclude Include="eck\Utility2.h" />
