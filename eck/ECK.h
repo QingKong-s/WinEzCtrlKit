@@ -472,6 +472,24 @@ struct MD5
 	BIT128 v;
 };
 
+union GPARGB
+{
+	struct
+	{
+		BYTE b, g, r, a;
+	};
+	DWORD dw;
+};
+
+union GDIARGB
+{
+	struct
+	{
+		BYTE r, g, b, a;
+	};
+	DWORD dw;
+};
+
 union BIT256
 {
 	BIT128 bit128[2];
