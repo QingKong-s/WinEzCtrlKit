@@ -135,7 +135,7 @@ public:
 	{
 		CLayoutBase::Clear();
 		m_vItem.clear();
-		m_Table.Reset();
+		m_Table.Clear();
 		m_cRow = m_cCol = 0;
 	}
 

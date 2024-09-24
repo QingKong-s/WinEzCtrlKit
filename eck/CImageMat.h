@@ -6,8 +6,7 @@
 * Copyright(C) 2023-2024 QingKong
 */
 #pragma once
-#include "CArray.h"
-#include "MathHelper.h"
+#include "CArray2D.h"
 
 #include <stack>
 
@@ -173,7 +172,7 @@ public:
 			float g;
 			float fAngle;
 		};
-		CArray<GRADIENT> G{};
+		CArray2D<GRADIENT> G{};
 		G.ReDim(m_cx, m_cy);
 		// 计算梯度
 		constexpr int cxyHalf = 3 / 2;
@@ -192,47 +191,47 @@ public:
 						const auto fY = KernelY_Sobel[(k + cxyHalf) + (l + cxyHalf) * 3];
 						fSumY += (fY * pix.r);
 					}
-				auto& e = G[i][j].Data();
+				auto& e = G[i][j];
 				e.g = sqrt(fSumX * fSumX + fSumY * fSumY);
-				e.fAngle = Rad2Deg(atan2(fSumY, fSumX));
+				e.fAngle = atan2(fSumY, fSumX) * 180.f / PiF;
 			}
 
-		CArray<float> Suppressed{};
+		CArray2D<float> Suppressed{};
 		Suppressed.ReDim(m_cx, m_cy);
 		// 非极大值抑制
 		for (int i = cxyHalf; i < m_cx - cxyHalf; ++i)
 			for (int j = cxyHalf; j < m_cy - cxyHalf; ++j)
 			{
-				const auto& e = G[i][j].Data();
-				auto& f = Suppressed[i][j].Data();
+				const auto& e = G[i][j];
+				auto& f = Suppressed[i][j];
 				float angle = (e.fAngle < 0.f ? (e.fAngle + 180.f) : e.fAngle);
 				angle = fmod(angle, 180.f);
 
 				float q, r;
 				if (angle < 22.5 || angle >= 157.5)// 水平
 				{
-					q = G[i + 1][j].Data().g;
-					r = G[i - 1][j].Data().g;
+					q = G[i + 1][j].g;
+					r = G[i - 1][j].g;
 				}
 				else if (angle >= 22.5 && angle < 67.5)// 45度
 				{
-					q = G[i - 1][j + 1].Data().g;
-					r = G[i + 1][j - 1].Data().g;
+					q = G[i - 1][j + 1].g;
+					r = G[i + 1][j - 1].g;
 				}
 				else if (angle >= 67.5 && angle < 112.5)// 垂直
 				{
-					q = G[i][j + 1].Data().g;
-					r = G[i][j - 1].Data().g;
+					q = G[i][j + 1].g;
+					r = G[i][j - 1].g;
 				}
 				else if (angle >= 112.5 && angle < 157.5)// 135度
 				{
-					q = G[i - 1][j - 1].Data().g;
-					r = G[i + 1][j + 1].Data().g;
+					q = G[i - 1][j - 1].g;
+					r = G[i + 1][j + 1].g;
 				}
 				else
 					q = r = 0.f;
 
-				if (G[i][j].Data().g >= q && G[i][j].Data().g >= r)
+				if (e.g >= q && e.g >= r)
 					f = e.g;
 				else
 					f = 0.f;
@@ -243,7 +242,7 @@ public:
 		for (int i = cxyHalf; i < m_cx - cxyHalf; ++i)
 			for (int j = cxyHalf; j < m_cy - cxyHalf; ++j)
 			{
-				const auto f = Suppressed[i][j].Data();
+				const auto f = Suppressed[i][j];
 				auto& Pix = Dst.Pixel(i, j);
 				if (f >= fHighThresh)
 					Pix.dw = 0xFFFFFFFF;
@@ -365,11 +364,11 @@ public:
 		GdipDisposeImage(m_pBitmap);
 	}
 
-	EckInline constexpr GpBitmap* GetGpBitmap() const { return m_pBitmap; }
+	EckInline [[nodiscard]] constexpr GpBitmap* GetGpBitmap() const { return m_pBitmap; }
 
-	EckInline constexpr const Gdiplus::BitmapData& GetBitmapData() { return m_BitmapData; }
+	EckInline [[nodiscard]] constexpr const Gdiplus::BitmapData& GetBitmapData() { return m_BitmapData; }
 
-	EckInline constexpr BOOL IsValid() const { return m_pBitmap != nullptr; }
+	EckInline [[nodiscard]] constexpr BOOL IsValid() const { return m_pBitmap != nullptr; }
 
 	EckInline GpStatus Lock()
 	{
@@ -401,7 +400,7 @@ public:
 		return pOld;
 	}
 
-	EckInline GpBitmap* Detach()
+	EckInline [[nodiscard]] GpBitmap* Detach()
 	{
 		Unlock();
 		m_BitmapData = {};
