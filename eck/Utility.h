@@ -1630,6 +1630,54 @@ EckInline constexpr RCWH ToRCWH(const RECT& rc)
 	return RCWH{ rc.left,rc.top,rc.right - rc.left,rc.bottom - rc.top };
 }
 
+EckInline constexpr BYTE GetArgbR(ARGB argb)
+{
+	return GetIntegerByte<2>(argb);
+}
+
+EckInline constexpr BYTE GetArgbG(ARGB argb)
+{
+	return GetIntegerByte<1>(argb);
+}
+
+EckInline constexpr BYTE GetArgbB(ARGB argb)
+{
+	return GetIntegerByte<0>(argb);
+}
+
+EckInline constexpr BYTE GetArgbA(ARGB argb)
+{
+	return GetIntegerByte<3>(argb);
+}
+
+template<class TOut>
+EckInline constexpr void RgbToYuv(BYTE r, BYTE g, BYTE b, TOut& y, TOut& u, TOut& v)
+{
+	y = TOut(0.299f * r + 0.587f * g + 0.114f * b);
+	u = TOut(-0.14713f * r - 0.28886f * g + 0.436f * b);
+	v = TOut(0.615f * r - 0.51499f * g - 0.10001f * b);
+}
+
+EckInline float CalcColorDiff(BYTE r1, BYTE g1, BYTE b1, BYTE r2, BYTE g2, BYTE b2)
+{
+	float y1, u1, v1, y2, u2, v2;
+	RgbToYuv(r1, g1, b1, y1, u1, v1);
+	RgbToYuv(r2, g2, b2, y2, u2, v2);
+	return sqrtf((y1 - y2) * (y1 - y2) + (u1 - u2) * (u1 - u2) + (v1 - v2) * (v1 - v2));
+}
+
+EckInline float CalcColorDiffColorref(COLORREF cr1, COLORREF cr2)
+{
+	return CalcColorDiff(GetRValue(cr1), GetGValue(cr1), GetBValue(cr1),
+		GetRValue(cr2), GetGValue(cr2), GetBValue(cr2));
+}
+
+EckInline float CalcColorDiffArgb(ARGB argb1, ARGB argb2)
+{
+	return CalcColorDiff(GetArgbR(argb1), GetArgbG(argb1), GetArgbB(argb1),
+		GetArgbR(argb2), GetArgbG(argb2), GetArgbB(argb2));
+}
+
 #if !ECKCXX20
 #undef ccpIsInteger
 #pragma pop_macro("ccpIsInteger")
