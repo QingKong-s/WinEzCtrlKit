@@ -53,11 +53,11 @@ inline constexpr BYTE StructElem_3x3_Rect[]
 
 inline constexpr BYTE StructElem_5x5_Cross[]
 {
-	0,1,0,
-	0,1,0,
-	1,1,1,
-	0,1,0,
-	0,1,0
+	0,0,1,0,0,
+	0,0,1,0,0,
+	1,1,1,1,1,
+	0,0,1,0,0,
+	0,0,1,0,0
 };
 
 inline constexpr BYTE StructElem_5x5_Rect[]

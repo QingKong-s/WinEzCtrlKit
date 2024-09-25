@@ -180,6 +180,7 @@
     <ClInclude Include="eck\CWaitableObject.h" />
     <ClInclude Include="eck\CWaitableTimer.h" />
     <ClInclude Include="eck\DateTimeHelper.h" />
+    <ClInclude Include="eck\GdipEffect.h" />
     <ClInclude Include="eck\ISO8601Time.h" />
     <ClInclude Include="eck\Json.h" />
     <ClInclude Include="eck\CSignal.h" />

@@ -563,6 +563,18 @@ inline namespace GpNameSpace
 
 	using Gdiplus::GdiplusShutdown;
 	using Gdiplus::GdiplusStartup;
+
+	using GpBlurParams = Gdiplus::BlurParams;
+	using GpSharpenParams = Gdiplus::SharpenParams;
+	using GpTintParams = Gdiplus::TintParams;
+	using GpRedEyeCorrectionParams = Gdiplus::RedEyeCorrectionParams;
+	using GpColorMatrix = Gdiplus::ColorMatrix;
+	using GpColorLUTParams = Gdiplus::ColorLUTParams;
+	using GpBrightnessContrastParams = Gdiplus::BrightnessContrastParams;
+	using GpHSLParams = Gdiplus::HueSaturationLightnessParams;
+	using GpColorBalanceParams = Gdiplus::ColorBalanceParams;
+	using GpLevelsParams = Gdiplus::LevelsParams;
+	using GpColorCurveParams = Gdiplus::ColorCurveParams;
 }
 
 struct NTVER
