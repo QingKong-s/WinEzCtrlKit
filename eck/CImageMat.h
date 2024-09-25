@@ -230,6 +230,7 @@ public:
 		return *(TArgb*)((BYTE*)m_pBits + y * m_cbStride + x * sizeof(ARGB));
 	}
 
+	// 取某点像素。函数根据边界选项自动处理越界情况
 	EckInline constexpr TArgb Pixel(int x, int y, BorderOpt eBorder) const
 	{
 		if (x < 0 || x >= m_cx || y < 0 || y >= m_cy)
@@ -272,12 +273,13 @@ public:
 	constexpr void Convolve(const CImageMat& Dst, const float* Kernel, int cxyKernel,
 		BorderOpt eBorder = BorderOpt::Ingore) const
 	{
+		EckAssert(this != &Dst && L"不支持原地操作");
 		const int cxyHalf = cxyKernel / 2;
 		const int iOffset = ((eBorder == BorderOpt::Ingore) ? cxyHalf : 0);
 		for (int i = iOffset; i < m_cx - iOffset; ++i)
 			for (int j = iOffset; j < m_cy - iOffset; ++j)
 			{
-				TArgb pix;
+				TArgb Pix;
 				float fSum[4]{};
 				for (int l = -cxyHalf; l <= cxyHalf; ++l)
 					for (int k = -cxyHalf; k <= cxyHalf; ++k)
@@ -285,20 +287,20 @@ public:
 						const auto x = i + k;
 						const auto y = j + l;
 						if (eBorder == BorderOpt::Ingore)
-							pix = Pixel(x, y);
+							Pix = Pixel(x, y);
 						else
-							pix = Pixel(x, y, eBorder);
+							Pix = Pixel(x, y, eBorder);
 						const auto f = Kernel[(k + cxyHalf) + (l + cxyHalf) * cxyKernel];
-						fSum[0] += (f * pix.a);
-						fSum[1] += (f * pix.r);
-						fSum[2] += (f * pix.g);
-						fSum[3] += (f * pix.b);
+						fSum[0] += (f * Pix.a);
+						fSum[1] += (f * Pix.r);
+						fSum[2] += (f * Pix.g);
+						fSum[3] += (f * Pix.b);
 					}
-				auto& pixNew = Dst.Pixel(i, j);
-				pixNew.a = (BYTE)fSum[0];
-				pixNew.r = (BYTE)fSum[1];
-				pixNew.g = (BYTE)fSum[2];
-				pixNew.b = (BYTE)fSum[3];
+				auto& NewPix = Dst.Pixel(i, j);
+				NewPix.a = (BYTE)fSum[0];
+				NewPix.r = (BYTE)fSum[1];
+				NewPix.g = (BYTE)fSum[2];
+				NewPix.b = (BYTE)fSum[3];
 			}
 		// 边界处理
 		if (eBorder == BorderOpt::Ingore)
@@ -314,6 +316,7 @@ public:
 	/// <returns></returns>
 	EckInline void Sobel(const CImageMat& Dst, BOOL bBinary, float fThreshold) const
 	{
+		EckAssert(this != &Dst && L"不支持原地操作");
 		IntEdgeDetect(Dst, KernelX_Sobel, KernelY_Sobel, 3, bBinary, fThreshold);
 	}
 
@@ -326,6 +329,7 @@ public:
 	/// <returns></returns>
 	EckInline void Prewitt(const CImageMat& Dst, BOOL bBinary, float fThreshold) const
 	{
+		EckAssert(this != &Dst && L"不支持原地操作");
 		IntEdgeDetect(Dst, KernelX_Prewitt, KernelY_Prewitt, 3, bBinary, fThreshold);
 	}
 
@@ -338,6 +342,7 @@ public:
 	/// <returns></returns>
 	EckInline void Roberts(const CImageMat& Dst, BOOL bBinary, float fThreshold) const
 	{
+		EckAssert(this != &Dst && L"不支持原地操作");
 		for (int i = 0; i < m_cx - 1; ++i)
 			for (int j = 0; j < m_cy - 1; ++j)
 			{
@@ -363,6 +368,7 @@ public:
 	/// <param name="fHighThresh">高阈值</param>
 	void Canny(const CImageMat& Dst, float fLowThresh, float fHighThresh) const
 	{
+		EckAssert(this != &Dst && L"不支持原地操作");
 		struct GRADIENT
 		{
 			float g;
@@ -507,10 +513,11 @@ public:
 		for (int i = 0; i < m_cx; ++i)
 			for (int j = 0; j < m_cy; ++j)
 			{
-				auto& Pix = Dst.Pixel(i, j);
-				Pix.r = Pix.g = Pix.b =
+				const auto Pix = Pixel(i, j);
+				auto& NewPix = Dst.Pixel(i, j);
+				NewPix.r = NewPix.g = NewPix.b =
 					BYTE(0.299f * Pix.r + 0.587f * Pix.g + 0.114f * Pix.b);
-				Pix.a = 0xFF;
+				NewPix.a = 0xFF;
 			}
 	}
 
@@ -529,24 +536,25 @@ public:
 		for (int i = 0; i < m_cx; ++i)
 			for (int j = 0; j < m_cy; ++j)
 			{
-				auto& Pix = Dst.Pixel(i, j);
+				const auto Pix = Dst.Pixel(i, j);
+				auto& PixNew = Dst.Pixel(i, j);
 				switch (eChannel)
 				{
 				case ImageChannel::Gray:
-					Pix.dw = (BYTE(0.299f * Pix.r + 0.587f * Pix.g + 0.114f * Pix.b) > byThreshold ?
+					PixNew.dw = (BYTE(0.299f * Pix.r + 0.587f * Pix.g + 0.114f * Pix.b) > byThreshold ?
 						0xFFFFFFFF : 0);
 					break;
 				case ImageChannel::Red:
-					Pix.dw = (Pix.r > byThreshold ? 0xFFFFFFFF : 0);
+					PixNew.dw = (Pix.r > byThreshold ? 0xFFFFFFFF : 0);
 					break;
 				case ImageChannel::Green:
-					Pix.dw = (Pix.g > byThreshold ? 0xFFFFFFFF : 0);
+					PixNew.dw = (Pix.g > byThreshold ? 0xFFFFFFFF : 0);
 					break;
 				case ImageChannel::Blue:
-					Pix.dw = (Pix.b > byThreshold ? 0xFFFFFFFF : 0);
+					PixNew.dw = (Pix.b > byThreshold ? 0xFFFFFFFF : 0);
 					break;
 				case ImageChannel::Alpha:
-					Pix.dw = (Pix.a > byThreshold ? 0xFFFFFFFF : 0);
+					PixNew.dw = (Pix.a > byThreshold ? 0xFFFFFFFF : 0);
 					break;
 				default: ECK_UNREACHABLE;
 				}
@@ -564,17 +572,21 @@ public:
 	}
 
 	// 反色
-	constexpr void Invert() const
+	constexpr void Invert(const CImageMat& Dst) const
 	{
 		for (int i = 0; i < m_cx; ++i)
 			for (int j = 0; j < m_cy; ++j)
 			{
-				auto& Pix = Pixel(i, j);
-				Pix.r = 0xFF - Pix.r;
-				Pix.g = 0xFF - Pix.g;
-				Pix.b = 0xFF - Pix.b;
+				const auto Pix = Pixel(i, j);
+				auto& NewPix = Dst.Pixel(i, j);
+				NewPix.r = 0xFF - Pix.r;
+				NewPix.g = 0xFF - Pix.g;
+				NewPix.b = 0xFF - Pix.b;
 			}
 	}
+
+	// 反色
+	EckInline constexpr void Invert() const { Invert(*this); }
 
 	/// <summary>
 	/// 腐蚀
@@ -585,11 +597,12 @@ public:
 	/// <param name="cyStruct">结构元素高度</param>
 	void Erode(const CImageMat& Dst, const BYTE* pbyStruct, int cxStruct, int cyStruct) const
 	{
+		EckAssert(this != &Dst && L"不支持原地操作");
 		for (int i = 0; i < m_cx; ++i)
 			for (int j = 0; j < m_cy; ++j)
 			{
-				auto& Pix = Dst.Pixel(i, j);
-				Pix.dw = 0;
+				auto& NewPix = Dst.Pixel(i, j);
+				NewPix.dw = 0;
 				for (int k = 0; k < cyStruct; ++k)
 					for (int l = 0; l < cxStruct; ++l)
 					{
@@ -599,7 +612,7 @@ public:
 							pbyStruct[k * cxStruct + l] &&
 							Pixel(x, y).dw)
 						{
-							Pix.dw = 0xFFFFFFFF;
+							NewPix.dw = 0xFFFFFFFF;
 							goto NextPixel;
 						}
 					}
@@ -623,11 +636,12 @@ public:
 	/// <param name="cyStruct">结构元素高度</param>
 	void Dilate(const CImageMat& Dst, const BYTE* pbyStruct, int cxStruct, int cyStruct) const
 	{
+		EckAssert(this != &Dst && L"不支持原地操作");
 		for (int i = 0; i < m_cx; ++i)
 			for (int j = 0; j < m_cy; ++j)
 			{
-				auto& Pix = Dst.Pixel(i, j);
-				Pix.dw = 0xFFFFFFFF;
+				auto& NewPix = Dst.Pixel(i, j);
+				NewPix.dw = 0xFFFFFFFF;
 				for (int k = 0; k < cyStruct; ++k)
 					for (int l = 0; l < cxStruct; ++l)
 					{
@@ -637,7 +651,7 @@ public:
 							pbyStruct[k * cxStruct + l] &&
 							Pixel(x, y).dw == 0)
 						{
-							Pix.dw = 0;
+							NewPix.dw = 0;
 							goto NextPixel;
 						}
 					}
@@ -703,17 +717,14 @@ public:
 	EckInline void GaussianBlur(const CImageMat& Dst, int nRadius,
 		BorderOpt eBorder = BorderOpt::Zero, float fSigma = 3.f) const
 	{
+		EckAssert(this != &Dst && L"不支持原地操作");
 		const auto nSize = nRadius * 2 + 1;
-		const auto Kernel = GenerateGaussianKernel(nSize, fSigma);
+		const auto Kernel = GenerateGaussianKernel(nRadius, fSigma);
 		Convolve(Dst, Kernel.Data(), nSize, eBorder);
 	}
 
-	/// <summary>
-	/// 取某通道灰度图
-	/// </summary>
-	/// <param name="Dst">结果</param>
-	/// <param name="eChannel">通道</param>
-	void GrayscaleChannel(const CImageMat& Dst, ImageChannel eChannel) const
+	// 到某通道灰度图
+	constexpr void GrayscaleChannel(const CImageMat& Dst, ImageChannel eChannel) const
 	{
 		for (int i = 0; i < m_cx; ++i)
 			for (int j = 0; j < m_cy; ++j)
@@ -728,6 +739,12 @@ public:
 				NewPix.r = NewPix.g = NewPix.b = Val;
 				NewPix.a = 0xFF;
 			}
+	}
+
+	// 到某通道灰度图
+	EckInline constexpr void GrayscaleChannel(ImageChannel eChannel) const
+	{
+		GrayscaleChannel(*this, eChannel);
 	}
 
 	// 取非透明像素区域外接矩形
@@ -780,7 +797,7 @@ public:
 	/// </summary>
 	/// <param name="Dst">结果</param>
 	/// <param name="byAlpha">Alpha替换值，若为0则自动计算</param>
-	void RemoveBlackPixels(const CImageMat& Dst, BYTE byAlpha = 0) const
+	constexpr void RemoveBlackPixels(const CImageMat& Dst, BYTE byAlpha = 0) const
 	{
 		for (int i = 0; i < m_cx; ++i)
 			for (int j = 0; j < m_cy; ++j)
@@ -795,6 +812,207 @@ public:
 					NewPix.a = byAlpha;
 				else
 					NewPix.a = std::min(Pix.a, byMax);
+			}
+	}
+
+	/// <summary>
+	/// 去除黑色像素
+	/// </summary>
+	/// <param name="byAlpha">Alpha替换值，若为0则自动计算</param>
+	constexpr void RemoveBlackPixels(BYTE byAlpha = 0) const
+	{
+		RemoveBlackPixels(*this, byAlpha);
+	}
+
+	/// <summary>
+	/// 洪水填充。
+	/// 函数原地工作
+	/// </summary>
+	/// <param name="x">起始X</param>
+	/// <param name="y">起始Y</param>
+	/// <param name="crNew">替换为</param>
+	void FloodFill(int x, int y, TColor crNew) const
+	{
+		const auto crOld = Pixel(x, y).dw;
+		if (crOld == crNew)
+			return;
+
+		std::stack<POINT> s{};
+		s.emplace(x, y);
+
+		while (!s.empty())
+		{
+			const auto pt = s.top();
+			s.pop();
+
+			// 向左扫描
+			int l = pt.x;
+			while (l >= 0 && Pixel(l, pt.y).dw == crOld)
+				l--;
+			l++;// 恢复到最后一个有效位置
+
+			// 向右扫描
+			int r = pt.x;
+			while (r < m_cx && Pixel(r, pt.y).dw == crOld)
+				r++;
+			r--;// 恢复到最后一个有效位置
+
+			// 填充这一行
+			for (int i = l; i <= r; ++i)
+			{
+				Pixel(i, pt.y).dw = crNew;
+				// 上一行
+				if (pt.y - 1 >= 0 && Pixel(i, pt.y - 1).dw == crOld)
+					s.emplace(i, pt.y - 1);
+				// 下一行
+				if (pt.y + 1 < m_cy && Pixel(i, pt.y + 1).dw == crOld)
+					s.emplace(i, pt.y + 1);
+			}
+		}
+	}
+
+	/// <summary>
+	/// 替换某通道
+	/// </summary>
+	/// <param name="Ref">替换为</param>
+	/// <param name="eChannel">通道</param>
+	constexpr void ReplaceChannel(const CImageMat& Ref, ImageChannel eChannel) const
+	{
+		for (int i = 0; i < m_cx; ++i)
+			for (int j = 0; j < m_cy; ++j)
+			{
+				auto& Pix = Pixel(i, j);
+				const auto& RefPix = Ref.Pixel(i, j);
+				switch (eChannel)
+				{
+				case ImageChannel::Red:
+					Pix.r = RefPix.r;
+					break;
+				case ImageChannel::Green:
+					Pix.g = RefPix.g;
+					break;
+				case ImageChannel::Blue:
+					Pix.b = RefPix.b;
+					break;
+				case ImageChannel::Alpha:
+					Pix.a = RefPix.a;
+					break;
+				default: ECK_UNREACHABLE;
+				}
+			}
+	}
+
+	/// <summary>
+	/// 灰度蒙版。
+	/// 将像素透明度按指定灰度图的对应灰度缩放
+	/// </summary>
+	/// <param name="Mask">灰度蒙版</param>
+	/// <param name="bIgnoreAlpha">是否忽略蒙版Alpha通道</param>
+	constexpr void MaskGrayscale(const CImageMat& Mask, BOOL bIgnoreAlpha = TRUE) const
+	{
+		for (int i = 0; i < m_cx; ++i)
+			for (int j = 0; j < m_cy; ++j)
+			{
+				auto& Pix = Pixel(i, j);
+				const auto MaskPix = Mask.Pixel(i, j);
+				if (bIgnoreAlpha)
+					Pix.a = BYTE(Pix.a * MaskPix.r / 255);
+				else
+					Pix.a = BYTE(Pix.a * (MaskPix.r * MaskPix.a / 255) / 255);
+			}
+	}
+
+	/// <summary>
+	/// 灰度蒙版。
+	/// 将像素透明度按指定灰度图的对应灰度缩放
+	/// </summary>
+	/// <param name="Dst">结果</param>
+	/// <param name="Mask">灰度蒙版</param>
+	/// <param name="bIgnoreAlpha">是否忽略蒙版Alpha通道</param>
+	constexpr void MaskGrayscale(const CImageMat& Dst, const CImageMat& Mask,
+		BOOL bIgnoreAlpha = TRUE) const
+	{
+		for (int i = 0; i < m_cx; ++i)
+			for (int j = 0; j < m_cy; ++j)
+			{
+				const auto Pix = Pixel(i, j);
+				const auto MaskPix = Mask.Pixel(i, j);
+				auto& NewPix = Dst.Pixel(i, j);
+				NewPix.dw = Pix.dw;
+				if (bIgnoreAlpha)
+					NewPix.a = BYTE(Pix.a * MaskPix.r / 255);
+				else
+					NewPix.a = BYTE(Pix.a * (MaskPix.r * MaskPix.a / 255) / 255);
+			}
+	}
+
+	/// <summary>
+	/// 清除杂点
+	/// </summary>
+	/// <param name="nLevel">若某像素的八连通像素数小于此参数则被认为是杂点</param>
+	void RemoveNoisePoint(int nLevel = 1) const
+	{
+		constexpr TColor Marker = 0xFFFF0000;
+		for (int i = 0; i < m_cx; ++i)
+			for (int j = 0; j < m_cy; ++j)
+			{
+				auto& Pix = Pixel(i, j);
+				if (Pix.dw)
+				{
+					int c{};
+					for (int k = -1; k <= 1; ++k)
+						for (int l = -1; l <= 1; ++l)
+						{
+							if (Pixel(i + k, j + l, BorderOpt::Zero).dw)
+							{
+								++c;
+								if (c >= nLevel)
+									goto NextPixel;
+							}
+						}
+					if (c < nLevel)
+						Pix.dw = Marker;
+				}
+			NextPixel:;
+			}
+		for (int i = 0; i < m_cx; ++i)
+			for (int j = 0; j < m_cy; ++j)
+			{
+				auto& Pix = Pixel(i, j);
+				if (Pix.dw == Marker)
+					Pix.dw = 0;
+			}
+	}
+
+	/// <summary>
+	/// 色彩增强
+	/// </summary>
+	/// <param name="fFactor">增强因子</param>
+	constexpr void EnhanceColor(float fFactor) const
+	{
+		for (int i = 0; i < m_cx; ++i)
+			for (int j = 0; j < m_cy; ++j)
+			{
+				auto& Pix = Pixel(i, j);
+				BYTE byColor[3]{ Pix.r, Pix.g, Pix.b };
+				BYTE byIdx[3]{ 0,1,2 };
+				for (int k = 0; k < 3; ++k)
+					for (int l = k + 1; l < 3; ++l)
+						if (byColor[k] < byColor[l])
+						{
+							std::swap(byColor[k], byColor[l]);
+							std::swap(byIdx[k], byIdx[l]);
+						}
+				byColor[0] = std::min(byColor[0] + fFactor * 0.5f, 255.f);
+				byColor[1] = std::max(byColor[1] - fFactor * 0.1687f, 0.f);
+				byColor[2] = std::max(byColor[2] - fFactor * 0.3313f, 0.f);
+				for (int k = 0; k < 3; ++k)
+					if (byIdx[k] == 0)
+						Pix.r = byColor[k];
+					else if (byIdx[k] == 1)
+						Pix.g = byColor[k];
+					else
+						Pix.b = byColor[k];
 			}
 	}
 };
