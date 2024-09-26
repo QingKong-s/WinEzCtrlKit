@@ -107,7 +107,7 @@ inline constexpr float GaussianKernel_7x7_3Sigma[]
 
 enum class BorderOpt
 {
-	Ingore,
+	Ignore,
 	Zero,
 	Replicate,
 	Wrap,
@@ -236,7 +236,7 @@ public:
 		if (x < 0 || x >= m_cx || y < 0 || y >= m_cy)
 			switch (eBorder)
 			{
-			case BorderOpt::Ingore:
+			case BorderOpt::Ignore:
 			case BorderOpt::Zero:
 				return TArgb{};
 			case BorderOpt::Replicate:
@@ -271,11 +271,11 @@ public:
 	/// <param name="cxyKernel">核大小，奇数</param>
 	/// <param name="eBorder">边界选项</param>
 	constexpr void Convolve(const CImageMat& Dst, const float* Kernel, int cxyKernel,
-		BorderOpt eBorder = BorderOpt::Ingore) const
+		BorderOpt eBorder = BorderOpt::Ignore) const
 	{
 		EckAssert(this != &Dst && L"不支持原地操作");
 		const int cxyHalf = cxyKernel / 2;
-		const int iOffset = ((eBorder == BorderOpt::Ingore) ? cxyHalf : 0);
+		const int iOffset = ((eBorder == BorderOpt::Ignore) ? cxyHalf : 0);
 		for (int i = iOffset; i < m_cx - iOffset; ++i)
 			for (int j = iOffset; j < m_cy - iOffset; ++j)
 			{
@@ -286,7 +286,7 @@ public:
 					{
 						const auto x = i + k;
 						const auto y = j + l;
-						if (eBorder == BorderOpt::Ingore)
+						if (eBorder == BorderOpt::Ignore)
 							Pix = Pixel(x, y);
 						else
 							Pix = Pixel(x, y, eBorder);
@@ -303,7 +303,7 @@ public:
 				NewPix.b = (BYTE)fSum[3];
 			}
 		// 边界处理
-		if (eBorder == BorderOpt::Ingore)
+		if (eBorder == BorderOpt::Ignore)
 			return;
 	}
 
@@ -950,7 +950,7 @@ public:
 	/// 清除杂点
 	/// </summary>
 	/// <param name="nLevel">若某像素的八连通像素数小于此参数则被认为是杂点</param>
-	void RemoveNoisePoint(int nLevel = 1) const
+	void RemoveNoisePixels(int nLevel = 1) const
 	{
 		constexpr TColor Marker = 0xFFFF0000;
 		for (int i = 0; i < m_cx; ++i)
@@ -1013,6 +1013,93 @@ public:
 						Pix.g = byColor[k];
 					else
 						Pix.b = byColor[k];
+			}
+	}
+
+	constexpr static TColor TBMarkPt{ 0xFFFF0000 };
+private:
+	// Part of the code was written by Alexbeast-CN and 
+	// modified here, under the Apache License 2.0
+	// https://github.com/Alexbeast-CN/findContours
+
+	constexpr static int InvalidPt{ 0x80000000 };
+
+	constexpr POINT TraceBoundary_FindNeighbor(POINT ptCenter, POINT ptStart, bool ClockWise)
+	{
+		constexpr POINT Neighbors[]{ {0,0},{0,1},{0,2},{1,2},{2,2},{2,1},{2,0},{1,0} };
+		constexpr int Index[3][3]{ {0,1,2},{7,0,3},{6,5,4} };
+		const int idxStart = Index[ptStart.x - ptCenter.x + 1][ptStart.y - ptCenter.y + 1];
+		const int iWeight = (ClockWise ? 1 : -1);
+
+		for (int i = 1; i < 8 + 1; ++i)
+		{
+			const int idxCurr = (idxStart + i * iWeight + 8) % 8;
+			const int x = ptCenter.x + Neighbors[idxCurr].x - 1;
+			const int y = ptCenter.y + Neighbors[idxCurr].y - 1;
+			if (Pixel(x, y).dw == 0xFFFFFFFF)
+				return { x,y };
+		}
+		return { InvalidPt,InvalidPt };
+	}
+
+	constexpr void TraceBoundary_Follow(POINT ptCenter, POINT ptStart, bool ClockWise,
+		std::vector<POINT>& vEdge)
+	{
+		Pixel(ptCenter.x, ptCenter.y).dw = TBMarkPt;
+		POINT ptNewCenter = ptCenter;
+		POINT ptNeighbor = ptStart;
+		POINT ptNewNeighbor = TraceBoundary_FindNeighbor(ptNewCenter, ptNeighbor, ClockWise);
+		while (ptNewNeighbor.x != InvalidPt && ptNewNeighbor.y != InvalidPt)
+		{
+			int x = ptNewCenter.x;
+			int y = ptNewCenter.y;
+			Pixel(ptNewCenter.x, ptNewCenter.y).dw = TBMarkPt;
+			vEdge.emplace_back(ptNewCenter);
+
+			ptNeighbor = ptNewCenter;
+			ptNewCenter = ptNewNeighbor;
+			ptNewNeighbor = TraceBoundary_FindNeighbor(ptNewCenter, ptNeighbor, ClockWise);
+		}
+	}
+public:
+	/// <summary>
+	/// 跟踪边界。
+	/// 函数分析二值图像的边界，且分析出的每条边都满足以下条件：
+	/// 1.点数大于等于cMinPoints；
+	/// 2.每个点都与前后两个点构成八连通；
+	/// 3.与其他任意一条边不相交。
+	/// 注意：调用此函数后，原图像内容将被破坏（原有白色像素被设为CImageMat::TBMarkPt），若要执行复原，请调用TraceBoundary_Restore()
+	/// </summary>
+	/// <param name="vBoundary">结果边</param>
+	/// <param name="cMinPoints">边中至少包含的点数</param>
+	constexpr void TraceBoundary(std::vector<std::vector<POINT>>& vBoundary, size_t cMinPoints = 10)
+	{
+		for (int i = 0; i < m_cy; ++i)
+			for (int j = 1; j < m_cx - 1; ++j)
+			{
+				if (Pixel(j, i).dw == 0xFFFFFFFF && Pixel(j - 1, i).dw == 0)// out
+				{
+					TraceBoundary_Follow({ j,i }, { j - 1,i }, false, vBoundary.emplace_back());
+					if (vBoundary.back().size() < cMinPoints)
+						vBoundary.pop_back();
+				}
+				else if (Pixel(j, i).dw == 0xFFFFFFFF && Pixel(j + 1, i).dw == 0)// in
+				{
+					TraceBoundary_Follow({ j,i }, { j + 1,i }, true, vBoundary.emplace_back());
+					if (vBoundary.back().size() < cMinPoints)
+						vBoundary.pop_back();
+				}
+			}
+	}
+
+	// 恢复由TraceBoundary函数破坏的图像内容
+	constexpr void TraceBoundary_Restore()
+	{
+		for (int i = 0; i < m_cx; ++i)
+			for (int j = 0; j < m_cy; ++j)
+			{
+				if (Pixel(i, j).dw == TBMarkPt)
+					Pixel(i, j).dw = 0xFFFFFFFF;
 			}
 	}
 };

@@ -847,4 +847,32 @@ inline HRESULT LoadD2dBitmap(PCWSTR pszFile, ID2D1RenderTarget* pRT, ID2D1Bitmap
 		return hr;
 	return pRT->CreateBitmapFromWicBitmap(pBitmap.Get(), &pD2dBitmap);
 }
+
+inline [[nodiscard]] GpBitmap* ScaleGpBitmap(GpBitmap* pBitmap, int cxNew, int cyNew,
+	Gdiplus::InterpolationMode eInterp = Gdiplus::InterpolationModeDefault)
+{
+	if (cxNew < 0 && cyNew < 0)
+		return nullptr;
+	UINT cxOrg, cyOrg;
+	GdipGetImageWidth(pBitmap, &cxOrg);
+	GdipGetImageHeight(pBitmap, &cyOrg);
+	Gdiplus::PixelFormat PixFmt;
+	GdipGetImagePixelFormat(pBitmap, &PixFmt);
+	if (cxNew < 0)
+		cxNew = cxOrg * cyNew / cyOrg;
+	if (cyNew < 0)
+		cyNew = cyOrg * cxNew / cxOrg;
+	if (cxNew == cxOrg && cyNew == cyOrg)
+		return nullptr;
+	GpBitmap* pNewBitmap = nullptr;
+	GdipCreateBitmapFromScan0(cxNew, cyNew, 0, PixFmt, nullptr, &pNewBitmap);
+	GpGraphics* pGraphics = nullptr;
+	GdipGetImageGraphicsContext(pNewBitmap, &pGraphics);
+	GdipSetInterpolationMode(pGraphics, eInterp);
+	GdipDrawImageRectRectI(pGraphics, pBitmap,
+		0, 0, cxNew, cyNew,
+		0, 0, cxOrg, cyOrg, Gdiplus::UnitPixel, nullptr, nullptr, nullptr);
+	GdipDeleteGraphics(pGraphics);
+	return pNewBitmap;
+}
 ECK_NAMESPACE_END
