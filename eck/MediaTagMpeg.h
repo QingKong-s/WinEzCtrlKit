@@ -208,9 +208,9 @@ public:
 		return Result::Ok;
 	}
 
-	const auto& GetInfo() const{ return m_Info; }
+	EckInline constexpr const auto& GetInfo() const{ return m_Info; }
 
-	USHORT GetBitrate() const
+	constexpr USHORT GetBitrate() const
 	{
 		const size_t idxVer = ((m_Info.eVersion == Version::Mpeg1) ? 0u : 1u);
 		size_t idxLayer;
@@ -225,7 +225,7 @@ public:
 		return MpegBitrateTable[idxVer * 3 + idxLayer][m_Info.BitrateIndex];
 	}
 
-	USHORT GetSampleRate() const
+	constexpr USHORT GetSampleRate() const
 	{
 		size_t idxVer;
 		switch (m_Info.eVersion)
@@ -244,7 +244,7 @@ public:
 	/// 因ID3v2中某些字段可以用MPEG帧作时长单位，故提供此方法
 	/// </summary>
 	/// <returns>以毫秒计的帧持续时间</returns>
-	double CalcDurationPerFrame() const
+	constexpr double CalcDurationPerFrame() const
 	{
 		size_t idxVer;
 		switch (m_Info.eVersion)

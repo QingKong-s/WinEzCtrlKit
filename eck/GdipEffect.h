@@ -423,10 +423,10 @@ public:
 	}
 
 	/// <param name="nHighlight">0~100</param>
-	/// <param name="nMidtone">-100~100</param>
+	/// <param name="nMidTone">-100~100</param>
 	/// <param name="nShadow">0~100</param>
-	CGpFxLevels(int nHighlight, int nMidtone, int nShadow)
-		:CGpFxLevels{ { nHighlight, nMidtone, nShadow } } {
+	CGpFxLevels(int nHighlight, int nMidTone, int nShadow)
+		:CGpFxLevels{ { nHighlight, nMidTone, nShadow } } {
 	}
 
 	EckInline GpStatus SetParams(const GpLevelsParams& Params)
