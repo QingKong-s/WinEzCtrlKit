@@ -80,29 +80,29 @@ inline constexpr BYTE StructElem_5x5_Ellipse[]
 
 inline constexpr float GaussianKernel_3x3_3Sigma[]
 {
-	0.077847, 0.123317, 0.077847,
-	0.123317, 0.195346, 0.123317,
-	0.077847, 0.123317, 0.077847
+	0.077847f, 0.123317f, 0.077847f,
+	0.123317f, 0.195346f, 0.123317f,
+	0.077847f, 0.123317f, 0.077847f
 };
 
 inline constexpr float GaussianKernel_5x5_3Sigma[]
 {
-	0.003765, 0.015019, 0.023792, 0.015019, 0.003765,
-	0.015019, 0.059912, 0.094907, 0.059912, 0.015019,
-	0.023792, 0.094907, 0.150342, 0.094907, 0.023792,
-	0.015019, 0.059912, 0.094907, 0.059912, 0.015019,
-	0.003765, 0.015019, 0.023792, 0.015019, 0.003765
+	0.003765f, 0.015019f, 0.023792f, 0.015019f, 0.003765f,
+	0.015019f, 0.059912f, 0.094907f, 0.059912f, 0.015019f,
+	0.023792f, 0.094907f, 0.150342f, 0.094907f, 0.023792f,
+	0.015019f, 0.059912f, 0.094907f, 0.059912f, 0.015019f,
+	0.003765f, 0.015019f, 0.023792f, 0.015019f, 0.003765f
 };
 
 inline constexpr float GaussianKernel_7x7_3Sigma[]
 {
-	0.000316, 0.001300, 0.002979, 0.004442, 0.005700, 0.006765, 0.000316,
-	0.001300, 0.006033, 0.010755, 0.014676, 0.017896, 0.019517, 0.001300,
-	0.002979, 0.010755, 0.024103, 0.034583, 0.042099, 0.046753, 0.002979,
-	0.004442, 0.014676, 0.034583, 0.051721, 0.065693, 0.076399, 0.004442,
-	0.005700, 0.017896, 0.042099, 0.065693, 0.086519, 0.094480, 0.005700,
-	0.006765, 0.019517, 0.046753, 0.076399, 0.094480, 0.100000, 0.006765,
-	0.000316, 0.001300, 0.002979, 0.004442, 0.005700, 0.006765, 0.000316
+	0.000316f, 0.001300f, 0.002979f, 0.004442f, 0.005700f, 0.006765f, 0.000316f,
+	0.001300f, 0.006033f, 0.010755f, 0.014676f, 0.017896f, 0.019517f, 0.001300f,
+	0.002979f, 0.010755f, 0.024103f, 0.034583f, 0.042099f, 0.046753f, 0.002979f,
+	0.004442f, 0.014676f, 0.034583f, 0.051721f, 0.065693f, 0.076399f, 0.004442f,
+	0.005700f, 0.017896f, 0.042099f, 0.065693f, 0.086519f, 0.094480f, 0.005700f,
+	0.006765f, 0.019517f, 0.046753f, 0.076399f, 0.094480f, 0.100000f, 0.006765f,
+	0.000316f, 0.001300f, 0.002979f, 0.004442f, 0.005700f, 0.006765f, 0.000316f
 };
 
 enum class BorderOpt
@@ -566,9 +566,9 @@ public:
 	/// </summary>
 	/// <param name="byThreshold">阈值</param>
 	/// <param name="eChannel">参考通道</param>
-	EckInline constexpr void Binary(float fThreshold, ImageChannel eChannel = ImageChannel::Gray) const
+	EckInline constexpr void Binary(BYTE byThreshold, ImageChannel eChannel = ImageChannel::Gray) const
 	{
-		Binary(*this, fThreshold, eChannel);
+		Binary(*this, byThreshold, eChannel);
 	}
 
 	// 反色
@@ -1003,9 +1003,9 @@ public:
 							std::swap(byColor[k], byColor[l]);
 							std::swap(byIdx[k], byIdx[l]);
 						}
-				byColor[0] = std::min(byColor[0] + fFactor * 0.5f, 255.f);
-				byColor[1] = std::max(byColor[1] - fFactor * 0.1687f, 0.f);
-				byColor[2] = std::max(byColor[2] - fFactor * 0.3313f, 0.f);
+				byColor[0] = (BYTE)std::min(byColor[0] + fFactor * 0.5f, 255.f);
+				byColor[1] = (BYTE)std::max(byColor[1] - fFactor * 0.1687f, 0.f);
+				byColor[2] = (BYTE)std::max(byColor[2] - fFactor * 0.3313f, 0.f);
 				for (int k = 0; k < 3; ++k)
 					if (byIdx[k] == 0)
 						Pix.r = byColor[k];

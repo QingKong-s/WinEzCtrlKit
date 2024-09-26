@@ -560,6 +560,7 @@ inline namespace GpNameSpace
 	ECK_USING_GDIP_TYPE(GpMatrix);
 	ECK_USING_GDIP_TYPE(GdiplusStartupInput);
 	ECK_USING_GDIP_TYPE(GpFillMode);
+	using GpColor = Gdiplus::Color;
 
 	using Gdiplus::GdiplusShutdown;
 	using Gdiplus::GdiplusStartup;
