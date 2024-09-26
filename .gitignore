@@ -361,17 +361,4 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/Win32Template.cpp
-/CTestWnd.h
-/targetver.h
-/Resource.h
-/Resource.h
-/Win32Template.cpp
-/CTestWnd.h
-/targetver.h
-/CTestWnd.h
-/CTestWnd.h
-/main.cpp
-/CTestWnd.h
-/CTestWnd.cpp
-/t_main.cpp
+
