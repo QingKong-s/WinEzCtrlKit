@@ -9,6 +9,125 @@
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
+struct CGpColorMatrix
+{
+	GpColorMatrix Mat;
+
+	constexpr CGpColorMatrix() : Mat{}
+	{
+		Mat.m[0][0] = Mat.m[1][1] = Mat.m[2][2] = Mat.m[3][3] = Mat.m[4][4] = 1.f;
+	}
+	constexpr CGpColorMatrix(const float(&Matrix)[5][5]) { std::copy_n((float*)&Matrix[0], 25, (float*)&Mat.m); }
+	constexpr CGpColorMatrix(const float* Matrix) { std::copy_n((float*)&Matrix, 25, (float*)&Mat.m); }
+	constexpr CGpColorMatrix(const GpColorMatrix& Mat) :Mat(Mat) {}
+
+	// 重置为单位矩阵
+	EckInline constexpr void Identity()
+	{
+		Mat = {};
+		Mat.m[0][0] = Mat.m[1][1] = Mat.m[2][2] = Mat.m[3][3] = Mat.m[4][4] = 1.f;
+	}
+
+	/// <summary>
+	/// 缩放红色
+	/// </summary>
+	/// <param name="fScale">比例，-1~1</param>
+	EckInline constexpr void ScaleR(float fScale) { Mat.m[3][0] = fScale; }
+
+	/// <summary>
+	/// 缩放绿色
+	/// </summary>
+	/// <param name="fScale">比例，-1~1</param>
+	EckInline constexpr void ScaleG(float fScale) { Mat.m[3][1] = fScale; }
+
+	/// <summary>
+	/// 缩放蓝色
+	/// </summary>
+	/// <param name="fScale">比例，-1~1</param>
+	EckInline constexpr void ScaleB(float fScale) { Mat.m[3][2] = fScale; }
+
+	/// <summary>
+	/// 缩放Alpha
+	/// </summary>
+	/// <param name="fOffset">偏移量，-1~1</param>
+	EckInline constexpr void ScaleA(float fOffset) { Mat.m[3][3] = fOffset; }
+
+	/// <summary>
+	/// 亮度
+	/// </summary>
+	/// <param name="fBrightness">-1~1</param>
+	EckInline constexpr void Brightness(float fBrightness)
+	{
+		Mat.m[4][0] = Mat.m[4][1] = Mat.m[4][2] = fBrightness;
+	}
+
+	// 去色
+	EckInline constexpr void Grayscale()
+	{
+		Mat.m[0][0] = Mat.m[0][1] = Mat.m[0][2] = 0.299f;
+		Mat.m[1][0] = Mat.m[1][1] = Mat.m[1][2] = 0.587f;
+		Mat.m[2][0] = Mat.m[2][1] = Mat.m[2][2] = 0.114f;
+	}
+
+	// 反相
+	EckInline constexpr void Invert()
+	{
+		Mat.m[0][0] = Mat.m[1][1] = Mat.m[2][2] = -1.0f;
+		Mat.m[3][0] = Mat.m[3][1] = Mat.m[3][2] = 1.f;
+	}
+
+	/// <summary>
+	/// 饱和度
+	/// </summary>
+	/// <param name="fSaturation">0~2</param>
+	EckInline constexpr void Saturation(float fSaturation)
+	{
+		Mat.m[0][0] = Mat.m[0][1] = Mat.m[0][2] = 0.299f * (1.f - fSaturation);
+		Mat.m[1][0] = Mat.m[1][1] = Mat.m[1][2] = 0.587f * (1.f - fSaturation);
+		Mat.m[2][0] = Mat.m[2][1] = Mat.m[2][2] = 0.114f * (1.f - fSaturation);
+		Mat.m[0][0] += fSaturation;
+		Mat.m[1][1] += fSaturation;
+		Mat.m[2][2] += fSaturation;
+	}
+
+	/// <summary>
+	/// 对比度
+	/// </summary>
+	/// <param name="fContrast">0~2</param>
+	EckInline constexpr void Contrast(float fContrast)
+	{
+		Mat.m[0][0] = Mat.m[1][1] = Mat.m[2][2] = fContrast;
+	}
+
+	/// <summary>
+	/// 色相
+	/// </summary>
+	/// <param name="fHue">-180~180</param>
+	EckInline void Hue(float fHue)
+	{
+		const float fAngle = fHue * PiF / 180.f;
+		const float fCos = cos(fHue * PiF / 180.f);
+		const float a = (fCos < 0 ? -fCos : 0),
+			b = (fCos < 0 ? 1 + fCos : 1 - fCos);
+		Mat.m[0][0] = Mat.m[1][1] = Mat.m[2][2] = (fCos < 0 ? 0 : fCos);
+		Mat.m[0][1] = Mat.m[1][2] = Mat.m[2][0] = (fAngle < 0 ? a : b);
+		Mat.m[0][2] = Mat.m[1][0] = Mat.m[2][1] = (fAngle < 0 ? b : a);
+	}
+
+	/// <summary>
+	/// 阈值
+	/// </summary>
+	/// <param name="byThreshold">灰度阈值，0~255</param>
+	EckInline constexpr void Threshold(BYTE byThreshold)
+	{
+		Mat.m[0][0] = Mat.m[0][1] = Mat.m[0][2] = -0.299f * 255.f;
+		Mat.m[1][0] = Mat.m[1][1] = Mat.m[1][2] = -0.587f * 255.f;
+		Mat.m[2][0] = Mat.m[2][1] = Mat.m[2][2] = -0.114f * 255.f;
+		Mat.m[3][0] = Mat.m[3][1] = Mat.m[3][2] = float(256 - byThreshold);
+	}
+};
+
+
 // 效果基类
 class CGpFx
 {
@@ -32,6 +151,16 @@ public:
 	}
 
 	EckInline [[nodiscard]] constexpr GpEffect* GetEffect() const { return m_pEffect; }
+
+	EckInline constexpr GpEffect* Attach(GpEffect* pEffect)
+	{
+		return std::exchange(m_pEffect, pEffect);
+	}
+
+	EckInline [[nodiscard]] constexpr GpEffect* Detach()
+	{
+		return std::exchange(m_pEffect, nullptr);
+	}
 };
 // 高斯模糊
 class CGpFxBlur : public CGpFx
@@ -162,6 +291,8 @@ public:
 		GdipCreateEffect(Gdiplus::ColorMatrixEffectGuid, &m_pEffect);
 		GdipSetEffectParameters(m_pEffect, Matrix, 25 * sizeof(float));
 	}
+
+	CGpFxColorMatrix(const CGpColorMatrix& Matrix) :CGpFxColorMatrix{ Matrix.Mat } {}
 
 	EckInline GpStatus SetParams(const GpColorMatrix& Params)
 	{
@@ -336,10 +467,33 @@ public:
 	}
 };
 
+
+EckInline GpStatus ApplyEffect(GpBitmap* pBitmap, GpEffect* pEffect,
+	RECT* prcROI = nullptr, void** pAuxData = nullptr, INT* pcbAuxData = nullptr)
+{
+	return GdipBitmapApplyEffect(pBitmap, pEffect,
+		prcROI, !!pAuxData, pAuxData, pcbAuxData);
+}
+
 EckInline GpStatus ApplyEffect(GpBitmap* pBitmap, const CGpFx& Fx,
 	RECT* prcROI = nullptr, void** pAuxData = nullptr, INT* pcbAuxData = nullptr)
 {
-	return GdipBitmapApplyEffect(pBitmap, Fx.GetEffect(),
-		prcROI, !!pAuxData, pAuxData, pcbAuxData);
+	return ApplyEffect(pBitmap, Fx.GetEffect(), prcROI, pAuxData, pcbAuxData);
+}
+
+EckInline GpStatus ApplyEffectNew(GpBitmap* pSrc, GpBitmap*& pDst, GpEffect* pEffect,
+	RECT* prcROI = nullptr, RECT* prcOutput = nullptr,
+	void** pAuxData = nullptr, INT* pcbAuxData = nullptr)
+{
+	return GdipBitmapCreateApplyEffect(&pSrc, 1, pEffect,
+		prcROI, prcOutput, &pDst, !!pAuxData, pAuxData, pcbAuxData);
+}
+
+EckInline GpStatus ApplyEffectNew(GpBitmap* pSrc, GpBitmap*& pDst, const CGpFx& Fx,
+	RECT* prcROI = nullptr, RECT* prcOutput = nullptr,
+	void** pAuxData = nullptr, INT* pcbAuxData = nullptr)
+{
+	return ApplyEffectNew(pSrc, pDst, Fx.GetEffect(),
+		prcROI, prcOutput, pAuxData, pcbAuxData);
 }
 ECK_NAMESPACE_END
