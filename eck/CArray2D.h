@@ -58,7 +58,7 @@ public:
 	CArray2D() = default;
 
 	CArray2D(size_t c0, size_t c1) :m_c0{ c0 }, m_c1{ c1 },
-		m_cCount{ c0 * c1 }, m_cCapacity{ TAllocTraits::MakeCapacity(m_cCount) }
+		m_cCount{ c0 * c1 }, m_cCapacity{ c0 * c1 }
 	{
 		m_pMem = m_Alloc.allocate(m_cCapacity);
 		std::uninitialized_value_construct(begin(), end());
