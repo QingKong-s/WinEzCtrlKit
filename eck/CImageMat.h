@@ -1019,9 +1019,11 @@ public:
 
 	constexpr static TColor TBMarkPt{ 0xFFFF0000 };
 private:
+	// ================================================
 	// Part of the code was written by Alexbeast-CN and 
 	// modified here, under the Apache License 2.0
 	// https://github.com/Alexbeast-CN/findContours
+	// ================================================
 
 	constexpr static int InvalidPt{ (int)0x80000000 };
 
@@ -1305,7 +1307,8 @@ public:
 	EckInline GpStatus Lock()
 	{
 		if (!m_BitmapData.Scan0)
-			return GdipBitmapLockBits(m_pBitmap, nullptr, Gdiplus::ImageLockModeRead | Gdiplus::ImageLockModeWrite,
+			return GdipBitmapLockBits(m_pBitmap, nullptr, 
+				Gdiplus::ImageLockModeRead | Gdiplus::ImageLockModeWrite,
 				PixelFormat32bppARGB, &m_BitmapData);
 		else
 			return GpStatus::WrongState;
@@ -1362,7 +1365,8 @@ public:
 		SetBits(m_Data.Data(), cx, cy, cx * 4);
 	}
 
-	CPureImageMat(const CImageMat& Src) : m_Data{ (size_t)Src.GetWidth(), (size_t)Src.GetHeight() }
+	CPureImageMat(const CImageMat& Src) 
+		: m_Data{ (size_t)Src.GetWidth(), (size_t)Src.GetHeight() }
 	{
 		if (Src.GetWidth() * 4 == Src.GetStride())
 			memcpy(m_Data.Data(), Src.GetBits(), Src.GetWidth() * Src.GetHeight() * 4);
