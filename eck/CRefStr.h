@@ -789,7 +789,8 @@ public:
 	EckInline void ReSizeExtra(int cch)
 	{
 		EckAssert(cch >= 0);
-		ReserveReal(TAllocTraits::MakeCapacity(cch + 1));
+		if (m_cchCapacity < cch + 1)
+			ReserveReal(TAllocTraits::MakeCapacity(cch + 1));
 		m_cchText = cch;
 		TCharTraits::Cut(Data(), cch);
 	}

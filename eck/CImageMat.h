@@ -1025,7 +1025,7 @@ private:
 
 	constexpr static int InvalidPt{ (int)0x80000000 };
 
-	constexpr POINT TraceBoundary_FindNeighbor(POINT ptCenter, POINT ptStart, bool ClockWise)
+	constexpr POINT TraceBoundary_FindNeighbor(POINT ptCenter, POINT ptStart, bool ClockWise) const
 	{
 		constexpr POINT Neighbors[]{ {0,0},{0,1},{0,2},{1,2},{2,2},{2,1},{2,0},{1,0} };
 		constexpr int Index[3][3]{ {0,1,2},{7,0,3},{6,5,4} };
@@ -1044,7 +1044,7 @@ private:
 	}
 
 	constexpr void TraceBoundary_Follow(POINT ptCenter, POINT ptStart, BOOL bClockWise,
-		std::vector<POINT>& vEdge)
+		std::vector<POINT>& vEdge) const
 	{
 		Pixel(ptCenter.x, ptCenter.y).dw = TBMarkPt;
 		POINT ptNewCenter = ptCenter;
@@ -1073,7 +1073,7 @@ public:
 	/// </summary>
 	/// <param name="vBoundary">结果边</param>
 	/// <param name="cMinPoints">边中至少包含的点数</param>
-	constexpr void TraceBoundary(std::vector<std::vector<POINT>>& vBoundary, size_t cMinPoints = 10)
+	constexpr void TraceBoundary(std::vector<std::vector<POINT>>& vBoundary, size_t cMinPoints = 10) const
 	{
 		for (int i = 0; i < m_cy; ++i)
 			for (int j = 1; j < m_cx - 1; ++j)
@@ -1094,7 +1094,7 @@ public:
 	}
 
 	// 恢复由TraceBoundary函数破坏的图像内容
-	constexpr void TraceBoundary_Restore()
+	constexpr void TraceBoundary_Restore() const
 	{
 		for (int i = 0; i < m_cx; ++i)
 			for (int j = 0; j < m_cy; ++j)
