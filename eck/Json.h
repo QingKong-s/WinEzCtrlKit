@@ -72,7 +72,7 @@ namespace EckPriv
 			const auto pszKey1 = (PSTR)_malloca(cchKey + 1);
 			EckCheckMem(pszKey1);
 			*pszKey1 = '/';
-			memcpy(pszKey1 + 1, pszKey, cchKey);// 包含结尾nullptr
+			memcpy(pszKey1 + 1, pszKey, cchKey);// 包含结尾NULL
 			const auto r = This.ValAt(pszKey1, cchKey);
 			_freea(pszKey1);
 			return r;

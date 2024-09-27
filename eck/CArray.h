@@ -111,7 +111,7 @@ public:
 		size_t cTotal = 1u;
 		UnpackSizeArgs(cTotal, c...);
 		m_cCount = cTotal;
-		m_cCapacity = TAllocTraits::MakeCapacity(m_cCount);
+		m_cCapacity = m_cCount;
 		m_pMem = m_Alloc.allocate(m_cCapacity);
 		std::uninitialized_value_construct(begin(), end());
 	}
