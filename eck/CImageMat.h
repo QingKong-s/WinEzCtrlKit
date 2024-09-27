@@ -1,14 +1,16 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* CImgMat.h : Í¼Ïñ¾ØÕó
+* CImgMat.h : å›¾åƒçŸ©é˜µ
 *
 * Copyright(C) 2024 QingKong
 */
 #pragma once
 #include "CArray2D.h"
+#include "MathHelper.h"
 
 #include <stack>
+#include <set>
 
 ECK_NAMESPACE_BEGIN
 inline constexpr float KernelX_Sobel[]
@@ -143,7 +145,6 @@ inline CArray2D<float> GenerateGaussianKernel(int nRadius, float fSigma)
 	return Kernel;
 }
 
-
 class CImageMat
 {
 protected:
@@ -170,17 +171,17 @@ protected:
 		for (int i = cxyHalf; i < m_cx - cxyHalf; ++i)
 			for (int j = cxyHalf; j < m_cy - cxyHalf; ++j)
 			{
-				TArgb pix;
+				TArgb Pix;
 				float fSumX{};
 				float fSumY{};
 				for (int l = -cxyHalf; l <= cxyHalf; ++l)
 					for (int k = -cxyHalf; k <= cxyHalf; ++k)
 					{
-						pix = Pixel(i + k, j + l);
+						Pix = Pixel(i + k, j + l);
 						const auto fX = KernelX[(k + cxyHalf) + (l + cxyHalf) * 3];
-						fSumX += (fX * pix.r);
+						fSumX += (fX * Pix.r);
 						const auto fY = KernelY[(k + cxyHalf) + (l + cxyHalf) * 3];
-						fSumY += (fY * pix.r);
+						fSumY += (fY * Pix.r);
 					}
 				const auto f = sqrt(fSumX * fSumX + fSumY * fSumY);
 				auto& NewPix = Dst.Pixel(i, j);
@@ -202,12 +203,12 @@ public:
 	virtual ~CImageMat() = default;
 
 	/// <summary>
-	/// ÖÃÊı¾İ
+	/// ç½®æ•°æ®
 	/// </summary>
-	/// <param name="pBits">Êı¾İÖ¸Õë</param>
-	/// <param name="cx">¿í¶È</param>
-	/// <param name="cy">¸ß¶È</param>
-	/// <param name="cbStride">¿ç²½</param>
+	/// <param name="pBits">æ•°æ®æŒ‡é’ˆ</param>
+	/// <param name="cx">å®½åº¦</param>
+	/// <param name="cy">é«˜åº¦</param>
+	/// <param name="cbStride">è·¨æ­¥</param>
 	EckInline constexpr void SetBits(void* pBits, int cx, int cy, UINT cbStride)
 	{
 		m_pBits = pBits;
@@ -224,13 +225,13 @@ public:
 
 	EckInline constexpr void* GetBits() const { return m_pBits; }
 
-	// È¡Ä³µãÏñËØ
+	// å–æŸç‚¹åƒç´ 
 	EckInline constexpr TArgb& Pixel(int x, int y) const
 	{
 		return *(TArgb*)((BYTE*)m_pBits + y * m_cbStride + x * sizeof(ARGB));
 	}
 
-	// È¡Ä³µãÏñËØ¡£º¯Êı¸ù¾İ±ß½çÑ¡Ïî×Ô¶¯´¦ÀíÔ½½çÇé¿ö
+	// å–æŸç‚¹åƒç´ ã€‚å‡½æ•°æ ¹æ®è¾¹ç•Œé€‰é¡¹è‡ªåŠ¨å¤„ç†è¶Šç•Œæƒ…å†µ
 	EckInline constexpr TArgb Pixel(int x, int y, BorderOpt eBorder) const
 	{
 		if (x < 0 || x >= m_cx || y < 0 || y >= m_cy)
@@ -264,16 +265,16 @@ public:
 	}
 
 	/// <summary>
-	/// ¾í»ı
+	/// å·ç§¯
 	/// </summary>
-	/// <param name="Dst">½á¹û</param>
-	/// <param name="Kernel">¾í»ıºË</param>
-	/// <param name="cxyKernel">ºË´óĞ¡£¬ÆæÊı</param>
-	/// <param name="eBorder">±ß½çÑ¡Ïî</param>
+	/// <param name="Dst">ç»“æœ</param>
+	/// <param name="Kernel">å·ç§¯æ ¸</param>
+	/// <param name="cxyKernel">æ ¸å¤§å°ï¼Œå¥‡æ•°</param>
+	/// <param name="eBorder">è¾¹ç•Œé€‰é¡¹</param>
 	constexpr void Convolve(const CImageMat& Dst, const float* Kernel, int cxyKernel,
 		BorderOpt eBorder = BorderOpt::Ignore) const
 	{
-		EckAssert(this != &Dst && L"²»Ö§³ÖÔ­µØ²Ù×÷");
+		EckAssert(this != &Dst && L"ä¸æ”¯æŒåŸåœ°æ“ä½œ");
 		const int cxyHalf = cxyKernel / 2;
 		const int iOffset = ((eBorder == BorderOpt::Ignore) ? cxyHalf : 0);
 		for (int i = iOffset; i < m_cx - iOffset; ++i)
@@ -302,47 +303,47 @@ public:
 				NewPix.g = (BYTE)fSum[2];
 				NewPix.b = (BYTE)fSum[3];
 			}
-		// ±ß½ç´¦Àí
+		// è¾¹ç•Œå¤„ç†
 		if (eBorder == BorderOpt::Ignore)
 			return;
 	}
 
 	/// <summary>
-	/// Sobel±ßÔµ¼ì²â
+	/// Sobelè¾¹ç¼˜æ£€æµ‹
 	/// </summary>
-	/// <param name="Dst">½á¹û</param>
-	/// <param name="bBinary">ÊÇ·ñ¶şÖµ»¯½á¹û</param>
-	/// <param name="fThreshold">ÈôbBinaryÎªTRUE£¬Ôò¸Ã²ÎÊıÖ¸¶¨¶şÖµ»¯ãĞÖµ</param>
+	/// <param name="Dst">ç»“æœ</param>
+	/// <param name="bBinary">æ˜¯å¦äºŒå€¼åŒ–ç»“æœ</param>
+	/// <param name="fThreshold">è‹¥bBinaryä¸ºTRUEï¼Œåˆ™è¯¥å‚æ•°æŒ‡å®šäºŒå€¼åŒ–é˜ˆå€¼</param>
 	/// <returns></returns>
 	EckInline void Sobel(const CImageMat& Dst, BOOL bBinary, float fThreshold) const
 	{
-		EckAssert(this != &Dst && L"²»Ö§³ÖÔ­µØ²Ù×÷");
+		EckAssert(this != &Dst && L"ä¸æ”¯æŒåŸåœ°æ“ä½œ");
 		IntEdgeDetect(Dst, KernelX_Sobel, KernelY_Sobel, 3, bBinary, fThreshold);
 	}
 
 	/// <summary>
-	/// Prewitt±ßÔµ¼ì²â
+	/// Prewittè¾¹ç¼˜æ£€æµ‹
 	/// </summary>
-	/// <param name="Dst">½á¹û</param>
-	/// <param name="bBinary">ÊÇ·ñ¶şÖµ»¯½á¹û</param>
-	/// <param name="fThreshold">ÈôbBinaryÎªTRUE£¬Ôò¸Ã²ÎÊıÖ¸¶¨¶şÖµ»¯ãĞÖµ</param>
+	/// <param name="Dst">ç»“æœ</param>
+	/// <param name="bBinary">æ˜¯å¦äºŒå€¼åŒ–ç»“æœ</param>
+	/// <param name="fThreshold">è‹¥bBinaryä¸ºTRUEï¼Œåˆ™è¯¥å‚æ•°æŒ‡å®šäºŒå€¼åŒ–é˜ˆå€¼</param>
 	/// <returns></returns>
 	EckInline void Prewitt(const CImageMat& Dst, BOOL bBinary, float fThreshold) const
 	{
-		EckAssert(this != &Dst && L"²»Ö§³ÖÔ­µØ²Ù×÷");
+		EckAssert(this != &Dst && L"ä¸æ”¯æŒåŸåœ°æ“ä½œ");
 		IntEdgeDetect(Dst, KernelX_Prewitt, KernelY_Prewitt, 3, bBinary, fThreshold);
 	}
 
 	/// <summary>
-	/// Roberts±ßÔµ¼ì²â
+	/// Robertsè¾¹ç¼˜æ£€æµ‹
 	/// </summary>
-	/// <param name="Dst">½á¹û</param>
-	/// <param name="bBinary">ÊÇ·ñ¶şÖµ»¯½á¹û</param>
-	/// <param name="fThreshold">ÈôbBinaryÎªTRUE£¬Ôò¸Ã²ÎÊıÖ¸¶¨¶şÖµ»¯ãĞÖµ</param>
+	/// <param name="Dst">ç»“æœ</param>
+	/// <param name="bBinary">æ˜¯å¦äºŒå€¼åŒ–ç»“æœ</param>
+	/// <param name="fThreshold">è‹¥bBinaryä¸ºTRUEï¼Œåˆ™è¯¥å‚æ•°æŒ‡å®šäºŒå€¼åŒ–é˜ˆå€¼</param>
 	/// <returns></returns>
 	EckInline void Roberts(const CImageMat& Dst, BOOL bBinary, float fThreshold) const
 	{
-		EckAssert(this != &Dst && L"²»Ö§³ÖÔ­µØ²Ù×÷");
+		EckAssert(this != &Dst && L"ä¸æ”¯æŒåŸåœ°æ“ä½œ");
 		for (int i = 0; i < m_cx - 1; ++i)
 			for (int j = 0; j < m_cy - 1; ++j)
 			{
@@ -361,21 +362,21 @@ public:
 	}
 
 	/// <summary>
-	/// Canny±ßÔµ¼ì²â
+	/// Cannyè¾¹ç¼˜æ£€æµ‹
 	/// </summary>
-	/// <param name="Dst">½á¹û</param>
-	/// <param name="fLowThresh">µÍãĞÖµ</param>
-	/// <param name="fHighThresh">¸ßãĞÖµ</param>
+	/// <param name="Dst">ç»“æœ</param>
+	/// <param name="fLowThresh">ä½é˜ˆå€¼</param>
+	/// <param name="fHighThresh">é«˜é˜ˆå€¼</param>
 	void Canny(const CImageMat& Dst, float fLowThresh, float fHighThresh) const
 	{
-		EckAssert(this != &Dst && L"²»Ö§³ÖÔ­µØ²Ù×÷");
+		EckAssert(this != &Dst && L"ä¸æ”¯æŒåŸåœ°æ“ä½œ");
 		struct GRADIENT
 		{
 			float g;
 			float fAngle;
 		};
 		CArray2D<GRADIENT> G(m_cx, m_cy);
-		// ¼ÆËãÌİ¶È
+		// è®¡ç®—æ¢¯åº¦
 		constexpr int cxyHalf = 3 / 2;
 		for (int i = cxyHalf; i < m_cx - cxyHalf; ++i)
 			for (int j = cxyHalf; j < m_cy - cxyHalf; ++j)
@@ -396,7 +397,7 @@ public:
 				e.g = sqrt(fSumX * fSumX + fSumY * fSumY);
 				e.fAngle = atan2(fSumY, fSumX) * 180.f / PiF;
 			}
-		// ·Ç¼«´óÖµÒÖÖÆ
+		// éæå¤§å€¼æŠ‘åˆ¶
 		CArray2D<float> Suppressed(m_cx, m_cy);
 		for (int i = cxyHalf; i < m_cx - cxyHalf; ++i)
 			for (int j = cxyHalf; j < m_cy - cxyHalf; ++j)
@@ -407,22 +408,22 @@ public:
 				angle = fmod(angle, 180.f);
 
 				float q, r;
-				if (angle < 22.5f || angle >= 157.5f)// Ë®Æ½
+				if (angle < 22.5f || angle >= 157.5f)// æ°´å¹³
 				{
 					q = G[i + 1][j].g;
 					r = G[i - 1][j].g;
 				}
-				else if (angle >= 22.5f && angle < 67.5f)// 45¶È
+				else if (angle >= 22.5f && angle < 67.5f)// 45åº¦
 				{
 					q = G[i - 1][j + 1].g;
 					r = G[i + 1][j - 1].g;
 				}
-				else if (angle >= 67.5f && angle < 112.5f)// ´¹Ö±
+				else if (angle >= 67.5f && angle < 112.5f)// å‚ç›´
 				{
 					q = G[i][j + 1].g;
 					r = G[i][j - 1].g;
 				}
-				else if (angle >= 112.5f && angle < 157.5f)// 135¶È
+				else if (angle >= 112.5f && angle < 157.5f)// 135åº¦
 				{
 					q = G[i - 1][j - 1].g;
 					r = G[i + 1][j + 1].g;
@@ -435,7 +436,7 @@ public:
 				else
 					f = 0.f;
 			}
-		// Ë«ãĞÖµ
+		// åŒé˜ˆå€¼
 		constexpr TColor WeakColor{ 0xFFFF0000 };
 		constexpr TColor WeakLabelColor{ 0xFF00FF00 };
 		for (int i = cxyHalf; i < m_cx - cxyHalf; ++i)
@@ -450,7 +451,7 @@ public:
 				else
 					Pix.dw = 0;
 			}
-		// Èõ±ß´¦Àí
+		// å¼±è¾¹å¤„ç†
 		std::stack<POINT> s{};
 		std::queue<POINT> q{};
 		BOOL bConnected = FALSE;
@@ -473,13 +474,13 @@ public:
 							for (int l = -1; l <= 1; ++l)
 							{
 								auto& PixNeighbor = Dst.Pixel(pt.x + k, pt.y + l);
-								if (PixNeighbor.dw == WeakColor)// Èõµã
+								if (PixNeighbor.dw == WeakColor)// å¼±ç‚¹
 								{
 									s.emplace(pt.x + k, pt.y + l);
 									q.emplace(pt.x + k, pt.y + l);
 									PixNeighbor.dw = WeakLabelColor;
 								}
-								if (!bConnected && PixNeighbor.dw == 0xFFFFFFFF)// Ç¿µã
+								if (!bConnected && PixNeighbor.dw == 0xFFFFFFFF)// å¼ºç‚¹
 									bConnected = TRUE;
 							}
 					}
@@ -507,7 +508,7 @@ public:
 			}
 	}
 
-	// µ½»Ò¶ÈÍ¼
+	// åˆ°ç°åº¦å›¾
 	constexpr void Grayscale(const CImageMat& Dst) const
 	{
 		for (int i = 0; i < m_cx; ++i)
@@ -521,15 +522,15 @@ public:
 			}
 	}
 
-	// µ½»Ò¶ÈÍ¼
+	// åˆ°ç°åº¦å›¾
 	EckInline constexpr void Grayscale() const { Grayscale(*this); }
 
 	/// <summary>
-	/// ¶şÖµ»¯
+	/// äºŒå€¼åŒ–
 	/// </summary>
-	/// <param name="Dst">½á¹û</param>
-	/// <param name="byThreshold">ãĞÖµ</param>
-	/// <param name="eChannel">²Î¿¼Í¨µÀ</param>
+	/// <param name="Dst">ç»“æœ</param>
+	/// <param name="byThreshold">é˜ˆå€¼</param>
+	/// <param name="eChannel">å‚è€ƒé€šé“</param>
 	constexpr void Binary(const CImageMat& Dst, BYTE byThreshold,
 		ImageChannel eChannel = ImageChannel::Gray) const
 	{
@@ -562,16 +563,16 @@ public:
 	}
 
 	/// <summary>
-	/// ¶şÖµ»¯
+	/// äºŒå€¼åŒ–
 	/// </summary>
-	/// <param name="byThreshold">ãĞÖµ</param>
-	/// <param name="eChannel">²Î¿¼Í¨µÀ</param>
+	/// <param name="byThreshold">é˜ˆå€¼</param>
+	/// <param name="eChannel">å‚è€ƒé€šé“</param>
 	EckInline constexpr void Binary(BYTE byThreshold, ImageChannel eChannel = ImageChannel::Gray) const
 	{
 		Binary(*this, byThreshold, eChannel);
 	}
 
-	// ·´É«
+	// åè‰²
 	constexpr void Invert(const CImageMat& Dst) const
 	{
 		for (int i = 0; i < m_cx; ++i)
@@ -585,19 +586,19 @@ public:
 			}
 	}
 
-	// ·´É«
+	// åè‰²
 	EckInline constexpr void Invert() const { Invert(*this); }
 
 	/// <summary>
-	/// ¸¯Ê´
+	/// è…èš€
 	/// </summary>
-	/// <param name="Dst">½á¹û</param>
-	/// <param name="pbyStruct">½á¹¹ÔªËØ</param>
-	/// <param name="cxStruct">½á¹¹ÔªËØ¿í¶È</param>
-	/// <param name="cyStruct">½á¹¹ÔªËØ¸ß¶È</param>
+	/// <param name="Dst">ç»“æœ</param>
+	/// <param name="pbyStruct">ç»“æ„å…ƒç´ </param>
+	/// <param name="cxStruct">ç»“æ„å…ƒç´ å®½åº¦</param>
+	/// <param name="cyStruct">ç»“æ„å…ƒç´ é«˜åº¦</param>
 	void Erode(const CImageMat& Dst, const BYTE* pbyStruct, int cxStruct, int cyStruct) const
 	{
-		EckAssert(this != &Dst && L"²»Ö§³ÖÔ­µØ²Ù×÷");
+		EckAssert(this != &Dst && L"ä¸æ”¯æŒåŸåœ°æ“ä½œ");
 		for (int i = 0; i < m_cx; ++i)
 			for (int j = 0; j < m_cy; ++j)
 			{
@@ -621,22 +622,22 @@ public:
 	}
 
 	/// <summary>
-	/// ¸¯Ê´¡£
-	/// 3x3Ê®×ÖĞÎ½á¹¹ÔªËØ
+	/// è…èš€ã€‚
+	/// 3x3åå­—å½¢ç»“æ„å…ƒç´ 
 	/// </summary>
-	/// <param name="Dst">½á¹û</param>
+	/// <param name="Dst">ç»“æœ</param>
 	EckInline void Erode3x3Cross(const CImageMat& Dst) const { Erode(Dst, StructElem_3x3_Cross, 3, 3); }
 
 	/// <summary>
-	/// ÅòÕÍ
+	/// è†¨èƒ€
 	/// </summary>
-	/// <param name="Dst">½á¹û</param>
-	/// <param name="pbyStruct">½á¹¹ÔªËØ</param>
-	/// <param name="cxStruct">½á¹¹ÔªËØ¿í¶È</param>
-	/// <param name="cyStruct">½á¹¹ÔªËØ¸ß¶È</param>
+	/// <param name="Dst">ç»“æœ</param>
+	/// <param name="pbyStruct">ç»“æ„å…ƒç´ </param>
+	/// <param name="cxStruct">ç»“æ„å…ƒç´ å®½åº¦</param>
+	/// <param name="cyStruct">ç»“æ„å…ƒç´ é«˜åº¦</param>
 	void Dilate(const CImageMat& Dst, const BYTE* pbyStruct, int cxStruct, int cyStruct) const
 	{
-		EckAssert(this != &Dst && L"²»Ö§³ÖÔ­µØ²Ù×÷");
+		EckAssert(this != &Dst && L"ä¸æ”¯æŒåŸåœ°æ“ä½œ");
 		for (int i = 0; i < m_cx; ++i)
 			for (int j = 0; j < m_cy; ++j)
 			{
@@ -660,19 +661,19 @@ public:
 	}
 
 	/// <summary>
-	/// ÅòÕÍ¡£
-	/// 3x3Ê®×ÖĞÎ½á¹¹ÔªËØ
+	/// è†¨èƒ€ã€‚
+	/// 3x3åå­—å½¢ç»“æ„å…ƒç´ 
 	/// </summary>
-	/// <param name="Dst">½á¹û</param>
+	/// <param name="Dst">ç»“æœ</param>
 	EckInline void Dilate3x3Cross(const CImageMat& Dst) const { Dilate(Dst, StructElem_3x3_Cross, 3, 3); }
 
 	/// <summary>
-	/// ¿ªÔËËã
+	/// å¼€è¿ç®—
 	/// </summary>
-	/// <param name="Dst">½á¹û</param>
-	/// <param name="pbyStruct">½á¹¹ÔªËØ</param>
-	/// <param name="cxStruct">½á¹¹ÔªËØ¿í¶È</param>
-	/// <param name="cyStruct">½á¹¹ÔªËØ¸ß¶È</param>
+	/// <param name="Dst">ç»“æœ</param>
+	/// <param name="pbyStruct">ç»“æ„å…ƒç´ </param>
+	/// <param name="cxStruct">ç»“æ„å…ƒç´ å®½åº¦</param>
+	/// <param name="cyStruct">ç»“æ„å…ƒç´ é«˜åº¦</param>
 	void Open(const CImageMat& Dst, const BYTE* pbyStruct, int cxStruct, int cyStruct) const
 	{
 		Erode(Dst, pbyStruct, cxStruct, cyStruct);
@@ -680,19 +681,19 @@ public:
 	}
 
 	/// <summary>
-	/// ¿ªÔËËã¡£
-	/// 3x3Ê®×ÖĞÎ½á¹¹ÔªËØ
+	/// å¼€è¿ç®—ã€‚
+	/// 3x3åå­—å½¢ç»“æ„å…ƒç´ 
 	/// </summary>
-	/// <param name="Dst">½á¹û</param>
+	/// <param name="Dst">ç»“æœ</param>
 	EckInline void Open3x3Cross(const CImageMat& Dst) const { Open(Dst, StructElem_3x3_Cross, 3, 3); }
 
 	/// <summary>
-	/// ±ÕÔËËã
+	/// é—­è¿ç®—
 	/// </summary>
-	/// <param name="Dst">½á¹û</param>
-	/// <param name="pbyStruct">½á¹¹ÔªËØ</param>
-	/// <param name="cxStruct">½á¹¹ÔªËØ¿í¶È</param>
-	/// <param name="cyStruct">½á¹¹ÔªËØ¸ß¶È</param>
+	/// <param name="Dst">ç»“æœ</param>
+	/// <param name="pbyStruct">ç»“æ„å…ƒç´ </param>
+	/// <param name="cxStruct">ç»“æ„å…ƒç´ å®½åº¦</param>
+	/// <param name="cyStruct">ç»“æ„å…ƒç´ é«˜åº¦</param>
 	void Close(const CImageMat& Dst, const BYTE* pbyStruct, int cxStruct, int cyStruct) const
 	{
 		Dilate(Dst, pbyStruct, cxStruct, cyStruct);
@@ -700,30 +701,30 @@ public:
 	}
 
 	/// <summary>
-	/// ±ÕÔËËã¡£
-	/// 3x3Ê®×ÖĞÎ½á¹¹ÔªËØ
+	/// é—­è¿ç®—ã€‚
+	/// 3x3åå­—å½¢ç»“æ„å…ƒç´ 
 	/// </summary>
-	/// <param name="Dst">½á¹û</param>
+	/// <param name="Dst">ç»“æœ</param>
 	EckInline void Close3x3Cross(const CImageMat& Dst) const { Close(Dst, StructElem_3x3_Cross, 3, 3); }
 
 	/// <summary>
-	/// ¸ßË¹Ä£ºı¡£
-	/// ¸Ã·½·¨Ã¿´Îµ÷ÓÃ¶¼»áÖØĞÂÉú³ÉºË£¬ÈôÒª¸´ÓÃºË£¬ÇëÖ±½ÓÊ¹ÓÃConvolve·½·¨¡£
+	/// é«˜æ–¯æ¨¡ç³Šã€‚
+	/// è¯¥æ–¹æ³•æ¯æ¬¡è°ƒç”¨éƒ½ä¼šé‡æ–°ç”Ÿæˆæ ¸ï¼Œè‹¥è¦å¤ç”¨æ ¸ï¼Œè¯·ç›´æ¥ä½¿ç”¨Convolveæ–¹æ³•ã€‚
 	/// </summary>
-	/// <param name="Dst">½á¹û</param>
-	/// <param name="nRadius">°ë¾¶</param>
-	/// <param name="eBorder">±ß½çÑ¡Ïî</param>
-	/// <param name="fSigma">±ê×¼²î</param>
+	/// <param name="Dst">ç»“æœ</param>
+	/// <param name="nRadius">åŠå¾„</param>
+	/// <param name="eBorder">è¾¹ç•Œé€‰é¡¹</param>
+	/// <param name="fSigma">æ ‡å‡†å·®</param>
 	EckInline void GaussianBlur(const CImageMat& Dst, int nRadius,
 		BorderOpt eBorder = BorderOpt::Zero, float fSigma = 3.f) const
 	{
-		EckAssert(this != &Dst && L"²»Ö§³ÖÔ­µØ²Ù×÷");
+		EckAssert(this != &Dst && L"ä¸æ”¯æŒåŸåœ°æ“ä½œ");
 		const auto nSize = nRadius * 2 + 1;
 		const auto Kernel = GenerateGaussianKernel(nRadius, fSigma);
 		Convolve(Dst, Kernel.Data(), nSize, eBorder);
 	}
 
-	// µ½Ä³Í¨µÀ»Ò¶ÈÍ¼
+	// åˆ°æŸé€šé“ç°åº¦å›¾
 	constexpr void GrayscaleChannel(const CImageMat& Dst, ImageChannel eChannel) const
 	{
 		for (int i = 0; i < m_cx; ++i)
@@ -741,13 +742,13 @@ public:
 			}
 	}
 
-	// µ½Ä³Í¨µÀ»Ò¶ÈÍ¼
+	// åˆ°æŸé€šé“ç°åº¦å›¾
 	EckInline constexpr void GrayscaleChannel(ImageChannel eChannel) const
 	{
 		GrayscaleChannel(*this, eChannel);
 	}
 
-	// È¡·ÇÍ¸Ã÷ÏñËØÇøÓòÍâ½Ó¾ØĞÎ
+	// å–éé€æ˜åƒç´ åŒºåŸŸå¤–æ¥çŸ©å½¢
 	void GetContentRect(RECT& rc) const
 	{
 		for (int i = 0; i < m_cx; ++i)
@@ -793,10 +794,10 @@ public:
 	}
 
 	/// <summary>
-	/// È¥³ıºÚÉ«ÏñËØ
+	/// å»é™¤é»‘è‰²åƒç´ 
 	/// </summary>
-	/// <param name="Dst">½á¹û</param>
-	/// <param name="byAlpha">AlphaÌæ»»Öµ£¬ÈôÎª0Ôò×Ô¶¯¼ÆËã</param>
+	/// <param name="Dst">ç»“æœ</param>
+	/// <param name="byAlpha">Alphaæ›¿æ¢å€¼ï¼Œè‹¥ä¸º0åˆ™è‡ªåŠ¨è®¡ç®—</param>
 	constexpr void RemoveBlackPixels(const CImageMat& Dst, BYTE byAlpha = 0) const
 	{
 		for (int i = 0; i < m_cx; ++i)
@@ -816,21 +817,21 @@ public:
 	}
 
 	/// <summary>
-	/// È¥³ıºÚÉ«ÏñËØ
+	/// å»é™¤é»‘è‰²åƒç´ 
 	/// </summary>
-	/// <param name="byAlpha">AlphaÌæ»»Öµ£¬ÈôÎª0Ôò×Ô¶¯¼ÆËã</param>
+	/// <param name="byAlpha">Alphaæ›¿æ¢å€¼ï¼Œè‹¥ä¸º0åˆ™è‡ªåŠ¨è®¡ç®—</param>
 	constexpr void RemoveBlackPixels(BYTE byAlpha = 0) const
 	{
 		RemoveBlackPixels(*this, byAlpha);
 	}
 
 	/// <summary>
-	/// ºéË®Ìî³ä¡£
-	/// º¯ÊıÔ­µØ¹¤×÷
+	/// æ´ªæ°´å¡«å……ã€‚
+	/// å‡½æ•°åŸåœ°å·¥ä½œ
 	/// </summary>
-	/// <param name="x">ÆğÊ¼X</param>
-	/// <param name="y">ÆğÊ¼Y</param>
-	/// <param name="crNew">Ìæ»»Îª</param>
+	/// <param name="x">èµ·å§‹X</param>
+	/// <param name="y">èµ·å§‹Y</param>
+	/// <param name="crNew">æ›¿æ¢ä¸º</param>
 	void FloodFill(int x, int y, TColor crNew) const
 	{
 		const auto crOld = Pixel(x, y).dw;
@@ -845,26 +846,26 @@ public:
 			const auto pt = s.top();
 			s.pop();
 
-			// Ïò×óÉ¨Ãè
+			// å‘å·¦æ‰«æ
 			int l = pt.x;
 			while (l >= 0 && Pixel(l, pt.y).dw == crOld)
 				l--;
-			l++;// »Ö¸´µ½×îºóÒ»¸öÓĞĞ§Î»ÖÃ
+			l++;// æ¢å¤åˆ°æœ€åä¸€ä¸ªæœ‰æ•ˆä½ç½®
 
-			// ÏòÓÒÉ¨Ãè
+			// å‘å³æ‰«æ
 			int r = pt.x;
 			while (r < m_cx && Pixel(r, pt.y).dw == crOld)
 				r++;
-			r--;// »Ö¸´µ½×îºóÒ»¸öÓĞĞ§Î»ÖÃ
+			r--;// æ¢å¤åˆ°æœ€åä¸€ä¸ªæœ‰æ•ˆä½ç½®
 
-			// Ìî³äÕâÒ»ĞĞ
+			// å¡«å……è¿™ä¸€è¡Œ
 			for (int i = l; i <= r; ++i)
 			{
 				Pixel(i, pt.y).dw = crNew;
-				// ÉÏÒ»ĞĞ
+				// ä¸Šä¸€è¡Œ
 				if (pt.y - 1 >= 0 && Pixel(i, pt.y - 1).dw == crOld)
 					s.emplace(i, pt.y - 1);
-				// ÏÂÒ»ĞĞ
+				// ä¸‹ä¸€è¡Œ
 				if (pt.y + 1 < m_cy && Pixel(i, pt.y + 1).dw == crOld)
 					s.emplace(i, pt.y + 1);
 			}
@@ -872,10 +873,10 @@ public:
 	}
 
 	/// <summary>
-	/// Ìæ»»Ä³Í¨µÀ
+	/// æ›¿æ¢æŸé€šé“
 	/// </summary>
-	/// <param name="Ref">Ìæ»»Îª</param>
-	/// <param name="eChannel">Í¨µÀ</param>
+	/// <param name="Ref">æ›¿æ¢ä¸º</param>
+	/// <param name="eChannel">é€šé“</param>
 	constexpr void ReplaceChannel(const CImageMat& Ref, ImageChannel eChannel) const
 	{
 		for (int i = 0; i < m_cx; ++i)
@@ -903,11 +904,11 @@ public:
 	}
 
 	/// <summary>
-	/// »Ò¶ÈÃÉ°æ¡£
-	/// ½«ÏñËØÍ¸Ã÷¶È°´Ö¸¶¨»Ò¶ÈÍ¼µÄ¶ÔÓ¦»Ò¶ÈËõ·Å
+	/// ç°åº¦è’™ç‰ˆã€‚
+	/// å°†åƒç´ é€æ˜åº¦æŒ‰æŒ‡å®šç°åº¦å›¾çš„å¯¹åº”ç°åº¦ç¼©æ”¾
 	/// </summary>
-	/// <param name="Mask">»Ò¶ÈÃÉ°æ</param>
-	/// <param name="bIgnoreAlpha">ÊÇ·ñºöÂÔÃÉ°æAlphaÍ¨µÀ</param>
+	/// <param name="Mask">ç°åº¦è’™ç‰ˆ</param>
+	/// <param name="bIgnoreAlpha">æ˜¯å¦å¿½ç•¥è’™ç‰ˆAlphaé€šé“</param>
 	constexpr void MaskGrayscale(const CImageMat& Mask, BOOL bIgnoreAlpha = TRUE) const
 	{
 		for (int i = 0; i < m_cx; ++i)
@@ -923,12 +924,12 @@ public:
 	}
 
 	/// <summary>
-	/// »Ò¶ÈÃÉ°æ¡£
-	/// ½«ÏñËØÍ¸Ã÷¶È°´Ö¸¶¨»Ò¶ÈÍ¼µÄ¶ÔÓ¦»Ò¶ÈËõ·Å
+	/// ç°åº¦è’™ç‰ˆã€‚
+	/// å°†åƒç´ é€æ˜åº¦æŒ‰æŒ‡å®šç°åº¦å›¾çš„å¯¹åº”ç°åº¦ç¼©æ”¾
 	/// </summary>
-	/// <param name="Dst">½á¹û</param>
-	/// <param name="Mask">»Ò¶ÈÃÉ°æ</param>
-	/// <param name="bIgnoreAlpha">ÊÇ·ñºöÂÔÃÉ°æAlphaÍ¨µÀ</param>
+	/// <param name="Dst">ç»“æœ</param>
+	/// <param name="Mask">ç°åº¦è’™ç‰ˆ</param>
+	/// <param name="bIgnoreAlpha">æ˜¯å¦å¿½ç•¥è’™ç‰ˆAlphaé€šé“</param>
 	constexpr void MaskGrayscale(const CImageMat& Dst, const CImageMat& Mask,
 		BOOL bIgnoreAlpha = TRUE) const
 	{
@@ -947,9 +948,9 @@ public:
 	}
 
 	/// <summary>
-	/// Çå³ıÔÓµã
+	/// æ¸…é™¤æ‚ç‚¹
 	/// </summary>
-	/// <param name="nLevel">ÈôÄ³ÏñËØµÄ°ËÁ¬Í¨ÏñËØÊıĞ¡ÓÚ´Ë²ÎÊıÔò±»ÈÏÎªÊÇÔÓµã</param>
+	/// <param name="nLevel">è‹¥æŸåƒç´ çš„å…«è¿é€šåƒç´ æ•°å°äºæ­¤å‚æ•°åˆ™è¢«è®¤ä¸ºæ˜¯æ‚ç‚¹</param>
 	void RemoveNoisePixels(int nLevel = 1) const
 	{
 		constexpr TColor Marker = 0xFFFF0000;
@@ -985,9 +986,9 @@ public:
 	}
 
 	/// <summary>
-	/// É«²ÊÔöÇ¿
+	/// è‰²å½©å¢å¼º
 	/// </summary>
-	/// <param name="fFactor">ÔöÇ¿Òò×Ó</param>
+	/// <param name="fFactor">å¢å¼ºå› å­</param>
 	constexpr void EnhanceColor(float fFactor) const
 	{
 		for (int i = 0; i < m_cx; ++i)
@@ -1022,7 +1023,7 @@ private:
 	// modified here, under the Apache License 2.0
 	// https://github.com/Alexbeast-CN/findContours
 
-	constexpr static int InvalidPt{ 0x80000000 };
+	constexpr static int InvalidPt{ (int)0x80000000 };
 
 	constexpr POINT TraceBoundary_FindNeighbor(POINT ptCenter, POINT ptStart, bool ClockWise)
 	{
@@ -1042,13 +1043,13 @@ private:
 		return { InvalidPt,InvalidPt };
 	}
 
-	constexpr void TraceBoundary_Follow(POINT ptCenter, POINT ptStart, bool ClockWise,
+	constexpr void TraceBoundary_Follow(POINT ptCenter, POINT ptStart, BOOL bClockWise,
 		std::vector<POINT>& vEdge)
 	{
 		Pixel(ptCenter.x, ptCenter.y).dw = TBMarkPt;
 		POINT ptNewCenter = ptCenter;
 		POINT ptNeighbor = ptStart;
-		POINT ptNewNeighbor = TraceBoundary_FindNeighbor(ptNewCenter, ptNeighbor, ClockWise);
+		POINT ptNewNeighbor = TraceBoundary_FindNeighbor(ptNewCenter, ptNeighbor, bClockWise);
 		while (ptNewNeighbor.x != InvalidPt && ptNewNeighbor.y != InvalidPt)
 		{
 			int x = ptNewCenter.x;
@@ -1058,20 +1059,20 @@ private:
 
 			ptNeighbor = ptNewCenter;
 			ptNewCenter = ptNewNeighbor;
-			ptNewNeighbor = TraceBoundary_FindNeighbor(ptNewCenter, ptNeighbor, ClockWise);
+			ptNewNeighbor = TraceBoundary_FindNeighbor(ptNewCenter, ptNeighbor, bClockWise);
 		}
 	}
 public:
 	/// <summary>
-	/// ¸ú×Ù±ß½ç¡£
-	/// º¯Êı·ÖÎö¶şÖµÍ¼ÏñµÄ±ß½ç£¬ÇÒ·ÖÎö³öµÄÃ¿Ìõ±ß¶¼Âú×ãÒÔÏÂÌõ¼ş£º
-	/// 1.µãÊı´óÓÚµÈÓÚcMinPoints£»
-	/// 2.Ã¿¸öµã¶¼ÓëÇ°ºóÁ½¸öµã¹¹³É°ËÁ¬Í¨£»
-	/// 3.ÓëÆäËûÈÎÒâÒ»Ìõ±ß²»Ïà½»¡£
-	/// ×¢Òâ£ºµ÷ÓÃ´Ëº¯Êıºó£¬Ô­Í¼ÏñÄÚÈİ½«±»ÆÆ»µ£¨Ô­ÓĞ°×É«ÏñËØ±»ÉèÎªCImageMat::TBMarkPt£©£¬ÈôÒªÖ´ĞĞ¸´Ô­£¬Çëµ÷ÓÃTraceBoundary_Restore()
+	/// è·Ÿè¸ªè¾¹ç•Œã€‚
+	/// å‡½æ•°åˆ†æäºŒå€¼å›¾åƒçš„è¾¹ç•Œï¼Œä¸”åˆ†æå‡ºçš„æ¯æ¡è¾¹éƒ½æ»¡è¶³ä»¥ä¸‹æ¡ä»¶ï¼š
+	/// 1.ç‚¹æ•°å¤§äºç­‰äºcMinPointsï¼›
+	/// 2.æ¯ä¸ªç‚¹éƒ½ä¸å‰åä¸¤ä¸ªç‚¹æ„æˆå…«è¿é€šï¼›
+	/// 3.ä¸å…¶ä»–ä»»æ„ä¸€æ¡è¾¹ä¸ç›¸äº¤ã€‚
+	/// æ³¨æ„ï¼šè°ƒç”¨æ­¤å‡½æ•°åï¼ŒåŸå›¾åƒå†…å®¹å°†è¢«ç ´åï¼ˆåŸæœ‰ç™½è‰²åƒç´ è¢«è®¾ä¸ºCImageMat::TBMarkPtï¼‰ï¼Œè‹¥è¦æ‰§è¡Œå¤åŸï¼Œè¯·è°ƒç”¨TraceBoundary_Restore()
 	/// </summary>
-	/// <param name="vBoundary">½á¹û±ß</param>
-	/// <param name="cMinPoints">±ßÖĞÖÁÉÙ°üº¬µÄµãÊı</param>
+	/// <param name="vBoundary">ç»“æœè¾¹</param>
+	/// <param name="cMinPoints">è¾¹ä¸­è‡³å°‘åŒ…å«çš„ç‚¹æ•°</param>
 	constexpr void TraceBoundary(std::vector<std::vector<POINT>>& vBoundary, size_t cMinPoints = 10)
 	{
 		for (int i = 0; i < m_cy; ++i)
@@ -1079,20 +1080,20 @@ public:
 			{
 				if (Pixel(j, i).dw == 0xFFFFFFFF && Pixel(j - 1, i).dw == 0)// out
 				{
-					TraceBoundary_Follow({ j,i }, { j - 1,i }, false, vBoundary.emplace_back());
+					TraceBoundary_Follow({ j,i }, { j - 1,i }, FALSE, vBoundary.emplace_back());
 					if (vBoundary.back().size() < cMinPoints)
 						vBoundary.pop_back();
 				}
 				else if (Pixel(j, i).dw == 0xFFFFFFFF && Pixel(j + 1, i).dw == 0)// in
 				{
-					TraceBoundary_Follow({ j,i }, { j + 1,i }, true, vBoundary.emplace_back());
+					TraceBoundary_Follow({ j,i }, { j + 1,i }, TRUE, vBoundary.emplace_back());
 					if (vBoundary.back().size() < cMinPoints)
 						vBoundary.pop_back();
 				}
 			}
 	}
 
-	// »Ö¸´ÓÉTraceBoundaryº¯ÊıÆÆ»µµÄÍ¼ÏñÄÚÈİ
+	// æ¢å¤ç”±TraceBoundaryå‡½æ•°ç ´åçš„å›¾åƒå†…å®¹
 	constexpr void TraceBoundary_Restore()
 	{
 		for (int i = 0; i < m_cx; ++i)
@@ -1100,6 +1101,142 @@ public:
 			{
 				if (Pixel(i, j).dw == TBMarkPt)
 					Pixel(i, j).dw = 0xFFFFFFFF;
+			}
+	}
+
+	/// <summary>
+	/// åŒ–ç®€è¾¹ç•Œã€‚
+	/// åŒ–ç®€ç”±TraceBoundaryåˆ†æå‡ºçš„è¾¹ç•Œ
+	/// </summary>
+	/// <param name="vBoundary">è¾¹ç•Œ</param>
+	/// <param name="fDistMin">å¹³è¡Œçº¿é—´çš„æœ€å°è·ç¦»ï¼Œè®¾ä¸ºè´Ÿå€¼è¡¨ç¤ºä¸ç§»é™¤å¹³è¡Œçº¿</param>
+	/// <param name="fDistDelta">å¹³è¡Œçº¿è´´è¾¹æœ€å¤§æµ®åŠ¨è·ç¦»</param>
+	/// <param name="cLineStep">åŒ–ç®€ç›´çº¿æ—¶ä¿ç•™ç‚¹çš„æ­¥é•¿ï¼Œè®¾ä¸º0ä¸æ‰§è¡Œç›´çº¿åŒ–ç®€ï¼Œè®¾ä¸ºINT_MAXæ‰§è¡Œæœ€å¤§åŒ–ç®€</param>
+	/// <param name="iLineTolerance">åŒ–ç®€ç›´çº¿æ—¶çš„å®¹å·®</param>
+	static void TraceBoundary_Simplify(std::vector<std::vector<POINT>>& vBoundary,
+		float fDistMin, float fDistDelta, int cLineStep, int iLineTolerance)
+	{
+		// ç§»é™¤å¹³è¡Œè¾¹
+		if (fDistMin >= 0.f)
+		{
+			std::set<size_t> hsIdxToRemove{};
+			for (size_t i = 0; i < vBoundary.size(); ++i)
+			{
+				for (size_t j = i + 1; j < vBoundary.size(); ++j)
+				{
+					if (hsIdxToRemove.contains(i))
+						goto NextI;
+					if (hsIdxToRemove.contains(j))
+						continue;
+					size_t idxMin, idxMax;
+					if (vBoundary[i].size() < vBoundary[j].size())
+						idxMin = i, idxMax = j;
+					else
+						idxMin = j, idxMax = i;
+					const auto& vMin = vBoundary[idxMin];
+					const auto& vMax = vBoundary[idxMax];
+
+					float fDist{ FLT_MAX };
+					size_t idxBegin{};
+					for (size_t k{}; const auto & e : vMax)
+					{
+						const auto f = CalcLineLength(e, vMin[0]);
+						if (f < fDist)
+						{
+							fDist = f;
+							idxBegin = k;
+						}
+						++k;
+					}
+					if (fDist < fDistMin)
+					{
+						// æ˜¯å¦åº”è¢«åˆ é™¤
+						BOOL b1{ TRUE }, b2{ TRUE };
+						// å‘å
+						size_t k{ idxBegin };
+						EckLoop()
+						{
+							if (k - idxBegin >= vMin.size())// å°è¾¹ç»“æŸï¼Œåº”è¯¥åˆ é™¤
+							{
+								b1 = TRUE;
+								break;
+							}
+							if (k >= vMax.size())// å¤§è¾¹ç»“æŸï¼Œè‹¥å°è¾¹ä¹Ÿç»“æŸï¼Œåº”è¯¥åˆ é™¤
+							{
+								b1 = (k - idxBegin == vMin.size());
+								break;
+							}
+							const auto f = CalcLineLength(vMax[k], vMin[k - idxBegin]);
+							if (fabsf(f - fDist) > fDistDelta)// æµ®åŠ¨è¶…å‡ºå®¹å·®ï¼Œä¸åº”è¯¥åˆ é™¤
+							{
+								b1 = FALSE;
+								break;
+							}
+							++k;
+						}
+						// å‘å‰
+						if (!b1)
+						{
+							k = idxBegin;
+							EckLoop()
+							{
+								if (idxBegin - k >= vMin.size())// å°è¾¹ç»“æŸï¼Œåº”è¯¥åˆ é™¤
+								{
+									b2 = TRUE;
+									break;
+								}
+								if (k == 0)// å¤§è¾¹ç»“æŸï¼Œè‹¥å°è¾¹ä¹Ÿç»“æŸï¼Œåº”è¯¥åˆ é™¤
+								{
+									b2 = (idxBegin - k == vMin.size());
+									break;
+								}
+								const auto f = CalcLineLength(vMax[k], vMin[idxBegin - k]);
+								if (fabsf(f - fDist) > fDistDelta)// æµ®åŠ¨è¶…å‡ºå®¹å·®ï¼Œä¸åº”è¯¥åˆ é™¤
+								{
+									b2 = FALSE;
+									break;
+								}
+								--k;
+							}
+						}
+						if (b1 || b2)
+							hsIdxToRemove.insert(idxMin);
+					}
+				}
+			NextI:;
+			}
+			for (auto it = hsIdxToRemove.rbegin(); it != hsIdxToRemove.rend(); ++it)
+				vBoundary.erase(vBoundary.begin() + *it);
+		}
+		// åŒ–ç®€ç›´çº¿
+		if (cLineStep > 0)
+			for (auto& v : vBoundary)
+			{
+				if (v.size() < 3)
+					continue;
+				size_t idxRef{};
+				std::vector<size_t> vIdxToRemove{};
+				for (size_t i = 2; i < v.size() - 1; ++i)
+				{
+					if (CalcPointToLineDistance(v[i], v[idxRef], v[idxRef + 1]) > iLineTolerance)
+						idxRef = i - 1;
+					else
+						vIdxToRemove.push_back(i);
+				}
+				if (cLineStep == INT_MAX)
+					for (auto it = vIdxToRemove.rbegin(); it != vIdxToRemove.rend(); ++it)
+						v.erase(v.begin() + *it);
+				else
+				{
+					size_t idxLastRemoved{ vIdxToRemove.back() };
+					for (auto it = vIdxToRemove.rbegin(); it != vIdxToRemove.rend(); ++it)
+					{
+						if (*it - idxLastRemoved < cLineStep)
+							v.erase(v.begin() + *it);
+						else
+							idxLastRemoved = *it;
+					}
+				}
 			}
 	}
 };
