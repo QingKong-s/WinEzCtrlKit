@@ -15,9 +15,9 @@
 #include <vector>
 
 ECK_NAMESPACE_BEGIN
-static constexpr size_t INVALID_BIN_POS = std::numeric_limits<size_t>{}.max();
+inline constexpr size_t INVALID_BIN_POS = SizeTMax;
 
-inline constexpr size_t BinNPos = std::numeric_limits<size_t>{}.max();
+inline constexpr size_t BinNPos = SizeTMax;
 
 /// <summary>
 /// 寻找字节集
@@ -28,11 +28,13 @@ inline constexpr size_t BinNPos = std::numeric_limits<size_t>{}.max();
 /// <param name="cbSubSize">要寻找的字节集长度</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回BinNPos</returns>
-[[nodiscard]] inline size_t FindBin(PCVOID pMain, size_t cbMainSize, PCVOID pSub, size_t cbSubSize, size_t posStart = 0)
+[[nodiscard]] inline size_t FindBin(PCVOID pMain, size_t cbMainSize, 
+	PCVOID pSub, size_t cbSubSize, size_t posStart = 0)
 {
 	if (cbMainSize < cbSubSize)
 		return BinNPos;
-	for (PCBYTE pCurr = (PCBYTE)pMain + posStart, pEnd = (PCBYTE)pMain + cbMainSize - cbSubSize; pCurr <= pEnd; ++pCurr)
+	for (PCBYTE pCurr = (PCBYTE)pMain + posStart, 
+		pEnd = (PCBYTE)pMain + cbMainSize - cbSubSize; pCurr <= pEnd; ++pCurr)
 	{
 		if (memcmp(pCurr, pSub, cbSubSize) == 0)
 			return pCurr - (PCBYTE)pMain;
@@ -49,7 +51,8 @@ inline constexpr size_t BinNPos = std::numeric_limits<size_t>{}.max();
 /// <param name="cbSubSize">要寻找的字节集长度</param>
 /// <param name="posStart">起始位置</param>
 /// <returns>位置，若未找到返回BinNPos</returns>
-[[nodiscard]] inline size_t FindBinRev(PCVOID pMain, size_t cbMainSize, PCVOID pSub, size_t cbSubSize, size_t posStart = 0)
+[[nodiscard]] inline size_t FindBinRev(PCVOID pMain, size_t cbMainSize, 
+	PCVOID pSub, size_t cbSubSize, size_t posStart = 0)
 {
 	if (cbMainSize < cbSubSize)
 		return BinNPos;
@@ -407,7 +410,8 @@ public:
 
 	EckInline void ReSizeExtra(size_t cb)
 	{
-		Reserve(TAllocTraits::MakeCapacity(cb));
+		if (m_cbCapacity < cb)
+			Reserve(TAllocTraits::MakeCapacity(cb));
 		m_cb = cb;
 	}
 
