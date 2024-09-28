@@ -152,37 +152,49 @@ EckInline void CalcPointFromEllipseAngle(TVal a, TVal b, float fAngle, TVal& xRe
 /// 计算扭曲矩阵。
 /// 计算将矩形映射到任意凸四边形的4x4矩阵
 /// </summary>
-/// <param name="rcOrg">矩形</param>
-/// <param name="ptDistort">映射到的点，至少指向四个D2D1_POINT_2F，分别对应左上角、右上角、左下角、右下角</param>
-/// <param name="MatrixResult">结果矩阵</param>
-inline void CalcDistortMatrix(const D2D1_RECT_F& rcOrg,
-	const D2D1_POINT_2F* ptDistort, D2D1_MATRIX_4X4_F& MatrixResult)
+/// <param name="rc">矩形</param>
+/// <param name="pt">映射到的点，至少指向四个D2D1_POINT_2F，分别对应左上角、右上角、左下角、右下角</param>
+/// <returns>结果矩阵</returns>
+inline DirectX::XMMATRIX CalcDistortMatrix(const D2D1_RECT_F& rc, const D2D1_POINT_2F* pt)
 {
-	const float cx = rcOrg.right - rcOrg.left;
-	const float cy = rcOrg.bottom - rcOrg.top;
-
+	/*
+	*			N		  B			A
+	* (k0, l0) -> (0, 0) -> (0, 0) -> (x0, y0)
+	* (k1, l1) -> (0, 1) -> (0, 1) -> (x1, y1)
+	* (k2, l2) -> (1, 0) -> (1, 0) -> (x2, y2)
+	* (k3, l3) -> (1, 1) -> (a, b) -> (x3, y3)
+	* 首先利用N将任意矩形变换为单位正方形，之后的变换可以拆解为一个仿射变换
+	* 和一个非仿射变换。规定B为仿射变换，则由前三条已知变换可确定矩阵B，因此
+	* 可得(a, b)的值。设A[3][3] = 1，利用全部四条变换可知变换矩阵A的各元
+	* 素与(a, b)的关系，从而可求得A矩阵。此时N、B、A矩阵均已确定，顺次相乘
+	* 即为最终变换。
+	* 参考资料：Windows程序设计第六版（清华大学出版社）349页
+	*/
+	// 求N变换
+	const float cx = rc.right - rc.left;
+	const float cy = rc.bottom - rc.top;
 	const auto TN = DirectX::XMMatrixSet(
 		1.f / cx, 0, 0, 0,
 		0, 1.f / cy, 0, 0,
 		0, 0, 0, 0,
-		-rcOrg.left / cx, -rcOrg.top / cy, 0, 1.f);
-
+		-rc.left / cx, -rc.top / cy, 0, 1.f);
+	// 求A变换
 	const DirectX::XMFLOAT4X4 MA(
-		ptDistort[1].x - ptDistort[0].x, ptDistort[1].y - ptDistort[0].y, 0, 0,
-		ptDistort[2].x - ptDistort[0].x, ptDistort[2].y - ptDistort[0].y, 0, 0,
+		pt[1].x - pt[0].x, pt[1].y - pt[0].y, 0, 0,
+		pt[2].x - pt[0].x, pt[2].y - pt[0].y, 0, 0,
 		0, 0, 0, 0,
-		ptDistort[0].x, ptDistort[0].y, 0, 1.f);
+		pt[0].x, pt[0].y, 0, 1.f);
 	const auto TA = DirectX::XMLoadFloat4x4(&MA);
-
+	// 求B变换
 	const float fDen = MA._11 * MA._22 - MA._12 * MA._21;
 	const float a = (
-		MA._22 * ptDistort[3].x -
-		MA._21 * ptDistort[3].y +
+		MA._22 * pt[3].x -
+		MA._21 * pt[3].y +
 		MA._21 * MA._42 -
 		MA._22 * MA._41) / fDen;
 	const float b = (
-		MA._11 * ptDistort[3].y -
-		MA._12 * ptDistort[3].x +
+		MA._11 * pt[3].y -
+		MA._12 * pt[3].x +
 		MA._12 * MA._41 -
 		MA._11 * MA._42) / fDen;
 	const auto TB = DirectX::XMMatrixSet(
@@ -190,8 +202,86 @@ inline void CalcDistortMatrix(const D2D1_RECT_F& rcOrg,
 		0, b / (a + b - 1), 0, b / (a + b - 1) - 1,
 		0, 0, 0, 0,
 		0, 0, 0, 1.f);
+	return TN * TB * TA;
+}
 
-	DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4*)&MatrixResult, TN * TB * TA);
+/// <summary>
+/// 计算扭曲矩阵。
+/// 计算将矩形映射到任意凸四边形的4x4矩阵
+/// </summary>
+/// <param name="rc">矩形</param>
+/// <param name="pt">映射到的点，至少指向四个D2D1_POINT_2F，分别对应左上角、右上角、左下角、右下角</param>
+/// <param name="MatrixResult">结果矩阵</param>
+EckInline void CalcDistortMatrix(const D2D1_RECT_F& rc,
+	const D2D1_POINT_2F* pt, D2D1_MATRIX_4X4_F& MatrixResult)
+{
+	DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4*)&MatrixResult,
+		CalcDistortMatrix(rc, pt));
+}
+
+/// <summary>
+/// 计算逆扭曲矩阵。
+/// 计算将任意凸四边形映射回矩形的4x4矩阵
+/// </summary>
+/// <param name="rc">矩形</param>
+/// <param name="pt">映射到的点，至少指向四个D2D1_POINT_2F，分别对应左上角、右上角、左下角、右下角</param>
+/// <returns>结果矩阵</returns>
+inline DirectX::XMMATRIX CalcInverseDistortMatrix(const D2D1_RECT_F& rc,
+	const D2D1_POINT_2F* pt)
+{
+	/*
+	*			A		  B			N
+	* (x0, y0) -> (0, 0) -> (0, 0) -> (k0, l0)
+	* (x1, y1) -> (0, 1) -> (0, 1) -> (k1, l1)
+	* (x2, y2) -> (1, 0) -> (1, 0) -> (k2, l2)
+	* (x3, y3) -> (a, b) -> (1, 1) -> (k3, l3)
+	* 过程与CalcDistortMatrix相反
+	*/
+	// 求A变换
+	const float fDen = (pt[0].x * pt[1].y
+		- pt[1].x * pt[0].y
+		- pt[0].x * pt[2].y
+		+ pt[2].x * pt[0].y
+		+ pt[1].x * pt[2].y
+		- pt[2].x * pt[1].y);
+	const DirectX::XMFLOAT4X4 MA(
+		(pt[0].y - pt[1].y) / fDen, -(pt[0].y - pt[2].y) / fDen, 0, 0,
+		-(pt[0].x - pt[1].x) / fDen, (pt[0].x - pt[2].x) / fDen, 0, 0,
+		0, 0, 0, 0,
+		(pt[0].x * pt[1].y - pt[1].x * pt[0].y) / fDen,
+		-(pt[0].x * pt[2].y - pt[2].x * pt[0].y) / fDen, 0, 1.f);
+	const auto TA = DirectX::XMLoadFloat4x4(&MA);
+	// 求B变换
+	const float a = (MA._11 * pt[3].x + MA._21 * pt[3].y + MA._41);
+	const float b = (MA._12 * pt[3].x + MA._22 * pt[3].y + MA._42);
+	const auto TB = DirectX::XMMatrixSet(
+		(a + b - 1) / a, 0, 0, (a + b - 1) / a - 1,
+		0, (a + b - 1) / b, 0, (a + b - 1) / b - 1,
+		0, 0, 0, 0,
+		0, 0, 0, 1.f);
+	// 求N变换
+	const float cx = rc.right - rc.left;
+	const float cy = rc.bottom - rc.top;
+	const auto TN = DirectX::XMMatrixSet(
+		cx, 0, 0, 0,
+		0, cy, 0, 0,
+		0, 0, 1, 0,
+		rc.left, rc.top, 0, 1.f);
+	return TA * TB * TN;
+}
+
+/// <summary>
+/// 计算逆扭曲矩阵。
+/// 计算将任意凸四边形映射回矩形的4x4矩阵
+/// </summary>
+/// <param name="rc">矩形</param>
+/// <param name="pt">映射到的点，至少指向四个D2D1_POINT_2F，分别对应左上角、右上角、左下角、右下角</param>
+/// <param name="MatrixResult">结果矩阵</param>
+EckInline void CalcInverseDistortMatrix(const D2D1_RECT_F& rc,
+	const D2D1_POINT_2F* pt, D2D1_MATRIX_4X4_F& MatrixResult)
+{
+	DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4*)&MatrixResult,
+		CalcInverseDistortMatrix(rc, pt));
 }
 
 /// <summary>

@@ -20,7 +20,6 @@
 #include "CSignal.h"
 
 #include <dcomp.h>
-#include <dcomp.h>
 #include <oleacc.h>
 
 #if ECKCXX20
@@ -87,8 +86,15 @@ struct DRAGDROPINFO
 class CElem;
 struct COMP_INFO
 {
-	const D2D1_RECT_F* prc;
 	CElem* pElem;
+	const D2D1_RECT_F* prc;
+};
+
+struct COMP_POS
+{
+	CElem* pElem;
+	POINT pt;
+	BOOL bNormalToComp;
 };
 
 enum
@@ -99,9 +105,9 @@ enum
 	WM_DRAGLEAVE,
 	WM_DROP,
 
-	EWM_COLORSCHEMECHANGED,// 颜色主题改变
+	EWM_COLORSCHEMECHANGED,// 颜色主题改变 (BOOL 是否为暗色, 0)
 	EWM_COMPOSITE,	// 指示手动混合元素执行混合，(COMP_INFO*, 0)
-	EWM_COMP_POS,	// 指示手动混合元素执行坐标变换，(POINT*待变换坐标, BOOL是否从标准点转换为混合后的点)
+	EWM_COMP_POS,	// 指示手动混合元素执行坐标变换，(COMP_POS*, 0)
 
 	EWM_PRIVBEGIN,
 };
@@ -181,18 +187,27 @@ protected:
 
 	CElem* HitTestChildUncheck(POINT pt, LRESULT* pResult = nullptr)
 	{
+		COMP_POS cp;
+		cp.bNormalToComp = FALSE;
 		auto pElem = GetLastChildElem();
 		while (pElem)
 		{
 			if (pElem->GetStyle() & DES_VISIBLE)
 			{
-				if (PtInRect(pElem->GetRectInClient(), pt))
+				cp.pt = pt;
+				if (pElem->IsNeedCoordinateTransform())
+				{
+					cp.pElem = pElem;
+					pElem->CallEvent(EWM_COMP_POS, (WPARAM)&cp, 0);
+				}
+				if (PtInRect(pElem->GetRectInClient(), cp.pt))
 				{
 					const auto pHit = pElem->HitTestChildUncheck(pt, pResult);
 					if (pHit)
 						return pHit;
 					else if (LRESULT lResult;
-						(lResult = pElem->CallEvent(WM_NCHITTEST, 0, MAKELPARAM(pt.x, pt.y))) != HTTRANSPARENT)
+						(lResult = pElem->CallEvent(WM_NCHITTEST,
+							0, MAKELPARAM(cp.pt.x, cp.pt.y))) != HTTRANSPARENT)
 					{
 						if (pResult)
 							*pResult = lResult;
@@ -613,16 +628,21 @@ public:
 	EckInline constexpr ID2D1Bitmap1* GetCompBitmap() const;
 
 	EckInline constexpr auto& GetSignal() { return m_Sig; }
+
+	EckInline BOOL IsNeedCoordinateTransform() const
+	{
+		return !!(GetStyle() & DES_COMPOSITED);
+	}
 };
 
 // DUI图形系统呈现模式
 enum class PresentMode
 {
 	//						|  等待	|				透明混合					|	 备注	|
-	BitBltSwapChain,	//	|	0	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|  性能极差	|
+	BitBltSwapChain,	//	|	0	|支持，必须无WS_EX_NOREDIRECTIONBITMAP		|  性能极差	|
 	FlipSwapChain,		//	|	1	|不支持									|  性能极好	|
 	DCompositionSurface,//	|	0	|支持，建议加入WS_EX_NOREDIRECTIONBITMAP	|  建议使用	|
-	WindowRenderTarget,	//  |	1	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|  兼容性好	|
+	WindowRenderTarget,	//  |	1	|支持，必须无WS_EX_NOREDIRECTIONBITMAP		|  兼容性好	|
 	AllDComp,			//	|	   与DCompositionSurface相同，但所有元素都使用DComp合成		|
 };
 
@@ -1072,7 +1092,7 @@ private:
 					}
 				}
 
-				NtCancelTimer(hTimer,nullptr);
+				NtCancelTimer(hTimer, nullptr);
 				NtClose(hTimer);
 				ThreadUnInit();
 			});
@@ -1474,18 +1494,27 @@ public:
 
 	CElem* HitTest(POINT pt, LRESULT* pResult = nullptr)
 	{
+		COMP_POS cp;
+		cp.bNormalToComp = FALSE;
 		auto pElem = m_pLastChild;
 		while (pElem)
 		{
 			if (pElem->GetStyle() & DES_VISIBLE)
 			{
-				if (PtInRect(pElem->GetRectInClient(), pt))
+				cp.pt = pt;
+				if (pElem->IsNeedCoordinateTransform())
+				{
+					cp.pElem = pElem;
+					pElem->CallEvent(EWM_COMP_POS, (WPARAM)&cp, 0);
+				}
+				if (PtInRect(pElem->GetRectInClient(), cp.pt))
 				{
 					auto pHit = pElem->HitTestChildUncheck(pt, pResult);
 					if (pHit)
 						return pHit;
 					else if (LRESULT lResult;
-						(lResult = pElem->CallEvent(WM_NCHITTEST, 0, MAKELPARAM(pt.x, pt.y))) != HTTRANSPARENT)
+						(lResult = pElem->CallEvent(WM_NCHITTEST,
+							0, MAKELPARAM(cp.pt.x, cp.pt.y))) != HTTRANSPARENT)
 					{
 						if (pResult)
 							*pResult = lResult;

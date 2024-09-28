@@ -43,6 +43,7 @@
 #pragma comment(lib, "Winhttp.lib")
 #pragma comment(lib, "Bcrypt.lib")
 #pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "dcomp.lib")
 
 #ifdef _WIN64
 #	ifdef _DEBUG
