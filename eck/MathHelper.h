@@ -265,7 +265,7 @@ inline DirectX::XMMATRIX CalcInverseDistortMatrix(const D2D1_RECT_F& rc,
 	const auto TN = DirectX::XMMatrixSet(
 		cx, 0, 0, 0,
 		0, cy, 0, 0,
-		0, 0, 1, 0,
+		0, 0, 0, 0,
 		rc.left, rc.top, 0, 1.f);
 	return TA * TB * TN;
 }

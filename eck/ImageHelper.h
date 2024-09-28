@@ -150,7 +150,7 @@ inline HICON CreateHICON(PCWSTR pszFile)
 /// 从WIC位图创建HICON
 /// </summary>
 /// <param name="pBmp">WIC位图</param>
-/// <param name="hbmMask">掩码，若为nullptr，则使用全1掩码</param>
+/// <param name="hbmMask">掩码，若为NULL，则使用全1掩码</param>
 /// <returns>图标句柄</returns>
 inline HICON CreateHICON(IWICBitmap* pBmp, HBITMAP hbmMask = nullptr)
 {
@@ -856,14 +856,14 @@ inline [[nodiscard]] GpBitmap* ScaleGpBitmap(GpBitmap* pBitmap, int cxNew, int c
 	UINT cxOrg, cyOrg;
 	GdipGetImageWidth(pBitmap, &cxOrg);
 	GdipGetImageHeight(pBitmap, &cyOrg);
-	Gdiplus::PixelFormat PixFmt;
-	GdipGetImagePixelFormat(pBitmap, &PixFmt);
 	if (cxNew < 0)
 		cxNew = cxOrg * cyNew / cyOrg;
 	if (cyNew < 0)
 		cyNew = cyOrg * cxNew / cxOrg;
 	if (cxNew == cxOrg && cyNew == cyOrg)
 		return nullptr;
+	Gdiplus::PixelFormat PixFmt;
+	GdipGetImagePixelFormat(pBitmap, &PixFmt);
 	GpBitmap* pNewBitmap = nullptr;
 	GdipCreateBitmapFromScan0(cxNew, cyNew, 0, PixFmt, nullptr, &pNewBitmap);
 	GpGraphics* pGraphics = nullptr;
