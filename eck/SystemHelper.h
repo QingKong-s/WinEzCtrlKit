@@ -958,7 +958,7 @@ inline HANDLE NaOpenFile(UNICODE_STRING* pusFile, DWORD dwAccess, DWORD dwShareM
 	HANDLE hFile;
 	NTSTATUS nts;
 	IO_STATUS_BLOCK iost;
-	nts = ZwOpenFile(&hFile, dwAccess, &oa, piost ? piost : &iost, dwShareMode, dwOptions);
+	nts = NtOpenFile(&hFile, dwAccess, &oa, piost ? piost : &iost, dwShareMode, dwOptions);
 	if (pnts)
 		*pnts = nts;
 	if (NT_SUCCESS(nts))

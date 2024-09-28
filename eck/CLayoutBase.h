@@ -7,6 +7,8 @@
 */
 #pragma once
 #include "ILayout.h"
+#include "Utility.h"
+#include "WndHelper.h"
 
 ECK_NAMESPACE_BEGIN
 enum :UINT
