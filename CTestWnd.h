@@ -1,10 +1,14 @@
 ﻿#pragma once
 #include "eck\CForm.h"
+#include "eck\CDrawPanel.h"
+#include "eck\CRegion.h"
 
 using namespace eck;
 
 struct CTestWnd :public eck::CForm
 {
+	CDrawPanel m_DP{};
+
 	void Test();
 
 	BOOL PreTranslateMessage(const MSG& Msg) override

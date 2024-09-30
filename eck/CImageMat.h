@@ -1025,7 +1025,7 @@ private:
 	// https://github.com/Alexbeast-CN/findContours
 	// ================================================
 
-	constexpr static int InvalidPt{ (int)0x80000000 };
+	constexpr static int TBInvalidPt{ (int)0x80000000 };
 
 	constexpr POINT TraceBoundary_FindNeighbor(POINT ptCenter, POINT ptStart, bool ClockWise) const
 	{
@@ -1042,7 +1042,7 @@ private:
 			if (Pixel(x, y).dw == 0xFFFFFFFF)
 				return { x,y };
 		}
-		return { InvalidPt,InvalidPt };
+		return { TBInvalidPt,TBInvalidPt };
 	}
 
 	constexpr void TraceBoundary_Follow(POINT ptCenter, POINT ptStart, BOOL bClockWise,
@@ -1052,7 +1052,7 @@ private:
 		POINT ptNewCenter = ptCenter;
 		POINT ptNeighbor = ptStart;
 		POINT ptNewNeighbor = TraceBoundary_FindNeighbor(ptNewCenter, ptNeighbor, bClockWise);
-		while (ptNewNeighbor.x != InvalidPt && ptNewNeighbor.y != InvalidPt)
+		while (ptNewNeighbor.x != TBInvalidPt && ptNewNeighbor.y != TBInvalidPt)
 		{
 			int x = ptNewCenter.x;
 			int y = ptNewCenter.y;

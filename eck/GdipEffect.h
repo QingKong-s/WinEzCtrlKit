@@ -11,6 +11,19 @@
 ECK_NAMESPACE_BEGIN
 struct CGpColorMatrix
 {
+	struct Proxy
+	{
+		REAL* p;
+
+		EckInline constexpr float& operator[](int i) { return p[i]; }
+	};
+
+	struct ConstProxy
+	{
+		const REAL* p;
+
+		EckInline constexpr const float& operator[](int i) const { return p[i]; }
+	};
 	GpColorMatrix Mat;
 
 	constexpr CGpColorMatrix() : Mat{}
@@ -20,6 +33,9 @@ struct CGpColorMatrix
 	constexpr CGpColorMatrix(const float(&Matrix)[5][5]) { std::copy_n((float*)&Matrix[0], 25, (float*)&Mat.m); }
 	constexpr CGpColorMatrix(const float* Matrix) { std::copy_n((float*)&Matrix, 25, (float*)&Mat.m); }
 	constexpr CGpColorMatrix(const GpColorMatrix& Mat) :Mat(Mat) {}
+
+	EckInline [[nodiscard]] constexpr Proxy operator[](size_t i) { return Proxy{ Mat.m[i] }; }
+	EckInline [[nodiscard]] constexpr ConstProxy operator[](size_t i) const { return ConstProxy{ Mat.m[i] }; }
 
 	// 重置为单位矩阵
 	EckInline constexpr void Identity()
