@@ -168,8 +168,8 @@ protected:
 		int cxyKernel, BOOL bBinary, float fThreshold) const
 	{
 		const int cxyHalf = cxyKernel / 2;
-		for (int i = cxyHalf; i < m_cx - cxyHalf; ++i)
-			for (int j = cxyHalf; j < m_cy - cxyHalf; ++j)
+		for (int j = cxyHalf; j < m_cy - cxyHalf; ++j)
+			for (int i = cxyHalf; i < m_cx - cxyHalf; ++i)
 			{
 				TArgb Pix;
 				float fSumX{};
@@ -277,8 +277,8 @@ public:
 		EckAssert(this != &Dst && L"不支持原地操作");
 		const int cxyHalf = cxyKernel / 2;
 		const int iOffset = ((eBorder == BorderOpt::Ignore) ? cxyHalf : 0);
-		for (int i = iOffset; i < m_cx - iOffset; ++i)
-			for (int j = iOffset; j < m_cy - iOffset; ++j)
+		for (int j = iOffset; j < m_cy - iOffset; ++j)
+			for (int i = iOffset; i < m_cx - iOffset; ++i)
 			{
 				TArgb Pix;
 				float fSum[4]{};
@@ -344,8 +344,8 @@ public:
 	EckInline void Roberts(const CImageMat& Dst, BOOL bBinary, float fThreshold) const
 	{
 		EckAssert(this != &Dst && L"不支持原地操作");
-		for (int i = 0; i < m_cx - 1; ++i)
-			for (int j = 0; j < m_cy - 1; ++j)
+		for (int j = 0; j < m_cy - 1; ++j)
+			for (int i = 0; i < m_cx - 1; ++i)
 			{
 				const int G1 = Pixel(i, j).r - Pixel(i + 1, j + 1).r;
 				const int G2 = Pixel(i + 1, j + 1).r - Pixel(i, j).r;
@@ -378,8 +378,8 @@ public:
 		CArray2D<GRADIENT> G(m_cx, m_cy);
 		// 计算梯度
 		constexpr int cxyHalf = 3 / 2;
-		for (int i = cxyHalf; i < m_cx - cxyHalf; ++i)
-			for (int j = cxyHalf; j < m_cy - cxyHalf; ++j)
+		for (int j = cxyHalf; j < m_cy - cxyHalf; ++j)
+			for (int i = cxyHalf; i < m_cx - cxyHalf; ++i)
 			{
 				TArgb pix;
 				float fSumX{};
@@ -399,8 +399,8 @@ public:
 			}
 		// 非极大值抑制
 		CArray2D<float> Suppressed(m_cx, m_cy);
-		for (int i = cxyHalf; i < m_cx - cxyHalf; ++i)
-			for (int j = cxyHalf; j < m_cy - cxyHalf; ++j)
+		for (int j = cxyHalf; j < m_cy - cxyHalf; ++j)
+			for (int i = cxyHalf; i < m_cx - cxyHalf; ++i)
 			{
 				const auto& e = G[i][j];
 				auto& f = Suppressed[i][j];
@@ -439,8 +439,8 @@ public:
 		// 双阈值
 		constexpr TColor WeakColor{ 0xFFFF0000 };
 		constexpr TColor WeakLabelColor{ 0xFF00FF00 };
-		for (int i = cxyHalf; i < m_cx - cxyHalf; ++i)
-			for (int j = cxyHalf; j < m_cy - cxyHalf; ++j)
+		for (int j = cxyHalf; j < m_cy - cxyHalf; ++j)
+			for (int i = cxyHalf; i < m_cx - cxyHalf; ++i)
 			{
 				const auto f = Suppressed[i][j];
 				auto& Pix = Dst.Pixel(i, j);
@@ -455,8 +455,8 @@ public:
 		std::stack<POINT> s{};
 		std::queue<POINT> q{};
 		BOOL bConnected = FALSE;
-		for (int i = cxyHalf; i < m_cx - cxyHalf; ++i)
-			for (int j = cxyHalf; j < m_cy - cxyHalf; ++j)
+		for (int j = cxyHalf; j < m_cy - cxyHalf; ++j)
+			for (int i = cxyHalf; i < m_cx - cxyHalf; ++i)
 			{
 				auto& Pix = Dst.Pixel(i, j);
 				if (Pix.dw == WeakColor)
@@ -511,8 +511,8 @@ public:
 	// 到灰度图
 	constexpr void Grayscale(const CImageMat& Dst) const
 	{
-		for (int i = 0; i < m_cx; ++i)
-			for (int j = 0; j < m_cy; ++j)
+		for (int j = 0; j < m_cy; ++j)
+			for (int i = 0; i < m_cx; ++i)
 			{
 				const auto Pix = Pixel(i, j);
 				auto& NewPix = Dst.Pixel(i, j);
@@ -534,8 +534,8 @@ public:
 	constexpr void Binary(const CImageMat& Dst, BYTE byThreshold,
 		ImageChannel eChannel = ImageChannel::Gray) const
 	{
-		for (int i = 0; i < m_cx; ++i)
-			for (int j = 0; j < m_cy; ++j)
+		for (int j = 0; j < m_cy; ++j)
+			for (int i = 0; i < m_cx; ++i)
 			{
 				const auto Pix = Dst.Pixel(i, j);
 				auto& PixNew = Dst.Pixel(i, j);
@@ -575,8 +575,8 @@ public:
 	// 反色
 	constexpr void Invert(const CImageMat& Dst) const
 	{
-		for (int i = 0; i < m_cx; ++i)
-			for (int j = 0; j < m_cy; ++j)
+		for (int j = 0; j < m_cy; ++j)
+			for (int i = 0; i < m_cx; ++i)
 			{
 				const auto Pix = Pixel(i, j);
 				auto& NewPix = Dst.Pixel(i, j);
@@ -599,8 +599,8 @@ public:
 	void Erode(const CImageMat& Dst, const BYTE* pbyStruct, int cxStruct, int cyStruct) const
 	{
 		EckAssert(this != &Dst && L"不支持原地操作");
-		for (int i = 0; i < m_cx; ++i)
-			for (int j = 0; j < m_cy; ++j)
+		for (int j = 0; j < m_cy; ++j)
+			for (int i = 0; i < m_cx; ++i)
 			{
 				auto& NewPix = Dst.Pixel(i, j);
 				NewPix.dw = 0;
@@ -638,8 +638,8 @@ public:
 	void Dilate(const CImageMat& Dst, const BYTE* pbyStruct, int cxStruct, int cyStruct) const
 	{
 		EckAssert(this != &Dst && L"不支持原地操作");
-		for (int i = 0; i < m_cx; ++i)
-			for (int j = 0; j < m_cy; ++j)
+		for (int j = 0; j < m_cy; ++j)
+			for (int i = 0; i < m_cx; ++i)
 			{
 				auto& NewPix = Dst.Pixel(i, j);
 				NewPix.dw = 0xFFFFFFFF;
@@ -727,8 +727,8 @@ public:
 	// 到某通道灰度图
 	constexpr void GrayscaleChannel(const CImageMat& Dst, ImageChannel eChannel) const
 	{
-		for (int i = 0; i < m_cx; ++i)
-			for (int j = 0; j < m_cy; ++j)
+		for (int j = 0; j < m_cy; ++j)
+			for (int i = 0; i < m_cx; ++i)
 			{
 				const auto Pix = Pixel(i, j);
 				auto& NewPix = Dst.Pixel(i, j);
@@ -751,8 +751,8 @@ public:
 	// 取非透明像素区域外接矩形
 	void GetContentRect(RECT& rc) const
 	{
-		for (int i = 0; i < m_cx; ++i)
-			for (int j = 0; j < m_cy; ++j)
+		for (int j = 0; j < m_cy; ++j)
+			for (int i = 0; i < m_cx; ++i)
 			{
 				if (Pixel(i, j).a)
 				{
@@ -761,8 +761,8 @@ public:
 				}
 			}
 	EndL:
-		for (int i = m_cx - 1; i >= rc.left; --i)
-			for (int j = 0; j < m_cy; ++j)
+		for (int j = 0; j < m_cy; ++j)
+			for (int i = m_cx - 1; i >= rc.left; --i)
 			{
 				if (Pixel(i, j).a)
 				{
@@ -771,8 +771,8 @@ public:
 				}
 			}
 	EndR:
-		for (int j = 0; j < m_cy; ++j)
-			for (int i = rc.left; i < rc.right; ++i)
+		for (int i = rc.left; i < rc.right; ++i)
+			for (int j = 0; j < m_cy; ++j)
 			{
 				if (Pixel(i, j).a)
 				{
@@ -781,8 +781,8 @@ public:
 				}
 			}
 	EndT:
-		for (int j = m_cy - 1; j >= rc.top; --j)
-			for (int i = rc.left; i < rc.right; ++i)
+		for (int i = rc.left; i < rc.right; ++i)
+			for (int j = m_cy - 1; j >= rc.top; --j)
 			{
 				if (Pixel(i, j).a)
 				{
@@ -800,8 +800,8 @@ public:
 	/// <param name="byAlpha">Alpha替换值，若为0则自动计算</param>
 	constexpr void RemoveBlackPixels(const CImageMat& Dst, BYTE byAlpha = 0) const
 	{
-		for (int i = 0; i < m_cx; ++i)
-			for (int j = 0; j < m_cy; ++j)
+		for (int j = 0; j < m_cy; ++j)
+			for (int i = 0; i < m_cx; ++i)
 			{
 				const auto Pix = Pixel(i, j);
 				auto& NewPix = Dst.Pixel(i, j);
@@ -879,11 +879,11 @@ public:
 	/// <param name="eChannel">通道</param>
 	constexpr void ReplaceChannel(const CImageMat& Ref, ImageChannel eChannel) const
 	{
-		for (int i = 0; i < m_cx; ++i)
-			for (int j = 0; j < m_cy; ++j)
+		for (int j = 0; j < m_cy; ++j)
+			for (int i = 0; i < m_cx; ++i)
 			{
 				auto& Pix = Pixel(i, j);
-				const auto& RefPix = Ref.Pixel(i, j);
+				const auto RefPix = Ref.Pixel(i, j);
 				switch (eChannel)
 				{
 				case ImageChannel::Red:
@@ -911,8 +911,8 @@ public:
 	/// <param name="bIgnoreAlpha">是否忽略蒙版Alpha通道</param>
 	constexpr void MaskGrayscale(const CImageMat& Mask, BOOL bIgnoreAlpha = TRUE) const
 	{
-		for (int i = 0; i < m_cx; ++i)
-			for (int j = 0; j < m_cy; ++j)
+		for (int j = 0; j < m_cy; ++j)
+			for (int i = 0; i < m_cx; ++i)
 			{
 				auto& Pix = Pixel(i, j);
 				const auto MaskPix = Mask.Pixel(i, j);
@@ -933,8 +933,8 @@ public:
 	constexpr void MaskGrayscale(const CImageMat& Dst, const CImageMat& Mask,
 		BOOL bIgnoreAlpha = TRUE) const
 	{
-		for (int i = 0; i < m_cx; ++i)
-			for (int j = 0; j < m_cy; ++j)
+		for (int j = 0; j < m_cy; ++j)
+			for (int i = 0; i < m_cx; ++i)
 			{
 				const auto Pix = Pixel(i, j);
 				const auto MaskPix = Mask.Pixel(i, j);
@@ -954,8 +954,8 @@ public:
 	void RemoveNoisePixels(int nLevel = 1) const
 	{
 		constexpr TColor Marker = 0xFFFF0000;
-		for (int i = 0; i < m_cx; ++i)
-			for (int j = 0; j < m_cy; ++j)
+		for (int j = 0; j < m_cy; ++j)
+			for (int i = 0; i < m_cx; ++i)
 			{
 				auto& Pix = Pixel(i, j);
 				if (Pix.dw)
@@ -976,8 +976,8 @@ public:
 				}
 			NextPixel:;
 			}
-		for (int i = 0; i < m_cx; ++i)
-			for (int j = 0; j < m_cy; ++j)
+		for (int j = 0; j < m_cy; ++j)
+			for (int i = 0; i < m_cx; ++i)
 			{
 				auto& Pix = Pixel(i, j);
 				if (Pix.dw == Marker)
@@ -991,8 +991,8 @@ public:
 	/// <param name="fFactor">增强因子</param>
 	constexpr void EnhanceColor(float fFactor) const
 	{
-		for (int i = 0; i < m_cx; ++i)
-			for (int j = 0; j < m_cy; ++j)
+		for (int j = 0; j < m_cy; ++j)
+			for (int i = 0; i < m_cx; ++i)
 			{
 				auto& Pix = Pixel(i, j);
 				BYTE byColor[3]{ Pix.r, Pix.g, Pix.b };
@@ -1307,7 +1307,7 @@ public:
 	EckInline GpStatus Lock()
 	{
 		if (!m_BitmapData.Scan0)
-			return GdipBitmapLockBits(m_pBitmap, nullptr, 
+			return GdipBitmapLockBits(m_pBitmap, nullptr,
 				Gdiplus::ImageLockModeRead | Gdiplus::ImageLockModeWrite,
 				PixelFormat32bppARGB, &m_BitmapData);
 		else
@@ -1365,7 +1365,7 @@ public:
 		SetBits(m_Data.Data(), cx, cy, cx * 4);
 	}
 
-	CPureImageMat(const CImageMat& Src) 
+	CPureImageMat(const CImageMat& Src)
 		: m_Data{ (size_t)Src.GetWidth(), (size_t)Src.GetHeight() }
 	{
 		if (Src.GetWidth() * 4 == Src.GetStride())
