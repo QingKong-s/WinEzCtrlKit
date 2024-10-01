@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CRegion.h : 区域
+*
+* Copyright(C) 2023-2024 QingKong
+*/
+#pragma once
 #include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
@@ -40,8 +47,8 @@ private:
 			else
 			{
 				auto& e = m_vYCategory.back();
-				if (e.cXPair == cXPair &&
-					memcmp(m_vXPair.data() + e.idxXPairBegin, pXPair, sizeof(XPair) * cXPair) == 0)
+				if (e.cXPair == cXPair && yMin <= e.yMax &&
+					memcmp(m_vXPair.data() + e.idxXPairBegin, pXPair, cXPair * sizeof(XPair)) == 0)
 				{
 					e.yMin = std::min(e.yMin, yMin);
 					e.yMax = std::max(e.yMax, yMax);
@@ -53,10 +60,18 @@ private:
 				}
 			}
 		}
+
+		constexpr void AddYCategory(int yMin, int yMax)
+		{
+			m_vYCategory.emplace_back(yMin, yMax, (int)m_vXPair.size(), 0);
+		}
 	};
 
 	RECT m_SimpleRc{ InfMin,InfMin,InfMin,InfMin };
 	ComplexRegion* m_pComplex{};
+#ifdef _DEBUG
+	BOOL m_bRecordingPoint{};
+#endif
 
 	constexpr void AllocComplexRegion()
 	{
@@ -73,29 +88,33 @@ private:
 
 	constexpr static void SimplifyXPair(std::vector<XPair>& vXPair)
 	{
+		if (vXPair.size() <= 1)
+			return;
 		size_t idxDelBegin{ SizeTMax };
 		size_t idxDelEnd{ SizeTMax };
-		for (size_t i = 1; i < vXPair.size(); ++i)
+		for (size_t i = vXPair.size() - 1; i > 0; --i)
 		{
 			if (vXPair[i].xMin == vXPair[i - 1].xMax)
 			{
 				if (idxDelBegin == SizeTMax)
 				{
-					idxDelBegin = idxDelEnd = i;
-					vXPair[i - 1].xMax = vXPair[i].xMax;
+					idxDelBegin = idxDelEnd = i - 1;
+					vXPair[i].xMin = vXPair[i - 1].xMin;
 				}
 				else
-					++idxDelEnd;
-			}
-			else
-			{
-				if (idxDelBegin != SizeTMax)
 				{
-					vXPair.erase(vXPair.begin() + idxDelBegin, vXPair.begin() + idxDelEnd + 1);
-					idxDelBegin = idxDelEnd = SizeTMax;
+					idxDelBegin = i - 1;
+					vXPair[idxDelEnd + 1].xMin = vXPair[i - 1].xMin;
 				}
 			}
+			else if (idxDelBegin != SizeTMax)
+			{
+				vXPair.erase(vXPair.begin() + idxDelBegin, vXPair.begin() + idxDelEnd + 1);
+				idxDelBegin = idxDelEnd = SizeTMax;
+			}
 		}
+		if (idxDelBegin != SizeTMax)
+			vXPair.erase(vXPair.begin() + idxDelBegin, vXPair.begin() + idxDelEnd + 1);
 	}
 
 	constexpr static void XPairIntersect(const XPair* xPair1, const XPair* xPairEnd1,
@@ -184,6 +203,7 @@ private:
 			vResult.insert(vResult.end(), xPair1, xPairEnd1);
 		if (xPair2 < xPairEnd2)
 			vResult.insert(vResult.end(), xPair2, xPairEnd2);
+		SimplifyXPair(vResult);
 	}
 
 	constexpr static void XPairDiff(const XPair* xPair1, const XPair* xPairEnd1,
@@ -232,6 +252,7 @@ private:
 			if (xPair1 < xPairEnd1)
 				vResult.insert(vResult.end(), xPair1, xPairEnd1);
 		}
+		SimplifyXPair(vResult);
 	}
 
 	constexpr static void XPairSymDiff(const XPair* xPair1, const XPair* xPairEnd1,
@@ -386,10 +407,85 @@ private:
 			if (xPair2 < xPairEnd2)
 				vResult.insert(vResult.end(), xPair2, xPairEnd2);
 		}
+		SimplifyXPair(vResult);
 	}
 public:
+	class CPtRecorder
+	{
+		friend class CRegion;
+	private:
+		int m_y{ InfMin };
+		ComplexRegion* m_pComplex;
+		YCategory* m_pCurrYCat{};
+
+		constexpr CPtRecorder(ComplexRegion* pComplex) :m_pComplex{ pComplex } {}
+	public:
+		EckInline constexpr void BeginLine(int y)
+		{
+			EckAssert(y > m_y && m_pComplex && m_pCurrYCat == nullptr);
+			m_y = y;
+			m_pComplex->AddYCategory(m_y, m_y + 1);
+			m_pCurrYCat = &m_pComplex->m_vYCategory.back();
+		}
+
+		EckInline constexpr void EndLine()
+		{
+			EckAssert(m_y != InfMin && m_pComplex && m_pCurrYCat);
+			auto& vYCat = m_pComplex->m_vYCategory;
+			if (m_pCurrYCat->cXPair == 0)// 空分类，删除
+				vYCat.pop_back();
+			else if (vYCat.size() > 1)
+			{
+				auto& Prev = vYCat[vYCat.size() - 2];
+				if (m_pCurrYCat->cXPair == Prev.cXPair && m_pCurrYCat->yMin <= Prev.yMax &&
+					memcmp(m_pComplex->m_vXPair.data() + m_pCurrYCat->idxXPairBegin,
+						m_pComplex->m_vXPair.data() + Prev.idxXPairBegin,
+						m_pCurrYCat->cXPair * sizeof(XPair)) == 0)// 此分类与上一个相交/相邻分类相同，合并
+				{
+					Prev.yMax = m_pCurrYCat->yMax;
+					vYCat.pop_back();
+				}
+			}
+#ifdef _DEBUG
+			m_y = InfMin;
+			m_pCurrYCat = nullptr;
+#endif
+		}
+
+		constexpr void AddPoint(int x)
+		{
+			EckAssert(m_y != InfMin && m_pComplex && m_pCurrYCat);
+			if (m_pCurrYCat->cXPair == 0)
+			{
+				m_pComplex->m_vXPair.emplace_back(x, x + 1);
+				++m_pCurrYCat->cXPair;
+			}
+			else
+			{
+				const auto itBegin = m_pComplex->m_vXPair.begin() + m_pCurrYCat->idxXPairBegin;
+				const auto itEnd = itBegin + m_pCurrYCat->cXPair;
+				for (auto it = itBegin; it != itEnd; ++it)// 检查已有相邻范围
+				{
+					if (x == it->xMin - 1)
+					{
+						--it->xMin;
+						return;
+					}
+					else if (x == it->xMax)
+					{
+						++it->xMax;
+						return;
+					}
+				}
+				m_pComplex->m_vXPair.emplace_back(x, x + 1);
+				++m_pCurrYCat->cXPair;
+			}
+		}
+	};
+
 	constexpr void SetRect(const RECT* prc, int cRc)
 	{
+		EckAssert(!m_bRecordingPoint);
 		if (cRc == 1)
 		{
 			if (m_pComplex)
@@ -430,6 +526,7 @@ public:
 
 	constexpr void GetRect(std::vector<RECT>& vRc) const
 	{
+		EckAssert(!m_bRecordingPoint);
 		if (m_pComplex)
 		{
 			for (const auto& yCat : m_pComplex->m_vYCategory)
@@ -447,6 +544,7 @@ public:
 
 	constexpr CRegion Intersect(const CRegion& Rgn) const
 	{
+		EckAssert(!m_bRecordingPoint);
 		CRegion RgnResult{};
 		if (!m_pComplex && !Rgn.m_pComplex)// optimization for simple region
 		{
@@ -509,7 +607,7 @@ public:
 		vXPairWork.reserve(std::max(xPairEnd1 - xPair1, xPairEnd2 - xPair2));
 		EckLoop()
 		{
-			if (yCat1->yMin < yCat2->yMin)
+			if (yCat1->yMin <= yCat2->yMin)
 			{
 				if (yCat1->yMax < yCat2->yMin)// 不相交，跳过yCat1
 				{
@@ -584,6 +682,7 @@ public:
 
 	constexpr CRegion Union(const CRegion& Rgn) const
 	{
+		EckAssert(!m_bRecordingPoint);
 		CRegion RgnResult{};
 
 		const XPair* xPair1;
@@ -761,6 +860,7 @@ public:
 
 	constexpr CRegion Difference(const CRegion& Rgn) const
 	{
+		EckAssert(!m_bRecordingPoint);
 		CRegion RgnResult{};
 
 		const XPair* xPair1;
@@ -894,6 +994,7 @@ public:
 
 	constexpr CRegion SymmetricDifference(const CRegion& Rgn) const
 	{
+		EckAssert(!m_bRecordingPoint);
 		CRegion RgnResult{};
 
 		const XPair* xPair1;
@@ -1067,6 +1168,30 @@ public:
 			xPairEnd2 = xPair2 + yCat2->cXPair;
 		}
 		return RgnResult;
+	}
+
+	/// <summary>
+	/// 开始记录点。
+	/// 函数清空当前区域，并返回记录器。此为点并区域的优化实现，只可自上而下记录点，但可以跨越空行
+	/// </summary>
+	CPtRecorder RpBegin()
+	{
+#ifdef _DEBUG
+		EckAssert(!m_bRecordingPoint && L"Recording point already started.");
+		m_bRecordingPoint = TRUE;
+#endif
+		if (!m_pComplex)
+			AllocComplexRegion();
+		m_pComplex->Reset();
+		return CPtRecorder(m_pComplex);
+	}
+
+	EckInline constexpr void RpEnd([[maybe_unused]] const CPtRecorder& rpr)
+	{
+#ifdef _DEBUG
+		EckAssert(m_bRecordingPoint && L"Recording point not started.");
+		m_bRecordingPoint = FALSE;
+#endif
 	}
 };
 ECK_NAMESPACE_END
