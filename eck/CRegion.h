@@ -504,6 +504,47 @@ public:
 		}
 	};
 
+	CRegion() = default;
+	constexpr CRegion(const CRegion& x) :m_rc{ x.m_rc }, m_pComplex{ new ComplexRegion{*x.m_pComplex} }
+	{
+		EckAssert(!x.m_bRecordingPoint);
+	}
+	constexpr CRegion(CRegion&& x) noexcept :m_rc{ x.m_rc }, m_pComplex{ x.m_pComplex }
+	{
+		EckAssert(!x.m_bRecordingPoint);
+		x.m_rc.left = x.m_rc.top = x.m_rc.right = x.m_rc.bottom = InfMin;
+		x.m_pComplex = nullptr;
+	}
+
+	constexpr CRegion& operator=(const CRegion& x)
+	{
+		EckAssert(!x.m_bRecordingPoint && !m_bRecordingPoint);
+		if (this != &x)
+		{
+			if (m_pComplex)
+				delete m_pComplex;
+			m_rc = x.m_rc;
+			m_pComplex = new ComplexRegion{ *x.m_pComplex };
+		}
+		return *this;
+	}
+
+	constexpr CRegion& operator=(CRegion&& x) noexcept
+	{
+		EckAssert(!x.m_bRecordingPoint && !m_bRecordingPoint);
+		if (this != &x)
+		{
+			std::swap(m_rc, x.m_rc);
+			std::swap(m_pComplex, x.m_pComplex);
+		}
+		return *this;
+	}
+
+	~CRegion()
+	{
+		delete m_pComplex;
+	}
+
 	constexpr void SetRect(const RECT* prc, int cRc)
 	{
 		EckAssert(!m_bRecordingPoint);
@@ -564,6 +605,49 @@ public:
 			FreeComplexRegion();
 		m_rc.left = m_rc.top = InfMin;
 		m_rc.right = m_rc.bottom = InfMax;
+	}
+
+	BOOL SetHRgn(HRGN hRgn)
+	{
+		EckAssert(!m_bRecordingPoint);
+		const auto cbBuf = GetRegionData(hRgn, 0, nullptr);
+		if (!cbBuf)
+			return FALSE;
+		UniquePtrCrtMA<RGNDATAHEADER> pBuf((RGNDATAHEADER*)malloc(cbBuf));
+		if (!GetRegionData(hRgn, cbBuf, (RGNDATA*)pBuf.get()))
+			return FALSE;
+		SetRect((RECT*)(pBuf.get() + 1), (int)pBuf->nCount);
+		return TRUE;
+	}
+
+	GpStatus SetGpRegion(GpRegion* pRegion)
+	{
+		EckAssert(!m_bRecordingPoint);
+		GpStatus gps;
+		GpMatrix* pMat;
+		if ((gps = GdipCreateMatrix(&pMat)) != Gdiplus::Ok)
+			return gps;
+		UINT cRc{};
+		if ((gps = GdipGetRegionScansCount(pRegion, &cRc, pMat)) != Gdiplus::Ok)
+		{
+			GdipDeleteMatrix(pMat);
+			return gps;
+		}
+		if (!cRc)
+		{
+			GdipDeleteMatrix(pMat);
+			SetEmpty();
+			return Gdiplus::Ok;
+		}
+		std::vector<GpRectF> vRc(cRc);
+		if ((gps = GdipGetRegionScans(pRegion, vRc.data(), (int*)&cRc, pMat)) != Gdiplus::Ok)
+		{
+			GdipDeleteMatrix(pMat);
+			return gps;
+		}
+		GdipDeleteMatrix(pMat);
+		SetRect((RECT*)vRc.data(), cRc);
+		return Gdiplus::Ok;
 	}
 
 	constexpr BOOL IsEmpty() const
@@ -636,7 +720,7 @@ public:
 		rcBound = m_rc;
 	}
 
-	constexpr CRegion Intersect(const CRegion& Rgn) const
+	CRegion Intersect(const CRegion& Rgn) const
 	{
 		EckAssert(!m_bRecordingPoint);
 		CRegion RgnResult{};
@@ -774,7 +858,7 @@ public:
 		return RgnResult;
 	}
 
-	constexpr CRegion Union(const CRegion& Rgn) const
+	CRegion Union(const CRegion& Rgn) const
 	{
 		EckAssert(!m_bRecordingPoint);
 		CRegion RgnResult{};
@@ -952,7 +1036,7 @@ public:
 		return RgnResult;
 	}
 
-	constexpr CRegion Difference(const CRegion& Rgn) const
+	CRegion Difference(const CRegion& Rgn) const
 	{
 		EckAssert(!m_bRecordingPoint);
 		CRegion RgnResult{};
@@ -1086,7 +1170,7 @@ public:
 		return RgnResult;
 	}
 
-	constexpr CRegion SymmetricDifference(const CRegion& Rgn) const
+	CRegion SymmetricDifference(const CRegion& Rgn) const
 	{
 		EckAssert(!m_bRecordingPoint);
 		CRegion RgnResult{};

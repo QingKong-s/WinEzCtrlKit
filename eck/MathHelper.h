@@ -480,32 +480,9 @@ inline void CalcBezierControlPoints(std::vector<TPt>& vPt, const TPt* pPt, int c
 	_freea(pptMid);
 }
 
-/// <summary>
-/// 点叉乘向量
-/// </summary>
-/// <typeparam name="TVal"></typeparam>
-/// <param name="ptx">点X</param>
-/// <param name="pty">点Y</param>
-/// <param name="x1">起点X</param>
-/// <param name="y1">起点Y</param>
-/// <param name="x2">终点X</param>
-/// <param name="y2">终点Y</param>
-/// <returns>返回正值表示点在向量右侧，返回负值表示点在向量左侧，返回零表示点在向量上。</returns>
-template<class TVal>
-EckInline [[nodiscard]] constexpr TVal PtCrossVector(TVal ptx, TVal pty,
-	TVal x1, TVal y1, TVal x2, TVal y2)
+EckInline [[nodiscard]] float CalcPointToLineDistance(POINT pt, POINT pt1, POINT pt2)
 {
-	return (x2 - x1) * (pty - y1) - (ptx - x1) * (y2 - y1);
-}
-
-template<class TVal = float>
-EckInline [[nodiscard]] constexpr TVal PtCrossVector(POINT pt, POINT pt1, POINT pt2)
-{
-	return TVal((pt2.x - pt1.x) * (pt.y - pt1.y) - (pt.x - pt1.x) * (pt2.y - pt1.y));
-}
-
-EckInline [[nodiscard]] int CalcPointToLineDistance(POINT pt, POINT pt1, POINT pt2)
-{
-	return abs(PtCrossVector<int>(pt, pt1, pt2)) / CalcLineLength(pt1.x, pt1.y, pt2.x, pt2.y) * 2;
+	return fabsf((pt2.y - pt1.y) * pt.x - (pt2.x - pt1.x) * pt.y + pt2.x * pt1.y - pt2.y * pt1.x) /
+		sqrtf((pt2.x - pt1.x) * (pt2.x - pt1.x) + (pt2.y - pt1.y) * (pt2.y - pt1.y));
 }
 ECK_NAMESPACE_END
