@@ -2,6 +2,7 @@
 #include "eck\CForm.h"
 #include "eck\CDrawPanel.h"
 #include "eck\CRegion.h"
+#include "eck\CImageMat.h"
 
 using namespace eck;
 
