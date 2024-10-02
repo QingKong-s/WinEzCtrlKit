@@ -8,6 +8,7 @@
 #pragma once
 #include "CArray2D.h"
 #include "MathHelper.h"
+#include "CRegion.h"
 
 #include <stack>
 #include <set>
@@ -748,13 +749,18 @@ public:
 		GrayscaleChannel(*this, eChannel);
 	}
 
-	// 取非透明像素区域外接矩形
-	void GetContentRect(RECT& rc) const
+	/// <summary>
+	/// 取满足指定条件像素区域的外接矩形
+	/// </summary>
+	/// <param name="rc">结果</param>
+	/// <param name="fn">判断过程，应有如下形式：BOOL fn(TArgb cr)，若满足某条件则返回非零</param>
+	template<class FProc>
+	void GetBoundingRectByCondition(RECT& rc, FProc fn) const
 	{
 		for (int j = 0; j < m_cy; ++j)
 			for (int i = 0; i < m_cx; ++i)
 			{
-				if (Pixel(i, j).a)
+				if (fn(Pixel(i, j)))
 				{
 					rc.left = i;
 					goto EndL;
@@ -764,7 +770,7 @@ public:
 		for (int j = 0; j < m_cy; ++j)
 			for (int i = m_cx - 1; i >= rc.left; --i)
 			{
-				if (Pixel(i, j).a)
+				if (fn(Pixel(i, j)))
 				{
 					rc.right = i + 1;
 					goto EndR;
@@ -774,7 +780,7 @@ public:
 		for (int i = rc.left; i < rc.right; ++i)
 			for (int j = 0; j < m_cy; ++j)
 			{
-				if (Pixel(i, j).a)
+				if (fn(Pixel(i, j)))
 				{
 					rc.top = j;
 					goto EndT;
@@ -784,13 +790,19 @@ public:
 		for (int i = rc.left; i < rc.right; ++i)
 			for (int j = m_cy - 1; j >= rc.top; --j)
 			{
-				if (Pixel(i, j).a)
+				if (fn(Pixel(i, j)))
 				{
 					rc.bottom = j + 1;
 					goto EndB;
 				}
 			}
 	EndB:;
+	}
+
+	// 取非透明像素区域外接矩形
+	EckInline void GetOpaqueRect(RECT& rc, BYTE byMinAlpha = 100) const
+	{
+		GetBoundingRectByCondition(rc, [=](TArgb cr) -> BOOL { return cr.a >= byMinAlpha; });
 	}
 
 	/// <summary>
@@ -1240,6 +1252,30 @@ public:
 					}
 				}
 			}
+	}
+
+	template<class FProc>
+	CRegion GetRegionByCondition(FProc fn) const
+	{
+		CRegion Ret{};
+		auto rpr = Ret.RpBegin();
+		for (int j = 0; j < m_cy; ++j)
+		{
+			rpr.BeginLine(j);
+			for (int i = 0; i < m_cx; ++i)
+			{
+				if (fn(Pixel(i, j)))
+					rpr.AddPoint(i);
+			}
+			rpr.EndLine();
+		}
+		Ret.RpEnd(rpr);
+		return Ret;
+	}
+
+	EckInline CRegion GetOpaqueRegion(BYTE byMinAlpha = 100) const
+	{
+		return GetRegionByCondition([=](TArgb cr) { return cr.a >= byMinAlpha; });
 	}
 };
 
