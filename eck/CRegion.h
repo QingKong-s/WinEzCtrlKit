@@ -3,7 +3,7 @@
 *
 * CRegion.h : 区域
 *
-* Copyright(C) 2023-2024 QingKong
+* Copyright(C) 2024 QingKong
 */
 #pragma once
 #include "Utility.h"
@@ -39,6 +39,7 @@ private:
 
 		void AddYCategory(int yMin, int yMax, const XPair* pXPair, int cXPair, RECT& rcBound)
 		{
+			EckAssert(yMin < yMax && L"Invalid y range.");
 			if (m_vYCategory.empty())
 			{
 				m_vYCategory.emplace_back(yMin, yMax, (int)m_vXPair.size(), cXPair);
@@ -211,20 +212,22 @@ private:
 		SimplifyXPair(vResult);
 	}
 
-	constexpr static void XPairDiff(const XPair* xPair1, const XPair* xPairEnd1,
+	static void XPairDiff(const XPair* xPair1, const XPair* xPairEnd1,
 		const XPair* xPair2, const XPair* xPairEnd2, std::vector<XPair>& vResult)
 	{
 		vResult.clear();
 		int xMin1 = xPair1->xMin;
-		do
+		EckLoop()
 		{
 			if (xMin1 < xPair2->xMin)
 			{
 				auto& e = vResult.emplace_back(xMin1);
-				if (xPair1->xMax < xPair2->xMin)
+				if (xPair1->xMax <= xPair2->xMin)
 				{
 					e.xMax = xPair1->xMax;
 					++xPair1;
+					if (xPair1 == xPairEnd1)
+						break;
 					xMin1 = xPair1->xMin;
 				}
 				else
@@ -233,22 +236,30 @@ private:
 					xMin1 = xPair2->xMin;
 				}
 			}
-			else if (xPair2->xMax > xPair1->xMin)// 相交
+			else if (xPair2->xMax > xMin1)// 相交
 			{
-				if (xPair2->xMax > xPair1->xMax)
+				if (xPair2->xMax >= xPair1->xMax)
 				{
 					++xPair1;
+					if (xPair1 == xPairEnd1)
+						break;
 					xMin1 = xPair1->xMin;
 				}
 				else
 				{
 					xMin1 = xPair2->xMax;
 					++xPair2;
+					if (xPair2 == xPairEnd2)
+						break;
 				}
 			}
 			else
+			{
 				++xPair2;
-		} while (xPair1 < xPairEnd1 && xPair2 < xPairEnd2);
+				if (xPair2 == xPairEnd2)
+					break;
+			}
+		}
 		// 左边剩下的全部加入
 		if (xPair1 < xPairEnd1)
 		{
@@ -455,9 +466,11 @@ public:
 				auto& Prev = vYCat[vYCat.size() - 2];
 				if (m_pCurrYCat->cXPair == Prev.cXPair && m_pCurrYCat->yMin <= Prev.yMax &&
 					memcmp(pLeft, m_pComplex->m_vXPair.data() + Prev.idxXPairBegin,
-						m_pCurrYCat->cXPair * sizeof(XPair)) == 0)// 此分类与上一个相交/相邻分类相同，合并
+						m_pCurrYCat->cXPair * sizeof(XPair)) == 0)// 此分类与上一个相邻分类相同，合并
 				{
 					Prev.yMax = m_pCurrYCat->yMax;
+					const auto itBegin = m_pComplex->m_vXPair.begin() + m_pCurrYCat->idxXPairBegin;
+					m_pComplex->m_vXPair.erase(itBegin, itBegin + m_pCurrYCat->cXPair);
 					vYCat.pop_back();
 				}
 				else// 若跟上一分类不同，则更新范围
@@ -487,6 +500,8 @@ public:
 				const auto itEnd = itBegin + m_pCurrYCat->cXPair;
 				for (auto it = itBegin; it != itEnd; ++it)// 检查已有相邻范围
 				{
+					EckAssert(!(it->xMin <= x && x < it->xMax));// 这是增量录点，不应该有重复添加的情况
+					// 是否相邻
 					if (x == it->xMin - 1)
 					{
 						--it->xMin;
@@ -789,10 +804,10 @@ public:
 			{
 				if (yCat1->yMax < yCat2->yMin)// 不相交，跳过yCat1
 				{
+					xPair1 += yCat1->cXPair;
 					++yCat1;
 					if (yCat1 == yCatEnd1)
 						break;
-					xPair1 += yCat1->cXPair;
 					xPairEnd1 = xPair1 + yCat1->cXPair;
 					continue;
 				}
@@ -802,10 +817,10 @@ public:
 					XPairIntersect(xPair1, xPairEnd1, xPair2, xPairEnd2, vXPairWork);
 					RgnResult.m_pComplex->AddYCategory(yCat2->yMin, yCat1->yMax,
 						vXPairWork.data(), (int)vXPairWork.size(), RgnResult.m_rc);
+					xPair1 += yCat1->cXPair;
 					++yCat1;
 					if (yCat1 == yCatEnd1)
 						break;
-					xPair1 += yCat1->cXPair;
 					xPairEnd1 = xPair1 + yCat1->cXPair;
 				}
 				else
@@ -813,10 +828,10 @@ public:
 					XPairIntersect(xPair1, xPairEnd1, xPair2, xPairEnd2, vXPairWork);
 					RgnResult.m_pComplex->AddYCategory(yCat2->yMin, yCat2->yMax,
 						vXPairWork.data(), (int)vXPairWork.size(), RgnResult.m_rc);
+					xPair2 += yCat2->cXPair;
 					++yCat2;
 					if (yCat2 == yCatEnd2)
 						break;
-					xPair2 += yCat2->cXPair;
 					xPairEnd2 = xPair2 + yCat2->cXPair;
 				}
 			}
@@ -828,10 +843,10 @@ public:
 					XPairIntersect(xPair1, xPairEnd1, xPair2, xPairEnd2, vXPairWork);
 					RgnResult.m_pComplex->AddYCategory(yCat1->yMin, yCat2->yMax,
 						vXPairWork.data(), (int)vXPairWork.size(), RgnResult.m_rc);
+					xPair2 += yCat2->cXPair;
 					++yCat2;
 					if (yCat2 == yCatEnd2)
 						break;
-					xPair2 += yCat2->cXPair;
 					xPairEnd2 = xPair2 + yCat2->cXPair;
 				}
 				else
@@ -839,19 +854,19 @@ public:
 					XPairIntersect(xPair1, xPairEnd1, xPair2, xPairEnd2, vXPairWork);
 					RgnResult.m_pComplex->AddYCategory(yCat1->yMin, yCat1->yMax,
 						vXPairWork.data(), (int)vXPairWork.size(), RgnResult.m_rc);
+					xPair1 += yCat1->cXPair;
 					++yCat1;
 					if (yCat1)
 						break;
-					xPair1 += yCat1->cXPair;
 					xPairEnd1 = xPair1 + yCat1->cXPair;
 				}
 			}
 			else
 			{
+				xPair1 += yCat1->cXPair;
 				++yCat1;
 				if (yCat1 == yCatEnd1)
 					break;
-				xPair1 += yCat1->cXPair;
 				xPairEnd1 = xPair1 + yCat1->cXPair;
 			}
 		}
@@ -929,11 +944,12 @@ public:
 				{
 					RgnResult.m_pComplex->AddYCategory(yMin1, yCat1->yMax,
 						xPair1, yCat1->cXPair, RgnResult.m_rc);
+
+					xPair1 += yCat1->cXPair;
 					++yCat1;
 					if (yCat1 == yCatEnd1)
 						break;
 					yMin1 = yCat1->yMin;
-					xPair1 += yCat1->cXPair;
 					xPairEnd1 = xPair1 + yCat1->cXPair;
 				}
 				else// 1与2相交，拉平1
@@ -949,11 +965,12 @@ public:
 				{
 					RgnResult.m_pComplex->AddYCategory(yMin2, yCat2->yMax,
 						xPair2, yCat2->cXPair, RgnResult.m_rc);
+
+					xPair2 += yCat2->cXPair;
 					++yCat2;
 					if (yCat2 == yCatEnd2)
 						break;
 					yMin2 = yCat2->yMin;
-					xPair2 += yCat2->cXPair;
 					xPairEnd2 = xPair2 + yCat2->cXPair;
 				}
 				else// 2与1相交，拉平2
@@ -972,11 +989,12 @@ public:
 					RgnResult.m_pComplex->AddYCategory(yMin1, yCat1->yMax,
 						vXPairWork.data(), (int)vXPairWork.size(), RgnResult.m_rc);
 					yMin2 = yCat1->yMax;
+
+					xPair1 += yCat1->cXPair;
 					++yCat1;
 					if (yCat1 == yCatEnd1)
 						break;
 					yMin1 = yCat1->yMin;
-					xPair1 += yCat1->cXPair;
 					xPairEnd1 = xPair1 + yCat1->cXPair;
 				}
 				else if (yCat2->yMax < yCat1->yMax)// 2较短
@@ -984,11 +1002,12 @@ public:
 					RgnResult.m_pComplex->AddYCategory(yMin2, yCat2->yMax,
 						vXPairWork.data(), (int)vXPairWork.size(), RgnResult.m_rc);
 					yMin1 = yCat2->yMax;
+
+					xPair2 += yCat2->cXPair;
 					++yCat2;
 					if (yCat2 == yCatEnd2)
 						break;
 					yMin2 = yCat2->yMin;
-					xPair2 += yCat2->cXPair;
 					xPairEnd2 = xPair2 + yCat2->cXPair;
 				}
 				else// 对齐
@@ -996,20 +1015,20 @@ public:
 					RgnResult.m_pComplex->AddYCategory(yMin1, yCat1->yMax,
 						vXPairWork.data(), (int)vXPairWork.size(), RgnResult.m_rc);
 					BOOL bEnd{};
+					xPair1 += yCat1->cXPair;
 					++yCat1;
 					if (yCat1 == yCatEnd1)
 						bEnd = TRUE;
 					else
 					{
 						yMin1 = yCat1->yMin;
-						xPair1 += yCat1->cXPair;
 						xPairEnd1 = xPair1 + yCat1->cXPair;
 					}
+					xPair2 += yCat2->cXPair;
 					++yCat2;
 					if (yCat2 == yCatEnd2)
 						break;
 					yMin2 = yCat2->yMin;
-					xPair2 += yCat2->cXPair;
 					xPairEnd2 = xPair2 + yCat2->cXPair;
 					if (bEnd)
 						break;
@@ -1017,21 +1036,31 @@ public:
 			}
 		}
 		// 处理剩余部分，注意上次可能拉平了某Y分类，因此绝不能忽略yMin1和yMin2
-		for (; yCat1 < yCatEnd1; ++yCat1)
+		if (yCat1 < yCatEnd1)
 		{
-			RgnResult.m_pComplex->AddYCategory(yMin1, yCat1->yMax,
-				xPair1, yCat1->cXPair, RgnResult.m_rc);
-			yMin1 = yCat1->yMin;
-			xPair1 += yCat1->cXPair;
-			xPairEnd1 = xPair1 + yCat1->cXPair;
+			EckLoop()
+			{
+				RgnResult.m_pComplex->AddYCategory(yMin1, yCat1->yMax,
+					xPair1, yCat1->cXPair, RgnResult.m_rc);
+				xPair1 += yCat1->cXPair;
+				++yCat1;
+				if (yCat1 == yCatEnd1)
+					break;
+				yMin1 = yCat1->yMin;
+			}
 		}
-		for (; yCat2 < yCatEnd2; ++yCat2)
+		if (yCat2 < yCatEnd2)
 		{
-			RgnResult.m_pComplex->AddYCategory(yMin2, yCat2->yMax,
-				xPair2, yCat2->cXPair, RgnResult.m_rc);
-			yMin2 = yCat2->yMin;
-			xPair2 += yCat2->cXPair;
-			xPairEnd2 = xPair2 + yCat2->cXPair;
+			EckLoop()
+			{
+				RgnResult.m_pComplex->AddYCategory(yMin2, yCat2->yMax,
+					xPair2, yCat2->cXPair, RgnResult.m_rc);
+				xPair2 += yCat2->cXPair;
+				++yCat2;
+				if (yCat2 == yCatEnd2)
+					break;
+				yMin2 = yCat2->yMin;
+			}
 		}
 		return RgnResult;
 	}
@@ -1098,41 +1127,40 @@ public:
 		std::vector<XPair> vXPairWork{};
 		vXPairWork.reserve((xPairEnd1 - xPair1) + (xPairEnd2 - xPair2));
 		int yMin1 = yCat1->yMin;
-		int yMin2 = yCat2->yMin;
 		EckLoop()
 		{
-			if (yMin1 < yMin2)
+			if (yMin1 < yCat2->yMin)
 			{
-				if (yCat1->yMax <= yMin2)// 1不与2相交，合并1
+				if (yCat1->yMax <= yCat2->yMin)// 1不与2相交，合并1
 				{
 					RgnResult.m_pComplex->AddYCategory(yMin1, yCat1->yMax,
 						xPair1, yCat1->cXPair, RgnResult.m_rc);
+					xPair1 += yCat1->cXPair;
 					++yCat1;
 					if (yCat1 == yCatEnd1)
 						break;
 					yMin1 = yCat1->yMin;
-					xPair1 += yCat1->cXPair;
 					xPairEnd1 = xPair1 + yCat1->cXPair;
 				}
 				else// 1与2相交，拉平1
 				{
-					RgnResult.m_pComplex->AddYCategory(yMin1, yMin2,
+					RgnResult.m_pComplex->AddYCategory(yMin1, yCat2->yMin,
 						xPair1, yCat1->cXPair, RgnResult.m_rc);
-					yMin1 = yMin2;// 不要递增，1、2还留有一块未处理区域
+					yMin1 = yCat2->yMin;// 不要递增，1、2还留有一块未处理区域
 				}
 			}
 			else if (yMin1 < yCat2->yMax)
 			{
 				XPairDiff(xPair1, xPairEnd1, xPair2, xPairEnd2, vXPairWork);
-				if (yCat1->yMax < yCat2->yMax)
+				if (yCat1->yMax <= yCat2->yMax)
 				{
 					RgnResult.m_pComplex->AddYCategory(yMin1, yCat1->yMax,
 						vXPairWork.data(), (int)vXPairWork.size(), RgnResult.m_rc);
+					xPair1 += yCat1->cXPair;
 					++yCat1;
 					if (yCat1 == yCatEnd1)
 						break;
 					yMin1 = yCat1->yMin;
-					xPair1 += yCat1->cXPair;
 					xPairEnd1 = xPair1 + yCat1->cXPair;
 				}
 				else
@@ -1140,32 +1168,35 @@ public:
 					RgnResult.m_pComplex->AddYCategory(yMin1, yCat2->yMax,
 						vXPairWork.data(), (int)vXPairWork.size(), RgnResult.m_rc);
 					yMin1 = yCat2->yMax;
+					xPair2 += yCat2->cXPair;
 					++yCat2;
 					if (yCat2 == yCatEnd2)
 						break;
-					yMin2 = yCat2->yMin;
-					xPair2 += yCat2->cXPair;
 					xPairEnd2 = xPair2 + yCat2->cXPair;
 				}
 			}
 			else
 			{
+				xPair1 += yCat1->cXPair;
 				++yCat1;
 				if (yCat1 == yCatEnd1)
 					break;
 				yMin1 = yCat1->yMin;
-				xPair1 += yCat1->cXPair;
 				xPairEnd1 = xPair1 + yCat1->cXPair;
 			}
 		}
-		// 处理左边剩余部分，注意上次可能拉平了某Y分类，因此绝不能忽略yMin1和yMin2
-		for (; yCat1 < yCatEnd1; ++yCat1)
+		if (yCat1 < yCatEnd1)
 		{
-			RgnResult.m_pComplex->AddYCategory(yMin1, yCat1->yMax,
-				xPair1, yCat1->cXPair, RgnResult.m_rc);
-			yMin1 = yCat1->yMin;
-			xPair1 += yCat1->cXPair;
-			xPairEnd1 = xPair1 + yCat1->cXPair;
+			EckLoop()// 处理左边剩余部分，注意上次可能拉平了某Y分类，因此绝不能忽略yMin1
+			{
+				RgnResult.m_pComplex->AddYCategory(yMin1, yCat1->yMax,
+					xPair1, yCat1->cXPair, RgnResult.m_rc);
+				xPair1 += yCat1->cXPair;
+				++yCat1;
+				if (yCat1 == yCatEnd1)
+					break;
+				yMin1 = yCat1->yMin;
+			}
 		}
 		return RgnResult;
 	}
@@ -1241,11 +1272,12 @@ public:
 				{
 					RgnResult.m_pComplex->AddYCategory(yMin1, yCat1->yMax,
 						xPair1, yCat1->cXPair, RgnResult.m_rc);
+
+					xPair1 += yCat1->cXPair;
 					++yCat1;
 					if (yCat1 == yCatEnd1)
 						break;
 					yMin1 = yCat1->yMin;
-					xPair1 += yCat1->cXPair;
 					xPairEnd1 = xPair1 + yCat1->cXPair;
 				}
 				else// 1与2相交，拉平1
@@ -1261,11 +1293,12 @@ public:
 				{
 					RgnResult.m_pComplex->AddYCategory(yMin2, yCat2->yMax,
 						xPair2, yCat2->cXPair, RgnResult.m_rc);
+
+					xPair2 += yCat2->cXPair;
 					++yCat2;
 					if (yCat2 == yCatEnd2)
 						break;
 					yMin2 = yCat2->yMin;
-					xPair2 += yCat2->cXPair;
 					xPairEnd2 = xPair2 + yCat2->cXPair;
 				}
 				else// 2与1相交，拉平2
@@ -1284,11 +1317,12 @@ public:
 					RgnResult.m_pComplex->AddYCategory(yMin1, yCat1->yMax,
 						vXPairWork.data(), (int)vXPairWork.size(), RgnResult.m_rc);
 					yMin2 = yCat1->yMax;
+
+					xPair1 += yCat1->cXPair;
 					++yCat1;
 					if (yCat1 == yCatEnd1)
 						break;
 					yMin1 = yCat1->yMin;
-					xPair1 += yCat1->cXPair;
 					xPairEnd1 = xPair1 + yCat1->cXPair;
 				}
 				else if (yCat2->yMax < yCat1->yMax)// 2较短
@@ -1296,11 +1330,12 @@ public:
 					RgnResult.m_pComplex->AddYCategory(yMin1, yCat2->yMax,
 						vXPairWork.data(), (int)vXPairWork.size(), RgnResult.m_rc);
 					yMin1 = yCat2->yMax;
+
+					xPair2 += yCat2->cXPair;
 					++yCat2;
 					if (yCat2 == yCatEnd2)
 						break;
 					yMin2 = yCat2->yMin;
-					xPair2 += yCat2->cXPair;
 					xPairEnd2 = xPair2 + yCat2->cXPair;
 				}
 				else// 对齐
@@ -1308,20 +1343,20 @@ public:
 					RgnResult.m_pComplex->AddYCategory(yMin1, yCat1->yMax,
 						vXPairWork.data(), (int)vXPairWork.size(), RgnResult.m_rc);
 					BOOL bEnd{};
+					xPair1 += yCat1->cXPair;
 					++yCat1;
 					if (yCat1 == yCatEnd1)
 						bEnd = TRUE;
 					else
 					{
 						yMin1 = yCat1->yMin;
-						xPair1 += yCat1->cXPair;
 						xPairEnd1 = xPair1 + yCat1->cXPair;
 					}
+					xPair2 += yCat2->cXPair;
 					++yCat2;
 					if (yCat2 == yCatEnd2)
 						break;
 					yMin2 = yCat2->yMin;
-					xPair2 += yCat2->cXPair;
 					xPairEnd2 = xPair2 + yCat2->cXPair;
 					if (bEnd)
 						break;
@@ -1329,28 +1364,38 @@ public:
 			}
 		}
 		// 处理剩余部分，注意上次可能拉平了某Y分类，因此绝不能忽略yMin1和yMin2
-		for (; yCat1 < yCatEnd1; ++yCat1)
+		if (yCat1 < yCatEnd1)
 		{
-			RgnResult.m_pComplex->AddYCategory(yMin1, yCat1->yMax,
-				xPair1, yCat1->cXPair, RgnResult.m_rc);
-			yMin1 = yCat1->yMin;
-			xPair1 += yCat1->cXPair;
-			xPairEnd1 = xPair1 + yCat1->cXPair;
+			EckLoop()
+			{
+				RgnResult.m_pComplex->AddYCategory(yMin1, yCat1->yMax,
+					xPair1, yCat1->cXPair, RgnResult.m_rc);
+				xPair1 += yCat1->cXPair;
+				++yCat1;
+				if (yCat1 == yCatEnd1)
+					break;
+				yMin1 = yCat1->yMin;
+			}
 		}
-		for (; yCat2 < yCatEnd2; ++yCat2)
+		if (yCat2 < yCatEnd2)
 		{
-			RgnResult.m_pComplex->AddYCategory(yMin2, yCat2->yMax,
-				xPair2, yCat2->cXPair, RgnResult.m_rc);
-			yMin2 = yCat2->yMin;
-			xPair2 += yCat2->cXPair;
-			xPairEnd2 = xPair2 + yCat2->cXPair;
+			EckLoop()
+			{
+				RgnResult.m_pComplex->AddYCategory(yMin2, yCat2->yMax,
+					xPair2, yCat2->cXPair, RgnResult.m_rc);
+				xPair2 += yCat2->cXPair;
+				++yCat2;
+				if (yCat2 == yCatEnd2)
+					break;
+				yMin2 = yCat2->yMin;
+			}
 		}
 		return RgnResult;
 	}
 
 	/// <summary>
 	/// 开始记录点。
-	/// 函数清空当前区域，并返回记录器。此为点并区域的优化实现，只可自上而下记录点，但可以跨越空行
+	/// 函数清空当前区域，并返回记录器。此为点并区域的优化实现，只可自上而下、自左向右记录点，但可以跨越空行
 	/// </summary>
 	CPtRecorder RpBegin()
 	{
@@ -1376,6 +1421,7 @@ public:
 
 	HRGN ToHRgn(const XFORM* pXForm = nullptr) const
 	{
+		EckAssert(!m_bRecordingPoint);
 		if (IsInfinite())
 			return nullptr;
 		else if (IsEmpty())
@@ -1395,6 +1441,7 @@ public:
 
 	GpRegion* ToGpRegion() const
 	{
+		EckAssert(!m_bRecordingPoint);
 		const auto hRgn = ToHRgn();
 		GpRegion* pRegion;
 		GdipCreateRegionHrgn(hRgn, &pRegion);
@@ -1402,4 +1449,24 @@ public:
 		return pRegion;
 	}
 };
+
+EckInline CRegion operator|(const CRegion& Rgn1, const CRegion& Rgn2)
+{
+	return Rgn1.Union(Rgn2);
+}
+
+EckInline CRegion operator&(const CRegion& Rgn1, const CRegion& Rgn2)
+{
+	return Rgn1.Intersect(Rgn2);
+}
+
+EckInline CRegion operator-(const CRegion& Rgn1, const CRegion& Rgn2)
+{
+	return Rgn1.Difference(Rgn2);
+}
+
+EckInline CRegion operator^(const CRegion& Rgn1, const CRegion& Rgn2)
+{
+	return Rgn1.SymmetricDifference(Rgn2);
+}
 ECK_NAMESPACE_END
