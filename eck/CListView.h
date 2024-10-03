@@ -639,7 +639,7 @@ public:
 	EckInline int InsertColumn(PCWSTR pszText, int idx = -1, int cxColumn = 160, int iFmt = LVCFMT_LEFT) const
 	{
 		if (idx < 0)
-			idx = GetHeaderCtrl().GetItemCount();
+			idx = INT_MAX;
 		LVCOLUMNW lvc;
 		lvc.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_FMT;
 		lvc.pszText = (PWSTR)pszText;
@@ -1067,6 +1067,12 @@ public:
 				return i;
 		}
 		return -1;
+	}
+
+	EckInline void MakeMePretty() const
+	{
+		constexpr DWORD dwStyle = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER;
+		SetLVExtendStyle(dwStyle, dwStyle);
 	}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CListView, CWnd);

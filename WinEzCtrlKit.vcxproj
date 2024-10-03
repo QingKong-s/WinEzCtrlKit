@@ -181,6 +181,8 @@
     <ClInclude Include="eck\CWaitableObject.h" />
     <ClInclude Include="eck\CWaitableTimer.h" />
     <ClInclude Include="eck\DateTimeHelper.h" />
+    <ClInclude Include="eck\DDX.h" />
+    <ClInclude Include="eck\DDXImpl.h" />
     <ClInclude Include="eck\GdipEffect.h" />
     <ClInclude Include="eck\ISO8601Time.h" />
     <ClInclude Include="eck\Json.h" />
@@ -330,6 +332,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Win32Template.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

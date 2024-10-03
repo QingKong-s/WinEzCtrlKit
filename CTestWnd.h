@@ -3,12 +3,17 @@
 #include "eck\CDrawPanel.h"
 #include "eck\CRegion.h"
 #include "eck\CImageMat.h"
+#include "eck\DDXImpl.h"
 
 using namespace eck;
 
 struct CTestWnd :public eck::CForm
 {
 	CDrawPanel m_DP{};
+	CCheckButton m_CB{};
+	CCheckButton m_CB0{};
+	CDdxCheckButton m_DDXCB{};
+	CDdxRadioButton m_DDXRB{};
 
 	void Test();
 

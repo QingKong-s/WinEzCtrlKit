@@ -1433,8 +1433,8 @@ public:
 		GetRect((RECT*)(pRgnData.get() + 1), cRc);
 		pRgnData->dwSize = sizeof(RGNDATAHEADER);
 		pRgnData->iType = RDH_RECTANGLES;
-		pRgnData->nCount = cRc;
-		pRgnData->nRgnSize = cRc * sizeof(RECT);
+		pRgnData->nCount = (DWORD)cRc;
+		pRgnData->nRgnSize = DWORD(cRc * sizeof(RECT));
 		GetBound(pRgnData->rcBound);
 		return ExtCreateRegion(pXForm, (DWORD)cbBuf, (const RGNDATA*)pRgnData.get());
 	}

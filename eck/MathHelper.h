@@ -482,7 +482,7 @@ inline void CalcBezierControlPoints(std::vector<TPt>& vPt, const TPt* pPt, int c
 
 EckInline [[nodiscard]] float CalcPointToLineDistance(POINT pt, POINT pt1, POINT pt2)
 {
-	return fabsf((pt2.y - pt1.y) * pt.x - (pt2.x - pt1.x) * pt.y + pt2.x * pt1.y - pt2.y * pt1.x) /
-		sqrtf((pt2.x - pt1.x) * (pt2.x - pt1.x) + (pt2.y - pt1.y) * (pt2.y - pt1.y));
+	return fabsf(float((pt2.y - pt1.y) * pt.x - (pt2.x - pt1.x) * pt.y + pt2.x * pt1.y - pt2.y * pt1.x)) /
+		sqrtf(float((pt2.x - pt1.x) * (pt2.x - pt1.x) + (pt2.y - pt1.y) * (pt2.y - pt1.y)));
 }
 ECK_NAMESPACE_END
