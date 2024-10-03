@@ -468,6 +468,12 @@
     <ClInclude Include="eck\CRegion.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\DDX.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\DDXImpl.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">
@@ -490,5 +496,8 @@
     <ResourceCompile Include="Win32Template.rc">
       <Filter>资源文件</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>
