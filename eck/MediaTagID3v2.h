@@ -2485,114 +2485,32 @@ public:
 					mi.uMaskRead |= MIM_DATE;
 				}
 			}
-		}
-		return Result::Ok;
-	}
-
-	Result SimpleExtractMove(MUSICINFO& mi) override
-	{
-		mi.Clear();
-		if (m_vFrame.empty())
-			return Result::NoTag;
-		for (const auto e : m_vFrame)
-		{
-			if ((mi.uMask & MIM_TITLE) && memcmp(e->Id, "TIT2", 4) == 0)
+			else if ((mi.uMask & MIM_TRACK) && memcmp(e->Id, "TRCK", 4) == 0)
 			{
 				const auto p = DynCast<TEXTFRAME*>(e);
 				if (!p->vText.empty())
 				{
-					mi.rsTitle = std::move(p->vText[0]);
-					mi.uMaskRead |= MIM_TITLE;
-				}
-			}
-			else if ((mi.uMask & MIM_ARTIST) && memcmp(e->Id, "TPE1", 4) == 0)
-			{
-				const auto p = DynCast<TEXTFRAME*>(e);
-				for (auto& e : p->vText)
-				{
-					mi.AppendArtist(std::move(e));
-					mi.uMaskRead |= MIM_ARTIST;
-				}
-			}
-			else if ((mi.uMask & MIM_ALBUM) && memcmp(e->Id, "TALB", 4) == 0)
-			{
-				const auto p = DynCast<TEXTFRAME*>(e);
-				if (!p->vText.empty())
-				{
-					mi.rsAlbum = std::move(p->vText[0]);
-					mi.uMaskRead |= MIM_ALBUM;
-				}
-			}
-			else if ((mi.uMask & MIM_LRC) && memcmp(e->Id, "USLT", 4) == 0)
-			{
-				const auto p = DynCast<USLT*>(e);
-				mi.rsLrc = std::move(p->rsLrc);
-				mi.uMaskRead |= MIM_LRC;
-			}
-			else if ((mi.uMask & MIM_COMMENT) && memcmp(e->Id, "COMM", 4) == 0)
-			{
-				const auto p = DynCast<COMM*>(e);
-				mi.AppendComment(std::move(p->rsText));
-				mi.uMaskRead |= MIM_COMMENT;
-			}
-			else if ((mi.uMask & MIM_COVER) && memcmp(e->Id, "APIC", 4) == 0)
-			{
-				const auto p = DynCast<APIC*>(e);
-				MUSICPIC Pic{};
-				Pic.eType = p->eType;
-				Pic.rsDesc = std::move(p->rsDesc);
-				Pic.rsMime = std::move(p->rsMime);
-				Pic.bLink = (Pic.rsMime == "-->");
-				if (Pic.bLink)
-					Pic.varPic = StrX2W((PCSTR)p->rbData.Data(), (int)p->rbData.Size());
-				else
-					Pic.varPic = std::move(p->rbData);
-				mi.vImage.emplace_back(std::move(Pic));
-				mi.uMaskRead |= MIM_COVER;
-			}
-			else if ((mi.uMask & MIM_GENRE) && memcmp(e->Id, "TCON", 4) == 0)
-			{
-				const auto p = DynCast<TEXTFRAME*>(e);
-				if (!p->vText.empty())
-				{
-					mi.rsGenre = std::move(p->vText[0]);
-					mi.uMaskRead |= MIM_GENRE;
-				}
-			}
-			else if ((mi.uMask & MIM_DATE) && memcmp(e->Id, "TYER", 4) == 0)
-			{
-				const auto p = DynCast<TEXTFRAME*>(e);
-				if (!p->vText.empty())
-				{
-					if (mi.uFlag & MIF_DATE_STRING)
-						mi.Date = std::move(p->vText[0]);
+					mi.nTrack = (short)_wtoi(p->vText[0].Data());
+					const int posSlash = p->vText[0].FindChar(L'/');
+					if (posSlash != eck::StrNPos)
+						mi.cTotalTrack = (short)_wtoi(p->vText[0].Data() + posSlash + 1);
 					else
-						mi.Date = SYSTEMTIME{ .wYear = (WORD)_wtoi(p->vText[0].Data()) };
-					mi.uMaskRead |= MIM_DATE;
+						mi.cTotalTrack = 0;
+					mi.uMaskRead |= MIM_TRACK;
 				}
 			}
-			else if ((mi.uMask & MIM_DATE) && memcmp(e->Id, "TDRC", 4) == 0)
+			else if ((mi.uMask & MIM_DISC) && memcmp(e->Id, "TPOS", 4) == 0)
 			{
 				const auto p = DynCast<TEXTFRAME*>(e);
 				if (!p->vText.empty())
 				{
-					if (mi.uFlag & MIF_DATE_STRING)
-					{
-						mi.Date = std::move(p->vText[0]);
-						mi.uMaskRead |= MIM_DATE;
-					}
+					mi.nDisc = (short)_wtoi(p->vText[0].Data());
+					const int posSlash = p->vText[0].FindChar(L'/');
+					if (posSlash != eck::StrNPos)
+						mi.cTotalDisc = (short)_wtoi(p->vText[0].Data() + posSlash + 1);
 					else
-					{
-						SYSTEMTIME st{};
-						if (swscanf(p->vText[0].Data(), L"%hd-%hd-%hdT%hd:%hd:%hd",
-							&st.wYear, &st.wMonth, &st.wDay,
-							&st.wHour, &st.wMinute, &st.wSecond) > 0)
-						{
-							mi.Date = st;
-							mi.uMaskRead |= MIM_DATE;
-						}
-					}
-					mi.uMaskRead |= MIM_DATE;
+						mi.cTotalDisc = 0;
+					mi.uMaskRead |= MIM_DISC;
 				}
 			}
 		}

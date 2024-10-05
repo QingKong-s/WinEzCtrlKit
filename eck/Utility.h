@@ -1651,14 +1651,14 @@ EckInline constexpr BYTE GetArgbA(ARGB argb)
 }
 
 template<class TOut>
-EckInline constexpr void RgbToYuv(BYTE r, BYTE g, BYTE b, TOut& y, TOut& u, TOut& v)
+inline constexpr void RgbToYuv(BYTE r, BYTE g, BYTE b, TOut& y, TOut& u, TOut& v)
 {
 	y = TOut(0.299f * r + 0.587f * g + 0.114f * b);
 	u = TOut(-0.14713f * r - 0.28886f * g + 0.436f * b);
 	v = TOut(0.615f * r - 0.51499f * g - 0.10001f * b);
 }
 
-EckInline float CalcColorDiff(BYTE r1, BYTE g1, BYTE b1, BYTE r2, BYTE g2, BYTE b2)
+inline float CalcColorDiff(BYTE r1, BYTE g1, BYTE b1, BYTE r2, BYTE g2, BYTE b2)
 {
 	float y1, u1, v1, y2, u2, v2;
 	RgbToYuv(r1, g1, b1, y1, u1, v1);
@@ -1676,6 +1676,66 @@ EckInline float CalcColorDiffArgb(ARGB argb1, ARGB argb2)
 {
 	return CalcColorDiff(GetArgbR(argb1), GetArgbG(argb1), GetArgbB(argb1),
 		GetArgbR(argb2), GetArgbG(argb2), GetArgbB(argb2));
+}
+
+EckInline constexpr void ToStringUpper(PCVOID p, size_t cb, PWSTR pszResult)
+{
+	EckCounter(cb, i)
+	{
+		const BYTE b = ((PCBYTE)p)[i];
+		pszResult[i * 2] = ByteToHex(b >> 4);
+		pszResult[i * 2 + 1] = ByteToHex(b & 0b1111);
+	}
+}
+
+EckInline constexpr void ToStringLower(PCVOID p, size_t cb, PWSTR pszResult)
+{
+	EckCounter(cb, i)
+	{
+		const BYTE b = ((PCBYTE)p)[i];
+		pszResult[i * 2] = ByteToHexLower(b >> 4);
+		pszResult[i * 2 + 1] = ByteToHexLower(b & 0b1111);
+	}
+}
+
+EckInline constexpr void ToStringUpper(PCVOID p, size_t cb, PSTR pszResult)
+{
+	EckCounter(cb, i)
+	{
+		const BYTE b = ((PCBYTE)p)[i];
+		pszResult[i * 2] = ByteToHex(b >> 4);
+		pszResult[i * 2 + 1] = ByteToHex(b & 0b1111);
+	}
+}
+
+EckInline constexpr void ToStringLower(PCVOID p, size_t cb, PSTR pszResult)
+{
+	EckCounter(cb, i)
+	{
+		const BYTE b = ((PCBYTE)p)[i];
+		pszResult[i * 2] = ByteToHexLower(b >> 4);
+		pszResult[i * 2 + 1] = ByteToHexLower(b & 0b1111);
+	}
+}
+
+EckInline constexpr void Md5ToStringUpper(PCVOID pMd5, PWSTR pszResult)
+{
+	ToStringUpper(pMd5, (size_t)16, pszResult);
+}
+
+EckInline constexpr void Md5ToStringLower(PCVOID pMd5, PWSTR pszResult)
+{
+	ToStringLower(pMd5, (size_t)16, pszResult);
+}
+
+EckInline constexpr void Md5ToStringUpper(PCVOID pMd5, PSTR pszResult)
+{
+	ToStringUpper(pMd5, (size_t)16, pszResult);
+}
+
+EckInline constexpr void Md5ToStringLower(PCVOID pMd5, PSTR pszResult)
+{
+	ToStringLower(pMd5, (size_t)16, pszResult);
 }
 
 #if !ECKCXX20

@@ -203,6 +203,36 @@ public:
 					mi.uMaskRead |= MIM_DATE;
 				}
 			}
+			else if (mi.uFlag & MIM_TRACK)
+			{
+				if (e.rsKey.CompareI("TRACKNUMBER") || e.rsKey.CompareI("TRACK"))
+				{
+					mi.nTrack = (short)_wtoi(e.rsValue.Data());
+					const int posSlash = e.rsValue.FindChar(L'/');
+					if (posSlash != eck::StrNPos)
+						mi.cTotalTrack = (short)_wtoi(e.rsValue.Data() + posSlash + 1);
+					else
+						mi.cTotalTrack = 0;
+					mi.uMaskRead |= MIM_TRACK;
+				}
+				else if (e.rsKey.CompareI("TRACKTOTAL"))
+					mi.cTotalTrack = (short)_wtoi(e.rsValue.Data());
+			}
+			else if (mi.uFlag & MIM_DISC)
+			{
+				if (e.rsKey.CompareI("DISCNUMBER"))
+				{
+					mi.nDisc = (short)_wtoi(e.rsValue.Data());
+					const int posSlash = e.rsValue.FindChar(L'/');
+					if (posSlash != eck::StrNPos)
+						mi.cTotalDisc = (short)_wtoi(e.rsValue.Data() + posSlash + 1);
+					else
+						mi.cTotalDisc = 0;
+					mi.uMaskRead |= MIM_DISC;
+				}
+				else if (e.rsKey.CompareI("DISCTOTAL"))
+					mi.cTotalDisc = (short)_wtoi(e.rsValue.Data());
+			}
 		}
 		if ((mi.uFlag & MIM_COVER) && !m_vPic.empty())
 		{

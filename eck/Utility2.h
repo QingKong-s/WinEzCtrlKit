@@ -8,8 +8,11 @@
 #pragma once
 #include "CRefBin.h"
 #include "CRefStr.h"
+#include "CMemWalker.h"
 
 #include "ZLib/zlib.h"
+
+#include <random>
 
 ECK_NAMESPACE_BEGIN
 inline constexpr BYTE c_Base64DecodeTable[]
@@ -92,10 +95,10 @@ inline CRefBin Base64Decode(PCSTR psz, int cch)
 	return rb;
 }
 
-inline CRefStrA Base64Encode(PCVOID p_, size_t cb)
+inline void Base64Encode(PCVOID p_, size_t cb, CRefStrA& rs)
 {
 	PCBYTE p = (PCBYTE)p_;
-	CRefStrA rs(int(4 * ((cb + 2) / 3)));
+	const auto pDst = rs.PushBackNoExtra(int(4 * ((cb + 2) / 3)));
 	int i = 0;
 	int j = 0;
 	BYTE t3[3];
@@ -113,7 +116,7 @@ inline CRefStrA Base64Encode(PCVOID p_, size_t cb)
 			t4[3] = t3[2] & 0x3f;
 
 			for (i = 0; (i < 4); i++)
-				rs[pos++] = c_Base64EncodeTable[t4[i]];
+				pDst[pos++] = c_Base64EncodeTable[t4[i]];
 			i = 0;
 		}
 	}
@@ -129,18 +132,28 @@ inline CRefStrA Base64Encode(PCVOID p_, size_t cb)
 		t4[3] = t3[2] & 0x3f;
 
 		for (j = 0; (j < i + 1); j++)
-			rs[pos++] = c_Base64EncodeTable[t4[j]];
+			pDst[pos++] = c_Base64EncodeTable[t4[j]];
 
 		while ((i++ < 3))
-			rs[pos++] = '=';
+			pDst[pos++] = '=';
 	}
+}
 
+inline CRefStrA Base64Encode(PCVOID p, size_t cb)
+{
+	CRefStrA rs{};
+	Base64Encode(p, cb, rs);
 	return rs;
 }
 
 EckInline CRefStrA Base64Encode(const CRefBin& rb)
 {
 	return Base64Encode(rb.Data(), rb.Size());
+}
+
+EckInline void Base64Encode(const CRefBin& rb, CRefStrA& rs)
+{
+	Base64Encode(rb.Data(), rb.Size(), rs);
 }
 
 constexpr inline UINT CrcTable[]
@@ -374,46 +387,6 @@ TidyUp:
 	if (pHashObject)
 		_freea(pHashObject);
 	return nts;
-}
-
-EckInline constexpr void Md5ToStringUpper(PCVOID pMd5, PWSTR pszResult)
-{
-	EckCounter((size_t)16, i)
-	{
-		const BYTE b = ((PCBYTE)pMd5)[i];
-		pszResult[i * 2] = ByteToHex(b >> 4);
-		pszResult[i * 2 + 1] = ByteToHex(b & 0b1111);
-	}
-}
-
-EckInline constexpr void Md5ToStringLower(PCVOID pMd5, PWSTR pszResult)
-{
-	EckCounter((size_t)16, i)
-	{
-		const BYTE b = ((PCBYTE)pMd5)[i];
-		pszResult[i * 2] = ByteToHexLower(b >> 4);
-		pszResult[i * 2 + 1] = ByteToHexLower(b & 0b1111);
-	}
-}
-
-EckInline constexpr void Md5ToStringUpper(PCVOID pMd5, PSTR pszResult)
-{
-	EckCounter((size_t)16, i)
-	{
-		const BYTE b = ((PCBYTE)pMd5)[i];
-		pszResult[i * 2] = ByteToHex(b >> 4);
-		pszResult[i * 2 + 1] = ByteToHex(b & 0b1111);
-	}
-}
-
-EckInline constexpr void Md5ToStringLower(PCVOID pMd5, PSTR pszResult)
-{
-	EckCounter((size_t)16, i)
-	{
-		const BYTE b = ((PCBYTE)pMd5)[i];
-		pszResult[i * 2] = ByteToHexLower(b >> 4);
-		pszResult[i * 2 + 1] = ByteToHexLower(b & 0b1111);
-	}
 }
 
 EckInline HANDLE DuplicateStdThreadHandle(std::thread& thr)
@@ -747,5 +720,251 @@ inline NTSTATUS Decompress(PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult)
 	rbResult.ReSize(pHdr->cbOrg);
 	return RtlDecompressBuffer(pHdr->usEngine, rbResult.Data(), (ULONG)rbResult.Size(),
 		(UCHAR*)pOrg + sizeof(NTCOM_HDR), (ULONG)cbOrg - sizeof(NTCOM_HDR), &Dummy);
+}
+
+inline void RandomBytes(void* p, size_t cb)
+{
+	auto mt = std::mt19937{ std::random_device{}() };
+	auto Dist = std::uniform_int_distribution<USHORT>{ 0,0xFF };
+	for (BYTE* pb = (BYTE*)p, *pbEnd = pb + cb; pb < pbEnd; ++pb)
+		*pb = (BYTE)Dist(mt);
+}
+
+inline void RandomBytes(CRefBin& rb)
+{
+	RandomBytes(rb.Data(), rb.Size());
+}
+
+template<size_t N>
+inline void RandomBytes(BYTE(&arr)[N])
+{
+	RandomBytes(arr, N);
+}
+
+constexpr inline PCWSTR CryptChainName[]
+{
+	BCRYPT_CHAIN_MODE_NA,
+	BCRYPT_CHAIN_MODE_CBC,
+	BCRYPT_CHAIN_MODE_ECB,
+	BCRYPT_CHAIN_MODE_CFB,
+	BCRYPT_CHAIN_MODE_CCM,
+	BCRYPT_CHAIN_MODE_GCM,
+};
+
+constexpr inline ULONG CryptChainBytes[]
+{
+	sizeof(BCRYPT_CHAIN_MODE_NA),
+	sizeof(BCRYPT_CHAIN_MODE_CBC),
+	sizeof(BCRYPT_CHAIN_MODE_ECB),
+	sizeof(BCRYPT_CHAIN_MODE_CFB),
+	sizeof(BCRYPT_CHAIN_MODE_CCM),
+	sizeof(BCRYPT_CHAIN_MODE_GCM),
+};
+
+enum class CryptChain
+{
+	NA,
+	CBC,
+	ECB,
+	CFB,
+	CCM,
+	GCM,
+};
+
+inline NTSTATUS AesEncrypt(PCVOID pKey, SIZE_T cbKey, PCVOID pIv, SIZE_T cbIv,
+	PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult,
+	CryptChain eChain = CryptChain::CBC, ULONG cbBlock = 0)
+{
+	NTSTATUS nts;
+	BCRYPT_ALG_HANDLE hAlg;
+	BCRYPT_KEY_HANDLE hKey{};
+	ULONG cbRet, cbKeyObject;
+	UniquePtrCrtMA<UCHAR> pBuf{};
+	if (!NT_SUCCESS(nts = BCryptOpenAlgorithmProvider(&hAlg,
+		BCRYPT_AES_ALGORITHM, nullptr, 0)))
+		return nts;
+	if (!NT_SUCCESS(nts = BCryptSetProperty(hAlg, BCRYPT_CHAINING_MODE,
+		(UCHAR*)CryptChainName[(int)eChain], CryptChainBytes[(int)eChain], 0)))
+		goto Tidyup;
+	if (!NT_SUCCESS(nts = BCryptGetProperty(hAlg, BCRYPT_OBJECT_LENGTH,
+		(UCHAR*)&cbKeyObject, sizeof(cbKeyObject), &cbRet, 0)))
+		goto Tidyup;
+	if (cbBlock)
+	{
+		if (!NT_SUCCESS(nts = BCryptSetProperty(hAlg, BCRYPT_BLOCK_LENGTH,
+			(UCHAR*)&cbKey, sizeof(cbKey), 0)))
+			goto Tidyup;
+	}
+	else
+	{
+		if (!NT_SUCCESS(nts = BCryptGetProperty(hAlg, BCRYPT_BLOCK_LENGTH,
+			(UCHAR*)&cbBlock, sizeof(cbBlock), &cbRet, 0)))
+			goto Tidyup;
+		if (cbBlock != cbIv)
+		{
+			nts = STATUS_INVALID_PARAMETER;
+			goto Tidyup;
+		}
+	}
+	pBuf.reset((UCHAR*)malloc(cbKeyObject + cbBlock));
+	memcpy(pBuf.get() + cbKeyObject, pIv, cbBlock);
+
+	if (!NT_SUCCESS(nts = BCryptGenerateSymmetricKey(hAlg, &hKey, pBuf.get(), cbKeyObject,
+		(UCHAR*)pKey, (ULONG)cbKey, 0)))
+		goto Tidyup;
+	if (!NT_SUCCESS(nts = BCryptEncrypt(hKey, (UCHAR*)pOrg, (ULONG)cbOrg, nullptr,
+		(UCHAR*)pBuf.get() + cbKeyObject, cbBlock, nullptr, 0, &cbRet, BCRYPT_BLOCK_PADDING)))
+		goto Tidyup;
+	if (!NT_SUCCESS(nts = BCryptEncrypt(hKey, (UCHAR*)pOrg, (ULONG)cbOrg, nullptr,
+		(UCHAR*)pBuf.get() + cbKeyObject, cbBlock, rbResult.PushBackNoExtra(cbRet),
+		cbRet, &cbRet, BCRYPT_BLOCK_PADDING)))
+		goto Tidyup;
+Tidyup:;
+	if (hKey)
+		BCryptDestroyKey(hKey);
+	if (hAlg)
+		BCryptCloseAlgorithmProvider(hAlg, 0);
+	return nts;
+}
+
+inline BOOL ImportPublicKeyFromPEM(PCSTR pszKey, int cchKey, BCRYPT_KEY_HANDLE& hKey)
+{
+	hKey = 0;
+	const auto rb = Base64Decode(pszKey, cchKey);
+
+	DWORD Dummy{};
+	CERT_PUBLIC_KEY_INFO* ppki;
+	if (CryptDecodeObjectEx(X509_ASN_ENCODING, X509_PUBLIC_KEY_INFO,
+		rb.Data(), (DWORD)rb.Size(),
+		CRYPT_DECODE_ALLOC_FLAG,
+		0, &ppki, &Dummy))
+	{
+		const auto b = CryptImportPublicKeyInfoEx2(X509_ASN_ENCODING, ppki, 0, 0, &hKey);
+		LocalFree(ppki);
+		return b;
+	}
+	return FALSE;
+}
+
+inline BOOL GetExponentAndModulusFromPEM(PCSTR pszKey, int cchKey,
+	CRefBin& rbExponent, CRefBin& rbModulus)
+{
+	const auto rb = Base64Decode(pszKey, cchKey);
+	CMemReader r(rb.Data(), rb.Size());
+	USHORT us;
+	BYTE by[15];
+	constexpr BYTE ByMagic[]{ 0x30, 0x0D, 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86,
+		0xF7, 0x0D, 0x01, 0x01, 0x01, 0x05, 0x00 };
+	r >> us;
+	if (us == 0x8130)
+		r += 1;
+	else if (us == 0x8230)
+		r += 2;
+	else
+		return FALSE;
+	r >> by;
+	if (memcmp(by, ByMagic, sizeof(ByMagic)) != 0)
+		return FALSE;
+	r >> us;
+	if (us == 0x8103)
+		r += 1;
+	else if (us == 0x8203)
+		r += 2;
+	else
+		return FALSE;
+	r >> by[0];
+	if (by[0] != 0)
+		return FALSE;
+	r >> us;
+	if (us == 0x8130)
+		r += 1;
+	else if (us == 0x8230)
+		r += 2;
+	else
+		return FALSE;
+	r >> us;
+	USHORT cbModulus;
+	if (us == 0x8102)
+	{
+		cbModulus = 0;
+		r.Read(&cbModulus, 1);
+	}
+	else if (us == 0x8202)
+	{
+		r >> cbModulus;
+		cbModulus = ReverseInteger(cbModulus);
+	}
+	else
+		return FALSE;
+
+	if (*(r.Data() + 1) == 0)
+	{
+		r += 1;
+		--cbModulus;
+	}
+	rbModulus.PushBackNoExtra(cbModulus);
+	r.Read(rbModulus.Data(), cbModulus);
+	r >> by[0];
+	if (by[0] != 2)
+		return FALSE;
+	BYTE cbExponent;
+	r >> cbExponent;
+	rbExponent.PushBackNoExtra(cbExponent);
+	r.Read(rbExponent.Data(), cbExponent);
+	return TRUE;
+}
+
+inline BOOL MakeBCryptRsaKeyBlob(PCVOID pKey, SIZE_T cbKey, UCHAR*& pBlob, ULONG& cbBlob)
+{
+	BYTE* pKeyBlob;
+	CRefBin rbExp{}, rbMod{};
+	if (!GetExponentAndModulusFromPEM((PCSTR)pKey, (int)cbKey, rbExp, rbMod))
+	{
+		pBlob = nullptr;
+		cbBlob = 0;
+		return FALSE;
+	}
+	cbBlob = ULONG(sizeof(BCRYPT_RSAKEY_BLOB) + rbExp.Size() + rbMod.Size());
+	pKeyBlob = (BYTE*)malloc(cbBlob);
+	EckCheckMem(pKeyBlob);
+	auto phdr = (BCRYPT_RSAKEY_BLOB*)pKeyBlob;
+	phdr->Magic = BCRYPT_RSAPUBLIC_MAGIC;
+	phdr->BitLength = (ULONG)rbMod.Size() * 8;
+	phdr->cbPublicExp = (ULONG)rbExp.Size();
+	phdr->cbModulus = (ULONG)rbMod.Size();
+	phdr->cbPrime1 = phdr->cbPrime2 = 0;
+	memcpy(pKeyBlob + sizeof(BCRYPT_RSAKEY_BLOB), rbExp.Data(), rbExp.Size());
+	memcpy(pKeyBlob + sizeof(BCRYPT_RSAKEY_BLOB) + rbExp.Size(), rbMod.Data(), rbMod.Size());
+	pBlob = pKeyBlob;
+	return TRUE;
+}
+
+inline NTSTATUS RsaEncrypt(PCVOID pKey, SIZE_T cbKey,
+	PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult, ULONG ulPadding = BCRYPT_PAD_PKCS1)
+{
+	NTSTATUS nts;
+	BCRYPT_ALG_HANDLE hAlg;
+	BCRYPT_KEY_HANDLE hKey{};
+	ULONG cbRet;
+
+	if (!NT_SUCCESS(nts = BCryptOpenAlgorithmProvider(&hAlg,
+		BCRYPT_RSA_ALGORITHM, nullptr, 0)))
+		return nts;
+	if (!ImportPublicKeyFromPEM((PCSTR)pKey, (int)cbKey, hKey))
+	{
+		nts = STATUS_INVALID_PARAMETER;
+		goto Tidyup;
+	}
+	if (!NT_SUCCESS(nts = BCryptEncrypt(hKey, (UCHAR*)pOrg, (ULONG)cbOrg, nullptr,
+		nullptr, 0, nullptr, 0, &cbRet, ulPadding)))
+		goto Tidyup;
+	if (!NT_SUCCESS(nts = BCryptEncrypt(hKey, (UCHAR*)pOrg, (ULONG)cbOrg, nullptr,
+		nullptr, 0, rbResult.PushBackNoExtra(cbRet), cbRet, &cbRet, ulPadding)))
+		goto Tidyup;
+Tidyup:;
+	if (hKey)
+		BCryptDestroyKey(hKey);
+	BCryptCloseAlgorithmProvider(hAlg, 0);
+	return nts;
 }
 ECK_NAMESPACE_END

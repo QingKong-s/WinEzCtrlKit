@@ -82,10 +82,7 @@ inline BOOL RequestUrl(FPostConnect&& fn, BOOL bRealRequest, PCWSTR pszUrl, PCWS
 	if (bAutoHeader)
 	{
 		if (pszHeader)
-		{
 			rsHeader.PushBack(pszHeader);
-			rsHeader.PushBack(L"\r\n");
-		}
 		if (!pszHeader || FindStrI(pszHeader, L"User-Agent:") == StrNPos)
 			rsHeader.PushBack(L"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n");
 		if (!pszHeader || FindStrI(pszHeader, L"Accept:") == StrNPos)
@@ -122,7 +119,7 @@ inline BOOL RequestUrl(FPostConnect&& fn, BOOL bRealRequest, PCWSTR pszUrl, PCWS
 			EckDbgPrintFormatMessage(GetLastError());
 			return FALSE;
 		}
-	if(bRealRequest)
+	if (bRealRequest)
 	{
 		if (!WinHttpSendRequest(hRequest.get(), WINHTTP_NO_ADDITIONAL_HEADERS, 0,
 			pData, (DWORD)cbData, (DWORD)cbData, 0))
@@ -130,7 +127,7 @@ inline BOOL RequestUrl(FPostConnect&& fn, BOOL bRealRequest, PCWSTR pszUrl, PCWS
 		if (!WinHttpReceiveResponse(hRequest.get(), nullptr))
 			return FALSE;
 	}
-	
+
 	return fn(hSession.get(), hConnect.get(), hRequest.get());
 }
 
@@ -151,7 +148,7 @@ inline BOOL RequestUrl(FPostConnect&& fn, BOOL bRealRequest, PCWSTR pszUrl, PCWS
 /// <returns>成功返回请求到的数据，失败返回空字节集</returns>
 inline CRefBin RequestUrl(PCWSTR pszUrl, PCWSTR pszMethod = L"GET",
 	void* pData = nullptr, SIZE_T cbData = 0u,
-	PCWSTR pszHeader = nullptr, PCWSTR pszCookies = nullptr, BOOL bAutoHeader = TRUE, 
+	PCWSTR pszHeader = nullptr, PCWSTR pszCookies = nullptr, BOOL bAutoHeader = TRUE,
 	CRefStrW* prsResponseHeaders = nullptr,
 	PCWSTR pszProxy = nullptr, PCWSTR pszUserAgent = nullptr)
 {
