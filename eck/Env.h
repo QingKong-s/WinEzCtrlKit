@@ -42,8 +42,10 @@
 #pragma comment(lib, "Advpack.lib")
 #pragma comment(lib, "Winhttp.lib")
 #pragma comment(lib, "Bcrypt.lib")
+#pragma comment(lib, "Ncrypt.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "dcomp.lib")
+#pragma comment(lib, "Crypt32.lib")
 
 #ifdef _WIN64
 #	ifdef _DEBUG

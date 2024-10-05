@@ -36,14 +36,16 @@ enum :UINT
 enum MIMASKS :UINT
 {
 	MIM_NONE = 0u,
-	MIM_TITLE = 1u << 0,
-	MIM_ARTIST = 1u << 1,
-	MIM_ALBUM = 1u << 2,
-	MIM_COMMENT = 1u << 3,
-	MIM_LRC = 1u << 4,
-	MIM_COVER = 1u << 5,
-	MIM_GENRE = 1u << 6,
-	MIM_DATE = 1u << 7,
+	MIM_TITLE = 1u << 0,	// 标题
+	MIM_ARTIST = 1u << 1,	// 艺术家
+	MIM_ALBUM = 1u << 2,	// 专辑
+	MIM_COMMENT = 1u << 3,	// 备注
+	MIM_LRC = 1u << 4,		// 歌词
+	MIM_COVER = 1u << 5,	// 封面
+	MIM_GENRE = 1u << 6,	// 风格
+	MIM_DATE = 1u << 7,		// 发行日期
+	MIM_DISC = 1u << 8,		// 碟片号
+	MIM_TRACK = 1u << 9,	// 音轨号
 
 	MIM_ALL = 0xFFFFFFFF
 };
@@ -199,6 +201,10 @@ struct MUSICINFO
 	std::variant<SYSTEMTIME, CRefStrW>
 		Date{};			// 录制日期
 	std::vector<MUSICPIC> vImage{};// 图片
+	short nTrack{};		// 音轨号
+	short cTotalTrack{};// 总音轨数
+	short nDisc{};		// 碟片号
+	short cTotalDisc{};	// 总碟片数
 
 	// 取主封面。函数遍历图片列表，然后按照 封面 > 封底 > 第一幅图片 的优先级顺序返回指定的图片，若失败则返回NULL
 	const MUSICPIC* GetMainCover() const

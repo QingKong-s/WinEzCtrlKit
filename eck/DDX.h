@@ -8,6 +8,7 @@
 #pragma once
 #include "CRefStr.h"
 #include "CSignal.h"
+#include "CObject.h"
 
 #include <variant>
 
@@ -29,7 +30,6 @@ enum class DDXType :UINT
 	Array = 1u << 31,
 };
 ECK_ENUM_BIT_FLAGS(DDXType);
-
 
 struct DDXData
 {
@@ -57,17 +57,16 @@ struct DDXRange
 	EckInline [[nodiscard]] constexpr BOOL IsEmpty() const { return Data.index() == 4; }
 };
 
-class __declspec(novtable) CDdx
+class __declspec(novtable) CDdx :public CObject
 {
+public:
+	ECK_RTTI(CDdx);
 protected:
 	DDXData m_Data{};
 	DDXRange m_Range{};
 	CSignal<NoIntercept_T, void, CDdx&> m_Sig{};
 
-	virtual void OnDataChanged()
-	{
-
-	}
+	virtual void OnDataChanged() = 0;
 
 	template<DDXType Type>
 	void Clamp()
@@ -691,4 +690,5 @@ public:
 		m_Range.Data = DDXRange::Range{ Min, Max };
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CDdx, CObject);
 ECK_NAMESPACE_END

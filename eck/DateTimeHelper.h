@@ -330,12 +330,20 @@ EckInline [[nodiscard]] constexpr  LONGLONG TimeElapsedMillisecond(const SYSTEMT
 }
 
 // 取Unix时间戳，以毫秒计
-EckInline [[nodiscard]] ULONGLONG GetUnixTimestamp()
+inline [[nodiscard]] ULONGLONG GetUnixTimestamp()
 {
 	ULONGLONG ull;
 	GetSystemTimeAsFileTime((FILETIME*)&ull);
 	ull -= 116444736000000000ull;
 	ull /= 10000ull;
 	return ull;
+}
+
+// 以毫秒计的Unix时间戳转系统时间
+inline SYSTEMTIME UnixTimestampToSystemTime(ULONGLONG ull)
+{
+	ull *= 10000ull;
+	ull += 116444736000000000ull;
+	return ToSystemTime(ull);
 }
 ECK_NAMESPACE_END

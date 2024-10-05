@@ -565,7 +565,7 @@ struct CJsonInitProxy
 		Val.s = (PCSTR)rb.Data(); cch = (UINT)rb.Size();
 	}
 
-	CJsonMutVal ToMutVal(const CMutJson& Doc) const;
+	inline CJsonMutVal ToMutVal(const CMutJson& Doc) const;
 };
 
 class CJsonMutVal
@@ -1024,7 +1024,7 @@ public:
 	}
 };
 
-CJsonMutVal CJsonInitProxy::ToMutVal(const CMutJson& Doc) const
+inline CJsonMutVal CJsonInitProxy::ToMutVal(const CMutJson& Doc) const
 {
 	switch (eType)
 	{

@@ -295,6 +295,12 @@ public:
 				mi.uMaskRead |= MIM_DATE;
 			}
 		}
+		if (mi.uMask & MIM_TRACK)
+		{
+			mi.nTrack = m_Info.byTrack;
+			mi.cTotalTrack = 0;
+			mi.uMaskRead |= MIM_TRACK;
+		}
 		return Result::Ok;
 	}
 
