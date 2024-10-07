@@ -100,15 +100,6 @@ static BOOL DefMsgFilter(const MSG&)
 }
 FMsgFilter g_pfnMsgFilter = DefMsgFilter;
 
-#ifdef _DEBUG
-static void WINAPI GdiplusDebug(Gdiplus::DebugEventLevel dwLevel, CHAR* pszMsg)
-{
-	DbgPrint(StrX2W(pszMsg).Data());
-	if (dwLevel == Gdiplus::DebugEventLevelFatal)
-		DebugBreak();
-}
-#endif
-
 #pragma region(UxTheme DarkMode Fixer)
 using FOpenThemeData = HTHEME(WINAPI*)(HWND, LPCWSTR);
 using FDrawThemeText = HRESULT(WINAPI*)(_In_ HTHEME, HDC, int, int, LPCWSTR, int, DWORD, DWORD, LPCRECT);
@@ -906,22 +897,25 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	if (!IsBitSet(pInitParam->uFlags, EIF_NOINITGDIPLUS))
 	{
 		GdiplusStartupInput gpsi{};
-		gpsi.GdiplusVersion = 1;
-#ifdef _DEBUG
-		gpsi.DebugEventCallback = GdiplusDebug;
-#endif
-		Gdiplus::GpStatus uGpRet = GdiplusStartup(&g_uGpToken, &gpsi, nullptr);
-		if (uGpRet != Gdiplus::Ok)
+		const auto gps = GdiplusStartup(&g_uGpToken, &gpsi, nullptr);
+		if (gps != Gdiplus::Ok)
 		{
-			*pdwErrCode = uGpRet;
+			*pdwErrCode = gps;
 			return InitStatus::GdiplusInitError;
 		}
 	}
 
 	//////////////注册窗口类
 	g_WndClassInfo[0].iType = RWCT_CUSTOM;
-	g_WndClassInfo[0].wc = { CS_STDWND,DefDlgProcW,0,DLGWINDOWEXTRA + sizeof(void*) * 2,
-	g_hInstance,nullptr,LoadCursorW(nullptr,IDC_ARROW),nullptr,nullptr,WCN_DLG };
+	g_WndClassInfo[0].wc =
+	{
+		.style = CS_STDWND,
+		.lpfnWndProc = DefDlgProcW,
+		.cbWndExtra = DLGWINDOWEXTRA + sizeof(void*),
+		.hInstance = g_hInstance,
+		.hCursor = LoadCursorW(nullptr,IDC_ARROW),
+		.lpszClassName = WCN_DLG
+	};
 
 	for (const auto& e : g_WndClassInfo)
 	{
