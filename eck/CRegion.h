@@ -439,7 +439,7 @@ public:
 			:m_pComplex{ pComplex }, m_pThat{ pThat } {
 		}
 	public:
-		EckInline constexpr void BeginLine(int y)
+		constexpr void BeginLine(int y)
 		{
 			EckAssert(y > m_y && m_pComplex && m_pCurrYCat == nullptr);
 			m_y = y;
@@ -447,7 +447,7 @@ public:
 			m_pCurrYCat = &m_pComplex->m_vYCategory.back();
 		}
 
-		EckInline constexpr void EndLine()
+		constexpr void EndLine()
 		{
 			EckAssert(m_y != InfMin && m_pComplex && m_pCurrYCat);
 			auto& vYCat = m_pComplex->m_vYCategory;
