@@ -8,8 +8,6 @@
 #pragma once
 #include "CWnd.h"
 
-#include <CommCtrl.h>
-
 ECK_NAMESPACE_BEGIN
 class CComboBox :public CWnd
 {

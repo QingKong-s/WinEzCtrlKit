@@ -8,10 +8,6 @@
 #pragma once
 #include "CWnd.h"
 
-#include <vector>
-
-#include <CommCtrl.h>
-
 ECK_NAMESPACE_BEGIN
 struct ECKLISTBOXINFO
 {

@@ -9,10 +9,6 @@
 #include "CWnd.h"
 #include "Utility.h"
 
-#include <vector>
-
-#include <CommCtrl.h>
-
 ECK_NAMESPACE_BEGIN
 struct EUPDOWNDATA
 {
