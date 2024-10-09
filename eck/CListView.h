@@ -9,10 +9,6 @@
 #include "CWnd.h"
 #include "CHeader.h"
 
-#include <vector>
-
-#include <CommCtrl.h>
-
 ECK_NAMESPACE_BEGIN
 typedef int (CALLBACK* PFNLVITEMCOMPARE)(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
 typedef int (CALLBACK* PFNLVITEMCOMPAREEX)(int idx1, int idx2, LPARAM lParamSort);
@@ -21,19 +17,9 @@ class CListView :public CWnd
 public:
 	ECK_RTTI(CListView);
 protected:
-	COLORREF m_crDefText{ CLR_INVALID };
-	COLORREF m_crDefBk{ CLR_INVALID };
 	BOOL m_bAutoDarkMode{ TRUE };
 public:
 	EckInline void SetAutoDarkMode(BOOL b) { m_bAutoDarkMode = b; }
-
-	EckInline void UpdateDefColor()
-	{
-		GetItemsViewForeBackColor(m_crDefText, m_crDefBk);
-		SetTextClr(m_crDefText);
-		SetBkClr(m_crDefBk);
-		SetTextBKClr(m_crDefBk);
-	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
@@ -41,7 +27,7 @@ public:
 		{
 		case WM_NOTIFY:
 		{
-			if (ShouldAppsUseDarkMode())
+			if (m_bAutoDarkMode && ShouldAppsUseDarkMode())
 				switch (((NMHDR*)lParam)->code)
 				{
 				case NM_CUSTOMDRAW:
@@ -52,30 +38,25 @@ public:
 					case CDDS_PREPAINT:
 						return CDRF_NOTIFYITEMDRAW;
 					case CDDS_ITEMPREPAINT:
-					{
-						const HDC hDC = pnmcd->hdc;
-						SetTextColor(hDC, m_crDefText);
-					}
-					return CDRF_DODEFAULT;
+						SetTextColor(pnmcd->hdc, GetThreadCtx()->crDefText);
+						return CDRF_DODEFAULT;
 					}
 				}
 				return CDRF_DODEFAULT;
 				}
 		}
 		break;
-		case WM_CREATE:
-		{
-			const auto lResult = CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
-			SetItemsViewTheme();
-			GetHeaderCtrl().SetItemsViewTheme();
-			return lResult;
-		}
-		break;
 		case WM_THEMECHANGED:
 		{
-			const auto lResult = CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
-			UpdateDefColor();
-			return lResult;
+			if (m_bAutoDarkMode)
+			{
+				const auto lResult = CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
+				const auto* const ptc = GetThreadCtx();
+				SetTextClr(ptc->crDefText);
+				SetBkClr(ptc->crDefBkg);
+				SetTextBKClr(ptc->crDefBkg);
+				return lResult;
+			}
 		}
 		break;
 		}
@@ -1069,10 +1050,49 @@ public:
 		return -1;
 	}
 
-	EckInline void MakeMePretty() const
+	BOOL SetRowHeight(int cy, BOOL bSetOrAdd = TRUE) const
+	{
+		const auto pParent = CWndFromHWND(GetParent(HWnd));
+		if (!pParent)
+			return FALSE;
+		pParent->GetSignal().Connect(
+			[cy, bSetOrAdd](HWND, UINT uMsg, WPARAM, LPARAM lParam, BOOL& bProcessed)->LRESULT
+			{
+				if (uMsg == WM_MEASUREITEM)
+				{
+					bProcessed = TRUE;
+					const auto pmis = (MEASUREITEMSTRUCT*)lParam;
+					if (bSetOrAdd)
+						pmis->itemHeight = cy;
+					else
+						pmis->itemHeight += cy;
+					return TRUE;
+				}
+				return 0;
+			}, MHI_LISTVIEW_ROWHEIGHT);
+
+		Style |= LVS_OWNERDRAWFIXED;
+		WINDOWPOS wp
+		{
+			.hwnd = HWnd,
+			.flags = SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW
+		};
+		SendMsg(WM_WINDOWPOSCHANGED, 0, (LPARAM)&wp);
+		Style &= ~LVS_OWNERDRAWFIXED;
+		pParent->GetSignal().Disconnect(MHI_LISTVIEW_ROWHEIGHT);
+		return TRUE;
+	}
+
+	BOOL MakePretty_RowHeight() const
+	{
+		return SetRowHeight(DpiScale(6, GetDpi(HWnd)), FALSE);
+	}
+
+	BOOL MakePretty() const
 	{
 		constexpr DWORD dwStyle = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER;
 		SetLVExtendStyle(dwStyle, dwStyle);
+		return MakePretty_RowHeight();
 	}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CListView, CWnd);

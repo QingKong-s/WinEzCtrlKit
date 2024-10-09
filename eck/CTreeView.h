@@ -8,9 +8,6 @@
 #pragma once
 #include "CWnd.h"
 
-#include <CommCtrl.h>
-
-
 ECK_NAMESPACE_BEGIN
 #define TVS_EX_ALL (/*TVS_EX_NOSINGLECOLLAPSE | */ /*该样式不建议使用*/ /*TVS_EX_MULTISELECT | */ /*该样式不被支持*/ \
 	TVS_EX_DOUBLEBUFFER | TVS_EX_NOINDENTSTATE | TVS_EX_RICHTOOLTIP | TVS_EX_AUTOHSCROLL | \

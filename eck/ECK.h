@@ -19,13 +19,16 @@
 #include <dwrite.h>
 #include <d2d1_1.h>
 #include <dxgi1_2.h>
-#include <Shlwapi.h>
 #include <d3d11.h>
+#include <Shlwapi.h>
 #include <ShlObj.h>
+//#include <CommCtrl.h>
 
 #include <assert.h>
 #include <crtdbg.h>
 
+#include <vector>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <type_traits>
@@ -450,13 +453,15 @@ struct NMECKMOUSENOTIFY
 	UINT uKeyFlags;
 };
 
-// 消息钩子保留范围[1, 4095]
+// 消息钩子保留范围
+// 库保留	[1, 511]
+// 用户保留	[512, 4096]
 constexpr inline UINT_PTR MsgHookIdUserBegin = 4096;
 enum :UINT_PTR
 {
-	ECKPRIV_MHI_FIRST_PLACEHOLDER = 1,
-	MHI_SCROLLBAR_HOOK,
-	MHI_HEADER_HOOK
+	MHI_SCROLLBAR_HOOK = 1,
+	MHI_HEADER_HOOK,
+	MHI_LISTVIEW_ROWHEIGHT,
 };
 
 union BIT128

@@ -194,4 +194,52 @@ inline CRefBin RequestUrl(PCWSTR pszUrl, PCWSTR pszMethod = L"GET",
 		return {};
 	return rb;
 }
+
+struct CHttpRequest
+{
+	BITBOOL AutoAddHeader : 1{ TRUE };
+	BITBOOL AutoDecompress : 1{ TRUE };
+	PCWSTR Header{};
+	void* Data{};
+	SIZE_T DataSize{};
+	PCWSTR Cookies{};
+	PCWSTR UserAgent{};
+	PCWSTR Proxy{};
+
+	CRefStrW ResponseHeader{};
+	CRefBin Response{};
+
+	void DoRequest(PCWSTR pszUrl, PCWSTR pszMethod = L"GET")
+	{
+		Response = RequestUrl(pszUrl, pszMethod, Data, DataSize, Header,
+			Cookies, AutoAddHeader, &ResponseHeader, Proxy, UserAgent);
+		if (AutoDecompress)
+		{
+			const auto svContentEncoding = HeaderGetParam(ResponseHeader.Data(), L"Content-Encoding");
+			if (!svContentEncoding.empty())
+				if (svContentEncoding.find(L"gzip") != std::wstring_view::npos)
+				{
+					CRefBin rbDecompressed{};
+					GZipDecompress(Response.Data(), Response.Size(), rbDecompressed);
+					Response = std::move(rbDecompressed);
+				}
+				else if (svContentEncoding.find(L"deflate") != std::wstring_view::npos)
+				{
+					CRefBin rbDecompressed{};
+					ZLibDecompress(Response.Data(), Response.Size(), rbDecompressed);
+					Response = std::move(rbDecompressed);
+				}
+				else
+				{
+					EckDbgPrintFmt(L"Unknown Content-Encoding: %s", svContentEncoding.data());
+					EckDbgBreak();
+				}
+		}
+	}
+
+	void DoRequest(const eck::CRefStrW& rsUrl, PCWSTR pszMethod = L"GET")
+	{
+		DoRequest(rsUrl.Data(), pszMethod);
+	}
+};
 ECK_NAMESPACE_END
