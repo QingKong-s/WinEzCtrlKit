@@ -553,6 +553,12 @@ public:
 		return (T*)PushBack(sizeof(T));
 	}
 
+	EckInline void PushBackByte(BYTE by)
+	{
+		ReSizeExtra(Size() + 1);
+		*(Data() + Size() - 1) = by;
+	}
+
 	EckInline BYTE* PushBackNoExtra(size_t cb)
 	{
 		ReSize(m_cb + cb);
@@ -569,7 +575,7 @@ public:
 		m_cb -= cb;
 	}
 
-	EckInline void Clear() { m_cb = 0u; }
+	EckInline constexpr void Clear() { m_cb = 0u; }
 
 	EckInline void Zero() { RtlZeroMemory(Data(), Size()); }
 

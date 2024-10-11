@@ -929,7 +929,7 @@ public:
 	/// 将尺寸设置为0并在开始处截断（如果有数据）
 	/// </summary>
 	/// <returns></returns>
-	EckInline void Clear()
+	EckInline constexpr void Clear()
 	{
 		m_cchText = 0;
 		if (Data())

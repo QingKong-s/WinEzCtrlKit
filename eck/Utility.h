@@ -1595,6 +1595,11 @@ EckInline constexpr BYTE ByteFromHex(CHAR x)
 		return 0;
 }
 
+EckInline constexpr BYTE ByteFromHex(CHAR x1, CHAR x2)
+{
+	return (ByteFromHex(x1) << 4) | ByteFromHex(x2);
+}
+
 EckInline constexpr LPARAM MakeKeyStrokeFlag(USHORT cRepeat, UINT uScanCode, BOOL bExtended,
 	BOOL bAlt, BOOL bPreviousState, BOOL bTransition)
 {
