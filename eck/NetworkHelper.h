@@ -199,6 +199,7 @@ struct CHttpRequest
 {
 	BITBOOL AutoAddHeader : 1{ TRUE };
 	BITBOOL AutoDecompress : 1{ TRUE };
+	int ResponseCode{};
 	PCWSTR Header{};
 	void* Data{};
 	SIZE_T DataSize{};
@@ -240,6 +241,20 @@ struct CHttpRequest
 	void DoRequest(const eck::CRefStrW& rsUrl, PCWSTR pszMethod = L"GET")
 	{
 		DoRequest(rsUrl.Data(), pszMethod);
+	}
+
+	constexpr void Reset()
+	{
+		AutoAddHeader = TRUE;
+		AutoDecompress = TRUE;
+		Header = nullptr;
+		Data = nullptr;
+		DataSize = 0;
+		Cookies = nullptr;
+		UserAgent = nullptr;
+		Proxy = nullptr;
+		ResponseHeader.Clear();
+		Response.Clear();
 	}
 };
 ECK_NAMESPACE_END

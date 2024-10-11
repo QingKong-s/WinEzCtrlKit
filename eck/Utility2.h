@@ -594,8 +594,32 @@ template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<C
 		--cchBuf;
 	CRefStrT<CHAR, TCharTraits, TAlloc> rs(cchBuf);
 	WideCharToMultiByte(CP_UTF8, 0, pszText, cch, rs.Data(), cchBuf, nullptr, nullptr);
-	*(rs.Data() + cchBuf) = '\0';
 	return rs;
+}
+
+template<class TCharTraits, class TAlloc>
+void StrW2U8(PCWSTR pszText, int cch, CRefStrT<CHAR, TCharTraits, TAlloc>& rsResult)
+{
+	int cchBuf = WideCharToMultiByte(CP_UTF8, 0, pszText, cch, nullptr, 0, nullptr, nullptr);
+	if (!cchBuf)
+		return;
+	if (cch == -1)
+		--cchBuf;
+	WideCharToMultiByte(CP_UTF8, 0, pszText, cch,
+		rsResult.PushBackNoExtra(cchBuf), cchBuf, nullptr, nullptr);
+}
+
+template<class TAlloc>
+void StrW2U8(PCWSTR pszText, int cch, CRefBinT<TAlloc>& rbResult)
+{
+	int cchBuf = WideCharToMultiByte(CP_UTF8, 0, pszText, cch, nullptr, 0, nullptr, nullptr);
+	if (!cchBuf)
+		return;
+	if (cch == -1)
+		--cchBuf;
+	const auto pszBuf = (PSTR)rbResult.PushBackNoExtra(cchBuf + 1);
+	WideCharToMultiByte(CP_UTF8, 0, pszText, cch, pszBuf, cchBuf, nullptr, nullptr);
+	*(pszBuf + cchBuf) = '\0';
 }
 
 template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<CHAR>,
@@ -616,8 +640,32 @@ template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<
 		--cchBuf;
 	CRefStrT<WCHAR, TCharTraits, TAlloc> rs(cchBuf);
 	MultiByteToWideChar(CP_UTF8, 0, pszText, cch, rs.Data(), cchBuf);
-	*(rs.Data() + cchBuf) = '\0';
 	return rs;
+}
+
+template<class TCharTraits, class TAlloc>
+void StrU82W(PCSTR pszText, int cch, CRefStrT<WCHAR, TCharTraits, TAlloc>& rsResult)
+{
+	int cchBuf = MultiByteToWideChar(CP_UTF8, 0, pszText, cch, nullptr, 0);
+	if (!cchBuf)
+		return;
+	if (cch == -1)
+		--cchBuf;
+	MultiByteToWideChar(CP_UTF8, 0, pszText, cch,
+		rsResult.PushBackNoExtra(cchBuf), cchBuf);
+}
+
+template<class TAlloc>
+void StrU82W(PCSTR pszText, int cch, CRefBinT<TAlloc>& rbResult)
+{
+	int cchBuf = MultiByteToWideChar(CP_UTF8, 0, pszText, cch, nullptr, 0);
+	if (!cchBuf)
+		return;
+	if (cch == -1)
+		--cchBuf;
+	const auto pszBuf = (PWSTR)rbResult.PushBackNoExtra((cchBuf + 1) * sizeof(WCHAR));
+	MultiByteToWideChar(CP_UTF8, 0, pszText, cch, pszBuf, cchBuf);
+	*(pszBuf + cchBuf) = L'\0';
 }
 
 template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>,
@@ -960,6 +1008,81 @@ inline NTSTATUS RsaEncrypt(PCVOID pKey, SIZE_T cbKey,
 		goto Tidyup;
 	if (!NT_SUCCESS(nts = BCryptEncrypt(hKey, (UCHAR*)pOrg, (ULONG)cbOrg, nullptr,
 		nullptr, 0, rbResult.PushBackNoExtra(cbRet), cbRet, &cbRet, ulPadding)))
+		goto Tidyup;
+Tidyup:;
+	if (hKey)
+		BCryptDestroyKey(hKey);
+	BCryptCloseAlgorithmProvider(hAlg, 0);
+	return nts;
+}
+
+inline NTSTATUS DesDecrypt(PCVOID pKey, SIZE_T cbKey, PCVOID pIv, SIZE_T cbIv,
+	PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult, CryptChain eChain = CryptChain::CBC,
+	ULONG ulPadding = BCRYPT_BLOCK_PADDING)
+{
+	NTSTATUS nts;
+	BCRYPT_ALG_HANDLE hAlg;
+	BCRYPT_KEY_HANDLE hKey{};
+	ULONG cbRet, cbIvBuf{};
+	UCHAR* pIvBuf{};
+	if (!NT_SUCCESS(nts = BCryptOpenAlgorithmProvider(&hAlg,
+		BCRYPT_DES_ALGORITHM, nullptr, 0)))
+		return nts;
+	if (!NT_SUCCESS(nts = BCryptSetProperty(hAlg, BCRYPT_CHAINING_MODE,
+		(UCHAR*)CryptChainName[(int)eChain], CryptChainBytes[(int)eChain], 0)))
+		goto Tidyup;
+	if (!NT_SUCCESS(nts = BCryptGenerateSymmetricKey(hAlg, &hKey, nullptr, 0,
+		(UCHAR*)pKey, (ULONG)cbKey, 0)))
+		goto Tidyup;
+	if (pIv)
+	{
+		if (!NT_SUCCESS(nts = BCryptGetProperty(hAlg, BCRYPT_BLOCK_LENGTH,
+			(UCHAR*)&cbIvBuf, sizeof(cbIvBuf), &cbRet, 0)))
+			goto Tidyup;
+		if (cbIvBuf > cbIv)
+		{
+			nts = STATUS_INVALID_PARAMETER;
+			goto Tidyup;
+		}
+		pIvBuf = (UCHAR*)_malloca(cbIvBuf);
+		memcpy(pIvBuf, pIv, cbIvBuf);
+	}
+	if (!NT_SUCCESS(nts = BCryptDecrypt(hKey, (UCHAR*)pOrg, (ULONG)cbOrg, nullptr,
+		pIvBuf, cbIvBuf, nullptr, 0, &cbRet, ulPadding)))
+		goto Tidyup;
+	if (!NT_SUCCESS(nts = BCryptDecrypt(hKey, (UCHAR*)pOrg, (ULONG)cbOrg, nullptr,
+		pIvBuf, cbIvBuf, rbResult.PushBackNoExtra(cbRet), cbRet, &cbRet, ulPadding)))
+		goto Tidyup;
+Tidyup:;
+	if (hKey)
+		BCryptDestroyKey(hKey);
+	BCryptCloseAlgorithmProvider(hAlg, 0);
+	_freea(pIvBuf);
+	return nts;
+}
+
+inline NTSTATUS DesEncrypt(PCVOID pKey, SIZE_T cbKey, PCVOID pIv, SIZE_T cbIv,
+	PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult, CryptChain eChain = CryptChain::CBC,
+	ULONG ulPadding = BCRYPT_BLOCK_PADDING)
+{
+	NTSTATUS nts;
+	BCRYPT_ALG_HANDLE hAlg;
+	BCRYPT_KEY_HANDLE hKey{};
+	ULONG cbRet;
+	if (!NT_SUCCESS(nts = BCryptOpenAlgorithmProvider(&hAlg,
+		BCRYPT_DES_ALGORITHM, nullptr, 0)))
+		return nts;
+	if (!NT_SUCCESS(nts = BCryptSetProperty(hAlg, BCRYPT_CHAINING_MODE,
+		(UCHAR*)CryptChainName[(int)eChain], CryptChainBytes[(int)eChain], 0)))
+		goto Tidyup;
+	if (!NT_SUCCESS(nts = BCryptGenerateSymmetricKey(hAlg, &hKey, nullptr, 0,
+		(UCHAR*)pKey, (ULONG)cbKey, 0)))
+		goto Tidyup;
+	if (!NT_SUCCESS(nts = BCryptEncrypt(hKey, (UCHAR*)pOrg, (ULONG)cbOrg, nullptr,
+		(UCHAR*)pIv, (ULONG)cbIv, nullptr, 0, &cbRet, ulPadding)))
+		goto Tidyup;
+	if (!NT_SUCCESS(nts = BCryptEncrypt(hKey, (UCHAR*)pOrg, (ULONG)cbOrg, nullptr,
+		(UCHAR*)pIv, (ULONG)cbIv, rbResult.PushBackNoExtra(cbRet), cbRet, &cbRet, ulPadding)))
 		goto Tidyup;
 Tidyup:;
 	if (hKey)

@@ -15,8 +15,10 @@
 #define ECK_DS_BEGIN(StructName)	struct StructName {
 #define ECK_DS_END_VAR(VarName)		} VarName{};
 #define ECK_DS_END()				};
-#define ECK_DS_ENTRY(Name, Size)	const int	o_##Name = Size; int	Name = Size;
-#define ECK_DS_ENTRY_F(Name, Size)	const float o_##Name = Size; float	Name = Size;
+#define ECK_DS_ENTRY(Name, Size)		const int o_##Name = Size; int Name = Size;
+#define ECK_DS_ENTRY_DYN(Name, Size)	int	o_##Name = Size; int Name = Size;
+#define ECK_DS_ENTRY_F(Name, Size)		const float o_##Name = Size; float Name = Size;
+#define ECK_DS_ENTRY_F_DYN(Name, Size)	float o_##Name = Size; float Name = Size;
 
 #define ECK_HANDLE_WM_MOUSELEAVE(hWnd, wParam, lParam, fn) \
 	((fn)((hWnd)), 0L)

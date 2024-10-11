@@ -46,6 +46,7 @@ public:
 				}
 		}
 		break;
+		case WM_CREATE:
 		case WM_THEMECHANGED:
 		{
 			if (m_bAutoDarkMode)
@@ -242,7 +243,7 @@ public:
 		return (BOOL)SendMsg(LVM_GETEMPTYTEXT, cchBuf, (LPARAM)pszBuf);
 	}
 
-	EckInline DWORD GetExtendLVStyle() const
+	EckInline DWORD GetLVExtendStyle() const
 	{
 		return (DWORD)SendMsg(LVM_GETEXTENDEDLISTVIEWSTYLE, 0, 0);
 	}
