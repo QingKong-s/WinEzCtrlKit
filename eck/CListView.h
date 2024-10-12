@@ -324,6 +324,11 @@ public:
 		return CHeader((HWND)SendMsg(LVM_GETHEADER, 0, 0));
 	}
 
+	EckInline HWND GetHeaderCtrlHWnd() const
+	{
+		return (HWND)SendMsg(LVM_GETHEADER, 0, 0);
+	}
+
 	EckInline HCURSOR GetHotCursor() const
 	{
 		return (HCURSOR)SendMsg(LVM_GETHOTCURSOR, 0, 0);
@@ -346,7 +351,7 @@ public:
 	/// <returns>图像列表句柄</returns>
 	EckInline HIMAGELIST GetImageList(UINT uType = LVSIL_NORMAL) const
 	{
-		return (HIMAGELIST)SendMsg(LVM_GETHOVERTIME, uType, 0);
+		return (HIMAGELIST)SendMsg(LVM_GETIMAGELIST, uType, 0);
 	}
 
 	EckInline int GetInsertMark(BOOL* pbAfterItem) const

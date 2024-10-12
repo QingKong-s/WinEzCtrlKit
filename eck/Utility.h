@@ -900,13 +900,10 @@ inline constexpr BOOL AdjustRectToFitAnother(RECT& rc, const RECT& rcRef)
 		cy = cx * cy0 / cx0;
 	}
 
-	rc =
-	{
-		rcRef.left + (cxMax - cx) / 2,
-		rcRef.top + (cyMax - cy) / 2,
-		cx,
-		cy
-	};
+	rc.left = rcRef.left + (cxMax - cx) / 2;
+	rc.top = rcRef.top + (cyMax - cy) / 2;
+	rc.right = rc.left + cx;
+	rc.bottom = rc.top + cy;
 	return TRUE;
 }
 
