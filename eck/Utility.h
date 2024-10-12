@@ -1740,6 +1740,11 @@ EckInline constexpr void Md5ToStringLower(PCVOID pMd5, PSTR pszResult)
 	ToStringLower(pMd5, (size_t)16, pszResult);
 }
 
+EckInline constexpr BLENDFUNCTION MakeBlendFunction(BYTE byAlpha)
+{
+	return { AC_SRC_OVER,0,byAlpha,AC_SRC_ALPHA };
+}
+
 #if !ECKCXX20
 #undef ccpIsInteger
 #pragma pop_macro("ccpIsInteger")

@@ -37,7 +37,7 @@ CListViewExt封装了ListView的常用扩展功能
 
 ===以下功能效果仍相同但处理机制已变化===
 整体的颜色设置 - 应使用Lve系列方法管理，背景颜色仍使用SetBkClr
-
+表格线 - LVS_EX_GRIDLINES永远不会达到ListView，而是由内部接管；增加颜色方法
 */
 class CListViewExt :public CListView
 {
@@ -70,6 +70,7 @@ private:
 	// 图形
 	HTHEME m_hTheme{};		// 主题句柄
 	int m_iDpi{ USER_DEFAULT_SCREEN_DPI };	// DPI
+	CEzCDC m_DcAlpha{};		// DC，用作暗色下的颜色Alpha混合
 
 	// 选项
 	COLORREF m_crDefText = CLR_DEFAULT;		// 默认文本颜色
@@ -83,10 +84,12 @@ private:
 
 	BITBOOL m_bCustomDraw : 1 = TRUE;		// 是否由控件自动绘制，保留此选项以供特殊情况使用
 	BITBOOL m_bAutoDarkMode : 1 = TRUE;		// 自动处理深浅色切换
-	BITBOOL m_bAlphaClrInDark : 1 = TRUE;	// 在暗色主题下，为了使颜色显示对其执行Alpha混合操作
+	BITBOOL m_bAlphaClrInDark : 1 = TRUE;	// 在暗色模式下将颜色移至主题背景之上
 	BITBOOL m_bAutoColorPack : 1 = TRUE;	// 自动处理配色
 	BITBOOL m_bAddSplitterForClr : 1 = TRUE;// 若某项填充了颜色，则补全列分隔符
 	BITBOOL m_bCtrlASelectAll : 1 = TRUE;	// Ctrl+A全选
+
+	BYTE m_byColorAlpha{ 70 };		// 透明度
 	// 
 	const ECKTHREADCTX* m_pThrCtx{};	// 线程上下文
 
@@ -109,7 +112,7 @@ private:
 	LRESULT OnItemPrePaint(NMLVCUSTOMDRAW* pnmlvcd)
 	{
 		//return CDRF_DODEFAULT;
-		if (IsRectEmpty(pnmlvcd->nmcd.rc))
+		if (!m_bCustomDraw || IsRectEmpty(pnmlvcd->nmcd.rc))
 			return CDRF_DODEFAULT;
 		const auto hDC = pnmlvcd->nmcd.hdc;
 		const int idx = (int)pnmlvcd->nmcd.dwItemSpec;
@@ -167,7 +170,8 @@ private:
 		}
 		else
 			rcItem = pnmlvcd->nmcd.rc;
-
+		m_crEvenLineBk = 0xff;
+		const BOOL bFillClrPostTheme = (m_bAlphaClrInDark && ShouldAppsUseDarkMode() && iState);
 		if (m_iViewType == LV_VIEW_DETAILS)
 		{
 			if (m_bAddSplitterForClr)
@@ -181,36 +185,37 @@ private:
 				}
 			}
 
-			if (idx % 2)
-			{
-				if (m_crOddLineBk != CLR_DEFAULT)
+			if (!bFillClrPostTheme)
+				if (idx % 2)
 				{
-					SetDCBrushColor(hDC, m_crOddLineBk);
-					FillRect(hDC, &rcItem, GetStockBrush(DC_BRUSH));
-					if (m_iViewType == LV_VIEW_DETAILS)
+					if (m_crOddLineBk != CLR_DEFAULT)
 					{
-						EckCounter(cCol, i)
-							if (pColMetrics[i * 2 + 1] > 0)
-								DrawListViewColumnDetail(m_hTheme, hDC,
-									pColMetrics[i * 2 + 1], rcItem.top, rcItem.bottom);
+						SetDCBrushColor(hDC, m_crOddLineBk);
+						FillRect(hDC, &rcItem, GetStockBrush(DC_BRUSH));
+						if (m_iViewType == LV_VIEW_DETAILS)
+						{
+							EckCounter(cCol, i)
+								if (pColMetrics[i * 2 + 1] > 0)
+									DrawListViewColumnDetail(m_hTheme, hDC,
+										pColMetrics[i * 2 + 1], rcItem.top, rcItem.bottom);
+						}
 					}
 				}
-			}
-			else
-			{
-				if (m_crEvenLineBk != CLR_DEFAULT)
+				else
 				{
-					SetDCBrushColor(hDC, m_crEvenLineBk);
-					FillRect(hDC, &rcItem, GetStockBrush(DC_BRUSH));
-					if (m_iViewType == LV_VIEW_DETAILS)
+					if (m_crEvenLineBk != CLR_DEFAULT)
 					{
-						EckCounter(cCol, i)
-							if (pColMetrics[i * 2 + 1] > 0)
-								DrawListViewColumnDetail(m_hTheme, hDC,
-									pColMetrics[i * 2 + 1], rcItem.top, rcItem.bottom);
+						SetDCBrushColor(hDC, m_crEvenLineBk);
+						FillRect(hDC, &rcItem, GetStockBrush(DC_BRUSH));
+						if (m_iViewType == LV_VIEW_DETAILS)
+						{
+							EckCounter(cCol, i)
+								if (pColMetrics[i * 2 + 1] > 0)
+									DrawListViewColumnDetail(m_hTheme, hDC,
+										pColMetrics[i * 2 + 1], rcItem.top, rcItem.bottom);
+						}
 					}
 				}
-			}
 		}
 
 		if (iState)
@@ -219,12 +224,39 @@ private:
 				&rcItem, nullptr);
 		}
 
+		if ((m_iViewType == LV_VIEW_DETAILS) && bFillClrPostTheme)
+		{
+			constexpr RECT rcDst{ 0,0,1,1 };
+			if (idx % 2)
+			{
+				if (m_crOddLineBk != CLR_DEFAULT)
+				{
+					SetDCBrushColor(m_DcAlpha.GetDC(), m_crOddLineBk);
+					FillRect(m_DcAlpha.GetDC(), &rcDst, GetStockBrush(DC_BRUSH));
+					AlphaBlend(hDC, rcItem.left, rcItem.top, rcItem.right - rcItem.left,
+						rcItem.bottom - rcItem.top,
+						m_DcAlpha.GetDC(), 0, 0, 1, 1, { AC_SRC_OVER,0,m_byColorAlpha,0 });
+				}
+			}
+			else
+			{
+				if (m_crEvenLineBk != CLR_DEFAULT)
+				{
+					SetDCBrushColor(m_DcAlpha.GetDC(), m_crEvenLineBk);
+					FillRect(m_DcAlpha.GetDC(), &rcDst, GetStockBrush(DC_BRUSH));
+					AlphaBlend(hDC, rcItem.left, rcItem.top, rcItem.right - rcItem.left,
+						rcItem.bottom - rcItem.top,
+						m_DcAlpha.GetDC(), 0, 0, 1, 1, { AC_SRC_OVER,0,m_byColorAlpha,0 });
+				}
+			}
+
+		}
+
 		// 画第一个子项的图像
 		if (hIL)
 		{
 			// 傻逼微软
 			GetItemRect(idx, &rc, LVIR_ICON);// 仅当为报表视图，此矩形才为图标矩形，否则为与状态图片的并
-			FrameRect(hDC, &rc, GetSysColorBrush(COLOR_WINDOWFRAME));
 			RECT rc0;
 			if (m_iViewType == LV_VIEW_DETAILS)
 			{
@@ -355,7 +387,11 @@ private:
 			if (m_iViewType == LV_VIEW_ICON && (bSelected || (pnmlvcd->nmcd.uItemState & CDIS_FOCUS)))
 				uDtFlags = DT_CENTER | DT_NOPREFIX | DT_WORDBREAK | DT_EDITCONTROL;
 			else
+			{
 				uDtFlags = DT_END_ELLIPSIS | DT_NOPREFIX | DT_SINGLELINE | DT_CENTER;
+				if (m_iViewType == LV_VIEW_SMALLICON || m_iViewType == LV_VIEW_LIST)
+					uDtFlags |= DT_VCENTER;
+			}
 			if (!((m_iViewType == LV_VIEW_SMALLICON || m_iViewType == LV_VIEW_ICON) && m_bHideLabels))
 				DrawTextW(hDC, li.pszText, -1, &rc, uDtFlags);
 		}
@@ -525,6 +561,7 @@ public:
 		case WM_CREATE:
 		{
 			m_pThrCtx = GetThreadCtx();
+			m_DcAlpha.Create(hWnd, 1, 1);
 			const auto lResult = CListView::OnMsg(hWnd, uMsg, wParam, lParam);
 			if (!lResult)
 			{
