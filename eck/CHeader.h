@@ -15,10 +15,6 @@ public:
 	ECK_RTTI(CHeader);
 
 	ECK_CWND_NOSINGLEOWNER(CHeader)
-protected:
-#ifndef ECK_MACRO_NO_SUPPORT_DARKMODE
-	COLORREF m_crText = GetSysColor(COLOR_WINDOWTEXT);
-#endif
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
@@ -28,37 +24,6 @@ public:
 			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 	}
 #ifndef ECK_MACRO_NO_SUPPORT_DARKMODE
-	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
-	{
-		switch (uMsg)
-		{
-		case WM_CREATE:
-		{
-			if (ShouldAppsUseDarkMode())
-				SetWindowTheme(hWnd, L"ItemsView", nullptr);
-			else
-				SetWindowTheme(hWnd, L"Explorer", nullptr);
-		}
-		break;
-		case WM_THEMECHANGED:
-		{
-			COLORREF Dummy;
-			GetItemsViewForeBackColor(m_crText, Dummy);
-		}
-			break;
-		case WM_SETTINGCHANGE:
-		{
-			if (IsColorSchemeChangeMessage(lParam))
-				if (ShouldAppsUseDarkMode())
-					SetWindowTheme(hWnd, L"ItemsView", nullptr);
-				else
-					SetWindowTheme(hWnd, L"Explorer", nullptr);
-		}
-		break;
-		}
-		return __super::OnMsg(hWnd, uMsg, wParam, lParam);
-	}
-
 	LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed) override
 	{
 		if (ShouldAppsUseDarkMode())
@@ -77,11 +42,8 @@ public:
 					case CDDS_PREPAINT:
 						return CDRF_NOTIFYITEMDRAW;
 					case CDDS_ITEMPREPAINT:
-					{
-						const HDC hDC = pnmcd->hdc;
-						SetTextColor(hDC, m_crText);
-					}
-					return CDRF_DODEFAULT;
+						SetTextColor(pnmcd->hdc, GetThreadCtx()->crDefText);
+						return CDRF_DODEFAULT;
 					}
 				}
 				return CDRF_DODEFAULT;
@@ -97,47 +59,47 @@ public:
 	/// </summary>
 	/// <param name="idx">列索引，若为-1则清除所有筛选器</param>
 	/// <returns></returns>
-	EckInline BOOL ClearFilter(int idx)
+	EckInline BOOL ClearFilter(int idx) const
 	{
 		return (BOOL)SendMsg(HDM_CLEARFILTER, idx, 0);
 	}
 
-	EckInline HIMAGELIST CreateDragImage(int idx)
+	EckInline HIMAGELIST CreateDragImage(int idx) const
 	{
 		return (HIMAGELIST)SendMsg(HDM_CREATEDRAGIMAGE, idx, 0);
 	}
 
-	EckInline BOOL DeleteItem(int idx)
+	EckInline BOOL DeleteItem(int idx) const
 	{
 		return (BOOL)SendMsg(HDM_DELETEITEM, idx, 0);
 	}
 
-	EckInline BOOL EditFilter(int idx, BOOL bDiscardUserInput)
+	EckInline BOOL EditFilter(int idx, BOOL bDiscardUserInput) const
 	{
 		return (BOOL)SendMsg(HDM_CLEARFILTER, idx, bDiscardUserInput);
 	}
 
-	EckInline int GetBitmapMargin()
+	EckInline int GetBitmapMargin() const
 	{
 		return (int)SendMsg(HDM_GETBITMAPMARGIN, 0, 0);
 	}
 
-	EckInline int GetFocusItem()
+	EckInline int GetFocusItem() const
 	{
 		return (int)SendMsg(HDM_GETFOCUSEDITEM, 0, 0);
 	}
 
-	EckInline HIMAGELIST GetImageList(UINT uType = HDSIL_NORMAL)
+	EckInline HIMAGELIST GetImageList(UINT uType = HDSIL_NORMAL) const
 	{
 		return (HIMAGELIST)SendMsg(HDM_GETIMAGELIST, uType, 0);
 	}
 
-	EckInline BOOL GetItem(int idx, HDITEMW* phdi)
+	EckInline BOOL GetItem(int idx, HDITEMW* phdi) const
 	{
 		return (BOOL)SendMsg(HDM_GETITEMW, idx, (LPARAM)phdi);
 	}
 
-	EckInline int GetItemCount()
+	EckInline int GetItemCount() const
 	{
 		return (int)SendMsg(HDM_GETITEMCOUNT, 0, 0);
 	}
@@ -148,7 +110,7 @@ public:
 	/// <param name="idx">项目索引</param>
 	/// <param name="prc">矩形指针，相对控件父窗口</param>
 	/// <returns>成功返回TRUE，失败返回FALSE</returns>
-	EckInline BOOL GetItemDropDownRect(int idx, RECT* prc)
+	EckInline BOOL GetItemDropDownRect(int idx, RECT* prc) const
 	{
 		return (BOOL)SendMsg(HDM_GETITEMDROPDOWNRECT, idx, (LPARAM)prc);
 	}
@@ -159,19 +121,19 @@ public:
 	/// <param name="idx">项目索引</param>
 	/// <param name="prc">矩形指针，相对控件父窗口</param>
 	/// <returns>成功返回TRUE，失败返回FALSE</returns>
-	EckInline BOOL GetItemRect(int idx, RECT* prc)
+	EckInline BOOL GetItemRect(int idx, RECT* prc) const
 	{
 		return (BOOL)SendMsg(HDM_GETITEMRECT, idx, (LPARAM)prc);
 	}
 
-	EckInline std::vector<int> GetOrderArray()
+	EckInline std::vector<int> GetOrderArray() const
 	{
 		std::vector<int> aOrder(GetItemCount());
 		SendMsg(HDM_GETORDERARRAY, aOrder.size(), (LPARAM)aOrder.data());
 		return aOrder;
 	}
 
-	EckInline BOOL GetOrderArray(int* piOrder, int cBuf)
+	EckInline BOOL GetOrderArray(int* piOrder, int cBuf) const
 	{
 		return (BOOL)SendMsg(HDM_GETORDERARRAY, cBuf, (LPARAM)piOrder);
 	}
@@ -181,23 +143,23 @@ public:
 	/// </summary>
 	/// <param name="prc">矩形指针，相对屏幕</param>
 	/// <returns>成功返回TRUE，失败返回FALSE</returns>
-	EckInline BOOL GetOverFlowRect(RECT* prc)
+	EckInline BOOL GetOverFlowRect(RECT* prc) const
 	{
 		return (BOOL)SendMsg(HDM_GETOVERFLOWRECT, 0, (LPARAM)prc);
 	}
 
-	EckInline int HitTest(HDHITTESTINFO* phdhti)
+	EckInline int HitTest(HDHITTESTINFO* phdhti) const
 	{
 		return (int)SendMsg(HDM_HITTEST, 0, (LPARAM)phdhti);
 	}
 
-	EckInline int InsertItem(int idx, HDITEMW* phdi)
+	EckInline int InsertItem(int idx, HDITEMW* phdi) const
 	{
 		return (int)SendMsg(HDM_INSERTITEMW, idx, (LPARAM)phdi);
 	}
 
 	EckInline int InsertItem(PCWSTR pszText, int idx = -1, int cxItem = -1,
-		int idxImage = -1, int iFmt = HDF_LEFT, LPARAM lParam = 0)
+		int idxImage = -1, int iFmt = HDF_LEFT, LPARAM lParam = 0) const
 	{
 		if (idx < 0)
 			idx = INT_MAX;
@@ -221,57 +183,57 @@ public:
 		return InsertItem(idx, &hdi);
 	}
 
-	EckInline BOOL Layout(HDLAYOUT* phdl)
+	EckInline BOOL Layout(HDLAYOUT* phdl) const
 	{
 		return (BOOL)SendMsg(HDM_LAYOUT, 0, (LPARAM)phdl);
 	}
 
-	EckInline int OrderToIndex(int iOrder)
+	EckInline int OrderToIndex(int iOrder) const
 	{
 		return (int)SendMsg(HDM_ORDERTOINDEX, iOrder, 0);
 	}
 
-	EckInline int SetBitmapMargin(int iMargin)
+	EckInline int SetBitmapMargin(int iMargin) const
 	{
 		return (int)SendMsg(HDM_SETBITMAPMARGIN, iMargin, 0);
 	}
 
-	EckInline int SetFilterChangeTimeout(int iTimeout)
+	EckInline int SetFilterChangeTimeout(int iTimeout) const
 	{
 		return (int)SendMsg(HDM_SETFILTERCHANGETIMEOUT, 0, iTimeout);
 	}
 
-	EckInline BOOL SetFocusedItem(int idx)
+	EckInline BOOL SetFocusedItem(int idx) const
 	{
 		return (BOOL)SendMsg(HDM_SETFOCUSEDITEM, 0, idx);
 	}
 
-	EckInline int SetHotDivider(int idxDivider)
+	EckInline int SetHotDivider(int idxDivider) const
 	{
 		return (int)SendMsg(HDM_SETHOTDIVIDER, FALSE, idxDivider);
 	}
 
-	EckInline int SetHotDivider(POINT ptCursor)
+	EckInline int SetHotDivider(POINT ptCursor) const
 	{
 		return (int)SendMsg(HDM_SETHOTDIVIDER, TRUE, MAKELPARAM(ptCursor.x, ptCursor.y));
 	}
 
-	EckInline HIMAGELIST SetImageList(HIMAGELIST hImageList, UINT uType = HDSIL_NORMAL)
+	EckInline HIMAGELIST SetImageList(HIMAGELIST hImageList, UINT uType = HDSIL_NORMAL) const
 	{
 		return (HIMAGELIST)SendMsg(HDM_SETIMAGELIST, uType, (LPARAM)hImageList);
 	}
 
-	EckInline BOOL SetItem(int idx, HDITEMW* phdi)
+	EckInline BOOL SetItem(int idx, HDITEMW* phdi) const
 	{
 		return (BOOL)SendMsg(HDM_SETITEMW, idx, (LPARAM)phdi);
 	}
 
-	EckInline BOOL SetOrderArray(int* piOrder)
+	EckInline BOOL SetOrderArray(int* piOrder) const
 	{
 		return (BOOL)SendMsg(HDM_SETORDERARRAY, GetItemCount(), (LPARAM)piOrder);
 	}
 
-	void RadioSetSortMark(int idx, int iFmt)
+	void RadioSetSortMark(int idx, int iFmt) const
 	{
 		HDITEMW hdi;
 		hdi.mask = HDI_FORMAT;

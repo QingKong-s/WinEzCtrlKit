@@ -11,7 +11,7 @@
 ECK_NAMESPACE_BEGIN
 EckInline HRESULT DrawListViewColumnDetail(HTHEME hTheme, HDC hDC, int x, int yTop, int yBottom)
 {
-	const RECT rc{ x - 1,yTop,x,yBottom };
+	const RECT rc{ x - 2,yTop,x,yBottom };
 	return DrawThemeBackground(hTheme, hDC, LVP_COLUMNDETAIL, 0, &rc, nullptr);
 }
 
