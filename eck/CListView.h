@@ -1100,6 +1100,16 @@ public:
 		SetLVExtendStyle(dwStyle, dwStyle);
 		return MakePretty_RowHeight();
 	}
+
+	int GetItemCheckState(int idx) const
+	{
+		return (GetItemState(idx, LVIS_STATEIMAGEMASK) >> 12) - 1;
+	}
+
+	BOOL SetItemCheckState(int idx, int iCheck) const
+	{
+		return SetItemState(idx, INDEXTOSTATEIMAGEMASK(iCheck + 1), LVIS_STATEIMAGEMASK);
+	}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CListView, CWnd);
 ECK_NAMESPACE_END
