@@ -14,7 +14,7 @@ class CHeader :public CWnd
 public:
 	ECK_RTTI(CHeader);
 
-	ECK_CWND_NOSINGLEOWNER(CHeader)
+	ECK_CWND_NOSINGLEOWNER(CHeader);
 public:
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
@@ -23,37 +23,7 @@ public:
 		return IntCreate(dwExStyle, WC_HEADERW, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 	}
-#ifndef ECK_MACRO_NO_SUPPORT_DARKMODE
-	LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed) override
-	{
-		if (ShouldAppsUseDarkMode())
-			switch (uMsg)
-			{
-			case WM_NOTIFY:
-			{
-				switch (((NMHDR*)lParam)->code)
-				{
-				case NM_CUSTOMDRAW:
-				{
-					bProcessed = TRUE;
-					const auto pnmcd = (NMCUSTOMDRAW*)lParam;
-					switch (pnmcd->dwDrawStage)
-					{
-					case CDDS_PREPAINT:
-						return CDRF_NOTIFYITEMDRAW;
-					case CDDS_ITEMPREPAINT:
-						SetTextColor(pnmcd->hdc, GetThreadCtx()->crDefText);
-						return CDRF_DODEFAULT;
-					}
-				}
-				return CDRF_DODEFAULT;
-				}
-			}
-			break;
-			}
-		return __super::OnNotifyMsg(hParent, uMsg, wParam, lParam, bProcessed);
-	}
-#endif
+
 	/// <summary>
 	/// 清除筛选器
 	/// </summary>

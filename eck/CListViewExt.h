@@ -156,9 +156,11 @@ private:
 	BITBOOL m_bAddSplitterForClr : 1 = TRUE;// 若某项填充了颜色，则补全列分隔符
 	BITBOOL m_bCtrlASelectAll : 1 = TRUE;	// Ctrl+A全选
 	BITBOOL m_bImplLvOdNotify : 1 = TRUE;	// 指示控件应根据m_pfnOwnerData实现ListView标准通知
+	BITBOOL m_bInstalledHeaderHook : 1 = FALSE;	// [内部标志]是否已钩住表头消息
 
-	BYTE m_byColorAlpha{ 70 };		// 透明度
+	BYTE m_byColorAlpha{ 70 };	// 透明度
 	size_t m_cchOdTextBuf{ 0 };	// 所有者数据缓冲区大小
+	int m_cyHeader{};			// 表头高度，0 = 默认
 	// 项目
 	std::vector<LVE_ITEM_DATA*> m_vRecycleData{};	// [NOD]回收数据
 	FOwnerData m_pfnOwnerData{};	// [OD]所有者数据回调函数
@@ -510,7 +512,7 @@ private:
 		else
 		{
 			li.mask = LVIF_TEXT | LVIF_IMAGE;
-			pTempBuf  = (PWSTR)_alloca(MAX_PATH * sizeof(WCHAR));
+			pTempBuf = (PWSTR)_alloca(MAX_PATH * sizeof(WCHAR));
 			li.pszText = pTempBuf;
 			li.cchTextMax = MAX_PATH;
 			li.iItem = idx;
@@ -802,7 +804,7 @@ public:
 			if (!lResult)
 			{
 				if (const auto hHeader = GetHeaderCtrlHWnd(); hHeader)
-					m_Header.Attach(hHeader);
+					m_Header.AttachNew(hHeader);
 				m_hTheme = OpenThemeData(hWnd, L"ListView");
 				m_iViewType = (int)GetView();
 				UpdateStyleOptions(Style);
@@ -820,7 +822,7 @@ public:
 		{
 			CloseThemeData(m_hTheme);
 			m_hTheme = nullptr;
-			(void)m_Header.Detach();
+			(void)m_Header.DetachNew();
 			m_hIL[0] = m_hIL[1] = m_hIL[2] = m_hIL[3] = nullptr;
 			m_sizeIL[0] = m_sizeIL[1] = m_sizeIL[2] = m_sizeIL[3] = {};
 			LveSetClrPack({});
@@ -835,7 +837,7 @@ public:
 			const auto lResult = CListView::OnMsg(hWnd, uMsg, wParam, lParam);
 			if (!m_Header.IsValid())
 				if (const auto hHeader = GetHeaderCtrlHWnd(); hHeader)
-					m_Header.Attach(hHeader);
+					m_Header.AttachNew(hHeader);
 			if (lResult == 1)
 				m_iViewType = (int)wParam;
 			return lResult;
@@ -1109,6 +1111,41 @@ public:
 	void LveSetGetDispInfoBufferSize(size_t cch)
 	{
 		m_cchOdTextBuf = std::min(cch, (size_t)MAX_PATH);
+	}
+
+	void LveSetHeaderHeight(int cy)
+	{
+		m_cyHeader = cy;
+		if (m_cyHeader > 0)
+		{
+			if (!m_bInstalledHeaderHook)
+			{
+				m_Header.GetSignal().Connect(
+					[this](HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)->LRESULT
+					{
+						if (uMsg == HDM_LAYOUT && m_cyHeader > 0)
+						{
+							bProcessed = TRUE;
+							const auto lResult = m_Header.OnMsg(hWnd, uMsg, wParam, lParam);
+							const auto phdlo = (HDLAYOUT*)lParam;
+							phdlo->prc->top = m_cyHeader;// 这个矩形是ListView工作区的矩形，就是表头矩形的补集
+							phdlo->pwpos->cy = m_cyHeader;
+							return lResult;
+						}
+					}, MHI_LVE_HEADER_HEIGHT);
+				m_bInstalledHeaderHook = TRUE;
+			}
+		}
+		else if (m_bInstalledHeaderHook)
+		{
+			m_Header.GetSignal().Disconnect(MHI_LVE_HEADER_HEIGHT);
+			m_bInstalledHeaderHook = FALSE;
+		}
+		// force recalc it
+		Update();
+		RECT rc;
+		GetClientRect(HWnd, &rc);
+		SendMsg(WM_SIZE, 0, MAKELPARAM(rc.right, rc.bottom));
 	}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CListViewExt, CListView);
