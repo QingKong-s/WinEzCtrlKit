@@ -6,11 +6,15 @@
 * Copyright(C) 2024 QingKong
 */
 #pragma once
-ECK_DISABLE_ARITHMETIC_OVERFLOW_WARNING
 
 #include "CListView.h"
 #include "CtrlGraphics.h"
+#include "CSrwLock.h"
+#include "GraphicsHelper.h"
 
+#include <map>
+
+ECK_DISABLE_ARITHMETIC_OVERFLOW_WARNING
 ECK_NAMESPACE_BEGIN
 struct LVE_COLOR_PACK
 {
@@ -25,30 +29,93 @@ struct LVE_COLOR_PACK
 };
 
 constexpr inline LVE_COLOR_PACK LveLightClr1{
-	.crEvenLineBk = 0xF0F0F0,
+	.crEvenLineBk = 0xF8F8F8,
 };
 constexpr inline LVE_COLOR_PACK LveDarkClr1{
 	.crEvenLineBk = 0x202020,
 };
 
+struct LVE_CELL_COLOR
+{
+	COLORREF crText{ CLR_DEFAULT };
+	COLORREF crBk{ CLR_DEFAULT };
+	COLORREF crTextBk{ CLR_DEFAULT };
+};
+
+constexpr inline DWORD LveItemDataMagic{ 'LEID' };
+
+// 非所有者数据模式下项目lParam指向的结构
+struct LVE_ITEM_DATA
+{
+#ifdef _DEBUG
+	DWORD dwMagic{ LveItemDataMagic };
+#endif
+	LVE_CELL_COLOR LineClr{};
+	std::map<int, LVE_CELL_COLOR> CellClr{};
+	LPARAM lParam{};
+};
+
+enum :UINT
+{
+	LVE_IM_COLOR_TEXT = (1u << 0),
+	LVE_IM_COLOR_BK = (1u << 1),
+	LVE_IM_COLOR_TEXTBK = (1u << 2),// 备用
+	LVE_IM_COLOR_ALL = (LVE_IM_COLOR_TEXT | LVE_IM_COLOR_BK | LVE_IM_COLOR_TEXTBK),
+	LVE_IM_LPARAM = (1u << 3),
+	LVE_IM_TEXT = (1u << 4),
+	LVE_IM_IMAGE = (1u << 5),
+	LVE_IM_INDENT = (1u << 6),
+	LVE_IM_STATE = (1u << 7),
+};
+
+struct LVE_ITEM_EXT
+{
+	UINT uMask;// LVE_IM_
+	int idxItem;
+	int idxSubItem;
+	int idxImage;
+	UINT uState;
+	int iIndent;
+	LVE_CELL_COLOR Clr;
+	LPARAM lParam;
+	PCWSTR pszText;
+	int cchText;
+};
+
+enum class LveOd
+{
+	GetDispInfo,
+};
+
 /*
 CListViewExt封装了ListView的常用扩展功能
 ===以下ListView的原始功能被忽略===
+项目lParam - 由控件内部占用，不能由外部设置
 
 ===以下功能效果仍相同但处理机制已变化===
 整体的颜色设置 - 应使用Lve系列方法管理，背景颜色仍使用SetBkClr
-表格线 - LVS_EX_GRIDLINES永远不会达到ListView，而是由内部接管；增加颜色方法
+表格线 - LVS_EX_GRIDLINES永远不会达到ListView，而是由内部接管；增加颜色配置
+所有者数据 - 新增一个回调
 */
 class CListViewExt :public CListView
 {
 public:
+	using FOwnerData = LRESULT(*)(LveOd, void*, void*);
 	ECK_RTTI(CListViewExt);
 private:
-	struct ITEMINFO
+	struct SUBITEM
 	{
-		COLORREF crText;
-		COLORREF crTextBk;
-		COLORREF crBk;
+		CRefStrW rsText;
+		LVE_CELL_COLOR Clr;
+	};
+
+	struct ITEM
+	{
+		CRefStrW rsText;
+		int idxImage;
+		LVE_CELL_COLOR Clr;
+		std::vector<SUBITEM> vSubItems;
+		LPARAM lParam;
 	};
 
 	// ListView信息
@@ -61,7 +128,7 @@ private:
 	BITBOOL m_bFullRowSel : 1 = FALSE;	// 整行选择
 	BITBOOL m_bShowSelAlways : 1 = FALSE;	// 始终显示选择
 	BITBOOL m_bBorderSelect : 1 = FALSE;	// 边框选择 TODO
-	BITBOOL m_bCheckBoxes : 1 = FALSE;	// 显示复选框 TODO:可考虑三态复选和单选
+	BITBOOL m_bCheckBoxes : 1 = FALSE;	// 显示复选框
 	BITBOOL m_bGridLines : 1 = FALSE;	// 显示表格线
 	BITBOOL m_bHideLabels : 1 = FALSE;	// 隐藏标签
 	BITBOOL m_bSingleSel : 1 = FALSE;	// 单选模式
@@ -88,10 +155,16 @@ private:
 	BITBOOL m_bAutoColorPack : 1 = TRUE;	// 自动处理配色
 	BITBOOL m_bAddSplitterForClr : 1 = TRUE;// 若某项填充了颜色，则补全列分隔符
 	BITBOOL m_bCtrlASelectAll : 1 = TRUE;	// Ctrl+A全选
+	BITBOOL m_bImplLvOdNotify : 1 = TRUE;	// 指示控件应根据m_pfnOwnerData实现ListView标准通知
 
 	BYTE m_byColorAlpha{ 70 };		// 透明度
+	size_t m_cchOdTextBuf{ 0 };	// 所有者数据缓冲区大小
+	// 项目
+	std::vector<LVE_ITEM_DATA*> m_vRecycleData{};	// [NOD]回收数据
+	FOwnerData m_pfnOwnerData{};	// [OD]所有者数据回调函数
+	void* m_pOdProcData{};			// [OD]所有者数据回调函数参数
 	// 
-	const ECKTHREADCTX* m_pThrCtx{};	// 线程上下文
+	const ECKTHREADCTX* m_pThrCtx{};// 线程上下文
 
 	ECK_DS_BEGIN(DPIS)
 		ECK_DS_ENTRY_DYN(cxEdge, GetSystemMetrics(SM_CXEDGE))
@@ -109,10 +182,35 @@ private:
 		}
 	}
 
+	BOOL AlphaBlendColor(HDC hDC, const RECT& rcItem, COLORREF cr)
+	{
+		constexpr RECT rcDst{ 0,0,1,1 };
+		SetDCBrushColor(m_DcAlpha.GetDC(), cr);
+		FillRect(m_DcAlpha.GetDC(), &rcDst, GetStockBrush(DC_BRUSH));
+		return AlphaBlend(hDC, rcItem.left, rcItem.top, rcItem.right - rcItem.left,
+			rcItem.bottom - rcItem.top,
+			m_DcAlpha.GetDC(), 0, 0, 1, 1, { AC_SRC_OVER,0,m_byColorAlpha,0 });
+	}
+
+	void BitBltColor(HDC hDC, const RECT& rcItem, COLORREF cr, int* pColMetrics, int cCol)
+	{
+		SetDCBrushColor(hDC, cr);
+		FillRect(hDC, &rcItem, GetStockBrush(DC_BRUSH));
+		if (m_iViewType == LV_VIEW_DETAILS && m_bAddSplitterForClr)
+		{
+			EckCounter(cCol, i)
+			{
+				if (pColMetrics[i * 2 + 1] > 0)
+					DrawListViewColumnDetail(m_hTheme, hDC,
+						pColMetrics[i * 2 + 1], rcItem.top, rcItem.bottom);
+			}
+		}
+	}
+
 	LRESULT OnItemPrePaint(NMLVCUSTOMDRAW* pnmlvcd)
 	{
 		//return CDRF_DODEFAULT;
-		if (!m_bCustomDraw || IsRectEmpty(pnmlvcd->nmcd.rc))
+		if (IsRectEmpty(pnmlvcd->nmcd.rc))
 			return CDRF_DODEFAULT;
 		const auto hDC = pnmlvcd->nmcd.hdc;
 		const int idx = (int)pnmlvcd->nmcd.dwItemSpec;
@@ -124,16 +222,70 @@ private:
 		const auto sizeILState = m_sizeIL[LVSIL_STATE];
 		const BOOL bSelected = (GetItemState(idx, LVIS_SELECTED) == LVIS_SELECTED);
 		int* pColMetrics{};
-		int cCol;
-
+		int cCol{ m_iViewType == LV_VIEW_DETAILS ? m_Header.GetItemCount() : 0 };
 		RECT rc, rcItem;
-
+		LVE_ITEM_EXT ie{};
 		LVITEMW li;
-		li.mask = LVIF_IMAGE | LVIF_INDENT | LVIF_STATE;
+		COLORREF crLine{ CLR_DEFAULT }, crText{ CLR_DEFAULT };
+		const BOOL bExtInfo = (m_bOwnerData && m_pfnOwnerData);
+
+		li.mask = LVIF_IMAGE | LVIF_INDENT | LVIF_STATE | LVIF_PARAM;
 		li.iItem = idx;
 		li.iSubItem = 0;
 		li.stateMask = 0xFFFFFFFF;
-		GetItem(&li);
+		if (bExtInfo)
+		{
+			ie.uMask = LVE_IM_IMAGE | LVE_IM_INDENT | LVE_IM_STATE | LVE_IM_COLOR_ALL;
+			ie.idxItem = idx;
+			ie.idxSubItem = -1;
+			m_pfnOwnerData(LveOd::GetDispInfo, &ie, m_pOdProcData);
+			if (ie.Clr.crBk != CLR_DEFAULT)
+				crLine = ie.Clr.crBk;
+			if (ie.Clr.crText != CLR_DEFAULT)
+				crText = ie.Clr.crText;
+			li.iImage = ie.idxImage;
+			li.iIndent = ie.iIndent;
+			li.state = ie.uState;
+			li.lParam = 0;
+		}
+		else
+			GetItem(&li);
+		const auto* const pData = (LVE_ITEM_DATA*)li.lParam;
+		if (pData)
+		{
+			if (pData->LineClr.crBk != CLR_DEFAULT)
+				crLine = pData->LineClr.crBk;
+			if (pData->LineClr.crText != CLR_DEFAULT)
+				crText = pData->LineClr.crText;
+		}
+
+		if (crLine == CLR_DEFAULT && m_iViewType == LV_VIEW_DETAILS)
+			if (idx % 2)
+			{
+				if (m_crOddLineBk != CLR_DEFAULT)
+					crLine = m_crOddLineBk;
+			}
+			else
+			{
+				if (m_crEvenLineBk != CLR_DEFAULT)
+					crLine = m_crEvenLineBk;
+			}
+		if (crText == CLR_DEFAULT && m_iViewType == LV_VIEW_DETAILS)
+			if (idx % 2)
+			{
+				if (m_crOddLineText != CLR_DEFAULT)
+					crText = m_crOddLineText;
+			}
+			else
+			{
+				if (m_crEvenLineText != CLR_DEFAULT)
+					crText = m_crEvenLineText;
+			}
+		if (crText == CLR_DEFAULT)
+			if (m_crDefText != CLR_DEFAULT)
+				crText = m_crDefText;
+			else
+				crText = m_pThrCtx->crDefText;
 
 		int iState;
 		if (bSelected)// 选中
@@ -170,7 +322,7 @@ private:
 		}
 		else
 			rcItem = pnmlvcd->nmcd.rc;
-		m_crEvenLineBk = 0xff;
+
 		const BOOL bFillClrPostTheme = (m_bAlphaClrInDark && ShouldAppsUseDarkMode() && iState);
 		if (m_iViewType == LV_VIEW_DETAILS)
 		{
@@ -178,7 +330,6 @@ private:
 			{
 				if (!pColMetrics)
 				{
-					cCol = m_Header.GetItemCount();
 					pColMetrics = (int*)_malloca(cCol * 2 * sizeof(int));
 					EckCheckMem(pColMetrics);
 					GetColumnMetrics(pColMetrics, cCol);
@@ -186,36 +337,46 @@ private:
 			}
 
 			if (!bFillClrPostTheme)
-				if (idx % 2)
+			{
+				if (crLine != CLR_DEFAULT)
+					BitBltColor(hDC, rcItem, crLine, pColMetrics, cCol);
+
+				if (bExtInfo)
 				{
-					if (m_crOddLineBk != CLR_DEFAULT)
+					RECT rcCell;
+					rcCell.top = rcItem.top;
+					rcCell.bottom = rcItem.bottom;
+					ie.uMask = LVE_IM_COLOR_BK;
+					for (ie.idxSubItem = 0; ie.idxSubItem < cCol; ++ie.idxSubItem)
 					{
-						SetDCBrushColor(hDC, m_crOddLineBk);
-						FillRect(hDC, &rcItem, GetStockBrush(DC_BRUSH));
-						if (m_iViewType == LV_VIEW_DETAILS)
-						{
-							EckCounter(cCol, i)
-								if (pColMetrics[i * 2 + 1] > 0)
-									DrawListViewColumnDetail(m_hTheme, hDC,
-										pColMetrics[i * 2 + 1], rcItem.top, rcItem.bottom);
-						}
+						m_pfnOwnerData(LveOd::GetDispInfo, &ie, m_pOdProcData);
+						if (ie.Clr.crBk == CLR_DEFAULT)
+							continue;
+						rcCell.left = pColMetrics[ie.idxSubItem * 2];
+						rcCell.right = pColMetrics[ie.idxSubItem * 2 + 1];
+						BitBltColor(hDC, rcCell, ie.Clr.crBk, pColMetrics, cCol);
 					}
 				}
-				else
+				else if (pData && !pData->CellClr.empty())
 				{
-					if (m_crEvenLineBk != CLR_DEFAULT)
+					RECT rcCell;
+					rcCell.top = rcItem.top;
+					rcCell.bottom = rcItem.bottom;
+					for (const auto& [i, cr] : pData->CellClr)
 					{
-						SetDCBrushColor(hDC, m_crEvenLineBk);
-						FillRect(hDC, &rcItem, GetStockBrush(DC_BRUSH));
-						if (m_iViewType == LV_VIEW_DETAILS)
-						{
-							EckCounter(cCol, i)
-								if (pColMetrics[i * 2 + 1] > 0)
-									DrawListViewColumnDetail(m_hTheme, hDC,
-										pColMetrics[i * 2 + 1], rcItem.top, rcItem.bottom);
-						}
+						if (cr.crBk == CLR_DEFAULT)
+							continue;
+						rcCell.left = pColMetrics[i * 2];
+						rcCell.right = pColMetrics[i * 2 + 1];
+						BitBltColor(hDC, rcCell, cr.crBk, pColMetrics, cCol);
 					}
 				}
+			}
+		}
+		else
+		{
+			if (!bFillClrPostTheme && crLine != CLR_DEFAULT)
+				BitBltColor(hDC, rcItem, crLine, nullptr, 0);
 		}
 
 		if (iState)
@@ -224,33 +385,45 @@ private:
 				&rcItem, nullptr);
 		}
 
-		if ((m_iViewType == LV_VIEW_DETAILS) && bFillClrPostTheme)
-		{
-			constexpr RECT rcDst{ 0,0,1,1 };
-			if (idx % 2)
+		if (bFillClrPostTheme)
+			if ((m_iViewType == LV_VIEW_DETAILS))
 			{
-				if (m_crOddLineBk != CLR_DEFAULT)
-				{
-					SetDCBrushColor(m_DcAlpha.GetDC(), m_crOddLineBk);
-					FillRect(m_DcAlpha.GetDC(), &rcDst, GetStockBrush(DC_BRUSH));
-					AlphaBlend(hDC, rcItem.left, rcItem.top, rcItem.right - rcItem.left,
-						rcItem.bottom - rcItem.top,
-						m_DcAlpha.GetDC(), 0, 0, 1, 1, { AC_SRC_OVER,0,m_byColorAlpha,0 });
-				}
-			}
-			else
-			{
-				if (m_crEvenLineBk != CLR_DEFAULT)
-				{
-					SetDCBrushColor(m_DcAlpha.GetDC(), m_crEvenLineBk);
-					FillRect(m_DcAlpha.GetDC(), &rcDst, GetStockBrush(DC_BRUSH));
-					AlphaBlend(hDC, rcItem.left, rcItem.top, rcItem.right - rcItem.left,
-						rcItem.bottom - rcItem.top,
-						m_DcAlpha.GetDC(), 0, 0, 1, 1, { AC_SRC_OVER,0,m_byColorAlpha,0 });
-				}
-			}
+				if (crLine != CLR_DEFAULT)
+					AlphaBlendColor(hDC, rcItem, crLine);
 
-		}
+				if (bExtInfo)
+				{
+					RECT rcCell;
+					rcCell.top = rcItem.top;
+					rcCell.bottom = rcItem.bottom;
+					ie.uMask = LVE_IM_COLOR_BK;
+					for (ie.idxSubItem = 0; ie.idxSubItem < cCol; ++ie.idxSubItem)
+					{
+						m_pfnOwnerData(LveOd::GetDispInfo, &ie, m_pOdProcData);
+						if (ie.Clr.crBk == CLR_DEFAULT)
+							continue;
+						rcCell.left = pColMetrics[ie.idxSubItem * 2];
+						rcCell.right = pColMetrics[ie.idxSubItem * 2 + 1];
+						AlphaBlendColor(hDC, rcCell, ie.Clr.crBk);
+					}
+				}
+				else if (pData && !pData->CellClr.empty())
+				{
+					RECT rcCell;
+					rcCell.top = rcItem.top;
+					rcCell.bottom = rcItem.bottom;
+					for (const auto& [i, cr] : pData->CellClr)
+					{
+						if (cr.crBk == CLR_DEFAULT)
+							continue;
+						rcCell.left = pColMetrics[i * 2];
+						rcCell.right = pColMetrics[i * 2 + 1];
+						AlphaBlendColor(hDC, rcCell, cr.crBk);
+					}
+				}
+			}
+			else if (pData && pData->LineClr.crBk != CLR_DEFAULT)
+				AlphaBlendColor(hDC, rcItem, pData->LineClr.crBk);
 
 		// 画第一个子项的图像
 		if (hIL)
@@ -314,39 +487,73 @@ private:
 			}
 		}
 		// 画文本
-		WCHAR sz[MAX_PATH];// 无论如何，ListView只显示前255个字符
-		li.mask = LVIF_TEXT | LVIF_IMAGE;
-		li.pszText = sz;
-		li.cchTextMax = MAX_PATH;
-		li.iItem = idx;
+#pragma warning(push)
+#pragma warning(disable: 6255)// 改用_malloca
+		PWSTR pTempBuf{};
+		if (bExtInfo)
+		{
+			ie.uMask = LVE_IM_TEXT | LVE_IM_IMAGE;
+			ie.idxItem = idx;
+			ie.idxSubItem = 0;
+			if (m_cchOdTextBuf)
+			{
+				pTempBuf = (PWSTR)_alloca(m_cchOdTextBuf * sizeof(WCHAR));
+				ie.pszText = pTempBuf;
+				ie.cchText = m_cchOdTextBuf;
+			}
+			else
+			{
+				ie.pszText = nullptr;
+				ie.cchText = 0;
+			}
+		}
+		else
+		{
+			li.mask = LVIF_TEXT | LVIF_IMAGE;
+			pTempBuf  = (PWSTR)_alloca(MAX_PATH * sizeof(WCHAR));
+			li.pszText = pTempBuf;
+			li.cchTextMax = MAX_PATH;
+			li.iItem = idx;
+		}
+#pragma warning(pop)
 
 		// HACK : 增加文本背景支持
 		SetBkMode(hDC, TRANSPARENT);
-		const auto crNormal = m_crDefText == CLR_DEFAULT ?
-			m_pThrCtx->crDefText : m_crDefText;
-		if (m_iViewType == LV_VIEW_DETAILS)
-			if (idx % 2)
-				if (m_crOddLineText != CLR_DEFAULT)
-					SetTextColor(hDC, m_crOddLineText);
-				else
-					SetTextColor(hDC, crNormal);
-			else
-				if (m_crEvenLineText != CLR_DEFAULT)
-					SetTextColor(hDC, m_crEvenLineText);
-				else
-					SetTextColor(hDC, crNormal);
-		else
-			SetTextColor(hDC, crNormal);
-
+		if (m_iViewType == LV_VIEW_DETAILS && pData && pData->CellClr.contains(0))
+		{
+			const auto it = pData->CellClr.find(0);
+			if (it->second.crText != CLR_DEFAULT)
+			{
+				SetTextColor(hDC, it->second.crText);
+				goto SkipTextColor;
+			}
+		}
+		SetTextColor(hDC, crText);
+	SkipTextColor:
+		int cchText{ -1 };
 		if (m_iViewType == LV_VIEW_DETAILS)
 		{
-			const auto cCol = m_Header.GetItemCount();
 			HDITEMW hdi;
 			hdi.mask = HDI_FORMAT;
 			int cxImg = 0;
 			for (li.iSubItem = 0; li.iSubItem < cCol; ++li.iSubItem)
 			{
-				GetItem(&li);
+				if (bExtInfo)
+				{
+					ie.uMask = LVE_IM_TEXT | LVE_IM_IMAGE;
+					ie.idxSubItem = li.iSubItem;
+					if (m_cchOdTextBuf)
+					{
+						ie.pszText = pTempBuf;
+						ie.cchText = m_cchOdTextBuf;
+					}
+					m_pfnOwnerData(LveOd::GetDispInfo, &ie, m_pOdProcData);
+					li.pszText = (PWSTR)ie.pszText;
+					li.iImage = ie.idxImage;
+					cchText = ie.cchText;
+				}
+				else
+					GetItem(&li);
 				// 如果可能，绘制后续子项图像
 				if (li.iImage >= 0 && hIL)
 					if (li.iSubItem == 0)
@@ -375,12 +582,35 @@ private:
 					uDtFlags |= DT_CENTER;
 				GetSubItemRect(idx, li.iSubItem, &rc, LVIR_LABEL);
 				rc.left += cxImg;
-				DrawTextW(hDC, li.pszText, -1, &rc, uDtFlags);
+				if (bExtInfo)
+				{
+					ie.uMask = LVE_IM_COLOR_TEXT;
+					ie.idxSubItem = li.iSubItem;
+					m_pfnOwnerData(LveOd::GetDispInfo, &ie, m_pOdProcData);
+					if (ie.Clr.crText != CLR_DEFAULT)
+						SetTextColor(hDC, ie.Clr.crText);
+				}
+				else if (pData)
+				{
+					const auto it = pData->CellClr.find(li.iSubItem);
+					if (it != pData->CellClr.end() && it->second.crText != CLR_DEFAULT)
+						SetTextColor(hDC, it->second.crText);
+				}
+				DrawTextW(hDC, li.pszText, cchText, &rc, uDtFlags);
 			}
 		}
 		else
 		{
-			GetItem(&li);
+			if (bExtInfo)
+			{
+				ie.idxSubItem = 0;
+				m_pfnOwnerData(LveOd::GetDispInfo, &ie, m_pOdProcData);
+				li.pszText = (PWSTR)ie.pszText;
+				li.iImage = ie.idxImage;
+				cchText = ie.cchText;
+			}
+			else
+				GetItem(&li);
 			GetItemRect(idx, &rc, LVIR_LABEL);
 			UINT uDtFlags;
 
@@ -388,12 +618,12 @@ private:
 				uDtFlags = DT_CENTER | DT_NOPREFIX | DT_WORDBREAK | DT_EDITCONTROL;
 			else
 			{
-				uDtFlags = DT_END_ELLIPSIS | DT_NOPREFIX | DT_SINGLELINE | DT_CENTER;
+				uDtFlags = DT_END_ELLIPSIS | DT_NOPREFIX | DT_SINGLELINE;
 				if (m_iViewType == LV_VIEW_SMALLICON || m_iViewType == LV_VIEW_LIST)
 					uDtFlags |= DT_VCENTER;
 			}
 			if (!((m_iViewType == LV_VIEW_SMALLICON || m_iViewType == LV_VIEW_ICON) && m_bHideLabels))
-				DrawTextW(hDC, li.pszText, -1, &rc, uDtFlags);
+				DrawTextW(hDC, li.pszText, cchText, &rc, uDtFlags);
 		}
 		_freea(pColMetrics);
 		return CDRF_SKIPDEFAULT;
@@ -439,6 +669,12 @@ public:
 	ECKPROP(LveGetHeaderTextClr, LveSetHeaderTextClr)		COLORREF HeaderTextColor;
 
 	ECK_CWND_SINGLEOWNER;
+	~CListViewExt()
+	{
+		for (const auto e : m_vRecycleData)
+			delete e;
+		m_vRecycleData.clear();
+	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
@@ -580,6 +816,20 @@ public:
 		}
 		break;
 
+		case WM_DESTROY:
+		{
+			CloseThemeData(m_hTheme);
+			m_hTheme = nullptr;
+			(void)m_Header.Detach();
+			m_hIL[0] = m_hIL[1] = m_hIL[2] = m_hIL[3] = nullptr;
+			m_sizeIL[0] = m_sizeIL[1] = m_sizeIL[2] = m_sizeIL[3] = {};
+			LveSetClrPack({});
+			m_bCustomDraw = m_bAutoDarkMode = m_bAlphaClrInDark =
+				m_bAutoColorPack = m_bAddSplitterForClr = m_bCtrlASelectAll = TRUE;
+			m_byColorAlpha = 70;
+		}
+		break;
+
 		case LVM_SETVIEW:
 		{
 			const auto lResult = CListView::OnMsg(hWnd, uMsg, wParam, lParam);
@@ -630,30 +880,85 @@ public:
 
 	LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed) override
 	{
-		if (m_bCustomDraw)
-			switch (uMsg)
+		switch (uMsg)
+		{
+		case WM_NOTIFY:
+		{
+			switch (((NMHDR*)lParam)->code)
 			{
-			case WM_NOTIFY:
+			case LVN_GETDISPINFOW:
 			{
-				switch (((NMHDR*)lParam)->code)
+				if (!m_bImplLvOdNotify || !m_pfnOwnerData)
+					break;
+				bProcessed = TRUE;
+				const auto p = (NMLVDISPINFOW*)lParam;
+				LVE_ITEM_EXT ie;
+				ie.idxItem = p->item.iItem;
+				ie.idxSubItem = p->item.iSubItem;
+				ie.uMask = 0;
+				if (p->item.mask & LVIF_TEXT)
 				{
-				case NM_CUSTOMDRAW:
-				{
-					bProcessed = TRUE;
-					const auto pnmlvcd = (NMLVCUSTOMDRAW*)lParam;
-					switch (pnmlvcd->nmcd.dwDrawStage)
+					ie.uMask |= LVE_IM_TEXT;
+					if (m_cchOdTextBuf)
 					{
-					case CDDS_PREPAINT:
-						return CDRF_NOTIFYITEMDRAW;
-					case CDDS_ITEMPREPAINT:
-						return OnItemPrePaint(pnmlvcd);
+						ie.pszText = p->item.pszText;
+						ie.cchText = p->item.cchTextMax;
 					}
 				}
-				break;
+				if (p->item.mask & LVIF_IMAGE)
+					ie.uMask |= LVE_IM_IMAGE;
+				if (p->item.mask & LVIF_STATE)
+					ie.uMask |= LVE_IM_STATE;
+				m_pfnOwnerData(LveOd::GetDispInfo, &ie, m_pOdProcData);
+				if (ie.uMask & LVE_IM_TEXT)
+				{
+					if (m_cchOdTextBuf)
+						p->item.pszText = (PWSTR)ie.pszText;
+					else
+					{
+						const int cchMax = std::min(p->item.cchTextMax - 1, ie.cchText);
+						wmemcpy(p->item.pszText, ie.pszText, cchMax);
+						p->item.pszText[cchMax] = L'\0';
+					}
+				}
+				p->item.iImage = ie.idxImage;
+				p->item.state = ie.uState;
+				p->item.stateMask = ie.uState;
+			}
+			break;
+
+			case NM_CUSTOMDRAW:
+			{
+				if (!m_bCustomDraw)
+					break;
+				bProcessed = TRUE;
+				const auto pnmlvcd = (NMLVCUSTOMDRAW*)lParam;
+				switch (pnmlvcd->nmcd.dwDrawStage)
+				{
+				case CDDS_PREPAINT:
+					return CDRF_NOTIFYITEMDRAW;
+				case CDDS_ITEMPREPAINT:
+					return OnItemPrePaint(pnmlvcd);
+				}
+			}
+			break;
+
+			case LVN_DELETEITEM:
+			{
+				if (m_bOwnerData)
+					break;
+				const auto p = (NMLISTVIEW*)lParam;
+				if (p->lParam)
+				{
+					EckAssert(((LVE_ITEM_DATA*)p->lParam)->dwMagic == LveItemDataMagic);
+					m_vRecycleData.push_back((LVE_ITEM_DATA*)p->lParam);
 				}
 			}
 			break;
 			}
+		}
+		break;
+		}
 		return CListView::OnNotifyMsg(hParent, uMsg, wParam, lParam, bProcessed);
 	}
 
@@ -691,6 +996,119 @@ public:
 		m_crEvenLineBk = cp.crEvenLineBk;
 		m_crGridLineH = cp.crGridLineH;
 		m_crGridLineV = cp.crGridLineV;
+	}
+
+	void LveSetItem(const LVE_ITEM_EXT& ie)
+	{
+		EckAssert(ie.idxItem >= 0 && ie.idxItem < GetItemCount());
+		EckAssert(ie.idxSubItem < m_Header.GetItemCount());
+		LVE_ITEM_DATA* pData;
+		LVITEMW li;
+		li.mask = LVIF_PARAM;
+		li.iItem = ie.idxItem;
+		li.iSubItem = 0;
+		li.lParam = 0;
+		GetItem(&li);
+		if (li.lParam)
+		{
+			pData = (LVE_ITEM_DATA*)li.lParam;
+			EckAssert(pData->dwMagic == LveItemDataMagic);
+		}
+		else
+		{
+			if (m_vRecycleData.empty())
+				pData = new LVE_ITEM_DATA{};
+			else
+			{
+				pData = m_vRecycleData.back();
+				m_vRecycleData.pop_back();
+				*pData = {};
+			}
+			li.lParam = (LPARAM)pData;
+			SetItem(&li);
+		}
+
+		if (ie.idxSubItem < 0)
+		{
+			if (ie.uMask & LVE_IM_COLOR_BK)
+				pData->LineClr.crBk = ie.Clr.crBk;
+			if (ie.uMask & LVE_IM_COLOR_TEXT)
+				pData->LineClr.crText = ie.Clr.crText;
+			if (ie.uMask & LVE_IM_COLOR_TEXTBK)
+				pData->LineClr.crTextBk = ie.Clr.crTextBk;
+		}
+		else if (ie.uMask & LVE_IM_COLOR_ALL)
+		{
+			auto& e = pData->CellClr[ie.idxSubItem];
+			if (ie.uMask & LVE_IM_COLOR_BK)
+				e.crBk = ie.Clr.crBk;
+			if (ie.uMask & LVE_IM_COLOR_TEXT)
+				e.crText = ie.Clr.crText;
+			if (ie.uMask & LVE_IM_COLOR_TEXTBK)
+				e.crTextBk = ie.Clr.crTextBk;
+		}
+
+		if (ie.uMask & LVE_IM_LPARAM)
+			pData->lParam = ie.lParam;
+	}
+
+	BOOL LveGetItem(LVE_ITEM_EXT& ie) const
+	{
+		EckAssert(ie.idxItem >= 0 && ie.idxItem < GetItemCount());
+		EckAssert(ie.idxSubItem < m_Header.GetItemCount());
+		LVITEMW li;
+		li.mask = LVIF_PARAM;
+		li.iItem = ie.idxItem;
+		li.iSubItem = 0;
+		li.lParam = 0;
+		GetItem(&li);
+		if (!li.lParam)
+			return FALSE;
+		const auto pData = (LVE_ITEM_DATA*)li.lParam;
+		EckAssert(pData->dwMagic == LveItemDataMagic);
+		if (ie.uMask & LVE_IM_COLOR_ALL)
+			if (ie.idxSubItem < 0)
+			{
+				if (ie.uMask & LVE_IM_COLOR_BK)
+					ie.Clr.crBk = pData->LineClr.crBk;
+				if (ie.uMask & LVE_IM_COLOR_TEXT)
+					ie.Clr.crText = pData->LineClr.crText;
+				if (ie.uMask & LVE_IM_COLOR_TEXTBK)
+					ie.Clr.crTextBk = pData->LineClr.crTextBk;
+			}
+			else
+			{
+				const auto it = pData->CellClr.find(ie.idxSubItem);
+				if (it == pData->CellClr.end())
+					return FALSE;
+				const auto& e = it->second;
+				if (ie.uMask & LVE_IM_COLOR_BK)
+					ie.Clr.crBk = e.crBk;
+				if (ie.uMask & LVE_IM_COLOR_TEXT)
+					ie.Clr.crText = e.crText;
+				if (ie.uMask & LVE_IM_COLOR_TEXTBK)
+					ie.Clr.crTextBk = e.crTextBk;
+			}
+		if (ie.uMask & LVE_IM_LPARAM)
+			ie.lParam = pData->lParam;
+		return TRUE;
+	}
+
+	/// <summary>
+	/// 置所有者数据回调。
+	/// 提供一种在适用场合下绕过文本长度限制和二次复制的机制
+	/// </summary>
+	/// <param name="pfn"></param>
+	/// <param name="pParam"></param>
+	void LveSetOwnerDataProc(FOwnerData pfn, void* pParam)
+	{
+		m_pfnOwnerData = pfn;
+		m_pOdProcData = pParam;
+	}
+
+	void LveSetGetDispInfoBufferSize(size_t cch)
+	{
+		m_cchOdTextBuf = std::min(cch, (size_t)MAX_PATH);
 	}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CListViewExt, CListView);
