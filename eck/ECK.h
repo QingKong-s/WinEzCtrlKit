@@ -714,17 +714,13 @@ struct ECKTHREADCTX
 	FWndCreating pfnWndCreatingProc{};	// 当前创建窗口时要调用的过程
 	//-------暗色处理
 	HHOOK hhkCbtDarkMode{};				// 设置允许暗色CBT钩子句柄
-	BOOL bEnableDarkModeHook{ TRUE };	// 是否允许暗色CBT钩子设置窗口，设为FALSE可暂停HOOK
-	BOOL bAutoNcDark{ TRUE };			// 自动调整非客户区暗色
+	// !!! 务必在打开文件对话框前暂停Hook
+	BITBOOL bEnableDarkModeHook : 1{ TRUE };	// 是否允许暗色CBT钩子设置窗口，设为FALSE可暂停HOOK
+	BITBOOL bAutoNcDark : 1{ TRUE };			// 自动调整非客户区暗色
 	COLORREF crDefText{};		// 默认前景色
 	COLORREF crDefBkg{};		// 默认背景色
 	COLORREF crDefBtnFace{};	// 默认BtnFace颜色
-	std::unordered_map<HTHEME, int> hsButtonTheme{};
-	std::unordered_map<HTHEME, int> hsTaskDialogTheme{};
-	std::unordered_map<HTHEME, int> hsTabTheme{};
-	std::unordered_map<HTHEME, std::pair<int, HTHEME>> hsToolBarTheme{};
-	std::unordered_map<HTHEME, int> hsAeroWizardTheme{};
-	std::unordered_map<HTHEME, std::pair<int, HTHEME>> hsDateTimePickerTheme{};
+	COLORREF crBlue1{};			// 蓝色
 
 	EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
 	{
@@ -778,64 +774,6 @@ struct ECKTHREADCTX
 	void SetNcDarkModeForAllTopWnd(BOOL bDark);
 
 	void UpdateDefColor();
-
-	void OnThemeOpen(HTHEME hTheme, PCWSTR pszClassList);
-
-	void OnThemeClose(HTHEME hTheme);
-
-	EckInline BOOL IsThemeButton(HTHEME hTheme) const
-	{
-		return hsButtonTheme.find(hTheme) != hsButtonTheme.end();
-	}
-
-	EckInline BOOL IsThemeTaskDialog(HTHEME hTheme) const
-	{
-		return hsTaskDialogTheme.find(hTheme) != hsTaskDialogTheme.end();
-	}
-
-	EckInline BOOL IsThemeTab(HTHEME hTheme) const
-	{
-		return hsTabTheme.find(hTheme) != hsTabTheme.end();
-	}
-
-	EckInline BOOL IsThemeToolBar(HTHEME hTheme, HTHEME* phThemeLV = nullptr) const
-	{
-		if (phThemeLV)
-		{
-			const auto it = hsToolBarTheme.find(hTheme);
-			if (it != hsToolBarTheme.end())
-			{
-				*phThemeLV = it->second.second;
-				return TRUE;
-			}
-			else
-				return FALSE;
-		}
-		else
-			return hsToolBarTheme.find(hTheme) != hsToolBarTheme.end();
-	}
-
-	EckInline BOOL IsThemeAeroWizard(HTHEME hTheme) const
-	{
-		return hsAeroWizardTheme.find(hTheme) != hsAeroWizardTheme.end();
-	}
-
-	EckInline BOOL IsThemeDateTimePicker(HTHEME hTheme, HTHEME* phThemeCBB = nullptr) const
-	{
-		if (phThemeCBB)
-		{
-			const auto it = hsDateTimePickerTheme.find(hTheme);
-			if (it != hsDateTimePickerTheme.end())
-			{
-				*phThemeCBB = it->second.second;
-				return TRUE;
-			}
-			else
-				return FALSE;
-		}
-		else
-			return hsDateTimePickerTheme.find(hTheme) != hsDateTimePickerTheme.end();
-	}
 
 	void SendThemeChangedToAllTopWindow();
 };

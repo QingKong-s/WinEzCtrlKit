@@ -553,7 +553,8 @@ EckInline void RefreshImmersiveColorStuff()
 /// </summary>
 /// <param name="crText"></param>
 /// <param name="crBk"></param>
-inline void GetItemsViewForeBackColor(COLORREF& crText, COLORREF& crBk)
+/// <returns>当前是否为暗色</returns>
+inline BOOL GetItemsViewForeBackColor(COLORREF& crText, COLORREF& crBk)
 {
 	crBk = GetSysColor(COLOR_WINDOW);
 	crText = GetSysColor(COLOR_WINDOWTEXT);
@@ -570,7 +571,9 @@ inline void GetItemsViewForeBackColor(COLORREF& crText, COLORREF& crBk)
 
 			CloseThemeData(hThemeIV);
 		}
+		return TRUE;
 	}
+	return FALSE;
 }
 
 EckInline BOOL AdjustWindowRectExDpi(RECT* prc, DWORD dwStyle, BOOL bMenu, DWORD dwExStyle, UINT uDpi)

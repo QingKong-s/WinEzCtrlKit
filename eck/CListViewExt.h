@@ -501,7 +501,7 @@ private:
 			{
 				pTempBuf = (PWSTR)_alloca(m_cchOdTextBuf * sizeof(WCHAR));
 				ie.pszText = pTempBuf;
-				ie.cchText = m_cchOdTextBuf;
+				ie.cchText = (int)m_cchOdTextBuf;
 			}
 			else
 			{
@@ -547,7 +547,7 @@ private:
 					if (m_cchOdTextBuf)
 					{
 						ie.pszText = pTempBuf;
-						ie.cchText = m_cchOdTextBuf;
+						ie.cchText = (int)m_cchOdTextBuf;
 					}
 					m_pfnOwnerData(LveOd::GetDispInfo, &ie, m_pOdProcData);
 					li.pszText = (PWSTR)ie.pszText;
@@ -1132,6 +1132,7 @@ public:
 							phdlo->pwpos->cy = m_cyHeader;
 							return lResult;
 						}
+						return 0;
 					}, MHI_LVE_HEADER_HEIGHT);
 				m_bInstalledHeaderHook = TRUE;
 			}
@@ -1147,6 +1148,8 @@ public:
 		GetClientRect(HWnd, &rc);
 		SendMsg(WM_SIZE, 0, MAKELPARAM(rc.right, rc.bottom));
 	}
+
+	CHeader& LveGetHeader() { return m_Header; }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CListViewExt, CListView);
 ECK_NAMESPACE_END

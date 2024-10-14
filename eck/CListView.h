@@ -3,7 +3,7 @@
 *
 * CListView.h ： 标准列表视图
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include "CWnd.h"
