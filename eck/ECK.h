@@ -299,7 +299,7 @@ ECK_NAMESPACE_BEGIN
 inline namespace BaseType
 {
 	using SCHAR = signed char;
-	using BITBOOL = UINT;
+	using BITBOOL = BYTE;
 	using PCBYTE = const BYTE*;
 	using PCVOID = const void*;
 	using ECKENUM = BYTE;
@@ -721,6 +721,7 @@ struct ECKTHREADCTX
 	COLORREF crDefBkg{};		// 默认背景色
 	COLORREF crDefBtnFace{};	// 默认BtnFace颜色
 	COLORREF crBlue1{};			// 蓝色
+	COLORREF crGray1{};			// 灰色
 
 	EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
 	{
