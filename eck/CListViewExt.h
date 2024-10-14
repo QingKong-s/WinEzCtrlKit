@@ -28,11 +28,27 @@ struct LVE_COLOR_PACK
 	COLORREF crHeaderText = CLR_DEFAULT;	// 表头文本颜色
 };
 
-constexpr inline LVE_COLOR_PACK LveLightClr1{
+constexpr inline LVE_COLOR_PACK LveLightClr1
+{
+	.crDefText = CLR_INVALID,
+	.crOddLineText = CLR_INVALID,
+	.crEvenLineText = CLR_INVALID,
+	.crOddLineBk = CLR_INVALID,
 	.crEvenLineBk = 0xF8F8F8,
+	.crGridLineH = CLR_INVALID,
+	.crGridLineV = CLR_INVALID,
+	.crHeaderText = CLR_INVALID,
 };
-constexpr inline LVE_COLOR_PACK LveDarkClr1{
+constexpr inline LVE_COLOR_PACK LveDarkClr1
+{
+	.crDefText = CLR_INVALID,
+	.crOddLineText = CLR_INVALID,
+	.crEvenLineText = CLR_INVALID,
+	.crOddLineBk = CLR_INVALID,
 	.crEvenLineBk = 0x202020,
+	.crGridLineH = CLR_INVALID,
+	.crGridLineV = CLR_INVALID,
+	.crHeaderText = CLR_INVALID,
 };
 
 struct LVE_CELL_COLOR
@@ -42,7 +58,9 @@ struct LVE_CELL_COLOR
 	COLORREF crTextBk{ CLR_DEFAULT };
 };
 
+#ifdef _DEBUG
 constexpr inline DWORD LveItemDataMagic{ 'LEID' };
+#endif
 
 // 非所有者数据模式下项目lParam指向的结构
 struct LVE_ITEM_DATA
@@ -123,6 +141,9 @@ private:
 	HIMAGELIST m_hIL[4]{};	// 图像列表
 	SIZE m_sizeIL[4]{};		// 图像列表大小
 	int m_iViewType{};		// 视图类型
+	int m_cMaxTileCol{};	// 平铺视图下的最大列数
+	RECT m_rcTileMargin{};	// 平铺视图下的边距
+	int m_cyFont{};			// 字体高度
 	BITBOOL m_bOwnerData : 1 = FALSE;	// 所有者数据
 	BITBOOL m_bSubItemImg : 1 = FALSE;	// 显示子项图像
 	BITBOOL m_bFullRowSel : 1 = FALSE;	// 整行选择
@@ -157,10 +178,11 @@ private:
 	BITBOOL m_bCtrlASelectAll : 1 = TRUE;	// Ctrl+A全选
 	BITBOOL m_bImplLvOdNotify : 1 = TRUE;	// 指示控件应根据m_pfnOwnerData实现ListView标准通知
 	BITBOOL m_bInstalledHeaderHook : 1 = FALSE;	// [内部标志]是否已钩住表头消息
+	BITBOOL m_bDoNotWrapInTile : 1 = FALSE;	// 平铺视图下禁止第一行换行
 
 	BYTE m_byColorAlpha{ 70 };	// 透明度
-	size_t m_cchOdTextBuf{ 0 };	// 所有者数据缓冲区大小
 	int m_cyHeader{};			// 表头高度，0 = 默认
+	size_t m_cchOdTextBuf{ 0 };	// 所有者数据缓冲区大小
 	// 项目
 	std::vector<LVE_ITEM_DATA*> m_vRecycleData{};	// [NOD]回收数据
 	FOwnerData m_pfnOwnerData{};	// [OD]所有者数据回调函数
@@ -549,6 +571,11 @@ private:
 						ie.pszText = pTempBuf;
 						ie.cchText = (int)m_cchOdTextBuf;
 					}
+					else
+					{
+						ie.pszText = nullptr;
+						ie.cchText = 0;
+					}
 					m_pfnOwnerData(LveOd::GetDispInfo, &ie, m_pOdProcData);
 					li.pszText = (PWSTR)ie.pszText;
 					li.iImage = ie.idxImage;
@@ -584,22 +611,138 @@ private:
 					uDtFlags |= DT_CENTER;
 				GetSubItemRect(idx, li.iSubItem, &rc, LVIR_LABEL);
 				rc.left += cxImg;
+				BOOL bRestoreTextColor = FALSE;
 				if (bExtInfo)
 				{
 					ie.uMask = LVE_IM_COLOR_TEXT;
 					ie.idxSubItem = li.iSubItem;
 					m_pfnOwnerData(LveOd::GetDispInfo, &ie, m_pOdProcData);
 					if (ie.Clr.crText != CLR_DEFAULT)
+					{
 						SetTextColor(hDC, ie.Clr.crText);
+						bRestoreTextColor = TRUE;
+					}
 				}
 				else if (pData)
 				{
 					const auto it = pData->CellClr.find(li.iSubItem);
 					if (it != pData->CellClr.end() && it->second.crText != CLR_DEFAULT)
+					{
 						SetTextColor(hDC, it->second.crText);
+						bRestoreTextColor = TRUE;
+					}
 				}
 				DrawTextW(hDC, li.pszText, cchText, &rc, uDtFlags);
+				if (bRestoreTextColor)
+					SetTextColor(hDC, crText);
 			}
+		}
+		else if (m_iViewType == LV_VIEW_TILE)
+		{
+			LVTILEINFO lvti;
+			const auto pTileCol = (int*)_malloca((m_cMaxTileCol + 1) * sizeof(int) * 2);
+			const auto pTileColFmt = pTileCol + (m_cMaxTileCol + 1);
+			*pTileCol = 0;
+			*pTileColFmt = LVCFMT_LEFT;
+			lvti.cbSize = sizeof(LVTILEINFO);
+			lvti.iItem = idx;
+			lvti.cColumns = m_cMaxTileCol;
+			lvti.puColumns = (UINT*)pTileCol + 1;
+			lvti.piColFmt = pTileColFmt + 1;
+			GetTileInfo(&lvti);
+			++lvti.cColumns;
+
+			GetItemRect(idx, &rc, LVIR_LABEL);
+			rc.left += m_rcTileMargin.left;
+			rc.right -= m_rcTileMargin.right;
+			rc.top += m_rcTileMargin.top;
+			rc.bottom -= m_rcTileMargin.bottom;
+			const int cyOrg = rc.bottom - rc.top;
+			rc.top += ((rc.bottom - rc.top) - (lvti.cColumns) * m_cyFont) / 2;
+			rc.bottom = rc.top + lvti.cColumns * m_cyFont;
+			const int yBottom = rc.bottom;
+			EckCounter(lvti.cColumns, i)
+			{
+				li.iSubItem = pTileCol[i];
+				if (bExtInfo)
+				{
+					ie.uMask = LVE_IM_TEXT;
+					ie.idxSubItem = li.iSubItem;
+					if (m_cchOdTextBuf)
+					{
+						ie.pszText = pTempBuf;
+						ie.cchText = (int)m_cchOdTextBuf;
+					}
+					else
+					{
+						ie.pszText = nullptr;
+						ie.cchText = 0;
+					}
+					m_pfnOwnerData(LveOd::GetDispInfo, &ie, m_pOdProcData);
+					li.pszText = (PWSTR)ie.pszText;
+					li.iImage = ie.idxImage;
+					cchText = ie.cchText;
+				}
+				else
+				{
+					GetItem(&li);
+					cchText = (int)wcslen(li.pszText);
+				}
+
+				UINT uDtFlags{ DT_NOPREFIX };
+				if (li.iSubItem == 0 && !m_bDoNotWrapInTile)
+				{
+					SIZE size;
+					GetTextExtentPoint32W(hDC, li.pszText, cchText, &size);
+					// 处理第一行换行
+					if (size.cx > rc.right - rc.left)
+					{
+						uDtFlags |= (DT_END_ELLIPSIS | DT_WORDBREAK | DT_EDITCONTROL);
+						if (cyOrg >= m_cyFont * (lvti.cColumns + 1))
+							rc.top -= (m_cyFont / 2);
+						rc.bottom = rc.top + m_cyFont * 2;
+						goto TileWraped;
+					}
+				}
+				if (IsBitSet(pTileColFmt[i], LVCFMT_RIGHT))
+					uDtFlags |= DT_RIGHT;
+				else if (IsBitSet(pTileColFmt[i], LVCFMT_CENTER))
+					uDtFlags |= DT_CENTER;
+				uDtFlags |= (DT_END_ELLIPSIS | DT_SINGLELINE);
+				rc.bottom = rc.top + m_cyFont;
+			TileWraped:;
+				if (bExtInfo)
+				{
+					ie.uMask = LVE_IM_COLOR_TEXT;
+					ie.idxSubItem = li.iSubItem;
+					m_pfnOwnerData(LveOd::GetDispInfo, &ie, m_pOdProcData);
+					if (ie.Clr.crText != CLR_DEFAULT)
+					{
+						SetTextColor(hDC, ie.Clr.crText);
+						goto TileTextColored;
+					}
+				}
+				else if (pData)
+				{
+					const auto it = pData->CellClr.find(li.iSubItem);
+					if (it != pData->CellClr.end() && it->second.crText != CLR_DEFAULT)
+					{
+						SetTextColor(hDC, it->second.crText);
+						goto TileTextColored;
+					}
+				}
+
+				if (li.iSubItem == 0)
+					SetTextColor(hDC, crText);
+				else
+					SetTextColor(hDC, m_pThrCtx->crGray1);
+			TileTextColored:;
+				DrawTextW(hDC, li.pszText, cchText, &rc, uDtFlags);
+				rc.top = rc.bottom;
+				if (rc.top >= yBottom)
+					break;
+			}
+			_freea(pTileCol);
 		}
 		else
 		{
@@ -669,6 +812,17 @@ public:
 	ECKPROP(LveGetGridLineHClr, LveSetGridLineHClr)			COLORREF GridLineHColor;
 	ECKPROP(LveGetGridLineVClr, LveSetGridLineVClr)			COLORREF GridLineVColor;
 	ECKPROP(LveGetHeaderTextClr, LveSetHeaderTextClr)		COLORREF HeaderTextColor;
+	ECKPROP(LveGetCustomDraw, LveSetCustomDraw)				BOOL CustomDraw;
+	ECKPROP(LveGetAutoDarkMode, LveSetAutoDarkMode)			BOOL AutoDarkMode;
+	ECKPROP(LveGetAlphaColorInDark, LveSetAlphaColorInDark) BOOL AlphaColorInDark;
+	ECKPROP(LveGetAlphaValue, LveSetAlphaValue)				BYTE AlphaValue;
+	ECKPROP(LveGetAutoColorPack, LveSetAutoColorPack)		BOOL AutoColorPack;
+	ECKPROP(LveGetAddSplitterForClr, LveSetAddSplitterForClr)		BOOL AddSplitterForClr;
+	ECKPROP(LveGetCtrlASelectAll, LveSetCtrlASelectAll)		BOOL CtrlASelectAll;
+	ECKPROP(LveGetImplOwnerDataNotify, LveSetImplOwnerDataNotify)	BOOL ImplOwnerDataNotify;
+	ECKPROP(LveGetDoNotWrapInTile, LveSetDoNotWrapInTile)	BOOL DoNotWrapInTile;
+	ECKPROP(LveGetOwnerDataBufferSize, LveSetOwnerDataBufferSize)	size_t OwnerDataBufferSize;
+	ECKPROP_W(LveSetHeaderHeight)							int HeaderHeight;
 
 	ECK_CWND_SINGLEOWNER;
 	~CListViewExt()
@@ -757,6 +911,7 @@ public:
 			EndPaint(hWnd, wParam, ps);
 			return 0;
 		}
+		break;
 
 		case WM_KEYDOWN:
 			if (wParam == 'A' && !m_bSingleSel)
@@ -784,7 +939,18 @@ public:
 			if (m_pThrCtx)
 				HandleThemeChange();
 		}
-		return 0;
+		break;
+
+		case WM_SETFONT:
+		{
+			const auto hFont = (HFONT)wParam;
+			const auto hOld = (HFONT)SelectObject(m_DcAlpha.GetDC(), hFont);
+			TEXTMETRICW tm;
+			GetTextMetricsW(m_DcAlpha.GetDC(), &tm);
+			m_cyFont = tm.tmHeight;
+			SelectObject(m_DcAlpha.GetDC(), hOld);
+		}
+		break;
 
 		case WM_DPICHANGED_BEFOREPARENT:
 			m_iDpi = GetDpi(hWnd);
@@ -822,13 +988,37 @@ public:
 		{
 			CloseThemeData(m_hTheme);
 			m_hTheme = nullptr;
+			if (m_bInstalledHeaderHook)
+				m_Header.GetSignal().Disconnect(MHI_LVE_HEADER_HEIGHT);
 			(void)m_Header.DetachNew();
 			m_hIL[0] = m_hIL[1] = m_hIL[2] = m_hIL[3] = nullptr;
 			m_sizeIL[0] = m_sizeIL[1] = m_sizeIL[2] = m_sizeIL[3] = {};
+			m_cMaxTileCol = 0;
+			m_rcTileMargin = {};
+			m_cyFont = 0;
 			LveSetClrPack({});
 			m_bCustomDraw = m_bAutoDarkMode = m_bAlphaClrInDark =
 				m_bAutoColorPack = m_bAddSplitterForClr = m_bCtrlASelectAll = TRUE;
 			m_byColorAlpha = 70;
+			m_cyHeader = 0;
+			m_cchOdTextBuf = 0;
+			m_pfnOwnerData = nullptr;
+			m_pOdProcData = nullptr;
+		}
+		break;
+
+		case LVM_SETTILEVIEWINFO:
+		{
+			const auto lResult = CListView::OnMsg(hWnd, uMsg, wParam, lParam);
+			if (lResult)
+			{
+				const auto* const p = (LVTILEVIEWINFO*)lParam;
+				if (p->dwMask & LVTVIM_COLUMNS)
+					m_cMaxTileCol = std::max(m_cMaxTileCol, p->cLines);
+				if (p->dwMask & LVTVIM_LABELMARGIN)
+					m_rcTileMargin = p->rcLabelMargin;
+			}
+			return lResult;
 		}
 		break;
 
@@ -990,14 +1180,22 @@ public:
 
 	constexpr void LveSetClrPack(const LVE_COLOR_PACK& cp)
 	{
-		m_crDefText = cp.crDefText;
-		m_crHeaderText = cp.crHeaderText;
-		m_crOddLineText = cp.crOddLineText;
-		m_crEvenLineText = cp.crEvenLineText;
-		m_crOddLineBk = cp.crOddLineBk;
-		m_crEvenLineBk = cp.crEvenLineBk;
-		m_crGridLineH = cp.crGridLineH;
-		m_crGridLineV = cp.crGridLineV;
+		if (cp.crDefText != CLR_INVALID)
+			m_crDefText = cp.crDefText;
+		if (cp.crHeaderText != CLR_INVALID)
+			m_crHeaderText = cp.crHeaderText;
+		if (cp.crOddLineText != CLR_INVALID)
+			m_crOddLineText = cp.crOddLineText;
+		if (cp.crEvenLineText != CLR_INVALID)
+			m_crEvenLineText = cp.crEvenLineText;
+		if (cp.crOddLineBk != CLR_INVALID)
+			m_crOddLineBk = cp.crOddLineBk;
+		if (cp.crEvenLineBk != CLR_INVALID)
+			m_crEvenLineBk = cp.crEvenLineBk;
+		if (cp.crGridLineH != CLR_INVALID)
+			m_crGridLineH = cp.crGridLineH;
+		if (cp.crGridLineV != CLR_INVALID)
+			m_crGridLineV = cp.crGridLineV;
 	}
 
 	void LveSetItem(const LVE_ITEM_EXT& ie)
@@ -1108,11 +1306,6 @@ public:
 		m_pOdProcData = pParam;
 	}
 
-	void LveSetGetDispInfoBufferSize(size_t cch)
-	{
-		m_cchOdTextBuf = std::min(cch, (size_t)MAX_PATH);
-	}
-
 	void LveSetHeaderHeight(int cy)
 	{
 		m_cyHeader = cy;
@@ -1150,6 +1343,39 @@ public:
 	}
 
 	CHeader& LveGetHeader() { return m_Header; }
+
+	EckInline constexpr void LveSetCustomDraw(BOOL b) { m_bCustomDraw = b; }
+	EckInline constexpr BOOL LveGetCustomDraw() const { return m_bCustomDraw; }
+
+	EckInline constexpr void LveSetAutoDarkMode(BOOL b) { m_bAutoDarkMode = b; }
+	EckInline constexpr BOOL LveGetAutoDarkMode() const { return m_bAutoDarkMode; }
+
+	EckInline constexpr void LveSetAlphaColorInDark(BOOL b) { m_bAlphaClrInDark = b; }
+	EckInline constexpr BOOL LveGetAlphaColorInDark() const { return m_bAlphaClrInDark; }
+
+	EckInline constexpr void LveSetAlphaValue(BYTE b) { m_byColorAlpha = b; }
+	EckInline constexpr BYTE LveGetAlphaValue() const { return m_byColorAlpha; }
+
+	EckInline constexpr void LveSetAutoColorPack(BOOL b) { m_bAutoColorPack = b; }
+	EckInline constexpr BOOL LveGetAutoColorPack() const { return m_bAutoColorPack; }
+
+	EckInline constexpr void LveSetAddSplitterForClr(BOOL b) { m_bAddSplitterForClr = b; }
+	EckInline constexpr BOOL LveGetAddSplitterForClr() const { return m_bAddSplitterForClr; }
+
+	EckInline constexpr void LveSetCtrlASelectAll(BOOL b) { m_bCtrlASelectAll = b; }
+	EckInline constexpr BOOL LveGetCtrlASelectAll() const { return m_bCtrlASelectAll; }
+
+	EckInline constexpr void LveSetImplOwnerDataNotify(BOOL b) { m_bImplLvOdNotify = b; }
+	EckInline constexpr BOOL LveGetImplOwnerDataNotify() const { return m_bImplLvOdNotify; }
+
+	EckInline constexpr void LveSetDoNotWrapInTile(BOOL b) { m_bDoNotWrapInTile = b; }
+	EckInline constexpr BOOL LveGetDoNotWrapInTile() const { return m_bDoNotWrapInTile; }
+
+	EckInline constexpr void LveSetOwnerDataBufferSize(size_t cch)
+	{
+		m_cchOdTextBuf = std::min(cch, (size_t)MAX_PATH);
+	}
+	EckInline constexpr size_t LveGetOwnerDataBufferSize() const { return m_cchOdTextBuf; }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CListViewExt, CListView);
 ECK_NAMESPACE_END

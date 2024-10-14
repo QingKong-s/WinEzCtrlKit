@@ -972,9 +972,8 @@ public:
 		return (BOOL)SendMsg(LVM_SETTILEINFO, 0, (LPARAM)&lvti);
 	}
 
-	EckInline BOOL SetTileInfo(int idx, LVTILEINFO* plvti) const
+	EckInline BOOL SetTileInfo(LVTILEINFO* plvti) const
 	{
-		plvti->iItem = idx;
 		return (BOOL)SendMsg(LVM_SETTILEINFO, 0, (LPARAM)plvti);
 	}
 

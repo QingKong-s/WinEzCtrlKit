@@ -104,8 +104,10 @@ FMsgFilter g_pfnMsgFilter = DefMsgFilter;
 enum
 {
 	//===部件===
-	TP_LINK_HYPERLINK = 1,// Link -> 超链接
+	// Link
+	TP_LINK_HYPERLINK = 1,// 超链接
 	//===状态===
+	// Link
 	TS_LINK_HYPERLINK_COMMON = 0,
 	TS_LINK_HYPERLINK_NORMAL = 1,// invalid
 	TS_LINK_HYPERLINK_LINK = 2,
@@ -157,25 +159,25 @@ CSrwLock g_LkThemeMapListView{};
 std::unordered_map<HTHEME, int> g_hsLink{};
 CSrwLock g_LkThemeMapLink{};
 
-BOOL IsThemeButton(HTHEME hTheme)
+static BOOL IsThemeButton(HTHEME hTheme)
 {
 	CSrwReadGuard _{ g_LkThemeMapButton };
 	return g_hsButtonTheme.find(hTheme) != g_hsButtonTheme.end();
 }
 
-BOOL IsThemeTaskDialog(HTHEME hTheme)
+static BOOL IsThemeTaskDialog(HTHEME hTheme)
 {
 	CSrwReadGuard _{ g_LkThemeMapTaskDialog };
 	return g_hsTaskDialogTheme.find(hTheme) != g_hsTaskDialogTheme.end();
 }
 
-BOOL IsThemeTab(HTHEME hTheme)
+static BOOL IsThemeTab(HTHEME hTheme)
 {
 	CSrwReadGuard _{ g_LkThemeMapTab };
 	return g_hsTabTheme.find(hTheme) != g_hsTabTheme.end();
 }
 
-BOOL IsThemeToolBar(HTHEME hTheme, HTHEME* phThemeLV = nullptr)
+static BOOL IsThemeToolBar(HTHEME hTheme, HTHEME* phThemeLV = nullptr)
 {
 	CSrwReadGuard _{ g_LkThemeMapToolBar };
 	if (phThemeLV)
@@ -193,13 +195,13 @@ BOOL IsThemeToolBar(HTHEME hTheme, HTHEME* phThemeLV = nullptr)
 		return g_hsToolBarTheme.find(hTheme) != g_hsToolBarTheme.end();
 }
 
-BOOL IsThemeAeroWizard(HTHEME hTheme)
+static BOOL IsThemeAeroWizard(HTHEME hTheme)
 {
 	CSrwReadGuard _{ g_LkThemeMapAeroWizard };
 	return g_hsAeroWizardTheme.find(hTheme) != g_hsAeroWizardTheme.end();
 }
 
-BOOL IsThemeDateTimePicker(HTHEME hTheme, HTHEME* phThemeCBB = nullptr)
+static BOOL IsThemeDateTimePicker(HTHEME hTheme, HTHEME* phThemeCBB = nullptr)
 {
 	CSrwReadGuard _{ g_LkThemeMapDateTimePicker };
 	if (phThemeCBB)
@@ -217,19 +219,19 @@ BOOL IsThemeDateTimePicker(HTHEME hTheme, HTHEME* phThemeCBB = nullptr)
 		return g_hsDateTimePickerTheme.find(hTheme) != g_hsDateTimePickerTheme.end();
 }
 
-BOOL IsThemeListView(HTHEME hTheme)
+static BOOL IsThemeListView(HTHEME hTheme)
 {
 	CSrwReadGuard _{ g_LkThemeMapListView };
 	return g_hsListViewTheme.find(hTheme) != g_hsListViewTheme.end();
 }
 
-BOOL IsThemeLink(HTHEME hTheme)
+static BOOL IsThemeLink(HTHEME hTheme)
 {
 	CSrwReadGuard _{ g_LkThemeMapLink };
 	return g_hsLink.find(hTheme) != g_hsLink.end();
 }
 
-void OnThemeOpen(HTHEME hTheme, PCWSTR pszClassList)
+static void OnThemeOpen(HTHEME hTheme, PCWSTR pszClassList)
 {
 	if (!hTheme)
 		return;
@@ -283,7 +285,7 @@ void OnThemeOpen(HTHEME hTheme, PCWSTR pszClassList)
 	}
 }
 
-void OnThemeClose(HTHEME hTheme)
+static void OnThemeClose(HTHEME hTheme)
 {
 	{
 		CSrwWriteGuard _{ g_LkThemeMapButton };
@@ -526,18 +528,17 @@ static HRESULT WINAPI NewDrawThemeTextEx(HTHEME hTheme, HDC hdc, int iPartId, in
 	if (ShouldAppsUseDarkMode() && !IsBitSet(dwTextFlags, DT_CALCRECT))
 	{
 		if (IsThemeListView(hTheme))
-			if (!pOptions || pOptions->dwFlags & DTT_COLORPROP)
+			if (!pOptions || (pOptions->dwFlags & DTT_COLORPROP))
 			{
 				NewOpt.dwSize = sizeof(DTTOPTS);
 				NewOpt.dwFlags = DTT_TEXTCOLOR;
-				//NewOpt.crText = GetThreadCtx()->crDefText;
 				NewGetThemeColor(hTheme, iPartId, iStateId,
-					(pOptions && pOptions->dwFlags & DTT_COLORPROP) ?
+					(pOptions && (pOptions->dwFlags & DTT_COLORPROP)) ?
 					pOptions->iColorPropId : TMT_TEXTCOLOR, &NewOpt.crText);
 				pOptions = &NewOpt;
 			}
 		if (IsThemeLink(hTheme))
-			if (!pOptions || pOptions->dwFlags & DTT_COLORPROP)
+			if (!pOptions || (pOptions->dwFlags & DTT_COLORPROP))
 			{
 				NewOpt.dwSize = sizeof(DTTOPTS);
 				NewOpt.dwFlags = DTT_TEXTCOLOR;
@@ -1687,6 +1688,7 @@ void ECKTHREADCTX::UpdateDefColor()
 	const auto bDark = GetItemsViewForeBackColor(crDefText, crDefBkg);
 	crDefBtnFace = (bDark ? 0x303030 : GetSysColor(COLOR_BTNFACE));
 	crBlue1 = (bDark ? RGB(0, 168, 255) : RGB(0, 51, 153));
+	crGray1 = (bDark ? RGB(180, 180, 180) : GetSysColor(COLOR_GRAYTEXT));
 }
 
 void ECKTHREADCTX::SendThemeChangedToAllTopWindow()
