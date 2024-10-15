@@ -1,71 +1,124 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CHeaderExt.h ： 表头扩展
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "CHeader.h"
 #include "CBk.h"
 
-#include "ECK.h"
-
 ECK_NAMESPACE_BEGIN
-class CHEDragMarker :public CBk
-{
-	friend class CHeaderExt;
-private:
-
-};
-
 class CHeaderExt : public CHeader
 {
 private:
 	struct ITEM
 	{
+		eck::CRefStrW rsMainText{};
 		eck::CRefStrW rsSubText{};
 		COLORREF crText{ CLR_DEFAULT };
-		COLORREF crBk{ CLR_DEFAULT };
 		COLORREF crTextBk{ CLR_DEFAULT };
+		COLORREF crTextMainText{ CLR_DEFAULT };
+		COLORREF crTextBkMainText{ CLR_DEFAULT };
+		COLORREF crBk{ CLR_DEFAULT };
 		UINT uFmt;
 	};
 
-	BITBOOL m_bCheckBoxes : 1{};
-	BITBOOL m_bAutoDarkMode : 1{ TRUE };
-	BITBOOL m_bMoved : 1{};
-	BITBOOL m_bDragging : 1{};
-	BITBOOL m_bSplitBtnHot : 1{};
-	BYTE m_byAlphaColor{ 100 };
+	// 信息
 	int m_idxHotItem{ -1 };
-	int m_idxDragging{ -1 };
-
-	COLORREF m_crText{ CLR_DEFAULT };
-	COLORREF m_crBk{ CLR_DEFAULT };
-	COLORREF m_crTextBk{ CLR_DEFAULT };
-
-	CEzCDC m_DcAlpha{};
-
 	int m_cxIL{};
 	int m_cyIL{};
 	HIMAGELIST m_hIL{};
-
+	BITBOOL m_bCheckBoxes : 1{};
+	// 选项
+	BITBOOL m_bSplitBtnHot : 1{};				// [内部标志]拆分按钮已点燃
+	BITBOOL m_bAutoDarkMode : 1{ TRUE };		// 自动处理暗色
+	BITBOOL m_bUseExtText : 1{};				// 使用扩展文本
+	BITBOOL m_bUseThemeForExtText : 1{ TRUE };	// 对扩展文本使用主题
+	BITBOOL m_bRepairDbClick : 1{ TRUE };		// 连击修正
+	BITBOOL m_bShowEmptyMainExtText : 1{ TRUE };// 即使主文本为空也不忽略其高度
+	BYTE m_byColorAlpha{ 100 };			// 背景色透明度
+	Align m_eAlign{ Align::Center };	// 扩展文本垂直对齐
+	COLORREF m_crText{ CLR_DEFAULT };	// 文本颜色
+	COLORREF m_crBk{ CLR_DEFAULT };		// 背景色
+	COLORREF m_crTextBk{ CLR_DEFAULT };	// 文本背景色
+	COLORREF m_crTextMainText{ CLR_DEFAULT };	// 文本颜色
+	COLORREF m_crBkMainText{ CLR_DEFAULT };		// 背景色
+	COLORREF m_crTextBkMainText{ CLR_DEFAULT };	// 文本背景色
+	// 图形
+	CEzCDC m_DcAlpha{};
+	HFONT m_hFontMainText{};
 	HTHEME m_hTheme{};
 	HTHEME m_hThemeCB{};
 	int m_cxCheckBox{};
+	int m_cxSplitBtn{};
 	SIZE m_sizeSortUp{};
 	SIZE m_sizeSortDown{};
-	int m_cxSplitBtn{};
-
+	int m_cyMainText{};
+	int m_cySubText{};
+	//
+	std::vector<ITEM> m_vData{};
+	const ECKTHREADCTX* m_pThrCtx{};
 	int m_cxClient{};
 	int m_cyClient{};
 
 	CRefStrW m_rsTextBuf{ MAX_PATH };
 	int m_cchTextBuf{ MAX_PATH };
 
-	std::vector<ITEM> m_vData{};
-
 	int m_iDpi{ USER_DEFAULT_SCREEN_DPI };
-	const ECKTHREADCTX* m_pThrCtx{};
 
 	ECK_DS_BEGIN(DPIS)
 		ECK_DS_ENTRY_DYN(cxEdge, GetSystemMetrics(SM_CXEDGE))
 		ECK_DS_ENTRY_DYN(cyMenuCheck, GetSystemMetrics(SM_CYMENUCHECK))
 		;
 	ECK_DS_END_VAR(m_Ds);
+
+	void PrepareTextColor(HDC hDC, const ITEM& e, BOOL bExt = FALSE)
+	{
+		if (e.crTextBk != CLR_DEFAULT)
+		{
+			SetBkMode(hDC, OPAQUE);
+			SetBkColor(hDC, e.crTextBk);
+		}
+		else if (m_crTextBk != CLR_DEFAULT)
+		{
+			SetBkMode(hDC, OPAQUE);
+			SetBkColor(hDC, m_crTextBk);
+		}
+		else
+			SetBkMode(hDC, TRANSPARENT);
+
+		if (e.crText != CLR_DEFAULT)
+			SetTextColor(hDC, e.crText);
+		else if (m_crText != CLR_DEFAULT)
+			SetTextColor(hDC, m_crText);
+		else
+			SetTextColor(hDC, bExt ? m_pThrCtx->crGray1 : m_pThrCtx->crDefText);
+	}
+
+	void PrepareTextColorMain(HDC hDC, const ITEM& e)
+	{
+		if (e.crTextBkMainText != CLR_DEFAULT)
+		{
+			SetBkMode(hDC, OPAQUE);
+			SetBkColor(hDC, e.crTextBkMainText);
+		}
+		else if (m_crTextBkMainText != CLR_DEFAULT)
+		{
+			SetBkMode(hDC, OPAQUE);
+			SetBkColor(hDC, m_crTextBkMainText);
+		}
+		else
+			SetBkMode(hDC, TRANSPARENT);
+
+		if (e.crTextMainText != CLR_DEFAULT)
+			SetTextColor(hDC, e.crTextMainText);
+		else if (m_crTextMainText != CLR_DEFAULT)
+			SetTextColor(hDC, m_crTextMainText);
+		else
+			SetTextColor(hDC, m_pThrCtx->crDefText);
+	}
 
 	LRESULT OnItemPrePaint(NMCUSTOMDRAW* pnmcd)
 	{
@@ -80,9 +133,13 @@ private:
 
 		HDITEMW hdi;
 		hdi.mask = HDI_BITMAP | HDI_FORMAT | HDI_IMAGE | HDI_LPARAM |
-			HDI_ORDER | HDI_TEXT | HDI_WIDTH;
-		hdi.pszText = m_rsTextBuf.Data();
-		hdi.cchTextMax = m_cchTextBuf;
+			HDI_ORDER | HDI_WIDTH;
+		if (!m_bUseExtText)
+		{
+			hdi.mask |= HDI_TEXT;
+			hdi.pszText = m_rsTextBuf.Data();
+			hdi.cchTextMax = m_cchTextBuf;
+		}
 		GetItem(idx, &hdi);
 
 		rc.left += m_Ds.cxEdge;
@@ -95,6 +152,20 @@ private:
 		else
 			iState = HIS_NORMAL;
 		DrawThemeBackground(m_hTheme, hDC, HP_HEADERITEM, iState, &pnmcd->rc, nullptr);
+		COLORREF crBk;
+		if (e.crBk != CLR_DEFAULT)
+			crBk = e.crBk;
+		else if (m_crBk != CLR_DEFAULT)
+			crBk = m_crBk;
+		else
+			goto SkipColorBk;
+		SetDCBrushColor(m_DcAlpha.GetDC(), crBk);
+		constexpr static RECT rcColorAlpha{ 0,0,1,1 };
+		FillRect(m_DcAlpha.GetDC(), &rcColorAlpha, GetStockBrush(DC_BRUSH));
+		AlphaBlend(hDC, pnmcd->rc.left, pnmcd->rc.top,
+			pnmcd->rc.right - pnmcd->rc.left, pnmcd->rc.bottom - pnmcd->rc.top,
+			m_DcAlpha.GetDC(), 0, 0, 1, 1, { AC_SRC_OVER,0,m_byColorAlpha,0 });
+	SkipColorBk:;
 		// 画拆分按钮
 		if (hdi.fmt & HDF_SPLITBUTTON)
 		{
@@ -183,25 +254,76 @@ private:
 		// 画文本
 		if (hdi.fmt & HDF_STRING)
 		{
-			if (e.crTextBk == CLR_DEFAULT)
-				SetBkMode(hDC, TRANSPARENT);
-			else
-			{
-				SetBkMode(hDC, OPAQUE);
-				SetBkColor(hDC, e.crTextBk);
-			}
-			if (e.crText == CLR_DEFAULT)
-				SetTextColor(hDC, m_crText == CLR_DEFAULT ? m_pThrCtx->crDefText : m_crText);
-			else
-				SetTextColor(hDC, e.crText);
-
-			rc.right = xRight;
 			UINT uDtFlags = DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS;
 			if (hdi.fmt & HDF_RIGHT)
 				uDtFlags |= DT_RIGHT;
 			else if (hdi.fmt & HDF_CENTER)
 				uDtFlags |= DT_CENTER;
-			DrawTextW(hDC, hdi.pszText, -1, &rc, uDtFlags);
+
+			if (m_bUseExtText)
+			{
+				rc.right = xRight - m_Ds.cxEdge * 2;
+				rc.left += (m_Ds.cxEdge * 2);
+				if (!m_bShowEmptyMainExtText)
+				{
+					if (e.rsMainText.IsEmpty())
+					{
+						PrepareTextColor(hDC, e,TRUE);
+						DrawTextW(hDC, e.rsSubText.Data(), e.rsSubText.Size(), &rc, uDtFlags);
+					}
+					else if (e.rsSubText.IsEmpty())
+					{
+						const auto hOld = SelectObject(hDC, m_hFontMainText);
+						PrepareTextColorMain(hDC, e);
+						DrawTextW(hDC, e.rsMainText.Data(), e.rsMainText.Size(), &rc, uDtFlags);
+						SelectObject(hDC, hOld);
+					}
+					else
+						goto NormalDraw2Row;
+				}
+				else
+				{
+				NormalDraw2Row:;
+					const int y0Bak = rc.top;
+					const int y1Bak = rc.bottom;
+					int y;
+					switch (m_eAlign)
+					{
+					case Align::Near:
+						y = rc.top + m_cyMainText + m_Ds.cxEdge;
+						break;
+					case Align::Center:
+						y = rc.top + (rc.bottom - rc.top - (m_cyMainText + m_Ds.cxEdge + m_cySubText)) / 2;
+						y += (m_cyMainText + m_Ds.cxEdge);
+						break;
+					case Align::Far:
+						y = rc.bottom - m_Ds.cxEdge - m_cySubText;
+						break;
+					default: ECK_UNREACHABLE;
+					}
+					rc.top = y;
+					rc.bottom = rc.top + m_cySubText;
+					PrepareTextColor(hDC, e, TRUE);
+					DrawTextW(hDC, e.rsSubText.Data(), e.rsSubText.Size(), &rc, uDtFlags);
+
+					y -= (m_cyMainText + m_Ds.cxEdge);
+					rc.top = y;
+					rc.bottom = rc.top + m_cyMainText;
+					const auto hOld = SelectObject(hDC, m_hFontMainText);
+					PrepareTextColorMain(hDC, e);
+					DrawTextW(hDC, e.rsMainText.Data(), e.rsMainText.Size(), &rc, uDtFlags);
+					SelectObject(hDC, hOld);
+
+					rc.top = y0Bak;
+					rc.bottom = y1Bak;
+				}
+			}
+			else
+			{
+				rc.right = xRight;
+				PrepareTextColor(hDC, e);
+				DrawTextW(hDC, hdi.pszText, -1, &rc, uDtFlags);
+			}
 			rc.left = rc.right + m_Ds.cxEdge;
 		}
 		// 画右边图像
@@ -272,6 +394,9 @@ private:
 
 	void InitForNewWindow(HWND hWnd)
 	{
+		m_iDpi = GetDpi(hWnd);
+		UpdateDpiSize(m_Ds, m_iDpi);
+
 		m_DcAlpha.Create32(hWnd, 1, 1);
 		m_pThrCtx = GetThreadCtx();
 		m_hTheme = OpenThemeData(hWnd, L"Header");
@@ -279,8 +404,6 @@ private:
 		UpdateThemeMetrics();
 
 		UpdateStyleOptions(Style);
-		m_iDpi = GetDpi(hWnd);
-		UpdateDpiSize(m_Ds, m_iDpi);
 
 		m_vData.clear();
 		if (const int cCol = GetItemCount(); cCol)
@@ -313,7 +436,8 @@ public:
 		switch (uMsg)
 		{
 		case WM_LBUTTONDBLCLK:
-			PostMsg(WM_LBUTTONDOWN, wParam, lParam);
+			if (m_bRepairDbClick)
+				PostMsg(WM_LBUTTONDOWN, wParam, lParam);
 			break;
 
 		case WM_MOUSEMOVE:
@@ -323,40 +447,6 @@ public:
 			hdhti.iItem = -1;
 			HitTest(&hdhti);
 
-			if (!m_bMoved)
-				m_bMoved = TRUE;
-
-			if (m_bDragging)
-			{
-				if (hdhti.iItem >= 0)
-				{
-					RECT rc;
-					CHeader::OnMsg(hWnd, HDM_GETITEMRECT, hdhti.iItem, (LPARAM)&rc);
-					const int idxOld = m_idxDragging;
-					if (hdhti.pt.x < rc.left + (rc.right - rc.left) / 2)
-						m_idxDragging = hdhti.iItem;
-					else
-					{
-						HDITEMW hi;
-						hi.mask = HDI_ORDER;
-						CHeader::OnMsg(hWnd, HDM_GETITEM, hdhti.iItem, (LPARAM)&hi);
-
-						const int cCol = (int)CHeader::OnMsg(hWnd, HDM_GETITEMCOUNT, 0, 0);
-						const auto piOrder = (int*)_malloca(cCol * sizeof(int));
-						CHeader::OnMsg(hWnd, HDM_GETORDERARRAY, cCol, (LPARAM)piOrder);
-
-						if (hi.iOrder == cCol - 1)
-							m_idxDragging = cCol;
-						else
-							m_idxDragging = piOrder[hi.iOrder + 1];
-
-						_freea(piOrder);
-					}
-					if (idxOld != m_idxDragging)
-						ResetDraggingMark();
-				}
-			}
-			else
 			{
 				m_idxHotItem = hdhti.iItem;
 				const auto b = !!(hdhti.flags & HHT_ONDROPDOWN);
@@ -373,11 +463,11 @@ public:
 				}
 			}
 
-			TRACKMOUSEEVENT tme;
-			tme.cbSize = sizeof(tme);
-			tme.dwFlags = TME_LEAVE;
-			tme.hwndTrack = hWnd;
-			TrackMouseEvent(&tme);
+			//TRACKMOUSEEVENT tme;
+			//tme.cbSize = sizeof(tme);
+			//tme.dwFlags = TME_LEAVE;
+			//tme.hwndTrack = hWnd;
+			//TrackMouseEvent(&tme);
 		}
 		break;
 
@@ -388,22 +478,14 @@ public:
 
 		case WM_LBUTTONUP:
 		{
-			LRESULT lResult = CHeader::OnMsg(hWnd, uMsg, wParam, lParam);// 先call默认过程，因为控件内部可能要重排列
-
-			m_idxDragging = -1;
+			// 先call默认过程，因为控件内部可能要重排列
+			LRESULT lResult = CHeader::OnMsg(hWnd, uMsg, wParam, lParam);
 
 			HDHITTESTINFO hdhti;
 			hdhti.pt = ECK_GET_PT_LPARAM(lParam);
 			hdhti.iItem = -1;
 			CHeader::OnMsg(hWnd, HDM_HITTEST, 0, (LPARAM)&hdhti);
 			m_idxHotItem = hdhti.iItem;
-
-			if (m_bMoved)// 不知道为什么有时候不重画，手动重画一下
-			{
-				InvalidateRect(hWnd, NULL, FALSE);
-				UpdateWindow(hWnd);
-				m_bMoved = FALSE;
-			}
 
 			return lResult;
 		}
@@ -429,6 +511,17 @@ public:
 			CloseThemeData(m_hThemeCB);
 			m_hThemeCB = OpenThemeData(hWnd, L"Button");
 			UpdateThemeMetrics();
+		}
+		break;
+
+		case WM_SETFONT:
+		{
+			const auto hDC = m_DcAlpha.GetDC();
+			const auto hOld = SelectObject(hDC, (HFONT)wParam);
+			TEXTMETRICW tm;
+			GetTextMetricsW(hDC, &tm);
+			m_cySubText = tm.tmHeight;
+			SelectObject(hDC, hOld);
 		}
 		break;
 
@@ -550,7 +643,50 @@ public:
 		return CHeader::OnNotifyMsg(hParent, uMsg, wParam, lParam, bProcessed);
 	}
 
-	void ResetDraggingMark()
+	EckInline constexpr void HeSetBkColor(COLORREF cr) { m_crBk = cr; }
+	EckInline constexpr COLORREF HeGetBkColor() const { return m_crBk; }
+
+	EckInline constexpr void HeSetTextBkColor(COLORREF cr) { m_crTextBk = cr; }
+	EckInline constexpr COLORREF HeGetTextBkColor() const { return m_crTextBk; }
+
+	EckInline constexpr void HeSetTextColor(COLORREF cr) { m_crText = cr; }
+	EckInline constexpr COLORREF HeGetTextColor() const { return m_crText; }
+
+	auto& HeGetItemData(int idx) { return m_vData[idx]; }
+	const auto& HeGetItemData(int idx) const { return m_vData[idx]; }
+
+	void HeSetMainTextFont(HFONT hFont)
+	{
+		m_hFontMainText = hFont;
+		const auto hDC = m_DcAlpha.GetDC();
+		const auto hOld = SelectObject(hDC, hFont);
+		TEXTMETRICW tm;
+		GetTextMetricsW(hDC, &tm);
+		m_cyMainText = tm.tmHeight;
+		SelectObject(hDC, hOld);
+	}
+
+	EckInline constexpr HFONT HeGetMainTextFont() const { return m_hFontMainText; }
+
+	EckInline constexpr void HeSetAutoDarkMode(BOOL b) { m_bAutoDarkMode = b; }
+	EckInline constexpr BOOL HeGetAutoDarkMode() const { return m_bAutoDarkMode; }
+
+	EckInline constexpr void HeSetUseExtText(BOOL b) { m_bUseExtText = b; }
+	EckInline constexpr BOOL HeGetUseExtText() const { return m_bUseExtText; }
+
+	EckInline constexpr void HeSetUseThemeForExtText(BOOL b) { m_bUseThemeForExtText = b; }
+	EckInline constexpr BOOL HeGetUseThemeForExtText() const { return m_bUseThemeForExtText; }
+
+	EckInline constexpr void HeSetRepairDoubleClick(BOOL b) { m_bRepairDbClick = b; }
+	EckInline constexpr BOOL HeGetRepairDoubleClick() const { return m_bRepairDbClick; }
+
+	EckInline constexpr void HeSetBkColorAlpha(BYTE by) { m_byColorAlpha = by; }
+	EckInline constexpr BYTE HeGetBkColorAlpha() const { return m_byColorAlpha; }
+
+	EckInline constexpr void HeSetExtTextAlignV(Align e) { m_eAlign = e; }
+	EckInline constexpr Align HeGetExtTextAlignV() const { return m_eAlign; }
+
+	int HeGetPrettyHeight() const
 	{
 
 	}

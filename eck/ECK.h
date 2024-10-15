@@ -329,7 +329,7 @@ inline namespace Literals
 	}
 }
 
-enum class Align
+enum class Align :BYTE
 {
 	Near,
 	Center,
