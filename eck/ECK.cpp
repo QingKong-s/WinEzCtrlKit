@@ -100,7 +100,8 @@ static BOOL DefMsgFilter(const MSG&)
 }
 FMsgFilter g_pfnMsgFilter = DefMsgFilter;
 
-#pragma region(UxTheme DarkMode Fixer)
+#pragma region(UxTheme Fixer)
+// 为了对抗微软写的屎只能勾来勾去
 enum
 {
 	//===部件===
@@ -122,436 +123,127 @@ using FDrawThemeBackground = HRESULT(WINAPI*)(HTHEME, HDC, int, int, LPCRECT, LP
 using FGetThemeColor = HRESULT(WINAPI*)(HTHEME, int, int, int, COLORREF*);
 using FCloseThemeData = HRESULT(WINAPI*)(HTHEME);
 using FDrawThemeParentBackground = HRESULT(WINAPI*)(HWND, HDC, const RECT*);
+using FGetThemePartSize = HRESULT(WINAPI*)(HTHEME hTheme, HDC hdc, int iPartId, int iStateId, LPCRECT prc, enum THEMESIZE eSize, SIZE* psz);
 
-static FOpenNcThemeData		s_pfnOpenNcThemeData{};
-static FOpenThemeData		s_pfnOpenThemeData{ OpenThemeData };
-static FDrawThemeText		s_pfnDrawThemeText{ DrawThemeText };
-static FDrawThemeTextEx		s_pfnDrawThemeTextEx{ DrawThemeTextEx };
-static FOpenThemeDataForDpi	s_pfnOpenThemeDataForDpi{};// DPI API引入较晚，动态加载之
-static FDrawThemeBackgroundEx		s_pfnDrawThemeBackgroundEx{ DrawThemeBackgroundEx };
-static FDrawThemeBackground	s_pfnDrawThemeBackground{ DrawThemeBackground };
-static FGetThemeColor		s_pfnGetThemeColor{ GetThemeColor };
-static FCloseThemeData		s_pfnCloseThemeData{ CloseThemeData };
+static FOpenNcThemeData			s_pfnOpenNcThemeData{};// 以序号导出
+static FOpenThemeData			s_pfnOpenThemeData{ OpenThemeData };
+static FDrawThemeText			s_pfnDrawThemeText{ DrawThemeText };
+static FDrawThemeTextEx			s_pfnDrawThemeTextEx{ DrawThemeTextEx };
+static FOpenThemeDataForDpi		s_pfnOpenThemeDataForDpi{};// DPI API引入较晚，动态加载之
+static FDrawThemeBackgroundEx	s_pfnDrawThemeBackgroundEx{ DrawThemeBackgroundEx };
+static FDrawThemeBackground		s_pfnDrawThemeBackground{ DrawThemeBackground };
+static FGetThemeColor			s_pfnGetThemeColor{ GetThemeColor };
+static FCloseThemeData			s_pfnCloseThemeData{ CloseThemeData };
 static FDrawThemeParentBackground	s_pfnDrawThemeParentBackground{ DrawThemeParentBackground };
+static FGetThemePartSize		s_pfnGetThemePartSize{ GetThemePartSize };
 
-//
-std::unordered_map<HTHEME, int> g_hsButtonTheme{};
-CSrwLock g_LkThemeMapButton{};
-// +TaskDialogStyle
-std::unordered_map<HTHEME, int> g_hsTaskDialogTheme{};
-CSrwLock g_LkThemeMapTaskDialog{};
-//
-std::unordered_map<HTHEME, int> g_hsTabTheme{};
-CSrwLock g_LkThemeMapTab{};
-// 附带一个ItemsView::ListView主题，用于绘制背景
-std::unordered_map<HTHEME, std::pair<int, HTHEME>> g_hsToolBarTheme{};
-CSrwLock g_LkThemeMapToolBar{};
-// +AeroWizardStyle
-std::unordered_map<HTHEME, int> g_hsAeroWizardTheme{};
-CSrwLock g_LkThemeMapAeroWizard{};
-// 附带一个DarkMode_CFD::ComboBox主题，用于绘制背景和下拉按钮
-std::unordered_map<HTHEME, std::pair<int, HTHEME>> g_hsDateTimePickerTheme{};
-CSrwLock g_LkThemeMapDateTimePicker{};
-// +ItemsView
-std::unordered_map<HTHEME, int> g_hsListViewTheme{};
-CSrwLock g_LkThemeMapListView{};
-//
-std::unordered_map<HTHEME, int> g_hsLink{};
-CSrwLock g_LkThemeMapLink{};
-
-static BOOL IsThemeButton(HTHEME hTheme)
+enum class ThemeType
 {
-	CSrwReadGuard _{ g_LkThemeMapButton };
-	return g_hsButtonTheme.find(hTheme) != g_hsButtonTheme.end();
+	Invalid,
+	Button,
+	TaskDialog,		// +TaskDialogStyle
+	Tab,
+	ToolBar,		// 附带一个ItemsView::ListView主题，用于绘制背景
+	AeroWizard,		// +AeroWizardStyle
+	DateTimePicker,	// 附带一个DarkMode_CFD::ComboBox主题，用于绘制背景和下拉按钮
+	ListView,		// +ItemsView
+	Link,
+	Header,
+};
+
+struct THEME_INFO
+{
+	int cRef;
+	ThemeType eType;
+	HTHEME hThemeExtra;
+	HWND hWnd;
+};
+
+// 主题记录集
+static std::unordered_map<HTHEME, THEME_INFO> s_hsThemeMap{};
+// 主题记录集读写锁
+static CSrwLock s_LkThemeMap{};
+// 若找不到记录，此常量作为占位
+constexpr THEME_INFO InvalidThemeInfo{ .eType = ThemeType::Invalid };
+
+// 查询主题信息。此函数返回引用，但在主题句柄被使用期间一定有效
+const THEME_INFO& UxfGetThemeInfo(HTHEME hTheme)
+{
+	CSrwReadGuard _{ s_LkThemeMap };
+	const auto it = s_hsThemeMap.find(hTheme);
+	return it != s_hsThemeMap.end() ? it->second : InvalidThemeInfo;
 }
 
-static BOOL IsThemeTaskDialog(HTHEME hTheme)
-{
-	CSrwReadGuard _{ g_LkThemeMapTaskDialog };
-	return g_hsTaskDialogTheme.find(hTheme) != g_hsTaskDialogTheme.end();
-}
-
-static BOOL IsThemeTab(HTHEME hTheme)
-{
-	CSrwReadGuard _{ g_LkThemeMapTab };
-	return g_hsTabTheme.find(hTheme) != g_hsTabTheme.end();
-}
-
-static BOOL IsThemeToolBar(HTHEME hTheme, HTHEME* phThemeLV = nullptr)
-{
-	CSrwReadGuard _{ g_LkThemeMapToolBar };
-	if (phThemeLV)
-	{
-		const auto it = g_hsToolBarTheme.find(hTheme);
-		if (it != g_hsToolBarTheme.end())
-		{
-			*phThemeLV = it->second.second;
-			return TRUE;
-		}
-		else
-			return FALSE;
-	}
-	else
-		return g_hsToolBarTheme.find(hTheme) != g_hsToolBarTheme.end();
-}
-
-static BOOL IsThemeAeroWizard(HTHEME hTheme)
-{
-	CSrwReadGuard _{ g_LkThemeMapAeroWizard };
-	return g_hsAeroWizardTheme.find(hTheme) != g_hsAeroWizardTheme.end();
-}
-
-static BOOL IsThemeDateTimePicker(HTHEME hTheme, HTHEME* phThemeCBB = nullptr)
-{
-	CSrwReadGuard _{ g_LkThemeMapDateTimePicker };
-	if (phThemeCBB)
-	{
-		const auto it = g_hsDateTimePickerTheme.find(hTheme);
-		if (it != g_hsDateTimePickerTheme.end())
-		{
-			*phThemeCBB = it->second.second;
-			return TRUE;
-		}
-		else
-			return FALSE;
-	}
-	else
-		return g_hsDateTimePickerTheme.find(hTheme) != g_hsDateTimePickerTheme.end();
-}
-
-static BOOL IsThemeListView(HTHEME hTheme)
-{
-	CSrwReadGuard _{ g_LkThemeMapListView };
-	return g_hsListViewTheme.find(hTheme) != g_hsListViewTheme.end();
-}
-
-static BOOL IsThemeLink(HTHEME hTheme)
-{
-	CSrwReadGuard _{ g_LkThemeMapLink };
-	return g_hsLink.find(hTheme) != g_hsLink.end();
-}
-
-static void OnThemeOpen(HTHEME hTheme, PCWSTR pszClassList)
+static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 {
 	if (!hTheme)
 		return;
-	if (wcsstr(pszClassList, L"Button"))// maybe ~";Ok"
-	{
-		CSrwWriteGuard _{ g_LkThemeMapButton };
-		++g_hsButtonTheme[hTheme];
-	}
+	EckDbgPrintFmt(L"UxfOnThemeOpen(%p, %s)", hTheme, pszClassList);
+	ThemeType eType;
+	if (wcsstr(pszClassList, L"Button"))// Maybe ~";Ok"
+		eType = ThemeType::Button;
 	else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 ||
 		_wcsicmp(pszClassList, L"TaskDialogStyle") == 0)
-	{
-		CSrwWriteGuard _{ g_LkThemeMapTaskDialog };
-		++g_hsTaskDialogTheme[hTheme];
-	}
+		eType = ThemeType::TaskDialog;
 	else if (_wcsicmp(pszClassList, L"Tab") == 0)
-	{
-		CSrwWriteGuard _{ g_LkThemeMapTab };
-		++g_hsTabTheme[hTheme];
-	}
+		eType = ThemeType::Tab;
 	else if (_wcsicmp(pszClassList, L"ToolBar") == 0)
-	{
-		CSrwWriteGuard _{ g_LkThemeMapToolBar };
-		auto& e = g_hsToolBarTheme[hTheme];
-		if (!e.first && ShouldAppsUseDarkMode())
-			e.second = s_pfnOpenThemeData(nullptr, L"ItemsView::ListView");
-		++e.first;
-	}
+		eType = ThemeType::ToolBar;
 	else if (_wcsicmp(pszClassList, L"AeroWizard") == 0 ||
 		_wcsicmp(pszClassList, L"AeroWizardStyle") == 0)
-	{
-		CSrwWriteGuard _{ g_LkThemeMapAeroWizard };
-		++g_hsAeroWizardTheme[hTheme];
-	}
+		eType = ThemeType::AeroWizard;
 	else if (_wcsicmp(pszClassList, L"DatePicker") == 0)
-	{
-		CSrwWriteGuard _{ g_LkThemeMapDateTimePicker };
-		auto& e = g_hsDateTimePickerTheme[hTheme];
-		if (!e.first && ShouldAppsUseDarkMode())
-			e.second = s_pfnOpenThemeData(nullptr, L"DarkMode_CFD::ComboBox");
-		++e.first;
-	}
+		eType = ThemeType::DateTimePicker;
 	else if (wcsstr(pszClassList, L"ListView") || wcscmp(pszClassList, L"ItemsView") == 0)
-	{
-		CSrwWriteGuard _{ g_LkThemeMapListView };
-		++g_hsListViewTheme[hTheme];
-	}
+		eType = ThemeType::ListView;
 	else if (wcscmp(pszClassList, L"Link") == 0)
-	{
-		CSrwWriteGuard _{ g_LkThemeMapLink };
-		++g_hsLink[hTheme];
-	}
-}
-
-static void OnThemeClose(HTHEME hTheme)
-{
-	{
-		CSrwWriteGuard _{ g_LkThemeMapButton };
-		const auto it = g_hsButtonTheme.find(hTheme);
-		if (it != g_hsButtonTheme.end())
-		{
-			EckAssert(it->second > 0);
-			if (!--it->second)
-				g_hsButtonTheme.erase(it);
-		}
-	}
-	{
-		CSrwWriteGuard _{ g_LkThemeMapTaskDialog };
-		const auto it = g_hsTaskDialogTheme.find(hTheme);
-		if (it != g_hsTaskDialogTheme.end())
-		{
-			EckAssert(it->second > 0);
-			if (!--it->second)
-				g_hsTaskDialogTheme.erase(it);
-		}
-	}
-	{
-		CSrwWriteGuard _{ g_LkThemeMapTab };
-		const auto it = g_hsTabTheme.find(hTheme);
-		if (it != g_hsTabTheme.end())
-		{
-			EckAssert(it->second > 0);
-			if (!--it->second)
-				g_hsTabTheme.erase(it);
-		}
-	}
-	{
-		CSrwWriteGuard _{ g_LkThemeMapToolBar };
-		const auto it = g_hsToolBarTheme.find(hTheme);
-		if (it != g_hsToolBarTheme.end())
-		{
-			EckAssert(it->second.first > 0);
-			if (!--it->second.first)
-			{
-				s_pfnCloseThemeData(it->second.second);
-				g_hsToolBarTheme.erase(it);
-			}
-		}
-	}
-	{
-		CSrwWriteGuard _{ g_LkThemeMapAeroWizard };
-		const auto it = g_hsAeroWizardTheme.find(hTheme);
-		if (it != g_hsAeroWizardTheme.end())
-		{
-			EckAssert(it->second > 0);
-			if (!--it->second)
-				g_hsAeroWizardTheme.erase(it);
-		}
-	}
-	{
-		CSrwWriteGuard _{ g_LkThemeMapDateTimePicker };
-		const auto it = g_hsDateTimePickerTheme.find(hTheme);
-		if (it != g_hsDateTimePickerTheme.end())
-		{
-			EckAssert(it->second.first > 0);
-			if (!--it->second.first)
-			{
-				s_pfnCloseThemeData(it->second.second);
-				g_hsToolBarTheme.erase(it);
-			}
-		}
-	}
-	{
-		CSrwWriteGuard _{ g_LkThemeMapListView };
-		const auto it = g_hsListViewTheme.find(hTheme);
-		if (it != g_hsListViewTheme.end())
-		{
-			EckAssert(it->second > 0);
-			if (!--it->second)
-				g_hsListViewTheme.erase(it);
-		}
-	}
-	{
-		CSrwWriteGuard _{ g_LkThemeMapLink };
-		const auto it = g_hsLink.find(hTheme);
-		if (it != g_hsLink.end())
-		{
-			EckAssert(it->second > 0);
-			if (!--it->second)
-				g_hsLink.erase(it);
-		}
-	}
-}
-
-static HRESULT WINAPI NewGetThemeColor(HTHEME hTheme, int iPartId, int iStateId, int iPropId, COLORREF* pColor);
-
-// 某些控件使用此函数填充背景，仅父窗口实现WM_ERASETBKGND时成功，这里追加未实现的处理
-static HRESULT WINAPI NewDrawThemeParentBackground(HWND hWnd, HDC hDC, const RECT* prc)
-{
-	const auto hr = s_pfnDrawThemeParentBackground(hWnd, hDC, prc);
-	if (hr != S_OK)// include S_FALSE
-	{
-		if (!ShouldAppsUseDarkMode())
-			return hr;
-		RECT rc;
-		if (!prc)
-		{
-			GetClipBox(hDC, &rc);
-			prc = &rc;
-		}
-		SetDCBrushColor(hDC, GetThreadCtx()->crDefBkg);
-		FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
-	}
-	return S_OK;
-}
-
-// 非客户区滚动条
-static HTHEME WINAPI NewOpenNcThemeData(HWND hWnd, PCWSTR pszClassList)
-{
-	if (_wcsicmp(pszClassList, L"ScrollBar") == 0)
-		return s_pfnOpenNcThemeData(nullptr, L"Explorer::ScrollBar");// for nc scrollbar
-	else ECKLIKELY
-		return s_pfnOpenNcThemeData(hWnd, pszClassList);
-}
-
-// 多种主题修复
-static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
-{
-	HTHEME hTheme;
-	if (ShouldAppsUseDarkMode())
-	{
-		if (_wcsicmp(pszClassList, L"Combobox") == 0)
-			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Combobox");
-		else if (_wcsicmp(pszClassList, L"Edit") == 0)
-			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Edit");
-		else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 || _wcsicmp(pszClassList, L"TaskDialogStyle") == 0)
-			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_Explorer::TaskDialog");
-		else
-			hTheme = s_pfnOpenThemeData(hWnd, pszClassList);
-	}
+		eType = ThemeType::Link;
+	else if (wcsstr(pszClassList, L"Header"))
+		eType = ThemeType::Header;
 	else
-		hTheme = s_pfnOpenThemeData(hWnd, pszClassList);
-	OnThemeOpen(hTheme, pszClassList);
-	return hTheme;
+		eType = ThemeType::Invalid;
+	if (eType != ThemeType::Invalid)
+	{
+		CSrwWriteGuard _{ s_LkThemeMap };
+		auto& e = s_hsThemeMap[hTheme];
+		e.eType = eType;
+		if (!e.cRef)
+		{
+			switch (eType)
+			{
+			case ThemeType::ToolBar:
+				e.hThemeExtra = s_pfnOpenThemeData(nullptr, L"ItemsView::ListView");
+				break;
+			case ThemeType::DateTimePicker:
+				e.hThemeExtra = s_pfnOpenThemeData(nullptr, L"DarkMode_CFD::ComboBox");
+				break;
+			}
+			e.hWnd = hWnd;
+		}
+		++e.cRef;
+	}
 }
 
-// 多种主题修复
-static HTHEME WINAPI NewOpenThemeDataForDpi(HWND hWnd, PCWSTR pszClassList, UINT uDpi)
+static void UxfOnThemeClose(HTHEME hTheme)
 {
-	HTHEME hTheme;
-	if (ShouldAppsUseDarkMode())
+	const auto it = s_hsThemeMap.find(hTheme);
+	if (it != s_hsThemeMap.end())
 	{
-		if (_wcsicmp(pszClassList, L"Combobox") == 0)
-			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_CFD::Combobox", uDpi);
-		else if (_wcsicmp(pszClassList, L"Edit") == 0)
-			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_CFD::Edit", uDpi);
-		else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 ||
-			_wcsicmp(pszClassList, L"TaskDialogStyle") == 0)
-			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_Explorer::TaskDialog", uDpi);
+		CSrwWriteGuard _{ s_LkThemeMap };
+		auto& e = it->second;
+		if (e.cRef > 1)
+			--e.cRef;
 		else
-			hTheme = s_pfnOpenThemeDataForDpi(hWnd, pszClassList, uDpi);
-	}
-	else
-		hTheme = s_pfnOpenThemeDataForDpi(hWnd, pszClassList, uDpi);
-	OnThemeOpen(hTheme, pszClassList);
-	return hTheme;
-}
-
-// 按钮、选择夹、工具条、时间日期选择器文本修复
-static HRESULT WINAPI NewDrawThemeText(HTHEME hTheme, HDC hdc, int iPartId, int iStateId,
-	LPCWSTR pszText, int cchText, DWORD dwTextFlags, DWORD dwTextFlags2, LPCRECT pRect)
-{
-	if (ShouldAppsUseDarkMode() && !IsBitSet(dwTextFlags, DT_CALCRECT))
-	{
-		const auto* const ptc = GetThreadCtx();
-		if (IsThemeButton(hTheme))
-			switch (iPartId)
-			{
-			case BP_CHECKBOX:
-			case BP_GROUPBOX:
-			case BP_RADIOBUTTON:
-			{
-				DTTOPTS dtt;
-				dtt.dwSize = sizeof(dtt);
-				dtt.dwFlags = DTT_TEXTCOLOR;
-				dtt.crText = ptc->crDefText;
-				return s_pfnDrawThemeTextEx(hTheme, hdc, iPartId, iStateId,
-					pszText, cchText, dwTextFlags, (RECT*)pRect, &dtt);
-			}
-			break;
-			}
-		if (IsThemeTab(hTheme))
 		{
-			DTTOPTS dtt;
-			dtt.dwSize = sizeof(dtt);
-			dtt.dwFlags = DTT_TEXTCOLOR;
-			dtt.crText = ptc->crDefText;
-			return s_pfnDrawThemeTextEx(hTheme, hdc, iPartId, iStateId,
-				pszText, cchText, dwTextFlags, (RECT*)pRect, &dtt);
+			if (e.hThemeExtra)
+				s_pfnCloseThemeData(e.hThemeExtra);
+			s_hsThemeMap.erase(it);
 		}
-		if (IsThemeToolBar(hTheme) && iStateId != TS_DISABLED)
-		{
-			DTTOPTS dtt;
-			dtt.dwSize = sizeof(dtt);
-			dtt.dwFlags = DTT_TEXTCOLOR;
-			dtt.crText = ptc->crDefText;
-			return s_pfnDrawThemeTextEx(hTheme, hdc, iPartId, iStateId,
-				pszText, cchText, dwTextFlags, (RECT*)pRect, &dtt);
-		}
-		if (IsThemeDateTimePicker(hTheme))
-			switch (iPartId)
-			{
-			case DP_DATETEXT:
-			{
-				DTTOPTS dtt;
-				dtt.dwSize = sizeof(dtt);
-				dtt.dwFlags = DTT_TEXTCOLOR;
-
-				switch (iStateId)
-				{
-				case DPDB_DISABLED:
-					dtt.crText = 0x3f3f3f;
-					break;
-				default:
-					dtt.crText = ptc->crDefText;
-					break;
-				}
-
-				return s_pfnDrawThemeTextEx(hTheme, hdc, iPartId, iStateId,
-					pszText, cchText, dwTextFlags, (RECT*)pRect, &dtt);
-			}
-			return S_OK;
-			}
 	}
-	return s_pfnDrawThemeText(hTheme, hdc, iPartId, iStateId, pszText, cchText,
-		dwTextFlags, dwTextFlags2, pRect);
 }
 
-// comctl32!SHThemeDrawText(未导出的内部函数)将调用DrawThemeTextEx，若失败，回落到DrawTextW
-// 列表视图组标题修复
-static HRESULT WINAPI NewDrawThemeTextEx(HTHEME hTheme, HDC hdc, int iPartId, int iStateId,
-	LPCWSTR pszText, int cchText, DWORD dwTextFlags, LPRECT pRect, const DTTOPTS* pOptions)
-{
-	DTTOPTS NewOpt;
-	if (ShouldAppsUseDarkMode() && !IsBitSet(dwTextFlags, DT_CALCRECT))
-	{
-		if (IsThemeListView(hTheme))
-			if (!pOptions || (pOptions->dwFlags & DTT_COLORPROP))
-			{
-				NewOpt.dwSize = sizeof(DTTOPTS);
-				NewOpt.dwFlags = DTT_TEXTCOLOR;
-				NewGetThemeColor(hTheme, iPartId, iStateId,
-					(pOptions && (pOptions->dwFlags & DTT_COLORPROP)) ?
-					pOptions->iColorPropId : TMT_TEXTCOLOR, &NewOpt.crText);
-				pOptions = &NewOpt;
-			}
-		if (IsThemeLink(hTheme))
-			if (!pOptions || (pOptions->dwFlags & DTT_COLORPROP))
-			{
-				NewOpt.dwSize = sizeof(DTTOPTS);
-				NewOpt.dwFlags = DTT_TEXTCOLOR;
-				NewGetThemeColor(hTheme, iPartId, iStateId, TMT_TEXTCOLOR, &NewOpt.crText);
-				pOptions = &NewOpt;
-			}
-	}
-	return s_pfnDrawThemeTextEx(hTheme, hdc, iPartId, iStateId, pszText, cchText,
-		dwTextFlags, pRect, pOptions);
-}
-
-static HRESULT DtbAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
-	const RECT* prc, const DTBGOPTS& Opt, float fPercent = 0.8f)
+static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
+	const RECT* prc, const DTBGOPTS& Opt, float fPercent)
 {
 	RECT rcReal{ 0,0,prc->right - prc->left, prc->bottom - prc->top };
 	CEzCDC DC{};
@@ -597,8 +289,8 @@ static HRESULT DtbAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 	return S_OK;
 }
 
-static HRESULT DtbAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
-	const RECT* prc, const RECT* prcClip, float fPercent = 0.8f)
+static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
+	const RECT* prc, const RECT* prcClip, float fPercent)
 {
 	DTBGOPTS opt;
 	opt.dwSize = sizeof(DTBGOPTS);
@@ -608,7 +300,198 @@ static HRESULT DtbAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 		opt.dwFlags |= DTBG_CLIPRECT;
 		opt.rcClip = *prcClip;
 	}
-	return DtbAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, opt, fPercent);
+	return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, opt, fPercent);
+}
+
+static HRESULT WINAPI NewGetThemeColor(HTHEME hTheme, int iPartId, int iStateId, int iPropId, COLORREF* pColor);
+
+// 某些控件使用此函数填充背景，仅父窗口实现WM_ERASEBKGND时成功，这里追加未实现的处理
+static HRESULT WINAPI NewDrawThemeParentBackground(HWND hWnd, HDC hDC, const RECT* prc)
+{
+	const auto hr = s_pfnDrawThemeParentBackground(hWnd, hDC, prc);
+	if (hr != S_OK)// Include S_FALSE
+	{
+		if (!ShouldAppsUseDarkMode())
+			return hr;
+		RECT rc;
+		if (!prc)
+		{
+			GetClipBox(hDC, &rc);
+			prc = &rc;
+		}
+		SetDCBrushColor(hDC, GetThreadCtx()->crDefBkg);
+		FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
+	}
+	return S_OK;
+}
+
+// 非客户区滚动条
+static HTHEME WINAPI NewOpenNcThemeData(HWND hWnd, PCWSTR pszClassList)
+{
+	if (_wcsicmp(pszClassList, L"ScrollBar") == 0)
+		return s_pfnOpenNcThemeData(nullptr, L"Explorer::ScrollBar");
+	else ECKLIKELY
+		return s_pfnOpenNcThemeData(hWnd, pszClassList);
+}
+
+// 多种主题修复
+static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
+{
+	HTHEME hTheme;
+	if (ShouldAppsUseDarkMode())
+	{
+		if (_wcsicmp(pszClassList, L"Combobox") == 0)
+			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Combobox");
+		else if (_wcsicmp(pszClassList, L"Edit") == 0)
+			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Edit");
+		else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 || _wcsicmp(pszClassList, L"TaskDialogStyle") == 0)
+			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_Explorer::TaskDialog");
+		else
+			hTheme = s_pfnOpenThemeData(hWnd, pszClassList);
+	}
+	else
+		hTheme = s_pfnOpenThemeData(hWnd, pszClassList);
+	UxfOnThemeOpen(hWnd, hTheme, pszClassList);
+	return hTheme;
+}
+
+// 多种主题修复
+static HTHEME WINAPI NewOpenThemeDataForDpi(HWND hWnd, PCWSTR pszClassList, UINT uDpi)
+{
+	HTHEME hTheme;
+	if (ShouldAppsUseDarkMode())
+	{
+		if (_wcsicmp(pszClassList, L"Combobox") == 0)
+			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_CFD::Combobox", uDpi);
+		else if (_wcsicmp(pszClassList, L"Edit") == 0)
+			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_CFD::Edit", uDpi);
+		else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 ||
+			_wcsicmp(pszClassList, L"TaskDialogStyle") == 0)
+			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_Explorer::TaskDialog", uDpi);
+		else
+			hTheme = s_pfnOpenThemeDataForDpi(hWnd, pszClassList, uDpi);
+	}
+	else
+		hTheme = s_pfnOpenThemeDataForDpi(hWnd, pszClassList, uDpi);
+	UxfOnThemeOpen(hWnd, hTheme, pszClassList);
+	return hTheme;
+}
+
+// 按钮、选择夹、工具条、时间日期选择器文本修复
+static HRESULT WINAPI NewDrawThemeText(HTHEME hTheme, HDC hdc, int iPartId, int iStateId,
+	LPCWSTR pszText, int cchText, DWORD dwTextFlags, DWORD dwTextFlags2, LPCRECT pRect)
+{
+	if (ShouldAppsUseDarkMode() && !IsBitSet(dwTextFlags, DT_CALCRECT))
+	{
+		const auto& ti = UxfGetThemeInfo(hTheme);
+		const auto* const ptc = GetThreadCtx();
+		switch (ti.eType)
+		{
+		case ThemeType::Button:
+			switch (iPartId)
+			{
+			case BP_CHECKBOX:
+			case BP_GROUPBOX:
+			case BP_RADIOBUTTON:
+			{
+				DTTOPTS dtt;
+				dtt.dwSize = sizeof(dtt);
+				dtt.dwFlags = DTT_TEXTCOLOR;
+				dtt.crText = ptc->crDefText;
+				return s_pfnDrawThemeTextEx(hTheme, hdc, iPartId, iStateId,
+					pszText, cchText, dwTextFlags, (RECT*)pRect, &dtt);
+			}
+			break;
+			}
+			break;
+		case ThemeType::Tab:
+		{
+			DTTOPTS dtt;
+			dtt.dwSize = sizeof(dtt);
+			dtt.dwFlags = DTT_TEXTCOLOR;
+			dtt.crText = ptc->crDefText;
+			return s_pfnDrawThemeTextEx(hTheme, hdc, iPartId, iStateId,
+				pszText, cchText, dwTextFlags, (RECT*)pRect, &dtt);
+		}
+		break;
+		case ThemeType::ToolBar:
+			if (iStateId != TS_DISABLED)
+			{
+				DTTOPTS dtt;
+				dtt.dwSize = sizeof(dtt);
+				dtt.dwFlags = DTT_TEXTCOLOR;
+				dtt.crText = ptc->crDefText;
+				return s_pfnDrawThemeTextEx(hTheme, hdc, iPartId, iStateId,
+					pszText, cchText, dwTextFlags, (RECT*)pRect, &dtt);
+			}
+			break;
+		case ThemeType::DateTimePicker:
+			switch (iPartId)
+			{
+			case DP_DATETEXT:
+			{
+				DTTOPTS dtt;
+				dtt.dwSize = sizeof(dtt);
+				dtt.dwFlags = DTT_TEXTCOLOR;
+
+				switch (iStateId)
+				{
+				case DPDB_DISABLED:
+					dtt.crText = 0x3f3f3f;
+					break;
+				default:
+					dtt.crText = ptc->crDefText;
+					break;
+				}
+
+				return s_pfnDrawThemeTextEx(hTheme, hdc, iPartId, iStateId,
+					pszText, cchText, dwTextFlags, (RECT*)pRect, &dtt);
+			}
+			return S_OK;
+			}
+			break;
+		}
+	}
+	return s_pfnDrawThemeText(hTheme, hdc, iPartId, iStateId, pszText, cchText,
+		dwTextFlags, dwTextFlags2, pRect);
+}
+
+// comctl32!SHThemeDrawText(未导出的内部函数)将调用DrawThemeTextEx，若失败，回落到DrawTextW
+// 列表视图组标题修复，链接文本颜色修复
+static HRESULT WINAPI NewDrawThemeTextEx(HTHEME hTheme, HDC hdc, int iPartId, int iStateId,
+	LPCWSTR pszText, int cchText, DWORD dwTextFlags, LPRECT pRect, const DTTOPTS* pOptions)
+{
+	DTTOPTS NewOpt;
+	if (ShouldAppsUseDarkMode() && !IsBitSet(dwTextFlags, DT_CALCRECT))
+	{
+		const auto& ti = UxfGetThemeInfo(hTheme);
+		// (!pOptions || (pOptions->dwFlags & DTT_COLORPROP)) -> 使用某个默认颜色
+		switch (ti.eType)
+		{
+		case ThemeType::ListView:
+			if (!pOptions || (pOptions->dwFlags & DTT_COLORPROP))
+			{
+				NewOpt.dwSize = sizeof(DTTOPTS);
+				NewOpt.dwFlags = DTT_TEXTCOLOR;
+				NewGetThemeColor(hTheme, iPartId, iStateId,
+					(pOptions && (pOptions->dwFlags & DTT_COLORPROP)) ?
+					pOptions->iColorPropId : TMT_TEXTCOLOR, &NewOpt.crText);
+				pOptions = &NewOpt;
+			}
+			break;
+		case ThemeType::Link:
+			if (!pOptions || (pOptions->dwFlags & DTT_COLORPROP))
+			{
+				NewOpt.dwSize = sizeof(DTTOPTS);
+				NewOpt.dwFlags = DTT_TEXTCOLOR;
+				NewGetThemeColor(hTheme, iPartId, iStateId, TMT_TEXTCOLOR, &NewOpt.crText);
+				pOptions = &NewOpt;
+			}
+			break;
+		}
+	}
+	return s_pfnDrawThemeTextEx(hTheme, hdc, iPartId, iStateId, pszText, cchText,
+		dwTextFlags, pRect, pOptions);
 }
 
 // 任务对话框、按钮、选择夹、工具条、Aero向导背景、时间日期选择器背景修复
@@ -618,24 +501,30 @@ static HRESULT WINAPI NewDrawThemeBackgroundEx(HTHEME hTheme, HDC hdc, int iPart
 	if (ShouldAppsUseDarkMode())
 	{
 		const auto* const ptc = GetThreadCtx();
-		if (IsThemeTaskDialog(hTheme))
+		const auto& ti = UxfGetThemeInfo(hTheme);
+
+		switch (ti.eType)
+		{
+		case ThemeType::TaskDialog:
 			switch (iPartId)
 			{
 			case TDLG_SECONDARYPANEL:
 				iPartId = TDLG_FOOTNOTEPANE;
 				break;
 			case TDLG_FOOTNOTESEPARATOR:
-				return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, *pOptions, -0.67f);
+				return UxfAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, *pOptions, -0.67f);
 			}
-		else if (IsThemeButton(hTheme))
+			break;
+		case ThemeType::Button:
 			switch (iPartId)
 			{
 			case BP_COMMANDLINKGLYPH:
-				return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, *pOptions, 0.3f);
+				return UxfAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, *pOptions, 0.3f);
 			case BP_COMMANDLINK:
-				return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, *pOptions, 0.9f);
+				return UxfAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, *pOptions, 0.9f);
 			}
-		else if (IsThemeTab(hTheme))
+			break;
+		case ThemeType::Tab:
 			switch (iPartId)
 			{
 			case TABP_TABITEM:
@@ -673,7 +562,7 @@ static HRESULT WINAPI NewDrawThemeBackgroundEx(HTHEME hTheme, HDC hdc, int iPart
 					--rc.bottom;
 					if (pOptions->dwFlags & DTBG_CLIPRECT)
 						IntersectRect(rc, rc, pOptions->rcClip);
-					const auto hr = DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect,
+					const auto hr = UxfAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect,
 						&rc /*补齐最左选项卡的一个像素*/, f);
 					if (hr == S_OK)// exclude S_FALSE
 					{
@@ -685,13 +574,13 @@ static HRESULT WINAPI NewDrawThemeBackgroundEx(HTHEME hTheme, HDC hdc, int iPart
 					return hr;
 				}
 				else
-					return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, *pOptions, f);
+					return UxfAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, *pOptions, f);
 			}
 			case TABP_PANE:
 			case TABP_BODY:
 			case TABP_AEROWIZARDBODY:
 			{
-				const auto hr = DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, *pOptions, -0.86f);
+				const auto hr = UxfAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, *pOptions, -0.86f);
 				if (hr == S_OK)// exclude S_FALSE
 				{
 					if (pOptions->dwFlags & DTBG_CLIPRECT)
@@ -707,18 +596,40 @@ static HRESULT WINAPI NewDrawThemeBackgroundEx(HTHEME hTheme, HDC hdc, int iPart
 				return hr;
 			}
 			}
-		else if (IsThemeListView(hTheme))
+			break;
+		case ThemeType::ListView:
 			switch (iPartId)
 			{
 			case LVP_GROUPHEADERLINE:
-				return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, *pOptions, 0.3f);
+				return UxfAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, *pOptions, 0.3f);
 			}
-		else
+			break;
+		case ThemeType::ToolBar:
 		{
-			HTHEME hThemeTBLV;
-			if (IsThemeToolBar(hTheme, &hThemeTBLV))
+			if (iPartId == 0 && iStateId == 0)// 指示正在填充整个控件的背景
 			{
-				if (iPartId == 0 && iStateId == 0)
+				SetDCBrushColor(hdc, ptc->crDefBkg);
+				if (pOptions->dwFlags & DTBG_CLIPRECT)
+				{
+					const auto sdc = SaveDcClip(hdc);
+					IntersectClipRect(hdc, pOptions->rcClip);
+					FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
+					RestoreDcClip(hdc, sdc);
+				}
+				else
+					FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
+				return S_OK;
+			}
+
+			switch (iPartId)
+			{
+			case TP_BUTTON:
+			case TP_DROPDOWNBUTTON:
+			case TP_SPLITBUTTON:
+			{
+				switch (iStateId)
+				{
+				case TS_NORMAL:
 				{
 					SetDCBrushColor(hdc, ptc->crDefBkg);
 					if (pOptions->dwFlags & DTBG_CLIPRECT)
@@ -730,88 +641,68 @@ static HRESULT WINAPI NewDrawThemeBackgroundEx(HTHEME hTheme, HDC hdc, int iPart
 					}
 					else
 						FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
-					return S_OK;
 				}
-				switch (iPartId)
-				{
-				case TP_BUTTON:
-				case TP_DROPDOWNBUTTON:
-				case TP_SPLITBUTTON:
-				{
-					switch (iStateId)
-					{
-					case TS_NORMAL:
-					{
-						SetDCBrushColor(hdc, ptc->crDefBkg);
-						if (pOptions->dwFlags & DTBG_CLIPRECT)
-						{
-							const auto sdc = SaveDcClip(hdc);
-							IntersectClipRect(hdc, pOptions->rcClip);
-							FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
-							RestoreDcClip(hdc, sdc);
-						}
-						else
-							FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
-					}
-					return S_OK;
-					case TS_DISABLED:
-						iStateId = LISS_SELECTEDNOTFOCUS;
-						break;
-					case TS_CHECKED:
-						iStateId = LISS_SELECTED;
-						break;
-					case TS_NEARHOT:
-					case TS_OTHERSIDEHOT:
-						iStateId = LISS_HOT;
-						break;
-					}
-					iPartId = LVP_LISTITEM;
+				return S_OK;
+				case TS_DISABLED:
+					iStateId = LISS_SELECTEDNOTFOCUS;
+					break;
+				case TS_CHECKED:
+					iStateId = LISS_SELECTED;
+					break;
+				case TS_NEARHOT:
+				case TS_OTHERSIDEHOT:
+					iStateId = LISS_HOT;
+					break;
 				}
-				return s_pfnDrawThemeBackgroundEx(hThemeTBLV, hdc, iPartId, iStateId, pRect, pOptions);
+				iPartId = LVP_LISTITEM;
+			}
+			return s_pfnDrawThemeBackgroundEx(ti.hThemeExtra, hdc, iPartId, iStateId, pRect, pOptions);
 
-				default:
-					return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, *pOptions, 0.7f);
+			default:
+				return UxfAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, *pOptions, 0.7f);
+			}
+		}
+		break;
+		case ThemeType::AeroWizard:
+			switch (iPartId)
+			{
+			case AW_HEADERAREA:
+			case AW_CONTENTAREA:
+			{
+				if (pOptions->dwFlags & DTBG_CLIPRECT)
+				{
+					const auto sdc = SaveDcClip(hdc);
+					IntersectClipRect(hdc, pOptions->rcClip);
+					SetDCBrushColor(hdc, ptc->crDefBkg);
+					FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
+					RestoreDcClip(hdc, sdc);
+				}
+				else
+				{
+					SetDCBrushColor(hdc, ptc->crDefBkg);
+					FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
 				}
 			}
-			else if (IsThemeAeroWizard(hTheme))
-				switch (iPartId)
+			return S_OK;
+			case AW_COMMANDAREA:
+			{
+				if (pOptions->dwFlags & DTBG_CLIPRECT)
 				{
-				case AW_HEADERAREA:
-				case AW_CONTENTAREA:
+					const auto sdc = SaveDcClip(hdc);
+					IntersectClipRect(hdc, pOptions->rcClip);
+					SetDCBrushColor(hdc, ptc->crDefBtnFace);
+					FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
+					RestoreDcClip(hdc, sdc);
+				}
+				else
 				{
-					if (pOptions->dwFlags & DTBG_CLIPRECT)
-					{
-						const auto sdc = SaveDcClip(hdc);
-						IntersectClipRect(hdc, pOptions->rcClip);
-						SetDCBrushColor(hdc, ptc->crDefBkg);
-						FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
-						RestoreDcClip(hdc, sdc);
-					}
-					else
-					{
-						SetDCBrushColor(hdc, ptc->crDefBkg);
-						FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
-					}
+					SetDCBrushColor(hdc, ptc->crDefBtnFace);
+					FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
 				}
-				return S_OK;
-				case AW_COMMANDAREA:
-				{
-					if (pOptions->dwFlags & DTBG_CLIPRECT)
-					{
-						const auto sdc = SaveDcClip(hdc);
-						IntersectClipRect(hdc, pOptions->rcClip);
-						SetDCBrushColor(hdc, ptc->crDefBtnFace);
-						FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
-						RestoreDcClip(hdc, sdc);
-					}
-					else
-					{
-						SetDCBrushColor(hdc, ptc->crDefBtnFace);
-						FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
-					}
-				}
-				return S_OK;
-				}
+			}
+			return S_OK;
+			}
+			break;
 		}
 	}
 	return s_pfnDrawThemeBackgroundEx(hTheme, hdc, iPartId, iStateId, pRect, pOptions);
@@ -824,24 +715,29 @@ static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hdc, int iPartId
 	if (ShouldAppsUseDarkMode())
 	{
 		const auto* const ptc = GetThreadCtx();
-		if (IsThemeTaskDialog(hTheme))
+		const auto& ti = UxfGetThemeInfo(hTheme);
+		switch (ti.eType)
+		{
+		case ThemeType::TaskDialog:
 			switch (iPartId)
 			{
 			case TDLG_SECONDARYPANEL:
 				iPartId = TDLG_FOOTNOTEPANE;
 				break;
 			case TDLG_FOOTNOTESEPARATOR:
-				return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, -0.67f);
+				return UxfAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, -0.67f);
 			}
-		else if (IsThemeButton(hTheme))
+			break;
+		case ThemeType::Button:
 			switch (iPartId)
 			{
 			case BP_COMMANDLINKGLYPH:
-				return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, 0.3f);
+				return UxfAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, 0.3f);
 			case BP_COMMANDLINK:
-				return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, 0.9f);
+				return UxfAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, 0.9f);
 			}
-		else if (IsThemeTab(hTheme))
+			break;
+		case ThemeType::Tab:
 			switch (iPartId)
 			{
 			case TABP_TABITEM:
@@ -879,7 +775,7 @@ static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hdc, int iPartId
 					--rc.bottom;
 					if (pClipRect)
 						IntersectRect(rc, rc, *pClipRect);
-					const auto hr = DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect,
+					const auto hr = UxfAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect,
 						&rc /*补齐最左选项卡的一个像素*/, f);
 					if (hr == S_OK)// exclude S_FALSE
 					{
@@ -891,13 +787,13 @@ static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hdc, int iPartId
 					return hr;
 				}
 				else
-					return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, f);
+					return UxfAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, f);
 			}
 			case TABP_PANE:
 			case TABP_BODY:
 			case TABP_AEROWIZARDBODY:
 			{
-				const auto hr = DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, -0.86f);
+				const auto hr = UxfAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, -0.86f);
 				if (hr == S_OK)// exclude S_FALSE
 				{
 					if (pClipRect)
@@ -913,18 +809,40 @@ static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hdc, int iPartId
 				return hr;
 			}
 			}
-		else if (IsThemeListView(hTheme))
+			break;
+		case ThemeType::ListView:
 			switch (iPartId)
 			{
 			case LVP_GROUPHEADERLINE:
-				return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, 0.3f);
+				return UxfAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, 0.3f);
 			}
-		else
+			break;
+		case ThemeType::ToolBar:
 		{
-			HTHEME hTheme2;
-			if (IsThemeToolBar(hTheme, &hTheme2))
+			if (iPartId == 0 && iStateId == 0)// 指示正在填充整个控件的背景
 			{
-				if (iPartId == 0 && iStateId == 0)
+				SetDCBrushColor(hdc, ptc->crDefBkg);
+				if (pClipRect)
+				{
+					const auto sdc = SaveDcClip(hdc);
+					IntersectClipRect(hdc, *pClipRect);
+					FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
+					RestoreDcClip(hdc, sdc);
+				}
+				else
+					FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
+				return S_OK;
+			}
+
+			switch (iPartId)
+			{
+			case TP_BUTTON:
+			case TP_DROPDOWNBUTTON:
+			case TP_SPLITBUTTON:
+			{
+				switch (iStateId)
+				{
+				case TS_NORMAL:
 				{
 					SetDCBrushColor(hdc, ptc->crDefBkg);
 					if (pClipRect)
@@ -936,107 +854,88 @@ static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hdc, int iPartId
 					}
 					else
 						FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
-					return S_OK;
-				}
-				switch (iPartId)
-				{
-				case TP_BUTTON:
-				case TP_DROPDOWNBUTTON:
-				case TP_SPLITBUTTON:
-				{
-					switch (iStateId)
-					{
-					case TS_NORMAL:
-					{
-						SetDCBrushColor(hdc, ptc->crDefBkg);
-						if (pClipRect)
-						{
-							const auto sdc = SaveDcClip(hdc);
-							IntersectClipRect(hdc, *pClipRect);
-							FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
-							RestoreDcClip(hdc, sdc);
-						}
-						else
-							FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
-					}
-					return S_OK;
-					case TS_DISABLED:
-						iStateId = LISS_SELECTEDNOTFOCUS;
-						break;
-					case TS_CHECKED:
-						iStateId = LISS_SELECTED;
-						break;
-					case TS_NEARHOT:
-					case TS_OTHERSIDEHOT:
-						iStateId = LISS_HOT;
-						break;
-					}
-					iPartId = LVP_LISTITEM;
-				}
-				return s_pfnDrawThemeBackground(hTheme2, hdc, iPartId, iStateId, pRect, pClipRect);
-
-				default:
-					return DtbAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, 0.7f);
-				}
-			}
-			else if (IsThemeAeroWizard(hTheme))
-				switch (iPartId)
-				{
-				case AW_HEADERAREA:
-				case AW_CONTENTAREA:
-				{
-					if (pClipRect)
-					{
-						const auto sdc = SaveDcClip(hdc);
-						IntersectClipRect(hdc, *pClipRect);
-						SetDCBrushColor(hdc, ptc->crDefBkg);
-						FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
-						RestoreDcClip(hdc, sdc);
-					}
-					else
-					{
-						SetDCBrushColor(hdc, ptc->crDefBkg);
-						FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
-					}
 				}
 				return S_OK;
-				case AW_COMMANDAREA:
-				{
-					if (pClipRect)
-					{
-						const auto sdc = SaveDcClip(hdc);
-						IntersectClipRect(hdc, *pClipRect);
-						SetDCBrushColor(hdc, ptc->crDefBtnFace);
-						FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
-						RestoreDcClip(hdc, sdc);
-					}
-					else
-					{
-						SetDCBrushColor(hdc, ptc->crDefBtnFace);
-						FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
-					}
-				}
-				return S_OK;
-				}
-			else if (IsThemeDateTimePicker(hTheme, &hTheme2))
-				switch (iPartId)
-				{
-				case DP_DATEBORDER:
-					return s_pfnDrawThemeBackground(hTheme2, hdc, CP_READONLY, 1, pRect, pClipRect);
-				case DP_SHOWCALENDARBUTTONRIGHT:
-					if (iStateId != DPSCBR_DISABLED)
-					{
-						if (iStateId != DPSCBR_NORMAL)
-						{
-							if (HRESULT hr; FAILED(hr = s_pfnDrawThemeBackground(hTheme2,
-								hdc, CP_READONLY, iStateId, pRect, pClipRect)))
-								return hr;
-						}
-						return s_pfnDrawThemeBackground(hTheme, hdc, DP_SHOWCALENDARBUTTONRIGHT, DPSCBR_NORMAL,
-							pRect, pClipRect);
-					}
+				case TS_DISABLED:
+					iStateId = LISS_SELECTEDNOTFOCUS;
+					break;
+				case TS_CHECKED:
+					iStateId = LISS_SELECTED;
+					break;
+				case TS_NEARHOT:
+				case TS_OTHERSIDEHOT:
+					iStateId = LISS_HOT;
 					break;
 				}
+				iPartId = LVP_LISTITEM;
+			}
+			return s_pfnDrawThemeBackground(ti.hThemeExtra, hdc, iPartId, iStateId, pRect, pClipRect);
+
+			default:
+				return UxfAdjustLuma(hTheme, hdc, iPartId, iStateId, pRect, pClipRect, 0.7f);
+			}
+		}
+		break;
+		case ThemeType::AeroWizard:
+			switch (iPartId)
+			{
+			case AW_HEADERAREA:
+			case AW_CONTENTAREA:
+			{
+				if (pClipRect)
+				{
+					const auto sdc = SaveDcClip(hdc);
+					IntersectClipRect(hdc, *pClipRect);
+					SetDCBrushColor(hdc, ptc->crDefBkg);
+					FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
+					RestoreDcClip(hdc, sdc);
+				}
+				else
+				{
+					SetDCBrushColor(hdc, ptc->crDefBkg);
+					FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
+				}
+			}
+			return S_OK;
+			case AW_COMMANDAREA:
+			{
+				if (pClipRect)
+				{
+					const auto sdc = SaveDcClip(hdc);
+					IntersectClipRect(hdc, *pClipRect);
+					SetDCBrushColor(hdc, ptc->crDefBtnFace);
+					FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
+					RestoreDcClip(hdc, sdc);
+				}
+				else
+				{
+					SetDCBrushColor(hdc, ptc->crDefBtnFace);
+					FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
+				}
+			}
+			return S_OK;
+			}
+			break;
+		case ThemeType::DateTimePicker:
+			switch (iPartId)
+			{
+			case DP_DATEBORDER:
+				return s_pfnDrawThemeBackground(ti.hThemeExtra, hdc, CP_READONLY, 1, pRect, pClipRect);
+			case DP_SHOWCALENDARBUTTONRIGHT:
+				if (iStateId != DPSCBR_DISABLED)
+				{
+					if (iStateId != DPSCBR_NORMAL)
+					{
+						if (HRESULT hr; FAILED(hr = s_pfnDrawThemeBackground(ti.hThemeExtra,
+							hdc, CP_READONLY, iStateId, pRect, pClipRect)))
+							return hr;
+					}
+					return s_pfnDrawThemeBackground(hTheme, hdc, DP_SHOWCALENDARBUTTONRIGHT, DPSCBR_NORMAL,
+						pRect, pClipRect);
+				}
+				break;
+			}
+			break;
 		}
 	}
 	return s_pfnDrawThemeBackground(hTheme, hdc, iPartId, iStateId, pRect, pClipRect);
@@ -1048,8 +947,10 @@ static HRESULT WINAPI NewGetThemeColor(HTHEME hTheme, int iPartId, int iStateId,
 	if (ShouldAppsUseDarkMode())
 	{
 		const auto* const ptc = GetThreadCtx();
-		if (IsThemeTaskDialog(hTheme))
+		const auto& ti = UxfGetThemeInfo(hTheme);
+		switch (ti.eType)
 		{
+		case ThemeType::TaskDialog:
 			switch (iPartId)
 			{
 			case TDLG_CONTENTPANE:
@@ -1075,9 +976,8 @@ static HRESULT WINAPI NewGetThemeColor(HTHEME hTheme, int iPartId, int iStateId,
 			}
 			break;
 			}
-		}
-		else if (IsThemeAeroWizard(hTheme))
-		{
+			break;
+		case ThemeType::AeroWizard:
 			switch (iPartId)
 			{
 			case AW_TITLEBAR:
@@ -1115,9 +1015,8 @@ static HRESULT WINAPI NewGetThemeColor(HTHEME hTheme, int iPartId, int iStateId,
 				}
 				break;
 			}
-		}
-		else if (IsThemeDateTimePicker(hTheme))
-		{
+			break;
+		case ThemeType::DateTimePicker:
 			switch (iPartId)
 			{
 			case DP_DATETEXT:
@@ -1134,9 +1033,8 @@ static HRESULT WINAPI NewGetThemeColor(HTHEME hTheme, int iPartId, int iStateId,
 			}
 			return S_OK;
 			}
-		}
-		else if (IsThemeLink(hTheme))
-		{
+			break;
+		case ThemeType::Link:
 			switch (iPartId)
 			{
 			case TP_LINK_HYPERLINK:
@@ -1148,9 +1046,8 @@ static HRESULT WINAPI NewGetThemeColor(HTHEME hTheme, int iPartId, int iStateId,
 				}
 				break;
 			}
-		}
-		else if (IsThemeListView(hTheme))
-		{
+			break;
+		case ThemeType::ListView:
 			switch (iPartId)
 			{
 			case LVP_GROUPHEADER:
@@ -1175,6 +1072,7 @@ static HRESULT WINAPI NewGetThemeColor(HTHEME hTheme, int iPartId, int iStateId,
 				return hr;
 			}
 			}
+			break;
 		}
 	}
 	return s_pfnGetThemeColor(hTheme, iPartId, iStateId, iPropId, pColor);
@@ -1183,10 +1081,37 @@ static HRESULT WINAPI NewGetThemeColor(HTHEME hTheme, int iPartId, int iStateId,
 // 平衡主题句柄记录
 static HRESULT WINAPI NewCloseThemeData(HTHEME hTheme)
 {
-	OnThemeClose(hTheme);
+	UxfOnThemeClose(hTheme);
 	return s_pfnCloseThemeData(hTheme);
 }
-#pragma endregion
+
+// 修正表头溢出按钮大小
+static HRESULT WINAPI NewGetThemePartSize(HTHEME hTheme, HDC hdc, int iPartId, int iStateId,
+	LPCRECT prc, enum THEMESIZE eSize, SIZE* psz)
+{
+	const auto& ti = UxfGetThemeInfo(hTheme);
+	if (ti.eType == ThemeType::Header)
+		switch (iPartId)
+		{
+		case HP_HEADEROVERFLOW:
+		{
+			// 真不是我说你们傻逼主题管理器，你妈个比的按钮那么小测试看不见？
+			// 傻逼微软Vista之后估计也没管过标准控件了，玩你那傻逼稳有爱去吧
+			int iDpi;
+			if (hdc)
+				iDpi = GetDeviceCaps(hdc, LOGPIXELSX);
+			else if (ti.hWnd)
+				iDpi = GetDpi(ti.hWnd);
+			else
+				iDpi = USER_DEFAULT_SCREEN_DPI;
+			psz->cx = DpiScale(16, iDpi);
+			psz->cy = DpiScale(32, iDpi);
+		}
+		return S_OK;
+		}
+	return s_pfnGetThemePartSize(hTheme, hdc, iPartId, iStateId, prc, eSize, psz);
+}
+#pragma endregion UxTheme Fixer
 
 enum
 {
@@ -1400,6 +1325,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		DetourAttach(&s_pfnGetThemeColor, NewGetThemeColor);
 		DetourAttach(&s_pfnCloseThemeData, NewCloseThemeData);
 		DetourAttach(&s_pfnDrawThemeParentBackground, NewDrawThemeParentBackground);
+		DetourAttach(&s_pfnGetThemePartSize, NewGetThemePartSize);
 		DetourTransactionCommit();
 		DetourUpdateThread(NtCurrentThread());
 	}

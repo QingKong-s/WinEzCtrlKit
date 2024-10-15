@@ -13,7 +13,6 @@
 #include <string_view>
 
 #include <Shlwapi.h>
-#include <commoncontrols.h>
 
 ECK_NAMESPACE_BEGIN
 

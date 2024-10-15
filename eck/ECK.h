@@ -22,6 +22,7 @@
 #include <d3d11.h>
 #include <Shlwapi.h>
 #include <ShlObj.h>
+#include <commoncontrols.h>
 //#include <CommCtrl.h>
 
 #include <assert.h>

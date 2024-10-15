@@ -623,15 +623,17 @@ public:
 		return (int)SendMsg(LVM_INSERTCOLUMNW, idx, (LPARAM)plvc);
 	}
 
-	EckInline int InsertColumn(PCWSTR pszText, int idx = -1, int cxColumn = 160, int iFmt = LVCFMT_LEFT) const
+	EckInline int InsertColumn(PCWSTR pszText, int idx = -1,
+		int cxColumn = 160, int iFmt = LVCFMT_LEFT, int idxImage = -1) const
 	{
 		if (idx < 0)
 			idx = INT_MAX;
 		LVCOLUMNW lvc;
-		lvc.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_FMT;
+		lvc.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_FMT | LVCF_IMAGE;
 		lvc.pszText = (PWSTR)pszText;
 		lvc.cx = cxColumn;
 		lvc.fmt = iFmt;
+		lvc.iImage = idxImage;
 		return InsertColumn(idx, &lvc);
 	}
 

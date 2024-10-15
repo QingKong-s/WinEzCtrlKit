@@ -8,6 +8,7 @@
 #pragma once
 
 #include "CListView.h"
+#include "CHeaderExt.h"
 #include "CtrlGraphics.h"
 #include "CSrwLock.h"
 #include "GraphicsHelper.h"
@@ -109,6 +110,8 @@ enum class LveOd
 CListViewExt封装了ListView的常用扩展功能
 ===以下ListView的原始功能被忽略===
 项目lParam - 由控件内部占用，不能由外部设置
+所有者绘制 - 不应使用
+边框选择 - 暂不支持
 
 ===以下功能效果仍相同但处理机制已变化===
 整体的颜色设置 - 应使用Lve系列方法管理，背景颜色仍使用SetBkClr
@@ -137,7 +140,7 @@ private:
 	};
 
 	// ListView信息
-	CHeader m_Header{};		// 表头
+	CHeaderExt m_Header{};	// 表头
 	HIMAGELIST m_hIL[4]{};	// 图像列表
 	SIZE m_sizeIL[4]{};		// 图像列表大小
 	int m_iViewType{};		// 视图类型
@@ -148,7 +151,7 @@ private:
 	BITBOOL m_bSubItemImg : 1 = FALSE;	// 显示子项图像
 	BITBOOL m_bFullRowSel : 1 = FALSE;	// 整行选择
 	BITBOOL m_bShowSelAlways : 1 = FALSE;	// 始终显示选择
-	BITBOOL m_bBorderSelect : 1 = FALSE;	// 边框选择 TODO
+	BITBOOL m_bBorderSelect : 1 = FALSE;	// 边框选择
 	BITBOOL m_bCheckBoxes : 1 = FALSE;	// 显示复选框
 	BITBOOL m_bGridLines : 1 = FALSE;	// 显示表格线
 	BITBOOL m_bHideLabels : 1 = FALSE;	// 隐藏标签
@@ -195,14 +198,14 @@ private:
 		;
 	ECK_DS_END_VAR(m_Ds);
 
-	void GetColumnMetrics(int* px, int cCol) const
+	void GetColumnMetrics(int* px, int cCol, int dx) const
 	{
 		RECT rc;
 		for (int i = 0; i < cCol; ++i)
 		{
 			m_Header.GetItemRect(i, &rc);
-			px[i * 2] = rc.left;
-			px[i * 2 + 1] = rc.right;
+			px[i * 2] = dx + rc.left;
+			px[i * 2 + 1] = dx + rc.right;
 		}
 	}
 
@@ -356,7 +359,7 @@ private:
 				{
 					pColMetrics = (int*)_malloca(cCol * 2 * sizeof(int));
 					EckCheckMem(pColMetrics);
-					GetColumnMetrics(pColMetrics, cCol);
+					GetColumnMetrics(pColMetrics, cCol, pnmlvcd->nmcd.rc.left);
 				}
 			}
 
@@ -698,7 +701,7 @@ private:
 					if (size.cx > rc.right - rc.left)
 					{
 						uDtFlags |= (DT_END_ELLIPSIS | DT_WORDBREAK | DT_EDITCONTROL);
-						if (cyOrg >= m_cyFont * (lvti.cColumns + 1))
+						if (cyOrg >= int(m_cyFont * (lvti.cColumns + 1)))
 							rc.top -= (m_cyFont / 2);
 						rc.bottom = rc.top + m_cyFont * 2;
 						goto TileWraped;
@@ -1342,7 +1345,7 @@ public:
 		SendMsg(WM_SIZE, 0, MAKELPARAM(rc.right, rc.bottom));
 	}
 
-	CHeader& LveGetHeader() { return m_Header; }
+	CHeaderExt& LveGetHeader() { return m_Header; }
 
 	EckInline constexpr void LveSetCustomDraw(BOOL b) { m_bCustomDraw = b; }
 	EckInline constexpr BOOL LveGetCustomDraw() const { return m_bCustomDraw; }
