@@ -124,7 +124,7 @@ public:
 				!m_rsCueBanner.IsEmpty())
 			{
 				PAINTSTRUCT ps;
-				BeginPaint(hWnd, wParam, ps, 0, 0);
+				BeginPaint(hWnd, wParam, ps);
 
 				CEdit::OnMsg(hWnd, WM_PAINT, (WPARAM)ps.hdc, 0);
 				RECT rcText;

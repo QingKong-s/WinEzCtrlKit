@@ -148,7 +148,7 @@ enum class ThemeType
 	DateTimePicker,	// 附带一个DarkMode_CFD::ComboBox主题，用于绘制背景和下拉按钮
 	ListView,		// +ItemsView
 	Link,
-	Header,
+	Header,			// 附带亮色版主题，弥补暗色没有过滤器按钮和溢出按钮的不足
 };
 
 struct THEME_INFO
@@ -216,6 +216,9 @@ static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 				break;
 			case ThemeType::DateTimePicker:
 				e.hThemeExtra = s_pfnOpenThemeData(nullptr, L"DarkMode_CFD::ComboBox");
+				break;
+			case ThemeType::Header:
+				e.hThemeExtra = s_pfnOpenThemeData(nullptr, L"Explorer::Header");
 				break;
 			}
 			e.hWnd = hWnd;
@@ -499,7 +502,7 @@ static HRESULT WINAPI NewDrawThemeTextEx(HTHEME hTheme, HDC hdc, int iPartId, in
 		dwTextFlags, pRect, pOptions);
 }
 
-// 任务对话框、按钮、选择夹、工具条、Aero向导背景、时间日期选择器背景修复
+// 任务对话框、按钮、选择夹、工具条、Aero向导背景、时间日期选择器、表头背景修复
 static HRESULT WINAPI NewDrawThemeBackgroundEx(HTHEME hTheme, HDC hdc, int iPartId, int iStateId,
 	LPCRECT pRect, const DTBGOPTS* pOptions)
 {
@@ -706,6 +709,17 @@ static HRESULT WINAPI NewDrawThemeBackgroundEx(HTHEME hTheme, HDC hdc, int iPart
 				}
 			}
 			return S_OK;
+			}
+			break;
+		case ThemeType::Header:
+			switch (iPartId)
+			{
+			case HP_HEADERDROPDOWNFILTER:
+				return UxfAdjustLuma(ti.hThemeExtra, hdc, iPartId, iStateId,
+					pRect, *pOptions, iStateId != HDDFS_HOT ? 0.7f : -0.4f);
+			case HP_HEADERSORTARROW:
+				return UxfAdjustLuma(ti.hThemeExtra, hdc, iPartId, iStateId,
+					pRect, *pOptions, iStateId == HOFS_NORMAL ? 0.6f : -0.4f);
 			}
 			break;
 		}
@@ -939,6 +953,17 @@ static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hdc, int iPartId
 						pRect, pClipRect);
 				}
 				break;
+			}
+			break;
+		case ThemeType::Header:
+			switch (iPartId)
+			{
+			case HP_HEADERDROPDOWNFILTER:
+				return UxfAdjustLuma(ti.hThemeExtra, hdc, iPartId, iStateId,
+					pRect, pClipRect, iStateId != HDDFS_HOT ? 0.7f : -0.4f);
+			case HP_HEADEROVERFLOW:
+				return UxfAdjustLuma(ti.hThemeExtra, hdc, iPartId, iStateId,
+					pRect, pClipRect, iStateId == HOFS_NORMAL ? 0.6f : -0.4f);
 			}
 			break;
 		}
