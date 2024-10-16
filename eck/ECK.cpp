@@ -100,7 +100,7 @@ static BOOL DefMsgFilter(const MSG&)
 }
 FMsgFilter g_pfnMsgFilter = DefMsgFilter;
 
-#pragma region(UxTheme Fixer)
+#pragma region UxTheme Fixer
 // 为了对抗微软写的屎只能勾来勾去
 enum
 {
@@ -178,7 +178,7 @@ static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 {
 	if (!hTheme)
 		return;
-	EckDbgPrintFmt(L"UxfOnThemeOpen(%p, %s)", hTheme, pszClassList);
+	//EckDbgPrintFmt(L"UxfOnThemeOpen(%p, %s)", hTheme, pszClassList);
 	ThemeType eType;
 	if (wcsstr(pszClassList, L"Button"))// Maybe ~";Ok"
 		eType = ThemeType::Button;
@@ -344,7 +344,8 @@ static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Combobox");
 		else if (_wcsicmp(pszClassList, L"Edit") == 0)
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Edit");
-		else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 || _wcsicmp(pszClassList, L"TaskDialogStyle") == 0)
+		else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 || 
+			_wcsicmp(pszClassList, L"TaskDialogStyle") == 0)
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_Explorer::TaskDialog");
 		else
 			hTheme = s_pfnOpenThemeData(hWnd, pszClassList);
