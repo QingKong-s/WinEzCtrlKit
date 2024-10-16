@@ -19,8 +19,8 @@ private:
 		eck::CRefStrW rsSubText{};
 		COLORREF crText{ CLR_DEFAULT };
 		COLORREF crTextBk{ CLR_DEFAULT };
-		COLORREF crTextMainText{ CLR_DEFAULT };
-		COLORREF crTextBkMainText{ CLR_DEFAULT };
+		COLORREF crTextSubText{ CLR_DEFAULT };
+		COLORREF crTextBkSubText{ CLR_DEFAULT };
 		COLORREF crBk{ CLR_DEFAULT };
 		UINT uFmt;
 	};
@@ -35,7 +35,6 @@ private:
 	BITBOOL m_bSplitBtnHot : 1{};				// [内部标志]拆分按钮已点燃
 	BITBOOL m_bAutoDarkMode : 1{ TRUE };		// 自动处理暗色
 	BITBOOL m_bUseExtText : 1{};				// 使用扩展文本
-	BITBOOL m_bUseThemeForExtText : 1{ TRUE };	// 对扩展文本使用主题
 	BITBOOL m_bRepairDbClick : 1{ TRUE };		// 连击修正
 	BITBOOL m_bShowEmptyMainExtText : 1{ TRUE };// 即使主文本为空也不忽略其高度
 	BYTE m_byColorAlpha{ 100 };			// 背景色透明度
@@ -43,9 +42,9 @@ private:
 	COLORREF m_crText{ CLR_DEFAULT };	// 文本颜色
 	COLORREF m_crBk{ CLR_DEFAULT };		// 背景色
 	COLORREF m_crTextBk{ CLR_DEFAULT };	// 文本背景色
-	COLORREF m_crTextMainText{ CLR_DEFAULT };	// 文本颜色
-	COLORREF m_crBkMainText{ CLR_DEFAULT };		// 背景色
-	COLORREF m_crTextBkMainText{ CLR_DEFAULT };	// 文本背景色
+	COLORREF m_crTextSubText{ CLR_DEFAULT };	// 文本颜色
+	COLORREF m_crBkSubText{ CLR_DEFAULT };		// 背景色
+	COLORREF m_crTextBkSubText{ CLR_DEFAULT };	// 文本背景色
 	// 图形
 	CEzCDC m_DcAlpha{};
 	HFONT m_hFontMainText{};
@@ -57,6 +56,7 @@ private:
 	SIZE m_sizeSortDown{};
 	int m_cyMainText{};
 	int m_cySubText{};
+	COLORREF m_crSortUp{ CLR_DEFAULT };
 	//
 	std::vector<ITEM> m_vData{};
 	const ECKTHREADCTX* m_pThrCtx{};
@@ -67,14 +67,10 @@ private:
 	int m_cchTextBuf{ MAX_PATH };
 
 	int m_iDpi{ USER_DEFAULT_SCREEN_DPI };
+	int m_cxEdge{};
+	int m_cyMenuCheck{};
 
-	ECK_DS_BEGIN(DPIS)
-		ECK_DS_ENTRY_DYN(cxEdge, GetSystemMetrics(SM_CXEDGE))
-		ECK_DS_ENTRY_DYN(cyMenuCheck, GetSystemMetrics(SM_CYMENUCHECK))
-		;
-	ECK_DS_END_VAR(m_Ds);
-
-	void PrepareTextColor(HDC hDC, const ITEM& e, BOOL bExt = FALSE)
+	void PrepareTextColor(HDC hDC, const ITEM& e)
 	{
 		if (e.crTextBk != CLR_DEFAULT)
 		{
@@ -94,30 +90,30 @@ private:
 		else if (m_crText != CLR_DEFAULT)
 			SetTextColor(hDC, m_crText);
 		else
-			SetTextColor(hDC, bExt ? m_pThrCtx->crGray1 : m_pThrCtx->crDefText);
+			SetTextColor(hDC, m_pThrCtx->crDefText);
 	}
 
-	void PrepareTextColorMain(HDC hDC, const ITEM& e)
+	void PrepareTextColorSubText(HDC hDC, const ITEM& e)
 	{
-		if (e.crTextBkMainText != CLR_DEFAULT)
+		if (e.crTextBkSubText != CLR_DEFAULT)
 		{
 			SetBkMode(hDC, OPAQUE);
-			SetBkColor(hDC, e.crTextBkMainText);
+			SetBkColor(hDC, e.crTextBkSubText);
 		}
-		else if (m_crTextBkMainText != CLR_DEFAULT)
+		else if (m_crTextBkSubText != CLR_DEFAULT)
 		{
 			SetBkMode(hDC, OPAQUE);
-			SetBkColor(hDC, m_crTextBkMainText);
+			SetBkColor(hDC, m_crTextBkSubText);
 		}
 		else
 			SetBkMode(hDC, TRANSPARENT);
 
-		if (e.crTextMainText != CLR_DEFAULT)
-			SetTextColor(hDC, e.crTextMainText);
-		else if (m_crTextMainText != CLR_DEFAULT)
-			SetTextColor(hDC, m_crTextMainText);
+		if (e.crTextSubText != CLR_DEFAULT)
+			SetTextColor(hDC, e.crTextSubText);
+		else if (m_crTextSubText != CLR_DEFAULT)
+			SetTextColor(hDC, m_crTextSubText);
 		else
-			SetTextColor(hDC, m_pThrCtx->crDefText);
+			SetTextColor(hDC, m_pThrCtx->crTip1);
 	}
 
 	LRESULT OnItemPrePaint(NMCUSTOMDRAW* pnmcd)
@@ -142,7 +138,7 @@ private:
 		}
 		GetItem(idx, &hdi);
 
-		rc.left += m_Ds.cxEdge;
+		rc.left += m_cxEdge;
 		// 画背景
 		int iState;
 		if (pnmcd->uItemState & CDIS_SELECTED)
@@ -189,11 +185,11 @@ private:
 			rc.right = rc.left + m_cxCheckBox;
 			DrawThemeBackground(m_hThemeCB, hDC, BP_CHECKBOX,
 				(hdi.fmt & HDF_CHECKED) ? CBS_CHECKEDNORMAL : CBS_UNCHECKEDNORMAL, &rc, nullptr);
-			rc.left = rc.right + m_Ds.cxEdge;
+			rc.left = rc.right + m_cxEdge;
 		}
 		// 画图像
 		BITMAP bm{};
-		int xRight{ xAvailable - m_Ds.cxEdge };
+		int xRight{ xAvailable - m_cxEdge };
 		BOOL bBmp = (hdi.fmt & HDF_BITMAP) && hdi.hbm;
 		BOOL bImg = (hdi.fmt & HDF_IMAGE) && hdi.iImage >= 0 && m_hIL;
 		if (bBmp || bImg)
@@ -203,32 +199,32 @@ private:
 				if (bBmp && bImg)
 				{
 					GetObjectW(hdi.hbm, sizeof(bm), &bm);
-					xRight -= (m_cxIL + bm.bmWidth + m_Ds.cxEdge * 2);
+					xRight -= (m_cxIL + bm.bmWidth + m_cxEdge * 2);
 				}
 				else if (bBmp)
 				{
 					GetObjectW(hdi.hbm, sizeof(bm), &bm);
-					xRight -= (bm.bmWidth + m_Ds.cxEdge);
+					xRight -= (bm.bmWidth + m_cxEdge);
 				}
 				else/* if (bImg)*/
-					xRight -= (m_cxIL + m_Ds.cxEdge);
+					xRight -= (m_cxIL + m_cxEdge);
 			else
 				if (bBmp && bImg)// hbm绘制在右边，bRight对iImage生效
 				{
 					bImg = FALSE;
-					rc.left += m_Ds.cxEdge;
+					rc.left += m_cxEdge;
 					ImageList_Draw(m_hIL, hdi.iImage, hDC,
 						rc.left, rc.top + (rc.bottom - rc.top - m_cyIL) / 2, ILD_NORMAL);
-					rc.left += (m_cxIL + m_Ds.cxEdge);
+					rc.left += (m_cxIL + m_cxEdge);
 					// 右边剩下hbm，此处应对称
 					GetObjectW(hdi.hbm, sizeof(bm), &bm);
-					//xRight -= (bm.bmWidth + m_Ds.cxEdge);
-					xRight -= (rc.left - pnmcd->rc.left - m_Ds.cxEdge/*补回边界*/);
+					//xRight -= (bm.bmWidth + m_cxEdge);
+					xRight -= (rc.left - pnmcd->rc.left - m_cxEdge/*补回边界*/);
 				}
 				else if (bBmp)// bRight对hbm生效
 				{
 					bBmp = FALSE;
-					rc.left += m_Ds.cxEdge;
+					rc.left += m_cxEdge;
 					GetObjectW(hdi.hbm, sizeof(bm), &bm);
 					const int y = rc.top + (rc.bottom - rc.top - bm.bmHeight) / 2;
 					const auto hCDC = CreateCompatibleDC(hDC);
@@ -240,15 +236,15 @@ private:
 						BitBlt(hDC, rc.left, y, bm.bmWidth, bm.bmHeight,
 							hCDC, 0, 0, SRCCOPY);
 					DeleteDC(hCDC);
-					rc.left += (bm.bmWidth + m_Ds.cxEdge);
+					rc.left += (bm.bmWidth + m_cxEdge);
 				}
 				else/* if (bImg)*/// bRight对iImage生效
 				{
 					bImg = FALSE;
-					rc.left += m_Ds.cxEdge;
+					rc.left += m_cxEdge;
 					ImageList_Draw(m_hIL, hdi.iImage, hDC,
 						rc.left, rc.top + (rc.bottom - rc.top - m_cyIL) / 2, ILD_NORMAL);
-					rc.left += (m_cxIL + m_Ds.cxEdge);
+					rc.left += (m_cxIL + m_cxEdge);
 				}
 		}
 		// 画文本
@@ -262,19 +258,19 @@ private:
 
 			if (m_bUseExtText)
 			{
-				rc.right = xRight - m_Ds.cxEdge * 2;
-				rc.left += (m_Ds.cxEdge * 2);
+				rc.right = xRight - m_cxEdge * 2;
+				rc.left += (m_cxEdge * 2);
 				if (!m_bShowEmptyMainExtText)
 				{
 					if (e.rsMainText.IsEmpty())
 					{
-						PrepareTextColor(hDC, e,TRUE);
+						PrepareTextColorSubText(hDC, e);
 						DrawTextW(hDC, e.rsSubText.Data(), e.rsSubText.Size(), &rc, uDtFlags);
 					}
 					else if (e.rsSubText.IsEmpty())
 					{
 						const auto hOld = SelectObject(hDC, m_hFontMainText);
-						PrepareTextColorMain(hDC, e);
+						PrepareTextColor(hDC, e);
 						DrawTextW(hDC, e.rsMainText.Data(), e.rsMainText.Size(), &rc, uDtFlags);
 						SelectObject(hDC, hOld);
 					}
@@ -290,27 +286,27 @@ private:
 					switch (m_eAlign)
 					{
 					case Align::Near:
-						y = rc.top + m_cyMainText + m_Ds.cxEdge;
+						y = rc.top + m_cyMainText + m_cxEdge;
 						break;
 					case Align::Center:
-						y = rc.top + (rc.bottom - rc.top - (m_cyMainText + m_Ds.cxEdge + m_cySubText)) / 2;
-						y += (m_cyMainText + m_Ds.cxEdge);
+						y = rc.top + (rc.bottom - rc.top - (m_cyMainText + m_cxEdge + m_cySubText)) / 2;
+						y += (m_cyMainText + m_cxEdge);
 						break;
 					case Align::Far:
-						y = rc.bottom - m_Ds.cxEdge - m_cySubText;
+						y = rc.bottom - m_cxEdge - m_cySubText;
 						break;
 					default: ECK_UNREACHABLE;
 					}
 					rc.top = y;
 					rc.bottom = rc.top + m_cySubText;
-					PrepareTextColor(hDC, e, TRUE);
+					PrepareTextColorSubText(hDC, e);
 					DrawTextW(hDC, e.rsSubText.Data(), e.rsSubText.Size(), &rc, uDtFlags);
 
-					y -= (m_cyMainText + m_Ds.cxEdge);
+					y -= (m_cyMainText + m_cxEdge);
 					rc.top = y;
 					rc.bottom = rc.top + m_cyMainText;
 					const auto hOld = SelectObject(hDC, m_hFontMainText);
-					PrepareTextColorMain(hDC, e);
+					PrepareTextColor(hDC, e);
 					DrawTextW(hDC, e.rsMainText.Data(), e.rsMainText.Size(), &rc, uDtFlags);
 					SelectObject(hDC, hOld);
 
@@ -324,14 +320,14 @@ private:
 				PrepareTextColor(hDC, e);
 				DrawTextW(hDC, hdi.pszText, -1, &rc, uDtFlags);
 			}
-			rc.left = rc.right + m_Ds.cxEdge;
+			rc.left = rc.right + m_cxEdge;
 		}
 		// 画右边图像
 		if (bImg)
 		{
 			ImageList_Draw(m_hIL, hdi.iImage, hDC,
 				rc.left, rc.top + (rc.bottom - rc.top - m_cyIL) / 2, ILD_NORMAL);
-			rc.left += (m_cxIL + m_Ds.cxEdge);
+			rc.left += (m_cxIL + m_cxEdge);
 		}
 		if (bBmp)
 		{
@@ -345,7 +341,7 @@ private:
 				BitBlt(hDC, rc.left, y, bm.bmWidth, bm.bmHeight,
 					hCDC, 0, 0, SRCCOPY);
 			DeleteDC(hCDC);
-			rc.left += (bm.bmWidth + m_Ds.cxEdge);
+			rc.left += (bm.bmWidth + m_cxEdge);
 		}
 		// 画排序标记
 		if (hdi.fmt & HDF_SORTUP)
@@ -385,17 +381,18 @@ private:
 			nullptr, TS_DRAW, &m_sizeSortUp);
 		GetThemePartSize(m_hTheme, hDC, HP_HEADERDROPDOWN, 0,
 			nullptr, TS_TRUE, &size);
-		if (size.cx > m_Ds.cyMenuCheck)// Windows uses it.
+		if (size.cx > m_cyMenuCheck)// Windows uses it.
 			m_cxSplitBtn = size.cx;
 		else
-			m_cxSplitBtn = m_Ds.cyMenuCheck;
+			m_cxSplitBtn = m_cyMenuCheck;
 		ReleaseDC(HWnd, hDC);
 	}
 
 	void InitForNewWindow(HWND hWnd)
 	{
 		m_iDpi = GetDpi(hWnd);
-		UpdateDpiSize(m_Ds, m_iDpi);
+		m_cxEdge = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
+		m_cyMenuCheck = DaGetSystemMetrics(SM_CYMENUCHECK, m_iDpi);
 
 		m_DcAlpha.Create32(hWnd, 1, 1);
 		m_pThrCtx = GetThreadCtx();
@@ -528,7 +525,8 @@ public:
 		case WM_DPICHANGED_BEFOREPARENT:
 		{
 			m_iDpi = GetDpi(hWnd);
-			UpdateDpiSize(m_Ds, m_iDpi);
+			m_cxEdge = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
+			m_cyMenuCheck = DaGetSystemMetrics(SM_CYMENUCHECK, m_iDpi);
 		}
 		break;
 
@@ -673,9 +671,6 @@ public:
 
 	EckInline constexpr void HeSetUseExtText(BOOL b) { m_bUseExtText = b; }
 	EckInline constexpr BOOL HeGetUseExtText() const { return m_bUseExtText; }
-
-	EckInline constexpr void HeSetUseThemeForExtText(BOOL b) { m_bUseThemeForExtText = b; }
-	EckInline constexpr BOOL HeGetUseThemeForExtText() const { return m_bUseThemeForExtText; }
 
 	EckInline constexpr void HeSetRepairDoubleClick(BOOL b) { m_bRepairDbClick = b; }
 	EckInline constexpr BOOL HeGetRepairDoubleClick() const { return m_bRepairDbClick; }

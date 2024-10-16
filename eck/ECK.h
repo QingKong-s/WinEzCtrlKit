@@ -718,11 +718,12 @@ struct ECKTHREADCTX
 	// !!! 务必在打开文件对话框前暂停Hook
 	BITBOOL bEnableDarkModeHook : 1{ TRUE };	// 是否允许暗色CBT钩子设置窗口，设为FALSE可暂停HOOK
 	BITBOOL bAutoNcDark : 1{ TRUE };			// 自动调整非客户区暗色
-	COLORREF crDefText{};		// 默认前景色
-	COLORREF crDefBkg{};		// 默认背景色
-	COLORREF crDefBtnFace{};	// 默认BtnFace颜色
-	COLORREF crBlue1{};			// 蓝色
-	COLORREF crGray1{};			// 灰色
+	COLORREF crDefText{};	// 默认前景色
+	COLORREF crDefBkg{};	// 默认背景色
+	COLORREF crDefBtnFace{};// 默认BtnFace颜色
+	COLORREF crBlue1{};		// 蓝色
+	COLORREF crGray1{};		// 灰色
+	COLORREF crTip1{};		// 提示颜色
 
 	EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
 	{

@@ -6,11 +6,10 @@
 * Copyright(C) 2023-2024 QingKong
 */
 #pragma once
-#include "ECK.h"
 #include "Utility.h"
+#include "DpiApi.h"
 
 #include <vssym32.h>
-
 
 #define ECK_DS_BEGIN(StructName)	struct StructName {
 #define ECK_DS_END_VAR(VarName)		} VarName{};
@@ -576,15 +575,6 @@ inline BOOL GetItemsViewForeBackColor(COLORREF& crText, COLORREF& crBk)
 	return FALSE;
 }
 
-EckInline BOOL AdjustWindowRectExDpi(RECT* prc, DWORD dwStyle, BOOL bMenu, DWORD dwExStyle, UINT uDpi)
-{
-#if ECKDPIAPI
-	return AdjustWindowRectExForDpi(prc, dwStyle, bMenu, dwExStyle, uDpi);
-#else
-	return AdjustWindowRectEx(prc, dwStyle, bMenu, dwExStyle);
-#endif
-}
-
 /// <summary>
 /// 取窗口客户区尺寸。
 /// 在最小化时也有效
@@ -599,7 +589,7 @@ inline BOOL GetWindowClientRect(HWND hWnd, RECT& rcClient)
 	RECT rcNcOnly{};
 	WINDOWPLACEMENT wp;
 	wp.length = sizeof(wp);
-	if (AdjustWindowRectExDpi(&rcNcOnly, GetWindowStyle(hWnd),
+	if (DaAdjustWindowRectEx(&rcNcOnly, GetWindowStyle(hWnd),
 		!!GetMenu(hWnd), GetWindowExStyle(hWnd), iDpi) &&
 		GetWindowPlacement(hWnd, &wp))
 	{

@@ -184,6 +184,7 @@
     <ClInclude Include="eck\DateTimeHelper.h" />
     <ClInclude Include="eck\DDX.h" />
     <ClInclude Include="eck\DDXImpl.h" />
+    <ClInclude Include="eck\DpiApi.h" />
     <ClInclude Include="eck\GdipEffect.h" />
     <ClInclude Include="eck\ISO8601Time.h" />
     <ClInclude Include="eck\Json.h" />
