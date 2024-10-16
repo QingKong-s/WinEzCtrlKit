@@ -7,7 +7,7 @@
 */
 #pragma once
 #include "CHeader.h"
-#include "CBk.h"
+#include "CEditExt.h"
 
 ECK_NAMESPACE_BEGIN
 class CHeaderExt : public CHeader
@@ -21,18 +21,23 @@ private:
 		COLORREF crTextBk{ CLR_DEFAULT };
 		COLORREF crTextSubText{ CLR_DEFAULT };
 		COLORREF crTextBkSubText{ CLR_DEFAULT };
+		COLORREF crTextFilter{ CLR_DEFAULT };
+		COLORREF crTextBkFilter{ CLR_DEFAULT };
 		COLORREF crBk{ CLR_DEFAULT };
-		UINT uFmt;
+		UINT uFmt{};// 缓存供命中测试修复用
 	};
 
 	// 信息
 	int m_idxHotItem{ -1 };
 	int m_cxIL{};
 	int m_cyIL{};
+	int m_idxFilterEditing{ -1 };
 	HIMAGELIST m_hIL{};
 	BITBOOL m_bCheckBoxes : 1{};
+	BITBOOL m_bFilterBar : 1{};
 	// 选项
 	BITBOOL m_bSplitBtnHot : 1{};				// [内部标志]拆分按钮已点燃
+	BITBOOL m_bFilterBtnHot : 1{};				// [内部标志]筛选按钮已点燃
 	BITBOOL m_bAutoDarkMode : 1{ TRUE };		// 自动处理暗色
 	BITBOOL m_bUseExtText : 1{};				// 使用扩展文本
 	BITBOOL m_bRepairDbClick : 1{ TRUE };		// 连击修正
@@ -42,9 +47,10 @@ private:
 	COLORREF m_crText{ CLR_DEFAULT };	// 文本颜色
 	COLORREF m_crBk{ CLR_DEFAULT };		// 背景色
 	COLORREF m_crTextBk{ CLR_DEFAULT };	// 文本背景色
-	COLORREF m_crTextSubText{ CLR_DEFAULT };	// 文本颜色
-	COLORREF m_crBkSubText{ CLR_DEFAULT };		// 背景色
-	COLORREF m_crTextBkSubText{ CLR_DEFAULT };	// 文本背景色
+	COLORREF m_crTextSubText{ CLR_DEFAULT };	// [扩展文本]子文本颜色
+	COLORREF m_crTextBkSubText{ CLR_DEFAULT };	// [扩展文本]子文本背景色
+	COLORREF m_crTextFilter{ CLR_DEFAULT };		// 过滤器文本颜色
+	COLORREF m_crTextBkFilter{ CLR_DEFAULT };		// 过滤器文本背景色
 	// 图形
 	CEzCDC m_DcAlpha{};
 	HFONT m_hFontMainText{};
@@ -63,12 +69,25 @@ private:
 	int m_cxClient{};
 	int m_cyClient{};
 
-	CRefStrW m_rsTextBuf{ MAX_PATH };
+	CRefStrW m_rsTextBuf{ MAX_PATH * 2 };
 	int m_cchTextBuf{ MAX_PATH };
 
 	int m_iDpi{ USER_DEFAULT_SCREEN_DPI };
 	int m_cxEdge{};
 	int m_cyMenuCheck{};
+	int m_cxBorder{};
+
+	CEditExt* m_pEDFilter{};
+
+	HMODULE m_hModComctl32{};
+	CEzCDC m_DcFilterBmp{};
+	SIZE m_sizeFilter{};
+	CRefStrW m_rsEnterTextHere{};
+
+	ECK_DS_BEGIN(DPIS)
+		ECK_DS_ENTRY(cxFilterGlyph, 13)
+		;
+	ECK_DS_END_VAR(m_Ds);
 
 	void PrepareTextColor(HDC hDC, const ITEM& e)
 	{
@@ -116,6 +135,29 @@ private:
 			SetTextColor(hDC, m_pThrCtx->crTip1);
 	}
 
+	void PrepareTextColorFilter(HDC hDC, const ITEM& e)
+	{
+		if (e.crTextBkFilter != CLR_DEFAULT)
+		{
+			SetBkMode(hDC, OPAQUE);
+			SetBkColor(hDC, e.crTextBkFilter);
+		}
+		else if (m_crTextBkFilter != CLR_DEFAULT)
+		{
+			SetBkMode(hDC, OPAQUE);
+			SetBkColor(hDC, m_crTextBkFilter);
+		}
+		else
+			SetBkMode(hDC, TRANSPARENT);
+
+		if (e.crTextFilter != CLR_DEFAULT)
+			SetTextColor(hDC, e.crText);
+		else if (m_crTextFilter != CLR_DEFAULT)
+			SetTextColor(hDC, m_crTextFilter);
+		else
+			SetTextColor(hDC, m_pThrCtx->crDefText);
+	}
+
 	LRESULT OnItemPrePaint(NMCUSTOMDRAW* pnmcd)
 	{
 		//return CDRF_DODEFAULT;
@@ -125,6 +167,8 @@ private:
 		const auto& e = m_vData[idx];
 		const auto hDC = pnmcd->hdc;
 		RECT rc{ pnmcd->rc };
+		if (m_bFilterBar)
+			rc.bottom -= ((rc.bottom - rc.top) / 2);
 		int xAvailable;
 
 		HDITEMW hdi;
@@ -173,6 +217,8 @@ private:
 			else
 				iState = HDDS_NORMAL;
 			RECT rc{ pnmcd->rc };
+			if (m_bFilterBar)
+				rc.bottom -= ((rc.bottom - rc.top) / 2);
 			rc.left = rc.right - m_cxSplitBtn;
 			xAvailable = rc.left;
 			DrawThemeBackground(m_hTheme, hDC, HP_HEADERDROPDOWN, iState, &rc, nullptr);
@@ -360,12 +406,129 @@ private:
 			rc.bottom = rc.top + m_sizeSortDown.cy;
 			DrawThemeBackground(m_hTheme, hDC, HP_HEADERSORTARROW, HSAS_SORTEDDOWN, &rc, NULL);
 		}
+		// 画过滤器
+		if (m_bFilterBar)
+		{
+			rc.left = pnmcd->rc.left + m_cxEdge * 3;
+			rc.right = xAvailable - m_Ds.cxFilterGlyph - m_cxBorder * 4;
+			OffsetRect(rc, 0, rc.bottom - rc.top);
+			if (m_idxFilterEditing != idx)
+			{
+				union
+				{
+					int i;
+					HD_TEXTFILTERW hdtf;
+					SYSTEMTIME st;
+				} Val;
+
+				Val.hdtf.pszText = m_rsTextBuf.Data();
+				Val.hdtf.cchTextMax = m_cchTextBuf;
+				hdi.pvFilter = &Val;
+				hdi.mask = HDI_FILTER;
+				hdi.type = HDFT_ISSTRING;
+				if (GetItem(idx, &hdi))
+				{
+					if (hdi.type == HDFT_ISSTRING)
+					{
+						PrepareTextColorFilter(hDC, e);
+						DrawTextW(hDC, Val.hdtf.pszText, -1, &rc,
+							DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
+						goto SkipFilterText;
+					}
+				}
+				else
+				{
+					hdi.type = HDFT_ISDATE;
+					if (GetItem(idx, &hdi))
+					{
+						if (hdi.type == HDFT_ISDATE)
+						{
+							const int cchDate = GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, 0, &Val.st,
+								nullptr, nullptr, 0, nullptr);
+							if (m_rsTextBuf.Size() < cchDate)
+								m_rsTextBuf.ReSize(cchDate);
+							GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, 0, &Val.st,
+								nullptr, m_rsTextBuf.Data(), cchDate, nullptr);
+							PrepareTextColorFilter(hDC, e);
+							DrawTextW(hDC, m_rsTextBuf.Data(), cchDate, &rc,
+								DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
+							goto SkipFilterText;
+						}
+					}
+					else
+					{
+						hdi.type = HDFT_ISNUMBER;
+						if (GetItem(idx, &hdi))
+						{
+							if (hdi.type == HDFT_ISNUMBER)
+							{
+								if (m_rsTextBuf.Size() < CchI32ToStrBufNoRadix2)
+									m_rsTextBuf.ReSize(CchI32ToStrBufNoRadix2);
+								const auto cch = _swprintf(m_rsTextBuf.Data(), L"%d", Val.i);
+								PrepareTextColorFilter(hDC, e);
+								DrawTextW(hDC, m_rsTextBuf.Data(), cch, &rc,
+									DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
+								goto SkipFilterText;
+							}
+						}
+					}
+				}
+				SetTextColor(hDC, m_pThrCtx->crGray1);
+				SetBkMode(hDC, TRANSPARENT);
+				DrawTextW(hDC, m_rsEnterTextHere.Data(), m_rsEnterTextHere.Size(), &rc,
+					DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
+			SkipFilterText:;
+			}
+			rc.right = pnmcd->rc.right;
+			rc.left = rc.right - ((hdi.fmt & HDF_SPLITBUTTON) ?
+				m_cxSplitBtn : m_Ds.cxFilterGlyph);// 还是对齐吧...
+			if (m_idxFilterEditing == idx)
+			{
+				if (m_idxHotItem == idx)
+					if (m_bFilterBtnHot)
+						iState = HDDFS_HOT;
+					else
+						iState = HDDFS_SOFTHOT;
+				else
+					iState = HDDFS_NORMAL;
+				DrawThemeBackground(m_hTheme, hDC,
+					HP_HEADERDROPDOWNFILTER, iState, &rc, nullptr);
+			}
+			else
+			{
+				rc.left += ((rc.right - rc.left - m_sizeFilter.cx) / 2);
+				rc.top += ((rc.bottom - rc.top - m_sizeFilter.cy) / 2);
+				TransparentBlt(hDC, rc.left, rc.top, m_sizeFilter.cx, m_sizeFilter.cy,
+					m_DcFilterBmp.GetDC(), 0, 0, m_sizeFilter.cx, m_sizeFilter.cy, RGB(128, 0, 0));
+			}
+		}
 		return CDRF_SKIPDEFAULT;
 	}
 
 	void UpdateStyleOptions(DWORD dwStyle)
 	{
 		m_bCheckBoxes = IsBitSet(dwStyle, HDS_CHECKBOXES);
+		m_bFilterBar = IsBitSet(dwStyle, HDS_FILTERBAR);
+		if (m_bFilterBar && !m_hModComctl32)
+		{
+			m_hModComctl32 = GetModuleHandleW(L"comctl32.dll");
+			m_DcFilterBmp.m_hBmp = (HBITMAP)LoadImageW(m_hModComctl32, MAKEINTRESOURCEW(140),
+				IMAGE_BITMAP, 0, 0, LR_SHARED);
+			m_DcFilterBmp.m_hCDC = CreateCompatibleDC(nullptr);
+			m_DcFilterBmp.m_hOld = SelectObject(m_DcFilterBmp.m_hCDC, m_DcFilterBmp.m_hBmp);
+			BITMAP bm;
+			GetObjectW(m_DcFilterBmp.m_hBmp, sizeof(bm), &bm);
+			m_sizeFilter = { bm.bmWidth,bm.bmHeight };
+
+			const auto hRes = FindResourceExW(m_hModComctl32, RT_STRING,
+				MAKEINTRESOURCEW(1 + 0x1050 / 16), LANGIDFROMLCID(GetThreadLocale()));
+			const auto hgStr = LoadResource(m_hModComctl32, hRes);
+			auto pszBegin = (PCWSTR)LockResource(hgStr);
+			for (size_t i = 0; i < 0x1050 % 16; ++i)
+				pszBegin += (*pszBegin + 1);
+			const int cch = *pszBegin++;
+			m_rsEnterTextHere.DupString(pszBegin, cch);
+		}
 	}
 
 	void UpdateThemeMetrics()
@@ -391,8 +554,10 @@ private:
 	void InitForNewWindow(HWND hWnd)
 	{
 		m_iDpi = GetDpi(hWnd);
+		UpdateDpiSize(m_Ds, m_iDpi);
 		m_cxEdge = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
 		m_cyMenuCheck = DaGetSystemMetrics(SM_CYMENUCHECK, m_iDpi);
+		m_cxBorder = DaGetSystemMetrics(SM_CXBORDER, m_iDpi);
 
 		m_DcAlpha.Create32(hWnd, 1, 1);
 		m_pThrCtx = GetThreadCtx();
@@ -416,6 +581,11 @@ private:
 		m_crBk = m_crText = m_crTextBk = CLR_DEFAULT;
 	}
 public:
+	~CHeaderExt()
+	{
+		delete m_pEDFilter;
+	}
+
 	void AttachNew(HWND hWnd) override
 	{
 		CWnd::AttachNew(hWnd);
@@ -444,19 +614,27 @@ public:
 			hdhti.iItem = -1;
 			HitTest(&hdhti);
 
+			m_idxHotItem = hdhti.iItem;
+			const auto b = !!(hdhti.flags & HHT_ONDROPDOWN);
+			const auto b2 = !!(hdhti.flags & HHT_ONFILTERBUTTON);
+			if (b != m_bSplitBtnHot)
 			{
-				m_idxHotItem = hdhti.iItem;
-				const auto b = !!(hdhti.flags & HHT_ONDROPDOWN);
-				// !!!标准控件Bug：自定义绘制时懒加载数据未正确计算，导致拆分按钮命中测试不正常
-				if (b != m_bSplitBtnHot)
+				m_bSplitBtnHot = b;
+				if (m_idxHotItem >= 0)
 				{
-					m_bSplitBtnHot = b;
-					if (m_idxHotItem >= 0)
-					{
-						RECT rc;
-						GetItemRect(m_idxHotItem, &rc);
-						InvalidateRect(hWnd, &rc, FALSE);
-					}
+					RECT rc;
+					GetItemRect(m_idxHotItem, &rc);
+					InvalidateRect(hWnd, &rc, FALSE);
+				}
+			}
+			if (b2 != m_bFilterBtnHot)
+			{
+				m_bFilterBtnHot = b2;
+				if (m_idxHotItem >= 0)
+				{
+					RECT rc;
+					GetItemRect(m_idxHotItem, &rc);
+					InvalidateRect(hWnd, &rc, FALSE);
 				}
 			}
 
@@ -493,6 +671,36 @@ public:
 			m_cyClient = HIWORD(lParam);
 			break;
 
+		case WM_PARENTNOTIFY:
+		{
+			if (LOWORD(wParam) == WM_CREATE)
+			{
+				WCHAR szCls[ARRAYSIZE(WC_HEADERW) + 1];
+				szCls[0] = L'\0';
+				GetClassNameW(HWND(lParam), szCls, ARRAYSIZE(szCls));
+				if (wcscmp(szCls, WC_EDITW) == 0)
+				{
+					const auto lResult = CHeader::OnMsg(hWnd, uMsg, wParam, lParam);
+					if (!m_pEDFilter)
+						m_pEDFilter = new CEditExt{};
+					m_pEDFilter->AttachNew(HWND(lParam));
+					// 我真是操你妈了傻逼微软
+					RECT rc;
+					GetClientRect(m_pEDFilter->HWnd, &rc);
+					rc.left = rc.right / 2;
+					rc.top = rc.bottom / 2;
+					MapWindowPoints(HWND(lParam), hWnd, (POINT*)&rc, 1);
+					HDHITTESTINFO hdhti;
+					hdhti.pt = *(POINT*)&rc;
+					hdhti.iItem = -1;
+					HitTest(&hdhti);
+					m_idxFilterEditing = hdhti.iItem;
+					return lResult;
+				}
+			}
+		}
+		break;
+
 		case WM_STYLECHANGED:
 		{
 			const auto* const p = (STYLESTRUCT*)lParam;
@@ -525,8 +733,10 @@ public:
 		case WM_DPICHANGED_BEFOREPARENT:
 		{
 			m_iDpi = GetDpi(hWnd);
+			UpdateDpiSize(m_Ds, m_iDpi);
 			m_cxEdge = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
 			m_cyMenuCheck = DaGetSystemMetrics(SM_CYMENUCHECK, m_iDpi);
+			m_cxBorder = DaGetSystemMetrics(SM_CXBORDER, m_iDpi);
 		}
 		break;
 
@@ -554,6 +764,8 @@ public:
 					RECT rc;
 					GetItemRect(p->iItem, &rc);
 					rc.left = rc.right - m_cxSplitBtn;
+					if (m_bSplitBtnHot)
+						rc.bottom -= ((rc.bottom - rc.top) / 2);
 					if (PtInRect(rc, p->pt))
 						p->flags |= HHT_ONDROPDOWN;
 				}
@@ -634,6 +846,22 @@ public:
 				}
 			}
 			return CDRF_DODEFAULT;
+
+			//case HDN_BEGINFILTEREDIT:// 傻逼东西没实现完，除了一个通知头其他都没用
+			//	m_idxFilterEditing = ((NMHEADERW*)lParam)->iItem;
+			//	break;
+			case HDN_ENDFILTEREDIT:
+			{
+				int idx{ -1 };
+				std::swap(idx, m_idxFilterEditing);
+				if (idx >= 0)// 非常申必的重画问题
+				{
+					RECT rc;
+					GetItemRect(idx, &rc);
+					InvalidateRect(HWnd, &rc, FALSE);
+				}
+			}
+			break;
 			}
 		}
 		break;
@@ -681,9 +909,7 @@ public:
 	EckInline constexpr void HeSetExtTextAlignV(Align e) { m_eAlign = e; }
 	EckInline constexpr Align HeGetExtTextAlignV() const { return m_eAlign; }
 
-	int HeGetPrettyHeight() const
-	{
-
-	}
+	// 由于微软献祭亲妈，此处提供该函数以获取过滤器的当前编辑项
+	EckInline constexpr int HeGetCurrEditingItem() const { return m_idxFilterEditing; }
 };
 ECK_NAMESPACE_END
