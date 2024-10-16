@@ -44,6 +44,9 @@ public:
 private:
 	struct NODE
 	{
+#ifdef _DEBUG
+		CSignal* pThis;
+#endif
 		UINT_PTR uId;
 		FProc fn;
 		NODE* pNext;
@@ -59,6 +62,10 @@ private:
 	NODE* m_pHead{};
 	int m_cDeleted{};
 public:
+	using HSlot = const NODE*;
+#define ECK_SIG_TOP		nullptr
+#define ECK_SIG_BOTTOM	(HSlot(UINT_PTR(-1)))
+
 	ECK_DISABLE_COPY_MOVE_DEF_CONS(CSignal);
 
 	/// <summary>
@@ -97,33 +104,7 @@ public:
 					pNode->fn(args...);
 				--pNode->cEnter;
 			} while (pNode = pNode->pNext);
-
-			// 删除所有进入计数为0且标记为删除的节点
-			EckAssert(m_cDeleted >= 0);
-			if (m_cDeleted)
-			{
-				pNode = m_pHead;
-				NODE* pPrev{};
-				do
-				{
-					if (pNode->cEnter == 0 && (pNode->uFlags & NF_DELETED))
-					{
-						if (pPrev)
-							pPrev->pNext = pNode->pNext;
-						else
-							m_pHead = pNode->pNext;
-						const auto pNext = pNode->pNext;
-						delete pNode;
-						pNode = pNext;
-						--m_cDeleted;
-					}
-					else
-					{
-						pPrev = pNode;
-						pNode = pNode->pNext;
-					}
-				} while (pNode);
-			}
+			CleanupNow();
 		}
 		if constexpr (!std::is_same_v<TRet, void>)
 			return {};
@@ -140,82 +121,77 @@ public:
 		return Emit2(bProcessed, args...);
 	}
 private:
-	NODE* FindEntry(UINT_PTR uId) const
+	NODE* IntConnect(FProc&& fn, UINT_PTR uId, NODE* pAfter)
 	{
-		auto p = m_pHead;
-		while (p)
-		{
-			if (p->uId == uId)
-				return p;
-			p = p->pNext;
-		}
-		return nullptr;
-	}
-
-	void IntConnect(FProc&& fn, UINT_PTR uId, BOOL bInsertToEnd, UINT_PTR uIdAfter)
-	{
+#ifdef _DEBUG
+		const auto pNew = new NODE{ this,uId,std::move(fn) };
+#else
 		const auto pNew = new NODE{ uId,std::move(fn) };
+#endif
 		if (m_pHead)
 		{
-			if (bInsertToEnd)
+			if (pAfter == ECK_SIG_TOP)
 			{
 				pNew->pNext = m_pHead;
 				m_pHead = pNew;
 			}
+			else if (pAfter == ECK_SIG_BOTTOM)
+			{
+				auto p = m_pHead;
+				while (p->pNext)
+					p = p->pNext;
+				p->pNext = pNew;
+			}
 			else
 			{
-				const auto pAfter = FindEntry(uIdAfter);
-				if (pAfter)
-				{
-					pNew->pNext = pAfter->pNext;
-					pAfter->pNext = pNew;
-				}
-				else
-				{
-					pNew->pNext = m_pHead;
-					m_pHead = pNew;
-				}
+				EckAssert(pAfter->pThis == this);
+				pNew->pNext = pAfter->pNext;
+				pAfter->pNext = pNew;
 			}
 		}
 		else
+		{
+			EckAssert(pAfter == ECK_SIG_TOP || pAfter == ECK_SIG_BOTTOM);
 			m_pHead = pNew;
+		}
+		return pNew;
 	}
 
 	template <class TCls, size_t... Index>
-	void IntConnect(TCls* pThis, FProcMethodPtr<TCls> pfnMethod, std::index_sequence<Index...>,
-		UINT_PTR uId, BOOL bInsertToEnd, UINT_PTR uIdAfter)
+	NODE* IntConnect(TCls* pThis, FProcMethodPtr<TCls> pfnMethod,
+		std::index_sequence<Index...>, UINT_PTR uId, NODE* pAfter)
 	{
-		IntConnect(std::bind(pfnMethod, pThis, std::_Ph<Index + 1>{}...), uId, bInsertToEnd, uIdAfter);
+		return IntConnect(std::bind(pfnMethod, pThis, std::_Ph<Index + 1>{}...), uId, pAfter);
 	}
 public:
 	template<class TProc>
-	EckInline void Connect(TProc fn, UINT_PTR uId, BOOL bInsertToEnd = TRUE, UINT_PTR uIdAfter = 0u)
+	EckInline HSlot Connect(TProc fn, UINT_PTR uId = 0u, HSlot pAfter = ECK_SIG_TOP)
 	{
-		IntConnect(fn, uId, bInsertToEnd, uIdAfter);
+		return IntConnect(fn, uId, (NODE*)pAfter);
 	}
 
 	template<class TCls>
-	EckInline void Connect(TCls* pThis, FProcMethodPtr<TCls> pfnMethod, UINT_PTR uId,
-		BOOL bInsertToEnd = TRUE, UINT_PTR uIdAfter = 0u)
+	EckInline HSlot Connect(TCls* pThis, FProcMethodPtr<TCls> pfnMethod,
+		UINT_PTR uId = 0u, HSlot pAfter = ECK_SIG_TOP)
 	{
 		if constexpr (std::is_same_v<TIntercept, Intercept_T>)
-			IntConnect(pThis, pfnMethod, std::make_index_sequence<sizeof...(TArgs) + 1>{}, uId,
-				bInsertToEnd, uIdAfter);
+			return IntConnect(pThis, pfnMethod,
+				std::make_index_sequence<sizeof...(TArgs) + 1>{}, uId, (NODE*)pAfter);
 		else
-			IntConnect(pThis, pfnMethod, std::make_index_sequence<sizeof...(TArgs)>{}, uId,
-				bInsertToEnd, uIdAfter);
+			return IntConnect(pThis, pfnMethod,
+				std::make_index_sequence<sizeof...(TArgs)>{}, uId, (NODE*)pAfter);
 	}
 
-	EckInline void Connect(FProcPtr pfn, UINT_PTR uId, BOOL bInsertToEnd = TRUE, UINT_PTR uIdAfter = 0u)
+	EckInline HSlot Connect(FProcPtr pfn, UINT_PTR uId = 0u, HSlot pAfter = ECK_SIG_TOP)
 	{
-		IntConnect(pfn, uId, bInsertToEnd, uIdAfter);
+		return IntConnect(pfn, uId, (NODE*)pAfter);
 	}
 
-	EckInline void Connect(CSignal& sig, UINT_PTR uId, BOOL bInsertToEnd = TRUE, UINT_PTR uIdAfter = 0u)
+	EckInline HSlot Connect(CSignal& sig, UINT_PTR uId = 0u, HSlot pAfter = ECK_SIG_TOP)
 	{
 		EckAssert(&sig != this);
 		if constexpr (std::is_same_v<TIntercept, Intercept_T>)
-			IntConnect([&](TArgs ...args, BOOL& bProcessed)->TRet
+			return IntConnect([&](TArgs ...args, BOOL& bProcessed)->TRet
 				{
 					if constexpr (std::is_same_v<TRet, void>)
 						sig.Emit2(bProcessed, args...);
@@ -225,24 +201,74 @@ public:
 						if (bProcessed)
 							return r;
 					}
-				}, uId, bInsertToEnd, uIdAfter);
+				}, uId, (NODE*)pAfter);
 		else
-			IntConnect([&](TArgs ...args)->TRet
+			return IntConnect([&](TArgs ...args)->TRet
 				{
 					sig.Emit(args...);
-				}, uId, bInsertToEnd, uIdAfter);
+				}, uId, (NODE*)pAfter);
+	}
+
+	HSlot FindSlot(UINT_PTR uId, HSlot pBegin = ECK_SIG_TOP) const
+	{
+		auto p = (NODE*)(pBegin ? pBegin : m_pHead);
+		while (p)
+		{
+			if (p->uId == uId)
+				return p;
+			p = p->pNext;
+		}
+		return nullptr;
+	}
+
+	void Disconnect(HSlot hSlot)
+	{
+		EckAssert(hSlot && hSlot->pThis == this);
+		((NODE*)hSlot)->uFlags |= NF_DELETED;
+		++m_cDeleted;
 	}
 
 	BOOL Disconnect(UINT_PTR uId)
 	{
-		const auto p = FindEntry(uId);
+		const auto p = FindSlot(uId);
 		if (p)
 		{
-			p->uFlags |= NF_DELETED;
-			++m_cDeleted;
+			Disconnect(p);
 			return TRUE;
 		}
 		return FALSE;
 	}
+
+	// 删除所有进入计数为0且标记为删除的节点
+	void CleanupNow()
+	{
+		EckAssert(m_cDeleted >= 0);
+		if (m_cDeleted)
+		{
+			NODE* pNode = m_pHead;
+			NODE* pPrev{};
+			do
+			{
+				if (pNode->cEnter == 0 && (pNode->uFlags & NF_DELETED))
+				{
+					if (pPrev)
+						pPrev->pNext = pNode->pNext;
+					else
+						m_pHead = pNode->pNext;
+					const auto pNext = pNode->pNext;
+					delete pNode;
+					pNode = pNext;
+					--m_cDeleted;
+				}
+				else
+				{
+					pPrev = pNode;
+					pNode = pNode->pNext;
+				}
+			} while (pNode);
+		}
+	}
+
+	HSlot GetHead() const { return m_pHead; }
 };
 ECK_NAMESPACE_END
