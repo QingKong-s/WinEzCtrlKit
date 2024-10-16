@@ -192,11 +192,7 @@ private:
 	void* m_pOdProcData{};			// [OD]所有者数据回调函数参数
 	// 
 	const ECKTHREADCTX* m_pThrCtx{};// 线程上下文
-
-	ECK_DS_BEGIN(DPIS)
-		ECK_DS_ENTRY_DYN(cxEdge, GetSystemMetrics(SM_CXEDGE))
-		;
-	ECK_DS_END_VAR(m_Ds);
+	int m_cxEdge{};
 
 	void GetColumnMetrics(int* px, int cCol, int dx) const
 	{
@@ -476,14 +472,14 @@ private:
 			{
 			case LV_VIEW_ICON:
 				if (!m_bHideLabels)
-					rc0.top += m_Ds.cxEdge;
+					rc0.top += m_cxEdge;
 				break;
 			case LV_VIEW_SMALLICON:
 				if (!m_bHideLabels)
-					rc0.left += m_Ds.cxEdge;
+					rc0.left += m_cxEdge;
 				break;
 			case LV_VIEW_LIST:
-				rc0.left += m_Ds.cxEdge;
+				rc0.left += m_cxEdge;
 				break;
 			}
 			ImageList_Draw(hIL, li.iImage, hDC,
@@ -498,13 +494,13 @@ private:
 					if (m_iViewType == LV_VIEW_DETAILS)
 					{
 						rc.right = rc.left;
-						rc.left -= (sizeILState.cx + m_Ds.cxEdge);
+						rc.left -= (sizeILState.cx + m_cxEdge);
 						rc0 = { 0,0,sizeILState.cx,sizeILState.cy };
 						CenterRect(rc0, rc);
 					}
 					else
 					{
-						rc0.left -= (sizeILState.cx + m_Ds.cxEdge);
+						rc0.left -= (sizeILState.cx + m_cxEdge);
 						rc0.top = rc.top + (rc.bottom - rc.top - sizeILState.cy) / 2;
 					}
 					ImageList_Draw(hILState, idxState, hDC,
@@ -589,12 +585,12 @@ private:
 				// 如果可能，绘制后续子项图像
 				if (li.iImage >= 0 && hIL)
 					if (li.iSubItem == 0)
-						cxImg = m_Ds.cxEdge;
+						cxImg = m_cxEdge;
 					else if (m_bSubItemImg)
 					{
 						RECT rcImg;
 						GetSubItemRect(idx, li.iSubItem, &rcImg, LVIR_ICON);
-						cxImg = rcImg.right - rcImg.left + m_Ds.cxEdge * 3;
+						cxImg = rcImg.right - rcImg.left + m_cxEdge * 3;
 						ImageList_Draw(hIL, li.iImage, hDC,
 							rcImg.left,
 							(pnmlvcd->nmcd.rc.bottom - pnmlvcd->nmcd.rc.top -
@@ -602,9 +598,9 @@ private:
 							ILD_NORMAL | ILD_TRANSPARENT);
 					}
 					else
-						cxImg = m_Ds.cxEdge * 2;
+						cxImg = m_cxEdge * 2;
 				else
-					cxImg = m_Ds.cxEdge * 2;
+					cxImg = m_cxEdge * 2;
 
 				m_Header.GetItem(li.iSubItem, &hdi);
 				UINT uDtFlags = DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX | DT_SINGLELINE;
@@ -957,7 +953,7 @@ public:
 
 		case WM_DPICHANGED_BEFOREPARENT:
 			m_iDpi = GetDpi(hWnd);
-			UpdateDpiSize(m_Ds, m_iDpi);
+			m_cxEdge = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
 			break;
 
 		case WM_STYLECHANGED:
@@ -968,6 +964,7 @@ public:
 		case WM_CREATE:
 		{
 			m_pThrCtx = GetThreadCtx();
+			m_cxEdge = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
 			m_DcAlpha.Create(hWnd, 1, 1);
 			const auto lResult = CListView::OnMsg(hWnd, uMsg, wParam, lParam);
 			if (!lResult)
@@ -980,7 +977,6 @@ public:
 				UpdateLvExOptions(GetLVExtendStyle());
 				m_iDpi = GetDpi(hWnd);
 				m_bHasFocus = (GetFocus() == hWnd);
-				UpdateDpiSize(m_Ds, m_iDpi);
 				HandleThemeChange();
 			}
 			return lResult;

@@ -226,9 +226,11 @@ static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 
 static void UxfOnThemeClose(HTHEME hTheme)
 {
+	s_LkThemeMap.EnterRead();
 	const auto it = s_hsThemeMap.find(hTheme);
 	if (it != s_hsThemeMap.end())
 	{
+		s_LkThemeMap.LeaveRead();
 		CSrwWriteGuard _{ s_LkThemeMap };
 		auto& e = it->second;
 		if (e.cRef > 1)
@@ -240,6 +242,8 @@ static void UxfOnThemeClose(HTHEME hTheme)
 			s_hsThemeMap.erase(it);
 		}
 	}
+	else
+		s_LkThemeMap.LeaveRead();
 }
 
 static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
@@ -1616,6 +1620,7 @@ void ECKTHREADCTX::UpdateDefColor()
 	crDefBtnFace = (bDark ? 0x303030 : GetSysColor(COLOR_BTNFACE));
 	crBlue1 = (bDark ? RGB(0, 168, 255) : RGB(0, 51, 153));
 	crGray1 = (bDark ? RGB(180, 180, 180) : GetSysColor(COLOR_GRAYTEXT));
+	crTip1 = (bDark ? RGB(131, 162, 198) : RGB(97, 116, 139));
 }
 
 void ECKTHREADCTX::SendThemeChangedToAllTopWindow()

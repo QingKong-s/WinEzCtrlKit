@@ -11,6 +11,7 @@
 #include "CFile.h"
 #include "CRefBin.h"
 #include "ComPtr.h"
+#include "DpiApi.h"
 
 #include <intrin.h>
 
@@ -530,28 +531,20 @@ Success:
 	return STATUS_SUCCESS;
 }
 
-EckInline BOOL SystemParametersInfoDpi(UINT uAction, UINT uParam, PVOID pParam, UINT fWinIni, int iDpi)
-{
-#if ECKDPIAPI
-	return SystemParametersInfoForDpi(uAction, uParam, pParam, fWinIni, iDpi);
-#else
-	return SystemParametersInfoW(uAction, uParam, pParam, fWinIni);
-#endif
-}
-
 [[nodiscard]] EckInline HFONT CreateDefFont(int iDpi = USER_DEFAULT_SCREEN_DPI)
 {
 	LOGFONTW lf;
-	SystemParametersInfoDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0, iDpi);
+	DaSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0, iDpi);
 	return CreateFontIndirectW(&lf);
 }
 
 EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 {
-	return SystemParametersInfoDpi(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0, iDpi);
+	return DaSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0, iDpi);
 }
 
-[[nodiscard]] EckInline IDWriteTextFormat* CreateDefTextFormat(int iDpi = USER_DEFAULT_SCREEN_DPI, HRESULT* phr = nullptr)
+[[nodiscard]] EckInline IDWriteTextFormat* CreateDefTextFormat(
+	int iDpi = USER_DEFAULT_SCREEN_DPI, HRESULT* phr = nullptr)
 {
 	LOGFONTW lf;
 	if (!GetDefFontInfo(lf, iDpi))
