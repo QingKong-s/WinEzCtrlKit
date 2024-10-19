@@ -411,6 +411,10 @@ public:
 		w << rsText;
 	}
 
+	virtual void PreDeserialize(PCVOID pData) {}
+
+	virtual void PostDeserialize(PCVOID pData) {}
+
 	/// <summary>
 	/// 消息处理函数
 	/// </summary>
