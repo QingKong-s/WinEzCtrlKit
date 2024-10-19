@@ -9,11 +9,10 @@
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
-inline constexpr int
-CDV_BUTTON_1 = 1;
+inline constexpr int CDV_BUTTON_1 = 1;
 
 #pragma pack(push, ECK_CTRLDATA_ALIGN)
-struct CREATEDATA_BUTTON
+struct CTRLDATA_BUTTON
 {
 	int iVer;
 	BITBOOL bShieldIcon : 1;
@@ -110,15 +109,16 @@ public:
 		if (pData)
 		{
 			const auto* const pBase = (const CTRLDATA_WND*)pData;
-			const auto* const p = (const CREATEDATA_BUTTON*)SkipBaseData(pData);
+			const auto* const p = (const CTRLDATA_BUTTON*)SkipBaseData(pData);
 			if (pBase->iVer < CDV_WND_1)
 			{
 				EckDbgBreak();
 				return nullptr;
 			}
-
+			PreDeserialize(pData);
 			IntCreate(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), pBase->dwStyle,
 				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
+			PostDeserialize(pData);
 			switch (p->iVer)
 			{
 			case CDV_BUTTON_1:
@@ -144,12 +144,12 @@ public:
 	void SerializeData(CRefBin& rb) override
 	{
 		auto cchNote = GetNoteLength();
-		const SIZE_T cbSize = sizeof(CREATEDATA_BUTTON) +
+		const SIZE_T cbSize = sizeof(CTRLDATA_BUTTON) +
 			(cchNote + 1) * sizeof(WCHAR);
 		CWnd::SerializeData(rb);
 		CMemWriter w(rb.PushBack(cbSize), cbSize);
 
-		CREATEDATA_BUTTON* p;
+		CTRLDATA_BUTTON* p;
 		w.SkipPointer(p);
 		p->iVer = CDV_BUTTON_1;
 		p->eCheckState = GetCheckState();

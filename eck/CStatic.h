@@ -3,16 +3,29 @@
 *
 * CStatic.h ： 标准静态
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
+inline constexpr int CDV_STATIC_1 = 1;
+
+#pragma pack(push, ECK_CTRLDATA_ALIGN)
+struct CTRLDATA_STATIC
+{
+	int iVer;
+};
+#pragma pack(pop)
 class CStatic :public CWnd
 {
 public:
 	ECK_RTTI(CStatic);
+
+	[[nodiscard]] EckInline constexpr static PCVOID SkipBaseData(PCVOID p)
+	{
+		return PtrStepCb(CWnd::SkipBaseData(p), sizeof(CTRLDATA_STATIC));
+	}
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
@@ -20,6 +33,16 @@ public:
 	{
 		return IntCreate(dwExStyle, WC_STATICW, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
+	}
+
+	void SerializeData(CRefBin& rb)
+	{
+		CWnd::SerializeData(rb);
+		constexpr auto cbSize = sizeof(CTRLDATA_STATIC);
+		CMemWriter w(rb.PushBack(cbSize), cbSize);
+		CTRLDATA_STATIC* p;
+		w.SkipPointer(p);
+		p->iVer = CDV_STATIC_1;
 	}
 
 	EckInline HICON GetIcon() const
