@@ -978,7 +978,7 @@ private:
 				li.cchTextMax = m_rsTextBuf.Size();
 				GetItem(&li);
 				edi.pszText = li.pszText;
-				edi.cchText = wcslen(li.pszText);
+				edi.cchText = (int)wcslen(li.pszText);
 			}
 
 			const auto hFont = HFont;
