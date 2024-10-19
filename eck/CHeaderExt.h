@@ -42,15 +42,15 @@ private:
 	BITBOOL m_bUseExtText : 1{};				// 使用扩展文本
 	BITBOOL m_bRepairDbClick : 1{ TRUE };		// 连击修正
 	BITBOOL m_bShowEmptyMainExtText : 1{ TRUE };// 即使主文本为空也不忽略其高度
-	BYTE m_byColorAlpha{ 100 };			// 背景色透明度
-	Align m_eAlign{ Align::Center };	// 扩展文本垂直对齐
-	COLORREF m_crText{ CLR_DEFAULT };	// 文本颜色
-	COLORREF m_crBk{ CLR_DEFAULT };		// 背景色
-	COLORREF m_crTextBk{ CLR_DEFAULT };	// 文本背景色
+	BYTE m_byColorAlpha{ 100 };					// 背景色透明度
+	Align m_eExtAlignV{ Align::Center };		// 扩展文本垂直对齐
+	COLORREF m_crText{ CLR_DEFAULT };			// 文本颜色
+	COLORREF m_crBk{ CLR_DEFAULT };				// 背景色
+	COLORREF m_crTextBk{ CLR_DEFAULT };			// 文本背景色
 	COLORREF m_crTextSubText{ CLR_DEFAULT };	// [扩展文本]子文本颜色
 	COLORREF m_crTextBkSubText{ CLR_DEFAULT };	// [扩展文本]子文本背景色
 	COLORREF m_crTextFilter{ CLR_DEFAULT };		// 过滤器文本颜色
-	COLORREF m_crTextBkFilter{ CLR_DEFAULT };		// 过滤器文本背景色
+	COLORREF m_crTextBkFilter{ CLR_DEFAULT };	// 过滤器文本背景色
 	// 图形
 	CEzCDC m_DcAlpha{};
 	HFONT m_hFontMainText{};
@@ -69,8 +69,7 @@ private:
 	int m_cxClient{};
 	int m_cyClient{};
 
-	CRefStrW m_rsTextBuf{ MAX_PATH * 2 };
-	int m_cchTextBuf{ MAX_PATH };
+	CRefStrW m_rsTextBuf{ MAX_PATH };
 
 	int m_iDpi{ USER_DEFAULT_SCREEN_DPI };
 	int m_cxEdge{};
@@ -178,7 +177,7 @@ private:
 		{
 			hdi.mask |= HDI_TEXT;
 			hdi.pszText = m_rsTextBuf.Data();
-			hdi.cchTextMax = m_cchTextBuf;
+			hdi.cchTextMax = m_rsTextBuf.Size();
 		}
 		GetItem(idx, &hdi);
 
@@ -329,7 +328,7 @@ private:
 					const int y0Bak = rc.top;
 					const int y1Bak = rc.bottom;
 					int y;
-					switch (m_eAlign)
+					switch (m_eExtAlignV)
 					{
 					case Align::Near:
 						y = rc.top + m_cyMainText + m_cxEdge;
@@ -422,7 +421,7 @@ private:
 				} Val;
 
 				Val.hdtf.pszText = m_rsTextBuf.Data();
-				Val.hdtf.cchTextMax = m_cchTextBuf;
+				Val.hdtf.cchTextMax = m_rsTextBuf.Size();
 				hdi.pvFilter = &Val;
 				hdi.mask = HDI_FILTER;
 				hdi.type = HDFT_ISSTRING;
@@ -579,8 +578,34 @@ private:
 		CloseThemeData(m_hThemeCB);
 		m_hThemeCB = nullptr;
 		m_crBk = m_crText = m_crTextBk = CLR_DEFAULT;
+		m_hIL = nullptr;
+		m_cxIL = m_cyIL = 0;
+		m_idxHotItem = m_idxFilterEditing = -1;
+		m_bAutoDarkMode = m_bRepairDbClick = m_bShowEmptyMainExtText = TRUE;
+		m_bUseExtText = FALSE;
+		m_eExtAlignV = Align::Center;
+		m_crText = m_crBk = m_crTextBk = m_crTextSubText = m_crTextBkSubText =
+			m_crTextFilter = m_crTextBkFilter = CLR_DEFAULT;
+		m_hFontMainText = nullptr;
 	}
 public:
+	ECKPROP(HeGetBkColor, HeSetBkColor)						COLORREF BkColor;
+	ECKPROP(HeGetTextColor, HeSetTextColor)					COLORREF TextColor;
+	ECKPROP(HeGetTextBkColor, HeSetTextBkColor)				COLORREF TextBkColor;
+	ECKPROP(HeGetSubTextColor, HeSetSubTextColor)			COLORREF SubTextColor;
+	ECKPROP(HeGetSubTextBkColor, HeSetSubTextBkColor)		COLORREF SubTextBkColor;
+	ECKPROP(HeGetFilterTextColor, HeSetFilterTextColor)		COLORREF FilterTextColor;
+	ECKPROP(HeGetFilterTextBkColor, HeSetFilterTextBkColor) COLORREF FilterTextBkColor;
+	ECKPROP(HeGetMainTextFont, HeSetMainTextFont)			HFONT MainTextFont;
+	ECKPROP(HeGetExtTextAlignV, HeSetExtTextAlignV)			Align ExtTextAlignV;
+	ECKPROP(HeGetAutoDarkMode, HeSetAutoDarkMode)			BOOL AutoDarkMode;
+	ECKPROP(HeGetUseExtText, HeSetUseExtText)				BOOL UseExtText;
+	ECKPROP(HeGetRepairDoubleClick, HeSetRepairDoubleClick) BOOL RepairDbClick;
+	ECKPROP(HeGetShowEmptyMainExtText, HeSetShowEmptyMainExtText) BOOL ShowEmptyMainExtText;
+	ECKPROP(HeGetBkColorAlpha, HeSetBkColorAlpha)			BYTE BkColorAlpha;
+	ECKPROP_R(HeGetCurrEditingItem)		int CurrEditingItem;
+	ECKPROP_R(HeGetFilterEdit)			CEditExt* FilterEdit;
+
 	~CHeaderExt()
 	{
 		delete m_pEDFilter;
@@ -684,7 +709,7 @@ public:
 					if (!m_pEDFilter)
 						m_pEDFilter = new CEditExt{};
 					m_pEDFilter->AttachNew(HWND(lParam));
-					// 我真是操你妈了傻逼微软
+					m_pEDFilter->SetFrameType(5);
 					RECT rc;
 					GetClientRect(m_pEDFilter->HWnd, &rc);
 					rc.left = rc.right / 2;
@@ -847,9 +872,7 @@ public:
 			}
 			return CDRF_DODEFAULT;
 
-			//case HDN_BEGINFILTEREDIT:// 傻逼东西没实现完，除了一个通知头其他都没用
-			//	m_idxFilterEditing = ((NMHEADERW*)lParam)->iItem;
-			//	break;
+			// HDN_BEGINFILTEREDIT无法正常使用。。。
 			case HDN_ENDFILTEREDIT:
 			{
 				int idx{ -1 };
@@ -878,6 +901,18 @@ public:
 	EckInline constexpr void HeSetTextColor(COLORREF cr) { m_crText = cr; }
 	EckInline constexpr COLORREF HeGetTextColor() const { return m_crText; }
 
+	EckInline constexpr void HeSetSubTextColor(COLORREF cr) { m_crTextSubText = cr; }
+	EckInline constexpr COLORREF HeGetSubTextColor() const { return m_crTextSubText; }
+
+	EckInline constexpr void HeSetSubTextBkColor(COLORREF cr) { m_crTextBkSubText = cr; }
+	EckInline constexpr COLORREF HeGetSubTextBkColor() const { return m_crTextBkSubText; }
+
+	EckInline constexpr void HeSetFilterTextColor(COLORREF cr) { m_crTextFilter = cr; }
+	EckInline constexpr COLORREF HeGetFilterTextColor() const { return m_crTextFilter; }
+
+	EckInline constexpr void HeSetFilterTextBkColor(COLORREF cr) { m_crTextBkFilter = cr; }
+	EckInline constexpr COLORREF HeGetFilterTextBkColor() const { return m_crTextBkFilter; }
+
 	auto& HeGetItemData(int idx) { return m_vData[idx]; }
 	const auto& HeGetItemData(int idx) const { return m_vData[idx]; }
 
@@ -903,13 +938,22 @@ public:
 	EckInline constexpr void HeSetRepairDoubleClick(BOOL b) { m_bRepairDbClick = b; }
 	EckInline constexpr BOOL HeGetRepairDoubleClick() const { return m_bRepairDbClick; }
 
+	EckInline constexpr void HeSetShowEmptyMainExtText(BOOL b) { m_bShowEmptyMainExtText = b; }
+	EckInline constexpr BOOL HeGetShowEmptyMainExtText() const { return m_bShowEmptyMainExtText; }
+
 	EckInline constexpr void HeSetBkColorAlpha(BYTE by) { m_byColorAlpha = by; }
 	EckInline constexpr BYTE HeGetBkColorAlpha() const { return m_byColorAlpha; }
 
-	EckInline constexpr void HeSetExtTextAlignV(Align e) { m_eAlign = e; }
-	EckInline constexpr Align HeGetExtTextAlignV() const { return m_eAlign; }
+	EckInline constexpr void HeSetExtTextAlignV(Align e) { m_eExtAlignV = e; }
+	EckInline constexpr Align HeGetExtTextAlignV() const { return m_eExtAlignV; }
 
-	// 由于微软献祭亲妈，此处提供该函数以获取过滤器的当前编辑项
+	// 取过滤器当前编辑项
 	EckInline constexpr int HeGetCurrEditingItem() const { return m_idxFilterEditing; }
+
+	// 取过滤器编辑控件
+	EckInline constexpr CEditExt* HeGetFilterEdit() const { return m_pEDFilter; }
+
+	void HeSetTextBufferSize(int cch) { m_rsTextBuf.ReSize(cch); }
+	EckInline constexpr int HeGetTextBufferSize() const { return m_rsTextBuf.Size(); }
 };
 ECK_NAMESPACE_END

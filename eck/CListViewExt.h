@@ -27,6 +27,13 @@ struct LVE_COLOR_PACK
 	COLORREF crGridLineH = CLR_DEFAULT;		// 表格线水平颜色
 	COLORREF crGridLineV = CLR_DEFAULT;		// 表格线垂直颜色
 	COLORREF crHeaderText = CLR_DEFAULT;	// 表头文本颜色
+
+	constexpr static LVE_COLOR_PACK Default() { return LVE_COLOR_PACK{}; }
+	constexpr static LVE_COLOR_PACK Invalid()
+	{
+		return { CLR_INVALID, CLR_INVALID, CLR_INVALID, CLR_INVALID,
+			CLR_INVALID, CLR_INVALID, CLR_INVALID, CLR_INVALID };
+	}
 };
 
 constexpr inline LVE_COLOR_PACK LveLightClr1
@@ -104,6 +111,16 @@ struct LVE_ITEM_EXT
 enum class LveOd
 {
 	GetDispInfo,
+	SetDispInfo,
+};
+
+struct LVE_EDIT_INFO
+{
+	RCWH rcIdeal;	// 编辑控件的理想位置和大小
+	SIZE sizeExtra;	// 为了美观而添加到sizeIdeal的额外大小
+	PCWSTR pszText;	// 当前文本
+	int cchText;	// 当前文本长度
+	Align eAlign;	// 横向对齐方式
 };
 
 /*
@@ -117,6 +134,9 @@ CListViewExt封装了ListView的常用扩展功能
 整体的颜色设置 - 应使用Lve系列方法管理，背景颜色仍使用SetBkClr
 表格线 - LVS_EX_GRIDLINES永远不会达到ListView，而是由内部接管；增加颜色配置
 所有者数据 - 新增一个回调
+LVN_DELETEALLITEMS - 若用户处理该通知，则必须返回TRUE
+LVN_BEGINLABELEDITW - 若用户处理编辑且指定控件准备编辑信息，则传递参数的lParam指向LVE_EDIT_INFO结构
+LVN_ENDLABELEDITW - 若用户处理编辑则cchTextMax可能为负值，若其为负值，则绝不能保存编辑结果
 */
 class CListViewExt :public CListView
 {
@@ -124,6 +144,10 @@ public:
 	using FOwnerData = LRESULT(*)(LveOd, void*, void*);
 	ECK_RTTI(CListViewExt);
 private:
+	enum
+	{
+		IDT_EDIT_DELAY = 0x514B,
+	};
 	struct SUBITEM
 	{
 		CRefStrW rsText;
@@ -147,16 +171,19 @@ private:
 	int m_cMaxTileCol{};	// 平铺视图下的最大列数
 	RECT m_rcTileMargin{};	// 平铺视图下的边距
 	int m_cyFont{};			// 字体高度
+	int m_idxEditing{ -1 };
+	int m_idxEditSubItem{ -1 };
 	BITBOOL m_bOwnerData : 1 = FALSE;	// 所有者数据
 	BITBOOL m_bSubItemImg : 1 = FALSE;	// 显示子项图像
 	BITBOOL m_bFullRowSel : 1 = FALSE;	// 整行选择
 	BITBOOL m_bShowSelAlways : 1 = FALSE;	// 始终显示选择
-	BITBOOL m_bBorderSelect : 1 = FALSE;	// 边框选择
+	BITBOOL m_bBorderSelect : 1 = FALSE;// 边框选择
 	BITBOOL m_bCheckBoxes : 1 = FALSE;	// 显示复选框
 	BITBOOL m_bGridLines : 1 = FALSE;	// 显示表格线
 	BITBOOL m_bHideLabels : 1 = FALSE;	// 隐藏标签
 	BITBOOL m_bSingleSel : 1 = FALSE;	// 单选模式
 	BITBOOL m_bHasFocus : 1 = FALSE;	// 是否有焦点
+	BITBOOL m_bEditLabel : 1 = FALSE;	// 允许编辑
 
 	// 图形
 	HTHEME m_hTheme{};		// 主题句柄
@@ -182,17 +209,23 @@ private:
 	BITBOOL m_bImplLvOdNotify : 1 = TRUE;	// 指示控件应根据m_pfnOwnerData实现ListView标准通知
 	BITBOOL m_bInstalledHeaderHook : 1 = FALSE;	// [内部标志]是否已钩住表头消息
 	BITBOOL m_bDoNotWrapInTile : 1 = FALSE;	// 平铺视图下禁止第一行换行
+	BITBOOL m_bEnableExtEdit : 1 = TRUE;	// 启用扩展编辑
+	BITBOOL m_bOwnerEdit : 1 = FALSE;		// 由父窗口处理编辑
+	BITBOOL m_bPrepareEditingInfo : 1 = TRUE;	// 在父窗口处理编辑时，是否准备编辑信息
+	BITBOOL m_bWaitEditDelay : 1 = FALSE;	// [内部标志]有挂起的编辑操作
 
 	BYTE m_byColorAlpha{ 70 };	// 透明度
 	int m_cyHeader{};			// 表头高度，0 = 默认
-	size_t m_cchOdTextBuf{ 0 };	// 所有者数据缓冲区大小
 	// 项目
 	std::vector<LVE_ITEM_DATA*> m_vRecycleData{};	// [NOD]回收数据
 	FOwnerData m_pfnOwnerData{};	// [OD]所有者数据回调函数
 	void* m_pOdProcData{};			// [OD]所有者数据回调函数参数
 	// 
 	const ECKTHREADCTX* m_pThrCtx{};// 线程上下文
+	CRefStrW m_rsTextBuf{ MAX_PATH };
 	int m_cxEdge{};
+	CEditExt* m_pEdit{};
+	CWnd::HSlot m_hmsEdit{};
 
 	void GetColumnMetrics(int* px, int cCol, int dx) const
 	{
@@ -510,35 +543,16 @@ private:
 			}
 		}
 		// 画文本
-#pragma warning(push)
-#pragma warning(disable: 6255)// 改用_malloca
-		PWSTR pTempBuf{};
 		if (bExtInfo)
 		{
 			ie.uMask = LVE_IM_TEXT | LVE_IM_IMAGE;
 			ie.idxItem = idx;
-			ie.idxSubItem = 0;
-			if (m_cchOdTextBuf)
-			{
-				pTempBuf = (PWSTR)_alloca(m_cchOdTextBuf * sizeof(WCHAR));
-				ie.pszText = pTempBuf;
-				ie.cchText = (int)m_cchOdTextBuf;
-			}
-			else
-			{
-				ie.pszText = nullptr;
-				ie.cchText = 0;
-			}
 		}
 		else
 		{
 			li.mask = LVIF_TEXT | LVIF_IMAGE;
-			pTempBuf = (PWSTR)_alloca(MAX_PATH * sizeof(WCHAR));
-			li.pszText = pTempBuf;
-			li.cchTextMax = MAX_PATH;
 			li.iItem = idx;
 		}
-#pragma warning(pop)
 
 		// HACK : 增加文本背景支持
 		SetBkMode(hDC, TRANSPARENT);
@@ -565,23 +579,19 @@ private:
 				{
 					ie.uMask = LVE_IM_TEXT | LVE_IM_IMAGE;
 					ie.idxSubItem = li.iSubItem;
-					if (m_cchOdTextBuf)
-					{
-						ie.pszText = pTempBuf;
-						ie.cchText = (int)m_cchOdTextBuf;
-					}
-					else
-					{
-						ie.pszText = nullptr;
-						ie.cchText = 0;
-					}
+					ie.pszText = m_rsTextBuf.Data();
+					ie.cchText = m_rsTextBuf.Size();
 					m_pfnOwnerData(LveOd::GetDispInfo, &ie, m_pOdProcData);
 					li.pszText = (PWSTR)ie.pszText;
 					li.iImage = ie.idxImage;
 					cchText = ie.cchText;
 				}
 				else
+				{
+					li.pszText = m_rsTextBuf.Data();
+					li.cchTextMax = m_rsTextBuf.Size();
 					GetItem(&li);
+				}
 				// 如果可能，绘制后续子项图像
 				if (li.iImage >= 0 && hIL)
 					if (li.iSubItem == 0)
@@ -667,16 +677,8 @@ private:
 				{
 					ie.uMask = LVE_IM_TEXT;
 					ie.idxSubItem = li.iSubItem;
-					if (m_cchOdTextBuf)
-					{
-						ie.pszText = pTempBuf;
-						ie.cchText = (int)m_cchOdTextBuf;
-					}
-					else
-					{
-						ie.pszText = nullptr;
-						ie.cchText = 0;
-					}
+					ie.pszText = m_rsTextBuf.Data();
+					ie.cchText = m_rsTextBuf.Size();
 					m_pfnOwnerData(LveOd::GetDispInfo, &ie, m_pOdProcData);
 					li.pszText = (PWSTR)ie.pszText;
 					li.iImage = ie.idxImage;
@@ -684,6 +686,8 @@ private:
 				}
 				else
 				{
+					li.pszText = m_rsTextBuf.Data();
+					li.cchTextMax = m_rsTextBuf.Size();
 					GetItem(&li);
 					cchText = (int)wcslen(li.pszText);
 				}
@@ -788,6 +792,7 @@ private:
 		m_bShowSelAlways = IsBitSet(dwStyle, LVS_SHOWSELALWAYS);
 		m_bOwnerData = IsBitSet(dwStyle, LVS_OWNERDATA);
 		m_bSingleSel = IsBitSet(dwStyle, LVS_SINGLESEL);
+		//m_bEditLabel = IsBitSet(dwStyle, LVS_EDITLABELS);// Special handled
 	}
 
 	void HandleThemeChange()
@@ -800,6 +805,262 @@ private:
 					LveSetClrPack(LveDarkClr1);
 				else
 					LveSetClrPack(LveLightClr1);
+		}
+	}
+
+	void InitForNewWindow(HWND hWnd)
+	{
+		if (Style & LVS_EDITLABELS)
+		{
+			Style &= ~LVS_EDITLABELS;
+			m_bEditLabel = TRUE;
+		}
+		else
+			m_bEditLabel = FALSE;
+		m_pThrCtx = GetThreadCtx();
+		m_cxEdge = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
+		m_DcAlpha.Create(hWnd, 1, 1);
+		if (const auto hHeader = GetHeaderCtrlHWnd(); hHeader)
+			m_Header.AttachNew(hHeader);
+		m_hTheme = OpenThemeData(hWnd, L"ListView");
+		m_iViewType = (int)GetView();
+		UpdateStyleOptions(Style);
+		UpdateLvExOptions(GetLVExtendStyle());
+		m_iDpi = GetDpi(hWnd);
+		m_bHasFocus = (GetFocus() == hWnd);
+		HandleThemeChange();
+	}
+
+	void CleanupForDestroyWindow()
+	{
+		CloseThemeData(m_hTheme);
+		m_hTheme = nullptr;
+		if (m_bInstalledHeaderHook)
+			m_Header.GetSignal().Disconnect(MHI_LVE_HEADER_HEIGHT);
+		(void)m_Header.DetachNew();
+		m_hIL[0] = m_hIL[1] = m_hIL[2] = m_hIL[3] = nullptr;
+		m_sizeIL[0] = m_sizeIL[1] = m_sizeIL[2] = m_sizeIL[3] = {};
+		m_cMaxTileCol = 0;
+		m_rcTileMargin = {};
+		m_cyFont = 0;
+		LveSetClrPack({});
+		m_bCustomDraw = m_bAutoDarkMode = m_bAlphaClrInDark =
+			m_bAutoColorPack = m_bAddSplitterForClr = m_bCtrlASelectAll = TRUE;
+		m_byColorAlpha = 70;
+		m_cyHeader = 0;
+		m_pfnOwnerData = nullptr;
+		m_pOdProcData = nullptr;
+	}
+
+	void CancelExtEdit(BOOL bSave)
+	{
+		/*
+		* 以下情况需要取消编辑：
+		* 排序
+		* 设置视图
+		* 取消编辑
+		* 滚动
+		* 编辑组件失去焦点
+		* 编辑组件按键（Enter、Esc）
+		* 窗口位置大小改变
+		* 设置风格
+		* 鼠标按下
+		* 删除项目
+		* 表头变化
+		* 表头鼠标操作
+		*/
+		if (!m_bEnableExtEdit || !m_pEdit || m_idxEditing < 0 ||
+			m_pEdit->IsValid() != !m_bOwnerEdit)
+			return;
+		NMLVDISPINFOW nm{};
+		nm.item.iItem = m_idxEditing;
+		nm.item.iSubItem = m_idxEditSubItem;
+		m_idxEditing = m_idxEditSubItem = -1;
+		if (m_pEdit->IsValid())
+		{
+			const auto rsText = m_pEdit->GetText();
+			nm.item.pszText = (PWSTR)rsText.Data();
+			nm.item.cchTextMax = rsText.Size();
+			if (FillNmhdrAndSendNotify(nm, LVN_ENDLABELEDITW))
+			{
+				if (bSave)
+					if (m_pfnOwnerData)
+					{
+						LVE_ITEM_EXT ie;
+						ie.uMask = LVE_IM_TEXT;
+						ie.idxItem = nm.item.iItem;
+						ie.idxSubItem = nm.item.iSubItem;
+						ie.pszText = rsText.Data();
+						ie.cchText = rsText.Size();
+						m_pfnOwnerData(LveOd::SetDispInfo, &ie, m_pOdProcData);
+					}
+					else
+					{
+						LVITEMW li;
+						li.mask = LVIF_TEXT;
+						li.iItem = nm.item.iItem;
+						li.iSubItem = nm.item.iSubItem;
+						li.pszText = (PWSTR)rsText.Data();
+						SetItem(&li);
+					}
+			}
+			m_pEdit->Destroy();
+		}
+		else
+		{
+			nm.item.cchTextMax = (bSave ? 0 : -1);
+			FillNmhdrAndSendNotify(nm, LVN_ENDLABELEDITW);
+		}
+	}
+
+	void EnterEditDelay(int idx, int idxSubItemDisplay)
+	{
+		m_bWaitEditDelay = TRUE;
+		m_idxEditing = idx;
+		m_idxEditSubItem = idxSubItemDisplay;
+		SetTimer(HWnd, IDT_EDIT_DELAY, GetDoubleClickTime(), nullptr);
+	}
+
+	void CancelEditDelay()
+	{
+		if (!m_bWaitEditDelay)
+			return;
+		KillTimer(HWnd, IDT_EDIT_DELAY);
+		m_bWaitEditDelay = FALSE;
+	}
+
+	LRESULT OnMsgEdit(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)
+	{
+		switch (uMsg)
+		{
+		case WM_KILLFOCUS:
+			if (InSendMessage())
+				ReplyMessage(0);
+			CancelExtEdit(TRUE);
+			break;
+		case WM_KEYDOWN:
+			if (wParam == VK_RETURN)
+				CancelExtEdit(TRUE);
+			else if (wParam == VK_ESCAPE)
+				CancelExtEdit(FALSE);
+			break;
+		case WM_GETDLGCODE:
+			bProcessed = TRUE;
+			return DLGC_WANTALLKEYS | DLGC_HASSETSEL;
+		}
+		return 0;
+	}
+
+	void EnterEdit()
+	{
+		LVE_EDIT_INFO edi{};
+		if (!m_bOwnerEdit || m_bPrepareEditingInfo)
+		{
+			if (m_pfnOwnerData)
+			{
+				LVE_ITEM_EXT ie;
+				ie.uMask = LVE_IM_TEXT;
+				ie.idxItem = m_idxEditing;
+				ie.idxSubItem = m_idxEditSubItem;
+				ie.pszText = m_rsTextBuf.Data();
+				ie.cchText = m_rsTextBuf.Size();
+				m_pfnOwnerData(LveOd::GetDispInfo, &ie, m_pOdProcData);
+				edi.pszText = ie.pszText;
+				edi.cchText = ie.cchText;
+			}
+			else
+			{
+				LVITEMW li;
+				li.mask = LVIF_TEXT;
+				li.iItem = m_idxEditing;
+				li.iSubItem = m_idxEditSubItem;
+				li.pszText = m_rsTextBuf.Data();
+				li.cchTextMax = m_rsTextBuf.Size();
+				GetItem(&li);
+				edi.pszText = li.pszText;
+				edi.cchText = wcslen(li.pszText);
+			}
+
+			const auto hFont = HFont;
+			const auto hOld = SelectObject(m_DcAlpha.GetDC(), hFont);
+			GetTextExtentPoint32W(m_DcAlpha.GetDC(), edi.pszText, edi.cchText,
+				(SIZE*)&edi.rcIdeal + 1);
+			GetTextExtentPoint32W(m_DcAlpha.GetDC(), L"AA", 2, &edi.sizeExtra);
+			SelectObject(m_DcAlpha.GetDC(), hOld);
+
+
+			RCWH rcClient;
+			GetClientRect(HWnd, (RECT*)&rcClient);
+
+			RECT rc;
+			if (m_iViewType == LV_VIEW_DETAILS)
+				GetSubItemRect(m_idxEditing, m_idxEditSubItem,
+					&rc, LVIR_LABEL);
+			else
+				GetItemRect(m_idxEditing, &rc, LVIR_LABEL);
+			edi.rcIdeal.cy = (edi.sizeExtra.cy * 4 / 3);
+			if (edi.rcIdeal.cx < rc.right - rc.left)
+				edi.rcIdeal.cx = rc.right - rc.left;
+			else
+				edi.rcIdeal.cx += edi.sizeExtra.cx;
+			edi.rcIdeal.x = rc.left;
+			edi.rcIdeal.y = rc.top + (rc.bottom - rc.top - edi.rcIdeal.cy) / 2;
+
+			if (m_iViewType == LV_VIEW_DETAILS)
+			{
+				HDITEMW hdi;
+				hdi.mask = HDI_FORMAT;
+				m_Header.GetItem(m_idxEditSubItem, &hdi);
+				if (hdi.fmt & HDF_RIGHT)
+				{
+					edi.eAlign = Align::Far;
+					edi.rcIdeal.x = rc.right - edi.rcIdeal.cx;
+				}
+				else if (hdi.fmt & HDF_CENTER)
+				{
+					edi.eAlign = Align::Center;
+					edi.rcIdeal.x = rc.left + (rc.right - rc.left - edi.rcIdeal.cx) / 2;
+				}
+				else
+					edi.eAlign = Align::Near;
+			}
+			else
+			{
+				edi.eAlign = Align::Near;
+				edi.rcIdeal.x = rc.left + (rc.right - rc.left - edi.rcIdeal.cx) / 2;
+			}
+			if (IsRectInclude(edi.rcIdeal, rcClient))
+				AdjustRectIntoAnother(edi.rcIdeal, rcClient);
+		}
+
+		if (m_bOwnerEdit)
+		{
+			NMLVDISPINFOW nm{};
+			nm.item.iSubItem = m_idxEditSubItem;
+			nm.item.lParam = (LPARAM)&edi;
+			if (FillNmhdrAndSendNotify(nm, LVN_BEGINLABELEDITW))
+				m_idxEditing = -1;
+		}
+		else
+		{
+			if (!m_pEdit)
+				m_pEdit = new CEditExt{};
+
+			DWORD dwStyle = WS_VISIBLE | WS_CHILD;
+			if (edi.eAlign == Align::Far)
+				dwStyle |= ES_RIGHT;
+			else if (edi.eAlign == Align::Center)
+				dwStyle |= ES_CENTER;
+			m_pEdit->Create(edi.pszText, dwStyle, 0,
+				edi.rcIdeal.x, edi.rcIdeal.y, edi.rcIdeal.cx, edi.rcIdeal.cy,
+				HWnd, 0);
+			m_pEdit->SelAll();
+			SetFocus(m_pEdit->HWnd);
+			if (!m_hmsEdit)
+				m_hmsEdit = m_pEdit->GetSignal().Connect(this, &CListViewExt::OnMsgEdit);
+			m_pEdit->HFont = HFont;
+			m_pEdit->SetFrameType(5);
+			m_pEdit->FrameChanged();
 		}
 	}
 public:
@@ -820,7 +1081,7 @@ public:
 	ECKPROP(LveGetCtrlASelectAll, LveSetCtrlASelectAll)		BOOL CtrlASelectAll;
 	ECKPROP(LveGetImplOwnerDataNotify, LveSetImplOwnerDataNotify)	BOOL ImplOwnerDataNotify;
 	ECKPROP(LveGetDoNotWrapInTile, LveSetDoNotWrapInTile)	BOOL DoNotWrapInTile;
-	ECKPROP(LveGetOwnerDataBufferSize, LveSetOwnerDataBufferSize)	size_t OwnerDataBufferSize;
+	ECKPROP(LveGetOwnerDataBufferSize, LveSetOwnerDataBufferSize)	int OwnerDataBufferSize;
 	ECKPROP_W(LveSetHeaderHeight)							int HeaderHeight;
 
 	ECK_CWND_SINGLEOWNER;
@@ -829,34 +1090,26 @@ public:
 		for (const auto e : m_vRecycleData)
 			delete e;
 		m_vRecycleData.clear();
+		delete m_pEdit;
+		m_hmsEdit = nullptr;
+	}
+
+	void AttachNew(HWND hWnd) override
+	{
+		CWnd::AttachNew(hWnd);
+		InitForNewWindow(hWnd);
+	}
+
+	void DetachNew() override
+	{
+		CWnd::DetachNew();
+		CleanupForDestroyWindow();
 	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)
 		{
-		case WM_NOTIFY:
-		{
-			switch (((NMHDR*)lParam)->code)
-			{
-			case NM_CUSTOMDRAW:// for Header
-			{
-				const auto pnmcd = (NMCUSTOMDRAW*)lParam;
-				switch (pnmcd->dwDrawStage)
-				{
-				case CDDS_PREPAINT:
-					return CDRF_NOTIFYITEMDRAW;
-				case CDDS_ITEMPREPAINT:
-					SetTextColor(pnmcd->hdc, m_crHeaderText == CLR_DEFAULT ?
-						m_pThrCtx->crDefText : m_crHeaderText);
-					return CDRF_DODEFAULT;
-				}
-			}
-			return CDRF_DODEFAULT;
-			}
-		}
-		break;
-
 		case WM_PRINTCLIENT:
 		case WM_PAINT:
 		{
@@ -912,15 +1165,95 @@ public:
 		}
 		break;
 
+		case WM_NOTIFY:
+		{
+			if (m_bEditLabel && m_bEnableExtEdit && m_Header.HWnd == ((NMHDR*)lParam)->hwndFrom)
+			{
+				switch (((NMHDR*)lParam)->code)
+				{
+				case HDN_ITEMCHANGEDW:
+				case HDN_BEGINTRACKW:
+				case HDN_BEGINDRAG:
+				case HDN_BEGINFILTEREDIT:
+				case HDN_DIVIDERDBLCLICKW:
+					CancelExtEdit(FALSE);
+					break;
+				}
+			}
+		}
+		break;
+
+		case WM_TIMER:
+		{
+			if (wParam == IDT_EDIT_DELAY)
+			{
+				if (m_bWaitEditDelay)
+				{
+					CancelEditDelay();
+					EnterEdit();
+				}
+			}
+		}
+		break;
+
+		case WM_LBUTTONDOWN:
+		{
+			if (m_bEditLabel && m_bEnableExtEdit)
+			{
+				CancelEditDelay();
+				CancelExtEdit(TRUE);
+				LVHITTESTINFO lvhti;
+				lvhti.pt = ECK_GET_PT_LPARAM(lParam);
+				if (m_iViewType == LV_VIEW_DETAILS)
+					SubItemHitTest(&lvhti);
+				else
+				{
+					HitTest(&lvhti);
+					lvhti.iSubItem = 0;
+				}
+
+				if (lvhti.iItem >= 0 &&
+					GetItemState(lvhti.iItem, LVIS_SELECTED) == LVIS_SELECTED)
+				{
+					EnterEditDelay(lvhti.iItem, lvhti.iSubItem);
+				}
+			}
+		}
+		break;
+
+		case WM_LBUTTONUP:
+		case WM_LBUTTONDBLCLK:
+		case WM_RBUTTONDOWN:
+		case WM_RBUTTONUP:
+		case WM_RBUTTONDBLCLK:
+		case WM_MBUTTONDOWN:
+		case WM_MBUTTONUP:
+		case WM_MBUTTONDBLCLK:
+		case WM_MOUSEWHEEL:
+		case WM_MOUSEHWHEEL:
+			if (m_bEditLabel && m_bEnableExtEdit)
+				CancelExtEdit(TRUE);
+			break;
+		case LVM_SORTITEMS:
+		case LVM_SORTITEMSEX:
+		case LVM_SORTGROUPS:
+		case LVM_SCROLL:
+		case LVM_DELETEITEM:
+		case LVM_DELETEALLITEMS:
+		case WM_WINDOWPOSCHANGED:
+		case WM_HSCROLL:
+		case WM_VSCROLL:
+			if (m_bEditLabel && m_bEnableExtEdit)
+				CancelExtEdit(FALSE);
+			break;
+
 		case WM_KEYDOWN:
 			if (wParam == 'A' && !m_bSingleSel)
-			{
 				if (GetAsyncKeyState(VK_CONTROL) & 0x8000)
 				{
 					SetItemState(-1, LVIS_SELECTED, LVIS_SELECTED);
 					return 0;
 				}
-			}
 			break;
 
 		case WM_SETFOCUS:
@@ -959,52 +1292,34 @@ public:
 		case WM_STYLECHANGED:
 			if (wParam == GWL_STYLE)
 				UpdateStyleOptions(((STYLESTRUCT*)lParam)->styleNew);
+			if (m_bEditLabel && m_bEnableExtEdit)
+				CancelExtEdit(FALSE);
+			break;
+
+		case WM_STYLECHANGING:
+			if (wParam == GWL_STYLE && m_bEnableExtEdit)
+			{
+				const auto p = (STYLESTRUCT*)lParam;
+				if ((p->styleNew ^ p->styleOld) & LVS_EDITLABELS)
+				{
+					m_bEditLabel = !!(p->styleNew & LVS_EDITLABELS);
+					p->styleNew &= ~LVS_EDITLABELS;
+				}
+			}
 			break;
 
 		case WM_CREATE:
 		{
-			m_pThrCtx = GetThreadCtx();
-			m_cxEdge = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
-			m_DcAlpha.Create(hWnd, 1, 1);
 			const auto lResult = CListView::OnMsg(hWnd, uMsg, wParam, lParam);
 			if (!lResult)
-			{
-				if (const auto hHeader = GetHeaderCtrlHWnd(); hHeader)
-					m_Header.AttachNew(hHeader);
-				m_hTheme = OpenThemeData(hWnd, L"ListView");
-				m_iViewType = (int)GetView();
-				UpdateStyleOptions(Style);
-				UpdateLvExOptions(GetLVExtendStyle());
-				m_iDpi = GetDpi(hWnd);
-				m_bHasFocus = (GetFocus() == hWnd);
-				HandleThemeChange();
-			}
+				InitForNewWindow(hWnd);
 			return lResult;
 		}
 		break;
 
 		case WM_DESTROY:
-		{
-			CloseThemeData(m_hTheme);
-			m_hTheme = nullptr;
-			if (m_bInstalledHeaderHook)
-				m_Header.GetSignal().Disconnect(MHI_LVE_HEADER_HEIGHT);
-			(void)m_Header.DetachNew();
-			m_hIL[0] = m_hIL[1] = m_hIL[2] = m_hIL[3] = nullptr;
-			m_sizeIL[0] = m_sizeIL[1] = m_sizeIL[2] = m_sizeIL[3] = {};
-			m_cMaxTileCol = 0;
-			m_rcTileMargin = {};
-			m_cyFont = 0;
-			LveSetClrPack({});
-			m_bCustomDraw = m_bAutoDarkMode = m_bAlphaClrInDark =
-				m_bAutoColorPack = m_bAddSplitterForClr = m_bCtrlASelectAll = TRUE;
-			m_byColorAlpha = 70;
-			m_cyHeader = 0;
-			m_cchOdTextBuf = 0;
-			m_pfnOwnerData = nullptr;
-			m_pOdProcData = nullptr;
-		}
-		break;
+			CleanupForDestroyWindow();
+			break;
 
 		case LVM_SETTILEVIEWINFO:
 		{
@@ -1023,6 +1338,8 @@ public:
 
 		case LVM_SETVIEW:
 		{
+			if (m_bEditLabel && m_bEnableExtEdit)
+				CancelExtEdit(FALSE);
 			const auto lResult = CListView::OnMsg(hWnd, uMsg, wParam, lParam);
 			if (!m_Header.IsValid())
 				if (const auto hHeader = GetHeaderCtrlHWnd(); hHeader)
@@ -1090,11 +1407,8 @@ public:
 				if (p->item.mask & LVIF_TEXT)
 				{
 					ie.uMask |= LVE_IM_TEXT;
-					if (m_cchOdTextBuf)
-					{
-						ie.pszText = p->item.pszText;
-						ie.cchText = p->item.cchTextMax;
-					}
+					ie.pszText = m_rsTextBuf.Data();
+					ie.cchText = m_rsTextBuf.Size();
 				}
 				if (p->item.mask & LVIF_IMAGE)
 					ie.uMask |= LVE_IM_IMAGE;
@@ -1103,7 +1417,7 @@ public:
 				m_pfnOwnerData(LveOd::GetDispInfo, &ie, m_pOdProcData);
 				if (ie.uMask & LVE_IM_TEXT)
 				{
-					if (m_cchOdTextBuf)
+					if (!m_rsTextBuf.IsEmpty())
 						p->item.pszText = (PWSTR)ie.pszText;
 					else
 					{
@@ -1146,6 +1460,21 @@ public:
 				}
 			}
 			break;
+
+			case LVN_BEGINLABELEDITW:
+			{
+				if (!m_bEnableExtEdit)
+					break;
+				bProcessed = TRUE;
+				//OnBeginExtEdit(hParent, (NMLVDISPINFOW*)lParam);
+				return TRUE;// 取消编辑
+			}
+			break;
+
+			case LVN_ENDLABELEDITW:
+			{
+				int a{};
+			}
 			}
 		}
 		break;
@@ -1370,11 +1699,8 @@ public:
 	EckInline constexpr void LveSetDoNotWrapInTile(BOOL b) { m_bDoNotWrapInTile = b; }
 	EckInline constexpr BOOL LveGetDoNotWrapInTile() const { return m_bDoNotWrapInTile; }
 
-	EckInline constexpr void LveSetOwnerDataBufferSize(size_t cch)
-	{
-		m_cchOdTextBuf = std::min(cch, (size_t)MAX_PATH);
-	}
-	EckInline constexpr size_t LveGetOwnerDataBufferSize() const { return m_cchOdTextBuf; }
+	EckInline void LveSetOwnerDataBufferSize(int cch) { m_rsTextBuf.ReSize(cch); }
+	EckInline constexpr int LveGetOwnerDataBufferSize() const { return m_rsTextBuf.Size(); }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CListViewExt, CListView);
 ECK_NAMESPACE_END

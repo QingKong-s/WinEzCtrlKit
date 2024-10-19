@@ -101,7 +101,6 @@ static BOOL DefMsgFilter(const MSG&)
 FMsgFilter g_pfnMsgFilter = DefMsgFilter;
 
 #pragma region UxTheme Fixer
-// 为了对抗微软写的屎只能勾来勾去
 enum
 {
 	//===部件===
@@ -1125,8 +1124,6 @@ static HRESULT WINAPI NewGetThemePartSize(HTHEME hTheme, HDC hdc, int iPartId, i
 		{
 		case HP_HEADEROVERFLOW:
 		{
-			// 真不是我说你们傻逼主题管理器，你妈个比的按钮那么小测试看不见？
-			// 傻逼微软Vista之后估计也没管过标准控件了，玩你那傻逼稳有爱去吧
 			int iDpi;
 			if (hdc)
 				iDpi = GetDeviceCaps(hdc, LOGPIXELSX);
