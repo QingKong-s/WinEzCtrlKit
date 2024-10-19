@@ -91,6 +91,9 @@ protected:
 	HWND m_hWnd{};
 	WNDPROC m_pfnRealProc{ DefWindowProcW };
 	CSignal<Intercept_T, LRESULT, HWND, UINT, WPARAM, LPARAM> m_Sig{};
+public:
+	using HSlot = decltype(m_Sig)::HSlot;
+protected:
 
 	EckInline HWND IntCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,

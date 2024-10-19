@@ -744,6 +744,18 @@ inline constexpr void UnionRect(RCWH& rcDst, const RCWH& rcSrc1, const RCWH& rcS
 	}
 }
 
+EckInline constexpr BOOL IsRectInclude(const RECT& rcIn, const RECT& rcOut)
+{
+	return rcIn.left <= rcOut.left && rcIn.top <= rcOut.top &&
+		rcIn.right >= rcOut.right && rcIn.bottom >= rcOut.bottom;
+}
+
+EckInline constexpr BOOL IsRectInclude(const RCWH& rcIn, const RCWH& rcOut)
+{
+	return rcIn.x <= rcOut.x && rcIn.y <= rcOut.y &&
+		rcIn.x + rcIn.cx >= rcOut.x + rcOut.cx && rcIn.y + rcIn.cy >= rcOut.y + rcOut.cy;
+}
+
 EckInline constexpr bool operator==(const D2D1_RECT_F& rc1, const D2D1_RECT_F& rc2)
 {
 	return rc1.left == rc2.left && rc1.top == rc2.top &&
@@ -865,6 +877,28 @@ inline constexpr BOOL AdjustRectIntoAnother(RECT& rc, const RECT& rcRef)
 	if (dyBottom < 0)
 		dyBottom = INT_MAX;
 	OffsetRect(rc, std::min(dxLeft, dxRight), std::min(dyTop, dyBottom));
+	return TRUE;
+}
+
+/// <summary>
+/// 调整矩形以完全包含。
+/// 函数以最小的距离偏移矩形使之完全处于参照矩形当中
+/// </summary>
+/// <param name="rc">要调整的矩形</param>
+/// <param name="rcRef">参照矩形</param>
+/// <returns>成功返回TRUE，失败返回FALSE</returns>
+inline constexpr BOOL AdjustRectIntoAnother(RCWH& rc, const RCWH& rcRef)
+{
+	if (rc.cx > rcRef.cx || rc.cy > rcRef.cy)
+		return FALSE;
+	int dx = rcRef.x - rc.x;
+	if (dx < 0)
+		dx = INT_MAX;
+	int dy = rcRef.y - rc.y;
+	if (dy < 0)
+		dy = INT_MAX;
+	OffsetRect(rc, std::min(dx, rcRef.x + rcRef.cx - rc.x - rc.cx), 
+		std::min(dy, rcRef.y + rcRef.cy - rc.y - rc.cy));
 	return TRUE;
 }
 

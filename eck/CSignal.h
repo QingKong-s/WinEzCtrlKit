@@ -270,5 +270,17 @@ public:
 	}
 
 	HSlot GetHead() const { return m_pHead; }
+
+	void Clear()
+	{
+		auto pNode = m_pHead;
+		while (pNode)
+		{
+			const auto pNext = pNode->pNext;
+			Disconnect(pNode);
+			pNode = pNext;
+		}
+		CleanupNow();
+	}
 };
 ECK_NAMESPACE_END
