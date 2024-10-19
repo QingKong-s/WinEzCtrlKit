@@ -2,70 +2,312 @@
 * WinEzCtrlKit Library
 *
 * CButton.h ： 标准按钮
-* 包含按钮的所有变体
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include "CWnd.h"
-#include "CRefStr.h"
-#include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
-
 inline constexpr int
-DATAVER_BUTTON_1 = 1,
-DATAVER_PUSHBUTTON_1 = 1,
-DATAVER_CHECKBUTTON_1 = 1,
-DATAVER_COMMANDLINK_1 = 1;
+CDV_BUTTON_1 = 1;
 
 #pragma pack(push, ECK_CTRLDATA_ALIGN)
-struct CREATEDATA_PUSHBUTTON
+struct CREATEDATA_BUTTON
 {
 	int iVer;
-	BITBOOL bShowTextAndImage : 1;
-};
-
-struct CREATEDATA_CHECKBUTTON
-{
-	int iVer;
-	BITBOOL bShowTextAndImage : 1;
-	ECKENUM eCheckState;
-};
-
-struct CREATEDATA_COMMANDLINK
-{
-	int iVer;
-	int cchNote;
 	BITBOOL bShieldIcon : 1;
-	// WCHAR szNote[];
+	BITBOOL bDontClick : 1;
+	BYTE eCheckState;
+	DWORD cchNote;
+	// WCHAR szNote[];// 长度为cchNote + 1
 
-	EckInline PCWSTR Note() const
+	EckInline constexpr PCWSTR Note() const
 	{
-		if (cchNote)
-			return (PCWSTR)PtrSkipType(this);
-		else
-			return nullptr;
+		return (PCWSTR)PtrSkipType(this);
 	}
 };
-
-#ifdef ECK_CTRL_DESIGN_INTERFACE
-struct DESIGNDATA_PUSHBUTTON
-{
-
-};
-
-#endif
 #pragma pack(pop)
 
-// 按钮基类。
-// 请勿直接实例化此类
+inline constexpr DWORD ButtonTypeMask = (BS_PUSHBUTTON | BS_DEFPUSHBUTTON |
+	BS_SPLITBUTTON | BS_DEFSPLITBUTTON | BS_COMMANDLINK | BS_DEFCOMMANDLINK |
+	BS_RADIOBUTTON | BS_AUTORADIOBUTTON | BS_CHECKBOX | BS_AUTOCHECKBOX |
+	BS_3STATE | BS_AUTO3STATE | BS_GROUPBOX);
+
+#define ECK_BUTTON_DEP_SET \
+	[[deprecated("Please use SetButtonType instead.")]]
+#define ECK_BUTTON_DEP_GET \
+	[[deprecated("Please use GetButtonType instead.")]]
+#define ECK_BUTTON_DEP_SET_DEF \
+	[[deprecated("Please use SetButtonDefault instead.")]]
+#define ECK_BUTTON_DEP_GET_DEF \
+	[[deprecated("Please use GetButtonDefault instead.")]]
+
+// 建议直接使用此类代替其他细分类
 class CButton :public CWnd
 {
-protected:
-	BOOL m_bShowTextAndImage = FALSE;
 public:
 	ECK_RTTI(CButton);
+
+	enum class Type
+	{
+		PushButton,
+		DefPushButton,
+		CheckBox,
+		AutoCheckButton,
+		RadioButton,
+		TripleState,
+		AutoTripleState,
+		GroupBox,
+		UserButton,// 已弃用
+		AutoRadioButton,
+		PushBox,// 与PushButton类似，但仅显示文本
+		OwnerDraw,
+		SplitButton,
+		DefSplitButton,
+		CommandLink,
+		DefCommandLink,
+
+		Unknown = -1
+	};
+protected:
+	BITBOOL m_bShieldIcon : 1{};
+	BITBOOL m_bDontClick : 1{TRUE};
+public:
+	ECK_CWNDPROP_STYLE(TripleState, BS_3STATE);
+	ECK_CWNDPROP_STYLE(AutoTripleState, BS_AUTO3STATE);
+	ECK_CWNDPROP_STYLE(AutoCheckButton, BS_AUTOCHECKBOX);
+	ECK_CWNDPROP_STYLE(AutoRadioButton, BS_AUTORADIOBUTTON);
+	ECK_CWNDPROP_STYLE(ShowBitmap, BS_BITMAP);
+	ECK_CWNDPROP_STYLE(AlignBottom, BS_BOTTOM);
+	ECK_CWNDPROP_STYLE(AlignCenter, BS_CENTER);
+	ECK_CWNDPROP_STYLE(CheckBox, BS_CHECKBOX);
+	ECK_CWNDPROP_STYLE(CommandLink, BS_COMMANDLINK);
+	ECK_CWNDPROP_STYLE(DefCommandLink, BS_DEFCOMMANDLINK);
+	ECK_CWNDPROP_STYLE(DefPushButton, BS_DEFPUSHBUTTON);
+	ECK_CWNDPROP_STYLE(DefSplitButton, BS_DEFSPLITBUTTON);
+	ECK_CWNDPROP_STYLE(GroupBox, BS_GROUPBOX);
+	ECK_CWNDPROP_STYLE(ShowIcon, BS_ICON);
+	ECK_CWNDPROP_STYLE(Flat, BS_FLAT);
+	ECK_CWNDPROP_STYLE(AlignLeft, BS_LEFT);
+	ECK_CWNDPROP_STYLE(MultiLine, BS_MULTILINE);
+	ECK_CWNDPROP_STYLE(Notify, BS_NOTIFY);
+	ECK_CWNDPROP_STYLE(OwnerDraw, BS_OWNERDRAW);
+	ECK_CWNDPROP_STYLE(PushButton, BS_PUSHBUTTON);
+	ECK_CWNDPROP_STYLE(PushLike, BS_PUSHLIKE);
+	ECK_CWNDPROP_STYLE(RadioButton, BS_RADIOBUTTON);
+	ECK_CWNDPROP_STYLE(AlignRight, BS_RIGHT);
+	ECK_CWNDPROP_STYLE(RightButton, BS_RIGHTBUTTON);
+	ECK_CWNDPROP_STYLE(SplitButton, BS_SPLITBUTTON);
+	ECK_CWNDPROP_STYLE(ShowText, BS_TEXT);
+	ECK_CWNDPROP_STYLE(AlignTop, BS_TOP);
+	ECK_CWNDPROP_STYLE(AlignVCenter, BS_VCENTER);
+
+	ECK_CWND_CREATE;
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
+	{
+		if (pData)
+		{
+			const auto* const pBase = (const CTRLDATA_WND*)pData;
+			const auto* const p = (const CREATEDATA_BUTTON*)SkipBaseData(pData);
+			if (pBase->iVer < CDV_WND_1)
+			{
+				EckDbgBreak();
+				return nullptr;
+			}
+
+			IntCreate(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), pBase->dwStyle,
+				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
+			switch (p->iVer)
+			{
+			case CDV_BUTTON_1:
+				m_bShieldIcon = p->bShieldIcon;
+				SetCheckState(p->eCheckState);
+				SetDontClick(p->bDontClick);
+				if (p->cchNote)
+					SetNote(p->Note());
+				break;
+			default:
+				EckDbgBreak();
+				break;
+			}
+		}
+		else
+		{
+			IntCreate(dwExStyle, WC_BUTTONW, pszText, dwStyle,
+				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
+		}
+		return m_hWnd;
+	}
+
+	void SerializeData(CRefBin& rb) override
+	{
+		auto cchNote = GetNoteLength();
+		const SIZE_T cbSize = sizeof(CREATEDATA_BUTTON) +
+			(cchNote + 1) * sizeof(WCHAR);
+		CWnd::SerializeData(rb);
+		CMemWriter w(rb.PushBack(cbSize), cbSize);
+
+		CREATEDATA_BUTTON* p;
+		w.SkipPointer(p);
+		p->iVer = CDV_BUTTON_1;
+		p->eCheckState = GetCheckState();
+		p->bShieldIcon = m_bShieldIcon;
+		p->bDontClick = m_bDontClick;
+		p->cchNote = cchNote;
+		if (cchNote)
+		{
+			++cchNote;
+			GetNote((PWSTR)w.Data(), cchNote);
+		}
+		else
+			*(PWSTR)w.Data() = L'\0';
+	}
+
+	EckInline BOOL GetIdealSize(SIZE* psize) const
+	{
+		return (int)SendMsg(BCM_GETIDEALSIZE, 0, (LPARAM)psize);
+	}
+
+	EckInline BOOL GetImageList(BUTTON_IMAGELIST* pbil)
+	{
+		return (BOOL)SendMsg(BCM_GETIMAGELIST, 0, (LPARAM)pbil);
+	}
+
+	EckInline BOOL GetNote(PWSTR pszBuf, DWORD& cchBuf)
+	{
+		return (BOOL)SendMsg(BCM_GETNOTE, (WPARAM)&cchBuf, (LPARAM)pszBuf);
+	}
+
+	EckInline [[nodiscard]] DWORD GetNoteLength()
+	{
+		return (DWORD)SendMsg(BCM_GETNOTELENGTH, 0, 0);
+	}
+
+	BOOL GetNote(CRefStrW& rs)
+	{
+		DWORD cch = GetNoteLength();
+		if (!cch)
+			return FALSE;
+		rs.PushBack(cch);
+		++cch;
+		return GetNote(rs.Data(), cch);
+	}
+
+	// For compatibility
+	EckInline [[nodiscard]] CRefStrW GetNote()
+	{
+		CRefStrW rs;
+		GetNote(rs);
+		return rs;
+	}
+
+	EckInline BOOL GetSplitInfo(BUTTON_SPLITINFO* pbsi)
+	{
+		return (BOOL)SendMsg(BCM_GETSPLITINFO, 0, (LPARAM)pbsi);
+	}
+
+	EckInline BOOL GetTextMargin(RECT* prc)
+	{
+		return (BOOL)SendMsg(BCM_GETTEXTMARGIN, 0, (LPARAM)prc);
+	}
+
+	EckInline BOOL SetDropDownState(BOOL bDropDown)
+	{
+		return (BOOL)SendMsg(BCM_SETDROPDOWNSTATE, bDropDown, 0);
+	}
+
+	EckInline BOOL SetImageList(BUTTON_IMAGELIST* pbil)
+	{
+		return (BOOL)SendMsg(BCM_SETIMAGELIST, 0, (LPARAM)pbil);
+	}
+
+	EckInline BOOL SetNote(PCWSTR pszText)
+	{
+		return (BOOL)SendMsg(BCM_SETNOTE, 0, (LPARAM)pszText);
+	}
+
+	EckInline void SetShieldIcon(BOOL bShieldIcon)
+	{
+		m_bShieldIcon = !!bShieldIcon;
+		SendMessageW(m_hWnd, BCM_SETSHIELD, 0, bShieldIcon);
+	}
+
+	// 获取内部记录的图标状态
+	EckInline [[nodiscard]] constexpr BOOL GetShieldIcon()
+	{
+		return m_bShieldIcon;
+	}
+
+	EckInline constexpr void SetShieldIconInternalFlag(BOOL b) { m_bShieldIcon = !!b; }
+
+	EckInline BOOL SetSplitInfo(BUTTON_SPLITINFO* pbsi)
+	{
+		return (BOOL)SendMsg(BCM_SETSPLITINFO, 0, (LPARAM)pbsi);
+	}
+
+	EckInline BOOL SetTextMargin(RECT* prc)
+	{
+		return (BOOL)SendMsg(BCM_SETTEXTMARGIN, 0, (LPARAM)prc);
+	}
+
+	EckInline void Click() { SendMsg(BM_CLICK, 0, 0); }
+
+	EckInline void SetCheckState(int iState) { SendMsg(BM_SETCHECK, iState, 0); }
+
+	EckInline int GetCheckState() { return (int)SendMsg(BM_GETCHECK, 0, 0); }
+
+	EckInline [[nodiscard]] HANDLE GetImage(UINT uType) const
+	{
+		return (HANDLE)SendMsg(BM_GETIMAGE, uType, 0);
+	}
+
+	EckInline [[nodiscard]] UINT GetState() const { return (UINT)SendMsg(BM_GETSTATE, 0, 0); }
+
+	EckInline void SetDontClick(BOOL bDontClick) { SendMsg(BM_SETDONTCLICK, bDontClick, 0); }
+
+	EckInline HANDLE SetImage(HANDLE hImage, UINT uType)
+	{
+		return (HANDLE)SendMsg(BM_SETIMAGE, uType, (LPARAM)hImage);
+	}
+
+	// 该消息仅能设置按下状态
+	EckInline void SetState(BOOL bPressed) { SendMsg(BM_SETSTATE, bPressed, 0); }
+
+	EckInline void SetButtonStyle(DWORD dwStyle, BOOL bRedraw = TRUE)
+	{
+		SendMsg(BM_SETSTYLE, dwStyle, bRedraw);
+	}
+
+	EckInline Type GetButtonType() const { return Type(Style & ButtonTypeMask); }
+
+	void SetButtonType(Type eType)
+	{
+		Style = (Style & ~ButtonTypeMask) | (DWORD)eType;
+	}
+
+	BOOL GetButtonDefault() const
+	{
+		return !!(Style &
+			(BS_DEFPUSHBUTTON | BS_DEFSPLITBUTTON | BS_DEFCOMMANDLINK));
+	}
+
+	void SetButtonDefault(BOOL bDef)
+	{
+		auto dwStyle = Style;
+		auto iType = dwStyle & ButtonTypeMask;
+		if (iType == BS_PUSHBUTTON || iType == BS_DEFPUSHBUTTON)
+			iType = bDef ? BS_DEFPUSHBUTTON : BS_PUSHBUTTON;
+		else if (iType == BS_SPLITBUTTON || iType == BS_DEFSPLITBUTTON)
+			iType = bDef ? BS_DEFSPLITBUTTON : BS_SPLITBUTTON;
+		else if (iType == BS_COMMANDLINK || iType == BS_DEFCOMMANDLINK)
+			iType = bDef ? BS_DEFCOMMANDLINK : BS_COMMANDLINK;
+		else
+			return;
+		dwStyle = (dwStyle & ~ButtonTypeMask) | iType;
+		Style = dwStyle;
+	}
 
 	/// <summary>
 	/// 置图片文本同时显示
@@ -73,7 +315,6 @@ public:
 	/// <param name="bShowTextAndImage">是否同时显示</param>
 	void SetTextImageShowing(BOOL bShowTextAndImage)
 	{
-		m_bShowTextAndImage = bShowTextAndImage;
 		DWORD dwStyle = GetStyle();
 		if (bShowTextAndImage)
 			dwStyle &= ~(BS_BITMAP);
@@ -82,17 +323,6 @@ public:
 		SetStyle(dwStyle);
 	}
 
-	/// <summary>
-	/// 取图片文本同时显示
-	/// </summary>
-	/// <returns>是否同时显示</returns>
-	EckInline BOOL GetTextImageShowing() const { return m_bShowTextAndImage; }
-
-	/// <summary>
-	/// 置对齐
-	/// </summary>
-	/// <param name="bHAlign">是否水平对齐</param>
-	/// <param name="iAlign">对齐，参见属性定义</param>
 	void SetAlign(BOOL bHAlign, Align iAlign)
 	{
 		DWORD dwStyle = GetStyle();
@@ -117,14 +347,8 @@ public:
 			}
 		}
 		SetStyle(dwStyle);
-		Redraw();
 	}
 
-	/// <summary>
-	/// 取对齐
-	/// </summary>
-	/// <param name="bHAlign">是否水平对齐</param>
-	/// <returns>对齐，参见属性定义</returns>
 	Align GetAlign(BOOL bHAlign)
 	{
 		DWORD dwStyle = GetStyle();
@@ -147,87 +371,22 @@ public:
 				return Align::Near;
 		}
 	}
-
-	EckInline void SetImage(HANDLE hImage, UINT uType)
-	{
-		SendMsg(BM_SETIMAGE, uType, (LPARAM)hImage);
-	}
-
-	EckInline void SetMultiLine(BOOL bMultiLine)
-	{
-		ModifyStyle(bMultiLine ? BS_MULTILINE : 0, BS_MULTILINE);
-	}
-
-	EckInline BOOL GetMultiLine()
-	{
-		return IsBitSet(GetStyle(), BS_MULTILINE);
-	}
-}; 
+};
 ECK_RTTI_IMPL_BASE_INLINE(CButton, CWnd);
 
 // 普通按钮
 class CPushButton :public CButton
 {
 public:
-	ECK_RTTI(CPushButton);
-
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		if (pData)
-		{
-			auto pBase = (const CTRLDATA_WND*)pData;
-			auto p = (const CREATEDATA_PUSHBUTTON*)SkipBaseData(pData);
-			if (pBase->iVer != CDV_WND_1)
-			{
-				EckDbgBreak();
-				return nullptr;
-			}
-
-			m_hWnd = IntCreate(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), pBase->dwStyle,
-				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
-
-			switch (p->iVer)
-			{
-			case DATAVER_PUSHBUTTON_1:
-				SetTextImageShowing(p->bShowTextAndImage);
-				break;
-			default:
-				EckDbgBreak();
-				break;
-			}
-		}
-		else
-		{
-			dwStyle |= WS_CHILD;
-			m_hWnd = IntCreate(dwExStyle, WC_BUTTONW, pszText, dwStyle,
-				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
-		}
-
-		return m_hWnd;
-	}
-
-	void SerializeData(CRefBin& rb) override
-	{
-		const SIZE_T cbSize = sizeof(CREATEDATA_PUSHBUTTON);
-		CWnd::SerializeData(rb);
-		CMemWriter w(rb.PushBack(cbSize), cbSize);
-
-		CREATEDATA_PUSHBUTTON* p;
-		w.SkipPointer(p);
-		p->iVer = DATAVER_PUSHBUTTON_1;
-		p->bShowTextAndImage = GetTextImageShowing();
-	}
-
 	/// <summary>
 	/// 置类型
 	/// </summary>
 	/// <param name="iType">类型，0 - 普通  1 - 拆分</param>
-	void SetType(int iType)
+	ECK_BUTTON_DEP_SET void SetType(int iType)
 	{
-		BOOL bDef = GetDef();
-		DWORD dwStyle = GetStyle() & ~(BS_PUSHBUTTON | BS_SPLITBUTTON | BS_DEFPUSHBUTTON | BS_DEFSPLITBUTTON);
+		const BOOL bDef = GetDef();
+		DWORD dwStyle = GetStyle() &
+			~(BS_PUSHBUTTON | BS_SPLITBUTTON | BS_DEFPUSHBUTTON | BS_DEFSPLITBUTTON);
 
 		switch (iType)
 		{
@@ -240,16 +399,15 @@ public:
 		}
 
 		SetStyle(dwStyle);
-		Redraw();
 	}
 
 	/// <summary>
 	/// 取类型
 	/// </summary>
-	/// <returns>类型，0 - 普通  1 - 拆分</returns>
-	int GetType()
+	/// <returns>类型，0 - 普通  1 - 拆分  -1 - 未知</returns>
+	ECK_BUTTON_DEP_GET int GetType()
 	{
-		DWORD dwStyle = GetStyle();
+		const auto dwStyle = GetStyle();
 		if (IsBitSet(dwStyle, BS_SPLITBUTTON) || IsBitSet(dwStyle, BS_DEFSPLITBUTTON))
 			return 1;
 		else if (IsBitSet(dwStyle, BS_PUSHBUTTON) || IsBitSet(dwStyle, BS_DEFPUSHBUTTON))
@@ -257,14 +415,11 @@ public:
 		return -1;
 	}
 
-	/// <summary>
-	/// 置是否默认
-	/// </summary>
-	/// <param name="iDef">是否默认</param>
-	void SetDef(BOOL bDef)
+	ECK_BUTTON_DEP_SET_DEF void SetDef(BOOL bDef)
 	{
-		int iType = GetType();
-		DWORD dwStyle = GetStyle() & ~(BS_DEFPUSHBUTTON | BS_DEFSPLITBUTTON | BS_PUSHBUTTON | BS_SPLITBUTTON);
+		const int iType = GetType();
+		DWORD dwStyle = GetStyle() &
+			~(BS_DEFPUSHBUTTON | BS_DEFSPLITBUTTON | BS_PUSHBUTTON | BS_SPLITBUTTON);
 		if (bDef)
 			if (iType)
 				dwStyle |= BS_DEFSPLITBUTTON;
@@ -279,102 +434,40 @@ public:
 		SetStyle(dwStyle);
 	}
 
-	/// <summary>
-	/// 取是否默认
-	/// </summary>
-	EckInline BOOL GetDef()
+	ECK_BUTTON_DEP_GET_DEF EckInline BOOL GetDef()
 	{
-		DWORD dwStyle = GetStyle();
+		const auto dwStyle = GetStyle();
 		return (IsBitSet(dwStyle, BS_DEFSPLITBUTTON) || IsBitSet(dwStyle, BS_DEFPUSHBUTTON));
 	}
 };
-ECK_RTTI_IMPL_BASE_INLINE(CPushButton, CButton);
 
 // 选择框
 class CCheckButton :public CButton
 {
 public:
-	ECK_RTTI(CCheckButton);
-
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		if (pData)
-		{
-			auto pBase = (const CTRLDATA_WND*)pData;
-			auto p = (const CREATEDATA_CHECKBUTTON*)SkipBaseData(pData);
-			if (pBase->iVer != CDV_WND_1)
-			{
-				EckDbgBreak();
-				return nullptr;
-			}
-
-			m_hWnd = IntCreate(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), pBase->dwStyle,
-				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
-
-			switch (p->iVer)
-			{
-			case DATAVER_CHECKBUTTON_1:
-				SetTextImageShowing(p->bShowTextAndImage);
-				SetCheckState(p->eCheckState);
-				break;
-			default:
-				EckDbgBreak();
-				break;
-			}
-		}
-		else
-		{
-			dwStyle |= WS_CHILD;
-			m_hWnd = IntCreate(dwExStyle, WC_BUTTONW, pszText, dwStyle,
-				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
-		}
-
-		/*
-		* 有一个专用于单选按钮的状态叫做BST_DONTCLICK，
-		* 如果未设置这个状态，那么按钮每次获得焦点都会产生BN_CLICKED，
-		* 发送BM_SETDONTCLICK设置它防止事件错误生成
-		*/
-		SendMsg(BM_SETDONTCLICK, TRUE, 0);
-		return m_hWnd;
-	}
-
-	void SerializeData(CRefBin& rb) override
-	{
-		const SIZE_T cbSize = sizeof(CREATEDATA_CHECKBUTTON);
-		CWnd::SerializeData(rb);
-		CMemWriter w(rb.PushBack(cbSize), cbSize);
-
-		CREATEDATA_CHECKBUTTON* p;
-		w.SkipPointer(p);
-		p->iVer = DATAVER_CHECKBUTTON_1;
-		p->bShowTextAndImage = GetTextImageShowing();
-		p->eCheckState = GetCheckState();
-	}
-
 	/// <summary>
 	/// 置类型
 	/// </summary>
 	/// <param name="iType">类型，0 - 单选框  1 - 复选框  2 - 三态复选框</param>
-	void SetType(int iType)
+	ECK_BUTTON_DEP_SET void SetType(int iType)
 	{
-		DWORD dwStyle = GetStyle() & ~(BS_AUTORADIOBUTTON | BS_AUTOCHECKBOX | BS_AUTO3STATE);
+		DWORD dwStyle = GetStyle() &
+			~(BS_AUTORADIOBUTTON | BS_AUTOCHECKBOX | BS_AUTO3STATE);
 		switch (iType)
 		{
-		case 0:dwStyle |= BS_AUTORADIOBUTTON; break;
-		case 1:dwStyle |= BS_AUTOCHECKBOX; break;
-		case 2:dwStyle |= BS_AUTO3STATE; break;
-		default:assert(FALSE); break;
+		case 0: dwStyle |= BS_AUTORADIOBUTTON; break;
+		case 1: dwStyle |= BS_AUTOCHECKBOX; break;
+		case 2: dwStyle |= BS_AUTO3STATE; break;
+		default: EckDbgBreak(); return;
 		}
 		SetStyle(dwStyle);
-		Redraw();
 	}
 
 	/// <summary>
 	/// 取类型
 	/// </summary>
-	int GetType()
+	/// <returns>类型，0 - 单选框  1 - 复选框  2 - 三态复选框  -1 - 未知</returns>
+	ECK_BUTTON_DEP_GET int GetType()
 	{
 		DWORD dwStyle = GetStyle();
 		if (IsBitSet(dwStyle, BS_AUTORADIOBUTTON))
@@ -386,217 +479,16 @@ public:
 		else
 			return -1;
 	}
-
-	/// <summary>
-	/// 置检查框状态
-	/// </summary>
-	/// <param name="iState">状态，0 - 未选中  1 - 选中  2 - 半选中</param>
-	void SetCheckState(int iState)
-	{
-		UINT uState;
-		switch (iState)
-		{
-		case 0:uState = BST_UNCHECKED; break;
-		case 1:uState = BST_CHECKED; break;
-		case 2:uState = BST_INDETERMINATE; break;
-		default:assert(FALSE); break;
-		}
-		SendMsg(BM_SETCHECK, uState, 0);
-	}
-
-	/// <summary>
-	/// 取检查框状态
-	/// </summary>
-	int GetCheckState()
-	{
-		UINT uState = (UINT)SendMsg(BM_GETCHECK, 0, 0);
-		if (IsBitSet(uState, BST_CHECKED))
-			return 1;
-		else if (IsBitSet(uState, BST_INDETERMINATE))
-			return 2;
-		else
-			return 0;
-	}
-
-	/// <summary>
-	/// 置按钮形式
-	/// </summary>
-	/// <param name="bPushLike">是否为按钮形式</param>
-	EckInline void SetPushLike(BOOL bPushLike)
-	{
-		ModifyStyle(bPushLike ? BS_PUSHLIKE : 0, BS_PUSHLIKE);
-		Redraw();
-	}
-
-	/// <summary>
-	/// 取按钮形式
-	/// </summary>
-	/// <returns></returns>
-	EckInline BOOL GetPushLike()
-	{
-		return IsBitSet(GetStyle(), BS_PUSHLIKE);
-	}
-
-	/// <summary>
-	/// 置平面形式
-	/// </summary>
-	/// <param name="bFlat">是否为平面形式</param>
-	EckInline void SetFlat(BOOL bFlat)
-	{
-		ModifyStyle(bFlat ? BS_FLAT : 0, BS_FLAT);
-		Redraw();
-	}
-
-	/// <summary>
-	/// 取平面形式
-	/// </summary>
-	EckInline BOOL GetFlat()
-	{
-		return IsBitSet(GetStyle(), BS_FLAT);
-	}
-
-	/// <summary>
-	/// 置文本居左
-	/// </summary>
-	/// <param name="bLeftText">是否文本居左</param>
-	EckInline void SetLeftText(BOOL bLeftText)
-	{
-		ModifyStyle(bLeftText ? BS_LEFTTEXT : 0, BS_LEFTTEXT);
-		Redraw();
-	}
-
-	/// <summary>
-	/// 取文本居左
-	/// </summary>
-	/// <returns></returns>
-	EckInline BOOL GetLeftText()
-	{
-		return IsBitSet(GetStyle(), BS_LEFTTEXT);
-	}
 };
-ECK_RTTI_IMPL_BASE_INLINE(CCheckButton, CButton);
 
 // 命令链接
 class CCommandLink :public CButton
 {
-private:
-	BITBOOL m_bShieldIcon : 1;
 public:
-	ECK_RTTI(CCommandLink);
-
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
+	ECK_BUTTON_DEP_SET_DEF void SetDef(BOOL bDef)
 	{
-		if (pData)
-		{
-			auto pBase = (const CTRLDATA_WND*)pData;
-			auto p = (const CREATEDATA_COMMANDLINK*)SkipBaseData(pData);
-			if (pBase->iVer != CDV_WND_1)
-			{
-				EckDbgBreak();
-				return nullptr;
-			}
-
-			m_hWnd = IntCreate(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), pBase->dwStyle,
-				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
-
-			switch (p->iVer)
-			{
-			case DATAVER_COMMANDLINK_1:
-				SetShieldIcon(p->bShieldIcon);
-				SetNote(p->Note());
-				break;
-			default:
-				EckDbgBreak();
-				break;
-			}
-		}
-		else
-		{
-			dwStyle &= ~(BS_PUSHBUTTON | BS_DEFPUSHBUTTON | BS_SPLITBUTTON | BS_DEFSPLITBUTTON | BS_CHECKBOX);
-			dwStyle |= WS_CHILD;
-			if (!IsBitSet(dwStyle, BS_COMMANDLINK | BS_DEFCOMMANDLINK))
-				dwStyle |= BS_COMMANDLINK;
-			m_hWnd = IntCreate(dwExStyle, WC_BUTTONW, pszText, dwStyle,
-				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
-		}
-
-		return m_hWnd;
-	}
-
-	void SerializeData(CRefBin&rb) override
-	{
-		auto rsNote = GetNote();
-		const SIZE_T cbSize = sizeof(CREATEDATA_COMMANDLINK) + rsNote.ByteSize();
-		CWnd::SerializeData(rb);
-		CMemWriter w(rb.PushBack(cbSize), cbSize);
-		CREATEDATA_COMMANDLINK* p;
-		w.SkipPointer(p);
-		p->iVer = DATAVER_COMMANDLINK_1;
-		p->cchNote = rsNote.Size();
-		p->bShieldIcon = GetShieldIcon();
-
-		w << rsNote;
-	}
-
-	/// <summary>
-	/// 置注释文本
-	/// </summary>
-	/// <param name="pszText">文本指针</param>
-	/// <returns>成功返回TRUE，失败返回FALSE</returns>
-	EckInline BOOL SetNote(PCWSTR pszText)
-	{
-		return (BOOL)SendMsg(BCM_SETNOTE, 0, (LPARAM)pszText);
-	}
-
-	/// <summary>
-	/// 取注释文本。
-	/// </summary>
-	CRefStrW GetNote()
-	{
-		CRefStrW rs;
-		int cch = (int)SendMsg(BCM_GETNOTELENGTH, 0, 0);
-		if (cch)
-		{
-			rs.ReSize(cch);
-			++cch;
-			SendMsg(BCM_GETNOTE, (WPARAM)&cch, (LPARAM)rs.Data());
-		}
-		return rs;
-	}
-
-	BOOL GetNote(PWSTR pszBuf, int& cchBuf)
-	{
-		return (BOOL)SendMsg(BCM_GETNOTE, (WPARAM)&cchBuf, (LPARAM)pszBuf);
-	}
-
-	/// <summary>
-	/// 置盾牌图标
-	/// </summary>
-	/// <param name="bShieldIcon">是否为盾牌图标</param>
-	EckInline void SetShieldIcon(BOOL bShieldIcon)
-	{
-		m_bShieldIcon = bShieldIcon;
-		SendMessageW(m_hWnd, BCM_SETSHIELD, 0, bShieldIcon);
-	}
-
-	/// <summary>
-	/// 取盾牌图标
-	/// </summary>
-	/// <returns></returns>
-	EckInline BOOL GetShieldIcon()
-	{
-		return m_bShieldIcon;// 这个东西只能置不能取.....把记录的值返回回去吧
-	}
-
-	/// <summary>
-	/// 置是否默认
-	/// </summary>
-	/// <param name="bDef">是否默认</param>
-	void SetDef(BOOL bDef)
-	{
-		DWORD dwStyle = GetStyle() & ~(BS_DEFPUSHBUTTON | BS_PUSHBUTTON | BS_DEFCOMMANDLINK | BS_COMMANDLINK);
+		DWORD dwStyle = GetStyle() &
+			~(BS_DEFPUSHBUTTON | BS_PUSHBUTTON | BS_DEFCOMMANDLINK | BS_COMMANDLINK);
 		if (bDef)
 			dwStyle |= BS_DEFCOMMANDLINK;
 		else
@@ -605,15 +497,9 @@ public:
 		SetStyle(dwStyle);
 	}
 
-	/// <summary>
-	/// 取是否默认
-	/// </summary>
-	/// <returns>是否默认</returns>
-	EckInline BOOL GetDef()
+	ECK_BUTTON_DEP_GET_DEF EckInline BOOL GetDef()
 	{
-		DWORD dwStyle = GetStyle();
-		return IsBitSet(dwStyle, BS_DEFCOMMANDLINK);
+		return IsBitSet(Style, BS_DEFCOMMANDLINK);
 	}
 };
-ECK_RTTI_IMPL_BASE_INLINE(CCommandLink, CButton);
 ECK_NAMESPACE_END

@@ -12,3 +12,5 @@
 #define ECK_RTTI_IMPL_BASE_INLINE(Cls, Base) inline ClassInfo Cls::s_ClassInfo_##Cls = { L###Cls, &Base::s_ClassInfo_##Base, RttiStdNewObject<Cls> }; inline ClassInfoRegister Cls::s_ClassInfoRegister_##Cls(&Cls::s_ClassInfo_##Cls);
 #define ECK_DECL_ID3FRAME_METHOD_CLONE_DEF_CONS(x) FRAME* Clone() const override { return new x{ *this }; } x(x&&) = default; x(const x&) = default; x() = default;
 #define ECK_DECL_ID3FRAME_METHOD(x) ECK_DECL_ID3FRAME_METHOD_CLONE(x) x() { memcpy(Id, #x, 4); }
+#define ECK_CWNDPROP_STYLE(Name, Style) ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; ECK_STYLE_GETSET(Name, Style)
+#define ECK_STYLE_GETSET(Name, Style) BOOL StyleGet##Name() { return IsBitSet(GetStyle(), Style); } void StyleSet##Name(BOOL b) { ModifyStyle((b ? Style : 0), Style, GWL_STYLE); }
