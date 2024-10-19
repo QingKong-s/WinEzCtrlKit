@@ -12,6 +12,8 @@
 ECK_NAMESPACE_BEGIN
 class CHeaderExt : public CHeader
 {
+public:
+	ECK_RTTI(CHeaderExt);
 private:
 	struct ITEM
 	{
@@ -413,64 +415,48 @@ private:
 			OffsetRect(rc, 0, rc.bottom - rc.top);
 			if (m_idxFilterEditing != idx)
 			{
-				union
-				{
-					int i;
-					HD_TEXTFILTERW hdtf;
-					SYSTEMTIME st;
-				} Val;
-
-				Val.hdtf.pszText = m_rsTextBuf.Data();
-				Val.hdtf.cchTextMax = m_rsTextBuf.Size();
-				hdi.pvFilter = &Val;
+				HEADER_FILTER Val;
+				Val.str.pszText = m_rsTextBuf.Data();
+				Val.str.cchTextMax = m_rsTextBuf.Size();
+				hdi.pvFilter = nullptr;
 				hdi.mask = HDI_FILTER;
-				hdi.type = HDFT_ISSTRING;
-				if (GetItem(idx, &hdi))
+				hdi.type = HDFT_HASNOVALUE;
+				GetItem(idx, &hdi);
+				if (hdi.type == HDFT_ISSTRING)
 				{
-					if (hdi.type == HDFT_ISSTRING)
-					{
-						PrepareTextColorFilter(hDC, e);
-						DrawTextW(hDC, Val.hdtf.pszText, -1, &rc,
-							DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
-						goto SkipFilterText;
-					}
+					hdi.pvFilter = &Val.str;
+					GetItem(idx, &hdi);
+					PrepareTextColorFilter(hDC, e);
+					DrawTextW(hDC, Val.str.pszText, -1, &rc,
+						DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
+					goto SkipFilterText;
 				}
-				else
+				else if (hdi.type == HDFT_ISDATE)
 				{
-					hdi.type = HDFT_ISDATE;
-					if (GetItem(idx, &hdi))
-					{
-						if (hdi.type == HDFT_ISDATE)
-						{
-							const int cchDate = GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, 0, &Val.st,
-								nullptr, nullptr, 0, nullptr);
-							if (m_rsTextBuf.Size() < cchDate)
-								m_rsTextBuf.ReSize(cchDate);
-							GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, 0, &Val.st,
-								nullptr, m_rsTextBuf.Data(), cchDate, nullptr);
-							PrepareTextColorFilter(hDC, e);
-							DrawTextW(hDC, m_rsTextBuf.Data(), cchDate, &rc,
-								DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
-							goto SkipFilterText;
-						}
-					}
-					else
-					{
-						hdi.type = HDFT_ISNUMBER;
-						if (GetItem(idx, &hdi))
-						{
-							if (hdi.type == HDFT_ISNUMBER)
-							{
-								if (m_rsTextBuf.Size() < CchI32ToStrBufNoRadix2)
-									m_rsTextBuf.ReSize(CchI32ToStrBufNoRadix2);
-								const auto cch = _swprintf(m_rsTextBuf.Data(), L"%d", Val.i);
-								PrepareTextColorFilter(hDC, e);
-								DrawTextW(hDC, m_rsTextBuf.Data(), cch, &rc,
-									DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
-								goto SkipFilterText;
-							}
-						}
-					}
+					hdi.pvFilter = &Val.st;
+					GetItem(idx, &hdi);
+					const int cchDate = GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, 0, &Val.st,
+						nullptr, nullptr, 0, nullptr);
+					if (m_rsTextBuf.Size() < cchDate)
+						m_rsTextBuf.ReSize(cchDate);
+					GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, 0, &Val.st,
+						nullptr, m_rsTextBuf.Data(), cchDate, nullptr);
+					PrepareTextColorFilter(hDC, e);
+					DrawTextW(hDC, m_rsTextBuf.Data(), cchDate, &rc,
+						DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
+					goto SkipFilterText;
+				}
+				else if (hdi.type == HDFT_ISNUMBER)
+				{
+					hdi.pvFilter = &Val.i;
+					GetItem(idx, &hdi);
+					if (m_rsTextBuf.Size() < CchI32ToStrBufNoRadix2)
+						m_rsTextBuf.ReSize(CchI32ToStrBufNoRadix2);
+					const auto cch = _swprintf(m_rsTextBuf.Data(), L"%d", Val.i);
+					PrepareTextColorFilter(hDC, e);
+					DrawTextW(hDC, m_rsTextBuf.Data(), cch, &rc,
+						DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
+					goto SkipFilterText;
 				}
 				SetTextColor(hDC, m_pThrCtx->crGray1);
 				SetBkMode(hDC, TRANSPARENT);
@@ -956,4 +942,5 @@ public:
 	void HeSetTextBufferSize(int cch) { m_rsTextBuf.ReSize(cch); }
 	EckInline constexpr int HeGetTextBufferSize() const { return m_rsTextBuf.Size(); }
 };
+ECK_RTTI_IMPL_BASE_INLINE(CHeaderExt, CHeader);
 ECK_NAMESPACE_END
