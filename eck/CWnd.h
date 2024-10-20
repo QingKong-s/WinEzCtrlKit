@@ -13,15 +13,11 @@
 #include "CSignal.h"
 
 ECK_NAMESPACE_BEGIN
-enum :UINT
-{
-	CDF_W_HSB = (1u << 0),
-	CDF_W_VSB = (1u << 1),
-};
+constexpr inline int CDV_WND_1 = 0;
+
 #pragma pack(push, ECK_CTRLDATA_ALIGN)
 struct CTRLDATA_WND
 {
-	UINT uFlags;
 	int iVer;
 	int cchText;
 	DWORD dwStyle;
@@ -37,8 +33,6 @@ struct CTRLDATA_WND
 	}
 };
 #pragma pack(pop)
-
-constexpr inline int CDV_WND_1 = 0;
 
 #ifdef ECK_CTRL_DESIGN_INTERFACE
 struct DESIGNDATA_WND
@@ -393,17 +387,14 @@ public:
 		p->cchText = rsText.Size();
 		p->dwStyle = dwStyle;
 		p->dwExStyle = GetExStyle();
-		p->uFlags = 0u;
 		SCROLLINFO* psi;
 		if (IsBitSet(dwStyle, WS_HSCROLL))
 		{
-			p->uFlags |= CDF_W_HSB;
 			w.SkipPointer(psi);
 			GetSbInfo(SB_HORZ, psi);
 		}
 		if (IsBitSet(dwStyle, WS_VSCROLL))
 		{
-			p->uFlags |= CDF_W_VSB;
 			w.SkipPointer(psi);
 			GetSbInfo(SB_VERT, psi);
 		}
@@ -413,7 +404,18 @@ public:
 
 	virtual void PreDeserialize(PCVOID pData) {}
 
-	virtual void PostDeserialize(PCVOID pData) {}
+	virtual void PostDeserialize(PCVOID pData) 
+	{
+		const auto* const p = (const CTRLDATA_WND*)pData;
+		const auto* psi = (const SCROLLINFO*)SkipBaseData(pData);
+		if(IsBitSet(p->dwStyle, WS_HSCROLL))
+		{
+			SetSbInfo(SB_HORZ, psi);
+			++psi;
+		}
+		if(IsBitSet(p->dwStyle, WS_VSCROLL))
+			SetSbInfo(SB_VERT, psi);
+	}
 
 	/// <summary>
 	/// 消息处理函数
@@ -517,15 +519,23 @@ public:
 	{
 		CRefBin rb{};
 		SerializeData(rb);
-		HWND hParent = GetParent(m_hWnd);
-		int iID = GetDlgCtrlID(m_hWnd);
+		const HWND hParent = GetParent(m_hWnd);
+		const int iID = GetDlgCtrlID(m_hWnd);
+		const HFONT hFont = HFont;
 
+		RCWH NewPos;
 		if (!rcPos.has_value())
 		{
 			RECT rc;
 			GetWindowRect(m_hWnd, &rc);
 			ScreenToClient(hParent, &rc);
-			rcPos = rc;
+			NewPos = { rc.left,rc.top,rc.right - rc.left,rc.bottom - rc.top };
+		}
+		else
+		{
+			NewPos = { rcPos.value().left,rcPos.value().top,
+				rcPos.value().right - rcPos.value().left,
+				rcPos.value().bottom - rcPos.value().top };
 		}
 
 		auto pData = (CTRLDATA_WND*)rb.Data();
@@ -535,9 +545,10 @@ public:
 			pData->dwExStyle = dwNewExStyle.value();
 
 		Destroy();
-		return Create(nullptr, 0, 0,
-			rcPos.value().left, rcPos.value().top, rcPos.value().right, rcPos.value().bottom,
-			hParent, iID, rb.Data());
+		Create(nullptr, 0, 0, NewPos.x, NewPos.y, 
+			NewPos.cx, NewPos.cy, hParent, iID, rb.Data());
+		HFont = hFont;
+		return m_hWnd;
 	}
 
 	/// <summary>
@@ -1070,7 +1081,7 @@ public:
 		SetScrollInfo(m_hWnd, iType, &si, bRedraw);
 	}
 
-	EckInline void SetSbInfo(int iType, SCROLLINFO* psi, BOOL bRedraw = TRUE) const
+	EckInline void SetSbInfo(int iType, const SCROLLINFO* psi, BOOL bRedraw = TRUE) const
 	{
 		SetScrollInfo(m_hWnd, iType, psi, bRedraw);
 	}
