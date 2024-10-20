@@ -8,8 +8,6 @@
 #pragma once
 #include "CDialog.h"
 
-#include <vector>
-
 #include <commdlg.h>
 
 ECK_NAMESPACE_BEGIN

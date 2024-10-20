@@ -15,9 +15,17 @@
 ECK_NAMESPACE_BEGIN
 constexpr inline int CDV_WND_1 = 0;
 
+enum : UINT
+{
+	SERDF_SBH = 1u << 0,
+	SERDF_SBV = 1u << 1,
+	SERDF_IMAGELIST = 1u << 2,
+};
+
 #pragma pack(push, ECK_CTRLDATA_ALIGN)
 struct CTRLDATA_WND
 {
+	UINT uFlags;
 	int iVer;
 	int cchText;
 	DWORD dwStyle;
@@ -34,6 +42,19 @@ struct CTRLDATA_WND
 };
 #pragma pack(pop)
 
+enum : UINT
+{
+	SERF_NO_COMBO_ITEM = (1u << 0),// 一般供ComboBoxEx使用，指示CComboBox不要序列化项目数据
+	SERF_INCLUDE_IMAGELIST = (1u << 1),// 序列化图像列表数据
+};
+
+struct SERIALIZE_OPT
+{
+	UINT uFlags;
+	int cchTextBuf;
+	void* pUserData;
+};
+
 #ifdef ECK_CTRL_DESIGN_INTERFACE
 struct DESIGNDATA_WND
 {
@@ -49,6 +70,27 @@ struct DESIGNDATA_WND
 	{																				\
 		return Create(pszText, dwStyle, dwExStyle, x, y, cx, cy,					\
 			hParent, ::eck::i32ToP<HMENU>(nID), pData);								\
+	}
+
+#define ECK_CWND_CREATE_CLS(ClsName)	\
+	ECK_CWND_CREATE						\
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle, int x, int y,				\
+		int cx, int cy, HWND hParent, HMENU hMenu, ::eck::PCVOID pData = nullptr) override	\
+	{									\
+		if (pData)						\
+		{								\
+			const auto* const pBase = (CTRLDATA_WND*)pData;		\
+			PreDeserialize(pData);								\
+			IntCreate(pBase->dwExStyle, ClsName, pBase->Text(), pBase->dwStyle,				\
+				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);\
+			PostDeserialize(pData);		\
+		}								\
+		else							\
+		{								\
+			IntCreate(0, ClsName, pszText, dwStyle,				\
+				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);\
+		}								\
+		return m_hWnd;					\
 	}
 
 #define ECK_CWND_SINGLEOWNER													/*\
@@ -301,11 +343,7 @@ public:
 #endif // _DEBUG
 	}
 
-	/// <summary>
-	/// 依附句柄。
-	/// 函数将新句柄插入窗口映射，调用此函数必须满足两个前提：本类不能持有句柄；新句柄未在窗口映射中
-	/// </summary>
-	/// <param name="hWnd">新句柄</param>
+	// 依附句柄。函数将新句柄插入窗口映射，调用此函数必须满足两个前提：本类不能持有句柄；新句柄未在窗口映射中
 	virtual void Attach(HWND hWnd)
 	{
 		EckAssert(!m_hWnd);// 当前类必须未持有句柄
@@ -317,11 +355,7 @@ public:
 			pCtx->TwmAdd(hWnd, this);
 	}
 
-	/// <summary>
-	/// 拆离句柄。
-	/// 函数将从窗口映射中移除句柄
-	/// </summary>
-	/// <returns>本类持有的旧句柄</returns>
+	// 拆离句柄。 函数将从窗口映射中移除句柄
 	[[nodiscard]] virtual HWND Detach()
 	{
 		HWND hWnd = nullptr;
@@ -333,12 +367,14 @@ public:
 		return hWnd;
 	}
 
+	// 依附句柄，并同步状态
 	EckInline virtual void AttachNew(HWND hWnd)
 	{
 		CWnd::Attach(hWnd);
 		m_pfnRealProc = SetWindowProc(hWnd, EckWndProc);
 	}
-
+	
+	// 拆离句柄，并重置状态
 	EckInline virtual void DetachNew()
 	{
 		SetWindowProc(Detach(), m_pfnRealProc);
@@ -371,7 +407,8 @@ public:
 	/// 子类若要存储额外数据，一般情况下应首先调用基类的此方法，然后再序列化自己的数据
 	/// </summary>
 	/// <param name="rb">字节集</param>
-	virtual void SerializeData(CRefBin& rb)
+	/// <param name="pOpt">可选的序列化选项</param>
+	virtual void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr)
 	{
 		CRefStrW rsText = GetText();
 		const auto dwStyle = GetStyle();
@@ -383,18 +420,21 @@ public:
 		CMemWriter w(rb.PushBack(cbSize), cbSize);
 		CTRLDATA_WND* p;
 		w.SkipPointer(p);
-		p->iVer = 0;
+		p->uFlags = 0u;
+		p->iVer = CDV_WND_1;
 		p->cchText = rsText.Size();
 		p->dwStyle = dwStyle;
 		p->dwExStyle = GetExStyle();
 		SCROLLINFO* psi;
 		if (IsBitSet(dwStyle, WS_HSCROLL))
 		{
+			p->uFlags |= SERDF_SBH;
 			w.SkipPointer(psi);
 			GetSbInfo(SB_HORZ, psi);
 		}
 		if (IsBitSet(dwStyle, WS_VSCROLL))
 		{
+			p->uFlags |= SERDF_SBV;
 			w.SkipPointer(psi);
 			GetSbInfo(SB_VERT, psi);
 		}
@@ -501,6 +541,7 @@ public:
 		return GetHWND();
 	}
 
+	// 跳到当前类序列化数据的尾部
 	[[nodiscard]] EckInline constexpr static PCVOID SkipBaseData(PCVOID p)
 	{
 		return (PCBYTE)p + sizeof(CTRLDATA_WND) +

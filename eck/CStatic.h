@@ -62,17 +62,11 @@ public:
 		return PtrStepCb(CWnd::SkipBaseData(p), sizeof(CTRLDATA_STATIC));
 	}
 
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		return IntCreate(dwExStyle, WC_STATICW, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
-	}
+	ECK_CWND_CREATE_CLS(WC_STATICW);
 
-	void SerializeData(CRefBin& rb)
+	void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) override
 	{
-		CWnd::SerializeData(rb);
+		CWnd::SerializeData(rb, pOpt);
 		constexpr auto cbSize = sizeof(CTRLDATA_STATIC);
 		CMemWriter w(rb.PushBack(cbSize), cbSize);
 		CTRLDATA_STATIC* p;

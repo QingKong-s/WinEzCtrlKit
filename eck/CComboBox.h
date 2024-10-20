@@ -68,29 +68,11 @@ public:
 		return PtrStepCb(p2, p2->cbSize);
 	}
 
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		if (pData)
-		{
-			const auto* const pBase = (CTRLDATA_WND*)pData;
-			PreDeserialize(pData);
-			IntCreate(pBase->dwExStyle, WC_COMBOBOXW, pBase->Text(), pBase->dwStyle,
-				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
-			PostDeserialize(pData);
-		}
-		else
-		{
-			IntCreate(0, WC_COMBOBOXW, pszText, dwStyle,
-				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
-		}
-		return m_hWnd;
-	}
+	ECK_CWND_CREATE_CLS(WC_COMBOBOXW);
 
-	void SerializeData(CRefBin& rb)
+	void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) override
 	{
-		CWnd::SerializeData(rb);
+		CWnd::SerializeData(rb, pOpt);
 		CRefStrW rs;
 		GetCurBanner(rs);
 		rb.Reserve(rb.Size() + sizeof(CTRLDATA_COMBOBOX) + rs.ByteSize() + 512);
@@ -103,18 +85,21 @@ public:
 			wmemcpy((PWSTR)rb.PushBack(rs.ByteSize()), rs.Data(), rs.ByteSize());
 		const auto cItem = GetCount();
 		const BOOL bOdVar = OwnerDrawVariable;
-		EckCounter(cItem, i)
+		if (!pOpt || !(pOpt->uFlags & SERF_NO_COMBO_ITEM))
 		{
-			const auto cch = GetItemTextLength(i);
-			const auto pItem = (CTRLDATA_COMBOBOX::ITEM*)
-				rb.PushBack(sizeof(CTRLDATA_COMBOBOX::ITEM) + (cch + 1) * sizeof(WCHAR));
-			pItem->cchText = cch;
-			pItem->lParam = GetItemData(i);
-			if (bOdVar)
-				pItem->cy = GetItemHeight(i);
-			else
-				pItem->cy = INT_MIN;
-			GetItemText(i, (PWSTR)PtrSkipType(pItem));
+			EckCounter(cItem, i)
+			{
+				const auto cch = GetItemTextLength(i);
+				const auto pItem = (CTRLDATA_COMBOBOX::ITEM*)
+					rb.PushBack(sizeof(CTRLDATA_COMBOBOX::ITEM) + (cch + 1) * sizeof(WCHAR));
+				pItem->cchText = cch;
+				pItem->lParam = GetItemData(i);
+				if (bOdVar)
+					pItem->cy = GetItemHeight(i);
+				else
+					pItem->cy = INT_MIN;
+				GetItemText(i, (PWSTR)PtrSkipType(pItem));
+			}
 		}
 		const auto p = (CTRLDATA_COMBOBOX*)(rb.Data() + ocbHeader);
 		p->iVer = CDV_COMBOBOX_1;
@@ -136,7 +121,7 @@ public:
 	{
 		CWnd::PostDeserialize(pData);
 		const auto* const p = (CTRLDATA_COMBOBOX*)CWnd::SkipBaseData(pData);
-		if (p->iVer != CDV_COMBOBOX_1)
+		if (p->iVer < CDV_COMBOBOX_1)
 			return;
 		SetRedraw(FALSE);
 		ResetContent();
@@ -154,7 +139,7 @@ public:
 		{
 			if (bShouldInsertStr)
 			{
-				InsertString((PCWSTR)PtrSkipType(pItem));
+				InsertString((PCWSTR)(pItem + 1));
 				if (pItem->lParam)
 					SetItemData(i, pItem->lParam);
 			}

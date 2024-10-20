@@ -31,9 +31,9 @@ protected:
 		SendMsg(WM_NCPAINT, 0, 0);
 	}
 public:
-	void SerializeData(CRefBin& rb)
+	void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) override
 	{
-		CEditExt::SerializeData(rb);
+		CEditExt::SerializeData(rb, pOpt);
 
 	}
 

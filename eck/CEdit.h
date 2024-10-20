@@ -101,11 +101,11 @@ public:
 		return m_hWnd;
 	}
 
-	void SerializeData(CRefBin& rb) override
+	void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) override
 	{
 		auto rsCueBanner = GetCueBanner();
 		const SIZE_T cbSize = sizeof(CREATEDATA_EDIT) + rsCueBanner.ByteSize();
-		CWnd::SerializeData(rb);
+		CWnd::SerializeData(rb, pOpt);
 		CMemWriter w(rb.PushBack(cbSize), cbSize);
 		CREATEDATA_EDIT* p;
 		w.SkipPointer(p);
