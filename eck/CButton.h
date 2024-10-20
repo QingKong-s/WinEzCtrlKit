@@ -109,32 +109,14 @@ public:
 		return PtrStepCb(p2, sizeof(CTRLDATA_BUTTON) + (p2->cchNote + 1) * sizeof(WCHAR));
 	}
 
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		if (pData)
-		{
-			const auto* const pBase = (const CTRLDATA_WND*)pData;
-			PreDeserialize(pData);
-			IntCreate(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), pBase->dwStyle,
-				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
-			PostDeserialize(pData);
-		}
-		else
-		{
-			IntCreate(dwExStyle, WC_BUTTONW, pszText, dwStyle,
-				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
-		}
-		return m_hWnd;
-	}
+	ECK_CWND_CREATE_CLS(WC_BUTTONW);
 
-	void SerializeData(CRefBin& rb) override
+	void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) override
 	{
 		auto cchNote = GetNoteLength();
 		const SIZE_T cbSize = sizeof(CTRLDATA_BUTTON) +
 			(cchNote + 1) * sizeof(WCHAR);
-		CWnd::SerializeData(rb);
+		CWnd::SerializeData(rb, pOpt);
 		CMemWriter w(rb.PushBack(cbSize), cbSize);
 
 		CTRLDATA_BUTTON* p;

@@ -70,9 +70,9 @@ public:
 		return m_hWnd;
 	}
 
-	void SerializeData(CRefBin& rb)
+	void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) override
 	{
-		CStatic::SerializeData(rb);
+		CStatic::SerializeData(rb, pOpt);
 		constexpr auto cbSize = sizeof(CTRLDATA_COLOR_PICK_BLOCK);
 		CMemWriter w(rb.PushBack(cbSize), cbSize);
 		CTRLDATA_COLOR_PICK_BLOCK* p;

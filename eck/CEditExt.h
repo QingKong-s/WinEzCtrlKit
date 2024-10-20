@@ -525,10 +525,10 @@ public:
 		return m_hWnd;
 	}
 
-	void SerializeData(CRefBin& rb) override
+	void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) override
 	{
 		const SIZE_T cbSize = sizeof(CREATEDATA_EDITEXT);
-		CEdit::SerializeData(rb);
+		CEdit::SerializeData(rb, pOpt);
 		((CREATEDATA_EDIT*)CWnd::SkipBaseData(rb.Data()))->chPassword = GetPasswordChar();
 
 		CMemWriter w(rb.PushBack(cbSize), cbSize);
