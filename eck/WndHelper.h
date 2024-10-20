@@ -27,16 +27,36 @@
 #define ECK_STYLE_GETSET(Name, Style)					\
 	BOOL StyleGet##Name()								\
 	{													\
-		return IsBitSet(GetStyle(), Style);				\
+		if constexpr (Style == 0)						\
+			return !!GetStyle();						\
+		else											\
+			return IsBitSet(GetStyle(), Style);			\
 	}													\
 	void StyleSet##Name(BOOL b)							\
 	{													\
 		ModifyStyle((b ? Style : 0), Style, GWL_STYLE); \
 	}
 
+#define ECK_STYLE_GETSET_MASK(Name, Style, Mask)		\
+	BOOL StyleGet##Name()								\
+	{													\
+		if constexpr (Style == 0)						\
+			return !!GetStyle();						\
+		else											\
+			return IsBitSet(GetStyle(), Style);			\
+	}													\
+	void StyleSet##Name(BOOL b)							\
+	{													\
+		SetStyle((GetStyle() & ~Mask) | (b ? Style : 0));\
+	}
+
 #define ECK_CWNDPROP_STYLE(Name, Style)					\
 	ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name;	\
 	ECK_STYLE_GETSET(Name, Style)
+
+#define ECK_CWNDPROP_STYLE_MASK(Name, Style, Mask)		\
+	ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name;	\
+	ECK_STYLE_GETSET_MASK(Name, Style, Mask)
 
 ECK_NAMESPACE_BEGIN
 struct NMFOCUS

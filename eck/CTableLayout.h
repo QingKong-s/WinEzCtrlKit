@@ -231,6 +231,12 @@ public:
 
 	// È¡µ×²ã±í¸ñ
 	EckInline constexpr auto& GetTable() { return m_Table; }
+
+	void LoShow(BOOL bShow) override
+	{
+		for (const auto& e : GetList())
+			e.pCtrl->LoShow(bShow);
+	}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CTableLayout, CLayoutBase);
 ECK_NAMESPACE_END

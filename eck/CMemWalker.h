@@ -54,30 +54,40 @@ struct CMemWriter
 	template<class T, class U>
 	EckInline CMemWriter& operator<<(const std::basic_string_view<T, U>& Data)
 	{
-		return Write(Data.data(), Data.size() * sizeof(T)) << L'\0';
+		if (Data.empty())
+			return *this << T{ 0 };
+		return Write(Data.data(), Data.size() * sizeof(T)) << T{ 0 };
 	}
 
 	template<class T, class U>
 	EckInline CMemWriter& operator<<(const std::basic_string<T, U>& Data)
 	{
+		if (Data.empty())
+			return *this << T{ 0 };
 		return Write(Data.c_str(), (Data.size() + 1) * sizeof(T));
 	}
 
 	template<class T, class U>
 	EckInline CMemWriter& operator<<(const std::vector<T, U>& Data)
 	{
+		if (Data.empty())
+			return *this;
 		return Write(Data.data(), Data.size() * sizeof(T));
 	}
 
 	template<class T>
 	EckInline CMemWriter& operator<<(const CRefBinT<T>& Data)
 	{
+		if (Data.IsEmpty())
+			return *this;
 		return Write(Data.Data(), Data.Size());
 	}
 
 	template<class T, class U, class V>
 	EckInline CMemWriter& operator<<(const CRefStrT<T, U, V>& Data)
 	{
+		if (Data.IsEmpty())
+			return *this << T{ 0 };
 		return Write(Data.Data(), Data.ByteSize());
 	}
 
@@ -341,7 +351,7 @@ struct CMemWalker
 	{
 		return m_pBase + m_cbMax - m_pMem;
 	}
-	
+
 	EckInline constexpr BOOL IsEnd() const
 	{
 		return m_pMem >= m_pBase + m_cbMax;

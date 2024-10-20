@@ -14,3 +14,4 @@
 #define ECK_DECL_ID3FRAME_METHOD(x) ECK_DECL_ID3FRAME_METHOD_CLONE(x) x() { memcpy(Id, #x, 4); }
 #define ECK_CWNDPROP_STYLE(Name, Style) ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; ECK_STYLE_GETSET(Name, Style)
 #define ECK_STYLE_GETSET(Name, Style) BOOL StyleGet##Name() { return IsBitSet(GetStyle(), Style); } void StyleSet##Name(BOOL b) { ModifyStyle((b ? Style : 0), Style, GWL_STYLE); }
+#define ECK_CWNDPROP_STYLE_MASK(Name, Style, Mask) ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; ECK_STYLE_GETSET(Name, Style)

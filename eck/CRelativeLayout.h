@@ -493,6 +493,12 @@ public:
 	}
 
 	EckInline constexpr auto& GetList() { return m_hmItem; }
+
+	void LoShow(BOOL bShow) override
+	{
+		for (const auto& [_, e] : GetList())
+			e.pCtrl->LoShow(bShow);
+	}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CRelativeLayout, CLayoutBase);
 ECK_NAMESPACE_END

@@ -73,6 +73,12 @@ public:
 	}
 
 	EckInline constexpr auto& GetList() { return m_vItem; }
+
+	void LoShow(BOOL bShow) override
+	{
+		for (const auto& e : GetList())
+			e.pCtrl->LoShow(bShow);
+	}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CFlowLayoutBase, CLayoutBase);
 

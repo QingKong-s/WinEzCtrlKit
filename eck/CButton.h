@@ -73,34 +73,41 @@ protected:
 	BITBOOL m_bShieldIcon : 1{};
 	BITBOOL m_bDontClick : 1{TRUE};
 public:
-	ECK_CWNDPROP_STYLE(TripleState, BS_3STATE);
-	ECK_CWNDPROP_STYLE(AutoTripleState, BS_AUTO3STATE);
-	ECK_CWNDPROP_STYLE(AutoCheckButton, BS_AUTOCHECKBOX);
-	ECK_CWNDPROP_STYLE(AutoRadioButton, BS_AUTORADIOBUTTON);
+	ECK_CWNDPROP_STYLE_MASK(TripleState, BS_3STATE, ButtonTypeMask);
+	ECK_CWNDPROP_STYLE_MASK(AutoTripleState, BS_AUTO3STATE, ButtonTypeMask);
+	ECK_CWNDPROP_STYLE_MASK(AutoCheckButton, BS_AUTOCHECKBOX, ButtonTypeMask);
+	ECK_CWNDPROP_STYLE_MASK(AutoRadioButton, BS_AUTORADIOBUTTON, ButtonTypeMask);
 	ECK_CWNDPROP_STYLE(ShowBitmap, BS_BITMAP);
 	ECK_CWNDPROP_STYLE(AlignBottom, BS_BOTTOM);
 	ECK_CWNDPROP_STYLE(AlignCenter, BS_CENTER);
-	ECK_CWNDPROP_STYLE(CheckBox, BS_CHECKBOX);
+	ECK_CWNDPROP_STYLE_MASK(CheckBox, BS_CHECKBOX, ButtonTypeMask);
 	ECK_CWNDPROP_STYLE(CommandLink, BS_COMMANDLINK);
 	ECK_CWNDPROP_STYLE(DefCommandLink, BS_DEFCOMMANDLINK);
-	ECK_CWNDPROP_STYLE(DefPushButton, BS_DEFPUSHBUTTON);
+	ECK_CWNDPROP_STYLE_MASK(DefPushButton, BS_DEFPUSHBUTTON, ButtonTypeMask);
 	ECK_CWNDPROP_STYLE(DefSplitButton, BS_DEFSPLITBUTTON);
-	ECK_CWNDPROP_STYLE(GroupBox, BS_GROUPBOX);
+	ECK_CWNDPROP_STYLE_MASK(GroupBox, BS_GROUPBOX, ButtonTypeMask);
 	ECK_CWNDPROP_STYLE(ShowIcon, BS_ICON);
 	ECK_CWNDPROP_STYLE(Flat, BS_FLAT);
 	ECK_CWNDPROP_STYLE(AlignLeft, BS_LEFT);
 	ECK_CWNDPROP_STYLE(MultiLine, BS_MULTILINE);
 	ECK_CWNDPROP_STYLE(Notify, BS_NOTIFY);
-	ECK_CWNDPROP_STYLE(OwnerDraw, BS_OWNERDRAW);
-	ECK_CWNDPROP_STYLE(PushButton, BS_PUSHBUTTON);
+	ECK_CWNDPROP_STYLE_MASK(OwnerDraw, BS_OWNERDRAW, ButtonTypeMask);
+	ECK_CWNDPROP_STYLE_MASK(PushBox, BS_PUSHBOX, ButtonTypeMask);
+	ECK_CWNDPROP_STYLE_MASK(PushButton, BS_PUSHBUTTON, ButtonTypeMask);
 	ECK_CWNDPROP_STYLE(PushLike, BS_PUSHLIKE);
-	ECK_CWNDPROP_STYLE(RadioButton, BS_RADIOBUTTON);
+	ECK_CWNDPROP_STYLE_MASK(RadioButton, BS_RADIOBUTTON, ButtonTypeMask);
 	ECK_CWNDPROP_STYLE(AlignRight, BS_RIGHT);
 	ECK_CWNDPROP_STYLE(RightButton, BS_RIGHTBUTTON);
 	ECK_CWNDPROP_STYLE(SplitButton, BS_SPLITBUTTON);
 	ECK_CWNDPROP_STYLE(ShowText, BS_TEXT);
 	ECK_CWNDPROP_STYLE(AlignTop, BS_TOP);
 	ECK_CWNDPROP_STYLE(AlignVCenter, BS_VCENTER);
+
+	[[nodiscard]] EckInline constexpr static PCVOID SkipBaseData(PCVOID p)
+	{
+		const auto* const p2 = (CTRLDATA_BUTTON*)CWnd::SkipBaseData(p);
+		return PtrStepCb(p2, sizeof(CTRLDATA_BUTTON) + (p2->cchNote + 1) * sizeof(WCHAR));
+	}
 
 	ECK_CWND_CREATE;
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
@@ -109,29 +116,10 @@ public:
 		if (pData)
 		{
 			const auto* const pBase = (const CTRLDATA_WND*)pData;
-			const auto* const p = (const CTRLDATA_BUTTON*)SkipBaseData(pData);
-			if (pBase->iVer < CDV_WND_1)
-			{
-				EckDbgBreak();
-				return nullptr;
-			}
 			PreDeserialize(pData);
 			IntCreate(pBase->dwExStyle, WC_BUTTONW, pBase->Text(), pBase->dwStyle,
 				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 			PostDeserialize(pData);
-			switch (p->iVer)
-			{
-			case CDV_BUTTON_1:
-				m_bShieldIcon = p->bShieldIcon;
-				SetCheckState(p->eCheckState);
-				SetDontClick(p->bDontClick);
-				if (p->cchNote)
-					SetNote(p->Note());
-				break;
-			default:
-				EckDbgBreak();
-				break;
-			}
 		}
 		else
 		{
@@ -163,6 +151,19 @@ public:
 		}
 		else
 			*(PWSTR)w.Data() = L'\0';
+	}
+
+	void PostDeserialize(PCVOID pData) override
+	{
+		CWnd::PostDeserialize(pData);
+		const auto* const p = (const CTRLDATA_BUTTON*)CWnd::SkipBaseData(pData);
+		if (p->iVer != CDV_BUTTON_1)
+			return;
+		m_bShieldIcon = p->bShieldIcon;
+		SetCheckState(p->eCheckState);
+		SetDontClick(p->bDontClick);
+		if (p->cchNote)
+			SetNote(p->Note());
 	}
 
 	EckInline BOOL GetIdealSize(SIZE* psize) const
