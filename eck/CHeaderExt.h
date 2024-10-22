@@ -615,7 +615,14 @@ public:
 		{
 		case WM_LBUTTONDBLCLK:
 			if (m_bRepairDbClick)
-				PostMsg(WM_LBUTTONDOWN, wParam, lParam);
+			{
+				HDHITTESTINFO hdhti;
+				hdhti.pt = ECK_GET_PT_LPARAM(lParam);
+				hdhti.iItem = -1;
+				HitTest(&hdhti);
+				if (hdhti.iItem >= 0 && !(hdhti.flags & HHT_ONDIVIDER))
+					PostMsg(WM_LBUTTONDOWN, wParam, lParam);
+			}
 			break;
 
 		case WM_MOUSEMOVE:
