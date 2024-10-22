@@ -35,7 +35,7 @@ struct CTRLDATA_WND
 	EckInline PCWSTR Text() const
 	{
 		if (cchText)
-			return (PCWSTR)PtrSkipType(this);
+			return (PCWSTR)(this + 1);
 		else
 			return nullptr;
 	}
@@ -45,7 +45,7 @@ struct CTRLDATA_WND
 enum : UINT
 {
 	SERF_NO_COMBO_ITEM = (1u << 0),// 一般供ComboBoxEx使用，指示CComboBox不要序列化项目数据
-	SERF_INCLUDE_IMAGELIST = (1u << 1),// 序列化图像列表数据
+	SERF_EXCLUDE_IMAGELIST = (1u << 1),// 序列化图像列表数据
 };
 
 struct SERIALIZE_OPT
@@ -373,7 +373,7 @@ public:
 		CWnd::Attach(hWnd);
 		m_pfnRealProc = SetWindowProc(hWnd, EckWndProc);
 	}
-	
+
 	// 拆离句柄，并重置状态
 	EckInline virtual void DetachNew()
 	{
@@ -444,16 +444,16 @@ public:
 
 	virtual void PreDeserialize(PCVOID pData) {}
 
-	virtual void PostDeserialize(PCVOID pData) 
+	virtual void PostDeserialize(PCVOID pData)
 	{
 		const auto* const p = (const CTRLDATA_WND*)pData;
 		const auto* psi = (const SCROLLINFO*)SkipBaseData(pData);
-		if(IsBitSet(p->dwStyle, WS_HSCROLL))
+		if (p->uFlags & SERDF_SBH)
 		{
 			SetSbInfo(SB_HORZ, psi);
 			++psi;
 		}
-		if(IsBitSet(p->dwStyle, WS_VSCROLL))
+		if (p->uFlags & SERDF_SBV)
 			SetSbInfo(SB_VERT, psi);
 	}
 
@@ -556,10 +556,11 @@ public:
 	/// <param name="dwNewExStyle">可选的扩展窗口样式，将覆盖序列化数据中的样式</param>
 	/// <param name="rcPos">可选的位置（左顶宽高），将覆盖旧位置</param>
 	/// <returns>窗口句柄</returns>
-	HWND ReCreate(EckOptNul(DWORD, dwNewStyle), EckOptNul(DWORD, dwNewExStyle), EckOptNul(RECT, rcPos))
+	HWND ReCreate(EckOptNul(DWORD, dwNewStyle), EckOptNul(DWORD, dwNewExStyle),
+		EckOptNul(RECT, rcPos), const SERIALIZE_OPT* pSerOpt = nullptr)
 	{
 		CRefBin rb{};
-		SerializeData(rb);
+		SerializeData(rb, pSerOpt);
 		const HWND hParent = GetParent(m_hWnd);
 		const int iID = GetDlgCtrlID(m_hWnd);
 		const HFONT hFont = HFont;
@@ -579,14 +580,14 @@ public:
 				rcPos.value().bottom - rcPos.value().top };
 		}
 
-		auto pData = (CTRLDATA_WND*)rb.Data();
+		const auto pData = (CTRLDATA_WND*)rb.Data();
 		if (dwNewStyle.has_value())
 			pData->dwStyle = dwNewStyle.value();
 		if (dwNewExStyle.has_value())
 			pData->dwExStyle = dwNewExStyle.value();
 
 		Destroy();
-		Create(nullptr, 0, 0, NewPos.x, NewPos.y, 
+		Create(nullptr, 0, 0, NewPos.x, NewPos.y,
 			NewPos.cx, NewPos.cy, hParent, iID, rb.Data());
 		HFont = hFont;
 		return m_hWnd;

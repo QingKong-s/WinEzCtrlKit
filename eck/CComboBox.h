@@ -103,7 +103,7 @@ public:
 		}
 		const auto p = (CTRLDATA_COMBOBOX*)(rb.Data() + ocbHeader);
 		p->iVer = CDV_COMBOBOX_1;
-		p->cbSize = rb.Size() - ocbHeader;
+		p->cbSize = DWORD(rb.Size() - ocbHeader);
 		p->idxCurrSel = GetCurSel();
 		p->cxDropped = GetDroppedWidth();
 		p->cItem = cItem;
@@ -124,9 +124,6 @@ public:
 		if (p->iVer < CDV_COMBOBOX_1)
 			return;
 		SetRedraw(FALSE);
-		ResetContent();
-		InitStorage(p->cItem, p->cbSize - sizeof(CTRLDATA_COMBOBOX) -
-			(p->cchCueBanner + 1) * sizeof(WCHAR) - p->cItem * sizeof(CTRLDATA_COMBOBOX::ITEM));
 		if (p->cchCueBanner)
 			SetCueBanner((PWSTR)PtrSkipType(p));
 		const auto* pItem = (CTRLDATA_COMBOBOX::ITEM*)
@@ -135,20 +132,26 @@ public:
 		const BOOL bOdVar = IsBitSet(dwStyle, CBS_OWNERDRAWVARIABLE);
 		const BOOL bShouldInsertStr = ((dwStyle & (CBS_OWNERDRAWFIXED | CBS_OWNERDRAWVARIABLE)) ?
 			(dwStyle & CBS_HASSTRINGS) : TRUE);
-		EckCounter(p->cItem, i)
+		if(p->cItem>0)
 		{
-			if (bShouldInsertStr)
+			ResetContent();
+			InitStorage(p->cItem, p->cbSize - sizeof(CTRLDATA_COMBOBOX) -
+				(p->cchCueBanner + 1) * sizeof(WCHAR) - p->cItem * sizeof(CTRLDATA_COMBOBOX::ITEM));
+			EckCounter(p->cItem, i)
 			{
-				InsertString((PCWSTR)(pItem + 1));
-				if (pItem->lParam)
-					SetItemData(i, pItem->lParam);
+				if (bShouldInsertStr)
+				{
+					InsertString((PCWSTR)(pItem + 1));
+					if (pItem->lParam)
+						SetItemData(i, pItem->lParam);
+				}
+				else
+					InsertString(pItem->lParam);
+				if (bOdVar)
+					SetItemHeight(i, pItem->cy);
+				pItem = PtrStepCb(pItem, sizeof(CTRLDATA_COMBOBOX::ITEM) +
+					(pItem->cchText + 1) * sizeof(WCHAR));
 			}
-			else
-				InsertString(pItem->lParam);
-			if (bOdVar)
-				SetItemHeight(i, pItem->cy);
-			pItem = PtrStepCb(pItem, sizeof(CTRLDATA_COMBOBOX::ITEM) +
-				(pItem->cchText + 1) * sizeof(WCHAR));
 		}
 		SetCurSel(p->idxCurrSel);
 		SetDroppedWidth(p->cxDropped);
@@ -156,7 +159,7 @@ public:
 		if (!bOdVar)
 			SetItemHeight(0, p->cyItem);
 		SetLocale(p->lcid);
-		SetEditSel(p->dwEditSelStart, p->dwEditSelEnd);
+		SetEditSel((WORD)p->dwEditSelStart, (WORD)p->dwEditSelEnd);
 		SetMinVisible(p->cMinVisible);
 		SetHorizontalExtent(p->cxHorzExtent);
 		SetTopIndex(p->idxTop);

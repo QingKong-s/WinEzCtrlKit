@@ -176,6 +176,7 @@
     <ClInclude Include="eck\CBorderLayout.h" />
     <ClInclude Include="eck\CHeaderExt.h" />
     <ClInclude Include="eck\CHitter.h" />
+    <ClInclude Include="eck\CLayoutDummy.h" />
     <ClInclude Include="eck\CObject.h" />
     <ClInclude Include="eck\CRegion.h" />
     <ClInclude Include="eck\CTableLayout.h" />

@@ -6,7 +6,7 @@
 * Copyright(C) 2024 QingKong
 */
 #pragma once
-#include "CHeader.h"
+#include "CHeaderExt.h"
 #include "CEditExt.h"
 #include "CToolTip.h"
 #include "GraphicsHelper.h"
@@ -230,7 +230,7 @@ struct NMTLDRAG
 
 
 class CTreeList;
-class CTLHeader final :public CHeader
+class CTLHeader final :public CHeaderExt
 {
 	friend class CTreeList;
 private:
@@ -1046,6 +1046,9 @@ private:
 						OffsetRect(m_rcDraggingSel, -m_dxContent, m_idxTopItem * m_cyItem);
 						break;
 					}
+					if (m_rcDraggingSel.right == m_rcDraggingSel.left &&
+						m_rcDraggingSel.bottom != m_rcDraggingSel.top)
+						m_rcDraggingSel.right = m_rcDraggingSel.left + 1;
 					//----------准备范围
 					int idxBegin = ItemFromY(std::min(m_rcDraggingSel.top, rcOld.top));
 					if (idxBegin < 0)
@@ -1624,7 +1627,8 @@ private:
 						{
 							DeselectAll(idxChangeBegin, idxChangeEnd);
 							SelectItemForClick(m_idxFocus, TRUE);
-							RedrawItem(idxChangeBegin, idxChangeEnd);
+							if (idxChangeBegin >= 0)
+								RedrawItem(idxChangeBegin, idxChangeEnd);
 							if (m_idxFocus < idxChangeBegin || m_idxFocus > idxChangeEnd)
 								RedrawItem(m_idxFocus);
 						}
@@ -2027,12 +2031,13 @@ public:
 		break;
 
 		case WM_ERASEBKGND:
-			return 0;
+			return TRUE;
 
+		case WM_PRINTCLIENT:
 		case WM_PAINT:
 		{
 			PAINTSTRUCT ps;
-			BeginPaint(hWnd, &ps);
+			BeginPaint(hWnd, wParam, ps);
 			const int yOrg = ps.rcPaint.top;
 			if (ps.rcPaint.top < m_cyHeader)// 永远不在表头控件区域内重画
 				ps.rcPaint.top = m_cyHeader;
@@ -2063,7 +2068,7 @@ public:
 			PaintDraggingSelRect(m_DC.GetDC());
 			BitBltPs(&ps, m_DC.GetDC());
 			ps.rcPaint.top = yOrg;
-			EndPaint(hWnd, &ps);
+			EndPaint(hWnd, wParam, ps);
 		}
 		return 0;
 
@@ -3512,7 +3517,7 @@ inline LRESULT CTLHeader::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	{
 	case HDM_INSERTITEMW:
 		m_TL.DismissEdit();
-		lResult = CHeader::OnMsg(hWnd, uMsg, wParam, lParam);
+		lResult = __super::OnMsg(hWnd, uMsg, wParam, lParam);
 		if (lResult >= 0)
 		{
 			m_TL.m_vCol.emplace_back();
@@ -3522,7 +3527,7 @@ inline LRESULT CTLHeader::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 	case HDM_DELETEITEM:
 		m_TL.DismissEdit();
-		lResult = CHeader::OnMsg(hWnd, uMsg, wParam, lParam);
+		lResult = __super::OnMsg(hWnd, uMsg, wParam, lParam);
 		if (lResult)
 		{
 			m_TL.m_vCol.pop_back();
@@ -3532,12 +3537,12 @@ inline LRESULT CTLHeader::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 	case HDM_SETORDERARRAY:
 		m_TL.DismissEdit();
-		lResult = CHeader::OnMsg(hWnd, uMsg, wParam, lParam);
+		lResult = __super::OnMsg(hWnd, uMsg, wParam, lParam);
 		if (lResult)
 			m_TL.UpdateColumnInfo();
 		return lResult;
 	}
-	return CHeader::OnMsg(hWnd, uMsg, wParam, lParam);
+	return __super::OnMsg(hWnd, uMsg, wParam, lParam);
 }
 
 inline LRESULT CTLEditExt::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -3563,6 +3568,6 @@ inline LRESULT CTLEditExt::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 		break;
 	}
 
-	return CEditExt::OnMsg(hWnd, uMsg, wParam, lParam);
+	return __super::OnMsg(hWnd, uMsg, wParam, lParam);
 }
 ECK_NAMESPACE_END
