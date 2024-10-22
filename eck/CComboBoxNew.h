@@ -141,6 +141,22 @@ public:
 				DropList();
 			break;
 
+		case WM_KEYDOWN:
+		case WM_KEYUP:
+			if (m_bDrop)
+			{
+				switch (wParam)
+				{
+				case VK_RETURN:
+				case VK_ESCAPE:
+					DismissList();
+					break;
+				}
+				m_LB.OnMsg(m_LB.HWnd, uMsg, wParam, lParam);
+				return 0;
+			}
+			break;
+
 		case WM_NOTIFY:
 		{
 			const auto pnmhdr = (NMHDR*)lParam;
@@ -218,7 +234,7 @@ public:
 			m_cxLB < 0 ? m_Ds.cxDefLB : m_cxLB,
 			m_cyLB < 0 ? m_Ds.cxDefLB : m_cyLB,
 			SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
-		m_LB.EnterTrack();
+		m_LB.CbEnterTrack();
 	}
 
 	void DismissList()
@@ -227,7 +243,7 @@ public:
 			return;
 		m_bDrop = FALSE;
 		Redraw();
-		m_LB.LeaveTrack();
+		m_LB.CbLeaveTrack();
 		m_LB.Show(SW_HIDE);
 	}
 

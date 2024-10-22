@@ -105,8 +105,9 @@ private:
 #endif
 	BITBOOL m_bNmDragging : 1 = FALSE;
 	BITBOOL m_bTrackComboBoxList : 1 = FALSE;
+	BITBOOL m_bProtectCapture : 1 = FALSE;
 
-	HWND m_hComboBox = nullptr;
+	HWND m_hComboBox = nullptr;// 关联的组合框句柄，可以是任何窗口
 
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 
@@ -131,16 +132,7 @@ private:
 		return TRUE;
 	}
 
-	void OnSize(HWND hWnd, UINT uState, int cx, int cy)
-	{
-		m_cxClient = cx;
-		m_cyClient = cy;
-
-		SetSbPage(SB_VERT, cy);
-		m_DC.ReSize(hWnd, cx, cy);
-	}
-
-	void OnPaint(HWND hWnd)
+	void OnPaint(HWND hWnd,WPARAM wParam)
 	{
 		PAINTSTRUCT ps;
 		BeginPaint(hWnd, &ps);
@@ -151,7 +143,8 @@ private:
 		FillRect(m_DC.GetDC(), &ps.rcPaint, GetStockBrush(DC_BRUSH));
 
 		const int idxTop = std::max(m_idxTop + (int)ps.rcPaint.top / m_cyItem - 1, m_idxTop);
-		const int idxBottom = std::min(m_idxTop + (int)ps.rcPaint.bottom / m_cyItem + 1, (int)m_vItem.size() - 1);
+		const int idxBottom = std::min(m_idxTop + (int)ps.rcPaint.bottom / m_cyItem + 1, 
+			(int)m_vItem.size() - 1);
 		if (idxTop >= 0 && idxBottom >= 0)
 		{
 			SetTextColor(m_DC.GetDC(),
@@ -207,64 +200,6 @@ private:
 		ReCalcTopItem();
 		ScrollWindow(hWnd, 0, yOld - si.nPos, nullptr, nullptr);
 		UpdateWindow(hWnd);
-	}
-
-	void OnMouseMove(HWND hWnd, int x, int y, UINT uKeyFlags)
-	{
-		if (m_hComboBox)
-		{
-			//EckAssert(m_bTrackComboBoxList);
-			//RECT rcWnd, rcClient;
-			//GetWindowRect(hWnd, &rcWnd);
-			//ScreenToClient(hWnd, &rcWnd);
-			//GetClientRect(hWnd, &rcClient);
-			//if (PtInRect(rcWnd, POINT{ x,y }) &&
-			//	!PtInRect(rcClient, POINT{ x,y }))// 在滚动条上
-			//{
-			//	POINT ptScr{ x,y };
-			//	ClientToScreen(hWnd, &ptScr);
-			//	//EckAssert(GetCapture() == hWnd);
-			//	auto a = __super::OnMsg(hWnd, WM_NCHITTEST, 0, POINTTOPOINTS(ptScr));
-			//	EckDbgPrint(a);
-			//	ReleaseCapture();
-			//	__super::OnMsg(hWnd,
-			//		WM_NCMOUSEMOVE,
-			//		a,
-			//		POINTTOPOINTS(ptScr));
-			//	SetCapture(hWnd);
-			//	return;
-			//}
-		}
-
-		if (!m_bLBtnDown)
-		{
-			int idxHot = HitTest(x, y);
-			if (idxHot == m_idxHot)
-				return;
-			std::swap(idxHot, m_idxHot);
-			if (idxHot >= 0)
-				RedrawItem(idxHot);
-			if (m_idxHot >= 0)
-				RedrawItem(m_idxHot);
-		}
-
-		TRACKMOUSEEVENT tme;
-		tme.cbSize = sizeof(TRACKMOUSEEVENT);
-		tme.dwFlags = TME_LEAVE | TME_NONCLIENT;
-		tme.hwndTrack = hWnd;
-		TrackMouseEvent(&tme);
-	}
-
-	void OnMouseLeave(HWND hWnd)
-	{
-		int t = -1;
-		std::swap(t, m_idxHot);
-		RECT rcItem;
-		if (t >= 0)
-		{
-			GetItemRect(t, rcItem);
-			Redraw(rcItem);
-		}
 	}
 
 	void SelectItemForClick(int idx)
@@ -513,27 +448,37 @@ private:
 				SendMessageW(m_hComboBox, WM_NOTIFY, nm.idFrom, (LPARAM)&nm);
 				return;
 			}
-			else if (GetClientRect(hWnd, &rc); !PtInRect(rc, POINT{ x,y }))// 试图拖动滚动条
+			else if (rc = { 0,0,m_cxClient,m_cyClient };
+				!PtInRect(rc, POINT{ x,y }))// 试图拖动滚动条
 			{
 				POINT ptScr{ x,y };
 				ClientToScreen(hWnd, &ptScr);
 				EckAssert(GetCapture() == hWnd);
 				m_bLBtnDown = FALSE;
+				CbBeginProtectCapture();
 				ReleaseCapture();
-				__super::OnMsg(hWnd, 
-					WM_NCLBUTTONDOWN,
+				__super::OnMsg(hWnd, WM_NCLBUTTONDOWN,
 					__super::OnMsg(hWnd, WM_NCHITTEST, 0, POINTTOPOINTS(ptScr)),
 					POINTTOPOINTS(ptScr));
 				SetCapture(hWnd);
+				CbEndProtectCapture();
 				return;
 			}
 			else// 通常情况
 			{
-				SetCapture(hWnd);
 				m_bLBtnDown = TRUE;
+
+				const int idx = HitTest(x, y);
+				if (idx < 0)
+					return;
+				POINT ptScr{ x,y };
+				ClientToScreen(hWnd, &ptScr);
+				SelectItemForClick(idx);
+
 				NMHDR nm;
 				FillNmhdr(nm, NM_LBN_LBTNDOWN);
 				SendMessageW(m_hComboBox, WM_NOTIFY, nm.idFrom, (LPARAM)&nm);
+				return;
 			}
 		}
 		else
@@ -673,48 +618,117 @@ private:
 		if (m_idxSel >= c)
 			m_idxSel = -1;
 	}
+
+	LRESULT CbNotifyDismiss()
+	{
+		EckDbgPrint(L"dismiss up");
+		NMHDR nm;
+		FillNmhdr(nm, NM_LBN_DISMISS);
+		return SendMessageW(m_hComboBox, WM_NOTIFY, nm.idFrom, (LPARAM)&nm);
+	}
 public:
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)
 		{
 		case WM_MOUSELEAVE:
-			ECK_HANDLE_WM_MOUSELEAVE(hWnd, wParam, lParam, OnMouseLeave);
-			break;
+		{
+			int t = -1;
+			std::swap(t, m_idxHot);
+			RECT rcItem;
+			if (t >= 0)
+			{
+				GetItemRect(t, rcItem);
+				Redraw(rcItem);
+			}
+		}
+		break;
+
 		case WM_MOUSEMOVE:
-			HANDLE_WM_MOUSEMOVE(hWnd, wParam, lParam, OnMouseMove);
-			break;
+		{
+			if (!m_bLBtnDown)
+			{
+				const POINT pt ECK_GET_PT_LPARAM(lParam);
+				int idxHot = HitTest(pt.x, pt.y);
+				if (idxHot == m_idxHot)
+					break;
+				std::swap(idxHot, m_idxHot);
+				if (idxHot >= 0)
+					RedrawItem(idxHot);
+				if (m_idxHot >= 0)
+					RedrawItem(m_idxHot);
+			}
+
+			TRACKMOUSEEVENT tme;
+			tme.cbSize = sizeof(TRACKMOUSEEVENT);
+			tme.dwFlags = TME_LEAVE;
+			tme.hwndTrack = hWnd;
+			TrackMouseEvent(&tme);
+		}
+		break;
+
 		case WM_SIZE:
-			HANDLE_WM_SIZE(hWnd, wParam, lParam, OnSize);
-			break;
+		{
+			ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
+			SetSbPage(SB_VERT, m_cyClient);
+			m_DC.ReSize(hWnd, m_cxClient, m_cyClient);
+		}
+		break;
+
+		case WM_PRINTCLIENT:
 		case WM_PAINT:
-			return HANDLE_WM_PAINT(hWnd, wParam, lParam, OnPaint);
+			OnPaint(hWnd, wParam);
+			return 0;
+
 		case WM_VSCROLL:
 			return HANDLE_WM_VSCROLL(hWnd, wParam, lParam, OnVScroll);
+
 		case WM_MOUSEWHEEL:
 			HANDLE_WM_MOUSEWHEEL(hWnd, wParam, lParam, OnMouseWheel);
 			break;
 
-		case WM_RBUTTONUP:
+		case WM_RBUTTONDOWN:
 		{
 			if (m_hComboBox)
 			{
-				ReleaseCapture();
-				const auto lResult = __super::OnMsg(hWnd, uMsg, wParam, lParam);
+				const RECT rcClient{ 0,0,m_cxClient,m_cyClient };
+				if (!PtInRect(&rcClient, ECK_GET_PT_LPARAM(lParam)))
+					break;
+				m_bRBtnDown = TRUE;
+				// 无需捕获鼠标
+				EckAssert(m_bTrackComboBoxList);
+			}
+			else
+			{
+				m_bRBtnDown = TRUE;
 				SetCapture(hWnd);
-				return lResult;
+			}
+		}
+		break;
+
+		case WM_RBUTTONUP:
+		{
+			const RECT rcClient{ 0,0,m_cxClient,m_cyClient };
+			if (m_hComboBox)
+			{
+				if (!PtInRect(&rcClient, ECK_GET_PT_LPARAM(lParam)))// 客户区之外，可能正在右击滚动条
+				{
+					CbBeginProtectCapture();
+					const auto lResult = __super::OnMsg(hWnd, uMsg, wParam, lParam);
+					SetCapture(hWnd);
+					CbEndProtectCapture();
+					return lResult;
+				}
 			}
 			if (m_bRBtnDown)
 			{
-				ReleaseCapture();
+				if (!m_hComboBox)
+					ReleaseCapture();
 				m_bRBtnDown = FALSE;
 				NMECKMOUSENOTIFY nm;
 				nm.pt = ECK_GET_PT_LPARAM(lParam);
-				if (nm.pt.x >= 0 && nm.pt.x < m_cxClient && nm.pt.y >= 0 && nm.pt.y < m_cyClient)
-				{
-					nm.uKeyFlags = (UINT)wParam;
-					FillNmhdrAndSendNotify(nm, NM_RCLICK);
-				}
+				nm.uKeyFlags = (UINT)wParam;
+				FillNmhdrAndSendNotify(nm, NM_RCLICK);
 			}
 		}
 		break;
@@ -730,21 +744,12 @@ public:
 				m_bLBtnDown = FALSE;
 				POINT pt ECK_GET_PT_LPARAM(lParam);
 				ReleaseCapture();
-
-				if (m_bNmDragging)
+				if (!m_hComboBox && m_bNmDragging)
 				{
 					NMLBNDRAG nm;
 					nm.idx = HitTest(pt.x, pt.y);
 					nm.uKeyFlags = (UINT)wParam;
 					FillNmhdrAndSendNotify(nm, NM_LBN_ENDDRAG);
-				}
-
-				if (m_hComboBox)
-				{
-					EckDbgPrint(L"dismiss up");
-					NMHDR nm;
-					FillNmhdr(nm, NM_LBN_DISMISS);
-					SendMessageW(m_hComboBox, WM_NOTIFY, nm.idFrom, (LPARAM)&nm);
 				}
 			}
 		}
@@ -880,14 +885,24 @@ public:
 
 		case WM_CAPTURECHANGED:
 		{
-			if (m_bLBtnDown)
+			if (m_hComboBox)
 			{
-				POINT pt;
-				GetCursorPos(&pt);
-				ScreenToClient(hWnd, &pt);
-				SendMsg(WM_LBUTTONUP, 0, POINTTOPOINTS(pt));// HACK : wParam is ZERO
+				m_bLBtnDown = FALSE;
+				m_bRBtnDown = FALSE;
+				if (!m_bProtectCapture)
+					CbNotifyDismiss();
 			}
-			m_bRBtnDown = FALSE;
+			else
+			{
+				m_bRBtnDown = FALSE;
+				if (m_bLBtnDown)
+				{
+					POINT pt;
+					GetCursorPos(&pt);
+					ScreenToClient(hWnd, &pt);
+					OnMsg(hWnd, WM_LBUTTONUP, 0, POINTTOPOINTS(pt));
+				}
+			}
 		}
 		break;
 
@@ -959,7 +974,6 @@ public:
 		break;
 		}
 
-		//return DefWindowProcW(hWnd, uMsg, wParam, lParam);
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
@@ -1094,24 +1108,24 @@ public:
 
 	EckInline void SetItemHeight(int cy)
 	{
-		m_cyItem = cy; 
+		m_cyItem = cy;
 		ReCalcScrollBar();
 		ReCalcTopItem();
 	}
 
 	EckInline int GetItemHeight() const { return m_cyItem; }
 
-	//----------------组合框交互----------------
-	EckInline void SetComboBox(HWND h) { m_hComboBox = h; }
+#pragma region 组合框交互
+	EckInline constexpr void SetComboBox(HWND h) { m_hComboBox = h; }
+	EckInline constexpr HWND GetComboBox() const { return m_hComboBox; }
 
-	void EnterTrack()
+	void CbEnterTrack()
 	{
 		SetCapture(HWnd);
 		m_bTrackComboBoxList = TRUE;
-		//SetTimer(HWnd, 1, 100, nullptr);
 	}
 
-	void LeaveTrack()
+	void CbLeaveTrack()
 	{
 		if (m_bTrackComboBoxList)
 		{
@@ -1119,7 +1133,20 @@ public:
 			m_bTrackComboBoxList = FALSE;
 		}
 	}
-	//-----------------------------------------
+
+	void CbBeginProtectCapture()
+	{
+		EckAssert(m_hComboBox && !m_bProtectCapture);
+		m_bProtectCapture = TRUE;
+	}
+
+	void CbEndProtectCapture()
+	{
+		EckAssert(m_hComboBox && m_bProtectCapture);
+		m_bProtectCapture = FALSE;
+	}
+#pragma endregion 组合框交互
+
 	EckInline constexpr void SetMultiSel(BOOL bMultiSel) { m_bMultiSel = bMultiSel; }
 	EckInline constexpr BOOL GetMultiSel() const { return m_bMultiSel; }
 

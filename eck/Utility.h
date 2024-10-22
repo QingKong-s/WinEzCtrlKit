@@ -414,20 +414,23 @@ EckInline int Rand(int iMin = INT_MIN, int iMax = INT_MAX)
 
 EckInline constexpr BOOL IsRectsIntersect(const RECT& rc1, const RECT& rc2)
 {
-	return !(std::max(rc1.left, rc2.left) > std::min(rc1.right, rc2.right) ||
-		std::max(rc1.top, rc2.top) > std::min(rc1.bottom, rc2.bottom));
+	if (std::max(rc1.left, rc2.left) < std::min(rc1.right, rc2.right))
+		return std::max(rc1.top, rc2.top) < std::min(rc1.bottom, rc2.bottom);
+	return FALSE;
 }
 
 EckInline constexpr BOOL IsRectsIntersect(const D2D1_RECT_F& rc1, const D2D1_RECT_F& rc2)
 {
-	return !(std::max(rc1.left, rc2.left) > std::min(rc1.right, rc2.right) ||
-		std::max(rc1.top, rc2.top) > std::min(rc1.bottom, rc2.bottom));
+	if (std::max(rc1.left, rc2.left) < std::min(rc1.right, rc2.right))
+		return std::max(rc1.top, rc2.top) < std::min(rc1.bottom, rc2.bottom);
+	return FALSE;
 }
 
 EckInline constexpr BOOL IsRectsIntersect(const RCWH& rc1, const RCWH& rc2)
 {
-	return !(std::max(rc1.x, rc2.x) > std::min(rc1.x + rc2.cx, rc2.x + rc2.cx) ||
-		std::max(rc1.y, rc2.y) > std::min(rc1.y + rc2.cy, rc2.y + rc2.cy));
+	if (std::max(rc1.x, rc2.x) < std::min(rc1.x + rc1.cx, rc2.x + rc2.cx))
+		return std::max(rc1.y, rc2.y) < std::min(rc1.y + rc1.cy, rc2.y + rc2.cy);
+	return FALSE;
 }
 
 template<class T>
