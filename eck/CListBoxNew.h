@@ -218,18 +218,21 @@ private:
 			//GetWindowRect(hWnd, &rcWnd);
 			//ScreenToClient(hWnd, &rcWnd);
 			//GetClientRect(hWnd, &rcClient);
-			//if (!PtInRect(rcWnd, POINT{ x,y }) &&
-			//	!PtInRect(rcWnd, POINT{ x,y }))// 在滚动条上
+			//if (PtInRect(rcWnd, POINT{ x,y }) &&
+			//	!PtInRect(rcClient, POINT{ x,y }))// 在滚动条上
 			//{
 			//	POINT ptScr{ x,y };
 			//	ClientToScreen(hWnd, &ptScr);
-			//	EckAssert(GetCapture() == hWnd);
+			//	//EckAssert(GetCapture() == hWnd);
+			//	auto a = __super::OnMsg(hWnd, WM_NCHITTEST, 0, POINTTOPOINTS(ptScr));
+			//	EckDbgPrint(a);
 			//	ReleaseCapture();
-			//	SendMsg(
+			//	__super::OnMsg(hWnd,
 			//		WM_NCMOUSEMOVE,
-			//		SendMsg(WM_NCHITTEST, 0, POINTTOPOINTS(ptScr)),
+			//		a,
 			//		POINTTOPOINTS(ptScr));
 			//	SetCapture(hWnd);
+			//	return;
 			//}
 		}
 
@@ -247,7 +250,7 @@ private:
 
 		TRACKMOUSEEVENT tme;
 		tme.cbSize = sizeof(TRACKMOUSEEVENT);
-		tme.dwFlags = TME_LEAVE;
+		tme.dwFlags = TME_LEAVE | TME_NONCLIENT;
 		tme.hwndTrack = hWnd;
 		TrackMouseEvent(&tme);
 	}
@@ -499,12 +502,11 @@ private:
 	{
 		if (m_hComboBox)
 		{
-			m_bLBtnDown = TRUE;
 			EckAssert(m_bTrackComboBoxList);
 			RECT rc;
 			GetWindowRect(hWnd, &rc);
 			ScreenToClient(hWnd, &rc);
-			if (!PtInRect(rc, POINT{ x,y }))// 光标在窗口外
+			if (!PtInRect(rc, POINT{ x,y }))// 光标在窗口外，关闭列表
 			{
 				NMHDR nm;
 				FillNmhdr(nm, NM_LBN_DISMISS);
@@ -515,21 +517,20 @@ private:
 			{
 				POINT ptScr{ x,y };
 				ClientToScreen(hWnd, &ptScr);
-
 				EckAssert(GetCapture() == hWnd);
 				m_bLBtnDown = FALSE;
 				ReleaseCapture();
-				SendMsg(
+				__super::OnMsg(hWnd, 
 					WM_NCLBUTTONDOWN,
-					SendMsg(WM_NCHITTEST, 0, POINTTOPOINTS(ptScr)),
+					__super::OnMsg(hWnd, WM_NCHITTEST, 0, POINTTOPOINTS(ptScr)),
 					POINTTOPOINTS(ptScr));
-				ReleaseCapture();
 				SetCapture(hWnd);
-				m_bLBtnDown = TRUE;
+				return;
 			}
-			else
+			else// 通常情况
 			{
 				SetCapture(hWnd);
+				m_bLBtnDown = TRUE;
 				NMHDR nm;
 				FillNmhdr(nm, NM_LBN_LBTNDOWN);
 				SendMessageW(m_hComboBox, WM_NOTIFY, nm.idFrom, (LPARAM)&nm);
@@ -678,25 +679,31 @@ public:
 		switch (uMsg)
 		{
 		case WM_MOUSELEAVE:
-			return ECK_HANDLE_WM_MOUSELEAVE(hWnd, wParam, lParam, OnMouseLeave);
+			ECK_HANDLE_WM_MOUSELEAVE(hWnd, wParam, lParam, OnMouseLeave);
+			break;
 		case WM_MOUSEMOVE:
-			return HANDLE_WM_MOUSEMOVE(hWnd, wParam, lParam, OnMouseMove);
+			HANDLE_WM_MOUSEMOVE(hWnd, wParam, lParam, OnMouseMove);
+			break;
 		case WM_SIZE:
-			return HANDLE_WM_SIZE(hWnd, wParam, lParam, OnSize);
+			HANDLE_WM_SIZE(hWnd, wParam, lParam, OnSize);
+			break;
 		case WM_PAINT:
 			return HANDLE_WM_PAINT(hWnd, wParam, lParam, OnPaint);
 		case WM_VSCROLL:
 			return HANDLE_WM_VSCROLL(hWnd, wParam, lParam, OnVScroll);
 		case WM_MOUSEWHEEL:
-			return HANDLE_WM_MOUSEWHEEL(hWnd, wParam, lParam, OnMouseWheel);
-		case WM_RBUTTONDOWN:
-		{
-			m_bRBtnDown = TRUE;
-			SetCapture(hWnd);
-		}
-		return 0;
+			HANDLE_WM_MOUSEWHEEL(hWnd, wParam, lParam, OnMouseWheel);
+			break;
+
 		case WM_RBUTTONUP:
 		{
+			if (m_hComboBox)
+			{
+				ReleaseCapture();
+				const auto lResult = __super::OnMsg(hWnd, uMsg, wParam, lParam);
+				SetCapture(hWnd);
+				return lResult;
+			}
 			if (m_bRBtnDown)
 			{
 				ReleaseCapture();
@@ -710,16 +717,19 @@ public:
 				}
 			}
 		}
-		return 0;
+		break;
+
 		case WM_LBUTTONDOWN:
-			return HANDLE_WM_LBUTTONDOWN(hWnd, wParam, lParam, OnLButtonDown);
+			HANDLE_WM_LBUTTONDOWN(hWnd, wParam, lParam, OnLButtonDown);
+			break;
+
 		case WM_LBUTTONUP:
 		{
 			if (m_bLBtnDown)
 			{
+				m_bLBtnDown = FALSE;
 				POINT pt ECK_GET_PT_LPARAM(lParam);
 				ReleaseCapture();
-				m_bLBtnDown = FALSE;
 
 				if (m_bNmDragging)
 				{
@@ -738,7 +748,8 @@ public:
 				}
 			}
 		}
-		return 0;
+		break;
+
 		case WM_KEYDOWN:
 		{
 			switch (wParam)
@@ -865,7 +876,7 @@ public:
 			return 0;
 			}
 		}
-		return 0;
+		break;
 
 		case WM_CAPTURECHANGED:
 		{
@@ -888,7 +899,8 @@ public:
 			nm.hWnd = (HWND)wParam;
 			FillNmhdrAndSendNotify(nm, NM_SETFOCUS);
 		}
-		return 0;
+		break;
+
 		case WM_KILLFOCUS:
 		{
 			m_bHasFocus = FALSE;
@@ -907,14 +919,17 @@ public:
 				Redraw();
 		}
 		return 0;
+
 		case WM_GETFONT:
 			return (LRESULT)m_hFont;
+
 		case WM_THEMECHANGED:
 		{
 			CloseThemeData(m_hTheme);
 			m_hTheme = OpenThemeData(hWnd, L"ListView");
 		}
 		return 0;
+
 		case WM_DPICHANGED_BEFOREPARENT:
 		{
 			m_iDpi = eck::GetDpi(hWnd);
@@ -923,8 +938,11 @@ public:
 				m_cyItem = m_Ds.cyItemDef;
 		}
 		return 0;
+
 		case WM_CREATE:
-			return HANDLE_WM_CREATE(hWnd, wParam, lParam, OnCreate);
+			HANDLE_WM_CREATE(hWnd, wParam, lParam, OnCreate);
+			break;
+
 		case WM_DESTROY:
 		{
 			CloseThemeData(m_hTheme);
@@ -938,9 +956,10 @@ public:
 				m_bNmDragging = m_bTrackComboBoxList = FALSE;
 			m_hComboBox = nullptr;
 		}
-		return 0;
+		break;
 		}
 
+		//return DefWindowProcW(hWnd, uMsg, wParam, lParam);
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
@@ -1089,6 +1108,7 @@ public:
 	{
 		SetCapture(HWnd);
 		m_bTrackComboBoxList = TRUE;
+		//SetTimer(HWnd, 1, 100, nullptr);
 	}
 
 	void LeaveTrack()
@@ -1101,11 +1121,9 @@ public:
 	}
 	//-----------------------------------------
 	EckInline constexpr void SetMultiSel(BOOL bMultiSel) { m_bMultiSel = bMultiSel; }
-
 	EckInline constexpr BOOL GetMultiSel() const { return m_bMultiSel; }
 
 	EckInline constexpr void SetExtendSel(BOOL bExtendSel) { m_bExtendSel = bExtendSel; }
-
 	EckInline constexpr BOOL GetExtendSel() const { return m_bExtendSel; }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CListBoxNew, CWnd);

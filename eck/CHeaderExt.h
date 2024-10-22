@@ -753,7 +753,9 @@ public:
 
 		case WM_CREATE:
 		{
+			const auto lResult = CHeader::OnMsg(hWnd, uMsg, wParam, lParam);
 			InitForNewWindow(hWnd);
+			return lResult;
 		}
 		break;
 

@@ -60,29 +60,11 @@ public:
 	{
 		switch (uMsg)
 		{
-		case WM_CREATE:
-		{
-			m_iDpi = GetDpi(hWnd);
-			UpdateDpiSize(m_Ds, m_iDpi);
-
-			SetExplorerTheme();
-
-			m_LB.Create(nullptr, WS_POPUP | WS_BORDER, 
-				WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE|WS_EX_TOPMOST,
-				0, 0, 0, 0, hWnd, nullptr);
-			SetWindowLongPtrW(m_LB.HWnd, GWLP_HWNDPARENT, (LONG_PTR)hWnd);
-			m_LB.SetComboBox(hWnd);
-
-			m_hTheme = OpenThemeData(hWnd, L"ComboBox");
-			UpdateThemeInfo();
-			m_DC.Create(hWnd);
-		}
-		break;
-
+		case WM_PRINTCLIENT:
 		case WM_PAINT:
 		{
 			PAINTSTRUCT ps;
-			BeginPaint(hWnd, &ps);
+			BeginPaint(hWnd, wParam, ps);
 
 			int iState;
 			RECT rc{ 0,0,m_cxClient,m_cyClient };
@@ -114,7 +96,7 @@ public:
 			}
 			
 			BitBltPs(&ps, m_DC.GetDC());
-			EndPaint(hWnd, &ps);
+			EndPaint(hWnd,wParam, ps);
 		}
 		return 0;
 
@@ -167,7 +149,7 @@ public:
 				switch (pnmhdr->code)
 				{
 				case NM_LBN_LBTNDOWN:
-					SetFocus(hWnd);
+					//SetFocus(hWnd);
 					return 0;
 				case NM_LBN_DISMISS:
 					DismissList();
@@ -182,11 +164,32 @@ public:
 		}
 		break;
 
+		case WM_SETFONT:
+			SendMessageW(m_LB.HWnd, uMsg, wParam, lParam);
+			break;
+
 		case WM_THEMECHANGED:
 		{
 			CloseThemeData(m_hTheme);
-			m_hTheme = OpenThemeData(hWnd, L"ComboBox");
+			m_hTheme = OpenThemeData(hWnd, L"Combobox");
 			UpdateThemeInfo();
+		}
+		break;
+
+		case WM_CREATE:
+		{
+			m_iDpi = GetDpi(hWnd);
+			UpdateDpiSize(m_Ds, m_iDpi);
+
+			m_LB.Create(nullptr, WS_POPUP | WS_BORDER,
+				WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TOPMOST,
+				0, 0, 0, 0, hWnd, nullptr);
+			SetWindowLongPtrW(m_LB.HWnd, GWLP_HWNDPARENT, (LONG_PTR)hWnd);
+			m_LB.SetComboBox(hWnd);
+
+			m_hTheme = OpenThemeData(hWnd, L"Combobox");
+			UpdateThemeInfo();
+			m_DC.Create(hWnd);
 		}
 		break;
 		}

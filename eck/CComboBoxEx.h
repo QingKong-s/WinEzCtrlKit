@@ -8,6 +8,7 @@
 #pragma once
 #include "CComboBox.h"
 #include "CRefBinStream.h"
+#include "CStreamView.h"
 
 ECK_NAMESPACE_BEGIN
 inline constexpr int CDV_COMBOBOXEX_1 = CDV_COMBOBOX_1 + 1;
@@ -27,6 +28,7 @@ struct CTRLDATA_COMBOBOXEX
 	};
 
 	CTRLDATA_COMBOBOX Base;// 无项目数据
+	DWORD cbImageList;
 	// ITEM Items[];// 长度CTRLDATA_COMBOBOX::cItem
 };
 #pragma pack(pop)
@@ -68,9 +70,9 @@ public:
 	{
 		SERIALIZE_OPT Opt{ pOpt ? *pOpt : SERIALIZE_OPT{} };
 		Opt.uFlags |= SERF_NO_COMBO_ITEM;
-		const auto ocbBase = rb.Size();
 		CComboBox::SerializeData(rb, &Opt);
-		auto pBase = (CTRLDATA_COMBOBOX*)(rb.Data() + ocbBase);
+		auto pBase = (CTRLDATA_COMBOBOX*)CWnd::SkipBaseData(rb.Data());
+		const auto ocbBase = (PCBYTE)pBase - rb.Data();
 		pBase->iVer = CDV_COMBOBOXEX_1;
 		CRefStrW rs{ (pOpt && pOpt->cchTextBuf) ? pOpt->cchTextBuf : MAX_PATH };
 		COMBOBOXEXITEMW cbei;
@@ -95,38 +97,52 @@ public:
 			pItem->lParam = cbei.lParam;
 			wmemcpy(PWSTR(pItem + 1), cbei.pszText, cchText + 1);
 		}
-		if (HIMAGELIST hIL = GetImageList(); hIL &&
-			pOpt && (pOpt->uFlags & SERF_INCLUDE_IMAGELIST))
+		if (HIMAGELIST hIL = GetImageList(); 0 && hIL &&
+			(!pOpt || !(pOpt->uFlags & SERF_EXCLUDE_IMAGELIST)))
 		{
+			const auto ocb = rb.Size();
 			const auto pStream = new CRefBinStream{ rb };
 			if (SUCCEEDED(ImageList_WriteEx(hIL, ILP_NORMAL, pStream)))
 				((CTRLDATA_WND*)rb.Data())->uFlags |= SERDF_IMAGELIST;
 			pStream->LeaveRelease();
+			((CTRLDATA_COMBOBOXEX*)pBase)->cbImageList = (DWORD)(rb.Size() - ocb);
 		}
+		else
+			((CTRLDATA_COMBOBOXEX*)pBase)->cbImageList = 0;
 		pBase = (CTRLDATA_COMBOBOX*)(rb.Data() + ocbBase);
 		pBase->cbSize = DWORD(rb.Size() - ocbBase);
 	}
 
 	void PostDeserialize(PCVOID pData) override
 	{
-		const auto pBase = (CTRLDATA_COMBOBOX*)CWnd::SkipBaseData(pData);
-		if (pBase->iVer < CDV_COMBOBOXEX_1)
+		const auto pBase = (CTRLDATA_COMBOBOXEX*)CWnd::SkipBaseData(pData);
+		if (pBase->Base.iVer < CDV_COMBOBOXEX_1)
 			return;
+		if ((((CTRLDATA_WND*)pData)->uFlags & SERDF_IMAGELIST) && pBase->cbImageList)
+		{
+			const auto pStream = new CStreamView
+			{ (PCBYTE)SkipBaseData(pData) - pBase->cbImageList, pBase->cbImageList };
+			IImageList* pIL;
+			if (SUCCEEDED(ImageList_ReadEx(ILP_NORMAL, pStream, IID_PPV_ARGS(&pIL))))
+				SetImageList((HIMAGELIST)pIL);
+			pStream->LeaveRelease();
+		}
+
 		auto pItem = (CTRLDATA_COMBOBOXEX::ITEM*)PtrStepCb(pBase, sizeof(CTRLDATA_COMBOBOX) +
-			(pBase->cchCueBanner + 1) * sizeof(WCHAR));
+			(pBase->Base.cchCueBanner + 1) * sizeof(WCHAR));
 		COMBOBOXEXITEMW cbei;
 		cbei.mask = CBEIF_IMAGE | CBEIF_INDENT | CBEIF_LPARAM | CBEIF_OVERLAY |
 			CBEIF_SELECTEDIMAGE | CBEIF_TEXT;
-		EckCounter(-pBase->cItem, i)
+		cbei.iItem = -1;
+		EckCounter(-pBase->Base.cItem, i)
 		{
 			cbei.pszText = PWSTR(pItem + 1);
-			cbei.iItem = i;
 			cbei.iImage = pItem->idxImage;
 			cbei.iSelectedImage = pItem->idxSelImage;
 			cbei.iOverlay = pItem->idxOverlay;
 			cbei.iIndent = pItem->iIndent;
 			cbei.lParam = pItem->lParam;
-			InsertItem(&cbei);
+			auto a = InsertItem(&cbei);
 			pItem = (CTRLDATA_COMBOBOXEX::ITEM*)PtrStepCb(pItem, sizeof(CTRLDATA_COMBOBOXEX::ITEM) +
 				(pItem->cchText + 1) * sizeof(WCHAR));
 		}
@@ -204,6 +220,19 @@ public:
 		return (int)SendMsg(CBEM_INSERTITEMW, 0, (LPARAM)pcbei);
 	}
 
+	int InsertItem(PCWSTR pszText, int idx = -1, int iImage = -1,
+		int idxSelImage = -1, LPARAM lParam = 0) const
+	{
+		COMBOBOXEXITEMW cbei;
+		cbei.mask = CBEIF_IMAGE | CBEIF_LPARAM | CBEIF_TEXT | CBEIF_SELECTEDIMAGE;
+		cbei.iItem = idx;
+		cbei.pszText = (PWSTR)pszText;
+		cbei.iImage = iImage;
+		cbei.iSelectedImage = idxSelImage < 0 ? iImage : idxSelImage;
+		cbei.lParam = lParam;
+		return InsertItem(&cbei);
+	}
+
 	/// <summary>
 	/// 置扩展样式
 	/// </summary>
@@ -218,6 +247,11 @@ public:
 	EckInline HIMAGELIST SetImageList(HIMAGELIST hImageList) const
 	{
 		return (HIMAGELIST)SendMsg(CBEM_SETIMAGELIST, 0, (LPARAM)hImageList);
+	}
+
+	EckInline IImageList* SetImageList(IImageList* pImageList) const
+	{
+		return (IImageList*)SetImageList((HIMAGELIST)pImageList);
 	}
 
 	EckInline BOOL SetItem(COMBOBOXEXITEMW* pcbei) const

@@ -713,6 +713,28 @@ static HRESULT WINAPI NewDrawThemeBackgroundEx(HTHEME hTheme, HDC hdc, int iPart
 		case ThemeType::Header:
 			switch (iPartId)
 			{
+			case 0:
+				if (iStateId == 0)
+				{
+					if (FAILED(s_pfnDrawThemeBackgroundEx(hTheme, hdc, iPartId, iStateId, pRect, pOptions)))
+					{
+						if(pOptions &&pOptions->dwFlags & DTBG_CLIPRECT)
+						{
+							auto sdc = SaveDcClip(hdc);
+							IntersectClipRect(hdc, pOptions->rcClip);
+							SetDCBrushColor(hdc, ptc->crDefBkg);
+							FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
+							RestoreDcClip(hdc, sdc);
+						}
+						else
+						{
+							SetDCBrushColor(hdc, ptc->crDefBkg);
+							FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
+						}
+					}
+					return S_OK;
+				}
+				break;
 			case HP_HEADERDROPDOWNFILTER:
 				return UxfAdjustLuma(ti.hThemeExtra, hdc, iPartId, iStateId,
 					pRect, *pOptions, iStateId != HDDFS_HOT ? 0.7f : -0.4f);
@@ -957,6 +979,28 @@ static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hdc, int iPartId
 		case ThemeType::Header:
 			switch (iPartId)
 			{
+			case 0:
+				if (iStateId == 0)
+				{
+					if (FAILED(s_pfnDrawThemeBackground(hTheme, hdc, iPartId, iStateId, pRect, pClipRect)))
+					{
+						if(pClipRect)
+						{
+							const auto sdc = SaveDcClip(hdc);
+							IntersectClipRect(hdc, *pClipRect);
+							SetDCBrushColor(hdc, ptc->crDefBkg);
+							FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
+							RestoreDcClip(hdc, sdc);
+						}
+						else
+						{
+							SetDCBrushColor(hdc, ptc->crDefBkg);
+							FillRect(hdc, pRect, GetStockBrush(DC_BRUSH));
+						}
+					}
+					return S_OK;
+				}
+				break;
 			case HP_HEADERDROPDOWNFILTER:
 				return UxfAdjustLuma(ti.hThemeExtra, hdc, iPartId, iStateId,
 					pRect, pClipRect, iStateId != HDDFS_HOT ? 0.7f : -0.4f);
@@ -1567,7 +1611,7 @@ void DbgPrintWndMap()
 			e.second->GetText().Data(),
 			e.second->GetClsName().Data());
 	}
-	s.AppendFormat(L"共有%u个窗口\n", pCtx->hmWnd.size());
+	s.AppendFormat(L"共有%u个窗口\n", (UINT)pCtx->hmWnd.size());
 	OutputDebugStringW(s.Data());
 }
 
