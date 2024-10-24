@@ -64,15 +64,17 @@ struct DESIGNDATA_WND
 };
 #endif
 
-#define ECK_CWND_CREATE																\
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,						\
+// 生成以ID创建的方法
+#define ECK_CWND_CREATE											\
+	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,	\
 		int x, int y, int cx, int cy, HWND hParent, int nID, ::eck::PCVOID pData = nullptr)	\
-	{																				\
-		return Create(pszText, dwStyle, dwExStyle, x, y, cx, cy,					\
-			hParent, ::eck::i32ToP<HMENU>(nID), pData);								\
+	{															\
+		return Create(pszText, dwStyle, dwExStyle, x, y, cx, cy,\
+			hParent, ::eck::i32ToP<HMENU>(nID), pData);			\
 	}
 
-#define ECK_CWND_CREATE_CLS(ClsName)	\
+// 按类名和实例句柄生成创建方法
+#define ECK_CWND_CREATE_CLS_HINST(ClsName, HInst)	\
 	ECK_CWND_CREATE						\
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle, int x, int y,				\
 		int cx, int cy, HWND hParent, HMENU hMenu, ::eck::PCVOID pData = nullptr) override	\
@@ -82,33 +84,53 @@ struct DESIGNDATA_WND
 			const auto* const pBase = (CTRLDATA_WND*)pData;		\
 			PreDeserialize(pData);								\
 			IntCreate(pBase->dwExStyle, ClsName, pBase->Text(), pBase->dwStyle,				\
-				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);\
+				x, y, cx, cy, hParent, hMenu, HInst, nullptr);\
 			PostDeserialize(pData);		\
 		}								\
 		else							\
 		{								\
 			IntCreate(0, ClsName, pszText, dwStyle,				\
-				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);\
+				x, y, cx, cy, hParent, hMenu, HInst, nullptr);\
 		}								\
 		return m_hWnd;					\
 	}
 
-#define ECK_CWND_SINGLEOWNER													/*\
-	[[nodiscard]] EckInline static constexpr BOOL IsSingleOwner() { return TRUE; }	\
-	void Attach(HWND hWnd) override													\
-	{																				\
-		throw ::eck::CAttachSingleOwnerWndException{};								\
-	}																				\
-	HWND Detach() override															\
-	{																				\
-		throw ::eck::CDetachSingleOwnerWndException{};								\
-	}																				\*/
+// 按类名生成创建方法
+#define ECK_CWND_CREATE_CLS(ClsName) ECK_CWND_CREATE_CLS_HINST(ClsName, nullptr)
 
-#define ECK_CWND_NOSINGLEOWNER(Class)												\
-	/*[[nodiscard]] EckInline static constexpr BOOL IsSingleOwner() { return FALSE; }*/	\
-	Class() = default;																\
+#define ECK_CWND_DISABLE_ATTACH			\
+	void Attach(HWND hWnd) override		\
+	{									\
+		EckDbgPrintWithPos(L"** WARNING ** CWnd::Attach is disabled."); \
+		abort();						\
+	}									\
+	HWND Detach() override				\
+	{									\
+		EckDbgPrintWithPos(L"** WARNING ** CWnd::Detach is disabled."); \
+		abort();						\
+		return nullptr;					\
+	}
+
+#define ECK_CWND_DISABLE_ATTACHNEW		\
+	void AttachNew(HWND hWnd) override	\
+	{									\
+		EckDbgPrintWithPos(L"** WARNING ** CWnd::AttachNew is disabled."); \
+		abort();						\
+	}									\
+	void DetachNew() override			\
+	{									\
+		EckDbgPrintWithPos(L"** WARNING ** CWnd::DetachNew is disabled."); \
+		abort();						\
+	}
+
+#define ECK_CWND_SINGLEOWNER(Class)		\
+	Class() = default;					\
+	ECK_CWND_DISABLE_ATTACH				\
+	ECK_CWND_DISABLE_ATTACHNEW
+
+#define ECK_CWND_NOSINGLEOWNER(Class)	\
+	Class() = default;					\
 	Class(HWND hWnd) { m_hWnd = hWnd; }
-
 
 class CWnd : public ILayout
 {
@@ -165,9 +187,22 @@ protected:
 	}
 
 	template<class T>
+	EckInline LRESULT SendNotify(T& nm, HWND hParent) const
+	{
+		return SendMessageW(hParent, WM_NOTIFY, ((NMHDR*)&nm)->idFrom, (LPARAM)&nm);
+	}
+
+	template<class T>
 	EckInline LRESULT SendNotify(T& nm) const
 	{
-		return SendMessageW(GetParent(GetHWND()), WM_NOTIFY, ((NMHDR*)&nm)->idFrom, (LPARAM)&nm);
+		return SendNotify(nm, GetParent(GetHWND()));
+	}
+
+	template<class T>
+	EckInline LRESULT FillNmhdrAndSendNotify(T& nm, HWND hParent, UINT uCode) const
+	{
+		FillNmhdr(nm, uCode);
+		return SendNotify(nm, hParent);
 	}
 
 	template<class T>
@@ -388,6 +423,14 @@ public:
 	{
 		return Create(pszText, dwStyle, dwExStyle, x, y, cx, cy,
 			hParent, i32ToP<HMENU>(nID), pData);
+	}
+
+	EckInline HWND NativeCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
+		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
+		FWndCreating pfnCreatingProc = nullptr)
+	{
+		return IntCreate(dwExStyle, pszClass, pszText, dwStyle,
+			x, y, cx, cy, hParent, hMenu, hInst, pParam, pfnCreatingProc);
 	}
 
 	/// <summary>

@@ -426,7 +426,7 @@ inline BOOL GetFileVerInfo(PCWSTR pszFile, FILEVERINFO& fvi)
 	return TRUE;
 }
 
-namespace EckPriv
+namespace Priv
 {
 	template<class T>
 	EckInline constexpr INPUT KeyboardEventGetArg(T wVk)
@@ -451,7 +451,7 @@ template<class...T>
 /// <returns>SendInput的返回值</returns>
 inline UINT KeyboardEvent(T...wVk)
 {
-	INPUT Args[]{ EckPriv::KeyboardEventGetArg(wVk)... };
+	INPUT Args[]{ Priv::KeyboardEventGetArg(wVk)... };
 	INPUT input[ARRAYSIZE(Args) * 2];
 	memcpy(input, Args, sizeof(Args));
 	for (auto& e : Args)
@@ -677,7 +677,7 @@ inline CRefStrW FormatDateTime(const SYSTEMTIME& st,
 	return rs;
 }
 
-namespace EckPriv
+namespace Priv
 {
 	inline void IntEnumFileRecurse(CRefStrW& rs, int cchDir, PCWSTR pszPat,
 		std::vector<CRefStrW>& vResult, WIN32_FIND_DATAW* pwfd)
@@ -761,7 +761,7 @@ inline BOOL EnumFileRecurse(PCWSTR pszPath, PCWSTR pszFilePat, std::vector<CRefS
 	const int cchDir = rs.Size();
 	rs += pszFilePat;
 	WIN32_FIND_DATAW wfd{};
-	EckPriv::IntEnumFileRecurse(rs, cchDir, pszFilePat, vResult, &wfd);
+	Priv::IntEnumFileRecurse(rs, cchDir, pszFilePat, vResult, &wfd);
 	return TRUE;
 }
 
@@ -781,7 +781,7 @@ EckInline BOOL EnumFileRecurse(PCWSTR pszPath, std::vector<CRefStrW>& vResult)
 	return EnumFileRecurse(rs.Data(), pszFileName, vResult);
 }
 
-namespace EckPriv
+namespace Priv
 {
 	inline UINT __stdcall OpenInExplorerThread(void* pParam)
 	{
@@ -856,7 +856,7 @@ namespace EckPriv
 /// <param name="vPath">路径</param>
 EckInline void OpenInExplorer(const std::vector<CRefStrW>& vPath)
 {
-	NtClose(CrtCreateThread(EckPriv::OpenInExplorerThread, new std::vector{ vPath }));
+	NtClose(CrtCreateThread(Priv::OpenInExplorerThread, new std::vector{ vPath }));
 }
 
 /// <summary>
@@ -866,7 +866,7 @@ EckInline void OpenInExplorer(const std::vector<CRefStrW>& vPath)
 /// <param name="pvPath">路径vector指针，必须使用new分配且传递后不可再使用</param>
 EckInline void OpenInExplorer(std::vector<CRefStrW>* pvPath)
 {
-	NtClose(CrtCreateThread(EckPriv::OpenInExplorerThread, pvPath));
+	NtClose(CrtCreateThread(Priv::OpenInExplorerThread, pvPath));
 }
 
 /// <summary>
@@ -1157,7 +1157,7 @@ typedef struct _SRB_IO_CONTROL
 	ULONG Length;
 } SRB_IO_CONTROL, * PSRB_IO_CONTROL;
 
-namespace EckPriv
+namespace Priv
 {
 	inline constexpr UINT CalcDriveIdentifierFromIdentifyData(const IDENTIFY_DATA* pidd)
 	{

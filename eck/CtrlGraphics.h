@@ -6,7 +6,7 @@
 * Copyright(C) 2023-2024 QingKong
 */
 #pragma once
-#include "CHeader.h"
+#include "GraphicsHelper.h"
 
 ECK_NAMESPACE_BEGIN
 EckInline HRESULT DrawListViewColumnDetail(HTHEME hTheme, HDC hDC, int x, int yTop, int yBottom)
@@ -73,5 +73,16 @@ inline void DrawPlusMinusGlyph(HDC hDC, BOOL bPlus, const RECT& rc, COLORREF crB
 		LineTo(hDC, (rc.left + rc.right) / 2, rc.bottom - yMargin);
 	}
 	SelectObject(hDC, hOld);
+}
+
+inline BOOL AlphaBlendColor(HDC hDC, const RECT& rc, COLORREF cr, BYTE byAlpha = ColorFillAlpha)
+{
+	CEzCDC DC{};
+	DC.Create(hDC, 1, 1);
+	constexpr RECT rcDst{ 0,0,1,1 };
+	SetDCBrushColor(DC.GetDC(), cr);
+	FillRect(DC.GetDC(), &rcDst, GetStockBrush(DC_BRUSH));
+	return AlphaBlend(hDC, rc.left, rc.top, rc.right - rc.left,rc.bottom - rc.top,
+		DC.GetDC(), 0, 0, 1, 1, { AC_SRC_OVER,0,byAlpha,0 });
 }
 ECK_NAMESPACE_END

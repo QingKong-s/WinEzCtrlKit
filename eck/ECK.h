@@ -71,7 +71,7 @@
 
 #define ECK_NAMESPACE_BEGIN			namespace eck {
 #define ECK_NAMESPACE_END			}
-#define ECK_PRIV_NAMESPACE_BEGIN	namespace EckPriv {
+#define ECK_PRIV_NAMESPACE_BEGIN	namespace Priv {
 #define ECK_PRIV_NAMESPACE_END		}
 
 ECK_NAMESPACE_BEGIN
@@ -392,6 +392,14 @@ constexpr inline BLENDFUNCTION BlendFuncAlpha{ AC_SRC_OVER,0,255,AC_SRC_ALPHA };
 template<BYTE Alpha>
 constexpr inline BLENDFUNCTION BlendFuncAlphaN{ AC_SRC_OVER,0,Alpha,AC_SRC_ALPHA };
 
+constexpr inline BYTE ColorFillAlpha{ 80 };
+
+constexpr inline int MetricsExtraV{ 8 };
+
+constexpr inline UINT WM_USER_SAFE{ WM_USER + 3 };
+
+constexpr inline UINT CS_STDWND{ CS_DBLCLKS | CS_VREDRAW | CS_HREDRAW };
+
 /*-------------------*/
 /*控件通知代码*/
 #pragma warning(suppress:26454)// 算术溢出
@@ -402,7 +410,7 @@ enum :UINT
 	NM_CLP_CLRCHANGED,		// NMCLPCLRCHANGED
 	NM_SPB_DRAGGED,			// NMSPBDRAGGED
 	NM_TGL_TASKCLICKED,		// NMTGLCLICKED
-	NM_LBN_GETDISPINFO,		// NMLBNGETDISPINFO
+
 	NM_TL_FILLCHILDREN,		// NMTLFILLCHILDREN
 	NM_TL_GETDISPINFO,		// NMTLGETDISPINFO
 	NM_TL_ITEMEXPANDING,	// NMTLCOMMITEM
@@ -419,39 +427,45 @@ enum :UINT
 	NM_TL_ITEMCHECKED,		// NMTLCOMMITEM
 	NM_TL_BEGINDRAG,		// NMTLDRAG
 	NM_TL_ENDDRAG,			// NMTLDRAG
+
+	NM_LBN_GETDISPINFO,		// NMLBNGETDISPINFO
 	NM_LBN_BEGINDRAG,		// NMLBNDRAG
 	NM_LBN_ENDDRAG,			// NMLBNDRAG
 	NM_LBN_DISMISS,			// NMHDR
-	NM_LBN_LBTNDOWN,		// NMHDR
-	NM_LBN_CUSTOMDRAW,		// NMLBNCUSTOMDRAW
+	NM_LBN_ITEMCHANGED,		// NMLBNITEMCHANGED
+	NM_LBN_ITEMSTANDBY,		// NMHDR
+
 	NM_PKB_OWNERDRAW,		// NMPKBOWNERDRAW
 	NM_HTT_SEL,				// NMHTTSEL
 };
+/*
+* 对于ECK控件，部分标准通知对应的结构如下（可能有特定控件会扩展这些结构）
+* NM_SETFOCUS			NMFOUCS
+* NM_KILLFOCUS			NMFOCUS
+* NM_RCLICK				NMMOUSENOTIFY
+* NM_CUSTOMDRAW			NMCUSTOMDRAWEXT
+*/
 
-enum
+struct NMCUSTOMDRAWEXT
 {
-	NMECDS_PREDRAW,
-	NMECDS_POSTDRAWBK,
-
-	NMECDR_DODEF = 0,
-	NMECDR_SKIPDEF,
-	NMECDR_PRIV_BEGIN,
+	NMCUSTOMDRAW nmcd;
+	int iStateId;
+	int iPartId;
+	COLORREF crText;
+	COLORREF crBk;
 };
 
-struct NMECKCTRLCUSTOMDRAW
-{
-	NMHDR nmhdr;
-	int idx;
-	int iStage;
-	HDC hDC;
-	RECT rcItem;
-};
-
-struct NMECKMOUSENOTIFY
+struct NMMOUSENOTIFY
 {
 	NMHDR nmhdr;
 	POINT pt;
 	UINT uKeyFlags;
+};
+
+struct NMFOCUS
+{
+	NMHDR nmhdr;
+	HWND hWnd;
 };
 
 // 消息钩子保留范围
@@ -612,19 +626,18 @@ extern IDXGIFactory2* g_pDxgiFactory;
 
 /*窗口类名*/
 
+constexpr inline PCWSTR WCN_DLG = L"Eck.WndClass.CommDlg";
+constexpr inline PCWSTR WCN_DUMMY = L"Eck.WndClass.Dummy";
+#ifdef ECK_OPT_NO_SIMPLE_WND_CLS
 constexpr inline PCWSTR WCN_LABEL = L"Eck.WndClass.Label";
-constexpr inline PCWSTR WCN_COLORPICKER = L"Eck.WndClass.ColorPicker";
 constexpr inline PCWSTR WCN_BK = L"Eck.WndClass.BK";
 constexpr inline PCWSTR WCN_LUNARCALENDAR = L"Eck.WndClass.LunarCalendar";
-constexpr inline PCWSTR WCN_CHARTPIE = L"Eck.WndClass.ChartPie";
 constexpr inline PCWSTR WCN_FORM = L"Eck.WndClass.Form";
 constexpr inline PCWSTR WCN_TABHEADER = L"Eck.WndClass.TabHeader";
-constexpr inline PCWSTR WCN_DLG = L"Eck.WndClass.CommDlg";
 constexpr inline PCWSTR WCN_SPLITBAR = L"Eck.WndClass.SplitBar";
 constexpr inline PCWSTR WCN_DRAWPANEL = L"Eck.WndClass.DrawPanel";
 constexpr inline PCWSTR WCN_DRAWPANELD2D = L"Eck.WndClass.DrawPanelD2D";
 constexpr inline PCWSTR WCN_LISTBOXNEW = L"Eck.WndClass.ListBoxNew";
-constexpr inline PCWSTR WCN_ANIMATIONBOX = L"Eck.WndClass.AnimationBox";
 constexpr inline PCWSTR WCN_TREELIST = L"Eck.WndClass.TreeList";
 constexpr inline PCWSTR WCN_COMBOBOXNEW = L"Eck.WndClass.ComboBoxNew";
 constexpr inline PCWSTR WCN_PICTUREBOX = L"Eck.WndClass.PictureBox";
@@ -632,6 +645,24 @@ constexpr inline PCWSTR WCN_DUIHOST = L"Eck.WndClass.DuiHost";
 constexpr inline PCWSTR WCN_VECDRAWPANEL = L"Eck.WndClass.VectorDrawPanel";
 constexpr inline PCWSTR WCN_HEXEDIT = L"Eck.WndClass.HexEdit";
 constexpr inline PCWSTR WCN_HITTER = L"Eck.WndClass.Hitter";
+#else
+constexpr inline PCWSTR WCN_LABEL = WCN_DUMMY;
+constexpr inline PCWSTR WCN_BK = WCN_DUMMY;
+constexpr inline PCWSTR WCN_LUNARCALENDAR = WCN_DUMMY;
+constexpr inline PCWSTR WCN_FORM = WCN_DUMMY;
+constexpr inline PCWSTR WCN_TABHEADER = WCN_DUMMY;
+constexpr inline PCWSTR WCN_SPLITBAR = WCN_DUMMY;
+constexpr inline PCWSTR WCN_DRAWPANEL = WCN_DUMMY;
+constexpr inline PCWSTR WCN_DRAWPANELD2D = WCN_DUMMY;
+constexpr inline PCWSTR WCN_LISTBOXNEW = WCN_DUMMY;
+constexpr inline PCWSTR WCN_TREELIST = WCN_DUMMY;
+constexpr inline PCWSTR WCN_COMBOBOXNEW = WCN_DUMMY;
+constexpr inline PCWSTR WCN_PICTUREBOX = WCN_DUMMY;
+constexpr inline PCWSTR WCN_DUIHOST = WCN_DUMMY;
+constexpr inline PCWSTR WCN_VECDRAWPANEL = WCN_DUMMY;
+constexpr inline PCWSTR WCN_HEXEDIT = WCN_DUMMY;
+constexpr inline PCWSTR WCN_HITTER = WCN_DUMMY;
+#endif// defined(ECK_OPT_NO_SIMPLE_WND_CLS)
 
 constexpr inline PCWSTR MSGREG_FORMTRAY = L"Eck.Message.FormTray";
 
@@ -836,10 +867,10 @@ BOOL PreTranslateMessage(const MSG& Msg);
 void SetMsgFilter(FMsgFilter pfnFilter);
 ECK_NAMESPACE_END
 
-#ifndef ECK_MACRO_NO_USING_GDIPLUS
+#ifndef ECK_OPT_NO_USING_GDIPLUS
 using namespace eck::GpNameSpace;
-#endif// !define(ECK_MACRO_NO_USING_GDIPLUS)
+#endif// !define(ECK_OPT_NO_USING_GDIPLUS)
 
-#ifndef ECK_MACRO_NO_USING_BASE_TYPES
+#ifndef ECK_OPT_NO_USING_BASE_TYPES
 using namespace eck::BaseType;
-#endif// !define(ECK_MACRO_NO_USING_BASE_TYPES)
+#endif// !define(ECK_OPT_NO_USING_BASE_TYPES)

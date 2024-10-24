@@ -1,7 +1,7 @@
 ﻿/*
 * WinEzCtrlKit Library
 *
-* CLayoutDummy.h : 布局占位
+* CLayoutDummy.h ： 布局占位
 *
 * Copyright(C) 2024 QingKong
 */

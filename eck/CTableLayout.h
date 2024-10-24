@@ -7,7 +7,7 @@
 */
 #pragma once
 #include "CLayoutBase.h"
-#include "CArray.h"
+#include "CArray2D.h"
 
 ECK_NAMESPACE_BEGIN
 enum class TlCellMode
@@ -49,7 +49,7 @@ private:
 	};
 
 	std::vector<ITEM> m_vItem{};
-	CArray<CELL> m_Table{};
+	CArray2D<CELL> m_Table{};
 	int m_cRow{}, m_cCol{};
 	TlCellMode m_eCellSizeMode{ TlCellMode::Auto };
 
@@ -63,13 +63,13 @@ private:
 			const auto d = cy / (e.cRowSpan + 1);
 			for (int i = 0; i < e.cRowSpan; ++i)
 			{
-				auto& t = m_Table[e.idxRow + i][e.idxCol].Data().cy;
+				auto& t = m_Table[e.idxRow + i][e.idxCol].cy;
 				t = std::max(t, d);
 			}
 		}
 		else
 		{
-			auto& t = m_Table[e.idxRow][e.idxCol].Data().cy;
+			auto& t = m_Table[e.idxRow][e.idxCol].cy;
 			t = std::max(t, cy);
 		}
 
@@ -78,13 +78,13 @@ private:
 			const auto d = cx / (e.cColSpan + 1);
 			for (int i = 0; i < e.cColSpan; ++i)
 			{
-				auto& t = m_Table[e.idxRow][e.idxCol + i].Data().cx;
+				auto& t = m_Table[e.idxRow][e.idxCol + i].cx;
 				t = std::max(t, d);
 			}
 		}
 		else
 		{
-			auto& t = m_Table[e.idxRow][e.idxCol].Data().cx;
+			auto& t = m_Table[e.idxRow][e.idxCol].cx;
 			t = std::max(t, (int)cx);
 		}
 	}
@@ -128,7 +128,7 @@ public:
 
 	CELL& GetCell(int idxRow, int idxCol)
 	{
-		return m_Table[idxRow][idxCol].Data();
+		return m_Table[idxRow][idxCol];
 	}
 
 	void Clear() override
@@ -149,17 +149,17 @@ public:
 			{
 				n = 0u;
 				EckCounter(m_cCol, j)
-					n += m_Table[i][j].Data().nWeightH;
+					n += m_Table[i][j].nWeightH;
 				EckCounter(m_cCol, j)
-					m_Table[i][j].Data().cx = (int)(m_cx * m_Table[i][j].Data().nWeightH / n);
+					m_Table[i][j].cx = (int)(m_cx * m_Table[i][j].nWeightH / n);
 			}
 			EckCounter(m_cCol, j)
 			{
 				n = 0u;
 				EckCounter(m_cRow, i)
-					n += m_Table[i][j].Data().nWeightV;
+					n += m_Table[i][j].nWeightV;
 				EckCounter(m_cRow, i)
-					m_Table[i][j].Data().cy = (int)(m_cy * m_Table[i][j].Data().nWeightV / n);
+					m_Table[i][j].cy = (int)(m_cy * m_Table[i][j].nWeightV / n);
 			}
 		}
 		else if (m_eCellSizeMode == TlCellMode::Auto)
@@ -176,29 +176,29 @@ public:
 	{
 		EckCounter(m_cRow, i)
 		{
-			m_Table[i][0].Data().x = 0;
+			m_Table[i][0].x = 0;
 			if (i)
-				m_Table[i][0].Data().y = m_Table[i - 1][0].Data().y + m_Table[i - 1][0].Data().cy;
+				m_Table[i][0].y = m_Table[i - 1][0].y + m_Table[i - 1][0].cy;
 		}
 		EckCounter(m_cCol, i)
 		{
-			m_Table[0][i].Data().y = 0;
+			m_Table[0][i].y = 0;
 			if (i)
-				m_Table[0][i].Data().x = m_Table[0][i - 1].Data().x + m_Table[0][i - 1].Data().cx;
+				m_Table[0][i].x = m_Table[0][i - 1].x + m_Table[0][i - 1].cx;
 		}
 		for (int i = 1; i < m_cRow; ++i)
 			for (int j = 1; j < m_cCol; ++j)
 			{
-				auto& t = m_Table[i][j].Data();
-				t.y = m_Table[i - 1][j].Data().y + m_Table[i - 1][j].Data().cy;
-				t.x = m_Table[i][j - 1].Data().x + m_Table[i][j - 1].Data().cx;
+				auto& t = m_Table[i][j];
+				t.y = m_Table[i - 1][j].y + m_Table[i - 1][j].cy;
+				t.x = m_Table[i][j - 1].x + m_Table[i][j - 1].cx;
 			}
 		LoGetAppropriateSize(m_cx, m_cy);
 	}
 
 	void LoGetAppropriateSize(int& cx, int& cy) override
 	{
-		const auto& e = m_Table[m_cRow - 1][m_cCol - 1].Data();
+		const auto& e = m_Table[m_cRow - 1][m_cCol - 1];
 		cx = e.x + e.cx;
 		cy = e.y + e.cy;
 	}
@@ -214,7 +214,7 @@ public:
 		HDWP hDwp = PreArrange(m_vItem.size());
 		for (const auto& e : m_vItem)
 		{
-			const auto& cell = m_Table[e.idxRow][e.idxCol].Data();
+			const auto& cell = m_Table[e.idxRow][e.idxCol];
 			CalcCtrlPosSize(e, { cell.x,cell.y,cell.cx,cell.cy },
 				x, y, cx, cy);
 			MoveCtrlPosSize(e, hDwp, x, y, cx, cy);

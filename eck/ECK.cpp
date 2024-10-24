@@ -350,7 +350,7 @@ static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Combobox");
 		else if (_wcsicmp(pszClassList, L"Edit") == 0)
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Edit");
-		else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 || 
+		else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 ||
 			_wcsicmp(pszClassList, L"TaskDialogStyle") == 0)
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_Explorer::TaskDialog");
 		else
@@ -718,7 +718,7 @@ static HRESULT WINAPI NewDrawThemeBackgroundEx(HTHEME hTheme, HDC hdc, int iPart
 				{
 					if (FAILED(s_pfnDrawThemeBackgroundEx(hTheme, hdc, iPartId, iStateId, pRect, pOptions)))
 					{
-						if(pOptions &&pOptions->dwFlags & DTBG_CLIPRECT)
+						if (pOptions && pOptions->dwFlags & DTBG_CLIPRECT)
 						{
 							auto sdc = SaveDcClip(hdc);
 							IntersectClipRect(hdc, pOptions->rcClip);
@@ -984,7 +984,7 @@ static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hdc, int iPartId
 				{
 					if (FAILED(s_pfnDrawThemeBackground(hTheme, hdc, iPartId, iStateId, pRect, pClipRect)))
 					{
-						if(pClipRect)
+						if (pClipRect)
 						{
 							const auto sdc = SaveDcClip(hdc);
 							IntersectClipRect(hdc, *pClipRect);
@@ -1193,10 +1193,10 @@ enum
 struct EZREGWNDINFO
 {
 	PCWSTR pszClass = nullptr;
-	UINT uClassStyle = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
+	UINT uClassStyle = CS_STDWND;
 };
 
-struct
+static struct
 {
 	union
 	{
@@ -1205,17 +1205,19 @@ struct
 	};
 	int iType = RWCT_EZREG;
 }
-g_WndClassInfo[]
+s_WndClassInfo[]
 {
-	{ },
+	{ },// WCN_DLG
+#ifdef ECK_OPT_NO_SIMPLE_WND_CLS
 	{ WCN_LABEL },
-	{ WCN_FORM },
 	{ WCN_BK },
+	{ WCN_LUNARCALENDAR },
+	{ WCN_FORM },
+	{ WCN_TABHEADER },
 	{ WCN_SPLITBAR },
 	{ WCN_DRAWPANEL },
 	{ WCN_DRAWPANELD2D },
 	{ WCN_LISTBOXNEW },
-	{ WCN_ANIMATIONBOX },
 	{ WCN_TREELIST },
 	{ WCN_COMBOBOXNEW },
 	{ WCN_PICTUREBOX },
@@ -1223,6 +1225,9 @@ g_WndClassInfo[]
 	{ WCN_VECDRAWPANEL },
 	{ WCN_HEXEDIT },
 	{ WCN_HITTER },
+#else
+	{ WCN_DUMMY },
+#endif // defined(ECK_OPT_NO_SIMPLE_WND_CLS)
 };
 
 InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrCode)
@@ -1264,18 +1269,18 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	}
 
 	//////////////注册窗口类
-	g_WndClassInfo[0].iType = RWCT_CUSTOM;
-	g_WndClassInfo[0].wc =
+	s_WndClassInfo[0].iType = RWCT_CUSTOM;
+	s_WndClassInfo[0].wc =
 	{
 		.style = CS_STDWND,
 		.lpfnWndProc = DefDlgProcW,
 		.cbWndExtra = DLGWINDOWEXTRA + sizeof(void*),
 		.hInstance = g_hInstance,
-		.hCursor = LoadCursorW(nullptr,IDC_ARROW),
+		.hCursor = LoadCursorW(nullptr, IDC_ARROW),
 		.lpszClassName = WCN_DLG
 	};
 
-	for (const auto& e : g_WndClassInfo)
+	for (const auto& e : s_WndClassInfo)
 	{
 		switch (e.iType)
 		{

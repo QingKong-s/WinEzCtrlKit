@@ -58,7 +58,7 @@ EckInline BOOL YyLocateStringPos(PCSTR pszText, size_t cchText, size_t ocbPos,
 	return yyjson_locate_pos(pszText, cchText, ocbPos, &nLine, &nCol, &nChar);
 }
 
-namespace EckPriv
+namespace Priv
 {
 	template<class TThis>
 	EckInline auto JsonValAt(TThis& This, PCSTR pszKey, size_t cchKey = SizeTMax)
@@ -96,16 +96,16 @@ namespace EckPriv
 			std::is_convertible_v<std::remove_cvref_t<T>, PCBYTE> ||
 			std::is_convertible_v<std::remove_cvref_t<T>, const char8_t*>)
 		{
-			return EckPriv::JsonValAt(This, (PCSTR)x);
+			return Priv::JsonValAt(This, (PCSTR)x);
 		}
 		else if constexpr (std::is_same_v<std::remove_cvref_t<T>, CRefStrA>)
-			return EckPriv::JsonValAt(This, x.Data(), x.Size());
+			return Priv::JsonValAt(This, x.Data(), x.Size());
 		else if constexpr (std::is_same_v<std::remove_cvref_t<T>, std::string> ||
 			std::is_same_v<std::remove_cvref_t<T>, std::u8string>)
-			return EckPriv::JsonValAt(This, x.c_str(), x.size());
+			return Priv::JsonValAt(This, x.c_str(), x.size());
 		else if constexpr (std::is_same_v<std::remove_cvref_t<T>, std::string_view> ||
 			std::is_same_v<std::remove_cvref_t<T>, std::u8string_view>)
-			return EckPriv::JsonValAt(This, x.data(), x.size());
+			return Priv::JsonValAt(This, x.data(), x.size());
 		else
 			static_assert(false, "Unsupported type.");
 	}
@@ -258,7 +258,7 @@ public:
 	template<class T>
 	EckInline [[nodiscard]] CJsonVal operator[](const T& x) const
 	{
-		return EckPriv::JsonValAtVarType(*this, x);
+		return Priv::JsonValAtVarType(*this, x);
 	}
 
 	EckInline [[nodiscard]] CJsonArrProxy AsArr() const;
@@ -374,7 +374,7 @@ public:
 
 	EckInline [[nodiscard]] CJsonVal operator[](PCSTR pszKey) const
 	{
-		return EckPriv::JsonValAt(*this, pszKey);
+		return Priv::JsonValAt(*this, pszKey);
 	}
 };
 
@@ -403,7 +403,7 @@ struct CJsonArrIter
 
 EckInline bool operator==(const CJsonArrIter& x, const CJsonArrIter& y)
 {
-	return EckPriv::YyEqualIter<CJsonArrIter>(x, y);
+	return Priv::YyEqualIter<CJsonArrIter>(x, y);
 }
 
 struct CJsonObjIter
@@ -435,7 +435,7 @@ struct CJsonObjIter
 
 EckInline bool operator==(const CJsonObjIter& x, const CJsonObjIter& y)
 {
-	return EckPriv::YyEqualIter<CJsonObjIter>(x, y);
+	return Priv::YyEqualIter<CJsonObjIter>(x, y);
 }
 
 struct CJsonArrProxy
@@ -764,7 +764,7 @@ public:
 	template<class T>
 	EckInline [[nodiscard]] CJsonMutVal operator[](const T& x) const
 	{
-		return EckPriv::JsonValAtVarType(*this, x);
+		return Priv::JsonValAtVarType(*this, x);
 	}
 
 	EckInline [[nodiscard]] CJsonMutArrProxy AsArr() const;
@@ -1014,7 +1014,7 @@ public:
 
 	[[nodiscard]] CJsonMutVal operator[](PCSTR pszKey) const
 	{
-		return EckPriv::JsonValAt(*this, pszKey);
+		return Priv::JsonValAt(*this, pszKey);
 	}
 
 	EckInline CMutJson& operator=(CJsonInitProxy x)
@@ -1106,7 +1106,7 @@ struct CJsonMutArrIter
 
 EckInline bool operator==(const CJsonMutArrIter& x, const CJsonMutArrIter& y)
 {
-	return EckPriv::YyEqualIter<CJsonMutArrIter>(x, y);
+	return Priv::YyEqualIter<CJsonMutArrIter>(x, y);
 }
 
 struct CJsonMutObjIter
@@ -1140,7 +1140,7 @@ struct CJsonMutObjIter
 
 EckInline bool operator==(const CJsonMutObjIter& x, const CJsonMutObjIter& y)
 {
-	return EckPriv::YyEqualIter<CJsonMutObjIter>(x, y);
+	return Priv::YyEqualIter<CJsonMutObjIter>(x, y);
 }
 
 struct CJsonMutArrProxy

@@ -43,9 +43,17 @@ struct CEzCDC
 		return *this;
 	}
 
-	HDC Create(HWND hWnd, int cx = 0, int cy = 0)
+	HDC Create(HDC hDC, int cx, int cy)
 	{
 		Destroy();
+		m_hCDC = CreateCompatibleDC(hDC);
+		m_hBmp = CreateCompatibleBitmap(hDC, cx, cy);
+		m_hOld = SelectObject(m_hCDC, m_hBmp);
+		return m_hCDC;
+	}
+
+	HDC Create(HWND hWnd, int cx = -1, int cy = -1)
+	{
 		HDC hDC = ::GetDC(hWnd);
 		if (cx < 0 || cy < 0)
 		{
@@ -54,9 +62,7 @@ struct CEzCDC
 			cx = rc.right;
 			cy = rc.bottom;
 		}
-		m_hCDC = CreateCompatibleDC(hDC);
-		m_hBmp = CreateCompatibleBitmap(hDC, cx, cy);
-		m_hOld = SelectObject(m_hCDC, m_hBmp);
+		Create(hDC, cx, cy);
 		ReleaseDC(hWnd, hDC);
 		return m_hCDC;
 	}

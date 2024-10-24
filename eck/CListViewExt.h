@@ -143,6 +143,7 @@ class CListViewExt :public CListView
 public:
 	using FOwnerData = LRESULT(*)(LveOd, void*, void*);
 	ECK_RTTI(CListViewExt);
+	ECK_CWND_NOSINGLEOWNER(CListViewExt);
 private:
 	enum
 	{
@@ -1084,7 +1085,6 @@ public:
 	ECKPROP(LveGetOwnerDataBufferSize, LveSetOwnerDataBufferSize)	int OwnerDataBufferSize;
 	ECKPROP_W(LveSetHeaderHeight)							int HeaderHeight;
 
-	ECK_CWND_SINGLEOWNER;
 	~CListViewExt()
 	{
 		for (const auto e : m_vRecycleData)

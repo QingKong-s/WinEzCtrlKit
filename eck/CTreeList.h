@@ -258,6 +258,7 @@ class CTreeList :public CWnd
 	friend class CTLEditExt;
 public:
 	ECK_RTTI(CTreeList);
+	ECK_CWND_SINGLEOWNER(CTreeList);
 
 	enum
 	{
@@ -1678,7 +1679,6 @@ public:
 	ECKPROP(GetDisableSelectAllWithCtrlA,
 		SetDisableSelectAllWithCtrlA)			BOOL DisableSelectAllWithCtrlA;
 
-	ECK_CWND_SINGLEOWNER;
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)
