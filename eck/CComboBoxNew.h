@@ -14,21 +14,26 @@ class CComboBoxNew :public CWnd
 {
 public:
 	ECK_RTTI(CComboBoxNew);
-	enum class View
+	ECK_CWND_SINGLEOWNER(CComboBoxNew);
+	ECK_CWND_CREATE_CLS_HINST(WCN_COMBOBOXNEW, g_hInstance);
+
+	enum class View :BYTE
 	{
 		DropDown,
 		DropDownEdit,
 	};
 private:
+	HWND m_hParent{};	// 接收通知的父窗口
+
 	CListBoxNew m_LB{};
 	CEditExt m_ED{};
 
+	HFONT m_hFont{};
 	HTHEME m_hTheme{};
+	CEzCDC m_DC{};
 
 	int m_cxClient{},
 		m_cyClient{};
-
-	CEzCDC m_DC{};
 
 	BITBOOL m_bHot : 1{};
 	BITBOOL m_bDrop : 1{};
@@ -37,23 +42,16 @@ private:
 	View m_eView{ View::DropDown };
 
 	COLORREF m_crText{ CLR_DEFAULT };
-	COLORREF m_crDefText{ CLR_INVALID };
-
-	int m_cxLB{ -1 },
-		m_cyLB{ -1 };
 
 	int m_iDpi{ USER_DEFAULT_SCREEN_DPI };
 	ECK_DS_BEGIN(DPIS)
-		ECK_DS_ENTRY(cxDropBtn, 24)
-		ECK_DS_ENTRY(cxDefLB, 300)
-		ECK_DS_ENTRY(cyDefLB, 400)
+		ECK_DS_ENTRY(cyMaxDropDown, 540)
 		;
 	ECK_DS_END_VAR(m_Ds);
 
-	void UpdateThemeInfo()
+	int GetDropButtonWidth() const
 	{
-		COLORREF dummy;
-		GetItemsViewForeBackColor(m_crDefText, dummy);
+		return DaGetSystemMetrics(SM_CXVSCROLL, m_iDpi);
 	}
 public:
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -63,8 +61,12 @@ public:
 		case WM_PRINTCLIENT:
 		case WM_PAINT:
 		{
+			const auto* const ptc = GetThreadCtx();
 			PAINTSTRUCT ps;
 			BeginPaint(hWnd, wParam, ps);
+
+			NMCUSTOMDRAWEXT ne;
+
 
 			int iState;
 			RECT rc{ 0,0,m_cxClient,m_cyClient };
@@ -80,9 +82,9 @@ public:
 					iState = CBRO_HOT;
 				else
 					iState = CBRO_NORMAL;
-				DrawThemeBackground(m_hTheme, m_DC.GetDC(), 
+				DrawThemeBackground(m_hTheme, m_DC.GetDC(),
 					CP_READONLY, iState, &rc, nullptr);
-				rc.left = rc.right - m_Ds.cxDropBtn;
+				rc.left = rc.right - GetDropButtonWidth();
 				DrawThemeBackground(m_hTheme, m_DC.GetDC(),
 					CP_DROPDOWNBUTTONRIGHT, CBXSR_NORMAL, &rc, nullptr);
 			}
@@ -94,9 +96,20 @@ public:
 			}
 			break;
 			}
-			
+
+			NMLBNGETDISPINFO nm{};
+			nm.Item.idxItem = m_LB.GetCurrSel();
+			if (nm.Item.idxItem >=0)
+			{
+				FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_GETDISPINFO);
+				rc.right = rc.left - DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
+				rc.left = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
+				DrawTextW(m_DC.GetDC(), nm.Item.pszText, nm.Item.cchText,
+					&rc, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+			}
+
 			BitBltPs(&ps, m_DC.GetDC());
-			EndPaint(hWnd,wParam, ps);
+			EndPaint(hWnd, wParam, ps);
 		}
 		return 0;
 
@@ -104,8 +117,9 @@ public:
 		{
 			ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
 			m_DC.ReSize(hWnd, m_cxClient, m_cyClient);
+			SetBkMode(m_DC.GetDC(), TRANSPARENT);
 		}
-		return 0;
+		break;
 
 		case WM_MOUSEMOVE:
 		{
@@ -153,7 +167,6 @@ public:
 					break;
 				}
 				m_LB.OnMsg(m_LB.HWnd, uMsg, wParam, lParam);
-				return 0;
 			}
 			break;
 
@@ -164,60 +177,66 @@ public:
 			{
 				switch (pnmhdr->code)
 				{
-				case NM_LBN_LBTNDOWN:
-					//SetFocus(hWnd);
-					return 0;
+				case NM_LBN_ITEMSTANDBY:
+				{
+
+				}
+				return 0;
+
 				case NM_LBN_DISMISS:
 					DismissList();
 					return 0;
+
 				default:
 				{
 					pnmhdr->hwndFrom = hWnd;
-					return SendMessageW(GetParent(hWnd), uMsg, wParam, lParam);
+					pnmhdr->idFrom = GetDlgCtrlID(hWnd);
 				}
+				return SendMessageW(m_hParent, uMsg, pnmhdr->idFrom, lParam);
 				}
 			}
 		}
 		break;
 
 		case WM_SETFONT:
+		{
 			SendMessageW(m_LB.HWnd, uMsg, wParam, lParam);
-			break;
+			m_hFont = (HFONT)wParam;
+			SelectObject(m_DC.GetDC(), m_hFont);
+			if (wParam)
+				Redraw();
+		}
+		return 0;
+
+		case WM_GETFONT:
+			return (LRESULT)m_hFont;
 
 		case WM_THEMECHANGED:
 		{
 			CloseThemeData(m_hTheme);
 			m_hTheme = OpenThemeData(hWnd, L"Combobox");
-			UpdateThemeInfo();
 		}
 		break;
 
 		case WM_CREATE:
 		{
+			m_hParent = ((CREATESTRUCTW*)lParam)->hwndParent;
 			m_iDpi = GetDpi(hWnd);
 			UpdateDpiSize(m_Ds, m_iDpi);
 
 			m_LB.Create(nullptr, WS_POPUP | WS_BORDER,
 				WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TOPMOST,
-				0, 0, 0, 0, hWnd, nullptr);
+				0, 0, ((CREATESTRUCTW*)lParam)->cx, 500, hWnd, nullptr);
 			SetWindowLongPtrW(m_LB.HWnd, GWLP_HWNDPARENT, (LONG_PTR)hWnd);
 			m_LB.SetComboBox(hWnd);
 
 			m_hTheme = OpenThemeData(hWnd, L"Combobox");
-			UpdateThemeInfo();
 			m_DC.Create(hWnd);
+			SetBkMode(m_DC.GetDC(), TRANSPARENT);
 		}
 		break;
 		}
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
-	}
-
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		return IntCreate(dwExStyle, WCN_COMBOBOXNEW, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
 	}
 
 	void DropList()
@@ -226,14 +245,22 @@ public:
 			return;
 		m_bDrop = TRUE;
 		SetFocus(HWnd);
-		Redraw();
+		InvalidateRect(HWnd, nullptr, FALSE);
+		UpdateWindow(HWnd);
+
 		RECT rc;
 		GetWindowRect(HWnd, &rc);
-		SetWindowPos(m_LB.HWnd, nullptr,
-			rc.left, rc.bottom,
-			m_cxLB < 0 ? m_Ds.cxDefLB : m_cxLB,
-			m_cyLB < 0 ? m_Ds.cxDefLB : m_cyLB,
-			SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+
+		const auto hMon = MonitorFromWindow(HWnd, MONITOR_DEFAULTTONEAREST);
+		MONITORINFO mi;
+		mi.cbSize = sizeof(mi);
+		GetMonitorInfoW(hMon, &mi);
+		const auto rcWork = mi.rcWork;
+
+		SetWindowPos(m_LB.HWnd, HWND_TOPMOST,
+			rc.left, rc.bottom, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
+		AnimateWindow(m_LB.HWnd, 200, AW_BLEND);
+		//AnimateWindow(m_LB.HWnd, 200, AW_VER_POSITIVE);
 		m_LB.CbEnterTrack();
 	}
 
@@ -247,12 +274,9 @@ public:
 		m_LB.Show(SW_HIDE);
 	}
 
-	EckInline void SetItemCount(int c)
-	{
-		m_LB.SetItemCount(c);
-	}
-
 	EckInline auto& GetListBox() { return m_LB; }
+
+	EckInline auto& GetEdit() { return m_ED; }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CComboBoxNew, CWnd);
 ECK_NAMESPACE_END

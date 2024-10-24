@@ -1,7 +1,7 @@
 ﻿/*
 * WinEzCtrlKit Library
 *
-* DpiApi.h ： 1607+引入的DPI API包装
+* DpiApi.h ： 1607+ DPI API包装
 *
 * Copyright(C) 2024 QingKong
 */

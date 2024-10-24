@@ -7,7 +7,6 @@
 */
 #pragma once
 #include "CLayoutBase.h"
-#include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
 enum :UINT

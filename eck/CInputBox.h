@@ -9,6 +9,7 @@
 #include "CDialog.h"
 #include "CEditExt.h"
 #include "CButton.h"
+#include "SystemHelper.h"
 
 ECK_NAMESPACE_BEGIN
 enum :UINT
@@ -142,7 +143,7 @@ private:
 		DeleteDC(hCDC);
 	}
 public:
-	ECK_CWND_SINGLEOWNER;
+	ECK_CWND_SINGLEOWNER(CInputBox);
 
 	BOOL OnInitDialog(HWND hDlg, HWND hFocus, LPARAM lParam) override
 	{

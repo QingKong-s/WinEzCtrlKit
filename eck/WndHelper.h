@@ -59,16 +59,6 @@
 	ECK_STYLE_GETSET_MASK(Name, Style, Mask)
 
 ECK_NAMESPACE_BEGIN
-struct NMFOCUS
-{
-	NMHDR nmhdr;
-	HWND hWnd;
-};
-
-constexpr inline UINT WM_USER_SAFE = WM_USER + 3;
-
-constexpr inline UINT CS_STDWND = CS_DBLCLKS | CS_VREDRAW | CS_HREDRAW;
-
 EckInline DWORD ModifyWindowStyle(HWND hWnd, DWORD dwNew, DWORD dwMask, int idx = GWL_STYLE)
 {
 	DWORD dwStyle = (DWORD)GetWindowLongPtrW(hWnd, idx);

@@ -3,13 +3,11 @@
 *
 * CListBoxNew.h ： 所有者数据模式的列表框
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include "CWnd.h"
-#include "GraphicsHelper.h"
-
-#include <vssym32.h>
+#include "CtrlGraphics.h"
 
 ECK_NAMESPACE_BEGIN
 struct LBNITEM
@@ -32,9 +30,18 @@ struct NMLBNDRAG
 	UINT uKeyFlags;
 };
 
-struct NMLBNCUSTOMDRAW
+enum :UINT
 {
-	NMECKCTRLCUSTOMDRAW nmcd;
+	LBN_IF_SEL = 1u << 0,
+	LBN_IF_SLIDE_SEL = 1u << 1,
+};
+
+struct NMLBNITEMCHANGED
+{
+	NMHDR nmhdr;
+	int idx;
+	UINT uFlagsNew;
+	UINT uFlagsOld;
 };
 
 #pragma pack(push, ECK_CTRLDATA_ALIGN)
@@ -46,83 +53,108 @@ struct CTRLDATA_LBN
 	// 
 };
 #pragma pack(pop)
-
+/*
+* LBN产生的通知
+* 特定通知：
+* NM_LBN_GETDISPINFO	请求项目显示信息
+* NM_LBN_BEGINDRAG		开始拖动项目
+* NM_LBN_ENDDRAG		结束拖动项目
+* NM_LBN_DISMISS		组合框应隐藏列表
+* NM_LBN_ITEMCHANGED	项目状态改变
+* NM_LBN_ITEMSTANDBY	调用SetItemCount时发送
+* 标准通知：
+* NM_SETFOCUS
+* NM_KILLFOCUS
+* NM_RCLICK
+* NM_CUSTOMDRAW
+*/
 class CListBoxNew :public CWnd
 {
 public:
 	ECK_RTTI(CListBoxNew);
+	ECK_CWND_SINGLEOWNER(CListBoxNew);
+	ECK_CWND_CREATE_CLS_HINST(WCN_LISTBOXNEW, g_hInstance);
 private:
 	struct ITEM
 	{
-		union
-		{
-			struct
-			{
-				BITBOOL bSel : 1;
-				BITBOOL bSlideSel : 1;
-			};
-			UINT uFlags = 0u;
-		};
+		UINT uFlags{};
 	};
-
-	CEzCDC m_DC{};
-	HFONT m_hFont = nullptr;// 不需要释放
-
-	HTHEME m_hTheme = nullptr;
-
-	int m_cxClient = 0,
-		m_cyClient = 0;
-
-	int m_cyItem = 24;
-
-	COLORREF m_crBkg = CLR_DEFAULT;
-	COLORREF m_crText = CLR_DEFAULT;
-	int m_idxSel = -1;
-	int m_idxHot = -1;
-	int m_idxTop = -1;
-	int m_idxMark = -1;
-	int m_idxFocus = -1;
-	int m_oyTop = 0;
 
 	std::vector<ITEM> m_vItem{};
 
+	HWND m_hComboBox{};	// 关联的组合框，可以是除自身外的任何窗口
+	HWND m_hParent{};	// 接收通知的父窗口
+
+	CEzCDC m_DC{};
+	HFONT m_hFont{};
+
+	HTHEME m_hTheme{};
+
+	int m_cxClient{},
+		m_cyClient{};
+
+	COLORREF m_crBkg{ CLR_DEFAULT };
+	COLORREF m_crText{ CLR_DEFAULT };
+	int m_idxSel{ -1 };
+	int m_idxHot{ -1 };
+	int m_idxTop{ -1 };
+	int m_idxMark{ -1 };
+	int m_idxFocus{ -1 };
+	int m_oyTop{};
+
+	int m_cyItem{ 24 };
+	int m_cyFont{};
+
+	BITBOOL m_bMultiSel : 1 = FALSE;	// 多选
+	BITBOOL m_bExtendSel : 1 = FALSE;	// 扩展多选
+	BITBOOL m_bAllowDrag : 1 = FALSE;	// 允许拖放项目
+	BITBOOL m_bAutoItemHeight : 1 = TRUE;		// 自动计算项目高度
+
 #ifdef _DEBUG
-	BITBOOL m_bDbgDrawMarkItem : 1 = 1;
+	BITBOOL m_bDbgDrawMarkItem : 1 = 1;	// [调试]绘制标记项目
 #endif
-	BITBOOL m_bMultiSel : 1 = FALSE;
-	BITBOOL m_bExtendSel : 1 = FALSE;
-	BITBOOL m_bAllowDrag : 1 = FALSE;
+	BITBOOL m_bHasFocus : 1 = FALSE;	// 是否有焦点
+	BITBOOL m_bLBtnDown : 1 = FALSE;	// 鼠标左键已按下
+	BITBOOL m_bRBtnDown : 1 = FALSE;	// 鼠标右键已按下
+	BITBOOL m_bFocusIndicatorVisible : 1 = Dbg;	// 焦点指示器是否可见
+	BITBOOL m_bNmDragging : 1 = FALSE;			// 正在拖放项目，产生NM_LBN_BEGINDRAG时设置为TRUE
+	BITBOOL m_bTrackComboBoxList : 1 = FALSE;	// 正在作为组合框的下拉列表显示
+	BITBOOL m_bProtectCapture : 1 = FALSE;		// 允许其他窗口占用鼠标捕获，通常用于弹出下拉列表时显示菜单等
 
-	BITBOOL m_bHasFocus : 1 = FALSE;
-	BITBOOL m_bLBtnDown : 1 = FALSE;
-	BITBOOL m_bRBtnDown : 1 = FALSE;
-	BITBOOL m_bUserItemHeight : 1 = FALSE;
-	BITBOOL m_bFocusIndicatorVisible : 1 =
-#ifdef _DEBUG
-		TRUE;
-#else
-		FALSE;
-#endif
-	BITBOOL m_bNmDragging : 1 = FALSE;
-	BITBOOL m_bTrackComboBoxList : 1 = FALSE;
-	BITBOOL m_bProtectCapture : 1 = FALSE;
+	int m_iDpi{ USER_DEFAULT_SCREEN_DPI };
 
-	HWND m_hComboBox = nullptr;// 关联的组合框句柄，可以是任何窗口
+	void UpdateFontMetrics()
+	{
+		TEXTMETRICW tm;
+		GetTextMetricsW(m_DC.GetDC(), &tm);
+		m_cyFont = tm.tmHeight;
+	}
 
-	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
+	void UpdateDefItemHeight()
+	{
+		EckAssert(m_bAutoItemHeight);
+		m_cyItem = m_cyFont + DpiScale(MetricsExtraV, m_iDpi);
+	}
 
-	ECK_DS_BEGIN(DPIS)
-		ECK_DS_ENTRY(cyItemDef, 24)
-		ECK_DS_ENTRY(cxTextPadding, 3)
-		;
-	ECK_DS_END_VAR(m_Ds);
+	LRESULT NotifyItemChanged(int idx, UINT uOldFlags, UINT uNewFlags)
+	{
+		NMLBNITEMCHANGED nm;
+		nm.idx = idx;
+		nm.uFlagsOld = uOldFlags;
+		nm.uFlagsNew = uNewFlags;
+		return FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_ITEMCHANGED);
+	}
 
+	LRESULT NotifyItemChanged(int idx, UINT uOldFlags)
+	{
+		return NotifyItemChanged(idx, uOldFlags, m_vItem[idx].uFlags);
+	}
 
 	BOOL OnCreate(HWND hWnd, CREATESTRUCTW* pcs)
 	{
+		m_hParent = pcs->hwndParent;
+
 		m_iDpi = GetDpi(hWnd);
-		UpdateDpiSize(m_Ds, m_iDpi);
-		m_cyItem = m_Ds.cyItemDef;
 
 		m_DC.Create(hWnd);
 		SetBkMode(m_DC.GetDC(), TRANSPARENT);
@@ -132,34 +164,71 @@ private:
 		return TRUE;
 	}
 
-	void OnPaint(HWND hWnd,WPARAM wParam)
+	void OnPaint(HWND hWnd, WPARAM wParam)
 	{
-		PAINTSTRUCT ps;
-		BeginPaint(hWnd, &ps);
-
 		const auto* const ptc = GetThreadCtx();
-		SetDCBrushColor(m_DC.GetDC(),
-			(m_crBkg == CLR_DEFAULT) ? ptc->crDefBkg : m_crBkg);
-		FillRect(m_DC.GetDC(), &ps.rcPaint, GetStockBrush(DC_BRUSH));
+		PAINTSTRUCT ps;
+		BeginPaint(hWnd, wParam, ps);
 
-		const int idxTop = std::max(m_idxTop + (int)ps.rcPaint.top / m_cyItem - 1, m_idxTop);
-		const int idxBottom = std::min(m_idxTop + (int)ps.rcPaint.bottom / m_cyItem + 1, 
-			(int)m_vItem.size() - 1);
-		if (idxTop >= 0 && idxBottom >= 0)
+		LRESULT lRet;
+		NMCUSTOMDRAWEXT ne;
+		FillNmhdr(ne, NM_CUSTOMDRAW);
+		ne.nmcd.hdc = m_DC.GetDC();
+		ne.nmcd.lItemlParam = 0;
+		ne.crBk = CLR_DEFAULT;
+		ne.crText = CLR_DEFAULT;
+		ne.iStateId = 0;
+		ne.iPartId = 0;
+
+		ne.nmcd.dwDrawStage = CDDS_PREERASE;
+		ne.nmcd.rc = ps.rcPaint;
+		ne.nmcd.dwItemSpec = 0;
+		ne.nmcd.uItemState = 0;
+		ne.nmcd.lItemlParam = 0;
+		lRet = SendNotify(ne, m_hParent);
+		if (!(lRet & CDRF_SKIPDEFAULT))
 		{
-			SetTextColor(m_DC.GetDC(),
-				(m_crText == CLR_DEFAULT) ? ptc->crDefText : m_crText);
-			RECT rc;
-			GetItemRect(idxTop, rc);
-			for (int i = idxTop; i <= idxBottom; ++i)
+			if (ne.crBk != CLR_DEFAULT)
+				SetDCBrushColor(ne.nmcd.hdc, ne.crBk);
+			else
+				SetDCBrushColor(ne.nmcd.hdc,
+					(m_crBkg == CLR_DEFAULT) ? ptc->crDefBkg : m_crBkg);
+			FillRect(ne.nmcd.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
+		}
+		if (lRet & CDRF_NOTIFYPOSTERASE)
+		{
+			ne.nmcd.dwDrawStage = CDDS_POSTERASE;
+			SendNotify(ne.nmcd, m_hParent);
+		}
+
+		ne.nmcd.dwDrawStage = CDDS_PREPAINT;
+		lRet = SendNotify(ne.nmcd, m_hParent);
+		if (!(lRet & CDRF_SKIPDEFAULT))
+		{
+			const auto idxTop = (DWORD)std::max(m_idxTop + (int)ps.rcPaint.top / m_cyItem - 1, m_idxTop);
+			const auto idxBottom = (DWORD)std::min(m_idxTop + (int)ps.rcPaint.bottom / m_cyItem + 1,
+				(int)m_vItem.size() - 1);
+			if (idxTop >= 0 && idxBottom >= 0)
 			{
-				PaintItem(i, rc);
-				rc.top += m_cyItem;
-				rc.bottom += m_cyItem;
+				SetTextColor(ne.nmcd.hdc,
+					(m_crText == CLR_DEFAULT) ? ptc->crDefText : m_crText);
+				GetItemRect(idxTop, ne.nmcd.rc);
+				for (ne.nmcd.dwItemSpec = idxTop; ne.nmcd.dwItemSpec <= idxBottom;
+					++ne.nmcd.dwItemSpec)
+				{
+					PaintItem(ne);
+					ne.nmcd.rc.top += m_cyItem;
+					ne.nmcd.rc.bottom += m_cyItem;
+				}
 			}
 		}
-		BitBltPs(&ps, m_DC.GetDC());
-		EndPaint(hWnd, &ps);
+		if (lRet & CDRF_NOTIFYPOSTPAINT)
+		{
+			ne.nmcd.dwDrawStage = CDDS_POSTPAINT;
+			SendNotify(ne, m_hParent);
+		}
+		BitBltPs(&ps, ne.nmcd.hdc);
+		EndPaint(hWnd, wParam, ps);
 	}
 
 	void OnVScroll(HWND hWnd, HWND hCtrl, UINT uCode, int iPos)
@@ -215,7 +284,9 @@ private:
 				if (idx >= 0)
 				{
 					m_idxMark = idx;
-					ECKBOOLNOT(m_vItem[idx].bSel);
+					const auto uOld = m_vItem[idx].uFlags;
+					m_vItem[idx].uFlags ^= LBN_IF_SEL;
+					NotifyItemChanged(idx, uOld);
 					RedrawItem(idx);
 					if (idxOldFocus >= 0 && idxOldFocus != idx)
 						RedrawItem(idxOldFocus);
@@ -235,7 +306,12 @@ private:
 				if (idx >= 0)
 				{
 					m_idxMark = idx;
-					m_vItem[idx].bSel = TRUE;
+					const auto uOld = m_vItem[idx].uFlags;
+					if (!(uOld & LBN_IF_SEL))
+					{
+						m_vItem[idx].uFlags |= LBN_IF_SEL;
+						NotifyItemChanged(idx, uOld);
+					}
 					if (idxChangedBegin < 0 || (idx < idxChangedBegin || idx > idxChangedEnd))
 						RedrawItem(idx);
 				}
@@ -245,7 +321,9 @@ private:
 		{
 			if (idx >= 0)
 			{
-				ECKBOOLNOT(m_vItem[idx].bSel);
+				const auto uOld = m_vItem[idx].uFlags;
+				m_vItem[idx].uFlags ^= LBN_IF_SEL;
+				NotifyItemChanged(idx, uOld);
 				RedrawItem(idx);
 				if (idxOldFocus >= 0 && idxOldFocus != idx)
 					RedrawItem(idxOldFocus);
@@ -272,12 +350,14 @@ private:
 		// 清除前面选中
 		for (i = 0; i < idxBegin; ++i)
 		{
-			if (m_vItem[i].bSel)
+			auto& e = m_vItem[i];
+			if (e.uFlags & LBN_IF_SEL)
 			{
 				if (idx0 < 0)
 					idx0 = i;
 				idx1 = i;
-				m_vItem[i].bSel = FALSE;
+				e.uFlags &= ~LBN_IF_SEL;
+				NotifyItemChanged(i, e.uFlags | LBN_IF_SEL);
 			}
 		}
 		// 范围选中
@@ -288,18 +368,25 @@ private:
 				if (idx0 < 0)
 					idx0 = i;
 				idx1 = i;
-				m_vItem[i].bSel = TRUE;
+				auto& e = m_vItem[i];
+				if (!(e.uFlags & LBN_IF_SEL))
+				{
+					e.uFlags |= LBN_IF_SEL;
+					NotifyItemChanged(i, e.uFlags & ~LBN_IF_SEL);
+				}
 			}
 		}
 		// 清除后面选中
 		for (i = idxEnd + 1; i < (int)m_vItem.size(); ++i)
 		{
-			if (m_vItem[i].bSel)
+			auto& e = m_vItem[i];
+			if (e.uFlags & LBN_IF_SEL)
 			{
 				if (idx0 < 0)
 					idx0 = i;
 				idx1 = i;
-				m_vItem[i].bSel = FALSE;
+				e.uFlags &= ~LBN_IF_SEL;
+				NotifyItemChanged(i, e.uFlags | LBN_IF_SEL);
 			}
 		}
 		if (idx0 >= 0)
@@ -313,7 +400,10 @@ private:
 		SetCapture(HWnd);
 		int idxOld = idxBegin;
 		for (auto& e : m_vItem)
-			e.bSlideSel = e.bSel;
+			if (e.uFlags & LBN_IF_SEL)
+				e.uFlags |= LBN_IF_SLIDE_SEL;
+			else
+				e.uFlags &= ~LBN_IF_SLIDE_SEL;
 		int idxOldSelBegin = -1,
 			idxOldSelEnd = -1,
 			idxOld0 = -1,
@@ -397,9 +487,24 @@ private:
 							{
 								auto& e = m_vItem[i];
 								if (idxSelBegin <= i && i <= idxSelEnd)
-									e.bSel = TRUE;
+								{
+									if (!(e.uFlags & LBN_IF_SEL))
+									{
+										e.uFlags |= LBN_IF_SLIDE_SEL;
+										NotifyItemChanged(i, e.uFlags & ~LBN_IF_SLIDE_SEL);
+									}
+								}
 								else
-									e.bSel = e.bSlideSel;
+								{
+									if (IsBitSet(e.uFlags, LBN_IF_SLIDE_SEL) !=
+										IsBitSet(e.uFlags, LBN_IF_SEL))
+									{
+										const auto uOld = e.uFlags;
+										e.uFlags |= ((e.uFlags & LBN_IF_SLIDE_SEL) ?
+											LBN_IF_SEL : 0);
+										NotifyItemChanged(i, uOld);
+									}
+								}
 							}
 							idxOld = idxCurr;
 						}
@@ -474,10 +579,6 @@ private:
 				POINT ptScr{ x,y };
 				ClientToScreen(hWnd, &ptScr);
 				SelectItemForClick(idx);
-
-				NMHDR nm;
-				FillNmhdr(nm, NM_LBN_LBTNDOWN);
-				SendMessageW(m_hComboBox, WM_NOTIFY, nm.idFrom, (LPARAM)&nm);
 				return;
 			}
 		}
@@ -511,7 +612,7 @@ private:
 				NMLBNDRAG nm;
 				nm.idx = idx;
 				nm.uKeyFlags = uKeyFlags;
-				FillNmhdrAndSendNotify(nm, NM_LBN_BEGINDRAG);
+				FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_BEGINDRAG);
 			}
 			else if (m_bExtendSel || (!m_bExtendSel && !m_bMultiSel))// 扩展多选或单选
 				BeginDraggingSelect(idx);
@@ -541,19 +642,10 @@ private:
 		m_oyTop = m_idxTop * m_cyItem - ySB;
 	}
 
-	void PaintItem(int idx, const RECT& rcItem)
+	void PaintItem(NMCUSTOMDRAWEXT& ne)
 	{
-		const HDC hCDC = m_DC.GetDC();
-
-		NMLBNCUSTOMDRAW cd{};
-		cd.nmcd.hDC = hCDC;
-		cd.nmcd.iStage = NMECDS_PREDRAW;
-		cd.nmcd.rcItem = rcItem;
-		cd.nmcd.idx = idx;
-		if (FillNmhdrAndSendNotify(cd, NM_LBN_CUSTOMDRAW) == NMECDR_SKIPDEF)
-			return;
-
-		int iState = 0;
+		const int idx = (int)ne.nmcd.dwItemSpec;
+		int iState{};
 		if (m_idxHot == idx)
 			if (IsItemSel(idx))
 				iState = LISS_HOTSELECTED;
@@ -562,37 +654,67 @@ private:
 		else
 			if (IsItemSel(idx))
 				iState = LISS_SELECTED;
-		if (iState)
-			DrawThemeBackground(m_hTheme, hCDC, LVP_LISTITEM, iState, &rcItem, nullptr);
-		if (m_bFocusIndicatorVisible && m_idxFocus == idx)
-		{
-			RECT rc{ rcItem };
-			InflateRect(rc, -1, -1);
-			DrawFocusRect(hCDC, &rc);
-		}
 
-		cd.nmcd.iStage = NMECDS_POSTDRAWBK;
-		if (SendNotify(cd) == NMECDR_SKIPDEF)
-			return;
-
-		NMLBNGETDISPINFO nm{};
-		nm.Item.idxItem = idx;
-		FillNmhdrAndSendNotify(nm, NM_LBN_GETDISPINFO);
-		if (nm.Item.pszText)
+		ne.nmcd.dwDrawStage = CDDS_ITEMPREPAINT;
+		ne.crBk = CLR_DEFAULT;
+		ne.crText = CLR_DEFAULT;
+		ne.iStateId = iState;
+		ne.iPartId = LVP_LISTITEM;
+		const auto lRet = SendNotify(ne, m_hParent);
+		if (!(lRet & CDRF_SKIPDEFAULT))
 		{
-			RECT rc{ rcItem };
-			rc.left += m_Ds.cxTextPadding;
-			DrawTextW(hCDC, nm.Item.pszText, nm.Item.cchText, &rc,
-				DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_NOCLIP | DT_END_ELLIPSIS);
+			BOOL bFillBk{};
+			if (ne.crBk != CLR_DEFAULT)
+			{
+				if (ShouldAppsUseDarkMode())
+					bFillBk = TRUE;
+				else
+				{
+					SetDCBrushColor(ne.nmcd.hdc, ne.crBk);
+					FillRect(ne.nmcd.hdc, &ne.nmcd.rc, GetStockBrush(DC_BRUSH));
+				}
+			}
+			if (iState)
+				DrawThemeBackground(m_hTheme, ne.nmcd.hdc, LVP_LISTITEM, iState, &ne.nmcd.rc, nullptr);
+			if (bFillBk)
+				AlphaBlendColor(ne.nmcd.hdc, ne.nmcd.rc, ne.crBk);
+
+			NMLBNGETDISPINFO nm{};
+			nm.Item.idxItem = idx;
+			FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_GETDISPINFO);
+			if (nm.Item.cchText > 0)
+			{
+				RECT rc{ ne.nmcd.rc };
+				rc.left += DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
+				const auto crOld = ((ne.crText == CLR_DEFAULT) ?
+					CLR_INVALID : SetTextColor(ne.nmcd.hdc, ne.crText));
+				DrawTextW(ne.nmcd.hdc, nm.Item.pszText, nm.Item.cchText, &rc,
+					DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_NOCLIP | DT_END_ELLIPSIS);
+				if (crOld != CLR_INVALID)
+					SetTextColor(ne.nmcd.hdc, crOld);
+			}
+
+			if (!(lRet & CDRF_SKIPPOSTPAINT) && m_bFocusIndicatorVisible && m_idxFocus == idx)
+			{
+				RECT rc{ ne.nmcd.rc };
+				InflateRect(rc, -2, -2);
+				DrawFocusRect(ne.nmcd.hdc, &rc);
+			}
 		}
 #ifdef _DEBUG
 		if (m_bDbgDrawMarkItem && idx == m_idxMark)
 		{
-			const auto dummy1 = SetTextColor(hCDC, Colorref::Red);
-			DrawTextW(hCDC, L"Mark", -1, (RECT*)&rcItem, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_NOCLIP);
-			SetTextColor(hCDC, dummy1);
+			const auto crOld = SetTextColor(ne.nmcd.hdc, Colorref::Red);
+			DrawTextW(ne.nmcd.hdc, L"Mark", -1, (RECT*)&ne.nmcd.rc,
+				DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_NOCLIP);
+			SetTextColor(ne.nmcd.hdc, crOld);
 		}
 #endif
+		if (lRet & CDRF_NOTIFYPOSTPAINT)
+		{
+			ne.nmcd.dwDrawStage = CDDS_ITEMPOSTPAINT;
+			SendNotify(ne, m_hParent);
+		}
 	}
 
 	void ReCalcScrollBar()
@@ -621,10 +743,8 @@ private:
 
 	LRESULT CbNotifyDismiss()
 	{
-		EckDbgPrint(L"dismiss up");
 		NMHDR nm;
-		FillNmhdr(nm, NM_LBN_DISMISS);
-		return SendMessageW(m_hComboBox, WM_NOTIFY, nm.idFrom, (LPARAM)&nm);
+		return FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_DISMISS);
 	}
 public:
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -725,10 +845,10 @@ public:
 				if (!m_hComboBox)
 					ReleaseCapture();
 				m_bRBtnDown = FALSE;
-				NMECKMOUSENOTIFY nm;
+				NMMOUSENOTIFY nm;
 				nm.pt = ECK_GET_PT_LPARAM(lParam);
 				nm.uKeyFlags = (UINT)wParam;
-				FillNmhdrAndSendNotify(nm, NM_RCLICK);
+				FillNmhdrAndSendNotify(nm, m_hParent, NM_RCLICK);
 			}
 		}
 		break;
@@ -749,7 +869,7 @@ public:
 					NMLBNDRAG nm;
 					nm.idx = HitTest(pt.x, pt.y);
 					nm.uKeyFlags = (UINT)wParam;
-					FillNmhdrAndSendNotify(nm, NM_LBN_ENDDRAG);
+					FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_ENDDRAG);
 				}
 			}
 		}
@@ -813,7 +933,8 @@ public:
 			{
 				if (m_bMultiSel && m_idxFocus >= 0)
 				{
-					ECKBOOLNOT(m_vItem[m_idxFocus].bSel);
+					m_vItem[m_idxFocus].uFlags ^= LBN_IF_SEL;
+					NotifyItemChanged(m_idxFocus, m_vItem[m_idxFocus].uFlags ^ LBN_IF_SEL);
 					RedrawItem(m_idxFocus);
 				}
 			}
@@ -912,7 +1033,7 @@ public:
 
 			NMFOCUS nm;
 			nm.hWnd = (HWND)wParam;
-			FillNmhdrAndSendNotify(nm, NM_SETFOCUS);
+			FillNmhdrAndSendNotify(nm, m_hParent, NM_SETFOCUS);
 		}
 		break;
 
@@ -922,7 +1043,7 @@ public:
 
 			NMFOCUS nm;
 			nm.hWnd = (HWND)wParam;
-			FillNmhdrAndSendNotify(nm, NM_KILLFOCUS);
+			FillNmhdrAndSendNotify(nm, m_hParent, NM_KILLFOCUS);
 		}
 		break;
 
@@ -930,6 +1051,12 @@ public:
 		{
 			m_hFont = (HFONT)wParam;
 			SelectObject(m_DC.GetDC(), m_hFont);
+			UpdateFontMetrics();
+			if (m_bAutoItemHeight)
+			{
+				UpdateDefItemHeight();
+				ReCalcScrollBar();
+			}
 			if (lParam)
 				Redraw();
 		}
@@ -948,9 +1075,11 @@ public:
 		case WM_DPICHANGED_BEFOREPARENT:
 		{
 			m_iDpi = eck::GetDpi(hWnd);
-			UpdateDpiSize(m_Ds, m_iDpi);
-			if (!m_bUserItemHeight)
-				m_cyItem = m_Ds.cyItemDef;
+			if (m_bAutoItemHeight)
+			{
+				UpdateDefItemHeight();
+				ReCalcScrollBar();
+			}
 		}
 		return 0;
 
@@ -967,7 +1096,7 @@ public:
 			m_idxSel = m_idxHot = m_idxTop = m_idxMark = m_idxFocus = -1;
 			m_oyTop = 0;
 			m_vItem.clear();
-			m_bHasFocus = m_bLBtnDown = m_bUserItemHeight =
+			m_bHasFocus = m_bLBtnDown =
 				m_bNmDragging = m_bTrackComboBoxList = FALSE;
 			m_hComboBox = nullptr;
 		}
@@ -977,25 +1106,19 @@ public:
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		return IntCreate(dwExStyle, WCN_LISTBOXNEW, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
-	}
-
-	EckInline void SetItemCount(int cItem)
+	void SetItemCount(int cItem)
 	{
 		m_vItem.resize(cItem);
 		CheckOldData();
 		ReCalcScrollBar();
 		ReCalcTopItem();
+		NMHDR nm;
+		FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_ITEMSTANDBY);
 	}
 
-	EckInline int GetItemCount() { return (int)m_vItem.size(); }
+	EckInline [[nodiscard]] constexpr int GetItemCount() { return (int)m_vItem.size(); }
 
-	int HitTest(int x, int y)
+	[[nodiscard]] int HitTest(int x, int y)
 	{
 		if (x < 0 || x > m_cxClient || y < 0 || y > m_cyClient)
 			return -1;
@@ -1006,7 +1129,7 @@ public:
 			return idx;
 	}
 
-	EckInline int GetItemY(int idx)
+	EckInline [[nodiscard]] int GetItemY(int idx)
 	{
 		return m_oyTop + (m_cyItem * (idx - m_idxTop));
 	}
@@ -1017,33 +1140,33 @@ public:
 		rc.bottom = rc.top + m_cyItem;
 	}
 
-	EckInline int GetCurrSel() const { return m_idxSel; }
+	EckInline [[nodiscard]] int GetCurrSel() const { return m_idxSel; }
 
-	EckInline UINT GetItemState(int idx)
+	EckInline [[nodiscard]] UINT GetItemState(int idx)
 	{
 		return m_vItem[idx].uFlags;
 	}
 
-	EckInline BOOL IsItemSel(int idx)
+	EckInline [[nodiscard]] BOOL IsItemSel(int idx)
 	{
 		if (m_bMultiSel || m_bExtendSel)
-			return m_vItem[idx].bSel;
+			return !!(m_vItem[idx].uFlags & LBN_IF_SEL);
 		else
 			return m_idxSel == idx;
 	}
 
-	EckInline void GetSelItem(std::vector<int>& v)
+	void GetSelItem(std::vector<int>& v)
 	{
 		v.clear();
 		for (int i = 0; const auto & e : m_vItem)
 		{
-			if (e.bSel)
+			if (e.uFlags & LBN_IF_SEL)
 				v.emplace_back(i);
 			++i;
 		}
 	}
 
-	EckInline void EnsureVisible(int idx)
+	void EnsureVisible(int idx)
 	{
 		RECT rc;
 		GetItemRect(idx, rc);
@@ -1094,20 +1217,22 @@ public:
 		EckCounter(GetItemCount(), i)
 		{
 			auto& e = m_vItem[i];
-			if (e.bSel)
+			if (e.uFlags & LBN_IF_SEL)
 			{
 				if (idx0 < 0)
 					idx0 = (int)i;
 				idx1 = (int)i;
-				e.bSel = FALSE;
+				e.uFlags &= ~LBN_IF_SEL;
+				NotifyItemChanged(i, e.uFlags | LBN_IF_SEL);
 			}
 		}
 		idxChangedBegin = idx0;
 		idxChangedEnd = idx1;
 	}
 
-	EckInline void SetItemHeight(int cy)
+	void SetItemHeight(int cy)
 	{
+		m_bAutoItemHeight = FALSE;
 		m_cyItem = cy;
 		ReCalcScrollBar();
 		ReCalcTopItem();
@@ -1116,16 +1241,24 @@ public:
 	EckInline int GetItemHeight() const { return m_cyItem; }
 
 #pragma region 组合框交互
-	EckInline constexpr void SetComboBox(HWND h) { m_hComboBox = h; }
+	EckInline void SetComboBox(HWND h)
+	{
+		m_hComboBox = h;
+		if (h)
+			m_hParent = h;
+		else
+			m_hParent = GetParent(HWnd);
+	}
+
 	EckInline constexpr HWND GetComboBox() const { return m_hComboBox; }
 
-	void CbEnterTrack()
+	EckInline void CbEnterTrack()
 	{
 		SetCapture(HWnd);
 		m_bTrackComboBoxList = TRUE;
 	}
 
-	void CbLeaveTrack()
+	EckInline void CbLeaveTrack()
 	{
 		if (m_bTrackComboBoxList)
 		{
@@ -1134,24 +1267,37 @@ public:
 		}
 	}
 
-	void CbBeginProtectCapture()
+	EckInline void CbBeginProtectCapture()
 	{
 		EckAssert(m_hComboBox && !m_bProtectCapture);
 		m_bProtectCapture = TRUE;
 	}
 
-	void CbEndProtectCapture()
+	EckInline void CbEndProtectCapture()
 	{
 		EckAssert(m_hComboBox && m_bProtectCapture);
 		m_bProtectCapture = FALSE;
 	}
 #pragma endregion 组合框交互
 
-	EckInline constexpr void SetMultiSel(BOOL bMultiSel) { m_bMultiSel = bMultiSel; }
+	EckInline constexpr void SetMultiSel(BOOL b) { m_bMultiSel = b; }
 	EckInline constexpr BOOL GetMultiSel() const { return m_bMultiSel; }
 
-	EckInline constexpr void SetExtendSel(BOOL bExtendSel) { m_bExtendSel = bExtendSel; }
+	EckInline constexpr void SetExtendSel(BOOL b) { m_bExtendSel = b; }
 	EckInline constexpr BOOL GetExtendSel() const { return m_bExtendSel; }
+
+	void SetAutoItemHeight(BOOL b)
+	{
+		m_bAutoItemHeight = b;
+		if (b)
+		{
+			UpdateDefItemHeight();
+			ReCalcScrollBar();
+		}
+	}
+	EckInline constexpr BOOL GetAutoItemHeight() const { return m_bAutoItemHeight; }
+
+	EckInline constexpr void SetNotifyParentWindow(HWND h) { m_hParent = h; }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CListBoxNew, CWnd);
 ECK_NAMESPACE_END

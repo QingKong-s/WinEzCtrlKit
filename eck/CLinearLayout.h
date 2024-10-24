@@ -9,22 +9,13 @@
 #include "CLayoutBase.h"
 
 ECK_NAMESPACE_BEGIN
-enum
+enum// 不应使用这些标志，仅用作兼容
 {
-	// 不应使用这些标志，仅用作兼容
-	
-	// 固定宽度
 	LLF_FIXWIDTH = LF_FIX_WIDTH,
-	// 固定高度
 	LLF_FIXHEIGHT = LF_FIX_HEIGHT,
-	// 固定大小
 	LLF_FIXSIZE = LF_FIX,
-
-	// 宽度占据剩余部分
 	LLF_FILLWIDTH = LF_FILL_WIDTH,
-	// 高度占据剩余部分
 	LLF_FILLHEIGHT = LF_FILL_HEIGHT,
-	// 大小占据剩余部分
 	LLF_FILLSIZE = LF_FILL,
 };
 

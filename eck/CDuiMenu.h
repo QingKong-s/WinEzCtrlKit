@@ -12,7 +12,7 @@
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 class CMenu;
-namespace EckPriv
+namespace Priv
 {
 	class CMenuCtrl :public CElem
 	{
@@ -37,7 +37,7 @@ namespace EckPriv
 
 class CMenu :public CDuiWnd
 {
-	friend class EckPriv::CMenuCtrl;
+	friend class Priv::CMenuCtrl;
 private:
 	struct ITEM
 	{
@@ -67,7 +67,7 @@ private:
 
 	int m_cxMenu{}, m_cyMenu{};
 	IDWriteTextFormat* m_pTextFormat{};
-	EckPriv::CMenuCtrl m_MenuCtrl{ *this };
+	Priv::CMenuCtrl m_MenuCtrl{ *this };
 
 	int m_iDpi{ USER_DEFAULT_SCREEN_DPI };
 	ECK_DS_BEGIN(DPIS)
@@ -193,7 +193,7 @@ public:
 	}
 };
 
-LRESULT EckPriv::CMenuCtrl::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT Priv::CMenuCtrl::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{
