@@ -336,6 +336,15 @@ enum class Align :BYTE
 	Far
 };
 
+// For AnimateWindow
+enum class AnimateStyle :BYTE
+{
+	Roll,	// 滚动
+	Slide,	// 滑动
+	Center,	// 折叠
+	Blend	// 淡入淡出
+};
+
 constexpr inline auto CchI32ToStrBufNoRadix2 = std::max({
 	_MAX_ITOSTR_BASE16_COUNT,_MAX_ITOSTR_BASE10_COUNT,_MAX_ITOSTR_BASE8_COUNT,
 	_MAX_LTOSTR_BASE16_COUNT ,_MAX_LTOSTR_BASE10_COUNT ,_MAX_LTOSTR_BASE8_COUNT,
