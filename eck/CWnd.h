@@ -661,17 +661,17 @@ public:
 	/// <summary>
 	/// 重画
 	/// </summary>
-	EckInline BOOL Redraw() const
+	EckInline BOOL Redraw(BOOL bErase = FALSE) const
 	{
-		return RedrawWindow(m_hWnd, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE);
+		return InvalidateRect(m_hWnd, nullptr, bErase);
 	}
 
 	/// <summary>
 	/// 区域重画
 	/// </summary>
-	EckInline BOOL Redraw(const RECT& rc) const
+	EckInline BOOL Redraw(const RECT& rc, BOOL bErase = FALSE) const
 	{
-		return RedrawWindow(m_hWnd, &rc, nullptr, RDW_INVALIDATE | RDW_ERASE);
+		return InvalidateRect(m_hWnd, &rc, bErase);
 	}
 
 	/// <summary>

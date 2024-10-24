@@ -82,6 +82,8 @@ private:
 
 	std::vector<ITEM> m_vItem{};
 
+	CRefStrW m_rsTextBuf{};
+
 	HWND m_hComboBox{};	// 关联的组合框，可以是除自身外的任何窗口
 	HWND m_hParent{};	// 接收通知的父窗口
 
@@ -266,9 +268,13 @@ private:
 		si.fMask = SIF_POS;
 		SetSbInfo(SB_VERT, &si);
 		GetSbInfo(SB_VERT, &si);
-		ReCalcTopItem();
-		ScrollWindow(hWnd, 0, yOld - si.nPos, nullptr, nullptr);
-		UpdateWindow(hWnd);
+		if (si.nPos != yOld)
+		{
+			ReCalcTopItem();
+			ScrollWindowEx(hWnd, 0, yOld - si.nPos, nullptr, nullptr,
+				nullptr, nullptr, SW_INVALIDATE);
+			UpdateWindow(hWnd);
+		}
 	}
 
 	void SelectItemForClick(int idx)
@@ -306,12 +312,6 @@ private:
 				if (idx >= 0)
 				{
 					m_idxMark = idx;
-					const auto uOld = m_vItem[idx].uFlags;
-					if (!(uOld & LBN_IF_SEL))
-					{
-						m_vItem[idx].uFlags |= LBN_IF_SEL;
-						NotifyItemChanged(idx, uOld);
-					}
 					if (idxChangedBegin < 0 || (idx < idxChangedBegin || idx > idxChangedEnd))
 						RedrawItem(idx);
 				}
@@ -334,6 +334,8 @@ private:
 			if (m_idxSel != idx)
 			{
 				std::swap(m_idxSel, idx);
+				NotifyItemChanged(m_idxSel, 0u, LBN_IF_SEL);
+				NotifyItemChanged(idx, LBN_IF_SEL, 0u);
 				if (m_idxSel >= 0)
 					RedrawItem(m_idxSel);
 				if (idx >= 0)
@@ -626,13 +628,21 @@ private:
 		si.fMask = SIF_POS;
 		GetSbInfo(SB_VERT, &si);
 		const int yOld = si.nPos;
-		const int cyDeltaLine = (m_cyItem * 3 >= m_cyClient) ? (m_cyClient * 2 / 3) : m_cyItem * 3;
-		si.nPos += (-zDelta / WHEEL_DELTA * cyDeltaLine);
+		UINT cScrollLines;
+		SystemParametersInfoW(SPI_GETWHEELSCROLLLINES, 0, &cScrollLines, 0);
+		int d = -zDelta / WHEEL_DELTA * (m_cyItem * cScrollLines);
+		if (d > m_cyClient)
+			d = m_cyClient * 5 / 6;
+		si.nPos += d;
 		SetSbInfo(SB_VERT, &si);
 		GetSbInfo(SB_VERT, &si);
-		ReCalcTopItem();
-		ScrollWindow(hWnd, 0, yOld - si.nPos, nullptr, nullptr);
-		UpdateWindow(hWnd);
+		if (si.nPos != yOld)
+		{
+			ReCalcTopItem();
+			ScrollWindowEx(hWnd, 0, yOld - si.nPos, nullptr, nullptr,
+				nullptr, nullptr, SW_INVALIDATE);
+			UpdateWindow(hWnd);
+		}
 	}
 
 	void ReCalcTopItem()
@@ -1140,6 +1150,12 @@ public:
 		rc.bottom = rc.top + m_cyItem;
 	}
 
+	void SetCurrSel(int idx)
+	{
+		EckAssert(idx >= 0 && idx < GetItemCount());
+		SelectItemForClick(idx);
+	}
+
 	EckInline [[nodiscard]] int GetCurrSel() const { return m_idxSel; }
 
 	EckInline [[nodiscard]] UINT GetItemState(int idx)
@@ -1168,6 +1184,8 @@ public:
 
 	void EnsureVisible(int idx)
 	{
+		if (idx < 0 || idx >= GetItemCount())
+			return;
 		RECT rc;
 		GetItemRect(idx, rc);
 		if (rc.bottom >= m_cyClient)
@@ -1298,6 +1316,17 @@ public:
 	EckInline constexpr BOOL GetAutoItemHeight() const { return m_bAutoItemHeight; }
 
 	EckInline constexpr void SetNotifyParentWindow(HWND h) { m_hParent = h; }
+
+	EckInline void SetTextBufferSize(int cch) { m_rsTextBuf.ReSize(cch); }
+	EckInline constexpr int GetTextBufferSize() const { return m_rsTextBuf.Size(); }
+
+	LRESULT RequestItem(NMLBNGETDISPINFO& nm)
+	{
+		EckAssert(nm.Item.idxItem >= 0 && nm.Item.idxItem < GetItemCount());
+		nm.Item.pszText = m_rsTextBuf.Data();
+		nm.Item.cchText = m_rsTextBuf.Size();
+		return FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_GETDISPINFO);
+	}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CListBoxNew, CWnd);
 ECK_NAMESPACE_END
