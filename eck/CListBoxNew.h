@@ -1,7 +1,7 @@
 ﻿/*
 * WinEzCtrlKit Library
 *
-* CListBoxNew.h ： 所有者数据模式的列表框
+* CListBoxNew.h ： 列表框
 *
 * Copyright(C) 2023-2024 QingKong
 */
@@ -10,6 +10,18 @@
 #include "CtrlGraphics.h"
 
 ECK_NAMESPACE_BEGIN
+enum :UINT
+{
+	// 项目标志
+
+	LBN_IF_SEL = 1u << 0,		// 选中
+	LBN_IF_SLIDE_SEL = 1u << 1,	// 内部使用，滑动选择时暂存状态
+
+	// 搜索
+	LBN_SF_CASEINSENSITIVE = 1u << 0,	// 不区分大小写
+	LBN_SF_WHOLE = 1u << 1,		// 完全匹配
+};
+
 struct LBNITEM
 {
 	PCWSTR pszText;
@@ -30,18 +42,18 @@ struct NMLBNDRAG
 	UINT uKeyFlags;
 };
 
-enum :UINT
-{
-	LBN_IF_SEL = 1u << 0,
-	LBN_IF_SLIDE_SEL = 1u << 1,
-};
-
 struct NMLBNITEMCHANGED
 {
 	NMHDR nmhdr;
 	int idx;
 	UINT uFlagsNew;
 	UINT uFlagsOld;
+};
+
+struct NMLBNSEARCH
+{
+	NMHDR nmhdr;
+	LBNITEM Item;// idxItem表示起始项目（含）
 };
 
 #pragma pack(push, ECK_CTRLDATA_ALIGN)
@@ -56,7 +68,7 @@ struct CTRLDATA_LBN
 /*
 * LBN产生的通知
 * 特定通知：
-* NM_LBN_GETDISPINFO	请求项目显示信息
+* NM_LBN_GETDISPINFO	请求项目显示信息，若处理该通知，返回TRUE
 * NM_LBN_BEGINDRAG		开始拖动项目
 * NM_LBN_ENDDRAG		结束拖动项目
 * NM_LBN_DISMISS		组合框应隐藏列表
@@ -122,6 +134,7 @@ private:
 	BITBOOL m_bNmDragging : 1 = FALSE;			// 正在拖放项目，产生NM_LBN_BEGINDRAG时设置为TRUE
 	BITBOOL m_bTrackComboBoxList : 1 = FALSE;	// 正在作为组合框的下拉列表显示
 	BITBOOL m_bProtectCapture : 1 = FALSE;		// 允许其他窗口占用鼠标捕获，通常用于弹出下拉列表时显示菜单等
+	BITBOOL m_bGenItemNotify : 1 = FALSE;		// 是否生成项目通知
 
 	int m_iDpi{ USER_DEFAULT_SCREEN_DPI };
 
@@ -140,6 +153,8 @@ private:
 
 	LRESULT NotifyItemChanged(int idx, UINT uOldFlags, UINT uNewFlags)
 	{
+		if (!m_bGenItemNotify)
+			return 0;
 		NMLBNITEMCHANGED nm;
 		nm.idx = idx;
 		nm.uFlagsOld = uOldFlags;
@@ -691,8 +706,9 @@ private:
 
 			NMLBNGETDISPINFO nm{};
 			nm.Item.idxItem = idx;
-			FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_GETDISPINFO);
-			if (nm.Item.cchText > 0)
+			auto bb = FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_GETDISPINFO);
+			if (FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_GETDISPINFO)
+				&& nm.Item.cchText > 0)
 			{
 				RECT rc{ ne.nmcd.rc };
 				rc.left += DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
@@ -1152,8 +1168,26 @@ public:
 
 	void SetCurrSel(int idx)
 	{
-		EckAssert(idx >= 0 && idx < GetItemCount());
-		SelectItemForClick(idx);
+		EckAssert(idx < GetItemCount());
+		if (idx < 0)
+		{
+			if (m_bMultiSel)
+			{
+				int idx0, idx1;
+				DeselectAll(idx0, idx1);
+				if (idx0 >= 0)
+					RedrawItem(idx0, idx1);
+			}
+			else
+			{
+				int idx{ -1 };
+				std::swap(idx, m_idxSel);
+				if (idx >= 0)
+					RedrawItem(idx);
+			}
+		}
+		else
+			SelectItemForClick(idx);
 	}
 
 	EckInline [[nodiscard]] int GetCurrSel() const { return m_idxSel; }
@@ -1327,6 +1361,58 @@ public:
 		nm.Item.cchText = m_rsTextBuf.Size();
 		return FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_GETDISPINFO);
 	}
+
+	int SearchItem(PCWSTR pszText, int cchText = -1, UINT uFlags = 0, int idxStart = 0)
+	{
+		EckAssert(idxStart >= 0 && idxStart < GetItemCount());
+		if (!pszText)
+			return -1;
+		NMLBNSEARCH nm;
+		nm.Item.pszText = pszText;
+		nm.Item.cchText = cchText < 0 ? (int)wcslen(pszText) : cchText;
+		nm.Item.idxItem = idxStart;
+		if (FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_SEARCH))
+			return nm.Item.idxItem;
+		else
+		{
+			NMLBNGETDISPINFO nm;
+			FillNmhdr(nm, NM_LBN_GETDISPINFO);
+			for (nm.Item.idxItem = idxStart; nm.Item.idxItem < GetItemCount(); ++nm.Item.idxItem)
+			{
+				nm.Item.pszText = m_rsTextBuf.Data();
+				nm.Item.cchText = m_rsTextBuf.Size();
+				if (FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_GETDISPINFO))
+				{
+					if (uFlags & LBN_SF_CASEINSENSITIVE)
+						if (uFlags & LBN_SF_WHOLE)
+						{
+							if (wcsicmp(nm.Item.pszText, pszText) == 0)
+								return nm.Item.idxItem;
+						}
+						else
+						{
+							if (StrStrIW(nm.Item.pszText, pszText))
+								return nm.Item.idxItem;
+						}
+					else
+						if (uFlags & LBN_SF_WHOLE)
+						{
+							if (wcscmp(nm.Item.pszText, pszText) == 0)
+								return nm.Item.idxItem;
+						}
+						else
+						{
+							if (wcsstr(nm.Item.pszText, pszText))
+								return nm.Item.idxItem;
+						}
+				}
+			}
+		}
+		return -1;
+	}
+
+	EckInline constexpr void SetGenerateItemNotify(BOOL b) { m_bGenItemNotify = b; }
+	EckInline constexpr BOOL GetGenerateItemNotify() const { return m_bGenItemNotify; }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CListBoxNew, CWnd);
 ECK_NAMESPACE_END

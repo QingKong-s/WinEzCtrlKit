@@ -23,6 +23,8 @@ struct CTRLDATA_COLOR_PICK_BLOCK
 
 class CColorPickBlock :public CStatic
 {
+public:
+	ECK_RTTI(CColorPickBlock);
 private:
 	COLORREF m_crCust[16]{};
 	COLORREF m_cr{ CLR_INVALID };
@@ -35,39 +37,9 @@ private:
 		m_dwCCFlags = CC_FULLOPEN;
 	}
 public:
-	ECK_RTTI(CColorPickBlock);
-
 	[[nodiscard]] EckInline constexpr static PCVOID SkipBaseData(PCVOID p)
 	{
 		return PtrStepCb(CStatic::SkipBaseData(p), sizeof(CTRLDATA_COLOR_PICK_BLOCK));
-	}
-
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		if (pData)
-		{
-			const auto* const pBase = (CTRLDATA_WND*)pData;
-			const auto* const p = (CTRLDATA_COLOR_PICK_BLOCK*)CStatic::SkipBaseData(pData);
-			if (pBase->iVer < CDV_WND_1)
-			{
-				EckDbgBreak();
-				return nullptr;
-			}
-
-			CStatic::Create(pszText, dwStyle, dwExStyle,
-				x, y, cx, cy, hParent, hMenu, pData);
-			memcpy(m_crCust, p->crCust, sizeof(m_crCust));
-			m_cr = p->cr;
-			m_dwCCFlags = p->dwCCFlags;
-		}
-		else
-		{
-			CStatic::Create(pszText, dwStyle, dwExStyle,
-				x, y, cx, cy, hParent, hMenu);
-		}
-		return m_hWnd;
 	}
 
 	void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) override
@@ -83,16 +55,26 @@ public:
 		p->dwCCFlags = m_dwCCFlags;
 	}
 
+	void PostDeserialize(PCVOID pData) override
+	{
+		__super::PostDeserialize(pData);
+		const auto* const p = (CTRLDATA_COLOR_PICK_BLOCK*)__super::SkipBaseData(pData);
+
+		memcpy(m_crCust, p->crCust, sizeof(m_crCust));
+		m_cr = p->cr;
+		m_dwCCFlags = p->dwCCFlags;
+	}
+
 	void AttachNew(HWND hWnd) override
 	{
-		CStatic::AttachNew(hWnd);
+		__super::AttachNew(hWnd);
 		SetText(nullptr);
 		Redraw();
 	}
 
 	void DetachNew() override
 	{
-		CStatic::DetachNew();
+		__super::DetachNew();
 		CleanupForDestroyWindow();
 	}
 

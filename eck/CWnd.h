@@ -15,11 +15,17 @@
 ECK_NAMESPACE_BEGIN
 constexpr inline int CDV_WND_1 = 0;
 
+// CTRLDATA_WND::uFlags
 enum : UINT
 {
 	SERDF_SBH = 1u << 0,
 	SERDF_SBV = 1u << 1,
 	SERDF_IMAGELIST = 1u << 2,
+	SERDF_X = 1u << 3,
+	SERDF_Y = 1u << 4,
+	SERDF_CX = 1u << 5,
+	SERDF_CY = 1u << 6,
+	SERDF_POSSIZE = SERDF_X | SERDF_Y | SERDF_CX | SERDF_CY,
 };
 
 #pragma pack(push, ECK_CTRLDATA_ALIGN)
@@ -31,21 +37,55 @@ struct CTRLDATA_WND
 	DWORD dwStyle;
 	DWORD dwExStyle;
 	// WCHAR szText[];
+	// SCROLLINFO siHorz;// SERDF_SBH设置时
+	// SCROLLINFO siVert;// SERDF_SBV设置时
+	// RCWH rcPos;// SERDF_X、SERDF_Y、SERDF_CX、SERDF_CY中的一个被设置时才附加此结构
 
-	EckInline PCWSTR Text() const
+	constexpr PCWSTR Text() const
 	{
 		if (cchText)
 			return (PCWSTR)(this + 1);
 		else
 			return nullptr;
 	}
+
+	constexpr size_t Size() const
+	{
+		return sizeof(CTRLDATA_WND) + (cchText + 1) * sizeof(WCHAR) +
+			((uFlags & SERDF_SBH) ? sizeof(SCROLLINFO) : 0) +
+			((uFlags & SERDF_SBV) ? sizeof(SCROLLINFO) : 0) +
+			((uFlags & SERDF_POSSIZE) ? sizeof(RCWH) : 0);
+	}
+
+	constexpr RCWH* PosSize() const
+	{
+		if (!(uFlags & SERDF_POSSIZE))
+			return nullptr;
+		return (RCWH*)((PCBYTE)this + Size() - sizeof(RCWH));
+	}
+
+	constexpr SCROLLINFO* ScrollInfoHorz() const
+	{
+		if (!(uFlags & SERDF_SBH))
+			return nullptr;
+		return (SCROLLINFO*)((PCBYTE)this + sizeof(CTRLDATA_WND) + (cchText + 1) * sizeof(WCHAR));
+	}
+
+	constexpr SCROLLINFO* ScrollInfoVert() const
+	{
+		if (!(uFlags & SERDF_SBV))
+			return nullptr;
+		return (SCROLLINFO*)((PCBYTE)this + sizeof(CTRLDATA_WND) + (cchText + 1) * sizeof(WCHAR) +
+			((uFlags & SERDF_SBH) ? sizeof(SCROLLINFO) : 0));
+	}
 };
 #pragma pack(pop)
 
+// SERIALIZE_OPT::uFlags
 enum : UINT
 {
-	SERF_NO_COMBO_ITEM = (1u << 0),// 一般供ComboBoxEx使用，指示CComboBox不要序列化项目数据
-	SERF_EXCLUDE_IMAGELIST = (1u << 1),// 序列化图像列表数据
+	SERF_NO_COMBO_ITEM = 1u << 0,		// 一般供ComboBoxEx使用，指示CComboBox不要序列化项目数据
+	SERF_EXCLUDE_IMAGELIST = 1u << 1,	// 不要序列化图像列表数据
 };
 
 struct SERIALIZE_OPT
@@ -468,6 +508,7 @@ public:
 		p->cchText = rsText.Size();
 		p->dwStyle = dwStyle;
 		p->dwExStyle = GetExStyle();
+		w << rsText;
 		SCROLLINFO* psi;
 		if (IsBitSet(dwStyle, WS_HSCROLL))
 		{
@@ -481,8 +522,6 @@ public:
 			w.SkipPointer(psi);
 			GetSbInfo(SB_VERT, psi);
 		}
-
-		w << rsText;
 	}
 
 	virtual void PreDeserialize(PCVOID pData) {}
@@ -587,8 +626,7 @@ public:
 	// 跳到当前类序列化数据的尾部
 	[[nodiscard]] EckInline constexpr static PCVOID SkipBaseData(PCVOID p)
 	{
-		return (PCBYTE)p + sizeof(CTRLDATA_WND) +
-			Cch2CbW(((const CTRLDATA_WND*)p)->cchText);
+		return PtrStepCb(p, ((const CTRLDATA_WND*)p)->Size());
 	}
 
 	/// <summary>
@@ -628,10 +666,22 @@ public:
 			pData->dwStyle = dwNewStyle.value();
 		if (dwNewExStyle.has_value())
 			pData->dwExStyle = dwNewExStyle.value();
+		if (pData->uFlags & SERDF_X)
+			NewPos.x = pData->PosSize()->x;
+		if (pData->uFlags & SERDF_Y)
+			NewPos.y = pData->PosSize()->y;
+		if (pData->uFlags & SERDF_CX)
+			NewPos.cx = pData->PosSize()->cx;
+		if (pData->uFlags & SERDF_CY)
+			NewPos.cy = pData->PosSize()->cy;
 
 		Destroy();
 		Create(nullptr, 0, 0, NewPos.x, NewPos.y,
 			NewPos.cx, NewPos.cy, hParent, iID, rb.Data());
+		if (pData->uFlags & SERDF_SBH)
+			SetSbInfo(SB_HORZ, pData->ScrollInfoHorz());
+		if (pData->uFlags & SERDF_SBV)
+			SetSbInfo(SB_VERT, pData->ScrollInfoVert());
 		HFont = hFont;
 		return m_hWnd;
 	}

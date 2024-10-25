@@ -40,7 +40,9 @@ private:
 	BITBOOL m_bDrop : 1{};
 	BITBOOL m_bDisabled : 1{};
 	BITBOOL m_bHasFocus : 1{};
-	BITBOOL m_bAutoDropSize : 1{ TRUE };
+
+	BITBOOL m_bAutoDropSize : 1{ TRUE };	// 自动调整下拉框大小
+	BITBOOL m_bMatchEditToItem : 1{ TRUE };	// 当编辑框内容改变时，同步选中匹配的项
 
 	View m_eView{ View::DropDown };
 	AnimateStyle m_eAnimate{ AnimateStyle::Blend };
@@ -125,8 +127,7 @@ private:
 			nmdi.Item.idxItem = m_LB.GetCurrSel();
 			if (nmdi.Item.idxItem >= 0)
 			{
-				m_LB.RequestItem(nmdi);
-				if (nmdi.Item.cchText > 0)
+				if (m_LB.RequestItem(nmdi) && nmdi.Item.cchText > 0)
 				{
 					rc.right = rc.left - DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
 					rc.left = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
@@ -183,15 +184,10 @@ private:
 		m_cyDrop = std::min(DpiScale(540, m_iDpi),
 			m_LB.GetItemCount() * m_LB.GetItemHeight() + DaGetSystemMetrics(SM_CYEDGE, m_iDpi) * 2);
 	}
-
-	void OnMouseWheel(int d)
-	{
-
-	}
 public:
 	BOOL PreTranslateMessage(const MSG& Msg) override
 	{
-		if (Msg.message == WM_MOUSEWHEEL)
+		if (Msg.message == WM_MOUSEWHEEL && !m_bDrop)
 		{
 			const int idxCurr = m_LB.GetCurrSel();
 			if (idxCurr < 0)
@@ -282,7 +278,6 @@ public:
 		{
 			const auto pnmhdr = (NMHDR*)lParam;
 			if (pnmhdr->hwndFrom == m_LB.HWnd)
-			{
 				switch (pnmhdr->code)
 				{
 				case NM_LBN_ITEMCHANGED:
@@ -299,8 +294,7 @@ public:
 						{
 							NMLBNGETDISPINFO nmdi;
 							nmdi.Item.idxItem = p->idx;
-							m_LB.RequestItem(nmdi);
-							if (nmdi.Item.cchText > 0)
+							if (m_LB.RequestItem(nmdi) && nmdi.Item.cchText > 0)
 								m_pED->SetText(nmdi.Item.pszText);
 						}
 					}
@@ -322,7 +316,26 @@ public:
 					pnmhdr->idFrom = GetDlgCtrlID(hWnd);
 					return SendMessageW(m_hParent, uMsg, pnmhdr->idFrom, lParam);
 				}
-			}
+		}
+		break;
+
+		case WM_COMMAND:
+		{
+			if (m_pED && HWND(lParam) == m_pED->HWnd)
+				switch (HIWORD(wParam))
+				{
+				case EN_CHANGE:
+					if (m_eView == View::DropDownEdit)
+					{
+						const auto rs = m_pED->GetText();
+						const auto idx = m_LB.SearchItem(rs.Data(), rs.Size(), LBN_SF_WHOLE);
+						m_LB.SetGenerateItemNotify(FALSE);
+						m_LB.SetCurrSel(idx);
+						m_LB.SetGenerateItemNotify(TRUE);
+						Redraw();
+					}
+					break;
+				}
 		}
 		break;
 
@@ -376,10 +389,21 @@ public:
 				0, 0, ((CREATESTRUCTW*)lParam)->cx, 500, hWnd, nullptr);
 			SetWindowLongPtrW(m_LB.HWnd, GWLP_HWNDPARENT, (LONG_PTR)hWnd);
 			m_LB.SetComboBox(hWnd);
+			m_LB.SetGenerateItemNotify(TRUE);
 
 			m_hTheme = OpenThemeData(hWnd, L"Combobox");
 			m_DC.Create(hWnd);
 			SetBkMode(m_DC.GetDC(), TRANSPARENT);
+		}
+		break;
+
+		case WM_DESTROY:
+		{
+			CloseThemeData(m_hTheme);
+			m_hTheme = nullptr;
+			if (m_pED)
+				m_pED->Destroy();
+			m_LB.Destroy();
 		}
 		break;
 		}
@@ -501,10 +525,16 @@ public:
 		}
 	}
 
-	EckInline [[nodiscard]] constexpr View GetView() const { return m_eView; }
+	EckInline constexpr View GetView() const { return m_eView; }
 
 	EckInline constexpr void SetAnimateStyle(AnimateStyle e) { m_eAnimate = e; }
-	EckInline [[nodiscard]] constexpr AnimateStyle GetAnimateStyle() const { return m_eAnimate; }
+	EckInline constexpr AnimateStyle GetAnimateStyle() const { return m_eAnimate; }
+
+	EckInline constexpr void SetAutoDropSize(BOOL b) { m_bAutoDropSize = b; }
+	EckInline constexpr BOOL GetAutoDropSize() const { return m_bAutoDropSize; }
+
+	EckInline constexpr void SetMatchEditToItem(BOOL b) { m_bMatchEditToItem = b; }
+	EckInline constexpr BOOL GetMatchEditToItem() const { return m_bMatchEditToItem; }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CComboBoxNew, CWnd);
 ECK_NAMESPACE_END

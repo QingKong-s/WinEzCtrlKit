@@ -26,6 +26,8 @@ class CStatic :public CWnd
 {
 public:
 	ECK_RTTI(CStatic);
+	ECK_CWND_NOSINGLEOWNER(CStatic);
+	ECK_CWND_CREATE_CLS(WC_STATICW);
 
 	ECK_CWNDPROP_STYLE(ShowBitmap, SS_BITMAP);
 	ECK_CWNDPROP_STYLE_MASK(BlackFrame, SS_BLACKFRAME, StaticTypeMask);
@@ -61,8 +63,6 @@ public:
 	{
 		return PtrStepCb(CWnd::SkipBaseData(p), sizeof(CTRLDATA_STATIC));
 	}
-
-	ECK_CWND_CREATE_CLS(WC_STATICW);
 
 	void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) override
 	{
