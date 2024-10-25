@@ -47,6 +47,8 @@ class CComboBox :public CWnd
 {
 public:
 	ECK_RTTI(CComboBox);
+	ECK_CWND_NOSINGLEOWNER(CComboBox);
+	ECK_CWND_CREATE_CLS(WC_COMBOBOXW);
 
 	ECK_CWNDPROP_STYLE(AutoHScroll, CBS_AUTOHSCROLL);
 	ECK_CWNDPROP_STYLE(DisableNoScroll, CBS_DISABLENOSCROLL);
@@ -68,11 +70,24 @@ public:
 		return PtrStepCb(p2, p2->cbSize);
 	}
 
-	ECK_CWND_CREATE_CLS(WC_COMBOBOXW);
-
 	void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) override
 	{
 		CWnd::SerializeData(rb, pOpt);
+		COMBOBOXINFO cbi;
+		cbi.cbSize = sizeof(cbi);
+		if (GetComboBoxInfo(&cbi))
+		{
+			const auto pcy = &((RCWH*)rb.PushBack(sizeof(RCWH)))->cy;
+			const auto pWndData = (CTRLDATA_WND*)rb.Data();
+			pWndData->dwStyle |= (GetWindowLongPtrW(cbi.hwndList, GWL_STYLE) & 
+				~(WS_HSCROLL | WS_VSCROLL));
+			GetWindowRect(cbi.hwndList, &cbi.rcItem);
+			GetWindowRect(cbi.hwndCombo, &cbi.rcButton);
+			*pcy = (cbi.rcItem.bottom - cbi.rcItem.top) + 
+				(cbi.rcButton.bottom - cbi.rcButton.top);
+			pWndData->uFlags |= SERDF_CY;
+		}
+
 		CRefStrW rs;
 		GetCurBanner(rs);
 		rb.Reserve(rb.Size() + sizeof(CTRLDATA_COMBOBOX) + rs.ByteSize() + 512);

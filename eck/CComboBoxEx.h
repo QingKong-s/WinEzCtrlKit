@@ -51,6 +51,8 @@ class CComboBoxEx :public CComboBox
 {
 public:
 	ECK_RTTI(CComboBoxEx);
+	ECK_CWND_NOSINGLEOWNER(CComboBoxEx);
+	ECK_CWND_CREATE_CLS(WC_COMBOBOXEXW);
 
 	ECK_CWNDPROP_CBE_STYLE(CaseSensitive, CBES_EX_CASESENSITIVE);
 	ECK_CWNDPROP_CBE_STYLE(NoEditImage, CBES_EX_NOEDITIMAGE);
@@ -64,13 +66,12 @@ public:
 		return CComboBox::SkipBaseData(p);
 	}
 
-	ECK_CWND_CREATE_CLS(WC_COMBOBOXEXW);
-
 	void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) override
 	{
 		SERIALIZE_OPT Opt{ pOpt ? *pOpt : SERIALIZE_OPT{} };
 		Opt.uFlags |= SERF_NO_COMBO_ITEM;
 		CComboBox::SerializeData(rb, &Opt);
+		rb.PushBack(sizeof(CTRLDATA_COMBOBOXEX) - sizeof(CTRLDATA_COMBOBOX));
 		auto pBase = (CTRLDATA_COMBOBOX*)CWnd::SkipBaseData(rb.Data());
 		const auto ocbBase = (PCBYTE)pBase - rb.Data();
 		pBase->iVer = CDV_COMBOBOXEX_1;
@@ -97,19 +98,24 @@ public:
 			pItem->lParam = cbei.lParam;
 			wmemcpy(PWSTR(pItem + 1), cbei.pszText, cchText + 1);
 		}
-		if (HIMAGELIST hIL = GetImageList(); 0 && hIL &&
+		if (HIMAGELIST hIL = GetImageList(); hIL &&
 			(!pOpt || !(pOpt->uFlags & SERF_EXCLUDE_IMAGELIST)))
 		{
 			const auto ocb = rb.Size();
 			const auto pStream = new CRefBinStream{ rb };
-			if (SUCCEEDED(ImageList_WriteEx(hIL, ILP_NORMAL, pStream)))
+			pStream->Seek(ToLi(0), STREAM_SEEK_END, nullptr);
+			if (SUCCEEDED(ImageList_WriteEx(hIL,ILP_NORMAL, pStream)))
 				((CTRLDATA_WND*)rb.Data())->uFlags |= SERDF_IMAGELIST;
 			pStream->LeaveRelease();
+
+			pBase = (CTRLDATA_COMBOBOX*)(rb.Data() + ocbBase);
 			((CTRLDATA_COMBOBOXEX*)pBase)->cbImageList = (DWORD)(rb.Size() - ocb);
 		}
 		else
+		{
+			pBase = (CTRLDATA_COMBOBOX*)(rb.Data() + ocbBase);
 			((CTRLDATA_COMBOBOXEX*)pBase)->cbImageList = 0;
-		pBase = (CTRLDATA_COMBOBOX*)(rb.Data() + ocbBase);
+		}
 		pBase->cbSize = DWORD(rb.Size() - ocbBase);
 	}
 
@@ -128,7 +134,7 @@ public:
 			pStream->LeaveRelease();
 		}
 
-		auto pItem = (CTRLDATA_COMBOBOXEX::ITEM*)PtrStepCb(pBase, sizeof(CTRLDATA_COMBOBOX) +
+		auto pItem = (CTRLDATA_COMBOBOXEX::ITEM*)PtrStepCb(pBase, sizeof(CTRLDATA_COMBOBOXEX) +
 			(pBase->Base.cchCueBanner + 1) * sizeof(WCHAR));
 		COMBOBOXEXITEMW cbei;
 		cbei.mask = CBEIF_IMAGE | CBEIF_INDENT | CBEIF_LPARAM | CBEIF_OVERLAY |

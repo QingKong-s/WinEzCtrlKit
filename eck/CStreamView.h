@@ -2,15 +2,12 @@
 * WinEzCtrlKit Library
 *
 * CStreamView.h ： 流视图
-* 只读IStream接口的实现，在一些情况下可以避免内存复制
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include "CRefBin.h"
 #include "IMem.h"
-
-#include <Shlwapi.h>
 
 ECK_NAMESPACE_BEGIN
 class CStreamView :public IStream, public IMem
@@ -23,16 +20,16 @@ private:
 	SIZE_T m_cbSize = 0u;
 public:
 	CStreamView() = default;
-	constexpr CStreamView(PCVOID p, SIZE_T cb)
-		:m_pMem{ (PCBYTE)p }, m_cbSize{ cb }, m_pSeek{ (PCBYTE)p } {}
+	constexpr CStreamView(PCVOID p, SIZE_T cb) :m_pMem{ (PCBYTE)p }, m_cbSize{ cb }, m_pSeek{ (PCBYTE)p } {}
 
 	template<class TAlloc>
-	CStreamView(const CRefBinT<TAlloc>& rb)
-		: m_pMem{ rb.Data() }, m_cbSize{ rb.Size() }, m_pSeek{ rb.Data() } {}
+	constexpr CStreamView(const CRefBinT<TAlloc>& rb) : CStreamView(rb.Data(), rb.Size()) {}
 
 	template<class T, class TAlloc>
-	CStreamView(const std::vector<T, TAlloc>& v)
-		: m_pMem{ (PCBYTE)v.data() }, m_cbSize{ v.size() * sizeof(T) }, m_pSeek{ (PCBYTE)v.data() } {}
+	constexpr CStreamView(const std::vector<T, TAlloc>& v) : CStreamView(v.data(), v.size() * sizeof(T)) {}
+
+	template<class T>
+	constexpr CStreamView(const std::span<T>& s) : CStreamView(s.data(), s.size() * sizeof(T)) {}
 
 	EckInline constexpr void SetData(PCVOID p, SIZE_T cb)
 	{
@@ -69,7 +66,7 @@ public:
 
 	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject)
 	{
-		const QITAB qit[]
+		const static QITAB qit[]
 		{
 			QITABENT(CStreamView, IStream),
 			QITABENT(CStreamView, ISequentialStream),
@@ -82,18 +79,13 @@ public:
 
 	HRESULT STDMETHODCALLTYPE Read(void* pv, ULONG cb, ULONG* pcbRead)
 	{
-		ULONG Dummy;
-		if (!pcbRead) pcbRead = &Dummy;
+		if (pcbRead)
+			*pcbRead = 0;
 		if (!pv)
-		{
-			*pcbRead = 0;
 			return STG_E_INVALIDPOINTER;
-		}
 		if (m_pSeek >= m_pMem + m_cbSize)
-		{
-			*pcbRead = 0;
 			return S_FALSE;
-		}
+
 		HRESULT hr;
 		if (m_pSeek + cb > m_pMem + m_cbSize)
 		{
@@ -104,7 +96,8 @@ public:
 			hr = S_OK;
 		memmove(pv, m_pSeek, cb);
 		m_pSeek += cb;
-		*pcbRead = cb;
+		if (pcbRead)
+			*pcbRead = cb;
 		return hr;
 	}
 
@@ -116,13 +109,15 @@ public:
 
 	HRESULT STDMETHODCALLTYPE Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition)
 	{
-		ULARGE_INTEGER Dummy;
-		if (!plibNewPosition) plibNewPosition = &Dummy;
+		if (plibNewPosition)
+			plibNewPosition->QuadPart = (m_pSeek - m_pMem);
+
 		switch (dwOrigin)
 		{
 		case SEEK_SET:// 这种情况dlibMove应视为无符号
 			m_pSeek = m_pMem + (size_t)dlibMove.QuadPart;
-			*plibNewPosition = ToUli(dlibMove);
+			if (plibNewPosition)
+				*plibNewPosition = ToUli(dlibMove);
 			return S_OK;
 
 		case SEEK_CUR:
@@ -131,7 +126,8 @@ public:
 			if (ocbNew < 0)// 落在流开始之前
 				return STG_E_INVALIDFUNCTION;
 			m_pSeek = m_pMem + (size_t)ocbNew;
-			plibNewPosition->QuadPart = (ULONGLONG)ocbNew;
+			if (plibNewPosition)
+				plibNewPosition->QuadPart = (ULONGLONG)ocbNew;
 		}
 		return S_OK;
 
@@ -139,7 +135,8 @@ public:
 			if (dlibMove.QuadPart < -(ptrdiff_t)m_cbSize)// 落在流开始之前
 				return STG_E_INVALIDFUNCTION;
 			m_pSeek = m_pMem + (size_t)m_cbSize + dlibMove.QuadPart;
-			plibNewPosition->QuadPart = (ULONGLONG)(m_cbSize + dlibMove.QuadPart);
+			if (plibNewPosition)
+				plibNewPosition->QuadPart = (ULONGLONG)(m_cbSize + dlibMove.QuadPart);
 			return S_OK;
 		}
 		return STG_E_INVALIDFUNCTION;
@@ -148,34 +145,32 @@ public:
 	HRESULT STDMETHODCALLTYPE SetSize(ULARGE_INTEGER libNewSize)
 	{
 		EckDbgBreak();
-		return E_NOTIMPL;
+		return STG_E_ACCESSDENIED;
 	}
 
 	HRESULT STDMETHODCALLTYPE CopyTo(IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten)
 	{
+		if (pcbRead)
+			pcbRead->QuadPart = 0u;
+		if (pcbWritten)
+			pcbWritten->QuadPart = 0u;
 		if (!pstm)
 			return STG_E_INVALIDPOINTER;
 		if ((SIZE_T)(m_pSeek - m_pMem) >= m_cbSize)
-		{
-			if (pcbRead)
-				pcbRead->QuadPart = 0u;
-			if (pcbWritten)
-				pcbWritten->QuadPart = 0u;
 			return S_FALSE;
-		}
 
 		ULONG cbRead;
 		if ((SIZE_T)((m_pSeek - m_pMem) + cb.LowPart) > m_cbSize)
 			cbRead = (ULONG)(m_cbSize - (m_pSeek - m_pMem));
 		else
 			cbRead = cb.LowPart;
-		ULONG cbWritten;
-		pstm->Write(m_pSeek, cbRead, &cbWritten);
+		ULONG cbWritten{};
+		const auto hr = pstm->Write(m_pSeek, cbRead, &cbWritten);
 		if (pcbRead)
 			pcbRead->QuadPart = cbRead;
 		if (pcbWritten)
 			pcbWritten->QuadPart = cbWritten;
-		return S_OK;
+		return hr;
 	}
 
 	HRESULT STDMETHODCALLTYPE Commit(DWORD grfCommitFlags)
@@ -231,6 +226,12 @@ public:
 
 	HRESULT STDMETHODCALLTYPE MemUnlock()
 	{
+		return E_NOTIMPL;
+	}
+
+	HRESULT STDMETHODCALLTYPE MemIsLocked(BOOL* pIsLocked)
+	{
+		*pIsLocked = FALSE;
 		return E_NOTIMPL;
 	}
 };

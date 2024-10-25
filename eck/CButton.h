@@ -47,6 +47,8 @@ class CButton :public CWnd
 {
 public:
 	ECK_RTTI(CButton);
+	ECK_CWND_NOSINGLEOWNER(CButton);
+	ECK_CWND_CREATE_CLS(WC_BUTTONW);
 
 	enum class Type
 	{
@@ -71,7 +73,7 @@ public:
 	};
 protected:
 	BITBOOL m_bShieldIcon : 1{};
-	BITBOOL m_bDontClick : 1{TRUE};
+	BITBOOL m_bDontClick : 1{ TRUE };
 public:
 	ECK_CWNDPROP_STYLE_MASK(TripleState, BS_3STATE, ButtonTypeMask);
 	ECK_CWNDPROP_STYLE_MASK(AutoTripleState, BS_AUTO3STATE, ButtonTypeMask);
@@ -108,8 +110,6 @@ public:
 		const auto* const p2 = (CTRLDATA_BUTTON*)CWnd::SkipBaseData(p);
 		return PtrStepCb(p2, sizeof(CTRLDATA_BUTTON) + (p2->cchNote + 1) * sizeof(WCHAR));
 	}
-
-	ECK_CWND_CREATE_CLS(WC_BUTTONW);
 
 	void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) override
 	{
@@ -179,7 +179,7 @@ public:
 	}
 
 	// For compatibility
-	EckInline [[nodiscard]] CRefStrW GetNote()
+	EckInline CRefStrW GetNote()
 	{
 		CRefStrW rs;
 		GetNote(rs);
@@ -218,7 +218,7 @@ public:
 	}
 
 	// 获取内部记录的图标状态
-	EckInline [[nodiscard]] constexpr BOOL GetShieldIcon()
+	EckInline constexpr BOOL GetShieldIcon()
 	{
 		return m_bShieldIcon;
 	}
@@ -241,12 +241,12 @@ public:
 
 	EckInline int GetCheckState() { return (int)SendMsg(BM_GETCHECK, 0, 0); }
 
-	EckInline [[nodiscard]] HANDLE GetImage(UINT uType) const
+	EckInline HANDLE GetImage(UINT uType) const
 	{
 		return (HANDLE)SendMsg(BM_GETIMAGE, uType, 0);
 	}
 
-	EckInline [[nodiscard]] UINT GetState() const { return (UINT)SendMsg(BM_GETSTATE, 0, 0); }
+	EckInline UINT GetState() const { return (UINT)SendMsg(BM_GETSTATE, 0, 0); }
 
 	EckInline void SetDontClick(BOOL bDontClick) { SendMsg(BM_SETDONTCLICK, bDontClick, 0); }
 

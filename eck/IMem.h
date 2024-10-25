@@ -23,5 +23,8 @@ IMem: public IUnknown
 
 	// 获取对象关联的内存地址和大小，当修改对象后返回的信息可能失效
 	HRESULT STDMETHODCALLTYPE MemGetPtr(void** ppData, SIZE_T* pSize);
+
+	// 是否已锁定
+	HRESULT STDMETHODCALLTYPE MemIsLocked(BOOL* pIsLocked);
 };
 ECK_NAMESPACE_END
