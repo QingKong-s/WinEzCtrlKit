@@ -1674,7 +1674,7 @@ inline HRESULT Snapshot(IWICBitmap*& pBmp, const RCWH& rc, BOOL bCursor = FALSE,
 	return S_OK;
 }
 
-inline LONGLONG GetFileSize(PCWSTR pszFile, NTSTATUS* pnts = nullptr)
+inline LONGLONG GetFileSizeWithPath(PCWSTR pszFile, NTSTATUS* pnts = nullptr)
 {
 	const auto hFile = NaOpenFile(pszFile, FILE_READ_ATTRIBUTES, FILE_SHARE_READ, 0, pnts);
 	if (hFile == INVALID_HANDLE_VALUE)
@@ -1682,7 +1682,8 @@ inline LONGLONG GetFileSize(PCWSTR pszFile, NTSTATUS* pnts = nullptr)
 	IO_STATUS_BLOCK iosb;
 	FILE_STANDARD_INFORMATION fsi;
 	fsi.EndOfFile.QuadPart = 0ll;
-	const auto nts = NtQueryInformationFile(hFile, &iosb, &fsi, sizeof(fsi), FileStandardInformation);
+	const auto nts = NtQueryInformationFile(hFile, &iosb,
+		&fsi, sizeof(fsi), FileStandardInformation);
 	if (pnts)
 		*pnts = nts;
 	NtClose(hFile);

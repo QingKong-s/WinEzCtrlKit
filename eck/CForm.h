@@ -15,6 +15,8 @@ class CForm :public CWnd
 {
 public:
 	ECK_RTTI(CForm);
+	ECK_CWND_NOSINGLEOWNER(CForm);
+	ECK_CWND_CREATE_CLS_HINST(WCN_FORM, g_hInstance);
 private:
 	struct TRAY
 	{
@@ -25,9 +27,11 @@ private:
 		CRefStrW rsTip;
 #if !ECKCXX20
 		TRAY(UINT uID, UINT uFlags, DWORD dwState, HICON hIcon, PCWSTR pszTip) :
-			uID(uID), uFlags(uFlags), dwState(dwState), hIcon(hIcon), rsTip(pszTip) {}
+			uID(uID), uFlags(uFlags), dwState(dwState), hIcon(hIcon), rsTip(pszTip) {
+		}
 #endif
 	};
+
 	HBITMAP m_hbmBk = nullptr;
 	int m_cxImage = 0,
 		m_cyImage = 0;
@@ -50,15 +54,16 @@ private:
 	{
 		struct
 		{
-			BITBOOL m_bMoveable : 1 ;
-			BITBOOL m_bFullWndImage : 1 ;
+			BITBOOL m_bMoveable : 1;
+			BITBOOL m_bFullWndImage : 1;
 			BITBOOL m_bEscClose : 1;
-			BITBOOL m_bTotalMove : 1 ;
+			BITBOOL m_bTotalMove : 1;
+			BITBOOL m_bClrDisableEdit : 1;
 		};
-		UINT ECKPRIV_PLACEHOLDER___ = 0b1;
+		UINT m_byFlags = 0b1;
 	};
 #endif
-protected:
+public:
 	static UINT s_uTrayMsg;
 	static UINT s_uTaskbarCreatedMsg;
 public:
@@ -104,8 +109,13 @@ public:
 		switch (uMsg)
 		{
 		case WM_CTLCOLORSTATIC:
-			if ((!m_bClrDisableEdit && CWnd((HWND)lParam).GetClsName() == WC_EDITW))
-				break;
+			if (!m_bClrDisableEdit)
+			{
+				WCHAR szCls[ARRAYSIZE(WC_EDITW) + 1];
+				if (GetClassNameW((HWND)lParam, szCls, ARRAYSIZE(szCls)) &&
+					_wcsicmp(szCls, WC_EDITW) == 0)
+					break;
+			}
 			[[fallthrough]];
 		case WM_CTLCOLORBTN:
 		case WM_CTLCOLORDLG:
@@ -119,35 +129,43 @@ public:
 			return (LRESULT)GetStockBrush(DC_BRUSH);
 		}
 		break;
+
 		case WM_SIZE:
 			ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
 			return 0;
+
+		case WM_PRINTCLIENT:
 		case WM_PAINT:
 		{
 			PAINTSTRUCT ps;
-			BeginPaint(hWnd, &ps);
-			SetDCBrushColor(ps.hdc, m_crBk == CLR_DEFAULT ? GetThreadCtx()->crDefBkg : m_crBk);
+			BeginPaint(hWnd, wParam, ps);
+			SetDCBrushColor(ps.hdc, m_crBk == CLR_DEFAULT ?
+				GetThreadCtx()->crDefBkg : m_crBk);
 			FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
 			if (m_hbmBk)
 			{
 				HDC hCDC = CreateCompatibleDC(ps.hdc);
 				SelectObject(hCDC, m_hbmBk);
 				const RECT rc{ 0,0,m_cxClient,m_cyClient };
-				DrawBackgroundImage32(ps.hdc, hCDC, rc, m_cxImage, m_cyImage, m_iBkImageMode, m_bFullWndImage);
+				DrawBackgroundImage32(ps.hdc, hCDC, rc, m_cxImage, m_cyImage,
+					m_iBkImageMode, m_bFullWndImage);
 				DeleteDC(hCDC);
 			}
-			EndPaint(hWnd, &ps);
+			EndPaint(hWnd, wParam, ps);
 		}
 		return 0;
+
 		case WM_ERASEBKGND:
 		{
 			const auto hDC = (HDC)wParam;
 			RECT rc;
 			GetClipBox(hDC, &rc);
-			SetDCBrushColor(hDC, m_crBk == CLR_DEFAULT ? GetThreadCtx()->crDefBkg : m_crBk);
+			SetDCBrushColor(hDC, m_crBk == CLR_DEFAULT ?
+				GetThreadCtx()->crDefBkg : m_crBk);
 			FillRect(hDC, &rc, GetStockBrush(DC_BRUSH));
 		}
 		return TRUE;
+
 		case WM_DESTROY:
 		{
 			for (const auto& e : m_Tray)
@@ -166,7 +184,8 @@ public:
 
 		if (uMsg == s_uTrayMsg)
 		{
-			OnTrayNotify(LOWORD(lParam), HIWORD(lParam), GET_X_LPARAM(wParam), GET_Y_LPARAM(wParam));
+			OnTrayNotify(LOWORD(lParam), HIWORD(lParam),
+				GET_X_LPARAM(wParam), GET_Y_LPARAM(wParam));
 			return 0;
 		}
 		else if (uMsg == s_uTaskbarCreatedMsg)
@@ -196,13 +215,6 @@ public:
 
 	}
 
-	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		return IntCreate(dwExStyle, WCN_FORM, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, g_hInstance, nullptr);
-	}
-
 	EckInline HBITMAP GetBkImage() const { return m_hbmBk; }
 
 	EckInline void SetBkImage(HBITMAP hbmBk)
@@ -214,13 +226,11 @@ public:
 		m_cyImage = bm.bmHeight;
 	}
 
-	EckInline void SetBkImageMode(BkImgMode iMode) { m_iBkImageMode = iMode; }
+	EckInline constexpr void SetBkImageMode(BkImgMode iMode) { m_iBkImageMode = iMode; }
+	EckInline constexpr BkImgMode GetBkImageMode() const { return m_iBkImageMode; }
 
-	EckInline BkImgMode GetBkImageMode() const { return m_iBkImageMode; }
-
-	EckInline void SetFullWndImage(BOOL bFullWndImage) { m_bFullWndImage = bFullWndImage; }
-
-	EckInline BOOL GetFullWndImage() const { return m_bFullWndImage; }
+	EckInline constexpr void SetFullWndImage(BOOL b) { m_bFullWndImage = b; }
+	EckInline constexpr BOOL GetFullWndImage() const { return m_bFullWndImage; }
 
 	EckInline void SetMoveable(BOOL bMoveable)
 	{
@@ -232,25 +242,18 @@ public:
 			SysMenu.EnableItem(SC_MOVE, MF_ENABLED, FALSE);
 		(void)SysMenu.Detach();
 	}
+	EckInline constexpr BOOL GetMoveable() const { return m_bMoveable; }
 
-	EckInline BOOL GetMoveable() const { return m_bMoveable; }
+	EckInline constexpr void SetEscClose(BOOL b) { m_bEscClose = b; }
+	EckInline constexpr BOOL GetEscClose() const { return m_bEscClose; }
 
-	EckInline void SetEscClose(BOOL bEscClose) { m_bEscClose = bEscClose; }
+	EckInline constexpr void SetTotalMove(BOOL b) { m_bTotalMove = b; }
+	EckInline constexpr BOOL GetTotalMove() const { return m_bTotalMove; }
 
-	EckInline BOOL GetEscClose() const { return m_bEscClose; }
+	EckInline constexpr void SetBkClr(COLORREF crBk) { m_crBk = crBk; }
+	EckInline constexpr COLORREF GetBkClr() const { return m_crBk; }
 
-	EckInline void SetTotalMove(BOOL bTotalMove) { m_bTotalMove = bTotalMove; }
-
-	EckInline BOOL GetTotalMove() const { return m_bTotalMove; }
-
-	EckInline void SetBkClr(COLORREF crBk)
-	{
-		m_crBk = crBk;
-	}
-
-	EckInline COLORREF GetBkClr() const { return m_crBk; }
-
-	EckInline SIZE GetBkImageSize() const { return { m_cxImage,m_cyImage }; }
+	EckInline constexpr SIZE GetBkImageSize() const { return { m_cxImage,m_cyImage }; }
 
 	BOOL TrayAdd(UINT uID, HICON hIcon, PCWSTR pszTip, DWORD dwState = 0u, BOOL bShowTip = TRUE)
 	{

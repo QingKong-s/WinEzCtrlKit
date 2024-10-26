@@ -13,25 +13,17 @@ class CHotKey :public CWnd
 {
 public:
 	ECK_RTTI(CHotKey);
+	ECK_CWND_NOSINGLEOWNER(CHotKey);
+	ECK_CWND_CREATE_CLS(HOTKEY_CLASSW);
 
-	ECK_CWND_CREATE;
-	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr)
-	{
-		dwStyle |= WS_CHILD;
-		m_hWnd = CreateWindowExW(dwExStyle, HOTKEY_CLASSW, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
-		return m_hWnd;
-	}
-
-	UINT GetHotKey(UINT& vkCom)
+	UINT GetHotKey(UINT& vkCom) const
 	{
 		WORD wRet = (WORD)SendMsg(HKM_GETHOTKEY, 0, 0);
 		vkCom = HIBYTE(wRet);
 		return LOBYTE(wRet);
 	}
 
-	void SetHotKey(UINT vk, UINT vkCom)
+	void SetHotKey(UINT vk, UINT vkCom) const
 	{
 		SendMsg(HKM_SETHOTKEY, MAKEWORD(vk, vkCom), 0);
 	}
@@ -41,7 +33,7 @@ public:
 	/// </summary>
 	/// <param name="uInvalid">无效组合键标志，HKCOMB_常量</param>
 	/// <param name="uReplace">输入无效时替换为哪种组合键，HOTKEYF_常量</param>
-	void SetRules(UINT uInvalid, UINT uReplace)
+	void SetRules(UINT uInvalid, UINT uReplace) const
 	{
 		SendMsg(HKM_SETRULES, uInvalid, uReplace);
 	}

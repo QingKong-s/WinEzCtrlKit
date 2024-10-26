@@ -644,6 +644,7 @@ extern IDXGIFactory2* g_pDxgiFactory;
 /*窗口类名*/
 
 constexpr inline PCWSTR WCN_DLG = L"Eck.WndClass.CommDlg";
+
 constexpr inline PCWSTR WCN_DUMMY = L"Eck.WndClass.Dummy";
 #ifdef ECK_OPT_NO_SIMPLE_WND_CLS
 constexpr inline PCWSTR WCN_LABEL = L"Eck.WndClass.Label";

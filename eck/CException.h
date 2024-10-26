@@ -2,8 +2,9 @@
 * WinEzCtrlKit Library
 *
 * CException.h ： 异常
+* 已弃用
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include "CRefStr.h"

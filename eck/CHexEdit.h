@@ -64,6 +64,8 @@ class CHexEdit : public CWnd
 {
 public:
 	ECK_RTTI(CHexEdit);
+	ECK_CWND_SINGLEOWNER(CHexEdit);
+	ECK_CWND_CREATE_CLS_HINST(WCN_HEXEDIT, g_hInstance);
 private:
 	struct CHAR_COL
 	{
@@ -376,14 +378,6 @@ public:
 		D.cColPerGroup = 4;
 		D.cxGap = 20;
 		D.cyGap = 10;
-	}
-
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		return IntCreate(dwExStyle, WCN_HEXEDIT, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
 	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override

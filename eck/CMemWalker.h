@@ -168,7 +168,7 @@ struct CMemReader
 		return Read(x.Data(), cch * sizeof(WCHAR));
 	}
 
-	EckInline operator const BYTE*& () { return m_pMem; }
+	//EckInline operator const BYTE*& () { return m_pMem; }
 
 	EckInline const BYTE* Data() { return m_pMem; }
 

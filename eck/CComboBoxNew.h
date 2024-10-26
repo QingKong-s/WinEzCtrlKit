@@ -388,7 +388,9 @@ public:
 		{
 			m_hParent = ((CREATESTRUCTW*)lParam)->hwndParent;
 			m_iDpi = GetDpi(hWnd);
-
+#if _DEBUG
+			m_LB.DbgTag = L"CComboBoxNew::m_LB";
+#endif
 			m_LB.Create(nullptr, WS_POPUP | WS_BORDER,
 				WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TOPMOST,
 				0, 0, ((CREATESTRUCTW*)lParam)->cx, 500, hWnd, nullptr);
