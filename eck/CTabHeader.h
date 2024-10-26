@@ -83,7 +83,7 @@ public:
 		{
 			p->m_cxClient = LOWORD(lParam);
 			p->m_cyClient = HIWORD(lParam);
-			//DbBufReSize(hWnd, p->m_hCDC, p->m_hBitmap, p->m_hOldBmp, p->m_cxClient, p->m_cyClient);
+			//DbBufReSize(hWnd, p->m_hCDC, p->m_hBitmap, p->m_hOldBmp, p->m_cxWnd, p->m_cyWnd);
 			p->Paint();
 		}
 		return 0;
@@ -121,7 +121,7 @@ public:
 								cxTemp = x.cxText;
 
 							xCurrPos += (cxTemp + p->m_Dpis.cxDefItemPadding);
-							//if(xCurrPos>p->m_cxClient-p)
+							//if(xCurrPos>p->m_cxWnd-p)
 						}
 					}
 					return TRUE;// 阻止位置更改

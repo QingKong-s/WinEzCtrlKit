@@ -30,9 +30,6 @@
     <ClInclude Include="eck\CColorPicker.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CDirBox.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CEdit.h">
       <Filter>ECK Include</Filter>
     </ClInclude>

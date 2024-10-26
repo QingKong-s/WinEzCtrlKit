@@ -25,27 +25,27 @@
 	((fn)((hWnd), (int)(short)LOWORD(wParam), (int)(short)HIWORD(wParam), (RECT*)(lParam)), 0L)
 
 #define ECK_STYLE_GETSET(Name, Style)					\
-	BOOL StyleGet##Name()								\
+	BOOL StyleGet##Name() const							\
 	{													\
 		if constexpr (Style == 0)						\
 			return !!GetStyle();						\
 		else											\
 			return IsBitSet(GetStyle(), Style);			\
 	}													\
-	void StyleSet##Name(BOOL b)							\
+	void StyleSet##Name(BOOL b)	const					\
 	{													\
 		ModifyStyle((b ? Style : 0), Style, GWL_STYLE); \
 	}
 
 #define ECK_STYLE_GETSET_MASK(Name, Style, Mask)		\
-	BOOL StyleGet##Name()								\
+	BOOL StyleGet##Name() const							\
 	{													\
 		if constexpr (Style == 0)						\
 			return !!GetStyle();						\
 		else											\
 			return IsBitSet(GetStyle(), Style);			\
 	}													\
-	void StyleSet##Name(BOOL b)							\
+	void StyleSet##Name(BOOL b)	const					\
 	{													\
 		SetStyle((GetStyle() & ~Mask) | (b ? Style : 0));\
 	}

@@ -345,6 +345,13 @@ enum class AnimateStyle :BYTE
 	Blend	// 淡入淡出
 };
 
+enum class ClrPart :BYTE
+{
+	Text,
+	Bk,
+	TextBk,
+};
+
 constexpr inline auto CchI32ToStrBufNoRadix2 = std::max({
 	_MAX_ITOSTR_BASE16_COUNT,_MAX_ITOSTR_BASE10_COUNT,_MAX_ITOSTR_BASE8_COUNT,
 	_MAX_LTOSTR_BASE16_COUNT ,_MAX_LTOSTR_BASE10_COUNT ,_MAX_LTOSTR_BASE8_COUNT,
@@ -646,7 +653,6 @@ constexpr inline PCWSTR WCN_FORM = L"Eck.WndClass.Form";
 constexpr inline PCWSTR WCN_TABHEADER = L"Eck.WndClass.TabHeader";
 constexpr inline PCWSTR WCN_SPLITBAR = L"Eck.WndClass.SplitBar";
 constexpr inline PCWSTR WCN_DRAWPANEL = L"Eck.WndClass.DrawPanel";
-constexpr inline PCWSTR WCN_DRAWPANELD2D = L"Eck.WndClass.DrawPanelD2D";
 constexpr inline PCWSTR WCN_LISTBOXNEW = L"Eck.WndClass.ListBoxNew";
 constexpr inline PCWSTR WCN_TREELIST = L"Eck.WndClass.TreeList";
 constexpr inline PCWSTR WCN_COMBOBOXNEW = L"Eck.WndClass.ComboBoxNew";
@@ -663,7 +669,6 @@ constexpr inline PCWSTR WCN_FORM = WCN_DUMMY;
 constexpr inline PCWSTR WCN_TABHEADER = WCN_DUMMY;
 constexpr inline PCWSTR WCN_SPLITBAR = WCN_DUMMY;
 constexpr inline PCWSTR WCN_DRAWPANEL = WCN_DUMMY;
-constexpr inline PCWSTR WCN_DRAWPANELD2D = WCN_DUMMY;
 constexpr inline PCWSTR WCN_LISTBOXNEW = WCN_DUMMY;
 constexpr inline PCWSTR WCN_TREELIST = WCN_DUMMY;
 constexpr inline PCWSTR WCN_COMBOBOXNEW = WCN_DUMMY;

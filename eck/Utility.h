@@ -1782,6 +1782,12 @@ EckInline constexpr BLENDFUNCTION MakeBlendFunction(BYTE byAlpha)
 	return { AC_SRC_OVER,0,byAlpha,AC_SRC_ALPHA };
 }
 
+template<class T>
+EckInline constexpr T ValDistance(T x1, T x2)
+{
+	return (x1 > x2) ? (x1 - x2) : (x2 - x1);
+}
+
 #if !ECKCXX20
 #undef ccpIsInteger
 #pragma pop_macro("ccpIsInteger")
