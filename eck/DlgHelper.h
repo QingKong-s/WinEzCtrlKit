@@ -328,7 +328,7 @@ inline BOOL DeserializeDialogTemplate(PCVOID pTemplate, DLGTDLG& Dlg, std::vecto
 		Dlg.rsFontName = std::move(rs);
 	}
 
-	r += CalcNextAlignBoundaryDistance(pTemplate, r, sizeof(DWORD));
+	r += CalcNextAlignBoundaryDistance(pTemplate, r.Data(), sizeof(DWORD));
 
 	Items.resize(Dlg.cDlgItems);
 	for (auto& x : Items)
@@ -370,7 +370,7 @@ inline BOOL DeserializeDialogTemplate(PCVOID pTemplate, DLGTDLG& Dlg, std::vecto
 			x.rbExtra = std::move(rb);
 		}
 
-		r += CalcNextAlignBoundaryDistance(pTemplate, r, sizeof(DWORD));
+		r += CalcNextAlignBoundaryDistance(pTemplate, r.Data(), sizeof(DWORD));
 	}
 
 	return TRUE;

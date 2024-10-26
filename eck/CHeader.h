@@ -24,8 +24,8 @@ class CHeader :public CWnd
 {
 public:
 	ECK_RTTI(CHeader);
-
 	ECK_CWND_NOSINGLEOWNER(CHeader);
+	ECK_CWND_CREATE_CLS(WC_HEADERW);
 
 	class ItemsProxy;
 	class ItemProxy
@@ -301,18 +301,22 @@ public:
 		ItemProxy operator[](int idx) const { return ItemProxy{ Hdr, idx }; }
 	};
 public:
+	ECK_CWNDPROP_STYLE(Buttons, HDS_BUTTONS);
+	ECK_CWNDPROP_STYLE(DragDrop, HDS_DRAGDROP);
+	ECK_CWNDPROP_STYLE(FilterBar, HDS_FILTERBAR);
+	ECK_CWNDPROP_STYLE(Flat, HDS_FLAT);
+	ECK_CWNDPROP_STYLE(FullDrag, HDS_FULLDRAG);
+	ECK_CWNDPROP_STYLE(Hidden, HDS_HIDDEN);
+	ECK_CWNDPROP_STYLE(Horz, HDS_HORZ);
+	ECK_CWNDPROP_STYLE(HotTrack, HDS_HOTTRACK);
+	ECK_CWNDPROP_STYLE(CheckBoxes, HDS_CHECKBOXES);
+	ECK_CWNDPROP_STYLE(NoSizing, HDS_NOSIZING);
+	ECK_CWNDPROP_STYLE(OverFlow, HDS_OVERFLOW);
+
 	ECKPROP(GetItemsProxy, SetItemsProxy)	ItemsProxy Items;
 	ECKPROP_R(GetItemCount)					int ItemsCount;
 	ECKPROP(GetImageList, SetImageList)		HIMAGELIST ImageList;
 	ECKPROP(GetOrderArray, SetOrderArray)	std::vector<int> OrderArray;
-
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		return IntCreate(dwExStyle, WC_HEADERW, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
-	}
 
 	/// <summary>
 	/// 清除筛选器

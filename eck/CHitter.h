@@ -1,3 +1,10 @@
+/*
+* WinEzCtrlKit Library
+*
+* CHitter.h £º ÆÁÄ»×ø±êÑ¡È¡Æ÷
+*
+* Copyright(C) 2024 QingKong
+*/
 #pragma once
 #include "CWnd.h"
 
@@ -8,11 +15,12 @@ struct NMHTTSEL
 	POINT pt;
 };
 
-
 class CHitter : public CWnd
 {
 public:
 	ECK_RTTI(CHitter);
+	ECK_CWND_SINGLEOWNER(CHitter);
+	ECK_CWND_CREATE_CLS_HINST(WCN_HITTER, g_hInstance);
 private:
 	HCURSOR m_hcNormal{};
 	HCURSOR m_hcHit{};
@@ -20,14 +28,6 @@ private:
 
 	BITBOOL m_bCaptured : 1 = FALSE;
 public:
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		return IntCreate(0, WCN_HITTER, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, g_hInstance, nullptr);
-	}
-
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)

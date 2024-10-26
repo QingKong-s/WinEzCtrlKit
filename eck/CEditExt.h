@@ -39,8 +39,8 @@ protected:
 	COLORREF m_crBK{ CLR_DEFAULT };		// 编辑框背景色
 
 	int m_cyText{};		// 文本高度
-	int m_cxWnd{};	// 客户区宽度
-	int m_cyWnd{};	// 客户区高度
+	int m_cxWnd{};		// 客户区宽度
+	int m_cyWnd{};		// 客户区高度
 	RECT m_rcMargins{};	// 边距
 
 	WCHAR m_chMask{};	// 掩码字符

@@ -30,11 +30,19 @@ protected:
 	{
 		SendMsg(WM_NCPAINT, 0, 0);
 	}
-public:
-	void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) override
-	{
-		CEditExt::SerializeData(rb, pOpt);
 
+	void CleanupForDestroyWindow()
+	{
+		m_cxBtn = 0;
+		m_rcBtn = {};
+		m_bBtnHot = FALSE;
+		m_bLBtnDown = FALSE;
+	}
+public:
+	void DetachNew() override
+	{
+		CEditExt::DetachNew();
+		CleanupForDestroyWindow();
 	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -132,7 +140,7 @@ public:
 
 		case WM_LBUTTONUP:
 		{
-			if(m_bLBtnDown)
+			if (m_bLBtnDown)
 			{
 				m_bLBtnDown = FALSE;
 				ReleaseCapture();
@@ -158,6 +166,10 @@ public:
 			}
 		}
 		break;
+
+		case WM_DESTROY:
+			CleanupForDestroyWindow();
+			break;
 		}
 		return CEditExt::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
@@ -196,9 +208,9 @@ public:
 
 	}
 
-	EckInline void SetBtnSize(int i) 
-	{ 
-		m_cxBtn = i; 
+	EckInline void SetBtnSize(int i)
+	{
+		m_cxBtn = i;
 		FrameChanged();
 	}
 

@@ -47,10 +47,11 @@ class CInputBox final :public CDialogNew
 {
 public:
 	ECK_RTTI(CInputBox);
+	ECK_CWND_SINGLEOWNER(CInputBox);
 private:
 	CEditExt m_ED{};
-	CPushButton m_BTOk{};
-	CPushButton m_BTCancel{};
+	CButton m_BTOk{};
+	CButton m_BTCancel{};
 
 	HTHEME m_hTheme = nullptr;
 
@@ -143,8 +144,6 @@ private:
 		DeleteDC(hCDC);
 	}
 public:
-	ECK_CWND_SINGLEOWNER(CInputBox);
-
 	BOOL OnInitDialog(HWND hDlg, HWND hFocus, LPARAM lParam) override
 	{
 		UpdateDpi(GetDpi(hDlg));
@@ -154,21 +153,19 @@ public:
 		SetExplorerTheme();
 		m_hTheme = OpenThemeData(hDlg, L"TextStyle");
 
-		DWORD dwEDStyle;
-		if (IsBitSet(m_pOpt->uFlags, IPBF_MULTILINE))
-			dwEDStyle = ES_MULTILINE | WS_VSCROLL | ES_AUTOVSCROLL | ES_WANTRETURN;
-		else
-			dwEDStyle = ES_AUTOHSCROLL;
-
+		m_ED.SetMultiLine(IsBitSet(m_pOpt->uFlags, IPBF_MULTILINE));
 		m_ED.Create(m_pOpt->pszInitContent,
-			WS_TABSTOP | WS_GROUP | WS_VISIBLE | WS_CHILD | dwEDStyle, WS_EX_CLIENTEDGE,
+			WS_TABSTOP | WS_GROUP | WS_VISIBLE | WS_CHILD |WS_VSCROLL | ES_WANTRETURN,
+			WS_EX_CLIENTEDGE,
 			0, 0, 0, 0, hDlg, IDC_ED);
 		if (m_pOpt->uInputMode != CEditExt::InputMode::ReadOnly)
 			m_ED.SetInputMode(m_pOpt->uInputMode);
-		m_ED.SetExplorerTheme();
-		m_BTOk.Create(L"确认输入(&O)", WS_TABSTOP | WS_GROUP | WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 0,
+
+		m_BTOk.Create(L"确认输入(&O)",
+			WS_TABSTOP | WS_GROUP | WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 0,
 			0, 0, 0, 0, hDlg, IDOK);
-		m_BTCancel.Create(L"取消(&C)", WS_TABSTOP | WS_CHILD | WS_VISIBLE, 0,
+		m_BTCancel.Create(L"取消(&C)",
+			WS_TABSTOP | WS_CHILD | WS_VISIBLE, 0,
 			0, 0, 0, 0, hDlg, IDCANCEL);
 
 		RECT rcClient{};
@@ -181,13 +178,11 @@ public:
 		{
 			RECT rc{ 0,0, rcClient.right,
 				m_cyMainTip + m_cyTip + m_Ds.TextPadding * 3 + m_Ds.cyBT + m_Ds.Margin * 2 +
-				(IsBitSet(m_pOpt->uFlags,IPBF_MULTILINE) ? m_Ds.cyMultiLineED : m_cySingleLineText)
+				(IsBitSet(m_pOpt->uFlags,IPBF_MULTILINE) ? 
+					m_Ds.cyMultiLineED : m_cySingleLineText)
 			};
-#if _WIN32_WINNT >= _WIN32_WINNT_WIN10
-			AdjustWindowRectExForDpi(&rc, Style, FALSE, ExStyle, m_iDpi);
-#else
-			AdjustWindowRectEx(&rc, Style, FALSE, ExStyle);
-#endif
+			DaAdjustWindowRectEx(&rc, Style, FALSE, ExStyle, m_iDpi);
+
 			POINT pt;
 			if (IsBitSet(m_pOpt->uFlags, IPBF_CENTERPARENT))
 				pt = CalcCenterWndPos(GetParent(hDlg), rc.right - rc.left, rc.bottom - rc.top);
@@ -195,7 +190,7 @@ public:
 				pt = CalcCenterWndPos(nullptr, rc.right - rc.left, rc.bottom - rc.top);
 			else
 				pt = { m_pOpt->x,m_pOpt->y };
-			SetWindowPos(hDlg, nullptr, pt.x, pt.y, rc.right - rc.left, rc.bottom - rc.top, 
+			SetWindowPos(hDlg, nullptr, pt.x, pt.y, rc.right - rc.left, rc.bottom - rc.top,
 				SWP_NOZORDER | SWP_NOACTIVATE);
 		}
 
@@ -210,11 +205,14 @@ public:
 	{
 		switch (uMsg)
 		{
+		case WM_PRINTCLIENT:
 		case WM_PAINT:
 		{
 			PAINTSTRUCT ps;
-			BeginPaint(hWnd, &ps);
-			FillRect(ps.hdc, &ps.rcPaint, GetSysColorBrush(COLOR_WINDOW));
+			BeginPaint(hWnd, wParam, ps);
+			const auto* const ptc = GetThreadCtx();
+			SetDCBrushColor(ps.hdc, ptc->crDefBkg);
+			FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
 			RECT rc
 			{
 				m_Ds.Margin,
@@ -222,14 +220,13 @@ public:
 				m_cxClient - m_Ds.Margin,
 				m_cyClient
 			};
-			DTTOPTS dttops{ sizeof(DTTOPTS) };
 			DrawThemeTextEx(m_hTheme, ps.hdc, TEXT_MAININSTRUCTION, 0, m_pOpt->pszMainTip, -1,
-				DT_NOPREFIX | DT_EDITCONTROL | DT_WORDBREAK | DT_NOCLIP, &rc, &dttops);
+				DT_NOPREFIX | DT_EDITCONTROL | DT_WORDBREAK | DT_NOCLIP, &rc, nullptr);
 
 			rc.top += (m_cyMainTip + m_Ds.TextPadding);
 			DrawThemeTextEx(m_hTheme, ps.hdc, TEXT_BODYTEXT, 0, m_pOpt->pszTip, -1,
-				DT_NOPREFIX | DT_EDITCONTROL | DT_WORDBREAK | DT_NOCLIP, &rc, &dttops);
-			EndPaint(hWnd, &ps);
+				DT_NOPREFIX | DT_EDITCONTROL | DT_WORDBREAK | DT_NOCLIP, &rc, nullptr);
+			EndPaint(hWnd, wParam, ps);
 		}
 		return 0;
 
@@ -244,8 +241,8 @@ public:
 		case WM_DPICHANGED:
 		{
 			const auto prc = (RECT*)lParam;
-			SetWindowPos(hWnd, nullptr, 
-				prc->left, prc->top, prc->right - prc->left, prc->bottom - prc->top, 
+			SetWindowPos(hWnd, nullptr,
+				prc->left, prc->top, prc->right - prc->left, prc->bottom - prc->top,
 				SWP_NOZORDER | SWP_NOACTIVATE);
 
 			CloseThemeData(m_hTheme);
@@ -299,15 +296,19 @@ public:
 	{
 		if (!pData)
 		{
+			EckDbgPrint(L"** WARNING ** CInputBox::DlgBox: pData is nullptr.");
 			EckDbgBreak();
 			return FALSE;
 		}
 
 		m_pOpt = (INPUTBOXOPT*)pData;
-		IntCreateModalDlg(0, WCN_DLG, m_pOpt->pszTitle, 
-			WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX |
+		IntCreateModalDlg(0, WCN_DLG, m_pOpt->pszTitle,
+			WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPCHILDREN |
 			(IsBitSet(m_pOpt->uFlags, IPBF_RESIZEABLE) ? (WS_SIZEBOX | WS_MAXIMIZEBOX) : 0),
-			m_pOpt->x, m_pOpt->y, m_pOpt->cx ? m_pOpt->cx : DpiScale(400, GetDpi(hParent)), m_pOpt->cy,
+			m_pOpt->x,
+			m_pOpt->y,
+			m_pOpt->cx ? m_pOpt->cx : DpiScale(400, GetDpi(hParent)),
+			m_pOpt->cy,
 			nullptr, nullptr, g_hInstance, pData, m_pOpt->uFlags & IPBF_DLGFLAGSMASK);
 		return m_iResult;
 	}

@@ -850,4 +850,46 @@ EckInline void EndPaint(HWND hWnd, WPARAM wParam, const PAINTSTRUCT& ps)
 	if (!wParam)
 		EndPaint(hWnd, &ps);
 }
+
+/// <summary>
+/// 处理控件着色
+/// </summary>
+/// <param name="wParam"></param>
+/// <param name="lParam"></param>
+/// <param name="bHandled">是否已处理</param>
+/// <param name="bColorDisableEdit">着色禁用的编辑框</param>
+/// <param name="crBk">背景色</param>
+/// <param name="crText">文本色</param>
+/// <returns>LRESULT</returns>
+inline LRESULT MsgOnCtrlColorXxx(WPARAM wParam, LPARAM lParam, BOOL& bHandled,
+	BOOL bColorDisableEdit = TRUE, COLORREF crBk = CLR_DEFAULT, COLORREF crText = CLR_DEFAULT)
+{
+	switch (wParam)
+	{
+	case WM_CTLCOLORSTATIC:
+		if (!bColorDisableEdit)
+		{
+			WCHAR szCls[ARRAYSIZE(WC_EDITW) + 1];
+			if (GetClassNameW((HWND)lParam, szCls, ARRAYSIZE(szCls)) &&
+				_wcsicmp(szCls, WC_EDITW) == 0)
+				break;
+		}
+		[[fallthrough]];
+	case WM_CTLCOLORBTN:
+	case WM_CTLCOLORDLG:
+	case WM_CTLCOLOREDIT:
+	case WM_CTLCOLORLISTBOX:
+	{
+		bHandled = TRUE;
+		const auto* const ptc = GetThreadCtx();
+		SetTextColor((HDC)wParam, ptc->crDefText);
+		SetBkColor((HDC)wParam, crBk != CLR_DEFAULT ? crBk : ptc->crDefBkg);
+		SetDCBrushColor((HDC)wParam, crBk != CLR_DEFAULT ? crBk : ptc->crDefBkg);
+		return (LRESULT)GetStockObject(DC_BRUSH);
+	}
+	break;
+	}
+	bHandled = FALSE;
+	return 0;
+}
 ECK_NAMESPACE_END
