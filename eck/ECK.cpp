@@ -54,7 +54,7 @@ void EckInitPrivateApi()
 		GetProcAddress(hModUser32, "SetWindowCompositionAttribute");
 	FreeLibrary(hModUser32);
 
-	const HMODULE hModUx = LoadLibraryW(L"UxTheme.dll");
+	const auto hModUx = LoadLibraryW(L"UxTheme.dll");
 	EckAssert(hModUx);
 	pfnOpenNcThemeData = (FOpenNcThemeData)
 		GetProcAddress(hModUx, MAKEINTRESOURCEA(49));
@@ -113,16 +113,16 @@ enum
 	TS_LINK_HYPERLINK_LINK = 2,
 };
 
-using FOpenThemeData = HTHEME(WINAPI*)(HWND, LPCWSTR);
-using FDrawThemeText = HRESULT(WINAPI*)(HTHEME, HDC, int, int, LPCWSTR, int, DWORD, DWORD, LPCRECT);
-using FDrawThemeTextEx = HRESULT(WINAPI*)(HTHEME, HDC, int, int, LPCWSTR, int, DWORD, LPRECT, const DTTOPTS*);
-using FOpenThemeDataForDpi = HTHEME(WINAPI*)(HWND, LPCWSTR, UINT);
-using FDrawThemeBackgroundEx = HRESULT(WINAPI*)(HTHEME, HDC, int, int, LPCRECT, const DTBGOPTS*);
-using FDrawThemeBackground = HRESULT(WINAPI*)(HTHEME, HDC, int, int, LPCRECT, LPCRECT);
+using FOpenThemeData = HTHEME(WINAPI*)(HWND, PCWSTR);
+using FDrawThemeText = HRESULT(WINAPI*)(HTHEME, HDC, int, int, PCWSTR, int, DWORD, DWORD, const RECT*);
+using FDrawThemeTextEx = HRESULT(WINAPI*)(HTHEME, HDC, int, int, PCWSTR, int, DWORD, RECT*, const DTTOPTS*);
+using FOpenThemeDataForDpi = HTHEME(WINAPI*)(HWND, PCWSTR, UINT);
+using FDrawThemeBackgroundEx = HRESULT(WINAPI*)(HTHEME, HDC, int, int, const RECT*, const DTBGOPTS*);
+using FDrawThemeBackground = HRESULT(WINAPI*)(HTHEME, HDC, int, int, const RECT*, const RECT*);
 using FGetThemeColor = HRESULT(WINAPI*)(HTHEME, int, int, int, COLORREF*);
 using FCloseThemeData = HRESULT(WINAPI*)(HTHEME);
 using FDrawThemeParentBackground = HRESULT(WINAPI*)(HWND, HDC, const RECT*);
-using FGetThemePartSize = HRESULT(WINAPI*)(HTHEME hTheme, HDC hdc, int iPartId, int iStateId, LPCRECT prc, enum THEMESIZE eSize, SIZE* psz);
+using FGetThemePartSize = HRESULT(WINAPI*)(HTHEME, HDC, int, int, const RECT*, THEMESIZE, SIZE*);
 
 static FOpenNcThemeData			s_pfnOpenNcThemeData{};// 以序号导出
 static FOpenThemeData			s_pfnOpenThemeData{ OpenThemeData };
@@ -233,13 +233,11 @@ static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 // 注销主题句柄
 static void UxfOnThemeClose(HTHEME hTheme)
 {
-	s_LkThemeMap.EnterRead();
+	CSrwWriteGuard _{ s_LkThemeMap };
 	const auto it = s_hsThemeMap.find(hTheme);
-	if (it != s_hsThemeMap.end())
+	if (it != s_hsThemeMap.end()) ECKLIKELY
 	{
-		s_LkThemeMap.LeaveRead();
-		CSrwWriteGuard _{ s_LkThemeMap };
-		auto& e = it->second;
+		auto & e = it->second;
 		if (e.cRef > 1)
 			--e.cRef;
 		else
@@ -249,13 +247,11 @@ static void UxfOnThemeClose(HTHEME hTheme)
 			s_hsThemeMap.erase(it);
 		}
 	}
-	else
-		s_LkThemeMap.LeaveRead();
 }
 
 // 绘制主题背景，并调整亮度
 static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
-	const RECT* prc, const DTBGOPTS* pOpt, float fPercent)
+	_In_ const RECT* prc, _In_opt_ const DTBGOPTS* pOpt, float fPercent)
 {
 	RECT rcReal{ 0,0,prc->right - prc->left, prc->bottom - prc->top };
 	CEzCDC DC{};
@@ -502,7 +498,7 @@ static HRESULT UxfGetThemeColor(const THEME_INFO& ti, const ECKTHREADCTX* ptc,
 // 绘制主题背景
 static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const ECKTHREADCTX* ptc,
 	HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
-	const RECT* prc, _In_opt_ const DTBGOPTS* pOptions)
+	_In_ const RECT* prc, _In_opt_ const DTBGOPTS* pOptions)
 {
 	switch (ti.eType)
 	{
@@ -839,8 +835,8 @@ static HTHEME WINAPI NewOpenThemeDataForDpi(HWND hWnd, PCWSTR pszClassList, UINT
 	return hTheme;
 }
 
-static HRESULT WINAPI NewDrawThemeText(HTHEME hTheme, HDC hdc, int iPartId, int iStateId,
-	LPCWSTR pszText, int cchText, DWORD dwTextFlags, DWORD dwTextFlags2, LPCRECT pRect)
+static HRESULT WINAPI NewDrawThemeText(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
+	PCWSTR pszText, int cchText, DWORD dwTextFlags, DWORD dwTextFlags2, const RECT* pRect)
 {
 	if (ShouldAppsUseDarkMode() && !(dwTextFlags & DT_CALCRECT))
 	{
@@ -852,17 +848,17 @@ static HRESULT WINAPI NewDrawThemeText(HTHEME hTheme, HDC hdc, int iPartId, int 
 			dtto.dwSize = sizeof(DTTOPTS);
 			dtto.dwFlags = DTT_TEXTCOLOR;
 			dtto.crText = cr;
-			return s_pfnDrawThemeTextEx(hTheme, hdc, iPartId, iStateId,
+			return s_pfnDrawThemeTextEx(hTheme, hDC, iPartId, iStateId,
 				pszText, cchText, dwTextFlags, (RECT*)pRect, &dtto);
 		}
 	}
-	return s_pfnDrawThemeText(hTheme, hdc, iPartId, iStateId, pszText, cchText,
+	return s_pfnDrawThemeText(hTheme, hDC, iPartId, iStateId, pszText, cchText,
 		dwTextFlags, dwTextFlags2, pRect);
 }
 
 // comctl32!SHThemeDrawText(未导出的内部函数)将调用DrawThemeTextEx，若失败，回落到DrawTextW
-static HRESULT WINAPI NewDrawThemeTextEx(HTHEME hTheme, HDC hdc, int iPartId, int iStateId,
-	LPCWSTR pszText, int cchText, DWORD dwTextFlags, LPRECT pRect, const DTTOPTS* pOptions)
+static HRESULT WINAPI NewDrawThemeTextEx(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
+	PCWSTR pszText, int cchText, DWORD dwTextFlags, RECT* pRect, const DTTOPTS* pOptions)
 {
 	DTTOPTS NewOpt;
 	if (ShouldAppsUseDarkMode() && !(dwTextFlags & DT_CALCRECT))
@@ -890,26 +886,26 @@ static HRESULT WINAPI NewDrawThemeTextEx(HTHEME hTheme, HDC hdc, int iPartId, in
 			}
 		}
 	}
-	return s_pfnDrawThemeTextEx(hTheme, hdc, iPartId, iStateId, pszText, cchText,
+	return s_pfnDrawThemeTextEx(hTheme, hDC, iPartId, iStateId, pszText, cchText,
 		dwTextFlags, pRect, pOptions);
 }
 
-static HRESULT WINAPI NewDrawThemeBackgroundEx(HTHEME hTheme, HDC hdc, int iPartId, int iStateId,
-	LPCRECT pRect, const DTBGOPTS* pOptions)
+static HRESULT WINAPI NewDrawThemeBackgroundEx(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
+	const RECT* pRect, const DTBGOPTS* pOptions)
 {
 	if (ShouldAppsUseDarkMode())
 	{
 		if (SUCCEEDED(UxfDrawThemeBackground(UxfGetThemeInfo(hTheme), GetThreadCtx(),
-			hTheme, hdc, iPartId, iStateId, pRect, pOptions)))
+			hTheme, hDC, iPartId, iStateId, pRect, pOptions)))
 		{
 			return S_OK;
 		}
 	}
-	return s_pfnDrawThemeBackgroundEx(hTheme, hdc, iPartId, iStateId, pRect, pOptions);
+	return s_pfnDrawThemeBackgroundEx(hTheme, hDC, iPartId, iStateId, pRect, pOptions);
 }
 
-static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hdc, int iPartId, int iStateId,
-	LPCRECT pRect, LPCRECT pClipRect)
+static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
+	const RECT* pRect, const RECT* pClipRect)
 {
 	if (ShouldAppsUseDarkMode())
 	{
@@ -923,15 +919,16 @@ static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hdc, int iPartId
 		else
 			Options.dwFlags = 0;
 		if (SUCCEEDED(UxfDrawThemeBackground(UxfGetThemeInfo(hTheme), GetThreadCtx(),
-			hTheme, hdc, iPartId, iStateId, pRect, &Options)))
+			hTheme, hDC, iPartId, iStateId, pRect, &Options)))
 		{
 			return S_OK;
 		}
 	}
-	return s_pfnDrawThemeBackground(hTheme, hdc, iPartId, iStateId, pRect, pClipRect);
+	return s_pfnDrawThemeBackground(hTheme, hDC, iPartId, iStateId, pRect, pClipRect);
 }
 
-static HRESULT WINAPI NewGetThemeColor(HTHEME hTheme, int iPartId, int iStateId, int iPropId, COLORREF* pColor)
+static HRESULT WINAPI NewGetThemeColor(HTHEME hTheme, int iPartId, int iStateId,
+	int iPropId, COLORREF* pColor)
 {
 	if (ShouldAppsUseDarkMode())
 	{
@@ -949,8 +946,8 @@ static HRESULT WINAPI NewCloseThemeData(HTHEME hTheme)
 }
 
 // 修正表头溢出按钮大小
-static HRESULT WINAPI NewGetThemePartSize(HTHEME hTheme, HDC hdc, int iPartId, int iStateId,
-	LPCRECT prc, enum THEMESIZE eSize, SIZE* psz)
+static HRESULT WINAPI NewGetThemePartSize(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
+	const RECT* prc, THEMESIZE eSize, SIZE* psz)
 {
 	const auto& ti = UxfGetThemeInfo(hTheme);
 	if (ti.eType == ThemeType::Header)
@@ -959,8 +956,8 @@ static HRESULT WINAPI NewGetThemePartSize(HTHEME hTheme, HDC hdc, int iPartId, i
 		case HP_HEADEROVERFLOW:
 		{
 			int iDpi;
-			if (hdc)
-				iDpi = GetDeviceCaps(hdc, LOGPIXELSX);
+			if (hDC)
+				iDpi = GetDeviceCaps(hDC, LOGPIXELSX);
 			else if (ti.hWnd)
 				iDpi = GetDpi(ti.hWnd);
 			else
@@ -970,7 +967,7 @@ static HRESULT WINAPI NewGetThemePartSize(HTHEME hTheme, HDC hdc, int iPartId, i
 		}
 		return S_OK;
 		}
-	return s_pfnGetThemePartSize(hTheme, hdc, iPartId, iStateId, prc, eSize, psz);
+	return s_pfnGetThemePartSize(hTheme, hDC, iPartId, iStateId, prc, eSize, psz);
 }
 #pragma endregion UxTheme Fixer
 
