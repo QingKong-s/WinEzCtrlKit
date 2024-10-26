@@ -15,10 +15,15 @@
 ECK_NAMESPACE_BEGIN
 class CDrawPanel :public CWnd
 {
+public:
+	ECK_RTTI(CDrawPanel);
+	ECK_CWND_SINGLEOWNER(CDrawPanel);
+	ECK_CWND_CREATE_CLS_HINST(WCN_DRAWPANEL, g_hInstance);
 private:
 	CEzCDC m_DC{};
 	GpGraphics* m_pGraphics = nullptr;
-	int m_cxClient = 0, m_cyClient = 0;
+	int m_cxClient = 0,
+		m_cyClient = 0;
 	HBRUSH m_hbrBK = nullptr;
 
 	void OnSize(HWND hWnd, UINT uState, int cx, int cy)
@@ -50,8 +55,6 @@ private:
 		m_cyClient = cy;
 	}
 public:
-	ECK_RTTI(CDrawPanel);
-
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)
@@ -80,15 +83,6 @@ public:
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		m_hWnd = IntCreate(dwExStyle, WCN_DRAWPANEL, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
-		return m_hWnd;
-	}
-
 	EckInline HDC GetHDC() const { return m_DC.GetDC(); }
 
 	EckInline GpGraphics* GetGraphics() const { return m_pGraphics; }
@@ -104,20 +98,13 @@ ECK_RTTI_IMPL_BASE_INLINE(CDrawPanel, CWnd);
 
 class CDrawPanelD2D :public CWnd
 {
+public:
+	ECK_RTTI(CDrawPanelD2D);
+	ECK_CWND_SINGLEOWNER(CDrawPanelD2D);
+	ECK_CWND_CREATE_CLS_HINST(WCN_DRAWPANEL, g_hInstance);
 private:
 	CEzD2D m_D2D{};
 public:
-	ECK_RTTI(CDrawPanelD2D);
-
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		m_hWnd = IntCreate(dwExStyle, WCN_DRAWPANELD2D, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
-		return m_hWnd;
-	}
-
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)

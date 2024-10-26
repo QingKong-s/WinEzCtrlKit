@@ -35,14 +35,14 @@ struct CTRLDATA_COMBOBOXEX
 
 #define ECK_CWNDPROP_CBE_STYLE(Name, Style)				\
 	ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name;	\
-	BOOL StyleGet##Name()								\
+	BOOL StyleGet##Name() const							\
 	{													\
 		if constexpr (Style == 0)						\
 			return !!GetExtendedStyle();				\
 		else											\
 			return IsBitSet(GetExtendedStyle(), Style);	\
 	}													\
-	void StyleSet##Name(BOOL b)							\
+	void StyleSet##Name(BOOL b) const					\
 	{													\
 		SetExtendedStyle(b ? Style : 0, Style);			\
 	}

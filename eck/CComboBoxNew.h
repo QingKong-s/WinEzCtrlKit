@@ -185,6 +185,11 @@ private:
 			m_LB.GetItemCount() * m_LB.GetItemHeight() + DaGetSystemMetrics(SM_CYEDGE, m_iDpi) * 2);
 	}
 public:
+	~CComboBoxNew()
+	{
+		delete m_pED;
+	}
+
 	BOOL PreTranslateMessage(const MSG& Msg) override
 	{
 		if (Msg.message == WM_MOUSEWHEEL && !m_bDrop)
@@ -400,10 +405,18 @@ public:
 		case WM_DESTROY:
 		{
 			CloseThemeData(m_hTheme);
-			m_hTheme = nullptr;
 			if (m_pED)
 				m_pED->Destroy();
 			m_LB.Destroy();
+			m_hFont = nullptr;
+			m_hTheme = nullptr;
+			m_DC.Destroy();
+			m_bHot = m_bDrop = m_bDisabled = m_bHasFocus = FALSE;
+			m_bAutoDropSize = m_bMatchEditToItem = TRUE;
+			m_eView = View::DropDown;
+			m_eAnimate = AnimateStyle::Blend;
+			m_crText = CLR_DEFAULT;
+			m_cxDrop = m_cyDrop = 0;
 		}
 		break;
 		}

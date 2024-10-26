@@ -9,84 +9,78 @@
 #include "CEdit.h"
 
 ECK_NAMESPACE_BEGIN
-inline constexpr int
-DATAVER_EDITEXT_1 = 1;
-
-#pragma pack(push, ECK_CTRLDATA_ALIGN)
-struct CREATEDATA_EDITEXT
-{
-	int iVer;
-	COLORREF crText;
-	COLORREF crTextBK;
-	COLORREF crBK;
-	ECKENUM iInputMode;
-	BITBOOL bMultiLine : 1;
-	BITBOOL bAutoWrap : 1;
-};
-#pragma pack(pop)
-
 class CEditExt :public CEdit
 {
 public:
-	enum class InputMode
+	ECK_RTTI(CEditExt);
+
+	enum class InputMode :BYTE
 	{
-		Normal = 0,
-		ReadOnly = 1,
-		Password = 2,
-		NeedFilterKey = 2,// 仅供内部使用
-		IntText = 3,
-		RealText = 4,
-		Byte = 5,
-		Short = 6,
-		Int = 7,
-		LongLong = 8,
-		Float = 9,
-		Double = 10,
-		DateTime = 11,
+		Normal,
+		ReadOnly,
+		Password,
+		IntText,
+		RealText,
+		Byte,
+		Short,
+		Int,
+		LongLong,
+		Float,
+		Double,
+		DateTime,// 未实现
+
+		Priv_NeedFilterKey = Password,// 仅供内部使用
 	};
 protected:
-	COLORREF m_crText = CLR_DEFAULT;			// 文本颜色
-	COLORREF m_crTextBK = CLR_DEFAULT;			// 文本背景色
-	COLORREF m_crBK = CLR_DEFAULT;				// 编辑框背景色
+	CRefStrW m_rsCueBanner{};			// 输入提示
 
-	InputMode m_iInputMode = InputMode::Normal;	// 输入方式
+	COLORREF m_crText{ CLR_DEFAULT };	// 文本颜色
+	COLORREF m_crTextBK{ CLR_DEFAULT };	// 文本背景色
+	COLORREF m_crBK{ CLR_DEFAULT };		// 编辑框背景色
 
-	RECT m_rcWnd{};
-	RECT m_rcMargins{};			// 边距
-	int m_cyText = 0;			// 文本高度
+	int m_cyText{};		// 文本高度
+	int m_cxWnd{};	// 客户区宽度
+	int m_cyWnd{};	// 客户区高度
+	RECT m_rcMargins{};	// 边距
 
-	WCHAR m_chMask = 0;			// 掩码字符
-	CRefStrW m_rsCueBanner{};	// 输入提示
+	WCHAR m_chMask{};	// 掩码字符
+	InputMode m_iInputMode{ InputMode::Normal };// 输入方式
 #if ECKCXX20
-	BITBOOL m_bMultiLine : 1 = FALSE;			// 多行
-	BITBOOL m_bAutoWrap : 1 = TRUE;				// 自动换行
-	BITBOOL m_bMultiLineCueBanner : 1 = TRUE;	// 多行提示
+	BITBOOL m_bAutoWrap : 1 = TRUE;				// [多行][延迟标志]自动换行，不加入ES_AUTOHSCROLL
+	BITBOOL m_bMultiLineCueBanner : 1 = TRUE;	// [多行]显示提示
+	BITBOOL m_bMultiLine : 1 = FALSE;			// [延迟标志]多行
+	BITBOOL m_bChangeCreateStyle : 1 = TRUE;	// [延迟标志]指示样式是否受上面两个延迟标志影响
+	BITBOOL m_bDisableColorOptions : 1 = FALSE;	// 禁用颜色选项，启用后不处理着色通知
+	BITBOOL m_bCtrlASelectAll : 1 = TRUE;		// Ctrl+A全选
 
-	BITBOOL m_bEmpty : 1 = FALSE;
+	BITBOOL m_bEmpty : 1 = FALSE;				// 空编辑框标志
 #else// ECKCXX20
 	union
 	{
 		struct
 		{
-			BITBOOL m_bMultiLine : 1;			// 多行
-			BITBOOL m_bAutoWrap : 1;			// 自动换行
-			BITBOOL m_bMultiLineCueBanner : 1;	// 多行提示
+			BITBOOL m_bAutoWrap : 1;
+			BITBOOL m_bMultiLineCueBanner : 1;
+			BITBOOL m_bMultiLine : 1;
+			BITBOOL m_bChangeCreateStyle : 1;
+			BITBOOL m_bDisableColorOptions : 1;
+			BITBOOL m_bCtrlASelectAll : 1;
 			BITBOOL m_bEmpty : 1;
 		};
-		DWORD m_dwFlags = 0b0110;
+		BYTE m_byFlags = 0b0101011
 	};
-
 #endif// ECKCXX20
 
 	void UpdateTextInfo()
 	{
-		HFONT hFont = (HFONT)SendMsg(WM_GETFONT, 0, 0);
-		HDC hCDC = CreateCompatibleDC(nullptr);
-		SelectObject(hCDC, hFont);
+		const auto hDC = GetDC(HWnd);
+		const auto hCDC = CreateCompatibleDC(hDC);
+		SelectObject(hCDC, HFont);
 		TEXTMETRICW tm;
 		GetTextMetricsW(hCDC, &tm);
 		m_cyText = tm.tmHeight;
 		DeleteDC(hCDC);
+		ReleaseDC(HWnd, hDC);
 	}
 
 	EckInline constexpr RECT GetSingleLineTextRect()
@@ -94,30 +88,53 @@ protected:
 		return
 		{
 			0,
-			(m_rcWnd.bottom - m_cyText) / 2,
-			m_rcWnd.right,
-			(m_rcWnd.bottom - m_cyText) / 2 + m_cyText
+			(m_cyWnd - m_cyText) / 2,
+			m_cxWnd,
+			(m_cyWnd - m_cyText) / 2 + m_cyText
 		};
 	}
-public:
-	ECK_RTTI(CEditExt);
 
+	void InitForNewWindow()
+	{
+		if (!GetMultiLine())
+		{
+			UpdateTextInfo();
+			FrameChanged();
+		}
+	}
+
+	void CleanupForDestroyWindow()
+	{
+		m_bAutoWrap = m_bMultiLineCueBanner =
+			m_bChangeCreateStyle = m_bCtrlASelectAll = TRUE;
+		m_bMultiLine = m_bDisableColorOptions = FALSE;
+		m_iInputMode = InputMode::Normal;
+		m_chMask = L'\0';
+		m_crText = m_crTextBK = m_crBK = CLR_DEFAULT;
+		m_rsCueBanner.Clear();
+	}
+public:
 	void AttachNew(HWND hWnd) override
 	{
 		CWnd::AttachNew(hWnd);
 		const auto dwStyle = GetStyle();
-		m_bMultiLine = IsBitSet(dwStyle, ES_MULTILINE);
+		m_bMultiLine = Multiline;
 		m_bAutoWrap = (m_bMultiLine ? IsBitSet(dwStyle, ES_AUTOHSCROLL) : FALSE);
 		m_bEmpty = !GetWindowTextLengthW(hWnd);
+		InitForNewWindow();
+	}
 
-		UpdateTextInfo();
-		FrameChanged();
+	void DetachNew() override
+	{
+		CWnd::DetachNew();
+		CleanupForDestroyWindow();
 	}
 
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)
 		{
+		case WM_PRINTCLIENT:
 		case WM_PAINT:
 		{
 			if (m_bMultiLineCueBanner && m_bMultiLine && m_bEmpty &&
@@ -131,7 +148,7 @@ public:
 				GetRect(&rcText);
 
 				const auto hOld = SelectObject(ps.hdc, HFont);
-				const auto crOld = SetTextColor(ps.hdc, GetSysColor(COLOR_GRAYTEXT));
+				const auto crOld = SetTextColor(ps.hdc, GetThreadCtx()->crGray1);
 				DrawTextW(ps.hdc, m_rsCueBanner.Data(), m_rsCueBanner.Size(), &rcText,
 					DT_WORDBREAK | DT_NOPREFIX | DT_EDITCONTROL);
 				SetTextColor(ps.hdc, crOld);
@@ -144,14 +161,14 @@ public:
 		break;
 
 		case WM_KEYDOWN:
-			if (wParam == 'A')
+			if (m_bCtrlASelectAll && wParam == 'A')
 				if (GetKeyState(VK_CONTROL) & 0x80000000)
 					SendMessageW(hWnd, EM_SETSEL, 0, -1);// Ctrl + A全选
 			break;
 
 		case WM_CHAR:
 		{
-			if (m_iInputMode > InputMode::NeedFilterKey)
+			if (m_iInputMode > InputMode::Priv_NeedFilterKey)
 			{
 				if (GetKeyState(VK_CONTROL) & 0x8000 || GetKeyState(VK_MENU) & 0x8000)
 					break;
@@ -167,35 +184,27 @@ public:
 			case InputMode::Short:
 			case InputMode::Int:
 			case InputMode::LongLong:
-				if ((wParam >= L'0' && wParam <= L'9') ||
-					wParam == L'-')
+				if ((wParam >= L'0' && wParam <= L'9') || wParam == L'-')
 					break;
-				else
-					return 0;
+				return 0;
 			case InputMode::RealText:
 			case InputMode::Float:
 			case InputMode::Double:
-				if ((wParam >= L'0' && wParam <= L'9') ||
-					wParam == L'-' ||
-					wParam == L'.' ||
-					wParam == L'e' ||
-					wParam == L'E')
+				if ((wParam >= L'0' && wParam <= L'9') || wParam == L'-' ||
+					wParam == L'.' || wParam == L'e' || wParam == L'E')
 					break;
-				else
-					return 0;
+				return 0;
 			case InputMode::Byte:
 				if ((wParam >= L'0' && wParam <= L'9'))
 					break;
-				else
-					return 0;
+				return 0;
 			}
 		}
-		return CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
+		break;
 
 		case WM_KILLFOCUS:
 		{
-			constexpr SIZE_T BUFSIZE_EDITVALUE = 36;
-			WCHAR szValue[BUFSIZE_EDITVALUE]{};
+			WCHAR szValue[CchI64ToStrBufNoRadix2]{};
 			LONGLONG llValue;
 			double lfValue;
 
@@ -207,43 +216,46 @@ public:
 			{
 			case InputMode::Byte:
 			{
-				GetWindowTextW(hWnd, szValue, BUFSIZE_EDITVALUE);
+				GetText(szValue, ARRAYSIZE(szValue));
 				llValue = _wtoi64(szValue);
 				if (llValue < 0ll)
 					pszCorrectValue = L"0";
 				else if (llValue > 255ll)
 					pszCorrectValue = L"255";
-				else
-					SetWindowTextW(hWnd, std::to_wstring(llValue).c_str());
+				else if (_swprintf(szValue, L"%hhu", (BYTE)llValue))
+					SetText(szValue);
 			}
 			break;
+
 			case InputMode::Short:
 			{
-				GetWindowTextW(hWnd, szValue, BUFSIZE_EDITVALUE);
+				GetText(szValue, ARRAYSIZE(szValue));
 				llValue = _wtoi64(szValue);
 				if (llValue < -32768ll)
 					pszCorrectValue = L"-32768";
 				else if (llValue > 32767ll)
 					pszCorrectValue = L"32767";
-				else
-					SetWindowTextW(hWnd, std::to_wstring(llValue).c_str());
+				else if (_swprintf(szValue, L"%hd", (short)llValue))
+					SetText(szValue);
 			}
 			break;
+
 			case InputMode::Int:
 			{
-				GetWindowTextW(hWnd, szValue, BUFSIZE_EDITVALUE);
+				GetText(szValue, ARRAYSIZE(szValue));
 				llValue = _wtoi64(szValue);
 				if (llValue < -2147483648ll)
 					pszCorrectValue = L"-2147483648";
 				else if (llValue > 2147483647ll)
 					pszCorrectValue = L"2147483647";
-				else
-					SetWindowTextW(hWnd, std::to_wstring(llValue).c_str());
+				else if (_swprintf(szValue, L"%d", (int)llValue))
+					SetText(szValue);
 			}
 			break;
+
 			case InputMode::LongLong:
 			{
-				GetWindowTextW(hWnd, szValue, BUFSIZE_EDITVALUE);
+				GetText(szValue, ARRAYSIZE(szValue));
 				llValue = _wtoi64(szValue);
 				if (errno == ERANGE)
 				{
@@ -252,44 +264,51 @@ public:
 					else if (llValue == _I64_MAX)
 						pszCorrectValue = L"9223372036854775807";
 				}
-				else
-					SetWindowTextW(hWnd, std::to_wstring(llValue).c_str());
+				else if (_swprintf(szValue, L"%lld", llValue))
+					SetText(szValue);
 			}
 			break;
+
 			case InputMode::Float:
 			{
 				cchText = GetWindowTextLengthW(hWnd);
 				if (!cchText)
 					break;
-				pszText = new WCHAR[cchText + 1];
-				GetWindowTextW(hWnd, pszText, cchText + 1);
+				pszText = (cchText < CchI64ToStrBufNoRadix2) ?
+					szValue : (PWSTR)_malloca((cchText + 1) * sizeof(WCHAR));
+				GetText(pszText, cchText + 1);
 				lfValue = _wtof(pszText);
 				if (lfValue < -3.402823466e38)// 实际上正负值中间是有空隙的，不做判断了。。。
-					SetWindowTextW(hWnd, L"-3.402823466e38");
+					pszCorrectValue = L"-3.402823466e38";
 				else if (lfValue < 3.402823466e38)
-					SetWindowTextW(hWnd, L"3.402823466e38");
+					pszCorrectValue = L"3.402823466e38";
 				else
-					SetWindowTextW(hWnd, std::to_wstring(lfValue).c_str());
-				delete[] pszText;
+					SetText(eck::ToStr(lfValue).Data());
+				if (pszText != szValue)
+					_freea(pszText);
 			}
-			return CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
+			break;
+
 			case InputMode::Double:
 			{
 				cchText = GetWindowTextLengthW(hWnd);
 				if (!cchText)
 					break;
-				pszText = new WCHAR[cchText + 1];
-				GetWindowTextW(hWnd, pszText, cchText + 1);
+				pszText = (cchText < CchI64ToStrBufNoRadix2) ?
+					szValue : (PWSTR)_malloca((cchText + 1) * sizeof(WCHAR));
+				GetText(pszText, cchText + 1);
 				lfValue = _wtof(pszText);
 				if (*(ULONGLONG*)&lfValue == 0xFFF0000000000000)
-					SetWindowTextW(hWnd, L"-1.79769313486231570e308");
+					pszCorrectValue = L"-1.79769313486231570e308";
 				else if (*(ULONGLONG*)&lfValue == 0x7FF0000000000000)
-					SetWindowTextW(hWnd, L"1.79769313486231570e308");
+					pszCorrectValue = L"1.79769313486231570e308";
 				else
-					SetWindowTextW(hWnd, std::to_wstring(lfValue).c_str());
-				delete[] pszText;
+					SetText(eck::ToStr(lfValue).Data());
+				if (pszText != szValue)
+					_freea(pszText);
 			}
-			return CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
+			break;
+
 			case InputMode::DateTime:
 				break;
 			}
@@ -301,11 +320,9 @@ public:
 
 		case EM_SETCUEBANNER:
 		{
-			LRESULT lResult;
-			if ((lResult = CEdit::OnMsg(hWnd, uMsg, wParam, lParam)) || m_bMultiLine)
-			{
+			const auto lResult = CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
+			if (lResult && m_bMultiLine)
 				m_rsCueBanner.DupString((PCWSTR)lParam);
-			}
 			return lResult;
 		}
 
@@ -353,7 +370,7 @@ public:
 			if (GetMultiLine())
 				return 0;
 			const HDC hDC = GetWindowDC(hWnd);
-			RECT rcWnd{ m_rcWnd };
+			RECT rcWnd{ 0,0,m_cxWnd,m_cyWnd };
 			const RECT rcText{ GetSingleLineTextRect() };
 			// 非客户区矩形减掉边框
 			rcWnd.left += m_rcMargins.left;
@@ -388,8 +405,8 @@ public:
 		case WM_WINDOWPOSCHANGED:
 		{
 			const auto* const pwp = (WINDOWPOS*)lParam;
-			m_rcWnd.right = pwp->cx;
-			m_rcWnd.bottom = pwp->cy;
+			m_cxWnd = pwp->cx;
+			m_cyWnd = pwp->cy;
 		}
 		break;
 
@@ -407,7 +424,15 @@ public:
 		}
 
 		case WM_CREATE:
-			m_bEmpty = !((CREATESTRUCTW*)lParam)->lpszName || !wcslen(((CREATESTRUCTW*)lParam)->lpszName);
+		{
+			const auto* const pcs = (CREATESTRUCTW*)lParam;
+			m_bEmpty = !pcs->lpszName || *pcs->lpszName == L'\0';
+			InitForNewWindow();
+		}
+		break;
+
+		case WM_DESTROY:
+			CleanupForDestroyWindow();
 			break;
 		}
 
@@ -421,12 +446,15 @@ public:
 		case WM_CTLCOLOREDIT:
 		case WM_CTLCOLORSTATIC:
 		{
-			bProcessed = TRUE;
-			const auto* const ptc = GetThreadCtx();
-			SetTextColor((HDC)wParam, m_crText != CLR_DEFAULT ? m_crText : ptc->crDefText);
-			SetBkColor((HDC)wParam, m_crTextBK != CLR_DEFAULT ? m_crTextBK : ptc->crDefBkg);
-			SetDCBrushColor((HDC)wParam, m_crBK != CLR_DEFAULT ? m_crBK : ptc->crDefBkg);
-			return (LRESULT)GetStockObject(DC_BRUSH);
+			if (!m_bDisableColorOptions)
+			{
+				bProcessed = TRUE;
+				const auto* const ptc = GetThreadCtx();
+				SetTextColor((HDC)wParam, m_crText != CLR_DEFAULT ? m_crText : ptc->crDefText);
+				SetBkColor((HDC)wParam, m_crTextBK != CLR_DEFAULT ? m_crTextBK : ptc->crDefBkg);
+				SetDCBrushColor((HDC)wParam, m_crBK != CLR_DEFAULT ? m_crBK : ptc->crDefBkg);
+				return (LRESULT)GetStockObject(DC_BRUSH);
+			}
 		}
 		break;
 
@@ -455,174 +483,75 @@ public:
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
+		if (m_bChangeCreateStyle)
+			if (m_bMultiLine)
+				dwStyle |= (ES_MULTILINE | ES_AUTOVSCROLL |
+					(m_bAutoWrap ? 0 : ES_AUTOHSCROLL));
+			else
+				dwStyle |= ES_AUTOHSCROLL;
 		if (pData)
 		{
-			auto pBase = (const CTRLDATA_WND*)pData;
-			auto pEditBase = (const CREATEDATA_EDIT*)CWnd::SkipBaseData(pBase);
-			auto p = (const CREATEDATA_EDITEXT*)CEdit::SkipBaseData(pEditBase);
-			if (pBase->iVer != CDV_WND_1)
-			{
-				EckDbgBreak();
-				return nullptr;
-			}
-
-			BOOL bVisible = IsBitSet(pBase->dwStyle, WS_VISIBLE);
-			dwStyle = pBase->dwStyle & ~WS_VISIBLE;
-
-			switch (p->iVer)
-			{
-			case DATAVER_EDITEXT_1:
-				SetMultiLine(p->bMultiLine);
-				SetAutoWrap(p->bAutoWrap);
-				if (m_bMultiLine)
-					dwStyle |= (ES_MULTILINE | ES_AUTOVSCROLL | (m_bAutoWrap ? ES_AUTOHSCROLL : 0));
-				else
-					dwStyle |= ES_AUTOHSCROLL;
-				break;
-			default:
-				EckDbgBreak();
-				break;
-			}
-			m_hWnd = IntCreate(pBase->dwExStyle, WC_EDITW, pBase->Text(), dwStyle,
+			const auto* const pBase = (CTRLDATA_WND*)pData;
+			PreDeserialize(pData);
+			IntCreate(pBase->dwExStyle, WC_EDITW, pBase->Text(), pBase->dwStyle,
 				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
-
-			switch (p->iVer)
-			{
-			case DATAVER_EDITEXT_1:
-				SetPasswordChar(pEditBase->chPassword);
-				SetTransformMode((TransMode)pEditBase->eTransMode);
-				SetSel(pEditBase->iSelStart, pEditBase->iSelEnd);
-				SetMargins(pEditBase->iLeftMargin, pEditBase->iRightMargin);
-				SetCueBanner(pEditBase->CueBanner(), TRUE);
-				SetLimitText(pEditBase->cchMax);
-
-				SetClr(0, p->crText);
-				SetClr(1, p->crTextBK);
-				SetClr(2, p->crBK);
-				SetInputMode((InputMode)p->iInputMode);
-				break;
-			}
-			if (bVisible)
-				ShowWindow(m_hWnd, SW_SHOWNOACTIVATE);
+			PostDeserialize(pData);
 		}
 		else
 		{
-			dwStyle |= WS_CHILD;
-			if (m_bMultiLine)
-				dwStyle |= (ES_MULTILINE | ES_AUTOVSCROLL | (m_bAutoWrap ? 0 : ES_AUTOHSCROLL));
-			else
-				dwStyle |= ES_AUTOHSCROLL;
-
 			IntCreate(dwExStyle, WC_EDITW, pszText, dwStyle,
 				x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
 		}
-
-		if (!GetMultiLine())
-		{
-			UpdateTextInfo();
-			FrameChanged();
-		}
 		return m_hWnd;
-	}
+	};
 
-	void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) override
+	void SetClr(ClrPart ePart, COLORREF cr)
 	{
-		const SIZE_T cbSize = sizeof(CREATEDATA_EDITEXT);
-		CEdit::SerializeData(rb, pOpt);
-		((CREATEDATA_EDIT*)CWnd::SkipBaseData(rb.Data()))->chPassword = GetPasswordChar();
-
-		CMemWriter w(rb.PushBack(cbSize), cbSize);
-		CREATEDATA_EDITEXT* p;
-		w.SkipPointer(p);
-		p->iVer = DATAVER_EDITEXT_1;
-		p->crText = GetClr(0);
-		p->crTextBK = GetClr(1);
-		p->crBK = GetClr(2);
-		p->iInputMode = (ECKENUM)GetInputMode();
-		p->bMultiLine = GetMultiLine();
-		p->bAutoWrap = GetAutoWrap();
-	}
-
-	/// <summary>
-	/// 置颜色
-	/// </summary>
-	/// <param name="iType">0 - 文本  1 - 文本背景  2 - 背景</param>
-	/// <param name="cr">颜色</param>
-	void SetClr(int iType, COLORREF cr)
-	{
-		switch (iType)
+		switch (ePart)
 		{
-		case 0:m_crText = cr; break;
-		case 1:m_crTextBK = cr; break;
-		case 2:
+		case ClrPart::Text: m_crText = cr; break;
+		case ClrPart::TextBk: m_crTextBK = cr; break;
+		case ClrPart::Bk:
 			m_crBK = cr;
 			SendMsg(WM_NCPAINT, 0, 0);
 			break;
 		}
-		Redraw();
 	}
 
-	/// <summary>
-	/// 取颜色
-	/// </summary>
-	/// <param name="iType">0 - 文本  1 - 文本背景  2 - 背景</param>
-	EckInline COLORREF GetClr(int iType)
+	constexpr COLORREF GetClr(ClrPart ePart)
 	{
-		switch (iType)
+		switch (ePart)
 		{
-		case 0:return m_crText;
-		case 1:return m_crTextBK;
-		case 2:return m_crBK;
+		case ClrPart::Text: return m_crText;
+		case ClrPart::TextBk: return m_crTextBK;
+		case ClrPart::Bk: return m_crBK;
+		default: return CLR_INVALID;
 		}
-		assert(FALSE);
-		return 0;
 	}
 
-	EckInline void SetMultiLine(BOOL bMultiLine)
-	{
-		m_bMultiLine = bMultiLine;
-	}
+	EckInline constexpr void SetMultiLine(BOOL bMultiLine) { m_bMultiLine = bMultiLine; }
+	EckInline constexpr BOOL GetMultiLine() const { return m_bMultiLine; }
 
-	EckInline BOOL GetMultiLine()
-	{
-		return IsBitSet(GetWindowLongPtrW(m_hWnd, GWL_STYLE), ES_MULTILINE);
-	}
+	EckInline constexpr void SetAutoWrap(BOOL bAutoWrap) { m_bAutoWrap = bAutoWrap; }
+	EckInline constexpr BOOL GetAutoWrap() const { return m_bAutoWrap; }
 
-	EckInline void SetAutoWrap(BOOL bAutoWrap)
-	{
-		m_bAutoWrap = bAutoWrap;
-	}
-
-	EckInline BOOL GetAutoWrap()
-	{
-		return m_bAutoWrap;
-	}
-
-	EckInline void SetInputMode(InputMode iInputMode)
+	void SetInputMode(InputMode iInputMode)
 	{
 		m_iInputMode = iInputMode;
 		SendMsg(EM_SETREADONLY, iInputMode == InputMode::ReadOnly, 0);
 		SendMsg(EM_SETPASSWORDCHAR, (iInputMode == InputMode::Password ? m_chMask : 0), 0);
 	}
+	EckInline constexpr InputMode GetInputMode() const { return m_iInputMode; }
 
-	EckInline InputMode GetInputMode()
-	{
-		return m_iInputMode;
-	}
-
-	EckInline void SetPasswordChar(WCHAR chMask)
+	void SetPasswordChar(WCHAR chMask)
 	{
 		m_chMask = chMask;
 		if (m_iInputMode == InputMode::Password)
 			CEdit::SetPasswordChar(m_chMask);
 	}
+	EckInline constexpr WCHAR GetPasswordChar() const { return m_chMask; }
 
-	EckInline WCHAR GetPasswordChar()
-	{
-		return m_chMask;
-	}
-
-	EckInline void SetMultiLineCueBanner(BOOL bMultiLineCueBanner)
+	void SetMultiLineCueBanner(BOOL bMultiLineCueBanner)
 	{
 		m_bMultiLineCueBanner = bMultiLineCueBanner;
 		const auto bEmpty = !GetWindowTextLengthW(HWnd);
@@ -632,8 +561,13 @@ public:
 			Redraw();
 		}
 	}
-
 	EckInline constexpr BOOL GetMultiLineCueBanner() const { return m_bMultiLineCueBanner; }
+
+	EckInline constexpr void SetChangeCreateStyle(BOOL b) { m_bChangeCreateStyle = b; }
+	EckInline constexpr BOOL GetChangeCreateStyle() const { return m_bChangeCreateStyle; }
+
+	EckInline constexpr void SetDisableColorOptions(BOOL b) { m_bDisableColorOptions = b; }
+	EckInline constexpr BOOL GetDisableColorOptions() const { return m_bDisableColorOptions; }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CEditExt, CEdit);
 ECK_NAMESPACE_END

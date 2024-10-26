@@ -118,7 +118,7 @@ public:
 		const auto pDlg = dynamic_cast<CDialog*>(CWndFromHWND(hDlg));
 		if (!pDlg)
 		{
-			EckDbgPrintWithPos(L"** 警告 **  CDialog指针为NULL");
+			EckDbgPrintWithPos(L"** WARNING **  CDialog指针为NULL");
 			EckDbgBreak();
 			return FALSE;
 		}
