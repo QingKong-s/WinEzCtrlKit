@@ -868,18 +868,29 @@ inline constexpr BOOL AdjustRectIntoAnother(RECT& rc, const RECT& rcRef)
 		rc.bottom - rc.top > rcRef.bottom - rcRef.top)
 		return FALSE;
 	int dxLeft = rcRef.left - rc.left;
+	int dxRight = rc.right - rcRef.right;
+	int dyTop = rcRef.top - rc.top;
+	int dyBottom = rc.bottom - rcRef.bottom;
+	if (dxLeft <= 0 && dxRight <= 0 && dyTop <= 0 && dyBottom <= 0)
+		return FALSE;
 	if (dxLeft < 0)
 		dxLeft = INT_MAX;
-	int dxRight = rc.right - rcRef.right;
 	if (dxRight < 0)
 		dxRight = INT_MAX;
-	int dyTop = rcRef.top - rc.top;
+	if (dxLeft == INT_MAX && dxRight == INT_MAX)
+		dxLeft = 0;
+	else
+		dxLeft = std::min(dxLeft, dxRight);
+
 	if (dyTop < 0)
 		dyTop = INT_MAX;
-	int dyBottom = rc.bottom - rcRef.bottom;
 	if (dyBottom < 0)
 		dyBottom = INT_MAX;
-	OffsetRect(rc, std::min(dxLeft, dxRight), std::min(dyTop, dyBottom));
+	if (dyTop == INT_MAX && dyBottom == INT_MAX)
+		dyTop = 0;
+	else
+		dyTop = std::min(dyTop, dyBottom);
+	OffsetRect(rc, -dxLeft, -dyTop);
 	return TRUE;
 }
 
@@ -894,14 +905,30 @@ inline constexpr BOOL AdjustRectIntoAnother(RCWH& rc, const RCWH& rcRef)
 {
 	if (rc.cx > rcRef.cx || rc.cy > rcRef.cy)
 		return FALSE;
-	int dx = rcRef.x - rc.x;
-	if (dx < 0)
-		dx = INT_MAX;
-	int dy = rcRef.y - rc.y;
-	if (dy < 0)
-		dy = INT_MAX;
-	OffsetRect(rc, std::min(dx, rcRef.x + rcRef.cx - rc.x - rc.cx), 
-		std::min(dy, rcRef.y + rcRef.cy - rc.y - rc.cy));
+	int dxLeft = rcRef.x - rc.x;
+	int dxRight = rc.x + rc.cx - rcRef.cx;
+	int dyTop = rcRef.y - rc.y;
+	int dyBottom = rc.y + rc.cy - rcRef.cy;
+	if (dxLeft <= 0 && dxRight <= 0 && dyTop <= 0 && dyBottom <= 0)
+		return FALSE;
+	if (dxLeft < 0)
+		dxLeft = INT_MAX;
+	if (dxRight < 0)
+		dxRight = INT_MAX;
+	if (dxLeft == INT_MAX && dxRight == INT_MAX)
+		dxLeft = 0;
+	else
+		dxLeft = std::min(dxLeft, dxRight);
+
+	if (dyTop < 0)
+		dyTop = INT_MAX;
+	if (dyBottom < 0)
+		dyBottom = INT_MAX;
+	if (dyTop == INT_MAX && dyBottom == INT_MAX)
+		dyTop = 0;
+	else
+		dyTop = std::min(dyTop, dyBottom);
+	OffsetRect(rc, -dxLeft, -dyTop);
 	return TRUE;
 }
 

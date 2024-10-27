@@ -242,8 +242,7 @@ class CDialogNew :public CDialog
 public:
 	ECK_RTTI(CDialogNew);
 
-	constexpr static LONG_PTR OcbPtr1 = DLGWINDOWEXTRA;
-	constexpr static LONG_PTR OcbPtr2 = DLGWINDOWEXTRA + sizeof(void*);
+	constexpr static LONG_PTR OcbPtr = DLGWINDOWEXTRA;
 protected:
 	INT_PTR IntCreateModalDlg(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,

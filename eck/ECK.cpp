@@ -856,7 +856,7 @@ static HRESULT WINAPI NewDrawThemeText(HTHEME hTheme, HDC hDC, int iPartId, int 
 		dwTextFlags, dwTextFlags2, pRect);
 }
 
-// comctl32!SHThemeDrawText(未导出的内部函数)将调用DrawThemeTextEx，若失败，回落到DrawTextW
+// comctl32!SHThemeDrawText调用DrawThemeTextEx，若失败，回落到DrawTextW
 static HRESULT WINAPI NewDrawThemeTextEx(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 	PCWSTR pszText, int cchText, DWORD dwTextFlags, RECT* pRect, const DTTOPTS* pOptions)
 {
