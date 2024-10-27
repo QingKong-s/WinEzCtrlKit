@@ -145,24 +145,11 @@ private:
 
 		case View::DropDownEdit:
 		{
-			int iState2;
-			if (m_bDisabled)
-				iState2 = CBB_DISABLED;
-			else if (m_bHasFocus)
-				iState2 = CBB_FOCUSED;
-			else
-				iState2 = CBB_NORMAL;
-
 			DrawThemeBackground(m_hTheme, ne.nmcd.hdc,
-				CP_BORDER, iState2, &rc, nullptr);
-
+				CP_BORDER, m_bHasFocus ? CBB_FOCUSED : ne.iStateId, &rc, nullptr);
 			rc.left = rc.right - GetDropButtonWidth();
-			if (ne.iStateId == CBRO_NORMAL)
-				DrawThemeBackground(m_hTheme, ne.nmcd.hdc,
-					CP_DROPDOWNBUTTONRIGHT, CBXSR_NORMAL, &rc, nullptr);
-			else
-				DrawThemeBackground(m_hTheme, ne.nmcd.hdc,
-					CP_DROPDOWNBUTTON, ne.iStateId, &rc, nullptr);
+			DrawThemeBackground(m_hTheme, ne.nmcd.hdc,
+				CP_DROPDOWNBUTTONRIGHT, ne.iStateId, &rc, nullptr);
 		}
 		break;
 
@@ -183,6 +170,29 @@ private:
 		m_cxDrop = m_cxClient;
 		m_cyDrop = std::min(DpiScale(540, m_iDpi),
 			m_LB.GetItemCount() * m_LB.GetItemHeight() + DaGetSystemMetrics(SM_CYEDGE, m_iDpi) * 2);
+	}
+
+	LRESULT OnEditMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)
+	{
+		switch (uMsg)
+		{
+		case WM_LBUTTONDOWN:
+			/*
+			* 标准组合框中，编辑框具有未公开样式ES_COMBOBOX = 0x200，
+			* 创建时编辑框将检索列表框句柄并记录，在无焦点状态下按下左键
+			* 不会重置选择位置。无法从外部设置此样式，因为其行为不明确。
+			* 这里处理WM_LBUTTONDOWN模拟。
+			*/
+			if (GetFocus() == hWnd)
+				break;
+			bProcessed = TRUE;
+			m_bHasFocus = TRUE;
+			SetFocus(hWnd);
+			m_pED->SelAll();
+			Redraw();
+			return 0;
+		}
+		return 0;
 	}
 public:
 	~CComboBoxNew()
@@ -234,8 +244,26 @@ public:
 		{
 			if (!m_bHot)
 			{
-				m_bHot = TRUE;
-				Redraw();
+				if (m_eView == View::DropDown)
+				{
+					m_bHot = TRUE;
+					Redraw();
+				}
+				else
+				{
+					const RECT rc
+					{
+						m_cxClient - GetDropButtonWidth(),
+						0,
+						m_cxClient,
+						m_cyClient
+					};
+					if (PtInRect(rc, ECK_GET_PT_LPARAM(lParam)))
+					{
+						m_bHot = TRUE;
+						Redraw();
+					}
+				}
 			}
 
 			TRACKMOUSEEVENT tme;
@@ -258,6 +286,7 @@ public:
 
 		case WM_LBUTTONDBLCLK:
 		case WM_LBUTTONDOWN:
+			SetFocus(hWnd);
 			if (m_bDrop)
 				DismissList();
 			else
@@ -349,7 +378,10 @@ public:
 			{
 				m_bHasFocus = TRUE;
 				if (m_eView == View::DropDownEdit)
+				{
+					m_pED->SelAll();
 					Redraw();
+				}
 			}
 			break;
 
@@ -430,7 +462,6 @@ public:
 		if (m_bDrop)
 			return;
 		m_bDrop = TRUE;
-		SetFocus(HWnd);
 		Redraw();
 		UpdateWindow(HWnd);
 
@@ -527,9 +558,11 @@ public:
 			else
 			{
 				m_pED = new CEditExt{};
+				m_pED->GetSignal().Connect(this, &CComboBoxNew::OnEditMsg);
 				RCWH rc;
 				GetEditRect(rc);
-				m_pED->Create(nmdi.Item.pszText, WS_CHILD | WS_VISIBLE | WS_TABSTOP, 0,
+				m_pED->Create(nmdi.Item.pszText,
+					WS_CHILD | WS_VISIBLE | WS_TABSTOP, 0,
 					rc.x, rc.y, rc.cx, rc.cy, HWnd, 0);
 			}
 		}

@@ -10,6 +10,7 @@
 #include "CEditExt.h"
 #include "CButton.h"
 #include "SystemHelper.h"
+#include "ShellHelper.h"
 
 ECK_NAMESPACE_BEGIN
 enum :UINT
@@ -49,6 +50,10 @@ public:
 	ECK_RTTI(CInputBox);
 	ECK_CWND_SINGLEOWNER(CInputBox);
 private:
+	INPUTBOXOPT* m_pOpt = nullptr;
+
+	HFONT m_hFont = nullptr;
+
 	CEditExt m_ED{};
 	CButton m_BTOk{};
 	CButton m_BTCancel{};
@@ -61,25 +66,14 @@ private:
 		m_cyClient = 0;
 	int m_cySingleLineText = 0;
 
-	INPUTBOXOPT* m_pOpt = nullptr;
-
-	HFONT m_hFont = nullptr;
-
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 	ECK_DS_BEGIN(DPIS)
 		ECK_DS_ENTRY(TextPadding, 6)
 		ECK_DS_ENTRY(Margin, 10)
-		//ECK_DS_ENTRY(cyED, 26)
-		ECK_DS_ENTRY(cyMultiLineED, 100)
 		ECK_DS_ENTRY(cxBT, 80)
 		ECK_DS_ENTRY(cyBT, 32)
 		;
 	ECK_DS_END_VAR(m_Ds);
-
-	enum
-	{
-		IDC_ED = 101,
-	};
 
 	void UpdateTextMetrics()
 	{
@@ -102,7 +96,7 @@ private:
 		HDWP hDwp = BeginDeferWindowPos(3);
 		int y = m_Ds.Margin + m_Ds.TextPadding * 2 + m_cyMainTip + m_cyTip;
 		const int cyED = (
-			IsBitSet(m_pOpt->uFlags, IPBF_MULTILINE) ?
+			(m_pOpt->uFlags & IPBF_MULTILINE) ?
 			m_cyClient - y - m_Ds.TextPadding - m_Ds.cyBT - m_Ds.Margin :
 			m_cySingleLineText);
 		hDwp = DeferWindowPos(hDwp, m_ED.HWnd, nullptr,
@@ -143,7 +137,55 @@ private:
 		m_cyTip = rc.bottom;
 		DeleteDC(hCDC);
 	}
+
+	void OnCopy()
+	{
+		const BOOL bChs = (LANGIDFROMLCID(GetThreadLocale()) ==
+			MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED));
+
+		constexpr PCWSTR pszDiv = L"---------------------------\r\n";
+		constexpr PCWSTR pszDiv2 = L"\r\n---------------------------\r\n";
+		constexpr PCWSTR pszDiv3 = L"\r\n---------------------------";
+
+		CRefStrW rs{};
+		rs.PushBack(pszDiv);
+		rs.PushBack(m_pOpt->pszTitle);
+		rs.PushBack(pszDiv2);
+		rs.PushBack(m_pOpt->pszMainTip);
+		rs.PushBack(pszDiv2);
+		rs.PushBack(m_pOpt->pszTip);
+		rs.PushBack(pszDiv2);
+		rs.PushBack(m_ED.GetText());
+		rs.PushBack(pszDiv2);
+		if (bChs)
+			rs.PushBack(L"确认输入    取消");
+		else
+			rs.PushBack(L"OK    Cancel");
+		rs.PushBack(pszDiv3);
+		SetClipboardString(rs.Data(), rs.Size(), HWnd);
+	}
 public:
+	BOOL PreTranslateMessage(const MSG& Msg) override
+	{
+		if (Msg.message == WM_KEYDOWN)
+		{
+			if (Msg.wParam == 'C' && (GetAsyncKeyState(VK_CONTROL) & 0x8000))
+			{
+				if (GetFocus() == m_ED.HWnd)
+				{
+					int iSelBegin, iSelEnd;
+					m_ED.GetSel(&iSelBegin, &iSelEnd);
+					if (iSelBegin != iSelEnd)
+						goto NoCopy;
+				}
+				OnCopy();
+				MessageBeep(MB_OK);
+			NoCopy:;
+			}
+		}
+		return __super::PreTranslateMessage(Msg);
+	}
+
 	BOOL OnInitDialog(HWND hDlg, HWND hFocus, LPARAM lParam) override
 	{
 		UpdateDpi(GetDpi(hDlg));
@@ -153,18 +195,25 @@ public:
 		SetExplorerTheme();
 		m_hTheme = OpenThemeData(hDlg, L"TextStyle");
 
-		m_ED.SetMultiLine(IsBitSet(m_pOpt->uFlags, IPBF_MULTILINE));
-		m_ED.Create(m_pOpt->pszInitContent,
-			WS_TABSTOP | WS_GROUP | WS_VISIBLE | WS_CHILD |WS_VSCROLL | ES_WANTRETURN,
-			WS_EX_CLIENTEDGE,
-			0, 0, 0, 0, hDlg, IDC_ED);
+		DWORD dwEDStyle = WS_TABSTOP | WS_GROUP | WS_VISIBLE |
+			WS_CHILD | ES_WANTRETURN;
+		if (m_pOpt->uFlags & IPBF_MULTILINE)
+		{
+			m_ED.SetMultiLine(TRUE);
+			dwEDStyle |= WS_VSCROLL;
+		}
+		m_ED.Create(m_pOpt->pszInitContent, dwEDStyle, WS_EX_CLIENTEDGE,
+			0, 0, 0, 0, hDlg, 0);
 		if (m_pOpt->uInputMode != CEditExt::InputMode::ReadOnly)
 			m_ED.SetInputMode(m_pOpt->uInputMode);
+		m_ED.SelAll();
 
-		m_BTOk.Create(L"确认输入(&O)",
+		const BOOL bChs = (LANGIDFROMLCID(GetThreadLocale()) ==
+			MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED));
+		m_BTOk.Create(bChs ? L"确认输入(&O)" : L"&OK",
 			WS_TABSTOP | WS_GROUP | WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 0,
 			0, 0, 0, 0, hDlg, IDOK);
-		m_BTCancel.Create(L"取消(&C)",
+		m_BTCancel.Create(bChs ? L"取消(&C)" : L"&Cancel",
 			WS_TABSTOP | WS_CHILD | WS_VISIBLE, 0,
 			0, 0, 0, 0, hDlg, IDCANCEL);
 
@@ -174,18 +223,18 @@ public:
 		m_cyClient = rcClient.bottom;
 
 		UpdateThemeSize();
-		if (IsBitSet(m_pOpt->uFlags, IPBF_FIXWIDTH))
+		if (m_pOpt->uFlags & IPBF_FIXWIDTH)
 		{
 			RECT rc{ 0,0, rcClient.right,
 				m_cyMainTip + m_cyTip + m_Ds.TextPadding * 3 + m_Ds.cyBT + m_Ds.Margin * 2 +
-				(IsBitSet(m_pOpt->uFlags,IPBF_MULTILINE) ? 
-					m_Ds.cyMultiLineED : m_cySingleLineText)
+				(IsBitSet(m_pOpt->uFlags,IPBF_MULTILINE) ?
+					DpiScale(100, m_iDpi) : m_cySingleLineText)
 			};
 			DaAdjustWindowRectEx(&rc, Style, FALSE, ExStyle, m_iDpi);
 
 			POINT pt;
 			if (IsBitSet(m_pOpt->uFlags, IPBF_CENTERPARENT))
-				pt = CalcCenterWndPos(GetParent(hDlg), rc.right - rc.left, rc.bottom - rc.top);
+				pt = CalcCenterWndPos(HWND(lParam), rc.right - rc.left, rc.bottom - rc.top);
 			else if (IsBitSet(m_pOpt->uFlags, IPBF_CENTERSCREEN))
 				pt = CalcCenterWndPos(nullptr, rc.right - rc.left, rc.bottom - rc.top);
 			else
@@ -267,7 +316,11 @@ public:
 			Redraw();
 			break;
 
-		case WM_NCDESTROY:
+		case WM_COPY:
+			OnCopy();
+			return TRUE;
+
+		case WM_DESTROY:
 		{
 			CloseThemeData(m_hTheme);
 			m_hTheme = nullptr;
@@ -300,16 +353,18 @@ public:
 			EckDbgBreak();
 			return FALSE;
 		}
-
 		m_pOpt = (INPUTBOXOPT*)pData;
+		const UINT uDlgFlags = (m_pOpt->uFlags & IPBF_FIXWIDTH) ?
+			0 : (m_pOpt->uFlags & IPBF_DLGFLAGSMASK);
+
 		IntCreateModalDlg(0, WCN_DLG, m_pOpt->pszTitle,
 			WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPCHILDREN |
-			(IsBitSet(m_pOpt->uFlags, IPBF_RESIZEABLE) ? (WS_SIZEBOX | WS_MAXIMIZEBOX) : 0),
+			((m_pOpt->uFlags & IPBF_RESIZEABLE) ? (WS_SIZEBOX | WS_MAXIMIZEBOX) : 0),
 			m_pOpt->x,
 			m_pOpt->y,
-			m_pOpt->cx ? m_pOpt->cx : DpiScale(400, GetDpi(hParent)),
+			m_pOpt->cx ? m_pOpt->cx : DpiScale(480, GetDpi(GetOwnerMonitor(hParent))),
 			m_pOpt->cy,
-			nullptr, nullptr, g_hInstance, pData, m_pOpt->uFlags & IPBF_DLGFLAGSMASK);
+			hParent, nullptr, g_hInstance, hParent, uDlgFlags);
 		return m_iResult;
 	}
 };

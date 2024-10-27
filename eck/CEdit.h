@@ -284,7 +284,7 @@ public:
 
 	EckInline void GetSel(int* piSelStart, int* piSelEnd) const
 	{
-		SendMsg(EM_GETSEL, (WPARAM)&piSelStart, (LPARAM)piSelEnd);
+		SendMsg(EM_GETSEL, (WPARAM)piSelStart, (LPARAM)piSelEnd);
 	}
 
 	/// <summary>

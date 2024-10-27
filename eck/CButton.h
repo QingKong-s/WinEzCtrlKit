@@ -15,8 +15,6 @@ inline constexpr int CDV_BUTTON_1 = 1;
 struct CTRLDATA_BUTTON
 {
 	int iVer;
-	BITBOOL bShieldIcon : 1;
-	BITBOOL bDontClick : 1;
 	BYTE eCheckState;
 	DWORD cchNote;
 	// WCHAR szNote[];// 长度为cchNote + 1
@@ -71,9 +69,6 @@ public:
 
 		Unknown = -1
 	};
-protected:
-	BITBOOL m_bShieldIcon : 1{};
-	BITBOOL m_bDontClick : 1{ TRUE };
 public:
 	ECK_CWNDPROP_STYLE_MASK(TripleState, BS_3STATE, ButtonTypeMask);
 	ECK_CWNDPROP_STYLE_MASK(AutoTripleState, BS_AUTO3STATE, ButtonTypeMask);
@@ -123,8 +118,6 @@ public:
 		w.SkipPointer(p);
 		p->iVer = CDV_BUTTON_1;
 		p->eCheckState = GetCheckState();
-		p->bShieldIcon = m_bShieldIcon;
-		p->bDontClick = m_bDontClick;
 		p->cchNote = cchNote;
 		if (cchNote)
 		{
@@ -141,9 +134,7 @@ public:
 		const auto* const p = (const CTRLDATA_BUTTON*)CWnd::SkipBaseData(pData);
 		if (p->iVer != CDV_BUTTON_1)
 			return;
-		m_bShieldIcon = p->bShieldIcon;
 		SetCheckState(p->eCheckState);
-		SetDontClick(p->bDontClick);
 		if (p->cchNote)
 			SetNote(p->Note());
 	}
@@ -163,7 +154,7 @@ public:
 		return (BOOL)SendMsg(BCM_GETNOTE, (WPARAM)&cchBuf, (LPARAM)pszBuf);
 	}
 
-	EckInline [[nodiscard]] DWORD GetNoteLength()
+	EckInline DWORD GetNoteLength()
 	{
 		return (DWORD)SendMsg(BCM_GETNOTELENGTH, 0, 0);
 	}
@@ -213,17 +204,8 @@ public:
 
 	EckInline void SetShieldIcon(BOOL bShieldIcon)
 	{
-		m_bShieldIcon = !!bShieldIcon;
 		SendMessageW(m_hWnd, BCM_SETSHIELD, 0, bShieldIcon);
 	}
-
-	// 获取内部记录的图标状态
-	EckInline constexpr BOOL GetShieldIcon()
-	{
-		return m_bShieldIcon;
-	}
-
-	EckInline constexpr void SetShieldIconInternalFlag(BOOL b) { m_bShieldIcon = !!b; }
 
 	EckInline BOOL SetSplitInfo(BUTTON_SPLITINFO* pbsi)
 	{

@@ -10,6 +10,7 @@
 #include "DpiApi.h"
 
 #include <vssym32.h>
+#include <ShellScalingApi.h>
 
 #define ECK_DS_BEGIN(StructName)	struct StructName {
 #define ECK_DS_END_VAR(VarName)		} VarName{};
@@ -79,6 +80,22 @@ EckInline int GetDpi(HWND hWnd)
 	HDC hDC = GetDC(hWnd);
 	int i = GetDeviceCaps(hDC, LOGPIXELSX);
 	ReleaseDC(hWnd, hDC);
+	return i;
+#endif
+}
+
+EckInline int GetDpi(HMONITOR hMonitor)
+{
+#if NTDDI_VERSION >= NTDDI_WINBLUE
+	UINT xDpi, yDpi;
+	if (SUCCEEDED(GetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, &xDpi, &yDpi)))
+		return (int)xDpi;
+	else
+		return USER_DEFAULT_SCREEN_DPI;
+#else
+	const auto hIC = CreateICW(L"DISPLAY", nullptr, nullptr, nullptr);
+	const int i = GetDeviceCaps(hIC, LOGPIXELSX);
+	DeleteDC(hIC);
 	return i;
 #endif
 }
@@ -446,17 +463,28 @@ inline HMONITOR GetOwnerMonitor(HWND hWnd)
 	}
 }
 
-inline POINT CalcCenterWndPos(HWND hParent, int cx, int cy)
+inline POINT CalcCenterWndPos(HWND hParent, int cx, int cy,
+	BOOL bEnsureInMonitor = TRUE)
 {
 	if (hParent)
 	{
 		RECT rc;
 		GetWindowRect(hParent, &rc);
-		return
+		rc.left += (rc.right - rc.left - cx) / 2;
+		rc.top += (rc.bottom - rc.top - cy) / 2;
+		if (bEnsureInMonitor)
 		{
-			rc.left + (rc.right - rc.left - cx) / 2,
-			rc.top + (rc.bottom - rc.top - cy) / 2
-		};
+			rc.right = rc.left + cx;
+			rc.bottom = rc.top + cy;
+			const auto hMonitor = GetOwnerMonitor(nullptr);
+			MONITORINFO mi;
+			mi.cbSize = sizeof(mi);
+			GetMonitorInfoW(hMonitor, &mi);
+			AdjustRectIntoAnother(rc, mi.rcWork);
+			return { rc.left, rc.top };
+		}
+		else
+			return { rc.left, rc.top };
 	}
 	else
 	{

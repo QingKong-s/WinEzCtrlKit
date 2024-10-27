@@ -46,6 +46,7 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "dcomp.lib")
 #pragma comment(lib, "Crypt32.lib")
+#pragma comment(lib, "Shcore.lib")
 
 #ifdef _WIN64
 #	ifdef _DEBUG

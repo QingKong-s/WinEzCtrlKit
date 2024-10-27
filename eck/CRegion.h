@@ -520,9 +520,11 @@ public:
 	};
 
 	CRegion() = default;
-	constexpr CRegion(const CRegion& x) :m_rc{ x.m_rc }, m_pComplex{ new ComplexRegion{*x.m_pComplex} }
+	constexpr CRegion(const CRegion& x) :m_rc{ x.m_rc }
 	{
 		EckAssert(!x.m_bRecordingPoint);
+		if (x.m_pComplex)
+			m_pComplex = new ComplexRegion{ *x.m_pComplex };
 	}
 	constexpr CRegion(CRegion&& x) noexcept :m_rc{ x.m_rc }, m_pComplex{ x.m_pComplex }
 	{
@@ -547,11 +549,8 @@ public:
 	constexpr CRegion& operator=(CRegion&& x) noexcept
 	{
 		EckAssert(!x.m_bRecordingPoint && !m_bRecordingPoint);
-		if (this != &x)
-		{
-			std::swap(m_rc, x.m_rc);
-			std::swap(m_pComplex, x.m_pComplex);
-		}
+		std::swap(m_rc, x.m_rc);
+		std::swap(m_pComplex, x.m_pComplex);
 		return *this;
 	}
 
