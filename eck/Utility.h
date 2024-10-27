@@ -861,7 +861,7 @@ EckInline constexpr BOOL IsPszId(PCWSTR p)
 /// </summary>
 /// <param name="rc">要调整的矩形</param>
 /// <param name="rcRef">参照矩形</param>
-/// <returns>成功返回TRUE，失败返回FALSE</returns>
+/// <returns>成功返回TRUE，失败或无需调整返回FALSE</returns>
 inline constexpr BOOL AdjustRectIntoAnother(RECT& rc, const RECT& rcRef)
 {
 	if (rc.right - rc.left > rcRef.right - rcRef.left ||
@@ -879,8 +879,8 @@ inline constexpr BOOL AdjustRectIntoAnother(RECT& rc, const RECT& rcRef)
 		dxRight = INT_MAX;
 	if (dxLeft == INT_MAX && dxRight == INT_MAX)
 		dxLeft = 0;
-	else
-		dxLeft = std::min(dxLeft, dxRight);
+	else if (dxLeft > dxRight)
+		dxLeft = -dxRight;
 
 	if (dyTop < 0)
 		dyTop = INT_MAX;
@@ -888,9 +888,9 @@ inline constexpr BOOL AdjustRectIntoAnother(RECT& rc, const RECT& rcRef)
 		dyBottom = INT_MAX;
 	if (dyTop == INT_MAX && dyBottom == INT_MAX)
 		dyTop = 0;
-	else
-		dyTop = std::min(dyTop, dyBottom);
-	OffsetRect(rc, -dxLeft, -dyTop);
+	else if (dyTop > dyBottom)
+		dyTop = -dyBottom;
+	OffsetRect(rc, dxLeft, dyTop);
 	return TRUE;
 }
 
@@ -900,7 +900,7 @@ inline constexpr BOOL AdjustRectIntoAnother(RECT& rc, const RECT& rcRef)
 /// </summary>
 /// <param name="rc">要调整的矩形</param>
 /// <param name="rcRef">参照矩形</param>
-/// <returns>成功返回TRUE，失败返回FALSE</returns>
+/// <returns>成功返回TRUE，失败或无需调整返回FALSE</returns>
 inline constexpr BOOL AdjustRectIntoAnother(RCWH& rc, const RCWH& rcRef)
 {
 	if (rc.cx > rcRef.cx || rc.cy > rcRef.cy)
@@ -917,8 +917,8 @@ inline constexpr BOOL AdjustRectIntoAnother(RCWH& rc, const RCWH& rcRef)
 		dxRight = INT_MAX;
 	if (dxLeft == INT_MAX && dxRight == INT_MAX)
 		dxLeft = 0;
-	else
-		dxLeft = std::min(dxLeft, dxRight);
+	else if (dxLeft > dxRight)
+		dxLeft = -dxRight;
 
 	if (dyTop < 0)
 		dyTop = INT_MAX;
@@ -926,9 +926,9 @@ inline constexpr BOOL AdjustRectIntoAnother(RCWH& rc, const RCWH& rcRef)
 		dyBottom = INT_MAX;
 	if (dyTop == INT_MAX && dyBottom == INT_MAX)
 		dyTop = 0;
-	else
-		dyTop = std::min(dyTop, dyBottom);
-	OffsetRect(rc, -dxLeft, -dyTop);
+	else if (dyTop > dyBottom)
+		dyTop = -dyBottom;
+	OffsetRect(rc, dxLeft, dyTop);
 	return TRUE;
 }
 
