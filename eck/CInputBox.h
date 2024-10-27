@@ -41,7 +41,7 @@ struct INPUTBOXOPT
 	int y;
 	int cx;
 	int cy;
-	CEditExt::InputMode uInputMode;
+	CEditExt::InputMode eInputMode;
 };
 
 class CInputBox final :public CDialogNew
@@ -204,9 +204,8 @@ public:
 		}
 		m_ED.Create(m_pOpt->pszInitContent, dwEDStyle, WS_EX_CLIENTEDGE,
 			0, 0, 0, 0, hDlg, 0);
-		if (m_pOpt->uInputMode != CEditExt::InputMode::ReadOnly)
-			m_ED.SetInputMode(m_pOpt->uInputMode);
-		m_ED.SelAll();
+		if (m_pOpt->eInputMode != CEditExt::InputMode::ReadOnly)
+			m_ED.SetInputMode(m_pOpt->eInputMode);
 
 		const BOOL bChs = (LANGIDFROMLCID(GetThreadLocale()) ==
 			MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED));
@@ -242,6 +241,7 @@ public:
 			SetWindowPos(hDlg, nullptr, pt.x, pt.y, rc.right - rc.left, rc.bottom - rc.top,
 				SWP_NOZORDER | SWP_NOACTIVATE);
 		}
+		m_ED.SelAll();
 
 		UpdateDpiCtrlSize();
 		SetFontForWndAndCtrl(hDlg, m_hFont);
@@ -369,4 +369,24 @@ public:
 	}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CInputBox, CDialogNew);
+
+inline BOOL InputBox(CRefStrW& rs, HWND hParent, PCWSTR pszMainTip, PCWSTR pszTip = nullptr,
+	PCWSTR pszInitContent = nullptr, PCWSTR pszTitle = nullptr, BOOL bMultiLine = FALSE,
+	CEditExt::InputMode eInputMode = CEditExt::InputMode::Normal)
+{
+	INPUTBOXOPT Opt{};
+	Opt.pszMainTip = pszMainTip;
+	Opt.pszTip = pszTip;
+	Opt.pszInitContent = pszInitContent;
+	Opt.pszTitle = pszTitle;
+	Opt.uFlags = IPBF_CENTERPARENT | IPBF_FIXWIDTH | (bMultiLine ? IPBF_MULTILINE : 0);
+	Opt.eInputMode = eInputMode;
+	CInputBox ib{};
+	if (ib.DlgBox(hParent, &Opt))
+	{
+		rs = std::move(Opt.rsInput);
+		return TRUE;
+	}
+	return FALSE;
+}
 ECK_NAMESPACE_END

@@ -1111,6 +1111,13 @@ public:
 	{
 		return SetItemState(idx, INDEXTOSTATEIMAGEMASK(iCheck + 1), LVIS_STATEIMAGEMASK);
 	}
+
+	EckInline [[nodiscard]] IListView2* GetListViewObject() const
+	{
+		IListView2* pLv{};
+		SendMsg(LVM_QUERYINTERFACE, (WPARAM)&IID_IListView2, (LPARAM)&pLv);
+		return pLv;
+	}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CListView, CWnd);
 ECK_NAMESPACE_END
