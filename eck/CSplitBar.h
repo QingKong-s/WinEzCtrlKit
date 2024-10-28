@@ -3,12 +3,10 @@
 *
 * CSplitBar.h ： 分隔条
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include "CBk.h"
-#include "Utility.h"
-#include "GraphicsHelper.h"
 
 ECK_NAMESPACE_BEGIN
 struct NMSPBDRAGGED
@@ -21,18 +19,19 @@ class CSplitBar :public CWnd
 {
 public:
 	ECK_RTTI(CSplitBar);
+	ECK_CWND_SINGLEOWNER_NO_DEF_CONS(CSplitBar);
+	ECK_CWND_CREATE_CLS_HINST(WCN_SPLITBAR, g_hInstance);
 private:
-	CBk m_BKMark{};
-	CEzCDC m_DC{};
+	CBk m_BkMark{};
 
-	int m_cxClient = 0,
-		m_cyClient = 0;
+	int m_cxClient{},
+		m_cyClient{};
 
-	int m_xyFixed = 0;
-	int m_cxyCursorOffset = 0;
+	int m_xyFixed{};
+	int m_cxyCursorOffset{};
 
-	int m_xyMin = 0,
-		m_xyMax = 0;
+	int m_xyMin{},
+		m_xyMax{};
 
 	COLORREF m_crBK = CLR_DEFAULT;
 	COLORREF m_crMark = 0xFFCC66;
@@ -46,45 +45,47 @@ private:
 	{
 		struct
 		{
-			BITBOOL m_bLBtnDown : 1 ;
-			BITBOOL m_bHorizontal : 1 ;
+			BITBOOL m_bLBtnDown : 1;
+			BITBOOL m_bHorizontal : 1;
 		};
 		DWORD ECKPRIV_BITFIELD___ = 0;
 	};
 #endif
 
-	static LRESULT CALLBACK WndProc_Mark(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	LRESULT OnMarkMsg(HWND hWnd, UINT uMsg,
+		WPARAM wParam, LPARAM lParam, BOOL& bProcessed)
 	{
-		auto p = (CSplitBar*)GetWindowLongPtrW(hWnd, 0);
 		switch (uMsg)
 		{
+		case WM_PRINTCLIENT:
 		case WM_PAINT:
 		{
+			bProcessed = TRUE;
 			PAINTSTRUCT ps;
-			BeginPaint(hWnd, &ps);
-			SetDCBrushColor(ps.hdc, p->m_crMark);
+			BeginPaint(hWnd, wParam, ps);
+			SetDCBrushColor(ps.hdc, m_crMark);
 			FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
-			EndPaint(hWnd, &ps);
+			EndPaint(hWnd, wParam, ps);
 		}
 		return 0;
 		}
-		return DefWindowProcW(hWnd, uMsg, wParam, lParam);
+		return 0;
 	}
 
 	EckInline void UpdateMarkWndAlpha()
 	{
-		SetLayeredWindowAttributes(m_BKMark.GetHWND(), 0, m_byMarkAlpha, LWA_ALPHA);
+		SetLayeredWindowAttributes(m_BkMark.GetHWND(), 0, m_byMarkAlpha, LWA_ALPHA);
 	}
 
 	EckInline void MoveMark(int x, int y)
 	{
-		SetWindowPos(m_BKMark.GetHWND(), nullptr, x, y, 0, 0,
+		SetWindowPos(m_BkMark.GetHWND(), nullptr, x, y, 0, 0,
 			SWP_NOZORDER | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
 	}
 
 	EckInline void HideMark()
 	{
-		ShowWindow(m_BKMark.GetHWND(), SW_HIDE);
+		ShowWindow(m_BkMark.GetHWND(), SW_HIDE);
 	}
 
 	int CursorPtToPos(POINT ptClient)
@@ -137,6 +138,11 @@ private:
 		return xyPos;
 	}
 public:
+	CSplitBar()
+	{
+		m_BkMark.GetSignal().Connect(this, &CSplitBar::OnMarkMsg);
+	}
+
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)
@@ -149,6 +155,7 @@ public:
 				SetCursor(LoadCursorW(nullptr, IDC_SIZEWE));
 		}
 		return 0;
+
 		case WM_MOUSEMOVE:
 		{
 			if (m_bLBtnDown)
@@ -173,14 +180,15 @@ public:
 			}
 		}
 		return 0;
+
 		case WM_SIZE:
 		{
 			ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
-			m_DC.ReSize(hWnd, m_cxClient, m_cyClient);
-			SetWindowPos(m_BKMark.GetHWND(), nullptr, 0, 0, m_cxClient, m_cyClient,
+			SetWindowPos(m_BkMark.GetHWND(), nullptr, 0, 0, m_cxClient, m_cyClient,
 				SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
 		}
 		return 0;
+
 		case WM_PAINT:
 		{
 			PAINTSTRUCT ps;
@@ -190,6 +198,7 @@ public:
 			EndPaint(hWnd, &ps);
 		}
 		return 0;
+
 		case WM_LBUTTONDBLCLK:// 连击修正
 		case WM_LBUTTONDOWN:
 		{
@@ -213,6 +222,7 @@ public:
 			}
 		}
 		return 0;
+
 		case WM_LBUTTONUP:
 		{
 			if (m_bLBtnDown)
@@ -227,6 +237,7 @@ public:
 			}
 		}
 		return 0;
+
 		case WM_KEYDOWN:
 		{
 			if (m_bLBtnDown && wParam == VK_ESCAPE)
@@ -237,29 +248,18 @@ public:
 			}
 		}
 		return 0;
+
 		case WM_NCCREATE:
 		{
-			m_BKMark.Create(nullptr, WS_POPUP | WS_DISABLED,
+			m_BkMark.Create(nullptr, WS_POPUP | WS_DISABLED,
 				WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_NOACTIVATE,
 				-32000, -32000, 0, 0, hWnd, 0);
 			UpdateMarkWndAlpha();
-			SetWindowLongPtrW(m_BKMark.GetHWND(), 0, (LONG_PTR)this);
-			m_BKMark.SetWndProc(WndProc_Mark);
-			m_DC.Create(hWnd);
 		}
 		break;
 		}
 
 		return DefWindowProcW(hWnd, uMsg, wParam, lParam);
-	}
-
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		m_hWnd = IntCreate(dwExStyle, WCN_SPLITBAR, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
-		return m_hWnd;
 	}
 
 	/// <summary>
@@ -277,8 +277,8 @@ public:
 		else if (i == 1)
 		{
 			m_crMark = cr;
-			if (m_BKMark.IsVisible())
-				m_BKMark.Redraw();
+			if (m_BkMark.IsVisible())
+				m_BkMark.Redraw();
 		}
 		else
 			EckDbgBreak();
@@ -299,22 +299,27 @@ public:
 			EckDbgBreak();
 	}
 
-	EckInline void SetMarkAlpha(BYTE byAlpha)
+	EckInline constexpr void SetMarkAlpha(BYTE byAlpha)
 	{
 		m_byMarkAlpha = byAlpha;
 		UpdateMarkWndAlpha();
 	}
+	EckInline constexpr BYTE GetMarkAlpha() const { return m_byMarkAlpha; }
 
-	EckInline void SetRange(int xyMin, int xyMax)
+	EckInline constexpr void SetRange(int xyMin, int xyMax)
 	{
 		m_xyMin = xyMin;
 		m_xyMax = xyMax;
 	}
-
-	EckInline void SetDirection(BOOL bHorizontal)
+	EckInline constexpr void GetRange(int& xyMin, int& xyMax) const
 	{
-		m_bHorizontal = bHorizontal;
+		xyMin = m_xyMin;
+		xyMax = m_xyMax;
 	}
+
+	EckInline constexpr void SetDirection(BOOL bHorizontal) { m_bHorizontal = bHorizontal; }
+	// TRUE - 水平方向，FALSE - 垂直方向
+	EckInline constexpr BOOL GetDirection() const { return m_bHorizontal; }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CSplitBar, CWnd);
 ECK_NAMESPACE_END

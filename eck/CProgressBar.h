@@ -13,116 +13,116 @@ class CProgressBar :public CWnd
 {
 public:
 	ECK_RTTI(CProgressBar);
+	ECK_CWND_NOSINGLEOWNER(CProgressBar);
+	ECK_CWND_CREATE_CLS(PROGRESS_CLASSW);
 
-	EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		return IntCreate(0, PROGRESS_CLASSW, nullptr, dwStyle,
-			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
-	}
+	ECK_CWNDPROP_STYLE(Marquee, PBS_MARQUEE);
+	ECK_CWNDPROP_STYLE(Smooth, PBS_SMOOTH);
+	ECK_CWNDPROP_STYLE(SmoothReverse, PBS_SMOOTHREVERSE);
+	ECK_CWNDPROP_STYLE(Vertical, PBS_VERTICAL);
 
-	EckInline int DeltaPos(int iDelta)
+	EckInline int DeltaPos(int iDelta) const
 	{
 		return (int)SendMsg(PBM_DELTAPOS, iDelta, 0);
 	}
 
-	EckInline COLORREF GetBarClr()
+	EckInline COLORREF GetBarClr() const
 	{
 		return (COLORREF)SendMsg(PBM_GETBARCOLOR, 0, 0);
 	}
 
-	EckInline COLORREF GetBkClr()
+	EckInline COLORREF GetBkClr() const
 	{
 		return (COLORREF)SendMsg(PBM_GETBKCOLOR, 0, 0);
 	}
 
-	EckInline int GetPos()
+	EckInline int GetPos() const
 	{
 		return (int)SendMsg(PBM_GETPOS, 0, 0);
 	}
 
-	EckInline PBRANGE GetRange()
+	EckInline PBRANGE GetRange() const
 	{
 		PBRANGE r;
 		SendMsg(PBM_GETRANGE, 0, (LPARAM)&r);
 		return r;
 	}
 
-	EckInline int GetMin()
+	EckInline int GetMin() const
 	{
-		return (int)SendMsg(PBM_GETRANGE, TRUE, nullptr);
+		return (int)SendMsg(PBM_GETRANGE, TRUE, 0);
 	}
 
-	EckInline int GetMax()
+	EckInline int GetMax() const
 	{
-		return (int)SendMsg(PBM_GETRANGE, FALSE, nullptr);
+		return (int)SendMsg(PBM_GETRANGE, FALSE, 0);
 	}
 
 	/// <summary>
-	/// 
+	/// 取状态
 	/// </summary>
 	/// <returns>PBST_常量</returns>
-	EckInline int GetState()
+	EckInline int GetState() const
 	{
 		return (int)SendMsg(PBM_GETSTATE, 0, 0);
 	}
 
-	EckInline int GetStep()
+	EckInline int GetStep() const
 	{
 		return (int)SendMsg(PBM_GETSTEP, 0, 0);
 	}
 
-	EckInline COLORREF SetBarClr(COLORREF cr)
+	EckInline COLORREF SetBarClr(COLORREF cr) const
 	{
 		return (COLORREF)SendMsg(PBM_GETBARCOLOR, 0, cr);
 	}
 
-	EckInline COLORREF SetBkClr(COLORREF cr)
+	EckInline COLORREF SetBkClr(COLORREF cr) const
 	{
 		return (COLORREF)SendMsg(PBM_GETBKCOLOR, 0, cr);
 	}
 
-	EckInline void SetMarquee(BOOL bEnable, int msAnimation = 0)
+	EckInline void SetMarquee(BOOL bEnable, int msAnimation = 0) const
 	{
 		SendMsg(PBM_SETMARQUEE, bEnable, msAnimation);
 	}
 
-	EckInline int SetPos(int i)
+	EckInline int SetPos(int i) const
 	{
 		return (int)SendMsg(PBM_SETPOS, i, 0);
 	}
 
-	EckInline DWORD SetRange(int iMin, int iMax)
+	EckInline DWORD SetRange(int iMin, int iMax) const
 	{
 		return (DWORD)SendMsg(PBM_SETRANGE32, iMin, iMax);
 	}
 
-	EckInline DWORD SetMin(int i)
+	EckInline DWORD SetMin(int i) const
 	{
 		return (DWORD)SendMsg(PBM_SETRANGE32, i, GetMax());
 	}
 
-	EckInline DWORD SetMax(int i)
+	EckInline DWORD SetMax(int i) const
 	{
 		return (DWORD)SendMsg(PBM_SETRANGE32, GetMin(), i);
 	}
 
 	/// <summary>
-	/// 
+	/// 置状态
 	/// </summary>
 	/// <param name="iState">PBST_常量</param>
 	/// <returns></returns>
-	EckInline int SetState(int iState)
+	EckInline int SetState(int iState) const
 	{
 		return (int)SendMsg(PBM_SETSTATE, iState, 0);
 	}
 
-	EckInline int SetStep(int i)
+	EckInline int SetStep(int i) const
 	{
 		return (int)SendMsg(PBM_SETSTEP, i, 0);
 	}
 
-	EckInline int StepIt()
+	EckInline int StepIt() const
 	{
 		return (int)SendMsg(PBM_STEPIT, 0, 0);
 	}

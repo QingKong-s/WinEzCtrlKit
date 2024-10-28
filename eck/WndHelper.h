@@ -29,7 +29,7 @@
 	BOOL StyleGet##Name() const							\
 	{													\
 		if constexpr (Style == 0)						\
-			return !!GetStyle();						\
+			return !GetStyle();							\
 		else											\
 			return IsBitSet(GetStyle(), Style);			\
 	}													\
@@ -42,7 +42,7 @@
 	BOOL StyleGet##Name() const							\
 	{													\
 		if constexpr (Style == 0)						\
-			return !!GetStyle();						\
+			return !(GetStyle() & Mask);				\
 		else											\
 			return IsBitSet(GetStyle(), Style);			\
 	}													\

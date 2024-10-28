@@ -3,7 +3,7 @@
 *
 * CScrollBar.h ： 标准滚动条
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include "CWnd.h"
@@ -13,28 +13,22 @@ class CScrollBar :public CWnd
 {
 public:
 	ECK_RTTI(CScrollBar);
+	ECK_CWND_NOSINGLEOWNER(CScrollBar);
+	ECK_CWND_CREATE_CLS(WC_SCROLLBARW);
+
+	ECK_CWNDPROP_STYLE(BottomAlign, SBS_BOTTOMALIGN);
+	ECK_CWNDPROP_STYLE(Horz, SBS_HORZ);
+	ECK_CWNDPROP_STYLE(LeftAlign, SBS_LEFTALIGN);
+	ECK_CWNDPROP_STYLE(RightAlign, SBS_RIGHTALIGN);
+	ECK_CWNDPROP_STYLE(SizeBox, SBS_SIZEBOX);
+	ECK_CWNDPROP_STYLE(SizeBoxBottomRightAlign, SBS_SIZEBOXBOTTOMRIGHTALIGN);
+	ECK_CWNDPROP_STYLE(SizeBoxTopLeftAlign, SBS_SIZEBOXTOPLEFTALIGN);
+	ECK_CWNDPROP_STYLE(SizeGrip, SBS_SIZEGRIP);
+	ECK_CWNDPROP_STYLE(TopAlign, SBS_TOPALIGN);
+	ECK_CWNDPROP_STYLE(Vert, SBS_VERT);
 private:
-	BOOL m_bDisableNoScroll = FALSE;
+	BOOL m_bDisableNoScroll{};
 public:
-	ECK_STYLE_GETSET(BottomAlign, SBS_BOTTOMALIGN);
-	ECK_STYLE_GETSET(Horz, SBS_HORZ);
-	ECK_STYLE_GETSET(LeftAlign, SBS_LEFTALIGN);
-	ECK_STYLE_GETSET(RightAlign, SBS_RIGHTALIGN);
-	ECK_STYLE_GETSET(SizeBox, SBS_SIZEBOX);
-	ECK_STYLE_GETSET(SizeBoxBottomRightAlign, SBS_SIZEBOXBOTTOMRIGHTALIGN);
-	ECK_STYLE_GETSET(SizeBoxTopLeftAlign, SBS_SIZEBOXTOPLEFTALIGN);
-	ECK_STYLE_GETSET(SizeGrip, SBS_SIZEGRIP);
-	ECK_STYLE_GETSET(TopAlign, SBS_TOPALIGN);
-	ECK_STYLE_GETSET(Vert, SBS_VERT);
-
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		return IntCreate(dwExStyle, WC_SCROLLBARW, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
-	}
-
 	/// <summary>
 	/// 禁用启用箭头
 	/// </summary>
@@ -92,7 +86,6 @@ public:
 
 	EckInline BOOL GetInfo(SCROLLINFO* psi)
 	{
-		psi->cbSize = sizeof(SCROLLINFO);
 		return GetScrollInfo(m_hWnd, SB_CTL, psi);
 	}
 
@@ -148,10 +141,24 @@ public:
 
 	EckInline void SetInfo(SCROLLINFO* psi, BOOL bRedraw = TRUE)
 	{
-		psi->cbSize = sizeof(SCROLLINFO);
 		psi->fMask |= (m_bDisableNoScroll ? SIF_DISABLENOSCROLL : 0);
 		SetScrollInfo(m_hWnd, SB_CTL, psi, bRedraw);
 	}
+
+	EckInline void SetDisableNoScroll(BOOL bDisable, BOOL bImmdSet = FALSE)
+	{
+		m_bDisableNoScroll = bDisable;
+		if (bImmdSet)
+		{
+			SCROLLINFO si;
+			si.cbSize = sizeof(SCROLLINFO);
+			si.fMask = SIF_ALL;
+			GetInfo(&si);
+			SetInfo(&si, TRUE);
+		}
+	}
+
+	EckInline BOOL GetDisableNoScroll() const { return m_bDisableNoScroll; }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CScrollBar, CWnd);
 ECK_NAMESPACE_END

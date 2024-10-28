@@ -24,17 +24,18 @@ public:
 private:
 	HBITMAP m_hBitmap{};
 	GpImage* m_pGpImage{};
-
-	RECT m_rcClient{};
-
 	int m_cxImage{},
 		m_cyImage{};
-	int m_iScale{ 100 };
-	BkImgMode m_iViewMode{ BkImgMode::TopLeft };
+
+	int m_cxClient{},
+		m_cyClient{};
+
+	//int m_iScale{ 100 };
+	//POINT m_ptViewOrg{};// 当前显示区域的左上角对应原图的位置
 
 	COLORREF m_crBk{ CLR_DEFAULT };
 
-	POINT m_ptViewOrg{};// 当前显示区域的左上角对应原图的位置
+	BkImgMode m_iViewMode{ BkImgMode::TopLeft };
 
 	BITBOOL m_bScalable : 1 = FALSE;
 	BITBOOL m_b32BppHBitmap : 1 = FALSE;
@@ -82,21 +83,23 @@ public:
 				}
 				else if (m_pGpImage)
 				{
+					const RECT rcClient{ 0,0,m_cxClient,m_cyClient };
 					GpGraphics* pGraphics;
 					GdipCreateFromHDC(ps.hdc, &pGraphics);
-					DrawBackgroundImage(pGraphics, m_pGpImage, m_rcClient, m_cxImage, m_cyImage,
+					DrawBackgroundImage(pGraphics, m_pGpImage, rcClient, m_cxImage, m_cyImage,
 						m_iViewMode, m_bFullRgnImage);
 					GdipDeleteGraphics(pGraphics);
 				}
 				else if (m_hBitmap)
 				{
+					const RECT rcClient{ 0,0,m_cxClient,m_cyClient };
 					const auto hCDC = CreateCompatibleDC(ps.hdc);
 					SelectObject(hCDC, m_hBitmap);
 					if (m_b32BppHBitmap)
-						DrawBackgroundImage32(ps.hdc, hCDC, m_rcClient, m_cxImage, m_cyImage,
+						DrawBackgroundImage32(ps.hdc, hCDC, rcClient, m_cxImage, m_cyImage,
 							m_iViewMode, m_bFullRgnImage);
 					else
-						DrawBackgroundImage32(ps.hdc, hCDC, m_rcClient, m_cxImage, m_cyImage,
+						DrawBackgroundImage32(ps.hdc, hCDC, rcClient, m_cxImage, m_cyImage,
 							m_iViewMode, m_bFullRgnImage);
 					DeleteDC(hCDC);
 				}
@@ -105,9 +108,7 @@ public:
 		}
 		return 0;
 		case WM_SIZE:
-		{
-			ECK_GET_SIZE_LPARAM(m_rcClient.right, m_rcClient.bottom, lParam);
-		}
+			ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
 		return 0;
 		}
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
@@ -139,35 +140,14 @@ public:
 		return Gdiplus::Ok;
 	}
 
-	EckInline constexpr void SetViewMode(BkImgMode i)
-	{
-		m_iViewMode = i;
-	}
+	EckInline constexpr void SetViewMode(BkImgMode i){m_iViewMode = i;}
+	EckInline constexpr BkImgMode GetViewMode() const{return m_iViewMode;}
 
-	EckInline constexpr BkImgMode GetViewMode() const
-	{
-		return m_iViewMode;
-	}
+	EckInline constexpr void SetFullRgnImage(BOOL b){m_bFullRgnImage = b;}
+	EckInline constexpr BOOL GetFullRgnImage() const{return m_bFullRgnImage;}
 
-	EckInline constexpr void SetFullRgnImage(BOOL b)
-	{
-		m_bFullRgnImage = b;
-	}
-
-	EckInline constexpr BOOL GetFullRgnImage() const
-	{
-		return m_bFullRgnImage;
-	}
-
-	EckInline constexpr void SetBkgColor(COLORREF cr)
-	{
-		m_crBk = cr;
-	}
-
-	EckInline constexpr COLORREF GetBkgColor() const
-	{
-		return m_crBk;
-	}
+	EckInline constexpr void SetBkgColor(COLORREF cr){m_crBk = cr;}
+	EckInline constexpr COLORREF GetBkgColor() const{return m_crBk;}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CPictureBox, CWnd);
 ECK_NAMESPACE_END

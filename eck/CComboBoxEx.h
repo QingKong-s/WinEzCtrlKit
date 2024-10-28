@@ -38,7 +38,7 @@ struct CTRLDATA_COMBOBOXEX
 	BOOL StyleGet##Name() const							\
 	{													\
 		if constexpr (Style == 0)						\
-			return !!GetExtendedStyle();				\
+			return !GetExtendedStyle();					\
 		else											\
 			return IsBitSet(GetExtendedStyle(), Style);	\
 	}													\

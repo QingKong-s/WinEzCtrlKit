@@ -401,7 +401,7 @@ public:
 				UpdateDropSize();
 			m_hFont = (HFONT)wParam;
 			SelectObject(m_DC.GetDC(), m_hFont);
-			if (wParam)
+			if (LOWORD(lParam))
 				Redraw();
 		}
 		return 0;

@@ -168,13 +168,17 @@ struct DESIGNDATA_WND
 	ECK_CWND_DISABLE_ATTACH				\
 	ECK_CWND_DISABLE_ATTACHNEW
 
+#define ECK_CWND_SINGLEOWNER_NO_DEF_CONS(Class)		\
+	ECK_CWND_DISABLE_ATTACH							\
+	ECK_CWND_DISABLE_ATTACHNEW
+
 #define ECK_CWND_NOSINGLEOWNER(Class)	\
 	Class() = default;					\
 	Class(HWND hWnd) { m_hWnd = hWnd; }
 
 class CWnd : public ILayout
 {
-	friend HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc);
+	friend HHOOK BeginCbtHook(CWnd*, FWndCreating, BOOL);
 public:
 	ECK_RTTI(CWnd);
 
@@ -439,6 +443,7 @@ public:
 		EckAssert(pCtx->WmAt(hWnd) == this);// 检查匹配性
 		pCtx->WmRemove(hWnd);
 		pCtx->TwmRemove(hWnd);
+		pCtx->MdRemove(hWnd);
 		return hWnd;
 	}
 

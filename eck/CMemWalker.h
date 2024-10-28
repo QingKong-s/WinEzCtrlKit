@@ -3,7 +3,7 @@
 *
 * CMemWalker.h ： 指针跟踪爬行器
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include "CRefBin.h"

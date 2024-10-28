@@ -39,7 +39,7 @@ struct CTRLDATA_EDIT
 	BOOL StyleGet##Name() const							\
 	{													\
 		if constexpr (Style == 0)						\
-			return !!GetEDExtendStyle();				\
+			return !GetEDExtendStyle();					\
 		else											\
 			return IsBitSet(GetEDExtendStyle(), Style);	\
 	}													\
