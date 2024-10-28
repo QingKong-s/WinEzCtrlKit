@@ -106,4 +106,5 @@ public:
 		SetRange(iMin, iMax);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CUpDown, CWnd);
 ECK_NAMESPACE_END

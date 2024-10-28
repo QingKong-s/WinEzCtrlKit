@@ -1,6 +1,6 @@
 #define ECK_COM_INTERFACE(iid) __interface __declspec(uuid(iid))
 #define ECK_NAMESPACE_BEGIN namespace eck {
-#define EckInline
+#define EckInline __forceinline
 #define ECK_DISABLE_COPY_DEF_CONS(e) e() = default; e(const e&) = delete; e& operator=(const e&) = delete;
 #define ECK_DISABLE_COPY_MOVE_DEF_CONS(e) e() = default; e(const e&) = delete; e& operator=(const e&) = delete; e(e&&) = delete; e& operator=(e&&) = delete;
 #define ECK_DISABLE_COPY(e) e(const e&) = delete; e& operator=(const e&) = delete;
@@ -15,14 +15,14 @@
 #define ECK_CWNDPROP_STYLE(Name, Style) ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; ECK_STYLE_GETSET(Name, Style)
 #define ECK_STYLE_GETSET(Name, Style) BOOL StyleGet##Name() { return IsBitSet(GetStyle(), Style); } void StyleSet##Name(BOOL b) { ModifyStyle((b ? Style : 0), Style, GWL_STYLE); }
 #define ECK_CWNDPROP_STYLE_MASK(Name, Style, Mask) ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; ECK_STYLE_GETSET(Name, Style)
-#define ECK_CWNDPROP_CBE_STYLE(Name, Style) ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; BOOL StyleGet##Name() { if constexpr (Style == 0) return !!GetExtendedStyle(); else return IsBitSet(GetExtendedStyle(), Style); } void StyleSet##Name(BOOL b) { SetExtendedStyle(b ? Style : 0, Style); }
+#define ECK_CWNDPROP_CBE_STYLE(Name, Style) ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; BOOL StyleGet##Name() { if constexpr (Style == 0) return !GetExtendedStyle(); else return IsBitSet(GetExtendedStyle(), Style); } void StyleSet##Name(BOOL b) { SetExtendedStyle(b ? Style : 0, Style); }
 #define ECK_CWND_CREATE_CLS(ClsName) ECK_CWND_CREATE HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle, int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, ::eck::PCVOID pData = nullptr) override { if (pData) { const auto* const pBase = (CTRLDATA_WND*)pData; PreDeserialize(pData); IntCreate(pBase->dwExStyle, ClsName, pBase->Text(), pBase->dwStyle, x, y, cx, cy, hParent, hMenu, nullptr, nullptr); PostDeserialize(pData); } else { IntCreate(0, ClsName, pszText, dwStyle, x, y, cx, cy, hParent, hMenu, nullptr, nullptr); } return m_hWnd; }
 #define ECK_DS_END_VAR(VarName) } VarName{};
 #define ECK_CWND_SINGLEOWNER(Class) Class() = default; ECK_CWND_DISABLE_ATTACH ECK_CWND_DISABLE_ATTACHNEW
 #define ECK_CWND_NOSINGLEOWNER(Class) Class() = default; Class(HWND hWnd) { m_hWnd = hWnd; }
 #define ECK_CWND_CREATE_CLS_HINST(ClsName, HInst) ECK_CWND_CREATE HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle, int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, ::eck::PCVOID pData = nullptr) override { if (pData) { const auto* const pBase = (CTRLDATA_WND*)pData; PreDeserialize(pData); IntCreate(pBase->dwExStyle, ClsName, pBase->Text(), pBase->dwStyle, x, y, cx, cy, hParent, hMenu, HInst, nullptr); PostDeserialize(pData); } else { IntCreate(0, ClsName, pszText, dwStyle, x, y, cx, cy, hParent, hMenu, HInst, nullptr); } return m_hWnd; }
-#define ECK_CWNDPROP_TVE_STYLE(Name, Style) ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; BOOL StyleGet##Name() { if constexpr (Style == 0) return !!GetTVExtendStyle(); else return IsBitSet(GetTVExtendStyle(), Style); } void StyleSet##Name(BOOL b) { SetTVExtendStyle(b ? Style : 0, Style); }
-#define ECK_CWNDPROP_EDE_STYLE(Name, Style) ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; BOOL StyleGet##Name() { if constexpr (Style == 0) return !!GetEDExtendStyle(); else return IsBitSet(GetEDExtendStyle(), Style); } void StyleSet##Name(BOOL b) { SetEDExtendStyle(b ? Style : 0, Style); }
+#define ECK_CWNDPROP_TVE_STYLE(Name, Style) ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; BOOL StyleGet##Name() { if constexpr (Style == 0) return !GetTVExtendStyle(); else return IsBitSet(GetTVExtendStyle(), Style); } void StyleSet##Name(BOOL b) { SetTVExtendStyle(b ? Style : 0, Style); }
+#define ECK_CWNDPROP_EDE_STYLE(Name, Style) ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; BOOL StyleGet##Name() { if constexpr (Style == 0) return !GetEDExtendStyle(); else return IsBitSet(GetEDExtendStyle(), Style); } void StyleSet##Name(BOOL b) { SetEDExtendStyle(b ? Style : 0, Style); }
 #define ECK_CWNDPROP_LVE_STYLE(Name, Style) ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; BOOL StyleGet##Name() const { if constexpr (Style == 0) return !GetLVExtendStyle(); else return IsBitSet(GetLVExtendStyle(), Style); } void StyleSet##Name(BOOL b) const { SetLVExtendStyle(b ? Style : 0, Style); }
 #define ECK_CWNDPROP_REE_STYLE(Name, Style) ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; BOOL StyleGet##Name() const { if constexpr (Style == 0) return !GetEditStyle(); else return IsBitSet(GetEditStyle(), Style); } void StyleSet##Name(BOOL b) const { SetEditStyle(b ? Style : 0, Style); }
 #define ECK_CWNDPROP_REEEX_STYLE(Name, Style) ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; BOOL StyleGet##Name() const { if constexpr (Style == 0) return !GetEditStyleEx(); else return IsBitSet(GetEditStyleEx(), Style); } void StyleSet##Name(BOOL b) const { SetEditStyleEx(b ? Style : 0, Style); }

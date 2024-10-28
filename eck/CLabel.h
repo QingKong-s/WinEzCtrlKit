@@ -51,11 +51,9 @@ public:
 private:
 	CEzCDC m_DC{};			// 兼容DC
 	HBITMAP m_hbmImg{};		// 图片，无需销毁
-
-	HBITMAP m_hbmBkImg;	// 底图，无需销毁
-	int m_cxBkImg,
-		m_cyBkImg;		// 底图大小
-
+	HBITMAP m_hbmBkImg{};	// 底图，无需销毁
+	int m_cxBkImg{},
+		m_cyBkImg{};		// 底图大小
 	HFONT m_hFont{};		// 字体，无需销毁
 	CRefStrW m_rsText{};
 
