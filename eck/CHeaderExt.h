@@ -67,7 +67,7 @@ private:
 	COLORREF m_crSortUp{ CLR_DEFAULT };
 	//
 	std::vector<ITEM> m_vData{};
-	const ECKTHREADCTX* m_pThrCtx{};
+	const THREADCTX* m_pThrCtx{};
 	int m_cxClient{};
 	int m_cyClient{};
 

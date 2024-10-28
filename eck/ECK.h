@@ -750,11 +750,13 @@ void UnInit();
 PCWSTR InitStatusToString(InitStatus iStatus);
 
 class CWnd;
-struct ECKTHREADCTX;
+struct THREADCTX;
 
-using FWndCreating = void(*)(HWND hWnd, CBT_CREATEWNDW* pcs, ECKTHREADCTX* pThreadCtx);
-struct ECKTHREADCTX
+using FWndCreating = void(*)(HWND hWnd, CBT_CREATEWNDW* pcs, THREADCTX* pThreadCtx);
+struct THREADCTX
 {
+	//-------IsDialogMessage
+	std::unordered_set<HWND> hsModelessDlg{};	// 模态对话框集合
 	//-------窗口映射
 	std::unordered_map<HWND, CWnd*> hmWnd{};	// HWND->CWnd*
 	std::unordered_map<HWND, CWnd*> hmTopWnd{};	// 顶级窗口映射
@@ -763,15 +765,19 @@ struct ECKTHREADCTX
 	FWndCreating pfnWndCreatingProc{};	// 当前创建窗口时要调用的过程
 	//-------暗色处理
 	HHOOK hhkCbtDarkMode{};				// 设置允许暗色CBT钩子句柄
-	// !!! 务必在打开文件对话框前暂停Hook
-	BITBOOL bEnableDarkModeHook : 1{ TRUE };	// 是否允许暗色CBT钩子设置窗口，设为FALSE可暂停HOOK
-	BITBOOL bAutoNcDark : 1{ TRUE };			// 自动调整非客户区暗色
 	COLORREF crDefText{};	// 默认前景色
 	COLORREF crDefBkg{};	// 默认背景色
 	COLORREF crDefBtnFace{};// 默认BtnFace颜色
 	COLORREF crBlue1{};		// 蓝色
 	COLORREF crGray1{};		// 灰色
 	COLORREF crTip1{};		// 提示颜色
+
+	// 是否允许暗色CBT钩子设置窗口，设为FALSE可暂停Hook。
+	// 注意：务必在打开文件对话框前暂停Hook
+	BITBOOL bEnableDarkModeHook : 1{ TRUE };
+	BITBOOL bAutoNcDark : 1{ TRUE };	// 自动调整非客户区暗色
+
+	BITBOOL bModelessDlg : 1{};			// 当前窗口是否为模态对话框
 
 	EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
 	{
@@ -813,13 +819,31 @@ struct ECKTHREADCTX
 			hmTopWnd.erase(it);
 	}
 
-	[[nodiscard]] EckInline CWnd* TwmAt(HWND hWnd) const
+	EckInline CWnd* TwmAt(HWND hWnd) const
 	{
 		const auto it = hmTopWnd.find(hWnd);
 		if (it != hmTopWnd.end())
 			return it->second;
 		else
 			return nullptr;
+	}
+
+	EckInline void MdAdd(HWND hWnd)
+	{
+		EckAssert(IsWindow(hWnd));
+		hsModelessDlg.insert(hWnd);
+	}
+
+	EckInline void MdRemove(HWND hWnd)
+	{
+		const auto it = hsModelessDlg.find(hWnd);
+		if (it != hsModelessDlg.end())
+			hsModelessDlg.erase(it);
+	}
+
+	EckInline BOOL MdIsModelessDlg(HWND hWnd) const
+	{
+		return hsModelessDlg.contains(hWnd);
 	}
 
 	void SetNcDarkModeForAllTopWnd(BOOL bDark);
@@ -849,9 +873,9 @@ void ThreadUnInit();
 /// <summary>
 /// 取线程上下文
 /// </summary>
-[[nodiscard]] EckInline ECKTHREADCTX* GetThreadCtx()
+[[nodiscard]] EckInline THREADCTX* GetThreadCtx()
 {
-	return (ECKTHREADCTX*)TlsGetValue(GetThreadCtxTlsSlot());
+	return (THREADCTX*)TlsGetValue(GetThreadCtxTlsSlot());
 }
 
 /// <summary>
@@ -862,7 +886,8 @@ void ThreadUnInit();
 	return GetThreadCtx()->WmAt(hWnd);
 }
 
-HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc = nullptr);
+HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc = nullptr,
+	BOOL bModelessDlg = FALSE);
 
 void EndCbtHook();
 

@@ -310,7 +310,7 @@ static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 }
 
 // 取主题颜色，主要是文本颜色
-static HRESULT UxfGetThemeColor(const THEME_INFO& ti, const ECKTHREADCTX* ptc,
+static HRESULT UxfGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
 	HTHEME hTheme, int iPartId, int iStateId, int iPropId, COLORREF& cr)
 {
 	switch (ti.eType)
@@ -496,7 +496,7 @@ static HRESULT UxfGetThemeColor(const THEME_INFO& ti, const ECKTHREADCTX* ptc,
 }
 
 // 绘制主题背景
-static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const ECKTHREADCTX* ptc,
+static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc,
 	HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 	_In_ const RECT* prc, _In_opt_ const DTBGOPTS* pOptions)
 {
@@ -1224,7 +1224,7 @@ DWORD GetThreadCtxTlsSlot()
 void ThreadInit()
 {
 	EckAssert(!TlsGetValue(GetThreadCtxTlsSlot()));
-	const auto p = new ECKTHREADCTX{};
+	const auto p = new THREADCTX{};
 	TlsSetValue(GetThreadCtxTlsSlot(), p);
 	p->UpdateDefColor();
 	p->hhkCbtDarkMode = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
@@ -1313,7 +1313,7 @@ PCWSTR InitStatusToString(InitStatus iStatus)
 void ThreadUnInit()
 {
 	EckAssert(TlsGetValue(GetThreadCtxTlsSlot()));
-	const auto p = (ECKTHREADCTX*)TlsGetValue(GetThreadCtxTlsSlot());
+	const auto p = (THREADCTX*)TlsGetValue(GetThreadCtxTlsSlot());
 #ifdef _DEBUG
 	if (!p->hmWnd.empty())
 	{
@@ -1327,12 +1327,13 @@ void ThreadUnInit()
 	TlsSetValue(GetThreadCtxTlsSlot(), nullptr);
 }
 
-HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc)
+HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc, BOOL bModelessDlg)
 {
 	EckAssert(pCurrWnd);
 	const auto pCtx = GetThreadCtx();
 	pCtx->pCurrWnd = pCurrWnd;
 	pCtx->pfnWndCreatingProc = pfnCreatingProc;
+	pCtx->bModelessDlg = bModelessDlg;
 	EckAssert(!pCtx->hhkTempCBT);
 	pCtx->hhkTempCBT = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
 		{
@@ -1340,16 +1341,23 @@ HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc)
 			if (iCode == HCBT_CREATEWND)
 			{
 				const auto pcbtcw = (CBT_CREATEWNDW*)lParam;
-				pCtx->pCurrWnd->m_pfnRealProc =
-					(WNDPROC)SetWindowLongPtrW((HWND)wParam, GWLP_WNDPROC,
-						(LONG_PTR)CWnd::EckWndProc);
+				// 执行CWnd初始化
 				EckAssert(!pCtx->pCurrWnd->m_hWnd);
+				pCtx->pCurrWnd->m_pfnRealProc =
+					SetWindowProc((HWND)wParam, CWnd::EckWndProc);
 				pCtx->pCurrWnd->m_hWnd = (HWND)wParam;
+				// 插入窗口映射
 				pCtx->WmAdd((HWND)wParam, pCtx->pCurrWnd);
+				// 插入顶级窗口映射
 				if (!IsBitSet(pcbtcw->lpcs->style, WS_CHILD))
 					pCtx->TwmAdd((HWND)wParam, pCtx->pCurrWnd);
+				// 插入非模式对话框映射
+				if (pCtx->bModelessDlg)
+					pCtx->MdAdd((HWND)wParam);
+				// 执行用户回调
 				if (pCtx->pfnWndCreatingProc)
 					pCtx->pfnWndCreatingProc((HWND)wParam, pcbtcw, pCtx);
+				// 立即卸载钩子
 				EndCbtHook();
 			}
 			return CallNextHookEx(pCtx->hhkTempCBT, iCode, wParam, lParam);
@@ -1371,7 +1379,7 @@ BOOL PreTranslateMessage(const MSG& Msg)
 		return TRUE;
 	HWND hWnd = Msg.hwnd;
 	CWnd* pWnd;
-	const ECKTHREADCTX* const pCtx = GetThreadCtx();
+	const auto* const pCtx = GetThreadCtx();
 	while (hWnd)
 	{
 		pWnd = pCtx->WmAt(hWnd);
@@ -1379,6 +1387,9 @@ BOOL PreTranslateMessage(const MSG& Msg)
 			return TRUE;
 		hWnd = GetParent(hWnd);
 	}
+	if (pCtx->MdIsModelessDlg(Msg.hwnd))
+#pragma warning(suppress: 28183)// 可能为NULL
+		return IsDialogMessageW(Msg.hwnd, (MSG*)&Msg);
 	return FALSE;
 }
 
@@ -1465,13 +1476,13 @@ void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 	}
 }
 
-void ECKTHREADCTX::SetNcDarkModeForAllTopWnd(BOOL bDark)
+void THREADCTX::SetNcDarkModeForAllTopWnd(BOOL bDark)
 {
 	for (const auto& e : hmTopWnd)
 		EnableWindowNcDarkMode(e.first, bDark);
 }
 
-void ECKTHREADCTX::UpdateDefColor()
+void THREADCTX::UpdateDefColor()
 {
 	const auto bDark = GetItemsViewForeBackColor(crDefText, crDefBkg);
 	crDefBtnFace = (bDark ? 0x303030 : GetSysColor(COLOR_BTNFACE));
@@ -1480,7 +1491,7 @@ void ECKTHREADCTX::UpdateDefColor()
 	crTip1 = (bDark ? RGB(131, 162, 198) : RGB(97, 116, 139));
 }
 
-void ECKTHREADCTX::SendThemeChangedToAllTopWindow()
+void THREADCTX::SendThemeChangedToAllTopWindow()
 {
 	for (const auto& [hWnd, _] : hmTopWnd)
 	{

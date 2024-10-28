@@ -3,7 +3,7 @@
 *
 * CPropertySheet.h ： 标准属性表
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include "CWnd.h"
@@ -27,7 +27,7 @@ public:
 		Attach(hDlg);
 	}
 
-	EckInline BOOL AddPage(HPROPSHEETPAGE hPage)
+	EckInline BOOL AddPage(HPROPSHEETPAGE hPage) const
 	{
 		return (BOOL)SendMsg(PSM_ADDPAGE, 0, (LPARAM)hPage);
 	}
@@ -36,7 +36,7 @@ public:
 	/// 模拟应用操作
 	/// </summary>
 	/// <returns>若所有页面均已应用，则返回TRUE，否则返回FALSE</returns>
-	EckInline BOOL Apply()
+	EckInline BOOL Apply() const
 	{
 		return (BOOL)SendMsg(PSM_APPLY, 0, 0);
 	}
@@ -44,12 +44,12 @@ public:
 	/// <summary>
 	/// 指示操作不可逆
 	/// </summary>
-	EckInline void CancelToClose()
+	EckInline void CancelToClose() const
 	{
 		SendMsg(PSM_CANCELTOCLOSE, 0, 0);
 	}
 
-	EckInline void Changed(HPROPSHEETPAGE hPage)
+	EckInline void Changed(HPROPSHEETPAGE hPage) const
 	{
 		SendMsg(PSM_CHANGED, (WPARAM)hPage, 0);
 	}
@@ -59,7 +59,7 @@ public:
 	/// </summary>
 	/// <param name="uButtons">按钮，PSBTN_常量</param>
 	/// <param name="uMask">掩码，PSBTN_常量</param>
-	EckInline void EnableWizardButton(UINT uButtons, UINT uMask)
+	EckInline void EnableWizardButton(UINT uButtons, UINT uMask) const
 	{
 		SendMsg(PSM_ENABLEWIZBUTTONS, uButtons, uMask);
 	}
@@ -69,72 +69,72 @@ public:
 	/// </summary>
 	/// <param name="uButtons">按钮，PSBTN_常量</param>
 	/// <param name="bEnable">是否启用</param>
-	EckInline void EnableWizardButton2(UINT uButtons, BOOL bEnable)
+	EckInline void EnableWizardButton2(UINT uButtons, BOOL bEnable) const
 	{
 		SendMsg(PSM_ENABLEWIZBUTTONS, bEnable ? uButtons : 0, uButtons);
 	}
 
-	EckInline HWND GetCurrPageHWND()
+	EckInline HWND GetCurrPageHWND() const
 	{
 		return (HWND)SendMsg(PSM_GETCURRENTPAGEHWND, 0, 0);
 	}
 
-	EckInline int GetResult()
+	EckInline int GetResult() const
 	{
 		return (int)SendMsg(PSM_GETRESULT, 0, 0);
 	}
 
-	EckInline HWND GetTabCtrl()
+	EckInline HWND GetTabCtrl() const
 	{
 		return (HWND)SendMsg(PSM_GETTABCONTROL, 0, 0);
 	}
 
-	EckInline int HWNDToIndex(HWND hDlg)
+	EckInline int HWNDToIndex(HWND hDlg) const
 	{
 		return (int)SendMsg(PSM_HWNDTOINDEX, (WPARAM)hDlg, 0);
 	}
 
-	EckInline int IDToIndex(PCWSTR idRes)
+	EckInline int IDToIndex(PCWSTR idRes) const
 	{
 		return (int)SendMsg(PSM_IDTOINDEX, 0, (LPARAM)idRes);
 	}
 
-	EckInline HWND IndexToHWND(int idx)
+	EckInline HWND IndexToHWND(int idx) const
 	{
 		return (HWND)SendMsg(PSM_INDEXTOHWND, idx, 0);
 	}
 
-	EckInline PCWSTR IndexToID(int idx)
+	EckInline PCWSTR IndexToID(int idx) const
 	{
 		return (PCWSTR)SendMsg(PSM_INDEXTOID, idx, 0);
 	}
 
-	EckInline HPROPSHEETPAGE IndexToHPAGE(int idx)
+	EckInline HPROPSHEETPAGE IndexToHPAGE(int idx) const
 	{
 		return (HPROPSHEETPAGE)SendMsg(PSM_INDEXTOPAGE, idx, 0);
 	}
 
-	EckInline BOOL InsertPage(HPROPSHEETPAGE hPage, HPROPSHEETPAGE hInsertAfter = nullptr)
+	EckInline BOOL InsertPage(HPROPSHEETPAGE hPage, HPROPSHEETPAGE hInsertAfter = nullptr) const
 	{
 		return (BOOL)SendMsg(PSM_INSERTPAGE, (WPARAM)hInsertAfter, (LPARAM)hPage);
 	}
 
-	EckInline BOOL InsertPage(HPROPSHEETPAGE hPage, int idx)
+	EckInline BOOL InsertPage(HPROPSHEETPAGE hPage, int idx) const
 	{
 		return (BOOL)SendMsg(PSM_INSERTPAGE, idx, (LPARAM)hPage);
 	}
 
-	EckInline BOOL IsDialogMessageW(MSG* pmsg)
+	EckInline BOOL IsDlgMsg(MSG* pmsg) const
 	{
 		return (BOOL)SendMsg(PSM_ISDIALOGMESSAGE, 0, (LPARAM)pmsg);
 	}
 
-	EckInline int HPAGEToIndex(HPROPSHEETPAGE hPage)
+	EckInline int HPAGEToIndex(HPROPSHEETPAGE hPage) const
 	{
 		return (int)SendMsg(PSM_PAGETOINDEX, 0, (LPARAM)hPage);
 	}
 
-	EckInline void PressButton(UINT uButton)
+	EckInline void PressButton(UINT uButton) const
 	{
 		SendMsg(PSM_PRESSBUTTON, uButton, 0);
 	}
@@ -147,72 +147,72 @@ public:
 	/// <param name="wParam"></param>
 	/// <param name="lParam"></param>
 	/// <returns>若所有页面均已接收到消息，则返回TRUE，否则返回FALSE</returns>
-	EckInline BOOL QuerySiblings(WPARAM wParam, LPARAM lParam)
+	EckInline BOOL QuerySiblings(WPARAM wParam, LPARAM lParam) const
 	{
 		return (BOOL)SendMsg(PSM_QUERYSIBLINGS, wParam, lParam);
 	}
 
-	EckInline void RebootSystem()
+	EckInline void RebootSystem() const
 	{
 		SendMsg(PSM_REBOOTSYSTEM, 0, 0);
 	}
 
-	EckInline BOOL ReCalcPageSize()
+	EckInline BOOL ReCalcPageSize() const
 	{
 		return (BOOL)SendMsg(PSM_RECALCPAGESIZES, 0, 0);
 	}
 
-	EckInline void DeletePage(int idx)
+	EckInline void DeletePage(int idx) const
 	{
 		SendMsg(PSM_REMOVEPAGE, idx, 0);
 	}
 
-	EckInline void DeletePage(HPROPSHEETPAGE hPage)
+	EckInline void DeletePage(HPROPSHEETPAGE hPage) const
 	{
 		SendMsg(PSM_REMOVEPAGE, 0, (LPARAM)hPage);
 	}
 
-	EckInline void RestartWindows()
+	EckInline void RestartWindows() const
 	{
 		SendMsg(PSM_RESTARTWINDOWS, 0, 0);
 	}
 
-	EckInline void SetButtonText(PCWSTR pszText, UINT uButton)
+	EckInline void SetButtonText(PCWSTR pszText, UINT uButton) const
 	{
 		SendMsg(PSM_SETBUTTONTEXTW, uButton, (LPARAM)pszText);
 	}
 
-	EckInline BOOL SetCurSel(int idx)
+	EckInline BOOL SetCurSel(int idx) const
 	{
 		return (BOOL)SendMsg(PSM_SETCURSEL, idx, 0);
 	}
 
-	EckInline BOOL SetCurSel(HPROPSHEETPAGE hPage)
+	EckInline BOOL SetCurSel(HPROPSHEETPAGE hPage) const
 	{
 		return (BOOL)SendMsg(PSM_SETCURSEL, 0, (LPARAM)hPage);
 	}
 
-	EckInline BOOL SetCurSel(PCWSTR idRes)
+	EckInline BOOL SetCurSel(PCWSTR idRes) const
 	{
 		return (BOOL)SendMsg(PSM_SETCURSELID, 0, (LPARAM)idRes);
 	}
 
-	EckInline void SetFinishText(int idx, PCWSTR pszText)
+	EckInline void SetFinishText(int idx, PCWSTR pszText) const
 	{
 		SendMsg(PSM_SETFINISHTEXTW, idx, (LPARAM)pszText);
 	}
 
-	EckInline void SetHeaderSubTitle(int idx, PCWSTR pszText)
+	EckInline void SetHeaderSubTitle(int idx, PCWSTR pszText) const
 	{
 		SendMsg(PSM_SETHEADERSUBTITLEW, idx, (LPARAM)pszText);
 	}
 
-	EckInline void SetHeaderTitle(int idx, PCWSTR pszText)
+	EckInline void SetHeaderTitle(int idx, PCWSTR pszText) const
 	{
 		SendMsg(PSM_SETHEADERTITLEW, idx, (LPARAM)pszText);
 	}
 
-	EckInline void SetNextText(PCWSTR pszText)
+	EckInline void SetNextText(PCWSTR pszText) const
 	{
 		SendMsg(PSM_SETNEXTTEXTW, 0, (LPARAM)pszText);
 	}
@@ -222,7 +222,7 @@ public:
 	/// </summary>
 	/// <param name="pszText">标题文本，可传入MAKEINRESOURCE(资源ID)</param>
 	/// <param name="bPropOf">是否显示为某某的属性</param>
-	EckInline void SetTitle(PCWSTR pszText, BOOL bPropOf = FALSE)
+	EckInline void SetTitle(PCWSTR pszText, BOOL bPropOf = FALSE) const
 	{
 		SendMsg(PSM_SETTITLEW, bPropOf ? PSH_PROPTITLE : 0, (LPARAM)pszText);
 	}
@@ -232,7 +232,7 @@ public:
 	/// </summary>
 	/// <param name="uButtons">按钮，PSBTN_常量</param>
 	/// <param name="bShieldIcon">是否显示盾牌图标，仅在Aero向导中有效</param>
-	EckInline void SetWizardButtons(UINT uButtons, BOOL bShieldIcon = FALSE)
+	EckInline void SetWizardButtons(UINT uButtons, BOOL bShieldIcon = FALSE) const
 	{
 		SendMsg(PSM_SETWIZBUTTONS, bShieldIcon ? PSWIZBF_ELEVATIONREQUIRED : 0, uButtons);
 	}
@@ -242,7 +242,7 @@ public:
 	/// </summary>
 	/// <param name="uButtons">按钮，PSBTN_常量</param>
 	/// <param name="uMask">掩码，PSBTN_常量</param>
-	EckInline void ShowWizardButton(UINT uButtons, UINT uMask)
+	EckInline void ShowWizardButton(UINT uButtons, UINT uMask) const
 	{
 		SendMsg(PSM_SHOWWIZBUTTONS, uButtons, uMask);
 	}
@@ -252,12 +252,12 @@ public:
 	/// </summary>
 	/// <param name="uButtons">按钮，PSBTN_常量</param>
 	/// <param name="bShow">是否显示</param>
-	EckInline void ShowWizardButton2(UINT uButtons, BOOL bShow)
+	EckInline void ShowWizardButton2(UINT uButtons, BOOL bShow) const
 	{
 		SendMsg(PSM_SHOWWIZBUTTONS, bShow ? uButtons : 0, uButtons);
 	}
 
-	EckInline void Unchanged(HPROPSHEETPAGE hPage)
+	EckInline void Unchanged(HPROPSHEETPAGE hPage) const
 	{
 		SendMsg(PSM_UNCHANGED, (WPARAM)hPage, 0);
 	}

@@ -571,14 +571,14 @@ public:
 		dwStyle |= WS_CHILD;
 
 		dwStyle |= (LBS_OWNERDRAWFIXED | LBS_NODATA | LBS_NOTIFY);
-		if (m_Info.bMultiSel)
-			dwStyle |= LBS_MULTIPLESEL;
-		if (m_Info.bExtSel)
-			dwStyle |= LBS_EXTENDEDSEL;
-		//if (!m_Info.bIntegralHeight)
-		dwStyle |= LBS_NOINTEGRALHEIGHT;
-		if (m_Info.bDisableNoScroll)
-			dwStyle |= LBS_DISABLENOSCROLL;
+		//if (m_Info.bMultiSel)
+		//	dwStyle |= LBS_MULTIPLESEL;
+		//if (m_Info.bExtSel)
+		//	dwStyle |= LBS_EXTENDEDSEL;
+		////if (!m_Info.bIntegralHeight)
+		//dwStyle |= LBS_NOINTEGRALHEIGHT;
+		//if (m_Info.bDisableNoScroll)
+		//	dwStyle |= LBS_DISABLENOSCROLL;
 
 		
 		m_hWnd = CreateWindowExW(dwExStyle, WC_LISTBOXW, nullptr, dwStyle,
@@ -589,8 +589,8 @@ public:
 			WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP | (m_InfoEx.bBalloonToolTip ? TTS_BALLOON : 0),
 			0, 0, 0, 0, nullptr, nullptr, nullptr, nullptr);
 
-		if (m_Info.bDragList)
-			SetDragList(m_Info.bDragList);
+		//if (m_Info.bDragList)
+			;// SetDragList(m_Info.bDragList);
 		
 		UpdateThemeInfo();
 

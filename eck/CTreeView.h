@@ -19,7 +19,7 @@ constexpr inline UINT TVS_EX_ALL{/*TVS_EX_NOSINGLECOLLAPSE | TVS_EX_MULTISELECT 
 	BOOL StyleGet##Name() const							\
 	{													\
 		if constexpr (Style == 0)						\
-			return !!GetTVExtendStyle();				\
+			return !GetTVExtendStyle();				\
 		else											\
 			return IsBitSet(GetTVExtendStyle(), Style);	\
 	}													\
