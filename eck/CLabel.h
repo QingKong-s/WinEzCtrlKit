@@ -3,263 +3,290 @@
 *
 * CLabel.h ： 标签
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include "CWnd.h"
-#include "Utility.h"
 #include "GraphicsHelper.h"
 
-#include <windowsx.h>
-
 ECK_NAMESPACE_BEGIN
-struct ECKLABELDATA
+struct LA_HITTEST
 {
-	BkImgMode iBKPicMode;	// 底图模式，0 - 居左上  1 - 平铺  2 - 居中  3 - 缩放
-	int iAlignH;			// 横向对齐
-	int iAlignV;			// 纵向对齐
-	COLORREF crText;		// 文本颜色
-	COLORREF crTextBK;		// 文本背景颜色
-	COLORREF crBK;			// 背景颜色
-	/*
-	* 渐变背景模式，可选值：
-	* 0 - 无  1 - 从上到下  2 - 从下到上  3 - 从左到右  4 - 从右到左
-	* 5 - 从左上到右下  6 - 从右下到左上  7 - 从左下到右上  8 - 从右上到左下
-	*/
-	int iGradientMode;
-	COLORREF crGradient[3];	// 渐变背景颜色
-	int iEllipsisMode;		// 省略号模式，0 - 无  1 - 末尾省略  2 - 路径省略  3 - 省略单词
-	int iPrefixMode;		// 前缀模式，0 - 常规  1 - 不解释前缀  2 - 隐藏下划线  3 - 只显示下划线
-	int iMousePassingThrough;	// 鼠标穿透，0 - 无  1 - 穿透空白区域  2 - 穿透整个控件
-	BITBOOL bAutoWrap : 1;		// 自动折行
-	BITBOOL bFullWndPic : 1;	// 底图尽量充满控件
-	BITBOOL bTransparent : 1;	// 透明标签
-	BITBOOL bUxThemeText : 1;
+	BITBOOL bHit : 1;
+	BITBOOL bHitText : 1;
+	BITBOOL bHitImg : 1;
 };
+
+constexpr inline std::array<COLORREF, 3> DefLabelGradient{ 0x808080,0xFFFFFF,0x808080 };
 
 class CLabel :public CWnd
 {
 public:
 	ECK_RTTI(CLabel);
+	ECK_CWND_SINGLEOWNER(CLabel);
+	ECK_CWND_CREATE_CLS_HINST(WCN_LABEL, g_hInstance);
+
+	enum class Ellipsis :BYTE
+	{
+		None,
+		End,
+		Path,
+		Word
+	};
+
+	enum class Prefix :BYTE
+	{
+		Normal,
+		NoPrefix,
+		HidePrefix,
+		PrefixOnly,
+	};
+
+	enum class MouseOpt :BYTE
+	{
+		None,
+		TransparentSpace,
+		Transparent,
+	};
 private:
-	ECKLABELDATA m_Info{};
+	CEzCDC m_DC{};			// 兼容DC
+	HBITMAP m_hbmImg{};		// 图片，无需销毁
 
-	int m_cxClient = 0,
-		m_cyClient = 0;			// 客户区大小
-	HDC m_hCDC = nullptr;			// 后台兼容DC
-	HDC m_hcdcHelper = nullptr;	// 画位图使用的辅助DC
-	HBITMAP m_hBitmap = nullptr;	// 后台兼容位图
-	HGDIOBJ m_hOld1 = nullptr;		// 后台DC旧位图句柄
-	HGDIOBJ m_hOld2 = nullptr;		// 辅助DC旧位图句柄
+	HBITMAP m_hbmBkImg;	// 底图，无需销毁
+	int m_cxBkImg,
+		m_cyBkImg;		// 底图大小
 
-	HBITMAP m_hbmBK = nullptr;		// 底图
-	HBITMAP m_hbmPic = nullptr;	// 图片
-	int m_cxBKPic = 0,
-		m_cyBKPic = 0;			// 底图大小
-
-	int m_cxPic = 0,
-		m_cyPic = 0;			// 图片大小
-	RECT m_rcPartPic{};			// 缓存的图片矩形
-	RECT m_rcPartText{};		// 缓存的文本矩形
-
-	HFONT m_hFont = nullptr;
+	HFONT m_hFont{};		// 字体，无需销毁
 	CRefStrW m_rsText{};
 
-	static ATOM m_atomLabel;	// 标签类原子
+	BkImgMode m_eBkImgMode{ BkImgMode::TopLeft };		// 底图模式
+	GradientMode m_eGradientMode{ GradientMode::None };	// 渐变模式
+	Align m_eAlignH{};	// 横向对齐
+	Align m_eAlignV{};	// 纵向对齐
 
-	/// <summary>
-	/// 绘制标签。
-	/// 若m_Info.bTransparent为TRUE，则自动设置剪辑DC至控件矩形
-	/// </summary>
-	/// <param name="hDC">目标DC，调用之前属性必须设置完毕</param>
-	void Paint(HDC hDC)
+	Ellipsis m_eEllipsisMode{};		// 省略号模式
+	Prefix m_ePrefixMode{};			// 前缀模式
+	MouseOpt m_eMouseOption{};		// 鼠标穿透
+	BITBOOL m_bAutoWrap : 1{};		// 自动换行
+	BITBOOL m_bFullWndImg : 1{};	// 底图尽量充满控件
+	BITBOOL m_bTransparent : 1{};	// 透明标签
+	BITBOOL m_bImgAlpha : 1{};		// 图片需要Alpha混合
+	BITBOOL m_bBkImgAlpha : 1{};	// 底图需要Alpha混合
+
+	BITBOOL m_bPartMetricsDirty : 1{ TRUE };// 部件矩形需要重新计算
+
+	COLORREF m_crText{ CLR_DEFAULT };	// 文本颜色
+	COLORREF m_crTextBK{ CLR_DEFAULT };	// 文本背景颜色
+	COLORREF m_crBK{ CLR_DEFAULT };		// 背景颜色
+	std::array<COLORREF, 3> m_crGradient{ DefLabelGradient };
+
+	int m_cxClient{},
+		m_cyClient{};
+
+	RECT m_rcPartImg{};	// 缓存的图片矩形
+	RECT m_rcPartText{};// 缓存的文本矩形
+
+	constexpr UINT DtEllipsis() const
 	{
-		BLENDFUNCTION bf;
-		bf.BlendOp = AC_SRC_OVER;
-		bf.BlendFlags = 0;
-		bf.SourceConstantAlpha = 255;
-		bf.AlphaFormat = AC_SRC_ALPHA;
-		//
-		// 画背景
-		//
-
-		// 画纯色背景
-		RECT rc{ 0,0,m_cxClient,m_cyClient };
-		if (!m_Info.bTransparent)
-			FillRect(hDC, &rc, (HBRUSH)GetStockObject(DC_BRUSH));
-		else
-			IntersectClipRect(hDC, 0, 0, m_cxClient, m_cyClient);
-		// 类样式带CS_PARENTDC速度会快一点，并且按理来说应该手动剪辑子窗口，但是为什么不剪辑也没事。。。反正这里就这么写了吧，按规定来
-
-		// 画渐变背景或底图
-		if (m_Info.iGradientMode != 0)
-			FillGradientRect(hDC, rc, m_Info.crGradient, m_Info.iGradientMode);
-		else if (m_hbmBK)
+		switch (m_eEllipsisMode)
 		{
-			SelectObject(m_hcdcHelper, m_hbmBK);
-			DrawBackgroundImage32(hDC, m_hcdcHelper, rc, m_cxBKPic, m_cyBKPic,
-				m_Info.iBKPicMode, m_Info.bFullWndPic);
+		case Ellipsis::End:	return DT_END_ELLIPSIS; break;
+		case Ellipsis::Path:return DT_PATH_ELLIPSIS; break;
+		case Ellipsis::Word:return DT_WORD_ELLIPSIS; break;
 		}
-		//
-		// 画文本
-		//
-		UINT uDTFlags = DT_NOCLIP | (m_Info.bAutoWrap ? DT_WORDBREAK : DT_SINGLELINE);
-		switch (m_Info.iEllipsisMode)
-		{
-		case 0:uDTFlags |= DT_END_ELLIPSIS; break;
-		case 1:uDTFlags |= DT_PATH_ELLIPSIS; break;
-		case 2:uDTFlags |= DT_WORD_ELLIPSIS; break;
-		default:assert(FALSE);
-		}
-		switch (m_Info.iPrefixMode)
-		{
-		case 0:uDTFlags |= DT_NOPREFIX; break;
-		case 1:uDTFlags |= DT_HIDEPREFIX; break;
-		case 2:uDTFlags |= DT_PREFIXONLY; break;
-		default:assert(FALSE);
-		}
-
-		SelectObject(m_hcdcHelper, m_hbmPic);
-		AlphaBlend(hDC, m_rcPartPic.left, m_rcPartPic.top, m_cxPic, m_cyPic, m_hcdcHelper, 0, 0, m_cxPic, m_cyPic, bf);
-		rc = m_rcPartText;
-		DrawTextW(hDC, m_rsText.Data(), -1, &rc, uDTFlags);
+		return 0u;
 	}
 
-	/// <summary>
-	/// 计算部件矩形
-	/// </summary>
+	constexpr UINT DtPrefix() const
+	{
+		switch (m_ePrefixMode)
+		{
+		case Prefix::NoPrefix:	return DT_NOPREFIX; break;
+		case Prefix::HidePrefix:return DT_HIDEPREFIX; break;
+		case Prefix::PrefixOnly:return DT_PREFIXONLY; break;
+		}
+		return 0u;
+	}
+
+	constexpr UINT DtAlignH() const
+	{
+		switch (m_eAlignH)
+		{
+		case Align::Center:	return DT_CENTER; break;
+		case Align::Far:	return DT_RIGHT; break;
+		}
+		return DT_LEFT;
+	}
+
+	void Paint(HDC hDC, const RECT& rcPaint)
+	{
+		if (m_bPartMetricsDirty)
+		{
+			m_bPartMetricsDirty = FALSE;
+			CalcPartsRect();
+		}
+		const auto hCDC = (m_hbmImg || m_hbmBkImg) ?
+			CreateCompatibleDC(hDC) : nullptr;
+		RECT rc{ 0,0,m_cxClient,m_cyClient };
+		// 画纯色背景
+		if (!m_bTransparent)
+		{
+			FillRect(hDC, &rc, GetStockBrush(DC_BRUSH));
+		}
+		// 画渐变背景或底图
+		if (m_eGradientMode != GradientMode::None)
+			FillGradientRect(hDC, rc, m_crGradient.data(), m_eGradientMode);
+		else if (m_hbmBkImg)
+		{
+			SelectObject(hCDC, m_hbmBkImg);
+			if (m_bBkImgAlpha)
+				DrawBackgroundImage32(hDC, hCDC, rc, m_cxBkImg, m_cyBkImg,
+					m_eBkImgMode, m_bFullWndImg);
+			else
+				DrawBackgroundImage(hDC, hCDC, rc, m_cxBkImg, m_cyBkImg,
+					m_eBkImgMode, m_bFullWndImg);
+		}
+		// 画图片
+		if (m_hbmImg)
+		{
+			SelectObject(hCDC, m_hbmImg);
+			if (m_bImgAlpha)
+				AlphaBlend(hDC,
+					m_rcPartImg.left,
+					m_rcPartImg.top,
+					m_rcPartImg.right - m_rcPartImg.left,
+					m_rcPartImg.bottom - m_rcPartImg.top,
+					hCDC, 0, 0,
+					m_rcPartImg.right - m_rcPartImg.left,
+					m_rcPartImg.bottom - m_rcPartImg.top, BlendFuncAlpha);
+			else
+				BitBlt(hDC,
+					m_rcPartImg.left,
+					m_rcPartImg.top,
+					m_rcPartImg.right - m_rcPartImg.left,
+					m_rcPartImg.bottom - m_rcPartImg.top, hCDC, 0, 0, SRCCOPY);
+		}
+		// 画文本
+		const UINT uDTFlags = DT_NOCLIP | DtEllipsis() | DtPrefix() | DtAlignH() |
+			(m_bAutoWrap ? DT_WORDBREAK : DT_SINGLELINE);
+		DrawTextW(hDC, m_rsText.Data(), m_rsText.Size(), &m_rcPartText, uDTFlags);
+		if (hCDC)
+			DeleteDC(hCDC);
+	}
+
 	void CalcPartsRect()
 	{
-		RECT rc{ 0,0,m_cxClient - m_cxPic,m_cyClient };
-		UINT uDTFlags = DT_NOCLIP | DT_CALCRECT;
-		switch (m_Info.iEllipsisMode)
+		BITMAP bm;
+		int cxImg, cyImg;
+		if (GetObjectW(m_hbmImg, sizeof(bm), &bm))
 		{
-		case 0:uDTFlags |= DT_END_ELLIPSIS; break;
-		case 1:uDTFlags |= DT_PATH_ELLIPSIS; break;
-		case 2:uDTFlags |= DT_WORD_ELLIPSIS; break;
-		default:assert(FALSE);
+			cxImg = bm.bmWidth;
+			cyImg = bm.bmHeight;
 		}
-		switch (m_Info.iPrefixMode)
-		{
-		case 0:uDTFlags |= DT_NOPREFIX; break;
-		case 1:uDTFlags |= DT_HIDEPREFIX; break;
-		case 2:uDTFlags |= DT_PREFIXONLY; break;
-		default:assert(FALSE);
-		}
+		else
+			cxImg = cyImg = 0;
 
+		RECT rc{ 0,0,m_cxClient - cxImg,m_cyClient };
+		UINT uDtFlags = DT_NOCLIP | DT_CALCRECT | DtEllipsis() | DtPrefix();
 		int xPic, yPic;
 
-		if (m_Info.bAutoWrap)
+		if (m_bAutoWrap)
 		{
-			uDTFlags |= DT_WORDBREAK;
-			DrawTextW(m_hCDC, m_rsText.Data(), -1, &rc, uDTFlags);
+			uDtFlags |= DT_WORDBREAK;
+			DrawTextW(m_DC.GetDC(), m_rsText.Data(), m_rsText.Size(), &rc, uDtFlags);
 
 			int cyText = rc.bottom - rc.top;
-			switch (m_Info.iAlignV)
+			switch (m_eAlignV)
 			{
-			case 0:// 上边
+			case Align::Near:// 上边
 				rc.top = 0;
 				rc.bottom = rc.top + cyText;
 				yPic = rc.top;
 				break;
-			case 1:// 中间
+			case Align::Center:// 中间
 				rc.top = (m_cyClient - cyText) / 2;
 				rc.bottom = rc.top + cyText;
-				yPic = (m_cyClient - m_cyPic) / 2;
+				yPic = (m_cyClient - cyImg) / 2;
 				break;
-			case 2:// 下边
+			case Align::Far:// 下边
 				rc.bottom = m_cyClient;
 				rc.top = rc.bottom - cyText;
-				yPic = m_cyClient - m_cyPic;
+				yPic = m_cyClient - cyImg;
 				break;
-			default:
-				assert(FALSE);
+			default: ECK_UNREACHABLE;
 			}
 		}
 		else
 		{
-			uDTFlags |= DT_SINGLELINE;
-			DrawTextW(m_hCDC, m_rsText.Data(), -1, &rc, uDTFlags);
+			uDtFlags |= DT_SINGLELINE;
+			DrawTextW(m_DC.GetDC(), m_rsText.Data(), m_rsText.Size(), &rc, uDtFlags);
 
 			int cyText = rc.bottom - rc.top;
-			switch (m_Info.iAlignV)
+			switch (m_eAlignV)
 			{
-			case 0:// 上边
+			case Align::Near:// 上边
 				rc.top = 0;
 				rc.bottom = rc.top + cyText;
 				yPic = rc.top;
 				break;
-			case 1:// 中间
+			case Align::Center:// 中间
 				rc.top = (m_cyClient - cyText) / 2;
 				rc.bottom = rc.top + cyText;
-				yPic = (m_cyClient - m_cyPic) / 2;
+				yPic = (m_cyClient - cyImg) / 2;
 				break;
-			case 2:// 下边
+			case Align::Far:// 下边
 				rc.bottom = m_cyClient;
 				rc.top = rc.bottom - cyText;
-				yPic = m_cyClient - m_cyPic;
+				yPic = m_cyClient - cyImg;
 				break;
-			default:
-				assert(FALSE);
+			default: ECK_UNREACHABLE;
 			}
 		}
-		uDTFlags &= (~DT_CALCRECT);
-		int cxText = rc.right - rc.left;
-		int cxTotal = cxText + m_cxPic;
-		switch (m_Info.iAlignH)
+		uDtFlags &= (~DT_CALCRECT);
+
+		const int cxText = rc.right - rc.left;
+		switch (m_eAlignH)
 		{
-		case 0:// 左边
-			uDTFlags |= DT_LEFT;
-			rc.left = m_cxPic;
+		case Align::Near:// 左边
+			uDtFlags |= DT_LEFT;
+			rc.left = cxImg;
 			rc.right = rc.left + cxText;
 			xPic = 0;
 			break;
-		case 1:// 中间
-			rc.left = (m_cxClient - cxTotal) / 2 + m_cxPic;
+		case Align::Center:// 中间
+			rc.left = (m_cxClient - (cxText + cxImg)) / 2 + cxImg;
 			rc.right = rc.left + cxText;
-			xPic = rc.left - m_cxPic;
+			xPic = rc.left - cxImg;
 			break;
-		case 2:// 右边
-			uDTFlags |= DT_RIGHT;
-			rc.right = m_cxClient - m_cxPic;
+		case Align::Far:// 右边
+			uDtFlags |= DT_RIGHT;
+			rc.right = m_cxClient - cxImg;
 			rc.left = rc.right - cxText;
 			xPic = rc.right;
 			break;
-		default:
-			assert(FALSE);
+		default: ECK_UNREACHABLE;
 		}
 
-		m_rcPartPic.left = xPic;
-		m_rcPartPic.top = yPic;
-		m_rcPartPic.right = m_rcPartPic.left + m_cxPic;
-		m_rcPartPic.bottom = m_rcPartPic.top + m_cyPic;
+		m_rcPartImg.left = xPic;
+		m_rcPartImg.top = yPic;
+		m_rcPartImg.right = m_rcPartImg.left + cxImg;
+		m_rcPartImg.bottom = m_rcPartImg.top + cyImg;
 
 		m_rcPartText = rc;
 	}
 
-	/// <summary>
-	/// 置外部DC属性。
-	/// 函数先使用SaveDC保存DC状态，然后根据控件属性设置DC
-	/// </summary>
-	/// <param name="hDC">目标DC</param>
-	void SetDCAttr(HDC hDC)
+	void SetDCAttributes(HDC hDC)
 	{
-		SaveDC(hDC);
-		///////////
+		const auto* const ptc = GetThreadCtx();
 		SelectObject(hDC, m_hFont);
-		///////////
-		SetTextColor(hDC, m_Info.crText);
-		///////////
-		if (m_Info.crBK == CLR_DEFAULT)
-			m_Info.crBK = GetSysColor(COLOR_BTNFACE);
-		SetDCBrushColor(hDC, m_Info.crBK);
-		///////////
-		if (m_Info.crTextBK == CLR_DEFAULT)
+		SetTextColor(hDC, m_crText == CLR_DEFAULT ? ptc->crDefText : m_crText);
+		SetDCBrushColor(hDC, m_crBK == CLR_DEFAULT ? ptc->crDefBkg : m_crBK);
+		if (m_crTextBK == CLR_DEFAULT)
 			SetBkMode(hDC, TRANSPARENT);
 		else
 		{
 			SetBkMode(hDC, OPAQUE);
-			SetBkColor(hDC, m_Info.crTextBK);
+			SetBkColor(hDC, m_crTextBK);
 		}
 	}
 public:
@@ -269,20 +296,20 @@ public:
 		{
 		case WM_NCHITTEST:
 		{
-			if (m_Info.bTransparent)
-				switch (m_Info.iMousePassingThrough)
+			if (m_bTransparent)
+				switch (m_eMouseOption)
 				{
-				case 0:// 无
-					break;
-				case 1:// 穿透空白区域
+				case MouseOpt::TransparentSpace:
 				{
 					POINT pt{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) };
 					ScreenToClient(hWnd, &pt);
-					if (!PtInRect(&m_rcPartPic, pt) && !PtInRect(&m_rcPartText, pt))
+					LA_HITTEST laht;
+					HitTest(pt, laht);
+					if (!laht.bHitImg && !laht.bHitText)
 						return HTTRANSPARENT;
 				}
 				break;
-				case 2:// 穿透整个控件
+				case MouseOpt::Transparent:
 					return HTTRANSPARENT;
 				}
 		}
@@ -290,7 +317,7 @@ public:
 
 		case WM_WINDOWPOSCHANGING:
 		{
-			if (m_Info.bTransparent)
+			if (m_bTransparent)
 			{
 				const auto pwp = (WINDOWPOS*)lParam;
 				pwp->flags |= SWP_NOCOPYBITS;
@@ -298,85 +325,42 @@ public:
 		}
 		break;
 
-		case WM_SIZE:
-		{
-			m_cxClient = LOWORD(lParam);
-			m_cyClient = HIWORD(lParam);
-			SelectObject(m_hCDC, m_hOld1);
-			DeleteObject(m_hBitmap);
-			HDC hDC = GetDC(hWnd);
-			m_hBitmap = CreateCompatibleBitmap(hDC, m_cxClient, m_cyClient);
-			SelectObject(m_hCDC, m_hBitmap);
-			ReleaseDC(hWnd, hDC);
-			CalcPartsRect();
-			if (!m_Info.bTransparent)
-				Redraw();
-		}
-		return 0;
-
-		case WM_NCCREATE:
-			SetWindowLongPtrW(hWnd, 0, (LONG_PTR)((CREATESTRUCTW*)lParam)->lpCreateParams);
-			return TRUE;
-
-		case WM_CREATE:
-		{
-			auto pcs = (CREATESTRUCTW*)lParam;
-			m_rsText = pcs->lpszName;
-			HDC hDC = GetDC(hWnd);
-			m_hCDC = CreateCompatibleDC(hDC);
-			m_hcdcHelper = CreateCompatibleDC(hDC);
-			ReleaseDC(hWnd, hDC);
-			m_hOld1 = GetCurrentObject(m_hCDC, OBJ_BITMAP);
-			m_hOld2 = GetCurrentObject(m_hcdcHelper, OBJ_BITMAP);
-			SetDCBrushColor(m_hCDC, GetSysColor(COLOR_BTNFACE));
-		}
-		return 0;
-
-		case WM_DESTROY:
-		{
-			SelectObject(m_hCDC, m_hOld1);
-			SelectObject(m_hcdcHelper, m_hOld2);
-			DeleteDC(m_hCDC);
-			DeleteDC(m_hcdcHelper);
-			DeleteObject(m_hBitmap);
-		}
-		return 0;
-
+		case WM_PRINTCLIENT:
 		case WM_PAINT:
 		{
 			PAINTSTRUCT ps;
-			BeginPaint(hWnd, &ps);
-			if (m_Info.bTransparent)
+			BeginPaint(hWnd, wParam, ps);
+			if (m_bTransparent)
 			{
-				SetDCAttr(ps.hdc);
-				Paint(ps.hdc);
+				SaveDC(ps.hdc);
+				SetDCAttributes(ps.hdc);
+				Paint(ps.hdc, ps.rcPaint);
 				RestoreDC(ps.hdc, -1);
 			}
 			else
 			{
-				Paint(m_hCDC);
-				BitBlt(ps.hdc,
-					ps.rcPaint.left,
-					ps.rcPaint.top,
-					ps.rcPaint.right - ps.rcPaint.left,
-					ps.rcPaint.bottom - ps.rcPaint.top,
-					m_hCDC,
-					ps.rcPaint.left,
-					ps.rcPaint.top,
-					SRCCOPY);
+				Paint(m_DC.GetDC(), ps.rcPaint);
+				BitBltPs(ps, m_DC.GetDC());
 			}
-			EndPaint(hWnd, &ps);
+			EndPaint(hWnd, wParam, ps);
 		}
 		return 0;
+
+		case WM_THEMECHANGED:
+			SetDCAttributes(m_DC.GetDC());
+			break;
 
 		case WM_SETFONT:
 		{
 			m_hFont = (HFONT)wParam;
-			SelectObject(m_hCDC, m_hFont);
+			SelectObject(m_DC.GetDC(), m_hFont);
 			CalcPartsRect();
-			Redraw();
+			if (LOWORD(lParam))
+				Redraw();
 		}
-		break;
+		return 0;
+		case WM_GETFONT:
+			return (LRESULT)m_hFont;
 
 		case WM_SETTEXT:
 			m_rsText = (PWSTR)lParam;
@@ -386,53 +370,68 @@ public:
 		case WM_GETTEXTLENGTH:
 			return m_rsText.Size();
 		case WM_GETTEXT:
-			if (wParam > 0)
+			if ((int)wParam > 0)
 				return m_rsText.CopyTo((PWSTR)lParam, (int)wParam - 1);
 			else
 				return 0;
+
 		case WM_GETDLGCODE:
 			return DLGC_STATIC;
+
+		case WM_SIZE:
+		{
+			m_cxClient = LOWORD(lParam);
+			m_cyClient = HIWORD(lParam);
+			m_DC.ReSize(hWnd, m_cxClient, m_cyClient);
+			SetDCAttributes(m_DC.GetDC());
+			CalcPartsRect();
+		}
+		return 0;
+
+		case WM_CREATE:
+		{
+			m_rsText = ((CREATESTRUCTW*)lParam)->lpszName;
+			m_DC.Create(hWnd);
+			SetDCAttributes(m_DC.GetDC());
+		}
+		break;
+
+		case WM_DESTROY:
+		{
+			m_DC.Destroy();
+			m_hbmBkImg = nullptr;
+			m_hbmImg = nullptr;
+			m_hFont = nullptr;
+			m_eBkImgMode = BkImgMode::TopLeft;
+			m_eGradientMode = GradientMode::None;
+			m_eAlignH = Align::Near;
+			m_eAlignV = Align::Near;
+			m_eEllipsisMode = Ellipsis::None;
+			m_ePrefixMode = Prefix::Normal;
+			m_eMouseOption = MouseOpt::None;
+			m_bAutoWrap = m_bFullWndImg = m_bTransparent =
+				m_bImgAlpha = m_bBkImgAlpha = FALSE;
+			m_bPartMetricsDirty = TRUE;
+			m_crText = m_crTextBK = m_crBK = CLR_DEFAULT;
+			m_crGradient = DefLabelGradient;
+		}
+		break;
 		}
 
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
-	}
-
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		dwStyle |= WS_CHILD;
-		m_hWnd = IntCreate(dwExStyle, WCN_LABEL, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, g_hInstance, this);
-		SetClr(2, CLR_DEFAULT);
-		return m_hWnd;
-	}
-
-	CLabel()
-	{
-		m_Info.iAlignV = 1;
-		m_Info.crBK = CLR_DEFAULT;
-		m_Info.crTextBK = CLR_DEFAULT;
-		m_Info.crGradient[0] = 0x808080;
-		m_Info.crGradient[1] = 0xFFFFFF;
-		m_Info.crGradient[2] = 0x808080;
-	}
-
-	~CLabel()
-	{
-		DeleteObject(m_hbmBK);
 	}
 
 	void Redraw()
 	{
 		if (!m_hWnd)
 			return;
-		if (m_Info.bTransparent)
+		if (m_bTransparent)
 		{
 			RECT rc{ 0,0,m_cxClient,m_cyClient };
 			HWND hParent = GetParent(m_hWnd);
 			MapWindowPoints(m_hWnd, hParent, (POINT*)&rc, 2);
-			RedrawWindow(hParent, &rc, nullptr, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+			RedrawWindow(hParent, &rc, nullptr,
+				RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
 		}
 		else
 		{
@@ -441,258 +440,146 @@ public:
 		}
 	}
 
-	/// <summary>
-	/// 置背景图片
-	/// </summary>
-	/// <param name="hBitmap">位图句柄</param>
-	HBITMAP SetBKPic(HBITMAP hBitmap)
+	HBITMAP SetBkImg(HBITMAP hBitmap)
 	{
-		HBITMAP hOld = m_hbmBK;
-		m_hbmBK = hBitmap;
-		BITMAP bitmap{};
-		GetObjectW(m_hbmBK, sizeof(bitmap), &bitmap);
-		m_cxBKPic = bitmap.bmWidth;
-		m_cyBKPic = bitmap.bmHeight;
-		Redraw();
-		return hOld;
-	}
-
-	/// <summary>
-	/// 取背景图片
-	/// </summary>
-	/// <returns>图片句柄</returns>
-	EckInline HBITMAP GetBKPic()
-	{
-		return m_hbmBK;
-	}
-
-	/// <summary>
-	/// 置图片
-	/// </summary>
-	/// <param name="hBitmap">位图句柄</param>
-	HBITMAP SetPic(HBITMAP hBitmap)
-	{
-		HBITMAP hOld = m_hbmPic;
-		m_hbmPic = hBitmap;
-		BITMAP bitmap;
-		GetObjectW(m_hbmPic, sizeof(bitmap), &bitmap);
-		m_cxPic = bitmap.bmWidth;
-		m_cyPic = bitmap.bmHeight;
-
-		CalcPartsRect();
-		Redraw();
-		return hOld;
-	}
-
-	EckInline HBITMAP GetPic()
-	{
-		return m_hbmPic;
-	}
-
-	/// <summary>
-	/// 置底图方式
-	/// </summary>
-	EckInline void SetBKPicMode(BkImgMode iBKPicMode)
-	{
-		m_Info.iBKPicMode = iBKPicMode;
-		Redraw();
-	}
-
-	EckInline BkImgMode GetBKPicMode()
-	{
-		return m_Info.iBKPicMode;
-	}
-
-	/// <summary>
-	/// 置对齐
-	/// </summary>
-	/// <param name="bHAlign">是否为横向对齐</param>
-	/// <param name="iAlign">对齐方式</param>
-	EckInline void SetAlign(BOOL bHAlign, int iAlign)
-	{
-		if (bHAlign)
-			m_Info.iAlignH = iAlign;
-		else
-			m_Info.iAlignV = iAlign;
-		CalcPartsRect();
-		Redraw();
-	}
-
-	EckInline int GetAlign(BOOL bHAlign) const
-	{
-		if (bHAlign)
-			return m_Info.iAlignH;
-		else
-			return m_Info.iAlignV;
-	}
-
-	/// <summary>
-	/// 置自动换行
-	/// </summary>
-	/// <param name="bAutoWrap"></param>
-	/// <returns></returns>
-	EckInline void SetAutoWrap(BOOL bAutoWrap)
-	{
-		m_Info.bAutoWrap = bAutoWrap;
-		CalcPartsRect();
-		Redraw();
-	}
-
-	EckInline BOOL GetAutoWrap() const
-	{
-		return m_Info.bAutoWrap;
-	}
-
-	/// <summary>
-	/// 置颜色
-	/// </summary>
-	/// <param name="idx">0 = 文本颜色  1 = 背景  2 = 文本背景</param>
-	/// <param name="cr">颜色</param>
-	void SetClr(int idx, COLORREF cr)
-	{
-		switch (idx)
+		BITMAP bm;
+		if (GetObjectW(hBitmap, sizeof(bm), &bm))
 		{
-		case 0:
-			m_Info.crText = cr;
-			SetTextColor(m_hCDC, cr);
+			m_cxBkImg = bm.bmWidth;
+			m_cyBkImg = bm.bmHeight;
+			std::swap(m_hbmBkImg, hBitmap);
+			return hBitmap;
+		}
+		else
+			return nullptr;
+	}
+	EckInline constexpr HBITMAP GetBkImg() const { return m_hbmBkImg; }
+
+	EckInline constexpr void SetBkImgMode(BkImgMode iBkImgMode) { m_eBkImgMode = iBkImgMode; }
+	EckInline constexpr BkImgMode GetBkImgMode() const { return m_eBkImgMode; }
+
+	HBITMAP SetImage(HBITMAP hBitmap)
+	{
+		m_bPartMetricsDirty = TRUE;
+		std::swap(m_hbmImg, hBitmap);
+		return hBitmap;
+	}
+	EckInline constexpr HBITMAP GetImage() const { return m_hbmImg; }
+
+	EckInline constexpr void SetAlign(BOOL bHAlign, Align eAlign)
+	{
+		(bHAlign ? m_eAlignH : m_eAlignV) = eAlign;
+		m_bPartMetricsDirty = TRUE;
+	}
+	EckInline constexpr Align GetAlign(BOOL bHAlign) const
+	{
+		return (bHAlign ? m_eAlignH : m_eAlignV);
+	}
+
+	EckInline constexpr void SetAutoWrap(BOOL bAutoWrap)
+	{
+		m_bAutoWrap = bAutoWrap;
+		m_bPartMetricsDirty = TRUE;
+	}
+	EckInline constexpr BOOL GetAutoWrap() const { return m_bAutoWrap; }
+
+	EckInline constexpr void SetEllipsisMode(Ellipsis eEllipsisMode)
+	{
+		m_eEllipsisMode = eEllipsisMode;
+		m_bPartMetricsDirty = TRUE;
+	}
+	EckInline constexpr Ellipsis GetEllipsisMode() const { return m_eEllipsisMode; }
+
+	EckInline constexpr void SetPrefixMode(Prefix ePrefixMode)
+	{
+		m_ePrefixMode = ePrefixMode;
+		m_bPartMetricsDirty = TRUE;
+	}
+	EckInline constexpr Prefix GetPrefixMode() const { return m_ePrefixMode; }
+
+	void SetClr(ClrPart ePart, COLORREF cr)
+	{
+		switch (ePart)
+		{
+		case ClrPart::Text:
+			m_crText = cr;
+			SetTextColor(m_DC.GetDC(), cr);
 			break;
-		case 1:
-			m_Info.crBK = cr;
+		case ClrPart::Bk:
+			m_crBK = cr;
 			if (cr == CLR_DEFAULT)
 				cr = GetSysColor(COLOR_BTNFACE);
-			SetDCBrushColor(m_hCDC, cr);
+			SetDCBrushColor(m_DC.GetDC(), cr);
 			break;
-		case 2:
-			m_Info.crTextBK = cr;
+		case ClrPart::TextBk:
+			m_crTextBK = cr;
 			if (cr == CLR_DEFAULT)
-				SetBkMode(m_hCDC, TRANSPARENT);
+				SetBkMode(m_DC.GetDC(), TRANSPARENT);
 			else
 			{
-				SetBkMode(m_hCDC, OPAQUE);
-				SetBkColor(m_hCDC, cr);
+				SetBkMode(m_DC.GetDC(), OPAQUE);
+				SetBkColor(m_DC.GetDC(), cr);
 			}
+			break;
+		default: ECK_UNREACHABLE;
 		}
 
 		Redraw();
 	}
 
-	EckInline COLORREF GetClr(int idx) const
+	constexpr COLORREF GetClr(ClrPart ePart) const
 	{
-		switch (idx)
+		switch (ePart)
 		{
-		case 0:return m_Info.crText;
-		case 1:return m_Info.crBK;
-		case 2:return m_Info.crTextBK;
+		case ClrPart::Text: return m_crText;
+		case ClrPart::Bk: return m_crBK;
+		case ClrPart::TextBk: return m_crTextBK;
 		}
-		assert(FALSE);
-		return 0;
+		ECK_UNREACHABLE;
 	}
 
-	/// <summary>
-	/// 置渐变方式
-	/// </summary>
-	EckInline void SetGradientMode(int iGradientMode)
+	EckInline constexpr void SetGradientMode(GradientMode eMode) { m_eGradientMode = eMode; }
+	EckInline constexpr GradientMode GetGradientMode() const { return m_eGradientMode; }
+
+	EckInline constexpr void SetGradientClr(_In_range_(0, 2) int idx, COLORREF cr)
 	{
-		m_Info.iGradientMode = iGradientMode;
-		Redraw();
+		m_crGradient[idx] = cr;
 	}
-
-	EckInline int GetGradientMode() const
+	EckInline constexpr COLORREF GetGradientClr(_In_range_(0, 2) int idx) const
 	{
-		return m_Info.iGradientMode;
+		return m_crGradient[idx];
 	}
 
-	/// <summary>
-	/// 置渐变颜色
-	/// </summary>
-	EckInline void SetGradientClr(int idx, COLORREF cr)
-	{
-		m_Info.crGradient[idx] = cr;
-		Redraw();
-	}
-
-	EckInline COLORREF GetGradientClr(int idx) const
-	{
-		return m_Info.crGradient[idx];
-	}
-
-	/// <summary>
-	/// 置省略号模式
-	/// </summary>
-	/// <param name="iEllipsisMode"></param>
-	/// <returns></returns>
-	EckInline void SetEllipsisMode(int iEllipsisMode)
-	{
-		m_Info.iEllipsisMode = iEllipsisMode;
-		CalcPartsRect();
-		Redraw();
-	}
-
-	EckInline int GetEllipsisMode() const
-	{
-		return m_Info.iEllipsisMode;
-	}
-
-	/// <summary>
-	/// 置前缀解释模式
-	/// </summary>
-	/// <param name="iPrefixMode"></param>
-	/// <returns></returns>
-	EckInline void SetPrefixMode(int iPrefixMode)
-	{
-		m_Info.iPrefixMode = iPrefixMode;
-		CalcPartsRect();
-		Redraw();
-	}
-
-	EckInline int GetPrefixMode() const
-	{
-		return m_Info.iPrefixMode;
-	}
-
-	/// <summary>
-	/// 置底图充满窗口
-	/// </summary>
-	EckInline void SetFullWndPic(BOOL bFullWndPic)
-	{
-		m_Info.bFullWndPic = bFullWndPic;
-		Redraw();
-	}
-
-	EckInline BOOL GetFullWndPic() const
-	{
-		return m_Info.bFullWndPic;
-	}
-
-	/// <summary>
-	/// 置透明标签
-	/// </summary>
 	EckInline void SetTransparent(BOOL bTransparent)
 	{
-		m_Info.bTransparent = bTransparent;
+		m_bTransparent = bTransparent;
 		ModifyStyle(bTransparent ? WS_EX_TRANSPARENT : 0, WS_EX_TRANSPARENT, GWL_EXSTYLE);
-		Redraw();
 	}
+	EckInline constexpr BOOL GetTransparent() const { return m_bTransparent; }
 
-	EckInline BOOL GetTransparent() const
-	{
-		return m_Info.bTransparent;
-	}
+	EckInline constexpr void SetFullWndImg(BOOL bFullWndPic) { m_bFullWndImg = bFullWndPic; }
+	EckInline constexpr BOOL GetFullWndImg() const { return m_bFullWndImg; }
 
-	/// <summary>
-	/// 置鼠标穿透
-	/// </summary>
-	/// <param name="iMousePassingThrough"></param>
-	/// <returns></returns>
-	EckInline void SetMousePassingThrough(int iMousePassingThrough)
-	{
-		m_Info.iMousePassingThrough = iMousePassingThrough;
-		Redraw();
-	}
+	EckInline constexpr void SetMouseOption(MouseOpt eOption) { m_eMouseOption = eOption; }
+	EckInline constexpr MouseOpt GetMouseOption() const { return m_eMouseOption; }
 
-	EckInline int GetMousePassingThrough() const
+	BOOL HitTest(POINT pt, LA_HITTEST& laht)
 	{
-		return m_Info.iMousePassingThrough;
+		laht.bHit = FALSE;
+		laht.bHitImg = FALSE;
+		laht.bHitText = FALSE;
+		if (PtInRect(RECT{ 0,0,m_cxClient,m_cyClient }, pt))
+		{
+			laht.bHit = TRUE;
+			if (m_bPartMetricsDirty)
+				CalcPartsRect();
+			if (PtInRect(m_rcPartImg, pt))
+				laht.bHitImg = TRUE;
+			else if (PtInRect(m_rcPartText, pt))
+				laht.bHitText = TRUE;
+			return TRUE;
+		}
+		return FALSE;
 	}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CLabel, CWnd);

@@ -38,6 +38,7 @@
 #include <optional>
 #include <functional>
 #include <span>
+#include <array>
 
 #include ".\Detours\detours.h"
 
