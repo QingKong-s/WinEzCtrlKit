@@ -436,16 +436,17 @@ struct CEzD2D
 	}
 };
 
-enum
+enum class GradientMode :BYTE
 {
-	FGRF_TOPTOBOTTOM = 1,// 从上到下
-	FGRF_BOTTOMTOTOP,// 从下到上
-	FGRF_LEFTTORIGHT,// 从左到右
-	FGRF_RIGHTTOLEFT,// 从右到左
-	FGRF_TOPLEFTTOBOTTOMRIGHT,// 从左上到右下↘
-	FGRF_BOTTOMRIGHTTOTOPLEFT,// 从右下到左上↖
-	FGRF_BOTTOMLEFTTOTOPRIGHT,// 从左下到右上↗
-	FGRF_TOPRIGHTTOBOTTOMLEFT,// 从右上到左下↙
+	None,	// 无效
+	T2B,	// 从上到下
+	B2T,	// 从下到上
+	L2R,	// 从左到右
+	R2L,	// 从右到左
+	TL2BR,	// 从左上到右下↘
+	BR2TL,	// 从右下到左上↖
+	BL2TR,	// 从左下到右上↗
+	TR2BL	// 从右上到左下↙
 };
 
 /// <summary>
@@ -454,35 +455,33 @@ enum
 /// <param name="hDC">设备场景</param>
 /// <param name="rc">矩形</param>
 /// <param name="crGradient">渐变色，至少指向3个COLORREF</param>
-/// <param name="iGradientMode">渐变模式，FGRF_常量</param>
+/// <param name="eMode">渐变模式</param>
 /// <returns>GradientFill的返回值</returns>
-inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF crGradient[], int iGradientMode)
+inline BOOL FillGradientRect(HDC hDC, const RECT& rc,
+	_In_reads_(3) COLORREF* crGradient, GradientMode eMode)
 {
-	EckAssert(iGradientMode >= 1 && iGradientMode <= 8);
-	const int
-		cx = rc.right - rc.left,
-		cy = rc.bottom - rc.top;
-	if (iGradientMode >= FGRF_TOPTOBOTTOM && iGradientMode <= FGRF_RIGHTTOLEFT)
+	TRIVERTEX tv[4];
+	COLORREF cr1, cr2, cr3;
+	if (eMode >= GradientMode::T2B && eMode <= GradientMode::R2L)
 	{
-		TRIVERTEX tv[4];
-		COLORREF cr1, cr2, cr3;
 		ULONG uMode;
-		switch (iGradientMode)
+		switch (eMode)
 		{
-		case FGRF_TOPTOBOTTOM:// 从上到下
-		case FGRF_BOTTOMTOTOP:// 从下到上
+		case GradientMode::T2B:// 从上到下
+		case GradientMode::B2T:// 从下到上
 		{
 			cr2 = crGradient[1];
-			tv[0].x = 0;
-			tv[0].y = 0;
-			tv[1].x = cx;
-			tv[1].y = cy / 2;
-			tv[2].x = 0;
-			tv[2].y = cy / 2;
-			tv[3].x = cx;
-			tv[3].y = cy;
+			tv[0].x = rc.left;
+			tv[0].y = rc.top;
+			tv[1].x = rc.right;
+			tv[1].y = (rc.top + rc.bottom) / 2;
+
+			tv[2].x = rc.left;
+			tv[2].y = (rc.top + rc.bottom) / 2;
+			tv[3].x = rc.right;
+			tv[3].y = rc.bottom;
 			uMode = GRADIENT_FILL_RECT_V;
-			if (iGradientMode == 1)
+			if (eMode == GradientMode::T2B)
 			{
 				cr1 = crGradient[0];
 				cr3 = crGradient[2];
@@ -494,20 +493,21 @@ inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF crGradient[], int
 			}
 		}
 		break;
-		case FGRF_LEFTTORIGHT:// 从左到右
-		case FGRF_RIGHTTOLEFT:// 从右到左
+		case GradientMode::L2R:// 从左到右
+		case GradientMode::R2L:// 从右到左
 		{
 			cr2 = crGradient[1];
-			tv[0].x = 0;
-			tv[0].y = 0;
-			tv[1].x = cx / 2;
-			tv[1].y = cy;
-			tv[2].x = cx / 2;
-			tv[2].y = 0;
-			tv[3].x = cx;
-			tv[3].y = cy;
+			tv[0].x = rc.left;
+			tv[0].y = rc.top;
+			tv[1].x = (rc.left + rc.right) / 2;
+			tv[1].y = rc.bottom;
+
+			tv[2].x = (rc.left + rc.right) / 2;
+			tv[2].y = rc.top;
+			tv[3].x = rc.right;
+			tv[3].y = rc.bottom;
 			uMode = GRADIENT_FILL_RECT_H;
-			if (iGradientMode == 3)
+			if (eMode == GradientMode::L2R)
 			{
 				cr1 = crGradient[0];
 				cr3 = crGradient[2];
@@ -519,8 +519,7 @@ inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF crGradient[], int
 			}
 		}
 		break;
-		default:
-			__assume(0);
+		default: return FALSE;
 		}
 
 		tv[0].Red = GetRValue(cr1) << 8;
@@ -533,10 +532,7 @@ inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF crGradient[], int
 		tv[1].Blue = GetBValue(cr2) << 8;
 		tv[1].Alpha = 0xFF << 8;
 
-		tv[2].Red = tv[1].Red;
-		tv[2].Green = tv[1].Green;
-		tv[2].Blue = tv[1].Blue;
-		tv[2].Alpha = 0xFF << 8;
+		tv[2] = tv[1];
 
 		tv[3].Red = GetRValue(cr3) << 8;
 		tv[3].Green = GetGValue(cr3) << 8;
@@ -548,30 +544,28 @@ inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF crGradient[], int
 		gr[0].LowerRight = 1;
 		gr[1].UpperLeft = 2;
 		gr[1].LowerRight = 3;
-		return GradientFill(hDC, tv, ARRAYSIZE(tv), &gr, ARRAYSIZE(gr), uMode);
+		return GradientFill(hDC, tv, ARRAYSIZE(tv), gr, ARRAYSIZE(gr), uMode);
 	}
-	else
+	else if (eMode >= GradientMode::TL2BR && eMode <= GradientMode::TR2BL)
 	{
-		TRIVERTEX tv[4];
 		// 左上
-		tv[0].x = 0;
-		tv[0].y = 0;
+		tv[0].x = rc.left;
+		tv[0].y = rc.top;
 		// 左下
-		tv[1].x = 0;
-		tv[1].y = cy;
+		tv[1].x = rc.left;
+		tv[1].y = rc.bottom;
 		// 右上
-		tv[2].x = cx;
-		tv[2].y = 0;
+		tv[2].x = rc.right;
+		tv[2].y = rc.top;
 		// 右下
-		tv[3].x = cx;
-		tv[3].y = cy;
-		COLORREF cr1, cr2, cr3;
+		tv[3].x = rc.right;
+		tv[3].y = rc.bottom;
 
 		GRADIENT_TRIANGLE gt[2];
-		switch (iGradientMode)
+		switch (eMode)
 		{
-		case 5:// 左上到右下↘
-		case 6:// 右下到左上↖
+		case GradientMode::TL2BR:// 左上到右下↘
+		case GradientMode::BR2TL:// 右下到左上↖
 		{
 			gt[0].Vertex1 = 0;
 			gt[0].Vertex2 = 1;
@@ -580,7 +574,7 @@ inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF crGradient[], int
 			gt[1].Vertex2 = 1;
 			gt[1].Vertex3 = 2;
 			cr2 = crGradient[1];
-			if (iGradientMode == 5)
+			if (eMode == GradientMode::TL2BR)
 			{
 				cr1 = crGradient[0];
 				cr3 = crGradient[2];
@@ -601,10 +595,7 @@ inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF crGradient[], int
 			tv[1].Blue = GetBValue(cr2) << 8;
 			tv[1].Alpha = 0xFF << 8;
 
-			tv[2].Red = tv[1].Red;
-			tv[2].Green = tv[1].Green;
-			tv[2].Blue = tv[1].Blue;
-			tv[2].Alpha = 0xFF << 8;
+			tv[2] = tv[1];
 
 			tv[3].Red = GetRValue(cr3) << 8;
 			tv[3].Green = GetGValue(cr3) << 8;
@@ -612,8 +603,8 @@ inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF crGradient[], int
 			tv[3].Alpha = 0xFF << 8;
 		}
 		break;
-		case 7:// 左下到右上↗
-		case 8:// 右上到左下↙
+		case GradientMode::BL2TR:// 左下到右上↗
+		case GradientMode::TR2BL:// 右上到左下↙
 		{
 			gt[0].Vertex1 = 1;
 			gt[0].Vertex2 = 0;
@@ -622,7 +613,7 @@ inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF crGradient[], int
 			gt[1].Vertex2 = 0;
 			gt[1].Vertex3 = 3;
 			cr2 = crGradient[1];
-			if (iGradientMode == 7)
+			if (eMode == GradientMode::BL2TR)
 			{
 				cr1 = crGradient[0];
 				cr3 = crGradient[2];
@@ -643,10 +634,7 @@ inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF crGradient[], int
 			tv[1].Blue = GetBValue(cr1) << 8;
 			tv[1].Alpha = 0xFF << 8;
 
-			tv[3].Red = tv[0].Red;
-			tv[3].Green = tv[0].Green;
-			tv[3].Blue = tv[0].Blue;
-			tv[3].Alpha = 0xFF << 8;
+			tv[3] = tv[0];
 
 			tv[2].Red = GetRValue(cr3) << 8;
 			tv[2].Green = GetGValue(cr3) << 8;
@@ -654,17 +642,18 @@ inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF crGradient[], int
 			tv[2].Alpha = 0xFF << 8;
 		}
 		break;
-		default:
-			__assume(0);
+		default: return FALSE;
 		}
-
-		return GradientFill(hDC, tv, ARRAYSIZE(tv), gt, ARRAYSIZE(gt), GRADIENT_FILL_TRIANGLE);
+		return GradientFill(hDC, tv, ARRAYSIZE(tv),
+			gt, ARRAYSIZE(gt), GRADIENT_FILL_TRIANGLE);
 	}
+	return FALSE;
 }
 
-inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF cr1, COLORREF cr2, BOOL bVertical)
+inline BOOL FillGradientRect(HDC hDC, const RECT& rc,
+	COLORREF cr1, COLORREF cr2, BOOL bVertical)
 {
-	TRIVERTEX tv[2] = { 0 };
+	TRIVERTEX tv[2];
 	tv[0].x = rc.left;
 	tv[0].y = rc.top;
 	tv[0].Red = GetRValue(cr1) << 8;
@@ -681,10 +670,11 @@ inline BOOL FillGradientRect(HDC hDC, const RECT& rc, COLORREF cr1, COLORREF cr2
 	gr.UpperLeft = 0;	// 左上角坐标为第一个成员
 	gr.LowerRight = 1;	// 右下角坐标为第二个成员
 
-	return GradientFill(hDC, tv, 2, &gr, 1, bVertical ? GRADIENT_FILL_RECT_V : GRADIENT_FILL_RECT_H);
+	return GradientFill(hDC, tv, 2, &gr, 1,
+		bVertical ? GRADIENT_FILL_RECT_V : GRADIENT_FILL_RECT_H);
 }
 
-enum class BkImgMode
+enum class BkImgMode :BYTE
 {
 	TopLeft,// 左上
 	Tile,	// 平铺
@@ -1416,7 +1406,7 @@ inline void DrawImageFromGrid(ID2D1RenderTarget* pRT, ID2D1Bitmap* pBmp,
 inline GpStatus DrawImageFromGrid(GpGraphics* pGraphics, GpImage* pImage,
 	int xDst, int yDst, int cxDst, int cyDst,
 	int xSrc, int ySrc, int cxSrc, int cySrc,
-	const MARGINS& Margins,Gdiplus::GpImageAttributes*pIA,
+	const MARGINS& Margins, Gdiplus::GpImageAttributes* pIA,
 	Gdiplus::Unit eUnit = Gdiplus::UnitPixel)
 {
 	// 左上
