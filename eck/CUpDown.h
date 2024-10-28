@@ -3,193 +3,107 @@
 *
 * CUpDown.h ： 标准调节器
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include "CWnd.h"
-#include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
-struct EUPDOWNDATA
-{
-	int iDirection;			// 方向
-	BOOL bAutoBuddy;		// 自动选择伙伴
-	int iBuddyAlign;		// 伙伴窗口定位方式
-	BOOL bArrowKeys;		// 是否由上下箭头控制
-	BOOL bHotTrack;			// 是否热点跟踪
-};
-/*
-* 调节器
-*
-* 事件：
-* WM_NOTIFY
-* ->UDN_DELTAPOS(NMUPDOWN)
-*/
 class CUpDown :public CWnd
 {
-private:
-	EUPDOWNDATA m_Info{};
-
 public:
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
+	ECK_RTTI(CUpDown);
+	ECK_CWND_NOSINGLEOWNER(CUpDown);
+	ECK_CWND_CREATE_CLS(UPDOWN_CLASSW);
+
+	ECK_CWNDPROP_STYLE(AlignLeft, UDS_ALIGNLEFT);
+	ECK_CWNDPROP_STYLE(AlignRight, UDS_ALIGNRIGHT);
+	ECK_CWNDPROP_STYLE(ArrowKeys, UDS_ARROWKEYS);
+	ECK_CWNDPROP_STYLE(AutoBuddy, UDS_AUTOBUDDY);
+	ECK_CWNDPROP_STYLE(Horizontal, UDS_HORZ);
+	ECK_CWNDPROP_STYLE(NoThousands, UDS_NOTHOUSANDS);
+	ECK_CWNDPROP_STYLE(SetBuddyInt, UDS_SETBUDDYINT);
+	ECK_CWNDPROP_STYLE(Wrap, UDS_WRAP);
+
+	EckInline int GetAccel(_Out_writes_opt_(cBuf) UDACCEL* pBuf, int cBuf) const
 	{
-		dwStyle |= (WS_CHILD | UDS_SETBUDDYINT);
-		switch (m_Info.iBuddyAlign)
-		{
-		case 1:dwStyle |= UDS_ALIGNLEFT; break;
-		case 2:dwStyle |= UDS_ALIGNRIGHT; break;
-		}
-		if (m_Info.bAutoBuddy)
-			dwStyle |= UDS_AUTOBUDDY;
-		if (m_Info.iDirection)
-			dwStyle |= UDS_HORZ;
-		if (m_Info.bArrowKeys)
-			dwStyle |= UDS_ARROWKEYS;
-		if (m_Info.bHotTrack)
-			dwStyle |= UDS_HOTTRACK;
-		return IntCreate(dwExStyle, UPDOWN_CLASSW, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
+		return (int)SendMsg(UDM_GETACCEL, cBuf, (LPARAM)pBuf);
 	}
 
-	EckInline void SetDirection(int iDirection)
+	EckInline void GetAccel(std::vector<UDACCEL>& vAccel) const
 	{
-		m_Info.iDirection = iDirection;
+		int cAccel = (int)GetAccel(nullptr, 0);
+		if (!cAccel)
+			return;
+		vAccel.resize(cAccel);
+		GetAccel(vAccel.data(), cAccel);
 	}
 
-	EckInline int GetDirection()
+	// For compatibility.
+	EckInline std::vector<UDACCEL> GetAccel() const
 	{
-		return (int)IsBitSet(GetStyle(), UDS_HORZ);
+		std::vector<UDACCEL> vAccel;
+		GetAccel(vAccel);
+		return vAccel;
 	}
 
-	EckInline void SetMin(int iMin)
+	EckInline int GetBase() const
 	{
-		int iMax;
-		SendMsg(UDM_GETRANGE32, NULL, (LPARAM)&iMax);
-		SendMsg(UDM_SETRANGE32, iMin, iMax);
+		return (int)SendMsg(UDM_GETBASE, 0, 0);
 	}
 
-	EckInline void SetMax(int iMax)
-	{
-		int iMin;
-		SendMsg(UDM_GETRANGE32, (WPARAM)&iMin, NULL);
-		SendMsg(UDM_SETRANGE32, iMin, iMax);
-	}
-
-	EckInline void GetRange(int* piMin = nullptr, int* piMax = nullptr)
-	{
-		SendMsg(UDM_GETRANGE32, (WPARAM)piMin, (LPARAM)piMax);
-	}
-
-	EckInline void SetPos(int iPos)
-	{
-		SendMsg(UDM_SETPOS, 0, iPos);
-	}
-
-	EckInline int GetPos()
-	{
-		return (int)SendMsg(UDM_GETPOS32, 0, NULL);
-	}
-
-	EckInline void SetAutoBuddy(BOOL bAutoBuddy)
-	{
-		m_Info.bAutoBuddy = bAutoBuddy;
-	}
-
-	EckInline BOOL GetAutoBuddy()
-	{
-		return IsBitSet(GetStyle(), UDS_AUTOBUDDY);
-	}
-
-	EckInline void SetBuddy(HWND hBuddy)
-	{
-		SendMsg(UDM_SETBUDDY, (WPARAM)hBuddy, 0);
-	}
-
-	EckInline HWND GetBuddy()
+	EckInline HWND GetBuddy() const
 	{
 		return (HWND)SendMsg(UDM_GETBUDDY, 0, 0);
 	}
 
-	EckInline void SetBuddyAlign(int iAlign)
+	EckInline int GetPos(BOOL* pbSuccess = nullptr) const
 	{
-		DWORD dwStyle = 0;
-		switch (iAlign)
-		{
-		case 0:dwStyle = 0; break;
-		case 1:dwStyle = UDS_ALIGNLEFT; break;
-		case 2:dwStyle = UDS_ALIGNRIGHT; break;
-		default:assert(FALSE); break;
-		}
-		ModifyStyle(dwStyle, UDS_ALIGNLEFT | UDS_ALIGNRIGHT);
+		return (int)SendMsg(UDM_GETPOS32, 0, (LPARAM)pbSuccess);
 	}
 
-	EckInline int GetBuddyAlign()
+	EckInline void GetRange(int* piMin = nullptr, int* piMax = nullptr) const
 	{
-		DWORD dwStyle = GetStyle();
-		if (IsBitSet(dwStyle, UDS_ALIGNLEFT))
-			return 1;
-		else if (IsBitSet(dwStyle, UDS_ALIGNRIGHT))
-			return 2;
-		else
-			return 0;
+		SendMsg(UDM_GETRANGE32, (WPARAM)piMin, (LPARAM)piMax);
 	}
 
-	EckInline void SetBase(int iBase)
-	{
-		SendMsg(UDM_SETBASE, (iBase ? 16 : 10), 0);
-	}
-
-	EckInline int GetBase()
-	{
-		return (int)(SendMsg(UDM_GETBASE, 0, 0) == 16);
-	}
-
-	EckInline void SetHousands(BOOL bHousands)
-	{
-		ModifyStyle(bHousands ? 0 : UDS_NOTHOUSANDS, UDS_NOTHOUSANDS);
-	}
-
-	EckInline BOOL GetHousands()
-	{
-		return !IsBitSet(GetStyle(), UDS_NOTHOUSANDS);
-	}
-
-	EckInline void SetArrowKeys(BOOL bArrowKeys)
-	{
-		m_Info.bArrowKeys = bArrowKeys;
-	}
-
-	EckInline BOOL GetArrowKeys()
-	{
-		return IsBitSet(GetStyle(), UDS_ARROWKEYS);
-	}
-
-	EckInline void SetHotTrack(BOOL bHotTrack)
-	{
-		m_Info.bHotTrack = bHotTrack;
-	}
-
-	EckInline BOOL GetHotTrack()
-	{
-		return IsBitSet(GetStyle(), UDS_HOTTRACK);
-	}
-
-	EckInline BOOL SetAccel(UDACCEL* puda, int c)
+	EckInline BOOL SetAccel(_In_reads_(c) const UDACCEL* puda, int c) const
 	{
 		return (BOOL)SendMsg(UDM_SETACCEL, c, (LPARAM)puda);
 	}
 
-	EckInline std::vector<UDACCEL> GetAccel()
+	EckInline BOOL SetBase(int iBase) const
 	{
-		std::vector<UDACCEL> aAccel;
-		int cAccel = (int)SendMsg(UDM_GETACCEL, 0, NULL);
-		if (!cAccel)
-			return aAccel;
-		aAccel.resize(cAccel);
-		SendMsg(UDM_GETACCEL, cAccel, (LPARAM)aAccel.data());
-		return aAccel;
+		return (BOOL)SendMsg(UDM_SETBASE, iBase, 0);
+	}
+
+	EckInline HWND SetBuddy(HWND hBuddy) const
+	{
+		return (HWND)SendMsg(UDM_SETBUDDY, (WPARAM)hBuddy, 0);
+	}
+
+	EckInline int SetPos(int iPos) const
+	{
+		return (int)SendMsg(UDM_SETPOS, 0, iPos);
+	}
+
+	EckInline void SetRange(int iMin, int iMax) const
+	{
+		SendMsg(UDM_SETRANGE32, iMin, iMax);
+	}
+
+	EckInline void SetMin(int iMin) const
+	{
+		int iMax;
+		GetRange(nullptr, &iMax);
+		SetRange(iMin, iMax);
+	}
+
+	EckInline void SetMax(int iMax) const
+	{
+		int iMin;
+		GetRange(&iMin, nullptr);
+		SetRange(iMin, iMax);
 	}
 };
 ECK_NAMESPACE_END

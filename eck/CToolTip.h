@@ -13,41 +13,43 @@ class CToolTip :public CWnd
 {
 public:
 	ECK_RTTI(CToolTip);
+	ECK_CWND_NOSINGLEOWNER(CToolTip);
+	ECK_CWND_CREATE_CLS(TOOLTIPS_CLASS);
 
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		return IntCreate(dwExStyle, TOOLTIPS_CLASS, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, nullptr, nullptr);
-	}
+	ECK_CWNDPROP_STYLE(AlwaysTip, TTS_ALWAYSTIP);
+	ECK_CWNDPROP_STYLE(Balloon, TTS_BALLOON);
+	ECK_CWNDPROP_STYLE(CloseButton, TTS_CLOSE);
+	ECK_CWNDPROP_STYLE(NoAnimate, TTS_NOANIMATE);
+	ECK_CWNDPROP_STYLE(NoFade, TTS_NOFADE);
+	ECK_CWNDPROP_STYLE(NoPrefix, TTS_NOPREFIX);
+	ECK_CWNDPROP_STYLE(UseVisualStyle, TTS_USEVISUALSTYLE);
 
-	EckInline void Active(BOOL bActive)
+	EckInline void Active(BOOL bActive) const
 	{
 		SendMsg(TTM_ACTIVATE, bActive, 0);
 	}
 
-	EckInline BOOL AddTool(TTTOOLINFOW* pti)
+	EckInline BOOL AddTool(TTTOOLINFOW* pti) const
 	{
 		return (BOOL)SendMsg(TTM_ADDTOOLW, 0, (LPARAM)pti);
 	}
 
-	EckInline BOOL AdjustRect(BOOL bTextToWnd, RECT* prc)
+	EckInline BOOL AdjustRect(BOOL bTextToWnd, RECT* prc) const
 	{
 		return (BOOL)SendMsg(TTM_ADJUSTRECT, bTextToWnd, (LPARAM)prc);
 	}
 
-	EckInline void DeleteTool(TTTOOLINFOW* pti)
+	EckInline void DeleteTool(TTTOOLINFOW* pti) const
 	{
 		SendMsg(TTM_DELTOOLW, 0, (LPARAM)pti);
 	}
 
-	EckInline void EnumTools(int idxTool, TTTOOLINFOW* pti)
+	EckInline void EnumTools(int idxTool, TTTOOLINFOW* pti) const
 	{
 		SendMsg(TTM_ENUMTOOLSW, idxTool, (LPARAM)pti);
 	}
 
-	EckInline BOOL GetBubbleSize(TTTOOLINFOW* pti, int* pcx, int* pcy)
+	EckInline BOOL GetBubbleSize(TTTOOLINFOW* pti, int* pcx, int* pcy) const
 	{
 		DWORD dwRet = (DWORD)SendMsg(TTM_GETBUBBLESIZE, 0, (LPARAM)pti);
 		if (dwRet == 0)
@@ -59,7 +61,7 @@ public:
 		return TRUE;
 	};
 
-	EckInline BOOL GetCurrentTool(TTTOOLINFOW* pti)
+	EckInline BOOL GetCurrentTool(TTTOOLINFOW* pti) const
 	{
 		return (BOOL)SendMsg(TTM_GETCURRENTTOOL, 0, (LPARAM)pti);
 	}
@@ -69,52 +71,52 @@ public:
 	/// </summary>
 	/// <param name="iType">TTDT_常量</param>
 	/// <returns>以毫秒为单位的时间</returns>
-	EckInline int GetDelayTime(int iType)
+	EckInline int GetDelayTime(int iType) const
 	{
 		return (int)SendMsg(TTM_GETDELAYTIME, iType, 0);
 	}
 
-	EckInline void GetMargin(RECT* prc)
+	EckInline void GetMargin(RECT* prc) const
 	{
 		SendMsg(TTM_GETMARGIN, 0, (LPARAM)prc);
 	}
 
-	EckInline int GetMaxTipWidth()
+	EckInline int GetMaxTipWidth() const
 	{
 		return (int)SendMsg(TTM_GETMAXTIPWIDTH, 0, 0);
 	}
 
-	EckInline void GetText(int cchBuf, TTTOOLINFOW* pti)
+	EckInline void GetText(int cchBuf, TTTOOLINFOW* pti) const
 	{
 		SendMsg(TTM_GETTEXTW, cchBuf, (LPARAM)pti);
 	}
 
-	EckInline COLORREF GetTipBkColor()
+	EckInline COLORREF GetTipBkColor() const
 	{
 		return (COLORREF)SendMsg(TTM_GETTIPBKCOLOR, 0, 0);
 	}
 
-	EckInline COLORREF GetTipTextColor()
+	EckInline COLORREF GetTipTextColor() const
 	{
 		return (COLORREF)SendMsg(TTM_GETTIPTEXTCOLOR, 0, 0);
 	}
 
-	EckInline void GetTitle(TTGETTITLE* pttgt)
+	EckInline void GetTitle(TTGETTITLE* pttgt) const
 	{
 		SendMsg(TTM_GETTITLE, 0, (LPARAM)pttgt);
 	}
 
-	EckInline int GetToolCount()
+	EckInline int GetToolCount() const
 	{
 		return (int)SendMsg(TTM_GETTOOLCOUNT, 0, 0);
 	}
 
-	EckInline BOOL GetToolInfo(TTTOOLINFOW* pti)
+	EckInline BOOL GetToolInfo(TTTOOLINFOW* pti) const
 	{
 		return (BOOL)SendMsg(TTM_GETTOOLINFOW, 0, (LPARAM)pti);
 	}
 
-	EckInline BOOL HitTest(TTHITTESTINFO* pti)
+	EckInline BOOL HitTest(TTHITTESTINFOW* pti) const
 	{
 		return (BOOL)SendMsg(TTM_HITTEST, 0, (LPARAM)pti);
 	}
@@ -123,57 +125,57 @@ public:
 	/// 
 	/// </summary>
 	/// <param name="pti">hwnd、uId、rect </param>
-	EckInline void NewToolRect(TTTOOLINFOW* pti)
+	EckInline void NewToolRect(TTTOOLINFOW* pti) const
 	{
 		SendMsg(TTM_NEWTOOLRECTW, 0, (LPARAM)pti);
 	}
 
-	EckInline void Pop()
+	EckInline void Pop() const
 	{
 		SendMsg(TTM_POP, 0, 0);
 	}
 
-	EckInline void PopUp()
+	EckInline void PopUp() const
 	{
 		SendMsg(TTM_POPUP, 0, 0);
 	}
 
-	EckInline void RelayEvent(MSG* pMsg, LPARAM lExtraInfo = 0)
+	EckInline void RelayEvent(MSG* pMsg, LPARAM lExtraInfo = 0) const
 	{
 		SendMsg(TTM_RELAYEVENT, lExtraInfo, (LPARAM)pMsg);
 	}
 
-	EckInline void SetDelayTime(int iType, int iDelay)
+	EckInline void SetDelayTime(int iType, int iDelay) const
 	{
 		SendMsg(TTM_SETDELAYTIME, iType, LOWORD(iDelay));
 	}
 
-	EckInline void SetMargin(RECT* prc)
+	EckInline void SetMargin(RECT* prc) const
 	{
 		SendMsg(TTM_SETMARGIN, 0, (LPARAM)prc);
 	}
 
-	EckInline int SetMaxTipWidth(int iWidth)
+	EckInline int SetMaxTipWidth(int iWidth) const
 	{
 		return (int)SendMsg(TTM_SETMAXTIPWIDTH, 0, iWidth);
 	}
 
-	EckInline void SetTipBkColor(COLORREF cr)
+	EckInline void SetTipBkColor(COLORREF cr) const
 	{
 		SendMsg(TTM_SETTIPBKCOLOR, cr, 0);
 	}
 
-	EckInline void SetTipTextColor(COLORREF cr)
+	EckInline void SetTipTextColor(COLORREF cr) const
 	{
 		SendMsg(TTM_SETTIPTEXTCOLOR, cr, 0);
 	}
 
-	EckInline BOOL SetTitle(int iIcon, PCWSTR pszTitle)
+	EckInline BOOL SetTitle(int iIcon, PCWSTR pszTitle) const
 	{
 		return (BOOL)SendMsg(TTM_SETTITLEW, iIcon, (LPARAM)pszTitle);
 	}
 
-	EckInline void SetToolInfo(TTTOOLINFOW* pti)
+	EckInline void SetToolInfo(TTTOOLINFOW* pti) const
 	{
 		SendMsg(TTM_SETTOOLINFOW, 0, (LPARAM)pti);
 	}
@@ -184,17 +186,17 @@ public:
 	/// <param name="pti">hwnd、uId</param>
 	/// <param name="bActivate"></param>
 	/// <returns></returns>
-	EckInline void TrackActivate(TTTOOLINFOW* pti, BOOL bActivate)
+	EckInline void TrackActivate(TTTOOLINFOW* pti, BOOL bActivate) const
 	{
 		SendMsg(TTM_TRACKACTIVATE, bActivate, (LPARAM)pti);
 	}
 
-	EckInline void TrackPosition(int x, int y)
+	EckInline void TrackPosition(int x, int y) const
 	{
 		SendMsg(TTM_TRACKPOSITION, 0, MAKELPARAM(x, y));
 	}
 
-	EckInline void Update()
+	EckInline void Update() const
 	{
 		SendMsg(TTM_UPDATE, 0, 0);
 	}
@@ -204,7 +206,7 @@ public:
 	/// </summary>
 	/// <param name="pti">hwnd、uId、hinst、lpszText</param>
 	/// <returns></returns>
-	EckInline void UpdateTipText(TTTOOLINFOW* pti)
+	EckInline void UpdateTipText(TTTOOLINFOW* pti) const
 	{
 		SendMsg(TTM_UPDATETIPTEXTW, 0, (LPARAM)pti);
 	}

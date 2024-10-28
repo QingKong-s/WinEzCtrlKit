@@ -3,7 +3,7 @@
 *
 * CTaskGroupList.h ： 任务列表组
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include "CListView.h"
@@ -112,10 +112,7 @@ public:
 			case NM_CUSTOMDRAW:
 			{
 				bProcessed = TRUE;
-				if (((NMHDR*)lParam)->hwndFrom!=GetHWND())
-					break;
-
-				auto pnmlcd = (NMLVCUSTOMDRAW*)lParam;
+				const auto* const pnmlcd = (NMLVCUSTOMDRAW*)lParam;
 
 				switch (pnmlcd->nmcd.dwDrawStage)
 				{
@@ -123,31 +120,33 @@ public:
 					return CDRF_NOTIFYITEMDRAW;
 				case CDDS_ITEMPREPAINT:
 				{
-					auto& Item = m_Items[pnmlcd->nmcd.dwItemSpec];
+					const auto& e = m_Items[pnmlcd->nmcd.dwItemSpec];
 					HDC hDC = pnmlcd->nmcd.hdc;
 					int cxPadding = m_cxPadding;
 					//////////////////////画项目背景
 					int iState;
-					if (IsBitSet(pnmlcd->nmcd.uItemState, CDIS_SELECTED))
+					if (pnmlcd->nmcd.uItemState&CDIS_SELECTED)
 					{
-						if (IsBitSet(pnmlcd->nmcd.uItemState, CDIS_HOT))
+						if (pnmlcd->nmcd.uItemState& CDIS_HOT)
 							iState = LISS_HOTSELECTED;
 						else
 							iState = LISS_SELECTED;
 					}
-					else if (IsBitSet(pnmlcd->nmcd.uItemState, CDIS_HOT))
+					else if (pnmlcd->nmcd.uItemState& CDIS_HOT)
 						iState = LISS_HOT;
 					else
 						iState = 0;
 
 					if (iState)
-						DrawThemeBackground(m_hthListView, hDC, LVP_LISTITEM, iState, &pnmlcd->nmcd.rc, nullptr);
-					//////////////////////画图标
-					int x = cxPadding + pnmlcd->nmcd.rc.left, y = cxPadding + pnmlcd->nmcd.rc.top;
-					if (Item.idxImage >= 0)
-						ImageList_Draw(m_hImageList, Item.idxImage, hDC, x, y, ILD_NORMAL);
+						DrawThemeBackground(m_hthListView, hDC, LVP_LISTITEM,
+							iState, &pnmlcd->nmcd.rc, nullptr);
+					// 画图标
+					int x = cxPadding + pnmlcd->nmcd.rc.left,
+						y = cxPadding + pnmlcd->nmcd.rc.top;
+					if (e.idxImage >= 0)
+						ImageList_Draw(m_hImageList, e.idxImage, hDC, x, y, ILD_NORMAL);
 					x += (m_cxIcon + m_cxSubTaskPadding);
-					//////////////////////画节标题
+					// 画节标题
 					if ((m_idxHot == pnmlcd->nmcd.dwItemSpec && m_bSectionTitleHot) ||
 						(m_idxPressed == pnmlcd->nmcd.dwItemSpec && m_bSectionTitlePressed))
 						iState = CPSTL_HOT;
@@ -155,25 +154,27 @@ public:
 						iState = CPSTL_NORMAL;
 					RECT rc{ x,pnmlcd->nmcd.rc.top,pnmlcd->nmcd.rc.right,pnmlcd->nmcd.rc.bottom };
 					DrawThemeTextEx(m_hthControlPanel, hDC, CPANEL_SECTIONTITLELINK, iState,
-						Item.rsText.Data(), Item.rsText.Size(), DT_SINGLELINE, &rc, nullptr);
-					//////////////////////画子任务
+						e.rsText.Data(), e.rsText.Size(), DT_SINGLELINE, &rc, nullptr);
+					// 画子任务
 					rc.top += (m_cySectionTitle + cxPadding);
 
-					EckCounter(Item.SubTasks.size(), i)
+					EckCounter(e.SubTasks.size(), i)
 					{
-						auto& sub = Item.SubTasks[i];
+						const auto& f = e.SubTasks[i];
 
-						if (m_idxPressed == pnmlcd->nmcd.dwItemSpec && m_idxPressedSubTask == i)
+						if (m_idxPressed == pnmlcd->nmcd.dwItemSpec &&
+							m_idxPressedSubTask == i)
 							iState = CPCL_PRESSED;
-						else if (m_idxHot == pnmlcd->nmcd.dwItemSpec && m_idxHotSubTask == i)
+						else if (m_idxHot == pnmlcd->nmcd.dwItemSpec &&
+							m_idxHotSubTask == i)
 							iState = CPCL_HOT;
 						else
 							iState = CPCL_NORMAL;
 
 						DrawThemeTextEx(m_hthControlPanel, hDC, CPANEL_CONTENTLINK, iState,
-							sub.rsText.Data(), sub.rsText.Size(), DT_SINGLELINE, &rc, nullptr);
+							f.rsText.Data(), f.rsText.Size(), DT_SINGLELINE, &rc, nullptr);
 
-						rc.left += (sub.cx + m_cxSubTaskPadding * 2);
+						rc.left += (f.cx + m_cxSubTaskPadding * 2);
 					}
 				}
 				return CDRF_SKIPDEFAULT;
@@ -194,7 +195,7 @@ public:
 		{
 		case WM_MOUSEMOVE:
 		{
-			POINT pt = ECK_GET_PT_LPARAM(lParam);
+			POINT pt ECK_GET_PT_LPARAM(lParam);
 			LRESULT lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);
 			int idxHot = GetHotItem();
 			BOOL bRedraw = FALSE, bHotChanged = FALSE;
