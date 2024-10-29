@@ -1166,14 +1166,14 @@ public:
 		return SetItemState(idx, INDEXTOSTATEIMAGEMASK(iCheck + 1), LVIS_STATEIMAGEMASK);
 	}
 
-	EckInline [[nodiscard]] IListView2* GetListViewObject() const
+	EckInline [[nodiscard]] IListView2* GetLvObject() const
 	{
 		IListView2* pLv{};
 		SendMsg(LVM_QUERYINTERFACE, (WPARAM)&IID_IListView2, (LPARAM)&pLv);
 		return pLv;
 	}
 
-	EckInline LRESULT GetListViewObject(REFIID riid, void** ppv) const
+	EckInline LRESULT GetLvObject(REFIID riid, void** ppv) const
 	{
 		return SendMsg(LVM_QUERYINTERFACE, (WPARAM)&riid, (LPARAM)ppv);
 	}

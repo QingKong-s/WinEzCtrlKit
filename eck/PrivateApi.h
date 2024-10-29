@@ -235,7 +235,7 @@ FORCEINLINE BOOL IsDarkModeAllowedForApp()
 #endif
 }
 
-using FOpenNcThemeData = HTHEME(WINAPI*)(HWND, LPCWSTR);
+using FOpenNcThemeData = HTHEME(WINAPI*)(HWND, PCWSTR);
 
 extern FOpenNcThemeData pfnOpenNcThemeData;
 
@@ -244,6 +244,29 @@ FORCEINLINE HTHEME OpenNcThemeData(HWND hWnd, PCWSTR pszClassList)
 	return pfnOpenNcThemeData(hWnd, pszClassList);
 }
 EXTERN_C_END
+
+
+// {96a23e16-a1bc-11d1-b084-00c04fc33aa5}
+constexpr inline IID IID_ILVRange{ 0x96a23e16L, 0xa1bc, 0x11d1, { 0xb0, 0x84, 0x00, 0xc0, 0x4f, 0xc3, 0x3a, 0xa5 } };
+
+// The ILVRange interface manages a range of items
+// in a owner-data list view control.
+MIDL_INTERFACE("96a23e16-a1bc-11d1-b084-00c04fc33aa5")
+ILVRange : public IUnknown
+{
+	STDMETHOD(IncludeRange)(LONG idxBegin, LONG idxEnd) = 0;
+	STDMETHOD(ExcludeRange)(LONG idxBegin, LONG idxEnd) = 0;
+	STDMETHOD(InvertRange)(LONG idxBegin, LONG idxEnd) = 0;
+	STDMETHOD(InsertItem)(LONG idxItem) = 0;
+	STDMETHOD(RemoveItem)(LONG idxItem) = 0;
+	STDMETHOD(Clear)() = 0;
+	STDMETHOD(IsSelected)(LONG idxItem) = 0;
+	STDMETHOD(IsEmpty)() = 0;
+	STDMETHOD(NextSelected)(LONG idxItem, LONG* pidxItem) = 0;
+	STDMETHOD(NextUnSelected)(LONG idxItem, LONG* pidxItem) = 0;
+	STDMETHOD(CountIncluded)(LONG* pcIncluded) = 0;
+};
+
 
 // 惯用叫法，无从得知微软的实际命名
 // (IID*, void**)
@@ -291,196 +314,227 @@ constexpr inline GUID CLSID_CRatingControl{ 0x85e94d25, 0x0712, 0x47ed, {0x8C, 0
 // {527c9a9b-b9a2-44b0-84f9-f0dc11c2bcfb}
 constexpr inline GUID CLSID_CStaticPropertyControl{ 0x527C9A9B, 0xB9A2, 0x44B0, {0x84, 0xF9, 0xF0, 0xDC, 0x11, 0xC2, 0xBC, 0xFB} };
 
-class IPropertyValue :public IUnknown
+MIDL_INTERFACE("7AF7F355-1066-4E17-B1F2-19FE2F099CD2")
+IPropertyValue :public IUnknown
 {
 public:
-	/// \brief <em>Sets the \c PROPERTYKEY structure that identifies the property wrapped by the object</em>
-	///
-	/// \param[in] propKey The property identifier. It will be stored by the object.
-	///
-	/// \return An \c HRESULT error code.
-	///
-	/// \sa GetPropertyKey,
-	///     <a href="http://msdn.microsoft.com/en-us/library/bb773381.aspx">PROPERTYKEY</a>
-	virtual HRESULT STDMETHODCALLTYPE SetPropertyKey(PROPERTYKEY const& propKey) = 0;
-	/// \brief <em>Retrieves the \c PROPERTYKEY structure that identifies the property wrapped by the object</em>
-	///
-	/// \param[out] pPropKey Receives the property identifier.
-	///
-	/// \return An \c HRESULT error code.
-	///
-	/// \sa SetPropertyKey,
-	///     <a href="http://msdn.microsoft.com/en-us/library/bb773381.aspx">PROPERTYKEY</a>
-	virtual HRESULT STDMETHODCALLTYPE GetPropertyKey(PROPERTYKEY* pPropKey) = 0;
-	/// \brief <em>Retrieves the current value of the property wrapped by the object</em>
-	///
-	/// \param[out] pPropValue Receives the property value.
-	///
-	/// \return An \c HRESULT error code.
-	///
-	/// \sa InitValue
-	virtual HRESULT STDMETHODCALLTYPE GetValue(PROPVARIANT* pPropValue) = 0;
-	/// \brief <em>Initializes the object with the property's current value</em>
-	///
-	/// \param[in] propValue The property's current value. It will be stored by the object.
-	///
-	/// \return An \c HRESULT error code.
-	///
-	/// \sa GetValue
-	virtual HRESULT STDMETHODCALLTYPE InitValue(PROPVARIANT const& propValue) = 0;
+	/// <summary>
+	/// Sets the PROPERTYKEY structure that identifies
+	/// the property wrapped by the object
+	/// </summary>
+	/// <param name="propKey">The property identifier.
+	/// It will be stored by the object.</param>
+	/// <returns>An HRESULT error code.</returns>
+	STDMETHOD(SetPropertyKey)(PROPERTYKEY const& PropKey) = 0;
+
+	/// <summary>
+	/// Retrieves the PROPERTYKEY structure that
+	/// identifies the property wrapped by the object
+	/// </summary>
+	/// <param name="pPropKey">Receives the property identifier.</param>
+	/// <returns>An HRESULT error code.</returns>
+	STDMETHOD(GetPropertyKey)(PROPERTYKEY* pPropKey) = 0;
+
+	/// <summary>
+	/// Retrieves the current value of the property
+	/// wrapped by the object
+	/// </summary>
+	/// <param name="pPropValue">Receives the property value.</param>
+	/// <returns>An HRESULT error code.</returns>
+	STDMETHOD(GetValue)(PROPVARIANT* pPropValue) = 0;
+
+	/// <summary>
+	/// Initializes the object with the property's
+	/// current value
+	/// </summary>
+	/// <param name="propValue">The property's current
+	/// value. It will be stored by the object.</param>
+	/// <returns>An HRESULT error code.</returns>
+	STDMETHOD(InitValue)(PROPVARIANT const& PropValue) = 0;
 };
 
-class IListViewFooterCallback :public IUnknown
+MIDL_INTERFACE("88EB9442-913B-4AB4-A741-DD99DCB7558B")
+IListViewFooterCallback :public IUnknown
 {
 public:
-	/// \brief Notifies the client that a footer item has been clicked
-	///
-	/// This method is called by the list view control to notify the client application that the user has
-	/// clicked a footer item.
-	///
-	/// \param[in] itemIndex The zero-based index of the footer item that has been clicked.
-	/// \param[in] lParam The application-defined integer value that is associated with the clicked item.
-	/// \param[out] pRemoveFooter If set to \c TRUE, the list view control will remove the footer area.
-	///
-	/// \return An \c HRESULT error code.
-	virtual HRESULT STDMETHODCALLTYPE OnButtonClicked(int itemIndex, LPARAM lParam, PINT pRemoveFooter) = 0;
-	/// \brief Notifies the client that a footer item has been removed
-	///
-	/// This method is called by the list view control to notify the client application that it has removed a
-	/// footer item.
-	///
-	/// \param[in] itemIndex The zero-based index of the footer item that has been removed.
-	/// \param[in] lParam The application-defined integer value that is associated with the removed item.
-	///
-	/// \return An \c HRESULT error code.
-	virtual HRESULT STDMETHODCALLTYPE OnDestroyButton(int itemIndex, LPARAM lParam) = 0;
+	/// <summary>
+	/// Notifies the client that a footer item has been clicked.
+	/// This method is called by the list view control to notify
+	/// the client application that the user has clicked a footer item.
+	/// </summary>
+	/// <param name="idxItem">The zero-based index of the footer
+	/// item that has been clicked.</param>
+	/// <param name="lParam">The application-defined integer value
+	/// that is associated with the clicked item.</param>
+	/// <param name="pbRemoveFooter">If set to TRUE, the list view
+	/// control will remove the footer area.</param>
+	/// <returns>An HRESULT error code.</returns>
+	STDMETHOD(OnButtonClicked)(int idxItem, LPARAM lParam, BOOL * pbRemoveFooter) = 0;
+
+	/// <summary>
+	/// Notifies the client that a footer item has been removed.
+	/// This method is called by the list view control to notify
+	/// the client application that it has removed a footer item.
+	/// </summary>
+	/// <param name="idxItem">The zero-based index of the
+	/// footer item that has been removed.</param>
+	/// <param name="lParam">The application-defined integer
+	/// value that is associated with the removed item.</param>
+	/// <returns>An HRESULT error code.</returns>
+	STDMETHOD(OnDestroyButton)(int idxItem, LPARAM lParam) = 0;
 };
 
-class IListViewFooter :public IUnknown
+MIDL_INTERFACE("F0034DA8-8A22-4151-8F16-2EBA76565BCC")
+IListViewFooter :public IUnknown
 {
 public:
-	/// \brief Retrieves whether the footer area is currently displayed
-	///
-	/// Retrieves whether the list view control's footer area is currently displayed.
-	///
-	/// \param[out] pVisible \c TRUE if the footer area is visible; otherwise \c FALSE.
-	///
-	/// \return An \c HRESULT error code.
-	virtual HRESULT STDMETHODCALLTYPE IsVisible(PINT pVisible) = 0;
-	/// \brief Retrieves the caret footer item
-	///
+	/// <summary>
+	/// Retrieves whether the list view control's footer
+	/// area is currently displayed.
+	/// </summary>
+	/// <param name="pbVisible">TRUE if the footer area
+	/// is visible; otherwise FALSE.</param>
+	/// <returns>An HRESULT error code.</returns>
+	STDMETHOD(IsVisible)(BOOL * pbVisible) = 0;
+
+	/// <summary>
 	/// Retrieves the list view control's focused footer item.
-	///
-	/// \param[out] pItemIndex Receives the zero-based index of the footer item that has the keyboard focus.
-	///
-	/// \return An \c HRESULT error code.
-	virtual HRESULT STDMETHODCALLTYPE GetFooterFocus(PINT pItemIndex) = 0;
-	/// \brief Sets the caret footer item
-	///
+	/// </summary>
+	/// <param name="pidxItem">Receives the zero-based index
+	/// of the footer item that has the keyboard focus.</param>
+	/// <returns>An HRESULT error code.</returns>
+	STDMETHOD(GetFooterFocus)(int* pidxItem) = 0;
+
+	/// <summary>
 	/// Sets the list view control's focused footer item.
-	///
-	/// \param[in] itemIndex The zero-based index of the footer item to which to set the keyboard focus.
-	///
-	/// \return An \c HRESULT error code.
-	virtual HRESULT STDMETHODCALLTYPE SetFooterFocus(int itemIndex) = 0;
-	/// \brief Sets the footer area's caption
-	///
-	/// Sets the title text of the list view control's footer area.
-	///
-	/// \param[in] pText The text to display in the footer area's title.
-	///
-	/// \return An \c HRESULT error code.
-	virtual HRESULT STDMETHODCALLTYPE SetIntroText(LPCWSTR pText) = 0;
-	/// \brief Makes the footer area visible
-	///
-	/// Makes the list view control's footer area visible and registers the callback object that is notified
+	/// </summary>
+	/// <param name="idxItem">The zero-based index of the
+	/// footer item to which to set the keyboard focus.</param>
+	/// <returns>An HRESULT error code.</returns>
+	STDMETHOD(SetFooterFocus)(int idxItem) = 0;
+
+	/// <summary>
+	/// Sets the title text of the list view control's
+	/// footer area.
+	/// </summary>
+	/// <param name="pszText">The text to display in the
+	/// footer area's title.</param>
+	/// <returns>An HRESULT error code.</returns>
+	STDMETHOD(SetIntroText)(PCWSTR pszText) = 0;
+
+	/// <summary>
+	/// Makes the list view control's footer area visible
+	/// and registers the callback object that is notified
 	/// about item clicks and item deletions.
-	///
-	/// \param[in] pCallbackObject The \c IListViewFooterCallback implementation of the callback object to
-	///            register.
-	///
-	/// \return An \c HRESULT error code.
-	virtual HRESULT STDMETHODCALLTYPE Show(IListViewFooterCallback* pCallbackObject) = 0;
-	/// \brief Removes all footer items
-	///
-	/// Removes all footer items from the list view control's footer area.
-	///
-	/// \return An \c HRESULT error code.
-	virtual HRESULT STDMETHODCALLTYPE RemoveAllButtons(void) = 0;
-	/// \brief Inserts a footer item
-	///
-	/// Inserts a new footer item with the specified properties at the specified position into the list view
+	/// </summary>
+	/// <param name="pCallbackObject">The IListViewFooterCallback
+	/// implementation of the callback object to register.</param>
+	/// <returns>An HRESULT error code.</returns>
+	STDMETHOD(Show)(IListViewFooterCallback* pCallbackObject) = 0;
+
+	/// <summary>
+	/// Removes all footer items from the list view
+	/// control's footer area.
+	/// </summary>
+	/// <returns>An HRESULT error code.</returns>
+	STDMETHOD(RemoveAllButtons)(void) = 0;
+
+	/// <summary>
+	/// Inserts a footer item. Inserts a new footer item
+	/// with the specified properties at the specified
+	/// position into the list view
 	/// control.
-	///
-	/// \param[in] insertAt The zero-based index at which to insert the new footer item.
-	/// \param[in] pText The new footer item's text.
-	/// \param[in] pUnknown ???
-	/// \param[in] iconIndex The zero-based index of the new footer item's icon.
-	/// \param[in] lParam The integer data that will be associated with the new footer item.
-	///
-	/// \return An \c HRESULT error code.
-	virtual HRESULT STDMETHODCALLTYPE InsertButton(int insertAt, LPCWSTR pText, LPCWSTR pUnknown, UINT iconIndex, LONG lParam) = 0;
-	/// \brief Retrieves a footer item's associated data
-	///
-	/// Retrieves the integer data associated with the specified footer item.
-	///
-	/// \param[in] itemIndex The zero-based index of the footer for which to retrieve the associated data.
-	/// \param[out] pLParam Receives the associated data.
-	///
-	/// \return An \c HRESULT error code.
-	virtual HRESULT STDMETHODCALLTYPE GetButtonLParam(int itemIndex, LONG* pLParam) = 0;
+	/// </summary>
+	/// <param name="posInsert">The zero-based index at
+	/// which to insert the new footer item.</param>
+	/// <param name="pszText">The new footer item's text.</param>
+	/// <param name="pszShorterText">If there is not enough
+	/// space, display this text.</param>
+	/// <param name="idxImage">The zero-based index of the
+	/// new footer item's icon.</param>
+	/// <param name="lParam">The integer data that will be
+	/// associated with the new footer item.</param>
+	/// <returns>An HRESULT error code.</returns>
+	STDMETHOD(InsertButton)(int posInsert, PCWSTR pszText, PCWSTR pszShorterText, UINT idxImage, LPARAM lParam) = 0;
+
+	/// <summary>
+	/// Retrieves the integer data associated with the
+	/// specified footer item.
+	/// </summary>
+	/// <param name="idxItem">The zero-based index of
+	/// the footer for which to retrieve the associated
+	/// data.</param>
+	/// <param name="pLParam">Receives the associated data.</param>
+	/// <returns>An HRESULT error code.</returns>
+	STDMETHOD(GetButtonLParam)(int idxItem, LPARAM* pLParam) = 0;
 };
 
-class IPropertyControlBase :public IUnknown
+MIDL_INTERFACE("6E71A510-732A-4557-9596-A827E36DAF8F")
+IPropertyControlBase :public IUnknown
 {
 public:
 	// All parameter names have been guessed!
-	// 2 -> Calendar control becomes a real calendar control instead of a date picker (but with a height of only 1 line)
+
+	// 2 -> Calendar control becomes a real calendar
+	// control instead of a date picker (but with a
+	// height of only 1 line)
 	// 3 -> Calendar control becomes a simple text box
 	typedef enum tagPROPDESC_CONTROL_TYPE PROPDESC_CONTROL_TYPE;
 	typedef enum tagPROPCTL_RECT_TYPE PROPCTL_RECT_TYPE;
-	virtual HRESULT STDMETHODCALLTYPE Initialize(LPUNKNOWN, PROPDESC_CONTROL_TYPE) = 0;
-	// called when editing group labels
-	// unknown1 might be a LVGGR_* value
-	// hDC seems to be always NULL
-	// pUnknown2 seems to be always NULL
-	// pUnknown3 seems to receive the size set by the method
-	virtual HRESULT STDMETHODCALLTYPE GetSize(PROPCTL_RECT_TYPE unknown1, HDC hDC, SIZE const* pUnknown2, LPSIZE pUnknown3) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetWindowTheme(LPCWSTR, LPCWSTR) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetFont(HFONT hFont) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetTextColor(COLORREF color) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetFlags(PINT) = 0;
+	STDMETHOD(Initialize)(LPUNKNOWN, PROPDESC_CONTROL_TYPE) = 0;
+
+	/// <summary>
+	/// called when editing group labels
+	/// </summary>
+	/// <param name="Unknown1">might be a LVGGR_* value</param>
+	/// <param name="hDC">seems to be always NULL</param>
+	/// <param name="pUnknown2">seems to be always NULL</param>
+	/// <param name="pUnknown3">seems to receive the size set by the method</param>
+	/// <returns></returns>
+	STDMETHOD(GetSize)(PROPCTL_RECT_TYPE Unknown1, HDC hDC, SIZE const* pUnknown2, LPSIZE pUnknown3) = 0;
+	STDMETHOD(SetWindowTheme)(PCWSTR pszSubAppName, PCWSTR pszSubIdList) = 0;
+	STDMETHOD(SetFont)(HFONT hFont) = 0;
+	STDMETHOD(SetTextColor)(COLORREF cr) = 0;
+	STDMETHOD(GetFlags)(int* pFlags) = 0;
+
 	// IPropertyControl:
-	//   called before the edit control is created and before it is dismissed
-	//   flags is 1 on first call and 0 on second call (mask is always 1)
-	virtual HRESULT STDMETHODCALLTYPE SetFlags(int flags, int mask) = 0;
-	// possible values for unknown2 (list may be incomplete):
+	// called before the edit control is created and before it is dismissed
+	// flags is 1 on first call and 0 on second call (mask is always 1)
+	// 1 -> Maybe visibility
+	STDMETHOD(SetFlags)(int Flags, int Mask) = 0;
+
+	// possible values for Unknown2 (list may be incomplete):
 	//   0x02 - mouse has been moved over the sub-item
-	//   0x0C - ISubItemCallBack::EditSubItem has been called or a slow double click has been made
-	virtual HRESULT STDMETHODCALLTYPE AdjustWindowRectPCB(HWND hWndListView, LPRECT pItemRectangle, RECT const* pUnknown1, int unknown2) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetValue(LPUNKNOWN) = 0;
-	virtual HRESULT STDMETHODCALLTYPE InvokeDefaultAction(void) = 0;
-	virtual HRESULT STDMETHODCALLTYPE Destroy(void) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetFormatFlags(int) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetFormatFlags(PINT) = 0;
+	//   0x0C - ISubItemCallBack::EditSubItem has been called or a
+	//   slow double click has been made
+	STDMETHOD(AdjustWindowRectPCB)(HWND hWndListView, RECT* prcItem, RECT const* pUnknown1, int Unknown2) = 0;
+	STDMETHOD(SetValue)(IUnknown*) = 0;
+	STDMETHOD(InvokeDefaultAction)(void) = 0;
+	STDMETHOD(Destroy)(void) = 0;
+	STDMETHOD(SetFormatFlags)(int) = 0;
+	STDMETHOD(GetFormatFlags)(int*) = 0;
 };
 
-class IPropertyControl :public IPropertyControlBase
+MIDL_INTERFACE("5E82A4DD-9561-476A-8634-1BEBACBA4A38")
+IPropertyControl :public IPropertyControlBase
 {
 public:
-	virtual HRESULT STDMETHODCALLTYPE GetValue(REFIID requiredInterface, LPVOID* ppObject) = 0;
-	// possible values for unknown2 (list may be incomplete):
+	STDMETHOD(GetValue)(REFIID riid, void** ppv) = 0;
+
+	// possible values for Unknown2 (list may be incomplete):
 	//   0x02 - mouse has been moved over the sub-item
-	//   0x0C - ISubItemCallBack::EditSubItem has been called or a slow double click has been made
-	virtual HRESULT STDMETHODCALLTYPE Create(HWND hWndParent, RECT const* pItemRectangle, RECT const* pUnknown1, int unknown2) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetPosition(RECT const*, RECT const*) = 0;
-	virtual HRESULT STDMETHODCALLTYPE IsModified(LPBOOL pModified) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetModified(BOOL modified) = 0;
-	virtual HRESULT STDMETHODCALLTYPE ValidationFailed(LPCWSTR) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetState(PINT pState) = 0;
+	//   0x0C - ISubItemCallBack::EditSubItem has been called or
+	//   a slow double click has been made
+	STDMETHOD(Create)(HWND hWndParent, RECT const* prcItem, RECT const* pUnknown1, int Unknown2) = 0;
+	STDMETHOD(SetPosition)(RECT const*, RECT const*) = 0;
+	STDMETHOD(IsModified)(BOOL* pbModified) = 0;
+	STDMETHOD(SetModified)(BOOL bModified) = 0;
+	STDMETHOD(ValidationFailed)(PCWSTR) = 0;
+	STDMETHOD(GetState)(int* pState) = 0;
 };
 
-class ISubItemCallback :public IUnknown
+MIDL_INTERFACE("11A66240-5489-42C2-AEBF-286FC831524C")
+ISubItemCallback :public IUnknown
 {
 public:
 	/// \brief <em>Retrieves the title of the specified sub-item</em>
@@ -488,12 +542,12 @@ public:
 	/// Retrieves the title of the specified sub-item. This title is displayed in extended tile view mode
 	/// in front of the sub-item's value.
 	///
-	/// \param[in] subItemIndex The one-based index of the sub-item for which to retrieve the title.
+	/// \param[in] idxSubItem The one-based index of the sub-item for which to retrieve the title.
 	/// \param[out] pBuffer Receives the sub-item's title.
 	/// \param[in] bufferSize The size of the buffer (in characters) specified by the \c pBuffer parameter.
 	///
 	/// \return An \c HRESULT error code.
-	virtual HRESULT STDMETHODCALLTYPE GetSubItemTitle(int subItemIndex, LPWSTR pBuffer, int bufferSize) = 0;
+	STDMETHOD(GetSubItemTitle)(int idxSubItem, PWSTR pBuffer, int bufferSize) = 0;
 	/// \brief <em>Retrieves the control representing the specified sub-item</em>
 	///
 	/// Retrieves the control representing the specified sub-item. The control is used for drawing the
@@ -505,13 +559,13 @@ public:
 	/// object that represents the sub-item is retrieved dynamically.\n
 	/// This method retrieves the sub-item control that is used for drawing the sub-item.
 	///
-	/// \param[in] itemIndex The zero-based index of the item for which to retrieve the sub-item control.
-	/// \param[in] subItemIndex The one-based index of the sub-item for which to retrieve the sub-item
+	/// \param[in] idxItem The zero-based index of the item for which to retrieve the sub-item control.
+	/// \param[in] idxSubItem The one-based index of the sub-item for which to retrieve the sub-item
 	///            control.
-	/// \param[in] requiredInterface The IID of the interface of which the sub-item control's implementation
+	/// \param[in] riid The IID of the interface of which the sub-item control's implementation
 	///            will be returned.
-	/// \param[out] ppObject Receives the sub-item control's implementation of the interface identified by
-	///             \c requiredInterface.
+	/// \param[out] ppv Receives the sub-item control's implementation of the interface identified by
+	///             \c riid.
 	///
 	/// \return An \c HRESULT error code.
 	///
@@ -519,7 +573,7 @@ public:
 	///          custom-draw sub-items in Tiles view mode.
 	///
 	/// \sa BeginSubItemEdit, IPropertyControlBase, IPropertyControl, IDrawPropertyControl
-	virtual HRESULT STDMETHODCALLTYPE GetSubItemControl(int itemIndex, int subItemIndex, REFIID requiredInterface, LPVOID* ppObject) = 0;
+	STDMETHOD(GetSubItemControl)(int idxItem, int idxSubItem, REFIID riid, void** ppv) = 0;
 	/// \brief <em>Retrieves the control used to edit the specified sub-item</em>
 	///
 	/// Retrieves the control that will be used to edit the specified sub-item. The control is used for
@@ -531,22 +585,22 @@ public:
 	/// object that represents the sub-item is retrieved dynamically.\n
 	/// This method retrieves the sub-item control that is used for editing the sub-item.
 	///
-	/// \param[in] itemIndex The zero-based index of the item for which to retrieve the sub-item control.
-	/// \param[in] subItemIndex The one-based index of the sub-item for which to retrieve the sub-item
+	/// \param[in] idxItem The zero-based index of the item for which to retrieve the sub-item control.
+	/// \param[in] idxSubItem The one-based index of the sub-item for which to retrieve the sub-item
 	///            control.
 	/// \param[in] mode If set to 0, the edit mode has been entered by moving the mouse over the sub-item.
 	///            If set to 1, the edit mode has been entered by calling \c IListView::EditSubItem or by
 	///            clicking on the sub-item.
-	/// \param[in] requiredInterface The IID of the interface of which the sub-item control's implementation
+	/// \param[in] riid The IID of the interface of which the sub-item control's implementation
 	///            will be returned.
-	/// \param[out] ppObject Receives the sub-item control's implementation of the interface identified by
-	///             \c requiredInterface.
+	/// \param[out] ppv Receives the sub-item control's implementation of the interface identified by
+	///             \c riid.
 	///
 	/// \return An \c HRESULT error code.
 	///
 	/// \sa EndSubItemEdit, GetSubItemControl, IPropertyControlBase,
 	///     IPropertyControl, IDrawPropertyControl
-	virtual HRESULT STDMETHODCALLTYPE BeginSubItemEdit(int itemIndex, int subItemIndex, int mode, REFIID requiredInterface, LPVOID* ppObject) = 0;
+	STDMETHOD(BeginSubItemEdit)(int idxItem, int idxSubItem, int mode, REFIID riid, void** ppv) = 0;
 	/// \brief <em>Notifies the control that editing the specified sub-item has ended</em>
 	///
 	/// Notifies the control that editing the specified sub-item using the specified sub-item control has
@@ -557,8 +611,8 @@ public:
 	/// \c IPropertyControl interface, which allows in-place editing with a complex user interface). The
 	/// object that represents the sub-item is retrieved dynamically.
 	///
-	/// \param[in] itemIndex The zero-based index of the item whose sub-item has been edited.
-	/// \param[in] subItemIndex The one-based index of the sub-item that has been edited.
+	/// \param[in] idxItem The zero-based index of the item whose sub-item has been edited.
+	/// \param[in] idxSubItem The one-based index of the sub-item that has been edited.
 	/// \param[in] mode If set to 0, the edit mode has been entered by moving the mouse over the sub-item.
 	///            If set to 1, the edit mode has been entered by calling \c IListView::EditSubItem or by
 	///            clicking on the sub-item.
@@ -573,11 +627,11 @@ public:
 	/// \sa BeginSubItemEdit, IListView_WINVISTA::EditSubItem, IListView_WIN7::EditSubItem,
 	///     IPropertyControlBase, IPropertyControl, IDrawPropertyControl, IPropertyControlBase::Destroy,
 	///     IPropertyControl::IsModified
-	virtual HRESULT STDMETHODCALLTYPE EndSubItemEdit(int itemIndex, int subItemIndex, int mode, IPropertyControl* pPropertyControl) = 0;
+	STDMETHOD(EndSubItemEdit)(int idxItem, int idxSubItem, int mode, IPropertyControl* pPropertyControl) = 0;
 	// TBD
-	virtual HRESULT STDMETHODCALLTYPE BeginGroupEdit(int groupIndex, REFIID requiredInterface, LPVOID* ppObject) = 0;
+	STDMETHOD(BeginGroupEdit)(int idxGroup, REFIID riid, void** ppv) = 0;
 	// TBD
-	virtual HRESULT STDMETHODCALLTYPE EndGroupEdit(int groupIndex, int mode, IPropertyControl* pPropertyControl) = 0;
+	STDMETHOD(EndGroupEdit)(int idxGroup, int mode, IPropertyControl* pPropertyControl) = 0;
 	/// \brief <em>Notifies the control that the specified verb has been invoked on the specified item</em>
 	///
 	/// Notifies the control that an action identified by the specified verb has been invoked on the
@@ -587,27 +641,29 @@ public:
 	/// has been specified as the \c id attribute of the hyperlink markup
 	/// (&lt;a id=&quot;<i>verb</i>&quot;&gt;<i>text</i>&lt;/a&gt;).
 	///
-	/// \param[in] itemIndex The zero-based index of the item on which the verb is being invoked.
+	/// \param[in] idxItem The zero-based index of the item on which the verb is being invoked.
 	/// \param[in] pVerb The verb identifying the action.
 	///
 	/// \return An \c HRESULT error code.
 	///
 	/// \sa GetSubItemControl, IPropertyControlBase::InvokeDefaultAction
-	virtual HRESULT STDMETHODCALLTYPE OnInvokeVerb(int itemIndex, LPCWSTR pVerb) = 0;
+	STDMETHOD(OnInvokeVerb)(int idxItem, PCWSTR pVerb) = 0;
 };
 
-class IDrawPropertyControl :public IPropertyControlBase
+MIDL_INTERFACE("E6DFF6FD-BCD5-4162-9C65-A3B18C616FDB")
+IDrawPropertyControl :public IPropertyControlBase
 {
 public:
 	// All parameter names have been guessed!
-	virtual HRESULT STDMETHODCALLTYPE GetDrawFlags(PINT) = 0;
-	virtual HRESULT STDMETHODCALLTYPE WindowlessDraw(HDC hDC, RECT const* pDrawingRectangle, int a) = 0;
-	virtual HRESULT STDMETHODCALLTYPE HasVisibleContent(void) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetDisplayText(LPWSTR*) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetTooltipInfo(HDC, SIZE const*, PINT) = 0;
+	STDMETHOD(GetDrawFlags)(int*) = 0;
+	STDMETHOD(WindowlessDraw)(HDC hDC, RECT const* pDrawingRectangle, int a) = 0;
+	STDMETHOD(HasVisibleContent)(void) = 0;
+	STDMETHOD(GetDisplayText)(PWSTR*) = 0;
+	STDMETHOD(GetTooltipInfo)(HDC, SIZE const*, int*) = 0;
 };
 
-class IOwnerDataCallback :public IUnknown
+MIDL_INTERFACE("44C09D56-8D3B-419D-A462-7B956B105B47")
+IOwnerDataCallback :public IUnknown
 {
 public:
 	/// \brief <em>TODO</em>
@@ -615,13 +671,13 @@ public:
 	/// TODO
 	///
 	/// \return An \c HRESULT error code.
-	virtual HRESULT STDMETHODCALLTYPE GetItemPosition(int itemIndex, LPPOINT pPosition) = 0;
+	STDMETHOD(GetItemPosition)(int idxItem, LPPOINT pPosition) = 0;
 	/// \brief <em>TODO</em>
 	///
 	/// TODO
 	///
 	/// \return An \c HRESULT error code.
-	virtual HRESULT STDMETHODCALLTYPE SetItemPosition(int itemIndex, POINT position) = 0;
+	STDMETHOD(SetItemPosition)(int idxItem, POINT position) = 0;
 	/// \brief <em>Will be called to retrieve an item's zero-based control-wide index</em>
 	///
 	/// This method is called by the listview control to retrieve an item's zero-based control-wide index.
@@ -629,36 +685,36 @@ public:
 	/// the item is displayed, and a zero-based group-wide item index, which identifies the item within its
 	/// group.
 	///
-	/// \param[in] groupIndex The zero-based index of the listview group containing the item.
+	/// \param[in] idxGroup The zero-based index of the listview group containing the item.
 	/// \param[in] groupWideItemIndex The item's zero-based group-wide index within the listview group
-	///            specified by \c groupIndex.
+	///            specified by \c idxGroup.
 	/// \param[out] pTotalItemIndex Receives the item's zero-based control-wide index.
 	///
 	/// \return An \c HRESULT error code.
-	virtual HRESULT STDMETHODCALLTYPE GetItemInGroup(int groupIndex, int groupWideItemIndex, PINT pTotalItemIndex) = 0;
+	STDMETHOD(GetItemInGroup)(int idxGroup, int groupWideItemIndex, int* pTotalItemIndex) = 0;
 	/// \brief <em>Will be called to retrieve the group containing a specific occurrence of an item</em>
 	///
 	/// This method is called by the listview control to retrieve the listview group in which the specified
 	/// occurrence of the specified item is displayed.
 	///
-	/// \param[in] itemIndex The item's zero-based (control-wide) index.
+	/// \param[in] idxItem The item's zero-based (control-wide) index.
 	/// \param[in] occurrenceIndex The zero-based index of the item's copy for which the group membership is
 	///            retrieved.
 	/// \param[out] pGroupIndex Receives the zero-based index of the listview group that shall contain the
 	///             specified copy of the specified item.
 	///
 	/// \return An \c HRESULT error code.
-	virtual HRESULT STDMETHODCALLTYPE GetItemGroup(int itemIndex, int occurenceIndex, PINT pGroupIndex) = 0;
+	STDMETHOD(GetItemGroup)(int idxItem, int occurenceIndex, int* pGroupIndex) = 0;
 	/// \brief <em>Will be called to determine how often an item occurs in the listview control</em>
 	///
 	/// This method is called by the listview control to determine how often the specified item occurs in the
 	/// listview control.
 	///
-	/// \param[in] itemIndex The item's zero-based (control-wide) index.
+	/// \param[in] idxItem The item's zero-based (control-wide) index.
 	/// \param[out] pOccurrencesCount Receives the number of occurrences of the item in the listview control.
 	///
 	/// \return An \c HRESULT error code.
-	virtual HRESULT STDMETHODCALLTYPE GetItemGroupCount(int itemIndex, PINT pOccurenceCount) = 0;
+	STDMETHOD(GetItemGroupCount)(int idxItem, int* pOccurenceCount) = 0;
 	/// \brief <em>Will be called to prepare the client app that the data for a certain range of items will be required very soon</em>
 	///
 	/// This method is similar to the \c LVN_ODCACHEHINT notification. It tells the client application that
@@ -671,158 +727,158 @@ public:
 	/// \param[in] lastItem The last item to cache.
 	///
 	/// \return An \c HRESULT error code.
-	virtual HRESULT STDMETHODCALLTYPE OnCacheHint(LVITEMINDEX firstItem, LVITEMINDEX lastItem) = 0;
+	STDMETHOD(OnCacheHint)(LVITEMINDEX firstItem, LVITEMINDEX lastItem) = 0;
 };
 
-class IListView2 :public IOleWindow
+MIDL_INTERFACE("E5B16AF2-3990-4681-A609-1F060CD14269")
+IListView2 :public IOleWindow
 {
 public:
-	virtual HRESULT STDMETHODCALLTYPE GetImageList(int imageList, HIMAGELIST* pHImageList) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetImageList(int imageList, HIMAGELIST hNewImageList, HIMAGELIST* pHOldImageList) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetBackgroundColor(COLORREF* pColor) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetBackgroundColor(COLORREF color) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetTextColor(COLORREF* pColor) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetTextColor(COLORREF color) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetTextBackgroundColor(COLORREF* pColor) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetTextBackgroundColor(COLORREF color) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetHotLightColor(COLORREF* pColor) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetHotLightColor(COLORREF color) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetItemCount(PINT pItemCount) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetItemCount(int itemCount, DWORD flags) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetItem(LVITEMW* pItem) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetItem(LVITEMW* const pItem) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetItemState(int itemIndex, int subItemIndex, ULONG mask, ULONG* pState) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetItemState(int itemIndex, int subItemIndex, ULONG mask, ULONG state) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetItemText(int itemIndex, int subItemIndex, LPWSTR pBuffer, int bufferSize) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetItemText(int itemIndex, int subItemIndex, LPCWSTR pText) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetBackgroundImage(LVBKIMAGEW* pBkImage) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetBackgroundImage(LVBKIMAGEW* const pBkImage) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetFocusedColumn(PINT pColumnIndex) = 0;
-	// parameters may be in wrong order
-	virtual HRESULT STDMETHODCALLTYPE SetSelectionFlags(ULONG mask, ULONG flags) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetSelectedColumn(PINT pColumnIndex) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetSelectedColumn(int columnIndex) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetView(DWORD* pView) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetView(DWORD view) = 0;
-	virtual HRESULT STDMETHODCALLTYPE InsertItem(LVITEMW* const pItem, PINT pItemIndex) = 0;
-	virtual HRESULT STDMETHODCALLTYPE DeleteItem(int itemIndex) = 0;
-	virtual HRESULT STDMETHODCALLTYPE DeleteAllItems(void) = 0;
-	virtual HRESULT STDMETHODCALLTYPE UpdateItem(int itemIndex) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetItemRect(LVITEMINDEX itemIndex, int rectangleType, LPRECT pRectangle) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetSubItemRect(LVITEMINDEX itemIndex, int subItemIndex, int rectangleType, LPRECT pRectangle) = 0;
-	virtual HRESULT STDMETHODCALLTYPE HitTestSubItem(LVHITTESTINFO* pHitTestData) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetIncrSearchString(PWSTR pBuffer, int bufferSize, PINT pCopiedChars) = 0;
+	STDMETHOD(GetImageList)(int iType, HIMAGELIST * phIL) = 0;
+	STDMETHOD(SetImageList)(int iType, HIMAGELIST hILNew, HIMAGELIST* phILOld) = 0;
+	STDMETHOD(GetBackgroundColor)(COLORREF* pcr) = 0;
+	STDMETHOD(SetBackgroundColor)(COLORREF cr) = 0;
+	STDMETHOD(GetTextColor)(COLORREF* pcr) = 0;
+	STDMETHOD(SetTextColor)(COLORREF cr) = 0;
+	STDMETHOD(GetTextBackgroundColor)(COLORREF* pcr) = 0;
+	STDMETHOD(SetTextBackgroundColor)(COLORREF cr) = 0;
+	STDMETHOD(GetHotLightColor)(COLORREF* pcr) = 0;
+	STDMETHOD(SetHotLightColor)(COLORREF cr) = 0;
+	STDMETHOD(GetItemCount)(int* pItemCount) = 0;
+	STDMETHOD(SetItemCount)(int cItem, DWORD dwFlags) = 0;
+	STDMETHOD(GetItem)(LVITEMW* pItem) = 0;
+	STDMETHOD(SetItem)(LVITEMW* const pItem) = 0;
+	STDMETHOD(GetItemState)(int idxItem, int idxSubItem, ULONG mask, ULONG* pState) = 0;
+	STDMETHOD(SetItemState)(int idxItem, int idxSubItem, ULONG mask, ULONG state) = 0;
+	STDMETHOD(GetItemText)(int idxItem, int idxSubItem, PWSTR pBuffer, int bufferSize) = 0;
+	STDMETHOD(SetItemText)(int idxItem, int idxSubItem, PCWSTR pText) = 0;
+	STDMETHOD(GetBackgroundImage)(LVBKIMAGEW* pBkImage) = 0;
+	STDMETHOD(SetBackgroundImage)(LVBKIMAGEW* const pBkImage) = 0;
+	STDMETHOD(GetFocusedColumn)(int* pColumnIndex) = 0;
+	STDMETHOD(SetSelectionFlags)(ULONG uMask, ULONG uFlags) = 0;
+	STDMETHOD(GetSelectedColumn)(int* pColumnIndex) = 0;
+	STDMETHOD(SetSelectedColumn)(int columnIndex) = 0;
+	STDMETHOD(GetView)(DWORD* pView) = 0;
+	STDMETHOD(SetView)(DWORD view) = 0;
+	STDMETHOD(InsertItem)(LVITEMW* const pItem, int* pItemIndex) = 0;
+	STDMETHOD(DeleteItem)(int idxItem) = 0;
+	STDMETHOD(DeleteAllItems)(void) = 0;
+	STDMETHOD(UpdateItem)(int idxItem) = 0;
+	STDMETHOD(GetItemRect)(LVITEMINDEX idxItem, int rectangleType, LPRECT pRectangle) = 0;
+	STDMETHOD(GetSubItemRect)(LVITEMINDEX idxItem, int idxSubItem, int rectangleType, LPRECT pRectangle) = 0;
+	STDMETHOD(HitTestSubItem)(LVHITTESTINFO* pHitTestData) = 0;
+	STDMETHOD(GetIncrSearchString)(PWSTR pBuffer, int bufferSize, int* pCopiedChars) = 0;
 	// pHorizontalSpacing and pVerticalSpacing may be in wrong order
-	virtual HRESULT STDMETHODCALLTYPE GetItemSpacing(BOOL smallIconView, PINT pHorizontalSpacing, PINT pVerticalSpacing) = 0;
+	STDMETHOD(GetItemSpacing)(BOOL bSmallIconView, int* pHorizontalSpacing, int* pVerticalSpacing) = 0;
 	// parameters may be in wrong order
-	virtual HRESULT STDMETHODCALLTYPE SetIconSpacing(int horizontalSpacing, int verticalSpacing, PINT pHorizontalSpacing, PINT pVerticalSpacing) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetNextItem(LVITEMINDEX itemIndex, ULONG flags, LVITEMINDEX* pNextItemIndex) = 0;
-	virtual HRESULT STDMETHODCALLTYPE FindItem(LVITEMINDEX startItemIndex, LVFINDINFOW const* pFindInfo, LVITEMINDEX* pFoundItemIndex) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetSelectionMark(LVITEMINDEX* pSelectionMark) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetSelectionMark(LVITEMINDEX newSelectionMark, LVITEMINDEX* pOldSelectionMark) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetItemPosition(LVITEMINDEX itemIndex, POINT* pPosition) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetItemPosition(int itemIndex, POINT const* pPosition) = 0;
+	STDMETHOD(SetIconSpacing)(int horizontalSpacing, int verticalSpacing, int* pHorizontalSpacing, int* pVerticalSpacing) = 0;
+	STDMETHOD(GetNextItem)(LVITEMINDEX idxItem, ULONG flags, LVITEMINDEX* pNextItemIndex) = 0;
+	STDMETHOD(FindItem)(LVITEMINDEX startItemIndex, LVFINDINFOW const* pFindInfo, LVITEMINDEX* pFoundItemIndex) = 0;
+	STDMETHOD(GetSelectionMark)(LVITEMINDEX* pSelectionMark) = 0;
+	STDMETHOD(SetSelectionMark)(LVITEMINDEX newSelectionMark, LVITEMINDEX* pOldSelectionMark) = 0;
+	STDMETHOD(GetItemPosition)(LVITEMINDEX idxItem, POINT* pPosition) = 0;
+	STDMETHOD(SetItemPosition)(int idxItem, POINT const* pPosition) = 0;
 	// parameters may be in wrong order
-	virtual HRESULT STDMETHODCALLTYPE ScrollView(int horizontalScrollDistance, int verticalScrollDistance) = 0;
-	virtual HRESULT STDMETHODCALLTYPE EnsureItemVisible(LVITEMINDEX itemIndex, BOOL partialOk) = 0;
-	virtual HRESULT STDMETHODCALLTYPE EnsureSubItemVisible(LVITEMINDEX itemIndex, int subItemIndex) = 0;
-	virtual HRESULT STDMETHODCALLTYPE EditSubItem(LVITEMINDEX itemIndex, int subItemIndex) = 0;
-	virtual HRESULT STDMETHODCALLTYPE RedrawItems(int firstItemIndex, int lastItemIndex) = 0;
-	virtual HRESULT STDMETHODCALLTYPE ArrangeItems(int mode) = 0;
-	virtual HRESULT STDMETHODCALLTYPE RecomputeItems(int unknown) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetEditControl(HWND* pHWndEdit) = 0;
+	STDMETHOD(ScrollView)(int horizontalScrollDistance, int verticalScrollDistance) = 0;
+	STDMETHOD(EnsureItemVisible)(LVITEMINDEX idxItem, BOOL partialOk) = 0;
+	STDMETHOD(EnsureSubItemVisible)(LVITEMINDEX idxItem, int idxSubItem) = 0;
+	STDMETHOD(EditSubItem)(LVITEMINDEX idxItem, int idxSubItem) = 0;
+	STDMETHOD(RedrawItems)(int firstItemIndex, int lastItemIndex) = 0;
+	STDMETHOD(ArrangeItems)(int mode) = 0;
+	STDMETHOD(RecomputeItems)(int unknown) = 0;
+	STDMETHOD(GetEditControl)(HWND* pHWndEdit) = 0;
 	// TODO: verify that 'initialEditText' really is used to specify the initial text
-	virtual HRESULT STDMETHODCALLTYPE EditLabel(LVITEMINDEX itemIndex, LPCWSTR initialEditText, HWND* phWndEdit) = 0;
-	virtual HRESULT STDMETHODCALLTYPE EditGroupLabel(int groupIndex) = 0;
-	virtual HRESULT STDMETHODCALLTYPE CancelEditLabel(void) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetEditItem(LVITEMINDEX* itemIndex, PINT subItemIndex) = 0;
-	virtual HRESULT STDMETHODCALLTYPE HitTest(LVHITTESTINFO* pHitTestData) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetStringWidth(PCWSTR pString, PINT pWidth) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetColumn(int columnIndex, LVCOLUMNW* pColumn) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetColumn(int columnIndex, LVCOLUMNW* const pColumn) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetColumnOrderArray(int numberOfColumns, PINT pColumns) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetColumnOrderArray(int numberOfColumns, int const* pColumns) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetHeaderControl(HWND* pHWndHeader) = 0;
-	virtual HRESULT STDMETHODCALLTYPE InsertColumn(int insertAt, LVCOLUMNW* const pColumn, PINT pColumnIndex) = 0;
-	virtual HRESULT STDMETHODCALLTYPE DeleteColumn(int columnIndex) = 0;
-	virtual HRESULT STDMETHODCALLTYPE CreateDragImage(int itemIndex, POINT const* pUpperLeft, HIMAGELIST* pHImageList) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetViewRect(RECT* pRectangle) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetClientRect(BOOL unknown, RECT* pClientRectangle) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetColumnWidth(int columnIndex, PINT pWidth) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetColumnWidth(int columnIndex, int width) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetCallbackMask(ULONG* pMask) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetCallbackMask(ULONG mask) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetTopIndex(PINT pTopIndex) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetCountPerPage(PINT pCountPerPage) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetOrigin(POINT* pOrigin) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetSelectedCount(PINT pSelectedCount) = 0;
+	STDMETHOD(EditLabel)(LVITEMINDEX idxItem, PCWSTR initialEditText, HWND* phWndEdit) = 0;
+	STDMETHOD(EditGroupLabel)(int idxGroup) = 0;
+	STDMETHOD(CancelEditLabel)(void) = 0;
+	STDMETHOD(GetEditItem)(LVITEMINDEX* idxItem, int* idxSubItem) = 0;
+	STDMETHOD(HitTest)(LVHITTESTINFO* pHitTestData) = 0;
+	STDMETHOD(GetStringWidth)(PCWSTR pString, int* pWidth) = 0;
+	STDMETHOD(GetColumn)(int columnIndex, LVCOLUMNW* pColumn) = 0;
+	STDMETHOD(SetColumn)(int columnIndex, LVCOLUMNW* const pColumn) = 0;
+	STDMETHOD(GetColumnOrderArray)(int numberOfColumns, int* pColumns) = 0;
+	STDMETHOD(SetColumnOrderArray)(int numberOfColumns, int const* pColumns) = 0;
+	STDMETHOD(GetHeaderControl)(HWND* pHWndHeader) = 0;
+	STDMETHOD(InsertColumn)(int insertAt, LVCOLUMNW* const pColumn, int* pColumnIndex) = 0;
+	STDMETHOD(DeleteColumn)(int columnIndex) = 0;
+	STDMETHOD(CreateDragImage)(int idxItem, POINT const* pUpperLeft, HIMAGELIST* pHImageList) = 0;
+	STDMETHOD(GetViewRect)(RECT* pRectangle) = 0;
+	STDMETHOD(GetClientRect)(BOOL unknown, RECT* pClientRectangle) = 0;
+	STDMETHOD(GetColumnWidth)(int columnIndex, int* pWidth) = 0;
+	STDMETHOD(SetColumnWidth)(int columnIndex, int width) = 0;
+	STDMETHOD(GetCallbackMask)(ULONG* pMask) = 0;
+	STDMETHOD(SetCallbackMask)(ULONG mask) = 0;
+	STDMETHOD(GetTopIndex)(int* pTopIndex) = 0;
+	STDMETHOD(GetCountPerPage)(int* pCountPerPage) = 0;
+	STDMETHOD(GetOrigin)(POINT* pOrigin) = 0;
+	STDMETHOD(GetSelectedCount)(int* pSelectedCount) = 0;
 	// 'unknown' might specify whether to pass items' data or indexes
-	virtual HRESULT STDMETHODCALLTYPE SortItems(BOOL unknown, LPARAM lParam, PFNLVCOMPARE pComparisonFunction) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetExtendedStyle(DWORD* pStyle) = 0;
+	STDMETHOD(SortItems)(BOOL unknown, LPARAM lParam, PFNLVCOMPARE pComparisonFunction) = 0;
+	STDMETHOD(GetExtendedStyle)(DWORD* pStyle) = 0;
 	// parameters may be in wrong order
-	virtual HRESULT STDMETHODCALLTYPE SetExtendedStyle(DWORD mask, DWORD style, DWORD* pOldStyle) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetHoverTime(UINT* pTime) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetHoverTime(UINT time, UINT* pOldSetting) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetToolTip(HWND* pHWndToolTip) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetToolTip(HWND hWndToolTip, HWND* pHWndOldToolTip) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetHotItem(LVITEMINDEX* pHotItem) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetHotItem(LVITEMINDEX newHotItem, LVITEMINDEX* pOldHotItem) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetHotCursor(HCURSOR* pHCursor) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetHotCursor(HCURSOR hCursor, HCURSOR* pHOldCursor) = 0;
+	STDMETHOD(SetExtendedStyle)(DWORD mask, DWORD style, DWORD* pOldStyle) = 0;
+	STDMETHOD(GetHoverTime)(UINT* pTime) = 0;
+	STDMETHOD(SetHoverTime)(UINT time, UINT* pOldSetting) = 0;
+	STDMETHOD(GetToolTip)(HWND* pHWndToolTip) = 0;
+	STDMETHOD(SetToolTip)(HWND hWndToolTip, HWND* pHWndOldToolTip) = 0;
+	STDMETHOD(GetHotItem)(LVITEMINDEX* pHotItem) = 0;
+	STDMETHOD(SetHotItem)(LVITEMINDEX newHotItem, LVITEMINDEX* pOldHotItem) = 0;
+	STDMETHOD(GetHotCursor)(HCURSOR* pHCursor) = 0;
+	STDMETHOD(SetHotCursor)(HCURSOR hCursor, HCURSOR* pHOldCursor) = 0;
 	// parameters may be in wrong order
-	virtual HRESULT STDMETHODCALLTYPE ApproximateViewRect(int itemCount, PINT pWidth, PINT pHeight) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetRangeObject(int unknown, LPVOID/*ILVRange**/ pObject) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetWorkAreas(int numberOfWorkAreas, RECT* pWorkAreas) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetWorkAreas(int numberOfWorkAreas, RECT const* pWorkAreas) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetWorkAreaCount(PINT pNumberOfWorkAreas) = 0;
-	virtual HRESULT STDMETHODCALLTYPE ResetEmptyText(void) = 0;
-	virtual HRESULT STDMETHODCALLTYPE EnableGroupView(BOOL enable) = 0;
-	virtual HRESULT STDMETHODCALLTYPE IsGroupViewEnabled(BOOL* pIsEnabled) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SortGroups(PFNLVGROUPCOMPARE pComparisonFunction, PVOID lParam) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetGroupInfo(int unknown1, int unknown2, LVGROUP* pGroup) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetGroupInfo(int unknown, int groupID, LVGROUP* const pGroup) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetGroupRect(BOOL unknown, int groupID, int rectangleType, RECT* pRectangle) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetGroupState(int groupID, ULONG mask, ULONG* pState) = 0;
-	virtual HRESULT STDMETHODCALLTYPE HasGroup(int groupID, BOOL* pHasGroup) = 0;
-	virtual HRESULT STDMETHODCALLTYPE InsertGroup(int insertAt, LVGROUP* const pGroup, PINT pGroupID) = 0;
-	virtual HRESULT STDMETHODCALLTYPE RemoveGroup(int groupID) = 0;
-	virtual HRESULT STDMETHODCALLTYPE InsertGroupSorted(LVINSERTGROUPSORTED const* pGroup, PINT pGroupID) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetGroupMetrics(LVGROUPMETRICS* pMetrics) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetGroupMetrics(LVGROUPMETRICS* const pMetrics) = 0;
-	virtual HRESULT STDMETHODCALLTYPE RemoveAllGroups(void) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetFocusedGroup(PINT pGroupID) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetGroupCount(PINT pCount) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetOwnerDataCallback(IOwnerDataCallback* pCallback) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetTileViewInfo(LVTILEVIEWINFO* pInfo) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetTileViewInfo(LVTILEVIEWINFO* const pInfo) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetTileInfo(LVTILEINFO* pTileInfo) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetTileInfo(LVTILEINFO* const pTileInfo) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetInsertMark(LVINSERTMARK* pInsertMarkDetails) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetInsertMark(LVINSERTMARK const* pInsertMarkDetails) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetInsertMarkRect(LPRECT pInsertMarkRectangle) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetInsertMarkColor(COLORREF* pColor) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetInsertMarkColor(COLORREF color, COLORREF* pOldColor) = 0;
-	virtual HRESULT STDMETHODCALLTYPE HitTestInsertMark(POINT const* pPoint, LVINSERTMARK* pInsertMarkDetails) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetInfoTip(LVSETINFOTIP* const pInfoTip) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetOutlineColor(COLORREF* pColor) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetOutlineColor(COLORREF color, COLORREF* pOldColor) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetFrozenItem(PINT pItemIndex) = 0;
+	STDMETHOD(ApproximateViewRect)(int cItem, int* pWidth, int* pHeight) = 0;
+	STDMETHOD(SetRangeObject)(int unknown, void*/*ILVRange**/ pObject) = 0;
+	STDMETHOD(GetWorkAreas)(int numberOfWorkAreas, RECT* pWorkAreas) = 0;
+	STDMETHOD(SetWorkAreas)(int numberOfWorkAreas, RECT const* pWorkAreas) = 0;
+	STDMETHOD(GetWorkAreaCount)(int* pNumberOfWorkAreas) = 0;
+	STDMETHOD(ResetEmptyText)(void) = 0;
+	STDMETHOD(EnableGroupView)(BOOL enable) = 0;
+	STDMETHOD(IsGroupViewEnabled)(BOOL* pIsEnabled) = 0;
+	STDMETHOD(SortGroups)(PFNLVGROUPCOMPARE pComparisonFunction, PVOID lParam) = 0;
+	STDMETHOD(GetGroupInfo)(int unknown1, int unknown2, LVGROUP* pGroup) = 0;
+	STDMETHOD(SetGroupInfo)(int unknown, int groupID, LVGROUP* const pGroup) = 0;
+	STDMETHOD(GetGroupRect)(BOOL unknown, int groupID, int rectangleType, RECT* pRectangle) = 0;
+	STDMETHOD(GetGroupState)(int groupID, ULONG mask, ULONG* pState) = 0;
+	STDMETHOD(HasGroup)(int groupID, BOOL* pHasGroup) = 0;
+	STDMETHOD(InsertGroup)(int insertAt, LVGROUP* const pGroup, int* pGroupID) = 0;
+	STDMETHOD(RemoveGroup)(int groupID) = 0;
+	STDMETHOD(InsertGroupSorted)(LVINSERTGROUPSORTED const* pGroup, int* pGroupID) = 0;
+	STDMETHOD(GetGroupMetrics)(LVGROUPMETRICS* pMetrics) = 0;
+	STDMETHOD(SetGroupMetrics)(LVGROUPMETRICS* const pMetrics) = 0;
+	STDMETHOD(RemoveAllGroups)(void) = 0;
+	STDMETHOD(GetFocusedGroup)(int* pGroupID) = 0;
+	STDMETHOD(GetGroupCount)(int* pCount) = 0;
+	STDMETHOD(SetOwnerDataCallback)(IOwnerDataCallback* pCallback) = 0;
+	STDMETHOD(GetTileViewInfo)(LVTILEVIEWINFO* pInfo) = 0;
+	STDMETHOD(SetTileViewInfo)(LVTILEVIEWINFO* const pInfo) = 0;
+	STDMETHOD(GetTileInfo)(LVTILEINFO* pTileInfo) = 0;
+	STDMETHOD(SetTileInfo)(LVTILEINFO* const pTileInfo) = 0;
+	STDMETHOD(GetInsertMark)(LVINSERTMARK* pInsertMarkDetails) = 0;
+	STDMETHOD(SetInsertMark)(LVINSERTMARK const* pInsertMarkDetails) = 0;
+	STDMETHOD(GetInsertMarkRect)(LPRECT pInsertMarkRectangle) = 0;
+	STDMETHOD(GetInsertMarkColor)(COLORREF* pcr) = 0;
+	STDMETHOD(SetInsertMarkColor)(COLORREF color, COLORREF* pOldColor) = 0;
+	STDMETHOD(HitTestInsertMark)(POINT const* pPoint, LVINSERTMARK* pInsertMarkDetails) = 0;
+	STDMETHOD(SetInfoTip)(LVSETINFOTIP* const pInfoTip) = 0;
+	STDMETHOD(GetOutlineColor)(COLORREF* pcr) = 0;
+	STDMETHOD(SetOutlineColor)(COLORREF color, COLORREF* pOldColor) = 0;
+	STDMETHOD(GetFrozenItem)(int* pItemIndex) = 0;
 	// one parameter will be the item index; works in Icons view only
-	virtual HRESULT STDMETHODCALLTYPE SetFrozenItem(int unknown1, int unknown2) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetFrozenSlot(RECT* pUnknown) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetFrozenSlot(int unknown1, POINT const* pUnknown2) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetViewMargin(RECT* pMargin) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetViewMargin(RECT const* pMargin) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetKeyboardSelected(LVITEMINDEX itemIndex) = 0;
-	virtual HRESULT STDMETHODCALLTYPE MapIndexToId(int itemIndex, PINT pItemID) = 0;
-	virtual HRESULT STDMETHODCALLTYPE MapIdToIndex(int itemID, PINT pItemIndex) = 0;
-	virtual HRESULT STDMETHODCALLTYPE IsItemVisible(LVITEMINDEX itemIndex, BOOL* pVisible) = 0;
-	virtual HRESULT STDMETHODCALLTYPE EnableAlphaShadow(BOOL enable) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetGroupSubsetCount(PINT pNumberOfRowsDisplayed) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetGroupSubsetCount(int numberOfRowsToDisplay) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetVisibleSlotCount(PINT pCount) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetColumnMargin(RECT* pMargin) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetSubItemCallback(LPVOID/*ISubItemCallback**/ pCallback) = 0;
-	virtual HRESULT STDMETHODCALLTYPE GetVisibleItemRange(LVITEMINDEX* pFirstItem, LVITEMINDEX* pLastItem) = 0;
-	virtual HRESULT STDMETHODCALLTYPE SetTypeAheadFlags(UINT mask, UINT flags) = 0;
+	STDMETHOD(SetFrozenItem)(int unknown1, int unknown2) = 0;
+	STDMETHOD(GetFrozenSlot)(RECT* pUnknown) = 0;
+	STDMETHOD(SetFrozenSlot)(int unknown1, POINT const* pUnknown2) = 0;
+	STDMETHOD(GetViewMargin)(RECT* pMargin) = 0;
+	STDMETHOD(SetViewMargin)(RECT const* pMargin) = 0;
+	STDMETHOD(SetKeyboardSelected)(LVITEMINDEX idxItem) = 0;
+	STDMETHOD(MapIndexToId)(int idxItem, int* pItemID) = 0;
+	STDMETHOD(MapIdToIndex)(int itemID, int* pItemIndex) = 0;
+	STDMETHOD(IsItemVisible)(LVITEMINDEX idxItem, BOOL* pVisible) = 0;
+	STDMETHOD(EnableAlphaShadow)(BOOL enable) = 0;
+	STDMETHOD(GetGroupSubsetCount)(int* pNumberOfRowsDisplayed) = 0;
+	STDMETHOD(SetGroupSubsetCount)(int numberOfRowsToDisplay) = 0;
+	STDMETHOD(GetVisibleSlotCount)(int* pCount) = 0;
+	STDMETHOD(GetColumnMargin)(RECT* pMargin) = 0;
+	STDMETHOD(SetSubItemCallback)(ISubItemCallback* pCallback) = 0;
+	STDMETHOD(GetVisibleItemRange)(LVITEMINDEX* pFirstItem, LVITEMINDEX* pLastItem) = 0;
+	STDMETHOD(SetTypeAheadFlags)(UINT mask, UINT flags) = 0;
 };
