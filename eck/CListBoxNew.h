@@ -300,7 +300,7 @@ private:
 			m_idxFocus = idx;
 		if (m_bExtendSel)
 		{
-			if (GetAsyncKeyState(VK_CONTROL))
+			if (GetAsyncKeyState(VK_CONTROL) & 0x8000)
 			{
 				if (idx >= 0)
 				{
@@ -326,6 +326,9 @@ private:
 					RedrawItem(idxChangedBegin, idxChangedEnd);
 				if (idx >= 0)
 				{
+					const auto uOld = m_vItem[idx].uFlags;
+					m_vItem[idx].uFlags |= LBN_IF_SEL;
+					NotifyItemChanged(idx, uOld);
 					m_idxMark = idx;
 					if (idxChangedBegin < 0 || (idx < idxChangedBegin || idx > idxChangedEnd))
 						RedrawItem(idx);
@@ -413,18 +416,13 @@ private:
 	void BeginDraggingSelect(int idxBegin)
 	{
 		MSG msg;
-		m_bLBtnDown = TRUE;
-		SetCapture(HWnd);
-		int idxOld = idxBegin;
 		for (auto& e : m_vItem)
 			if (e.uFlags & LBN_IF_SEL)
 				e.uFlags |= LBN_IF_SLIDE_SEL;
 			else
 				e.uFlags &= ~LBN_IF_SLIDE_SEL;
-		int idxOldSelBegin = -1,
-			idxOldSelEnd = -1,
-			idxOld0 = -1,
-			idxOld1 = -1;
+		int idxOldSelBegin = -1, idxOldSelEnd = -1,
+			idxOld0 = 0, idxOld1 = -1;
 		while (GetCapture() == HWnd)// 如果捕获改变则应立即退出拖动循环
 		{
 			if (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
@@ -473,12 +471,12 @@ private:
 						SetRedraw(TRUE);
 					}
 					//----------选中
-					int idxCurr = HitTest(pt.x, pt.y);
+					int idxCurr = HitTest(0, pt.y);
 					if (idxCurr < 0)
 					{
-						if (pt.y < 0)
+						if (pt.y <= 0)
 							idxCurr = m_idxTop;
-						else if (pt.y > m_cyClient)
+						else if (pt.y >= m_cyClient)
 						{
 							idxCurr = m_idxTop + (m_cyClient - m_oyTop) / m_cyItem;
 							if (idxCurr >= GetItemCount())
@@ -488,50 +486,57 @@ private:
 
 					if (m_bExtendSel)
 					{
-						const int
-							// 闭区间
-							idxSelBegin = std::min(m_idxMark, idxCurr),
-							idxSelEnd = std::max(m_idxMark, idxCurr),
-							// 闭区间
-							idx0 = std::min({ m_idxMark,idxCurr,idxOld }),
-							idx1 = std::max({ m_idxMark,idxCurr,idxOld });
-						if (idxOldSelBegin != idxSelBegin &&
-							idxOldSelEnd != idxSelEnd &&
-							idxOld0 != idx0 &&
-							idxOld1 != idx1)
+						// 闭区间
+						const int idxSelBegin = std::min(m_idxMark, idxCurr),
+							idxSelEnd = std::max(m_idxMark, idxCurr);
+						// 闭区间
+						const int idx0 = std::min(idxSelBegin, idxOld0),
+							idx1 = std::max(idxSelEnd, idxOld1);
+						if (idxOldSelBegin != idxSelBegin || idxOldSelEnd != idxSelEnd ||
+							idxOld0 != idx0 || idxOld1 != idx1)
 						{
 							for (int i = idx0; i <= idx1; ++i)
 							{
 								auto& e = m_vItem[i];
-								if (idxSelBegin <= i && i <= idxSelEnd)
+								if (idxSelBegin <= i && i <= idxSelEnd)// 当前应选中
 								{
 									if (!(e.uFlags & LBN_IF_SEL))
 									{
-										e.uFlags |= LBN_IF_SLIDE_SEL;
-										NotifyItemChanged(i, e.uFlags & ~LBN_IF_SLIDE_SEL);
+										e.uFlags |= LBN_IF_SEL;
+										NotifyItemChanged(i, e.uFlags & ~LBN_IF_SEL);
 									}
 								}
 								else
 								{
-									if (IsBitSet(e.uFlags, LBN_IF_SLIDE_SEL) !=
-										IsBitSet(e.uFlags, LBN_IF_SEL))
+									if (e.uFlags & LBN_IF_SLIDE_SEL)
 									{
-										const auto uOld = e.uFlags;
-										e.uFlags |= ((e.uFlags & LBN_IF_SLIDE_SEL) ?
-											LBN_IF_SEL : 0);
-										NotifyItemChanged(i, uOld);
+										if (!(e.uFlags & LBN_IF_SEL))
+										{
+											e.uFlags |= LBN_IF_SEL;
+											NotifyItemChanged(i, e.uFlags & ~LBN_IF_SEL);
+										}
+									}
+									else
+									{
+										if (e.uFlags & LBN_IF_SEL)
+										{
+											e.uFlags &= ~LBN_IF_SEL;
+											NotifyItemChanged(i, e.uFlags | LBN_IF_SEL);
+										}
 									}
 								}
 							}
-							idxOld = idxCurr;
+							idxOld0 = idx0;
+							idxOld1 = idx1;
+							idxOldSelBegin = idxSelBegin;
+							idxOldSelEnd = idxSelEnd;
 						}
 					}
-					/*else if (m_bMultiSel)
-					{
-						// 不可能出现
-					}*/
 					else
+					{
 						SelectItemForClick(idxCurr);
+					}
+
 					Redraw();
 					UpdateWindow(HWnd);
 				}
@@ -548,7 +553,10 @@ private:
 				}
 			}
 			else
+			{
+				//SetCursorPos(msg.pt.x, msg.pt.y);
 				WaitMessage();
+			}
 		}
 	ExitDraggingLoop:
 		ReleaseCapture();
@@ -623,6 +631,12 @@ private:
 				return;
 			m_bLBtnDown = TRUE;
 			SetCapture(hWnd);
+
+			int idxHot{ -1 };
+			std::swap(idxHot, m_idxHot);
+			if (idxHot >= 0)
+				RedrawItem(idxHot);
+
 			if (m_bAllowDrag)
 			{
 				m_bNmDragging = TRUE;

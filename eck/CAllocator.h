@@ -92,7 +92,7 @@ EckInline constexpr bool operator==(const CAllocatorProcHeap<T1, TSize1>& a1, co
 
 /// <summary>
 /// VirtualAlloc分配器
-/// 适用于分配大内存，可以对分配的内存调用VirtualProtect
+/// 可以对分配的内存调用VirtualProtect
 /// </summary>
 template<class T, class TSize = size_t>
 struct CAllocatorVA
@@ -117,7 +117,6 @@ struct CAllocatorVA
 	[[nodiscard]] EckInline T* allocate(size_type c)
 	{
 		auto p = (T*)VAlloc(c * sizeof(value_type));
-		ZeroMemory(p, c * sizeof(value_type));
 		if (p)
 			return p;
 		else
@@ -186,15 +185,11 @@ struct CDefAllocator :public std::allocator<T>
 {
 	using size_type = TSize;
 
-	constexpr CDefAllocator() noexcept {}
-
+	constexpr CDefAllocator() noexcept = default;
 	constexpr CDefAllocator(const CDefAllocator&) noexcept = default;
-
 	template <class U>
 	constexpr CDefAllocator(const CDefAllocator<U>&) noexcept {}
-
 	constexpr ~CDefAllocator() = default;
-
 	constexpr CDefAllocator& operator=(const CDefAllocator&) = default;
 
 	EckInline constexpr void deallocate(T* const p, const TSize c)
