@@ -873,9 +873,11 @@ static HRESULT WINAPI NewDrawThemeTextEx(HTHEME hTheme, HDC hDC, int iPartId, in
 			{
 				if (pOptions)
 				{
+					const auto t = NewOpt.crText;
 					NewOpt = *pOptions;
 					NewOpt.dwFlags |= DTT_TEXTCOLOR;
 					NewOpt.dwFlags &= ~DTT_COLORPROP;
+					NewOpt.crText = t;
 				}
 				else
 				{
@@ -1498,15 +1500,11 @@ void THREADCTX::SendThemeChangedToAllTopWindow()
 		if (GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_VISIBLE)
 		{
 			SendMessageW(hWnd, WM_SETREDRAW, FALSE, 0);
-			SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
 			BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, 0, 0);
 			SendMessageW(hWnd, WM_SETREDRAW, TRUE, 0);
 		}
 		else
-		{
-			SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
 			BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, 0, 0);
-		}
 		RedrawWindow(hWnd, nullptr, nullptr,
 			RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
 	}
