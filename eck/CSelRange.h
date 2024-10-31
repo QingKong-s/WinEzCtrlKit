@@ -300,7 +300,7 @@ public:
 
 	/// <summary>
 	/// 插入项目。
-	/// 在指定的位置增加一个未选择项目（即新项目）
+	/// 在指定的位置增加一个未选择项目（即新项目），此操作会使目标索引其后的所有项目索引+1。
 	/// </summary>
 	/// <param name="idxItem">项目索引</param>
 	/// <returns>HRESULT</returns>
@@ -332,10 +332,11 @@ public:
 	}
 
 	/// <summary>
-	/// 删除项目
+	/// 删除项目。
+	/// 删除指定的项目，此操作会使目标索引其后的所有项目索引-1。
 	/// </summary>
-	/// <param name="idxItem"></param>
-	/// <returns></returns>
+	/// <param name="idxItem">项目索引</param>
+	/// <returns>HRESULT</returns>
 	STDMETHODIMP RemoveItem(LONG idxItem)
 	{
 		BOOL bFound;

@@ -316,14 +316,6 @@ EXTERN_C_END
 #define LVN_GETEMPTYTEXTW		(LVN_FIRST-61)
 #endif
 
-#ifndef TVS_SHAREDIMAGELISTS
-#define TVS_SHAREDIMAGELISTS	0x0000
-#endif
-
-#ifndef TVS_PRIVATEIMAGELISTS
-#define TVS_PRIVATEIMAGELISTS	0x0400
-#endif
-
 constexpr inline IID IID_ILVRange{ 0x96a23e16L, 0xa1bc, 0x11d1, { 0xb0, 0x84, 0x00, 0xc0, 0x4f, 0xc3, 0x3a, 0xa5 } };
 
 MIDL_INTERFACE("96a23e16-a1bc-11d1-b084-00c04fc33aa5")
