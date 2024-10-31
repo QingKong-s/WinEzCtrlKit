@@ -245,12 +245,87 @@ FORCEINLINE HTHEME OpenNcThemeData(HWND hWnd, PCWSTR pszClassList)
 }
 EXTERN_C_END
 
+#ifndef LVSR_SELECTION
+#define LVSR_SELECTION			0
+#endif
 
-// {96a23e16-a1bc-11d1-b084-00c04fc33aa5}
+#ifndef LVSR_CUT
+#define LVSR_CUT				1
+#endif
+
+#ifndef LVM_SETLVRANGEOBJECT
+// (LVSR_*, ILVRange*)
+#define LVM_SETLVRANGEOBJECT	(LVM_FIRST + 82)
+#endif
+
+#ifndef LVM_QUERYINTERFACE
+// (IID*, void**)
+#define LVM_QUERYINTERFACE		(LVM_FIRST + 189)
+#endif
+
+#ifndef LVM_RESETEMPTYTEXT
+// (0, 0)
+#define LVM_RESETEMPTYTEXT		(LVM_FIRST + 84)
+#endif
+
+#ifndef LVM_SETFROZENITEM
+// (bFreezeOrUnfreeze, idxItem)
+#define LVM_SETFROZENITEM		(LVM_FIRST + 85)
+#endif
+
+#ifndef LVM_GETFROZENITEM
+// (0, 0)
+#define LVM_GETFROZENITEM		(LVM_FIRST + 86)
+#endif
+
+#ifndef LVM_SETFROZENSLOT
+// (bFreezeOrUnfreeze, ppt)
+#define LVM_SETFROZENSLOT		(LVM_FIRST + 88)
+#endif
+
+#ifndef LVM_GETFROZENSLOT
+// (0, prc)
+#define LVM_GETFROZENSLOT		(LVM_FIRST + 89)
+#endif
+
+#ifndef LVM_SETVIEWMARGINS
+// (0, prc)
+#define LVM_SETVIEWMARGINS		(LVM_FIRST + 90)
+#endif
+
+#ifndef LVM_GETVIEWMARGINS
+// (0, prc)
+#define LVM_GETVIEWMARGINS		(LVM_FIRST + 91)
+#endif
+
+#ifndef LVN_ENDDRAG
+#define LVN_ENDDRAG				(LVN_FIRST-10)
+#endif
+
+#ifndef LVN_ENDRDRAG
+#define LVN_ENDRDRAG			(LVN_FIRST-12)
+#endif
+
+#ifndef LVN_GETEMPTYTEXTA
+// (NMLVDISPINFO*)
+#define LVN_GETEMPTYTEXTA		(LVN_FIRST-60)
+#endif
+
+#ifndef LVN_GETEMPTYTEXTW
+// (NMLVDISPINFO*)
+#define LVN_GETEMPTYTEXTW		(LVN_FIRST-61)
+#endif
+
+#ifndef TVS_SHAREDIMAGELISTS
+#define TVS_SHAREDIMAGELISTS	0x0000
+#endif
+
+#ifndef TVS_PRIVATEIMAGELISTS
+#define TVS_PRIVATEIMAGELISTS	0x0400
+#endif
+
 constexpr inline IID IID_ILVRange{ 0x96a23e16L, 0xa1bc, 0x11d1, { 0xb0, 0x84, 0x00, 0xc0, 0x4f, 0xc3, 0x3a, 0xa5 } };
 
-// The ILVRange interface manages a range of items
-// in a owner-data list view control.
 MIDL_INTERFACE("96a23e16-a1bc-11d1-b084-00c04fc33aa5")
 ILVRange : public IUnknown
 {
@@ -266,11 +341,6 @@ ILVRange : public IUnknown
 	STDMETHOD(NextUnSelected)(LONG idxItem, LONG* pidxItem) = 0;
 	STDMETHOD(CountIncluded)(LONG* pcIncluded) = 0;
 };
-
-
-// 惯用叫法，无从得知微软的实际命名
-// (IID*, void**)
-#define LVM_QUERYINTERFACE (LVM_FIRST + 189)
 
 /*
 * ==============================================
@@ -499,7 +569,7 @@ public:
 
 	// IPropertyControl:
 	// called before the edit control is created and before it is dismissed
-	// flags is 1 on first call and 0 on second call (mask is always 1)
+	// uFlags is 1 on first call and 0 on second call (uMask is always 1)
 	// 1 -> Maybe visibility
 	STDMETHOD(SetFlags)(int Flags, int Mask) = 0;
 
@@ -748,8 +818,8 @@ public:
 	STDMETHOD(SetItemCount)(int cItem, DWORD dwFlags) = 0;
 	STDMETHOD(GetItem)(LVITEMW* pItem) = 0;
 	STDMETHOD(SetItem)(LVITEMW* const pItem) = 0;
-	STDMETHOD(GetItemState)(int idxItem, int idxSubItem, ULONG mask, ULONG* pState) = 0;
-	STDMETHOD(SetItemState)(int idxItem, int idxSubItem, ULONG mask, ULONG state) = 0;
+	STDMETHOD(GetItemState)(int idxItem, int idxSubItem, ULONG uMask, ULONG* pState) = 0;
+	STDMETHOD(SetItemState)(int idxItem, int idxSubItem, ULONG uMask, ULONG state) = 0;
 	STDMETHOD(GetItemText)(int idxItem, int idxSubItem, PWSTR pBuffer, int bufferSize) = 0;
 	STDMETHOD(SetItemText)(int idxItem, int idxSubItem, PCWSTR pText) = 0;
 	STDMETHOD(GetBackgroundImage)(LVBKIMAGEW* pBkImage) = 0;
@@ -760,7 +830,7 @@ public:
 	STDMETHOD(SetSelectedColumn)(int columnIndex) = 0;
 	STDMETHOD(GetView)(DWORD* pView) = 0;
 	STDMETHOD(SetView)(DWORD view) = 0;
-	STDMETHOD(InsertItem)(LVITEMW* const pItem, int* pItemIndex) = 0;
+	STDMETHOD(InsertItem)(LVITEMW* const pItem, int* pidxItem) = 0;
 	STDMETHOD(DeleteItem)(int idxItem) = 0;
 	STDMETHOD(DeleteAllItems)(void) = 0;
 	STDMETHOD(UpdateItem)(int idxItem) = 0;
@@ -772,7 +842,7 @@ public:
 	STDMETHOD(GetItemSpacing)(BOOL bSmallIconView, int* pHorizontalSpacing, int* pVerticalSpacing) = 0;
 	// parameters may be in wrong order
 	STDMETHOD(SetIconSpacing)(int horizontalSpacing, int verticalSpacing, int* pHorizontalSpacing, int* pVerticalSpacing) = 0;
-	STDMETHOD(GetNextItem)(LVITEMINDEX idxItem, ULONG flags, LVITEMINDEX* pNextItemIndex) = 0;
+	STDMETHOD(GetNextItem)(LVITEMINDEX idxItem, ULONG uFlags, LVITEMINDEX* pNextItemIndex) = 0;
 	STDMETHOD(FindItem)(LVITEMINDEX startItemIndex, LVFINDINFOW const* pFindInfo, LVITEMINDEX* pFoundItemIndex) = 0;
 	STDMETHOD(GetSelectionMark)(LVITEMINDEX* pSelectionMark) = 0;
 	STDMETHOD(SetSelectionMark)(LVITEMINDEX newSelectionMark, LVITEMINDEX* pOldSelectionMark) = 0;
@@ -807,7 +877,7 @@ public:
 	STDMETHOD(GetColumnWidth)(int columnIndex, int* pWidth) = 0;
 	STDMETHOD(SetColumnWidth)(int columnIndex, int width) = 0;
 	STDMETHOD(GetCallbackMask)(ULONG* pMask) = 0;
-	STDMETHOD(SetCallbackMask)(ULONG mask) = 0;
+	STDMETHOD(SetCallbackMask)(ULONG uMask) = 0;
 	STDMETHOD(GetTopIndex)(int* pTopIndex) = 0;
 	STDMETHOD(GetCountPerPage)(int* pCountPerPage) = 0;
 	STDMETHOD(GetOrigin)(POINT* pOrigin) = 0;
@@ -816,7 +886,7 @@ public:
 	STDMETHOD(SortItems)(BOOL unknown, LPARAM lParam, PFNLVCOMPARE pComparisonFunction) = 0;
 	STDMETHOD(GetExtendedStyle)(DWORD* pStyle) = 0;
 	// parameters may be in wrong order
-	STDMETHOD(SetExtendedStyle)(DWORD mask, DWORD style, DWORD* pOldStyle) = 0;
+	STDMETHOD(SetExtendedStyle)(DWORD dwMask, DWORD dwStyle, DWORD* pOldStyle) = 0;
 	STDMETHOD(GetHoverTime)(UINT* pTime) = 0;
 	STDMETHOD(SetHoverTime)(UINT time, UINT* pOldSetting) = 0;
 	STDMETHOD(GetToolTip)(HWND* pHWndToolTip) = 0;
@@ -827,7 +897,7 @@ public:
 	STDMETHOD(SetHotCursor)(HCURSOR hCursor, HCURSOR* pHOldCursor) = 0;
 	// parameters may be in wrong order
 	STDMETHOD(ApproximateViewRect)(int cItem, int* pWidth, int* pHeight) = 0;
-	STDMETHOD(SetRangeObject)(int unknown, void*/*ILVRange**/ pObject) = 0;
+	STDMETHOD(SetRangeObject)(int iType, ILVRange* pObject) = 0;
 	STDMETHOD(GetWorkAreas)(int numberOfWorkAreas, RECT* pWorkAreas) = 0;
 	STDMETHOD(SetWorkAreas)(int numberOfWorkAreas, RECT const* pWorkAreas) = 0;
 	STDMETHOD(GetWorkAreaCount)(int* pNumberOfWorkAreas) = 0;
@@ -836,17 +906,17 @@ public:
 	STDMETHOD(IsGroupViewEnabled)(BOOL* pIsEnabled) = 0;
 	STDMETHOD(SortGroups)(PFNLVGROUPCOMPARE pComparisonFunction, PVOID lParam) = 0;
 	STDMETHOD(GetGroupInfo)(int unknown1, int unknown2, LVGROUP* pGroup) = 0;
-	STDMETHOD(SetGroupInfo)(int unknown, int groupID, LVGROUP* const pGroup) = 0;
-	STDMETHOD(GetGroupRect)(BOOL unknown, int groupID, int rectangleType, RECT* pRectangle) = 0;
-	STDMETHOD(GetGroupState)(int groupID, ULONG mask, ULONG* pState) = 0;
-	STDMETHOD(HasGroup)(int groupID, BOOL* pHasGroup) = 0;
-	STDMETHOD(InsertGroup)(int insertAt, LVGROUP* const pGroup, int* pGroupID) = 0;
-	STDMETHOD(RemoveGroup)(int groupID) = 0;
-	STDMETHOD(InsertGroupSorted)(LVINSERTGROUPSORTED const* pGroup, int* pGroupID) = 0;
+	STDMETHOD(SetGroupInfo)(int unknown, int idGroup, LVGROUP* const pGroup) = 0;
+	STDMETHOD(GetGroupRect)(BOOL unknown, int idGroup, int rectangleType, RECT* pRectangle) = 0;
+	STDMETHOD(GetGroupState)(int idGroup, ULONG uMask, ULONG* pState) = 0;
+	STDMETHOD(HasGroup)(int idGroup, BOOL* pHasGroup) = 0;
+	STDMETHOD(InsertGroup)(int insertAt, LVGROUP* const pGroup, int* pidGroup) = 0;
+	STDMETHOD(RemoveGroup)(int idGroup) = 0;
+	STDMETHOD(InsertGroupSorted)(LVINSERTGROUPSORTED const* pGroup, int* pidGroup) = 0;
 	STDMETHOD(GetGroupMetrics)(LVGROUPMETRICS* pMetrics) = 0;
 	STDMETHOD(SetGroupMetrics)(LVGROUPMETRICS* const pMetrics) = 0;
 	STDMETHOD(RemoveAllGroups)(void) = 0;
-	STDMETHOD(GetFocusedGroup)(int* pGroupID) = 0;
+	STDMETHOD(GetFocusedGroup)(int* pidGroup) = 0;
 	STDMETHOD(GetGroupCount)(int* pCount) = 0;
 	STDMETHOD(SetOwnerDataCallback)(IOwnerDataCallback* pCallback) = 0;
 	STDMETHOD(GetTileViewInfo)(LVTILEVIEWINFO* pInfo) = 0;
@@ -857,28 +927,27 @@ public:
 	STDMETHOD(SetInsertMark)(LVINSERTMARK const* pInsertMarkDetails) = 0;
 	STDMETHOD(GetInsertMarkRect)(LPRECT pInsertMarkRectangle) = 0;
 	STDMETHOD(GetInsertMarkColor)(COLORREF* pcr) = 0;
-	STDMETHOD(SetInsertMarkColor)(COLORREF color, COLORREF* pOldColor) = 0;
+	STDMETHOD(SetInsertMarkColor)(COLORREF cr, COLORREF* pOldColor) = 0;
 	STDMETHOD(HitTestInsertMark)(POINT const* pPoint, LVINSERTMARK* pInsertMarkDetails) = 0;
 	STDMETHOD(SetInfoTip)(LVSETINFOTIP* const pInfoTip) = 0;
 	STDMETHOD(GetOutlineColor)(COLORREF* pcr) = 0;
-	STDMETHOD(SetOutlineColor)(COLORREF color, COLORREF* pOldColor) = 0;
-	STDMETHOD(GetFrozenItem)(int* pItemIndex) = 0;
-	// one parameter will be the item index; works in Icons view only
-	STDMETHOD(SetFrozenItem)(int unknown1, int unknown2) = 0;
-	STDMETHOD(GetFrozenSlot)(RECT* pUnknown) = 0;
-	STDMETHOD(SetFrozenSlot)(int unknown1, POINT const* pUnknown2) = 0;
+	STDMETHOD(SetOutlineColor)(COLORREF cr, COLORREF* pOldColor) = 0;
+	STDMETHOD(GetFrozenItem)(int* pidxItem) = 0;
+	STDMETHOD(SetFrozenItem)(BOOL bFrozen, int idxItem) = 0;
+	STDMETHOD(GetFrozenSlot)(RECT* prcSlot) = 0;
+	STDMETHOD(SetFrozenSlot)(BOOL bFrozen, POINT const* ppt) = 0;
 	STDMETHOD(GetViewMargin)(RECT* pMargin) = 0;
 	STDMETHOD(SetViewMargin)(RECT const* pMargin) = 0;
 	STDMETHOD(SetKeyboardSelected)(LVITEMINDEX idxItem) = 0;
 	STDMETHOD(MapIndexToId)(int idxItem, int* pItemID) = 0;
-	STDMETHOD(MapIdToIndex)(int itemID, int* pItemIndex) = 0;
-	STDMETHOD(IsItemVisible)(LVITEMINDEX idxItem, BOOL* pVisible) = 0;
-	STDMETHOD(EnableAlphaShadow)(BOOL enable) = 0;
+	STDMETHOD(MapIdToIndex)(int itemID, int* pidxItem) = 0;
+	STDMETHOD(IsItemVisible)(LVITEMINDEX idxItem, BOOL* pbVisible) = 0;
+	STDMETHOD(EnableAlphaShadow)(BOOL bEnable) = 0;
 	STDMETHOD(GetGroupSubsetCount)(int* pNumberOfRowsDisplayed) = 0;
 	STDMETHOD(SetGroupSubsetCount)(int numberOfRowsToDisplay) = 0;
 	STDMETHOD(GetVisibleSlotCount)(int* pCount) = 0;
 	STDMETHOD(GetColumnMargin)(RECT* pMargin) = 0;
 	STDMETHOD(SetSubItemCallback)(ISubItemCallback* pCallback) = 0;
 	STDMETHOD(GetVisibleItemRange)(LVITEMINDEX* pFirstItem, LVITEMINDEX* pLastItem) = 0;
-	STDMETHOD(SetTypeAheadFlags)(UINT mask, UINT flags) = 0;
+	STDMETHOD(SetTypeAheadFlags)(UINT uMask, UINT uFlags) = 0;
 };
