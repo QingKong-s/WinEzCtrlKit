@@ -289,7 +289,7 @@ ECK_NAMESPACE_END
 #define EckCheckMem(p)	\
 			if (!(p))	\
 			{			\
-				OutputDebugStringW(L"内存分配失败: " ECK_FILEW "(" ECK_LINEW ")\r\n"); \
+				OutputDebugStringW(L"内存分配失败: " ECK_FILEW L"(" ECK_LINEW L")\r\n"); \
 				abort();\
 			}
 #else
