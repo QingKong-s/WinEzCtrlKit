@@ -15,7 +15,6 @@ ECK_NAMESPACE_BEGIN
 class CSelRange :public ILVRange
 {
 private:
-public:
 	struct RANGE// 闭区间
 	{
 		LONG idxBegin;

@@ -2379,7 +2379,7 @@ public:
 			delete e;
 	}
 
-	Result SimpleExtract(MUSICINFO& mi) override
+	Result SimpleExtract(_Inout_ MUSICINFO& mi) override
 	{
 		mi.Clear();
 		if (m_vFrame.empty())
@@ -2830,7 +2830,7 @@ public:
 		return nullptr;
 	}
 
-	std::vector<FRAME*> GetFrameList(PCSTR Id) const
+	std::vector<FRAME*> GetFrameList(_In_reads_(4) PCSTR Id) const
 	{
 		std::vector<FRAME*> v{};
 		for (const auto e : m_vFrame)
@@ -2841,7 +2841,7 @@ public:
 		return v;
 	}
 
-	FRAME* CreateFrame(PCSTR Id)
+	FRAME* CreateFrame(_In_reads_(4) PCSTR Id)
 	{
 		FRAME* p;
 		if (memcmp(Id, "UFID", 4) == 0)
@@ -2924,7 +2924,7 @@ public:
 		return p;
 	}
 
-	EckInline FRAME* GetOrCreateFrame(PCSTR Id)
+	EckInline FRAME* GetOrCreateFrame(_In_reads_(4) PCSTR Id)
 	{
 		auto p = GetFrame(Id);
 		if (p)
