@@ -71,27 +71,69 @@ public:
 		if (idxEnd < idxBegin || idxBegin < 0)
 			return E_INVALIDARG;
 		BOOL bFound0, bFound1;
-		const auto it0 = FindRange(idxBegin, bFound0);
+		auto it0 = FindRange(idxBegin, bFound0);
 		if (it0 == m_vRange.end())// 左边界大于所有区间
 		{
-			m_vRange.emplace_back(idxBegin, idxEnd);
+			if (!m_vRange.empty() && idxBegin == m_vRange.back().idxEnd + 1)
+				m_vRange.back().idxEnd = idxEnd;
+			else
+				m_vRange.emplace_back(idxBegin, idxEnd);
 			return S_OK;
 		}
 		const auto it1 = FindRange(idxEnd, bFound1);
 		if (it1 == m_vRange.begin() && !bFound1)// 右边界小于所有区间
 		{
-			m_vRange.emplace(it1, idxBegin, idxEnd);
+			if (idxEnd == it1->idxBegin - 1)
+				it1->idxBegin = idxBegin;
+			else
+				m_vRange.emplace(it1, idxBegin, idxEnd);
 			return S_OK;
 		}
 
+		if (it0 == it1 && !bFound0 && !bFound1)
+		{
+			if (it0 != m_vRange.begin() && idxBegin <= (it0 - 1)->idxEnd + 1)
+				if (idxEnd + 1 >= it0->idxBegin)
+				{
+					(it0 - 1)->idxEnd = it0->idxEnd;
+					m_vRange.erase(it0);
+				}
+				else
+					(it0 - 1)->idxEnd = idxEnd;
+			else if (idxEnd + 1 >= it0->idxBegin)
+				it0->idxBegin = idxBegin;
+			else
+				m_vRange.emplace(it0, idxBegin, idxEnd);
+			return S_OK;
+		}
+
+		auto itEraseBegin = it0 + 1;// 无论如何，留下左边界处的一个区间
+		auto itEraseEnd = it1 + (bFound1 ? 1 : 0);
+
 		if (!bFound0)// 需要修改左界
-			it0->idxBegin = idxBegin;
+		{
+			if (it0 != m_vRange.begin() && idxBegin <= (it0 - 1)->idxEnd + 1)
+			{
+				(it0 - 1)->idxEnd = it0->idxEnd;
+				--itEraseBegin;
+				--it0;
+			}
+			else
+				it0->idxBegin = idxBegin;
+		}
+
 		if (bFound1)
 			it0->idxEnd = it1->idxEnd;
-		else
-			it0->idxEnd = std::max(it0->idxEnd, idxEnd);
-		const auto itEraseBegin = it0 + 1;// 无论如何，留下左边界处的一个区间
-		const auto itEraseEnd = it1 + (bFound1 ? 1 : 0);
+		else if (idxEnd > it0->idxEnd)
+			it0->idxEnd = idxEnd;
+
+		if (itEraseEnd != m_vRange.end() && itEraseEnd->idxBegin <= it0->idxEnd + 1)
+		{
+			if (itEraseEnd->idxEnd > it0->idxEnd)
+				it0->idxEnd = itEraseEnd->idxEnd;
+			++itEraseEnd;
+		}
+
 		if (itEraseEnd > itEraseBegin)
 			m_vRange.erase(itEraseBegin, itEraseEnd);
 		return S_OK;
@@ -361,10 +403,10 @@ public:
 	{
 		BOOL bFound;
 		const auto it = FindRange(idxItem, bFound);
-		if (bFound && idxItem != it->idxEnd)
-			*pidxItem = idxItem + 1;
+		if (bFound)
+			*pidxItem = idxItem;
 		else if (it != m_vRange.end())
-			*pidxItem = (it + 1)->idxBegin;
+			*pidxItem = it->idxBegin;
 		else
 			*pidxItem = -1;
 		return S_OK;
@@ -380,12 +422,10 @@ public:
 	{
 		BOOL bFound;
 		const auto it = FindRange(idxItem, bFound);
-		if (it == m_vRange.end())
-			*pidxItem = -1;
-		else if (!bFound && idxItem != it->idxBegin - 1)
-			*pidxItem = idxItem + 1;
-		else
+		if (bFound)
 			*pidxItem = it->idxEnd + 1;
+		else
+			*pidxItem = idxItem;
 		return S_OK;
 	}
 

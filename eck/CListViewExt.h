@@ -1198,7 +1198,7 @@ public:
 
 		case WM_LBUTTONDOWN:
 		{
-			if (m_bEditLabel && m_bEnableExtEdit)
+			if (m_bEditLabel && m_bEnableExtEdit && wParam == MK_LBUTTON)
 			{
 				CancelEditDelay();
 				CancelExtEdit(TRUE);

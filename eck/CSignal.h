@@ -144,7 +144,7 @@ private:
 			}
 			else
 			{
-				EckAssert(pAfter->pThis == this);
+				EckAssert(pAfter->pThis == this && !(pAfter->uFlags & NF_DELETED));
 				pNew->pNext = pAfter->pNext;
 				pAfter->pNext = pNew;
 			}
@@ -215,7 +215,10 @@ public:
 		while (p)
 		{
 			if (p->uId == uId)
-				return p;
+				if (p->uFlags & NF_DELETED)
+					return nullptr;
+				else
+					return p;
 			p = p->pNext;
 		}
 		return nullptr;
@@ -223,7 +226,7 @@ public:
 
 	void Disconnect(HSlot hSlot)
 	{
-		EckAssert(hSlot && hSlot->pThis == this);
+		EckAssert(hSlot && hSlot->pThis == this && !(hSlot->uFlags & NF_DELETED));
 		((NODE*)hSlot)->uFlags |= NF_DELETED;
 		++m_cDeleted;
 	}
@@ -269,6 +272,7 @@ public:
 		}
 	}
 
+	// 可能返回已标记为删除的节点
 	HSlot GetHead() const { return m_pHead; }
 
 	void Clear()
