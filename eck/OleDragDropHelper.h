@@ -55,46 +55,46 @@ inline HGLOBAL DuplicateHGlobal(HGLOBAL hGlobalSrc, HRESULT& hr, UINT uFlags)
 class CDropTarget : public IDropTarget
 {
 private:
-	ULONG m_uRefCount = 1;
+	ULONG m_cRef = 1;
 public:
 	// IUnknown
 	//HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppv);
-	ULONG STDMETHODCALLTYPE AddRef(void) { return ++m_uRefCount; }
+	ULONG STDMETHODCALLTYPE AddRef() { return ++m_cRef; }
 
-	ULONG STDMETHODCALLTYPE Release(void)
+	ULONG STDMETHODCALLTYPE Release()
 	{
-		if (m_uRefCount == 1)
+		if (m_cRef == 1)
 		{
 			delete this;
 			return 0;
 		}
-		return --m_uRefCount;
+		return --m_cRef;
 	}
 
 	// IDropTarget
 	//HRESULT STDMETHODCALLTYPE DragEnter(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect);
 	//HRESULT STDMETHODCALLTYPE DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect);
-	//HRESULT STDMETHODCALLTYPE DragLeave(void);
+	//HRESULT STDMETHODCALLTYPE DragLeave();
 	//HRESULT STDMETHODCALLTYPE Drop(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect);
 };
 
 class CDropSource : public IDropSource
 {
 private:
-	ULONG m_uRefCount = 1;
+	ULONG m_cRef = 1;
 public:
 	// IUnknown
 	//HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** ppvObject);
-	ULONG STDMETHODCALLTYPE AddRef(void) { return ++m_uRefCount; }
+	ULONG STDMETHODCALLTYPE AddRef() { return ++m_cRef; }
 
-	ULONG STDMETHODCALLTYPE Release(void)
+	ULONG STDMETHODCALLTYPE Release()
 	{
-		if (m_uRefCount == 1)
+		if (m_cRef == 1)
 		{
 			delete this;
 			return 0;
 		}
-		return --m_uRefCount;
+		return --m_cRef;
 	}
 
 	// IDropSource
@@ -105,7 +105,7 @@ public:
 class CDataObject :public IDataObject
 {
 private:
-	ULONG m_uRefCount = 1;
+	ULONG m_cRef = 1;
 	std::vector<FORMATETC> m_vFormatEtc{};
 	std::vector<STGMEDIUM> m_vStgMedium{};
 
@@ -137,16 +137,16 @@ public:
 		return QISearch(this, qit, iid, ppvObject);
 	}
 
-	ULONG STDMETHODCALLTYPE AddRef(void) { return ++m_uRefCount; }
+	ULONG STDMETHODCALLTYPE AddRef() { return ++m_cRef; }
 
-	ULONG STDMETHODCALLTYPE Release(void)
+	ULONG STDMETHODCALLTYPE Release()
 	{
-		if (m_uRefCount == 1)
+		if (m_cRef == 1)
 		{
 			delete this;
 			return 0;
 		}
-		return --m_uRefCount;
+		return --m_cRef;
 	}
 	// IDataObject
 	HRESULT STDMETHODCALLTYPE GetData(FORMATETC* pFormatEtc, STGMEDIUM* pStgMedium)
