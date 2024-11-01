@@ -9,19 +9,15 @@
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
-// 提供一种ILVRange的实现。
-// 可能有控件需要使用此基础设施，因此允许作为自动变量使用，
-// 但此种情况下绝对不能调用COM生命周期方法。
-class CSelRange :public ILVRange
+class CSelRange
 {
 private:
 	struct RANGE// 闭区间
 	{
-		LONG idxBegin;
-		LONG idxEnd;
+		int idxBegin;
+		int idxEnd;
 	};
 
-	ULONG m_cRef{ 1 };
 	std::vector<RANGE> m_vRange{};// 从小到大排列
 
 	/// <summary>
@@ -30,46 +26,30 @@ private:
 	/// <param name="idxItem">项目索引</param>
 	/// <param name="bFound">是否在返回的区间内</param>
 	/// <returns>搜寻结束时的迭代器，若未找到，此迭代器指向第一个大于idxItem的区间</returns>
-	auto FindRange(LONG idxItem, _Out_ BOOL& bFound)
+	constexpr auto FindRange(int idxItem, _Out_ BOOL& bFound)
 	{
 		const auto it = std::lower_bound(m_vRange.begin(), m_vRange.end(), idxItem,
-			[](RANGE r, LONG idx) { return r.idxEnd < idx; });
+			[](RANGE r, int idx) { return r.idxEnd < idx; });
+		bFound = (it != m_vRange.end() && idxItem >= it->idxBegin);
+		return it;
+	}
+
+	constexpr auto FindRange(int idxItem, _Out_ BOOL& bFound) const
+	{
+		const auto it = std::lower_bound(m_vRange.begin(), m_vRange.end(), idxItem,
+			[](RANGE r, int idx) { return r.idxEnd < idx; });
 		bFound = (it != m_vRange.end() && idxItem >= it->idxBegin);
 		return it;
 	}
 public:
-	ULONG STDMETHODCALLTYPE AddRef() { return ++m_cRef; }
-
-	ULONG STDMETHODCALLTYPE Release()
-	{
-		if (m_cRef == 1)
-		{
-			delete this;
-			return 0;
-		}
-		return --m_cRef;
-	}
-
-	STDMETHODIMP QueryInterface(REFIID riid, void** ppvObject)
-	{
-		static const QITAB qit[]
-		{
-			QITABENT(CSelRange, ILVRange),
-			{ 0 },
-		};
-		return QISearch(this, qit, riid, ppvObject);
-	}
-
 	/// <summary>
 	/// 并
 	/// </summary>
 	/// <param name="idxBegin">起始索引（含）</param>
 	/// <param name="idxEnd">结束索引（含）</param>
-	/// <returns>HRESULT</returns>
-	STDMETHODIMP IncludeRange(LONG idxBegin, LONG idxEnd)
+	constexpr void IncludeRange(int idxBegin, int idxEnd)
 	{
-		if (idxEnd < idxBegin || idxBegin < 0)
-			return E_INVALIDARG;
+		EckAssert(idxEnd >= idxBegin && idxBegin >= 0);
 		BOOL bFound0, bFound1;
 		auto it0 = FindRange(idxBegin, bFound0);
 		if (it0 == m_vRange.end())// 左边界大于所有区间
@@ -78,7 +58,7 @@ public:
 				m_vRange.back().idxEnd = idxEnd;
 			else
 				m_vRange.emplace_back(idxBegin, idxEnd);
-			return S_OK;
+			return;
 		}
 		const auto it1 = FindRange(idxEnd, bFound1);
 		if (it1 == m_vRange.begin() && !bFound1)// 右边界小于所有区间
@@ -87,7 +67,7 @@ public:
 				it1->idxBegin = idxBegin;
 			else
 				m_vRange.emplace(it1, idxBegin, idxEnd);
-			return S_OK;
+			return;
 		}
 
 		if (it0 == it1 && !bFound0 && !bFound1)
@@ -104,7 +84,7 @@ public:
 				it0->idxBegin = idxBegin;
 			else
 				m_vRange.emplace(it0, idxBegin, idxEnd);
-			return S_OK;
+			return;
 		}
 
 		auto itEraseBegin = it0 + 1;// 无论如何，留下左边界处的一个区间
@@ -136,7 +116,6 @@ public:
 
 		if (itEraseEnd > itEraseBegin)
 			m_vRange.erase(itEraseBegin, itEraseEnd);
-		return S_OK;
 	}
 
 	/// <summary>
@@ -144,11 +123,9 @@ public:
 	/// </summary>
 	/// <param name="idxBegin">起始索引（含）</param>
 	/// <param name="idxEnd">结束索引（含）</param>
-	/// <returns>HRESULT</returns>
-	STDMETHODIMP ExcludeRange(LONG idxBegin, LONG idxEnd)
+	constexpr void ExcludeRange(int idxBegin, int idxEnd)
 	{
-		if (idxEnd < idxBegin || idxBegin < 0)
-			return E_INVALIDARG;
+		EckAssert(idxEnd >= idxBegin && idxBegin >= 0);
 		BOOL bFound0, bFound1;
 		const auto it0 = FindRange(idxBegin, bFound0);
 		const auto it1 = FindRange(idxEnd, bFound1);
@@ -172,7 +149,7 @@ public:
 					m_vRange.emplace(it0 + 1, idxEnd + 1, t);
 				// else// 右半区间被完全切除
 			}
-			return S_OK;
+			return;
 		}
 
 		auto itEraseBegin = it0,
@@ -196,7 +173,6 @@ public:
 		}
 		if (itEraseEnd > itEraseBegin)
 			m_vRange.erase(itEraseBegin, itEraseEnd);
-		return S_OK;
 	}
 
 	/// <summary>
@@ -204,11 +180,9 @@ public:
 	/// </summary>
 	/// <param name="idxBegin">起始索引（含）</param>
 	/// <param name="idxEnd">结束索引（含）</param>
-	/// <returns>HRESULT</returns>
-	STDMETHODIMP InvertRange(LONG idxBegin, LONG idxEnd)
+	constexpr void InvertRange(int idxBegin, int idxEnd)
 	{
-		if (idxEnd < idxBegin || idxBegin < 0)
-			return E_INVALIDARG;
+		EckAssert(idxEnd >= idxBegin && idxBegin >= 0);
 		BOOL bFound0, bFound1;
 		auto it0 = FindRange(idxBegin, bFound0);
 		auto it1 = FindRange(idxEnd, bFound1);
@@ -253,7 +227,7 @@ public:
 					// 不可能无效
 				}
 			}
-			return S_OK;
+			return;
 		}
 		// bFound0 == 1时应跳过it0，否则应给予特判填充，两者都需要+1
 		const auto itInvertBegin = it0 + 1;
@@ -295,7 +269,6 @@ public:
 			else
 				--it;
 		}
-		return S_OK;
 	}
 
 	/// <summary>
@@ -303,9 +276,9 @@ public:
 	/// 在指定的位置增加一个未选择项目（即新项目），此操作会使目标索引其后的所有项目索引+1。
 	/// </summary>
 	/// <param name="idxItem">项目索引</param>
-	/// <returns>HRESULT</returns>
-	STDMETHODIMP InsertItem(LONG idxItem)
+	constexpr void InsertItem(int idxItem)
 	{
+		EckAssert(idxItem >= 0);
 		BOOL bFound;
 		const auto it = FindRange(idxItem, bFound);
 		std::vector<RANGE>::iterator itIncBegin;
@@ -328,7 +301,6 @@ public:
 			++it->idxBegin;
 			++it->idxEnd;
 		}
-		return S_OK;
 	}
 
 	/// <summary>
@@ -336,13 +308,13 @@ public:
 	/// 删除指定的项目，此操作会使目标索引其后的所有项目索引-1。
 	/// </summary>
 	/// <param name="idxItem">项目索引</param>
-	/// <returns>HRESULT</returns>
-	STDMETHODIMP RemoveItem(LONG idxItem)
+	constexpr void RemoveItem(int idxItem)
 	{
+		EckAssert(idxItem >= 0);
 		BOOL bFound;
 		const auto it = FindRange(idxItem, bFound);
 		if (it == m_vRange.end())
-			return S_OK;
+			return;
 		std::vector<RANGE>::iterator itDecBegin;
 		BOOL bEraseIt;
 		if (bFound)
@@ -373,73 +345,155 @@ public:
 		}
 		if (bEraseIt)
 			m_vRange.erase(it);
+	}
+
+	EckInline constexpr void Clear()
+	{
+		m_vRange.clear();
+	}
+
+	EckInline constexpr BOOL IsSelected(int idxItem) const
+	{
+		BOOL bFound;
+		FindRange(idxItem, bFound);
+		return bFound;
+	}
+
+	EckInline constexpr BOOL IsEmpty() const
+	{
+		return m_vRange.empty();
+	}
+
+	// 取下一选中项。若idxItem选中，则返回idxItem
+	constexpr int NextSelected(int idxItem) const
+	{
+		BOOL bFound;
+		const auto it = FindRange(idxItem, bFound);
+		if (bFound)
+			return idxItem;
+		else if (it != m_vRange.end())
+			return it->idxBegin;
+		else
+			return -1;
+	}
+
+	// 取下一未选中项。若idxItem未选中，则返回idxItem
+	constexpr int NextUnSelected(int idxItem) const
+	{
+		BOOL bFound;
+		const auto it = FindRange(idxItem, bFound);
+		if (bFound)
+			return it->idxEnd + 1;
+		else
+			return idxItem;
+	}
+
+	// 计算选中项数
+	EckInline constexpr int CountIncluded() const
+	{
+		int c{};
+		for (const auto& e : m_vRange)
+			c += (e.idxEnd - e.idxBegin + 1);
+		return c;
+	}
+
+	EckInline constexpr const auto& GetList() const { return m_vRange; }
+};
+
+
+class CLVRange :public ILVRange
+{
+private:
+	ULONG m_cRef{ 1 };
+	CSelRange m_SelRange{};
+public:
+	ULONG STDMETHODCALLTYPE AddRef() { return ++m_cRef; }
+
+	ULONG STDMETHODCALLTYPE Release()
+	{
+		if (m_cRef == 1)
+		{
+			delete this;
+			return 0;
+		}
+		return --m_cRef;
+	}
+
+	STDMETHODIMP QueryInterface(REFIID riid, void** ppvObject)
+	{
+		static const QITAB qit[]
+		{
+			QITABENT(CSelRange, ILVRange),
+			{ 0 },
+		};
+		return QISearch(this, qit, riid, ppvObject);
+	}
+
+	STDMETHODIMP IncludeRange(LONG idxBegin, LONG idxEnd)
+	{
+		m_SelRange.IncludeRange(idxBegin, idxEnd);
+		return S_OK;
+	}
+
+	STDMETHODIMP ExcludeRange(LONG idxBegin, LONG idxEnd)
+	{
+		m_SelRange.ExcludeRange(idxBegin, idxEnd);
+		return S_OK;
+	}
+
+	STDMETHODIMP InvertRange(LONG idxBegin, LONG idxEnd)
+	{
+		m_SelRange.InvertRange(idxBegin, idxEnd);
+		return S_OK;
+	}
+
+	STDMETHODIMP InsertItem(LONG idxItem)
+	{
+		m_SelRange.InsertItem(idxItem);
+		return S_OK;
+	}
+
+	STDMETHODIMP RemoveItem(LONG idxItem)
+	{
+		m_SelRange.RemoveItem(idxItem);
 		return S_OK;
 	}
 
 	STDMETHODIMP Clear()
 	{
-		m_vRange.clear();
+		m_SelRange.Clear();
 		return S_OK;
 	}
 
 	STDMETHODIMP IsSelected(LONG idxItem)
 	{
-		BOOL bFound;
-		FindRange(idxItem, bFound);
-		return bFound ? S_OK : S_FALSE;
+		return m_SelRange.IsSelected(idxItem) ? S_OK : S_FALSE;
 	}
 
 	STDMETHODIMP IsEmpty()
 	{
-		return (m_vRange.empty()) ? S_OK : S_FALSE;
+		return m_SelRange.IsEmpty() ? S_OK : S_FALSE;
 	}
 
-	/// <summary>
-	/// 取下一选中项
-	/// </summary>
-	/// <param name="idxItem">当前项目</param>
-	/// <param name="pidxItem">下一项目，若无则设为-1</param>
-	/// <returns>HRESULT</returns>
 	STDMETHODIMP NextSelected(LONG idxItem, LONG* pidxItem)
 	{
-		BOOL bFound;
-		const auto it = FindRange(idxItem, bFound);
-		if (bFound)
-			*pidxItem = idxItem;
-		else if (it != m_vRange.end())
-			*pidxItem = it->idxBegin;
-		else
-			*pidxItem = -1;
+		*pidxItem = m_SelRange.NextSelected(idxItem);
 		return S_OK;
 	}
 
-	/// <summary>
-	/// 取下一未选中项
-	/// </summary>
-	/// <param name="idxItem">当前项目</param>
-	/// <param name="pidxItem">下一项目，若无则设为-1</param>
-	/// <returns>HRESULT</returns>
 	STDMETHODIMP NextUnSelected(LONG idxItem, LONG* pidxItem)
 	{
-		BOOL bFound;
-		const auto it = FindRange(idxItem, bFound);
-		if (bFound)
-			*pidxItem = it->idxEnd + 1;
-		else
-			*pidxItem = idxItem;
+		*pidxItem = m_SelRange.NextUnSelected(idxItem);
 		return S_OK;
 	}
 
-	// 计算选中项数
 	STDMETHODIMP CountIncluded(LONG* pcIncluded)
 	{
-		LONG c{};
-		for (const auto& e : m_vRange)
-			c += (e.idxEnd - e.idxBegin + 1);
-		*pcIncluded = c;
+		*pcIncluded = m_SelRange.CountIncluded();
 		return S_OK;
 	}
 
-	EckInline constexpr const auto& GetList() const { return m_vRange; }
+	EckInline constexpr const auto& GetSelRange() const { return m_SelRange; }
+	EckInline constexpr auto& GetSelRange() { return m_SelRange; }
 };
 ECK_NAMESPACE_END
