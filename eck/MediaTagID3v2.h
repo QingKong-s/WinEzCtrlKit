@@ -289,7 +289,7 @@ public:
 	x(const x&) = default;
 
 #define ECK_DECL_ID3FRAME_METHOD_CLONE_DEF_CONS(x)			\
-	FRAME* Clone() const override { return new x{ *this }; }\
+	[[nodiscard]] FRAME* Clone() const override { return new x{ *this }; }\
 	x(x&&) = default;										\
 	x(const x&) = default;									\
 	x() = default;
@@ -301,7 +301,7 @@ public:
 #define ECK_DECL_ID3FRAME_METHOD_ID(x)		\
 	ECK_DECL_ID3FRAME_METHOD_CLONE(x)		\
 	x() = default;							\
-	x(PCSTR psz) { memcpy(Id, psz, 4); }
+	x(_In_reads_bytes_(4) PCSTR psz) { memcpy(Id, psz, 4); }
 
 
 	struct FRAME

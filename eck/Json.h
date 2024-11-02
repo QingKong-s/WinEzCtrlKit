@@ -256,7 +256,7 @@ public:
 	}
 
 	template<class T>
-	EckInline [[nodiscard]] CJsonVal operator[](const T& x) const
+	[[nodiscard]] CJsonVal operator[](const T& x) const
 	{
 		return Priv::JsonValAtVarType(*this, x);
 	}

@@ -125,7 +125,7 @@ private:
 	BITBOOL m_bAutoItemHeight : 1 = TRUE;		// 自动计算项目高度
 
 #ifdef _DEBUG
-	BITBOOL m_bDbgDrawMarkItem : 1 = 1;	// [调试]绘制标记项目
+	BITBOOL m_bDbgDrawMarkItem : 1 = 0;	// [调试]绘制标记项目
 #endif
 	BITBOOL m_bHasFocus : 1 = FALSE;	// 是否有焦点
 	BITBOOL m_bLBtnDown : 1 = FALSE;	// 鼠标左键已按下
@@ -218,6 +218,9 @@ private:
 			SendNotify(ne.nmcd, m_hParent);
 		}
 
+		if (m_vItem.empty())
+			goto SkipDrawItem;
+
 		ne.nmcd.dwDrawStage = CDDS_PREPAINT;
 		lRet = SendNotify(ne.nmcd, m_hParent);
 		if (!(lRet & CDRF_SKIPDEFAULT))
@@ -233,7 +236,7 @@ private:
 				for (ne.nmcd.dwItemSpec = idxTop; ne.nmcd.dwItemSpec <= idxBottom;
 					++ne.nmcd.dwItemSpec)
 				{
-					PaintItem(ne);
+					PaintItem(ne, lRet & CDRF_NOTIFYITEMDRAW);
 					ne.nmcd.rc.top += m_cyItem;
 					ne.nmcd.rc.bottom += m_cyItem;
 				}
@@ -244,6 +247,7 @@ private:
 			ne.nmcd.dwDrawStage = CDDS_POSTPAINT;
 			SendNotify(ne, m_hParent);
 		}
+	SkipDrawItem:
 		BitBltPs(&ps, ne.nmcd.hdc);
 		EndPaint(hWnd, wParam, ps);
 	}
@@ -681,7 +685,7 @@ private:
 		m_oyTop = m_idxTop * m_cyItem - ySB;
 	}
 
-	void PaintItem(NMCUSTOMDRAWEXT& ne)
+	void PaintItem(NMCUSTOMDRAWEXT& ne, BOOL bNotifyItemDraw)
 	{
 		const int idx = (int)ne.nmcd.dwItemSpec;
 		int iState{};
@@ -699,7 +703,7 @@ private:
 		ne.crText = CLR_DEFAULT;
 		ne.iStateId = iState;
 		ne.iPartId = LVP_LISTITEM;
-		const auto lRet = SendNotify(ne, m_hParent);
+		const auto lRet = bNotifyItemDraw ? SendNotify(ne, m_hParent) : 0;
 		if (!(lRet & CDRF_SKIPDEFAULT))
 		{
 			BOOL bFillBk{};
@@ -1427,6 +1431,8 @@ public:
 
 	EckInline constexpr void SetGenerateItemNotify(BOOL b) { m_bGenItemNotify = b; }
 	EckInline constexpr BOOL GetGenerateItemNotify() const { return m_bGenItemNotify; }
+
+	EckInline constexpr HTHEME GetHTheme() const { return m_hTheme; }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CListBoxNew, CWnd);
 ECK_NAMESPACE_END

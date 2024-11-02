@@ -414,18 +414,19 @@ EckInline void LegalizePath(PWSTR pszPath, WCHAR chReplace = L'_')
 	}
 }
 
-inline std::span<const BYTE> GetResource(PCWSTR pszName, PCWSTR pszType)
+inline std::span<const BYTE> GetResource(PCWSTR pszName, PCWSTR pszType,
+	HMODULE hModule = nullptr)
 {
-	const auto hRes = FindResourceW(nullptr, pszName, pszType);
+	const auto hRes = FindResourceW(hModule, pszName, pszType);
 	if (!hRes)
 		return {};
-	const auto hGlobal = LoadResource(nullptr, hRes);
+	const auto hGlobal = LoadResource(hModule, hRes);
 	if (!hGlobal)
 		return {};
 	const auto pRes = LockResource(hGlobal);
 	if (!pRes)
 		return {};
-	const auto cbRes = SizeofResource(nullptr, hRes);
+	const auto cbRes = SizeofResource(hModule, hRes);
 	if (!cbRes)
 		return {};
 	return { (PCBYTE)pRes,cbRes };
