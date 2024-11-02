@@ -413,6 +413,7 @@ public:
 		{
 			CloseThemeData(m_hTheme);
 			m_hTheme = OpenThemeData(hWnd, L"Combobox");
+			m_LB.SendMsg(WM_THEMECHANGED, wParam, lParam);
 		}
 		break;
 
@@ -583,6 +584,8 @@ public:
 
 	EckInline constexpr void SetMatchEditToItem(BOOL b) { m_bMatchEditToItem = b; }
 	EckInline constexpr BOOL GetMatchEditToItem() const { return m_bMatchEditToItem; }
+
+	EckInline constexpr HTHEME GetHTheme() const { return m_hTheme; }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CComboBoxNew, CWnd);
 ECK_NAMESPACE_END

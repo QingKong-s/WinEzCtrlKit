@@ -121,7 +121,7 @@ struct DESIGNDATA_WND
 	{									\
 		if (pData)						\
 		{								\
-			const auto* const pBase = (CTRLDATA_WND*)pData;		\
+			const auto* const pBase = (::eck::CTRLDATA_WND*)pData;		\
 			PreDeserialize(pData);								\
 			IntCreate(pBase->dwExStyle, ClsName, pBase->Text(), pBase->dwStyle,				\
 				x, y, cx, cy, hParent, hMenu, HInst, nullptr);	\

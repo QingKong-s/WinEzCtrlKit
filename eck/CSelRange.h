@@ -407,9 +407,9 @@ private:
 	ULONG m_cRef{ 1 };
 	CSelRange m_SelRange{};
 public:
-	ULONG STDMETHODCALLTYPE AddRef() { return ++m_cRef; }
+	STDMETHODIMP_(ULONG) AddRef() { return ++m_cRef; }
 
-	ULONG STDMETHODCALLTYPE Release()
+	STDMETHODIMP_(ULONG) Release()
 	{
 		if (m_cRef == 1)
 		{
