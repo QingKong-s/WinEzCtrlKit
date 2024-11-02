@@ -812,12 +812,11 @@ EckInline BOOL MsgOnSettingChangeMainWnd(HWND hWnd, WPARAM wParam, LPARAM lParam
 {
 	if (IsColorSchemeChangeMessage(lParam))
 	{
-		RefreshImmersiveColorStuff();
-		FlushMenuTheme();
-		GetThreadCtx()->UpdateDefColor();
 		BroadcastChildrenMessage(hWnd, WM_SETTINGCHANGE, wParam, lParam);
-		BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, 0, 0);
-		EnableWindowNcDarkMode(hWnd, ShouldAppsUseDarkMode());
+		const auto ptc = eck::GetThreadCtx();
+		ptc->UpdateDefColor();
+		ptc->SetNcDarkModeForAllTopWnd(ShouldAppsUseDarkMode());
+		ptc->SendThemeChangedToAllTopWindow();
 		return TRUE;
 	}
 	else
@@ -860,6 +859,7 @@ EckInline void MsgOnSysColorChange(HWND hWnd, WPARAM wParam, LPARAM lParam)
 	BroadcastChildrenMessage(hWnd, WM_SYSCOLORCHANGE, wParam, lParam);
 }
 
+// WM_PAINT和WM_PRINTCLIENT的合并处理
 EckInline HDC BeginPaint(HWND hWnd, WPARAM wParam, PAINTSTRUCT& ps)
 {
 	if (wParam)

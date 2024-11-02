@@ -11,13 +11,13 @@
 ECK_NAMESPACE_BEGIN
 class CSelRange
 {
-private:
+public:
 	struct RANGE// 闭区间
 	{
 		int idxBegin;
 		int idxEnd;
 	};
-
+private:
 	std::vector<RANGE> m_vRange{};// 从小到大排列
 
 	/// <summary>

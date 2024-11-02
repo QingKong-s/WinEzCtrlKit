@@ -8,6 +8,7 @@
 #pragma once
 #include "CWnd.h"
 #include "CtrlGraphics.h"
+#include "CSelRange.h"
 
 ECK_NAMESPACE_BEGIN
 enum :UINT
@@ -46,6 +47,7 @@ struct NMLBNITEMCHANGED
 {
 	NMHDR nmhdr;
 	int idx;
+	int idxEnd;
 	UINT uFlagsNew;
 	UINT uFlagsOld;
 };
@@ -87,12 +89,8 @@ public:
 	ECK_CWND_SINGLEOWNER(CListBoxNew);
 	ECK_CWND_CREATE_CLS_HINST(WCN_LISTBOXNEW, g_hInstance);
 private:
-	struct ITEM
-	{
-		UINT uFlags{};
-	};
-
-	std::vector<ITEM> m_vItem{};
+	eck::CSelRange m_SelRange{};
+	int m_cItem{};
 
 	CRefStrW m_rsTextBuf{};
 
@@ -151,20 +149,21 @@ private:
 		m_cyItem = m_cyFont + DpiScale(MetricsExtraV, m_iDpi);
 	}
 
-	LRESULT NotifyItemChanged(int idx, UINT uOldFlags, UINT uNewFlags)
+	LRESULT NotifyItemChanged(int idxBegin, int idxEnd, UINT uOldFlags, UINT uNewFlags)
 	{
 		if (!m_bGenItemNotify)
 			return 0;
 		NMLBNITEMCHANGED nm;
-		nm.idx = idx;
+		nm.idx = idxBegin;
+		nm.idxEnd = idxEnd;
 		nm.uFlagsOld = uOldFlags;
 		nm.uFlagsNew = uNewFlags;
 		return FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_ITEMCHANGED);
 	}
 
-	LRESULT NotifyItemChanged(int idx, UINT uOldFlags)
+	LRESULT NotifyItemChanged(int idx, UINT uOldFlags, UINT uNewFlags)
 	{
-		return NotifyItemChanged(idx, uOldFlags, m_vItem[idx].uFlags);
+		return NotifyItemChanged(idx, idx, uOldFlags, uNewFlags);
 	}
 
 	BOOL OnCreate(HWND hWnd, CREATESTRUCTW* pcs)
@@ -218,7 +217,7 @@ private:
 			SendNotify(ne.nmcd, m_hParent);
 		}
 
-		if (m_vItem.empty())
+		if (!GetItemCount())
 			goto SkipDrawItem;
 
 		ne.nmcd.dwDrawStage = CDDS_PREPAINT;
@@ -227,7 +226,7 @@ private:
 		{
 			const auto idxTop = (DWORD)std::max(m_idxTop + (int)ps.rcPaint.top / m_cyItem - 1, m_idxTop);
 			const auto idxBottom = (DWORD)std::min(m_idxTop + (int)ps.rcPaint.bottom / m_cyItem + 1,
-				(int)m_vItem.size() - 1);
+				GetItemCount() - 1);
 			if (idxTop >= 0 && idxBottom >= 0)
 			{
 				SetTextColor(ne.nmcd.hdc,
@@ -309,9 +308,9 @@ private:
 				if (idx >= 0)
 				{
 					m_idxMark = idx;
-					const auto uOld = m_vItem[idx].uFlags;
-					m_vItem[idx].uFlags ^= LBN_IF_SEL;
-					NotifyItemChanged(idx, uOld);
+					const auto uOld = m_SelRange.IsSelected(idx) ? LBN_IF_SEL : 0;
+					m_SelRange.InvertRange(idx, idx);
+					NotifyItemChanged(idx, uOld, uOld ^ LBN_IF_SEL);
 					RedrawItem(idx);
 					if (idxOldFocus >= 0 && idxOldFocus != idx)
 						RedrawItem(idxOldFocus);
@@ -330,10 +329,9 @@ private:
 					RedrawItem(idxChangedBegin, idxChangedEnd);
 				if (idx >= 0)
 				{
-					const auto uOld = m_vItem[idx].uFlags;
-					m_vItem[idx].uFlags |= LBN_IF_SEL;
-					NotifyItemChanged(idx, uOld);
+					m_SelRange.IncludeRange(idx, idx);
 					m_idxMark = idx;
+					NotifyItemChanged(idx, 0u, LBN_IF_SEL);
 					if (idxChangedBegin < 0 || (idx < idxChangedBegin || idx > idxChangedEnd))
 						RedrawItem(idx);
 				}
@@ -343,9 +341,9 @@ private:
 		{
 			if (idx >= 0)
 			{
-				const auto uOld = m_vItem[idx].uFlags;
-				m_vItem[idx].uFlags ^= LBN_IF_SEL;
-				NotifyItemChanged(idx, uOld);
+				const auto uOld = m_SelRange.IsSelected(idx) ? LBN_IF_SEL : 0;
+				m_SelRange.InvertRange(idx, idx);
+				NotifyItemChanged(idx, uOld, uOld ^ LBN_IF_SEL);
 				RedrawItem(idx);
 				if (idxOldFocus >= 0 && idxOldFocus != idx)
 					RedrawItem(idxOldFocus);
@@ -372,47 +370,59 @@ private:
 		int i;
 		int idx0 = -1, idx1 = -1;
 		// 清除前面选中
-		for (i = 0; i < idxBegin; ++i)
+		for (const auto& e : m_SelRange.GetList())
 		{
-			auto& e = m_vItem[i];
-			if (e.uFlags & LBN_IF_SEL)
+			if (e.idxEnd < idxBegin)
 			{
 				if (idx0 < 0)
-					idx0 = i;
-				idx1 = i;
-				e.uFlags &= ~LBN_IF_SEL;
-				NotifyItemChanged(i, e.uFlags | LBN_IF_SEL);
+					idx0 = e.idxBegin;
+				idx1 = e.idxEnd;
+				NotifyItemChanged(e.idxBegin, e.idxEnd, LBN_IF_SEL, 0u);
+			}
+			else if (e.idxBegin < idxBegin)
+			{
+				if (idx0 < 0)
+					idx0 = e.idxBegin;
+				idx1 = idxBegin - 1;
+				NotifyItemChanged(e.idxBegin, idxBegin - 1, LBN_IF_SEL, 0u);
+				break;
 			}
 		}
+		if (idxBegin > 0)
+			m_SelRange.ExcludeRange(0, idxBegin - 1);
 		// 范围选中
 		for (i = idxBegin; i <= idxEnd; ++i)
 		{
-			// if ()
+			if (!m_SelRange.IsSelected(i))
 			{
 				if (idx0 < 0)
 					idx0 = i;
 				idx1 = i;
-				auto& e = m_vItem[i];
-				if (!(e.uFlags & LBN_IF_SEL))
-				{
-					e.uFlags |= LBN_IF_SEL;
-					NotifyItemChanged(i, e.uFlags & ~LBN_IF_SEL);
-				}
+				NotifyItemChanged(i, i, 0u, LBN_IF_SEL);
 			}
 		}
+		m_SelRange.IncludeRange(idxBegin, idxEnd);
 		// 清除后面选中
-		for (i = idxEnd + 1; i < (int)m_vItem.size(); ++i)
+		for (auto it = m_SelRange.GetList().rbegin(); it != m_SelRange.GetList().rend(); ++it)
 		{
-			auto& e = m_vItem[i];
-			if (e.uFlags & LBN_IF_SEL)
+			if (it->idxBegin > idxEnd)
 			{
 				if (idx0 < 0)
-					idx0 = i;
-				idx1 = i;
-				e.uFlags &= ~LBN_IF_SEL;
-				NotifyItemChanged(i, e.uFlags | LBN_IF_SEL);
+					idx0 = it->idxBegin;
+				idx1 = it->idxEnd;
+				NotifyItemChanged(it->idxBegin, it->idxEnd, LBN_IF_SEL, 0u);
+			}
+			else if (it->idxEnd > idxEnd)
+			{
+				if (idx0 < 0)
+					idx0 = idxEnd + 1;
+				idx1 = it->idxEnd;
+				NotifyItemChanged(idxEnd + 1, it->idxEnd, LBN_IF_SEL, 0u);
+				break;
 			}
 		}
+		if (idxEnd < GetItemCount() - 1)
+			m_SelRange.ExcludeRange(idxEnd + 1, GetItemCount() - 1);
 		if (idx0 >= 0)
 			RedrawItem(idx0, idx1);
 	}
@@ -420,13 +430,9 @@ private:
 	void BeginDraggingSelect(int idxBegin)
 	{
 		MSG msg;
-		for (auto& e : m_vItem)
-			if (e.uFlags & LBN_IF_SEL)
-				e.uFlags |= LBN_IF_SLIDE_SEL;
-			else
-				e.uFlags &= ~LBN_IF_SLIDE_SEL;
+		const auto srOld = m_SelRange;
 		int idxOldSelBegin = -1, idxOldSelEnd = -1,
-			idxOld0 = 0, idxOld1 = -1;
+			idxOld0 = idxBegin, idxOld1 = -1;
 		while (GetCapture() == HWnd)// 如果捕获改变则应立即退出拖动循环
 		{
 			if (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
@@ -480,7 +486,7 @@ private:
 					{
 						if (pt.y <= 0)
 							idxCurr = m_idxTop;
-						else if (pt.y >= m_cyClient)
+						else
 						{
 							idxCurr = m_idxTop + (m_cyClient - m_oyTop) / m_cyItem;
 							if (idxCurr >= GetItemCount())
@@ -501,31 +507,30 @@ private:
 						{
 							for (int i = idx0; i <= idx1; ++i)
 							{
-								auto& e = m_vItem[i];
 								if (idxSelBegin <= i && i <= idxSelEnd)// 当前应选中
 								{
-									if (!(e.uFlags & LBN_IF_SEL))
+									if (!m_SelRange.IsSelected(i))
 									{
-										e.uFlags |= LBN_IF_SEL;
-										NotifyItemChanged(i, e.uFlags & ~LBN_IF_SEL);
+										m_SelRange.IncludeRange(i, i);
+										NotifyItemChanged(i, 0u, LBN_IF_SEL);
 									}
 								}
 								else
 								{
-									if (e.uFlags & LBN_IF_SLIDE_SEL)
+									if (srOld.IsSelected(i))
 									{
-										if (!(e.uFlags & LBN_IF_SEL))
+										if (!m_SelRange.IsSelected(i))
 										{
-											e.uFlags |= LBN_IF_SEL;
-											NotifyItemChanged(i, e.uFlags & ~LBN_IF_SEL);
+											m_SelRange.IncludeRange(i, i);
+											NotifyItemChanged(i, 0u, LBN_IF_SEL);
 										}
 									}
 									else
 									{
-										if (e.uFlags & LBN_IF_SEL)
+										if (m_SelRange.IsSelected(i))
 										{
-											e.uFlags &= ~LBN_IF_SEL;
-											NotifyItemChanged(i, e.uFlags | LBN_IF_SEL);
+											m_SelRange.ExcludeRange(i, i);
+											NotifyItemChanged(i, LBN_IF_SEL, 0u);
 										}
 									}
 								}
@@ -557,10 +562,7 @@ private:
 				}
 			}
 			else
-			{
-				//SetCursorPos(msg.pt.x, msg.pt.y);
 				WaitMessage();
-			}
 		}
 	ExitDraggingLoop:
 		ReleaseCapture();
@@ -767,14 +769,14 @@ private:
 		si.cbSize = sizeof(SCROLLINFO);
 		si.fMask = SIF_PAGE | SIF_RANGE;
 		si.nMin = 0;
-		si.nMax = (int)m_vItem.size() * m_cyItem;
+		si.nMax = GetItemCount() * m_cyItem;
 		si.nPage = m_cyClient;
 		SetSbInfo(SB_VERT, &si);
 	}
 
 	void CheckOldData()
 	{
-		const int c = (int)m_vItem.size();
+		const int c = GetItemCount();
 		if (m_idxHot >= c)
 			m_idxHot = -1;
 		if (m_idxFocus >= c)
@@ -783,6 +785,7 @@ private:
 			m_idxMark = -1;
 		if (m_idxSel >= c)
 			m_idxSel = -1;
+		m_SelRange.ExcludeRange(c, INT_MAX);
 	}
 
 	LRESULT CbNotifyDismiss()
@@ -977,8 +980,9 @@ public:
 			{
 				if (m_bMultiSel && m_idxFocus >= 0)
 				{
-					m_vItem[m_idxFocus].uFlags ^= LBN_IF_SEL;
-					NotifyItemChanged(m_idxFocus, m_vItem[m_idxFocus].uFlags ^ LBN_IF_SEL);
+					const auto uOld = m_SelRange.IsSelected(m_idxFocus) ? LBN_IF_SEL : 0;
+					m_SelRange.InvertRange(m_idxFocus, m_idxFocus);
+					NotifyItemChanged(m_idxFocus, uOld, uOld ^ LBN_IF_SEL);
 					RedrawItem(m_idxFocus);
 				}
 			}
@@ -1139,7 +1143,7 @@ public:
 			m_cyItem = 24;
 			m_idxSel = m_idxHot = m_idxTop = m_idxMark = m_idxFocus = -1;
 			m_oyTop = 0;
-			m_vItem.clear();
+			m_SelRange.Clear();
 			m_bHasFocus = m_bLBtnDown =
 				m_bNmDragging = m_bTrackComboBoxList = FALSE;
 			m_hComboBox = nullptr;
@@ -1152,7 +1156,7 @@ public:
 
 	void SetItemCount(int cItem)
 	{
-		m_vItem.resize(cItem);
+		m_cItem = cItem;
 		CheckOldData();
 		ReCalcScrollBar();
 		ReCalcTopItem();
@@ -1160,14 +1164,14 @@ public:
 		FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_ITEMSTANDBY);
 	}
 
-	EckInline [[nodiscard]] constexpr int GetItemCount() { return (int)m_vItem.size(); }
+	EckInline [[nodiscard]] constexpr int GetItemCount() { return m_cItem; }
 
 	[[nodiscard]] int HitTest(int x, int y)
 	{
 		if (x < 0 || x > m_cxClient || y < 0 || y > m_cyClient)
 			return -1;
 		const int idx = m_idxTop + (y - m_oyTop) / m_cyItem;
-		if (idx >= (int)m_vItem.size())
+		if (idx >= GetItemCount())
 			return -1;
 		else
 			return idx;
@@ -1210,28 +1214,17 @@ public:
 
 	EckInline [[nodiscard]] int GetCurrSel() const { return m_idxSel; }
 
-	EckInline [[nodiscard]] UINT GetItemState(int idx)
-	{
-		return m_vItem[idx].uFlags;
-	}
-
 	EckInline [[nodiscard]] BOOL IsItemSel(int idx)
 	{
 		if (m_bMultiSel || m_bExtendSel)
-			return !!(m_vItem[idx].uFlags & LBN_IF_SEL);
+			return m_SelRange.IsSelected(idx);
 		else
 			return m_idxSel == idx;
 	}
 
-	void GetSelItem(std::vector<int>& v)
+	void GetSelItem(std::vector<CSelRange::RANGE>& v)
 	{
-		v.clear();
-		for (int i = 0; const auto & e : m_vItem)
-		{
-			if (e.uFlags & LBN_IF_SEL)
-				v.emplace_back(i);
-			++i;
-		}
+		v = m_SelRange.GetList();
 	}
 
 	void EnsureVisible(int idx)
@@ -1284,20 +1277,25 @@ public:
 	void DeselectAll(int& idxChangedBegin, int& idxChangedEnd)
 	{
 		int idx0 = -1, idx1 = -1;
-		EckCounter(GetItemCount(), i)
+		if (!m_SelRange.GetList().empty())
 		{
-			auto& e = m_vItem[i];
-			if (e.uFlags & LBN_IF_SEL)
-			{
-				if (idx0 < 0)
-					idx0 = (int)i;
-				idx1 = (int)i;
-				e.uFlags &= ~LBN_IF_SEL;
-				NotifyItemChanged(i, e.uFlags | LBN_IF_SEL);
-			}
+			idx0 = m_SelRange.GetList().front().idxBegin;
+			idx1 = m_SelRange.GetList().back().idxEnd;
 		}
+		for (const auto& e : m_SelRange.GetList())
+			NotifyItemChanged(e.idxBegin, e.idxEnd, LBN_IF_SEL, 0);
+
+		m_SelRange.Clear();
 		idxChangedBegin = idx0;
 		idxChangedEnd = idx1;
+	}
+
+	void DeselectAll()
+	{
+		int idx0, idx1;
+		DeselectAll(idx0, idx1);
+		if (idx0 >= 0)
+			RedrawItem(idx0, idx1);
 	}
 
 	void SetItemHeight(int cy)
