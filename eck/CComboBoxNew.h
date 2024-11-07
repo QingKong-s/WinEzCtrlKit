@@ -78,49 +78,49 @@ private:
 		RECT rc{ 0,0,m_cxClient,m_cyClient };
 		NMCUSTOMDRAWEXT ne;
 		FillNmhdr(ne, NM_CUSTOMDRAW);
-		ne.nmcd.hdc = m_DC.GetDC();
-		ne.nmcd.rc = rc;
-		ne.nmcd.dwItemSpec = 0;
-		ne.nmcd.lItemlParam = 0;
+		ne.hdc = m_DC.GetDC();
+		ne.rc = rc;
+		ne.dwItemSpec = 0;
+		ne.lItemlParam = 0;
 		ne.crBk = ne.crText = CLR_DEFAULT;
 		ne.iPartId = 0;
 		if (m_bDisabled)
 		{
 			ne.iStateId = CBRO_DISABLED;
-			ne.nmcd.uItemState = CDIS_DISABLED;
+			ne.uItemState = CDIS_DISABLED;
 		}
 		else if (m_bDrop)
 		{
 			ne.iStateId = CBRO_PRESSED;
-			ne.nmcd.uItemState = CDIS_SELECTED;
+			ne.uItemState = CDIS_SELECTED;
 		}
 		else if (m_bHot)
 		{
 			ne.iStateId = CBRO_HOT;
-			ne.nmcd.uItemState = CDIS_HOT;
+			ne.uItemState = CDIS_HOT;
 		}
 		else
 		{
 			ne.iStateId = CBRO_NORMAL;
-			ne.nmcd.uItemState = 0u;
+			ne.uItemState = 0u;
 		}
 
-		ne.nmcd.dwDrawStage = CDDS_PREPAINT;
+		ne.dwDrawStage = CDDS_PREPAINT;
 		const auto lRet = SendNotify(ne, m_hParent);
 		if (lRet & CDRF_SKIPDEFAULT)
 			goto SkipDef;
 
-		SetDCBrushColor(ne.nmcd.hdc, ptc->crDefBkg);
-		FillRect(ne.nmcd.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
+		SetDCBrushColor(ne.hdc, ptc->crDefBkg);
+		FillRect(ne.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
 
 		switch (m_eView)
 		{
 		case View::DropDown:
 		{
-			DrawThemeBackground(m_hTheme, ne.nmcd.hdc,
+			DrawThemeBackground(m_hTheme, ne.hdc,
 				CP_READONLY, ne.iStateId, &rc, nullptr);
 			rc.left = rc.right - GetDropButtonWidth();
-			DrawThemeBackground(m_hTheme, ne.nmcd.hdc,
+			DrawThemeBackground(m_hTheme, ne.hdc,
 				CP_DROPDOWNBUTTONRIGHT, CBXSR_NORMAL, &rc, nullptr);
 
 			NMLBNGETDISPINFO nmdi;
@@ -132,10 +132,10 @@ private:
 					rc.right = rc.left - DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
 					rc.left = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
 					if (ne.crText == CLR_DEFAULT)
-						SetTextColor(ne.nmcd.hdc, m_crText == CLR_DEFAULT ?
+						SetTextColor(ne.hdc, m_crText == CLR_DEFAULT ?
 							ptc->crDefText : m_crText);
 					else
-						SetTextColor(ne.nmcd.hdc, ne.crText);
+						SetTextColor(ne.hdc, ne.crText);
 					DrawTextW(m_DC.GetDC(), nmdi.Item.pszText, nmdi.Item.cchText,
 						&rc, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
 				}
@@ -145,10 +145,10 @@ private:
 
 		case View::DropDownEdit:
 		{
-			DrawThemeBackground(m_hTheme, ne.nmcd.hdc,
+			DrawThemeBackground(m_hTheme, ne.hdc,
 				CP_BORDER, m_bHasFocus ? CBB_FOCUSED : ne.iStateId, &rc, nullptr);
 			rc.left = rc.right - GetDropButtonWidth();
-			DrawThemeBackground(m_hTheme, ne.nmcd.hdc,
+			DrawThemeBackground(m_hTheme, ne.hdc,
 				CP_DROPDOWNBUTTONRIGHT, ne.iStateId, &rc, nullptr);
 		}
 		break;
@@ -158,7 +158,7 @@ private:
 	SkipDef:
 		if (lRet & CDRF_NOTIFYPOSTPAINT)
 		{
-			ne.nmcd.dwDrawStage = CDDS_POSTPAINT;
+			ne.dwDrawStage = CDDS_POSTPAINT;
 			SendNotify(ne, m_hParent);
 		}
 		BitBltPs(&ps, m_DC.GetDC());

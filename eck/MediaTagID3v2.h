@@ -310,7 +310,7 @@ public:
 		BYTE uFlags[2]{};	// 标志，[0] = 状态，[1] = 格式
 		MIIWFLAG byAddtFlags{};
 
-		virtual ~FRAME() {}
+		virtual ~FRAME() = default;
 
 		virtual Result SerializeData(CRefBin& rb, ID3v2_Header* phdr) = 0;
 

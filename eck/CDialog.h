@@ -63,11 +63,8 @@ protected:
 		{
 			if (!eck::PreTranslateMessage(msg))
 			{
-				if (!IsDialogMessageW(m_hWnd, &msg))
-				{
-					TranslateMessage(&msg);
-					DispatchMessageW(&msg);
-				}
+				TranslateMessage(&msg);
+				DispatchMessageW(&msg);
 			}
 		}
 	}
@@ -87,7 +84,7 @@ protected:
 		else
 			bNeedEnableOwner = FALSE;
 
-		BeginCbtHook(this, pfnCreatingProc);
+		BeginCbtHook(this, pfnCreatingProc, TRUE);
 		CreateDialogParamW(hInst, pszTemplate, hParent, EckDlgProc, lParam);
 		EckAssert(m_bDlgProcInit);
 
@@ -115,13 +112,15 @@ public:
 
 	static INT_PTR CALLBACK EckDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		const auto pDlg = dynamic_cast<CDialog*>(CWndFromHWND(hDlg));
+		const auto pDlg = DynCast<CDialog*>(CWndFromHWND(hDlg));
+#ifdef _DEBUG
 		if (!pDlg)
 		{
 			EckDbgPrintWithPos(L"** WARNING **  CDialog指针为NULL");
 			EckDbgBreak();
 			return FALSE;
 		}
+#endif // _DEBUG
 		if (uMsg == WM_INITDIALOG)
 			return pDlg->OnInitDialog(hDlg, (HWND)wParam, lParam);
 		return FALSE;
@@ -284,7 +283,7 @@ protected:
 			pt = { x,y };
 
 		IntCreate(dwExStyle, pszClass, pszText, dwStyle,
-			pt.x, pt.y, cx, cy, hParent, hMenu, hInst, pParam, pfnCreatingProc);
+			pt.x, pt.y, cx, cy, hParent, hMenu, hInst, pParam, pfnCreatingProc, TRUE);
 		EckAssert(m_bDlgProcInit);
 
 		if (m_hWnd)

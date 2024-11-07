@@ -6,7 +6,6 @@
 * Copyright(C) 2024 QingKong
 */
 #pragma once
-#if ECKCXX20
 #include "DuiBase.h"
 #include "CInertialScrollView.h"
 #include "CD2dImageList.h"
@@ -15,6 +14,7 @@
 
 #include <d2d1_2.h>
 
+#if ECKCXX20
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 enum
