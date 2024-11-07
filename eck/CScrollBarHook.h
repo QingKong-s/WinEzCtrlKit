@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "CWnd.h"
 #include "CCriticalSection.h"
 
@@ -32,9 +32,9 @@ class CScrollBarHook
 {
 private:
 	CWnd* m_pWnd{};
-	SCROLLINFO m_si[2]{};// 0 ´¹Ö±  1 Ë®Æ½
+	SCROLLINFO m_si[2]{};// 0 åž‚ç›´  1 æ°´å¹³
 
-	RECT m_rcWnd{};// ´°¿Ú¾ØÐÎ£¨Ïà¶Ô×ÔÉí´°¿Ú£©
+	RECT m_rcWnd{};// çª—å£çŸ©å½¢ï¼ˆç›¸å¯¹è‡ªèº«çª—å£ï¼‰
 	int m_iNcLBtnDownPos{ HTNOWHERE };
 
 	int m_cxVSB{};
@@ -98,6 +98,11 @@ private:
 
 		return s_pfnShowScrollBar(hWnd, nBar, bShow);
 	}
+
+	LRESULT OnWndMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)
+	{
+		return 0;
+	}
 public:
 	BOOL BindWnd(CWnd* pWnd)
 	{
@@ -113,15 +118,12 @@ public:
 			DetourAttach(&s_pfnGetScrollInfo, NewGetScrollInfo);
 			DetourAttach(&s_pfnShowScrollBar, NewShowScrollBar);
 			DetourTransactionCommit();
-			DetourUpdateThread(GetCurrentThread());
+			DetourUpdateThread(NtCurrentThread());
 		}
 		++s_cHookRef;
 		s_cs.Leave();
 
-		pWnd->InstallMsgHook([this](HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)->LRESULT
-			{
-
-			}, MHI_SCROLLBAR_HOOK);
+		pWnd->GetSignal().Connect(this, &CScrollBarHook::OnWndMsg, MHI_SCROLLBAR_HOOK);
 
 	}
 

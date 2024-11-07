@@ -1,18 +1,17 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* Env.h ： 外部环境
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 /*
-* 若要使用DPI感知，添加清单文件".\eck\Others\DpiAwarePreMonV2.manifest"，
-* 仅使用'系统DPI感知'和'每显示器DPI感知V2'，不使用'每显示器DPI感知V1'，代码也
-* 未进行适配
+* 关于DPI感知：
+*   仅使用'系统DPI感知'和'每显示器DPI感知V2'，
+*   不使用'每显示器DPI感知V1'，代码也未进行适配。
+*
+* 关于CommCtrl6.0：
+*   已弃用在本头文件中添加链接器注释的做法，须改用
+*   清单文件。
+*
+* 通用清单文件位于eck\Others\Common.manifest。
 */
 
-#ifndef ECKMACRO_NO_COMCTL60
+//#ifndef ECK_OPT_NO_COMCTL60
 //#pragma comment(linker,"\"/manifestdependency:						\
 //		type='win32'								\
 //		name='Microsoft.Windows.Common-Controls'	\
@@ -21,9 +20,9 @@
 //		publicKeyToken='6595b64144ccf1df'			\
 //		language='*'								\
 //	\"")
-#endif
+//#endif
 
-#ifndef ECKMACRO_NO_AUTO_ADD_LIB
+#ifndef ECK_OPT_NO_AUTO_ADD_LIB
 #pragma comment(lib, "Gdiplus.lib")
 #pragma comment(lib, "ComCtl32.lib")
 #pragma comment(lib, "Shlwapi.lib")
@@ -76,6 +75,4 @@
 #	endif
 #endif
 
-#endif
-
-// ECKMACRO_NO_WIN11_22621  SDK版本是否>=22621
+#endif// ECK_OPT_NO_AUTO_ADD_LIB
