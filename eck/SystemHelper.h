@@ -1312,7 +1312,7 @@ EckInline NTSTATUS GetPhysicalDriveIdentifierCrc32(int idxDrive, UINT& uCrc32)
 /// <param name="idxDrive">物理硬盘索引</param>
 /// <param name="pMd5">返回MD5，至少16字节</param>
 /// <returns>NTSTATUS</returns>
-EckInline NTSTATUS GetPhysicalDriveIdentifierMd5(int idxDrive, void* pMd5)
+EckInline NTSTATUS GetPhysicalDriveIdentifierMd5(int idxDrive, _Out_writes_bytes_(16) void* pMd5)
 {
 	return IntGetPhysicalDriveIdentifier([pMd5](PCVOID pData, size_t cbData, BOOL)->NTSTATUS
 		{

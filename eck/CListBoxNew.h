@@ -14,9 +14,7 @@ ECK_NAMESPACE_BEGIN
 enum :UINT
 {
 	// 项目标志
-
 	LBN_IF_SEL = 1u << 0,		// 选中
-	LBN_IF_SLIDE_SEL = 1u << 1,	// 内部使用，滑动选择时暂存状态
 
 	// 搜索
 	LBN_SF_CASEINSENSITIVE = 1u << 0,	// 不区分大小写
@@ -189,39 +187,39 @@ private:
 		LRESULT lRet;
 		NMCUSTOMDRAWEXT ne;
 		FillNmhdr(ne, NM_CUSTOMDRAW);
-		ne.nmcd.hdc = m_DC.GetDC();
-		ne.nmcd.lItemlParam = 0;
+		ne.hdc = m_DC.GetDC();
+		ne.lItemlParam = 0;
 		ne.crBk = CLR_DEFAULT;
 		ne.crText = CLR_DEFAULT;
 		ne.iStateId = 0;
 		ne.iPartId = 0;
 
-		ne.nmcd.dwDrawStage = CDDS_PREERASE;
-		ne.nmcd.rc = ps.rcPaint;
-		ne.nmcd.dwItemSpec = 0;
-		ne.nmcd.uItemState = 0;
-		ne.nmcd.lItemlParam = 0;
+		ne.dwDrawStage = CDDS_PREERASE;
+		ne.rc = ps.rcPaint;
+		ne.dwItemSpec = 0;
+		ne.uItemState = 0;
+		ne.lItemlParam = 0;
 		lRet = SendNotify(ne, m_hParent);
 		if (!(lRet & CDRF_SKIPDEFAULT))
 		{
 			if (ne.crBk != CLR_DEFAULT)
-				SetDCBrushColor(ne.nmcd.hdc, ne.crBk);
+				SetDCBrushColor(ne.hdc, ne.crBk);
 			else
-				SetDCBrushColor(ne.nmcd.hdc,
+				SetDCBrushColor(ne.hdc,
 					(m_crBkg == CLR_DEFAULT) ? ptc->crDefBkg : m_crBkg);
-			FillRect(ne.nmcd.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
+			FillRect(ne.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
 		}
 		if (lRet & CDRF_NOTIFYPOSTERASE)
 		{
-			ne.nmcd.dwDrawStage = CDDS_POSTERASE;
-			SendNotify(ne.nmcd, m_hParent);
+			ne.dwDrawStage = CDDS_POSTERASE;
+			SendNotify(ne, m_hParent);
 		}
 
 		if (!GetItemCount())
 			goto SkipDrawItem;
 
-		ne.nmcd.dwDrawStage = CDDS_PREPAINT;
-		lRet = SendNotify(ne.nmcd, m_hParent);
+		ne.dwDrawStage = CDDS_PREPAINT;
+		lRet = SendNotify(ne, m_hParent);
 		if (!(lRet & CDRF_SKIPDEFAULT))
 		{
 			const auto idxTop = (DWORD)std::max(m_idxTop + (int)ps.rcPaint.top / m_cyItem - 1, m_idxTop);
@@ -229,25 +227,25 @@ private:
 				GetItemCount() - 1);
 			if (idxTop >= 0 && idxBottom >= 0)
 			{
-				SetTextColor(ne.nmcd.hdc,
+				SetTextColor(ne.hdc,
 					(m_crText == CLR_DEFAULT) ? ptc->crDefText : m_crText);
-				GetItemRect(idxTop, ne.nmcd.rc);
-				for (ne.nmcd.dwItemSpec = idxTop; ne.nmcd.dwItemSpec <= idxBottom;
-					++ne.nmcd.dwItemSpec)
+				GetItemRect(idxTop, ne.rc);
+				for (ne.dwItemSpec = idxTop; ne.dwItemSpec <= idxBottom;
+					++ne.dwItemSpec)
 				{
 					PaintItem(ne, lRet & CDRF_NOTIFYITEMDRAW);
-					ne.nmcd.rc.top += m_cyItem;
-					ne.nmcd.rc.bottom += m_cyItem;
+					ne.rc.top += m_cyItem;
+					ne.rc.bottom += m_cyItem;
 				}
 			}
 		}
 		if (lRet & CDRF_NOTIFYPOSTPAINT)
 		{
-			ne.nmcd.dwDrawStage = CDDS_POSTPAINT;
+			ne.dwDrawStage = CDDS_POSTPAINT;
 			SendNotify(ne, m_hParent);
 		}
 	SkipDrawItem:
-		BitBltPs(&ps, ne.nmcd.hdc);
+		BitBltPs(&ps, ne.hdc);
 		EndPaint(hWnd, wParam, ps);
 	}
 
@@ -286,9 +284,9 @@ private:
 		si.fMask = SIF_POS;
 		SetSbInfo(SB_VERT, &si);
 		GetSbInfo(SB_VERT, &si);
+		ReCalcTopItem();
 		if (si.nPos != yOld)
 		{
-			ReCalcTopItem();
 			ScrollWindowEx(hWnd, 0, yOld - si.nPos, nullptr, nullptr,
 				nullptr, nullptr, SW_INVALIDATE);
 			UpdateWindow(hWnd);
@@ -671,9 +669,9 @@ private:
 		si.nPos += d;
 		SetSbInfo(SB_VERT, &si);
 		GetSbInfo(SB_VERT, &si);
+		ReCalcTopItem();
 		if (si.nPos != yOld)
 		{
-			ReCalcTopItem();
 			ScrollWindowEx(hWnd, 0, yOld - si.nPos, nullptr, nullptr,
 				nullptr, nullptr, SW_INVALIDATE);
 			UpdateWindow(hWnd);
@@ -689,7 +687,7 @@ private:
 
 	void PaintItem(NMCUSTOMDRAWEXT& ne, BOOL bNotifyItemDraw)
 	{
-		const int idx = (int)ne.nmcd.dwItemSpec;
+		const int idx = (int)ne.dwItemSpec;
 		int iState{};
 		if (m_idxHot == idx)
 			if (IsItemSel(idx))
@@ -700,7 +698,7 @@ private:
 			if (IsItemSel(idx))
 				iState = LISS_SELECTED;
 
-		ne.nmcd.dwDrawStage = CDDS_ITEMPREPAINT;
+		ne.dwDrawStage = CDDS_ITEMPREPAINT;
 		ne.crBk = CLR_DEFAULT;
 		ne.crText = CLR_DEFAULT;
 		ne.iStateId = iState;
@@ -715,14 +713,14 @@ private:
 					bFillBk = TRUE;
 				else
 				{
-					SetDCBrushColor(ne.nmcd.hdc, ne.crBk);
-					FillRect(ne.nmcd.hdc, &ne.nmcd.rc, GetStockBrush(DC_BRUSH));
+					SetDCBrushColor(ne.hdc, ne.crBk);
+					FillRect(ne.hdc, &ne.rc, GetStockBrush(DC_BRUSH));
 				}
 			}
 			if (iState)
-				DrawThemeBackground(m_hTheme, ne.nmcd.hdc, LVP_LISTITEM, iState, &ne.nmcd.rc, nullptr);
+				DrawThemeBackground(m_hTheme, ne.hdc, LVP_LISTITEM, iState, &ne.rc, nullptr);
 			if (bFillBk)
-				AlphaBlendColor(ne.nmcd.hdc, ne.nmcd.rc, ne.crBk);
+				AlphaBlendColor(ne.hdc, ne.rc, ne.crBk);
 
 			NMLBNGETDISPINFO nm{};
 			nm.Item.idxItem = idx;
@@ -730,35 +728,35 @@ private:
 			if (FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_GETDISPINFO)
 				&& nm.Item.cchText > 0)
 			{
-				RECT rc{ ne.nmcd.rc };
+				RECT rc{ ne.rc };
 				rc.left += DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
 				const auto crOld = ((ne.crText == CLR_DEFAULT) ?
-					CLR_INVALID : SetTextColor(ne.nmcd.hdc, ne.crText));
-				DrawTextW(ne.nmcd.hdc, nm.Item.pszText, nm.Item.cchText, &rc,
+					CLR_INVALID : SetTextColor(ne.hdc, ne.crText));
+				DrawTextW(ne.hdc, nm.Item.pszText, nm.Item.cchText, &rc,
 					DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_NOCLIP | DT_END_ELLIPSIS);
 				if (crOld != CLR_INVALID)
-					SetTextColor(ne.nmcd.hdc, crOld);
+					SetTextColor(ne.hdc, crOld);
 			}
 
 			if (!(lRet & CDRF_SKIPPOSTPAINT) && m_bFocusIndicatorVisible && m_idxFocus == idx)
 			{
-				RECT rc{ ne.nmcd.rc };
+				RECT rc{ ne.rc };
 				InflateRect(rc, -2, -2);
-				DrawFocusRect(ne.nmcd.hdc, &rc);
+				DrawFocusRect(ne.hdc, &rc);
 			}
 		}
 #ifdef _DEBUG
 		if (m_bDbgDrawMarkItem && idx == m_idxMark)
 		{
-			const auto crOld = SetTextColor(ne.nmcd.hdc, Colorref::Red);
-			DrawTextW(ne.nmcd.hdc, L"Mark", -1, (RECT*)&ne.nmcd.rc,
+			const auto crOld = SetTextColor(ne.hdc, Colorref::Red);
+			DrawTextW(ne.hdc, L"Mark", -1, (RECT*)&ne.rc,
 				DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_NOCLIP);
-			SetTextColor(ne.nmcd.hdc, crOld);
+			SetTextColor(ne.hdc, crOld);
 		}
 #endif
 		if (lRet & CDRF_NOTIFYPOSTPAINT)
 		{
-			ne.nmcd.dwDrawStage = CDDS_ITEMPOSTPAINT;
+			ne.dwDrawStage = CDDS_ITEMPOSTPAINT;
 			SendNotify(ne, m_hParent);
 		}
 	}
@@ -772,6 +770,7 @@ private:
 		si.nMax = GetItemCount() * m_cyItem;
 		si.nPage = m_cyClient;
 		SetSbInfo(SB_VERT, &si);
+		ReCalcTopItem();
 	}
 
 	void CheckOldData()
@@ -838,6 +837,7 @@ public:
 		{
 			ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
 			SetSbPage(SB_VERT, m_cyClient);
+			ReCalcTopItem();
 			m_DC.ReSize(hWnd, m_cxClient, m_cyClient);
 		}
 		break;
@@ -1159,7 +1159,6 @@ public:
 		m_cItem = cItem;
 		CheckOldData();
 		ReCalcScrollBar();
-		ReCalcTopItem();
 		NMHDR nm;
 		FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_ITEMSTANDBY);
 	}
@@ -1303,7 +1302,6 @@ public:
 		m_bAutoItemHeight = FALSE;
 		m_cyItem = cy;
 		ReCalcScrollBar();
-		ReCalcTopItem();
 	}
 
 	EckInline int GetItemHeight() const { return m_cyItem; }

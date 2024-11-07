@@ -259,7 +259,7 @@ public:
 		break;
 		}
 
-		return DefWindowProcW(hWnd, uMsg, wParam, lParam);
+		return __super::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
 	/// <summary>

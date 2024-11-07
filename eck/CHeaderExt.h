@@ -860,6 +860,9 @@ public:
 				switch (pnmcd->dwDrawStage)
 				{
 				case CDDS_PREPAINT:
+					SetDCBrushColor(pnmcd->hdc, m_crBk == CLR_DEFAULT ?
+						m_pThrCtx->crDefBkg : m_crBk);
+					FillRect(pnmcd->hdc, &pnmcd->rc, GetStockBrush(DC_BRUSH));
 					return CDRF_NOTIFYITEMDRAW;
 				case CDDS_ITEMPREPAINT:
 					return OnItemPrePaint(pnmcd);

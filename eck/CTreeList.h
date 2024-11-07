@@ -115,36 +115,12 @@ struct NMTLTLNODEEXPANDED
 	TLNODE* pNode;
 };
 
-enum
+struct NMTLCUSTOMDRAW : NMCUSTOMDRAWEXT
 {
-	TLCDD_PREFILLBK,// 将要填充背景，仅使用hDC和rcItem
-	TLCDD_PREPAINTITEM,// 将要绘制项目
-};
-
-enum :UINT
-{
-	TLCDRF_NONE = 0,
-	TLCDRF_TEXTCLRCHANGED = (1u << 0),// 文本颜色已改变
-	TLCDRF_SKIPDEFAULT = (1u << 1),// 终止默认绘制
-	TLCDRF_BKGNDCHANGED = (1u << 2),// 背景已改变
-};
-
-struct NMTLCUSTOMDRAW
-{
-	NMHDR nmhdr;
-	HDC hDC;
-	const RECT* prcItem;
 	TLNODE* pNode;
-	int iDrawStage;
-
-	int idxItem;
 	int idxSubItem;
-
-	int iStateIdItem;
 	int iPartIdGlyph;
 	int iStateIdGlyph;
-
-	COLORREF crText;
 	COLORREF crTextBk;
 };
 
@@ -280,6 +256,7 @@ private:
 		int iRight;		// 右边界，相对于第一列的偏移量
 		int idxActual;	// 此项对应的实际项目索引
 	};
+	HWND m_hParent{};					// 接收通知的窗口
 	//--------控件
 	CTLHeader m_Header{ *this };		// 表头
 	CTLHeader m_HeaderFixed{ *this };	// 表头
@@ -288,14 +265,14 @@ private:
 	CScrollBar m_SBV{};					// 滚动条
 	CScrollBar m_SBH{};					// 滚动条
 	//--------图形
-	HTHEME m_hThemeTV = nullptr;			// TreeView主题
-	HTHEME m_hThemeLV = nullptr;			// ItemsView主题
-	HTHEME m_hThemeBT = nullptr;			// Button主题
-	HFONT m_hFont = nullptr;				// 字体
+	HTHEME m_hThemeTV{};				// TreeView主题
+	HTHEME m_hThemeLV{};				// ItemsView主题
+	HTHEME m_hThemeBT{};				// Button主题
+	HFONT m_hFont{};					// 字体
 	CEzCDC m_DC{};						// 兼容DC
 	COLORREF m_crBranchLine = CLR_DEFAULT;	// 分支线颜色
-	COLORREF m_crBkg = CLR_DEFAULT;			// 背景颜色
-	COLORREF m_crText = CLR_DEFAULT;		// 文本颜色
+	COLORREF m_crBkg = CLR_DEFAULT;		// 背景颜色
+	COLORREF m_crText = CLR_DEFAULT;	// 文本颜色
 	//--------项目相关
 	std::vector<TLNODE*> m_vItem{};		// 项目列表
 	std::vector<COL> m_vCol{};			// 按显示顺序排列的列信息
@@ -339,6 +316,7 @@ private:
 	int m_cyHSB = 0;					// 水平滚动条高度，用于底部悬浮滚动条
 	//--------
 	CRefStrW m_rsWatermark{};			// 水印文本
+	CRefStrW m_rsTextBuf{};				// 文本缓冲区
 	//--------内部标志
 #ifdef _DEBUG
 	BITBOOL m_bDbgDrawIndex : 1 = 0;			// 【调试】绘制项目索引
@@ -461,10 +439,10 @@ private:
 		const BOOL bFirstColVisible = (rc.right - rc.left > 0 && (rc.left < rcPaint.right && rc.right > rcPaint.left));
 
 		HRGN hRgn{};
-		COLORREF crOldText = CLR_INVALID, crOldTextBk = CLR_INVALID;
 #ifdef ECK_MACRO_SUPPORTCLASSICTHEME
 		BOOL bTextHighLight{};
 #endif // ECK_MACRO_SUPPORTCLASSICTHEME
+		//---------------画分隔线
 		int iStateId;
 		if (IsBitSet(e->uFlags, TLIF_SELECTED) || (m_bSingleSel && m_idxSel == idx))
 		{
@@ -482,54 +460,73 @@ private:
 			iStateId = 0;
 
 		NMTLCUSTOMDRAW nmcd;
-		nmcd.hDC = hDC;
-		nmcd.prcItem = &rcItem;
-		nmcd.pNode = e;
-		nmcd.iDrawStage = TLCDD_PREPAINTITEM;
-		nmcd.idxItem = idx;
-		nmcd.idxSubItem = -1;
-		nmcd.iStateIdItem = iStateId;
-		nmcd.iPartIdGlyph = (m_bExpandBtnHot && m_idxHot == idx) ? TVP_HOTGLYPH : TVP_GLYPH;
-		nmcd.iStateIdGlyph = IsBitSet(e->uFlags, TLIF_CLOSED) ? GLPS_CLOSED : GLPS_OPENED;
-		nmcd.crText = nmcd.crTextBk = CLR_INVALID;
-		const UINT uCustom = (UINT)FillNmhdrAndSendNotify(nmcd, NM_TL_CUSTOMDRAW);
+		nmcd.dwDrawStage = CDDS_ITEMPREPAINT;
+		nmcd.hdc = hDC;
+		nmcd.rc = rcItem;
+		nmcd.dwItemSpec = idx;
+		nmcd.uItemState = e->uFlags;
 
-		if (uCustom & TLCDRF_SKIPDEFAULT)
+		nmcd.iStateId = iStateId;
+		nmcd.iPartId = LVP_LISTITEM;
+		nmcd.crText = nmcd.crBk = CLR_DEFAULT;
+
+		nmcd.pNode = e;
+		nmcd.idxSubItem = -1;
+		nmcd.iPartIdGlyph = (m_bExpandBtnHot && m_idxHot == idx) ? TVP_HOTGLYPH : TVP_GLYPH;
+		nmcd.iStateIdGlyph = (e->uFlags & TLIF_CLOSED) ? GLPS_CLOSED : GLPS_OPENED;
+		nmcd.crTextBk = CLR_DEFAULT;
+		const auto uCustom = FillNmhdrAndSendNotify(nmcd, m_hParent, NM_CUSTOMDRAW);
+
+		if (uCustom & CDRF_SKIPDEFAULT)
 			goto End;
-		if (uCustom & TLCDRF_BKGNDCHANGED)
-			PaintDivider(hDC, rcItem);
+		PaintDivider(hDC, rcItem);
 		//---------------画背景
 #ifdef ECK_MACRO_SUPPORTCLASSICTHEME
 		if (!m_hThemeLV)
 		{
-			switch (iStateId)
-			{
-			case LISS_SELECTED:
-				FillRect(hDC, &rcItem, GetSysColorBrush(COLOR_HIGHLIGHT));
-				break;
-			case LISS_SELECTEDNOTFOCUS:
-				FillRect(hDC, &rcItem, GetSysColorBrush(COLOR_3DFACE));
-				break;
-			case LISS_HOTSELECTED:
-				if (m_bHasFocus)
-					FillRect(hDC, &rcItem, GetSysColorBrush(COLOR_HOTLIGHT));
-				else
+			if (nmcd.crBk == CLR_DEFAULT)
+				switch (iStateId)
+				{
+				case LISS_SELECTED:
+					FillRect(hDC, &rcItem, GetSysColorBrush(COLOR_HIGHLIGHT));
+					break;
+				case LISS_SELECTEDNOTFOCUS:
 					FillRect(hDC, &rcItem, GetSysColorBrush(COLOR_3DFACE));
-				break;
-			case LISS_HOT:// discard
-			default:
-				break;
+					break;
+				case LISS_HOTSELECTED:
+					if (m_bHasFocus)
+						FillRect(hDC, &rcItem, GetSysColorBrush(COLOR_HOTLIGHT));
+					else
+						FillRect(hDC, &rcItem, GetSysColorBrush(COLOR_3DFACE));
+					break;
+				case LISS_HOT:// discard
+				default:
+					break;
+				}
+			else
+			{
+				SetDCBrushColor(hDC, nmcd.crBk);
+				FillRect(hDC, &rcItem, GetStockBrush(DC_BRUSH));
 			}
 		}
 		else
 #endif // ECK_MACRO_SUPPORTCLASSICTHEME
+		{
+			BOOL bPostDrawBk{};
+			if (nmcd.crBk != CLR_DEFAULT)
+			{
+				if (ShouldAppsUseDarkMode())
+					bPostDrawBk = TRUE;
+				else
+				{
+					SetDCBrushColor(hDC, nmcd.crBk);
+					FillRect(hDC, &rcItem, GetStockBrush(DC_BRUSH));
+				}
+			}
 			if (iStateId)
 				DrawThemeBackground(m_hThemeLV, hDC, LVP_LISTITEM, iStateId, &rcItem, nullptr);
-		if (idx == m_idxFocus && m_bFocusIndicatorVisible && m_bHasFocus)
-		{
-			InflateRect(rcItem, -1, -1);
-			DrawFocusRect(hDC, &rcItem);
-			InflateRect(rcItem, 1, 1);
+			if (bPostDrawBk)
+				AlphaBlendColor(hDC, rcItem, nmcd.crBk);
 		}
 		//---------------
 		if (m_hImgList || e->idxImg >= 0 || (e->uFlags & TLIF_HASCHILDREN))// 第一列有额外图案
@@ -550,7 +547,7 @@ private:
 		if (!m_hThemeLV &&
 			(iStateId == LISS_SELECTED || iStateId == LISS_HOTSELECTED))
 		{
-			if (nmcd.crText == CLR_INVALID)
+			if (nmcd.crText == CLR_DEFAULT)
 				nmcd.crText = GetSysColor(COLOR_HIGHLIGHTTEXT);
 			bTextHighLight = TRUE;
 		}
@@ -669,24 +666,31 @@ private:
 		}
 		if (hRgn)
 			SelectClipRgn(hDC, nullptr);
-
 		//---------------画文本
-		SetTextColor(hDC, m_crText == CLR_DEFAULT ? GetThreadCtx()->crDefText : m_crText);
-		if ((uCustom & TLCDRF_TEXTCLRCHANGED)
-#ifdef ECK_MACRO_SUPPORTCLASSICTHEME
-			|| bTextHighLight
-#endif // ECK_MACRO_SUPPORTCLASSICTHEME
-			)
+		COLORREF crText, crTextBk;
+		if (nmcd.crText != CLR_DEFAULT)
+			crText = nmcd.crText;
+		else if (m_crText != CLR_DEFAULT)
+			crText = m_crText;
+		else
+			crText = GetThreadCtx()->crDefText;
+		SetTextColor(hDC, crText);
+
+		if (nmcd.crTextBk != CLR_DEFAULT)
 		{
-			if (nmcd.crText != CLR_INVALID)
-				crOldText = SetTextColor(hDC, nmcd.crText);
-			if (nmcd.crTextBk != CLR_INVALID)
-				crOldTextBk = SetBkColor(hDC, nmcd.crTextBk);
+			SetBkMode(hDC, OPAQUE);
+			SetBkColor(hDC, nmcd.crTextBk);
 		}
+		else
+			SetBkMode(hDC, TRANSPARENT);
+
+		SetTextColor(hDC, m_crText == CLR_DEFAULT ? GetThreadCtx()->crDefText : m_crText);
 
 		NMTLGETDISPINFO nm;
 		nm.Item.pNode = e;
 		nm.Item.uMask = TLIM_TEXT;
+		nm.Item.pszText = m_rsTextBuf.Data();
+		nm.Item.cchText = m_rsTextBuf.Size();
 		FillNmhdr(nm, NM_TL_GETDISPINFO);
 
 		rc.left += m_Ds.cxTextMargin;
@@ -703,7 +707,7 @@ private:
 				nm.Item.idxSubItem = m_vCol[i].idxActual;
 				nm.Item.cchText = 0;
 				nm.Item.pszText = nullptr;
-				SendNotify(nm);
+				SendNotify(nm, m_hParent);
 #pragma warning(suppress:6387)// nm.Item.pszText可能为NULL
 				DrawTextW(hDC, nm.Item.pszText, nm.Item.cchText, &rc,
 					DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX);
@@ -719,17 +723,20 @@ private:
 			}
 #endif
 		}
-		if ((uCustom & TLCDRF_TEXTCLRCHANGED)
-#ifdef ECK_MACRO_SUPPORTCLASSICTHEME
-			|| bTextHighLight
-#endif // ECK_MACRO_SUPPORTCLASSICTHEME
-			)
+		if (!(uCustom & CDRF_SKIPPOSTPAINT))
 		{
-			if (crOldText != CLR_INVALID)
-				SetTextColor(hDC, crOldText);
-			if (crOldTextBk != CLR_INVALID)
-				SetBkColor(hDC, crOldTextBk);
+			if (idx == m_idxFocus && m_bFocusIndicatorVisible && m_bHasFocus)
+			{
+				InflateRect(rcItem, -2, -2);
+				DrawFocusRect(hDC, &rcItem);
+			}
 		}
+		if (uCustom & CDRF_NOTIFYPOSTPAINT)
+		{
+			nmcd.dwDrawStage = CDDS_POSTPAINT;
+			SendNotify(nmcd, m_hParent);
+		}
+
 	End:;
 #ifdef _DEBUG
 		const auto cr = SetTextColor(hDC, Colorref::Red);
@@ -773,16 +780,21 @@ private:
 	EckInline void PaintBk(HDC hDC, const RECT& rc)
 	{
 		NMTLCUSTOMDRAW nm{};
-		nm.hDC = hDC;
-		nm.prcItem = &rc;
-		nm.iDrawStage = TLCDD_PREFILLBK;
-		if (!(FillNmhdrAndSendNotify(nm, NM_TL_CUSTOMDRAW) & TLCDRF_SKIPDEFAULT))
+		nm.hdc = hDC;
+		nm.rc = rc;
+		nm.dwDrawStage = CDDS_PREERASE;
+		const auto lRet = FillNmhdrAndSendNotify(nm, m_hParent, NM_CUSTOMDRAW);
+		if (!lRet & CDRF_SKIPDEFAULT)
+			return;
+		if (m_crBkg == CLR_DEFAULT)
+			SetDCBrushColor(hDC, GetThreadCtx()->crDefBkg);
+		else
+			SetDCBrushColor(hDC, m_crBkg);
+		FillRect(hDC, &rc, GetStockBrush(DC_BRUSH));
+		if (lRet & CDRF_NOTIFYPOSTERASE)
 		{
-			if (m_crBkg == CLR_DEFAULT)
-				SetDCBrushColor(hDC, GetThreadCtx()->crDefBkg);
-			else
-				SetDCBrushColor(hDC, m_crBkg);
-			FillRect(hDC, &rc, GetStockBrush(DC_BRUSH));
+			nm.dwDrawStage = CDDS_POSTERASE;
+			FillNmhdrAndSendNotify(nm, m_hParent, NM_CUSTOMDRAW);
 		}
 	}
 
@@ -1715,7 +1727,6 @@ public:
 			int idx = HitTest(tlht);
 			BOOL bExpBtnHot = m_bExpandBtnHot;
 			m_bExpandBtnHot = (tlht.iPart == TLIP_EXPANDBTN);
-			//EckDbgPrint(tlht.iPart);
 			if (idx != m_idxHot)
 			{
 				std::swap(idx, m_idxHot);
@@ -2030,9 +2041,6 @@ public:
 		}
 		break;
 
-		case WM_ERASEBKGND:
-			return TRUE;
-
 		case WM_PRINTCLIENT:
 		case WM_PAINT:
 		{
@@ -2195,6 +2203,7 @@ public:
 
 		case WM_CREATE:
 		{
+			m_hParent = ((CREATESTRUCTW*)lParam)->hwndParent;
 			m_iDpi = GetDpi(hWnd);
 			UpdateDpiSize(m_Ds, m_iDpi);
 			m_cyHeader = m_Ds.cyHeaderDef;
@@ -3507,6 +3516,9 @@ public:
 	EckInline void SetTextClr(COLORREF cr) { m_crText = cr; }
 
 	EckInline void SetBkClr(COLORREF cr) { m_crBkg = cr; }
+
+	EckInline void SetTextBufferSize(int cch) { m_rsTextBuf.ReSize(cch); }
+	EckInline constexpr int GetTextBufferSize() const { return m_rsTextBuf.Size(); }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CTreeList, CWnd);
 

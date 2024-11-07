@@ -199,9 +199,9 @@ protected:
 
 	EckInline HWND IntCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
-		FWndCreating pfnCreatingProc = nullptr)
+		FWndCreating pfnCreatingProc = nullptr, BOOL bDialog = FALSE)
 	{
-		BeginCbtHook(this, pfnCreatingProc);
+		BeginCbtHook(this, pfnCreatingProc, bDialog);
 #ifdef _DEBUG
 		CreateWindowExW(dwExStyle, pszClass, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, hInst, pParam);
