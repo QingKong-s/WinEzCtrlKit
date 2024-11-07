@@ -28,25 +28,7 @@ FIsDarkModeAllowedForApp		pfnIsDarkModeAllowedForApp{};
 FOpenNcThemeData				pfnOpenNcThemeData{};
 
 ECK_NAMESPACE_BEGIN
-CRefStrW g_rsCurrDir{};
-ULONG_PTR g_uGpToken{};
-
-HINSTANCE g_hInstance{};
-IWICImagingFactory* g_pWicFactory{};
-ID2D1Factory1* g_pD2dFactory{};
-IDWriteFactory* g_pDwFactory{};
-ID2D1Device* g_pD2dDevice{};
-IDXGIDevice1* g_pDxgiDevice{};
-IDXGIFactory2* g_pDxgiFactory{};
-
-DWORD g_dwTlsSlot{};
-
-NTVER g_NtVer{};
-
-ClassInfo* g_pClassInfo{};
-
-
-void EckInitPrivateApi()
+void InitPrivateApi()
 {
 	const auto hModUser32 = LoadLibraryW(L"User32.dll");
 	EckAssert(hModUser32);
@@ -59,40 +41,54 @@ void EckInitPrivateApi()
 	pfnOpenNcThemeData = (FOpenNcThemeData)
 		GetProcAddress(hModUx, MAKEINTRESOURCEA(49));
 
-	if (g_NtVer.uMajor >= 10 && g_NtVer.uBuild >= WINVER_1607)
+	if (g_NtVer.uMajor >= 10 && g_NtVer.uBuild >= WINVER_1809)
 	{
-		if (g_NtVer.uBuild >= WINVER_1809)
+		if (g_NtVer.uBuild > WINVER_1903)
 		{
-			if (g_NtVer.uBuild > WINVER_1903)
-			{
-				pfnShouldSystemUseDarkMode = (FShouldSystemUseDarkMode)
-					GetProcAddress(hModUx, MAKEINTRESOURCEA(138));
-				pfnIsDarkModeAllowedForApp = (FIsDarkModeAllowedForApp)
-					GetProcAddress(hModUx, MAKEINTRESOURCEA(139));
-				pfnSetPreferredAppMode = (FSetPreferredAppMode)
-					GetProcAddress(hModUx, MAKEINTRESOURCEA(135));
-			}
-			else
-			{
-				pfnAllowDarkModeForApp = (FAllowDarkModeForApp)
-					GetProcAddress(hModUx, MAKEINTRESOURCEA(135));
-			}
-			pfnAllowDarkModeForWindow = (FAllowDarkModeForWindow)
-				GetProcAddress(hModUx, MAKEINTRESOURCEA(133));
-			pfnIsDarkModeAllowedForWindow = (FIsDarkModeAllowedForWindow)
-				GetProcAddress(hModUx, MAKEINTRESOURCEA(137));
-			pfnShouldAppsUseDarkMode = (FShouldAppsUseDarkMode)
-				GetProcAddress(hModUx, MAKEINTRESOURCEA(132));
-			pfnFlushMenuThemes = (FFlushMenuThemes)
-				GetProcAddress(hModUx, MAKEINTRESOURCEA(136));
-			pfnRefreshImmersiveColorPolicyState = (FRefreshImmersiveColorPolicyState)
-				GetProcAddress(hModUx, MAKEINTRESOURCEA(104));
-			pfnGetIsImmersiveColorUsingHighContrast = (FGetIsImmersiveColorUsingHighContrast)
-				GetProcAddress(hModUx, MAKEINTRESOURCEA(106));
+			pfnShouldSystemUseDarkMode = (FShouldSystemUseDarkMode)
+				GetProcAddress(hModUx, MAKEINTRESOURCEA(138));
+			pfnIsDarkModeAllowedForApp = (FIsDarkModeAllowedForApp)
+				GetProcAddress(hModUx, MAKEINTRESOURCEA(139));
+			pfnSetPreferredAppMode = (FSetPreferredAppMode)
+				GetProcAddress(hModUx, MAKEINTRESOURCEA(135));
 		}
+		else
+		{
+			pfnAllowDarkModeForApp = (FAllowDarkModeForApp)
+				GetProcAddress(hModUx, MAKEINTRESOURCEA(135));
+		}
+		pfnAllowDarkModeForWindow = (FAllowDarkModeForWindow)
+			GetProcAddress(hModUx, MAKEINTRESOURCEA(133));
+		pfnIsDarkModeAllowedForWindow = (FIsDarkModeAllowedForWindow)
+			GetProcAddress(hModUx, MAKEINTRESOURCEA(137));
+		pfnShouldAppsUseDarkMode = (FShouldAppsUseDarkMode)
+			GetProcAddress(hModUx, MAKEINTRESOURCEA(132));
+		pfnFlushMenuThemes = (FFlushMenuThemes)
+			GetProcAddress(hModUx, MAKEINTRESOURCEA(136));
+		pfnRefreshImmersiveColorPolicyState = (FRefreshImmersiveColorPolicyState)
+			GetProcAddress(hModUx, MAKEINTRESOURCEA(104));
+		pfnGetIsImmersiveColorUsingHighContrast = (FGetIsImmersiveColorUsingHighContrast)
+			GetProcAddress(hModUx, MAKEINTRESOURCEA(106));
 	}
 	FreeLibrary(hModUx);
 }
+
+// RTTI
+ClassInfo* g_pClassInfo{};
+
+HINSTANCE	g_hInstance{};
+CRefStrW	g_rsCurrDir{};
+DWORD		g_dwTlsSlot{};
+NTVER		g_NtVer{};
+
+ULONG_PTR	g_uGpToken{};
+
+IWICImagingFactory* g_pWicFactory{};
+ID2D1Factory1* g_pD2dFactory{};
+IDWriteFactory* g_pDwFactory{};
+ID2D1Device* g_pD2dDevice{};
+IDXGIDevice1* g_pDxgiDevice{};
+IDXGIFactory2* g_pDxgiFactory{};
 
 static BOOL DefMsgFilter(const MSG&)
 {
@@ -100,7 +96,59 @@ static BOOL DefMsgFilter(const MSG&)
 }
 FMsgFilter g_pfnMsgFilter = DefMsgFilter;
 
-#pragma region UxTheme Fixer
+const CRefStrW& GetRunningPath()
+{
+	return g_rsCurrDir;
+}
+
+#pragma region WndClass
+enum
+{
+	RWCT_EZREG,
+	RWCT_CUSTOM,
+};
+
+struct EZREGWNDINFO
+{
+	PCWSTR pszClass = nullptr;
+	UINT uClassStyle = CS_STDWND;
+};
+
+static struct
+{
+	union
+	{
+		EZREGWNDINFO ez{};
+		WNDCLASSW wc;
+	};
+	int iType = RWCT_EZREG;
+}
+s_WndClassInfo[]
+{
+	{ },// WCN_DLG
+#ifdef ECK_OPT_NO_SIMPLE_WND_CLS
+	{ WCN_LABEL },
+	{ WCN_BK },
+	{ WCN_LUNARCALENDAR },
+	{ WCN_FORM },
+	{ WCN_TABHEADER },
+	{ WCN_SPLITBAR },
+	{ WCN_DRAWPANEL },
+	{ WCN_LISTBOXNEW },
+	{ WCN_TREELIST },
+	{ WCN_COMBOBOXNEW },
+	{ WCN_PICTUREBOX },
+	{ WCN_DUIHOST },
+	{ WCN_VECDRAWPANEL },
+	{ WCN_HEXEDIT },
+	{ WCN_HITTER },
+#else
+	{ WCN_DUMMY },
+#endif // defined(ECK_OPT_NO_SIMPLE_WND_CLS)
+};
+#pragma endregion Wnds
+
+#pragma region UxFixer
 enum
 {
 	//===部件===
@@ -179,9 +227,8 @@ static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 {
 	if (!hTheme)
 		return;
-	//EckDbgPrintFmt(L"UxfOnThemeOpen(%p, %s)", hTheme, pszClassList);
 	ThemeType eType;
-	if (wcsstr(pszClassList, L"Button"))// Maybe ~";Ok"
+	if (wcsstr(pszClassList, L"Button"))
 		eType = ThemeType::Button;
 	else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 ||
 		_wcsicmp(pszClassList, L"TaskDialogStyle") == 0)
@@ -971,52 +1018,25 @@ static HRESULT WINAPI NewGetThemePartSize(HTHEME hTheme, HDC hDC, int iPartId, i
 		}
 	return s_pfnGetThemePartSize(hTheme, hDC, iPartId, iStateId, prc, eSize, psz);
 }
-#pragma endregion UxTheme Fixer
+#pragma endregion UxFixer
 
-enum
+#pragma region Init
+constexpr static PCWSTR c_szErrInitStatus[]
 {
-	RWCT_EZREG,
-	RWCT_CUSTOM,
+	L"操作成功完成",
+	L"注册窗口类失败",
+	L"GDI+初始化失败",
+	L"WIC初始化失败",
+	L"D2D初始化失败",
+	L"DXGI设备创建失败",
+	L"DWrite初始化失败",
+	L"D3D设备创建失败",
 };
 
-struct EZREGWNDINFO
+PCWSTR InitStatusToString(InitStatus iStatus)
 {
-	PCWSTR pszClass = nullptr;
-	UINT uClassStyle = CS_STDWND;
-};
-
-static struct
-{
-	union
-	{
-		EZREGWNDINFO ez{};
-		WNDCLASSW wc;
-	};
-	int iType = RWCT_EZREG;
+	return c_szErrInitStatus[(int)iStatus];
 }
-s_WndClassInfo[]
-{
-	{ },// WCN_DLG
-#ifdef ECK_OPT_NO_SIMPLE_WND_CLS
-	{ WCN_LABEL },
-	{ WCN_BK },
-	{ WCN_LUNARCALENDAR },
-	{ WCN_FORM },
-	{ WCN_TABHEADER },
-	{ WCN_SPLITBAR },
-	{ WCN_DRAWPANEL },
-	{ WCN_LISTBOXNEW },
-	{ WCN_TREELIST },
-	{ WCN_COMBOBOXNEW },
-	{ WCN_PICTUREBOX },
-	{ WCN_DUIHOST },
-	{ WCN_VECDRAWPANEL },
-	{ WCN_HEXEDIT },
-	{ WCN_HITTER },
-#else
-	{ WCN_DUMMY },
-#endif // defined(ECK_OPT_NO_SIMPLE_WND_CLS)
-};
 
 InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrCode)
 {
@@ -1035,17 +1055,17 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	RtlGetNtVersionNumbers(&g_NtVer.uMajor, &g_NtVer.uMinor, &g_NtVer.uBuild);
 
 	//////////////初始化Private API
-	EckInitPrivateApi();
+	InitPrivateApi();
 
 	//////////////线程上下文Tls槽
 	g_dwTlsSlot = TlsAlloc();
 
 	//////////////初始化线程上下文
-	if (!IsBitSet(pInitParam->uFlags, EIF_NOINITTHREAD))
+	if (!(pInitParam->uFlags&EIF_NOINITTHREAD))
 		ThreadInit();
 
 	//////////////初始化GDI+
-	if (!IsBitSet(pInitParam->uFlags, EIF_NOINITGDIPLUS))
+	if (!(pInitParam->uFlags&EIF_NOINITGDIPLUS))
 	{
 		GdiplusStartupInput gpsi{};
 		const auto gps = GdiplusStartup(&g_uGpToken, &gpsi, nullptr);
@@ -1103,15 +1123,16 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	g_rsCurrDir.ShrinkToFit();
 
 	HRESULT hr;
-	if (!IsBitSet(pInitParam->uFlags, EIF_NOINITD2D))
+	if (!(pInitParam->uFlags&EIF_NOINITD2D))
 	{
-#ifndef NDEBUG
+#ifdef _DEBUG
 		D2D1_FACTORY_OPTIONS D2DFactoryOptions;
 		D2DFactoryOptions.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
-		hr = D2D1CreateFactory(pInitParam->uD2dFactoryType, __uuidof(ID2D1Factory1), &D2DFactoryOptions, (void**)&g_pD2dFactory);
+		hr = D2D1CreateFactory(pInitParam->uD2dFactoryType,
+			__uuidof(ID2D1Factory1), &D2DFactoryOptions, (void**)&g_pD2dFactory);
 #else
 		hr = D2D1CreateFactory(pInitParam->uD2dFactoryType, IID_PPV_ARGS(&g_pD2dFactory));
-#endif // !NDEBUG
+#endif // _DEBUG
 		if (FAILED(hr))
 		{
 			*pdwErrCode = hr;
@@ -1119,7 +1140,8 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			return InitStatus::D2dFactoryError;
 		}
 		//////////////创建DWrite工厂
-		hr = DWriteCreateFactory(pInitParam->uDWriteFactoryType, __uuidof(IDWriteFactory), (IUnknown**)&g_pDwFactory);
+		hr = DWriteCreateFactory(pInitParam->uDWriteFactoryType,
+			__uuidof(IDWriteFactory), (IUnknown**)&g_pDwFactory);
 		if (FAILED(hr))
 		{
 			*pdwErrCode = hr;
@@ -1127,26 +1149,33 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			return InitStatus::DWriteFactoryError;
 		}
 		//////////////创建DXGI工厂
-		ID3D11Device* pD3DDevice;
-		hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT
+		ID3D11Device* pD3dDevice;
+		hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
+			D3D11_CREATE_DEVICE_BGRA_SUPPORT
 #ifndef NDEBUG
 			| D3D11_CREATE_DEVICE_DEBUG
 #endif // !NDEBUG
 			, pInitParam->pD3dFeatureLevel, pInitParam->cD3dFeatureLevel,
-			D3D11_SDK_VERSION, &pD3DDevice, nullptr, nullptr);
+			D3D11_SDK_VERSION, & pD3dDevice, nullptr, nullptr);
 		if (FAILED(hr))
 		{
 			*pdwErrCode = hr;
 			EckDbgPrintFormatMessage(hr);
 			return InitStatus::D3dDeviceError;
 		}
-		pD3DDevice->QueryInterface(IID_PPV_ARGS(&g_pDxgiDevice));
-		pD3DDevice->Release();
+		hr = pD3dDevice->QueryInterface(&g_pDxgiDevice);
+		pD3dDevice->Release();
+		if (FAILED(hr))
+		{
+			*pdwErrCode = hr;
+			EckDbgPrintFormatMessage(hr);
+			return InitStatus::DxgiDeviceError;
+		}
 
-		IDXGIAdapter* pDXGIAdapter;
-		g_pDxgiDevice->GetAdapter(&pDXGIAdapter);
-		pDXGIAdapter->GetParent(IID_PPV_ARGS(&g_pDxgiFactory));
-		pDXGIAdapter->Release();
+		IDXGIAdapter* pDxgiAdapter;
+		g_pDxgiDevice->GetAdapter(&pDxgiAdapter);
+		pDxgiAdapter->GetParent(IID_PPV_ARGS(&g_pDxgiFactory));
+		pDxgiAdapter->Release();
 		//////////////创建DXGI设备
 		hr = g_pD2dFactory->CreateDevice(g_pDxgiDevice, &g_pD2dDevice);
 		if (FAILED(hr))
@@ -1157,9 +1186,10 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		}
 	}
 	//////////////创建WIC工厂
-	if (!IsBitSet(pInitParam->uFlags, EIF_NOINITWIC))
+	if (!(pInitParam->uFlags&EIF_NOINITWIC))
 	{
-		hr = CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&g_pWicFactory));
+		hr = CoCreateInstance(CLSID_WICImagingFactory, nullptr,
+			CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&g_pWicFactory));
 		if (FAILED(hr))
 		{
 			*pdwErrCode = hr;
@@ -1168,7 +1198,8 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		}
 	}
 
-	if (!IsBitSet(pInitParam->uFlags, EIF_NODARKMODE))
+	if (!(pInitParam->uFlags&EIF_NODARKMODE) &&
+		g_NtVer.uMajor >= 10 && g_NtVer.uBuild >= WINVER_1809)
 	{
 		SetPreferredAppMode(PreferredAppMode::AllowDark);
 		RefreshImmersiveColorStuff();
@@ -1181,7 +1212,8 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		DetourAttach(&s_pfnDrawThemeTextEx, NewDrawThemeTextEx);
 		const HMODULE hModUx = LoadLibraryW(L"UxTheme.dll");
 		EckAssert(hModUx);
-		if (s_pfnOpenThemeDataForDpi = (FOpenThemeDataForDpi)GetProcAddress(hModUx, "OpenThemeDataForDpi"))
+		if (s_pfnOpenThemeDataForDpi = (FOpenThemeDataForDpi)
+			GetProcAddress(hModUx, "OpenThemeDataForDpi"))
 			DetourAttach(&s_pfnOpenThemeDataForDpi, NewOpenThemeDataForDpi);
 		FreeLibrary(hModUx);
 		DetourAttach(&s_pfnDrawThemeBackgroundEx, NewDrawThemeBackgroundEx);
@@ -1217,7 +1249,9 @@ void UnInit()
 	SafeRelease(g_pDxgiDevice);
 	SafeRelease(g_pDxgiFactory);
 }
+#pragma endregion Init
 
+#pragma region Thread
 DWORD GetThreadCtxTlsSlot()
 {
 	return g_dwTlsSlot;
@@ -1295,23 +1329,6 @@ void ThreadInit()
 		}, nullptr, NtCurrentThreadId32());
 }
 
-constexpr PCWSTR c_szErrInitStatus[]
-{
-	L"操作成功完成",
-	L"注册窗口类失败",
-	L"GDI+初始化失败",
-	L"WIC初始化失败",
-	L"D2D初始化失败",
-	L"DXGI设备创建失败",
-	L"DWrite初始化失败",
-	L"D3D设备创建失败",
-};
-
-PCWSTR InitStatusToString(InitStatus iStatus)
-{
-	return c_szErrInitStatus[(int)iStatus];
-}
-
 void ThreadUnInit()
 {
 	EckAssert(TlsGetValue(GetThreadCtxTlsSlot()));
@@ -1329,6 +1346,40 @@ void ThreadUnInit()
 	TlsSetValue(GetThreadCtxTlsSlot(), nullptr);
 }
 
+void THREADCTX::SetNcDarkModeForAllTopWnd(BOOL bDark)
+{
+	for (const auto& e : hmTopWnd)
+		EnableWindowNcDarkMode(e.first, bDark);
+}
+
+void THREADCTX::UpdateDefColor()
+{
+	const auto bDark = GetItemsViewForeBackColor(crDefText, crDefBkg);
+	crDefBtnFace = (bDark ? 0x303030 : GetSysColor(COLOR_BTNFACE));
+	crBlue1 = (bDark ? RGB(0, 168, 255) : RGB(0, 51, 153));
+	crGray1 = (bDark ? RGB(180, 180, 180) : GetSysColor(COLOR_GRAYTEXT));
+	crTip1 = (bDark ? RGB(131, 162, 198) : RGB(97, 116, 139));
+}
+
+void THREADCTX::SendThemeChangedToAllTopWindow()
+{
+	for (const auto& [hWnd, _] : hmTopWnd)
+	{
+		if (GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_VISIBLE)
+		{
+			SendMessageW(hWnd, WM_SETREDRAW, FALSE, 0);
+			BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, 0, 0);
+			SendMessageW(hWnd, WM_SETREDRAW, TRUE, 0);
+		}
+		else
+			BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, 0, 0);
+		RedrawWindow(hWnd, nullptr, nullptr,
+			RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
+	}
+}
+#pragma endregion Thread
+
+#pragma region Wnd
 HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc, BOOL bModelessDlg)
 {
 	EckAssert(pCurrWnd);
@@ -1363,7 +1414,7 @@ HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc, BOOL bModelessD
 				EndCbtHook();
 			}
 			return CallNextHookEx(pCtx->hhkTempCBT, iCode, wParam, lParam);
-		}, nullptr, NtCurrentProcessId32());
+		}, nullptr, NtCurrentThreadId32());
 	return pCtx->hhkTempCBT;
 }
 
@@ -1402,7 +1453,9 @@ void SetMsgFilter(FMsgFilter pfnFilter)
 	else
 		g_pfnMsgFilter = pfnFilter;
 }
+#pragma endregion Wnd
 
+#pragma region Dbg
 void DbgPrintWndMap()
 {
 	const auto* const pCtx = GetThreadCtx();
@@ -1432,11 +1485,6 @@ void DbgPrintFmt(_Printf_format_string_ PCWSTR pszFormat, ...)
 void DbgPrintWithPos(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg)
 {
 	DbgPrint(Format(L"%s(%u) -> %s\n%s\n", pszFile, iLine, pszFunc, pszMsg));
-}
-
-const CRefStrW& GetRunningPath()
-{
-	return g_rsCurrDir;
 }
 
 void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
@@ -1477,38 +1525,7 @@ void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 		return;
 	}
 }
-
-void THREADCTX::SetNcDarkModeForAllTopWnd(BOOL bDark)
-{
-	for (const auto& e : hmTopWnd)
-		EnableWindowNcDarkMode(e.first, bDark);
-}
-
-void THREADCTX::UpdateDefColor()
-{
-	const auto bDark = GetItemsViewForeBackColor(crDefText, crDefBkg);
-	crDefBtnFace = (bDark ? 0x303030 : GetSysColor(COLOR_BTNFACE));
-	crBlue1 = (bDark ? RGB(0, 168, 255) : RGB(0, 51, 153));
-	crGray1 = (bDark ? RGB(180, 180, 180) : GetSysColor(COLOR_GRAYTEXT));
-	crTip1 = (bDark ? RGB(131, 162, 198) : RGB(97, 116, 139));
-}
-
-void THREADCTX::SendThemeChangedToAllTopWindow()
-{
-	for (const auto& [hWnd, _] : hmTopWnd)
-	{
-		if (GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_VISIBLE)
-		{
-			SendMessageW(hWnd, WM_SETREDRAW, FALSE, 0);
-			BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, 0, 0);
-			SendMessageW(hWnd, WM_SETREDRAW, TRUE, 0);
-		}
-		else
-			BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, 0, 0);
-		RedrawWindow(hWnd, nullptr, nullptr,
-			RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
-	}
-}
+#pragma endregion Dbg
 ECK_NAMESPACE_END
 
 #pragma push_macro("free")

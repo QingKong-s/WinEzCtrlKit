@@ -11,8 +11,6 @@
 
 #include <Uxtheme.h>
 
-void EckInitPrivateApi();
-
 EXTERN_C_START
 
 enum IMMERSIVE_HC_CACHE_MODE
