@@ -24,6 +24,8 @@
 #include <ShlObj.h>
 #include <commoncontrols.h>
 //#include <CommCtrl.h>
+#pragma warning(suppress:5260)
+#include <gdiplus.h>
 
 #include <assert.h>
 #include <crtdbg.h>
@@ -42,7 +44,6 @@
 
 #include ".\Detours\detours.h"
 
-#pragma region 宏
 #if _MSVC_LANG > 201703L
 #	define ECKCXX20 1
 #elif _MSVC_LANG > 201402L
@@ -65,16 +66,16 @@
 #else
 #	define ECKDPIAPI 0
 #	if _WIN32_WINNT < 0x0605
-#		error "Dpi api requires _WIN32_WINNT >= 0x0605 !!!"
+#		error "Dpi api requires _WIN32_WINNT >= 0x0605."
 #	endif
 #endif
-
 
 #define ECK_NAMESPACE_BEGIN			namespace eck {
 #define ECK_NAMESPACE_END			}
 #define ECK_PRIV_NAMESPACE_BEGIN	namespace Priv {
 #define ECK_PRIV_NAMESPACE_END		}
 
+#pragma region Template
 ECK_NAMESPACE_BEGIN
 #if ECKCXX20
 template <class T>
@@ -127,16 +128,9 @@ using UnderlyingType_T = UnderlyingType<T>::Type;
 #pragma pop_macro("ccpIsIntOrEnum")
 #endif// !ECKCXX20
 ECK_NAMESPACE_END
+#pragma endregion Template
 
-#define EckInline				__forceinline
-
-// 控件序列化数据对齐
-#ifdef _WIN64
-#	define ECK_CTRLDATA_ALIGN	8
-#else
-#	define ECK_CTRLDATA_ALIGN	4
-#endif
-
+#pragma region MacroTools
 #define ECKPRIV_ECKWIDE2___(x)	L##x
 // ANSI字符串到宽字符串
 #define ECKWIDE(x)				ECKPRIV_ECKWIDE2___(x)
@@ -153,6 +147,11 @@ ECK_NAMESPACE_END
 #define ECK_LINEW				ECKTOSTRW(__LINE__)
 // [预定义] 当前文件W
 #define ECK_FILEW				__FILEW__
+#pragma endregion MacroTools
+
+#pragma region Generator
+// 强制内联
+#define EckInline				__forceinline
 
 // 定义读写属性字段
 #define ECKPROP(Getter, Setter) __declspec(property(get = Getter, put = Setter))
@@ -161,7 +160,9 @@ ECK_NAMESPACE_END
 // 定义只写属性字段
 #define ECKPROP_W(Setter)		__declspec(property(put = Setter))
 
+// 复制字符串字面量
 #define EckCopyConstStringA(pszDst, Src) memcpy(pszDst, Src, ARRAYSIZE(Src))
+// 复制宽字符串字面量
 #define EckCopyConstStringW(pszDst, Src) wmemcpy(pszDst, Src, ARRAYSIZE(Src))
 
 // 计次循环
@@ -190,12 +191,23 @@ ECK_NAMESPACE_END
 // 自取反
 #define ECKBOOLNOT(x) ((x) = !(x))
 
-// lParam->POINT 用于处理鼠标消息   e.g. POINT pt ECK_GET_PT_LPARAM(lParam);
+// lParam->POINT 用于处理鼠标消息
 #define ECK_GET_PT_LPARAM(lParam) { GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) }
 #define ECK_GET_PT_LPARAM_F(lParam) { (float)GET_X_LPARAM(lParam),(float)GET_Y_LPARAM(lParam) }
 
-// lParam->size 用于处理WM_SIZE   e.g. ECK_GET_SIZE_LPARAM(cxClient, cyClient, lParam);
+// lParam->size 用于处理WM_SIZE
 #define ECK_GET_SIZE_LPARAM(cx,cy,lParam) { (cx) = LOWORD(lParam); (cy) = HIWORD(lParam); }
+
+// 定义COM接口
+#define ECK_COM_INTERFACE(iid)				\
+			__interface __declspec(uuid(iid))
+
+// 不可达
+#define ECK_UNREACHABLE __assume(0)
+
+// 定义GUID
+#define ECK_GUID(l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
+			{ l, w1, w2, { b1, b2,  b3,  b4,  b5,  b6,  b7,  b8 } }
 
 #define ECK_DISABLE_COPY_MOVE(e)			\
 			e(const e&) = delete;			\
@@ -218,14 +230,6 @@ ECK_NAMESPACE_END
 			e() = default;					\
 			e(const e&) = delete;			\
 			e& operator=(const e&) = delete;
-
-#define ECK_COM_INTERFACE(iid)				\
-			__interface __declspec(uuid(iid))
-
-#define ECK_UNREACHABLE __assume(0)
-
-#define ECK_GUID(l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
-			{ l, w1, w2, { b1, b2,  b3,  b4,  b5,  b6,  b7,  b8 } }
 
 #define ECK_ENUM_BIT_FLAGS(Type)								\
 			EckInline constexpr Type operator&(Type a, Type b)  \
@@ -281,9 +285,9 @@ ECK_NAMESPACE_END
 #define ECKUNLIKELY
 #define ECKNOUNIQUEADDR
 #endif// ECKCXX20
-#pragma endregion
 
 #define ECK_DISABLE_ARITHMETIC_OVERFLOW_WARNING __pragma(warning(disable:26451))
+#pragma endregion Generator
 
 #ifdef _DEBUG
 #define EckCheckMem(p)	\
@@ -297,21 +301,6 @@ ECK_NAMESPACE_END
 #endif
 
 ECK_NAMESPACE_BEGIN
-#pragma region 类型
-inline namespace BaseType
-{
-	using SCHAR = signed char;
-	using BITBOOL = BYTE;
-	using PCBYTE = const BYTE*;
-	using PCVOID = const void*;
-	using ECKENUM = BYTE;
-	using SSIZE_T = std::make_signed_t<SIZE_T>;
-	using UINTBE = UINT;
-	using PITEMIDLIST = LPITEMIDLIST;
-	using PCITEMIDLIST = LPCITEMIDLIST;
-}
-#pragma endregion
-
 inline namespace Literals
 {
 	EckInline constexpr WORD operator""_us(ULONGLONG x)
@@ -330,171 +319,19 @@ inline namespace Literals
 	}
 }
 
-enum class Align :BYTE
+#pragma region Type
+inline namespace BaseType
 {
-	Near,
-	Center,
-	Far
-};
-
-// For AnimateWindow
-enum class AnimateStyle :BYTE
-{
-	Roll,	// 滚动
-	Slide,	// 滑动
-	Center,	// 折叠
-	Blend	// 淡入淡出
-};
-
-enum class ClrPart :BYTE
-{
-	Text,
-	Bk,
-	TextBk,
-};
-
-constexpr inline auto CchI32ToStrBufNoRadix2 = std::max({
-	_MAX_ITOSTR_BASE16_COUNT,_MAX_ITOSTR_BASE10_COUNT,_MAX_ITOSTR_BASE8_COUNT,
-	_MAX_LTOSTR_BASE16_COUNT ,_MAX_LTOSTR_BASE10_COUNT ,_MAX_LTOSTR_BASE8_COUNT,
-	_MAX_ULTOSTR_BASE16_COUNT,_MAX_ULTOSTR_BASE10_COUNT,_MAX_ULTOSTR_BASE8_COUNT });
-constexpr inline auto CchI64ToStrBufNoRadix2 = std::max({
-	_MAX_I64TOSTR_BASE16_COUNT,_MAX_I64TOSTR_BASE10_COUNT,_MAX_I64TOSTR_BASE8_COUNT,
-	_MAX_U64TOSTR_BASE16_COUNT,_MAX_U64TOSTR_BASE10_COUNT,_MAX_U64TOSTR_BASE8_COUNT });
-
-constexpr inline auto CchI32ToStrBuf = std::max({ CchI32ToStrBufNoRadix2,
-	_MAX_ITOSTR_BASE2_COUNT,_MAX_LTOSTR_BASE2_COUNT,_MAX_ULTOSTR_BASE2_COUNT });
-constexpr inline auto CchI64ToStrBuf = std::max({ CchI64ToStrBufNoRadix2,
-	_MAX_I64TOSTR_BASE2_COUNT,_MAX_U64TOSTR_BASE2_COUNT });
-
-constexpr inline double Pi = 3.141592653589793;
-constexpr inline float PiF = static_cast<float>(Pi);
-
-constexpr inline UINT CP_UTF16LE = 0xFFFFFFFF;
-constexpr inline UINT CP_UTF16BE = 0xFFFFFFFE;
-constexpr inline UINT CP_ASCII = 0xFFFFFFFD;
-
-constexpr inline BYTE BOM_UTF16LE[]{ 0xFF,0xFE };
-constexpr inline BYTE BOM_UTF16BE[]{ 0xFE,0xFF };
-constexpr inline BYTE BOM_UTF8[]{ 0xEF,0xBB,0xBF };
-
-constexpr inline COLORREF c_crDarkWnd = RGB(32, 32, 32);
-constexpr inline COLORREF c_crDarkBtnFace = 0x383838;
-
-constexpr inline UINT Neg1U{ (UINT)-1 };
-
-constexpr inline LARGE_INTEGER LiZero{};
-#if ECKCXX20
-constexpr inline ULARGE_INTEGER UliMax{ .QuadPart = 0xFFFF'FFFF'FFFF'FFFF };
-#else
-constexpr inline ULARGE_INTEGER UliMax{ 0xFFFF'FFFF, 0xFFFF'FFFF };
-#endif
-
-constexpr inline size_t SizeTMax{ std::numeric_limits<size_t>::max() };
-constexpr inline SIZE_T SIZETMax{ (SIZE_T)SizeTMax };
-
-#ifdef _DEBUG
-constexpr inline BOOL Dbg{ TRUE };
-#else
-constexpr inline BOOL Dbg{ FALSE };
-#endif
-
-#ifdef _WIN64
-constexpr inline BOOL Win64{ TRUE };
-#else
-constexpr inline BOOL Win64{ FALSE };
-#endif
-
-constexpr inline BLENDFUNCTION BlendFuncAlpha{ AC_SRC_OVER,0,255,AC_SRC_ALPHA };
-
-template<BYTE Alpha>
-constexpr inline BLENDFUNCTION BlendFuncAlphaN{ AC_SRC_OVER,0,Alpha,AC_SRC_ALPHA };
-
-constexpr inline BYTE ColorFillAlpha{ 80 };
-
-constexpr inline int MetricsExtraV{ 8 };
-
-constexpr inline UINT WM_USER_SAFE{ WM_USER + 3 };
-
-constexpr inline UINT CS_STDWND{ CS_DBLCLKS | CS_VREDRAW | CS_HREDRAW };
-
-/*-------------------*/
-/*控件通知代码*/
-#pragma warning(suppress:26454)// 算术溢出
-constexpr inline UINT NM_FIRST_ECK = (0u - 0x514Bu * 0x514Bu);
-enum :UINT
-{
-	ECKPRIV_NM_FIRST_PLACEHOLDER = NM_FIRST_ECK,
-	NM_CLP_CLRCHANGED,		// NMCLPCLRCHANGED
-	NM_SPB_DRAGGED,			// NMSPBDRAGGED
-	NM_TGL_TASKCLICKED,		// NMTGLCLICKED
-
-	NM_TL_FILLCHILDREN,		// NMTLFILLCHILDREN
-	NM_TL_GETDISPINFO,		// NMTLGETDISPINFO
-	NM_TL_ITEMEXPANDING,	// NMTLCOMMITEM
-	NM_TL_ITEMEXPANDED,		// NMTLCOMMITEM
-	NM_TL_HD_CLICK,			// NMHEADER
-	NM_TL_FILLALLFLATITEM,	// NMTLFILLALLFLATITEM
-	NM_TL_TTGETDISPINFO,	// NMTLTTGETDISPINFO
-	NM_TL_TTPRESHOW,		// NMTLTTPRESHOW
-	NM_TL_PREEDIT,			// NMTLEDIT
-	NM_TL_POSTEDIT,			// NMTLEDIT
-	NM_TL_MOUSECLICK,		// NMTLMOUSECLICK
-	NM_TL_ITEMCHECKING,		// NMTLCOMMITEM
-	NM_TL_ITEMCHECKED,		// NMTLCOMMITEM
-	NM_TL_BEGINDRAG,		// NMTLDRAG
-	NM_TL_ENDDRAG,			// NMTLDRAG
-
-	NM_LBN_GETDISPINFO,		// NMLBNGETDISPINFO
-	NM_LBN_BEGINDRAG,		// NMLBNDRAG
-	NM_LBN_ENDDRAG,			// NMLBNDRAG
-	NM_LBN_DISMISS,			// NMHDR
-	NM_LBN_ITEMCHANGED,		// NMLBNITEMCHANGED
-	NM_LBN_ITEMSTANDBY,		// NMHDR
-	NM_LBN_SEARCH,			// NMLBNSEARCH
-
-	NM_PKB_OWNERDRAW,		// NMPKBOWNERDRAW
-	NM_HTT_SEL,				// NMHTTSEL
-};
-/*
-* 对于ECK控件，部分标准通知对应的结构如下（可能有特定控件会扩展这些结构）
-* NM_SETFOCUS			NMFOUCS
-* NM_KILLFOCUS			NMFOCUS
-* NM_RCLICK				NMMOUSENOTIFY
-* NM_CUSTOMDRAW			NMCUSTOMDRAWEXT
-*/
-
-struct NMCUSTOMDRAWEXT :NMCUSTOMDRAW
-{
-	int iStateId;
-	int iPartId;
-	COLORREF crText;
-	COLORREF crBk;
-};
-
-struct NMMOUSENOTIFY
-{
-	NMHDR nmhdr;
-	POINT pt;
-	UINT uKeyFlags;
-};
-
-struct NMFOCUS
-{
-	NMHDR nmhdr;
-	HWND hWnd;
-};
-
-// 消息钩子保留范围
-// 库保留	[1, 511]
-// 用户保留	[512, 4096]
-constexpr inline UINT_PTR MsgHookIdUserBegin = 4096;
-enum :UINT_PTR
-{
-	MHI_SCROLLBAR_HOOK = 1,
-	MHI_HEADER_HOOK,
-	MHI_LISTVIEW_ROWHEIGHT,
-	MHI_LVE_HEADER_HEIGHT,
-};
+	using SCHAR = signed char;
+	using BITBOOL = BYTE;
+	using PCBYTE = const BYTE*;
+	using PCVOID = const void*;
+	using ECKENUM = BYTE;
+	using SSIZE_T = std::make_signed_t<SIZE_T>;
+	using UINTBE = UINT;
+	using PITEMIDLIST = LPITEMIDLIST;
+	using PCITEMIDLIST = LPCITEMIDLIST;
+}
 
 union BIT128
 {
@@ -536,6 +373,7 @@ union BIT256
 	BYTE u8[32];
 };
 
+// 左顶宽高矩形
 struct RCWH
 {
 	int x;
@@ -543,11 +381,38 @@ struct RCWH
 	int cx;
 	int cy;
 };
-ECK_NAMESPACE_END
-#include "DbgHelper.h"
-#pragma warning(suppress:5260)
-#include <gdiplus.h>
-ECK_NAMESPACE_BEGIN
+
+// NMCD扩展
+struct NMCUSTOMDRAWEXT :NMCUSTOMDRAW
+{
+	int iStateId;
+	int iPartId;
+	COLORREF crText;
+	COLORREF crBk;
+};
+
+// 鼠标类通知（NM_CLICK等）
+struct NMMOUSENOTIFY
+{
+	NMHDR nmhdr;
+	POINT pt;
+	UINT uKeyFlags;
+};
+
+// 焦点通知
+struct NMFOCUS
+{
+	NMHDR nmhdr;
+	HWND hWnd;
+};
+
+struct NTVER
+{
+	ULONG uMajor;
+	ULONG uMinor;
+	ULONG uBuild;
+};
+
 inline namespace GpNameSpace
 {
 	using namespace Gdiplus::DllExports;
@@ -614,34 +479,79 @@ inline namespace GpNameSpace
 	using GpLevelsParams = Gdiplus::LevelsParams;
 	using GpColorCurveParams = Gdiplus::ColorCurveParams;
 }
+#pragma endregion Type
 
-struct NTVER
-{
-	ULONG uMajor;
-	ULONG uMinor;
-	ULONG uBuild;
-};
+#pragma region Const
+// 控件序列化数据对齐
+#ifdef _WIN64
+#	define ECK_CTRLDATA_ALIGN	8
+#else
+#	define ECK_CTRLDATA_ALIGN	4
+#endif
 
-// 构建号
-enum :ULONG
-{
-	WINVER_1607 = 14393,
-	WINVER_1809 = 17763,
-	WINVER_1903 = 18362,
-	WINVER_11_21H2 = 22000,
-};
+constexpr inline auto CchI32ToStrBufNoRadix2 = std::max({
+	_MAX_ITOSTR_BASE16_COUNT,_MAX_ITOSTR_BASE10_COUNT,_MAX_ITOSTR_BASE8_COUNT,
+	_MAX_LTOSTR_BASE16_COUNT ,_MAX_LTOSTR_BASE10_COUNT ,_MAX_LTOSTR_BASE8_COUNT,
+	_MAX_ULTOSTR_BASE16_COUNT,_MAX_ULTOSTR_BASE10_COUNT,_MAX_ULTOSTR_BASE8_COUNT });
+constexpr inline auto CchI64ToStrBufNoRadix2 = std::max({
+	_MAX_I64TOSTR_BASE16_COUNT,_MAX_I64TOSTR_BASE10_COUNT,_MAX_I64TOSTR_BASE8_COUNT,
+	_MAX_U64TOSTR_BASE16_COUNT,_MAX_U64TOSTR_BASE10_COUNT,_MAX_U64TOSTR_BASE8_COUNT });
 
-extern NTVER g_NtVer;
+constexpr inline auto CchI32ToStrBuf = std::max({ CchI32ToStrBufNoRadix2,
+	_MAX_ITOSTR_BASE2_COUNT,_MAX_LTOSTR_BASE2_COUNT,_MAX_ULTOSTR_BASE2_COUNT });
+constexpr inline auto CchI64ToStrBuf = std::max({ CchI64ToStrBufNoRadix2,
+	_MAX_I64TOSTR_BASE2_COUNT,_MAX_U64TOSTR_BASE2_COUNT });
 
-extern HINSTANCE g_hInstance;
-extern IWICImagingFactory* g_pWicFactory;
-extern ID2D1Factory1* g_pD2dFactory;
-extern IDWriteFactory* g_pDwFactory;
-extern ID2D1Device* g_pD2dDevice;
-extern IDXGIDevice1* g_pDxgiDevice;
-extern IDXGIFactory2* g_pDxgiFactory;
+constexpr inline double Pi = 3.141592653589793;
+constexpr inline float PiF = static_cast<float>(Pi);
 
-/*窗口类名*/
+constexpr inline UINT CP_UTF16LE = 0xFFFFFFFF;
+constexpr inline UINT CP_UTF16BE = 0xFFFFFFFE;
+constexpr inline UINT CP_ASCII = 0xFFFFFFFD;
+
+constexpr inline BYTE BOM_UTF16LE[]{ 0xFF,0xFE };
+constexpr inline BYTE BOM_UTF16BE[]{ 0xFE,0xFF };
+constexpr inline BYTE BOM_UTF8[]{ 0xEF,0xBB,0xBF };
+
+constexpr inline COLORREF c_crDarkWnd = RGB(32, 32, 32);
+constexpr inline COLORREF c_crDarkBtnFace = 0x383838;
+
+constexpr inline UINT Neg1U{ (UINT)-1 };
+
+constexpr inline LARGE_INTEGER LiZero{};
+#if ECKCXX20
+constexpr inline ULARGE_INTEGER UliMax{ .QuadPart = 0xFFFF'FFFF'FFFF'FFFF };
+#else
+constexpr inline ULARGE_INTEGER UliMax{ 0xFFFF'FFFF, 0xFFFF'FFFF };
+#endif
+
+constexpr inline size_t SizeTMax{ std::numeric_limits<size_t>::max() };
+constexpr inline SIZE_T SIZETMax{ (SIZE_T)SizeTMax };
+
+#ifdef _DEBUG
+constexpr inline BOOL Dbg{ TRUE };
+#else
+constexpr inline BOOL Dbg{ FALSE };
+#endif
+
+#ifdef _WIN64
+constexpr inline BOOL Win64{ TRUE };
+#else
+constexpr inline BOOL Win64{ FALSE };
+#endif
+
+constexpr inline BLENDFUNCTION BlendFuncAlpha{ AC_SRC_OVER,0,255,AC_SRC_ALPHA };
+
+template<BYTE Alpha>
+constexpr inline BLENDFUNCTION BlendFuncAlphaN{ AC_SRC_OVER,0,Alpha,AC_SRC_ALPHA };
+
+constexpr inline BYTE ColorFillAlpha{ 80 };
+
+constexpr inline int MetricsExtraV{ 8 };
+
+constexpr inline UINT WM_USER_SAFE{ WM_USER + 3 };
+
+constexpr inline UINT CS_STDWND{ CS_DBLCLKS | CS_VREDRAW | CS_HREDRAW };
 
 constexpr inline PCWSTR WCN_DLG = L"Eck.WndClass.CommDlg";
 
@@ -683,7 +593,9 @@ constexpr inline PCWSTR WCN_HITTER = WCN_DUMMY;
 constexpr inline PCWSTR MSGREG_FORMTRAY = L"Eck.Message.FormTray";
 
 constexpr inline UINT SCID_DESIGN = 20230621'01u;
+#pragma endregion Const
 
+#pragma region Enum
 enum class InitStatus
 {
 	Ok,
@@ -696,6 +608,108 @@ enum class InitStatus
 	D3dDeviceError,
 };
 
+enum class Align :BYTE
+{
+	Near,
+	Center,
+	Far
+};
+
+// For AnimateWindow
+enum class AnimateStyle :BYTE
+{
+	Roll,	// 滚动
+	Slide,	// 滑动
+	Center,	// 折叠
+	Blend	// 淡入淡出
+};
+
+enum class ClrPart :BYTE
+{
+	Text,
+	Bk,
+	TextBk,
+};
+
+#pragma warning(suppress:26454)// 算术溢出
+constexpr inline UINT NM_FIRST_ECK = (0u - 0x514Bu * 0x514Bu);
+enum :UINT// 控件通知代码
+{
+	ECKPRIV_NM_FIRST_PLACEHOLDER = NM_FIRST_ECK,
+	NM_CLP_CLRCHANGED,		// NMCLPCLRCHANGED
+	NM_SPB_DRAGGED,			// NMSPBDRAGGED
+	NM_TGL_TASKCLICKED,		// NMTGLCLICKED
+
+	NM_TL_FILLCHILDREN,		// NMTLFILLCHILDREN
+	NM_TL_GETDISPINFO,		// NMTLGETDISPINFO
+	NM_TL_ITEMEXPANDING,	// NMTLCOMMITEM
+	NM_TL_ITEMEXPANDED,		// NMTLCOMMITEM
+	NM_TL_HD_CLICK,			// NMHEADER
+	NM_TL_FILLALLFLATITEM,	// NMTLFILLALLFLATITEM
+	NM_TL_TTGETDISPINFO,	// NMTLTTGETDISPINFO
+	NM_TL_TTPRESHOW,		// NMTLTTPRESHOW
+	NM_TL_PREEDIT,			// NMTLEDIT
+	NM_TL_POSTEDIT,			// NMTLEDIT
+	NM_TL_MOUSECLICK,		// NMTLMOUSECLICK
+	NM_TL_ITEMCHECKING,		// NMTLCOMMITEM
+	NM_TL_ITEMCHECKED,		// NMTLCOMMITEM
+	NM_TL_BEGINDRAG,		// NMTLDRAG
+	NM_TL_ENDDRAG,			// NMTLDRAG
+
+	NM_LBN_GETDISPINFO,		// NMLBNGETDISPINFO
+	NM_LBN_BEGINDRAG,		// NMLBNDRAG
+	NM_LBN_ENDDRAG,			// NMLBNDRAG
+	NM_LBN_DISMISS,			// NMHDR
+	NM_LBN_ITEMCHANGED,		// NMLBNITEMCHANGED
+	NM_LBN_ITEMSTANDBY,		// NMHDR
+	NM_LBN_SEARCH,			// NMLBNSEARCH
+
+	NM_PKB_OWNERDRAW,		// NMPKBOWNERDRAW
+	NM_HTT_SEL,				// NMHTTSEL
+};
+/*
+* 对于ECK控件，部分标准通知对应的结构如下（可能有特定控件会扩展这些结构）
+* NM_SETFOCUS			NMFOUCS
+* NM_KILLFOCUS			NMFOCUS
+* NM_RCLICK				NMMOUSENOTIFY
+* NM_CUSTOMDRAW			NMCUSTOMDRAWEXT
+*/
+
+// 消息钩子保留范围
+// 库保留	[1, 511]
+// 用户保留	[512, 4096]
+constexpr inline UINT_PTR MsgHookIdUserBegin = 4096;
+enum :UINT_PTR
+{
+	MHI_SCROLLBAR_HOOK = 1,
+	MHI_HEADER_HOOK,
+	MHI_LISTVIEW_ROWHEIGHT,
+	MHI_LVE_HEADER_HEIGHT,
+};
+
+// 构建号
+enum :ULONG
+{
+	WINVER_1607 = 14393,
+	WINVER_1809 = 17763,
+	WINVER_1903 = 18362,
+	WINVER_11_21H2 = 22000,
+};
+#pragma endregion Enum
+
+#pragma region Global
+extern NTVER g_NtVer;
+
+extern HINSTANCE g_hInstance;
+extern IWICImagingFactory* g_pWicFactory;
+extern ID2D1Factory1* g_pD2dFactory;
+extern IDWriteFactory* g_pDwFactory;
+extern ID2D1Device* g_pD2dDevice;
+extern IDXGIDevice1* g_pDxgiDevice;
+extern IDXGIFactory2* g_pDxgiFactory;
+#pragma endregion Global
+
+#pragma region Init
 enum :UINT
 {
 	EIF_DEFAULT = 0,
@@ -747,7 +761,12 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam = nullptr, DWOR
 void UnInit();
 
 PCWSTR InitStatusToString(InitStatus iStatus);
+#pragma endregion Init
 
+ECK_NAMESPACE_END
+#include "DbgHelper.h"
+ECK_NAMESPACE_BEGIN
+#pragma region Thread
 class CWnd;
 struct THREADCTX;
 
@@ -795,7 +814,7 @@ struct THREADCTX
 #endif
 	}
 
-	[[nodiscard]] EckInline CWnd* WmAt(HWND hWnd) const
+	EckInline CWnd* WmAt(HWND hWnd) const
 	{
 		const auto it = hmWnd.find(hWnd);
 		if (it != hmWnd.end())
@@ -852,35 +871,25 @@ struct THREADCTX
 	void SendThemeChangedToAllTopWindow();
 };
 
-/// <summary>
-/// 取线程上下文TLS槽
-/// </summary>
-[[nodiscard]] DWORD GetThreadCtxTlsSlot();
+// 取线程上下文TLS槽
+DWORD GetThreadCtxTlsSlot();
 
-/// <summary>
-/// 初始化线程上下文。
-/// 在调用线程上初始化线程上下文，在使用任何ECK窗口功能前必须调用此函数
-/// </summary>
+// 初始化线程上下文。
+// 在调用线程上初始化线程上下文，在使用任何ECK窗口功能前必须调用此函数
 void ThreadInit();
 
-/// <summary>
-/// 反初始化线程上下文。
-/// 调用此函数后不允许使用任何ECK窗口对象
-/// </summary>
+// 反初始化线程上下文。
+// 调用此函数后不允许使用任何ECK窗口对象
 void ThreadUnInit();
 
-/// <summary>
-/// 取线程上下文
-/// </summary>
-[[nodiscard]] EckInline THREADCTX* GetThreadCtx()
+// 取线程上下文
+EckInline THREADCTX* GetThreadCtx()
 {
 	return (THREADCTX*)TlsGetValue(GetThreadCtxTlsSlot());
 }
 
-/// <summary>
-/// 窗口句柄到CWnd指针
-/// </summary>
-[[nodiscard]] EckInline CWnd* CWndFromHWND(HWND hWnd)
+// 窗口句柄到CWnd指针
+EckInline CWnd* CWndFromHWND(HWND hWnd)
 {
 	return GetThreadCtx()->WmAt(hWnd);
 }
@@ -890,7 +899,7 @@ HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc = nullptr,
 
 void EndCbtHook();
 
-// 全局消息过滤器，若要拦截消息则应返回TRUE，否则应返回FALSE
+// 全局消息过滤器函数类型，若要拦截消息则应返回TRUE，否则应返回FALSE
 using FMsgFilter = BOOL(*)(const MSG& Msg);
 
 /// <summary>
@@ -901,11 +910,9 @@ using FMsgFilter = BOOL(*)(const MSG& Msg);
 /// <returns>若返回值为TRUE，则不应继续处理消息；否则应正常进行剩余步骤</returns>
 BOOL PreTranslateMessage(const MSG& Msg);
 
-/// <summary>
-/// 置消息过滤器
-/// </summary>
-/// <param name="pfnFilter">应用程序定义的过滤器函数指针</param>
+// 置消息过滤器
 void SetMsgFilter(FMsgFilter pfnFilter);
+#pragma endregion Thread
 
 void InitPrivateApi();
 ECK_NAMESPACE_END
