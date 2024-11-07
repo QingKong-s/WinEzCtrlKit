@@ -5,9 +5,9 @@
 *
 * Copyright(C) 2023-2024 QingKong
 */
-#ifdef ECK_MACRO_MYDBG
+#ifdef ECK_OPT_MYDBG
 #include "PchInc.h"
-#endif// ECK_MACRO_MYDBG
+#endif// ECK_OPT_MYDBG
 
 // For Private API
 
@@ -1292,7 +1292,7 @@ void ThreadInit()
 			}
 
 			return CallNextHookEx(p->hhkCbtDarkMode, iCode, wParam, lParam);
-		}, nullptr, GetCurrentThreadId());
+		}, nullptr, NtCurrentThreadId32());
 }
 
 constexpr PCWSTR c_szErrInitStatus[]
@@ -1363,7 +1363,7 @@ HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc, BOOL bModelessD
 				EndCbtHook();
 			}
 			return CallNextHookEx(pCtx->hhkTempCBT, iCode, wParam, lParam);
-		}, nullptr, GetCurrentThreadId());
+		}, nullptr, NtCurrentProcessId32());
 	return pCtx->hhkTempCBT;
 }
 
@@ -1406,7 +1406,7 @@ void SetMsgFilter(FMsgFilter pfnFilter)
 void DbgPrintWndMap()
 {
 	const auto* const pCtx = GetThreadCtx();
-	auto s = Format(L"当前线程（TID = %u）窗口映射表内容：\n", GetCurrentThreadId());
+	auto s = Format(L"当前线程（TID = %u）窗口映射表内容：\n", NtCurrentThreadId32());
 	for (const auto& e : pCtx->hmWnd)
 	{
 		s.AppendFormat(L"\tCWnd指针 = 0x%0p，HWND = 0x%0p，标题 = %s，类名 = %s\n",

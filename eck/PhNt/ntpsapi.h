@@ -1441,6 +1441,8 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 // Not NT, but useful.
 #define NtCurrentProcessId() (NtCurrentTeb()->ClientId.UniqueProcess)
 #define NtCurrentThreadId() (NtCurrentTeb()->ClientId.UniqueThread)
+#define NtCurrentProcessId32() ((DWORD)((DWORD_PTR)NtCurrentProcessId()))
+#define NtCurrentThreadId32() ((DWORD)((DWORD_PTR)NtCurrentThreadId()))
 
 NTSYSCALLAPI
 NTSTATUS

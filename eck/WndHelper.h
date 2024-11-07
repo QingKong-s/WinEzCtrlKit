@@ -268,7 +268,7 @@ EckInline WNDPROC SetWindowProc(HWND hWnd, WNDPROC pfnWndProc)
 	return (WNDPROC)SetWindowLongPtrW(hWnd, GWLP_WNDPROC, (LONG_PTR)pfnWndProc);
 }
 
-#ifdef ECKMACRO_NO_WIN11_22621
+#if NTDDI_VERSION < NTDDI_WIN10_NI// 22621 SDK将NTDDI_VERSION设置为NTDDI_WIN10_NI
 EckInline HRESULT EnableWindowMica(HWND hWnd, DWORD uType = 2)
 {
 	return E_FAIL;
@@ -278,7 +278,7 @@ EckInline HRESULT EnableWindowMica(HWND hWnd, DWM_SYSTEMBACKDROP_TYPE uType = DW
 {
 	return DwmSetWindowAttribute(hWnd, DWMWA_SYSTEMBACKDROP_TYPE, &uType, sizeof(uType));
 }
-#endif
+#endif// NTDDI_VERSION < NTDDI_WIN10_NI
 
 inline constexpr LRESULT MsgOnNcCalcSize(WPARAM wParam, LPARAM lParam, const MARGINS& Margins)
 {
@@ -359,7 +359,7 @@ inline HWND GetThreadFirstWindow(DWORD dwTid)
 	HWND hWnd = GetActiveWindow();
 	if (!hWnd)
 		return hWnd;
-	EnumThreadWindows(GetCurrentThreadId(), [](HWND hWnd, LPARAM lParam)->BOOL
+	EnumThreadWindows(dwTid, [](HWND hWnd, LPARAM lParam)->BOOL
 		{
 			if (IsWindowVisible(hWnd))
 			{
@@ -376,7 +376,7 @@ inline HWND GetSafeOwner(HWND hParent, HWND* phWndTop)
 {
 	HWND hWnd = hParent;
 	if (hWnd == nullptr)
-		hWnd = GetThreadFirstWindow(GetCurrentThreadId());
+		hWnd = GetThreadFirstWindow(NtCurrentThreadId32());
 
 	while (hWnd != nullptr && (GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_CHILD))
 		hWnd = GetParent(hWnd);
@@ -456,7 +456,7 @@ inline HMONITOR GetOwnerMonitor(HWND hWnd)
 		const auto hForeGnd = GetForegroundWindow();
 		DWORD dwPID;
 		GetWindowThreadProcessId(hForeGnd, &dwPID);
-		if (dwPID == GetCurrentProcessId())// 如果前台窗口是自进程窗口，返回这个窗口所在的显示器
+		if (dwPID == NtCurrentProcessId32())// 如果前台窗口是自进程窗口，返回这个窗口所在的显示器
 			return MonitorFromWindow(hForeGnd, MONITOR_DEFAULTTOPRIMARY);
 		else// 否则返回主显示器
 			return GetPrimaryMonitor();
