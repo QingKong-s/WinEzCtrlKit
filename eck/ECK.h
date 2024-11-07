@@ -622,6 +622,7 @@ struct NTVER
 	ULONG uBuild;
 };
 
+// 构建号
 enum :ULONG
 {
 	WINVER_1607 = 14393,
@@ -735,7 +736,7 @@ struct INITPARAM
 /// <summary>
 /// 初始化ECK Lib。
 /// 使用任何ECK功能之前需调用该函数。仅允许调用一次。
-/// 函数将在内部调用eck::ThreadInit，除非设置了ECKINIT_NOINITTHREAD
+/// 函数将在内部调用eck::ThreadInit，除非设置了EIF_NOINITTHREAD
 /// </summary>
 /// <param name="hInstance">实例句柄，所有自定义窗口类将在此实例上注册</param>
 /// <param name="pInitParam">指向初始化参数的可选指针</param>
@@ -905,6 +906,8 @@ BOOL PreTranslateMessage(const MSG& Msg);
 /// </summary>
 /// <param name="pfnFilter">应用程序定义的过滤器函数指针</param>
 void SetMsgFilter(FMsgFilter pfnFilter);
+
+void InitPrivateApi();
 ECK_NAMESPACE_END
 
 #ifndef ECK_OPT_NO_USING_GDIPLUS
