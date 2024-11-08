@@ -117,12 +117,6 @@
     <ClInclude Include="eck\CTab.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CResSet.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
-    <ClInclude Include="eck\CResTable.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\ResStruct.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
@@ -130,9 +124,6 @@
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CAllocator.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
-    <ClInclude Include="eck\CFormTable.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CForm.h">
@@ -184,9 +175,6 @@
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\SystemHelper.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
-    <ClInclude Include="eck\CException.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CRegKey.h">

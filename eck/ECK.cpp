@@ -598,7 +598,7 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 				NewOpt.dwFlags = (pOptions ? pOptions->dwFlags : 0) | DTBG_CLIPRECT;
 				NewOpt.rcClip = *prc;
 				--NewOpt.rcClip.bottom;
-				if (pOptions->dwFlags & DTBG_CLIPRECT)
+				if (pOptions && pOptions->dwFlags & DTBG_CLIPRECT)
 					IntersectRect(NewOpt.rcClip, NewOpt.rcClip, pOptions->rcClip);
 				const auto hr = UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, &NewOpt, f);
 				if (hr == S_OK)// Exclude S_FALSE.
