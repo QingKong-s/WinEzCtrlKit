@@ -255,12 +255,10 @@
     <ClInclude Include="eck\CWindowPosSetting.h" />
     <ClInclude Include="eck\DuiBase.h" />
     <ClInclude Include="eck\CEditExt.h" />
-    <ClInclude Include="eck\CException.h" />
     <ClInclude Include="eck\CFile.h" />
     <ClInclude Include="eck\CFixedBlockCollection.h" />
     <ClInclude Include="eck\CFlowLayout.h" />
     <ClInclude Include="eck\CForm.h" />
-    <ClInclude Include="eck\CFormTable.h" />
     <ClInclude Include="eck\CInputBox.h" />
     <ClInclude Include="eck\CListBoxNew.h" />
     <ClInclude Include="eck\CListViewExt.h" />
@@ -268,8 +266,6 @@
     <ClInclude Include="eck\CMenu.h" />
     <ClInclude Include="eck\CRefBinStream.h" />
     <ClInclude Include="eck\CRegKey.h" />
-    <ClInclude Include="eck\CResSet.h" />
-    <ClInclude Include="eck\CResTable.h" />
     <ClInclude Include="eck\CScrollView.h" />
     <ClInclude Include="eck\CSplitBar.h" />
     <ClInclude Include="eck\CStreamView.h" />
