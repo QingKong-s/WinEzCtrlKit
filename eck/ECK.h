@@ -61,7 +61,7 @@
 #			define WM_DPICHANGED_BEFOREPARENT      0x02E2
 #			define WM_DPICHANGED_AFTERPARENT       0x02E3
 #			define WM_GETDPISCALEDSIZE             0x02E4
-#		endif// WM_DPICHANGED_BEFOREPARENT
+#		endif// !defined(WM_DPICHANGED_BEFOREPARENT)
 #	endif// _WIN32_WINNT >= 0x0605
 #else
 #	define ECKDPIAPI 0
@@ -186,24 +186,24 @@ ECK_NAMESPACE_END
 #define EckOptNul(Type, Name)	std::optional<Type> Name = std::nullopt
 
 // 原子到PWSTR
-#define ECKMAKEINTATOMW(i) (PWSTR)((ULONG_PTR)((WORD)(i)))
+#define ECKMAKEINTATOMW(i)		(PWSTR)((ULONG_PTR)((WORD)(i)))
 
 // 自取反
-#define ECKBOOLNOT(x) ((x) = !(x))
+#define ECKBOOLNOT(x)			((x) = !(x))
 
 // lParam->POINT 用于处理鼠标消息
-#define ECK_GET_PT_LPARAM(lParam) { GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) }
-#define ECK_GET_PT_LPARAM_F(lParam) { (float)GET_X_LPARAM(lParam),(float)GET_Y_LPARAM(lParam) }
+#define ECK_GET_PT_LPARAM(lParam)			{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) }
+#define ECK_GET_PT_LPARAM_F(lParam)			{ (float)GET_X_LPARAM(lParam), \
+											(float)GET_Y_LPARAM(lParam) }
 
 // lParam->size 用于处理WM_SIZE
-#define ECK_GET_SIZE_LPARAM(cx,cy,lParam) { (cx) = LOWORD(lParam); (cy) = HIWORD(lParam); }
+#define ECK_GET_SIZE_LPARAM(cx,cy,lParam)	{ (cx) = LOWORD(lParam); (cy) = HIWORD(lParam); }
 
 // 定义COM接口
-#define ECK_COM_INTERFACE(iid)				\
-			__interface __declspec(uuid(iid))
+#define ECK_COM_INTERFACE(iid)	__interface __declspec(uuid(iid))
 
 // 不可达
-#define ECK_UNREACHABLE __assume(0)
+#define ECK_UNREACHABLE			__assume(0)
 
 // 定义GUID
 #define ECK_GUID(l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
@@ -675,9 +675,9 @@ enum :UINT// 控件通知代码
 * NM_CUSTOMDRAW			NMCUSTOMDRAWEXT
 */
 
-// 消息钩子保留范围
-// 库保留	[1, 511]
-// 用户保留	[512, 4096]
+// 消息钩子ID保留范围
+// 库保留	[1, 511]	此范围仅供内部使用
+// 用户保留	[512, 4096]	此范围建议用作某一类窗口的消息钩子ID，可由用户自行决定
 constexpr inline UINT_PTR MsgHookIdUserBegin = 4096;
 enum :UINT_PTR
 {

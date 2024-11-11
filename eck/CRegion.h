@@ -734,7 +734,7 @@ public:
 		rcBound = m_rc;
 	}
 
-	CRegion Intersect(const CRegion& Rgn) const
+	[[nodiscard]] CRegion Intersect(const CRegion& Rgn) const
 	{
 		EckAssert(!m_bRecordingPoint);
 		CRegion RgnResult{};
@@ -872,7 +872,7 @@ public:
 		return RgnResult;
 	}
 
-	CRegion Union(const CRegion& Rgn) const
+	[[nodiscard]] CRegion Union(const CRegion& Rgn) const
 	{
 		EckAssert(!m_bRecordingPoint);
 		CRegion RgnResult{};
@@ -1064,7 +1064,7 @@ public:
 		return RgnResult;
 	}
 
-	CRegion Difference(const CRegion& Rgn) const
+	[[nodiscard]] CRegion Difference(const CRegion& Rgn) const
 	{
 		EckAssert(!m_bRecordingPoint);
 		CRegion RgnResult{};
@@ -1200,7 +1200,7 @@ public:
 		return RgnResult;
 	}
 
-	CRegion SymmetricDifference(const CRegion& Rgn) const
+	[[nodiscard]] CRegion SymmetricDifference(const CRegion& Rgn) const
 	{
 		EckAssert(!m_bRecordingPoint);
 		CRegion RgnResult{};
@@ -1392,11 +1392,9 @@ public:
 		return RgnResult;
 	}
 
-	/// <summary>
-	/// 开始记录点。
-	/// 函数清空当前区域，并返回记录器。此为点并区域的优化实现，只可自上而下、自左向右记录点，但可以跨越空行
-	/// </summary>
-	CPtRecorder RpBegin()
+	// 开始记录点。
+	// 函数清空当前区域，并返回记录器。此为点并区域的优化实现，只可自上而下、自左向右记录点，但可以跨越空行
+	[[nodiscard]] CPtRecorder RpBegin()
 	{
 #ifdef _DEBUG
 		EckAssert(!m_bRecordingPoint && L"Recording point already started.");
@@ -1418,7 +1416,7 @@ public:
 #endif
 	}
 
-	HRGN ToHRgn(const XFORM* pXForm = nullptr) const
+	[[nodiscard]] HRGN ToHRgn(const XFORM* pXForm = nullptr) const
 	{
 		EckAssert(!m_bRecordingPoint);
 		if (IsInfinite())
@@ -1438,7 +1436,7 @@ public:
 		return ExtCreateRegion(pXForm, (DWORD)cbBuf, (const RGNDATA*)pRgnData.get());
 	}
 
-	GpRegion* ToGpRegion() const
+	[[nodiscard]] GpRegion* ToGpRegion() const
 	{
 		EckAssert(!m_bRecordingPoint);
 		const auto hRgn = ToHRgn();
@@ -1449,22 +1447,22 @@ public:
 	}
 };
 
-EckInline CRegion operator|(const CRegion& Rgn1, const CRegion& Rgn2)
+EckInline [[nodiscard]] CRegion operator|(const CRegion& Rgn1, const CRegion& Rgn2)
 {
 	return Rgn1.Union(Rgn2);
 }
 
-EckInline CRegion operator&(const CRegion& Rgn1, const CRegion& Rgn2)
+EckInline [[nodiscard]] CRegion operator&(const CRegion& Rgn1, const CRegion& Rgn2)
 {
 	return Rgn1.Intersect(Rgn2);
 }
 
-EckInline CRegion operator-(const CRegion& Rgn1, const CRegion& Rgn2)
+EckInline [[nodiscard]] CRegion operator-(const CRegion& Rgn1, const CRegion& Rgn2)
 {
 	return Rgn1.Difference(Rgn2);
 }
 
-EckInline CRegion operator^(const CRegion& Rgn1, const CRegion& Rgn2)
+EckInline [[nodiscard]] CRegion operator^(const CRegion& Rgn1, const CRegion& Rgn2)
 {
 	return Rgn1.SymmetricDifference(Rgn2);
 }

@@ -556,7 +556,7 @@ EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 		(DWRITE_FONT_WEIGHT)lf.lfWeight,
 		lf.lfItalic ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
 		DWRITE_FONT_STRETCH_NORMAL,
-		(float)Abs(lf.lfHeight),
+		fabsf((float)lf.lfHeight),
 		L"zh-cn",
 		&pTextFormat);
 	if (phr)

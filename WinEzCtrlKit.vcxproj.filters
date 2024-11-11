@@ -207,9 +207,6 @@
     <ClInclude Include="eck\OleDragDropHelper.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CFixedBlockCollection.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CToolTip.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
@@ -475,6 +472,9 @@
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CSelRange.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CMemorySet.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
   </ItemGroup>

@@ -3,7 +3,7 @@
 *
 * CRefBin.h ： 字节集
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 
 #pragma once

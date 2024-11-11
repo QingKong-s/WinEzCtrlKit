@@ -639,10 +639,10 @@ public:
 enum class PresentMode
 {
 	//						|  等待	|				透明混合					|	 备注	|
-	BitBltSwapChain,	//	|	0	|支持，必须无WS_EX_NOREDIRECTIONBITMAP		|  性能极差	|
+	BitBltSwapChain,	//	|	0	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|  性能极差	|
 	FlipSwapChain,		//	|	1	|不支持									|  性能极好	|
 	DCompositionSurface,//	|	0	|支持，建议加入WS_EX_NOREDIRECTIONBITMAP	|  建议使用	|
-	WindowRenderTarget,	//  |	1	|支持，必须无WS_EX_NOREDIRECTIONBITMAP		|  兼容性好	|
+	WindowRenderTarget,	//  |	1	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|  兼容性好	|
 	AllDComp,			//	|	   与DCompositionSurface相同，但所有元素都使用DComp合成		|
 };
 
@@ -1402,7 +1402,7 @@ public:
 			m_bRenderThreadShouldExit = TRUE;
 			WakeRenderThread();
 			m_cs.Leave();
-			WaitForSingleObject(m_hthRender, INFINITE);// 等待渲染线程退出
+			WaitObject(m_hthRender);// 等待渲染线程退出
 			NtClose(m_hthRender);
 			m_hthRender = nullptr;
 			// 销毁所有元素
