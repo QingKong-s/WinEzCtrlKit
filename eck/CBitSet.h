@@ -6,8 +6,8 @@
 * Copyright(C) 2023-2024 QingKong
 */
 #pragma once
-#include "Utility.h"
-#include <bitset>
+#include "ECK.h"
+
 ECK_NAMESPACE_BEGIN
 template<size_t N>
 class CBitSet
@@ -192,19 +192,19 @@ public:
 		return *this;
 	}
 
-	constexpr CBitSet operator~() const
+	constexpr [[nodiscard]] CBitSet operator~() const
 	{
 		CBitSet x{ *this };
 		x.Flip();
 		return x;
 	}
 
-	EckInline CProxy operator[](size_t n)
+	EckInline [[nodiscard]] CProxy operator[](size_t n)
 	{
 		return CProxy(*this, n);
 	}
 
-	EckInline constexpr bool operator[](size_t n) const
+	EckInline [[nodiscard]] constexpr bool operator[](size_t n) const
 	{
 		return Test(n);
 	}
@@ -212,7 +212,7 @@ public:
 	EckInline constexpr void Trim()
 	{
 #pragma warning(suppress:6285)// 是否要使用按位与
-		constexpr bool b = N == 0 || N % BitsPerWord != 0;
+		constexpr bool b = (N == 0 || N % BitsPerWord != 0);
 		if constexpr (b)
 			m_Bits[NB] &= (TWord{1}<< N % BitsPerWord) - 1;
 	}

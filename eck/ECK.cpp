@@ -227,6 +227,8 @@ static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 {
 	if (!hTheme)
 		return;
+	/*EckDbgPrintFmt(L"UxfOnThemeOpen: hWnd = %p, hTheme = %p, pszClassList = %s",
+		hWnd, hTheme, pszClassList);*/
 	ThemeType eType;
 	if (wcsstr(pszClassList, L"Button"))
 		eType = ThemeType::Button;

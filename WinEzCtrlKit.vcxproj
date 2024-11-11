@@ -178,6 +178,7 @@
     <ClInclude Include="eck\CHitter.h" />
     <ClInclude Include="eck\CIPEdit.h" />
     <ClInclude Include="eck\CLayoutDummy.h" />
+    <ClInclude Include="eck\CMemorySet.h" />
     <ClInclude Include="eck\CMonthCalendar.h" />
     <ClInclude Include="eck\CObject.h" />
     <ClInclude Include="eck\CRegion.h" />
@@ -256,7 +257,6 @@
     <ClInclude Include="eck\DuiBase.h" />
     <ClInclude Include="eck\CEditExt.h" />
     <ClInclude Include="eck\CFile.h" />
-    <ClInclude Include="eck\CFixedBlockCollection.h" />
     <ClInclude Include="eck\CFlowLayout.h" />
     <ClInclude Include="eck\CForm.h" />
     <ClInclude Include="eck\CInputBox.h" />

@@ -15,6 +15,13 @@
 #endif
 
 ECK_NAMESPACE_BEGIN
+EckInline void* VAlloc(SIZE_T cb, ULONG ulProtect)
+{
+	void* p{};
+	(void)NtAllocateVirtualMemory(NtCurrentProcess(), &p, 0, &cb, MEM_COMMIT, ulProtect);
+	return p;
+}
+
 EckInline void* VAlloc(SIZE_T cb)
 {
 	void* p{};
