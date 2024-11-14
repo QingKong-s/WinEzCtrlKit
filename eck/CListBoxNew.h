@@ -1400,7 +1400,7 @@ public:
 					if (uFlags & LBN_SF_CASEINSENSITIVE)
 						if (uFlags & LBN_SF_WHOLE)
 						{
-							if (wcsicmp(nm.Item.pszText, pszText) == 0)
+							if (_wcsicmp(nm.Item.pszText, pszText) == 0)
 								return nm.Item.idxItem;
 						}
 						else

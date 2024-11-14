@@ -32,12 +32,16 @@
 			ID2D1SolidColorBrush* ECKPRIV_pBr___;	\
 			m_pDC->CreateSolidColorBrush(D2D1::ColorF(1.f, 0.f, 0.f, 1.f), &ECKPRIV_pBr___); \
 			if (ECKPRIV_pBr___) {					\
-				m_pDC->DrawRectangle(GetViewRectF(), ECKPRIV_pBr___, 1.f);	\
+				m_pDC->DrawRectangle(GetRectF(), ECKPRIV_pBr___, 1.f);	\
 				ECKPRIV_pBr___->Release();			\
 			}										\
 		}
+
+#	define EckDuiAssertThread() EckAssert(GetWnd()->m_tidUi == NtCurrentThreadId32())
+
 #else
 #	define ECK_DUI_DBG_DRAW_FRAME ;
+#	define EckDuiAssertThread()
 #endif
 
 #define ECK_ELEMTOP			((::eck::Dui::CElem*)HWND_TOP)
@@ -129,26 +133,28 @@ struct DUINMHDR
 	UINT uCode;
 };
 
-#define ECK_DUILOCK		::eck::CCsGuard ECKPRIV_DUI_LOCK_GUARD(*(GetWnd()->GetCriticalSection()))
-#define ECK_DUILOCKWND	::eck::CCsGuard ECKPRIV_DUI_LOCK_GUARD(*GetCriticalSection())
+#define ECK_DUILOCK		::eck::CCsGuard ECKPRIV_DUI_LOCK_GUARD(GetCriticalSection())
+#define ECK_DUILOCKWND	::eck::CCsGuard ECKPRIV_DUI_LOCK_GUARD(GetCriticalSection())
 
-
-/// <summary>
-/// DUI元素基类
-/// </summary>
 class CElem :public ILayout
 {
 	friend class CDuiWnd;
 protected:
+	// UI系统
 	CElem* m_pNext{};		// 下一元素，Z序高于当前
 	CElem* m_pPrev{};		// 上一元素，Z序低于当前
 	CElem* m_pParent{};		// 父元素
 	CElem* m_pFirstChild{};	// 第一个子元素
 	CElem* m_pLastChild{};	// 最后一个子元素
 	CDuiWnd* m_pWnd{};		// 所属窗口
-	ID2D1DeviceContext* m_pDC{};	// DC
-	CColorTheme* m_pColorTheme{};	// 颜色主题
 
+	CSignal<Intercept_T, LRESULT, UINT, WPARAM, LPARAM> m_Sig{};// 信号
+	// 图形，除DC外渲染和UI线程均可读写
+	ID2D1DeviceContext* m_pDC{};			// DC
+	IDCompositionVisual* m_pDcVisual{};		// DComp视觉对象
+	IDCompositionSurface* m_pDcSurface{};	// DComp表面
+	IUnknown* m_pDcContent{};				// DComp内容
+	// 位置
 	RECT m_rc{};			// 元素矩形，相对父元素
 	D2D1_RECT_F m_rcf{};	// 元素矩形，相对父元素
 	RECT m_rcInClient{};	// 元素矩形，相对客户区
@@ -156,20 +162,16 @@ protected:
 
 	RECT m_rcInvalid{};		// 无效矩形，相对客户区
 
-	RECT m_rcPostComposited{};		// 混合到主图面的矩形，至少完全包含元素矩形
-	RECT m_rcPostCompositedInClient{};	// 混合到主图面的矩形，相对于客户区
-
+	RECT m_rcComp{};		// 混合到主图面的矩形，至少完全包含元素矩形
+	RECT m_rcCompInClient{};// 混合到主图面的矩形，相对于客户区
+	// 属性
 	CRefStrW m_rsText{};	// 标题
-	DWORD m_dwStyle{};		// 样式
 	INT_PTR m_iId{};		// 元素ID
-
+	CColorTheme* m_pColorTheme{};		// 颜色主题
+	IDWriteTextFormat* m_pTextFormat{};	// 文本格式
+	DWORD m_dwStyle{};		// 样式
 	int m_cChildren{};		// 子元素数量
 
-	IDCompositionVisual* m_pDcVisual{};		// DComp视觉对象
-	IDCompositionSurface* m_pDcSurface{};	// DComp表面
-	IUnknown* m_pDcContent{};				// DComp内容
-
-	CSignal<Intercept_T, LRESULT, UINT, WPARAM, LPARAM> m_Sig{};// 信号
 
 	BOOL IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId = 0, PCVOID pData = nullptr);
@@ -185,42 +187,8 @@ protected:
 		}
 	}
 
-	CElem* HitTestChildUncheck(POINT pt, LRESULT* pResult = nullptr)
-	{
-		COMP_POS cp;
-		cp.bNormalToComp = FALSE;
-		auto pElem = GetLastChildElem();
-		while (pElem)
-		{
-			if (pElem->GetStyle() & DES_VISIBLE)
-			{
-				cp.pt = pt;
-				if (pElem->IsNeedCoordinateTransform())
-				{
-					cp.pElem = pElem;
-					pElem->CallEvent(EWM_COMP_POS, (WPARAM)&cp, 0);
-				}
-				if (PtInRect(pElem->GetRectInClient(), cp.pt))
-				{
-					const auto pHit = pElem->HitTestChildUncheck(pt, pResult);
-					if (pHit)
-						return pHit;
-					else if (LRESULT lResult;
-						(lResult = pElem->CallEvent(WM_NCHITTEST,
-							0, MAKELPARAM(cp.pt.x, cp.pt.y))) != HTTRANSPARENT)
-					{
-						if (pResult)
-							*pResult = lResult;
-						return pElem;
-					}
-				}
-			}
-			pElem = pElem->GetPrevElem();
-		}
-		return nullptr;
-	}
-
-	void IRUnionContentExpandElemRect(CElem* pLast, RECT& rcInClient)
+	// 合并应更新完整区域的元素矩形
+	void tcIrpUnionContentExpandElemRect(CElem* pLast, RECT& rcInClient)
 	{
 		while (pLast)
 		{
@@ -236,13 +204,13 @@ protected:
 					}
 				}
 				else
-					IRUnionContentExpandElemRect(pLast->GetLastChildElem(), rcInClient);
+					tcIrpUnionContentExpandElemRect(pLast->GetLastChildElem(), rcInClient);
 			}
 			pLast = pLast->GetPrevElem();
 		}
 	}
 
-	void SRCorrectChildrenRectInClient()
+	void tcSrpCorrectChildrenRectInClient()
 	{
 		auto pElem = GetFirstChildElem();
 		while (pElem)
@@ -254,15 +222,15 @@ protected:
 			if ((pElem->GetStyle() & DES_COMPOSITED) &&
 				!(pElem->GetStyle() & DES_INPLACE_COMP))
 			{
-				pElem->m_rcPostCompositedInClient = pElem->m_rcPostComposited;
-				OffsetRect(pElem->m_rcPostCompositedInClient, m_rcInClient.left, m_rcInClient.top);
+				pElem->m_rcCompInClient = pElem->m_rcComp;
+				OffsetRect(pElem->m_rcCompInClient, m_rcInClient.left, m_rcInClient.top);
 			}
-			pElem->SRCorrectChildrenRectInClient();
+			pElem->tcSrpCorrectChildrenRectInClient();
 			pElem = pElem->GetNextElem();
 		}
 	}
 
-	void IntSetRect(const RECT& rc)
+	void tcSetRectWorker(const RECT& rc)
 	{
 		m_rc = rc;
 		m_rcf = MakeD2DRcF(rc);
@@ -280,10 +248,10 @@ protected:
 				m_pParent->GetRectInClientF().top);
 		}
 
-		SRCorrectChildrenRectInClient();
+		tcSrpCorrectChildrenRectInClient();
 	}
 
-	void IntSetStyle(DWORD dwStyle)
+	void tcSetStyleWorker(DWORD dwStyle)
 	{
 		if (dwStyle & DES_BLURBKG)
 			dwStyle |= (DES_TRANSPARENT | DES_CONTENT_EXPAND);
@@ -295,25 +263,161 @@ protected:
 		m_dwStyle = dwStyle;
 	}
 
-	void SwitchDefColorTheme(int idxTheme, WPARAM bDark);
+	void utcSwitchDefColorTheme(int idxTheme, WPARAM bDark);
 
-	void ReCreateDCompVisual();
+	void utcReCreateDCompVisual();
 
-	void ReSizeDCompVisual();
+	void tcReSizeDCompVisual();
 
-	void PostMoveSize(BOOL bSize, BOOL bMove, const RECT& rcOld);
-
-	void InvalidateAllElem()
+	void tcPostMoveSize(BOOL bSize, BOOL bMove, const RECT& rcOld);
+public:
+	virtual BOOL Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
+		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId = 0, PCVOID pData = nullptr)
 	{
+		return IntCreate(pszText, dwStyle, dwExStyle, x, y, cx, cy, pParent, pWnd, iId, pData);
+	}
+
+	void Destroy();
+
+	// 事件处理函数，一般不直接调用此函数
+	virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+	// 调用事件处理
+	EckInline LRESULT CallEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		BOOL bProcessed{};
+		const auto r = m_Sig.Emit2(bProcessed, uMsg, wParam, lParam);
+		if (bProcessed)
+			return r;
+		return OnEvent(uMsg, wParam, lParam);
+	}
+
+	/// <summary>
+	/// 生成元素通知。
+	/// 若GenElemNotifyParent返回0，则通知窗口
+	/// </summary>
+	/// <param name="pnm">通知结构，第一个字段必须为DUINMHDR</param>
+	/// <returns>处理方的返回值</returns>
+	EckInline LRESULT GenElemNotify(void* pnm);
+
+	/// <summary>
+	/// 生成元素通知。
+	/// 向父元素发送通知，若无父元素，返回0
+	/// </summary>
+	/// <param name="pnm">通知结构，第一个字段必须为DUINMHDR</param>
+	/// <returns>处理方的返回值</returns>
+	EckInline LRESULT GenElemNotifyParent(void* pnm)
+	{
+		if (GetParentElem())
+			return GetParentElem()->CallEvent(WM_NOTIFY, (WPARAM)this, (LPARAM)pnm);
+		else
+			return 0;
+	}
+
+	EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		CallEvent(uMsg, wParam, lParam);
 		auto pElem = GetFirstChildElem();
 		while (pElem)
 		{
-			pElem->m_rcInvalid = pElem->GetWholeRectInClient();
-			pElem->InvalidateAllElem();
+			pElem->BroadcastEvent(uMsg, wParam, lParam);
 			pElem = pElem->GetNextElem();
 		}
 	}
-public:
+
+	EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT lStop)
+	{
+		if (CallEvent(uMsg, wParam, lParam) == lStop)
+			return;
+		auto pElem = GetFirstChildElem();
+		while (pElem)
+		{
+			pElem->BroadcastEvent(uMsg, wParam, lParam, lStop);
+			pElem = pElem->GetNextElem();
+		}
+	}
+
+	// 将缓动曲线对象的自定义参数设为this，并注册
+	EckInline void InitEasingCurve(CEasingCurve* pec);
+
+	EckInline constexpr CDuiWnd* GetWnd() const { return m_pWnd; }
+	EckInline constexpr ID2D1DeviceContext* GetDC() const { return m_pDC; }
+	EckInline constexpr auto& GetSignal() { return m_Sig; }
+	EckInline CCriticalSection& GetCriticalSection() const;
+#pragma region PosSize
+	EckInline constexpr const D2D1_RECT_F& GetRectF() const { return m_rcf; }
+	EckInline constexpr const RECT& GetRect() const { return m_rc; }
+	EckInline constexpr const RECT& GetRectInClient() const { return m_rcInClient; }
+	EckInline constexpr const D2D1_RECT_F& GetRectInClientF() const { return m_rcfInClient; }
+
+	void SetRect(const RECT& rc)
+	{
+		ECK_DUILOCK;
+		const auto rcOld = GetWholeRectInClient();
+		tcSetRectWorker(rc);
+		tcPostMoveSize(TRUE, TRUE, rcOld);
+	}
+
+	void SetPos(int x, int y)
+	{
+		ECK_DUILOCK;
+		const auto rcOld = GetWholeRectInClient();
+		m_rc = { x,y,x + GetWidth(),y + GetHeight() };
+		m_rcf = MakeD2DRcF(m_rc);
+		m_rcInClient = m_rc;
+		m_rcfInClient = m_rcf;
+		if (m_pParent)
+		{
+			OffsetRect(
+				m_rcInClient,
+				m_pParent->GetRectInClient().left,
+				m_pParent->GetRectInClient().top);
+			OffsetRect(
+				m_rcfInClient,
+				m_pParent->GetRectInClientF().left,
+				m_pParent->GetRectInClientF().top);
+		}
+
+		tcSrpCorrectChildrenRectInClient();
+		tcPostMoveSize(FALSE, TRUE, rcOld);
+	}
+
+	void SetSize(int cx, int cy)
+	{
+		ECK_DUILOCK;
+		const auto rcOld = GetWholeRectInClient();
+		m_rc.right = m_rc.left + cx;
+		m_rc.bottom = m_rc.top + cy;
+		m_rcf.right = m_rcf.left + cx;
+		m_rcf.bottom = m_rcf.top + cy;
+		m_rcInClient.right = m_rcInClient.left + cx;
+		m_rcInClient.bottom = m_rcInClient.top + cy;
+		m_rcfInClient.right = m_rcfInClient.left + cx;
+		m_rcfInClient.bottom = m_rcfInClient.top + cy;
+		tcPostMoveSize(TRUE, FALSE, rcOld);
+	}
+
+	EckInline int GetWidth() const
+	{
+		ECK_DUILOCK;
+		return m_rc.right - m_rc.left;
+	}
+	EckInline int GetHeight() const
+	{
+		ECK_DUILOCK;
+		return m_rc.bottom - m_rc.top;
+	}
+	EckInline float GetWidthF() const
+	{
+		ECK_DUILOCK;
+		return m_rcf.right - m_rcf.left;
+	}
+	EckInline float GetHeightF() const
+	{
+		ECK_DUILOCK;
+		return m_rcf.bottom - m_rcf.top;
+	}
+#pragma endregion PosSize
 #pragma region ILayout
 	void LoGetAppropriateSize(int& cx, int& cy) override
 	{
@@ -351,60 +455,143 @@ public:
 		SetVisible(bShow);
 	}
 #pragma endregion ILayout
-
-	virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam);
-
-	EckInline LRESULT CallEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
-	{
-		BOOL bProcessed{};
-		const auto r = m_Sig.Emit2(bProcessed, uMsg, wParam, lParam);
-		if (bProcessed)
-			return r;
-		return OnEvent(uMsg, wParam, lParam);
-	}
-
-	EckInline const D2D1_RECT_F& GetRectF() const { return m_rcf; }
-
-	EckInline const RECT& GetRect() const { return m_rc; }
-
-	void SetRect(const RECT& rc);
-
-	void SetPos(int x, int y);
-
-	void SetSize(int cx, int cy);
-
-	virtual BOOL Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId = 0, PCVOID pData = nullptr)
-	{
-		return IntCreate(pszText, dwStyle, dwExStyle, x, y, cx, cy, pParent, pWnd, iId, pData);
-	}
-
-	void Destroy();
-
-	EckInline CElem* GetFirstChildElem() const { return m_pFirstChild; }
-	EckInline CElem* GetLastChildElem() const { return m_pLastChild; }
-	EckInline CElem* GetParentElem() const { return m_pParent; }
-	EckInline CDuiWnd* GetWnd() const { return m_pWnd; }
-	EckInline ID2D1DeviceContext* GetD2DDC() const { return m_pDC; }
-
-	EckInline const CRefStrW& GetText() const { return m_rsText; }
-
-	EckInline void SetText(PCWSTR pszText);
-
-	EckInline constexpr DWORD GetStyle() const { return m_dwStyle; }
-
-	void SetStyle(DWORD dwStyle);
-
+#pragma region ElemTree
+	EckInline constexpr CElem* GetFirstChildElem() const { return m_pFirstChild; }
+	EckInline constexpr CElem* GetLastChildElem() const { return m_pLastChild; }
+	EckInline constexpr CElem* GetParentElem() const { return m_pParent; }
 	// 取下一元素，Z序高于当前
 	EckInline constexpr CElem* GetNextElem() const { return m_pNext; }
-
 	// 取上一元素，Z序低于当前
 	EckInline constexpr CElem* GetPrevElem() const { return m_pPrev; }
 
-	/// <summary>
-	/// 是否可见。
-	/// 函数自底向上遍历父元素，如果存在不可见父元素，则返回FALSE，否则返回TRUE。
-	/// </summary>
+	CElem* ElemFromPoint(POINT pt, LRESULT* pResult = nullptr)
+	{
+		COMP_POS cp;
+		cp.bNormalToComp = FALSE;
+		auto pElem = GetLastChildElem();
+		while (pElem)
+		{
+			if (pElem->GetStyle() & DES_VISIBLE)
+			{
+				cp.pt = pt;
+				if (pElem->IsNeedCoordinateTransform())
+				{
+					cp.pElem = pElem;
+					pElem->CallEvent(EWM_COMP_POS, (WPARAM)&cp, 0);
+				}
+				if (PtInRect(pElem->GetRectInClient(), cp.pt))
+				{
+					const auto pHit = pElem->ElemFromPoint(pt, pResult);
+					if (pHit)
+						return pHit;
+					else if (LRESULT lResult;
+						(lResult = pElem->CallEvent(WM_NCHITTEST,
+							0, MAKELPARAM(cp.pt.x, cp.pt.y))) != HTTRANSPARENT)
+					{
+						if (pResult)
+							*pResult = lResult;
+						return pElem;
+					}
+				}
+			}
+			pElem = pElem->GetPrevElem();
+		}
+		return nullptr;
+	}
+
+	EckInline void ClientToElem(RECT& rc) const
+	{
+		ECK_DUILOCK;
+		OffsetRect(rc, -m_rcInClient.left, -m_rcInClient.top);
+	}
+
+	EckInline void ClientToElem(D2D1_RECT_F& rc) const
+	{
+		ECK_DUILOCK;
+		OffsetRect(rc, -m_rcfInClient.left, -m_rcfInClient.top);
+	}
+
+	EckInline void ClientToElem(POINT& pt) const
+	{
+		ECK_DUILOCK;
+		pt.x -= m_rcInClient.left;
+		pt.y -= m_rcInClient.top;
+	}
+
+	EckInline void ClientToElem(D2D1_POINT_2F& pt) const
+	{
+		ECK_DUILOCK;
+		pt.x -= m_rcfInClient.left;
+		pt.y -= m_rcfInClient.top;
+	}
+
+	EckInline void ElemToClient(RECT& rc) const
+	{
+		ECK_DUILOCK;
+		OffsetRect(rc, m_rcInClient.left, m_rcInClient.top);
+	}
+
+	EckInline void ElemToClient(D2D1_RECT_F& rc) const
+	{
+		ECK_DUILOCK;
+		OffsetRect(rc, m_rcfInClient.left, m_rcfInClient.top);
+	}
+
+	EckInline void ElemToClient(POINT& pt) const
+	{
+		ECK_DUILOCK;
+		pt.x += m_rcInClient.left;
+		pt.y += m_rcInClient.top;
+	}
+
+	EckInline void ElemToClient(D2D1_POINT_2F& pt) const
+	{
+		ECK_DUILOCK;
+		pt.x += m_rcfInClient.left;
+		pt.y += m_rcfInClient.top;
+	}
+#pragma endregion ElemTree
+#pragma region OthersProp
+	// 取标题
+	EckInline const CRefStrW& GetText() const { return m_rsText; }
+	// 置标题【不能在渲染线程调用】
+	EckInline void SetText(PCWSTR pszText, int cchText = -1)
+	{
+		ECK_DUILOCK;
+		m_rsText.DupString(pszText, cchText);
+		CallEvent(WM_SETTEXT, 0, 0);
+	}
+
+	// 取样式
+	EckInline constexpr DWORD GetStyle() const { return m_dwStyle; }
+	// 置样式
+	void SetStyle(DWORD dwStyle)
+	{
+		ECK_DUILOCK;
+		const auto dwOldStyle = m_dwStyle;
+		tcSetStyleWorker(dwStyle);
+		CallEvent(WM_STYLECHANGED, dwOldStyle, m_dwStyle);
+	}
+
+	// 置可见性
+	void SetVisible(BOOL b)
+	{
+		ECK_DUILOCK;
+		DWORD dwStyle = GetStyle();
+		if (b)
+			if (dwStyle & DES_VISIBLE)
+				return;
+			else
+				dwStyle |= DES_VISIBLE;
+		else
+			if (dwStyle & DES_VISIBLE)
+				dwStyle &= ~DES_VISIBLE;
+			else
+				return;
+		SetStyle(dwStyle);
+		InvalidateRect();
+	}
+	// 是否可见。函数自底向上遍历父元素，如果存在不可见父元素，则返回FALSE，否则返回TRUE。
 	EckInline constexpr BOOL IsVisible() const
 	{
 		auto pParent = this;
@@ -417,89 +604,10 @@ public:
 		return TRUE;
 	}
 
-	EckInline CElem* HitTestChild(POINT pt)
-	{
-		if (!IsVisible())
-			return nullptr;
-		return HitTestChildUncheck(pt);
-	}
-
-	EckInline constexpr void ClientToElem(RECT& rc) const
-	{
-		OffsetRect(rc, -m_rcInClient.left, -m_rcInClient.top);
-	}
-
-	EckInline constexpr void ClientToElem(D2D1_RECT_F& rc) const
-	{
-		OffsetRect(rc, -m_rcfInClient.left, -m_rcfInClient.top);
-	}
-
-	EckInline constexpr void ClientToElem(POINT& pt) const
-	{
-		pt.x -= m_rcInClient.left;
-		pt.y -= m_rcInClient.top;
-	}
-
-	EckInline constexpr void ClientToElem(D2D1_POINT_2F& pt) const
-	{
-		pt.x -= m_rcfInClient.left;
-		pt.y -= m_rcfInClient.top;
-	}
-
-	EckInline constexpr void ElemToClient(RECT& rc) const
-	{
-		OffsetRect(rc, m_rcInClient.left, m_rcInClient.top);
-	}
-
-	EckInline constexpr void ElemToClient(D2D1_RECT_F& rc) const
-	{
-		OffsetRect(rc, m_rcfInClient.left, m_rcfInClient.top);
-	}
-
-	EckInline constexpr void ElemToClient(POINT& pt) const
-	{
-		pt.x += m_rcInClient.left;
-		pt.y += m_rcInClient.top;
-	}
-
-	EckInline constexpr void ElemToClient(D2D1_POINT_2F& pt) const
-	{
-		pt.x += m_rcfInClient.left;
-		pt.y += m_rcfInClient.top;
-	}
-
-	EckInline constexpr int GetWidth() const { return m_rc.right - m_rc.left; }
-
-	EckInline constexpr int GetHeight() const { return m_rc.bottom - m_rc.top; }
-
-	EckInline constexpr float GetWidthF() const { return m_rcf.right - m_rcf.left; }
-
-	EckInline constexpr float GetHeightF() const { return m_rcf.bottom - m_rcf.top; }
-
+	// 置Z序
 	void SetZOrder(CElem* pElemAfter);
 
-	/// <summary>
-	/// 生成元素通知。
-	/// 若GenElemNotifyParent返回0，则通知窗口
-	/// </summary>
-	/// <param name="pnm">通知结构，第一个字段必须为DUINMHDR</param>
-	/// <returns>处理方的返回值</returns>
-	EckInline LRESULT GenElemNotify(void* pnm);
-
-	/// <summary>
-	/// 生成元素通知。
-	/// 向父元素发送通知，若无父元素，返回0
-	/// </summary>
-	/// <param name="pnm">通知结构，第一个字段必须为DUINMHDR</param>
-	/// <returns>处理方的返回值</returns>
-	EckInline LRESULT GenElemNotifyParent(void* pnm)
-	{
-		if (GetParentElem())
-			return GetParentElem()->CallEvent(WM_NOTIFY, (WPARAM)this, (LPARAM)pnm);
-		else
-			return 0;
-	}
-
+	// 启用/禁用重绘
 	EckInline void SetRedraw(BOOL bRedraw)
 	{
 		if (bRedraw)
@@ -507,9 +615,39 @@ public:
 		else
 			SetStyle(GetStyle() | DES_DISALLOW_REDRAW);
 	}
-
+	// 是否允许重绘
 	EckInline constexpr BOOL GetRedraw() const { return !(GetStyle() & DES_DISALLOW_REDRAW); }
 
+	// 置文本格式【不能在渲染线程调用】
+	EckInline void SetTextFormat(IDWriteTextFormat* pTf)
+	{
+		ECK_DUILOCK;
+		m_pTextFormat = pTf;
+		CallEvent(WM_SETFONT, 0, 0);
+	}
+	// 取文本格式
+	EckInline constexpr IDWriteTextFormat* GetTextFormat() const { return m_pTextFormat; }
+
+	// 置元素ID【不能在渲染线程调用】
+	EckInline constexpr void SetID(INT_PTR iId) { m_iId = iId; }
+	// 取元素ID
+	EckInline constexpr INT_PTR GetID() const { return m_iId; }
+
+	// 置颜色主题
+	EckInline void SetColorTheme(CColorTheme* pColorTheme)
+	{
+		ECK_DUILOCK;
+		std::swap(m_pColorTheme, pColorTheme);
+		if (m_pColorTheme)
+			m_pColorTheme->Ref();
+		if (pColorTheme)
+			pColorTheme->DeRef();
+		CallEvent(WM_THEMECHANGED, 0, 0);
+	}
+	// 取颜色主题
+	EckInline constexpr const CColorTheme* GetColorTheme() const { return m_pColorTheme; }
+#pragma endregion OthersProp
+#pragma region ElemFunc
 	/// <summary>
 	/// 无效化矩形
 	/// </summary>
@@ -526,10 +664,6 @@ public:
 	{
 		InvalidateRect(MakeRect(rc), bUpdateNow);
 	}
-
-	EckInline constexpr const RECT& GetRectInClient() const { return m_rcInClient; }
-
-	EckInline constexpr const D2D1_RECT_F& GetRectInClientF() const { return m_rcfInClient; }
 
 	/// <summary>
 	/// 开始画图。
@@ -550,69 +684,32 @@ public:
 		m_pDC->PopAxisAlignedClip();
 	}
 
-	// 捕获鼠标
+	// 捕获鼠标【不能在渲染线程调用】
 	EckInline CElem* SetCapture();
-
 	// 释放鼠标
 	EckInline void ReleaseCapture();
 
+	// 置焦点【不能在渲染线程调用】
 	EckInline void SetFocus();
+#pragma endregion ElemFunc
 
-	EckInline D2D1_RECT_F GetViewRectF() const
-	{
-		return { 0.f,0.f,GetWidthF(),GetHeightF() };
-	}
-
-	EckInline void InitEasingCurve(CEasingCurve* pec);
-
-	EckInline void SetColorTheme(CColorTheme* pColorTheme);
-
-	EckInline const CColorTheme* GetColorTheme() const { return m_pColorTheme; }
-
-	EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
-	{
-		CallEvent(uMsg, wParam, lParam);
-		auto pElem = GetFirstChildElem();
-		while (pElem)
-		{
-			pElem->BroadcastEvent(uMsg, wParam, lParam);
-			pElem = pElem->GetNextElem();
-		}
-	}
-
-	EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT lStop)
-	{
-		if (CallEvent(uMsg, wParam, lParam) == lStop)
-			return;
-		auto pElem = GetFirstChildElem();
-		while (pElem)
-		{
-			pElem->BroadcastEvent(uMsg, wParam, lParam, lStop);
-			pElem = pElem->GetNextElem();
-		}
-	}
-
-	EckInline constexpr void SetID(INT_PTR iId) { m_iId = iId; }
-
-	EckInline constexpr INT_PTR GetID() const { return m_iId; }
-
-	void SetVisible(BOOL b);
+	// 以下函数待以后整理
 
 	EckInline const RECT& GetPostCompositedRect() const
 	{
-		return m_rcPostComposited;
+		return m_rcComp;
 	}
 
 	EckInline const RECT& GetPostCompositedRectInClient() const
 	{
-		return m_rcPostCompositedInClient;
+		return m_rcCompInClient;
 	}
 
 	EckInline void SetPostCompositedRect(const RECT& rc)
 	{
-		m_rcPostComposited = rc;
-		m_rcPostCompositedInClient = rc;
-		OffsetRect(m_rcPostCompositedInClient,
+		m_rcComp = rc;
+		m_rcCompInClient = rc;
+		OffsetRect(m_rcCompInClient,
 			GetRectInClient().left,
 			GetRectInClient().top);
 	}
@@ -627,7 +724,6 @@ public:
 
 	EckInline constexpr ID2D1Bitmap1* GetCompBitmap() const;
 
-	EckInline constexpr auto& GetSignal() { return m_Sig; }
 
 	EckInline BOOL IsNeedCoordinateTransform() const
 	{
@@ -655,6 +751,9 @@ class CDuiWnd :public CWnd
 	friend class CDuiDropTarget;
 private:
 	constexpr static size_t MaxIR = 4;
+#ifdef _DEBUG
+	DWORD m_tidUi{};
+#endif
 
 	//------元素树------
 	CElem* m_pFirstChild{};	// 第一个子元素
@@ -672,8 +771,6 @@ private:
 	CEzD2D m_D2d{};					// D2D设备上下文相关，若呈现模式不为交换链，则仅DC字段有效
 	ID2D1Bitmap* m_pBmpBkg{};		// 背景位图
 	ID2D1SolidColorBrush* m_pBrBkg{};		// 背景画刷
-
-	IDWriteTextFormat* m_pDefTextFormat{};	// 默认文本格式
 
 	IDCompositionDevice* m_pDcDevice{};		// DComp设备
 	IDCompositionDevice3* m_pDcDevice3{};	// DComp设备3
@@ -712,8 +809,6 @@ private:
 
 	PresentMode m_ePresentMode = PresentMode::FlipSwapChain;	// 呈现模式
 
-	IAccessible* m_pStdAcc{};
-
 	int m_cChildren{};
 
 	int m_iUserDpi = USER_DEFAULT_SCREEN_DPI;
@@ -750,7 +845,7 @@ private:
 		UpdateDpiSizeF(m_Ds, iDpi);
 	}
 
-	EckInline constexpr size_t IsIRIntersect(const RECT& rc) const
+	EckInline constexpr size_t IrpIsIntersect(const RECT& rc) const
 	{
 		__assume(m_cInvalidRect <= MaxIR);
 		EckCounter(m_cInvalidRect, i)
@@ -765,10 +860,12 @@ private:
 	{
 		const auto pDC = m_D2d.GetDC();
 		RECT rcClip;
-		IDXGISurface1* pDxgiSurface{};
 		ID2D1Image* pOldTarget{};
-		BOOL bNeedComposite{};
+
+		IDXGISurface1* pDxgiSurface{};
 		ID2D1Bitmap1* pBitmap{};
+
+		BOOL bNeedComposite{};
 		COMP_INFO ci;
 		while (pElem)
 		{
@@ -778,7 +875,7 @@ private:
 				IsRectEmpty(rcElem))
 				goto NextElem;
 
-			if (const auto iIR = IsIRIntersect(rcElem); iIR == SizeTMax)
+			if (const auto iIR = IrpIsIntersect(rcElem); iIR == SizeTMax)
 				goto NextElem;
 			else
 				IntersectRect(rcClip, rcElem, m_InvalidRect[iIR]);
@@ -1208,7 +1305,7 @@ public:
 				RECT rcInvalid;
 				GetUpdateRect(hWnd, &rcInvalid, FALSE);
 				ValidateRect(hWnd, nullptr);
-				UnionInvalidRect(rcInvalid);
+				IrUnion(rcInvalid);
 				WakeRenderThread();
 			}
 			else
@@ -1289,9 +1386,6 @@ public:
 
 				MakeStdThemeLight(m_pStdColorTheme);
 				MakeStdThemeDark(m_pStdColorThemeDark);
-
-				m_pDefTextFormat = CreateDefTextFormat(m_iDpi);
-				m_pDefTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
 				rc.right = std::max(rc.right, 8L);
 				rc.bottom = std::max(rc.bottom, 8L);
@@ -1419,7 +1513,6 @@ public:
 			m_D2d.Destroy();
 			SafeRelease(m_pBmpBkg);
 			SafeRelease(m_pBrBkg);
-			SafeRelease(m_pDefTextFormat);
 			SafeRelease(m_pHwndRenderTarget);
 			SafeRelease(m_pDcSurface);
 			SafeRelease(m_pDcTarget);
@@ -1472,6 +1565,7 @@ public:
 			pBmp->Release();
 	}
 
+	// 【仅在渲染线程调用】
 	void FillBackground(const D2D1_RECT_F& rc)
 	{
 		m_D2d.GetDC()->SetTransform(D2D1::Matrix3x2F::Identity());
@@ -1509,7 +1603,7 @@ public:
 				}
 				if (PtInRect(pElem->GetRectInClient(), cp.pt))
 				{
-					auto pHit = pElem->HitTestChildUncheck(pt, pResult);
+					auto pHit = pElem->ElemFromPoint(pt, pResult);
 					if (pHit)
 						return pHit;
 					else if (LRESULT lResult;
@@ -1555,20 +1649,17 @@ public:
 			pOld->CallEvent(WM_CAPTURECHANGED, 0, (LPARAM)pElem);
 		return pOld;
 	}
-
 	EckInline void ReleaseCaptureElem()
 	{
 		ReleaseCapture();
 
 		// WM_CAPTURECHANGED will process it:
-		// m_pMouseCaptureElem->CallEvent(WM_CAPTURECHANGED, 0, NULL);
-		// m_pMouseCaptureElem = NULL;
+		// m_pMouseCaptureElem->CallEvent(WM_CAPTURECHANGED, 0, nullptr);
+		// m_pMouseCaptureElem = nullptr;
 	}
-
 	EckInline CElem* GetCaptureElem() const { return m_pMouseCaptureElem; }
 
 	EckInline CElem* GetFirstChildElem() const { return m_pFirstChild; }
-
 	EckInline CElem* GetLastChildElem() const { return m_pLastChild; }
 
 	EckInline const DPIS& GetDs() const { return m_Ds; }
@@ -1576,8 +1667,6 @@ public:
 	EckInline int GetDpiValue() const { return m_iDpi; }
 
 	EckInline HRESULT EnableDragDrop(BOOL bEnable);
-
-	EckInline auto GetDefTextFormat() const { return m_pDefTextFormat; }
 
 	EckInline auto GetDefColorTheme() const { return m_pStdColorTheme; }
 
@@ -1603,11 +1692,12 @@ public:
 		}
 	}
 
-	EckInline CCriticalSection* GetCriticalSection() { return &m_cs; }
+	EckInline CCriticalSection& GetCriticalSection() { return m_cs; }
 
-	EckInline void UnionInvalidRect(const RECT& rc)
+	void IrUnion(const RECT& rc)
 	{
 		__assume(m_cInvalidRect <= MaxIR);
+		EckAssert(!IsRectEmpty(rc));
 		// 此种情况无法保存无效区域广义并之内、每个无效区域之外的已绘制内容，必须退化为单个无效矩形
 		if (m_ePresentMode == PresentMode::DCompositionSurface)
 		{
@@ -1727,7 +1817,7 @@ public:
 	}
 };
 
-inline void CElem::SwitchDefColorTheme(int idxTheme, WPARAM bDark)
+inline void CElem::utcSwitchDefColorTheme(int idxTheme, WPARAM bDark)
 {
 	auto pctDark = GetWnd()->GetDefColorThemeDark()[CTI_SCROLLBAR];
 	auto pctLight = GetWnd()->GetDefColorTheme()[CTI_SCROLLBAR];
@@ -1744,7 +1834,7 @@ inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	m_pWnd = pWnd;
 	m_pDC = pWnd->m_D2d.GetDC();
 
-	IntSetStyle(dwStyle);
+	tcSetStyleWorker(dwStyle);
 
 	ECK_DUILOCK;
 #ifdef _DEBUG
@@ -1776,10 +1866,10 @@ inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	CallEvent(WM_NCCREATE, 0, (LPARAM)pData);
 
 	m_rsText = pszText;
-	IntSetRect({ x,y,x + cx,y + cy });
+	tcSetRectWorker({ x,y,x + cx,y + cy });
 
 	if (GetWnd()->IsElemUseDComp())
-		ReCreateDCompVisual();
+		utcReCreateDCompVisual();
 
 	if (CallEvent(WM_CREATE, 0, (LPARAM)pData))
 	{
@@ -1788,7 +1878,7 @@ inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	}
 	else
 	{
-		PostMoveSize(TRUE, TRUE, GetWholeRectInClient());
+		tcPostMoveSize(TRUE, TRUE, GetWholeRectInClient());
 		return TRUE;
 	}
 }
@@ -1845,140 +1935,6 @@ inline void CElem::Destroy()
 	m_dwStyle = 0;
 }
 
-inline void CElem::SetZOrder(CElem* pElemAfter)
-{
-	ECK_DUILOCK;
-	auto& pParentLastChild = (m_pParent ? m_pParent->m_pLastChild : m_pWnd->m_pLastChild);
-	auto& pParentFirstChild = (m_pParent ? m_pParent->m_pFirstChild : m_pWnd->m_pFirstChild);
-
-	if (pElemAfter == ECK_ELEMTOP)// == NULL
-	{
-		if (m_pPrev)
-		{
-			m_pPrev->m_pNext = m_pNext;
-			if (m_pNext)
-				m_pNext->m_pPrev = m_pPrev;
-			else
-				pParentLastChild = m_pPrev;
-
-			m_pPrev = nullptr;
-			m_pNext = pParentFirstChild;
-			if (m_pNext)
-				m_pNext->m_pPrev = this;
-			pParentFirstChild = this;
-		}
-		// else: 已在最顶层
-	}
-	else if (pElemAfter == ECK_ELEMBOTTOM)
-	{
-		if (m_pNext)
-		{
-			m_pNext->m_pPrev = m_pPrev;
-			if (m_pPrev)
-				m_pPrev->m_pNext = m_pNext;
-			else
-				pParentFirstChild = m_pNext;
-
-			m_pNext = nullptr;
-			m_pPrev = pParentLastChild;
-			if (m_pPrev)
-				m_pPrev->m_pNext = this;
-			pParentLastChild = this;
-		}
-		// else: 已在最底层
-	}
-	else
-	{
-		// pElemAfter一定不为NULL
-		if (m_pPrev)
-			m_pPrev->m_pNext = m_pNext;
-		else
-			pParentFirstChild = m_pNext;
-
-		if (m_pNext)
-			m_pNext->m_pPrev = m_pPrev;
-		else
-			pParentLastChild = m_pPrev;
-
-		m_pPrev = pElemAfter;
-		m_pNext = pElemAfter->m_pNext;
-
-		m_pPrev->m_pNext = this;
-		if (m_pNext)
-			m_pNext->m_pPrev = this;
-		else
-			pParentLastChild = this;
-	}
-}
-
-EckInline LRESULT CElem::GenElemNotify(void* pnm)
-{
-	if (!GenElemNotifyParent(pnm))
-		return m_pWnd->OnElemEvent(this, ((DUINMHDR*)pnm)->uCode, 0, (LPARAM)pnm);
-	else
-		return 0;
-}
-
-inline void CElem::InvalidateRect(const RECT& rc, BOOL bUpdateNow)
-{
-	ECK_DUILOCK;
-	if ((GetStyle() & DES_CONTENT_EXPAND))
-		m_rcInvalid = GetWholeRectInClient();
-	else
-	{
-		UnionRect(m_rcInvalid, m_rcInvalid, rc);
-		IntersectRect(m_rcInvalid, m_rcInvalid, GetWholeRectInClient());// 裁剪到元素矩形
-	}
-
-	if (IsRectEmpty(m_rcInvalid))
-		return;
-	RECT rcReal{ m_rcInvalid };
-	IRUnionContentExpandElemRect(
-		(GetStyle() & DES_CONTENT_EXPAND) ? GetWnd()->GetLastChildElem() : this,
-		rcReal);
-
-	GetWnd()->UnionInvalidRect(rcReal);
-	if (bUpdateNow)
-		GetWnd()->WakeRenderThread();
-}
-
-inline void CElem::BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uFlags)
-{
-	eps.prcClip = (const RECT*)lParam;
-	eps.rcfClip = MakeD2DRcF(*eps.prcClip);
-	m_rcInvalid = {};
-
-	eps.rcfClipInElem = MakeD2DRcF(*eps.prcClip);
-	ClientToElem(eps.rcfClipInElem);
-	if (uFlags & EBPF_DO_NOT_FILLBK)
-		m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
-	else
-		if (m_dwStyle & DES_BLURBKG)
-		{
-			m_pDC->Flush();
-			m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
-			BlurD2dDC(m_pDC, GetWnd()->GetD2D().GetBitmap(), GetWnd()->GetCacheBitmap(),
-				eps.rcfClip, { eps.rcfClipInElem.left,eps.rcfClipInElem.top }, 10.f);
-		}
-		else
-		{
-			m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
-			CallEvent(WM_ERASEBKGND, 0, (LPARAM)&eps);
-		}
-}
-
-EckInline CElem* CElem::SetCapture() { return m_pWnd->SetCaptureElem(this); }
-
-EckInline void CElem::ReleaseCapture() { m_pWnd->ReleaseCaptureElem(); }
-
-EckInline void CElem::SetFocus() { m_pWnd->SetFocusElem(this); }
-
-EckInline void CElem::InitEasingCurve(CEasingCurve* pec)
-{
-	pec->SetParam((LPARAM)this);
-	GetWnd()->RegisterTimeLine(pec);
-}
-
 inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
@@ -2026,72 +1982,146 @@ inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-inline void CElem::SetRect(const RECT& rc)
+inline void CElem::SetZOrder(CElem* pElemAfter)
 {
 	ECK_DUILOCK;
-	const auto rcOld = GetWholeRectInClient();
-	IntSetRect(rc);
-	PostMoveSize(TRUE, TRUE, rcOld);
+	auto& pParentLastChild = (m_pParent ? m_pParent->m_pLastChild : m_pWnd->m_pLastChild);
+	auto& pParentFirstChild = (m_pParent ? m_pParent->m_pFirstChild : m_pWnd->m_pFirstChild);
+
+	if (pElemAfter == ECK_ELEMTOP)// == nullptr
+	{
+		if (m_pPrev)
+		{
+			m_pPrev->m_pNext = m_pNext;
+			if (m_pNext)
+				m_pNext->m_pPrev = m_pPrev;
+			else
+				pParentLastChild = m_pPrev;
+
+			m_pPrev = nullptr;
+			m_pNext = pParentFirstChild;
+			if (m_pNext)
+				m_pNext->m_pPrev = this;
+			pParentFirstChild = this;
+		}
+		// else: 已在最顶层
+	}
+	else if (pElemAfter == ECK_ELEMBOTTOM)
+	{
+		if (m_pNext)
+		{
+			m_pNext->m_pPrev = m_pPrev;
+			if (m_pPrev)
+				m_pPrev->m_pNext = m_pNext;
+			else
+				pParentFirstChild = m_pNext;
+
+			m_pNext = nullptr;
+			m_pPrev = pParentLastChild;
+			if (m_pPrev)
+				m_pPrev->m_pNext = this;
+			pParentLastChild = this;
+		}
+		// else: 已在最底层
+	}
+	else
+	{
+		// pElemAfter一定不为nullptr
+		if (m_pPrev)
+			m_pPrev->m_pNext = m_pNext;
+		else
+			pParentFirstChild = m_pNext;
+
+		if (m_pNext)
+			m_pNext->m_pPrev = m_pPrev;
+		else
+			pParentLastChild = m_pPrev;
+
+		m_pPrev = pElemAfter;
+		m_pNext = pElemAfter->m_pNext;
+
+		m_pPrev->m_pNext = this;
+		if (m_pNext)
+			m_pNext->m_pPrev = this;
+		else
+			pParentLastChild = this;
+	}
 }
 
-inline void CElem::SetPos(int x, int y)
+EckInline LRESULT CElem::GenElemNotify(void* pnm)
+{
+	if (!GenElemNotifyParent(pnm))
+		return m_pWnd->OnElemEvent(this, ((DUINMHDR*)pnm)->uCode, 0, (LPARAM)pnm);
+	else
+		return 0;
+}
+
+inline void CElem::InvalidateRect(const RECT& rc, BOOL bUpdateNow)
 {
 	ECK_DUILOCK;
-	const auto rcOld = GetWholeRectInClient();
-	m_rc = { x,y,x + GetWidth(),y + GetHeight() };
-	m_rcf = MakeD2DRcF(m_rc);
-	m_rcInClient = m_rc;
-	m_rcfInClient = m_rcf;
-	if (m_pParent)
+	if ((GetStyle() & DES_CONTENT_EXPAND))
+		m_rcInvalid = GetWholeRectInClient();
+	else
 	{
-		OffsetRect(
-			m_rcInClient,
-			m_pParent->GetRectInClient().left,
-			m_pParent->GetRectInClient().top);
-		OffsetRect(
-			m_rcfInClient,
-			m_pParent->GetRectInClientF().left,
-			m_pParent->GetRectInClientF().top);
+		UnionRect(m_rcInvalid, m_rcInvalid, rc);
+		IntersectRect(m_rcInvalid, m_rcInvalid, GetWholeRectInClient());// 裁剪到元素矩形
 	}
 
-	SRCorrectChildrenRectInClient();
-	PostMoveSize(FALSE, TRUE, rcOld);
+	if (IsRectEmpty(m_rcInvalid))
+		return;
+	RECT rcReal{ m_rcInvalid };
+	tcIrpUnionContentExpandElemRect(
+		(GetStyle() & DES_CONTENT_EXPAND) ? GetWnd()->GetLastChildElem() : this,
+		rcReal);
+
+	GetWnd()->IrUnion(rcReal);
+	if (bUpdateNow)
+		GetWnd()->WakeRenderThread();
 }
 
-inline void CElem::SetSize(int cx, int cy)
+inline void CElem::BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uFlags)
 {
-	ECK_DUILOCK;
-	const auto rcOld = GetWholeRectInClient();
-	m_rc.right = m_rc.left + cx;
-	m_rc.bottom = m_rc.top + cy;
-	m_rcf.right = m_rcf.left + cx;
-	m_rcf.bottom = m_rcf.top + cy;
-	m_rcInClient.right = m_rcInClient.left + cx;
-	m_rcInClient.bottom = m_rcInClient.top + cy;
-	m_rcfInClient.right = m_rcfInClient.left + cx;
-	m_rcfInClient.bottom = m_rcfInClient.top + cy;
-	PostMoveSize(TRUE, FALSE, rcOld);
+	eps.prcClip = (const RECT*)lParam;
+	eps.rcfClip = MakeD2DRcF(*eps.prcClip);
+	m_rcInvalid = {};
+
+	eps.rcfClipInElem = MakeD2DRcF(*eps.prcClip);
+	ClientToElem(eps.rcfClipInElem);
+	if (uFlags & EBPF_DO_NOT_FILLBK)
+		m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
+	else
+		if (m_dwStyle & DES_BLURBKG)
+		{
+			m_pDC->Flush();
+			m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
+			BlurD2dDC(m_pDC, GetWnd()->GetD2D().GetBitmap(), GetWnd()->GetCacheBitmap(),
+				eps.rcfClip, { eps.rcfClipInElem.left,eps.rcfClipInElem.top }, 10.f);
+		}
+		else
+		{
+			m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
+			CallEvent(WM_ERASEBKGND, 0, (LPARAM)&eps);
+		}
 }
 
-EckInline void CElem::SetText(PCWSTR pszText)
+EckInline CElem* CElem::SetCapture() { return m_pWnd->SetCaptureElem(this); }
+
+EckInline void CElem::ReleaseCapture() { m_pWnd->ReleaseCaptureElem(); }
+
+EckInline void CElem::SetFocus() { m_pWnd->SetFocusElem(this); }
+
+EckInline void CElem::InitEasingCurve(CEasingCurve* pec)
 {
-	ECK_DUILOCK;
-	m_rsText = pszText;
-	CallEvent(WM_SETTEXT, 0, 0);
+	pec->SetParam((LPARAM)this);
+	GetWnd()->RegisterTimeLine(pec);
 }
 
-inline void CElem::SetColorTheme(CColorTheme* pColorTheme)
+inline CCriticalSection& CElem::GetCriticalSection() const
 {
-	ECK_DUILOCK;
-	std::swap(m_pColorTheme, pColorTheme);
-	if (m_pColorTheme)
-		m_pColorTheme->Ref();
-	if (pColorTheme)
-		pColorTheme->DeRef();
-	CallEvent(WM_THEMECHANGED, 0, 0);
+	return GetWnd()->GetCriticalSection();
 }
 
-inline void CElem::ReCreateDCompVisual()
+inline void CElem::utcReCreateDCompVisual()
 {
 	ECK_DUILOCK;
 	EckAssert(GetWnd()->IsElemUseDComp());
@@ -2130,7 +2160,7 @@ inline void CElem::ReCreateDCompVisual()
 		m_pWnd->m_pDcVisual->AddVisual(m_pDcVisual, bInsertAbove, pRefVisual);
 }
 
-inline void CElem::ReSizeDCompVisual()
+inline void CElem::tcReSizeDCompVisual()
 {
 	ECK_DUILOCK;
 	m_pDcSurface->Release();
@@ -2139,12 +2169,12 @@ inline void CElem::ReSizeDCompVisual()
 	m_pDcVisual->SetContent(m_pDcSurface);
 }
 
-inline void CElem::PostMoveSize(BOOL bSize, BOOL bMove, const RECT& rcOld)
+inline void CElem::tcPostMoveSize(BOOL bSize, BOOL bMove, const RECT& rcOld)
 {
 	if (bSize)
 	{
 		if (GetWnd()->IsElemUseDComp())
-			ReSizeDCompVisual();
+			tcReSizeDCompVisual();
 		CallEvent(WM_SIZE, 0, 0);
 	}
 	if (bMove)
@@ -2160,245 +2190,10 @@ inline void CElem::PostMoveSize(BOOL bSize, BOOL bMove, const RECT& rcOld)
 	UnionRect(rc, rcOld, GetWholeRectInClient());
 }
 
-inline void CElem::SetStyle(DWORD dwStyle)
-{
-	ECK_DUILOCK;
-	const auto dwOldStyle = m_dwStyle;
-	IntSetStyle(dwStyle);
-	CallEvent(WM_STYLECHANGED, dwOldStyle, m_dwStyle);
-}
-
-inline void CElem::SetVisible(BOOL b)
-{
-	ECK_DUILOCK;
-	DWORD dwStyle = GetStyle();
-	if (b)
-		if (dwStyle & DES_VISIBLE)
-			return;
-		else
-			dwStyle |= DES_VISIBLE;
-	else
-		if (dwStyle & DES_VISIBLE)
-			dwStyle &= ~DES_VISIBLE;
-		else
-			return;
-	SetStyle(dwStyle);
-	InvalidateRect();
-}
-
-inline constexpr EckInline ID2D1Bitmap1* CElem::GetCompBitmap() const
+EckInline constexpr ID2D1Bitmap1* CElem::GetCompBitmap() const
 {
 	return GetWnd()->GetCacheBitmap();
 }
-
-
-class CAccServer :public IAccessible
-{
-private:
-	LONG m_cRef{ 1 };
-	CDuiWnd& m_Wnd;
-	IAccessible* m_pStdAcc{};
-public:
-	CAccServer(CDuiWnd& wnd) :m_Wnd(wnd)
-	{
-		CreateStdAccessibleObject(m_Wnd.HWnd, OBJID_CLIENT, IID_IAccessible, (void**)&m_pStdAcc);
-	}
-
-	~CAccServer()
-	{
-		if (m_pStdAcc)
-			m_pStdAcc->Release();
-	}
-
-	BOOL IsAlive() const { return m_Wnd.IsValid(); }
-
-	// IUnknown
-	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppv) override
-	{
-		QITAB qit[]
-		{
-			QITABENT(CAccServer, IDispatch),
-			QITABENT(CAccServer, IAccessible),
-			{ 0 },
-		};
-		return QISearch(this, qit, riid, ppv);
-	}
-
-	ULONG STDMETHODCALLTYPE AddRef(void) override
-	{
-		return ++m_cRef;
-	}
-
-	ULONG STDMETHODCALLTYPE Release(void) override
-	{
-		if (m_cRef == 1)
-		{
-			delete this;
-			return 0;
-		}
-		else
-			return --m_cRef;
-	}
-
-	// IDispatch
-	HRESULT STDMETHODCALLTYPE GetTypeInfoCount(UINT* pctinfo) override
-	{
-		*pctinfo = 0;
-		return E_NOTIMPL;
-	}
-
-	HRESULT STDMETHODCALLTYPE GetTypeInfo(UINT iTInfo, LCID lcid, ITypeInfo** ppTInfo) override
-	{
-		*ppTInfo = nullptr;
-		return E_NOTIMPL;
-	}
-
-	HRESULT STDMETHODCALLTYPE GetIDsOfNames(REFIID riid, LPOLESTR* rgszNames, UINT cNames, LCID lcid, DISPID* rgDispId) override
-	{
-		*rgszNames = nullptr;
-		*rgDispId = 0;
-		return E_NOTIMPL;
-	}
-
-	HRESULT STDMETHODCALLTYPE Invoke(DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlags,
-		DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr) override
-	{
-		pDispParams = nullptr;
-		pVarResult->vt = VT_EMPTY;
-		pExcepInfo = nullptr;
-		puArgErr = nullptr;
-		if (!IsAlive())
-			return RPC_E_DISCONNECTED;
-		return E_NOTIMPL;
-	}
-
-	// IAccessible
-	HRESULT STDMETHODCALLTYPE get_accParent(IDispatch** ppdispParent)
-	{
-		if (!IsAlive())
-		{
-			*ppdispParent = nullptr;
-			return RPC_E_DISCONNECTED;
-		}
-		return m_pStdAcc->get_accParent(ppdispParent);
-	}
-
-	HRESULT STDMETHODCALLTYPE get_accChildCount(long* pcountChildren) override
-	{
-		if (!IsAlive())
-		{
-			*pcountChildren = 0;
-			return RPC_E_DISCONNECTED;
-		}
-		*pcountChildren = m_Wnd.GetChildrenCount();
-		return S_OK;
-	}
-
-	HRESULT STDMETHODCALLTYPE get_accChild(VARIANT varChild, IDispatch** ppdispChild) override
-	{
-		//if (varChild.vt != VT_I4)
-		//{
-		//	*ppdispChild = NULL;
-		//	return E_INVALIDARG;
-		//}
-		//if (!IsAlive())
-		//{
-		//	*ppdispChild = NULL;
-		//	return RPC_E_DISCONNECTED;
-		//}
-		//if (varChild.lVal < 1 || varChild.lVal > m_Wnd.GetChildrenCount())
-		//{
-		//	*ppdispChild = NULL;
-		//	return E_INVALIDARG;
-		//}
-
-		//auto pElem = m_Wnd.GetFirstChildElem();
-		//EckCounterNV(varChild.lVal)
-		//	pElem = pElem->GetNextElem();
-		//
-		//if (!pElem)
-		//{
-		//	*ppdispChild = NULL;
-		//	return E_INVALIDARG;
-		//}
-		//return pElem->QueryInterface(IID_IDispatch, (void**)ppdispChild);
-	}
-
-	HRESULT STDMETHODCALLTYPE get_accName(
-		VARIANT varChild,
-		BSTR* pszName) override;
-
-	HRESULT STDMETHODCALLTYPE get_accValue(
-		VARIANT varChild,
-		BSTR* pszValue) override;
-
-	HRESULT STDMETHODCALLTYPE get_accDescription(
-		VARIANT varChild,
-		BSTR* pszDescription) override;
-
-	HRESULT STDMETHODCALLTYPE get_accRole(
-		VARIANT varChild,
-		VARIANT* pvarRole) override;
-
-	HRESULT STDMETHODCALLTYPE get_accState(
-		VARIANT varChild,
-		VARIANT* pvarState) override;
-
-	HRESULT STDMETHODCALLTYPE get_accHelp(
-		VARIANT varChild,
-		BSTR* pszHelp) override;
-
-	HRESULT STDMETHODCALLTYPE get_accHelpTopic(
-		BSTR* pszHelpFile,
-		VARIANT varChild,
-		long* pidTopic) override;
-
-	HRESULT STDMETHODCALLTYPE get_accKeyboardShortcut(
-		VARIANT varChild,
-		BSTR* pszKeyboardShortcut) override;
-
-	HRESULT STDMETHODCALLTYPE get_accFocus(
-		VARIANT* pvarChild) override;
-
-	HRESULT STDMETHODCALLTYPE get_accSelection(
-		VARIANT* pvarChildren) override;
-
-	HRESULT STDMETHODCALLTYPE get_accDefaultAction(
-		VARIANT varChild,
-		BSTR* pszDefaultAction) override;
-
-	HRESULT STDMETHODCALLTYPE accSelect(
-		long flagsSelect,
-		VARIANT varChild) override;
-
-	HRESULT STDMETHODCALLTYPE accLocation(
-		long* pxLeft,
-		long* pyTop,
-		long* pcxWidth,
-		long* pcyHeight,
-		VARIANT varChild) override;
-
-	HRESULT STDMETHODCALLTYPE accNavigate(
-		long navDir,
-		VARIANT varStart,
-		VARIANT* pvarEndUpAt) override;
-
-	HRESULT STDMETHODCALLTYPE accHitTest(
-		long xLeft,
-		long yTop,
-		VARIANT* pvarChild) override;
-
-	HRESULT STDMETHODCALLTYPE accDoDefaultAction(
-		VARIANT varChild) override;
-
-	HRESULT STDMETHODCALLTYPE put_accName(
-		VARIANT varChild,
-		BSTR szName) override;
-
-	HRESULT STDMETHODCALLTYPE put_accValue(
-		VARIANT varChild,
-		BSTR szValue) override;
-};
 
 class CDuiDropTarget :public CDropTarget
 {

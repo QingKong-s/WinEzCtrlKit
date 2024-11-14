@@ -84,7 +84,7 @@ EckInline int GetDpi(HWND hWnd)
 #endif
 }
 
-EckInline int GetDpi(HMONITOR hMonitor)
+EckInline int GetMonitorDpi(HMONITOR hMonitor)
 {
 #if NTDDI_VERSION >= NTDDI_WINBLUE
 	UINT xDpi, yDpi;

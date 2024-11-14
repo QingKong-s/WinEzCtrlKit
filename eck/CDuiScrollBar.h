@@ -217,7 +217,7 @@ public:
 
 		case WM_CREATE:
 		{
-			SwitchDefColorTheme(CTI_SCROLLBAR, ShouldAppsUseDarkMode());
+			utcSwitchDefColorTheme(CTI_SCROLLBAR, ShouldAppsUseDarkMode());
 			m_pec = new CEasingCurve{};
 			InitEasingCurve(m_pec);
 			m_pec->SetCallBack([](float fOld, float f, LPARAM lParam)
@@ -237,7 +237,7 @@ public:
 		return 0;
 
 		case EWM_COLORSCHEMECHANGED:
-			SwitchDefColorTheme(CTI_SCROLLBAR, wParam);
+			utcSwitchDefColorTheme(CTI_SCROLLBAR, wParam);
 			return 0;
 
 		case WM_DESTROY:

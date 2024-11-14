@@ -32,13 +32,13 @@ inline constexpr DWORD ButtonTypeMask = (BS_PUSHBUTTON | BS_DEFPUSHBUTTON |
 	BS_3STATE | BS_AUTO3STATE | BS_GROUPBOX);
 
 #define ECK_BUTTON_DEP_SET \
-	[[deprecated("Please use SetButtonType instead.")]]
+	//[[deprecated("Please use SetButtonType instead.")]]
 #define ECK_BUTTON_DEP_GET \
-	[[deprecated("Please use GetButtonType instead.")]]
+	//[[deprecated("Please use GetButtonType instead.")]]
 #define ECK_BUTTON_DEP_SET_DEF \
-	[[deprecated("Please use SetButtonDefault instead.")]]
+	//[[deprecated("Please use SetButtonDefault instead.")]]
 #define ECK_BUTTON_DEP_GET_DEF \
-	[[deprecated("Please use GetButtonDefault instead.")]]
+	//[[deprecated("Please use GetButtonDefault instead.")]]
 
 // 建议直接使用此类代替其他细分类
 class CButton :public CWnd

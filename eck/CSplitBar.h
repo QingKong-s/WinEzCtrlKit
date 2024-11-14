@@ -299,7 +299,7 @@ public:
 			EckDbgBreak();
 	}
 
-	EckInline constexpr void SetMarkAlpha(BYTE byAlpha)
+	EckInline void SetMarkAlpha(BYTE byAlpha)
 	{
 		m_byMarkAlpha = byAlpha;
 		UpdateMarkWndAlpha();

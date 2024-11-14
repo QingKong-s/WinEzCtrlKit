@@ -1,5 +1,4 @@
 #pragma once
-#include "ECK.h"
 #include "Utility.h"
 #include "CRefStr.h"
 #include "CWnd.h"
