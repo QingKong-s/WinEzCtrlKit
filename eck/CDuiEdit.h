@@ -379,7 +379,7 @@ public:
 
 		case WM_CREATE:
 		{
-			m_SBV.Create(nullptr, DES_VISIBLE| DES_COMPOSITED, 0, 0, 0, 0, 0, this, GetWnd());
+			m_SBV.Create(nullptr, DES_VISIBLE, 0, 0, 0, 0, 0, this, GetWnd());
 			m_SBV.GetScrollView()->SetCallBack([](int iPos, int iPrevPos, LPARAM lParam)
 				{
 					//if (iPos != iPrevPos)

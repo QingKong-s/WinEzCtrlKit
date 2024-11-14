@@ -666,7 +666,7 @@ private:
 		if (hRgn)
 			SelectClipRgn(hDC, nullptr);
 		//---------------画文本
-		COLORREF crText, crTextBk;
+		COLORREF crText;
 		if (nmcd.crText != CLR_DEFAULT)
 			crText = nmcd.crText;
 		else if (m_crText != CLR_DEFAULT)
@@ -783,7 +783,7 @@ private:
 		nm.rc = rc;
 		nm.dwDrawStage = CDDS_PREERASE;
 		const auto lRet = FillNmhdrAndSendNotify(nm, m_hParent, NM_CUSTOMDRAW);
-		if (!lRet & CDRF_SKIPDEFAULT)
+		if (!(lRet & CDRF_SKIPDEFAULT))
 			return;
 		if (m_crBkg == CLR_DEFAULT)
 			SetDCBrushColor(hDC, GetThreadCtx()->crDefBkg);

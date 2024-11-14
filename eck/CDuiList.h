@@ -14,7 +14,10 @@
 
 #include <d2d1_2.h>
 
-#if ECKCXX20
+#if !ECKCXX20
+#error "EckDui requires C++20"
+#endif
+
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 enum
@@ -378,10 +381,12 @@ private:
 
 	EckInline void DragSelMouseMove(POINT pt, WPARAM wParam)
 	{
+		const auto dy = m_psv->GetPos();
 		EckAssert(m_bDraggingSel);
 		RECT rcOld{ m_rcDragSel };
+		OffsetRect(rcOld, 0, -dy);
 
-		m_rcDragSel = MakeRect(pt, m_ptDragSelStart);
+		m_rcDragSel = MakeRect(pt, POINT{ m_ptDragSelStart.x,m_ptDragSelStart.y - dy });
 
 		RECT rcJudge;
 		UnionRect(rcJudge, rcOld, m_rcDragSel);
@@ -443,6 +448,7 @@ private:
 					}
 				}
 			}
+		OffsetRect(m_rcDragSel, 0, dy);
 		InvalidateRect();
 	}
 public:
@@ -530,15 +536,17 @@ public:
 
 			if (m_bDraggingSel)
 			{
+				auto rcDrag = MakeD2DRcF(m_rcDragSel);
+				OffsetRect(rcDrag, 0, -m_psv->GetPos());
 				auto cr = crs.crBkHot;
 				cr.a *= 0.7f;
 				m_pBrush->SetColor(cr);
-				m_pDC->FillRectangle(MakeD2DRcF(m_rcDragSel), m_pBrush);
+				m_pDC->FillRectangle(rcDrag, m_pBrush);
 
 				cr = crs.crBkSelected;
 				cr.a *= 0.7f;
 				m_pBrush->SetColor(cr);
-				m_pDC->DrawRectangle(MakeD2DRcF(m_rcDragSel), m_pBrush, 3.f);
+				m_pDC->DrawRectangle(rcDrag, m_pBrush, 3.f);
 			}
 
 			ECK_DUI_DBG_DRAW_FRAME;
@@ -573,7 +581,6 @@ public:
 
 		case WM_MOUSELEAVE:
 		{
-			ECK_DUILOCK;
 			if (m_idxHot >= 0)
 			{
 				int idx = -1;
@@ -649,6 +656,7 @@ public:
 					m_bDraggingSel = TRUE;
 					m_rcDragSel = {};
 					m_ptDragSelStart = ht.pt;
+					m_ptDragSelStart.y += m_psv->GetPos();
 					m_dCursorToItemMax = INT_MIN;
 				}
 				else
@@ -663,7 +671,6 @@ public:
 
 		case WM_LBUTTONUP:
 		{
-			ECK_DUILOCK;
 			if (m_bDraggingSel)
 			{
 				m_bDraggingSel = FALSE;
@@ -675,7 +682,6 @@ public:
 
 		case WM_CAPTURECHANGED:
 		{
-			ECK_DUILOCK;
 			if (m_bDraggingSel)
 			{
 				m_bDraggingSel = FALSE;
@@ -689,7 +695,7 @@ public:
 			m_pColorTheme = GetWnd()->GetDefColorTheme()[CTI_LIST];
 			m_pColorTheme->Ref();
 
-			m_SB.Create(nullptr, DES_VISIBLE|DES_COMPOSITED, 0,
+			m_SB.Create(nullptr, DES_VISIBLE, 0,
 				0, 0, 0, 0, this, GetWnd());
 			m_psv = m_SB.GetScrollView();
 			m_psv->AddRef();
@@ -898,6 +904,12 @@ public:
 		pImgList->GetImageSize(m_cxImage, m_cyImage);
 	}
 
+	void SetImageSize(int cx, int cy)
+	{
+		m_cxImage = cx;
+		m_cyImage = cy;
+	}
+
 	void SetTextFormat(IDWriteTextFormat* pTf)
 	{
 		std::swap(m_pTf, pTf);
@@ -942,14 +954,6 @@ public:
 			SafeRelease(m_vItem[idx].pLayout);
 		}
 	}
-
-	//void SetImageSize(int cxy)
-	//{
-	//	if (cxy < 0)
-	//		m_cxyImage = m_cyItem - (int)(m_pWnd->GetDs().CommMargin * 2.f);
-	//	else
-	//		m_cxyImage = cxy;
-	//}
 
 	void SetTopExtraSpace(int cy)
 	{
@@ -1035,6 +1039,3 @@ public:
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
-#else
-#error "EckDui requires C++20"
-#endif// ECKCXX20

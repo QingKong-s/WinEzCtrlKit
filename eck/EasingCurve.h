@@ -6,7 +6,6 @@
 * Copyright(C) 2023-2024 QingKong
 */
 #pragma once
-#include "ECK.h"
 #include "ITimeLine.h"
 
 #define ECK_EASING_NAMESPACE_BEGIN namespace Easing {
@@ -598,22 +597,22 @@ class CEasingCurve :public ITimeLine
 public:
 	using FCallBack = void(*)(float fCurrValue, float fOldValue, LPARAM lParam);
 private:
-	float m_fCurrTime = 0.f;
-	float m_fDuration = 0.f;
-	float m_fStart = 0.f;
-	float m_fDistance = 0.f;
+	float m_fCurrTime{};
+	float m_fDuration{};
+	float m_fStart{};
+	float m_fDistance{};
 
-	float m_fCurrValue = 0.f;
+	float m_fCurrValue{};
 
-	int m_iCurrInterval = 0;
+	int m_iCurrInterval{};
 
-	LPARAM m_lParam = 0;
-	FCallBack m_pfnCallBack = NULL;
-	Easing::FAn m_pfnAn = Easing::Linear;
+	LPARAM m_lParam{};
+	FCallBack m_pfnCallBack{};
+	Easing::FAn m_pfnAn{ Easing::Linear };
 
-	BITBOOL m_bActive : 1 = FALSE;
-	BITBOOL m_bReverse : 1 = FALSE;
-	LONG m_cRef = 1;
+	BITBOOL m_bActive : 1{};
+	BITBOOL m_bReverse : 1{};
+	LONG m_cRef{ 1 };
 
 	EckInline BOOL IntTick(float fMs)
 	{

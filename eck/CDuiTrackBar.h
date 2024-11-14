@@ -48,7 +48,7 @@ private:
 
 	float GetTrackRect(D2D1_RECT_F& rc)
 	{
-		rc = GetViewRectF();
+		rc = GetRectF();
 		const float cxyTrack = GetCxyTrack();
 		const float fRadius = m_cxyTrack * 3.f / 4.f;
 		if (m_bVertical)
