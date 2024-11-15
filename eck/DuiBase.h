@@ -768,8 +768,6 @@ class CDuiWnd :public CWnd
 	friend class CElem;
 	friend class CDuiDropTarget;
 private:
-	constexpr static size_t MaxIR = 4;
-
 	//------元素树------
 	CElem* m_pFirstChild{};	// 第一个子元素
 	CElem* m_pLastChild{};	// 最后一个子元素
@@ -808,8 +806,7 @@ private:
 	CEvent m_evtRender{};	// 渲染线程事件对象
 	std::vector<ITimeLine*> m_vTimeLine{};	// 所有时间线
 
-	size_t m_cInvalidRect{};	// 无效矩形数量
-	RECT m_InvalidRect[MaxIR]{};// 无效矩形数组
+	RECT m_rcInvalid{};// 无效矩形数组
 	//------其他------
 	int m_cxClient = 0;		// 客户区宽度
 	int m_cyClient = 0;		// 客户区高度
@@ -860,15 +857,9 @@ private:
 		UpdateDpiSizeF(m_Ds, iDpi);
 	}
 
-	EckInline constexpr size_t IrpIsIntersect(const RECT& rc) const
+	EckInline constexpr BOOL IrpIsIntersect(const RECT& rc) const
 	{
-		__assume(m_cInvalidRect <= MaxIR);
-		EckCounter(m_cInvalidRect, i)
-		{
-			if (IsRectsIntersect(rc, m_InvalidRect[i]))
-				return i;
-		}
-		return SizeTMax;
+		return IsRectsIntersect(rc, m_rcInvalid);
 	}
 
 	void RedrawElem(CElem* pElem, const RECT& rc, float ox, float oy)
@@ -889,11 +880,9 @@ private:
 				!(dwStyle & DES_VISIBLE) || (dwStyle & (DES_DISALLOW_REDRAW | DES_EXTERNAL_CONTENT)) ||
 				IsRectEmpty(rcElem))
 				goto NextElem;
-
-			if (const auto iIR = IrpIsIntersect(rcElem); iIR == SizeTMax)
+			if (!IntersectRect(rcClip, rcElem, m_rcInvalid))
 				goto NextElem;
-			else
-				IntersectRect(rcClip, rcElem, m_InvalidRect[iIR]);
+
 			if (IsElemUseDComp())// 使用DComp合成
 			{
 				RECT rcUpdate{ rcClip };
@@ -972,7 +961,6 @@ private:
 
 	void RedrawDui(const RECT& rc)
 	{
-		__assume(m_cInvalidRect <= MaxIR);
 		switch (m_ePresentMode)
 		{
 		case PresentMode::BitBltSwapChain:
@@ -982,17 +970,14 @@ private:
 			const auto pDC = m_D2d.GetDC();
 			pDC->BeginDraw();
 			pDC->SetTransform(D2D1::Matrix3x2F::Identity());
-			EckCounter(m_cInvalidRect, i)
+			const auto rcF = MakeD2DRcF(rc);
+			if (m_bTransparent)
 			{
-				const auto rcF = MakeD2DRcF(m_InvalidRect[i]);
-				if (m_bTransparent)
-				{
-					pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-					pDC->Clear({});
-					pDC->PopAxisAlignedClip();
-				}
-				FillBackground(rcF);
+				pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+				pDC->Clear({});
+				pDC->PopAxisAlignedClip();
 			}
+			FillBackground(rcF);
 			RedrawElem(GetFirstChildElem(), rc, 0.f, 0.f);
 			pDC->EndDraw();
 		}
@@ -1127,10 +1112,8 @@ private:
 						m_bSizeChanged = FALSE;
 						if (m_cxClient && m_cyClient)
 						{
-							m_InvalidRect[0] = rcClient;
-							m_cInvalidRect = 1u;
+							m_rcInvalid = rcClient;
 							RedrawDui(rcClient);
-							m_cInvalidRect = 0u;
 							m_cs.Leave();
 							if (m_ePresentMode == PresentMode::BitBltSwapChain ||
 								m_ePresentMode == PresentMode::FlipSwapChain)
@@ -1138,30 +1121,18 @@ private:
 						}
 						else
 						{
-							m_cInvalidRect = 0u;
+							m_rcInvalid = {};
 							m_cs.Leave();
 						}
 					}
 					else ECKLIKELY
 					{
 						// 更新脏矩形
-						RECT rc{};
-						__assume(m_cInvalidRect <= MaxIR);
-						if (m_cInvalidRect)
+						if (!IsRectEmpty(m_rcInvalid))
 						{
-							const auto cRc = m_cInvalidRect;
-							RECT aRc[MaxIR];
-							memcpy(aRc, m_InvalidRect, sizeof(RECT) * cRc);
-
-							const RECT rcClient{ 0,0,m_cxClient,m_cyClient };
-							EckCounter(cRc, i)
-							{
-								auto& e = aRc[i];
-								IntersectRect(e, e, rcClient);
-								UnionRect(rc, rc, e);
-							}
-							RedrawDui(rc);
-							m_cInvalidRect = 0u;
+							RedrawDui(m_rcInvalid);
+							auto rc{ m_rcInvalid };
+							m_rcInvalid = {};
 							m_cs.Leave();
 							// 呈现
 							switch (m_ePresentMode)
@@ -1173,8 +1144,8 @@ private:
 							{
 								DXGI_PRESENT_PARAMETERS pp
 								{
-									.DirtyRectsCount = (UINT)cRc,
-									.pDirtyRects = aRc
+									.DirtyRectsCount = 1,
+									.pDirtyRects = &rc,
 								};
 								m_D2d.GetSwapChain()->Present1(0, 0, &pp);
 							}
@@ -1491,8 +1462,7 @@ public:
 				m_cxClient = rc.right;
 				m_cyClient = rc.bottom;
 
-				m_cInvalidRect = 1u;
-				m_InvalidRect[0] = { 0,0,m_cxClient,m_cyClient };
+				m_rcInvalid = { 0,0,m_cxClient,m_cyClient };
 
 				m_evtRender.NoSignal();
 				StartupRenderThread();
@@ -1696,37 +1666,8 @@ public:
 
 	void IrUnion(const RECT& rc)
 	{
-		__assume(m_cInvalidRect <= MaxIR);
 		EckAssert(!IsRectEmpty(rc));
-		// 此种情况无法保存无效区域广义并之内、每个无效区域之外的已绘制内容，必须退化为单个无效矩形
-		if (1 && m_ePresentMode == PresentMode::DCompositionSurface)
-		{
-			if (!m_cInvalidRect)
-				m_InvalidRect[0] = rc;
-			else
-				UnionRect(m_InvalidRect[0], m_InvalidRect[0], rc);
-			m_cInvalidRect = 1u;
-			return;
-		}
-		EckCounter(m_cInvalidRect, i)
-		{
-			if (IsRectsIntersect(m_InvalidRect[i], rc))
-			{
-				UnionRect(m_InvalidRect[i], m_InvalidRect[i], rc);
-				return;
-			}
-		}
-
-		if (m_cInvalidRect != MaxIR) [[likely]]// 若列表未满，插入到末尾
-			m_InvalidRect[m_cInvalidRect++] = rc;
-		else// 若列表已满，合并整个列表，然后插入到末尾
-		{
-			UnionRect(m_InvalidRect[0], m_InvalidRect[0], m_InvalidRect[1]);
-			UnionRect(m_InvalidRect[2], m_InvalidRect[2], m_InvalidRect[3]);
-			UnionRect(m_InvalidRect[0], m_InvalidRect[0], m_InvalidRect[2]);
-			m_InvalidRect[1] = rc;
-			m_cInvalidRect = 2u;
-		}
+		UnionRect(m_rcInvalid, m_rcInvalid, rc);
 	}
 
 	EckInline void WakeRenderThread()
@@ -1754,8 +1695,7 @@ public:
 	EckInline void Redraw()
 	{
 		ECK_DUILOCKWND;
-		m_cInvalidRect = 1u;
-		m_InvalidRect[0] = { 0,0,m_cxClient,m_cyClient };
+		m_rcInvalid = { 0,0,m_cxClient,m_cyClient };
 		WakeRenderThread();
 	}
 
