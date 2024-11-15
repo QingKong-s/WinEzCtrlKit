@@ -139,8 +139,8 @@ enum
 // PaintStruct
 struct ELEMPAINTSTRU
 {
-	D2D1_RECT_F rcfClip;		// 剪裁矩形，相对客户区
 	const RECT* prcClip;		// 剪裁矩形，相对客户区
+	D2D1_RECT_F rcfClip;		// 剪裁矩形，相对客户区
 	D2D1_RECT_F rcfClipInElem;	// 剪裁矩形，相对元素
 };
 
@@ -188,7 +188,8 @@ protected:
 
 
 	BOOL IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId = 0, PCVOID pData = nullptr);
+		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd,
+		int iId = 0, PCVOID pData = nullptr);
 
 	void DestroyChild(CElem* pElem)
 	{
@@ -363,6 +364,12 @@ public:
 	{
 		ECK_DUILOCK;
 		return { 0.f,0.f,m_rcf.right - m_rcf.left,m_rcf.bottom - m_rcf.top };
+	}
+
+	EckInline RECT GetViewRect() const
+	{
+		ECK_DUILOCK;
+		return { 0,0,m_rc.right - m_rc.left,m_rc.bottom - m_rc.top };
 	}
 
 	EckInline constexpr const D2D1_RECT_F& GetRectF() const { return m_rcf; }
@@ -580,7 +587,7 @@ public:
 #pragma region OthersProp
 	// 取标题
 	EckInline const CRefStrW& GetText() const { return m_rsText; }
-	// 置标题【不能在渲染线程调用】
+	// 置标题
 	EckInline void SetText(PCWSTR pszText, int cchText = -1)
 	{
 		ECK_DUILOCK;
@@ -733,11 +740,10 @@ public:
 
 	EckInline void SetPostCompositedRect(const RECT& rc)
 	{
+		ECK_DUILOCK;
 		m_rcComp = rc;
 		m_rcCompInClient = rc;
-		OffsetRect(m_rcCompInClient,
-			GetRectInClient().left,
-			GetRectInClient().top);
+		OffsetRect(m_rcCompInClient, m_rcInClient.left, m_rcInClient.top);
 	}
 
 	EckInline const RECT& GetWholeRectInClient() const
@@ -868,7 +874,7 @@ private:
 	void RedrawElem(CElem* pElem, const RECT& rc, float ox, float oy)
 	{
 		const auto pDC = m_D2d.GetDC();
-		RECT rcClip;
+		RECT rcClip;// 相对客户区
 		ID2D1Image* pOldTarget{};
 
 		IDXGISurface1* pDxgiSurface{};
@@ -1693,10 +1699,13 @@ public:
 		__assume(m_cInvalidRect <= MaxIR);
 		EckAssert(!IsRectEmpty(rc));
 		// 此种情况无法保存无效区域广义并之内、每个无效区域之外的已绘制内容，必须退化为单个无效矩形
-		if (m_ePresentMode == PresentMode::DCompositionSurface)
+		if (1 && m_ePresentMode == PresentMode::DCompositionSurface)
 		{
+			if (!m_cInvalidRect)
+				m_InvalidRect[0] = rc;
+			else
+				UnionRect(m_InvalidRect[0], m_InvalidRect[0], rc);
 			m_cInvalidRect = 1u;
-			UnionRect(m_InvalidRect[0], m_InvalidRect[0], rc);
 			return;
 		}
 		EckCounter(m_cInvalidRect, i)
@@ -1959,14 +1968,6 @@ inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			m_pDC->DrawBitmap(GetCompBitmap(), (D2D1_RECT_F*)wParam,
 				1.f, D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
 		}
-	}
-	return 0;
-
-	case WM_MOVE:
-	case WM_SIZE:
-	{
-		if (GetStyle() & DES_COMPOSITED)
-			SetPostCompositedRect(GetRect());
 	}
 	return 0;
 	}
@@ -2314,7 +2315,7 @@ inline HRESULT CDuiWnd::EnableDragDrop(BOOL bEnable)
 			return hr;
 		}
 	}
-	return S_FALSE;// indicate do nothing
+	return S_FALSE;// Indicate do nothing.
 }
 
 ECK_DUI_NAMESPACE_END
