@@ -1679,7 +1679,8 @@ EckInline constexpr LPARAM MakeKeyStrokeFlag(USHORT cRepeat, UINT uScanCode, BOO
 		(bPreviousState << 30) | (bTransition << 31);
 }
 
-EckInline constexpr void RectCornerToPoint(const D2D1_RECT_F& rc, D2D1_POINT_2F* ppt)
+EckInline constexpr void RectCornerToPoint(const D2D1_RECT_F& rc,
+	_Out_writes_(4) D2D1_POINT_2F* ppt)
 {
 	ppt[0] = D2D1_POINT_2F{ rc.left,rc.top };
 	ppt[1] = D2D1_POINT_2F{ rc.right,rc.top };

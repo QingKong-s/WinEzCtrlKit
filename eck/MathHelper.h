@@ -160,15 +160,14 @@ inline DirectX::XMMATRIX CalcDistortMatrix(const D2D1_RECT_F& rc, const D2D1_POI
 	/*
 	*			N		  B			A
 	* (k0, l0) -> (0, 0) -> (0, 0) -> (x0, y0)
-	* (k1, l1) -> (0, 1) -> (0, 1) -> (x1, y1)
-	* (k2, l2) -> (1, 0) -> (1, 0) -> (x2, y2)
+	* (k1, l1) -> (1, 0) -> (1, 0) -> (x1, y1)
+	* (k2, l2) -> (0, 1) -> (0, 1) -> (x2, y2)
 	* (k3, l3) -> (1, 1) -> (a, b) -> (x3, y3)
 	* 首先利用N将任意矩形变换为单位正方形，之后的变换可以拆解为一个仿射变换
 	* 和一个非仿射变换。规定B为仿射变换，则由前三条已知变换可确定矩阵B，因此
 	* 可得(a, b)的值。设A[3][3] = 1，利用全部四条变换可知变换矩阵A的各元
 	* 素与(a, b)的关系，从而可求得A矩阵。此时N、B、A矩阵均已确定，顺次相乘
 	* 即为最终变换。
-	* 参考资料：Windows程序设计第六版（清华大学出版社）349页
 	*/
 	// 求N变换
 	const float cx = rc.right - rc.left;
@@ -232,24 +231,24 @@ inline DirectX::XMMATRIX CalcInverseDistortMatrix(const D2D1_RECT_F& rc,
 	/*
 	*			A		  B			N
 	* (x0, y0) -> (0, 0) -> (0, 0) -> (k0, l0)
-	* (x1, y1) -> (0, 1) -> (0, 1) -> (k1, l1)
-	* (x2, y2) -> (1, 0) -> (1, 0) -> (k2, l2)
+	* (x1, y1) -> (1, 0) -> (1, 0) -> (k1, l1)
+	* (x2, y2) -> (0, 1) -> (0, 1) -> (k2, l2)
 	* (x3, y3) -> (a, b) -> (1, 1) -> (k3, l3)
 	* 过程与CalcDistortMatrix相反
 	*/
 	// 求A变换
-	const float fDen = (pt[0].x * pt[1].y
-		- pt[1].x * pt[0].y
-		- pt[0].x * pt[2].y
-		+ pt[2].x * pt[0].y
-		+ pt[1].x * pt[2].y
-		- pt[2].x * pt[1].y);
+	const float fDen = (pt[0].x * pt[2].y
+		- pt[2].x * pt[0].y
+		- pt[0].x * pt[1].y
+		+ pt[1].x * pt[0].y
+		+ pt[2].x * pt[1].y
+		- pt[1].x * pt[2].y);
 	const DirectX::XMFLOAT4X4 MA(
-		(pt[0].y - pt[1].y) / fDen, -(pt[0].y - pt[2].y) / fDen, 0, 0,
-		-(pt[0].x - pt[1].x) / fDen, (pt[0].x - pt[2].x) / fDen, 0, 0,
+		(pt[0].y - pt[2].y) / fDen, -(pt[0].y - pt[1].y) / fDen, 0, 0,
+		-(pt[0].x - pt[2].x) / fDen, (pt[0].x - pt[1].x) / fDen, 0, 0,
 		0, 0, 0, 0,
-		(pt[0].x * pt[1].y - pt[1].x * pt[0].y) / fDen,
-		-(pt[0].x * pt[2].y - pt[2].x * pt[0].y) / fDen, 0, 1.f);
+		(pt[0].x * pt[2].y - pt[2].x * pt[0].y) / fDen,
+		-(pt[0].x * pt[1].y - pt[1].x * pt[0].y) / fDen, 0, 1.f);
 	const auto TA = DirectX::XMLoadFloat4x4(&MA);
 	// 求B变换
 	const float a = (MA._11 * pt[3].x + MA._21 * pt[3].y + MA._41);

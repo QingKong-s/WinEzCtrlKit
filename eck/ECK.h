@@ -74,6 +74,8 @@
 #define ECK_NAMESPACE_END			}
 #define ECK_PRIV_NAMESPACE_BEGIN	namespace Priv {
 #define ECK_PRIV_NAMESPACE_END		}
+#define ECK_DUI_NAMESPACE_BEGIN		namespace Dui {
+#define ECK_DUI_NAMESPACE_END		}
 
 #pragma region Template
 ECK_NAMESPACE_BEGIN
