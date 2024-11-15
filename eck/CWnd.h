@@ -1261,7 +1261,8 @@ public:
 };
 ECK_RTTI_IMPL_INLINE(CWnd);
 
-EckInline void AttachDlgItems(HWND hDlg, int cItem, CWnd* const* pWnd, const int* iId)
+EckInline void AttachDlgItems(HWND hDlg, size_t cItem,
+	_In_reads_(cItem) CWnd* const* pWnd, _In_reads_(cItem) const int* iId)
 {
 	EckCounter(cItem, i)
 		pWnd[i]->AttachNew(GetDlgItem(hDlg, iId[i]));

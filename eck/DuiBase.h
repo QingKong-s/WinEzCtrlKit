@@ -22,9 +22,9 @@
 #include <dcomp.h>
 #include <oleacc.h>
 
-#if ECKCXX20
-#define ECK_DUI_NAMESPACE_BEGIN namespace Dui {
-#define ECK_DUI_NAMESPACE_END }
+#if !ECKCXX20
+#error "EckDui requires C++20"
+#endif// !ECKCXX20
 
 #ifdef _DEBUG
 #	define ECK_DUI_DBG_DRAW_FRAME					\
@@ -32,24 +32,24 @@
 			ID2D1SolidColorBrush* ECKPRIV_pBr___;	\
 			m_pDC->CreateSolidColorBrush(D2D1::ColorF(1.f, 0.f, 0.f, 1.f), &ECKPRIV_pBr___); \
 			if (ECKPRIV_pBr___) {					\
-				m_pDC->DrawRectangle(GetRectF(), ECKPRIV_pBr___, 1.f);	\
+				m_pDC->DrawRectangle(GetViewRectF(), ECKPRIV_pBr___, 1.f);	\
 				ECKPRIV_pBr___->Release();			\
 			}										\
 		}
-
-#	define EckDuiAssertThread() EckAssert(GetWnd()->m_tidUi == NtCurrentThreadId32())
-
 #else
 #	define ECK_DUI_DBG_DRAW_FRAME ;
-#	define EckDuiAssertThread()
 #endif
 
 #define ECK_ELEMTOP			((::eck::Dui::CElem*)HWND_TOP)
 #define ECK_ELEMBOTTOM		((::eck::Dui::CElem*)HWND_BOTTOM)
 
+#define ECK_DUILOCK		::eck::CCsGuard ECKPRIV_DUI_LOCK_GUARD(GetCriticalSection())
+#define ECK_DUILOCKWND	ECK_DUILOCK
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
+class CElem;
+
 // 元素样式
 enum
 {
@@ -78,6 +78,18 @@ enum :UINT
 	EE_PRIVATE_BEGIN = 0x0400
 };
 
+// DUI图形系统呈现模式
+enum class PresentMode
+{
+	//						|  等待	|				透明混合					|	 备注	|
+	BitBltSwapChain,	//	|	0	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|  性能极差	|
+	FlipSwapChain,		//	|	1	|不支持									|  性能极好	|
+	DCompositionSurface,//	|	0	|支持，建议加入WS_EX_NOREDIRECTIONBITMAP	|  建议使用	|
+	WindowRenderTarget,	//  |	1	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|  兼容性好	|
+	AllDComp,			//	|	   与DCompositionSurface相同，但所有元素都使用DComp合成		|
+};
+
+// 拖放信息
 struct DRAGDROPINFO
 {
 	IDataObject* pDataObj;
@@ -87,20 +99,22 @@ struct DRAGDROPINFO
 	HRESULT hr;
 };
 
-class CElem;
+// 元素混合信息
 struct COMP_INFO
 {
 	CElem* pElem;
 	const D2D1_RECT_F* prc;
 };
 
+// 元素混合坐标变换信息
 struct COMP_POS
 {
 	CElem* pElem;
-	POINT pt;
+	POINT pt;		// 相对pElem
 	BOOL bNormalToComp;
 };
 
+// 事件
 enum
 {
 	ECKPRIV_EWM_PLACEHOLDER = WM_USER_SAFE,
@@ -116,11 +130,13 @@ enum
 	EWM_PRIVBEGIN,
 };
 
+// BeginPaint选项
 enum
 {
 	EBPF_DO_NOT_FILLBK = (1u << 0),
 };
 
+// PaintStruct
 struct ELEMPAINTSTRU
 {
 	D2D1_RECT_F rcfClip;		// 剪裁矩形，相对客户区
@@ -128,13 +144,11 @@ struct ELEMPAINTSTRU
 	D2D1_RECT_F rcfClipInElem;	// 剪裁矩形，相对元素
 };
 
+// 所有通知结构的头
 struct DUINMHDR
 {
 	UINT uCode;
 };
-
-#define ECK_DUILOCK		::eck::CCsGuard ECKPRIV_DUI_LOCK_GUARD(GetCriticalSection())
-#define ECK_DUILOCKWND	::eck::CCsGuard ECKPRIV_DUI_LOCK_GUARD(GetCriticalSection())
 
 class CElem :public ILayout
 {
@@ -238,12 +252,10 @@ protected:
 		m_rcfInClient = m_rcf;
 		if (m_pParent)
 		{
-			OffsetRect(
-				m_rcInClient,
+			OffsetRect(m_rcInClient,
 				m_pParent->GetRectInClient().left,
 				m_pParent->GetRectInClient().top);
-			OffsetRect(
-				m_rcfInClient,
+			OffsetRect(m_rcfInClient,
 				m_pParent->GetRectInClientF().left,
 				m_pParent->GetRectInClientF().top);
 		}
@@ -255,6 +267,8 @@ protected:
 	{
 		if (dwStyle & DES_BLURBKG)
 			dwStyle |= (DES_TRANSPARENT | DES_CONTENT_EXPAND);
+		if (m_pParent && (m_pParent->GetStyle() & DES_COMPOSITED))
+			dwStyle |= DES_COMPOSITED;
 		if (!(m_dwStyle & DES_COMPOSITED) && (dwStyle & DES_COMPOSITED))
 		{
 			if (!(dwStyle & DES_INPLACE_COMP))
@@ -345,6 +359,12 @@ public:
 	EckInline constexpr auto& GetSignal() { return m_Sig; }
 	EckInline CCriticalSection& GetCriticalSection() const;
 #pragma region PosSize
+	EckInline D2D1_RECT_F GetViewRectF() const
+	{
+		ECK_DUILOCK;
+		return { 0.f,0.f,m_rcf.right - m_rcf.left,m_rcf.bottom - m_rcf.top };
+	}
+
 	EckInline constexpr const D2D1_RECT_F& GetRectF() const { return m_rcf; }
 	EckInline constexpr const RECT& GetRect() const { return m_rc; }
 	EckInline constexpr const RECT& GetRectInClient() const { return m_rcInClient; }
@@ -464,11 +484,10 @@ public:
 	// 取上一元素，Z序低于当前
 	EckInline constexpr CElem* GetPrevElem() const { return m_pPrev; }
 
-	CElem* ElemFromPoint(POINT pt, LRESULT* pResult = nullptr)
+	static CElem* ElemFromPoint(CElem* pElem, POINT pt, LRESULT* pResult = nullptr)
 	{
 		COMP_POS cp;
-		cp.bNormalToComp = FALSE;
-		auto pElem = GetLastChildElem();
+		cp.bNormalToComp = TRUE;
 		while (pElem)
 		{
 			if (pElem->GetStyle() & DES_VISIBLE)
@@ -477,7 +496,9 @@ public:
 				if (pElem->IsNeedCoordinateTransform())
 				{
 					cp.pElem = pElem;
+					pElem->ClientToElem(cp.pt);
 					pElem->CallEvent(EWM_COMP_POS, (WPARAM)&cp, 0);
+					pElem->ElemToClient(cp.pt);
 				}
 				if (PtInRect(pElem->GetRectInClient(), cp.pt))
 				{
@@ -497,6 +518,11 @@ public:
 			pElem = pElem->GetPrevElem();
 		}
 		return nullptr;
+	}
+
+	EckInline CElem* ElemFromPoint(POINT pt, LRESULT* pResult = nullptr)
+	{
+		return ElemFromPoint(GetLastChildElem(), pt, pResult);
 	}
 
 	EckInline void ClientToElem(RECT& rc) const
@@ -731,29 +757,12 @@ public:
 	}
 };
 
-// DUI图形系统呈现模式
-enum class PresentMode
-{
-	//						|  等待	|				透明混合					|	 备注	|
-	BitBltSwapChain,	//	|	0	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|  性能极差	|
-	FlipSwapChain,		//	|	1	|不支持									|  性能极好	|
-	DCompositionSurface,//	|	0	|支持，建议加入WS_EX_NOREDIRECTIONBITMAP	|  建议使用	|
-	WindowRenderTarget,	//  |	1	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|  兼容性好	|
-	AllDComp,			//	|	   与DCompositionSurface相同，但所有元素都使用DComp合成		|
-};
-
-/// <summary>
-/// DUI窗体类
-/// </summary>
 class CDuiWnd :public CWnd
 {
 	friend class CElem;
 	friend class CDuiDropTarget;
 private:
 	constexpr static size_t MaxIR = 4;
-#ifdef _DEBUG
-	DWORD m_tidUi{};
-#endif
 
 	//------元素树------
 	CElem* m_pFirstChild{};	// 第一个子元素
@@ -835,7 +844,7 @@ private:
 			POINT pt;
 			GetCursorPos(&pt);
 			ScreenToClient(m_hWnd, &pt);
-			m_pHoverElem = HitTest(pt);
+			m_pHoverElem = ElemFromPoint(pt);
 		}
 	}
 
@@ -1040,7 +1049,7 @@ private:
 		ECK_UNREACHABLE;
 	}
 
-	EckInline void StartupRenderThread()
+	void StartupRenderThread()
 	{
 		std::thread t([this]
 			{
@@ -1197,8 +1206,8 @@ private:
 		t.detach();
 	}
 public:
-	// 一般不覆写此方法
 	ECK_CWND_CREATE;
+	// 一般不覆写此方法
 	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
 	{
@@ -1217,11 +1226,27 @@ public:
 			if (m_bMouseCaptured)
 			{
 				POINT pt ECK_GET_PT_LPARAM(lParam);
-				m_pCurrNcHitTestElem = HitTest(pt);
+				m_pCurrNcHitTestElem = ElemFromPoint(pt);
 			}
 			auto pElem = (m_pMouseCaptureElem ? m_pMouseCaptureElem : m_pCurrNcHitTestElem);
 			if (pElem)
-				pElem->CallEvent(uMsg, wParam, lParam);
+			{
+				if (pElem->IsNeedCoordinateTransform())
+				{
+					COMP_POS cp
+					{
+						.pElem = pElem,
+						.pt = ECK_GET_PT_LPARAM(lParam),
+						.bNormalToComp = TRUE
+					};
+					pElem->ClientToElem(cp.pt);
+					pElem->CallEvent(EWM_COMP_POS, (WPARAM)&cp, 0);
+					pElem->ElemToClient(cp.pt);
+					pElem->CallEvent(uMsg, wParam, MAKELPARAM(cp.pt.x, cp.pt.y));
+				}
+				else
+					pElem->CallEvent(uMsg, wParam, lParam);
+			}
 
 			if (uMsg == WM_MOUSEMOVE)// 移出监听
 			{
@@ -1246,7 +1271,7 @@ public:
 			{
 				POINT pt ECK_GET_PT_LPARAM(lParam);
 				ScreenToClient(hWnd, &pt);
-				m_pCurrNcHitTestElem = HitTest(pt);
+				m_pCurrNcHitTestElem = ElemFromPoint(pt);
 			}
 			auto pElem = (m_pMouseCaptureElem ? m_pMouseCaptureElem : m_pCurrNcHitTestElem);
 			if (pElem)
@@ -1292,7 +1317,7 @@ public:
 			POINT pt ECK_GET_PT_LPARAM(lParam);
 			ScreenToClient(hWnd, &pt);
 			LRESULT lResult;
-			if (m_pCurrNcHitTestElem = HitTest(pt, &lResult))
+			if (m_pCurrNcHitTestElem = ElemFromPoint(pt, &lResult))
 				return lResult;
 		}
 		break;
@@ -1586,39 +1611,9 @@ public:
 		}
 	}
 
-	CElem* HitTest(POINT pt, LRESULT* pResult = nullptr)
+	EckInline CElem* ElemFromPoint(POINT pt, LRESULT* pResult = nullptr)
 	{
-		COMP_POS cp;
-		cp.bNormalToComp = FALSE;
-		auto pElem = m_pLastChild;
-		while (pElem)
-		{
-			if (pElem->GetStyle() & DES_VISIBLE)
-			{
-				cp.pt = pt;
-				if (pElem->IsNeedCoordinateTransform())
-				{
-					cp.pElem = pElem;
-					pElem->CallEvent(EWM_COMP_POS, (WPARAM)&cp, 0);
-				}
-				if (PtInRect(pElem->GetRectInClient(), cp.pt))
-				{
-					auto pHit = pElem->ElemFromPoint(pt, pResult);
-					if (pHit)
-						return pHit;
-					else if (LRESULT lResult;
-						(lResult = pElem->CallEvent(WM_NCHITTEST,
-							0, MAKELPARAM(cp.pt.x, cp.pt.y))) != HTTRANSPARENT)
-					{
-						if (pResult)
-							*pResult = lResult;
-						return pElem;
-					}
-				}
-			}
-			pElem = pElem->GetPrevElem();
-		}
-		return nullptr;
+		return CElem::ElemFromPoint(GetLastChildElem(), pt, pResult);
 	}
 
 	CElem* SetFocusElem(CElem* pElem)
@@ -1633,8 +1628,7 @@ public:
 		pElem->CallEvent(WM_SETFOCUS, (WPARAM)pOld, 0);
 		return pOld;
 	}
-
-	EckInline CElem* GetFocusElem() const { return m_pFocusElem; }
+	EckInline constexpr CElem* GetFocusElem() const { return m_pFocusElem; }
 
 	CElem* SetCaptureElem(CElem* pElem)
 	{
@@ -1657,10 +1651,10 @@ public:
 		// m_pMouseCaptureElem->CallEvent(WM_CAPTURECHANGED, 0, nullptr);
 		// m_pMouseCaptureElem = nullptr;
 	}
-	EckInline CElem* GetCaptureElem() const { return m_pMouseCaptureElem; }
+	EckInline constexpr CElem* GetCaptureElem() const { return m_pMouseCaptureElem; }
 
-	EckInline CElem* GetFirstChildElem() const { return m_pFirstChild; }
-	EckInline CElem* GetLastChildElem() const { return m_pLastChild; }
+	EckInline constexpr CElem* GetFirstChildElem() const { return m_pFirstChild; }
+	EckInline constexpr CElem* GetLastChildElem() const { return m_pLastChild; }
 
 	EckInline const DPIS& GetDs() const { return m_Ds; }
 
@@ -1833,6 +1827,7 @@ inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	m_iId = iId;
 	m_pWnd = pWnd;
 	m_pDC = pWnd->m_D2d.GetDC();
+	m_pParent = pParent;
 
 	tcSetStyleWorker(dwStyle);
 
@@ -1843,7 +1838,6 @@ inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 #endif
 	auto& pParentLastChild = (pParent ? pParent->m_pLastChild : pWnd->m_pLastChild);
 	auto& pParentFirstChild = (pParent ? pParent->m_pFirstChild : pWnd->m_pFirstChild);
-	m_pParent = pParent;
 	if (m_pParent)
 		++m_pParent->m_cChildren;
 	else
@@ -1941,12 +1935,20 @@ inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_NCHITTEST:
 		return HTCLIENT;
+
 	case WM_ERASEBKGND:
 	{
 		if (GetWnd()->IsElemUseDComp() || (GetStyle() & DES_COMPOSITED))
 			m_pDC->Clear({});
 	}
-	return 1;
+	return TRUE;
+
+	case EWM_COMP_POS:
+	{
+		if (GetParentElem())
+			return GetParentElem()->CallEvent(uMsg, wParam, lParam);
+	}
+	return 0;
 	case EWM_COMPOSITE:
 	{
 		if (GetParentElem())
@@ -1959,18 +1961,7 @@ inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 	}
 	return 0;
-	case WM_KILLFOCUS:
-	{
-		DUINMHDR nm{ EE_KILLFOCUS };
-		GenElemNotifyParent(&nm);
-	}
-	return 0;
-	case WM_SETFOCUS:
-	{
-		DUINMHDR nm{ EE_SETFOCUS };
-		GenElemNotifyParent(&nm);
-	}
-	return 0;
+
 	case WM_MOVE:
 	case WM_SIZE:
 	{
@@ -2222,7 +2213,7 @@ public:
 		if (m_pWnd->SendMsg(WM_DRAGENTER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
 			return ddi.hr;
 
-		auto pElem = m_pWnd->HitTest(pt0);
+		auto pElem = m_pWnd->ElemFromPoint(pt0);
 		EckAssert(!m_pWnd->m_pDragDropElem);
 		m_pWnd->m_pDragDropElem = pElem;
 
@@ -2241,7 +2232,7 @@ public:
 		if (m_pWnd->SendMsg(WM_DRAGOVER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
 			return ddi.hr;
 
-		auto pElem = m_pWnd->HitTest(pt0);
+		auto pElem = m_pWnd->ElemFromPoint(pt0);
 		const auto pOldElem = m_pWnd->m_pDragDropElem;
 		m_pWnd->m_pDragDropElem = pElem;
 
@@ -2294,7 +2285,7 @@ public:
 		}
 		m_pWnd->m_pDataObj = nullptr;
 
-		auto pElem = m_pWnd->HitTest(pt0);
+		auto pElem = m_pWnd->ElemFromPoint(pt0);
 		m_pWnd->m_pDragDropElem = nullptr;
 		if (pElem)
 			return (HRESULT)pElem->CallEvent(WM_DROP, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
@@ -2328,6 +2319,3 @@ inline HRESULT CDuiWnd::EnableDragDrop(BOOL bEnable)
 
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
-#else
-#error "EckDui requires C++20"
-#endif// ECKCXX20
