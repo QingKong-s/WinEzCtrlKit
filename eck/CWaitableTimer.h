@@ -1,7 +1,7 @@
-/*
+ï»¿/*
 * WinEzCtrlKit Library
 *
-* CWaitableTimer.h : ¿ÉµÈ´ı¶¨Ê±Æ÷
+* CWaitableTimer.h : å¯ç­‰å¾…å®šæ—¶å™¨
 *
 * Copyright(C) 2024 QingKong
 */

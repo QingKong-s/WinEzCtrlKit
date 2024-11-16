@@ -105,7 +105,7 @@ protected:
 	}
 
 	// 合并应更新完整区域的元素矩形
-	void tcIrpUnionContentExpandElemRect(CElem* pLast, RECT& rcInClient)
+	void tcIrpUnionContentExpandElemRect(CElem* pLast, _Inout_ RECT& rcInClient)
 	{
 		while (pLast)
 		{
@@ -265,7 +265,7 @@ public:
 	EckInline constexpr CDuiWnd* GetWnd() const { return m_pWnd; }
 	EckInline constexpr ID2D1DeviceContext* GetDC() const { return m_pDC; }
 	EckInline constexpr auto& GetSignal() { return m_Sig; }
-	EckInline CCriticalSection& GetCriticalSection() const;
+	EckInline constexpr CCriticalSection& GetCriticalSection() const;
 #pragma region PosSize
 	EckInline D2D1_RECT_F GetViewRectF() const
 	{
@@ -408,7 +408,7 @@ public:
 	// 取上一元素，Z序低于当前
 	EckInline constexpr CElem* GetPrevElem() const { return m_pPrev; }
 
-	static CElem* ElemFromPoint(CElem* pElem, POINT pt, LRESULT* pResult = nullptr)
+	static CElem* ElemFromPoint(CElem* pElem, POINT pt, _Out_opt_ LRESULT* pResult = nullptr)
 	{
 		COMP_POS cp;
 		cp.bNormalToComp = TRUE;
@@ -441,60 +441,62 @@ public:
 			}
 			pElem = pElem->GetPrevElem();
 		}
+		if (pResult)
+			*pResult = HTNOWHERE;
 		return nullptr;
 	}
 
-	EckInline CElem* ElemFromPoint(POINT pt, LRESULT* pResult = nullptr)
+	EckInline CElem* ElemFromPoint(POINT pt, _Out_opt_ LRESULT* pResult = nullptr)
 	{
 		return ElemFromPoint(GetLastChildElem(), pt, pResult);
 	}
 
-	EckInline void ClientToElem(RECT& rc) const
+	EckInline void ClientToElem(_Inout_ RECT& rc) const
 	{
 		ECK_DUILOCK;
 		OffsetRect(rc, -m_rcInClient.left, -m_rcInClient.top);
 	}
 
-	EckInline void ClientToElem(D2D1_RECT_F& rc) const
+	EckInline void ClientToElem(_Inout_ D2D1_RECT_F& rc) const
 	{
 		ECK_DUILOCK;
 		OffsetRect(rc, -m_rcfInClient.left, -m_rcfInClient.top);
 	}
 
-	EckInline void ClientToElem(POINT& pt) const
+	EckInline void ClientToElem(_Inout_ POINT& pt) const
 	{
 		ECK_DUILOCK;
 		pt.x -= m_rcInClient.left;
 		pt.y -= m_rcInClient.top;
 	}
 
-	EckInline void ClientToElem(D2D1_POINT_2F& pt) const
+	EckInline void ClientToElem(_Inout_ D2D1_POINT_2F& pt) const
 	{
 		ECK_DUILOCK;
 		pt.x -= m_rcfInClient.left;
 		pt.y -= m_rcfInClient.top;
 	}
 
-	EckInline void ElemToClient(RECT& rc) const
+	EckInline void ElemToClient(_Inout_ RECT& rc) const
 	{
 		ECK_DUILOCK;
 		OffsetRect(rc, m_rcInClient.left, m_rcInClient.top);
 	}
 
-	EckInline void ElemToClient(D2D1_RECT_F& rc) const
+	EckInline void ElemToClient(_Inout_ D2D1_RECT_F& rc) const
 	{
 		ECK_DUILOCK;
 		OffsetRect(rc, m_rcfInClient.left, m_rcfInClient.top);
 	}
 
-	EckInline void ElemToClient(POINT& pt) const
+	EckInline void ElemToClient(_Inout_ POINT& pt) const
 	{
 		ECK_DUILOCK;
 		pt.x += m_rcInClient.left;
 		pt.y += m_rcInClient.top;
 	}
 
-	EckInline void ElemToClient(D2D1_POINT_2F& pt) const
+	EckInline void ElemToClient(_Inout_ D2D1_POINT_2F& pt) const
 	{
 		ECK_DUILOCK;
 		pt.x += m_rcfInClient.left;
@@ -620,9 +622,9 @@ public:
 	/// 目前所有元素仅能在处理WM_PAINT事件时绘制，处理时必须调用此函数且必须与EndPaint配对
 	/// </summary>
 	/// <param name="eps">画图信息结构的引用，将返回画图参数</param>
-	/// <param name="wParam">事件wParam，目前设为0</param>
+	/// <param name="wParam">事件wParam，目前未用</param>
 	/// <param name="lParam">事件lParam</param>
-	/// <param name="uFlags">标志</param>
+	/// <param name="uFlags">标志，EBPF_常量</param>
 	void BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uFlags = 0u);
 
 	/// <summary>
@@ -665,7 +667,7 @@ public:
 	}
 
 	// 取混合位图
-	EckInline constexpr ID2D1Bitmap1* GetCompBitmap() const;
+	EckInline constexpr ID2D1Bitmap1* GetCacheBitmap() const;
 
 	// 是否需要坐标变换
 	EckInline BOOL IsNeedCoordinateTransform() const
@@ -730,6 +732,7 @@ private:
 	BITBOOL m_bRenderThreadShouldExit : 1 = FALSE;	// 渲染线程应当退出
 	BITBOOL m_bSizeChanged : 1 = FALSE;				// 渲染线程应当重设图面大小
 	BITBOOL m_bUserDpiChanged : 1 = FALSE;			// 渲染线程应当重设DPI
+	BITBOOL m_bFullUpdate : 1 = TRUE;
 
 	D2D1_ALPHA_MODE m_eAlphaMode{ D2D1_ALPHA_MODE_IGNORE };		// 缓存D2D透明模式
 	DXGI_ALPHA_MODE m_eDxgiAlphaMode{ DXGI_ALPHA_MODE_IGNORE };	// 缓存DXGI透明模式
@@ -758,16 +761,18 @@ private:
 			POINT pt;
 			GetCursorPos(&pt);
 			ScreenToClient(m_hWnd, &pt);
+			Phy2Log(pt);
 			m_pHoverElem = ElemFromPoint(pt);
 		}
 	}
 
-	void UpdateDpi(int iDpi)
-	{
-		m_iDpi = iDpi;
-		UpdateDpiSizeF(m_Ds, iDpi);
-	}
-
+	/// <summary>
+	/// 重画元素树
+	/// </summary>
+	/// <param name="pElem">起始元素</param>
+	/// <param name="rc">重画区域，逻辑坐标</param>
+	/// <param name="ox">X偏移，仅用于DComp</param>
+	/// <param name="oy">Y偏移，仅用于DComp</param>
 	void RedrawElem(CElem* pElem, const RECT& rc, float ox, float oy)
 	{
 		const auto pDC = m_D2d.GetDC();
@@ -865,7 +870,11 @@ private:
 		}
 	}
 
-	void RedrawDui(const RECT& rc)
+	/// <summary>
+	/// 重画DUI
+	/// </summary>
+	/// <param name="rc">重画区域，逻辑坐标</param>
+	void RedrawDui(const RECT& rc, BOOL bFullUpdate = FALSE)
 	{
 		switch (m_ePresentMode)
 		{
@@ -876,7 +885,7 @@ private:
 			const auto pDC = m_D2d.GetDC();
 			pDC->BeginDraw();
 			pDC->SetTransform(D2D1::Matrix3x2F::Identity());
-			const auto rcF = MakeD2DRcF(rc);
+			const auto rcF{ MakeD2DRcF(rc) };
 			if (m_bTransparent)
 			{
 				pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
@@ -894,9 +903,28 @@ private:
 			const auto pDC = m_D2d.GetDC();
 			IDXGISurface1* pDxgiSurface = nullptr;
 			POINT ptOffset;
-			m_pDcSurface->BeginDraw(&rc, IID_PPV_ARGS(&pDxgiSurface), &ptOffset);
-			ptOffset.x -= rc.left;
-			ptOffset.y -= rc.top;
+			RECT rcPhy{ rc };
+			Log2Phy(rcPhy);
+
+			if (m_iUserDpi != 96)// 误差修正
+			{
+				auto t = MakeD2DRcF(rcPhy);
+				Phy2Log(t);
+				if (t.left < rc.left)
+					++rcPhy.left;
+				if (t.top < rc.top)
+					++rcPhy.top;
+				if (t.right > rc.right)
+					--rcPhy.right;
+				if (t.bottom > rc.bottom)
+					--rcPhy.bottom;
+			}
+			m_pDcSurface->BeginDraw(bFullUpdate ? nullptr : &rcPhy,
+				IID_PPV_ARGS(&pDxgiSurface), &ptOffset);
+			ptOffset.x -= rcPhy.left;
+			ptOffset.y -= rcPhy.top;
+			const D2D1_POINT_2F ptLogOffsetF{ Phy2LogF((float)ptOffset.x), Phy2LogF((float)ptOffset.y) };
+
 			const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
 			{
 				{ DXGI_FORMAT_B8G8R8A8_UNORM,m_eAlphaMode },
@@ -911,12 +939,11 @@ private:
 			pDC->SetTarget(pBitmap);
 			pDC->BeginDraw();
 			pDC->SetTransform(D2D1::Matrix3x2F::Identity());
+
 			m_D2d.m_pBitmap = pBitmap;
 
-			// 由于DComp图面BeginDraw无法保存矩形内已绘制内容，此处必须填充无效区域的广义并
-			RECT rcReal{ rc };
-			OffsetRect(rcReal, ptOffset.x, ptOffset.y);
-			const auto rcF = MakeD2DRcF(rcReal);
+			auto rcF = MakeD2DRcF(rc);
+			OffsetRect(rcF, ptLogOffsetF.x, ptLogOffsetF.y);
 			if (m_bTransparent)
 			{
 				pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
@@ -924,9 +951,11 @@ private:
 				pDC->PopAxisAlignedClip();
 			}
 			FillBackground(rcF);
-
 			if (!IsElemUseDComp())
-				RedrawElem(GetFirstChildElem(), rc, (float)ptOffset.x, (float)ptOffset.y);
+			{
+				RedrawElem(GetFirstChildElem(), rc,
+					ptLogOffsetF.x, ptLogOffsetF.y);
+			}
 
 			m_D2d.m_pBitmap = nullptr;
 
@@ -950,13 +979,13 @@ private:
 	{
 		constexpr int c_iMinGap = 16;
 		CWaitableTimer Timer{};
-		BOOL bThereAreActiveTimeLine;
+		BOOL bActiveTimeLine;
 
 		WaitObject(m_EvtRender);
 		ULONGLONG ullTime = NtGetTickCount64() - c_iMinGap;
 		EckLoop()
 		{
-			bThereAreActiveTimeLine = FALSE;
+			bActiveTimeLine = FALSE;
 			m_cs.Enter();
 
 			if (m_bRenderThreadShouldExit)
@@ -972,29 +1001,24 @@ private:
 			{
 				if (e->IsValid())
 					e->Tick(iDeltaTime);
-				bThereAreActiveTimeLine = bThereAreActiveTimeLine || e->IsValid();
+				bActiveTimeLine = bActiveTimeLine || e->IsValid();
 			}
 
-			const RECT rcClient{ 0,0,m_cxClient,m_cyClient };
+			RECT rcClient{ 0,0,m_cxClient,m_cyClient };
+			Phy2Log(rcClient);
 			if (m_bSizeChanged || m_bUserDpiChanged)
 			{
 				constexpr auto D2dBmpOpt = D2D1_BITMAP_OPTIONS_TARGET |
 					D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
-				BOOL bSkipResize{};
 				if (m_bUserDpiChanged)
 				{
 					CacheClear();
-					if (m_ePresentMode == PresentMode::DCompositionSurface ||
-						m_ePresentMode == PresentMode::AllDComp)
-					{
-						m_D2d.GetDC()->SetDpi((float)m_iUserDpi, (float)m_iUserDpi);
-						bSkipResize = TRUE;
-					}
+					m_D2d.GetDC()->SetDpi((float)m_iUserDpi, (float)m_iUserDpi);
+					m_bUserDpiChanged = FALSE;
+					if (!m_bSizeChanged)
+						goto SkipReSize;
 				}
 				m_bSizeChanged = FALSE;
-				m_bUserDpiChanged = FALSE;
-				if (bSkipResize)
-					goto SkipReSize;
 				switch (m_ePresentMode)
 				{
 				case PresentMode::BitBltSwapChain:
@@ -1017,7 +1041,6 @@ private:
 					if (m_pDcSurface)
 						m_pDcSurface->Release();
 					m_pDcSurface = pDcSurface;
-					m_pDcVisual->SetContent(m_pDcSurface);
 				}
 				break;
 				case PresentMode::WindowRenderTarget:
@@ -1030,7 +1053,7 @@ private:
 				if (m_cxClient && m_cyClient)
 				{
 					m_rcInvalid = rcClient;
-					RedrawDui(rcClient);
+					RedrawDui(rcClient, TRUE);
 					m_cs.Leave();
 					if (m_ePresentMode == PresentMode::BitBltSwapChain ||
 						m_ePresentMode == PresentMode::FlipSwapChain)
@@ -1051,7 +1074,9 @@ private:
 					IntersectRect(rc, m_rcInvalid, rcClient);
 					if (IsRectEmpty(rc))
 						goto NoRedraw;
-					RedrawDui(rc);
+					RedrawDui(rc, m_bFullUpdate);
+					if (m_bFullUpdate)
+						m_bFullUpdate = FALSE;
 					m_rcInvalid = {};
 					m_cs.Leave();
 					// 呈现
@@ -1081,7 +1106,7 @@ private:
 
 			iDeltaTime = int(NtGetTickCount64() - ullCurrTime);
 			ullTime = ullCurrTime;
-			if (bThereAreActiveTimeLine)
+			if (bActiveTimeLine)
 			{
 				if (iDeltaTime < c_iMinGap)// 延时
 				{
@@ -1309,7 +1334,7 @@ public:
 			auto lResult = CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
 			if (!lResult)
 			{
-				UpdateDpi(GetDpi(hWnd));
+				m_iDpi = GetDpi(hWnd);
 				RECT rc;
 				GetClientRect(hWnd, &rc);
 
@@ -1390,6 +1415,7 @@ public:
 				m_cxClient = rc.right;
 				m_cyClient = rc.bottom;
 
+				m_bFullUpdate = TRUE;
 				m_rcInvalid = { 0,0,m_cxClient,m_cyClient };
 
 				m_EvtRender.NoSignal();
@@ -1399,9 +1425,9 @@ public:
 		}
 		break;
 
-		case WM_DPICHANGED:// for top-level window
+		case WM_DPICHANGED:// For top-level window.
 		{
-			UpdateDpi(HIWORD(wParam));
+			m_iDpi = HIWORD(wParam);
 			auto prc = (const RECT*)lParam;
 			SetWindowPos(hWnd, nullptr,
 				prc->left, prc->top, prc->right - prc->left, prc->bottom - prc->top,
@@ -1409,10 +1435,9 @@ public:
 		}
 		return 0;
 
-		case WM_DPICHANGED_AFTERPARENT:// for child window
+		case WM_DPICHANGED_AFTERPARENT:// For child window.
 		{
-			const int iDpi = GetDpi(hWnd);
-			UpdateDpi(iDpi);
+			m_iDpi = GetDpi(hWnd);
 		}
 		return 0;
 
@@ -1513,7 +1538,7 @@ public:
 		}
 	}
 
-	EckInline CElem* ElemFromPoint(POINT pt, LRESULT* pResult = nullptr)
+	EckInline CElem* ElemFromPoint(POINT pt, _Out_opt_ LRESULT* pResult = nullptr)
 	{
 		return CElem::ElemFromPoint(GetLastChildElem(), pt, pResult);
 	}
@@ -1569,34 +1594,48 @@ public:
 	EckInline constexpr int Log2Phy(int i) const { return i * m_iUserDpi / 96; }
 	EckInline constexpr float Log2PhyF(float i) const { return i * m_iUserDpi / 96.f; }
 
-	EckInline constexpr void Phy2Log(POINT& pt) const
+	EckInline constexpr void Phy2Log(_Inout_ POINT& pt) const
 	{
 		pt.x = Phy2Log(pt.x);
 		pt.y = Phy2Log(pt.y);
 	}
-	EckInline constexpr void Phy2Log(D2D1_POINT_2F& pt) const
+	EckInline constexpr void Phy2Log(_Inout_ RECT& rc) const
+	{
+		rc.left = Phy2Log(rc.left);
+		rc.top = Phy2Log(rc.top);
+		rc.right = Phy2Log(rc.right);
+		rc.bottom = Phy2Log(rc.bottom);
+	}
+	EckInline constexpr void Phy2Log(_Inout_ D2D1_POINT_2F& pt) const
 	{
 		pt.x = Phy2LogF(pt.x);
 		pt.y = Phy2LogF(pt.y);
 	}
-	EckInline constexpr void Phy2Log(D2D1_RECT_F& rc) const
+	EckInline constexpr void Phy2Log(_Inout_ D2D1_RECT_F& rc) const
 	{
 		rc.left = Phy2LogF(rc.left);
 		rc.top = Phy2LogF(rc.top);
 		rc.right = Phy2LogF(rc.right);
 		rc.bottom = Phy2LogF(rc.bottom);
 	}
-	EckInline constexpr void Log2Phy(POINT& pt) const
+	EckInline constexpr void Log2Phy(_Inout_ POINT& pt) const
 	{
 		pt.x = Log2Phy(pt.x);
 		pt.y = Log2Phy(pt.y);
 	}
-	EckInline constexpr void Log2Phy(D2D1_POINT_2F& pt) const
+	EckInline constexpr void Log2Phy(_Inout_ RECT& rc) const
+	{
+		rc.left = Log2Phy(rc.left);
+		rc.top = Log2Phy(rc.top);
+		rc.right = Log2Phy(rc.right);
+		rc.bottom = Log2Phy(rc.bottom);
+	}
+	EckInline constexpr void Log2Phy(_Inout_ D2D1_POINT_2F& pt) const
 	{
 		pt.x = Log2PhyF(pt.x);
 		pt.y = Log2PhyF(pt.y);
 	}
-	EckInline constexpr void Log2Phy(D2D1_RECT_F& rc) const
+	EckInline constexpr void Log2Phy(_Inout_ D2D1_RECT_F& rc) const
 	{
 		rc.left = Log2PhyF(rc.left);
 		rc.top = Log2PhyF(rc.top);
@@ -1604,7 +1643,7 @@ public:
 		rc.bottom = Log2PhyF(rc.bottom);
 	}
 
-	EckInline HRESULT EnableDragDrop(BOOL bEnable);
+	HRESULT EnableDragDrop(BOOL bEnable);
 
 	EckInline auto GetDefColorTheme() const { return m_pStdColorTheme; }
 
@@ -1882,7 +1921,7 @@ inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		else
 		{
 			EckAssert(GetStyle() & DES_COMPOSITED);
-			m_pDC->DrawBitmap(GetCompBitmap(), (D2D1_RECT_F*)wParam,
+			m_pDC->DrawBitmap(GetCacheBitmap(), (D2D1_RECT_F*)wParam,
 				1.f, D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
 		}
 	}
@@ -2013,27 +2052,11 @@ inline void CElem::BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, 
 		}
 }
 
-EckInline CElem* CElem::SetCapture() { return GetWnd()->ElemSetCapture(this); }
-
-EckInline void CElem::ReleaseCapture() { GetWnd()->ElemReleaseCapture(); }
-
-EckInline void CElem::SetFocus() { GetWnd()->ElemSetFocus(this); }
-
 EckInline void CElem::InitEasingCurve(CEasingCurve* pEc)
 {
 	pEc->SetParam((LPARAM)this);
 	GetWnd()->RegisterTimeLine(pEc);
 }
-
-EckInline CCriticalSection& CElem::GetCriticalSection() const { return GetWnd()->GetCriticalSection(); }
-
-EckInline constexpr int CElem::Log2Phy(int i) const { return GetWnd()->Log2Phy(i); }
-
-inline constexpr float CElem::Log2PhyF(float f) const { return GetWnd()->Log2PhyF(f); }
-
-inline constexpr int CElem::Phy2Log(int i) const { return GetWnd()->Phy2Log(i); }
-
-inline constexpr float CElem::Phy2LogF(float f) const { return GetWnd()->Phy2LogF(f); }
 
 inline void CElem::utcReCreateDCompVisual()
 {
@@ -2104,7 +2127,15 @@ inline void CElem::tcPostMoveSize(BOOL bSize, BOOL bMove, const RECT& rcOld)
 	UnionRect(rc, rcOld, GetWholeRectInClient());
 }
 
-EckInline constexpr ID2D1Bitmap1* CElem::GetCompBitmap() const { return GetWnd()->GetCacheBitmap(); }
+EckInline CElem* CElem::SetCapture() { return GetWnd()->ElemSetCapture(this); }
+EckInline void CElem::ReleaseCapture() { GetWnd()->ElemReleaseCapture(); }
+EckInline void CElem::SetFocus() { GetWnd()->ElemSetFocus(this); }
+EckInline constexpr CCriticalSection& CElem::GetCriticalSection() const { return GetWnd()->GetCriticalSection(); }
+EckInline constexpr int CElem::Log2Phy(int i) const { return GetWnd()->Log2Phy(i); }
+EckInline constexpr float CElem::Log2PhyF(float f) const { return GetWnd()->Log2PhyF(f); }
+EckInline constexpr int CElem::Phy2Log(int i) const { return GetWnd()->Phy2Log(i); }
+EckInline constexpr float CElem::Phy2LogF(float f) const { return GetWnd()->Phy2LogF(f); }
+EckInline constexpr ID2D1Bitmap1* CElem::GetCacheBitmap() const { return GetWnd()->GetCacheBitmap(); }
 
 class CDuiDropTarget :public CDropTarget
 {
@@ -2236,6 +2267,5 @@ inline HRESULT CDuiWnd::EnableDragDrop(BOOL bEnable)
 	}
 	return S_FALSE;// Indicate do nothing.
 }
-
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "DuiDef.h"
 #include "MathHelper.h"
 
@@ -8,7 +8,7 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-// Ϊ4x4�����ʾ�ķǷ���任�ṩĬ�ϵ�任ʵ��
+// 为4x4矩阵表示的非仿射变换提供默认点变换实现
 inline void CptTransformPointNonAffine(const D2D1_MATRIX_4X4_F& Mat,
 	_Inout_ POINT& pt)
 {
