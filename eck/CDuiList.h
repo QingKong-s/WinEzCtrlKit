@@ -537,7 +537,7 @@ public:
 			if (m_bDraggingSel)
 			{
 				auto rcDrag = MakeD2DRcF(m_rcDragSel);
-				OffsetRect(rcDrag, 0, -m_psv->GetPos());
+				OffsetRect(rcDrag, 0.f, (float)-m_psv->GetPos());
 				auto cr = crs.crBkHot;
 				cr.a *= 0.7f;
 				m_pBrush->SetColor(cr);

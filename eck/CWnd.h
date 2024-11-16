@@ -694,7 +694,7 @@ public:
 	/// <summary>
 	/// 取窗口句柄
 	/// </summary>
-	[[nodiscard]] EckInline HWND GetHWND() const { return m_hWnd; }
+	[[nodiscard]] EckInline constexpr HWND GetHWND() const { return m_hWnd; }
 
 	/// <summary>
 	/// 强制重新核算非客户区
@@ -1242,7 +1242,11 @@ public:
 
 	EckInline [[nodiscard]] BOOL IsValid() const
 	{
-		return IsWindow(m_hWnd);
+#ifdef _DEBUG
+		if (!IsWindow(m_hWnd))
+			EckAssert(!m_hWnd);
+#endif // _DEBUG
+		return !!GetHWND();
 	}
 
 	EckInline WNDPROC SetWndProc(WNDPROC pfnWndProc)

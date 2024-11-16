@@ -8,12 +8,6 @@
 #pragma once
 #include "ECK.h"
 
-#include <Windows.h>
-#include <Shlwapi.h>
-
-#include <vector>
-#include <algorithm>
-
 ECK_NAMESPACE_BEGIN
 inline HRESULT CopyHGlobal(HGLOBAL hGlobalDst, HGLOBAL hGlobalSrc)
 {
