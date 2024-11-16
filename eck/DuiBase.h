@@ -7,17 +7,21 @@
 */
 #pragma once
 #include "CWnd.h"
+
+#include "CDuiColorTheme.h"
+#include "DuiDef.h"
+
 #include "GraphicsHelper.h"
 #include "OleDragDropHelper.h"
-#include "EasingCurve.h"
-#include "CDuiColorTheme.h"
-#include "ITimeLine.h"
-#include "CEvent.h"
-#include "CCriticalSection.h"
-#include "ILayout.h"
 #include "SystemHelper.h"
 #include "CDwmWndPartMgr.h"
-#include "CSignal.h"
+
+#include "EasingCurve.h"
+#include "ITimeLine.h"
+
+#include "CEvent.h"
+#include "CCriticalSection.h"
+#include "CWaitableTimer.h"
 
 #include <dcomp.h>
 #include <oleacc.h>
@@ -43,132 +47,30 @@
 #define ECK_ELEMTOP			((::eck::Dui::CElem*)HWND_TOP)
 #define ECK_ELEMBOTTOM		((::eck::Dui::CElem*)HWND_BOTTOM)
 
-#define ECK_DUILOCK		::eck::CCsGuard ECKPRIV_DUI_LOCK_GUARD(GetCriticalSection())
-#define ECK_DUILOCKWND	ECK_DUILOCK
+#define ECK_DUILOCK			::eck::CCsGuard ECKPRIV_DUI_LOCK_GUARD(GetCriticalSection())
+#define ECK_DUILOCKWND		ECK_DUILOCK
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-class CElem;
-
-// 元素样式
-enum
-{
-	DES_BLURBKG = (1u << 0),		// 模糊背景
-	DES_DISABLE = (1u << 1),		// 已禁用
-	DES_VISIBLE = (1u << 2),		// 可见
-	DES_TRANSPARENT = (1u << 3),	// 背景透明，该样式无效果，保留供将来使用，但若元素透明则必须设置
-	DES_CONTENT_EXPAND = (1u << 4),	// 更新时必须更新整个元素，若设置了DES_BLURBKG，则强制设置此标志
-	DES_COMPOSITED = (1u << 5),		// 渲染到独立的图面，然后与主图面混合
-	DES_INPLACE_COMP = (1u << 6),	// 混合矩形完全包含在元素矩形中
-	DES_EXTERNAL_CONTENT = (1u << 7),// 使用某外部图面作为DComp视觉对象的内容
-	DES_DISALLOW_REDRAW = (1u << 8),// 不允许重绘
-};
-
-// 元素产生的通知
-enum :UINT
-{
-	EE_COMMAND = 1,
-	EE_KILLFOCUS,
-	EE_SETFOCUS,
-	EE_CLICK,
-	EE_RCLICK,
-	EE_HSCROLL,
-	EE_VSCROLL,
-
-	EE_PRIVATE_BEGIN = 0x0400
-};
-
-// DUI图形系统呈现模式
-enum class PresentMode
-{
-	//						|  等待	|				透明混合					|	 备注	|
-	BitBltSwapChain,	//	|	0	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|  性能极差	|
-	FlipSwapChain,		//	|	1	|不支持									|  性能极好	|
-	DCompositionSurface,//	|	0	|支持，建议加入WS_EX_NOREDIRECTIONBITMAP	|  建议使用	|
-	WindowRenderTarget,	//  |	1	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|  兼容性好	|
-	AllDComp,			//	|	   与DCompositionSurface相同，但所有元素都使用DComp合成		|
-};
-
-// 拖放信息
-struct DRAGDROPINFO
-{
-	IDataObject* pDataObj;
-	DWORD grfKeyState;
-	POINTL ptScreen;
-	DWORD* pdwEffect;
-	HRESULT hr;
-};
-
-// 元素混合信息
-struct COMP_INFO
-{
-	CElem* pElem;
-	const D2D1_RECT_F* prc;
-};
-
-// 元素混合坐标变换信息
-struct COMP_POS
-{
-	CElem* pElem;
-	POINT pt;		// 相对pElem
-	BOOL bNormalToComp;
-};
-
-// 事件
-enum
-{
-	ECKPRIV_EWM_PLACEHOLDER = WM_USER_SAFE,
-	WM_DRAGENTER,
-	WM_DRAGOVER,
-	WM_DRAGLEAVE,
-	WM_DROP,
-
-	EWM_COLORSCHEMECHANGED,// 颜色主题改变 (BOOL 是否为暗色, 0)
-	EWM_COMPOSITE,	// 指示手动混合元素执行混合，(COMP_INFO*, 0)
-	EWM_COMP_POS,	// 指示手动混合元素执行坐标变换，(COMP_POS*, 0)
-
-	EWM_PRIVBEGIN,
-};
-
-// BeginPaint选项
-enum
-{
-	EBPF_DO_NOT_FILLBK = (1u << 0),
-};
-
-// PaintStruct
-struct ELEMPAINTSTRU
-{
-	const RECT* prcClip;		// 剪裁矩形，相对客户区
-	D2D1_RECT_F rcfClip;		// 剪裁矩形，相对客户区
-	D2D1_RECT_F rcfClipInElem;	// 剪裁矩形，相对元素
-};
-
-// 所有通知结构的头
-struct DUINMHDR
-{
-	UINT uCode;
-};
-
 class CElem :public ILayout
 {
 	friend class CDuiWnd;
 protected:
-	// UI系统
+	//------元素树------
 	CElem* m_pNext{};		// 下一元素，Z序高于当前
 	CElem* m_pPrev{};		// 上一元素，Z序低于当前
 	CElem* m_pParent{};		// 父元素
 	CElem* m_pFirstChild{};	// 第一个子元素
 	CElem* m_pLastChild{};	// 最后一个子元素
+	//------UI系统------
 	CDuiWnd* m_pWnd{};		// 所属窗口
-
 	CSignal<Intercept_T, LRESULT, UINT, WPARAM, LPARAM> m_Sig{};// 信号
-	// 图形，除DC外渲染和UI线程均可读写
+	//------图形，除DC外渲染和UI线程均可读写------
 	ID2D1DeviceContext* m_pDC{};			// DC
 	IDCompositionVisual* m_pDcVisual{};		// DComp视觉对象
 	IDCompositionSurface* m_pDcSurface{};	// DComp表面
 	IUnknown* m_pDcContent{};				// DComp内容
-	// 位置
+	//------位置，均为DPI虚拟化坐标------
 	RECT m_rc{};			// 元素矩形，相对父元素
 	D2D1_RECT_F m_rcf{};	// 元素矩形，相对父元素
 	RECT m_rcInClient{};	// 元素矩形，相对客户区
@@ -178,7 +80,7 @@ protected:
 
 	RECT m_rcComp{};		// 混合到主图面的矩形，至少完全包含元素矩形
 	RECT m_rcCompInClient{};// 混合到主图面的矩形，相对于客户区
-	// 属性
+	//------属性------
 	CRefStrW m_rsText{};	// 标题
 	INT_PTR m_iId{};		// 元素ID
 	CColorTheme* m_pColorTheme{};		// 颜色主题
@@ -191,7 +93,7 @@ protected:
 		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd,
 		int iId = 0, PCVOID pData = nullptr);
 
-	void DestroyChild(CElem* pElem)
+	void utcDestroyChild(CElem* pElem)
 	{
 		auto pChild = pElem->GetFirstChildElem();
 		while (pChild)
@@ -285,6 +187,11 @@ protected:
 	void tcReSizeDCompVisual();
 
 	void tcPostMoveSize(BOOL bSize, BOOL bMove, const RECT& rcOld);
+
+	void utcOnUserDpiChanged(int iDpiOld)
+	{
+
+	}
 public:
 	virtual BOOL Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId = 0, PCVOID pData = nullptr)
@@ -353,7 +260,7 @@ public:
 	}
 
 	// 将缓动曲线对象的自定义参数设为this，并注册
-	EckInline void InitEasingCurve(CEasingCurve* pec);
+	EckInline void InitEasingCurve(CEasingCurve* pEc);
 
 	EckInline constexpr CDuiWnd* GetWnd() const { return m_pWnd; }
 	EckInline constexpr ID2D1DeviceContext* GetDC() const { return m_pDC; }
@@ -444,6 +351,16 @@ public:
 		ECK_DUILOCK;
 		return m_rcf.bottom - m_rcf.top;
 	}
+
+	EckInline constexpr int Log2Phy(int i) const;
+	EckInline constexpr float Log2PhyF(float f) const;
+	EckInline constexpr int Phy2Log(int i) const;
+	EckInline constexpr float Phy2LogF(float f) const;
+
+	EckInline int GetPhysicalWidth() const { return Log2Phy(GetWidth()); }
+	EckInline int GetPhysicalHeight() const { return Log2Phy(GetHeight()); }
+	EckInline float GetPhysicalWidthF() const { return Log2PhyF(GetWidthF()); }
+	EckInline float GetPhysicalHeightF() const { return Log2PhyF(GetHeightF()); }
 #pragma endregion PosSize
 #pragma region ILayout
 	void LoGetAppropriateSize(int& cx, int& cy) override
@@ -725,19 +642,12 @@ public:
 	// 置焦点【不能在渲染线程调用】
 	EckInline void SetFocus();
 #pragma endregion ElemFunc
-
-	// 以下函数待以后整理
-
-	EckInline const RECT& GetPostCompositedRect() const
-	{
-		return m_rcComp;
-	}
-
-	EckInline const RECT& GetPostCompositedRectInClient() const
-	{
-		return m_rcCompInClient;
-	}
-
+#pragma region Composite
+	// 取混合矩形，相对元素
+	EckInline constexpr const RECT& GetPostCompositedRect() const { return m_rcComp; }
+	// 取混合矩形，相对客户区
+	EckInline constexpr const RECT& GetPostCompositedRectInClient() const { return m_rcCompInClient; }
+	// 置混合矩形，相对元素
 	EckInline void SetPostCompositedRect(const RECT& rc)
 	{
 		ECK_DUILOCK;
@@ -746,21 +656,23 @@ public:
 		OffsetRect(m_rcCompInClient, m_rcInClient.left, m_rcInClient.top);
 	}
 
+	// 取完全包围元素的矩形，相对客户区
 	EckInline const RECT& GetWholeRectInClient() const
 	{
-		return ((
-			(GetStyle() & DES_COMPOSITED) && !(GetStyle() & DES_INPLACE_COMP)) ?
+		return (((GetStyle() & DES_COMPOSITED) && !(GetStyle() & DES_INPLACE_COMP)) ?
 			GetPostCompositedRectInClient() :
 			GetRectInClient());
 	}
 
+	// 取混合位图
 	EckInline constexpr ID2D1Bitmap1* GetCompBitmap() const;
 
-
+	// 是否需要坐标变换
 	EckInline BOOL IsNeedCoordinateTransform() const
 	{
 		return !!(GetStyle() & DES_COMPOSITED);
 	}
+#pragma endregion Composite
 };
 
 class CDuiWnd :public CWnd
@@ -771,42 +683,44 @@ private:
 	//------元素树------
 	CElem* m_pFirstChild{};	// 第一个子元素
 	CElem* m_pLastChild{};	// 最后一个子元素
-
+	int m_cChildren{};		// 子元素数量，UIAccessible使用
+	//------UI系统------
+	PresentMode m_ePresentMode{ PresentMode::FlipSwapChain };	// 呈现模式
 	CElem* m_pFocusElem{};	// 当前焦点元素
+	CElem* m_pHoverElem{};	// 当前鼠标悬停元素，WM_MOUSELEAVE使用
 	CElem* m_pCurrNcHitTestElem{};	// 当前非客户区命中元素
 	CElem* m_pMouseCaptureElem{};	// 当前鼠标捕获元素
-	CElem* m_pHoverElem{};	// 当前鼠标悬停元素，for WM_MOUSELEAVE
+
+	CCriticalSection m_cs{};// 渲染线程同步临界区
+	CEvent m_EvtRender{};	// 渲染线程事件对象
+	HANDLE m_hthRender{};	// 渲染线程句柄
+
+	std::vector<ITimeLine*> m_vTimeLine{};	// 时间线
 	//------拖放------
 	CElem* m_pDragDropElem{};		// 当前拖放元素
 	IDataObject* m_pDataObj{};		// 当前拖放的数据对象
 	CDuiDropTarget* m_pDropTarget{};// 拖放目标
 	//------图形------
+	RECT m_rcInvalid{};				// 无效矩形
+
 	CEzD2D m_D2d{};					// D2D设备上下文相关，若呈现模式不为交换链，则仅DC字段有效
 	ID2D1Bitmap* m_pBmpBkg{};		// 背景位图
 	ID2D1SolidColorBrush* m_pBrBkg{};		// 背景画刷
 
 	IDCompositionDevice* m_pDcDevice{};		// DComp设备
-	IDCompositionDevice3* m_pDcDevice3{};	// DComp设备3
 	IDCompositionTarget* m_pDcTarget{};		// DComp目标
 	IDCompositionVisual* m_pDcVisual{};		// 根视觉对象
 	IDCompositionSurface* m_pDcSurface{};	// 根视觉对象的内容
 
-	ID2D1HwndRenderTarget* m_pHwndRenderTarget{};	// 窗口渲染目标，仅当呈现模式为窗口渲染目标时有效
+	ID2D1HwndRenderTarget* m_pRtHwnd{};		// 窗口渲染目标，仅当呈现模式为窗口渲染目标时有效
 
 	ID2D1Bitmap1* m_pBmpCache{};	// 缓存位图，模糊或独立混合等可在其上进行
-	int m_cxCache{};// 缓存位图宽度
-	int m_cyCache{};// 缓存位图高度
+	int m_cxCache{};				// 缓存位图宽度
+	int m_cyCache{};				// 缓存位图高度
 
 	CColorTheme* m_pStdColorTheme[CTI_COUNT]{};		// 默认亮色主题
 	CColorTheme* m_pStdColorThemeDark[CTI_COUNT]{};	// 默认暗色主题
 
-	CCriticalSection m_cs{};// 渲染线程同步临界区
-
-	HANDLE m_hthRender{};	// 渲染线程句柄
-	CEvent m_evtRender{};	// 渲染线程事件对象
-	std::vector<ITimeLine*> m_vTimeLine{};	// 所有时间线
-
-	RECT m_rcInvalid{};// 无效矩形数组
 	//------其他------
 	int m_cxClient = 0;		// 客户区宽度
 	int m_cyClient = 0;		// 客户区高度
@@ -815,13 +729,10 @@ private:
 	BITBOOL m_bTransparent : 1 = FALSE;		// 窗口是透明的
 	BITBOOL m_bRenderThreadShouldExit : 1 = FALSE;	// 渲染线程应当退出
 	BITBOOL m_bSizeChanged : 1 = FALSE;				// 渲染线程应当重设图面大小
+	BITBOOL m_bUserDpiChanged : 1 = FALSE;			// 渲染线程应当重设DPI
 
 	D2D1_ALPHA_MODE m_eAlphaMode{ D2D1_ALPHA_MODE_IGNORE };		// 缓存D2D透明模式
 	DXGI_ALPHA_MODE m_eDxgiAlphaMode{ DXGI_ALPHA_MODE_IGNORE };	// 缓存DXGI透明模式
-
-	PresentMode m_ePresentMode = PresentMode::FlipSwapChain;	// 呈现模式
-
-	int m_cChildren{};
 
 	int m_iUserDpi = USER_DEFAULT_SCREEN_DPI;
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
@@ -841,7 +752,7 @@ private:
 		if (m_pCurrNcHitTestElem == pElem)
 			m_pCurrNcHitTestElem = nullptr;
 		if (m_pMouseCaptureElem == pElem)
-			ReleaseCaptureElem();
+			ElemReleaseCapture();
 		if (m_pHoverElem == pElem)
 		{
 			POINT pt;
@@ -855,11 +766,6 @@ private:
 	{
 		m_iDpi = iDpi;
 		UpdateDpiSizeF(m_Ds, iDpi);
-	}
-
-	EckInline constexpr BOOL IrpIsIntersect(const RECT& rc) const
-	{
-		return IsRectsIntersect(rc, m_rcInvalid);
 	}
 
 	void RedrawElem(CElem* pElem, const RECT& rc, float ox, float oy)
@@ -901,8 +807,8 @@ private:
 				const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
 				{
 					{ DXGI_FORMAT_B8G8R8A8_UNORM,D2D1_ALPHA_MODE_PREMULTIPLIED },
-					96,
-					96,
+					(float)m_iUserDpi,
+					(float)m_iUserDpi,
 					D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
 					nullptr
 				};
@@ -994,8 +900,8 @@ private:
 			const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
 			{
 				{ DXGI_FORMAT_B8G8R8A8_UNORM,m_eAlphaMode },
-				96,
-				96,
+				(float)m_iUserDpi,
+				(float)m_iUserDpi,
 				D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
 				nullptr
 			};
@@ -1040,147 +946,166 @@ private:
 		ECK_UNREACHABLE;
 	}
 
-	void StartupRenderThread()
+	void RenderThread()
 	{
-		std::thread t([this]
+		constexpr int c_iMinGap = 16;
+		CWaitableTimer Timer{};
+		BOOL bThereAreActiveTimeLine;
+
+		WaitObject(m_EvtRender);
+		ULONGLONG ullTime = NtGetTickCount64() - c_iMinGap;
+		EckLoop()
+		{
+			bThereAreActiveTimeLine = FALSE;
+			m_cs.Enter();
+
+			if (m_bRenderThreadShouldExit)
 			{
-				ThreadInit();
-				constexpr int c_iMinGap = 16;
-				HANDLE hTimer;
-				OBJECT_ATTRIBUTES oa;
-				InitOA(oa);
-				NtCreateTimer(&hTimer, TIMER_ALL_ACCESS, &oa, SynchronizationTimer);
-				EckAssert(hTimer);
-				BOOL bThereAreActiveTimeLine;
+				m_cs.Leave();
+				break;
+			}
 
-				WaitObject(m_evtRender);
-				ULONGLONG ullTime = NtGetTickCount64() - c_iMinGap;
-				EckLoop()
+			const auto ullCurrTime = NtGetTickCount64();
+			// 滴答所有时间线
+			int iDeltaTime = (int)(ullCurrTime - ullTime);
+			for (const auto e : m_vTimeLine)
+			{
+				if (e->IsValid())
+					e->Tick(iDeltaTime);
+				bThereAreActiveTimeLine = bThereAreActiveTimeLine || e->IsValid();
+			}
+
+			const RECT rcClient{ 0,0,m_cxClient,m_cyClient };
+			if (m_bSizeChanged || m_bUserDpiChanged)
+			{
+				constexpr auto D2dBmpOpt = D2D1_BITMAP_OPTIONS_TARGET |
+					D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
+				BOOL bSkipResize{};
+				if (m_bUserDpiChanged)
 				{
-					bThereAreActiveTimeLine = FALSE;
-					m_cs.Enter();
-
-					if (m_bRenderThreadShouldExit)
+					CacheClear();
+					if (m_ePresentMode == PresentMode::DCompositionSurface ||
+						m_ePresentMode == PresentMode::AllDComp)
 					{
-						m_cs.Leave();
-						break;
-					}
-
-					const auto ullCurrTime = NtGetTickCount64();
-					// 滴答所有时间线
-					int iDeltaTime = (int)(ullCurrTime - ullTime);
-					for (const auto e : m_vTimeLine)
-					{
-						if (e->IsValid())
-							e->Tick(iDeltaTime);
-						bThereAreActiveTimeLine = bThereAreActiveTimeLine || e->IsValid();
-					}
-
-					const RECT rcClient{ 0,0,m_cxClient,m_cyClient };
-					if (m_bSizeChanged)
-					{
-						switch (m_ePresentMode)
-						{
-						case PresentMode::BitBltSwapChain:
-							m_D2d.ReSize(1, m_cxClient, m_cyClient, 0, m_eAlphaMode);
-							break;
-						case PresentMode::FlipSwapChain:
-							m_D2d.ReSize(2, m_cxClient, m_cyClient, 0, m_eAlphaMode);
-							break;
-						case PresentMode::DCompositionSurface:
-						case PresentMode::AllDComp:
-						{
-							IDCompositionSurface* pDcSurface = nullptr;
-							m_pDcDevice->CreateSurface(m_cxClient, m_cyClient,
-								DXGI_FORMAT_B8G8R8A8_UNORM,
-								m_bTransparent ? DXGI_ALPHA_MODE_PREMULTIPLIED : DXGI_ALPHA_MODE_IGNORE,
-								&pDcSurface);
-							m_pDcVisual->SetContent(pDcSurface);
-							if (m_pDcSurface)
-								m_pDcSurface->Release();
-							m_pDcSurface = pDcSurface;
-							m_pDcVisual->SetContent(m_pDcSurface);
-						}
-						break;
-						case PresentMode::WindowRenderTarget:
-							m_pHwndRenderTarget->Resize(D2D1::SizeU(m_cxClient, m_cyClient));
-							break;
-						default:
-							ECK_UNREACHABLE;
-						}
-
-						m_bSizeChanged = FALSE;
-						if (m_cxClient && m_cyClient)
-						{
-							m_rcInvalid = rcClient;
-							RedrawDui(rcClient);
-							m_cs.Leave();
-							if (m_ePresentMode == PresentMode::BitBltSwapChain ||
-								m_ePresentMode == PresentMode::FlipSwapChain)
-								m_D2d.GetSwapChain()->Present(0, 0);
-						}
-						else
-						{
-							m_rcInvalid = {};
-							m_cs.Leave();
-						}
-					}
-					else ECKLIKELY
-					{
-						// 更新脏矩形
-						if (!IsRectEmpty(m_rcInvalid))
-						{
-							RedrawDui(m_rcInvalid);
-							auto rc{ m_rcInvalid };
-							m_rcInvalid = {};
-							m_cs.Leave();
-							// 呈现
-							switch (m_ePresentMode)
-							{
-							case PresentMode::BitBltSwapChain:
-								m_D2d.GetSwapChain()->Present(0, 0);
-								break;
-							case PresentMode::FlipSwapChain:
-							{
-								DXGI_PRESENT_PARAMETERS pp
-								{
-									.DirtyRectsCount = 1,
-									.pDirtyRects = &rc,
-								};
-								m_D2d.GetSwapChain()->Present1(0, 0, &pp);
-							}
-							break;
-							}
-						}
-						else
-							m_cs.Leave();
-					}
-
-					iDeltaTime = (int)(NtGetTickCount64() - ullCurrTime);
-					ullTime = ullCurrTime;
-					if (bThereAreActiveTimeLine)
-					{
-						if (iDeltaTime < c_iMinGap)// 延时
-						{
-							LARGE_INTEGER llDueTime
-							{ .QuadPart = -10 * (c_iMinGap - iDeltaTime) * 1000LL };
-							NtSetTimer(hTimer, &llDueTime, nullptr, nullptr, FALSE, 0, nullptr);
-							WaitObject(hTimer);
-						}
-					}
-					else
-					{
-						WaitObject(m_evtRender);
-						ullTime = NtGetTickCount64() - c_iMinGap;
+						m_D2d.GetDC()->SetDpi((float)m_iUserDpi, (float)m_iUserDpi);
+						bSkipResize = TRUE;
 					}
 				}
+				m_bSizeChanged = FALSE;
+				m_bUserDpiChanged = FALSE;
+				if (bSkipResize)
+					goto SkipReSize;
+				switch (m_ePresentMode)
+				{
+				case PresentMode::BitBltSwapChain:
+					m_D2d.ReSize(1, m_cxClient, m_cyClient, 0,
+						m_eAlphaMode, D2dBmpOpt, (float)m_iUserDpi);
+					break;
+				case PresentMode::FlipSwapChain:
+					m_D2d.ReSize(2, m_cxClient, m_cyClient, 0,
+						m_eAlphaMode, D2dBmpOpt, (float)m_iUserDpi);
+					break;
+				case PresentMode::DCompositionSurface:
+				case PresentMode::AllDComp:
+				{
+					IDCompositionSurface* pDcSurface = nullptr;
+					m_pDcDevice->CreateSurface(m_cxClient, m_cyClient,
+						DXGI_FORMAT_B8G8R8A8_UNORM,
+						m_bTransparent ? DXGI_ALPHA_MODE_PREMULTIPLIED : DXGI_ALPHA_MODE_IGNORE,
+						&pDcSurface);
+					m_pDcVisual->SetContent(pDcSurface);
+					if (m_pDcSurface)
+						m_pDcSurface->Release();
+					m_pDcSurface = pDcSurface;
+					m_pDcVisual->SetContent(m_pDcSurface);
+				}
+				break;
+				case PresentMode::WindowRenderTarget:
+					m_pRtHwnd->Resize(D2D1::SizeU(m_cxClient, m_cyClient));
+					break;
+				default:
+					ECK_UNREACHABLE;
+				}
+			SkipReSize:
+				if (m_cxClient && m_cyClient)
+				{
+					m_rcInvalid = rcClient;
+					RedrawDui(rcClient);
+					m_cs.Leave();
+					if (m_ePresentMode == PresentMode::BitBltSwapChain ||
+						m_ePresentMode == PresentMode::FlipSwapChain)
+						m_D2d.GetSwapChain()->Present(0, 0);
+				}
+				else
+				{
+					m_rcInvalid = {};
+					m_cs.Leave();
+				}
+			}
+			else ECKLIKELY
+			{
+				// 更新脏矩形
+				if (!IsRectEmpty(m_rcInvalid))
+				{
+					RECT rc;
+					IntersectRect(rc, m_rcInvalid, rcClient);
+					if (IsRectEmpty(rc))
+						goto NoRedraw;
+					RedrawDui(rc);
+					m_rcInvalid = {};
+					m_cs.Leave();
+					// 呈现
+					switch (m_ePresentMode)
+					{
+					case PresentMode::BitBltSwapChain:
+						m_D2d.GetSwapChain()->Present(0, 0);
+						break;
+					case PresentMode::FlipSwapChain:
+					{
+						DXGI_PRESENT_PARAMETERS pp
+						{
+							.DirtyRectsCount = 1,
+							.pDirtyRects = &rc,
+						};
+						m_D2d.GetSwapChain()->Present1(0, 0, &pp);
+					}
+					break;
+					}
+				}
+				else
+				{
+				NoRedraw:
+					m_cs.Leave();
+				}
+			}
 
-				NtCancelTimer(hTimer, nullptr);
-				NtClose(hTimer);
-				ThreadUnInit();
-			});
-		m_hthRender = DuplicateStdThreadHandle(t);
-		t.detach();
+			iDeltaTime = int(NtGetTickCount64() - ullCurrTime);
+			ullTime = ullCurrTime;
+			if (bThereAreActiveTimeLine)
+			{
+				if (iDeltaTime < c_iMinGap)// 延时
+				{
+					Timer.SetDueTime(c_iMinGap - iDeltaTime);
+					WaitObject(Timer);
+				}
+			}
+			else
+			{
+				WaitObject(m_EvtRender);
+				ullTime = NtGetTickCount64() - c_iMinGap;
+			}
+		}
+
+		Timer.Cancel();
+	}
+
+	EckInline void StartupRenderThread()
+	{
+		m_hthRender = CrtCreateThread([](void* p)->UINT
+			{
+				((CDuiWnd*)p)->RenderThread();
+				return 0;
+			}, this);
 	}
 public:
 	ECK_CWND_CREATE;
@@ -1200,11 +1125,12 @@ public:
 	{
 		if ((uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST))
 		{
+			POINT pt ECK_GET_PT_LPARAM(lParam);
+			Phy2Log(pt);
+
 			if (m_bMouseCaptured)
-			{
-				POINT pt ECK_GET_PT_LPARAM(lParam);
 				m_pCurrNcHitTestElem = ElemFromPoint(pt);
-			}
+
 			auto pElem = (m_pMouseCaptureElem ? m_pMouseCaptureElem : m_pCurrNcHitTestElem);
 			if (pElem)
 			{
@@ -1213,7 +1139,7 @@ public:
 					COMP_POS cp
 					{
 						.pElem = pElem,
-						.pt = ECK_GET_PT_LPARAM(lParam),
+						.pt = pt,
 						.bNormalToComp = TRUE
 					};
 					pElem->ClientToElem(cp.pt);
@@ -1222,7 +1148,7 @@ public:
 					pElem->CallEvent(uMsg, wParam, MAKELPARAM(cp.pt.x, cp.pt.y));
 				}
 				else
-					pElem->CallEvent(uMsg, wParam, lParam);
+					pElem->CallEvent(uMsg, wParam, MAKELPARAM(pt.x, pt.y));
 			}
 
 			if (uMsg == WM_MOUSEMOVE)// 移出监听
@@ -1293,6 +1219,7 @@ public:
 		{
 			POINT pt ECK_GET_PT_LPARAM(lParam);
 			ScreenToClient(hWnd, &pt);
+			Phy2Log(pt);
 			LRESULT lResult;
 			if (m_pCurrNcHitTestElem = ElemFromPoint(pt, &lResult))
 				return lResult;
@@ -1396,7 +1323,7 @@ public:
 				case PresentMode::BitBltSwapChain:
 				{
 					auto Param = EZD2D_PARAM::MakeBitblt(hWnd, g_pDxgiFactory, g_pDxgiDevice,
-						g_pD2dDevice, rc.right, rc.bottom);
+						g_pD2dDevice, rc.right, rc.bottom, (float)m_iUserDpi);
 					Param.uBmpAlphaMode = m_eAlphaMode;
 					m_D2d.Create(Param);
 				}
@@ -1404,7 +1331,7 @@ public:
 				case PresentMode::FlipSwapChain:
 				{
 					auto Param = EZD2D_PARAM::MakeFlip(hWnd, g_pDxgiFactory, g_pDxgiDevice,
-						g_pD2dDevice, rc.right, rc.bottom);
+						g_pD2dDevice, rc.right, rc.bottom, (float)m_iUserDpi);
 					Param.uBmpAlphaMode = m_eAlphaMode;
 					m_D2d.Create(Param);
 				}
@@ -1413,10 +1340,10 @@ public:
 				case PresentMode::AllDComp:
 				{
 					g_pD2dDevice->CreateDeviceContext(
-						EZD2D_PARAM::MakeFlip(0, nullptr, nullptr, nullptr, 0, 0).uDcOptions, &m_D2d.m_pDC);
+						EZD2D_PARAM::MakeFlip(0, nullptr, nullptr, nullptr, 0, 0).uDcOptions,
+						&m_D2d.m_pDC);
 
 					DCompositionCreateDevice3(g_pDxgiDevice, IID_PPV_ARGS(&m_pDcDevice));
-					m_pDcDevice->QueryInterface(&m_pDcDevice3);
 					m_pDcDevice->CreateTargetForHwnd(hWnd, TRUE, &m_pDcTarget);
 					m_pDcDevice->CreateVisual(&m_pDcVisual);
 					m_pDcDevice->CreateSurface(rc.right, rc.bottom,
@@ -1435,16 +1362,15 @@ public:
 					D2D1_RENDER_TARGET_PROPERTIES RtProp;
 					RtProp.type = D2D1_RENDER_TARGET_TYPE_DEFAULT;
 					RtProp.pixelFormat = { DXGI_FORMAT_B8G8R8A8_UNORM, m_eAlphaMode };
-					RtProp.dpiX = 96.f;
-					RtProp.dpiY = 96.f;
+					RtProp.dpiX = RtProp.dpiY = (float)m_iUserDpi;
 					RtProp.usage = D2D1_RENDER_TARGET_USAGE_NONE;
 					RtProp.minLevel = D2D1_FEATURE_LEVEL_DEFAULT;
 					D2D1_HWND_RENDER_TARGET_PROPERTIES HwRtProp;
 					HwRtProp.hwnd = hWnd;
 					HwRtProp.pixelSize = D2D1::SizeU(rc.right, rc.bottom);
 					HwRtProp.presentOptions = D2D1_PRESENT_OPTIONS_NONE;
-					g_pD2dFactory->CreateHwndRenderTarget(RtProp, HwRtProp, &m_pHwndRenderTarget);
-					const auto hr = m_pHwndRenderTarget->QueryInterface(&m_D2d.m_pDC);
+					g_pD2dFactory->CreateHwndRenderTarget(RtProp, HwRtProp, &m_pRtHwnd);
+					const auto hr = m_pRtHwnd->QueryInterface(&m_D2d.m_pDC);
 					EckAssert(SUCCEEDED(hr));
 				}
 				break;
@@ -1453,6 +1379,8 @@ public:
 				}
 
 				m_D2d.GetDC()->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
+				if (m_ePresentMode != PresentMode::WindowRenderTarget)
+					m_D2d.GetDC()->SetDpi((float)m_iUserDpi, (float)m_iUserDpi);
 
 				if (!m_bTransparent)
 				{
@@ -1464,7 +1392,7 @@ public:
 
 				m_rcInvalid = { 0,0,m_cxClient,m_cyClient };
 
-				m_evtRender.NoSignal();
+				m_EvtRender.NoSignal();
 				StartupRenderThread();
 			}
 			return lResult;
@@ -1478,7 +1406,6 @@ public:
 			SetWindowPos(hWnd, nullptr,
 				prc->left, prc->top, prc->right - prc->left, prc->bottom - prc->top,
 				SWP_NOZORDER | SWP_NOACTIVATE);
-			BroadcastEvent(WM_DPICHANGED, HIWORD(wParam), 0);
 		}
 		return 0;
 
@@ -1486,7 +1413,6 @@ public:
 		{
 			const int iDpi = GetDpi(hWnd);
 			UpdateDpi(iDpi);
-			BroadcastEvent(WM_DPICHANGED, iDpi, 0);
 		}
 		return 0;
 
@@ -1514,7 +1440,7 @@ public:
 			m_D2d.Destroy();
 			SafeRelease(m_pBmpBkg);
 			SafeRelease(m_pBrBkg);
-			SafeRelease(m_pHwndRenderTarget);
+			SafeRelease(m_pRtHwnd);
 			SafeRelease(m_pDcSurface);
 			SafeRelease(m_pDcTarget);
 			SafeRelease(m_pDcVisual);
@@ -1553,18 +1479,18 @@ public:
 
 	EckInline constexpr const CEzD2D& GetD2D() const { return m_D2d; }
 
-	EckInline constexpr ID2D1Bitmap* GetBkgBitmap() const { return m_pBmpBkg; }
-
 	EckInline constexpr ID2D1SolidColorBrush* GetBkgBrush() const { return m_pBrBkg; }
 
 	EckInline void SetBkgBitmap(ID2D1Bitmap* pBmp)
 	{
+		ECK_DUILOCKWND;
 		std::swap(m_pBmpBkg, pBmp);
 		if (m_pBmpBkg)
 			m_pBmpBkg->AddRef();
 		if (pBmp)
 			pBmp->Release();
 	}
+	EckInline constexpr ID2D1Bitmap* GetBkgBitmap() const { return m_pBmpBkg; }
 
 	// 【仅在渲染线程调用】
 	void FillBackground(const D2D1_RECT_F& rc)
@@ -1592,7 +1518,7 @@ public:
 		return CElem::ElemFromPoint(GetLastChildElem(), pt, pResult);
 	}
 
-	CElem* SetFocusElem(CElem* pElem)
+	CElem* ElemSetFocus(CElem* pElem)
 	{
 		SetFocus(HWnd);
 		if (m_pFocusElem == pElem)
@@ -1604,9 +1530,9 @@ public:
 		pElem->CallEvent(WM_SETFOCUS, (WPARAM)pOld, 0);
 		return pOld;
 	}
-	EckInline constexpr CElem* GetFocusElem() const { return m_pFocusElem; }
+	EckInline constexpr CElem* ElemGetFocus() const { return m_pFocusElem; }
 
-	CElem* SetCaptureElem(CElem* pElem)
+	CElem* ElemSetCapture(CElem* pElem)
 	{
 		auto pOld = m_pMouseCaptureElem;
 		m_pMouseCaptureElem = pElem;
@@ -1619,7 +1545,7 @@ public:
 			pOld->CallEvent(WM_CAPTURECHANGED, 0, (LPARAM)pElem);
 		return pOld;
 	}
-	EckInline void ReleaseCaptureElem()
+	EckInline void ElemReleaseCapture()
 	{
 		ReleaseCapture();
 
@@ -1627,14 +1553,56 @@ public:
 		// m_pMouseCaptureElem->CallEvent(WM_CAPTURECHANGED, 0, nullptr);
 		// m_pMouseCaptureElem = nullptr;
 	}
-	EckInline constexpr CElem* GetCaptureElem() const { return m_pMouseCaptureElem; }
+	EckInline constexpr CElem* ElemGetCapture() const { return m_pMouseCaptureElem; }
 
 	EckInline constexpr CElem* GetFirstChildElem() const { return m_pFirstChild; }
 	EckInline constexpr CElem* GetLastChildElem() const { return m_pLastChild; }
 
 	EckInline const DPIS& GetDs() const { return m_Ds; }
 
-	EckInline int GetDpiValue() const { return m_iDpi; }
+	EckInline constexpr int GetDpiValue() const { return m_iDpi; }
+
+	EckInline constexpr int GetUserDpiValue() const { return m_iUserDpi; }
+
+	EckInline constexpr int Phy2Log(int i) const { return i * 96 / m_iUserDpi; }
+	EckInline constexpr float Phy2LogF(float i) const { return i * 96.f / m_iUserDpi; }
+	EckInline constexpr int Log2Phy(int i) const { return i * m_iUserDpi / 96; }
+	EckInline constexpr float Log2PhyF(float i) const { return i * m_iUserDpi / 96.f; }
+
+	EckInline constexpr void Phy2Log(POINT& pt) const
+	{
+		pt.x = Phy2Log(pt.x);
+		pt.y = Phy2Log(pt.y);
+	}
+	EckInline constexpr void Phy2Log(D2D1_POINT_2F& pt) const
+	{
+		pt.x = Phy2LogF(pt.x);
+		pt.y = Phy2LogF(pt.y);
+	}
+	EckInline constexpr void Phy2Log(D2D1_RECT_F& rc) const
+	{
+		rc.left = Phy2LogF(rc.left);
+		rc.top = Phy2LogF(rc.top);
+		rc.right = Phy2LogF(rc.right);
+		rc.bottom = Phy2LogF(rc.bottom);
+	}
+	EckInline constexpr void Log2Phy(POINT& pt) const
+	{
+		pt.x = Log2Phy(pt.x);
+		pt.y = Log2Phy(pt.y);
+	}
+	EckInline constexpr void Log2Phy(D2D1_POINT_2F& pt) const
+	{
+		pt.x = Log2PhyF(pt.x);
+		pt.y = Log2PhyF(pt.y);
+	}
+	EckInline constexpr void Log2Phy(D2D1_RECT_F& rc) const
+	{
+		rc.left = Log2PhyF(rc.left);
+		rc.top = Log2PhyF(rc.top);
+		rc.right = Log2PhyF(rc.right);
+		rc.bottom = Log2PhyF(rc.bottom);
+	}
 
 	EckInline HRESULT EnableDragDrop(BOOL bEnable);
 
@@ -1662,7 +1630,7 @@ public:
 		}
 	}
 
-	EckInline CCriticalSection& GetCriticalSection() { return m_cs; }
+	EckInline constexpr CCriticalSection& GetCriticalSection() { return m_cs; }
 
 	void IrUnion(const RECT& rc)
 	{
@@ -1672,24 +1640,22 @@ public:
 
 	EckInline void WakeRenderThread()
 	{
-		m_evtRender.Signal();
+		m_EvtRender.Signal();
 	}
 
-	EckInline void RegisterTimeLine(ITimeLine* ptl)
+	EckInline void RegisterTimeLine(ITimeLine* pTl)
 	{
 		ECK_DUILOCKWND;
-		ptl->AddRef();
-		m_vTimeLine.emplace_back(ptl);
+		pTl->AddRef();
+		m_vTimeLine.emplace_back(pTl);
 	}
 
-	EckInline void UnregisterTimeLine(ITimeLine* ptl)
+	EckInline void UnregisterTimeLine(ITimeLine* pTl)
 	{
 		ECK_DUILOCKWND;
-		const auto it = std::find(m_vTimeLine.begin(), m_vTimeLine.end(), ptl);
-		EckAssert(it != m_vTimeLine.end());
-		const auto p = *it;
+		const auto it = std::find(m_vTimeLine.begin(), m_vTimeLine.end(), pTl);
+		(*it)->Release();
 		m_vTimeLine.erase(it);
-		p->Release();
 	}
 
 	EckInline void Redraw()
@@ -1708,7 +1674,6 @@ public:
 		EckAssert(!IsValid());
 		m_ePresentMode = ePresentMode;
 	}
-
 	EckInline constexpr PresentMode GetPresentMode() const { return m_ePresentMode; }
 
 	/// <summary>
@@ -1723,7 +1688,6 @@ public:
 		m_eAlphaMode = (bTransparent ? D2D1_ALPHA_MODE_PREMULTIPLIED : D2D1_ALPHA_MODE_IGNORE);
 		m_eDxgiAlphaMode = (bTransparent ? DXGI_ALPHA_MODE_PREMULTIPLIED : DXGI_ALPHA_MODE_IGNORE);
 	}
-
 	EckInline constexpr BOOL GetTransparent() const { return m_bTransparent; }
 
 	EckInline constexpr int GetChildrenCount() const { return m_cChildren; }
@@ -1743,7 +1707,8 @@ public:
 			const D2D1_BITMAP_PROPERTIES1 Prop
 			{
 				{ DXGI_FORMAT_B8G8R8A8_UNORM,D2D1_ALPHA_MODE_PREMULTIPLIED },
-				(float)m_iUserDpi, (float)m_iUserDpi,
+				(float)m_iUserDpi,
+				(float)m_iUserDpi,
 				D2D1_BITMAP_OPTIONS_TARGET
 			};
 			m_D2d.GetDC()->CreateBitmap(D2D1::SizeU(m_cxCache, m_cyCache),
@@ -1757,6 +1722,18 @@ public:
 			m_pBmpCache->Release();
 		m_pBmpCache = nullptr;
 		m_cxCache = m_cyCache = 0;
+	}
+
+	void SetUserDpi(int iDpi)
+	{
+		ECK_DUILOCKWND;
+		m_iUserDpi = iDpi;
+		if (IsValid())
+		{
+			m_bUserDpiChanged = TRUE;
+			BroadcastEvent(WM_DPICHANGED, iDpi, 0);
+			WakeRenderThread();
+		}
 	}
 };
 
@@ -1835,7 +1812,7 @@ inline void CElem::Destroy()
 		--m_pWnd->m_cChildren;
 	m_pWnd->CorrectSingleElemMember(this);
 	CallEvent(WM_DESTROY, 0, 0);
-	DestroyChild(this);
+	utcDestroyChild(this);
 
 	SafeRelease(m_pDcVisual);
 	SafeRelease(m_pDcSurface);
@@ -1983,7 +1960,7 @@ inline void CElem::SetZOrder(CElem* pElemAfter)
 EckInline LRESULT CElem::GenElemNotify(void* pnm)
 {
 	if (!GenElemNotifyParent(pnm))
-		return m_pWnd->OnElemEvent(this, ((DUINMHDR*)pnm)->uCode, 0, (LPARAM)pnm);
+		return GetWnd()->OnElemEvent(this, ((DUINMHDR*)pnm)->uCode, 0, (LPARAM)pnm);
 	else
 		return 0;
 }
@@ -2036,22 +2013,27 @@ inline void CElem::BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, 
 		}
 }
 
-EckInline CElem* CElem::SetCapture() { return m_pWnd->SetCaptureElem(this); }
+EckInline CElem* CElem::SetCapture() { return GetWnd()->ElemSetCapture(this); }
 
-EckInline void CElem::ReleaseCapture() { m_pWnd->ReleaseCaptureElem(); }
+EckInline void CElem::ReleaseCapture() { GetWnd()->ElemReleaseCapture(); }
 
-EckInline void CElem::SetFocus() { m_pWnd->SetFocusElem(this); }
+EckInline void CElem::SetFocus() { GetWnd()->ElemSetFocus(this); }
 
-EckInline void CElem::InitEasingCurve(CEasingCurve* pec)
+EckInline void CElem::InitEasingCurve(CEasingCurve* pEc)
 {
-	pec->SetParam((LPARAM)this);
-	GetWnd()->RegisterTimeLine(pec);
+	pEc->SetParam((LPARAM)this);
+	GetWnd()->RegisterTimeLine(pEc);
 }
 
-inline CCriticalSection& CElem::GetCriticalSection() const
-{
-	return GetWnd()->GetCriticalSection();
-}
+EckInline CCriticalSection& CElem::GetCriticalSection() const { return GetWnd()->GetCriticalSection(); }
+
+EckInline constexpr int CElem::Log2Phy(int i) const { return GetWnd()->Log2Phy(i); }
+
+inline constexpr float CElem::Log2PhyF(float f) const { return GetWnd()->Log2PhyF(f); }
+
+inline constexpr int CElem::Phy2Log(int i) const { return GetWnd()->Phy2Log(i); }
+
+inline constexpr float CElem::Phy2LogF(float f) const { return GetWnd()->Phy2LogF(f); }
 
 inline void CElem::utcReCreateDCompVisual()
 {
@@ -2060,7 +2042,7 @@ inline void CElem::utcReCreateDCompVisual()
 	SafeRelease(m_pDcVisual);
 	SafeRelease(m_pDcContent);
 	SafeRelease(m_pDcSurface);
-	const auto pDevice = m_pWnd->m_pDcDevice;
+	const auto pDevice = GetWnd()->m_pDcDevice;
 	pDevice->CreateVisual(&m_pDcVisual);
 	auto cx = std::max(1, GetWidth()), cy = std::max(1, GetHeight());
 	pDevice->CreateSurface(std::max(1, GetWidth()), std::max(1, GetHeight()),
@@ -2089,7 +2071,7 @@ inline void CElem::utcReCreateDCompVisual()
 	if (pParent)
 		pParent->m_pDcVisual->AddVisual(m_pDcVisual, bInsertAbove, pRefVisual);
 	else
-		m_pWnd->m_pDcVisual->AddVisual(m_pDcVisual, bInsertAbove, pRefVisual);
+		GetWnd()->m_pDcVisual->AddVisual(m_pDcVisual, bInsertAbove, pRefVisual);
 }
 
 inline void CElem::tcReSizeDCompVisual()
@@ -2122,10 +2104,7 @@ inline void CElem::tcPostMoveSize(BOOL bSize, BOOL bMove, const RECT& rcOld)
 	UnionRect(rc, rcOld, GetWholeRectInClient());
 }
 
-EckInline constexpr ID2D1Bitmap1* CElem::GetCompBitmap() const
-{
-	return GetWnd()->GetCacheBitmap();
-}
+EckInline constexpr ID2D1Bitmap1* CElem::GetCompBitmap() const { return GetWnd()->GetCacheBitmap(); }
 
 class CDuiDropTarget :public CDropTarget
 {

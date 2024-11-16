@@ -168,39 +168,44 @@ struct EZD2D_PARAM
 	D2D1_ALPHA_MODE uBmpAlphaMode = D2D1_ALPHA_MODE_IGNORE;
 	D2D1_BITMAP_OPTIONS uBmpOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
 
+	float fDpi = 96.f;
+
 	EckInline static EZD2D_PARAM MakeBitblt(HWND hWnd, IDXGIFactory2* pDxgiFactory,
-		IDXGIDevice* pDxgiDevice, ID2D1Device* pD2dDevice, int cx, int cy)
+		IDXGIDevice* pDxgiDevice, ID2D1Device* pD2dDevice, int cx, int cy, float fDpi = 96.f)
 	{
 		return
 		{
 			hWnd,pDxgiFactory,pDxgiDevice,pD2dDevice,(UINT)cx,(UINT)cy,
 			1,DXGI_SCALING_STRETCH,DXGI_SWAP_EFFECT_DISCARD,DXGI_ALPHA_MODE_IGNORE,0,
 			D2D1_DEVICE_CONTEXT_OPTIONS_ENABLE_MULTITHREADED_OPTIMIZATIONS,D2D1_ALPHA_MODE_IGNORE,
-			D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW
+			D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+			fDpi
 		};
 	}
 
 	EckInline static EZD2D_PARAM MakeFlip(HWND hWnd, IDXGIFactory2* pDxgiFactory,
-		IDXGIDevice* pDxgiDevice, ID2D1Device* pD2dDevice, int cx, int cy)
+		IDXGIDevice* pDxgiDevice, ID2D1Device* pD2dDevice, int cx, int cy, float fDpi = 96.f)
 	{
 		return
 		{
 			hWnd,pDxgiFactory,pDxgiDevice,pD2dDevice,(UINT)cx,(UINT)cy,
 			2,DXGI_SCALING_NONE,DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,DXGI_ALPHA_MODE_IGNORE,0,
 			D2D1_DEVICE_CONTEXT_OPTIONS_ENABLE_MULTITHREADED_OPTIMIZATIONS,D2D1_ALPHA_MODE_IGNORE,
-			D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW
+			D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+			fDpi
 		};
 	}
 
 	EckInline static EZD2D_PARAM MakeComp(HWND hWnd, IDXGIFactory2* pDxgiFactory,
-		IDXGIDevice* pDxgiDevice, ID2D1Device* pD2dDevice, int cx, int cy)
+		IDXGIDevice* pDxgiDevice, ID2D1Device* pD2dDevice, int cx, int cy, float fDpi = 96.f)
 	{
 		return
 		{
 			hWnd,pDxgiFactory,pDxgiDevice,pD2dDevice,(UINT)cx,(UINT)cy,
 			2,DXGI_SCALING_STRETCH,DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,DXGI_ALPHA_MODE_IGNORE,0,
 			D2D1_DEVICE_CONTEXT_OPTIONS_ENABLE_MULTITHREADED_OPTIMIZATIONS,D2D1_ALPHA_MODE_IGNORE,
-			D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW
+			D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+			fDpi
 		};
 	}
 };
@@ -247,7 +252,7 @@ struct CEzD2D
 			Param.cy,
 			DXGI_FORMAT_B8G8R8A8_UNORM,
 			FALSE,
-			{1, 0},
+			{ 1,0 },
 			DXGI_USAGE_RENDER_TARGET_OUTPUT,
 			Param.cBuffer,
 			Param.uScaling,
@@ -285,11 +290,10 @@ struct CEzD2D
 
 		const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
 		{
-			{DXGI_FORMAT_B8G8R8A8_UNORM,Param.uBmpAlphaMode},
-			96,
-			96,
-			Param.uBmpOptions,
-			nullptr
+			{ DXGI_FORMAT_B8G8R8A8_UNORM,Param.uBmpAlphaMode },
+			Param.fDpi,
+			Param.fDpi,
+			Param.uBmpOptions
 		};
 
 		if (FAILED(hr = m_pDC->CreateBitmapFromDxgiSurface(pSurface, &D2dBmpProp, &m_pBitmap)))
@@ -315,7 +319,7 @@ struct CEzD2D
 			Param.cy,
 			DXGI_FORMAT_B8G8R8A8_UNORM,
 			FALSE,
-			{1, 0},
+			{ 1,0 },
 			DXGI_USAGE_RENDER_TARGET_OUTPUT,
 			Param.cBuffer,
 			Param.uScaling,
@@ -354,10 +358,9 @@ struct CEzD2D
 		const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
 		{
 			{ DXGI_FORMAT_B8G8R8A8_UNORM,Param.uBmpAlphaMode },
-			96,
-			96,
-			Param.uBmpOptions,
-			nullptr
+			Param.fDpi,
+			Param.fDpi,
+			Param.uBmpOptions
 		};
 
 		if (FAILED(hr = m_pDC->CreateBitmapFromDxgiSurface(pSurface, &D2dBmpProp, &m_pBitmap)))
@@ -377,7 +380,8 @@ struct CEzD2D
 
 	HRESULT ReSize(UINT cBuffer, int cx, int cy, UINT uSwapChainFlags,
 		D2D1_ALPHA_MODE uBmpAlphaMode = D2D1_ALPHA_MODE_IGNORE,
-		D2D1_BITMAP_OPTIONS uBmpOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW)
+		D2D1_BITMAP_OPTIONS uBmpOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+		float fDpi = 96.0f)
 	{
 		EckAssert(!!m_pDC && !!m_pSwapChain && !!m_pBitmap);
 		m_pDC->SetTarget(nullptr);
@@ -403,9 +407,9 @@ struct CEzD2D
 
 		D2D1_BITMAP_PROPERTIES1 D2dBmpProp
 		{
-			{DXGI_FORMAT_B8G8R8A8_UNORM,uBmpAlphaMode},
-			96,
-			96,
+			{ DXGI_FORMAT_B8G8R8A8_UNORM,uBmpAlphaMode },
+			fDpi,
+			fDpi,
 			uBmpOptions,
 			nullptr
 		};

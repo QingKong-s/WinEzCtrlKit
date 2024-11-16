@@ -1688,7 +1688,7 @@ EckInline constexpr void RectCornerToPoint(const D2D1_RECT_F& rc,
 	ppt[3] = D2D1_POINT_2F{ rc.right,rc.bottom };
 }
 
-EckInline constexpr void InitOA(OBJECT_ATTRIBUTES& oa, PUNICODE_STRING pusName = nullptr,
+EckInline constexpr void InitObjAttr(OBJECT_ATTRIBUTES& oa, PUNICODE_STRING pusName = nullptr,
 	ULONG ulAttr = 0u, HANDLE hRootDir = nullptr, PSECURITY_DESCRIPTOR pSecDesc = nullptr)
 {
 	oa.Length = sizeof(OBJECT_ATTRIBUTES);

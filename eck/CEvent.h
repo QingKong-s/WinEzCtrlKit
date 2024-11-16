@@ -15,7 +15,7 @@ public:
 	CEvent()
 	{
 		OBJECT_ATTRIBUTES oa;
-		InitOA(oa);
+		InitObjAttr(oa);
 		NtCreateEvent(&m_hObj, EVENT_ALL_ACCESS, &oa, SynchronizationEvent, FALSE);
 	}
 
@@ -25,7 +25,7 @@ public:
 		if (pszName)
 			RtlInitUnicodeString(&us, pszName);
 		OBJECT_ATTRIBUTES oa;
-		InitOA(oa, (pszName ? &us : nullptr), (bInheritHandle ? OBJ_INHERIT : 0));
+		InitObjAttr(oa, (pszName ? &us : nullptr), (bInheritHandle ? OBJ_INHERIT : 0));
 		NtCreateEvent(&m_hObj, EVENT_ALL_ACCESS, &oa,
 			bManualReset ? NotificationEvent : SynchronizationEvent, FALSE);
 	}

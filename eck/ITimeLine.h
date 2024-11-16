@@ -15,19 +15,13 @@ constexpr inline IID IID_ITimeLine
 ECK_COM_INTERFACE("FAF92698-0D74-4D14-90A5-4E66C10A9630")
 ITimeLine : public IUnknown
 {
-	/// <summary>
-	/// 滴答时间线
-	/// </summary>
+	// 滴答时间线
 	void STDMETHODCALLTYPE Tick(int iMs);
 
-	/// <summary>
-	/// 时间线是否有效
-	/// </summary>
+	// 时间线是否有效
 	BOOL STDMETHODCALLTYPE IsValid();
 
-	/// <summary>
-	/// 取当前滴答间隔
-	/// </summary>
+	// 取当前滴答间隔
 	int STDMETHODCALLTYPE GetCurrTickInterval();
 };
 ECK_NAMESPACE_END

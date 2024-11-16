@@ -15,7 +15,7 @@ public:
 	CWaitableTimer()
 	{
 		OBJECT_ATTRIBUTES oa;
-		InitOA(oa);
+		InitObjAttr(oa);
 		NtCreateTimer(&m_hObj, TIMER_ALL_ACCESS, &oa, SynchronizationTimer);
 	}
 
@@ -25,7 +25,7 @@ public:
 		if (pszName)
 			RtlInitUnicodeString(&us, pszName);
 		OBJECT_ATTRIBUTES oa;
-		InitOA(oa, (pszName ? &us : nullptr), (bInheritHandle ? OBJ_INHERIT : 0));
+		InitObjAttr(oa, (pszName ? &us : nullptr), (bInheritHandle ? OBJ_INHERIT : 0));
 		NtCreateTimer(&m_hObj, TIMER_ALL_ACCESS, &oa,
 			(bManualReset ? NotificationTimer : SynchronizationTimer));
 	}
