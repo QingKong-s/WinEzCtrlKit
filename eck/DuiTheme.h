@@ -6,8 +6,9 @@
 * Copyright(C) 2024 QingKong
 */
 #pragma once
-#include "SystemHelper.h"
+#include "CFile.h"
 #include "GraphicsHelper.h"
+#include "CUnknown.h"
 
 #if !ECKCXX20
 #error "EckDui requires C++20"
@@ -23,6 +24,7 @@ enum class Part : int
 	Button,
 	RadioButton,
 	CheckButton,
+	TriStateButton,
 	GroupBox,
 
 	Edit,
@@ -35,23 +37,40 @@ enum class Part : int
 
 	Progress,
 
+	TrackBar,
+	TrackBarThumb,
+
 	ScrollBar,
 	ScrollButton,
+	ScrollThumb,
 
 	UserBegin = 0x1000,
 };
 // 状态
 enum class State : int
 {
-	Normal,
-	Hot,
-	Pressed,
-	Disabled,
-	Checked,
-	Focused,
-	Selected,
-	CheckedFocused,
-	CheckedSelected,
+	None,		// 若部件不关心状态，则此值作为占位符
+	// 以下是基本状态
+	Normal,		// 默认状态
+	Hot,		// 点燃
+	Selected,	// 选中/按下
+	Disabled,	// 禁用
+	// 以下状态可与基本状态组合
+	Checked,	// 检查（检查框选中等）
+	Mixed,		// 半检查（三态复选等）
+	Focused,	// 焦点
+	// 以下为组合状态
+	HotSelected,	// 点燃且选中
+
+	CheckedHot,		// 检查且点燃
+	CheckedSelected,// 检查且选中
+	CheckedDisabled,// 检查且禁用
+
+	MixedHot,		// 半检查且点燃
+	MixedSelected,	// 半检查且选中
+	MixedDisabled,	// 半检查且禁用
+
+	NoFocusSelected,// 无焦点且选中
 
 	UserBegin = 0x1000,
 };
@@ -92,7 +111,39 @@ struct GEO_PARAM
 		D2D1_POINT_2F pt[2];
 	};
 };
-
+// 状态描述
+struct STATE_INFO
+{
+	State eState;
+	USHORT idxImgOrAtlas;
+	BITBOOL b9Grid : 1;
+	BITBOOL bGeometry : 1;
+	BITBOOL bImg : 1;
+	BITBOOL bNoStretch : 1;
+	union
+	{
+		struct
+		{
+			D2D1_RECT_F rcInAtlas;
+			D2D1_RECT_F rc9Grid;
+		} Img;
+		struct
+		{
+			GeoType eType;
+			float fWidth;
+			GEO_PARAM Param;
+		} Geo;
+	};
+	THEME_CLR Color;
+};
+// 部件描述
+struct PART_INFO
+{
+	Part ePart;
+	int idxState;
+	int cState;
+};
+// 主题度量
 enum class Metrics
 {
 	CxVScroll,		// 垂直滚动条宽度
@@ -107,7 +158,8 @@ enum class Metrics
 	CyFocusBorder,	// 焦点矩形垂直边距
 	CxIconSpacing,	// 图标水平间距
 	CyIconSpacing,	// 图标垂直间距
-	Max
+
+	Max				// 度量索引的最大值
 };
 // 主题文件标识
 constexpr inline UINT ThemeFileMagic = 'eKdT';
@@ -125,20 +177,24 @@ struct THEME_FILE_HEADER
 	UINT uFlags;
 	UINT cAtlas;
 	UINT cImage;
+	UINT cPart;
+	UINT cState;
 	float fMetrics[(size_t)Metrics::Max];
 	/*
 	* THEME_OFFSET ofAtlas[cAtlas];
 	* THEME_OFFSET ofImage[cImage];
+	* PART_INFO Part[cPart];	// 部件ID递增排列
+	* STATE_INFO State[cState];	// 状态ID递增排列
 	*/
 };
-
+// 颜色信息
 struct THEME_CLR
 {
 	D2D1_COLOR_F crBk;
 	D2D1_COLOR_F crText;
 	D2D1_COLOR_F crBorder;
 };
-
+// DrawBackground选项
 enum DtbOptFlag : UINT
 {
 	DTBO_NONE = 0,
@@ -149,7 +205,7 @@ enum DtbOptFlag : UINT
 	DTBO_NEW_OPACITY = 1u << 4,
 	DTBO_NEW_INTERPOLATION_MODE = 1u << 5,
 };
-
+// DrawBackground选项
 struct DTB_OPT
 {
 	DtbOptFlag uFlags;
@@ -160,98 +216,70 @@ struct DTB_OPT
 	float fOpacity;
 	D2D1_INTERPOLATION_MODE eInterpolationMode;
 };
+// 默认DrawBackground选项
 constexpr inline DTB_OPT DtbOptDefault{};
 
-class CTheme : public IUnknown
+// 主题描述
+class CTheme : public CRefObjMultiThread<CTheme>
 {
 	friend class CThemeRealization;
 protected:
-	struct STATE
-	{
-		State eState;
-		USHORT idxImgOrAtlas;
-		BITBOOL b9Grid : 1;
-		BITBOOL bGeometry : 1;
-		BITBOOL bImg : 1;
-		BITBOOL bNoStretch : 1;
-		union
-		{
-			struct
-			{
-				D2D1_RECT_F rcInAtlas;
-				D2D1_RECT_F rc9Grid;
-			} Img;
-			struct
-			{
-				GeoType eType;
-				float fWidth;
-				GEO_PARAM Param;
-			} Geo;
-		};
-		THEME_CLR Color;
-	};
-
-	struct PART
-	{
-		Part ePart;
-		int idxState;
-		int cState;
-	};
-
 	ULONG m_cRef{ 1 };
 	BOOL m_bNeedFreeData{};
-	const THEME_FILE_HEADER* m_pHdr{};
-	std::vector<PART> m_vPart{};	// 部件ID递增排列
-	std::vector<STATE> m_vState{};	// 状态ID递增排列
 	std::vector<IWICBitmap*> m_vAtlas{};// 图集
 	std::vector<IWICBitmap*> m_vImage{};// 单个图片
-	THEME_OFFSET* m_pofAtlas{};
-	THEME_OFFSET* m_pofImage{};
+
 	PCBYTE m_pData{};
 	SIZE_T m_cbData{};
+	// 以下字段基于m_pData字段
+	const THEME_FILE_HEADER* m_pHdr{};	// 文件头
+	THEME_OFFSET* m_pofAtlas{};		// 图集偏移
+	THEME_OFFSET* m_pofImage{};		// 单个图片偏移
+	const PART_INFO* m_pPart{};		// 部件ID递增排列
+	const STATE_INFO* m_pState{};	// 状态ID递增排列
+
+	EckInline constexpr auto GetIterPartEnd() const { return m_pPart + m_pHdr->cPart; }
+	EckInline constexpr auto GetIterStateEnd() const { return m_pState + m_pHdr->cState; }
 
 	EckInline constexpr auto FindPart(Part ePart) const
 	{
-		const auto it = std::lower_bound(m_vPart.begin(), m_vPart.end(), ePart,
-			[](const PART& e, Part ePart) { return e.ePart < ePart; });
-		if (it != m_vPart.end() && it->ePart == ePart)
+		const auto it = std::lower_bound(m_pPart, GetIterPartEnd(), ePart,
+			[](const PART_INFO& e, Part ePart) { return e.ePart < ePart; });
+		if (it != GetIterPartEnd() && it->ePart == ePart)
 			return it;
-		return m_vPart.end();
+		return GetIterPartEnd();
 	}
 
 	EckInline constexpr auto FindPart(Part ePart)
 	{
-		const auto it = std::lower_bound(m_vPart.begin(), m_vPart.end(), ePart,
-			[](const PART& e, Part ePart) { return e.ePart < ePart; });
-		if (it != m_vPart.end() && it->ePart == ePart)
+		const auto it = std::lower_bound(m_pPart, GetIterPartEnd(), ePart,
+			[](const PART_INFO& e, Part ePart) { return e.ePart < ePart; });
+		if (it != GetIterPartEnd() && it->ePart == ePart)
 			return it;
-		return m_vPart.end();
+		return GetIterPartEnd();
 	}
 
-	EckInline constexpr auto FindState(State eState, const PART& Part) const
+	EckInline constexpr auto FindState(State eState, const PART_INFO& Part) const
 	{
-		const auto itEnd = m_vState.begin() + Part.idxState + Part.cState;
-		const auto it = std::lower_bound(m_vState.begin() + Part.idxState,
+		const auto itEnd = m_pState + Part.idxState + Part.cState;
+		const auto it = std::lower_bound(m_pState + Part.idxState,
 			itEnd, eState,
-			[](const STATE& e, State eState) { return e.eState < eState; });
+			[](const STATE_INFO& e, State eState) { return e.eState < eState; });
 		if (it != itEnd && it->eState == eState)
 			return it;
-		return m_vState.end();
+		return GetIterStateEnd();
 	}
 
-	EckInline constexpr auto FindState(State eState, const PART& Part)
+	EckInline constexpr auto FindState(State eState, const PART_INFO& Part)
 	{
-		const auto itEnd = m_vState.begin() + Part.idxState + Part.cState;
-		const auto it = std::lower_bound(m_vState.begin() + Part.idxState,
+		const auto itEnd = m_pState + Part.idxState + Part.cState;
+		const auto it = std::lower_bound(m_pState + Part.idxState,
 			itEnd, eState,
-			[](const STATE& e, State eState) { return e.eState < eState; });
+			[](const STATE_INFO& e, State eState) { return e.eState < eState; });
 		if (it != itEnd && it->eState == eState)
 			return it;
-		return m_vState.end();
+		return GetIterStateEnd();
 	}
-
-	EckInline constexpr auto GetIterPartEnd() const { return m_vPart.end(); }
-	EckInline constexpr auto GetIterStateEnd() const { return m_vState.end(); }
 
 	IWICBitmap* LoadAtlas(UINT idxAtlas, _Out_ HRESULT& hr)
 	{
@@ -290,38 +318,55 @@ protected:
 		pStream->Release();
 		return m_vImage[idxImage];
 	}
+
+	void PostOpenData()
+	{
+		m_vAtlas.resize(m_pHdr->cAtlas);
+		m_vImage.resize(m_pHdr->cImage);
+		m_pofAtlas = (THEME_OFFSET*)(m_pHdr + 1);
+		m_pofImage = (THEME_OFFSET*)(m_pofAtlas + m_pHdr->cAtlas);
+		m_pPart = (PART_INFO*)(m_pofImage + m_pHdr->cImage);
+		m_pState = (STATE_INFO*)(m_pPart + m_pHdr->cPart);
+	}
 public:
 	ECK_DISABLE_COPY_MOVE_DEF_CONS(CTheme);
-
-	STDMETHODIMP_(ULONG) AddRef() { return InterlockedIncrement(&m_cRef); }
-	STDMETHODIMP_(ULONG) Release()
+	~CTheme()
 	{
-		ULONG cRef = InterlockedDecrement(&m_cRef);
-		if (cRef == 0)
-		{
-			delete this;
-		}
-		return cRef;
-	}
-	STDMETHODIMP QueryInterface(REFIID riid, void** ppvObject)
-	{
-		EckDbgBreak();
-		*ppvObject = nullptr;
-		return E_NOINTERFACE;
+		Close();
 	}
 
 	HRESULT Open(_In_z_ PCWSTR pszFileName)
 	{
-		//NTSTATUS nts;
-		//const auto hFile = NaOpenFile(pszFileName,
-		//	FILE_GENERIC_READ, FILE_SHARE_READ, 0, &nts);
-		//if (!hFile)
-		//	return HRESULT_FROM_NT(nts);
-		//const auto pData = VAlloc()
+		Close();
+		CFile File{ pszFileName,FCD_ONLYEXISTING,FILE_GENERIC_READ };
+		if (!File.IsValid())
+			return HRESULT_FROM_WIN32(GetLastError());
+		const auto cbData = File.GetSize32();
+		const auto pData = VAlloc(cbData);
+		if (!pData)
+			return E_OUTOFMEMORY;
+		if (!File.Read(pData, cbData))
+		{
+			VFree(pData);
+			return HRESULT_FROM_WIN32(GetLastError());
+		}
+		const auto* const pHdr = (const THEME_FILE_HEADER*)pData;
+		if (pHdr->Magic != ThemeFileMagic)
+		{
+			VFree(pData);
+			return HRESULT_FROM_WIN32(ERROR_BAD_FORMAT);
+		}
+		m_pData = (PCBYTE)pData;
+		m_cbData = cbData;
+		m_pHdr = pHdr;
+		m_bNeedFreeData = TRUE;
+		PostOpenData();
+		return S_OK;
 	}
 
 	HRESULT Open(_In_reads_bytes_(cbData) PCVOID pData, SIZE_T cbData, BOOL bCopy = TRUE)
 	{
+		Close();
 		const auto* const pHdr = (const THEME_FILE_HEADER*)pData;
 		if (pHdr->Magic != ThemeFileMagic)
 			return HRESULT_FROM_WIN32(ERROR_BAD_FORMAT);
@@ -341,6 +386,7 @@ public:
 		}
 		m_pHdr = pHdr;
 		m_bNeedFreeData = bCopy;
+		PostOpenData();
 		return S_OK;
 	}
 
@@ -350,6 +396,14 @@ public:
 			return S_FALSE;
 		if (m_bNeedFreeData)
 			VFree((void*)m_pData);
+		m_bNeedFreeData = FALSE;
+		m_pHdr = nullptr;
+		m_pPart = nullptr;
+		m_pState = nullptr;
+		m_vAtlas.clear();
+		m_vImage.clear();
+		m_pofAtlas = nullptr;
+		m_pofImage = nullptr;
 		m_pData = nullptr;
 		m_cbData = 0;
 		return S_OK;
@@ -359,10 +413,10 @@ public:
 		ClrPart eClrPart, _Out_ D2D1_COLOR_F& cr) const
 	{
 		const auto itPart = FindPart(ePart);
-		if (itPart == m_vPart.end())
+		if (itPart == GetIterPartEnd())
 			return HrNotFound;
 		const auto itState = FindState(eState, *itPart);
-		if (itState == m_vState.end())
+		if (itState == GetIterStateEnd())
 			return HrNotFound;
 		switch (eClrPart)
 		{
@@ -381,90 +435,18 @@ public:
 		return S_OK;
 	}
 
-	HRESULT GetPartSize(Part ePart, State eState ,
-		_Out_ D2D1_SIZE_F& sz, _In_opt_ const D2D1_RECT_F* prc = nullptr) const
+	EckInline constexpr float GetMetric(Metrics eMetric) const
 	{
-		const auto itPart = FindPart(ePart);
-		if (itPart == m_vPart.end())
-			return HrNotFound;
-		const auto itState = FindState(eState, *itPart);
-		if (itState == m_vState.end())
-			return HrNotFound;
-		if (itState->bGeometry)
-		{
-			switch (itState->Geo.eType)
-			{
-			case GeoType::FillRect:
-			case GeoType::FrameRect:
-			case GeoType::FillFrameRect:
-				if(prc&&!itState->bNoStretch)
-				{
-					sz.width = prc->right - prc->left;
-					sz.height = prc->bottom - prc->top;
-				}
-				else
-				{
-					sz.width = itState->Geo.Param.rc.right - itState->Geo.Param.rc.left;
-					sz.height = itState->Geo.Param.rc.bottom - itState->Geo.Param.rc.top;
-				}
-				break;
-			case GeoType::FillRoundRect:
-			case GeoType::FrameRoundRect:
-			case GeoType::FillFrameRoundRect:
-				if(prc&&!itState->bNoStretch)
-				{
-					sz.width = prc->right - prc->left;
-					sz.height = prc->bottom - prc->top;
-				}
-				else
-				{
-					sz.width = itState->Geo.Param.rrc.rect.right - itState->Geo.Param.rrc.rect.left;
-					sz.height = itState->Geo.Param.rrc.rect.bottom - itState->Geo.Param.rrc.rect.top;
-				}
-				break;
-			case GeoType::FillEllipse:
-			case GeoType::FrameEllipse:
-			case GeoType::FillFrameEllipse:
-				if(prc&&!itState->bNoStretch)
-				{
-					sz.width = prc->right - prc->left;
-					sz.height = prc->bottom - prc->top;
-				}
-				else
-				{
-					sz.width = itState->Geo.Param.ell.radiusX * 2;
-					sz.height = itState->Geo.Param.ell.radiusY * 2;
-				}
-				break;
-			case GeoType::Line:
-				if(prc&&!itState->bNoStretch)
-				{
-					sz.width = prc->right - prc->left;
-					sz.height = prc->bottom - prc->top;
-				}
-				else
-				{
-					sz.width = itState->Geo.Param.pt[1].x - itState->Geo.Param.pt[0].x;
-					sz.height = itState->Geo.Param.pt[1].y - itState->Geo.Param.pt[0].y;
-				}
-				break;
-			default:
-				return E_INVALIDARG;
-			}
-		}
-		else
-		{
-
-		}
+		return m_pHdr->fMetrics[(size_t)eMetric];
 	}
 
 	constexpr BOOL IsPartValid(Part ePart, State eState) const
 	{
 		const auto it = FindPart(ePart);
-		if (it != m_vPart.end())
+		if (it != GetIterPartEnd())
 		{
 			const auto itState = FindState(eState, *it);
-			return itState != m_vState.end();
+			return itState != GetIterStateEnd();
 		}
 		return FALSE;
 	}
@@ -472,7 +454,8 @@ public:
 	EckInline constexpr const THEME_FILE_HEADER& GetInfo() const { return *m_pHdr; }
 };
 
-class CThemeRealization : public IUnknown
+// 基于指定DC的主题实现
+class CThemeRealization : public CRefObjMultiThread<CThemeRealization>
 {
 protected:
 	ID2D1DeviceContext* m_pDC;	// 关联DC
@@ -485,24 +468,44 @@ protected:
 
 	ULONG m_cRef{ 1 };
 
-public:
-	STDMETHODIMP_(ULONG) AddRef() { return InterlockedIncrement(&m_cRef); }
-	STDMETHODIMP_(ULONG) Release()
+	ID2D1Bitmap1* RealizeAtlas(UINT idxAtlas, _Out_ HRESULT& hr)
 	{
-		ULONG cRef = InterlockedDecrement(&m_cRef);
-		if (cRef == 0)
+		if (m_vAtlas[idxAtlas])
 		{
-			delete this;
+			hr = S_FALSE;
+			return m_vAtlas[idxAtlas];
 		}
-		return cRef;
-	}
-	STDMETHODIMP QueryInterface(REFIID riid, void** ppvObject)
-	{
-		EckDbgBreak();
-		*ppvObject = nullptr;
-		return E_NOINTERFACE;
+		else
+		{
+			const auto pWicBmp = m_pTheme->LoadAtlas(idxAtlas, hr);
+			if (FAILED(hr))
+				return nullptr;
+			if (FAILED(hr = m_pDC->CreateBitmapFromWicBitmap(pWicBmp,
+				nullptr, &m_vAtlas[idxAtlas])))
+				return nullptr;
+			return m_vAtlas[idxAtlas];
+		}
 	}
 
+	ID2D1Bitmap1* RealizeImg(UINT idxImage, _Out_ HRESULT& hr)
+	{
+		if (m_vImage[idxImage])
+		{
+			hr = S_FALSE;
+			return m_vImage[idxImage];
+		}
+		else
+		{
+			const auto pWicBmp = m_pTheme->LoadImg(idxImage, hr);
+			if (FAILED(hr))
+				return nullptr;
+			if (FAILED(hr = m_pDC->CreateBitmapFromWicBitmap(pWicBmp,
+				nullptr, &m_vImage[idxImage])))
+				return nullptr;
+			return m_vImage[idxImage];
+		}
+	}
+public:
 	ECK_DISABLE_COPY_MOVE(CThemeRealization);
 	CThemeRealization(ID2D1DeviceContext* pDC, CTheme* pTheme)
 		: m_pDC{ pDC }, m_pTheme{ pTheme },
@@ -527,7 +530,16 @@ public:
 				p->Release();
 	}
 
-	HRESULT DrawBackground(Part ePart, State eState,
+	/// <summary>
+	/// 画背景。
+	/// 提供默认的基于主题数据的背景绘制实现
+	/// </summary>
+	/// <param name="ePart">部件ID</param>
+	/// <param name="eState">状态ID</param>
+	/// <param name="rc">输出矩形</param>
+	/// <param name="pOpt">选项</param>
+	/// <returns>HRESULT</returns>
+	virtual HRESULT DrawBackground(Part ePart, State eState,
 		const D2D1_RECT_F& rc, _In_opt_ const DTB_OPT* pOpt = nullptr)
 	{
 		if (!pOpt)
@@ -670,35 +682,18 @@ public:
 		else
 		{
 			ID2D1Bitmap1* pBitmap;
+			HRESULT hr;
 			if (itState->bImg)
 			{
-				if (m_vImage[itState->idxImgOrAtlas])
-					pBitmap = m_vImage[itState->idxImgOrAtlas];
-				else
-				{
-					HRESULT hr;
-					const auto pWicBmp = m_pTheme->LoadImg(itState->idxImgOrAtlas, hr);
-					if (FAILED(hr))
-						return hr;
-					if (FAILED(hr = m_pDC->CreateBitmapFromWicBitmap(pWicBmp, nullptr, &pBitmap)))
-						return hr;
-					m_vImage[itState->idxImgOrAtlas] = pBitmap;
-				}
+				pBitmap = RealizeImg(itState->idxImgOrAtlas, hr);
+				if (FAILED(hr))
+					return hr;
 			}
 			else
 			{
-				if (m_vAtlas[itState->idxImgOrAtlas])
-					pBitmap = m_vAtlas[itState->idxImgOrAtlas];
-				else
-				{
-					HRESULT hr;
-					const auto pWicBmp = m_pTheme->LoadAtlas(itState->idxImgOrAtlas, hr);
-					if (FAILED(hr))
-						return hr;
-					if (FAILED(hr = m_pDC->CreateBitmapFromWicBitmap(pWicBmp, nullptr, &pBitmap)))
-						return hr;
-					m_vAtlas[itState->idxImgOrAtlas] = pBitmap;
-				}
+				pBitmap = RealizeAtlas(itState->idxImgOrAtlas, hr);
+				if (FAILED(hr))
+					return hr;
 			}
 
 			const auto fOpacity = pOpt->uFlags & DTBO_NEW_OPACITY ?
