@@ -555,6 +555,8 @@ constexpr inline UINT WM_USER_SAFE{ WM_USER + 3 };
 
 constexpr inline UINT CS_STDWND{ CS_DBLCLKS | CS_VREDRAW | CS_HREDRAW };
 
+constexpr inline HRESULT HrNotFound{ HRESULT_FROM_WIN32(ERROR_NOT_FOUND) };
+
 constexpr inline PCWSTR WCN_DLG = L"Eck.WndClass.CommDlg";
 
 constexpr inline PCWSTR WCN_DUMMY = L"Eck.WndClass.Dummy";
@@ -631,6 +633,7 @@ enum class ClrPart :BYTE
 	Text,
 	Bk,
 	TextBk,
+	Border,
 };
 
 #pragma warning(suppress:26454)// 算术溢出

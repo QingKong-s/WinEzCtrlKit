@@ -1,5 +1,16 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* DuiDef.h ： DUI基本定义
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "ECK.h"
+
+#if !ECKCXX20
+#error "EckDui requires C++20"
+#endif// !ECKCXX20
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
