@@ -184,6 +184,7 @@
     <ClInclude Include="eck\CRegion.h" />
     <ClInclude Include="eck\CSelRange.h" />
     <ClInclude Include="eck\CTableLayout.h" />
+    <ClInclude Include="eck\CUnknown.h" />
     <ClInclude Include="eck\CWaitableObject.h" />
     <ClInclude Include="eck\CWaitableTimer.h" />
     <ClInclude Include="eck\DateTimeHelper.h" />
