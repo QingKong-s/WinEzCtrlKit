@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* DuiHelper.h ： DUI辅助
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "DuiDef.h"
 #include "MathHelper.h"
 
