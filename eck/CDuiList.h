@@ -22,11 +22,6 @@ ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 enum
 {
-	LEE_GETDISPINFO = EE_PRIVATE_BEGIN,
-};
-
-enum
-{
 	LEIM_TEXT = (1u << 0),
 	LEIM_IMAGE = (1u << 1),
 };
@@ -133,12 +128,14 @@ private:
 
 	void LVPaintItem(int idx, const D2D1_RECT_F& rcPaint, const LEEDISPINFO& es)
 	{
+		const float Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
+
 		auto& e = m_vItem[idx];
 		if (!e.pLayout && es.pszText)
 		{
 			EckAssert(es.cchText > 0);
 			g_pDwFactory->CreateTextLayout(es.pszText, es.cchText, m_pTf,
-				GetWidthF() - m_pWnd->GetDs().CommMargin * 3 - m_cxImage, (float)m_cyItem, &e.pLayout);
+				GetWidthF() - Padding * 3 - m_cxImage, (float)m_cyItem, &e.pLayout);
 			if (e.pLayout)
 			{
 				DWRITE_TEXT_METRICS tm;
@@ -149,26 +146,24 @@ private:
 				e.cxText = 0.f;
 		}
 
-		const float fRad = m_pWnd->GetDs().CommRrcRadius;
 		D2D1_RECT_F rc{ 0.f,(float)GetItemY(idx),GetWidthF() };
 		rc.bottom = rc.top + m_cyItem;
 
-		const auto& cr = m_pColorTheme->Get();
-		BOOL bDoNotFill = FALSE;
+		State eState;
 		if ((e.uFlags & LEIF_SELECTED) || (m_bSingleSel && m_idxSel == idx))
 			if (m_idxHot == idx)
-				m_pBrush->SetColor(cr.crBkHotSel);
+				eState = State::HotSelected;
 			else
-				m_pBrush->SetColor(cr.crBkSelected);
+				eState = State::Selected;
 		else if (m_idxHot == idx)
-			m_pBrush->SetColor(cr.crBkHot);
+			eState = State::Hot;
 		else
-			bDoNotFill = TRUE;
+			eState = State::None;
 
-		if (!bDoNotFill)
-			m_pDC->FillRectangle(rc, m_pBrush);
+		if (eState != State::None)
+			GetTheme()->DrawBackground(Part::ListItem, eState, rc);
 
-		const float xImage = m_pWnd->GetDs().CommMargin;
+		const float xImage = Padding;
 		const float yImage = (float)((m_cyItem - m_cyImage) / 2);
 
 		auto rcOld = rc;
@@ -186,7 +181,9 @@ private:
 		const float xText = rc.right + xImage;
 		if (e.pLayout && !(xText + e.cxText <= rcPaint.left || xText >= rcPaint.right))
 		{
-			m_pBrush->SetColor(cr.crTextNormal);
+			D2D1_COLOR_F cr;
+			GetTheme()->GetSysColor(SysColor::Text, cr);
+			m_pBrush->SetColor(cr);
 			m_pDC->DrawTextLayout(D2D1::Point2F(xText, rcOld.top), e.pLayout, m_pBrush);
 		}
 	}
@@ -198,28 +195,27 @@ private:
 		D2D1_RECT_F rc;
 		GetItemRect(idx, rc);
 
-		const auto& cr = m_pColorTheme->Get();
-		BOOL bDoNotFill = FALSE;
+		State eState;
 		if ((e.uFlags & LEIF_SELECTED) || (m_bSingleSel && m_idxSel == idx))
 			if (m_idxHot == idx)
-				m_pBrush->SetColor(cr.crBkHotSel);
+				eState = State::HotSelected;
 			else
-				m_pBrush->SetColor(cr.crBkSelected);
+				eState = State::Selected;
 		else if (m_idxHot == idx)
-			m_pBrush->SetColor(cr.crBkHot);
+			eState = State::Hot;
 		else
-			bDoNotFill = TRUE;
+			eState = State::None;
 
-		if (!bDoNotFill)
-			m_pDC->FillRectangle(rc, m_pBrush);
+		if (eState != State::None)
+			GetTheme()->DrawBackground(Part::ListItem, eState, rc);
 
-		D2D1_RECT_F rcImg
-		{
-			rc.left + (m_cxItem - m_cxImage) / 2.f,
-			rc.top + m_pWnd->GetDs().CommMargin
-		};
+		const float Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
+		D2D1_RECT_F rcImg;
+		rcImg.left = rc.left + (m_cxItem - m_cxImage) / 2.f;
+		rcImg.top = rc.top + Padding;
 		rcImg.right = rcImg.left + m_cxImage;
 		rcImg.bottom = rcImg.top + m_cyImage;
+
 		if (!(rcImg.right <= rcPaint.left || rcImg.left >= rcPaint.right))
 			if (es.pImg)
 				m_pDC->DrawBitmap(es.pImg, rcImg, 1.f, D2D1_INTERPOLATION_MODE_LINEAR);
@@ -230,7 +226,7 @@ private:
 		{
 			EckAssert(es.cchText > 0);
 			g_pDwFactory->CreateTextLayout(es.pszText, es.cchText, m_pTf,
-				(float)m_cxItem, (float)(rc.bottom - rcImg.bottom), &e.pLayout);
+				(float)m_cxItem, float(rc.bottom - rcImg.bottom), &e.pLayout);
 
 			if (e.pLayout)
 			{
@@ -248,8 +244,10 @@ private:
 
 		if (e.pLayout)
 		{
-			m_pBrush->SetColor(cr.crTextNormal);
-			m_pDC->DrawTextLayout(D2D1::Point2F(rc.left, rcImg.bottom + m_pWnd->GetDs().CommMargin), 
+			D2D1_COLOR_F cr;
+			GetTheme()->GetSysColor(SysColor::Text, cr);
+			m_pBrush->SetColor(cr);
+			m_pDC->DrawTextLayout(D2D1::Point2F(rc.left, rcImg.bottom + Padding),
 				e.pLayout, m_pBrush);
 		}
 	}
@@ -532,21 +530,10 @@ public:
 				}
 			}
 
-			const auto& crs = GetColorTheme()->Get();
-
 			if (m_bDraggingSel)
 			{
-				auto rcDrag = MakeD2DRcF(m_rcDragSel);
-				OffsetRect(rcDrag, 0.f, (float)-m_psv->GetPos());
-				auto cr = crs.crBkHot;
-				cr.a *= 0.7f;
-				m_pBrush->SetColor(cr);
-				m_pDC->FillRectangle(rcDrag, m_pBrush);
-
-				cr = crs.crBkSelected;
-				cr.a *= 0.7f;
-				m_pBrush->SetColor(cr);
-				m_pDC->DrawRectangle(rcDrag, m_pBrush, 3.f);
+				GetTheme()->DrawBackground(Part::ListSelRect, State::None,
+					MakeD2DRcF(m_rcDragSel));
 			}
 
 			ECK_DUI_DBG_DRAW_FRAME;
@@ -618,7 +605,7 @@ public:
 			ReCalcScroll();
 			if (m_idxInsertMark >= 0)
 				UpdateInsertMarkGeometry();
-			const auto cxSB = (int)GetWnd()->GetDs().CommSBCxy;
+			const auto cxSB = (int)GetTheme()->GetMetrics(Metrics::CxVScroll);
 			m_SB.SetRect({ GetWidth() - cxSB,0,GetWidth(),GetHeight() });
 		}
 		return 0;
@@ -692,9 +679,6 @@ public:
 
 		case WM_CREATE:
 		{
-			m_pColorTheme = GetWnd()->GetDefColorTheme()[CTI_LIST];
-			m_pColorTheme->Ref();
-
 			m_SB.Create(nullptr, DES_VISIBLE, 0,
 				0, 0, 0, 0, this, GetWnd());
 			m_psv = m_SB.GetScrollView();
@@ -835,7 +819,7 @@ public:
 		if (!PtInRect(rc, leht.pt) || m_vItem.empty())
 			return -1;
 
-		switch(m_eView)
+		switch (m_eView)
 		{
 		case ListType::List:
 		{

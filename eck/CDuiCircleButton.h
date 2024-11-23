@@ -6,23 +6,26 @@
 * Copyright(C) 2024 QingKong
 */
 #pragma once
-#if ECKCXX20
 #include "DuiBase.h"
+
+#if !ECKCXX20
+#error "EckDui requires C++20"
+#endif// !ECKCXX20
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 class CCircleButton :public CElem
 {
 private:
-	ID2D1Bitmap* m_pImg = nullptr;				// 外部传入
-
-	ID2D1SolidColorBrush* m_pBrush = nullptr;
+	ID2D1Bitmap* m_pImg{};
 
 	D2D1_SIZE_F m_sizeImg{};
 	D2D1_INTERPOLATION_MODE m_iInterpolation = D2D1_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC;
 
 	BITBOOL m_bHot : 1 = FALSE;
 	BITBOOL m_bLBtnDown : 1 = FALSE;
+
+	BITBOOL m_bAutoImgSize : 1{ TRUE };
 
 	BOOL PtInBtn(POINT ptInClient)
 	{
@@ -44,37 +47,24 @@ public:
 			ELEMPAINTSTRU ps;
 			BeginPaint(ps, wParam, lParam);
 
-			const float fRadius = std::min(GetWidthF(), GetHeightF()) / 2.f;
-			D2D1_ELLIPSE ellipse
-			{
-				{GetWidthF() / 2.f, GetHeightF() / 2.f},
-				fRadius, fRadius
-			};
-
-			auto& ct = GetColorTheme()->Get();
-
-			if (m_bHot)
-				if (m_bLBtnDown)
-					m_pBrush->SetColor(ct.crBkHotSel);
-				else
-					m_pBrush->SetColor(ct.crBkHot);
-			else if (m_bLBtnDown)
-				m_pBrush->SetColor(ct.crBkSelected);
+			State eState;
+			if (m_bLBtnDown)
+				eState = State::Selected;
+			else if (m_bHot)
+				eState = State::Hot;
 			else
-				m_pBrush->SetColor(ct.crBkNormal);
-			m_pDC->FillEllipse(ellipse, m_pBrush);
+				eState = State::Normal;
 
-			float x = (GetWidthF() - m_sizeImg.width) / 2.f;
+			GetTheme()->DrawBackground(Part::CircleButton, eState, GetViewRectF());
+
 			if (m_pImg)
 			{
-				float y = (GetHeightF() - m_sizeImg.height) / 2.f;
 				D2D1_RECT_F rcImg;
-				rcImg.left = x;
-				rcImg.top = y;
+				rcImg.left = (GetWidthF() - m_sizeImg.width) / 2.f;
+				rcImg.top = (GetHeightF() - m_sizeImg.height) / 2.f;
 				rcImg.right = rcImg.left + m_sizeImg.width;
 				rcImg.bottom = rcImg.top + m_sizeImg.height;
 				m_pDC->DrawBitmap(m_pImg, rcImg, 1.f, m_iInterpolation);
-				x = m_pWnd->GetDs().CommMargin + m_sizeImg.width;
 			}
 
 			EndPaint(ps);
@@ -130,17 +120,19 @@ public:
 		}
 		return 0;
 
-		case WM_NCCREATE:
-			SetColorTheme(GetWnd()->GetDefColorTheme()[CTI_CIRCLEBUTTON]);
-			return 0;
-
-		case WM_CREATE:
-			m_pDC->CreateSolidColorBrush({}, &m_pBrush);
-			return 0;
+		case WM_SIZE:
+		{
+			if (m_bAutoImgSize)
+			{
+				m_sizeImg.width = std::min(GetWidthF(), GetHeightF());
+				m_sizeImg.width /= 1.414f;
+				m_sizeImg.height = m_sizeImg.width;
+			}
+		}
+		return 0;
 
 		case WM_DESTROY:
 		{
-			SafeRelease(m_pBrush);
 			SafeRelease(m_pImg);
 			m_bHot = FALSE;
 			m_bLBtnDown = FALSE;
@@ -171,6 +163,3 @@ public:
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
-#else
-#error "EckDui requires C++20"
-#endif// ECKCXX20

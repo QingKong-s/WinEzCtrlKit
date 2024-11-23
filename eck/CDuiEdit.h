@@ -6,9 +6,12 @@
 * Copyright(C) 2024 QingKong
 */
 #pragma once
-#if ECKCXX20
 #include "CDuiScrollBar.h"
 #include "ShellHelper.h"
+
+#if !ECKCXX20
+#error "EckDui requires C++20"
+#endif// !ECKCXX20
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
@@ -110,7 +113,7 @@ public:
 				}
 
 				m_pBr->SetColor(D2D1::ColorF(D2D1::ColorF::White));
-				m_pDC->DrawTextLayout({ m_rcfTextAera.left + ox,m_rcfTextAera.top+oy }, m_pLayout, m_pBr,
+				m_pDC->DrawTextLayout({ m_rcfTextAera.left + ox,m_rcfTextAera.top + oy }, m_pLayout, m_pBr,
 					D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
 			}
 
@@ -302,7 +305,7 @@ public:
 			COMPOSITIONFORM cf;
 			cf.dwStyle = CFS_POINT;
 			cf.ptCurrentPos = { m_rcInClient.left,m_rcInClient.bottom };
-			const HIMC hImc = ImmGetContext(GetWnd()->HWnd); 
+			const HIMC hImc = ImmGetContext(GetWnd()->HWnd);
 			ImmSetCompositionWindow(hImc, &cf);
 			ImmReleaseContext(GetWnd()->HWnd, hImc);
 			return 0;
@@ -361,11 +364,11 @@ public:
 
 		case WM_SIZE:
 		{
-			ECK_DUILOCK;
+			/*ECK_DUILOCK;
 			m_rcfTextAera = { 15,5,GetWidthF() - 10,5 + GetHeightF() - 10 };
 			const int cx = (int)GetWnd()->GetDs().CommSBCxy;
 			const int x = GetWidth() - cx;
-			m_SBV.SetRect({ x,0,x + cx,GetHeight() });
+			m_SBV.SetRect({ x,0,x + cx,GetHeight() });*/
 		}
 		return 0;
 
@@ -390,7 +393,7 @@ public:
 				}, (LPARAM)this);
 			m_pDC->CreateSolidColorBrush({}, &m_pBr);
 		}
-			break;
+		break;
 		}
 		return CElem::OnEvent(uMsg, wParam, lParam);
 	}
@@ -443,6 +446,3 @@ public:
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
-#else
-#error "EckDui requires C++20"
-#endif// ECKCXX20

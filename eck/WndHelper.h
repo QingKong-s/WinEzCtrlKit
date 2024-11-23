@@ -687,7 +687,7 @@ EckInline void ClientToScreen(HWND hWnd, RECT* prc)
 
 EckInline void MsgOnDpiChanged(HWND hWnd, LPARAM lParam)
 {
-	const auto prc = (RECT*)lParam;
+	const auto* const prc = (RECT*)lParam;
 	SetWindowPos(hWnd, nullptr,
 		prc->left,
 		prc->top,

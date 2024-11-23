@@ -231,9 +231,6 @@
     <ClInclude Include="eck\CDuiCircleButton.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CDuiColorTheme.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CIni.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
@@ -319,9 +316,6 @@
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CDateTimePicker.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
-    <ClInclude Include="eck\CDuiMenu.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="CTestWnd.h">
@@ -487,6 +481,12 @@
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CUnknown.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\DuiStdTheme.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CEnumFile.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,6 +1,10 @@
 ﻿#pragma once
 #include "DuiBase.h"
 
+#if !ECKCXX20
+#error "EckDui requires C++20"
+#endif// !ECKCXX20
+
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 class CTitleBar :public CElem
@@ -18,9 +22,9 @@ protected:
 
 	DwmWPartState GetPartState(DwmWndPart idx) const
 	{
-		if(m_idxPressed == idx)
+		if (m_idxPressed == idx)
 			return DwmWPartState::Pressed;
-		else if(m_idxHot == idx)
+		else if (m_idxHot == idx)
 			return DwmWPartState::Hot;
 		return DwmWPartState::Normal;
 	}
@@ -138,7 +142,7 @@ public:
 				ScreenToClient(GetWnd()->HWnd, &pt);
 				ClientToElem(pt);
 				const auto idx = HitTest(pt);
-				if(m_idxPressed == idx)
+				if (m_idxPressed == idx)
 					switch (idx)
 					{
 					case DwmWndPart::Close:
@@ -190,7 +194,7 @@ public:
 			}
 		}
 		return 0;
-		
+
 		case WM_CREATE:
 		{
 			m_hRefWnd = GetWnd()->GetHWND();
@@ -208,7 +212,7 @@ public:
 
 	void UpdateTitleBarInfo(BOOL bForceUpdate = FALSE)
 	{
-		if (bForceUpdate|| !m_DwmPartMgr.GetHTheme())
+		if (bForceUpdate || !m_DwmPartMgr.GetHTheme())
 		{
 			m_DwmPartMgr.AnalyzeDefaultTheme();
 			PCVOID pData;

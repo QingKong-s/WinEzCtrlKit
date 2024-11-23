@@ -8,8 +8,8 @@
 #pragma once
 #include "CWnd.h"
 
-#include "CDuiColorTheme.h"
 #include "DuiDef.h"
+#include "DuiStdTheme.h"
 
 #include "GraphicsHelper.h"
 #include "OleDragDropHelper.h"
@@ -17,7 +17,6 @@
 #include "CDwmWndPartMgr.h"
 
 #include "EasingCurve.h"
-#include "ITimeLine.h"
 
 #include "CEvent.h"
 #include "CCriticalSection.h"
@@ -83,7 +82,7 @@ protected:
 	//------属性------
 	CRefStrW m_rsText{};	// 标题
 	INT_PTR m_iId{};		// 元素ID
-	CColorTheme* m_pColorTheme{};		// 颜色主题
+	CThemeRealization* m_pTheme{};		// 主题
 	IDWriteTextFormat* m_pTextFormat{};	// 文本格式
 	DWORD m_dwStyle{};		// 样式
 	int m_cChildren{};		// 子元素数量
@@ -179,8 +178,6 @@ protected:
 		}
 		m_dwStyle = dwStyle;
 	}
-
-	void utcSwitchDefColorTheme(int idxTheme, WPARAM bDark);
 
 	void utcReCreateDCompVisual();
 
@@ -585,19 +582,17 @@ public:
 	// 取元素ID
 	EckInline constexpr INT_PTR GetID() const { return m_iId; }
 
-	// 置颜色主题
-	EckInline void SetColorTheme(CColorTheme* pColorTheme)
+	// 置主题
+	EckInline void SetTheme(CThemeRealization* pTheme)
 	{
 		ECK_DUILOCK;
-		std::swap(m_pColorTheme, pColorTheme);
-		if (m_pColorTheme)
-			m_pColorTheme->Ref();
-		if (pColorTheme)
-			pColorTheme->DeRef();
+		std::swap(m_pTheme, pTheme);
+		m_pTheme->AddRef();
+		pTheme->Release();
 		CallEvent(WM_THEMECHANGED, 0, 0);
 	}
-	// 取颜色主题
-	EckInline constexpr const CColorTheme* GetColorTheme() const { return m_pColorTheme; }
+	// 取主题
+	EckInline constexpr auto GetTheme() const { return m_pTheme; }
 #pragma endregion OthersProp
 #pragma region ElemFunc
 	/// <summary>
@@ -720,8 +715,7 @@ private:
 	int m_cxCache{};				// 缓存位图宽度
 	int m_cyCache{};				// 缓存位图高度
 
-	CColorTheme* m_pStdColorTheme[CTI_COUNT]{};		// 默认亮色主题
-	CColorTheme* m_pStdColorThemeDark[CTI_COUNT]{};	// 默认暗色主题
+	std::vector<CThemeRealization*> m_vTheme{};		// 主题列表
 
 	//------其他------
 	int m_cxClient = 0;		// 客户区宽度
@@ -739,14 +733,6 @@ private:
 
 	int m_iUserDpi = USER_DEFAULT_SCREEN_DPI;
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
-	ECK_DS_BEGIN(DPIS)
-		ECK_DS_ENTRY_F(CommEdge, 1.f)
-		ECK_DS_ENTRY_F(CommRrcRadius, 4.f)
-		ECK_DS_ENTRY_F(CommMargin, 4.f)
-		ECK_DS_ENTRY_F(SBPadding, 3.f)
-		ECK_DS_ENTRY_F(CommSBCxy, 12.f)
-		;
-	ECK_DS_END_VAR(m_Ds);
 
 	void CorrectSingleElemMember(CElem* pElem)
 	{
@@ -903,22 +889,16 @@ private:
 			const auto pDC = m_D2d.GetDC();
 			IDXGISurface1* pDxgiSurface = nullptr;
 			POINT ptOffset;
-			RECT rcPhy{ rc };
-			Log2Phy(rcPhy);
-
-			if (m_iUserDpi != 96)// 误差修正
+			auto rcPhyF = MakeD2DRcF(rc);
+			Log2Phy(rcPhyF);
+			const RECT rcPhy
 			{
-				auto t = MakeD2DRcF(rcPhy);
-				Phy2Log(t);
-				if (t.left < rc.left)
-					++rcPhy.left;
-				if (t.top < rc.top)
-					++rcPhy.top;
-				if (t.right > rc.right)
-					--rcPhy.right;
-				if (t.bottom > rc.bottom)
-					--rcPhy.bottom;
-			}
+				(int)floorf(rcPhyF.left),
+				(int)floorf(rcPhyF.top),
+				(int)ceilf(rcPhyF.right),
+				(int)ceilf(rcPhyF.bottom)
+			};
+
 			m_pDcSurface->BeginDraw(bFullUpdate ? nullptr : &rcPhy,
 				IID_PPV_ARGS(&pDxgiSurface), &ptOffset);
 			ptOffset.x -= rcPhy.left;
@@ -942,8 +922,9 @@ private:
 
 			m_D2d.m_pBitmap = pBitmap;
 
-			auto rcF = MakeD2DRcF(rc);
-			OffsetRect(rcF, ptLogOffsetF.x, ptLogOffsetF.y);
+			auto rcF = MakeD2DRcF(rcPhy);
+			OffsetRect(rcF, (float)ptOffset.x, (float)ptOffset.y);
+			Phy2Log(rcF);
 			if (m_bTransparent)
 			{
 				pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
@@ -1338,9 +1319,6 @@ public:
 				RECT rc;
 				GetClientRect(hWnd, &rc);
 
-				MakeStdThemeLight(m_pStdColorTheme);
-				MakeStdThemeDark(m_pStdColorThemeDark);
-
 				rc.right = std::max(rc.right, 8L);
 				rc.bottom = std::max(rc.bottom, 8L);
 				switch (m_ePresentMode)
@@ -1403,6 +1381,23 @@ public:
 					ECK_UNREACHABLE;
 				}
 
+				const auto pTheme = new CTheme{};
+				pTheme->Open(&StdThemeData, sizeof(StdThemeData), FALSE);
+
+				auto pPal = new CThemePalette{ Palette_StdLight,ARRAYSIZE(Palette_StdLight) };
+				pTheme->AddPalette(pPal);
+				pTheme->SetPalette(pPal);
+				pPal->Release();
+
+				pPal = new CThemePalette{ Palette_StdDark,ARRAYSIZE(Palette_StdDark) };
+				pTheme->AddPalette(pPal);
+				pPal->Release();
+
+				const auto pTr = new CThemeRealization{ GetD2D().GetDC(), pTheme };
+				m_vTheme.emplace_back(pTr);
+
+				pTheme->Release();
+
 				m_D2d.GetDC()->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
 				if (m_ePresentMode != PresentMode::WindowRenderTarget)
 					m_D2d.GetDC()->SetDpi((float)m_iUserDpi, (float)m_iUserDpi);
@@ -1428,10 +1423,7 @@ public:
 		case WM_DPICHANGED:// For top-level window.
 		{
 			m_iDpi = HIWORD(wParam);
-			auto prc = (const RECT*)lParam;
-			SetWindowPos(hWnd, nullptr,
-				prc->left, prc->top, prc->right - prc->left, prc->bottom - prc->top,
-				SWP_NOZORDER | SWP_NOACTIVATE);
+			MsgOnDpiChanged(hWnd, lParam);
 		}
 		return 0;
 
@@ -1463,6 +1455,7 @@ public:
 			m_pFocusElem = m_pCurrNcHitTestElem = nullptr;
 			// 销毁图形堆栈
 			m_D2d.Destroy();
+			SafeRelease(m_pBmpCache);
 			SafeRelease(m_pBmpBkg);
 			SafeRelease(m_pBrBkg);
 			SafeRelease(m_pRtHwnd);
@@ -1474,16 +1467,9 @@ public:
 			SafeRelease(m_pDataObj);
 			SafeRelease(m_pDropTarget);
 
-			for (auto& p : m_pStdColorTheme)
-			{
-				p->DeRef();
-				p = nullptr;
-			}
-			for (auto& p : m_pStdColorThemeDark)
-			{
-				p->DeRef();
-				p = nullptr;
-			}
+			for (auto p: m_vTheme)
+				p->Release();
+			m_vTheme.clear();
 
 			for (const auto p : m_vTimeLine)
 				p->Release();
@@ -1583,8 +1569,6 @@ public:
 	EckInline constexpr CElem* GetFirstChildElem() const { return m_pFirstChild; }
 	EckInline constexpr CElem* GetLastChildElem() const { return m_pLastChild; }
 
-	EckInline const DPIS& GetDs() const { return m_Ds; }
-
 	EckInline constexpr int GetDpiValue() const { return m_iDpi; }
 
 	EckInline constexpr int GetUserDpiValue() const { return m_iUserDpi; }
@@ -1645,9 +1629,20 @@ public:
 
 	HRESULT EnableDragDrop(BOOL bEnable);
 
-	EckInline auto GetDefColorTheme() const { return m_pStdColorTheme; }
+	EckInline auto GetStdTheme()
+	{
+		ECK_DUILOCKWND;
+		return m_vTheme.front();
+	}
 
-	EckInline auto GetDefColorThemeDark() const { return m_pStdColorThemeDark; }
+	EckInline void SwitchStdThemeMode(BOOL bDark)
+	{
+		ECK_DUILOCKWND;
+		const auto pTheme = m_vTheme.front()->GetTheme();
+		pTheme->SetPalette(pTheme->GetPaletteList()[!!bDark]);
+		m_pBrBkg->SetColor(ColorrefToD2dColorF(GetThreadCtx()->crDefBkg));
+		BroadcastEvent(WM_THEMECHANGED, 0, 0);
+	}
 
 	EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
@@ -1776,14 +1771,6 @@ public:
 	}
 };
 
-inline void CElem::utcSwitchDefColorTheme(int idxTheme, WPARAM bDark)
-{
-	auto pctDark = GetWnd()->GetDefColorThemeDark()[CTI_SCROLLBAR];
-	auto pctLight = GetWnd()->GetDefColorTheme()[CTI_SCROLLBAR];
-	if (m_pColorTheme == pctLight || m_pColorTheme == pctDark || !m_pColorTheme)
-		SetColorTheme(bDark ? pctDark : pctLight);
-}
-
 inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId, PCVOID pData)
 {
@@ -1793,6 +1780,8 @@ inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	m_pWnd = pWnd;
 	m_pDC = pWnd->m_D2d.GetDC();
 	m_pParent = pParent;
+	m_pTheme = pWnd->m_vTheme.front();
+	m_pTheme->AddRef();
 
 	tcSetStyleWorker(dwStyle);
 
@@ -1856,6 +1845,8 @@ inline void CElem::Destroy()
 	SafeRelease(m_pDcVisual);
 	SafeRelease(m_pDcSurface);
 	SafeRelease(m_pDcContent);
+	SafeRelease(m_pTextFormat);
+	SafeRelease(m_pTheme);
 
 	if (m_pPrev)
 		m_pPrev->m_pNext = m_pNext;
@@ -1884,9 +1875,6 @@ inline void CElem::Destroy()
 	m_pLastChild = nullptr;
 	m_pWnd = nullptr;
 	m_pDC = nullptr;
-
-	if (m_pColorTheme)
-		m_pColorTheme->DeRef();
 
 	m_rc = {};
 	m_rcf = {};

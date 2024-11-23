@@ -9,13 +9,16 @@
 #include "DuiBase.h"
 #include "CInertialScrollView.h"
 
-#if ECKCXX20
+#if !ECKCXX20
+#error "EckDui requires C++20"
+#endif// !ECKCXX20
+
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 class CScrollBar :public CElem
 {
 public:
-	enum class Part
+	enum class SbPart
 	{
 		Button1,
 		Button2,
@@ -25,7 +28,6 @@ public:
 private:
 	CInertialScrollView* m_psv{};
 	CEasingCurve* m_pec{};
-	ID2D1SolidColorBrush* m_pBr{};
 	BITBOOL m_bHot : 1 = FALSE;
 	BITBOOL m_bLBtnDown : 1 = FALSE;
 	BITBOOL m_bHorz : 1 = FALSE;
@@ -54,7 +56,7 @@ public:
 					D2D1_POINT_2F pt{ MakeD2dPtF(ECK_GET_PT_LPARAM(lParam)) };
 					ClientToElem(pt);
 					D2D1_RECT_F rc;
-					GetPartRect(rc, Part::Thumb);
+					GetPartRect(rc, SbPart::Thumb);
 					if (!PtInRect(rc, pt))
 						return HTTRANSPARENT;
 				}
@@ -103,7 +105,7 @@ public:
 
 			const D2D1_POINT_2F ptf{ MakeD2dPtF(pt) };
 			D2D1_RECT_F rcf;
-			GetPartRect(rcf, Part::Thumb);
+			GetPartRect(rcf, SbPart::Thumb);
 			if (PtInRect(rcf, ptf))
 			{
 				m_bDragThumb = TRUE;
@@ -161,7 +163,7 @@ public:
 			BeginPaint(ps, wParam, lParam);
 
 			D2D1_RECT_F rc;
-			GetPartRect(rc, Part::Thumb);
+			GetPartRect(rc, SbPart::Thumb);
 			float cxyLeave, cxyMin;
 			if (m_bHorz)
 			{
@@ -175,10 +177,11 @@ public:
 			}
 			if (m_pec->IsActive())
 			{
-				auto cr = m_pColorTheme->Get().crBkNormal;
-				cr.a *= m_pec->GetCurrValue();
-				m_pBr->SetColor(cr);
-				m_pDC->FillRectangle(ps.rcfClipInElem, m_pBr);
+				DTB_OPT Opt;
+				Opt.uFlags = DTBO_NEW_OPACITY;
+				Opt.fOpacity = m_pec->GetCurrValue();
+				GetTheme()->DrawBackground(Part::ScrollBar, State::Hot,
+					GetViewRectF(), &Opt);
 				if (m_bHorz)
 					rc.top = rc.bottom - cxyMin - cxyLeave * m_pec->GetCurrValue();
 				else
@@ -194,13 +197,11 @@ public:
 						rc.left += cxyLeave;
 				}
 				else
-				{
-					m_pBr->SetColor(m_pColorTheme->Get().crBkNormal);
-					m_pDC->FillRectangle(ps.rcfClipInElem, m_pBr);
-				}
+					GetTheme()->DrawBackground(Part::ScrollBar, State::Hot,
+						GetViewRectF());
 			}
-			m_pBr->SetColor(m_pColorTheme->Get().crTextNormal);
-			m_pDC->FillRectangle(rc, m_pBr);
+
+			GetTheme()->DrawBackground(Part::ScrollThumb, State::Normal, rc);
 
 			EndPaint(ps);
 		}
@@ -217,7 +218,6 @@ public:
 
 		case WM_CREATE:
 		{
-			utcSwitchDefColorTheme(CTI_SCROLLBAR, ShouldAppsUseDarkMode());
 			m_pec = new CEasingCurve{};
 			InitEasingCurve(m_pec);
 			m_pec->SetCallBack([](float fOld, float f, LPARAM lParam)
@@ -231,14 +231,8 @@ public:
 
 			m_psv = new CInertialScrollView{};
 			GetWnd()->RegisterTimeLine(m_psv);
-
-			m_pDC->CreateSolidColorBrush({}, &m_pBr);
 		}
 		return 0;
-
-		case EWM_COLORSCHEMECHANGED:
-			utcSwitchDefColorTheme(CTI_SCROLLBAR, wParam);
-			return 0;
 
 		case WM_DESTROY:
 		{
@@ -246,7 +240,6 @@ public:
 			GetWnd()->UnregisterTimeLine(m_psv);
 			SafeRelease(m_pec);
 			SafeRelease(m_psv);
-			SafeRelease(m_pBr);
 		}
 		return 0;
 		}
@@ -255,50 +248,52 @@ public:
 
 	EckInline auto GetScrollView() { return m_psv; }
 
-	void GetPartRect(D2D1_RECT_F& rc, Part eType)
+	void GetPartRect(D2D1_RECT_F& rc, SbPart eType)
 	{
 		const auto cx = GetWidthF(),
 			cy = GetHeightF();
 		if (m_bHorz)
 			switch (eType)
 			{
-			case Part::Button1:
+			case SbPart::Button1:
 				rc = { 0,0,cy,cy };
 				return;
-			case Part::Button2:
+			case SbPart::Button2:
 				rc = { cx - cy,0,cx,cy };
 				return;
-			case Part::Track:
+			case SbPart::Track:
 				rc = { cy,0,cx - cy,cy };
 				return;
-			case Part::Thumb:
+			case SbPart::Thumb:
 			{
+				const int cyThumb = (int)GetTheme()->GetMetrics(Metrics::CyHThumb);
 				const int cxyThumb = m_psv->GetThumbSize();
 				rc.left = cy + m_psv->GetThumbPos(cxyThumb);
-				rc.top = GetWnd()->GetDs().SBPadding;
+				rc.top = (cy - cyThumb) / 2;
 				rc.right = rc.left + cxyThumb;
-				rc.bottom = cy - GetWnd()->GetDs().SBPadding;
+				rc.bottom = rc.top + cyThumb;
 			}
 			return;
 			}
 		else
 			switch (eType)
 			{
-			case Part::Button1:
+			case SbPart::Button1:
 				rc = { 0,0,cx,cx };
 				return;
-			case Part::Button2:
+			case SbPart::Button2:
 				rc = { 0,cy - cx,cx,cy };
 				return;
-			case Part::Track:
+			case SbPart::Track:
 				rc = { 0,cx,cx,cy - cx };
 				return;
-			case Part::Thumb:
+			case SbPart::Thumb:
 			{
+				const int cxThumb = (int)GetTheme()->GetMetrics(Metrics::CxVThumb);
 				const int cxyThumb = m_psv->GetThumbSize();
-				rc.left = GetWnd()->GetDs().SBPadding;;
+				rc.left = (cx - cxThumb) / 2;
 				rc.top = cx + m_psv->GetThumbPos(cxyThumb);
-				rc.right = cx - GetWnd()->GetDs().SBPadding;
+				rc.right = rc.left + cxThumb;
 				rc.bottom = rc.top + cxyThumb;
 			}
 			return;
@@ -308,6 +303,3 @@ public:
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
-#else
-#error "EckDui requires C++20"
-#endif// ECKCXX20
