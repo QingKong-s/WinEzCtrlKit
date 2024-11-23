@@ -8,7 +8,10 @@
 #pragma once
 #include "DuiBase.h"
 
-#if ECKCXX20
+#if !ECKCXX20
+#error "EckDui requires C++20"
+#endif// !ECKCXX20
+
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 
@@ -18,8 +21,8 @@ private:
 	IDWriteTextFormat* m_pTf = nullptr;// 外部传入
 	ID2D1SolidColorBrush* m_pBrush = nullptr;
 
-	D2D1_COLOR_F m_clrText = D2D1::ColorF(0);
-	D2D1_COLOR_F m_clrBk = D2D1::ColorF(0xFFFFFF);
+	D2D1_COLOR_F m_crText = D2D1::ColorF(0);
+	D2D1_COLOR_F m_crBk = D2D1::ColorF(0xFFFFFF);
 public:
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
@@ -32,7 +35,7 @@ public:
 
 			if (m_pTf && !m_rsText.IsEmpty())
 			{
-				m_pBrush->SetColor(m_clrText);
+				m_pBrush->SetColor(m_crText);
 				m_pDC->DrawTextW(m_rsText.Data(), m_rsText.Size(), m_pTf, GetViewRectF(), m_pBrush,
 					D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
 			}
@@ -42,9 +45,9 @@ public:
 		return 0;
 		case WM_ERASEBKGND:
 		{
-			auto pps = (ELEMPAINTSTRU*)lParam;
+			const auto* const pps = (ELEMPAINTSTRU*)lParam;
 
-			m_pBrush->SetColor(m_clrBk);
+			m_pBrush->SetColor(m_crBk);
 			m_pDC->FillRectangle(pps->rcfClip, m_pBrush);
 		}
 		return 0;
@@ -71,6 +74,3 @@ public:
 
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
-#else
-#error "EckDui requires C++20"
-#endif// ECKCXX20

@@ -15,9 +15,6 @@
 
 #include <variant>
 
-#define ECK_MEDIATAG_NAMESPACE_BEGIN namespace MediaTag {
-#define ECK_MEDIATAG_NAMESPACE_END }
-
 ECK_NAMESPACE_BEGIN
 ECK_MEDIATAG_NAMESPACE_BEGIN
 // 标签类型
@@ -79,7 +76,7 @@ enum MIFLAGS :UINT
 	MIF_CREATE_ID3V2_4 = 1u << 10,				// 	|		|	T	|		|		|
 	// 移除空白填充
 	MIF_REMOVE_PADDING = 1u << 11,				// 	|		|	T	|	T	|		|
-	// 写入图片到为Vorbis注释而不是图片块
+	// 写入图片到Vorbis注释而不是图片块
 	MIF_WRITE_METADATA_BLOCK_PICTURE = 1u << 12,//	|		|		|	T	|		|
 	// 创建ID3v2扩展头
 	MIF_CREATE_ID3V2_EXT_HEADER = 1u << 13,		// 	|		|	T	|		|		|

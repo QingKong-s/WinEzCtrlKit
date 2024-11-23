@@ -48,7 +48,8 @@ template<class TVal = int>
 /// <summary>
 /// 计算圆上一点
 /// </summary>
-EckInline void CalcPointFromCircleAngle(TVal r, float fAngle, TVal& xRet, TVal& yRet)
+EckInline void CalcPointFromCircleAngle(TVal r, float fAngle,
+	_Out_ TVal& xRet, _Out_ TVal& yRet)
 {
 	xRet = (TVal)((float)r * cosf(fAngle));
 	yRet = (TVal)((float)r * sinf(fAngle));
@@ -67,7 +68,8 @@ EckInline TVal CalcLineLength(POINT pt1, POINT pt2)
 }
 
 template<class TVal = int>
-EckInline void CalcPointFromLineScalePos(TVal x1, TVal y1, TVal x2, TVal y2, float fScale, TVal& x, TVal& y)
+EckInline void CalcPointFromLineScalePos(TVal x1, TVal y1, TVal x2, TVal y2,
+	float fScale, _Out_ TVal& x, _Out_ TVal& y)
 {
 	x = (TVal)(x1 - (x1 - x2) * fScale);
 	y = (TVal)(y1 - (y1 - y2) * fScale);
@@ -78,8 +80,9 @@ template<class TVal = int>
 /// 从角度计算椭圆上一段弧的端点。
 /// 计算结果可供Arc、Chord函数等使用
 /// </summary>
-EckInline void CalcArcFromEllipseAngle(HDC hDC, TVal x, TVal y, TVal xr, TVal yr, float fStartAngle, float fSweepAngle,
-	TVal& x1, TVal& y1, TVal& x2, TVal& y2)
+EckInline void CalcArcFromEllipseAngle(HDC hDC, TVal x, TVal y, TVal xr, TVal yr,
+	float fStartAngle, float fSweepAngle,
+	_Out_ TVal& x1, _Out_ TVal& y1, _Out_ TVal& x2, _Out_ TVal& y2)
 {
 	TVal x10, y10, x20, y20;
 	const TVal a = (xr - x) / 2, b = (yr - y) / 2;
@@ -95,7 +98,8 @@ EckInline void CalcArcFromEllipseAngle(HDC hDC, TVal x, TVal y, TVal xr, TVal yr
 /// 计算直线方程。
 /// 从两点计算直线的方程
 /// </summary>
-EckInline void CalcLineEquation(float x1, float y1, float x2, float y2, float& A, float& B, float& C)
+EckInline void CalcLineEquation(float x1, float y1, float x2, float y2,
+	_Out_ float& A, _Out_ float& B, _Out_ float& C)
 {
 	const float m = y1 - y2, n = x1 - x2;
 	A = m;
@@ -107,7 +111,8 @@ EckInline void CalcLineEquation(float x1, float y1, float x2, float y2, float& A
 /// 计算直线方程。
 /// 从一点和斜率计算直线方程
 /// </summary>
-EckInline void CalcLineEquation(float x, float y, float k, float& A, float& B, float& C)
+EckInline void CalcLineEquation(float x, float y, float k,
+	_Out_ float& A, _Out_ float& B, _Out_ float& C)
 {
 	A = k;
 	B = -1.f;
@@ -117,7 +122,7 @@ EckInline void CalcLineEquation(float x, float y, float k, float& A, float& B, f
 /// <summary>
 /// 极坐标到直角坐标
 /// </summary>
-EckInline void Polar2Rect(float fRho, float fTheta, float& x, float& y)
+EckInline void Polar2Rect(float fRho, float fTheta, _Out_ float& x, _Out_ float& y)
 {
 	x = fRho * cosf(fTheta);
 	y = fRho * sinf(fTheta);
@@ -126,7 +131,7 @@ EckInline void Polar2Rect(float fRho, float fTheta, float& x, float& y)
 /// <summary>
 /// 直角坐标到极坐标
 /// </summary>
-EckInline void Rect2Polar(float x, float y, float& fRho, float& fTheta)
+EckInline void Rect2Polar(float x, float y, _Out_ float& fRho, _Out_ float& fTheta)
 {
 	fRho = sqrtf(x * x + y * y);
 	fTheta = atan2f(y, x);
@@ -141,7 +146,8 @@ template<class TVal>
 /// <param name="fAngle">角度</param>
 /// <param name="xRet">点X坐标</param>
 /// <param name="yRet">点Y坐标</param>
-EckInline void CalcPointFromEllipseAngle(TVal a, TVal b, float fAngle, TVal& xRet, TVal& yRet)
+EckInline void CalcPointFromEllipseAngle(TVal a, TVal b, float fAngle,
+	_Out_ TVal& xRet, _Out_ TVal& yRet)
 {
 	const float fEccentricAngle = atan2f(tanf(fAngle) * a, b);
 	xRet = (TVal)((float)a * cosf(fEccentricAngle));
@@ -155,7 +161,8 @@ EckInline void CalcPointFromEllipseAngle(TVal a, TVal b, float fAngle, TVal& xRe
 /// <param name="rc">矩形</param>
 /// <param name="pt">映射到的点，至少指向四个D2D1_POINT_2F，分别对应左上角、右上角、左下角、右下角</param>
 /// <returns>结果矩阵</returns>
-inline DirectX::XMMATRIX CalcDistortMatrix(const D2D1_RECT_F& rc, const D2D1_POINT_2F* pt)
+inline DirectX::XMMATRIX CalcDistortMatrix(const D2D1_RECT_F& rc,
+	_In_reads_(4) const D2D1_POINT_2F* pt)
 {
 	/*
 	*			N		  B			A
@@ -212,7 +219,7 @@ inline DirectX::XMMATRIX CalcDistortMatrix(const D2D1_RECT_F& rc, const D2D1_POI
 /// <param name="pt">映射到的点，至少指向四个D2D1_POINT_2F，分别对应左上角、右上角、左下角、右下角</param>
 /// <param name="MatrixResult">结果矩阵</param>
 EckInline void CalcDistortMatrix(const D2D1_RECT_F& rc,
-	const D2D1_POINT_2F* pt, D2D1_MATRIX_4X4_F& MatrixResult)
+	_In_reads_(4) const D2D1_POINT_2F* pt, D2D1_MATRIX_4X4_F& MatrixResult)
 {
 	DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4*)&MatrixResult,
 		CalcDistortMatrix(rc, pt));
@@ -226,7 +233,7 @@ EckInline void CalcDistortMatrix(const D2D1_RECT_F& rc,
 /// <param name="pt">映射到的点，至少指向四个D2D1_POINT_2F，分别对应左上角、右上角、左下角、右下角</param>
 /// <returns>结果矩阵</returns>
 inline DirectX::XMMATRIX CalcInverseDistortMatrix(const D2D1_RECT_F& rc,
-	const D2D1_POINT_2F* pt)
+	_In_reads_(4) const D2D1_POINT_2F* pt)
 {
 	/*
 	*			A		  B			N
@@ -277,7 +284,7 @@ inline DirectX::XMMATRIX CalcInverseDistortMatrix(const D2D1_RECT_F& rc,
 /// <param name="pt">映射到的点，至少指向四个D2D1_POINT_2F，分别对应左上角、右上角、左下角、右下角</param>
 /// <param name="MatrixResult">结果矩阵</param>
 EckInline void CalcInverseDistortMatrix(const D2D1_RECT_F& rc,
-	const D2D1_POINT_2F* pt, D2D1_MATRIX_4X4_F& MatrixResult)
+	_In_reads_(4) const D2D1_POINT_2F* pt, D2D1_MATRIX_4X4_F& MatrixResult)
 {
 	DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4*)&MatrixResult,
 		CalcInverseDistortMatrix(rc, pt));
@@ -440,7 +447,8 @@ EckInline constexpr XFORM XFORMReflection(float A, float B, float C)
 /// <param name="cPt">离散点数量</param>
 /// <param name="K">张力</param>
 template<class TVal = int, class TPt>
-inline void CalcBezierControlPoints(std::vector<TPt>& vPt, const TPt* pPt, int cPt, float K = 1.f)
+inline void CalcBezierControlPoints(std::vector<TPt>& vPt,
+	_In_reads_(cPt) const TPt* pPt, int cPt, float K = 1.f)
 {
 	auto pptMid = (TPt*)_malloca(cPt * sizeof(TPt));
 	auto piLineLen = (TVal*)_malloca(cPt * sizeof(TVal));

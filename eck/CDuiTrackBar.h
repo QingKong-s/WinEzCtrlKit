@@ -6,37 +6,32 @@
 * Copyright(C) 2024 QingKong
 */
 #pragma once
-#if ECKCXX20
 #include "DuiBase.h"
-#include "EasingCurve.h"
+
+#if !ECKCXX20
+#error "EckDui requires C++20"
+#endif// !ECKCXX20
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-enum
-{
-	TBE_POSCHANGED = EE_PRIVATE_BEGIN,
-};
-
 class CTrackBar :public CElem
 {
 private:
-	ID2D1SolidColorBrush* m_pBrush = nullptr;
+	BITBOOL m_bVertical : 1{};
+	BITBOOL m_bLBtnDown : 1{};
+	BITBOOL m_bHover : 1{};
 
-	BITBOOL m_bVertical : 1 = FALSE;
-	BITBOOL m_bLBtnDown : 1 = FALSE;
-	BITBOOL m_bHover : 1 = FALSE;
+	BITBOOL m_bGenEventWhenDragging : 1{};
 
-	BITBOOL m_bGenEventWhenDragging : 1 = FALSE;
+	float m_fPos{};
+	float m_fMin{};
+	float m_fMax{ 100.0f };
 
-	float m_fPos = 0.0f;
-	float m_fMin = 0.0f;
-	float m_fMax = 100.0f;
+	float m_fDragPos{};
 
-	float m_fDragPos = 0.f;
+	float m_cxyTrack{};
 
-	float m_cxyTrack = 0.0f;
-
-	CEasingCurve* m_pec = nullptr;
+	CEasingCurve* m_pec{};
 
 	float GetCxyTrack()
 	{
@@ -48,7 +43,7 @@ private:
 
 	float GetTrackRect(D2D1_RECT_F& rc)
 	{
-		rc = GetRectF();
+		rc = GetViewRectF();
 		const float cxyTrack = GetCxyTrack();
 		const float fRadius = m_cxyTrack * 3.f / 4.f;
 		if (m_bVertical)
@@ -68,32 +63,32 @@ private:
 		return cxyTrack;
 	}
 
-	void GetThumbCircle(float cxyTrack, const D2D1_RECT_F& rcTrack, D2D1_ELLIPSE& ellipse)
+	void GetThumbRect(float cxyTrack, const D2D1_RECT_F& rcTrack, D2D1_RECT_F& rc)
 	{
 		const float cxy = cxyTrack * 3.f / 4.f * m_pec->GetCurrValue();
-		ellipse.radiusX = ellipse.radiusY = cxy;
 		if (m_bVertical)
 		{
-			ellipse.point.x = (rcTrack.left + rcTrack.right) / 2.f;
-			ellipse.point.y = rcTrack.bottom;
+			rc.left = (rcTrack.left + rcTrack.right) / 2.f - cxy;
+			rc.top = rcTrack.bottom - cxy;
 		}
 		else
 		{
-			ellipse.point.x = rcTrack.right;
-			ellipse.point.y = (rcTrack.top + rcTrack.bottom) / 2.f;
+			rc.left = rcTrack.right - cxy;
+			rc.top = (rcTrack.top + rcTrack.bottom) / 2.f - cxy;
 		}
+		rc.right = rc.left + cxy * 2;
+		rc.bottom = rc.top + cxy * 2;
 	}
 
-	EckInline void GetThumbCircle(D2D1_ELLIPSE& ellipse)
+	void GetThumbRect(D2D1_RECT_F& rc)
 	{
-		D2D1_RECT_F rc;
 		const auto cxy = GetTrackRect(rc);
 		const float fScale = (GetPos() - m_fMin) / (m_fMax - m_fMin);
 		if (m_bVertical)
 			rc.bottom = rc.top + (rc.bottom - rc.top) * fScale;
 		else
 			rc.right = rc.left + (rc.right - rc.left) * fScale;
-		GetThumbCircle(cxy, rc, ellipse);
+		GetThumbRect(cxy, rc, rc);
 	}
 
 	void SetDragPos(float fPos)
@@ -114,37 +109,31 @@ public:
 			ELEMPAINTSTRU ps;
 			BeginPaint(ps, wParam, lParam);
 
-			D2D1_ROUNDED_RECT rrc;
-			const float cxyTrack = GetTrackRect(rrc.rect);
-			rrc.radiusX = rrc.radiusY = cxyTrack / 2.f;
-			auto& ct = GetColorTheme()->Get();
+			DTB_OPT Opt;
+			Opt.uFlags = DTBO_NEW_RADX | DTBO_NEW_RADY;
+			const float cxyTrack = GetTrackRect(Opt.rcClip);
+			Opt.fRadX = Opt.fRadY = cxyTrack / 2.f;
 
-			m_pBrush->SetColor(ct.crBkNormal);
-			m_pDC->FillRoundedRectangle(rrc, m_pBrush);
+			GetTheme()->DrawBackground(Part::TrackBar, State::Normal,
+				Opt.rcClip, &Opt);
 
 			const float fScale = (GetPos() - m_fMin) / (m_fMax - m_fMin);
 			if (m_bVertical)
-				rrc.rect.bottom = rrc.rect.top + (rrc.rect.bottom - rrc.rect.top) * fScale;
+				Opt.rcClip.bottom = Opt.rcClip.top + (Opt.rcClip.bottom - Opt.rcClip.top) * fScale;
 			else
-				rrc.rect.right = rrc.rect.left + (rrc.rect.right - rrc.rect.left) * fScale;
-			m_pBrush->SetColor(ct.crBkSelected);
-			m_pDC->FillRoundedRectangle(rrc, m_pBrush);
+				Opt.rcClip.right = Opt.rcClip.left + (Opt.rcClip.right - Opt.rcClip.left) * fScale;
+			GetTheme()->DrawBackground(Part::TrackBar, State::Selected,
+				Opt.rcClip, &Opt);
 
 			if (m_bHover || m_pec->IsActive())
 			{
-				D2D1_ELLIPSE ellipse;
-				GetThumbCircle(cxyTrack, rrc.rect, ellipse);
-
-				m_pBrush->SetColor(ct.crBkHot);
-				m_pDC->FillEllipse(ellipse, m_pBrush);
-				m_pBrush->SetColor(ct.crBorder);
-				m_pDC->DrawEllipse(ellipse, m_pBrush, 1.0f);
-
-				ellipse.radiusX = ellipse.radiusY = (ellipse.radiusX / 2.f);
-				m_pBrush->SetColor(ct.crBkSelected);
-				m_pDC->FillEllipse(ellipse, m_pBrush);
+				const float cxy = cxyTrack * 3.f / 4.f * m_pec->GetCurrValue();
+				GetThumbRect(cxyTrack, Opt.rcClip, Opt.rcClip);
+				GetTheme()->DrawBackground(Part::TrackBarThumb, State::Hot,
+					Opt.rcClip);
 			}
 
+			ECK_DUI_DBG_DRAW_FRAME;
 			EndPaint(ps);
 		}
 		return 0;
@@ -204,9 +193,9 @@ public:
 			POINT pt ECK_GET_PT_LPARAM(lParam);
 			ClientToElem(pt);
 
-			D2D1_ELLIPSE ellipse;
-			GetThumbCircle(ellipse);
-			if (PtInCircle(MakeD2dPtF(pt), ellipse.point, ellipse.radiusX))
+			D2D1_RECT_F rcThumb;
+			GetThumbRect(rcThumb);
+			if (PtInRect(rcThumb, MakeD2dPtF(pt)))
 			{
 				m_bLBtnDown = TRUE;
 				SetCapture();
@@ -246,10 +235,6 @@ public:
 		}
 		return 0;
 
-		case WM_NCCREATE:
-			SetColorTheme(GetWnd()->GetDefColorTheme()[CTI_TRACKBAR]);
-			return 0;
-
 		case WM_CREATE:
 		{
 			m_pec = new CEasingCurve{};
@@ -262,17 +247,12 @@ public:
 					auto pElem = (CElem*)lParam;
 					pElem->InvalidateRect();
 				});
-
-			m_pDC->CreateSolidColorBrush({}, &m_pBrush);
 		}
 		return 0;
 
 		case WM_DESTROY:
-		{
-			SafeRelease(m_pBrush);
 			SafeRelease(m_pec);
-		}
-		return 0;
+			return 0;
 		}
 		return CElem::OnEvent(uMsg, wParam, lParam);
 	}
@@ -345,6 +325,3 @@ public:
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
-#else
-#error "EckDui requires C++20"
-#endif// ECKCXX20

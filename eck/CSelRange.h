@@ -42,6 +42,8 @@ private:
 		return it;
 	}
 public:
+	constexpr CSelRange(std::initializer_list<RANGE> il) : m_vRange{ il } {}
+
 	/// <summary>
 	/// 并
 	/// </summary>

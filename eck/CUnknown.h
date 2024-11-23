@@ -57,7 +57,7 @@ namespace Priv
 			if (riid == IID_IUnknown)
 			{
 				*ppvObject = static_cast<IUnknown*>(this);
-				AddRef();
+				static_cast<IUnknown*>(this)->AddRef();
 				return S_OK;
 			}
 			*ppvObject = nullptr;
@@ -71,4 +71,10 @@ using CRefObjSingleThread = Priv::CRefObj<CUnknownSingleThread<TThis>>;
 
 template<class TThis>
 using CRefObjMultiThread = Priv::CRefObj<CUnknownMultiThread<TThis>>;
+
+#define DECL_CUNK_FRIENDS		\
+	template<class TThis, class TBase> \
+	friend struct CUnknownSingleThread; \
+	template<class TThis, class TBase> \
+	friend struct CUnknownMultiThread;
 ECK_NAMESPACE_END

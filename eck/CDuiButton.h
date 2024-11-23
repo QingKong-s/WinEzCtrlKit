@@ -8,38 +8,39 @@
 #pragma once
 #include "DuiBase.h"
 
-#if ECKCXX20
+#if !ECKCXX20
+#error "EckDui requires C++20"
+#endif// !ECKCXX20
+
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 class CButton :public CElem
 {
 private:
-	IDWriteTextFormat* m_pTf = nullptr;		// 外部传入
-	ID2D1Bitmap* m_pImg = nullptr;				// 外部传入
+	ID2D1SolidColorBrush* m_pBrush{};
+	IDWriteTextLayout* m_pLayout{};
 
-	ID2D1SolidColorBrush* m_pBrush = nullptr;
-	ID2D1LinearGradientBrush* m_pLgBrush = nullptr;
-	IDWriteTextLayout* m_pLayout = nullptr;
-
+	ID2D1Bitmap* m_pImg{};
 	D2D1_SIZE_F m_sizeImg{};
-	float m_cxText = 0.f;
-	float m_cyText = 0.f;
+	float m_cxText{};
+	float m_cyText{};
 
-	BITBOOL m_bHot : 1 = FALSE;
-	BITBOOL m_bLBtnDown : 1 = FALSE;
+	BITBOOL m_bHot : 1{};
+	BITBOOL m_bLBtnDown : 1{};
 
 	void UpdateTextLayout()
 	{
-		const float cxMargin = m_pWnd->GetDs().CommMargin;
+		const float Padding = GetTheme()->GetMetrics(Metrics::Padding);
+		const float Padding2 = GetTheme()->GetMetrics(Metrics::SmallPadding);
+
 		SafeRelease(m_pLayout);
-		g_pDwFactory->CreateTextLayout(m_rsText.Data(), m_rsText.Size(), m_pTf,
-			GetWidthF() - m_sizeImg.width - cxMargin * 2,
-			GetHeightF() - cxMargin * 2,
+		g_pDwFactory->CreateTextLayout(m_rsText.Data(), m_rsText.Size(),
+			GetTextFormat(),
+			GetWidthF() - m_sizeImg.width - Padding * 2 - Padding2,
+			GetHeightF() - Padding * 2,
 			&m_pLayout);
 		if (m_pLayout)
 		{
-			m_pLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-			m_pLayout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 			DWRITE_TEXT_METRICS tm;
 			m_pLayout->GetMetrics(&tm);
 			m_cxText = tm.width;
@@ -60,52 +61,37 @@ public:
 		{
 			ELEMPAINTSTRU ps;
 			BeginPaint(ps, wParam, lParam);
-			const float cxEdge = m_pWnd->GetDs().CommEdge;
-			D2D1_ROUNDED_RECT rrc
-			{ 
-				GetViewRectF(),
-				m_pWnd->GetDs().CommRrcRadius,
-				m_pWnd->GetDs().CommRrcRadius
-			};
 
-			auto& ct = GetColorTheme()->Get();
-			const D2D1_COLOR_F* pcrText;
-
-			if (m_bHot)
-				if (m_bLBtnDown)
-					m_pBrush->SetColor(ct.crBkHotSel), pcrText = &ct.crTextSelected;
-				else
-					m_pBrush->SetColor(ct.crBkHot), pcrText = &ct.crTextHot;
-			else if (m_bLBtnDown)
-				m_pBrush->SetColor(ct.crBkSelected), pcrText = &ct.crTextSelected;
+			State eState;
+			if (m_bLBtnDown)
+				eState = State::Selected;
+			else if (m_bHot)
+				eState = State::Hot;
 			else
-				m_pBrush->SetColor(ct.crBkNormal), pcrText = &ct.crTextNormal;
-			m_pDC->FillRoundedRectangle(rrc, m_pBrush);
+				eState = State::Normal;
 
-			m_pBrush->SetColor(ct.crBorder);
-			InflateRect(rrc.rect, -cxEdge / 2.f, -cxEdge / 2.f);
-			m_pDC->DrawRoundedRectangle(rrc, m_pBrush, cxEdge);
+			GetTheme()->DrawBackground(Part::Button, eState, GetViewRectF());
 
-			if (!m_bLBtnDown)
-				m_pDC->DrawRoundedRectangle(rrc, m_pLgBrush, cxEdge);
-
-			float x = (GetWidthF() - m_pWnd->GetDs().CommMargin * 2 - m_sizeImg.width - m_cxText) / 2.f;
+			const float Padding = GetTheme()->GetMetrics(Metrics::Padding);
+			const float Padding2 = GetTheme()->GetMetrics(Metrics::SmallPadding);
 			if (m_pImg)
 			{
-				float y = (GetHeightF() - m_sizeImg.height) / 2.f;
 				D2D1_RECT_F rcImg;
-				rcImg.left = x;
-				rcImg.top = y;
+				rcImg.left = (GetWidthF() - Padding * 2 - Padding2 -
+					m_sizeImg.width - m_cxText) / 2.f;
+				rcImg.top = (GetHeightF() - m_sizeImg.height) / 2.f;
 				rcImg.right = rcImg.left + m_sizeImg.width;
 				rcImg.bottom = rcImg.top + m_sizeImg.height;
 				m_pDC->DrawBitmap(m_pImg, rcImg);
-				x = m_pWnd->GetDs().CommMargin + m_sizeImg.width;
 			}
 
 			if (m_pLayout)
 			{
-				m_pBrush->SetColor(pcrText);
-				m_pDC->DrawTextLayout({ x,m_pWnd->GetDs().CommMargin }, m_pLayout, m_pBrush);
+				D2D1_COLOR_F cr;
+				GetTheme()->GetSysColor(SysColor::Text, cr);
+				m_pBrush->SetColor(cr);
+				m_pDC->DrawTextLayout({ Padding + m_sizeImg.width,Padding },
+					m_pLayout, m_pBrush);
 			}
 
 			EndPaint(ps);
@@ -159,40 +145,14 @@ public:
 		return 0;
 
 		case WM_SIZE:
-		{
-			ID2D1GradientStopCollection* pGsc = nullptr;
-			D2D1_GRADIENT_STOP gsc[2]
-			{
-				{ 0.f },
-				{ 1.f }
-			};
-			gsc[1].color = GetColorTheme()->Get().crShadow;
-
-			gsc[0].color = gsc[1].color;
-			gsc[0].color.a = 0.f;
-
-			m_pDC->CreateGradientStopCollection(gsc, 2, &pGsc);
-			EckAssert(pGsc);
-
-			SafeRelease(m_pLgBrush);
-			D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES Prop
-			{
-				{ 0,GetViewRectF().bottom - GetWnd()->GetDs().CommRrcRadius },
-				{ 0,GetViewRectF().bottom }
-			};
-			m_pDC->CreateLinearGradientBrush(Prop, pGsc, &m_pLgBrush);
-			pGsc->Release();
-		}
-		return 0;
+			UpdateTextLayout();
+			return 0;
 
 		case WM_SETTEXT:
 			UpdateTextLayout();
 			InvalidateRect();
 			return 0;
 
-		case WM_NCCREATE:
-			SetColorTheme(GetWnd()->GetDefColorTheme()[CTI_BUTTON]);
-			return 0;
 		case WM_CREATE:
 			m_pDC->CreateSolidColorBrush({}, &m_pBrush);
 			return 0;
@@ -201,9 +161,7 @@ public:
 		{
 			SafeRelease(m_pBrush);
 			SafeRelease(m_pLayout);
-			SafeRelease(m_pTf);
 			SafeRelease(m_pImg);
-			SafeRelease(m_pLgBrush);
 			m_bHot = FALSE;
 			m_bLBtnDown = FALSE;
 		}
@@ -212,18 +170,9 @@ public:
 		return CElem::OnEvent(uMsg, wParam, lParam);
 	}
 
-	void SetTextFormat(IDWriteTextFormat* pTf)
-	{
-		std::swap(m_pTf, pTf);
-		if (m_pTf)
-			m_pTf->AddRef();
-		UpdateTextLayout();
-		if (pTf)
-			pTf->Release();
-	}
-
 	void SetImage(ID2D1Bitmap* pImg)
 	{
+		ECK_DUILOCK;
 		std::swap(m_pImg, pImg);
 		if (m_pImg)
 		{
@@ -237,9 +186,5 @@ public:
 			pImg->Release();
 	}
 };
-
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
-#else
-#error "EckDui requires C++20"
-#endif// ECKCXX20
