@@ -281,6 +281,15 @@ EckInline constexpr D2D1_COLOR_F RgbToD2dColorF(UINT rgb, float fAlpha = 1.f)
 	};
 }
 
+EckInline constexpr COLORREF D2dColorFToColorref(const D2D1_COLOR_F& cr)
+{
+	return BytesToInteger<COLORREF>(
+		BYTE(cr.r * 255.f),
+		BYTE(cr.g * 255.f),
+		BYTE(cr.b * 255.f),
+		0);
+}
+
 EckInline constexpr COLORREF ColorrefAlphaBlend(COLORREF cr, COLORREF crBK, BYTE byAlpha)
 {
 	return BytesToInteger<COLORREF>(

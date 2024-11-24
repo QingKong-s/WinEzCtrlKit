@@ -90,6 +90,13 @@ ID2D1Device* g_pD2dDevice{};
 IDXGIDevice1* g_pDxgiDevice{};
 IDXGIFactory2* g_pDxgiFactory{};
 
+void* g_pfnCreateTextServices{};
+void* g_pfnShutdownTextServices{};
+IID* g_pIID_ITextHost{};
+IID* g_pIID_ITextHost2{};
+IID* g_pIID_ITextServices{};
+IID* g_pIID_ITextServices2{};
+
 static BOOL DefMsgFilter(const MSG&)
 {
 	return FALSE;

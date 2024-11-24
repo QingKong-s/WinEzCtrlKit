@@ -314,6 +314,14 @@ EXTERN_C_END
 #define LVN_GETEMPTYTEXTW		(LVN_FIRST-61)
 #endif
 
+#ifndef TO_DEFAULTCOLOREMOJI
+#define TO_DEFAULTCOLOREMOJI	0x1000 
+#endif
+
+#ifndef TO_DISPLAYFONTCOLOR
+#define TO_DISPLAYFONTCOLOR		0x2000
+#endif
+
 constexpr inline IID IID_ILVRange{ 0x96a23e16L, 0xa1bc, 0x11d1, { 0xb0, 0x84, 0x00, 0xc0, 0x4f, 0xc3, 0x3a, 0xa5 } };
 
 MIDL_INTERFACE("96a23e16-a1bc-11d1-b084-00c04fc33aa5")

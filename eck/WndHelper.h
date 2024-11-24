@@ -144,6 +144,17 @@ EckInline constexpr void DpiScale(SIZE& size, int iDpi)
 	DpiScale(size, iDpi, USER_DEFAULT_SCREEN_DPI);
 }
 
+EckInline constexpr void DpiScale(POINT& pt, int iDpiNew, int iDpiOld)
+{
+	pt.x = pt.x * iDpiNew / iDpiOld;
+	pt.y = pt.y * iDpiNew / iDpiOld;
+}
+
+EckInline constexpr void DpiScale(POINT& pt, int iDpi)
+{
+	DpiScale(pt, iDpi, USER_DEFAULT_SCREEN_DPI);
+}
+
 /// <summary>
 /// 创建字体
 /// </summary>
