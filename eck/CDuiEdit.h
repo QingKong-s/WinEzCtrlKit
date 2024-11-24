@@ -7,7 +7,7 @@
 */
 #pragma once
 #include "CDuiScrollBar.h"
-#include "ShellHelper.h"
+#include "TextSrvDef.h"
 
 #if !ECKCXX20
 #error "EckDui requires C++20"
@@ -15,50 +15,97 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
+class CEdit;
+class CEditTextHost :public CUnknownMultiThread<CEditTextHost, ITextHost2>
+{
+	DECL_CUNK_FRIENDS;
+private:
+	ULONG m_cRef{ 1 };
+	BITBOOL m_bActive : 1{};
+	CEdit* m_pEdit{};
+public:
+	CEditTextHost(CEdit* pEdit) :m_pEdit{ pEdit } {}
+
+	STDMETHODIMP QueryInterface(REFIID riid, void** ppvObject) override
+	{
+		const static QITAB qit[]
+		{
+			{ g_pIID_ITextHost, OFFSETOFCLASS(CEditTextHost, ITextHost2) },
+			{ g_pIID_ITextHost2, OFFSETOFCLASS(CEditTextHost, ITextHost2) },
+			{}
+		};
+		return QISearch(this, qit, riid, ppvObject);
+	}
+
+	HDC TxGetDC();
+	INT TxReleaseDC(HDC hdc);
+	BOOL TxShowScrollBar(INT fnBar, BOOL fShow);
+	BOOL TxEnableScrollBar(INT fuSBFlags, INT fuArrowflags);
+	BOOL TxSetScrollRange(INT fnBar, LONG nMinPos, INT nMaxPos, BOOL fRedraw);
+	BOOL TxSetScrollPos(INT fnBar, INT nPos, BOOL fRedraw);
+	void TxInvalidateRect(LPCRECT prc, BOOL fMode);
+	void TxViewChange(BOOL fUpdate);
+	BOOL TxCreateCaret(HBITMAP hbmp, INT xWidth, INT yHeight);
+	BOOL TxShowCaret(BOOL fShow);
+	BOOL TxSetCaretPos(INT x, INT y);
+	BOOL TxSetTimer(UINT idTimer, UINT uTimeout);
+	void TxKillTimer(UINT idTimer);
+	void TxScrollWindowEx(INT dx, INT dy, LPCRECT lprcScroll, LPCRECT lprcClip,
+		HRGN hrgnUpdate, LPRECT lprcUpdate, UINT fuScroll);
+	void TxSetCapture(BOOL fCapture);
+	void TxSetFocus();
+	void TxSetCursor(HCURSOR hcur, BOOL fText);
+	BOOL TxScreenToClient(LPPOINT lppt);
+	BOOL TxClientToScreen(LPPOINT lppt);
+	HRESULT TxActivate(LONG* plOldState);
+	HRESULT TxDeactivate(LONG lNewState);
+	HRESULT TxGetClientRect(LPRECT prc);
+	HRESULT TxGetViewInset(LPRECT prc);
+	HRESULT TxGetCharFormat(const CHARFORMATW** ppCF);
+	HRESULT TxGetParaFormat(const PARAFORMAT** ppPF);
+	COLORREF TxGetSysColor(int nIndex);
+	HRESULT TxGetBackStyle(TXTBACKSTYLE* pstyle);
+	HRESULT TxGetMaxLength(DWORD* plength);
+	HRESULT TxGetScrollBars(DWORD* pdwScrollBar);
+	HRESULT TxGetPasswordChar(_Out_ TCHAR* pch);
+	HRESULT TxGetAcceleratorPos(LONG* pcp);
+	HRESULT TxGetExtent(LPSIZEL lpExtent);
+	HRESULT OnTxCharFormatChange(const CHARFORMATW* pCF);
+	HRESULT OnTxParaFormatChange(const PARAFORMAT* pPF);
+	HRESULT TxGetPropertyBits(DWORD dwMask, DWORD* pdwBits);
+	HRESULT TxNotify(DWORD iNotify, void* pv);
+	HIMC TxImmGetContext();
+	void TxImmReleaseContext(HIMC himc);
+	HRESULT TxGetSelectionBarWidth(LONG* lSelBarWidth);
+
+	BOOL TxIsDoubleClickPending();
+	HRESULT TxGetWindow(HWND* phwnd);
+	HRESULT TxSetForegroundWindow();
+	HPALETTE TxGetPalette();
+	HRESULT TxGetEastAsianFlags(LONG* pFlags);
+	HCURSOR TxSetCursor2(HCURSOR hcur, BOOL bText);
+	void TxFreeTextServicesNotification();
+	HRESULT TxGetEditStyle(DWORD dwItem, DWORD* pdwData);
+	HRESULT TxGetWindowStyles(DWORD* pdwStyle, DWORD* pdwExStyle);
+	HRESULT TxShowDropCaret(BOOL fShow, HDC hdc, LPCRECT prc);
+	HRESULT TxDestroyCaret();
+	HRESULT TxGetHorzExtent(LONG* plHorzExtent);
+};
+
 class CEdit :public CElem
 {
+	friend class CEditTextHost;
 private:
-	IDWriteTextFormat* m_pFormat = nullptr;
-	IDWriteTextLayout* m_pLayout = nullptr;
-	ID2D1SolidColorBrush* m_pBr = nullptr;
-	D2D1_RECT_F m_rcfTextAera{};
-
-	BITBOOL m_bUserTextAera : 1 = FALSE;
-	UINT32 m_uSelBegin{ Neg1U };
-	UINT32 m_cSel{};
-	UINT32 m_uBtnSelStart{ Neg1U };
-
 	CScrollBar m_SBH{};
 	CScrollBar m_SBV{};
 
-	std::vector<DWRITE_HIT_TEST_METRICS> m_vHtmRange{};
+	CHARFORMATW m_DefCharFormat{ .cbSize = sizeof(CHARFORMATW) };
+	PARAFORMAT m_DefParaFormat{ .cbSize = sizeof(PARAFORMAT) };
+	WCHAR m_chPassword{ L'*' };
+	RECT m_mgTextAera{};
 
-	BITBOOL m_bLBtnDown : 1 = FALSE;
-
-	void UpdateLayout()
-	{
-		SafeRelease(m_pLayout);
-		if (m_pFormat)
-			g_pDwFactory->CreateTextLayout(m_rsText.Data(), m_rsText.Size(), m_pFormat,
-				m_rcfTextAera.right - m_rcfTextAera.left,
-				m_rcfTextAera.bottom - m_rcfTextAera.top, &m_pLayout);
-		if (m_pLayout)
-		{
-			m_pLayout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
-			m_pLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_EMERGENCY_BREAK);
-		}
-		UpdateSB();
-	}
-
-	void UpdateSB()
-	{
-		DWRITE_TEXT_METRICS tm;
-		m_pLayout->GetMetrics(&tm);
-		const auto psv = m_SBV.GetScrollView();
-		psv->SetMin(0);
-		psv->SetMax((int)tm.height);
-		m_SBV.GetScrollView()->SetPage((int)(m_rcfTextAera.bottom - m_rcfTextAera.top));
-	}
+	CEditTextHost* m_pHost{};
+	ITextServices2* m_pSrv{};
 public:
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
@@ -69,380 +116,455 @@ public:
 			ELEMPAINTSTRU ps;
 			BeginPaint(ps, wParam, lParam);
 
-			if (m_pLayout)
-			{
-				const float oy = -(float)m_SBV.GetScrollView()->GetPos();
-				const float ox = 0.f;
-				if (m_uSelBegin != Neg1U)
-				{
-					UINT32 cActualLine;
-					m_pLayout->GetLineMetrics(nullptr, 0, &cActualLine);
-					DWRITE_TEXT_METRICS tm;
-					m_pLayout->GetMetrics(&tm);
-
-					m_vHtmRange.resize(cActualLine * tm.maxBidiReorderingDepth);
-					UINT32 cActualMetrics;
-					m_pLayout->HitTestTextRange(m_uSelBegin, m_cSel, m_rcfTextAera.left, m_rcfTextAera.top,
-						m_vHtmRange.data(), (UINT32)m_vHtmRange.size(), &cActualMetrics);
-
-					m_pBr->SetColor(D2D1::ColorF(D2D1::ColorF::Blue, 0.6f));
-					EckCounter(cActualMetrics, i)
-					{
-						const auto& e = m_vHtmRange[i];
-						m_pDC->FillRectangle(MakeD2DRcF(
-							e.left + ox,
-							e.top + oy,
-							e.width, e.height), m_pBr);
-					}
-
-					m_pBr->SetColor(D2D1::ColorF(D2D1::ColorF::Red));
-					if (m_uSelBegin == m_uBtnSelStart)
-					{
-						const auto& e = m_vHtmRange[cActualMetrics - 1];
-						m_pDC->DrawLine({ e.left + e.width + ox,e.top + oy },
-							{ e.left + e.width + ox,e.top + e.height + oy },
-							m_pBr, 2.f);
-					}
-					else
-					{
-						const auto& e = m_vHtmRange.front();
-						m_pDC->DrawLine({ e.left + ox,e.top + oy },
-							{ e.left + ox,e.top + e.height + oy },
-							m_pBr, 2.f);
-					}
-				}
-
-				m_pBr->SetColor(D2D1::ColorF(D2D1::ColorF::White));
-				m_pDC->DrawTextLayout({ m_rcfTextAera.left + ox,m_rcfTextAera.top + oy }, m_pLayout, m_pBr,
-					D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
-			}
+			RECT rc{ GetViewRect() };
+			RECT rcClip{ MakeRect(ps.rcfClipInElem) };
+			DpiScale(rc, GetWnd()->GetDpiValue());
+			DpiScale(rcClip, GetWnd()->GetDpiValue());
+			m_pSrv->TxDrawD2D(m_pDC, (RECTL*)&rc, &rcClip, TXTVIEW_ACTIVE);
 
 			ECK_DUI_DBG_DRAW_FRAME;
 			EndPaint(ps);
 		}
 		return 0;
 
-		case WM_SETCURSOR:
-			SetCursor(LoadCursorW(nullptr, IDC_IBEAM));
-			return TRUE;
-
-		case WM_MOUSEMOVE:
-		{
-			if (m_bLBtnDown)
-			{
-				ECK_DUILOCK;
-				const float oy = (float)m_SBV.GetScrollView()->GetPos();
-				const float ox = 0.f;
-				EckAssert(m_uBtnSelStart != (UINT32)-1);
-				D2D1_POINT_2F pt ECK_GET_PT_LPARAM_F(lParam);
-				ClientToElem(pt);
-				pt.x -= m_rcfTextAera.left;
-				pt.y -= m_rcfTextAera.top;
-				pt.x += ox;
-				pt.y += oy;
-
-				BOOL bInside;
-				BOOL bTrailing;
-				DWRITE_HIT_TEST_METRICS htm;
-				m_pLayout->HitTestPoint(pt.x, pt.y, &bTrailing, &bInside, &htm);
-				auto uHit = htm.textPosition;
-				if (bTrailing)
-					if ((uHit + 1 < (UINT)m_rsText.Size()) &&
-						IS_LOW_SURROGATE(m_rsText[uHit + 1]))
-						uHit += 2;
-					else
-						++uHit;
-				const auto uOld0{ m_uSelBegin }, uOld1{ m_cSel };
-				if (uHit < m_uBtnSelStart)
-				{
-					m_uSelBegin = uHit;
-					m_cSel = m_uBtnSelStart - uHit;
-				}
-				else
-				{
-					m_uSelBegin = m_uBtnSelStart;
-					m_cSel = uHit - m_uBtnSelStart;
-				}
-				if (m_uSelBegin != uOld0 || m_cSel != uOld1)
-					InvalidateRect();
-			}
-		}
-		return 0;
-
-		case WM_KEYDOWN:
-		{
-			switch (wParam)
-			{
-			case VK_BACK:
-			{
-				ECK_DUILOCK;
-				if (m_uSelBegin != Neg1U)
-				{
-					if (m_cSel)
-					{
-						m_rsText.Erase(m_uSelBegin, m_cSel);
-						m_cSel = 0u;
-						UpdateLayout();
-						InvalidateRect();
-					}
-					else if (m_uSelBegin != 0)
-					{
-						if (IS_LOW_SURROGATE(m_rsText[m_uSelBegin - 1]))
-							m_rsText.Erase(m_uSelBegin -= 2, 2);
-						else
-							m_rsText.Erase(--m_uSelBegin);
-						UpdateLayout();
-						InvalidateRect();
-					}
-				}
-			}
-			break;
-
-			case VK_DELETE:
-			{
-				ECK_DUILOCK;
-				if (m_uSelBegin != Neg1U)
-				{
-					if (m_cSel)
-					{
-						m_rsText.Erase(m_uSelBegin, m_cSel);
-						m_cSel = 0u;
-						UpdateLayout();
-						InvalidateRect();
-					}
-					else if (m_uSelBegin < (UINT)m_rsText.Size())
-					{
-						if (IS_HIGH_SURROGATE(m_rsText[m_uSelBegin]))
-							m_rsText.Erase(m_uSelBegin, 2);
-						else
-							m_rsText.Erase(m_uSelBegin);
-						UpdateLayout();
-						InvalidateRect();
-					}
-				}
-			}
-			break;
-
-			case 'A':
-			{
-				if (GetAsyncKeyState(VK_CONTROL) & 0x8000)
-				{
-					ECK_DUILOCK;
-					m_uSelBegin = 0u;
-					m_cSel = m_rsText.Size();
-					InvalidateRect();
-				}
-			}
-			break;
-
-			case 'V':
-			{
-				ECK_DUILOCK;
-				if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) &&
-					m_uSelBegin != Neg1U)
-				{
-					const auto rs = GetClipboardString(GetWnd()->HWnd);
-					if (!rs.IsEmpty())
-						InsertText(m_uSelBegin, rs.Data(), rs.Size());
-				}
-			}
-			break;
-
-			case 'C':
-			{
-				ECK_DUILOCK;
-				if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) &&
-					m_uSelBegin != Neg1U && m_cSel)
-					SetClipboardString(m_rsText.Data() + m_uSelBegin, m_cSel, GetWnd()->HWnd);
-			}
-			break;
-			}
-		}
-		return 0;
-
-		case WM_CHAR:
-		{
-			const WCHAR ch = (WCHAR)wParam;
-			if (ch >= 32 && ch <= 126)
-			{
-				if (m_uSelBegin != Neg1U)
-				{
-					ECK_DUILOCK;
-					if (m_cSel)
-					{
-						const WCHAR sz[]{ ch,L'\0' };
-						m_rsText.Replace(m_uSelBegin, m_cSel, sz, 1);
-					}
-					else
-						m_rsText.InsertChar(m_uSelBegin++, ch);
-					UpdateLayout();
-					InvalidateRect();
-				}
-			}
-		}
-		return 0;
-
-		case WM_IME_COMPOSITION:
-		{
-			ECK_DUILOCK;
-			if (!IsBitSet(lParam, GCS_RESULTSTR) ||
-				m_uSelBegin == Neg1U)
-				break;
-			const HIMC hImc = ImmGetContext(GetWnd()->HWnd);
-			const int cch = ImmGetCompositionStringW(hImc, GCS_RESULTSTR, nullptr, 0) / sizeof(WCHAR);
-			if (cch)
-			{
-				CRefStrW rs(cch);
-				ImmGetCompositionStringW(hImc, GCS_RESULTSTR, rs.Data(), (DWORD)rs.ByteSize());
-				InsertText(m_uSelBegin, rs.Data(), rs.Size());
-			}
-			ImmReleaseContext(GetWnd()->HWnd, hImc);
-		}
-		break;
-
-		case WM_IME_STARTCOMPOSITION:
-		{
-			COMPOSITIONFORM cf;
-			cf.dwStyle = CFS_POINT;
-			cf.ptCurrentPos = { m_rcInClient.left,m_rcInClient.bottom };
-			const HIMC hImc = ImmGetContext(GetWnd()->HWnd);
-			ImmSetCompositionWindow(hImc, &cf);
-			ImmReleaseContext(GetWnd()->HWnd, hImc);
+		case WM_SETFOCUS:
+			m_pSrv->OnTxUIActivate();
+			m_pSrv->TxSendMessage(WM_SETFOCUS, 0, 0, nullptr);
 			return 0;
-		}
-		break;
 
-		case WM_LBUTTONDOWN:
-		{
-			ECK_DUILOCK;
-			const float oy = (float)m_SBV.GetScrollView()->GetPos();
-			const float ox = 0.f;
-			SetFocus();
-			SetCapture();
-			m_bLBtnDown = TRUE;
-			D2D1_POINT_2F pt ECK_GET_PT_LPARAM_F(lParam);
-			ClientToElem(pt);
-			pt.x -= m_rcfTextAera.left;
-			pt.y -= m_rcfTextAera.top;
-			pt.x += ox;
-			pt.y += oy;
+		case WM_KILLFOCUS:
+			m_pSrv->OnTxUIDeactivate();
+			m_pSrv->TxSendMessage(WM_KILLFOCUS, 0, 0, nullptr);
+			return 0;
 
-			BOOL bInside;
-			BOOL bTrailing;
-			DWRITE_HIT_TEST_METRICS htm;
-			m_pLayout->HitTestPoint(pt.x, pt.y, &bTrailing, &bInside, &htm);
-			m_uBtnSelStart = htm.textPosition;
-			if (bTrailing)
-				if ((m_uBtnSelStart + 1 < (UINT)m_rsText.Size()) &&
-					IS_LOW_SURROGATE(m_rsText[m_uBtnSelStart + 1]))
-					m_uBtnSelStart += 2;
-				else
-					++m_uBtnSelStart;
-
-			m_uSelBegin = m_uBtnSelStart;
-			m_cSel = 0u;
-			InvalidateRect();
-		}
-		return 0;
-
-		case WM_LBUTTONUP:
-		{
-			if (m_bLBtnDown)
-			{
-				ReleaseCapture();
-				m_bLBtnDown = FALSE;
-			}
-		}
-		return 0;
-
-		case WM_MOUSEWHEEL:
-		{
-			m_SBV.GetScrollView()->OnMouseWheel2(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
-			GetWnd()->WakeRenderThread();
-		}
-		return 0;
-
-		case WM_SIZE:
-		{
-			/*ECK_DUILOCK;
-			m_rcfTextAera = { 15,5,GetWidthF() - 10,5 + GetHeightF() - 10 };
-			const int cx = (int)GetWnd()->GetDs().CommSBCxy;
-			const int x = GetWidth() - cx;
-			m_SBV.SetRect({ x,0,x + cx,GetHeight() });*/
-		}
-		return 0;
+		case WM_SETCURSOR:
+			//m_pSrv->On
+			//SetCursor(LoadCursorW(nullptr, IDC_IBEAM));
+			//return TRUE;
+			break;
 
 		case WM_SETTEXT:
 		{
-			ECK_DUILOCK;
-			UpdateLayout();
-			InvalidateRect();
+
 		}
 		return 0;
 
 		case WM_CREATE:
 		{
-			m_SBV.Create(nullptr, DES_VISIBLE, 0, 0, 0, 0, 0, this, GetWnd());
+			m_SBV.Create(nullptr, 0, 0, 0, 0, 0, 0, this, GetWnd());
 			m_SBV.GetScrollView()->SetCallBack([](int iPos, int iPrevPos, LPARAM lParam)
 				{
-					//if (iPos != iPrevPos)
-					{
-						const auto p = (CEdit*)lParam;
-						p->InvalidateRect();
-					}
+					((CEdit*)lParam)->InvalidateRect();
 				}, (LPARAM)this);
-			m_pDC->CreateSolidColorBrush({}, &m_pBr);
+			m_SBH.Create(nullptr, 0, 0, 0, 0, 0, 0, this, GetWnd());
+			m_SBH.GetScrollView()->SetCallBack([](int iPos, int iPrevPos, LPARAM lParam)
+				{
+					((CEdit*)lParam)->InvalidateRect();
+				}, (LPARAM)this);
+			m_pSrv->TxSendMessage(EM_SETTYPOGRAPHYOPTIONS,
+				TO_DEFAULTCOLOREMOJI | TO_DISPLAYFONTCOLOR,
+				TO_DEFAULTCOLOREMOJI | TO_DISPLAYFONTCOLOR, nullptr);
+			m_pSrv->TxSetText(m_rsText.Data());
+			auto rc{ GetViewRect() };
+			GetWnd()->Log2Phy(rc);
+			m_pSrv->OnTxInPlaceActivate(0);
+			m_pSrv->OnTxUIActivate();
 		}
 		break;
+
+		case WM_DESTROY:
+		{
+			m_pSrv->OnTxInPlaceDeactivate();
+			TsiShutdownTextServices(m_pSrv);
+			m_pSrv->Release();
+			m_pHost->Release();
+		}
+		break;
+
+		case WM_NCCREATE:
+		{
+			m_DefCharFormat.yHeight = 22 * 2540 / 96;
+			m_DefCharFormat.dwMask = CFM_FACE | CFM_SIZE;
+			m_DefCharFormat.dwEffects = CFE_AUTOCOLOR;
+			EckCopyConstStringW(m_DefCharFormat.szFaceName, L"微软雅黑");
+
+			if (TsiGetState() != TsiState::Ver41)
+				TsiInit41();
+			m_pHost = new CEditTextHost{ this };
+			IUnknown* pUnk{};
+			auto hr = TsiCreateTextServices(nullptr, m_pHost, &pUnk);
+			pUnk->QueryInterface(*g_pIID_ITextServices2, (void**)&m_pSrv);
+			pUnk->Release();
+		}
+		break;
+		}
+
+		if (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST)
+		{
+			POINT pt ECK_GET_PT_LPARAM(lParam);
+			ClientToElem(pt);
+			//GetWnd()->Log2Phy(pt);
+			DpiScale(pt, GetWnd()->GetDpiValue());
+			LRESULT lResult;
+			if (m_pSrv->TxSendMessage(uMsg,
+				wParam, POINTTOPOINTS(pt), &lResult) == S_OK)
+				return lResult;
+		}
+		else if (uMsg >= WM_KEYFIRST && uMsg <= WM_IME_KEYLAST)
+		{
+			LRESULT lResult;
+			if (m_pSrv->TxSendMessage(uMsg, wParam, lParam, &lResult) == S_OK)
+				return lResult;
 		}
 		return CElem::OnEvent(uMsg, wParam, lParam);
 	}
 
-	void SetTextFormat(IDWriteTextFormat* ptf)
+	void ShowScrollBar(int nBar, BOOL bShow)
 	{
-		ECK_DUILOCK;
-		std::swap(ptf, m_pFormat);
-		m_pFormat->AddRef();
-		if (ptf)
-			ptf->Release();
-		UpdateLayout();
-	}
-
-	EckInline BOOL Copy()
-	{
-		ECK_DUILOCK;
-		if (m_uSelBegin == Neg1U || m_cSel == 0)
-			return FALSE;
-		return SetClipboardString(m_rsText.Data() + m_uSelBegin, m_cSel, GetWnd()->HWnd);
-	}
-
-	EckInline BOOL Cut()
-	{
-		ECK_DUILOCK;
-		if (m_uSelBegin == Neg1U || m_cSel == 0)
-			return FALSE;
-		const BOOL b = SetClipboardString(m_rsText.Data() + m_uSelBegin, m_cSel, GetWnd()->HWnd);
-		m_rsText.Erase(m_uSelBegin, m_cSel);
-		UpdateLayout();
-		InvalidateRect();
-		return b;
-	}
-
-	EckInline void InsertText(int pos, PCWSTR psz, int cch = -1)
-	{
-		ECK_DUILOCK;
-		if (pos < 0 || pos > m_rsText.Size())
-			return;
-		if (cch < 0)
-			cch = (int)wcslen(psz);
-		m_rsText.Insert(pos, psz, cch);
-		if (m_uSelBegin >= (UINT)pos)
-			m_uSelBegin += cch;
-		if (m_uBtnSelStart >= (UINT)pos)
-			m_uBtnSelStart += cch;
-		UpdateLayout();
-		InvalidateRect();
+		if (nBar == SB_BOTH)
+		{
+			m_SBV.SetVisible(bShow);
+			m_SBH.SetVisible(bShow);
+		}
+		else if (nBar == SB_HORZ)
+			m_SBH.SetVisible(bShow);
+		else if (nBar == SB_VERT)
+			m_SBV.SetVisible(bShow);
 	}
 };
+
+inline HDC CEditTextHost::TxGetDC()
+{
+	return GetDC(m_pEdit->GetWnd()->HWnd);
+}
+
+inline INT CEditTextHost::TxReleaseDC(HDC hdc)
+{
+	return ReleaseDC(m_pEdit->GetWnd()->HWnd, hdc);
+}
+
+inline BOOL CEditTextHost::TxShowScrollBar(INT fnBar, BOOL fShow)
+{
+	m_pEdit->ShowScrollBar(fnBar, fShow);
+	return TRUE;
+}
+
+inline BOOL CEditTextHost::TxEnableScrollBar(INT fuSBFlags, INT fuArrowflags)
+{
+	// TODO: implement scroll bar
+	return 0;
+}
+
+inline BOOL CEditTextHost::TxSetScrollRange(INT fnBar, LONG nMinPos, INT nMaxPos, BOOL fRedraw)
+{
+	if (fnBar == SB_VERT || fnBar == SB_BOTH)
+	{
+		m_pEdit->m_SBV.GetScrollView()->SetRange(nMinPos, nMaxPos);
+		if (fRedraw)
+			m_pEdit->m_SBV.InvalidateRect();
+	}
+	if (fnBar == SB_HORZ || fnBar == SB_BOTH)
+	{
+		m_pEdit->m_SBH.GetScrollView()->SetRange(nMinPos, nMaxPos);
+		if (fRedraw)
+			m_pEdit->m_SBH.InvalidateRect();
+	}
+	return TRUE;
+}
+
+inline BOOL CEditTextHost::TxSetScrollPos(INT fnBar, INT nPos, BOOL fRedraw)
+{
+	if (fnBar == SB_VERT || fnBar == SB_BOTH)
+	{
+		m_pEdit->m_SBV.GetScrollView()->SetPos(nPos);
+		if (fRedraw)
+			m_pEdit->m_SBV.InvalidateRect();
+	}
+	if (fnBar == SB_HORZ || fnBar == SB_BOTH)
+	{
+		m_pEdit->m_SBH.GetScrollView()->SetPos(nPos);
+		if (fRedraw)
+			m_pEdit->m_SBH.InvalidateRect();
+	}
+	return TRUE;
+}
+
+inline void CEditTextHost::TxInvalidateRect(LPCRECT prc, BOOL fMode)
+{
+	//if (prc)
+	//{
+	//	RECT rc{ *prc };
+	//	m_pEdit->GetWnd()->Phy2Log(rc);
+	//	m_pEdit->ElemToClient(rc);
+	//	m_pEdit->InvalidateRect(*prc);
+	//}
+	//else
+	m_pEdit->InvalidateRect();
+}
+
+inline void CEditTextHost::TxViewChange(BOOL fUpdate) {}
+
+inline BOOL CEditTextHost::TxCreateCaret(HBITMAP hbmp, INT xWidth, INT yHeight)
+{
+	// TODO: implement caret
+	return 0;
+}
+
+inline BOOL CEditTextHost::TxShowCaret(BOOL fShow)
+{
+	return 0;
+}
+
+inline BOOL CEditTextHost::TxSetCaretPos(INT x, INT y)
+{
+	return 0;
+}
+
+inline BOOL CEditTextHost::TxSetTimer(UINT idTimer, UINT uTimeout)
+{
+	// TODO: implement timer
+	return 0;
+}
+
+inline void CEditTextHost::TxKillTimer(UINT idTimer)
+{
+}
+
+inline void CEditTextHost::TxScrollWindowEx(INT dx, INT dy, LPCRECT lprcScroll, LPCRECT lprcClip, HRGN hrgnUpdate, LPRECT lprcUpdate, UINT fuScroll)
+{
+}
+
+inline void CEditTextHost::TxSetCapture(BOOL fCapture)
+{
+	if (fCapture)
+		m_pEdit->SetCapture();
+	else
+		m_pEdit->ReleaseCapture();
+}
+
+inline void CEditTextHost::TxSetFocus()
+{
+	m_pEdit->SetFocus();
+}
+
+inline void CEditTextHost::TxSetCursor(HCURSOR hcur, BOOL fText)
+{
+	SetCursor(hcur);
+}
+
+inline BOOL CEditTextHost::TxScreenToClient(LPPOINT lppt)
+{
+	ScreenToClient(m_pEdit->GetWnd()->HWnd, lppt);
+	m_pEdit->ClientToElem(*lppt);
+	return TRUE;
+}
+
+inline BOOL CEditTextHost::TxClientToScreen(LPPOINT lppt)
+{
+	m_pEdit->ElemToClient(*lppt);
+	ClientToScreen(m_pEdit->GetWnd()->HWnd, lppt);
+	return TRUE;
+}
+
+inline HRESULT CEditTextHost::TxActivate(LONG* plOldState)
+{
+	*plOldState = m_bActive;
+	m_bActive = TRUE;
+	return S_OK;
+}
+
+inline HRESULT CEditTextHost::TxDeactivate(LONG lNewState)
+{
+	m_bActive = lNewState;
+	return S_OK;
+}
+
+inline HRESULT CEditTextHost::TxGetClientRect(LPRECT prc)
+{
+	*prc = m_pEdit->GetViewRect();
+	DpiScale(*prc, m_pEdit->GetWnd()->GetDpiValue());
+	return S_OK;
+}
+
+inline HRESULT CEditTextHost::TxGetViewInset(LPRECT prc)
+{
+	*prc = m_pEdit->m_mgTextAera;
+	return S_OK;
+}
+
+inline HRESULT CEditTextHost::TxGetCharFormat(const CHARFORMATW** ppCF)
+{
+	*ppCF = &m_pEdit->m_DefCharFormat;
+	return S_OK;
+}
+
+inline HRESULT CEditTextHost::TxGetParaFormat(const PARAFORMAT** ppPF)
+{
+	*ppPF = &m_pEdit->m_DefParaFormat;
+	return S_OK;
+}
+
+inline COLORREF CEditTextHost::TxGetSysColor(int nIndex)
+{
+	D2D1_COLOR_F cr;
+	switch (nIndex)
+	{
+	case COLOR_WINDOWTEXT:
+		m_pEdit->GetTheme()->GetSysColor(SysColor::Text, cr);
+		return D2dColorFToColorref(cr);
+	case COLOR_WINDOW:
+		m_pEdit->GetTheme()->GetSysColor(SysColor::Bk, cr);
+		return D2dColorFToColorref(cr);
+	default:
+		return GetSysColor(nIndex);
+	}
+}
+
+inline HRESULT CEditTextHost::TxGetBackStyle(TXTBACKSTYLE* pstyle)
+{
+	*pstyle = TXTBACK_TRANSPARENT;
+	return S_OK;
+}
+
+inline HRESULT CEditTextHost::TxGetMaxLength(DWORD* plength)
+{
+	*plength = INFINITE;
+	return S_OK;
+}
+
+inline HRESULT CEditTextHost::TxGetScrollBars(DWORD* pdwScrollBar)
+{
+	*pdwScrollBar = WS_VSCROLL | WS_HSCROLL | ES_AUTOVSCROLL | ES_AUTOHSCROLL;
+	return S_OK;
+}
+
+inline HRESULT CEditTextHost::TxGetPasswordChar(_Out_ TCHAR* pch)
+{
+	*pch = m_pEdit->m_chPassword;
+	return S_OK;
+}
+
+inline HRESULT CEditTextHost::TxGetAcceleratorPos(LONG* pcp)
+{
+	*pcp = -1;
+	return S_OK;
+}
+
+inline HRESULT CEditTextHost::TxGetExtent(LPSIZEL lpExtent)
+{
+	lpExtent->cx = m_pEdit->GetWidth() * 2540 / 96;
+	lpExtent->cy = m_pEdit->GetHeight() * 2540 / 96;
+	DpiScale(*lpExtent, m_pEdit->GetWnd()->GetDpiValue());
+	return S_OK;
+}
+
+inline HRESULT CEditTextHost::OnTxCharFormatChange(const CHARFORMATW* pCF)
+{
+	return E_NOTIMPL;
+}
+
+inline HRESULT CEditTextHost::OnTxParaFormatChange(const PARAFORMAT* pPF)
+{
+	return E_NOTIMPL;
+}
+
+inline HRESULT CEditTextHost::TxGetPropertyBits(DWORD dwMask, DWORD* pdwBits)
+{
+	*pdwBits = TXTBIT_D2DDWRITE | TXTBIT_RICHTEXT | TXTBIT_MULTILINE;
+	return S_OK;
+}
+
+inline HRESULT CEditTextHost::TxNotify(DWORD iNotify, void* pv)
+{
+	return E_NOTIMPL;
+}
+
+inline HIMC CEditTextHost::TxImmGetContext()
+{
+	return ImmGetContext(m_pEdit->GetWnd()->HWnd);
+}
+
+inline void CEditTextHost::TxImmReleaseContext(HIMC himc)
+{
+	ImmReleaseContext(m_pEdit->GetWnd()->HWnd, himc);
+}
+
+inline HRESULT CEditTextHost::TxGetSelectionBarWidth(LONG* lSelBarWidth)
+{
+	*lSelBarWidth = 0;
+	return S_OK;
+}
+
+inline BOOL CEditTextHost::TxIsDoubleClickPending()
+{
+	MSG msg;
+	return PeekMessageA(&msg, m_pEdit->GetWnd()->HWnd,
+		WM_LBUTTONDBLCLK, WM_LBUTTONDBLCLK, PM_NOREMOVE | PM_NOYIELD);
+}
+
+inline HRESULT CEditTextHost::TxGetWindow(HWND* phwnd)
+{
+	*phwnd = m_pEdit->GetWnd()->HWnd;
+	return S_OK;
+}
+
+inline HRESULT CEditTextHost::TxSetForegroundWindow()
+{
+	SetForegroundWindow(m_pEdit->GetWnd()->HWnd);
+	return S_OK;
+}
+
+inline HPALETTE CEditTextHost::TxGetPalette()
+{
+	return nullptr;
+}
+
+inline HRESULT CEditTextHost::TxGetEastAsianFlags(LONG* pFlags)
+{
+	*pFlags = 0;
+	return S_OK;
+}
+
+inline HCURSOR CEditTextHost::TxSetCursor2(HCURSOR hcur, BOOL bText)
+{
+	return SetCursor(hcur);
+}
+
+inline void CEditTextHost::TxFreeTextServicesNotification()
+{
+}
+
+inline HRESULT CEditTextHost::TxGetEditStyle(DWORD dwItem, DWORD* pdwData)
+{
+	*pdwData = 0;
+	return S_OK;
+}
+
+inline HRESULT CEditTextHost::TxGetWindowStyles(DWORD* pdwStyle, DWORD* pdwExStyle)
+{
+	*pdwStyle = m_pEdit->GetWnd()->GetStyle();
+	*pdwExStyle = m_pEdit->GetWnd()->GetExStyle();
+	return S_OK;
+}
+
+inline HRESULT CEditTextHost::TxShowDropCaret(BOOL fShow, HDC hdc, LPCRECT prc)
+{
+	if (fShow)
+		ShowCaret(m_pEdit->GetWnd()->HWnd);
+	else
+		HideCaret(m_pEdit->GetWnd()->HWnd);
+	return S_OK;
+}
+
+inline HRESULT CEditTextHost::TxDestroyCaret()
+{
+	DestroyCaret();
+	return S_OK;
+}
+
+inline HRESULT CEditTextHost::TxGetHorzExtent(LONG* plHorzExtent)
+{
+	return E_NOTIMPL;
+}
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
