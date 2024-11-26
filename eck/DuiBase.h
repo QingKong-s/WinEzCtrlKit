@@ -472,12 +472,12 @@ public:
 #pragma region OthersProp
 	// 取标题
 	EckInline const CRefStrW& GetText() const { return m_rsText; }
-	// 置标题
+	// 置标题【不能在渲染线程调用】
 	EckInline void SetText(PCWSTR pszText, int cchText = -1)
 	{
 		ECK_DUILOCK;
-		m_rsText.DupString(pszText, cchText);
-		CallEvent(WM_SETTEXT, 0, 0);
+		if (!CallEvent(WM_SETTEXT, cchText, (LPARAM)pszText))
+			m_rsText.DupString(pszText, cchText);
 	}
 
 	// 取样式
@@ -540,7 +540,11 @@ public:
 	EckInline void SetTextFormat(IDWriteTextFormat* pTf)
 	{
 		ECK_DUILOCK;
-		m_pTextFormat = pTf;
+		std::swap(m_pTextFormat, pTf);
+		if (m_pTextFormat)
+			m_pTextFormat->AddRef();
+		if (pTf)
+			pTf->Release();
 		CallEvent(WM_SETFONT, 0, 0);
 	}
 	// 取文本格式
@@ -551,7 +555,7 @@ public:
 	// 取元素ID
 	EckInline constexpr INT_PTR GetID() const { return m_iId; }
 
-	// 置主题
+	// 置主题【不能在渲染线程调用】
 	EckInline void SetTheme(CThemeRealization* pTheme)
 	{
 		ECK_DUILOCK;
@@ -589,7 +593,7 @@ public:
 	/// <param name="wParam">事件wParam，目前未用</param>
 	/// <param name="lParam">事件lParam</param>
 	/// <param name="uFlags">标志，EBPF_常量</param>
-	void BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uFlags = 0u);
+	void BeginPaint(_Out_ ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uFlags = 0u);
 
 	/// <summary>
 	/// 结束画图
@@ -610,7 +614,7 @@ public:
 
 	// 安装定时器【不能在渲染线程调用】
 	EckInline void SetTimer(UINT_PTR uId, UINT uElapse);
-	// 销毁定时器
+	// 销毁定时器【不能在渲染线程调用】
 	EckInline void KillTimer(UINT_PTR uId);
 #pragma endregion ElemFunc
 #pragma region Composite
@@ -841,7 +845,8 @@ private:
 	/// 重画DUI
 	/// </summary>
 	/// <param name="rc">重画区域，逻辑坐标</param>
-	void RedrawDui(const RECT& rc, BOOL bFullUpdate = FALSE)
+	/// <param name="bFullUpdate">是否全更新，仅用于DComp</param>
+	void RedrawDui(const RECT& rc, BOOL bFullUpdate = FALSE, RECT* prcPhy = nullptr)
 	{
 		switch (m_ePresentMode)
 		{
@@ -855,8 +860,16 @@ private:
 			auto rcF = MakeD2DRcF(rc);
 			Log2Phy(rcF);
 			CeilRect(rcF);
+			if (prcPhy)
+				*prcPhy = MakeRect(rcF);
 			Phy2Log(rcF);
 			CeilRect(rcF);
+
+			if (bFullUpdate) [[unlikely]]
+			{
+				++rcF.right;
+				++rcF.bottom;
+			}
 			if (m_bTransparent)
 			{
 				pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_ALIASED);
@@ -864,6 +877,12 @@ private:
 				pDC->PopAxisAlignedClip();
 			}
 			FillBackground(rcF);
+			if (bFullUpdate) [[unlikely]]
+			{
+				--rcF.right;
+				--rcF.bottom;
+			}
+
 			RedrawElem(GetFirstChildElem(), MakeRect(rcF), 0.f, 0.f);
 			pDC->EndDraw();
 		}
@@ -905,6 +924,11 @@ private:
 			auto rcF = MakeD2DRcF(rcPhy);
 			OffsetRect(rcF, (float)ptOffset.x, (float)ptOffset.y);
 			Phy2Log(rcF);
+			if (bFullUpdate)
+			{
+				++rcF.right;
+				++rcF.bottom;
+			}
 			if (m_bTransparent)
 			{
 				pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_ALIASED);
@@ -912,6 +936,11 @@ private:
 				pDC->PopAxisAlignedClip();
 			}
 			FillBackground(rcF);
+			if (bFullUpdate)
+			{
+				--rcF.right;
+				--rcF.bottom;
+			}
 			if (!IsElemUseDComp())
 			{
 				RECT rcReal;
@@ -1013,7 +1042,7 @@ private:
 					ECK_UNREACHABLE;
 				}
 			SkipReSize:
-				if (m_cxClient && m_cyClient)
+				if (m_cxClient && m_cyClient) [[likely]]
 				{
 					m_rcInvalid = rcClient;
 					RedrawDui(rcClient, TRUE);
@@ -1031,13 +1060,14 @@ private:
 			else ECKLIKELY
 			{
 				// 更新脏矩形
-				if (!IsRectEmpty(m_rcInvalid))
+				if (!IsRectEmpty(m_rcInvalid)) [[likely]]
 				{
 					RECT rc;
 					IntersectRect(rc, m_rcInvalid, rcClient);
 					if (IsRectEmpty(rc))
 						goto NoRedraw;
-					RedrawDui(rc, m_bFullUpdate);
+					RedrawDui(rc, m_bFullUpdate,
+						m_ePresentMode == PresentMode::FlipSwapChain ? &rc : nullptr);
 					if (m_bFullUpdate)
 						m_bFullUpdate = FALSE;
 					m_rcInvalid = {};
@@ -2035,7 +2065,7 @@ inline void CElem::InvalidateRect(const RECT& rc, BOOL bUpdateNow)
 		GetWnd()->WakeRenderThread();
 }
 
-inline void CElem::BeginPaint(ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uFlags)
+inline void CElem::BeginPaint(_Out_ ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uFlags)
 {
 	eps.prcClip = (const RECT*)lParam;
 	eps.rcfClip = MakeD2DRcF(*eps.prcClip);

@@ -189,7 +189,6 @@ public:
 		{
 			m_pSrv->OnTxInPlaceDeactivate();
 			TsiShutdownTextServices(m_pSrv);
-			m_pSrv->Release();
 			m_pHost->Release();
 		}
 		break;

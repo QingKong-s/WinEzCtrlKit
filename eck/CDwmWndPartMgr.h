@@ -104,7 +104,7 @@ struct DWMW_GET_PART_EXTRA
 	const DWMW_PART_INFO* pBkg;
 };
 
-enum class DwmWndPart
+enum class DwmWndPart : BYTE
 {
 	Close,
 	Help,
@@ -116,7 +116,7 @@ enum class DwmWndPart
 	Extra	// 用于命中测试
 };
 
-enum class DwmWPartState
+enum class DwmWPartState : BYTE
 {
 	Normal,
 	Hot,
@@ -250,7 +250,7 @@ public:
 		const int cy = e.rcInAtlas.bottom - e.rcInAtlas.top;
 		rc.left = e.rcInAtlas.left;
 		rc.right = e.rcInAtlas.right;
-		rc.top = e.rcInAtlas.top + cy / e.cSubImage * (int)eState;
+		rc.top = e.rcInAtlas.top + cy * (int)eState / e.cSubImage;
 		rc.bottom = rc.top + cy / e.cSubImage;
 		//---------背景-------
 		int idxBkg;
@@ -277,7 +277,7 @@ public:
 		const int cy2 = rcReal.bottom - rcReal.top;
 		rcBkg.left = rcReal.left;
 		rcBkg.right = rcReal.right;
-		rcBkg.top = rcReal.top + cy2 / f.cSubImage * (int)eState;
+		rcBkg.top = rcReal.top + cy2 * (int)eState / f.cSubImage;
 		rcBkg.bottom = rcBkg.top + cy2 / f.cSubImage;
 		if (pExtra)
 		{

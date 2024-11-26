@@ -682,16 +682,15 @@ enum :UINT// 控件通知代码
 * NM_CUSTOMDRAW			NMCUSTOMDRAWEXT
 */
 
-// 消息钩子ID保留范围
-// 库保留	[1, 511]	此范围仅供内部使用
-// 用户保留	[512, 4096]	此范围建议用作某一类窗口的消息钩子ID，可由用户自行决定
-constexpr inline UINT_PTR MsgHookIdUserBegin = 4096;
+// 消息钩子ID保留范围[1, 511]，此范围仅供内部使用
+constexpr inline UINT_PTR MsgHookIdUserBegin = 512;
 enum :UINT_PTR
 {
 	MHI_SCROLLBAR_HOOK = 1,
 	MHI_HEADER_HOOK,
 	MHI_LISTVIEW_ROWHEIGHT,
 	MHI_LVE_HEADER_HEIGHT,
+	MHI_DUI_TITLEBAR,
 };
 
 // 构建号
