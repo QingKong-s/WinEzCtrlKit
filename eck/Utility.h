@@ -1832,6 +1832,22 @@ EckInline constexpr T ValDistance(T x1, T x2)
 	return (x1 > x2) ? (x1 - x2) : (x2 - x1);
 }
 
+EckInline void CeilRect(_Inout_ D2D1_RECT_F& rc)
+{
+	rc.left = floorf(rc.left);
+	rc.top = floorf(rc.top);
+	rc.right = ceilf(rc.right);
+	rc.bottom = ceilf(rc.bottom);
+}
+
+EckInline void CeilRect(const D2D1_RECT_F& rc, _Out_ RECT& rcOut)
+{
+	rcOut.left = (LONG)floorf(rc.left);
+	rcOut.top = (LONG)floorf(rc.top);
+	rcOut.right = (LONG)ceilf(rc.right);
+	rcOut.bottom = (LONG)ceilf(rc.bottom);
+}
+
 #if !ECKCXX20
 #undef ccpIsInteger
 #pragma pop_macro("ccpIsInteger")

@@ -106,6 +106,9 @@ private:
 
 	CEditTextHost* m_pHost{};
 	ITextServices2* m_pSrv{};
+
+	D2D1_RECT_F m_rcCaret{};
+	BOOL m_bCaretShow{};
 public:
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
@@ -117,10 +120,17 @@ public:
 			BeginPaint(ps, wParam, lParam);
 
 			RECT rc{ GetViewRect() };
-			RECT rcClip{ MakeRect(ps.rcfClipInElem) };
 			DpiScale(rc, GetWnd()->GetDpiValue());
-			DpiScale(rcClip, GetWnd()->GetDpiValue());
+
+			D2D1_RECT_F rcClipF{ ps.rcfClipInElem };
+			DpiScale(rcClipF, GetWnd()->GetDpiValue());
+			RECT rcClip;
+			CeilRect(rcClipF, rcClip);
 			m_pSrv->TxDrawD2D(m_pDC, (RECTL*)&rc, &rcClip, TXTVIEW_ACTIVE);
+
+			//ID2D1SolidColorBrush* pBrush{};
+			//m_pDC->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &pBrush);
+			//m_pDC->FillRectangle(m_rcCaret, pBrush);
 
 			ECK_DUI_DBG_DRAW_FRAME;
 			EndPaint(ps);
@@ -137,15 +147,20 @@ public:
 			m_pSrv->TxSendMessage(WM_KILLFOCUS, 0, 0, nullptr);
 			return 0;
 
-		case WM_SETCURSOR:
-			//m_pSrv->On
-			//SetCursor(LoadCursorW(nullptr, IDC_IBEAM));
-			//return TRUE;
-			break;
-
 		case WM_SETTEXT:
 		{
 
+		}
+		return 0;
+
+		case WM_SIZE:
+		{
+			const auto cxSB = (int)GetTheme()->GetMetrics(Metrics::CxVScroll);
+			m_SBV.SetRect({ GetWidth() - cxSB,0,GetWidth(),GetHeight() });
+			m_SBV.GetScrollView()->SetPage(GetHeight());
+			m_SBH.GetScrollView()->SetPage(GetWidth());
+			constexpr auto uBits = TXTBIT_CLIENTRECTCHANGE | TXTBIT_EXTENTCHANGE;
+			m_pSrv->OnTxPropertyBitsChange(uBits, uBits);
 		}
 		return 0;
 
@@ -165,9 +180,7 @@ public:
 				TO_DEFAULTCOLOREMOJI | TO_DISPLAYFONTCOLOR,
 				TO_DEFAULTCOLOREMOJI | TO_DISPLAYFONTCOLOR, nullptr);
 			m_pSrv->TxSetText(m_rsText.Data());
-			auto rc{ GetViewRect() };
-			GetWnd()->Log2Phy(rc);
-			m_pSrv->OnTxInPlaceActivate(0);
+			m_pSrv->OnTxInPlaceActivate(nullptr);
 			m_pSrv->OnTxUIActivate();
 		}
 		break;
@@ -202,15 +215,14 @@ public:
 		if (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST)
 		{
 			POINT pt ECK_GET_PT_LPARAM(lParam);
-			ClientToElem(pt);
-			//GetWnd()->Log2Phy(pt);
 			DpiScale(pt, GetWnd()->GetDpiValue());
 			LRESULT lResult;
 			if (m_pSrv->TxSendMessage(uMsg,
 				wParam, POINTTOPOINTS(pt), &lResult) == S_OK)
 				return lResult;
 		}
-		else if (uMsg >= WM_KEYFIRST && uMsg <= WM_IME_KEYLAST)
+		else if (uMsg >= WM_KEYFIRST && uMsg <= WM_IME_KEYLAST ||
+			uMsg == WM_TIMER)
 		{
 			LRESULT lResult;
 			if (m_pSrv->TxSendMessage(uMsg, wParam, lParam, &lResult) == S_OK)
@@ -291,46 +303,63 @@ inline BOOL CEditTextHost::TxSetScrollPos(INT fnBar, INT nPos, BOOL fRedraw)
 
 inline void CEditTextHost::TxInvalidateRect(LPCRECT prc, BOOL fMode)
 {
-	//if (prc)
-	//{
-	//	RECT rc{ *prc };
-	//	m_pEdit->GetWnd()->Phy2Log(rc);
-	//	m_pEdit->ElemToClient(rc);
-	//	m_pEdit->InvalidateRect(*prc);
-	//}
-	//else
-	m_pEdit->InvalidateRect();
+	if (prc)
+	{
+		D2D1_RECT_F rc{ MakeD2DRcF(*prc) };
+		DpiScale(rc, 96, m_pEdit->GetWnd()->GetDpiValue());
+		CeilRect(rc);
+		m_pEdit->InvalidateRect(rc);
+	}
+	else
+		m_pEdit->InvalidateRect();
 }
 
 inline void CEditTextHost::TxViewChange(BOOL fUpdate) {}
 
 inline BOOL CEditTextHost::TxCreateCaret(HBITMAP hbmp, INT xWidth, INT yHeight)
 {
-	// TODO: implement caret
-	return 0;
+	// XXX: caret
+	m_pEdit->m_rcCaret = { 0, 0, (float)xWidth, (float)yHeight };
+	//DpiScale(m_pEdit->m_rcCaret, 96, m_pEdit->GetWnd()->GetDpiValue());
+	return TRUE;
 }
 
 inline BOOL CEditTextHost::TxShowCaret(BOOL fShow)
 {
-	return 0;
+	// XXX: caret
+	m_pEdit->m_bCaretShow = fShow;
+	auto rc{ m_pEdit->m_rcCaret };
+	m_pEdit->ElemToClient(rc);
+	m_pEdit->InvalidateRect(rc);
+	return TRUE;
 }
 
 inline BOOL CEditTextHost::TxSetCaretPos(INT x, INT y)
 {
-	return 0;
+	// XXX: caret
+	const auto cx = m_pEdit->m_rcCaret.right - m_pEdit->m_rcCaret.left;
+	const auto cy = m_pEdit->m_rcCaret.bottom - m_pEdit->m_rcCaret.top;
+	m_pEdit->m_rcCaret = { (float)x, (float)y, (float)(x + cx), (float)(y + cy) };
+	DpiScale(m_pEdit->m_rcCaret, 96, m_pEdit->GetWnd()->GetDpiValue());
+	auto rc{ m_pEdit->m_rcCaret };
+	m_pEdit->ClientToElem(m_pEdit->m_rcCaret);
+	m_pEdit->InvalidateRect(rc);
+	return TRUE;
 }
 
 inline BOOL CEditTextHost::TxSetTimer(UINT idTimer, UINT uTimeout)
 {
-	// TODO: implement timer
-	return 0;
+	m_pEdit->SetTimer(idTimer, uTimeout);
+	return TRUE;
 }
 
 inline void CEditTextHost::TxKillTimer(UINT idTimer)
 {
+	m_pEdit->KillTimer(idTimer);
 }
 
-inline void CEditTextHost::TxScrollWindowEx(INT dx, INT dy, LPCRECT lprcScroll, LPCRECT lprcClip, HRGN hrgnUpdate, LPRECT lprcUpdate, UINT fuScroll)
+inline void CEditTextHost::TxScrollWindowEx(INT dx, INT dy, LPCRECT lprcScroll,
+	LPCRECT lprcClip, HRGN hrgnUpdate, LPRECT lprcUpdate, UINT fuScroll)
 {
 }
 
@@ -381,7 +410,7 @@ inline HRESULT CEditTextHost::TxDeactivate(LONG lNewState)
 
 inline HRESULT CEditTextHost::TxGetClientRect(LPRECT prc)
 {
-	*prc = m_pEdit->GetViewRect();
+	*prc = m_pEdit->GetRectInClient();
 	DpiScale(*prc, m_pEdit->GetWnd()->GetDpiValue());
 	return S_OK;
 }
@@ -549,6 +578,7 @@ inline HRESULT CEditTextHost::TxGetWindowStyles(DWORD* pdwStyle, DWORD* pdwExSty
 
 inline HRESULT CEditTextHost::TxShowDropCaret(BOOL fShow, HDC hdc, LPCRECT prc)
 {
+	// XXX: caret
 	if (fShow)
 		ShowCaret(m_pEdit->GetWnd()->HWnd);
 	else
@@ -558,7 +588,7 @@ inline HRESULT CEditTextHost::TxShowDropCaret(BOOL fShow, HDC hdc, LPCRECT prc)
 
 inline HRESULT CEditTextHost::TxDestroyCaret()
 {
-	DestroyCaret();
+	// XXX: caret
 	return S_OK;
 }
 
