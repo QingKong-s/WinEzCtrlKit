@@ -104,7 +104,7 @@ protected:
 	}
 
 	// 合并应更新完整区域的元素矩形
-	void tcIrpUnionContentExpandElemRect(CElem* pLast, _Inout_ RECT& rcInClient)
+	constexpr void tcIrpUnionContentExpandElemRect(CElem* pLast, _Inout_ RECT& rcInClient)
 	{
 		while (pLast)
 		{
@@ -126,7 +126,7 @@ protected:
 		}
 	}
 
-	void tcSrpCorrectChildrenRectInClient()
+	constexpr void tcSrpCorrectChildrenRectInClient() const
 	{
 		auto pElem = GetFirstChildElem();
 		while (pElem)
@@ -146,7 +146,7 @@ protected:
 		}
 	}
 
-	void tcSetRectWorker(const RECT& rc)
+	constexpr void tcSetRectWorker(const RECT& rc)
 	{
 		m_rc = rc;
 		m_rcf = MakeD2DRcF(rc);
@@ -165,7 +165,7 @@ protected:
 		tcSrpCorrectChildrenRectInClient();
 	}
 
-	void tcSetStyleWorker(DWORD dwStyle)
+	constexpr void tcSetStyleWorker(DWORD dwStyle)
 	{
 		if (dwStyle & DES_BLURBKG)
 			dwStyle |= (DES_TRANSPARENT | DES_CONTENT_EXPAND);
@@ -184,11 +184,6 @@ protected:
 	void tcReSizeDCompVisual();
 
 	void tcPostMoveSize(BOOL bSize, BOOL bMove, const RECT& rcOld);
-
-	void utcOnUserDpiChanged(int iDpiOld)
-	{
-
-	}
 public:
 	virtual BOOL Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId = 0, PCVOID pData = nullptr)
@@ -264,15 +259,13 @@ public:
 	EckInline constexpr auto& GetSignal() { return m_Sig; }
 	EckInline constexpr CCriticalSection& GetCriticalSection() const;
 #pragma region PosSize
-	EckInline D2D1_RECT_F GetViewRectF() const
+	EckInline constexpr D2D1_RECT_F GetViewRectF() const
 	{
-		ECK_DUILOCK;
 		return { 0.f,0.f,m_rcf.right - m_rcf.left,m_rcf.bottom - m_rcf.top };
 	}
 
-	EckInline RECT GetViewRect() const
+	EckInline constexpr RECT GetViewRect() const
 	{
-		ECK_DUILOCK;
 		return { 0,0,m_rc.right - m_rc.left,m_rc.bottom - m_rc.top };
 	}
 
@@ -328,26 +321,10 @@ public:
 		tcPostMoveSize(TRUE, FALSE, rcOld);
 	}
 
-	EckInline int GetWidth() const
-	{
-		ECK_DUILOCK;
-		return m_rc.right - m_rc.left;
-	}
-	EckInline int GetHeight() const
-	{
-		ECK_DUILOCK;
-		return m_rc.bottom - m_rc.top;
-	}
-	EckInline float GetWidthF() const
-	{
-		ECK_DUILOCK;
-		return m_rcf.right - m_rcf.left;
-	}
-	EckInline float GetHeightF() const
-	{
-		ECK_DUILOCK;
-		return m_rcf.bottom - m_rcf.top;
-	}
+	EckInline constexpr int GetWidth() const { return m_rc.right - m_rc.left; }
+	EckInline constexpr int GetHeight() const { return m_rc.bottom - m_rc.top; }
+	EckInline constexpr float GetWidthF() const { return m_rcf.right - m_rcf.left; }
+	EckInline constexpr float GetHeightF() const { return m_rcf.bottom - m_rcf.top; }
 
 	EckInline constexpr int Log2Phy(int i) const;
 	EckInline constexpr float Log2PhyF(float f) const;
@@ -448,54 +425,46 @@ public:
 		return ElemFromPoint(GetLastChildElem(), pt, pResult);
 	}
 
-	EckInline void ClientToElem(_Inout_ RECT& rc) const
+	EckInline constexpr void ClientToElem(_Inout_ RECT& rc) const
 	{
-		ECK_DUILOCK;
 		OffsetRect(rc, -m_rcInClient.left, -m_rcInClient.top);
 	}
 
-	EckInline void ClientToElem(_Inout_ D2D1_RECT_F& rc) const
+	EckInline constexpr void ClientToElem(_Inout_ D2D1_RECT_F& rc) const
 	{
-		ECK_DUILOCK;
 		OffsetRect(rc, -m_rcfInClient.left, -m_rcfInClient.top);
 	}
 
-	EckInline void ClientToElem(_Inout_ POINT& pt) const
+	EckInline constexpr void ClientToElem(_Inout_ POINT& pt) const
 	{
-		ECK_DUILOCK;
 		pt.x -= m_rcInClient.left;
 		pt.y -= m_rcInClient.top;
 	}
 
-	EckInline void ClientToElem(_Inout_ D2D1_POINT_2F& pt) const
+	EckInline constexpr void ClientToElem(_Inout_ D2D1_POINT_2F& pt) const
 	{
-		ECK_DUILOCK;
 		pt.x -= m_rcfInClient.left;
 		pt.y -= m_rcfInClient.top;
 	}
 
-	EckInline void ElemToClient(_Inout_ RECT& rc) const
+	EckInline constexpr void ElemToClient(_Inout_ RECT& rc) const
 	{
-		ECK_DUILOCK;
 		OffsetRect(rc, m_rcInClient.left, m_rcInClient.top);
 	}
 
-	EckInline void ElemToClient(_Inout_ D2D1_RECT_F& rc) const
+	EckInline constexpr void ElemToClient(_Inout_ D2D1_RECT_F& rc) const
 	{
-		ECK_DUILOCK;
 		OffsetRect(rc, m_rcfInClient.left, m_rcfInClient.top);
 	}
 
-	EckInline void ElemToClient(_Inout_ POINT& pt) const
+	EckInline constexpr void ElemToClient(_Inout_ POINT& pt) const
 	{
-		ECK_DUILOCK;
 		pt.x += m_rcInClient.left;
 		pt.y += m_rcInClient.top;
 	}
 
-	EckInline void ElemToClient(_Inout_ D2D1_POINT_2F& pt) const
+	EckInline constexpr void ElemToClient(_Inout_ D2D1_POINT_2F& pt) const
 	{
-		ECK_DUILOCK;
 		pt.x += m_rcfInClient.left;
 		pt.y += m_rcfInClient.top;
 	}
@@ -638,6 +607,11 @@ public:
 
 	// 置焦点【不能在渲染线程调用】
 	EckInline void SetFocus();
+
+	// 安装定时器【不能在渲染线程调用】
+	EckInline void SetTimer(UINT_PTR uId, UINT uElapse);
+	// 销毁定时器
+	EckInline void KillTimer(UINT_PTR uId);
 #pragma endregion ElemFunc
 #pragma region Composite
 	// 取混合矩形，相对元素
@@ -654,7 +628,7 @@ public:
 	}
 
 	// 取完全包围元素的矩形，相对客户区
-	EckInline const RECT& GetWholeRectInClient() const
+	EckInline constexpr const RECT& GetWholeRectInClient() const
 	{
 		return (((GetStyle() & DES_COMPOSITED) && !(GetStyle() & DES_INPLACE_COMP)) ?
 			GetPostCompositedRectInClient() :
@@ -677,6 +651,12 @@ class CDuiWnd :public CWnd
 	friend class CElem;
 	friend class CDuiDropTarget;
 private:
+	struct TIMER
+	{
+		CElem* pElem;
+		UINT_PTR uId;
+	};
+
 	//------元素树------
 	CElem* m_pFirstChild{};	// 第一个子元素
 	CElem* m_pLastChild{};	// 最后一个子元素
@@ -693,6 +673,7 @@ private:
 	HANDLE m_hthRender{};	// 渲染线程句柄
 
 	std::vector<ITimeLine*> m_vTimeLine{};	// 时间线
+	std::vector<TIMER> m_vTimer{};			// 需要定时器的元素
 	//------拖放------
 	CElem* m_pDragDropElem{};		// 当前拖放元素
 	IDataObject* m_pDataObj{};		// 当前拖放的数据对象
@@ -777,7 +758,7 @@ private:
 				!(dwStyle & DES_VISIBLE) || (dwStyle & (DES_DISALLOW_REDRAW | DES_EXTERNAL_CONTENT)) ||
 				IsRectEmpty(rcElem))
 				goto NextElem;
-			if (!IntersectRect(rcClip, rcElem, m_rcInvalid))
+			if (!IntersectRect(rcClip, rcElem, rc))
 				goto NextElem;
 
 			if (IsElemUseDComp())// 使用DComp合成
@@ -871,15 +852,19 @@ private:
 			const auto pDC = m_D2d.GetDC();
 			pDC->BeginDraw();
 			pDC->SetTransform(D2D1::Matrix3x2F::Identity());
-			const auto rcF{ MakeD2DRcF(rc) };
+			auto rcF = MakeD2DRcF(rc);
+			Log2Phy(rcF);
+			CeilRect(rcF);
+			Phy2Log(rcF);
+			CeilRect(rcF);
 			if (m_bTransparent)
 			{
-				pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+				pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_ALIASED);
 				pDC->Clear({});
 				pDC->PopAxisAlignedClip();
 			}
 			FillBackground(rcF);
-			RedrawElem(GetFirstChildElem(), rc, 0.f, 0.f);
+			RedrawElem(GetFirstChildElem(), MakeRect(rcF), 0.f, 0.f);
 			pDC->EndDraw();
 		}
 		return;
@@ -891,13 +876,8 @@ private:
 			POINT ptOffset;
 			auto rcPhyF = MakeD2DRcF(rc);
 			Log2Phy(rcPhyF);
-			const RECT rcPhy
-			{
-				(int)floorf(rcPhyF.left),
-				(int)floorf(rcPhyF.top),
-				(int)ceilf(rcPhyF.right),
-				(int)ceilf(rcPhyF.bottom)
-			};
+			RECT rcPhy;
+			CeilRect(rcPhyF, rcPhy);
 
 			m_pDcSurface->BeginDraw(bFullUpdate ? nullptr : &rcPhy,
 				IID_PPV_ARGS(&pDxgiSurface), &ptOffset);
@@ -927,14 +907,16 @@ private:
 			Phy2Log(rcF);
 			if (m_bTransparent)
 			{
-				pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+				pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_ALIASED);
 				pDC->Clear({});
 				pDC->PopAxisAlignedClip();
 			}
 			FillBackground(rcF);
 			if (!IsElemUseDComp())
 			{
-				RedrawElem(GetFirstChildElem(), rc,
+				RECT rcReal;
+				CeilRect(rcF, rcReal);
+				RedrawElem(GetFirstChildElem(), rcReal,
 					ptLogOffsetF.x, ptLogOffsetF.y);
 			}
 
@@ -1265,6 +1247,19 @@ public:
 		}
 		break;
 
+		case WM_TIMER:
+		{
+			for (const auto e : m_vTimer)
+			{
+				if (e.uId == wParam)
+				{
+					e.pElem->CallEvent(WM_TIMER, wParam, 0);
+					return 0;
+				}
+			}
+		}
+		return 0;
+
 		case WM_NCMOUSELEAVE:
 		case WM_MOUSELEAVE:
 			if (m_pHoverElem)
@@ -1282,7 +1277,7 @@ public:
 				if (m_pMouseCaptureElem)
 				{
 					m_pMouseCaptureElem->CallEvent(WM_CAPTURECHANGED, 0, NULL);
-					if (m_pHoverElem != m_pMouseCaptureElem)
+					if (m_pHoverElem && m_pHoverElem != m_pMouseCaptureElem)
 					{
 						m_pHoverElem->CallEvent(WM_MOUSELEAVE, 0, 0);
 						m_pHoverElem = nullptr;
@@ -1467,7 +1462,7 @@ public:
 			SafeRelease(m_pDataObj);
 			SafeRelease(m_pDropTarget);
 
-			for (auto p: m_vTheme)
+			for (auto p : m_vTheme)
 				p->Release();
 			m_vTheme.clear();
 
@@ -1506,7 +1501,6 @@ public:
 	// 【仅在渲染线程调用】
 	void FillBackground(const D2D1_RECT_F& rc)
 	{
-		m_D2d.GetDC()->SetTransform(D2D1::Matrix3x2F::Identity());
 		if (m_pBrBkg)
 			m_D2d.GetDC()->FillRectangle(rc, m_pBrBkg);
 		if (m_pBmpBkg)
@@ -1565,6 +1559,30 @@ public:
 		// m_pMouseCaptureElem = nullptr;
 	}
 	EckInline constexpr CElem* ElemGetCapture() const { return m_pMouseCaptureElem; }
+
+	void ElemSetTimer(CElem* pElem, UINT_PTR uId, UINT uElapse)
+	{
+		SetTimer(HWnd, uId, uElapse, nullptr);
+		for (auto& e : m_vTimer)
+		{
+			if (e.pElem == pElem && e.uId == uId)
+				return;
+		}
+		m_vTimer.emplace_back(pElem, uId);
+	}
+
+	void ElemKillTimer(CElem* pElem, UINT_PTR uId)
+	{
+		for (auto it = m_vTimer.begin(); it != m_vTimer.end(); ++it)
+		{
+			if (it->pElem == pElem && it->uId == uId)
+			{
+				KillTimer(HWnd, uId);
+				m_vTimer.erase(it);
+				return;
+			}
+		}
+	}
 
 	EckInline constexpr CElem* GetFirstChildElem() const { return m_pFirstChild; }
 	EckInline constexpr CElem* GetLastChildElem() const { return m_pLastChild; }
@@ -1640,7 +1658,9 @@ public:
 		ECK_DUILOCKWND;
 		const auto pTheme = m_vTheme.front()->GetTheme();
 		pTheme->SetPalette(pTheme->GetPaletteList()[!!bDark]);
-		m_pBrBkg->SetColor(ColorrefToD2dColorF(GetThreadCtx()->crDefBkg));
+		D2D1_COLOR_F cr;
+		pTheme->GetSysColor(SysColor::Bk, cr);
+		m_pBrBkg->SetColor(cr);
 		BroadcastEvent(WM_THEMECHANGED, 0, 0);
 	}
 
@@ -2118,6 +2138,8 @@ inline void CElem::tcPostMoveSize(BOOL bSize, BOOL bMove, const RECT& rcOld)
 EckInline CElem* CElem::SetCapture() { return GetWnd()->ElemSetCapture(this); }
 EckInline void CElem::ReleaseCapture() { GetWnd()->ElemReleaseCapture(); }
 EckInline void CElem::SetFocus() { GetWnd()->ElemSetFocus(this); }
+EckInline void CElem::SetTimer(UINT_PTR uId, UINT uElapse) { GetWnd()->ElemSetTimer(this, uId, uElapse); }
+EckInline void CElem::KillTimer(UINT_PTR uId) { GetWnd()->ElemKillTimer(this, uId); }
 EckInline constexpr CCriticalSection& CElem::GetCriticalSection() const { return GetWnd()->GetCriticalSection(); }
 EckInline constexpr int CElem::Log2Phy(int i) const { return GetWnd()->Log2Phy(i); }
 EckInline constexpr float CElem::Log2PhyF(float f) const { return GetWnd()->Log2PhyF(f); }
@@ -2253,7 +2275,7 @@ inline HRESULT CDuiWnd::EnableDragDrop(BOOL bEnable)
 			return hr;
 		}
 	}
-	return S_FALSE;// Indicate do nothing.
+	return S_FALSE;
 }
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
