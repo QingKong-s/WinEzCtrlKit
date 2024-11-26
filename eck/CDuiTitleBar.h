@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+* WinEzCtrlKit Library
+*
+* CDuiTitleBar.h ： DUI标题栏
+*
+* Copyright(C) 2024 QingKong
+*/
+#pragma once
 #include "DuiBase.h"
 
 #if !ECKCXX20
@@ -17,8 +24,7 @@ protected:
 	int m_cyBtn{};
 	DwmWndPart m_idxHot{ DwmWndPart::Invalid };
 	DwmWndPart m_idxPressed{ DwmWndPart::Invalid };
-
-	HWND m_hRefWnd{};
+	BITBOOL m_bMaximized{};
 
 	DwmWPartState GetPartState(DwmWndPart idx) const
 	{
@@ -27,6 +33,13 @@ protected:
 		else if (m_idxHot == idx)
 			return DwmWPartState::Hot;
 		return DwmWPartState::Normal;
+	}
+
+	LRESULT OnWndMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)
+	{
+		if (uMsg == WM_WINDOWPOSCHANGED)
+			m_bMaximized = IsZoomed(hWnd);
+		return 0;
 	}
 public:
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -46,56 +59,63 @@ public:
 				GetWidthF(),
 				(float)m_cyBtn
 			};
-			D2D1_RECT_F rcDst2;
+			D2D1_RECT_F rcTemp;
 
 			RECT rc, rcBkg;
-			D2D1_RECT_F rcMargins;
 			DWMW_GET_PART_EXTRA Extra;
+			const auto bDarkMode = ShouldAppsUseDarkMode();
+			const auto iUserDpi = GetWnd()->GetUserDpiValue();
 
-			if (m_DwmPartMgr.GetPartRect(rc, rcBkg, DwmWndPart::Close, GetPartState(DwmWndPart::Close),
-				ShouldAppsUseDarkMode(), TRUE, GetWnd()->GetDpiValue(), &Extra))
+			m_pDC->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
+			if (m_DwmPartMgr.GetPartRect(rc, rcBkg, DwmWndPart::Close,
+				GetPartState(DwmWndPart::Close), bDarkMode, TRUE, iUserDpi, &Extra))
 			{
-				rcMargins = MarginsToD2dRcF(Extra.pBkg->mgSizing);
-				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst, MakeD2DRcF(rcBkg), rcMargins);
+				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
+					MakeD2DRcF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing));
 
-				rcDst2 = MakeD2DRcF(rc);
-				CenterRect(rcDst2, rcDst);
+				rcTemp = MakeD2DRcF(rc);
+				GetWnd()->Phy2Log(rcTemp);
+				CenterRect(rcTemp, rcDst);
 
-				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcDst2, 1.0f,
+				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.f,
 					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRcF(rc));
 			}
 
 			rcDst.left -= m_cxMaxMin;
 			rcDst.right = rcDst.left + m_cxMaxMin;
 
-			if (m_DwmPartMgr.GetPartRect(rc, rcBkg, DwmWndPart::Max, GetPartState(DwmWndPart::Max),
-				ShouldAppsUseDarkMode(), TRUE, GetWnd()->GetDpiValue(), &Extra))
+			if (m_DwmPartMgr.GetPartRect(rc, rcBkg,
+				m_bMaximized ? DwmWndPart::Restore : DwmWndPart::Max,
+				GetPartState(DwmWndPart::Max), bDarkMode, TRUE, iUserDpi, &Extra))
 			{
-				rcMargins = MarginsToD2dRcF(Extra.pBkg->mgSizing);
-				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst, MakeD2DRcF(rcBkg), rcMargins);
+				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
+					MakeD2DRcF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing));
 
-				rcDst2 = MakeD2DRcF(rc);
-				CenterRect(rcDst2, rcDst);
+				rcTemp = MakeD2DRcF(rc);
+				GetWnd()->Phy2Log(rcTemp);
+				CenterRect(rcTemp, rcDst);
 
-				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcDst2, 1.0f,
+				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.f,
 					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRcF(rc));
 			}
 
 			rcDst.left -= m_cxMaxMin;
 			rcDst.right -= m_cxMaxMin;
 
-			if (m_DwmPartMgr.GetPartRect(rc, rcBkg, DwmWndPart::Min, GetPartState(DwmWndPart::Min),
-				ShouldAppsUseDarkMode(), TRUE, GetWnd()->GetDpiValue(), &Extra))
+			if (m_DwmPartMgr.GetPartRect(rc, rcBkg, DwmWndPart::Min,
+				GetPartState(DwmWndPart::Min), bDarkMode, TRUE, iUserDpi, &Extra))
 			{
-				rcMargins = MarginsToD2dRcF(Extra.pBkg->mgSizing);
-				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst, MakeD2DRcF(rcBkg), rcMargins);
+				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
+					MakeD2DRcF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing));
 
-				rcDst2 = MakeD2DRcF(rc);
-				CenterRect(rcDst2, rcDst);
+				rcTemp = MakeD2DRcF(rc);
+				GetWnd()->Phy2Log(rcTemp);
+				CenterRect(rcTemp, rcDst);
 
-				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcDst2, 1.0f,
+				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.0f,
 					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRcF(rc));
 			}
+			m_pDC->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
 
 			ECK_DUI_DBG_DRAW_FRAME;
 
@@ -129,6 +149,7 @@ public:
 			POINT pt ECK_GET_PT_LPARAM(lParam);
 			ScreenToClient(GetWnd()->HWnd, &pt);
 			ClientToElem(pt);
+			GetWnd()->Phy2Log(pt);
 			m_idxPressed = HitTest(pt);
 			InvalidateBtnRect();
 		}
@@ -141,18 +162,22 @@ public:
 				POINT pt ECK_GET_PT_LPARAM(lParam);
 				ScreenToClient(GetWnd()->HWnd, &pt);
 				ClientToElem(pt);
+				GetWnd()->Phy2Log(pt);
 				const auto idx = HitTest(pt);
 				if (m_idxPressed == idx)
 					switch (idx)
 					{
 					case DwmWndPart::Close:
-						PostMessageW(m_hRefWnd, WM_SYSCOMMAND, SC_CLOSE, 0);
+						GetWnd()->PostMsg(WM_SYSCOMMAND, SC_CLOSE, 0);
 						break;
 					case DwmWndPart::Max:
-						PostMessageW(m_hRefWnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+						if (m_bMaximized)
+							GetWnd()->PostMsg(WM_SYSCOMMAND, SC_RESTORE, 0);
+						else
+							GetWnd()->PostMsg(WM_SYSCOMMAND, SC_MAXIMIZE, 0);
 						break;
 					case DwmWndPart::Min:
-						PostMessageW(m_hRefWnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+						GetWnd()->PostMsg(WM_SYSCOMMAND, SC_MINIMIZE, 0);
 						break;
 					}
 
@@ -168,6 +193,7 @@ public:
 			POINT pt ECK_GET_PT_LPARAM(lParam);
 			ScreenToClient(GetWnd()->HWnd, &pt);
 			ClientToElem(pt);
+			GetWnd()->Phy2Log(pt);
 			const auto idxOld = m_idxHot;
 			m_idxHot = HitTest(pt);
 			if (m_idxHot != idxOld)
@@ -197,13 +223,15 @@ public:
 
 		case WM_CREATE:
 		{
-			m_hRefWnd = GetWnd()->GetHWND();
+			GetWnd()->GetSignal().Connect(this, &CTitleBar::OnWndMsg, MHI_DUI_TITLEBAR);
+			m_bMaximized = IsZoomed(GetWnd()->HWnd);
 			UpdateTitleBarInfo(TRUE);
 			UpdateMetrics();
 		}
 		break;
 
 		case WM_DESTROY:
+			GetWnd()->GetSignal().Disconnect(MHI_DUI_TITLEBAR);
 			SafeRelease(m_pBmpDwmWndAtlas);
 			break;
 		}
@@ -234,15 +262,15 @@ public:
 	{
 		if (g_NtVer.uMajor == 6 && (g_NtVer.uMinor == 2 || g_NtVer.uMinor == 3))
 		{
-			m_cxClose = DpiScale(46, GetWnd()->GetDpiValue());
+			m_cxClose = 46;
 			m_cxMaxMin = m_cxClose * 80 / 150;
-			m_cyBtn = DpiScale(21, GetWnd()->GetDpiValue());
+			m_cyBtn = 21;
 		}
 		else
 		{
-			m_cxClose = DpiScale(46, GetWnd()->GetDpiValue());
+			m_cxClose = 46;
 			m_cxMaxMin = m_cxClose;
-			m_cyBtn = DpiScale(31, GetWnd()->GetDpiValue());
+			m_cyBtn = 31;
 		}
 	}
 
@@ -269,10 +297,6 @@ public:
 		ElemToClient(rc);
 		InvalidateRect(rc);
 	}
-
-	EckInline constexpr void SetRefWnd(HWND hWnd) { m_hRefWnd = hWnd; }
-
-	EckInline constexpr HWND GetRefWnd() const { return m_hRefWnd; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
