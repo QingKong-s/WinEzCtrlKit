@@ -178,7 +178,7 @@ struct DESIGNDATA_WND
 
 class CWnd : public ILayout
 {
-	friend HHOOK BeginCbtHook(CWnd*, FWndCreating, BOOL);
+	friend HHOOK BeginCbtHook(CWnd*, FWndCreating);
 public:
 	ECK_RTTI(CWnd);
 
@@ -199,9 +199,9 @@ protected:
 
 	EckInline HWND IntCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
 		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
-		FWndCreating pfnCreatingProc = nullptr, BOOL bDialog = FALSE)
+		FWndCreating pfnCreatingProc = nullptr)
 	{
-		BeginCbtHook(this, pfnCreatingProc, bDialog);
+		BeginCbtHook(this, pfnCreatingProc);
 #ifdef _DEBUG
 		CreateWindowExW(dwExStyle, pszClass, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, hInst, pParam);
@@ -443,7 +443,6 @@ public:
 		EckAssert(pCtx->WmAt(hWnd) == this);// 检查匹配性
 		pCtx->WmRemove(hWnd);
 		pCtx->TwmRemove(hWnd);
-		pCtx->MdRemove(hWnd);
 		return hWnd;
 	}
 
