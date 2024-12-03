@@ -84,7 +84,7 @@ protected:
 		else
 			bNeedEnableOwner = FALSE;
 
-		BeginCbtHook(this, pfnCreatingProc, TRUE);
+		BeginCbtHook(this, pfnCreatingProc);
 		CreateDialogParamW(hInst, pszTemplate, hParent, EckDlgProc, lParam);
 		EckAssert(m_bDlgProcInit);
 
@@ -102,7 +102,7 @@ protected:
 		LPARAM lParam = 0, FWndCreating pfnCreatingProc = nullptr)
 	{
 		m_bModal = FALSE;
-		BeginCbtHook(this, pfnCreatingProc, TRUE);
+		BeginCbtHook(this, pfnCreatingProc);
 		const auto h = CreateDialogParamW(hInst, pszTemplate, hParent, EckDlgProc, lParam);
 		EckAssert(m_bDlgProcInit);
 		return h;
@@ -283,7 +283,7 @@ protected:
 			pt = { x,y };
 
 		IntCreate(dwExStyle, pszClass, pszText, dwStyle,
-			pt.x, pt.y, cx, cy, hParent, hMenu, hInst, pParam, pfnCreatingProc, TRUE);
+			pt.x, pt.y, cx, cy, hParent, hMenu, hInst, pParam, pfnCreatingProc);
 		EckAssert(m_bDlgProcInit);
 
 		if (m_hWnd)

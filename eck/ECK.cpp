@@ -76,12 +76,17 @@ void InitPrivateApi()
 // RTTI
 ClassInfo* g_pClassInfo{};
 
+// For program
+
 HINSTANCE	g_hInstance{};
 CRefStrW	g_rsCurrDir{};
 DWORD		g_dwTlsSlot{};
 NTVER		g_NtVer{};
 
+// For GdiPlus
 ULONG_PTR	g_uGpToken{};
+
+// For DirectX
 
 IWICImagingFactory* g_pWicFactory{};
 ID2D1Factory1* g_pD2dFactory{};
@@ -90,18 +95,14 @@ ID2D1Device* g_pD2dDevice{};
 IDXGIDevice1* g_pDxgiDevice{};
 IDXGIFactory2* g_pDxgiFactory{};
 
+// For Text Services
+
 void* g_pfnCreateTextServices{};
 void* g_pfnShutdownTextServices{};
 IID* g_pIID_ITextHost{};
 IID* g_pIID_ITextHost2{};
 IID* g_pIID_ITextServices{};
 IID* g_pIID_ITextServices2{};
-
-static BOOL DefMsgFilter(const MSG&)
-{
-	return FALSE;
-}
-FMsgFilter g_pfnMsgFilter = DefMsgFilter;
 
 const CRefStrW& GetRunningPath()
 {
@@ -156,6 +157,7 @@ s_WndClassInfo[]
 #pragma endregion Wnds
 
 #pragma region UxFixer
+// 未在SDK中定义的部件和状态代码
 enum
 {
 	//===部件===
@@ -1070,11 +1072,11 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	g_dwTlsSlot = TlsAlloc();
 
 	//////////////初始化线程上下文
-	if (!(pInitParam->uFlags&EIF_NOINITTHREAD))
+	if (!(pInitParam->uFlags & EIF_NOINITTHREAD))
 		ThreadInit();
 
 	//////////////初始化GDI+
-	if (!(pInitParam->uFlags&EIF_NOINITGDIPLUS))
+	if (!(pInitParam->uFlags & EIF_NOINITGDIPLUS))
 	{
 		GdiplusStartupInput gpsi{};
 		const auto gps = GdiplusStartup(&g_uGpToken, &gpsi, nullptr);
@@ -1132,7 +1134,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	g_rsCurrDir.ShrinkToFit();
 
 	HRESULT hr;
-	if (!(pInitParam->uFlags&EIF_NOINITD2D))
+	if (!(pInitParam->uFlags & EIF_NOINITD2D))
 	{
 #ifdef _DEBUG
 		D2D1_FACTORY_OPTIONS D2DFactoryOptions;
@@ -1165,7 +1167,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			| D3D11_CREATE_DEVICE_DEBUG
 #endif // !NDEBUG
 			, pInitParam->pD3dFeatureLevel, pInitParam->cD3dFeatureLevel,
-			D3D11_SDK_VERSION, & pD3dDevice, nullptr, nullptr);
+			D3D11_SDK_VERSION, &pD3dDevice, nullptr, nullptr);
 		if (FAILED(hr))
 		{
 			*pdwErrCode = hr;
@@ -1195,7 +1197,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		}
 	}
 	//////////////创建WIC工厂
-	if (!(pInitParam->uFlags&EIF_NOINITWIC))
+	if (!(pInitParam->uFlags & EIF_NOINITWIC))
 	{
 		hr = CoCreateInstance(CLSID_WICImagingFactory, nullptr,
 			CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&g_pWicFactory));
@@ -1207,7 +1209,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		}
 	}
 
-	if (!(pInitParam->uFlags&EIF_NODARKMODE) &&
+	if (!(pInitParam->uFlags & EIF_NODARKMODE) &&
 		g_NtVer.uMajor >= 10 && g_NtVer.uBuild >= WINVER_1809)
 	{
 		SetPreferredAppMode(PreferredAppMode::AllowDark);
@@ -1389,13 +1391,12 @@ void THREADCTX::SendThemeChangedToAllTopWindow()
 #pragma endregion Thread
 
 #pragma region Wnd
-HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc, BOOL bModelessDlg)
+HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc)
 {
 	EckAssert(pCurrWnd);
 	const auto pCtx = GetThreadCtx();
 	pCtx->pCurrWnd = pCurrWnd;
 	pCtx->pfnWndCreatingProc = pfnCreatingProc;
-	pCtx->bModelessDlg = bModelessDlg;
 	EckAssert(!pCtx->hhkTempCBT);
 	pCtx->hhkTempCBT = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
 		{
@@ -1413,9 +1414,6 @@ HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc, BOOL bModelessD
 				// 插入顶级窗口映射
 				if (!IsBitSet(pcbtcw->lpcs->style, WS_CHILD))
 					pCtx->TwmAdd((HWND)wParam, pCtx->pCurrWnd);
-				// 插入非模式对话框映射
-				if (pCtx->bModelessDlg)
-					pCtx->MdAdd((HWND)wParam);
 				// 执行用户回调
 				if (pCtx->pfnWndCreatingProc)
 					pCtx->pfnWndCreatingProc((HWND)wParam, pcbtcw, pCtx);
@@ -1437,8 +1435,6 @@ void EndCbtHook()
 
 BOOL PreTranslateMessage(const MSG& Msg)
 {
-	if (g_pfnMsgFilter(Msg))
-		return TRUE;
 	HWND hWnd = Msg.hwnd;
 	CWnd* pWnd;
 	const auto* const pCtx = GetThreadCtx();
@@ -1449,18 +1445,7 @@ BOOL PreTranslateMessage(const MSG& Msg)
 			return TRUE;
 		hWnd = GetParent(hWnd);
 	}
-	if (pCtx->MdIsModelessDlg(Msg.hwnd))
-#pragma warning(suppress: 28183)// 可能为NULL
-		return IsDialogMessageW(Msg.hwnd, (MSG*)&Msg);
 	return FALSE;
-}
-
-void SetMsgFilter(FMsgFilter pfnFilter)
-{
-	if (!pfnFilter)
-		g_pfnMsgFilter = DefMsgFilter;
-	else
-		g_pfnMsgFilter = pfnFilter;
 }
 #pragma endregion Wnd
 
@@ -1537,7 +1522,7 @@ void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 #pragma endregion Dbg
 ECK_NAMESPACE_END
 
-#ifndef ECK_NO_YYJSON
+#ifndef ECK_OPT_NO_YYJSON
 #pragma push_macro("free")
 #pragma push_macro("malloc")
 #pragma push_macro("realloc")
@@ -1548,8 +1533,8 @@ ECK_NAMESPACE_END
 #pragma pop_macro("free")
 #pragma pop_macro("malloc")
 #pragma pop_macro("realloc")
-#endif // !defined(ECK_NO_YYJSON)
+#endif // !defined(ECK_OPT_NO_YYJSON)
 
-#ifndef ECK_NO_PUGIXML
+#ifndef ECK_OPT_NO_PUGIXML
 #include "PugiXml/pugixml.cpp"
-#endif // !defined(ECK_NO_PUGIXML)
+#endif // !defined(ECK_OPT_NO_PUGIXML)
