@@ -701,6 +701,15 @@ enum :ULONG
 	WINVER_1903 = 18362,
 	WINVER_11_21H2 = 22000,
 };
+
+enum DispInfoMask :UINT
+{
+	DIM_TEXT = 1u << 0,
+	DIM_IMAGE = 1u << 1,
+	DIM_STATE = 1u << 2,
+	DIM_LPARAM = 1u << 3,
+};
+ECK_ENUM_BIT_FLAGS(DispInfoMask);
 #pragma endregion Enum
 
 #pragma region Global

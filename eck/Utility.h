@@ -987,6 +987,38 @@ inline constexpr BOOL AdjustRectToFitAnother(RECT& rc, const RECT& rcRef)
 	return TRUE;
 }
 
+inline constexpr BOOL AdjustRectToFitAnother(D2D1_RECT_F& rc, const D2D1_RECT_F& rcRef)
+{
+	const float
+		cxMax = rcRef.right - rcRef.left,
+		cyMax = rcRef.bottom - rcRef.top,
+		cx0 = rc.right - rc.left,
+		cy0 = rc.bottom - rc.top;
+	if (cxMax <= 0 || cyMax <= 0 || cx0 <= 0 || cy0 <= 0)
+		return FALSE;
+#if ECKCXX20
+	float cx, cy;
+#else
+	float cx{}, cy{};
+#endif
+	if (cxMax * cy0 > cx0 * cyMax)// y对齐
+	{
+		cy = cyMax;
+		cx = cx0 * cy / cy0;
+	}
+	else// x对齐
+	{
+		cx = cxMax;
+		cy = cx * cy0 / cx0;
+	}
+
+	rc.left = rcRef.left + (cxMax - cx) / 2;
+	rc.top = rcRef.top + (cyMax - cy) / 2;
+	rc.right = rc.left + cx;
+	rc.bottom = rc.top + cy;
+	return TRUE;
+}
+
 /// <summary>
 /// 调整矩形以充满。
 /// 函数等宽高比缩放矩形使之成为完全覆盖参照矩形内容的最小矩形（可能超出参照矩形）
@@ -1006,6 +1038,44 @@ inline constexpr BOOL AdjustRectToFillAnother(RECT& rc, const RECT& rcRef)
 
 	int cxRgn, cyRgn;
 	int x, y;
+
+	cxRgn = cyMax * cx0 / cy0;
+	if (cxRgn < cxMax)// 先尝试y对齐，看x方向是否充满
+	{
+		cxRgn = cxMax;
+		cyRgn = cxMax * cy0 / cx0;
+		x = 0;
+		y = (cyMax - cyRgn) / 2;
+	}
+	else
+	{
+		cyRgn = cyMax;
+		x = (cxMax - cxRgn) / 2;
+		y = 0;
+	}
+
+	rc =
+	{
+		rcRef.left + x,
+		rcRef.top + y,
+		rcRef.left + x + cxRgn,
+		rcRef.top + y + cyRgn
+	};
+	return TRUE;
+}
+
+inline constexpr BOOL AdjustRectToFillAnother(D2D1_RECT_F& rc, const D2D1_RECT_F& rcRef)
+{
+	const float
+		cxMax = rcRef.right - rcRef.left,
+		cyMax = rcRef.bottom - rcRef.top,
+		cx0 = rc.right - rc.left,
+		cy0 = rc.bottom - rc.top;
+	if (cxMax <= 0 || cyMax <= 0 || cx0 <= 0 || cy0 <= 0)
+		return FALSE;
+
+	float cxRgn, cyRgn;
+	float x, y;
 
 	cxRgn = cyMax * cx0 / cy0;
 	if (cxRgn < cxMax)// 先尝试y对齐，看x方向是否充满

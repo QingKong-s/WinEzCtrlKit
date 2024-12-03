@@ -20,26 +20,17 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-enum
+struct LEE_DISPINFO : DUINMHDR
 {
-	LEIM_TEXT = (1u << 0),
-	LEIM_IMAGE = (1u << 1),
-};
+	UINT uFlags;
+	int idx;
 
-struct LEEDISPINFO
-{
-	DUINMHDR nmhdr{ LEE_GETDISPINFO };
+	PCWSTR pszText;
+	int cchText;
 
-	UINT uFlags = 0;
+	int idxImg;
+	ID2D1Bitmap* pImg;
 
-	int idx = 0;
-
-	int cchText = 0;
-	PCWSTR pszText = nullptr;
-
-	ID2D1Bitmap* pImg = nullptr;
-
-	int idxImg = -1;
 };
 
 struct LEHITTEST
@@ -126,7 +117,7 @@ private:
 		;
 	ECK_DS_END_VAR(m_DsF);
 
-	void LVPaintItem(int idx, const D2D1_RECT_F& rcPaint, const LEEDISPINFO& es)
+	void LVPaintItem(int idx, const D2D1_RECT_F& rcPaint, const LEE_DISPINFO& es)
 	{
 		const float Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
 
@@ -188,7 +179,7 @@ private:
 		}
 	}
 
-	void IVPaintItem(int idx, const D2D1_RECT_F& rcPaint, const LEEDISPINFO& es)
+	void IVPaintItem(int idx, const D2D1_RECT_F& rcPaint, const LEE_DISPINFO& es)
 	{
 		auto& e = m_vItem[idx];
 
@@ -254,7 +245,8 @@ private:
 
 	EckInline void DrawItem(int idx, const D2D1_RECT_F& rcPaint)
 	{
-		LEEDISPINFO es{ {LEE_GETDISPINFO},LEIM_TEXT | LEIM_IMAGE,idx };
+		LEE_DISPINFO es{};
+		es.
 		GenElemNotify(&es);
 		switch (m_eView)
 		{

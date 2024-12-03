@@ -196,6 +196,11 @@ public:
 	// 事件处理函数，一般不直接调用此函数
 	virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
+	virtual LRESULT OnNotify(DUINMHDR* pnm, BOOL& bProcessed)
+	{
+		return 0;
+	}
+
 	// 调用事件处理
 	EckInline LRESULT CallEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
@@ -222,6 +227,10 @@ public:
 	/// <returns>处理方的返回值</returns>
 	EckInline LRESULT GenElemNotifyParent(void* pnm)
 	{
+		BOOL bProcessed{};
+		const auto lResult = OnNotify((DUINMHDR*)pnm, bProcessed);
+		if (bProcessed)
+			return lResult;
 		if (GetParentElem())
 			return GetParentElem()->CallEvent(WM_NOTIFY, (WPARAM)this, (LPARAM)pnm);
 		else
@@ -798,7 +807,9 @@ private:
 			{
 				pDC->Flush();
 				pDC->GetTarget(&pOldTarget);
-				CacheReserve(rcElem.right - rcElem.left, rcElem.bottom - rcElem.top);
+				CacheReserve(
+					Log2Phy(rcElem.right - rcElem.left),
+					Log2Phy(rcElem.bottom - rcElem.top));
 				pDC->SetTarget(GetCacheBitmap());
 				pDC->SetTransform(D2D1::Matrix3x2F::Identity());
 				bNeedComposite = TRUE;
@@ -944,6 +955,7 @@ private:
 			if (!IsElemUseDComp())
 			{
 				RECT rcReal;
+				OffsetRect(rcF, -ptLogOffsetF.x, -ptLogOffsetF.y);
 				CeilRect(rcF, rcReal);
 				RedrawElem(GetFirstChildElem(), rcReal,
 					ptLogOffsetF.x, ptLogOffsetF.y);
@@ -1780,14 +1792,14 @@ public:
 
 	EckInline constexpr ID2D1Bitmap1* GetCacheBitmap() const { return m_pBmpCache; }
 
-	void CacheReserve(int cx, int cy)
+	void CacheReserve(int cxPhy, int cyPhy)
 	{
-		if (cx > m_cxCache || cy > m_cyCache)
+		if (cxPhy > m_cxCache || cyPhy > m_cyCache)
 		{
 			if (m_pBmpCache)
 				m_pBmpCache->Release();
-			m_cxCache = cx;
-			m_cyCache = cy;
+			m_cxCache = cxPhy;
+			m_cyCache = cyPhy;
 			const D2D1_BITMAP_PROPERTIES1 Prop
 			{
 				{ DXGI_FORMAT_B8G8R8A8_UNORM,D2D1_ALPHA_MODE_PREMULTIPLIED },
@@ -2080,8 +2092,11 @@ inline void CElem::BeginPaint(_Out_ ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lP
 		{
 			m_pDC->Flush();
 			m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
+			GetWnd()->CacheReserve(
+				(int)Log2PhyF(eps.rcfClip.right - eps.rcfClip.left),
+				(int)Log2PhyF(eps.rcfClip.bottom - eps.rcfClip.top));
 			BlurD2dDC(m_pDC, GetWnd()->GetD2D().GetBitmap(), GetWnd()->GetCacheBitmap(),
-				eps.rcfClip, { eps.rcfClipInElem.left,eps.rcfClipInElem.top }, 10.f);
+				eps.rcfClip, {}, 10.f);
 		}
 		else
 		{

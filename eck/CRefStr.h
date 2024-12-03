@@ -811,7 +811,7 @@ public:
 	/// <param name="cchReplacing">替换长度</param>
 	/// <param name="pszNew">用作替换的字符串指针</param>
 	/// <param name="cchNew">用作替换的字符串长度</param>
-	void Replace(int posStart, int cchReplacing, PCWSTR pszNew, int cchNew)
+	void Replace(int posStart, int cchReplacing, TConstPointer pszNew, int cchNew)
 	{
 		EckAssert(pszNew ? TRUE : cchNew == 0);
 		if (cchNew < 0)
@@ -848,7 +848,7 @@ public:
 	/// <param name="cchSrc">用作替换的字符串长度</param>
 	/// <param name="posStart">起始位置</param>
 	/// <param name="cReplacing">替换进行的次数，0为执行所有替换</param>
-	void ReplaceSubStr(PCWSTR pszReplaced, int cchReplaced, PCWSTR pszSrc, int cchSrc,
+	void ReplaceSubStr(TConstPointer pszReplaced, int cchReplaced, TConstPointer pszSrc, int cchSrc,
 		int posStart = 0, int cReplacing = 0)
 	{
 		EckAssert(pszReplaced);
