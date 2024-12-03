@@ -168,6 +168,19 @@ EckInline constexpr void DpiScale(_Inout_ D2D1_RECT_F& rc, int iDpi)
 	DpiScale(rc, iDpi, USER_DEFAULT_SCREEN_DPI);
 }
 
+EckInline constexpr void DpiScale(_Inout_ D2D1_RECT_U& rc, int iDpiNew, int iDpiOld)
+{
+	rc.left = (UINT)DpiScale(rc.left, iDpiNew, iDpiOld);
+	rc.top = (UINT)DpiScale(rc.top, iDpiNew, iDpiOld);
+	rc.right = (UINT)DpiScale(rc.right, iDpiNew, iDpiOld);
+	rc.bottom = (UINT)DpiScale(rc.bottom, iDpiNew, iDpiOld);
+}
+
+EckInline constexpr void DpiScale(_Inout_ D2D1_RECT_U& rc, int iDpi)
+{
+	DpiScale(rc, iDpi, USER_DEFAULT_SCREEN_DPI);
+}
+
 EckInline constexpr void DpiScale(_Inout_ D2D1_SIZE_F& size, int iDpiNew, int iDpiOld)
 {
 	size.width = DpiScaleF(size.width, iDpiNew, iDpiOld);

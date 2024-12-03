@@ -28,15 +28,29 @@ private:
 	BITBOOL m_bHot : 1{};
 	BITBOOL m_bLBtnDown : 1{};
 
-	void UpdateTextLayout()
+	BITBOOL m_bAutoScale : 1{ TRUE };
+
+	constexpr float CalcImageWidth() const
+	{
+		const float Padding = GetTheme()->GetMetrics(Metrics::Padding);
+		if (m_pImg)
+			if (m_bAutoScale)
+				return (GetHeightF() - Padding * 2) * m_sizeImg.width / m_sizeImg.height;
+			else
+				return m_sizeImg.width;
+		else
+			return 0.f;
+	}
+
+	void UpdateTextLayout(PCWSTR pszText, int cchText)
 	{
 		const float Padding = GetTheme()->GetMetrics(Metrics::Padding);
 		const float Padding2 = GetTheme()->GetMetrics(Metrics::SmallPadding);
 
 		SafeRelease(m_pLayout);
-		g_pDwFactory->CreateTextLayout(m_rsText.Data(), m_rsText.Size(),
+		g_pDwFactory->CreateTextLayout(pszText, cchText,
 			GetTextFormat(),
-			GetWidthF() - m_sizeImg.width - Padding * 2 - Padding2,
+			GetWidthF() - CalcImageWidth() - Padding * 2 - Padding2,
 			GetHeightF() - Padding * 2,
 			&m_pLayout);
 		if (m_pLayout)
@@ -51,6 +65,11 @@ private:
 			m_cxText = 0.f;
 			m_cyText = 0.f;
 		}
+	}
+
+	void UpdateTextLayout()
+	{
+		UpdateTextLayout(GetText().Data(), GetText().Size());
 	}
 public:
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -77,11 +96,23 @@ public:
 			if (m_pImg)
 			{
 				D2D1_RECT_F rcImg;
-				rcImg.left = (GetWidthF() - Padding * 2 - Padding2 -
-					m_sizeImg.width - m_cxText) / 2.f;
-				rcImg.top = (GetHeightF() - m_sizeImg.height) / 2.f;
-				rcImg.right = rcImg.left + m_sizeImg.width;
-				rcImg.bottom = rcImg.top + m_sizeImg.height;
+				if (m_bAutoScale)
+				{
+					const auto cy = GetHeightF() - Padding * 2;
+					const auto cx = cy * m_sizeImg.width / m_sizeImg.height;
+					rcImg.left = Padding;
+					rcImg.top = Padding;
+					rcImg.right = rcImg.left + cx;
+					rcImg.bottom = rcImg.top + cy;
+				}
+				else
+				{
+					rcImg.left = (GetWidthF() - Padding * 2 - Padding2 -
+						m_sizeImg.width - m_cxText) / 2.f;
+					rcImg.top = (GetHeightF() - m_sizeImg.height) / 2.f;
+					rcImg.right = rcImg.left + m_sizeImg.width;
+					rcImg.bottom = rcImg.top + m_sizeImg.height;
+				}
 				m_pDC->DrawBitmap(m_pImg, rcImg);
 			}
 
@@ -90,7 +121,7 @@ public:
 				D2D1_COLOR_F cr;
 				GetTheme()->GetSysColor(SysColor::Text, cr);
 				m_pBrush->SetColor(cr);
-				m_pDC->DrawTextLayout({ Padding + m_sizeImg.width,Padding },
+				m_pDC->DrawTextLayout({ Padding + CalcImageWidth(),Padding },
 					m_pLayout, m_pBrush);
 			}
 
@@ -149,8 +180,14 @@ public:
 			return 0;
 
 		case WM_SETTEXT:
-			UpdateTextLayout();
+			UpdateTextLayout((PCWSTR)lParam, (int)wParam);
 			InvalidateRect();
+			return 0;
+
+		case WM_SETFONT:
+			UpdateTextLayout();
+			if (lParam)
+				InvalidateRect();
 			return 0;
 
 		case WM_CREATE:
@@ -170,7 +207,7 @@ public:
 		return CElem::OnEvent(uMsg, wParam, lParam);
 	}
 
-	void SetImage(ID2D1Bitmap* pImg)
+	void SetBitmap(ID2D1Bitmap* pImg)
 	{
 		ECK_DUILOCK;
 		std::swap(m_pImg, pImg);

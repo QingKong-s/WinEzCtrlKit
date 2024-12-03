@@ -945,6 +945,152 @@ inline GpStatus DrawBackgroundImage(GpGraphics* pGraphics, GpImage* pImage, cons
 	ECK_UNREACHABLE;
 }
 
+inline void DrawBackgroundImage(ID2D1RenderTarget* pRT, ID2D1Bitmap* pBmp,
+	const D2D1_RECT_F& rc, float cxImage, float cyImage,
+	BkImgMode iMode, BOOL bFullRgnImage,
+	D2D1_BITMAP_INTERPOLATION_MODE eInterp = D2D1_BITMAP_INTERPOLATION_MODE_LINEAR)
+{
+	const float
+		cx = rc.right - rc.left,
+		cy = rc.bottom - rc.top;
+	if (cxImage <= 0 || cyImage <= 0)
+	{
+		D2D1_SIZE_F sz = pBmp->GetSize();
+		cxImage = sz.width;
+		cyImage = sz.height;
+	}
+
+	switch (iMode)
+	{
+	case BkImgMode::TopLeft:// 居左上
+	{
+		if (bFullRgnImage)
+		{
+			D2D1_RECT_F rc1{ 0,0,cxImage,cyImage };
+			AdjustRectToFillAnother(rc1, rc);
+			pRT->DrawBitmap(pBmp, rc1, 1.f, eInterp);
+		}
+		else
+			pRT->DrawBitmap(pBmp, rc, 1.f, eInterp);
+	}
+	return;
+
+	case BkImgMode::Tile:// 平铺
+	{
+		EckCounter((int)ceilf(cx / cxImage), i)
+		{
+			EckCounter((int)ceilf(cy / cyImage), j)
+				pRT->DrawBitmap(pBmp,
+					D2D1::RectF(i * cxImage, j * cyImage, (i + 1) * cxImage, (j + 1) * cyImage),
+					1.f, eInterp);
+		}
+	}
+	return;
+
+	case BkImgMode::Center:// 居中
+	{
+		if (bFullRgnImage)
+		{
+			D2D1_RECT_F rc1{ 0,0,cxImage,cyImage };
+			AdjustRectToFillAnother(rc1, rc);
+			pRT->DrawBitmap(pBmp, rc1, 1.f, eInterp);
+		}
+		else
+			pRT->DrawBitmap(pBmp,
+				D2D1::RectF(rc.left + (cx - cxImage) / 2, rc.top + (cy - cyImage) / 2,
+					rc.left + (cx + cxImage) / 2, rc.top + (cy + cyImage) / 2),
+				1.f, eInterp);
+	}
+	return;
+
+	case BkImgMode::Stretch:// 缩放
+		pRT->DrawBitmap(pBmp, rc, 1.f, eInterp);
+		return;
+
+	case BkImgMode::StretchKeepAspectRatio:// 缩放保持纵横比
+	{
+		D2D1_RECT_F rc1{ 0,0,cxImage,cyImage };
+		AdjustRectToFitAnother(rc1, rc);
+		pRT->DrawBitmap(pBmp, rc1, 1.f, eInterp);
+	}
+	return;
+	}
+	ECK_UNREACHABLE;
+}
+
+inline void DrawBackgroundImage(ID2D1DeviceContext* pRT, ID2D1Bitmap* pBmp,
+	const D2D1_RECT_F& rc, float cxImage, float cyImage,
+	BkImgMode iMode, BOOL bFullRgnImage,
+	D2D1_INTERPOLATION_MODE eInterp = D2D1_INTERPOLATION_MODE_LINEAR)
+{
+	const float
+		cx = rc.right - rc.left,
+		cy = rc.bottom - rc.top;
+	if (cxImage <= 0 || cyImage <= 0)
+	{
+		D2D1_SIZE_F sz = pBmp->GetSize();
+		cxImage = sz.width;
+		cyImage = sz.height;
+	}
+
+	switch (iMode)
+	{
+	case BkImgMode::TopLeft:// 居左上
+	{
+		if (bFullRgnImage)
+		{
+			D2D1_RECT_F rc1{ 0,0,cxImage,cyImage };
+			AdjustRectToFillAnother(rc1, rc);
+			pRT->DrawBitmap(pBmp, rc1, 1.f, eInterp);
+		}
+		else
+			pRT->DrawBitmap(pBmp, rc, 1.f, eInterp);
+	}
+	return;
+
+	case BkImgMode::Tile:// 平铺
+	{
+		EckCounter((int)ceilf(cx / cxImage), i)
+		{
+			EckCounter((int)ceilf(cy / cyImage), j)
+				pRT->DrawBitmap(pBmp,
+					D2D1::RectF(i * cxImage, j * cyImage, (i + 1) * cxImage, (j + 1) * cyImage),
+					1.f, eInterp);
+		}
+	}
+	return;
+
+	case BkImgMode::Center:// 居中
+	{
+		if (bFullRgnImage)
+		{
+			D2D1_RECT_F rc1{ 0,0,cxImage,cyImage };
+			AdjustRectToFillAnother(rc1, rc);
+			pRT->DrawBitmap(pBmp, rc1, 1.f, eInterp);
+		}
+		else
+			pRT->DrawBitmap(pBmp,
+				D2D1::RectF(rc.left + (cx - cxImage) / 2, rc.top + (cy - cyImage) / 2,
+					rc.left + (cx + cxImage) / 2, rc.top + (cy + cyImage) / 2),
+				1.f, eInterp);
+	}
+	return;
+
+	case BkImgMode::Stretch:// 缩放
+		pRT->DrawBitmap(pBmp, rc, 1.f, eInterp);
+		return;
+
+	case BkImgMode::StretchKeepAspectRatio:// 缩放保持纵横比
+	{
+		D2D1_RECT_F rc1{ 0,0,cxImage,cyImage };
+		AdjustRectToFitAnother(rc1, rc);
+		pRT->DrawBitmap(pBmp, rc1, 1.f, eInterp);
+	}
+	return;
+	}
+	ECK_UNREACHABLE;
+}
+
 inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp,
 	const D2D1_RECT_F& rc, float fDeviation = 3.f)
 {
@@ -984,14 +1130,21 @@ inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, ID2D1Bitmap
 	const D2D1_RECT_F& rc, D2D1_POINT_2F ptDrawing, float fDeviation = 3.f)
 {
 	HRESULT hr;
+	float xDpi, yDpi;
+	pBmp->GetDpi(&xDpi, &yDpi);
 
-	const D2D1_RECT_U rcU{ (UINT32)rc.left, (UINT32)rc.top, (UINT32)rc.right, (UINT32)rc.bottom };
+	const D2D1_RECT_U rcU
+	{
+		(UINT32)floorf(rc.left * xDpi / 96.f),
+		(UINT32)floorf(rc.top * yDpi / 96.f),
+		(UINT32)ceilf(rc.right * xDpi / 96.f),
+		(UINT32)ceilf(rc.bottom * yDpi / 96.f)
+	};
 	if (FAILED(hr = pBmpWork->CopyFromBitmap(nullptr, pBmp, &rcU)))
 		return hr;
 
 	ID2D1Effect* pFxBlur;
-	hr = pDC->CreateEffect(CLSID_D2D1GaussianBlur, &pFxBlur);
-	if (FAILED(hr))
+	if (FAILED(hr = pDC->CreateEffect(CLSID_D2D1GaussianBlur, &pFxBlur)))
 		return hr;
 	pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_BORDER_MODE, D2D1_BORDER_MODE_HARD);
 	pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, fDeviation);

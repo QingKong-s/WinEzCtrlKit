@@ -354,6 +354,33 @@ public:
 		m_vRange.clear();
 	}
 
+	/// <summary>
+	/// 清除。
+	/// 取消所有项目的选中，并返回状态更改的区间，以便调用方执行更新操作
+	/// </summary>
+	/// <param name="idxVisibleBegin">可视区间起始索引</param>
+	/// <param name="idxVisibleEnd">可视区间结束索引</param>
+	/// <param name="idxChangedBegin">被更改区间起始索引，若无需更新则为-1</param>
+	/// <param name="idxChangedEnd">被更改区间结束索引，若无需更新则为-1</param>
+	EckInline constexpr void Clear(int idxVisibleBegin, int idxVisibleEnd,
+		_Out_ int& idxChangedBegin, _Out_ int& idxChangedEnd)
+	{
+		BOOL bFound;
+		auto it = FindRange(idxVisibleBegin, bFound);
+		if (it == m_vRange.end())
+			idxChangedBegin = idxChangedEnd = -1;
+		else
+		{
+			idxChangedBegin = it->idxBegin;
+			it = FindRange(idxVisibleEnd, bFound);
+			if (it == m_vRange.end() || it == m_vRange.begin())
+				idxChangedBegin = idxChangedEnd = -1;
+			else
+				idxChangedEnd = it->idxEnd;
+		}
+		Clear();
+	}
+
 	EckInline constexpr BOOL IsSelected(int idxItem) const
 	{
 		BOOL bFound;
@@ -400,6 +427,25 @@ public:
 	}
 
 	EckInline constexpr const auto& GetList() const { return m_vRange; }
+
+	EckInline constexpr void OnSetItemCount(int cItem)
+	{
+		ExcludeRange(cItem - 1, INT_MAX);
+	}
+
+	EckInline constexpr int GetFirstSelected() const
+	{
+		if (m_vRange.empty())
+			return -1;
+		return m_vRange.front().idxBegin;
+	}
+
+	EckInline constexpr int GetLastSelected() const
+	{
+		if (m_vRange.empty())
+			return -1;
+		return m_vRange.back().idxEnd;
+	}
 };
 
 

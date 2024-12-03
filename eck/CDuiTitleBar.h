@@ -137,9 +137,10 @@ public:
 			case DwmWndPart::Min:
 				return HTMINBUTTON;
 			case DwmWndPart::Extra:
-				return HTCAPTION;
-			default:
-				return HTTRANSPARENT;
+				if (pt.y < DaGetSystemMetrics(SM_CYFRAME, 96))
+					return HTTOP;
+				else
+					return HTCAPTION;
 			}
 		}
 		return HTTRANSPARENT;

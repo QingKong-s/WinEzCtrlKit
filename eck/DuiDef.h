@@ -41,8 +41,14 @@ enum :UINT
 	EE_HSCROLL,
 	EE_VSCROLL,
 
-	TBE_POSCHANGED,
-	LEE_GETDISPINFO,
+	// TrackBar
+	TBE_POSCHANGED,	// 位置改变
+	// List
+	LEE_GETDISPINFO,// 获取显示信息
+	// ListTemplate
+	LTE_ITEMCLICK,	// 项选中
+	// TabList
+	TBLE_GETDISPINFO,// 获取显示信息
 
 	EE_PRIVATE_BEGIN = 0x0400
 };

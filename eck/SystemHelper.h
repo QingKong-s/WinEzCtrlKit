@@ -564,6 +564,27 @@ EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 	return pTextFormat;
 }
 
+[[nodiscard]] EckInline IDWriteTextFormat* CreateDefTextFormatWithSize(
+	float cy, int iDpi = USER_DEFAULT_SCREEN_DPI,HRESULT* phr = nullptr)
+{
+	LOGFONTW lf;
+	if (!GetDefFontInfo(lf, iDpi))
+		return nullptr;
+	IDWriteTextFormat* pTextFormat;
+	const auto hr = g_pDwFactory->CreateTextFormat(
+		lf.lfFaceName,
+		nullptr,
+		(DWRITE_FONT_WEIGHT)lf.lfWeight,
+		lf.lfItalic ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL,
+		cy,
+		L"zh-cn",
+		&pTextFormat);
+	if (phr)
+		*phr = hr;
+	return pTextFormat;
+}
+
 [[nodiscard]] EckInline HMONITOR MonitorFromRectByWorkArea(const RECT& rc,
 	HMONITOR* phMonMain = nullptr, HMONITOR* phMonNearest = nullptr)
 {

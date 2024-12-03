@@ -72,9 +72,9 @@ using CRefObjSingleThread = Priv::CRefObj<CUnknownSingleThread<TThis>>;
 template<class TThis>
 using CRefObjMultiThread = Priv::CRefObj<CUnknownMultiThread<TThis>>;
 
-#define DECL_CUNK_FRIENDS		\
-	template<class TThis, class TBase> \
+#define DECL_CUNK_FRIENDS				\
+	template<class TThis, class TBase>	\
 	friend struct CUnknownSingleThread; \
-	template<class TThis, class TBase> \
+	template<class TThis, class TBase>	\
 	friend struct CUnknownMultiThread;
 ECK_NAMESPACE_END
