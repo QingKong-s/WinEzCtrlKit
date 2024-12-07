@@ -525,7 +525,7 @@ public:
 
 	EckInline auto& GetEdit() { return *m_pED; }
 
-	void GetEditRect(RCWH& rc)
+	void GetEditRect(_Out_ RCWH& rc)
 	{
 		const auto cxEdge = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
 		const auto cyEdge = DaGetSystemMetrics(SM_CYEDGE, m_iDpi);
@@ -585,7 +585,7 @@ public:
 	EckInline constexpr void SetMatchEditToItem(BOOL b) { m_bMatchEditToItem = b; }
 	EckInline constexpr BOOL GetMatchEditToItem() const { return m_bMatchEditToItem; }
 
-	EckInline constexpr HTHEME GetHTheme() const { return m_hTheme; }
+	EckInline [[nodiscard]] constexpr HTHEME GetHTheme() const { return m_hTheme; }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CComboBoxNew, CWnd);
 ECK_NAMESPACE_END

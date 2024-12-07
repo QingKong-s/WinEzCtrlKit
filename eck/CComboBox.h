@@ -79,11 +79,11 @@ public:
 		{
 			const auto pcy = &((RCWH*)rb.PushBack(sizeof(RCWH)))->cy;
 			const auto pWndData = (CTRLDATA_WND*)rb.Data();
-			pWndData->dwStyle |= (GetWindowLongPtrW(cbi.hwndList, GWL_STYLE) & 
+			pWndData->dwStyle |= (GetWindowLongPtrW(cbi.hwndList, GWL_STYLE) &
 				~(WS_HSCROLL | WS_VSCROLL));
 			GetWindowRect(cbi.hwndList, &cbi.rcItem);
 			GetWindowRect(cbi.hwndCombo, &cbi.rcButton);
-			*pcy = (cbi.rcItem.bottom - cbi.rcItem.top) + 
+			*pcy = (cbi.rcItem.bottom - cbi.rcItem.top) +
 				(cbi.rcButton.bottom - cbi.rcButton.top);
 			pWndData->uFlags |= SERDF_CY;
 		}
@@ -147,7 +147,7 @@ public:
 		const BOOL bOdVar = IsBitSet(dwStyle, CBS_OWNERDRAWVARIABLE);
 		const BOOL bShouldInsertStr = ((dwStyle & (CBS_OWNERDRAWFIXED | CBS_OWNERDRAWVARIABLE)) ?
 			(dwStyle & CBS_HASSTRINGS) : TRUE);
-		if(p->cItem>0)
+		if (p->cItem > 0)
 		{
 			ResetContent();
 			InitStorage(p->cItem, p->cbSize - sizeof(CTRLDATA_COMBOBOX) -
@@ -182,7 +182,7 @@ public:
 		SetRedraw(TRUE);
 	}
 
-	EckInline int AddString(PCWSTR psz) const
+	EckInline int AddString(_In_z_ PCWSTR psz) const
 	{
 		return (int)SendMsg(CB_ADDSTRING, 0, (LPARAM)psz);
 	}
@@ -208,7 +208,7 @@ public:
 	/// <param name="pszPath">路径</param>
 	/// <param name="uFlags">DDL_常量</param>
 	/// <returns>索引</returns>
-	EckInline int Dir(PCWSTR pszPath, UINT uFlags) const
+	EckInline int Dir(_In_z_ PCWSTR pszPath, UINT uFlags) const
 	{
 		return (int)SendMsg(CB_DIR, uFlags, (LPARAM)pszPath);
 	}
@@ -220,7 +220,7 @@ public:
 	/// <param name="pszText">文本，将匹配以该文本开头的项目</param>
 	/// <param name="idxStart">起始索引，-1 = 从头搜索整个列表</param>
 	/// <returns>索引</returns>
-	EckInline int FindString(PCWSTR pszText, int idxStart = -1) const
+	EckInline int FindString(_In_z_ PCWSTR pszText, int idxStart = -1) const
 	{
 		return (int)SendMsg(CB_FINDSTRING, idxStart, (LPARAM)pszText);
 	}
@@ -232,12 +232,12 @@ public:
 	/// <param name="pszText">文本，将匹配与该文本完全相同的项目</param>
 	/// <param name="idxStart">起始索引，-1 = 从头搜索整个列表</param>
 	/// <returns>索引</returns>
-	EckInline int FindStringExact(PCWSTR pszText, int idxStart = -1) const
+	EckInline int FindStringExact(_In_z_ PCWSTR pszText, int idxStart = -1) const
 	{
 		return (int)SendMsg(CB_FINDSTRINGEXACT, idxStart, (LPARAM)pszText);
 	}
 
-	EckInline BOOL GetComboBoxInfo(COMBOBOXINFO* pcbi) const
+	EckInline BOOL GetComboBoxInfo(_Inout_ COMBOBOXINFO* pcbi) const
 	{
 		return (BOOL)SendMsg(CB_GETCOMBOBOXINFO, 0, (LPARAM)pcbi);
 	}
@@ -247,19 +247,20 @@ public:
 		return (int)SendMsg(CB_GETCOUNT, 0, 0);
 	}
 
+	ECK_SUPPRESS_MISSING_ZERO_TERMINATION;
 	/// <summary>
 	/// 取提示横幅文本
 	/// </summary>
 	/// <param name="pszBuf">缓冲区</param>
 	/// <param name="cchBuf">pszBuf指示的缓冲区大小，以WCHAR计，包含结尾NULL</param>
 	/// <returns>成功返回1，失败返回错误代码</returns>
-	EckInline int GetCueBanner(PWSTR pszBuf, int cchBuf) const
+	EckInline int GetCueBanner(_Out_writes_(cchBuf) PWSTR pszBuf, int cchBuf) const
 	{
 		return (int)SendMsg(CB_GETCUEBANNER, (WPARAM)pszBuf, cchBuf);
 	}
 
 	// 取提示横幅文本
-	EckInline int GetCurBanner(CRefStrW& rs)
+	EckInline int GetCurBanner(_Inout_ CRefStrW& rs)
 	{
 		rs.ReSize(MAX_PATH);
 		const auto cch = GetCueBanner(rs.Data(), MAX_PATH);
@@ -282,7 +283,7 @@ public:
 	/// </summary>
 	/// <param name="prc">接收矩形，相对屏幕</param>
 	/// <returns>成功返回TRUE，失败返回FALSE</returns>
-	EckInline BOOL GetDroppedCtrlRect(RECT* prc) const
+	EckInline BOOL GetDroppedCtrlRect(_Out_ RECT* prc) const
 	{
 		return (BOOL)SendMsg(CB_GETDROPPEDCONTROLRECT, 0, (LPARAM)prc);
 	}
@@ -302,7 +303,8 @@ public:
 		return (BOOL)SendMsg(CB_GETDROPPEDWIDTH, 0, 0);
 	}
 
-	EckInline void GetEditSel(DWORD* pdwStart = nullptr, DWORD* pdwEnd = nullptr) const
+	EckInline void GetEditSel(_Out_opt_ DWORD* pdwStart = nullptr,
+		_Out_opt_ DWORD* pdwEnd = nullptr) const
 	{
 		SendMsg(CB_GETEDITSEL, (WPARAM)pdwStart, (LPARAM)pdwEnd);
 	}
@@ -338,7 +340,7 @@ public:
 		return (int)SendMsg(CB_GETLBTEXT, idx, (LPARAM)pszBuf);
 	}
 
-	EckInline BOOL GetItemText(int idx, CRefStrW& rs) const
+	EckInline BOOL GetItemText(int idx, _Inout_ CRefStrW& rs) const
 	{
 		int cch = GetItemTextLength(idx);
 		if (cch <= 0)
@@ -390,7 +392,7 @@ public:
 		return (int)SendMsg(CB_INITSTORAGE, cItems, cbString);
 	}
 
-	EckInline int InsertString(PCWSTR psz, int idxPos = -1) const
+	EckInline int InsertString(_In_z_ PCWSTR psz, int idxPos = -1) const
 	{
 		return (int)SendMsg(CB_INSERTSTRING, idxPos, (LPARAM)psz);
 	}
@@ -421,7 +423,7 @@ public:
 	/// <param name="pszText">文本，将匹配以该文本开头的项目</param>
 	/// <param name="idxStart">起始索引，-1 = 从头搜索整个列表</param>
 	/// <returns>索引，失败返回CB_ERR</returns>
-	EckInline int SelectString(PCWSTR pszText, int idxStart = -1) const
+	EckInline int SelectString(_In_z_ PCWSTR pszText, int idxStart = -1) const
 	{
 		return (int)SendMsg(CB_SELECTSTRING, idxStart, (LPARAM)pszText);
 	}
@@ -431,7 +433,7 @@ public:
 	/// </summary>
 	/// <param name="pszText">文本</param>
 	/// <returns>成功返回1，失败返回错误码</returns>
-	EckInline int SetCueBanner(PWSTR pszText) const
+	EckInline int SetCueBanner(_In_z_ PWSTR pszText) const
 	{
 		return (int)SendMsg(CB_SETCUEBANNER, 0, (LPARAM)pszText);
 	}
@@ -521,7 +523,7 @@ public:
 		return (SendMsg(CB_SETITEMHEIGHT, -1, cy - iOffset) != CB_ERR);
 	}
 
-	void SetItemString(int idx, PCWSTR pszText) const
+	void SetItemString(int idx, _In_z_ PCWSTR pszText) const
 	{
 		LPARAM lParam = GetItemData(idx);
 		int idxNew = InsertString(pszText, idx);

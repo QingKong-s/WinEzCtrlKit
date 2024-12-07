@@ -290,7 +290,8 @@ ECK_NAMESPACE_END
 #define ECKNOUNIQUEADDR
 #endif// ECKCXX20
 
-#define ECK_DISABLE_ARITHMETIC_OVERFLOW_WARNING __pragma(warning(disable:26451))
+#define ECK_DISABLE_ARITHMETIC_OVERFLOW_WARNING	__pragma(warning(disable:26451))
+#define ECK_SUPPRESS_MISSING_ZERO_TERMINATION	__pragma(warning(suppress:6054))
 #pragma endregion Generator
 
 #ifdef _DEBUG
@@ -802,6 +803,7 @@ struct THREADCTX
 	COLORREF crBlue1{};		// 蓝色
 	COLORREF crGray1{};		// 灰色
 	COLORREF crTip1{};		// 提示颜色
+	COLORREF crHiLightText{};// 高亮文本颜色，用于适配高对比度主题
 
 	// 是否允许暗色CBT钩子设置窗口，设为FALSE可暂停Hook。
 	// 注意：务必在打开文件对话框前暂停Hook

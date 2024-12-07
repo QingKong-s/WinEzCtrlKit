@@ -129,22 +129,13 @@ public:
 		m_cr = cr;
 		Redraw();
 	}
+	EckInline constexpr COLORREF GetColor() const { return m_cr; }
 
-	EckInline COLORREF GetColor() const
-	{
-		return m_cr;
-	}
+	EckInline constexpr const COLORREF* GetCustomColor() const { return m_crCust; }
+	EckInline constexpr COLORREF* GetCustomColor() { return m_crCust; }
 
-	EckInline const COLORREF* GetCustomColor() const { return m_crCust; }
-
-	EckInline COLORREF* GetCustomColor() { return m_crCust; }
-
-	EckInline DWORD GetChooseColorFlags() const { return m_dwCCFlags; }
-
-	EckInline void SetChooseColorFlags(DWORD dwFlags)
-	{
-		m_dwCCFlags = dwFlags;
-	}
+	EckInline constexpr DWORD GetChooseColorFlags() const { return m_dwCCFlags; }
+	EckInline constexpr void SetChooseColorFlags(DWORD dwFlags) { m_dwCCFlags = dwFlags; }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CColorPickBlock, CStatic);
 ECK_NAMESPACE_END
