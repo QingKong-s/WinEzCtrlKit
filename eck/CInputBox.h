@@ -362,7 +362,7 @@ public:
 			((m_pOpt->uFlags & IPBF_RESIZEABLE) ? (WS_SIZEBOX | WS_MAXIMIZEBOX) : 0),
 			m_pOpt->x,
 			m_pOpt->y,
-			m_pOpt->cx ? m_pOpt->cx : DpiScale(480, GetDpi(GetOwnerMonitor(hParent))),
+			m_pOpt->cx ? m_pOpt->cx : DpiScale(480, GetMonitorDpi(GetOwnerMonitor(hParent))),
 			m_pOpt->cy,
 			hParent, nullptr, g_hInstance, hParent, uDlgFlags);
 		return m_iResult;

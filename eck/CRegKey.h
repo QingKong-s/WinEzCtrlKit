@@ -461,7 +461,7 @@ public:
 
 	EckInline LSTATUS SetValue(PCWSTR pszValue, PCVOID pData, DWORD cbData, DWORD dwType)
 	{
-		return RegSetValueExW(m_hKey, pszValue, nullptr, dwType, (PCBYTE)pData, cbData);
+		return RegSetValueExW(m_hKey, pszValue, 0, dwType, (PCBYTE)pData, cbData);
 	}
 
 	EckInline LSTATUS SetValue(PCWSTR pszValue, DWORD dwData)
