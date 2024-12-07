@@ -83,9 +83,9 @@ public:
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
-	EckInline HDC GetHDC() const { return m_DC.GetDC(); }
+	EckInline [[nodiscard]] constexpr HDC GetHDC() const { return m_DC.GetDC(); }
 
-	EckInline GpGraphics* GetGraphics() const { return m_pGraphics; }
+	EckInline [[nodiscard]] constexpr GpGraphics* GetGraphics() const { return m_pGraphics; }
 
 	EckInline void SetBkBrush(HBRUSH hbr)
 	{
@@ -123,9 +123,9 @@ public:
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
-	EckInline ID2D1DeviceContext* GetDC() const { return m_D2D.GetDC(); }
+	EckInline [[nodiscard]] constexpr ID2D1DeviceContext* GetDC() const { return m_D2D.GetDC(); }
 
-	EckInline IDXGISwapChain1* GetSwapChain() const { return m_D2D.GetSwapChain(); }
+	EckInline [[nodiscard]] constexpr IDXGISwapChain1* GetSwapChain() const { return m_D2D.GetSwapChain(); }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CDrawPanelD2D, CWnd);
 ECK_NAMESPACE_END

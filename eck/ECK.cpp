@@ -369,7 +369,7 @@ static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 
 // 取主题颜色，主要是文本颜色
 static HRESULT UxfGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
-	HTHEME hTheme, int iPartId, int iStateId, int iPropId, COLORREF& cr)
+	HTHEME hTheme, int iPartId, int iStateId, int iPropId, _Out_ COLORREF& cr)
 {
 	switch (ti.eType)
 	{
@@ -442,9 +442,6 @@ static HRESULT UxfGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
 		{
 			if (iPropId == TMT_TEXTCOLOR)
 			{
-				/*const auto hr = s_pfnGetThemeColor(hTheme, iPartId, iStateId, iPropId, &cr);
-				cr = AdjustColorrefLuma(cr, 300);
-				return hr;*/
 				cr = ptc->crBlue1;
 				return S_OK;
 			}
@@ -1234,7 +1231,6 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		DetourAttach(&s_pfnDrawThemeParentBackground, NewDrawThemeParentBackground);
 		DetourAttach(&s_pfnGetThemePartSize, NewGetThemePartSize);
 		DetourTransactionCommit();
-		DetourUpdateThread(NtCurrentThread());
 	}
 	return InitStatus::Ok;
 }
@@ -1370,6 +1366,12 @@ void THREADCTX::UpdateDefColor()
 	crBlue1 = (bDark ? RGB(0, 168, 255) : RGB(0, 51, 153));
 	crGray1 = (bDark ? RGB(180, 180, 180) : GetSysColor(COLOR_GRAYTEXT));
 	crTip1 = (bDark ? RGB(131, 162, 198) : RGB(97, 116, 139));
+	HIGHCONTRASTW hc{ sizeof(HIGHCONTRASTW) };
+	if (SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(HIGHCONTRASTW), &hc, FALSE) &&
+		(hc.dwFlags & HCF_HIGHCONTRASTON))
+		crHiLightText = GetSysColor(COLOR_HIGHLIGHTTEXT);
+	else
+		crHiLightText = crDefText;
 }
 
 void THREADCTX::SendThemeChangedToAllTopWindow()

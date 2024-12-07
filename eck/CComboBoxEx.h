@@ -104,7 +104,7 @@ public:
 			const auto ocb = rb.Size();
 			const auto pStream = new CRefBinStream{ rb };
 			pStream->Seek(ToLi(0), STREAM_SEEK_END, nullptr);
-			if (SUCCEEDED(ImageList_WriteEx(hIL,ILP_NORMAL, pStream)))
+			if (SUCCEEDED(ImageList_WriteEx(hIL, ILP_NORMAL, pStream)))
 				((CTRLDATA_WND*)rb.Data())->uFlags |= SERDF_IMAGELIST;
 			pStream->LeaveRelease();
 
@@ -185,12 +185,12 @@ public:
 		return (HIMAGELIST)SendMsg(CBEM_GETIMAGELIST, 0, 0);
 	}
 
-	EckInline BOOL GetItem(COMBOBOXEXITEMW* pcbei) const
+	EckInline BOOL GetItem(_Inout_ COMBOBOXEXITEMW* pcbei) const
 	{
 		return (BOOL)SendMsg(CBEM_GETITEMW, 0, (LPARAM)pcbei);
 	}
 
-	EckInline BOOL GetItemText(int idx, CRefStrW& rs) const
+	EckInline BOOL GetItemText(int idx, _Inout_ CRefStrW& rs) const
 	{
 		rs.ReSize(MAX_PATH);
 		COMBOBOXEXITEMW cbei;
@@ -221,12 +221,12 @@ public:
 		return (BOOL)SendMsg(CBEM_HASEDITCHANGED, 0, 0);
 	}
 
-	EckInline int InsertItem(COMBOBOXEXITEMW* pcbei) const
+	EckInline int InsertItem(_In_ COMBOBOXEXITEMW* pcbei) const
 	{
 		return (int)SendMsg(CBEM_INSERTITEMW, 0, (LPARAM)pcbei);
 	}
 
-	int InsertItem(PCWSTR pszText, int idx = -1, int iImage = -1,
+	int InsertItem(_In_z_ PCWSTR pszText, int idx = -1, int iImage = -1,
 		int idxSelImage = -1, LPARAM lParam = 0) const
 	{
 		COMBOBOXEXITEMW cbei;
@@ -260,12 +260,12 @@ public:
 		return (IImageList*)SetImageList((HIMAGELIST)pImageList);
 	}
 
-	EckInline BOOL SetItem(COMBOBOXEXITEMW* pcbei) const
+	EckInline BOOL SetItem(_In_ COMBOBOXEXITEMW* pcbei) const
 	{
 		return (BOOL)SendMsg(CBEM_SETITEMW, 0, (LPARAM)pcbei);
 	}
 
-	EckInline BOOL SetItemText(int idx, PCWSTR pszText) const
+	EckInline BOOL SetItemText(int idx, _In_z_ PCWSTR pszText) const
 	{
 		COMBOBOXEXITEMW cbei;
 		cbei.iItem = idx;

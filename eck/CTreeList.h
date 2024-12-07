@@ -783,7 +783,7 @@ private:
 		nm.rc = rc;
 		nm.dwDrawStage = CDDS_PREERASE;
 		const auto lRet = FillNmhdrAndSendNotify(nm, m_hParent, NM_CUSTOMDRAW);
-		if (!(lRet & CDRF_SKIPDEFAULT))
+		if (lRet & CDRF_SKIPDEFAULT)
 			return;
 		if (m_crBkg == CLR_DEFAULT)
 			SetDCBrushColor(hDC, GetThreadCtx()->crDefBkg);

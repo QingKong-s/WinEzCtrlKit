@@ -70,21 +70,21 @@ public:
 
 	CBitSet() = default;
 
-	CBitSet(PCWSTR pszBin, int cchText = -1)
+	CBitSet(_In_ PCWSTR pszBin, int cchText = -1)
 	{
 		if (cchText < 0)
 			cchText = (int)wcslen(pszBin);
 		ParseBinText(pszBin, cchText, L'1', L'0', L'\'');
 	}
 
-	CBitSet(PCSTR pszBin, int cchText = -1)
+	CBitSet(_In_ PCSTR pszBin, int cchText = -1)
 	{
 		if (cchText < 0)
 			cchText = (int)strlen(pszBin);
 		ParseBinText(pszBin, cchText, '1', '0', '\'');
 	}
 
-	CBitSet(PCVOID pBin, size_t cb)
+	CBitSet(_In_reads_bytes_(cb) PCVOID pBin, size_t cb)
 	{
 		if (cb > N)
 			cb = N;
@@ -101,7 +101,7 @@ public:
 	constexpr void Set(size_t n)
 	{
 		EckAssert(n < N);
-		m_Bits[n / BitsPerWord] |= (TWord{1}<< n % BitsPerWord);
+		m_Bits[n / BitsPerWord] |= (TWord{ 1 } << n % BitsPerWord);
 	}
 
 	EckInline constexpr void Set(size_t n, BOOL b)
@@ -115,7 +115,7 @@ public:
 	EckInline constexpr void Clear(size_t n)
 	{
 		EckAssert(n < N);
-		m_Bits[n / BitsPerWord] &= ~(TWord{1}<< n % BitsPerWord);
+		m_Bits[n / BitsPerWord] &= ~(TWord{ 1 } << n % BitsPerWord);
 	}
 
 	EckInline constexpr void Clear()
@@ -214,7 +214,7 @@ public:
 #pragma warning(suppress:6285)// 是否要使用按位与
 		constexpr bool b = (N == 0 || N % BitsPerWord != 0);
 		if constexpr (b)
-			m_Bits[NB] &= (TWord{1}<< N % BitsPerWord) - 1;
+			m_Bits[NB] &= (TWord{ 1 } << N % BitsPerWord) - 1;
 	}
 
 	EckInline [[nodiscard]] size_t PopCount() const
@@ -244,7 +244,7 @@ public:
 		for (size_t i = 0; i < NB + bNoPadding; ++i)
 			if (m_Bits[i] != ~TWord{})
 				return FALSE;
-		return bNoPadding || m_Bits[NB] == (TWord{1}<< (N % BitsPerWord)) - 1;
+		return bNoPadding || m_Bits[NB] == (TWord{ 1 } << (N % BitsPerWord)) - 1;
 	}
 
 	[[nodiscard]] constexpr BOOL AnyOne() const
@@ -263,7 +263,7 @@ public:
 	EckInline [[nodiscard]] constexpr BOOL Test(size_t n) const
 	{
 		EckAssert(n < N);
-		return (m_Bits[n / BitsPerWord] & (TWord{1}<< n % BitsPerWord)) != 0;
+		return (m_Bits[n / BitsPerWord] & (TWord{ 1 } << n % BitsPerWord)) != 0;
 	}
 
 	EckInline constexpr void Flip()
@@ -276,7 +276,7 @@ public:
 	EckInline constexpr void Flip(size_t n)
 	{
 		EckAssert(n < N);
-		m_Bits[n / BitsPerWord] ^= (TWord{1}<< n % BitsPerWord);
+		m_Bits[n / BitsPerWord] ^= (TWord{ 1 } << n % BitsPerWord);
 	}
 
 	constexpr void ReverseByte()
@@ -314,7 +314,7 @@ public:
 	}
 
 	template<size_t NPos, size_t NBits>
-		requires requires { NPos < N && NPos + NBits <= N; }
+		requires requires { NPos < N&& NPos + NBits <= N; }
 	[[nodiscard]] CBitSet<NBits> SubSet()
 	{
 		CBitSet<NBits> x{};
@@ -349,7 +349,7 @@ public:
 
 	EckInline [[nodiscard]] ULONG ToULong() const
 	{
-		EckAssert(sizeof(ULONG) * 8 <=N);
+		EckAssert(sizeof(ULONG) * 8 <= N);
 		return *(ULONG*)m_Bits;
 	}
 

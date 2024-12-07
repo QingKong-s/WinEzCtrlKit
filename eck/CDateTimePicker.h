@@ -32,12 +32,12 @@ public:
 		SendMsg(DTM_CLOSEMONTHCAL, 0, 0);
 	}
 
-	void GetDateTimePickerInfo(DATETIMEPICKERINFO* pdtpi) const
+	void GetDateTimePickerInfo(_Inout_ DATETIMEPICKERINFO* pdtpi) const
 	{
 		SendMsg(DTM_GETDATETIMEPICKERINFO, 0, (LPARAM)pdtpi);
 	}
 
-	void GetIdealSize(SIZE* psize) const
+	void GetIdealSize(_Out_ SIZE* psize) const
 	{
 		SendMsg(DTM_GETIDEALSIZE, 0, (LPARAM)psize);
 	}
@@ -67,12 +67,12 @@ public:
 		return (DWORD)SendMsg(DTM_GETRANGE, 0, (LPARAM)pst);
 	}
 
-	DWORD GetSystemTime(SYSTEMTIME* pst) const
+	DWORD GetSystemTime(_In_ SYSTEMTIME* pst) const
 	{
 		return (DWORD)SendMsg(DTM_GETSYSTEMTIME, 0, (LPARAM)pst);
 	}
 
-	BOOL SetFormat(PCWSTR pszText) const
+	BOOL SetFormat(_In_z_ PCWSTR pszText) const
 	{
 		return (BOOL)SendMsg(DTM_SETFORMATW, 0, (LPARAM)pszText);
 	}
@@ -97,7 +97,7 @@ public:
 		return (BOOL)SendMsg(DTM_SETRANGE, dwFlags, (LPARAM)pst);
 	}
 
-	BOOL SetSystemTime(DWORD dwFlags, SYSTEMTIME* pst) const
+	BOOL SetSystemTime(DWORD dwFlags, _In_ SYSTEMTIME* pst) const
 	{
 		return (BOOL)SendMsg(DTM_SETSYSTEMTIME, 0, (LPARAM)pst);
 	}

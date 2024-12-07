@@ -139,27 +139,28 @@ public:
 			SetNote(p->Note());
 	}
 
-	EckInline BOOL GetIdealSize(SIZE* psize) const
+	EckInline BOOL GetIdealSize(_Out_ SIZE* psize) const
 	{
 		return (int)SendMsg(BCM_GETIDEALSIZE, 0, (LPARAM)psize);
 	}
 
-	EckInline BOOL GetImageList(BUTTON_IMAGELIST* pbil)
+	EckInline BOOL GetImageList(_Out_ BUTTON_IMAGELIST* pbil)
 	{
 		return (BOOL)SendMsg(BCM_GETIMAGELIST, 0, (LPARAM)pbil);
 	}
 
-	EckInline BOOL GetNote(PWSTR pszBuf, DWORD& cchBuf)
+	ECK_SUPPRESS_MISSING_ZERO_TERMINATION;
+	EckInline BOOL GetNote(_Out_writes_(cchBuf) PWSTR pszBuf, _Inout_ DWORD & cchBuf)
 	{
 		return (BOOL)SendMsg(BCM_GETNOTE, (WPARAM)&cchBuf, (LPARAM)pszBuf);
 	}
 
-	EckInline DWORD GetNoteLength()
+	EckInline [[nodiscard]] DWORD GetNoteLength()
 	{
 		return (DWORD)SendMsg(BCM_GETNOTELENGTH, 0, 0);
 	}
 
-	BOOL GetNote(CRefStrW& rs)
+	BOOL GetNote(_Inout_ CRefStrW & rs)
 	{
 		DWORD cch = GetNoteLength();
 		if (!cch)
@@ -170,19 +171,19 @@ public:
 	}
 
 	// For compatibility
-	EckInline CRefStrW GetNote()
+	EckInline [[nodiscard]] CRefStrW GetNote()
 	{
 		CRefStrW rs;
 		GetNote(rs);
 		return rs;
 	}
 
-	EckInline BOOL GetSplitInfo(BUTTON_SPLITINFO* pbsi)
+	EckInline BOOL GetSplitInfo(_Inout_ BUTTON_SPLITINFO* pbsi)
 	{
 		return (BOOL)SendMsg(BCM_GETSPLITINFO, 0, (LPARAM)pbsi);
 	}
 
-	EckInline BOOL GetTextMargin(RECT* prc)
+	EckInline BOOL GetTextMargin(_Out_ RECT* prc)
 	{
 		return (BOOL)SendMsg(BCM_GETTEXTMARGIN, 0, (LPARAM)prc);
 	}
@@ -192,12 +193,12 @@ public:
 		return (BOOL)SendMsg(BCM_SETDROPDOWNSTATE, bDropDown, 0);
 	}
 
-	EckInline BOOL SetImageList(BUTTON_IMAGELIST* pbil)
+	EckInline BOOL SetImageList(_In_ BUTTON_IMAGELIST* pbil)
 	{
 		return (BOOL)SendMsg(BCM_SETIMAGELIST, 0, (LPARAM)pbil);
 	}
 
-	EckInline BOOL SetNote(PCWSTR pszText)
+	EckInline BOOL SetNote(_In_z_ PCWSTR pszText)
 	{
 		return (BOOL)SendMsg(BCM_SETNOTE, 0, (LPARAM)pszText);
 	}
@@ -207,12 +208,12 @@ public:
 		SendMessageW(m_hWnd, BCM_SETSHIELD, 0, bShieldIcon);
 	}
 
-	EckInline BOOL SetSplitInfo(BUTTON_SPLITINFO* pbsi)
+	EckInline BOOL SetSplitInfo(_In_ BUTTON_SPLITINFO* pbsi)
 	{
 		return (BOOL)SendMsg(BCM_SETSPLITINFO, 0, (LPARAM)pbsi);
 	}
 
-	EckInline BOOL SetTextMargin(RECT* prc)
+	EckInline BOOL SetTextMargin(_In_ RECT* prc)
 	{
 		return (BOOL)SendMsg(BCM_SETTEXTMARGIN, 0, (LPARAM)prc);
 	}
