@@ -9,7 +9,7 @@
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
-EckInline BOOL DaAdjustWindowRectEx(RECT* prc, DWORD dwStyle, BOOL bMenu,
+EckInline BOOL DaAdjustWindowRectEx(_Inout_ RECT* prc, DWORD dwStyle, BOOL bMenu,
 	DWORD dwExStyle, [[maybe_unused]] UINT uDpi)
 {
 #if ECKDPIAPI

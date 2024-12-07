@@ -214,11 +214,8 @@ public:
 		auto p = (NODE*)(pBegin ? pBegin : m_pHead);
 		while (p)
 		{
-			if (p->uId == uId)
-				if (p->uFlags & NF_DELETED)
-					return nullptr;
-				else
-					return p;
+			if (p->uId == uId && !(p->uFlags & NF_DELETED))
+				return p;
 			p = p->pNext;
 		}
 		return nullptr;
