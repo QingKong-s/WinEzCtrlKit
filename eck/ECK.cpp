@@ -180,6 +180,7 @@ using FGetThemeColor = HRESULT(WINAPI*)(HTHEME, int, int, int, COLORREF*);
 using FCloseThemeData = HRESULT(WINAPI*)(HTHEME);
 using FDrawThemeParentBackground = HRESULT(WINAPI*)(HWND, HDC, const RECT*);
 using FGetThemePartSize = HRESULT(WINAPI*)(HTHEME, HDC, int, int, const RECT*, THEMESIZE, SIZE*);
+using FSoftModalMessageBox = int(WINAPI*)(void*/* _MSGBOXDATA* */);
 
 static FOpenNcThemeData			s_pfnOpenNcThemeData{};// 以序号导出
 static FOpenThemeData			s_pfnOpenThemeData{ OpenThemeData };
@@ -192,6 +193,7 @@ static FGetThemeColor			s_pfnGetThemeColor{ GetThemeColor };
 static FCloseThemeData			s_pfnCloseThemeData{ CloseThemeData };
 static FDrawThemeParentBackground	s_pfnDrawThemeParentBackground{ DrawThemeParentBackground };
 static FGetThemePartSize		s_pfnGetThemePartSize{ GetThemePartSize };
+static FSoftModalMessageBox		s_pfnSoftModalMessageBox{};
 
 enum class ThemeType
 {
@@ -1022,6 +1024,17 @@ static HRESULT WINAPI NewGetThemePartSize(HTHEME hTheme, HDC hDC, int iPartId, i
 		}
 	return s_pfnGetThemePartSize(hTheme, hDC, iPartId, iStateId, prc, eSize, psz);
 }
+
+static int WINAPI NewSoftModalMessageBox(void* p)
+{
+	const auto ptc = GetThreadCtx();
+	if (!ptc)
+		return s_pfnSoftModalMessageBox(p);
+	CMsgBoxHook Mb{};
+	BeginCbtHook(&Mb);
+	const auto iRet = s_pfnSoftModalMessageBox(p);
+	return iRet;
+}
 #pragma endregion UxFixer
 
 #pragma region Init
@@ -1226,6 +1239,12 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		DetourAttach(&s_pfnCloseThemeData, NewCloseThemeData);
 		DetourAttach(&s_pfnDrawThemeParentBackground, NewDrawThemeParentBackground);
 		DetourAttach(&s_pfnGetThemePartSize, NewGetThemePartSize);
+		const HMODULE hModUser32 = GetModuleHandleW(L"user32.dll");
+		EckAssert(hModUser32);
+		s_pfnSoftModalMessageBox = (FSoftModalMessageBox)
+			GetProcAddress(hModUser32, "SoftModalMessageBox");
+		if (s_pfnSoftModalMessageBox)
+			DetourAttach(&s_pfnSoftModalMessageBox, NewSoftModalMessageBox);
 		DetourTransactionCommit();
 	}
 	return InitStatus::Ok;
