@@ -87,7 +87,7 @@ public:
 	ECK_CWND_SINGLEOWNER(CListBoxNew);
 	ECK_CWND_CREATE_CLS_HINST(WCN_LISTBOXNEW, g_hInstance);
 private:
-	eck::CSelRange m_SelRange{};
+	CSelRange m_SelRange{};
 	int m_cItem{};
 
 	CRefStrW m_rsTextBuf{};
@@ -1122,7 +1122,7 @@ public:
 
 		case WM_DPICHANGED_BEFOREPARENT:
 		{
-			m_iDpi = eck::GetDpi(hWnd);
+			m_iDpi = GetDpi(hWnd);
 			if (m_bAutoItemHeight)
 			{
 				UpdateDefItemHeight();

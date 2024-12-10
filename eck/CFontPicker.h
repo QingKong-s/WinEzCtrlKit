@@ -24,7 +24,7 @@ public:
 private:
 	DWORD m_dwCfFlags = CF_SCREENFONTS | CF_FORCEFONTEXIST | CF_NOVERTFONTS;
 
-	static int FindFontName(const eck::CRefStrW& rs)
+	static int FindFontName(const CRefStrW& rs)
 	{
 		if (rs.IsEmpty())
 			return -1;
@@ -65,7 +65,7 @@ public:
 		return TRUE;
 	}
 
-	eck::CRefStrW ToInfo(FONTPICKERINFO& fpi)
+	CRefStrW ToInfo(FONTPICKERINFO& fpi)
 	{
 		fpi.pszFontName = nullptr;
 		auto rs = GetText();

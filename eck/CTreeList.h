@@ -234,6 +234,7 @@ class CTreeList :public CWnd
 public:
 	ECK_RTTI(CTreeList);
 	ECK_CWND_SINGLEOWNER(CTreeList);
+	ECK_CWND_CREATE_CLS_HINST(WCN_TREELIST, g_hInstance);
 
 	enum
 	{
@@ -2325,14 +2326,6 @@ public:
 			break;
 		}
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
-	}
-
-	ECK_CWND_CREATE;
-	HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
-	{
-		return IntCreate(dwExStyle, WCN_TREELIST, pszText, dwStyle,
-			x, y, cx, cy, hParent, hMenu, eck::g_hInstance, nullptr);
 	}
 
 	/// <summary>

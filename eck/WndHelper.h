@@ -692,7 +692,7 @@ inline BOOL GetItemsViewForeBackColor(COLORREF& crText, COLORREF& crBk)
 /// <returns>成功返回TRUE，失败返回FALSE</returns>
 inline BOOL GetWindowClientRect(HWND hWnd, RECT& rcClient)
 {
-	const int iDpi = eck::GetDpi(hWnd);
+	const int iDpi = GetDpi(hWnd);
 	RECT rcMainClient;
 	RECT rcNcOnly{};
 	WINDOWPLACEMENT wp;
@@ -883,7 +883,7 @@ EckInline BOOL MsgOnSettingChangeMainWnd(HWND hWnd, WPARAM wParam, LPARAM lParam
 	if (IsColorSchemeChangeMessage(lParam))
 	{
 		BroadcastChildrenMessage(hWnd, WM_SETTINGCHANGE, wParam, lParam);
-		const auto ptc = eck::GetThreadCtx();
+		const auto ptc = GetThreadCtx();
 		ptc->UpdateDefColor();
 		ptc->SetNcDarkModeForAllTopWnd(ShouldAppsUseDarkMode());
 		ptc->SendThemeChangedToAllTopWindow();

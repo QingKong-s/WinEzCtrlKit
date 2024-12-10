@@ -155,7 +155,7 @@ inline CRefBin RequestUrl(PCWSTR pszUrl, PCWSTR pszMethod = L"GET",
 	CRefBin rb{};
 	if (!RequestUrl([&](HINTERNET hSession, HINTERNET hConnect, HINTERNET hRequest) -> BOOL
 		{
-			eck::CRefStrW rsResponseHeaders{};
+			CRefStrW rsResponseHeaders{};
 			DWORD cbHeaders = 0;
 			WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_RAW_HEADERS_CRLF,
 				WINHTTP_HEADER_NAME_BY_INDEX, nullptr, &cbHeaders, WINHTTP_NO_HEADER_INDEX);
@@ -238,7 +238,7 @@ struct CHttpRequest
 		}
 	}
 
-	void DoRequest(const eck::CRefStrW& rsUrl, PCWSTR pszMethod = L"GET")
+	void DoRequest(const CRefStrW& rsUrl, PCWSTR pszMethod = L"GET")
 	{
 		DoRequest(rsUrl.Data(), pszMethod);
 	}

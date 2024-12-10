@@ -98,7 +98,7 @@ private:
 			L"bp", -1, DT_SINGLELINE, nullptr, &rc);
 		m_cySubTask = rc.bottom - rc.top;
 
-		eck::LVSetItemHeight(m_hWnd, std::max(m_cyIcon, m_cySectionTitle + m_cySubTask + m_cxPadding * 2));
+		LVSetItemHeight(m_hWnd, std::max(m_cyIcon, m_cySectionTitle + m_cySubTask + m_cxPadding * 2));
 	}
 public:
 	LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed) override

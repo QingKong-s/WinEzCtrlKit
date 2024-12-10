@@ -209,7 +209,7 @@ public:
 				{
 					mi.nTrack = (short)_wtoi(e.rsValue.Data());
 					const int posSlash = e.rsValue.FindChar(L'/');
-					if (posSlash != eck::StrNPos)
+					if (posSlash != StrNPos)
 						mi.cTotalTrack = (short)_wtoi(e.rsValue.Data() + posSlash + 1);
 					else
 						mi.cTotalTrack = 0;
@@ -224,7 +224,7 @@ public:
 				{
 					mi.nDisc = (short)_wtoi(e.rsValue.Data());
 					const int posSlash = e.rsValue.FindChar(L'/');
-					if (posSlash != eck::StrNPos)
+					if (posSlash != StrNPos)
 						mi.cTotalDisc = (short)_wtoi(e.rsValue.Data() + posSlash + 1);
 					else
 						mi.cTotalDisc = 0;
