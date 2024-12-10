@@ -42,15 +42,21 @@ public:
 			const auto lResult = __super::OnMsg(hWnd, uMsg, wParam, lParam);
 			const auto hStatic = GetDlgItem(hWnd, 0xFFFF);
 			const auto hStaticIcon = GetDlgItem(hWnd, 0x14);
-			m_hIcon = (HICON)SendMessageW(hStaticIcon, STM_GETICON, 0, 0);
-			// OD修正图标白底
-			SetWindowLongPtrW(hStaticIcon, GWL_STYLE,
-				(GetWindowLongPtrW(hStaticIcon, GWL_STYLE) & ~SS_ICON) | SS_OWNERDRAW);
+			if (hStaticIcon)
+			{
+				m_hIcon = (HICON)SendMessageW(hStaticIcon, STM_GETICON, 0, 0);
+				// OD修正图标白底
+				SetWindowLongPtrW(hStaticIcon, GWL_STYLE,
+					(GetWindowLongPtrW(hStaticIcon, GWL_STYLE) & ~SS_ICON) | SS_OWNERDRAW);
+			}
 			// 内部测高机制过于复杂，这里使用静态控件的高度
 			RECT rcTemp;
 			GetClientRect(hStatic, &rcTemp);
 			const auto cyText = rcTemp.bottom;
-			GetClientRect(hStaticIcon, &rcTemp);
+			if (hStaticIcon)
+				GetClientRect(hStaticIcon, &rcTemp);
+			else
+				rcTemp.bottom = 0;
 			const auto cyIcon = rcTemp.bottom;
 			// 其字符高度来源为GdiGetCharDimensions(Ex)，
 			// 该函数简单地将字符高度设为tmHeight

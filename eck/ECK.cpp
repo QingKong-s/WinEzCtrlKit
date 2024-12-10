@@ -193,6 +193,7 @@ static FGetThemeColor			s_pfnGetThemeColor{ GetThemeColor };
 static FCloseThemeData			s_pfnCloseThemeData{ CloseThemeData };
 static FDrawThemeParentBackground	s_pfnDrawThemeParentBackground{ DrawThemeParentBackground };
 static FGetThemePartSize		s_pfnGetThemePartSize{ GetThemePartSize };
+// Not Ux, but nessesary.
 static FSoftModalMessageBox		s_pfnSoftModalMessageBox{};
 
 enum class ThemeType
