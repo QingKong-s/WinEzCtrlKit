@@ -183,6 +183,7 @@
     <ClInclude Include="eck\CLayoutDummy.h" />
     <ClInclude Include="eck\CMemorySet.h" />
     <ClInclude Include="eck\CMonthCalendar.h" />
+    <ClInclude Include="eck\CMsgBoxHook.h" />
     <ClInclude Include="eck\CObject.h" />
     <ClInclude Include="eck\CRegion.h" />
     <ClInclude Include="eck\CSelRange.h" />

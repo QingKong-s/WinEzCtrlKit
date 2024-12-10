@@ -1,7 +1,7 @@
 #pragma once
 #include "Utility.h"
 #include "CRefStr.h"
-#include "CWnd.h"
+#include "CMsgBoxHook.h"
 #include "GraphicsHelper.h"
 #include "CCommDlg.h"
 #include "CObject.h"
