@@ -283,7 +283,7 @@ struct CCharTraits<WCHAR>
 	EckInline static int Find(PCWSTR pszText, PCWSTR pszSub, int posStart = 0) { return FindStr(pszText, pszSub, posStart); }
 	EckInline static int FormatV(PWSTR pszBuf, PCWSTR pszFmt, va_list vl) { return vswprintf(pszBuf, pszFmt, vl); }
 	EckInline static int GetFormatCchV(PCWSTR pszFmt, va_list vl) { return _vscwprintf(pszFmt, vl); }
-	EckInline static int FindChar(PCWSTR pszText, WCHAR ch, int posStart = 0) { return eck::FindChar(pszText, ch, posStart); }
+	EckInline static int FindChar(PCWSTR pszText, WCHAR ch, int posStart = 0) { return FindChar(pszText, ch, posStart); }
 };
 
 template<>
@@ -316,7 +316,7 @@ struct CCharTraits<CHAR>
 	EckInline static int Find(PCSTR pszText, PCSTR pszSub, int posStart = 0) { return FindStr(pszText, pszSub, posStart); }
 	EckInline static int FormatV(PSTR pszBuf, PCSTR pszFmt, va_list vl) { return vsprintf(pszBuf, pszFmt, vl); }
 	EckInline static int GetFormatCchV(PCSTR pszFmt, va_list vl) { return _vscprintf(pszFmt, vl); }
-	EckInline static int FindChar(PCSTR pszText, CHAR ch, int posStart = 0) { return eck::FindChar(pszText, ch, posStart); }
+	EckInline static int FindChar(PCSTR pszText, CHAR ch, int posStart = 0) { return FindChar(pszText, ch, posStart); }
 };
 
 template<ccpIsStdChar TChar>

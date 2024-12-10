@@ -17,8 +17,8 @@ public:
 private:
 	struct ITEM
 	{
-		eck::CRefStrW rsMainText{};
-		eck::CRefStrW rsSubText{};
+		CRefStrW rsMainText{};
+		CRefStrW rsSubText{};
 		COLORREF crText{ CLR_DEFAULT };
 		COLORREF crTextBk{ CLR_DEFAULT };
 		COLORREF crTextSubText{ CLR_DEFAULT };

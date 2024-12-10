@@ -283,7 +283,7 @@ public:
 				else if (lfValue < 3.402823466e38)
 					pszCorrectValue = L"3.402823466e38";
 				else
-					SetText(eck::ToStr(lfValue).Data());
+					SetText(ToStr(lfValue).Data());
 				if (pszText != szValue)
 					_freea(pszText);
 			}
@@ -303,7 +303,7 @@ public:
 				else if (*(ULONGLONG*)&lfValue == 0x7FF0000000000000)
 					pszCorrectValue = L"1.79769313486231570e308";
 				else
-					SetText(eck::ToStr(lfValue).Data());
+					SetText(ToStr(lfValue).Data());
 				if (pszText != szValue)
 					_freea(pszText);
 			}
