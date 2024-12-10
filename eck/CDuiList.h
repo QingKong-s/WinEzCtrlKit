@@ -246,7 +246,7 @@ private:
 	EckInline void DrawItem(int idx, const D2D1_RECT_F& rcPaint)
 	{
 		LEE_DISPINFO es{};
-		es.
+		es.uCode = LEE_GETDISPINFO;
 		GenElemNotify(&es);
 		switch (m_eView)
 		{

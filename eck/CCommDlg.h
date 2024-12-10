@@ -22,12 +22,10 @@ struct TASKDIALOGCTX
 class CTaskDialog :public CDialog
 {
 protected:
-	std::vector<TASKDIALOG_BUTTON> m_vBtn{};// 所有按钮
-	std::vector<TASKDIALOG_BUTTON> m_vRadioBtn{};// 所有单选按钮
-
 	TASKDIALOGCTX* m_pParam{};
 	PFTASKDIALOGCALLBACK m_pfnRealCallBack{};
 	LONG_PTR m_lRealRefData{};
+	CSignal<Intercept_T, HRESULT, HWND, UINT, WPARAM, LPARAM > m_CallbackSig{};
 
 	static LRESULT CALLBACK EckTdLinkParentSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
 		UINT_PTR uSubclassId, DWORD_PTR lRefData)
@@ -63,7 +61,6 @@ protected:
 				{
 					if (_wcsicmp(CWnd(hWnd).GetClsName().Data(), WC_LINK) == 0)
 						SetWindowSubclass(GetParent(hWnd), EckTdLinkParentSubclassProc, 0, 0);
-					SetWindowTheme(hWnd, L"Explorer", nullptr);
 					return TRUE;
 				}, 0);
 		}
@@ -75,27 +72,10 @@ protected:
 public:
 	ECK_RTTI(CTaskDialog);
 	INT_PTR DlgBox(HWND hParent,
-		_In_reads_bytes_(sizeof(TASKDIALOGCONFIG)) void* pData) override
+		_In_reads_bytes_(sizeof(TASKDIALOGCTX)) void* pData) override
 	{
 		auto pCtx = (TASKDIALOGCTX*)pData;
 		const auto ptdc = pCtx->ptdc;
-		if (!m_vBtn.empty())
-		{
-			ptdc->cButtons = (int)m_vBtn.size();
-			if (ptdc->cButtons)
-				ptdc->pButtons = m_vBtn.data();
-			else
-				ptdc->pButtons = nullptr;
-		}
-
-		if (!m_vRadioBtn.empty())
-		{
-			ptdc->cRadioButtons = (int)m_vRadioBtn.size();
-			if (ptdc->cRadioButtons)
-				ptdc->pRadioButtons = m_vRadioBtn.data();
-			else
-				ptdc->pRadioButtons = nullptr;
-		}
 
 		m_pfnRealCallBack = ptdc->pfCallback;
 		m_lRealRefData = ptdc->lpCallbackData;
@@ -133,15 +113,17 @@ public:
 		if (m_pfnRealCallBack)
 			return m_pfnRealCallBack(hWnd, uMsg, wParam, lParam, m_lRealRefData);
 		else
-			return S_OK;
+			return m_CallbackSig.Emit(hWnd, uMsg, wParam, lParam);
 	}
 
-	EckInline void ClickButton(int iID, BOOL bRadioButton = FALSE)
+	EckInline void ClickButton(int iID)
 	{
-		if (bRadioButton)
-			SendMsg(TDM_CLICK_RADIO_BUTTON, iID, 0);
-		else
-			SendMsg(TDM_CLICK_BUTTON, iID, 0);
+		SendMsg(TDM_CLICK_BUTTON, iID, 0);
+	}
+
+	EckInline void ClickRadioButton(int iID)
+	{
+		SendMsg(TDM_CLICK_RADIO_BUTTON, iID, 0);
 	}
 
 	EckInline void ClickCheckBox(BOOL bChecked, BOOL bSetFocus = FALSE)
@@ -149,15 +131,17 @@ public:
 		SendMsg(TDM_CLICK_VERIFICATION, bChecked, bSetFocus);
 	}
 
-	EckInline void ClickButton(BOOL bEnable, int iID, BOOL bRadioButton = FALSE)
+	EckInline void EnableButton(int iID, BOOL bEnable)
 	{
-		if (bRadioButton)
-			SendMsg(TDM_ENABLE_RADIO_BUTTON, iID, bEnable);
-		else
-			SendMsg(TDM_ENABLE_BUTTON, iID, bEnable);
+		SendMsg(TDM_ENABLE_BUTTON, iID, bEnable);
 	}
 
-	EckInline void NavigatePage(TASKDIALOGCONFIG* pInfo)
+	EckInline void EnableRadioButton(int iID, BOOL bEnable)
+	{
+		SendMsg(TDM_ENABLE_RADIO_BUTTON, iID, bEnable);
+	}
+
+	EckInline void NavigatePage(_In_ TASKDIALOGCONFIG* pInfo)
 	{
 		SendMsg(TDM_NAVIGATE_PAGE, 0, (LPARAM)pInfo);
 	}
@@ -167,7 +151,7 @@ public:
 		SendMsg(TDM_NAVIGATE_PAGE, 0, (LPARAM)m_pParam->ptdc);
 	}
 
-	EckInline void SetShieldIcon(BOOL bShieldIcon, int iID)
+	EckInline void SetShieldIcon(int iID, BOOL bShieldIcon)
 	{
 		SendMsg(TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, iID, bShieldIcon);
 	}
@@ -238,9 +222,7 @@ public:
 		SendMsg(TDM_UPDATE_ICON, uType, (LPARAM)pszIcon);
 	}
 
-	EckInline void ClearButtonVector() { m_vBtn.clear(); }
-
-	EckInline void ClearRadioButtonVector() { m_vRadioBtn.clear(); }
+	EckInline constexpr auto& GetCallbackSignal() { return m_CallbackSig; }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CTaskDialog, CDialog);
 

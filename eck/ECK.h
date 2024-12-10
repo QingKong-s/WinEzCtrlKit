@@ -903,6 +903,9 @@ BOOL PreTranslateMessage(const MSG& Msg);
 #pragma endregion Thread
 
 void InitPrivateApi();
+
+// For compatibility.
+EckInline constexpr void SetMsgFilter(void*) {}
 ECK_NAMESPACE_END
 
 #ifndef ECK_OPT_NO_USING_GDIPLUS

@@ -420,12 +420,8 @@ static HRESULT UxfGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
 		break;
 
 		case TDLG_MAININSTRUCTIONPANE:
-		{
-			const auto hr = s_pfnGetThemeColor(hTheme, iPartId, iStateId, iPropId, &cr);
-			cr = AdjustColorrefLuma(cr, 300);
-			return hr;
-		}
-		break;
+			cr = ptc->crBlue1;
+			return S_OK;
 		}
 		break;
 	case ThemeType::AeroWizard:
