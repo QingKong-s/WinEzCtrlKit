@@ -83,6 +83,9 @@ public:
 			{
 				const auto* const ptc = GetThreadCtx();
 				SetDCBrushColor((HDC)wParam, ptc->crDefBtnFace);
+				RECT rc;
+				GetClipBox((HDC)wParam, &rc);
+				FillRect((HDC)wParam, &rc, GetStockBrush(DC_BRUSH));
 				return (LRESULT)GetStockBrush(DC_BRUSH);
 			}
 			break;
@@ -106,6 +109,17 @@ public:
 				DrawIconEx(pdis->hDC, pdis->rcItem.left, pdis->rcItem.top, m_hIcon,
 					0, 0, 0, nullptr, DI_NORMAL);
 				return TRUE;
+			}
+		}
+		break;
+
+		case WM_CHANGEUISTATE:
+		{
+			if (ShouldAppsUseDarkMode())// 焦点指示器状态改变将导致重绘错误。。。。
+			{
+				const auto lResult = __super::OnMsg(hWnd, uMsg, wParam, lParam);
+				RedrawWindow(hWnd, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
+				return lResult;
 			}
 		}
 		break;

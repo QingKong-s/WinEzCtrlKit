@@ -167,22 +167,22 @@ public:
 		SendMsg(TDM_SET_ELEMENT_TEXT, uType, (LPARAM)pszText);
 	}
 
-	EckInline void SetMarqueePBShowing(BOOL bShowing)
+	EckInline void PBSetMarqueeShowing(BOOL bShowing)
 	{
 		SendMsg(TDM_SET_MARQUEE_PROGRESS_BAR, bShowing, 0);
 	}
 
-	EckInline void SetPBMarquee(BOOL bMarquee, UINT uAnimationGap = 0u)
+	EckInline void PBSetMarquee(BOOL bMarquee, UINT uAnimationGap = 0u)
 	{
 		SendMsg(TDM_SET_PROGRESS_BAR_MARQUEE, bMarquee, uAnimationGap);
 	}
 
-	EckInline void SetPBPos(int iPos)
+	EckInline void PBSetPos(int iPos)
 	{
 		SendMsg(TDM_SET_PROGRESS_BAR_POS, iPos, 0);
 	}
 
-	EckInline void SetPBRange(int iMax, int iMin)
+	EckInline void PBSetRange(int iMin,int iMax)
 	{
 		SendMsg(TDM_SET_PROGRESS_BAR_POS, 0, MAKELPARAM(iMin, iMax));
 	}
@@ -191,7 +191,7 @@ public:
 	/// 进度条_置状态
 	/// </summary>
 	/// <param name="uState">状态，PBST_常量</param>
-	EckInline void SetPBState(UINT uState)
+	EckInline void PBSetState(UINT uState)
 	{
 		SendMsg(TDM_SET_PROGRESS_BAR_STATE, uState, 0);
 	}

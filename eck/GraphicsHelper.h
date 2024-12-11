@@ -43,7 +43,7 @@ struct CEzCDC
 		return *this;
 	}
 
-	HDC Create(HDC hDC, int cx, int cy)
+	HDC CreateFromDC(HDC hDC, int cx, int cy)
 	{
 		Destroy();
 		m_hCDC = CreateCompatibleDC(hDC);
@@ -62,8 +62,19 @@ struct CEzCDC
 			cx = rc.right;
 			cy = rc.bottom;
 		}
-		Create(hDC, cx, cy);
+		CreateFromDC(hDC, cx, cy);
 		ReleaseDC(hWnd, hDC);
+		return m_hCDC;
+	}
+
+	HDC CreateFromDC32(HDC hDC, int cx = 0, int cy = 0)
+	{
+		Destroy();
+		m_hCDC = CreateCompatibleDC(hDC);
+		CDib dib{};
+		dib.Create(cx, -cy);
+		m_hBmp = dib.Detach();
+		m_hOld = SelectObject(m_hCDC, m_hBmp);
 		return m_hCDC;
 	}
 
@@ -78,11 +89,7 @@ struct CEzCDC
 			cx = rc.right;
 			cy = rc.bottom;
 		}
-		m_hCDC = CreateCompatibleDC(hDC);
-		CDib dib{};
-		dib.Create(cx, -cy);
-		m_hBmp = dib.Detach();
-		m_hOld = SelectObject(m_hCDC, m_hBmp);
+		CreateFromDC32(hDC, cx, cy);
 		ReleaseDC(hWnd, hDC);
 		return m_hCDC;
 	}

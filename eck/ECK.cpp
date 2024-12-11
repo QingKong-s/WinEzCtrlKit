@@ -166,7 +166,7 @@ enum
 	//===状态===
 	// Link
 	TS_LINK_HYPERLINK_COMMON = 0,
-	TS_LINK_HYPERLINK_NORMAL = 1,// invalid
+	TS_LINK_HYPERLINK_NORMAL = 1,// Invalid
 	TS_LINK_HYPERLINK_LINK = 2,
 };
 
@@ -209,6 +209,8 @@ enum class ThemeType
 	Link,
 	Header,			// 附带亮色版主题，弥补暗色没有过滤器按钮和溢出按钮的不足
 	TextStyle,
+	Progress,
+	ControlPanel,
 };
 
 struct THEME_INFO
@@ -242,28 +244,31 @@ static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 	/*EckDbgPrintFmt(L"UxfOnThemeOpen: hWnd = %p, hTheme = %p, pszClassList = %s",
 		hWnd, hTheme, pszClassList);*/
 	ThemeType eType;
-	if (wcsstr(pszClassList, L"Button"))
+	if (_wcsnicmp(pszClassList, L"Button", 6) == 0)
 		eType = ThemeType::Button;
-	else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 ||
-		_wcsicmp(pszClassList, L"TaskDialogStyle") == 0)
+	else if (_wcsnicmp(pszClassList, L"TaskDialog", 10) == 0)
 		eType = ThemeType::TaskDialog;
 	else if (_wcsicmp(pszClassList, L"Tab") == 0)
 		eType = ThemeType::Tab;
 	else if (_wcsicmp(pszClassList, L"ToolBar") == 0)
 		eType = ThemeType::ToolBar;
-	else if (_wcsicmp(pszClassList, L"AeroWizard") == 0 ||
-		_wcsicmp(pszClassList, L"AeroWizardStyle") == 0)
+	else if (_wcsnicmp(pszClassList, L"AeroWizard", 10) == 0)
 		eType = ThemeType::AeroWizard;
 	else if (_wcsicmp(pszClassList, L"DatePicker") == 0)
 		eType = ThemeType::DateTimePicker;
-	else if (wcsstr(pszClassList, L"ListView") || wcscmp(pszClassList, L"ItemsView") == 0)
+	else if (wcsstr(pszClassList, L"ListView") || _wcsicmp(pszClassList, L"ItemsView") == 0)
 		eType = ThemeType::ListView;
-	else if (wcscmp(pszClassList, L"Link") == 0)
+	else if (_wcsicmp(pszClassList, L"Link") == 0)
 		eType = ThemeType::Link;
 	else if (wcsstr(pszClassList, L"Header"))
 		eType = ThemeType::Header;
 	else if (_wcsicmp(pszClassList, L"TextStyle") == 0)
 		eType = ThemeType::TextStyle;
+	else if (_wcsicmp(pszClassList, L"Progress") == 0 ||
+		_wcsicmp(pszClassList, L"Indeterminate::Progress") == 0)
+		eType = ThemeType::Progress;
+	else if (_wcsnicmp(pszClassList, L"ControlPanel", 12) == 0)
+		eType = ThemeType::ControlPanel;
 	else
 		eType = ThemeType::Invalid;
 	if (eType != ThemeType::Invalid)
@@ -310,64 +315,114 @@ static void UxfOnThemeClose(HTHEME hTheme)
 	}
 }
 
-// 绘制主题背景，并调整亮度
-static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
-	_In_ const RECT* prc, _In_opt_ const DTBGOPTS* pOpt, float fPercent)
+EckInline constexpr BOOL UxfIsDarkTaskDialogAvailable()
 {
-	RECT rcReal{ 0,0,prc->right - prc->left, prc->bottom - prc->top };
-	CEzCDC DC{};
-	DC.Create32(nullptr, rcReal.right, rcReal.bottom);
+	return g_NtVer.uBuild >= WINVER_11_21H2;
+}
 
+/// <summary>
+/// 绘制主题背景，并调整亮度
+/// </summary>
+/// <param name="fDelta">颜色分量的变化量，0~1</param>
+static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
+	_In_ const RECT* prc, _In_opt_ const DTBGOPTS* pOpt, float fDelta)
+{
 	const BOOL bClip = pOpt && (pOpt->dwFlags & DTBG_CLIPRECT);
 	HRESULT hr;
-	if (bClip)
+	int eBgType;
+	GetThemeEnumValue(hTheme, iPartId, iStateId, TMT_BGTYPE, &eBgType);
+	if (eBgType == BT_IMAGEFILE)
 	{
-		DTBGOPTS RealOpt;
-		RealOpt.dwSize = sizeof(DTBGOPTS);
-		RealOpt.dwFlags = pOpt->dwFlags & ~DTBG_CLIPRECT;
-		hr = s_pfnDrawThemeBackgroundEx(hTheme, DC.GetDC(),
-			iPartId, iStateId, &rcReal, &RealOpt);
+		CEzCDC DC{};
+		int cxBuf, cyBuf;
+		if (bClip)
+		{
+			cxBuf = pOpt->rcClip.right - pOpt->rcClip.left;
+			cyBuf = pOpt->rcClip.bottom - pOpt->rcClip.top;
+			DC.CreateFromDC32(hDC, cxBuf, cyBuf);
+			// OPTIMIZE：减少GDI+处理的像素
+			SetWindowOrgEx(DC.GetDC(), pOpt->rcClip.left, pOpt->rcClip.top, nullptr);
+		}
+		else
+		{
+			cxBuf = prc->right - prc->left;
+			cyBuf = prc->bottom - prc->top;
+			DC.CreateFromDC32(hDC, cxBuf, cyBuf);
+		}
+
+		if (bClip)
+		{
+			DTBGOPTS RealOpt;
+			RealOpt.dwSize = sizeof(DTBGOPTS);
+			RealOpt.dwFlags = pOpt->dwFlags & ~DTBG_CLIPRECT;
+			hr = s_pfnDrawThemeBackgroundEx(hTheme, DC.GetDC(),
+				iPartId, iStateId, prc/*剪辑区左上角 - 窗口原点 == (0, 0)*/, &RealOpt);
+		}
+		else
+		{
+			const RECT rc{ 0,0,cxBuf,cyBuf };
+			hr = s_pfnDrawThemeBackgroundEx(hTheme, DC.GetDC(),
+				iPartId, iStateId, &rc, pOpt);
+		}
+		if (FAILED(hr))
+			return hr;
+		BITMAP bmp;
+		GetObjectW(DC.GetBitmap(), sizeof(bmp), &bmp);
+		GpBitmap* pBitmap;
+		GdipCreateBitmapFromScan0(bmp.bmWidth, bmp.bmHeight, bmp.bmWidthBytes,
+			PixelFormat32bppARGB, (BYTE*)bmp.bmBits, &pBitmap);
+		GpImageAttributes* pIA;
+		GdipCreateImageAttributes(&pIA);
+
+		const Gdiplus::ColorMatrix Mat
+		{
+			1, 0, 0, 0, 0,
+			0, 1, 0, 0, 0,
+			0, 0, 1, 0, 0,
+			0, 0, 0, 1, 1,
+			fDelta, fDelta, fDelta, 0, 1
+		};
+		GdipSetImageAttributesColorMatrix(pIA, Gdiplus::ColorAdjustTypeDefault,
+			TRUE, &Mat, nullptr, Gdiplus::ColorMatrixFlagsDefault);
+		GpGraphics* pGraphics;
+		GdipCreateFromHDC(hDC, &pGraphics);
+		if (bClip)
+			GdipDrawImageRectRectI(pGraphics, pBitmap,
+				pOpt->rcClip.left,
+				pOpt->rcClip.top,
+				cxBuf, cyBuf, 0, 0, cxBuf, cyBuf,
+				Gdiplus::UnitPixel, pIA, nullptr, nullptr);
+		else
+			GdipDrawImageRectRectI(pGraphics, pBitmap,
+				prc->left,
+				prc->top,
+				cxBuf, cyBuf, 0, 0, cxBuf, cyBuf,
+				Gdiplus::UnitPixel, pIA, nullptr, nullptr);
+		GdipDeleteGraphics(pGraphics);
+		GdipDisposeImage(pBitmap);
+		GdipDisposeImageAttributes(pIA);
+		return S_OK;
 	}
 	else
-		hr = s_pfnDrawThemeBackgroundEx(hTheme, DC.GetDC(),
-			iPartId, iStateId, &rcReal, pOpt);
-	if (FAILED(hr))
+	{
+		// 特判该路径有两个原因
+		// 1. Ux绘制纯色背景时使用GDI，这导致结果位图中所有像素的Alpha通道为0，
+		// 颜色矩阵需要修改以拉回透明度
+		// 2. 调整一副位图的亮度显然比调整一个颜色值的亮度要慢得多，此处可作为一个优化
+		COLORREF crFill;
+		if (SUCCEEDED(hr = s_pfnGetThemeColor(hTheme, iPartId, iStateId,
+			TMT_FILLCOLOR, &crFill)))
+		{
+			crFill = DeltaColorrefLuma(crFill, fDelta);
+			SetDCBrushColor(hDC, crFill);
+			if (bClip)
+				FillRect(hDC, &pOpt->rcClip, GetStockBrush(DC_BRUSH));
+			else
+				FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
+			return S_OK;
+		}
 		return hr;
-	BITMAP bmp;
-	GetObjectW(DC.GetBitmap(), sizeof(bmp), &bmp);
-	GpBitmap* pBitmap;
-	GdipCreateBitmapFromScan0(rcReal.right, rcReal.bottom, bmp.bmWidthBytes,
-		PixelFormat32bppARGB, (BYTE*)bmp.bmBits, &pBitmap);
-	GpImageAttributes* pIA;
-	GdipCreateImageAttributes(&pIA);
-
-	const Gdiplus::ColorMatrix mat
-	{
-		1, 0, 0, 0, 0,
-		0, 1, 0, 0, 0,
-		0, 0, 1, 0, 0,
-		0, 0, 0, 1, 0,
-		fPercent, fPercent, fPercent, 0, 1
-	};
-	GdipSetImageAttributesColorMatrix(pIA, Gdiplus::ColorAdjustTypeDefault, TRUE, &mat,
-		nullptr, Gdiplus::ColorMatrixFlagsDefault);
-	GpGraphics* pGraphics;
-	GdipCreateFromHDC(hDC, &pGraphics);
-	if (bClip)
-	{
-		GdipSetClipRectI(pGraphics,
-			pOpt->rcClip.left,
-			pOpt->rcClip.top,
-			pOpt->rcClip.right - pOpt->rcClip.left,
-			pOpt->rcClip.bottom - pOpt->rcClip.top,
-			Gdiplus::CombineModeReplace);
 	}
-	GdipDrawImageRectRectI(pGraphics, pBitmap, prc->left, prc->top, rcReal.right, rcReal.bottom,
-		0, 0, rcReal.right, rcReal.bottom, Gdiplus::UnitPixel, pIA, nullptr, nullptr);
-	GdipDeleteGraphics(pGraphics);
-	GdipDisposeImage(pBitmap);
-	GdipDisposeImageAttributes(pIA);
-	return S_OK;
 }
 
 // 取主题颜色，主要是文本颜色
@@ -543,6 +598,14 @@ static HRESULT UxfGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
 				return S_OK;
 			}
 			break;
+		case TEXT_HYPERLINKTEXT:
+			if (iPropId == TMT_TEXTCOLOR)
+			{
+				const auto hr = s_pfnGetThemeColor(hTheme, iPartId, iStateId, iPropId, &cr);
+				cr = AdjustColorrefLuma(cr, 200);
+				return hr;
+			}
+			break;
 		}
 		break;
 	}
@@ -557,14 +620,34 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 	switch (ti.eType)
 	{
 	case ThemeType::TaskDialog:
-		switch (iPartId)
-		{
-		case TDLG_SECONDARYPANEL:
-			return s_pfnDrawThemeBackgroundEx(hTheme, hDC, TDLG_FOOTNOTEPANE, iStateId,
-				prc, pOptions);
-		case TDLG_FOOTNOTESEPARATOR:
-			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.67f);
-		}
+		if (UxfIsDarkTaskDialogAvailable())
+			switch (iPartId)
+			{
+			case TDLG_SECONDARYPANEL:
+				return s_pfnDrawThemeBackgroundEx(hTheme, hDC, TDLG_FOOTNOTEPANE, iStateId,
+					prc, pOptions);
+			case TDLG_FOOTNOTESEPARATOR:
+				return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.67f);
+			}
+		else// Win10任务对话框实际上使用ControlPanelStyle绘制主次面板
+			switch (iPartId)
+			{
+			case TDLG_PRIMARYPANEL:
+				return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.9f);
+			case TDLG_MAININSTRUCTIONPANE:
+			case TDLG_CONTENTPANE:
+			case TDLG_EXPANDEDCONTENT:
+			case TDLG_COMMANDLINKPANE:
+			case TDLG_CONTROLPANE:
+			case TDLG_FOOTNOTEAREA:
+			case TDLG_FOOTNOTEPANE:
+			case TDLG_EXPANDEDFOOTERAREA:
+			case TDLG_SECONDARYPANEL:
+				return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.79f);
+			case TDLG_FOOTNOTESEPARATOR:
+				return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.67f);
+			}
+
 		break;
 	case ThemeType::Button:
 		switch (iPartId)
@@ -604,7 +687,7 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 				NewOpt.dwSize = sizeof(DTBGOPTS);
 				NewOpt.dwFlags = (pOptions ? pOptions->dwFlags : 0) | DTBG_CLIPRECT;
 				NewOpt.rcClip = *prc;
-				--NewOpt.rcClip.bottom;
+				--NewOpt.rcClip.bottom;// 底部貌似有一条线，会遮挡一像素边框
 				if (pOptions && pOptions->dwFlags & DTBG_CLIPRECT)
 					IntersectRect(NewOpt.rcClip, NewOpt.rcClip, pOptions->rcClip);
 				const auto hr = UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, &NewOpt, f);
@@ -627,7 +710,7 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 		case TABP_AEROWIZARDBODY:
 		{
 			const auto hr = UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.86f);
-			if (hr == S_OK)// exclude S_FALSE
+			if (hr == S_OK)// Exclude S_FALSE.
 			{
 				if (pOptions && pOptions->dwFlags & DTBG_CLIPRECT)
 				{
@@ -716,19 +799,11 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 		case AW_HEADERAREA:
 		case AW_CONTENTAREA:
 		{
+			SetDCBrushColor(hDC, ptc->crDefBkg);
 			if (pOptions && pOptions->dwFlags & DTBG_CLIPRECT)
-			{
-				const auto sdc = SaveDcClip(hDC);
-				IntersectClipRect(hDC, pOptions->rcClip);
-				SetDCBrushColor(hDC, ptc->crDefBkg);
-				FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
-				RestoreDcClip(hDC, sdc);
-			}
+				FillRect(hDC, &pOptions->rcClip, GetStockBrush(DC_BRUSH));
 			else
-			{
-				SetDCBrushColor(hDC, ptc->crDefBkg);
 				FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
-			}
 		}
 		return S_OK;
 		case AW_COMMANDAREA:
@@ -813,6 +888,28 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 				prc, pOptions, iStateId == HOFS_NORMAL ? 0.6f : -0.4f);
 		}
 		break;
+	case ThemeType::Progress:
+		switch (iPartId)
+		{
+		case PP_BAR:
+		case PP_BARVERT:
+		case PP_TRANSPARENTBAR:
+		case PP_TRANSPARENTBARVERT:
+			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.45f);
+		case PP_PULSEOVERLAY:
+		case PP_PULSEOVERLAYVERT:
+			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.2f);
+		}
+		break;
+	case ThemeType::ControlPanel:
+		switch (iPartId)
+		{
+		case CPANEL_CONTENTPANE:
+			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.86f);
+		case CPANEL_SMALLCOMMANDAREA:
+			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.79f);
+		}
+		break;
 	}
 	return E_NOTIMPL;
 }
@@ -856,8 +953,9 @@ static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Combobox");
 		else if (_wcsicmp(pszClassList, L"Edit") == 0)
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Edit");
-		else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 ||
-			_wcsicmp(pszClassList, L"TaskDialogStyle") == 0)
+		else if (UxfIsDarkTaskDialogAvailable() && (
+			_wcsicmp(pszClassList, L"TaskDialog") == 0 ||
+			_wcsicmp(pszClassList, L"TaskDialogStyle") == 0))
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_Explorer::TaskDialog");
 		else
 			hTheme = s_pfnOpenThemeData(hWnd, pszClassList);
@@ -877,8 +975,9 @@ static HTHEME WINAPI NewOpenThemeDataForDpi(HWND hWnd, PCWSTR pszClassList, UINT
 			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_CFD::Combobox", uDpi);
 		else if (_wcsicmp(pszClassList, L"Edit") == 0)
 			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_CFD::Edit", uDpi);
-		else if (_wcsicmp(pszClassList, L"TaskDialog") == 0 ||
-			_wcsicmp(pszClassList, L"TaskDialogStyle") == 0)
+		else if (UxfIsDarkTaskDialogAvailable() && (
+			_wcsicmp(pszClassList, L"TaskDialog") == 0 ||
+			_wcsicmp(pszClassList, L"TaskDialogStyle") == 0))
 			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_Explorer::TaskDialog", uDpi);
 		else
 			hTheme = s_pfnOpenThemeDataForDpi(hWnd, pszClassList, uDpi);
