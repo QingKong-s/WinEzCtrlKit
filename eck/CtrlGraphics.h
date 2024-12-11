@@ -78,7 +78,7 @@ inline void DrawPlusMinusGlyph(HDC hDC, BOOL bPlus, const RECT& rc, COLORREF crB
 inline BOOL AlphaBlendColor(HDC hDC, const RECT& rc, COLORREF cr, BYTE byAlpha = ColorFillAlpha)
 {
 	CEzCDC DC{};
-	DC.Create(hDC, 1, 1);
+	DC.CreateFromDC(hDC, 1, 1);
 	constexpr RECT rcDst{ 0,0,1,1 };
 	SetDCBrushColor(DC.GetDC(), cr);
 	FillRect(DC.GetDC(), &rcDst, GetStockBrush(DC_BRUSH));

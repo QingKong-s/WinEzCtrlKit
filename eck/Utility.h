@@ -1168,6 +1168,22 @@ EckInline constexpr COLORREF AdjustColorrefLuma(COLORREF cr, int iPrecent)
 		std::min(GetBValue(cr) * iPrecent / 100, 0xFF));
 }
 
+EckInline constexpr COLORREF DeltaColorrefLuma(COLORREF cr, int d)
+{
+	return RGB(
+		std::clamp(GetRValue(cr) + d, 0, 0xFF),
+		std::clamp(GetGValue(cr) + d, 0, 0xFF),
+		std::clamp(GetBValue(cr) + d, 0, 0xFF));
+}
+
+EckInline constexpr COLORREF DeltaColorrefLuma(COLORREF cr, float d)
+{
+	return RGB(
+		std::clamp(int(GetRValue(cr) + d * 255), 0, 0xFF),
+		std::clamp(int(GetGValue(cr) + d * 255), 0, 0xFF),
+		std::clamp(int(GetBValue(cr) + d * 255), 0, 0xFF));
+}
+
 #pragma region ULARGE_INTEGER
 #if ECKCXX20
 EckInline constexpr ULARGE_INTEGER operator+(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
