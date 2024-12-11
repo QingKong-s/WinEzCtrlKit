@@ -209,8 +209,8 @@ enum class ThemeType
 	Link,
 	Header,			// 附带亮色版主题，弥补暗色没有过滤器按钮和溢出按钮的不足
 	TextStyle,
-	Progress,
-	ControlPanel,
+	Progress,		// +Indeterminate::Progress
+	ControlPanel,	// +ControlPanelStyle
 };
 
 struct THEME_INFO
@@ -379,7 +379,7 @@ static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 			1, 0, 0, 0, 0,
 			0, 1, 0, 0, 0,
 			0, 0, 1, 0, 0,
-			0, 0, 0, 1, 1,
+			0, 0, 0, 1, 0,
 			fDelta, fDelta, fDelta, 0, 1
 		};
 		GdipSetImageAttributesColorMatrix(pIA, Gdiplus::ColorAdjustTypeDefault,
@@ -448,9 +448,9 @@ static HRESULT UxfGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
 			{
 				s_pfnGetThemeColor(hTheme, iPartId, iStateId, iPropId, &cr);
 				if (iStateId == CMDLS_PRESSED)
-					cr = AdjustColorrefLuma(cr, 260);
+					cr = AdjustColorrefLuma(cr, 500);
 				else
-					cr = AdjustColorrefLuma(cr, 150);
+					cr = AdjustColorrefLuma(cr, 160);
 				return S_OK;
 			}
 			break;
@@ -705,7 +705,7 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 		switch (iPartId)
 		{
 		case BP_COMMANDLINKGLYPH:
-			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.3f);
+			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.4f);
 		case BP_COMMANDLINK:
 			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.9f);
 		}
