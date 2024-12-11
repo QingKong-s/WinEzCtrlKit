@@ -303,7 +303,7 @@ static void UxfOnThemeClose(HTHEME hTheme)
 	const auto it = s_hsThemeMap.find(hTheme);
 	if (it != s_hsThemeMap.end()) ECKLIKELY
 	{
-		auto & e = it->second;
+		auto& e = it->second;
 		if (e.cRef > 1)
 			--e.cRef;
 		else
@@ -337,10 +337,10 @@ static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 		int cxBuf, cyBuf;
 		if (bClip)
 		{
+			// OPTIMIZATION：减少GDI+处理的像素
 			cxBuf = pOpt->rcClip.right - pOpt->rcClip.left;
 			cyBuf = pOpt->rcClip.bottom - pOpt->rcClip.top;
 			DC.CreateFromDC32(hDC, cxBuf, cyBuf);
-			// OPTIMIZE：减少GDI+处理的像素
 			SetWindowOrgEx(DC.GetDC(), pOpt->rcClip.left, pOpt->rcClip.top, nullptr);
 		}
 		else
@@ -440,6 +440,17 @@ static HRESULT UxfGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
 			if (iPropId == TMT_TEXTCOLOR)
 			{
 				cr = ptc->crDefText;
+				return S_OK;
+			}
+			break;
+		case BP_COMMANDLINK:
+			if (iPropId == TMT_TEXTCOLOR)
+			{
+				s_pfnGetThemeColor(hTheme, iPartId, iStateId, iPropId, &cr);
+				if (iStateId == CMDLS_PRESSED)
+					cr = AdjustColorrefLuma(cr, 260);
+				else
+					cr = AdjustColorrefLuma(cr, 150);
 				return S_OK;
 			}
 			break;
@@ -608,6 +619,48 @@ static HRESULT UxfGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
 			break;
 		}
 		break;
+	case ThemeType::ControlPanel:
+		switch (iPartId)
+		{
+		case CPANEL_CONTENTPANE:
+		case CPANEL_LARGECOMMANDAREA:
+		case CPANEL_SMALLCOMMANDAREA:
+			if (iPropId == TMT_FILLCOLOR)
+			{
+				cr = ptc->crDefBkg;
+				return S_OK;
+			}
+			break;
+		case CPANEL_BODYTEXT:
+		case CPANEL_BODYTITLE:
+		case CPANEL_CONTENTPANELABEL:
+		case CPANEL_MESSAGETEXT:
+			if (iPropId == TMT_TEXTCOLOR)
+			{
+				cr = ptc->crDefText;
+				return S_OK;
+			}
+			break;
+		case CPANEL_TITLE:
+			if (iPropId == TMT_TEXTCOLOR)
+			{
+				cr = ptc->crBlue1;
+				return S_OK;
+			}
+			break;
+		case CPANEL_HELPLINK:
+		case CPANEL_TASKLINK:
+		case CPANEL_CONTENTLINK:
+		case CPANEL_BUTTON:
+			if (iPropId == TMT_TEXTCOLOR)
+			{
+				const auto hr = s_pfnGetThemeColor(hTheme, iPartId, iStateId, iPropId, &cr);
+				cr = AdjustColorrefLuma(cr, 200);
+				return hr;
+			}
+			break;
+		}
+		break;
 	}
 	return E_NOTIMPL;
 }
@@ -647,7 +700,6 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 			case TDLG_FOOTNOTESEPARATOR:
 				return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.67f);
 			}
-
 		break;
 	case ThemeType::Button:
 		switch (iPartId)
@@ -808,19 +860,11 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 		return S_OK;
 		case AW_COMMANDAREA:
 		{
+			SetDCBrushColor(hDC, ptc->crDefBtnFace);
 			if (pOptions && pOptions->dwFlags & DTBG_CLIPRECT)
-			{
-				const auto sdc = SaveDcClip(hDC);
-				IntersectClipRect(hDC, pOptions->rcClip);
-				SetDCBrushColor(hDC, ptc->crDefBtnFace);
-				FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
-				RestoreDcClip(hDC, sdc);
-			}
+				FillRect(hDC, &pOptions->rcClip, GetStockBrush(DC_BRUSH));
 			else
-			{
-				SetDCBrushColor(hDC, ptc->crDefBtnFace);
 				FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
-			}
 		}
 		return S_OK;
 		}
@@ -863,19 +907,11 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 				if (FAILED(s_pfnDrawThemeBackgroundEx(hTheme, hDC,
 					iPartId, iStateId, prc, pOptions)))
 				{
+					SetDCBrushColor(hDC, ptc->crDefBkg);
 					if (pOptions && pOptions->dwFlags & DTBG_CLIPRECT)
-					{
-						auto sdc = SaveDcClip(hDC);
-						IntersectClipRect(hDC, pOptions->rcClip);
-						SetDCBrushColor(hDC, ptc->crDefBkg);
-						FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
-						RestoreDcClip(hDC, sdc);
-					}
+						FillRect(hDC, &pOptions->rcClip, GetStockBrush(DC_BRUSH));
 					else
-					{
-						SetDCBrushColor(hDC, ptc->crDefBkg);
 						FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
-					}
 				}
 				return S_OK;
 			}
@@ -905,7 +941,13 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 		switch (iPartId)
 		{
 		case CPANEL_CONTENTPANE:
-			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.86f);
+			SetDCBrushColor(hDC, ptc->crDefBkg);
+			if (pOptions && pOptions->dwFlags & DTBG_CLIPRECT)
+				FillRect(hDC, &pOptions->rcClip, GetStockBrush(DC_BRUSH));
+			else
+				FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
+			return S_OK;
+		case CPANEL_LARGECOMMANDAREA:
 		case CPANEL_SMALLCOMMANDAREA:
 			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.79f);
 		}
