@@ -44,7 +44,7 @@ struct INPUTBOXOPT
 	CEditExt::InputMode eInputMode;
 };
 
-class CInputBox final :public CDialogNew
+class CInputBox :public CDialogNew
 {
 public:
 	ECK_RTTI(CInputBox);

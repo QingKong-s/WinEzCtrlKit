@@ -241,22 +241,23 @@ static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 {
 	if (!hTheme)
 		return;
-	/*EckDbgPrintFmt(L"UxfOnThemeOpen: hWnd = %p, hTheme = %p, pszClassList = %s",
-		hWnd, hTheme, pszClassList);*/
+	EckDbgPrintFmt(L"UxfOnThemeOpen: hWnd = %p, hTheme = %p, pszClassList = %s",
+		hWnd, hTheme, pszClassList);
 	ThemeType eType;
-	if (_wcsnicmp(pszClassList, L"Button", 6) == 0)
+	if (EckIsStartWithConstStringIW(pszClassList, L"Button"))
 		eType = ThemeType::Button;
-	else if (_wcsnicmp(pszClassList, L"TaskDialog", 10) == 0)
+	else if (EckIsStartWithConstStringIW(pszClassList, L"TaskDialog"))
 		eType = ThemeType::TaskDialog;
 	else if (_wcsicmp(pszClassList, L"Tab") == 0)
 		eType = ThemeType::Tab;
 	else if (_wcsicmp(pszClassList, L"ToolBar") == 0)
 		eType = ThemeType::ToolBar;
-	else if (_wcsnicmp(pszClassList, L"AeroWizard", 10) == 0)
+	else if (EckIsStartWithConstStringIW(pszClassList, L"AeroWizard"))
 		eType = ThemeType::AeroWizard;
 	else if (_wcsicmp(pszClassList, L"DatePicker") == 0)
 		eType = ThemeType::DateTimePicker;
-	else if (wcsstr(pszClassList, L"ListView") || _wcsicmp(pszClassList, L"ItemsView") == 0)
+	else if (wcsstr(pszClassList, L"ListView") || 
+		_wcsicmp(pszClassList, L"ItemsView") == 0)
 		eType = ThemeType::ListView;
 	else if (_wcsicmp(pszClassList, L"Link") == 0)
 		eType = ThemeType::Link;
@@ -267,7 +268,7 @@ static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 	else if (_wcsicmp(pszClassList, L"Progress") == 0 ||
 		_wcsicmp(pszClassList, L"Indeterminate::Progress") == 0)
 		eType = ThemeType::Progress;
-	else if (_wcsnicmp(pszClassList, L"ControlPanel", 12) == 0)
+	else if (EckIsStartWithConstStringIW(pszClassList, L"ControlPanel"))
 		eType = ThemeType::ControlPanel;
 	else
 		eType = ThemeType::Invalid;
@@ -995,9 +996,8 @@ static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Combobox");
 		else if (_wcsicmp(pszClassList, L"Edit") == 0)
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Edit");
-		else if (UxfIsDarkTaskDialogAvailable() && (
-			_wcsicmp(pszClassList, L"TaskDialog") == 0 ||
-			_wcsicmp(pszClassList, L"TaskDialogStyle") == 0))
+		else if (UxfIsDarkTaskDialogAvailable() &&
+			EckIsStartWithConstStringIW(pszClassList, L"TaskDialog"))
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_Explorer::TaskDialog");
 		else
 			hTheme = s_pfnOpenThemeData(hWnd, pszClassList);
@@ -1017,9 +1017,8 @@ static HTHEME WINAPI NewOpenThemeDataForDpi(HWND hWnd, PCWSTR pszClassList, UINT
 			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_CFD::Combobox", uDpi);
 		else if (_wcsicmp(pszClassList, L"Edit") == 0)
 			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_CFD::Edit", uDpi);
-		else if (UxfIsDarkTaskDialogAvailable() && (
-			_wcsicmp(pszClassList, L"TaskDialog") == 0 ||
-			_wcsicmp(pszClassList, L"TaskDialogStyle") == 0))
+		else if (UxfIsDarkTaskDialogAvailable() &&
+			EckIsStartWithConstStringIW(pszClassList, L"TaskDialog"))
 			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_Explorer::TaskDialog", uDpi);
 		else
 			hTheme = s_pfnOpenThemeDataForDpi(hWnd, pszClassList, uDpi);
@@ -1174,8 +1173,7 @@ static int WINAPI NewSoftModalMessageBox(void* p)
 		return s_pfnSoftModalMessageBox(p);
 	CMsgBoxHook Mb{};
 	BeginCbtHook(&Mb);
-	const auto iRet = s_pfnSoftModalMessageBox(p);
-	return iRet;
+	return s_pfnSoftModalMessageBox(p);
 }
 #pragma endregion UxFixer
 
@@ -1480,7 +1478,8 @@ void ThreadInit()
 
 					if (it != itEnd)
 					{
-						if (it == c_pszCommCtrlCls + 1 || it == c_pszCommCtrlCls + 2)// HEADER/LISTVIEW
+						if (it == c_pszCommCtrlCls + 1/*Header*/ ||
+							it == c_pszCommCtrlCls + 2/*ListView*/)
 							SetWindowTheme(hWnd, L"ItemsView", nullptr);
 						else ECKLIKELY
 							SetWindowTheme(hWnd, L"Explorer", nullptr);
@@ -1535,14 +1534,19 @@ void THREADCTX::SendThemeChangedToAllTopWindow()
 {
 	for (const auto& [hWnd, _] : hmTopWnd)
 	{
+		// WM_THEMECHANGED
+		// wParam - 改变的部分，分为高低WORD两个代码，-1表示所有，0通常被忽略。
+		//			DUser借助此进行主题句柄缓存，见
+		//			comctl32!DirectUI::ThemeHandleCache::FlushHandles
+		// lParam - 一组位标志
 		if (GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_VISIBLE)
 		{
 			SendMessageW(hWnd, WM_SETREDRAW, FALSE, 0);
-			BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, 0, 0);
+			BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, -1, 0);
 			SendMessageW(hWnd, WM_SETREDRAW, TRUE, 0);
 		}
 		else
-			BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, 0, 0);
+			BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, -1, 0);
 		RedrawWindow(hWnd, nullptr, nullptr,
 			RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
 	}
