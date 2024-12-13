@@ -1,7 +1,7 @@
 ﻿/*
 * WinEzCtrlKit Library
 *
-* CImgMat.h : 图像矩阵
+* CImgMat.h ： 图像矩阵
 *
 * Copyright(C) 2024 QingKong
 */

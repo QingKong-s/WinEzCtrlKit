@@ -169,6 +169,11 @@ ECK_NAMESPACE_END
 // 复制宽字符串字面量
 #define EckCopyConstStringW(pszDst, Src) wmemcpy(pszDst, Src, ARRAYSIZE(Src))
 
+#define EckIsStartWithConstStringA(psz, sz) (strncmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
+#define EckIsStartWithConstStringW(psz, sz) (wcsncmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
+#define EckIsStartWithConstStringIA(psz, sz) (_strnicmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
+#define EckIsStartWithConstStringIW(psz, sz) (_wcsnicmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
+
 // 计次循环
 #define EckCounter(c, Var) \
 	for(::eck::UnderlyingType_T<::eck::RemoveCVRef_T<decltype(c)>> Var = 0; Var < (c); ++Var)

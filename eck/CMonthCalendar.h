@@ -213,4 +213,5 @@ public:
 		SendMsg(MCM_SETTODAY, 0, (LPARAM)pst);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CMonthCalendar, CWnd);
 ECK_NAMESPACE_END
