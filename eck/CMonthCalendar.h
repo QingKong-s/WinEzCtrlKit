@@ -11,6 +11,8 @@
 ECK_NAMESPACE_BEGIN
 class CMonthCalendar : public CWnd
 {
+private:
+	BOOL m_bAutoDarkMode{ TRUE };
 public:
 	ECK_RTTI(CMonthCalendar);
 	ECK_CWND_NOSINGLEOWNER(CMonthCalendar);
@@ -25,6 +27,23 @@ public:
 	ECK_CWNDPROP_STYLE(ShortDaysOfWeek, MCS_SHORTDAYSOFWEEK);
 	ECK_CWNDPROP_STYLE(NoSelChangeOnNav, MCS_NOSELCHANGEONNAV);
 
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
+	{
+		if (m_bAutoDarkMode)
+			switch (uMsg)
+			{
+			case WM_THEMECHANGED:
+			case WM_CREATE:
+			{
+				const auto lResult = __super::OnMsg(hWnd, uMsg, wParam, lParam);
+				SetCorrectColor();
+				return lResult;
+			}
+			break;
+			}
+		return __super::OnMsg(hWnd, uMsg, wParam, lParam);
+	}
+
 	EckInline int GetCalBorder() const
 	{
 		return (int)SendMsg(MCM_GETCALENDARBORDER, 0, 0);
@@ -35,7 +54,7 @@ public:
 		return (int)SendMsg(MCM_GETCALENDARCOUNT, 0, 0);
 	}
 
-	EckInline BOOL GetGridInfo(MCGRIDINFO* pmcgi) const
+	EckInline BOOL GetGridInfo(_Inout_ MCGRIDINFO* pmcgi) const
 	{
 		return (BOOL)SendMsg(MCM_GETCALENDARGRIDINFO, 0, (LPARAM)pmcgi);
 	}
@@ -68,7 +87,7 @@ public:
 		return (int)SendMsg(MCM_GETCURRENTVIEW, 0, 0);
 	}
 
-	EckInline BOOL GetCurrSel(SYSTEMTIME* pst) const
+	EckInline BOOL GetCurrSel(_Out_ SYSTEMTIME* pst) const
 	{
 		return (BOOL)SendMsg(MCM_GETCURSEL, 0, (LPARAM)pst);
 	}
@@ -78,7 +97,7 @@ public:
 		return (DWORD)SendMsg(MCM_GETFIRSTDAYOFWEEK, 0, 0);
 	}
 
-	EckInline BOOL GetFirstDayOfWeek(int* pnDay) const
+	EckInline BOOL GetFirstDayOfWeek(_Out_ int* pnDay) const
 	{
 		const auto dwRet = GetFirstDayOfWeek();
 		*pnDay = LOWORD(dwRet);
@@ -95,7 +114,7 @@ public:
 		return (int)SendMsg(MCM_GETMAXTODAYWIDTH, 0, 0);
 	}
 
-	EckInline BOOL GetMinReqRect(RECT* prc) const
+	EckInline BOOL GetMinReqRect(_Out_ RECT* prc) const
 	{
 		return (BOOL)SendMsg(MCM_GETMINREQRECT, 0, (LPARAM)prc);
 	}
@@ -132,12 +151,12 @@ public:
 		return (BOOL)SendMsg(MCM_GETSELRANGE, 0, (LPARAM)pst);
 	}
 
-	EckInline BOOL GetToday(SYSTEMTIME* pst) const
+	EckInline BOOL GetToday(_Out_ SYSTEMTIME* pst) const
 	{
 		return (BOOL)SendMsg(MCM_GETTODAY, 0, (LPARAM)pst);
 	}
 
-	EckInline UINT HitTest(MCHITTESTINFO* pMCHitTest) const
+	EckInline UINT HitTest(_Inout_ MCHITTESTINFO* pMCHitTest) const
 	{
 		return (UINT)SendMsg(MCM_HITTEST, 0, (LPARAM)pMCHitTest);
 	}
@@ -173,12 +192,12 @@ public:
 		return (BOOL)SendMsg(MCM_SETCURRENTVIEW, iView, 0);
 	}
 
-	EckInline BOOL SetCurrSel(SYSTEMTIME* pst) const
+	EckInline BOOL SetCurrSel(_In_ SYSTEMTIME* pst) const
 	{
 		return (BOOL)SendMsg(MCM_SETCURSEL, 0, (LPARAM)pst);
 	}
 
-	EckInline BOOL SetDayState(MONTHDAYSTATE* pmds, int c)
+	EckInline BOOL SetDayState(_In_ MONTHDAYSTATE* pmds, int c)
 	{
 		return (BOOL)SendMsg(MCM_SETDAYSTATE, c, (LPARAM)pmds);
 	}
@@ -198,7 +217,7 @@ public:
 		return (int)SendMsg(MCM_SETMONTHDELTA, nDelta, 0);
 	}
 
-	EckInline BOOL SetRange(UINT uType, SYSTEMTIME* pst) const
+	EckInline BOOL SetRange(UINT uType, _In_ SYSTEMTIME* pst) const
 	{
 		return (BOOL)SendMsg(MCM_SETRANGE, uType, (LPARAM)pst);
 	}
@@ -208,9 +227,17 @@ public:
 		return (BOOL)SendMsg(MCM_SETSELRANGE, 0, (LPARAM)pst);
 	}
 
-	EckInline void SetToday(SYSTEMTIME* pst) const
+	EckInline void SetToday(_In_ SYSTEMTIME* pst) const
 	{
 		SendMsg(MCM_SETTODAY, 0, (LPARAM)pst);
+	}
+
+	EckInline constexpr void SetAutoDarkMode(BOOL b) { m_bAutoDarkMode = b; }
+	EckInline constexpr BOOL GetAutoDarkMode() const { return m_bAutoDarkMode; }
+
+	EckInline void SetCorrectColor() const
+	{
+		SetColor(MCSC_BACKGROUND, GetThreadCtx()->crDefBkg);
 	}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CMonthCalendar, CWnd);

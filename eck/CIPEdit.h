@@ -46,4 +46,5 @@ public:
 		SendMsg(IPM_SETRANGE, iField, (LPARAM)wLimit);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CIPEdit, CWnd);
 ECK_NAMESPACE_END

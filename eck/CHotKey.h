@@ -16,7 +16,12 @@ public:
 	ECK_CWND_NOSINGLEOWNER(CHotKey);
 	ECK_CWND_CREATE_CLS(HOTKEY_CLASSW);
 
-	UINT GetHotKey(UINT& vkCom) const
+	/// <summary>
+	/// 取热键
+	/// </summary>
+	/// <param name="vkCom">功能键组合，HOTKEYF_常量</param>
+	/// <returns>热键的虚拟键代码</returns>
+	UINT GetHotKey(_Out_ UINT& vkCom) const
 	{
 		WORD wRet = (WORD)SendMsg(HKM_GETHOTKEY, 0, 0);
 		vkCom = HIBYTE(wRet);

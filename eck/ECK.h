@@ -728,6 +728,8 @@ extern IDWriteFactory* g_pDwFactory;
 extern ID2D1Device* g_pD2dDevice;
 extern IDXGIDevice1* g_pDxgiDevice;
 extern IDXGIFactory2* g_pDxgiFactory;
+
+extern HMODULE g_hModComCtl32;
 #pragma endregion Global
 
 #pragma region Init

@@ -83,6 +83,8 @@ CRefStrW	g_rsCurrDir{};
 DWORD		g_dwTlsSlot{};
 NTVER		g_NtVer{};
 
+HMODULE		g_hModComCtl32{ (HMODULE)SIZETMax };
+
 // For GdiPlus
 ULONG_PTR	g_uGpToken{};
 
@@ -211,6 +213,7 @@ enum class ThemeType
 	TextStyle,
 	Progress,		// +Indeterminate::Progress
 	ControlPanel,	// +ControlPanelStyle
+	MonthCalendar,
 };
 
 struct THEME_INFO
@@ -270,6 +273,8 @@ static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 		eType = ThemeType::Progress;
 	else if (EckIsStartWithConstStringIW(pszClassList, L"ControlPanel"))
 		eType = ThemeType::ControlPanel;
+	else if (_wcsicmp(pszClassList, L"MonthCal") == 0)
+		eType = ThemeType::MonthCalendar;
 	else
 		eType = ThemeType::Invalid;
 	if (eType != ThemeType::Invalid)
@@ -414,8 +419,7 @@ static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 		if (SUCCEEDED(hr = s_pfnGetThemeColor(hTheme, iPartId, iStateId,
 			TMT_FILLCOLOR, &crFill)))
 		{
-			crFill = DeltaColorrefLuma(crFill, fDelta);
-			SetDCBrushColor(hDC, crFill);
+			SetDCBrushColor(hDC, DeltaColorrefLuma(crFill, fDelta));
 			if (bClip)
 				FillRect(hDC, &pOpt->rcClip, GetStockBrush(DC_BRUSH));
 			else
@@ -660,6 +664,43 @@ static HRESULT UxfGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
 				return hr;
 			}
 			break;
+		}
+		break;
+	case ThemeType::MonthCalendar:
+		if (iPropId == TMT_TEXTCOLOR)
+		{
+			switch (iPartId)
+			{
+			case MC_GRIDCELL:
+				switch (iStateId)
+				{
+				case 0:
+				case MCGC_HASSTATE:
+				case MCGC_SELECTED:
+					cr = ptc->crDefText;
+					return S_OK;
+				default:
+					s_pfnGetThemeColor(hTheme, iPartId, iStateId, iPropId, &cr);
+					cr = AdjustColorrefLuma(cr, 200);
+					return S_OK;
+				}
+				break;
+			case MC_GRIDCELLUPPER:
+				switch (iStateId)
+				{
+				case 0:
+				case MCGCU_SELECTED:
+					cr = ptc->crDefText;
+					return S_OK;
+				case MCGC_HASSTATE:
+					cr = ptc->crGray1;
+					return S_OK;
+				default:
+					s_pfnGetThemeColor(hTheme, iPartId, iStateId, iPropId, &cr);
+					cr = AdjustColorrefLuma(cr, 200);
+					return S_OK;
+				}
+			}
 		}
 		break;
 	}
@@ -951,6 +992,24 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 		case CPANEL_LARGECOMMANDAREA:
 		case CPANEL_SMALLCOMMANDAREA:
 			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.79f);
+		}
+		break;
+	case ThemeType::MonthCalendar:
+		switch (iPartId)
+		{
+		case MC_BACKGROUND:
+		case MC_GRIDBACKGROUND:
+			SetDCBrushColor(hDC, ptc->crDefBkg);
+			if (pOptions && pOptions->dwFlags & DTBG_CLIPRECT)
+				FillRect(hDC, &pOptions->rcClip, GetStockBrush(DC_BRUSH));
+			else
+				FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
+			return S_OK;
+		case MC_GRIDCELLBACKGROUND:
+			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.5f);
+		case MC_NAVNEXT:
+		case MC_NAVPREV:
+			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.7f);
 		}
 		break;
 	}
@@ -1421,6 +1480,8 @@ DWORD GetThreadCtxTlsSlot()
 
 void ThreadInit()
 {
+	if ((SIZE_T)g_hModComCtl32 == SIZETMax)
+		g_hModComCtl32 = GetModuleHandleW(L"comctl32.dll");
 	EckAssert(!TlsGetValue(GetThreadCtxTlsSlot()));
 	const auto p = new THREADCTX{};
 	TlsSetValue(GetThreadCtxTlsSlot(), p);
@@ -1535,9 +1596,17 @@ void THREADCTX::SendThemeChangedToAllTopWindow()
 	for (const auto& [hWnd, _] : hmTopWnd)
 	{
 		// WM_THEMECHANGED
-		// wParam - 改变的部分，分为高低WORD两个代码，-1表示所有，0通常被忽略。
-		//			DUser借助此进行主题句柄缓存，见
-		//			comctl32!DirectUI::ThemeHandleCache::FlushHandles
+		// wParam
+		// 改变的部分，分为高低WORD两个代码，-1表示所有，0似乎是无效值。
+		// DUser借助此进行主题句柄缓存，见
+		// comctl32!DirectUI::ThemeHandleCache::FlushHandles，
+		// 伪代码：
+		// static WPARAM s_wParam{};
+		// if (wParam == -1 || wParam == s_wParam) {
+		//	s_wParam = wParam;
+		//	无效化缓存();
+		// }
+		// 
 		// lParam - 一组位标志
 		if (GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_VISIBLE)
 		{
@@ -1615,6 +1684,7 @@ BOOL PreTranslateMessage(const MSG& Msg)
 #pragma region Dbg
 void DbgPrintWndMap()
 {
+#ifdef _DEBUG
 	const auto* const pCtx = GetThreadCtx();
 	auto s = Format(L"当前线程（TID = %u）窗口映射表内容：\n", NtCurrentThreadId32());
 	for (const auto& e : pCtx->hmWnd)
@@ -1627,25 +1697,31 @@ void DbgPrintWndMap()
 	}
 	s.AppendFormat(L"共有%u个窗口\n", (UINT)pCtx->hmWnd.size());
 	OutputDebugStringW(s.Data());
+#endif // _DEBUG
 }
 
 void DbgPrintFmt(_Printf_format_string_ PCWSTR pszFormat, ...)
 {
+#ifdef _DEBUG
 	va_list vl;
 	va_start(vl, pszFormat);
 	CRefStrW rs{};
 	rs.FormatV(pszFormat, vl);
 	DbgPrint(rs);
 	va_end(vl);
+#endif // _DEBUG
 }
 
 void DbgPrintWithPos(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg)
 {
+#ifdef _DEBUG
 	DbgPrint(Format(L"%s(%u) -> %s\n%s\n", pszFile, iLine, pszFunc, pszMsg));
+#endif // _DEBUG
 }
 
 void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 {
+#ifdef _DEBUG
 	TASKDIALOGCONFIG tdc{ sizeof(TASKDIALOGCONFIG) };
 	tdc.pszMainInstruction = L"断言失败！";
 	tdc.pszMainIcon = TD_ERROR_ICON;
@@ -1681,6 +1757,7 @@ void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 	case 102:
 		return;
 	}
+#endif // _DEBUG
 }
 #pragma endregion Dbg
 ECK_NAMESPACE_END

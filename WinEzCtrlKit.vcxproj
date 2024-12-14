@@ -179,7 +179,9 @@
     <ClInclude Include="eck\CEnumFile.h" />
     <ClInclude Include="eck\CHeaderExt.h" />
     <ClInclude Include="eck\CHitter.h" />
+    <ClInclude Include="eck\CHotKeyExt.h" />
     <ClInclude Include="eck\CIPEdit.h" />
+    <ClInclude Include="eck\CIPEditExt.h" />
     <ClInclude Include="eck\CLayoutDummy.h" />
     <ClInclude Include="eck\CMemorySet.h" />
     <ClInclude Include="eck\CMonthCalendar.h" />

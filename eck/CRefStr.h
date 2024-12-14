@@ -597,6 +597,12 @@ public:
 		DupString((TConstPointer)nts.Buffer, (int)nts.Length);
 	}
 
+	template<class TTraits>
+	void DupString(std::basic_string_view<TChar, TTraits> sv)
+	{
+		DupString(sv.data(), (int)sv.size());
+	}
+
 	EckInline int DupBSTR(BSTR bstr)
 	{
 		if (bstr)

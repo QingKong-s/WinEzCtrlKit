@@ -432,6 +432,29 @@ inline std::span<const BYTE> GetResource(PCWSTR pszName, PCWSTR pszType,
 	return { (PCBYTE)pRes,cbRes };
 }
 
+inline std::wstring_view GetResourceString(WORD wID, WORD wLangID,
+	HMODULE hModule = nullptr)
+{
+	const auto hRes = FindResourceExW(hModule, RT_STRING,
+		MAKEINTRESOURCEW(1 + wID / 16), wLangID);
+	if (!hRes)
+		return {};
+	const auto hgStr = LoadResource(hModule, hRes);
+	if (!hgStr)
+		return {};
+	auto pszBegin = (PCWSTR)LockResource(hgStr);
+	for (size_t i = 0; i < wID % 16; ++i)
+		pszBegin += (*pszBegin + 1);
+	const int cch = *pszBegin++;
+	return { pszBegin,(size_t)cch };
+}
+
+EckInline std::wstring_view GetResourceStringForCurrLocale(
+	WORD wID,HMODULE hModule = nullptr)
+{
+	return GetResourceString(wID, LANGIDFROMLCID(GetThreadLocale()), hModule);
+}
+
 inline int ZLibDecompress(PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult)
 {
 	int iRet;
@@ -1090,5 +1113,14 @@ Tidyup:;
 		BCryptDestroyKey(hKey);
 	BCryptCloseAlgorithmProvider(hAlg, 0);
 	return nts;
+}
+
+EckInline int GetKeyNameTextByVk(WORD wVk, PWSTR pszBuf, int cchBuf,
+	BOOL bExtended = FALSE, BOOL bDontCare = FALSE)
+{
+	return GetKeyNameTextW((MapVirtualKeyW(wVk, MAPVK_VK_TO_VSC) << 16) |
+		((!!bExtended) << 24) |
+		((!!bDontCare) << 25),
+		pszBuf, cchBuf);
 }
 ECK_NAMESPACE_END

@@ -10,7 +10,6 @@
 #include "CListView.h"
 #include "CHeaderExt.h"
 #include "CtrlGraphics.h"
-#include "CSrwLock.h"
 #include "GraphicsHelper.h"
 
 #include <map>
