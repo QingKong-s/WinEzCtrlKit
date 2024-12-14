@@ -12,8 +12,9 @@
 ECK_NAMESPACE_BEGIN
 class CHotKeyExt : public CHotKey
 {
-private:
 public:
+	ECK_RTTI(CHotKeyExt);
+
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)
@@ -97,4 +98,5 @@ public:
 		return __super::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 };
+ECK_RTTI_IMPL_BASE_INLINE(CHotKeyExt, CHotKey);
 ECK_NAMESPACE_END

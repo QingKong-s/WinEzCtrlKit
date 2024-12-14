@@ -163,13 +163,11 @@ s_WndClassInfo[]
 enum
 {
 	//===部件===
-	// Link
-	TP_LINK_HYPERLINK = 1,// 超链接
-	//===状态===
-	// Link
-	TS_LINK_HYPERLINK_COMMON = 0,
-	TS_LINK_HYPERLINK_NORMAL = 1,// Invalid
-	TS_LINK_HYPERLINK_LINK = 2,
+	// Status
+	STATUSBAR_PART_COMMON = 0,
+	STATUSBAR_PART_PANE = 1,
+	STATUSBAR_PART_GRIPPERPANE = 2,
+	STATUSBAR_PART_GRIPPER = 3,
 };
 
 using FOpenThemeData = HTHEME(WINAPI*)(HWND, PCWSTR);
@@ -214,6 +212,7 @@ enum class ThemeType
 	Progress,		// +Indeterminate::Progress
 	ControlPanel,	// +ControlPanelStyle
 	MonthCalendar,
+	StatusBar,		// +StatusBarStyle
 };
 
 struct THEME_INFO
@@ -259,7 +258,7 @@ static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 		eType = ThemeType::AeroWizard;
 	else if (_wcsicmp(pszClassList, L"DatePicker") == 0)
 		eType = ThemeType::DateTimePicker;
-	else if (wcsstr(pszClassList, L"ListView") || 
+	else if (wcsstr(pszClassList, L"ListView") ||
 		_wcsicmp(pszClassList, L"ItemsView") == 0)
 		eType = ThemeType::ListView;
 	else if (_wcsicmp(pszClassList, L"Link") == 0)
@@ -275,6 +274,8 @@ static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 		eType = ThemeType::ControlPanel;
 	else if (_wcsicmp(pszClassList, L"MonthCal") == 0)
 		eType = ThemeType::MonthCalendar;
+	else if (EckIsStartWithConstStringIW(pszClassList, L"Status"))
+		eType = ThemeType::StatusBar;
 	else
 		eType = ThemeType::Invalid;
 	if (eType != ThemeType::Invalid)
@@ -331,7 +332,7 @@ EckInline constexpr BOOL UxfIsDarkTaskDialogAvailable()
 /// </summary>
 /// <param name="fDelta">颜色分量的变化量，0~1</param>
 static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
-	_In_ const RECT* prc, _In_opt_ const DTBGOPTS* pOpt, float fDelta)
+	_In_ const RECT* prc, _In_opt_ const DTBGOPTS* pOpt, float fDelta, BOOL bReverse = FALSE)
 {
 	const BOOL bClip = pOpt && (pOpt->dwFlags & DTBG_CLIPRECT);
 	HRESULT hr;
@@ -388,8 +389,17 @@ static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 			0, 0, 0, 1, 0,
 			fDelta, fDelta, fDelta, 0, 1
 		};
+
+		const Gdiplus::ColorMatrix MatReverse
+		{
+			-1, 0, 0, 0, 0,
+			0, -1, 0, 0, 0,
+			0, 0, -1, 0, 0,
+			0, 0, 0, 1, 0,
+			1 + fDelta, 1 + fDelta, 1 + fDelta, 0, 1
+		};
 		GdipSetImageAttributesColorMatrix(pIA, Gdiplus::ColorAdjustTypeDefault,
-			TRUE, &Mat, nullptr, Gdiplus::ColorMatrixFlagsDefault);
+			TRUE, bReverse ? &MatReverse : &Mat, nullptr, Gdiplus::ColorMatrixFlagsDefault);
 		GpGraphics* pGraphics;
 		GdipCreateFromHDC(hDC, &pGraphics);
 		if (bClip)
@@ -557,7 +567,7 @@ static HRESULT UxfGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
 	case ThemeType::Link:
 		switch (iPartId)
 		{
-		case TP_LINK_HYPERLINK:
+		case LP_HYPERLINK:
 			if (iPropId == TMT_TEXTCOLOR)
 			{
 				const auto hr = s_pfnGetThemeColor(hTheme, iPartId, iStateId, iPropId, &cr);
@@ -701,6 +711,13 @@ static HRESULT UxfGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
 					return S_OK;
 				}
 			}
+		}
+		break;
+	case ThemeType::StatusBar:
+		if (iPropId == TMT_TEXTCOLOR)
+		{
+			cr = ptc->crDefText;
+			return S_OK;
 		}
 		break;
 	}
@@ -1010,6 +1027,15 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 		case MC_NAVNEXT:
 		case MC_NAVPREV:
 			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.7f);
+		}
+		break;
+	case ThemeType::StatusBar:
+		switch (iPartId)
+		{
+		case STATUSBAR_PART_COMMON:
+			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.1f, TRUE);
+		case STATUSBAR_PART_PANE:
+			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.1f, TRUE);
 		}
 		break;
 	}
