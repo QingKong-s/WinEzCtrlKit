@@ -8,6 +8,7 @@
 #pragma once
 #include "CHeader.h"
 #include "CEditExt.h"
+#include "Utility2.h"
 
 ECK_NAMESPACE_BEGIN
 class CHeaderExt : public CHeader
@@ -80,7 +81,6 @@ private:
 
 	CEditExt* m_pEDFilter{};
 
-	HMODULE m_hModComctl32{};
 	CEzCDC m_DcFilterBmp{};
 	SIZE m_sizeFilter{};
 	CRefStrW m_rsEnterTextHere{};
@@ -494,10 +494,9 @@ private:
 	{
 		m_bCheckBoxes = IsBitSet(dwStyle, HDS_CHECKBOXES);
 		m_bFilterBar = IsBitSet(dwStyle, HDS_FILTERBAR);
-		if (m_bFilterBar && !m_hModComctl32)
+		if (m_bFilterBar)
 		{
-			m_hModComctl32 = GetModuleHandleW(L"comctl32.dll");
-			m_DcFilterBmp.m_hBmp = (HBITMAP)LoadImageW(m_hModComctl32, MAKEINTRESOURCEW(140),
+			m_DcFilterBmp.m_hBmp = (HBITMAP)LoadImageW(g_hModComCtl32, MAKEINTRESOURCEW(140),
 				IMAGE_BITMAP, 0, 0, LR_SHARED);
 			m_DcFilterBmp.m_hCDC = CreateCompatibleDC(nullptr);
 			m_DcFilterBmp.m_hOld = SelectObject(m_DcFilterBmp.m_hCDC, m_DcFilterBmp.m_hBmp);
@@ -505,14 +504,8 @@ private:
 			GetObjectW(m_DcFilterBmp.m_hBmp, sizeof(bm), &bm);
 			m_sizeFilter = { bm.bmWidth,bm.bmHeight };
 
-			const auto hRes = FindResourceExW(m_hModComctl32, RT_STRING,
-				MAKEINTRESOURCEW(1 + 0x1050 / 16), LANGIDFROMLCID(GetThreadLocale()));
-			const auto hgStr = LoadResource(m_hModComctl32, hRes);
-			auto pszBegin = (PCWSTR)LockResource(hgStr);
-			for (size_t i = 0; i < 0x1050 % 16; ++i)
-				pszBegin += (*pszBegin + 1);
-			const int cch = *pszBegin++;
-			m_rsEnterTextHere.DupString(pszBegin, cch);
+			m_rsEnterTextHere.DupString(
+				GetResourceStringForCurrLocale(0x1050, g_hModComCtl32));
 		}
 	}
 
