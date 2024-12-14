@@ -189,6 +189,7 @@
     <ClInclude Include="eck\CObject.h" />
     <ClInclude Include="eck\CRegion.h" />
     <ClInclude Include="eck\CSelRange.h" />
+    <ClInclude Include="eck\CStatusBar.h" />
     <ClInclude Include="eck\CTableLayout.h" />
     <ClInclude Include="eck\CUnknown.h" />
     <ClInclude Include="eck\CWaitableObject.h" />
