@@ -16,6 +16,36 @@ private:
 	RECT m_rcMainPanel{};
 	RECT m_rcCommandEdge{};
 	HICON m_hIcon{};
+
+	void UpdateMetrics(int iDpi)
+	{
+		const auto hStatic = GetDlgItem(HWnd, 0xFFFF);
+		const auto hStaticIcon = GetDlgItem(HWnd, 0x14);
+		// 内部测高机制过于复杂，这里使用静态控件的高度
+		RECT rcTemp;
+		GetClientRect(hStatic, &rcTemp);
+		const auto cyText = rcTemp.bottom;
+		if (hStaticIcon)
+			GetClientRect(hStaticIcon, &rcTemp);
+		else
+			rcTemp.bottom = 0;
+		const auto cyIcon = rcTemp.bottom;
+		// 其字符高度来源为GdiGetCharDimensions(Ex)，
+		// 该函数简单地将字符高度设为tmHeight
+		const auto hCDC = CreateCompatibleDC(nullptr);
+		SelectObject(hCDC, (HGDIOBJ)SendMessageW(hStatic, WM_GETFONT, 0, 0));
+		TEXTMETRICW tm;
+		GetTextMetricsW(hCDC, &tm);
+		DeleteDC(hCDC);
+		// User32的计算方法，不应仿照其底边计算方式，
+		// 因为其得出的数值不准确，实际上超过了客户区高度
+		const int cyTextMargin = (14 * tm.tmHeight + 4) >> 3;
+		GetClientRect(HWnd, &m_rcMainPanel);
+		m_rcCommandEdge = m_rcMainPanel;
+		m_rcMainPanel.bottom = std::max(cyText, cyIcon) + cyTextMargin * 2
+			- DpiScale(2, iDpi);
+		m_rcCommandEdge.top = m_rcMainPanel.bottom;
+	}
 public:
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
@@ -40,39 +70,15 @@ public:
 		{
 			// Call默认过程，先执行初始化
 			const auto lResult = __super::OnMsg(hWnd, uMsg, wParam, lParam);
-			const auto hStatic = GetDlgItem(hWnd, 0xFFFF);
-			const auto hStaticIcon = GetDlgItem(hWnd, 0x14);
-			if (hStaticIcon)
+			if (HWND hStaticIcon; hStaticIcon = GetDlgItem(hWnd, 0x14))
 			{
 				m_hIcon = (HICON)SendMessageW(hStaticIcon, STM_GETICON, 0, 0);
 				// OD修正图标白底
 				SetWindowLongPtrW(hStaticIcon, GWL_STYLE,
 					(GetWindowLongPtrW(hStaticIcon, GWL_STYLE) & ~SS_ICON) | SS_OWNERDRAW);
 			}
-			// 内部测高机制过于复杂，这里使用静态控件的高度
-			RECT rcTemp;
-			GetClientRect(hStatic, &rcTemp);
-			const auto cyText = rcTemp.bottom;
-			if (hStaticIcon)
-				GetClientRect(hStaticIcon, &rcTemp);
-			else
-				rcTemp.bottom = 0;
-			const auto cyIcon = rcTemp.bottom;
-			// 其字符高度来源为GdiGetCharDimensions(Ex)，
-			// 该函数简单地将字符高度设为tmHeight
-			const auto hCDC = CreateCompatibleDC(nullptr);
-			SelectObject(hCDC, (HGDIOBJ)SendMessageW(hStatic, WM_GETFONT, 0, 0));
-			TEXTMETRICW tm;
-			GetTextMetricsW(hCDC, &tm);
-			DeleteDC(hCDC);
-			// User32的计算方法，不应仿照其底边计算方式，
-			// 因为其得出的数值不准确，实际上超过了客户区高度
-			const int cyTextMargin = (14 * tm.tmHeight + 4) >> 3;
-			GetClientRect(hWnd, &m_rcMainPanel);
-			m_rcCommandEdge = m_rcMainPanel;
-			m_rcMainPanel.bottom = std::max(cyText, cyIcon) + cyTextMargin * 2;
-			m_rcCommandEdge.top = m_rcMainPanel.bottom;
 
+			UpdateMetrics(GetDpi(hWnd));
 			EnableWindowNcDarkMode(hWnd, ShouldAppsUseDarkMode());
 			return lResult;
 		}
@@ -112,6 +118,10 @@ public:
 			}
 		}
 		break;
+
+		case WM_DPICHANGED:
+			UpdateMetrics(HIWORD(wParam));
+			break;
 
 		case WM_CHANGEUISTATE:
 		{

@@ -3,7 +3,7 @@
 *
 * CStatusBar.h ： 标准状态栏
 *
-* Copyright(C) 2023-2024 QingKong
+* Copyright(C) 2024 QingKong
 */
 #pragma once
 #include "CWnd.h"
@@ -56,7 +56,7 @@ public:
 	}
 
 #pragma warning(push)
-#pragma warning(disable: 6054) // 可能未添加终止NULL
+#pragma warning(disable: 6054)// 可能未添加终止NULL
 	/// <summary>
 	/// 取部件文本
 	/// </summary>
