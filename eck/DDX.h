@@ -1,7 +1,7 @@
 ﻿/*
 * WinEzCtrlKit Library
 *
-* DDX.h : 动态数据交换
+* DDX.h : 对话框数据交换
 *
 * Copyright(C) 2024 QingKong
 */
