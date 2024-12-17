@@ -627,6 +627,8 @@ public:
 		return GetHWND();
 	}
 
+	virtual BOOL IsNeedTheme() const { return FALSE; }
+
 	// 跳到当前类序列化数据的尾部
 	[[nodiscard]] EckInline constexpr static PCVOID SkipBaseData(PCVOID p)
 	{

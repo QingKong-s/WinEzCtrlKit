@@ -24,7 +24,7 @@ private:
 		// 内部测高机制过于复杂，这里使用静态控件的高度
 		RECT rcTemp;
 		GetClientRect(hStatic, &rcTemp);
-		const auto cyText = rcTemp.bottom;
+		const auto cyText = rcTemp.bottom - DpiScale(2, iDpi);
 		if (hStaticIcon)
 			GetClientRect(hStaticIcon, &rcTemp);
 		else
@@ -42,8 +42,7 @@ private:
 		const int cyTextMargin = (14 * tm.tmHeight + 4) >> 3;
 		GetClientRect(HWnd, &m_rcMainPanel);
 		m_rcCommandEdge = m_rcMainPanel;
-		m_rcMainPanel.bottom = std::max(cyText, cyIcon) + cyTextMargin * 2
-			- DpiScale(2, iDpi);
+		m_rcMainPanel.bottom = std::max(cyText, cyIcon) + cyTextMargin * 2;
 		m_rcCommandEdge.top = m_rcMainPanel.bottom;
 	}
 public:
