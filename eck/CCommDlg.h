@@ -102,16 +102,6 @@ public:
 			EndPaint(hWnd, &ps);
 		}
 		return 0;
-
-		//case WM_THEMECHANGED:
-		//{
-		//	EnumChildWindows(hWnd, [](HWND hWnd, LPARAM lParam)->BOOL
-		//		{
-		//			SetWindowTheme(hWnd, L"Explorer", nullptr);
-		//			return TRUE;
-		//		}, 0);
-		//}
-		//break;
 		}
 		return CDialog::OnMsg(hWnd, uMsg, wParam, lParam);
 	}

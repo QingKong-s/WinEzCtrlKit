@@ -2259,7 +2259,7 @@ public:
 			CloseThemeData(m_hThemeTV);
 			m_hThemeTV = OpenThemeData(hWnd, L"TreeView");
 			CloseThemeData(m_hThemeLV);
-			m_hThemeLV = OpenThemeData(hWnd, L"ListView");
+			m_hThemeLV = OpenThemeData(nullptr, L"ItemsView::ListView");
 			CloseThemeData(m_hThemeBT);
 			m_hThemeBT = OpenThemeData(hWnd, L"Button");
 			UpdateThemeInfo();

@@ -62,7 +62,6 @@ private:
 	int m_cxCheckBox{};
 	int m_cxSplitBtn{};
 	SIZE m_sizeSortUp{};
-	SIZE m_sizeSortDown{};
 	int m_cyMainText{};
 	int m_cySubText{};
 	COLORREF m_crSortUp{ CLR_DEFAULT };
@@ -393,7 +392,8 @@ private:
 		// 画排序标记
 		if (hdi.fmt & HDF_SORTUP)
 		{
-			rc.left = ((pnmcd->rc.right - pnmcd->rc.left) - m_sizeSortUp.cx) / 2;
+			rc.left = pnmcd->rc.left +
+				((pnmcd->rc.right - pnmcd->rc.left) - m_sizeSortUp.cx) / 2;
 			rc.top = 0;
 			rc.right = rc.left + m_sizeSortUp.cx;
 			rc.bottom = rc.top + m_sizeSortUp.cy;
@@ -401,10 +401,11 @@ private:
 		}
 		else if (hdi.fmt & HDF_SORTDOWN)
 		{
-			rc.left = ((pnmcd->rc.right - pnmcd->rc.left) - m_sizeSortDown.cx) / 2;
+			rc.left = pnmcd->rc.left +
+				((pnmcd->rc.right - pnmcd->rc.left) - m_sizeSortUp.cx) / 2;
 			rc.top = 0;
-			rc.right = rc.left + m_sizeSortDown.cx;
-			rc.bottom = rc.top + m_sizeSortDown.cy;
+			rc.right = rc.left + m_sizeSortUp.cx;
+			rc.bottom = rc.top + m_sizeSortUp.cy;
 			DrawThemeBackground(m_hTheme, hDC, HP_HEADERSORTARROW, HSAS_SORTEDDOWN, &rc, NULL);
 		}
 		// 画过滤器

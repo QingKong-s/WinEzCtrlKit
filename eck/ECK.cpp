@@ -243,8 +243,8 @@ static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 {
 	if (!hTheme)
 		return;
-	EckDbgPrintFmt(L"UxfOnThemeOpen: hWnd = %p, hTheme = %p, pszClassList = %s",
-		hWnd, hTheme, pszClassList);
+	/*EckDbgPrintFmt(L"UxfOnThemeOpen: hWnd = %p, hTheme = %p, pszClassList = %s",
+		hWnd, hTheme, pszClassList);*/
 	ThemeType eType;
 	if (EckIsStartWithConstStringIW(pszClassList, L"Button"))
 		eType = ThemeType::Button;
@@ -332,7 +332,7 @@ EckInline constexpr BOOL UxfIsDarkTaskDialogAvailable()
 /// </summary>
 /// <param name="fDelta">颜色分量的变化量，0~1</param>
 static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
-	_In_ const RECT* prc, _In_opt_ const DTBGOPTS* pOpt, float fDelta, BOOL bReverse = FALSE)
+	_In_ const RECT* prc, _In_opt_ const DTBGOPTS* pOpt, float fDelta, BOOL bInvert = FALSE)
 {
 	const BOOL bClip = pOpt && (pOpt->dwFlags & DTBG_CLIPRECT);
 	HRESULT hr;
@@ -381,25 +381,32 @@ static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 		GpImageAttributes* pIA;
 		GdipCreateImageAttributes(&pIA);
 
-		const Gdiplus::ColorMatrix Mat
+		Gdiplus::ColorMatrix Mat;
+		if (bInvert)
 		{
-			1, 0, 0, 0, 0,
-			0, 1, 0, 0, 0,
-			0, 0, 1, 0, 0,
-			0, 0, 0, 1, 0,
-			fDelta, fDelta, fDelta, 0, 1
-		};
+			Mat =
+			{
+				-1, 0, 0, 0, 0,
+				0, -1, 0, 0, 0,
+				0, 0, -1, 0, 0,
+				0, 0, 0, 1, 0,
+				1 + fDelta, 1 + fDelta, 1 + fDelta, 0, 1
+			};
+		}
+		else
+		{
+			Mat =
+			{
+				1, 0, 0, 0, 0,
+				0, 1, 0, 0, 0,
+				0, 0, 1, 0, 0,
+				0, 0, 0, 1, 0,
+				fDelta, fDelta, fDelta, 0, 1
+			};
+		}
 
-		const Gdiplus::ColorMatrix MatReverse
-		{
-			-1, 0, 0, 0, 0,
-			0, -1, 0, 0, 0,
-			0, 0, -1, 0, 0,
-			0, 0, 0, 1, 0,
-			1 + fDelta, 1 + fDelta, 1 + fDelta, 0, 1
-		};
 		GdipSetImageAttributesColorMatrix(pIA, Gdiplus::ColorAdjustTypeDefault,
-			TRUE, bReverse ? &MatReverse : &Mat, nullptr, Gdiplus::ColorMatrixFlagsDefault);
+			TRUE, &Mat, nullptr, Gdiplus::ColorMatrixFlagsDefault);
 		GpGraphics* pGraphics;
 		GdipCreateFromHDC(hDC, &pGraphics);
 		if (bClip)
@@ -980,7 +987,7 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 				prc, pOptions, iStateId != HDDFS_HOT ? 0.7f : -0.4f);
 		case HP_HEADERSORTARROW:
 			return UxfAdjustLuma(ti.hThemeExtra, hDC, iPartId, iStateId,
-				prc, pOptions, iStateId == HOFS_NORMAL ? 0.6f : -0.4f);
+				prc, pOptions, 0.f, TRUE);
 		}
 		break;
 	case ThemeType::Progress:
@@ -1619,7 +1626,7 @@ void THREADCTX::UpdateDefColor()
 
 void THREADCTX::SendThemeChangedToAllTopWindow()
 {
-	for (const auto& [hWnd, _] : hmTopWnd)
+	for (const auto& [hWnd, pWnd] : hmTopWnd)
 	{
 		// WM_THEMECHANGED
 		// wParam
@@ -1637,13 +1644,19 @@ void THREADCTX::SendThemeChangedToAllTopWindow()
 		if (GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_VISIBLE)
 		{
 			SendMessageW(hWnd, WM_SETREDRAW, FALSE, 0);
+			if (pWnd->IsNeedTheme())
+				SendMessageW(hWnd, WM_THEMECHANGED, -1, 0);
 			BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, -1, 0);
 			SendMessageW(hWnd, WM_SETREDRAW, TRUE, 0);
+			RedrawWindow(hWnd, nullptr, nullptr,
+				RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
 		}
 		else
+		{
+			if (pWnd->IsNeedTheme())
+				SendMessageW(hWnd, WM_THEMECHANGED, -1, 0);
 			BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, -1, 0);
-		RedrawWindow(hWnd, nullptr, nullptr,
-			RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
+		}
 	}
 }
 #pragma endregion Thread
