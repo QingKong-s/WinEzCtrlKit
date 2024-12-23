@@ -64,7 +64,7 @@ class CHexEdit : public CWnd
 {
 public:
 	ECK_RTTI(CHexEdit);
-	ECK_CWND_SINGLEOWNER(CHexEdit);
+	ECK_CWND_SINGLEOWNER_NO_DEF_CONS(CHexEdit);
 	ECK_CWND_CREATE_CLS_HINST(WCN_HEXEDIT, g_hInstance);
 private:
 	struct CHAR_COL
@@ -108,6 +108,7 @@ private:
 	int m_iDpi{ USER_DEFAULT_SCREEN_DPI };
 
 	SIZE_T m_posDragSelStart{ SIZETMax };
+	SIZE_T m_posDragSelEnd{ SIZETMax };
 
 	CTRLDATA_HEXEDIT D{};
 
@@ -173,8 +174,10 @@ private:
 		// 画列头
 		int xStart = -GetSbPos(SB_HORZ);
 
-		SetDCBrushColor(hDC, GetThreadCtx()->crDefBkg);
+		const auto* const ptc = GetThreadCtx();
+		SetDCBrushColor(hDC, ptc->crDefBkg);
 		FillRect(hDC, &rcPaint, GetStockBrush(DC_BRUSH));
+		SetTextColor(hDC, ptc->crDefText);
 		RECT rcT{ xStart + D.cxGap, 0, xStart + m_cxAddress, m_cyChar };
 		DrawTextW(hDC, L"Offset", -1, &rcT,
 			DT_SINGLELINE | DT_CENTER | DT_VCENTER | DT_NOPREFIX);
@@ -200,12 +203,54 @@ private:
 			rcCharCol.right += D.cxGap;
 			OffsetRect(rcCharCol, cxCharCol, 0);
 		}
+		// 画选择区
+		if (m_posDragSelStart != SizeTMax && m_posDragSelEnd != SizeTMax)
+		{
+			const auto dy = -GetSbPos(SB_VERT) * GetRowHeight();
+			size_t pos0, pos1;
+			if (m_posDragSelStart < m_posDragSelEnd)
+			{
+				pos0 = m_posDragSelStart;
+				pos1 = m_posDragSelEnd;
+			}
+			else
+			{
+				pos0 = m_posDragSelEnd;
+				pos1 = m_posDragSelStart;
+			}
+			RECT rc;
+			const int idxRow0 = int(pos0 / D.cCol);
+			const int idxCol0 = int(pos0 % D.cCol);
 
+			const int idxRow1 = int(pos1 / D.cCol);
+			const int idxCol1 = int(pos1 % D.cCol);
+			rc.top = dy + GetHeaderHeight() + idxRow0 * GetRowHeight() - D.cyGap / 2;
+			rc.bottom = rc.top + GetRowHeight();
+			rc.left = xData + idxCol0 * GetColumnWidth();
+			if (idxRow0 == idxRow1)
+			{
+				rc.right = xData + (idxCol1 + 1) * GetColumnWidth() - D.cxGap;
+				FillRect(hDC, &rc, GetStockBrush(GRAY_BRUSH));
+			}
+			else
+			{
+				rc.right = xData + GetDataRegionWidth() - D.cxGap;
+				FillRect(hDC, &rc, GetStockBrush(GRAY_BRUSH));
+				rc.left = xData;
+				rc.top = rc.bottom;
+				rc.bottom = dy + GetHeaderHeight() +
+					idxRow1 * GetRowHeight() - D.cyGap / 2;
+				FillRect(hDC, &rc, GetStockBrush(GRAY_BRUSH));
+				rc.top = rc.bottom;
+				rc.bottom = rc.top + GetRowHeight() - D.cyGap / 2;
+				rc.right = xData + (idxCol1 + 1) * GetColumnWidth() - D.cxGap;
+				FillRect(hDC, &rc, GetStockBrush(GRAY_BRUSH));
+			}
+		}
 		// 画数据
 		if (m_pData)
 		{
 			WCHAR szCharW[2]{};
-			const PCWSTR pszFmtAddress = (D.bHexAddress ? L"%08Ix" : L"%08Iu");
 			x = xData;
 			const int idxLineBeginInView = std::max(0L, (rcPaint.top - GetHeaderHeight()) / GetRowHeight());
 			PCBYTE pData = m_pData + m_posFirstVisible + idxLineBeginInView * D.cCol;
@@ -219,7 +264,8 @@ private:
 					e.x = e.xOrg;
 					e.pNeedle = pData;
 				}
-				const int cch = swprintf(szBuf, pszFmtAddress, (UINT)(i * D.cCol + m_posFirstVisible));
+				const int cch = swprintf(szBuf, D.bHexAddress ? L"%08Ix" : L"%08Iu",
+					(UINT)(i * D.cCol + m_posFirstVisible));
 				DrawTextW(hDC, szBuf, cch, &rcT, DT_SINGLELINE | DT_LEFT | DT_VCENTER | DT_NOPREFIX);
 				EckCounter(D.cCol, j)
 				{
@@ -326,6 +372,8 @@ private:
 		EndDrawData:;
 		}
 
+		SetDCPenColor(hDC, ptc->crGray1);
+		SelectObject(hDC, GetStockPen(DC_PEN));
 		// 画分隔线
 		// 列头分隔线
 		MoveToEx(hDC, 0, m_cyChar, nullptr);
@@ -355,10 +403,11 @@ private:
 		ShowCaret(HWnd);
 		const int idxV = int(D.posCaret / D.cCol - GetSbPos(SB_VERT));
 		const int idxH = D.posCaret % D.cCol;
-		if(D.idxCaretCol < 0)
+		if (D.idxCaretCol < 0)
 		{
 			SetCaretPos(
-				-GetSbPos(SB_HORZ) + m_cxAddress + GetColumnWidth() * idxH + (D.bCaretInFirstNum ? 0 : m_cxChar),
+				-GetSbPos(SB_HORZ) + m_cxAddress + GetColumnWidth() * idxH +
+				(D.bCaretInFirstNum ? 0 : m_cxChar),
 				GetHeaderHeight() + idxV * GetRowHeight());
 		}
 		else
@@ -392,14 +441,15 @@ public:
 		}
 		break;
 
+		case WM_PRINTCLIENT:
 		case WM_PAINT:
 		{
 			HideCaret(hWnd);
 			PAINTSTRUCT ps;
-			BeginPaint(hWnd, &ps);
+			BeginPaint(hWnd, wParam, ps);
 			OnPaint(m_DC.GetDC(), ps.rcPaint);
-			BitBltPs(&ps, m_DC.GetDC());
-			EndPaint(hWnd, &ps);
+			BitBltPs(ps, m_DC.GetDC());
+			EndPaint(hWnd, wParam, ps);
 			ShowCaret(hWnd);
 		}
 		break;
@@ -421,7 +471,7 @@ public:
 				UpdateCaretPos();
 			}
 
-			
+
 
 			//EckDbgPrintFmt(L"HitTest: pos = %Id, idxRow = %d, idxCol = %d, idxCharCol = %d\n"
 			//	L"bHitContent = %d",
@@ -437,9 +487,12 @@ public:
 				HEHITTEST heht;
 				heht.pt = ECK_GET_PT_LPARAM(lParam);
 				const auto pos = HitTest(heht);
-				if ((heht.bHitData || heht.bHitChar) && heht.bHitContent)
+				if (heht.bHitData)
 				{
-
+					D.posCaret = pos;
+					UpdateCaretPos();
+					m_posDragSelEnd = pos;
+					InvalidateRect(hWnd, nullptr, FALSE);
 				}
 			}
 		}
@@ -743,7 +796,7 @@ public:
 			heht.bHitHeader = TRUE;
 			return SizeTMax;
 		}
-		heht.idxRowInView = (heht.pt.y - GetHeaderHeight()) / GetRowHeight();
+		heht.idxRowInView = (heht.pt.y - GetHeaderHeight() + D.cyGap / 2) / GetRowHeight();
 		int x = xStart + m_cxAddress;
 		if (heht.pt.x < x)// 地址
 		{
@@ -755,7 +808,7 @@ public:
 		else if (heht.pt.x < x + m_cxData)// 数据
 		{
 			heht.bHitData = TRUE;
-			heht.idxCol = (heht.pt.x - x) / GetColumnWidth();
+			heht.idxCol = (heht.pt.x - x + D.cxGap / 2) / GetColumnWidth();
 			if (heht.pt.y < GetHeaderHeight() + (heht.idxRowInView + 1) * GetRowHeight() - D.cyGap &&
 				heht.pt.x < x + GetColumnWidth() * (heht.idxCol + 1) - D.cxGap)
 				heht.bHitContent = TRUE;
