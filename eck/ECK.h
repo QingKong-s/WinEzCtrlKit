@@ -605,6 +605,8 @@ constexpr inline PCWSTR WCN_HITTER = WCN_DUMMY;
 constexpr inline PCWSTR MSGREG_FORMTRAY = L"Eck.Message.FormTray";
 
 constexpr inline UINT SCID_DESIGN = 20230621'01u;
+
+constexpr inline PCWSTR WPROP_DARKMENU = L"Eck.Prop.UxfMenuMsgSlot";
 #pragma endregion Const
 
 #pragma region Enum
@@ -697,6 +699,7 @@ enum :UINT_PTR
 	MHI_LISTVIEW_ROWHEIGHT,
 	MHI_LVE_HEADER_HEIGHT,
 	MHI_DUI_TITLEBAR,
+	MHI_UXF_MENU,
 };
 
 // 构建号
@@ -913,6 +916,10 @@ void InitPrivateApi();
 
 // For compatibility.
 EckInline constexpr void SetMsgFilter(void*) {}
+
+HRESULT UxfMenuInit(CWnd* pWnd);
+
+HRESULT UxfMenuUnInit(CWnd* pWnd);
 ECK_NAMESPACE_END
 
 #ifndef ECK_OPT_NO_USING_GDIPLUS

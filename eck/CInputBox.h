@@ -50,23 +50,23 @@ public:
 	ECK_RTTI(CInputBox);
 	ECK_CWND_SINGLEOWNER(CInputBox);
 private:
-	INPUTBOXOPT* m_pOpt = nullptr;
+	INPUTBOXOPT* m_pOpt{};
 
-	HFONT m_hFont = nullptr;
+	HFONT m_hFont{};
 
 	CEditExt m_ED{};
 	CButton m_BTOk{};
 	CButton m_BTCancel{};
 
-	HTHEME m_hTheme = nullptr;
+	HTHEME m_hTheme{};
 
-	int m_cyMainTip = 0;
-	int m_cyTip = 0;
-	int m_cxClient = 0,
-		m_cyClient = 0;
-	int m_cySingleLineText = 0;
+	int m_cyMainTip{};
+	int m_cyTip{};
+	int m_cxClient{},
+		m_cyClient{};
+	int m_cySingleLineText{};
 
-	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
+	int m_iDpi{ USER_DEFAULT_SCREEN_DPI };
 	ECK_DS_BEGIN(DPIS)
 		ECK_DS_ENTRY(TextPadding, 6)
 		ECK_DS_ENTRY(Margin, 10)
@@ -127,7 +127,7 @@ private:
 		HDC hCDC = CreateCompatibleDC(nullptr);
 		RECT rc{ 0,0,m_cxClient - m_Ds.Margin * 2,m_cyClient };
 		DTTOPTS dttops{ sizeof(DTTOPTS),DTT_CALCRECT };
-		auto hr = DrawThemeTextEx(m_hTheme, hCDC, TEXT_MAININSTRUCTION, 0, m_pOpt->pszMainTip, -1,
+		DrawThemeTextEx(m_hTheme, hCDC, TEXT_MAININSTRUCTION, 0, m_pOpt->pszMainTip, -1,
 			DT_NOPREFIX | DT_EDITCONTROL | DT_WORDBREAK | DT_CALCRECT, &rc, &dttops);
 		m_cyMainTip = rc.bottom;
 

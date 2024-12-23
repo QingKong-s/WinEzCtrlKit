@@ -213,6 +213,7 @@ enum class ThemeType
 	ControlPanel,	// +ControlPanelStyle
 	MonthCalendar,
 	StatusBar,		// +StatusBarStyle
+	Menu,
 };
 
 struct THEME_INFO
@@ -276,6 +277,8 @@ static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 		eType = ThemeType::MonthCalendar;
 	else if (EckIsStartWithConstStringIW(pszClassList, L"Status"))
 		eType = ThemeType::StatusBar;
+	else if (_wcsicmp(pszClassList, L"Menu") == 0)
+		eType = ThemeType::Menu;
 	else
 		eType = ThemeType::Invalid;
 	if (eType != ThemeType::Invalid)
@@ -310,7 +313,7 @@ static void UxfOnThemeClose(HTHEME hTheme)
 	const auto it = s_hsThemeMap.find(hTheme);
 	if (it != s_hsThemeMap.end()) ECKLIKELY
 	{
-		auto& e = it->second;
+		auto & e = it->second;
 		if (e.cRef > 1)
 			--e.cRef;
 		else
@@ -327,12 +330,173 @@ EckInline constexpr BOOL UxfIsDarkTaskDialogAvailable()
 	return g_NtVer.uBuild >= WINVER_11_21H2;
 }
 
+HRESULT UxfMenuInit(CWnd* pWnd)
+{
+	auto& Sig = pWnd->GetSignal();
+	if (Sig.FindSlot(MHI_UXF_MENU))
+		return S_FALSE;
+	struct FProc
+	{
+		CWnd* pWnd;
+		HTHEME hTheme;
+
+		FProc(CWnd* pWnd) : pWnd{ pWnd }, hTheme{ OpenThemeData(pWnd->HWnd, L"Menu") } {}
+		FProc(const FProc& x)
+		{
+			hTheme = OpenThemeData(x.pWnd->HWnd, L"Menu");
+			pWnd = x.pWnd;
+		}
+		FProc(FProc&& x) noexcept
+		{
+			pWnd = x.pWnd;
+			hTheme = x.hTheme;
+			x.hTheme = nullptr;
+		}
+		FProc& operator=(const FProc&) = delete;
+		FProc& operator=(FProc&& x) = delete;
+		~FProc()
+		{
+			CloseThemeData(hTheme);
+		}
+
+		LRESULT operator()(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)
+		{
+			switch (uMsg)
+			{
+			case WM_UAHDRAWMENU:
+			{
+				if (!ShouldAppsUseDarkMode())
+					break;
+				bProcessed = TRUE;
+
+				MENUBARINFO mbi;
+				mbi.cbSize = sizeof(mbi);
+				GetMenuBarInfo(hWnd, OBJID_MENU, 0, &mbi);
+				RECT rcWindow;
+				GetWindowRect(hWnd, &rcWindow);
+				OffsetRect(&mbi.rcBar, -rcWindow.left, -rcWindow.top);
+				DrawThemeBackground(hTheme, ((UAHMENU*)lParam)->hdc,
+					MENU_BARBACKGROUND,
+					(GetForegroundWindow() == hWnd) ? MB_ACTIVE : MB_INACTIVE,
+					&mbi.rcBar, nullptr);
+			}
+			return 0;
+			case WM_UAHDRAWMENUITEM:
+			{
+				if (!ShouldAppsUseDarkMode())
+					break;
+				const auto* const pudmi = (UAHDRAWMENUITEM*)lParam;
+
+				WCHAR szText[96];
+				szText[0] = L'\0';
+				MENUITEMINFO mii;
+				mii.cbSize = sizeof(mii);
+				mii.fMask = MIIM_STRING;
+				mii.dwTypeData = szText;
+				mii.cch = ARRAYSIZE(szText);
+				GetMenuItemInfoW(pudmi->um.hmenu, pudmi->umi.iPosition, TRUE, &mii);
+				if (mii.fType & MFT_OWNERDRAW)
+					break;
+				bProcessed = TRUE;
+
+				const auto uState = pudmi->dis.itemState;
+				int iState;
+				if (uState & ODS_SELECTED)
+					if ((uState & ODS_INACTIVE) ||
+						(uState & ODS_GRAYED))
+						iState = MBI_DISABLEDPUSHED;
+					else
+						iState = MBI_PUSHED;
+				else if (uState & ODS_HOTLIGHT)
+					if ((uState & ODS_INACTIVE) ||
+						(uState & ODS_GRAYED))
+						iState = MBI_DISABLEDHOT;
+					else
+						iState = MBI_HOT;
+				else
+					if ((uState & ODS_INACTIVE) ||
+						(uState & ODS_GRAYED))
+						iState = MBI_DISABLED;
+					else
+						iState = MBI_NORMAL;
+				const DWORD dwDtFlags = DT_CENTER | DT_SINGLELINE | DT_VCENTER |
+					((uState & ODS_NOACCEL) ? DT_HIDEPREFIX : 0);
+				if ((uState & ODS_SELECTED) || (uState & ODS_HOTLIGHT))
+					DrawThemeBackground(hTheme, pudmi->um.hdc,
+						MENU_BARITEM, iState, &pudmi->dis.rcItem, nullptr);
+				else
+					DrawThemeBackground(hTheme, pudmi->um.hdc,
+						MENU_BARBACKGROUND,
+						(GetForegroundWindow() == hWnd) ? MB_ACTIVE : MB_INACTIVE,
+						&pudmi->dis.rcItem, nullptr);
+				DrawThemeText(hTheme, pudmi->um.hdc, MENU_BARITEM, iState,
+					szText, mii.cch, dwDtFlags, 0, &pudmi->dis.rcItem);
+			}
+			return 0;
+			case WM_NCPAINT:
+			case WM_NCACTIVATE:
+			{
+				bProcessed = TRUE;
+				pWnd->OnMsg(hWnd, uMsg, wParam, lParam);
+				MENUBARINFO mbi;
+				mbi.cbSize = sizeof(mbi);
+				if (!GetMenuBarInfo(hWnd, OBJID_MENU, 0, &mbi))
+					break;
+				RECT rcClient;
+				GetClientRect(hWnd, &rcClient);
+				MapWindowRect(hWnd, nullptr, &rcClient);
+
+				RECT rcWindow;
+				GetWindowRect(hWnd, &rcWindow);
+
+				OffsetRect(&rcClient, -rcWindow.left, -rcWindow.top);
+
+				RECT rcAnnoyingLine = rcClient;
+				rcAnnoyingLine.bottom = rcAnnoyingLine.top;
+				rcAnnoyingLine.top--;
+
+				HDC hdc = GetWindowDC(hWnd);
+				SetDCBrushColor(hdc, GetThreadCtx()->crDefBtnFace);
+				FillRect(hdc, &rcAnnoyingLine, GetStockBrush(DC_BRUSH));
+				ReleaseDC(hWnd, hdc);
+			}
+			return 0;
+
+			case WM_CREATE:
+			case WM_THEMECHANGED:
+				CloseThemeData(hTheme);
+				hTheme = OpenThemeData(hWnd, L"Menu");
+				break;
+			case WM_DESTROY:
+				CloseThemeData(hTheme);
+				hTheme = nullptr;
+				break;
+
+			case WM_NCDESTROY:
+				UxfMenuUnInit(pWnd);
+				break;
+			}
+			return 0;
+		}
+	};
+
+	Sig.Connect(FProc{ pWnd }, MHI_UXF_MENU);
+	return S_OK;
+}
+
+HRESULT UxfMenuUnInit(CWnd* pWnd)
+{
+	return pWnd->GetSignal().Disconnect(MHI_UXF_MENU) ? S_OK : S_FALSE;
+}
+
 /// <summary>
 /// 绘制主题背景，并调整亮度
 /// </summary>
-/// <param name="fDelta">颜色分量的变化量，0~1</param>
+/// <param name="fDelta">颜色分量的变化量，-1~1</param>
+/// <param name="bInvert">是否反转颜色</param>
 static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
-	_In_ const RECT* prc, _In_opt_ const DTBGOPTS* pOpt, float fDelta, BOOL bInvert = FALSE)
+	_In_ const RECT* prc, _In_opt_ const DTBGOPTS* pOpt,
+	float fDelta, BOOL bInvert = FALSE)
 {
 	const BOOL bClip = pOpt && (pOpt->dwFlags & DTBG_CLIPRECT);
 	HRESULT hr;
@@ -727,6 +891,30 @@ static HRESULT UxfGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
 			return S_OK;
 		}
 		break;
+	case ThemeType::Menu:
+		switch (iPartId)
+		{
+		case MENU_BARITEM:
+			if (iPropId == TMT_TEXTCOLOR)
+			{
+				switch (iStateId)
+				{
+				case 0:
+				case MBI_NORMAL:
+				case MBI_HOT:
+				case MBI_PUSHED:
+					cr = ptc->crDefText;
+					return S_OK;
+				case MBI_DISABLED:
+				case MBI_DISABLEDHOT:
+				case MBI_DISABLEDPUSHED:
+					cr = ptc->crGray1;
+					return S_OK;
+				}
+			}
+			break;
+		}
+		break;
 	}
 	return E_NOTIMPL;
 }
@@ -880,13 +1068,8 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 			case TS_NORMAL:
 			{
 				SetDCBrushColor(hDC, ptc->crDefBkg);
-				if (pOptions && pOptions->dwFlags & DTBG_CLIPRECT)
-				{
-					const auto sdc = SaveDcClip(hDC);
-					IntersectClipRect(hDC, pOptions->rcClip);
-					FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
-					RestoreDcClip(hDC, sdc);
-				}
+				if (pOptions && (pOptions->dwFlags & DTBG_CLIPRECT))
+					FillRect(hDC, &pOptions->rcClip, GetStockBrush(DC_BRUSH));
 				else
 					FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
 			}
@@ -1045,6 +1228,24 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.1f, TRUE);
 		}
 		break;
+	case ThemeType::Menu:
+		switch (iPartId)
+		{
+		case MENU_BARBACKGROUND:
+			SetDCBrushColor(hDC, ptc->crDefBkg);
+			if (pOptions && (pOptions->dwFlags & DTBG_CLIPRECT))
+				FillRect(hDC, &pOptions->rcClip, GetStockBrush(DC_BRUSH));
+			else
+				FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
+			return S_OK;
+		case MENU_BARITEM:
+			SetDCBrushColor(hDC, ptc->crDefBtnFace);
+			if (pOptions && (pOptions->dwFlags & DTBG_CLIPRECT))
+				FillRect(hDC, &pOptions->rcClip, GetStockBrush(DC_BRUSH));
+			else
+				FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
+			return S_OK;
+		}
 	}
 	return E_NOTIMPL;
 }
