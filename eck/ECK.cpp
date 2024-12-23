@@ -232,7 +232,7 @@ static CSrwLock s_LkThemeMap{};
 constexpr THEME_INFO InvalidThemeInfo{ .eType = ThemeType::Invalid };
 
 // 查询主题信息。此函数返回引用，但在主题句柄被使用期间一定有效
-const THEME_INFO& UxfGetThemeInfo(HTHEME hTheme)
+EckInline const THEME_INFO& UxfGetThemeInfo(HTHEME hTheme)
 {
 	CSrwReadGuard _{ s_LkThemeMap };
 	const auto it = s_hsThemeMap.find(hTheme);
