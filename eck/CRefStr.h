@@ -46,6 +46,12 @@ inline constexpr int StrNPos = -1;
 	return pszFind ? (int)(pszFind - pszText) : StrNPos;
 }
 
+[[nodiscard]] EckInline int FindFirstOf(PCSTR pszText, PCSTR pszCharSet, int posStart = 0)
+{
+	const PCSTR pszFind = strpbrk(pszText + posStart, pszCharSet);
+	return pszFind ? (int)(pszFind - pszText) : StrNPos;
+}
+
 /// <summary>
 /// 寻找文本
 /// </summary>
@@ -281,6 +287,7 @@ struct CCharTraits<WCHAR>
 	EckInline static int CompareI(PCWSTR psz1, PCWSTR psz2) { return wcsicmp(psz1, psz2); }
 	EckInline static int CompareI(PCWSTR psz1, PCWSTR psz2, int cch) { return wcsnicmp(psz1, psz2, cch); }
 	EckInline static int Find(PCWSTR pszText, PCWSTR pszSub, int posStart = 0) { return FindStr(pszText, pszSub, posStart); }
+	EckInline static PCWSTR Find2(PCWSTR pszText, PCWSTR pszSub) { return wcsstr(pszText, pszSub); }
 	EckInline static int FormatV(PWSTR pszBuf, PCWSTR pszFmt, va_list vl) { return vswprintf(pszBuf, pszFmt, vl); }
 	EckInline static int GetFormatCchV(PCWSTR pszFmt, va_list vl) { return _vscwprintf(pszFmt, vl); }
 	EckInline static int FindChar(PCWSTR pszText, WCHAR ch, int posStart = 0) { return eck::FindChar(pszText, ch, posStart); }
@@ -314,6 +321,7 @@ struct CCharTraits<CHAR>
 	EckInline static int CompareI(PCSTR psz1, PCSTR psz2) { return stricmp(psz1, psz2); }
 	EckInline static int CompareI(PCSTR psz1, PCSTR psz2, int cch) { return strnicmp(psz1, psz2, cch); }
 	EckInline static int Find(PCSTR pszText, PCSTR pszSub, int posStart = 0) { return FindStr(pszText, pszSub, posStart); }
+	EckInline static PCSTR Find2(PCSTR pszText, PCSTR pszSub) { return strstr(pszText, pszSub); }
 	EckInline static int FormatV(PSTR pszBuf, PCSTR pszFmt, va_list vl) { return vsprintf(pszBuf, pszFmt, vl); }
 	EckInline static int GetFormatCchV(PCSTR pszFmt, va_list vl) { return _vscprintf(pszFmt, vl); }
 	EckInline static int FindChar(PCSTR pszText, CHAR ch, int posStart = 0) { return eck::FindChar(pszText, ch, posStart); }
@@ -689,23 +697,23 @@ public:
 	/// <param name="pszSrc">字符串指针</param>
 	/// <param name="cchSrc">字符串长度</param>
 	/// <returns>实际复制的字符数</returns>
-	EckInline int PushBack(TConstPointer pszSrc, int cchSrc)
+	EckInline CRefStrT& PushBack(TConstPointer pszSrc, int cchSrc)
 	{
 		if (!pszSrc)
-			return 0;
+			return *this;
 		ReSizeExtra(Size() + cchSrc);
 		TCharTraits::CopyEnd(Data() + Size() - cchSrc, pszSrc, cchSrc);
-		return cchSrc;
+		return *this;
 	}
 
-	EckInline int PushBack(TConstPointer pszSrc)
+	EckInline CRefStrT& PushBack(TConstPointer pszSrc)
 	{
 		if (!pszSrc)
-			return 0;
+			return *this;
 		return PushBack(pszSrc, TCharTraits::Len(pszSrc));
 	}
 
-	EckInline int PushBack(const CRefStrT& rs)
+	EckInline CRefStrT& PushBack(const CRefStrT& rs)
 	{
 		return PushBack(rs.Data(), rs.Size());
 	}
@@ -715,6 +723,12 @@ public:
 		EckAssert(cch >= 0);
 		ReSizeExtra(Size() + cch);
 		return Data() + Size() - cch;
+	}
+
+	template<class TTraits>
+	EckInline CRefStrT& PushBack(std::basic_string_view<TChar, TTraits> sv)
+	{
+		return PushBack(sv.data(), (int)sv.size());
 	}
 
 	EckInline void PushBackChar(TChar ch)
@@ -1685,19 +1699,19 @@ namespace Literals
 	return FindStrRevNcs(rsText.Data(), rsText.Size(), rsSub.Data(), posStart, rsSub.Size());
 }
 
-template<class TProcesser>
-inline void SplitStr(PCWSTR pszText, PCWSTR pszDiv, int cSubTextExpected, int cchText,
+template<class TProcesser, class TChar>
+inline void SplitStr(const TChar* pszText, const TChar* pszDiv, int cSubTextExpected, int cchText,
 	int cchDiv, TProcesser&& Processer)
 {
 	if (cchText < 0)
-		cchText = (int)wcslen(pszText);
+		cchText = CCharTraits<TChar>::Len(pszText);
 	if (cchDiv < 0)
-		cchDiv = (int)wcslen(pszDiv);
+		cchDiv = CCharTraits<TChar>::Len(pszDiv);
 	if (cSubTextExpected <= 0)
 		cSubTextExpected = INT_MAX;
 
-	PCWSTR pszFind = wcsstr(pszText, pszDiv);
-	PCWSTR pszPrevFirst = pszText;
+	auto pszFind = CCharTraits<TChar>::Find2(pszText, pszDiv);
+	auto pszPrevFirst = pszText;
 	int c = 0;
 	while (pszFind)
 	{
@@ -1707,7 +1721,7 @@ inline void SplitStr(PCWSTR pszText, PCWSTR pszDiv, int cSubTextExpected, int cc
 		if (c == cSubTextExpected)
 			return;
 		pszPrevFirst = pszFind + cchDiv;
-		pszFind = wcsstr(pszPrevFirst, pszDiv);
+		pszFind = CCharTraits<TChar>::Find2(pszPrevFirst, pszDiv);
 	}
 
 	Processer(pszPrevFirst, (int)(pszText + cchText - pszPrevFirst));

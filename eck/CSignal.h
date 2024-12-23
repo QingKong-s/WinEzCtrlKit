@@ -165,7 +165,7 @@ private:
 	}
 public:
 	template<class TProc>
-	EckInline HSlot Connect(TProc fn, UINT_PTR uId = 0u, HSlot pAfter = ECK_SIG_TOP)
+	EckInline HSlot Connect(TProc&& fn, UINT_PTR uId = 0u, HSlot pAfter = ECK_SIG_TOP)
 	{
 		return IntConnect(fn, uId, (NODE*)pAfter);
 	}

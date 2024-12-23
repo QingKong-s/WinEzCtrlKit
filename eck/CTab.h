@@ -60,16 +60,18 @@ public:
 		case WM_PAINT:
 		{
 			PAINTSTRUCT ps;
-			BeginPaint(hWnd, &ps);
+			BeginPaint(hWnd, wParam, ps);
 			CEzCDC DC{};
-			DC.Create(hWnd, ps.rcPaint.right, ps.rcPaint.bottom);
-			CWnd::OnMsg(hWnd, WM_PAINT, (WPARAM)DC.GetDC(), lParam);
+			DC.Create(hWnd, ps.rcPaint.right - ps.rcPaint.left,
+				ps.rcPaint.bottom - ps.rcPaint.top);
+			SetWindowOrgEx(DC.GetDC(), ps.rcPaint.left, ps.rcPaint.top, nullptr);
+			__super::OnMsg(hWnd, WM_PAINT, (WPARAM)DC.GetDC(), lParam);
 			BitBltPs(&ps, DC.GetDC());
-			EndPaint(hWnd, &ps);
+			EndPaint(hWnd, wParam, ps);
 		}
 		return 0;
 		}
-		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
+		return __super::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
 	/// <summary>

@@ -1116,7 +1116,7 @@ public:
 		const auto pParent = CWndFromHWND(GetParent(HWnd));
 		if (!pParent)
 			return FALSE;
-		pParent->GetSignal().Connect(
+		const auto hSlot = pParent->GetSignal().Connect(
 			[cy, bSetOrAdd](HWND, UINT uMsg, WPARAM, LPARAM lParam, BOOL& bProcessed)->LRESULT
 			{
 				if (uMsg == WM_MEASUREITEM)
@@ -1140,7 +1140,7 @@ public:
 		};
 		SendMsg(WM_WINDOWPOSCHANGED, 0, (LPARAM)&wp);
 		Style &= ~LVS_OWNERDRAWFIXED;
-		pParent->GetSignal().Disconnect(MHI_LISTVIEW_ROWHEIGHT);
+		pParent->GetSignal().Disconnect(hSlot);
 		return TRUE;
 	}
 
@@ -1176,6 +1176,13 @@ public:
 	EckInline LRESULT GetLvObject(REFIID riid, void** ppv) const
 	{
 		return SendMsg(LVM_QUERYINTERFACE, (WPARAM)&riid, (LPARAM)ppv);
+	}
+
+	EckInline void EnableSpacePartSelect(BOOL bEnable) const
+	{
+		const auto pLv = GetLvObject();
+		pLv->SetSelectionFlags(1, bEnable ? 1 : 0);
+		pLv->Release();
 	}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CListView, CWnd);

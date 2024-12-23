@@ -3,7 +3,7 @@
 *
 * CForm.h ： 通用窗体
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
 #include "CWnd.h"
