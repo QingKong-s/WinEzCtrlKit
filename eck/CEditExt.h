@@ -271,11 +271,11 @@ public:
 
 			case InputMode::Float:
 			{
-				cchText = GetWindowTextLengthW(hWnd);
+				cchText = GetWindowTextLengthW(hWnd) + 10;
 				if (!cchText)
 					break;
-				pszText = (cchText < CchI64ToStrBufNoRadix2) ?
-					szValue : (PWSTR)_malloca((cchText + 1) * sizeof(WCHAR));
+				pszText = (PWSTR)_malloca(Cch2CbW(cchText));
+				EckCheckMem(pszText);
 				GetText(pszText, cchText + 1);
 				lfValue = _wtof(pszText);
 				if (lfValue < -3.402823466e38)// 实际上正负值中间是有空隙的，不做判断了。。。
@@ -283,29 +283,33 @@ public:
 				else if (lfValue < 3.402823466e38)
 					pszCorrectValue = L"3.402823466e38";
 				else
-					SetText(ToStr(lfValue).Data());
-				if (pszText != szValue)
-					_freea(pszText);
+				{
+					swprintf_s(pszText, cchText + 1, L"%.7g", lfValue);
+					SetText(pszText);
+				}
+				_freea(pszText);
 			}
 			break;
 
 			case InputMode::Double:
 			{
-				cchText = GetWindowTextLengthW(hWnd);
+				cchText = GetWindowTextLengthW(hWnd) + 10;
 				if (!cchText)
 					break;
-				pszText = (cchText < CchI64ToStrBufNoRadix2) ?
-					szValue : (PWSTR)_malloca((cchText + 1) * sizeof(WCHAR));
-				GetText(pszText, cchText + 1);
+				pszText = (PWSTR)_malloca(Cch2CbW(cchText));
+				EckCheckMem(pszText);
+				GetText(pszText, cchText);
 				lfValue = _wtof(pszText);
 				if (*(ULONGLONG*)&lfValue == 0xFFF0000000000000)
 					pszCorrectValue = L"-1.79769313486231570e308";
 				else if (*(ULONGLONG*)&lfValue == 0x7FF0000000000000)
 					pszCorrectValue = L"1.79769313486231570e308";
 				else
-					SetText(ToStr(lfValue).Data());
-				if (pszText != szValue)
-					_freea(pszText);
+				{
+					swprintf_s(pszText, cchText + 1, L"%.15g", lfValue);
+					SetText(pszText);
+				}
+				_freea(pszText);
 			}
 			break;
 
