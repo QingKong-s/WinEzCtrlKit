@@ -510,6 +510,9 @@
     <ClInclude Include="eck\CStatusBar.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\CalculateExpression.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">
