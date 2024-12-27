@@ -12,14 +12,10 @@ ECK_NAMESPACE_BEGIN
 enum class CalcExpResult
 {
 	Ok,
-	// 非法字符
-	InvalidChar,
-	// 相邻运算符
-	AdjacentOp,
-	// 括号不匹配
-	UnmatchedParentheses,
-	// 运算符错误
-	OpError,
+	InvalidChar,// 非法字符
+	AdjacentOp,	// 相邻运算符
+	UnmatchedParentheses,// 括号不匹配
+	OpError,	// 运算符错误
 };
 
 namespace Priv
@@ -54,6 +50,52 @@ namespace Priv
 		Max,
 	};
 
+	struct CalcExpFuncSym
+	{
+		WCHAR szNameW[6];
+		char szNameA[6];
+		CalcExpOp eOp;
+		SCHAR cchName;
+	};
+#define ECKPRIV_CALCEXP_FUNCNAME(s) L#s, #s, CalcExpOp::##s, ARRAYSIZE(#s) - 1
+	constexpr inline CalcExpFuncSym CalcExpFuncList[]
+	{
+		{ ECKPRIV_CALCEXP_FUNCNAME(Ln) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Log) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Sin) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Cos) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Tan) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Cot) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Sec) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Csc) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Asin) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Acos) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Atan) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Acot) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Asec) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Acsc) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Sqrt) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Sinh) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Cosh) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Ceil) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Floor) },
+		{ ECKPRIV_CALCEXP_FUNCNAME(Round) },
+	};
+
+	struct CalcExpConstSym
+	{
+		WCHAR szNameW[3];
+		char szNameA[3];
+		SCHAR cchName;
+		double lfVal;
+	};
+#define ECKPRIV_CALCEXP_CONSTNAME(s) L#s, #s, ARRAYSIZE(#s) - 1
+	constexpr inline CalcExpConstSym CalcExpConstList[]
+	{
+		{ ECKPRIV_CALCEXP_CONSTNAME(Pi), 3.141592653589793 },
+		{ ECKPRIV_CALCEXP_CONSTNAME(E), 2.718281828459045 },
+	};
+
 	template<class TChar>
 	EckInline constexpr int CalcExpPriority(TChar ch)
 	{
@@ -69,7 +111,7 @@ namespace Priv
 		case '^':
 			return 3;
 		case '(':
-			return INT_MAX;
+			return 5;
 		default:
 			return 4;
 		}
@@ -80,7 +122,7 @@ namespace Priv
 	{
 		if (vOp.empty() || vNum.empty())
 			return FALSE;
-		const BOOL bIsBinary = (vOp.back() >= (TChar)CalcExpOp::Max);
+		const auto bIsBinary = (vOp.back() >= (TChar)CalcExpOp::Max);
 		if (bIsBinary ? (vNum.size() < 2) : FALSE)
 			return FALSE;
 		const auto chOp = vOp.back();
@@ -183,8 +225,8 @@ namespace Priv
 	}
 }
 
-inline CalcExpResult CalculateExpression(double& lfResult,
-	PCWSTR pszExp, int cchExp = -1)
+inline CalcExpResult CalculateExpression(_Out_ double& lfResult,
+	_In_ PCWSTR pszExp, int cchExp = -1)
 {
 	using TChar = WCHAR;
 	lfResult = 0.;
@@ -250,139 +292,24 @@ inline CalcExpResult CalculateExpression(double& lfResult,
 		}
 		else if (iswalpha(ch))
 		{
-			if (EckIsStartWithConstStringIW(p, L"Pi"))
-			{
-				vNum.push_back(3.14159265358979323846264338328);
-				p += 1;
-				bLastIsOp = FALSE;
-			}
-			else if (ch == 'E' || ch == 'e')
-			{
-				vNum.push_back(2.71828182845904523536028747135);
-				bLastIsOp = FALSE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Ln"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Ln);
-				p += 1;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Log"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Log);
-				p += 2;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Sin"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Sin);
-				p += 2;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Cos"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Cos);
-				p += 2;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Tan"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Tan);
-				p += 2;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Cot"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Cot);
-				p += 2;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Sec"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Sec);
-				p += 2;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Csc"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Csc);
-				p += 2;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Asin"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Asin);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Acos"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Acos);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Atan"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Atan);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Acot"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Acot);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Asec"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Asec);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Acsc"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Acsc);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Sqrt"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Sqrt);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Sinh"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Sinh);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Cosh"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Cosh);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Ceil"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Ceil);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Floor"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Floor);
-				p += 4;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIW(p, L"Round"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Round);
-				p += 4;
-				bLastIsOp = TRUE;
-			}
-			else
-				return CalcExpResult::InvalidChar;
+			for (const auto& e : Priv::CalcExpConstList)
+				if (EckIsStartWithConstStringIW(p, e.szNameW))
+				{
+					vNum.push_back(e.lfVal);
+					p += (e.cchName - 1);
+					bLastIsOp = FALSE;
+					goto ExitSearchSym;
+				}
+			for (const auto& e : Priv::CalcExpFuncList)
+				if (EckIsStartWithConstStringIW(p, e.szNameW))
+				{
+					vOp.push_back((TChar)e.eOp);
+					p += (e.cchName - 1);
+					bLastIsOp = TRUE;
+					goto ExitSearchSym;
+				}
+			return CalcExpResult::InvalidChar;
+		ExitSearchSym:;
 		}
 		else
 			return CalcExpResult::InvalidChar;
@@ -396,8 +323,8 @@ inline CalcExpResult CalculateExpression(double& lfResult,
 	return CalcExpResult::Ok;
 }
 
-inline CalcExpResult CalculateExpression(double& lfResult,
-	PCSTR pszExp, int cchExp = -1)
+inline CalcExpResult CalculateExpression(_Out_ double& lfResult,
+	_In_ PCSTR pszExp, int cchExp = -1)
 {
 	using TChar = CHAR;
 	lfResult = 0.;
@@ -409,7 +336,7 @@ inline CalcExpResult CalculateExpression(double& lfResult,
 		const auto ch = *p;
 		if (ch == ' ' || ch == '\t')
 			continue;
-		if (iswdigit(ch))
+		if (isdigit(ch))
 		{
 			bLastIsOp = FALSE;
 			vNum.push_back(strtod(p, (TChar**)&p));
@@ -461,141 +388,26 @@ inline CalcExpResult CalculateExpression(double& lfResult,
 				vOp.push_back(ch);
 			}
 		}
-		else if (iswalpha(ch))
+		else if (isalpha(ch))
 		{
-			if (EckIsStartWithConstStringIA(p, "Pi"))
-			{
-				vNum.push_back(3.14159265358979323846264338328);
-				p += 1;
-				bLastIsOp = FALSE;
-			}
-			else if (ch == 'E' || ch == 'e')
-			{
-				vNum.push_back(2.71828182845904523536028747135);
-				bLastIsOp = FALSE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Ln"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Ln);
-				p += 1;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Log"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Log);
-				p += 2;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Sin"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Sin);
-				p += 2;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Cos"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Cos);
-				p += 2;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Tan"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Tan);
-				p += 2;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Cot"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Cot);
-				p += 2;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Sec"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Sec);
-				p += 2;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Csc"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Csc);
-				p += 2;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Asin"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Asin);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Acos"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Acos);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Atan"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Atan);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Acot"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Acot);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Asec"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Asec);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Acsc"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Acsc);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Sqrt"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Sqrt);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Sinh"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Sinh);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Cosh"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Cosh);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Ceil"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Ceil);
-				p += 3;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Floor"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Floor);
-				p += 4;
-				bLastIsOp = TRUE;
-			}
-			else if (EckIsStartWithConstStringIA(p, "Round"))
-			{
-				vOp.push_back((TChar)Priv::CalcExpOp::Round);
-				p += 4;
-				bLastIsOp = TRUE;
-			}
-			else
-				return CalcExpResult::InvalidChar;
+			for (const auto& e : Priv::CalcExpConstList)
+				if (EckIsStartWithConstStringIA(p, e.szNameA))
+				{
+					vNum.push_back(e.lfVal);
+					p += (e.cchName - 1);
+					bLastIsOp = FALSE;
+					goto ExitSearchSym;
+				}
+			for (const auto& e : Priv::CalcExpFuncList)
+				if (EckIsStartWithConstStringIA(p, e.szNameA))
+				{
+					vOp.push_back((TChar)e.eOp);
+					p += (e.cchName - 1);
+					bLastIsOp = TRUE;
+					goto ExitSearchSym;
+				}
+			return CalcExpResult::InvalidChar;
+		ExitSearchSym:;
 		}
 		else
 			return CalcExpResult::InvalidChar;
