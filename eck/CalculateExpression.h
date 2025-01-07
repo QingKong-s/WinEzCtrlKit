@@ -81,6 +81,7 @@ namespace Priv
 		{ ECKPRIV_CALCEXP_FUNCNAME(Floor) },
 		{ ECKPRIV_CALCEXP_FUNCNAME(Round) },
 	};
+#undef ECKPRIV_CALCEXP_FUNCNAME
 
 	struct CalcExpConstSym
 	{
@@ -95,6 +96,7 @@ namespace Priv
 		{ ECKPRIV_CALCEXP_CONSTNAME(Pi), 3.141592653589793 },
 		{ ECKPRIV_CALCEXP_CONSTNAME(E), 2.718281828459045 },
 	};
+#undef ECKPRIV_CALCEXP_CONSTNAME
 
 	template<class TChar>
 	EckInline constexpr int CalcExpPriority(TChar ch)

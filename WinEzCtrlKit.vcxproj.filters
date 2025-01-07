@@ -54,7 +54,7 @@
     <ClInclude Include="eck\DbgHelper.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\DlgHelper.h">
+    <ClInclude Include="eck\DlgTemplate.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\ECK.h">
@@ -222,7 +222,7 @@
     <ClInclude Include="eck\CDuiList.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CD2dImageList.h">
+    <ClInclude Include="eck\CD2DImageList.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CDuiTrackBar.h">

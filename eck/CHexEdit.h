@@ -227,24 +227,26 @@ private:
 			rc.top = dy + GetHeaderHeight() + idxRow0 * GetRowHeight() - D.cyGap / 2;
 			rc.bottom = rc.top + GetRowHeight();
 			rc.left = xData + idxCol0 * GetColumnWidth();
+			SetDCBrushColor(hDC, ptc->crTip1);
+			const auto hbr = GetStockBrush(DC_BRUSH);
 			if (idxRow0 == idxRow1)
 			{
 				rc.right = xData + (idxCol1 + 1) * GetColumnWidth() - D.cxGap;
-				FillRect(hDC, &rc, GetStockBrush(GRAY_BRUSH));
+				FillRect(hDC, &rc, hbr);
 			}
 			else
 			{
 				rc.right = xData + GetDataRegionWidth() - D.cxGap;
-				FillRect(hDC, &rc, GetStockBrush(GRAY_BRUSH));
+				FillRect(hDC, &rc, hbr);
 				rc.left = xData;
 				rc.top = rc.bottom;
 				rc.bottom = dy + GetHeaderHeight() +
 					idxRow1 * GetRowHeight() - D.cyGap / 2;
-				FillRect(hDC, &rc, GetStockBrush(GRAY_BRUSH));
+				FillRect(hDC, &rc, hbr);
 				rc.top = rc.bottom;
 				rc.bottom = rc.top + GetRowHeight() - D.cyGap / 2;
 				rc.right = xData + (idxCol1 + 1) * GetColumnWidth() - D.cxGap;
-				FillRect(hDC, &rc, GetStockBrush(GRAY_BRUSH));
+				FillRect(hDC, &rc, hbr);
 			}
 		}
 		// 画数据
@@ -464,6 +466,7 @@ public:
 			const auto pos = HitTest(heht);
 			if ((heht.bHitData || heht.bHitChar))
 			{
+				m_posDragSelEnd = SIZETMax;
 				m_posDragSelStart = pos;
 				D.posCaret = pos;
 				D.idxCaretCol = (heht.bHitChar ? heht.idxCharCol : -1);
@@ -486,9 +489,12 @@ public:
 			{
 				HEHITTEST heht;
 				heht.pt = ECK_GET_PT_LPARAM(lParam);
-				const auto pos = HitTest(heht);
+				auto pos = HitTest(heht);
 				if (heht.bHitData)
 				{
+					if (pos >= m_cbData)
+						pos = m_cbData - 1;
+					D.bCaretInFirstNum = heht.bFirstNumber;
 					D.posCaret = pos;
 					UpdateCaretPos();
 					m_posDragSelEnd = pos;
@@ -504,6 +510,18 @@ public:
 			{
 				m_bLBtnDown = FALSE;
 				ReleaseCapture();
+				HEHITTEST heht;
+				heht.pt = ECK_GET_PT_LPARAM(lParam);
+				auto pos = HitTest(heht);
+				if (heht.bHitData)
+				{
+					if (pos >= m_cbData)
+						pos = m_cbData - 1;
+					D.bCaretInFirstNum = heht.bFirstNumber;
+					D.posCaret = pos;
+					UpdateCaretPos();
+					InvalidateRect(hWnd, nullptr, FALSE);
+				}
 			}
 		}
 		break;

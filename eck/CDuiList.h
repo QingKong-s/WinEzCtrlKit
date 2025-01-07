@@ -8,7 +8,7 @@
 #pragma once
 #include "DuiBase.h"
 #include "CInertialScrollView.h"
-#include "CD2dImageList.h"
+#include "CD2DImageList.h"
 
 #include "CDuiScrollBar.h"
 
@@ -101,7 +101,7 @@ private:
 
 	CScrollBar m_SB{};
 	CInertialScrollView* m_psv = nullptr;
-	CD2dImageList* m_pImgList = nullptr;
+	CD2DImageList* m_pImgList = nullptr;
 
 	ListType m_eView = ListType::Icon;
 
@@ -874,7 +874,7 @@ public:
 			m_vItem[idx].uFlags |= LEIF_SELECTED;
 	}
 
-	void SetImageList(CD2dImageList* pImgList)
+	void SetImageList(CD2DImageList* pImgList)
 	{
 		m_pImgList = pImgList;
 		pImgList->GetImageSize(m_cxImage, m_cyImage);

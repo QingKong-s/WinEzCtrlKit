@@ -7,7 +7,6 @@
 */
 #pragma once
 #include "CWnd.h"
-#include "DlgHelper.h"
 
 ECK_NAMESPACE_BEGIN
 class CDialog :public CWnd
