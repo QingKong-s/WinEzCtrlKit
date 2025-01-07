@@ -129,34 +129,84 @@ extern FShouldSystemUseDarkMode			pfnShouldSystemUseDarkMode;
 extern FSetPreferredAppMode				pfnSetPreferredAppMode;
 extern FIsDarkModeAllowedForApp			pfnIsDarkModeAllowedForApp;
 
+#if NTDDI_VERSION >= NTDDI_WIN10_RS5 && !ECK_OPT_DISABLE_DARKMODE
 FORCEINLINE BOOL AllowDarkModeForWindow(HWND hWnd, BOOL bAllow)
 {
-#if NTDDI_VERSION >= NTDDI_WIN10_RS5
 	return pfnAllowDarkModeForWindow(hWnd, bAllow);
-#else
-	return FALSE;
-#endif
-}
-
-FORCEINLINE PreferredAppMode SetPreferredAppMode_Org(PreferredAppMode iMode)
-{
-#if NTDDI_VERSION >= NTDDI_WIN10_RS5
-	return pfnSetPreferredAppMode(iMode);
-#else
-	return PreferredAppMode::Default;
-#endif
 }
 
 FORCEINLINE void AllowDarkModeForApp_Org(BOOL bAllow)
 {
-#if NTDDI_VERSION >= NTDDI_WIN10_RS5
 	pfnAllowDarkModeForApp(bAllow);
-#endif
 }
 
+FORCEINLINE BOOL IsDarkModeAllowedForWindow(HWND hWnd)
+{
+	return pfnIsDarkModeAllowedForWindow(hWnd);
+}
+
+FORCEINLINE BOOL ShouldAppsUseDarkMode()
+{
+	return pfnShouldAppsUseDarkMode();
+}
+
+FORCEINLINE void FlushMenuTheme()
+{
+	pfnFlushMenuThemes();
+}
+
+FORCEINLINE void RefreshImmersiveColorPolicyState()
+{
+	pfnRefreshImmersiveColorPolicyState();
+}
+
+FORCEINLINE BOOL GetIsImmersiveColorUsingHighContrast(IMMERSIVE_HC_CACHE_MODE iCacheMode)
+{
+	return pfnGetIsImmersiveColorUsingHighContrast(iCacheMode);
+}
+#else
+FORCEINLINE constexpr BOOL AllowDarkModeForWindow(HWND, BOOL) { return FALSE; }
+FORCEINLINE void AllowDarkModeForApp_Org(BOOL) {}
+FORCEINLINE constexpr void AllowDarkModeForApp(BOOL bAllow) {}
+FORCEINLINE constexpr BOOL IsDarkModeAllowedForWindow(HWND) { return FALSE; }
+FORCEINLINE constexpr BOOL ShouldAppsUseDarkMode() { return FALSE; }
+FORCEINLINE constexpr void FlushMenuTheme() {}
+FORCEINLINE constexpr void RefreshImmersiveColorPolicyState() {}
+FORCEINLINE constexpr BOOL GetIsImmersiveColorUsingHighContrast(IMMERSIVE_HC_CACHE_MODE) { return FALSE; }
+#endif
+
+#if NTDDI_VERSION >= NTDDI_WIN10_19H1
+FORCEINLINE PreferredAppMode SetPreferredAppMode_Org(PreferredAppMode iMode)
+{
+	return pfnSetPreferredAppMode(iMode);
+}
+
+FORCEINLINE BOOL ShouldSystemUseDarkMode()
+{
+	return pfnShouldSystemUseDarkMode();
+}
+
+FORCEINLINE BOOL IsDarkModeAllowedForApp()
+{
+	return pfnIsDarkModeAllowedForApp();
+}
+#else
+FORCEINLINE constexpr PreferredAppMode SetPreferredAppMode_Org(PreferredAppMode) { return PreferredAppMode::Default; }
+FORCEINLINE constexpr BOOL ShouldSystemUseDarkMode() { return FALSE; }
+FORCEINLINE constexpr BOOL IsDarkModeAllowedForApp() { return FALSE; }
+#endif
+
+#if NTDDI_VERSION >= NTDDI_WIN10_RS5 && !ECK_OPT_DISABLE_DARKMODE
 FORCEINLINE PreferredAppMode SetPreferredAppMode(PreferredAppMode iMode)
 {
-	if (pfnSetPreferredAppMode)
+#if NTDDI_VERSION >= NTDDI_WIN10_19H1
+	return SetPreferredAppMode_Org(iMode);
+#else
+	pfnAllowDarkModeForApp(
+		iMode == PreferredAppMode::AllowDark || iMode == PreferredAppMode::ForceDark);
+	return PreferredAppMode::Default;
+#endif
+	/*if (pfnSetPreferredAppMode)
 		return pfnSetPreferredAppMode(iMode);
 	else if (pfnAllowDarkModeForApp)
 	{
@@ -164,67 +214,11 @@ FORCEINLINE PreferredAppMode SetPreferredAppMode(PreferredAppMode iMode)
 			iMode == PreferredAppMode::AllowDark || iMode == PreferredAppMode::ForceDark);
 		return PreferredAppMode::Default;
 	}
-	return PreferredAppMode::Default;
+	return PreferredAppMode::Default;*/
 }
-
-FORCEINLINE BOOL IsDarkModeAllowedForWindow(HWND hWnd)
-{
-#if NTDDI_VERSION >= NTDDI_WIN10_RS5
-	return pfnIsDarkModeAllowedForWindow(hWnd);
 #else
-	return FALSE;
+FORCEINLINE constexpr PreferredAppMode SetPreferredAppMode(PreferredAppMode) { return PreferredAppMode::Default; }
 #endif
-}
-
-FORCEINLINE BOOL ShouldAppsUseDarkMode()
-{
-#if NTDDI_VERSION >= NTDDI_WIN10_RS5
-	return pfnShouldAppsUseDarkMode();
-#else
-	return FALSE;
-#endif
-}
-
-FORCEINLINE void FlushMenuTheme()
-{
-#if NTDDI_VERSION >= NTDDI_WIN10_RS5
-	pfnFlushMenuThemes();
-#endif
-}
-
-FORCEINLINE void RefreshImmersiveColorPolicyState()
-{
-#if NTDDI_VERSION >= NTDDI_WIN10_RS5
-	pfnRefreshImmersiveColorPolicyState();
-#endif
-}
-
-FORCEINLINE BOOL GetIsImmersiveColorUsingHighContrast(IMMERSIVE_HC_CACHE_MODE iCacheMode)
-{
-#if NTDDI_VERSION >= NTDDI_WIN10_RS5
-	return pfnGetIsImmersiveColorUsingHighContrast(iCacheMode);
-#else
-	return FALSE;
-#endif
-}
-
-FORCEINLINE BOOL ShouldSystemUseDarkMode()
-{
-#if NTDDI_VERSION >= NTDDI_WIN10_19H1
-	return pfnShouldSystemUseDarkMode();
-#else
-	return FALSE;
-#endif
-}
-
-FORCEINLINE BOOL IsDarkModeAllowedForApp()
-{
-#if NTDDI_VERSION >= NTDDI_WIN10_19H1
-	return pfnIsDarkModeAllowedForApp();
-#else
-	return FALSE;
-#endif
-}
 
 using FOpenNcThemeData = HTHEME(WINAPI*)(HWND, PCWSTR);
 

@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "CDuiListTemplate.h"
-#include "CD2dImageList.h"
+#include "CD2DImageList.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
@@ -30,7 +30,7 @@ protected:
 		IDWriteTextLayout* pTextLayout;
 	};
 
-	CD2dImageList* m_pImageList{};
+	CD2DImageList* m_pImageList{};
 	ID2D1SolidColorBrush* m_pBrush{};
 	CEasingCurve* m_pec1{}, * m_pec2{};
 	int m_idxTo{ -1 }, m_idxFrom{ -1 };
@@ -232,7 +232,7 @@ public:
 		return 0;
 	}
 
-	void SetImageList(CD2dImageList* pImageList)
+	void SetImageList(CD2DImageList* pImageList)
 	{
 		m_pImageList = pImageList;
 	}

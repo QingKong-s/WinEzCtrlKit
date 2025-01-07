@@ -1,7 +1,7 @@
 ﻿/*
 * WinEzCtrlKit Library
 *
-* CD2dImageList.h ： D2D图像列表
+* CD2DImageList.h ： D2D图像列表
 *
 * Copyright(C) 2023-2024 QingKong
 */
@@ -9,9 +9,10 @@
 #include "CSelRange.h"
 #include "CUnknown.h"
 #include "CSrwLock.h"
+#include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
-class CD2dImageList : public CRefObjMultiThread<CD2dImageList>
+class CD2DImageList : public CRefObjMultiThread<CD2DImageList>
 {
 	DECL_CUNK_FRIENDS;
 private:
@@ -89,8 +90,8 @@ private:
 		m_FreeRange.Clear();
 	}
 public:
-	ECK_DISABLE_COPY_MOVE_DEF_CONS(CD2dImageList);
-	CD2dImageList(int cx, int cy, int iPadding = 1, int cImgPerPack = 50)
+	ECK_DISABLE_COPY_MOVE_DEF_CONS(CD2DImageList);
+	CD2DImageList(int cx, int cy, int iPadding = 1, int cImgPerPack = 50)
 		: m_cx{ cx }, m_cy{ cy }, m_iPadding{ iPadding }, m_cImgPerPack{ cImgPerPack } {
 	}
 

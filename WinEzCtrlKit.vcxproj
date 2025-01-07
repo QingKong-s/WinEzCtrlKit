@@ -217,7 +217,7 @@
     <ClInclude Include="eck\CComboBoxNew.h" />
     <ClInclude Include="eck\CConditionVariable.h" />
     <ClInclude Include="eck\CCriticalSection.h" />
-    <ClInclude Include="eck\CD2dImageList.h" />
+    <ClInclude Include="eck\CD2DImageList.h" />
     <ClInclude Include="eck\CDateTimePicker.h" />
     <ClInclude Include="eck\CDialog.h" />
     <ClInclude Include="eck\CDrawPanel.h" />
@@ -315,7 +315,7 @@
     <ClInclude Include="eck\CWnd.h" />
     <ClInclude Include="eck\DbgHelper.h" />
     <ClInclude Include="eck\DesignerDef.h" />
-    <ClInclude Include="eck\DlgHelper.h" />
+    <ClInclude Include="eck\DlgTemplate.h" />
     <ClInclude Include="eck\EasingCurve.h" />
     <ClInclude Include="eck\ECK.h" />
     <ClInclude Include="eck\Env.h" />

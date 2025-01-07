@@ -1,20 +1,15 @@
 ﻿/*
 * WinEzCtrlKit Library
 *
-* DlgHelper.h ： 对话框相关帮助函数
+* DlgTemplate.h ： 对话框模板处理
 *
-* Copyright(C) 2023 QingKong
+* Copyright(C) 2023-2024 QingKong
 */
 #pragma once
-#include "ECK.h"
-#include "CRefStr.h"
-#include "CRefBin.h"
-#include "Utility.h"
 #include "WndHelper.h"
+#include "CMemWalker.h"
 
-#include <vector>
 #include <variant>
-#include <optional>
 
 ECK_NAMESPACE_BEGIN
 
@@ -37,17 +32,31 @@ struct DLGTHEADER
 DLGTHEADER后跟以下结构
 struct DLGTMENU
 {
-	WCHAR ch[];// ch[0] == 0 - 无菜单，ch[1]  0xFFFF - 资源ID，ch[2]  其他 - 以NULL结尾的资源名称，ch[n]
+	WCHAR ch;
+	// ch == 0 - 无菜单，结构终止
+	union
+	{
+		WORD wID;		// ch == 0xFFFF - 菜单资源ID
+		WCHAR szMenu[n];// 否则			- 以NULL结尾的菜单名称
+	};
 };
 
 struct DLGTWCLS
 {
-	WCHAR ch[];// ch[0] == 0 - 标准对话框类，ch[1]  0xFFFF - 预定义类原子，ch[2]  其他 - 以NULL结尾的窗口类名，ch[n]
+	WCHAR ch;
+	// ch == 0 - 标准对话框类，结构终止
+	union
+	{
+		WORD atom;		// ch == 0xFFFF - 预定义类原子
+		WCHAR szCls[n];	// 否则			- 以NULL结尾的窗口类名
+	};
 };
 
 struct DLGTCAPTION
 {
-	WCHAR ch[];// ch[0] == 0 - 无标题，ch[1]  其他 - 以NULL结尾的标题，ch[n]
+	WCHAR ch;
+	// ch == 0 - 无标题，结构终止
+	WCHAR szCap[n];		// 否则			- 以NULL结尾的标题
 };
 上述三个数组必须在WORD边界上对齐
 
@@ -57,7 +66,7 @@ struct DLGTFONT// 仅当指定了DS_SETFONT或DS_SHELLFONT时存在
 	WORD      wWeight;
 	BYTE      bItalic;
 	BYTE      byCharSet;
-	WCHAR     szName[];// 以NULL结尾的字体名称
+	WCHAR     szName[n];// 以NULL结尾的字体名称
 };
 */
 
@@ -80,22 +89,33 @@ struct DLGITEMTHEADER
 DLGITEMTHEADER后跟以下结构
 struct DLGITEMTWCLS
 {
-	WCHAR ch[];// ch[0] == 0xFFFF - 预定义类原子，ch[2]  其他 - 以NULL结尾的窗口类名，ch[n]
+	WCHAR ch;
+	union
+	{
+		WORD atom;		// ch == 0xFFFF - 预定义类原子
+		WCHAR szCls[n];	// 否则			- 以NULL结尾的窗口类名
+	};
 };
 
 struct DLGITEMTCAPTION
 {
-	WCHAR ch[];// ch[0] == 0xFFFF - 资源ID，ch[2]  其他 - 以NULL结尾的标题，ch[n]
+	WCHAR ch;
+	union
+	{
+		WORD atom;		// ch == 0xFFFF - 资源ID
+		WCHAR szCap[n];	// 否则			- 以NULL结尾的标题
+	};
 };
 
 struct DLGITEMTEXTRA
 {
 	WORD cbExtra;
-};// 后接附加数据
+	BYTE bYExtra[cbExtra];
+};
 */
 #pragma pack(pop)
 
-struct DLGTDLG :public DLGTHEADER
+struct DLGTDLG : DLGTHEADER
 {
 	std::optional<std::variant<WORD, CRefStrW>> Menu;
 	std::optional<std::variant<ATOM, CRefStrW>> Class;
@@ -108,13 +128,57 @@ struct DLGTDLG :public DLGTHEADER
 		BYTE      byCharSet;
 	} Font;
 	CRefStrW rsFontName;
+
+	PCWSTR GetMenu() const
+	{
+		if (Menu)
+		{
+			auto& Val = *Menu;
+			if (Val.index() == 0)// 资源ID
+				return ECKMAKEINTATOMW(std::get<0>(Val));
+			else// 菜单名字符串
+				return std::get<1>(Val).Data();
+		}
+		else
+			return nullptr;
+	}
+
+	PCWSTR GetClass() const
+	{
+		if (Class)
+		{
+			auto& Val = *Class;
+			if (Val.index() == 0)// 类原子
+				return ECKMAKEINTATOMW(std::get<0>(Val));
+			else// 类名字符串
+				return std::get<1>(Val).Data();
+		}
+		else
+			return ECKMAKEINTATOMW(32770);
+	}
+
+	PCWSTR GetCaption() const
+	{
+		if (Caption)
+			return Caption->Data();
+		else
+			return nullptr;
+	}
 };
 
-struct DLGTITEM :public DLGITEMTHEADER
+struct DLGTITEM : DLGITEMTHEADER
 {
 	std::variant<ATOM, CRefStrW> Class;
 	std::variant<WORD, CRefStrW> Caption;
 	CRefBin rbExtra;
+
+	PCWSTR GetClass() const
+	{
+		if (Class.index() == 0)// 类原子
+			return ECKMAKEINTATOMW(std::get<0>(Class));
+		else// 类名字符串
+			return std::get<1>(Class).Data();
+	}
 };
 
 
@@ -127,15 +191,18 @@ enum
 /// <summary>
 /// 序列化对话框模板
 /// </summary>
-/// <param name="Dlg">对话框信息</param>
+/// <param name="rbTemplate">序列化后的对话框模板字节集，将在原有内容后追加</param>
+/// <param name="Dlg">对话框信息，调用前必须将wVer设为1，wSignature设为0xFFFF，cDlgItems设为与Items元素数相同</param>
 /// <param name="Items">对话框项目信息</param>
-/// <returns>序列化后的对话框模板字节集</returns>
-inline CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLGTITEM>& Items)
+/// <returns>HRESULT</returns>
+inline HRESULT SerializeDialogTemplate(_Inout_ CRefBin& rbTemplate,
+	const DLGTDLG& Dlg, const std::vector<DLGTITEM>& Items)
 {
 	using namespace eck::Literals;
-	if (Dlg.wVer != 1_us || Dlg.wSignature != 0xFFFF_us || (SIZE_T)Dlg.cDlgItems != Items.size())
-		return {};
-
+	if (Dlg.wVer != 1_us || Dlg.wSignature != 0xFFFF_us)
+		return HRESULT_FROM_WIN32(ERROR_BAD_FORMAT);
+	if ((size_t)Dlg.cDlgItems != Items.size())
+		return E_BOUNDS;
 	SIZE_T cbTotal =
 		sizeof(DLGTHEADER) /*头*/ +
 		sizeof(WORD) * 3 /*菜单、窗口类、标题三个数组的第一个元素*/;
@@ -164,7 +231,8 @@ inline CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLG
 		cbTotal += ((Val.Size() + 1) * sizeof(WCHAR));
 	}
 
-	BOOL bHasFontStru = IsBitSet(Dlg.dwStyle, DS_SETFONT) || IsBitSet(Dlg.dwStyle, DS_SHELLFONT);
+	const auto bHasFontStru = IsBitSet(Dlg.dwStyle, DS_SETFONT) ||
+		IsBitSet(Dlg.dwStyle, DS_SHELLFONT);
 	if (bHasFontStru)
 	{
 		cbTotal += sizeof(Dlg.Font);
@@ -176,28 +244,27 @@ inline CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLG
 	cbTotal += (Items.size() * (
 		sizeof(DLGITEMTHEADER) /*头*/ +
 		sizeof(WORD) * 3 /*窗口类、标题两个数组的第一个元素和附加数据大小*/));
-	for (auto& x : Items)
+	for (auto& e : Items)
 	{
-		if (x.Class.index() == 0)// 类原子
+		if (e.Class.index() == 0)// 类原子
 			cbTotal += sizeof(ATOM);
 		else// 类名字符串
-			cbTotal += ((std::get<1>(x.Class).Size() + 1) * sizeof(WCHAR));
+			cbTotal += ((std::get<1>(e.Class).Size() + 1) * sizeof(WCHAR));
 
-		if (x.Caption.index() == 0)// 资源ID
+		if (e.Caption.index() == 0)// 资源ID
 			cbTotal += sizeof(WORD);
 		else// 标题字符串
-			cbTotal += ((std::get<1>(x.Caption).Size() + 1) * sizeof(WCHAR));
+			cbTotal += ((std::get<1>(e.Caption).Size() + 1) * sizeof(WCHAR));
 
-		if (x.rbExtra.Size())
-			cbTotal += AlignMemSize(x.rbExtra.Size(), 2);
+		if (e.rbExtra.Size())
+			cbTotal += AlignMemSize(e.rbExtra.Size(), 2);
 
 		cbTotal += CalcNextAlignBoundaryDistance(nullptr, (PCVOID)cbTotal, sizeof(DWORD));
 	}
 
-	CRefBin rb;
-	rb.ReSize(cbTotal);
+	rbTemplate.PushBackNoExtra(cbTotal);
 
-	CMemWriter w(rb.Data());
+	CMemWriter w(rbTemplate.Data(), rbTemplate.Size());
 	w.Write(&Dlg, sizeof(DLGTHEADER));
 
 	if (Dlg.Menu)
@@ -230,9 +297,9 @@ inline CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLG
 	if (bHasFontStru)
 		w << Dlg.Font << Dlg.rsFontName;
 
-	w += CalcNextAlignBoundaryDistance(rb.Data(), w, sizeof(DWORD));
+	w += CalcNextAlignBoundaryDistance(rbTemplate.Data(), w, sizeof(DWORD));
 
-	for (auto& x : Items)
+	for (const auto& x : Items)
 	{
 		w.Write(&x, sizeof(DLGITEMTHEADER));
 
@@ -253,10 +320,10 @@ inline CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLG
 			w += AlignMemSize(x.rbExtra.Size(), 2);
 		}
 
-		w += CalcNextAlignBoundaryDistance(rb.Data(), w, sizeof(DWORD));
+		w += CalcNextAlignBoundaryDistance(rbTemplate.Data(), w, sizeof(DWORD));
 	}
 
-	return rb;
+	return S_OK;
 }
 
 /// <summary>
@@ -265,52 +332,51 @@ inline CRefBin SerializeDialogTemplate(const DLGTDLG& Dlg, const std::vector<DLG
 /// <param name="pTemplate">对话框模板指针</param>
 /// <param name="Dlg">接收对话框信息变量，若函数失败，则此参数内容无法确定</param>
 /// <param name="Items">接收对话框项目信息变量</param>
-/// <returns>成功返回TRUE，失败返回FALSE</returns>
-inline BOOL DeserializeDialogTemplate(PCVOID pTemplate, DLGTDLG& Dlg, std::vector<DLGTITEM>& Items)
+/// <returns>HRESULT</returns>
+inline HRESULT DeserializeDialogTemplate(_In_ PCVOID pTemplate,
+	_Inout_ DLGTDLG& Dlg, _Inout_ std::vector<DLGTITEM>& Items)
 {
 	using namespace eck::Literals;
 	CMemReader r(pTemplate);
 	r.Read(&Dlg, sizeof(DLGTHEADER));
 	if (Dlg.wVer != 1_us || Dlg.wSignature != 0xFFFF_us)
-		return FALSE;
+		return HRESULT_FROM_WIN32(ERROR_BAD_FORMAT);
 
 	WORD us;
-	CRefStrW rs;
+	CRefStrW rs{};
 
 	r >> us;
 	switch (us)
 	{
 	case 0_us:
+		Dlg.Menu.reset();
 		break;
 	case 0xFFFF_us:
 		r >> us;
 		Dlg.Menu = us;
 		break;
 	default:
-	{
 		r -= sizeof(WORD);
 		r >> rs;
 		Dlg.Menu = std::move(rs);
-	}
-	break;
+		break;
 	}
 
 	r >> us;
 	switch (us)
 	{
 	case 0_us:
+		Dlg.Class.reset();
 		break;
 	case 0xFFFF_us:
 		r >> us;
 		Dlg.Class = us;
 		break;
 	default:
-	{
 		r -= sizeof(WORD);
 		r >> rs;
 		Dlg.Class = std::move(rs);
-	}
-	break;
+		break;
 	}
 
 	r >> us;
@@ -320,6 +386,8 @@ inline BOOL DeserializeDialogTemplate(PCVOID pTemplate, DLGTDLG& Dlg, std::vecto
 		r >> rs;
 		Dlg.Caption = std::move(rs);
 	}
+	else
+		Dlg.Caption.reset();
 
 	if (IsBitSet(Dlg.dwStyle, DS_SETFONT) || IsBitSet(Dlg.dwStyle, DS_SHELLFONT))
 	{
@@ -327,6 +395,8 @@ inline BOOL DeserializeDialogTemplate(PCVOID pTemplate, DLGTDLG& Dlg, std::vecto
 		r >> rs;
 		Dlg.rsFontName = std::move(rs);
 	}
+	else
+		Dlg.rsFontName.Clear();
 
 	r += CalcNextAlignBoundaryDistance(pTemplate, r.Data(), sizeof(DWORD));
 
@@ -369,11 +439,13 @@ inline BOOL DeserializeDialogTemplate(PCVOID pTemplate, DLGTDLG& Dlg, std::vecto
 			r.Read(rb.Data(), rb.Size());
 			x.rbExtra = std::move(rb);
 		}
+		else
+			x.rbExtra.Clear();
 
 		r += CalcNextAlignBoundaryDistance(pTemplate, r.Data(), sizeof(DWORD));
 	}
 
-	return TRUE;
+	return S_OK;
 }
 
 /// <summary>
@@ -430,7 +502,8 @@ inline HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& 
 		hMenu = nullptr;
 
 	HFONT hFont;
-	BOOL bHasFontStru = IsBitSet(Dlg.dwStyle, DS_SETFONT) || IsBitSet(Dlg.dwStyle, DS_SHELLFONT);
+	const auto bHasFontStru = IsBitSet(Dlg.dwStyle, DS_SETFONT) || 
+		IsBitSet(Dlg.dwStyle, DS_SHELLFONT);
 	if (bHasFontStru)
 		hFont = EzFont(Dlg.rsFontName.Data(), Dlg.Font.wPoint, Dlg.Font.wWeight,
 			Dlg.Font.bItalic, FALSE, FALSE, nullptr, Dlg.Font.byCharSet);

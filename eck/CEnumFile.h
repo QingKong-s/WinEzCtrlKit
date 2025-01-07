@@ -16,6 +16,7 @@ private:
 	WIN32_FIND_DATA m_wfd;
 public:
 	ECK_DISABLE_COPY_MOVE_DEF_CONS(CEnumFile);
+	~CEnumFile() { Close(); }
 	CEnumFile(PCWSTR pszPath, BOOL bQueryShortNames = FALSE, DWORD dwAdditionalFlags = 0u)
 		: m_hFind{ FindFirstFileExW(pszPath,
 			bQueryShortNames ? FindExInfoStandard : FindExInfoBasic,
@@ -24,12 +25,15 @@ public:
 
 	HANDLE Open(PCWSTR pszPath, BOOL bQueryShortNames = FALSE, DWORD dwAdditionalFlags = 0u)
 	{
+		Close();
 		return m_hFind = FindFirstFileExW(pszPath,
 			bQueryShortNames ? FindExInfoStandard : FindExInfoBasic,
 			&m_wfd, FindExSearchNameMatch, nullptr, dwAdditionalFlags);
 	}
 
 	EckInline BOOL Next() { return FindNextFileW(m_hFind, &m_wfd); }
+
+	EckInline void Close() { FindClose(m_hFind); m_hFind = nullptr; }
 
 	EckInline constexpr HANDLE GetHFind() const { return m_hFind; }
 
