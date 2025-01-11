@@ -9,6 +9,8 @@
 #include "PchInc.h"
 #endif// ECK_OPT_MYDBG
 
+#include <coroutine>
+
 // For Private API
 
 FSetWindowCompositionAttribute	pfnSetWindowCompositionAttribute{};
@@ -1909,7 +1911,33 @@ BOOL PreTranslateMessage(const MSG& Msg)
 {
 	HWND hWnd = Msg.hwnd;
 	CWnd* pWnd;
-	const auto* const pCtx = GetThreadCtx();
+	const auto pCtx = GetThreadCtx();
+	if (Msg.message == TM_ENQUEUECALLBACK && !Msg.hwnd)
+	{
+		pCtx->EnQueueCallbackWLParam(Msg.wParam, Msg.lParam);
+		for (const auto& e : pCtx->vQueuedCallback)
+		{
+			if (e.pCtx == (void*)-1)
+				std::coroutine_handle<>::from_address(e.pCoroutine).resume();
+			else if (e.pCtx)
+				e.pfnCallback(e.pCtx);
+		}
+		pCtx->vQueuedCallback.clear();
+		return TRUE;
+	}
+
+	if (!pCtx->vQueuedCallback.empty())
+	{
+		for (const auto& e : pCtx->vQueuedCallback)
+		{
+			if (e.pCtx == (void*)-1)
+				std::coroutine_handle<>::from_address(e.pCoroutine).resume();
+			else if (e.pCtx)
+				e.pfnCallback(e.pCtx);
+		}
+		pCtx->vQueuedCallback.clear();
+	}
+
 	while (hWnd)
 	{
 		pWnd = pCtx->WmAt(hWnd);

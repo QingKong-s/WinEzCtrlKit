@@ -554,6 +554,12 @@ constexpr inline int MetricsExtraV{ 8 };
 
 constexpr inline UINT WM_USER_SAFE{ WM_USER + 3 };
 
+#ifdef ECK_OPT_MY_ENQUEUECALLBACK_MSG
+constexpr inline UINT TM_ENQUEUECALLBACK{ ECK_OPT_MY_ENQUEUECALLBACK_MSG };
+#else
+constexpr inline UINT TM_ENQUEUECALLBACK{ WM_APP + 77 };
+#endif
+
 constexpr inline UINT CS_STDWND{ CS_DBLCLKS | CS_VREDRAW | CS_HREDRAW };
 
 constexpr inline HRESULT HrNotFound{ HRESULT_FROM_WIN32(ERROR_NOT_FOUND) };
@@ -787,6 +793,20 @@ ECK_NAMESPACE_BEGIN
 class CWnd;
 struct THREADCTX;
 
+using FQueueCallback = void(*)(void* pCtx);
+namespace Priv
+{
+	struct QueuedCallback
+	{
+		void* pCtx;// == (void*)-1时表示是协程
+		union
+		{
+			FQueueCallback pfnCallback;
+			void* pCoroutine;
+		};
+	};
+}
+
 using FWndCreating = void(*)(HWND hWnd, CBT_CREATEWNDW* pcs, THREADCTX* pThreadCtx);
 struct THREADCTX
 {
@@ -810,6 +830,8 @@ struct THREADCTX
 	// 注意：务必在打开文件对话框前暂停Hook
 	BITBOOL bEnableDarkModeHook : 1{ TRUE };
 	BITBOOL bAutoNcDark : 1{ TRUE };	// 自动调整非客户区暗色
+	//-------回调队列
+	std::vector<Priv::QueuedCallback> vQueuedCallback{};
 
 	EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
 	{
@@ -865,6 +887,33 @@ struct THREADCTX
 	void UpdateDefColor();
 
 	void SendThemeChangedToAllTopWindow();
+
+	void EnQueueCallback(FQueueCallback pfnCallback, void* pCtx = nullptr)
+	{
+		EckAssert(pfnCallback != nullptr && pCtx != (void*)-1);
+		Priv::QueuedCallback x;
+		x.pfnCallback = pfnCallback;
+		x.pCtx = pCtx;
+		vQueuedCallback.push_back(x);
+	}
+
+	void EnQueueCoroutine(void* pCoroutine)
+	{
+		EckAssert(pCoroutine != nullptr);
+		Priv::QueuedCallback x;
+		x.pCoroutine = pCoroutine;
+		x.pCtx = (void*)-1;
+		vQueuedCallback.push_back(x);
+	}
+
+	void EnQueueCallbackWLParam(WPARAM wParam, LPARAM lParam)
+	{
+		EckAssert(wParam != 0);
+		Priv::QueuedCallback x;
+		x.pfnCallback = (FQueueCallback)wParam;
+		x.pCtx = (void*)lParam;
+		vQueuedCallback.push_back(x);
+	}
 };
 
 // 取线程上下文TLS槽

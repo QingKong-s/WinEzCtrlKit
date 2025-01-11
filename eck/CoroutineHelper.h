@@ -166,6 +166,7 @@ struct CoroRetVal<void>
 	constexpr void return_void() const noexcept {}
 };
 
+// 标准任务
 template<class TRet = void>
 struct CoroTask
 {
@@ -242,6 +243,7 @@ struct CoroTask
 	EckInline BOOL IsCanceled() const noexcept { return hCoroutine.promise().IsCanceled(); }
 };
 
+// 发后不理
 struct CoroTaskFireAndForget
 {
 	struct promise_type
@@ -322,8 +324,10 @@ namespace Priv
 	};
 }
 
+// 取取消令牌，用于主动轮询取消状态
 EckInline auto CoroGetCancellationToken() { return Priv::CancellationTokenAwaiter{}; }
 
+// 在线程池中恢复当前协程
 EckInline auto CoroResumeBackground()
 {
 	struct Awaiter
@@ -346,4 +350,26 @@ EckInline auto CoroResumeBackground()
 /// <param name="ms">正值为相对时间，负值为绝对时间</param>
 /// <returns>等待体</returns>
 EckInline auto CoroSleep(LONGLONG ms) { return Priv::TimerAwaiter{ ms }; }
+
+// 捕获UI线程上下文，稍后可使用co_await返回至UI线程
+EckInline auto CoroCaptureUiThread()
+{
+	struct Context
+	{
+	private:
+		UINT Id;
+	public:
+		Context() : Id{ NtCurrentThreadId32() } { EckAssert(GetThreadCtx()); }
+
+		constexpr bool await_ready() const noexcept { return false; }
+		void await_suspend(std::coroutine_handle<> h) const noexcept
+		{
+			PostThreadMessageW(Id, TM_ENQUEUECALLBACK, (WPARAM)h.address(), -1);
+		}
+		constexpr void await_resume() const noexcept {}
+
+		EckInline constexpr UINT GetThreadId() const noexcept { return Id; }
+	};
+	return Context{};
+}
 ECK_NAMESPACE_END
