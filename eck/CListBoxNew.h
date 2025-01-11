@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CListBoxNew.h ： 列表框
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CWnd.h"
 #include "CtrlGraphics.h"
 #include "CSelRange.h"

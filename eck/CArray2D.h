@@ -1,12 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CArray2D.h ： 二维数组
-* 内存空间连续的二维数组
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CAllocator.h"
 
 ECK_NAMESPACE_BEGIN

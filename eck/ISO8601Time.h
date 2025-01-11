@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* ISO8601Time.h : ISO8601处理
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "DateTimeHelper.h"
 #include "CRefStr.h"
 

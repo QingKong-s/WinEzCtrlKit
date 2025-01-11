@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CMemorySet.h ： 内存集
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CSrwLock.h"
 
 ECK_NAMESPACE_BEGIN

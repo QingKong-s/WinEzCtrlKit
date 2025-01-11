@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* DuiStdTheme.h ： DUI标准主题
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "DuiTheme.h"
 
 #if !ECKCXX20

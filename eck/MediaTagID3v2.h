@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* MediaTagID3v2.h ： ID3v2读写
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "MediaTag.h"
 
 ECK_NAMESPACE_BEGIN

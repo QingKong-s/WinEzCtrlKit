@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CDrawPanel.h ： 画板
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CWnd.h"
 #include "Utility.h"
 #include "GraphicsHelper.h"

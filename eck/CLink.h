@@ -1,10 +1,3 @@
-/*
-* WinEzCtrlKit Library
-*
-* CLink.h ： 标准链接标签
-*
-* Copyright(C) 2024 QingKong
-*/
 #pragma once
 #include "CWnd.h"
 

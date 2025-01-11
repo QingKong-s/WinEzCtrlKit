@@ -326,7 +326,6 @@
     <ClInclude Include="eck\CProcessorUsage.h" />
     <ClInclude Include="eck\ProcThrdHelper.h" />
     <ClInclude Include="eck\CRelativeLayout.h" />
-    <ClInclude Include="eck\ResStruct.h" />
     <ClInclude Include="eck\TextSrvDef.h" />
     <ClInclude Include="eck\ShellHelper.h" />
     <ClInclude Include="eck\CImageMat.h" />

@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* MediaTagMpeg.h ： MPEG信息
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "MediaTag.h"
 
 ECK_NAMESPACE_BEGIN

@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* LunarDateTimeHelper.h ： 农历日期时间
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "LunarDateLib.h"
 #include "DateTimeHelper.h"
 

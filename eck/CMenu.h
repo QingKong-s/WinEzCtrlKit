@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CMenu.h ： 菜单
-*
-* Copyright(C) 2023 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "ECK.h"
 #include "CRefStr.h"
 #include "CRefBin.h"

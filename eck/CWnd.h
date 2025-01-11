@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CWnd.h ： 窗口基类
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CObject.h"
 #include "WndHelper.h"
 #include "CMemWalker.h"

@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* DuiBase.h ： 简单DUI基础设施
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CWnd.h"
 
 #include "DuiDef.h"

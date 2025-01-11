@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CIPEdit.h ： 标准IP编辑框
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN

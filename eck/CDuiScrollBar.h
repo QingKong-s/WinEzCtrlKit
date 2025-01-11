@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CDuiScrollBar.h ： DUI滚动条
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "DuiBase.h"
 #include "CInertialScrollView.h"
 

@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CCommDlg.h ： 通用对话框
-*
-* Copyright(C) 2023 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CDialog.h"
 
 #include <commdlg.h>

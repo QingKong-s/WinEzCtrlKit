@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* IMem.h ： 内存直接访问接口
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN

@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* EasingCurve.h ： 缓动曲线
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "ITimeLine.h"
 
 #define ECK_EASING_NAMESPACE_BEGIN namespace Easing {

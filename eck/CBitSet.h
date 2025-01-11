@@ -1,10 +1,3 @@
-/*
-* WinEzCtrlKit Library
-*
-* CBitSet.h £º Î»¼¯ºÏ
-*
-* Copyright(C) 2023-2024 QingKong
-*/
 #pragma once
 #include "ECK.h"
 

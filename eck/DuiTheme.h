@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* DuiTheme.h ： DUI主题管理器
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CFile.h"
 #include "GraphicsHelper.h"
 #include "CUnknown.h"

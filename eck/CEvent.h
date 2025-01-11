@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CEvent.h ： 事件对象
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CWaitableObject.h"
 
 ECK_NAMESPACE_BEGIN

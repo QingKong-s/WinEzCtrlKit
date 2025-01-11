@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CPropertySheet.h ： 标准属性表
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN

@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CEditExt.h ： 编辑框扩展
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CEdit.h"
 
 ECK_NAMESPACE_BEGIN

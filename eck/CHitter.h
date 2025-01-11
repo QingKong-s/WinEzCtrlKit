@@ -1,10 +1,3 @@
-/*
-* WinEzCtrlKit Library
-*
-* CHitter.h £º ÆÁÄ»×ø±êÑ¡È¡Æ÷
-*
-* Copyright(C) 2024 QingKong
-*/
 #pragma once
 #include "CWnd.h"
 

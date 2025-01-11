@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CForm.h ： 通用窗体
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CWnd.h"
 #include "GraphicsHelper.h"
 #include "CMenu.h"

@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* SystemHelper.h ： 系统相关帮助函数
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "Utility.h"
 #include "Utility2.h"
 #include "CFile.h"

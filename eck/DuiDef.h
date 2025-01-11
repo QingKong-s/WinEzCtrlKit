@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* DuiDef.h ： DUI基本定义
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "ECK.h"
 
 #if !ECKCXX20

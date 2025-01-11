@@ -1,10 +1,3 @@
-/*
-* WinEzCtrlKit Library
-*
-* MultiFrameImage.h £∫ ∂‡÷°ÕºœÒ¥¶¿Ì
-*
-* Copyright(C) 2024 QingKong
-*/
 #pragma once
 #include "ImageHelper.h"
 #include "CStreamWalker.h"

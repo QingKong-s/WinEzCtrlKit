@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* DlgTemplate.h ： 对话框模板处理
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "WndHelper.h"
 #include "CMemWalker.h"
 

@@ -1,12 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CArray.h ： 多维数组
-* 内存空间连续的多维数组
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CAllocator.h"
 
 #include <vector>

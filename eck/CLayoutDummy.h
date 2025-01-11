@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CLayoutDummy.h ： 布局占位
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CLayoutBase.h"
 
 ECK_NAMESPACE_BEGIN

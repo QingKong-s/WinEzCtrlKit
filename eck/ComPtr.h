@@ -1,10 +1,3 @@
-/*
-* WinEzCtrlKit Library
-*
-* ComPtr.h £∫ COM÷«ƒ‹÷∏’Î
-*
-* Copyright(C) 2024 QingKong
-*/
 #pragma once
 #include "ECK.h"
 

@@ -1,12 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CMsgBoxHook.h ： 信息框暗色修复。
-* 一般不手动使用此类，将在SoftModalMessageBox的挂钩中自动调用
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN

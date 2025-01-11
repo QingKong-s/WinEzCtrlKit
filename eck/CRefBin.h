@@ -1,12 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CRefBin.h ： 字节集
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-
-#pragma once
+﻿#pragma once
 #include "ECK.h"
 #include "CAllocator.h"
 #include "CRefStr.h"

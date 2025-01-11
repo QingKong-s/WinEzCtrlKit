@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CRegKey.h ： 注册表项
-*
-* Copyright(C) 2023 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "Utility.h"
 #include "CRefStr.h"
 #include "CRefBin.h"

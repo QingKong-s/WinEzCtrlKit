@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* ThreadPool.h : NT线程池
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN

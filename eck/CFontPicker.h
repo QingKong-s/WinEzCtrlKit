@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CFontPicker.h ： 字体选择器
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CEditNcComp.h"
 #include "CCommDlg.h"
 

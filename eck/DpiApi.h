@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* DpiApi.h ： 1607+ DPI API包装
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN

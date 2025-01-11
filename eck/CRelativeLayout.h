@@ -1,10 +1,3 @@
-/*
-* WinEzCtrlKit Library
-*
-* CRelativeLayout.h ： 相对布局
-*
-* Copyright(C) 2024 QingKong
-*/
 #pragma once
 #include "CLayoutBase.h"
 

@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CHeaderExt.h ： 表头扩展
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CHeader.h"
 #include "CEditExt.h"
 #include "Utility2.h"

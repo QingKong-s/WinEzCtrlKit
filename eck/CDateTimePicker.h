@@ -1,10 +1,3 @@
-/*
-* WinEzCtrlKit Library
-*
-* CDateTimePicker.h ： 标准日期时间选择器
-*
-* Copyright(C) 2023-2024 QingKong
-*/
 #pragma once
 #include "CWnd.h"
 

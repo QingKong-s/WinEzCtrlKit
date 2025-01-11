@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* MediaTagFlac.h ： Flac元数据读写
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "MediaTag.h"
 #include "Utility2.h"
 

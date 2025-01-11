@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CTreeListExt.h ： 非所有者数据树列表
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CTreeList.h"
 
 ECK_NAMESPACE_BEGIN

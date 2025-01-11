@@ -117,9 +117,6 @@
     <ClInclude Include="eck\CTab.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\ResStruct.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CArray.h">
       <Filter>ECK Include</Filter>
     </ClInclude>

@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CD2DImageList.h ： D2D图像列表
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CSelRange.h"
 #include "CUnknown.h"
 #include "CSrwLock.h"

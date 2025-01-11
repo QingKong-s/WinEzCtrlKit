@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* TextSrvDef.h ： 文本服务接口定义
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "ECK.h"
 
 #include <Richedit.h>

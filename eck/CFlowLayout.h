@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CFlowLayout.h ： 流式布局
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CLayoutBase.h"
 
 ECK_NAMESPACE_BEGIN
