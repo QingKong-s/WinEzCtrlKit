@@ -513,6 +513,12 @@
     <ClInclude Include="eck\CalculateExpression.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\ThreadPool.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CoroutineHelper.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">

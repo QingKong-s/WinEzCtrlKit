@@ -204,6 +204,7 @@
     <ClInclude Include="eck\DuiTheme.h" />
     <ClInclude Include="eck\CalculateExpression.h" />
     <ClInclude Include="eck\GdipEffect.h" />
+    <ClInclude Include="eck\CoroutineHelper.h" />
     <ClInclude Include="eck\ISO8601Time.h" />
     <ClInclude Include="eck\Json.h" />
     <ClInclude Include="eck\CSignal.h" />
@@ -330,6 +331,7 @@
     <ClInclude Include="eck\ShellHelper.h" />
     <ClInclude Include="eck\CImageMat.h" />
     <ClInclude Include="eck\SystemHelper.h" />
+    <ClInclude Include="eck\ThreadPool.h" />
     <ClInclude Include="eck\Utility.h" />
     <ClInclude Include="eck\Utility2.h" />
     <ClInclude Include="eck\WndHelper.h" />
