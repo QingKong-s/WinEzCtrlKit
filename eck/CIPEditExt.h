@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CIPEditExt.h ： IP编辑框扩展
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CIPEdit.h"
 
 ECK_NAMESPACE_BEGIN

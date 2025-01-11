@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CDuiList.h ： DUI列表
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "DuiBase.h"
 #include "CInertialScrollView.h"
 #include "CD2DImageList.h"

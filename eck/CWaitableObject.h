@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CWaitableObject.h : 可等待对象
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "Utility.h"
 
 ECK_NAMESPACE_BEGIN

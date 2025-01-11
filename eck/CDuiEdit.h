@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CDuiEdit.h ： DUI编辑框
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CDuiScrollBar.h"
 #include "TextSrvDef.h"
 

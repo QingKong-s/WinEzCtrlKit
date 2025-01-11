@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CLinearLayout.h ： 线性布局
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CLayoutBase.h"
 
 ECK_NAMESPACE_BEGIN

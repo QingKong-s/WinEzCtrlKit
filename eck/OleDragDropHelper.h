@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* OleDragDropHelper.h ： OLE拖放预实现接口
-*
-* Copyright(C) 2023 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN

@@ -1,10 +1,3 @@
-/*
-* WinEzCtrlKit Library
-*
-* GeometryRender.h ： 几何图形渲染相关函数
-*
-* Copyright(C) 2024 QingKong
-*/
 #pragma once
 #include "MathHelper.h"
 

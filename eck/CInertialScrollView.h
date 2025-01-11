@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CInertialScrollView.h ： 平滑滚动视图
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CScrollView.h"
 #include "ITimeLine.h"
 #include "EasingCurve.h"

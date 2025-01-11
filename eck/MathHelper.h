@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* MathHelper.h ： 数学帮助函数
-*
-* Copyright(C) 2023 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "ECK.h"
 
 #include <DirectXMath.h>

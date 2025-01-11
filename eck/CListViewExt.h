@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CListViewExt.h ： 列表视图扩展
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 
 #include "CListView.h"
 #include "CHeaderExt.h"

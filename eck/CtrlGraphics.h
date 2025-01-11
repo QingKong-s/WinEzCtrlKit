@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CtrlGraphics.h ： 控件图形帮助
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "GraphicsHelper.h"
 
 ECK_NAMESPACE_BEGIN

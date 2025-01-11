@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* Lyric.h ： 歌词格式解析
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CRefStr.h"
 #include "CFile.h"
 

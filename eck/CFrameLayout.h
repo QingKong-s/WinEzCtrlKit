@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CFrameLayout.h ： 帧布局
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CLayoutBase.h"
 
 ECK_NAMESPACE_BEGIN

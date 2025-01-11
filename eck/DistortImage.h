@@ -1,15 +1,11 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* DistortImage.h : 扭曲图像生成
-* 参考文献：向辉"彩色图像的二维变形"
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
+/*
+* 参考文献：向辉"彩色图像的二维变形"
+*/
+
 class CMifptpHBITMAP
 {
 private:

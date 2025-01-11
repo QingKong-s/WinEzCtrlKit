@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CComboBoxEx.h ： 标准组合框Ex
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CComboBox.h"
 #include "CRefBinStream.h"
 #include "CStreamView.h"

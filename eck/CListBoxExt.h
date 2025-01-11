@@ -1,12 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CListBoxExt.h ： 列表框扩展
-* 封装了无数据列表框并对其功能做了扩展
-*
-* Copyright(C) 2023 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CListBox.h"
 #include "Utility2.h"
 

@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* GraphicsHelper.h ： 图形帮助
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "ImageHelper.h"
 
 ECK_NAMESPACE_BEGIN

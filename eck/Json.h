@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* Json.h ： yyjson封装
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CRefStr.h"
 #include "CRefBin.h"
 

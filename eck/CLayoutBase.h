@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CLayoutBase.h ： 布局基类
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "ILayout.h"
 #include "Utility.h"
 #include "WndHelper.h"

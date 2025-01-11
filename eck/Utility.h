@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* Utility.h ： 实用函数
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "ECK.h"
 
 #include <memory>

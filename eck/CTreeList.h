@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CTreeList.h ： 树列表
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CHeaderExt.h"
 #include "CEditExt.h"
 #include "CToolTip.h"

@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CRefStr.h ： 字符串
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #pragma warning (disable:4996)
 #include "ECK.h"
 #include "CAllocator.h"

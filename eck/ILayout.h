@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* ILayout.h ： 布局接口
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CObject.h"
 
 ECK_NAMESPACE_BEGIN

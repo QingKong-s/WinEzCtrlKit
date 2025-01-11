@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* NetworkHelper.h ： 网络相关辅助
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "Utility.h"
 #include "Utility2.h"
 

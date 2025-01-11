@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* DDX.h : 对话框数据交换
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CRefStr.h"
 #include "CSignal.h"
 #include "CObject.h"

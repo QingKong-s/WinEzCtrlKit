@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* ECK.h ： 公共头文件
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #define GDIPVER 0x110
 
 #include "PrivateApi.h"

@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CConditionVariable.h ： 条件变量
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CCriticalSection.h"
 #include "CSrwLock.h"
 

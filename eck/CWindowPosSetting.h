@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CWindowPosSetting.h ： 顶级窗口位置记忆
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CRefStr.h"
 #include "SystemHelper.h"
 

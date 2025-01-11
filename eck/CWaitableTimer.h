@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CWaitableTimer.h : 可等待定时器
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CWaitableObject.h"
 
 ECK_NAMESPACE_BEGIN

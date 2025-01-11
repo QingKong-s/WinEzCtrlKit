@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CImgMat.h ： 图像矩阵
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CArray2D.h"
 #include "MathHelper.h"
 #include "CRegion.h"

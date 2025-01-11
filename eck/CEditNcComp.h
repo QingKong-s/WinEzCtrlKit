@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CEditNcComp.h ： EditExt非客户区组件基类
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CEditExt.h"
 
 ECK_NAMESPACE_BEGIN

@@ -1,10 +1,3 @@
-/*
-* WinEzCtrlKit Library
-*
-* MediaTagApe.h £º Ape¶ÁÐ´
-*
-* Copyright(C) 2024 QingKong
-*/
 #pragma once
 #include "MediaTag.h"
 

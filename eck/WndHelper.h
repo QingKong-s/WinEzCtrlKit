@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* WndHelper.h ： 窗口操作帮助函数
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "Utility.h"
 #include "DpiApi.h"
 

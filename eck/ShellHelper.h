@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* ShellHelper.h ： 外壳操作辅助
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CRefStr.h"
 #include "ImageHelper.h"
 

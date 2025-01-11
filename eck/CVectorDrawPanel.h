@@ -1,10 +1,3 @@
-/*
-* WinEzCtrlKit Library
-*
-* CVectorDrawPanel.h £º Ê¸Á¿»­°å
-*
-* Copyright(C) 2023 QingKong
-*/
 #pragma once
 #include "CWnd.h"
 #include "GraphicsHelper.h"

@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* ImageHelper.h ： 图像帮助函数
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "Utility.h"
 #include "CStreamView.h"
 #include "CRefBinStream.h"

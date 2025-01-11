@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CTaskGroupList.h ： 任务列表组
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "CListView.h"
 
 ECK_NAMESPACE_BEGIN

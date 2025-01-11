@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* CIni.h ： INI操作
-*
-* Copyright(C) 2024 QingKong
-*/
-#pragma once
+﻿#pragma once
 #include "SystemHelper.h"
 
 ECK_NAMESPACE_BEGIN
