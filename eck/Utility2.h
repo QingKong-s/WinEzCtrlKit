@@ -2,6 +2,7 @@
 #include "CRefBin.h"
 #include "CRefStr.h"
 #include "CMemWalker.h"
+#include "AutoPtrDef.h"
 
 #include "ZLib/zlib.h"
 
@@ -733,7 +734,7 @@ inline NTSTATUS Compress(PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult,
 	ULONG cbRequired, Dummy;
 	if (!NT_SUCCESS(nts = RtlGetCompressionWorkSpaceSize(uEngine, &cbRequired, &Dummy)))
 		return nts;
-	UniquePtrVA<void> pWorkSpace(VAlloc(cbRequired));
+	UniquePtr<DelVA<>> pWorkSpace(VAlloc(cbRequired));
 	rbResult.ExtendToCapacity();
 	if (rbResult.Size() < sizeof(NTCOM_HDR))
 		rbResult.ReSize(sizeof(NTCOM_HDR) + cbOrg * 2 / 3);
@@ -844,7 +845,7 @@ inline NTSTATUS AesEncrypt(PCVOID pKey, SIZE_T cbKey, PCVOID pIv, SIZE_T cbIv,
 	BCRYPT_ALG_HANDLE hAlg;
 	BCRYPT_KEY_HANDLE hKey{};
 	ULONG cbRet, cbKeyObject;
-	UniquePtrCrtMA<UCHAR> pBuf{};
+	UniquePtr<DelMA<UCHAR>> pBuf{};
 	if (!NT_SUCCESS(nts = BCryptOpenAlgorithmProvider(&hAlg,
 		BCRYPT_AES_ALGORITHM, nullptr, 0)))
 		return nts;

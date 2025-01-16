@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "CSrwLock.h"
 #include "ThreadPool.h"
+#include "CEvent.h"
 
 #include <coroutine>
 
@@ -23,11 +24,11 @@ struct CoroPromiseBase
 	State m_eState{ State::Initial };
 	std::coroutine_handle<> m_hCoroNext{};// 同步任务应恢复到
 	FCanceller m_pfnCanceller{};
-	void* m_pCtx{};
+	void* m_pCancellerCtx{};
 	std::function<void()> m_fnOnCancel{};
 	CSrwLock m_Lk{};
 
-	constexpr auto initial_suspend() { return std::suspend_never{}; }
+	constexpr auto initial_suspend() noexcept { return std::suspend_never{}; }
 	auto final_suspend() noexcept
 	{
 		struct Awaiter
@@ -112,7 +113,7 @@ struct CoroPromiseBase
 	Success:;
 		CSrwWriteGuard _{ m_Lk };
 		if (m_pfnCanceller)
-			m_pfnCanceller(m_pCtx);
+			m_pfnCanceller(m_pCancellerCtx);
 		if (m_fnOnCancel)
 		{
 			auto fn{ std::move(m_fnOnCancel) };
@@ -130,19 +131,14 @@ struct CoroPromiseBase
 	{
 		CSrwWriteGuard _{ m_Lk };
 		m_pfnCanceller = pfnCanceller;
-		m_pCtx = pCtx;
+		m_pCancellerCtx = pCtx;
 	}
 
-	EckInline void SetOnCancel(const std::function<void()>& fnOnCancel) noexcept
+	template<class T>
+	EckInline void SetOnCancel(T&& fnOnCancel) noexcept
 	{
 		CSrwWriteGuard _{ m_Lk };
-		m_fnOnCancel = fnOnCancel;
-	}
-
-	EckInline void SetOnCancel(std::function<void()>&& fnOnCancel) noexcept
-	{
-		CSrwWriteGuard _{ m_Lk };
-		m_fnOnCancel = std::move(fnOnCancel);
+		m_fnOnCancel = std::forward<T>(fnOnCancel);
 	}
 };
 
@@ -157,7 +153,8 @@ public:
 		m_RetVal.emplace(std::forward<T>(Val));
 	}
 
-	constexpr auto& GetOptional() const noexcept { return m_RetVal; }
+	constexpr auto& GetRetVal() const noexcept { return m_RetVal; }
+	constexpr auto& GetRetVal() noexcept { return m_RetVal; }
 };
 
 template<>
@@ -188,7 +185,7 @@ struct CoroTask
 		{
 			promise_type& Pro;
 			bool await_ready() const noexcept { return Pro.IsCompleted(); }
-			bool await_suspend(std::coroutine_handle<promise_type> h) const noexcept
+			bool await_suspend(std::coroutine_handle<> h) const noexcept
 			{
 				return Pro.SyncResumeToIt(h);
 			}
@@ -213,7 +210,7 @@ struct CoroTask
 		std::swap(hCoroutine, x.hCoroutine);
 	}
 
-	CoroTask& operator=(const CoroTask& x)
+	CoroTask& operator=(const CoroTask& x) noexcept
 	{
 		if (&x != this)
 		{
@@ -236,11 +233,26 @@ struct CoroTask
 			hCoroutine.destroy();
 	}
 
+	void SyncWait() const
+	{
+		CEvent Event(nullptr, FALSE, FALSE);
+
+		[this, &Event]() -> CoroTask<> {
+			co_await *this;
+			Event.Signal();
+			}();
+
+		WaitObject(Event);
+	}
+
 	// Forwarder
 
-	EckInline BOOL IsCompleted() const noexcept { return hCoroutine.promise().IsCompleted(); }
-	EckInline BOOL TryCancel() noexcept { return hCoroutine.promise().TryCancel(); }
-	EckInline BOOL IsCanceled() const noexcept { return hCoroutine.promise().IsCanceled(); }
+	EckInline auto& GetPromise() const noexcept { return hCoroutine.promise(); }
+	EckInline auto& GetRetVal() const noexcept { return GetPromise().GetRetVal(); }
+	EckInline auto& GetRetVal() noexcept { return GetPromise().GetRetVal(); }
+	EckInline BOOL IsCompleted() const noexcept { return GetPromise().IsCompleted(); }
+	EckInline BOOL TryCancel() noexcept { return GetPromise().TryCancel(); }
+	EckInline BOOL IsCanceled() const noexcept { return GetPromise().IsCanceled(); }
 };
 
 // 发后不理
@@ -283,10 +295,11 @@ namespace Priv
 		{
 			struct Token
 			{
-				CoroPromiseBase* pPro;
-				EckInline BOOL IsCanceled() const noexcept { return pPro->IsCanceled(); }
+				CoroPromiseBase& Pro;
+				EckInline BOOL IsCanceled() const noexcept { return Pro.IsCanceled(); }
+				EckInline constexpr auto& GetPromise() const noexcept { return Pro; }
 			};
-			return Token{ pPro };
+			return Token{ *pPro };
 		}
 	};
 

@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "CRefStr.h"
 #include "CFile.h"
+#include "AutoPtrDef.h"
 
 ECK_NAMESPACE_BEGIN
 struct LRCTIMELABEL
@@ -323,7 +324,7 @@ HRESULT ParseLrc(_In_reads_bytes_(cbMem) PCVOID p, SIZE_T cbMem,
 		break;
 		}
 	}
-	UniquePtrVA<BYTE> _(pFileData);
+	UniquePtr<DelVA<BYTE>> _(pFileData);
 #pragma endregion
 #pragma region 按行分割
 	std::vector<std::pair<PWSTR, int>> Lines{};

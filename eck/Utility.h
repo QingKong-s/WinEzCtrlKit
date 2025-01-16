@@ -28,30 +28,12 @@ EckInline NTSTATUS VFree(void* p)
 	return NtFreeVirtualMemory(NtCurrentProcess(), &p, &cb, MEM_RELEASE);
 }
 
-template<class T>
-struct VADeleter
-{
-	void operator()(T* p)
-	{
-		VFree(p);
-	}
+template<class T_ = void>
+struct DelVA 
+{ 
+	using T = T_;
+	void operator()(T* p) { VFree(p); }
 };
-
-template<class T>
-struct CrtMADeleter
-{
-	void operator()(T* p)
-	{
-		free(p);
-	}
-};
-
-template<class T>
-using UniquePtrVA = std::unique_ptr<T, VADeleter<T>>;
-
-template<class T>
-using UniquePtrCrtMA = std::unique_ptr<T, CrtMADeleter<T>>;
-
 
 namespace Colorref
 {

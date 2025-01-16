@@ -5,6 +5,7 @@
 #include "CRefBin.h"
 #include "ComPtr.h"
 #include "DpiApi.h"
+#include "AutoPtrDef.h"
 
 #include <intrin.h>
 
@@ -46,7 +47,9 @@ inline CRefBin ReadInFile(PCWSTR pszFile)
 		return {};
 	}
 
-	CRefBin rb(i64.LowPart);
+	CRefBin rb{};
+	rb.Reserve(i64.LowPart + 4/*给调用方预留，例如添加结尾NULL等*/);
+	rb.ReSize(i64.LowPart);
 	DWORD dwRead;
 	if (!ReadFile(hFile, rb.Data(), i64.LowPart, &dwRead, nullptr))
 	{
@@ -349,7 +352,7 @@ inline BOOL GetFileVerInfo(PCWSTR pszFile, FILEVERINFO& fvi)
 		return FALSE;
 	void* pBuf = malloc(cbBuf);
 	EckCheckMem(pBuf);
-	UniquePtrCrtMA<void> _(pBuf);
+	UniquePtr<DelMA<void>> _(pBuf);
 	if (!GetFileVersionInfoW(pszFile, 0, cbBuf, pBuf))
 		return FALSE;
 
@@ -1289,7 +1292,7 @@ inline NTSTATUS IntGetPhysicalDriveIdentifier(F fnProcessData, int idxDrive)
 		};
 
 		constexpr DWORD cbBuf = 4096;
-		UniquePtrVA<void> pBuf(VAlloc(cbBuf));
+		UniquePtr<DelVA<void>> pBuf(VAlloc(cbBuf));
 		DWORD cbRet{};
 		if (NT_SUCCESS(nts = NaDeviceIoControl(hDevice, IOCTL_STORAGE_QUERY_PROPERTY,
 			&spq, sizeof(spq), pBuf.get(), cbBuf, &cbRet)))

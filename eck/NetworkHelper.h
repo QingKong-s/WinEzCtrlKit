@@ -5,16 +5,7 @@
 #include <winhttp.h>
 
 ECK_NAMESPACE_BEGIN
-struct WinHttpHandleDeleter
-{
-	EckInline void operator()(HINTERNET h)
-	{
-		WinHttpCloseHandle(h);
-	}
-};
-
-using UniquePtrWinHttpHandle = std::unique_ptr<std::remove_pointer_t<HINTERNET>, WinHttpHandleDeleter>;
-
+ECK_DECL_HANDLE_DELETER(HWinHttp, HINTERNET, WinHttpCloseHandle);
 
 inline std::wstring_view HeaderGetParam(PCWSTR pszHeader, PCWSTR pszName, int cchName = -1)
 {
@@ -41,13 +32,14 @@ inline BOOL RequestUrl(FPostConnect&& fn, BOOL bRealRequest, PCWSTR pszUrl, PCWS
 	// 分解URL
 	if (!WinHttpCrackUrl(pszUrl, -1, 0, &urlc))
 		return FALSE;
-	const UniquePtrWinHttpHandle hSession(WinHttpOpen(pszUserAgent,
+	const UniquePtr<DelHWinHttp> hSession(WinHttpOpen(pszUserAgent,
 		pszProxy ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_NO_PROXY,
 		pszProxy, WINHTTP_NO_PROXY_BYPASS, 0));
 	if (!hSession)
 		return FALSE;
 	const CRefStrW rsHost(urlc.lpszHostName, urlc.dwHostNameLength);
-	const UniquePtrWinHttpHandle hConnect(WinHttpConnect(hSession.get(), rsHost.Data(), urlc.nPort, 0));
+	const UniquePtr<DelHWinHttp>
+		hConnect(WinHttpConnect(hSession.get(), rsHost.Data(), urlc.nPort, 0));
 	if (!hConnect)
 		return FALSE;
 	CRefStrW rsPath{};
@@ -57,9 +49,10 @@ inline BOOL RequestUrl(FPostConnect&& fn, BOOL bRealRequest, PCWSTR pszUrl, PCWS
 	else
 		rsPath.PushBackChar(L'/');
 	rsPath.PushBack(urlc.lpszExtraInfo, urlc.dwExtraInfoLength);
-	const UniquePtrWinHttpHandle hRequest(WinHttpOpenRequest(hConnect.get(), pszMethod, rsPath.Data(),
-		nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
-		(urlc.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)));
+	const UniquePtr<DelHWinHttp>
+		hRequest(WinHttpOpenRequest(hConnect.get(), pszMethod, rsPath.Data(),
+			nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
+			(urlc.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)));
 	if (!hRequest)
 		return FALSE;
 	// 忽略证书错误
@@ -205,30 +198,51 @@ struct CHttpRequest
 
 	void DoRequest(PCWSTR pszUrl, PCWSTR pszMethod = L"GET")
 	{
-		Response = RequestUrl(pszUrl, pszMethod, Data, DataSize, Header,
-			Cookies, AutoAddHeader, &ResponseHeader, Proxy, UserAgent);
-		if (AutoDecompress)
-		{
-			const auto svContentEncoding = HeaderGetParam(ResponseHeader.Data(), L"Content-Encoding");
-			if (!svContentEncoding.empty())
-				if (svContentEncoding.find(L"gzip") != std::wstring_view::npos)
+		RequestUrl([&](HINTERNET hSession, HINTERNET hConnect, HINTERNET hRequest) -> BOOL
+			{
+				if (AutoDecompress)
 				{
-					CRefBin rbDecompressed{};
-					GZipDecompress(Response.Data(), Response.Size(), rbDecompressed);
-					Response = std::move(rbDecompressed);
+					DWORD dwFlags{ WINHTTP_DECOMPRESSION_FLAG_ALL };
+					if (!WinHttpSetOption(hRequest, WINHTTP_OPTION_DECOMPRESSION,
+						&dwFlags, sizeof(dwFlags)))
+						return FALSE;
 				}
-				else if (svContentEncoding.find(L"deflate") != std::wstring_view::npos)
+				if (!WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
+					Data, (DWORD)DataSize, (DWORD)DataSize, 0))
+					return FALSE;
+				if (!WinHttpReceiveResponse(hRequest, nullptr))
+					return FALSE;
+
+				DWORD cbHeaders = 0;
+				WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_RAW_HEADERS_CRLF,
+					WINHTTP_HEADER_NAME_BY_INDEX, nullptr, &cbHeaders, WINHTTP_NO_HEADER_INDEX);
+				if (cbHeaders)
 				{
-					CRefBin rbDecompressed{};
-					ZLibDecompress(Response.Data(), Response.Size(), rbDecompressed);
-					Response = std::move(rbDecompressed);
+					ResponseHeader.ReSize(cbHeaders / sizeof(WCHAR) - 1);
+					WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_RAW_HEADERS_CRLF,
+						WINHTTP_HEADER_NAME_BY_INDEX, ResponseHeader.Data(), &cbHeaders, WINHTTP_NO_HEADER_INDEX);
 				}
-				else
+				const auto svContentLength = HeaderGetParam(ResponseHeader.Data(), L"Content-Length");
+				if (!svContentLength.empty())
 				{
-					EckDbgPrintFmt(L"Unknown Content-Encoding: %s", svContentEncoding.data());
-					EckDbgBreak();
+					const auto cbContent = _wtoll(svContentLength.data());// 将在第一个非数字字符处停止
+					if (cbContent > 1'073'741'824i64)// 大于1G，不读
+						return FALSE;
+					Response.Reserve((size_t)cbContent);
 				}
-		}
+				DWORD cbAvailable, cbRead;
+				while (WinHttpQueryDataAvailable(hRequest, &cbAvailable))
+				{
+					if (!cbAvailable)
+						break;
+					if (!WinHttpReadData(hRequest,
+						Response.PushBack(cbAvailable), cbAvailable, &cbRead))
+						return FALSE;
+					Response.PopBack(cbAvailable - cbRead);
+				}
+				return TRUE;
+			}, FALSE, pszUrl, pszMethod, Data, DataSize,
+			Header, Cookies, AutoAddHeader, Proxy, UserAgent);
 	}
 
 	void DoRequest(const CRefStrW& rsUrl, PCWSTR pszMethod = L"GET")

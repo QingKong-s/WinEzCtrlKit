@@ -19,6 +19,9 @@ ECK_NAMESPACE_BEGIN
 			SetTBExtendStyle(GetTBExtendStyle() & ~Style);	\
 	}
 
+constexpr inline DWORD ToolBarPrettyStyle = TBSTYLE_LIST | TBSTYLE_TRANSPARENT |
+CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER;
+
 class CToolBar :public CWnd
 {
 public:

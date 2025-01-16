@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Utility.h"
+#include "AutoPtrDef.h"
 
 ECK_NAMESPACE_BEGIN
 class CRegion
@@ -620,7 +621,8 @@ public:
 		const auto cbBuf = GetRegionData(hRgn, 0, nullptr);
 		if (!cbBuf)
 			return FALSE;
-		UniquePtrCrtMA<RGNDATAHEADER> pBuf((RGNDATAHEADER*)malloc(cbBuf));
+		UniquePtr<DelMA<RGNDATAHEADER>>
+			pBuf((RGNDATAHEADER*)malloc(cbBuf));
 		if (!GetRegionData(hRgn, cbBuf, (RGNDATA*)pBuf.get()))
 			return FALSE;
 		SetRect((RECT*)(pBuf.get() + 1), (int)pBuf->nCount);
@@ -1418,7 +1420,8 @@ public:
 			return CreateRectRgn(0, 0, 0, 0);
 		const size_t cRc = GetRectCount();
 		const size_t cbBuf = sizeof(RGNDATAHEADER) + sizeof(RECT) * cRc;
-		UniquePtrCrtMA<RGNDATAHEADER> pRgnData((RGNDATAHEADER*)malloc(cbBuf));
+		UniquePtr<DelMA<RGNDATAHEADER>>
+			pRgnData((RGNDATAHEADER*)malloc(cbBuf));
 		EckCheckMem(pRgnData);
 		GetRect((RECT*)(pRgnData.get() + 1), cRc);
 		pRgnData->dwSize = sizeof(RGNDATAHEADER);
