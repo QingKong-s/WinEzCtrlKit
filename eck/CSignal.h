@@ -160,7 +160,7 @@ public:
 	template<class TProc>
 	EckInline HSlot Connect(TProc&& fn, UINT_PTR uId = 0u, HSlot pAfter = ECK_SIG_TOP)
 	{
-		return IntConnect(fn, uId, (NODE*)pAfter);
+		return IntConnect(std::forward<TProc>(fn), uId, (NODE*)pAfter);
 	}
 
 	template<class TCls>

@@ -49,7 +49,7 @@ inline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, UINT& uPid)
 	if (!cb)
 		return nts;
 	BYTE* pBuf = (BYTE*)VAlloc(cb);
-	UniquePtrVA<BYTE> _(pBuf);
+	UniquePtr<DelVA<BYTE>> _(pBuf);
 	if (!NT_SUCCESS(nts = NtQuerySystemInformation(SystemProcessInformation, pBuf, cb, &cb)))
 		return nts;
 	SYSTEM_PROCESS_INFORMATION* pspi = (SYSTEM_PROCESS_INFORMATION*)pBuf;
@@ -73,7 +73,7 @@ inline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, std::vector<UINT>& vPid
 	NTSTATUS nts = NtQuerySystemInformation(SystemProcessInformation, nullptr, 0, &cb);
 	if (!cb)
 		return nts;
-	UniquePtrVA<BYTE> pBuf((BYTE*)VAlloc(cb));
+	UniquePtr<DelVA<BYTE>> pBuf((BYTE*)VAlloc(cb));
 	if (!NT_SUCCESS(nts = NtQuerySystemInformation(SystemProcessInformation, pBuf.get(), cb, &cb)))
 		return nts;
 	SYSTEM_PROCESS_INFORMATION* pspi = (SYSTEM_PROCESS_INFORMATION*)pBuf.get();
@@ -226,7 +226,7 @@ inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags =
 	if (!cb)
 		return nts;
 	BYTE* pBuf = (BYTE*)VAlloc(cb);
-	UniquePtrVA<BYTE> _(pBuf);
+	UniquePtr<DelVA<BYTE>> _(pBuf);
 	if (!NT_SUCCESS(nts = NtQuerySystemInformation(SystemProcessInformation, pBuf, cb, &cb)))
 		return nts;
 	vResult.reserve(150u);

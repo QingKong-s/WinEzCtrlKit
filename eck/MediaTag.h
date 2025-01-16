@@ -5,6 +5,7 @@
 #include "CMemWalker.h"
 #include "CBitSet.h"
 #include "Utility2.h"
+#include "AutoPtrDef.h"
 
 #include <variant>
 

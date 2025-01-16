@@ -1,11 +1,4 @@
-﻿/*
-* WinEzCtrlKit Library
-*
-* ECK.cpp ： MAIN
-*
-* Copyright(C) 2023-2024 QingKong
-*/
-#ifdef ECK_OPT_MYDBG
+﻿#ifdef ECK_OPT_MYDBG
 #include "PchInc.h"
 #endif// ECK_OPT_MYDBG
 

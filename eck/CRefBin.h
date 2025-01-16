@@ -539,6 +539,12 @@ public:
 		return Data() + m_cb - cb;
 	}
 
+	EckInline CRefBinT& PushBack(std::initializer_list<BYTE> x)
+	{
+		PushBack(x.begin(), x.size());
+		return *this;
+	}
+
 	template<class T>
 	EckInline T* PushBack()
 	{

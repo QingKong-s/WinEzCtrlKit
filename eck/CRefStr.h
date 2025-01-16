@@ -456,6 +456,10 @@ public:
 	explicit CRefStrT(TNtString nts, const TAlloc& Al = TAlloc{})
 		:CRefStrT(nts.Buffer, (int)nts.Length, Al) {}
 
+	template<class TTraits>
+	CRefStrT(std::basic_string_view<TChar, TTraits> sv, const TAlloc& Al = TAlloc{})
+		: CRefStrT(sv.data(), (int)sv.size(), Al) {}
+
 	~CRefStrT()
 	{
 		m_Alloc.deallocate(m_pszText, m_cchCapacity);

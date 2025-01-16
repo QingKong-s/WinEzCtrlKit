@@ -48,7 +48,7 @@ public:
 		BYTE* pBuf = (BYTE*)VAlloc(m_Hdr.cbBody);
 		if (!pBuf)
 			return Result::OutOfMemory;
-		UniquePtrVA<BYTE> _(pBuf);
+		UniquePtr<DelVA<BYTE>> _(pBuf);
 		m_Stream.MoveTo(m_File.m_Loc.posApe).Read(pBuf, m_Hdr.cbBody);
 		CMemWalker w(pBuf, m_Hdr.cbBody);
 		UINT cbVal, uItemFlags;
@@ -178,7 +178,7 @@ public:
 
 		if (cbPadding)
 		{
-			UniquePtrVA<void> p(VAlloc(cbPadding));
+			UniquePtr<DelVA<void>> p(VAlloc(cbPadding));
 			m_Stream << (DWORD)cbPadding << ((DWORD)ItemType::Binary << 1) << "Dummy";
 			m_Stream.Write(p.get(), cbPadding);
 		}

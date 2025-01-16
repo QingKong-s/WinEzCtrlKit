@@ -2,6 +2,7 @@
 #include "CRefStr.h"
 #include "CRefBin.h"
 #include "IMem.h"
+#include "AutoPtrDef.h"
 
 ECK_NAMESPACE_BEGIN
 struct CStreamWalker
@@ -183,7 +184,7 @@ struct CStreamWalker
 			m_hrLastErr = HRESULT_FROM_WIN32(GetLastError());
 			return;
 		}
-		UniquePtrVA<void> _(pBuf);
+		UniquePtr<DelVA<void>> _(pBuf);
 
 		if (cbSize <= cbBuf)
 		{

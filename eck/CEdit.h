@@ -363,7 +363,7 @@ public:
 		SendMsg(EM_SCROLLCARET, 0, 0);
 	}
 
-	EckInline BOOL SetCueBanner(PCWSTR psz, BOOL bShowAlways) const
+	EckInline BOOL SetCueBanner(PCWSTR psz, BOOL bShowAlways = TRUE) const
 	{
 		return (BOOL)SendMsg(EM_SETCUEBANNER, bShowAlways, (LPARAM)psz);
 	}

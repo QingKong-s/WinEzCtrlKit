@@ -141,7 +141,7 @@ public:
 			// 没有同步字节，重新同步
 			m_Stream.MoveTo(m_posBegin);
 			BYTE* pBuf = (BYTE*)VAlloc(4096);
-			UniquePtrVA<BYTE> _(pBuf);
+			UniquePtr<DelVA<BYTE>> _(pBuf);
 			EckCheckMem(pBuf);
 			constexpr size_t cbSegment = 1024;
 			BYTE bySync[2]{};
