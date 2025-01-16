@@ -370,18 +370,16 @@ EckInline auto CoroCaptureUiThread()
 	struct Context
 	{
 	private:
-		UINT Id;
+		Priv::QueuedCallbackQueue* m_pCallback{};
 	public:
-		Context() : Id{ NtCurrentThreadId32() } { EckAssert(GetThreadCtx()); }
+		Context() : m_pCallback{ &GetThreadCtx()->Callback } {}
 
 		constexpr bool await_ready() const noexcept { return false; }
 		void await_suspend(std::coroutine_handle<> h) const noexcept
 		{
-			PostThreadMessageW(Id, TM_ENQUEUECALLBACK, (WPARAM)h.address(), -1);
+			m_pCallback->EnQueueCoroutine(h.address());
 		}
 		constexpr void await_resume() const noexcept {}
-
-		EckInline constexpr UINT GetThreadId() const noexcept { return Id; }
 	};
 	return Context{};
 }
