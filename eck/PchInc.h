@@ -3,7 +3,6 @@
 #include "CRefStr.h"
 #include "CMsgBoxHook.h"
 #include "GraphicsHelper.h"
-#include "CCommDlg.h"
 #include "CObject.h"
 #include "CSrwLock.h"
 

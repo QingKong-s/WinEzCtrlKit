@@ -233,7 +233,22 @@ public:
 	{
 		TpSetWait(m_pWait, hObj, nullptr);
 	}
+#if NTDDI_VERSION >= NTDDI_WIN8
+	EckInline BOOL SetWaitEx(HANDLE hObj, LONGLONG llTimeout)
+	{
+		return SetThreadpoolWaitEx(m_pWait, hObj, (FILETIME*)&llTimeout, nullptr);
+	}
 
+	EckInline BOOL SetWaitEx(HANDLE hObj, LARGE_INTEGER liTimeout)
+	{
+		return SetThreadpoolWaitEx(m_pWait, hObj, (FILETIME*)&liTimeout, nullptr);
+	}
+
+	EckInline BOOL SetWaitEx(HANDLE hObj)
+	{
+		return SetThreadpoolWaitEx(m_pWait, hObj, nullptr, nullptr);
+	}
+#endif // NTDDI_VERSION >= NTDDI_WIN8
 	EckInline void Wait(BOOL bCancelPending = FALSE)
 	{
 		TpWaitForWait(m_pWait, (LOGICAL)bCancelPending);
