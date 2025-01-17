@@ -1985,18 +1985,15 @@ void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 	tdc.pButtons = Btns;
 	tdc.cButtons = ARRAYSIZE(Btns);
 	tdc.nDefaultButton = 101;
-	WCHAR szPath[MAX_PATH]{};
-	GetModuleFileNameW(nullptr, szPath, MAX_PATH);
 	const auto rsContent = Format(L"程序位置：%s\n\n源文件：%s\n\n行号：%s\n\n测试表达式：%s",
-		szPath, pszFile, pszLine, pszMsg);
+		g_rsCurrDir.Data(), pszFile, pszLine, pszMsg);
 	tdc.pszContent = rsContent.Data();
-
 	tdc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS;
+	
+	int nBtn, Dummy;
+	TaskDialogIndirect(&tdc, &nBtn, &Dummy, &Dummy);
 
-	TASKDIALOGCTX Ctx{ &tdc };
-	CTaskDialog td;
-
-	switch (td.DlgBox(nullptr, &Ctx))
+	switch (nBtn)
 	{
 	case 100:
 		ExitProcess(0);

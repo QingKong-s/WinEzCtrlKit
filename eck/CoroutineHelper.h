@@ -11,6 +11,7 @@ struct CExceptionCoroCancelled {};
 struct CoroPromiseBase
 {
 	using FCanceller = void(*)(void* pCtx);
+	using FOnCancel = std::function<void()>;
 
 	enum class State : LONG
 	{
@@ -23,10 +24,10 @@ struct CoroPromiseBase
 	LONG m_cRef{ 2 };// 协程引用计数，Task对象与协程帧各持有一份引用
 	State m_eState{ State::Initial };
 	std::coroutine_handle<> m_hCoroNext{};// 同步任务应恢复到
+	CSrwLock m_Lk{};
 	FCanceller m_pfnCanceller{};
 	void* m_pCancellerCtx{};
-	std::function<void()> m_fnOnCancel{};
-	CSrwLock m_Lk{};
+	FOnCancel m_fnOnCancel{};
 
 	constexpr auto initial_suspend() noexcept { return std::suspend_never{}; }
 	auto final_suspend() noexcept
@@ -59,16 +60,20 @@ struct CoroPromiseBase
 		return Awaiter{ *this };
 	}
 
-	void unhandled_exception() try
+	void unhandled_exception()
+#ifdef __cpp_exceptions
+	try
 	{
 		std::rethrow_exception(std::current_exception());
 	}
 	catch (CExceptionCoroCancelled)
 	{
-		// 提供co_await检测取消的能力，在await_resume中抛出CExceptionCoroCancelled即可退出协程
+		// 提供co_await检测取消并退出的能力，在await_resume
+		// 中抛出CExceptionCoroCancelled即可退出协程
 		__iso_volatile_store32((int*)&m_eState, (int)State::Cancelled);
 	}
 	catch (...)
+#endif // __cpp_exceptions
 	{
 		abort();
 	}
@@ -111,14 +116,15 @@ struct CoroPromiseBase
 			goto Success;
 		return FALSE;
 	Success:;
-		CSrwWriteGuard _{ m_Lk };
-		if (m_pfnCanceller)
-			m_pfnCanceller(m_pCancellerCtx);
-		if (m_fnOnCancel)
-		{
-			auto fn{ std::move(m_fnOnCancel) };
-			fn();
-		}
+		m_Lk.EnterWrite();
+		const auto pfnCanceller{ m_pfnCanceller };
+		const auto pCancellerCtx{ m_pCancellerCtx };
+		const auto fnOnCancel{ std::move(m_fnOnCancel) };
+		m_Lk.LeaveWrite();
+		if (pfnCanceller)
+			pfnCanceller(pCancellerCtx);
+		if (fnOnCancel)
+			fnOnCancel();
 		return TRUE;
 	}
 
@@ -142,6 +148,42 @@ struct CoroPromiseBase
 	}
 };
 
+// 进度
+template<class TProgress>
+struct CoroPromiseBaseWithProgress : CoroPromiseBase
+{
+	using FOnProgress = std::function<void(TProgress)>;
+	FOnProgress m_fnOnProgress{};
+
+	template<class T>
+	EckInline void SetOnProgress(T&& fnOnProgress) noexcept
+	{
+		CSrwWriteGuard _{ m_Lk };
+		m_fnOnProgress = std::forward<T>(fnOnProgress);
+	}
+
+	void OnProgress(TProgress Progress) const
+	{
+		m_Lk.EnterRead();
+		if (!m_fnOnProgress)
+		{
+			m_Lk.LeaveRead();
+			return;
+		}
+		const auto fnOnProgress{ m_fnOnProgress };
+		m_Lk.LeaveRead();
+		fnOnProgress(Progress);
+	}
+
+
+};
+
+// 进度类型选择器
+template<class TProgress>
+using CoroPromiseBase_T = std::conditional_t<std::is_void_v<TProgress>,
+	CoroPromiseBase, CoroPromiseBaseWithProgress<TProgress>>;
+
+// 返回值
 template<class T>
 struct CoroRetVal
 {
@@ -157,25 +199,52 @@ public:
 	constexpr auto& GetRetVal() noexcept { return m_RetVal; }
 };
 
+// 无返回值
 template<>
 struct CoroRetVal<void>
 {
 	constexpr void return_void() const noexcept {}
 };
 
+namespace Priv
+{
+	struct CoroPromiseTokenAwaiter_T {};
+}
+
 // 标准任务
-template<class TRet = void>
+template<class TRet = void, class TProgress = void>
 struct CoroTask
 {
 	struct promise_type;
 
 	std::coroutine_handle<promise_type> hCoroutine{};
 
-	struct promise_type : CoroPromiseBase, CoroRetVal<TRet>
+	struct promise_type : CoroPromiseBase_T<TProgress>, CoroRetVal<TRet>
 	{
 		CoroTask get_return_object() noexcept
 		{
 			return CoroTask{ std::coroutine_handle<promise_type>::from_promise(*this) };
+		}
+
+		template<class T>
+		auto await_transform(T&& Awaitable) const noexcept
+		{
+			return std::forward<T>(Awaitable);
+		}
+
+		auto await_transform(Priv::CoroPromiseTokenAwaiter_T) const noexcept
+		{
+			struct Token
+			{
+				promise_type& Pro;
+
+				constexpr bool await_ready() const noexcept { return true; }
+				constexpr void await_suspend(std::coroutine_handle<>) const noexcept {};
+				constexpr Token await_resume() const noexcept { return *this; }
+
+				EckInline [[nodiscard]] constexpr auto& GetPromise() const noexcept { return Pro; }
+			};
+			return Token{ *this };
 		}
 	};
 
@@ -272,6 +341,7 @@ struct CoroTaskFireAndForget
 
 namespace Priv
 {
+	// 转为CoroPromiseBase的句柄
 	template<class T>
 		requires std::is_base_of_v<CoroPromiseBase, T>
 	auto ToCoroPromiseBaseHandle(std::coroutine_handle<T> h)
@@ -279,40 +349,12 @@ namespace Priv
 		return std::coroutine_handle<CoroPromiseBase>::from_address(h.address());
 	}
 
-	struct CancellationTokenAwaiter
-	{
-		CoroPromiseBase* pPro{};
-		bool await_ready() const noexcept { return false; }
-
-		template<class T>
-		bool await_suspend(std::coroutine_handle<T> h) noexcept
-		{
-			pPro = &ToCoroPromiseBaseHandle(h).promise();
-			return false;
-		}
-
-		constexpr auto await_resume() const noexcept
-		{
-			struct Token
-			{
-				CoroPromiseBase& Pro;
-				EckInline BOOL IsCanceled() const noexcept { return Pro.IsCanceled(); }
-				EckInline constexpr auto& GetPromise() const noexcept { return Pro; }
-			};
-			return Token{ *pPro };
-		}
-	};
-
-	struct TimerAwaiter
+	// 定时器
+	struct CoroTimerAwaiter
 	{
 		LONGLONG ms;
 		CTpTimer Timer;
 		CoroPromiseBase* pPro;
-
-		static void CALLBACK TimerProc(TP_CALLBACK_INSTANCE*, void* pCtx, TP_TIMER*)
-		{
-			std::coroutine_handle<>::from_address(pCtx).resume();
-		}
 
 		constexpr bool await_ready() const noexcept { return false; }
 
@@ -322,23 +364,70 @@ namespace Priv
 			pPro = &Priv::ToCoroPromiseBaseHandle(h).promise();
 			pPro->SetCanceller([](void* pCtx)
 				{
-					const auto p = (TimerAwaiter*)pCtx;
+					const auto p = (CoroTimerAwaiter*)pCtx;
 					p->Timer.SetTimer(0, 0);
 				}, this);
-			Timer.Create(TimerProc, h.address(), nullptr);
-			Timer.SetTimer(-ms * 10000ll, 0);
+			Timer.Create([](TP_CALLBACK_INSTANCE*, void* pCtx, TP_TIMER*)
+				{
+					std::coroutine_handle<>::from_address(pCtx).resume();
+				}, h.address(), nullptr);
+			Timer.SetTimer(-ms * 10000ll/*反转符号*/, 0);
 		}
 
 		void await_resume() const
 		{
+#ifdef __cpp_exceptions
 			if (pPro->IsCanceled())
 				throw CExceptionCoroCancelled{};
+#endif // __cpp_exceptions
+		}
+	};
+
+	struct CoroWaitableObjectAwaiter
+	{
+		HANDLE hWaitable;
+		LONGLONG msTimeout;
+		CTpWait Wait;
+		CoroPromiseBase* pPro;
+
+		constexpr bool await_ready() const noexcept { return false; }
+
+		template<class T>
+		void await_suspend(std::coroutine_handle<T> h) noexcept
+		{
+			pPro = &Priv::ToCoroPromiseBaseHandle(h).promise();
+			pPro->SetCanceller([](void* pCtx)
+				{
+					const auto p = (CoroWaitableObjectAwaiter*)pCtx;
+#if NTDDI_VERSION >= NTDDI_WIN8
+					if (p->Wait.SetWaitEx(nullptr))// winrt does this, but WHY??
+						p->Wait.SetWaitEx(NtCurrentProcess(), 0);
+#else
+					p->Wait.SetWait(nullptr, 0);
+#endif// NTDDI_VERSION >= NTDDI_WIN8
+				}, this);
+			Wait.Create([](PTP_CALLBACK_INSTANCE, PVOID pCtx, PTP_WAIT, TP_WAIT_RESULT)
+				{
+					std::coroutine_handle<>::from_address(pCtx).resume();
+				}, h.address());
+			if (msTimeout == LLONG_MAX)
+				Wait.SetWait(hWaitable);
+			else
+				Wait.SetWait(hWaitable, msTimeout * 10000ll/*反转符号*/);
+		}
+
+		void await_resume() const
+		{
+#ifdef __cpp_exceptions
+			if (pPro->IsCanceled())
+				throw CExceptionCoroCancelled{};
+#endif // __cpp_exceptions
 		}
 	};
 }
 
-// 取取消令牌，用于主动轮询取消状态
-EckInline auto CoroGetCancellationToken() { return Priv::CancellationTokenAwaiter{}; }
+// 取承诺令牌
+EckInline auto CoroGetPromiseToken() { return Priv::CoroPromiseTokenAwaiter_T{}; }
 
 // 在线程池中恢复当前协程
 EckInline auto CoroResumeBackground()
@@ -362,7 +451,18 @@ EckInline auto CoroResumeBackground()
 /// </summary>
 /// <param name="ms">正值为相对时间，负值为绝对时间</param>
 /// <returns>等待体</returns>
-EckInline auto CoroSleep(LONGLONG ms) { return Priv::TimerAwaiter{ ms }; }
+EckInline auto CoroSleep(LONGLONG ms) { return Priv::CoroTimerAwaiter{ ms }; }
+
+/// <summary>
+/// 等待指定对象
+/// </summary>
+/// <param name="hWaitable">等待对象</param>
+/// <param name="msTimeout">超时时间，正值为相对时间，负值为绝对时间，LLONG_MAX为无限等待</param>
+/// <returns>等待体</returns>
+EckInline auto CoroWait(HANDLE hWaitable, LONGLONG msTimeout = LLONG_MAX)
+{
+	return Priv::CoroWaitableObjectAwaiter{ hWaitable, msTimeout };
+}
 
 // 捕获UI线程上下文，稍后可使用co_await返回至UI线程
 EckInline auto CoroCaptureUiThread()
@@ -371,13 +471,27 @@ EckInline auto CoroCaptureUiThread()
 	{
 	private:
 		Priv::QueuedCallbackQueue* m_pCallback{};
+		DWORD m_Tid{};
 	public:
-		Context() : m_pCallback{ &GetThreadCtx()->Callback } {}
+		UINT Priority{ UINT_MAX };
+		BOOL IsWakeUiThread{ FALSE };
+
+		Context() : m_pCallback{ &GetThreadCtx()->Callback }, m_Tid{ NtCurrentThreadId32() } {}
 
 		constexpr bool await_ready() const noexcept { return false; }
 		void await_suspend(std::coroutine_handle<> h) const noexcept
 		{
-			m_pCallback->EnQueueCoroutine(h.address());
+			m_pCallback->EnQueueCoroutine(h.address(), Priority);
+			if (IsWakeUiThread)
+			{
+#ifdef _DEBUG
+				const auto b = PostThreadMessageW(m_Tid, WM_NULL, 0, 0);
+				EckDbgPrintFormatMessage(NtCurrentTeb()->LastErrorValue);
+				EckAssert(b && L"PostThreadMessageW failed");
+#else
+				PostThreadMessageW(m_Tid, WM_NULL, 0, 0);
+#endif
+			}
 		}
 		constexpr void await_resume() const noexcept {}
 	};

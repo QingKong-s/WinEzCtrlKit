@@ -1214,10 +1214,8 @@ public:
 			return m_idxSel == idx;
 	}
 
-	void GetSelItem(std::vector<CSelRange::RANGE>& v)
-	{
-		v = m_SelRange.GetList();
-	}
+	EckInline [[nodiscard]] constexpr auto& GetSelRange() const { return m_SelRange; }
+	EckInline [[nodiscard]] constexpr auto& GetSelRange() { return m_SelRange; }
 
 	void EnsureVisible(int idx)
 	{
