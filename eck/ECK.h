@@ -793,10 +793,14 @@ namespace Priv
 	struct QueuedCallback
 	{
 		UINT nPriority;	// 值越小优先级越高
-		void* pCtx;		// == (void*)-1时表示是协程
+		BOOL bCoroutine;// 是否是协程
 		union
 		{
-			FQueueCallback pfnCallback;
+			struct
+			{
+				FQueueCallback pfnCallback;
+				void* pCtx;
+			};
 			void* pCoroutine;
 		};
 
@@ -816,10 +820,13 @@ namespace Priv
 			RtlInitializeSRWLock(&Lk);
 		}
 
-		void EnQueueCallback(FQueueCallback pfnCallback, void* pCtx = nullptr, UINT nPriority = UINT_MAX)
+		void EnQueueCallback(FQueueCallback pfnCallback,
+			void* pCtx = nullptr, UINT nPriority = UINT_MAX)
 		{
-			EckAssert(pfnCallback != nullptr && pCtx != (void*)-1);
+			EckAssert(pfnCallback);
 			Priv::QueuedCallback x;
+			x.nPriority = nPriority;
+			x.bCoroutine = FALSE;
 			x.pfnCallback = pfnCallback;
 			x.pCtx = pCtx;
 			RtlAcquireSRWLockExclusive(&Lk);
@@ -829,10 +836,11 @@ namespace Priv
 
 		void EnQueueCoroutine(void* pCoroutine, UINT nPriority = UINT_MAX)
 		{
-			EckAssert(pCoroutine != nullptr);
+			EckAssert(pCoroutine);
 			Priv::QueuedCallback x;
+			x.nPriority = nPriority;
+			x.bCoroutine = TRUE;
 			x.pCoroutine = pCoroutine;
-			x.pCtx = (void*)-1;
 			RtlAcquireSRWLockExclusive(&Lk);
 			q.push(x);
 			RtlReleaseSRWLockExclusive(&Lk);
