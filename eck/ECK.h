@@ -149,6 +149,12 @@ ECK_NAMESPACE_END
 #pragma region Generator
 // 强制内联
 #define EckInline				__forceinline
+// 强制内联，不丢弃返回值
+#define EckInlineNd				__forceinline [[nodiscard]]
+// 强制内联，不丢弃返回值，且constexpr
+#define EckInlineNdCe			__forceinline [[nodiscard]] constexpr
+// 强制内联，且constexpr
+#define EckInlineCe				__forceinline constexpr
 
 // 定义读写属性字段
 #define ECKPROP(Getter, Setter) __declspec(property(get = Getter, put = Setter))
@@ -166,6 +172,9 @@ ECK_NAMESPACE_END
 #define EckIsStartWithConstStringW(psz, sz) (wcsncmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
 #define EckIsStartWithConstStringIA(psz, sz) (_strnicmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
 #define EckIsStartWithConstStringIW(psz, sz) (_wcsnicmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
+
+#define EckStrAndLen(Arr)		Arr, ARRAYSIZE(Arr) - 1
+#define EckLenAndStr(Arr)		ARRAYSIZE(Arr) - 1, Arr
 
 // 计次循环
 #define EckCounter(c, Var) \

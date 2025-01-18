@@ -162,7 +162,8 @@ struct CoroPromiseBaseWithProgress : CoroPromiseBase
 		m_fnOnProgress = std::forward<T>(fnOnProgress);
 	}
 
-	void OnProgress(TProgress Progress) const
+	template<class U>
+	void OnProgress(U&& Progress) const
 	{
 		m_Lk.EnterRead();
 		if (!m_fnOnProgress)
@@ -172,10 +173,8 @@ struct CoroPromiseBaseWithProgress : CoroPromiseBase
 		}
 		const auto fnOnProgress{ m_fnOnProgress };
 		m_Lk.LeaveRead();
-		fnOnProgress(Progress);
+		fnOnProgress(std::forward<U>(Progress));
 	}
-
-
 };
 
 // 进度类型选择器
@@ -190,7 +189,8 @@ struct CoroRetVal
 private:
 	std::optional<T> m_RetVal;
 public:
-	void return_value(T&& Val) noexcept
+	template<class U>
+	void return_value(U&& Val) noexcept
 	{
 		m_RetVal.emplace(std::forward<T>(Val));
 	}
@@ -232,7 +232,7 @@ struct CoroTask
 			return std::forward<T>(Awaitable);
 		}
 
-		auto await_transform(Priv::CoroPromiseTokenAwaiter_T) const noexcept
+		auto await_transform(Priv::CoroPromiseTokenAwaiter_T) noexcept
 		{
 			struct Token
 			{
@@ -242,7 +242,12 @@ struct CoroTask
 				constexpr void await_suspend(std::coroutine_handle<>) const noexcept {};
 				constexpr Token await_resume() const noexcept { return *this; }
 
-				EckInline [[nodiscard]] constexpr auto& GetPromise() const noexcept { return Pro; }
+				EckInline constexpr auto& GetPromise() const noexcept { return Pro; }
+				EckInline constexpr auto& GetPromise() noexcept { return Pro; }
+				EckInline constexpr auto GetCoroHandle() const noexcept
+				{
+					return std::coroutine_handle<promise_type>::from_promise(Pro);
+				}
 			};
 			return Token{ *this };
 		}
@@ -339,16 +344,16 @@ struct CoroTaskFireAndForget
 	constexpr auto operator co_await() const noexcept { return std::suspend_never{}; }
 };
 
+// 转为CoroPromiseBase的句柄
+template<class T>
+	requires std::is_base_of_v<CoroPromiseBase, T>
+auto ToCoroPromiseBaseHandle(std::coroutine_handle<T> h)
+{
+	return std::coroutine_handle<CoroPromiseBase>::from_address(h.address());
+}
+
 namespace Priv
 {
-	// 转为CoroPromiseBase的句柄
-	template<class T>
-		requires std::is_base_of_v<CoroPromiseBase, T>
-	auto ToCoroPromiseBaseHandle(std::coroutine_handle<T> h)
-	{
-		return std::coroutine_handle<CoroPromiseBase>::from_address(h.address());
-	}
-
 	// 定时器
 	struct CoroTimerAwaiter
 	{
@@ -361,7 +366,7 @@ namespace Priv
 		template<class T>
 		void await_suspend(std::coroutine_handle<T> h) noexcept
 		{
-			pPro = &Priv::ToCoroPromiseBaseHandle(h).promise();
+			pPro = &ToCoroPromiseBaseHandle(h).promise();
 			pPro->SetCanceller([](void* pCtx)
 				{
 					const auto p = (CoroTimerAwaiter*)pCtx;
@@ -395,7 +400,7 @@ namespace Priv
 		template<class T>
 		void await_suspend(std::coroutine_handle<T> h) noexcept
 		{
-			pPro = &Priv::ToCoroPromiseBaseHandle(h).promise();
+			pPro = &ToCoroPromiseBaseHandle(h).promise();
 			pPro->SetCanceller([](void* pCtx)
 				{
 					const auto p = (CoroWaitableObjectAwaiter*)pCtx;
