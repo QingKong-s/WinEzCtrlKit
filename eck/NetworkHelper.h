@@ -1,13 +1,21 @@
 ﻿#pragma once
 #include "Utility.h"
 #include "Utility2.h"
+#include "CoroutineHelper.h"
+#include "ComPtr.h"
+
+#include <variant>
 
 #include <winhttp.h>
 
 ECK_NAMESPACE_BEGIN
 ECK_DECL_HANDLE_DELETER(HWinHttp, HINTERNET, WinHttpCloseHandle);
 
-inline std::wstring_view HeaderGetParam(PCWSTR pszHeader, PCWSTR pszName, int cchName = -1)
+using HWhSession = HINTERNET;
+using HWhConnect = HINTERNET;
+using HWhRequest = HINTERNET;
+
+inline std::wstring_view HeaderGetParam(_In_z_ PCWSTR pszHeader, _In_z_ PCWSTR pszName, int cchName = -1)
 {
 	const auto pos = FindStrI(pszHeader, pszName);
 	if (pos == StrNPos)
@@ -17,7 +25,8 @@ inline std::wstring_view HeaderGetParam(PCWSTR pszHeader, PCWSTR pszName, int cc
 		return {};
 	if (cchName < 0)
 		cchName = (int)wcslen(pszName);
-	return { pszHeader + pos + cchName + 2, size_t(posEnd - pos - cchName - 2) };
+	const auto pszValue = LTrimStr(pszHeader + pos + cchName + 2);
+	return { pszValue, size_t(posEnd - (pszValue - pszHeader)) };
 }
 
 template<class FPostConnect>
@@ -262,6 +271,377 @@ struct CHttpRequest
 		Proxy = nullptr;
 		ResponseHeader.Clear();
 		Response.Clear();
+	}
+};
+
+
+
+EckInline HWhSession WhOpenSession(BOOL bAsync = TRUE,
+	_In_opt_z_ PCWSTR pszUserAgent = nullptr, _In_opt_z_ PCWSTR pszProxy = nullptr)
+{
+	return WinHttpOpen(pszUserAgent,
+		pszProxy ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_NO_PROXY,
+		pszProxy, WINHTTP_NO_PROXY_BYPASS, bAsync ? WINHTTP_FLAG_ASYNC : 0);
+}
+
+inline HWhConnect WhPrepareConnect(_Out_ URL_COMPONENTSW& urlc, _Inout_ CRefStrW& rsWork,
+	_In_ HWhSession hSession, _In_reads_(cchUrl) PCWSTR pszUrl, int cchUrl)
+{
+	// 分解URL
+	urlc = { sizeof(urlc) };
+	urlc.dwSchemeLength = urlc.dwHostNameLength =
+		urlc.dwUrlPathLength = urlc.dwExtraInfoLength = -1;
+	if (!WinHttpCrackUrl(pszUrl, (DWORD)cchUrl, 0, &urlc))
+		return nullptr;
+	// 制主机名
+	rsWork.Reserve(std::max(urlc.dwUrlPathLength + urlc.dwExtraInfoLength + 1, urlc.dwHostNameLength));
+	rsWork.DupString(urlc.lpszHostName, urlc.dwHostNameLength);
+	// 连接
+	const auto hConnect{ WinHttpConnect(hSession, rsWork.Data(), urlc.nPort, 0) };
+	if (!hConnect)
+		return nullptr;
+	// 制对象名
+	if (urlc.dwUrlPathLength)
+		rsWork.DupString(urlc.lpszUrlPath, urlc.dwUrlPathLength);
+	else
+		rsWork.DupString(L"/", 1);
+	rsWork.PushBack(urlc.lpszExtraInfo, urlc.dwExtraInfoLength);
+	return hConnect;
+}
+
+EckInline HWhRequest WhOpenRequest(const URL_COMPONENTSW& urlc, HWhConnect hConnect,
+	_In_z_ PCWSTR pszMethod, _In_opt_z_ PCWSTR pszObjectName)
+{
+	return WinHttpOpenRequest(hConnect, pszMethod, pszObjectName,
+		nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
+		(urlc.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0));
+}
+
+inline void WhCompleteHeader(_In_opt_z_ PCWSTR pszHeader, _Inout_ CRefStrW& rsHeader,
+	_In_z_ PCWSTR pszMethod, _In_opt_z_ PCWSTR pszCookies, _In_opt_z_ PCWSTR pszUserAgent)
+{
+	if (pszHeader)
+		rsHeader.PushBack(pszHeader);
+	if (!pszHeader || FindStrI(pszHeader, L"User-Agent:") == StrNPos)
+		rsHeader.PushBack(L"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n");
+	if (!pszHeader || FindStrI(pszHeader, L"Accept:") == StrNPos)
+		rsHeader.PushBack(L"Accept: text/html, application/xhtml+xml, */*\r\n");
+	if (!pszHeader || FindStrI(pszHeader, L"Accept-Language:") == StrNPos)
+		rsHeader.PushBack(L"Accept-Language: *\r\n");
+	if (!pszHeader || FindStrI(pszHeader, L"Accept-Encoding:") == StrNPos)
+		rsHeader.PushBack(L"Accept-Encoding: gzip, deflate\r\n");
+	if (!pszHeader || FindStrI(pszHeader, L"Cache-Control:") == StrNPos)
+		rsHeader.PushBack(L"Cache-Control: no-cache\r\n");
+	if (wcscmp(pszMethod, L"GET") == 0 && (!pszHeader || FindStrI(pszHeader, L"Content-Type:") == StrNPos))
+		rsHeader.PushBack(L"Content-Type: application/x-www-form-urlencoded\r\n");
+	rsHeader.ReplaceSubStr(L"Connection: keep-alive\r\n", -1, nullptr, 0, 0, 1);
+	if (pszCookies && (!pszHeader || FindStrI(pszHeader, L"Cookie:") == StrNPos))
+	{
+		rsHeader.PushBack(L"Cookie: ");
+		rsHeader.PushBack(pszCookies);
+		rsHeader.PushBack(L"\r\n");
+	}
+}
+
+struct CHttpRequestAsync
+{
+	PCWSTR Header{};
+	void* Data{};
+	SIZE_T DataSize{};
+	PCWSTR Cookies{};
+	BITBOOL AutoAddHeader : 1{ TRUE };
+	BITBOOL AutoDecompress : 1{ TRUE };
+
+	int ResponseCode{};
+	CRefStrW ResponseHeader{};
+	std::variant<CRefBin, CRefStrW, ComPtr<IStream>> Response{};
+
+	eck::CoroTask<BOOL, BYTE> DoRequest(PCWSTR pszMethod, PCWSTR pszUrl, int cchUrl = -1,
+		PCWSTR pszUserAgent = nullptr, PCWSTR pszProxy = nullptr)
+	{
+		co_await eck::CoroResumeBackground();
+		auto Token{ co_await eck::CoroGetPromiseToken() };
+
+		static UniquePtr<DelHWinHttp> s_hSession{ WhOpenSession() };
+
+		URL_COMPONENTSW urlc;
+		CRefStrW rsWork;
+		UniquePtr<DelHWinHttp>
+			hConnect{ WhPrepareConnect(urlc, rsWork, s_hSession.get(), pszUrl, cchUrl) };
+		if (!hConnect)
+			co_return FALSE;
+
+		struct CTX
+		{
+			// 下列字段仅供回调访问
+
+			CHttpRequestAsync* pThis;	// 指向CHttpRequestAsync实例
+			decltype(Token)& Token;		// 协程控制
+			HWhRequest hRequest;		// 请求句柄
+			union
+			{							// 当接收为流时，此联合无效
+				DWORD cbData;			// 当接收为字节集时，存储WinHttpQueryDataAvailable的结果
+				HANDLE hFile;			// 当接收为文件时，存储文件句柄
+			};
+			UniquePtr<DelVA<void>> pBuf;// 8K缓冲区
+			SIZE_T cbTotal;				// Content-Length
+			SIZE_T cbRead;				// 已读取的字节数，用于报告进度
+			BITBOOL bRequestClosed : 1;	// 请求句柄是否已关闭
+
+			// 下列字段由回调和调用方共享
+
+			BITBOOL bFailed : 1;		// 因失败而取消
+			CEvent EvtSafeExit{ nullptr,FALSE,FALSE };	// 安全退出事件
+
+			void Cancel(BOOL bFailed = TRUE)
+			{
+				this->bFailed = bFailed;
+				WinHttpCloseHandle(hRequest);
+			}
+		}
+		Ctx{ this, Token };
+
+		constexpr SIZE_T BufSize{ 8192 };// 8K为建议大小
+
+		const auto Ret = WinHttpSetStatusCallback(hConnect.get(),
+			[](HINTERNET hInternet, DWORD_PTR dwContext, DWORD dwInternetStatus,
+				LPVOID lpvStatusInformation, DWORD dwStatusInformationLength)
+			{
+				if (!dwContext)
+					return;
+				const auto pCtx{ (CTX*)dwContext };
+				switch (dwInternetStatus)
+				{
+				case WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE:
+					// Expect WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE
+					if (!WinHttpReceiveResponse(hInternet, nullptr))
+						pCtx->Cancel();
+					break;
+
+				case WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE:
+				{
+					DWORD cbHeaders{};
+					WinHttpQueryHeaders(pCtx->hRequest, WINHTTP_QUERY_RAW_HEADERS_CRLF,
+						WINHTTP_HEADER_NAME_BY_INDEX, nullptr, &cbHeaders, WINHTTP_NO_HEADER_INDEX);
+					if (cbHeaders)
+					{
+						auto& rs = pCtx->pThis->ResponseHeader;
+						rs.ReSize(cbHeaders / sizeof(WCHAR) - 1);
+						WinHttpQueryHeaders(pCtx->hRequest, WINHTTP_QUERY_RAW_HEADERS_CRLF,
+							WINHTTP_HEADER_NAME_BY_INDEX,
+							rs.Data(), &cbHeaders, WINHTTP_NO_HEADER_INDEX);
+						const auto svContentLength =
+							HeaderGetParam(rs.Data(), EckStrAndLen(L"Content-Length"));
+						if (!svContentLength.empty())
+						{
+							const auto cbContent = _wcstoui64(svContentLength.data(), nullptr, 10);
+
+							if (pCtx->pThis->Response.index() == 0)
+								std::get<CRefBin>(pCtx->pThis->Response).Reserve((size_t)cbContent);
+						}
+					}
+
+					switch (pCtx->pThis->Response.index())
+					{
+					case 0:
+					{
+						// Expect WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE
+						if (!WinHttpQueryDataAvailable(pCtx->hRequest, nullptr))
+							pCtx->Cancel();
+					}
+					break;
+					case 1:
+						pCtx->hFile = CreateFileW(std::get<CRefStrW>(pCtx->pThis->Response).Data(),
+							GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, nullptr);
+						if (pCtx->hFile == INVALID_HANDLE_VALUE)
+							pCtx->Cancel();
+						[[fallthrough]];
+					case 2:
+					{
+						pCtx->pBuf.reset(VAlloc(BufSize));
+						if (!pCtx->pBuf)
+						{
+							NtCurrentTeb()->LastErrorValue = ERROR_NOT_ENOUGH_MEMORY;
+							pCtx->Cancel();
+							break;
+						}
+						// Expect WINHTTP_CALLBACK_STATUS_READ_COMPLETE
+						if (!WinHttpReadData(pCtx->hRequest, pCtx->pBuf.get(), BufSize, nullptr))
+							pCtx->Cancel(FALSE);
+					}
+					break;
+					}
+				}
+				break;
+
+				case WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE:
+				{
+					const auto cbData = *(DWORD*)lpvStatusInformation;
+					pCtx->cbData = cbData;
+					if (cbData)
+					{
+						// Expect WINHTTP_CALLBACK_STATUS_READ_COMPLETE
+						if (!WinHttpReadData(
+							pCtx->hRequest, std::get<CRefBin>(pCtx->pThis->Response).PushBack(cbData),
+							cbData, nullptr))
+							pCtx->Cancel(FALSE);
+					}
+					else// 读取完毕
+						pCtx->Cancel(FALSE);
+				}
+				break;
+
+				case WINHTTP_CALLBACK_STATUS_READ_COMPLETE:
+				{
+					if (pCtx->cbTotal)
+					{
+						pCtx->cbRead += dwStatusInformationLength;
+						pCtx->Token.GetPromise().OnProgress(pCtx->cbRead * 100 / pCtx->cbTotal);
+					}
+					switch (pCtx->pThis->Response.index())
+					{
+					case 0:
+					{
+						std::get<CRefBin>(pCtx->pThis->Response).
+							PopBack(pCtx->cbData - dwStatusInformationLength);
+						// Expect WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE
+						if (!WinHttpQueryDataAvailable(pCtx->hRequest, nullptr))
+							pCtx->Cancel();
+					}
+					break;
+					case 1:
+					{
+						if (!dwStatusInformationLength)
+						{
+							pCtx->Cancel(FALSE);
+							break;
+						}
+						DWORD Dummy{};
+						WriteFile(pCtx->hFile, pCtx->pBuf.get(),
+							dwStatusInformationLength, &Dummy, nullptr);
+						// Expect WINHTTP_CALLBACK_STATUS_READ_COMPLETE
+						if (!WinHttpReadData(pCtx->hRequest, pCtx->pBuf.get(), BufSize, nullptr))
+							pCtx->Cancel(FALSE);
+					}
+					break;
+					case 2:
+					{
+						if (!dwStatusInformationLength)
+						{
+							pCtx->Cancel(FALSE);
+							break;
+						}
+						std::get<ComPtr<IStream>>(pCtx->pThis->Response)->Write(
+							pCtx->pBuf.get(), dwStatusInformationLength, nullptr);
+						// Expect WINHTTP_CALLBACK_STATUS_READ_COMPLETE
+						if (!WinHttpReadData(pCtx->hRequest, pCtx->pBuf.get(), BufSize, nullptr))
+							pCtx->Cancel(FALSE);
+					}
+					break;
+					}
+				}
+				break;
+
+				case WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING:
+				{
+					const auto hClosed{ *(HINTERNET*)lpvStatusInformation };
+					if (hClosed == pCtx->hRequest)
+					{
+						pCtx->bRequestClosed = TRUE;
+						pCtx->hRequest = nullptr;
+						pCtx->EvtSafeExit.Signal();
+					}
+				}
+				break;
+				}
+			}, WINHTTP_CALLBACK_FLAG_ALL_COMPLETIONS | WINHTTP_CALLBACK_FLAG_HANDLES, 0);
+		if (Ret == WINHTTP_INVALID_STATUS_CALLBACK)
+			co_return FALSE;
+
+		UniquePtr<DelHWinHttp>
+			hRequest{ WhOpenRequest(urlc, hConnect.get(), pszMethod, rsWork.Data()) };
+		if (!hRequest)
+			co_return FALSE;
+
+		if (AutoAddHeader)
+		{
+			rsWork.Clear();
+			WhCompleteHeader(Header, rsWork, pszMethod, Cookies, pszUserAgent);
+			if (!WinHttpAddRequestHeaders(hRequest.get(),
+				rsWork.Data(), (DWORD)rsWork.Size(), WINHTTP_ADDREQ_FLAG_ADD))
+				co_return FALSE;
+		}
+		else if (Header)
+		{
+			if (!WinHttpAddRequestHeaders(hRequest.get(),
+				Header, (DWORD)-1, WINHTTP_ADDREQ_FLAG_ADD))
+				co_return FALSE;
+		}
+
+		if (AutoDecompress)
+		{
+			DWORD dwFlags{ WINHTTP_DECOMPRESSION_FLAG_ALL };
+			if (!WinHttpSetOption(hRequest.get(), WINHTTP_OPTION_DECOMPRESSION,
+				&dwFlags, sizeof(dwFlags)))
+				co_return FALSE;
+		}
+
+		Ctx.hRequest = hRequest.release();
+
+		Token.GetPromise().SetCanceller([](void* pCtx)
+			{
+				((CTX*)pCtx)->Cancel();
+			}, &Ctx);
+
+		// Expect WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE
+		if (!WinHttpSendRequest(Ctx.hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
+			Data, (DWORD)DataSize, (DWORD)DataSize, (DWORD_PTR)&Ctx))
+			Ctx.Cancel();
+
+		WaitObject(Ctx.EvtSafeExit);
+		WinHttpSetStatusCallback(hConnect.get(), nullptr,
+			WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS, 0);
+		if (Response.index() == 1)
+			NtClose(Ctx.hFile);
+		co_return (BOOL)Ctx.bFailed;
+	}
+
+	EckInlineNdCe auto& GetBin() const noexcept { return std::get<CRefBin>(Response); }
+	EckInlineNdCe auto& GetBin() noexcept { return std::get<CRefBin>(Response); }
+	EckInlineNdCe auto& GetFilePath() const noexcept { return std::get<CRefStrW>(Response); }
+	EckInlineNdCe auto& GetFilePath() noexcept { return std::get<CRefStrW>(Response); }
+	EckInlineNdCe auto& GetStream() const noexcept { return std::get<ComPtr<IStream>>(Response); }
+	EckInlineNdCe auto& GetStream() noexcept { return std::get<ComPtr<IStream>>(Response); }
+
+	constexpr void WantBin()
+	{
+		if (Response.index() != 0)
+			Response.emplace<CRefBin>();
+	}
+
+	template<class T>
+	constexpr void WantFilePath(T&& rsFilePath)
+	{
+		if (Response.index() != 1)
+			Response.emplace<CRefStrW>(std::forward<T>(rsFilePath));
+	}
+
+	constexpr void WantStream(IStream* pStream)
+	{
+		if (Response.index() != 2)
+			Response.emplace<ComPtr<IStream>>(pStream);
+	}
+
+	constexpr void Reset()
+	{
+		AutoAddHeader = TRUE;
+		AutoDecompress = TRUE;
+		Header = nullptr;
+		Data = nullptr;
+		DataSize = 0;
+		Cookies = nullptr;
+		ResponseHeader.Clear();
+		WantBin();
 	}
 };
 ECK_NAMESPACE_END
