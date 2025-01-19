@@ -356,8 +356,10 @@ struct CHttpRequestAsync
 	CRefStrW ResponseHeader{};
 	std::variant<CRefBin, CRefStrW, ComPtr<IStream>> Response{};
 
-	eck::CoroTask<BOOL, BYTE> DoRequest(PCWSTR pszMethod, PCWSTR pszUrl, int cchUrl = -1,
-		PCWSTR pszUserAgent = nullptr, PCWSTR pszProxy = nullptr)
+	// 异步发送请求
+	// 进度结果：(已接收字节数， Content-Length)，其中Content-Length可能为0
+	eck::CoroTask<BOOL, std::pair<SIZE_T, SIZE_T>> DoRequest(PCWSTR pszMethod, PCWSTR pszUrl,
+		int cchUrl = -1, PCWSTR pszUserAgent = nullptr, PCWSTR pszProxy = nullptr)
 	{
 		co_await eck::CoroResumeBackground();
 		auto Token{ co_await eck::CoroGetPromiseToken() };
@@ -496,7 +498,8 @@ struct CHttpRequestAsync
 					if (pCtx->cbTotal)
 					{
 						pCtx->cbRead += dwStatusInformationLength;
-						pCtx->Token.GetPromise().OnProgress(pCtx->cbRead * 100 / pCtx->cbTotal);
+						pCtx->Token.GetPromise().OnProgress(
+							std::make_pair(pCtx->cbRead, pCtx->cbTotal));
 					}
 					switch (pCtx->pThis->Response.index())
 					{
@@ -630,6 +633,17 @@ struct CHttpRequestAsync
 	{
 		if (Response.index() != 2)
 			Response.emplace<ComPtr<IStream>>(pStream);
+	}
+
+	constexpr void ClearResponse()
+	{
+		ResponseHeader.Clear();
+		switch (Response.index())
+		{
+		case 0: std::get<CRefBin>(Response).Clear(); break;
+		case 1: std::get<CRefStrW>(Response).Clear(); break;
+		case 2: std::get<ComPtr<IStream>>(Response).Clear(); break;
+		}
 	}
 
 	constexpr void Reset()
