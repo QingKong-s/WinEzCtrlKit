@@ -144,7 +144,7 @@ EckInline constexpr SIZE_T AlignMemSize(SIZE_T cbSize, SIZE_T cbAlign)
 {
 	if (cbSize / cbAlign * cbAlign == cbSize)
 		return cbSize;
-	else ECKLIKELY
+	else
 		return (cbSize / cbAlign + 1) * cbAlign;
 }
 

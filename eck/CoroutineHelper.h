@@ -163,7 +163,8 @@ struct CoroPromiseBaseWithProgress : CoroPromiseBase
 	}
 
 	template<class U>
-	void OnProgress(U&& Progress) const
+		requires std::is_convertible_v<U, TProgress>
+	void OnProgress(U&& Progress)
 	{
 		m_Lk.EnterRead();
 		if (!m_fnOnProgress)
@@ -499,6 +500,8 @@ EckInline auto CoroCaptureUiThread()
 			}
 		}
 		constexpr void await_resume() const noexcept {}
+
+		EckInlineNdCe auto GetCallbackQueue() const noexcept { return m_pCallback; }
 	};
 	return Context{};
 }

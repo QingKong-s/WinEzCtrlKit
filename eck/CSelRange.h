@@ -2,13 +2,14 @@
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
-class CSelRange
+template<class T>
+class CSelRangeT
 {
 public:
 	struct RANGE// 闭区间
 	{
-		int idxBegin;
-		int idxEnd;
+		T idxBegin;
+		T idxEnd;
 	};
 private:
 	std::vector<RANGE> m_vRange{};// 从小到大排列
@@ -19,30 +20,31 @@ private:
 	/// <param name="idxItem">项目索引</param>
 	/// <param name="bFound">是否在返回的区间内</param>
 	/// <returns>搜寻结束时的迭代器，若未找到，此迭代器指向第一个大于idxItem的区间</returns>
-	constexpr auto FindRange(int idxItem, _Out_ BOOL& bFound)
+	constexpr auto FindRange(T idxItem, _Out_ BOOL& bFound)
 	{
 		const auto it = std::lower_bound(m_vRange.begin(), m_vRange.end(), idxItem,
-			[](RANGE r, int idx) { return r.idxEnd < idx; });
+			[](RANGE r, T idx) { return r.idxEnd < idx; });
 		bFound = (it != m_vRange.end() && idxItem >= it->idxBegin);
 		return it;
 	}
 
-	constexpr auto FindRange(int idxItem, _Out_ BOOL& bFound) const
+	constexpr auto FindRange(T idxItem, _Out_ BOOL& bFound) const
 	{
 		const auto it = std::lower_bound(m_vRange.begin(), m_vRange.end(), idxItem,
-			[](RANGE r, int idx) { return r.idxEnd < idx; });
+			[](RANGE r, T idx) { return r.idxEnd < idx; });
 		bFound = (it != m_vRange.end() && idxItem >= it->idxBegin);
 		return it;
 	}
 public:
-	constexpr CSelRange(std::initializer_list<RANGE> il) : m_vRange{ il } {}
+	CSelRangeT() = default;
+	constexpr CSelRangeT(std::initializer_list<RANGE> il) : m_vRange{ il } {}
 
 	/// <summary>
 	/// 并
 	/// </summary>
 	/// <param name="idxBegin">起始索引（含）</param>
 	/// <param name="idxEnd">结束索引（含）</param>
-	constexpr void IncludeRange(int idxBegin, int idxEnd)
+	constexpr void IncludeRange(T idxBegin, T idxEnd)
 	{
 		EckAssert(idxEnd >= idxBegin && idxBegin >= 0);
 		BOOL bFound0, bFound1;
@@ -113,12 +115,17 @@ public:
 			m_vRange.erase(itEraseBegin, itEraseEnd);
 	}
 
+	constexpr void IncludeItem(T idxItem)
+	{
+		IncludeRange(idxItem, idxItem);
+	}
+
 	/// <summary>
 	/// 差
 	/// </summary>
 	/// <param name="idxBegin">起始索引（含）</param>
 	/// <param name="idxEnd">结束索引（含）</param>
-	constexpr void ExcludeRange(int idxBegin, int idxEnd)
+	constexpr void ExcludeRange(T idxBegin, T idxEnd)
 	{
 		EckAssert(idxEnd >= idxBegin && idxBegin >= 0);
 		BOOL bFound0, bFound1;
@@ -170,12 +177,17 @@ public:
 			m_vRange.erase(itEraseBegin, itEraseEnd);
 	}
 
+	constexpr void ExcludeItem(T idxItem)
+	{
+		ExcludeRange(idxItem, idxItem);
+	}
+
 	/// <summary>
 	/// 取反
 	/// </summary>
 	/// <param name="idxBegin">起始索引（含）</param>
 	/// <param name="idxEnd">结束索引（含）</param>
-	constexpr void InvertRange(int idxBegin, int idxEnd)
+	constexpr void InvertRange(T idxBegin, T idxEnd)
 	{
 		EckAssert(idxEnd >= idxBegin && idxBegin >= 0);
 		BOOL bFound0, bFound1;
@@ -266,17 +278,22 @@ public:
 		}
 	}
 
+	constexpr void InvertItem(T idxItem)
+	{
+		InvertRange(idxItem, idxItem);
+	}
+
 	/// <summary>
 	/// 插入项目。
 	/// 在指定的位置增加一个未选择项目（即新项目），此操作会使目标索引其后的所有项目索引+1。
 	/// </summary>
 	/// <param name="idxItem">项目索引</param>
-	constexpr void InsertItem(int idxItem)
+	constexpr void InsertItem(T idxItem)
 	{
 		EckAssert(idxItem >= 0);
 		BOOL bFound;
 		const auto it = FindRange(idxItem, bFound);
-		std::vector<RANGE>::iterator itIncBegin;
+		typename std::vector<RANGE>::iterator itIncBegin;
 		if (bFound)
 		{
 			if (it->idxBegin == idxItem)
@@ -303,14 +320,14 @@ public:
 	/// 删除指定的项目，此操作会使目标索引其后的所有项目索引-1。
 	/// </summary>
 	/// <param name="idxItem">项目索引</param>
-	constexpr void RemoveItem(int idxItem)
+	constexpr void RemoveItem(T idxItem)
 	{
 		EckAssert(idxItem >= 0);
 		BOOL bFound;
 		const auto it = FindRange(idxItem, bFound);
 		if (it == m_vRange.end())
 			return;
-		std::vector<RANGE>::iterator itDecBegin;
+		typename std::vector<RANGE>::iterator itDecBegin;
 		BOOL bEraseIt;
 		if (bFound)
 		{
@@ -355,8 +372,8 @@ public:
 	/// <param name="idxVisibleEnd">可视区间结束索引</param>
 	/// <param name="idxChangedBegin">被更改区间起始索引，若无需更新则为-1</param>
 	/// <param name="idxChangedEnd">被更改区间结束索引，若无需更新则为-1</param>
-	EckInline constexpr void Clear(int idxVisibleBegin, int idxVisibleEnd,
-		_Out_ int& idxChangedBegin, _Out_ int& idxChangedEnd)
+	EckInline constexpr void Clear(T idxVisibleBegin, T idxVisibleEnd,
+		_Out_ T& idxChangedBegin, _Out_ T& idxChangedEnd)
 	{
 		BOOL bFound;
 		auto it = FindRange(idxVisibleBegin, bFound);
@@ -374,7 +391,7 @@ public:
 		Clear();
 	}
 
-	EckInline constexpr BOOL IsSelected(int idxItem) const
+	EckInline constexpr BOOL IsSelected(T idxItem) const
 	{
 		BOOL bFound;
 		FindRange(idxItem, bFound);
@@ -387,7 +404,7 @@ public:
 	}
 
 	// 取下一选中项。若idxItem选中，则返回idxItem
-	constexpr int NextSelected(int idxItem) const
+	constexpr T NextSelected(T idxItem) const
 	{
 		BOOL bFound;
 		const auto it = FindRange(idxItem, bFound);
@@ -400,7 +417,7 @@ public:
 	}
 
 	// 取下一未选中项。若idxItem未选中，则返回idxItem
-	constexpr int NextUnSelected(int idxItem) const
+	constexpr T NextUnSelected(T idxItem) const
 	{
 		BOOL bFound;
 		const auto it = FindRange(idxItem, bFound);
@@ -411,9 +428,9 @@ public:
 	}
 
 	// 计算选中项数
-	EckInline constexpr int CountIncluded() const
+	EckInline constexpr T CountIncluded() const
 	{
-		int c{};
+		T c{};
 		for (const auto& e : m_vRange)
 			c += (e.idxEnd - e.idxBegin + 1);
 		return c;
@@ -421,19 +438,19 @@ public:
 
 	EckInline constexpr const auto& GetList() const { return m_vRange; }
 
-	EckInline constexpr void OnSetItemCount(int cItem)
+	EckInline constexpr void OnSetItemCount(T cItem)
 	{
-		ExcludeRange(cItem - 1, INT_MAX);
+		ExcludeRange(cItem - 1, std::numeric_limits<T>::max());
 	}
 
-	EckInline constexpr int GetFirstSelected() const
+	EckInline constexpr T GetFirstSelected() const
 	{
 		if (m_vRange.empty())
 			return -1;
 		return m_vRange.front().idxBegin;
 	}
 
-	EckInline constexpr int GetLastSelected() const
+	EckInline constexpr T GetLastSelected() const
 	{
 		if (m_vRange.empty())
 			return -1;
@@ -441,6 +458,7 @@ public:
 	}
 };
 
+using CSelRange = CSelRangeT<int>;
 
 class CLVRange :public ILVRange
 {
