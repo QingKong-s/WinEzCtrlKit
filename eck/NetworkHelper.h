@@ -345,6 +345,9 @@ inline void WhCompleteHeader(_In_opt_z_ PCWSTR pszHeader, _Inout_ CRefStrW& rsHe
 
 struct CHttpRequestAsync
 {
+	using TProgress = std::pair<SIZE_T, SIZE_T>;
+	using Task = eck::CoroTask<HRESULT, TProgress>;
+
 	PCWSTR Header{};
 	void* Data{};
 	SIZE_T DataSize{};
@@ -358,7 +361,7 @@ struct CHttpRequestAsync
 
 	// 异步发送请求
 	// 进度结果：(已接收字节数， Content-Length)，其中Content-Length可能为0
-	eck::CoroTask<BOOL, std::pair<SIZE_T, SIZE_T>> DoRequest(PCWSTR pszMethod, PCWSTR pszUrl,
+	Task DoRequest(PCWSTR pszMethod, PCWSTR pszUrl,
 		int cchUrl = -1, PCWSTR pszUserAgent = nullptr, PCWSTR pszProxy = nullptr)
 	{
 		co_await eck::CoroResumeBackground();
@@ -371,7 +374,7 @@ struct CHttpRequestAsync
 		UniquePtr<DelHWinHttp>
 			hConnect{ WhPrepareConnect(urlc, rsWork, s_hSession.get(), pszUrl, cchUrl) };
 		if (!hConnect)
-			co_return FALSE;
+			co_return HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue);
 
 		struct CTX
 		{
@@ -392,13 +395,16 @@ struct CHttpRequestAsync
 
 			// 下列字段由回调和调用方共享
 
-			BITBOOL bFailed : 1;		// 因失败而取消
+			HRESULT hr;					// 因失败而取消
 			CEvent EvtSafeExit{ nullptr,FALSE,FALSE };	// 安全退出事件
 
-			void Cancel(BOOL bFailed = TRUE)
+			void Cancel(HRESULT hr)
 			{
-				this->bFailed = bFailed;
-				WinHttpCloseHandle(hRequest);
+				if (hRequest)
+				{
+					this->hr = hr;
+					WinHttpCloseHandle(hRequest);
+				}
 			}
 		}
 		Ctx{ this, Token };
@@ -417,7 +423,7 @@ struct CHttpRequestAsync
 				case WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE:
 					// Expect WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE
 					if (!WinHttpReceiveResponse(hInternet, nullptr))
-						pCtx->Cancel();
+						pCtx->Cancel(HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue));
 					break;
 
 				case WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE:
@@ -449,27 +455,29 @@ struct CHttpRequestAsync
 					{
 						// Expect WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE
 						if (!WinHttpQueryDataAvailable(pCtx->hRequest, nullptr))
-							pCtx->Cancel();
+							pCtx->Cancel(HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue));
 					}
 					break;
 					case 1:
 						pCtx->hFile = CreateFileW(std::get<CRefStrW>(pCtx->pThis->Response).Data(),
 							GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, nullptr);
 						if (pCtx->hFile == INVALID_HANDLE_VALUE)
-							pCtx->Cancel();
+						{
+							pCtx->Cancel(HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue));
+							break;
+						}
 						[[fallthrough]];
 					case 2:
 					{
 						pCtx->pBuf.reset(VAlloc(BufSize));
 						if (!pCtx->pBuf)
 						{
-							NtCurrentTeb()->LastErrorValue = ERROR_NOT_ENOUGH_MEMORY;
-							pCtx->Cancel();
+							pCtx->Cancel(E_OUTOFMEMORY);
 							break;
 						}
 						// Expect WINHTTP_CALLBACK_STATUS_READ_COMPLETE
 						if (!WinHttpReadData(pCtx->hRequest, pCtx->pBuf.get(), BufSize, nullptr))
-							pCtx->Cancel(FALSE);
+							pCtx->Cancel(HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue));
 					}
 					break;
 					}
@@ -509,14 +517,14 @@ struct CHttpRequestAsync
 							PopBack(pCtx->cbData - dwStatusInformationLength);
 						// Expect WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE
 						if (!WinHttpQueryDataAvailable(pCtx->hRequest, nullptr))
-							pCtx->Cancel();
+							pCtx->Cancel(HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue));
 					}
 					break;
 					case 1:
 					{
 						if (!dwStatusInformationLength)
 						{
-							pCtx->Cancel(FALSE);
+							pCtx->Cancel(S_OK);
 							break;
 						}
 						DWORD Dummy{};
@@ -524,21 +532,21 @@ struct CHttpRequestAsync
 							dwStatusInformationLength, &Dummy, nullptr);
 						// Expect WINHTTP_CALLBACK_STATUS_READ_COMPLETE
 						if (!WinHttpReadData(pCtx->hRequest, pCtx->pBuf.get(), BufSize, nullptr))
-							pCtx->Cancel(FALSE);
+							pCtx->Cancel(S_OK);
 					}
 					break;
 					case 2:
 					{
 						if (!dwStatusInformationLength)
 						{
-							pCtx->Cancel(FALSE);
+							pCtx->Cancel(S_OK);
 							break;
 						}
 						std::get<ComPtr<IStream>>(pCtx->pThis->Response)->Write(
 							pCtx->pBuf.get(), dwStatusInformationLength, nullptr);
 						// Expect WINHTTP_CALLBACK_STATUS_READ_COMPLETE
 						if (!WinHttpReadData(pCtx->hRequest, pCtx->pBuf.get(), BufSize, nullptr))
-							pCtx->Cancel(FALSE);
+							pCtx->Cancel(S_OK);
 					}
 					break;
 					}
@@ -556,15 +564,22 @@ struct CHttpRequestAsync
 					}
 				}
 				break;
+
+				case WINHTTP_CALLBACK_STATUS_CLOSING_CONNECTION:
+				case WINHTTP_CALLBACK_STATUS_CONNECTION_CLOSED:
+				case WINHTTP_CALLBACK_STATUS_REQUEST_ERROR:
+				case WINHTTP_CALLBACK_STATUS_SECURE_FAILURE:
+					pCtx->Cancel(E_FAIL);
+					break;
 				}
 			}, WINHTTP_CALLBACK_FLAG_ALL_COMPLETIONS | WINHTTP_CALLBACK_FLAG_HANDLES, 0);
 		if (Ret == WINHTTP_INVALID_STATUS_CALLBACK)
-			co_return FALSE;
+			co_return HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue);
 
 		UniquePtr<DelHWinHttp>
 			hRequest{ WhOpenRequest(urlc, hConnect.get(), pszMethod, rsWork.Data()) };
 		if (!hRequest)
-			co_return FALSE;
+			co_return HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue);
 
 		if (AutoAddHeader)
 		{
@@ -572,13 +587,13 @@ struct CHttpRequestAsync
 			WhCompleteHeader(Header, rsWork, pszMethod, Cookies, pszUserAgent);
 			if (!WinHttpAddRequestHeaders(hRequest.get(),
 				rsWork.Data(), (DWORD)rsWork.Size(), WINHTTP_ADDREQ_FLAG_ADD))
-				co_return FALSE;
+				co_return HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue);
 		}
 		else if (Header)
 		{
 			if (!WinHttpAddRequestHeaders(hRequest.get(),
 				Header, (DWORD)-1, WINHTTP_ADDREQ_FLAG_ADD))
-				co_return FALSE;
+				co_return HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue);
 		}
 
 		if (AutoDecompress)
@@ -586,27 +601,30 @@ struct CHttpRequestAsync
 			DWORD dwFlags{ WINHTTP_DECOMPRESSION_FLAG_ALL };
 			if (!WinHttpSetOption(hRequest.get(), WINHTTP_OPTION_DECOMPRESSION,
 				&dwFlags, sizeof(dwFlags)))
-				co_return FALSE;
+				co_return HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue);
 		}
 
 		Ctx.hRequest = hRequest.release();
 
 		Token.GetPromise().SetCanceller([](void* pCtx)
 			{
-				((CTX*)pCtx)->Cancel();
+				((CTX*)pCtx)->Cancel(E_ABORT);
 			}, &Ctx);
 
 		// Expect WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE
 		if (!WinHttpSendRequest(Ctx.hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
 			Data, (DWORD)DataSize, (DWORD)DataSize, (DWORD_PTR)&Ctx))
-			Ctx.Cancel();
+		{
+			Ctx.Cancel(HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue));
+			Ctx.EvtSafeExit.Signal();
+		}
 
 		WaitObject(Ctx.EvtSafeExit);
 		WinHttpSetStatusCallback(hConnect.get(), nullptr,
 			WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS, 0);
 		if (Response.index() == 1)
 			NtClose(Ctx.hFile);
-		co_return (BOOL)Ctx.bFailed;
+		co_return Ctx.hr;
 	}
 
 	EckInlineNdCe auto& GetBin() const noexcept { return std::get<CRefBin>(Response); }
@@ -618,21 +636,21 @@ struct CHttpRequestAsync
 
 	constexpr void WantBin()
 	{
-		if (Response.index() != 0)
+		if (Response.index() == 0)
+			std::get<CRefBin>(Response).Clear();
+		else
 			Response.emplace<CRefBin>();
 	}
 
 	template<class T>
 	constexpr void WantFilePath(T&& rsFilePath)
 	{
-		if (Response.index() != 1)
-			Response.emplace<CRefStrW>(std::forward<T>(rsFilePath));
+		Response.emplace<CRefStrW>(std::forward<T>(rsFilePath));
 	}
 
 	constexpr void WantStream(IStream* pStream)
 	{
-		if (Response.index() != 2)
-			Response.emplace<ComPtr<IStream>>(pStream);
+		Response.emplace<ComPtr<IStream>>(pStream);
 	}
 
 	constexpr void ClearResponse()

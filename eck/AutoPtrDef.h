@@ -13,6 +13,7 @@ ECK_DECL_HANDLE_DELETER(HIcon, HICON, DestroyIcon);
 ECK_DECL_HANDLE_DELETER(HCursor, HCURSOR, DestroyCursor);
 ECK_DECL_HANDLE_DELETER(HMenu, HMENU, DestroyMenu);
 ECK_DECL_HANDLE_DELETER(HGdiObj, HGDIOBJ, DeleteObject);
+ECK_DECL_HANDLE_DELETER(HNtObj, HANDLE, CloseHandle);
 
 
 template<class T_ = void>

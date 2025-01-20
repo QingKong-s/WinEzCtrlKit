@@ -123,6 +123,7 @@ public:
 		switch (uMsg)
 		{
 		case WM_NCCREATE:
+			m_iResult = 0;
 			SetWindowLongPtrW(hWnd, DWLP_DLGPROC, (LONG_PTR)EckDlgProc);
 #ifdef _DEBUG
 			m_bDlgProcInit = TRUE;
@@ -133,7 +134,6 @@ public:
 			break;
 		case WM_DESTROY:
 			m_bModal = FALSE;
-			m_iResult = 0;
 			break;
 		case WM_COMMAND:
 		{

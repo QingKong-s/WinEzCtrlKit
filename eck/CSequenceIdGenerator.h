@@ -21,9 +21,9 @@ public:
 		}
 	}
 
-	constexpr void Free(T idx)
+	constexpr void Free(T Id)
 	{
-		m_RgDeleted.IncludeItem(idx);
+		m_RgDeleted.IncludeItem(Id);
 	}
 
 	constexpr void Reset()

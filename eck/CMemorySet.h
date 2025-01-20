@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "CSrwLock.h"
+#include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
 class CMemorySet

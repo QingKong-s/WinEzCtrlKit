@@ -47,7 +47,7 @@ public:
 		return RtlFreeHandle(&m_HandleTable, Handle);
 	}
 
-	EckInline BOOL IsValid(RTL_HANDLE_TABLE_ENTRY* Handle)
+	EckInlineNd BOOL IsValid(RTL_HANDLE_TABLE_ENTRY* Handle)
 	{
 		return RtlIsValidHandle(&m_HandleTable, Handle);
 	}
@@ -82,11 +82,8 @@ class CTypedHandleTable
 	static_assert(sizeof(THandle) == sizeof(void*), "THandle must be the same size as void*");
 private:
 	CHandleTable m_HandleTable;
-public:
-	CTypedHandleTable() = default;
-	CTypedHandleTable(ULONG cMax) : m_HandleTable(cMax, sizeof(T)) {}
 
-	~CTypedHandleTable()
+	void DestructEntry()
 	{
 		auto& Ht = m_HandleTable.GetHandleTable();
 		for (auto p = Ht.CommittedHandles;
@@ -96,6 +93,14 @@ public:
 			if (p->Flags & RTL_HANDLE_ALLOCATED)
 				std::destroy_at((T*)((BYTE*)p + sizeof(RTL_HANDLE_TABLE_ENTRY)));
 		}
+	}
+public:
+	CTypedHandleTable() = default;
+	CTypedHandleTable(ULONG cMax) : m_HandleTable(cMax, sizeof(T)) {}
+
+	~CTypedHandleTable()
+	{
+		DestructEntry();
 	}
 
 	template<class... TArgs>
@@ -154,6 +159,7 @@ public:
 
 	EckInline NTSTATUS Destroy()
 	{
+		DestructEntry();
 		return m_HandleTable.Destroy();
 	}
 
