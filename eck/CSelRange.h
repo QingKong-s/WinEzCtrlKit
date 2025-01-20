@@ -552,7 +552,7 @@ public:
 		return S_OK;
 	}
 
-	EckInline constexpr const auto& GetSelRange() const { return m_SelRange; }
-	EckInline constexpr auto& GetSelRange() { return m_SelRange; }
+	EckInlineCe auto& GetSelRange() const { return m_SelRange; }
+	EckInlineCe auto& GetSelRange() { return m_SelRange; }
 };
 ECK_NAMESPACE_END

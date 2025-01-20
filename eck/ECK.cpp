@@ -1912,10 +1912,10 @@ BOOL PreTranslateMessage(const MSG& Msg)
 		const auto Top{ pCtx->Callback.q.top() };
 		pCtx->Callback.q.pop();
 		RtlReleaseSRWLockExclusive(&pCtx->Callback.Lk);
-		if (Top.bCoroutine)
-			std::coroutine_handle<>::from_address(Top.pCoroutine).resume();
+		if (Top.Callback.index() == 0)
+			std::get<0>(Top.Callback)();
 		else
-			Top.pfnCallback(Top.pCtx);
+			std::coroutine_handle<>::from_address(std::get<1>(Top.Callback)).resume();
 		RtlAcquireSRWLockExclusive(&pCtx->Callback.Lk);
 	}
 	RtlReleaseSRWLockExclusive(&pCtx->Callback.Lk);

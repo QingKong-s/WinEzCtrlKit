@@ -56,22 +56,7 @@ namespace Priv
 	template<class TThis>
 	EckInline auto JsonValAt(TThis& This, PCSTR pszKey, size_t cchKey = SizeTMax)
 	{
-		if (*pszKey != '/')
-		{
-			if (cchKey == SizeTMax)
-				cchKey = strlen(pszKey) + 1;
-			else
-				++cchKey;
-			const auto pszKey1 = (PSTR)_malloca(cchKey + 1);
-			EckCheckMem(pszKey1);
-			*pszKey1 = '/';
-			memcpy(pszKey1 + 1, pszKey, cchKey);// 包含结尾NULL
-			const auto r = This.ValAt(pszKey1, cchKey);
-			_freea(pszKey1);
-			return r;
-		}
-		else
-			return This.ValAt(pszKey, cchKey);
+		return This.ValAt(pszKey, cchKey);
 	}
 
 	template<class TThis, class T>

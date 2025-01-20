@@ -10,7 +10,7 @@ using FLvItemCompareEx = int(CALLBACK*)(int idx1, int idx2, LPARAM lParamSort);
 	BOOL StyleGet##Name() const							\
 	{													\
 		if constexpr (Style == 0)						\
-			return !GetLVExtendStyle();				\
+			return !GetLVExtendStyle();					\
 		else											\
 			return IsBitSet(GetLVExtendStyle(), Style);	\
 	}													\

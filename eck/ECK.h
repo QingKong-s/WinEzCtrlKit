@@ -34,6 +34,7 @@
 #include <functional>
 #include <span>
 #include <array>
+#include <variant>
 
 #include ".\Detours\detours.h"
 
@@ -173,8 +174,8 @@ ECK_NAMESPACE_END
 #define EckIsStartWithConstStringIA(psz, sz) (_strnicmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
 #define EckIsStartWithConstStringIW(psz, sz) (_wcsnicmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
 
-#define EckStrAndLen(Arr)		Arr, ARRAYSIZE(Arr) - 1
-#define EckLenAndStr(Arr)		ARRAYSIZE(Arr) - 1, Arr
+#define EckStrAndLen(Arr)		Arr, (ARRAYSIZE(Arr) - 1)
+#define EckLenAndStr(Arr)		(ARRAYSIZE(Arr) - 1), Arr
 
 // 计次循环
 #define EckCounter(c, Var) \
@@ -802,16 +803,7 @@ namespace Priv
 	struct QueuedCallback
 	{
 		UINT nPriority;	// 值越小优先级越高
-		BOOL bCoroutine;// 是否是协程
-		union
-		{
-			struct
-			{
-				FQueueCallback pfnCallback;
-				void* pCtx;
-			};
-			void* pCoroutine;
-		};
+		std::variant<std::function<void()>, void*> Callback;
 
 		constexpr std::weak_ordering operator<=>(const QueuedCallback& x) const
 		{
@@ -821,38 +813,34 @@ namespace Priv
 
 	struct QueuedCallbackQueue
 	{
+		DWORD dwTid{};
 		std::priority_queue<QueuedCallback> q{};
 		RTL_SRWLOCK Lk{};
 
 		QueuedCallbackQueue()
 		{
 			RtlInitializeSRWLock(&Lk);
+			dwTid = NtCurrentThreadId32();
 		}
 
-		void EnQueueCallback(FQueueCallback pfnCallback,
-			void* pCtx = nullptr, UINT nPriority = UINT_MAX)
+		template<class F>
+		void EnQueueCallback(F&& fnCallback, UINT nPriority = UINT_MAX, BOOL bWakeUiThread = TRUE)
 		{
-			EckAssert(pfnCallback);
-			Priv::QueuedCallback x;
-			x.nPriority = nPriority;
-			x.bCoroutine = FALSE;
-			x.pfnCallback = pfnCallback;
-			x.pCtx = pCtx;
 			RtlAcquireSRWLockExclusive(&Lk);
-			q.push(x);
+			q.push({ nPriority,std::function<void()>(std::forward<F>(fnCallback)) });
 			RtlReleaseSRWLockExclusive(&Lk);
+			if (bWakeUiThread)
+				PostThreadMessage(dwTid, WM_NULL, 0, 0);
 		}
 
-		void EnQueueCoroutine(void* pCoroutine, UINT nPriority = UINT_MAX)
+		void EnQueueCoroutine(void* pCoroutine, UINT nPriority = UINT_MAX, BOOL bWakeUiThread = TRUE)
 		{
 			EckAssert(pCoroutine);
-			Priv::QueuedCallback x;
-			x.nPriority = nPriority;
-			x.bCoroutine = TRUE;
-			x.pCoroutine = pCoroutine;
 			RtlAcquireSRWLockExclusive(&Lk);
-			q.push(x);
+			q.push({ nPriority,pCoroutine });
 			RtlReleaseSRWLockExclusive(&Lk);
+			if (bWakeUiThread)
+				PostThreadMessage(dwTid, WM_NULL, 0, 0);
 		}
 	};
 }
