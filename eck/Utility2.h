@@ -408,6 +408,23 @@ EckInline void LegalizePath(PWSTR pszPath, WCHAR chReplace = L'_')
 	}
 }
 
+/// <summary>
+/// 合法化文件名。
+/// 将路径中的非法字符替换为指定字符。
+/// 函数原地工作
+/// </summary>
+/// <param name="pszPath">文件名</param>
+/// <param name="chReplace">替换为</param>
+EckInline void LegalizePathWithDot(PWSTR pszPath, WCHAR chReplace = L'_')
+{
+	auto p{ pszPath };
+	while (p = wcspbrk(p, LR"(\/:*?"<>|.)"))
+	{
+		*p = chReplace;
+		++p;
+	}
+}
+
 inline std::span<const BYTE> GetResource(PCWSTR pszName, PCWSTR pszType,
 	HMODULE hModule = nullptr)
 {
