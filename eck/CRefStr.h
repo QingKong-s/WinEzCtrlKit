@@ -1,37 +1,12 @@
 ﻿#pragma once
 #pragma warning (disable:4996)
-#include "ECK.h"
+#include "StringUtility.h"
 #include "CAllocator.h"
 #include "Utility.h"
 
-#include <vector>
-#include <string>
-#include <algorithm>
-#include <execution>
-
 ECK_NAMESPACE_BEGIN
-inline constexpr int INVALID_STR_POS = -1;
 
-inline constexpr int StrNPos = -1;
 
-/// <summary>
-/// 寻找文本
-/// </summary>
-/// <param name="pszText">要在其中寻找的字符串指针</param>
-/// <param name="pszSub">要寻找的字符串指针</param>
-/// <param name="posStart">起始位置</param>
-/// <returns>位置，若未找到返回StrNPos</returns>
-[[nodiscard]] EckInline int FindStr(PCWSTR pszText, PCWSTR pszSub, int posStart = 0)
-{
-	const PCWSTR pszFind = wcsstr(pszText + posStart, pszSub);
-	return pszFind ? (int)(pszFind - pszText) : StrNPos;
-}
-
-[[nodiscard]] EckInline int FindStrI(PCWSTR pszText, PCWSTR pszSub, int posStart = 0)
-{
-	const PCWSTR pszFind = StrStrIW(pszText + posStart, pszSub);
-	return pszFind ? (int)(pszFind - pszText) : StrNPos;
-}
 
 [[nodiscard]] EckInline int FindFirstOf(PCWSTR pszText, PCWSTR pszCharSet, int posStart = 0)
 {
@@ -43,77 +18,6 @@ inline constexpr int StrNPos = -1;
 {
 	const PCSTR pszFind = strpbrk(pszText + posStart, pszCharSet);
 	return pszFind ? (int)(pszFind - pszText) : StrNPos;
-}
-
-/// <summary>
-/// 寻找文本
-/// </summary>
-/// <param name="pszText">要在其中寻找的字符串指针</param>
-/// <param name="pszSub">要寻找的字符串指针</param>
-/// <param name="posStart">起始位置</param>
-/// <returns>位置，若未找到返回StrNPos</returns>
-[[nodiscard]] EckInline int FindStr(PCSTR pszText, PCSTR pszSub, int posStart = 0)
-{
-	PCSTR pszFind = strstr(pszText + posStart, pszSub);
-	if (pszFind)
-		return (int)(pszFind - pszText);
-	else
-		return StrNPos;
-}
-
-[[nodiscard]] EckInline int FindStrI(PCSTR pszText, PCSTR pszSub, int posStart = 0)
-{
-	PCSTR pszFind = StrStrIA(pszText + posStart, pszSub);
-	if (pszFind)
-		return (int)(pszFind - pszText);
-	else
-		return StrNPos;
-}
-
-[[nodiscard]] EckInline int FindChar(PCWSTR pszText, WCHAR ch, int posStart = 0)
-{
-	const PCWSTR pszFind = wcschr(pszText + posStart, ch);
-	if (pszFind)
-		return (int)(pszFind - pszText);
-	else
-		return StrNPos;
-}
-
-[[nodiscard]] EckInline int FindChar(PCSTR pszText, CHAR ch, int posStart = 0)
-{
-	const PCSTR pszFind = strchr(pszText + posStart, ch);
-	if (pszFind)
-		return (int)(pszFind - pszText);
-	else
-		return StrNPos;
-}
-
-/// <summary>
-/// 倒找文本
-/// </summary>
-/// <param name="pszText">要在其中寻找的字符串指针</param>
-/// <param name="cchText">要在其中寻找的字符串长度</param>
-/// <param name="pszSub">要寻找的字符串指针</param>
-/// <param name="cchSub">要寻找的字符串长度</param>
-/// <param name="posStart">起始位置，若为-1则从尾部开始</param>
-/// <returns>位置，若未找到返回StrNPos</returns>
-[[nodiscard]] inline int FindStrRev(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = -1)
-{
-	if (cchText < 0)
-		cchText = (int)wcslen(pszText);
-	if (cchSub < 0)
-		cchSub = (int)wcslen(pszSub);
-	if (!cchText || !cchSub || cchText < cchSub)
-		return StrNPos;
-	if (posStart < 0)
-		posStart = cchText - 1;
-
-	for (PCWSTR pCurr = pszText + posStart - cchSub; pCurr >= pszText; --pCurr)
-	{
-		if (wcsncmp(pCurr, pszSub, cchSub) == 0)
-			return (int)(pCurr - pszText);
-	}
-	return StrNPos;
 }
 
 /// <summary>
@@ -230,13 +134,6 @@ inline constexpr int StrNPos = -1;
 		return { pszLeft,pszRight };
 }
 
-#if ECKCXX20
-template<class TChar>
-concept ccpIsStdChar = std::is_same_v<TChar, CHAR> || std::is_same_v<TChar, WCHAR>;
-#else// ECKCXX20
-#pragma push_macro("ccpIsStdChar")
-#define ccpIsStdChar class
-#endif// ECKCXX20
 template<ccpIsStdChar TChar>
 using TRefStrDefAlloc = CDefAllocator<TChar, int>;
 
@@ -352,12 +249,25 @@ public:
 
 	static_assert(std::is_same_v<typename TAllocTraits::size_type, int>);
 private:
-	TPointer m_pszText = nullptr;
-	int m_cchText = 0;
-	int m_cchCapacity = 0;
+	union
+	{
+		TPointer m_pszText;
+		TChar m_szLocal[16 / sizeof(TChar)]{};
+	};
+	int m_cchText{};
+	int m_cchCapacity{ ARRAYSIZE(m_szLocal) };
 
 	ECKNOUNIQUEADDR TAlloc m_Alloc{};
+
+	static constexpr void ResetThat(CRefStrT& x)
+	{
+		x.m_pszText = nullptr;// 保证清空指针和截断sso缓冲区
+		x.m_cchText = 0;
+		x.m_cchCapacity = LocalBufferSize;
+	}
 public:
+	constexpr static int LocalBufferSize = ARRAYSIZE(m_szLocal);
+
 	CRefStrT() = default;
 
 	explicit CRefStrT(const TAlloc& Al) : m_Alloc{ Al } {}
@@ -367,10 +277,8 @@ public:
 	/// </summary>
 	/// <param name="cchInit">字符串长度</param>
 	explicit CRefStrT(int cchInit)
-		: m_cchCapacity{ cchInit + 1 }, m_cchText{ cchInit }
 	{
-		m_pszText = m_Alloc.allocate(m_cchCapacity);
-		TCharTraits::Cut(m_pszText, cchInit);
+		ReSize(cchInit);
 	}
 
 	/// <summary>
@@ -378,11 +286,9 @@ public:
 	/// </summary>
 	/// <param name="cchInit">字符串长度</param>
 	/// <param name="Al">分配器</param>
-	CRefStrT(int cchInit, const TAlloc& Al)
-		: m_cchText{ cchInit }, m_cchCapacity{ cchInit + 1 }, m_Alloc{ Al }
+	CRefStrT(int cchInit, const TAlloc& Al) : m_Alloc{ Al }
 	{
-		m_pszText = m_Alloc.allocate(m_cchCapacity);
-		TCharTraits::Cut(m_pszText, cchInit);
+		ReSize(cchInit);
 	}
 
 	/// <summary>
@@ -391,12 +297,9 @@ public:
 	/// <param name="psz">字符串指针</param>
 	/// <param name="cchText">字符串长度</param>
 	/// <param name="Al">分配器</param>
-	CRefStrT(TConstPointer psz, int cchText, const TAlloc& Al = TAlloc{})
-		: m_cchText{ cchText }, m_cchCapacity{ TAllocTraits::MakeCapacity(cchText + 1) }, m_Alloc{ Al }
+	CRefStrT(TConstPointer psz, int cchText, const TAlloc& Al = TAlloc{}) : m_Alloc{ Al }
 	{
-		EckAssert(psz ? TRUE : cchText == 0);
-		m_pszText = m_Alloc.allocate(m_cchCapacity);
-		TCharTraits::CopyEnd(Data(), psz, cchText);
+		DupString(psz, cchText);
 	}
 
 	/// <summary>
@@ -409,44 +312,37 @@ public:
 	}
 
 	CRefStrT(const CRefStrT& x)
-		: m_cchText{ x.Size() }, m_cchCapacity{ TAllocTraits::MakeCapacity(m_cchText + 1) },
-		m_Alloc{ TAllocTraits::select_on_container_copy_construction(x.m_Alloc) }
+		: m_Alloc{ TAllocTraits::select_on_container_copy_construction(x.m_Alloc) }
 	{
-		m_pszText = m_Alloc.allocate(m_cchCapacity);
-		TCharTraits::CopyEnd(Data(), x.Data(), x.Size());
+		DupString(x.Data(), x.Size());
 	}
 
-	CRefStrT(const CRefStrT& x, const TAlloc& Al)
-		: m_cchText{ x.Size() }, m_cchCapacity{ TAllocTraits::MakeCapacity(m_cchText + 1) },
-		m_Alloc{ Al }
+	CRefStrT(const CRefStrT& x, const TAlloc& Al) : m_Alloc{ Al }
 	{
-		m_pszText = m_Alloc.allocate(m_cchCapacity);
-		TCharTraits::CopyEnd(Data(), x.Data(), x.Size());
+		DupString(x.Data(), x.Size());
 	}
 
 	CRefStrT(CRefStrT&& x) noexcept
-		:m_pszText{ x.m_pszText }, m_cchText{ x.m_cchText }, m_cchCapacity{ x.m_cchCapacity },
-		m_Alloc{ std::move(x.m_Alloc) }
+		: m_cchText{ x.m_cchText }, m_cchCapacity{ x.m_cchCapacity }, m_Alloc{ std::move(x.m_Alloc) }
 	{
-		x.m_pszText = nullptr;
-		x.m_cchText = x.m_cchCapacity = 0;
+		std::copy(std::begin(x.m_szLocal), std::end(x.m_szLocal), std::begin(m_szLocal));
+		ResetThat(x);
 	}
 
-	CRefStrT(CRefStrT&& x, const TAlloc& Al) noexcept
-		:m_pszText{ x.m_pszText }, m_cchText{ x.m_cchText }, m_cchCapacity{ x.m_cchCapacity },
-		m_Alloc{ Al }
+	CRefStrT(CRefStrT&& x, const TAlloc& Al)
+		: m_cchText{ x.m_cchText }, m_cchCapacity{ x.m_cchCapacity }, m_Alloc{ Al }
 	{
 		if constexpr (!TAllocTraits::is_always_equal::value)
 		{
 			if (Al != x.m_Alloc)
 			{
-				x.m_Alloc.deallocate(m_pszText, m_cchCapacity);
-				m_pszText = m_Alloc.allocate(m_cchCapacity);
-				TCharTraits::CopyEnd(Data(), x.Data(), x.Size());
+				DupString(x.Data(), x.Size());
+				ResetThat(x);
+				return;
 			}
 		}
-		x.m_pszText = nullptr;
-		x.m_cchText = x.m_cchCapacity = 0;
+		std::copy(std::begin(x.m_szLocal), std::end(x.m_szLocal), std::begin(m_szLocal));
+		ResetThat(x);
 	}
 
 	template<class TTraits, class TAlloc1>
@@ -465,7 +361,8 @@ public:
 
 	~CRefStrT()
 	{
-		m_Alloc.deallocate(m_pszText, m_cchCapacity);
+		if (!IsLocal())
+			m_Alloc.deallocate(m_pszText, m_cchCapacity);
 	}
 
 	EckInline CRefStrT& operator=(TConstPointer pszSrc)
@@ -485,10 +382,10 @@ public:
 		{
 			if (m_Alloc != x.m_Alloc)
 			{
+				if (!IsLocal())
+					m_Alloc.deallocate(m_pszText, m_cchCapacity);
+				ResetThat(*this);
 				m_Alloc = x.m_Alloc;
-				m_Alloc.deallocate(m_pszText, m_cchCapacity);
-				m_pszText = nullptr;
-				m_cchText = m_cchCapacity = 0;
 			}
 			else if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
 				m_Alloc = x.m_Alloc;
@@ -512,8 +409,11 @@ public:
 				DupString(x.Data(), x.Size());
 				return *this;
 			}
+		TChar szTemp[LocalBufferSize];
+		std::copy(std::begin(x.m_szLocal), std::end(x.m_szLocal), std::begin(szTemp));
+		std::copy(std::begin(m_szLocal), std::end(m_szLocal), std::begin(x.m_szLocal));
+		std::copy(std::begin(szTemp), std::end(szTemp), std::begin(m_szLocal));
 
-		std::swap(m_pszText, x.m_pszText);
 		std::swap(m_cchText, x.m_cchText);
 		std::swap(m_cchCapacity, x.m_cchCapacity);
 		return *this;
@@ -549,9 +449,10 @@ public:
 	EckInlineNdCe size_t ByteSize() const noexcept { return (m_cchText + 1) * sizeof(TChar); }
 	EckInlineNdCe size_t ByteSizePure() const noexcept { return m_cchText * sizeof(TChar); }
 	EckInlineNdCe int Capacity() const noexcept { return m_cchCapacity; }
+	EckInlineNdCe BOOL IsLocal() const noexcept { return Capacity() == LocalBufferSize; }
 	EckInlineNdCe size_t ByteCapacity() const noexcept { return m_cchCapacity * sizeof(TChar); }
-	EckInlineNdCe TPointer Data() noexcept { return m_pszText; }
-	EckInlineNdCe TConstPointer Data() const noexcept { return m_pszText; }
+	EckInlineNdCe TPointer Data() noexcept { return IsLocal() ? m_szLocal : m_pszText; }
+	EckInlineNdCe TConstPointer Data() const noexcept { return IsLocal() ? m_szLocal : m_pszText; }
 
 	/// <summary>
 	/// 克隆字符串。
@@ -784,16 +685,19 @@ private:
 	{
 		if (m_cchCapacity >= cch)
 			return;
-
-		const auto pOld = m_pszText;
-		m_pszText = m_Alloc.allocate(cch);
+		if (IsLocal() && cch <= LocalBufferSize)
+			return;
+		const auto pOld = IsLocal() ? m_szLocal : m_pszText;
+		const auto pNew = m_Alloc.allocate(cch);
 		if (pOld)
 		{
-			TCharTraits::Copy(Data(), pOld, m_cchText + 1);// 多拷一个结尾NULL
-			m_Alloc.deallocate(pOld, m_cchCapacity);
+			TCharTraits::Copy(pNew, pOld, m_cchText + 1);// 多拷一个结尾NULL
+			if (!IsLocal())
+				m_Alloc.deallocate(pOld, m_cchCapacity);
 		}
 		else
-			TCharTraits::Cut(Data(), 0);
+			TCharTraits::Cut(pNew, 0);
+		m_pszText = pNew;
 		m_cchCapacity = cch;
 	}
 public:
@@ -807,7 +711,7 @@ public:
 	/// 重置尺寸
 	/// </summary>
 	/// <param name="cch">字符数</param>
-	EckInline void ReSize(int cch)
+	void ReSize(int cch)
 	{
 		EckAssert(cch >= 0);
 		ReserveReal(cch + 1);
@@ -815,7 +719,7 @@ public:
 		TCharTraits::Cut(Data(), cch);
 	}
 
-	EckInline void ReSizeExtra(int cch)
+	void ReSizeExtra(int cch)
 	{
 		EckAssert(cch >= 0);
 		if (m_cchCapacity < cch + 1)
@@ -961,8 +865,7 @@ public:
 	EckInline constexpr void Clear()
 	{
 		m_cchText = 0;
-		if (Data())
-			TCharTraits::Cut(Data(), 0);
+		TCharTraits::Cut(Data(), 0);
 	}
 
 	/// <summary>
@@ -1297,6 +1200,7 @@ using CRefStrA = CRefStrT<CHAR, CCharTraits<CHAR>>;
 
 #define EckCRefStrTemp CRefStrT<TChar, TCharTraits, TAlloc>
 
+#pragma region Operator
 template<class TChar, class TCharTraits, class TAlloc>
 EckInline EckCRefStrTemp operator+(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
 {
@@ -1431,6 +1335,7 @@ template<class TChar, class TCharTraits, class TAlloc>
 	return operator>=(rs1, rs2.Data());
 }
 #endif// ECKCXX20
+#pragma endregion Operator
 
 template<class TCharTraits, class TAlloc>
 EckInline void DbgPrint(const CRefStrT<WCHAR, TCharTraits, TAlloc>& rs, int iType = 1, BOOL bNewLine = TRUE)
@@ -2090,10 +1995,6 @@ EckInline CRefStrA Format(PCSTR pszFmt, ...)
 	return rs;
 }
 
-#if !ECKCXX20
-#undef ccpIsStdChar
-#pragma pop_macro("ccpIsStdChar")
-#endif
 
 #undef EckCRefStrTemp
 ECK_NAMESPACE_END
