@@ -1134,4 +1134,44 @@ EckInline int GetKeyNameTextByVk(WORD wVk, PWSTR pszBuf, int cchBuf,
 		((!!bDontCare) << 25),
 		pszBuf, cchBuf);
 }
+
+/// <summary>
+/// 字节集到友好字符串表示
+/// </summary>
+/// <param name="Bin">字节集</param>
+/// <param name="iType">类型，0 - 空格分割的十六进制  1 - 易语言字节集调试输出</param>
+/// <returns>返回结果</returns>
+inline CRefStrW FormatBin(PCVOID pData_, SIZE_T cb, int iType)
+{
+	const auto pData = (PCBYTE)pData_;
+	CRefStrW rsResult{};
+	if (!pData || !cb)
+	{
+		if (iType == 1)
+			rsResult.DupString(EckStrAndLen(L"{ }"));
+		return rsResult;
+	}
+
+	switch (iType)
+	{
+	case 0:
+	{
+		rsResult.Reserve((int)cb * 3 + 10);
+		for (SIZE_T i = 0u; i < cb; ++i)
+			rsResult.AppendFormat(L"%02hhX ", pData[i]);
+	}
+	break;
+	case 1:
+	{
+		rsResult.Reserve((int)cb * 4 + 10);
+		rsResult.PushBack(EckStrAndLen(L"{ "));
+		rsResult.AppendFormat(L"%hhu", pData[0]);
+		for (SIZE_T i = 1u; i < cb; ++i)
+			rsResult.AppendFormat(L",%hhu", pData[i]);
+		rsResult.PushBack(EckStrAndLen(L" }"));
+	}
+	break;
+	}
+	return rsResult;
+}
 ECK_NAMESPACE_END
