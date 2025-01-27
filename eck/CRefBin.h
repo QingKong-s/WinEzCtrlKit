@@ -1,58 +1,10 @@
 ﻿#pragma once
 #include "CAllocator.h"
+#include "MemUtility.h"
 
 #include <initializer_list>
 
 ECK_NAMESPACE_BEGIN
-inline constexpr size_t INVALID_BIN_POS = SizeTMax;
-
-inline constexpr size_t BinNPos = SizeTMax;
-
-/// <summary>
-/// 寻找字节集
-/// </summary>
-/// <param name="pMain">要在其中寻找的字节集指针</param>
-/// <param name="cbMainSize">要在其中寻找的字节集长度</param>
-/// <param name="pSub">要寻找的字节集指针</param>
-/// <param name="cbSubSize">要寻找的字节集长度</param>
-/// <param name="posStart">起始位置</param>
-/// <returns>位置，若未找到返回BinNPos</returns>
-[[nodiscard]] inline size_t FindBin(PCVOID pMain, size_t cbMainSize, 
-	PCVOID pSub, size_t cbSubSize, size_t posStart = 0)
-{
-	if (cbMainSize < cbSubSize)
-		return BinNPos;
-	for (PCBYTE pCurr = (PCBYTE)pMain + posStart, 
-		pEnd = (PCBYTE)pMain + cbMainSize - cbSubSize; pCurr <= pEnd; ++pCurr)
-	{
-		if (memcmp(pCurr, pSub, cbSubSize) == 0)
-			return pCurr - (PCBYTE)pMain;
-	}
-	return BinNPos;
-}
-
-/// <summary>
-/// 倒找字节集
-/// </summary>
-/// <param name="pMain">要在其中寻找的字节集指针</param>
-/// <param name="cbMainSize">要在其中寻找的字节集长度</param>
-/// <param name="pSub">要寻找的字节集指针</param>
-/// <param name="cbSubSize">要寻找的字节集长度</param>
-/// <param name="posStart">起始位置</param>
-/// <returns>位置，若未找到返回BinNPos</returns>
-[[nodiscard]] inline size_t FindBinRev(PCVOID pMain, size_t cbMainSize, 
-	PCVOID pSub, size_t cbSubSize, size_t posStart = 0)
-{
-	if (cbMainSize < cbSubSize)
-		return BinNPos;
-	for (PCBYTE pCurr = (PCBYTE)pMain + cbMainSize - posStart - cbSubSize; pCurr >= pMain; --pCurr)
-	{
-		if (memcmp(pCurr, pSub, cbSubSize) == 0)
-			return pCurr - (PCBYTE)pMain;
-	}
-	return BinNPos;
-}
-
 using TRefBinDefAllocator = CDefAllocator<BYTE>;
 
 template<class TAlloc_ = TRefBinDefAllocator>
@@ -83,7 +35,7 @@ private:
 public:
 	CRefBinT() = default;
 
-	explicit CRefBinT(const TAlloc& Al): m_Alloc{ Al } {}
+	explicit CRefBinT(const TAlloc& Al) : m_Alloc{ Al } {}
 
 	explicit CRefBinT(size_t cb, const TAlloc& Al = TAlloc{})
 		: m_cb{ cb }, m_cbCapacity{ cb }, m_Alloc{ Al }
@@ -91,7 +43,7 @@ public:
 		Reserve(cb);
 	}
 
-	CRefBinT(PCVOID p, size_t cb, const TAlloc& Al = TAlloc{}): m_Alloc{ Al }
+	CRefBinT(PCVOID p, size_t cb, const TAlloc& Al = TAlloc{}) : m_Alloc{ Al }
 	{
 		EckAssert(p ? TRUE : (cb == 0));
 		DupStream(p, cb);
@@ -103,7 +55,7 @@ public:
 		DupStream(x.Data(), x.Size());
 	}
 
-	CRefBinT(const CRefBinT& x, const TAlloc& Al): m_Alloc{ Al }
+	CRefBinT(const CRefBinT& x, const TAlloc& Al) : m_Alloc{ Al }
 	{
 		DupStream(x.Data(), x.Size());
 	}
@@ -131,7 +83,7 @@ public:
 		ResetThat(x);
 	}
 
-	CRefBinT(std::initializer_list<BYTE> x, const TAlloc& Al = TAlloc{}): m_Alloc{ Al }
+	CRefBinT(std::initializer_list<BYTE> x, const TAlloc& Al = TAlloc{}) : m_Alloc{ Al }
 	{
 		DupStream(x.begin(), x.size());
 	}
@@ -458,7 +410,7 @@ public:
 		return Data() + m_cb - cb;
 	}
 	template<class T>
-	EckInline T* PushBackType()
+	EckInline T* PushBack()
 	{
 		return (T*)PushBack(sizeof(T));
 	}
@@ -477,13 +429,6 @@ public:
 	EckInline constexpr void Clear() { m_cb = 0u; }
 
 	EckInline void Zero() { RtlZeroMemory(Data(), Size()); }
-
-	// 从左闭右开区间创建字节集
-	template<class TAlloc1 = TAlloc>
-	[[nodiscard]] EckInline CRefBinT<TAlloc1> SubBin(size_t posBegin, size_t posEnd)
-	{
-		return CRefBinT<TAlloc1>(Data() + posBegin, posEnd - posBegin);
-	}
 
 	EckInline CRefBinT& Insert(size_t pos, PCVOID p, size_t cb)
 	{
@@ -543,7 +488,39 @@ public:
 		m_cbCapacity = m_cb;
 	}
 
-	EckInline void ExtendToCapacity() { m_cb = Capacity(); }
+	EckInlineCe void ExtendToCapacity() { m_cb = Capacity(); }
+
+	EckInline size_t Find(PCVOID pSub, size_t cbSub, size_t posStart = 0) const
+	{
+		return FindBin(Data(), Size(), pSub, cbSub, posStart);
+	}
+	EckInline size_t RFind(PCVOID pSub, size_t cbSub, size_t posStart = SizeTMax) const
+	{
+		return FindBinRev(Data(), Size(), pSub, cbSub, posStart);
+	}
+
+	EckInlineNdCe std::span<BYTE> ToSpan()
+	{
+		return std::span<BYTE>(Data(), Size());
+	}
+	EckInlineNdCe std::span<const BYTE> ToSpan() const
+	{
+		return std::span<const BYTE>(Data(), Size());
+	}
+
+	template<class TAlloc1 = TAlloc>
+	EckInlineNd CRefBinT<TAlloc1> SubBin(size_t posBegin, size_t cb) const
+	{
+		return CRefBinT<TAlloc1>(Data() + posBegin, cb);
+	}
+	EckInlineNdCe std::span<BYTE> SubSpan(size_t posBegin, size_t cb)
+	{
+		return std::span<BYTE>(Data() + posBegin, cb);
+	}
+	EckInlineNdCe std::span<const BYTE> SubSpan(size_t posBegin, size_t cb) const
+	{
+		return std::span<const BYTE>(Data() + posBegin, cb);
+	}
 
 	[[nodiscard]] EckInline TIterator begin() { return Data(); }
 	[[nodiscard]] EckInline TIterator end() { return begin() + Size(); }
@@ -570,137 +547,34 @@ CRefBinT<TAlloc> operator+(const CRefBinT<TAlloc1>& rb1, const CRefBinT<TAlloc2>
 	return rb;
 }
 
+template<class TAlloc1, class TAlloc2>
+[[nodiscard]] EckInline bool operator==(const CRefBinT<TAlloc1>& rb1, const CRefBinT<TAlloc2>& rb2)
+{
+	if (rb1.Size() != rb2.Size())
+		return false;
+	else
+		return memcmp(rb1.Data(), rb2.Data(), rb1.Size()) == 0;
+}
 template<class TAlloc>
 [[nodiscard]] EckInline bool operator==(const CRefBinT<TAlloc>& rb1, std::initializer_list<BYTE> il)
 {
-	if (!rb1.Data() && !il.size())
-		return true;
-	else if (!rb1.Data() || !il.size() || rb1.Size() != il.size())
+	if (rb1.Size() != il.size())
 		return false;
 	else
 		return memcmp(rb1.Data(), il.begin(), il.size()) == 0;
 }
 
-/// <summary>
-/// 寻找字节集
-/// </summary>
-/// <param name="rbMain">要在其中寻找的字节集</param>
-/// <param name="rbSub">要寻找的字节集</param>
-/// <param name="posStart">起始位置</param>
-/// <returns>位置，若未找到返回BinNPos</returns>
 template<class TAlloc1, class TAlloc2>
-[[nodiscard]] EckInline size_t FindBin(const CRefBinT<TAlloc1>& rbMain, const CRefBinT<TAlloc1>& rbSub, size_t posStart = 0)
+[[nodiscard]] EckInline size_t FindBin(const CRefBinT<TAlloc1>& rbMain,
+	const CRefBinT<TAlloc2>& rbSub, size_t posStart = 0)
 {
 	return FindBin(rbMain.Data(), rbMain.Size(), rbSub.Data(), rbSub.Size(), posStart);
 }
-
-/// <summary>
-/// 倒找字节集
-/// </summary>
-/// <param name="rbMain">要在其中寻找的字节集</param>
-/// <param name="rbSub">要寻找的字节集</param>
-/// <param name="posStart">起始位置</param>
-/// <returns>位置，若未找到返回BinNPos</returns>
-[[nodiscard]] EckInline size_t FindBinRev(const CRefBin& rbMain, const CRefBin& rbSub, size_t posStart = 0)
+template<class TAlloc1, class TAlloc2>
+[[nodiscard]] EckInline size_t FindBinRev(const CRefBinT<TAlloc1>& rbMain,
+	const CRefBinT<TAlloc2>& rbSub, size_t posStart = 0)
 {
 	return FindBinRev(rbMain.Data(), rbMain.Size(), rbSub.Data(), rbSub.Size(), posStart);
-}
-
-template<class TProcesser>
-inline void SplitBin(PCVOID p, SIZE_T cbSize, PCVOID pDiv, SIZE_T cbDiv, int cBinExpected, TProcesser Processer)
-{
-	SIZE_T pos = FindBin(p, cbSize, pDiv, cbDiv);
-	if (pos == BinNPos)
-	{
-		Processer((BYTE*)p, cbSize);
-		return;
-	}
-	SIZE_T posPrevFirst = 0u;
-	int c = 0;
-	do
-	{
-		Processer((BYTE*)p + posPrevFirst, pos - posPrevFirst);
-		++c;
-		if (c == cBinExpected)
-			return;
-		posPrevFirst = pos + cbDiv;
-		pos = FindBin(p, cbSize, pDiv, cbDiv, posPrevFirst);
-	} while (pos != BinNPos);
-
-	Processer((BYTE*)p + posPrevFirst, pos + cbSize - posPrevFirst);
-}
-
-
-struct SPLITBININFO
-{
-	PCVOID pBin;
-	size_t cbBin;
-};
-
-/// <summary>
-/// 分割字节集。
-/// 此函数不执行任何复制操作
-/// </summary>
-/// <param name="p">要分割的字节集指针</param>
-/// <param name="cbSize">要分割的字节集长度</param>
-/// <param name="pDiv">用作分割的字节集指针</param>
-/// <param name="cbDiv">用作分割的字节集长度</param>
-/// <param name="aResult">结果容器</param>
-/// <param name="cBinExpected">返回的最大子字节集个数</param>
-EckInline void SplitBin(PCVOID p, size_t cbSize, PCVOID pDiv, size_t cbDiv,
-	std::vector<SPLITBININFO>& aResult, int cBinExpected = 0)
-{
-	SplitBin(p, cbSize, pDiv, cbDiv, cBinExpected,
-		[&](PCVOID p, SIZE_T cb)
-		{
-			aResult.push_back({ p,cb });
-		});
-}
-
-/// <summary>
-/// 分割字节集。
-/// 此函数不执行任何复制操作
-/// </summary>
-/// <param name="rb">要分割的字节集</param>
-/// <param name="rbDiv">用作分割的字节集</param>
-/// <param name="aResult">结果容器</param>
-/// <param name="cBinExpected">返回的最大子字节集个数</param>
-EckInline void SplitBin(const CRefBin& rb, const CRefBin& rbDiv,
-	std::vector<SPLITBININFO>& aResult, int cBinExpected = 0)
-{
-	SplitBin(rb.Data(), rb.Size(), rbDiv.Data(), rbDiv.Size(), aResult, cBinExpected);
-}
-
-/// <summary>
-/// 分割字节集
-/// </summary>
-/// <param name="p">要分割的字节集指针</param>
-/// <param name="cbSize">要分割的字节集长度</param>
-/// <param name="pDiv">用作分割的字节集指针</param>
-/// <param name="cbDiv">用作分割的字节集长度</param>
-/// <param name="aResult">结果容器</param>
-/// <param name="cBinExpected">返回的最大子字节集个数</param>
-EckInline void SplitBin(PCVOID p, size_t cbSize, PCVOID pDiv, size_t cbDiv,
-	std::vector<CRefBin>& aResult, int cBinExpected = 0)
-{
-	SplitBin(p, cbSize, pDiv, cbDiv, cBinExpected,
-		[&](PCVOID p, SIZE_T cb)
-		{
-			aResult.push_back(CRefBin(p, cb));
-		});
-}
-
-/// <summary>
-/// 分割字节集
-/// </summary>
-/// <param name="rb">要分割的字节集</param>
-/// <param name="rbDiv">用作分割的字节集</param>
-/// <param name="aResult">结果容器</param>
-/// <param name="cBinExpected">返回的最大子字节集个数</param>
-EckInline void SplitBin(const CRefBin& rb, const CRefBin& rbDiv,
-	std::vector<CRefBin>& aResult, int cBinExpected = 0)
-{
-	SplitBin(rb.Data(), rb.Size(), rbDiv.Data(), rbDiv.Size(), aResult, cBinExpected);
 }
 ECK_NAMESPACE_END
 

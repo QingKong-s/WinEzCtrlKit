@@ -583,7 +583,6 @@ inline void SplitStr(TPtr pszText, int cchText,
 		pszPrevFirst = pszFind + cchDiv;
 		pszFind = TcsStrLen(pszPrevFirst, cchText - (pszPrevFirst - pszText), pszDiv, cchDiv);
 	}
-
 	Processer((TChar*)pszPrevFirst, int(pszText + cchText - pszPrevFirst));
 }
 // For compatibility.
