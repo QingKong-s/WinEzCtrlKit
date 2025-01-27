@@ -5,135 +5,6 @@
 #include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
-
-
-
-[[nodiscard]] EckInline int FindFirstOf(PCWSTR pszText, PCWSTR pszCharSet, int posStart = 0)
-{
-	const PCWSTR pszFind = wcspbrk(pszText + posStart, pszCharSet);
-	return pszFind ? (int)(pszFind - pszText) : StrNPos;
-}
-
-[[nodiscard]] EckInline int FindFirstOf(PCSTR pszText, PCSTR pszCharSet, int posStart = 0)
-{
-	const PCSTR pszFind = strpbrk(pszText + posStart, pszCharSet);
-	return pszFind ? (int)(pszFind - pszText) : StrNPos;
-}
-
-/// <summary>
-/// 删首空。
-/// 函数从pszText开始向后步进到第一个非空格字符，然后返回指向这个字符的指针。
-/// 此函数不执行任何修改字符串的操作
-/// </summary>
-/// <param name="pszText">原始文本</param>
-/// <returns>第一个非空格字符的指针</returns>
-[[nodiscard]] EckInline PCWSTR LTrimStr(PCWSTR pszText)
-{
-	WCHAR ch = *pszText;
-	while ((ch == L' ' || ch == L'　') && ch != L'\0')
-		ch = *++pszText;
-	return pszText;
-}
-
-/// <summary>
-/// 删首空。
-/// 函数从pszText开始向后步进到第一个非空格字符，然后返回指向这个字符的指针。
-/// 此函数不执行任何修改字符串的操作
-/// </summary>
-/// <param name="pszText">原始文本</param>
-/// <returns>第一个非空格字符的指针</returns>
-[[nodiscard]] EckInline PCSTR LTrimStr(PCSTR pszText)
-{
-	CHAR ch = *pszText;
-	while ((ch == ' ' || ch == '　') && ch != '\0')
-		ch = *++pszText;
-	return pszText;
-}
-
-/// <summary>
-/// 删尾空。
-/// 此函数不执行任何修改字符串的操作
-/// </summary>
-/// <param name="pszText">原始文本</param>
-/// <param name="cchText">文本长度</param>
-/// <returns>第一个非空格字符的下一个字符的指针，若字符串全为空格，则返回pszText</returns>
-[[nodiscard]] inline PCWSTR RTrimStr(PCWSTR pszText, int cchText = -1)
-{
-	if (cchText < 0)
-		cchText = (int)wcslen(pszText);
-	if (!cchText)
-		return 0;
-
-	for (PCWSTR pszTemp = pszText + cchText - 1; pszTemp >= pszText; --pszTemp)
-	{
-		const WCHAR ch = *pszTemp;
-		if (ch != L' ' && ch != L'　')
-			return pszTemp + 1;
-	}
-
-	return pszText;
-}
-
-/// <summary>
-/// 删尾空。
-/// 此函数不执行任何修改字符串的操作
-/// </summary>
-/// <param name="pszText">原始文本</param>
-/// <param name="cchText">文本长度</param>
-/// <returns>第一个非空格字符的下一个字符的指针，若字符串全为空格，则返回pszText</returns>
-[[nodiscard]] inline PCSTR RTrimStr(PCSTR pszText, int cchText = -1)
-{
-	if (cchText < 0)
-		cchText = (int)strlen(pszText);
-	if (!cchText)
-		return 0;
-
-	for (PCSTR pszTemp = pszText + cchText - 1; pszTemp >= pszText; --pszTemp)
-	{
-		const CHAR ch = *pszTemp;
-		if (ch != ' ' && ch != '　')
-			return pszTemp + 1;
-	}
-
-	return pszText;
-}
-
-/// <summary>
-/// 删首尾空。
-/// 函数内部简单地调用LTrimStr和RTrimStr获取首尾空信息。
-/// 此函数不执行任何修改字符串的操作
-/// </summary>
-/// <param name="pszText">原始文本</param>
-/// <param name="cchText">文本长度</param>
-/// <returns>起始位置和结束位置指针，若无非空格字符，则返回{ NULL,NULL }</returns>
-[[nodiscard]] EckInline std::pair<PCWSTR, PCWSTR> RLTrimStr(PCWSTR pszText, int cchText = -1)
-{
-	const auto pszLeft = LTrimStr(pszText);
-	const auto pszRight = RTrimStr(pszText, cchText);
-	if (pszRight <= pszLeft)
-		return { nullptr,nullptr };
-	else
-		return { pszLeft,pszRight };
-}
-
-/// <summary>
-/// 删首尾空。
-/// 函数内部简单地调用LTrimStr和RTrimStr获取首尾空信息。
-/// 此函数不执行任何修改字符串的操作
-/// </summary>
-/// <param name="pszText">原始文本</param>
-/// <param name="cchText">文本长度</param>
-/// <returns>起始位置和结束位置指针，若无非空格字符，则返回{ NULL,NULL }</returns>
-[[nodiscard]] EckInline std::pair<PCSTR, PCSTR> RLTrimStr(PCSTR pszText, int cchText = -1)
-{
-	const auto pszLeft = LTrimStr(pszText);
-	const auto pszRight = RTrimStr(pszText, cchText);
-	if (pszRight <= pszLeft)
-		return { nullptr,nullptr };
-	else
-		return { pszLeft,pszRight };
-}
-
 template<ccpIsStdChar TChar>
 using TRefStrDefAlloc = CDefAllocator<TChar, int>;
 
@@ -153,72 +24,24 @@ template<>
 struct CCharTraits<WCHAR>
 {
 	using TChar = WCHAR;
-	EckInline static int Len(PCWSTR psz) { return (int)wcslen(psz); }
-	EckInline static PWSTR Copy(PWSTR psz1, PCWSTR psz2, int cch) { return wmemcpy(psz1, psz2, cch); }
-	EckInline static PWSTR CopyEnd(PWSTR psz1, PCWSTR psz2, int cch)
-	{
-		auto r = Copy(psz1, psz2, cch);
-		*(psz1 + cch) = L'\0';
-		return r;
-	}
-	EckInline static PWSTR Move(PWSTR psz1, PCWSTR psz2, int cch) { return wmemmove(psz1, psz2, cch); }
-	EckInline static PWSTR MoveEnd(PWSTR psz1, PCWSTR psz2, int cch)
-	{
-		auto r = Move(psz1, psz2, cch);
-		*(psz1 + cch) = L'\0';
-		return r;
-	}
 	EckInline static constexpr void AssignChar(PWSTR psz, WCHAR ch) { *psz = ch; }
 	EckInline static constexpr WCHAR CharTerminatingNull() { return L'\0'; }
 	EckInline static constexpr void Cut(PWSTR psz, int cch) { AssignChar(psz + cch, CharTerminatingNull()); }
 	EckInline static constexpr WCHAR CharSpace() { return L' '; }
-	EckInline static int Compare(PCWSTR psz1, PCWSTR psz2) { return wcscmp(psz1, psz2); }
-	EckInline static int Compare(PCWSTR psz1, PCWSTR psz2, int cch) { return wcsncmp(psz1, psz2, cch); }
-	EckInline static int CompareI(PCWSTR psz1, PCWSTR psz2) { return wcsicmp(psz1, psz2); }
-	EckInline static int CompareI(PCWSTR psz1, PCWSTR psz2, int cch) { return wcsnicmp(psz1, psz2, cch); }
-	EckInline static int Find(PCWSTR pszText, PCWSTR pszSub, int posStart = 0) { return FindStr(pszText, pszSub, posStart); }
-	EckInline static PCWSTR Find2(PCWSTR pszText, PCWSTR pszSub) { return wcsstr(pszText, pszSub); }
 	EckInline static int FormatV(PWSTR pszBuf, PCWSTR pszFmt, va_list vl) { return vswprintf(pszBuf, pszFmt, vl); }
 	EckInline static int GetFormatCchV(PCWSTR pszFmt, va_list vl) { return _vscwprintf(pszFmt, vl); }
-	EckInline static int FindChar(PCWSTR pszText, WCHAR ch, int posStart = 0) { return eck::FindChar(pszText, ch, posStart); }
-	EckInline static WCHAR ToUpper(WCHAR ch) { return towupper(ch); }
-	EckInline static WCHAR ToLower(WCHAR ch) { return towlower(ch); }
 };
 
 template<>
 struct CCharTraits<CHAR>
 {
 	using TChar = CHAR;
-	EckInline static int Len(PCSTR psz) { return (int)strlen(psz); }
-	EckInline static PSTR Copy(PSTR psz1, PCSTR psz2, int cch) { return (PSTR)memcpy(psz1, psz2, cch); }
-	EckInline static PSTR CopyEnd(PSTR psz1, PCSTR psz2, int cch)
-	{
-		auto r = Copy(psz1, psz2, cch);
-		*(psz1 + cch) = '\0';
-		return r;
-	}
-	EckInline static PSTR Move(PSTR psz1, PCSTR psz2, int cch) { return (PSTR)memmove(psz1, psz2, cch * sizeof(CHAR)); }
-	EckInline static PSTR MoveEnd(PSTR psz1, PCSTR psz2, int cch)
-	{
-		auto r = Move(psz1, psz2, cch);
-		*(psz1 + cch) = '\0';
-		return r;
-	}
 	EckInline static constexpr void AssignChar(PSTR psz, CHAR ch) { *psz = ch; }
 	EckInline static constexpr CHAR CharTerminatingNull() { return '\0'; }
 	EckInline static constexpr void Cut(PSTR psz, int cch) { AssignChar(psz + cch, CharTerminatingNull()); }
 	EckInline static constexpr CHAR CharSpace() { return ' '; }
-	EckInline static int Compare(PCSTR psz1, PCSTR psz2) { return strcmp(psz1, psz2); }
-	EckInline static int Compare(PCSTR psz1, PCSTR psz2, int cch) { return strncmp(psz1, psz2, cch); }
-	EckInline static int CompareI(PCSTR psz1, PCSTR psz2) { return stricmp(psz1, psz2); }
-	EckInline static int CompareI(PCSTR psz1, PCSTR psz2, int cch) { return strnicmp(psz1, psz2, cch); }
-	EckInline static int Find(PCSTR pszText, PCSTR pszSub, int posStart = 0) { return FindStr(pszText, pszSub, posStart); }
-	EckInline static PCSTR Find2(PCSTR pszText, PCSTR pszSub) { return strstr(pszText, pszSub); }
 	EckInline static int FormatV(PSTR pszBuf, PCSTR pszFmt, va_list vl) { return vsprintf(pszBuf, pszFmt, vl); }
 	EckInline static int GetFormatCchV(PCSTR pszFmt, va_list vl) { return _vscprintf(pszFmt, vl); }
-	EckInline static int FindChar(PCSTR pszText, CHAR ch, int posStart = 0) { return eck::FindChar(pszText, ch, posStart); }
-	EckInline static CHAR ToUpper(CHAR ch) { return (CHAR)toupper(ch); }
-	EckInline static CHAR ToLower(CHAR ch) { return (CHAR)tolower(ch); }
 };
 
 template<ccpIsStdChar TChar>
@@ -308,7 +131,7 @@ public:
 	/// <param name="psz">字符串指针</param>
 	/// <param name="Al">分配器</param>
 	CRefStrT(TConstPointer psz, const TAlloc& Al = TAlloc{})
-		: CRefStrT(psz, psz ? TCharTraits::Len(psz) : 0, Al) {
+		: CRefStrT(psz, psz ? (int)TcsLen(psz) : 0, Al) {
 	}
 
 	CRefStrT(const CRefStrT& x)
@@ -465,9 +288,9 @@ public:
 	{
 		EckAssert(pszSrc ? TRUE : cchSrc == 0);
 		if (cchSrc < 0)
-			cchSrc = TCharTraits::Len(pszSrc);
+			cchSrc = (int)TcsLen(pszSrc);
 		ReSizeExtra(cchSrc);
-		TCharTraits::CopyEnd(Data(), pszSrc, cchSrc);
+		TcsCopyLenEnd(Data(), pszSrc, cchSrc);
 		return cchSrc;
 	}
 
@@ -579,9 +402,9 @@ public:
 		if (!pszSrc)
 			return *this;
 		if (cchSrc < 0)
-			cchSrc = TCharTraits::Len(pszSrc);
+			cchSrc = (int)TcsLen(pszSrc);
 		ReSizeExtra(Size() + cchSrc);
-		TCharTraits::CopyEnd(Data() + Size() - cchSrc, pszSrc, cchSrc);
+		TcsCopyLenEnd(Data() + Size() - cchSrc, pszSrc, cchSrc);
 		return *this;
 	}
 
@@ -612,7 +435,7 @@ public:
 	EckInline void PushBackChar(TChar ch)
 	{
 		ReSizeExtra(Size() + 1);
-		TCharTraits::AssignChar(Data() + Size() - 1, ch);
+		*(Data() + Size() - 1) = ch;
 	}
 
 	EckInline TPointer PushBackNoExtra(int cch)
@@ -677,7 +500,7 @@ public:
 	{
 		if (cch < 0 || cch > Size())
 			cch = Size();
-		TCharTraits::CopyEnd(pszDst, Data(), cch);
+		TcsCopyLenEnd(pszDst, Data(), cch);
 		return cch;
 	}
 private:
@@ -691,7 +514,7 @@ private:
 		const auto pNew = m_Alloc.allocate(cch);
 		if (pOld)
 		{
-			TCharTraits::Copy(pNew, pOld, m_cchText + 1);// 多拷一个结尾NULL
+			TcsCopyLen(pNew, pOld, m_cchText + 1);// 多拷一个结尾NULL
 			if (!IsLocal())
 				m_Alloc.deallocate(pOld, m_cchCapacity);
 		}
@@ -734,7 +557,7 @@ public:
 	/// <returns>长度</returns>
 	EckInline int ReCalcLen()
 	{
-		return m_cchText = TCharTraits::Len(Data());
+		return m_cchText = (int)TcsLen(Data());
 	}
 
 	/// <summary>
@@ -748,16 +571,16 @@ public:
 	{
 		EckAssert(pszNew ? TRUE : cchNew == 0);
 		if (cchNew < 0)
-			cchNew = TCharTraits::Len(pszNew);
+			cchNew = (int)TcsLen(pszNew);
 		const int cchOrg = Size();
 		const int cchAfter = Size() + cchNew - cchReplacing;
 		Reserve(cchAfter);
-		TCharTraits::Move(
+		TcsMoveLen(
 			Data() + posStart + cchNew,
 			Data() + posStart + cchReplacing,
 			cchOrg - posStart - cchReplacing);
 		if (pszNew)
-			TCharTraits::Copy(Data() + posStart, pszNew, cchNew);
+			TcsCopyLen(Data() + posStart, pszNew, cchNew);
 		ReSize(cchAfter);
 	}
 
@@ -787,14 +610,14 @@ public:
 		EckAssert(pszReplaced);
 		EckAssert(pszSrc ? TRUE : cchSrc == 0);
 		if (cchReplaced < 0)
-			cchReplaced = TCharTraits::Len(pszReplaced);
+			cchReplaced = (int)TcsLen(pszReplaced);
 		if (cchSrc < 0)
-			cchSrc = TCharTraits::Len(pszSrc);
+			cchSrc = (int)TcsLen(pszSrc);
 		int pos = 0;
 		for (int c = 1;; ++c)
 		{
-			pos = TCharTraits::Find(Data(), pszReplaced, posStart + pos);
-			if (pos == StrNPos)
+			pos = FindStrLen(Data(), Size(), pszReplaced, cchReplaced, posStart + pos);
+			if (pos < 0)
 				break;
 			Replace(pos, cchReplaced, pszSrc, cchSrc);
 			pos += cchSrc;
@@ -816,76 +639,47 @@ public:
 		ReplaceSubStr(rsReplaced.Data(), rsReplaced.Size(), rsSrc.Data(), rsSrc.Size(), posStart, cReplacing);
 	}
 
-	/// <summary>
-	/// 取空白文本
-	/// </summary>
-	/// <param name="cch">长度</param>
-	/// <param name="posStart">起始位置</param>
-	EckInline void MakeEmpty(int cch, int posStart = 0)
+	EckInline void MakeSpace(int cch, int posStart = 0)
 	{
-		static constexpr TChar szSpace[2]{ TCharTraits::CharSpace(),TCharTraits::CharTerminatingNull() };
-		MakeRepeatedStrSequence(szSpace, 1, cch, posStart);
+		ReSize(posStart + cch);
+		TcsSet(Data() + posStart, cch, TCharTraits::CharSpace());
 	}
 
-	/// <summary>
-	/// 取重复文本
-	/// </summary>
-	/// <param name="pszText">字符串指针</param>
-	/// <param name="cchText">字符串长度</param>
-	/// <param name="cCount">重复次数</param>
-	/// <param name="posStart">起始位置</param>
-	void MakeRepeatedStrSequence(TConstPointer pszText, int cchText, int cCount, int posStart = 0)
+	void MakeRepeatedSequence(int cCount, TConstPointer pszText,
+		int cchText = -1, int posStart = 0)
 	{
 		EckAssert(pszText);
 		if (cchText < 0)
-			cchText = TCharTraits::Len(pszText);
-		ReSizeExtra(posStart + cchText * cCount);
-		TPointer pszCurr = Data() + posStart;
+			cchText = (int)TcsLen(pszText);
+		ReSize(posStart + cchText * cCount);
+		auto pszCurr = Data() + posStart;
 		for (int i = 0; i < cCount; ++i, pszCurr += cchText)
-			TCharTraits::Copy(pszCurr, pszText, cchText);
+			TcsCopyLen(pszCurr, pszText, cchText);
 		TCharTraits::Cut(Data(), Size());
 	}
-
-	/// <summary>
-	/// 取重复文本
-	/// </summary>
-	/// <param name="rsText">字符串</param>
-	/// <param name="cCount">重复次数</param>
-	/// <param name="posStart">起始位置</param>
-	EckInline void MakeRepeatedStrSequence(const CRefStrT& rsText, int cCount, int posStart = 0)
+	EckInline void MakeRepeatedSequence(int cCount, const CRefStrT& rsText, int posStart = 0)
 	{
 		MakeRepeatedStrSequence(rsText.Data(), rsText.Size(), cCount, posStart);
 	}
 
-	/// <summary>
-	/// 清除。
-	/// 将尺寸设置为0并在开始处截断（如果有数据）
-	/// </summary>
-	/// <returns></returns>
 	EckInline constexpr void Clear()
 	{
 		m_cchText = 0;
 		TCharTraits::Cut(Data(), 0);
 	}
 
-	/// <summary>
-	/// 插入字符串
-	/// </summary>
-	/// <param name="pos">位置</param>
-	/// <param name="pszText">字符串</param>
-	/// <param name="cchText">字符数</param>
 	EckInline void Insert(int pos, TConstPointer pszText, int cchText = -1)
 	{
 		EckAssert(pos <= Size() && pos >= 0);
 		EckAssert(pszText ? TRUE : (cchText == 0));
 		if (cchText < 0)
-			cchText = TCharTraits::Len(pszText);
+			cchText = (int)TcsLen(pszText);
 		ReSizeExtra(Size() + cchText);
-		TCharTraits::MoveEnd(
+		TcsMoveLenEnd(
 			Data() + pos + cchText,
 			Data() + pos,
 			Size() - cchText - pos);
-		TCharTraits::Copy(Data() + pos, pszText, cchText);
+		TcsCopyLen(Data() + pos, pszText, cchText);
 	}
 
 	template<class TTraits, class TAlloc1>
@@ -910,7 +704,7 @@ public:
 	{
 		EckAssert(pos <= Size() && pos >= 0);
 		ReSizeExtra(Size() + cchText);
-		TCharTraits::MoveEnd(
+		TcsMoveLenEnd(
 			Data() + pos + cchText,
 			Data() + pos,
 			Size() - cchText - pos);
@@ -921,29 +715,23 @@ public:
 	{
 		EckAssert(pos <= Size() && pos >= 0);
 		ReSizeExtra(Size() + 1);
-		TCharTraits::MoveEnd(
+		TcsMoveLenEnd(
 			Data() + pos + 1,
 			Data() + pos,
 			Size() - 1 - pos);
 		TCharTraits::AssignChar(Data() + pos, ch);
 	}
 
-	/// <summary>
-	/// 擦除字符
-	/// </summary>
-	/// <param name="pos">位置</param>
-	/// <param name="cch">要擦除的字符数</param>
 	EckInline void Erase(int pos, int cch = 1)
 	{
 		EckAssert(Size() >= pos + cch);
-		TCharTraits::MoveEnd(
+		TcsMoveLenEnd(
 			Data() + pos,
 			Data() + pos + cch,
 			Size() - pos - cch);
 		m_cchText -= cch;
 	}
 
-	// 裁剪多余空间
 	void ShrinkToFit()
 	{
 		EckAssert(m_cchCapacity >= m_cchText + 1);
@@ -951,7 +739,7 @@ public:
 			return;
 		const auto pOld = m_pszText;
 		m_pszText = m_Alloc.allocate(m_cchText + 1);
-		TCharTraits::Copy(Data(), pOld, m_cchText + 1);
+		TcsCopyLen(Data(), pOld, m_cchText + 1);
 		m_Alloc.deallocate(pOld, m_cchCapacity);
 		m_cchCapacity = m_cchText + 1;
 	}
@@ -961,7 +749,7 @@ public:
 		if (Capacity())
 		{
 			m_cchText = Capacity() - 1;
-			TCharTraits::Cut(Data(), m_cchText);
+			TCharTraits::Cut(Data(), Size());
 		}
 	}
 
@@ -1060,107 +848,214 @@ public:
 			return {};
 	}
 
-	EckInlineNd int Find(TConstPointer pszSub, int posStart = 0) const
+	EckInlineNd int Find(TConstPointer pszSub, int cchSub = -1, int posStart = 0) const
 	{
-		if (IsEmpty())
-			return StrNPos;
-		return FindStr(Data(), pszSub, posStart);
+		if (cchSub < 0)
+			cchSub = (int)TcsLen(pszSub);
+		return FindStrLen(Data(), Size(), pszSub, cchSub, posStart);
 	}
-
 	template<class TTraits, class TAlloc1>
 	EckInlineNd int Find(const CRefStrT<TChar, TTraits, TAlloc1>& rs, int posStart = 0) const
 	{
-		if (IsEmpty())
-			return StrNPos;
-		return FindStr(Data(), rs.Data(), posStart);
+		return Find(rs.Data(), rs.Size(), posStart);
 	}
-
 	template<class TTraits, class TAlloc1>
 	EckInlineNd int Find(const std::basic_string<TChar, TTraits, TAlloc1>& s, int posStart = 0) const
 	{
-		if (IsEmpty())
-			return StrNPos;
-		return FindStr(Data(), s.data(), posStart);
+		return Find(s.data(), (int)s.size(), posStart);
+	}
+	template<class TTraits>
+	EckInlineNd int Find(std::basic_string_view<TChar, TTraits> sv, int posStart = 0) const
+	{
+		return Find(sv.data(), (int)sv.size(), posStart);
 	}
 
-	template<class TTraits>
-	EckInlineNd int Find(std::basic_string<TChar, TTraits> sv, int posStart = 0) const
+	EckInlineNd int FindI(TConstPointer pszSub, int cchSub = -1, int posStart = 0) const
 	{
-		if (IsEmpty())
-			return StrNPos;
-		return FindStr(Data(), sv.data(), posStart);
+		if (cchSub < 0)
+			cchSub = (int)TcsLen(pszSub);
+		return FindStrLenI(Data(), Size(), pszSub, cchSub, posStart);
+	}
+	template<class TTraits, class TAlloc1>
+	EckInlineNd int FindI(const CRefStrT<TChar, TTraits, TAlloc1>& rs, int posStart = 0) const
+	{
+		return FindI(rs.Data(), rs.Size(), posStart);
+	}
+	template<class TTraits, class TAlloc1>
+	EckInlineNd int FindI(const std::basic_string<TChar, TTraits, TAlloc1>& s, int posStart = 0) const
+	{
+		return FindI(s.data(), (int)s.size(), posStart);
+	}
+	template<class TTraits>
+	EckInlineNd int FindI(std::basic_string_view<TChar, TTraits> sv, int posStart = 0) const
+	{
+		return FindI(sv.data(), (int)sv.size(), posStart);
 	}
 
 	EckInlineNd int RFind(TConstPointer pszSub, int cchSub = -1, int posStart = -1) const
 	{
-		if (IsEmpty())
-			return StrNPos;
+		if (cchSub < 0)
+			cchSub = (int)TcsLen(pszSub);
 		return FindStrRev(Data(), Size(), pszSub, cchSub, posStart);
+	}
+	template<class TTraits, class TAlloc1>
+	EckInlineNd int RFind(const CRefStrT<TChar, TTraits, TAlloc1>& rs, int posStart = -1) const
+	{
+		return RFind(rs.Data(), rs.Size(), posStart);
+	}
+	template<class TTraits, class TAlloc1>
+	EckInlineNd int RFind(const std::basic_string<TChar, TTraits, TAlloc1>& s, int posStart = -1) const
+	{
+		return RFind(s.data(), (int)s.size(), posStart);
+	}
+	template<class TTraits>
+	EckInlineNd int RFind(std::basic_string_view<TChar, TTraits> sv, int posStart = -1) const
+	{
+		return RFind(sv.data(), (int)sv.size(), posStart);
+	}
+
+	EckInlineNd int RFindI(TConstPointer pszSub, int cchSub = -1, int posStart = -1) const
+	{
+		if (cchSub < 0)
+			cchSub = (int)TcsLen(pszSub);
+		return FindStrRevI(Data(), Size(), pszSub, cchSub, posStart);
+	}
+	template<class TTraits, class TAlloc1>
+	EckInlineNd int RFindI(const CRefStrT<TChar, TTraits, TAlloc1>& rs, int posStart = -1) const
+	{
+		return RFindI(rs.Data(), rs.Size(), posStart);
+	}
+	template<class TTraits, class TAlloc1>
+	EckInlineNd int RFindI(const std::basic_string<TChar, TTraits, TAlloc1>& s, int posStart = -1) const
+	{
+		return RFindI(s.data(), (int)s.size(), posStart);
+	}
+	template<class TTraits>
+	EckInlineNd int RFindI(std::basic_string_view<TChar, TTraits> sv, int posStart = -1) const
+	{
+		return RFindI(sv.data(), (int)sv.size(), posStart);
 	}
 
 	EckInlineNd int FindChar(TChar ch, int posStart = 0) const
 	{
 		if (IsEmpty())
 			return StrNPos;
-		return TCharTraits::FindChar(Data(), ch, posStart);
+		return FindCharLen(Data(), Size(), ch, posStart);
+	}
+	EckInlineNd int RFindChar(TChar ch, int posStart = -1) const
+	{
+		if (IsEmpty())
+			return StrNPos;
+		return FindCharRev(Data(), Size(), ch, posStart);
+	}
+
+	EckInlineNd int FindFirstOf(TConstPointer pszChars, int cchChars = -1, int posStart = 0) const
+	{
+		if (cchChars < 0)
+			cchChars = (int)TcsLen(pszChars);
+		return FindCharFirstOf(Data(), Size(), pszChars, cchChars, posStart);
+	}
+	EckInlineNd int FindFirstNotOf(TConstPointer pszChars, int cchChars = -1, int posStart = 0) const
+	{
+		if (cchChars < 0)
+			cchChars = (int)TcsLen(pszChars);
+		return FindCharFirstNotOf(Data(), Size(), pszChars, cchChars, posStart);
+	}
+	EckInlineNd int FindLastOf(TConstPointer pszChars, int cchChars = -1, int posStart = -1) const
+	{
+		if (cchChars < 0)
+			cchChars = (int)TcsLen(pszChars);
+		return FindCharLastOf(Data(), Size(), pszChars, cchChars, posStart);
+	}
+	EckInlineNd int FindLastNotOf(TConstPointer pszChars, int cchChars = -1, int posStart = -1) const
+	{
+		if (cchChars < 0)
+			cchChars = (int)TcsLen(pszChars);
+		return FindCharLastNotOf(Data(), Size(), pszChars, cchChars, posStart);
 	}
 
 	void LTrim()
 	{
 		if (IsEmpty())
 			return;
-		const auto pszBegin = LTrimStr(Data());
-		const int cchNew = Size() - (int)(pszBegin - Data());
-		TCharTraits::Move(Data(), pszBegin, cchNew);
+		const auto pszBegin = LTrimStr(Data(), Size());
+		const int cchNew = Size() - int(pszBegin - Data());
+		TcsMoveLen(Data(), pszBegin, cchNew);
 		ReSize(cchNew);
 	}
-
 	void RTrim()
 	{
 		if (IsEmpty())
 			return;
 		const auto pszEnd = RTrimStr(Data(), Size());
-		ReSize((int)(pszEnd - Data()));
+		ReSize(int(pszEnd - Data()));
 	}
-
-	void RLTrim()
+	void LRTrim()
 	{
 		if (IsEmpty())
 			return;
-		auto [psz0, psz1] = RLTrimStr(Data(), Size());
-		if (!psz0)
+		const auto pszBegin = LTrimStr(Data(), Size());
+		const auto pszEnd = RTrimStr(Data(), Size());
+		if (pszEnd < pszBegin)
+			Clear();
+		else
+		{
+			const int cchNew = int(pszEnd - pszBegin);
+			TcsMoveLen(Data(), pszBegin, cchNew);
+			ReSize(cchNew);
+		}
+	}
+	void AllTrim()
+	{
+		if (IsEmpty())
 			return;
-		const int cchNew = (int)(psz1 - psz0);
-		TCharTraits::Move(Data(), psz0, cchNew);
-		ReSize(cchNew);
+		const auto pData = Data();
+		TPointer p0, p1{ pData }, pCurr{ pData };
+		EckLoop()
+		{
+			p0 = TcsChrFirstNotOf(p1, Size() - (p1 - pData), EckStrAndLen(SpaceCharsW));
+			if (!p0)
+				break;
+			p1 = TcsChrFirstOf(p0, Size() - (p0 - pData), EckStrAndLen(SpaceCharsW));
+			if (!p1)
+				p1 = pData + Size();
+			TcsMoveLen(pCurr, p0, p1 - p0);
+			pCurr += (p1 - p0);
+		}
+		ReSize(int(pCurr - pData));
 	}
 
 	[[nodiscard]] BOOL IsStartOf(TConstPointer psz, int cch = -1) const
 	{
 		if (cch < 0)
-			cch = TCharTraits::Len(psz);
+			cch = (int)TcsLen(psz);
 		if (cch == 0 || Size() < cch)
 			return FALSE;
-		return TCharTraits::Compare(Data(), psz, cch) == 0;
+		return TcsEqualLen(Data(), psz, cch);
 	}
-
 	[[nodiscard]] BOOL IsStartOfI(TConstPointer psz, int cch = -1) const
 	{
 		if (cch < 0)
-			cch = TCharTraits::Len(psz);
+			cch = (int)TcsLen(psz);
 		if (cch == 0 || Size() < cch)
 			return FALSE;
-		return TCharTraits::CompareI(Data(), psz, cch) == 0;
+		return TcsEqualLenI(Data(), psz, cch);
 	}
-
-	[[nodiscard]] EckInline int Compare(TConstPointer psz) const
+	[[nodiscard]] BOOL IsEndOf(TConstPointer psz, int cch = -1) const
 	{
-		return TCharTraits::Compare(Data(), psz);
+		if (cch < 0)
+			cch = (int)TcsLen(psz);
+		if (cch == 0 || Size() < cch)
+			return FALSE;
+		return TcsEqualLen(Data() + Size() - cch, psz, cch);
 	}
-
-	[[nodiscard]] EckInline int CompareI(TConstPointer psz) const
+	[[nodiscard]] BOOL IsEndOfI(TConstPointer psz, int cch = -1) const
 	{
-		return TCharTraits::CompareI(Data(), psz);
+		if (cch < 0)
+			cch = (int)TcsLen(psz);
+		if (cch == 0 || Size() < cch)
+			return FALSE;
+		return TcsEqualLenI(Data() + Size() - cch, psz, cch);
 	}
 
 	EckInlineNd CRefStrT SubStr(int posStart, int cch) const
@@ -1171,7 +1066,6 @@ public:
 		EckAssert(cch != 0 && posStart + cch <= Size());
 		return CRefStrT(Data() + posStart, cch);
 	}
-
 	EckInlineNd auto SubStringView(int posStart, int cch) const
 	{
 		EckAssert(posStart >= 0 && posStart < Size());
@@ -1179,6 +1073,27 @@ public:
 			cch = Size() - posStart;
 		EckAssert(cch != 0 && posStart + cch <= Size());
 		return std::basic_string_view<TChar>(Data() + posStart, cch);
+	}
+	EckInlineNd auto SubSpan(int posStart, int cch) const
+	{
+		EckAssert(posStart >= 0 && posStart < Size());
+		if (cch < 0)
+			cch = Size() - posStart;
+		EckAssert(cch != 0 && posStart + cch <= Size());
+		return std::span<TChar>(Data() + posStart, cch);
+	}
+
+	EckInline void ToLower()
+	{
+		const auto pEnd = Data() + Size();
+		for (auto p = Data(); p < pEnd; ++p)
+			*p = TchToLower(*p);
+	}
+	EckInline void ToUpper()
+	{
+		const auto pEnd = Data() + Size();
+		for (auto p = Data(); p < pEnd; ++p)
+			*p = TchToUpper(*p);
 	}
 
 	[[nodiscard]] EckInline TIterator begin() { return Data(); }
@@ -1198,143 +1113,76 @@ public:
 using CRefStrW = CRefStrT<WCHAR, CCharTraits<WCHAR>>;
 using CRefStrA = CRefStrT<CHAR, CCharTraits<CHAR>>;
 
-#define EckCRefStrTemp CRefStrT<TChar, TCharTraits, TAlloc>
+#undef EckTemp
+#define EckTemp CRefStrT<TChar, TCharTraits, TAlloc>
 
 #pragma region Operator
 template<class TChar, class TCharTraits, class TAlloc>
-EckInline EckCRefStrTemp operator+(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
+EckInline EckTemp operator+(const EckTemp& rs1, const EckTemp& rs2)
 {
-	EckCRefStrTemp x(rs1.Size() + rs2.Size());
-	TCharTraits::Copy(x.Data(), rs1.Data(), rs1.Size());
-	TCharTraits::CopyEnd(x.Data() + rs1.Size(), rs2.Data(), rs2.Size());
+	EckTemp x(rs1.Size() + rs2.Size());
+	TcsCopyLen(x.Data(), rs1.Data(), rs1.Size());
+	TcsCopyLenEnd(x.Data() + rs1.Size(), rs2.Data(), rs2.Size());
+	return x;
+}
+template<class TChar, class TCharTraits, class TAlloc>
+EckInline EckTemp operator+(const EckTemp& rs, const TChar* psz)
+{
+	const int cch = (psz ? (int)TcsLen(psz) : 0);
+	EckTemp x(rs.Size() + cch);
+	TcsCopyLen(x.Data(), rs.Data(), rs.Size());
+	TcsCopyLenEnd(x.Data() + rs.Size(), psz, cch);
 	return x;
 }
 
 template<class TChar, class TCharTraits, class TAlloc>
-EckInline EckCRefStrTemp operator+(const EckCRefStrTemp& rs, const TChar* psz)
+[[nodiscard]] EckInline bool operator==(const EckTemp& rs1, const TChar* psz2)
 {
-	const int cch = (psz ? TCharTraits::Len(psz) : 0);
-	EckCRefStrTemp x(rs.Size() + cch);
-	TCharTraits::Copy(x.Data(), rs.Data(), rs.Size());
-	TCharTraits::CopyEnd(x.Data() + rs.Size(), psz, cch);
-	return x;
-}
-
-template<class TChar, class TCharTraits, class TAlloc>
-[[nodiscard]] EckInline bool operator==(const EckCRefStrTemp& rs1, const TChar* psz2)
-{
-	if (!rs1.Data() && !psz2)
-		return true;
-	else if (!rs1.Data() || !psz2)
+	if (rs1.IsEmpty())
+		return !psz2;
+	else if (!psz2)
 		return false;
 	else
-		return TCharTraits::Compare(rs1.Data(), psz2) == 0;
+		return TcsCompareLen2(rs1.Data(), rs1.Size(), psz2, (int)TcsLen(psz2)) == 0;
+}
+template<class TChar, class TCharTraits, class TAlloc>
+[[nodiscard]] EckInline bool operator==(const TChar* psz2, const EckTemp& rs1)
+{
+	return operator==(rs1, psz2);
 }
 
-#if ECKCXX20
 template<class TChar, class TCharTraits, class TAlloc>
-[[nodiscard]] EckInline std::weak_ordering operator<=>(const EckCRefStrTemp& rs1, const TChar* psz2)
+[[nodiscard]] EckInline std::weak_ordering operator<=>(const EckTemp& rs1, const TChar* psz2)
 {
-	if (!rs1.Data() && !psz2)
-		return std::weak_ordering::equivalent;
-	else if (!rs1.Data() && psz2)
+	if (rs1.IsEmpty())
+		return psz2 ? std::weak_ordering::less : std::weak_ordering::equivalent;
+	else if (!psz2)
 		return std::weak_ordering::greater;
-	else if (rs1.Data() && !psz2)
-		return std::weak_ordering::less;
 	else
-		return TCharTraits::Compare(rs1.Data(), psz2) <=> 0;
+		return TcsCompareLen2(rs1.Data(), rs1.Size(), psz2, (int)TcsLen(psz2)) <=> 0;
 }
-#else// !ECKCXX20
 template<class TChar, class TCharTraits, class TAlloc>
-[[nodiscard]] EckInline bool operator<(const EckCRefStrTemp& rs1, const TChar* psz2)
+[[nodiscard]] EckInline std::weak_ordering operator<=>(const TChar* psz2, const EckTemp& rs1)
 {
-	if (!rs1.Data() && !psz2)
-		return false;
-	else if (!rs1.Data() && psz2)
-		return false;
-	else if (rs1.Data() && !psz2)
-		return true;
+	if (!psz2)
+		return rs1.IsEmpty() ? std::weak_ordering::equivalent : std::weak_ordering::less;
+	else if (rs1.IsEmpty())
+		return std::weak_ordering::greater;
 	else
-		return TCharTraits::Compare(rs1.Data(), psz2) < 0;
+		return TcsCompareLen2(psz2, (int)TcsLen(psz2), rs1.Data(), rs1.Size()) <=> 0;
 }
 
 template<class TChar, class TCharTraits, class TAlloc>
-[[nodiscard]] EckInline bool operator>(const EckCRefStrTemp& rs1, const TChar* psz2)
+[[nodiscard]] EckInline bool operator==(const EckTemp& rs1, const EckTemp& rs2)
 {
-	if (!rs1.Data() && !psz2)
-		return false;
-	else if (!rs1.Data() && psz2)
-		return true;
-	else if (rs1.Data() && !psz2)
-		return false;
-	else
-		return TCharTraits::Compare(rs1.Data(), psz2) > 0;
+	return TcsCompareLen2(rs1.Data(), rs1.Size(), rs2.Data(), rs2.Size()) == 0;
 }
 
 template<class TChar, class TCharTraits, class TAlloc>
-[[nodiscard]] EckInline bool operator<=(const EckCRefStrTemp& rs1, const TChar* psz2)
+[[nodiscard]] EckInline std::weak_ordering operator<=>(const EckTemp& rs1, const EckTemp& rs2)
 {
-	if (!rs1.Data() && !psz2)
-		return true;
-	else if (!rs1.Data() && psz2)
-		return false;
-	else if (rs1.Data() && !psz2)
-		return true;
-	else
-		return TCharTraits::Compare(rs1.Data(), psz2) <= 0;
+	return TcsCompareLen2(rs1.Data(), rs1.Size(), rs2.Data(), rs2.Size()) <=> 0;
 }
-
-template<class TChar, class TCharTraits, class TAlloc>
-[[nodiscard]] EckInline bool operator>=(const EckCRefStrTemp& rs1, const TChar* psz2)
-{
-	if (!rs1.Data() && !psz2)
-		return true;
-	else if (!rs1.Data() && psz2)
-		return true;
-	else if (rs1.Data() && !psz2)
-		return false;
-	else
-		return TCharTraits::Compare(rs1.Data(), psz2) >= 0;
-}
-#endif// ECKCXX20
-
-template<class TChar, class TCharTraits, class TAlloc>
-[[nodiscard]] EckInline bool operator==(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
-{
-	return operator==(rs1, rs2.Data());
-}
-
-#if ECKCXX20
-template<class TChar, class TCharTraits, class TAlloc>
-[[nodiscard]] EckInline std::weak_ordering operator<=>(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
-{
-	return operator<=>(rs1, rs2.Data());
-}
-#else// !ECKCXX20
-template<class TChar, class TCharTraits, class TAlloc>
-[[nodiscard]] EckInline bool operator<(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
-{
-	return operator<(rs1, rs2.Data());
-}
-
-template<class TChar, class TCharTraits, class TAlloc>
-[[nodiscard]] EckInline bool operator>(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
-{
-	return operator>(rs1, rs2.Data());
-}
-
-template<class TChar, class TCharTraits, class TAlloc>
-[[nodiscard]] EckInline bool operator<=(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
-{
-	return operator<=(rs1, rs2.Data());
-}
-
-template<class TChar, class TCharTraits, class TAlloc>
-[[nodiscard]] EckInline bool operator>=(const EckCRefStrTemp& rs1, const EckCRefStrTemp& rs2)
-{
-	return operator>=(rs1, rs2.Data());
-}
-#endif// ECKCXX20
 #pragma endregion Operator
 
 template<class TCharTraits, class TAlloc>
@@ -1405,490 +1253,19 @@ namespace Literals
 	}
 }
 
-/// <summary>
-/// 到小写
-/// </summary>
-/// <param name="pszText">字符串指针</param>
-/// <param name="cchText">字符串长度</param>
-/// <returns></returns>
-[[nodiscard]] EckInline CRefStrW ToLowerCase(PCWSTR pszText, int cchText = -1)
+[[nodiscard]] EckInline void ToFullWidth(CRefStrW& rs, PCWSTR pszText, int cchText = -1)
 {
-	CRefStrW rs;
-	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_LOWERCASE, pszText, cchText, nullptr, 0, nullptr, nullptr, 0);
-	rs.ReSize(cchResult);
-	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_LOWERCASE, pszText, cchText, rs.Data(), cchResult, nullptr, nullptr, 0);
-	return rs;
+	const int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_FULLWIDTH,
+		pszText, cchText, nullptr, 0, nullptr, nullptr, 0);
+	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_FULLWIDTH,
+		pszText, cchText, rs.PushBack(cchResult), cchResult, nullptr, nullptr, 0);
 }
-
-/// <summary>
-/// 到大写
-/// </summary>
-/// <param name="pszText">字符串指针</param>
-/// <param name="cchText">字符串长度</param>
-/// <returns></returns>
-[[nodiscard]] EckInline CRefStrW ToUpperCase(PCWSTR pszText, int cchText = -1)
+[[nodiscard]] EckInline void ToHalfWidth(CRefStrW& rs, PCWSTR pszText, int cchText = -1)
 {
-	CRefStrW rs;
-	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_UPPERCASE, pszText, cchText, nullptr, 0, nullptr, nullptr, 0);
-	rs.ReSize(cchResult);
-	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_UPPERCASE, pszText, cchText, rs.Data(), cchResult, nullptr, nullptr, 0);
-	return rs;
-}
-
-/// <summary>
-/// 到小写
-/// </summary>
-/// <param name="pszText">字符串指针</param>
-/// <param name="cchText">字符串长度</param>
-/// <returns></returns>
-[[nodiscard]] EckInline CRefStrW ToLowerCaseCrt(PCWSTR pszText, int cchText = -1)
-{
-	if (cchText < 0)
-		cchText = (int)wcslen(pszText);
-	CRefStrW rs(cchText);
-	EckCounter(cchText, i)
-		rs[i] = towlower(pszText[i]);
-	return rs;
-}
-
-/// <summary>
-/// 到大写
-/// </summary>
-/// <param name="pszText">字符串指针</param>
-/// <param name="cchText">字符串长度</param>
-/// <returns></returns>
-[[nodiscard]] EckInline CRefStrW ToUpperCaseCrt(PCWSTR pszText, int cchText = -1)
-{
-	if (cchText < 0)
-		cchText = (int)wcslen(pszText);
-	CRefStrW rs(cchText);
-	EckCounter(cchText, i)
-		rs[i] = towupper(pszText[i]);
-	return rs;
-}
-
-/// <summary>
-/// 到小写
-/// </summary>
-/// <param name="pszText">字符串指针</param>
-/// <param name="cchText">字符串长度</param>
-/// <returns></returns>
-[[nodiscard]] EckInline CRefStrA ToLowerCaseCrt(PCSTR pszText, int cchText = -1)
-{
-	if (cchText < 0)
-		cchText = (int)strlen(pszText);
-	CRefStrA rs(cchText);
-	EckCounter(cchText, i)
-		rs[i] = tolower(pszText[i]);
-	return rs;
-}
-
-/// <summary>
-/// 到大写
-/// </summary>
-/// <param name="pszText">字符串指针</param>
-/// <param name="cchText">字符串长度</param>
-/// <returns></returns>
-[[nodiscard]] EckInline CRefStrA ToUpperCaseCrt(PCSTR pszText, int cchText = -1)
-{
-	if (cchText < 0)
-		cchText = (int)strlen(pszText);
-	CRefStrA rs(cchText);
-	EckCounter(cchText, i)
-		rs[i] = toupper(pszText[i]);
-	return rs;
-}
-
-/// <summary>
-/// 取文本左边
-/// </summary>
-/// <param name="pszText">字符串指针</param>
-/// <param name="cchLeft">左边长度</param>
-/// <returns></returns>
-[[nodiscard]] EckInline CRefStrW StrLeft(PCWSTR pszText, int cchLeft)
-{
-	return CRefStrW(pszText, cchLeft);
-}
-
-/// <summary>
-/// 取文本右边
-/// </summary>
-/// <param name="pszText">字符串指针</param>
-/// <param name="cchRight">右边长度</param>
-/// <param name="cchText">字符串长度</param>
-/// <returns></returns>
-[[nodiscard]] EckInline CRefStrW StrRight(PCWSTR pszText, int cchRight, int cchText = -1)
-{
-	if (cchText < 0)
-		cchText = (int)wcslen(pszText);
-	return CRefStrW(pszText + cchText - cchRight, cchRight);
-}
-
-/// <summary>
-/// 取文本中间
-/// </summary>
-/// <param name="pszText">字符串指针</param>
-/// <param name="posStart">起始位置</param>
-/// <param name="cchMid">中间长度</param>
-/// <returns></returns>
-[[nodiscard]] EckInline CRefStrW StrMid(PCWSTR pszText, int posStart, int cchMid)
-{
-	return CRefStrW(pszText + posStart, cchMid);
-}
-
-/// <summary>
-/// 寻找文本。
-/// 不区分大小写。
-/// 函数先将整个字符串转换为大写，然后对其调用FindStr
-/// </summary>
-/// <param name="pszText">要在其中寻找的字符串指针</param>
-/// <param name="cchText">要在其中寻找的字符串长度</param>
-/// <param name="pszSub">要寻找的字符串指针</param>
-/// <param name="cchSub">要寻找的字符串长度</param>
-/// <param name="posStart">起始位置</param>
-/// <returns>位置，若未找到返回StrNPos</returns>
-[[nodiscard]] EckInline int FindStrNcs(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = 0)
-{
-	return FindStr(ToUpperCaseCrt(pszText, cchText).Data(), ToUpperCaseCrt(pszSub, cchSub).Data(), posStart);
-}
-
-/// <summary>
-/// 寻找文本。
-/// 不区分大小写。
-/// 函数先将整个字符串转换为大写，然后对其调用FindStr
-/// </summary>
-/// <param name="pszText">要在其中寻找的字符串指针</param>
-/// <param name="cchText">要在其中寻找的字符串长度</param>
-/// <param name="pszSub">要寻找的字符串指针</param>
-/// <param name="cchSub">要寻找的字符串长度</param>
-/// <param name="posStart">起始位置</param>
-/// <returns>位置，若未找到返回StrNPos</returns>
-[[nodiscard]] EckInline int FindStrNcs(PCSTR pszText, int cchText, PCSTR pszSub, int cchSub, int posStart = 0)
-{
-	return FindStr(ToUpperCaseCrt(pszText, cchText).Data(), ToUpperCaseCrt(pszSub, cchSub).Data(), posStart);
-}
-
-/// <summary>
-/// 寻找文本。
-/// 不区分大小写。
-/// 函数先将整个字符串转换为大写，然后对其调用FindStr
-/// </summary>
-/// <param name="rsText">要在其中寻找的字符串</param>
-/// <param name="rsSub">要寻找的字符串</param>
-/// <param name="posStart">起始位置</param>
-/// <returns>位置，若未找到返回StrNPos</returns>
-[[nodiscard]] EckInline int FindStrNcs(const CRefStrW& rsText, const CRefStrW& rsSub, int posStart = 0)
-{
-	return FindStrNcs(rsText.Data(), rsText.Size(), rsSub.Data(), posStart, rsSub.Size());
-}
-
-/// <summary>
-/// 寻找文本。
-/// 不区分大小写。
-/// 函数先将整个字符串转换为大写，然后对其调用FindStr
-/// </summary>
-/// <param name="rsText">要在其中寻找的字符串</param>
-/// <param name="rsSub">要寻找的字符串</param>
-/// <param name="posStart">起始位置</param>
-/// <returns>位置，若未找到返回StrNPos</returns>
-[[nodiscard]] EckInline int FindStrNcs(const CRefStrA& rsText, const CRefStrA& rsSub, int posStart = 0)
-{
-	return FindStrNcs(rsText.Data(), rsText.Size(), rsSub.Data(), posStart, rsSub.Size());
-}
-
-/// <summary>
-/// 倒找文本
-/// </summary>
-/// <param name="rsText">要在其中寻找的字符串</param>
-/// <param name="rsSub">要寻找的字符串</param>
-/// <param name="posStart">起始位置</param>
-/// <returns>位置，若未找到返回StrNPos</returns>
-[[nodiscard]] EckInline int FindStrRev(const CRefStrW& rsText, const CRefStrW& rsSub, int posStart = -1)
-{
-	return FindStrRev(rsText.Data(), rsText.Size(), rsSub.Data(), posStart, rsSub.Size());
-}
-
-/// <summary>
-/// 倒找文本。
-/// 不区分大小写。
-/// 函数先将整个字符串转换为大写，然后对其调用FindStrRev
-/// </summary>
-/// <param name="pszText">要在其中寻找的字符串指针</param>
-/// <param name="cchText">要在其中寻找的字符串长度</param>
-/// <param name="pszSub">要寻找的字符串指针</param>
-/// <param name="cchSub">要寻找的字符串长度</param>
-/// <param name="posStart">起始位置</param>
-/// <returns>位置，若未找到返回StrNPos</returns>
-[[nodiscard]] EckInline int FindStrRevNcs(PCWSTR pszText, int cchText, PCWSTR pszSub, int cchSub, int posStart = -1)
-{
-	auto rsText = ToUpperCase(pszText, cchText), rsSub = ToUpperCase(pszSub, cchSub);
-	return FindStrRev(rsText.Data(), rsText.Size(), rsSub.Data(), posStart, rsSub.Size());
-}
-
-/// <summary>
-/// 倒找文本。
-/// 不区分大小写。
-/// 函数先将整个字符串转换为大写，然后对其调用FindStrRev
-/// </summary>
-/// <param name="rsText">要在其中寻找的字符串</param>
-/// <param name="rsSub">要寻找的字符串</param>
-/// <param name="posStart">起始位置</param>
-/// <returns>位置，若未找到返回StrNPos</returns>
-[[nodiscard]] EckInline int FindStrRevNcs(const CRefStrW& rsText, const CRefStrW& rsSub, int posStart = -1)
-{
-	return FindStrRevNcs(rsText.Data(), rsText.Size(), rsSub.Data(), posStart, rsSub.Size());
-}
-
-template<class TProcesser, class TChar>
-inline void SplitStr(const TChar* pszText, const TChar* pszDiv, int cSubTextExpected, int cchText,
-	int cchDiv, TProcesser&& Processer)
-{
-	if (cchText < 0)
-		cchText = CCharTraits<TChar>::Len(pszText);
-	if (cchDiv < 0)
-		cchDiv = CCharTraits<TChar>::Len(pszDiv);
-	if (cSubTextExpected <= 0)
-		cSubTextExpected = INT_MAX;
-
-	auto pszFind = CCharTraits<TChar>::Find2(pszText, pszDiv);
-	auto pszPrevFirst = pszText;
-	int c = 0;
-	while (pszFind)
-	{
-		if (Processer(pszPrevFirst, (int)(pszFind - pszPrevFirst)))
-			return;
-		++c;
-		if (c == cSubTextExpected)
-			return;
-		pszPrevFirst = pszFind + cchDiv;
-		pszFind = CCharTraits<TChar>::Find2(pszPrevFirst, pszDiv);
-	}
-
-	Processer(pszPrevFirst, (int)(pszText + cchText - pszPrevFirst));
-}
-
-template<class TProcesser>
-inline void SplitStrWithMultiChar(PCWSTR pszText, PCWSTR pszDiv, int cSubTextExpected, int cchText,
-	int cchDiv, TProcesser&& Processer)
-{
-	if (cchText < 0)
-		cchText = (int)wcslen(pszText);
-	if (cchDiv < 0)
-		cchDiv = (int)wcslen(pszDiv);
-	if (cSubTextExpected <= 0)
-		cSubTextExpected = INT_MAX;
-
-	PCWSTR pszFind = wcspbrk(pszText, pszDiv);
-	PCWSTR pszPrevFirst = pszText;
-	int c = 0;
-	while (pszFind)
-	{
-		if (Processer(pszPrevFirst, (int)(pszFind - pszPrevFirst)))
-			return;
-		++c;
-		if (c == cSubTextExpected)
-			return;
-		pszPrevFirst = pszFind + 1;
-		pszFind = wcspbrk(pszPrevFirst, pszDiv);
-	}
-
-	Processer(pszPrevFirst, (int)(pszText + cchText - pszPrevFirst));
-}
-
-/// <summary>
-/// 分割文本。
-/// 函数逐个克隆子文本并存入结果容器
-/// </summary>
-/// <param name="pszText">要分割的文本</param>
-/// <param name="pszDiv">分隔符</param>
-/// <param name="aResult">结果容器</param>
-/// <param name="cSubTextExpected">返回的最大子文本数</param>
-/// <param name="cchText">要分割的文本长度</param>
-/// <param name="cchDiv">分隔符长度</param>
-EckInline void SplitStr(PCWSTR pszText, PCWSTR pszDiv, std::vector<CRefStrW>& aResult,
-	int cSubTextExpected = 0, int cchText = -1, int cchDiv = -1)
-{
-	SplitStr(pszText, pszDiv, cSubTextExpected, cchText, cchDiv, [&](PCWSTR pszStart, int cchSub)
-		{
-			aResult.push_back(CRefStrW(pszStart, cchSub));
-			return FALSE;
-		});
-}
-
-struct SPLTEXTINFO
-{
-	PCWSTR pszStart;
-	int cchText;
-};
-
-/// <summary>
-/// 分割文本。
-/// 函数将每个子文本的位置信息存入结果容器，此函数不执行任何复制
-/// </summary>
-/// <param name="pszText">要分割的文本</param>
-/// <param name="pszDiv">分隔符</param>
-/// <param name="aResult">结果容器</param>
-/// <param name="cSubTextExpected">返回的最大子文本数</param>
-/// <param name="cchText">要分割的文本长度</param>
-/// <param name="cchDiv">分隔符长度</param>
-EckInline void SplitStr(PCWSTR pszText, PCWSTR pszDiv, std::vector<SPLTEXTINFO>& aResult,
-	int cSubTextExpected = 0, int cchText = -1, int cchDiv = -1)
-{
-	SplitStr(pszText, pszDiv, cSubTextExpected, cchText, cchDiv, [&](PCWSTR pszStart, int cchSub)
-		{
-			aResult.push_back({ pszStart,cchSub });
-			return FALSE;
-		});
-}
-
-/// <summary>
-/// 分割文本。
-/// 函数将每个分隔符的第一个字符更改为L'\0'，同时将每个子文本的位置信息存入容器
-/// </summary>
-/// <param name="pszText">要分割的文本，必须可写</param>
-/// <param name="pszDiv">分隔符</param>
-/// <param name="aResult">结果容器</param>
-/// <param name="cSubTextExpected">返回的最大子文本数</param>
-/// <param name="cchText">要分割的文本长度</param>
-/// <param name="cchDiv">分隔符长度</param>
-EckInline void SplitStr(PWSTR pszText, PCWSTR pszDiv, std::vector<PWSTR>& aResult,
-	int cSubTextExpected = 0, int cchText = -1, int cchDiv = -1)
-{
-	SplitStr(pszText, pszDiv, cSubTextExpected, cchText, cchDiv, [&](PCWSTR pszStart, int cchSub)
-		{
-			PWSTR psz = (PWSTR)pszStart;
-			*(psz + cchSub) = L'\0';
-			aResult.push_back(psz);
-			return FALSE;
-		});
-}
-
-/// <summary>
-/// 分割文本。
-/// 函数逐个克隆子文本并存入结果容器
-/// </summary>
-/// <param name="pszText">要分割的文本</param>
-/// <param name="pszDiv">分隔符</param>
-/// <param name="aResult">结果容器</param>
-/// <param name="cSubTextExpected">返回的最大子文本数</param>
-/// <param name="cchText">要分割的文本长度</param>
-/// <param name="cchDiv">分隔符长度</param>
-EckInline void SplitStrWithMultiChar(PCWSTR pszText, PCWSTR pszDiv, std::vector<CRefStrW>& aResult,
-	int cSubTextExpected = 0, int cchText = -1, int cchDiv = -1)
-{
-	SplitStrWithMultiChar(pszText, pszDiv, cSubTextExpected, cchText, cchDiv, [&](PCWSTR pszStart, int cchSub)
-		{
-			aResult.push_back(CRefStrW(pszStart, cchSub));
-			return FALSE;
-		});
-}
-
-/// <summary>
-/// 分割文本。
-/// 函数将每个子文本的位置信息存入结果容器，此函数不执行任何复制
-/// </summary>
-/// <param name="pszText">要分割的文本</param>
-/// <param name="pszDiv">分隔符</param>
-/// <param name="aResult">结果容器</param>
-/// <param name="cSubTextExpected">返回的最大子文本数</param>
-/// <param name="cchText">要分割的文本长度</param>
-/// <param name="cchDiv">分隔符长度</param>
-EckInline void SplitStrWithMultiChar(PCWSTR pszText, PCWSTR pszDiv, std::vector<SPLTEXTINFO>& aResult,
-	int cSubTextExpected = 0, int cchText = -1, int cchDiv = -1)
-{
-	SplitStrWithMultiChar(pszText, pszDiv, cSubTextExpected, cchText, cchDiv, [&](PCWSTR pszStart, int cchSub)
-		{
-			aResult.push_back({ pszStart,cchSub });
-			return FALSE;
-		});
-}
-
-/// <summary>
-/// 分割文本。
-/// 函数将每个分隔符的第一个字符更改为L'\0'，同时将每个子文本的位置信息存入容器
-/// </summary>
-/// <param name="pszText">要分割的文本，必须可写</param>
-/// <param name="pszDiv">分隔符</param>
-/// <param name="aResult">结果容器</param>
-/// <param name="cSubTextExpected">返回的最大子文本数</param>
-/// <param name="cchText">要分割的文本长度</param>
-/// <param name="cchDiv">分隔符长度</param>
-EckInline void SplitStrWithMultiChar(PWSTR pszText, PCWSTR pszDiv, std::vector<PWSTR>& aResult,
-	int cSubTextExpected = 0, int cchText = -1, int cchDiv = -1)
-{
-	SplitStrWithMultiChar(pszText, pszDiv, cSubTextExpected, cchText, cchDiv, [&](PCWSTR pszStart, int cchSub)
-		{
-			PWSTR psz = (PWSTR)pszStart;
-			*(psz + cchSub) = L'\0';
-			aResult.push_back(psz);
-			return FALSE;
-		});
-}
-
-/// <summary>
-/// 到全角
-/// </summary>
-/// <param name="pszText">原始文本</param>
-/// <param name="cchText">字符数</param>
-/// <returns>转换结果</returns>
-[[nodiscard]] EckInline CRefStrW ToFullWidth(PCWSTR pszText, int cchText = -1)
-{
-	CRefStrW rs;
-	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_FULLWIDTH, pszText, cchText, nullptr, 0, nullptr, nullptr, 0);
-	rs.ReSize(cchResult);
-	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_FULLWIDTH, pszText, cchText, rs.Data(), cchResult, nullptr, nullptr, 0);
-	return rs;
-}
-
-/// <summary>
-/// 到半角
-/// </summary>
-/// <param name="pszText">原始文本</param>
-/// <param name="cchText">字符数</param>
-/// <returns>转换结果</returns>
-[[nodiscard]] EckInline CRefStrW ToHalfWidth(PCWSTR pszText, int cchText = -1)
-{
-	CRefStrW rs;
-	int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_HALFWIDTH, pszText, cchText, nullptr, 0, nullptr, nullptr, 0);
-	rs.ReSize(cchResult);
-	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_HALFWIDTH, pszText, cchText, rs.Data(), cchResult, nullptr, nullptr, 0);
-	return rs;
-}
-
-/// <summary>
-/// 删全部空
-/// </summary>
-/// <param name="pszText">原始文本</param>
-/// <param name="cchText">文本长度</param>
-/// <returns>处理结果</returns>
-[[nodiscard]] inline CRefStrW AllTrimStr(PCWSTR pszText, int cchText = -1)
-{
-	if (cchText < 0)
-		cchText = (int)wcslen(pszText);
-	if (cchText <= 0)
-		return {};
-	PCWSTR pszOrg = pszText;
-	CRefStrW rs{};
-	rs.Reserve(cchText);
-
-	int posTemp;
-	while ((int)(pszText - pszOrg) < cchText)
-	{
-		posTemp = [](PCWSTR pszText)->int
-			{
-				PCWSTR pszOrg = pszText;
-				WCHAR ch = *pszText;
-				while (ch != L' ' && ch != L'　' && ch != L'\0')
-					ch = *++pszText;
-				return (int)(pszText - pszOrg);
-			}(pszText);
-		rs.PushBack(pszText, posTemp);
-
-		posTemp += (int)(LTrimStr(pszText) - pszText);
-		pszText += posTemp;
-	}
-
-	return rs;
+	const int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_HALFWIDTH,
+		pszText, cchText, nullptr, 0, nullptr, nullptr, 0);
+	LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_HALFWIDTH,
+		pszText, cchText, rs.PushBack(cchResult), cchResult, nullptr, nullptr, 0);
 }
 
 template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<CHAR>>
@@ -1935,46 +1312,6 @@ template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<
 	return StrX2W(rs.Data(), rs.Size(), uCP);
 }
 
-/// <summary>
-/// 字节集到友好字符串表示
-/// </summary>
-/// <param name="Bin">字节集</param>
-/// <param name="iType">类型，0 - 空格分割的十六进制  1 - 易语言字节集调试输出</param>
-/// <returns>返回结果</returns>
-inline CRefStrW BinToFriendlyString(PCBYTE pData, SIZE_T cb, int iType)
-{
-	CRefStrW rsResult{};
-	if (!pData || !cb)
-	{
-		if (iType == 1)
-			rsResult = L"{ }";
-		return rsResult;
-	}
-
-	switch (iType)
-	{
-	case 0:
-	{
-		rsResult.Reserve((int)cb * 3 + 10);
-		for (SIZE_T i = 0u; i < cb; ++i)
-			rsResult.AppendFormat(L"%02hhX ", pData[i]);
-	}
-	break;
-	case 1:
-	{
-		rsResult.Reserve((int)cb * 4 + 10);
-		rsResult.PushBack(L"{ ");
-		rsResult.AppendFormat(L"%hhu", pData[0]);
-		for (SIZE_T i = 1u; i < cb; ++i)
-			rsResult.AppendFormat(L"%hhu", pData[0]);
-		rsResult.PushBack(L" }");
-	}
-	break;
-	}
-
-	return rsResult;
-}
-
 EckInline CRefStrW Format(PCWSTR pszFmt, ...)
 {
 	CRefStrW rs{};
@@ -1994,9 +1331,6 @@ EckInline CRefStrA Format(PCSTR pszFmt, ...)
 	va_end(vl);
 	return rs;
 }
-
-
-#undef EckCRefStrTemp
 ECK_NAMESPACE_END
 
 template<class TChar, class TCharTraits, class TAlloc>
