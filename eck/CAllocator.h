@@ -1,10 +1,7 @@
 ﻿#pragma once
 #include "ECK.h"
 
-#include <iostream>
-
 ECK_NAMESPACE_BEGIN
-
 template<class T, class TSize = size_t>
 struct CAllocatorHeap
 {

@@ -254,6 +254,7 @@
     <ClInclude Include="eck\MediaTagID3v1.h" />
     <ClInclude Include="eck\MediaTagID3v2.h" />
     <ClInclude Include="eck\MediaTagMpeg.h" />
+    <ClInclude Include="eck\MemUtility.h" />
     <ClInclude Include="eck\MultiFrameImage.h" />
     <ClInclude Include="eck\CInertialScrollView.h" />
     <ClInclude Include="eck\CIni.h" />
