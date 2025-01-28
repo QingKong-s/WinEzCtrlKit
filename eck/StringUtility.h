@@ -209,6 +209,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsStrLen(_In_reads_(Len) TPtr Str, size_t Len,
 			return nullptr;
 		if (TcsEqualLen(pFind, SubStr, SubLen))
 			return pFind;
+		p = pFind + 1;
 	}
 	return nullptr;
 }
