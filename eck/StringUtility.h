@@ -431,13 +431,15 @@ EckInlineNd int TcsSet(_Out_writes_z_(cchDst) TPtr Dst, RemoveStdCharPtr_T<TPtr>
 
 
 template<ccpIsStdCharPtr TPtr>
-EckInlineNd int FindStr(_In_z_ TPtr pszText, _In_z_ TPtr pszSub, int posStart = 0)
+EckInlineNd int FindStr(_In_z_ TPtr pszText,
+	_In_z_ ConstStdCharPtr_T<TPtr> pszSub, int posStart = 0)
 {
 	const auto pszFind = TcsStr(pszText + posStart, pszSub);
 	return pszFind ? int(pszFind - pszText) : StrNPos;
 }
 template<ccpIsStdCharPtr TPtr>
-EckInlineNd int FindStrI(_In_z_ TPtr pszText, _In_z_ TPtr pszSub, int posStart = 0)
+EckInlineNd int FindStrI(_In_z_ TPtr pszText,
+	_In_z_ ConstStdCharPtr_T<TPtr> pszSub, int posStart = 0)
 {
 	const auto pszFind = TcsStrI(pszText + posStart, pszSub);
 	return pszFind ? int(pszFind - pszText) : StrNPos;
@@ -445,14 +447,14 @@ EckInlineNd int FindStrI(_In_z_ TPtr pszText, _In_z_ TPtr pszSub, int posStart =
 
 template<ccpIsStdCharPtr TPtr>
 EckInlineNd int FindStrLen(_In_reads_(cchText) TPtr pszText, int cchText,
-	_In_reads_(cchSub) TPtr pszSub, int cchSub, int posStart = 0)
+	_In_reads_(cchSub) ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = 0)
 {
 	const auto pFind = TcsStrLen(pszText + posStart, cchText - posStart, pszSub, cchSub);
 	return pFind ? int(pFind - pszText) : StrNPos;
 }
 template<ccpIsStdCharPtr TPtr>
 EckInlineNd int FindStrLenI(_In_reads_(cchText) TPtr pszText, int cchText,
-	_In_reads_(cchSub) TPtr pszSub, int cchSub, int posStart = 0)
+	_In_reads_(cchSub) ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = 0)
 {
 	const auto pFind = TcsStrLenI(pszText + posStart, cchText - posStart, pszSub, cchSub);
 	return pFind ? int(pFind - pszText) : StrNPos;
@@ -460,14 +462,14 @@ EckInlineNd int FindStrLenI(_In_reads_(cchText) TPtr pszText, int cchText,
 
 template<ccpIsStdCharPtr TPtr>
 EckInlineNd int FindStrRev(_In_reads_(cchText) TPtr pszText, int cchText,
-	_In_reads_(cchSub) TPtr pszSub, int cchSub, int posStart = -1)
+	_In_reads_(cchSub) ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = -1)
 {
 	const auto pFind = TcsRStrLen(pszText, cchText, pszSub, cchSub, posStart);
 	return pFind ? int(pFind - pszText) : StrNPos;
 }
 template<ccpIsStdCharPtr TPtr>
 EckInlineNd int FindStrRevI(_In_reads_(cchText) TPtr pszText, int cchText,
-	_In_reads_(cchSub) TPtr pszSub, int cchSub, int posStart = -1)
+	_In_reads_(cchSub) ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = -1)
 {
 	const auto pFind = TcsRStrLenI(pszText, cchText, pszSub, cchSub, posStart);
 	return pFind ? int(pFind - pszText) : StrNPos;
@@ -588,8 +590,8 @@ inline void SplitStr(TPtr pszText, int cchText,
 }
 // For compatibility.
 template<ccpIsStdCharPtr TPtr, class TProcesser>
-EckInline void SplitStr(TPtr pszText, TPtr pszDiv, int cSubTextExpected, int cchText,
-	int cchDiv, TProcesser&& Processer)
+EckInline void SplitStr(TPtr pszText, ConstStdCharPtr_T<TPtr> pszDiv, 
+	int cSubTextExpected, int cchText, int cchDiv, TProcesser&& Processer)
 {
 	SplitStr(pszText, pszDiv, cSubTextExpected, cchText, cchDiv,
 		std::forward<TProcesser>(Processer));
@@ -663,13 +665,15 @@ EckInline void SplitStrWithMultiCharAndCut(TPtr pszText, int cchText,
 
 // For compatibility.
 template<ccpIsStdCharPtr TPtr>
-EckInlineNd int FindStrNcs(TPtr pszText, int cchText, TPtr pszSub, int cchSub, int posStart = 0)
+EckInlineNd int FindStrNcs(TPtr pszText, int cchText,
+	ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = 0)
 {
 	return FindStrLenI(pszText, cchText, pszSub, cchSub, posStart);
 }
 // For compatibility.
 template<ccpIsStdCharPtr TPtr>
-EckInline int FindStrRevNcs(TPtr pszText, int cchText, TPtr pszSub, int cchSub, int posStart = -1)
+EckInline int FindStrRevNcs(TPtr pszText, int cchText,
+	ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = -1)
 {
 	return FindStrRevI(pszText, cchText, pszSub, cchSub, posStart);
 }

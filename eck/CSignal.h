@@ -5,6 +5,8 @@ ECK_NAMESPACE_BEGIN
 struct Intercept_T {};
 struct NoIntercept_T {};
 
+constexpr inline BOOL SlotMarkDeleted = 0x6B71;
+
 /// <summary>
 /// 信号。
 /// 应自行管理槽所关联对象与信号的生命周期
@@ -249,6 +251,11 @@ public:
 					else
 						m_pHead = pNode->pNext;
 					const auto pNext = pNode->pNext;
+					if constexpr (std::is_same_v<TIntercept, Intercept_T>)
+					{
+						BOOL b{ SlotMarkDeleted };
+						pNode->fn(TArgs{}..., b);
+					}
 					delete pNode;
 					pNode = pNext;
 					--m_cDeleted;
