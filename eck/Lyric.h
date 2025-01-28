@@ -118,15 +118,15 @@ void ParseLrc_ProcTimeLabel(std::vector<LRCINFO>& Result, std::vector<LRCLABEL>&
 			continue;
 
 		// 删首尾空
-		const auto pos = RLTrimStr(pszLrc, cchLrc);
-		const auto cchReal = int(pos.second - pos.first);
+		const auto pBegin = LTrimStr(pszLrc, cchLrc);
+		const auto pEnd = RTrimStr(pszLrc, cchLrc);
+		const auto cchReal = (pEnd > pBegin) ? int(pEnd - pBegin) : 0;
 		if (cchReal)
 		{
 			const auto pTemp = (PWSTR)malloc(Cch2CbW(cchReal));
 			EckCheckMem(pTemp);
 			Result.emplace_back(pTemp, nullptr, cchReal, cchReal, fTime, 0.f);
-			wcsncpy(pTemp, pos.first, cchReal);
-			*(pTemp + cchReal) = L'\0';
+			TcsCopyLenEnd(pTemp, pBegin, cchReal);
 		}
 		else
 			Result.emplace_back(nullptr, nullptr, 0, 0, fTime, 0.f);
