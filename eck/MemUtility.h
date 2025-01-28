@@ -16,7 +16,7 @@ _Ret_maybenull_ EckInline TPtr MemMem(_In_reads_bytes_(Len) TPtr Mem, size_t Len
 	if (Len < SubLen)
 		return nullptr;
 	if (SubLen == 0)
-		return Mem;
+		return (TPtr)Mem;
 	const auto pEnd = (PCBYTE)Mem + Len - SubLen + 1;
 	for (auto p = (PCBYTE)Mem; p < pEnd; ++p)
 	{
@@ -25,6 +25,7 @@ _Ret_maybenull_ EckInline TPtr MemMem(_In_reads_bytes_(Len) TPtr Mem, size_t Len
 			return nullptr;
 		if (memcmp(pFind, SubMem, SubLen) == 0)
 			return (TPtr)pFind;
+		p = pFind + 1;
 	}
 	return nullptr;
 }
@@ -36,11 +37,11 @@ _Ret_maybenull_ EckInline TPtr MemRMem(_In_reads_bytes_(Len) TPtr Mem, size_t Le
 	if (Len < SubLen)
 		return nullptr;
 	if (SubLen == 0)
-		return (PCBYTE)Mem + std::min(posStart, Len - SubLen);
+		return TPtr((PCBYTE)Mem + std::min(posStart, Len - SubLen));
 	for (auto p = (PCBYTE)Mem + std::min(posStart, Len - SubLen); p >= (PCBYTE)Mem; --p)
 	{
 		if (*p == *SubStr && memcmp(p, SubMem, SubLen) == 0)
-			return p;
+			return (TPtr)p;
 	}
 	return nullptr;
 }

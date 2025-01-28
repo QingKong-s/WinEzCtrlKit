@@ -88,8 +88,7 @@ private:
 	{
 		HDWP hDwp = BeginDeferWindowPos(3);
 		int y = m_Ds.Margin + m_Ds.TextPadding * 2 + m_cyMainTip + m_cyTip;
-		const int cyED = (
-			(m_pOpt->uFlags & IPBF_MULTILINE) ?
+		const int cyED = ((m_pOpt->uFlags & IPBF_MULTILINE) ?
 			m_cyClient - y - m_Ds.TextPadding - m_Ds.cyBT - m_Ds.Margin :
 			m_cySingleLineText);
 		hDwp = DeferWindowPos(hDwp, m_ED.HWnd, nullptr,
