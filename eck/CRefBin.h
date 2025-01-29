@@ -25,12 +25,11 @@ private:
 
 	ECKNOUNIQUEADDR TAlloc m_Alloc{};
 
-	EckInlineCe void ResetThat(CRefBinT& x)
+	EckInlineCe static void ResetThat(CRefBinT& x)
 	{
-		m_pStream = nullptr;
-		m_cb = 0;
-		m_cbCapacity = 0;
-		m_Alloc = {};
+		x.m_pStream = nullptr;
+		x.m_cb = 0;
+		x.m_cbCapacity = 0;
 	}
 public:
 	CRefBinT() = default;

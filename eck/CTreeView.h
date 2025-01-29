@@ -313,11 +313,8 @@ public:
 	/// <param name="hParent">父项目，可为TVI_ROOT/NULL或项目句柄</param>
 	/// <param name="hInsertAfter">欲插入到其后的项目，可为TVI_常量或项目句柄</param>
 	/// <returns>项目句柄，失败返回NULL</returns>
-	EckInline HTREEITEM InsertItem(TVINSERTSTRUCTW* ptvis, HTREEITEM hParent = TVI_ROOT,
-		HTREEITEM hInsertAfter = TVI_FIRST) const
+	EckInline HTREEITEM InsertItem(TVINSERTSTRUCTW* ptvis) const
 	{
-		ptvis->hParent = hParent;
-		ptvis->hInsertAfter = hInsertAfter;
 		return (HTREEITEM)SendMsg(TVM_INSERTITEMW, 0, (LPARAM)ptvis);
 	}
 
