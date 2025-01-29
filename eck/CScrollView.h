@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "Utility.h"
+#include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
 class CScrollView
@@ -107,11 +107,9 @@ public:
 	}
 
 	EckInline constexpr void SetViewSize(int iViewSize) { m_iViewSize = iViewSize; }
-
 	EckInline constexpr int GetViewSize() const { return m_iViewSize; }
 
 	EckInline constexpr void SetMinThumbSize(int iMinThumbSize) { m_iMinThumbSize = iMinThumbSize; }
-
 	EckInline constexpr int GetMinThumbSize() const { return m_iMinThumbSize; }
 
 	EckInline constexpr int GetThumbSize() const
@@ -162,6 +160,33 @@ public:
 		EckAssert(m_bLBtnDown);
 		m_bLBtnDown = FALSE;
 #endif // _DEBUG
+	}
+
+	EckInline constexpr void SetScrollInfo(const SCROLLINFO& si)
+	{
+		if (si.fMask & SIF_RANGE)
+		{
+			m_iMin = si.nMin;
+			m_iMax = si.nMax;
+		}
+		if (si.fMask & SIF_PAGE)
+			m_iPage = (int)si.nPage;
+		if (si.fMask & SIF_POS)
+			m_iPos = si.nPos;
+		RangeChanged();
+	}
+
+	EckInline constexpr void GetScrollInfo(_Inout_ SCROLLINFO& si) const
+	{
+		if (si.fMask & SIF_RANGE)
+		{
+			si.nMin = m_iMin;
+			si.nMax = m_iMax;
+		}
+		if (si.fMask & SIF_PAGE)
+			si.nPage = m_iPage;
+		if (si.fMask & SIF_POS)
+			si.nPos = m_iPos;
 	}
 };
 ECK_NAMESPACE_END

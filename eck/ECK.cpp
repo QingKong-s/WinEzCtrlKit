@@ -1465,6 +1465,40 @@ static int WINAPI NewSoftModalMessageBox(void* p)
 }
 #pragma endregion UxFixer
 
+#pragma region ScrollBarHook
+#if ECK_SBHOOK_INCLUDED
+using FSetScrollInfo = int(WINAPI*)(HWND, int, const SCROLLINFO*, BOOL);
+using FGetScrollInfo = BOOL(WINAPI*)(HWND, int, SCROLLINFO*);
+using FShowScrollBar = BOOL(WINAPI*)(HWND, int, BOOL);
+
+static FSetScrollInfo s_pfnSetScrollInfo{ SetScrollInfo };
+static FGetScrollInfo s_pfnGetScrollInfo{ GetScrollInfo };
+static FShowScrollBar s_pfnShowScrollBar{ ShowScrollBar };
+
+static int WINAPI NewSetScrollInfo(HWND hWnd, int nBar, const SCROLLINFO* psi, BOOL bRedraw)
+{
+	const auto pThis = (CScrollBarHook*)GetPropW(hWnd, PROP_SBHOOK);
+	if (pThis) 
+		return pThis->HkSetScrollInfo(hWnd, nBar, psi, bRedraw);
+	return s_pfnSetScrollInfo(hWnd, nBar, psi, bRedraw);
+}
+static BOOL WINAPI NewGetScrollInfo(HWND hWnd, int nBar, SCROLLINFO* psi)
+{
+	const auto pThis = (CScrollBarHook*)GetPropW(hWnd, PROP_SBHOOK);
+	if (pThis) 
+		return pThis->HkGetScrollInfo(hWnd, nBar, psi);
+	return s_pfnGetScrollInfo(hWnd, nBar, psi);
+}
+static BOOL WINAPI NewShowScrollBar(HWND hWnd, int nBar, BOOL bShow)
+{
+	const auto pThis = (CScrollBarHook*)GetPropW(hWnd, PROP_SBHOOK);
+	if (pThis) 
+		return pThis->HkShowScrollBar(hWnd, nBar, bShow);
+	return s_pfnShowScrollBar(hWnd, nBar, bShow);
+}
+#endif// ECK_SBHOOK_INCLUDED
+#pragma endregion ScrollBarHook
+
 #pragma region Init
 constexpr static PCWSTR c_szErrInitStatus[]
 {
@@ -1675,6 +1709,14 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			DetourAttach(&s_pfnSoftModalMessageBox, NewSoftModalMessageBox);
 		DetourTransactionCommit();
 	}
+
+#if ECK_SBHOOK_INCLUDED
+	DetourTransactionBegin();
+	DetourAttach(&s_pfnSetScrollInfo, NewSetScrollInfo);
+	DetourAttach(&s_pfnGetScrollInfo, NewGetScrollInfo);
+	DetourAttach(&s_pfnShowScrollBar, NewShowScrollBar);
+	DetourTransactionCommit();
+#endif // ECK_SBHOOK_INCLUDED
 	return InitStatus::Ok;
 }
 
