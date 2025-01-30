@@ -168,12 +168,12 @@ public:
 		return rs;
 	}
 
-	EckInline int GetISearchString(PWSTR pszBuf) const
+	EckInline int GetISearchString(_In_opt_ PWSTR pszBuf) const
 	{
 		return (int)SendMsg(TVM_GETISEARCHSTRINGW, 0, (LPARAM)pszBuf);
 	}
 
-	EckInline BOOL GetItem(TVITEMEXW* ptvi) const
+	EckInline BOOL GetItem(_Inout_ TVITEMEXW* ptvi) const
 	{
 		return (BOOL)SendMsg(TVM_GETITEMW, 0, (LPARAM)ptvi);
 	}
@@ -190,7 +190,7 @@ public:
 	/// <param name="prc">接收矩形</param>
 	/// <param name="bOnlyText">是否仅文本尺寸</param>
 	/// <returns>如果项目可见且矩形检索成功则返回TRUE，否则返回FALSE</returns>
-	EckInline BOOL GetItemRect(HTREEITEM hItem, RECT* prc, BOOL bOnlyText = FALSE) const
+	EckInline BOOL GetItemRect(HTREEITEM hItem, _Out_ RECT* prc, BOOL bOnlyText = FALSE) const
 	{
 		*(HTREEITEM*)prc = hItem;
 		return (BOOL)SendMsg(TVM_GETITEMRECT, bOnlyText, (LPARAM)prc);
@@ -297,7 +297,7 @@ public:
 	/// <param name="pt">测试点，相对客户区</param>
 	/// <param name="puFlags">接收测试结果标志，TVHT_常量</param>
 	/// <returns>项目句柄</returns>
-	EckInline HTREEITEM HitTest(POINT pt, UINT* puFlags = nullptr) const
+	EckInline HTREEITEM HitTest(POINT pt, _Out_opt_ UINT* puFlags = nullptr) const
 	{
 		TVHITTESTINFO tvhti{ pt };
 		SendMsg(TVM_HITTEST, 0, (LPARAM)&tvhti);
@@ -313,9 +313,23 @@ public:
 	/// <param name="hParent">父项目，可为TVI_ROOT/NULL或项目句柄</param>
 	/// <param name="hInsertAfter">欲插入到其后的项目，可为TVI_常量或项目句柄</param>
 	/// <returns>项目句柄，失败返回NULL</returns>
-	EckInline HTREEITEM InsertItem(TVINSERTSTRUCTW* ptvis) const
+	EckInline HTREEITEM InsertItem(_In_ TVINSERTSTRUCTW* ptvis) const
 	{
 		return (HTREEITEM)SendMsg(TVM_INSERTITEMW, 0, (LPARAM)ptvis);
+	}
+
+	EckInline HTREEITEM InsertItem(_In_z_ PCWSTR pszText, HTREEITEM hParent = TVI_ROOT,
+		HTREEITEM hInsertAfter = TVI_LAST, LPARAM lParam = 0, int iImage = -1, int iSelectedImage = -1)
+	{
+		TVINSERTSTRUCTW tvis;
+		tvis.hParent = hParent;
+		tvis.hInsertAfter = hInsertAfter;
+		tvis.itemex.pszText = (PWSTR)pszText;
+		tvis.itemex.lParam = lParam;
+		tvis.itemex.iImage = iImage;
+		tvis.itemex.iSelectedImage = iSelectedImage;
+		tvis.itemex.mask = TVIF_TEXT | TVIF_PARAM | TVIF_IMAGE | TVIF_SELECTEDIMAGE;
+		return InsertItem(&tvis);
 	}
 
 	/// <summary>
@@ -379,7 +393,7 @@ public:
 		return (COLORREF)SendMsg(TVM_SETINSERTMARKCOLOR, 0, cr);
 	}
 
-	EckInline BOOL SetItem(TVITEMEXW* ptvi) const
+	EckInline BOOL SetItem(_Inout_ TVITEMEXW* ptvi) const
 	{
 		return (BOOL)SendMsg(TVM_SETITEM, 0, (LPARAM)ptvi);
 	}
@@ -438,7 +452,7 @@ public:
 	/// <param name="pfnCompare">比较函数，若第一项应在第二项之前，则返回负值；若在之后，则返回正值；若相等，则返回0</param>
 	/// <param name="lParam">自定义数值</param>
 	/// <returns>成功返回TRUE，失败返回FALSE</returns>
-	EckInline BOOL SortChildren(HTREEITEM hItem, PFNTVCOMPARE pfnCompare, LPARAM lParam) const
+	EckInline BOOL SortChildren(HTREEITEM hItem, _In_ PFNTVCOMPARE pfnCompare, LPARAM lParam) const
 	{
 		TVSORTCB tvscb;
 		tvscb.hParent = hItem;

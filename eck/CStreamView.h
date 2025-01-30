@@ -6,11 +6,11 @@ ECK_NAMESPACE_BEGIN
 class CStreamView :public IStream, public IMem
 {
 private:
-	ULONG m_cRef = 1;
+	ULONG m_cRef{ 1 };
 
-	PCBYTE m_pMem = nullptr;
-	PCBYTE m_pSeek = nullptr;
-	SIZE_T m_cbSize = 0u;
+	PCBYTE m_pMem{};
+	PCBYTE m_pSeek{};
+	SIZE_T m_cbSize{};
 public:
 	CStreamView() = default;
 	constexpr CStreamView(PCVOID p, SIZE_T cb) :m_pMem{ (PCBYTE)p }, m_cbSize{ cb }, m_pSeek{ (PCBYTE)p } {}

@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "ECK.h"
+#include "CUnknown.h"
 
 ECK_NAMESPACE_BEGIN
 template<class T>
@@ -460,30 +460,19 @@ public:
 
 using CSelRange = CSelRangeT<int>;
 
-class CLVRange :public ILVRange
+class CLVRange :public CUnknownSingleThread<CLVRange, ILVRange>
 {
+	DECL_CUNK_FRIENDS;
 private:
 	ULONG m_cRef{ 1 };
 	CSelRange m_SelRange{};
 public:
-	STDMETHODIMP_(ULONG) AddRef() { return ++m_cRef; }
-
-	STDMETHODIMP_(ULONG) Release()
-	{
-		if (m_cRef == 1)
-		{
-			delete this;
-			return 0;
-		}
-		return --m_cRef;
-	}
-
 	STDMETHODIMP QueryInterface(REFIID riid, void** ppvObject)
 	{
 		static const QITAB qit[]
 		{
 			QITABENT(CSelRange, ILVRange),
-			{ 0 },
+			{},
 		};
 		return QISearch(this, qit, riid, ppvObject);
 	}
