@@ -5,7 +5,23 @@ ECK_NAMESPACE_BEGIN
 struct Intercept_T {};
 struct NoIntercept_T {};
 
-constexpr inline BOOL SlotMarkDeleted = 0x6B71;
+struct SlotCtx
+{
+	template<class TIntercept, class TRet, class ...TArgs>
+	friend class CSignal;
+private:
+	BOOL m_bDeleting{};
+	BOOL m_bProcessed{};
+	void* m_pCurrNode{};
+
+	constexpr SlotCtx(void* pCurrNode) : m_pCurrNode{ pCurrNode } {}
+public:
+	SlotCtx() = default;
+
+	EckInlineNdCe BOOL IsDeleting() const { return m_bDeleting; }
+	EckInlineCe void Processed(BOOL b = TRUE) { m_bProcessed = b; }
+	EckInlineNdCe BOOL IsProcessed() const { return m_bProcessed; }
+};
 
 /// <summary>
 /// 信号。
@@ -18,22 +34,25 @@ template<class TIntercept, class TRet, class ...TArgs>
 class CSignal
 {
 public:
+	constexpr static bool IsRetVoid = std::is_same_v<TRet, void>;
+	constexpr static bool IsIntercept = std::is_same_v<TIntercept, Intercept_T>;
+
 	using FProcPtr = std::conditional_t<
-		std::is_same_v<TIntercept, Intercept_T>,
-		TRet(*)(TArgs..., BOOL& bProcessed),
+		IsIntercept,
+		TRet(*)(TArgs..., SlotCtx&),
 		TRet(*)(TArgs...)
 	>;
 
 	template<class TCls>
 	using FProcMethodPtr = std::conditional_t<
-		std::is_same_v<TIntercept, Intercept_T>,
-		TRet(TCls::*)(TArgs..., BOOL& bProcessed),
+		IsIntercept,
+		TRet(TCls::*)(TArgs..., SlotCtx&),
 		TRet(TCls::*)(TArgs...)
 	>;
 
 	using FProc = std::conditional_t<
-		std::is_same_v<TIntercept, Intercept_T>,
-		std::function<TRet(TArgs..., BOOL& bProcessed)>,
+		IsIntercept,
+		std::function<TRet(TArgs..., SlotCtx&)>,
 		std::function<TRet(TArgs...)>
 	>;
 private:
@@ -43,7 +62,7 @@ private:
 		CSignal* pThis;
 #endif
 		UINT_PTR uId;
-		FProc fn;
+		FProc Fn;
 		NODE* pNext;
 		UINT uFlags;
 		int cEnter;
@@ -55,9 +74,78 @@ private:
 	};
 
 	NODE* m_pHead{};
-	int m_cDeleted{};
+
+	NODE* DeleteNode(_In_ NODE* pNode, _In_opt_ NODE* pPrev)
+	{
+		EckAssert((pNode->uFlags & NF_DELETED) && pNode->cEnter == 0);
+		if (pPrev)
+			pPrev->pNext = pNode->pNext;
+		else
+			m_pHead = pNode->pNext;
+		const auto pNext = pNode->pNext;
+		if constexpr (IsIntercept)
+		{
+			SlotCtx Ctx{ nullptr };
+			Ctx.m_bDeleting = TRUE;
+			pNode->Fn(TArgs{}..., Ctx);
+		}
+		delete pNode;
+		return pNext;
+	}
+
+	TRet EmitStartWith(_In_ NODE* pNode, _In_opt_ NODE* pPrev,
+		SlotCtx& Ctx, TArgs... Args)
+	{
+		Ctx.m_bDeleting = FALSE;
+		EckLoop()
+		{
+			if (pNode->uFlags & NF_DELETED)
+			{
+				if (!pNode->cEnter)
+					pNode = DeleteNode(pNode, pPrev);
+				else
+					pNode = pNode->pNext;
+				if (!pNode)
+					break;
+				continue;
+			}
+			++pNode->cEnter;
+			if constexpr (IsIntercept)
+			{
+				Ctx.m_pCurrNode = pNode;
+				Ctx.m_bProcessed = FALSE;
+				if constexpr (IsRetVoid)
+				{
+					pNode->Fn(Args..., Ctx);
+					if (Ctx.IsProcessed())
+					{
+						--pNode->cEnter;
+						return;
+					}
+				}
+				else
+				{
+					const auto r = pNode->Fn(Args..., Ctx);
+					if (Ctx.IsProcessed())
+					{
+						--pNode->cEnter;
+						return r;
+					}
+				}
+			}
+			else
+				pNode->Fn(Args...);
+			--pNode->cEnter;
+			pPrev = pNode;
+			if (!(pNode = pNode->pNext))
+				break;
+		}
+		if constexpr (!IsRetVoid)
+			return {};
+	}
 public:
 	using HSlot = const NODE*;
+
 #define ECK_SIG_TOP		nullptr
 #define ECK_SIG_BOTTOM	(HSlot(UINT_PTR(-1)))
 
@@ -66,62 +154,34 @@ public:
 	/// <summary>
 	/// 发射
 	/// </summary>
-	/// <param name="...args">参数</param>
+	/// <param name="...Args">参数</param>
 	/// <param name="bProcessed">是否被拦截</param>
 	/// <returns>若某槽拦截信号，则返回该槽的返回值，否则返回返回值类型的默认构造结果</returns>
-	TRet Emit2([[maybe_unused]] BOOL& bProcessed, TArgs ...args)
+	EckInline TRet Emit2(SlotCtx& Ctx, TArgs ...Args)
 	{
 		if (m_pHead)
-		{
-			auto pNode = m_pHead;
-			do
-			{
-				if (pNode->uFlags & NF_DELETED)
-					continue;
-				++pNode->cEnter;
-				// CALL
-				if constexpr (std::is_same_v<TIntercept, Intercept_T>)
-				{
-					if constexpr (std::is_same_v<TRet, void>)
-					{
-						pNode->fn(args..., bProcessed);
-						if (bProcessed)
-							return;
-					}
-					else
-					{
-						const auto r = pNode->fn(args..., bProcessed);
-						if (bProcessed)
-							return r;
-					}
-				}
-				else
-					pNode->fn(args...);
-				--pNode->cEnter;
-			} while (pNode = pNode->pNext);
-			CleanupNow();
-		}
-		if constexpr (!std::is_same_v<TRet, void>)
+			return EmitStartWith(m_pHead, nullptr, Ctx, Args...);
+		if constexpr (!IsRetVoid)
 			return {};
 	}
 
 	/// <summary>
 	/// 发射
 	/// </summary>
-	/// <param name="...args">参数</param>
+	/// <param name="...Args">参数</param>
 	/// <returns>若某槽拦截信号，则返回该槽的返回值，否则返回返回值类型的默认构造结果</returns>
-	EckInline TRet Emit(TArgs ...args)
+	EckInline TRet Emit(TArgs ...Args)
 	{
-		BOOL bProcessed{};
-		return Emit2(bProcessed, args...);
+		SlotCtx Ctx{};
+		return Emit2(Ctx, Args...);
 	}
 private:
-	NODE* IntConnect(FProc&& fn, UINT_PTR uId, NODE* pAfter)
+	NODE* IntConnect(FProc&& Fn, UINT_PTR uId, NODE* pAfter)
 	{
 #ifdef _DEBUG
-		const auto pNew = new NODE{ this,uId,std::move(fn) };
+		const auto pNew = new NODE{ this,uId,std::move(Fn) };
 #else
-		const auto pNew = new NODE{ uId,std::move(fn) };
+		const auto pNew = new NODE{ uId,std::move(Fn) };
 #endif
 		if (m_pHead)
 		{
@@ -160,16 +220,16 @@ private:
 	}
 public:
 	template<class TProc>
-	EckInline HSlot Connect(TProc&& fn, UINT_PTR uId = 0u, HSlot pAfter = ECK_SIG_TOP)
+	EckInline HSlot Connect(TProc&& Fn, UINT_PTR uId = 0u, HSlot pAfter = ECK_SIG_TOP)
 	{
-		return IntConnect(std::forward<TProc>(fn), uId, (NODE*)pAfter);
+		return IntConnect(std::forward<TProc>(Fn), uId, (NODE*)pAfter);
 	}
 
 	template<class TCls>
 	EckInline HSlot Connect(TCls* pThis, FProcMethodPtr<TCls> pfnMethod,
 		UINT_PTR uId = 0u, HSlot pAfter = ECK_SIG_TOP)
 	{
-		if constexpr (std::is_same_v<TIntercept, Intercept_T>)
+		if constexpr (IsIntercept)
 			return IntConnect(pThis, pfnMethod,
 				std::make_index_sequence<sizeof...(TArgs) + 1>{}, uId, (NODE*)pAfter);
 		else
@@ -185,22 +245,22 @@ public:
 	EckInline HSlot Connect(CSignal& sig, UINT_PTR uId = 0u, HSlot pAfter = ECK_SIG_TOP)
 	{
 		EckAssert(&sig != this);
-		if constexpr (std::is_same_v<TIntercept, Intercept_T>)
-			return IntConnect([&](TArgs ...args, BOOL& bProcessed)->TRet
+		if constexpr (IsIntercept)
+			return IntConnect([&](TArgs ...Args, SlotCtx& Ctx)->TRet
 				{
-					if constexpr (std::is_same_v<TRet, void>)
-						sig.Emit2(bProcessed, args...);
+					if constexpr (IsRetVoid)
+						sig.Emit2(Ctx, Args...);
 					else
 					{
-						const auto r = sig.Emit2(bProcessed, args...);
-						if (bProcessed)
+						const auto r = sig.Emit2(Ctx, Args...);
+						if (Ctx.IsProcessed())
 							return r;
 					}
 				}, uId, (NODE*)pAfter);
 		else
-			return IntConnect([&](TArgs ...args)->TRet
+			return IntConnect([&](TArgs ...Args)->TRet
 				{
-					sig.Emit(args...);
+					sig.Emit(Args...);
 				}, uId, (NODE*)pAfter);
 	}
 
@@ -220,7 +280,6 @@ public:
 	{
 		EckAssert(hSlot && hSlot->pThis == this && !(hSlot->uFlags & NF_DELETED));
 		((NODE*)hSlot)->uFlags |= NF_DELETED;
-		++m_cDeleted;
 	}
 
 	BOOL Disconnect(UINT_PTR uId)
@@ -234,39 +293,21 @@ public:
 		return FALSE;
 	}
 
-	// 删除所有进入计数为0且标记为删除的节点
-	void CleanupNow()
+	// 立即删除所有进入计数为0且标记为删除的节点
+	void CleanUpNow()
 	{
-		EckAssert(m_cDeleted >= 0);
-		if (m_cDeleted)
+		NODE* pNode = m_pHead;
+		NODE* pPrev{};
+		do
 		{
-			NODE* pNode = m_pHead;
-			NODE* pPrev{};
-			do
+			if (pNode->cEnter == 0 && (pNode->uFlags & NF_DELETED))
+				pNode = DeleteNode(pNode, pPrev);
+			else
 			{
-				if (pNode->cEnter == 0 && (pNode->uFlags & NF_DELETED))
-				{
-					if (pPrev)
-						pPrev->pNext = pNode->pNext;
-					else
-						m_pHead = pNode->pNext;
-					const auto pNext = pNode->pNext;
-					if constexpr (std::is_same_v<TIntercept, Intercept_T>)
-					{
-						BOOL b{ SlotMarkDeleted };
-						pNode->fn(TArgs{}..., b);
-					}
-					delete pNode;
-					pNode = pNext;
-					--m_cDeleted;
-				}
-				else
-				{
-					pPrev = pNode;
-					pNode = pNode->pNext;
-				}
-			} while (pNode);
-		}
+				pPrev = pNode;
+				pNode = pNode->pNext;
+			}
+		} while (pNode);
 	}
 
 	// 可能返回已标记为删除的节点
@@ -281,7 +322,15 @@ public:
 			Disconnect(pNode);
 			pNode = pNext;
 		}
-		CleanupNow();
+		CleanUpNow();
+	}
+
+	// 调用下一槽。
+	// 此方法将重置上下文状态，若要保留状态，则应在此方法返回后重新设置状态或复制上下文
+	TRet CallNext(SlotCtx& Ctx, TArgs ...Args)
+	{
+		EckAssert(Ctx.m_pCurrNode && ((NODE*)Ctx.m_pCurrNode)->pThis == this);
+		return EmitStartWith(((NODE*)Ctx.m_pCurrNode)->pNext, (NODE*)Ctx.m_pCurrNode, Ctx, Args...);
 	}
 };
 ECK_NAMESPACE_END

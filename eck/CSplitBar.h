@@ -45,15 +45,14 @@ private:
 	};
 #endif
 
-	LRESULT OnMarkMsg(HWND hWnd, UINT uMsg,
-		WPARAM wParam, LPARAM lParam, BOOL& bProcessed)
+	LRESULT OnMarkMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
 	{
 		switch (uMsg)
 		{
 		case WM_PRINTCLIENT:
 		case WM_PAINT:
 		{
-			bProcessed = TRUE;
+			Ctx.Processed();
 			PAINTSTRUCT ps;
 			BeginPaint(hWnd, wParam, ps);
 			SetDCBrushColor(ps.hdc, m_crMark);

@@ -23,7 +23,7 @@ protected:
 	{
 		const auto pParent = CWndFromHWND(GetParent(m_pCtrl->HWnd));
 		EckAssert(pParent && L"Parent window not found");
-		pParent->GetSignal().Connect([this](HWND, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL&)->LRESULT
+		pParent->GetSignal().Connect([this](HWND, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx&)->LRESULT
 			{
 				if (uMsg == WM_COMMAND && LOWORD(wParam) == BN_CLICKED && m_pCtrl->HWnd == (HWND)lParam)
 				{
@@ -97,7 +97,7 @@ protected:
 	{
 		const auto pParent = CWndFromHWND(GetParent(m_vCtrl.front()->HWnd));
 		EckAssert(pParent && L"Parent window not found");
-		pParent->GetSignal().Connect([this](HWND, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL&)->LRESULT
+		pParent->GetSignal().Connect([this](HWND, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx&)->LRESULT
 			{
 				if (uMsg == WM_COMMAND && LOWORD(wParam) == BN_CLICKED)
 				{

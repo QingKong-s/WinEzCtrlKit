@@ -165,7 +165,7 @@ private:
 			m_LB.GetItemCount() * m_LB.GetItemHeight() + DaGetSystemMetrics(SM_CYEDGE, m_iDpi) * 2);
 	}
 
-	LRESULT OnEditMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)
+	LRESULT OnEditMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
 	{
 		switch (uMsg)
 		{
@@ -178,7 +178,7 @@ private:
 			*/
 			if (GetFocus() == hWnd)
 				break;
-			bProcessed = TRUE;
+			Ctx.Processed();// Eat it.
 			m_bHasFocus = TRUE;
 			SetFocus(hWnd);
 			m_pED->SelAll();

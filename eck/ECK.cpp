@@ -335,34 +335,28 @@ HRESULT UxfMenuInit(CWnd* pWnd)
 		CWnd* pWnd;
 		HTHEME hTheme;
 
-		FProc(CWnd* pWnd) : pWnd{ pWnd }, hTheme{ OpenThemeData(pWnd->HWnd, L"Menu") } {}
-		FProc(const FProc& x)
+		FProc(CWnd* pWnd) : pWnd{ pWnd }
 		{
-			hTheme = OpenThemeData(x.pWnd->HWnd, L"Menu");
-			pWnd = x.pWnd;
-		}
-		FProc(FProc&& x) noexcept
-		{
-			pWnd = x.pWnd;
-			hTheme = x.hTheme;
-			x.hTheme = nullptr;
-		}
-		FProc& operator=(const FProc&) = delete;
-		FProc& operator=(FProc&& x) = delete;
-		~FProc()
-		{
-			CloseThemeData(hTheme);
+			if (pWnd->IsValid())
+				hTheme = OpenThemeData(pWnd->HWnd, L"Menu");
+			else
+				hTheme = nullptr;
 		}
 
-		LRESULT operator()(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)
+		LRESULT operator()(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
 		{
+			if (Ctx.IsDeleting())
+			{
+				CloseThemeData(hTheme);
+				return 0;
+			}
 			switch (uMsg)
 			{
 			case WM_UAHDRAWMENU:
 			{
 				if (!ShouldAppsUseDarkMode())
 					break;
-				bProcessed = TRUE;
+				Ctx.Processed();
 
 				MENUBARINFO mbi;
 				mbi.cbSize = sizeof(mbi);
@@ -392,7 +386,7 @@ HRESULT UxfMenuInit(CWnd* pWnd)
 				GetMenuItemInfoW(pudmi->um.hmenu, pudmi->umi.iPosition, TRUE, &mii);
 				if (mii.fType & MFT_OWNERDRAW)
 					break;
-				bProcessed = TRUE;
+				Ctx.Processed();
 
 				const auto uState = pudmi->dis.itemState;
 				int iState;
@@ -431,7 +425,7 @@ HRESULT UxfMenuInit(CWnd* pWnd)
 			case WM_NCPAINT:
 			case WM_NCACTIVATE:
 			{
-				bProcessed = TRUE;
+				Ctx.Processed();
 				pWnd->OnMsg(hWnd, uMsg, wParam, lParam);
 				MENUBARINFO mbi;
 				mbi.cbSize = sizeof(mbi);
@@ -1478,21 +1472,21 @@ static FShowScrollBar s_pfnShowScrollBar{ ShowScrollBar };
 static int WINAPI NewSetScrollInfo(HWND hWnd, int nBar, const SCROLLINFO* psi, BOOL bRedraw)
 {
 	const auto pThis = (CScrollBarHook*)GetPropW(hWnd, PROP_SBHOOK);
-	if (pThis) 
+	if (pThis)
 		return pThis->HkSetScrollInfo(hWnd, nBar, psi, bRedraw);
 	return s_pfnSetScrollInfo(hWnd, nBar, psi, bRedraw);
 }
 static BOOL WINAPI NewGetScrollInfo(HWND hWnd, int nBar, SCROLLINFO* psi)
 {
 	const auto pThis = (CScrollBarHook*)GetPropW(hWnd, PROP_SBHOOK);
-	if (pThis) 
+	if (pThis)
 		return pThis->HkGetScrollInfo(hWnd, nBar, psi);
 	return s_pfnGetScrollInfo(hWnd, nBar, psi);
 }
 static BOOL WINAPI NewShowScrollBar(HWND hWnd, int nBar, BOOL bShow)
 {
 	const auto pThis = (CScrollBarHook*)GetPropW(hWnd, PROP_SBHOOK);
-	if (pThis) 
+	if (pThis)
 		return pThis->HkShowScrollBar(hWnd, nBar, bShow);
 	return s_pfnShowScrollBar(hWnd, nBar, bShow);
 }
@@ -2031,7 +2025,7 @@ void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 		g_rsCurrDir.Data(), pszFile, pszLine, pszMsg);
 	tdc.pszContent = rsContent.Data();
 	tdc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS;
-	
+
 	int nBtn, Dummy;
 	TaskDialogIndirect(&tdc, &nBtn, &Dummy, &Dummy);
 

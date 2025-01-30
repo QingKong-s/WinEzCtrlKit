@@ -275,9 +275,9 @@ protected:
 
 	EckInline LRESULT CallMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		BOOL bProcessed{};
-		const auto r = m_Sig.Emit2(bProcessed, hWnd, uMsg, wParam, lParam);
-		if (bProcessed)
+		SlotCtx Ctx{};
+		const auto r = m_Sig.Emit2(Ctx, hWnd, uMsg, wParam, lParam);
+		if (Ctx.IsProcessed())
 			return r;
 		return OnMsg(hWnd, uMsg, wParam, lParam);
 	}

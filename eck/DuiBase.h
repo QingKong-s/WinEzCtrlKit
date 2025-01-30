@@ -197,9 +197,9 @@ public:
 	// 调用事件处理
 	EckInline LRESULT CallEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		BOOL bProcessed{};
-		const auto r = m_Sig.Emit2(bProcessed, uMsg, wParam, lParam);
-		if (bProcessed)
+		SlotCtx Ctx{};
+		const auto r = m_Sig.Emit2(Ctx, uMsg, wParam, lParam);
+		if (Ctx.IsProcessed())
 			return r;
 		return OnEvent(uMsg, wParam, lParam);
 	}
