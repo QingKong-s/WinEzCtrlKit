@@ -922,7 +922,7 @@ private:
 		m_bWaitEditDelay = FALSE;
 	}
 
-	LRESULT OnMsgEdit(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)
+	LRESULT OnMsgEdit(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
 	{
 		switch (uMsg)
 		{
@@ -938,7 +938,7 @@ private:
 				CancelExtEdit(FALSE);
 			break;
 		case WM_GETDLGCODE:
-			bProcessed = TRUE;
+			Ctx.Processed();
 			return DLGC_WANTALLKEYS | DLGC_HASSETSEL;
 		}
 		return 0;
@@ -1634,11 +1634,11 @@ public:
 			if (!m_bInstalledHeaderHook)
 			{
 				m_Header.GetSignal().Connect(
-					[this](HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)->LRESULT
+					[this](HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)->LRESULT
 					{
 						if (uMsg == HDM_LAYOUT && m_cyHeader > 0)
 						{
-							bProcessed = TRUE;
+							Ctx.Processed();
 							const auto lResult = m_Header.OnMsg(hWnd, uMsg, wParam, lParam);
 							const auto phdlo = (HDLAYOUT*)lParam;
 							phdlo->prc->top = m_cyHeader;// 这个矩形是ListView工作区的矩形，就是表头矩形的补集

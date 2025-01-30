@@ -346,9 +346,9 @@ private:
 		m_pWnd = nullptr;
 	}
 public:
-	LRESULT OnWndMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)
+	LRESULT OnWndMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
 	{
-		if (bProcessed == SlotMarkDeleted)
+		if (Ctx.IsDeleting())
 		{
 			CleanUp();
 			return 0;
@@ -363,12 +363,12 @@ public:
 			ScreenToClient(hWnd, &pt);
 			if (m_bVisibleV && PtInRect(m_rcSBV, pt))
 			{
-				bProcessed = TRUE;
+				Ctx.Processed();
 				return HTVSCROLL;
 			}
 			if (m_bVisibleH && PtInRect(m_rcSBH, pt))
 			{
-				bProcessed = TRUE;
+				Ctx.Processed();
 				return HTHSCROLL;
 			}
 		}
@@ -378,7 +378,7 @@ public:
 		{
 			if (m_eLBtnDownPart == Part::ThumbV)
 			{
-				bProcessed = TRUE;
+				Ctx.Processed();
 				m_ViewTracking.OnMouseMove(GET_Y_LPARAM(lParam) + m_Margins.cyTopHeight
 					- m_rcSBV.top - m_cySBArrow);
 				ReCalcTrackingThumbV();
@@ -392,7 +392,7 @@ public:
 			}
 			else if (m_eLBtnDownPart == Part::ThumbH)
 			{
-				bProcessed = TRUE;
+				Ctx.Processed();
 				m_ViewTracking.OnMouseMove(GET_X_LPARAM(lParam) + m_Margins.cxLeftWidth
 					- m_rcSBH.left - m_cxSBArrow);
 				ReCalcTrackingThumbH();
@@ -413,7 +413,7 @@ public:
 			if (m_eLBtnDownPart != Part::Invalid)
 			{
 				CancelRepeat();
-				bProcessed = TRUE;// Eat it.
+				Ctx.Processed();// Eat it.
 				if (m_eLBtnDownPart == Part::ThumbV)
 				{
 					m_ViewTracking.OnLButtonUp();
@@ -450,7 +450,7 @@ public:
 		{
 			if (wParam != IDT_REPEAT)
 				break;
-			bProcessed = TRUE;
+			Ctx.Processed();
 			POINT pt;
 			GetCursorPos(&pt);
 			ScreenToClient(hWnd, &pt);
@@ -472,7 +472,7 @@ public:
 
 		case WM_NCCALCSIZE:
 		{
-			bProcessed = TRUE;
+			Ctx.Processed();
 			const auto dwStyle = m_pWnd->GetStyle();
 			if (dwStyle & (WS_HSCROLL | WS_VSCROLL))
 			{
@@ -504,7 +504,7 @@ public:
 
 		case WM_NCPAINT:
 		{
-			bProcessed = TRUE;
+			Ctx.Processed();
 			m_pWnd->OnMsg(hWnd, uMsg, wParam, lParam);
 			Redraw();
 		}
@@ -515,7 +515,7 @@ public:
 		{
 			if (wParam != HTVSCROLL && wParam != HTHSCROLL)
 				break;
-			bProcessed = TRUE;
+			Ctx.Processed();
 			POINT pt ECK_GET_PT_LPARAM(lParam);
 			ScreenToClient(hWnd, &pt);
 			const auto ePart = HitTest(pt);
@@ -560,7 +560,7 @@ public:
 
 		case WM_NCMOUSEMOVE:
 		{
-			bProcessed = TRUE;
+			Ctx.Processed();
 			if (m_eLBtnDownPart != Part::Invalid)
 				break;
 			const auto eOldHot = m_eHotState;
@@ -599,12 +599,12 @@ public:
 		return 0;
 
 		case WM_STYLECHANGING:
-			bProcessed = m_bProtectStyle;
+			Ctx.Processed(m_bProtectStyle);
 			return 0;
 
 		case WM_STYLECHANGED:
 		{
-			bProcessed = m_bProtectStyle;
+			Ctx.Processed(m_bProtectStyle);
 			const auto* const pss = (STYLESTRUCT*)lParam;
 			if (wParam == GWL_STYLE)
 			{
@@ -654,8 +654,7 @@ public:
 		m_pWnd = pWnd;
 		m_iDpi = GetDpi(pWnd->HWnd);
 
-		if (m_bStdSize)
-			UpdateStdSize();
+		UpdateStdSize();
 
 		SCROLLINFO si{ sizeof(si), SIF_ALL };
 		pWnd->GetSbInfo(SB_HORZ, &si);
@@ -688,7 +687,6 @@ public:
 		if (!hSlot)
 			return S_FALSE;
 		m_pWnd->GetSignal().Disconnect(hSlot);
-		m_pWnd->GetSignal().CleanupNow();
 		m_pWnd->FrameChanged();
 		m_pWnd = nullptr;
 		return S_OK;
@@ -855,7 +853,7 @@ public:
 
 	void UpdateStdSize()
 	{
-		if (m_bStdSize)
+		if (!m_bStdSize)
 			return;
 		m_cxVSB = DaGetSystemMetrics(SM_CXVSCROLL, m_iDpi);
 		m_cyHSB = DaGetSystemMetrics(SM_CYHSCROLL, m_iDpi);

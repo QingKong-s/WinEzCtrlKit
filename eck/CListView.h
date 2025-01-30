@@ -1110,11 +1110,11 @@ public:
 		if (!pParent)
 			return FALSE;
 		const auto hSlot = pParent->GetSignal().Connect(
-			[cy, bSetOrAdd](HWND, UINT uMsg, WPARAM, LPARAM lParam, BOOL& bProcessed)->LRESULT
+			[cy, bSetOrAdd](HWND, UINT uMsg, WPARAM, LPARAM lParam, SlotCtx& Ctx)->LRESULT
 			{
 				if (uMsg == WM_MEASUREITEM)
 				{
-					bProcessed = TRUE;
+					Ctx.Processed();
 					const auto pmis = (MEASUREITEMSTRUCT*)lParam;
 					if (bSetOrAdd)
 						pmis->itemHeight = cy;
