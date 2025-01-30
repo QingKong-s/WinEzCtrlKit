@@ -841,11 +841,6 @@ EckInline constexpr BOOL IsGuidEqu(REFGUID x1, REFGUID x2)
 		x1.Data4[7] == x2.Data4[7];
 }
 
-EckInline constexpr BOOL IsPszId(PCWSTR p)
-{
-	return (((UINT_PTR)p) & (~((UINT_PTR)0xFFFF))) == 0;
-}
-
 /// <summary>
 /// 调整矩形以完全包含。
 /// 函数以最小的距离偏移矩形使之完全处于参照矩形当中

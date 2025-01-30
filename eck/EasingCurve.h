@@ -585,8 +585,9 @@ enum
 	ECBF_CONTINUE = 1u << 1,
 };
 
-class CEasingCurve :public ITimeLine
+class CEasingCurve :public CUnknownSingleThread<CEasingCurve, ITimeLine>
 {
+	DECL_CUNK_FRIENDS;
 public:
 	using FCallBack = void(*)(float fCurrValue, float fOldValue, LPARAM lParam);
 private:
@@ -635,18 +636,6 @@ public:
 		End();
 	}
 	// **IUnknown**
-	ULONG STDMETHODCALLTYPE AddRef(void) { return ++m_cRef; }
-
-	ULONG STDMETHODCALLTYPE Release(void)
-	{
-		if (m_cRef == 1)
-		{
-			delete this;
-			return 0;
-		}
-		return --m_cRef;
-	}
-
 	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** ppvObject)
 	{
 		const static QITAB qit[]
