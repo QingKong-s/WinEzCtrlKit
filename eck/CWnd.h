@@ -6,6 +6,25 @@
 #include "CSignal.h"
 
 ECK_NAMESPACE_BEGIN
+enum class FrameType
+{
+	None,	// 无边框
+	Sunken,	// 凹入式
+	Raised,	// 凸出式
+	Flat,	// 浅凹入式
+	Box,	// 镜框式
+	Single	// 单线边框式
+};
+
+enum class ScrollType
+{
+	None,	// 无
+	Horz,	// 水平滚动条
+	Vert,	// 垂直滚动条
+	Both	// 水平和垂直滚动条
+};
+
+
 constexpr inline int CDV_WND_1 = 0;
 
 // CTRLDATA_WND::uFlags
@@ -268,8 +287,8 @@ public:
 	ECKPROP(GetStyle, SetStyle)			DWORD		Style;			// 窗口样式
 	ECKPROP(GetExStyle, SetExStyle)		DWORD		ExStyle;		// 扩展窗口样式
 	ECKPROP(GetText, SetText)			CRefStrW	Text;			// 标题
-	ECKPROP(GetFrameType, SetFrameType) int			FrameType;		// 边框类型
-	ECKPROP(GetScrollBar, SetScrollBar) int			ScrollBarType;	// 滚动条类型
+	ECKPROP(GetFrameType, SetFrameType) enum class FrameType FrameType;		// 边框类型
+	ECKPROP(GetScrollBar, SetScrollBar) ScrollType	ScrollBarType;	// 滚动条类型
 	ECKPROP(IsVisible, SetVisibility)	BOOL		Visible;		// 可视
 	ECKPROP(IsEnabled, Enable)			BOOL		Enabled;		// 可用（未禁止）
 	ECKPROP_W(SetRedraw)				BOOL		Redrawable;		// 可重画
@@ -685,135 +704,109 @@ public:
 		return m_hWnd;
 	}
 
-	/// <summary>
-	/// 取窗口句柄
-	/// </summary>
 	[[nodiscard]] EckInline constexpr HWND GetHWND() const { return m_hWnd; }
 
-	/// <summary>
-	/// 强制重新核算非客户区
-	/// </summary>
+	// 强制重新核算非客户区
 	EckInline void FrameChanged() const
 	{
 		SetWindowPos(m_hWnd, nullptr, 0, 0, 0, 0,
 			SWP_NOZORDER | SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 	}
 
-	/// <summary>
-	/// 允许/禁止重画
-	/// </summary>
 	EckInline void SetRedraw(BOOL bRedraw) const
 	{
 		SendMsg(WM_SETREDRAW, bRedraw, 0);
 	}
 
-	/// <summary>
-	/// 重画
-	/// </summary>
 	EckInline BOOL Redraw(BOOL bErase = FALSE) const
 	{
 		return InvalidateRect(m_hWnd, nullptr, bErase);
 	}
 
-	/// <summary>
-	/// 区域重画
-	/// </summary>
 	EckInline BOOL Redraw(const RECT& rc, BOOL bErase = FALSE) const
 	{
 		return InvalidateRect(m_hWnd, &rc, bErase);
 	}
 
-	/// <summary>
-	/// 置边框类型
-	/// </summary>
-	/// <param name="iFrame">0 - 无边框  1 - 凹入式  2 - 凸出式  3 - 浅凹入式  4 - 镜框式  5 - 单线边框式</param>
-	void SetFrameType(int iFrame) const
+	void SetFrameType(enum class FrameType eType) const
 	{
 		DWORD dwStyle = GetStyle() & ~WS_BORDER;
 		DWORD dwExStyle = GetExStyle()
 			& ~(WS_EX_WINDOWEDGE | WS_EX_STATICEDGE | WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE);
 
-		switch (iFrame)
+		switch (eType)
 		{
-		case 0: break;// 无边框
-		case 1: dwExStyle |= WS_EX_CLIENTEDGE; break;// 凹入式
-		case 2: dwExStyle |= (WS_EX_WINDOWEDGE | WS_EX_DLGMODALFRAME); break;// 凸出式
-		case 3: dwExStyle |= WS_EX_STATICEDGE; break;// 浅凹入式
-		case 4: dwExStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE); break;// 镜框式
-		case 5: dwStyle |= WS_BORDER; break;// 单线边框式
+		case FrameType::Sunken: dwExStyle |= WS_EX_CLIENTEDGE; break;
+		case FrameType::Raised: dwExStyle |= (WS_EX_WINDOWEDGE | WS_EX_DLGMODALFRAME); break;
+		case FrameType::Flat:	dwExStyle |= WS_EX_STATICEDGE; break;
+		case FrameType::Box:	dwExStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE); break;
+		case FrameType::Single: dwStyle |= WS_BORDER; break;
 		}
 
 		SetStyle(dwStyle);
 		SetExStyle(dwExStyle);
 	}
 
-	/// <summary>
-	/// 取边框类型
-	/// </summary>
-	[[nodiscard]] int GetFrameType() const
+	// For compatibility.
+	EckInline void SetFrameType(int iType) const { SetFrameType((enum class FrameType)iType); }
+
+	[[nodiscard]] enum class FrameType GetFrameType() const
 	{
 		const DWORD dwStyle = GetStyle();
 		const DWORD dwExStyle = GetExStyle();
 		if (IsBitSet(dwExStyle, WS_EX_DLGMODALFRAME))
 		{
 			if (IsBitSet(dwExStyle, WS_EX_CLIENTEDGE))
-				return 4;// 镜框式
+				return FrameType::Box;
 			if (IsBitSet(dwExStyle, WS_EX_WINDOWEDGE))
-				return 2;// 凸出式
+				return FrameType::Raised;
 		}
 
 		if (IsBitSet(dwExStyle, WS_EX_CLIENTEDGE))
-			return 1;// 凹入式
+			return FrameType::Sunken;
 		if (IsBitSet(dwExStyle, WS_EX_STATICEDGE))
-			return 3;// 浅凹入式
+			return FrameType::Flat;
 		if (IsBitSet(dwStyle, WS_BORDER))
-			return 5;// 单线边框式
+			return FrameType::Single;
 
-		return 0;// 无边框
+		return FrameType::None;
 	}
 
-	/// <summary>
-	/// 置滚动条类型
-	/// </summary>
-	void SetScrollBar(int i) const
+	void SetScrollBar(ScrollType eType) const
 	{
-		switch (i)
+		switch (eType)
 		{
-		case 0:
+		case ScrollType::None:
 			ShowScrollBar(m_hWnd, SB_VERT, FALSE);
 			ShowScrollBar(m_hWnd, SB_HORZ, FALSE);
 			break;
-		case 1:
+		case ScrollType::Horz:
 			ShowScrollBar(m_hWnd, SB_VERT, FALSE);
 			ShowScrollBar(m_hWnd, SB_HORZ, TRUE);
 			break;
-		case 2:
+		case ScrollType::Vert:
 			ShowScrollBar(m_hWnd, SB_VERT, TRUE);
 			ShowScrollBar(m_hWnd, SB_HORZ, FALSE);
 			break;
-		case 3:
+		case ScrollType::Both:
 			ShowScrollBar(m_hWnd, SB_VERT, TRUE);
 			ShowScrollBar(m_hWnd, SB_HORZ, TRUE);
 			break;
 		}
 	}
 
-	/// <summary>
-	/// 取滚动条类型
-	/// </summary>
-	[[nodiscard]] int GetScrollBar() const
+	// For compatibility.
+	EckInline void SetScrollBar(int iType) const { SetScrollBar((ScrollType)iType); }
+
+	[[nodiscard]] ScrollType GetScrollBar() const
 	{
 		const BOOL bVSB = IsBitSet(GetWindowLongPtrW(m_hWnd, GWL_STYLE), WS_VSCROLL);
 		const BOOL bHSB = IsBitSet(GetWindowLongPtrW(m_hWnd, GWL_STYLE), WS_HSCROLL);
 		if (bVSB)
-			if (bHSB)
-				return 3;
-			else
-				return 2;
+			return bHSB ? ScrollType::Both : ScrollType::Vert;
 		if (bHSB)
-			return 1;
-
-		return 0;
+			return ScrollType::Horz;
+		return ScrollType::None;
 	}
 
 	EckInline LRESULT SendMsg(UINT uMsg, WPARAM wParam, LPARAM lParam) const
@@ -826,17 +819,11 @@ public:
 		return PostMessageW(m_hWnd, uMsg, wParam, lParam);
 	}
 
-	/// <summary>
-	/// 取窗口样式
-	/// </summary>
 	[[nodiscard]] EckInline DWORD GetStyle() const
 	{
 		return (DWORD)GetWindowLongPtrW(m_hWnd, GWL_STYLE);
 	}
 
-	/// <summary>
-	/// 取扩展样式
-	/// </summary>
 	[[nodiscard]] EckInline DWORD GetExStyle() const
 	{
 		return (DWORD)GetWindowLongPtrW(m_hWnd, GWL_EXSTYLE);
@@ -854,29 +841,16 @@ public:
 		return ModifyWindowStyle(m_hWnd, dwNew, dwMask, idx);
 	}
 
-	/// <summary>
-	/// 置样式
-	/// </summary>
-	/// <param name="dwStyle">样式</param>
-	/// <returns>旧样式</returns>
 	EckInline DWORD SetStyle(DWORD dwStyle) const
 	{
 		return (DWORD)SetWindowLongPtrW(m_hWnd, GWL_STYLE, dwStyle);
 	}
 
-	/// <summary>
-	/// 置扩展样式
-	/// </summary>
-	/// <param name="dwStyle">样式</param>
-	/// <returns>旧样式</returns>
 	EckInline DWORD SetExStyle(DWORD dwStyle) const
 	{
 		return (DWORD)SetWindowLongPtrW(m_hWnd, GWL_EXSTYLE, dwStyle);
 	}
 
-	/// <summary>
-	/// 取标题
-	/// </summary>
 	[[nodiscard]] EckInline CRefStrW GetText() const
 	{
 		CRefStrW rs;
@@ -900,18 +874,11 @@ public:
 		return GetWindowTextW(m_hWnd, pszBuf, cchBuf);
 	}
 
-	/// <summary>
-	/// 置标题
-	/// </summary>
 	EckInline BOOL SetText(PCWSTR pszText) const
 	{
 		return SetWindowTextW(m_hWnd, pszText);
 	}
 
-	/// <summary>
-	/// 置视觉样式
-	/// </summary>
-	/// <returns></returns>
 	EckInline HRESULT SetExplorerTheme() const
 	{
 		return SetWindowTheme(m_hWnd, L"Explorer", nullptr);
@@ -927,47 +894,27 @@ public:
 		return SetWindowTheme(m_hWnd, pszAppName, pszSubList);
 	}
 
-	/// <summary>
-	/// 移动
-	/// </summary>
 	EckInline BOOL Move(int x, int y, int cx, int cy, BOOL bNoActive = FALSE) const
 	{
 		return SetWindowPos(m_hWnd, nullptr, x, y, cx, cy, SWP_NOZORDER | (bNoActive ? SWP_NOACTIVATE : 0));
 	}
 
-	/// <summary>
-	/// 销毁
-	/// </summary>
-	/// <returns></returns>
 	EckInline BOOL Destroy()
 	{
 		EckAssert(IsWindow(m_hWnd));
-		auto b = DestroyWindow(m_hWnd);
-		return b;
+		return DestroyWindow(m_hWnd);
 	}
 
-	/// <summary>
-	/// 置字体
-	/// </summary>
-	/// <param name="hFont">字体句柄</param>
-	/// <param name="bRedraw">是否重画</param>
 	EckInline void SetFont(HFONT hFont, BOOL bRedraw = FALSE) const
 	{
 		SendMsg(WM_SETFONT, (WPARAM)hFont, bRedraw);
 	}
 
-	/// <summary>
-	/// 取字体
-	/// </summary>
 	[[nodiscard]] EckInline HFONT GetFont() const
 	{
 		return (HFONT)SendMsg(WM_GETFONT, 0, 0);
 	}
 
-	/// <summary>
-	/// 显示
-	/// </summary>
-	/// <param name="nCmdShow">SW_常量</param>
 	EckInline BOOL Show(int nCmdShow) const
 	{
 		return ShowWindow(m_hWnd, nCmdShow);
@@ -978,45 +925,26 @@ public:
 		Show(bVisible ? SW_SHOW : SW_HIDE);
 	}
 
-	/// <summary>
-	/// 允许/禁止
-	/// </summary>
 	EckInline BOOL Enable(BOOL bEnable) const
 	{
 		return EnableWindow(m_hWnd, bEnable);
 	}
 
-	/// <summary>
-	/// 是否允许
-	/// </summary>
 	[[nodiscard]] EckInline BOOL IsEnabled() const
 	{
 		return IsWindowEnabled(m_hWnd);
 	}
 
-	/// <summary>
-	/// 是否可见
-	/// </summary>
 	[[nodiscard]] EckInline BOOL IsVisible() const
 	{
 		return IsWindowVisible(m_hWnd);
 	}
 
-	/// <summary>
-	/// 取长型
-	/// </summary>
-	/// <param name="i">GWL_常量</param>
 	[[nodiscard]] EckInline LONG_PTR GetLong(int i) const
 	{
 		return GetWindowLongPtrW(m_hWnd, i);
 	}
 
-	/// <summary>
-	/// 置长型
-	/// </summary>
-	/// <param name="i">GWL_常量</param>
-	/// <param name="l">新长型</param>
-	/// <returns>旧长型</returns>
 	[[nodiscard]] EckInline LONG_PTR SetLong(int i, LONG_PTR l) const
 	{
 		return SetWindowLongPtrW(m_hWnd, i, l);

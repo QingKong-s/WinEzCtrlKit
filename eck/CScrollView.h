@@ -188,5 +188,10 @@ public:
 		if (si.fMask & SIF_POS)
 			si.nPos = m_iPos;
 	}
+
+	EckInline constexpr BOOL IsVisible() const
+	{
+		return IsValid() && GetViewSize() > GetMinThumbSize();
+	}
 };
 ECK_NAMESPACE_END

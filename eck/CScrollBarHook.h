@@ -34,6 +34,15 @@ public:
 		HSB
 	};
 private:
+	enum : UINT_PTR
+	{
+		IDT_REPEAT_DELAY = 0x514B * 233,
+		IDT_REPEAT,
+
+		TE_REPEAT_DELAY = 350,
+		TE_REPEAT = 60,
+	};
+
 	CWnd* m_pWnd{};
 	HTHEME m_hTheme{};
 	CScrollView m_ViewV{}, m_ViewH{}, m_ViewTracking{};
@@ -64,10 +73,13 @@ private:
 	HotState m_eHotState{ HotState::None };
 
 	BITBOOL m_bProtectStyle : 1{ FALSE };
+	BITBOOL m_bLeftScrollBar : 1{ FALSE };
 	BITBOOL m_bVisibleH : 1{ TRUE };
 	BITBOOL m_bVisibleV : 1{ TRUE };
 	BITBOOL m_bDisableH : 1{ FALSE };
 	BITBOOL m_bDisableV : 1{ FALSE };
+
+	BITBOOL m_bStdSize : 1{ TRUE };
 
 
 	void ReCalcScrollRect()
@@ -126,7 +138,6 @@ private:
 		m_bVisibleV = IsBitSet(dwStyle, WS_VSCROLL);
 	}
 
-
 	void Redraw(HDC hDC)
 	{
 		HTHEME hTheme = m_hTheme;
@@ -147,7 +158,7 @@ private:
 				iState = ABS_UPHOVER;
 			else
 				iState = ABS_UPNORMAL;
-			auto hr = DrawThemeBackground(hTheme, hDC, SBP_ARROWBTN, iState, &rc, NULL);
+			auto hr = DrawThemeBackground(hTheme, hDC, SBP_ARROWBTN, iState, &rc, nullptr);
 			// 上空白
 			rc.top = rc.bottom;
 			rc.bottom = m_yThumbV;
@@ -161,7 +172,7 @@ private:
 				iState = SCRBS_HOVER;
 			else
 				iState = SCRBS_NORMAL;
-			DrawThemeBackground(hTheme, hDC, SBP_LOWERTRACKVERT, iState, &rc, NULL);
+			DrawThemeBackground(hTheme, hDC, SBP_LOWERTRACKVERT, iState, &rc, nullptr);
 			// 滑块
 			rc.top = rc.bottom;
 			rc.bottom = rc.top + m_cyThumbV;
@@ -175,7 +186,7 @@ private:
 				iState = SCRBS_HOVER;
 			else
 				iState = SCRBS_NORMAL;
-			DrawThemeBackground(hTheme, hDC, SBP_THUMBBTNVERT, iState, &rc, NULL);
+			DrawThemeBackground(hTheme, hDC, SBP_THUMBBTNVERT, iState, &rc, nullptr);
 			// 下空白
 			rc.top = rc.bottom;
 			rc.bottom = m_rcSBV.bottom - m_cySBArrow;
@@ -189,7 +200,7 @@ private:
 				iState = SCRBS_HOVER;
 			else
 				iState = SCRBS_NORMAL;
-			DrawThemeBackground(hTheme, hDC, SBP_UPPERTRACKVERT, iState, &rc, NULL);
+			DrawThemeBackground(hTheme, hDC, SBP_UPPERTRACKVERT, iState, &rc, nullptr);
 			// 下箭头
 			rc.top = rc.bottom;
 			rc.bottom = m_rcSBV.bottom;
@@ -203,7 +214,7 @@ private:
 				iState = ABS_DOWNHOVER;
 			else
 				iState = ABS_DOWNNORMAL;
-			DrawThemeBackground(hTheme, hDC, SBP_ARROWBTN, iState, &rc, NULL);
+			DrawThemeBackground(hTheme, hDC, SBP_ARROWBTN, iState, &rc, nullptr);
 		}
 
 		if (m_bVisibleH)
@@ -221,7 +232,7 @@ private:
 				iState = ABS_LEFTHOVER;
 			else
 				iState = ABS_LEFTNORMAL;
-			DrawThemeBackground(hTheme, hDC, SBP_ARROWBTN, iState, &rc, NULL);
+			DrawThemeBackground(hTheme, hDC, SBP_ARROWBTN, iState, &rc, nullptr);
 			// 左空白
 			rc.left = rc.right;
 			rc.right = m_xThumbH;
@@ -235,7 +246,7 @@ private:
 				iState = SCRBS_HOVER;
 			else
 				iState = SCRBS_NORMAL;
-			DrawThemeBackground(hTheme, hDC, SBP_LOWERTRACKHORZ, iState, &rc, NULL);
+			DrawThemeBackground(hTheme, hDC, SBP_LOWERTRACKHORZ, iState, &rc, nullptr);
 			// 滑块
 			rc.left = rc.right;
 			rc.right = rc.left + m_cxThumbH;
@@ -249,7 +260,7 @@ private:
 				iState = SCRBS_HOVER;
 			else
 				iState = SCRBS_NORMAL;
-			DrawThemeBackground(hTheme, hDC, SBP_THUMBBTNHORZ, iState, &rc, NULL);
+			DrawThemeBackground(hTheme, hDC, SBP_THUMBBTNHORZ, iState, &rc, nullptr);
 			// 右空白
 			rc.left = rc.right;
 			rc.right = m_rcSBH.right - m_cxSBArrow;
@@ -263,7 +274,7 @@ private:
 				iState = SCRBS_HOVER;
 			else
 				iState = SCRBS_NORMAL;
-			DrawThemeBackground(hTheme, hDC, SBP_UPPERTRACKHORZ, iState, &rc, NULL);
+			DrawThemeBackground(hTheme, hDC, SBP_UPPERTRACKHORZ, iState, &rc, nullptr);
 			// 右箭头
 			rc.left = rc.right;
 			rc.right = m_rcSBH.right;
@@ -277,7 +288,17 @@ private:
 				iState = ABS_RIGHTHOVER;
 			else
 				iState = ABS_RIGHTNORMAL;
-			DrawThemeBackground(hTheme, hDC, SBP_ARROWBTN, iState, &rc, NULL);
+			DrawThemeBackground(hTheme, hDC, SBP_ARROWBTN, iState, &rc, nullptr);
+		}
+
+		if (m_bVisibleV && m_bVisibleH &&
+			ShouldWindowDisplaySizeGrip(m_pWnd->HWnd, m_iDpi))
+		{
+			rc.left = m_rcSBH.right;
+			rc.top = m_rcSBV.bottom;
+			rc.right = m_rcSBV.right;
+			rc.bottom = m_rcSBH.bottom;
+			DrawThemeBackground(hTheme, hDC, SBP_SIZEBOX, SZB_RIGHTALIGN, &rc, nullptr);
 		}
 	}
 
@@ -287,9 +308,51 @@ private:
 		Redraw(hDC);
 		ReleaseDC(m_pWnd->HWnd, hDC);
 	}
+
+	void GenerateScrollMsg(Part ePart)
+	{
+		UINT uCode;
+		switch (ePart)
+		{
+		case Part::ArrowUp:		uCode = SB_LINEUP;		goto GenV;
+		case Part::ArrowDown:	uCode = SB_LINEDOWN;	goto GenV;
+		case Part::PageUp:		uCode = SB_PAGEUP;		goto GenV;
+		case Part::PageDown:	uCode = SB_PAGEDOWN;	goto GenV;
+		case Part::ArrowLeft:	uCode = SB_LINELEFT;	goto GenH;
+		case Part::ArrowRight:	uCode = SB_LINERIGHT;	goto GenH;
+		case Part::PageLeft:	uCode = SB_PAGELEFT;	goto GenH;
+		case Part::PageRight:	uCode = SB_PAGERIGHT;	goto GenH;
+		default:				return;
+		}
+	GenH:;
+		m_pWnd->SendMsg(WM_HSCROLL, MAKEWPARAM(uCode, 0), 0);
+		return;
+	GenV:;
+		m_pWnd->SendMsg(WM_VSCROLL, MAKEWPARAM(uCode, 0), 0);
+	}
+
+	void CancelRepeat()
+	{
+		KillTimer(m_pWnd->HWnd, IDT_REPEAT_DELAY);
+		KillTimer(m_pWnd->HWnd, IDT_REPEAT);
+	}
+
+	void CleanUp()
+	{
+		CloseThemeData(m_hTheme);
+		m_hTheme = nullptr;
+		m_eHotPart = m_eLBtnDownPart = Part::Invalid;
+		m_eHotState = HotState::None;
+		m_pWnd = nullptr;
+	}
 public:
 	LRESULT OnWndMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)
 	{
+		if (bProcessed == SlotMarkDeleted)
+		{
+			CleanUp();
+			return 0;
+		}
 		switch (uMsg)
 		{
 		case WM_NCHITTEST:
@@ -349,6 +412,7 @@ public:
 		{
 			if (m_eLBtnDownPart != Part::Invalid)
 			{
+				CancelRepeat();
 				bProcessed = TRUE;// Eat it.
 				if (m_eLBtnDownPart == Part::ThumbV)
 				{
@@ -379,6 +443,18 @@ public:
 				}
 				return 0;
 			}
+		}
+		break;
+
+		case WM_TIMER:
+		{
+			if (wParam != IDT_REPEAT)
+				break;
+			bProcessed = TRUE;
+			POINT pt;
+			GetCursorPos(&pt);
+			ScreenToClient(hWnd, &pt);
+			GenerateScrollMsg(HitTest(pt));
 		}
 		break;
 
@@ -420,6 +496,9 @@ public:
 				prcClient->right -= m_cxVSB;
 			if (m_bVisibleH && (prcClient->bottom - prcClient->top) > m_cyHSB)
 				prcClient->bottom -= m_cyHSB;
+
+			ReCalcScrollRect();
+			ReCalcThumb();
 		}
 		return 0;
 
@@ -432,6 +511,7 @@ public:
 		return 0;
 
 		case WM_NCLBUTTONDOWN:
+		case WM_NCLBUTTONDBLCLK:
 		{
 			if (wParam != HTVSCROLL && wParam != HTHSCROLL)
 				break;
@@ -442,29 +522,39 @@ public:
 			m_eLBtnDownPart = ePart;
 			if (wParam == HTVSCROLL)
 			{
-				switch (ePart)
+				if (ePart == Part::ThumbV)
 				{
-				case Part::ThumbV:
 					m_ViewTracking = m_ViewV;
 					m_nLastTrackPos = m_ViewTracking.GetPos();
 					m_ViewTracking.OnLButtonDown(pt.y + m_Margins.cyTopHeight
 						- m_rcSBV.top - m_cySBArrow);
-					break;
 				}
 			}
 			else
 			{
-				switch (ePart)
+				if (ePart == Part::ThumbH)
 				{
-				case Part::ThumbH:
 					m_ViewTracking = m_ViewH;
 					m_nLastTrackPos = m_ViewTracking.GetPos();
 					m_ViewTracking.OnLButtonDown(pt.x + m_Margins.cxLeftWidth
 						- m_rcSBH.left - m_cxSBArrow);
-					break;
 				}
 			}
+			GenerateScrollMsg(ePart);
 			SetCapture(hWnd);
+			CancelRepeat();
+			if (m_eLBtnDownPart != Part::Invalid &&
+				m_eLBtnDownPart != Part::ThumbV &&
+				m_eLBtnDownPart != Part::ThumbH)
+			{
+				SetTimer(hWnd, IDT_REPEAT_DELAY, TE_REPEAT_DELAY,
+					[](HWND hWnd, UINT, UINT_PTR uId, DWORD)
+					{
+						KillTimer(hWnd, uId);
+						SetTimer(hWnd, IDT_REPEAT, TE_REPEAT, nullptr);
+					});
+				Redraw();
+			}
 		}
 		return 0;
 
@@ -508,42 +598,70 @@ public:
 		}
 		return 0;
 
+		case WM_STYLECHANGING:
+			bProcessed = m_bProtectStyle;
+			return 0;
+
 		case WM_STYLECHANGED:
 		{
 			bProcessed = m_bProtectStyle;
 			const auto* const pss = (STYLESTRUCT*)lParam;
 			if (wParam == GWL_STYLE)
 			{
-				m_bVisibleH = IsBitSet(pss->styleNew, WS_HSCROLL);
-				m_bVisibleV = IsBitSet(pss->styleNew, WS_VSCROLL);
+				const auto bVisibleH = IsBitSet(pss->styleNew, WS_HSCROLL);
+				const auto bVisibleV = IsBitSet(pss->styleNew, WS_VSCROLL);
+				if (m_bVisibleH != bVisibleH || m_bVisibleV != bVisibleV)
+				{
+					m_bVisibleH = bVisibleH;
+					m_bVisibleV = bVisibleV;
+					ReCalcScrollRect();
+					ReCalcThumb();
+					Redraw();
+				}
 			}
 		}
 		break;
-		}
 
+		case WM_THEMECHANGED:
+		{
+			CloseThemeData(m_hTheme);
+			m_hTheme = OpenNcThemeData(m_pWnd->HWnd, L"ScrollBar");
+			Redraw();
+		}
+		break;
+
+		case WM_DPICHANGED:
+		case WM_DPICHANGED_BEFOREPARENT:
+		{
+			m_iDpi = GetDpi(hWnd);
+			if (m_bStdSize)
+				UpdateStdSize();
+		}
+		break;
+
+		case WM_DESTROY:
+			CleanUp();
+			break;
+		}
 		return 0;
 	}
 
-	HRESULT BindWnd(CWnd* pWnd)
+	HRESULT Attach(CWnd* pWnd)
 	{
 		if (pWnd->GetSignal().FindSlot(MHI_SCROLLBAR_HOOK))
 			return S_FALSE;
+		SetPropW(pWnd->HWnd, PROP_SBHOOK, this);
+		m_pWnd = pWnd;
+		m_iDpi = GetDpi(pWnd->HWnd);
+
+		if (m_bStdSize)
+			UpdateStdSize();
+
 		SCROLLINFO si{ sizeof(si), SIF_ALL };
 		pWnd->GetSbInfo(SB_HORZ, &si);
 		m_ViewH.SetScrollInfo(si);
 		pWnd->GetSbInfo(SB_VERT, &si);
 		m_ViewV.SetScrollInfo(si);
-
-		SetPropW(pWnd->HWnd, PROP_SBHOOK, this);
-		m_pWnd = pWnd;
-
-		m_iDpi = GetDpi(pWnd->HWnd);
-		m_cxVSB = GetSystemMetrics(SM_CXVSCROLL);
-		//m_cxVSB = DpiScale(50, m_iDpi);
-		m_cyHSB = GetSystemMetrics(SM_CYHSCROLL);
-		//m_cyHSB = DpiScale(60, m_iDpi);
-		m_cxSBArrow = GetSystemMetrics(SM_CXHSCROLL);
-		m_cySBArrow = GetSystemMetrics(SM_CYVSCROLL);
 
 		m_hTheme = OpenNcThemeData(pWnd->HWnd, L"ScrollBar");
 
@@ -559,6 +677,20 @@ public:
 		UpdateVisibleFromStyle();
 		ReCalcScrollRect();
 		ReCalcThumb();
+		return S_OK;
+	}
+
+	HRESULT Detach()
+	{
+		if (!m_pWnd)
+			return S_FALSE;
+		const auto hSlot = m_pWnd->GetSignal().FindSlot(MHI_SCROLLBAR_HOOK);
+		if (!hSlot)
+			return S_FALSE;
+		m_pWnd->GetSignal().Disconnect(hSlot);
+		m_pWnd->GetSignal().CleanupNow();
+		m_pWnd->FrameChanged();
+		m_pWnd = nullptr;
 		return S_OK;
 	}
 
@@ -629,17 +761,38 @@ public:
 		{
 		case SB_HORZ:
 			m_ViewH.SetScrollInfo(*psi);
+			m_bDisableH = FALSE;
+			if (!m_ViewH.IsVisible())
+			{
+				if (psi->fMask & SIF_DISABLENOSCROLL)
+					m_bDisableH = TRUE;
+				else if (m_bVisibleH)
+					HkShowScrollBar(hWnd, SB_HORZ, FALSE);
+			}
+			else if (!m_bVisibleH)
+				HkShowScrollBar(hWnd, SB_HORZ, TRUE);
 			ReCalcThumbH();
 			if (bRedraw)
 				Redraw();
 			return m_ViewH.GetPos();
 		case SB_VERT:
 			m_ViewV.SetScrollInfo(*psi);
+			m_bDisableV = FALSE;
+			if (!m_ViewV.IsVisible())
+			{
+				if (psi->fMask & SIF_DISABLENOSCROLL)
+					m_bDisableV = TRUE;
+				else if (m_bVisibleV)
+					HkShowScrollBar(hWnd, SB_VERT, FALSE);
+			}
+			else if (!m_bVisibleV)
+				HkShowScrollBar(hWnd, SB_VERT, TRUE);
 			ReCalcThumbV();
 			if (bRedraw)
 				Redraw();
 			return m_ViewV.GetPos();
 		}
+		return 0;
 	}
 
 	BOOL HkGetScrollInfo(HWND hWnd, int nBar, SCROLLINFO* psi)
@@ -662,7 +815,57 @@ public:
 
 	BOOL HkShowScrollBar(HWND hWnd, int nBar, BOOL bShow)
 	{
+		switch (nBar)
+		{
+		case SB_HORZ:
+		{
+			const auto dwStyle = m_pWnd->GetStyle();
+			if (bShow)
+				if (dwStyle & WS_HSCROLL)
+					return TRUE;
+				else
+					m_pWnd->SetStyle(dwStyle | WS_HSCROLL);
+			else
+				if (dwStyle & WS_HSCROLL)
+					m_pWnd->SetStyle(dwStyle & ~WS_HSCROLL);
+				else
+					return TRUE;
+			m_pWnd->FrameChanged();
+		}
 		return TRUE;
+		case SB_VERT:
+		{
+			const auto dwStyle = m_pWnd->GetStyle();
+			if (bShow)
+				if (dwStyle & WS_VSCROLL)
+					return TRUE;
+				else
+					m_pWnd->SetStyle(dwStyle | WS_VSCROLL);
+			else
+				if (dwStyle & WS_VSCROLL)
+					m_pWnd->SetStyle(dwStyle & ~WS_VSCROLL);
+				else
+					return TRUE;
+			m_pWnd->FrameChanged();
+		}
+		return TRUE;
+		}
+		return FALSE;
 	}
+
+	void UpdateStdSize()
+	{
+		if (m_bStdSize)
+			return;
+		m_cxVSB = DaGetSystemMetrics(SM_CXVSCROLL, m_iDpi);
+		m_cyHSB = DaGetSystemMetrics(SM_CYHSCROLL, m_iDpi);
+		m_cxSBArrow = DaGetSystemMetrics(SM_CXHSCROLL, m_iDpi);
+		m_cySBArrow = DaGetSystemMetrics(SM_CYVSCROLL, m_iDpi);
+	}
+
+	EckInlineCe void SetStdSize(BOOL bStdSize) { m_bStdSize = bStdSize; }
+	EckInlineNdCe BOOL GetStdSize() const { return m_bStdSize; }
+
+	EckInlineNdCe HTHEME GetHTheme() const { return m_hTheme; }
 };
 ECK_NAMESPACE_END

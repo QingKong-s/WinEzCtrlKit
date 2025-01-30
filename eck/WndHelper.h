@@ -1001,4 +1001,31 @@ inline SIZE GetCharDimension(HWND hWnd, HFONT hFont)
 	else
 		return { tm.tmAveCharWidth, tm.tmHeight };
 }
+
+inline BOOL ShouldWindowDisplaySizeGrip(HWND hWnd, int iDpi = -1)
+{
+	const auto hDesktop = GetDesktopWindow();
+	if (iDpi < 0)
+		iDpi = GetDpi(hWnd);
+	RECT rc, rcTmp;
+	GetWindowRect(hWnd, &rc);
+	rc.right += DaGetSystemMetrics(SM_CXFRAME, iDpi);
+	rc.bottom += DaGetSystemMetrics(SM_CYFRAME, iDpi);
+	while (hWnd && hWnd != hDesktop)
+	{
+		const auto dwStyle = GetWindowLongPtrW(hWnd, GWL_STYLE);
+		if (IsBitSet(dwStyle, WS_SIZEBOX))
+		{
+			if (IsBitSet(dwStyle, WS_MAXIMIZE))
+				return FALSE;
+			GetWindowRect(hWnd, &rcTmp);
+			if (rc.right < rcTmp.right || rc.bottom < rcTmp.bottom)
+				return FALSE;
+			return TRUE;
+		}
+		else
+			hWnd = GetParent(hWnd);
+	}
+	return FALSE;
+}
 ECK_NAMESPACE_END
