@@ -1,13 +1,9 @@
 ﻿<!--
-WinEzCtrlKit Library
-
 CommonManifest.manifest ： 通用清单文件
 包含下列特性：
   使用每显示器DPI感知V2，或退回到系统DPI感知
   启用Win7 - Win11的功能特性
   使用CommCtl 6.0+
-
-Copyright(C) 2023-2024 QingKong
 -->
 
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>

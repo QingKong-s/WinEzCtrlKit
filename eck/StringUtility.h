@@ -43,18 +43,32 @@ constexpr inline bool IsSameStdCharPtr_V = std::is_same_v<RemoveStdCharPtr_T<TPt
 template<ccpIsStdChar TChar>
 EckInlineNd TChar TchToUpper(TChar c)
 {
+#if ECK_OPT_NO_ASCII_UPPER_LOWER
 	if constexpr (std::is_same_v<TChar, char>)
 		return (TChar)toupper(c);
 	else
 		return (TChar)towupper(c);
+#else
+	if constexpr (std::is_same_v<TChar, char>)
+		return (TChar)__ascii_toupper(c);
+	else
+		return (TChar)__ascii_towupper(c);
+#endif
 }
 template<ccpIsStdChar TChar>
 EckInlineNd TChar TchToLower(TChar c)
 {
+#if ECK_OPT_NO_ASCII_UPPER_LOWER
 	if constexpr (std::is_same_v<TChar, char>)
 		return (TChar)tolower(c);
 	else
 		return (TChar)towlower(c);
+#else
+	if constexpr (std::is_same_v<TChar, char>)
+		return (TChar)__ascii_tolower(c);
+	else
+		return (TChar)__ascii_towlower(c);
+#endif
 }
 
 template<ccpIsStdChar TChar>
@@ -72,26 +86,26 @@ template<ccpIsStdCharPtr TPtr>
 EckInlineNd size_t TcsLen(_In_z_ TPtr Str)
 {
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
-		return strlen((CHAR*)Str);
+		return strlen(Str);
 	else
-		return wcslen((WCHAR*)Str);
+		return wcslen(Str);
 }
 
 template<ccpIsStdCharPtr TPtr>
 EckInlineNd bool TcsEqual(_In_z_ TPtr Str1, _In_z_ ConstStdCharPtr_T<TPtr> Str2)
 {
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
-		return strcmp((CHAR*)Str1, (CHAR*)Str2) == 0;
+		return strcmp(Str1, Str2) == 0;
 	else
-		return wcscmp((WCHAR*)Str1, (WCHAR*)Str2) == 0;
+		return wcscmp(Str1, Str2) == 0;
 }
 template<ccpIsStdCharPtr TPtr>
 EckInlineNd bool TcsEqualI(_In_z_ TPtr Str1, _In_z_ ConstStdCharPtr_T<TPtr> Str2)
 {
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
-		return stricmp((CHAR*)Str1, (CHAR*)Str2) == 0;
+		return stricmp(Str1, Str2) == 0;
 	else
-		return wcsicmp((WCHAR*)Str1, (WCHAR*)Str2) == 0;
+		return wcsicmp(Str1, Str2) == 0;
 }
 
 template<ccpIsStdCharPtr TPtr>
@@ -99,18 +113,18 @@ EckInlineNd bool TcsEqualMaxLen(_In_reads_or_z_(Max) TPtr Str1,
 	_In_reads_or_z_(Max) ConstStdCharPtr_T<TPtr> Str2, size_t Max)
 {
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
-		return strncmp((CHAR*)Str1, (CHAR*)Str2, Max) == 0;
+		return strncmp(Str1, Str2, Max) == 0;
 	else
-		return wcsncmp((WCHAR*)Str1, (WCHAR*)Str2, Max) == 0;
+		return wcsncmp(Str1, Str2, Max) == 0;
 }
 template<ccpIsStdCharPtr TPtr>
 EckInlineNd bool TcsEqualMaxLenI(_In_reads_or_z_(Max) TPtr Str1,
 	_In_reads_or_z_(Max) ConstStdCharPtr_T<TPtr> Str2, size_t Max)
 {
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
-		return strnicmp((CHAR*)Str1, (CHAR*)Str2, Max) == 0;
+		return strnicmp(Str1, Str2, Max) == 0;
 	else
-		return wcsnicmp((WCHAR*)Str1, (WCHAR*)Str2, Max) == 0;
+		return wcsnicmp(Str1, Str2, Max) == 0;
 }
 
 template<ccpIsStdCharPtr TPtr>
@@ -118,9 +132,9 @@ EckInlineNd bool TcsEqualLen(_In_reads_(Len) TPtr Str1,
 	_In_reads_(Len) ConstStdCharPtr_T<TPtr> Str2, size_t Len)
 {
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
-		return memcmp((CHAR*)Str1, (CHAR*)Str2, Len) == 0;
+		return memcmp(Str1, Str2, Len) == 0;
 	else
-		return wmemcmp((WCHAR*)Str1, (WCHAR*)Str2, Len) == 0;
+		return wmemcmp(Str1, Str2, Len) == 0;
 }
 template<ccpIsStdCharPtr TPtr>
 EckInlineNd bool TcsEqualLenI(_In_reads_(Len) TPtr Str1,
@@ -420,6 +434,58 @@ EckInlineNd int TcsCompareLen2(_In_reads_(Len1) TPtr Str1, size_t Len1,
 }
 
 template<ccpIsStdCharPtr TPtr>
+EckInlineNd int TcsCompareI(_In_z_ TPtr Str1, _In_z_ TPtr Str2)
+{
+	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
+		return stricmp(Str1, Str2);
+	else
+		return wcsicmp(Str1, Str2);
+}
+template<ccpIsStdCharPtr TPtr>
+EckInlineNd int TcsCompareMaxLenI(_In_reads_or_z_(Max) TPtr Str1,
+	_In_reads_or_z_(Max) TPtr Str2, size_t Max)
+{
+	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
+		return strnicmp(Str1, Str2, Max);
+	else
+		return wcsnicmp(Str1, Str2, Max);
+}
+template<ccpIsStdCharPtr TPtr>
+EckInlineNd int TcsCompareLenI(_In_reads_(Len) TPtr Str1, _In_reads_(Len) TPtr Str2, size_t Len)
+{
+	using TChar = RemoveStdCharPtr_T<TPtr>;
+	if constexpr (std::is_same_v<TChar, char>)
+		return memicmp(Str1, Str2, Len);
+	else
+	{
+		const auto pEnd1 = Str1 + Len;
+		for (auto p1 = Str1, p2 = Str2; p1 < pEnd1; ++p1, ++p2)
+		{
+			const auto ch1 = (std::make_signed_t<TChar>)TchToLower(*p1);
+			const auto ch2 = (std::make_signed_t<TChar>)TchToLower(*p2);
+			if (ch1 != ch2)
+				return ch1 - ch2;
+		}
+		return 0;
+	}
+}
+template<ccpIsStdCharPtr TPtr>
+EckInlineNd int TcsCompareLen2I(_In_reads_(Len1) TPtr Str1, size_t Len1,
+	_In_reads_(Len2) TPtr Str2, size_t Len2)
+{
+	const auto r = TcsCompareLenI(Str1, Str2, std::min(Len1, Len2));
+	if (r)
+		return r;
+	if (Len1 < Len2)
+		return -1;
+	else if (Len1 > Len2)
+		return 1;
+	else
+		return 0;
+}
+
+
+template<ccpIsStdCharPtr TPtr>
 EckInlineNd int TcsSet(_Out_writes_z_(cchDst) TPtr Dst, RemoveStdCharPtr_T<TPtr> ch, size_t cchDst)
 {
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
@@ -533,9 +599,9 @@ template<ccpIsStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr LTrimStr(_In_z_ TPtr pszText)
 {
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
-		return TcsChrFirstOf(pszText, SpaceCharsA);
+		return TcsChrFirstNotOf(pszText, SpaceCharsA);
 	else
-		return TcsChrFirstOf(pszText, SpaceCharsW);
+		return TcsChrFirstNotOf(pszText, SpaceCharsW);
 }
 
 template<ccpIsStdCharPtr TPtr>

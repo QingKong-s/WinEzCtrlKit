@@ -103,7 +103,7 @@ struct CoroPromiseBase
 		return (State)__iso_volatile_load32((const int*)&m_eState) == State::Completed;
 	}
 
-	EckInline BOOL TryCancel() noexcept
+	BOOL TryCancel() noexcept
 	{
 		auto eOld = (State)_InterlockedCompareExchange((LONG*)&m_eState,
 			(LONG)State::Cancelled, (LONG)State::Initial);

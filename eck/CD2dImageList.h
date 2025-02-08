@@ -23,6 +23,8 @@ private:
 
 	int m_cImgPerPack = 50;
 
+	LONG m_cRef{ 1 };
+
 	EckInline constexpr D2D1_SIZE_U GetPackSize() const
 	{
 		return { (UINT32)m_cx, (UINT32)((m_cy + m_iPadding) * m_cImgPerPack) };

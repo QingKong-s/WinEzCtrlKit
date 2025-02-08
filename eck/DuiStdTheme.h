@@ -217,7 +217,7 @@ constexpr inline STD_THEME_DATA StdThemeData
 			.bGeometry = TRUE,
 			.Geo = {
 				.eType = GeoType::FillFrameRect,
-				.fWidth = 2.f,
+				.fWidth = 1.f,
 			},
 			.ColorIdx = {
 				.idxClrBk = (UINT)StdPal::ButtonNormalBk,
@@ -229,7 +229,7 @@ constexpr inline STD_THEME_DATA StdThemeData
 			.bGeometry = TRUE,
 			.Geo = {
 				.eType = GeoType::FillFrameRect,
-				.fWidth = 2.f,
+				.fWidth = 1.f,
 			},
 			.ColorIdx = {
 				.idxClrBk = (UINT)StdPal::ButtonHotBk,
@@ -241,7 +241,7 @@ constexpr inline STD_THEME_DATA StdThemeData
 			.bGeometry = TRUE,
 			.Geo = {
 				.eType = GeoType::FillFrameRect,
-				.fWidth = 2.f,
+				.fWidth = 1.f,
 			},
 			.ColorIdx = {
 				.idxClrBk = (UINT)StdPal::ButtonSelectedBk,

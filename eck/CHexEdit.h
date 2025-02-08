@@ -237,7 +237,7 @@ private:
 					idxRow1 * GetRowHeight() - D.cyGap / 2;
 				FillRect(hDC, &rc, hbr);
 				rc.top = rc.bottom;
-				rc.bottom = rc.top + GetRowHeight() - D.cyGap / 2;
+				rc.bottom = rc.top + GetRowHeight();
 				rc.right = xData + (idxCol1 + 1) * GetColumnWidth() - D.cxGap;
 				FillRect(hDC, &rc, hbr);
 			}
