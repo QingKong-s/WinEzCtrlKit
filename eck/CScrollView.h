@@ -189,6 +189,7 @@ public:
 			si.nPos = m_iPos;
 	}
 
+	// 是否有必要显示滚动条
 	EckInline constexpr BOOL IsVisible() const
 	{
 		return IsValid() && GetViewSize() > GetMinThumbSize();

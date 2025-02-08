@@ -90,6 +90,7 @@ private:
 	}
 public:
 	constexpr static int LocalBufferSize = ARRAYSIZE(m_szLocal);
+	constexpr static int EnsureNotLocalBufferSize = ARRAYSIZE(m_szLocal) * 3 / 2;
 
 	CRefStrT() = default;
 
@@ -432,10 +433,11 @@ public:
 		return PushBack(sv.data(), (int)sv.size());
 	}
 
-	EckInline void PushBackChar(TChar ch)
+	EckInline CRefStrT& PushBackChar(TChar ch)
 	{
 		ReSizeExtra(Size() + 1);
 		*(Data() + Size() - 1) = ch;
+		return *this;
 	}
 
 	EckInline TPointer PushBackNoExtra(int cch)

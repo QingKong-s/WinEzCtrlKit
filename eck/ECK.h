@@ -177,6 +177,9 @@ ECK_NAMESPACE_END
 #define EckStrAndLen(Arr)		Arr, (ARRAYSIZE(Arr) - 1)
 #define EckLenAndStr(Arr)		(ARRAYSIZE(Arr) - 1), Arr
 
+#define EckArrAndLen(Arr)		Arr, ARRAYSIZE(Arr)
+#define EckLenAndArr(Arr)		ARRAYSIZE(Arr), Arr
+
 // 计次循环
 #define EckCounter(c, Var) \
 	for(::eck::UnderlyingType_T<::eck::RemoveCVRef_T<decltype(c)>> Var = 0; Var < (c); ++Var)

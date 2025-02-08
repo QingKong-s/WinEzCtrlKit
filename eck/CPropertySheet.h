@@ -82,27 +82,27 @@ public:
 		return (HWND)SendMsg(PSM_GETTABCONTROL, 0, 0);
 	}
 
-	EckInline int HWNDToIndex(HWND hDlg) const
+	EckInline int HWndToIndex(HWND hDlg) const
 	{
 		return (int)SendMsg(PSM_HWNDTOINDEX, (WPARAM)hDlg, 0);
 	}
 
-	EckInline int IDToIndex(PCWSTR idRes) const
+	EckInline int IdToIndex(PCWSTR idRes) const
 	{
 		return (int)SendMsg(PSM_IDTOINDEX, 0, (LPARAM)idRes);
 	}
 
-	EckInline HWND IndexToHWND(int idx) const
+	EckInline HWND IndexToHWnd(int idx) const
 	{
 		return (HWND)SendMsg(PSM_INDEXTOHWND, idx, 0);
 	}
 
-	EckInline PCWSTR IndexToID(int idx) const
+	EckInline PCWSTR IndexToId(int idx) const
 	{
 		return (PCWSTR)SendMsg(PSM_INDEXTOID, idx, 0);
 	}
 
-	EckInline HPROPSHEETPAGE IndexToHPAGE(int idx) const
+	EckInline HPROPSHEETPAGE IndexToHPage(int idx) const
 	{
 		return (HPROPSHEETPAGE)SendMsg(PSM_INDEXTOPAGE, idx, 0);
 	}
@@ -122,7 +122,7 @@ public:
 		return (BOOL)SendMsg(PSM_ISDIALOGMESSAGE, 0, (LPARAM)pmsg);
 	}
 
-	EckInline int HPAGEToIndex(HPROPSHEETPAGE hPage) const
+	EckInline int HPageToIndex(HPROPSHEETPAGE hPage) const
 	{
 		return (int)SendMsg(PSM_PAGETOINDEX, 0, (LPARAM)hPage);
 	}
@@ -150,7 +150,7 @@ public:
 		SendMsg(PSM_REBOOTSYSTEM, 0, 0);
 	}
 
-	EckInline BOOL ReCalcPageSize() const
+	EckInline BOOL ReCalcPageSizes() const
 	{
 		return (BOOL)SendMsg(PSM_RECALCPAGESIZES, 0, 0);
 	}

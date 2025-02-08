@@ -182,6 +182,7 @@
     <ClInclude Include="eck\CHeaderExt.h" />
     <ClInclude Include="eck\CHitter.h" />
     <ClInclude Include="eck\CHotKeyExt.h" />
+    <ClInclude Include="eck\CIniExt.h" />
     <ClInclude Include="eck\CSequenceIdGenerator.h" />
     <ClInclude Include="eck\CTimeIdGenerator.h" />
     <ClInclude Include="eck\CIPEdit.h" />
