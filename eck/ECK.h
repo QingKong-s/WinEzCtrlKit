@@ -529,6 +529,13 @@ constexpr inline BYTE BOM_UTF16LE[]{ 0xFF,0xFE };
 constexpr inline BYTE BOM_UTF16BE[]{ 0xFE,0xFF };
 constexpr inline BYTE BOM_UTF8[]{ 0xEF,0xBB,0xBF };
 
+template<class TChar>
+constexpr inline TChar EOL_LF{ '\n' };
+template<class TChar>
+constexpr inline TChar EOL_CR{ '\r' };
+template<class TChar>
+constexpr inline TChar EOL_CRLF[]{ '\r','\n' };
+
 constexpr inline COLORREF c_crDarkWnd = RGB(32, 32, 32);
 constexpr inline COLORREF c_crDarkBtnFace = 0x383838;
 
@@ -723,6 +730,14 @@ enum DispInfoMask :UINT
 	DIM_LPARAM = 1u << 3,
 };
 ECK_ENUM_BIT_FLAGS(DispInfoMask);
+
+enum class EolType :BYTE
+{
+	Auto,
+	CRLF,
+	CR,
+	LF,
+};
 #pragma endregion Enum
 
 #pragma region Global
