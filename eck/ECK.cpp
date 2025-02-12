@@ -69,7 +69,7 @@ void InitPrivateApi()
 }
 
 // RTTI
-ClassInfo* g_pClassInfo{};
+std::unordered_map<std::wstring_view, ClassInfo*> g_hsClassInfo{};
 
 // For program
 
@@ -925,7 +925,7 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 			case TDLG_FOOTNOTESEPARATOR:
 				return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.67f);
 			}
-		else// Win10任务对话框实际上使用ControlPanelStyle绘制主次面板
+		else// Win10任务对话框(或DUser？)实际上使用ControlPanelStyle绘制主次面板
 			switch (iPartId)
 			{
 			case TDLG_PRIMARYPANEL:

@@ -200,6 +200,7 @@
     <ClInclude Include="eck\CUnknown.h" />
     <ClInclude Include="eck\CWaitableObject.h" />
     <ClInclude Include="eck\CWaitableTimer.h" />
+    <ClInclude Include="eck\CWin32UIMgr.h" />
     <ClInclude Include="eck\DateTimeHelper.h" />
     <ClInclude Include="eck\DDX.h" />
     <ClInclude Include="eck\DDXImpl.h" />

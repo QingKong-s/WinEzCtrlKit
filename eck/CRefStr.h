@@ -483,13 +483,14 @@ public:
 	/// 尾删
 	/// </summary>
 	/// <param name="cch">删除长度</param>
-	EckInline void PopBack(int cch = 1)
+	EckInline CRefStrT& PopBack(int cch = 1)
 	{
 		EckAssert(Size() >= cch && cch >= 0);
 		if (!cch)
-			return;
+			return *this;
 		m_cchText -= cch;
 		TCharTraits::Cut(Data(), Size());
+		return *this;
 	}
 
 	/// <summary>
