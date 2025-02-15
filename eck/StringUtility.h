@@ -394,7 +394,7 @@ _Post_equal_to_(Dst) EckInlineNd TPtr TcsMoveLenEnd(_Out_writes_(Len) TPtr Dst,
 }
 
 template<ccpIsStdCharPtr TPtr>
-EckInlineNd int TcsCompare(_In_z_ TPtr Str1, _In_z_ TPtr Str2)
+EckInlineNd int TcsCompare(_In_z_ TPtr Str1, _In_z_ ConstStdCharPtr_T<TPtr> Str2)
 {
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
 		return strcmp(Str1, Str2);
@@ -403,7 +403,7 @@ EckInlineNd int TcsCompare(_In_z_ TPtr Str1, _In_z_ TPtr Str2)
 }
 template<ccpIsStdCharPtr TPtr>
 EckInlineNd int TcsCompareMaxLen(_In_reads_or_z_(Max) TPtr Str1,
-	_In_reads_or_z_(Max) TPtr Str2, size_t Max)
+	_In_reads_or_z_(Max) ConstStdCharPtr_T<TPtr> Str2, size_t Max)
 {
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
 		return strncmp(Str1, Str2, Max);
@@ -411,7 +411,8 @@ EckInlineNd int TcsCompareMaxLen(_In_reads_or_z_(Max) TPtr Str1,
 		return wcsncmp(Str1, Str2, Max);
 }
 template<ccpIsStdCharPtr TPtr>
-EckInlineNd int TcsCompareLen(_In_reads_(Len) TPtr Str1, _In_reads_(Len) TPtr Str2, size_t Len)
+EckInlineNd int TcsCompareLen(_In_reads_(Len) TPtr Str1,
+	_In_reads_(Len) ConstStdCharPtr_T<TPtr> Str2, size_t Len)
 {
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
 		return memcmp(Str1, Str2, Len);
@@ -420,7 +421,7 @@ EckInlineNd int TcsCompareLen(_In_reads_(Len) TPtr Str1, _In_reads_(Len) TPtr St
 }
 template<ccpIsStdCharPtr TPtr>
 EckInlineNd int TcsCompareLen2(_In_reads_(Len1) TPtr Str1, size_t Len1,
-	_In_reads_(Len2) TPtr Str2, size_t Len2)
+	_In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2)
 {
 	const auto r = TcsCompareLen(Str1, Str2, std::min(Len1, Len2));
 	if (r)
@@ -484,8 +485,7 @@ EckInlineNd int TcsCompareLen2I(_In_reads_(Len1) TPtr Str1, size_t Len1,
 		return 0;
 }
 
-
-template<ccpIsStdCharPtr TPtr>
+template<ccpIsNonConstStdCharPtr TPtr>
 EckInlineNd int TcsSet(_Out_writes_z_(cchDst) TPtr Dst, RemoveStdCharPtr_T<TPtr> ch, size_t cchDst)
 {
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
@@ -656,7 +656,7 @@ inline void SplitStr(TPtr pszText, int cchText,
 }
 // For compatibility.
 template<ccpIsStdCharPtr TPtr, class TProcesser>
-EckInline void SplitStr(TPtr pszText, ConstStdCharPtr_T<TPtr> pszDiv, 
+EckInline void SplitStr(TPtr pszText, ConstStdCharPtr_T<TPtr> pszDiv,
 	int cSubTextExpected, int cchText, int cchDiv, TProcesser&& Processer)
 {
 	SplitStr(pszText, pszDiv, cSubTextExpected, cchText, cchDiv,
