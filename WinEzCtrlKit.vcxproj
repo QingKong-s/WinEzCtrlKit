@@ -249,6 +249,7 @@
     <ClInclude Include="eck\DistortImage.h" />
     <ClInclude Include="eck\GeometryRender.h" />
     <ClInclude Include="eck\IMem.h" />
+    <ClInclude Include="eck\LocaleStringUtility.h" />
     <ClInclude Include="eck\LunarDateTimeHelper.h" />
     <ClInclude Include="eck\Lyric.h" />
     <ClInclude Include="eck\MediaTagApe.h" />

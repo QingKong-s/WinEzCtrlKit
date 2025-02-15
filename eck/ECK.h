@@ -212,7 +212,7 @@ ECK_NAMESPACE_END
 											(float)GET_Y_LPARAM(lParam) }
 
 // lParam->size 用于处理WM_SIZE
-#define ECK_GET_SIZE_LPARAM(cx,cy,lParam)	{ (cx) = LOWORD(lParam); (cy) = HIWORD(lParam); }
+#define ECK_GET_SIZE_LPARAM(cx, cy, lParam)	{ (cx) = LOWORD(lParam); (cy) = HIWORD(lParam); }
 
 // 定义COM接口
 #define ECK_COM_INTERFACE(iid)	__interface __declspec(uuid(iid))

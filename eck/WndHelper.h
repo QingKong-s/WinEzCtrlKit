@@ -221,9 +221,8 @@ EckInline constexpr void DpiScale(_Inout_ D2D1_POINT_2U& pt, int iDpi)
 EckInline HFONT EzFont(PCWSTR pszFontName, int iPoint, int iWeight = 400, BOOL bItalic = FALSE,
 	BOOL bUnderline = FALSE, BOOL bStrikeOut = FALSE, HWND hWnd = nullptr, DWORD dwCharSet = DEFAULT_CHARSET)
 {
-	HDC hDC = GetDC(hWnd);
-	int iSize;
-	iSize = -MulDiv(iPoint, GetDeviceCaps(hDC, LOGPIXELSY), 72);
+	const HDC hDC = GetDC(hWnd);
+	const int iSize = -MulDiv(iPoint, GetDeviceCaps(hDC, LOGPIXELSY), 72);
 	ReleaseDC(hWnd, hDC);
 	return CreateFontW(iSize, 0, 0, 0, iWeight, bItalic, bUnderline,
 		bStrikeOut, dwCharSet, 0, 0, 0, 0, pszFontName);
@@ -277,7 +276,7 @@ EckInline HFONT ReCreateFontForDpiChanged(HFONT hFont, int iDpiNew, int iDpiOld,
 /// <returns></returns>
 EckInline HFONT ResetFontForDpiChanged(HWND hWnd, int iDpiNew, int iDpiOld, BOOL bRedraw = TRUE, BOOL bDeletePrevFont = FALSE)
 {
-	HFONT hFontNew = ReCreateFontForDpiChanged(
+	const HFONT hFontNew = ReCreateFontForDpiChanged(
 		(HFONT)SendMessageW(hWnd, WM_GETFONT, 0, 0),
 		iDpiNew, iDpiOld, bDeletePrevFont);
 	SendMessageW(hWnd, WM_SETFONT, (WPARAM)hFontNew, bRedraw);
@@ -288,7 +287,7 @@ inline BOOL GetWindowClientRect(HWND hWnd, HWND hParent, RECT& rc)
 {
 	if (!GetWindowRect(hWnd, &rc))
 		return FALSE;
-	int cx = rc.right - rc.left,
+	const int cx = rc.right - rc.left,
 		cy = rc.bottom - rc.top;
 	if (!ScreenToClient(hParent, (POINT*)&rc))
 		return FALSE;
@@ -305,7 +304,7 @@ inline BOOL GetWindowClientRect(HWND hWnd, HWND hParent, RECT& rc)
 /// <returns></returns>
 EckInline HIMAGELIST LVSetItemHeight(HWND hLV, int cy)
 {
-	return (HIMAGELIST)SendMessageW((hLV), LVM_SETIMAGELIST, LVSIL_SMALL, (LPARAM)ImageList_Create(1, (cy), 0, 1, 0));
+	return (HIMAGELIST)SendMessageW(hLV, LVM_SETIMAGELIST, LVSIL_SMALL, (LPARAM)ImageList_Create(1, (cy), 0, 1, 0));
 }
 
 EckInline BOOL BitBltPs(const PAINTSTRUCT* pps, HDC hdcSrc)
@@ -493,7 +492,7 @@ inline ATOM EzRegisterWndClass(PCWSTR pszClass, UINT uStyle = CS_STDWND, HBRUSH 
 
 EckInline HMONITOR GetPrimaryMonitor()
 {
-	HMONITOR hMonitor = nullptr;
+	HMONITOR hMonitor{};
 	EnumDisplayMonitors(nullptr, nullptr, [](HMONITOR hMonitor, HDC, RECT*, LPARAM lParam)->BOOL
 		{
 			MONITORINFO mi;
@@ -516,16 +515,24 @@ inline HMONITOR GetOwnerMonitor(HWND hWnd)
 		return MonitorFromWindow(hWnd, MONITOR_DEFAULTTOPRIMARY);
 	else
 	{
-		const auto hForeGnd = GetForegroundWindow();
+		const auto hForegnd = GetForegroundWindow();
 		DWORD dwPID;
-		GetWindowThreadProcessId(hForeGnd, &dwPID);
+		GetWindowThreadProcessId(hForegnd, &dwPID);
 		if (dwPID == NtCurrentProcessId32())// 如果前台窗口是自进程窗口，返回这个窗口所在的显示器
-			return MonitorFromWindow(hForeGnd, MONITOR_DEFAULTTOPRIMARY);
+			return MonitorFromWindow(hForegnd, MONITOR_DEFAULTTOPRIMARY);
 		else// 否则返回主显示器
 			return GetPrimaryMonitor();
 	}
 }
 
+/// <summary>
+/// 计算窗口居中坐标
+/// </summary>
+/// <param name="hParent">父窗口，若为空，则使用最佳显示器</param>
+/// <param name="cx">子窗口宽度</param>
+/// <param name="cy">子窗口高度</param>
+/// <param name="bEnsureInMonitor">是否确保在显示器内</param>
+/// <returns>子窗口左上角坐标，相对屏幕</returns>
 inline POINT CalcCenterWndPos(HWND hParent, int cx, int cy,
 	BOOL bEnsureInMonitor = TRUE)
 {
@@ -539,7 +546,7 @@ inline POINT CalcCenterWndPos(HWND hParent, int cx, int cy,
 		{
 			rc.right = rc.left + cx;
 			rc.bottom = rc.top + cy;
-			const auto hMonitor = GetOwnerMonitor(nullptr);
+			const auto hMonitor = GetOwnerMonitor(hParent);
 			MONITORINFO mi;
 			mi.cbSize = sizeof(mi);
 			GetMonitorInfoW(hMonitor, &mi);
@@ -565,18 +572,26 @@ inline POINT CalcCenterWndPos(HWND hParent, int cx, int cy,
 
 /// <summary>
 /// 鼠标是否移动出拖放距离阈值。
-/// 给定起始点，判断自调用函数的瞬间起鼠标移动距离是否超过(dx, dy)
+/// 给定起始点，判断自调用函数的瞬间起鼠标移动距离是否超过(dx, dy)。
+/// 警告：1. 此函数启动拖放消息循环，返回后窗口可能已被销毁；
+///      2. 函数使用SetCapture和ReleaseCapture。
 /// </summary>
 /// <param name="hWnd">窗口句柄</param>
 /// <param name="x">起始X，相对屏幕</param>
 /// <param name="y">起始Y，相对屏幕</param>
 /// <param name="dx">x方向的阈值，若为负，则使用GetSystemMetrics(SM_CXDRAG)</param>
 /// <param name="dy">y方向的阈值，若为负，则使用GetSystemMetrics(SM_CYDRAG)</param>
+/// <param name="iDpi">DPI，若为负，则自动获取</param>
 /// <returns>移动距离超出阈值返回TRUE，此时调用方可执行拖放操作；否则返回FALSE</returns>
-inline BOOL IsMouseMovedBeforeDragging(HWND hWnd, int x, int y, int dx = -1, int dy = -1)
+inline BOOL IsMouseMovedBeforeDragging(HWND hWnd, int x, int y,
+	int dx = -1, int dy = -1, int iDpi = -1)
 {
-	const int dxDrag = (dx < 0 ? GetSystemMetrics(SM_CXDRAG) : dx);
-	const int dyDrag = (dy < 0 ? GetSystemMetrics(SM_CYDRAG) : dy);
+	if ((dx < 0 || dy < 0) && iDpi < 0)
+		iDpi = GetDpi(hWnd);
+	if (dx < 0)
+		dx = DaGetSystemMetrics(SM_CXDRAG, iDpi);
+	if (dy < 0)
+		dy = DaGetSystemMetrics(SM_CYDRAG, iDpi);
 	SetCapture(hWnd);
 	MSG msg;
 	while (GetCapture() == hWnd)
@@ -596,7 +611,7 @@ inline BOOL IsMouseMovedBeforeDragging(HWND hWnd, int x, int y, int dx = -1, int
 				DispatchMessageW(&msg);
 				return FALSE;
 			case WM_MOUSEMOVE:
-				if (Abs(x - msg.pt.x) >= dxDrag && Abs(y - msg.pt.y) >= dyDrag)
+				if (Abs(x - msg.pt.x) >= dx && Abs(y - msg.pt.y) >= dx)
 				{
 					ReleaseCapture();
 					return TRUE;
@@ -639,7 +654,8 @@ EckInline HRESULT EnableWindowNcDarkMode(HWND hWnd, BOOL bAllow)
 
 EckInline BOOL IsColorSchemeChangeMessage(LPARAM lParam)
 {
-	return CompareStringOrdinal((PCWCH)lParam, -1, L"ImmersiveColorSet", -1, TRUE) == CSTR_EQUAL;
+	return CompareStringOrdinal((PCWCH)lParam, -1,
+		EckStrAndLen(L"ImmersiveColorSet"), TRUE) == CSTR_EQUAL;
 }
 
 EckInline void RefreshImmersiveColorStuff()
@@ -867,10 +883,8 @@ inline void GenerateKeyMsg(HWND hWnd, UINT Vk, KeyType eType, BOOL bExtended = F
 	}
 }
 
-/// <summary>
-/// 提供对亮暗切换的默认处理。
-/// 一般仅用于**主**顶级窗口，除了产生相关更新消息外还更新当前线程上下文的默认颜色
-/// </summary>
+// 提供对亮暗切换的默认处理。
+// 一般仅用于**主**顶级窗口，除了产生相关更新消息外还更新当前线程上下文的默认颜色
 EckInline BOOL MsgOnSettingChangeMainWnd(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
 	if (IsColorSchemeChangeMessage(lParam))
@@ -886,10 +900,8 @@ EckInline BOOL MsgOnSettingChangeMainWnd(HWND hWnd, WPARAM wParam, LPARAM lParam
 		return FALSE;
 }
 
-/// <summary>
-/// 提供对亮暗切换的默认处理。
-/// 一般仅用于顶级窗口
-/// </summary>
+// 提供对亮暗切换的默认处理。
+// 一般仅用于顶级窗口
 EckInline BOOL MsgOnSettingChange(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
 	if (IsColorSchemeChangeMessage(lParam))
@@ -903,20 +915,15 @@ EckInline BOOL MsgOnSettingChange(HWND hWnd, WPARAM wParam, LPARAM lParam)
 		return FALSE;
 }
 
-/// <summary>
-/// 提供对WM_SYSCOLORCHANGE的默认处理。
-/// 一般仅用于**主**顶级窗口，除了向子窗口广播消息外还更新当前线程上下文的默认颜色
-/// </summary>
+// 提供对WM_SYSCOLORCHANGE的默认处理。
+// 一般仅用于**主**顶级窗口，除了向子窗口广播消息外还更新当前线程上下文的默认颜色
 EckInline void MsgOnSysColorChangeMainWnd(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
 	GetThreadCtx()->UpdateDefColor();
 	BroadcastChildrenMessage(hWnd, WM_SYSCOLORCHANGE, wParam, lParam);
 }
 
-/// <summary>
-/// 提供对WM_SYSCOLORCHANGE的默认处理。
-/// 一般仅用于顶级窗口
-/// </summary>
+// 提供对WM_SYSCOLORCHANGE的默认处理。一般仅用于顶级窗口
 EckInline void MsgOnSysColorChange(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
 	BroadcastChildrenMessage(hWnd, WM_SYSCOLORCHANGE, wParam, lParam);
@@ -993,7 +1000,8 @@ inline SIZE GetCharDimension(HWND hWnd, HFONT hFont)
 	if (tm.tmPitchAndFamily & TMPF_FIXED_PITCH)
 	{
 		SIZE size;
-		GetTextExtentPoint32W(hDC, L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 52, &size);
+		GetTextExtentPoint32W(hDC,
+			L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 52, &size);
 		size.cx = ((size.cx / 26) + 1) / 2;
 		size.cy = tm.tmHeight;
 		return size;
@@ -1002,6 +1010,7 @@ inline SIZE GetCharDimension(HWND hWnd, HFONT hFont)
 		return { tm.tmAveCharWidth, tm.tmHeight };
 }
 
+// 根据位置判断窗口是否应显示大小调整控件，该函数无视被判断窗口的样式
 inline BOOL ShouldWindowDisplaySizeGrip(HWND hWnd, int iDpi = -1)
 {
 	const auto hDesktop = GetDesktopWindow();
@@ -1014,13 +1023,13 @@ inline BOOL ShouldWindowDisplaySizeGrip(HWND hWnd, int iDpi = -1)
 	while (hWnd && hWnd != hDesktop)
 	{
 		const auto dwStyle = GetWindowLongPtrW(hWnd, GWL_STYLE);
-		if (IsBitSet(dwStyle, WS_SIZEBOX))
+		if (IsBitSet(dwStyle, WS_SIZEBOX))// 向上找到第一个可调窗口
 		{
 			if (IsBitSet(dwStyle, WS_MAXIMIZE))
-				return FALSE;
+				return FALSE;// 最大化时不应显示
 			GetWindowRect(hWnd, &rcTmp);
 			if (rc.right < rcTmp.right || rc.bottom < rcTmp.bottom)
-				return FALSE;
+				return FALSE;// 没有贴近右下角时不应显示
 			return TRUE;
 		}
 		else

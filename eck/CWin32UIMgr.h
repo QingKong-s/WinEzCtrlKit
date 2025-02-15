@@ -3,6 +3,38 @@
 #include "CIniExt.h"
 
 ECK_NAMESPACE_BEGIN
+/*
+[>Form]
+
+[>LinearLayoutV]
+	[Default]
+	Lyt.Flags=FixV,FixH
+
+	[EditExt]
+	Name=EDName
+	CueBanner=Name
+
+	[EditExt]
+	Name=EDPassword
+	CueBanner=Password
+
+	[>LinearLayoutH]
+		[Default]
+		Lyt.Flags=FixV,FixH
+
+		[Button]
+		Name=BTOk
+		Text=Ok
+
+		[Button]
+		Name=BTCancel
+		Text=Cancel
+	[<]
+[<LinearLayoutV]
+
+[<]
+
+*/
 class CWin32UIMgr
 {
 private:

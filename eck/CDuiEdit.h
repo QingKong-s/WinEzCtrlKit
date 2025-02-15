@@ -21,7 +21,7 @@ public:
 
 	STDMETHODIMP QueryInterface(REFIID riid, void** ppvObject) override
 	{
-		const static QITAB qit[]
+		const QITAB qit[]
 		{
 			{ g_pIID_ITextHost, OFFSETOFCLASS(CEditTextHost, ITextHost2) },
 			{ g_pIID_ITextHost2, OFFSETOFCLASS(CEditTextHost, ITextHost2) },

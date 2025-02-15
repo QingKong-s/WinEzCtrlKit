@@ -246,33 +246,33 @@ static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 		eType = ThemeType::Button;
 	else if (EckIsStartWithConstStringIW(pszClassList, L"TaskDialog"))
 		eType = ThemeType::TaskDialog;
-	else if (_wcsicmp(pszClassList, L"Tab") == 0)
+	else if (TcsEqualI(pszClassList, L"Tab"))
 		eType = ThemeType::Tab;
-	else if (_wcsicmp(pszClassList, L"ToolBar") == 0)
+	else if (TcsEqualI(pszClassList, L"ToolBar"))
 		eType = ThemeType::ToolBar;
 	else if (EckIsStartWithConstStringIW(pszClassList, L"AeroWizard"))
 		eType = ThemeType::AeroWizard;
-	else if (_wcsicmp(pszClassList, L"DatePicker") == 0)
+	else if (TcsEqualI(pszClassList, L"DatePicker"))
 		eType = ThemeType::DateTimePicker;
-	else if (wcsstr(pszClassList, L"ListView") ||
-		_wcsicmp(pszClassList, L"ItemsView") == 0)
+	else if (TcsStrI(pszClassList, L"ListView") ||
+		TcsEqualI(pszClassList, L"ItemsView"))
 		eType = ThemeType::ListView;
-	else if (_wcsicmp(pszClassList, L"Link") == 0)
+	else if (TcsEqualI(pszClassList, L"Link"))
 		eType = ThemeType::Link;
-	else if (wcsstr(pszClassList, L"Header"))
+	else if (TcsStrI(pszClassList, L"Header"))
 		eType = ThemeType::Header;
-	else if (_wcsicmp(pszClassList, L"TextStyle") == 0)
+	else if (TcsEqualI(pszClassList, L"TextStyle"))
 		eType = ThemeType::TextStyle;
-	else if (_wcsicmp(pszClassList, L"Progress") == 0 ||
-		_wcsicmp(pszClassList, L"Indeterminate::Progress") == 0)
+	else if (TcsEqualI(pszClassList, L"Progress") ||
+		TcsEqualI(pszClassList, L"Indeterminate::Progress"))
 		eType = ThemeType::Progress;
 	else if (EckIsStartWithConstStringIW(pszClassList, L"ControlPanel"))
 		eType = ThemeType::ControlPanel;
-	else if (_wcsicmp(pszClassList, L"MonthCal") == 0)
+	else if (TcsEqualI(pszClassList, L"MonthCal"))
 		eType = ThemeType::MonthCalendar;
 	else if (EckIsStartWithConstStringIW(pszClassList, L"Status"))
 		eType = ThemeType::StatusBar;
-	else if (_wcsicmp(pszClassList, L"Menu") == 0)
+	else if (TcsEqualI(pszClassList, L"Menu"))
 		eType = ThemeType::Menu;
 	else
 		eType = ThemeType::Invalid;
@@ -1263,7 +1263,7 @@ static HRESULT WINAPI NewDrawThemeParentBackground(HWND hWnd, HDC hDC, const REC
 // 非客户区滚动条
 static HTHEME WINAPI NewOpenNcThemeData(HWND hWnd, PCWSTR pszClassList)
 {
-	if (_wcsicmp(pszClassList, L"ScrollBar") == 0)
+	if (TcsEqualI(pszClassList, L"ScrollBar"))
 		return s_pfnOpenNcThemeData(nullptr, L"Explorer::ScrollBar");
 	else ECKLIKELY
 		return s_pfnOpenNcThemeData(hWnd, pszClassList);
@@ -1274,9 +1274,9 @@ static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
 	HTHEME hTheme;
 	if (ShouldAppsUseDarkMode())
 	{
-		if (_wcsicmp(pszClassList, L"Combobox") == 0)
+		if (TcsEqualI(pszClassList, L"Combobox"))
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Combobox");
-		else if (_wcsicmp(pszClassList, L"Edit") == 0)
+		else if (TcsEqualI(pszClassList, L"Edit"))
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Edit");
 		else if (UxfIsDarkTaskDialogAvailable() &&
 			EckIsStartWithConstStringIW(pszClassList, L"TaskDialog"))
@@ -1295,9 +1295,9 @@ static HTHEME WINAPI NewOpenThemeDataForDpi(HWND hWnd, PCWSTR pszClassList, UINT
 	HTHEME hTheme;
 	if (ShouldAppsUseDarkMode())
 	{
-		if (_wcsicmp(pszClassList, L"Combobox") == 0)
+		if (TcsEqualI(pszClassList, L"Combobox"))
 			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_CFD::Combobox", uDpi);
-		else if (_wcsicmp(pszClassList, L"Edit") == 0)
+		else if (TcsEqualI(pszClassList, L"Edit"))
 			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_CFD::Edit", uDpi);
 		else if (UxfIsDarkTaskDialogAvailable() &&
 			EckIsStartWithConstStringIW(pszClassList, L"TaskDialog"))
