@@ -37,11 +37,11 @@ enum :UINT
 	// TrackBar
 	TBE_POSCHANGED,	// 位置改变
 	// List
-	LEE_GETDISPINFO,// 获取显示信息
+	LEE_GETDISPINFO,// 【渲染线程】获取显示信息
 	// ListTemplate
-	LTE_ITEMCLICK,	// 项选中
+	LTE_ITEMCLICK,	// 项选中(LTN_ITEM*)
 	// TabList
-	TBLE_GETDISPINFO,// 获取显示信息
+	TBLE_GETDISPINFO,// 【渲染线程】获取显示信息
 
 	EE_PRIVATE_BEGIN = 0x0400
 };

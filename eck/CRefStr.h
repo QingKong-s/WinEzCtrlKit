@@ -1099,18 +1099,31 @@ public:
 			*p = TchToUpper(*p);
 	}
 
-	[[nodiscard]] EckInline TIterator begin() { return Data(); }
-	[[nodiscard]] EckInline TIterator end() { return begin() + Size(); }
-	[[nodiscard]] EckInline TConstIterator begin() const { return Data(); }
-	[[nodiscard]] EckInline TConstIterator end() const { return begin() + Size(); }
-	[[nodiscard]] EckInline TConstIterator cbegin() const { begin(); }
-	[[nodiscard]] EckInline TConstIterator cend() const { end(); }
-	[[nodiscard]] EckInline TReverseIterator rbegin() { return TReverseIterator(begin()); }
-	[[nodiscard]] EckInline TReverseIterator rend() { return TReverseIterator(end()); }
-	[[nodiscard]] EckInline TConstReverseIterator rbegin() const { return TConstReverseIterator(begin()); }
-	[[nodiscard]] EckInline TConstReverseIterator rend() const { return TConstReverseIterator(end()); }
-	[[nodiscard]] EckInline TConstReverseIterator crbegin() const { return rbegin(); }
-	[[nodiscard]] EckInline TConstReverseIterator crend() const { return rend(); }
+	EckInline int Compare(TConstPointer psz, int cch = -1) const
+	{
+		if (cch < 0)
+			cch = (int)TcsLen(psz);
+		return TcsCompareLen2(Data(), Size(), psz, cch);
+	}
+	EckInline int CompareI(TConstPointer psz, int cch = -1) const
+	{
+		if (cch < 0)
+			cch = (int)TcsLen(psz);
+		return TcsCompareLen2I(Data(), Size(), psz, cch);
+	}
+
+	EckInlineNd TIterator begin() { return Data(); }
+	EckInlineNd TIterator end() { return begin() + Size(); }
+	EckInlineNd TConstIterator begin() const { return Data(); }
+	EckInlineNd TConstIterator end() const { return begin() + Size(); }
+	EckInlineNd TConstIterator cbegin() const { begin(); }
+	EckInlineNd TConstIterator cend() const { end(); }
+	EckInlineNd TReverseIterator rbegin() { return TReverseIterator(begin()); }
+	EckInlineNd TReverseIterator rend() { return TReverseIterator(end()); }
+	EckInlineNd TConstReverseIterator rbegin() const { return TConstReverseIterator(begin()); }
+	EckInlineNd TConstReverseIterator rend() const { return TConstReverseIterator(end()); }
+	EckInlineNd TConstReverseIterator crbegin() const { return rbegin(); }
+	EckInlineNd TConstReverseIterator crend() const { return rend(); }
 };
 
 using CRefStrW = CRefStrT<WCHAR, CCharTraits<WCHAR>>;

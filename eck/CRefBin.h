@@ -37,7 +37,7 @@ public:
 	explicit CRefBinT(const TAlloc& Al) : m_Alloc{ Al } {}
 
 	explicit CRefBinT(size_t cb, const TAlloc& Al = TAlloc{})
-		: m_cb{ cb }, m_cbCapacity{ cb }, m_Alloc{ Al }
+		: m_cb{ cb }, m_Alloc{ Al }
 	{
 		Reserve(cb);
 	}
