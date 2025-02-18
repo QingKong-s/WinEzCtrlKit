@@ -595,13 +595,14 @@ EckInlineNd int FindCharLastNotOf(_In_z_ TPtr pszText, int cchText,
 	return pszFind ? int(pszFind - pszText) : StrNPos;
 }
 
+// Deprecated. For compatibility.
 template<ccpIsStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr LTrimStr(_In_z_ TPtr pszText)
 {
-	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
-		return TcsChrFirstNotOf(pszText, SpaceCharsA);
-	else
-		return TcsChrFirstNotOf(pszText, SpaceCharsW);
+	auto ch = *pszText;
+	while ((ch == L' ' || ch == L'　') && ch != L'\0')
+		ch = *++pszText;
+	return pszText;
 }
 
 template<ccpIsStdCharPtr TPtr>
@@ -659,7 +660,7 @@ template<ccpIsStdCharPtr TPtr, class TProcesser>
 EckInline void SplitStr(TPtr pszText, ConstStdCharPtr_T<TPtr> pszDiv,
 	int cSubTextExpected, int cchText, int cchDiv, TProcesser&& Processer)
 {
-	SplitStr(pszText, pszDiv, cSubTextExpected, cchText, cchDiv,
+	SplitStr(pszText, cchText, pszDiv, cchDiv,cSubTextExpected, 
 		std::forward<TProcesser>(Processer));
 }
 

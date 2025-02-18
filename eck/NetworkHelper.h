@@ -24,7 +24,7 @@ inline std::wstring_view HeaderGetParam(_In_z_ PCWSTR pszHeader, _In_z_ PCWSTR p
 	if (posEnd == StrNPos)
 		return {};
 	if (cchName < 0)
-		cchName = (int)wcslen(pszName);
+		cchName = (int)TcsLen(pszName);
 	const auto pszValue = LTrimStr(pszHeader + pos + cchName + 2);
 	return { pszValue, size_t(posEnd - (pszValue - pszHeader)) };
 }

@@ -1695,7 +1695,8 @@ public:
 		pTheme->SetPalette(pTheme->GetPaletteList()[!!bDark]);
 		D2D1_COLOR_F cr;
 		pTheme->GetSysColor(SysColor::Bk, cr);
-		m_pBrBkg->SetColor(cr);
+		if (m_pBrBkg)
+			m_pBrBkg->SetColor(cr);
 		BroadcastEvent(WM_THEMECHANGED, 0, 0);
 	}
 

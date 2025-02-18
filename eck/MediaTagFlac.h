@@ -157,37 +157,37 @@ public:
 	{
 		for (const auto& e : m_vItem)
 		{
-			if ((mi.uFlag & MIM_TITLE) && e.rsKey.CompareI("TITLE"))
+			if ((mi.uFlag & MIM_TITLE) && e.rsKey.CompareI(EckStrAndLen("TITLE")) == 0)
 			{
 				mi.rsTitle = e.rsValue;
 				mi.uMaskRead |= MIM_TITLE;
 			}
-			else if ((mi.uFlag & MIM_ARTIST) && e.rsKey.CompareI("ARTIST"))
+			else if ((mi.uFlag & MIM_ARTIST) && e.rsKey.CompareI(EckStrAndLen("ARTIST")) == 0)
 			{
 				mi.AppendArtist(e.rsValue);
 				mi.uMaskRead |= MIM_ARTIST;
 			}
-			else if ((mi.uFlag & MIM_ALBUM) && e.rsKey.CompareI("ALBUM"))
+			else if ((mi.uFlag & MIM_ALBUM) && e.rsKey.CompareI(EckStrAndLen("ALBUM")) == 0)
 			{
 				mi.rsAlbum = e.rsValue;
 				mi.uMaskRead |= MIM_ALBUM;
 			}
-			else if ((mi.uFlag & MIM_LRC) && e.rsKey.CompareI("LYRICS"))
+			else if ((mi.uFlag & MIM_LRC) && e.rsKey.CompareI(EckStrAndLen("LYRICS")) == 0)
 			{
 				mi.rsLrc = e.rsValue;
 				mi.uMaskRead |= MIM_LRC;
 			}
-			else if ((mi.uFlag & MIM_COMMENT) && e.rsKey.CompareI("DESCRIPTION"))
+			else if ((mi.uFlag & MIM_COMMENT) && e.rsKey.CompareI(EckStrAndLen("DESCRIPTION")) == 0)
 			{
 				mi.AppendComment(e.rsValue);
 				mi.uMaskRead |= MIM_COMMENT;
 			}
-			else if ((mi.uFlag & MIM_GENRE) && e.rsKey.CompareI("GENRE"))
+			else if ((mi.uFlag & MIM_GENRE) && e.rsKey.CompareI(EckStrAndLen("GENRE")) == 0)
 			{
 				mi.rsGenre = e.rsValue;
 				mi.uMaskRead |= MIM_GENRE;
 			}
-			else if ((mi.uFlag & MIM_DATE) && e.rsKey.CompareI("DATE"))
+			else if ((mi.uFlag & MIM_DATE) && e.rsKey.CompareI(EckStrAndLen("DATE")) == 0)
 			{
 				WORD y, m{}, d{};
 				if (swscanf(e.rsValue.Data(), L"%hd-%hd-%hd", &y, &m, &d) >= 1)
