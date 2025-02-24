@@ -617,7 +617,7 @@ EckInlineNd TPtr LTrimStr(_In_reads_(cchText) TPtr pszText, int cchText)
 }
 
 template<ccpIsStdCharPtr TPtr>
-EckInlineNd TPtr RTrimStr(_In_reads_or_z_(cchText) TPtr pszText, int cchText)
+EckInlineNd TPtr RTrimStr(_In_reads_(cchText) TPtr pszText, int cchText)
 {
 	if (cchText < 0)
 		cchText = (int)TcsLen(pszText);
@@ -629,10 +629,22 @@ EckInlineNd TPtr RTrimStr(_In_reads_or_z_(cchText) TPtr pszText, int cchText)
 	return pFind ? pFind + 1 : pszText;
 }
 
-template<ccpIsStdCharPtr TPtr, class TProcesser>
+template<ccpIsStdCharPtr TPtr>
+EckInlineNdCe std::basic_string_view<RemoveStdCharPtr_T<TPtr>> LRTrimStr(
+	_In_reads_(cchText) TPtr pszText, int cchText)
+{
+	auto pStart = LTrimStr(pszText, cchText);
+	auto pEnd = RTrimStr(pStart, cchText);
+	if (pStart >= pEnd)
+		return {};
+	else
+		return { pStart, size_t(pEnd - pStart) };
+}
+
+template<ccpIsStdCharPtr TPtr, class TProcessor>
 inline void SplitStr(TPtr pszText, int cchText,
 	ConstStdCharPtr_T<TPtr> pszDiv, int cchDiv,
-	int cSubTextExpected, TProcesser&& Processer)
+	int cSubTextExpected, TProcessor&& Processor)
 {
 	using TChar = RemoveStdCharPtr_T<TPtr>;
 	if (cchText < 0)
@@ -645,30 +657,33 @@ inline void SplitStr(TPtr pszText, int cchText,
 	int c{};
 	while (pszFind)
 	{
-		if (Processer((TChar*)pszPrevFirst, int(pszFind - pszPrevFirst)))
-			return;
+		if constexpr (std::is_same_v<decltype(Processor(nullptr, 0)), void>)
+			Processor((TChar*)pszPrevFirst, int(pszFind - pszPrevFirst));
+		else
+			if (Processor((TChar*)pszPrevFirst, int(pszFind - pszPrevFirst)))
+				return;
 		++c;
 		if (c == cSubTextExpected)
 			return;
 		pszPrevFirst = pszFind + cchDiv;
 		pszFind = TcsStrLen(pszPrevFirst, cchText - (pszPrevFirst - pszText), pszDiv, cchDiv);
 	}
-	Processer((TChar*)pszPrevFirst, int(pszText + cchText - pszPrevFirst));
+	Processor((TChar*)pszPrevFirst, int(pszText + cchText - pszPrevFirst));
 }
 // For compatibility.
-template<ccpIsStdCharPtr TPtr, class TProcesser>
+template<ccpIsStdCharPtr TPtr, class TProcessor>
 EckInline void SplitStr(TPtr pszText, ConstStdCharPtr_T<TPtr> pszDiv,
-	int cSubTextExpected, int cchText, int cchDiv, TProcesser&& Processer)
+	int cSubTextExpected, int cchText, int cchDiv, TProcessor&& Processor)
 {
 	SplitStr(pszText, cchText, pszDiv, cchDiv,cSubTextExpected, 
-		std::forward<TProcesser>(Processer));
+		std::forward<TProcessor>(Processor));
 }
 
 
-template<ccpIsStdCharPtr TPtr, class TProcesser>
+template<ccpIsStdCharPtr TPtr, class TProcessor>
 inline void SplitStrWithMultiChar(TPtr pszText, int cchText,
 	ConstStdCharPtr_T<TPtr> pszDiv, int cchDiv,
-	int cSubTextExpected, TProcesser&& Processer)
+	int cSubTextExpected, TProcessor&& Processor)
 {
 	using TChar = RemoveStdCharPtr_T<TPtr>;
 	if (cchText < 0)
@@ -681,8 +696,11 @@ inline void SplitStrWithMultiChar(TPtr pszText, int cchText,
 	int c{};
 	while (pszFind)
 	{
-		if (Processer((TChar*)pszPrevFirst, int(pszFind - pszPrevFirst)))
-			return;
+		if constexpr (std::is_same_v<decltype(Processor(nullptr, 0)), void>)
+			Processor((TChar*)pszPrevFirst, int(pszFind - pszPrevFirst));
+		else
+			if (Processor((TChar*)pszPrevFirst, int(pszFind - pszPrevFirst)))
+				return;
 		++c;
 		if (c == cSubTextExpected)
 			return;
@@ -690,15 +708,15 @@ inline void SplitStrWithMultiChar(TPtr pszText, int cchText,
 		pszFind = TcsChrFirstOf(pszPrevFirst, cchText - (pszPrevFirst - pszText), pszDiv, cchDiv);
 	}
 
-	Processer((TChar*)pszPrevFirst, int(pszText + cchText - pszPrevFirst));
+	Processor((TChar*)pszPrevFirst, int(pszText + cchText - pszPrevFirst));
 }
 // For compatibility.
-template<ccpIsStdCharPtr TPtr, class TProcesser>
+template<ccpIsStdCharPtr TPtr, class TProcessor>
 EckInline void SplitStrWithMultiChar(TPtr pszText, ConstStdCharPtr_T<TPtr> pszDiv,
-	int cSubTextExpected, int cchText, int cchDiv, TProcesser&& Processer)
+	int cSubTextExpected, int cchText, int cchDiv, TProcessor&& Processor)
 {
 	SplitStrWithMultiChar(pszText, cchText, pszDiv, cchDiv,
-		cSubTextExpected, std::forward<TProcesser>(Processer));
+		cSubTextExpected, std::forward<TProcessor>(Processor));
 }
 
 template<ccpIsNonConstStdCharPtr TPtr, ccpIsStdCharPtr TPtr2>

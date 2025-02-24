@@ -212,6 +212,7 @@
     <ClInclude Include="eck\CalculateExpression.h" />
     <ClInclude Include="eck\GdipEffect.h" />
     <ClInclude Include="eck\CoroutineHelper.h" />
+    <ClInclude Include="eck\HanziUpperNum.h" />
     <ClInclude Include="eck\ISO8601Time.h" />
     <ClInclude Include="eck\Json.h" />
     <ClInclude Include="eck\CSignal.h" />
