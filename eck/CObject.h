@@ -22,8 +22,8 @@ namespace Priv
 	{
 		ClassInfoRegister(ClassInfo* pInfo)
 		{
-			EckAssert(!g_hsClassInfo.contains(pInfo->svClassName));
-			g_hsClassInfo.emplace(pInfo->svClassName, pInfo);
+			//EckAssert(!g_hsClassInfo.contains(pInfo->svClassName));
+			//g_hsClassInfo.emplace(pInfo->svClassName, pInfo);
 		}
 	};
 }
