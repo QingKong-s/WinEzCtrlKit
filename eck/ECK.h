@@ -180,6 +180,14 @@ ECK_NAMESPACE_END
 #define EckArrAndLen(Arr)		Arr, ARRAYSIZE(Arr)
 #define EckLenAndArr(Arr)		ARRAYSIZE(Arr), Arr
 
+// F为调用表达式，宏后跟回调应终止时执行的语句块
+// 示例：
+// EckCanCallbackContinue(Proc(Arg0, Arg1)) { break; }
+#define EckCanCallbackContinue(F)				\
+	if constexpr (std::is_void_v<decltype(F)>)	\
+		F;										\
+	else if (!F)
+
 // 计次循环
 #define EckCounter(c, Var) \
 	for(::eck::UnderlyingType_T<::eck::RemoveCVRef_T<decltype(c)>> Var = 0; Var < (c); ++Var)

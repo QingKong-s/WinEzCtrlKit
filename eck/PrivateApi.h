@@ -4,6 +4,307 @@
 
 #include <Uxtheme.h>
 
+// ================
+// phnt additions
+// ================
+
+#define NtCurrentThreadId32() ((DWORD)(DWORD_PTR)NtCurrentThreadId())
+#define NtCurrentProcessId32() ((DWORD)(DWORD_PTR)NtCurrentProcessId())
+
+#define WOW64_POINTER_64(Type) ULONG64
+
+typedef struct _RTL_BALANCED_NODE64
+{
+	union
+	{
+		WOW64_POINTER_64(struct _RTL_BALANCED_NODE*) Children[2];
+		struct
+		{
+			WOW64_POINTER_64(struct _RTL_BALANCED_NODE*) Left;
+			WOW64_POINTER_64(struct _RTL_BALANCED_NODE*) Right;
+		};
+	};
+	union
+	{
+		WOW64_POINTER_64(UCHAR) Red : 1;
+		WOW64_POINTER_64(UCHAR) Balance : 2;
+		WOW64_POINTER_64(ULONG_PTR) ParentValue;
+	};
+} RTL_BALANCED_NODE64, * PRTL_BALANCED_NODE64;
+
+typedef struct _PEB_LDR_DATA64
+{
+	ULONG Length;
+	BOOLEAN Initialized;
+	WOW64_POINTER_64(HANDLE) SsHandle;
+	LIST_ENTRY64 InLoadOrderModuleList;
+	LIST_ENTRY64 InMemoryOrderModuleList;
+	LIST_ENTRY64 InInitializationOrderModuleList;
+	WOW64_POINTER_64(PVOID) EntryInProgress;
+	BOOLEAN ShutdownInProgress;
+	WOW64_POINTER_64(HANDLE) ShutdownThreadId;
+} PEB_LDR_DATA64, * PPEB_LDR_DATA64;
+
+typedef struct _PEB64
+{
+	BOOLEAN InheritedAddressSpace;
+	BOOLEAN ReadImageFileExecOptions;
+	BOOLEAN BeingDebugged;
+	union
+	{
+		BOOLEAN BitField;
+		struct
+		{
+			BOOLEAN ImageUsesLargePages : 1;
+			BOOLEAN IsProtectedProcess : 1;
+			BOOLEAN IsImageDynamicallyRelocated : 1;
+			BOOLEAN SkipPatchingUser32Forwarders : 1;
+			BOOLEAN IsPackagedProcess : 1;
+			BOOLEAN IsAppContainer : 1;
+			BOOLEAN IsProtectedProcessLight : 1;
+			BOOLEAN IsLongPathAwareProcess : 1;
+		};
+	};
+	WOW64_POINTER_64(HANDLE) Mutant;
+
+	WOW64_POINTER_64(PVOID) ImageBaseAddress;
+	WOW64_POINTER_64(PPEB_LDR_DATA) Ldr;
+	WOW64_POINTER_64(PRTL_USER_PROCESS_PARAMETERS) ProcessParameters;
+	WOW64_POINTER_64(PVOID) SubSystemData;
+	WOW64_POINTER_64(PVOID) ProcessHeap;
+	WOW64_POINTER_64(PRTL_CRITICAL_SECTION) FastPebLock;
+	WOW64_POINTER_64(PVOID) AtlThunkSListPtr;
+	WOW64_POINTER_64(PVOID) IFEOKey;
+	union
+	{
+		ULONG CrossProcessFlags;
+		struct
+		{
+			ULONG ProcessInJob : 1;
+			ULONG ProcessInitializing : 1;
+			ULONG ProcessUsingVEH : 1;
+			ULONG ProcessUsingVCH : 1;
+			ULONG ProcessUsingFTH : 1;
+			ULONG ReservedBits0 : 27;
+		};
+	};
+	union
+	{
+		WOW64_POINTER_64(PVOID) KernelCallbackTable;
+		WOW64_POINTER_64(PVOID) UserSharedInfoPtr;
+	};
+	ULONG SystemReserved;
+	ULONG AtlThunkSListPtr32;
+	WOW64_POINTER_64(PVOID) ApiSetMap;
+	ULONG TlsExpansionCounter;
+	WOW64_POINTER_64(PVOID) TlsBitmap;
+	ULONG TlsBitmapBits[2];
+	WOW64_POINTER_64(PVOID) ReadOnlySharedMemoryBase;
+	WOW64_POINTER_64(PVOID) SharedData;
+	WOW64_POINTER_64(PVOID*) ReadOnlyStaticServerData;
+	WOW64_POINTER_64(PVOID) AnsiCodePageData;
+	WOW64_POINTER_64(PVOID) OemCodePageData;
+	WOW64_POINTER_64(PVOID) UnicodeCaseTableData;
+
+	ULONG NumberOfProcessors;
+	ULONG NtGlobalFlag;
+
+	LARGE_INTEGER CriticalSectionTimeout;
+	WOW64_POINTER_64(SIZE_T) HeapSegmentReserve;
+	WOW64_POINTER_64(SIZE_T) HeapSegmentCommit;
+	WOW64_POINTER_64(SIZE_T) HeapDeCommitTotalFreeThreshold;
+	WOW64_POINTER_64(SIZE_T) HeapDeCommitFreeBlockThreshold;
+
+	ULONG NumberOfHeaps;
+	ULONG MaximumNumberOfHeaps;
+	WOW64_POINTER_64(PVOID*) ProcessHeaps;
+
+	WOW64_POINTER_64(PVOID) GdiSharedHandleTable;
+	WOW64_POINTER_64(PVOID) ProcessStarterHelper;
+	ULONG GdiDCAttributeList;
+
+	WOW64_POINTER_64(PRTL_CRITICAL_SECTION) LoaderLock;
+
+	ULONG OSMajorVersion;
+	ULONG OSMinorVersion;
+	USHORT OSBuildNumber;
+	USHORT OSCSDVersion;
+	ULONG OSPlatformId;
+	ULONG ImageSubsystem;
+	ULONG ImageSubsystemMajorVersion;
+	ULONG ImageSubsystemMinorVersion;
+	WOW64_POINTER_64(ULONG_PTR) ActiveProcessAffinityMask;
+	GDI_HANDLE_BUFFER64 GdiHandleBuffer;
+	WOW64_POINTER_64(PVOID) PostProcessInitRoutine;
+
+	WOW64_POINTER_64(PVOID) TlsExpansionBitmap;
+	ULONG TlsExpansionBitmapBits[32];
+
+	ULONG SessionId;
+
+	ULARGE_INTEGER AppCompatFlags;
+	ULARGE_INTEGER AppCompatFlagsUser;
+	WOW64_POINTER_64(PVOID) pShimData;
+	WOW64_POINTER_64(PVOID) AppCompatInfo;
+
+	UNICODE_STRING64 CSDVersion;
+
+	WOW64_POINTER_64(PACTIVATION_CONTEXT_DATA) ActivationContextData;
+	WOW64_POINTER_64(PVOID) ProcessAssemblyStorageMap;
+	WOW64_POINTER_64(PACTIVATION_CONTEXT_DATA) SystemDefaultActivationContextData;
+	WOW64_POINTER_64(PVOID) SystemAssemblyStorageMap;
+
+	WOW64_POINTER_64(SIZE_T) MinimumStackCommit;
+
+	WOW64_POINTER_64(PVOID) SparePointers[2]; // 19H1 (previously FlsCallback to FlsHighIndex)
+	WOW64_POINTER_64(PVOID) PatchLoaderData;
+	WOW64_POINTER_64(PVOID) ChpeV2ProcessInfo; // _CHPEV2_PROCESS_INFO
+
+	ULONG AppModelFeatureState;
+	ULONG SpareUlongs[2];
+
+	USHORT ActiveCodePage;
+	USHORT OemCodePage;
+	USHORT UseCaseMapping;
+	USHORT UnusedNlsField;
+
+	WOW64_POINTER_64(PVOID) WerRegistrationData;
+	WOW64_POINTER_64(PVOID) WerShipAssertPtr;
+
+	union
+	{
+		WOW64_POINTER_64(PVOID) pContextData; // WIN7
+		WOW64_POINTER_64(PVOID) pUnused; // WIN10
+		WOW64_POINTER_64(PVOID) EcCodeBitMap; // WIN11
+	};
+
+	WOW64_POINTER_64(PVOID) pImageHeaderHash;
+	union
+	{
+		ULONG TracingFlags;
+		struct
+		{
+			ULONG HeapTracingEnabled : 1;
+			ULONG CritSecTracingEnabled : 1;
+			ULONG LibLoaderTracingEnabled : 1;
+			ULONG SpareTracingBits : 29;
+		};
+	};
+	ULONGLONG CsrServerReadOnlySharedMemoryBase;
+	WOW64_POINTER_64(PVOID) TppWorkerpListLock;
+	LIST_ENTRY64 TppWorkerpList;
+	WOW64_POINTER_64(PVOID) WaitOnAddressHashTable[128];
+	WOW64_POINTER_64(PVOID) TelemetryCoverageHeader; // REDSTONE3
+	ULONG CloudFileFlags;
+	ULONG CloudFileDiagFlags; // REDSTONE4
+	CHAR PlaceholderCompatibilityMode;
+	CHAR PlaceholderCompatibilityModeReserved[7];
+	WOW64_POINTER_64(PLEAP_SECOND_DATA) LeapSecondData; // REDSTONE5
+	union
+	{
+		ULONG LeapSecondFlags;
+		struct
+		{
+			ULONG SixtySecondEnabled : 1;
+			ULONG Reserved : 31;
+		};
+	};
+	ULONG NtGlobalFlag2;
+	ULONGLONG ExtendedFeatureDisableMask; // since WIN11
+} PEB64, * PPEB64;
+
+typedef struct _LDR_DATA_TABLE_ENTRY64
+{
+	LIST_ENTRY64 InLoadOrderLinks;
+	LIST_ENTRY64 InMemoryOrderLinks;
+	union
+	{
+		LIST_ENTRY64 InInitializationOrderLinks;
+		LIST_ENTRY64 InProgressLinks;
+	};
+	WOW64_POINTER_64(PVOID) DllBase;
+	WOW64_POINTER_64(PVOID) EntryPoint;
+	ULONG SizeOfImage;
+	UNICODE_STRING64 FullDllName;
+	UNICODE_STRING64 BaseDllName;
+	union
+	{
+		UCHAR FlagGroup[4];
+		ULONG Flags;
+		struct
+		{
+			ULONG PackagedBinary : 1;
+			ULONG MarkedForRemoval : 1;
+			ULONG ImageDll : 1;
+			ULONG LoadNotificationsSent : 1;
+			ULONG TelemetryEntryProcessed : 1;
+			ULONG ProcessStaticImport : 1;
+			ULONG InLegacyLists : 1;
+			ULONG InIndexes : 1;
+			ULONG ShimDll : 1;
+			ULONG InExceptionTable : 1;
+			ULONG ReservedFlags1 : 2;
+			ULONG LoadInProgress : 1;
+			ULONG LoadConfigProcessed : 1;
+			ULONG EntryProcessed : 1;
+			ULONG ProtectDelayLoad : 1;
+			ULONG ReservedFlags3 : 2;
+			ULONG DontCallForThreads : 1;
+			ULONG ProcessAttachCalled : 1;
+			ULONG ProcessAttachFailed : 1;
+			ULONG CorDeferredValidate : 1;
+			ULONG CorImage : 1;
+			ULONG DontRelocate : 1;
+			ULONG CorILOnly : 1;
+			ULONG ChpeImage : 1;
+			ULONG ReservedFlags5 : 2;
+			ULONG Redirected : 1;
+			ULONG ReservedFlags6 : 2;
+			ULONG CompatDatabaseProcessed : 1;
+		};
+	};
+	USHORT ObsoleteLoadCount;
+	USHORT TlsIndex;
+	LIST_ENTRY64 HashLinks;
+	ULONG TimeDateStamp;
+	WOW64_POINTER_64(struct _ACTIVATION_CONTEXT*) EntryPointActivationContext;
+	WOW64_POINTER_64(PVOID) Lock;
+	WOW64_POINTER_64(PLDR_DDAG_NODE) DdagNode;
+	LIST_ENTRY64 NodeModuleLink;
+	WOW64_POINTER_64(struct _LDRP_LOAD_CONTEXT*) LoadContext;
+	WOW64_POINTER_64(PVOID) ParentDllBase;
+	WOW64_POINTER_64(PVOID) SwitchBackContext;
+	RTL_BALANCED_NODE64 BaseAddressIndexNode;
+	RTL_BALANCED_NODE64 MappingInfoIndexNode;
+	WOW64_POINTER_64(ULONG_PTR) OriginalBase;
+	LARGE_INTEGER LoadTime;
+	ULONG BaseNameHashValue;
+	LDR_DLL_LOAD_REASON LoadReason;
+	ULONG ImplicitPathOptions;
+	ULONG ReferenceCount;
+	ULONG DependentLoadFlags;
+	UCHAR SigningLevel; // since REDSTONE2
+	ULONG CheckSum; // since 22H1
+	WOW64_POINTER_64(PVOID) ActivePatchImageBase;
+	LDR_HOT_PATCH_STATE HotPatchState;
+} LDR_DATA_TABLE_ENTRY64, * PLDR_DATA_TABLE_ENTRY64;
+
+typedef struct _PROCESS_BASIC_INFORMATION64
+{
+	NTSTATUS ExitStatus;
+	WOW64_POINTER_64(PPEB) PebBaseAddress;
+	WOW64_POINTER_64(KAFFINITY)/*ULONG_PTR typedef*/ AffinityMask;
+	KPRIORITY BasePriority;
+	WOW64_POINTER_64(HANDLE) UniqueProcessId;
+	WOW64_POINTER_64(HANDLE) InheritedFromUniqueProcessId;
+} PROCESS_BASIC_INFORMATION64, * PPROCESS_BASIC_INFORMATION64;
+
+#define LDR_DATA_TABLE_ENTRY_SIZE_WINXP_64 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY64, DdagNode)
+#define LDR_DATA_TABLE_ENTRY_SIZE_WIN7_64 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY64, BaseNameHashValue)
+#define LDR_DATA_TABLE_ENTRY_SIZE_WIN8_64 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY64, ImplicitPathOptions)
+#define LDR_DATA_TABLE_ENTRY_SIZE_WIN10_64 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY64, SigningLevel)
+#define LDR_DATA_TABLE_ENTRY_SIZE_WIN11_64 sizeof(LDR_DATA_TABLE_ENTRY64)
+
 EXTERN_C_START
 
 enum IMMERSIVE_HC_CACHE_MODE
@@ -228,6 +529,72 @@ FORCEINLINE HTHEME OpenNcThemeData(HWND hWnd, PCWSTR pszClassList)
 {
 	return pfnOpenNcThemeData(hWnd, pszClassList);
 }
+
+#ifndef _WIN64
+using FNtWow64WriteVirtualMemory64 = NTSTATUS(WINAPI*)(HANDLE ProcessHandle,
+	ULONGLONG BaseAddress, PVOID Buffer, ULONGLONG NumberOfBytesToWrite,
+	PULONGLONG NumberOfBytesWritten);
+using FNtWow64ReadVirtualMemory64 = NTSTATUS(WINAPI*)(HANDLE ProcessHandle,
+	ULONGLONG BaseAddress, PVOID Buffer, ULONGLONG NumberOfBytesToRead,
+	PULONGLONG NumberOfBytesRead);
+using FNtWow64QueryVirtualMemory64 = NTSTATUS(WINAPI*)(HANDLE ProcessHandle,
+	ULONGLONG BaseAddress, MEMORY_INFORMATION_CLASS MemoryInformationClass,
+	PVOID MemoryInformation, ULONGLONG MemoryInformationLength,
+	PULONGLONG ReturnLength);
+using FNtWow64QueryInformationProcess64 = NTSTATUS(WINAPI*)(HANDLE ProcessHandle,
+	PROCESSINFOCLASS ProcessInformationClass, PVOID ProcessInformation,
+	ULONG ProcessInformationLength, PULONG ReturnLength);
+
+extern FNtWow64WriteVirtualMemory64 pfnNtWow64WriteVirtualMemory64;
+extern FNtWow64ReadVirtualMemory64 pfnNtWow64ReadVirtualMemory64;
+extern FNtWow64QueryVirtualMemory64 pfnNtWow64QueryVirtualMemory64;
+extern FNtWow64QueryInformationProcess64 pfnNtWow64QueryInformationProcess64;
+
+FORCEINLINE NTSTATUS NtWow64WriteVirtualMemory64(
+	_In_ HANDLE ProcessHandle,
+	_In_opt_ ULONGLONG BaseAddress,
+	_In_reads_bytes_(NumberOfBytesToWrite) PVOID Buffer,
+	_In_ ULONGLONG NumberOfBytesToWrite,
+	_Out_opt_ PULONGLONG NumberOfBytesWritten)
+{
+	return pfnNtWow64WriteVirtualMemory64(ProcessHandle, BaseAddress,
+		Buffer, NumberOfBytesToWrite, NumberOfBytesWritten);
+}
+
+FORCEINLINE NTSTATUS NtWow64ReadVirtualMemory64(
+	_In_ HANDLE ProcessHandle,
+	_In_opt_ ULONGLONG BaseAddress,
+	_Out_writes_bytes_to_(NumberOfBytesToRead, *NumberOfBytesRead) PVOID Buffer,
+	_In_ ULONGLONG NumberOfBytesToRead,
+	_Out_opt_ PULONGLONG NumberOfBytesRead)
+{
+	return pfnNtWow64ReadVirtualMemory64(ProcessHandle, BaseAddress,
+		Buffer, NumberOfBytesToRead, NumberOfBytesRead);
+}
+
+FORCEINLINE NTSTATUS NtWow64QueryVirtualMemory64(
+	_In_ HANDLE ProcessHandle,
+	_In_opt_ ULONGLONG BaseAddress,
+	_In_ MEMORY_INFORMATION_CLASS MemoryInformationClass,
+	_Out_writes_bytes_(MemoryInformationLength) PVOID MemoryInformation,
+	_In_ ULONGLONG MemoryInformationLength,
+	_Out_opt_ PULONGLONG ReturnLength)
+{
+	return pfnNtWow64QueryVirtualMemory64(ProcessHandle, BaseAddress,
+		MemoryInformationClass, MemoryInformation, MemoryInformationLength, ReturnLength);
+}
+
+FORCEINLINE NTSTATUS NtWow64QueryInformationProcess64(
+	_In_ HANDLE ProcessHandle,
+	_In_ PROCESSINFOCLASS ProcessInformationClass,
+	_Out_writes_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+	_In_ ULONG ProcessInformationLength,
+	_Out_opt_ PULONG ReturnLength)
+{
+	return pfnNtWow64QueryInformationProcess64(ProcessHandle, ProcessInformationClass,
+		ProcessInformation, ProcessInformationLength, ReturnLength);
+}
+#endif// !defined(_WIN64)
 EXTERN_C_END
 
 #ifndef LVSR_SELECTION
@@ -327,11 +694,9 @@ ILVRange : public IUnknown
 	STDMETHOD(CountIncluded)(LONG* pcIncluded) = 0;
 };
 
-/*
-* ==============================================
-* Written by Timo Kunze, under the Public Domain
-* ==============================================
-*/
+// ==============================================
+// Written by Timo Kunze, under the Public Domain
+// ==============================================
 
 constexpr inline IID IID_IListView2{ 0xE5B16AF2, 0x3990, 0x4681, {0xA6, 0x09, 0x1F, 0x06, 0x0C, 0xD1, 0x42, 0x69} };
 constexpr inline IID IID_IOwnerDataCallback{ 0x44C09D56, 0x8D3B, 0x419D, {0xA4, 0x62, 0x7B, 0x95, 0x6B, 0x10, 0x5B, 0x47} };
