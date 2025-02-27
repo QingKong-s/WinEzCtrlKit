@@ -22,6 +22,13 @@ FIsDarkModeAllowedForApp		pfnIsDarkModeAllowedForApp{};
 
 FOpenNcThemeData				pfnOpenNcThemeData{};
 
+#ifndef _WIN64
+FNtWow64WriteVirtualMemory64	pfnNtWow64WriteVirtualMemory64{};
+FNtWow64ReadVirtualMemory64		pfnNtWow64ReadVirtualMemory64{};
+FNtWow64QueryVirtualMemory64	pfnNtWow64QueryVirtualMemory64{};
+FNtWow64QueryInformationProcess64 pfnNtWow64QueryInformationProcess64{};
+#endif
+
 ECK_NAMESPACE_BEGIN
 void InitPrivateApi()
 {
@@ -66,6 +73,19 @@ void InitPrivateApi()
 			GetProcAddress(hModUx, MAKEINTRESOURCEA(106));
 	}
 	FreeLibrary(hModUx);
+
+#ifndef _WIN64
+	const auto hModNtdll = GetModuleHandleW(L"ntdll.dll");
+	EckAssert(hModNtdll);
+	pfnNtWow64WriteVirtualMemory64 = (FNtWow64WriteVirtualMemory64)
+		GetProcAddress(hModNtdll, "NtWow64WriteVirtualMemory64");
+	pfnNtWow64ReadVirtualMemory64 = (FNtWow64ReadVirtualMemory64)
+		GetProcAddress(hModNtdll, "NtWow64ReadVirtualMemory64");
+	pfnNtWow64QueryVirtualMemory64 = (FNtWow64QueryVirtualMemory64)
+		GetProcAddress(hModNtdll, "NtWow64QueryVirtualMemory64");
+	pfnNtWow64QueryInformationProcess64 = (FNtWow64QueryInformationProcess64)
+		GetProcAddress(hModNtdll, "NtWow64QueryInformationProcess64");
+#endif
 }
 
 // RTTI

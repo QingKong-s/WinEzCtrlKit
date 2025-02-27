@@ -1,17 +1,59 @@
-#pragma once
+﻿#pragma once
 #include "SystemHelper.h"
 
 ECK_NAMESPACE_BEGIN
+EckInline NTSTATUS GetProcessPeb(HANDLE hProcess, _Out_ void*& Peb)
+{
+	PROCESS_BASIC_INFORMATION pbi;
+	NTSTATUS nts;
+	if (!NT_SUCCESS(nts = NtQueryInformationProcess(hProcess,
+		ProcessBasicInformation, &pbi, sizeof(pbi), nullptr)))
+	{
+		Peb = nullptr;
+		return nts;
+	}
+	Peb = pbi.PebBaseAddress;
+	return STATUS_SUCCESS;
+}
+
+EckInline NTSTATUS GetProcessPeb32(HANDLE hProcess, _Out_ void*& Peb)
+{
+	return NtQueryInformationProcess(hProcess,
+		ProcessWow64Information, &Peb, sizeof(Peb), nullptr);
+}
+
+EckInline NTSTATUS GetProcessPeb64(HANDLE hProcess, _Out_ ULONG64& Peb)
+{
+#ifndef _WIN64
+	PROCESS_BASIC_INFORMATION64 pbi;
+	NTSTATUS nts;
+	if (!NT_SUCCESS(nts = NtWow64QueryInformationProcess64(hProcess,
+		ProcessBasicInformation, &pbi, sizeof(pbi), nullptr)))
+	{
+		Peb = 0u;
+		return nts;
+	}
+	Peb = pbi.PebBaseAddress;
+	return STATUS_SUCCESS;
+#else
+	Peb = 0u;
+	return STATUS_NOT_SUPPORTED;
+#endif// !defined(_WIN64)
+}
+
 inline NTSTATUS GetProcessPath(UINT uPid, CRefStrW& rsPath, BOOL bDosPath = TRUE)
 {
 	SYSTEM_PROCESS_ID_INFORMATION spii{ .ProcessId = i32ToP<HANDLE>(uPid) };
-	NTSTATUS nts = NtQuerySystemInformation(SystemProcessIdInformation, &spii, sizeof(spii), nullptr);
-	if (spii.ImageName.MaximumLength && nts == STATUS_INFO_LENGTH_MISMATCH)
+	NTSTATUS nts = NtQuerySystemInformation(SystemProcessIdInformation,
+		&spii, sizeof(spii), nullptr);
+	if (spii.ImageName.MaximumLength &&
+		nts == STATUS_INFO_LENGTH_MISMATCH)
 	{
 		rsPath.ReSize(spii.ImageName.MaximumLength);
 		spii.ImageName.Buffer = rsPath.Data();
 		spii.ImageName.Length = 0;
-		nts = NtQuerySystemInformation(SystemProcessIdInformation, &spii, sizeof(spii), nullptr);
+		nts = NtQuerySystemInformation(SystemProcessIdInformation,
+			&spii, sizeof(spii), nullptr);
 		if (NT_SUCCESS(nts))
 		{
 			if (bDosPath)
@@ -24,110 +66,72 @@ inline NTSTATUS GetProcessPath(UINT uPid, CRefStrW& rsPath, BOOL bDosPath = TRUE
 	return nts;
 }
 
-inline BOOL GetProcessPath(HANDLE hProcess, CRefStrW& rsPath, BOOL bDosPath = TRUE)
+inline NTSTATUS GetProcessPath(HANDLE hProcess, CRefStrW& rsPath, BOOL bDosPath = TRUE)
 {
-	DWORD cch{ MAX_PATH };
-	rsPath.ReSize(cch);
-	if (QueryFullProcessImageNameW(hProcess, bDosPath ? 0 : PROCESS_NAME_NATIVE,
-		rsPath.Data(), &cch))
+	rsPath.ReSize(MAX_PATH + sizeof(UNICODE_STRING)/* 多一点无所谓 */);
+	ULONG cbReal;
+	auto nts = NtQueryInformationProcess(hProcess,
+		bDosPath ? ProcessImageFileNameWin32 : ProcessImageFileName,
+		rsPath.Data(), rsPath.ByteSizePure(), &cbReal);
+	if (nts == STATUS_INFO_LENGTH_MISMATCH)
 	{
-		rsPath.ReSize(cch);
-		return TRUE;
+		rsPath.ReSize((cbReal + 2/* Space */) / sizeof(WCHAR));
+		nts = NtQueryInformationProcess(hProcess,
+			bDosPath ? ProcessImageFileNameWin32 : ProcessImageFileName,
+			rsPath.Data(), rsPath.ByteSizePure(), nullptr);
 	}
-	else
+
+	const auto pus = (UNICODE_STRING*)rsPath.Data();
+	if (NT_SUCCESS(nts) && !RtlIsNullOrEmptyUnicodeString(pus))
 	{
-		rsPath.Clear();
-		return FALSE;
+		TcsMoveLenEnd(rsPath.Data(),
+			PCWCH((BYTE*)rsPath.Data() + sizeof(UNICODE_STRING)),
+			pus->Length / sizeof(WCHAR));
+		rsPath.ReSize(pus->Length / sizeof(WCHAR));
+		if (bDosPath)
+			return NtPathToDosPath(rsPath);
+		return STATUS_SUCCESS;
 	}
+
+	rsPath.Clear();
+	return nts;
 }
 
-inline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, UINT& uPid)
+namespace Priv
 {
-	uPid = 0u;
-	ULONG cb;
-	NTSTATUS nts = NtQuerySystemInformation(SystemProcessInformation, nullptr, 0, &cb);
-	if (!cb)
-		return nts;
-	BYTE* pBuf = (BYTE*)VAlloc(cb);
-	UniquePtr<DelVA<BYTE>> _(pBuf);
-	if (!NT_SUCCESS(nts = NtQuerySystemInformation(SystemProcessInformation, pBuf, cb, &cb)))
-		return nts;
-	SYSTEM_PROCESS_INFORMATION* pspi = (SYSTEM_PROCESS_INFORMATION*)pBuf;
-	EckLoop()
+	struct MODULE_INFO_BASE
 	{
-		if (wcsnicmp(pszImageName, pspi->ImageName.Buffer, pspi->ImageName.Length) == 0)
-		{
-			uPid = pToI32<UINT>(pspi->UniqueProcessId);
-			return STATUS_SUCCESS;
-		}
-		if (pspi->NextEntryOffset == 0)
-			break;
-		pspi = PtrStepCb(pspi, pspi->NextEntryOffset);
-	}
-	return STATUS_NOT_FOUND;
+		CRefStrW rsModuleName{};
+		CRefStrW rsModulePath{};
+		BITBOOL b64Bit : 1{};
+	};
 }
 
-inline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, std::vector<UINT>& vPid)
+struct MODULE_INFO : Priv::MODULE_INFO_BASE
 {
-	ULONG cb;
-	NTSTATUS nts = NtQuerySystemInformation(SystemProcessInformation, nullptr, 0, &cb);
-	if (!cb)
-		return nts;
-	UniquePtr<DelVA<BYTE>> pBuf((BYTE*)VAlloc(cb));
-	if (!NT_SUCCESS(nts = NtQuerySystemInformation(SystemProcessInformation, pBuf.get(), cb, &cb)))
-		return nts;
-	SYSTEM_PROCESS_INFORMATION* pspi = (SYSTEM_PROCESS_INFORMATION*)pBuf.get();
-	EckLoop()
-	{
-		if (wcsnicmp(pszImageName, pspi->ImageName.Buffer, pspi->ImageName.Length) == 0)
-		{
-			vPid.push_back(pToI32<UINT>(pspi->UniqueProcessId));
-			return STATUS_SUCCESS;
-		}
-		if (pspi->NextEntryOffset == 0)
-			break;
-		pspi = PtrStepCb(pspi, pspi->NextEntryOffset);
-	}
-	return STATUS_NOT_FOUND;
-}
-
-EckInline void* GetProcessPeb(HANDLE hProcess, NTSTATUS* pnts = nullptr)
+	void* BaseAddress{};
+	SIZE_T cbImage{};
+};
+struct MODULE_INFO96 : Priv::MODULE_INFO_BASE
 {
-	PROCESS_BASIC_INFORMATION pbi;
-	NTSTATUS nts;
-	if (!NT_SUCCESS(nts = NtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(pbi), nullptr)))
-	{
-		if (pnts)
-			*pnts = nts;
-		return nullptr;
-	}
-	if (pnts)
-		*pnts = STATUS_SUCCESS;
-	return pbi.PebBaseAddress;
-}
-
-struct MODULE_INFO
-{
-	CRefStrW rsModuleName;
-	CRefStrW rsModulePath;
-	void* BaseAddress;
-	SIZE_T cbImage;
+	ULONG64 BaseAddress{};
+	ULONG64 cbImage{};
 };
 
 /// <summary>
-/// ö�ٽ���ģ��
+/// 枚举进程模块
 /// </summary>
-/// <param name="hProcess">���̾�����������PROCESS_QUERY_INFORMATION | PROCESS_VM_READȨ��</param>
-/// <param name="vResult">ö�ٽ����������ո�����</param>
+/// <param name="hProcess">进程句柄，必须具有PROCESS_QUERY_INFORMATION | PROCESS_VM_READ权限</param>
+/// <param name="vResult">枚举结果，不会清空该容器</param>
 /// <returns>NTSTATUS</returns>
 inline NTSTATUS EnumProcessModules(HANDLE hProcess, std::vector<MODULE_INFO>& vResult)
 {
 	NTSTATUS nts;
-	// ȡPEB
-	UINT_PTR pPeb = (UINT_PTR)GetProcessPeb(hProcess, &nts);
-	if (!pPeb)
+	// 取PEB
+	UINT_PTR pPeb;
+	if (!NT_SUCCESS(nts = GetProcessPeb(hProcess, (void*&)pPeb)))
 		return nts;
-	// ȡPEB_LDR_DATA
+	// 取PEB_LDR_DATA
 	PEB_LDR_DATA LdrData;
 	UINT_PTR pLdr;
 	if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)(pPeb + offsetof(PEB, Ldr)),
@@ -139,12 +143,145 @@ inline NTSTATUS EnumProcessModules(HANDLE hProcess, std::vector<MODULE_INFO>& vR
 	if (!LdrData.Initialized)
 		return STATUS_UNSUCCESSFUL;
 
-	LDR_DATA_TABLE_ENTRY Entry;// ��Ҫʹ��Win7֮�����ӵ��ֶ�
+	LDR_DATA_TABLE_ENTRY Entry;// 不要使用Win7之后添加的字段
 	UINT_PTR pBegin = pLdr + offsetof(PEB_LDR_DATA, InLoadOrderModuleList);
 	for (UINT_PTR p = (UINT_PTR)LdrData.InLoadOrderModuleList.Flink; p != pBegin; )
 	{
 		if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)p,
 			&Entry, LDR_DATA_TABLE_ENTRY_SIZE_WIN7, nullptr)))
+			return nts;
+		if (Entry.DllBase)
+		{
+			auto& e = vResult.emplace_back();
+			if (!RtlIsNullOrEmptyUnicodeString(&Entry.BaseDllName))
+			{
+				const int cch = Entry.BaseDllName.Length / sizeof(WCHAR);
+				e.rsModuleName.ReSize(cch);
+				if (!NT_SUCCESS(nts = NtReadVirtualMemory(
+					hProcess,
+					(void*)Entry.BaseDllName.Buffer,
+					e.rsModuleName.Data(),
+					cch * sizeof(WCHAR),
+					nullptr)))
+					return nts;
+			}
+			if (!RtlIsNullOrEmptyUnicodeString(&Entry.FullDllName))
+			{
+				const int cch = Entry.FullDllName.Length / sizeof(WCHAR);
+				e.rsModulePath.ReSize(cch);
+				if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)Entry.FullDllName.Buffer,
+					e.rsModulePath.Data(), cch * sizeof(WCHAR), nullptr)))
+					return nts;
+			}
+			e.BaseAddress = (void*)Entry.DllBase;
+			e.cbImage = Entry.SizeOfImage;
+		}
+		p = (UINT_PTR)Entry.InLoadOrderLinks.Flink;
+	}
+	return STATUS_SUCCESS;
+}
+
+/// <summary>
+/// 枚举64位进程模块。
+/// 仅当前进程为32位时有效，否则返回STATUS_NOT_SUPPORTED
+/// </summary>
+/// <param name="hProcess">进程句柄，必须具有PROCESS_QUERY_INFORMATION | PROCESS_VM_READ权限</param>
+/// <param name="vResult">枚举结果，不会清空该容器</param>
+/// <returns>NTSTATUS</returns>
+inline NTSTATUS EnumProcessModules64On32(HANDLE hProcess, std::vector<MODULE_INFO>& vResult)
+{
+#ifndef _WIN64
+	NTSTATUS nts;
+	// 取PEB
+	ULONG64 pPeb;
+	if (!NT_SUCCESS(nts = GetProcessPeb64(hProcess, pPeb)))
+		return nts;
+	// 取PEB_LDR_DATA
+	PEB_LDR_DATA64 LdrData;
+	ULONG64 pLdr;
+	if (!NT_SUCCESS(nts = NtWow64ReadVirtualMemory64(hProcess, (pPeb + offsetof(PEB64, Ldr)),
+		&pLdr, 8, nullptr)))
+		return nts;
+	if (!NT_SUCCESS(nts = NtWow64ReadVirtualMemory64(hProcess, pLdr,
+		&LdrData, sizeof(LdrData), nullptr)))
+		return nts;
+	if (!LdrData.Initialized)
+		return STATUS_UNSUCCESSFUL;
+
+	LDR_DATA_TABLE_ENTRY64 Entry;// 不要使用Win7之后添加的字段
+	ULONG64 pBegin = pLdr + offsetof(PEB_LDR_DATA64, InLoadOrderModuleList);
+	for (ULONG64 p = (ULONG64)LdrData.InLoadOrderModuleList.Flink; p != pBegin; )
+	{
+		if (!NT_SUCCESS(nts = NtWow64ReadVirtualMemory64(hProcess, p,
+			&Entry, LDR_DATA_TABLE_ENTRY_SIZE_WIN7_64, nullptr)))
+			return nts;
+		if (Entry.DllBase)
+		{
+			auto& e = vResult.emplace_back();
+			if (Entry.BaseDllName.Length)
+			{
+				const int cch = Entry.BaseDllName.Length / sizeof(WCHAR);
+				e.rsModuleName.ReSize(cch);
+				if (!NT_SUCCESS(nts = NtWow64ReadVirtualMemory64(
+					hProcess, Entry.BaseDllName.Buffer,
+					e.rsModuleName.Data(), cch * sizeof(WCHAR), nullptr)))
+					return nts;
+			}
+			if (Entry.FullDllName.Length)
+			{
+				const int cch = Entry.FullDllName.Length / sizeof(WCHAR);
+				e.rsModulePath.ReSize(cch);
+				if (!NT_SUCCESS(nts = NtWow64ReadVirtualMemory64(
+					hProcess, Entry.FullDllName.Buffer,
+					e.rsModulePath.Data(), cch * sizeof(WCHAR), nullptr)))
+					return nts;
+			}
+			e.BaseAddress = (void*)Entry.DllBase;
+			e.cbImage = Entry.SizeOfImage;
+		}
+		p = (ULONG64)Entry.InLoadOrderLinks.Flink;
+	}
+	return STATUS_SUCCESS;
+#else
+	return STATUS_NOT_SUPPORTED;
+#endif// !defined(_WIN64)
+}
+
+// FIXME: 指针长度过短
+
+/// <summary>
+/// 枚举32位进程模块。
+/// 仅当前进程为64位时有效，否则返回STATUS_NOT_SUPPORTED
+/// </summary>
+/// <param name="hProcess">进程句柄，必须具有PROCESS_QUERY_INFORMATION | PROCESS_VM_READ权限</param>
+/// <param name="vResult">枚举结果，不会清空该容器</param>
+/// <returns>NTSTATUS</returns>
+inline NTSTATUS EnumProcessModules32On64(HANDLE hProcess, std::vector<MODULE_INFO>& vResult)
+{
+#ifdef _WIN64
+	NTSTATUS nts;
+	// 取PEB
+	UINT_PTR pPeb;
+	if (!NT_SUCCESS(nts = GetProcessPeb32(hProcess, (void*&)pPeb)))
+		return nts;
+	// 取PEB_LDR_DATA
+	PEB_LDR_DATA32 LdrData;
+	UINT_PTR pLdr{};
+	if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)(pPeb + offsetof(PEB32, Ldr)),
+		&pLdr, 4, nullptr)))
+		return nts;
+	if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)pLdr,
+		&LdrData, sizeof(LdrData), nullptr)))
+		return nts;
+	if (!LdrData.Initialized)
+		return STATUS_UNSUCCESSFUL;
+
+	LDR_DATA_TABLE_ENTRY32 Entry;// 不要使用Win7之后添加的字段
+	UINT_PTR pBegin = pLdr + offsetof(PEB_LDR_DATA32, InLoadOrderModuleList);
+	for (UINT_PTR p = (UINT_PTR)LdrData.InLoadOrderModuleList.Flink; p != pBegin; )
+	{
+		if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)p,
+			&Entry, LDR_DATA_TABLE_ENTRY_SIZE_WIN7_32, nullptr)))
 			return nts;
 		if (Entry.DllBase)
 		{
@@ -168,40 +305,45 @@ inline NTSTATUS EnumProcessModules(HANDLE hProcess, std::vector<MODULE_INFO>& vR
 			e.BaseAddress = (void*)Entry.DllBase;
 			e.cbImage = Entry.SizeOfImage;
 		}
+		EckDbgPrint(Entry.InLoadOrderLinks.Flink);
 		p = (UINT_PTR)Entry.InLoadOrderLinks.Flink;
 	}
 	return STATUS_SUCCESS;
+#else
+	return STATUS_NOT_SUPPORTED;
+#endif// defined(_WIN64)
 }
+
 
 struct THREAD_INFO
 {
-	UINT uTID;
-	UINT_PTR AddrStart;
+	UINT uTid;
+	void* StartAddress;
 	KPRIORITY Priority;
 	KPRIORITY BasePriority;
 };
 
 struct PROCESS_INFO
 {
-	CRefStrW rsImageName;	// ������
-	ULONG uPid;				// ����ID
-	ULONG uParentPid;		// ������ID
-	ULONG cThreads;			// �߳���
-	ULONG uSessionID;		// �ỰID
-	ULONG cHandles;			// �����
-	ULONG cPageFaults;		// ҳ�������
-	SIZE_T cbPrivateWorkingSet;			// ר�ù�����
-	SIZE_T cbWorkingSet;				// ������
-	SIZE_T cbPeakWorkingSet;			// ��ֵ������
-	SIZE_T cbQuotaPagedPoolUsage;		// ҳ�滺���
-	SIZE_T cbPeakQuotaPagedPoolUsage;	// ��ֵҳ�滺���
-	SIZE_T cbQuotaNonPagedPoolUsage;	// ��ҳ�滺���
-	SIZE_T cbPeakQuotaNonPagedPoolUsage;// ��ֵ��ҳ�滺���
-	SIZE_T cbPageFileUsage;				// ���ύ
-	SIZE_T cbPeakPageFileUsage;			// ��ֵ���ύ
-	CRefStrW rsFilePath;	// ����·��
-	std::vector<THREAD_INFO> vThreads;	// �߳���Ϣ
-	std::vector<MODULE_INFO> vModules;	// ģ����Ϣ
+	CRefStrW rsImageName;	// 进程名
+	ULONG uPid;				// 进程ID
+	ULONG uParentPid;		// 父进程ID
+	ULONG cThreads;			// 线程数
+	ULONG uSessionID;		// 会话ID
+	ULONG cHandles;			// 句柄数
+	ULONG cPageFaults;		// 页面错误数
+	SIZE_T cbPrivateWorkingSet;			// 专用工作集
+	SIZE_T cbWorkingSet;				// 工作集
+	SIZE_T cbPeakWorkingSet;			// 峰值工作集
+	SIZE_T cbQuotaPagedPoolUsage;		// 页面缓冲池
+	SIZE_T cbPeakQuotaPagedPoolUsage;	// 峰值页面缓冲池
+	SIZE_T cbQuotaNonPagedPoolUsage;	// 非页面缓冲池
+	SIZE_T cbPeakQuotaNonPagedPoolUsage;// 峰值非页面缓冲池
+	SIZE_T cbPageFileUsage;				// 已提交
+	SIZE_T cbPeakPageFileUsage;			// 峰值已提交
+	CRefStrW rsFilePath;	// 进程路径
+	std::vector<THREAD_INFO> vThreads;	// 线程信息
+	std::vector<MODULE_INFO> vModules;	// 模块信息
 };
 
 enum EPFLAGS :UINT
@@ -214,68 +356,24 @@ enum EPFLAGS :UINT
 ECK_ENUM_BIT_FLAGS(EPFLAGS);
 
 /// <summary>
-/// ö�ٽ���
+/// 枚举进程
 /// </summary>
-/// <param name="vResult">ö�ٽ����������ո�����</param>
-/// <param name="uFlags">EPF_����</param>
+/// <param name="Fn">回调，参数：(SYSTEM_PROCESS_INFORMATION*)</param>
 /// <returns>NTSTATUS</returns>
-inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags = EPF_NONE)
+inline NTSTATUS EnumProcess(std::invocable<SYSTEM_PROCESS_INFORMATION*> auto&& Fn)
 {
 	ULONG cb;
 	NTSTATUS nts = NtQuerySystemInformation(SystemProcessInformation, nullptr, 0, &cb);
 	if (!cb)
 		return nts;
-	BYTE* pBuf = (BYTE*)VAlloc(cb);
-	UniquePtr<DelVA<BYTE>> _(pBuf);
-	if (!NT_SUCCESS(nts = NtQuerySystemInformation(SystemProcessInformation, pBuf, cb, &cb)))
+	UniquePtr<DelVA<BYTE>> pBuf{ (BYTE*)VAlloc(cb) };
+	if (!NT_SUCCESS(nts = NtQuerySystemInformation(SystemProcessInformation, pBuf.get(), cb, &cb)))
 		return nts;
-	vResult.reserve(150u);
-	auto pspi = (SYSTEM_PROCESS_INFORMATION*)pBuf;
+	auto pspi = (SYSTEM_PROCESS_INFORMATION*)pBuf.get();
 	EckLoop()
 	{
-		auto& e = vResult.emplace_back(
-			CRefStrW(pspi->ImageName),
-			pToI32<ULONG>(pspi->UniqueProcessId),
-			pToI32<ULONG>(pspi->InheritedFromUniqueProcessId),
-			pspi->NumberOfThreads,
-			pspi->SessionId,
-			pspi->HandleCount,
-			pspi->PageFaultCount,
-			(SIZE_T)pspi->WorkingSetPrivateSize.QuadPart,
-			pspi->WorkingSetSize,
-			pspi->PeakWorkingSetSize,
-			pspi->QuotaPagedPoolUsage,
-			pspi->QuotaPeakPagedPoolUsage,
-			pspi->QuotaNonPagedPoolUsage,
-			pspi->QuotaPeakNonPagedPoolUsage,
-			pspi->PagefileUsage,
-			pspi->PeakPagefileUsage);
-
-		if (uFlags & EPF_PROCESS_PATH)
-			GetProcessPath(e.uPid, e.rsFilePath);
-
-		if (uFlags & EPF_THREAD_INFO)
-		{
-			e.vThreads.resize(pspi->NumberOfThreads);
-			SYSTEM_THREAD_INFORMATION* const pBegin = pspi->Threads;
-			SYSTEM_THREAD_INFORMATION* const pEnd = pBegin + pspi->NumberOfThreads;
-			for (auto p = pBegin; p < pEnd; ++p)
-			{
-				auto& t = e.vThreads[p - pBegin];
-				t.uTID = pToI32<ULONG>(p->ClientId.UniqueThread);
-				t.AddrStart = p->StartAddress;
-				t.Priority = p->Priority;
-				t.BasePriority = p->BasePriority;
-			}
-		}
-
-		if (uFlags & EPF_MODULE_INFO)
-		{
-			const auto hProcess = NaOpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, e.uPid);
-			EnumProcessModules(hProcess, e.vModules);
-			NtClose(hProcess);
-		}
-
+		EckCanCallbackContinue(Fn(pspi))
+			break;
 		if (pspi->NextEntryOffset == 0)
 			break;
 		pspi = PtrStepCb(pspi, pspi->NextEntryOffset);
@@ -284,21 +382,117 @@ inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags =
 }
 
 /// <summary>
-/// ��������������Ȩ
+/// 枚举进程
 /// </summary>
-/// <param name="hProcess">���̾�����������PROCESS_QUERY_LIMITED_INFORMATIONȨ��</param>
-/// <param name="pszPrivilege">��Ȩ��</param>
-/// <param name="bEnable">�Ƿ�����</param>
+/// <param name="vResult">枚举结果，不会清空该容器</param>
+/// <param name="uFlags">EPF_常量</param>
 /// <returns>NTSTATUS</returns>
-inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess, PCWSTR pszPrivilege, BOOL bEnable)
+inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags = EPF_NONE)
+{
+	vResult.reserve(150u);
+	return EnumProcess([&](SYSTEM_PROCESS_INFORMATION* pspi)
+		{
+			auto& e = vResult.emplace_back(
+				CRefStrW(pspi->ImageName),
+				pToI32<ULONG>(pspi->UniqueProcessId),
+				pToI32<ULONG>(pspi->InheritedFromUniqueProcessId),
+				pspi->NumberOfThreads,
+				pspi->SessionId,
+				pspi->HandleCount,
+				pspi->PageFaultCount,
+				(SIZE_T)pspi->WorkingSetPrivateSize.QuadPart,
+				pspi->WorkingSetSize,
+				pspi->PeakWorkingSetSize,
+				pspi->QuotaPagedPoolUsage,
+				pspi->QuotaPeakPagedPoolUsage,
+				pspi->QuotaNonPagedPoolUsage,
+				pspi->QuotaPeakNonPagedPoolUsage,
+				pspi->PagefileUsage,
+				pspi->PeakPagefileUsage);
+
+			if (uFlags & EPF_PROCESS_PATH)
+				GetProcessPath(e.uPid, e.rsFilePath);
+
+			if (uFlags & EPF_THREAD_INFO)
+			{
+				e.vThreads.resize(pspi->NumberOfThreads);
+				SYSTEM_THREAD_INFORMATION* const pBegin = pspi->Threads;
+				SYSTEM_THREAD_INFORMATION* const pEnd = pBegin + pspi->NumberOfThreads;
+				for (auto p = pBegin; p < pEnd; ++p)
+				{
+					auto& t = e.vThreads[p - pBegin];
+					t.uTid = pToI32<ULONG>(p->ClientId.UniqueThread);
+					t.StartAddress = p->StartAddress;
+					t.Priority = p->Priority;
+					t.BasePriority = p->BasePriority;
+				}
+			}
+
+			if (uFlags & EPF_MODULE_INFO)
+			{
+				const auto hProcess = NaOpenProcess(
+					PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, e.uPid);
+				if (hProcess)
+				{
+					EnumProcessModules(hProcess, e.vModules);
+					NtClose(hProcess);
+				}
+			}
+		});
+}
+
+EckInline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, UINT& uPid)
+{
+	uPid = 0u;
+	return EnumProcess([&](SYSTEM_PROCESS_INFORMATION* pspi)
+		{
+			if (pspi->ImageName.Length &&
+				TcsCompareMaxLenI(pszImageName,
+					pspi->ImageName.Buffer,
+					pspi->ImageName.Length) == 0)
+			{
+				uPid = pToI32<UINT>(pspi->UniqueProcessId);
+				return FALSE;
+			}
+			return TRUE;
+		});
+}
+
+EckInline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, std::vector<UINT>& vPid)
+{
+	vPid.clear();
+	return EnumProcess([&](SYSTEM_PROCESS_INFORMATION* pspi)
+		{
+			if (pspi->ImageName.Length &&
+				TcsCompareMaxLenI(pszImageName,
+					pspi->ImageName.Buffer,
+					pspi->ImageName.Length) == 0)
+				vPid.emplace_back(pToI32<UINT>(pspi->UniqueProcessId));
+		});
+}
+
+/// <summary>
+/// 调整进程令牌特权
+/// </summary>
+/// <param name="hProcess">进程句柄，必须具有PROCESS_QUERY_LIMITED_INFORMATION权限</param>
+/// <param name="pszPrivilege">特权名</param>
+/// <param name="bEnable">是否启用</param>
+/// <returns>NTSTATUS</returns>
+inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess, BOOL bEnable,
+	_In_reads_or_z_(cchPrivilege) PCWCH pszPrivilege, int cchPrivilege = -1)
 {
 	HANDLE hToken;
 	NTSTATUS nts = NtOpenProcessToken(hProcess, TOKEN_ADJUST_PRIVILEGES, &hToken);
 	if (!NT_SUCCESS(nts))
 		return nts;
-	UNICODE_STRING usPrivilege;
-	RtlInitUnicodeString(&usPrivilege, pszPrivilege);
-
+	if (cchPrivilege < 0)
+		cchPrivilege = (int)TcsLen(pszPrivilege);
+	UNICODE_STRING usPrivilege
+	{
+		.Length = USHORT(cchPrivilege * sizeof(WCHAR)),
+		.MaximumLength = USHORT((cchPrivilege + 1) * sizeof(WCHAR)),
+		.Buffer = PWCH(pszPrivilege),
+	};
 	TOKEN_PRIVILEGES tp;
 	if (!NT_SUCCESS(nts = LsaLookupPrivilegeValue(hToken, &usPrivilege, &tp.Privileges[0].Luid)))
 	{
@@ -332,7 +526,7 @@ inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess, PCWSTR pszPrivilege, BOO
 	return hIcon;
 }
 
-[[nodiscard]] EckInline HICON GetWindowLargeIcon(HWND hWnd, int msTimeOut = 300)
+[[nodiscard]] inline HICON GetWindowLargeIcon(HWND hWnd, int msTimeOut = 300)
 {
 	HICON hIcon;
 	if (!SendMessageTimeoutW(hWnd, WM_GETICON, ICON_BIG, 0,
@@ -343,11 +537,24 @@ inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess, PCWSTR pszPrivilege, BOO
 	return hIcon;
 }
 
-[[nodiscard]] inline HICON GetWindowIcon(HWND hWnd, BOOL& bNeedDestroy, BOOL bSmall = FALSE, int msTimeOut = 300)
+/// <summary>
+/// 取窗口图标。
+/// 此函数根据bSmall参数选择调用GetWindowSmallIcon或GetWindowLargeIcon，
+/// 如果两者都失败，则尝试获取进程映像文件图标
+/// </summary>
+/// <param name="hWnd">窗口句柄</param>
+/// <param name="bFileIcon">返回图标类型，若为文件图标则为TRUE</param>
+/// <param name="bSmall">是否获取小图标</param>
+/// <param name="msTimeOut">超时</param>
+/// <returns>若成功返回图标句柄，失败返回nullptr</returns>
+_Ret_maybenull_
+[[nodiscard]] inline HICON GetWindowIcon(HWND hWnd,
+	BOOL& bFileIcon, BOOL bSmall = FALSE, int msTimeOut = 300)
 {
-	bNeedDestroy = FALSE;
-	const HICON hIcon =
-		(bSmall ? GetWindowSmallIcon(hWnd, msTimeOut) : GetWindowLargeIcon(hWnd, msTimeOut));
+	bFileIcon = FALSE;
+	const HICON hIcon = (bSmall ?
+		GetWindowSmallIcon(hWnd, msTimeOut) :
+		GetWindowLargeIcon(hWnd, msTimeOut));
 	if (hIcon)
 		return hIcon;
 
@@ -365,7 +572,7 @@ inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess, PCWSTR pszPrivilege, BOO
 	if (!SHGetFileInfoW(rsPath.Data(), 0, &sfi, sizeof(sfi), uFlags))
 		SHGetFileInfoW(rsPath.Data(), FILE_ATTRIBUTE_NORMAL, &sfi, sizeof(sfi),
 			uFlags | SHGFI_USEFILEATTRIBUTES);
-	bNeedDestroy = (sfi.hIcon != nullptr);
+	bFileIcon = !!sfi.hIcon;
 	return sfi.hIcon;
 }
 ECK_NAMESPACE_END

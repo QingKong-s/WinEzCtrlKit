@@ -561,7 +561,7 @@ EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 }
 
 [[nodiscard]] EckInline IDWriteTextFormat* CreateDefTextFormatWithSize(
-	float cy, int iDpi = USER_DEFAULT_SCREEN_DPI,HRESULT* phr = nullptr)
+	float cy, int iDpi = USER_DEFAULT_SCREEN_DPI, HRESULT* phr = nullptr)
 {
 	LOGFONTW lf;
 	if (!GetDefFontInfo(lf, iDpi))
@@ -810,8 +810,8 @@ namespace Priv
 		}
 
 		std::unordered_map<std::wstring_view, int> hmPaths{};// 文件夹路径->vPIDL索引
-		std::vector<std::pair<LPITEMIDLIST, std::vector<LPITEMIDLIST>>> vPIDL{};// { 文件夹PIDL,{文件PIDL} }
-		LPITEMIDLIST pIDL;
+		std::vector<std::pair<PIDLIST_ABSOLUTE, std::vector<PIDLIST_ABSOLUTE>>> vPIDL{};// { 文件夹PIDL,{文件PIDL} }
+		PIDLIST_ABSOLUTE pIDL;
 
 		int idxCurr = 0;
 
@@ -839,7 +839,7 @@ namespace Priv
 					it = hmPaths.insert(std::make_pair(svTemp, idxCurr)).first;
 					++idxCurr;
 
-					auto& x = vPIDL.emplace_back(pIDL, std::vector<LPITEMIDLIST>());
+					auto& x = vPIDL.emplace_back(pIDL, std::vector<PIDLIST_ABSOLUTE>{});
 					if (FAILED(SHParseDisplayName(pszPath, nullptr, &pIDL, 0, nullptr)))// 文件转PIDL
 						continue;
 					x.second.emplace_back(pIDL);
@@ -854,7 +854,8 @@ namespace Priv
 
 		for (const auto& x : vPIDL)
 		{
-			SHOpenFolderAndSelectItems(x.first, (UINT)x.second.size(), (LPCITEMIDLIST*)x.second.data(), 0);
+			SHOpenFolderAndSelectItems(x.first, (UINT)x.second.size(),
+				(PCUITEMID_CHILD*)x.second.data(), 0);
 			CoTaskMemFree(x.first);
 			for (const auto pidl : x.second)
 				CoTaskMemFree(pidl);
@@ -895,16 +896,17 @@ EckInline void OpenInExplorer(std::vector<CRefStrW>* pvPath)
 EckInline HRESULT OpenInExplorer(PCWSTR pszFolder, const std::vector<CRefStrW>& vFile)
 {
 	HRESULT hr;
-	PITEMIDLIST pIDL;
+	PIDLIST_ABSOLUTE pIDL;
 	if (FAILED(hr = SHParseDisplayName(pszFolder, nullptr, &pIDL, 0, nullptr)))
 		return hr;
-	std::vector<PITEMIDLIST> vPIDL(vFile.size());
+	std::vector<PIDLIST_ABSOLUTE> vPIDL(vFile.size());
 	for (auto& e : vFile)
 	{
 		if (FAILED(hr = SHParseDisplayName(e.Data(), nullptr, &vPIDL.emplace_back(), 0, nullptr)))
 			goto CleanupAndRet;
 	}
-	hr = SHOpenFolderAndSelectItems(pIDL, (UINT)vPIDL.size(), (PCITEMIDLIST*)vPIDL.data(), 0);
+	hr = SHOpenFolderAndSelectItems(pIDL,
+		(UINT)vPIDL.size(), (PCUITEMID_CHILD*)vPIDL.data(), 0);
 CleanupAndRet:
 	CoTaskMemFree(pIDL);
 	for (const auto e : vPIDL)
@@ -922,13 +924,14 @@ inline HRESULT OpenInExplorer(PCWSTR pszFile)
 	EckCheckMem(pszFolder);
 	wmemcpy(pszFolder, pszFile, cbFolder);
 	*(pszFolder + cbFolder / sizeof(WCHAR) - 1) = L'\0';
-	PITEMIDLIST pIdlFolder, pIdlFile;
+	PIDLIST_ABSOLUTE pIdlFolder, pIdlFile;
 	HRESULT hr;
 	if (FAILED(hr = SHParseDisplayName(pszFolder, nullptr, &pIdlFolder, 0, nullptr)))
 		goto CleanupAndRet;
 	if (FAILED(hr = SHParseDisplayName(psz, nullptr, &pIdlFile, 0, nullptr)))
 		goto CleanupAndRet1;
-	hr = SHOpenFolderAndSelectItems(pIdlFolder, 1, (PCITEMIDLIST*)&pIdlFile, 0);
+	hr = SHOpenFolderAndSelectItems(pIdlFolder,
+		1, (PCUITEMID_CHILD*)&pIdlFile, 0);
 CleanupAndRet1:
 	CoTaskMemFree(pIdlFile);
 CleanupAndRet:

@@ -435,7 +435,7 @@ EckInlineNd int TcsCompareLen2(_In_reads_(Len1) TPtr Str1, size_t Len1,
 }
 
 template<ccpIsStdCharPtr TPtr>
-EckInlineNd int TcsCompareI(_In_z_ TPtr Str1, _In_z_ TPtr Str2)
+EckInlineNd int TcsCompareI(_In_z_ TPtr Str1, _In_z_ ConstStdCharPtr_T<TPtr> Str2)
 {
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
 		return stricmp(Str1, Str2);
@@ -444,7 +444,7 @@ EckInlineNd int TcsCompareI(_In_z_ TPtr Str1, _In_z_ TPtr Str2)
 }
 template<ccpIsStdCharPtr TPtr>
 EckInlineNd int TcsCompareMaxLenI(_In_reads_or_z_(Max) TPtr Str1,
-	_In_reads_or_z_(Max) TPtr Str2, size_t Max)
+	_In_reads_or_z_(Max) ConstStdCharPtr_T<TPtr> Str2, size_t Max)
 {
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
 		return strnicmp(Str1, Str2, Max);
@@ -452,7 +452,8 @@ EckInlineNd int TcsCompareMaxLenI(_In_reads_or_z_(Max) TPtr Str1,
 		return wcsnicmp(Str1, Str2, Max);
 }
 template<ccpIsStdCharPtr TPtr>
-EckInlineNd int TcsCompareLenI(_In_reads_(Len) TPtr Str1, _In_reads_(Len) TPtr Str2, size_t Len)
+EckInlineNd int TcsCompareLenI(_In_reads_(Len) TPtr Str1,
+	_In_reads_(Len) ConstStdCharPtr_T<TPtr> Str2, size_t Len)
 {
 	using TChar = RemoveStdCharPtr_T<TPtr>;
 	if constexpr (std::is_same_v<TChar, char>)
@@ -472,7 +473,7 @@ EckInlineNd int TcsCompareLenI(_In_reads_(Len) TPtr Str1, _In_reads_(Len) TPtr S
 }
 template<ccpIsStdCharPtr TPtr>
 EckInlineNd int TcsCompareLen2I(_In_reads_(Len1) TPtr Str1, size_t Len1,
-	_In_reads_(Len2) TPtr Str2, size_t Len2)
+	_In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2)
 {
 	const auto r = TcsCompareLenI(Str1, Str2, std::min(Len1, Len2));
 	if (r)
@@ -675,7 +676,7 @@ template<ccpIsStdCharPtr TPtr, class TProcessor>
 EckInline void SplitStr(TPtr pszText, ConstStdCharPtr_T<TPtr> pszDiv,
 	int cSubTextExpected, int cchText, int cchDiv, TProcessor&& Processor)
 {
-	SplitStr(pszText, cchText, pszDiv, cchDiv,cSubTextExpected, 
+	SplitStr(pszText, cchText, pszDiv, cchDiv, cSubTextExpected,
 		std::forward<TProcessor>(Processor));
 }
 
