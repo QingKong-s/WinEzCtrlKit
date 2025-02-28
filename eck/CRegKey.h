@@ -69,7 +69,7 @@ public:
 
 	CRegKey(HKEY hKey, PCWSTR pszKey, REGSAM dwAccess = KEY_READ | KEY_WRITE, LSTATUS* plStatus = nullptr)
 	{
-		auto r = Open(hKey, pszKey, dwAccess);
+		const auto r = Open(hKey, pszKey, dwAccess);
 		if (plStatus)
 			*plStatus = r;
 	}
@@ -86,6 +86,7 @@ public:
 	constexpr CRegKey& operator=(CRegKey&& x) noexcept
 	{
 		std::swap(m_hKey, x.m_hKey);
+		return *this;
 	}
 
 	[[nodiscard]] EckInline HKEY Attach(HKEY hKey)
@@ -172,7 +173,8 @@ public:
 			pszClassNameBuf, pcchClassName, pftLastWrite);
 	}
 
-	int EnumKey(const std::function<BOOL(CRefStrW& rsName)>& fn, LSTATUS* plStatus = nullptr)
+	int EnumKey(std::invocable<CRefStrW&> auto&& Fn,
+		_Out_opt_ LSTATUS* plStatus = nullptr)
 	{
 		if (plStatus)
 			*plStatus = ERROR_SUCCESS;
@@ -192,7 +194,7 @@ public:
 				return idx;
 			}
 			rs.ReSize((int)dw);
-			if (fn(rs))
+			EckCanCallbackContinue(Fn(rs))
 				break;
 			dw = cchMaxSub + 1;
 		}

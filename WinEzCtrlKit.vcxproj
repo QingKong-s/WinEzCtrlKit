@@ -197,6 +197,7 @@
     <ClInclude Include="eck\CSmallFunction.h" />
     <ClInclude Include="eck\CStatusBar.h" />
     <ClInclude Include="eck\CTableLayout.h" />
+    <ClInclude Include="eck\CUninstallInfo.h" />
     <ClInclude Include="eck\CUnknown.h" />
     <ClInclude Include="eck\CWaitableObject.h" />
     <ClInclude Include="eck\CWaitableTimer.h" />
