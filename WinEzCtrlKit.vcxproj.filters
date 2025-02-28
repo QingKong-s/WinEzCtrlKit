@@ -549,6 +549,9 @@
     <ClInclude Include="eck\HanziUpperNum.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\CUninstallInfo.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">
