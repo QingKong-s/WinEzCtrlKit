@@ -729,6 +729,7 @@ inline BOOL GetItemsViewForeBackColor(COLORREF& crText, COLORREF& crBk)
 {
 	crBk = GetSysColor(COLOR_WINDOW);
 	crText = GetSysColor(COLOR_WINDOWTEXT);
+#if !ECK_OPT_NO_DARKMODE
 	if (ShouldAppsUseDarkMode())
 	{
 		const auto hThemeIV = OpenThemeData(nullptr, L"ItemsView");
@@ -744,6 +745,7 @@ inline BOOL GetItemsViewForeBackColor(COLORREF& crText, COLORREF& crBk)
 		}
 		return TRUE;
 	}
+#endif// !ECK_OPT_NO_DARKMODE
 	return FALSE;
 }
 

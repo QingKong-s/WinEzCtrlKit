@@ -402,6 +402,7 @@ FORCEINLINE BOOL SetWindowCompositionAttribute(HWND hWnd, WINDOWCOMPOSITIONATTRI
 
 BOOL WINAPI IsNTAdmin(DWORD dwReserved, DWORD* pdwResevered);
 
+#if !ECK_OPT_NO_DARKMODE
 // 1809 17763 暗色功能引入
 using FAllowDarkModeForWindow = bool(WINAPI*)(HWND, BOOL);
 using FAllowDarkModeForApp = bool(WINAPI*)(BOOL);
@@ -429,8 +430,9 @@ extern FGetIsImmersiveColorUsingHighContrast	pfnGetIsImmersiveColorUsingHighCont
 extern FShouldSystemUseDarkMode			pfnShouldSystemUseDarkMode;
 extern FSetPreferredAppMode				pfnSetPreferredAppMode;
 extern FIsDarkModeAllowedForApp			pfnIsDarkModeAllowedForApp;
+#endif// !ECK_OPT_NO_DARKMODE
 
-#if NTDDI_VERSION >= NTDDI_WIN10_RS5 && !ECK_OPT_DISABLE_DARKMODE
+#if NTDDI_VERSION >= NTDDI_WIN10_RS5 && !ECK_OPT_NO_DARKMODE
 FORCEINLINE BOOL AllowDarkModeForWindow(HWND hWnd, BOOL bAllow)
 {
 	return pfnAllowDarkModeForWindow(hWnd, bAllow);
@@ -476,7 +478,7 @@ FORCEINLINE constexpr void RefreshImmersiveColorPolicyState() {}
 FORCEINLINE constexpr BOOL GetIsImmersiveColorUsingHighContrast(IMMERSIVE_HC_CACHE_MODE) { return FALSE; }
 #endif
 
-#if NTDDI_VERSION >= NTDDI_WIN10_19H1
+#if NTDDI_VERSION >= NTDDI_WIN10_19H1 && !ECK_OPT_NO_DARKMODE
 FORCEINLINE PreferredAppMode SetPreferredAppMode_Org(PreferredAppMode iMode)
 {
 	return pfnSetPreferredAppMode(iMode);
@@ -497,7 +499,7 @@ FORCEINLINE constexpr BOOL ShouldSystemUseDarkMode() { return FALSE; }
 FORCEINLINE constexpr BOOL IsDarkModeAllowedForApp() { return FALSE; }
 #endif
 
-#if NTDDI_VERSION >= NTDDI_WIN10_RS5 && !ECK_OPT_DISABLE_DARKMODE
+#if NTDDI_VERSION >= NTDDI_WIN10_RS5 && !ECK_OPT_NO_DARKMODE
 FORCEINLINE PreferredAppMode SetPreferredAppMode(PreferredAppMode iMode)
 {
 #if NTDDI_VERSION >= NTDDI_WIN10_19H1
@@ -506,7 +508,7 @@ FORCEINLINE PreferredAppMode SetPreferredAppMode(PreferredAppMode iMode)
 	pfnAllowDarkModeForApp(
 		iMode == PreferredAppMode::AllowDark || iMode == PreferredAppMode::ForceDark);
 	return PreferredAppMode::Default;
-#endif
+#endif// NTDDI_VERSION >= NTDDI_WIN10_19H1
 	/*if (pfnSetPreferredAppMode)
 		return pfnSetPreferredAppMode(iMode);
 	else if (pfnAllowDarkModeForApp)
@@ -519,7 +521,7 @@ FORCEINLINE PreferredAppMode SetPreferredAppMode(PreferredAppMode iMode)
 }
 #else
 FORCEINLINE constexpr PreferredAppMode SetPreferredAppMode(PreferredAppMode) { return PreferredAppMode::Default; }
-#endif
+#endif// NTDDI_VERSION >= NTDDI_WIN10_RS5 && !ECK_OPT_NO_DARKMODE
 
 using FOpenNcThemeData = HTHEME(WINAPI*)(HWND, PCWSTR);
 
