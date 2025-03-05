@@ -72,13 +72,13 @@ inline NTSTATUS GetProcessPath(HANDLE hProcess, CRefStrW& rsPath, BOOL bDosPath 
 	ULONG cbReal;
 	auto nts = NtQueryInformationProcess(hProcess,
 		bDosPath ? ProcessImageFileNameWin32 : ProcessImageFileName,
-		rsPath.Data(), rsPath.ByteSizePure(), &cbReal);
+		rsPath.Data(), (ULONG)rsPath.ByteSizePure(), &cbReal);
 	if (nts == STATUS_INFO_LENGTH_MISMATCH)
 	{
 		rsPath.ReSize((cbReal + 2/* Space */) / sizeof(WCHAR));
 		nts = NtQueryInformationProcess(hProcess,
 			bDosPath ? ProcessImageFileNameWin32 : ProcessImageFileName,
-			rsPath.Data(), rsPath.ByteSizePure(), nullptr);
+			rsPath.Data(), (ULONG)rsPath.ByteSizePure(), nullptr);
 	}
 
 	const auto pus = (UNICODE_STRING*)rsPath.Data();
@@ -290,7 +290,8 @@ inline NTSTATUS EnumProcessModules32On64(HANDLE hProcess, std::vector<MODULE_INF
 			{
 				const int cch = Entry.BaseDllName.Length / sizeof(WCHAR);
 				e.rsModuleName.ReSize(cch);
-				if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)Entry.BaseDllName.Buffer,
+				if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess,
+					ULongToPtr(Entry.BaseDllName.Buffer),
 					e.rsModuleName.Data(), cch * sizeof(WCHAR), nullptr)))
 					return nts;
 			}
@@ -298,11 +299,12 @@ inline NTSTATUS EnumProcessModules32On64(HANDLE hProcess, std::vector<MODULE_INF
 			{
 				const int cch = Entry.FullDllName.Length / sizeof(WCHAR);
 				e.rsModulePath.ReSize(cch);
-				if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess, (void*)Entry.FullDllName.Buffer,
+				if (!NT_SUCCESS(nts = NtReadVirtualMemory(hProcess,
+					ULongToPtr(Entry.FullDllName.Buffer),
 					e.rsModulePath.Data(), cch * sizeof(WCHAR), nullptr)))
 					return nts;
 			}
-			e.BaseAddress = (void*)Entry.DllBase;
+			e.BaseAddress = ULongToPtr(Entry.DllBase);
 			e.cbImage = Entry.SizeOfImage;
 		}
 		EckDbgPrint(Entry.InLoadOrderLinks.Flink);

@@ -997,6 +997,13 @@ EckInline constexpr void SetMsgFilter(void*) {}
 HRESULT UxfMenuInit(CWnd* pWnd);
 
 HRESULT UxfMenuUnInit(CWnd* pWnd);
+
+
+[[nodiscard]] EckInline HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,
+	void* pParameter = nullptr, UINT* pThreadId = nullptr, UINT dwCreationFlags = 0)
+{
+	return (HANDLE)_beginthreadex(0, 0, pStartAddress, pParameter, dwCreationFlags, pThreadId);
+}
 ECK_NAMESPACE_END
 
 #ifndef ECK_OPT_NO_USING_GDIPLUS

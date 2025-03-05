@@ -3,6 +3,7 @@
 #include "CRefBin.h"
 #include "IMem.h"
 #include "AutoPtrDef.h"
+#include "NativeWrapper.h"
 
 ECK_NAMESPACE_BEGIN
 struct CStreamWalker

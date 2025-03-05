@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "ECK.h"
+#include "StringUtility.h"
 
 ECK_NAMESPACE_BEGIN
 enum class CalcExpResult
@@ -288,7 +288,7 @@ inline CalcExpResult CalculateExpression(_Out_ double& lfResult,
 		else if (iswalpha(ch))
 		{
 			for (const auto& e : Priv::CalcExpConstList)
-				if (EckIsStartWithConstStringIW(p, e.szNameW))
+				if (TcsCompareMaxLenI(p, e.szNameW, e.cchName) == 0)
 				{
 					vNum.push_back(e.lfVal);
 					p += (e.cchName - 1);
@@ -296,7 +296,7 @@ inline CalcExpResult CalculateExpression(_Out_ double& lfResult,
 					goto ExitSearchSym;
 				}
 			for (const auto& e : Priv::CalcExpFuncList)
-				if (EckIsStartWithConstStringIW(p, e.szNameW))
+				if (TcsCompareMaxLenI(p, e.szNameW, e.cchName) == 0)
 				{
 					vOp.push_back((TChar)e.eOp);
 					p += (e.cchName - 1);
@@ -386,7 +386,7 @@ inline CalcExpResult CalculateExpression(_Out_ double& lfResult,
 		else if (isalpha(ch))
 		{
 			for (const auto& e : Priv::CalcExpConstList)
-				if (EckIsStartWithConstStringIA(p, e.szNameA))
+				if (TcsCompareMaxLenI(p, e.szNameA, e.cchName) == 0)
 				{
 					vNum.push_back(e.lfVal);
 					p += (e.cchName - 1);
@@ -394,7 +394,7 @@ inline CalcExpResult CalculateExpression(_Out_ double& lfResult,
 					goto ExitSearchSym;
 				}
 			for (const auto& e : Priv::CalcExpFuncList)
-				if (EckIsStartWithConstStringIA(p, e.szNameA))
+				if (TcsCompareMaxLenI(p, e.szNameA, e.cchName) == 0)
 				{
 					vOp.push_back((TChar)e.eOp);
 					p += (e.cchName - 1);

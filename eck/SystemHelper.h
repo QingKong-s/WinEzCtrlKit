@@ -1,26 +1,27 @@
 ﻿#pragma once
-#include "Utility.h"
-#include "Utility2.h"
-#include "CFile.h"
-#include "CRefBin.h"
+#include "NativeWrapper.h"
 #include "ComPtr.h"
-#include "DpiApi.h"
 #include "AutoPtrDef.h"
 
 #include <intrin.h>
-
 #include <wbemcli.h>
 #include <comdef.h>
 
 ECK_NAMESPACE_BEGIN
-inline COLORREF GetCursorPosColor()
+inline LONGLONG GetFileSizeWithPath(PCWSTR pszFile, NTSTATUS* pnts = nullptr)
 {
-	POINT pt;
-	GetCursorPos(&pt);
-	const HDC hDC = GetDC(nullptr);
-	const auto cr = GetPixel(hDC, pt.x, pt.y);
-	ReleaseDC(nullptr, hDC);
-	return cr;
+	const auto hFile = NaOpenFile(pszFile, FILE_READ_ATTRIBUTES, FILE_SHARE_READ, 0, pnts);
+	if (hFile == INVALID_HANDLE_VALUE)
+		return 0ll;
+	IO_STATUS_BLOCK iosb;
+	FILE_STANDARD_INFORMATION fsi;
+	fsi.EndOfFile.QuadPart = 0ll;
+	const auto nts = NtQueryInformationFile(hFile, &iosb,
+		&fsi, sizeof(fsi), FileStandardInformation);
+	if (pnts)
+		*pnts = nts;
+	NtClose(hFile);
+	return fsi.EndOfFile.QuadPart;
 }
 
 /// <summary>
@@ -89,6 +90,120 @@ inline BOOL WriteToFile(PCWSTR pszFile, PCVOID pData, DWORD cb)
 EckInline BOOL WriteToFile(PCWSTR pszFile, const CRefBin& rb)
 {
 	return WriteToFile(pszFile, rb.Data(), (DWORD)rb.Size());
+}
+
+namespace Priv
+{
+	inline void IntEnumFileRecurse(CRefStrW& rs, int cchDir, PCWSTR pszPat,
+		std::vector<CRefStrW>& vResult, WIN32_FIND_DATAW* pwfd)
+	{
+		auto hFind = FindFirstFileExW(rs.Data(), FindExInfoBasic, pwfd,
+			FindExSearchNameMatch, nullptr, FIND_FIRST_EX_LARGE_FETCH);
+		if (hFind != INVALID_HANDLE_VALUE)
+		{
+			do
+			{
+				if ((pwfd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+				{
+					if (*pwfd->cFileName != L'.')
+					{
+						rs.PopBack(rs.Size() - cchDir);
+						rs.PushBack(pwfd->cFileName);
+						rs.PushBackChar(L'\\');
+						const int cchNewDir = rs.Size();
+						rs.PushBack(pszPat);
+						IntEnumFileRecurse(rs, cchNewDir, pszPat, vResult, pwfd);
+					}
+				}
+				else
+				{
+					if (!pszPat || *pszPat == L'\0' || *pszPat == L'*')
+					{
+						rs.PopBack(rs.Size() - cchDir);
+						vResult.emplace_back(rs + pwfd->cFileName);
+					}
+					else
+					{
+						const auto pszExt = PathFindExtensionW(pwfd->cFileName);
+						if (_wcsicmp(pszExt, pszPat) == 0)
+							vResult.emplace_back(rs + pwfd->cFileName);
+					}
+				}
+			} while (FindNextFileW(hFind, pwfd));
+			FindClose(hFind);
+		}
+
+		rs.PopBack(rs.Size() - cchDir);
+		rs += L'*';
+		hFind = FindFirstFileExW(rs.Data(), FindExInfoBasic, pwfd,
+			FindExSearchNameMatch, nullptr, FIND_FIRST_EX_LARGE_FETCH);
+		if (hFind != INVALID_HANDLE_VALUE)
+		{
+			do
+			{
+				if ((pwfd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+				{
+					if (*pwfd->cFileName != L'.')
+					{
+						rs.PopBack(rs.Size() - cchDir);
+						rs.PushBack(pwfd->cFileName);
+						rs.PushBackChar(L'\\');
+						const int cchNewDir = rs.Size();
+						rs.PushBack(pszPat);
+						IntEnumFileRecurse(rs, cchNewDir, pszPat, vResult, pwfd);
+					}
+				}
+			} while (FindNextFileW(hFind, pwfd));
+			FindClose(hFind);
+		}
+	}
+}
+
+/// <summary>
+/// 递归枚举文件
+/// </summary>
+/// <param name="pszPath">目录</param>
+/// <param name="pszFilePat">文件名或通配符</param>
+/// <param name="vResult">枚举结果，不会清空该容器</param>
+/// <returns>成功返回TRUE，失败返回FALSE</returns>
+inline BOOL EnumFileRecurse(PCWSTR pszPath, PCWSTR pszFilePat, std::vector<CRefStrW>& vResult)
+{
+	if (!PathIsDirectoryW(pszPath))
+		return FALSE;
+	CRefStrW rs(pszPath);
+	if (rs.Back() != L'\\')
+		rs += L'\\';
+	const int cchDir = rs.Size();
+	rs += pszFilePat;
+	WIN32_FIND_DATAW wfd{};
+	Priv::IntEnumFileRecurse(rs, cchDir, pszFilePat, vResult, &wfd);
+	return TRUE;
+}
+
+/// <summary>
+/// 递归枚举文件
+/// </summary>
+/// <param name="pszPath">完整文件名，可含通配符</param>
+/// <param name="vResult">枚举结果，不会清空该容器</param>
+/// <returns>成功返回TRUE，失败返回FALSE</returns>
+EckInline BOOL EnumFileRecurse(PCWSTR pszPath, std::vector<CRefStrW>& vResult)
+{
+	const auto pszFileName = PathFindFileNameW(pszPath);
+	if (pszFileName == pszPath)
+		return FALSE;
+	const CRefStrW rs(pszPath, int(pszFileName - pszPath));
+	EckAssert(rs.Back() == L'\\');
+	return EnumFileRecurse(rs.Data(), pszFileName, vResult);
+}
+
+inline COLORREF GetCursorPosColor()
+{
+	POINT pt;
+	GetCursorPos(&pt);
+	const HDC hDC = GetDC(nullptr);
+	const auto cr = GetPixel(hDC, pt.x, pt.y);
+	ReleaseDC(nullptr, hDC);
+	return cr;
 }
 
 /// <summary>
@@ -459,188 +574,11 @@ inline UINT KeyboardEvent(T...wVk)
 
 const CRefStrW& GetRunningPath();
 
-/// <summary>
-/// CRT创建线程。
-/// （_beginthreadex wrapper）
-/// </summary>
-/// <param name="pStartAddress">起始地址</param>
-/// <param name="pParameter">参数</param>
-/// <param name="pThreadId">线程ID变量指针</param>
-/// <param name="dwCreationFlags">标志</param>
-/// <returns>线程句柄</returns>
-[[nodiscard]] EckInline HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,
-	void* pParameter = nullptr, UINT* pThreadId = nullptr, UINT dwCreationFlags = 0)
-{
-	return (HANDLE)_beginthreadex(0, 0, pStartAddress, pParameter, dwCreationFlags, pThreadId);
-}
-
-inline NTSTATUS NtPathToDosPath(CRefStrW& rsBuf)
-{
-	RTL_UNICODE_STRING_BUFFER Buf{ rsBuf.ToNtStringBuf() };
-	NTSTATUS nts = RtlNtPathNameToDosPathName(0, &Buf, nullptr, nullptr);
-	if (NT_SUCCESS(nts))
-	{
-		rsBuf.ReSize(Buf.String.Length / sizeof(WCHAR));
-		goto Success;
-	}
-	else if (nts == STATUS_NO_MEMORY ||
-		nts == STATUS_BUFFER_TOO_SMALL ||
-		nts == STATUS_INFO_LENGTH_MISMATCH)
-	{
-		rsBuf.Reserve(rsBuf.Size() + MAX_PATH);
-		Buf = rsBuf.ToNtStringBuf();
-		nts = RtlNtPathNameToDosPathName(0, &Buf, nullptr, nullptr);
-		if (NT_SUCCESS(nts))
-		{
-			rsBuf.ReSize(Buf.String.Length / sizeof(WCHAR));
-			rsBuf.ShrinkToFit();
-			goto Success;
-		}
-	}
-	rsBuf.Clear();
-	return nts;
-Success:
-	if (rsBuf.IsEmpty())
-		return STATUS_SUCCESS;
-	// 替换设备名
-	// TODO:支持网络位置
-	if (rsBuf.Front() == L'\\')
-	{
-		WCHAR szDriver[53];
-		WCHAR szLinkTarget[200];
-		if (GetLogicalDriveStringsW(ARRAYSIZE(szDriver), szDriver))
-			for (auto p = szDriver; *p; p += 4)
-			{
-				*(p + 2) = L'\0';
-				const int cch = (int)QueryDosDeviceW(p, szLinkTarget, ARRAYSIZE(szLinkTarget)) - 2;
-				if (cch > 0)
-				{
-					szLinkTarget[cch] = L'\\';
-					if (rsBuf.IsStartOfI(szLinkTarget, cch))
-					{
-						rsBuf.Replace(0, cch, p, 2);
-						break;
-					}
-				}
-			}
-	}
-	return STATUS_SUCCESS;
-}
-
-[[nodiscard]] EckInline HFONT CreateDefFont(int iDpi = USER_DEFAULT_SCREEN_DPI)
-{
-	LOGFONTW lf;
-	DaSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0, iDpi);
-	return CreateFontIndirectW(&lf);
-}
-
-EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
-{
-	return DaSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0, iDpi);
-}
-
-[[nodiscard]] EckInline IDWriteTextFormat* CreateDefTextFormat(
-	int iDpi = USER_DEFAULT_SCREEN_DPI, HRESULT* phr = nullptr)
-{
-	LOGFONTW lf;
-	if (!GetDefFontInfo(lf, iDpi))
-		return nullptr;
-	IDWriteTextFormat* pTextFormat;
-	const auto hr = g_pDwFactory->CreateTextFormat(
-		lf.lfFaceName,
-		nullptr,
-		(DWRITE_FONT_WEIGHT)lf.lfWeight,
-		lf.lfItalic ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
-		DWRITE_FONT_STRETCH_NORMAL,
-		fabsf((float)lf.lfHeight),
-		L"zh-cn",
-		&pTextFormat);
-	if (phr)
-		*phr = hr;
-	return pTextFormat;
-}
-
-[[nodiscard]] EckInline IDWriteTextFormat* CreateDefTextFormatWithSize(
-	float cy, int iDpi = USER_DEFAULT_SCREEN_DPI, HRESULT* phr = nullptr)
-{
-	LOGFONTW lf;
-	if (!GetDefFontInfo(lf, iDpi))
-		return nullptr;
-	IDWriteTextFormat* pTextFormat;
-	const auto hr = g_pDwFactory->CreateTextFormat(
-		lf.lfFaceName,
-		nullptr,
-		(DWRITE_FONT_WEIGHT)lf.lfWeight,
-		lf.lfItalic ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
-		DWRITE_FONT_STRETCH_NORMAL,
-		cy,
-		L"zh-cn",
-		&pTextFormat);
-	if (phr)
-		*phr = hr;
-	return pTextFormat;
-}
-
-[[nodiscard]] EckInline HMONITOR MonitorFromRectByWorkArea(const RECT& rc,
-	HMONITOR* phMonMain = nullptr, HMONITOR* phMonNearest = nullptr)
-{
-	struct CTX
-	{
-		const RECT& rc;
-		int iMinDistance;
-		int iMaxArea;
-		HMONITOR hMon;
-		HMONITOR hMonMain;
-		HMONITOR hMonNearest;
-	}
-	Ctx{ rc,INT_MAX };
-
-	EnumDisplayMonitors(nullptr, nullptr, [](HMONITOR hMonitor, HDC, RECT*, LPARAM lParam)->BOOL
-		{
-			const auto pCtx = (CTX*)lParam;
-
-			MONITORINFO mi;
-			mi.cbSize = sizeof(mi);
-			GetMonitorInfoW(hMonitor, &mi);
-			if (IsBitSet(mi.dwFlags, MONITORINFOF_PRIMARY))
-				pCtx->hMonMain = hMonitor;
-
-			RECT rc;
-			if (IntersectRect(rc, mi.rcWork, pCtx->rc))
-			{
-				const int iArea = (rc.right - rc.left) * (rc.bottom - rc.top);
-				if (iArea > pCtx->iMaxArea)
-				{
-					pCtx->iMaxArea = iArea;
-					pCtx->hMon = hMonitor;
-				}
-			}
-
-			const int dx = (pCtx->rc.left + pCtx->rc.right) / 2 -
-				(mi.rcWork.left + mi.rcWork.right) / 2;
-			const int dy = (pCtx->rc.top + pCtx->rc.bottom) / 2 -
-				(mi.rcWork.top + mi.rcWork.bottom) / 2;
-			const int d = dx * dx + dy * dy;
-			if (d < pCtx->iMinDistance)
-			{
-				pCtx->iMinDistance = d;
-				pCtx->hMonNearest = hMonitor;
-			}
-			return TRUE;
-		}, (LPARAM)&Ctx);
-
-	if (phMonMain)
-		*phMonMain = Ctx.hMonMain;
-	if (phMonNearest)
-		*phMonNearest = Ctx.hMonNearest;
-	return Ctx.hMon;
-}
-
 inline CRefStrW GetFileNameFromPath(PCWSTR pszPath, int cchPath = -1)
 {
 	if (cchPath < 0)
 		cchPath = (int)wcslen(pszPath);
-	const PWSTR pTemp = (PWSTR)_malloca(Cch2CbW(cchPath));
+	const PWSTR pTemp = (PWSTR)_malloca((cchPath + 1) * sizeof(WCHAR));
 	EckCheckMem(pTemp);
 	wmemcpy(pTemp, pszPath, cchPath + 1);
 
@@ -694,652 +632,6 @@ inline CRefStrW FormatDateTime(const SYSTEMTIME& st,
 	return rs;
 }
 
-namespace Priv
-{
-	inline void IntEnumFileRecurse(CRefStrW& rs, int cchDir, PCWSTR pszPat,
-		std::vector<CRefStrW>& vResult, WIN32_FIND_DATAW* pwfd)
-	{
-		auto hFind = FindFirstFileExW(rs.Data(), FindExInfoBasic, pwfd,
-			FindExSearchNameMatch, nullptr, FIND_FIRST_EX_LARGE_FETCH);
-		if (hFind != INVALID_HANDLE_VALUE)
-		{
-			do
-			{
-				if ((pwfd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-				{
-					if (*pwfd->cFileName != L'.')
-					{
-						rs.PopBack(rs.Size() - cchDir);
-						rs.PushBack(pwfd->cFileName);
-						rs.PushBackChar(L'\\');
-						const int cchNewDir = rs.Size();
-						rs.PushBack(pszPat);
-						IntEnumFileRecurse(rs, cchNewDir, pszPat, vResult, pwfd);
-					}
-				}
-				else
-				{
-					if (!pszPat || *pszPat == L'\0' || *pszPat == L'*')
-					{
-						rs.PopBack(rs.Size() - cchDir);
-						vResult.emplace_back(rs + pwfd->cFileName);
-					}
-					else
-					{
-						const auto pszExt = PathFindExtensionW(pwfd->cFileName);
-						if (_wcsicmp(pszExt, pszPat) == 0)
-							vResult.emplace_back(rs + pwfd->cFileName);
-					}
-				}
-			} while (FindNextFileW(hFind, pwfd));
-			FindClose(hFind);
-		}
-
-		rs.PopBack(rs.Size() - cchDir);
-		rs += L'*';
-		hFind = FindFirstFileExW(rs.Data(), FindExInfoBasic, pwfd,
-			FindExSearchNameMatch, nullptr, FIND_FIRST_EX_LARGE_FETCH);
-		if (hFind != INVALID_HANDLE_VALUE)
-		{
-			do
-			{
-				if ((pwfd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-				{
-					if (*pwfd->cFileName != L'.')
-					{
-						rs.PopBack(rs.Size() - cchDir);
-						rs.PushBack(pwfd->cFileName);
-						rs.PushBackChar(L'\\');
-						const int cchNewDir = rs.Size();
-						rs.PushBack(pszPat);
-						IntEnumFileRecurse(rs, cchNewDir, pszPat, vResult, pwfd);
-					}
-				}
-			} while (FindNextFileW(hFind, pwfd));
-			FindClose(hFind);
-		}
-	}
-}
-
-/// <summary>
-/// 递归枚举文件
-/// </summary>
-/// <param name="pszPath">目录</param>
-/// <param name="pszFilePat">文件名或通配符</param>
-/// <param name="vResult">枚举结果，不会清空该容器</param>
-/// <returns>成功返回TRUE，失败返回FALSE</returns>
-inline BOOL EnumFileRecurse(PCWSTR pszPath, PCWSTR pszFilePat, std::vector<CRefStrW>& vResult)
-{
-	if (!PathIsDirectoryW(pszPath))
-		return FALSE;
-	CRefStrW rs(pszPath);
-	if (rs.Back() != L'\\')
-		rs += L'\\';
-	const int cchDir = rs.Size();
-	rs += pszFilePat;
-	WIN32_FIND_DATAW wfd{};
-	Priv::IntEnumFileRecurse(rs, cchDir, pszFilePat, vResult, &wfd);
-	return TRUE;
-}
-
-/// <summary>
-/// 递归枚举文件
-/// </summary>
-/// <param name="pszPath">完整文件名，可含通配符</param>
-/// <param name="vResult">枚举结果，不会清空该容器</param>
-/// <returns>成功返回TRUE，失败返回FALSE</returns>
-EckInline BOOL EnumFileRecurse(PCWSTR pszPath, std::vector<CRefStrW>& vResult)
-{
-	const auto pszFileName = PathFindFileNameW(pszPath);
-	if (pszFileName == pszPath)
-		return FALSE;
-	const CRefStrW rs(pszPath, int(pszFileName - pszPath));
-	EckAssert(rs.Back() == L'\\');
-	return EnumFileRecurse(rs.Data(), pszFileName, vResult);
-}
-
-namespace Priv
-{
-	inline UINT __stdcall OpenInExplorerThread(void* pParam)
-	{
-		const auto pvPath = (std::vector<CRefStrW>*)pParam;
-		if (FAILED(CoInitialize(nullptr)))
-		{
-			delete pvPath;
-			return 0;
-		}
-
-		std::unordered_map<std::wstring_view, int> hmPaths{};// 文件夹路径->vPIDL索引
-		std::vector<std::pair<PIDLIST_ABSOLUTE, std::vector<PIDLIST_ABSOLUTE>>> vPIDL{};// { 文件夹PIDL,{文件PIDL} }
-		PIDLIST_ABSOLUTE pIDL;
-
-		int idxCurr = 0;
-
-		PWSTR pszFileName;
-		PCWSTR pszPath;
-		for (const auto& x : *pvPath)
-		{
-			pszPath = x.Data();
-			pszFileName = PathFindFileNameW(pszPath);
-			if (pszFileName != pszPath)
-			{
-				const std::wstring_view svTemp(pszPath, pszFileName - pszPath);
-				auto it = hmPaths.find(svTemp);
-				if (it == hmPaths.end())
-				{
-					WCHAR ch = *(pszFileName - 1);
-					*(pszFileName - 1) = L'\0';
-					if (FAILED(SHParseDisplayName(pszPath, nullptr, &pIDL, 0, nullptr)))// 文件夹转PIDL
-					{
-						*(pszFileName - 1) = ch;
-						continue;
-					}
-					*(pszFileName - 1) = ch;
-
-					it = hmPaths.insert(std::make_pair(svTemp, idxCurr)).first;
-					++idxCurr;
-
-					auto& x = vPIDL.emplace_back(pIDL, std::vector<PIDLIST_ABSOLUTE>{});
-					if (FAILED(SHParseDisplayName(pszPath, nullptr, &pIDL, 0, nullptr)))// 文件转PIDL
-						continue;
-					x.second.emplace_back(pIDL);
-				}
-				else
-				{
-					SHParseDisplayName(pszPath, nullptr, &pIDL, 0, nullptr);// 文件转PIDL
-					vPIDL[it->second].second.emplace_back(pIDL);
-				}
-			}
-		}
-
-		for (const auto& x : vPIDL)
-		{
-			SHOpenFolderAndSelectItems(x.first, (UINT)x.second.size(),
-				(PCUITEMID_CHILD*)x.second.data(), 0);
-			CoTaskMemFree(x.first);
-			for (const auto pidl : x.second)
-				CoTaskMemFree(pidl);
-		}
-
-		delete pvPath;
-		CoUninitialize();
-		return 0;
-	}
-}
-
-/// <summary>
-/// 在资源管理器中打开。
-/// 可一次性传递多个文件，且父目录可以不同
-/// </summary>
-/// <param name="vPath">路径</param>
-EckInline void OpenInExplorer(const std::vector<CRefStrW>& vPath)
-{
-	NtClose(CrtCreateThread(Priv::OpenInExplorerThread, new std::vector{ vPath }));
-}
-
-/// <summary>
-/// 在资源管理器中打开。
-/// 可一次性传递多个文件，且父目录可以不同
-/// </summary>
-/// <param name="pvPath">路径vector指针，必须使用new分配且传递后不可再使用</param>
-EckInline void OpenInExplorer(std::vector<CRefStrW>* pvPath)
-{
-	NtClose(CrtCreateThread(Priv::OpenInExplorerThread, pvPath));
-}
-
-/// <summary>
-/// 在资源管理器中打开
-/// </summary>
-/// <param name="pszFolder">文件夹路径</param>
-/// <param name="vFile">文件路径，必须全部在pszFolder指定的文件夹之下</param>
-/// <returns>HRESULT</returns>
-EckInline HRESULT OpenInExplorer(PCWSTR pszFolder, const std::vector<CRefStrW>& vFile)
-{
-	HRESULT hr;
-	PIDLIST_ABSOLUTE pIDL;
-	if (FAILED(hr = SHParseDisplayName(pszFolder, nullptr, &pIDL, 0, nullptr)))
-		return hr;
-	std::vector<PIDLIST_ABSOLUTE> vPIDL(vFile.size());
-	for (auto& e : vFile)
-	{
-		if (FAILED(hr = SHParseDisplayName(e.Data(), nullptr, &vPIDL.emplace_back(), 0, nullptr)))
-			goto CleanupAndRet;
-	}
-	hr = SHOpenFolderAndSelectItems(pIDL,
-		(UINT)vPIDL.size(), (PCUITEMID_CHILD*)vPIDL.data(), 0);
-CleanupAndRet:
-	CoTaskMemFree(pIDL);
-	for (const auto e : vPIDL)
-		CoTaskMemFree(e);
-	return hr;
-}
-
-inline HRESULT OpenInExplorer(PCWSTR pszFile)
-{
-	const auto psz = PathFindFileNameW(pszFile);
-	if (psz == pszFile)
-		return E_INVALIDARG;
-	const size_t cbFolder = Cch2CbW(int(psz - pszFile - 1));
-	const auto pszFolder = (PWSTR)_malloca(cbFolder);
-	EckCheckMem(pszFolder);
-	wmemcpy(pszFolder, pszFile, cbFolder);
-	*(pszFolder + cbFolder / sizeof(WCHAR) - 1) = L'\0';
-	PIDLIST_ABSOLUTE pIdlFolder, pIdlFile;
-	HRESULT hr;
-	if (FAILED(hr = SHParseDisplayName(pszFolder, nullptr, &pIdlFolder, 0, nullptr)))
-		goto CleanupAndRet;
-	if (FAILED(hr = SHParseDisplayName(psz, nullptr, &pIdlFile, 0, nullptr)))
-		goto CleanupAndRet1;
-	hr = SHOpenFolderAndSelectItems(pIdlFolder,
-		1, (PCUITEMID_CHILD*)&pIdlFile, 0);
-CleanupAndRet1:
-	CoTaskMemFree(pIdlFile);
-CleanupAndRet:
-	CoTaskMemFree(pIdlFolder);
-	_freea(pszFolder);
-	return hr;
-}
-
-inline HANDLE NaOpenProcess(DWORD dwDesiredAccess, BOOL bInheritHandle, UINT uProcessId)
-{
-	OBJECT_ATTRIBUTES oa;
-	InitializeObjectAttributes(&oa, nullptr, bInheritHandle ? OBJ_INHERIT : 0, nullptr, nullptr);
-	CLIENT_ID cid{ pToI32<HANDLE>(uProcessId) };
-	HANDLE hProcess;
-	if (NT_SUCCESS(NtOpenProcess(&hProcess, dwDesiredAccess, &oa, &cid)))
-		return hProcess;
-	return nullptr;
-}
-
-/// <summary>
-/// 打开文件
-/// </summary>
-/// <param name="pusFile">文件的NT路径</param>
-/// <param name="dwAccess">CreateFileW --> dwAccess，注意CreateFileW总是追加SYNCHRONIZE | FILE_READ_ATTRIBUTES，考虑使用FILE_GENERIC_*</param>
-/// <param name="dwShareMode">CreateFileW --> dwShareMode</param>
-/// <param name="dwOptions">NtOpenFile --> OpenOptions</param>
-/// <param name="pnts">错误码</param>
-/// <param name="piost">IO状态</param>
-/// <param name="bInheritHandle">句柄是否可继承</param>
-/// <param name="hRootDirectory">根目录句柄</param>
-/// <returns>成功返回文件句柄，失败返回INVALID_HANDLE_VALUE</returns>
-inline HANDLE NaOpenFile(UNICODE_STRING* pusFile, DWORD dwAccess, DWORD dwShareMode, DWORD dwOptions = 0u,
-	NTSTATUS* pnts = nullptr, IO_STATUS_BLOCK* piost = nullptr, BOOL bInheritHandle = FALSE, HANDLE hRootDirectory = nullptr)
-{
-	OBJECT_ATTRIBUTES oa;
-	InitializeObjectAttributes(&oa, pusFile, OBJ_CASE_INSENSITIVE, hRootDirectory, nullptr);
-	HANDLE hFile;
-	NTSTATUS nts;
-	IO_STATUS_BLOCK iost;
-	nts = NtOpenFile(&hFile, dwAccess, &oa, piost ? piost : &iost, dwShareMode, dwOptions);
-	if (pnts)
-		*pnts = nts;
-	if (NT_SUCCESS(nts))
-		return hFile;
-	return INVALID_HANDLE_VALUE;
-}
-
-/// <summary>
-/// 打开文件。
-/// 封装与CreateFileW相近的Native API调用，不支持打开控制台
-/// </summary>
-/// <param name="pszFile">文件路径</param>
-/// <param name="dwAccess">CreateFileW --> dwAccess，注意CreateFileW总是追加SYNCHRONIZE | FILE_READ_ATTRIBUTES，考虑使用FILE_GENERIC_*</param>
-/// <param name="dwShareMode">CreateFileW --> dwShareMode</param>
-/// <param name="dwOptions">NtOpenFile --> OpenOptions</param>
-/// <param name="pnts">错误码</param>
-/// <param name="piost">IO状态</param>
-/// <param name="bInheritHandle">句柄是否可继承</param>
-/// <returns>成功返回文件句柄，失败返回INVALID_HANDLE_VALUE</returns>
-inline HANDLE NaOpenFile(PCWSTR pszFile, DWORD dwAccess, DWORD dwShareMode, DWORD dwOptions = 0u,
-	NTSTATUS* pnts = nullptr, IO_STATUS_BLOCK* piost = nullptr, BOOL bInheritHandle = FALSE)
-{
-	UNICODE_STRING usFile;
-	RtlInitUnicodeString(&usFile, pszFile);
-	if (!RtlDosPathNameToNtPathName_U(pszFile, &usFile, nullptr, nullptr))
-	{
-		if (pnts)
-			*pnts = STATUS_OBJECT_PATH_NOT_FOUND;
-		return INVALID_HANDLE_VALUE;
-	}
-	const auto hFile = NaOpenFile(&usFile, dwAccess, dwShareMode, dwOptions,
-		pnts, piost, bInheritHandle);
-	RtlFreeHeap(RtlProcessHeap(), 0, usFile.Buffer);
-	return hFile;
-}
-
-/// <summary>
-/// 打开文件
-/// </summary>
-/// <param name="pusFile">文件的NT路径</param>
-/// <param name="dwAccess">CreateFileW --> dwAccess</param>
-/// <param name="dwShareMode">CreateFileW --> dwShareMode</param>
-/// <param name="dwOptions">NtCreateFile --> CreateOptions</param>
-/// <param name="dwCreationDisposition">NtCreateFile --> CreateDisposition</param>
-/// <param name="pnts">错误码</param>
-/// <param name="piost">IO状态</param>
-/// <param name="dwAttributes">若创建文件，则此参数指定文件属性</param>
-/// <param name="cbInit">若创建文件，则此参数指定初始大小</param>
-/// <param name="bInheritHandle">句柄是否可继承</param>
-/// <param name="hRootDirectory">根目录句柄</param>
-/// <returns>成功返回文件句柄，失败返回INVALID_HANDLE_VALUE</returns>
-inline HANDLE NaCreateFile(UNICODE_STRING* pusFile, DWORD dwAccess, DWORD dwShareMode, DWORD dwOptions,
-	DWORD dwCreationDisposition, NTSTATUS* pnts = nullptr, IO_STATUS_BLOCK* piost = nullptr,
-	DWORD dwAttributes = FILE_ATTRIBUTE_NORMAL, ULONGLONG cbInit = 0ll,
-	BOOL bInheritHandle = FALSE, HANDLE hRootDirectory = nullptr)
-{
-	OBJECT_ATTRIBUTES oa;
-	InitializeObjectAttributes(&oa, pusFile, OBJ_CASE_INSENSITIVE, hRootDirectory, nullptr);
-	HANDLE hFile;
-	NTSTATUS nts;
-	IO_STATUS_BLOCK iost;
-	LARGE_INTEGER li{ .QuadPart = (LONGLONG)cbInit };
-	nts = NtCreateFile(&hFile, dwAccess, &oa, piost ? piost : &iost, &li,
-		dwAttributes, dwShareMode, dwCreationDisposition, dwOptions, nullptr, 0);
-	if (pnts)
-		*pnts = nts;
-	if (NT_SUCCESS(nts))
-		return hFile;
-	return INVALID_HANDLE_VALUE;
-}
-
-/// <summary>
-/// 打开文件。
-/// 封装与CreateFileW相近的Native API调用，不支持打开控制台
-/// </summary>
-/// <param name="pusFile">文件路径</param>
-/// <param name="dwAccess">CreateFileW --> dwAccess</param>
-/// <param name="dwShareMode">CreateFileW --> dwShareMode</param>
-/// <param name="dwOptions">NtCreateFile --> CreateOptions</param>
-/// <param name="dwCreationDisposition">NtCreateFile --> CreateDisposition</param>
-/// <param name="pnts">错误码</param>
-/// <param name="piost">IO状态</param>
-/// <param name="dwAttributes">若创建文件，则此参数指定文件属性</param>
-/// <param name="cbInit">若创建文件，则此参数指定初始大小</param>
-/// <param name="bInheritHandle">句柄是否可继承</param>
-/// <returns>成功返回文件句柄，失败返回INVALID_HANDLE_VALUE</returns>
-inline HANDLE NaCreateFile(PCWSTR pszFile, DWORD dwAccess, DWORD dwShareMode, DWORD dwOptions,
-	DWORD dwCreationDisposition, NTSTATUS* pnts = nullptr, IO_STATUS_BLOCK* piost = nullptr,
-	DWORD dwAttributes = FILE_ATTRIBUTE_NORMAL, ULONGLONG cbInit = 0ll,
-	BOOL bInheritHandle = FALSE)
-{
-	UNICODE_STRING usFile;
-	RtlInitUnicodeString(&usFile, pszFile);
-	if (!RtlDosPathNameToNtPathName_U(pszFile, &usFile, nullptr, nullptr))
-	{
-		if (pnts)
-			*pnts = STATUS_OBJECT_PATH_NOT_FOUND;
-		return INVALID_HANDLE_VALUE;
-	}
-	const auto hFile = NaCreateFile(&usFile, dwAccess, dwShareMode, dwOptions,
-		dwCreationDisposition, pnts, piost, dwAttributes, cbInit, bInheritHandle);
-	RtlFreeHeap(RtlProcessHeap(), 0, usFile.Buffer);
-	return hFile;
-}
-
-inline NTSTATUS NaDeviceIoControl(HANDLE hDevice, DWORD dwIoControlCode, PVOID pInBuf, DWORD cbInBuf,
-	PVOID pOutBuf, DWORD cbOutBuf, PDWORD pcbReturned = nullptr)
-{
-	NTSTATUS nts;
-	IO_STATUS_BLOCK iosb;
-	if ((dwIoControlCode >> 16) == FILE_DEVICE_FILE_SYSTEM)
-	{
-		nts = NtFsControlFile(hDevice, nullptr, nullptr, nullptr, &iosb,
-			dwIoControlCode, pInBuf, cbInBuf, pOutBuf, cbOutBuf);
-	}
-	else
-	{
-		nts = NtDeviceIoControlFile(hDevice, nullptr, nullptr, nullptr, &iosb,
-			dwIoControlCode, pInBuf, cbInBuf, pOutBuf, cbOutBuf);
-	}
-
-	if (nts == STATUS_PENDING)
-	{
-		NtWaitForSingleObject(hDevice, FALSE, nullptr);
-		nts = iosb.Status;
-	}
-	if (pcbReturned)
-		*pcbReturned = (DWORD)iosb.Information;
-	return nts;
-}
-
-using GETVERSIONOUTPARAMS = GETVERSIONINPARAMS;
-
-#define IDE_ATAPI_IDENTIFY				0xA1
-#define IDE_ATA_IDENTIFY				0xEC
-
-#define FILE_DEVICE_SCSI				0x0000001b
-#define IOCTL_SCSI_MINIPORT_IDENTIFY	((FILE_DEVICE_SCSI << 16) + 0x0501)
-#define IOCTL_SCSI_MINIPORT				0x0004D008
-
-#pragma pack(push, 1)
-typedef struct _IDENTIFY_DATA
-{
-	USHORT GeneralConfiguration;
-	USHORT NumberOfCylinders;
-	USHORT Reserved1;
-	USHORT NumberOfHeads;
-	USHORT UnformattedBytesPerTrack;
-	USHORT UnformattedBytesPerSector;
-	USHORT SectorsPerTrack;
-	USHORT VendorUnique1[3];
-	USHORT SerialNumber[10];
-	USHORT BufferType;
-	USHORT BufferSectorSize;
-	USHORT NumberOfEccBytes;
-	USHORT FirmwareRevision[4];
-	USHORT ModelNumber[20];
-	UCHAR  MaximumBlockTransfer;
-	UCHAR  VendorUnique2;
-	USHORT DoubleWordIo;
-	USHORT Capabilities;
-	USHORT Reserved2;
-	UCHAR  VendorUnique3;
-	UCHAR  PioCycleTimingMode;
-	UCHAR  VendorUnique4;
-	UCHAR  DmaCycleTimingMode;
-	USHORT TranslationFieldsValid : 1;
-	USHORT Reserved3 : 15;
-	USHORT NumberOfCurrentCylinders;
-	USHORT NumberOfCurrentHeads;
-	USHORT CurrentSectorsPerTrack;
-	ULONG  CurrentSectorCapacity;
-	USHORT CurrentMultiSectorSetting;
-	ULONG  UserAddressableSectors;
-	USHORT SingleWordDMASupport : 8;
-	USHORT SingleWordDMAActive : 8;
-	USHORT MultiWordDMASupport : 8;
-	USHORT MultiWordDMAActive : 8;
-	USHORT AdvancedPIOModes : 8;
-	USHORT Reserved4 : 8;
-	USHORT MinimumMWXferCycleTime;
-	USHORT RecommendedMWXferCycleTime;
-	USHORT MinimumPIOCycleTime;
-	USHORT MinimumPIOCycleTimeIORDY;
-	USHORT Reserved5[2];
-	USHORT ReleaseTimeOverlapped;
-	USHORT ReleaseTimeServiceCommand;
-	USHORT MajorRevision;
-	USHORT MinorRevision;
-	USHORT Reserved6[50];
-	USHORT SpecialFunctionsEnabled;
-	USHORT Reserved7[128];
-} IDENTIFY_DATA, * PIDENTIFY_DATA;
-#pragma pack(pop)
-
-typedef struct _SRB_IO_CONTROL
-{
-	ULONG HeaderLength;
-	UCHAR Signature[8];
-	ULONG Timeout;
-	ULONG ControlCode;
-	ULONG ReturnCode;
-	ULONG Length;
-} SRB_IO_CONTROL, * PSRB_IO_CONTROL;
-
-namespace Priv
-{
-	inline constexpr UINT CalcDriveIdentifierFromIdentifyData(const IDENTIFY_DATA* pidd)
-	{
-		UINT s{};
-		for (const auto e : pidd->ModelNumber)
-			s += e;
-		for (const auto e : pidd->FirmwareRevision)
-			s += e;
-		for (const auto e : pidd->SerialNumber)
-			s += e;
-		const UINT t = pidd->BufferSectorSize + pidd->SectorsPerTrack +
-			pidd->NumberOfHeads + pidd->NumberOfCylinders;
-		const ULONGLONG r = t * 65536ull + s;
-		if (r <= 0xFFFF'FFFFull)
-			return (UINT)r;
-		else
-			return ((t - 1) % 65535 + 1) * 65536 + s % 65535;
-	}
-}
-
-using FGetDiskID = NTSTATUS(*)(PCVOID pData, size_t cbData, BOOL bIdentifyData);
-
-/// <summary>
-/// 取硬盘特征字
-/// </summary>
-/// <param name="fnProcessData">处理数据回调</param>
-/// <param name="idxDrive">物理硬盘索引</param>
-/// <returns>NTSTATUS</returns>
-template<class F>
-inline NTSTATUS IntGetPhysicalDriveIdentifier(F fnProcessData, int idxDrive)
-{
-	NTSTATUS nts;
-	WCHAR szDevice[48];
-	swprintf(szDevice, LR"(\\.\PhysicalDrive%d)", idxDrive);
-	HANDLE hDevice = NaOpenFile(szDevice, FILE_GENERIC_READ | FILE_GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE);
-	if (hDevice != INVALID_HANDLE_VALUE)
-	{
-		GETVERSIONOUTPARAMS gvop{};
-		if (NT_SUCCESS(nts = NaDeviceIoControl(hDevice, SMART_GET_VERSION,
-			nullptr, 0, &gvop, sizeof(gvop))))
-		{
-			SENDCMDINPARAMS scip
-			{
-				.cBufferSize = 512,
-				.irDriveRegs =
-				{
-					.bSectorCountReg = 1,
-					.bSectorNumberReg = 1,
-					.bDriveHeadReg = BYTE(0xA0 | ((idxDrive & 1) << 4)),
-					.bCommandReg = BYTE((gvop.bIDEDeviceMap >> idxDrive & 0x10) ?
-							IDE_ATAPI_IDENTIFY : IDE_ATA_IDENTIFY)
-				},
-				.bDriveNumber = (BYTE)idxDrive
-			};
-
-			BYTE byDummy2[sizeof(SENDCMDOUTPARAMS) - 1/*bBuffer*/ + 512]{};
-			const auto pscop = (SENDCMDOUTPARAMS*)byDummy2;
-
-			if (NT_SUCCESS(nts = NaDeviceIoControl(hDevice, SMART_RCV_DRIVE_DATA,
-				&scip, sizeof(scip) - 1/*bBuffer*/, pscop, sizeof(SENDCMDOUTPARAMS))))
-			{
-				NtClose(hDevice);
-				return fnProcessData(pscop->bBuffer, sizeof(IDENTIFY_DATA), TRUE);
-			}
-		}
-		NtClose(hDevice);
-	}
-
-	swprintf(szDevice, LR"(\\.\SCSI%d:)", idxDrive);
-	hDevice = NaOpenFile(szDevice, FILE_GENERIC_READ | FILE_GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE);
-	if (hDevice != INVALID_HANDLE_VALUE)
-	{
-		constexpr size_t cbIn = sizeof(SRB_IO_CONTROL) + sizeof(SENDCMDINPARAMS) - 1/*bBuffer*/;
-		BYTE byDummy1[cbIn]{};
-		const auto psrbic = (SRB_IO_CONTROL*)byDummy1;
-		const auto pscip = (SENDCMDINPARAMS*)(psrbic + 1);
-		ZeroMemory(psrbic, cbIn);
-
-		psrbic->HeaderLength = sizeof(SRB_IO_CONTROL);
-		memcpy(psrbic->Signature, "SCSIDISK", 8);
-		psrbic->Timeout = 200;
-		psrbic->Length = sizeof(SENDCMDOUTPARAMS) - 1/*bBuffer*/ + 512;
-		psrbic->ControlCode = IOCTL_SCSI_MINIPORT_IDENTIFY;
-
-		pscip->cBufferSize = 512;
-		pscip->irDriveRegs.bSectorCountReg = 1;
-		pscip->irDriveRegs.bSectorNumberReg = 1;
-		pscip->irDriveRegs.bDriveHeadReg = BYTE(0xA0 | ((idxDrive & 1) << 4)),
-			pscip->irDriveRegs.bCommandReg = IDE_ATA_IDENTIFY;
-		pscip->bDriveNumber = idxDrive;
-
-		constexpr size_t cbOut = sizeof(SRB_IO_CONTROL) +
-			sizeof(SENDCMDOUTPARAMS) - 1/*bBuffer*/ + 512;
-		BYTE byDummy2[cbOut]{};
-
-		const auto pscop = ((SENDCMDOUTPARAMS*)(byDummy2 + sizeof(SRB_IO_CONTROL)));
-
-		if (NT_SUCCESS(nts = NaDeviceIoControl(hDevice, IOCTL_SCSI_MINIPORT,
-			psrbic, cbIn, byDummy2, cbOut)))
-		{
-			NtClose(hDevice);
-			return fnProcessData(pscop->bBuffer, sizeof(IDENTIFY_DATA), FALSE);
-		}
-		NtClose(hDevice);
-	}
-
-	swprintf(szDevice, LR"(\\.\PhysicalDrive%d)", idxDrive);
-	hDevice = NaOpenFile(szDevice, FILE_GENERIC_READ | FILE_GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE);
-	if (hDevice != INVALID_HANDLE_VALUE)
-	{
-		STORAGE_PROPERTY_QUERY spq
-		{
-			.PropertyId = StorageDeviceProperty,
-			.QueryType = PropertyStandardQuery
-		};
-
-		constexpr DWORD cbBuf = 4096;
-		UniquePtr<DelVA<void>> pBuf(VAlloc(cbBuf));
-		DWORD cbRet{};
-		if (NT_SUCCESS(nts = NaDeviceIoControl(hDevice, IOCTL_STORAGE_QUERY_PROPERTY,
-			&spq, sizeof(spq), pBuf.get(), cbBuf, &cbRet)))
-		{
-			if (cbRet)
-			{
-				NtClose(hDevice);
-				return fnProcessData(pBuf.get(), cbRet, FALSE);
-			}
-		}
-		NtClose(hDevice);
-	}
-	return STATUS_ACCESS_DENIED;
-}
-
-/// <summary>
-/// 取硬盘特征字
-/// </summary>
-/// <param name="idxDrive">物理硬盘索引</param>
-/// <param name="uCrc32">返回CRC32</param>
-/// <returns>NTSTATUS</returns>
-EckInline NTSTATUS GetPhysicalDriveIdentifierCrc32(int idxDrive, UINT& uCrc32)
-{
-	return IntGetPhysicalDriveIdentifier([&uCrc32](PCVOID pData, size_t cbData, BOOL)->NTSTATUS
-		{
-			uCrc32 = CalcCrc32(pData, cbData);
-			return STATUS_SUCCESS;
-		}, idxDrive);
-}
-
-/// <summary>
-/// 取硬盘特征字
-/// </summary>
-/// <param name="idxDrive">物理硬盘索引</param>
-/// <param name="pMd5">返回MD5，至少16字节</param>
-/// <returns>NTSTATUS</returns>
-EckInline NTSTATUS GetPhysicalDriveIdentifierMd5(int idxDrive, _Out_writes_bytes_(16) void* pMd5)
-{
-	return IntGetPhysicalDriveIdentifier([pMd5](PCVOID pData, size_t cbData, BOOL)->NTSTATUS
-		{
-			return CalcMd5(pData, cbData, pMd5);
-		}, idxDrive);
-}
-
 inline void InputChar(WCHAR ch, BOOL bExtended = FALSE, BOOL bReplaceEndOfLine = TRUE)
 {
 	INPUT input[2]{ {.type = INPUT_KEYBOARD } };
@@ -1379,334 +671,56 @@ inline void InputChar(PCWSTR pszText, int cchText = -1,
 	}
 }
 
-struct SNP_OUTPUT
+inline NTSTATUS NtPathToDosPath(CRefStrW& rsBuf)
 {
-	UINT idxOutput;
-	ComPtr<IDXGIOutput1> pOutput;
-	RCWH rc;
-};
-
-struct SNP_ADAPTER
-{
-	UINT idxAdapter;
-	ComPtr<IDXGIAdapter> pAdapter;
-	std::vector<SNP_OUTPUT> vOutput;
-};
-
-struct SNP_CURSOR
-{
-	CRefBin rbCursor;
-	DXGI_OUTDUPL_POINTER_SHAPE_INFO ShapeInfo;
-	DXGI_OUTDUPL_POINTER_POSITION Position;
-};
-
-using FSnapshotPreFetch = HRESULT(*)(size_t cOutput, const RCWH& rcBound);
-using FSnapshotFetch = HRESULT(*)(size_t cOutput, const RCWH& rcBound, const SNP_OUTPUT& Output,
-	const D3D11_MAPPED_SUBRESOURCE& MappedRes, const SNP_CURSOR& Cursor);
-
-/// <summary>
-/// 快照
-/// </summary>
-/// <typeparam name="F1"></typeparam>
-/// <typeparam name="F2"></typeparam>
-/// <param name="fnPreFetch">捕获前预处理回调</param>
-/// <param name="fnFetch">获取纹理数据回调</param>
-/// <param name="rc">矩形，为空则捕获所有输出</param>
-/// <param name="bCursor">是否捕获鼠标指针</param>
-/// <param name="msTimeout">帧超时</param>
-/// <returns>HRESULT</returns>
-template<class F1, class F2>
-inline HRESULT IntSnapshot(F1 fnPreFetch, F2 fnFetch, const RCWH& rc, BOOL bCursor, UINT msTimeout = 500)
-{
-	HRESULT hr;
-
-	std::vector<SNP_ADAPTER> vAdapter{};
-	UINT idxAdapter = 0u;
-	UINT idxOutput = 0u;
-
-	IDXGIAdapter* pAdapter;
-	IDXGIOutput* pOutput;
-
-	RCWH rcBound{};
-	size_t cOutput{};// Optimize for single output
-
-	const BOOL bEmpty = IsRectEmpty(rc);
-	while (SUCCEEDED(g_pDxgiFactory->EnumAdapters(idxAdapter, &pAdapter)))
+	RTL_UNICODE_STRING_BUFFER Buf{ rsBuf.ToNtStringBuf() };
+	NTSTATUS nts = RtlNtPathNameToDosPathName(0, &Buf, nullptr, nullptr);
+	if (NT_SUCCESS(nts))
 	{
-		auto& e = vAdapter.emplace_back(idxAdapter, pAdapter);
-		while (SUCCEEDED(pAdapter->EnumOutputs(idxOutput, &pOutput)))
-		{
-			DXGI_OUTPUT_DESC Desc;
-			if (SUCCEEDED(pOutput->GetDesc(&Desc)))
-			{
-				if (bEmpty)
-				{
-					++cOutput;
-					UnionRect(rcBound, rcBound, ToRCWH(Desc.DesktopCoordinates));
-					IDXGIOutput1* pOutput1;
-					pOutput->QueryInterface(&pOutput1);
-					e.vOutput.emplace_back(idxOutput, pOutput1, ToRCWH(Desc.DesktopCoordinates));
-				}
-				else if (RCWH rcTemp; IntersectRect(rcTemp, rc, ToRCWH(Desc.DesktopCoordinates)))
-				{
-					++cOutput;
-					UnionRect(rcBound, rcBound, rcTemp);
-					IDXGIOutput1* pOutput1;
-					pOutput->QueryInterface(&pOutput1);
-					e.vOutput.emplace_back(idxOutput, pOutput1, rcTemp);
-				}
-			}
-			pOutput->Release();
-			++idxOutput;
-		}
-		if (e.vOutput.empty())
-			vAdapter.pop_back();
-		++idxAdapter;
+		rsBuf.ReSize(Buf.String.Length / sizeof(WCHAR));
+		goto Success;
 	}
-	if (vAdapter.empty())
-		return E_FAIL;
-
-	if (FAILED(hr = fnPreFetch(cOutput, rcBound)))
-		return hr;
-
-	for (const auto& e : vAdapter)
+	else if (nts == STATUS_NO_MEMORY ||
+		nts == STATUS_BUFFER_TOO_SMALL ||
+		nts == STATUS_INFO_LENGTH_MISMATCH)
 	{
-		for (const auto& f : e.vOutput)
+		rsBuf.Reserve(rsBuf.Size() + MAX_PATH);
+		Buf = rsBuf.ToNtStringBuf();
+		nts = RtlNtPathNameToDosPathName(0, &Buf, nullptr, nullptr);
+		if (NT_SUCCESS(nts))
 		{
-			ComPtr<ID3D11Device> pDevice;
-			ComPtr<ID3D11DeviceContext> pDC;
-
-			hr = D3D11CreateDevice(e.pAdapter.Get(), D3D_DRIVER_TYPE_UNKNOWN,
-				nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT
-#ifdef _DEBUG
-				| D3D11_CREATE_DEVICE_DEBUG
-#endif // _DEBUG
-				, nullptr, 0,
-				D3D11_SDK_VERSION, &pDevice, nullptr, &pDC);
-			if (FAILED(hr))
-				return hr;
-
-			ComPtr<IDXGIOutputDuplication> pDup;
-			if (FAILED(hr = f.pOutput->DuplicateOutput(pDevice.Get(), &pDup)))
-				return hr;
-
-			ComPtr<IDXGIResource> pResource;
-			DXGI_OUTDUPL_FRAME_INFO FrameInfo;
-			pDup->ReleaseFrame();
-			SNP_CURSOR Cursor{};
-			EckCounterNV(100)
-			{
-				if (FAILED(hr = pDup->AcquireNextFrame(msTimeout, &FrameInfo, &pResource)))
-					return hr;
-				if (bCursor && FrameInfo.PointerShapeBufferSize
-					&& FrameInfo.PointerPosition.Visible)
-				{
-					Cursor.rbCursor.ReSize(FrameInfo.PointerShapeBufferSize);
-					UINT Dummy;
-					pDup->GetFramePointerShape(FrameInfo.PointerShapeBufferSize,
-						Cursor.rbCursor.Data(), &Dummy, &Cursor.ShapeInfo);
-					Cursor.Position = FrameInfo.PointerPosition;
-				}
-				if (!FrameInfo.TotalMetadataBufferSize)
-				{
-					pResource->Release();
-					pDup->ReleaseFrame();
-				}
-				else
-					goto ResourceOk;
-			}
-			return ERROR_TIMEOUT;
-		ResourceOk:
-			ComPtr<ID3D11Texture2D> pTexture;
-			pResource.As(pTexture);
-
-			D3D11_TEXTURE2D_DESC Desc;
-			pTexture->GetDesc(&Desc);
-			Desc.BindFlags = 0;
-			Desc.MiscFlags = 0;
-			Desc.Usage = D3D11_USAGE_STAGING;// 回读
-			Desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-
-			ComPtr<ID3D11Texture2D> pTex;
-			if (FAILED(hr = pDevice->CreateTexture2D(&Desc, nullptr, &pTex)))
-				return hr;
-			pDC->CopyResource(pTex.Get(), pTexture.Get());
-			pDC->Flush();
-
-			D3D11_MAPPED_SUBRESOURCE MappedRes;
-			if (FAILED(hr = pDC->Map(pTex.Get(), 0, D3D11_MAP_READ, 0, &MappedRes)))
-				return hr;
-
-			hr = fnFetch(cOutput, rcBound, f, MappedRes, Cursor);
-
-			pDC->Unmap(pTex.Get(), 0);
-			pDup->ReleaseFrame();
+			rsBuf.ReSize(Buf.String.Length / sizeof(WCHAR));
+			rsBuf.ShrinkToFit();
+			goto Success;
 		}
 	}
-
-	return hr;
-}
-
-/// <summary>
-/// 快照
-/// </summary>
-/// <param name="pBmp">返回WIC位图</param>
-/// <param name="rc">矩形，为空则捕获所有输出</param>
-/// <param name="bCursor">是否捕获鼠标指针</param>
-/// <param name="msTimeout">帧超时</param>
-/// <returns>HRESULT</returns>
-inline HRESULT Snapshot(IWICBitmap*& pBmp, const RCWH& rc, BOOL bCursor = FALSE, UINT msTimeout = 500)
-{
-	pBmp = nullptr;
-	ComPtr<IWICBitmap> pBitmap;
-	ComPtr<IWICBitmapLock> pLock;
-	BYTE* pBits{};
-	UINT cbStride{};
-
-	const auto hr = IntSnapshot([&](size_t cOutput, const RCWH& rcBound) -> HRESULT
-		{
-			if (cOutput != 1 || bCursor)
+	rsBuf.Clear();
+	return nts;
+Success:
+	if (rsBuf.IsEmpty())
+		return STATUS_SUCCESS;
+	// 替换设备名
+	// TODO:支持网络位置
+	if (rsBuf.Front() == L'\\')
+	{
+		WCHAR szDriver[53];
+		WCHAR szLinkTarget[200];
+		if (GetLogicalDriveStringsW(ARRAYSIZE(szDriver), szDriver))
+			for (auto p = szDriver; *p; p += 4)
 			{
-				auto hr = g_pWicFactory->CreateBitmap(rcBound.cx, rcBound.cy,
-					GUID_WICPixelFormat32bppBGRA, WICBitmapCacheOnDemand, &pBitmap);
-				if (FAILED(hr))
-					return hr;
-				if (FAILED(hr = pBitmap->Lock(nullptr, WICBitmapLockWrite, &pLock)))
-					return hr;
-				// TODO: 处理多线程套间
-				pLock->GetDataPointer(&cbStride, &pBits);
-				pLock->GetStride(&cbStride);
-			}
-			return S_OK;
-		},
-		[&](size_t cOutput, const RCWH& rcBound, const SNP_OUTPUT& Output,
-			const D3D11_MAPPED_SUBRESOURCE& MappedRes, const SNP_CURSOR& Cursor) -> HRESULT
-		{
-			if (cOutput != 1 || bCursor)
-			{
-				RCWH rcDst = Output.rc;
-				OffsetRect(rcDst, -rcBound.x, -rcBound.y);
-
-				BYTE* pDst = pBits + rcDst.y * cbStride + rcDst.x * 4;
-				for (int y = Output.rc.y; y < Output.rc.y + Output.rc.cy; ++y)
+				*(p + 2) = L'\0';
+				const int cch = (int)QueryDosDeviceW(p, szLinkTarget, ARRAYSIZE(szLinkTarget)) - 2;
+				if (cch > 0)
 				{
-					memcpy(pDst,
-						(BYTE*)MappedRes.pData + Output.rc.x * 4 + y * MappedRes.RowPitch,
-						Output.rc.cx * 4);
-					pDst = pDst + cbStride;
-				}
-
-				if (!Cursor.rbCursor.IsEmpty())
-				{
-					POINT ptCursor{ Cursor.Position.Position };
-					ptCursor.x += Output.rc.x;
-					ptCursor.y += Output.rc.y;
-					ptCursor.x -= rcBound.x;
-					ptCursor.y -= rcBound.y;
-#pragma warning(suppress: 26813)// 使用位与检查标志
-					const int cyReal = ((Cursor.ShapeInfo.Type == DXGI_OUTDUPL_POINTER_SHAPE_TYPE_MONOCHROME) ?
-						Cursor.ShapeInfo.Height / 2 : Cursor.ShapeInfo.Height);
-					const int yStart = (ptCursor.y < 0 ? -ptCursor.y : 0);
-					const int yEnd = (ptCursor.y + cyReal > rcBound.cy ?
-						rcBound.cy - ptCursor.y : cyReal);
-					const int xStart = (ptCursor.x < 0 ? -ptCursor.x : 0);
-					const int xEnd = (ptCursor.x + (int)Cursor.ShapeInfo.Width > rcBound.cx ?
-						rcBound.cx - ptCursor.x : Cursor.ShapeInfo.Width);
-					switch (Cursor.ShapeInfo.Type)
+					szLinkTarget[cch] = L'\\';
+					if (rsBuf.IsStartOfI(szLinkTarget, cch))
 					{
-					case DXGI_OUTDUPL_POINTER_SHAPE_TYPE_COLOR:
-					{
-						for (int i = yStart; i < yEnd; ++i)
-						{
-							for (int j = xStart; j < xEnd; ++j)
-							{
-								const auto dwSrc = *(DWORD*)(Cursor.rbCursor.Data() +
-									i * Cursor.ShapeInfo.Pitch + j * 4);
-								const auto pdwDst = (DWORD*)(pBits +
-									(ptCursor.y + i) * cbStride + (ptCursor.x + j) * 4);
-								*pdwDst = ArgbAlphaBlend(dwSrc, *pdwDst);
-							}
-						}
-					}
-					break;
-					case DXGI_OUTDUPL_POINTER_SHAPE_TYPE_MONOCHROME:
-					{
-						BYTE byMask = 0b1000'0000;
-						for (int i = yStart; i < yEnd; ++i)
-						{
-							for (int j = xStart; j < xEnd; ++j)
-							{
-								const auto bySrcAnd = (*(Cursor.rbCursor.Data() +
-									i * Cursor.ShapeInfo.Pitch + j / 8)) & byMask;
-								const auto bySrcXor = (*(Cursor.rbCursor.Data() +
-									(i + Cursor.ShapeInfo.Height / 2) * Cursor.ShapeInfo.Pitch +
-									j / 8)) & byMask;
-								const auto pdwDst = (DWORD*)(pBits +
-									(ptCursor.y + i) * cbStride + (ptCursor.x + j) * 4);
-
-								*pdwDst = (*pdwDst & (bySrcAnd ? 0xFFFFFFFF : 0xFF000000)) ^
-									(bySrcXor ? 0x00FFFFFF : 0x00000000);
-
-								if (byMask == 1)
-									byMask = 0b1000'0000;
-								else
-									byMask >>= 1;
-							}
-						}
-					}
-					break;
-					case DXGI_OUTDUPL_POINTER_SHAPE_TYPE_MASKED_COLOR:
-					{
-						for (int i = yStart; i < yEnd; ++i)
-						{
-							for (int j = xStart; j < xEnd; ++j)
-							{
-								const auto dwSrc = *(DWORD*)(Cursor.rbCursor.Data() +
-									i * Cursor.ShapeInfo.Pitch + j * 4);
-								const auto pdwDst = (DWORD*)(pBits +
-									(ptCursor.y + i) * cbStride + (ptCursor.x + j) * 4);
-								if (dwSrc & 0xFF000000)
-									*pdwDst = (*pdwDst ^ dwSrc) | 0xFF000000;
-								else
-									*pdwDst = dwSrc | 0xFF000000;
-							}
-						}
-					}
-					break;
+						rsBuf.Replace(0, cch, p, 2);
+						break;
 					}
 				}
 			}
-			else
-				return g_pWicFactory->CreateBitmapFromMemory(
-					Output.rc.cx, Output.rc.cy,
-					GUID_WICPixelFormat32bppBGRA,
-					MappedRes.RowPitch,
-					MappedRes.RowPitch * Output.rc.cy,
-					(BYTE*)MappedRes.pData + Output.rc.x * 4 + Output.rc.y * MappedRes.RowPitch,
-					&pBmp);
-			return S_OK;
-		}, rc, bCursor, msTimeout);
-
-	if (FAILED(hr))
-		return hr;
-	if (pBitmap.Get())
-		pBmp = pBitmap.Detach();
-	return S_OK;
-}
-
-inline LONGLONG GetFileSizeWithPath(PCWSTR pszFile, NTSTATUS* pnts = nullptr)
-{
-	const auto hFile = NaOpenFile(pszFile, FILE_READ_ATTRIBUTES, FILE_SHARE_READ, 0, pnts);
-	if (hFile == INVALID_HANDLE_VALUE)
-		return 0ll;
-	IO_STATUS_BLOCK iosb;
-	FILE_STANDARD_INFORMATION fsi;
-	fsi.EndOfFile.QuadPart = 0ll;
-	const auto nts = NtQueryInformationFile(hFile, &iosb,
-		&fsi, sizeof(fsi), FileStandardInformation);
-	if (pnts)
-		*pnts = nts;
-	NtClose(hFile);
-	return fsi.EndOfFile.QuadPart;
+	}
+	return STATUS_SUCCESS;
 }
 ECK_NAMESPACE_END
