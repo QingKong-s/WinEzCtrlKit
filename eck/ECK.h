@@ -892,8 +892,9 @@ struct THREADCTX
 
 	// 是否允许暗色CBT钩子设置窗口，设为FALSE可暂停Hook。
 	// 注意：务必在打开文件对话框前暂停Hook
-	BITBOOL bEnableDarkModeHook : 1{ TRUE };
-	BITBOOL bAutoNcDark : 1{ TRUE };	// 自动调整非客户区暗色
+	BOOLEAN bEnableDarkModeHook{ TRUE };
+	BOOLEAN bAutoNcDark{ TRUE };// 自动调整非客户区暗色
+	BOOLEAN bEnterCallback{};	// 当前是否在回调中
 	//-------回调队列
 	Priv::QueuedCallbackQueue Callback{};
 
@@ -994,9 +995,13 @@ void InitPrivateApi();
 // For compatibility.
 EckInline constexpr void SetMsgFilter(void*) {}
 
+#if ECK_OPT_NO_DARKMODE
+EckInline HRESULT UxfMenuInit(CWnd* pWnd) { return S_FALSE; }
+EckInline HRESULT UxfMenuUnInit(CWnd* pWnd) { return S_FALSE; }
+#else
 HRESULT UxfMenuInit(CWnd* pWnd);
-
 HRESULT UxfMenuUnInit(CWnd* pWnd);
+#endif// ECK_OPT_NO_DARKMODE
 
 
 [[nodiscard]] EckInline HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,

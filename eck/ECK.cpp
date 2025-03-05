@@ -8,6 +8,7 @@
 
 FSetWindowCompositionAttribute	pfnSetWindowCompositionAttribute{};
 
+#if !ECK_OPT_NO_DARKMODE
 FAllowDarkModeForWindow			pfnAllowDarkModeForWindow{};
 FAllowDarkModeForApp			pfnAllowDarkModeForApp{};
 FIsDarkModeAllowedForWindow		pfnIsDarkModeAllowedForWindow{};
@@ -19,6 +20,7 @@ FGetIsImmersiveColorUsingHighContrast	pfnGetIsImmersiveColorUsingHighContrast{};
 FShouldSystemUseDarkMode		pfnShouldSystemUseDarkMode{};
 FSetPreferredAppMode			pfnSetPreferredAppMode{};
 FIsDarkModeAllowedForApp		pfnIsDarkModeAllowedForApp{};
+#endif// !ECK_OPT_NO_DARKMODE
 
 FOpenNcThemeData				pfnOpenNcThemeData{};
 
@@ -43,6 +45,7 @@ void InitPrivateApi()
 	pfnOpenNcThemeData = (FOpenNcThemeData)
 		GetProcAddress(hModUx, MAKEINTRESOURCEA(49));
 
+#if !ECK_OPT_NO_DARKMODE
 	if (g_NtVer.uMajor >= 10 && g_NtVer.uBuild >= WINVER_1809)
 	{
 		if (g_NtVer.uBuild > WINVER_1903)
@@ -72,6 +75,7 @@ void InitPrivateApi()
 		pfnGetIsImmersiveColorUsingHighContrast = (FGetIsImmersiveColorUsingHighContrast)
 			GetProcAddress(hModUx, MAKEINTRESOURCEA(106));
 	}
+#endif// !ECK_OPT_NO_DARKMODE
 	FreeLibrary(hModUx);
 
 #ifndef _WIN64
@@ -185,6 +189,7 @@ enum
 	STATUSBAR_PART_GRIPPER = 3,
 };
 
+#if !ECK_OPT_NO_DARKMODE
 using FOpenThemeData = HTHEME(WINAPI*)(HWND, PCWSTR);
 using FDrawThemeText = HRESULT(WINAPI*)(HTHEME, HDC, int, int, PCWSTR, int, DWORD, DWORD, const RECT*);
 using FDrawThemeTextEx = HRESULT(WINAPI*)(HTHEME, HDC, int, int, PCWSTR, int, DWORD, RECT*, const DTTOPTS*);
@@ -247,7 +252,7 @@ static CSrwLock s_LkThemeMap{};
 constexpr THEME_INFO InvalidThemeInfo{ .eType = ThemeType::Invalid };
 
 // 查询主题信息。此函数返回引用，但在主题句柄被使用期间一定有效
-EckInline const THEME_INFO& UxfGetThemeInfo(HTHEME hTheme)
+EckInline const THEME_INFO& UxfpGetThemeInfo(HTHEME hTheme)
 {
 	CSrwReadGuard _{ s_LkThemeMap };
 	const auto it = s_hsThemeMap.find(hTheme);
@@ -255,11 +260,11 @@ EckInline const THEME_INFO& UxfGetThemeInfo(HTHEME hTheme)
 }
 
 // 注册主题句柄
-static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
+static void UxfpOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 {
 	if (!hTheme)
 		return;
-	/*EckDbgPrintFmt(L"UxfOnThemeOpen: hWnd = %p, hTheme = %p, pszClassList = %s",
+	/*EckDbgPrintFmt(L"UxfpOnThemeOpen: hWnd = %p, hTheme = %p, pszClassList = %s",
 		hWnd, hTheme, pszClassList);*/
 	ThemeType eType;
 	if (EckIsStartWithConstStringIW(pszClassList, L"Button"))
@@ -322,7 +327,7 @@ static void UxfOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 }
 
 // 注销主题句柄
-static void UxfOnThemeClose(HTHEME hTheme)
+static void UxfpOnThemeClose(HTHEME hTheme)
 {
 	CSrwWriteGuard _{ s_LkThemeMap };
 	const auto it = s_hsThemeMap.find(hTheme);
@@ -340,7 +345,7 @@ static void UxfOnThemeClose(HTHEME hTheme)
 	}
 }
 
-EckInline constexpr BOOL UxfIsDarkTaskDialogAvailable()
+EckInline constexpr BOOL UxfpIsDarkTaskDialogAvailable()
 {
 	return g_NtVer.uBuild >= WINVER_11_21H2;
 }
@@ -503,7 +508,7 @@ HRESULT UxfMenuUnInit(CWnd* pWnd)
 /// </summary>
 /// <param name="fDelta">颜色分量的变化量，-1~1</param>
 /// <param name="bInvert">是否反转颜色</param>
-static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
+static HRESULT UxfpAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 	_In_ const RECT* prc, _In_opt_ const DTBGOPTS* pOpt,
 	float fDelta, BOOL bInvert = FALSE)
 {
@@ -621,7 +626,7 @@ static HRESULT UxfAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 }
 
 // 取主题颜色，主要是文本颜色
-static HRESULT UxfGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
+static HRESULT UxfpGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
 	HTHEME hTheme, int iPartId, int iStateId, int iPropId, _Out_ COLORREF& cr)
 {
 	switch (ti.eType)
@@ -929,27 +934,27 @@ static HRESULT UxfGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
 }
 
 // 绘制主题背景
-static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc,
+static HRESULT UxfpDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc,
 	HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 	_In_ const RECT* prc, _In_opt_ const DTBGOPTS* pOptions)
 {
 	switch (ti.eType)
 	{
 	case ThemeType::TaskDialog:
-		if (UxfIsDarkTaskDialogAvailable())
+		if (UxfpIsDarkTaskDialogAvailable())
 			switch (iPartId)
 			{
 			case TDLG_SECONDARYPANEL:
 				return s_pfnDrawThemeBackgroundEx(hTheme, hDC, TDLG_FOOTNOTEPANE, iStateId,
 					prc, pOptions);
 			case TDLG_FOOTNOTESEPARATOR:
-				return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.67f);
+				return UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.67f);
 			}
 		else// Win10任务对话框(或DUser？)实际上使用ControlPanelStyle绘制主次面板
 			switch (iPartId)
 			{
 			case TDLG_PRIMARYPANEL:
-				return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.9f);
+				return UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.9f);
 			case TDLG_MAININSTRUCTIONPANE:
 			case TDLG_CONTENTPANE:
 			case TDLG_EXPANDEDCONTENT:
@@ -959,18 +964,18 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 			case TDLG_FOOTNOTEPANE:
 			case TDLG_EXPANDEDFOOTERAREA:
 			case TDLG_SECONDARYPANEL:
-				return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.79f);
+				return UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.79f);
 			case TDLG_FOOTNOTESEPARATOR:
-				return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.67f);
+				return UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.67f);
 			}
 		break;
 	case ThemeType::Button:
 		switch (iPartId)
 		{
 		case BP_COMMANDLINKGLYPH:
-			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.4f);
+			return UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.4f);
 		case BP_COMMANDLINK:
-			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.9f);
+			return UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.9f);
 		}
 		break;
 	case ThemeType::Tab:
@@ -1005,7 +1010,7 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 				--NewOpt.rcClip.bottom;// 底部貌似有一条线，会遮挡一像素边框
 				if (pOptions && pOptions->dwFlags & DTBG_CLIPRECT)
 					IntersectRect(NewOpt.rcClip, NewOpt.rcClip, pOptions->rcClip);
-				const auto hr = UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, &NewOpt, f);
+				const auto hr = UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, &NewOpt, f);
 				if (hr == S_OK)// Exclude S_FALSE.
 				{
 					const auto sdc = SaveDcClip(hDC);
@@ -1017,14 +1022,14 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 				return hr;
 			}
 			else
-				return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, f);
+				return UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, f);
 		}
 		break;
 		case TABP_PANE:
 		case TABP_BODY:
 		case TABP_AEROWIZARDBODY:
 		{
-			const auto hr = UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.86f);
+			const auto hr = UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.86f);
 			if (hr == S_OK)// Exclude S_FALSE.
 			{
 				if (pOptions && pOptions->dwFlags & DTBG_CLIPRECT)
@@ -1046,7 +1051,7 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 		switch (iPartId)
 		{
 		case LVP_GROUPHEADERLINE:
-			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.3f);
+			return UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.3f);
 		}
 		break;
 	case ThemeType::ToolBar:
@@ -1099,7 +1104,7 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 		return s_pfnDrawThemeBackgroundEx(ti.hThemeExtra, hDC, iPartId, iStateId, prc, pOptions);
 
 		default:
-			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.7f);
+			return UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.7f);
 		}
 	}
 	break;
@@ -1175,10 +1180,10 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 			}
 			break;
 		case HP_HEADERDROPDOWNFILTER:
-			return UxfAdjustLuma(ti.hThemeExtra, hDC, iPartId, iStateId,
+			return UxfpAdjustLuma(ti.hThemeExtra, hDC, iPartId, iStateId,
 				prc, pOptions, iStateId != HDDFS_HOT ? 0.7f : -0.4f);
 		case HP_HEADERSORTARROW:
-			return UxfAdjustLuma(ti.hThemeExtra, hDC, iPartId, iStateId,
+			return UxfpAdjustLuma(ti.hThemeExtra, hDC, iPartId, iStateId,
 				prc, pOptions, 0.f, TRUE);
 		}
 		break;
@@ -1189,10 +1194,10 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 		case PP_BARVERT:
 		case PP_TRANSPARENTBAR:
 		case PP_TRANSPARENTBARVERT:
-			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.45f);
+			return UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.45f);
 		case PP_PULSEOVERLAY:
 		case PP_PULSEOVERLAYVERT:
-			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.2f);
+			return UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.2f);
 		}
 		break;
 	case ThemeType::ControlPanel:
@@ -1207,7 +1212,7 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 			return S_OK;
 		case CPANEL_LARGECOMMANDAREA:
 		case CPANEL_SMALLCOMMANDAREA:
-			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.79f);
+			return UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.79f);
 		}
 		break;
 	case ThemeType::MonthCalendar:
@@ -1222,19 +1227,19 @@ static HRESULT UxfDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc
 				FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
 			return S_OK;
 		case MC_GRIDCELLBACKGROUND:
-			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.5f);
+			return UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.5f);
 		case MC_NAVNEXT:
 		case MC_NAVPREV:
-			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.7f);
+			return UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.7f);
 		}
 		break;
 	case ThemeType::StatusBar:
 		switch (iPartId)
 		{
 		case STATUSBAR_PART_COMMON:
-			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.1f, TRUE);
+			return UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.1f, TRUE);
 		case STATUSBAR_PART_PANE:
-			return UxfAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.1f, TRUE);
+			return UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, 0.1f, TRUE);
 		}
 		break;
 	case ThemeType::Menu:
@@ -1298,7 +1303,7 @@ static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Combobox");
 		else if (TcsEqualI(pszClassList, L"Edit"))
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Edit");
-		else if (UxfIsDarkTaskDialogAvailable() &&
+		else if (UxfpIsDarkTaskDialogAvailable() &&
 			EckIsStartWithConstStringIW(pszClassList, L"TaskDialog"))
 			hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_Explorer::TaskDialog");
 		else
@@ -1306,7 +1311,7 @@ static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
 	}
 	else
 		hTheme = s_pfnOpenThemeData(hWnd, pszClassList);
-	UxfOnThemeOpen(hWnd, hTheme, pszClassList);
+	UxfpOnThemeOpen(hWnd, hTheme, pszClassList);
 	return hTheme;
 }
 
@@ -1319,7 +1324,7 @@ static HTHEME WINAPI NewOpenThemeDataForDpi(HWND hWnd, PCWSTR pszClassList, UINT
 			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_CFD::Combobox", uDpi);
 		else if (TcsEqualI(pszClassList, L"Edit"))
 			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_CFD::Edit", uDpi);
-		else if (UxfIsDarkTaskDialogAvailable() &&
+		else if (UxfpIsDarkTaskDialogAvailable() &&
 			EckIsStartWithConstStringIW(pszClassList, L"TaskDialog"))
 			hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_Explorer::TaskDialog", uDpi);
 		else
@@ -1327,7 +1332,7 @@ static HTHEME WINAPI NewOpenThemeDataForDpi(HWND hWnd, PCWSTR pszClassList, UINT
 	}
 	else
 		hTheme = s_pfnOpenThemeDataForDpi(hWnd, pszClassList, uDpi);
-	UxfOnThemeOpen(hWnd, hTheme, pszClassList);
+	UxfpOnThemeOpen(hWnd, hTheme, pszClassList);
 	return hTheme;
 }
 
@@ -1337,7 +1342,7 @@ static HRESULT WINAPI NewDrawThemeText(HTHEME hTheme, HDC hDC, int iPartId, int 
 	if (ShouldAppsUseDarkMode() && !(dwTextFlags & DT_CALCRECT))
 	{
 		COLORREF cr;
-		if (SUCCEEDED(UxfGetThemeColor(UxfGetThemeInfo(hTheme), GetThreadCtx(),
+		if (SUCCEEDED(UxfpGetThemeColor(UxfpGetThemeInfo(hTheme), GetThreadCtx(),
 			hTheme, iPartId, iStateId, TMT_TEXTCOLOR, cr)))
 		{
 			DTTOPTS dtto;
@@ -1362,7 +1367,7 @@ static HRESULT WINAPI NewDrawThemeTextEx(HTHEME hTheme, HDC hDC, int iPartId, in
 		if (!pOptions || (pOptions->dwFlags & DTT_COLORPROP) ||
 			!(pOptions->dwFlags & DTT_TEXTCOLOR))// 未指定颜色
 		{
-			if (SUCCEEDED(UxfGetThemeColor(UxfGetThemeInfo(hTheme), GetThreadCtx(),
+			if (SUCCEEDED(UxfpGetThemeColor(UxfpGetThemeInfo(hTheme), GetThreadCtx(),
 				hTheme, iPartId, iStateId,
 				(pOptions && (pOptions->dwFlags & DTT_COLORPROP)) ?
 				pOptions->iColorPropId : TMT_TEXTCOLOR, NewOpt.crText)))
@@ -1393,7 +1398,7 @@ static HRESULT WINAPI NewDrawThemeBackgroundEx(HTHEME hTheme, HDC hDC, int iPart
 {
 	if (ShouldAppsUseDarkMode())
 	{
-		if (SUCCEEDED(UxfDrawThemeBackground(UxfGetThemeInfo(hTheme), GetThreadCtx(),
+		if (SUCCEEDED(UxfpDrawThemeBackground(UxfpGetThemeInfo(hTheme), GetThreadCtx(),
 			hTheme, hDC, iPartId, iStateId, pRect, pOptions)))
 		{
 			return S_OK;
@@ -1416,7 +1421,7 @@ static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hDC, int iPartId
 		}
 		else
 			Options.dwFlags = 0;
-		if (SUCCEEDED(UxfDrawThemeBackground(UxfGetThemeInfo(hTheme), GetThreadCtx(),
+		if (SUCCEEDED(UxfpDrawThemeBackground(UxfpGetThemeInfo(hTheme), GetThreadCtx(),
 			hTheme, hDC, iPartId, iStateId, pRect, &Options)))
 		{
 			return S_OK;
@@ -1430,7 +1435,7 @@ static HRESULT WINAPI NewGetThemeColor(HTHEME hTheme, int iPartId, int iStateId,
 {
 	if (ShouldAppsUseDarkMode())
 	{
-		if (SUCCEEDED(UxfGetThemeColor(UxfGetThemeInfo(hTheme), GetThreadCtx(),
+		if (SUCCEEDED(UxfpGetThemeColor(UxfpGetThemeInfo(hTheme), GetThreadCtx(),
 			hTheme, iPartId, iStateId, iPropId, *pColor)))
 			return S_OK;
 	}
@@ -1439,7 +1444,7 @@ static HRESULT WINAPI NewGetThemeColor(HTHEME hTheme, int iPartId, int iStateId,
 
 static HRESULT WINAPI NewCloseThemeData(HTHEME hTheme)
 {
-	UxfOnThemeClose(hTheme);
+	UxfpOnThemeClose(hTheme);
 	return s_pfnCloseThemeData(hTheme);
 }
 
@@ -1447,7 +1452,7 @@ static HRESULT WINAPI NewCloseThemeData(HTHEME hTheme)
 static HRESULT WINAPI NewGetThemePartSize(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 	const RECT* prc, THEMESIZE eSize, SIZE* psz)
 {
-	const auto& ti = UxfGetThemeInfo(hTheme);
+	const auto& ti = UxfpGetThemeInfo(hTheme);
 	if (ti.eType == ThemeType::Header)
 		switch (iPartId)
 		{
@@ -1477,6 +1482,7 @@ static int WINAPI NewSoftModalMessageBox(void* p)
 	BeginCbtHook(&Mb);
 	return s_pfnSoftModalMessageBox(p);
 }
+#endif// !ECK_OPT_NO_DARKMODE
 #pragma endregion UxFixer
 
 #pragma region ScrollBarHook
@@ -1691,6 +1697,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		}
 	}
 
+#if !ECK_OPT_NO_DARKMODE
 	if (!(pInitParam->uFlags & EIF_NODARKMODE) &&
 		g_NtVer.uMajor >= 10 && g_NtVer.uBuild >= WINVER_1809)
 	{
@@ -1723,6 +1730,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			DetourAttach(&s_pfnSoftModalMessageBox, NewSoftModalMessageBox);
 		DetourTransactionCommit();
 	}
+#endif// !ECK_OPT_NO_DARKMODE
 
 #if ECK_SBHOOK_INCLUDED
 	DetourTransactionBegin();
@@ -1771,6 +1779,9 @@ void ThreadInit()
 	const auto p = new THREADCTX{};
 	TlsSetValue(GetThreadCtxTlsSlot(), p);
 	p->UpdateDefColor();
+#if ECK_OPT_NO_DARKMODE
+	p->bEnableDarkModeHook = FALSE;
+#else
 	p->hhkCbtDarkMode = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
 		{
 			constexpr static PCWSTR c_pszCommCtrlCls[]// 需要被设置主题的通用控件
@@ -1836,6 +1847,7 @@ void ThreadInit()
 
 			return CallNextHookEx(p->hhkCbtDarkMode, iCode, wParam, lParam);
 		}, nullptr, NtCurrentThreadId32());
+#endif // ECK_OPT_NO_DARKMODE
 }
 
 void ThreadUnInit()
@@ -1857,8 +1869,10 @@ void ThreadUnInit()
 
 void THREADCTX::SetNcDarkModeForAllTopWnd(BOOL bDark)
 {
+#if !ECK_OPT_NO_DARKMODE
 	for (const auto& e : hmTopWnd)
 		EnableWindowNcDarkMode(e.first, bDark);
+#endif // !ECK_OPT_NO_DARKMODE
 }
 
 void THREADCTX::UpdateDefColor()
@@ -1878,6 +1892,7 @@ void THREADCTX::UpdateDefColor()
 
 void THREADCTX::SendThemeChangedToAllTopWindow()
 {
+#if !ECK_OPT_NO_DARKMODE
 	for (const auto& [hWnd, pWnd] : hmTopWnd)
 	{
 		// WM_THEMECHANGED
@@ -1910,6 +1925,7 @@ void THREADCTX::SendThemeChangedToAllTopWindow()
 			BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, -1, 0);
 		}
 	}
+#endif // !ECK_OPT_NO_DARKMODE
 }
 #pragma endregion Thread
 
@@ -1962,19 +1978,24 @@ BOOL PreTranslateMessage(const MSG& Msg)
 	CWnd* pWnd;
 	const auto pCtx = GetThreadCtx();
 
-	RtlAcquireSRWLockExclusive(&pCtx->Callback.Lk);
-	while (!pCtx->Callback.q.empty())
+	if (!pCtx->bEnterCallback)
 	{
-		const auto Top{ pCtx->Callback.q.top() };
-		pCtx->Callback.q.pop();
-		RtlReleaseSRWLockExclusive(&pCtx->Callback.Lk);
-		if (Top.Callback.index() == 0)
-			std::get<0>(Top.Callback)();
-		else
-			std::coroutine_handle<>::from_address(std::get<1>(Top.Callback)).resume();
 		RtlAcquireSRWLockExclusive(&pCtx->Callback.Lk);
+		while (!pCtx->Callback.q.empty())
+		{
+			const auto Top{ pCtx->Callback.q.top() };
+			pCtx->Callback.q.pop();
+			RtlReleaseSRWLockExclusive(&pCtx->Callback.Lk);
+			pCtx->bEnterCallback = TRUE;
+			if (Top.Callback.index() == 0)
+				std::get<0>(Top.Callback)();
+			else
+				std::coroutine_handle<>::from_address(std::get<1>(Top.Callback)).resume();
+			pCtx->bEnterCallback = FALSE;
+			RtlAcquireSRWLockExclusive(&pCtx->Callback.Lk);
+		}
+		RtlReleaseSRWLockExclusive(&pCtx->Callback.Lk);
 	}
-	RtlReleaseSRWLockExclusive(&pCtx->Callback.Lk);
 
 	while (hWnd)
 	{
@@ -2065,7 +2086,7 @@ void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 #pragma endregion Dbg
 ECK_NAMESPACE_END
 
-#ifndef ECK_OPT_NO_YYJSON
+#if !ECK_OPT_NO_YYJSON
 #pragma push_macro("free")
 #pragma push_macro("malloc")
 #pragma push_macro("realloc")
@@ -2076,8 +2097,8 @@ ECK_NAMESPACE_END
 #pragma pop_macro("free")
 #pragma pop_macro("malloc")
 #pragma pop_macro("realloc")
-#endif // !defined(ECK_OPT_NO_YYJSON)
+#endif // !ECK_OPT_NO_YYJSON
 
-#ifndef ECK_OPT_NO_PUGIXML
+#if !ECK_OPT_NO_PUGIXML
 #include "PugiXml/pugixml.cpp"
-#endif // !defined(ECK_OPT_NO_PUGIXML)
+#endif // !ECK_OPT_NO_PUGIXML
