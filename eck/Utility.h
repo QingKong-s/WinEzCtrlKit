@@ -8,33 +8,6 @@
 #endif
 
 ECK_NAMESPACE_BEGIN
-EckInline void* VAlloc(SIZE_T cb, ULONG ulProtect)
-{
-	void* p{};
-	(void)NtAllocateVirtualMemory(NtCurrentProcess(), &p, 0, &cb, MEM_COMMIT, ulProtect);
-	return p;
-}
-
-EckInline void* VAlloc(SIZE_T cb)
-{
-	void* p{};
-	(void)NtAllocateVirtualMemory(NtCurrentProcess(), &p, 0, &cb, MEM_COMMIT, PAGE_READWRITE);
-	return p;
-}
-
-EckInline NTSTATUS VFree(void* p)
-{
-	SIZE_T cb{};
-	return NtFreeVirtualMemory(NtCurrentProcess(), &p, &cb, MEM_RELEASE);
-}
-
-template<class T_ = void>
-struct DelVA 
-{ 
-	using T = T_;
-	void operator()(T* p) { VFree(p); }
-};
-
 namespace Colorref
 {
 	inline constexpr COLORREF

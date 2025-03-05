@@ -490,6 +490,61 @@ inline ATOM EzRegisterWndClass(PCWSTR pszClass, UINT uStyle = CS_STDWND, HBRUSH 
 	return RegisterClassW(&wc);
 }
 
+[[nodiscard]] EckInline HMONITOR MonitorFromRectByWorkArea(const RECT& rc,
+	HMONITOR* phMonMain = nullptr, HMONITOR* phMonNearest = nullptr)
+{
+	struct CTX
+	{
+		const RECT& rc;
+		int iMinDistance;
+		int iMaxArea;
+		HMONITOR hMon;
+		HMONITOR hMonMain;
+		HMONITOR hMonNearest;
+	}
+	Ctx{ rc,INT_MAX };
+
+	EnumDisplayMonitors(nullptr, nullptr, [](HMONITOR hMonitor, HDC, RECT*, LPARAM lParam)->BOOL
+		{
+			const auto pCtx = (CTX*)lParam;
+
+			MONITORINFO mi;
+			mi.cbSize = sizeof(mi);
+			GetMonitorInfoW(hMonitor, &mi);
+			if (IsBitSet(mi.dwFlags, MONITORINFOF_PRIMARY))
+				pCtx->hMonMain = hMonitor;
+
+			RECT rc;
+			if (IntersectRect(rc, mi.rcWork, pCtx->rc))
+			{
+				const int iArea = (rc.right - rc.left) * (rc.bottom - rc.top);
+				if (iArea > pCtx->iMaxArea)
+				{
+					pCtx->iMaxArea = iArea;
+					pCtx->hMon = hMonitor;
+				}
+			}
+
+			const int dx = (pCtx->rc.left + pCtx->rc.right) / 2 -
+				(mi.rcWork.left + mi.rcWork.right) / 2;
+			const int dy = (pCtx->rc.top + pCtx->rc.bottom) / 2 -
+				(mi.rcWork.top + mi.rcWork.bottom) / 2;
+			const int d = dx * dx + dy * dy;
+			if (d < pCtx->iMinDistance)
+			{
+				pCtx->iMinDistance = d;
+				pCtx->hMonNearest = hMonitor;
+			}
+			return TRUE;
+		}, (LPARAM)&Ctx);
+
+	if (phMonMain)
+		*phMonMain = Ctx.hMonMain;
+	if (phMonNearest)
+		*phMonNearest = Ctx.hMonNearest;
+	return Ctx.hMon;
+}
+
 EckInline HMONITOR GetPrimaryMonitor()
 {
 	HMONITOR hMonitor{};
@@ -1036,5 +1091,59 @@ inline BOOL ShouldWindowDisplaySizeGrip(HWND hWnd, int iDpi = -1)
 			hWnd = GetParent(hWnd);
 	}
 	return FALSE;
+}
+
+[[nodiscard]] EckInline HFONT CreateDefFont(int iDpi = USER_DEFAULT_SCREEN_DPI)
+{
+	LOGFONTW lf;
+	DaSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0, iDpi);
+	return CreateFontIndirectW(&lf);
+}
+
+EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
+{
+	return DaSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0, iDpi);
+}
+
+[[nodiscard]] EckInline IDWriteTextFormat* CreateDefTextFormat(
+	int iDpi = USER_DEFAULT_SCREEN_DPI, HRESULT* phr = nullptr)
+{
+	LOGFONTW lf;
+	if (!GetDefFontInfo(lf, iDpi))
+		return nullptr;
+	IDWriteTextFormat* pTextFormat;
+	const auto hr = g_pDwFactory->CreateTextFormat(
+		lf.lfFaceName,
+		nullptr,
+		(DWRITE_FONT_WEIGHT)lf.lfWeight,
+		lf.lfItalic ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL,
+		fabsf((float)lf.lfHeight),
+		L"zh-cn",
+		&pTextFormat);
+	if (phr)
+		*phr = hr;
+	return pTextFormat;
+}
+
+[[nodiscard]] EckInline IDWriteTextFormat* CreateDefTextFormatWithSize(
+	float cy, int iDpi = USER_DEFAULT_SCREEN_DPI, HRESULT* phr = nullptr)
+{
+	LOGFONTW lf;
+	if (!GetDefFontInfo(lf, iDpi))
+		return nullptr;
+	IDWriteTextFormat* pTextFormat;
+	const auto hr = g_pDwFactory->CreateTextFormat(
+		lf.lfFaceName,
+		nullptr,
+		(DWRITE_FONT_WEIGHT)lf.lfWeight,
+		lf.lfItalic ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL,
+		cy,
+		L"zh-cn",
+		&pTextFormat);
+	if (phr)
+		*phr = hr;
+	return pTextFormat;
 }
 ECK_NAMESPACE_END

@@ -218,11 +218,11 @@ public:
 			if (cbBuf)
 			{
 				const auto cchAdded = cbBuf / sizeof(WCHAR) + 1;
-				const auto psBuf = StrBuffer.PushBack(cchAdded);
+				const auto psBuf = StrBuffer.PushBack((int)cchAdded);
 				if ((ls = Reg.QueryValue(pszValue, psBuf, &cbBuf)) != ERROR_SUCCESS ||
 					!cbBuf)
 				{
-					StrBuffer.PopBack(cchAdded);
+					StrBuffer.PopBack((int)cchAdded);
 					spResult = {};
 					return ls;
 				}

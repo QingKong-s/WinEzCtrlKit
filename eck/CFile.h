@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "Utility.h"
 #include "CRefBin.h"
 
 ECK_NAMESPACE_BEGIN
