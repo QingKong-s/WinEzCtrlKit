@@ -200,12 +200,6 @@ public:
 			int cch;
 		} Str[size_t(AppwizStr::Max)]{};
 	private:
-		void InitBuffer()
-		{
-			StrBuffer.Clear();
-			StrBuffer.Reserve(MAX_PATH);
-		}
-
 		LSTATUS GetStringValueReg(PCWSTR pszValue, _Out_ StringSpan& spResult)
 		{
 			LSTATUS ls;
@@ -351,6 +345,32 @@ public:
 				return _wtoi(pszVer);
 			return 0;
 		}
+
+		W32ERR CreateProcessForExec(StringSpan spCmd)
+		{
+			if (!spCmd.cch)
+			{
+				STARTUPINFO si{};
+				PROCESS_INFORMATION pi{};
+				si.cb = sizeof(si);
+				const auto pszBuf = (PWSTR)_malloca((spCmd.cch + 1) * sizeof(WCHAR));
+				EckCheckMem(pszBuf);
+				TcsCopyLen(pszBuf, StrBuffer.Data() + spCmd.idx, spCmd.cch + 1);
+				const auto b = CreateProcessW(nullptr, pszBuf,
+					nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
+				_freea(pszBuf);
+				if (b)
+				{
+					NtClose(pi.hProcess);
+					NtClose(pi.hThread);
+					return ERROR_SUCCESS;
+				}
+				else
+					return NtCurrentTeb()->LastErrorValue;
+			}
+			else
+				return ERROR_NOT_SUPPORTED;
+		}
 	public:
 		EckInlineNdCe BOOL TestFlag(AppwizFlags f) const noexcept
 		{
@@ -442,7 +462,7 @@ public:
 			}
 		}
 
-		UINT Repair()
+		W32ERR Repair()
 		{
 			if (TestFlag(AppwizFlags::NoRepair))
 				return ERROR_NOT_SUPPORTED;
@@ -456,67 +476,31 @@ public:
 			return ERROR_NOT_SUPPORTED;
 		}
 
-		BOOL Uninstall()
+		W32ERR Uninstall()
 		{
 			if (TestFlag(AppwizFlags::NoRemove))
-				return FALSE;
+				return ERROR_NOT_SUPPORTED;
 			if (TestFlag(AppwizFlags::Msi))
-			{
 				return MsiConfigureProductW(GetStrView(AppwizStr::ProductID).data(),
 					INSTALLSTATE_ABSENT, INSTALLSTATE_ABSENT);
-			}
 			else
-			{
-				const auto svCmd = GetStrView(AppwizStr::UninstallString);
-				if (!svCmd.empty())
-				{
-					STARTUPINFO si{};
-					PROCESS_INFORMATION pi{};
-					si.cb = sizeof(si);
-					const auto b = CreateProcessW(svCmd.data(), nullptr,
-						nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
-					if (b)
-					{
-						NtClose(pi.hProcess);
-						NtClose(pi.hThread);
-						return TRUE;
-					}
-				}
-			}
-			return FALSE;
+				return CreateProcessForExec(GetStr(AppwizStr::UninstallString));
 		}
 
-		BOOL Modify()
+		W32ERR Modify()
 		{
 			if (TestFlag(AppwizFlags::NoModify))
-				return FALSE;
+				return ERROR_NOT_SUPPORTED;
 			if (TestFlag(AppwizFlags::Msi))
 			{
 				const auto uOld = MsiSetInternalUI(INSTALLUILEVEL_FULL, nullptr);
-				const auto b = MsiConfigureProductW(GetStrView(AppwizStr::ProductID).data(),
+				const auto r = MsiConfigureProductW(GetStrView(AppwizStr::ProductID).data(),
 					INSTALLSTATE_DEFAULT, INSTALLSTATE_DEFAULT);
 				MsiSetInternalUI(uOld, nullptr);
-				return b;
+				return r;
 			}
 			else
-			{
-				const auto svCmd = GetStrView(AppwizStr::ModifyPath);
-				if (!svCmd.empty())
-				{
-					STARTUPINFO si{};
-					PROCESS_INFORMATION pi{};
-					si.cb = sizeof(si);
-					const auto b = CreateProcessW(svCmd.data(), nullptr,
-						nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
-					if (b)
-					{
-						NtClose(pi.hProcess);
-						NtClose(pi.hThread);
-						return TRUE;
-					}
-				}
-			}
-			return FALSE;
+				return CreateProcessForExec(GetStr(AppwizStr::ModifyPath));
 		}
 	};
 
@@ -552,7 +536,8 @@ public:
 			}
 			if ((ls = App.Reg.Open(m_Reg.GetHKey(), m_rsBuffer.Data(), KEY_READ)) != ERROR_SUCCESS)
 				return ls;
-			App.InitBuffer();
+			App.StrBuffer.Clear();
+			App.StrBuffer.Reserve(MAX_PATH);
 			App.Flags = GetRegFlags(m_idxCurrSource);
 			if (App.AcquireBasicInfo(m_bSkipWindowsInstaller,
 				m_rsBuffer.Data(), cbBuf / sizeof(WCHAR), FALSE))

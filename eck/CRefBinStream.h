@@ -131,7 +131,7 @@ public:
 
 		case SEEK_CUR:
 		{
-			const ptrdiff_t ocbNew = (ptrdiff_t)dlibMove.QuadPart + m_posSeek;
+			const auto ocbNew = ptrdiff_t(dlibMove.QuadPart + m_posSeek);
 			if (ocbNew < (ptrdiff_t)m_posBegin)// 落在流开始之前
 				return STG_E_INVALIDFUNCTION;
 			m_posSeek = (size_t)ocbNew;

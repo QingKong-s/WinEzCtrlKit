@@ -1,8 +1,5 @@
 ﻿#pragma once
-#include "WndHelper.h"
 #include "CMemWalker.h"
-
-#include <variant>
 
 ECK_NAMESPACE_BEGIN
 
@@ -174,12 +171,6 @@ struct DLGTITEM : DLGITEMTHEADER
 	}
 };
 
-
-enum
-{
-	// 将尺寸单位视为像素，而不是DLU
-	CWFDT_USEPIXELUNIT = 1u << 0
-};
 
 /// <summary>
 /// 序列化对话框模板
@@ -439,158 +430,5 @@ inline HRESULT DeserializeDialogTemplate(_In_ PCVOID pTemplate,
 	}
 
 	return S_OK;
-}
-
-/// <summary>
-/// 创建窗口自对话框模板。
-/// 函数从对话框模板的反序列化结果模拟创建一个对话框窗口。
-/// 无法接收窗口的WM_CREATE和WM_NCCREATE消息，除非指定窗口类的窗口过程是自定义的。
-/// 控件创建完毕且窗口显示之前向窗口过程发送WM_INITDIALOG消息
-/// </summary>
-/// <param name="Dlg">对话框信息</param>
-/// <param name="Items">对话框项目信息</param>
-/// <param name="pfnWndProc">窗口过程。若不为NULL，则窗口创建完毕且控件创建之前将窗口的窗口过程设为此参数指定的窗口过程</param>
-/// <param name="hParent">父窗口</param>
-/// <param name="hInstance">实例句柄。从此实例加载资源，并使用在该实例上注册的窗口类</param>
-/// <param name="pParam">自定义信息，将在WM_CREATE、WM_NCCREATE和WM_INITDIALOG等消息中使用</param>
-/// <param name="phMenu">接收菜单句柄变量指针，可为NULL。调用方负责维护此句柄的生命周期</param>
-/// <param name="phFont">接收字体句柄变量指针，可为NULL。调用方负责维护此句柄的生命周期</param>
-/// <param name="uFlags">标志，CWFDT_常量</param>
-/// <returns>成功返回窗口句柄，失败返回NULL</returns>
-inline HWND CreateWindowFromDialogTemplate(DLGTDLG& Dlg, std::vector<DLGTITEM>& Items,
-	WNDPROC pfnWndProc, HWND hParent, HINSTANCE hInstance,
-	void* pParam = nullptr, HMENU* phMenu = nullptr, HFONT* phFont = nullptr, UINT uFlags = 0)
-{
-	using namespace eck::Literals;
-	if (Dlg.wVer != 1_us || Dlg.wSignature != 0xFFFF_us || (SIZE_T)Dlg.cDlgItems != Items.size())
-		return nullptr;
-	PCWSTR pszClass, pszCaption, pszMenu;
-	if (Dlg.Class)
-	{
-		auto& Val = *Dlg.Class;
-		if (Val.index() == 0)// 类原子
-			pszClass = ECKMAKEINTATOMW(std::get<0>(Val));
-		else// 类名字符串
-			pszClass = std::get<1>(Val).Data();
-	}
-	else
-		pszClass = ECKMAKEINTATOMW(32770);
-
-	if (Dlg.Caption)
-		pszCaption = (*Dlg.Caption).Data();
-	else
-		pszCaption = nullptr;
-
-	HMENU hMenu;
-	if (Dlg.Menu)
-	{
-		auto& Val = *Dlg.Menu;
-		if (Val.index() == 0)// 资源ID
-			pszMenu = MAKEINTRESOURCEW(std::get<0>(Val));
-		else// 名称字符串
-			pszMenu = std::get<1>(Val).Data();
-		hMenu = LoadMenuW(hInstance, pszMenu);
-	}
-	else
-		hMenu = nullptr;
-
-	HFONT hFont;
-	const auto bHasFontStru = IsBitSet(Dlg.dwStyle, DS_SETFONT) || 
-		IsBitSet(Dlg.dwStyle, DS_SHELLFONT);
-	if (bHasFontStru)
-		hFont = EzFont(Dlg.rsFontName.Data(), Dlg.Font.wPoint, Dlg.Font.wWeight,
-			Dlg.Font.bItalic, FALSE, FALSE, nullptr, Dlg.Font.byCharSet);
-	else
-		hFont = nullptr;
-
-	RECT rc{ Dlg.x,Dlg.y,Dlg.cx,Dlg.cy };
-	int xBaseUnit, yBaseUnit;
-	if (!IsBitSet(uFlags, CWFDT_USEPIXELUNIT))
-	{
-		if (IsBitSet(Dlg.dwStyle, DS_SETFONT) || IsBitSet(Dlg.dwStyle, DS_SHELLFONT))
-		{
-			HDC hCDC = CreateCompatibleDC(nullptr);
-			SelectObject(hCDC, hFont);
-			SIZE size;
-			GetTextExtentPoint32W(hCDC, L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 52, &size);
-			xBaseUnit = ((size.cx / 26) + 1) / 2;
-			yBaseUnit = size.cy;
-			DeleteDC(hCDC);
-		}
-		else
-		{
-			long lRet = GetDialogBaseUnits();
-			xBaseUnit = LOWORD(lRet);
-			yBaseUnit = HIWORD(lRet);
-		}
-		/*
-		* 公式：
-		* xPixel = xDLU * xBaseUnit / 4
-		* yPixel = yDLU * yBaseUnit / 8
-		*/
-		rc.left = rc.left * xBaseUnit / 4;
-		rc.top = rc.top * yBaseUnit / 8;
-		rc.right = rc.right * xBaseUnit / 4;
-		rc.bottom = rc.bottom * yBaseUnit / 8;
-	}
-
-	int x = rc.left, y = rc.top;
-	rc.right += rc.left;
-	rc.bottom += rc.top;
-#if _WIN32_WINNT >= _WIN32_WINNT_WIN10
-	AdjustWindowRectExForDpi(&rc, Dlg.dwStyle, hMenu != nullptr, Dlg.dwExStyle, GetDpi(hParent));
-#else
-	AdjustWindowRectEx(&rc, Dlg.dwStyle, hMenu != NULL, Dlg.dwExStyle);
-#endif // _WIN32_WINNT >= _WIN32_WINNT_WIN10
-	rc.right -= rc.left;
-	rc.bottom -= rc.top;
-	rc.left = x;
-	rc.top = y;
-	HWND hWnd = CreateWindowExW(Dlg.dwExStyle, pszClass, pszCaption, Dlg.dwStyle & ~WS_VISIBLE,
-		rc.left, rc.top, rc.right, rc.bottom, hParent, hMenu, hInstance, pParam);
-	if (pfnWndProc)
-		SetWindowProc(hWnd, pfnWndProc);
-	SendMessageW(hWnd, WM_SETFONT, (WPARAM)hFont, FALSE);
-
-	HWND hCtrl;
-	for (auto& x : Items)
-	{
-		if (x.Class.index() == 0)// 类原子
-			pszClass = ECKMAKEINTATOMW(std::get<0>(x.Class));
-		else// 类名字符串
-			pszClass = std::get<1>(x.Class).Data();
-
-		if (x.Caption.index() == 0)// 类原子
-			pszCaption = ECKMAKEINTATOMW(std::get<0>(x.Caption));
-		else// 类名字符串
-			pszCaption = std::get<1>(x.Caption).Data();
-
-		rc = { x.x,x.y,x.cx,x.cy };
-		if (!IsBitSet(uFlags, CWFDT_USEPIXELUNIT))
-		{
-			rc.left = rc.left * xBaseUnit / 4;
-			rc.top = rc.top * yBaseUnit / 8;
-			rc.right = rc.right * xBaseUnit / 4;
-			rc.bottom = rc.bottom * yBaseUnit / 8;
-		}
-		hCtrl = CreateWindowExW(x.dwExStyle, pszClass, pszCaption, x.dwStyle,
-			rc.left, rc.top, rc.right, rc.bottom, hWnd, i32ToP<HMENU>(x.id), hInstance, x.rbExtra.Data());
-		SendMessageW(hCtrl, WM_SETFONT, (WPARAM)hFont, FALSE);
-	}
-
-	HWND hFirstCtrl = GetNextDlgTabItem(hWnd, nullptr, FALSE);
-	if (SendMessageW(hWnd, WM_INITDIALOG, (WPARAM)hFirstCtrl, (LPARAM)pParam))
-	{
-		hFirstCtrl = GetNextDlgTabItem(hWnd, nullptr, FALSE);
-		SetFocus(hFirstCtrl);
-	}
-
-	ShowWindow(hWnd, SW_SHOW);
-	UpdateWindow(hWnd);
-	if (phMenu)
-		*phMenu = hMenu;
-	if (phFont)
-		*phFont = hFont;
-	return hWnd;
 }
 ECK_NAMESPACE_END
