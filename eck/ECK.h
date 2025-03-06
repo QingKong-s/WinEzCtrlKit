@@ -355,6 +355,7 @@ inline namespace BaseType
 	using UINTBE = UINT;
 	using PITEMIDLIST = LPITEMIDLIST;
 	using PCITEMIDLIST = LPCITEMIDLIST;
+	using W32ERR = ULONG;
 }
 
 union BIT128
@@ -996,8 +997,8 @@ void InitPrivateApi();
 EckInline constexpr void SetMsgFilter(void*) {}
 
 #if ECK_OPT_NO_DARKMODE
-EckInline HRESULT UxfMenuInit(CWnd* pWnd) { return S_FALSE; }
-EckInline HRESULT UxfMenuUnInit(CWnd* pWnd) { return S_FALSE; }
+EckInlineCe HRESULT UxfMenuInit(CWnd* pWnd) { return S_FALSE; }
+EckInlineCe HRESULT UxfMenuUnInit(CWnd* pWnd) { return S_FALSE; }
 #else
 HRESULT UxfMenuInit(CWnd* pWnd);
 HRESULT UxfMenuUnInit(CWnd* pWnd);
