@@ -207,6 +207,7 @@ EckInline constexpr COLORREF ARGBToColorref(ARGB argb, BYTE* pbyAlpha = nullptr)
 	return ReverseColorref(argb);
 }
 
+#ifdef _D2D1_H_// 与ECK_OPT_NO_DX选项兼容
 EckInline constexpr D2D1_COLOR_F ARGBToD2dColorF(ARGB argb)
 {
 	return D2D1_COLOR_F
@@ -237,6 +238,18 @@ EckInline constexpr COLORREF D2dColorFToColorref(const D2D1_COLOR_F& cr)
 		BYTE(cr.b * 255.f),
 		0);
 }
+
+EckInline constexpr D2D1_COLOR_F ColorrefToD2dColorF(COLORREF cr, float fAlpha = 1.f)
+{
+	return D2D1_COLOR_F
+	{
+		GetRValue(cr) / 255.f,
+		GetGValue(cr) / 255.f,
+		GetBValue(cr) / 255.f,
+		fAlpha
+	};
+}
+#endif// _D2D1_H_
 
 EckInline constexpr COLORREF ColorrefAlphaBlend(COLORREF cr, COLORREF crBK, BYTE byAlpha)
 {
@@ -511,17 +524,6 @@ EckInline constexpr size_t Fnv1aHash(PCBYTE p, size_t cb)
 		hash *= c_FNVPrime;
 	}
 	return hash;
-}
-
-EckInline constexpr D2D1_COLOR_F ColorrefToD2dColorF(COLORREF cr, float fAlpha = 1.f)
-{
-	return D2D1_COLOR_F
-	{
-		GetRValue(cr) / 255.f,
-		GetGValue(cr) / 255.f,
-		GetBValue(cr) / 255.f,
-		fAlpha
-	};
 }
 
 EckInline constexpr void InflateRect(D2D1_RECT_F& rc, float dx, float dy)
@@ -1576,10 +1578,12 @@ EckInline constexpr T ClearHighNBits(T x, size_t n)
 	return x & ((T{ 1 } << (sizeof(T) * 8 - n)) - T{ 1 });
 }
 
+#ifdef _D2D1_H_// 与ECK_OPT_NO_DX选项兼容
 EckInline constexpr D2D1_ELLIPSE CreateD2dEllipse(float x, float y, float w, float h)
 {
 	return D2D1_ELLIPSE{ { x + w / 2.f,y + h / 2.f },w / 2.f,h / 2.f };
 }
+#endif // _D2D1_H_
 
 EckInline constexpr D2D1_POINT_2F operator-(D2D1_POINT_2F pt1, D2D1_POINT_2F pt2)
 {

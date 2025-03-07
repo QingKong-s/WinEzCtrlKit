@@ -1107,6 +1107,7 @@ EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 	return DaSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0, iDpi);
 }
 
+#if !ECK_OPT_NO_DX
 [[nodiscard]] EckInline IDWriteTextFormat* CreateDefTextFormat(
 	int iDpi = USER_DEFAULT_SCREEN_DPI, HRESULT* phr = nullptr)
 {
@@ -1148,4 +1149,5 @@ EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 		*phr = hr;
 	return pTextFormat;
 }
+#endif// !ECK_OPT_NO_DX
 ECK_NAMESPACE_END

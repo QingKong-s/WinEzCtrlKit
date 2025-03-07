@@ -1,4 +1,4 @@
-﻿#ifdef ECK_OPT_MYDBG
+﻿#if ECK_OPT_MYDBG
 #include "PchInc.h"
 #endif// ECK_OPT_MYDBG
 
@@ -110,11 +110,13 @@ ULONG_PTR	g_uGpToken{};
 // For DirectX
 
 IWICImagingFactory* g_pWicFactory{};
+#if !ECK_OPT_NO_DX
 ID2D1Factory1* g_pD2dFactory{};
 IDWriteFactory* g_pDwFactory{};
 ID2D1Device* g_pD2dDevice{};
 IDXGIDevice1* g_pDxgiDevice{};
 IDXGIFactory2* g_pDxgiFactory{};
+#endif// !ECK_OPT_NO_DX
 
 // For Text Services
 
@@ -155,7 +157,7 @@ static struct
 s_WndClassInfo[]
 {
 	{ },// WCN_DLG
-#ifdef ECK_OPT_NO_SIMPLE_WND_CLS
+#if ECK_OPT_NO_SIMPLE_WND_CLS
 	{ WCN_LABEL },
 	{ WCN_BK },
 	{ WCN_LUNARCALENDAR },
@@ -1622,6 +1624,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	g_rsCurrDir.ShrinkToFit();
 
 	HRESULT hr;
+#if !ECK_OPT_NO_DX
 	if (!(pInitParam->uFlags & EIF_NOINITD2D))
 	{
 #ifdef _DEBUG
@@ -1684,6 +1687,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			return InitStatus::DxgiDeviceError;
 		}
 	}
+#endif// !ECK_OPT_NO_DX
 	//////////////创建WIC工厂
 	if (!(pInitParam->uFlags & EIF_NOINITWIC))
 	{
@@ -1757,11 +1761,13 @@ void UnInit()
 	g_hInstance = nullptr;
 	g_rsCurrDir.Clear();
 	SafeRelease(g_pWicFactory);
+#if !ECK_OPT_NO_DX
 	SafeRelease(g_pD2dFactory);
 	SafeRelease(g_pDwFactory);
 	SafeRelease(g_pD2dDevice);
 	SafeRelease(g_pDxgiDevice);
 	SafeRelease(g_pDxgiFactory);
+#endif// !ECK_OPT_NO_DX
 }
 #pragma endregion Init
 

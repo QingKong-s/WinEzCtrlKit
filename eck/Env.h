@@ -22,7 +22,7 @@
 //	\"")
 //#endif
 
-#ifndef ECK_OPT_NO_AUTO_ADD_LIB
+#if !ECK_OPT_NO_AUTO_ADD_LIB
 #pragma comment(lib, "Gdiplus.lib")
 #pragma comment(lib, "ComCtl32.lib")
 #pragma comment(lib, "Shlwapi.lib")
@@ -76,4 +76,4 @@
 #	endif
 #endif
 
-#endif// ECK_OPT_NO_AUTO_ADD_LIB
+#endif// !ECK_OPT_NO_AUTO_ADD_LIB
