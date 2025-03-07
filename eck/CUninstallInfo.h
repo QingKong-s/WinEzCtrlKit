@@ -440,11 +440,13 @@ public:
 			WCHAR szBuf[CchI32ToStrBufNoRadix2];
 			DWORD dwType;
 			BOOL bMajorRead{}, bMinorRead{};
+			cbBuf = sizeof(szBuf);
 			if (Reg.QueryValue(L"MajorVersion", szBuf, &cbBuf, &dwType) == ERROR_SUCCESS)
 			{
 				MajorVersion = VersionFromStr(szBuf, dwType);
 				bMajorRead = !MajorVersion;
 			}
+			cbBuf = sizeof(szBuf);
 			if (Reg.QueryValue(L"MinorVersion", szBuf, &cbBuf, &dwType) == ERROR_SUCCESS)
 			{
 				MinorVersion = VersionFromStr(szBuf, dwType);
@@ -452,11 +454,13 @@ public:
 			}
 			if (!bMajorRead)
 			{
+				cbBuf = sizeof(szBuf);
 				if (Reg.QueryValue(L"VersionMajor", szBuf, &cbBuf, &dwType) == ERROR_SUCCESS)
 					MajorVersion = VersionFromStr(szBuf, dwType);
 			}
 			if (!bMinorRead)
 			{
+				cbBuf = sizeof(szBuf);
 				if (Reg.QueryValue(L"VersionMinor", szBuf, &cbBuf, &dwType) == ERROR_SUCCESS)
 					MinorVersion = VersionFromStr(szBuf, dwType);
 			}

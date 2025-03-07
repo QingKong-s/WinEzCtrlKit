@@ -247,7 +247,6 @@
     <ClInclude Include="eck\CHexEdit.h" />
     <ClInclude Include="eck\ComPtr.h" />
     <ClInclude Include="eck\CRichEdit.h" />
-    <ClInclude Include="eck\CVectorDrawPanel.h" />
     <ClInclude Include="eck\DistortImage.h" />
     <ClInclude Include="eck\GeometryRender.h" />
     <ClInclude Include="eck\IMem.h" />
