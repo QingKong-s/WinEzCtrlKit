@@ -147,6 +147,7 @@ struct CEzCDC
 	}
 };
 
+#if !ECK_OPT_NO_DX
 struct EZD2D_PARAM
 {
 	HWND hWnd = nullptr;
@@ -439,6 +440,7 @@ struct CEzD2D
 		SafeRelease(m_pSwapChain);
 	}
 };
+#endif// !ECK_OPT_NO_DX
 
 enum class GradientMode :BYTE
 {
@@ -945,6 +947,7 @@ inline GpStatus DrawBackgroundImage(GpGraphics* pGraphics, GpImage* pImage, cons
 	ECK_UNREACHABLE;
 }
 
+#if !ECK_OPT_NO_DX
 inline void DrawBackgroundImage(ID2D1RenderTarget* pRT, ID2D1Bitmap* pBmp,
 	const D2D1_RECT_F& rc, float cxImage, float cyImage,
 	BkImgMode iMode, BOOL bFullRgnImage,
@@ -1485,6 +1488,7 @@ inline HRESULT GetTextLayoutPathGeometry(IDWriteTextLayout* const* pLayout, int 
 		pPathGeometry = pPath;
 	return hr;
 }
+#endif // !ECK_OPT_NO_DX
 
 struct SAVE_DC_CLIP
 {
@@ -1516,6 +1520,7 @@ EckInline int IntersectClipRect(HDC hDC, const RECT& rc)
 	return IntersectClipRect(hDC, rc.left, rc.top, rc.right, rc.bottom);
 }
 
+#if !ECK_OPT_NO_DX
 inline void DrawImageFromGrid(ID2D1RenderTarget* pRT, ID2D1Bitmap* pBmp,
 	const D2D1_RECT_F& rcDst, const D2D1_RECT_F& rcSrc, const D2D1_RECT_F& rcMargins,
 	D2D1_BITMAP_INTERPOLATION_MODE eInterpolationMode = D2D1_BITMAP_INTERPOLATION_MODE_LINEAR,
@@ -1603,6 +1608,7 @@ inline void DrawImageFromGrid(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp,
 	rcSrcTmp = { rcSrc.left + rcMargins.left, rcSrc.top + rcMargins.top, rcSrc.right - rcMargins.right, rcSrc.bottom - rcMargins.bottom };
 	pDC->DrawBitmap(pBmp, rcDstTmp, fAlpha, eInterpolationMode, rcSrcTmp);
 }
+#endif // !ECK_OPT_NO_DX
 
 inline GpStatus DrawImageFromGrid(GpGraphics* pGraphics, GpImage* pImage,
 	int xDst, int yDst, int cxDst, int cyDst,

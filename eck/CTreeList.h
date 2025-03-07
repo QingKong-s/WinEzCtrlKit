@@ -432,7 +432,7 @@ private:
 		const BOOL bFirstColVisible = (rc.right - rc.left > 0 && (rc.left < rcPaint.right && rc.right > rcPaint.left));
 
 		HRGN hRgn{};
-#ifdef ECK_OPT_SUPPORT_CLASSIC_THEME
+#if ECK_OPT_SUPPORT_CLASSIC_THEME
 		BOOL bTextHighLight{};
 #endif // ECK_OPT_SUPPORT_CLASSIC_THEME
 		//---------------画分隔线
@@ -474,7 +474,7 @@ private:
 			goto End;
 		PaintDivider(hDC, rcItem);
 		//---------------画背景
-#ifdef ECK_OPT_SUPPORT_CLASSIC_THEME
+#if ECK_OPT_SUPPORT_CLASSIC_THEME
 		if (!m_hThemeLV)
 		{
 			if (nmcd.crBk == CLR_DEFAULT)
@@ -535,7 +535,7 @@ private:
 			}
 		}
 
-#ifdef ECK_OPT_SUPPORT_CLASSIC_THEME
+#if ECK_OPT_SUPPORT_CLASSIC_THEME
 		//---------------
 		if (!m_hThemeLV &&
 			(iStateId == LISS_SELECTED || iStateId == LISS_HOTSELECTED))
@@ -554,7 +554,7 @@ private:
 			{
 				rc.top += ((m_cyItem - m_sizeTVGlyph.cy) / 2);
 				rc.bottom = rc.top + m_sizeTVGlyph.cy;
-#ifdef ECK_OPT_SUPPORT_CLASSIC_THEME
+#if ECK_OPT_SUPPORT_CLASSIC_THEME
 				if (!m_hThemeTV)
 				{
 					InflateRect(rc, -m_sizeTVGlyph.cx / 6, -m_sizeTVGlyph.cy / 6);
@@ -618,7 +618,7 @@ private:
 			rc.bottom = rc.top + m_sizeCheckBox.cy;
 			EckAssert(GetLowNBits(e->uFlags, 2) <= 2);
 			if (bFirstColVisible)
-#ifdef ECK_OPT_SUPPORT_CLASSIC_THEME
+#if ECK_OPT_SUPPORT_CLASSIC_THEME
 				if (!m_hThemeBT)
 				{
 					UINT u = DFCS_BUTTONCHECK;
@@ -641,7 +641,7 @@ private:
 						iStateId = ((e->uFlags & TLIF_DISABLECHECKBOX) ?
 							CBS_UNCHECKEDDISABLED : CBS_UNCHECKEDNORMAL);
 					DrawThemeBackground(m_hThemeBT, hDC, BP_CHECKBOX, iStateId, &rc, nullptr);
-#ifdef ECK_OPT_SUPPORT_CLASSIC_THEME
+#if ECK_OPT_SUPPORT_CLASSIC_THEME
 				}
 #endif
 			rc.left = rc.right + m_Ds.cxCBPadding;
@@ -802,7 +802,7 @@ private:
 	{
 		if (m_bDraggingSel)
 		{
-#ifdef ECK_OPT_SUPPORT_CLASSIC_THEME
+#if ECK_OPT_SUPPORT_CLASSIC_THEME
 			if (!m_hThemeLV)
 				DrawFocusRect(hDC, &m_rcDraggingSel);
 			else
@@ -818,14 +818,14 @@ private:
 
 	EckInline void UpdateThemeInfo()
 	{
-#ifdef ECK_OPT_SUPPORT_CLASSIC_THEME
+#if ECK_OPT_SUPPORT_CLASSIC_THEME
 		if (!m_hThemeTV)
 			m_sizeTVGlyph = { GetSystemMetrics(SM_CXSMICON),GetSystemMetrics(SM_CYSMICON) };
 		else
 #endif
 			GetThemePartSize(m_hThemeTV, m_DC.GetDC(),
 				TVP_GLYPH, GLPS_CLOSED, nullptr, TS_TRUE, &m_sizeTVGlyph);
-#ifdef ECK_OPT_SUPPORT_CLASSIC_THEME
+#if ECK_OPT_SUPPORT_CLASSIC_THEME
 		if (!m_hThemeBT)
 			m_sizeCheckBox = { GetSystemMetrics(SM_CXSMICON),GetSystemMetrics(SM_CYSMICON) };
 		else

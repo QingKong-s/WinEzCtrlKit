@@ -9,10 +9,12 @@
 #include <vsstyle.h>
 #include <dwmapi.h>
 #include <wincodec.h>
+#if !ECK_OPT_NO_DX
 #include <dwrite.h>
 #include <d2d1_1.h>
 #include <dxgi1_2.h>
 #include <d3d11.h>
+#endif // !ECK_OPT_NO_DX
 #include <Shlwapi.h>
 #include <ShlObj.h>
 #include <commoncontrols.h>
@@ -590,7 +592,7 @@ constexpr inline HRESULT HrNotFound{ HRESULT_FROM_WIN32(ERROR_NOT_FOUND) };
 constexpr inline PCWSTR WCN_DLG = L"Eck.WndClass.CommDlg";
 
 constexpr inline PCWSTR WCN_DUMMY = L"Eck.WndClass.Dummy";
-#ifdef ECK_OPT_NO_SIMPLE_WND_CLS
+#if ECK_OPT_NO_SIMPLE_WND_CLS
 constexpr inline PCWSTR WCN_LABEL = L"Eck.WndClass.Label";
 constexpr inline PCWSTR WCN_BK = L"Eck.WndClass.BK";
 constexpr inline PCWSTR WCN_LUNARCALENDAR = L"Eck.WndClass.LunarCalendar";
@@ -754,11 +756,13 @@ extern NTVER g_NtVer;
 
 extern HINSTANCE g_hInstance;
 extern IWICImagingFactory* g_pWicFactory;
+#if !ECK_OPT_NO_DX
 extern ID2D1Factory1* g_pD2dFactory;
 extern IDWriteFactory* g_pDwFactory;
 extern ID2D1Device* g_pD2dDevice;
 extern IDXGIDevice1* g_pDxgiDevice;
 extern IDXGIFactory2* g_pDxgiFactory;
+#endif// !ECK_OPT_NO_DX
 
 extern HMODULE g_hModComCtl32;
 #pragma endregion Global
@@ -781,6 +785,7 @@ enum :UINT
 	EIF_NODARKMODE = 1u << 5,
 };
 
+#if !ECK_OPT_NO_DX
 constexpr inline D3D_FEATURE_LEVEL c_uDefD3dFeatureLevel[]
 {
 	D3D_FEATURE_LEVEL_11_1,
@@ -791,14 +796,17 @@ constexpr inline D3D_FEATURE_LEVEL c_uDefD3dFeatureLevel[]
 	D3D_FEATURE_LEVEL_9_2,
 	D3D_FEATURE_LEVEL_9_1
 };
+#endif// !ECK_OPT_NO_DX
 
 struct INITPARAM
 {
 	UINT uFlags = EIF_DEFAULT;
+#if !ECK_OPT_NO_DX
 	D2D1_FACTORY_TYPE uD2dFactoryType = D2D1_FACTORY_TYPE_MULTI_THREADED;
 	DWRITE_FACTORY_TYPE uDWriteFactoryType = DWRITE_FACTORY_TYPE_SHARED;
 	const D3D_FEATURE_LEVEL* pD3dFeatureLevel = c_uDefD3dFeatureLevel;
 	UINT cD3dFeatureLevel = ARRAYSIZE(c_uDefD3dFeatureLevel);
+#endif// !ECK_OPT_NO_DX
 };
 
 /// <summary>
@@ -1012,10 +1020,10 @@ HRESULT UxfMenuUnInit(CWnd* pWnd);
 }
 ECK_NAMESPACE_END
 
-#ifndef ECK_OPT_NO_USING_GDIPLUS
+#if !ECK_OPT_NO_USING_GDIPLUS
 using namespace eck::GpNameSpace;
-#endif// !define(ECK_OPT_NO_USING_GDIPLUS)
+#endif// !ECK_OPT_NO_USING_GDIPLUS
 
-#ifndef ECK_OPT_NO_USING_BASE_TYPES
+#if !ECK_OPT_NO_USING_BASE_TYPES
 using namespace eck::BaseType;
-#endif// !define(ECK_OPT_NO_USING_BASE_TYPES)
+#endif// !ECK_OPT_NO_USING_BASE_TYPES

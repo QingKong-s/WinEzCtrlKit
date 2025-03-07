@@ -839,6 +839,7 @@ inline Gdiplus::GpStatus SaveGpImage(_In_z_ PCWSTR pszFile,
 	return GdipSaveImageToFile(pImage, pszFile, &clsid, nullptr);
 }
 
+#if !ECK_OPT_NO_DX
 inline HRESULT LoadD2dBitmap(_In_z_ PCWSTR pszFile,
 	_In_ ID2D1RenderTarget* pRT, _Out_ ID2D1Bitmap*& pD2dBitmap,
 	int cxNew = -1, int cyNew = -1)
@@ -853,6 +854,7 @@ inline HRESULT LoadD2dBitmap(_In_z_ PCWSTR pszFile,
 		return hr;
 	return pRT->CreateBitmapFromWicBitmap(pBitmap.Get(), &pD2dBitmap);
 }
+#endif// !ECK_OPT_NO_DX
 
 inline [[nodiscard]] GpBitmap* ScaleGpBitmap(_In_ GpBitmap* pBitmap, int cxNew, int cyNew,
 	Gdiplus::InterpolationMode eInterp = Gdiplus::InterpolationModeDefault)
