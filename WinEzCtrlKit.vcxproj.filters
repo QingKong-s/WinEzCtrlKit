@@ -333,9 +333,6 @@
     <ClInclude Include="eck\GeometryRender.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CVectorDrawPanel.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CHexEdit.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
