@@ -175,6 +175,7 @@
     <ClInclude Include="eck\AutoPtrDef.h" />
     <ClInclude Include="eck\CArray2D.h" />
     <ClInclude Include="eck\CBorderLayout.h" />
+    <ClInclude Include="eck\CColorReducing.h" />
     <ClInclude Include="eck\CDuiListTemplate.h" />
     <ClInclude Include="eck\CDuiTabList.h" />
     <ClInclude Include="eck\CEnumFile.h" />

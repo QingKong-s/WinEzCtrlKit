@@ -295,6 +295,8 @@ public:
 			if (idxImg < 0)
 				return E_NOT_SUFFICIENT_BUFFER;
 		}
+		if (pidxNew)
+			*pidxNew = idxImg;
 
 		const D2D1_POINT_2U ptDst{ 0,(UINT32)CalcYFromImgIndex(idxImg) };
 		D2D1_RECT_U rc;
