@@ -505,7 +505,10 @@ public:
 		case WM_NCPAINT:
 		{
 			Ctx.Processed();
-			m_pWnd->OnMsg(hWnd, uMsg, wParam, lParam);
+			auto Ctx1{ Ctx };
+			m_pWnd->GetSignal().CallNext(Ctx1, hWnd, uMsg, wParam, lParam);
+			if (!Ctx1.IsProcessed())
+				m_pWnd->OnMsg(hWnd, uMsg, wParam, lParam);
 			Redraw();
 		}
 		return 0;

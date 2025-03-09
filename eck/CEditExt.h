@@ -67,12 +67,10 @@ protected:
 	void UpdateTextInfo()
 	{
 		const auto hDC = GetDC(HWnd);
-		const auto hCDC = CreateCompatibleDC(hDC);
-		SelectObject(hCDC, HFont);
+		SelectObject(hDC, HFont);
 		TEXTMETRICW tm;
-		GetTextMetricsW(hCDC, &tm);
+		GetTextMetricsW(hDC, &tm);
 		m_cyText = tm.tmHeight;
-		DeleteDC(hCDC);
 		ReleaseDC(HWnd, hDC);
 	}
 
@@ -325,39 +323,21 @@ public:
 
 		case WM_NCCALCSIZE:
 		{
-			if (!GetMultiLine())
-			{
-				LRESULT lResult;
-				if (wParam)
-				{
-					auto pnccsp = (NCCALCSIZE_PARAMS*)lParam;
-					m_rcMargins = pnccsp->rgrc[0];// 保存非客户区尺寸
-					lResult = CEdit::OnMsg(hWnd, uMsg, wParam, lParam);// call默认过程，计算标准边框尺寸
-					// 保存边框尺寸
-					m_rcMargins.left = pnccsp->rgrc[0].left - m_rcMargins.left;
-					m_rcMargins.top = pnccsp->rgrc[0].top - m_rcMargins.top;
-					m_rcMargins.right -= pnccsp->rgrc[0].right;
-					m_rcMargins.bottom -= pnccsp->rgrc[0].bottom;
-					// 上下留空
-					pnccsp->rgrc[0].top += ((pnccsp->rgrc[0].bottom - pnccsp->rgrc[0].top - m_cyText) / 2);
-					pnccsp->rgrc[0].bottom = pnccsp->rgrc[0].top + m_cyText;
-				}
-				else
-				{
-					auto prc = (RECT*)lParam;
-					m_rcMargins = *prc;// 保存非客户区尺寸
-					lResult = CEdit::OnMsg(hWnd, uMsg, wParam, lParam);// call默认过程，计算标准边框尺寸
-					// 保存边框尺寸
-					m_rcMargins.left = prc->left - m_rcMargins.left;
-					m_rcMargins.top = prc->top - m_rcMargins.top;
-					m_rcMargins.right -= prc->right;
-					m_rcMargins.bottom -= prc->bottom;
-					// 上下留空
-					prc->top += ((prc->bottom - prc->top - m_cyText) / 2);
-					prc->bottom = prc->top + m_cyText;
-				}
-				return lResult;
-			}
+			if (GetMultiLine())
+				break;
+			const auto prc = (RECT*)lParam;
+			m_rcMargins = *prc;// 保存非客户区尺寸
+			const auto lResult = CEdit::OnMsg(
+				hWnd, uMsg, wParam, lParam);// call默认过程，计算标准边框尺寸
+			// 保存边框尺寸
+			m_rcMargins.left = prc->left - m_rcMargins.left;
+			m_rcMargins.top = prc->top - m_rcMargins.top;
+			m_rcMargins.right -= prc->right;
+			m_rcMargins.bottom -= prc->bottom;
+			// 上下留空
+			prc->top += ((prc->bottom - prc->top - m_cyText) / 2);
+			prc->bottom = prc->top + m_cyText;
+			return lResult;
 		}
 		break;
 
@@ -412,10 +392,8 @@ public:
 			auto lResult = CEdit::OnMsg(hWnd, uMsg, wParam, lParam);
 			if (!GetMultiLine())
 			{
-				if (lResult == HTNOWHERE)
+				if (lResult == HTNOWHERE || lResult == HTBORDER)
 					lResult = HTCLIENT;
-				else if (lResult == HTBORDER)
-					return HTCLIENT;
 			}
 			return lResult;
 		}
