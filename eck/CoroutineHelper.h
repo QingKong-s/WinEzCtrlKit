@@ -477,27 +477,16 @@ EckInline auto CoroCaptureUiThread()
 	{
 	private:
 		Priv::QueuedCallbackQueue* m_pCallback{};
-		DWORD m_Tid{};
 	public:
 		UINT Priority{ UINT_MAX };
 		BOOL IsWakeUiThread{ FALSE };
 
-		Context() : m_pCallback{ &GetThreadCtx()->Callback }, m_Tid{ NtCurrentThreadId32() } {}
+		Context() : m_pCallback{ &GetThreadCtx()->Callback } {}
 
 		constexpr bool await_ready() const noexcept { return false; }
 		void await_suspend(std::coroutine_handle<> h) const noexcept
 		{
-			m_pCallback->EnQueueCoroutine(h.address(), Priority);
-			if (IsWakeUiThread)
-			{
-#ifdef _DEBUG
-				const auto b = PostThreadMessageW(m_Tid, WM_NULL, 0, 0);
-				EckDbgPrintFormatMessage(NtCurrentTeb()->LastErrorValue);
-				EckAssert(b && L"PostThreadMessageW failed");
-#else
-				PostThreadMessageW(m_Tid, WM_NULL, 0, 0);
-#endif
-			}
+			m_pCallback->EnQueueCoroutine(h.address(), Priority, IsWakeUiThread);
 		}
 		constexpr void await_resume() const noexcept {}
 

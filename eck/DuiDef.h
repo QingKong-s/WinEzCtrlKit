@@ -42,6 +42,8 @@ enum :UINT
 	LTE_ITEMCLICK,	// 项选中(LTN_ITEM*)
 	// TabList
 	TBLE_GETDISPINFO,// 【渲染线程】获取显示信息
+	// GroupList
+	GLE_GETDISPINFO,// 【渲染线程】获取显示信息
 
 	EE_PRIVATE_BEGIN = 0x0400
 };
@@ -70,8 +72,9 @@ struct DRAGDROPINFO
 // 元素混合信息
 struct COMP_INFO
 {
-	CElem* pElem;
-	const D2D1_RECT_F* prc;
+	CElem* pElem;			// 正操作的元素
+	const D2D1_RECT_F* prc;	// 混合到的矩形，相对pElem
+	ID2D1Bitmap1* pBitmap;	// 已渲染完毕的位图
 };
 
 // 元素混合坐标变换信息

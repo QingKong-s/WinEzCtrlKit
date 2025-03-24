@@ -78,11 +78,11 @@ constexpr inline D2D1_COLOR_F Palette_StdLight[]
 	{ 0.88f,0.92f,0.96f,1.0f },
 	// TrackBar
 	{ 0.8f,0.8f,0.8f,1.0f },
-	{ 0.7f,0.8f,0.9f,1.0f },
+	{ 0,0.44f,0.77f,1.0f },
 	// TrackBarThumb
 	{ 1.f,1.f,1.f,1.0f },
 	{ 0.9f,0.9f,0.9f,1.0f },
-	{ 0.7f,0.8f,1.0f,1.0f },
+	{ 0,0.44f,0.77f,1.0f },
 	// ScrollBar
 	{ 0.8f,0.85f,0.9f,0.5f },
 	// ScrollThumb

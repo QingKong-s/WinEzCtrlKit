@@ -469,7 +469,7 @@ FORCEINLINE BOOL GetIsImmersiveColorUsingHighContrast(IMMERSIVE_HC_CACHE_MODE iC
 }
 #else
 FORCEINLINE constexpr BOOL AllowDarkModeForWindow(HWND, BOOL) { return FALSE; }
-FORCEINLINE void AllowDarkModeForApp_Org(BOOL) {}
+FORCEINLINE constexpr void AllowDarkModeForApp_Org(BOOL) {}
 FORCEINLINE constexpr void AllowDarkModeForApp(BOOL bAllow) {}
 FORCEINLINE constexpr BOOL IsDarkModeAllowedForWindow(HWND) { return FALSE; }
 FORCEINLINE constexpr BOOL ShouldAppsUseDarkMode() { return FALSE; }

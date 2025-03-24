@@ -310,28 +310,20 @@ public:
 		return 0u;
 	}
 
-	[[nodiscard]] CRefStrW GetValueStr(PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = nullptr)
+	LSTATUS GetValueStr(CRefStrW& rs, PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
 		dwFlags |= RRF_RT_REG_SZ;
-		if (plStatus)
-			*plStatus = ERROR_SUCCESS;
-		DWORD cb = 0u;
-		LSTATUS lStatus = GetValue(pszSubKey, pszValue, nullptr, &cb, dwFlags);
-		if (lStatus == ERROR_SUCCESS)
+		DWORD cb{};
+		LSTATUS ls = GetValue(pszSubKey, pszValue, nullptr, &cb, dwFlags);
+		if (ls == ERROR_SUCCESS)
 		{
+			rs.Reserve(cb / sizeof(WCHAR));
+			ls = GetValue(pszSubKey, pszValue, rs.Data(), &cb, dwFlags);
 			if (cb)
-			{
-				CRefStrW rs(cb / sizeof(WCHAR));
-				GetValue(pszSubKey, pszValue, rs.Data(), &cb, dwFlags);
-				return rs;
-			}
-			else
-				return {};
+				rs.ReSize(cb / sizeof(WCHAR) - 1);
 		}
-		if (plStatus)
-			*plStatus = lStatus;
-		return {};
+		return ls;
 	}
 
 	EckInline LSTATUS QueryInfo(PWSTR pszClassBuf = nullptr, DWORD* pcchClassBuf = nullptr, DWORD* pcSubKeys = nullptr,
@@ -401,27 +393,31 @@ public:
 		return 0u;
 	}
 
-	[[nodiscard]] CRefStrW QueryValueStr(PCWSTR pszValue, LSTATUS* plStatus = nullptr)
+	LSTATUS QueryValueStr(CRefStrW& rs, PCWSTR pszValue, DWORD* pdwType = nullptr)
 	{
 		EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
-		if (plStatus)
-			*plStatus = ERROR_SUCCESS;
-		DWORD cb = 0u;
-		LSTATUS lStatus = QueryValue(pszValue, nullptr, &cb);
-		if (lStatus == ERROR_SUCCESS)
+		DWORD cb{}, dwType{};
+		if (!pdwType)
+			pdwType = &dwType;
+		LSTATUS ls = QueryValue(pszValue, nullptr, &cb);
+		if (ls == ERROR_SUCCESS)
 		{
-			if (cb)
+			rs.Reserve(cb / sizeof(WCHAR));
+			ls = QueryValue(pszValue, rs.Data(), &cb, pdwType);
+			const auto cch = int(cb / sizeof(WCHAR));
+			if (cch)
 			{
-				CRefStrW rs(cb / sizeof(WCHAR));
-				QueryValue(pszValue, rs.Data(), &cb);
-				return rs;
+				if (*(rs.Data() + cch - 1) == 0)// 返回数据包含结尾NULL
+					rs.ReSize(cch - 1);
+				else
+				{
+					rs.ReSize(cch);
+					if (*pdwType == REG_MULTI_SZ)
+						rs.PushBackChar(0);
+				}
 			}
-			else
-				return {};
 		}
-		if (plStatus)
-			*plStatus = lStatus;
-		return {};
+		return ls;
 	}
 
 	EckInline LSTATUS RenameKey(PCWSTR pszSubKey, PCWSTR pszNewName)
@@ -477,6 +473,22 @@ public:
 	EckInline LSTATUS SetValue(PCWSTR pszValue, const CRefBin& rs)
 	{
 		return SetValue(pszValue, rs.Data(), (DWORD)rs.Size(), REG_BINARY);
+	}
+
+	EckInline LSTATUS LoadMuiString(PCWSTR pszValue, PWSTR pszBuf,
+		DWORD cbBuf, DWORD* pcbOut, DWORD dwFlags = 0, PCWSTR pszDir = nullptr)
+	{
+		return RegLoadMUIStringW(m_hKey, pszValue, pszBuf, cbBuf, pcbOut, dwFlags, pszDir);
+	}
+
+	EckInline BOOL IsKeyExists(PCWSTR pszSubKey)
+	{
+		return GetValue(pszSubKey, nullptr, nullptr, nullptr) == ERROR_SUCCESS;
+	}
+
+	EckInline BOOL IsValueExists(PCWSTR pszValue)
+	{
+		return QueryValue(pszValue, nullptr, nullptr) == ERROR_SUCCESS;
 	}
 };
 ECK_NAMESPACE_END

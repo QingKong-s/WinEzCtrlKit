@@ -97,27 +97,14 @@ protected:
 	}
 
 	// 合并应更新完整区域的元素矩形
-	constexpr void tcIrpUnionContentExpandElemRect(CElem* pLast, _Inout_ RECT& rcInClient)
-	{
-		while (pLast)
-		{
-			if (const auto dwStyle = pLast->GetStyle(); dwStyle & DES_VISIBLE)
-			{
-				if (dwStyle & DES_CONTENT_EXPAND)
-				{
-					const auto& rcElem = pLast->GetWholeRectInClient();
-					if (IsRectsIntersect(rcInClient, rcElem))
-					{
-						pLast->m_rcInvalid = rcElem;
-						UnionRect(rcInClient, rcInClient, rcElem);
-					}
-				}
-				else
-					tcIrpUnionContentExpandElemRect(pLast->GetLastChildElem(), rcInClient);
-			}
-			pLast = pLast->GetPrevElem();
-		}
-	}
+	//
+	// 照常理来说，若当前需重画的元素为内容扩展，则遍历整颗元素树合并可能存在的内容扩展元素矩形
+	// 若当前需重画的元素非内容扩展，则应向高Z序方向合并可能存在的内容扩展元素矩形，
+	// 此时无需关心低Z序方向的元素 —— 从语义上来说这些元素的内容都未更改，
+	// 因为并未对它们调用InvalidateRect。但存在一个问题，它们的内容实际上可能被更改，
+	// 尤其是在播放动画时。因此维护一个内容扩展元素列表，每次重画都遍历此列表，合
+	// 并可能存在的内容扩展元素矩形，以此保证更新的正确性
+	constexpr void tcIrpUnionContentExpandElemRect(_Inout_ RECT& rcInClient);
 
 	constexpr void tcSrpCorrectChildrenRectInClient() const
 	{
@@ -158,19 +145,7 @@ protected:
 		tcSrpCorrectChildrenRectInClient();
 	}
 
-	constexpr void tcSetStyleWorker(DWORD dwStyle)
-	{
-		if (dwStyle & DES_BLURBKG)
-			dwStyle |= (DES_TRANSPARENT | DES_CONTENT_EXPAND);
-		if (m_pParent && (m_pParent->GetStyle() & DES_COMPOSITED))
-			dwStyle |= DES_COMPOSITED;
-		if (!(m_dwStyle & DES_COMPOSITED) && (dwStyle & DES_COMPOSITED))
-		{
-			if (!(dwStyle & DES_INPLACE_COMP))
-				dwStyle |= DES_CONTENT_EXPAND;
-		}
-		m_dwStyle = dwStyle;
-	}
+	constexpr void tcSetStyleWorker(DWORD dwStyle);
 
 	void utcReCreateDCompVisual();
 
@@ -477,6 +452,8 @@ public:
 	// 置标题【不能在渲染线程调用】
 	EckInline void SetText(PCWSTR pszText, int cchText = -1)
 	{
+		if (cchText < 0)
+			cchText = (int)TcsLen(pszText);
 		ECK_DUILOCK;
 		if (!CallEvent(WM_SETTEXT, cchText, (LPARAM)pszText))
 			m_rsText.DupString(pszText, cchText);
@@ -666,6 +643,7 @@ private:
 	//------元素树------
 	CElem* m_pFirstChild{};	// 第一个子元素
 	CElem* m_pLastChild{};	// 最后一个子元素
+	std::vector<CElem*> m_vContentExpandElem{};	// 内容扩展元素列表
 	int m_cChildren{};		// 子元素数量，UIAccessible使用
 	//------UI系统------
 	PresentMode m_ePresentMode{ PresentMode::FlipSwapChain };	// 呈现模式
@@ -835,6 +813,7 @@ private:
 					pElem->GetRectInClientF().top + oy));
 				ci.prc = &rcF;
 				ci.pElem = pElem;
+				ci.pBitmap = GetCacheBitmap();
 				pElem->CallEvent(EWM_COMPOSITE, (WPARAM)&ci, 0);
 				RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
 			}
@@ -974,7 +953,7 @@ private:
 
 	void RenderThread()
 	{
-		constexpr int c_iMinGap = 16;
+		constexpr int c_iMinGap = 14;
 		CWaitableTimer Timer{};
 		BOOL bActiveTimeLine;
 
@@ -1744,8 +1723,11 @@ public:
 	{
 		ECK_DUILOCKWND;
 		const auto it = std::find(m_vTimeLine.begin(), m_vTimeLine.end(), pTl);
-		(*it)->Release();
-		m_vTimeLine.erase(it);
+		if (it != m_vTimeLine.end())
+		{
+			(*it)->Release();
+			m_vTimeLine.erase(it);
+		}
 	}
 
 	EckInline void Redraw()
@@ -2062,9 +2044,7 @@ inline void CElem::InvalidateRect(const RECT& rc, BOOL bUpdateNow)
 	if (IsRectEmpty(m_rcInvalid))
 		return;
 	RECT rcReal{ m_rcInvalid };
-	tcIrpUnionContentExpandElemRect(
-		(GetStyle() & DES_CONTENT_EXPAND) ? GetWnd()->GetLastChildElem() : this,
-		rcReal);
+	tcIrpUnionContentExpandElemRect(rcReal);
 
 	GetWnd()->IrUnion(rcReal);
 	if (bUpdateNow)
@@ -2090,7 +2070,7 @@ inline void CElem::BeginPaint(_Out_ ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lP
 				(int)Log2PhyF(eps.rcfClip.right - eps.rcfClip.left),
 				(int)Log2PhyF(eps.rcfClip.bottom - eps.rcfClip.top));
 			BlurD2dDC(m_pDC, GetWnd()->GetD2D().GetBitmap(), GetWnd()->GetCacheBitmap(),
-				eps.rcfClip, {}, 10.f);
+				eps.rcfClip, { eps.rcfClipInElem.left, eps.rcfClipInElem.top }, 10.f);
 		}
 		else
 		{
@@ -2172,6 +2152,61 @@ inline void CElem::tcPostMoveSize(BOOL bSize, BOOL bMove, const RECT& rcOld)
 	}
 	RECT rc;
 	UnionRect(rc, rcOld, GetWholeRectInClient());
+	if (!IsRectEmpty(rc))
+	{
+		InvalidateRect(rc);
+		GetWnd()->IrUnion(rc);
+	}
+}
+
+inline constexpr void CElem::tcIrpUnionContentExpandElemRect(_Inout_ RECT& rcInClient)
+{
+	for (const auto e : GetWnd()->m_vContentExpandElem)
+	{
+		const auto& rc = e->GetWholeRectInClient();
+		if (IsRectsIntersect(rcInClient, rc))
+			UnionRect(rcInClient, rcInClient, rc);
+	}
+}
+
+inline constexpr void CElem::tcSetStyleWorker(DWORD dwStyle)
+{
+	if (dwStyle & DES_BLURBKG)
+		dwStyle |= (DES_TRANSPARENT | DES_CONTENT_EXPAND);
+	if (m_pParent && (m_pParent->GetStyle() & DES_COMPOSITED))
+		dwStyle |= DES_COMPOSITED;
+	if (!(m_dwStyle & DES_COMPOSITED) && (dwStyle & DES_COMPOSITED))
+	{
+		if (!(dwStyle & DES_INPLACE_COMP))
+			dwStyle |= DES_CONTENT_EXPAND;
+	}
+	const auto dwOld = m_dwStyle;
+	m_dwStyle = dwStyle;
+	if ((dwOld & DES_CONTENT_EXPAND) && !(m_dwStyle & DES_CONTENT_EXPAND))
+	{
+		auto& v = GetWnd()->m_vContentExpandElem;
+#ifdef _DEBUG
+		BOOL bFound = FALSE;
+#endif
+		for (auto it = v.begin(); it != v.end(); ++it)
+		{
+			if (*it == this)
+			{
+#ifdef _DEBUG
+				bFound = TRUE;
+#endif
+				v.erase(it);
+				break;
+			}
+		}
+		EckAssert(bFound);
+	}
+	else if (!(dwOld & DES_CONTENT_EXPAND) && (m_dwStyle & DES_CONTENT_EXPAND))
+	{
+		auto& v = GetWnd()->m_vContentExpandElem;
+		EckAssert(std::find(v.begin(), v.end(), this) == v.end());
+		v.emplace_back(this);
+	}
 }
 
 EckInline CElem* CElem::SetCapture() { return GetWnd()->ElemSetCapture(this); }

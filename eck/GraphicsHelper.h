@@ -1167,7 +1167,14 @@ inline HRESULT BlurD2dDC(ID2D1DeviceContext* pDC, ID2D1Bitmap* pBmp, ID2D1Bitmap
 
 	const auto iBlend = pDC->GetPrimitiveBlend();
 	pDC->SetPrimitiveBlend(D2D1_PRIMITIVE_BLEND_COPY);
+	const static D2D1_LAYER_PARAMETERS1 LyParam
+	{ 
+		.contentBounds = D2D1::InfiniteRect(),
+		.opacity = 1.f,
+	};
+	pDC->PushLayer(LyParam, nullptr);
 	pDC->DrawImage(pFxBlur, ptDrawing);
+	pDC->PopLayer();
 	pDC->SetPrimitiveBlend(iBlend);
 
 	pFxBlur->Release();

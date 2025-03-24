@@ -97,25 +97,20 @@ inline NTSTATUS GetProcessPath(HANDLE hProcess, CRefStrW& rsPath, BOOL bDosPath 
 	return nts;
 }
 
-namespace Priv
+struct MODULE_INFO
 {
-	struct MODULE_INFO_BASE
-	{
-		CRefStrW rsModuleName{};
-		CRefStrW rsModulePath{};
-		BITBOOL b64Bit : 1{};
-	};
-}
-
-struct MODULE_INFO : Priv::MODULE_INFO_BASE
-{
+	CRefStrW rsModuleName{};
+	CRefStrW rsModulePath{};
+#ifdef _WIN64
 	void* BaseAddress{};
+#else
+	union
+	{
+		void* BaseAddress;
+		ULONG64 BaseAddress64{};
+	};
+#endif// !defined(_WIN64)
 	SIZE_T cbImage{};
-};
-struct MODULE_INFO96 : Priv::MODULE_INFO_BASE
-{
-	ULONG64 BaseAddress{};
-	ULONG64 cbImage{};
 };
 
 /// <summary>
@@ -183,7 +178,7 @@ inline NTSTATUS EnumProcessModules(HANDLE hProcess, std::vector<MODULE_INFO>& vR
 
 /// <summary>
 /// 枚举64位进程模块。
-/// 仅当前进程为32位时有效，否则返回STATUS_NOT_SUPPORTED
+/// 若当前进程不为32位则返回STATUS_NOT_SUPPORTED
 /// </summary>
 /// <param name="hProcess">进程句柄，必须具有PROCESS_QUERY_INFORMATION | PROCESS_VM_READ权限</param>
 /// <param name="vResult">枚举结果，不会清空该容器</param>
@@ -236,7 +231,7 @@ inline NTSTATUS EnumProcessModules64On32(HANDLE hProcess, std::vector<MODULE_INF
 					e.rsModulePath.Data(), cch * sizeof(WCHAR), nullptr)))
 					return nts;
 			}
-			e.BaseAddress = (void*)Entry.DllBase;
+			e.BaseAddress64 = Entry.DllBase;
 			e.cbImage = Entry.SizeOfImage;
 		}
 		p = (ULONG64)Entry.InLoadOrderLinks.Flink;
@@ -247,11 +242,9 @@ inline NTSTATUS EnumProcessModules64On32(HANDLE hProcess, std::vector<MODULE_INF
 #endif// !defined(_WIN64)
 }
 
-// FIXME: 指针长度过短
-
 /// <summary>
 /// 枚举32位进程模块。
-/// 仅当前进程为64位时有效，否则返回STATUS_NOT_SUPPORTED
+/// 若当前进程不为64位则返回STATUS_NOT_SUPPORTED
 /// </summary>
 /// <param name="hProcess">进程句柄，必须具有PROCESS_QUERY_INFORMATION | PROCESS_VM_READ权限</param>
 /// <param name="vResult">枚举结果，不会清空该容器</param>
@@ -496,7 +489,8 @@ inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess, BOOL bEnable,
 		.Buffer = PWCH(pszPrivilege),
 	};
 	TOKEN_PRIVILEGES tp;
-	if (!NT_SUCCESS(nts = LsaLookupPrivilegeValue(hToken, &usPrivilege, &tp.Privileges[0].Luid)))
+	if (!NT_SUCCESS(nts = LsaLookupPrivilegeValue(hToken,
+		&usPrivilege, &tp.Privileges[0].Luid)))
 	{
 		NtClose(hToken);
 		return nts;

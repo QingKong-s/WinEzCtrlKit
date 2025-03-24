@@ -83,18 +83,22 @@ inline HANDLE NaOpenFile(UNICODE_STRING* pusFile, DWORD dwAccess, DWORD dwShareM
 inline HANDLE NaOpenFile(PCWSTR pszFile, DWORD dwAccess,
 	DWORD dwShareMode, DWORD dwOptions = 0u,
 	NTSTATUS* pnts = nullptr, IO_STATUS_BLOCK* piost = nullptr,
-	BOOL bInheritHandle = FALSE)
+	BOOL bInheritHandle = FALSE, HANDLE hRootDirectory = nullptr)
 {
 	UNICODE_STRING usFile;
-	if (!RtlDosPathNameToNtPathName_U(pszFile, &usFile, nullptr, nullptr))
-	{
-		if (pnts)
-			*pnts = STATUS_OBJECT_PATH_NOT_FOUND;
-		return INVALID_HANDLE_VALUE;
-	}
+	if (hRootDirectory)
+		RtlInitUnicodeString(&usFile, pszFile);
+	else
+		if (!RtlDosPathNameToNtPathName_U(pszFile, &usFile, nullptr, nullptr))
+		{
+			if (pnts)
+				*pnts = STATUS_OBJECT_PATH_NOT_FOUND;
+			return INVALID_HANDLE_VALUE;
+		}
 	const auto hFile = NaOpenFile(&usFile, dwAccess, dwShareMode, dwOptions,
-		pnts, piost, bInheritHandle);
-	RtlFreeHeap(RtlProcessHeap(), 0, usFile.Buffer);
+		pnts, piost, bInheritHandle, hRootDirectory);
+	if (!hRootDirectory)
+		RtlFreeHeap(RtlProcessHeap(), 0, usFile.Buffer);
 	return hFile;
 }
 
