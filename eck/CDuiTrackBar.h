@@ -38,7 +38,7 @@ private:
 	{
 		rc = GetViewRectF();
 		const float cxyTrack = GetCxyTrack();
-		const float fRadius = m_cxyTrack * 3.f / 4.f;
+		const float fRadius = GetTrackSpacing();
 		if (m_bVertical)
 		{
 			rc.left += (rc.right - rc.left - cxyTrack) / 2.f;
@@ -314,6 +314,11 @@ public:
 			const float fScale = (pt.x - rcTrack.left) / (rcTrack.right - rcTrack.left);
 			return m_fMin + (m_fMax - m_fMin) * fScale;
 		}
+	}
+
+	float GetTrackSpacing() const noexcept
+	{
+		return m_cxyTrack * 3.f / 4.f;
 	}
 };
 ECK_DUI_NAMESPACE_END

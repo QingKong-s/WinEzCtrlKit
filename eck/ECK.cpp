@@ -1854,6 +1854,13 @@ void ThreadInit()
 			return CallNextHookEx(p->hhkCbtDarkMode, iCode, wParam, lParam);
 		}, nullptr, NtCurrentThreadId32());
 #endif // ECK_OPT_NO_DARKMODE
+
+	p->hhkMsgFilter = SetWindowsHookExW(WH_MSGFILTER, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
+		{
+			const auto pCtx = GetThreadCtx();
+			pCtx->DoCallback();
+			return CallNextHookEx(pCtx->hhkMsgFilter, iCode, wParam, lParam);
+		}, nullptr, NtCurrentThreadId32());
 }
 
 void ThreadUnInit()
@@ -1869,6 +1876,7 @@ void ThreadUnInit()
 #endif // _DEBUG
 	UnhookWindowsHookEx(p->hhkTempCBT);
 	UnhookWindowsHookEx(p->hhkCbtDarkMode);
+	UnhookWindowsHookEx(p->hhkMsgFilter);
 	delete p;
 	TlsSetValue(GetThreadCtxTlsSlot(), nullptr);
 }
@@ -1933,6 +1941,29 @@ void THREADCTX::SendThemeChangedToAllTopWindow()
 	}
 #endif // !ECK_OPT_NO_DARKMODE
 }
+
+void THREADCTX::DoCallback()
+{
+	if (bEnterCallback)
+		return;
+	RtlAcquireSRWLockExclusive(&Callback.Lk);
+	EckLoop()
+	{
+		if (Callback.q.empty())
+			break;
+		const auto Top{ std::move(Callback.q.front()) };
+		Callback.UnlockedDeQueue();
+		RtlReleaseSRWLockExclusive(&Callback.Lk);
+		bEnterCallback = TRUE;
+		if (Top.Callback.index() == 0)
+			std::get<0>(Top.Callback)();
+		else
+			std::coroutine_handle<>::from_address(std::get<1>(Top.Callback)).resume();
+		bEnterCallback = FALSE;
+		RtlAcquireSRWLockExclusive(&Callback.Lk);
+	}
+	RtlReleaseSRWLockExclusive(&Callback.Lk);
+}
 #pragma endregion Thread
 
 #pragma region Wnd
@@ -1983,25 +2014,7 @@ BOOL PreTranslateMessage(const MSG& Msg)
 	HWND hWnd = Msg.hwnd;
 	CWnd* pWnd;
 	const auto pCtx = GetThreadCtx();
-
-	if (!pCtx->bEnterCallback)
-	{
-		RtlAcquireSRWLockExclusive(&pCtx->Callback.Lk);
-		while (!pCtx->Callback.q.empty())
-		{
-			const auto Top{ pCtx->Callback.q.top() };
-			pCtx->Callback.q.pop();
-			RtlReleaseSRWLockExclusive(&pCtx->Callback.Lk);
-			pCtx->bEnterCallback = TRUE;
-			if (Top.Callback.index() == 0)
-				std::get<0>(Top.Callback)();
-			else
-				std::coroutine_handle<>::from_address(std::get<1>(Top.Callback)).resume();
-			pCtx->bEnterCallback = FALSE;
-			RtlAcquireSRWLockExclusive(&pCtx->Callback.Lk);
-		}
-		RtlReleaseSRWLockExclusive(&pCtx->Callback.Lk);
-	}
+	pCtx->DoCallback();
 
 	while (hWnd)
 	{

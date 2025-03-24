@@ -561,6 +561,15 @@
     <ClInclude Include="eck\CColorReducing.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\CShellMenuInfo.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CEnumFile2.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CDuiGroupList.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">

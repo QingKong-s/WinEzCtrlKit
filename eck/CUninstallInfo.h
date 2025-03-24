@@ -114,7 +114,7 @@ namespace Priv
 		L"/ModifyPath",
 	};
 
-	const static struct
+	const inline struct
 	{
 		HKEY hRoot;
 		PCWSTR pszSubKey;

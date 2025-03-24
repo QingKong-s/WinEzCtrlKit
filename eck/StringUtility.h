@@ -381,9 +381,9 @@ _Post_equal_to_(Dst) EckInlineNd TPtr TcsMoveLen(_Out_writes_(Len) TPtr Dst,
 	_In_z_ ConstStdCharPtr_T<TPtr> Src, size_t Len)
 {
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
-		return memmove(Dst, Src, Len);
+		return (TPtr)memmove(Dst, Src, Len);
 	else
-		return wmemmove(Dst, Src, Len);
+		return (TPtr)wmemmove(Dst, Src, Len);
 }
 template<ccpIsNonConstStdCharPtr TPtr>
 _Post_equal_to_(Dst) EckInlineNd TPtr TcsMoveLenEnd(_Out_writes_(Len) TPtr Dst,
@@ -487,12 +487,13 @@ EckInlineNd int TcsCompareLen2I(_In_reads_(Len1) TPtr Str1, size_t Len1,
 }
 
 template<ccpIsNonConstStdCharPtr TPtr>
-EckInlineNd int TcsSet(_Out_writes_z_(cchDst) TPtr Dst, RemoveStdCharPtr_T<TPtr> ch, size_t cchDst)
+EckInlineNd TPtr TcsSet(_Out_writes_z_(cchDst) TPtr Dst,
+	RemoveStdCharPtr_T<TPtr> ch, size_t cchDst)
 {
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
-		return memset(Dst, ch, cchDst);
+		return (TPtr)memset(Dst, ch, cchDst);
 	else
-		return wmemset(Dst, ch, cchDst);
+		return (TPtr)wmemset(Dst, ch, cchDst);
 }
 
 

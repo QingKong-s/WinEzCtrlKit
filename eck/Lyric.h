@@ -2,6 +2,7 @@
 #include "CRefStr.h"
 #include "CFile.h"
 #include "AutoPtrDef.h"
+#include "NativeWrapper.h"
 
 ECK_NAMESPACE_BEGIN
 struct LRCTIMELABEL
@@ -9,10 +10,6 @@ struct LRCTIMELABEL
 	PCWSTR pszLabel;
 	int pos1;
 	int pos2;
-
-	LRCTIMELABEL(PCWSTR pszLabel, int pos1, int pos2) :
-		pszLabel(pszLabel), pos1(pos1), pos2(pos2) {
-	}
 };
 
 enum class LrcEncoding

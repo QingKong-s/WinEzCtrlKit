@@ -749,6 +749,21 @@ enum class EolType :BYTE
 	CR,
 	LF,
 };
+
+enum class RegRoot :BYTE
+{
+	ClassesRoot,
+	CurrentUser,
+	LocalMachine,
+	Users,
+	PerformanceData,
+	CurrentConfig,
+	DynData,
+	CurrentUserLocalSettings,
+	PerformanceText = 0x50,
+	PerformanceNlsText = 0x60,
+};
+EckInline HKEY RegRootToKey(RegRoot e) { return HKEY(ULONG_PTR((ULONG)e | 0x80000000ul)); }
 #pragma endregion Enum
 
 #pragma region Global
@@ -849,7 +864,7 @@ namespace Priv
 	struct QueuedCallbackQueue
 	{
 		DWORD dwTid{};
-		std::priority_queue<QueuedCallback> q{};
+		std::vector<QueuedCallback> q{};
 		RTL_SRWLOCK Lk{};
 
 		QueuedCallbackQueue()
@@ -862,20 +877,32 @@ namespace Priv
 		void EnQueueCallback(F&& fnCallback, UINT nPriority = UINT_MAX, BOOL bWakeUiThread = TRUE)
 		{
 			RtlAcquireSRWLockExclusive(&Lk);
-			q.push({ nPriority,std::function<void()>(std::forward<F>(fnCallback)) });
+			q.emplace_back(nPriority,
+				std::function<void()>{ std::forward<F>(fnCallback) });
+			std::push_heap(q.begin(), q.end());
 			RtlReleaseSRWLockExclusive(&Lk);
 			if (bWakeUiThread)
-				PostThreadMessage(dwTid, WM_NULL, 0, 0);
+				PostThreadMessageW(dwTid, WM_NULL, 0, 0);
 		}
 
 		void EnQueueCoroutine(void* pCoroutine, UINT nPriority = UINT_MAX, BOOL bWakeUiThread = TRUE)
 		{
 			EckAssert(pCoroutine);
 			RtlAcquireSRWLockExclusive(&Lk);
-			q.push({ nPriority,pCoroutine });
+			q.emplace_back(nPriority, pCoroutine);
+			std::push_heap(q.begin(), q.end());
 			RtlReleaseSRWLockExclusive(&Lk);
 			if (bWakeUiThread)
-				PostThreadMessage(dwTid, WM_NULL, 0, 0);
+				PostThreadMessageW(dwTid, WM_NULL, 0, 0);
+		}
+
+		void UnlockedDeQueue()
+		{
+			if (!q.empty())
+			{
+				std::pop_heap(q.begin(), q.end());
+				q.pop_back();
+			}
 		}
 	};
 }
@@ -905,6 +932,7 @@ struct THREADCTX
 	BOOLEAN bAutoNcDark{ TRUE };// 自动调整非客户区暗色
 	BOOLEAN bEnterCallback{};	// 当前是否在回调中
 	//-------回调队列
+	HHOOK hhkMsgFilter{};
 	Priv::QueuedCallbackQueue Callback{};
 
 	EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
@@ -961,6 +989,8 @@ struct THREADCTX
 	void UpdateDefColor();
 
 	void SendThemeChangedToAllTopWindow();
+
+	void DoCallback();
 };
 
 // 取线程上下文TLS槽
