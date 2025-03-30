@@ -44,6 +44,9 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
+constexpr inline auto DrawTextLayoutFlags = 
+D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT | D2D1_DRAW_TEXT_OPTIONS_NO_SNAP;
+
 class CElem :public ILayout
 {
 	friend class CDuiWnd;
@@ -682,6 +685,8 @@ private:
 
 	std::vector<CThemeRealization*> m_vTheme{};		// 主题列表
 
+	ID2D1Effect* m_pFxBlur{};		// 缓存模糊效果
+	ID2D1Effect* m_pFxCrop{};		// 缓存裁剪效果
 	//------其他------
 	int m_cxClient = 0;		// 客户区宽度
 	int m_cyClient = 0;		// 客户区高度
@@ -691,7 +696,10 @@ private:
 	BITBOOL m_bRenderThreadShouldExit : 1 = FALSE;	// 渲染线程应当退出
 	BITBOOL m_bSizeChanged : 1 = FALSE;				// 渲染线程应当重设图面大小
 	BITBOOL m_bUserDpiChanged : 1 = FALSE;			// 渲染线程应当重设DPI
-	BITBOOL m_bFullUpdate : 1 = TRUE;
+	BITBOOL m_bFullUpdate : 1 = TRUE;				// 当前是否需要完全重绘
+	BITBOOL m_bBlurUseLayer : 1 = FALSE;			// 模糊是否使用图层
+
+	float m_fBlurDeviation = 15.f;			// 高斯模糊标准差
 
 	D2D1_ALPHA_MODE m_eAlphaMode{ D2D1_ALPHA_MODE_IGNORE };		// 缓存D2D透明模式
 	DXGI_ALPHA_MODE m_eDxgiAlphaMode{ DXGI_ALPHA_MODE_IGNORE };	// 缓存DXGI透明模式
@@ -886,7 +894,6 @@ private:
 			ptOffset.x -= rcPhy.left;
 			ptOffset.y -= rcPhy.top;
 			const D2D1_POINT_2F ptLogOffsetF{ Phy2LogF((float)ptOffset.x), Phy2LogF((float)ptOffset.y) };
-
 			const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
 			{
 				{ DXGI_FORMAT_B8G8R8A8_UNORM,m_eAlphaMode },
@@ -1064,7 +1071,7 @@ private:
 						break;
 					case PresentMode::FlipSwapChain:
 					{
-						DXGI_PRESENT_PARAMETERS pp
+						const DXGI_PRESENT_PARAMETERS pp
 						{
 							.DirtyRectsCount = 1,
 							.pDirtyRects = &rc,
@@ -1449,8 +1456,7 @@ public:
 			m_bRenderThreadShouldExit = TRUE;
 			WakeRenderThread();
 			m_cs.Leave();
-			WaitObject(m_hthRender);// 等待渲染线程退出
-			NtClose(m_hthRender);
+			WaitObject(CWaitableObject{ m_hthRender });// 等待渲染线程退出
 			m_hthRender = nullptr;
 			// 销毁所有元素
 			auto pElem = m_pFirstChild;
@@ -1788,6 +1794,11 @@ public:
 		}
 	}
 
+	void CacheReserveLogSize(float cx, float cy)
+	{
+		CacheReserve((int)ceilf(Log2PhyF(cx)), (int)ceilf(Log2PhyF(cy)));
+	}
+
 	void CacheClear()
 	{
 		if (m_pBmpCache)
@@ -1806,6 +1817,131 @@ public:
 			BroadcastEvent(WM_DPICHANGED, iDpi, 0);
 			WakeRenderThread();
 		}
+	}
+
+	void BlurInit()
+	{
+		ECK_DUILOCKWND;
+		if (!m_pFxBlur)
+		{
+			m_D2d.GetDC()->CreateEffect(CLSID_D2D1GaussianBlur, &m_pFxBlur);
+			m_pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_BORDER_MODE,
+				D2D1_BORDER_MODE_HARD);
+		}
+		if (!m_pFxCrop)
+		{
+			m_D2d.GetDC()->CreateEffect(CLSID_D2D1Crop, &m_pFxCrop);
+		}
+	}
+private:
+	HRESULT BlurpDrawEffect(ID2D1Effect* pFx,
+		D2D1_POINT_2F ptDrawing, BOOL bUseLayer)
+	{
+		const auto pDC = GetD2D().GetDC();
+		const auto iBlend = pDC->GetPrimitiveBlend();
+		pDC->SetPrimitiveBlend(D2D1_PRIMITIVE_BLEND_COPY);
+		const static D2D1_LAYER_PARAMETERS1 LyParam
+		{
+			.contentBounds = D2D1::InfiniteRect(),
+			.opacity = 1.f,
+		};
+		if (bUseLayer)
+			pDC->PushLayer(LyParam, nullptr);
+		pDC->DrawImage(m_pFxBlur, ptDrawing);
+		if (bUseLayer)
+			pDC->PopLayer();
+		pDC->SetPrimitiveBlend(iBlend);
+		return S_OK;
+	}
+public:
+	/// <summary>
+	/// 模糊当前设备上下文的内容，并画出。
+	/// 调用方负责初始化效果与位图缓存，还负责刷新DC上任何挂起的操作
+	/// </summary>
+	/// <param name="rc">范围</param>
+	/// <param name="ptDrawing">效果画出点</param>
+	/// <param name="fDeviation">标准差</param>
+	/// <param name="bUseLayer">是否使用图层</param>
+	/// <returns>HRESULT</returns>
+	HRESULT BlurDrawDC(const D2D1_RECT_F& rc,
+		D2D1_POINT_2F ptDrawing, float fDeviation, BOOL bUseLayer = FALSE)
+	{
+		const auto pBmp = GetD2D().GetBitmap();
+		HRESULT hr;
+		float xDpi, yDpi;
+		pBmp->GetDpi(&xDpi, &yDpi);
+
+		const D2D1_RECT_U rcU
+		{
+			(UINT32)floorf(rc.left * xDpi / 96.f),
+			(UINT32)floorf(rc.top * yDpi / 96.f),
+			(UINT32)ceilf(rc.right * xDpi / 96.f),
+			(UINT32)ceilf(rc.bottom * yDpi / 96.f)
+		};
+		if (FAILED(hr = GetCacheBitmap()->CopyFromBitmap(nullptr, pBmp, &rcU)))
+			return hr;
+
+		m_pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, fDeviation);
+		m_pFxCrop->SetValue(D2D1_CROP_PROP_RECT,
+			D2D1::RectF(0.f, 0.f, rc.right - rc.left, rc.bottom - rc.top));
+
+		m_pFxCrop->SetInput(0, GetCacheBitmap());
+		m_pFxBlur->SetInputEffect(0, m_pFxCrop);
+		return BlurpDrawEffect(m_pFxBlur, ptDrawing, bUseLayer);
+	}
+
+	/// <summary>
+	/// 模糊指定位图的内容，并画出。
+	/// </summary>
+	/// <param name="pBmp">输入位图，必须可作输入，即不能是“不能画”的</param>
+	/// <param name="rc">范围</param>
+	/// <param name="ptDrawing">画出点</param>
+	/// <param name="fDeviation">标准差</param>
+	/// <param name="bUseLayer">是否使用图层</param>
+	/// <returns>HRESULT</returns>
+	HRESULT BlurDrawDirect(ID2D1Bitmap1* pBmp, const D2D1_RECT_F& rc,
+		D2D1_POINT_2F ptDrawing, float fDeviation, BOOL bUseLayer = FALSE)
+	{
+		m_pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, fDeviation);
+		m_pFxCrop->SetValue(D2D1_CROP_PROP_RECT,
+			D2D1::RectF(0.f, 0.f, rc.right - rc.left, rc.bottom - rc.top));
+
+		m_pFxCrop->SetInput(0, pBmp);
+		m_pFxBlur->SetInputEffect(0, m_pFxCrop);
+		return BlurpDrawEffect(m_pFxBlur, ptDrawing, bUseLayer);
+	}
+
+	// 模糊指定位图的内容，并画出。
+	// 忽略裁剪效果
+	HRESULT BlurDrawDirect(ID2D1Bitmap1* pBmp,
+		D2D1_POINT_2F ptDrawing, float fDeviation, BOOL bUseLayer = FALSE)
+	{
+		m_pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, fDeviation);
+		m_pFxBlur->SetInput(0, pBmp);
+		return BlurpDrawEffect(m_pFxBlur, ptDrawing, bUseLayer);
+	}
+
+	EckInlineCe void BlurSetUseLayer(BOOL bUseLayer) noexcept { m_bBlurUseLayer = bUseLayer; }
+	EckInlineNdCe BOOL BlurGetUseLayer() const noexcept { return m_bBlurUseLayer; }
+	EckInlineCe void BlurSetDeviation(float fDeviation) noexcept { m_fBlurDeviation = fDeviation; }
+	EckInlineNdCe float BlurGetDeviation() const noexcept { return m_fBlurDeviation; }
+
+	HRESULT BmpNew(int cxPhy, int cyPhy, ID2D1Bitmap1*& pBmp)
+	{
+		const D2D1_BITMAP_PROPERTIES1 Prop
+		{
+			{ DXGI_FORMAT_B8G8R8A8_UNORM,D2D1_ALPHA_MODE_PREMULTIPLIED },
+			(float)m_iUserDpi,
+			(float)m_iUserDpi,
+			D2D1_BITMAP_OPTIONS_TARGET
+		};
+		return m_D2d.GetDC()->CreateBitmap(D2D1::SizeU(cxPhy, cyPhy),
+			nullptr, 0, Prop, &pBmp);
+	}
+
+	HRESULT BmpNewLogSize(float cx, float cy, ID2D1Bitmap1*& pBmp)
+	{
+		return BmpNew((int)ceilf(Log2PhyF(cx)), (int)ceilf(Log2PhyF(cy)), pBmp);
 	}
 };
 
@@ -2024,10 +2160,14 @@ inline void CElem::SetZOrder(CElem* pElemAfter)
 
 EckInline LRESULT CElem::GenElemNotify(void* pnm)
 {
-	if (!GenElemNotifyParent(pnm))
-		return GetWnd()->OnElemEvent(this, ((DUINMHDR*)pnm)->uCode, 0, (LPARAM)pnm);
+	BOOL bProcessed{};
+	const auto lResult = OnNotify((DUINMHDR*)pnm, bProcessed);
+	if (bProcessed)
+		return lResult;
+	if (GetParentElem())
+		return GetParentElem()->CallEvent(WM_NOTIFY, (WPARAM)this, (LPARAM)pnm);
 	else
-		return 0;
+		return GetWnd()->OnElemEvent(this, ((DUINMHDR*)pnm)->uCode, 0, (LPARAM)pnm);
 }
 
 inline void CElem::InvalidateRect(const RECT& rc, BOOL bUpdateNow)
@@ -2066,13 +2206,15 @@ inline void CElem::BeginPaint(_Out_ ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lP
 		{
 			m_pDC->Flush();
 			m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
-			GetWnd()->CacheReserve(
-				(int)Log2PhyF(eps.rcfClip.right - eps.rcfClip.left),
-				(int)Log2PhyF(eps.rcfClip.bottom - eps.rcfClip.top));
-			BlurD2dDC(m_pDC, GetWnd()->GetD2D().GetBitmap(), GetWnd()->GetCacheBitmap(),
-				eps.rcfClip, { eps.rcfClipInElem.left, eps.rcfClipInElem.top }, 10.f);
+			GetWnd()->CacheReserveLogSize(
+				eps.rcfClip.right - eps.rcfClip.left,
+				eps.rcfClip.bottom - eps.rcfClip.top);
+			GetWnd()->BlurDrawDC(eps.rcfClip,
+				{ eps.rcfClipInElem.left, eps.rcfClipInElem.top },
+				GetWnd()->BlurGetDeviation(),
+				GetWnd()->BlurGetUseLayer());
 		}
-		else
+		else [[likely]]
 		{
 			m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
 			CallEvent(WM_ERASEBKGND, 0, (LPARAM)&eps);

@@ -115,7 +115,7 @@ public:
 				GetTheme()->GetSysColor(SysColor::Text, cr);
 				m_pBrush->SetColor(cr);
 				m_pDC->DrawTextLayout({ Padding + CalcImageWidth(),Padding },
-					m_pLayout, m_pBrush);
+					m_pLayout, m_pBrush, DrawTextLayoutFlags);
 			}
 
 			EndPaint(ps);

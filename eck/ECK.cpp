@@ -7,6 +7,7 @@
 // For Private API
 
 FSetWindowCompositionAttribute	pfnSetWindowCompositionAttribute{};
+FGetWindowCompositionAttribute pfnGetWindowCompositionAttribute{};
 
 #if !ECK_OPT_NO_DARKMODE
 FAllowDarkModeForWindow			pfnAllowDarkModeForWindow{};
@@ -38,6 +39,8 @@ void InitPrivateApi()
 	EckAssert(hModUser32);
 	pfnSetWindowCompositionAttribute = (FSetWindowCompositionAttribute)
 		GetProcAddress(hModUser32, "SetWindowCompositionAttribute");
+	pfnGetWindowCompositionAttribute = (FGetWindowCompositionAttribute)
+		GetProcAddress(hModUser32, "GetWindowCompositionAttribute");
 	FreeLibrary(hModUser32);
 
 	const auto hModUx = LoadLibraryW(L"UxTheme.dll");
@@ -1630,6 +1633,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 #ifdef _DEBUG
 		D2D1_FACTORY_OPTIONS D2DFactoryOptions;
 		D2DFactoryOptions.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
+		D2DFactoryOptions.debugLevel = D2D1_DEBUG_LEVEL_WARNING;
 		hr = D2D1CreateFactory(pInitParam->uD2dFactoryType,
 			__uuidof(ID2D1Factory1), &D2DFactoryOptions, (void**)&g_pD2dFactory);
 #else

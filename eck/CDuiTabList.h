@@ -97,7 +97,8 @@ protected:
 					D2D1_COLOR_F cr;
 					GetTheme()->GetSysColor(SysColor::Text, cr);
 					m_pBrush->SetColor(cr);
-					m_pDC->DrawTextLayout({ x,rcItem.top }, *di.ppTextLayout, m_pBrush);
+					m_pDC->DrawTextLayout({ x,rcItem.top }, *di.ppTextLayout,
+						m_pBrush, DrawTextLayoutFlags);
 				}
 			}
 		}

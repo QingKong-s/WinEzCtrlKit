@@ -327,10 +327,10 @@ public:
 				D2D1_RECT_F rcItem;
 				GetItemRect(rcItem, idxTop);
 
-				for (int i = idxTop; i <= idxBottom; ++i)
+				for (DWORD i = idxTop; i <= idxBottom; ++i)
 				{
 					DrawItem(i, rcItem, eps.rcfClipInElem);
-					eck::OffsetRect(rcItem, 0, m_cyItem);
+					eck::OffsetRect(rcItem, 0.f, (float)m_cyItem);
 				}
 			}
 			EndPaint(eps);
@@ -585,13 +585,13 @@ public:
 				}
 
 				if (Group.Item.size() < c_iMinLinePerGroup)
-					y += ((c_iMinLinePerGroup - Group.Item.size()) * m_cyItem);
+					y += ((c_iMinLinePerGroup - (int)Group.Item.size()) * m_cyItem);
 			}
 			m_psv->SetMax(y);
 		}
 		else
 		{
-			m_psv->SetMax(m_Item.size() * m_cyItem);
+			m_psv->SetMax((int)m_Item.size() * m_cyItem);
 		}
 	}
 
