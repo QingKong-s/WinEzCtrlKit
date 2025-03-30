@@ -13,8 +13,8 @@ private:
 	IDWriteTextLayout* m_pLayout{};
 	ID2D1SolidColorBrush* m_pBrush{};
 
-	D2D1_COLOR_F m_crText = D2D1::ColorF(0);
-	D2D1_COLOR_F m_crBk = D2D1::ColorF(0xFFFFFF);
+	D2D1_COLOR_F m_crText{};
+	D2D1_COLOR_F m_crBk{};
 
 	ID2D1Bitmap* m_pBmp{};
 
@@ -83,7 +83,7 @@ public:
 				else
 					m_pBrush->SetColor(m_crText);
 				m_pDC->DrawTextLayout({ x }, m_pLayout, m_pBrush,
-					D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
+					DrawTextLayoutFlags);
 			}
 
 			ECK_DUI_DBG_DRAW_FRAME;
@@ -145,25 +145,31 @@ public:
 		UpdateTextLayout();
 	}
 
-	EckInline constexpr auto GetBitmap() const { return m_pBmp; }
+	EckInlineCe auto GetBitmap() const { return m_pBmp; }
 
-	EckInline constexpr void SetUseThemeColor(BOOL b) { m_bUseThemeColor = b; }
-	EckInline constexpr BOOL GetUseThemeColor() const { return m_bUseThemeColor; }
+	EckInlineCe void SetUseThemeColor(BOOL b) { m_bUseThemeColor = b; }
+	EckInlineCe BOOL GetUseThemeColor() const { return m_bUseThemeColor; }
 
-	EckInline constexpr void SetTransparent(BOOL b) { m_bTransparent = b; }
-	EckInline constexpr BOOL GetTransparent() const { return m_bTransparent; }
+	EckInlineCe void SetTransparent(BOOL b) { m_bTransparent = b; }
+	EckInlineCe BOOL GetTransparent() const { return m_bTransparent; }
 
-	EckInline constexpr void SetOnlyBitmap(BOOL b) { m_bOnlyBitmap = b; }
-	EckInline constexpr BOOL GetOnlyBitmap() const { return m_bOnlyBitmap; }
+	EckInlineCe void SetOnlyBitmap(BOOL b) { m_bOnlyBitmap = b; }
+	EckInlineCe BOOL GetOnlyBitmap() const { return m_bOnlyBitmap; }
 
-	EckInline constexpr void SetFullElem(BOOL b) { m_bFullElem = b; }
-	EckInline constexpr BOOL GetFullElem() const { return m_bFullElem; }
+	EckInlineCe void SetFullElem(BOOL b) { m_bFullElem = b; }
+	EckInlineCe BOOL GetFullElem() const { return m_bFullElem; }
 
-	EckInline constexpr void SetBkImgMode(BkImgMode e) { m_eBkImgMode = e; }
-	EckInline constexpr BkImgMode GetBkImgMode() const { return m_eBkImgMode; }
+	EckInlineCe void SetBkImgMode(BkImgMode e) { m_eBkImgMode = e; }
+	EckInlineCe BkImgMode GetBkImgMode() const { return m_eBkImgMode; }
 
-	EckInline constexpr void SetInterMode(D2D1_INTERPOLATION_MODE e) { m_eInterMode = e; }
-	EckInline constexpr D2D1_INTERPOLATION_MODE GetInterMode() const { return (D2D1_INTERPOLATION_MODE)m_eInterMode; }
+	EckInlineCe void SetInterMode(D2D1_INTERPOLATION_MODE e) { m_eInterMode = e; }
+	EckInlineCe D2D1_INTERPOLATION_MODE GetInterMode() const { return (D2D1_INTERPOLATION_MODE)m_eInterMode; }
+
+	EckInlineCe void SetTextColor(D2D1_COLOR_F cr) { m_crText = cr; }
+	EckInlineCe D2D1_COLOR_F GetTextColor() const { return m_crText; }
+
+	EckInlineCe void SetBkColor(D2D1_COLOR_F cr) { m_crBk = cr; }
+	EckInlineCe D2D1_COLOR_F GetBkColor() const { return m_crBk; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

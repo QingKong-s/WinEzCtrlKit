@@ -115,7 +115,6 @@ public:
 			nts = NtQueryDirectoryFile(m_hDir, nullptr, nullptr, nullptr, &iosb,
 				m_pBuf.get(), (ULONG)m_cbBuf, eCls, FALSE, nullptr, FALSE);
 #endif
-			STATUS_INVALID_HANDLE;
 			if (!NT_SUCCESS(nts))
 				return nts;
 			m_pCurrItem = m_pBuf.get();

@@ -604,8 +604,8 @@ private:
 	FCallBack m_pfnCallBack{};
 	Easing::FAn m_pfnAn{ Easing::Linear };
 
-	BITBOOL m_bActive : 1{};
-	BITBOOL m_bReverse : 1{};
+	BOOLEAN m_bActive{};
+	BOOLEAN m_bReverse{};
 	LONG m_cRef{ 1 };
 
 	EckInline BOOL IntTick(float fMs)

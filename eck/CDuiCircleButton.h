@@ -7,6 +7,13 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
+struct CBTN_CUSTOM_DRAW : CUSTOM_DRAW
+{
+	State eState;
+	D2D1_RECT_F rcImg;
+	ID2D1Bitmap* pImg;
+};
+
 class CCircleButton :public CElem
 {
 private:
@@ -19,6 +26,7 @@ private:
 	BITBOOL m_bLBtnDown : 1 = FALSE;
 
 	BITBOOL m_bAutoImgSize : 1{ TRUE };
+	BITBOOL m_bCustomDraw : 1{ FALSE };
 
 	BOOL PtInBtn(POINT ptInClient)
 	{
@@ -48,16 +56,31 @@ public:
 			else
 				eState = State::Normal;
 
-			GetTheme()->DrawBackground(Part::CircleButton, eState, GetViewRectF());
-
+			BOOL bSkipDefault{};
+			CBTN_CUSTOM_DRAW cd;
 			if (m_pImg)
 			{
-				D2D1_RECT_F rcImg;
-				rcImg.left = (GetWidthF() - m_sizeImg.width) / 2.f;
-				rcImg.top = (GetHeightF() - m_sizeImg.height) / 2.f;
-				rcImg.right = rcImg.left + m_sizeImg.width;
-				rcImg.bottom = rcImg.top + m_sizeImg.height;
-				m_pDC->DrawBitmap(m_pImg, rcImg, 1.f, m_iInterpolation);
+				cd.rcImg.left = (GetWidthF() - m_sizeImg.width) / 2.f;
+				cd.rcImg.top = (GetHeightF() - m_sizeImg.height) / 2.f;
+				cd.rcImg.right = cd.rcImg.left + m_sizeImg.width;
+				cd.rcImg.bottom = cd.rcImg.top + m_sizeImg.height;
+			}
+
+			if (m_bCustomDraw)
+			{
+				cd.uCode = EE_CUSTOMDRAW;
+				cd.dwStage = CDDS_PREPAINT;
+				cd.eState = eState;
+				cd.pImg = m_pImg;
+
+				bSkipDefault = (GenElemNotify(&cd) & CDRF_SKIPDEFAULT);
+			}
+
+			if (!bSkipDefault)
+			{
+				GetTheme()->DrawBackground(Part::CircleButton, eState, GetViewRectF());
+				if (m_pImg)
+					m_pDC->DrawBitmap(m_pImg, cd.rcImg, 1.f, m_iInterpolation);
 			}
 
 			EndPaint(ps);
@@ -143,16 +166,19 @@ public:
 		if (pImg)
 			pImg->Release();
 	}
+	EckInlineNdCe ID2D1Bitmap* GetImage() const { return m_pImg; }
 
-	void SetImageSize(D2D1_SIZE_F size)
-	{
-		m_sizeImg = size;
-	}
+	EckInlineCe void SetImageSize(D2D1_SIZE_F s) { m_sizeImg = s; }
+	EckInlineNdCe D2D1_SIZE_F GetImageSize() const { return m_sizeImg; }
 
-	void SetInterpolationMode(D2D1_INTERPOLATION_MODE iMode)
-	{
-		m_iInterpolation = iMode;
-	}
+	EckInlineCe void SetInterpolationMode(D2D1_INTERPOLATION_MODE e) { m_iInterpolation = e; }
+	EckInlineNdCe D2D1_INTERPOLATION_MODE GetInterpolationMode() const { return m_iInterpolation; }
+
+	EckInlineCe void SetAutoImageSize(BOOL b) { m_bAutoImgSize = b; }
+	EckInlineNdCe BOOL GetAutoImageSize() const { return m_bAutoImgSize; }
+
+	EckInlineCe void SetCustomDraw(BOOL b) { m_bCustomDraw = b; }
+	EckInlineNdCe BOOL GetCustomDraw() const { return m_bCustomDraw; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

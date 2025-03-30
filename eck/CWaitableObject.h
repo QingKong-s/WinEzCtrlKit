@@ -8,7 +8,7 @@ protected:
 	HANDLE m_hObj{};
 public:
 	ECK_DISABLE_COPY_DEF_CONS(CWaitableObject);
-	constexpr CWaitableObject(HANDLE hObj) : m_hObj{ hObj } {}
+	constexpr explicit CWaitableObject(HANDLE hObj) : m_hObj{ hObj } {}
 
 	~CWaitableObject() { NtClose(m_hObj); }
 
