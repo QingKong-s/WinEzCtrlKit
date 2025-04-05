@@ -2,6 +2,8 @@
 #include "CRefStr.h"
 #include "ImageHelper.h"
 
+#include <taskschd.h>
+
 ECK_NAMESPACE_BEGIN
 inline CRefStrW GetClipboardString(HWND hWnd = nullptr)
 {
@@ -289,14 +291,20 @@ CleanupAndRet:
 	return hr;
 }
 
-enum class AutoRunType
+enum class AutoRunType : UINT
 {
+	None,
 	LocalMachine,
 	CurrentUser,
-};
+	TaskScheduler,
 
-inline HRESULT SetAutoRun(PCWSTR pszId,BOOL bEnable, 
-	AutoRunType eType = AutoRunType::LocalMachine ,
+	TypeMask = 0xFFFF,
+	RunAdmin = 1u << 31,
+};
+ECK_ENUM_BIT_FLAGS(AutoRunType);
+
+inline HRESULT SetAutoRun(PCWSTR pszId, BOOL bEnable,
+	AutoRunType eType = AutoRunType::LocalMachine,
 	PCWCH pszFile = nullptr, int cchFile = -1)
 {
 	if (!pszFile)
@@ -308,7 +316,7 @@ inline HRESULT SetAutoRun(PCWSTR pszId,BOOL bEnable,
 	else if (cchFile < 0)
 		cchFile = (int)wcslen(pszFile);
 
-	switch (eType)
+	switch (eType & AutoRunType::TypeMask)
 	{
 	case AutoRunType::LocalMachine:
 	case AutoRunType::CurrentUser:
@@ -333,7 +341,74 @@ inline HRESULT SetAutoRun(PCWSTR pszId,BOOL bEnable,
 		RegCloseKey(hKey);
 		return HRESULT_FROM_WIN32(ls);
 	}
-	return S_OK;
+	break;
+	case AutoRunType::TaskScheduler:
+	{
+		HRESULT hr;
+		/*hr = CoInitializeSecurity(nullptr, -1, nullptr, nullptr,
+			RPC_C_AUTHN_LEVEL_PKT_PRIVACY, RPC_C_IMP_LEVEL_IMPERSONATE,
+			nullptr, 0, nullptr);
+		if (FAILED(hr))
+			return hr;*/
+		ComPtr<ITaskService> pService;
+		if (FAILED(hr = CoCreateInstance(CLSID_TaskScheduler, nullptr,
+			CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pService))))
+			return hr;
+		pService->Connect({}, {}, {}, {});
+		ComPtr<ITaskFolder> pFolder;
+		if (FAILED(hr = pService->GetFolder(_bstr_t(L"\\"), &pFolder)))
+			return hr;
+		_bstr_t bsId{ pszId };
+		hr = pFolder->DeleteTask(bsId, 0);
+		if (!bEnable)
+			return hr;
+		ComPtr<ITaskDefinition> pDef;
+		if (FAILED(hr = pService->NewTask(0, &pDef)))
+			return hr;
+		if ((eType & AutoRunType::RunAdmin) != AutoRunType::None)
+		{
+			ComPtr<IPrincipal> pPrincipal;
+			if (FAILED(hr = pDef->get_Principal(&pPrincipal)))
+				return hr;
+			if (FAILED(hr = pPrincipal->put_RunLevel(TASK_RUNLEVEL_HIGHEST)))
+				return hr;
+		}
+		ComPtr<ITaskSettings> pSettings;
+		if (FAILED(hr = pDef->get_Settings(&pSettings)))
+			return hr;
+		if (FAILED(hr = pSettings->put_DisallowStartIfOnBatteries(VARIANT_FALSE)))
+			return hr;
+		if (FAILED(hr = pSettings->put_StopIfGoingOnBatteries(VARIANT_FALSE)))
+			return hr;
+		if (FAILED(hr = pSettings->put_RunOnlyIfIdle(VARIANT_FALSE)))
+			return hr;
+		ComPtr<ITriggerCollection> pTriggerCollection;
+		if (FAILED(hr = pDef->get_Triggers(&pTriggerCollection)))
+			return hr;
+		ComPtr<ITrigger> pTrigger;
+		if (FAILED(hr = pTriggerCollection->Create(TASK_TRIGGER_LOGON, &pTrigger)))
+			return hr;
+		ComPtr<IActionCollection> pActionCollection;
+		if (FAILED(hr = pDef->get_Actions(&pActionCollection)))
+			return hr;
+		ComPtr<IAction> pAction;
+		if (FAILED(hr = pActionCollection->Create(TASK_ACTION_EXEC, &pAction)))
+			return hr;
+		ComPtr<IExecAction> pExecAction;
+		if (FAILED(hr = pAction.As(pExecAction)))
+			return hr;
+		const auto bsFile = SysAllocStringLen(pszFile, cchFile);
+		hr = pExecAction->put_Path(bsFile);
+		SysFreeString(bsFile);
+		if (FAILED(hr))
+			return hr;
+		ComPtr<IRegisteredTask> pRegisteredTask;
+		hr = pFolder->RegisterTaskDefinition(bsId, pDef.Get(),
+			TASK_CREATE_OR_UPDATE, {}, {}, TASK_LOGON_INTERACTIVE_TOKEN,
+			_variant_t(L""), &pRegisteredTask);
+		return hr;
+	}
+	break;
 	}
 	return E_INVALIDARG;
 }

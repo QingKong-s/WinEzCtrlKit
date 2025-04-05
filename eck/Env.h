@@ -47,6 +47,7 @@
 #pragma comment(lib, "Crypt32.lib")
 #pragma comment(lib, "Shcore.lib")
 #pragma comment(lib, "Msi.lib")
+#pragma comment(lib, "Taskschd.lib")
 
 #ifdef _WIN64
 #	ifdef _DEBUG
