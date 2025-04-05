@@ -2,9 +2,6 @@
 #define GDIPVER 0x110
 
 #include "PrivateApi.h"
-//#include <Windows.h>
-//#include <windowsx.h>
-//#include <Uxtheme.h>
 
 #include <vsstyle.h>
 #include <dwmapi.h>

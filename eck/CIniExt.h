@@ -134,20 +134,99 @@ public:
 	struct CtxBase
 	{
 		TIter it;
+		BOOL bInvalid;
 
 		EckInlineNd auto GetIterator() const noexcept { return it; }
 
 		EckInlineNd auto operator->() const noexcept { return &(GetIterator()->second); }
 		EckInlineNd auto& operator*() const noexcept { return GetIterator()->second; }
+		EckInlineNd auto& Data() const noexcept { return GetIterator()->second; }
 
-		EckInlineNdCe BOOL IsValid() const noexcept { return GetIterator() != decltype(GetIterator()){}; }
+		EckInlineNdCe BOOL IsValid() const noexcept { return !bInvalid; }
 		EckInlineNdCe operator BOOL() const noexcept { return IsValid(); }
+	};
+
+	template<class TIter>
+	struct CtxBaseKv : CtxBase<TIter>
+	{
+		EckInlineNd BOOL IsEmpty() const noexcept
+		{
+			return !this->IsValid() || this->Data().rsValue.IsEmpty();
+		}
+
+		EckInline void GetString(TStr& rs, TStrView svDef = {})
+		{
+			if (IsEmpty())
+				rs.DupString(svDef);
+			else
+				rs.DupString(this->Data().rsValue.Data(), this->Data().rsValue.Size());
+		}
+
+		EckInline int GetInt(int nDef = 0)
+		{
+			if (IsEmpty())
+				return nDef;
+			else
+				return _wtoi(this->Data().rsValue.Data());
+		}
+
+		EckInline INT64 GetInt64(UINT nDef = 0)
+		{
+			if (IsEmpty())
+				return nDef;
+			else
+				return _wtoll(this->Data().rsValue.Data());
+		}
+
+		EckInline double GetDouble(double dDef = 0.0)
+		{
+			if (IsEmpty())
+				return dDef;
+			else
+				return _wtof(this->Data().rsValue.Data());
+		}
+
+		EckInline BOOL GetBool(BOOL bDef = FALSE)
+		{
+			if (IsEmpty())
+				return bDef;
+			else
+			{
+				const auto& rs = this->Data().rsValue;
+				if (rs.CompareI(L"true", 4) == 0 || rs == L"1" || rs == L"真")
+					return TRUE;
+				else
+					return FALSE;
+			}
+		}
+
+		template<class T>
+		EckInline T GetEnum(T Def = T{})
+		{
+			if (IsEmpty())
+				return Def;
+			else
+			{
+				if (sizeof(T) > 4)
+					return (T)GetInt64();
+				else
+					return (T)GetInt();
+			}
+		}
+
+		template<class T>
+		EckInline T GetEnumCheck(T Min, T MaxPlusOne, T Def = T{})
+		{
+			using TUnderlying = UnderlyingType_T<T>;
+			return (T)std::clamp<TUnderlying>(TUnderlying(GetEnum<T>(Def)),
+				TUnderlying(Min), TUnderlying(MaxPlusOne) - 1);
+		}
 	};
 
 	using CtxSec = CtxBase<TSecIter>;
 	using CtxSecCst = CtxBase<TSecCstIter>;
-	using CtxKv = CtxBase<TKvIter>;
-	using CtxKvCst = CtxBase<TKvCstIter>;
+	using CtxKv = CtxBaseKv<TKvIter>;
+	using CtxKvCst = CtxBaseKv<TKvCstIter>;
 
 private:
 	TSectionMap m_Root{};
@@ -747,18 +826,18 @@ public:
 	EckInlineNd CtxSecCst GetSection(TStrView svName) const
 	{
 		const auto it = m_Root.find(svName);
-		return { it == m_Root.end() ? TSecCstIter{} : it };
+		return { it, it == m_Root.end() };
 	}
 
 	EckInlineNd CtxSec GetSection(const CtxSec& Sec, TStrView svName) const
 	{
 		const auto it = Sec->Child.find(svName);
-		return { it == Sec->Child.end() ? TSecIter{} : it };
+		return { it, it == Sec->Child.end() };
 	}
 	EckInlineNd CtxSecCst GetSection(const CtxSecCst& Sec, TStrView svName) const
 	{
 		const auto it = Sec->Child.find(svName);
-		return { it == Sec->Child.end() ? TSecCstIter{} : it };
+		return { it, it == Sec->Child.end() };
 	}
 
 	EckInline CtxSec SetSection(const CtxSec& Sec, TStrView svName) { return IntSetSection(m_Root, Sec, svName); }
@@ -784,28 +863,26 @@ public:
 
 	EckInlineNd CtxKv GetKeyValue(const CtxSec& Sec, TStrView svName)
 	{
+		if (!Sec)
+			return { Sec->Val.end(),TRUE };
 		const auto it = Sec->Val.find(svName);
-		return { it == Sec->Val.end() ? TKvIter{} : it };
+		return { it, it == Sec->Val.end() };
 	}
 	EckInlineNd CtxKvCst GetKeyValue(const CtxSecCst& Sec, TStrView svName) const
 	{
+		if (!Sec)
+			return { Sec->Val.end(),TRUE };
 		const auto it = Sec->Val.find(svName);
-		return { it == Sec->Val.end() ? TKvCstIter{} : it };
+		return { it, it == Sec->Val.end() };
 	}
 
 	EckInlineNd CtxKv GetKeyValue(TStrView svSection, TStrView svName)
 	{
-		const auto Sec = GetSection(svSection);
-		if (!Sec)
-			return {};
-		return GetKeyValue(Sec, svName);
+		return GetKeyValue(GetSection(svSection), svName);
 	}
 	EckInlineNd CtxKvCst GetKeyValue(TStrView svSection, TStrView svName) const
 	{
-		const auto Sec = GetSection(svSection);
-		if (!Sec)
-			return {};
-		return GetKeyValue(Sec, svName);
+		return GetKeyValue(GetSection(svSection), svName);
 	}
 
 	EckInline CtxKv SetKeyName(const CtxKv& Kv, const CtxSec& Sec, TStrView svName)

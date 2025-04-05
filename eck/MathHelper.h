@@ -407,9 +407,10 @@ inline void CalcBezierControlPoints(std::vector<TPt>& vPt,
 	auto piLineLen = (TVal*)_malloca(cPt * sizeof(TVal));
 	EckAssert(pptMid);
 	EckAssert(piLineLen);
-	vPt.reserve(cPt * 3 + 1);
-	vPt.emplace_back(*pPt);// 起点
-	vPt.emplace_back(*pPt);// 控点1
+	vPt.resize(cPt * 3 + 1);
+	auto itResult = vPt.begin();
+	*itResult++ = *pPt;// 起点
+	*itResult++ = *pPt;// 控点1
 	TVal xMid1, yMid1, xMid2, yMid2, dx, dy;
 
 	const auto [x2, y2] = pPt[1];
@@ -429,12 +430,12 @@ inline void CalcBezierControlPoints(std::vector<TPt>& vPt,
 		CalcPointFromLineScalePos<TVal>(x00, y00, x01, y01, (float)piLineLen[i - 1] / (float)(piLineLen[i] + piLineLen[i - 1]), dx, dy);
 		dx = x1 - dx;
 		dy = y1 - dy;
-		vPt.emplace_back(xMid1 + dx, yMid1 + dy);// 控点2
-		vPt.emplace_back(x1, y1);// 终点
-		vPt.emplace_back(xMid2 + dx, yMid2 + dy);// 下一段曲线的控点1
+		*itResult++ = { xMid1 + dx, yMid1 + dy };// 控点2
+		*itResult++ = { x1, y1 };// 终点
+		*itResult++ = { xMid2 + dx, yMid2 + dy };// 下一段曲线的控点1
 	}
-	vPt.emplace_back(pPt[cPt - 1]);// 控点2
-	vPt.emplace_back(pPt[cPt - 1]);// 终点
+	*itResult++ = pPt[cPt - 1];// 控点2
+	*itResult++ = pPt[cPt - 1];// 终点
 
 	_freea(piLineLen);
 	_freea(pptMid);

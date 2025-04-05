@@ -7,7 +7,7 @@
 // For Private API
 
 FSetWindowCompositionAttribute	pfnSetWindowCompositionAttribute{};
-FGetWindowCompositionAttribute pfnGetWindowCompositionAttribute{};
+FGetWindowCompositionAttribute	pfnGetWindowCompositionAttribute{};
 
 #if !ECK_OPT_NO_DARKMODE
 FAllowDarkModeForWindow			pfnAllowDarkModeForWindow{};
@@ -94,9 +94,6 @@ void InitPrivateApi()
 		GetProcAddress(hModNtdll, "NtWow64QueryInformationProcess64");
 #endif
 }
-
-// RTTI
-std::unordered_map<std::wstring_view, ClassInfo*> g_hsClassInfo{};
 
 // For program
 

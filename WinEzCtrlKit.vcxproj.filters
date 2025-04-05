@@ -570,6 +570,9 @@
     <ClInclude Include="eck\CDuiGroupList.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\UIAccess.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "CLayoutBase.h"
 #include "CArray2D.h"
 
@@ -9,6 +9,19 @@ enum class TlCellMode
 	Weight,
 	Auto
 };
+
+// FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+// FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+// FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+// FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+// FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+// FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+// FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+// FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+// FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+// FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+// FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+// FIXME FIXME FIXME FIXME FIXME FIXME FIXME
 
 class CTableLayout final :public CLayoutBase
 {
@@ -48,7 +61,7 @@ private:
 
 	void UpdateCellSize(const ITEM& e)
 	{
-		EckAssert(m_eCellSizeMode == TlCellMode::Auto && L"µ¥Ôª¸ñ³ß´ç±ØĞë»î¶¯");
+		EckAssert(m_eCellSizeMode == TlCellMode::Auto && L"å•å…ƒæ ¼å°ºå¯¸å¿…é¡»æ´»åŠ¨");
 		const int cx = e.cx + e.Margin.cxLeftWidth + e.Margin.cxRightWidth;
 		const int cy = e.cy + e.Margin.cyTopHeight + e.Margin.cyBottomHeight;
 		if (e.cRowSpan)
@@ -85,7 +98,7 @@ public:
 	size_t Add(ILayout* pCtrl, int idxRow, int idxCol, const MARGINS& Mar = {}, UINT uFlags = 0,
 		int nRowSpan = 0, int nColSpan = 0)
 	{
-		EckAssert(idxRow + nRowSpan < m_cRow && idxCol + nColSpan < m_cCol && L"³¬³ö±í¸ñ·¶Î§");
+		EckAssert(idxRow + nRowSpan < m_cRow && idxCol + nColSpan < m_cCol && L"è¶…å‡ºè¡¨æ ¼èŒƒå›´");
 		const auto s = pCtrl->LoGetSize();
 		auto& e = m_vItem.emplace_back(pCtrl, Mar, uFlags, (short)s.first, (short)s.second,
 			idxRow, idxCol, nRowSpan, nColSpan);
@@ -132,7 +145,7 @@ public:
 		m_cRow = m_cCol = 0;
 	}
 
-	// Èôµ¥Ôª¸ñÈ¨ÖØ±ä»¯£¬»ò¹Ì¶¨¿Ø¼ş´óĞ¡±ä»¯£¬ÔòĞèÒªµ÷ÓÃ´Ëº¯ÊıË¢ĞÂ²¼¾Ö
+	// è‹¥å•å…ƒæ ¼æƒé‡å˜åŒ–ï¼Œæˆ–å›ºå®šæ§ä»¶å¤§å°å˜åŒ–ï¼Œåˆ™éœ€è¦è°ƒç”¨æ­¤å‡½æ•°åˆ·æ–°å¸ƒå±€
 	void Refresh() override
 	{
 		if (m_eCellSizeMode == TlCellMode::Weight)
@@ -164,7 +177,7 @@ public:
 		}
 	}
 
-	// µ¥Ôª¸ñµÄ³ß´çĞŞ¸Äºó£¬ĞèÒªµ÷ÓÃ´Ëº¯ÊıË¢ĞÂ
+	// å•å…ƒæ ¼çš„å°ºå¯¸ä¿®æ”¹åï¼Œéœ€è¦è°ƒç”¨æ­¤å‡½æ•°åˆ·æ–°
 	void CommitTableMetrics()
 	{
 		EckCounter(m_cRow, i)
@@ -205,11 +218,20 @@ public:
 			CommitTableMetrics();
 		}
 		HDWP hDwp = PreArrange(m_vItem.size());
+		RCWH rcCell;
 		for (const auto& e : m_vItem)
 		{
 			const auto& cell = m_Table[e.idxRow][e.idxCol];
-			CalcCtrlPosSize(e, { cell.x,cell.y,cell.cx,cell.cy },
-				x, y, cx, cy);
+			rcCell.x = cell.x + m_x;
+			rcCell.y = cell.y + m_y;
+			rcCell.cx = cell.cx;
+			rcCell.cy = cell.cy;
+			for (int i = 0; i < e.cRowSpan; ++i)
+				rcCell.cy += m_Table[e.idxRow + i + 1][e.idxCol].cy;
+			for (int i = 0; i < e.cColSpan; ++i)
+				rcCell.cx += m_Table[e.idxRow][e.idxCol + i + 1].cx;
+
+			CalcCtrlPosSize(e, rcCell, x, y, cx, cy);
 			MoveCtrlPosSize(e, hDwp, x, y, cx, cy);
 		}
 		PostArrange(hDwp);
@@ -219,16 +241,42 @@ public:
 
 	EckInline constexpr TlCellMode GetCellMode() const { return m_eCellSizeMode; }
 
-	// È¡µ×²ãÁĞ±í
+	// å–åº•å±‚åˆ—è¡¨
 	EckInline constexpr auto& GetList() { return m_vItem; }
 
-	// È¡µ×²ã±í¸ñ
+	// å–åº•å±‚è¡¨æ ¼
 	EckInline constexpr auto& GetTable() { return m_Table; }
 
 	void LoShow(BOOL bShow) override
 	{
 		for (const auto& e : GetList())
 			e.pCtrl->LoShow(bShow);
+	}
+
+	void SetColWidth(int idxCol, int cx)
+	{
+		EckAssert(idxCol < m_cCol && L"è¶…å‡ºè¡¨æ ¼èŒƒå›´");
+		for (int i = 0; i < m_cRow; ++i)
+			m_Table[i][idxCol].cx = cx;
+	}
+
+	void SetColWidth(int cx)
+	{
+		for (int i = 0; i < m_cCol; ++i)
+			SetColWidth(i, cx);
+	}
+
+	void SetRowHeight(int idxRow, int cy)
+	{
+		EckAssert(idxRow < m_cRow && L"è¶…å‡ºè¡¨æ ¼èŒƒå›´");
+		for (int i = 0; i < m_cCol; ++i)
+			m_Table[idxRow][i].cy = cy;
+	}
+
+	void SetRowHeight(int cy)
+	{
+		for (int i = 0; i < m_cRow; ++i)
+			SetRowHeight(i, cy);
 	}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CTableLayout, CLayoutBase);

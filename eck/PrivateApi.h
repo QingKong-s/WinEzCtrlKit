@@ -10,6 +10,7 @@
 
 #define NtCurrentThreadId32() ((DWORD)(DWORD_PTR)NtCurrentThreadId())
 #define NtCurrentProcessId32() ((DWORD)(DWORD_PTR)NtCurrentProcessId())
+#define NtCurrentImageBaseHInst() ((HINSTANCE)NtCurrentImageBase())
 
 #define WOW64_POINTER_64(Type) ULONG64
 
@@ -360,6 +361,7 @@ enum WINDOWCOMPOSITIONATTRIB
 	WCA_MINIMIZE_ANIMATION,				// [g;s]DWMWA_WINDOW_CORNER_PREFERENCE
 	WCA_MAXIMIZE_ANIMATION,				// [g;s]见下
 	WCA_DISABLE_MOVESIZE_FEEDBACK,		// 
+	// 22621+
 	WCA_SYSTEM_BACKDROP_TYPE,			// [g;s]DWMWA_SYSTEM_BACKDROP_TYPE
 	WCA_SET_TAGGED_WINDOW_RECT,			// 
 	WCA_CLEAR_TAGGED_WINDOW_RECT,		// 
@@ -408,7 +410,7 @@ enum AccentState
 	ACCENT_ENABLE_BLURBEHIND,
 	// 1803+，亚克力效果，支持与一个半透明的颜色(GradientColor字段)叠加
 	ACCENT_ENABLE_ACRYLICBLURBEHIND,
-	// 1809+，允许非UWP窗口使用HostBackdropBrush，Win11中唯一有效的常量，仅使用AccentState字段
+	// 1809+，允许非UWP窗口使用HostBackdropBrush，仅使用AccentState字段
 	// DwmSWA将DWMWA_USE_HOSTBACKDROPBRUSH转发到ACCENT_ENABLE_HOSTBACKDROP
 	ACCENT_ENABLE_HOSTBACKDROP,
 	ACCENT_INVALID_STATE,

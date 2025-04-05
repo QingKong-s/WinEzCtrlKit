@@ -288,4 +288,53 @@ CleanupAndRet:
 	_freea(pszFolder);
 	return hr;
 }
+
+enum class AutoRunType
+{
+	LocalMachine,
+	CurrentUser,
+};
+
+inline HRESULT SetAutoRun(PCWSTR pszId,BOOL bEnable, 
+	AutoRunType eType = AutoRunType::LocalMachine ,
+	PCWCH pszFile = nullptr, int cchFile = -1)
+{
+	if (!pszFile)
+	{
+		const auto usSelf = NtCurrentPeb()->ProcessParameters->ImagePathName;
+		pszFile = usSelf.Buffer;
+		cchFile = (int)usSelf.Length / sizeof(WCHAR);
+	}
+	else if (cchFile < 0)
+		cchFile = (int)wcslen(pszFile);
+
+	switch (eType)
+	{
+	case AutoRunType::LocalMachine:
+	case AutoRunType::CurrentUser:
+	{
+		LSTATUS ls;
+		const auto hRootKey = eType == AutoRunType::LocalMachine ?
+			HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER;
+		HKEY hKey;
+		ls = RegOpenKeyExW(hRootKey, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+			0, KEY_SET_VALUE, &hKey);
+		if (ls != ERROR_SUCCESS)
+			return HRESULT_FROM_WIN32(ls);
+		if (bEnable)
+		{
+			if (cchFile < 0)
+				cchFile = (int)wcslen(pszFile);
+			ls = RegSetValueExW(hKey, pszId, 0, REG_SZ,
+				(BYTE*)pszFile, cchFile * sizeof(WCHAR));
+		}
+		else
+			ls = RegDeleteValueW(hKey, pszId);
+		RegCloseKey(hKey);
+		return HRESULT_FROM_WIN32(ls);
+	}
+	return S_OK;
+	}
+	return E_INVALIDARG;
+}
 ECK_NAMESPACE_END
