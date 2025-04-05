@@ -270,9 +270,9 @@ public:
 		}
 
 		Shell_NotifyIconW(NIM_SETVERSION, &nid);
+		m_Tray.emplace_back(uID, nid.uFlags, dwState, hIcon, pszTip);
 		if (!Shell_NotifyIconW(NIM_ADD, &nid))
 			return FALSE;
-		m_Tray.emplace_back(uID, nid.uFlags, dwState, hIcon, pszTip);
 		return TRUE;
 	}
 

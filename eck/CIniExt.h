@@ -821,7 +821,7 @@ public:
 	EckInlineNd CtxSec GetSection(TStrView svName)
 	{
 		const auto it = m_Root.find(svName);
-		return { it == m_Root.end() ? TSecIter{} : it };
+		return { it, it == m_Root.end() };
 	}
 	EckInlineNd CtxSecCst GetSection(TStrView svName) const
 	{
@@ -864,14 +864,14 @@ public:
 	EckInlineNd CtxKv GetKeyValue(const CtxSec& Sec, TStrView svName)
 	{
 		if (!Sec)
-			return { Sec->Val.end(),TRUE };
+			return { TKvIter{},TRUE };
 		const auto it = Sec->Val.find(svName);
 		return { it, it == Sec->Val.end() };
 	}
 	EckInlineNd CtxKvCst GetKeyValue(const CtxSecCst& Sec, TStrView svName) const
 	{
 		if (!Sec)
-			return { Sec->Val.end(),TRUE };
+			return { TKvCstIter{},TRUE };
 		const auto it = Sec->Val.find(svName);
 		return { it, it == Sec->Val.end() };
 	}
