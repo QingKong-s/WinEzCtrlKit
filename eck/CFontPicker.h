@@ -58,7 +58,7 @@ public:
 		return TRUE;
 	}
 
-	CRefStrW ToInfo(FONTPICKERINFO& fpi)
+	[[nodiscard]] CRefStrW ToInfo(FONTPICKERINFO& fpi)
 	{
 		fpi.pszFontName = nullptr;
 		auto rs = GetText();

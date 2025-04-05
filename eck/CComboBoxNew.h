@@ -228,6 +228,7 @@ public:
 			ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
 			m_DC.ReSize(hWnd, m_cxClient, m_cyClient);
 			SetBkMode(m_DC.GetDC(), TRANSPARENT);
+			UpdateDropSize();
 			if (m_eView == View::DropDownEdit)
 				PositionEdit();
 		}

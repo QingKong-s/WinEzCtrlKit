@@ -44,7 +44,6 @@ public:
 			ELEMPAINTSTRU eps;
 			BeginPaint(eps, wParam, lParam);
 
-
 			D2D1_RECT_F rcDst
 			{
 				GetWidthF() - m_cxClose,
@@ -58,11 +57,14 @@ public:
 			DWMW_GET_PART_EXTRA Extra;
 			const auto bDarkMode = ShouldAppsUseDarkMode();
 			const auto iUserDpi = GetWnd()->GetUserDpiValue();
+			const auto dMargin = DpiScaleF(0.5f, 96, iUserDpi);
 
 			m_pDC->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
 			if (m_DwmPartMgr.GetPartRect(rc, rcBkg, DwmWndPart::Close,
 				GetPartState(DwmWndPart::Close), bDarkMode, TRUE, iUserDpi, &Extra))
 			{
+				rcDst.left += dMargin;
+				rcDst.right -= dMargin;
 				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
 					MakeD2DRcF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing));
 
@@ -72,6 +74,8 @@ public:
 
 				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.f,
 					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRcF(rc));
+
+				rcDst.left -= dMargin;
 			}
 
 			rcDst.left -= m_cxMaxMin;
@@ -81,8 +85,15 @@ public:
 				m_bMaximized ? DwmWndPart::Restore : DwmWndPart::Max,
 				GetPartState(DwmWndPart::Max), bDarkMode, TRUE, iUserDpi, &Extra))
 			{
+				rcDst.left += dMargin;
+				rcDst.right -= dMargin;
 				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
 					MakeD2DRcF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing));
+
+				//ID2D1SolidColorBrush* pBrush = nullptr;
+				//m_pDC->CreateSolidColorBrush(bDarkMode ? D2D1::ColorF(0.f, 0.f, 0.f, 1.f) : D2D1::ColorF(1.f, 1.f), &pBrush);
+				//m_pDC->FillRectangle(rcDst, pBrush);
+				//pBrush->Release();
 
 				rcTemp = MakeD2DRcF(rc);
 				GetWnd()->Phy2Log(rcTemp);
@@ -90,6 +101,8 @@ public:
 
 				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.f,
 					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRcF(rc));
+
+				rcDst.left -= dMargin;
 			}
 
 			rcDst.left -= m_cxMaxMin;
@@ -98,6 +111,8 @@ public:
 			if (m_DwmPartMgr.GetPartRect(rc, rcBkg, DwmWndPart::Min,
 				GetPartState(DwmWndPart::Min), bDarkMode, TRUE, iUserDpi, &Extra))
 			{
+				rcDst.left += dMargin;
+				rcDst.right -= dMargin;
 				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
 					MakeD2DRcF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing));
 
@@ -107,6 +122,8 @@ public:
 
 				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.0f,
 					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRcF(rc));
+
+				rcDst.left -= dMargin;
 			}
 			m_pDC->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
 
@@ -262,7 +279,15 @@ public:
 		}
 		else
 		{
-			m_cxClose = 46;
+			const auto iTargetDpi = GetWnd()->GetUserDpiValue();
+			auto Factor = (float)DaGetSystemMetrics(SM_CYSIZE, iTargetDpi);
+			m_cyBtn = (int)DpiScaleF(Factor, 96, iTargetDpi);
+			Factor = floorf(Factor * 0.95454544f + 0.5f);
+			//Factor = floorf(Factor * 2.2272727f + 0.5f);
+			Factor = floorf(Factor * 2.1818182f + 0.5f);
+			m_cxClose = (int)roundf(DpiScaleF(Factor, 96, iTargetDpi));
+
+			//m_cxClose = 46;
 			m_cxMaxMin = m_cxClose;
 			m_cyBtn = 31;
 		}
