@@ -516,9 +516,6 @@
     <ClInclude Include="eck\AutoPtrDef.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CSmallFunction.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CHandleTable.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
@@ -541,9 +538,6 @@
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\LocaleStringUtility.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
-    <ClInclude Include="eck\HanziUpperNum.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CUninstallInfo.h">

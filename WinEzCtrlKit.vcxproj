@@ -198,7 +198,6 @@
     <ClInclude Include="eck\CObject.h" />
     <ClInclude Include="eck\CRegion.h" />
     <ClInclude Include="eck\CSelRange.h" />
-    <ClInclude Include="eck\CSmallFunction.h" />
     <ClInclude Include="eck\CStatusBar.h" />
     <ClInclude Include="eck\CTableLayout.h" />
     <ClInclude Include="eck\CUninstallInfo.h" />
@@ -217,7 +216,6 @@
     <ClInclude Include="eck\CalculateExpression.h" />
     <ClInclude Include="eck\GdipEffect.h" />
     <ClInclude Include="eck\CoroutineHelper.h" />
-    <ClInclude Include="eck\HanziUpperNum.h" />
     <ClInclude Include="eck\ISO8601Time.h" />
     <ClInclude Include="eck\Json.h" />
     <ClInclude Include="eck\CSignal.h" />

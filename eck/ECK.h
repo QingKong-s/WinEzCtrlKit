@@ -700,6 +700,8 @@ enum :UINT// 控件通知代码
 
 	NM_PKB_OWNERDRAW,		// NMPKBOWNERDRAW
 	NM_HTT_SEL,				// NMHTTSEL
+
+	NM_CBN_LBCUSTOMDRAW,	// NMCBLBCUSTOMDRAW
 };
 /*
 * 对于ECK控件，部分标准通知对应的结构如下（可能有特定控件会扩展这些结构）

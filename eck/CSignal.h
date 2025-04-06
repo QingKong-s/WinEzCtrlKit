@@ -151,6 +151,16 @@ public:
 
 	ECK_DISABLE_COPY_MOVE_DEF_CONS(CSignal);
 
+	~CSignal()
+	{
+		NODE* pNode = m_pHead;
+		while (pNode)
+		{
+			pNode->uFlags |= NF_DELETED;
+			pNode = DeleteNode(pNode, nullptr);
+		}
+	}
+
 	/// <summary>
 	/// 发射
 	/// </summary>

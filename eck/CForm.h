@@ -194,7 +194,10 @@ public:
 				nid.dwState = nid.dwStateMask = e.dwState;
 				nid.hIcon = e.hIcon;
 				if (e.rsTip.IsEmpty())
-					wcscpy_s(nid.szTip, e.rsTip.Data());
+					nid.szTip[0] = L'\0';
+				else
+					TcsCopyLenEnd(nid.szTip, e.rsTip.Data(),
+						std::min(e.rsTip.Size(), (int)ARRAYSIZE(nid.szTip)));
 				Shell_NotifyIconW(NIM_SETVERSION, &nid);
 				Shell_NotifyIconW(NIM_ADD, &nid);
 			}
