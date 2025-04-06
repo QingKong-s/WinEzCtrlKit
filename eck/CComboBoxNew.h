@@ -16,7 +16,7 @@ public:
 		DropDownEdit,
 	};
 
-private:
+protected:
 	HWND m_hParent{};	// 接收通知的父窗口
 
 	CListBoxNew m_LB{};
@@ -336,6 +336,10 @@ public:
 				case NM_LBN_ITEMSTANDBY:
 					if (m_bAutoDropSize)
 						UpdateDropSize();
+					goto ForwardNotify;
+
+				case NM_CUSTOMDRAW:
+					pnmhdr->code = NM_CBN_LBCUSTOMDRAW;
 					goto ForwardNotify;
 
 				default:

@@ -55,16 +55,23 @@ public:
 		case WM_NCCALCSIZE:
 		{
 			const auto lResult = CEditExt::OnMsg(hWnd, uMsg, wParam, lParam);
-			auto prcClient = (RECT*)lParam;
-			const int cxClient = prcClient->right - prcClient->left;
-			RECT rc;
-			GetWindowRect(hWnd, &rc);
+			const auto prcClient = (RECT*)lParam;
+
+			int cyWnd;
+			if (wParam)
+				cyWnd = ((NCCALCSIZE_PARAMS*)lParam)->lppos->cy;
+			else
+			{
+				RECT rc;
+				GetWindowRect(hWnd, &rc);
+				cyWnd = rc.bottom - rc.top;
+			}
 
 			const int cxBtn = (m_cxBtn ? m_cxBtn : DpiScale(20, GetDpi(hWnd)));
-			m_rcBtn.right = m_rcMargins.left + cxClient;
+			m_rcBtn.right = m_rcMargins.left + (prcClient->right - prcClient->left);
 			m_rcBtn.left = m_rcBtn.right - cxBtn;
 			m_rcBtn.top = m_rcMargins.top;
-			m_rcBtn.bottom = rc.bottom - rc.top - m_rcMargins.bottom;
+			m_rcBtn.bottom = cyWnd - m_rcMargins.bottom;
 
 			prcClient->right -= cxBtn;
 			return lResult;

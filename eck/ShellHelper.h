@@ -345,16 +345,12 @@ inline HRESULT SetAutoRun(PCWSTR pszId, BOOL bEnable,
 	case AutoRunType::TaskScheduler:
 	{
 		HRESULT hr;
-		/*hr = CoInitializeSecurity(nullptr, -1, nullptr, nullptr,
-			RPC_C_AUTHN_LEVEL_PKT_PRIVACY, RPC_C_IMP_LEVEL_IMPERSONATE,
-			nullptr, 0, nullptr);
-		if (FAILED(hr))
-			return hr;*/
 		ComPtr<ITaskService> pService;
 		if (FAILED(hr = CoCreateInstance(CLSID_TaskScheduler, nullptr,
 			CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pService))))
 			return hr;
-		pService->Connect({}, {}, {}, {});
+		if (FAILED(hr = pService->Connect({}, {}, {}, {})))
+			return hr;
 		ComPtr<ITaskFolder> pFolder;
 		if (FAILED(hr = pService->GetFolder(_bstr_t(L"\\"), &pFolder)))
 			return hr;

@@ -3,6 +3,12 @@
 #include "ProcThrdHelper.h"
 
 ECK_NAMESPACE_BEGIN
+// ======================================
+// https://github.com/killtimer0/uiaccess
+// ======================================
+
+// 仅Win8+
+
 struct UIA
 {
 	HANDLE hTokenWinlogon;
