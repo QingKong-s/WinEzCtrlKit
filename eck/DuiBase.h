@@ -44,7 +44,7 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-constexpr inline auto DrawTextLayoutFlags = 
+constexpr inline auto DrawTextLayoutFlags =
 D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT | D2D1_DRAW_TEXT_OPTIONS_NO_SNAP;
 
 class CElem :public ILayout
@@ -157,9 +157,11 @@ protected:
 	void tcPostMoveSize(BOOL bSize, BOOL bMove, const RECT& rcOld);
 public:
 	virtual BOOL Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId = 0, PCVOID pData = nullptr)
+		int x, int y, int cx, int cy, CElem* pParent,
+		CDuiWnd* pWnd = nullptr, int iId = 0, PCVOID pData = nullptr)
 	{
-		return IntCreate(pszText, dwStyle, dwExStyle, x, y, cx, cy, pParent, pWnd, iId, pData);
+		return IntCreate(pszText, dwStyle, dwExStyle,
+			x, y, cx, cy, pParent, pWnd, iId, pData);
 	}
 
 	void Destroy();
@@ -668,16 +670,24 @@ private:
 	//------图形------
 	RECT m_rcInvalid{};				// 无效矩形
 
-	CEzD2D m_D2d{};					// D2D设备上下文相关，若呈现模式不为交换链，则仅DC字段有效
 	ID2D1Bitmap* m_pBmpBkg{};		// 背景位图
 	ID2D1SolidColorBrush* m_pBrBkg{};		// 背景画刷
 
-	IDCompositionDevice* m_pDcDevice{};		// DComp设备
-	IDCompositionTarget* m_pDcTarget{};		// DComp目标
-	IDCompositionVisual* m_pDcVisual{};		// 根视觉对象
-	IDCompositionSurface* m_pDcSurface{};	// 根视觉对象的内容
-
-	ID2D1HwndRenderTarget* m_pRtHwnd{};		// 窗口渲染目标，仅当呈现模式为窗口渲染目标时有效
+	CEzD2D m_D2d{};					// D2D设备上下文相关，若呈现模式不为交换链，则仅DC字段有效
+	union
+	{
+		void* PRIV_Dummy[4]{};
+		// DComp呈现使用
+		struct
+		{
+			IDCompositionDevice* m_pDcDevice;	// DComp设备
+			IDCompositionTarget* m_pDcTarget;	// DComp目标，DCompVisual不使用
+			IDCompositionVisual* m_pDcVisual;	// 根视觉对象
+			IDCompositionSurface* m_pDcSurface;	// 根视觉对象的内容，DCompVisual下仅此字段是由自身创建的
+		};
+		// 窗口渲染目标呈现使用
+		ID2D1HwndRenderTarget* m_pRtHwnd;		// 窗口渲染目标，仅当呈现模式为窗口渲染目标时有效
+	};
 
 	ID2D1Bitmap1* m_pBmpCache{};	// 缓存位图，模糊或独立混合等可在其上进行
 	int m_cxCache{};				// 缓存位图宽度
@@ -880,7 +890,14 @@ private:
 		return;
 		case PresentMode::DCompositionSurface:
 		case PresentMode::AllDComp:
+		case PresentMode::DCompositionVisual:
 		{
+			const auto bRenderVisual = (m_ePresentMode == PresentMode::DCompositionVisual);
+			RENDER_EVENT e{};
+
+			if (bRenderVisual)
+				OnRenderEvent(RE_PRERENDER, e);
+
 			const auto pDC = m_D2d.GetDC();
 			IDXGISurface1* pDxgiSurface = nullptr;
 			POINT ptOffset;
@@ -951,7 +968,10 @@ private:
 			if (IsElemUseDComp())
 				RedrawElem(GetFirstChildElem(), rc, 0.f, 0.f);
 
-			m_pDcDevice->Commit();
+			if (bRenderVisual)
+				OnRenderEvent(RE_POSTRENDER, e);
+			else
+				m_pDcDevice->Commit();
 		}
 		return;
 		}
@@ -1014,6 +1034,7 @@ private:
 					break;
 				case PresentMode::DCompositionSurface:
 				case PresentMode::AllDComp:
+				case PresentMode::DCompositionVisual:
 				{
 					IDCompositionSurface* pDcSurface = nullptr;
 					m_pDcDevice->CreateSurface(m_cxClient, m_cyClient,
@@ -1124,7 +1145,8 @@ public:
 	{
 		if (m_ePresentMode == PresentMode::FlipSwapChain ||
 			m_ePresentMode == PresentMode::DCompositionSurface ||
-			m_ePresentMode == PresentMode::AllDComp)
+			m_ePresentMode == PresentMode::AllDComp ||
+			m_ePresentMode == PresentMode::DCompositionVisual)
 			dwExStyle |= WS_EX_NOREDIRECTIONBITMAP;
 		return IntCreate(dwExStyle, WCN_DUIHOST, pszText, dwStyle,
 			x, y, cx, cy, hParent, hMenu, g_hInstance, nullptr);
@@ -1393,6 +1415,23 @@ public:
 					EckAssert(SUCCEEDED(hr));
 				}
 				break;
+				case PresentMode::DCompositionVisual:
+				{
+					g_pD2dDevice->CreateDeviceContext(
+						EZD2D_PARAM::MakeFlip(0, nullptr, nullptr, nullptr, 0, 0).uDcOptions,
+						&m_D2d.m_pDC);
+
+					m_pDcDevice->CreateSurface(rc.right, rc.bottom,
+						DXGI_FORMAT_B8G8R8A8_UNORM,
+						m_eDxgiAlphaMode,
+						&m_pDcSurface);
+					m_pDcVisual->SetContent(m_pDcSurface);
+					m_pDcVisual->SetOffsetX(0.f);
+					m_pDcVisual->SetOffsetY(0.f);
+					RENDER_EVENT e;
+					OnRenderEvent(RE_COMMIT, e);
+				}
+				break;
 				default:
 					ECK_UNREACHABLE;
 				}
@@ -1502,6 +1541,8 @@ public:
 	{
 		return 0;
 	}
+
+	virtual LRESULT OnRenderEvent(UINT uMsg, RENDER_EVENT& e) { return 0; }
 
 	EckInline constexpr const CEzD2D& GetD2D() const { return m_D2d; }
 
@@ -1943,6 +1984,19 @@ public:
 	{
 		return BmpNew((int)ceilf(Log2PhyF(cx)), (int)ceilf(Log2PhyF(cy)), pBmp);
 	}
+
+	EckInlineNdCe int GetClientWidth() const noexcept { return m_cxClient; }
+	EckInlineNdCe int GetClientHeight() const noexcept { return m_cyClient; }
+
+	void DcvInit(IDCompositionVisual* pVisual, IDCompositionDevice* pDevice)
+	{
+		EckAssert(m_ePresentMode == PresentMode::DCompositionVisual);
+		EckAssert(!m_pDcVisual && !m_pDcSurface && !m_pDcDevice);
+		m_pDcVisual = pVisual;
+		m_pDcVisual->AddRef();
+		m_pDcDevice = pDevice;
+		m_pDcDevice->AddRef();
+	}
 };
 
 inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
@@ -1950,6 +2004,8 @@ inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 {
 	EckAssert(!m_pWnd && !m_pDC);
 
+	if (!pWnd)
+		pWnd = pParent->GetWnd();
 	m_iId = iId;
 	m_pWnd = pWnd;
 	m_pDC = pWnd->m_D2d.GetDC();

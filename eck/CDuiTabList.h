@@ -25,11 +25,6 @@ public:
 		CyIndicatorPadding = 10
 	};
 protected:
-	struct ITEM
-	{
-		IDWriteTextLayout* pTextLayout;
-	};
-
 	CD2DImageList* m_pImageList{};
 	ID2D1SolidColorBrush* m_pBrush{};
 	CEasingCurve* m_pec1{}, * m_pec2{};
@@ -125,7 +120,10 @@ public:
 		case WM_NOTIFY:
 			if (wParam == (WPARAM)&m_SB)
 				if (((DUINMHDR*)lParam)->uCode == EE_VSCROLL)
+				{
 					InvalidateRect();
+					return TRUE;
+				}
 			break;
 
 		case WM_PAINT:

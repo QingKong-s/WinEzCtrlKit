@@ -3,6 +3,7 @@
 #include "CRefStr.h"
 #include "CMemWalker.h"
 #include "AutoPtrDef.h"
+#include "NativeWrapper.h"
 
 #include "ZLib/zlib.h"
 

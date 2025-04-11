@@ -306,8 +306,6 @@ typedef struct _PROCESS_BASIC_INFORMATION64
 #define LDR_DATA_TABLE_ENTRY_SIZE_WIN10_64 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY64, SigningLevel)
 #define LDR_DATA_TABLE_ENTRY_SIZE_WIN11_64 sizeof(LDR_DATA_TABLE_ENTRY64)
 
-EXTERN_C_START
-
 enum IMMERSIVE_HC_CACHE_MODE
 {
 	IHCM_USE_CACHED_VALUE,
@@ -441,7 +439,7 @@ FORCEINLINE BOOL GetWindowCompositionAttribute(HWND hWnd,
 	return pfnGetWindowCompositionAttribute(hWnd, pAttrData);
 }
 
-BOOL WINAPI IsNTAdmin(DWORD dwReserved, DWORD* pdwResevered);
+EXTERN_C BOOL WINAPI IsNTAdmin(DWORD dwReserved, DWORD* pdwResevered);
 
 #if !ECK_OPT_NO_DARKMODE
 // 1809 17763 暗色功能引入
@@ -638,7 +636,6 @@ FORCEINLINE NTSTATUS NtWow64QueryInformationProcess64(
 		ProcessInformation, ProcessInformationLength, ReturnLength);
 }
 #endif// !defined(_WIN64)
-EXTERN_C_END
 
 #ifndef LVSR_SELECTION
 #define LVSR_SELECTION			0

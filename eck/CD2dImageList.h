@@ -7,7 +7,7 @@
 ECK_NAMESPACE_BEGIN
 class CD2DImageList : public CRefObjMultiThread<CD2DImageList>
 {
-	DECL_CUNK_FRIENDS;
+	ECK_DECL_CUNK_FRIENDS;
 private:
 	CSrwLock m_Lk{};
 	ID2D1DeviceContext* m_pDC{};

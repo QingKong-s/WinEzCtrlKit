@@ -357,14 +357,24 @@ ECK_ENUM_BIT_FLAGS(EPFLAGS);
 /// <returns>NTSTATUS</returns>
 inline NTSTATUS EnumProcess(std::invocable<SYSTEM_PROCESS_INFORMATION*> auto&& Fn)
 {
-	ULONG cb;
-	NTSTATUS nts = NtQuerySystemInformation(SystemProcessInformation, nullptr, 0, &cb);
-	if (!cb)
-		return nts;
-	UniquePtr<DelVA<BYTE>> pBuf{ (BYTE*)VAlloc(cb) };
-	if (!NT_SUCCESS(nts = NtQuerySystemInformation(SystemProcessInformation, pBuf.get(), cb, &cb)))
-		return nts;
-	auto pspi = (SYSTEM_PROCESS_INFORMATION*)pBuf.get();
+	NTSTATUS nts;
+	ULONG cb{ 0x4000u };
+	void* pBuf;
+	EckLoop()
+	{
+		pBuf = VAlloc(cb);
+		if (!pBuf)
+			return STATUS_NO_MEMORY;
+		nts = NtQuerySystemInformation(SystemProcessInformation, pBuf, cb, &cb);
+		if (nts == STATUS_INFO_LENGTH_MISMATCH || nts == STATUS_BUFFER_TOO_SMALL)
+		{
+			VFree(pBuf);
+			continue;
+		}
+		break;
+	}
+
+	auto pspi = (SYSTEM_PROCESS_INFORMATION*)pBuf;
 	EckLoop()
 	{
 		EckCanCallbackContinue(Fn(pspi))
@@ -373,6 +383,7 @@ inline NTSTATUS EnumProcess(std::invocable<SYSTEM_PROCESS_INFORMATION*> auto&& F
 			break;
 		pspi = PtrStepCb(pspi, pspi->NextEntryOffset);
 	}
+	VFree(pBuf);
 	return STATUS_SUCCESS;
 }
 

@@ -462,7 +462,7 @@ using CSelRange = CSelRangeT<int>;
 
 class CLVRange :public CUnknownSingleThread<CLVRange, ILVRange>
 {
-	DECL_CUNK_FRIENDS;
+	ECK_DECL_CUNK_FRIENDS;
 private:
 	ULONG m_cRef{ 1 };
 	CSelRange m_SelRange{};
