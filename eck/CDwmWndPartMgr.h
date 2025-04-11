@@ -104,7 +104,7 @@ enum class DwmWndPart : BYTE
 	Max,
 	Min,
 	Restore,
-	
+
 	Invalid,// 用于命中测试
 	Extra	// 用于命中测试
 };
@@ -286,4 +286,24 @@ public:
 
 	EckInline constexpr HTHEME GetHTheme() const { return m_hTheme; }
 };
+
+//enum :UINT
+//{
+//	DWMW_CNBS_THIN_BORDER = 1u << 0,
+//	DWMW_CNBS_SINGLE_CLOSE = 1u << 1,
+//};
+//
+//inline void CalcNcButtonSize(DwmWndPart ePart, int iDpi, UINT uFlags,
+//	_Out_ int& cx, _Out_ int& cy)
+//{
+//	const auto Factor = (float)DaGetSystemMetrics(
+//		(uFlags & DWMW_CNBS_THIN_BORDER) ? SM_CYSMSIZE : SM_CYSIZE, iDpi);
+//	auto FactorX = floorf(Factor * 0.95454544f + 0.5f);
+//	if (ePart == DwmWndPart::Close && (uFlags & DWMW_CNBS_SINGLE_CLOSE))
+//		FactorX = floorf(FactorX * 1.6363636f + 0.5f);
+//	else
+//		FactorX = floorf(FactorX * 2.1818182f + 0.5f);
+//	cx = (int)FactorX;
+//	cy = (int)Factor;
+//}
 ECK_NAMESPACE_END
