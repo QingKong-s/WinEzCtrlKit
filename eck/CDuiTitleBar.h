@@ -279,15 +279,7 @@ public:
 		}
 		else
 		{
-			const auto iTargetDpi = GetWnd()->GetUserDpiValue();
-			auto Factor = (float)DaGetSystemMetrics(SM_CYSIZE, iTargetDpi);
-			m_cyBtn = (int)DpiScaleF(Factor, 96, iTargetDpi);
-			Factor = floorf(Factor * 0.95454544f + 0.5f);
-			//Factor = floorf(Factor * 2.2272727f + 0.5f);
-			Factor = floorf(Factor * 2.1818182f + 0.5f);
-			m_cxClose = (int)roundf(DpiScaleF(Factor, 96, iTargetDpi));
-
-			//m_cxClose = 46;
+			m_cxClose = 46;
 			m_cxMaxMin = m_cxClose;
 			m_cyBtn = 31;
 		}

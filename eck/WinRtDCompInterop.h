@@ -109,7 +109,11 @@ inline HRESULT DciCreateInteropCompositorFactory(
 }
 
 /// <summary>
-/// 为互操作合成器创建窗口目标
+/// 为互操作合成器创建窗口目标。
+/// winrt侧互操作合成器创建的视觉对象无法QI为Win32 DComp视觉对象，
+/// 但反过来，互操作DComp设备创建的Win32 DComp视觉对象可以QI为Visual。
+/// 可使用合成器和DComp分别创建所需对象。
+/// 16299后最佳做法：只用合成器管理可视化树。
 /// </summary>
 /// <param name="hWnd">窗口句柄</param>
 /// <param name="bTopmost">可视化树是否显示在分层子窗口之上</param>
@@ -118,7 +122,7 @@ inline HRESULT DciCreateInteropCompositorFactory(
 /// <param name="pRootVisual">可选的根视觉对象，若不为空，则窗口目标的根视觉对象设置为该对象</param>
 /// <param name="pDcTarget_">返回IDCompositionTarget</param>
 /// <param name="Target">【16299后使用】此参数与下一参数任选其一，返回必要的目标对象，可被QI为InteropCompositionTarget</param>
-/// <param name="pHwndTarget">【114393-15063使用】参看上一参数</param>
+/// <param name="pHwndTarget">【14393-15063使用】参看上一参数</param>
 /// <returns>HRESULT</returns>
 inline HRESULT DciCreateWindowTarget(
 	_In_ HWND hWnd,

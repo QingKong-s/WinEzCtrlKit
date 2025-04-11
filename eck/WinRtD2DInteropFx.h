@@ -29,6 +29,7 @@ struct WRDI_FX_PROPERTY_MAPPING
 };
 
 // 实现IGraphicsEffectD2D1Interop::GetNamedPropertyMapping
+// 必须为将进行动画处理的属性设置映射关系
 #define ECK_WRDIFX_IMPL_PROPMAPPING(MappingArray)	\
 	STDMETHODIMP GetNamedPropertyMapping(PCWSTR pszName, UINT* pidx, GePropMapping* peMapping)	\
 	{												\
@@ -235,10 +236,23 @@ public:
 			SetValue(idx, PV::CreateUInt32(Value).as<IPV>());
 		else if constexpr (std::is_same_v<T, float>)
 			SetValue(idx, PV::CreateSingle(Value).as<IPV>());
-		else if constexpr (std::is_same_v<T, D2D1_COLOR_F> ||
+		else if constexpr (
+			std::is_same_v<T, D2D1_POINT_2F> ||
+			std::is_same_v<T, D2D1_RECT_F> ||
+			std::is_same_v<T, D2D1_SIZE_F> ||
+			std::is_same_v<T, D2D1_COLOR_F> ||
+			std::is_same_v<T, D2D1_VECTOR_2F> ||
+			std::is_same_v<T, D2D1_VECTOR_3F> ||
 			std::is_same_v<T, D2D1_VECTOR_4F> ||
+			std::is_same_v<T, D2D1_MATRIX_3X2_F> ||
+			std::is_same_v<T, D2D1_MATRIX_4X3_F> ||
+			std::is_same_v<T, D2D1_MATRIX_4X4_F> ||
 			std::is_same_v<T, D2D1_MATRIX_5X4_F> ||
-			std::is_same_v<T, D2D1::Matrix5x4F>)
+			std::is_same_v<T, D2D1::Matrix3x2F> ||
+			std::is_same_v<T, D2D1::Matrix4x3F> ||
+			std::is_same_v<T, D2D1::Matrix4x4F> ||
+			std::is_same_v<T, D2D1::Matrix5x4F>
+			)
 		{
 			SetValue(idx, PV::CreateSingleArray({
 			(const float*)&Value,sizeof(Value) / sizeof(float) }).as<IPV>());
