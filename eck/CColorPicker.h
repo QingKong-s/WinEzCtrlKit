@@ -117,7 +117,8 @@ public:
 					int cxClrBlock = DpiScale(ClrBlockWidth, m_iDpi);
 
 					HGDIOBJ hOldBr = SelectObject(hDC, hbr);
-					HGDIOBJ hOldPen = SelectObject(hDC, GetStockObject(BLACK_PEN));
+					SetDCPenColor(hDC, crText);
+					HGDIOBJ hOldPen = SelectObject(hDC, GetStockBrush(DC_PEN));
 					int xClrBlock = p->rc.left + iItemPadding;
 					Rectangle(hDC,
 						xClrBlock,

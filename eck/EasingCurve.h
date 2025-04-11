@@ -587,7 +587,7 @@ enum
 
 class CEasingCurve :public CUnknownSingleThread<CEasingCurve, ITimeLine>
 {
-	DECL_CUNK_FRIENDS;
+	ECK_DECL_CUNK_FRIENDS;
 public:
 	using FCallBack = void(*)(float fCurrValue, float fOldValue, LPARAM lParam);
 private:
@@ -698,6 +698,10 @@ public:
 				m_fCurrValue = m_fStart;
 	}
 
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="uFlags">ECBF_</param>
 	void Begin(UINT uFlags = 0u)
 	{
 		m_bActive = TRUE;

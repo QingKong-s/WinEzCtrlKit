@@ -173,6 +173,7 @@
   <ItemGroup>
     <ClInclude Include="CTestWnd.h" />
     <ClInclude Include="eck\AutoPtrDef.h" />
+    <ClInclude Include="eck\BackdropEffectChain.h" />
     <ClInclude Include="eck\CArray2D.h" />
     <ClInclude Include="eck\CBorderLayout.h" />
     <ClInclude Include="eck\CColorReducing.h" />
@@ -350,6 +351,8 @@
     <ClInclude Include="eck\UIAccess.h" />
     <ClInclude Include="eck\Utility.h" />
     <ClInclude Include="eck\Utility2.h" />
+    <ClInclude Include="eck\WinRtD2DInteropFx.h" />
+    <ClInclude Include="eck\WinRtDCompInterop.h" />
     <ClInclude Include="eck\WndHelper.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />

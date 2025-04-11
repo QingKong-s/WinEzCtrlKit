@@ -49,8 +49,10 @@ public:
 			BeginPaint(ps, wParam, lParam);
 
 			const int idxBegin = HitTestY((int)ps.rcfClipInElem.top);
-			const int idxEnd = HitTestY((int)ps.rcfClipInElem.bottom);
-			if (idxBegin >= 0 && idxBegin <= idxEnd && idxEnd < m_cItem)
+			int idxEnd = HitTestY((int)ps.rcfClipInElem.bottom);
+			if (idxEnd >= m_cItem && m_cItem)
+				idxEnd = m_cItem - 1;
+			if (idxBegin >= 0 && idxBegin <= idxEnd)
 			{
 				D2D1_RECT_F rcItem;
 				rcItem.left = 0.f;
@@ -295,6 +297,15 @@ public:
 		ElemToClient(rc);
 		InvalidateRect(rc, bUpdateNow);
 	}
+
+	EckInlineCe void SetItemHeight(int cyItem) { m_cyItem = cyItem; }
+	EckInlineNdCe int GetItemHeight() const { return m_cyItem; }
+
+	EckInlineCe void SetItemPadding(int cyPadding) { m_cyPadding = cyPadding; }
+	EckInlineNdCe int GetItemPadding() const { return m_cyPadding; }
+
+	EckInlineCe void SetSingleSel(BOOL bSingleSel) { m_bSingleSel = bSingleSel; }
+	EckInlineNdCe BOOL GetSingleSel() const { return m_bSingleSel; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

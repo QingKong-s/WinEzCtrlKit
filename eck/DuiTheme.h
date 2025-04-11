@@ -289,7 +289,7 @@ constexpr inline DTB_OPT DtbOptDefault{};
 
 class CThemePalette : public CRefObjMultiThread<CThemePalette>
 {
-	DECL_CUNK_FRIENDS;
+	ECK_DECL_CUNK_FRIENDS;
 protected:
 	ULONG m_cRef{ 1 };
 	std::vector<D2D1_COLOR_F> m_vEntries{};
@@ -306,7 +306,7 @@ public:
 // 主题描述
 class CTheme : public CRefObjMultiThread<CTheme>
 {
-	DECL_CUNK_FRIENDS;
+	ECK_DECL_CUNK_FRIENDS;
 	friend class CThemeRealization;
 protected:
 	ULONG m_cRef{ 1 };
@@ -584,7 +584,7 @@ public:
 // 基于指定DC的主题实现
 class CThemeRealization : public CRefObjMultiThread<CThemeRealization>
 {
-	DECL_CUNK_FRIENDS;
+	ECK_DECL_CUNK_FRIENDS;
 protected:
 	ID2D1DeviceContext* m_pDC;	// 关联DC
 	CTheme* m_pTheme;			// 关联主题

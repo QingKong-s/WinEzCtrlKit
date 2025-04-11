@@ -401,13 +401,9 @@ EckInline constexpr XFORM XFORMReflection(float A, float B, float C)
 /// <param name="K">张力</param>
 template<class TVal = int, class TPt>
 inline void CalcBezierControlPoints(std::vector<TPt>& vPt,
-	_In_reads_(cPt) const TPt* pPt, int cPt, float K = 1.f)
+	_In_reads_(cPt) const TPt* pPt, size_t cPt, float K = 1.f)
 {
-	auto pptMid = (TPt*)_malloca(cPt * sizeof(TPt));
-	auto piLineLen = (TVal*)_malloca(cPt * sizeof(TVal));
-	EckAssert(pptMid);
-	EckAssert(piLineLen);
-	vPt.resize(cPt * 3 + 1);
+	vPt.resize((cPt - 1) * 3 + 1);
 	auto itResult = vPt.begin();
 	*itResult++ = *pPt;// 起点
 	*itResult++ = *pPt;// 控点1
@@ -415,30 +411,31 @@ inline void CalcBezierControlPoints(std::vector<TPt>& vPt,
 
 	const auto [x2, y2] = pPt[1];
 	const auto [x1, y1] = pPt[0];
-	pptMid[0] = { (x1 + x2) / 2,(y1 + y2) / 2 };
-	piLineLen[0] = CalcLineLength(x1, y1, x2, y2);
+	TPt ptMidLast = { (x1 + x2) / 2,(y1 + y2) / 2 };
+	TVal iLineLenLast = CalcLineLength(x1, y1, x2, y2);
 	for (int i = 1; i < cPt - 1; ++i)
 	{
 		const auto [x2, y2] = pPt[i + 1];
 		const auto [x1, y1] = pPt[i];
-		pptMid[i] = { (x1 + x2) / 2,(y1 + y2) / 2 };
-		piLineLen[i] = CalcLineLength(x1, y1, x2, y2);
-		const auto [x00, y00] = pptMid[i - 1];
-		const auto [x01, y01] = pptMid[i];
+		const TPt ptMid{ (x1 + x2) / 2,(y1 + y2) / 2 };
+		const TVal iLineLen = CalcLineLength(x1, y1, x2, y2);
+		const auto [x00, y00] = ptMidLast;
+		const auto [x01, y01] = ptMid;
 		CalcPointFromLineScalePos<TVal>(x1, y1, x00, y00, K, xMid1, yMid1);
 		CalcPointFromLineScalePos<TVal>(x1, y1, x01, y01, K, xMid2, yMid2);
-		CalcPointFromLineScalePos<TVal>(x00, y00, x01, y01, (float)piLineLen[i - 1] / (float)(piLineLen[i] + piLineLen[i - 1]), dx, dy);
+		CalcPointFromLineScalePos<TVal>(x00, y00, x01, y01, 
+			(float)iLineLenLast / (float)(iLineLen + iLineLenLast), dx, dy);
 		dx = x1 - dx;
 		dy = y1 - dy;
 		*itResult++ = { xMid1 + dx, yMid1 + dy };// 控点2
 		*itResult++ = { x1, y1 };// 终点
 		*itResult++ = { xMid2 + dx, yMid2 + dy };// 下一段曲线的控点1
+
+		ptMidLast = ptMid;
+		iLineLenLast = iLineLen;
 	}
 	*itResult++ = pPt[cPt - 1];// 控点2
 	*itResult++ = pPt[cPt - 1];// 终点
-
-	_freea(piLineLen);
-	_freea(pptMid);
 }
 
 EckInlineNd float CalcPointToLineDistance(POINT pt, POINT pt1, POINT pt2)

@@ -11,7 +11,7 @@ ECK_DUI_NAMESPACE_BEGIN
 class CEdit;
 class CEditTextHost :public CUnknownMultiThread<CEditTextHost, ITextHost2>
 {
-	DECL_CUNK_FRIENDS;
+	ECK_DECL_CUNK_FRIENDS;
 private:
 	ULONG m_cRef{ 1 };
 	BITBOOL m_bActive : 1{};

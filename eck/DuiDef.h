@@ -52,12 +52,30 @@ enum :UINT
 // DUI图形系统呈现模式
 enum class PresentMode
 {
-	//						|  等待	|				透明混合					|	 备注	|
-	BitBltSwapChain,	//	|	0	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|  性能极差	|
-	FlipSwapChain,		//	|	1	|不支持									|  性能极好	|
-	DCompositionSurface,//	|	0	|支持，建议加入WS_EX_NOREDIRECTIONBITMAP	|  建议使用	|
-	WindowRenderTarget,	//  |	1	|支持，必须无WS_EX_NOREDIRECTIONBITMAP	|  兼容性好	|
-	AllDComp,			//	|	   与DCompositionSurface相同，但所有元素都使用DComp合成		|
+	// WS_EX_NRB = WS_EX_NOREDIRECTIONBITMAP
+	//						|最小等待	|	   透明混合		|	 备注	|
+	BitBltSwapChain,	//	|	0	|支持，必须无WS_EX_NRB|  性能极差	|
+	FlipSwapChain,		//	|	1	|	   不支持		|  性能极好	|
+	DCompositionSurface,//	|	0	|		支持			|  建议使用	|
+	WindowRenderTarget,	//  |	1	|支持，必须无WS_EX_NRB|  兼容性好	|
+	AllDComp,			//	|	0	|		支持			|			|
+	DCompositionVisual,	//  | 不适用	|		支持			|			|
+	DxgiSurface,		//	| 不适用	|		支持			|  D3D互操作	|
+	GdiRenderTarget,	//	| 不适用	|		支持			|  GDI互操作	|
+	UpdateLayeredWindow,//  |   0	|		支持			|  Win2K分层	|
+};
+
+// 渲染事件代码
+enum
+{
+	RE_PRERENDER,		// 即将开始渲染
+	RE_POSTRENDER,		// 渲染完毕
+	RE_COMMIT,			// DUI系统认为有必要冲洗一切挂起的工作
+};
+// 渲染事件结构
+struct RENDER_EVENT
+{
+
 };
 
 // 拖放信息
@@ -122,6 +140,7 @@ struct DUINMHDR
 	UINT uCode;
 };
 
+// 通用自定义绘制结构
 struct CUSTOM_DRAW : DUINMHDR
 {
 	DWORD dwStage;
