@@ -3,6 +3,7 @@
 
 #include "DuiDef.h"
 #include "DuiStdTheme.h"
+#include "DuiCompositor.h"
 
 #include "GraphicsHelper.h"
 #include "OleDragDropHelper.h"
@@ -61,27 +62,36 @@ protected:
 	CDuiWnd* m_pWnd{};		// 所属窗口
 	CSignal<Intercept_T, LRESULT, UINT, WPARAM, LPARAM> m_Sig{};// 信号
 	//------图形，除DC外渲染和UI线程均可读写------
-	ID2D1DeviceContext* m_pDC{};			// DC
-	IDCompositionVisual* m_pDcVisual{};		// DComp视觉对象
-	IDCompositionSurface* m_pDcSurface{};	// DComp表面
-	IUnknown* m_pDcContent{};				// DComp内容
+	ID2D1DeviceContext* m_pDC{};		// DC
+	union// DComp和手动混合只能选其一
+	{
+		void* PRIV_Dummy[3]{};
+		struct
+		{
+			IDCompositionVisual* m_pDcVisual;	// DComp视觉对象
+			IDCompositionSurface* m_pDcSurface;	// DComp表面
+			IUnknown* m_pDcContent;				// DComp内容
+		};
+		struct
+		{
+			RECT m_rcCompositedInClient;// 缓存已混合的元素矩形，相对客户区
+			CCompositor* m_pCompositor;	// 混合操作
+		};
+	};
 	//------位置，均为DPI虚拟化坐标------
-	RECT m_rc{};			// 元素矩形，相对父元素
-	D2D1_RECT_F m_rcf{};	// 元素矩形，相对父元素
-	RECT m_rcInClient{};	// 元素矩形，相对客户区
-	D2D1_RECT_F m_rcfInClient{};	// 元素矩形，相对客户区
+	RECT m_rc{};						// 元素矩形，相对父元素
+	D2D1_RECT_F m_rcf{};				// 元素矩形，相对父元素
+	RECT m_rcInClient{};				// 元素矩形，相对客户区
+	D2D1_RECT_F m_rcfInClient{};		// 元素矩形，相对客户区
 
-	RECT m_rcInvalid{};		// 无效矩形，相对客户区
-
-	RECT m_rcComp{};		// 混合到主图面的矩形，至少完全包含元素矩形
-	RECT m_rcCompInClient{};// 混合到主图面的矩形，相对于客户区
+	RECT m_rcInvalid{};					// 无效矩形，相对客户区
 	//------属性------
-	CRefStrW m_rsText{};	// 标题
-	INT_PTR m_iId{};		// 元素ID
+	CRefStrW m_rsText{};				// 标题
+	INT_PTR m_iId{};					// 元素ID
 	CThemeRealization* m_pTheme{};		// 主题
 	IDWriteTextFormat* m_pTextFormat{};	// 文本格式
-	DWORD m_dwStyle{};		// 样式
-	int m_cChildren{};		// 子元素数量
+	DWORD m_dwStyle{};					// 样式
+	int m_cChildren{};					// 子元素数量
 
 
 	BOOL IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
@@ -99,14 +109,6 @@ protected:
 		}
 	}
 
-	// 合并应更新完整区域的元素矩形
-	//
-	// 照常理来说，若当前需重画的元素为内容扩展，则遍历整颗元素树合并可能存在的内容扩展元素矩形
-	// 若当前需重画的元素非内容扩展，则应向高Z序方向合并可能存在的内容扩展元素矩形，
-	// 此时无需关心低Z序方向的元素 —— 从语义上来说这些元素的内容都未更改，
-	// 因为并未对它们调用InvalidateRect。但存在一个问题，它们的内容实际上可能被更改，
-	// 尤其是在播放动画时。因此维护一个内容扩展元素列表，每次重画都遍历此列表，合
-	// 并可能存在的内容扩展元素矩形，以此保证更新的正确性
 	constexpr void tcIrpUnionContentExpandElemRect(_Inout_ RECT& rcInClient);
 
 	constexpr void tcSrpCorrectChildrenRectInClient() const
@@ -118,12 +120,6 @@ protected:
 			pElem->m_rcfInClient = pElem->m_rcf;
 			OffsetRect(pElem->m_rcInClient, m_rcInClient.left, m_rcInClient.top);
 			OffsetRect(pElem->m_rcfInClient, m_rcfInClient.left, m_rcfInClient.top);
-			if ((pElem->GetStyle() & DES_COMPOSITED) &&
-				!(pElem->GetStyle() & DES_INPLACE_COMP))
-			{
-				pElem->m_rcCompInClient = pElem->m_rcComp;
-				OffsetRect(pElem->m_rcCompInClient, m_rcInClient.left, m_rcInClient.top);
-			}
 			pElem->tcSrpCorrectChildrenRectInClient();
 			pElem = pElem->GetNextElem();
 		}
@@ -240,6 +236,7 @@ public:
 	EckInline constexpr ID2D1DeviceContext* GetDC() const { return m_pDC; }
 	EckInline constexpr auto& GetSignal() { return m_Sig; }
 	EckInline constexpr CCriticalSection& GetCriticalSection() const;
+	EckInlineNdCe ID2D1Bitmap1* GetCacheBitmap() const;
 #pragma region PosSize
 	EckInline constexpr D2D1_RECT_F GetViewRectF() const
 	{
@@ -366,28 +363,22 @@ public:
 
 	static CElem* ElemFromPoint(CElem* pElem, POINT pt, _Out_opt_ LRESULT* pResult = nullptr)
 	{
-		COMP_POS cp;
-		cp.bNormalToComp = TRUE;
+		POINT pt0;
 		while (pElem)
 		{
 			if (pElem->GetStyle() & DES_VISIBLE)
 			{
-				cp.pt = pt;
-				if (pElem->IsNeedCoordinateTransform())
-				{
-					cp.pElem = pElem;
-					pElem->ClientToElem(cp.pt);
-					pElem->CallEvent(EWM_COMP_POS, (WPARAM)&cp, 0);
-					pElem->ElemToClient(cp.pt);
-				}
-				if (PtInRect(pElem->GetRectInClient(), cp.pt))
+				pt0 = pt;
+				if (const auto pComp = pElem->GetCompositor(); pComp)
+					pComp->PtCompositedToNormal(pElem, pt0);
+				if (PtInRect(pElem->GetRectInClient(), pt0))
 				{
 					const auto pHit = pElem->ElemFromPoint(pt, pResult);
 					if (pHit)
 						return pHit;
 					else if (LRESULT lResult;
 						(lResult = pElem->CallEvent(WM_NCHITTEST,
-							0, MAKELPARAM(cp.pt.x, cp.pt.y))) != HTTRANSPARENT)
+							0, MAKELPARAM(pt0.x, pt0.y))) != HTTRANSPARENT)
 					{
 						if (pResult)
 							*pResult = lResult;
@@ -401,7 +392,6 @@ public:
 			*pResult = HTNOWHERE;
 		return nullptr;
 	}
-
 	EckInline CElem* ElemFromPoint(POINT pt, _Out_opt_ LRESULT* pResult = nullptr)
 	{
 		return ElemFromPoint(GetLastChildElem(), pt, pResult);
@@ -411,40 +401,33 @@ public:
 	{
 		OffsetRect(rc, -m_rcInClient.left, -m_rcInClient.top);
 	}
-
 	EckInline constexpr void ClientToElem(_Inout_ D2D1_RECT_F& rc) const
 	{
 		OffsetRect(rc, -m_rcfInClient.left, -m_rcfInClient.top);
 	}
-
 	EckInline constexpr void ClientToElem(_Inout_ POINT& pt) const
 	{
 		pt.x -= m_rcInClient.left;
 		pt.y -= m_rcInClient.top;
 	}
-
 	EckInline constexpr void ClientToElem(_Inout_ D2D1_POINT_2F& pt) const
 	{
 		pt.x -= m_rcfInClient.left;
 		pt.y -= m_rcfInClient.top;
 	}
-
 	EckInline constexpr void ElemToClient(_Inout_ RECT& rc) const
 	{
 		OffsetRect(rc, m_rcInClient.left, m_rcInClient.top);
 	}
-
 	EckInline constexpr void ElemToClient(_Inout_ D2D1_RECT_F& rc) const
 	{
 		OffsetRect(rc, m_rcfInClient.left, m_rcfInClient.top);
 	}
-
 	EckInline constexpr void ElemToClient(_Inout_ POINT& pt) const
 	{
 		pt.x += m_rcInClient.left;
 		pt.y += m_rcInClient.top;
 	}
-
 	EckInline constexpr void ElemToClient(_Inout_ D2D1_POINT_2F& pt) const
 	{
 		pt.x += m_rcfInClient.left;
@@ -452,8 +435,6 @@ public:
 	}
 #pragma endregion ElemTree
 #pragma region OthersProp
-	// 取标题
-	EckInline const CRefStrW& GetText() const { return m_rsText; }
 	// 置标题【不能在渲染线程调用】
 	EckInline void SetText(PCWSTR pszText, int cchText = -1)
 	{
@@ -463,9 +444,9 @@ public:
 		if (!CallEvent(WM_SETTEXT, cchText, (LPARAM)pszText))
 			m_rsText.DupString(pszText, cchText);
 	}
+	// 取标题
+	EckInlineNdCe const CRefStrW& GetText() const { return m_rsText; }
 
-	// 取样式
-	EckInline constexpr DWORD GetStyle() const { return m_dwStyle; }
 	// 置样式
 	void SetStyle(DWORD dwStyle)
 	{
@@ -474,6 +455,8 @@ public:
 		tcSetStyleWorker(dwStyle);
 		CallEvent(WM_STYLECHANGED, dwOldStyle, m_dwStyle);
 	}
+	// 取样式
+	EckInlineNdCe DWORD GetStyle() const { return m_dwStyle; }
 
 	// 置可见性
 	void SetVisible(BOOL b)
@@ -494,7 +477,7 @@ public:
 		InvalidateRect();
 	}
 	// 是否可见。函数自底向上遍历父元素，如果存在不可见父元素，则返回FALSE，否则返回TRUE。
-	EckInline constexpr BOOL IsVisible() const
+	EckInlineNdCe BOOL IsVisible() const
 	{
 		auto pParent = this;
 		while (pParent)
@@ -513,12 +496,12 @@ public:
 	EckInline void SetRedraw(BOOL bRedraw)
 	{
 		if (bRedraw)
-			SetStyle(GetStyle() & ~DES_DISALLOW_REDRAW);
+			SetStyle(GetStyle() & ~DES_NO_REDRAW);
 		else
-			SetStyle(GetStyle() | DES_DISALLOW_REDRAW);
+			SetStyle(GetStyle() | DES_NO_REDRAW);
 	}
 	// 是否允许重绘
-	EckInline constexpr BOOL GetRedraw() const { return !(GetStyle() & DES_DISALLOW_REDRAW); }
+	EckInlineNdCe BOOL GetRedraw() const { return !(GetStyle() & DES_NO_REDRAW); }
 
 	// 置文本格式【不能在渲染线程调用】
 	EckInline void SetTextFormat(IDWriteTextFormat* pTf)
@@ -532,12 +515,12 @@ public:
 		CallEvent(WM_SETFONT, 0, 0);
 	}
 	// 取文本格式
-	EckInline constexpr IDWriteTextFormat* GetTextFormat() const { return m_pTextFormat; }
+	EckInlineNdCe IDWriteTextFormat* GetTextFormat() const { return m_pTextFormat; }
 
 	// 置元素ID【不能在渲染线程调用】
 	EckInline constexpr void SetID(INT_PTR iId) { m_iId = iId; }
 	// 取元素ID
-	EckInline constexpr INT_PTR GetID() const { return m_iId; }
+	EckInlineNdCe INT_PTR GetID() const { return m_iId; }
 
 	// 置主题【不能在渲染线程调用】
 	EckInline void SetTheme(CThemeRealization* pTheme)
@@ -549,7 +532,22 @@ public:
 		CallEvent(WM_THEMECHANGED, 0, 0);
 	}
 	// 取主题
-	EckInline constexpr auto GetTheme() const { return m_pTheme; }
+	EckInlineNdCe auto GetTheme() const { return m_pTheme; }
+
+	// 置混合操作【不能在渲染线程调用】
+	EckInline void SetCompositor(CCompositor* pCompositor)
+	{
+		ECK_DUILOCK;
+		std::swap(m_pCompositor, pCompositor);
+		if (m_pCompositor)
+			m_pCompositor->AddRef();
+		if (pCompositor)
+			pCompositor->Release();
+		if (m_pCompositor)
+			SetStyle(GetStyle() | DES_CONTENT_EXPAND);
+	}
+	// 取混合操作
+	EckInlineNdCe CCompositor* GetCompositor() const { return m_pCompositor; }
 #pragma endregion OthersProp
 #pragma region ElemFunc
 	/// <summary>
@@ -602,34 +600,10 @@ public:
 	EckInline void KillTimer(UINT_PTR uId);
 #pragma endregion ElemFunc
 #pragma region Composite
-	// 取混合矩形，相对元素
-	EckInline constexpr const RECT& GetPostCompositedRect() const { return m_rcComp; }
-	// 取混合矩形，相对客户区
-	EckInline constexpr const RECT& GetPostCompositedRectInClient() const { return m_rcCompInClient; }
-	// 置混合矩形，相对元素
-	EckInline void SetPostCompositedRect(const RECT& rc)
-	{
-		ECK_DUILOCK;
-		m_rcComp = rc;
-		m_rcCompInClient = rc;
-		OffsetRect(m_rcCompInClient, m_rcInClient.left, m_rcInClient.top);
-	}
-
 	// 取完全包围元素的矩形，相对客户区
-	EckInline constexpr const RECT& GetWholeRectInClient() const
+	EckInlineNdCe const RECT& GetWholeRectInClient() const
 	{
-		return (((GetStyle() & DES_COMPOSITED) && !(GetStyle() & DES_INPLACE_COMP)) ?
-			GetPostCompositedRectInClient() :
-			GetRectInClient());
-	}
-
-	// 取混合位图
-	EckInline constexpr ID2D1Bitmap1* GetCacheBitmap() const;
-
-	// 是否需要坐标变换
-	EckInline BOOL IsNeedCoordinateTransform() const
-	{
-		return !!(GetStyle() & DES_COMPOSITED);
+		return GetCompositor() ? m_rcCompositedInClient : GetRectInClient();
 	}
 #pragma endregion Composite
 };
@@ -649,6 +623,7 @@ private:
 	CElem* m_pFirstChild{};	// 第一个子元素
 	CElem* m_pLastChild{};	// 最后一个子元素
 	std::vector<CElem*> m_vContentExpandElem{};	// 内容扩展元素列表
+	std::vector<RECT> m_vRcContentExpandElem{};	// 合并后的内容扩展元素的矩形，两两不相交
 	int m_cChildren{};		// 子元素数量，UIAccessible使用
 	//------UI系统------
 	PresentMode m_ePresentMode{ PresentMode::FlipSwapChain };	// 呈现模式
@@ -752,12 +727,11 @@ private:
 		ID2D1Bitmap1* pBitmap{};
 
 		BOOL bNeedComposite{};
-		COMP_INFO ci;
 		while (pElem)
 		{
 			const auto& rcElem = pElem->GetRectInClient();
 			if (const auto dwStyle = pElem->GetStyle();
-				!(dwStyle & DES_VISIBLE) || (dwStyle & (DES_DISALLOW_REDRAW | DES_EXTERNAL_CONTENT)) ||
+				!(dwStyle & DES_VISIBLE) || (dwStyle & (DES_NO_REDRAW | DES_EXTERNAL_CONTENT)) ||
 				IsRectEmpty(rcElem))
 				goto NextElem;
 			if (!IntersectRect(rcClip, rcElem, rc))
@@ -792,7 +766,7 @@ private:
 				pDC->SetTransform(D2D1::Matrix3x2F::Translation((float)ptOffset.x, (float)ptOffset.y));
 				bNeedComposite = FALSE;
 			}
-			else if (pElem->GetStyle() & DES_COMPOSITED)// 手动合成
+			else if (pElem->GetCompositor())// 手动合成
 			{
 				pDC->Flush();
 				pDC->GetTarget(&pOldTarget);
@@ -823,17 +797,19 @@ private:
 			else if (bNeedComposite)
 			{
 				const D2D1_RECT_F rcF{ 0.f,0.f,pElem->GetWidthF(),pElem->GetHeightF() };
+				RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
 				pDC->Flush();
 				pDC->SetTarget(pOldTarget);
 				pOldTarget->Release();
 				pDC->SetTransform(D2D1::Matrix3x2F::Translation(
 					pElem->GetRectInClientF().left + ox,
 					pElem->GetRectInClientF().top + oy));
-				ci.prc = &rcF;
-				ci.pElem = pElem;
-				ci.pBitmap = GetCacheBitmap();
-				pElem->CallEvent(EWM_COMPOSITE, (WPARAM)&ci, 0);
-				RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
+				COMP_RENDER_INFO cri;
+				cri.pElem = pElem;
+				cri.pDC = pDC;
+				cri.pBitmap = GetCacheBitmap();
+				cri.rcInvalid = rcClip;
+				pElem->GetCompositor()->PostRender(cri);
 			}
 			else
 				RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
@@ -1165,18 +1141,13 @@ public:
 			auto pElem = (m_pMouseCaptureElem ? m_pMouseCaptureElem : m_pCurrNcHitTestElem);
 			if (pElem)
 			{
-				if (pElem->IsNeedCoordinateTransform())
+				if (pElem->GetCompositor())
 				{
-					COMP_POS cp
-					{
-						.pElem = pElem,
-						.pt = pt,
-						.bNormalToComp = TRUE
-					};
-					pElem->ClientToElem(cp.pt);
-					pElem->CallEvent(EWM_COMP_POS, (WPARAM)&cp, 0);
-					pElem->ElemToClient(cp.pt);
-					pElem->CallEvent(uMsg, wParam, MAKELPARAM(cp.pt.x, cp.pt.y));
+					POINT pt0{ pt };
+					pElem->ClientToElem(pt0);
+					pElem->GetCompositor()->PtNormalToComposited(pElem, pt0);
+					pElem->ElemToClient(pt0);
+					pElem->CallEvent(uMsg, wParam, MAKELPARAM(pt0.x, pt0.y));
 				}
 				else
 					pElem->CallEvent(uMsg, wParam, MAKELPARAM(pt.x, pt.y));
@@ -2121,29 +2092,10 @@ inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_ERASEBKGND:
 	{
-		if (GetWnd()->IsElemUseDComp() || (GetStyle() & DES_COMPOSITED))
+		if (GetWnd()->IsElemUseDComp() || GetCompositor())
 			m_pDC->Clear({});
 	}
 	return TRUE;
-
-	case EWM_COMP_POS:
-	{
-		if (GetParentElem())
-			return GetParentElem()->CallEvent(uMsg, wParam, lParam);
-	}
-	return 0;
-	case EWM_COMPOSITE:
-	{
-		if (GetParentElem())
-			return GetParentElem()->CallEvent(uMsg, wParam, lParam);
-		else
-		{
-			EckAssert(GetStyle() & DES_COMPOSITED);
-			m_pDC->DrawBitmap(GetCacheBitmap(), (D2D1_RECT_F*)wParam,
-				1.f, D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
-		}
-	}
-	return 0;
 	}
 	return 0;
 }
@@ -2229,7 +2181,7 @@ EckInline LRESULT CElem::GenElemNotify(void* pnm)
 inline void CElem::InvalidateRect(const RECT& rc, BOOL bUpdateNow)
 {
 	ECK_DUILOCK;
-	if ((GetStyle() & DES_CONTENT_EXPAND))
+	if (GetStyle() & DES_CONTENT_EXPAND)
 		m_rcInvalid = GetWholeRectInClient();
 	else
 	{
@@ -2371,13 +2323,6 @@ inline constexpr void CElem::tcSetStyleWorker(DWORD dwStyle)
 {
 	if (dwStyle & DES_BLURBKG)
 		dwStyle |= (DES_TRANSPARENT | DES_CONTENT_EXPAND);
-	if (m_pParent && (m_pParent->GetStyle() & DES_COMPOSITED))
-		dwStyle |= DES_COMPOSITED;
-	if (!(m_dwStyle & DES_COMPOSITED) && (dwStyle & DES_COMPOSITED))
-	{
-		if (!(dwStyle & DES_INPLACE_COMP))
-			dwStyle |= DES_CONTENT_EXPAND;
-	}
 	const auto dwOld = m_dwStyle;
 	m_dwStyle = dwStyle;
 	if ((dwOld & DES_CONTENT_EXPAND) && !(m_dwStyle & DES_CONTENT_EXPAND))

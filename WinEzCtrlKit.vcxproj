@@ -210,6 +210,7 @@
     <ClInclude Include="eck\DDX.h" />
     <ClInclude Include="eck\DDXImpl.h" />
     <ClInclude Include="eck\DpiApi.h" />
+    <ClInclude Include="eck\DuiCompositor.h" />
     <ClInclude Include="eck\DuiDef.h" />
     <ClInclude Include="eck\DuiHelper.h" />
     <ClInclude Include="eck\DuiStdTheme.h" />
