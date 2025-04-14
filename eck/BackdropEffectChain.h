@@ -17,10 +17,10 @@ namespace becwucabi = ABI::Windows::UI::Composition;
 // https://github.com/Maplespe/DWMBlurGlass
 // ==============================================
 
-inline HRESULT BecCreateNoiceBrush(
+inline HRESULT BecCreateNoiseBrush(
 	const becwuc::Compositor& Compositor,
 	IWICBitmap* pBitmap,
-	becwuc::CompositionSurfaceBrush& NoiceBrush,
+	becwuc::CompositionSurfaceBrush& NoiseBrush,
 	ID2D1Device* pD2DDevice = nullptr)
 {
 	if (!pD2DDevice)
@@ -42,7 +42,7 @@ inline HRESULT BecCreateNoiceBrush(
 		wgdx::DirectXAlphaMode::Premultiplied) };
 	if (FAILED(hr))
 		return hr;
-	NoiceBrush = Compositor.CreateSurfaceBrush(Surface);
+	NoiseBrush = Compositor.CreateSurfaceBrush(Surface);
 	auto pSurfaceInterop{ Surface.as<becwucabi::ICompositionDrawingSurfaceInterop>() };
 	POINT ptOffset;
 	winrt::com_ptr<ID2D1DeviceContext> pDC;
@@ -62,8 +62,8 @@ inline HRESULT BecCreateNoiceBrush(
 	return hr;
 }
 
-inline HRESULT BecCreateNoiceBrush(const becwuc::Compositor& Compositor,
-	becwuc::CompositionSurfaceBrush& NoiceBrush)
+inline HRESULT BecCreateNoiseBrush(const becwuc::Compositor& Compositor,
+	becwuc::CompositionSurfaceBrush& NoiseBrush)
 {
 	const auto hModule = LoadLibraryExW(L"Windows.UI.Xaml.Controls.dll",
 		nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_AS_DATAFILE |
@@ -76,7 +76,7 @@ inline HRESULT BecCreateNoiceBrush(const becwuc::Compositor& Compositor,
 	auto hr = CreateWicBitmap(pBmp, pStream);
 	if (FAILED(hr))
 		return hr;
-	hr = BecCreateNoiceBrush(Compositor, pBmp, NoiceBrush);
+	hr = BecCreateNoiseBrush(Compositor, pBmp, NoiseBrush);
 	pBmp->Release();
 	pStream->LeaveRelease();
 	FreeLibrary(hModule);
@@ -265,12 +265,12 @@ EckInline void BecGetEffectiveColor(_Inout_ D2D1_COLOR_F& TintColor,
 
 struct CBecAcrylic
 {
-	constexpr static WCHAR NNoice[]{ L"Noice" };
+	constexpr static WCHAR NNoise[]{ L"Noise" };
 	constexpr static WCHAR NBackdrop[]{ L"Backdrop" };
 	/*
-	NoiceTexture--FxBorder--FxOpacity---------------------------+
+	NoiseTexture--FxBorder--FxOpacity---------------------------+
 																|
-	Backdrop--FxBlur----+                                       +--FxBlendNoice
+	Backdrop--FxBlur----+                                       +--FxBlendNoise
 						+--FxBlendLuminosity----+               |
 	FxFloodLuminosity---+                       +--FxBlendTint--+
 							FxFloodTint---------+
@@ -278,27 +278,27 @@ struct CBecAcrylic
 
 	winrt::com_ptr<CWrdiFxBorder> FxBorder{ winrt::make_self<CWrdiFxBorder>() };
 	winrt::com_ptr<CWrdiFxOpacity> FxOpacity{ winrt::make_self<CWrdiFxOpacity>() };
-	winrt::com_ptr<CWrdiFxBlend> FxBlendNoice{ winrt::make_self<CWrdiFxBlend>() };
+	winrt::com_ptr<CWrdiFxBlend> FxBlendNoise{ winrt::make_self<CWrdiFxBlend>() };
 	winrt::com_ptr<CWrdiFxGaussianBlur> FxBlur{ winrt::make_self<CWrdiFxGaussianBlur>() };
 	winrt::com_ptr<CWrdiFxBlend> FxBlendLuminosity{ winrt::make_self<CWrdiFxBlend>() };
 	winrt::com_ptr<CWrdiFxFlood> FxFloodLuminosity{ winrt::make_self<CWrdiFxFlood>() };
 	winrt::com_ptr<CWrdiFxBlend> FxBlendTint{ winrt::make_self<CWrdiFxBlend>() };
 	winrt::com_ptr<CWrdiFxFlood> FxFloodTint{ winrt::make_self<CWrdiFxFlood>() };
 
-	winrt::com_ptr<CWinRtD2DInteropFx> GetOutputEffect() const { return FxBlendNoice; }
+	winrt::com_ptr<CWinRtD2DInteropFx> GetOutputEffect() const { return FxBlendNoise; }
 
 	void Connect(
 		const D2D1_COLOR_F& TintColor,
 		const D2D1_COLOR_F& LuminosityColor,
 		float fStandardDeviation = 20.f,
-		float fNoiceOpacity = 0.02f)
+		float fNoiseOpacity = 0.02f)
 	{
-		FxBorder->SetInput(0, NNoice);
+		FxBorder->SetInput(0, NNoise);
 		FxBorder->SetValueT(D2D1_BORDER_PROP_EDGE_MODE_X, D2D1_BORDER_EDGE_MODE_WRAP);
 		FxBorder->SetValueT(D2D1_BORDER_PROP_EDGE_MODE_Y, D2D1_BORDER_EDGE_MODE_WRAP);
 
 		FxOpacity->SetInput(0, FxBorder.get());
-		FxOpacity->SetValueT(D2D1_OPACITY_PROP_OPACITY, fNoiceOpacity);
+		FxOpacity->SetValueT(D2D1_OPACITY_PROP_OPACITY, fNoiseOpacity);
 
 		FxBlur->SetInput(0, NBackdrop);
 		FxBlur->SetValueT(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, fStandardDeviation);
@@ -318,22 +318,22 @@ struct CBecAcrylic
 		FxBlendTint->SetInput(0, FxBlendLuminosity.get());
 		FxBlendTint->SetInput(1, FxFloodTint.get());
 
-		FxBlendNoice->SetValueT(D2D1_BLEND_PROP_MODE, D2D1_BLEND_MODE_MULTIPLY);
-		FxBlendNoice->SetInput(0, FxBlendTint.get());
-		FxBlendNoice->SetInput(1, FxOpacity.get());
+		FxBlendNoise->SetValueT(D2D1_BLEND_PROP_MODE, D2D1_BLEND_MODE_MULTIPLY);
+		FxBlendNoise->SetInput(0, FxBlendTint.get());
+		FxBlendNoise->SetInput(1, FxOpacity.get());
 	}
 
 	becwuc::CompositionEffectBrush CreateBrush(
 		const becwuc::Compositor& Compositor,
 		const becwuc::CompositionBrush& BackdropBrush,
-		const becwuc::CompositionBrush& NoiceBrush,
+		const becwuc::CompositionBrush& NoiseBrush,
 		becwuc::CompositionEffectFactory* pEffectFactory = nullptr) const
 	{
 		auto Factory{ Compositor.CreateEffectFactory(
 			GetOutputEffect().as<winrt::Windows::Graphics::Effects::IGraphicsEffect>()) };
 		auto Brush{ Factory.CreateBrush() };
 		Brush.SetSourceParameter(NBackdrop, BackdropBrush);
-		Brush.SetSourceParameter(NNoice, NoiceBrush);
+		Brush.SetSourceParameter(NNoise, NoiseBrush);
 		if (pEffectFactory)
 			*pEffectFactory = std::move(Factory);
 		return Brush;
@@ -342,12 +342,12 @@ struct CBecAcrylic
 
 struct CBecAcrylicLegacy
 {
-	constexpr static WCHAR NNoice[]{ L"Noice" };
+	constexpr static WCHAR NNoise[]{ L"Noise" };
 	constexpr static WCHAR NBackdrop[]{ L"Backdrop" };
 	/*
-	NoiceTexture--FxBorder--FxOpacity-----------------------------------+
+	NoiseTexture--FxBorder--FxOpacity-----------------------------------+
 																		|
-	Backdrop--FxBlur--FxSaturation--+                                   +--FxBlendNoice
+	Backdrop--FxBlur--FxSaturation--+                                   +--FxBlendNoise
 									+--FxBlendExclusion-+               |
 	FxFloodExclusion----------------+                   +--FxComposite--+
 										FxFloodTint-----+
@@ -355,7 +355,7 @@ struct CBecAcrylicLegacy
 
 	winrt::com_ptr<CWrdiFxBorder> FxBorder{ winrt::make_self<CWrdiFxBorder>() };
 	winrt::com_ptr<CWrdiFxOpacity> FxOpacity{ winrt::make_self<CWrdiFxOpacity>() };
-	winrt::com_ptr<CWrdiFxBlend> FxBlendNoice{ winrt::make_self<CWrdiFxBlend>() };
+	winrt::com_ptr<CWrdiFxBlend> FxBlendNoise{ winrt::make_self<CWrdiFxBlend>() };
 	winrt::com_ptr<CWrdiFxGaussianBlur> FxBlur{ winrt::make_self<CWrdiFxGaussianBlur>() };
 	winrt::com_ptr<CWrdiFxSaturation> FxSaturation{ winrt::make_self<CWrdiFxSaturation>() };
 	winrt::com_ptr<CWrdiFxBlend> FxBlendExclusion{ winrt::make_self<CWrdiFxBlend>() };
@@ -363,21 +363,21 @@ struct CBecAcrylicLegacy
 	winrt::com_ptr<CWrdiFxComposite> FxComposite{ winrt::make_self<CWrdiFxComposite>() };
 	winrt::com_ptr<CWrdiFxFlood> FxFloodTint{ winrt::make_self<CWrdiFxFlood>() };
 
-	winrt::com_ptr<CWinRtD2DInteropFx> GetOutputEffect() const { return FxBlendNoice; }
+	winrt::com_ptr<CWinRtD2DInteropFx> GetOutputEffect() const { return FxBlendNoise; }
 
 	void Connect(
 		const D2D1_COLOR_F& TintColor,
 		const D2D1_COLOR_F& ExclusionColor = { 1.f,1.f,1.f,0.1f },
 		float fStandardDeviation = 20.f,
-		float fNoiceOpacity = 0.02f,
+		float fNoiseOpacity = 0.02f,
 		float fSaturation = 1.25f)
 	{
-		FxBorder->SetInput(0, NNoice);
+		FxBorder->SetInput(0, NNoise);
 		FxBorder->SetValueT(D2D1_BORDER_PROP_EDGE_MODE_X, D2D1_BORDER_EDGE_MODE_WRAP);
 		FxBorder->SetValueT(D2D1_BORDER_PROP_EDGE_MODE_Y, D2D1_BORDER_EDGE_MODE_WRAP);
 
 		FxOpacity->SetInput(0, FxBorder.get());
-		FxOpacity->SetValueT(D2D1_OPACITY_PROP_OPACITY, fNoiceOpacity);
+		FxOpacity->SetValueT(D2D1_OPACITY_PROP_OPACITY, fNoiseOpacity);
 
 		FxBlur->SetInput(0, NBackdrop);
 		FxBlur->SetValueT(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, fStandardDeviation);
@@ -400,22 +400,22 @@ struct CBecAcrylicLegacy
 		FxComposite->SetInput(0, FxBlendExclusion.get());
 		FxComposite->SetInput(1, FxFloodTint.get());
 
-		FxBlendNoice->SetValueT(D2D1_BLEND_PROP_MODE, D2D1_BLEND_MODE_MULTIPLY);
-		FxBlendNoice->SetInput(0, FxComposite.get());
-		FxBlendNoice->SetInput(1, FxOpacity.get());
+		FxBlendNoise->SetValueT(D2D1_BLEND_PROP_MODE, D2D1_BLEND_MODE_MULTIPLY);
+		FxBlendNoise->SetInput(0, FxComposite.get());
+		FxBlendNoise->SetInput(1, FxOpacity.get());
 	}
 
 	becwuc::CompositionEffectBrush CreateBrush(
 		const becwuc::Compositor& Compositor,
 		const becwuc::CompositionBrush& BackdropBrush,
-		const becwuc::CompositionBrush& NoiceBrush,
+		const becwuc::CompositionBrush& NoiseBrush,
 		becwuc::CompositionEffectFactory* pEffectFactory = nullptr) const
 	{
 		auto Factory{ Compositor.CreateEffectFactory(
 			GetOutputEffect().as<winrt::Windows::Graphics::Effects::IGraphicsEffect>()) };
 		auto Brush{ Factory.CreateBrush() };
 		Brush.SetSourceParameter(NBackdrop, BackdropBrush);
-		Brush.SetSourceParameter(NNoice, NoiceBrush);
+		Brush.SetSourceParameter(NNoise, NoiseBrush);
 		if (pEffectFactory)
 			*pEffectFactory = std::move(Factory);
 		return Brush;
@@ -424,12 +424,12 @@ struct CBecAcrylicLegacy
 
 struct CBecMica
 {
-	constexpr static WCHAR NNoice[]{ L"Noice" };
+	constexpr static WCHAR NNoise[]{ L"Noise" };
 	constexpr static WCHAR NBlurredWallpaper[]{ L"BlurredWallpaper" };
 	/*
-	NoiceTexture--FxBorder--FxOpacity---------------------------+
+	NoiseTexture--FxBorder--FxOpacity---------------------------+
 																|
-	BlurredWallpaper----+                                       +--FxBlendNoice
+	BlurredWallpaper----+                                       +--FxBlendNoise
 						+--FxBlendLuminosity----+               |
 	FxFloodLuminosity---+                       +--FxBlendTint--+
 							FxFloodTint---------+
@@ -439,14 +439,14 @@ struct CBecMica
 
 	winrt::com_ptr<CWrdiFxBorder> FxBorder{ winrt::make_self<CWrdiFxBorder>() };
 	winrt::com_ptr<CWrdiFxOpacity> FxOpacity{ winrt::make_self<CWrdiFxOpacity>() };
-	winrt::com_ptr<CWrdiFxBlend> FxBlendNoice{ winrt::make_self<CWrdiFxBlend>() };
+	winrt::com_ptr<CWrdiFxBlend> FxBlendNoise{ winrt::make_self<CWrdiFxBlend>() };
 	winrt::com_ptr<CWrdiFxBlend> FxBlendLuminosity{ winrt::make_self<CWrdiFxBlend>() };
 	winrt::com_ptr<CWrdiFxFlood> FxFloodLuminosity{ winrt::make_self<CWrdiFxFlood>() };
 	winrt::com_ptr<CWrdiFxBlend> FxBlendTint{ winrt::make_self<CWrdiFxBlend>() };
 	winrt::com_ptr<CWrdiFxFlood> FxFloodTint{ winrt::make_self<CWrdiFxFlood>() };
 	winrt::com_ptr<CWrdiFxColorMatrix> FxColorMatrix{ winrt::make_self<CWrdiFxColorMatrix>() };
 
-	winrt::com_ptr<CWinRtD2DInteropFx> GetOutputEffect() const { return FxBlendNoice; }
+	winrt::com_ptr<CWinRtD2DInteropFx> GetOutputEffect() const { return FxBlendNoise; }
 
 	void Connect(
 		const D2D1_COLOR_F& TintColor,
@@ -455,14 +455,14 @@ struct CBecMica
 		float fBrightness = 0.4f,
 		float fSaturation = 5.f,
 		float fContrast = 0.f,
-		float fNoiceOpacity = 0.02f)
+		float fNoiseOpacity = 0.02f)
 	{
-		FxBorder->SetInput(0, NNoice);
+		FxBorder->SetInput(0, NNoise);
 		FxBorder->SetValueT(D2D1_BORDER_PROP_EDGE_MODE_X, D2D1_BORDER_EDGE_MODE_WRAP);
 		FxBorder->SetValueT(D2D1_BORDER_PROP_EDGE_MODE_Y, D2D1_BORDER_EDGE_MODE_WRAP);
 
 		FxOpacity->SetInput(0, FxBorder.get());
-		FxOpacity->SetValueT(D2D1_OPACITY_PROP_OPACITY, fNoiceOpacity);
+		FxOpacity->SetValueT(D2D1_OPACITY_PROP_OPACITY, fNoiseOpacity);
 
 		FxFloodLuminosity->SetValueT(D2D1_FLOOD_PROP_COLOR, LuminosityColor);
 
@@ -498,22 +498,22 @@ struct CBecMica
 		FxBlendTint->SetInput(0, FxBlendLuminosity.get());
 		FxBlendTint->SetInput(1, FxFloodTint.get());
 
-		FxBlendNoice->SetValueT(D2D1_BLEND_PROP_MODE, D2D1_BLEND_MODE_MULTIPLY);
-		FxBlendNoice->SetInput(0, FxBlendTint.get());
-		FxBlendNoice->SetInput(1, FxOpacity.get());
+		FxBlendNoise->SetValueT(D2D1_BLEND_PROP_MODE, D2D1_BLEND_MODE_MULTIPLY);
+		FxBlendNoise->SetInput(0, FxBlendTint.get());
+		FxBlendNoise->SetInput(1, FxOpacity.get());
 	}
 
 	becwuc::CompositionEffectBrush CreateBrush(
 		const becwuc::Compositor& Compositor,
 		const becwuc::CompositionBrush& BlurredWallpaperBrush,
-		const becwuc::CompositionBrush& NoiceBrush,
+		const becwuc::CompositionBrush& NoiseBrush,
 		becwuc::CompositionEffectFactory* pEffectFactory = nullptr) const
 	{
 		auto Factory{ Compositor.CreateEffectFactory(
 			GetOutputEffect().as<winrt::Windows::Graphics::Effects::IGraphicsEffect>()) };
 		auto Brush{ Factory.CreateBrush() };
 		Brush.SetSourceParameter(NBlurredWallpaper, BlurredWallpaperBrush);
-		Brush.SetSourceParameter(NNoice, NoiceBrush);
+		Brush.SetSourceParameter(NNoise, NoiseBrush);
 		if (pEffectFactory)
 			*pEffectFactory = std::move(Factory);
 		return Brush;
@@ -522,16 +522,16 @@ struct CBecMica
 
 struct CBecAero
 {
-	constexpr static WCHAR NBluredBackdrop[]{ L"Blured" };
+	constexpr static WCHAR NBlurredBackdrop[]{ L"Blurred" };
 	/*
-	BluredBackdrop = Backdrop--FxBlur
+	BlurredBackdrop = Backdrop--FxBlur
 
 	FxFloodFallback-----------------+
 									+--FxCompositeNoTrans--FxTintGlow
-	BluredBackdrop--FxSaturation----+                          |
-	BluredBackdrop--FxTint------+                              |
+	BlurredBackdrop--FxSaturation---+                          |
+	BlurredBackdrop--FxTint-----+                              |
 								+--FxComposite---------+       |
-	BluredBackdrop--FxOpacity---+                      |       |
+	BlurredBackdrop--FxOpacity--+                      |       |
 													FxCompositeGlow
 															|
 								+---<<<---------------------+
@@ -558,7 +558,7 @@ struct CBecAero
 		const D2D1_COLOR_F& GlowColor,
 		float fBlurOpacity = 0.49f)
 	{
-		FxSaturation->SetInput(0, NBluredBackdrop);
+		FxSaturation->SetInput(0, NBlurredBackdrop);
 		FxSaturation->SetValueT(D2D1_SATURATION_PROP_SATURATION, 0.f);
 
 		const D2D1_COLOR_F FallbackColor
@@ -579,11 +579,11 @@ struct CBecAero
 		FxTintGlow->SetValueT(D2D1_TINT_PROP_COLOR, GlowColor);
 		FxTintGlow->SetValueT(D2D1_TINT_PROP_CLAMP_OUTPUT, false);
 		//---
-		FxTint->SetInput(0, NBluredBackdrop);
+		FxTint->SetInput(0, NBlurredBackdrop);
 		FxTint->SetValueT(D2D1_TINT_PROP_COLOR, D2D1_COLOR_F{ .a = 1.f });
 		FxTint->SetValueT(D2D1_TINT_PROP_CLAMP_OUTPUT, false);
 
-		FxOpacity->SetInput(0, NBluredBackdrop);
+		FxOpacity->SetInput(0, NBlurredBackdrop);
 		FxOpacity->SetValueT(D2D1_OPACITY_PROP_OPACITY, fBlurOpacity);
 
 		FxComposite->SetInput(0, FxTint.get());
@@ -617,13 +617,13 @@ struct CBecAero
 
 	becwuc::CompositionEffectBrush CreateBrush(
 		const becwuc::Compositor& Compositor,
-		const becwuc::CompositionBrush& BluredBackdropBrush,
+		const becwuc::CompositionBrush& BlurredBackdropBrush,
 		becwuc::CompositionEffectFactory* pEffectFactory = nullptr) const
 	{
 		auto Factory{ Compositor.CreateEffectFactory(
 			GetOutputEffect().as<winrt::Windows::Graphics::Effects::IGraphicsEffect>()) };
 		auto Brush{ Factory.CreateBrush() };
-		Brush.SetSourceParameter(NBluredBackdrop, BluredBackdropBrush);
+		Brush.SetSourceParameter(NBlurredBackdrop, BlurredBackdropBrush);
 		if (pEffectFactory)
 			*pEffectFactory = std::move(Factory);
 		return Brush;

@@ -12,15 +12,21 @@ class CElem;
 // 元素样式
 enum
 {
-	DES_BLURBKG = (1u << 0),		// 模糊背景
-	DES_DISABLE = (1u << 1),		// 已禁用
-	DES_VISIBLE = (1u << 2),		// 可见
-	DES_TRANSPARENT = (1u << 3),	// 背景透明，该样式无效果，保留供将来使用，但若元素透明则必须设置
-	DES_CONTENT_EXPAND = (1u << 4),	// 更新时必须更新整个元素，若设置了DES_BLURBKG，则强制设置此标志
-	DES_COMPOSITED = (1u << 5),		// 渲染到独立的图面，然后与主图面混合
-	DES_INPLACE_COMP = (1u << 6),	// 混合矩形完全包含在元素矩形中
-	DES_EXTERNAL_CONTENT = (1u << 7),// 使用某外部图面作为DComp视觉对象的内容
-	DES_DISALLOW_REDRAW = (1u << 8),// 不允许重绘
+	DES_BLURBKG = (1u << 0),	// 模糊背景
+	DES_DISABLE = (1u << 1),	// 已禁用
+	DES_VISIBLE = (1u << 2),	// 可见
+	DES_TRANSPARENT = (1u << 3),// 保留，当前无效
+	// 元素的内容受周边其他内容影响，若无效区域与元素相交，
+	// 则必须更新整个元素，设置时DES_BLURBKG强制设置此样式
+	DES_CONTENT_EXPAND = (1u << 4),	
+	// 元素的内容受周边其他内容影响，确定更新区域时DUI系统发送
+	// EWM_QUERY_EXPAND_RECT以获取扩展矩形
+	DES_CONTENT_EXPAND_RECT = (1u << 5),
+	// DUI系统应当检查当前元素的祖元素，因为它们可能设置了混合器
+	DES_PARENT_COMP = (1u << 6),
+	// [AllDComp]使用某外部图面作为DComp视觉对象的内容
+	DES_EXTERNAL_CONTENT = (1u << 7),
+	DES_NO_REDRAW = (1u << 8),	// 不允许重绘
 };
 
 // 元素产生的通知
@@ -72,6 +78,7 @@ enum
 	RE_POSTRENDER,		// 渲染完毕
 	RE_COMMIT,			// DUI系统认为有必要冲洗一切挂起的工作
 };
+
 // 渲染事件结构
 struct RENDER_EVENT
 {
@@ -88,22 +95,6 @@ struct DRAGDROPINFO
 	HRESULT hr;
 };
 
-// 元素混合信息
-struct COMP_INFO
-{
-	CElem* pElem;			// 正操作的元素
-	const D2D1_RECT_F* prc;	// 混合到的矩形，相对pElem
-	ID2D1Bitmap1* pBitmap;	// 已渲染完毕的位图
-};
-
-// 元素混合坐标变换信息
-struct COMP_POS
-{
-	CElem* pElem;
-	POINT pt;		// 相对pElem
-	BOOL bNormalToComp;
-};
-
 // 事件
 enum
 {
@@ -113,9 +104,8 @@ enum
 	WM_DRAGLEAVE,
 	WM_DROP,
 
-	EWM_COLORSCHEMECHANGED,// 颜色主题改变 (BOOL 是否为暗色, 0)
-	EWM_COMPOSITE,	// 指示手动混合元素执行混合，(COMP_INFO*, 0)
-	EWM_COMP_POS,	// 指示手动混合元素执行坐标变换，(COMP_POS*, 0)
+	EWM_COLORSCHEMECHANGED,	// 颜色主题改变 (BOOL 是否为暗色, 0)
+	EWM_QUERY_EXPAND_RECT,	// 查询扩展矩形 (_Out_ RECT* prc, 0)
 
 	EWM_PRIVBEGIN,
 };
