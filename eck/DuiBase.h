@@ -65,7 +65,7 @@ protected:
 	ID2D1DeviceContext* m_pDC{};		// DC
 	union// DComp和手动混合只能选其一
 	{
-		void* PRIV_Dummy[3]{};
+		void* PRIV_Dummy[4]{};
 		struct
 		{
 			IDCompositionVisual* m_pDcVisual;	// DComp视觉对象
@@ -76,6 +76,12 @@ protected:
 		{
 			RECT m_rcCompositedInClient;// 缓存已混合的元素矩形，至少完全包含原始元素矩形相对客户区
 			CCompositor* m_pCompositor;	// 混合操作
+			union
+			{
+				ID2D1Bitmap1* m_pCompCachedBitmap;		// 内容渲染到的位图
+				// 内容渲染到的缓存表面，设置DES_OWNER_COMP_CACHE时有效
+				CCompCacheSurface* m_pCompCacheSurface;
+			};
 		};
 	};
 	//------位置，均为DPI虚拟化坐标------
@@ -83,8 +89,6 @@ protected:
 	D2D1_RECT_F m_rcf{};				// 元素矩形，相对父元素
 	RECT m_rcInClient{};				// 元素矩形，相对客户区
 	D2D1_RECT_F m_rcfInClient{};		// 元素矩形，相对客户区
-
-	RECT m_rcInvalid{};					// 无效矩形，相对客户区
 	//------属性------
 	CRefStrW m_rsText{};				// 标题
 	INT_PTR m_iId{};					// 元素ID
@@ -176,6 +180,8 @@ public:
 	// 调用事件处理
 	EckInline LRESULT CallEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
+		if (GetCompositor() && uMsg == WM_DPICHANGED)
+			CompInvalidateCacheBitmap();
 		SlotCtx Ctx{};
 		const auto r = m_Sig.Emit2(Ctx, uMsg, wParam, lParam);
 		if (Ctx.IsProcessed())
@@ -373,11 +379,10 @@ public:
 			if (pElem->GetStyle() & DES_VISIBLE)
 			{
 				pt0 = pt;
-				const auto pCompositor = pElem->GetCoordinateTransformer(pAncestor);
-				if (pCompositor)
+				if (pElem->CompIsNeedCoordinateTransform())
 				{
 					pElem->ClientToElem(pt0);
-					pCompositor->PtNormalToComposited(pElem, pt0, pAncestor);
+					pElem->CompTransformCoordinate(pt0, TRUE);
 					pElem->ElemToClient(pt0);
 				}
 				if (PtInRect(pElem->GetRectInClient(), pt0))
@@ -544,18 +549,22 @@ public:
 	EckInlineNdCe auto GetTheme() const { return m_pTheme; }
 
 	// 置混合操作【不能在渲染线程调用】
-	EckInline void SetCompositor(CCompositor* pCompositor)
+	void SetCompositor(CCompositor* pCompositor)
 	{
 		ECK_DUILOCK;
+		if (m_pCompositor == pCompositor)
+			return;
 		std::swap(m_pCompositor, pCompositor);
 		if (m_pCompositor)
 			m_pCompositor->AddRef();
 		if (pCompositor)
 			pCompositor->Release();
+		if (GetStyle() & DES_OWNER_COMP_CACHE)
+			CompInvalidateCacheBitmap();
 		if (m_pCompositor)
 		{
 			SetStyle(GetStyle() | DES_CONTENT_EXPAND);
-			ReCalcCompositedRect();
+			CompReCalcCompositedRect();
 		}
 	}
 	// 取混合操作
@@ -600,7 +609,7 @@ public:
 
 	// 捕获鼠标【不能在渲染线程调用】
 	EckInline CElem* SetCapture();
-	// 释放鼠标
+	// 释放鼠标【不能在渲染线程调用】
 	EckInline void ReleaseCapture();
 
 	// 置焦点【不能在渲染线程调用】
@@ -619,7 +628,7 @@ public:
 			m_rcCompositedInClient : GetRectInClient();
 	}
 
-	EckInlineNdCe CElem* GetFirstCompositedAncestor() const
+	EckInlineNdCe CElem* CompGetFirstCompositedAncestor() const
 	{
 		if (GetStyle() & DES_PARENT_COMP)
 		{
@@ -631,7 +640,7 @@ public:
 		return nullptr;
 	}
 
-	EckInline void ReCalcCompositedRect()
+	EckInline void CompReCalcCompositedRect()
 	{
 		ECK_DUILOCK;
 		if (!GetCompositor()->IsInPlace())
@@ -644,24 +653,80 @@ public:
 		}
 	}
 
-	_Success_(return != nullptr)
-		[[nodiscard]] constexpr CCompositor* GetCoordinateTransformer(
-			_Out_ CElem*& pFirstCompositedAncestor) const
+	EckInlineNdCe BOOL CompIsNeedCoordinateTransform() const
 	{
-		if (GetCompositor())
+		return GetCompositor() || (GetStyle() & DES_PARENT_COMP);
+	}
+
+	void CompTransformCoordinate(_Inout_ POINT& pt, BOOL bNormalToComposited)
+	{
+		if (GetCompositor() && !(GetStyle() & DES_PARENT_COMP))// OPTIMIZATION
 		{
-			pFirstCompositedAncestor = nullptr;
-			return GetCompositor();
-		}
-		else if (GetStyle() & DES_PARENT_COMP)
-		{
-			pFirstCompositedAncestor = GetFirstCompositedAncestor();
-			if (pFirstCompositedAncestor)
-				return pFirstCompositedAncestor->GetCompositor();
+			if (bNormalToComposited)
+				GetCompositor()->PtNormalToComposited(this, pt);
 			else
-				return nullptr;
+				GetCompositor()->PtCompositedToNormal(this, pt);
+			return;
 		}
-		return nullptr;
+		CElem* pTrans[16]{};
+		auto pp = pTrans;
+		auto pElem{ this };
+		do
+		{
+			const auto pCompositor = pElem->GetCompositor();
+			if (pCompositor)
+			{
+				*pp++ = pElem;
+				if (!(pElem->GetStyle() & DES_PARENT_COMP))
+					break;
+				pElem = pElem->GetParentElem();
+			}
+			else if (pElem->GetStyle() & DES_PARENT_COMP)
+			{
+				const auto pAncestor = pElem->CompGetFirstCompositedAncestor();
+				if (pAncestor)
+				{
+					*pp++ = pAncestor;
+					pElem = pAncestor->GetParentElem();
+				}
+				else
+					break;
+			}
+			else
+				break;
+		} while (pElem);
+
+		ElemToClient(pt);
+		--pp;
+		for (; pp >= pTrans; --pp)
+		{
+			pElem = *pp;
+			const auto pCompositor = pElem->GetCompositor();
+			if (pCompositor)
+			{
+				pElem->ClientToElem(pt);
+				if (bNormalToComposited)
+					pCompositor->PtNormalToComposited(pElem, pt);
+				else
+					pCompositor->PtCompositedToNormal(pElem, pt);
+				pElem->ElemToClient(pt);
+			}
+			else if (pElem->GetStyle() & DES_PARENT_COMP)
+			{
+				const auto pAncestor = pElem->CompGetFirstCompositedAncestor();
+				pAncestor->ClientToElem(pt);
+				pAncestor->CompTransformCoordinate(pt, bNormalToComposited);
+				pAncestor->ElemToClient(pt);
+			}
+		}
+		ClientToElem(pt);
+	}
+
+	inline HRESULT CompUpdateCacheBitmap(int cx, int cy);
+
+	EckInline void CompInvalidateCacheBitmap()
+	{
+		SafeRelease(m_pCompCachedBitmap);
 	}
 #pragma endregion Composite
 };
@@ -722,7 +787,7 @@ private:
 		ID2D1HwndRenderTarget* m_pRtHwnd;		// 窗口渲染目标，仅当呈现模式为窗口渲染目标时有效
 	};
 
-	ID2D1Bitmap1* m_pBmpCache{};	// 缓存位图，模糊或独立混合等可在其上进行
+	ID2D1Bitmap1* m_pBmpCache{};	// 缓存位图
 	int m_cxCache{};				// 缓存位图宽度
 	int m_cyCache{};				// 缓存位图高度
 
@@ -825,11 +890,20 @@ private:
 			{
 				pDC->Flush();
 				pDC->GetTarget(&pOldTarget);
-				CacheReserve(
-					Log2Phy(rcElem.right - rcElem.left),
-					Log2Phy(rcElem.bottom - rcElem.top));
-				pDC->SetTarget(GetCacheBitmap());
-				pDC->SetTransform(D2D1::Matrix3x2F::Identity());
+				pElem->CompUpdateCacheBitmap(rcElem.right - rcElem.left,
+					rcElem.bottom - rcElem.top);
+				if (pElem->GetStyle() & DES_OWNER_COMP_CACHE)
+				{
+					pDC->SetTarget(pElem->m_pCompCacheSurface->GetBitmap());
+					const auto& rcValid = pElem->m_pCompCacheSurface->GetValidRect();
+					pDC->SetTransform(D2D1::Matrix3x2F::Translation(
+						rcValid.left, rcValid.top));
+				}
+				else
+				{
+					pDC->SetTarget(pElem->m_pCompCachedBitmap);
+					pDC->SetTransform(D2D1::Matrix3x2F::Identity());
+				}
 			}
 			else// 直接渲染
 			{
@@ -860,9 +934,17 @@ private:
 				COMP_RENDER_INFO cri;
 				cri.pElem = pElem;
 				cri.pDC = pDC;
-				cri.pBitmap = GetCacheBitmap();
 				cri.rcInvalid = rcClip;
-				cri.rcSrc = { 0.f,0.f,pElem->GetWidthF(),pElem->GetHeightF() };
+				if (pElem->GetStyle() & DES_OWNER_COMP_CACHE)
+				{
+					cri.pBitmap = pElem->m_pCompCacheSurface->GetBitmap();
+					cri.rcSrc = pElem->m_pCompCacheSurface->GetValidRect();
+				}
+				else
+				{
+					cri.pBitmap = pElem->m_pCompCachedBitmap;
+					cri.rcSrc = { 0.f,0.f,pElem->GetWidthF(),pElem->GetHeightF() };
+				}
 				pElem->GetCompositor()->PostRender(cri);
 #ifdef _DEBUG
 				ID2D1SolidColorBrush* pBr{};
@@ -876,6 +958,10 @@ private:
 					pBr->SetColor(D2D1::ColorF(D2D1::ColorF::Green));
 					rcComp = MakeD2DRcF(pElem->m_rcRealCompositedInClient);
 					pElem->ClientToElem(rcComp);
+					pDC->DrawRectangle(rcComp, pBr);
+
+					pBr->SetColor(D2D1::ColorF(D2D1::ColorF::Orange));
+					rcComp = { 0.f,0.f,pElem->GetWidthF(),pElem->GetHeightF() };
 					pDC->DrawRectangle(rcComp, pBr);
 					pBr->Release();
 				}
@@ -1211,13 +1297,11 @@ public:
 			auto pElem = (m_pMouseCaptureElem ? m_pMouseCaptureElem : m_pCurrNcHitTestElem);
 			if (pElem)
 			{
-				CElem* pAncestor;
-				const auto pCompositor = pElem->GetCoordinateTransformer(pAncestor);
-				if (pCompositor)
+				if (pElem->CompIsNeedCoordinateTransform())
 				{
 					POINT pt0{ pt };
 					pElem->ClientToElem(pt0);
-					pCompositor->PtNormalToComposited(pElem, pt0, pAncestor);
+					pElem->CompTransformCoordinate(pt0, TRUE);
 					pElem->ElemToClient(pt0);
 					pElem->CallEvent(uMsg, wParam, MAKELPARAM(pt0.x, pt0.y));
 				}
@@ -2010,7 +2094,7 @@ public:
 	EckInlineCe void BlurSetDeviation(float fDeviation) noexcept { m_fBlurDeviation = fDeviation; }
 	EckInlineNdCe float BlurGetDeviation() const noexcept { return m_fBlurDeviation; }
 
-	HRESULT BmpNew(int cxPhy, int cyPhy, ID2D1Bitmap1*& pBmp)
+	HRESULT BmpNew(int cxPhy, int cyPhy, _Out_ ID2D1Bitmap1*& pBmp)
 	{
 		const D2D1_BITMAP_PROPERTIES1 Prop
 		{
@@ -2023,7 +2107,7 @@ public:
 			nullptr, 0, Prop, &pBmp);
 	}
 
-	HRESULT BmpNewLogSize(float cx, float cy, ID2D1Bitmap1*& pBmp)
+	HRESULT BmpNewLogSize(float cx, float cy, _Out_ ID2D1Bitmap1*& pBmp)
 	{
 		return BmpNew((int)ceilf(Log2PhyF(cx)), (int)ceilf(Log2PhyF(cy)), pBmp);
 	}
@@ -2171,7 +2255,7 @@ inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_SIZE:
 		if (GetCompositor())
-			ReCalcCompositedRect();
+			CompReCalcCompositedRect();
 		break;
 	}
 	return 0;
@@ -2258,20 +2342,19 @@ EckInline LRESULT CElem::GenElemNotify(void* pnm)
 inline void CElem::InvalidateRect(const RECT& rc, BOOL bUpdateNow)
 {
 	ECK_DUILOCK;
+	RECT rcTemp;
 	if (GetStyle() & DES_CONTENT_EXPAND)
-		m_rcInvalid = GetWholeRectInClient();
+		rcTemp = GetWholeRectInClient();
 	else
 	{
-		UnionRect(m_rcInvalid, m_rcInvalid, rc);
-		IntersectRect(m_rcInvalid, m_rcInvalid, GetWholeRectInClient());// 裁剪到元素矩形
+		rcTemp = rc;
+		IntersectRect(rcTemp, rcTemp, GetWholeRectInClient());// 裁剪到元素矩形
 	}
-
-	if (IsRectEmpty(m_rcInvalid))
+	if (IsRectEmpty(rcTemp))
 		return;
-	RECT rcReal{ m_rcInvalid };
-	tcIrpUnionContentExpandElemRect(rcReal);
+	tcIrpUnionContentExpandElemRect(rcTemp);
 
-	GetWnd()->IrUnion(rcReal);
+	GetWnd()->IrUnion(rcTemp);
 	if (bUpdateNow)
 		GetWnd()->WakeRenderThread();
 }
@@ -2280,7 +2363,6 @@ inline void CElem::BeginPaint(_Out_ ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lP
 {
 	eps.prcClip = (const RECT*)lParam;
 	eps.rcfClip = MakeD2DRcF(*eps.prcClip);
-	m_rcInvalid = {};
 
 	eps.rcfClipInElem = MakeD2DRcF(*eps.prcClip);
 	ClientToElem(eps.rcfClipInElem);
@@ -2402,6 +2484,7 @@ inline constexpr void CElem::tcSetStyleWorker(DWORD dwStyle)
 		dwStyle |= (DES_TRANSPARENT | DES_CONTENT_EXPAND);
 	const auto dwOld = m_dwStyle;
 	m_dwStyle = dwStyle;
+	// 检查DES_CONTENT_EXPAND变动
 	if ((dwOld & DES_CONTENT_EXPAND) && !(m_dwStyle & DES_CONTENT_EXPAND))
 	{
 		auto& v = GetWnd()->m_vContentExpandElem;
@@ -2427,6 +2510,37 @@ inline constexpr void CElem::tcSetStyleWorker(DWORD dwStyle)
 		EckAssert(std::find(v.begin(), v.end(), this) == v.end());
 		v.emplace_back(this);
 	}
+	// 检查DES_OWNER_COMP_CACHE变动
+	if (((dwOld ^ m_dwStyle) & DES_OWNER_COMP_CACHE) && GetCompositor())
+		CompInvalidateCacheBitmap();
+}
+
+inline HRESULT CElem::CompUpdateCacheBitmap(int cx, int cy)
+{
+	if (m_pCompCachedBitmap)
+		return S_FALSE;
+	cx = (int)ceilf(Log2PhyF(cx));
+	cy = (int)ceilf(Log2PhyF(cy));
+	if (GetStyle() & DES_OWNER_COMP_CACHE)
+	{
+		if (FAILED(GetCompositor()->CreateCacheBitmap(
+			cx, cy, m_pCompCacheSurface)))
+		{
+			CREATE_CACHE_BITMAP_INFO ccbi;
+			ccbi.cxPhy = cx;
+			ccbi.cyPhy = cy;
+			ccbi.hr = E_NOTIMPL;
+			const auto pNotifyElem = GetParentElem() ?
+				GetParentElem() : this;
+			if (pNotifyElem->CallEvent(
+				EWM_CREATE_CACHE_BITMAP, (WPARAM)&ccbi, 0))
+				m_pCompCacheSurface = ccbi.pCacheSurface;
+			return ccbi.hr;
+		}
+	}
+	else
+		GetWnd()->BmpNewLogSize(cx, cy, m_pCompCachedBitmap);
+	return S_OK;
 }
 
 EckInline CElem* CElem::SetCapture() { return GetWnd()->ElemSetCapture(this); }
