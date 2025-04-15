@@ -118,6 +118,7 @@ public:
 					m_pLayout, m_pBrush, DrawTextLayoutFlags);
 			}
 
+			ECK_DUI_DBG_DRAW_FRAME;
 			EndPaint(ps);
 		}
 		return 0;

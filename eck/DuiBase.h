@@ -74,7 +74,7 @@ protected:
 		};
 		struct
 		{
-			RECT m_rcCompositedInClient;// 缓存已混合的元素矩形，相对客户区
+			RECT m_rcCompositedInClient;// 缓存已混合的元素矩形，至少完全包含原始元素矩形相对客户区
 			CCompositor* m_pCompositor;	// 混合操作
 		};
 	};
@@ -92,6 +92,9 @@ protected:
 	IDWriteTextFormat* m_pTextFormat{};	// 文本格式
 	DWORD m_dwStyle{};					// 样式
 	int m_cChildren{};					// 子元素数量
+#ifdef _DEBUG
+	RECT m_rcRealCompositedInClient{};	// 实际计算得到的混合矩形
+#endif
 
 
 	BOOL IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
@@ -364,13 +367,19 @@ public:
 	static CElem* ElemFromPoint(CElem* pElem, POINT pt, _Out_opt_ LRESULT* pResult = nullptr)
 	{
 		POINT pt0;
+		CElem* pAncestor;
 		while (pElem)
 		{
 			if (pElem->GetStyle() & DES_VISIBLE)
 			{
 				pt0 = pt;
-				if (const auto pComp = pElem->GetCompositor(); pComp)
-					pComp->PtCompositedToNormal(pElem, pt0);
+				const auto pCompositor = pElem->GetCoordinateTransformer(pAncestor);
+				if (pCompositor)
+				{
+					pElem->ClientToElem(pt0);
+					pCompositor->PtNormalToComposited(pElem, pt0, pAncestor);
+					pElem->ElemToClient(pt0);
+				}
 				if (PtInRect(pElem->GetRectInClient(), pt0))
 				{
 					const auto pHit = pElem->ElemFromPoint(pt, pResult);
@@ -544,7 +553,10 @@ public:
 		if (pCompositor)
 			pCompositor->Release();
 		if (m_pCompositor)
+		{
 			SetStyle(GetStyle() | DES_CONTENT_EXPAND);
+			ReCalcCompositedRect();
+		}
 	}
 	// 取混合操作
 	EckInlineNdCe CCompositor* GetCompositor() const { return m_pCompositor; }
@@ -603,7 +615,53 @@ public:
 	// 取完全包围元素的矩形，相对客户区
 	EckInlineNdCe const RECT& GetWholeRectInClient() const
 	{
-		return GetCompositor() ? m_rcCompositedInClient : GetRectInClient();
+		return GetCompositor() && !GetCompositor()->IsInPlace() ?
+			m_rcCompositedInClient : GetRectInClient();
+	}
+
+	EckInlineNdCe CElem* GetFirstCompositedAncestor() const
+	{
+		if (GetStyle() & DES_PARENT_COMP)
+		{
+			auto pParent = GetParentElem();
+			while (pParent && !pParent->GetCompositor())
+				pParent = pParent->GetParentElem();
+			return pParent;
+		}
+		return nullptr;
+	}
+
+	EckInline void ReCalcCompositedRect()
+	{
+		ECK_DUILOCK;
+		if (!GetCompositor()->IsInPlace())
+		{
+			GetCompositor()->CalcCompositedRect(this, m_rcCompositedInClient, TRUE);
+#ifdef _DEBUG
+			m_rcRealCompositedInClient = m_rcCompositedInClient;
+#endif
+			UnionRect(m_rcCompositedInClient, m_rcCompositedInClient, m_rcInClient);
+		}
+	}
+
+	_Success_(return != nullptr)
+		[[nodiscard]] constexpr CCompositor* GetCoordinateTransformer(
+			_Out_ CElem*& pFirstCompositedAncestor) const
+	{
+		if (GetCompositor())
+		{
+			pFirstCompositedAncestor = nullptr;
+			return GetCompositor();
+		}
+		else if (GetStyle() & DES_PARENT_COMP)
+		{
+			pFirstCompositedAncestor = GetFirstCompositedAncestor();
+			if (pFirstCompositedAncestor)
+				return pFirstCompositedAncestor->GetCompositor();
+			else
+				return nullptr;
+		}
+		return nullptr;
 	}
 #pragma endregion Composite
 };
@@ -715,8 +773,8 @@ private:
 	/// </summary>
 	/// <param name="pElem">起始元素</param>
 	/// <param name="rc">重画区域，逻辑坐标</param>
-	/// <param name="ox">X偏移，仅用于DComp</param>
-	/// <param name="oy">Y偏移，仅用于DComp</param>
+	/// <param name="ox">X偏移</param>
+	/// <param name="oy">Y偏移</param>
 	void RedrawElem(CElem* pElem, const RECT& rc, float ox, float oy)
 	{
 		const auto pDC = m_D2d.GetDC();
@@ -725,8 +783,6 @@ private:
 
 		IDXGISurface1* pDxgiSurface{};
 		ID2D1Bitmap1* pBitmap{};
-
-		BOOL bNeedComposite{};
 		while (pElem)
 		{
 			const auto& rcElem = pElem->GetRectInClient();
@@ -764,7 +820,6 @@ private:
 				pDC->BeginDraw();
 				pDC->SetTarget(pBitmap);
 				pDC->SetTransform(D2D1::Matrix3x2F::Translation((float)ptOffset.x, (float)ptOffset.y));
-				bNeedComposite = FALSE;
 			}
 			else if (pElem->GetCompositor())// 手动合成
 			{
@@ -775,14 +830,12 @@ private:
 					Log2Phy(rcElem.bottom - rcElem.top));
 				pDC->SetTarget(GetCacheBitmap());
 				pDC->SetTransform(D2D1::Matrix3x2F::Identity());
-				bNeedComposite = TRUE;
 			}
 			else// 直接渲染
 			{
 				pDC->SetTransform(D2D1::Matrix3x2F::Translation(
 					pElem->GetRectInClientF().left + ox,
 					pElem->GetRectInClientF().top + oy));
-				bNeedComposite = FALSE;
 			}
 			pElem->CallEvent(WM_PAINT, 0, (LPARAM)&rcClip);
 			if (IsElemUseDComp())
@@ -794,10 +847,10 @@ private:
 				pElem->m_pDcSurface->EndDraw();
 				RedrawElem(pElem->GetFirstChildElem(), rcClip, 0.f, 0.f);
 			}
-			else if (bNeedComposite)
+			else if (pElem->GetCompositor())
 			{
-				const D2D1_RECT_F rcF{ 0.f,0.f,pElem->GetWidthF(),pElem->GetHeightF() };
-				RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
+				RedrawElem(pElem->GetFirstChildElem(), rcClip,
+					ox - rcElem.left, oy - rcElem.top);
 				pDC->Flush();
 				pDC->SetTarget(pOldTarget);
 				pOldTarget->Release();
@@ -809,7 +862,24 @@ private:
 				cri.pDC = pDC;
 				cri.pBitmap = GetCacheBitmap();
 				cri.rcInvalid = rcClip;
+				cri.rcSrc = { 0.f,0.f,pElem->GetWidthF(),pElem->GetHeightF() };
 				pElem->GetCompositor()->PostRender(cri);
+#ifdef _DEBUG
+				ID2D1SolidColorBrush* pBr{};
+				pDC->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Aqua), &pBr);
+				if (pBr)
+				{
+					auto rcComp{ MakeD2DRcF(pElem->m_rcCompositedInClient) };
+					pElem->ClientToElem(rcComp);
+					pDC->DrawRectangle(rcComp, pBr);
+
+					pBr->SetColor(D2D1::ColorF(D2D1::ColorF::Green));
+					rcComp = MakeD2DRcF(pElem->m_rcRealCompositedInClient);
+					pElem->ClientToElem(rcComp);
+					pDC->DrawRectangle(rcComp, pBr);
+					pBr->Release();
+				}
+#endif
 			}
 			else
 				RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
@@ -1141,11 +1211,13 @@ public:
 			auto pElem = (m_pMouseCaptureElem ? m_pMouseCaptureElem : m_pCurrNcHitTestElem);
 			if (pElem)
 			{
-				if (pElem->GetCompositor())
+				CElem* pAncestor;
+				const auto pCompositor = pElem->GetCoordinateTransformer(pAncestor);
+				if (pCompositor)
 				{
 					POINT pt0{ pt };
 					pElem->ClientToElem(pt0);
-					pElem->GetCompositor()->PtNormalToComposited(pElem, pt0);
+					pCompositor->PtNormalToComposited(pElem, pt0, pAncestor);
 					pElem->ElemToClient(pt0);
 					pElem->CallEvent(uMsg, wParam, MAKELPARAM(pt0.x, pt0.y));
 				}
@@ -2096,6 +2168,11 @@ inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			m_pDC->Clear({});
 	}
 	return TRUE;
+
+	case WM_SIZE:
+		if (GetCompositor())
+			ReCalcCompositedRect();
+		break;
 	}
 	return 0;
 }
