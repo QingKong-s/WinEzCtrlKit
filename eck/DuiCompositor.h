@@ -29,7 +29,7 @@ public:
 	/// </summary>
 	/// <param name="pElem">目标元素</param>
 	/// <param name="pt">坐标，相对pElem</param>
-	/// <param name="pAncestor">pElem的第一个设置了混合器的祖元素</param>
+	/// <param name="pAncestor">pElem的第一个设置了混合器的祖元素，若pElem本身具有混合器，则为nullptr</param>
 	virtual void PtNormalToComposited(CElem* pElem, _Inout_ POINT& pt, CElem* pAncestor) {}
 
 	/// <summary>
@@ -37,32 +37,32 @@ public:
 	/// </summary>
 	/// <param name="pElem">目标元素</param>
 	/// <param name="pt">坐标，相对pElem</param>
-	/// <param name="pAncestor">pElem的第一个设置了混合器的祖元素</param>
+	/// <param name="pAncestor">pElem的第一个设置了混合器的祖元素，若pElem本身具有混合器，则为nullptr</param>
 	virtual void PtCompositedToNormal(CElem* pElem, _Inout_ POINT& pt, CElem* pAncestor) {}
 
 	/// <summary>
 	/// 计算混合后矩形。
 	/// 永远不会对未设置混合器的元素调用。
-	/// 若IsInPlace返回TRUE，则此方法不会被调用
+	/// 若IsInPlace返回TRUE，则此方法不会被调用。
+	/// DUI系统自动缓存结算结果，并在尺寸改变时重新调用计算，实现无需缓存
 	/// </summary>
 	/// <param name="pElem">目标元素</param>
 	/// <param name="rc">计算结果</param>
-	/// <param name="bInClient">结果是否相对于客户区</param>
-	virtual void CalcCompositedRect(CElem* pElem, _Out_ RECT& rc, BOOL bInClient) { rc = {}; }
+	/// <param name="bInClient">结果相对于客户区还是相对于父元素</param>
+	virtual void CalcCompositedRect(CElem* pElem, _Out_ RECT& rc, BOOL bInClientOrParent) { rc = {}; }
 
 	// 是否原地操作
 	virtual BOOL IsInPlace() const { return TRUE; }
 
 	/// <summary>
 	/// 执行混合操作。
-	/// 手动混合元素渲染到独立的图面，渲染完毕后调用此方法。
-	/// 永远不会对未设置混合器的元素调用此方法，混合元素连同
-	/// 其子元素被全部渲染到同一图面后才会调用此方法。
+	/// 永远不会对未设置混合器的元素调用。
+	/// 混合元素渲染到独立的图面，当该元素连同其所有
+	/// 子元素都渲染完毕后调用此方法
 	/// </summary>
 	/// <param name="cri">渲染信息</param>
 	virtual void PostRender(COMP_RENDER_INFO& cri)
 	{
-		//cri.pDC->DrawBitmap(cri.pBitmap, &cri.rcDirty);
 	}
 
 	void SetParent(CCompositor* pParent)
@@ -74,5 +74,16 @@ public:
 			pParent->Release();
 	}
 };
+/*
+	void PtNormalToComposited(CElem* pElem, _Inout_ POINT& pt, CElem* pAncestor) override
+	{}
+	void PtCompositedToNormal(CElem* pElem, _Inout_ POINT& pt, CElem* pAncestor) override
+	{}
+	void CalcCompositedRect(CElem* pElem, _Out_ RECT& rc, BOOL bInClient) override
+	{}
+	BOOL IsInPlace() const override { return TRUE; }
+	void PostRender(COMP_RENDER_INFO& cri) override
+	{}
+*/
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

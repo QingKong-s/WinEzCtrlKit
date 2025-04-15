@@ -465,9 +465,6 @@
     <ClInclude Include="eck\CMemorySet.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\DuiHelper.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\DuiTheme.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
