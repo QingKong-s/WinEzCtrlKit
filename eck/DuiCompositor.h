@@ -5,6 +5,33 @@ ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 class CElem;
 
+// 对于DES_OWNER_COMP_CACHE元素，使用此对象表示图集上的范围
+// 实现必须保证当引用计数减为0时，与其相关联的资源也一同被释放
+class CCompCacheSurface : public CRefObjSingleThread<CCompCacheSurface>
+{
+	ECK_DECL_CUNK_FRIENDS;
+protected:
+	LONG m_cRef{ 1 };
+	D2D1_RECT_F m_rcValid{};
+	ID2D1Bitmap1* m_pBitmap{};
+public:
+	STDMETHODIMP_(ULONG) Release()
+	{
+		const auto cRef = --m_cRef;
+		if (cRef == 0)
+		{
+			OnFinalRelease();
+			delete this;
+		}
+		return cRef;
+	}
+
+	virtual void OnFinalRelease() {}
+
+	EckInlineNdCe auto GetBitmap() const { return m_pBitmap; }
+	EckInlineNdCe auto& GetValidRect() const { return m_rcValid; }
+};
+
 struct COMP_RENDER_INFO
 {
 	CElem* pElem;			// 当前正渲染的元素
@@ -21,7 +48,6 @@ class CCompositor : public CRefObjSingleThread<CCompositor>
 	ECK_DECL_CUNK_FRIENDS;
 protected:
 	LONG m_cRef{ 1 };
-	CCompositor* m_pParent{};// 父级混合器
 public:
 	virtual ~CCompositor() = default;
 	/// <summary>
@@ -30,7 +56,7 @@ public:
 	/// <param name="pElem">目标元素</param>
 	/// <param name="pt">坐标，相对pElem</param>
 	/// <param name="pAncestor">pElem的第一个设置了混合器的祖元素，若pElem本身具有混合器，则为nullptr</param>
-	virtual void PtNormalToComposited(CElem* pElem, _Inout_ POINT& pt, CElem* pAncestor) {}
+	virtual void PtNormalToComposited(CElem* pElem, _Inout_ POINT& pt) {}
 
 	/// <summary>
 	/// 坐标 混合后到常规
@@ -38,7 +64,7 @@ public:
 	/// <param name="pElem">目标元素</param>
 	/// <param name="pt">坐标，相对pElem</param>
 	/// <param name="pAncestor">pElem的第一个设置了混合器的祖元素，若pElem本身具有混合器，则为nullptr</param>
-	virtual void PtCompositedToNormal(CElem* pElem, _Inout_ POINT& pt, CElem* pAncestor) {}
+	virtual void PtCompositedToNormal(CElem* pElem, _Inout_ POINT& pt) {}
 
 	/// <summary>
 	/// 计算混合后矩形。
@@ -54,32 +80,34 @@ public:
 	// 是否原地操作
 	virtual BOOL IsInPlace() const { return TRUE; }
 
-	/// <summary>
-	/// 执行混合操作。
-	/// 永远不会对未设置混合器的元素调用。
-	/// 混合元素渲染到独立的图面，当该元素连同其所有
-	/// 子元素都渲染完毕后调用此方法
-	/// </summary>
-	/// <param name="cri">渲染信息</param>
+	// 若元素设置了DES_COMP_NO_REDIRECTION，则在渲染之前调用此方法。
+	// 永远不会对未设置混合器的元素调用
+	virtual void PreRender(COMP_RENDER_INFO& cri) {}
+
+	// 执行混合操作。
+	// 永远不会对未设置混合器的元素调用。
+	// 混合元素渲染到独立的图面，当该元素连同其所有
+	// 子元素都渲染完毕后调用此方法
 	virtual void PostRender(COMP_RENDER_INFO& cri)
 	{
 	}
 
-	void SetParent(CCompositor* pParent)
+	// 分配缓存位图。
+	// 仅当需要创建元素的混合重定向表面时，DUI才调用此方法。
+	// 若混合器对特定效果（或其他情况）实现图集缓存，则可在此分配并返回缓存图集。
+	// ！！！注意：绝对不能使两个设置了混合器且互为父子关系的元素共享同一幅D2D位图
+	virtual HRESULT CreateCacheBitmap(int cxPhy, int cyPhy,
+		_Out_ CCompCacheSurface*& pSurface)
 	{
-		std::swap(m_pParent, pParent);
-		if (m_pParent)
-			m_pParent->AddRef();
-		if (pParent)
-			pParent->Release();
+		return E_NOTIMPL;
 	}
 };
 /*
-	void PtNormalToComposited(CElem* pElem, _Inout_ POINT& pt, CElem* pAncestor) override
+	void PtNormalToComposited(CElem* pElem, _Inout_ POINT& pt) override
 	{}
-	void PtCompositedToNormal(CElem* pElem, _Inout_ POINT& pt, CElem* pAncestor) override
+	void PtCompositedToNormal(CElem* pElem, _Inout_ POINT& pt) override
 	{}
-	void CalcCompositedRect(CElem* pElem, _Out_ RECT& rc, BOOL bInClient) override
+	void CalcCompositedRect(CElem* pElem, _Out_ RECT& rc, BOOL bInClientOrParent) override
 	{}
 	BOOL IsInPlace() const override { return TRUE; }
 	void PostRender(COMP_RENDER_INFO& cri) override
