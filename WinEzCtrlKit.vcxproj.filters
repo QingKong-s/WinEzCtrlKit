@@ -576,6 +576,9 @@
     <ClInclude Include="eck\DuiCompositor.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\DuiStdCompositor.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">
