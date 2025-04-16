@@ -854,8 +854,8 @@ private:
 				(dwStyle & (DES_NO_REDRAW | DES_EXTERNAL_CONTENT)) ||
 				IsRectEmpty(rcElem))
 				goto NextElem;
-			if ((pElem->GetCompositor() && IsRectsIntersect(
-				pElem->GetWholeRectInClient(), rc)))
+			if ((pElem->GetCompositor() && !(dwStyle & DES_COMP_NO_REDIRECTION) &&
+				IsRectsIntersect(pElem->GetWholeRectInClient(), rc)))
 				rcClip = rcElem;
 			else if (!IntersectRect(rcClip, rcElem, rc))
 				goto NextElem;
@@ -890,21 +890,37 @@ private:
 			}
 			else if (pElem->GetCompositor())// 手动合成
 			{
-				pDC->Flush();
-				pDC->GetTarget(&pOldTarget);
-				pElem->CompUpdateCacheBitmap(rcElem.right - rcElem.left,
-					rcElem.bottom - rcElem.top);
-				if (pElem->GetStyle() & DES_OWNER_COMP_CACHE)
+				cri.pElem = pElem;
+				cri.pDC = pDC;
+				cri.rcDst = pElem->GetViewRectF();
+				if (dwStyle & DES_COMP_NO_REDIRECTION)
 				{
-					pDC->SetTarget(pElem->m_pCompCacheSurface->GetBitmap());
-					const auto& rcValid = pElem->m_pCompCacheSurface->GetValidRect();
 					pDC->SetTransform(D2D1::Matrix3x2F::Translation(
-						rcValid.left, rcValid.top));
+						pElem->GetRectInClientF().left + ox + oxComp,
+						pElem->GetRectInClientF().top + oy + oyComp));
+					pElem->GetCompositor()->PreRender(cri);
 				}
 				else
 				{
-					pDC->SetTarget(pElem->m_pCompCachedBitmap);
-					pDC->SetTransform(D2D1::Matrix3x2F::Identity());
+					if (!(dwStyle & DESP_COMP_CONTENT_INVALID) &&
+						pElem->m_pCompCachedBitmap)
+						goto SkipCompReRender;
+					pDC->Flush();
+					pDC->GetTarget(&pOldTarget);
+					pElem->CompUpdateCacheBitmap(rcElem.right - rcElem.left,
+						rcElem.bottom - rcElem.top);
+					if (pElem->GetStyle() & DES_OWNER_COMP_CACHE)
+					{
+						pDC->SetTarget(pElem->m_pCompCacheSurface->GetBitmap());
+						const auto& rcValid = pElem->m_pCompCacheSurface->GetValidRect();
+						pDC->SetTransform(D2D1::Matrix3x2F::Translation(
+							rcValid.left, rcValid.top));
+					}
+					else
+					{
+						pDC->SetTarget(pElem->m_pCompCachedBitmap);
+						pDC->SetTransform(D2D1::Matrix3x2F::Identity());
+					}
 				}
 			}
 			else// 直接渲染
@@ -925,17 +941,20 @@ private:
 			}
 			else if (pElem->GetCompositor())
 			{
-				RedrawElem(pElem->GetFirstChildElem(), rcClip, 0.f, 0.f,
-					oxComp - rcElem.left, oyComp - rcElem.top);
-				pDC->Flush();
-				pDC->SetTarget(pOldTarget);
-				pOldTarget->Release();
+				if (dwStyle & DES_COMP_NO_REDIRECTION)
+					RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
+				else
+				{
+					RedrawElem(pElem->GetFirstChildElem(), rcClip, 0.f, 0.f,
+						oxComp - rcElem.left, oyComp - rcElem.top);
+					pDC->Flush();
+					pDC->SetTarget(pOldTarget);
+					pOldTarget->Release();
+				}
+			SkipCompReRender:;
 				pDC->SetTransform(D2D1::Matrix3x2F::Translation(
 					pElem->GetRectInClientF().left + ox + oxComp,
 					pElem->GetRectInClientF().top + oy + oyComp));
-				cri.pElem = pElem;
-				cri.pDC = pDC;
-				cri.rcDst = pElem->GetViewRectF();
 				if (pElem->GetStyle() & DES_OWNER_COMP_CACHE)
 				{
 					cri.pBitmap = pElem->m_pCompCacheSurface->GetBitmap();
@@ -946,7 +965,12 @@ private:
 					cri.pBitmap = pElem->m_pCompCachedBitmap;
 					cri.rcSrc = pElem->GetViewRectF();
 				}
+				auto rcRealClip{ pElem->GetWholeRectInClient() };
+				IntersectRect(rcRealClip, rcRealClip, rc);
+				pElem->ClientToElem(rcRealClip);
+				pDC->PushAxisAlignedClip(MakeD2DRcF(rcRealClip), D2D1_ANTIALIAS_MODE_ALIASED);
 				pElem->GetCompositor()->PostRender(cri);
+				pDC->PopAxisAlignedClip();
 #ifdef _DEBUG
 				ID2D1SolidColorBrush* pBr{};
 				pDC->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Aqua), &pBr);
@@ -2248,7 +2272,8 @@ inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_ERASEBKGND:
 	{
-		if (GetWnd()->IsElemUseDComp() || GetCompositor())
+		if (GetWnd()->IsElemUseDComp() ||
+			(GetCompositor() && !(GetStyle() & DES_COMP_NO_REDIRECTION)))
 			m_pDC->Clear({});
 	}
 	return TRUE;
@@ -2352,8 +2377,17 @@ inline void CElem::InvalidateRect(const RECT& rc, BOOL bUpdateNow)
 	}
 	if (IsRectEmpty(rcTemp))
 		return;
+	if (!(GetStyle() & DES_COMP_NO_REDIRECTION) &&
+		((GetStyle() & DES_PARENT_COMP) || GetCompositor()))
+	{
+		auto pElem{ this };
+		do
+		{
+			if (pElem->GetCompositor())
+				pElem->m_dwStyle |= DESP_COMP_CONTENT_INVALID;
+		} while (pElem = pElem->GetParentElem());
+	}
 	tcIrpUnionContentExpandElemRect(rcTemp);
-
 	GetWnd()->IrUnion(rcTemp);
 	if (bUpdateNow)
 		GetWnd()->WakeRenderThread();
@@ -2448,6 +2482,22 @@ inline void CElem::tcPostMoveSize(BOOL bSize, BOOL bMove, const RECT& rcOld)
 	{
 		if (GetWnd()->IsElemUseDComp())
 			tcReSizeDCompVisual();
+		else if (GetCompositor())
+		{
+			if (GetStyle() & DES_OWNER_COMP_CACHE)
+			{
+				const auto& rcValid = m_pCompCacheSurface->GetValidRect();
+				if (rcValid.right - rcValid.left < GetWidth() ||
+					rcValid.bottom - rcValid.top < GetHeight())
+					CompInvalidateCacheBitmap();
+			}
+			else
+			{
+				const auto size = m_pCompCachedBitmap->GetSize();
+				if (size.width < GetWidthF() || size.height < GetHeightF())
+					CompInvalidateCacheBitmap();
+			}
+		}
 		CallEvent(WM_SIZE, 0, 0);
 	}
 	if (bMove)
@@ -2548,12 +2598,12 @@ EckInline void CElem::ReleaseCapture() { GetWnd()->ElemReleaseCapture(); }
 EckInline void CElem::SetFocus() { GetWnd()->ElemSetFocus(this); }
 EckInline void CElem::SetTimer(UINT_PTR uId, UINT uElapse) { GetWnd()->ElemSetTimer(this, uId, uElapse); }
 EckInline void CElem::KillTimer(UINT_PTR uId) { GetWnd()->ElemKillTimer(this, uId); }
-EckInline constexpr CCriticalSection& CElem::GetCriticalSection() const { return GetWnd()->GetCriticalSection(); }
-EckInline constexpr int CElem::Log2Phy(int i) const { return GetWnd()->Log2Phy(i); }
-EckInline constexpr float CElem::Log2PhyF(float f) const { return GetWnd()->Log2PhyF(f); }
-EckInline constexpr int CElem::Phy2Log(int i) const { return GetWnd()->Phy2Log(i); }
-EckInline constexpr float CElem::Phy2LogF(float f) const { return GetWnd()->Phy2LogF(f); }
-EckInline constexpr ID2D1Bitmap1* CElem::GetCacheBitmap() const { return GetWnd()->GetCacheBitmap(); }
+EckInlineCe CCriticalSection& CElem::GetCriticalSection() const { return GetWnd()->GetCriticalSection(); }
+EckInlineCe int CElem::Log2Phy(int i) const { return GetWnd()->Log2Phy(i); }
+EckInlineCe float CElem::Log2PhyF(float f) const { return GetWnd()->Log2PhyF(f); }
+EckInlineCe int CElem::Phy2Log(int i) const { return GetWnd()->Phy2Log(i); }
+EckInlineCe float CElem::Phy2LogF(float f) const { return GetWnd()->Phy2LogF(f); }
+EckInlineCe ID2D1Bitmap1* CElem::GetCacheBitmap() const { return GetWnd()->GetCacheBitmap(); }
 
 class CDuiDropTarget :public CDropTarget
 {
