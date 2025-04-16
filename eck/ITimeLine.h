@@ -17,4 +17,14 @@ ITimeLine : public IUnknown
 	// 取当前滴答间隔
 	int STDMETHODCALLTYPE GetCurrTickInterval();
 };
+
+struct CFixTimeLine : public ITimeLine
+{
+	ULONG STDMETHODCALLTYPE AddRef() { return 1; }
+	ULONG STDMETHODCALLTYPE Release() { return 1; }
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) { return E_NOINTERFACE; }
+
+	BOOL STDMETHODCALLTYPE IsValid() { return TRUE; }
+	int STDMETHODCALLTYPE GetCurrTickInterval() { return 0; }
+};
 ECK_NAMESPACE_END

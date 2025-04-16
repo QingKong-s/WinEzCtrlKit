@@ -74,16 +74,19 @@ public:
 					x += (sz.width + GetTheme()->GetMetrics(Metrics::SmallPadding));
 				}
 
-				if (m_bUseThemeColor)
+				if (m_pLayout)
 				{
-					D2D1_COLOR_F cr;
-					GetTheme()->GetSysColor(SysColor::Text, cr);
-					m_pBrush->SetColor(cr);
+					if (m_bUseThemeColor)
+					{
+						D2D1_COLOR_F cr;
+						GetTheme()->GetSysColor(SysColor::Text, cr);
+						m_pBrush->SetColor(cr);
+					}
+					else
+						m_pBrush->SetColor(m_crText);
+					m_pDC->DrawTextLayout({ x }, m_pLayout, m_pBrush,
+						DrawTextLayoutFlags);
 				}
-				else
-					m_pBrush->SetColor(m_crText);
-				m_pDC->DrawTextLayout({ x }, m_pLayout, m_pBrush,
-					DrawTextLayoutFlags);
 			}
 
 			ECK_DUI_DBG_DRAW_FRAME;
