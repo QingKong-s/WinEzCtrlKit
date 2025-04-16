@@ -33,9 +33,15 @@ enum
 	DES_OWNER_COMP_CACHE = (1u << 9),
 	// 指示当前手动混合元素不使用后台缓存，
 	// 设置后DUI系统适时调用CCompositor::PreRender
-	DES_COMP_NO_REDIRECTION = (1u << 10),// TODO
+	DES_COMP_NO_REDIRECTION = (1u << 10),
 	// GenElemNotify产生的通知不会发送到父级，而是发送到窗口
 	DES_NOTIFY_TO_WND = (1u << 11),
+	// 【仅供内部使用】元素的后台缓存内容需要更新。
+	// 设置该标志的意图是尽量减少手动混合元素的重渲染（特别是在播放动画时）。
+	// 普通元素需要每次重渲染是因为其内容没有保存，但未设置DES_COMP_NO_REDIRECTION
+	// 的手动混合标志都具有一副后台位图，内容为上一次渲染结果。
+	// DUI系统直接在m_dwStyle字段上操作该位，该位永远不会传递到SetStyle
+	DESP_COMP_CONTENT_INVALID = (1u << 12),
 };
 
 // 元素产生的通知

@@ -80,14 +80,14 @@ public:
 	// 是否原地操作
 	virtual BOOL IsInPlace() const { return TRUE; }
 
-	// 若元素设置了DES_COMP_NO_REDIRECTION，则在渲染之前调用此方法。
+	// 若元素设置了DES_COMP_NO_REDIRECTION，则在渲染之前调用此方法，
+	// 此时pBitmap和rcDst字段无效。
 	// 永远不会对未设置混合器的元素调用
 	virtual void PreRender(COMP_RENDER_INFO& cri) {}
 
 	// 执行混合操作。
 	// 永远不会对未设置混合器的元素调用。
-	// 混合元素渲染到独立的图面，当该元素连同其所有
-	// 子元素都渲染完毕后调用此方法
+	// 混合元素渲染到独立的图面，当该元素连同其所有子元素都渲染完毕后调用此方法
 	virtual void PostRender(COMP_RENDER_INFO& cri)
 	{
 	}
