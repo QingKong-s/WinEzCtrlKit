@@ -172,10 +172,7 @@ public:
 	// 事件处理函数，一般不直接调用此函数
 	virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-	virtual LRESULT OnNotify(DUINMHDR* pnm, BOOL& bProcessed)
-	{
-		return 0;
-	}
+	virtual LRESULT OnNotify(DUINMHDR* pnm, BOOL& bProcessed) { return 0; }
 
 	// 调用事件处理
 	EckInline LRESULT CallEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -190,8 +187,7 @@ public:
 	}
 
 	/// <summary>
-	/// 生成元素通知。
-	/// 若GenElemNotifyParent返回0，则通知窗口
+	/// 生成元素通知
 	/// </summary>
 	/// <param name="pnm">通知结构，第一个字段必须为DUINMHDR</param>
 	/// <returns>处理方的返回值</returns>
@@ -199,7 +195,7 @@ public:
 
 	/// <summary>
 	/// 生成元素通知。
-	/// 向父元素发送通知，若无父元素，返回0
+	/// 仅向父元素发送通知，若无父元素，返回0
 	/// </summary>
 	/// <param name="pnm">通知结构，第一个字段必须为DUINMHDR</param>
 	/// <returns>处理方的返回值</returns>
@@ -373,7 +369,6 @@ public:
 	static CElem* ElemFromPoint(CElem* pElem, POINT pt, _Out_opt_ LRESULT* pResult = nullptr)
 	{
 		POINT pt0;
-		CElem* pAncestor;
 		while (pElem)
 		{
 			if (pElem->GetStyle() & DES_VISIBLE)
@@ -838,24 +833,31 @@ private:
 	/// </summary>
 	/// <param name="pElem">起始元素</param>
 	/// <param name="rc">重画区域，逻辑坐标</param>
-	/// <param name="ox">X偏移</param>
-	/// <param name="oy">Y偏移</param>
-	void RedrawElem(CElem* pElem, const RECT& rc, float ox, float oy)
+	/// <param name="ox">用于DComp图面的X偏移</param>
+	/// <param name="oy">用于DComp图面的Y偏移</param>
+	/// <param name="oxComp">用于手动混合元素子级的X偏移</param>
+	/// <param name="oyComp">用于手动混合元素子级的Y偏移</param>
+	void RedrawElem(CElem* pElem, const RECT& rc, float ox, float oy,
+		float oxComp = 0.f, float oyComp = 0.f)
 	{
 		const auto pDC = m_D2d.GetDC();
 		RECT rcClip;// 相对客户区
 		ID2D1Image* pOldTarget{};
-
+		COMP_RENDER_INFO cri;
 		IDXGISurface1* pDxgiSurface{};
 		ID2D1Bitmap1* pBitmap{};
 		while (pElem)
 		{
 			const auto& rcElem = pElem->GetRectInClient();
-			if (const auto dwStyle = pElem->GetStyle();
-				!(dwStyle & DES_VISIBLE) || (dwStyle & (DES_NO_REDRAW | DES_EXTERNAL_CONTENT)) ||
+			const auto dwStyle = pElem->GetStyle();
+			if (!(dwStyle & DES_VISIBLE) ||
+				(dwStyle & (DES_NO_REDRAW | DES_EXTERNAL_CONTENT)) ||
 				IsRectEmpty(rcElem))
 				goto NextElem;
-			if (!IntersectRect(rcClip, rcElem, rc))
+			if ((pElem->GetCompositor() && IsRectsIntersect(
+				pElem->GetWholeRectInClient(), rc)))
+				rcClip = rcElem;
+			else if (!IntersectRect(rcClip, rcElem, rc))
 				goto NextElem;
 
 			if (IsElemUseDComp())// 使用DComp合成
@@ -908,8 +910,8 @@ private:
 			else// 直接渲染
 			{
 				pDC->SetTransform(D2D1::Matrix3x2F::Translation(
-					pElem->GetRectInClientF().left + ox,
-					pElem->GetRectInClientF().top + oy));
+					pElem->GetRectInClientF().left + ox + oxComp,
+					pElem->GetRectInClientF().top + oy + oyComp));
 			}
 			pElem->CallEvent(WM_PAINT, 0, (LPARAM)&rcClip);
 			if (IsElemUseDComp())
@@ -923,18 +925,17 @@ private:
 			}
 			else if (pElem->GetCompositor())
 			{
-				RedrawElem(pElem->GetFirstChildElem(), rcClip,
-					ox - rcElem.left, oy - rcElem.top);
+				RedrawElem(pElem->GetFirstChildElem(), rcClip, 0.f, 0.f,
+					oxComp - rcElem.left, oyComp - rcElem.top);
 				pDC->Flush();
 				pDC->SetTarget(pOldTarget);
 				pOldTarget->Release();
 				pDC->SetTransform(D2D1::Matrix3x2F::Translation(
-					pElem->GetRectInClientF().left + ox,
-					pElem->GetRectInClientF().top + oy));
-				COMP_RENDER_INFO cri;
+					pElem->GetRectInClientF().left + ox + oxComp,
+					pElem->GetRectInClientF().top + oy + oyComp));
 				cri.pElem = pElem;
 				cri.pDC = pDC;
-				cri.rcInvalid = rcClip;
+				cri.rcDst = pElem->GetViewRectF();
 				if (pElem->GetStyle() & DES_OWNER_COMP_CACHE)
 				{
 					cri.pBitmap = pElem->m_pCompCacheSurface->GetBitmap();
@@ -943,7 +944,7 @@ private:
 				else
 				{
 					cri.pBitmap = pElem->m_pCompCachedBitmap;
-					cri.rcSrc = { 0.f,0.f,pElem->GetWidthF(),pElem->GetHeightF() };
+					cri.rcSrc = pElem->GetViewRectF();
 				}
 				pElem->GetCompositor()->PostRender(cri);
 #ifdef _DEBUG
@@ -961,8 +962,7 @@ private:
 					pDC->DrawRectangle(rcComp, pBr);
 
 					pBr->SetColor(D2D1::ColorF(D2D1::ColorF::Orange));
-					rcComp = { 0.f,0.f,pElem->GetWidthF(),pElem->GetHeightF() };
-					pDC->DrawRectangle(rcComp, pBr);
+					pDC->DrawRectangle(pElem->GetViewRectF(), pBr);
 					pBr->Release();
 				}
 #endif
@@ -2333,7 +2333,7 @@ EckInline LRESULT CElem::GenElemNotify(void* pnm)
 	const auto lResult = OnNotify((DUINMHDR*)pnm, bProcessed);
 	if (bProcessed)
 		return lResult;
-	if (GetParentElem())
+	if (GetParentElem() && !(GetStyle() & DES_NOTIFY_TO_WND))
 		return GetParentElem()->CallEvent(WM_NOTIFY, (WPARAM)this, (LPARAM)pnm);
 	else
 		return GetWnd()->OnElemEvent(this, ((DUINMHDR*)pnm)->uCode, 0, (LPARAM)pnm);
@@ -2519,8 +2519,8 @@ inline HRESULT CElem::CompUpdateCacheBitmap(int cx, int cy)
 {
 	if (m_pCompCachedBitmap)
 		return S_FALSE;
-	cx = (int)ceilf(Log2PhyF(cx));
-	cy = (int)ceilf(Log2PhyF(cy));
+	cx = (int)ceilf(Log2PhyF((float)cx));
+	cy = (int)ceilf(Log2PhyF((float)cy));
 	if (GetStyle() & DES_OWNER_COMP_CACHE)
 	{
 		if (FAILED(GetCompositor()->CreateCacheBitmap(
@@ -2539,7 +2539,7 @@ inline HRESULT CElem::CompUpdateCacheBitmap(int cx, int cy)
 		}
 	}
 	else
-		GetWnd()->BmpNewLogSize(cx, cy, m_pCompCachedBitmap);
+		GetWnd()->BmpNew(cx, cy, m_pCompCachedBitmap);
 	return S_OK;
 }
 
