@@ -71,7 +71,7 @@ enum :UINT
 };
 
 // DUI图形系统呈现模式
-enum class PresentMode
+enum class PresentMode : BYTE
 {
 	// WS_EX_NRB = WS_EX_NOREDIRECTIONBITMAP
 	//						|最小等待	|	   透明混合		|	 备注	|
