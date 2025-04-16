@@ -38,7 +38,7 @@ struct COMP_RENDER_INFO
 	ID2D1DeviceContext* pDC;// 已设置适当变换使其坐标相对pElem
 	ID2D1Bitmap1* pBitmap;	// 渲染完毕的位图。通常，混合器需要将此位图内容做恰当处理后呈现
 	D2D1_RECT_F rcSrc;		// 相对pBitmap
-	RECT rcInvalid;			// 相对客户区
+	D2D1_RECT_F rcDst;		// 相对pElem
 };
 
 // 表示一个特定的混合操作，默认的实现不执行任何操作，

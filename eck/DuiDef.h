@@ -21,11 +21,11 @@ enum
 	DES_CONTENT_EXPAND = (1u << 4),	
 	// 元素的内容受周边其他内容影响，确定更新区域时DUI系统发送
 	// EWM_QUERY_EXPAND_RECT以获取扩展矩形
-	DES_CONTENT_EXPAND_RECT = (1u << 5),
+	DES_CONTENT_EXPAND_RECT = (1u << 5),// TODO
 	// DUI系统应当检查当前元素的祖元素，因为它们可能设置了混合器
 	DES_PARENT_COMP = (1u << 6),
 	// 使用某外部图面作为当前元素的DComp视觉对象的内容
-	DES_EXTERNAL_CONTENT = (1u << 7),
+	DES_EXTERNAL_CONTENT = (1u << 7),// TODO
 	DES_NO_REDRAW = (1u << 8),	// 不允许重绘
 	// 对于手动混合元素，DUI不应自行分配后台缓存，而应按下列顺序请求缓存：
 	// 调用CCompositor::CreateCacheBitmap，若失败，向元素的父级发送
@@ -33,7 +33,9 @@ enum
 	DES_OWNER_COMP_CACHE = (1u << 9),
 	// 指示当前手动混合元素不使用后台缓存，
 	// 设置后DUI系统适时调用CCompositor::PreRender
-	DES_COMP_NO_REDIRECTION = (1u << 10),
+	DES_COMP_NO_REDIRECTION = (1u << 10),// TODO
+	// GenElemNotify产生的通知不会发送到父级，而是发送到窗口
+	DES_NOTIFY_TO_WND = (1u << 11),
 };
 
 // 元素产生的通知

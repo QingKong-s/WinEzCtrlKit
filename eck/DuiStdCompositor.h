@@ -56,8 +56,8 @@ public:
 	BOOL IsInPlace() const override { return FALSE; }
 	void PostRender(COMP_RENDER_INFO& cri) override
 	{
-		cri.pDC->DrawBitmap(cri.pBitmap, nullptr, 1.f,
-			D2D1_INTERPOLATION_MODE_CUBIC, &cri.rcSrc, (D2D1_MATRIX_4X4_F*)&Mat);
+		cri.pDC->DrawBitmap(cri.pBitmap, cri.rcDst, 1.f,
+			D2D1_INTERPOLATION_MODE_CUBIC, cri.rcSrc, (D2D1_MATRIX_4X4_F*)&Mat);
 	}
 };
 
@@ -113,8 +113,8 @@ public:
 		D2D1::Matrix3x2F MatOld;
 		cri.pDC->GetTransform(&MatOld);
 		cri.pDC->SetTransform(Mat * MatOld);
-		cri.pDC->DrawBitmap(cri.pBitmap, nullptr, 1.f,
-			D2D1_INTERPOLATION_MODE_CUBIC, &cri.rcSrc);
+		cri.pDC->DrawBitmap(cri.pBitmap, cri.rcDst, 1.f,
+			D2D1_INTERPOLATION_MODE_CUBIC, cri.rcSrc);
 		cri.pDC->SetTransform(MatOld);
 	}
 
