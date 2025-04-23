@@ -441,6 +441,13 @@ FORCEINLINE BOOL GetWindowCompositionAttribute(HWND hWnd,
 
 EXTERN_C BOOL WINAPI IsNTAdmin(DWORD dwReserved, DWORD* pdwResevered);
 
+EXTERN_C int MessageBoxTimeoutA(_In_ HWND hWnd, _In_ LPCWSTR lpText,
+	_In_ LPCWSTR lpCaption, _In_ UINT uType,
+	_In_ WORD wLanguageId, _In_ DWORD dwMilliseconds);
+EXTERN_C int MessageBoxTimeoutW(_In_ HWND hWnd, _In_ LPCWSTR lpText,
+	_In_ LPCWSTR lpCaption, _In_ UINT uType,
+	_In_ WORD wLanguageId, _In_ DWORD dwMilliseconds);
+
 #if !ECK_OPT_NO_DARKMODE
 // 1809 17763 暗色功能引入
 using FAllowDarkModeForWindow = bool(WINAPI*)(HWND, BOOL);

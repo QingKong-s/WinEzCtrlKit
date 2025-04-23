@@ -48,6 +48,11 @@ ECK_DUI_NAMESPACE_BEGIN
 constexpr inline auto DrawTextLayoutFlags =
 D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT | D2D1_DRAW_TEXT_OPTIONS_NO_SNAP;
 
+enum : int
+{
+	CxyMinScrollThumb = 16,
+};
+
 class CElem :public ILayout
 {
 	friend class CDuiWnd;
@@ -543,19 +548,19 @@ public:
 	// 取主题
 	EckInlineNdCe auto GetTheme() const { return m_pTheme; }
 
-	// 置混合操作【不能在渲染线程调用】
+	// 置混合操作
 	void SetCompositor(CCompositor* pCompositor)
 	{
 		ECK_DUILOCK;
 		if (m_pCompositor == pCompositor)
 			return;
+		CompMarkDirty();
 		std::swap(m_pCompositor, pCompositor);
 		if (m_pCompositor)
 			m_pCompositor->AddRef();
 		if (pCompositor)
 			pCompositor->Release();
-		if (GetStyle() & DES_OWNER_COMP_CACHE)
-			CompInvalidateCacheBitmap();
+		CompInvalidateCacheBitmap();
 		if (m_pCompositor)
 		{
 			SetStyle(GetStyle() | DES_CONTENT_EXPAND);
@@ -723,6 +728,12 @@ public:
 	{
 		SafeRelease(m_pCompCachedBitmap);
 	}
+
+	EckInlineNdCe void CompMarkDirty()
+	{
+		if (GetCompositor())
+			m_dwStyle |= DESP_COMP_CONTENT_INVALID;
+	}
 #pragma endregion Composite
 };
 
@@ -778,7 +789,6 @@ private:
 		};
 		// 窗口渲染目标呈现使用
 		ID2D1HwndRenderTarget* m_pRtHwnd;		// 窗口渲染目标，仅当呈现模式为窗口渲染目标时有效
-		// 交换链使用
 	};
 
 	ID2D1Bitmap1* m_pBmpCache{};	// 缓存位图
@@ -792,6 +802,8 @@ private:
 	//------其他------
 	int m_cxClient{};		// 客户区宽度
 	int m_cyClient{};		// 客户区高度
+	int m_cxClientLog{};
+	int m_cyClientLog{};
 	int m_cChildren{};		// 子元素数量，UIAccessible使用
 	float m_fBlurDeviation = 15.f;			// 高斯模糊标准差
 
@@ -852,6 +864,7 @@ private:
 		COMP_RENDER_INFO cri;
 		IDXGISurface1* pDxgiSurface{};
 		ID2D1Bitmap1* pBitmap{};
+		Priv::PAINT_EXTRA Extra{ ox,oy };
 		while (pElem)
 		{
 			const auto& rcElem = pElem->GetRectInClient();
@@ -935,7 +948,7 @@ private:
 					pElem->GetRectInClientF().left + ox + oxComp,
 					pElem->GetRectInClientF().top + oy + oyComp));
 			}
-			pElem->CallEvent(WM_PAINT, 0, (LPARAM)&rcClip);
+			pElem->CallEvent(WM_PAINT, (WPARAM)&Extra, (LPARAM)&rcClip);
 			if (IsElemUseDComp())
 			{
 				pDC->EndDraw();
@@ -1060,7 +1073,7 @@ private:
 			if (bRenderVisual)
 				OnRenderEvent(RE_PRERENDER, e);
 
-			IDXGISurface1* pDxgiSurface = nullptr;
+			ComPtr<IDXGISurface1> pDxgiSurface;
 			POINT ptOffset;
 			auto rcPhyF = MakeD2DRcF(rc);
 			Log2Phy(rcPhyF);
@@ -1069,6 +1082,7 @@ private:
 
 			m_pDcSurface->BeginDraw(bFullUpdate ? nullptr : &rcPhy,
 				IID_PPV_ARGS(&pDxgiSurface), &ptOffset);
+
 			ptOffset.x -= rcPhy.left;
 			ptOffset.y -= rcPhy.top;
 			const D2D1_POINT_2F ptLogOffsetF{ Phy2LogF((float)ptOffset.x), Phy2LogF((float)ptOffset.y) };
@@ -1081,9 +1095,9 @@ private:
 				nullptr
 			};
 
-			ID2D1Bitmap1* pBitmap = nullptr;
-			pDC->CreateBitmapFromDxgiSurface(pDxgiSurface, &D2dBmpProp, &pBitmap);
-			pDC->SetTarget(pBitmap);
+			ComPtr<ID2D1Bitmap1> pBitmap;
+			pDC->CreateBitmapFromDxgiSurface(pDxgiSurface.Get(), &D2dBmpProp, &pBitmap);
+			pDC->SetTarget(pBitmap.Get());
 			pDC->BeginDraw();
 			pDC->SetTransform(D2D1::Matrix3x2F::Identity());
 
@@ -1117,10 +1131,8 @@ private:
 			}
 
 			pDC->EndDraw();
-			pDC->SetTarget(nullptr);
-			pBitmap->Release();
-			pDxgiSurface->Release();
 			m_pDcSurface->EndDraw();
+			pDC->SetTarget(nullptr);
 
 			if (IsElemUseDComp())
 				RedrawElem(GetFirstChildElem(), rc, 0.f, 0.f);
@@ -1428,6 +1440,8 @@ public:
 		{
 			ECK_DUILOCKWND;
 			ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
+			m_cxClientLog = (int)ceilf(Phy2LogF((float)m_cxClient));
+			m_cyClientLog = (int)ceilf(Phy2LogF((float)m_cyClient));
 			m_bSizeChanged = TRUE;
 			WakeRenderThread();
 		}
@@ -1662,17 +1676,34 @@ public:
 			m_pFocusElem = m_pCurrNcHitTestElem = nullptr;
 			// 销毁图形堆栈
 			m_D2D.Destroy();
-			SafeRelease(m_pBmpCache);
-			SafeRelease(m_pBmpBkg);
-			SafeRelease(m_pBrBkg);
-			SafeRelease(m_pRtHwnd);
-			SafeRelease(m_pDcSurface);
-			SafeRelease(m_pDcTarget);
-			SafeRelease(m_pDcVisual);
-			SafeRelease(m_pDcDevice);
+			SafeReleaseAssert0(m_pBmpCache);
+			SafeReleaseAssert0(m_pBmpBkg);
+			SafeReleaseAssert0(m_pBrBkg);
+			switch (m_ePresentMode)
+			{
+			case PresentMode::WindowRenderTarget:
+				SafeReleaseAssert0(m_pRtHwnd);
+				break;
+			case PresentMode::AllDComp:
+			case PresentMode::DCompositionVisual:
+			case PresentMode::DCompositionSurface:
+				SafeReleaseAssert0(m_pDcSurface);
+				SafeReleaseAssert0(m_pDcTarget);
+				SafeReleaseAssert0(m_pDcVisual);
+				m_pDcDevice->Commit();// 冲洗所有清理操作
+				m_pDcDevice->WaitForCommitCompletion();
+				if (m_ePresentMode == PresentMode::DCompositionVisual)
+					SafeRelease(m_pDcDevice);// 外部对象可能未清理完成
+				else
+					SafeReleaseAssert0(m_pDcDevice);
+				break;
+			}
+
+			SafeReleaseAssert0(m_pFxBlur);
+			SafeReleaseAssert0(m_pFxCrop);
 			// 销毁其他接口
-			SafeRelease(m_pDataObj);
-			SafeRelease(m_pDropTarget);
+			SafeReleaseAssert0(m_pDataObj);
+			SafeReleaseAssert0(m_pDropTarget);
 
 			for (auto p : m_vTheme)
 				p->Release();
@@ -2041,7 +2072,7 @@ public:
 	/// 模糊当前设备上下文的内容，并画出。
 	/// 调用方负责初始化效果与位图缓存，还负责刷新DC上任何挂起的操作
 	/// </summary>
-	/// <param name="rc">范围</param>
+	/// <param name="rc">范围，相对当前位图。如果重画时有任何偏移量，必须手动与之相加</param>
 	/// <param name="ptDrawing">效果画出点</param>
 	/// <param name="fDeviation">标准差</param>
 	/// <param name="bUseLayer">是否使用图层</param>
@@ -2060,10 +2091,10 @@ public:
 
 		const D2D1_RECT_U rcU
 		{
-			(UINT32)floorf(rc.left * xDpi / 96.f),
-			(UINT32)floorf(rc.top * yDpi / 96.f),
-			(UINT32)ceilf(rc.right * xDpi / 96.f),
-			(UINT32)ceilf(rc.bottom * yDpi / 96.f)
+			(UINT32)(rc.left * xDpi / 96.f),
+			(UINT32)(rc.top * yDpi / 96.f),
+			(UINT32)(rc.right * xDpi / 96.f),
+			(UINT32)(rc.bottom * yDpi / 96.f)
 		};
 		if (FAILED(hr = GetCacheBitmap()->CopyFromBitmap(nullptr, pBmp.Get(), &rcU)))
 			return hr;
@@ -2133,7 +2164,15 @@ public:
 
 	EckInlineNdCe int GetClientWidth() const noexcept { return m_cxClient; }
 	EckInlineNdCe int GetClientHeight() const noexcept { return m_cyClient; }
+	EckInlineNdCe int GetClientWidthLog() const noexcept { return m_cxClientLog; }
+	EckInlineNdCe int GetClientHeightLog() const noexcept { return m_cyClientLog; }
 
+	/// <summary>
+	/// 初始化目标
+	/// 使用DCompositionVisual呈现时，初始化渲染到的目标视觉对象
+	/// </summary>
+	/// <param name="pVisual">目标视觉对象</param>
+	/// <param name="pDevice">DComp设备</param>
 	void DcvInit(IDCompositionVisual* pVisual, IDCompositionDevice* pDevice)
 	{
 		EckAssert(m_ePresentMode == PresentMode::DCompositionVisual);
@@ -2281,6 +2320,17 @@ inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_NCHITTEST:
 		return HTCLIENT;
 
+	case WM_PAINT:
+	{
+		if (GetStyle() & DES_BASE_BEGIN_END_PAINT)
+		{
+			ELEMPAINTSTRU ps;
+			BeginPaint(ps, wParam, lParam);
+			EndPaint(ps);
+		}
+	}
+	return 0;
+
 	case WM_ERASEBKGND:
 	{
 		if (GetWnd()->IsElemUseDComp() ||
@@ -2291,7 +2341,10 @@ inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_SIZE:
 		if (GetCompositor())
+		{
 			CompReCalcCompositedRect();
+			CompInvalidateCacheBitmap();
+		}
 		break;
 	}
 	return 0;
@@ -2394,8 +2447,7 @@ inline void CElem::InvalidateRect(const RECT& rc, BOOL bUpdateNow)
 		auto pElem{ this };
 		do
 		{
-			if (pElem->GetCompositor())
-				pElem->m_dwStyle |= DESP_COMP_CONTENT_INVALID;
+			pElem->CompMarkDirty();
 		} while (pElem = pElem->GetParentElem());
 	}
 	tcIrpUnionContentExpandElemRect(rcTemp);
@@ -2406,11 +2458,13 @@ inline void CElem::InvalidateRect(const RECT& rc, BOOL bUpdateNow)
 
 inline void CElem::BeginPaint(_Out_ ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uFlags)
 {
+	const auto pExtra = (Priv::PAINT_EXTRA*)wParam;
 	eps.prcClip = (const RECT*)lParam;
 	eps.rcfClip = MakeD2DRcF(*eps.prcClip);
-
 	eps.rcfClipInElem = MakeD2DRcF(*eps.prcClip);
 	ClientToElem(eps.rcfClipInElem);
+	eps.ox = pExtra->ox;
+	eps.oy = pExtra->oy;
 	if (uFlags & EBPF_DO_NOT_FILLBK)
 		m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
 	else
@@ -2579,7 +2633,26 @@ inline constexpr void CElem::tcSetStyleWorker(DWORD dwStyle)
 inline HRESULT CElem::CompUpdateCacheBitmap(int cx, int cy)
 {
 	if (m_pCompCachedBitmap)
-		return S_FALSE;
+	{
+		float cxOld, cyOld;
+		if (GetStyle() & DES_OWNER_COMP_CACHE)
+		{
+			const auto rc = m_pCompCacheSurface->GetValidRect();
+			cxOld = rc.right - rc.left;
+			cyOld = rc.bottom - rc.top;
+		}
+		else
+		{
+			const auto size = m_pCompCachedBitmap->GetSize();
+			cxOld = size.width;
+			cyOld = size.height;
+		}
+		if (cxOld >= (float)cx && cyOld >= (float)cy)
+			return S_FALSE;
+		else
+			CompInvalidateCacheBitmap();
+	}
+
 	cx = (int)ceilf(Log2PhyF((float)cx));
 	cy = (int)ceilf(Log2PhyF((float)cy));
 	if (GetStyle() & DES_OWNER_COMP_CACHE)

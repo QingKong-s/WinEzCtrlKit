@@ -116,6 +116,9 @@ IDWriteFactory* g_pDwFactory{};
 ID2D1Device* g_pD2dDevice{};
 IDXGIDevice1* g_pDxgiDevice{};
 IDXGIFactory2* g_pDxgiFactory{};
+#ifdef _DEBUG
+IDXGIDebug* g_pDxgiDebug{};
+#endif
 #endif// !ECK_OPT_NO_DX
 
 // For Text Services
@@ -215,7 +218,7 @@ static FGetThemeColor			s_pfnGetThemeColor{ GetThemeColor };
 static FCloseThemeData			s_pfnCloseThemeData{ CloseThemeData };
 static FDrawThemeParentBackground	s_pfnDrawThemeParentBackground{ DrawThemeParentBackground };
 static FGetThemePartSize		s_pfnGetThemePartSize{ GetThemePartSize };
-// Not Ux, but nessesary.
+// Not Ux, but necessary.
 static FSoftModalMessageBox		s_pfnSoftModalMessageBox{};
 
 enum class ThemeType
@@ -1549,22 +1552,13 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	if (!pInitParam)
 		pInitParam = &ip;
 	*pdwErrCode = 0;
-	//////////////保存实例句柄
+
 	g_hInstance = hInstance;
-
-	//////////////OS版本检测
 	RtlGetNtVersionNumbers(&g_NtVer.uMajor, &g_NtVer.uMinor, &g_NtVer.uBuild);
-
-	//////////////初始化Private API
 	InitPrivateApi();
-
-	//////////////线程上下文Tls槽
 	g_dwTlsSlot = TlsAlloc();
-
-	//////////////初始化线程上下文
 	if (!(pInitParam->uFlags & EIF_NOINITTHREAD))
 		ThreadInit();
-
 	//////////////初始化GDI+
 	if (!(pInitParam->uFlags & EIF_NOINITGDIPLUS))
 	{
@@ -1576,7 +1570,6 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			return InitStatus::GdiplusInitError;
 		}
 	}
-
 	//////////////注册窗口类
 	s_WndClassInfo[0].iType = RWCT_CUSTOM;
 	s_WndClassInfo[0].wc =
@@ -1630,7 +1623,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 #ifdef _DEBUG
 		D2D1_FACTORY_OPTIONS D2DFactoryOptions;
 		D2DFactoryOptions.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
-		D2DFactoryOptions.debugLevel = D2D1_DEBUG_LEVEL_WARNING;
+		//D2DFactoryOptions.debugLevel = D2D1_DEBUG_LEVEL_WARNING;
 		hr = D2D1CreateFactory(pInitParam->uD2dFactoryType,
 			__uuidof(ID2D1Factory1), &D2DFactoryOptions, (void**)&g_pD2dFactory);
 #else
@@ -1652,7 +1645,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			return InitStatus::DWriteFactoryError;
 		}
 		//////////////创建DXGI工厂
-		ID3D11Device* pD3dDevice;
+		ComPtr<ID3D11Device> pD3dDevice;
 		hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
 			D3D11_CREATE_DEVICE_BGRA_SUPPORT
 #ifndef NDEBUG
@@ -1666,8 +1659,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			EckDbgPrintFormatMessage(hr);
 			return InitStatus::D3dDeviceError;
 		}
-		hr = pD3dDevice->QueryInterface(&g_pDxgiDevice);
-		pD3dDevice->Release();
+		pD3dDevice->QueryInterface(&g_pDxgiDevice);
 		if (FAILED(hr))
 		{
 			*pdwErrCode = hr;
@@ -1675,10 +1667,9 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			return InitStatus::DxgiDeviceError;
 		}
 
-		IDXGIAdapter* pDxgiAdapter;
+		ComPtr<IDXGIAdapter> pDxgiAdapter;
 		g_pDxgiDevice->GetAdapter(&pDxgiAdapter);
 		pDxgiAdapter->GetParent(IID_PPV_ARGS(&g_pDxgiFactory));
-		pDxgiAdapter->Release();
 		//////////////创建DXGI设备
 		hr = g_pD2dFactory->CreateDevice(g_pDxgiDevice, &g_pD2dDevice);
 		if (FAILED(hr))
@@ -1687,6 +1678,19 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			EckDbgPrintFormatMessage(hr);
 			return InitStatus::DxgiDeviceError;
 		}
+		//////////////获取调试接口
+#ifdef _DEBUG
+		const auto hModDxgiDbg = GetModuleHandleW(L"dxgidebug.dll");
+		if (hModDxgiDbg)
+		{
+			using FDXGIGetDebugInterface = HRESULT(WINAPI*)(REFIID, void**);
+			const auto pfnDXGIGetDebugInterface =
+				(FDXGIGetDebugInterface)GetProcAddress(hModDxgiDbg, 
+					"DXGIGetDebugInterface");
+			if (pfnDXGIGetDebugInterface)
+				pfnDXGIGetDebugInterface(IID_PPV_ARGS(&g_pDxgiDebug));
+		}
+#endif // _DEBUG
 	}
 #endif// !ECK_OPT_NO_DX
 	//////////////创建WIC工厂

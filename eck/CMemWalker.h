@@ -316,7 +316,7 @@ struct CMemWalker
 	template<class T, class U, class V>
 	EckInline CMemWalker& operator>>(CRefStrT<T, U, V>& x)
 	{
-		const int cch = TcsLen((const T*)Data());
+		const int cch = (int)TcsLen((const T*)Data());
 		x.ReSize(cch);
 		return Read(x.Data(), (cch + 1) * sizeof(T));
 	}

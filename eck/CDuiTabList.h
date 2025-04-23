@@ -29,6 +29,7 @@ protected:
 	ID2D1SolidColorBrush* m_pBrush{};
 	CEasingCurve* m_pec1{}, * m_pec2{};
 	int m_idxTo{ -1 }, m_idxFrom{ -1 };
+	RECT m_rcLastRedraw{};
 
 	void PaintItem(int idx, const D2D1_RECT_F& rcItem, const D2D1_RECT_F& rcClip) override
 	{
@@ -109,6 +110,12 @@ protected:
 			p->GetItemRect(p->m_idxTo, p->m_idxFrom, rc);
 		rc.left = CxIndicatorPadding;
 		rc.right = CxIndicatorPadding + CxIndicator;
+		if (p->m_rcLastRedraw.top < rc.top)
+			rc.top = p->m_rcLastRedraw.top;
+		if (p->m_rcLastRedraw.bottom > rc.bottom)
+			rc.bottom = p->m_rcLastRedraw.bottom;
+		p->m_rcLastRedraw = rc;
+
 		p->ElemToClient(rc);
 		p->InvalidateRect(rc);
 	}
@@ -131,7 +138,7 @@ public:
 			ELEMPAINTSTRU ps;
 			BeginPaint(ps, wParam, lParam);
 
-			const int idxBegin = HitTestY((int)ps.rcfClipInElem.top);
+			const int idxBegin = std::max(HitTestY((int)ps.rcfClipInElem.top), 0);
 			const int idxEnd = std::min(HitTestY((int)ps.rcfClipInElem.bottom), m_cItem - 1);
 			if (idxBegin >= 0 && idxBegin <= idxEnd)
 			{
@@ -208,6 +215,8 @@ public:
 			break;
 		case WM_DESTROY:
 			SafeRelease(m_pBrush);
+			SafeRelease(m_pec1);
+			SafeRelease(m_pec2);
 			break;
 		}
 		return __super::OnEvent(uMsg, wParam, lParam);
@@ -222,6 +231,13 @@ public:
 				return 0;
 			m_idxFrom = m_idxSel;
 			m_idxTo = p->idxItem;
+			if (!m_pec1->IsActive() || !m_pec2->IsActive())
+			{
+				if (m_idxTo > m_idxFrom)
+					GetItemRect(m_idxFrom, m_idxTo, m_rcLastRedraw);
+				else
+					GetItemRect(m_idxTo, m_idxFrom, m_rcLastRedraw);
+			}
 			m_pec1->Begin(ECBF_CONTINUE);
 			m_pec2->Begin(ECBF_CONTINUE);
 			m_pec1->SetCurrTime(0.f);

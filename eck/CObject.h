@@ -52,7 +52,7 @@ public:
 	template<class T>
 	EckInline [[nodiscard]] constexpr BOOL RttiIsKindOf() const { return RttiIsKindOf(T::RttiClassInfo()); }
 
-	EckInlineNd static auto& RttiClaassInfoMap()
+	EckInlineNd static auto& RttiClassInfoMap()
 	{
 		static std::unordered_map<std::wstring_view, ClassInfo*> s_hsClassInfo{};
 		return s_hsClassInfo;
@@ -64,7 +64,7 @@ inline Priv::ClassInfoRegister CObject::s_ClassInfoRegister_CObject{ CObject::Rt
 inline Priv::ClassInfoRegister::ClassInfoRegister(ClassInfo* pInfo)
 {
 	//EckAssert(!CObject::s_hsClassInfo.contains(pInfo->svClassName));
-	CObject::RttiClaassInfoMap().emplace(pInfo->svClassName, pInfo);
+	CObject::RttiClassInfoMap().emplace(pInfo->svClassName, pInfo);
 }
 
 template<class T>
@@ -123,8 +123,8 @@ inline CObject* RttiStdNewObject()
 
 EckInline ClassInfo* RttiGetClassInfo(std::wstring_view svClassName)
 {
-	const auto it = CObject::RttiClaassInfoMap().find(svClassName);
-	if (it == CObject::RttiClaassInfoMap().end())
+	const auto it = CObject::RttiClassInfoMap().find(svClassName);
+	if (it == CObject::RttiClassInfoMap().end())
 		return nullptr;
 	return it->second;
 }

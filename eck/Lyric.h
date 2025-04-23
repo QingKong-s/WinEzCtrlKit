@@ -23,20 +23,19 @@ enum class LrcEncoding
 
 struct LRCINFO
 {
-	PWSTR pszLrc = NULL;// 歌词
-	PWSTR pszTranslation = NULL;// 翻译，指向pszLrc的中间，可能为NULL
-	int cchTotal = 0;
-	int cchLrc = 0;
-	float fTime = 0.f;
-	float fDuration = 0.f;
+	PWSTR pszLrc{};// 歌词
+	PWSTR pszTranslation{};// 翻译，指向pszLrc的中间，可能为NULL
+	int cchTotal{};
+	int cchLrc{};
+	float fTime{};
+	float fDuration{};
 
-#if !ECKCXX20
 	LRCINFO() = default;
-	LRCINFO(PWSTR pszLrc_, PWSTR pszTranslation_, int cchTotal_, int cchLrc_, float fTime_, float fDuration_)
-		:pszLrc(pszLrc_), pszTranslation(pszTranslation_), cchTotal(cchTotal_), cchLrc(cchLrc_)
-		, fTime(fTime_), fDuration(fDuration_) {
+	constexpr LRCINFO(PWSTR pszLrc_, PWSTR pszTranslation_,
+		int cchTotal_, int cchLrc_, float fTime_, float fDuration_)
+		:pszLrc{ pszLrc_ }, pszTranslation{ pszTranslation_ }, cchTotal{ cchTotal_ }, cchLrc{ cchLrc_ }
+		, fTime{ fTime_ }, fDuration{ fDuration_ } {
 	}
-#endif
 
 	LRCINFO(const LRCINFO& li)
 	{

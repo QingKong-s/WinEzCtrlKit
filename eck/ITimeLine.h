@@ -18,7 +18,7 @@ ITimeLine : public IUnknown
 	int STDMETHODCALLTYPE GetCurrTickInterval();
 };
 
-struct CFixTimeLine : public ITimeLine
+struct CFixedTimeLine : public ITimeLine
 {
 	ULONG STDMETHODCALLTYPE AddRef() { return 1; }
 	ULONG STDMETHODCALLTYPE Release() { return 1; }

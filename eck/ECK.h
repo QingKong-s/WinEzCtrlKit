@@ -11,6 +11,9 @@
 #include <d2d1_1.h>
 #include <dxgi1_2.h>
 #include <d3d11.h>
+#ifdef _DEBUG
+#include <dxgidebug.h>
+#endif // _DEBUG
 #endif // !ECK_OPT_NO_DX
 #include <Shlwapi.h>
 #include <ShlObj.h>
@@ -776,6 +779,9 @@ extern IDWriteFactory* g_pDwFactory;
 extern ID2D1Device* g_pD2dDevice;
 extern IDXGIDevice1* g_pDxgiDevice;
 extern IDXGIFactory2* g_pDxgiFactory;
+#ifdef _DEBUG
+extern IDXGIDebug* g_pDxgiDebug;
+#endif
 #endif// !ECK_OPT_NO_DX
 
 extern HMODULE g_hModComCtl32;

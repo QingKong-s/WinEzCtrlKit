@@ -42,6 +42,8 @@ enum
 	// 的手动混合标志都具有一副后台位图，内容为上一次渲染结果。
 	// DUI系统直接在m_dwStyle字段上操作该位，该位永远不会传递到SetStyle
 	DESP_COMP_CONTENT_INVALID = (1u << 12),
+	// 指示基类事件处理函数应调用BeginPaint/EndPaint对
+	DES_BASE_BEGIN_END_PAINT = (1u << 13),
 };
 
 // 元素产生的通知
@@ -79,11 +81,11 @@ enum class PresentMode : BYTE
 	FlipSwapChain,		//	|	1	|	   不支持		|  性能极好	|
 	DCompositionSurface,//	|	0	|		支持			|  建议使用	|
 	WindowRenderTarget,	//  |	1	|支持，必须无WS_EX_NRB|  兼容性好	|
-	AllDComp,			//	|	0	|		支持			|			|
+	AllDComp,			//	|	0	|		支持			|			|FIXME
 	DCompositionVisual,	//  | 不适用	|		支持			|			|
-	DxgiSurface,		//	| 不适用	|		支持			|  D3D互操作	|
-	GdiRenderTarget,	//	| 不适用	|		支持			|  GDI互操作	|
-	UpdateLayeredWindow,//  |   0	|		支持			|  Win2K分层	|
+	DxgiSurface,		//	| 不适用	|		支持			|  D3D互操作	|TODO
+	GdiRenderTarget,	//	| 不适用	|		支持			|  GDI互操作	|TODO
+	UpdateLayeredWindow,//  |   0	|		支持			|  Win2K分层	|TODO
 };
 
 // 渲染事件代码
@@ -142,12 +144,23 @@ enum
 	EBPF_DO_NOT_FILLBK = (1u << 0),
 };
 
+namespace Priv
+{
+	struct PAINT_EXTRA
+	{
+		float ox;
+		float oy;
+	};
+}
+
 // PaintStruct
 struct ELEMPAINTSTRU
 {
 	const RECT* prcClip;		// 剪裁矩形，相对客户区
 	D2D1_RECT_F rcfClip;		// 剪裁矩形，相对客户区
 	D2D1_RECT_F rcfClipInElem;	// 剪裁矩形，相对元素
+	float ox;
+	float oy;
 };
 
 // 所有通知结构的头
