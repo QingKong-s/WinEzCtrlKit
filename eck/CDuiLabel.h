@@ -132,6 +132,7 @@ public:
 		case WM_DESTROY:
 			SafeRelease(m_pLayout);
 			SafeRelease(m_pBrush);
+			SafeRelease(m_pBmp);
 			break;
 		}
 		return CElem::OnEvent(uMsg, wParam, lParam);

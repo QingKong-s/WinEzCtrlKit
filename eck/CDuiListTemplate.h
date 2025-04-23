@@ -20,6 +20,8 @@ protected:
 	int m_cyItem{ 40 };
 	int m_idxSel{ -1 };
 	int m_idxHot{ -1 };
+	int m_cyTopPadding{};
+	int m_cyBottomPadding{};
 	BITBOOL m_bSingleSel : 1{ TRUE };
 
 	virtual void PaintItem(int idx, const D2D1_RECT_F& rcItem, const D2D1_RECT_F& rcPaint)
@@ -38,6 +40,14 @@ protected:
 		if (eState != State::Normal)
 			GetTheme()->DrawBackground(Part::ListItem, eState, rcItem);
 	}
+
+	void ReCalcScroll()
+	{
+		ECK_DUILOCK;
+		m_psv->SetMinThumbSize(CxyMinScrollThumb);
+		m_psv->SetRange(-m_cyTopPadding,
+			GetItemCount() * (m_cyItem + m_cyPadding) + m_cyBottomPadding);
+	}
 public:
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
@@ -48,7 +58,9 @@ public:
 			ELEMPAINTSTRU ps;
 			BeginPaint(ps, wParam, lParam);
 
-			const int idxBegin = HitTestY((int)ps.rcfClipInElem.top);
+			int idxBegin = HitTestY((int)ps.rcfClipInElem.top);
+			if (idxBegin < 0)
+				idxBegin = 0;
 			int idxEnd = HitTestY((int)ps.rcfClipInElem.bottom);
 			if (idxEnd >= m_cItem && m_cItem)
 				idxEnd = m_cItem - 1;
@@ -86,6 +98,17 @@ public:
 					InvalidateItem(idx, FALSE);
 				if (m_idxHot >= 0 || idx >= 0)
 					GetWnd()->WakeRenderThread();
+			}
+		}
+		return 0;
+
+		case WM_MOUSELEAVE:
+		{
+			int idx{ -1 };
+			if (m_idxHot != idx)
+			{
+				std::swap(m_idxHot, idx);
+				InvalidateItem(idx);
 			}
 		}
 		return 0;
@@ -149,7 +172,11 @@ public:
 		case WM_SIZE:
 		{
 			const auto cxSB = (int)GetTheme()->GetMetrics(Metrics::CxVScroll);
-			m_SB.SetRect({ GetWidth() - cxSB, 0, GetWidth(), GetHeight() });
+			m_SB.SetRect({
+				GetWidth() - cxSB,
+				m_cyTopPadding,
+				GetWidth(),
+				GetHeight() - m_cyBottomPadding });
 			m_psv->SetPage(GetHeight());
 		}
 		return 0;
@@ -175,7 +202,7 @@ public:
 		return __super::OnEvent(uMsg, wParam, lParam);
 	}
 
-	EckInline void SetItemCount(int cItem)
+	void SetItemCount(int cItem)
 	{
 		ECK_DUILOCK;
 		m_cItem = cItem;
@@ -188,7 +215,7 @@ public:
 			m_SelRange.OnSetItemCount(m_cItem);
 		if (m_idxHot >= m_cItem)
 			m_idxHot = -1;
-		m_psv->SetMax(m_cItem * (m_cyItem + m_cyPadding));
+		ReCalcScroll();
 	}
 	EckInline constexpr int GetItemCount() const { return m_cItem; }
 
@@ -262,7 +289,8 @@ public:
 		rcItem.left = 0.f;
 		rcItem.top = float(idx0 * (m_cyItem + m_cyPadding)) - m_psv->GetPos();
 		rcItem.right = GetWidthF();
-		rcItem.bottom = float((idx1 + 1) * (m_cyItem + m_cyPadding)) - m_psv->GetPos() + m_cyItem;
+		rcItem.bottom = float((idx1 + 1) * (m_cyItem + m_cyPadding)) -
+			m_psv->GetPos() + m_cyItem;
 	}
 
 	constexpr void GetItemRect(int idx, RECT& rcItem) const
@@ -306,6 +334,22 @@ public:
 
 	EckInlineCe void SetSingleSel(BOOL bSingleSel) { m_bSingleSel = bSingleSel; }
 	EckInlineNdCe BOOL GetSingleSel() const { return m_bSingleSel; }
+
+	EckInline void SetTopPadding(int cyTopPadding)
+	{
+		ECK_DUILOCK;
+		m_cyTopPadding = cyTopPadding;
+		ReCalcScroll();
+	}
+	EckInlineNdCe int GetTopPadding() const { return m_cyTopPadding; }
+
+	EckInline void SetBottomPadding(int cyBottomPadding)
+	{
+		ECK_DUILOCK;
+		m_cyBottomPadding = cyBottomPadding;
+		ReCalcScroll();
+	}
+	EckInlineNdCe int GetBottomPadding() const { return m_cyBottomPadding; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

@@ -127,9 +127,9 @@ inline HRESULT DciCreateInteropCompositorFactory(
 inline HRESULT DciCreateWindowTarget(
 	_In_ HWND hWnd,
 	_In_ BOOL bTopmost,
-	_In_ winrt::Windows::UI::Composition::Compositor Compositor,
+	_In_ const winrt::Windows::UI::Composition::Compositor& Compositor,
 	_In_ IDCompositionDesktopDevice* pDcDesktopDevice,
-	_In_ winrt::Windows::UI::Composition::Visual pRootVisual,
+	_In_ const winrt::Windows::UI::Composition::Visual& pRootVisual,
 	_Out_ IDCompositionTarget*& pDcTarget_,
 	_Out_ winrt::Windows::UI::Composition::Desktop::DesktopWindowTarget& Target,
 	_Out_ HwndTarget*& pHwndTarget

@@ -118,14 +118,14 @@ private:
 	{
 		HDC hCDC = CreateCompatibleDC(nullptr);
 		RECT rc{ 0,0,m_cxClient - m_Ds.Margin * 2,m_cyClient };
-		DTTOPTS dttops{ sizeof(DTTOPTS),DTT_CALCRECT };
+		DTTOPTS Opt{ sizeof(DTTOPTS),DTT_CALCRECT };
 		DrawThemeTextEx(m_hTheme, hCDC, TEXT_MAININSTRUCTION, 0, m_pOpt->pszMainTip, -1,
-			DT_NOPREFIX | DT_EDITCONTROL | DT_WORDBREAK | DT_CALCRECT, &rc, &dttops);
+			DT_NOPREFIX | DT_EDITCONTROL | DT_WORDBREAK | DT_CALCRECT, &rc, &Opt);
 		m_cyMainTip = rc.bottom;
 
 		rc = { 0,0,m_cxClient - m_Ds.Margin * 2,m_cyClient };
 		DrawThemeTextEx(m_hTheme, hCDC, TEXT_BODYTEXT, 0, m_pOpt->pszTip, -1,
-			DT_NOPREFIX | DT_EDITCONTROL | DT_WORDBREAK | DT_CALCRECT, &rc, &dttops);
+			DT_NOPREFIX | DT_EDITCONTROL | DT_WORDBREAK | DT_CALCRECT, &rc, &Opt);
 		m_cyTip = rc.bottom;
 		DeleteDC(hCDC);
 	}

@@ -507,6 +507,21 @@ EckInline void SafeRelease(TInterface*& pUnk)
 	}
 }
 
+template<class TInterface>
+EckInline void SafeReleaseAssert0(TInterface*& pUnk)
+{
+#ifdef _DEBUG
+	if (pUnk)
+	{
+		const auto r = pUnk->Release();
+		EckAssert(r == 0);
+		pUnk = nullptr;
+	}
+#else
+	SafeRelease(pUnk);
+#endif
+}
+
 #ifdef _WIN64
 constexpr inline size_t c_FNVOffsetBasis = 14695981039346656037ull;
 constexpr inline size_t c_FNVPrime = 1099511628211ull;
