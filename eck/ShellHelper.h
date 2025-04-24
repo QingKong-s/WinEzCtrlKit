@@ -3,6 +3,7 @@
 #include "ImageHelper.h"
 
 #include <taskschd.h>
+#include <comutil.h>
 
 ECK_NAMESPACE_BEGIN
 inline CRefStrW GetClipboardString(HWND hWnd = nullptr)
