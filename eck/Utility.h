@@ -514,7 +514,7 @@ EckInline void SafeReleaseAssert0(TInterface*& pUnk)
 	if (pUnk)
 	{
 		const auto r = pUnk->Release();
-		EckAssert(r == 0);
+		EckAssert(!r);
 		pUnk = nullptr;
 	}
 #else

@@ -1765,13 +1765,13 @@ void UnInit()
 	}
 	g_hInstance = nullptr;
 	g_rsCurrDir.Clear();
-	SafeRelease(g_pWicFactory);
+	SafeReleaseAssert0(g_pWicFactory);
 #if !ECK_OPT_NO_DX
-	SafeRelease(g_pD2dFactory);
+	SafeReleaseAssert0(g_pD2dFactory);
 	SafeRelease(g_pDwFactory);
-	SafeRelease(g_pD2dDevice);
-	SafeRelease(g_pDxgiDevice);
-	SafeRelease(g_pDxgiFactory);
+	SafeReleaseAssert0(g_pD2dDevice);
+	SafeReleaseAssert0(g_pDxgiDevice);
+	SafeReleaseAssert0(g_pDxgiFactory);
 #endif// !ECK_OPT_NO_DX
 }
 #pragma endregion Init

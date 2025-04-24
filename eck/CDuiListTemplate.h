@@ -38,7 +38,7 @@ protected:
 			else
 				eState = State::Normal;
 		if (eState != State::Normal)
-			GetTheme()->DrawBackground(Part::ListItem, eState, rcItem);
+			GetTheme()->DrawBackground(Part::ListItem, eState, rcItem, nullptr);
 	}
 
 	void ReCalcScroll()

@@ -59,11 +59,11 @@ namespace Priv
 	};
 }
 
-template<class TThis>
-using CRefObjSingleThread = Priv::CRefObj<CUnknownSingleThread<TThis>>;
+template<class TThis, class TBase = IUnknown>
+using CRefObjSingleThread = Priv::CRefObj<CUnknownSingleThread<TThis, TBase>>;
 
-template<class TThis>
-using CRefObjMultiThread = Priv::CRefObj<CUnknownMultiThread<TThis>>;
+template<class TThis, class TBase = IUnknown>
+using CRefObjMultiThread = Priv::CRefObj<CUnknownMultiThread<TThis, TBase>>;
 
 #define ECK_DECL_CUNK_FRIENDS			\
 	template<class TThis, class TBase>	\
