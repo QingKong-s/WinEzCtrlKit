@@ -123,7 +123,7 @@ public:
 				const float cxy = cxyTrack * 3.f / 4.f * m_pec->GetCurrValue();
 				GetThumbRect(cxyTrack, Opt.rcClip, Opt.rcClip);
 				GetTheme()->DrawBackground(Part::TrackBarThumb, State::Hot,
-					Opt.rcClip);
+					Opt.rcClip, nullptr);
 			}
 
 			ECK_DUI_DBG_DRAW_FRAME;

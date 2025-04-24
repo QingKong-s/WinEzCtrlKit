@@ -82,7 +82,7 @@ public:
 			else
 				eState = State::Normal;
 
-			GetTheme()->DrawBackground(Part::Button, eState, GetViewRectF());
+			GetTheme()->DrawBackground(Part::Button, eState, GetViewRectF(), nullptr);
 
 			const float Padding = GetTheme()->GetMetrics(Metrics::Padding);
 			const float Padding2 = GetTheme()->GetMetrics(Metrics::SmallPadding);

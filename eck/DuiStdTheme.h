@@ -40,11 +40,9 @@ enum class StdPal
 	ListItemHotSelectedBk,
 
 	TrackBarNormalBk,
-	TrackBarSelectedBk,
 
 	TrackBarThumbNormalBk,
 	TrackBarThumbNormalBorder,
-	TrackBarThumbExtra,
 
 	ScrollBarHotBk,
 	ScrollThumbNormalBk,
@@ -52,37 +50,52 @@ enum class StdPal
 	Max
 };
 
+EckInlineNdCe D2D1_COLOR_F StMakeForegroundColorLight(float fOpacity)
+{
+	return { 0.f,0.f,0.f,fOpacity };
+}
+EckInlineNdCe D2D1_COLOR_F StMakeForegroundColorDark(float fOpacity)
+{
+	return { 1.f,1.f,1.f,fOpacity };
+}
+EckInlineNdCe D2D1_COLOR_F StMakeBackgroundColorLight(float fOpacity)
+{
+	return { 1.f,1.f,1.f,fOpacity };
+}
+EckInlineNdCe D2D1_COLOR_F StMakeBackgroundColorDark(float fOpacity)
+{
+	return { 0.f,0.f,0.f,fOpacity };
+}
+
 constexpr inline D2D1_COLOR_F Palette_StdLight[]
 {
-	{ ARGBToD2dColorF(0xFF66CCFF) },
+	{ /*占位*/ },
 	// SysColor
-	{ 0.05f,0.05f,0.05f,1.0f },
-	{ 0.95f,0.95f,0.95f,1.0f },
+	StMakeForegroundColorLight(1.f),	// SysText
+	StMakeBackgroundColorLight(1.f),	// SysBk
 	// Button
-	{ 0.95f,0.95f,0.95f,1.0f },
-	{ 0.7f,0.8f,0.9f,1.0f },
-	{ 0.85f,0.9f,0.95f,1.0f },
-	{ 0.65f,0.75f,0.85f,1.0f },
-	{ 0.8f,0.85f,0.9f,1.0f },
-	{ 0.6f,0.7f,0.8f,1.0f },
+	StMakeBackgroundColorLight(0.7f),	// ButtonNormalBk
+	StMakeForegroundColorLight(0.1f),	// ButtonNormalBorder
+	StMakeForegroundColorLight(0.1f),	// ButtonHotBk
+	StMakeForegroundColorLight(0.1f),	// ButtonHotBorder
+	StMakeForegroundColorLight(0.2f),	// ButtonSelectedBk
+	StMakeForegroundColorLight(0.1f),	// ButtonSelectedBorder
 	// CircleButton
-	{ 0.95f,0.95f,0.95f,1.0f },
-	{ 0.85f,0.9f,0.95f,1.0f },
-	{ 0.8f,0.85f,0.9f,1.0f },
+	StMakeBackgroundColorLight(0.7f), 	// CircleButtonNormalBk
+	StMakeForegroundColorLight(0.1f),	// CircleButtonHotBk
+	StMakeForegroundColorLight(0.2f),	// CircleButtonSelectedBk
 	// ListSelRect
 	{ 0.4f,0.5f,0.6f,0.4f },
 	{ 0.7f,0.8f,0.9f,0.8f },
 	// ListItem
-	{ 0.95f,0.95f,0.95f,1.0f },
-	{ 0.9f,0.95f,1.0f,1.0f },
-	{ 0.88f,0.92f,0.96f,1.0f },
+	StMakeForegroundColorLight(0.1f),
+	StMakeForegroundColorLight(0.2f),
+	StMakeForegroundColorLight(0.25f),
 	// TrackBar
-	{ 0.8f,0.8f,0.8f,1.0f },
-	{ 0,0.44f,0.77f,1.0f },
+	{ 0.85f,0.85f,0.85f,1.0f },
 	// TrackBarThumb
 	{ 1.f,1.f,1.f,1.0f },
 	{ 0.9f,0.9f,0.9f,1.0f },
-	{ 0,0.44f,0.77f,1.0f },
 	// ScrollBar
 	{ 0.8f,0.85f,0.9f,0.5f },
 	// ScrollThumb
@@ -91,35 +104,33 @@ constexpr inline D2D1_COLOR_F Palette_StdLight[]
 
 constexpr inline D2D1_COLOR_F Palette_StdDark[]
 {
-	{ ARGBToD2dColorF(0xFF66CCFF) },
+	{ /*占位*/ },
 	// SysColor
-	{ 0.95f,0.95f,0.95f,1.0f },
-	{ 0.05f,0.05f,0.05f,1.0f },
+	StMakeForegroundColorDark(1.f),		// SysText
+	StMakeBackgroundColorDark(1.f),		// SysBk
 	// Button
-	{ 0.1f,0.15f,0.2f,1.0f },
-	{ 0.2f,0.3f,0.43f,1.0f },
-	{ 0.15f,0.2f,0.25f,1.0f },
-	{ 0.25f,0.3f,0.4f,1.0f },
-	{ 0.08f,0.12f,0.16f,1.0f },
-	{ 0.18f,0.22f,0.35f,1.0f },
+	StMakeBackgroundColorDark(0.7f),	// ButtonNormalBk
+	StMakeForegroundColorDark(0.1f),	// ButtonNormalBorder
+	StMakeForegroundColorDark(0.1f),	// ButtonHotBk
+	StMakeForegroundColorDark(0.1f),	// ButtonHotBorder
+	StMakeForegroundColorDark(0.2f),	// ButtonSelectedBk
+	StMakeForegroundColorDark(0.1f),	// ButtonSelectedBorder
 	// CircleButton
-	{ 0.1f,0.15f,0.2f,1.0f },
-	{ 0.15f,0.2f,0.25f,1.0f },
-	{ 0.08f,0.12f,0.16f,1.0f },
+	StMakeBackgroundColorDark(0.7f), 	// CircleButtonNormalBk
+	StMakeForegroundColorDark(0.1f),	// CircleButtonHotBk
+	StMakeForegroundColorDark(0.2f),	// CircleButtonSelectedBk
 	// ListSelRect
 	{ 0.4f,0.5f,0.6f,0.4f },
 	{ 0.7f,0.8f,0.9f,0.8f },
 	// ListItem
-	{ 0.15f,0.15f,0.15f,1.0f },
-	{ 0.2f,0.25f,0.3f,1.0f },
-	{ 0.18f,0.22f,0.26f,1.0f },
+	StMakeForegroundColorDark(0.1f),	// ListItemHotBk
+	StMakeForegroundColorDark(0.2f),	// ListItemSelectedBk
+	StMakeForegroundColorDark(0.25f),	// ListItemHotSelectedBk
 	// TrackBar
 	{ 0.25f,0.25f,0.25f,1.0f },
-	{ 0.2f,0.3f,0.48f,1.0f },
 	// TrackBarThumb
 	{ 0.3f,0.3f,0.3f,1.0f },
 	{ 0.35f,0.35f,0.35f,1.0f },
-	{ 0.4f,0.5f,0.6f,1.0f },
 	// ScrollBar
 	{ 0.2f,0.25f,0.3f,0.5f },
 	// ScrollThumb
@@ -310,7 +321,7 @@ constexpr inline STD_THEME_DATA StdThemeData
 			.eState = State::Selected,
 			.bGeometry = TRUE,
 			.Geo{.eType = GeoType::FillRoundRect },
-			.ColorIdx{.idxClrBk = (UINT)StdPal::TrackBarSelectedBk }
+			.ColorIdx{.idxClrBk = IdxColorizationColor }
 		},
 		// TrackBarThumb
 		{
@@ -329,7 +340,7 @@ constexpr inline STD_THEME_DATA StdThemeData
 			.ColorIdx{
 				.idxClrBk = (UINT)StdPal::TrackBarThumbNormalBk,
 				.idxClrBorder = (UINT)StdPal::TrackBarThumbNormalBorder,
-				.idxClrExtra1 = (UINT)StdPal::TrackBarThumbExtra,
+				.idxClrExtra1 = IdxColorizationColor,
 			}
 		},
 		{
@@ -348,7 +359,7 @@ constexpr inline STD_THEME_DATA StdThemeData
 			.ColorIdx{
 				.idxClrBk = (UINT)StdPal::TrackBarThumbNormalBk,
 				.idxClrBorder = (UINT)StdPal::TrackBarThumbNormalBorder,
-				.idxClrExtra1 = (UINT)StdPal::TrackBarThumbExtra,
+				.idxClrExtra1 = IdxColorizationColor,
 			}
 		},
 		{
@@ -367,7 +378,7 @@ constexpr inline STD_THEME_DATA StdThemeData
 			.ColorIdx{
 				.idxClrBk = (UINT)StdPal::TrackBarThumbNormalBk,
 				.idxClrBorder = (UINT)StdPal::TrackBarThumbNormalBorder,
-				.idxClrExtra1 = (UINT)StdPal::TrackBarThumbExtra,
+				.idxClrExtra1 = IdxColorizationColor,
 			}
 		},
 		// ScrollBar

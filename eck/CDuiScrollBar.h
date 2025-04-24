@@ -191,10 +191,11 @@ public:
 				}
 				else
 					GetTheme()->DrawBackground(Part::ScrollBar, State::Hot,
-						GetViewRectF());
+						GetViewRectF(), nullptr);
 			}
 
-			GetTheme()->DrawBackground(Part::ScrollThumb, State::Normal, rc);
+			GetTheme()->DrawBackground(Part::ScrollThumb, 
+				State::Normal, rc, nullptr);
 
 			EndPaint(ps);
 		}

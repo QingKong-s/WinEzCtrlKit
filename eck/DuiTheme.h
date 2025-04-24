@@ -145,6 +145,8 @@ struct THEME_SEQ_RANGE
 	UINT idxBegin;
 	UINT cSeq;
 };
+
+constexpr inline UINT IdxColorizationColor = 0xFFFFFFFF;
 // 状态描述
 struct THEME_STATE
 {
@@ -286,6 +288,19 @@ struct DTB_OPT
 };
 // 默认DrawBackground选项
 constexpr inline DTB_OPT DtbOptDefault{};
+
+
+struct ITheme : public IUnknown
+{
+	virtual ~ITheme() = default;
+	virtual HRESULT DrawBackground(Part ePart, State eState,
+		const D2D1_RECT_F& rc, _In_opt_ const DTB_OPT* pOpt) = 0;
+	virtual HRESULT SetColorizationColor(const D2D1_COLOR_F& cr) = 0;
+	virtual HRESULT GetColor(Part ePart, State eState,
+		ClrPart eClrPart, _Out_ D2D1_COLOR_F& cr) = 0;
+	virtual HRESULT GetSysColor(SysColor eSysColor, _Out_ D2D1_COLOR_F& cr) = 0;
+	virtual float GetMetrics(Metrics eMetrics) = 0;
+};
 
 class CThemePalette : public CRefObjMultiThread<CThemePalette>
 {
@@ -582,7 +597,7 @@ public:
 };
 
 // 基于指定DC的主题实现
-class CThemeRealization : public CRefObjMultiThread<CThemeRealization>
+class CThemeRealization : public CRefObjMultiThread<CThemeRealization, ITheme>
 {
 	ECK_DECL_CUNK_FRIENDS;
 protected:
@@ -595,6 +610,8 @@ protected:
 	ID2D1SolidColorBrush* m_pBrush{};	// 通用画刷
 
 	ULONG m_cRef{ 1 };
+	D2D1_COLOR_F m_crColorization{};
+
 
 	ID2D1Bitmap1* RealizeAtlas(UINT idxAtlas, _Out_ HRESULT& hr)
 	{
@@ -638,6 +655,7 @@ protected:
 	{
 		return (pOpt->uFlags & DTBO_NEW_COLOR) ? pOpt->CustomColor.crBk :
 			State.bNoUsePalette ? State.Color.crBk :
+			State.ColorIdx.idxClrBk == IdxColorizationColor ? m_crColorization :
 			m_pTheme->m_pPalette->GetColor(State.ColorIdx.idxClrBk);
 	}
 
@@ -645,6 +663,7 @@ protected:
 	{
 		return (pOpt->uFlags & DTBO_NEW_COLOR) ? pOpt->CustomColor.crBorder :
 			State.bNoUsePalette ? State.Color.crBorder :
+			State.ColorIdx.idxClrBorder == IdxColorizationColor ? m_crColorization :
 			m_pTheme->m_pPalette->GetColor(State.ColorIdx.idxClrBorder);
 	}
 
@@ -652,6 +671,7 @@ protected:
 	{
 		return (pOpt->uFlags & DTBO_NEW_COLOR) ? pOpt->CustomColor.crExtra1 :
 			State.bNoUsePalette ? State.Color.crExtra1 :
+			State.ColorIdx.idxClrExtra1 == IdxColorizationColor ? m_crColorization :
 			m_pTheme->m_pPalette->GetColor(State.ColorIdx.idxClrExtra1);
 	}
 public:
@@ -666,7 +686,7 @@ public:
 		m_pDC->CreateSolidColorBrush({}, &m_pBrush);
 	}
 
-	virtual ~CThemeRealization()
+	~CThemeRealization()
 	{
 		m_pDC->Release();
 		m_pTheme->Release();
@@ -688,8 +708,8 @@ public:
 	/// <param name="rc">输出矩形</param>
 	/// <param name="pOpt">选项</param>
 	/// <returns>HRESULT</returns>
-	virtual HRESULT DrawBackground(Part ePart, State eState,
-		const D2D1_RECT_F& rc, _In_opt_ const DTB_OPT* pOpt = nullptr)
+	HRESULT DrawBackground(Part ePart, State eState,
+		const D2D1_RECT_F& rc, _In_opt_ const DTB_OPT* pOpt = nullptr) override
 	{
 		if (!pOpt)
 			pOpt = &DtbOptDefault;
@@ -931,28 +951,29 @@ public:
 		return S_OK;
 	}
 
-	virtual HRESULT SetImmersiveColor(const D2D1_COLOR_F& cr)
+	HRESULT SetColorizationColor(const D2D1_COLOR_F& cr) override
 	{
-		return S_FALSE;
+		m_crColorization = cr;
+		return S_OK;
 	}
 
-	EckInline constexpr auto GetTheme() const { return m_pTheme; }
-
-	EckInline constexpr HRESULT GetColor(Part ePart, State eState,
-		ClrPart eClrPart, _Out_ D2D1_COLOR_F& cr) const
+	HRESULT GetColor(Part ePart, State eState,
+		ClrPart eClrPart, _Out_ D2D1_COLOR_F& cr) override
 	{
 		return m_pTheme->GetColor(ePart, eState, eClrPart, cr);
 	}
 
-	EckInline constexpr HRESULT GetSysColor(SysColor eSysColor, _Out_ D2D1_COLOR_F& cr) const
+	HRESULT GetSysColor(SysColor eSysColor, _Out_ D2D1_COLOR_F& cr) override
 	{
 		return m_pTheme->GetSysColor(eSysColor, cr);
 	}
 
-	EckInline constexpr float GetMetrics(Metrics eMetrics) const
+	float GetMetrics(Metrics eMetrics) override
 	{
 		return m_pTheme->GetMetrics(eMetrics);
 	}
+
+	EckInlineNdCe auto GetTheme() const { return m_pTheme; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

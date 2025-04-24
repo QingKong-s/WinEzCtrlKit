@@ -20,13 +20,14 @@ private:
 	ID2D1Bitmap* m_pImg{};
 
 	D2D1_SIZE_F m_sizeImg{};
-	D2D1_INTERPOLATION_MODE m_iInterpolation = D2D1_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC;
+	BYTE m_eInterpolation{ D2D1_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC };
 
-	BITBOOL m_bHot : 1 = FALSE;
-	BITBOOL m_bLBtnDown : 1 = FALSE;
+	BITBOOL m_bHot : 1{ FALSE };
+	BITBOOL m_bLBtnDown : 1{ FALSE };
 
 	BITBOOL m_bAutoImgSize : 1{ TRUE };
 	BITBOOL m_bCustomDraw : 1{ FALSE };
+	BITBOOL m_bTransparentBk : 1{ FALSE };
 
 	BOOL PtInBtn(POINT ptInClient)
 	{
@@ -78,9 +79,12 @@ public:
 
 			if (!bSkipDefault)
 			{
-				GetTheme()->DrawBackground(Part::CircleButton, eState, GetViewRectF());
+				if (!(m_bTransparentBk && eState == State::Normal))
+					GetTheme()->DrawBackground(Part::CircleButton, eState,
+						GetViewRectF(), nullptr);
 				if (m_pImg)
-					m_pDC->DrawBitmap(m_pImg, cd.rcImg, 1.f, m_iInterpolation);
+					m_pDC->DrawBitmap(m_pImg, cd.rcImg, 1.f,
+						(D2D1_INTERPOLATION_MODE)m_eInterpolation);
 			}
 
 			EndPaint(ps);
@@ -171,14 +175,17 @@ public:
 	EckInlineCe void SetImageSize(D2D1_SIZE_F s) { m_sizeImg = s; }
 	EckInlineNdCe D2D1_SIZE_F GetImageSize() const { return m_sizeImg; }
 
-	EckInlineCe void SetInterpolationMode(D2D1_INTERPOLATION_MODE e) { m_iInterpolation = e; }
-	EckInlineNdCe D2D1_INTERPOLATION_MODE GetInterpolationMode() const { return m_iInterpolation; }
+	EckInlineCe void SetInterpolationMode(D2D1_INTERPOLATION_MODE e) { m_eInterpolation = (BYTE)e; }
+	EckInlineNdCe D2D1_INTERPOLATION_MODE GetInterpolationMode() const { return (D2D1_INTERPOLATION_MODE)m_eInterpolation; }
 
 	EckInlineCe void SetAutoImageSize(BOOL b) { m_bAutoImgSize = b; }
 	EckInlineNdCe BOOL GetAutoImageSize() const { return m_bAutoImgSize; }
 
 	EckInlineCe void SetCustomDraw(BOOL b) { m_bCustomDraw = b; }
 	EckInlineNdCe BOOL GetCustomDraw() const { return m_bCustomDraw; }
+
+	EckInlineCe void SetTransparentBk(BOOL b) { m_bTransparentBk = b; }
+	EckInlineNdCe BOOL GetTransparentBk() const { return m_bTransparentBk; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

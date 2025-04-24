@@ -145,7 +145,7 @@ private:
 			eState = State::None;
 
 		if (eState != State::None)
-			GetTheme()->DrawBackground(Part::ListItem, eState, rc);
+			GetTheme()->DrawBackground(Part::ListItem, eState, rc, nullptr);
 
 		const float xImage = Padding;
 		const float yImage = (float)((m_cyItem - m_cyImage) / 2);
@@ -191,7 +191,7 @@ private:
 			eState = State::None;
 
 		if (eState != State::None)
-			GetTheme()->DrawBackground(Part::ListItem, eState, rc);
+			GetTheme()->DrawBackground(Part::ListItem, eState, rc, nullptr);
 
 		const float Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
 		D2D1_RECT_F rcImg;
@@ -518,7 +518,7 @@ public:
 			if (m_bDraggingSel)
 			{
 				GetTheme()->DrawBackground(Part::ListSelRect, State::None,
-					MakeD2DRcF(m_rcDragSel));
+					MakeD2DRcF(m_rcDragSel), nullptr);
 			}
 
 			ECK_DUI_DBG_DRAW_FRAME;

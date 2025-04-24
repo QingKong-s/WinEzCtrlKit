@@ -97,7 +97,7 @@ protected:
 	//------属性------
 	CRefStrW m_rsText{};				// 标题
 	INT_PTR m_iId{};					// 元素ID
-	CThemeRealization* m_pTheme{};		// 主题
+	ITheme* m_pTheme{};		// 主题
 	IDWriteTextFormat* m_pTextFormat{};	// 文本格式
 	DWORD m_dwStyle{};					// 样式
 	int m_cChildren{};					// 子元素数量
@@ -537,12 +537,14 @@ public:
 	EckInlineNdCe INT_PTR GetID() const { return m_iId; }
 
 	// 置主题【不能在渲染线程调用】
-	EckInline void SetTheme(CThemeRealization* pTheme)
+	EckInline void SetTheme(ITheme* pTheme)
 	{
 		ECK_DUILOCK;
 		std::swap(m_pTheme, pTheme);
-		m_pTheme->AddRef();
-		pTheme->Release();
+		if (m_pTheme)
+			m_pTheme->AddRef();
+		if (pTheme)
+			pTheme->Release();
 		CallEvent(WM_THEMECHANGED, 0, 0);
 	}
 	// 取主题
@@ -1616,6 +1618,7 @@ public:
 				pPal->Release();
 
 				const auto pTr = new CThemeRealization{ pDC, pTheme };
+				
 				m_vTheme.emplace_back(pTr);
 
 				pTheme->Release();
@@ -1897,7 +1900,7 @@ public:
 		return m_vTheme.front();
 	}
 
-	EckInline void SwitchStdThemeMode(BOOL bDark)
+	EckInline void StSwitchStdThemeMode(BOOL bDark)
 	{
 		ECK_DUILOCKWND;
 		const auto pTheme = m_vTheme.front()->GetTheme();
@@ -1907,6 +1910,17 @@ public:
 		if (m_pBrBkg)
 			m_pBrBkg->SetColor(cr);
 		BroadcastEvent(WM_THEMECHANGED, 0, 0);
+	}
+	void StUpdateColorizationColor(const D2D1_COLOR_F& cr)
+	{
+		m_vTheme.front()->SetColorizationColor(cr);
+	}
+	void StUpdateColorizationColor()
+	{
+		DWORD Argb{};
+		BOOL Dummy;
+		DwmGetColorizationColor(&Argb, &Dummy);
+		StUpdateColorizationColor(ARGBToD2dColorF(Argb));
 	}
 
 	EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -2184,6 +2198,19 @@ public:
 	}
 
 	EckInlineNdCe ID2D1DeviceContext* GetDeviceContext() const noexcept { return m_D2D.GetDC(); }
+
+	template<std::invocable<CElem*> F>
+	void EtForEachElem(const F& Fn, CElem* pElemBegin = nullptr)
+	{
+		auto p{ pElemBegin ? pElemBegin : GetFirstChildElem() };
+		while (p)
+		{
+			EckCanCallbackContinue(Fn(p))
+				return;
+			EtForEachElem(Fn, p->GetFirstChildElem());
+			p = p->GetNextElem();
+		}
+	}
 };
 
 inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
