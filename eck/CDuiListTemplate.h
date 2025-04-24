@@ -11,17 +11,36 @@ struct LTN_ITEM : DUINMHDR
 
 class CListTemplate :public CElem
 {
+public:
+	enum class ListType
+	{
+		List,
+		Icon,
+	};
 protected:
-	CSelRange m_SelRange{};
 	CScrollBar m_SB{};
 	CInertialScrollView* m_psv{};
+	//---平面列表
+	CSelRange m_SelRange{};
 	int m_cItem{};
-	int m_cyPadding{ 6 };
-	int m_cyItem{ 40 };
 	int m_idxSel{ -1 };
 	int m_idxHot{ -1 };
+	//------图标专用
+	int m_cxItem{ 40 };
+	int m_cxPadding{ 4 };
+	int m_cItemPerRow{};
+	//---通用
+	int m_cyPadding{ 6 };
+	int m_cyItem{ 40 };
 	int m_cyTopPadding{};
 	int m_cyBottomPadding{};
+
+	POINT m_ptDragSelStart{};
+	RECT m_rcDragSel{};
+	int m_dCursorToItemMax = 0;
+
+	ListType m_eListType{ ListType::List };
+
 	BITBOOL m_bSingleSel : 1{ TRUE };
 
 	virtual void PaintItem(int idx, const D2D1_RECT_F& rcItem, const D2D1_RECT_F& rcPaint)
@@ -43,7 +62,6 @@ protected:
 
 	void ReCalcScroll()
 	{
-		ECK_DUILOCK;
 		m_psv->SetMinThumbSize(CxyMinScrollThumb);
 		m_psv->SetRange(-m_cyTopPadding,
 			GetItemCount() * (m_cyItem + m_cyPadding) + m_cyBottomPadding);
@@ -219,6 +237,7 @@ public:
 	}
 	EckInline constexpr int GetItemCount() const { return m_cItem; }
 
+	// Type::List下，由坐标得到逻辑项的索引
 	constexpr int HitTestY(int y, BOOL bExcludePadding = FALSE) const
 	{
 		y += m_psv->GetPos();
@@ -229,6 +248,7 @@ public:
 			return idx;
 	}
 
+	// 通用命中测试
 	constexpr int HitTest(POINT pt) const
 	{
 		if (pt.x < 0 || pt.x > GetWidth() || pt.y < 0 || pt.y > GetHeight())
@@ -239,6 +259,7 @@ public:
 		return idx;
 	}
 
+	// 某项是否被选中
 	EckInline constexpr BOOL IsItemSel(int idx) const
 	{
 		if (m_bSingleSel)

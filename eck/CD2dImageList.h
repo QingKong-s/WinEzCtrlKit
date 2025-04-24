@@ -35,7 +35,7 @@ private:
 		if (cImg <= m_cImg)
 			return S_FALSE;
 		const int idxBegin = (int)m_vBmp.size();
-		const int cPack = (cImg + m_cImgPerPack - 1) / m_cImgPerPack;
+		const int cPack = (cImg + m_cImgPerPack) / m_cImgPerPack;
 		m_vBmp.resize(cPack);
 		for (int i = idxBegin; i < (int)m_vBmp.size(); ++i)
 		{
