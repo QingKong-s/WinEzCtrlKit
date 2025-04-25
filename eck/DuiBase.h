@@ -621,6 +621,8 @@ public:
 	EckInline void SetTimer(UINT_PTR uId, UINT uElapse);
 	// 销毁定时器【不能在渲染线程调用】
 	EckInline void KillTimer(UINT_PTR uId);
+
+	EckInlineNdCe BOOL IsValid() const { return !!GetWnd(); }
 #pragma endregion ElemFunc
 #pragma region Composite
 	// 取完全包围元素的矩形，相对客户区
@@ -2095,20 +2097,18 @@ public:
 		D2D1_POINT_2F ptDrawing, float fDeviation, BOOL bUseLayer = FALSE)
 	{
 		ComPtr<ID2D1Bitmap1> pBmp;
-		ID2D1Image* pTarget;
+		ComPtr<ID2D1Image> pTarget;
 		GetDeviceContext()->GetTarget(&pTarget);
 		pTarget->QueryInterface(&pBmp);
-		pTarget->Release();
 		HRESULT hr;
 		float xDpi, yDpi;
 		pBmp->GetDpi(&xDpi, &yDpi);
-
 		const D2D1_RECT_U rcU
 		{
-			(UINT32)(rc.left * xDpi / 96.f),
-			(UINT32)(rc.top * yDpi / 96.f),
-			(UINT32)(rc.right * xDpi / 96.f),
-			(UINT32)(rc.bottom * yDpi / 96.f)
+			UINT32(rc.left * xDpi / 96.f),
+			UINT32(rc.top * yDpi / 96.f),
+			UINT32(rc.right * xDpi / 96.f),
+			UINT32(rc.bottom * yDpi / 96.f)
 		};
 		if (FAILED(hr = GetCacheBitmap()->CopyFromBitmap(nullptr, pBmp.Get(), &rcU)))
 			return hr;
@@ -2502,7 +2502,9 @@ inline void CElem::BeginPaint(_Out_ ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lP
 			GetWnd()->CacheReserveLogSize(
 				eps.rcfClip.right - eps.rcfClip.left,
 				eps.rcfClip.bottom - eps.rcfClip.top);
-			GetWnd()->BlurDrawDC(eps.rcfClip,
+			auto rc{ eps.rcfClip };
+			OffsetRect(rc, eps.ox, eps.oy);
+			GetWnd()->BlurDrawDC(rc,
 				{ eps.rcfClipInElem.left, eps.rcfClipInElem.top },
 				GetWnd()->BlurGetDeviation(),
 				GetWnd()->BlurGetUseLayer());

@@ -68,6 +68,8 @@ enum :UINT
 	TBLE_GETDISPINFO,// 【渲染线程】获取显示信息
 	// GroupList
 	GLE_GETDISPINFO,// 【渲染线程】获取显示信息
+	// Header
+	HEE_GETDISPINFO,// 【渲染线程】获取显示信息
 
 	EE_PRIVATE_BEGIN = 0x0400
 };

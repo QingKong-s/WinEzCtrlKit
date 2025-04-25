@@ -178,6 +178,7 @@
     <ClInclude Include="eck\CBorderLayout.h" />
     <ClInclude Include="eck\CColorReducing.h" />
     <ClInclude Include="eck\CDuiGroupList.h" />
+    <ClInclude Include="eck\CDuiHeader.h" />
     <ClInclude Include="eck\CDuiListTemplate.h" />
     <ClInclude Include="eck\CDuiTabList.h" />
     <ClInclude Include="eck\CDWriteFontFactory.h" />

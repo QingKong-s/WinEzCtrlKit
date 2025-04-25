@@ -10,8 +10,8 @@ ECK_DUI_NAMESPACE_BEGIN
 struct STD_THEME_DATA
 {
 	THEME_FILE_HEADER Hdr;
-	THEME_PART aPart[9];
-	THEME_STATE aState[17];
+	THEME_PART aPart[10];
+	THEME_STATE aState[20];
 };
 
 enum class StdPal
@@ -46,6 +46,10 @@ enum class StdPal
 
 	ScrollBarHotBk,
 	ScrollThumbNormalBk,
+
+	HeaderNormalBk,
+	HeaderHotBk,
+	HeaderSelectedBk,
 
 	Max
 };
@@ -85,21 +89,25 @@ constexpr inline D2D1_COLOR_F Palette_StdLight[]
 	StMakeForegroundColorLight(0.1f),	// CircleButtonHotBk
 	StMakeForegroundColorLight(0.2f),	// CircleButtonSelectedBk
 	// ListSelRect
-	{ 0.4f,0.5f,0.6f,0.4f },
-	{ 0.7f,0.8f,0.9f,0.8f },
+	{ 0.4f,0.5f,0.6f,0.4f },			// ListSelRectBk
+	{ 0.7f,0.8f,0.9f,0.8f },			// ListSelRectBorder
 	// ListItem
-	StMakeForegroundColorLight(0.1f),
-	StMakeForegroundColorLight(0.2f),
-	StMakeForegroundColorLight(0.25f),
+	StMakeForegroundColorLight(0.1f),	// ListItemHotBk
+	StMakeForegroundColorLight(0.2f),	// ListItemSelectedBk
+	StMakeForegroundColorLight(0.25f),	// ListItemHotSelectedBk
 	// TrackBar
-	{ 0.85f,0.85f,0.85f,1.0f },
+	{ 0.85f,0.85f,0.85f,1.0f },			// TrackBarNormalBk
 	// TrackBarThumb
-	{ 1.f,1.f,1.f,1.0f },
-	{ 0.9f,0.9f,0.9f,1.0f },
+	{ 1.f,1.f,1.f,1.0f },				// TrackBarThumbNormalBk
+	{ 0.9f,0.9f,0.9f,1.0f },			// TrackBarThumbNormalBorder
 	// ScrollBar
-	{ 0.8f,0.85f,0.9f,0.5f },
+	{ 0.85f,0.85f,0.9f,0.5f },			// ScrollBarHotBk
 	// ScrollThumb
-	{ 0.5f,0.6f,0.7f,1.0f },
+	{ 0.6f,0.6f,0.65f,1.0f },			// ScrollThumbNormalBk
+	// Header
+	StMakeBackgroundColorLight(0.8f),	// HeaderNormalBk
+	StMakeForegroundColorLight(0.2f),	// HeaderHotBk
+	StMakeForegroundColorLight(0.25f),	// HeaderSelectedBk
 };
 
 constexpr inline D2D1_COLOR_F Palette_StdDark[]
@@ -120,21 +128,25 @@ constexpr inline D2D1_COLOR_F Palette_StdDark[]
 	StMakeForegroundColorDark(0.1f),	// CircleButtonHotBk
 	StMakeForegroundColorDark(0.2f),	// CircleButtonSelectedBk
 	// ListSelRect
-	{ 0.4f,0.5f,0.6f,0.4f },
-	{ 0.7f,0.8f,0.9f,0.8f },
+	{ 0.4f,0.5f,0.6f,0.4f },			// ListSelRectBk
+	{ 0.7f,0.8f,0.9f,0.8f },			// ListSelRectBorder
 	// ListItem
 	StMakeForegroundColorDark(0.1f),	// ListItemHotBk
 	StMakeForegroundColorDark(0.2f),	// ListItemSelectedBk
 	StMakeForegroundColorDark(0.25f),	// ListItemHotSelectedBk
 	// TrackBar
-	{ 0.25f,0.25f,0.25f,1.0f },
+	{ 0.25f,0.25f,0.25f,1.0f },			// TrackBarNormalBk
 	// TrackBarThumb
-	{ 0.3f,0.3f,0.3f,1.0f },
-	{ 0.35f,0.35f,0.35f,1.0f },
+	{ 0.3f,0.3f,0.3f,1.0f },			// TrackBarThumbNormalBk
+	{ 0.35f,0.35f,0.35f,1.0f },			// TrackBarThumbNormalBorder
 	// ScrollBar
-	{ 0.2f,0.25f,0.3f,0.5f },
+	{ 0.25f,0.25f,0.3f,0.5f },			// ScrollBarHotBk
 	// ScrollThumb
-	{ 0.4f,0.45f,0.5f,1.0f },
+	{ 0.45f,0.45f,0.5f,1.0f },			// ScrollThumbNormalBk
+	// Header
+	StMakeBackgroundColorDark(0.8f),	// HeaderNormalBk
+	StMakeForegroundColorDark(0.7f),	// HeaderHotBk
+	StMakeForegroundColorDark(0.75f),	// HeaderSelectedBk
 };
 
 static_assert(ARRAYSIZE(Palette_StdLight) == (size_t)StdPal::Max);
@@ -196,18 +208,23 @@ constexpr inline STD_THEME_DATA StdThemeData
 			.cState = 3,
 		},
 		{
-			.ePart = Part::TrackBar,
+			.ePart = Part::HeaderItem,
 			.idxState = 10,
+			.cState = 3,
+		},
+		{
+			.ePart = Part::TrackBar,
+			.idxState = 13,
 			.cState = 2,
 		},
 		{
 			.ePart = Part::TrackBarThumb,
-			.idxState = 12,
+			.idxState = 15,
 			.cState = 3,
 		},
 		{
 			.ePart = Part::ScrollBar,
-			.idxState = 15,
+			.idxState = 18,
 			.cState = 1,
 		},
 		{
@@ -217,9 +234,10 @@ constexpr inline STD_THEME_DATA StdThemeData
 		},
 		{
 			.ePart = Part::ScrollThumb,
-			.idxState = 16,
+			.idxState = 19,
 			.cState = 1,
 		},
+		
 	},
 	.aState{
 		// Button
@@ -309,6 +327,25 @@ constexpr inline STD_THEME_DATA StdThemeData
 			.bGeometry = TRUE,
 			.Geo = { .eType = GeoType::FillRect },
 			.ColorIdx = { .idxClrBk = (UINT)StdPal::ListItemHotSelectedBk }
+		},
+		// HeaderItem
+		{
+			.eState = State::Normal,
+			.bGeometry = TRUE,
+			.Geo = {.eType = GeoType::FillRect },
+			.ColorIdx = {.idxClrBk = (UINT)StdPal::HeaderNormalBk }
+		},
+		{
+			.eState = State::Hot,
+			.bGeometry = TRUE,
+			.Geo = {.eType = GeoType::FillRect },
+			.ColorIdx = {.idxClrBk = (UINT)StdPal::HeaderHotBk }
+		},
+		{
+			.eState = State::Selected,
+			.bGeometry = TRUE,
+			.Geo = {.eType = GeoType::FillRect },
+			.ColorIdx = {.idxClrBk = (UINT)StdPal::HeaderSelectedBk }
 		},
 		// TrackBar
 		{
