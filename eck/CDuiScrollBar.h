@@ -27,13 +27,6 @@ private:
 	BITBOOL m_bDragThumb : 1 = FALSE;
 	BITBOOL m_bTransparentTrack : 1 = TRUE;
 public:
-	BOOL Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-		int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId = 0, PCVOID pData = nullptr) override
-	{
-		dwStyle |= DES_TRANSPARENT;
-		return CElem::Create(pszText, dwStyle, dwExStyle, x, y, cx, cy, pParent, pWnd, iId, pData);
-	}
-
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)

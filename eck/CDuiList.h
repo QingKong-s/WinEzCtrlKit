@@ -1,11 +1,7 @@
 ﻿#pragma once
-#include "DuiBase.h"
-#include "CInertialScrollView.h"
-#include "CD2DImageList.h"
-
 #include "CDuiScrollBar.h"
-
-#include <d2d1_2.h>
+#include "CDuiHeader.h"
+#include "CD2DImageList.h"
 
 #if !ECKCXX20
 #error "EckDui requires C++20"
@@ -15,8 +11,9 @@ ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 struct LEE_DISPINFO : DUINMHDR
 {
-	UINT uFlags;
+	DispInfoMask uMask;
 	int idx;
+	int idxSub;
 
 	PCWSTR pszText;
 	int cchText;
@@ -49,18 +46,27 @@ public:
 	enum : int
 	{
 		CyInsertMark = 3,
+		CyDefHeader = 30,
 	};
 private:
+	struct SUBITEM
+	{
+		ComPtr<IDWriteTextLayout> pLayout{};
+	};
 	struct ITEM
 	{
 		ComPtr<IDWriteTextLayout> pLayout{};
 		UINT uFlags{};
-		float cxText{};
-		float cyText{};
+		std::vector<SUBITEM> vSubItem{};
 	};
 
 	std::vector<ITEM> m_vItem{};// 项目
-	//-------------------通用
+	CScrollBar m_SBV{}, m_SBH{};
+	CHeader m_Header{};
+	ID2D1SolidColorBrush* m_pBrush{};
+	CInertialScrollView* m_psv{};
+	CD2DImageList* m_pImgList{};
+	//---通用
 	int m_idxHot{ -1 };			// 热点项
 	int m_idxSel{ -1 };			// 选中的项的索引，仅用于单选
 	int m_idxInsertMark{ -1 };	// 插入标记应当显示在哪一项之前
@@ -78,51 +84,42 @@ private:
 
 	int m_oyTopItem{};		// 小于等于零的值，指示第一可见项的遮挡高度
 	int m_idxTop{};			// 第一个可见项
-	//-------------------列表模式
-
-	//-------------------图标模式
-	int m_cxItem{};
-	int m_cxPadding{};
-	int m_cItemPerRow{};
-
-	POINT m_ptDragSelStart{};
-	RECT m_rcDragSel{};
-	int m_dCursorToItemMax{};
-
-	ID2D1SolidColorBrush* m_pBrush{};
-
-	CScrollBar m_SB{};
-	CInertialScrollView* m_psv{};
-	CD2DImageList* m_pImgList{};
+	//---列表模式
+	//---图标模式
+	int m_cxItem{};			// 项目宽度
+	int m_cxPadding{};		// 水平项目间距
+	int m_cItemPerRow{};	// 每行项目数
+	//---
+	POINT m_ptDragSelStart{};	// 拖动选择起始点
+	RECT m_rcDragSel{};			// 当前选择矩形
+	int m_dCursorToItemMax{};	// 鼠标指针到项目的最大距离
 
 	ListType m_eView{ ListType::Icon };
 
 	BITBOOL m_bSingleSel : 1{};
+	BITBOOL m_bReport : 1{};
 
 	BITBOOL m_bDraggingSel : 1{};
 
-	void LVPaintItem(int idx, const D2D1_RECT_F& rcPaint, const LEE_DISPINFO& es)
-	{
-		const float Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
 
+	void LVPaintSubItem(int idx, int idxSub, const D2D1_RECT_F& rcSub,
+		const D2D1_RECT_F& rcPaint)
+	{
+		LEE_DISPINFO es{ LEE_GETDISPINFO };
+		es.idx = idx;
+		es.idxSub = idxSub;
+		es.uMask = DIM_TEXT | DIM_IMAGE;
+		GenElemNotify(&es);
+
+		const float Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
 		auto& e = m_vItem[idx];
-		if (!e.pLayout.Get() && es.pszText)
+		auto& pTl = (idxSub ? e.vSubItem[idxSub - 1].pLayout : e.pLayout);
+		if (!pTl.Get() && es.pszText)
 		{
 			EckAssert(es.cchText > 0);
 			g_pDwFactory->CreateTextLayout(es.pszText, es.cchText, GetTextFormat(),
-				GetWidthF() - Padding * 3 - m_cxImage, (float)m_cyItem, &e.pLayout);
-			if (e.pLayout.Get())
-			{
-				DWRITE_TEXT_METRICS tm;
-				e.pLayout->GetMetrics(&tm);
-				e.cxText = tm.width;
-			}
-			else
-				e.cxText = 0.f;
+				GetWidthF() - Padding * 3 - m_cxImage, (float)m_cyItem, &pTl);
 		}
-
-		D2D1_RECT_F rc{ 0.f,(float)GetItemY(idx),GetWidthF() };
-		rc.bottom = rc.top + m_cyItem;
 
 		State eState;
 		if ((e.uFlags & LEIF_SELECTED) || (m_bSingleSel && m_idxSel == idx))
@@ -136,39 +133,66 @@ private:
 			eState = State::None;
 
 		if (eState != State::None)
-			GetTheme()->DrawBackground(Part::ListItem, eState, rc, nullptr);
+			GetTheme()->DrawBackground(Part::ListItem, eState, rcSub, nullptr);
 
 		const float xImage = Padding;
 		const float yImage = (float)((m_cyItem - m_cyImage) / 2);
-
-		auto rcOld = rc;
-
-		rc.left += xImage;
-		rc.right = rc.left + m_cxImage;
-		rc.top += yImage;
-		rc.bottom = rc.top + m_cyImage;
-		if (!(rc.right <= rcPaint.left || rc.left >= rcPaint.right))
-			if (es.pImg)
-				m_pDC->DrawBitmap(es.pImg, rc, 1.f, D2D1_INTERPOLATION_MODE_LINEAR);
-			else if (m_pImgList && es.idxImg >= 0)
-				m_pImgList->Draw(es.idxImg, rc);
-
-		const float xText = rc.right + xImage;
-		if (e.pLayout.Get() && !(xText + e.cxText <= rcPaint.left || xText >= rcPaint.right))
+		float xText;
+		if (es.pImg || (m_pImgList && es.idxImg >= 0))
 		{
-			D2D1_COLOR_F cr;
-			GetTheme()->GetSysColor(SysColor::Text, cr);
-			m_pBrush->SetColor(cr);
-			m_pDC->DrawTextLayout({ xText, rcOld.top }, e.pLayout.Get(), m_pBrush);
+			auto rc{ rcSub };
+			rc.left += xImage;
+			rc.right = rc.left + m_cxImage;
+			rc.top += yImage;
+			rc.bottom = rc.top + m_cyImage;
+			xText = rc.right + Padding;
+			if (!(rc.right <= rcPaint.left || rc.left >= rcPaint.right))
+				if (es.pImg)
+					m_pDC->DrawBitmap(es.pImg, rc);
+				else/* if (m_pImgList && es.idxImg >= 0)*/
+					m_pImgList->Draw(es.idxImg, rc);
+		}
+		else
+			xText = rcSub.left + Padding;
+		if (pTl.Get())
+		{
+			DWRITE_TEXT_METRICS tm;
+			pTl->GetMetrics(&tm);
+			if (!(xText + tm.width <= rcPaint.left || xText >= rcPaint.right))
+			{
+				D2D1_COLOR_F cr;
+				GetTheme()->GetSysColor(SysColor::Text, cr);
+				m_pBrush->SetColor(cr);
+				m_pDC->DrawTextLayout({ xText, rcSub.top }, pTl.Get(), m_pBrush);
+			}
 		}
 	}
 
-	void IVPaintItem(int idx, const D2D1_RECT_F& rcPaint, const LEE_DISPINFO& es)
+	void LVPaintItem(int idx, const D2D1_RECT_F& rcPaint)
 	{
+		RECT rc;
+		GetSubItemRect(idx, 0, rc);
+		LVPaintSubItem(idx, 0, MakeD2DRcF(rc), rcPaint);
+		if (m_bReport)
+			for (int i = 1; i < m_Header.GetItemCount(); i++)
+			{
+				GetSubItemRect(idx, i, rc);
+				LVPaintSubItem(idx, i, MakeD2DRcF(rc), rcPaint);
+			}
+	}
+
+	void IVPaintItem(int idx, const D2D1_RECT_F& rcPaint)
+	{
+		LEE_DISPINFO es{ LEE_GETDISPINFO };
+		es.idx = idx;
+		es.uMask = DIM_TEXT | DIM_IMAGE;
+		GenElemNotify(&es);
+
 		auto& e = m_vItem[idx];
 
-		D2D1_RECT_F rc;
-		GetItemRect(idx, rc);
+		RECT rcTmp;
+		GetItemRect(idx, rcTmp);
+		auto rc{ MakeD2DRcF(rcTmp) };
 
 		State eState;
 		if ((e.uFlags & LEIF_SELECTED) || (m_bSingleSel && m_idxSel == idx))
@@ -205,16 +229,10 @@ private:
 
 			if (e.pLayout.Get())
 			{
-				e.pLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
+				e.pLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
 				e.pLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
 				e.pLayout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
-				DWRITE_TEXT_METRICS tm;
-				e.pLayout->GetMetrics(&tm);
-				e.cxText = tm.width;
-				e.cyText = tm.height;
 			}
-			else
-				e.cxText = e.cyText = 0.f;
 		}
 
 		if (e.pLayout.Get())
@@ -229,20 +247,15 @@ private:
 
 	EckInline void DrawItem(int idx, const D2D1_RECT_F& rcPaint)
 	{
-		LEE_DISPINFO es{};
-		es.uCode = LEE_GETDISPINFO;
-		es.idx = idx;
-		GenElemNotify(&es);
 		switch (m_eView)
 		{
 		case ListType::List:
-			LVPaintItem(idx, rcPaint, es);
+			LVPaintItem(idx, rcPaint);
 			break;
 		case ListType::Icon:
-			IVPaintItem(idx, rcPaint, es);
+			IVPaintItem(idx, rcPaint);
 			break;
-		default:
-			ECK_UNREACHABLE;
+		default: ECK_UNREACHABLE;
 		}
 	}
 
@@ -346,7 +359,6 @@ private:
 			idxBegin = 0;
 		if (idxEnd >= GetItemCount())
 			idxEnd = GetItemCount() - 1;
-
 		for (int i = idxBegin; i <= idxEnd; ++i)
 		{
 			auto& e = m_vItem[i];
@@ -390,9 +402,14 @@ private:
 				}
 			}
 		}
-	SkipJudge:
 		OffsetRect(m_rcDragSel, 0, dy);
 		InvalidateRect();
+	}
+
+	void CreateHeaderElem()
+	{
+		m_Header.Create(nullptr, DES_VISIBLE, 0,
+			0, 0, 0, CyDefHeader, this);
 	}
 public:
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -403,7 +420,7 @@ public:
 		{
 			ELEMPAINTSTRU ps;
 			BeginPaint(ps, wParam, lParam);
-			if (!m_vItem.empty())
+			if (GetItemCount() && (m_bReport ? m_Header.GetItemCount() : TRUE))
 			{
 				switch (m_eView)
 				{
@@ -466,7 +483,7 @@ public:
 			if (m_bDraggingSel)
 			{
 				auto rc{ MakeD2DRcF(m_rcDragSel) };
-				OffsetRect(rc, 0, -m_psv->GetPos());
+				OffsetRect(rc, 0.f, (float)-m_psv->GetPos());
 				GetTheme()->DrawBackground(Part::ListSelRect,
 					State::None, rc, nullptr);
 			}
@@ -527,12 +544,17 @@ public:
 		case WM_NOTIFY:
 		{
 			ECK_DUILOCK;
-			if ((wParam == (WPARAM)&m_SB) &&
+			if ((wParam == (WPARAM)&m_SBV) &&
 				(((DUINMHDR*)lParam)->uCode == EE_VSCROLL))
 			{
 				ReCalcTopItem();
 				InvalidateRect();
 				return TRUE;
+			}
+			else if ((wParam == (WPARAM)&m_Header) &&
+				(((DUINMHDR*)lParam)->uCode == HEE_GETDISPINFO))
+			{
+				return GenElemNotify((HEE_DISPINFO*)lParam);
 			}
 		}
 		break;
@@ -543,7 +565,9 @@ public:
 			ReCalcTopItem();
 			ReCalcScroll();
 			const auto cxSB = (int)GetTheme()->GetMetrics(Metrics::CxVScroll);
-			m_SB.SetRect({ GetWidth() - cxSB,0,GetWidth(),GetHeight() });
+			m_SBV.SetRect({ GetWidth() - cxSB,0,GetWidth(),GetHeight() });
+			if (m_Header.IsValid())
+				m_Header.SetSize(GetWidth(), m_Header.GetHeight());
 		}
 		return 0;
 
@@ -620,9 +644,13 @@ public:
 
 		case WM_CREATE:
 		{
-			m_SB.Create(nullptr, DES_VISIBLE, 0,
-				0, 0, 0, 0, this, GetWnd());
-			m_psv = m_SB.GetScrollView();
+			m_pDC->CreateSolidColorBrush({}, &m_pBrush);
+
+			CreateHeaderElem();
+
+			m_SBV.Create(nullptr, DES_VISIBLE, 0,
+				0, 0, 0, 0, this);
+			m_psv = m_SBV.GetScrollView();
 			m_psv->AddRef();
 			m_psv->SetCallBack([](int iPos, int iPrevPos, LPARAM lParam)
 				{
@@ -631,8 +659,6 @@ public:
 					pThis->InvalidateRect();
 				}, (LPARAM)this);
 			m_psv->SetDelta(DpiScale(80, GetWnd()->GetDpiValue()));
-
-			m_pDC->CreateSolidColorBrush({}, &m_pBrush);
 		}
 		return 0;
 
@@ -664,7 +690,15 @@ public:
 	EckInline void SetItemCount(int c) noexcept
 	{
 		ECK_DUILOCK;
-		m_vItem.resize(c);
+		if (m_bReport)
+		{
+			const auto idxBegin = std::max(0, GetItemCount() - 1);
+			m_vItem.resize(c);
+			for (int i = idxBegin; i < c; ++i)
+				m_vItem[i].vSubItem.resize(m_Header.GetItemCount());
+		}
+		else
+			m_vItem.resize(c);
 	}
 	EckInlineNdCe int GetItemCount() const noexcept { return (int)m_vItem.size(); }
 
@@ -705,28 +739,17 @@ public:
 		}
 	}
 
-	void GetItemRect(int idx, D2D1_RECT_F& rc) const
+	void GetSubItemRect(int idx, int idxSub, RECT& rc) const noexcept
 	{
-		switch (m_eView)
+		EckAssert(idx < GetItemCount());
+		if (m_eView != ListType::List || !m_bReport)
 		{
-		case ListType::List:
-			rc.left = 0;
-			rc.right = GetWidthF();
-			rc.top = (float)GetItemY(idx);
-			rc.bottom = rc.top + m_cyItem;
-			break;
-		case ListType::Icon:
-		{
-			const auto xy = IVGetItemXY(idx);
-			rc.left = (float)xy.first;
-			rc.right = rc.left + m_cxItem;
-			rc.top = (float)xy.second;
-			rc.bottom = rc.top + m_cyItem;
+			GetItemRect(idx, rc);
+			return;
 		}
-		break;
-		default:
-			ECK_UNREACHABLE;
-		}
+		m_Header.GetItemRect(idxSub, rc);
+		rc.top = GetItemY(idx);
+		rc.bottom = rc.top + m_cyItem;
 	}
 
 	// 元素坐标
@@ -824,8 +847,8 @@ public:
 		}
 		rc.left = 0.f;
 		rc.right = GetWidthF();
-		rc.top = GetItemY(m_idxInsertMark) - CyInsertMark * 2.f;
-		rc.bottom = rc.top + CyInsertMark * 5.f;
+		rc.top = GetItemY(m_idxInsertMark) - (float)CyInsertMark * 2.f;
+		rc.bottom = rc.top + (float)CyInsertMark * 5.f;
 	}
 
 	void SetInsertMark(int idx, BOOL bRedraw = TRUE)
@@ -924,6 +947,32 @@ public:
 		ReCalcTopItem();
 	}
 
+	EckInline void SetHeaderHeight(int cy)
+	{
+		m_Header.SetSize(m_Header.GetWidth(), cy);
+	}
+	EckInlineNd int GetHeaderHeight() const noexcept { return m_Header.GetHeight(); }
+
+	void SetReport(BOOL bReport)
+	{
+		m_bReport = bReport;
+		if (!m_Header.IsValid())
+			CreateHeaderElem();
+	}
+	EckInlineNdCe BOOL GetReport() const noexcept { return m_bReport; }
+
+	void SetColumnCount(int c, _In_reads_opt_(cItem) const int* pcx = nullptr) noexcept
+	{
+		EckAssert(m_bReport);
+		m_Header.SetItemCount(c, pcx);
+		for (auto& e : m_vItem)
+			e.vSubItem.resize(c - 1);
+	}
+
+	EckInlineNdCe auto& GetScrollBarV() noexcept { return m_SBV; }
+	EckInlineNdCe auto& GetScrollBarH() noexcept { return m_SBH; }
+	EckInlineNdCe auto& GetHeader() noexcept { return m_Header; }
+
 	EckInlineCe void SetItemHeight(int cy) noexcept { m_cyItem = cy; }
 	EckInlineNdCe int GetItemHeight() const noexcept { return m_cyItem; }
 
@@ -936,18 +985,17 @@ public:
 	EckInlineCe void SetItemPaddingH(int cx) { m_cxPadding = cx; }
 	EckInlineNdCe int GetItemPaddingH() const noexcept { return m_cxPadding; }
 
-	EckInlineCe void SetSingleSel(bool bSingleSel) noexcept { m_bSingleSel = bSingleSel; }
-	EckInlineCe bool GetSingleSel() const noexcept { return m_bSingleSel; }
+	EckInlineCe void SetSingleSel(BOOL bSingleSel) noexcept { m_bSingleSel = bSingleSel; }
+	EckInlineNdCe BOOL GetSingleSel() const noexcept { return m_bSingleSel; }
 
 	EckInlineCe void SetView(ListType eView) noexcept { m_eView = eView; }
-	EckInlineCe ListType GetView() const noexcept { return m_eView; }
+	EckInlineNdCe ListType GetView() const noexcept { return m_eView; }
 
 	EckInlineCe void SetTopExtraSpace(int cy) noexcept { m_cyTopExtra = cy; }
-	EckInlineCe int GetTopExtraSpace() const noexcept { return m_cyTopExtra; }
+	EckInlineNdCe int GetTopExtraSpace() const noexcept { return m_cyTopExtra; }
 
 	EckInlineCe void SetBottomExtraSpace(int cy) noexcept { m_cyBottomExtra = cy; }
-	EckInlineCe int GetBottomExtraSpace() const noexcept { return m_cyBottomExtra; }
-
+	EckInlineNdCe int GetBottomExtraSpace() const noexcept { return m_cyBottomExtra; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
