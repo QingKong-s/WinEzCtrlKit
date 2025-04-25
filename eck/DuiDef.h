@@ -56,20 +56,24 @@ enum :UINT
 	EE_RCLICK,
 	EE_HSCROLL,
 	EE_VSCROLL,
-	EE_CUSTOMDRAW,	// CUSTOM_DRAW*，返回CDRF_*
+	EE_CUSTOMDRAW,		// CUSTOM_DRAW*，返回CDRF_*
 
 	// TrackBar
-	TBE_POSCHANGED,	// 位置改变
+	TBE_POSCHANGED,		// 位置改变
 	// List
-	LEE_GETDISPINFO,// 【渲染线程】获取显示信息
+	LEE_GETDISPINFO,	// 【渲染线程】获取显示信息
 	// ListTemplate
-	LTE_ITEMCLICK,	// 项选中(LTN_ITEM*)
+	LTE_ITEMCLICK,		// 项选中(LTN_ITEM*)
 	// TabList
-	TBLE_GETDISPINFO,// 【渲染线程】获取显示信息
+	TBLE_GETDISPINFO,	// 【渲染线程】获取显示信息
 	// GroupList
-	GLE_GETDISPINFO,// 【渲染线程】获取显示信息
+	GLE_GETDISPINFO,	// 【渲染线程】获取显示信息
 	// Header
-	HEE_GETDISPINFO,// 【渲染线程】获取显示信息
+	HEE_GETDISPINFO,	// 【渲染线程】获取显示信息(HEE_DISPINFO*)
+	HEE_BEGINDRAG,		// 开始拖拽(HEE_DRAG*)
+	HEE_ENDDRAG,		// 结束拖拽(HEE_DRAG*)
+	HEE_WIDTHCHANGED,	// 宽度改变(HEE_ITEMNOTIFY*)
+	HEE_ORDERCHANGED,	// 顺序改变(HEE_ITEMNOTIFY*)
 
 	EE_PRIVATE_BEGIN = 0x0400
 };

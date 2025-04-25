@@ -20,12 +20,27 @@ struct HEE_DISPINFO : DUINMHDR
 	ID2D1Bitmap* pImg;
 };
 
+struct HEE_ITEMNOTIFY : DUINMHDR
+{
+	int idx;
+};
+struct HEE_DRAG : HEE_ITEMNOTIFY
+{
+	BOOL bDragDivider;
+};
+
+struct HE_HITTEST
+{
+	POINT pt;
+	BOOLEAN bHitDivider;
+};
+
 class CHeader : public CElem
 {
 public:
 	enum : int
 	{
-		CxTextPadding = 3,
+		CxDividerWidthHalf = 6,
 	};
 private:
 	struct ITEM
@@ -40,11 +55,18 @@ private:
 	std::vector<int> m_vMapToIdx{};
 	int m_idxHot{ -1 };
 	int m_idxPressed{ -1 };
-
+	int m_idxDrag{ -1 };
+	int m_idxInsertMark{ -1 };
+	int m_cxItemOld{};// 拖动分隔条时用
 	BITBOOL m_bDraggable : 1{};
+
+	BITBOOL m_bHitDivider : 1{};
+	BITBOOL m_bDragging : 1{};
+	BITBOOL m_bDraggingDivider : 1{};
 
 	void PaintItem(int idx, ITEM& e, const D2D1_RECT_F& rcClip)
 	{
+		const float Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
 		D2D1_RECT_F rcItem;
 		State eState;
 		if (m_idxPressed == idx)
@@ -71,7 +93,7 @@ private:
 			{
 				EckAssert(nm.cchText > 0);
 				eck::g_pDwFactory->CreateTextLayout(nm.pszText, nm.cchText,
-					GetTextFormat(), float(e.cx - CxTextPadding * 2), GetHeightF(), &e.pLayout);
+					GetTextFormat(), float(e.cx - Padding * 2), GetHeightF(), &e.pLayout);
 			}
 		}
 		if (e.pLayout.Get())
@@ -79,7 +101,7 @@ private:
 			D2D1_COLOR_F cr;
 			GetTheme()->GetSysColor(SysColor::Text, cr);
 			m_pBrush->SetColor(cr);
-			m_pDC->DrawTextLayout({ float(e.x + CxTextPadding),0.f }, e.pLayout.Get(),
+			m_pDC->DrawTextLayout({ float(e.x + Padding),0.f }, e.pLayout.Get(),
 				m_pBrush, DrawTextLayoutFlags);
 		}
 	}
@@ -98,6 +120,16 @@ private:
 			for (int i{ 1 }; i < GetItemCount(); ++i)
 				m_vItem[i].x = m_vItem[i - 1].x + m_vItem[i - 1].cx;
 		}
+	}
+
+	BOOL OnSetCursor()
+	{
+		if (m_bHitDivider)
+		{
+			SetCursor(LoadCursorW(nullptr, IDC_SIZEWE));
+			return TRUE;
+		}
+		return FALSE;
 	}
 public:
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
@@ -131,17 +163,49 @@ public:
 		}
 		return 0;
 
+		case WM_SETCURSOR:
+			return OnSetCursor();
 		case WM_MOUSEMOVE:
 		{
 			ECK_DUILOCK;
-			POINT pt ECK_GET_PT_LPARAM(lParam);
-			ClientToElem(pt);
-			auto idx = HitTestX(pt.x);
-			std::swap(m_idxHot, idx);
-			if (m_idxHot >= 0)
-				InvalidateItem(m_idxHot);
-			if (idx >= 0)
-				InvalidateItem(idx);
+			HE_HITTEST ht{ ECK_GET_PT_LPARAM(lParam) };
+			ClientToElem(ht.pt);
+			auto idx = HitTest(ht);
+			if (m_bDraggingDivider)
+			{
+				const auto cxNew = ht.pt.x - m_vItem[m_idxDrag].x;
+				if (cxNew != m_vItem[m_idxDrag].cx)
+				{
+					m_vItem[m_idxDrag].cx = cxNew;
+					ReCalcItemX();
+					RECT rc;
+					GetItemRect(m_idxDrag, rc);
+					rc.right = GetWidth();
+					ElemToClient(rc);
+					InvalidateRect(rc);
+					HEE_ITEMNOTIFY nm;
+					nm.uCode = HEE_WIDTHCHANGED;
+					nm.idx = m_idxDrag;
+					GenElemNotify(&nm);
+				}
+			}
+			else if (m_bDragging)
+			{
+
+			}
+			else
+			{
+				if (m_bHitDivider != ht.bHitDivider)
+				{
+					m_bHitDivider = ht.bHitDivider;
+					OnSetCursor();
+				}
+				std::swap(m_idxHot, idx);
+				if (m_idxHot >= 0)
+					InvalidateItem(m_idxHot);
+				if (idx >= 0)
+					InvalidateItem(idx);
+			}
 		}
 		break;
 		case WM_MOUSELEAVE:
@@ -151,6 +215,47 @@ public:
 			std::swap(m_idxHot, idx);
 			if (idx >= 0)
 				InvalidateItem(idx);
+		}
+		break;
+		case WM_LBUTTONDOWN:
+		{
+			ECK_DUILOCK;
+			HE_HITTEST ht{ ECK_GET_PT_LPARAM(lParam) };
+			ClientToElem(ht.pt);
+			const auto idx = HitTest(ht);
+			if (idx >= 0)
+			{
+				SetCapture();
+				m_idxDrag = idx;
+				if (ht.bHitDivider)
+				{
+					m_bDraggingDivider = TRUE;
+					m_cxItemOld = GetItem(idx).cx;
+				}
+				else
+					m_bDragging = TRUE;
+				HEE_DRAG nm;
+				nm.uCode = HEE_BEGINDRAG;
+				nm.bDragDivider = ht.bHitDivider;
+				nm.idx = idx;
+				GenElemNotify(&nm);
+			}
+		}
+		break;
+		case WM_LBUTTONUP:
+		{
+			if (m_idxDrag >= 0)
+			{
+				ReleaseCapture();
+				HEE_DRAG nm;
+				nm.uCode = HEE_ENDDRAG;
+				nm.bDragDivider = m_bDraggingDivider;
+				nm.idx = m_idxDrag;
+				m_idxDrag = -1;
+				m_bDragging = FALSE;
+				m_bDraggingDivider = FALSE;
+				GenElemNotify(&nm);
+			}
 		}
 		break;
 		case WM_CREATE:
@@ -196,17 +301,23 @@ public:
 		return iOrder;
 	}
 
-	constexpr [[nodiscard]] int HitTestX(int x) const noexcept
+	constexpr [[nodiscard]] int HitTest(HE_HITTEST& ht) const noexcept
 	{
 		for (int i{}; i < GetItemCount(); ++i)
 		{
-			if (x >= m_vItem[i].x && x < m_vItem[i].x + m_vItem[i].cx)
+			const auto& e = m_vItem[i];
+			if (ht.pt.x >= e.x &&
+				ht.pt.x < e.x + e.cx + CxDividerWidthHalf)
+			{
+				if (ht.pt.x > e.x + e.cx - CxDividerWidthHalf)
+					ht.bHitDivider = TRUE;// 分隔条左界
 				return i;
+			}
 		}
 		return -1;
 	}
 
-	void GetItemRect(int idx,RECT& rcItem) const noexcept
+	void GetItemRect(int idx, RECT& rcItem) const noexcept
 	{
 		const auto& e = m_vItem[idx];
 		rcItem.left = e.x;
@@ -218,10 +329,19 @@ public:
 	void InvalidateItem(int idx)
 	{
 		RECT rcItem;
-		GetItemRect(idx,rcItem);
+		GetItemRect(idx, rcItem);
 		ElemToClient(rcItem);
 		InvalidateRect(rcItem);
 	}
+
+	int GetContentWidth() const noexcept
+	{
+		if (!GetItemCount())
+			return 0;
+		auto& e = GetItem(OrderToIndex(GetItemCount() - 1));
+		return e.x + e.cx;
+	}
+	EckInlineNdCe const ITEM& GetItem(int idx) const noexcept { return m_vItem[idx]; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
