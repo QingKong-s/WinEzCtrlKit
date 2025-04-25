@@ -64,7 +64,8 @@ private:
 	CScrollBar m_SBV{}, m_SBH{};
 	CHeader m_Header{};
 	ID2D1SolidColorBrush* m_pBrush{};
-	CInertialScrollView* m_psv{};
+	CInertialScrollView* m_psvV{};
+	CInertialScrollView* m_psvH{};
 	CD2DImageList* m_pImgList{};
 	//---通用
 	int m_idxHot{ -1 };			// 热点项
@@ -78,9 +79,6 @@ private:
 
 	int m_cyItem{};			// 项目高度
 	int m_cyPadding{};		// 项目间距
-
-	int m_cxImage{};		// 图像大小
-	int m_cyImage{};		// 图像大小
 
 	int m_oyTopItem{};		// 小于等于零的值，指示第一可见项的遮挡高度
 	int m_idxTop{};			// 第一个可见项
@@ -102,6 +100,19 @@ private:
 	BITBOOL m_bDraggingSel : 1{};
 
 
+	D2D1_SIZE_F GetImageSize(const LEE_DISPINFO& es)
+	{
+		if (es.pImg)
+			return es.pImg->GetSize();
+		else if (m_pImgList && es.idxImg >= 0)
+		{
+			int cx, cy;
+			m_pImgList->GetImageSize(cx, cy);
+			return { (float)cx, (float)cy };
+		}
+		else
+			return {};
+	}
 	void LVPaintSubItem(int idx, int idxSub, const D2D1_RECT_F& rcSub,
 		const D2D1_RECT_F& rcPaint)
 	{
@@ -111,6 +122,8 @@ private:
 		es.uMask = DIM_TEXT | DIM_IMAGE;
 		GenElemNotify(&es);
 
+		D2D1_SIZE_F sizeImg = GetImageSize(es);
+
 		const float Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
 		auto& e = m_vItem[idx];
 		auto& pTl = (idxSub ? e.vSubItem[idxSub - 1].pLayout : e.pLayout);
@@ -118,7 +131,8 @@ private:
 		{
 			EckAssert(es.cchText > 0);
 			g_pDwFactory->CreateTextLayout(es.pszText, es.cchText, GetTextFormat(),
-				GetWidthF() - Padding * 3 - m_cxImage, (float)m_cyItem, &pTl);
+				rcSub.right - rcSub.left - Padding * 3 - sizeImg.width,
+				(float)m_cyItem, &pTl);
 		}
 
 		State eState;
@@ -136,15 +150,15 @@ private:
 			GetTheme()->DrawBackground(Part::ListItem, eState, rcSub, nullptr);
 
 		const float xImage = Padding;
-		const float yImage = (float)((m_cyItem - m_cyImage) / 2);
+		const float yImage = (float)((m_cyItem - sizeImg.height) / 2);
 		float xText;
 		if (es.pImg || (m_pImgList && es.idxImg >= 0))
 		{
 			auto rc{ rcSub };
 			rc.left += xImage;
-			rc.right = rc.left + m_cxImage;
+			rc.right = rc.left + sizeImg.width;
 			rc.top += yImage;
-			rc.bottom = rc.top + m_cyImage;
+			rc.bottom = rc.top + sizeImg.height;
 			xText = rc.right + Padding;
 			if (!(rc.right <= rcPaint.left || rc.left >= rcPaint.right))
 				if (es.pImg)
@@ -188,6 +202,7 @@ private:
 		es.uMask = DIM_TEXT | DIM_IMAGE;
 		GenElemNotify(&es);
 
+		D2D1_SIZE_F sizeImg = GetImageSize(es);
 		auto& e = m_vItem[idx];
 
 		RECT rcTmp;
@@ -210,10 +225,10 @@ private:
 
 		const float Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
 		D2D1_RECT_F rcImg;
-		rcImg.left = rc.left + (m_cxItem - m_cxImage) / 2.f;
+		rcImg.left = rc.left + (m_cxItem - sizeImg.width) / 2.f;
 		rcImg.top = rc.top + Padding;
-		rcImg.right = rcImg.left + m_cxImage;
-		rcImg.bottom = rcImg.top + m_cyImage;
+		rcImg.right = rcImg.left + sizeImg.width;
+		rcImg.bottom = rcImg.top + sizeImg.height;
 
 		if (!(rcImg.right <= rcPaint.left || rcImg.left >= rcPaint.right))
 			if (es.pImg)
@@ -263,18 +278,18 @@ private:
 	{
 		if (!m_cyItem || !m_cxItem)
 			return;
-		m_psv->SetMinThumbSize(CxyMinScrollThumb);
-		m_psv->SetPage(GetHeight());
+		m_psvV->SetMinThumbSize(CxyMinScrollThumb);
+		m_psvV->SetPage(GetHeight());
 		switch (m_eView)
 		{
 		case ListType::List:
-			m_psv->SetRange(-m_cyTopExtra, GetItemCount() * (m_cyItem + m_cyPadding) + m_cyBottomExtra);
+			m_psvV->SetRange(-m_cyTopExtra, GetItemCount() * (m_cyItem + m_cyPadding) + m_cyBottomExtra);
 			break;
 		case ListType::Icon:
 		{
 			m_cItemPerRow = (GetWidth() + m_cxPadding) / (m_cxItem + m_cxPadding);
 			const int cItemV = (GetItemCount() - 1) / m_cItemPerRow + 1;
-			m_psv->SetRange(-m_cyTopExtra, cItemV * (m_cyItem + m_cyPadding) + m_cyBottomExtra);
+			m_psvV->SetRange(-m_cyTopExtra, cItemV * (m_cyItem + m_cyPadding) + m_cyBottomExtra);
 		}
 		break;
 		default:
@@ -289,14 +304,14 @@ private:
 		switch (m_eView)
 		{
 		case ListType::List:
-			m_idxTop = m_psv->GetPos() / (m_cyItem + m_cyPadding);
-			m_oyTopItem = m_idxTop * (m_cyItem + m_cyPadding) - m_psv->GetPos();
+			m_idxTop = m_psvV->GetPos() / (m_cyItem + m_cyPadding);
+			m_oyTopItem = m_idxTop * (m_cyItem + m_cyPadding) - m_psvV->GetPos();
 			break;
 		case ListType::Icon:
 		{
-			const int cItemV = m_psv->GetPos() / (m_cyItem + m_cyPadding);
+			const int cItemV = m_psvV->GetPos() / (m_cyItem + m_cyPadding);
 			m_idxTop = cItemV * m_cItemPerRow;
-			m_oyTopItem = cItemV * (m_cyItem + m_cyPadding) - m_psv->GetPos();
+			m_oyTopItem = cItemV * (m_cyItem + m_cyPadding) - m_psvV->GetPos();
 		}
 		break;
 		default:
@@ -327,22 +342,49 @@ private:
 		};
 	}
 
+	// 由索引得到Y坐标
+	EckInline int LVGetItemY(int idx) const
+	{
+		EckAssert(m_eView == ListType::List);
+		return m_oyTopItem + (idx - m_idxTop) * (m_cyItem + m_cyPadding);
+	}
+	// 由Y坐标得到索引
+	EckInline int LVItemFromY(int y) const
+	{
+		EckAssert(m_eView == ListType::List);
+		return m_idxTop + (y - m_oyTopItem) / (m_cyItem + m_cyPadding);
+	}
+
 	void CalcItemRangeInRect(const RECT& rc, _Out_ int& idxBegin, _Out_ int& idxEnd)
 	{
-		int idxX = IVLogItemFromX(rc.left);
-		idxX = std::clamp(idxX, 0, m_cItemPerRow - 1);
-		int idxY = IVLogItemFromY(rc.top);
-		idxBegin = m_idxTop + idxX + idxY * m_cItemPerRow;
+		switch (m_eView)
+		{
+		case ListType::List:
+			idxBegin = LVItemFromY(rc.top);
+			idxBegin = std::clamp(idxBegin, 0, GetItemCount() - 1);
+			idxEnd = LVItemFromY(rc.bottom);
+			idxEnd = std::clamp(idxEnd, 0, GetItemCount() - 1);
+			break;
+		case ListType::Icon:
+		{
+			int idxX = IVLogItemFromX(rc.left);
+			idxX = std::clamp(idxX, 0, m_cItemPerRow - 1);
+			int idxY = IVLogItemFromY(rc.top);
+			idxBegin = m_idxTop + idxX + idxY * m_cItemPerRow;
 
-		idxX = IVLogItemFromX(rc.right);
-		idxX = std::clamp(idxX, 0, m_cItemPerRow - 1);
-		idxY = IVLogItemFromY(rc.bottom);
-		idxEnd = m_idxTop + idxX + idxY * m_cItemPerRow;
+			idxX = IVLogItemFromX(rc.right);
+			idxX = std::clamp(idxX, 0, m_cItemPerRow - 1);
+			idxY = IVLogItemFromY(rc.bottom);
+			idxEnd = m_idxTop + idxX + idxY * m_cItemPerRow;
+		}
+		break;
+		default: ECK_UNREACHABLE;
+		}
 	}
 
 	void DragSelMouseMove(POINT pt, WPARAM wParam)
 	{
-		const auto dy = m_psv->GetPos();
+		const auto dy = m_psvV->GetPos();
 		EckAssert(m_bDraggingSel);
 		RECT rcOld{ m_rcDragSel };
 		OffsetRect(rcOld, 0, -dy);
@@ -405,12 +447,6 @@ private:
 		OffsetRect(m_rcDragSel, 0, dy);
 		InvalidateRect();
 	}
-
-	void CreateHeaderElem()
-	{
-		m_Header.Create(nullptr, DES_VISIBLE, 0,
-			0, 0, 0, CyDefHeader, this);
-	}
 public:
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
@@ -426,8 +462,8 @@ public:
 				{
 				case ListType::List:
 				{
-					const int idxBegin = std::max(ItemFromY((int)ps.rcfClipInElem.top), 0);
-					const int idxEnd = std::min(ItemFromY((int)ps.rcfClipInElem.bottom), GetItemCount() - 1);
+					const int idxBegin = std::max(LVItemFromY((int)ps.rcfClipInElem.top), 0);
+					const int idxEnd = std::min(LVItemFromY((int)ps.rcfClipInElem.bottom), GetItemCount() - 1);
 					for (int i = idxBegin; i <= idxEnd; ++i)
 						DrawItem(i, ps.rcfClipInElem);
 				}
@@ -465,8 +501,7 @@ public:
 						}
 				}
 				break;
-				default:
-					ECK_UNREACHABLE;
+				default: ECK_UNREACHABLE;
 				}
 
 				if (m_idxInsertMark >= 0)
@@ -483,7 +518,7 @@ public:
 			if (m_bDraggingSel)
 			{
 				auto rc{ MakeD2DRcF(m_rcDragSel) };
-				OffsetRect(rc, 0.f, (float)-m_psv->GetPos());
+				OffsetRect(rc, 0.f, (float)-m_psvV->GetPos());
 				GetTheme()->DrawBackground(Part::ListSelRect,
 					State::None, rc, nullptr);
 			}
@@ -524,6 +559,7 @@ public:
 
 		case WM_MOUSELEAVE:
 		{
+			ECK_DUILOCK;
 			if (m_idxHot >= 0)
 			{
 				int idx = -1;
@@ -536,7 +572,7 @@ public:
 		case WM_MOUSEWHEEL:
 		{
 			ECK_DUILOCK;
-			m_psv->OnMouseWheel2(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
+			m_psvV->OnMouseWheel2(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
 			GetWnd()->WakeRenderThread();
 		}
 		return 0;
@@ -551,11 +587,33 @@ public:
 				InvalidateRect();
 				return TRUE;
 			}
-			else if ((wParam == (WPARAM)&m_Header) &&
-				(((DUINMHDR*)lParam)->uCode == HEE_GETDISPINFO))
-			{
-				return GenElemNotify((HEE_DISPINFO*)lParam);
-			}
+			else if ((wParam == (WPARAM)&m_Header))
+				switch (((DUINMHDR*)lParam)->uCode)
+				{
+				case HEE_GETDISPINFO:
+					return GenElemNotify((HEE_DISPINFO*)lParam);
+				case HEE_WIDTHCHANGED:
+				{
+					EckAssert(m_eView == ListType::List && m_bReport);
+					const auto* const p = (HEE_ITEMNOTIFY*)lParam;
+					if (p->idx)
+						for (auto& e : m_vItem)
+							e.vSubItem[p->idx - 1].pLayout.Clear();
+					else
+					{
+						for (auto& e : m_vItem)
+							e.pLayout.Clear();
+					}
+					RECT rc;
+					GetSubItemRect(0, p->idx, rc);
+					rc.top = 0;
+					rc.right = GetWidth();
+					rc.bottom = GetHeight();
+					ElemToClient(rc);
+					InvalidateRect(rc);
+				}
+				return 0;
+				}
 		}
 		break;
 
@@ -608,7 +666,7 @@ public:
 					if (ht.pt.x >= GetWidth()) ht.pt.x = GetWidth() - 1;
 					if (ht.pt.y >= GetHeight()) ht.pt.y = GetHeight() - 1;
 					m_ptDragSelStart = ht.pt;
-					m_ptDragSelStart.y += m_psv->GetPos();
+					m_ptDragSelStart.y += m_psvV->GetPos();
 					m_dCursorToItemMax = INT_MIN;
 				}
 				else
@@ -646,19 +704,33 @@ public:
 		{
 			m_pDC->CreateSolidColorBrush({}, &m_pBrush);
 
-			CreateHeaderElem();
+			m_Header.Create(nullptr, DES_VISIBLE, 0,
+				0, 0, 0, CyDefHeader, this);
 
 			m_SBV.Create(nullptr, DES_VISIBLE, 0,
 				0, 0, 0, 0, this);
-			m_psv = m_SBV.GetScrollView();
-			m_psv->AddRef();
-			m_psv->SetCallBack([](int iPos, int iPrevPos, LPARAM lParam)
+			m_psvV = m_SBV.GetScrollView();
+			m_psvV->AddRef();
+			m_psvV->SetCallBack([](int iPos, int iPrevPos, LPARAM lParam)
 				{
 					auto pThis = (CList*)lParam;
 					pThis->ReCalcTopItem();
 					pThis->InvalidateRect();
 				}, (LPARAM)this);
-			m_psv->SetDelta(DpiScale(80, GetWnd()->GetDpiValue()));
+			m_psvV->SetDelta(80);
+
+			m_SBH.Create(nullptr, 0, 0,
+				0, 0, 0, 0, this);
+
+			m_psvH = m_SBH.GetScrollView();
+			m_psvH->AddRef();
+			m_psvH->SetCallBack([](int iPos, int iPrevPos, LPARAM lParam)
+				{
+					auto pThis = (CList*)lParam;
+					pThis->ReCalcTopItem();
+					pThis->InvalidateRect();
+				}, (LPARAM)this);
+			m_psvH->SetDelta(40);
 		}
 		return 0;
 
@@ -676,15 +748,15 @@ public:
 
 			SafeRelease(m_pBrush);
 			m_vItem.clear();
-			m_psv->SetRange(0, 0);
 			m_pImgList = nullptr;
 			m_bSingleSel = FALSE;
 
-			SafeRelease(m_psv);
+			SafeRelease(m_psvV);
+			SafeRelease(m_psvH);
 		}
 		return 0;
 		}
-		return CElem::OnEvent(uMsg, wParam, lParam);
+		return __super::OnEvent(uMsg, wParam, lParam);
 	}
 
 	EckInline void SetItemCount(int c) noexcept
@@ -702,27 +774,22 @@ public:
 	}
 	EckInlineNdCe int GetItemCount() const noexcept { return (int)m_vItem.size(); }
 
-	// 由逻辑索引得到Y坐标
-	EckInline int GetItemY(int idx) const
-	{
-		EckAssert(m_eView == ListType::List);
-		return m_oyTopItem + (idx - m_idxTop) * (m_cyItem + m_cyPadding);
-	}
-	// 由Y坐标得到逻辑索引
-	EckInline int ItemFromY(int y) const
-	{
-		EckAssert(m_eView == ListType::List);
-		return m_idxTop + (y - m_oyTopItem) / (m_cyItem + m_cyPadding);
-	}
-
 	void GetItemRect(int idx, RECT& rc) const
 	{
 		switch (m_eView)
 		{
 		case ListType::List:
-			rc.left = 0;
-			rc.right = GetWidth();
-			rc.top = GetItemY(idx);
+			if (m_bReport)
+			{
+				rc.left = -m_psvH->GetPos();
+				rc.right = rc.left + m_Header.GetContentWidth();
+			}
+			else
+			{
+				rc.left = 0;
+				rc.right = GetWidth();
+			}
+			rc.top = LVGetItemY(idx);
 			rc.bottom = rc.top + m_cyItem;
 			break;
 		case ListType::Icon:
@@ -748,7 +815,7 @@ public:
 			return;
 		}
 		m_Header.GetItemRect(idxSub, rc);
-		rc.top = GetItemY(idx);
+		rc.top = LVGetItemY(idx);
 		rc.bottom = rc.top + m_cyItem;
 	}
 
@@ -762,7 +829,9 @@ public:
 		{
 		case ListType::List:
 		{
-			const int idx = ItemFromY(leht.pt.y);
+			if (m_bReport && leht.pt.x > m_Header.GetContentWidth())
+				return -1;
+			const int idx = LVItemFromY(leht.pt.y);
 			if (idx >= 0 && idx < GetItemCount())
 				return idx;
 			else
@@ -782,8 +851,7 @@ public:
 			return idx;
 		}
 		break;
-		default:
-			ECK_UNREACHABLE;
+		default: ECK_UNREACHABLE;
 		}
 	}
 
@@ -829,13 +897,6 @@ public:
 			m_pImgList->AddRef();
 		if (pImgList)
 			pImgList->Release();
-		m_pImgList->GetImageSize(m_cxImage, m_cyImage);
-	}
-
-	void SetImageSize(int cx, int cy)
-	{
-		m_cxImage = cx;
-		m_cyImage = cy;
 	}
 
 	void GetInsertMarkRect(D2D1_RECT_F& rc) const
@@ -847,7 +908,7 @@ public:
 		}
 		rc.left = 0.f;
 		rc.right = GetWidthF();
-		rc.top = GetItemY(m_idxInsertMark) - (float)CyInsertMark * 2.f;
+		rc.top = LVGetItemY(m_idxInsertMark) - (float)CyInsertMark * 2.f;
 		rc.bottom = rc.top + (float)CyInsertMark * 5.f;
 	}
 
@@ -885,9 +946,9 @@ public:
 			RECT rc
 			{
 				0,
-				GetItemY(idxBegin),
+				LVGetItemY(idxBegin),
 				GetWidth(),
-				GetItemY(idxEnd) + m_cyItem
+				LVGetItemY(idxEnd) + m_cyItem
 			};
 			ElemToClient(rc);
 			InvalidateRect(rc);
@@ -953,21 +1014,27 @@ public:
 	}
 	EckInlineNd int GetHeaderHeight() const noexcept { return m_Header.GetHeight(); }
 
-	void SetReport(BOOL bReport)
-	{
-		m_bReport = bReport;
-		if (!m_Header.IsValid())
-			CreateHeaderElem();
-	}
-	EckInlineNdCe BOOL GetReport() const noexcept { return m_bReport; }
-
-	void SetColumnCount(int c, _In_reads_opt_(cItem) const int* pcx = nullptr) noexcept
+	void SetColumnCount(int cItem,
+		_In_reads_opt_(cItem) const int* pcx = nullptr) noexcept
 	{
 		EckAssert(m_bReport);
-		m_Header.SetItemCount(c, pcx);
+		m_Header.SetItemCount(cItem, pcx);
 		for (auto& e : m_vItem)
-			e.vSubItem.resize(c - 1);
+			e.vSubItem.resize(cItem - 1);
 	}
+
+	EckInlineCe void SetView(ListType eView) noexcept
+	{
+		m_eView = eView;
+		switch (eView)
+		{
+		case ListType::Icon:
+			m_bReport = FALSE;
+			break;
+		default: ECK_UNREACHABLE;
+		}
+	}
+	EckInlineNdCe ListType GetView() const noexcept { return m_eView; }
 
 	EckInlineNdCe auto& GetScrollBarV() noexcept { return m_SBV; }
 	EckInlineNdCe auto& GetScrollBarH() noexcept { return m_SBH; }
@@ -979,7 +1046,11 @@ public:
 	EckInlineCe void SetItemPadding(int cy) noexcept { m_cyPadding = cy; }
 	EckInlineNdCe int GetItemPadding() const noexcept { return m_cyPadding; }
 
-	EckInlineCe void SetItemWidth(int cx) noexcept { m_cxItem = cx; }
+	EckInlineCe void SetItemWidth(int cx) noexcept
+	{
+		EckAssert(m_eView == ListType::Icon);
+		m_cxItem = cx;
+	}
 	EckInlineNdCe int GetItemWidth() const noexcept { return m_cxItem; }
 
 	EckInlineCe void SetItemPaddingH(int cx) { m_cxPadding = cx; }
@@ -988,14 +1059,18 @@ public:
 	EckInlineCe void SetSingleSel(BOOL bSingleSel) noexcept { m_bSingleSel = bSingleSel; }
 	EckInlineNdCe BOOL GetSingleSel() const noexcept { return m_bSingleSel; }
 
-	EckInlineCe void SetView(ListType eView) noexcept { m_eView = eView; }
-	EckInlineNdCe ListType GetView() const noexcept { return m_eView; }
-
 	EckInlineCe void SetTopExtraSpace(int cy) noexcept { m_cyTopExtra = cy; }
 	EckInlineNdCe int GetTopExtraSpace() const noexcept { return m_cyTopExtra; }
 
 	EckInlineCe void SetBottomExtraSpace(int cy) noexcept { m_cyBottomExtra = cy; }
 	EckInlineNdCe int GetBottomExtraSpace() const noexcept { return m_cyBottomExtra; }
+
+	EckInline void SetReport(BOOL bReport) noexcept
+	{
+		EckAssert(m_eView == ListType::List);
+		m_bReport = bReport;
+	}
+	EckInlineNdCe BOOL GetReport() const noexcept { return m_bReport; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
