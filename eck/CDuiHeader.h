@@ -35,7 +35,7 @@ struct HE_HITTEST
 	BOOLEAN bHitDivider;
 };
 
-class CHeader : public CElem
+class CHeader : public CElem, public CFixedTimeLine
 {
 public:
 	enum : int
@@ -46,9 +46,9 @@ private:
 	struct ITEM
 	{
 		ComPtr<IDWriteTextLayout> pLayout;
-		UINT uFlags;
-		int x;
-		int cx;
+		int x{};
+		int cx{};
+		float k{};
 	};
 	ID2D1SolidColorBrush* m_pBrush{};
 	std::vector<ITEM> m_vItem{};
@@ -63,6 +63,7 @@ private:
 	BITBOOL m_bHitDivider : 1{};
 	BITBOOL m_bDragging : 1{};
 	BITBOOL m_bDraggingDivider : 1{};
+	BITBOOL m_bAnimating : 1{};
 
 	void PaintItem(int idx, ITEM& e, const D2D1_RECT_F& rcClip)
 	{
@@ -268,6 +269,13 @@ public:
 
 		return __super::OnEvent(uMsg, wParam, lParam);
 	}
+
+	void STDMETHODCALLTYPE Tick(int iMs)
+	{
+
+	}
+
+	BOOL STDMETHODCALLTYPE IsValid() { return m_bAnimating; }
 
 	void InvalidateCache(int idx = -1) noexcept
 	{

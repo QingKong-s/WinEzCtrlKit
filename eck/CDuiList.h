@@ -78,14 +78,14 @@ private:
 	int m_cyBottomExtra{};	// 底部空白
 
 	int m_cyItem{};			// 项目高度
-	int m_cyPadding{};		// 项目间距
+	int m_cyPadding{ 3 };	// 项目间距
 
 	int m_oyTopItem{};		// 小于等于零的值，指示第一可见项的遮挡高度
 	int m_idxTop{};			// 第一个可见项
 	//---列表模式
 	//---图标模式
 	int m_cxItem{};			// 项目宽度
-	int m_cxPadding{};		// 水平项目间距
+	int m_cxPadding{ 3 };	// 水平项目间距
 	int m_cItemPerRow{};	// 每行项目数
 	//---
 	POINT m_ptDragSelStart{};	// 拖动选择起始点
@@ -260,17 +260,13 @@ private:
 		}
 	}
 
-	EckInline void DrawItem(int idx, const D2D1_RECT_F& rcPaint)
+	void ReCalcHScroll()
 	{
-		switch (m_eView)
+		if (m_bReport && m_eView == ListType::List)
 		{
-		case ListType::List:
-			LVPaintItem(idx, rcPaint);
-			break;
-		case ListType::Icon:
-			IVPaintItem(idx, rcPaint);
-			break;
-		default: ECK_UNREACHABLE;
+			m_psvH->SetPage(GetWidth());
+			m_psvH->SetRange(0, m_Header.GetContentWidth());
+			m_SBH.SetVisible(m_psvH->IsVisible());
 		}
 	}
 
@@ -278,18 +274,22 @@ private:
 	{
 		if (!m_cyItem || !m_cxItem)
 			return;
-		m_psvV->SetMinThumbSize(CxyMinScrollThumb);
+		ReCalcHScroll();
 		m_psvV->SetPage(GetHeight());
 		switch (m_eView)
 		{
 		case ListType::List:
-			m_psvV->SetRange(-m_cyTopExtra, GetItemCount() * (m_cyItem + m_cyPadding) + m_cyBottomExtra);
-			break;
+		{
+			m_psvV->SetRange(-m_cyTopExtra, GetItemCount() *
+				(m_cyItem + m_cyPadding) + m_cyBottomExtra);
+		}
+		break;
 		case ListType::Icon:
 		{
 			m_cItemPerRow = (GetWidth() + m_cxPadding) / (m_cxItem + m_cxPadding);
 			const int cItemV = (GetItemCount() - 1) / m_cItemPerRow + 1;
-			m_psvV->SetRange(-m_cyTopExtra, cItemV * (m_cyItem + m_cyPadding) + m_cyBottomExtra);
+			m_psvV->SetRange(-m_cyTopExtra, cItemV * 
+				(m_cyItem + m_cyPadding) + m_cyBottomExtra);
 		}
 		break;
 		default:
@@ -316,6 +316,26 @@ private:
 		break;
 		default:
 			ECK_UNREACHABLE;
+		}
+	}
+
+	void ArrangeHeader(BOOL bRePos = FALSE)
+	{
+		auto cxContent = m_Header.GetContentWidth();
+		cxContent = std::max(cxContent, GetWidth());
+		if (bRePos)
+		{
+			RECT rc;
+			rc.left = -m_psvH->GetPos();
+			rc.right = rc.left + cxContent;
+			rc.top = 0;
+			rc.bottom = m_Header.GetHeight();
+			m_Header.SetRect(rc);
+		}
+		else
+		{
+			if (m_Header.GetWidth() != cxContent)
+				m_Header.SetSize(cxContent, m_Header.GetHeight());
 		}
 	}
 
@@ -404,19 +424,6 @@ private:
 		for (int i = idxBegin; i <= idxEnd; ++i)
 		{
 			auto& e = m_vItem[i];
-
-			if (m_eView == ListType::Icon)
-			{
-				const auto xy = IVGetItemXY(i);
-				if (xy.first >= (int)rcJudge.right)// 需要下移一行
-				{
-					i = idxBegin + m_cItemPerRow;
-					idxBegin = i;
-					if (i >= GetItemCount())
-						break;
-				}
-			}
-
 			GetItemRect(i, rcItem);
 			const BOOL bIntersectOld = IsRectsIntersect(rcItem, rcOld);
 			const BOOL bIntersectNew = IsRectsIntersect(rcItem, m_rcDragSel);
@@ -465,7 +472,7 @@ public:
 					const int idxBegin = std::max(LVItemFromY((int)ps.rcfClipInElem.top), 0);
 					const int idxEnd = std::min(LVItemFromY((int)ps.rcfClipInElem.bottom), GetItemCount() - 1);
 					for (int i = idxBegin; i <= idxEnd; ++i)
-						DrawItem(i, ps.rcfClipInElem);
+						LVPaintItem(i, ps.rcfClipInElem);
 				}
 				break;
 				case ListType::Icon:
@@ -497,7 +504,7 @@ public:
 							if (IVGetItemXY(i).second >= (int)ps.rcfClipInElem.bottom)// Y方向重画完成
 								break;
 
-							DrawItem(i, ps.rcfClipInElem);
+							IVPaintItem(i, ps.rcfClipInElem);
 						}
 				}
 				break;
@@ -572,6 +579,9 @@ public:
 		case WM_MOUSEWHEEL:
 		{
 			ECK_DUILOCK;
+			if (wParam & MK_SHIFT)
+			m_psvH->OnMouseWheel2(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
+			else
 			m_psvV->OnMouseWheel2(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
 			GetWnd()->WakeRenderThread();
 		}
@@ -584,6 +594,13 @@ public:
 				(((DUINMHDR*)lParam)->uCode == EE_VSCROLL))
 			{
 				ReCalcTopItem();
+				InvalidateRect();
+				return TRUE;
+			}
+			else if ((wParam == (WPARAM)&m_SBH) &&
+				(((DUINMHDR*)lParam)->uCode == EE_HSCROLL))
+			{
+				m_Header.SetPos(-m_psvH->GetPos(), 0);
 				InvalidateRect();
 				return TRUE;
 			}
@@ -604,6 +621,8 @@ public:
 						for (auto& e : m_vItem)
 							e.pLayout.Clear();
 					}
+					ArrangeHeader(TRUE);
+					ReCalcHScroll();
 					RECT rc;
 					GetSubItemRect(0, p->idx, rc);
 					rc.top = 0;
@@ -624,8 +643,8 @@ public:
 			ReCalcScroll();
 			const auto cxSB = (int)GetTheme()->GetMetrics(Metrics::CxVScroll);
 			m_SBV.SetRect({ GetWidth() - cxSB,0,GetWidth(),GetHeight() });
-			if (m_Header.IsValid())
-				m_Header.SetSize(GetWidth(), m_Header.GetHeight());
+			m_SBH.SetRect({ 0,GetHeight() - cxSB,GetWidth(),GetHeight() });
+			ArrangeHeader();
 		}
 		return 0;
 
@@ -711,6 +730,7 @@ public:
 				0, 0, 0, 0, this);
 			m_psvV = m_SBV.GetScrollView();
 			m_psvV->AddRef();
+			m_psvV->SetMinThumbSize(CxyMinScrollThumb);
 			m_psvV->SetCallBack([](int iPos, int iPrevPos, LPARAM lParam)
 				{
 					auto pThis = (CList*)lParam;
@@ -721,13 +741,14 @@ public:
 
 			m_SBH.Create(nullptr, 0, 0,
 				0, 0, 0, 0, this);
-
+			m_SBH.SetHorizontal(TRUE);
 			m_psvH = m_SBH.GetScrollView();
 			m_psvH->AddRef();
+			m_psvH->SetMinThumbSize(CxyMinScrollThumb);
 			m_psvH->SetCallBack([](int iPos, int iPrevPos, LPARAM lParam)
 				{
 					auto pThis = (CList*)lParam;
-					pThis->ReCalcTopItem();
+					pThis->m_Header.SetPos(-iPos, 0);
 					pThis->InvalidateRect();
 				}, (LPARAM)this);
 			m_psvH->SetDelta(40);
@@ -815,11 +836,12 @@ public:
 			return;
 		}
 		m_Header.GetItemRect(idxSub, rc);
+		rc.left -= m_psvH->GetPos();
+		rc.right -= m_psvH->GetPos();
 		rc.top = LVGetItemY(idx);
 		rc.bottom = rc.top + m_cyItem;
 	}
 
-	// 元素坐标
 	int HitTest(LEHITTEST& leht) const
 	{
 		if (!PtInRect(GetViewRect(), leht.pt) || !GetItemCount())
@@ -832,6 +854,9 @@ public:
 			if (m_bReport && leht.pt.x > m_Header.GetContentWidth())
 				return -1;
 			const int idx = LVItemFromY(leht.pt.y);
+			const auto yBottom = LVGetItemY(idx) + m_cyItem;
+			if (leht.pt.y >= yBottom)
+				return -1;
 			if (idx >= 0 && idx < GetItemCount())
 				return idx;
 			else
@@ -847,6 +872,10 @@ public:
 			const int idxY = IVLogItemFromY(leht.pt.y);
 			const int idx = m_idxTop + idxX + idxY * m_cItemPerRow;
 			if (idx < 0 || idx >= GetItemCount())
+				return -1;
+			const auto [x, y] = IVGetItemXY(idx);
+			if (leht.pt.x >= x + m_cxItem ||
+				leht.pt.y >= y + m_cyItem)
 				return -1;
 			return idx;
 		}
