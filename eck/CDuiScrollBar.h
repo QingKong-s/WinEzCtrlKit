@@ -21,11 +21,12 @@ public:
 private:
 	CInertialScrollView* m_psv{};
 	CEasingCurve* m_pec{};
-	BITBOOL m_bHot : 1 = FALSE;
-	BITBOOL m_bLBtnDown : 1 = FALSE;
-	BITBOOL m_bHorz : 1 = FALSE;
-	BITBOOL m_bDragThumb : 1 = FALSE;
-	BITBOOL m_bTransparentTrack : 1 = TRUE;
+	BITBOOL m_bHot : 1{};
+	BITBOOL m_bLBtnDown : 1{};
+	BITBOOL m_bDragThumb : 1{};
+
+	BITBOOL m_bHorizontal : 1{};
+	BITBOOL m_bTransparentTrack : 1{ TRUE };
 public:
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
@@ -63,8 +64,8 @@ public:
 			{
 				POINT pt ECK_GET_PT_LPARAM(lParam);
 				ClientToElem(pt);
-				m_psv->OnMouseMove((int)(m_bHorz ? pt.x - GetHeightF() : pt.y - GetWidthF()));
-				DUINMHDR nm{ m_bHorz ? EE_HSCROLL : EE_VSCROLL };
+				m_psv->OnMouseMove((int)(m_bHorizontal ? pt.x - GetHeightF() : pt.y - GetWidthF()));
+				DUINMHDR nm{ m_bHorizontal ? EE_HSCROLL : EE_VSCROLL };
 				if (!GenElemNotify(&nm))
 					InvalidateRect();
 			}
@@ -95,11 +96,11 @@ public:
 			if (PtInRect(rcf, ptf))
 			{
 				m_bDragThumb = TRUE;
-				m_psv->OnLButtonDown((int)(m_bHorz ? pt.x - GetHeightF() : pt.y - GetWidthF()));
+				m_psv->OnLButtonDown((int)(m_bHorizontal ? pt.x - GetHeightF() : pt.y - GetWidthF()));
 			}
 			else
 			{
-				if (m_bHorz)
+				if (m_bHorizontal)
 					m_psv->SetPos(ptf.x < rcf.left ?
 						m_psv->GetPos() - m_psv->GetPage() :
 						m_psv->GetPos() + m_psv->GetPage());
@@ -107,7 +108,7 @@ public:
 					m_psv->SetPos(ptf.y < rcf.top ?
 						m_psv->GetPos() - m_psv->GetPage() :
 						m_psv->GetPos() + m_psv->GetPage());
-				DUINMHDR nm{ m_bHorz ? EE_HSCROLL : EE_VSCROLL };
+				DUINMHDR nm{ m_bHorizontal ? EE_HSCROLL : EE_VSCROLL };
 				if (!GenElemNotify(&nm))
 					InvalidateRect();
 			}
@@ -124,7 +125,7 @@ public:
 				{
 					m_psv->OnLButtonUp();
 					m_bDragThumb = FALSE;
-					DUINMHDR nm{ m_bHorz ? EE_HSCROLL : EE_VSCROLL };
+					DUINMHDR nm{ m_bHorizontal ? EE_HSCROLL : EE_VSCROLL };
 					if (!GenElemNotify(&nm))
 						InvalidateRect();
 				}
@@ -135,7 +136,7 @@ public:
 		{
 			const auto cx = GetWidth(),
 				cy = GetHeight();
-			if (m_bHorz)
+			if (m_bHorizontal)
 				m_psv->SetViewSize(cx - 2 * cy);
 			else
 				m_psv->SetViewSize(cy - 2 * cx);
@@ -151,7 +152,7 @@ public:
 			D2D1_RECT_F rc;
 			GetPartRect(rc, SbPart::Thumb);
 			float cxyLeave, cxyMin;
-			if (m_bHorz)
+			if (m_bHorizontal)
 			{
 				cxyLeave = (rc.bottom - rc.top) / 3 * 2;
 				cxyMin = (rc.bottom - rc.top) - cxyLeave;
@@ -168,7 +169,7 @@ public:
 				Opt.fOpacity = m_pec->GetCurrValue();
 				GetTheme()->DrawBackground(Part::ScrollBar, State::Hot,
 					GetViewRectF(), &Opt);
-				if (m_bHorz)
+				if (m_bHorizontal)
 					rc.top = rc.bottom - cxyMin - cxyLeave * m_pec->GetCurrValue();
 				else
 					rc.left = rc.right - cxyMin - cxyLeave * m_pec->GetCurrValue();
@@ -177,7 +178,7 @@ public:
 			{
 				if (!m_bHot)
 				{
-					if (m_bHorz)
+					if (m_bHorizontal)
 						rc.top += cxyLeave;
 					else
 						rc.left += cxyLeave;
@@ -187,7 +188,7 @@ public:
 						GetViewRectF(), nullptr);
 			}
 
-			GetTheme()->DrawBackground(Part::ScrollThumb, 
+			GetTheme()->DrawBackground(Part::ScrollThumb,
 				State::Normal, rc, nullptr);
 
 			EndPaint(ps);
@@ -233,13 +234,13 @@ public:
 		return CElem::OnEvent(uMsg, wParam, lParam);
 	}
 
-	EckInline auto GetScrollView() { return m_psv; }
+	EckInlineNdCe auto GetScrollView() const noexcept { return m_psv; }
 
 	void GetPartRect(D2D1_RECT_F& rc, SbPart eType)
 	{
 		const auto cx = GetWidthF(),
 			cy = GetHeightF();
-		if (m_bHorz)
+		if (m_bHorizontal)
 			switch (eType)
 			{
 			case SbPart::Button1:
@@ -287,6 +288,12 @@ public:
 			}
 		ECK_UNREACHABLE;
 	}
+
+	EckInlineCe void SetHorizontal(BOOL b) noexcept { m_bHorizontal = b; }
+	EckInlineNdCe BOOL GetHorizontal() const noexcept { return m_bHorizontal; }
+
+	EckInlineCe void SetTransparentTrack(BOOL b) noexcept { m_bTransparentTrack = b; }
+	EckInlineNdCe BOOL GetTransparentTrack() const noexcept { return m_bTransparentTrack; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
