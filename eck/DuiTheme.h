@@ -197,6 +197,7 @@ enum class SysColor
 {
 	Text,
 	Bk,
+	MainTitle,
 
 	Max
 };

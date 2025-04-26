@@ -67,7 +67,7 @@ private:
 
 	void PaintItem(int idx, ITEM& e, const D2D1_RECT_F& rcClip)
 	{
-		const float Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
+		const float Padding = GetTheme()->GetMetrics(Metrics::Padding);
 		D2D1_RECT_F rcItem;
 		State eState;
 		if (m_idxPressed == idx)
