@@ -33,16 +33,16 @@ enum
 	LEIF_SELECTED = (1u << 0),
 };
 
-enum class ListType : BYTE
-{
-	List,
-	Icon,
-};
-
 
 class CList :public CElem
 {
 public:
+	enum class Type : BYTE
+	{
+		List,
+		Icon,
+		Report,
+	};
 	enum : int
 	{
 		CyInsertMark = 3,
@@ -92,10 +92,9 @@ private:
 	RECT m_rcDragSel{};			// 当前选择矩形
 	int m_dCursorToItemMax{};	// 鼠标指针到项目的最大距离
 
-	ListType m_eView{ ListType::Icon };
+	Type m_eView{ Type::Icon };
 
 	BITBOOL m_bSingleSel : 1{};
-	BITBOOL m_bReport : 1{};
 
 	BITBOOL m_bDraggingSel : 1{};
 
@@ -187,7 +186,7 @@ private:
 		RECT rc;
 		GetSubItemRect(idx, 0, rc);
 		LVPaintSubItem(idx, 0, MakeD2DRcF(rc), rcPaint);
-		if (m_bReport)
+		if (m_eView == Type::Report)
 			for (int i = 1; i < m_Header.GetItemCount(); i++)
 			{
 				GetSubItemRect(idx, i, rc);
@@ -262,7 +261,7 @@ private:
 
 	void ReCalcHScroll()
 	{
-		if (m_bReport && m_eView == ListType::List)
+		if (m_eView == Type::Report)
 		{
 			m_psvH->SetPage(GetWidth());
 			m_psvH->SetRange(0, m_Header.GetContentWidth());
@@ -278,17 +277,18 @@ private:
 		m_psvV->SetPage(GetHeight());
 		switch (m_eView)
 		{
-		case ListType::List:
+		case Type::List:
+		case Type::Report:
 		{
 			m_psvV->SetRange(-m_cyTopExtra, GetItemCount() *
 				(m_cyItem + m_cyPadding) + m_cyBottomExtra);
 		}
 		break;
-		case ListType::Icon:
+		case Type::Icon:
 		{
 			m_cItemPerRow = (GetWidth() + m_cxPadding) / (m_cxItem + m_cxPadding);
 			const int cItemV = (GetItemCount() - 1) / m_cItemPerRow + 1;
-			m_psvV->SetRange(-m_cyTopExtra, cItemV * 
+			m_psvV->SetRange(-m_cyTopExtra, cItemV *
 				(m_cyItem + m_cyPadding) + m_cyBottomExtra);
 		}
 		break;
@@ -303,11 +303,12 @@ private:
 			return;
 		switch (m_eView)
 		{
-		case ListType::List:
+		case Type::List:
+		case Type::Report:
 			m_idxTop = m_psvV->GetPos() / (m_cyItem + m_cyPadding);
 			m_oyTopItem = m_idxTop * (m_cyItem + m_cyPadding) - m_psvV->GetPos();
 			break;
-		case ListType::Icon:
+		case Type::Icon:
 		{
 			const int cItemV = m_psvV->GetPos() / (m_cyItem + m_cyPadding);
 			m_idxTop = cItemV * m_cItemPerRow;
@@ -342,18 +343,21 @@ private:
 	// 从X坐标计算逻辑项目索引，索引相对当前可见范围
 	EckInline int IVLogItemFromX(int x) const
 	{
+		EckAssert(m_eView == Type::Icon);
 		return x / (m_cxItem + m_cxPadding);
 	}
 	// 从Y坐标计算逻辑项目索引，索引相对当前可见范围
 	// m_idxTop所在行的下一行记为0，上一行记为-1
 	EckInline int IVLogItemFromY(int y) const
 	{
+		EckAssert(m_eView == Type::Icon);
 		const auto i = (y - m_oyTopItem) / (m_cyItem + m_cyPadding);
 		return (y - m_oyTopItem < 0) ? i - 1 : i;
 	}
 
 	EckInline std::pair<int, int> IVGetItemXY(int idx) const
 	{
+		EckAssert(m_eView == Type::Icon);
 		const int idxV = (idx - m_idxTop) / m_cItemPerRow;
 		return
 		{
@@ -365,13 +369,13 @@ private:
 	// 由索引得到Y坐标
 	EckInline int LVGetItemY(int idx) const
 	{
-		EckAssert(m_eView == ListType::List);
+		EckAssert(m_eView == Type::List || m_eView == Type::Report);
 		return m_oyTopItem + (idx - m_idxTop) * (m_cyItem + m_cyPadding);
 	}
 	// 由Y坐标得到索引
 	EckInline int LVItemFromY(int y) const
 	{
-		EckAssert(m_eView == ListType::List);
+		EckAssert(m_eView == Type::List || m_eView == Type::Report);
 		return m_idxTop + (y - m_oyTopItem) / (m_cyItem + m_cyPadding);
 	}
 
@@ -379,13 +383,14 @@ private:
 	{
 		switch (m_eView)
 		{
-		case ListType::List:
+		case Type::List:
+		case Type::Report:
 			idxBegin = LVItemFromY(rc.top);
 			idxBegin = std::clamp(idxBegin, 0, GetItemCount() - 1);
 			idxEnd = LVItemFromY(rc.bottom);
 			idxEnd = std::clamp(idxEnd, 0, GetItemCount() - 1);
 			break;
-		case ListType::Icon:
+		case Type::Icon:
 		{
 			int idxX = IVLogItemFromX(rc.left);
 			idxX = std::clamp(idxX, 0, m_cItemPerRow - 1);
@@ -463,11 +468,12 @@ public:
 		{
 			ELEMPAINTSTRU ps;
 			BeginPaint(ps, wParam, lParam);
-			if (GetItemCount() && (m_bReport ? m_Header.GetItemCount() : TRUE))
+			if (GetItemCount() && (m_eView == Type::List ? m_Header.GetItemCount() : TRUE))
 			{
 				switch (m_eView)
 				{
-				case ListType::List:
+				case Type::List:
+				case Type::Report:
 				{
 					const int idxBegin = std::max(LVItemFromY((int)ps.rcfClipInElem.top), 0);
 					const int idxEnd = std::min(LVItemFromY((int)ps.rcfClipInElem.bottom), GetItemCount() - 1);
@@ -475,7 +481,7 @@ public:
 						LVPaintItem(i, ps.rcfClipInElem);
 				}
 				break;
-				case ListType::Icon:
+				case Type::Icon:
 				{
 					int idxBegin, idxX, idxY;
 
@@ -580,9 +586,9 @@ public:
 		{
 			ECK_DUILOCK;
 			if (wParam & MK_SHIFT)
-			m_psvH->OnMouseWheel2(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
+				m_psvH->OnMouseWheel2(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
 			else
-			m_psvV->OnMouseWheel2(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
+				m_psvV->OnMouseWheel2(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
 			GetWnd()->WakeRenderThread();
 		}
 		return 0;
@@ -611,7 +617,7 @@ public:
 					return GenElemNotify((HEE_DISPINFO*)lParam);
 				case HEE_WIDTHCHANGED:
 				{
-					EckAssert(m_eView == ListType::List && m_bReport);
+					EckAssert(m_eView == Type::Report);
 					const auto* const p = (HEE_ITEMNOTIFY*)lParam;
 					if (p->idx)
 						for (auto& e : m_vItem)
@@ -678,6 +684,12 @@ public:
 					if (!GetWnd()->IsValid())
 						return 0;
 					SetCapture();
+					if (!(wParam & (MK_CONTROL | MK_SHIFT)))
+					{
+						DeselectAll(idxChangedBegin, idxChangedEnd);
+						if (idxChangedBegin >= 0)
+							RedrawItem(idxChangedBegin, idxChangedEnd);
+					}
 					m_bDraggingSel = TRUE;
 					m_rcDragSel = {};
 					if (ht.pt.x < 0) ht.pt.x = 0;
@@ -783,7 +795,7 @@ public:
 	EckInline void SetItemCount(int c) noexcept
 	{
 		ECK_DUILOCK;
-		if (m_bReport)
+		if (m_eView == Type::Report)
 		{
 			const auto idxBegin = std::max(0, GetItemCount() - 1);
 			m_vItem.resize(c);
@@ -799,21 +811,21 @@ public:
 	{
 		switch (m_eView)
 		{
-		case ListType::List:
-			if (m_bReport)
-			{
-				rc.left = -m_psvH->GetPos();
-				rc.right = rc.left + m_Header.GetContentWidth();
-			}
-			else
-			{
-				rc.left = 0;
-				rc.right = GetWidth();
-			}
+		case Type::List:
+			rc.left = 0;
+			rc.right = GetWidth();
 			rc.top = LVGetItemY(idx);
 			rc.bottom = rc.top + m_cyItem;
 			break;
-		case ListType::Icon:
+		case Type::Report:
+		{
+			rc.left = -m_psvH->GetPos();
+			rc.right = rc.left + m_Header.GetContentWidth();
+			rc.top = LVGetItemY(idx);
+			rc.bottom = rc.top + m_cyItem;
+		}
+		break;
+		case Type::Icon:
 		{
 			const auto xy = IVGetItemXY(idx);
 			rc.left = xy.first;
@@ -830,7 +842,7 @@ public:
 	void GetSubItemRect(int idx, int idxSub, RECT& rc) const noexcept
 	{
 		EckAssert(idx < GetItemCount());
-		if (m_eView != ListType::List || !m_bReport)
+		if (m_eView != Type::Report)
 		{
 			GetItemRect(idx, rc);
 			return;
@@ -849,9 +861,11 @@ public:
 
 		switch (m_eView)
 		{
-		case ListType::List:
+		case Type::List:
+		case Type::Report:
 		{
-			if (m_bReport && leht.pt.x > m_Header.GetContentWidth())
+			if (m_eView == Type::Report &&
+				leht.pt.x > m_Header.GetContentWidth())
 				return -1;
 			const int idx = LVItemFromY(leht.pt.y);
 			const auto yBottom = LVGetItemY(idx) + m_cyItem;
@@ -864,7 +878,7 @@ public:
 		}
 		break;
 
-		case ListType::Icon:
+		case Type::Icon:
 		{
 			const int idxX = IVLogItemFromX(leht.pt.x);
 			if (idxX < 0 || idxX >= m_cItemPerRow)
@@ -968,22 +982,32 @@ public:
 	void RedrawItem(int idxBegin, int idxEnd)
 	{
 		EckAssert(idxEnd >= idxBegin);
+		RECT rc;
 		switch (m_eView)
 		{
-		case ListType::List:
+		case Type::List:
 		{
-			RECT rc
+			rc =
 			{
 				0,
 				LVGetItemY(idxBegin),
 				GetWidth(),
 				LVGetItemY(idxEnd) + m_cyItem
 			};
-			ElemToClient(rc);
-			InvalidateRect(rc);
 		}
 		break;
-		case ListType::Icon:
+		case Type::Report:
+		{
+			rc =
+			{
+				-m_psvH->GetPos(),
+				LVGetItemY(idxBegin),
+				std::min(GetWidth(), m_Header.GetContentWidth()),
+				LVGetItemY(idxEnd) + m_cyItem
+			};
+		}
+		break;
+		case Type::Icon:
 		{
 			if (idxBegin == idxEnd)
 				RedrawItem(idxBegin);
@@ -993,34 +1017,31 @@ public:
 				auto [x2, y2] = IVGetItemXY(idxEnd);
 				if (y1 == y2)
 				{
-					RECT rc
+					rc =
 					{
 						x1,
 						y1,
 						x2 + m_cxItem,
 						y2 + m_cyItem
 					};
-					ElemToClient(rc);
-					InvalidateRect(rc);
 				}
 				else
 				{
-					RECT rc
+					rc =
 					{
 						0,
 						y1,
 						GetWidth(),
 						y2 + m_cyItem
 					};
-					ElemToClient(rc);
-					InvalidateRect(rc);
 				}
 			}
 		}
 		break;
-		default:
-			ECK_UNREACHABLE;
+		default: ECK_UNREACHABLE;
 		}
+		ElemToClient(rc);
+		InvalidateRect(rc);
 	}
 
 	void RedrawItem(int idx)
@@ -1046,24 +1067,14 @@ public:
 	void SetColumnCount(int cItem,
 		_In_reads_opt_(cItem) const int* pcx = nullptr) noexcept
 	{
-		EckAssert(m_bReport);
+		EckAssert(m_eView == Type::Report);
 		m_Header.SetItemCount(cItem, pcx);
 		for (auto& e : m_vItem)
 			e.vSubItem.resize(cItem - 1);
 	}
 
-	EckInlineCe void SetView(ListType eView) noexcept
-	{
-		m_eView = eView;
-		switch (eView)
-		{
-		case ListType::Icon:
-			m_bReport = FALSE;
-			break;
-		default: ECK_UNREACHABLE;
-		}
-	}
-	EckInlineNdCe ListType GetView() const noexcept { return m_eView; }
+	EckInlineCe void SetView(Type eView) noexcept { m_eView = eView; }
+	EckInlineNdCe Type GetView() const noexcept { return m_eView; }
 
 	EckInlineNdCe auto& GetScrollBarV() noexcept { return m_SBV; }
 	EckInlineNdCe auto& GetScrollBarH() noexcept { return m_SBH; }
@@ -1077,7 +1088,7 @@ public:
 
 	EckInlineCe void SetItemWidth(int cx) noexcept
 	{
-		EckAssert(m_eView == ListType::Icon);
+		EckAssert(m_eView == Type::Icon);
 		m_cxItem = cx;
 	}
 	EckInlineNdCe int GetItemWidth() const noexcept { return m_cxItem; }
@@ -1093,13 +1104,6 @@ public:
 
 	EckInlineCe void SetBottomExtraSpace(int cy) noexcept { m_cyBottomExtra = cy; }
 	EckInlineNdCe int GetBottomExtraSpace() const noexcept { return m_cyBottomExtra; }
-
-	EckInline void SetReport(BOOL bReport) noexcept
-	{
-		EckAssert(m_eView == ListType::List);
-		m_bReport = bReport;
-	}
-	EckInlineNdCe BOOL GetReport() const noexcept { return m_bReport; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
