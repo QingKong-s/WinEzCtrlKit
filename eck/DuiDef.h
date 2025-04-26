@@ -66,8 +66,6 @@ enum :UINT
 	LTE_ITEMCLICK,		// 项选中(LTN_ITEM*)
 	// TabList
 	TBLE_GETDISPINFO,	// 【渲染线程】获取显示信息
-	// GroupList
-	GLE_GETDISPINFO,	// 【渲染线程】获取显示信息
 	// Header
 	HEE_GETDISPINFO,	// 【渲染线程】获取显示信息(HEE_DISPINFO*)
 	HEE_BEGINDRAG,		// 开始拖拽(HEE_DRAG*)

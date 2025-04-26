@@ -331,7 +331,7 @@ public:
 		rcItem.left = e.x;
 		rcItem.right = e.x + e.cx;
 		rcItem.top = 0;
-		rcItem.bottom = GetHeightF();
+		rcItem.bottom = GetHeight();
 	}
 
 	void InvalidateItem(int idx)
