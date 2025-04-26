@@ -6,9 +6,8 @@ ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 struct TBL_DISPINFO :DUINMHDR
 {
-	int idx;
 	DispInfoMask uMask;
-	IDWriteTextLayout** ppTextLayout;
+	int idx;
 	PCWSTR pszText;
 	int cchText;
 	int idxImage;
@@ -25,17 +24,15 @@ public:
 		CyIndicatorPadding = 10
 	};
 protected:
-	CD2DImageList* m_pImageList{};
-	ID2D1SolidColorBrush* m_pBrush{};
 	CEasingCurve* m_pec1{}, * m_pec2{};
 	int m_idxTo{ -1 }, m_idxFrom{ -1 };
+	int m_idxLastSel{ -1 };
 	RECT m_rcLastRedraw{};
 
-	void PaintItem(int idx, const D2D1_RECT_F& rcItem, const D2D1_RECT_F& rcClip) override
+	void LVPaintSubItem(int idx, int idxSub, int idxGroup,
+		const D2D1_RECT_F& rcSub, const D2D1_RECT_F& rcPaint) override
 	{
-		__super::PaintItem(idx, rcItem, rcClip);
-		TBL_DISPINFO di{};
-		di.uCode = TBLE_GETDISPINFO;
+		TBL_DISPINFO di{ TBLE_GETDISPINFO };
 		di.uMask = DIM_TEXT | DIM_IMAGE;
 		di.idxImage = -1;
 		di.idx = idx;
@@ -47,7 +44,7 @@ protected:
 		const float Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
 		const float Padding2 = GetTheme()->GetMetrics(Metrics::LargePadding);
 		const float cyImg = m_cyItem - Padding2 * 2.f;
-		float x = rcItem.left + (float)CxIndicatorPadding + (float)CxIndicator;
+		float x = rcSub.left + (float)CxIndicatorPadding + (float)CxIndicator;
 		D2D1_SIZE_F sizeImg;
 		D2D1_RECT_F rc;
 		if (di.pImage)
@@ -60,54 +57,89 @@ protected:
 		else if (di.idxImage >= 0)
 		{
 			int cx, cy;
-			m_pImageList->GetImageSize(cx, cy);
+			m_pImgList->GetImageSize(cx, cy);
 			sizeImg.width = cyImg / cy * cx;
 			sizeImg.height = cyImg;
 			x += (sizeImg.width + Padding);
 		}
 		else
 			goto SkipDrawImg;
-		rc.left = rcItem.left + (float)CxIndicatorPadding + (float)CxIndicator;
-		rc.top = rcItem.top + (m_cyItem - sizeImg.height) / 2.f;
+		rc.left = rcSub.left + (float)CxIndicatorPadding + (float)CxIndicator;
+		rc.top = rcSub.top + (m_cyItem - sizeImg.height) / 2.f;
 		rc.right = rc.left + sizeImg.width;
 		rc.bottom = rc.top + sizeImg.height;
-		if (IsRectsIntersect(rc, rcClip))
+		if (IsRectsIntersect(rc, rcPaint))
 			if (di.pImage)
 				m_pDC->DrawBitmap(di.pImage, rc, 1.f, D2D1_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC);
 			else if (di.idxImage >= 0)
-				m_pImageList->Draw(di.idxImage, rc);
+				m_pImgList->Draw(di.idxImage, rc);
 	SkipDrawImg:
-		if (di.ppTextLayout)
+		auto& e = m_vItem[idx];
+		if (!e.pLayout.Get() && di.pszText && di.cchText > 0)
 		{
-			if (di.cchText && !*di.ppTextLayout)
+			const auto cx = rcSub.right - rcSub.left - x;
+			g_pDwFactory->CreateTextLayout(di.pszText, di.cchText,
+				GetTextFormat(), cx, (float)m_cyItem, &e.pLayout);
+		}
+		if (e.pLayout.Get())
+		{
+			if (rcPaint.left < x && rcPaint.right > x)
 			{
-				const auto cx = rcItem.right - rcItem.left - x;
-				g_pDwFactory->CreateTextLayout(di.pszText, di.cchText,
-					GetTextFormat(), cx, (float)m_cyItem, di.ppTextLayout);
+				D2D1_COLOR_F cr;
+				GetTheme()->GetSysColor(SysColor::Text, cr);
+				m_pBrush->SetColor(cr);
+				m_pDC->DrawTextLayout({ x,rcSub.top }, e.pLayout.Get(),
+					m_pBrush, DrawTextLayoutFlags);
 			}
+		}
+	}
 
-			if (*di.ppTextLayout)
+	void PostPaint(ELEMPAINTSTRU& ps) override
+	{
+		if (m_pec2->IsActive())
+		{
+			D2D1_RECT_F rc;
+			rc.left = (float)CxIndicatorPadding;
+			rc.right = float(CxIndicatorPadding + CxIndicator);
+			if (m_idxTo > m_idxFrom)// 向下
 			{
-				if (rcClip.left < x && rcClip.right > x)
-				{
-					D2D1_COLOR_F cr;
-					GetTheme()->GetSysColor(SysColor::Text, cr);
-					m_pBrush->SetColor(cr);
-					m_pDC->DrawTextLayout({ x,rcItem.top }, *di.ppTextLayout,
-						m_pBrush, DrawTextLayoutFlags);
-				}
+				const auto d = (m_idxTo - m_idxFrom) * (m_cyItem + m_cyPadding);
+				rc.bottom = m_pec1->GetCurrValue() * d + (m_cyItem - CyIndicatorPadding);
+				rc.top = m_pec2->GetCurrValue() * d + (float)CyIndicatorPadding;
+				OffsetRect(rc, 0.f,
+					float(m_idxFrom * (m_cyItem + m_cyPadding) - m_psvV->GetPos()));
 			}
+			else// 向上
+			{
+				const auto d = (m_idxFrom - m_idxTo) * (m_cyItem + m_cyPadding);
+				rc.top = -(m_pec1->GetCurrValue() * d - (float)CyIndicatorPadding);
+				rc.bottom = -(m_pec2->GetCurrValue() * d - (m_cyItem - CyIndicatorPadding));
+				OffsetRect(rc, 0.f,
+					float(m_idxFrom * (m_cyItem + m_cyPadding) - m_psvV->GetPos()));
+			}
+			m_pBrush->SetColor(D2D1::ColorF(0x006FC4));
+			m_pDC->FillRectangle(rc, m_pBrush);
+		}
+		else if (m_idxSel >= 0)
+		{
+			D2D1_RECT_F rc;
+			GetItemRect(m_idxSel, rc);
+			rc.left = (float)CxIndicatorPadding;
+			rc.right = float(CxIndicatorPadding + CxIndicator);
+			rc.top += (float)CyIndicatorPadding;
+			rc.bottom -= (float)CyIndicatorPadding;
+			m_pBrush->SetColor(D2D1::ColorF(0x006FC4));
+			m_pDC->FillRectangle(rc, m_pBrush);
 		}
 	}
 
 	static void EasingProc(float fCurrValue, float fOldValue, LPARAM lParam)
 	{
 		const auto p = (CTabList*)lParam;
-		RECT rc;
-		if (p->m_idxTo > p->m_idxFrom)
-			p->GetItemRect(p->m_idxFrom, p->m_idxTo, rc);
-		else
-			p->GetItemRect(p->m_idxTo, p->m_idxFrom, rc);
+		RECT rc, rc2;
+		p->GetItemRect(p->m_idxFrom, rc);
+		p->GetItemRect(p->m_idxTo, rc2);
+		UnionRect(rc, rc, rc2);
 		rc.left = CxIndicatorPadding;
 		rc.right = CxIndicatorPadding + CxIndicator;
 		if (p->m_rcLastRedraw.top < rc.top)
@@ -124,78 +156,8 @@ public:
 	{
 		switch (uMsg)
 		{
-		case WM_NOTIFY:
-			if (wParam == (WPARAM)&m_SB)
-				if (((DUINMHDR*)lParam)->uCode == EE_VSCROLL)
-				{
-					InvalidateRect();
-					return TRUE;
-				}
-			break;
-
-		case WM_PAINT:
-		{
-			ELEMPAINTSTRU ps;
-			BeginPaint(ps, wParam, lParam);
-
-			const int idxBegin = std::max(HitTestY((int)ps.rcfClipInElem.top), 0);
-			const int idxEnd = std::min(HitTestY((int)ps.rcfClipInElem.bottom), m_cItem - 1);
-			if (idxBegin >= 0 && idxBegin <= idxEnd)
-			{
-				D2D1_RECT_F rcItem;
-				rcItem.left = 0.f;
-				rcItem.top = float(idxBegin * (m_cyItem + m_cyPadding)) - m_psv->GetPos();
-				rcItem.right = GetWidthF();
-				rcItem.bottom = rcItem.top + (float)m_cyItem;
-				for (int idx = idxBegin; idx <= idxEnd; ++idx)
-				{
-					PaintItem(idx, rcItem, ps.rcfClipInElem);
-					OffsetRect(rcItem, 0.f, float(m_cyItem + m_cyPadding));
-				}
-			}
-
-			if (m_pec2->IsActive())
-			{
-				D2D1_RECT_F rc;
-				rc.left = (float)CxIndicatorPadding;
-				rc.right = float(CxIndicatorPadding + CxIndicator);
-				if (m_idxTo > m_idxFrom)// 向下
-				{
-					const auto d = (m_idxTo - m_idxFrom) * (m_cyItem + m_cyPadding);
-					rc.bottom = m_pec1->GetCurrValue() * d + (m_cyItem - CyIndicatorPadding);
-					rc.top = m_pec2->GetCurrValue() * d + (float)CyIndicatorPadding;
-					OffsetRect(rc, 0.f,
-						float(m_idxFrom * (m_cyItem + m_cyPadding) - m_psv->GetPos()));
-				}
-				else// 向上
-				{
-					const auto d = (m_idxFrom - m_idxTo) * (m_cyItem + m_cyPadding);
-					rc.top = -(m_pec1->GetCurrValue() * d - (float)CyIndicatorPadding);
-					rc.bottom = -(m_pec2->GetCurrValue() * d - (m_cyItem - CyIndicatorPadding));
-					OffsetRect(rc, 0.f,
-						float(m_idxFrom * (m_cyItem + m_cyPadding) - m_psv->GetPos()));
-				}
-				m_pBrush->SetColor(D2D1::ColorF(0x006FC4));
-				m_pDC->FillRectangle(rc, m_pBrush);
-			}
-			else if (m_idxSel >= 0)
-			{
-				D2D1_RECT_F rc;
-				GetItemRect(m_idxSel, rc);
-				rc.left = (float)CxIndicatorPadding;
-				rc.right = float(CxIndicatorPadding + CxIndicator);
-				rc.top += (float)CyIndicatorPadding;
-				rc.bottom -= (float)CyIndicatorPadding;
-				m_pBrush->SetColor(D2D1::ColorF(0x006FC4));
-				m_pDC->FillRectangle(rc, m_pBrush);
-			}
-
-			ECK_DUI_DBG_DRAW_FRAME;
-			EndPaint(ps);
-		}
-		return 0;
-
 		case WM_CREATE:
+			__super::OnEvent(uMsg, wParam, lParam);
 			m_pDC->CreateSolidColorBrush({}, &m_pBrush);
 			m_pec1 = new CEasingCurve{};
 			m_pec1->SetAnProc(Easing::OutExpo);
@@ -212,9 +174,11 @@ public:
 			m_pec2->SetDuration(600);
 			m_pec2->SetRange(0.f, 1.f);
 			InitEasingCurve(m_pec2);
-			break;
+
+			SetView(Type::List);
+			SetSingleSel(TRUE);
+			return 0;
 		case WM_DESTROY:
-			SafeRelease(m_pBrush);
 			SafeRelease(m_pec1);
 			SafeRelease(m_pec2);
 			break;
@@ -227,16 +191,20 @@ public:
 		if (pnm->uCode == LTE_ITEMCLICK)
 		{
 			const auto p = (LTN_ITEM*)pnm;
-			if (p->idxItem == m_idxSel || p->idxItem < 0 || m_idxSel < 0)
+			if (p->idx == m_idxLastSel || p->idx < 0 || m_idxLastSel < 0)
+			{
+				m_idxLastSel = p->idx;
 				return 0;
-			m_idxFrom = m_idxSel;
-			m_idxTo = p->idxItem;
+			}
+			m_idxFrom = m_idxLastSel;
+			m_idxTo = p->idx;
+			m_idxLastSel = p->idx;
 			if (!m_pec1->IsActive() || !m_pec2->IsActive())
 			{
-				if (m_idxTo > m_idxFrom)
-					GetItemRect(m_idxFrom, m_idxTo, m_rcLastRedraw);
-				else
-					GetItemRect(m_idxTo, m_idxFrom, m_rcLastRedraw);
+				GetItemRect(m_idxFrom, m_rcLastRedraw);
+				RECT rc2;
+				GetItemRect(m_idxTo, rc2);
+				UnionRect(m_rcLastRedraw, m_rcLastRedraw, rc2);
 			}
 			m_pec1->Begin(ECBF_CONTINUE);
 			m_pec2->Begin(ECBF_CONTINUE);
@@ -245,11 +213,6 @@ public:
 			GetWnd()->WakeRenderThread();
 		}
 		return 0;
-	}
-
-	void SetImageList(CD2DImageList* pImageList)
-	{
-		m_pImageList = pImageList;
 	}
 };
 ECK_DUI_NAMESPACE_END
