@@ -12,22 +12,39 @@ ECK_DUI_NAMESPACE_BEGIN
 struct LEE_DISPINFO : DUINMHDR
 {
 	DispInfoMask uMask;
-	int idx;
-	int idxSub;
-
-	PCWSTR pszText;
-	int cchText;
-
-	int idxImg;
-	ID2D1Bitmap* pImg;
-
+	BOOL bItem;
+	union
+	{
+		struct ITEM
+		{
+			int idx;
+			int idxSub;
+			int idxGroup;
+			PCWSTR pszText;
+			int cchText;
+			int idxImg;
+			ID2D1Bitmap* pImg;
+		} Item;
+		struct GROUP
+		{
+			int idx;
+			PCWSTR pszText;
+			int cchText;
+			int idxImg;
+			ID2D1Bitmap* pImg;
+		} Group;
+	};
 };
 
-struct LEHITTEST
+struct LE_HITTEST
 {
 	POINT pt;
+	int idxGroup;
+	BOOLEAN bHitGroupHeader;
+	BOOLEAN bHitGroupImage;
 };
 
+// 项目标志
 enum
 {
 	LEIF_SELECTED = (1u << 0),
@@ -47,6 +64,14 @@ public:
 	{
 		CyInsertMark = 3,
 		CyDefHeader = 30,
+		CyGroupLine = 1,
+	};
+	enum class ListPart
+	{
+		GroupHeader,
+		GroupText,
+		Item,
+		GroupImg,
 	};
 private:
 	struct SUBITEM
@@ -57,16 +82,27 @@ private:
 	{
 		ComPtr<IDWriteTextLayout> pLayout{};
 		UINT uFlags{};
+		int y{};
 		std::vector<SUBITEM> vSubItem{};
+	};
+	struct GROUP
+	{
+		ComPtr<IDWriteTextLayout> pLayout{};
+		UINT uFlags{};
+		int y{};
+		std::vector<ITEM> Item{};
 	};
 
 	std::vector<ITEM> m_vItem{};// 项目
+	std::vector<GROUP> m_Group{};// 组
 	CScrollBar m_SBV{}, m_SBH{};
 	CHeader m_Header{};
 	ID2D1SolidColorBrush* m_pBrush{};
 	CInertialScrollView* m_psvV{};
 	CInertialScrollView* m_psvH{};
 	CD2DImageList* m_pImgList{};
+	CD2DImageList* m_pImgListGroup{};
+	IDWriteTextFormat* m_pTfGroup{};
 	//---通用
 	int m_idxHot{ -1 };			// 热点项
 	int m_idxSel{ -1 };			// 选中的项的索引，仅用于单选
@@ -74,50 +110,170 @@ private:
 	int m_idxFocus{ -1 };		// 焦点项
 	int m_idxMark{ -1 };		// 标记项
 
-	int m_cyTopExtra{};		// 顶部空白
-	int m_cyBottomExtra{};	// 底部空白
+	int m_cyTopExtra{};			// 顶部空白
+	int m_cyBottomExtra{};		// 底部空白
 
-	int m_cyItem{};			// 项目高度
-	int m_cyPadding{ 3 };	// 项目间距
+	int m_cyItem{};				// 项目高度
+	int m_cyPadding{ 3 };		// 项目间距
 
-	int m_oyTopItem{};		// 小于等于零的值，指示第一可见项的遮挡高度
-	int m_idxTop{};			// 第一个可见项
-	//---列表模式
+	int m_oyTopItem{};			// 小于等于零的值，指示第一可见项的遮挡高度
+	int m_idxTop{};				// 第一个可见项
+	//---分组模式
+	int m_idxHotItemGroup{ -1 };	// 热点项所在的组
+	int m_idxSelItemGroup{ -1 };	// 选中项所在的组
+	int m_idxInsertMarkGroup{ -1 };	// 插入标记所在的组
+	int m_idxFocusItemGroup{ -1 };	// 焦点项所在的组
+	int m_idxMarkItemGroup{ -1 };	// 标记项所在的组
+	int m_cyGroupHeader{ 40 };	// 组头高度
+	int m_idxTopGroup{};		// 第一个可见组
+	int m_idxHotGroup{ -1 };	// 热点组
+	int m_cxGroupImage{};		// 组图片宽度
+	int m_cyGroupImage{};		// 组图片高度
+	int m_cyGroupItemTopPadding{};		// 项目区顶部空白
+	int m_cyGroupItemBottomPadding{};	// 项目区底部空白
 	//---图标模式
-	int m_cxItem{};			// 项目宽度
-	int m_cxPadding{ 3 };	// 水平项目间距
-	int m_cItemPerRow{};	// 每行项目数
+	int m_cxItem{};				// 项目宽度
+	int m_cxPadding{ 3 };		// 水平项目间距
+	int m_cItemPerRow{};		// 每行项目数
 	//---
 	POINT m_ptDragSelStart{};	// 拖动选择起始点
 	RECT m_rcDragSel{};			// 当前选择矩形
 	int m_dCursorToItemMax{};	// 鼠标指针到项目的最大距离
 
-	Type m_eView{ Type::Icon };
+	Type m_eView{ Type::Icon };	// 视图类型
 
-	BITBOOL m_bSingleSel : 1{};
+	BITBOOL m_bSingleSel : 1{};	// 单选
+	BITBOOL m_bGroup : 1{};		// 分组
+	BITBOOL m_bGroupImage : 1{};// 显示组图片
 
-	BITBOOL m_bDraggingSel : 1{};
+	BITBOOL m_bDraggingSel : 1{};	// 正在拖动选择
 
 
 	D2D1_SIZE_F GetImageSize(const LEE_DISPINFO& es)
 	{
-		if (es.pImg)
-			return es.pImg->GetSize();
-		else if (m_pImgList && es.idxImg >= 0)
+		if (es.Item.pImg)
+			return es.Item.pImg->GetSize();
+		else if (m_pImgList && es.Item.idxImg >= 0)
 		{
 			int cx, cy;
 			m_pImgList->GetImageSize(cx, cy);
 			return { (float)cx, (float)cy };
 		}
-		else
-			return {};
+		return {};
 	}
+
+	BOOL DrawGroupItem(int idxGroup, int idxItem, const D2D1_RECT_F& rcPaint)
+	{
+		auto& e = m_Group[idxGroup].Item[idxItem];
+		D2D1_RECT_F rcItem;
+		GetGroupPartRect(rcItem, ListPart::Item, idxGroup, idxItem);
+
+		if (rcItem.bottom <= rcPaint.top || rcItem.top >= rcPaint.bottom)
+			return FALSE;
+
+		if (!e.pLayout.Get())
+		{
+			LEE_DISPINFO sldi{};
+			sldi.uCode = LEE_GETDISPINFO;
+			sldi.bItem = TRUE;
+			sldi.Item.cchText = -1;
+			sldi.Item.idx = idxItem;
+			sldi.Item.idxGroup = idxGroup;
+			GenElemNotify(&sldi);
+
+			g_pDwFactory->CreateTextLayout(sldi.Item.pszText, sldi.Item.cchText,
+				GetTextFormat(), GetWidthF() - (float)m_cxGroupImage,
+				(float)m_cyItem, &e.pLayout);
+		}
+
+		if (e.pLayout.Get())
+		{
+			D2D1_COLOR_F cr;
+			State eState;
+			if ((e.uFlags & LEIF_SELECTED) || (m_bSingleSel && m_idxSel == idxItem))
+				if (idxItem == m_idxHot && idxGroup == m_idxHotItemGroup)
+					eState = State::HotSelected;
+				else
+					eState = State::Selected;
+			else if (idxItem == m_idxHot && idxGroup == m_idxHotItemGroup)
+				eState = State::Hot;
+			else
+				eState = State::None;
+			if (eState != State::None)
+				GetTheme()->DrawBackground(Part::ListItem, eState, rcItem, nullptr);
+
+			GetTheme()->GetSysColor(Dui::SysColor::Text, cr);
+			m_pBrush->SetColor(cr);
+			m_pDC->DrawTextLayout({ rcItem.left,rcItem.top }, e.pLayout.Get(),
+				m_pBrush, DrawTextLayoutFlags);
+		}
+		return TRUE;
+	}
+
+	BOOL DrawGroup(int idxGroup, const D2D1_RECT_F& rcPaint)
+	{
+		const auto Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
+		auto& e = m_Group[idxGroup];
+
+		D2D1_RECT_F rcText;
+		GetGroupPartRect(rcText, ListPart::GroupHeader, idxGroup, 0);
+
+		D2D1_RECT_F rcGroupImg;
+		GetGroupPartRect(rcGroupImg, ListPart::GroupImg, idxGroup, 0);
+
+		const BOOL bText = !(rcText.bottom <= rcPaint.top || rcText.top >= rcPaint.bottom);
+		const BOOL bGroupImg = !(rcGroupImg.bottom <= rcPaint.top || rcGroupImg.top >= rcPaint.bottom ||
+			rcGroupImg.left >= rcPaint.right || rcGroupImg.right <= rcPaint.left);
+		if (!bText && !bGroupImg)
+			return FALSE;
+
+		LEE_DISPINFO sldi{};
+		if (bText)
+			sldi.uMask |= DIM_TEXT;
+		if (bGroupImg)
+			sldi.uMask |= DIM_IMAGE;
+		sldi.uCode = LEE_GETDISPINFO;
+		sldi.bItem = FALSE;
+		sldi.Group.cchText = -1;
+		sldi.Group.idx = idxGroup;
+		GenElemNotify(&sldi);
+
+		if (bText)
+		{
+			if (!e.pLayout.Get())
+			{
+				g_pDwFactory->CreateTextLayout(sldi.Group.pszText,
+					sldi.Group.cchText, m_pTfGroup, GetWidthF() - Padding * 2.f,
+					(float)m_cyGroupHeader, &e.pLayout);
+			}
+			if (e.pLayout.Get())
+			{
+				D2D1_COLOR_F cr;
+				GetTheme()->GetSysColor(Dui::SysColor::Text, cr);
+				m_pBrush->SetColor(cr);
+				m_pBrush->SetColor(ARGBToD2dColorF(0xFF66CCFF));
+				m_pDC->DrawTextLayout({ rcText.left,rcText.top }, e.pLayout.Get(),
+					m_pBrush, DrawTextLayoutFlags);
+				DWRITE_TEXT_METRICS tm;
+				e.pLayout->GetMetrics(&tm);
+				const float yLine = rcText.top + (float)(m_cyGroupHeader / 2);
+				m_pDC->DrawLine({ rcText.left + Padding * 2.f + tm.width,yLine },
+					{ GetWidthF() - Padding,yLine }, m_pBrush, (float)CyGroupLine);
+			}
+		}
+
+		if (bGroupImg && sldi.Group.pImg)
+			m_pDC->DrawBitmap(sldi.Group.pImg, &rcGroupImg);
+		return TRUE;
+	}
+
 	void LVPaintSubItem(int idx, int idxSub, const D2D1_RECT_F& rcSub,
 		const D2D1_RECT_F& rcPaint)
 	{
 		LEE_DISPINFO es{ LEE_GETDISPINFO };
-		es.idx = idx;
-		es.idxSub = idxSub;
+		es.bItem = TRUE;
+		es.Item.idx = idx;
+		es.Item.idxSub = idxSub;
 		es.uMask = DIM_TEXT | DIM_IMAGE;
 		GenElemNotify(&es);
 
@@ -126,10 +282,11 @@ private:
 		const float Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
 		auto& e = m_vItem[idx];
 		auto& pTl = (idxSub ? e.vSubItem[idxSub - 1].pLayout : e.pLayout);
-		if (!pTl.Get() && es.pszText)
+		if (!pTl.Get() && es.Item.pszText)
 		{
-			EckAssert(es.cchText > 0);
-			g_pDwFactory->CreateTextLayout(es.pszText, es.cchText, GetTextFormat(),
+			EckAssert(es.Item.cchText > 0);
+			g_pDwFactory->CreateTextLayout(es.Item.pszText, es.Item.cchText,
+				GetTextFormat(),
 				rcSub.right - rcSub.left - Padding * 3 - sizeImg.width,
 				(float)m_cyItem, &pTl);
 		}
@@ -151,7 +308,7 @@ private:
 		const float xImage = Padding;
 		const float yImage = (float)((m_cyItem - sizeImg.height) / 2);
 		float xText;
-		if (es.pImg || (m_pImgList && es.idxImg >= 0))
+		if (es.Item.pImg || (m_pImgList && es.Item.idxImg >= 0))
 		{
 			auto rc{ rcSub };
 			rc.left += xImage;
@@ -160,10 +317,10 @@ private:
 			rc.bottom = rc.top + sizeImg.height;
 			xText = rc.right + Padding;
 			if (!(rc.right <= rcPaint.left || rc.left >= rcPaint.right))
-				if (es.pImg)
-					m_pDC->DrawBitmap(es.pImg, rc);
+				if (es.Item.pImg)
+					m_pDC->DrawBitmap(es.Item.pImg, rc);
 				else/* if (m_pImgList && es.idxImg >= 0)*/
-					m_pImgList->Draw(es.idxImg, rc);
+					m_pImgList->Draw(es.Item.idxImg, rc);
 		}
 		else
 			xText = rcSub.left + Padding;
@@ -197,7 +354,8 @@ private:
 	void IVPaintItem(int idx, const D2D1_RECT_F& rcPaint)
 	{
 		LEE_DISPINFO es{ LEE_GETDISPINFO };
-		es.idx = idx;
+		es.bItem = TRUE;
+		es.Item.idx = idx;
 		es.uMask = DIM_TEXT | DIM_IMAGE;
 		GenElemNotify(&es);
 
@@ -230,15 +388,15 @@ private:
 		rcImg.bottom = rcImg.top + sizeImg.height;
 
 		if (!(rcImg.right <= rcPaint.left || rcImg.left >= rcPaint.right))
-			if (es.pImg)
-				m_pDC->DrawBitmap(es.pImg, rcImg, 1.f, D2D1_INTERPOLATION_MODE_LINEAR);
-			else if (m_pImgList && es.idxImg >= 0)
-				m_pImgList->Draw(es.idxImg, rcImg);
+			if (es.Item.pImg)
+				m_pDC->DrawBitmap(es.Item.pImg, rcImg, 1.f, D2D1_INTERPOLATION_MODE_LINEAR);
+			else if (m_pImgList && es.Item.idxImg >= 0)
+				m_pImgList->Draw(es.Item.idxImg, rcImg);
 
-		if (!e.pLayout.Get() && es.pszText)
+		if (!e.pLayout.Get() && es.Item.pszText)
 		{
-			EckAssert(es.cchText > 0);
-			g_pDwFactory->CreateTextLayout(es.pszText, es.cchText, GetTextFormat(),
+			EckAssert(es.Item.cchText > 0);
+			g_pDwFactory->CreateTextLayout(es.Item.pszText, es.Item.cchText, GetTextFormat(),
 				(float)m_cxItem, float(rc.bottom - rcImg.bottom), &e.pLayout);
 
 			if (e.pLayout.Get())
@@ -275,6 +433,8 @@ private:
 			return;
 		ReCalcHScroll();
 		m_psvV->SetPage(GetHeight());
+		if (m_bGroup)
+			return;
 		switch (m_eView)
 		{
 		case Type::List:
@@ -305,9 +465,39 @@ private:
 		{
 		case Type::List:
 		case Type::Report:
-			m_idxTop = m_psvV->GetPos() / (m_cyItem + m_cyPadding);
-			m_oyTopItem = m_idxTop * (m_cyItem + m_cyPadding) - m_psvV->GetPos();
-			break;
+		{
+			if (m_bGroup)
+			{
+				if (m_Group.empty())
+				{
+					m_idxTopGroup = m_idxTop = 0;
+					return;
+				}
+				const auto it = std::lower_bound(m_Group.begin(), m_Group.end(),
+					m_psvV->GetPos(), [](const GROUP& x, int iPos)
+					{
+						return x.y < iPos;
+					});
+				EckAssert(it != m_Group.end());
+				if (it == m_Group.begin())
+					m_idxTopGroup = 0;
+				else
+					m_idxTopGroup = (int)std::distance(m_Group.begin(), it - 1);
+				EckDbgPrint(m_idxTopGroup);
+				const auto& e = m_Group[m_idxTopGroup];
+				m_oyTopItem = e.y - m_psvV->GetPos();
+				m_idxTop = (m_psvV->GetPos() -
+					(e.y + m_cyGroupHeader + m_cyGroupItemTopPadding)) / m_cyItem;
+				if (m_idxTop < 0)
+					m_idxTop = 0;
+			}
+			else
+			{
+				m_idxTop = m_psvV->GetPos() / (m_cyItem + m_cyPadding);
+				m_oyTopItem = m_idxTop * (m_cyItem + m_cyPadding) - m_psvV->GetPos();
+			}
+		}
+		break;
 		case Type::Icon:
 		{
 			const int cItemV = m_psvV->GetPos() / (m_cyItem + m_cyPadding);
@@ -315,8 +505,7 @@ private:
 			m_oyTopItem = cItemV * (m_cyItem + m_cyPadding) - m_psvV->GetPos();
 		}
 		break;
-		default:
-			ECK_UNREACHABLE;
+		default: ECK_UNREACHABLE;
 		}
 	}
 
@@ -407,6 +596,119 @@ private:
 		}
 	}
 
+	// 由索引得到组，坐标相对元素
+	int GRGroupFromY(int y, _Out_ int& idxItemInGroup) const
+	{
+		y += m_psvV->GetPos();
+		auto it = std::lower_bound(m_Group.begin(), m_Group.end(), y,
+			[](const GROUP& x, int iPos)
+			{
+				return x.y < iPos;
+			});
+		if (it == m_Group.begin())
+			;
+		else if (it == m_Group.end())
+			it = (m_Group.rbegin() + 1).base();
+		else
+			--it;
+		int idxGroup = (int)std::distance(m_Group.begin(), it);
+		const int yGroupBottom = it->y +
+			m_cyGroupHeader + m_cyGroupItemTopPadding;
+		const int yInItem = y - yGroupBottom;
+		idxItemInGroup = yInItem / (m_cyItem + m_cyPadding);
+		if (idxItemInGroup < 0)
+			idxItemInGroup = 0;
+		else if (idxItemInGroup >= (int)it->Item.size())
+		{
+			if (idxGroup + 1 >= GetGroupCount())
+				idxItemInGroup = (int)it->Item.size() - 1;
+			else
+			{
+				++idxGroup;
+				idxItemInGroup = 0;
+			}
+		}
+		return idxGroup;
+	}
+
+	void CalcItemRangeInRect(const RECT& rc, _Out_ int& idxBegin, _Out_ int& idxEnd,
+		_Out_ int& idxGroupBegin, _Out_ int& idxGroupEnd)
+	{
+		idxGroupBegin = GRGroupFromY(rc.top, idxBegin);
+		idxGroupEnd = GRGroupFromY(rc.bottom, idxEnd);
+	}
+
+	void GRDragSelMouseMove(POINT pt, WPARAM wParam)
+	{
+		const auto dy = m_psvV->GetPos();
+		EckAssert(m_bDraggingSel);
+		RECT rcOld{ m_rcDragSel };
+		OffsetRect(rcOld, 0, -dy);
+
+		m_rcDragSel = MakeRect(pt, POINT{ m_ptDragSelStart.x,m_ptDragSelStart.y - dy });
+
+		int idxBegin, idxEnd, idxGroupBegin, idxGroupEnd;
+		RECT rcItem;
+		RECT rcJudge;
+		UnionRect(rcJudge, rcOld, m_rcDragSel);
+		if (IsRectEmpty(rcJudge))
+			goto Skip;
+
+		CalcItemRangeInRect(rcJudge, idxBegin, idxEnd, idxGroupBegin, idxGroupEnd);
+		if (idxBegin < 0 || idxEnd < 0)
+			goto Skip;
+		if (idxGroupBegin < 0)
+			idxGroupBegin = 0;
+		if (idxGroupEnd >= GetGroupCount())
+			idxGroupEnd = GetGroupCount() - 1;
+		for (int i = idxGroupBegin; i <= idxGroupEnd; ++i)
+		{
+			auto& f = m_Group[i];
+			int j0, j1;
+			if (i == idxGroupBegin)
+				j0 = idxBegin;
+			else
+				j0 = 0;
+			if (i == idxGroupEnd)
+				j1 = idxEnd;
+			else
+				j1 = (int)f.Item.size() - 1;
+			for (int j = j0; j <= j1; ++j)
+			{
+				auto& e = f.Item[j];
+				GetGroupPartRect(rcItem, ListPart::Item, i, j);
+				const BOOL bIntersectOld = IsRectsIntersect(rcItem, rcOld);
+				const BOOL bIntersectNew = IsRectsIntersect(rcItem, m_rcDragSel);
+				if (wParam & MK_CONTROL)
+				{
+					if (bIntersectOld != bIntersectNew)
+						e.uFlags ^= LEIF_SELECTED;// 翻转选中状态
+				}
+				else
+				{
+					if (bIntersectOld && !bIntersectNew)
+						e.uFlags &= ~LEIF_SELECTED;// 先前选中但是现在未选中，清除选中状态
+					else if (!bIntersectOld && bIntersectNew)
+						e.uFlags |= LEIF_SELECTED;// 先前未选中但是现在选中，设置选中状态
+					// mark设为离光标最远的选中项（标准ListView的行为）
+					if (bIntersectNew && !(wParam & (MK_CONTROL | MK_SHIFT)))
+					{
+						const int d = (pt.x - rcItem.left) * (pt.x - rcItem.left) +
+							(pt.y - rcItem.top) * (pt.y - rcItem.top);
+						if (d > m_dCursorToItemMax)
+						{
+							m_dCursorToItemMax = d;
+							m_idxMark = i;
+						}
+					}
+				}
+			}
+		}
+	Skip:
+		OffsetRect(m_rcDragSel, 0, dy);
+		InvalidateRect();
+	}
+
 	void DragSelMouseMove(POINT pt, WPARAM wParam)
 	{
 		const auto dy = m_psvV->GetPos();
@@ -459,107 +761,160 @@ private:
 		OffsetRect(m_rcDragSel, 0, dy);
 		InvalidateRect();
 	}
+
+	void OnPaint(WPARAM wParam, LPARAM lParam)
+	{
+		ELEMPAINTSTRU ps;
+		BeginPaint(ps, wParam, lParam);
+
+		switch (m_eView)
+		{
+		case Type::Report:
+			if (!m_Header.GetItemCount())
+				goto EndPaintLabel;
+			[[fallthrough]];
+		case Type::List:
+		{
+			if (m_bGroup)
+			{
+				if (m_Group.empty())
+					goto EndPaintLabel;
+
+				const int iSbPos = m_psvV->GetPos();
+				auto it = std::lower_bound(m_Group.begin() + m_idxTopGroup, m_Group.end(),
+					(int)ps.rcfClipInElem.top + iSbPos, [](const GROUP& x, int iPos)
+					{
+						return x.y < iPos;
+					});
+				if (it != m_Group.begin())
+					--it;
+
+				for (int i = (int)std::distance(m_Group.begin(), it); i < GetGroupCount(); ++i)
+				{
+					const auto& e = m_Group[i];
+					if (e.y >= (int)ps.rcfClipInElem.bottom + iSbPos)
+						break;
+					DrawGroup(i, ps.rcfClipInElem);
+					for (int j = (i == m_idxTopGroup ? m_idxTop : 0); j < (int)e.Item.size(); ++j)
+					{
+						const auto& f = e.Item[j];
+						if (f.y >= (int)ps.rcfClipInElem.bottom + iSbPos)
+							break;
+						DrawGroupItem(i, j, ps.rcfClipInElem);
+					}
+				}
+			}
+			else
+			{
+				if (!GetItemCount())
+					goto EndPaintLabel;
+				const int idxBegin = std::max(LVItemFromY((int)ps.rcfClipInElem.top), 0);
+				const int idxEnd = std::min(LVItemFromY((int)ps.rcfClipInElem.bottom), GetItemCount() - 1);
+				for (int i = idxBegin; i <= idxEnd; ++i)
+					LVPaintItem(i, ps.rcfClipInElem);
+			}
+		}
+		break;
+		case Type::Icon:
+		{
+			if (!GetItemCount())
+				goto EndPaintLabel;
+			int idxBegin, idxX, idxY;
+
+			idxX = IVLogItemFromX((int)ps.rcfClipInElem.left + 1);
+			if (idxX < 0 || idxX >= m_cItemPerRow)
+				idxBegin = -1;
+			else
+			{
+				idxY = IVLogItemFromY((int)ps.rcfClipInElem.top + 1);
+				idxBegin = m_idxTop + idxX + idxY * m_cItemPerRow;
+				if (idxBegin < 0 || idxBegin >= GetItemCount())
+					idxBegin = -1;
+			}
+
+			if (idxBegin >= 0)
+				for (int i = idxBegin; i < GetItemCount(); ++i)
+				{
+					if (IVGetItemXY(i).first >= (int)ps.rcfClipInElem.right)// 需要下移一行
+					{
+						i = idxBegin + m_cItemPerRow;
+						idxBegin = i;
+						if (i >= GetItemCount())
+							break;
+					}
+
+					if (IVGetItemXY(i).second >= (int)ps.rcfClipInElem.bottom)// Y方向重画完成
+						break;
+
+					IVPaintItem(i, ps.rcfClipInElem);
+				}
+		}
+		break;
+		default: ECK_UNREACHABLE;
+		}
+
+		if (m_idxInsertMark >= 0)
+		{
+			D2D1_RECT_F rcIm;
+			GetInsertMarkRect(rcIm);
+			if (rcIm.bottom > 0.f && rcIm.top < GetHeightF())
+			{
+				// TODO：插入标记
+			}
+		}
+
+		if (m_bDraggingSel)
+		{
+			auto rc{ MakeD2DRcF(m_rcDragSel) };
+			OffsetRect(rc, 0.f, (float)-m_psvV->GetPos());
+			GetTheme()->DrawBackground(Part::ListSelRect,
+				State::None, rc, nullptr);
+		}
+	EndPaintLabel:
+		ECK_DUI_DBG_DRAW_FRAME;
+		EndPaint(ps);
+	}
 public:
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
 		switch (uMsg)
 		{
 		case WM_PAINT:
-		{
-			ELEMPAINTSTRU ps;
-			BeginPaint(ps, wParam, lParam);
-			if (GetItemCount() && (m_eView == Type::List ? m_Header.GetItemCount() : TRUE))
-			{
-				switch (m_eView)
-				{
-				case Type::List:
-				case Type::Report:
-				{
-					const int idxBegin = std::max(LVItemFromY((int)ps.rcfClipInElem.top), 0);
-					const int idxEnd = std::min(LVItemFromY((int)ps.rcfClipInElem.bottom), GetItemCount() - 1);
-					for (int i = idxBegin; i <= idxEnd; ++i)
-						LVPaintItem(i, ps.rcfClipInElem);
-				}
-				break;
-				case Type::Icon:
-				{
-					int idxBegin, idxX, idxY;
-
-					idxX = IVLogItemFromX((int)ps.rcfClipInElem.left + 1);
-					if (idxX < 0 || idxX >= m_cItemPerRow)
-						idxBegin = -1;
-					else
-					{
-						idxY = IVLogItemFromY((int)ps.rcfClipInElem.top + 1);
-						idxBegin = m_idxTop + idxX + idxY * m_cItemPerRow;
-						if (idxBegin < 0 || idxBegin >= GetItemCount())
-							idxBegin = -1;
-					}
-
-					if (idxBegin >= 0)
-						for (int i = idxBegin; i < GetItemCount(); ++i)
-						{
-							if (IVGetItemXY(i).first >= (int)ps.rcfClipInElem.right)// 需要下移一行
-							{
-								i = idxBegin + m_cItemPerRow;
-								idxBegin = i;
-								if (i >= GetItemCount())
-									break;
-							}
-
-							if (IVGetItemXY(i).second >= (int)ps.rcfClipInElem.bottom)// Y方向重画完成
-								break;
-
-							IVPaintItem(i, ps.rcfClipInElem);
-						}
-				}
-				break;
-				default: ECK_UNREACHABLE;
-				}
-
-				if (m_idxInsertMark >= 0)
-				{
-					D2D1_RECT_F rcIm;
-					GetInsertMarkRect(rcIm);
-					if (rcIm.bottom > 0.f && rcIm.top < GetHeightF())
-					{
-						// TODO：插入标记
-					}
-				}
-			}
-
-			if (m_bDraggingSel)
-			{
-				auto rc{ MakeD2DRcF(m_rcDragSel) };
-				OffsetRect(rc, 0.f, (float)-m_psvV->GetPos());
-				GetTheme()->DrawBackground(Part::ListSelRect,
-					State::None, rc, nullptr);
-			}
-
-			ECK_DUI_DBG_DRAW_FRAME;
-			EndPaint(ps);
-		}
-		return 0;
+			OnPaint(wParam, lParam);
+			return 0;
 
 		case WM_MOUSEMOVE:
 		{
 			ECK_DUILOCK;
-			LEHITTEST ht{ ECK_GET_PT_LPARAM(lParam) };
+			LE_HITTEST ht{ ECK_GET_PT_LPARAM(lParam) };
 			ClientToElem(ht.pt);
-
 			if (m_bDraggingSel)
 			{
 				if (ht.pt.x < 0) ht.pt.x = 0;
 				if (ht.pt.y < 0) ht.pt.y = 0;
 				if (ht.pt.x >= GetWidth()) ht.pt.x = GetWidth() - 1;
 				if (ht.pt.y >= GetHeight()) ht.pt.y = GetHeight() - 1;
-				DragSelMouseMove(ht.pt, wParam);
+				if (m_bGroup)
+					GRDragSelMouseMove(ht.pt, wParam);
+				else
+					DragSelMouseMove(ht.pt, wParam);
 				return 0;
 			}
 
 			int idx = HitTest(ht);
-
-			if (idx != m_idxHot)
+			if (m_bGroup)
+			{
+				if (idx != m_idxHot || m_idxHotItemGroup != ht.idxGroup)
+				{
+					std::swap(idx, m_idxHot);
+					std::swap(ht.idxGroup, m_idxHotItemGroup);
+					if (ht.idxGroup >= 0 && idx >= 0)
+						RedrawGroupItem(ht.idxGroup, idx);
+					if (m_idxHotItemGroup >= 0 && m_idxHot >= 0)
+						RedrawGroupItem(m_idxHotItemGroup, m_idxHot);
+				}
+			}
+			else if (idx != m_idxHot)
 			{
 				std::swap(m_idxHot, idx);
 				if (idx >= 0)
@@ -573,7 +928,15 @@ public:
 		case WM_MOUSELEAVE:
 		{
 			ECK_DUILOCK;
-			if (m_idxHot >= 0)
+			if (m_bGroup)
+			{
+				int idx = -1, idxGroup = -1;
+				std::swap(idx, m_idxHot);
+				std::swap(idxGroup, m_idxHotItemGroup);
+				if (idxGroup >= 0 && idx >= 0)
+					RedrawGroupItem(idxGroup, idx);
+			}
+			else if (m_idxHot >= 0)
 			{
 				int idx = -1;
 				std::swap(m_idxHot, idx);
@@ -659,22 +1022,29 @@ public:
 			ECK_DUILOCK;
 			POINT pt ECK_GET_PT_LPARAM(lParam);
 			SetFocus();
-			LEHITTEST ht{ pt };
+			LE_HITTEST ht{ pt };
 			ClientToElem(ht.pt);
 			int idx = HitTest(ht);
 
-			int idxChangedBegin = -1, idxChangedEnd = -1;
+			RECT rcInvalid;
 			if (idx >= 0)
 			{
 				if (!(wParam & MK_CONTROL))
-					DeselectAll(idxChangedBegin, idxChangedEnd);
-				SelectItemForClick(idx);
-				SetRedraw(FALSE);
-				if (idxChangedBegin >= 0)
-					RedrawItem(idxChangedBegin, idxChangedEnd);
-				if (idx < idxChangedBegin || idx > idxChangedEnd)
-					RedrawItem(idx);
-				SetRedraw(TRUE);
+					DeselectAll(rcInvalid);
+				RECT rcItem;
+				if (m_bGroup)
+				{
+					SelectItemForClick(idx, ht.idxGroup);
+					GetGroupPartRect(rcItem, ListPart::Item, ht.idxGroup, idx);
+				}
+				else
+				{
+					SelectItemForClick(idx);
+					GetItemRect(idx, rcItem);
+				}
+				UnionRect(rcInvalid, rcInvalid, rcItem);
+				ElemToClient(rcInvalid);
+				InvalidateRect(rcInvalid);
 			}
 			else
 			{
@@ -686,9 +1056,10 @@ public:
 					SetCapture();
 					if (!(wParam & (MK_CONTROL | MK_SHIFT)))
 					{
-						DeselectAll(idxChangedBegin, idxChangedEnd);
-						if (idxChangedBegin >= 0)
-							RedrawItem(idxChangedBegin, idxChangedEnd);
+						RECT rcInvalid;
+						DeselectAll(rcInvalid);
+						ElemToClient(rcInvalid);
+						InvalidateRect(rcInvalid);
 					}
 					m_bDraggingSel = TRUE;
 					m_rcDragSel = {};
@@ -702,9 +1073,9 @@ public:
 				}
 				else
 				{
-					DeselectAll(idxChangedBegin, idxChangedEnd);
-					if (idxChangedBegin >= 0)
-						RedrawItem(idxChangedBegin, idxChangedEnd);
+					DeselectAll(rcInvalid);
+					ElemToClient(rcInvalid);
+					InvalidateRect(rcInvalid);
 				}
 			}
 		}
@@ -735,7 +1106,7 @@ public:
 		{
 			m_pDC->CreateSolidColorBrush({}, &m_pBrush);
 
-			m_Header.Create(nullptr, DES_VISIBLE, 0,
+			m_Header.Create(nullptr, /*DES_VISIBLE*/0, 0,
 				0, 0, 0, CyDefHeader, this);
 
 			m_SBV.Create(nullptr, DES_VISIBLE, 0,
@@ -854,9 +1225,11 @@ public:
 		rc.bottom = rc.top + m_cyItem;
 	}
 
-	int HitTest(LEHITTEST& leht) const
+	int HitTest(LE_HITTEST& leht) const
 	{
-		if (!PtInRect(GetViewRect(), leht.pt) || !GetItemCount())
+		leht.bHitGroupHeader = FALSE;
+		leht.bHitGroupImage = FALSE;
+		if (!PtInRect(GetViewRect(), leht.pt))
 			return -1;
 
 		switch (m_eView)
@@ -864,13 +1237,60 @@ public:
 		case Type::List:
 		case Type::Report:
 		{
+			if (m_bGroup)
+			{
+				if (!GetGroupCount())
+					return -1;
+				//---测试组
+				const int y = leht.pt.y + m_psvV->GetPos();
+				auto it = std::lower_bound(m_Group.begin() + m_idxTopGroup, m_Group.end(), y,
+					[](const GROUP& x, int iPos)
+					{
+						return x.y < iPos;
+					});
+				if (it == m_Group.begin())
+					return -1;
+				else if (it == m_Group.end())
+					it = (m_Group.rbegin() + 1).base();
+				else
+					--it;
+				const int idxGroup = (int)std::distance(m_Group.begin(), it);
+				leht.idxGroup = idxGroup;
+				// 测试组部件
+				const int yGroupBottom = it->y +
+					m_cyGroupHeader + m_cyGroupItemTopPadding;
+				if (y > it->y && y < yGroupBottom)
+				{
+					leht.bHitGroupHeader = TRUE;
+					return -1;
+				}
+				if (m_bGroupImage && leht.pt.x < m_cxGroupImage)
+				{
+					if (y >= yGroupBottom &&
+						y < yGroupBottom + m_cxGroupImage)
+						leht.bHitGroupImage = TRUE;
+					return -1;
+				}
+				//---测试组项
+				const int yInItem = y - yGroupBottom;
+				if (yInItem >= 0)
+				{
+					int idx = yInItem / (m_cyItem + m_cyPadding);
+					if (yInItem > (idx + 1) * (m_cyItem + m_cyPadding) - m_cyPadding)
+						return -1;// 命中项目间隔
+					if (idx < (int)it->Item.size())
+						return idx;
+				}
+				return -1;
+			}
+			if (!GetItemCount())
+				return -1;
 			if (m_eView == Type::Report &&
 				leht.pt.x > m_Header.GetContentWidth())
 				return -1;
 			const int idx = LVItemFromY(leht.pt.y);
-			const auto yBottom = LVGetItemY(idx) + m_cyItem;
-			if (leht.pt.y >= yBottom)
-				return -1;
+			if (leht.pt.y >= LVGetItemY(idx) + m_cyItem)
+				return -1;// 命中项目间隔
 			if (idx >= 0 && idx < GetItemCount())
 				return idx;
 			else
@@ -880,6 +1300,8 @@ public:
 
 		case Type::Icon:
 		{
+			if (!GetItemCount())
+				return -1;
 			const int idxX = IVLogItemFromX(leht.pt.x);
 			if (idxX < 0 || idxX >= m_cItemPerRow)
 				return -1;
@@ -890,7 +1312,7 @@ public:
 			const auto [x, y] = IVGetItemXY(idx);
 			if (leht.pt.x >= x + m_cxItem ||
 				leht.pt.y >= y + m_cyItem)
-				return -1;
+				return -1;// 命中项目间隔
 			return idx;
 		}
 		break;
@@ -898,8 +1320,46 @@ public:
 		}
 	}
 
-	void DeselectAll(int& idxChangedBegin, int& idxChangedEnd)
+	void DeselectAll(_Out_ RECT& rcInvalid)
 	{
+		if (m_bGroup)
+		{
+			const int iSbPos = m_psvV->GetPos();
+			const int cy = GetHeight();
+			int y0_{ INT_MAX }, y1_{ INT_MIN }, x_{ INT_MAX };
+			for (auto& e : m_Group)
+			{
+				if (e.uFlags & LEIF_SELECTED)
+				{
+					e.uFlags &= ~LEIF_SELECTED;
+					const int y = e.y - iSbPos;
+					if ((y > -m_cyGroupHeader && y < GetHeight()))
+					{
+						if (y0_ == INT_MAX)
+							y0_ = y;
+						y1_ = std::max(y1_, y + m_cyGroupHeader);
+						x_ = std::min(x_, 0);
+					}
+				}
+				for (auto& f : e.Item)
+				{
+					if (f.uFlags & LEIF_SELECTED)
+					{
+						f.uFlags &= ~LEIF_SELECTED;
+						const int y = f.y - iSbPos;
+						if ((y > -m_cyItem && y < GetHeight()))
+						{
+							if (y0_ == INT_MAX)
+								y0_ = y;
+							y1_ = std::max(y1_, y + m_cyItem);
+						}
+						x_ = std::min(x_, m_cxGroupImage);
+					}
+				}
+			}
+			rcInvalid = { x_, y0_, GetWidth(), y1_ };
+			return;
+		}
 		if (m_bSingleSel)
 			m_idxSel = -1;
 		else
@@ -916,9 +1376,6 @@ public:
 					idx1 = i;
 				}
 			}
-
-			idxChangedBegin = idx0;
-			idxChangedEnd = idx1;
 		}
 	}
 
@@ -932,12 +1389,37 @@ public:
 			m_vItem[idx].uFlags |= LEIF_SELECTED;
 	}
 
+	void SelectItemForClick(int idx, int idxGroup)
+	{
+		m_idxFocus = idx;
+		m_idxFocusItemGroup = idxGroup;
+		m_idxMark = idx;
+		m_idxMarkItemGroup = idxGroup;
+		if (m_bSingleSel)
+		{
+			m_idxSel = idx;
+			m_idxSelItemGroup = idxGroup;
+		}
+		else
+			m_Group[idxGroup].Item[idx].uFlags |= LEIF_SELECTED;
+	}
+
 	void SetImageList(CD2DImageList* pImgList)
 	{
 		ECK_DUILOCK;
 		std::swap(m_pImgList, pImgList);
 		if (m_pImgList)
 			m_pImgList->AddRef();
+		if (pImgList)
+			pImgList->Release();
+	}
+
+	void SetGroupImageList(CD2DImageList* pImgList)
+	{
+		ECK_DUILOCK;
+		std::swap(m_pImgListGroup, pImgList);
+		if (m_pImgListGroup)
+			m_pImgListGroup->AddRef();
 		if (pImgList)
 			pImgList->Release();
 	}
@@ -1052,8 +1534,38 @@ public:
 		InvalidateRect(rc);
 	}
 
-	void ReCalc()
+	void RedrawGroupItem(int idxGroup, int idxItemInGroup)
 	{
+		EckAssert(GetGroup());
+		RECT rc;
+		GetGroupPartRect(rc, ListPart::Item, idxGroup, idxItemInGroup);
+		ElemToClient(rc);
+		InvalidateRect(rc);
+	}
+
+	void ReCalc(int idxGroupBegin = 0)
+	{
+		if (m_bGroup)
+		{
+			int y = 0;
+			for (size_t i = idxGroupBegin; i < m_Group.size(); ++i)
+			{
+				auto& Group = m_Group[i];
+				Group.y = y;
+				y += (m_cyGroupHeader + m_cyGroupItemTopPadding);
+				const auto yImg = y;
+				for (auto& Item : Group.Item)
+				{
+					Item.y = y;
+					y += (m_cyItem + m_cyPadding);
+				}
+				y -= m_cyPadding;;
+				y += m_cyGroupItemBottomPadding;
+				if (m_bGroupImage && y < yImg + m_cyGroupImage)
+					y = yImg + m_cyGroupImage;
+			}
+			m_psvV->SetMax(y);
+		}
 		ReCalcScroll();
 		ReCalcTopItem();
 	}
@@ -1071,6 +1583,78 @@ public:
 		m_Header.SetItemCount(cItem, pcx);
 		for (auto& e : m_vItem)
 			e.vSubItem.resize(cItem - 1);
+	}
+
+	void GetGroupPartRect(_Out_ RECT& rc, ListPart ePart, int idxGroup, int idxItemInGroup)
+	{
+		auto& e = m_Group[idxGroup];
+		switch (ePart)
+		{
+		case ListPart::GroupHeader:
+			rc =
+			{
+				0,
+				e.y - m_psvV->GetPos(),
+				GetWidth(),
+				e.y - m_psvV->GetPos() + m_cyGroupHeader,
+			};
+			break;
+		case ListPart::GroupText:
+			rc = {};
+			EckDbgBreak();
+			break;
+		case ListPart::Item:
+			rc =
+			{
+				m_cxGroupImage,
+				e.Item[idxItemInGroup].y - m_psvV->GetPos(),
+				GetWidth(),
+				e.Item[idxItemInGroup].y - m_psvV->GetPos() + m_cyItem,
+			};
+			break;
+		case ListPart::GroupImg:
+			rc =
+			{
+				0,
+				e.y - m_psvV->GetPos() + m_cyGroupHeader,
+				m_cyGroupImage,
+				e.y - m_psvV->GetPos() + m_cyGroupHeader + m_cxGroupImage
+			};
+			break;
+		default: ECK_UNREACHABLE;
+		}
+	}
+
+	EckInline void GetGroupPartRect(_Out_ D2D1_RECT_F& rc, ListPart ePart,
+		int idxGroup, int idxItemInGroup)
+	{
+		RECT rc2;
+		GetGroupPartRect(rc2, ePart, idxGroup, idxItemInGroup);
+		rc = MakeD2DRcF(rc2);
+	}
+
+	EckInline void SetGroupCount(int cGroups)
+	{
+		ECK_DUILOCK;
+		m_Group.resize(cGroups);
+	}
+	EckInlineNdCe int GetGroupCount() const { return (int)m_Group.size(); }
+
+	EckInline void SetGroupItemCount(int idxGroup, int cItems)
+	{
+		ECK_DUILOCK;
+		m_Group[idxGroup].Item.resize(cItems);
+	}
+	EckInlineNdCe int GetGroupItemCount(int idxGroup) const { return (int)m_Group[idxGroup].Item.size(); }
+
+	void SetGroupTextFormat(IDWriteTextFormat* pTf)
+	{
+		ECK_DUILOCK;
+		std::swap(m_pTfGroup, pTf);
+		if (m_pTfGroup)
+			m_pTfGroup->AddRef();
+		if (pTf)
+			pTf->Release();
 	}
 
 	EckInlineCe void SetView(Type eView) noexcept { m_eView = eView; }
@@ -1104,6 +1688,24 @@ public:
 
 	EckInlineCe void SetBottomExtraSpace(int cy) noexcept { m_cyBottomExtra = cy; }
 	EckInlineNdCe int GetBottomExtraSpace() const noexcept { return m_cyBottomExtra; }
+
+	EckInlineCe void SetGroup(BOOL bGroup) noexcept { m_bGroup = bGroup; }
+	EckInlineNdCe BOOL GetGroup() const noexcept { return m_bGroup; }
+
+	EckInlineCe void SetGroupImage(BOOL b) noexcept { m_bGroupImage = b; }
+	EckInlineNdCe BOOL GetGroupImage() const noexcept { return m_bGroupImage; }
+
+	EckInlineCe void SetGroupImageWidth(int cx) noexcept { m_cxGroupImage = cx; }
+	EckInlineNdCe int GetGroupImageWidth() const noexcept { return m_cxGroupImage; }
+
+	EckInlineCe void SetGroupImageHeight(int cy) noexcept { m_cyGroupImage = cy; }
+	EckInlineNdCe int GetGroupImageHeight() const noexcept { return m_cyGroupImage; }
+
+	EckInlineCe void SetGroupItemTopPadding(int cy) noexcept { m_cyGroupItemTopPadding = cy; }
+	EckInlineNdCe int GetGroupItemTopPadding() const noexcept { return m_cyGroupItemTopPadding; }
+
+	EckInlineCe void SetGroupItemBottomPadding(int cy) noexcept { m_cyGroupItemBottomPadding = cy; }
+	EckInlineNdCe int GetGroupItemBottomPadding() const noexcept { return m_cyGroupItemBottomPadding; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

@@ -558,9 +558,6 @@
     <ClInclude Include="eck\CEnumFile2.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CDuiGroupList.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\UIAccess.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
