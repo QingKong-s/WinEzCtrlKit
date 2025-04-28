@@ -177,6 +177,7 @@ public:
 
 			SetView(Type::List);
 			SetSingleSel(TRUE);
+			SetItemNotify(TRUE);
 			return 0;
 		case WM_DESTROY:
 			SafeRelease(m_pec1);
@@ -188,7 +189,7 @@ public:
 
 	LRESULT OnNotify(DUINMHDR* pnm, BOOL& bProcessed) override
 	{
-		if (pnm->uCode == LTE_ITEMCLICK)
+		if (pnm->uCode == EE_CLICK)
 		{
 			const auto p = (LTN_ITEM*)pnm;
 			if (p->idx == m_idxLastSel || p->idx < 0 || m_idxLastSel < 0)
@@ -211,6 +212,13 @@ public:
 			m_pec1->SetCurrTime(0.f);
 			m_pec2->SetCurrTime(0.f);
 			GetWnd()->WakeRenderThread();
+		}
+		else if (pnm->uCode == LTE_ITEMCHANED)
+		{
+			bProcessed = TRUE;
+			const auto* const p = (LTN_ITEMCHANGE*)pnm;
+			if ((p->uFlagsOld & LEIF_SELECTED) && !(p->uFlagsNew & LEIF_SELECTED))
+				return TRUE;
 		}
 		return 0;
 	}

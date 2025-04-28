@@ -54,8 +54,10 @@ enum :UINT
 	EE_SETFOCUS,
 	EE_CLICK,
 	EE_RCLICK,
-	EE_HSCROLL,
-	EE_VSCROLL,
+	EE_DBLCLICK,
+	EE_SCROLL,
+	EE_HSCROLL = EE_SCROLL,
+	EE_VSCROLL = EE_SCROLL,
 	EE_CUSTOMDRAW,		// CUSTOM_DRAW*，返回CDRF_*
 
 	// TrackBar
@@ -63,7 +65,7 @@ enum :UINT
 	// List
 	LEE_GETDISPINFO,	// 【渲染线程】获取显示信息
 	// ListTemplate
-	LTE_ITEMCLICK,		// 项选中(LTN_ITEM*)
+	LTE_ITEMCHANED,		// 项改变(LTN_ITEM*)，返回TRUE禁止修改
 	// TabList
 	TBLE_GETDISPINFO,	// 【渲染线程】获取显示信息
 	// Header

@@ -15,6 +15,12 @@ struct LTN_ITEM : DUINMHDR
 	int idxGroup;
 };
 
+struct LTN_ITEMCHANGE : LTN_ITEM
+{
+	UINT uFlagsOld;
+	UINT uFlagsNew;
+};
+
 struct LE_HITTEST
 {
 	POINT pt;
@@ -124,6 +130,7 @@ protected:
 	BITBOOL m_bSingleSel : 1{};	// 单选
 	BITBOOL m_bGroup : 1{};		// 分组
 	BITBOOL m_bGroupImage : 1{};// 显示组图片
+	BITBOOL m_bItemNotify : 1{};// 启用项目通知
 
 	BITBOOL m_bDraggingSel : 1{};	// 正在拖动选择
 
@@ -667,7 +674,7 @@ protected:
 	{
 		EckAssert(m_eView == Type::Icon);
 		if (idxBegin == idxEnd)
-			RedrawItem(idxBegin);
+			GetItemRect(idxBegin, rc);
 		else
 		{
 			auto [x1, y1] = IVGetItemXY(idxBegin);
@@ -885,7 +892,8 @@ public:
 			else
 			{
 				ClientToScreen(GetWnd()->HWnd, &pt);
-				if (IsMouseMovedBeforeDragging(GetWnd()->HWnd, pt.x, pt.y))
+				if (!m_bSingleSel&&
+					IsMouseMovedBeforeDragging(GetWnd()->HWnd, pt.x, pt.y))
 				{
 					if (!GetWnd()->IsValid())
 						return 0;
@@ -1243,42 +1251,79 @@ public:
 
 	void DeselectAll(_Out_ RECT& rcInvalid)
 	{
+		LTN_ITEMCHANGE nm{ LTE_ITEMCHANED };
+		nm.uFlagsOld = LEIF_SELECTED;
+		nm.uFlagsNew = 0;
 		if (m_bGroup)
 		{
-			const int iSbPos = m_psvV->GetPos();
-			const int cy = GetHeight();
-			int y0{ INT_MAX }, y1{ INT_MIN }, x{ INT_MAX };
-			for (auto& e : m_Group)
+			if (m_bSingleSel)
 			{
-				if (e.uFlags & LEIF_SELECTED)
+				if (m_idxSel >= 0 && m_idxSelItemGroup >= 0)
 				{
-					e.uFlags &= ~LEIF_SELECTED;
-					const int y = e.y - iSbPos;
-					if ((y > -m_cyGroupHeader && y < GetHeight()))
+					if (m_bItemNotify)
 					{
-						if (y0 == INT_MAX)
-							y0 = y;
-						y1 = std::max(y1, y + m_cyGroupHeader);
-						x = std::min(x, 0);
+						nm.idx = m_idxSel;
+						nm.idxGroup = m_idxSelItemGroup;
+						if (GenElemNotify(&nm))
+						{
+							rcInvalid = {};
+							return;
+						}
 					}
+					GetGroupPartRect(ListPart::Item,m_idxSel ,
+						m_idxSelItemGroup, rcInvalid);
 				}
-				for (auto& f : e.Item)
+				m_idxSel = m_idxSelItemGroup = -1;
+			}
+			else
+			{
+				const int iSbPos = m_psvV->GetPos();
+				const int cy = GetHeight();
+				int y0{ INT_MAX }, y1{ INT_MIN }, x{ INT_MAX };
+				EckCounter(GetGroupCount(), i)
 				{
-					if (f.uFlags & LEIF_SELECTED)
+					auto& e = m_Group[i];
+					if (e.uFlags & LEIF_SELECTED)
 					{
-						f.uFlags &= ~LEIF_SELECTED;
-						const int y = f.y - iSbPos;
-						if ((y > -m_cyItem && y < GetHeight()))
+						// TODO: 通知组改变
+						e.uFlags &= ~LEIF_SELECTED;
+						const int y = e.y - iSbPos;
+						if ((y > -m_cyGroupHeader && y < GetHeight()))
 						{
 							if (y0 == INT_MAX)
 								y0 = y;
-							y1 = std::max(y1, y + m_cyItem);
+							y1 = std::max(y1, y + m_cyGroupHeader);
+							x = std::min(x, 0);
 						}
-						x = std::min(x, m_cxGroupImage);
+					}
+					EckCounter((int)e.Item.size(), j)
+					{
+						auto& f = e.Item[j];
+						if (f.uFlags & LEIF_SELECTED)
+						{
+							if (m_bItemNotify)
+							{
+								nm.idx = j;
+								nm.idxGroup = i;
+								if (GenElemNotify(&nm))
+									goto SkipItem;
+							}
+							f.uFlags &= ~LEIF_SELECTED;
+							const int y = f.y - iSbPos;
+							if ((y > -m_cyItem && y < GetHeight()))
+							{
+								if (y0 == INT_MAX)
+									y0 = y;
+								y1 = std::max(y1, y + m_cyItem);
+							}
+							x = std::min(x, m_cxGroupImage);
+						}
+					SkipItem:
+						++i;
 					}
 				}
+				rcInvalid = { x, y0, GetWidth(), y1 };
 			}
-			rcInvalid = { x, y0, GetWidth(), y1 };
 		}
 		else
 		{
@@ -1286,6 +1331,16 @@ public:
 			{
 				if (m_idxSel >= 0)
 				{
+					if (m_bItemNotify)
+					{
+						nm.idx = m_idxSel;
+						nm.idxGroup = -1;
+						if (GenElemNotify(&nm))
+						{
+							rcInvalid = {};
+							return;
+						}
+					}
 					GetItemRect(m_idxSel, rcInvalid);
 					m_idxSel = -1;
 				}
@@ -1300,11 +1355,19 @@ public:
 					auto& e = m_vItem[i];
 					if (e.uFlags & LEIF_SELECTED)
 					{
+						if (m_bItemNotify)
+						{
+							nm.idx = i;
+							nm.idxGroup = -1;
+							if (GenElemNotify(&nm))
+								goto SkipItem2;
+						}
 						e.uFlags &= ~LEIF_SELECTED;
 						if (idx0 < 0)
 							idx0 = i;
 						idx1 = i;
 					}
+				SkipItem2:;
 				}
 				if (idx0 >= 0)
 				{
@@ -1324,26 +1387,47 @@ public:
 		}
 	}
 
-	void SelectItemForClick(int idx)
+	BOOL SelectItemForClick(int idx)
 	{
-		LTN_ITEM nm{ LTE_ITEMCLICK };
+		LTN_ITEM nm{ EE_CLICK };
 		nm.idx = idx;
 		nm.idxGroup = -1;
 		GenElemNotify(&nm);
+		if (m_bItemNotify)
+		{
+			LTN_ITEMCHANGE nm2{ LTE_ITEMCHANED };
+			nm2.uFlagsOld = 0;
+			nm2.uFlagsNew = LEIF_SELECTED;
+			nm2.idx = idx;
+			nm2.idxGroup = -1;
+			if (GenElemNotify(&nm2))
+				return FALSE;
+		}
 		m_idxFocus = idx;
 		m_idxMark = idx;
 		if (m_bSingleSel)
 			m_idxSel = idx;
 		else
 			m_vItem[idx].uFlags |= LEIF_SELECTED;
+		return TRUE;
 	}
 
-	void SelectItemForClick(int idx, int idxGroup)
+	BOOL SelectItemForClick(int idx, int idxGroup)
 	{
-		LTN_ITEM nm{ LTE_ITEMCLICK };
+		LTN_ITEM nm{ EE_CLICK };
 		nm.idx = idx;
 		nm.idxGroup = idxGroup;
 		GenElemNotify(&nm);
+		if (m_bItemNotify)
+		{
+			LTN_ITEMCHANGE nm2{ LTE_ITEMCHANED };
+			nm2.uFlagsOld = 0;
+			nm2.uFlagsNew = LEIF_SELECTED;
+			nm2.idx = idx;
+			nm2.idxGroup = idxGroup;
+			if (GenElemNotify(&nm2))
+				return FALSE;
+		}
 		m_idxFocus = idx;
 		m_idxFocusItemGroup = idxGroup;
 		m_idxMark = idx;
@@ -1355,6 +1439,7 @@ public:
 		}
 		else
 			m_Group[idxGroup].Item[idx].uFlags |= LEIF_SELECTED;
+		return TRUE;
 	}
 
 	void SetImageList(CD2DImageList* pImgList)
@@ -1607,6 +1692,9 @@ public:
 
 	EckInlineCe void SetGroupItemBottomPadding(int cy) noexcept { m_cyGroupItemBottomPadding = cy; }
 	EckInlineNdCe int GetGroupItemBottomPadding() const noexcept { return m_cyGroupItemBottomPadding; }
+
+	EckInlineCe void SetItemNotify(BOOL b) noexcept { m_bItemNotify = b; }
+	EckInlineNdCe BOOL GetItemNotify() const noexcept { return m_bItemNotify; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

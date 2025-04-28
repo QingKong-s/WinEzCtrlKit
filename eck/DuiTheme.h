@@ -22,6 +22,7 @@ enum class Part : int
 	GroupBox,
 
 	Edit,
+	EditBottomBar,
 
 	List,
 	ListSelRect,
