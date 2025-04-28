@@ -10,8 +10,8 @@ ECK_DUI_NAMESPACE_BEGIN
 struct STD_THEME_DATA
 {
 	THEME_FILE_HEADER Hdr;
-	THEME_PART aPart[10];
-	THEME_STATE aState[20];
+	THEME_PART aPart[12];
+	THEME_STATE aState[25];
 };
 
 enum class StdPal
@@ -32,6 +32,13 @@ enum class StdPal
 	CircleButtonNormalBk,
 	CircleButtonHotBk,
 	CircleButtonSelectedBk,
+
+	EditNormalBk,
+	EditHotBk,
+	EditFocusBk,
+	EditBorder,
+
+	EditBtmBarNormal,
 
 	ListSelRectBk,
 	ListSelRectBorder,
@@ -90,6 +97,13 @@ constexpr inline D2D1_COLOR_F Palette_StdLight[]
 	StMakeBackgroundColorLight(0.7f), 	// CircleButtonNormalBk
 	StMakeForegroundColorLight(0.1f),	// CircleButtonHotBk
 	StMakeForegroundColorLight(0.2f),	// CircleButtonSelectedBk
+	// Edit
+	{ 0.98f,0.98f,0.98f,0.8f },			// EditNormalBk
+	{ 0.93f,0.93f,0.93f,0.8f },			// EditHotBk
+	StMakeBackgroundColorLight(0.9f),	// EditFocusBk
+	StMakeForegroundColorLight(0.2f),	// EditBorder
+	// EditBtmBar
+	{ 0.5f,0.5f,0.5f,0.8f },
 	// ListSelRect
 	{ 0.4f,0.5f,0.6f,0.4f },			// ListSelRectBk
 	{ 0.7f,0.8f,0.9f,0.8f },			// ListSelRectBorder
@@ -130,6 +144,13 @@ constexpr inline D2D1_COLOR_F Palette_StdDark[]
 	StMakeBackgroundColorDark(0.7f), 	// CircleButtonNormalBk
 	StMakeForegroundColorDark(0.1f),	// CircleButtonHotBk
 	StMakeForegroundColorDark(0.2f),	// CircleButtonSelectedBk
+	// Edit
+	{ 0.15f,0.15f,0.15f,0.8f },			// EditNormalBk
+	{ 0.19f,0.19f,0.19f,0.8f },			// EditHotBk
+	StMakeBackgroundColorDark(0.9f),	// EditFocusBk
+	StMakeForegroundColorDark(0.2f),	// EditBorder
+	// EditBtmBar
+	{ 0.6f,0.6f,0.6f,0.8f },
 	// ListSelRect
 	{ 0.4f,0.5f,0.6f,0.4f },			// ListSelRectBk
 	{ 0.7f,0.8f,0.9f,0.8f },			// ListSelRectBorder
@@ -201,33 +222,43 @@ constexpr inline STD_THEME_DATA StdThemeData
 			.cState = 3,
 		},
 		{
-			.ePart = Part::ListSelRect,
+			.ePart = Part::Edit,
 			.idxState = 6,
+			.cState = 3,
+		},
+		{
+			.ePart = Part::EditBottomBar,
+			.idxState = 9,
+			.cState = 2,
+		},
+		{
+			.ePart = Part::ListSelRect,
+			.idxState = 11,
 			.cState = 1,
 		},
 		{
 			.ePart = Part::ListItem,
-			.idxState = 7,
+			.idxState = 12,
 			.cState = 3,
 		},
 		{
 			.ePart = Part::HeaderItem,
-			.idxState = 10,
-			.cState = 3,
-		},
-		{
-			.ePart = Part::TrackBar,
-			.idxState = 13,
-			.cState = 2,
-		},
-		{
-			.ePart = Part::TrackBarThumb,
 			.idxState = 15,
 			.cState = 3,
 		},
 		{
-			.ePart = Part::ScrollBar,
+			.ePart = Part::TrackBar,
 			.idxState = 18,
+			.cState = 2,
+		},
+		{
+			.ePart = Part::TrackBarThumb,
+			.idxState = 20,
+			.cState = 3,
+		},
+		{
+			.ePart = Part::ScrollBar,
+			.idxState = 23,
 			.cState = 1,
 		},
 		{
@@ -237,7 +268,7 @@ constexpr inline STD_THEME_DATA StdThemeData
 		},
 		{
 			.ePart = Part::ScrollThumb,
-			.idxState = 19,
+			.idxState = 24,
 			.cState = 1,
 		},
 		
@@ -298,6 +329,56 @@ constexpr inline STD_THEME_DATA StdThemeData
 			.bGeometry = TRUE,
 			.Geo = {.eType = GeoType::FillEllipse },
 			.ColorIdx = {.idxClrBk = (UINT)StdPal::CircleButtonSelectedBk }
+		},
+		// Edit
+		{
+			.eState = State::Normal,
+			.bGeometry = TRUE,
+			.Geo = {
+				.eType = GeoType::FillFrameRect,
+				.fWidth = 1.f,
+			},
+			.ColorIdx = {
+				.idxClrBk = (UINT)StdPal::EditNormalBk,
+				.idxClrBorder = (UINT)StdPal::EditBorder,
+			}
+		},
+		{
+			.eState = State::Hot,
+			.bGeometry = TRUE,
+			.Geo = {
+				.eType = GeoType::FillFrameRect,
+				.fWidth = 1.f,
+			},
+			.ColorIdx = {
+				.idxClrBk = (UINT)StdPal::EditHotBk,
+				.idxClrBorder = (UINT)StdPal::EditBorder,
+			}
+		},
+		{
+			.eState = State::Focused,
+			.bGeometry = TRUE,
+			.Geo = {
+				.eType = GeoType::FillFrameRect,
+				.fWidth = 1.f,
+			},
+			.ColorIdx = {
+				.idxClrBk = (UINT)StdPal::EditFocusBk,
+				.idxClrBorder = (UINT)StdPal::EditBorder,
+			}
+		},
+		// EditBottomBar
+		{
+			.eState = State::Normal,
+			.bGeometry = TRUE,
+			.Geo = { .eType = GeoType::FillRect },
+			.ColorIdx = { .idxClrBk = (UINT)StdPal::EditBtmBarNormal }
+		},
+		{
+			.eState = State::Focused,
+			.bGeometry = TRUE,
+			.Geo = { .eType = GeoType::FillRect },
+			.ColorIdx = { .idxClrBk = IdxColorizationColor }
 		},
 		// ListSelRect
 		{

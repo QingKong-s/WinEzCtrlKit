@@ -564,10 +564,7 @@ public:
 			pCompositor->Release();
 		CompInvalidateCacheBitmap();
 		if (m_pCompositor)
-		{
-			SetStyle(GetStyle() | DES_CONTENT_EXPAND);
 			CompReCalcCompositedRect();
-		}
 	}
 	// 取混合操作
 	EckInlineNdCe CCompositor* GetCompositor() const { return m_pCompositor; }
@@ -618,9 +615,9 @@ public:
 	EckInline void SetFocus();
 
 	// 安装定时器【不能在渲染线程调用】
-	EckInline void SetTimer(UINT_PTR uId, UINT uElapse);
+	EckInline BOOL SetTimer(UINT_PTR uId, UINT uElapse);
 	// 销毁定时器【不能在渲染线程调用】
-	EckInline void KillTimer(UINT_PTR uId);
+	EckInline BOOL KillTimer(UINT_PTR uId);
 
 	EckInlineNdCe BOOL IsValid() const { return !!GetWnd(); }
 #pragma endregion ElemFunc
@@ -1133,6 +1130,14 @@ private:
 				RedrawElem(GetFirstChildElem(), rcReal,
 					ptLogOffsetF.x, ptLogOffsetF.y);
 			}
+
+//#ifdef _DEBUG
+//			ComPtr<ID2D1SolidColorBrush> pBr;
+//			InflateRect(rcF, -1.f, -1.f);
+//			pDC->SetTransform(D2D1::Matrix3x2F::Identity());
+//			pDC->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::OrangeRed), &pBr);
+//			pDC->DrawRectangle(rcF, pBr.Get(), 2.f);
+//#endif // _DEBUG
 
 			pDC->EndDraw();
 			m_pDcSurface->EndDraw();
@@ -1809,18 +1814,20 @@ public:
 	}
 	EckInline constexpr CElem* ElemGetCapture() const { return m_pMouseCaptureElem; }
 
-	void ElemSetTimer(CElem* pElem, UINT_PTR uId, UINT uElapse)
+	BOOL ElemSetTimer(CElem* pElem, UINT_PTR uId, UINT uElapse)
 	{
-		SetTimer(HWnd, uId, uElapse, nullptr);
+		if (!SetTimer(HWnd, uId, uElapse, nullptr))
+			return FALSE;
 		for (auto& e : m_vTimer)
 		{
 			if (e.pElem == pElem && e.uId == uId)
-				return;
+				return TRUE;
 		}
 		m_vTimer.emplace_back(pElem, uId);
+		return TRUE;
 	}
 
-	void ElemKillTimer(CElem* pElem, UINT_PTR uId)
+	BOOL ElemKillTimer(CElem* pElem, UINT_PTR uId)
 	{
 		for (auto it = m_vTimer.begin(); it != m_vTimer.end(); ++it)
 		{
@@ -1828,9 +1835,10 @@ public:
 			{
 				KillTimer(HWnd, uId);
 				m_vTimer.erase(it);
-				return;
+				return TRUE;
 			}
 		}
+		return FALSE;
 	}
 
 	EckInline constexpr CElem* GetFirstChildElem() const { return m_pFirstChild; }
@@ -2709,8 +2717,8 @@ inline HRESULT CElem::CompUpdateCacheBitmap(int cx, int cy)
 EckInline CElem* CElem::SetCapture() { return GetWnd()->ElemSetCapture(this); }
 EckInline void CElem::ReleaseCapture() { GetWnd()->ElemReleaseCapture(); }
 EckInline void CElem::SetFocus() { GetWnd()->ElemSetFocus(this); }
-EckInline void CElem::SetTimer(UINT_PTR uId, UINT uElapse) { GetWnd()->ElemSetTimer(this, uId, uElapse); }
-EckInline void CElem::KillTimer(UINT_PTR uId) { GetWnd()->ElemKillTimer(this, uId); }
+EckInline BOOL CElem::SetTimer(UINT_PTR uId, UINT uElapse) { return GetWnd()->ElemSetTimer(this, uId, uElapse); }
+EckInline BOOL CElem::KillTimer(UINT_PTR uId) { return GetWnd()->ElemKillTimer(this, uId); }
 EckInlineCe CCriticalSection& CElem::GetCriticalSection() const { return GetWnd()->GetCriticalSection(); }
 EckInlineCe int CElem::Log2Phy(int i) const { return GetWnd()->Log2Phy(i); }
 EckInlineCe float CElem::Log2PhyF(float f) const { return GetWnd()->Log2PhyF(f); }

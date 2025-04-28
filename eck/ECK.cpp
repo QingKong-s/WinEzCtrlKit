@@ -125,10 +125,8 @@ IDXGIDebug* g_pDxgiDebug{};
 
 void* g_pfnCreateTextServices{};
 void* g_pfnShutdownTextServices{};
-IID* g_pIID_ITextHost{};
-IID* g_pIID_ITextHost2{};
-IID* g_pIID_ITextServices{};
-IID* g_pIID_ITextServices2{};
+void* g_pfnCreateTextServices20{};
+void* g_pfnShutdownTextServices20{};
 
 const CRefStrW& GetRunningPath()
 {
