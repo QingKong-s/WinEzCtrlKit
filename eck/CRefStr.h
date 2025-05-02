@@ -361,7 +361,7 @@ public:
 	void Attach(TPointer psz, int cchCapacity, int cchText)
 	{
 		EckAssert(cchCapacity > 0 && cchText >= 0);
-		m_Alloc.deallocate(m_pszText, m_cchCapacity);
+		m_Alloc.deallocate(m_pszText, std::max(m_cchCapacity, LocalBufferSize + 1));
 		if (!psz)
 		{
 			m_pszText = nullptr;
@@ -381,15 +381,27 @@ public:
 	/// <returns>指针，必须通过与当前分配器相等的分配器解分配</returns>
 	[[nodiscard]] EckInline TPointer Detach(int& cchCapacity, int& cchText)
 	{
-		const auto pOld = m_pszText;
-		m_pszText = nullptr;
+		if (IsLocal())
+		{
+			cchCapacity = m_cchCapacity;
+			const auto p = m_Alloc.allocate(cchCapacity);
+			// 必须在分配完毕后更新cchText，因为cchCapacity与cchText可能为同一个变量
+			cchText = m_cchText;
+			TcsCopyLen(p, m_szLocal, m_cchText + 1);
+			return p;
+		}
+		else
+		{
+			const auto pOld = m_pszText;
+			m_pszText = nullptr;
 
-		cchCapacity = m_cchCapacity;
-		m_cchCapacity = 0;
+			cchCapacity = m_cchCapacity;
+			m_cchCapacity = 0;
 
-		cchText = m_cchText;
-		m_cchText = 0;
-		return pOld;
+			cchText = m_cchText;
+			m_cchText = 0;
+			return pOld;
+		}
 	}
 
 	/// <summary>

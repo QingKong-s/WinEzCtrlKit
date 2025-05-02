@@ -18,8 +18,8 @@
 #include "..\eck\CTab.h"
 #include "..\eck\Utility.h"
 #include "..\eck\DesignerDef.h"
-#include "..\eck\ResStruct.h"
-#include "..\eck\CFormTable.h"
+//#include "..\eck\ResStruct.h"
+//#include "..\eck\CFormTable.h"
 
 inline POINT PtAlign(POINT pt, int iUnit)
 {
@@ -106,7 +106,7 @@ private:
 
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 
-	SIZE_T m_cbTotal = sizeof(eck::FTCTRLDATAHEADER);
+	SIZE_T m_cbTotal = 1;// sizeof(eck::FTCTRLDATAHEADER);
 
 	void AddCtrlInt(HWND hWnd)
 	{
@@ -126,7 +126,7 @@ private:
 		eck::CRefBin rb{};
 		Info.pWnd->SerializeData(rb);
 		m_aData.emplace_back(std::move(rb));
-		m_cbTotal += (m_aData.back().Size() + sizeof(eck::FTCTRLDATA));
+		//m_cbTotal += (m_aData.back().Size() + sizeof(eck::FTCTRLDATA));
 	}
 public:
 	CCtrlsSerializer() = default;
@@ -178,7 +178,7 @@ public:
 
 	void Serialize(PVOID pMem)
 	{
-		eck::CMemWriter w(pMem, m_cbTotal);
+		/*eck::CMemWriter w(pMem, m_cbTotal);
 
 		eck::FTCTRLDATAHEADER* pHeader;
 		w.SkipPointer(pHeader);
@@ -204,7 +204,7 @@ public:
 			pCtrlInfo->cChildren = m_aValidWnds[i].cChildren;
 
 			w << rbData;
-		}
+		}*/
 	}
 
 	eck::CRefBin Serialize()

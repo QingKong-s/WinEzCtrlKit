@@ -340,7 +340,11 @@ public:
 	TRet CallNext(SlotCtx& Ctx, TArgs ...Args)
 	{
 		EckAssert(Ctx.m_pCurrNode && ((NODE*)Ctx.m_pCurrNode)->pThis == this);
-		return EmitStartWith(((NODE*)Ctx.m_pCurrNode)->pNext, (NODE*)Ctx.m_pCurrNode, Ctx, Args...);
+		const auto pNext = ((NODE*)Ctx.m_pCurrNode)->pNext;
+		if (pNext)
+			return EmitStartWith(pNext, (NODE*)Ctx.m_pCurrNode, Ctx, Args...);
+		if constexpr (!IsRetVoid)
+			return {};
 	}
 };
 ECK_NAMESPACE_END
