@@ -336,7 +336,7 @@ static void UxfpOnThemeClose(HTHEME hTheme)
 	const auto it = s_hsThemeMap.find(hTheme);
 	if (it != s_hsThemeMap.end()) ECKLIKELY
 	{
-		auto & e = it->second;
+		auto& e = it->second;
 		if (e.cRef > 1)
 			--e.cRef;
 		else
@@ -358,24 +358,14 @@ HRESULT UxfMenuInit(CWnd* pWnd)
 	auto& Sig = pWnd->GetSignal();
 	if (Sig.FindSlot(MHI_UXF_MENU))
 		return S_FALSE;
-	struct FProc
-	{
-		CWnd* pWnd;
-		HTHEME hTheme;
-
-		FProc(CWnd* pWnd) : pWnd{ pWnd }
-		{
-			if (pWnd->IsValid())
-				hTheme = OpenThemeData(pWnd->HWnd, L"Menu");
-			else
-				hTheme = nullptr;
-		}
-
-		LRESULT operator()(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
+	const auto hTheme = OpenThemeData(pWnd->GetHWND(), L"Menu");
+	auto Fn = [hTheme = hTheme, pWnd](HWND hWnd, UINT uMsg,
+		WPARAM wParam, LPARAM lParam, SlotCtx& Ctx) mutable -> LRESULT
 		{
 			if (Ctx.IsDeleting())
 			{
 				CloseThemeData(hTheme);
+				hTheme = nullptr;
 				return 0;
 			}
 			switch (uMsg)
@@ -450,32 +440,47 @@ HRESULT UxfMenuInit(CWnd* pWnd)
 					szText, mii.cch, dwDtFlags, 0, &pudmi->dis.rcItem);
 			}
 			return 0;
-			case WM_NCPAINT:
 			case WM_NCACTIVATE:
+				if (IsIconic(hWnd))
+					break;
+				[[fallthrough]];
+			case WM_NCPAINT:
 			{
-				Ctx.Processed();
+				if (!ShouldAppsUseDarkMode())
+					break;
+				auto TmpCtx{ Ctx };
+				const auto lResult = pWnd->GetSignal().CallNext(TmpCtx,
+					hWnd, uMsg, wParam, lParam);
+				if (TmpCtx.IsProcessed())
+				{
+					Ctx.Processed();
+					return lResult;
+				}
 				pWnd->OnMsg(hWnd, uMsg, wParam, lParam);
+
 				MENUBARINFO mbi;
 				mbi.cbSize = sizeof(mbi);
 				if (!GetMenuBarInfo(hWnd, OBJID_MENU, 0, &mbi))
 					break;
-				RECT rcClient;
+
+				RECT rcClient, rcWindow;
 				GetClientRect(hWnd, &rcClient);
 				MapWindowRect(hWnd, nullptr, &rcClient);
-
-				RECT rcWindow;
 				GetWindowRect(hWnd, &rcWindow);
-
 				OffsetRect(&rcClient, -rcWindow.left, -rcWindow.top);
 
-				RECT rcAnnoyingLine = rcClient;
-				rcAnnoyingLine.bottom = rcAnnoyingLine.top;
-				rcAnnoyingLine.top--;
+				RECT rcLine = rcClient;
+				rcLine.bottom = rcLine.top;
+				--rcLine.top;
 
-				HDC hdc = GetWindowDC(hWnd);
-				SetDCBrushColor(hdc, GetThreadCtx()->crDefBtnFace);
-				FillRect(hdc, &rcAnnoyingLine, GetStockBrush(DC_BRUSH));
-				ReleaseDC(hWnd, hdc);
+				const auto hDC = GetWindowDC(hWnd);
+				SetDCBrushColor(hDC, GetThreadCtx()->crDefBtnFace);
+				FillRect(hDC, &rcLine, GetStockBrush(DC_BRUSH));
+				ReleaseDC(hWnd, hDC);
+				Ctx.Processed();
+
+				if (uMsg == WM_NCACTIVATE)
+					return TRUE;
 			}
 			return 0;
 
@@ -488,16 +493,14 @@ HRESULT UxfMenuInit(CWnd* pWnd)
 				CloseThemeData(hTheme);
 				hTheme = nullptr;
 				break;
-
 			case WM_NCDESTROY:
 				UxfMenuUnInit(pWnd);
 				break;
 			}
 			return 0;
-		}
-	};
+		};
 
-	Sig.Connect(FProc{ pWnd }, MHI_UXF_MENU);
+	Sig.Connect(Fn, MHI_UXF_MENU);
 	return S_OK;
 }
 
@@ -1683,7 +1686,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		{
 			using FDXGIGetDebugInterface = HRESULT(WINAPI*)(REFIID, void**);
 			const auto pfnDXGIGetDebugInterface =
-				(FDXGIGetDebugInterface)GetProcAddress(hModDxgiDbg, 
+				(FDXGIGetDebugInterface)GetProcAddress(hModDxgiDbg,
 					"DXGIGetDebugInterface");
 			if (pfnDXGIGetDebugInterface)
 				pfnDXGIGetDebugInterface(IID_PPV_ARGS(&g_pDxgiDebug));

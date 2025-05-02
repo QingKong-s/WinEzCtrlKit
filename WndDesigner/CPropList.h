@@ -245,9 +245,9 @@ public:
 
 		UpdateDpiSize();
 
-		m_Edit.Create(nullptr, ES_WANTRETURN, 0, 0, 0, 0, 0, m_hWnd, IDC_EDIT);
-		m_ComboBox.Create(nullptr, CBS_DROPDOWNLIST, 0, 0, 0, 0, 0, m_hWnd, IDC_COMBOBOX);
-		m_Button.Create(L"...", 0, 0, 0, 0, 0, 0, m_hWnd, IDC_BUTTON);
+		m_Edit.Create(nullptr, ES_WANTRETURN | WS_CHILD, 0, 0, 0, 0, 0, m_hWnd, IDC_EDIT);
+		m_ComboBox.Create(nullptr, CBS_DROPDOWNLIST | WS_CHILD, 0, 0, 0, 0, 0, m_hWnd, IDC_COMBOBOX);
+		m_Button.Create(L"...", WS_CHILD, 0, 0, 0, 0, 0, m_hWnd, IDC_BUTTON);
 
 		return m_hWnd;
 	}

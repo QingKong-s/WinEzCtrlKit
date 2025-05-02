@@ -209,11 +209,11 @@ EckPropCallBackRet CALLBACK GetProp_Common(CWnd* pWnd, int idProp, EckCtrlPropVa
 		break;
 	case CPID_FRAMETYPE:
 		*pbProcessed = TRUE;
-		pProp->Vi = pWnd->GetFrameType();
+		pProp->Vi = (int)pWnd->GetFrameType();
 		break;
 	case CPID_SCROLLBAR:
 		*pbProcessed = TRUE;
-		pProp->Vi = pWnd->GetScrollBar();
+		pProp->Vi = (int)pWnd->GetScrollBar();
 		break;
 	}
 	return ESPR_NONE;
@@ -263,7 +263,7 @@ EckPropCallBackRet CALLBACK GetProp_Button(CWnd* pWnd, int idProp, EckCtrlPropVa
 	case 3:
 		break;
 	case 4:
-		pProp->Vb = p->GetTextImageShowing();
+		pProp->Vb = FALSE;
 		break;
 	case 5:
 		pProp->Vb = p->GetDef();
@@ -324,13 +324,13 @@ EckPropCallBackRet CALLBACK SetProp_CheckButton(CWnd* pWnd, int idProp, EckCtrlP
 		p->SetCheckState(pProp->Vi);
 		break;
 	case 7:
-		p->SetFlat(pProp->Vb);
+		//p->SetFlat(pProp->Vb);
 		break;
 	case 8:
-		p->SetPushLike(pProp->Vb);
+		//p->SetPushLike(pProp->Vb);
 		break;
 	case 9:
-		p->SetLeftText(pProp->Vb);
+		//p->SetLeftText(pProp->Vb);
 		break;
 	}
 	return ESPR_NONE;
@@ -352,7 +352,7 @@ EckPropCallBackRet CALLBACK GetProp_CheckButton(CWnd* pWnd, int idProp, EckCtrlP
 	case 3:
 		break;
 	case 4:
-		pProp->Vb = p->GetTextImageShowing();
+		pProp->Vb = 0;// p->GetTextImageShowing();
 		break;
 	case 5:
 		pProp->Vi = p->GetType();
@@ -361,13 +361,13 @@ EckPropCallBackRet CALLBACK GetProp_CheckButton(CWnd* pWnd, int idProp, EckCtrlP
 		pProp->Vi = p->GetCheckState();
 		break;
 	case 7:
-		pProp->Vb = p->GetFlat();
+		pProp->Vb = p->StyleGetFlat();
 		break;
 	case 8:
-		pProp->Vb = p->GetPushLike();
+		pProp->Vb = p->StyleGetPushLike();
 		break;
 	case 9:
-		pProp->Vb = p->GetLeftText();
+		pProp->Vb = p->StyleGetAlignLeft();
 		break;
 	}
 	return ESPR_NONE;
@@ -443,7 +443,7 @@ EckPropCallBackRet CALLBACK GetProp_CommandLink(CWnd* pWnd, int idProp, EckCtrlP
 	}
 	return ESPR_NEEDFREE;
 	case 3:
-		pProp->Vb = p->GetShieldIcon();
+		pProp->Vb = 0;// p->GetShieldIcon();
 		break;
 	}
 	return ESPR_NONE;

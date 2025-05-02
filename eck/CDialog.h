@@ -53,7 +53,7 @@ protected:
 		MSG msg;
 		while (GetMessageW(&msg, nullptr, 0, 0))
 		{
-			if (!PreTranslateMessage(msg))
+			if (!eck::PreTranslateMessage(msg))
 			{
 				TranslateMessage(&msg);
 				DispatchMessageW(&msg);

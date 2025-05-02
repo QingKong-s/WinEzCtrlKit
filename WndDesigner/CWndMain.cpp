@@ -172,27 +172,27 @@ void CWndMain::OnMenuPaste(HWND hWnd)
 	HGLOBAL hGlobal = GetClipboardData(App->m_cfmtCtrlInfo);
 	void* pData = GlobalLock(hGlobal);
 
-	eck::CCtrlsDeserializer Deserializer;
-	auto pHeader = Deserializer.SetOrgData(pData, GlobalSize(pData));
+	//eck::CCtrlsDeserializer Deserializer;
+	//auto pHeader = Deserializer.SetOrgData(pData, GlobalSize(pData));
 
-	Deserializer.For(
-		[pTabCtx = pTabCtx, &This = *this]
-		(const eck::FTCTRLDATA* p, eck::PCBYTE pCtrlData, HWND hParent)->HWND
-		{
-			RECT rc = p->rc;
-			rc.right += rc.left;
-			rc.bottom += rc.top;
-			MapWindowRect(pTabCtx->pWorkWnd->GetHWND(), hParent, &rc);
-			rc.right -= rc.left;
-			rc.bottom -= rc.top;
+	//Deserializer.For(
+	//	[pTabCtx = pTabCtx, &This = *this]
+	//	(const eck::FTCTRLDATA* p, eck::PCBYTE pCtrlData, HWND hParent)->HWND
+	//	{
+	//		RECT rc = p->rc;
+	//		rc.right += rc.left;
+	//		rc.bottom += rc.top;
+	//		MapWindowRect(pTabCtx->pWorkWnd->GetHWND(), hParent, &rc);
+	//		rc.right -= rc.left;
+	//		rc.bottom -= rc.top;
 
-			if (!hParent)
-				hParent = pTabCtx->pWorkWnd->GetHWND();
+	//		if (!hParent)
+	//			hParent = pTabCtx->pWorkWnd->GetHWND();
 
-			auto pWnd = This.CreateCtrl(p->idxInfo + 1, pCtrlData, pTabCtx, nullptr, 0, 0,
-				rc.left, rc.top, rc.right, rc.bottom, hParent, 0);
-			return pWnd->GetHWND();
-		});
+	//		auto pWnd = This.CreateCtrl(p->idxInfo + 1, pCtrlData, pTabCtx, nullptr, 0, 0,
+	//			rc.left, rc.top, rc.right, rc.bottom, hParent, 0);
+	//		return pWnd->GetHWND();
+	//	});
 
 	GlobalUnlock(hGlobal);
 	CloseClipboard();
@@ -247,7 +247,7 @@ void CWndMain::OnMenuSaveWndTable(HWND hWnd)
 			return TRUE;
 		}, (LPARAM)&Serializer);
 
-	eck::CRefBin rb(Serializer.GetDataSize() + sizeof(eck::FORMTABLEHEADER) + sizeof(eck::FORMTABLE_INDEXENTRY));
+	/*eck::CRefBin rb(Serializer.GetDataSize() + sizeof(eck::FORMTABLEHEADER) + sizeof(eck::FORMTABLE_INDEXENTRY));
 	eck::CMemWriter w(rb.Data(), rb.Size());
 
 	eck::FORMTABLEHEADER* pHeader;
@@ -259,11 +259,11 @@ void CWndMain::OnMenuSaveWndTable(HWND hWnd)
 	w.SkipPointer(pEntry);
 	pEntry->cbSize = (UINT)rb.Size();
 	pEntry->iID = 101;
-	pEntry->uOffset = sizeof(eck::FORMTABLEHEADER) + sizeof(eck::FORMTABLE_INDEXENTRY);
+	pEntry->uOffset = sizeof(eck::FORMTABLEHEADER) + sizeof(eck::FORMTABLE_INDEXENTRY);*/
 
-	Serializer.Serialize(w);
+	//Serializer.Serialize(w);
 
-	eck::WriteToFile(LR"(E:\Desktop\1.eckft)", rb);
+	//eck::WriteToFile(LR"(E:\Desktop\1.eckft)", rb);
 }
 
 void CWndMain::OnSize(HWND hWnd, UINT nType, int cxClient, int cyClient)

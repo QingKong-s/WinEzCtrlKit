@@ -10,7 +10,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	CWndMain::RegisterWndClass();
 	CWndMain WndMain{};
 
-	WndMain.Create(L"ECK窗体设计器", WS_OVERLAPPEDWINDOW, 0, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, 0);
+	WndMain.Create(L"", WS_OVERLAPPEDWINDOW, 0, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, 0);
 	ShowWindow(WndMain.GetHWND(), nCmdShow);
 	UpdateWindow(WndMain.GetHWND());
 
