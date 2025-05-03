@@ -956,7 +956,7 @@ static HRESULT UxfpDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* pt
 			case TDLG_FOOTNOTESEPARATOR:
 				return UxfpAdjustLuma(hTheme, hDC, iPartId, iStateId, prc, pOptions, -0.67f);
 			}
-		else// Win10任务对话框(或DUser？)实际上使用ControlPanelStyle绘制主次面板
+		else// Win10任务对话框(或整个DUser？)实际上使用ControlPanelStyle绘制主次面板
 			switch (iPartId)
 			{
 			case TDLG_PRIMARYPANEL:
@@ -1661,7 +1661,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			return InitStatus::D3dDeviceError;
 		}
 		pD3dDevice->QueryInterface(&g_pDxgiDevice);
-		if (FAILED(hr))
+		if (FAILED(hr) || !g_pDxgiDevice)
 		{
 			*pdwErrCode = hr;
 			EckDbgPrintFormatMessage(hr);
