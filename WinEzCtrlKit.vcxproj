@@ -305,6 +305,7 @@
     <ClInclude Include="eck\ITimeLine.h" />
     <ClInclude Include="eck\NativeWrapper.h" />
     <ClInclude Include="eck\NetworkHelper.h" />
+    <ClInclude Include="eck\ObjectAttribute.h" />
     <ClInclude Include="eck\OleDragDropHelper.h" />
     <ClInclude Include="eck\PhysicalDriveId.h" />
     <ClInclude Include="eck\PrivateApi.h" />
