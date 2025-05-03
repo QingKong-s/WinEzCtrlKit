@@ -940,10 +940,31 @@ inline void GenerateKeyMsg(HWND hWnd, UINT Vk, KeyType eType, BOOL bExtended = F
 	}
 }
 
+inline BOOL MsgOnSettingChangeFixDpiAwareV2(HWND hWnd, WPARAM wParam, LPARAM lParam)
+{
+	if (wParam == SPI_SETLOGICALDPIOVERRIDE &&
+		g_NtVer.uBuild > WINVER_11_23H2)
+	{
+		RECT rc;
+		GetWindowRect(hWnd, &rc);
+		SetWindowPos(hWnd, nullptr, 0, 0,
+			rc.right - rc.left + 1, rc.bottom - rc.top,
+			SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+		SetWindowPos(hWnd, nullptr, rc.left, rc.top,
+			rc.right - rc.left, rc.bottom - rc.top,
+			SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+		return TRUE;
+	}
+	return FALSE;
+}
+
 // 提供对亮暗切换的默认处理。
 // 一般仅用于**主**顶级窗口，除了产生相关更新消息外还更新当前线程上下文的默认颜色
-EckInline BOOL MsgOnSettingChangeMainWnd(HWND hWnd, WPARAM wParam, LPARAM lParam)
+inline BOOL MsgOnSettingChangeMainWnd(HWND hWnd, WPARAM wParam, LPARAM lParam,
+	BOOL bFixDpiAwareV2 = TRUE)
 {
+	if (bFixDpiAwareV2)
+		MsgOnSettingChangeFixDpiAwareV2(hWnd, wParam, lParam);
 	if (IsColorSchemeChangeMessage(lParam))
 	{
 		BroadcastChildrenMessage(hWnd, WM_SETTINGCHANGE, wParam, lParam);
@@ -959,8 +980,11 @@ EckInline BOOL MsgOnSettingChangeMainWnd(HWND hWnd, WPARAM wParam, LPARAM lParam
 
 // 提供对亮暗切换的默认处理。
 // 一般仅用于顶级窗口
-EckInline BOOL MsgOnSettingChange(HWND hWnd, WPARAM wParam, LPARAM lParam)
+inline BOOL MsgOnSettingChange(HWND hWnd, WPARAM wParam, LPARAM lParam,
+	BOOL bFixDpiAwareV2 = TRUE)
 {
+	if (bFixDpiAwareV2)
+		MsgOnSettingChangeFixDpiAwareV2(hWnd, wParam, lParam);
 	if (IsColorSchemeChangeMessage(lParam))
 	{
 		BroadcastChildrenMessage(hWnd, WM_SETTINGCHANGE, wParam, lParam);
@@ -1054,6 +1078,7 @@ inline SIZE GetCharDimension(HWND hWnd, HFONT hFont)
 	HDC hDC = GetDC(hWnd);
 	HFONT hFontOld = (HFONT)SelectObject(hDC, hFont);
 	GetTextMetricsW(hDC, &tm);
+	ReleaseDC(hWnd, hDC);
 	if (tm.tmPitchAndFamily & TMPF_FIXED_PITCH)
 	{
 		SIZE size;
