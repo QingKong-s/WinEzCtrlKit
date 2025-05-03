@@ -95,6 +95,9 @@ concept ccpIsComInterface = std::is_base_of_v<IUnknown, std::remove_cvref_t<T>>;
 
 template<class T>
 concept ccpIsInteger = std::integral<T>;
+
+template<class T>
+concept ccpIsFloat = std::floating_point<T>;
 #else//	ECKCXX20
 template <class T>
 using RemoveCVRef_T = std::remove_cv_t<std::remove_reference_t<T>>;

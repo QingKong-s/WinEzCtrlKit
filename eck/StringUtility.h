@@ -496,6 +496,115 @@ EckInlineNd TPtr TcsSet(_Out_writes_z_(cchDst) TPtr Dst,
 		return (TPtr)wmemset(Dst, ch, cchDst);
 }
 
+namespace Priv
+{
+	inline constexpr unsigned char CharToDigitTable[]{ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 255, 255, 255, 255, 255,
+	255, 255, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
+	255, 255, 255, 255, 255, 255, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+	31, 32, 33, 34, 35, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 };
+}
+
+enum class TcsCvtErr
+{
+	Ok,
+	Overflow,
+	Nothing,
+};
+
+template<ccpIsStdCharPtr TPtr, ccpIsInteger TInt>
+inline TcsCvtErr TcsToInt(_In_reads_(Len) TPtr Str, size_t Len,
+	_Out_ TInt& i, int iRadix = 0, _Outptr_opt_ TPtr* EndPtr = nullptr)
+{
+	const auto pEnd = Str + Len;
+	BOOL bNeg = FALSE;
+	// 跳过前导空白
+	for (; *Str == ' ' || *Str == '\t' || *Str == '\r' || *Str == '\n'; ++Str)
+	{
+		if (Str == pEnd)
+		{
+			if (EndPtr) *EndPtr = Str;
+			i = {};
+			return TcsCvtErr::Ok;
+		}
+	}
+	// 识别符号
+	if (*Str == '-')
+		bNeg = TRUE, ++Str;
+	else if (*Str == '+')
+		++Str;
+	// 若未指定进制，则尝试识别进制
+	if (iRadix == 0)
+	{
+		if ((*Str == '0' && (Str[1] == 'x' || Str[1] == 'X')))// 0x, 0X
+		{
+			Str += 2;
+			iRadix = 16;
+		}
+		else if (*Str == '0' && (Str[1] == 'b' || Str[1] == 'B'))// 0b, 0B
+		{
+			Str += 2;
+			iRadix = 2;
+		}
+		else
+			iRadix = 10;
+	}
+
+	using TUnsigned = std::make_unsigned_t<TInt>;
+	TUnsigned Max;
+	if constexpr (std::is_signed_v<TInt>)
+		if (bNeg)
+			Max = TUnsigned(TUnsigned{} - TUnsigned(std::numeric_limits<TInt>::min()));
+		else
+			Max = TUnsigned(std::numeric_limits<TInt>::max());
+	else
+		Max = TUnsigned(std::numeric_limits<TInt>::max());
+	TUnsigned uResult = 0;
+	const auto pBegin = Str;
+	for (; Str < pEnd; ++Str)
+	{
+		const auto ch = *Str;
+		if constexpr (sizeof(RemoveStdCharPtr_T<TPtr>) > 1)
+			if (ch >= ARRAYSIZE(Priv::CharToDigitTable))
+				break;
+		const int Digit = Priv::CharToDigitTable[ch];
+		if (Digit >= iRadix)
+			break;
+		if (uResult > (Max - Digit) / iRadix)
+		{
+			if (EndPtr) *EndPtr = Str;
+			if constexpr (std::is_signed_v<TInt>)
+				if (bNeg)
+					i = std::numeric_limits<TInt>::min();
+				else
+					i = std::numeric_limits<TInt>::max();
+			else
+				i = std::numeric_limits<TInt>::max();
+			return TcsCvtErr::Overflow;
+		}
+		else
+			uResult = uResult * iRadix + Digit;
+	}
+	if (Str == pBegin)
+	{
+		if (EndPtr) *EndPtr = Str;
+		i = {};
+		return TcsCvtErr::Nothing;
+	}
+	if constexpr (std::is_signed_v<TInt>)
+		if (bNeg)
+			uResult = TUnsigned(TUnsigned{} - uResult);
+	i = TInt(uResult);
+	if (EndPtr) *EndPtr = Str;
+	return TcsCvtErr::Ok;
+}
+
 
 
 template<ccpIsStdCharPtr TPtr>
