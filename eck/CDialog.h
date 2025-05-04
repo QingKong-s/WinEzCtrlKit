@@ -170,23 +170,23 @@ public:
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
 	}
 
-	EckInline virtual BOOL OnInitDialog(HWND hDlg, HWND hFocus, LPARAM lParam) { return TRUE; }
+	virtual BOOL OnInitDialog(HWND hDlg, HWND hFocus, LPARAM lParam) { return TRUE; }
 
-	EckInline virtual HWND CreateDlg(HWND hParent, void* pData = nullptr) 
+	virtual HWND CreateDlg(HWND hParent, void* pData = nullptr) 
 	{ 
 		EckDbgPrintWithPos(L"** ERROR ** 未实现方法");
 		EckDbgBreak();
 		abort();
 	}
 
-	EckInline virtual INT_PTR DlgBox(HWND hParent, void* pData = nullptr)
+	virtual INT_PTR DlgBox(HWND hParent, void* pData = nullptr)
 	{ 
 		EckDbgPrintWithPos(L"** ERROR ** 未实现方法");
 		EckDbgBreak();
 		abort();
 	}
 
-	EckInline virtual BOOL EndDlg(INT_PTR nResult)
+	virtual BOOL EndDlg(INT_PTR nResult)
 	{
 		m_iResult = nResult;
 		if (m_bModal)
@@ -198,12 +198,12 @@ public:
 			return Destroy();
 	}
 
-	EckInline virtual void OnOk(HWND hCtrl)
+	virtual void OnOk(HWND hCtrl)
 	{
 		EndDlg(0);
 	}
 
-	EckInline virtual void OnCancel(HWND hCtrl)
+	virtual void OnCancel(HWND hCtrl)
 	{
 		EndDlg(0);
 	}
