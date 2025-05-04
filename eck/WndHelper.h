@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Utility.h"
 #include "DpiApi.h"
+#include "ComPtr.h"
 
 #include <vssym32.h>
 #include <ShellScalingApi.h>
@@ -1132,7 +1133,6 @@ EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 	return DaSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(lf), &lf, 0, iDpi);
 }
 
-#if !ECK_OPT_NO_DX
 [[nodiscard]] EckInline IDWriteTextFormat* CreateDefTextFormat(
 	int iDpi = USER_DEFAULT_SCREEN_DPI, HRESULT* phr = nullptr)
 {
@@ -1174,5 +1174,71 @@ EckInline BOOL GetDefFontInfo(LOGFONTW& lf, int iDpi = USER_DEFAULT_SCREEN_DPI)
 		*phr = hr;
 	return pTextFormat;
 }
-#endif// !ECK_OPT_NO_DX
+
+inline HRESULT MatchLogFontFromFamilyName(PCWSTR pszFamilyName,
+	_Out_ LOGFONTW& lf, IDWriteFontCollection* pFontCollection = nullptr)
+{
+	HRESULT hr;
+	ComPtr<IDWriteFontCollection> pFontCollection_;
+	if (!pFontCollection)
+	{
+		g_pDwFactory->GetSystemFontCollection(
+			&pFontCollection_, FALSE);
+		pFontCollection = pFontCollection_.Get();
+	}
+	UINT32 idxFamily;
+	BOOL bExists;
+	hr = pFontCollection->FindFamilyName(
+		*pszFamilyName == L'@' ? pszFamilyName + 1 : pszFamilyName,
+		&idxFamily, &bExists);
+	if (bExists)
+	{
+		ComPtr<IDWriteFontFamily> pFamily;
+		hr = pFontCollection->GetFontFamily(idxFamily, &pFamily);
+		if (FAILED(hr))
+			goto FallbackToGdi;
+		ComPtr<IDWriteFontList> pFontList;
+		hr = pFamily->GetMatchingFonts((DWRITE_FONT_WEIGHT)0,
+			DWRITE_FONT_STRETCH_NORMAL, DWRITE_FONT_STYLE_NORMAL,
+			&pFontList);
+		if (FAILED(hr))
+			goto FallbackToGdi;
+		ComPtr<IDWriteFont> pFont;
+		hr = pFontList->GetFont(0, &pFont);
+		if (FAILED(hr))
+			goto FallbackToGdi;
+		ComPtr<IDWriteGdiInterop> pGdiInterop;
+		g_pDwFactory->GetGdiInterop(&pGdiInterop);
+		BOOL bSysFont;
+		hr = pGdiInterop->ConvertFontToLOGFONT(
+			pFont.Get(), &lf, &bSysFont);
+		if (FAILED(hr))
+			goto FallbackToGdi;
+		return S_OK;
+	}
+FallbackToGdi:;
+	lf.lfCharSet = DEFAULT_CHARSET;
+	lf.lfPitchAndFamily = 0;
+	wcscpy_s(lf.lfFaceName, pszFamilyName);
+	struct PARAM
+	{
+		LOGFONTW* plf;
+		BOOL bFound;
+	} Param{ &lf };
+
+	const auto hDC = GetDC(nullptr);
+	EnumFontFamiliesExW(hDC, &lf,
+		[](const LOGFONTW* plf, const TEXTMETRICW*, DWORD, LPARAM lParam) -> int
+		{
+			const auto pParam = (PARAM*)lParam;
+			*pParam->plf = *plf;
+			pParam->bFound = TRUE;
+			return FALSE;
+		}, (LPARAM)&Param, 0);
+	ReleaseDC(nullptr, hDC);
+	if (Param.bFound)
+		return S_OK;
+	else
+		return hr;
+}
 ECK_NAMESPACE_END

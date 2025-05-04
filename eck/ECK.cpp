@@ -225,7 +225,9 @@ enum class ThemeType
 	Button,
 	TaskDialog,		// +TaskDialogStyle
 	Tab,
-	ToolBar,		// 附带一个ItemsView::ListView主题，用于绘制背景
+	// 附带一个ItemsView::ListView主题，用于绘制背景
+	// 不使用DarkMode::ToolBar，因为它的某些部件不正确
+	ToolBar,
 	AeroWizard,		// +AeroWizardStyle
 	DateTimePicker,	// 附带一个DarkMode_CFD::ComboBox主题，用于绘制背景和下拉按钮
 	ListView,		// +ItemsView
@@ -1636,15 +1638,6 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			EckDbgPrintFormatMessage(hr);
 			return InitStatus::D2dFactoryError;
 		}
-		//////////////创建DWrite工厂
-		hr = DWriteCreateFactory(pInitParam->uDWriteFactoryType,
-			__uuidof(IDWriteFactory), (IUnknown**)&g_pDwFactory);
-		if (FAILED(hr))
-		{
-			*pdwErrCode = hr;
-			EckDbgPrintFormatMessage(hr);
-			return InitStatus::DWriteFactoryError;
-		}
 		//////////////创建DXGI工厂
 		ComPtr<ID3D11Device> pD3dDevice;
 		hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
@@ -1694,6 +1687,18 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 #endif // _DEBUG
 	}
 #endif// !ECK_OPT_NO_DX
+	//////////////创建DWrite工厂
+	if (!(pInitParam->uFlags & EIF_NOINITDWRITE))
+	{
+		hr = DWriteCreateFactory(pInitParam->uDWriteFactoryType,
+			__uuidof(IDWriteFactory), (IUnknown**)&g_pDwFactory);
+		if (FAILED(hr))
+		{
+			*pdwErrCode = hr;
+			EckDbgPrintFormatMessage(hr);
+			return InitStatus::DWriteFactoryError;
+		}
+	}
 	//////////////创建WIC工厂
 	if (!(pInitParam->uFlags & EIF_NOINITWIC))
 	{
