@@ -6,8 +6,8 @@
 #include <vsstyle.h>
 #include <dwmapi.h>
 #include <wincodec.h>
-#if !ECK_OPT_NO_DX
 #include <dwrite.h>
+#if !ECK_OPT_NO_DX
 #include <d2d1_1.h>
 #include <dxgi1_2.h>
 #include <d3d11.h>
@@ -777,9 +777,9 @@ extern NTVER g_NtVer;
 
 extern HINSTANCE g_hInstance;
 extern IWICImagingFactory* g_pWicFactory;
+extern IDWriteFactory* g_pDwFactory;
 #if !ECK_OPT_NO_DX
 extern ID2D1Factory1* g_pD2dFactory;
-extern IDWriteFactory* g_pDwFactory;
 extern ID2D1Device* g_pD2dDevice;
 extern IDXGIDevice1* g_pDxgiDevice;
 extern IDXGIFactory2* g_pDxgiFactory;
@@ -825,9 +825,9 @@ constexpr inline D3D_FEATURE_LEVEL c_uDefD3dFeatureLevel[]
 struct INITPARAM
 {
 	UINT uFlags = EIF_DEFAULT;
+	DWRITE_FACTORY_TYPE uDWriteFactoryType = DWRITE_FACTORY_TYPE_SHARED;
 #if !ECK_OPT_NO_DX
 	D2D1_FACTORY_TYPE uD2dFactoryType = D2D1_FACTORY_TYPE_MULTI_THREADED;
-	DWRITE_FACTORY_TYPE uDWriteFactoryType = DWRITE_FACTORY_TYPE_SHARED;
 	const D3D_FEATURE_LEVEL* pD3dFeatureLevel = c_uDefD3dFeatureLevel;
 	UINT cD3dFeatureLevel = ARRAYSIZE(c_uDefD3dFeatureLevel);
 #endif// !ECK_OPT_NO_DX
@@ -940,6 +940,7 @@ struct THREADCTX
 	BOOLEAN bEnableDarkModeHook{ TRUE };
 	BOOLEAN bAutoNcDark{ TRUE };// 自动调整非客户区暗色
 	BOOLEAN bEnterCallback{};	// 当前是否在回调中
+	BOOLEAN bAppDarkMode{};		// 当前是否处于暗色模式
 	//-------回调队列
 	HHOOK hhkMsgFilter{};
 	Priv::QueuedCallbackQueue Callback{};

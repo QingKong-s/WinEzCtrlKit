@@ -293,8 +293,8 @@ public:
 				if (pdis->itemState & ODS_FOCUS)
 					DrawFocusRect(pdis->hDC, &pdis->rcItem);
 
-				const auto cch = SendMessageW(pdis->hwndItem, CB_GETLBTEXTLEN,
-					pdis->itemID, 0);
+				const auto cch = (int)SendMessageW(pdis->hwndItem,
+					CB_GETLBTEXTLEN, pdis->itemID, 0);
 				if (cch == CB_ERR)
 					return TRUE;
 				const auto pszBuf = (PWSTR)_malloca((cch + 1) * sizeof(WCHAR));
@@ -391,7 +391,7 @@ public:
 				{
 					const auto idx = (int)SendMessageW(hCBBColor, CB_GETCURSEL, 0, 0);
 					if (idx != CB_ERR)
-						cr = SendMessageW(hCBBColor, CB_GETITEMDATA,
+						cr = (COLORREF)SendMessageW(hCBBColor, CB_GETITEMDATA,
 							SendMessageW(hCBBColor, CB_GETCURSEL, 0, 0), 0);
 				}
 				if (cr == CLR_INVALID)

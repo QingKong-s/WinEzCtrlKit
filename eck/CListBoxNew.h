@@ -97,7 +97,6 @@ private:
 		m_cyClient{};
 
 	COLORREF m_crBkg{ CLR_DEFAULT };
-	COLORREF m_crText{ CLR_DEFAULT };
 	int m_idxSel{ -1 };
 	int m_idxHot{ -1 };
 	int m_idxTop{ -1 };
@@ -220,8 +219,6 @@ private:
 				GetItemCount() - 1);
 			if (idxTop >= 0 && idxBottom >= 0)
 			{
-				SetTextColor(ne.hdc,
-					(m_crText == CLR_DEFAULT) ? ptc->crDefText : m_crText);
 				GetItemRect(idxTop, ne.rc);
 				for (ne.dwItemSpec = idxTop; ne.dwItemSpec <= idxBottom;
 					++ne.dwItemSpec)
@@ -680,20 +677,27 @@ private:
 
 	void PaintItem(NMCUSTOMDRAWEXT& ne, BOOL bNotifyItemDraw)
 	{
+		const auto* const ptc = GetThreadCtx();
 		const int idx = (int)ne.dwItemSpec;
 		int iState{};
+		ne.crText = ptc->crDefText;
 		if (m_idxHot == idx)
 			if (IsItemSel(idx))
+			{
 				iState = LISS_HOTSELECTED;
+				ne.crText = ptc->crHiLightText;
+			}
 			else
 				iState = LISS_HOT;
 		else
 			if (IsItemSel(idx))
+			{
 				iState = LISS_SELECTED;
+				ne.crText = ptc->crHiLightText;
+			}
 
 		ne.dwDrawStage = CDDS_ITEMPREPAINT;
 		ne.crBk = CLR_DEFAULT;
-		ne.crText = CLR_DEFAULT;
 		ne.iStateId = iState;
 		ne.iPartId = LVP_LISTITEM;
 		const auto lRet = bNotifyItemDraw ? SendNotify(ne, m_hParent) : 0;
@@ -711,7 +715,8 @@ private:
 				}
 			}
 			if (iState)
-				DrawThemeBackground(m_hTheme, ne.hdc, LVP_LISTITEM, iState, &ne.rc, nullptr);
+				DrawThemeBackground(m_hTheme, ne.hdc,
+					LVP_LISTITEM, iState, &ne.rc, nullptr);
 			if (bFillBk)
 				AlphaBlendColor(ne.hdc, ne.rc, ne.crBk);
 
@@ -723,15 +728,14 @@ private:
 			{
 				RECT rc{ ne.rc };
 				rc.left += DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
-				const auto crOld = ((ne.crText == CLR_DEFAULT) ?
-					CLR_INVALID : SetTextColor(ne.hdc, ne.crText));
+				SetTextColor(ne.hdc, ne.crText);
 				DrawTextW(ne.hdc, nm.Item.pszText, nm.Item.cchText, &rc,
 					DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_NOCLIP | DT_END_ELLIPSIS);
-				if (crOld != CLR_INVALID)
-					SetTextColor(ne.hdc, crOld);
 			}
 
-			if (!(lRet & CDRF_SKIPPOSTPAINT) && m_bFocusIndicatorVisible && m_idxFocus == idx)
+			if (!(lRet & CDRF_SKIPPOSTPAINT) &&
+				m_bFocusIndicatorVisible &&
+				m_idxFocus == idx)
 			{
 				RECT rc{ ne.rc };
 				InflateRect(rc, -2, -2);
