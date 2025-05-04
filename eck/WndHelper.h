@@ -961,40 +961,30 @@ inline BOOL MsgOnSettingChangeFixDpiAwareV2(HWND hWnd, WPARAM wParam, LPARAM lPa
 
 // 提供对亮暗切换的默认处理。
 // 一般仅用于**主**顶级窗口，除了产生相关更新消息外还更新当前线程上下文的默认颜色
-inline BOOL MsgOnSettingChangeMainWnd(HWND hWnd, WPARAM wParam, LPARAM lParam,
-	BOOL bFixDpiAwareV2 = TRUE)
+inline BOOL MsgOnSettingChangeMainWnd(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
-	if (bFixDpiAwareV2)
-		MsgOnSettingChangeFixDpiAwareV2(hWnd, wParam, lParam);
 	if (IsColorSchemeChangeMessage(lParam))
 	{
-		BroadcastChildrenMessage(hWnd, WM_SETTINGCHANGE, wParam, lParam);
 		const auto ptc = GetThreadCtx();
-		ptc->UpdateDefColor();
-		ptc->SetNcDarkModeForAllTopWnd(ShouldAppsUseDarkMode());
-		ptc->SendThemeChangedToAllTopWindow();
+		if (ptc->bAppDarkMode != ShouldAppsUseDarkMode())
+		{
+			ptc->bAppDarkMode = ShouldAppsUseDarkMode();
+			ptc->UpdateDefColor();
+			ptc->SetNcDarkModeForAllTopWnd(ShouldAppsUseDarkMode());
+			BroadcastChildrenMessage(hWnd, WM_SETTINGCHANGE, wParam, lParam);
+			ptc->SendThemeChangedToAllTopWindow();
+		}
 		return TRUE;
 	}
 	else
 		return FALSE;
 }
 
-// 提供对亮暗切换的默认处理。
-// 一般仅用于顶级窗口
-inline BOOL MsgOnSettingChange(HWND hWnd, WPARAM wParam, LPARAM lParam,
-	BOOL bFixDpiAwareV2 = TRUE)
+// 已弃用
+inline BOOL MsgOnSettingChange(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
-	if (bFixDpiAwareV2)
-		MsgOnSettingChangeFixDpiAwareV2(hWnd, wParam, lParam);
-	if (IsColorSchemeChangeMessage(lParam))
-	{
-		BroadcastChildrenMessage(hWnd, WM_SETTINGCHANGE, wParam, lParam);
-		BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, 0, 0);
-		EnableWindowNcDarkMode(hWnd, ShouldAppsUseDarkMode());
-		return TRUE;
-	}
-	else
-		return FALSE;
+	EckDbgBreak();
+	return FALSE;
 }
 
 // 提供对WM_SYSCOLORCHANGE的默认处理。

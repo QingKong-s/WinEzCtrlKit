@@ -128,15 +128,13 @@ public:
 					SelectObject(hDC, hOldPen);
 					DeleteObject(SelectObject(hDC, hOldBr));
 
-					const auto crOld = SetTextColor(hDC, crText);
+					SetTextColor(hDC, p->crText);
 
 					RECT rcText = p->rc;
 					rcText.left += (xClrBlock + cxClrBlock + iItemPadding);
 					const auto sv = PresetColor[idx].svName;
 					DrawTextW(hDC, sv.data(), (int)sv.size(), &rcText,
 						DT_NOCLIP | DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
-
-					SetTextColor(hDC, crOld);
 				}
 				break;
 				}

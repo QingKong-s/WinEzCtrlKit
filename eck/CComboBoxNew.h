@@ -40,8 +40,6 @@ protected:
 	View m_eView{ View::DropDown };
 	AnimateStyle m_eAnimate{ AnimateStyle::Blend };
 
-	COLORREF m_crText{ CLR_DEFAULT };
-
 	int m_cxDrop{};
 	int m_cyDrop{};
 
@@ -75,12 +73,14 @@ protected:
 		ne.rc = rc;
 		ne.dwItemSpec = 0;
 		ne.lItemlParam = 0;
-		ne.crBk = ne.crText = CLR_DEFAULT;
+		ne.crBk = CLR_DEFAULT;
 		ne.iPartId = 0;
+		ne.crText = ptc->crDefText;
 		if (m_bDisabled)
 		{
 			ne.iStateId = CBRO_DISABLED;
 			ne.uItemState = CDIS_DISABLED;
+			ne.crText = GetSysColor(COLOR_GRAYTEXT);
 		}
 		else if (m_bDrop)
 		{
@@ -124,11 +124,7 @@ protected:
 				{
 					rc.right = rc.left - DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
 					rc.left = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
-					if (ne.crText == CLR_DEFAULT)
-						SetTextColor(ne.hdc, m_crText == CLR_DEFAULT ?
-							ptc->crDefText : m_crText);
-					else
-						SetTextColor(ne.hdc, ne.crText);
+					SetTextColor(ne.hdc, ne.crText);
 					DrawTextW(m_DC.GetDC(), nmdi.Item.pszText, nmdi.Item.cchText,
 						&rc, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
 				}
@@ -392,6 +388,11 @@ public:
 			}
 			break;
 
+		case WM_ENABLE:
+			m_bDisabled = !wParam;
+			Redraw();
+			break;
+
 		case WM_SETFONT:
 		{
 			SendMessageW(m_LB.HWnd, uMsg, wParam, lParam);
@@ -448,7 +449,6 @@ public:
 			m_bAutoDropSize = m_bMatchEditToItem = TRUE;
 			m_eView = View::DropDown;
 			m_eAnimate = AnimateStyle::Blend;
-			m_crText = CLR_DEFAULT;
 			m_cxDrop = m_cyDrop = 0;
 		}
 		break;

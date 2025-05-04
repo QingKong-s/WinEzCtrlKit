@@ -110,9 +110,9 @@ ULONG_PTR	g_uGpToken{};
 // For DirectX
 
 IWICImagingFactory* g_pWicFactory{};
+IDWriteFactory* g_pDwFactory{};
 #if !ECK_OPT_NO_DX
 ID2D1Factory1* g_pD2dFactory{};
-IDWriteFactory* g_pDwFactory{};
 ID2D1Device* g_pD2dDevice{};
 IDXGIDevice1* g_pDxgiDevice{};
 IDXGIFactory2* g_pDxgiFactory{};
@@ -1936,8 +1936,7 @@ void THREADCTX::SendThemeChangedToAllTopWindow()
 		if (GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_VISIBLE)
 		{
 			SendMessageW(hWnd, WM_SETREDRAW, FALSE, 0);
-			if (pWnd->IsNeedTheme())
-				SendMessageW(hWnd, WM_THEMECHANGED, -1, 0);
+			SendMessageW(hWnd, WM_THEMECHANGED, -1, 0);
 			BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, -1, 0);
 			SendMessageW(hWnd, WM_SETREDRAW, TRUE, 0);
 			RedrawWindow(hWnd, nullptr, nullptr,
@@ -1945,8 +1944,7 @@ void THREADCTX::SendThemeChangedToAllTopWindow()
 		}
 		else
 		{
-			if (pWnd->IsNeedTheme())
-				SendMessageW(hWnd, WM_THEMECHANGED, -1, 0);
+			SendMessageW(hWnd, WM_THEMECHANGED, -1, 0);
 			BroadcastChildrenMessage(hWnd, WM_THEMECHANGED, -1, 0);
 		}
 	}

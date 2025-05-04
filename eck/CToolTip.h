@@ -17,8 +17,6 @@ public:
 	ECK_CWNDPROP_STYLE(NoPrefix, TTS_NOPREFIX);
 	ECK_CWNDPROP_STYLE(UseVisualStyle, TTS_USEVISUALSTYLE);
 
-	BOOL IsNeedTheme() const override { return TRUE; }
-
 	EckInline void Active(BOOL bActive) const
 	{
 		SendMsg(TTM_ACTIVATE, bActive, 0);
