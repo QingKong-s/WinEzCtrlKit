@@ -13,6 +13,15 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="窗口">
+      <UniqueIdentifier>{ada019c8-b005-4ca8-8101-8e37b799f5fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="程序">
+      <UniqueIdentifier>{ab1e36a6-b5a7-4f53-bba3-38201f337ede}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="逻辑">
+      <UniqueIdentifier>{51e0e751-cf94-4d8c-b2e8-81a829013b32}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="targetver.h">
@@ -21,52 +30,55 @@
     <ClInclude Include="Resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="CApp.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="CWorkWnd.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="CWndMain.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="CSizer.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="CPropList.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="Utils.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="CWndMain.h">
+      <Filter>窗口</Filter>
+    </ClInclude>
     <ClInclude Include="pch.h">
-      <Filter>头文件</Filter>
+      <Filter>程序</Filter>
+    </ClInclude>
+    <ClInclude Include="CProject.h">
+      <Filter>逻辑</Filter>
+    </ClInclude>
+    <ClInclude Include="CApp.h">
+      <Filter>程序</Filter>
+    </ClInclude>
+    <ClInclude Include="CWorkWnd.h">
+      <Filter>逻辑</Filter>
+    </ClInclude>
+    <ClInclude Include="CSelOverlay.h">
+      <Filter>逻辑</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Entry.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="CApp.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="CWorkWnd.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="CWndMain.cpp">
-      <Filter>源文件</Filter>
+      <Filter>窗口</Filter>
     </ClCompile>
-    <ClCompile Include="CSizer.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="CPropList.cpp">
-      <Filter>源文件</Filter>
+    <ClCompile Include="Entry.cpp">
+      <Filter>程序</Filter>
     </ClCompile>
     <ClCompile Include="MyEck.cpp">
-      <Filter>源文件</Filter>
+      <Filter>程序</Filter>
     </ClCompile>
     <ClCompile Include="pch.cpp">
+      <Filter>程序</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CProject.cpp">
+      <Filter>逻辑</Filter>
+    </ClCompile>
+    <ClCompile Include="CApp.cpp">
+      <Filter>程序</Filter>
+    </ClCompile>
+    <ClCompile Include="CWorkWnd.cpp">
+      <Filter>逻辑</Filter>
+    </ClCompile>
+    <ClCompile Include="CSelOverlay.cpp">
+      <Filter>逻辑</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
