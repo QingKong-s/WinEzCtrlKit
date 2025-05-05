@@ -1,12 +1,9 @@
 #include "pch.h"
+#include "CApp.h"
 
 CApp* App = nullptr;
 
-void CApp::Init(HINSTANCE hInstance)
+void CApp::Init()
 {
-	m_hInstance = hInstance;
-	eck::Init(hInstance);
-
-	m_cfmtCtrlInfo = RegisterClipboardFormatW(L"Eck.Designer.ClipBoardFormat.Ctrl");
-
+	m_cfCtrl = RegisterClipboardFormatW(ClipbdFmtCtrl);
 }

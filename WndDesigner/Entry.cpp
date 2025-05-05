@@ -1,26 +1,54 @@
 ﻿#include "pch.h"
+#include "CWndMain.h"
+#include "CApp.h"
 
 #include "..\eck\Env.h"
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ PWSTR pszCmdLine, _In_ int nCmdShow)
 {
-	App = new CApp();
-	App->Init(hInstance);
+	_CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
 
-	CWndMain::RegisterWndClass();
-	CWndMain WndMain{};
+	HRESULT hr = CoInitialize(NULL);
+	if (FAILED(hr))
+	{
+		EckDbgPrintFormatMessage(hr);
+		eck::MsgBox(eck::Format(L"CoInitialize failed! hr = %08X", hr), L"Error", MB_ICONERROR);
+		return 0;
+	}
 
-	WndMain.Create(L"", WS_OVERLAPPEDWINDOW, 0, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, 0);
-	ShowWindow(WndMain.GetHWND(), nCmdShow);
-	UpdateWindow(WndMain.GetHWND());
+	DWORD dwErr;
+	eck::InitStatus iRetInit;
+	eck::INITPARAM ip{};
+	ip.uFlags = eck::EIF_NOINITD2D;
+	if ((iRetInit = eck::Init(hInstance, &ip, &dwErr)) != eck::InitStatus::Ok)
+	{
+		EckDbgPrintFormatMessage(dwErr);
+		eck::MsgBox(eck::Format(L"Init failed!\nInitStatus = %d\nError code = %08X",
+			(int)iRetInit, dwErr), L"Error", MB_ICONERROR);
+		return 0;
+	}
 
-	EckDbgPrintWndMap();
+	App = new CApp{};
+	App->Init();
+	const auto pWnd = new CWndMain{};
+	pWnd->Create(L"示例Win32程序", WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, 0,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		CW_USEDEFAULT, CW_USEDEFAULT, NULL, 0);
+	pWnd->Visible = TRUE;
 
 	MSG msg;
-	while (GetMessageW(&msg, nullptr, 0, 0))
+	while (GetMessageW(&msg, NULL, 0, 0))
 	{
-		TranslateMessage(&msg);
-		DispatchMessageW(&msg);
+		if (!eck::PreTranslateMessage(msg))
+		{
+			TranslateMessage(&msg);
+			DispatchMessageW(&msg);
+		}
 	}
+	delete pWnd;
+	delete App;
+	eck::ThreadUnInit();
+	eck::UnInit();
+	CoUninitialize();
 	return (int)msg.wParam;
 }
