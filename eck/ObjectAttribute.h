@@ -3,6 +3,9 @@
 #include "CRefBin.h"
 
 ECK_NAMESPACE_BEGIN
+#define ECK_OBJA_DECL \
+	constexpr static OBJA_DECL ObjAttr[]
+
 #define ECK_OBJA_BEGIN() \
 	virtual ObjAttrErr GetSetAttribute(std::wstring_view svName, \
 		std::wstring_view svValue, CRefStrW& rsValue, BOOL bSet) override \
@@ -108,6 +111,10 @@ ECK_NAMESPACE_BEGIN
 			return r; \
 		} \
 		return ::eck::OamToString<::eck::ObjAttrTypeEnum<TUnderlying>>(static_cast<TUnderlying>(Field), rsValue); }
+#define ECK_OBJA_CUSTOM(Name, GetSetFunc) \
+	if (::eck::TcsCompareLen2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) \
+		return GetSetFunc(svValue, rsValue, bSet);
+
 
 enum class ObjAttrErr
 {
@@ -120,6 +127,7 @@ enum class ObjAttrErr
 enum class ObjAttrType : BYTE
 {
 	None,
+	Custom,
 	Char,
 	UChar,
 	Short,
@@ -140,7 +148,6 @@ enum class ObjAttrType : BYTE
 	FlagsMask = Array,
 };
 ECK_ENUM_BIT_FLAGS(ObjAttrType);
-
 
 template<ObjAttrType E>
 using TObjAttrType =
@@ -189,6 +196,12 @@ EckInlineNdCe ObjAttrType OatGetBaseType(ObjAttrType E)
 	return E & ~ObjAttrType::FlagsMask;
 }
 
+struct OBJA_DECL
+{
+	std::wstring_view Name;
+	ObjAttrType Type;
+};
+
 template<ObjAttrType E>
 using TOamValTo = std::conditional_t<
 	OatIsArray(E),
@@ -201,7 +214,6 @@ using TOamValFrom = std::conditional_t<
 	std::vector<TObjAttrType<E>>&,
 	TObjAttrType<E>&
 >;
-
 
 template<ObjAttrType E>
 inline ObjAttrErr OamFromString(std::wstring_view Str, TOamValFrom<E> Val)

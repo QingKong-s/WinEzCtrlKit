@@ -6,6 +6,7 @@
 #include "eck\PchInc.h"
 #include "eck\SystemHelper.h"
 #include "eck\DesignerDef.h"
+#include "eck\CIniExt.h"
 #include "eck\CCommDlg.h"
 #include "eck\CForm.h"
 #include "eck\CComboBoxNew.h"
@@ -20,6 +21,7 @@
 using eck::PCVOID;
 using eck::PCBYTE;
 using eck::ComPtr;
+using eck::W32ERR;
 using namespace std::literals;
 
 #include "resource.h"
