@@ -77,6 +77,7 @@
 
 #pragma region Template
 ECK_NAMESPACE_BEGIN
+using namespace std::literals;
 #if ECKCXX20
 template <class T>
 using RemoveCVRef_T = std::remove_cvref_t<T>;

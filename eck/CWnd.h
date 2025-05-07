@@ -8,20 +8,24 @@
 ECK_NAMESPACE_BEGIN
 enum class FrameType
 {
-	None,	// 无边框
+	Min,
+	None = Min,	// 无边框
 	Sunken,	// 凹入式
 	Raised,	// 凸出式
 	Flat,	// 浅凹入式
 	Box,	// 镜框式
-	Single	// 单线边框式
+	Single,	// 单线边框式
+	Max = Single
 };
 
 enum class ScrollType
 {
-	None,	// 无
+	Min,
+	None = Min,	// 无
 	Horz,	// 水平滚动条
 	Vert,	// 垂直滚动条
-	Both	// 水平和垂直滚动条
+	Both,	// 水平和垂直滚动条
+	Max = Both
 };
 
 
@@ -180,8 +184,8 @@ struct DESIGNDATA_WND
 	ECK_CWND_DISABLE_ATTACH				\
 	ECK_CWND_DISABLE_ATTACHNEW
 
-#define ECK_CWND_SINGLEOWNER_NO_DEF_CONS(Class)		\
-	ECK_CWND_DISABLE_ATTACH							\
+#define ECK_CWND_SINGLEOWNER_NO_DEF_CONS(Class)	\
+	ECK_CWND_DISABLE_ATTACH						\
 	ECK_CWND_DISABLE_ATTACHNEW
 
 #define ECK_CWND_NOSINGLEOWNER(Class)	\
@@ -193,7 +197,46 @@ class CWnd : public ILayout
 	friend HHOOK BeginCbtHook(CWnd*, FWndCreating);
 public:
 	ECK_RTTI(CWnd);
-
+#if !ECK_OPT_NO_OBJA
+	EckInline ObjAttrErr OagsText(std::wstring_view svValue,
+		CRefStrW& rsValue, BOOL bSet)
+	{
+		if (bSet) SetText(svValue.data());
+		else GetText(rsValue);
+		return ObjAttrErr::Ok;
+	}
+	EckInline ObjAttrErr OagsRcwh(std::wstring_view svValue,
+		CRefStrW& rsValue, BOOL bSet)
+	{
+		RCWH rc;
+		if (bSet)
+		{
+			if (swscanf_s(svValue.data(), L"%d,%d,%d,%d",
+				&rc.x, &rc.y, &rc.cx, &rc.cy) != 4)
+				return ObjAttrErr::InvalidValue;
+			SetWindowPos(HWnd, nullptr, rc.x, rc.y, rc.cx, rc.cy,
+				SWP_NOZORDER | SWP_NOACTIVATE);
+			return ObjAttrErr::Ok;
+		}
+		GetWindowRect(HWnd, (RECT*)&rc);
+		ScreenToClient(GetParent(HWnd), (RECT*)&rc);
+		rc.cx -= rc.x;
+		rc.cy -= rc.y;
+		rsValue.AppendFormat(L"%d,%d,%d,%d",
+			rc.x, rc.y, rc.cx, rc.cy);
+		return ObjAttrErr::Ok;
+	}
+	ECK_OBJA_BEGIN()
+		ECK_OBJA_CUSTOM(L"Text", OagsText)	// 一般在创建时处理
+		ECK_OBJA_UINT(L"Style", Style)		// 一般在创建时处理
+		ECK_OBJA_UINT(L"ExStyle", ExStyle)	// 一般在创建时处理
+		ECK_OBJA_CUSTOM(L"RCWH", OagsRcwh)	// 一般在创建时处理
+		ECK_OBJA_ENUM_CHECK(L"Frame", FrameType, FrameType::Min, FrameType::Max)
+		ECK_OBJA_ENUM_CHECK(L"ScrollBar", ScrollBarType, ScrollType::Min, ScrollType::Max)
+		;
+	ECK_OBJA_END()
+#endif // !ECK_OPT_NO_OBJA
+public:
 #ifdef ECK_CTRL_DESIGN_INTERFACE
 	DESIGNDATA_WND m_DDBase{};
 #endif
@@ -286,7 +329,7 @@ public:
 	ECKPROP(GetFont, SetFont)			HFONT		HFont;			// 字体句柄
 	ECKPROP(GetStyle, SetStyle)			DWORD		Style;			// 窗口样式
 	ECKPROP(GetExStyle, SetExStyle)		DWORD		ExStyle;		// 扩展窗口样式
-	ECKPROP(GetText, SetText)			CRefStrW	Text;			// 标题
+	ECKPROP_R(GetText)					CRefStrW	Text;			// 标题
 	ECKPROP(GetFrameType, SetFrameType) enum class FrameType FrameType;		// 边框类型
 	ECKPROP(GetScrollBar, SetScrollBar) ScrollType	ScrollBarType;	// 滚动条类型
 	ECKPROP(IsVisible, SetVisibility)	BOOL		Visible;		// 可视
@@ -849,15 +892,19 @@ public:
 		return (DWORD)SetWindowLongPtrW(m_hWnd, GWL_EXSTYLE, dwStyle);
 	}
 
-	[[nodiscard]] EckInline CRefStrW GetText() const
+	int GetText(CRefStrW& rs) const
 	{
-		CRefStrW rs;
-		int cch = GetWindowTextLengthW(m_hWnd);
+		const int cch = GetWindowTextLengthW(m_hWnd);
 		if (cch)
-		{
-			rs.ReSize(cch);
-			GetWindowTextW(m_hWnd, rs.Data(), cch + 1);
-		}
+			GetWindowTextW(m_hWnd, rs.PushBack(cch), cch + 1);
+		return cch;
+	}
+
+	// For compatibility.
+	EckInlineNd CRefStrW GetText() const
+	{
+		CRefStrW rs{};
+		GetText(rs);
 		return rs;
 	}
 

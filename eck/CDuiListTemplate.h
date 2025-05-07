@@ -1644,6 +1644,17 @@ public:
 	}
 	EckInlineNdCe Type GetView() const noexcept { return m_eView; }
 
+	UINT GetItemState(int idx, int idxGroup = -1) const
+	{
+		if (m_bGroup)
+			return m_Group[idxGroup].Item[idx].uFlags;
+		else
+			if (m_bSingleSel)
+				return m_idxSel == idx? LEIF_SELECTED : 0;
+			else
+				return m_vItem[idx].uFlags;
+	}
+
 	EckInline void UpdateHeaderLayout() noexcept { ArrangeHeader(TRUE); }
 
 	EckInlineCe void SetGroupImageWidth(int cx) noexcept { m_cxGroupImage = cx; }

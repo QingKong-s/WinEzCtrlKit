@@ -135,6 +135,8 @@ public:
 		Scale,			// 缩放
 		ScaleOpacity,	// 缩放+透明度
 		ScaleBlur, 		// 缩放+模糊
+		Translation,	// 平移
+		TranslationOpacity,	// 平移+透明度
 	};
 	enum class Corner : BYTE// 贴纸强调顶点
 	{
@@ -146,6 +148,8 @@ public:
 
 	float Scale{ 1.f };
 	float Opacity{ 1.f };
+	int Dx{};
+	int Dy{};
 	D2D1_POINT_2F RefPoint{};
 	Corner Corner{};
 private:
@@ -177,6 +181,10 @@ public:
 		case Type::ScaleBlur:
 			m_p2DAffine->PtNormalToComposited(pElem, pt);
 			break;
+		case Type::Translation:
+			pt.x += Dx;
+			pt.y += Dy;
+			break;
 		}
 	}
 
@@ -192,6 +200,10 @@ public:
 		case Type::ScaleBlur:
 			m_p2DAffine->PtCompositedToNormal(pElem, pt);
 			break;
+		case Type::Translation:
+			pt.x -= Dx;
+			pt.y -= Dy;
+			break;
 		}
 	}
 
@@ -206,6 +218,10 @@ public:
 		case Type::ScaleOpacity:
 		case Type::ScaleBlur:
 			m_p2DAffine->CalcCompositedRect(pElem, rc, bInClientOrParent);
+			break;
+		case Type::Translation:
+		case Type::TranslationOpacity:
+			OffsetRect(rc, Dx, Dy);
 			break;
 		}
 	}
@@ -238,6 +254,16 @@ public:
 			cri.pDC->DrawImage(m_pFxBlur, { cri.rcDst.left,cri.rcDst.top },
 				D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
 			cri.pDC->SetTransform(MatOld);
+		}
+		break;
+		case Type::Translation:
+		case Type::TranslationOpacity:
+		{
+			auto rcDst = cri.rcDst;
+			OffsetRect(rcDst, (float)Dx, (float)Dy);
+			cri.pDC->DrawBitmap(cri.pBitmap, rcDst,
+				m_eType == Type::Translation ? 1.f : Opacity,
+				D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, cri.rcSrc);
 		}
 		break;
 		}
@@ -281,6 +307,19 @@ public:
 		}
 		if (!m_pFxCrop)
 			m_pDC->CreateEffect(CLSID_D2D1Crop, &m_pFxCrop);
+	}
+	void InitAsTranslation(int dx = 0, int dy = 0)
+	{
+		m_eType = Type::Translation;
+		Dx = dx;
+		Dy = dy;
+	}
+	void InitAsTranslationOpacity(int dx = 0, int dy = 0, float fOpacity = 1.f)
+	{
+		m_eType = Type::TranslationOpacity;
+		Dx = dx;
+		Dy = dy;
+		Opacity = fOpacity;
 	}
 
 	void SetWorkDC(ID2D1DeviceContext* pDC)
