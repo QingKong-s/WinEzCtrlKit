@@ -674,6 +674,7 @@ inline BOOL IsMouseMovedBeforeDragging(HWND hWnd, int x, int y,
 				}
 				[[fallthrough]];
 			default:
+				GetThreadCtx()->DoCallback();
 				TranslateMessage(&msg);
 				DispatchMessageW(&msg);
 				break;
@@ -944,15 +945,15 @@ inline void GenerateKeyMsg(HWND hWnd, UINT Vk, KeyType eType, BOOL bExtended = F
 inline BOOL MsgOnSettingChangeFixDpiAwareV2(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
 	if (wParam == SPI_SETLOGICALDPIOVERRIDE &&
-		g_NtVer.uBuild > WINVER_11_23H2)
+		g_NtVer.uBuild > WINVER_11_23H2 &&
+		(GetWindowLongPtrW(hWnd, GWL_EXSTYLE) & WS_EX_TOOLWINDOW))
 	{
 		RECT rc;
 		GetWindowRect(hWnd, &rc);
-		SetWindowPos(hWnd, nullptr, 0, 0,
-			rc.right - rc.left + 1, rc.bottom - rc.top,
+		const auto cx = rc.right - rc.left, cy = rc.bottom - rc.top;
+		SetWindowPos(hWnd, nullptr, 0, 0, cx + 1, cy,
 			SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
-		SetWindowPos(hWnd, nullptr, rc.left, rc.top,
-			rc.right - rc.left, rc.bottom - rc.top,
+		SetWindowPos(hWnd, nullptr, 0, 0, cx, cy,
 			SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 		return TRUE;
 	}

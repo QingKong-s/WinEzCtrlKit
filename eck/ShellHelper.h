@@ -266,29 +266,19 @@ CleanupAndRet:
 	return hr;
 }
 
-inline HRESULT OpenInExplorer(PCWSTR pszFile)
+inline HRESULT OpenInExplorer(PCWSTR pszFile, BOOL bDir = FALSE)
 {
-	const auto psz = PathFindFileNameW(pszFile);
-	if (psz == pszFile)
-		return E_INVALIDARG;
-	const size_t cbFolder = Cch2CbW(int(psz - pszFile - 1));
-	const auto pszFolder = (PWSTR)_malloca(cbFolder);
-	EckCheckMem(pszFolder);
-	wmemcpy(pszFolder, pszFile, cbFolder);
-	*(pszFolder + cbFolder / sizeof(WCHAR) - 1) = L'\0';
-	PIDLIST_ABSOLUTE pIdlFolder, pIdlFile;
+	PIDLIST_ABSOLUTE pIdlFolder;
 	HRESULT hr;
-	if (FAILED(hr = SHParseDisplayName(pszFolder, nullptr, &pIdlFolder, 0, nullptr)))
-		goto CleanupAndRet;
-	if (FAILED(hr = SHParseDisplayName(psz, nullptr, &pIdlFile, 0, nullptr)))
-		goto CleanupAndRet1;
-	hr = SHOpenFolderAndSelectItems(pIdlFolder,
-		1, (PCUITEMID_CHILD*)&pIdlFile, 0);
-CleanupAndRet1:
-	CoTaskMemFree(pIdlFile);
-CleanupAndRet:
+	if (FAILED(hr = SHParseDisplayName(pszFile, nullptr,
+		&pIdlFolder, 0, nullptr)))
+		return hr;
+	if (bDir)
+		hr = SHOpenFolderAndSelectItems(pIdlFolder, 1,
+			(PCUITEMID_CHILD*)&pIdlFolder, 0);
+	else
+		hr = SHOpenFolderAndSelectItems(pIdlFolder, 0, nullptr, 0);
 	CoTaskMemFree(pIdlFolder);
-	_freea(pszFolder);
 	return hr;
 }
 

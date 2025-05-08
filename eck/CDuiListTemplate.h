@@ -131,6 +131,9 @@ protected:
 	BITBOOL m_bGroup : 1{};		// 分组
 	BITBOOL m_bGroupImage : 1{};// 显示组图片
 	BITBOOL m_bItemNotify : 1{};// 启用项目通知
+	BITBOOL m_bToggleSel : 1{};	// 左键按下时切换项目选中
+	BITBOOL m_bEnableDragSel : 1{};		// 启用拖动选择
+	BITBOOL m_bDeSelInSpace : 1{ TRUE };// 点击空白处时取消所有选中
 
 	BITBOOL m_bDraggingSel : 1{};	// 正在拖动选择
 
@@ -872,27 +875,31 @@ public:
 			RECT rcInvalid;
 			if (idx >= 0)
 			{
-				if (!(wParam & MK_CONTROL))
-					DeselectAll(rcInvalid);
 				RECT rcItem;
-				if (m_bGroup)
-				{
-					SelectItemForClick(idx, ht.idxGroup);
-					GetGroupPartRect(ListPart::Item, idx, ht.idxGroup, rcItem);
-				}
+				BOOL bDid;
+				if (m_bToggleSel && !m_bSingleSel)
+					bDid = ToggleSelectItemForClick(idx, ht.idxGroup);
 				else
 				{
-					SelectItemForClick(idx);
-					GetItemRect(idx, rcItem);
+					if (!(wParam & MK_CONTROL))
+						DeselectAll(rcInvalid);
+					bDid = SelectItemForClick(idx, ht.idxGroup);
 				}
-				UnionRect(rcInvalid, rcInvalid, rcItem);
+				if (bDid)
+				{
+					if (m_bGroup)
+						GetGroupPartRect(ListPart::Item, idx, ht.idxGroup, rcItem);
+					else
+						GetItemRect(idx, rcItem);
+					UnionRect(rcInvalid, rcInvalid, rcItem);
+				}
 				ElemToClient(rcInvalid);
 				InvalidateRect(rcInvalid);
 			}
 			else
 			{
 				ClientToScreen(GetWnd()->HWnd, &pt);
-				if (!m_bSingleSel&&
+				if (!m_bSingleSel && m_bEnableDragSel &&
 					IsMouseMovedBeforeDragging(GetWnd()->HWnd, pt.x, pt.y))
 				{
 					if (!GetWnd()->IsValid())
@@ -915,7 +922,7 @@ public:
 					m_ptDragSelStart.y += m_psvV->GetPos();
 					m_dCursorToItemMax = INT_MIN;
 				}
-				else
+				else if (m_bDeSelInSpace)
 				{
 					DeselectAll(rcInvalid);
 					ElemToClient(rcInvalid);
@@ -1387,32 +1394,7 @@ public:
 		}
 	}
 
-	BOOL SelectItemForClick(int idx)
-	{
-		LTN_ITEM nm{ EE_CLICK };
-		nm.idx = idx;
-		nm.idxGroup = -1;
-		GenElemNotify(&nm);
-		if (m_bItemNotify)
-		{
-			LTN_ITEMCHANGE nm2{ LTE_ITEMCHANED };
-			nm2.uFlagsOld = 0;
-			nm2.uFlagsNew = LEIF_SELECTED;
-			nm2.idx = idx;
-			nm2.idxGroup = -1;
-			if (GenElemNotify(&nm2))
-				return FALSE;
-		}
-		m_idxFocus = idx;
-		m_idxMark = idx;
-		if (m_bSingleSel)
-			m_idxSel = idx;
-		else
-			m_vItem[idx].uFlags |= LEIF_SELECTED;
-		return TRUE;
-	}
-
-	BOOL SelectItemForClick(int idx, int idxGroup)
+	BOOL SelectItemForClick(int idx, int idxGroup = -1)
 	{
 		LTN_ITEM nm{ EE_CLICK };
 		nm.idx = idx;
@@ -1437,8 +1419,39 @@ public:
 			m_idxSel = idx;
 			m_idxSelItemGroup = idxGroup;
 		}
-		else
+		else if (m_bGroup)
 			m_Group[idxGroup].Item[idx].uFlags |= LEIF_SELECTED;
+		else
+			m_vItem[idx].uFlags |= LEIF_SELECTED;
+		return TRUE;
+	}
+
+	BOOL ToggleSelectItemForClick(int idx, int idxGroup = -1)
+	{
+		if (m_bSingleSel)
+			return FALSE;
+		LTN_ITEM nm{ EE_CLICK };
+		nm.idx = idx;
+		nm.idxGroup = idxGroup;
+		GenElemNotify(&nm);
+		auto& dwFlags = m_bGroup ?
+			m_Group[idxGroup].Item[idx].uFlags :
+			m_vItem[idx].uFlags;
+		if (m_bItemNotify)
+		{
+			LTN_ITEMCHANGE nm2{ LTE_ITEMCHANED };
+			nm2.uFlagsOld = dwFlags;
+			nm2.uFlagsNew = dwFlags ^ LEIF_SELECTED;
+			nm2.idx = idx;
+			nm2.idxGroup = idxGroup;
+			if (GenElemNotify(&nm2))
+				return FALSE;
+		}
+		m_idxFocus = idx;
+		m_idxFocusItemGroup = idxGroup;
+		m_idxMark = idx;
+		m_idxMarkItemGroup = idxGroup;
+		dwFlags ^= LEIF_SELECTED;
 		return TRUE;
 	}
 
@@ -1644,6 +1657,15 @@ public:
 	}
 	EckInlineNdCe Type GetView() const noexcept { return m_eView; }
 
+	UINT SetItemState(int idx, UINT uFlags, int idxGroup = -1)
+	{
+		auto& uFlags0 = m_bGroup ?
+			m_Group[idxGroup].Item[idx].uFlags :
+			m_vItem[idx].uFlags;
+		const auto uOld = uFlags0;
+		uFlags0 = uFlags;
+		return uOld;
+	}
 	UINT GetItemState(int idx, int idxGroup = -1) const
 	{
 		if (m_bGroup)
@@ -1706,6 +1728,15 @@ public:
 
 	EckInlineCe void SetItemNotify(BOOL b) noexcept { m_bItemNotify = b; }
 	EckInlineNdCe BOOL GetItemNotify() const noexcept { return m_bItemNotify; }
+
+	EckInlineCe void SetToggleSel(BOOL b) noexcept { m_bToggleSel = b; }
+	EckInlineNdCe BOOL GetToggleSel() const noexcept { return m_bToggleSel; }
+
+	EckInlineCe void SetAllowDragSel(BOOL b) noexcept { m_bEnableDragSel = b; }
+	EckInlineNdCe BOOL GetAllowDragSel() const noexcept { return m_bEnableDragSel; }
+
+	EckInlineCe void SetDeSelInSpace(BOOL b) noexcept { m_bDeSelInSpace = b; }
+	EckInlineNdCe BOOL GetDeSelInSpace() const noexcept { return m_bDeSelInSpace; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

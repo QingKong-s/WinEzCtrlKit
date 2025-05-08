@@ -723,4 +723,19 @@ Success:
 	}
 	return STATUS_SUCCESS;
 }
+
+inline void RestartExplorer()
+{
+	const auto hWnd = FindWindowW(L"Shell_TrayWnd", nullptr);
+	if (!hWnd)
+		return;
+	DWORD dwProcessId;
+	GetWindowThreadProcessId(hWnd, &dwProcessId);
+	const auto hProcess = NaOpenProcess(PROCESS_TERMINATE, FALSE, dwProcessId);
+	if (hProcess)
+	{
+		NtTerminateProcess(hProcess, 2);
+		NtClose(hProcess);
+	}
+}
 ECK_NAMESPACE_END
