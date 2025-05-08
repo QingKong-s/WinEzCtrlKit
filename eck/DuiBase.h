@@ -839,7 +839,7 @@ private:
 		{
 			if (m_vTimer[i].pElem == pElem)
 			{
-				ElemKillTimer(pElem, m_vTimer[i].uId);
+				KillTimer(HWnd, m_vTimer[i].uId);
 				m_vTimer.erase(m_vTimer.begin() + i);
 			}
 			else
@@ -1135,7 +1135,8 @@ private:
 //			ComPtr<ID2D1SolidColorBrush> pBr;
 //			InflateRect(rcF, -1.f, -1.f);
 //			pDC->SetTransform(D2D1::Matrix3x2F::Identity());
-//			pDC->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::OrangeRed), &pBr);
+//			ARGB Cr = Rand(0x255) | Rand(0x255) << 8 | Rand(0x255) << 16 | 0xFF000000;
+//			pDC->CreateSolidColorBrush(D2D1::ColorF(Cr), &pBr);
 //			pDC->DrawRectangle(rcF, pBr.Get(), 2.f);
 //#endif // _DEBUG
 
@@ -2466,6 +2467,8 @@ EckInline LRESULT CElem::GenElemNotify(void* pnm)
 inline void CElem::InvalidateRect(const RECT& rc, BOOL bUpdateNow)
 {
 	ECK_DUILOCK;
+	if (!(GetStyle() & DES_VISIBLE))
+		return;
 	RECT rcTemp;
 	if (GetStyle() & DES_CONTENT_EXPAND)
 		rcTemp = GetWholeRectInClient();
