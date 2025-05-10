@@ -66,6 +66,7 @@ enum :UINT
 	LEE_GETDISPINFO,	// 【渲染线程】获取显示信息
 	// ListTemplate
 	LTE_ITEMCHANED,		// 项改变(LTN_ITEM*)，返回TRUE禁止修改
+	LTE_HOTITEMCHANED,	// 热点项改变(LTN_HOTITEMCHEANGED*)，返回TRUE禁止修改
 	// TabList
 	TBLE_GETDISPINFO,	// 【渲染线程】获取显示信息
 	// Header

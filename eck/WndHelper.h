@@ -962,11 +962,14 @@ inline BOOL MsgOnSettingChangeFixDpiAwareV2(HWND hWnd, WPARAM wParam, LPARAM lPa
 
 // 提供对亮暗切换的默认处理。
 // 一般仅用于**主**顶级窗口，除了产生相关更新消息外还更新当前线程上下文的默认颜色
-inline BOOL MsgOnSettingChangeMainWnd(HWND hWnd, WPARAM wParam, LPARAM lParam)
+inline BOOL MsgOnSettingChangeMainWnd(HWND hWnd, WPARAM wParam, LPARAM lParam,
+	BOOL bRefreshUxColorMode = FALSE)
 {
 	if (IsColorSchemeChangeMessage(lParam))
 	{
 		const auto ptc = GetThreadCtx();
+		if (bRefreshUxColorMode)
+			RefreshImmersiveColorStuff();
 		if (ptc->bAppDarkMode != ShouldAppsUseDarkMode())
 		{
 			ptc->bAppDarkMode = ShouldAppsUseDarkMode();

@@ -21,6 +21,12 @@ struct LTN_ITEMCHANGE : LTN_ITEM
 	UINT uFlagsNew;
 };
 
+struct LTN_HOTITEMCHANGE : LTN_ITEM
+{
+	int idxOld;
+	int idxGroupOld;
+};
+
 struct LE_HITTEST
 {
 	POINT pt;
@@ -732,10 +738,17 @@ public:
 			}
 
 			int idx = HitTest(ht);
+			LTN_HOTITEMCHANGE nm{ LTE_HOTITEMCHANED };
 			if (m_bGroup)
 			{
 				if (idx != m_idxHot || m_idxHotItemGroup != ht.idxGroup)
 				{
+					nm.idx = idx;
+					nm.idxGroup = ht.idxGroup;
+					nm.idxOld = m_idxHot;
+					nm.idxGroupOld = m_idxHotItemGroup;
+					if (GenElemNotify(&nm))
+						break;
 					std::swap(idx, m_idxHot);
 					std::swap(ht.idxGroup, m_idxHotItemGroup);
 					if (ht.idxGroup >= 0 && idx >= 0)
@@ -746,6 +759,12 @@ public:
 			}
 			else if (idx != m_idxHot)
 			{
+				nm.idx = idx;
+				nm.idxGroup = -1;
+				nm.idxOld = m_idxHot;
+				nm.idxGroupOld = -1;
+				if (GenElemNotify(&nm))
+					break;
 				std::swap(m_idxHot, idx);
 				if (idx >= 0)
 					RedrawItem(idx);
@@ -1277,7 +1296,7 @@ public:
 							return;
 						}
 					}
-					GetGroupPartRect(ListPart::Item,m_idxSel ,
+					GetGroupPartRect(ListPart::Item, m_idxSel,
 						m_idxSelItemGroup, rcInvalid);
 				}
 				m_idxSel = m_idxSelItemGroup = -1;
@@ -1672,7 +1691,7 @@ public:
 			return m_Group[idxGroup].Item[idx].uFlags;
 		else
 			if (m_bSingleSel)
-				return m_idxSel == idx? LEIF_SELECTED : 0;
+				return m_idxSel == idx ? LEIF_SELECTED : 0;
 			else
 				return m_vItem[idx].uFlags;
 	}
