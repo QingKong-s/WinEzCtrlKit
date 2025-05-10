@@ -817,6 +817,9 @@ private:
 	BITBOOL m_bUserDpiChanged : 1 = FALSE;			// 渲染线程应当重设DPI
 	BITBOOL m_bFullUpdate : 1 = TRUE;				// 当前是否需要完全重绘
 	BITBOOL m_bBlurUseLayer : 1 = FALSE;			// 模糊是否使用图层
+#ifdef _DEBUG
+	BITBOOL m_bDrawDirtyRect : 1 = FALSE;			// 是否绘制脏矩形
+#endif
 
 	BYTE m_eAlphaMode{ D2D1_ALPHA_MODE_IGNORE };		// 缓存D2D透明模式
 	BYTE m_eDxgiAlphaMode{ DXGI_ALPHA_MODE_IGNORE };	// 缓存DXGI透明模式
@@ -1131,14 +1134,17 @@ private:
 					ptLogOffsetF.x, ptLogOffsetF.y);
 			}
 
-//#ifdef _DEBUG
-//			ComPtr<ID2D1SolidColorBrush> pBr;
-//			InflateRect(rcF, -1.f, -1.f);
-//			pDC->SetTransform(D2D1::Matrix3x2F::Identity());
-//			ARGB Cr = Rand(0x255) | Rand(0x255) << 8 | Rand(0x255) << 16 | 0xFF000000;
-//			pDC->CreateSolidColorBrush(D2D1::ColorF(Cr), &pBr);
-//			pDC->DrawRectangle(rcF, pBr.Get(), 2.f);
-//#endif // _DEBUG
+#ifdef _DEBUG
+			if (m_bDrawDirtyRect)
+			{
+				ComPtr<ID2D1SolidColorBrush> pBr;
+				InflateRect(rcF, -1.f, -1.f);
+				pDC->SetTransform(D2D1::Matrix3x2F::Identity());
+				ARGB Cr = Rand(0x255) | Rand(0x255) << 8 | Rand(0x255) << 16 | 0xFF000000;
+				pDC->CreateSolidColorBrush(D2D1::ColorF(Cr), &pBr);
+				pDC->DrawRectangle(rcF, pBr.Get(), 2.f);
+			}
+#endif // _DEBUG
 
 			pDC->EndDraw();
 			m_pDcSurface->EndDraw();
@@ -1626,7 +1632,7 @@ public:
 				pPal->Release();
 
 				const auto pTr = new CThemeRealization{ pDC, pTheme };
-				
+
 				m_vTheme.emplace_back(pTr);
 
 				pTheme->Release();
@@ -1696,17 +1702,20 @@ public:
 				SafeReleaseAssert0(m_pRtHwnd);
 				break;
 			case PresentMode::AllDComp:
-			case PresentMode::DCompositionVisual:
 			case PresentMode::DCompositionSurface:
-				SafeReleaseAssert0(m_pDcSurface);
 				SafeReleaseAssert0(m_pDcTarget);
+				SafeReleaseAssert0(m_pDcSurface);
 				SafeReleaseAssert0(m_pDcVisual);
 				m_pDcDevice->Commit();// 冲洗所有清理操作
 				m_pDcDevice->WaitForCommitCompletion();
-				if (m_ePresentMode == PresentMode::DCompositionVisual)
-					SafeRelease(m_pDcDevice);// 外部对象可能未清理完成
-				else
-					SafeReleaseAssert0(m_pDcDevice);
+				SafeReleaseAssert0(m_pDcDevice);
+				break;
+			case PresentMode::DCompositionVisual:
+				SafeRelease(m_pDcSurface);
+				SafeRelease(m_pDcVisual);
+				m_pDcDevice->Commit();// 冲洗所有清理操作
+				m_pDcDevice->WaitForCommitCompletion();
+				SafeRelease(m_pDcDevice);// 外部对象可能未清理完成
 				break;
 			}
 
@@ -2219,6 +2228,13 @@ public:
 			EtForEachElem(Fn, p->GetFirstChildElem());
 			p = p->GetNextElem();
 		}
+	}
+
+	EckInlineCe void SetDrawDirtyRect(BOOL b)
+	{
+#ifdef _DEBUG
+		m_bDrawDirtyRect = b;
+#endif// _DEBUG
 	}
 };
 

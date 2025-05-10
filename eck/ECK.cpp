@@ -1773,11 +1773,18 @@ void UnInit()
 	g_rsCurrDir.Clear();
 	SafeReleaseAssert0(g_pWicFactory);
 #if !ECK_OPT_NO_DX
-	SafeReleaseAssert0(g_pD2dFactory);
 	SafeRelease(g_pDwFactory);
+#	if ECK_NO_CHECK_DX_LEAK
+	SafeRelease(g_pD2dFactory);
+	SafeRelease(g_pD2dDevice);
+	SafeRelease(g_pDxgiDevice);
+	SafeRelease(g_pDxgiFactory);
+#	else
+	SafeReleaseAssert0(g_pD2dFactory);
 	SafeReleaseAssert0(g_pD2dDevice);
 	SafeReleaseAssert0(g_pDxgiDevice);
 	SafeReleaseAssert0(g_pDxgiFactory);
+#	endif // ECK_NO_CHECK_DX_LEAK
 #endif// !ECK_OPT_NO_DX
 }
 #pragma endregion Init
