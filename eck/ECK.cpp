@@ -114,6 +114,7 @@ IDWriteFactory* g_pDwFactory{};
 #if !ECK_OPT_NO_DX
 ID2D1Factory1* g_pD2dFactory{};
 ID2D1Device* g_pD2dDevice{};
+ID3D11Device* g_pD3d11Device{};
 IDXGIDevice1* g_pDxgiDevice{};
 IDXGIFactory2* g_pDxgiFactory{};
 #ifdef _DEBUG
@@ -1639,21 +1640,20 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 			return InitStatus::D2dFactoryError;
 		}
 		//////////////创建DXGI工厂
-		ComPtr<ID3D11Device> pD3dDevice;
 		hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
 			D3D11_CREATE_DEVICE_BGRA_SUPPORT
 #ifndef NDEBUG
 			| D3D11_CREATE_DEVICE_DEBUG
 #endif // !NDEBUG
 			, pInitParam->pD3dFeatureLevel, pInitParam->cD3dFeatureLevel,
-			D3D11_SDK_VERSION, &pD3dDevice, nullptr, nullptr);
+			D3D11_SDK_VERSION, &g_pD3d11Device, nullptr, nullptr);
 		if (FAILED(hr))
 		{
 			*pdwErrCode = hr;
 			EckDbgPrintFormatMessage(hr);
 			return InitStatus::D3dDeviceError;
 		}
-		pD3dDevice->QueryInterface(&g_pDxgiDevice);
+		g_pD3d11Device->QueryInterface(&g_pDxgiDevice);
 		if (FAILED(hr) || !g_pDxgiDevice)
 		{
 			*pdwErrCode = hr;
@@ -1774,17 +1774,11 @@ void UnInit()
 	SafeReleaseAssert0(g_pWicFactory);
 #if !ECK_OPT_NO_DX
 	SafeRelease(g_pDwFactory);
-#	if ECK_NO_CHECK_DX_LEAK
+	SafeRelease(g_pD3d11Device);
 	SafeRelease(g_pD2dFactory);
 	SafeRelease(g_pD2dDevice);
 	SafeRelease(g_pDxgiDevice);
 	SafeRelease(g_pDxgiFactory);
-#	else
-	SafeReleaseAssert0(g_pD2dFactory);
-	SafeReleaseAssert0(g_pD2dDevice);
-	SafeReleaseAssert0(g_pDxgiDevice);
-	SafeReleaseAssert0(g_pDxgiFactory);
-#	endif // ECK_NO_CHECK_DX_LEAK
 #endif// !ECK_OPT_NO_DX
 }
 #pragma endregion Init
