@@ -1021,6 +1021,123 @@ private:
 		}
 	}
 
+	void RedrawDui_DComp(const RECT& rc, BOOL bFullUpdate = FALSE, RECT* prcPhy = nullptr)
+	{
+		EckAssert(GetPresentMode() == PresentMode::DCompositionSurface ||
+			GetPresentMode() == PresentMode::DCompositionVisual);
+		const auto pDC = GetDeviceContext();
+		RENDER_EVENT e;
+		ComPtr<IDXGISurface1> pDxgiSurface;
+		auto rcPhyF = MakeD2DRcF(rc);
+		Log2Phy(rcPhyF);
+		RECT rcPhy, rcNewPhy;
+		CeilRect(rcPhyF, rcPhy);
+		// 准备
+		e.PreRender.prcDirtyPhy = bFullUpdate ? nullptr : &rcPhy;
+		m_pDcSurface->BeginDraw(e.PreRender.prcDirtyPhy,
+			IID_PPV_ARGS(&pDxgiSurface), &e.PreRender.ptOffsetPhy);
+		e.PreRender.pSfcFinalDst = pDxgiSurface.Get();
+		e.PreRender.prcNewDirtyPhy = &rcNewPhy;
+		e.PreRender.pSfcNewDst = nullptr;
+		const auto rer = OnRenderEvent(RE_PRERENDER, e);
+		if (rer == RER_NONE)
+		{
+			e.PreRender.ptOffsetPhy.x -= rcPhy.left;
+			e.PreRender.ptOffsetPhy.y -= rcPhy.top;
+		}
+		// 准备D2D渲染目标
+		const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
+		{
+			{ DXGI_FORMAT_B8G8R8A8_UNORM,(D2D1_ALPHA_MODE)m_eAlphaMode },
+			(float)m_iUserDpi,
+			(float)m_iUserDpi,
+			D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+			nullptr
+		};
+		ComPtr<ID2D1Bitmap1> pBitmap;
+		pDC->CreateBitmapFromDxgiSurface(
+			rer == RER_NONE ? pDxgiSurface.Get() : e.PreRender.pSfcNewDst,
+			&D2dBmpProp, &pBitmap);
+		pDC->SetTarget(pBitmap.Get());
+		pDC->BeginDraw();
+		pDC->SetTransform(D2D1::Matrix3x2F::Identity());
+
+		D2D1_RECT_F rcF, rcFinalF;
+		rcFinalF = MakeD2DRcF(rcPhy);
+		OffsetRect(rcFinalF, (float)e.PreRender.ptOffsetPhy.x,
+			(float)e.PreRender.ptOffsetPhy.y);
+		Phy2Log(rcFinalF);
+		if (rer == RER_NONE)
+			rcF = rcFinalF;
+		else
+		{
+			rcF = MakeD2DRcF(rcNewPhy);
+			Phy2Log(rcF);
+		}
+		// 画背景
+		if (bFullUpdate)
+		{
+			++rcF.right;
+			++rcF.bottom;
+		}
+		if (m_bTransparent)
+		{
+			pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_ALIASED);
+			pDC->Clear({});
+			pDC->PopAxisAlignedClip();
+		}
+		FillBackground(rcF);
+		if (bFullUpdate)
+		{
+			--rcF.right;
+			--rcF.bottom;
+		}
+		// 画元素树
+		const D2D1_POINT_2F ptLogOffsetFinalF
+		{
+			Phy2LogF((float)e.PreRender.ptOffsetPhy.x),
+			Phy2LogF((float)e.PreRender.ptOffsetPhy.y)
+		};
+		RECT rcReal;
+		OffsetRect(rcFinalF, -ptLogOffsetFinalF.x, -ptLogOffsetFinalF.y);
+		CeilRect(rcFinalF, rcReal);
+		if (rer == RER_NONE)
+			RedrawElem(GetFirstChildElem(), rcReal,
+				ptLogOffsetFinalF.x, ptLogOffsetFinalF.y);
+		else
+		{
+			const D2D1_POINT_2F ptOrgLogF
+			{
+				Phy2LogF((float)rcNewPhy.left),
+				Phy2LogF((float)rcNewPhy.top)
+			};
+			RedrawElem(GetFirstChildElem(), rcReal,
+				ptOrgLogF.x - rc.left, ptOrgLogF.y - rc.top);
+		}
+
+#ifdef _DEBUG
+		if (m_bDrawDirtyRect)
+		{
+			ComPtr<ID2D1SolidColorBrush> pBr;
+			InflateRect(rcF, -1.f, -1.f);
+			pDC->SetTransform(D2D1::Matrix3x2F::Identity());
+			ARGB Cr = Rand(0x255) | Rand(0x255) << 8 | Rand(0x255) << 16 | 0xFF000000;
+			pDC->CreateSolidColorBrush(D2D1::ColorF(Cr), &pBr);
+			pDC->DrawRectangle(rcF, pBr.Get(), 2.f);
+		}
+#endif // _DEBUG
+		pDC->EndDraw();
+		if (rer == RER_REDIRECTION)
+			OnRenderEvent(RE_POSTRENDER, e);
+		m_pDcSurface->EndDraw();
+		pDC->SetTarget(nullptr);
+
+		if (m_ePresentMode == PresentMode::DCompositionVisual)
+			OnRenderEvent(RE_COMMIT, e);
+		else
+			m_pDcDevice->Commit();
+	}
+
 	/// <summary>
 	/// 重画DUI
 	/// </summary>
@@ -1068,95 +1185,12 @@ private:
 		}
 		return;
 		case PresentMode::DCompositionSurface:
-		case PresentMode::AllDComp:
 		case PresentMode::DCompositionVisual:
+			RedrawDui_DComp(rc, bFullUpdate, prcPhy);
+			return;
+		case PresentMode::AllDComp:
 		{
-			const auto bRenderVisual = (m_ePresentMode == PresentMode::DCompositionVisual);
-			RENDER_EVENT e{};
 
-			if (bRenderVisual)
-				OnRenderEvent(RE_PRERENDER, e);
-
-			ComPtr<IDXGISurface1> pDxgiSurface;
-			POINT ptOffset;
-			auto rcPhyF = MakeD2DRcF(rc);
-			Log2Phy(rcPhyF);
-			RECT rcPhy;
-			CeilRect(rcPhyF, rcPhy);
-
-			m_pDcSurface->BeginDraw(bFullUpdate ? nullptr : &rcPhy,
-				IID_PPV_ARGS(&pDxgiSurface), &ptOffset);
-
-			ptOffset.x -= rcPhy.left;
-			ptOffset.y -= rcPhy.top;
-			const D2D1_POINT_2F ptLogOffsetF{ Phy2LogF((float)ptOffset.x), Phy2LogF((float)ptOffset.y) };
-			const D2D1_BITMAP_PROPERTIES1 D2dBmpProp
-			{
-				{ DXGI_FORMAT_B8G8R8A8_UNORM,(D2D1_ALPHA_MODE)m_eAlphaMode },
-				(float)m_iUserDpi,
-				(float)m_iUserDpi,
-				D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-				nullptr
-			};
-
-			ComPtr<ID2D1Bitmap1> pBitmap;
-			pDC->CreateBitmapFromDxgiSurface(pDxgiSurface.Get(), &D2dBmpProp, &pBitmap);
-			pDC->SetTarget(pBitmap.Get());
-			pDC->BeginDraw();
-			pDC->SetTransform(D2D1::Matrix3x2F::Identity());
-
-			auto rcF = MakeD2DRcF(rcPhy);
-			OffsetRect(rcF, (float)ptOffset.x, (float)ptOffset.y);
-			Phy2Log(rcF);
-			if (bFullUpdate)
-			{
-				++rcF.right;
-				++rcF.bottom;
-			}
-			if (m_bTransparent)
-			{
-				pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_ALIASED);
-				pDC->Clear({});
-				pDC->PopAxisAlignedClip();
-			}
-			FillBackground(rcF);
-			if (bFullUpdate)
-			{
-				--rcF.right;
-				--rcF.bottom;
-			}
-			if (!IsElemUseDComp())
-			{
-				RECT rcReal;
-				OffsetRect(rcF, -ptLogOffsetF.x, -ptLogOffsetF.y);
-				CeilRect(rcF, rcReal);
-				RedrawElem(GetFirstChildElem(), rcReal,
-					ptLogOffsetF.x, ptLogOffsetF.y);
-			}
-
-#ifdef _DEBUG
-			if (m_bDrawDirtyRect)
-			{
-				ComPtr<ID2D1SolidColorBrush> pBr;
-				InflateRect(rcF, -1.f, -1.f);
-				pDC->SetTransform(D2D1::Matrix3x2F::Identity());
-				ARGB Cr = Rand(0x255) | Rand(0x255) << 8 | Rand(0x255) << 16 | 0xFF000000;
-				pDC->CreateSolidColorBrush(D2D1::ColorF(Cr), &pBr);
-				pDC->DrawRectangle(rcF, pBr.Get(), 2.f);
-			}
-#endif // _DEBUG
-
-			pDC->EndDraw();
-			m_pDcSurface->EndDraw();
-			pDC->SetTarget(nullptr);
-
-			if (IsElemUseDComp())
-				RedrawElem(GetFirstChildElem(), rc, 0.f, 0.f);
-
-			if (bRenderVisual)
-				OnRenderEvent(RE_POSTRENDER, e);
-			else
-				m_pDcDevice->Commit();
 		}
 		return;
 		}
@@ -1648,6 +1682,8 @@ public:
 				}
 				m_cxClient = rc.right;
 				m_cyClient = rc.bottom;
+				m_cxClientLog = (int)ceilf(Phy2LogF((float)m_cxClient));
+				m_cyClientLog = (int)ceilf(Phy2LogF((float)m_cyClient));
 
 				m_bFullUpdate = TRUE;
 				m_rcInvalid = { 0,0,m_cxClient,m_cyClient };

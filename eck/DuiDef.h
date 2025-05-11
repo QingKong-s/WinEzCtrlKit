@@ -83,30 +83,50 @@ enum :UINT
 enum class PresentMode : BYTE
 {
 	// WS_EX_NRB = WS_EX_NOREDIRECTIONBITMAP
-	//						|最小等待	|	   透明混合		|	 备注	|
-	BitBltSwapChain,	//	|	0	|支持，必须无WS_EX_NRB|  性能极差	|
-	FlipSwapChain,		//	|	1	|	   不支持		|  性能极好	|
-	DCompositionSurface,//	|	0	|		支持			|  建议使用	|
-	WindowRenderTarget,	//  |	1	|支持，必须无WS_EX_NRB|  兼容性好	|
-	AllDComp,			//	|	0	|		支持			|			|FIXME
-	DCompositionVisual,	//  | 不适用	|		支持			|			|
-	DxgiSurface,		//	| 不适用	|		支持			|  D3D互操作	|TODO
-	GdiRenderTarget,	//	| 不适用	|		支持			|  GDI互操作	|TODO
-	UpdateLayeredWindow,//  |   0	|		支持			|  Win2K分层	|TODO
+	//						|最小等待	|	   透明混合		|
+	BitBltSwapChain,	//	|	0	|支持，必须无WS_EX_NRB|
+	FlipSwapChain,		//	|	1	|	   不支持		|
+	DCompositionSurface,//	|	0	|		支持			|
+	WindowRenderTarget,	//  |	1	|支持，必须无WS_EX_NRB|
+	AllDComp,			//	|	0	|		支持			|FIXME
+	DCompositionVisual,	//  | 不适用	|		支持			|
+	DxgiSurface,		//	| 不适用	|		支持			|TODO
+	GdiRenderTarget,	//	| 不适用	|		支持			|TODO
+	UpdateLayeredWindow,//  |   0	|		支持			|TODO
 };
 
 // 渲染事件代码
 enum
 {
-	RE_PRERENDER,		// 即将开始渲染
-	RE_POSTRENDER,		// 渲染完毕
+	// 即将开始渲染
+	// 下列字段有效：PreRender
+	// 下列返回值有效：
+	// RER_NONE = 执行默认操作
+	// RER_REDIRECTION = 应用程序重定向渲染，DUI系统应使用pSfcNewDst和prcNewDirtyPhy
+	RE_PRERENDER,		
+	RE_POSTRENDER,		// 渲染完毕，仅当RE_PRERENDER返回RER_REDIRECTION时产生
 	RE_COMMIT,			// DUI系统认为有必要冲洗一切挂起的工作
 };
-
+// 渲染事件返回值
+enum : LRESULT
+{
+	RER_NONE,
+	RER_REDIRECTION,
+};
 // 渲染事件结构
 struct RENDER_EVENT
 {
-
+	union
+	{
+		struct
+		{
+			IDXGISurface* pSfcFinalDst;
+			POINT ptOffsetPhy;
+			const RECT* prcDirtyPhy;
+			IDXGISurface* pSfcNewDst;
+			RECT* prcNewDirtyPhy;
+		} PreRender;
+	};
 };
 
 // 拖放信息

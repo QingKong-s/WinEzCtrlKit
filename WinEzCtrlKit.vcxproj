@@ -217,6 +217,7 @@
     <ClInclude Include="eck\DuiStdTheme.h" />
     <ClInclude Include="eck\DuiTheme.h" />
     <ClInclude Include="eck\CalculateExpression.h" />
+    <ClInclude Include="eck\EzDx.h" />
     <ClInclude Include="eck\GdipEffect.h" />
     <ClInclude Include="eck\CoroutineHelper.h" />
     <ClInclude Include="eck\ISO8601Time.h" />
