@@ -13,7 +13,8 @@ struct CCompositorCornerMapping : public CCompositor
 
 	void PtXToX(CElem* pElem, _Inout_ POINT& pt, BOOL bNormalToComposited)
 	{
-		auto p = DirectX::XMVector4Transform({ (float)pt.x,(float)pt.y,0.f,1.f },
+		const DirectX::XMFLOAT4A v{ (float)pt.x,(float)pt.y,0.f,1.f };
+		auto p = DirectX::XMVector4Transform(DirectX::XMLoadFloat4A(&v),
 			bNormalToComposited ? MatR : Mat);
 		const auto w = DirectX::XMVectorGetW(p);
 		p = DirectX::XMVectorDivide(p, DirectX::XMVectorSet(w, w, w, w));
@@ -38,7 +39,9 @@ struct CCompositorCornerMapping : public CCompositor
 		float l{ FLT_MAX }, t{ FLT_MAX }, r{ FLT_MIN }, b{ FLT_MIN };
 		for (const auto e : pt)
 		{
-			auto p = DirectX::XMVector4Transform({ e.x, e.y, 0.f, 1.f }, Mat);
+			const DirectX::XMFLOAT4A v{ e.x,e.y,0.f,1.f };
+			auto p = DirectX::XMVector4Transform(
+				DirectX::XMLoadFloat4A(&v), Mat);
 			const auto w = DirectX::XMVectorGetW(p);
 			p = DirectX::XMVectorDivide(p, DirectX::XMVectorSet(w, w, w, w));
 			const auto x = DirectX::XMVectorGetX(p);
