@@ -116,67 +116,111 @@ private:
 public:
 	constexpr CJsonVal(YyVal* pVal) : m_pVal{ pVal } {}
 
-	EckInline [[nodiscard]] constexpr auto GetValPtr() const { return m_pVal; }
+	EckInlineNd constexpr auto GetValPtr() const { return m_pVal; }
 
-	EckInline [[nodiscard]] constexpr BOOL IsValid() const { return !!m_pVal; }
+	EckInlineNd constexpr BOOL IsValid() const { return !!m_pVal; }
 
-	EckInline [[nodiscard]] YyType GetType() const { return yyjson_get_type(m_pVal); }
+	EckInlineNd YyType GetType() const { return yyjson_get_type(m_pVal); }
 
-	EckInline [[nodiscard]] YySubType GetSubType() const { return yyjson_get_subtype(m_pVal); }
+	EckInlineNd YySubType GetSubType() const { return yyjson_get_subtype(m_pVal); }
 
-	EckInline [[nodiscard]] uint8_t GetTag() const { return yyjson_get_tag(m_pVal); }
+	EckInlineNd uint8_t GetTag() const { return yyjson_get_tag(m_pVal); }
 
-	EckInline [[nodiscard]] PCSTR GetTypeDesc() const { return yyjson_get_type_desc(m_pVal); }
+	EckInlineNd PCSTR GetTypeDesc() const { return yyjson_get_type_desc(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsNull() const { return yyjson_is_null(m_pVal); }
+	EckInlineNd BOOL IsNull() const { return yyjson_is_null(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsTrue() const { return yyjson_is_true(m_pVal); }
+	EckInlineNd BOOL IsTrue() const { return yyjson_is_true(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsFalse() const { return yyjson_is_false(m_pVal); }
+	EckInlineNd BOOL IsFalse() const { return yyjson_is_false(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsBool() const { return yyjson_is_bool(m_pVal); }
+	EckInlineNd BOOL IsBool() const { return yyjson_is_bool(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsUInt64() const { return yyjson_is_uint(m_pVal); }
+	EckInlineNd BOOL IsUInt64() const { return yyjson_is_uint(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsInt64() const { return yyjson_is_sint(m_pVal); }
+	EckInlineNd BOOL IsInt64() const { return yyjson_is_sint(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsInt() const { return yyjson_is_int(m_pVal); }
+	EckInlineNd BOOL IsInt() const { return yyjson_is_int(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsReal() const { return yyjson_is_real(m_pVal); }
+	EckInlineNd BOOL IsReal() const { return yyjson_is_real(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsNum() const { return yyjson_is_num(m_pVal); }
+	EckInlineNd BOOL IsNum() const { return yyjson_is_num(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsStr() const { return yyjson_is_str(m_pVal); }
+	EckInlineNd BOOL IsStr() const { return yyjson_is_str(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsArr() const { return yyjson_is_arr(m_pVal); }
+	EckInlineNd BOOL IsArr() const { return yyjson_is_arr(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsObj() const { return yyjson_is_obj(m_pVal); }
+	EckInlineNd BOOL IsObj() const { return yyjson_is_obj(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsContainer() const { return yyjson_is_ctn(m_pVal); }
+	EckInlineNd BOOL IsContainer() const { return yyjson_is_ctn(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsRaw() const { return yyjson_is_raw(m_pVal); }
+	EckInlineNd BOOL IsRaw() const { return yyjson_is_raw(m_pVal); }
 
-	EckInline [[nodiscard]] PCSTR GetRaw() const { return yyjson_get_raw(m_pVal); }
+	EckInlineNd PCSTR GetRaw() const { return yyjson_get_raw(m_pVal); }
 
-	EckInline [[nodiscard]] bool GetBool() const { return yyjson_get_bool(m_pVal); }
+	EckInlineNd bool GetBool() const { return yyjson_get_bool(m_pVal); }
 
-	EckInline [[nodiscard]] uint64_t GetUInt64() const { return yyjson_get_uint(m_pVal); }
+	EckInlineNd uint64_t GetUInt64() const { return yyjson_get_uint(m_pVal); }
 
-	EckInline [[nodiscard]] int64_t GetInt64() const { return yyjson_get_sint(m_pVal); }
+	EckInlineNd int64_t GetInt64() const { return yyjson_get_sint(m_pVal); }
 
-	EckInline [[nodiscard]] int GetInt() const { return yyjson_get_int(m_pVal); }
+	EckInlineNd int GetInt() const { return yyjson_get_int(m_pVal); }
 
-	EckInline [[nodiscard]] double GetReal() const { return yyjson_get_real(m_pVal); }
+	EckInlineNd double GetReal() const { return yyjson_get_real(m_pVal); }
 
-	EckInline [[nodiscard]] double GetNum() const { return yyjson_get_num(m_pVal); }
+	EckInlineNd double GetNum() const { return yyjson_get_num(m_pVal); }
 
-	EckInline [[nodiscard]] PCSTR GetStr() const { return yyjson_get_str(m_pVal); }
+	EckInlineNd PCSTR GetStr() const { return yyjson_get_str(m_pVal); }
 
-	EckInline [[nodiscard]] size_t GetLen() const { return yyjson_get_len(m_pVal); }
+	EckInlineNd size_t GetLen() const { return yyjson_get_len(m_pVal); }
 
-	EckInline [[nodiscard]] CRefStrW GetStrW() const
+	EckInlineNd CRefStrW GetStrW() const
 	{
 		return StrX2W(GetStr(), (int)GetLen(), CP_UTF8);
+	}
+
+	BOOL ToString(CRefStrA& rs) const
+	{
+		if (IsStr())
+			rs.PushBack(GetStr(), (int)GetLen());
+		else if (IsInt64())
+			rs.AppendFormat("%I64d", GetInt64());
+		else if (IsUInt64())
+			rs.AppendFormat("%I64u", GetUInt64());
+		else if (IsReal())
+			rs.AppendFormat("%g", GetReal());
+		else if (IsBool())
+			if (IsTrue())
+				rs.PushBack(EckStrAndLen("true"));
+			else
+				rs.PushBack(EckStrAndLen("false"));
+		else if (IsNull())
+			rs.PushBack(EckStrAndLen("null"));
+		else
+			return FALSE;
+		return TRUE;
+	}
+
+	BOOL ToString(CRefStrW& rs) const
+	{
+		if (IsStr())
+			rs.PushBack(StrX2W(GetStr(), (int)GetLen()));
+		else if (IsInt64())
+			rs.AppendFormat(L"%I64d", GetInt64());
+		else if (IsUInt64())
+			rs.AppendFormat(L"%I64u", GetUInt64());
+		else if (IsReal())
+			rs.AppendFormat(L"%g", GetReal());
+		else if (IsBool())
+			if (IsTrue())
+				rs.PushBack(EckStrAndLen(L"true"));
+			else
+				rs.PushBack(EckStrAndLen(L"false"));
+		else if (IsNull())
+			rs.PushBack(EckStrAndLen(L"null"));
+		else
+			return FALSE;
+		return TRUE;
 	}
 
 	EckInline bool EqualStr(PCSTR pszStr) const { return yyjson_equals_str(m_pVal, pszStr); }
@@ -201,23 +245,23 @@ public:
 
 	EckInline bool SetStr(PCSTR pszVal, size_t cchVal) const { return yyjson_set_strn(m_pVal, pszVal, cchVal); }
 
-	EckInline [[nodiscard]] size_t ArrSize() const { return yyjson_arr_size(m_pVal); }
+	EckInlineNd size_t ArrSize() const { return yyjson_arr_size(m_pVal); }
 
-	EckInline [[nodiscard]] CJsonVal ArrAt(size_t idx) const { return CJsonVal(yyjson_arr_get(m_pVal, idx)); }
+	EckInlineNd CJsonVal ArrAt(size_t idx) const { return CJsonVal(yyjson_arr_get(m_pVal, idx)); }
 
-	EckInline [[nodiscard]] CJsonVal ArrFront() const { return CJsonVal(yyjson_arr_get_first(m_pVal)); }
+	EckInlineNd CJsonVal ArrFront() const { return CJsonVal(yyjson_arr_get_first(m_pVal)); }
 
-	EckInline [[nodiscard]] CJsonVal ArrBack() const { return CJsonVal(yyjson_arr_get_last(m_pVal)); }
+	EckInlineNd CJsonVal ArrBack() const { return CJsonVal(yyjson_arr_get_last(m_pVal)); }
 
-	EckInline [[nodiscard]] size_t ObjSize() const { return yyjson_obj_size(m_pVal); }
+	EckInlineNd size_t ObjSize() const { return yyjson_obj_size(m_pVal); }
 
-	EckInline [[nodiscard]] CJsonVal ObjAt(PCSTR pszKey) const { return CJsonVal(yyjson_obj_get(m_pVal, pszKey)); }
+	EckInlineNd CJsonVal ObjAt(PCSTR pszKey) const { return CJsonVal(yyjson_obj_get(m_pVal, pszKey)); }
 
-	EckInline [[nodiscard]] CJsonVal ObjAt(PCSTR pszKey, size_t cchKey) const { return CJsonVal(yyjson_obj_getn(m_pVal, pszKey, cchKey)); }
+	EckInlineNd CJsonVal ObjAt(PCSTR pszKey, size_t cchKey) const { return CJsonVal(yyjson_obj_getn(m_pVal, pszKey, cchKey)); }
 
-	EckInline [[nodiscard]] CJsonVal ObjGetVal(CJsonVal Key) const { return CJsonVal(yyjson_obj_iter_get_val(Key.GetValPtr())); }
+	EckInlineNd CJsonVal ObjGetVal(CJsonVal Key) const { return CJsonVal(yyjson_obj_iter_get_val(Key.GetValPtr())); }
 
-	EckInline [[nodiscard]] PSTR Write(size_t* pcchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
+	EckInlineNd PSTR Write(size_t* pcchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
 	{
 		return yyjson_val_write_opts(m_pVal, uFlags, pAlc, pcchOut, pErr);
 	}
@@ -227,7 +271,7 @@ public:
 		return yyjson_val_write_file(pszFile, m_pVal, uFlags, pAlc, pErr);
 	}
 
-	EckInline [[nodiscard]] CJsonVal ValAt(PCSTR pszPtr, size_t cchPtr = SizeTMax, YyPtrErr* pErr = nullptr) const
+	EckInlineNd CJsonVal ValAt(PCSTR pszPtr, size_t cchPtr = SizeTMax, YyPtrErr* pErr = nullptr) const
 	{
 		return CJsonVal(yyjson_ptr_getx(m_pVal, pszPtr,
 			cchPtr == SizeTMax ? strlen(pszPtr) : cchPtr, pErr));
@@ -239,9 +283,9 @@ public:
 		return Priv::JsonValAtVarType(*this, x);
 	}
 
-	EckInline [[nodiscard]] CJsonArrProxy AsArr() const;
+	EckInlineNd CJsonArrProxy AsArr() const;
 
-	EckInline [[nodiscard]] CJsonObjProxy AsObj() const;
+	EckInlineNd CJsonObjProxy AsObj() const;
 };
 
 class CMutJson;
@@ -300,9 +344,9 @@ public:
 
 	~CJson() { Free(); }
 
-	EckInline [[nodiscard]] constexpr BOOL IsValid() const { return !!m_pDoc; }
+	EckInlineNd constexpr BOOL IsValid() const { return !!m_pDoc; }
 
-	EckInline [[nodiscard]] constexpr YyDoc* GetDocPtr() const { return m_pDoc; }
+	EckInlineNd constexpr YyDoc* GetDocPtr() const { return m_pDoc; }
 
 	void Free()
 	{
@@ -313,7 +357,7 @@ public:
 		}
 	}
 
-	EckInline [[nodiscard]] constexpr YyDoc* Detach()
+	EckInlineNd constexpr YyDoc* Detach()
 	{
 		YyDoc* pDoc = m_pDoc;
 		m_pDoc = nullptr;
@@ -327,18 +371,18 @@ public:
 		return pOldDoc;
 	}
 
-	EckInline [[nodiscard]] CJsonVal GetRoot() const { return CJsonVal(yyjson_doc_get_root(m_pDoc)); }
+	EckInlineNd CJsonVal GetRoot() const { return CJsonVal(yyjson_doc_get_root(m_pDoc)); }
 
-	EckInline [[nodiscard]] size_t GetReadSize() const { return yyjson_doc_get_read_size(m_pDoc); }
+	EckInlineNd size_t GetReadSize() const { return yyjson_doc_get_read_size(m_pDoc); }
 
-	EckInline [[nodiscard]] size_t GetValCount() const { return yyjson_doc_get_val_count(m_pDoc); }
+	EckInlineNd size_t GetValCount() const { return yyjson_doc_get_val_count(m_pDoc); }
 
-	EckInline [[nodiscard]] CJsonVal ValAt(PCSTR pszPtr, size_t cchPtr = SizeTMax, YyPtrErr* pErr = nullptr) const
+	EckInlineNd CJsonVal ValAt(PCSTR pszPtr, size_t cchPtr = SizeTMax, YyPtrErr* pErr = nullptr) const
 	{
 		return CJsonVal(yyjson_doc_ptr_getx(m_pDoc, pszPtr, cchPtr == SizeTMax ? strlen(pszPtr) : cchPtr, pErr));
 	}
 
-	EckInline [[nodiscard]] PSTR Write(size_t* pcchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
+	EckInlineNd PSTR Write(size_t* pcchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
 	{
 		return yyjson_write_opts(m_pDoc, uFlags, pAlc, pcchOut, pErr);
 	}
@@ -348,9 +392,9 @@ public:
 		return yyjson_write_file(pszFile, m_pDoc, uFlags, pAlc, pErr);
 	}
 
-	EckInline [[nodiscard]] CMutJson Clone(const YyAlc* pAlc = nullptr) const;
+	EckInlineNd CMutJson Clone(const YyAlc* pAlc = nullptr) const;
 
-	EckInline [[nodiscard]] CJsonVal operator[](PCSTR pszKey) const
+	EckInlineNd CJsonVal operator[](PCSTR pszKey) const
 	{
 		return Priv::JsonValAt(*this, pszKey);
 	}
@@ -368,9 +412,9 @@ struct CJsonArrIter
 
 	EckInline void FromVal(CJsonVal val) { m_iter = yyjson_arr_iter_with(val.GetValPtr()); }
 
-	EckInline [[nodiscard]] BOOL HasNext() const { return yyjson_arr_iter_has_next((YyArrIter*)&m_iter); }
+	EckInlineNd BOOL HasNext() const { return yyjson_arr_iter_has_next((YyArrIter*)&m_iter); }
 
-	EckInline [[nodiscard]] CJsonVal Next() { return CJsonVal(yyjson_arr_iter_next(&m_iter)); }
+	EckInlineNd CJsonVal Next() { return CJsonVal(yyjson_arr_iter_next(&m_iter)); }
 
 	EckInline constexpr CJsonVal GetCurr() const { return CJsonVal(m_iter.cur); }
 
@@ -396,13 +440,13 @@ struct CJsonObjIter
 
 	EckInline void FromVal(CJsonVal val) { m_iter = yyjson_obj_iter_with(val.GetValPtr()); }
 
-	EckInline [[nodiscard]] BOOL HasNext() const { return yyjson_obj_iter_has_next((YyObjIter*)&m_iter); }
+	EckInlineNd BOOL HasNext() const { return yyjson_obj_iter_has_next((YyObjIter*)&m_iter); }
 
-	EckInline [[nodiscard]] CJsonVal Next() { return CJsonVal(yyjson_obj_iter_next(&m_iter)); }
+	EckInlineNd CJsonVal Next() { return CJsonVal(yyjson_obj_iter_next(&m_iter)); }
 
-	EckInline [[nodiscard]] CJsonVal Get(PCSTR pszKey) { return yyjson_obj_iter_get(&m_iter, pszKey); }
+	EckInlineNd CJsonVal Get(PCSTR pszKey) { return yyjson_obj_iter_get(&m_iter, pszKey); }
 
-	EckInline [[nodiscard]] CJsonVal Get(PCSTR pszKey, size_t cchKey) { return yyjson_obj_iter_getn(&m_iter, pszKey, cchKey); }
+	EckInlineNd CJsonVal Get(PCSTR pszKey, size_t cchKey) { return yyjson_obj_iter_getn(&m_iter, pszKey, cchKey); }
 
 	EckInline constexpr CJsonVal GetCurr() const { return CJsonVal(m_iter.cur); }
 
@@ -553,72 +597,72 @@ private:
 public:
 	constexpr CJsonMutVal(YyMutVal* pVal) : m_pVal{ pVal } {}
 
-	EckInline [[nodiscard]] constexpr auto GetValPtr() const { return m_pVal; }
+	EckInlineNd constexpr auto GetValPtr() const { return m_pVal; }
 
-	EckInline [[nodiscard]] constexpr BOOL IsValid() const { return !!m_pVal; }
+	EckInlineNd constexpr BOOL IsValid() const { return !!m_pVal; }
 
-	EckInline [[nodiscard]] YyType GetType() const { return yyjson_mut_get_type(m_pVal); }
+	EckInlineNd YyType GetType() const { return yyjson_mut_get_type(m_pVal); }
 
-	EckInline [[nodiscard]] YySubType GetSubType() const { return yyjson_mut_get_subtype(m_pVal); }
+	EckInlineNd YySubType GetSubType() const { return yyjson_mut_get_subtype(m_pVal); }
 
-	EckInline [[nodiscard]] uint8_t GetTag() const { return yyjson_mut_get_tag(m_pVal); }
+	EckInlineNd uint8_t GetTag() const { return yyjson_mut_get_tag(m_pVal); }
 
-	EckInline [[nodiscard]] PCSTR GetTypeDesc() const { return yyjson_mut_get_type_desc(m_pVal); }
+	EckInlineNd PCSTR GetTypeDesc() const { return yyjson_mut_get_type_desc(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsNull() const { return yyjson_mut_is_null(m_pVal); }
+	EckInlineNd BOOL IsNull() const { return yyjson_mut_is_null(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsTrue() const { return yyjson_mut_is_true(m_pVal); }
+	EckInlineNd BOOL IsTrue() const { return yyjson_mut_is_true(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsFalse() const { return yyjson_mut_is_false(m_pVal); }
+	EckInlineNd BOOL IsFalse() const { return yyjson_mut_is_false(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsBool() const { return yyjson_mut_is_bool(m_pVal); }
+	EckInlineNd BOOL IsBool() const { return yyjson_mut_is_bool(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsUInt64() const { return yyjson_mut_is_uint(m_pVal); }
+	EckInlineNd BOOL IsUInt64() const { return yyjson_mut_is_uint(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsInt64() const { return yyjson_mut_is_sint(m_pVal); }
+	EckInlineNd BOOL IsInt64() const { return yyjson_mut_is_sint(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsInt() const { return yyjson_mut_is_int(m_pVal); }
+	EckInlineNd BOOL IsInt() const { return yyjson_mut_is_int(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsReal() const { return yyjson_mut_is_real(m_pVal); }
+	EckInlineNd BOOL IsReal() const { return yyjson_mut_is_real(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsNum() const { return yyjson_mut_is_num(m_pVal); }
+	EckInlineNd BOOL IsNum() const { return yyjson_mut_is_num(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsStr() const { return yyjson_mut_is_str(m_pVal); }
+	EckInlineNd BOOL IsStr() const { return yyjson_mut_is_str(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsArr() const { return yyjson_mut_is_arr(m_pVal); }
+	EckInlineNd BOOL IsArr() const { return yyjson_mut_is_arr(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsObj() const { return yyjson_mut_is_obj(m_pVal); }
+	EckInlineNd BOOL IsObj() const { return yyjson_mut_is_obj(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsContainer() const { return yyjson_mut_is_ctn(m_pVal); }
+	EckInlineNd BOOL IsContainer() const { return yyjson_mut_is_ctn(m_pVal); }
 
-	EckInline [[nodiscard]] BOOL IsRaw() const { return yyjson_mut_is_raw(m_pVal); }
+	EckInlineNd BOOL IsRaw() const { return yyjson_mut_is_raw(m_pVal); }
 
-	EckInline [[nodiscard]] PCSTR GetRaw() const { return yyjson_mut_get_raw(m_pVal); }
+	EckInlineNd PCSTR GetRaw() const { return yyjson_mut_get_raw(m_pVal); }
 
-	EckInline [[nodiscard]] bool GetBool() const { return yyjson_mut_get_bool(m_pVal); }
+	EckInlineNd bool GetBool() const { return yyjson_mut_get_bool(m_pVal); }
 
-	EckInline [[nodiscard]] uint64_t GetUInt64() const { return yyjson_mut_get_uint(m_pVal); }
+	EckInlineNd uint64_t GetUInt64() const { return yyjson_mut_get_uint(m_pVal); }
 
-	EckInline [[nodiscard]] int64_t GetInt64() const { return yyjson_mut_get_sint(m_pVal); }
+	EckInlineNd int64_t GetInt64() const { return yyjson_mut_get_sint(m_pVal); }
 
-	EckInline [[nodiscard]] int GetInt() const { return yyjson_mut_get_int(m_pVal); }
+	EckInlineNd int GetInt() const { return yyjson_mut_get_int(m_pVal); }
 
-	EckInline [[nodiscard]] double GetReal() const { return yyjson_mut_get_real(m_pVal); }
+	EckInlineNd double GetReal() const { return yyjson_mut_get_real(m_pVal); }
 
-	EckInline [[nodiscard]] double GetNum() const { return yyjson_mut_get_num(m_pVal); }
+	EckInlineNd double GetNum() const { return yyjson_mut_get_num(m_pVal); }
 
-	EckInline [[nodiscard]] PCSTR GetStr() const { return yyjson_mut_get_str(m_pVal); }
+	EckInlineNd PCSTR GetStr() const { return yyjson_mut_get_str(m_pVal); }
 
-	EckInline [[nodiscard]] size_t GetLen() const { return yyjson_mut_get_len(m_pVal); }
+	EckInlineNd size_t GetLen() const { return yyjson_mut_get_len(m_pVal); }
 
-	EckInline [[nodiscard]] CRefStrW GetStrW() const
+	EckInlineNd CRefStrW GetStrW() const
 	{
 		return StrX2W(GetStr(), (int)GetLen(), CP_UTF8);
 	}
 
-	EckInline [[nodiscard]] bool EqualStr(PCSTR pszStr) const { return yyjson_mut_equals_str(m_pVal, pszStr); }
+	EckInlineNd bool EqualStr(PCSTR pszStr) const { return yyjson_mut_equals_str(m_pVal, pszStr); }
 
-	EckInline [[nodiscard]] bool EqualStr(PCSTR pszStr, size_t cchStr) const { return yyjson_mut_equals_strn(m_pVal, pszStr, cchStr); }
+	EckInlineNd bool EqualStr(PCSTR pszStr, size_t cchStr) const { return yyjson_mut_equals_strn(m_pVal, pszStr, cchStr); }
 
 	EckInline bool SetRaw(PCSTR pszRaw, size_t cchRaw) const { return yyjson_mut_set_raw(m_pVal, pszRaw, cchRaw); }
 
@@ -638,13 +682,13 @@ public:
 
 	EckInline bool SetStr(PCSTR pszVal, size_t cchVal) const { return yyjson_mut_set_strn(m_pVal, pszVal, cchVal); }
 
-	EckInline [[nodiscard]] size_t ArrSize() const { return yyjson_mut_arr_size(m_pVal); }
+	EckInlineNd size_t ArrSize() const { return yyjson_mut_arr_size(m_pVal); }
 
-	EckInline [[nodiscard]] CJsonMutVal ArrAt(size_t idx) const { return CJsonMutVal(yyjson_mut_arr_get(m_pVal, idx)); }
+	EckInlineNd CJsonMutVal ArrAt(size_t idx) const { return CJsonMutVal(yyjson_mut_arr_get(m_pVal, idx)); }
 
-	EckInline [[nodiscard]] CJsonMutVal ArrFront() const { return CJsonMutVal(yyjson_mut_arr_get_first(m_pVal)); }
+	EckInlineNd CJsonMutVal ArrFront() const { return CJsonMutVal(yyjson_mut_arr_get_first(m_pVal)); }
 
-	EckInline [[nodiscard]] CJsonMutVal ArrBack() const { return CJsonMutVal(yyjson_mut_arr_get_last(m_pVal)); }
+	EckInlineNd CJsonMutVal ArrBack() const { return CJsonMutVal(yyjson_mut_arr_get_last(m_pVal)); }
 
 	EckInline BOOL ArrInsert(size_t idx, CJsonMutVal Val) const
 	{
@@ -675,11 +719,11 @@ public:
 
 	EckInline BOOL ArrRotate(size_t idx) const { return yyjson_mut_arr_rotate(m_pVal, idx); }
 
-	EckInline [[nodiscard]] size_t ObjSize() const { return yyjson_mut_obj_size(m_pVal); }
+	EckInlineNd size_t ObjSize() const { return yyjson_mut_obj_size(m_pVal); }
 
-	EckInline [[nodiscard]] CJsonMutVal ObjAt(PCSTR pszKey) const { return CJsonMutVal(yyjson_mut_obj_get(m_pVal, pszKey)); }
+	EckInlineNd CJsonMutVal ObjAt(PCSTR pszKey) const { return CJsonMutVal(yyjson_mut_obj_get(m_pVal, pszKey)); }
 
-	EckInline [[nodiscard]] CJsonMutVal ObjAt(PCSTR pszKey, size_t cchKey) const
+	EckInlineNd CJsonMutVal ObjAt(PCSTR pszKey, size_t cchKey) const
 	{
 		return CJsonMutVal(yyjson_mut_obj_getn(m_pVal, pszKey, cchKey));
 	}
@@ -708,7 +752,7 @@ public:
 
 	EckInline BOOL ObjRotate(size_t idx) const { return yyjson_mut_obj_rotate(m_pVal, idx); }
 
-	EckInline [[nodiscard]] PSTR Write(size_t& cchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
+	EckInlineNd PSTR Write(size_t& cchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
 	{
 		return yyjson_mut_val_write_opts(m_pVal, uFlags, pAlc, &cchOut, pErr);
 	}
@@ -718,7 +762,7 @@ public:
 		return yyjson_mut_val_write_file(pszFile, m_pVal, uFlags, pAlc, pErr);
 	}
 
-	EckInline [[nodiscard]] CRefStrW WriteW(YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
+	EckInlineNd CRefStrW WriteW(YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
 	{
 		size_t cchOut;
 		const auto pszU8 = Write(cchOut, uFlags, pAlc, pErr);
@@ -732,7 +776,7 @@ public:
 		return rs;
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal ValAt(PCSTR pszPtr, size_t cchPtr = SizeTMax,
+	EckInlineNd CJsonMutVal ValAt(PCSTR pszPtr, size_t cchPtr = SizeTMax,
 		YyPtrCtx* pCtx = nullptr, YyPtrErr* pErr = nullptr) const
 	{
 		return CJsonMutVal(yyjson_mut_ptr_getx(m_pVal, pszPtr,
@@ -740,14 +784,14 @@ public:
 	}
 
 	template<class T>
-	EckInline [[nodiscard]] CJsonMutVal operator[](const T& x) const
+	EckInlineNd CJsonMutVal operator[](const T& x) const
 	{
 		return Priv::JsonValAtVarType(*this, x);
 	}
 
-	EckInline [[nodiscard]] CJsonMutArrProxy AsArr() const;
+	EckInlineNd CJsonMutArrProxy AsArr() const;
 
-	EckInline [[nodiscard]] CJsonMutObjProxy AsObj() const;
+	EckInlineNd CJsonMutObjProxy AsObj() const;
 };
 
 class CMutJson
@@ -787,9 +831,9 @@ public:
 		m_pDoc = yyjson_mut_doc_mut_copy(Doc.GetDocPtr(), pAlc);
 	}
 
-	EckInline [[nodiscard]] constexpr BOOL IsValid() const { return !!m_pDoc; }
+	EckInlineNd constexpr BOOL IsValid() const { return !!m_pDoc; }
 
-	EckInline [[nodiscard]] constexpr YyMutDoc* GetDocPtr() const { return m_pDoc; }
+	EckInlineNd constexpr YyMutDoc* GetDocPtr() const { return m_pDoc; }
 
 	void Free()
 	{
@@ -800,7 +844,7 @@ public:
 		}
 	}
 
-	EckInline [[nodiscard]] constexpr YyMutDoc* Detach()
+	EckInlineNd constexpr YyMutDoc* Detach()
 	{
 		YyMutDoc* pDoc = m_pDoc;
 		m_pDoc = nullptr;
@@ -814,7 +858,7 @@ public:
 		return pOldDoc;
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal GetRoot() const { return CJsonMutVal(yyjson_mut_doc_get_root(m_pDoc)); }
+	EckInlineNd CJsonMutVal GetRoot() const { return CJsonMutVal(yyjson_mut_doc_get_root(m_pDoc)); }
 
 	EckInline void SetRoot(CJsonMutVal Val) const { yyjson_mut_doc_set_root(m_pDoc, Val.GetValPtr()); }
 
@@ -822,14 +866,14 @@ public:
 
 	EckInline BOOL SetValuePoolSize(size_t cb) const { return yyjson_mut_doc_set_val_pool_size(m_pDoc, cb); }
 
-	EckInline [[nodiscard]] CJsonMutVal ValAt(PCSTR pszPtr, size_t cchPtr = SizeTMax,
+	EckInlineNd CJsonMutVal ValAt(PCSTR pszPtr, size_t cchPtr = SizeTMax,
 		YyPtrCtx* pCtx = nullptr, YyPtrErr* pErr = nullptr) const
 	{
 		return CJsonMutVal(yyjson_mut_doc_ptr_getx(m_pDoc, pszPtr,
 			cchPtr == SizeTMax ? strlen(pszPtr) : cchPtr, pCtx, pErr));
 	}
 
-	EckInline [[nodiscard]] PSTR Write(size_t& cchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
+	EckInlineNd PSTR Write(size_t& cchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
 	{
 		return yyjson_mut_write_opts(m_pDoc, uFlags, pAlc, &cchOut, pErr);
 	}
@@ -839,7 +883,7 @@ public:
 		return yyjson_mut_write_file(pszFile, m_pDoc, uFlags, pAlc, pErr);
 	}
 
-	EckInline [[nodiscard]] CRefStrW WriteW(YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
+	EckInlineNd CRefStrW WriteW(YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
 	{
 		size_t cchOut;
 		const auto pszU8 = Write(cchOut, uFlags, pAlc, pErr);
@@ -853,47 +897,47 @@ public:
 		return rs;
 	}
 
-	EckInline [[nodiscard]] CMutJson Clone() const { return CMutJson(yyjson_mut_doc_mut_copy(m_pDoc, nullptr)); }
+	EckInlineNd CMutJson Clone() const { return CMutJson(yyjson_mut_doc_mut_copy(m_pDoc, nullptr)); }
 
-	EckInline [[nodiscard]] CJson CloneImut() const { return CJson(yyjson_mut_doc_imut_copy(m_pDoc, nullptr)); }
+	EckInlineNd CJson CloneImut() const { return CJson(yyjson_mut_doc_imut_copy(m_pDoc, nullptr)); }
 
-	EckInline [[nodiscard]] CJsonMutVal NewRaw(PCSTR pszRaw, size_t cchRaw = SizeTMax) const
+	EckInlineNd CJsonMutVal NewRaw(PCSTR pszRaw, size_t cchRaw = SizeTMax) const
 	{
 		return CJsonMutVal(yyjson_mut_rawn(m_pDoc, pszRaw, cchRaw == SizeTMax ? strlen(pszRaw) : cchRaw));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewRawCpy(PCSTR pszRaw, size_t cchRaw = SizeTMax) const
+	EckInlineNd CJsonMutVal NewRawCpy(PCSTR pszRaw, size_t cchRaw = SizeTMax) const
 	{
 		return CJsonMutVal(yyjson_mut_rawncpy(m_pDoc, pszRaw, cchRaw == SizeTMax ? strlen(pszRaw) : cchRaw));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewNull() const { return CJsonMutVal(yyjson_mut_null(m_pDoc)); }
+	EckInlineNd CJsonMutVal NewNull() const { return CJsonMutVal(yyjson_mut_null(m_pDoc)); }
 
-	EckInline [[nodiscard]] CJsonMutVal NewTrue() const { return CJsonMutVal(yyjson_mut_true(m_pDoc)); }
+	EckInlineNd CJsonMutVal NewTrue() const { return CJsonMutVal(yyjson_mut_true(m_pDoc)); }
 
-	EckInline [[nodiscard]] CJsonMutVal NewFalse() const { return CJsonMutVal(yyjson_mut_false(m_pDoc)); }
+	EckInlineNd CJsonMutVal NewFalse() const { return CJsonMutVal(yyjson_mut_false(m_pDoc)); }
 
-	EckInline [[nodiscard]] CJsonMutVal NewBool(bool bVal) const { return CJsonMutVal(yyjson_mut_bool(m_pDoc, bVal)); }
+	EckInlineNd CJsonMutVal NewBool(bool bVal) const { return CJsonMutVal(yyjson_mut_bool(m_pDoc, bVal)); }
 
-	EckInline [[nodiscard]] CJsonMutVal NewUInt64(uint64_t uVal) const { return CJsonMutVal(yyjson_mut_uint(m_pDoc, uVal)); }
+	EckInlineNd CJsonMutVal NewUInt64(uint64_t uVal) const { return CJsonMutVal(yyjson_mut_uint(m_pDoc, uVal)); }
 
-	EckInline [[nodiscard]] CJsonMutVal NewInt64(int64_t iVal) const { return CJsonMutVal(yyjson_mut_sint(m_pDoc, iVal)); }
+	EckInlineNd CJsonMutVal NewInt64(int64_t iVal) const { return CJsonMutVal(yyjson_mut_sint(m_pDoc, iVal)); }
 
-	EckInline [[nodiscard]] CJsonMutVal NewInt(int iVal) const { return CJsonMutVal(yyjson_mut_int(m_pDoc, iVal)); }
+	EckInlineNd CJsonMutVal NewInt(int iVal) const { return CJsonMutVal(yyjson_mut_int(m_pDoc, iVal)); }
 
-	EckInline [[nodiscard]] CJsonMutVal NewReal(double dVal) const { return CJsonMutVal(yyjson_mut_real(m_pDoc, dVal)); }
+	EckInlineNd CJsonMutVal NewReal(double dVal) const { return CJsonMutVal(yyjson_mut_real(m_pDoc, dVal)); }
 
-	EckInline [[nodiscard]] CJsonMutVal NewStr(PCSTR pszVal, size_t cchVal = SizeTMax) const
+	EckInlineNd CJsonMutVal NewStr(PCSTR pszVal, size_t cchVal = SizeTMax) const
 	{
 		return CJsonMutVal(yyjson_mut_strn(m_pDoc, pszVal, cchVal == SizeTMax ? strlen(pszVal) : cchVal));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewStrCpy(PCSTR pszVal, size_t cchVal = SizeTMax) const
+	EckInlineNd CJsonMutVal NewStrCpy(PCSTR pszVal, size_t cchVal = SizeTMax) const
 	{
 		return CJsonMutVal(yyjson_mut_strncpy(m_pDoc, pszVal, cchVal == SizeTMax ? strlen(pszVal) : cchVal));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewStrCpy(PCWSTR pszVal, size_t cchVal = SizeTMax) const
+	EckInlineNd CJsonMutVal NewStrCpy(PCWSTR pszVal, size_t cchVal = SizeTMax) const
 	{
 		if (cchVal == SizeTMax)
 			cchVal = wcslen(pszVal);
@@ -901,91 +945,91 @@ public:
 		return NewStrCpy(u8.Data(), u8.Size());
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewArr() const { return CJsonMutVal(yyjson_mut_arr(m_pDoc)); }
+	EckInlineNd CJsonMutVal NewArr() const { return CJsonMutVal(yyjson_mut_arr(m_pDoc)); }
 
-	EckInline [[nodiscard]] CJsonMutVal NewArr(const bool* pbVals, size_t cVals) const
+	EckInlineNd CJsonMutVal NewArr(const bool* pbVals, size_t cVals) const
 	{
 		return CJsonMutVal(yyjson_mut_arr_with_bool(m_pDoc, pbVals, cVals));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewArr(const int8_t* piVals, size_t cVals) const
+	EckInlineNd CJsonMutVal NewArr(const int8_t* piVals, size_t cVals) const
 	{
 		return CJsonMutVal(yyjson_mut_arr_with_sint8(m_pDoc, piVals, cVals));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewArr(const int16_t* piVals, size_t cVals) const
+	EckInlineNd CJsonMutVal NewArr(const int16_t* piVals, size_t cVals) const
 	{
 		return CJsonMutVal(yyjson_mut_arr_with_sint16(m_pDoc, piVals, cVals));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewArr(const int32_t* piVals, size_t cVals) const
+	EckInlineNd CJsonMutVal NewArr(const int32_t* piVals, size_t cVals) const
 	{
 		return CJsonMutVal(yyjson_mut_arr_with_sint32(m_pDoc, piVals, cVals));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewArr(const int64_t* piVals, size_t cVals) const
+	EckInlineNd CJsonMutVal NewArr(const int64_t* piVals, size_t cVals) const
 	{
 		return CJsonMutVal(yyjson_mut_arr_with_sint64(m_pDoc, piVals, cVals));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewArr(const uint8_t* puVals, size_t cVals) const
+	EckInlineNd CJsonMutVal NewArr(const uint8_t* puVals, size_t cVals) const
 	{
 		return CJsonMutVal(yyjson_mut_arr_with_uint8(m_pDoc, puVals, cVals));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewArr(const uint16_t* puVals, size_t cVals) const
+	EckInlineNd CJsonMutVal NewArr(const uint16_t* puVals, size_t cVals) const
 	{
 		return CJsonMutVal(yyjson_mut_arr_with_uint16(m_pDoc, puVals, cVals));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewArr(const uint32_t* puVals, size_t cVals) const
+	EckInlineNd CJsonMutVal NewArr(const uint32_t* puVals, size_t cVals) const
 	{
 		return CJsonMutVal(yyjson_mut_arr_with_uint32(m_pDoc, puVals, cVals));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewArr(const uint64_t* puVals, size_t cVals) const
+	EckInlineNd CJsonMutVal NewArr(const uint64_t* puVals, size_t cVals) const
 	{
 		return CJsonMutVal(yyjson_mut_arr_with_uint64(m_pDoc, puVals, cVals));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewArr(const float* pVals, size_t cVals) const
+	EckInlineNd CJsonMutVal NewArr(const float* pVals, size_t cVals) const
 	{
 		return CJsonMutVal(yyjson_mut_arr_with_float(m_pDoc, pVals, cVals));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewArr(const double* pdVals, size_t cVals) const
+	EckInlineNd CJsonMutVal NewArr(const double* pdVals, size_t cVals) const
 	{
 		return CJsonMutVal(yyjson_mut_arr_with_real(m_pDoc, pdVals, cVals));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewArr(const char** ppszVals, size_t cVals) const
+	EckInlineNd CJsonMutVal NewArr(const char** ppszVals, size_t cVals) const
 	{
 		return CJsonMutVal(yyjson_mut_arr_with_str(m_pDoc, ppszVals, cVals));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewArr(const char** ppszVals, const size_t* pcch, size_t cVals) const
+	EckInlineNd CJsonMutVal NewArr(const char** ppszVals, const size_t* pcch, size_t cVals) const
 	{
 		return CJsonMutVal(yyjson_mut_arr_with_strn(m_pDoc, ppszVals, pcch, cVals));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewArrCpy(const char** ppszVals, size_t cVals) const
+	EckInlineNd CJsonMutVal NewArrCpy(const char** ppszVals, size_t cVals) const
 	{
 		return CJsonMutVal(yyjson_mut_arr_with_strcpy(m_pDoc, ppszVals, cVals));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewArrCpy(const char** ppszVals, const size_t* pcch, size_t cVals) const
+	EckInlineNd CJsonMutVal NewArrCpy(const char** ppszVals, const size_t* pcch, size_t cVals) const
 	{
 		return CJsonMutVal(yyjson_mut_arr_with_strncpy(m_pDoc, ppszVals, pcch, cVals));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewObj() const { return CJsonMutVal(yyjson_mut_obj(m_pDoc)); }
+	EckInlineNd CJsonMutVal NewObj() const { return CJsonMutVal(yyjson_mut_obj(m_pDoc)); }
 
-	EckInline [[nodiscard]] CJsonMutVal NewObj(const char** ppszKeys, const char** pVals, size_t cPairs) const
+	EckInlineNd CJsonMutVal NewObj(const char** ppszKeys, const char** pVals, size_t cPairs) const
 	{
 		return CJsonMutVal(yyjson_mut_obj_with_str(m_pDoc, ppszKeys, pVals, cPairs));
 	}
 
-	EckInline [[nodiscard]] CJsonMutVal NewObj(const char** ppszKV, size_t cPairs) const
+	EckInlineNd CJsonMutVal NewObj(const char** ppszKV, size_t cPairs) const
 	{
 		return CJsonMutVal(yyjson_mut_obj_with_kv(m_pDoc, ppszKV, cPairs));
 	}
@@ -1040,7 +1084,7 @@ inline CJsonMutVal CJsonInitProxy::ToMutVal(const CMutJson& Doc) const
 			EckAssert(Val.pObj->size() % 2 == 0 && L"对象键值总数必须为偶数");
 			CJsonMutVal Ret{ Doc.NewObj() };
 			CJsonMutVal Key{ nullptr };
-			for (size_t i{}; const auto & e : *Val.pObj)
+			for (size_t i{}; const auto& e : *Val.pObj)
 			{
 				if (i % 2 == 0)
 					Key = e.ToMutVal(Doc);
@@ -1069,9 +1113,9 @@ struct CJsonMutArrIter
 
 	EckInline void FromVal(CJsonMutVal val) { m_iter = yyjson_mut_arr_iter_with(val.GetValPtr()); }
 
-	EckInline [[nodiscard]] BOOL HasNext() const { return yyjson_mut_arr_iter_has_next((YyMutArrIter*)&m_iter); }
+	EckInlineNd BOOL HasNext() const { return yyjson_mut_arr_iter_has_next((YyMutArrIter*)&m_iter); }
 
-	EckInline [[nodiscard]] CJsonMutVal Next() { return CJsonMutVal(yyjson_mut_arr_iter_next(&m_iter)); }
+	EckInlineNd CJsonMutVal Next() { return CJsonMutVal(yyjson_mut_arr_iter_next(&m_iter)); }
 
 	EckInline CJsonMutVal Remove() { return yyjson_mut_arr_iter_remove(&m_iter); }
 
@@ -1099,13 +1143,13 @@ struct CJsonMutObjIter
 
 	EckInline void FromVal(CJsonMutVal val) { m_iter = yyjson_mut_obj_iter_with(val.GetValPtr()); }
 
-	EckInline [[nodiscard]] BOOL HasNext() const { return yyjson_mut_obj_iter_has_next((YyMutObjIter*)&m_iter); }
+	EckInlineNd BOOL HasNext() const { return yyjson_mut_obj_iter_has_next((YyMutObjIter*)&m_iter); }
 
-	EckInline [[nodiscard]] CJsonMutVal Next() { return CJsonMutVal(yyjson_mut_obj_iter_next(&m_iter)); }
+	EckInlineNd CJsonMutVal Next() { return CJsonMutVal(yyjson_mut_obj_iter_next(&m_iter)); }
 
-	EckInline [[nodiscard]] CJsonMutVal Get(PCSTR pszKey) { return yyjson_mut_obj_iter_get(&m_iter, pszKey); }
+	EckInlineNd CJsonMutVal Get(PCSTR pszKey) { return yyjson_mut_obj_iter_get(&m_iter, pszKey); }
 
-	EckInline [[nodiscard]] CJsonMutVal Get(PCSTR pszKey, size_t cchKey) { return yyjson_mut_obj_iter_getn(&m_iter, pszKey, cchKey); }
+	EckInlineNd CJsonMutVal Get(PCSTR pszKey, size_t cchKey) { return yyjson_mut_obj_iter_getn(&m_iter, pszKey, cchKey); }
 
 	EckInline CJsonMutVal Remove() { return yyjson_mut_obj_iter_remove(&m_iter); }
 
@@ -1145,27 +1189,27 @@ struct CJsonMutObjProxy
 
 
 
-EckInline [[nodiscard]] CMutJson CJson::Clone(const YyAlc* pAlc) const
+EckInlineNd CMutJson CJson::Clone(const YyAlc* pAlc) const
 {
 	return CMutJson(yyjson_doc_mut_copy(m_pDoc, pAlc));
 }
 
-EckInline [[nodiscard]] CJsonArrProxy CJsonVal::AsArr() const
+EckInlineNd CJsonArrProxy CJsonVal::AsArr() const
 {
 	return CJsonArrProxy(*this);
 }
 
-EckInline [[nodiscard]] CJsonObjProxy CJsonVal::AsObj() const
+EckInlineNd CJsonObjProxy CJsonVal::AsObj() const
 {
 	return CJsonObjProxy(*this);
 }
 
-EckInline [[nodiscard]] CJsonMutArrProxy CJsonMutVal::AsArr() const
+EckInlineNd CJsonMutArrProxy CJsonMutVal::AsArr() const
 {
 	return CJsonMutArrProxy(*this);
 }
 
-EckInline [[nodiscard]] CJsonMutObjProxy CJsonMutVal::AsObj() const
+EckInlineNd CJsonMutObjProxy CJsonMutVal::AsObj() const
 {
 	return CJsonMutObjProxy(*this);
 }

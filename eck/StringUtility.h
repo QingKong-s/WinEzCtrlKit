@@ -673,7 +673,7 @@ EckInlineNd int FindCharRevLen(_In_reads_(cchText) TPtr pszText, int cchText,
 	if (posStart < 0)
 		posStart = cchText - 1;
 	EckAssert(posStart >= 0 && posStart <= cchText);
-	const auto pFind = TcsRCharLen(pszText + posStart, cchText - posStart, ch);
+	const auto pFind = TcsRCharLen(pszText, std::min(posStart + 1, cchText), ch);
 	return pFind ? int(pFind - pszText) : StrNPos;
 }
 
@@ -768,11 +768,9 @@ inline void SplitStr(TPtr pszText, int cchText,
 	int c{};
 	while (pszFind)
 	{
-		if constexpr (std::is_same_v<decltype(Processor(nullptr, 0)), void>)
-			Processor((TChar*)pszPrevFirst, int(pszFind - pszPrevFirst));
-		else
-			if (Processor((TChar*)pszPrevFirst, int(pszFind - pszPrevFirst)))
-				return;
+		EckCanCallbackContinue(Processor(
+			(TChar*)pszPrevFirst, int(pszFind - pszPrevFirst)))
+			return;
 		++c;
 		if (c == cSubTextExpected)
 			return;
@@ -807,11 +805,9 @@ inline void SplitStrWithMultiChar(TPtr pszText, int cchText,
 	int c{};
 	while (pszFind)
 	{
-		if constexpr (std::is_same_v<decltype(Processor(nullptr, 0)), void>)
-			Processor((TChar*)pszPrevFirst, int(pszFind - pszPrevFirst));
-		else
-			if (Processor((TChar*)pszPrevFirst, int(pszFind - pszPrevFirst)))
-				return;
+		EckCanCallbackContinue(Processor(
+			(TChar*)pszPrevFirst, int(pszFind - pszPrevFirst)))
+			return;
 		++c;
 		if (c == cSubTextExpected)
 			return;
@@ -840,7 +836,6 @@ EckInline void SplitStrAndCut(TPtr pszText, int cchText, ConstStdCharPtr_T<TPtr>
 		{
 			*(pszStart + cchSub) = 0;
 			vResult.push_back(pszStart);
-			return FALSE;
 		});
 }
 
@@ -855,7 +850,6 @@ EckInline void SplitStrWithMultiCharAndCut(TPtr pszText, int cchText,
 		{
 			*(pszStart + cchSub) = 0;
 			vResult.push_back(pszStart);
-			return FALSE;
 		});
 }
 

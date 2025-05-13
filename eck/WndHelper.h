@@ -972,7 +972,6 @@ inline BOOL MsgOnSettingChangeMainWnd(HWND hWnd, WPARAM wParam, LPARAM lParam,
 			RefreshImmersiveColorStuff();
 		if (ptc->bAppDarkMode != ShouldAppsUseDarkMode())
 		{
-			ptc->bAppDarkMode = ShouldAppsUseDarkMode();
 			ptc->UpdateDefColor();
 			ptc->SetNcDarkModeForAllTopWnd(ShouldAppsUseDarkMode());
 			BroadcastChildrenMessage(hWnd, WM_SETTINGCHANGE, wParam, lParam);
