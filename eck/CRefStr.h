@@ -961,7 +961,7 @@ public:
 	{
 		if (IsEmpty())
 			return StrNPos;
-		return FindCharRev(Data(), Size(), ch, posStart);
+		return FindCharRevLen(Data(), Size(), ch, posStart);
 	}
 
 	EckInlineNd int FindFirstOf(TConstPointer pszChars, int cchChars = -1, int posStart = 0) const

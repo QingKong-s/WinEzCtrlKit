@@ -305,6 +305,7 @@ struct CPUINFO
 /// <returns>错误代码</returns>
 inline HRESULT GetCpuInfo(CPUINFO& ci)
 {
+#if !defined(_M_ARM64) && !defined(_M_ARM)
 	int Register[4];
 	// 取制造商
 	__cpuid(Register, 0);
@@ -393,6 +394,9 @@ inline HRESULT GetCpuInfo(CPUINFO& ci)
 	pWbemSrv->Release();
 	pWbemLoc->Release();
 	return S_OK;
+#else
+	return E_NOTIMPL;
+#endif// __arm__
 }
 
 /// <summary>

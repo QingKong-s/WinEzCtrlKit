@@ -865,6 +865,7 @@ namespace Priv
 	{
 		UINT nPriority;	// 值越小优先级越高
 		std::variant<std::function<void()>, void*> Callback;
+		ULONGLONG Tag;
 
 		constexpr std::weak_ordering operator<=>(const QueuedCallback& x) const
 		{
@@ -885,22 +886,42 @@ namespace Priv
 		}
 
 		template<class F>
-		void EnQueueCallback(F&& fnCallback, UINT nPriority = UINT_MAX, BOOL bWakeUiThread = TRUE)
+		void EnQueueCallback(F&& fnCallback, UINT nPriority = UINT_MAX,
+			BOOL bWakeUiThread = TRUE, ULONGLONG Tag = 0ull,
+			BOOL bClearExistingTag = FALSE)
 		{
 			RtlAcquireSRWLockExclusive(&Lk);
+			if (bClearExistingTag && !q.empty())
+			{
+				for (size_t i{ q.size() - 1 }; i; --i)
+				{
+					if (q[i].Tag == Tag)
+						q.erase(q.begin() + i);
+				}
+			}
 			q.emplace_back(nPriority,
-				std::function<void()>{ std::forward<F>(fnCallback) });
+				std::function<void()>{ std::forward<F>(fnCallback) }, Tag);
 			std::push_heap(q.begin(), q.end());
 			RtlReleaseSRWLockExclusive(&Lk);
 			if (bWakeUiThread)
 				PostThreadMessageW(dwTid, WM_NULL, 0, 0);
 		}
 
-		void EnQueueCoroutine(void* pCoroutine, UINT nPriority = UINT_MAX, BOOL bWakeUiThread = TRUE)
+		void EnQueueCoroutine(void* pCoroutine, UINT nPriority = UINT_MAX,
+			BOOL bWakeUiThread = TRUE, ULONGLONG Tag = 0ull, 
+			BOOL bClearExistingTag = FALSE)
 		{
 			EckAssert(pCoroutine);
 			RtlAcquireSRWLockExclusive(&Lk);
-			q.emplace_back(nPriority, pCoroutine);
+			if (bClearExistingTag && !q.empty())
+			{
+				for (size_t i{ q.size() - 1 }; i; --i)
+				{
+					if (q[i].Tag == Tag)
+						q.erase(q.begin() + i);
+				}
+			}
+			q.emplace_back(nPriority, pCoroutine, Tag);
 			std::push_heap(q.begin(), q.end());
 			RtlReleaseSRWLockExclusive(&Lk);
 			if (bWakeUiThread)

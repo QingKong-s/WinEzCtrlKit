@@ -360,7 +360,7 @@ struct CHttpRequestAsync
 	std::variant<CRefBin, CRefStrW, ComPtr<IStream>> Response{};
 
 	// 异步发送请求
-	// 进度结果：(已接收字节数， Content-Length)，其中Content-Length可能为0
+	// 进度结果：(已接收字节数，Content-Length)，其中Content-Length可能为0
 	Task DoRequest(PCWSTR pszMethod, PCWSTR pszUrl,
 		int cchUrl = -1, PCWSTR pszUserAgent = nullptr, PCWSTR pszProxy = nullptr)
 	{
@@ -442,10 +442,12 @@ struct CHttpRequestAsync
 							HeaderGetParam(rs.Data(), EckStrAndLen(L"Content-Length"));
 						if (!svContentLength.empty())
 						{
-							const auto cbContent = _wcstoui64(svContentLength.data(), nullptr, 10);
-
+							const auto cbContent = _wcstoui64(
+								svContentLength.data(), nullptr, 10);
+							pCtx->cbTotal = (SIZE_T)cbContent;
 							if (pCtx->pThis->Response.index() == 0)
-								std::get<CRefBin>(pCtx->pThis->Response).Reserve((size_t)cbContent);
+								std::get<CRefBin>(pCtx->pThis->Response)
+								.Reserve((size_t)cbContent);
 						}
 					}
 
@@ -503,12 +505,9 @@ struct CHttpRequestAsync
 
 				case WINHTTP_CALLBACK_STATUS_READ_COMPLETE:
 				{
-					if (pCtx->cbTotal)
-					{
-						pCtx->cbRead += dwStatusInformationLength;
-						pCtx->Token.GetPromise().OnProgress(
-							std::make_pair(pCtx->cbRead, pCtx->cbTotal));
-					}
+					pCtx->cbRead += dwStatusInformationLength;
+					pCtx->Token.GetPromise().OnProgress(
+						std::make_pair(pCtx->cbRead, pCtx->cbTotal));
 					switch (pCtx->pThis->Response.index())
 					{
 					case 0:
@@ -603,6 +602,7 @@ struct CHttpRequestAsync
 				&dwFlags, sizeof(dwFlags)))
 				co_return HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue);
 		}
+		WinHttpSetTimeouts(hRequest.get(), 5000, 5000, 5000, 5000);
 
 		Ctx.hRequest = hRequest.release();
 

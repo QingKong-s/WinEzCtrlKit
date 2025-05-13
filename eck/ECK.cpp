@@ -1903,6 +1903,7 @@ void THREADCTX::SetNcDarkModeForAllTopWnd(BOOL bDark)
 
 void THREADCTX::UpdateDefColor()
 {
+	bAppDarkMode = ShouldAppsUseDarkMode();
 	const auto bDark = GetItemsViewForeBackColor(crDefText, crDefBkg);
 	crDefBtnFace = (bDark ? 0x303030 : GetSysColor(COLOR_BTNFACE));
 	crBlue1 = (bDark ? RGB(0, 168, 255) : RGB(0, 51, 153));

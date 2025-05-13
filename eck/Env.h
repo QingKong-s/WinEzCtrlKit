@@ -49,7 +49,13 @@
 #pragma comment(lib, "Msi.lib")
 #pragma comment(lib, "Taskschd.lib")
 
-#ifdef _WIN64
+#ifdef _M_ARM64
+#	ifdef _DEBUG
+#		pragma comment(lib,"eck\\Detours\\detours_arm64d.lib")
+#	else
+#		pragma comment(lib,"eck\\Detours\\detours_arm64.lib")
+#	endif
+#elif defined(_WIN64)
 #	ifdef _DEBUG
 #		pragma comment(lib,"eck\\Detours\\detours_x64d.lib")
 #	else
