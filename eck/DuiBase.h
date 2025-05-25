@@ -50,7 +50,7 @@ D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT | D2D1_DRAW_TEXT_OPTIONS_NO_SNAP;
 
 enum : int
 {
-	CxyMinScrollThumb = 16,
+	CxyMinScrollThumb = 20,
 };
 
 class CElem :public ILayout

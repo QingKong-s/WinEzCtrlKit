@@ -198,7 +198,7 @@ struct MUSICINFO
 	short cTotalDisc{};	// 总碟片数
 
 	// 取主封面。函数遍历图片列表，然后按照 封面 > 封底 > 第一幅图片 的优先级顺序返回指定的图片，若失败则返回NULL
-	const MUSICPIC* GetMainCover() const
+	MUSICPIC* GetMainCover()
 	{
 		if (vImage.empty())
 			return nullptr;

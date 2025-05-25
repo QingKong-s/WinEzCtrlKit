@@ -21,7 +21,8 @@ protected:
 	LPARAM m_lParam = 0;
 
 	LONG m_cRef = 1;
-	BOOL m_bValid = FALSE;
+	BOOLEAN m_bValid = FALSE;
+	BOOLEAN m_bStop = TRUE;
 public:
 	// **IUnknown**
 	ULONG STDMETHODCALLTYPE AddRef(void) { return ++m_cRef; }
@@ -57,6 +58,7 @@ public:
 		if (iCurr > GetMaxWithPage())
 		{
 			SetPos(GetMaxWithPage());
+			m_bStop = TRUE;
 			m_pfnCallBack(GetPos(), iPrevPos, m_lParam);
 			InterruptAnimation();
 			return;
@@ -64,8 +66,9 @@ public:
 		else
 		{
 			SetPos(iCurr);
+			m_bStop = (m_iSustain >= m_iDuration);
 			m_pfnCallBack(GetPos(), iPrevPos, m_lParam);
-			if (m_iSustain >= m_iDuration)
+			if (m_bStop)
 				InterruptAnimation();
 		}
 	}
@@ -117,5 +120,7 @@ public:
 	EckInline int GetDuration() const { return m_iDuration; }
 
 	EckInline void SetDelta(int iDelta) { m_iDelta = iDelta; }
+
+	EckInlineNdCe BOOL IsStop() const { return m_bStop; }
 };
 ECK_NAMESPACE_END

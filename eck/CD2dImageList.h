@@ -11,23 +11,28 @@ class CD2DImageList : public CRefObjMultiThread<CD2DImageList>
 private:
 	CSrwLock m_Lk{};
 	ID2D1DeviceContext* m_pDC{};
-	std::vector<ID2D1Bitmap*> m_vBmp{};
+	std::vector<ID2D1Bitmap1*> m_vBmp{};
 	CSelRange m_FreeRange{};
 	D2D1_PIXEL_FORMAT m_PixelFormat{};
 
-	int m_cx = 0;
-	int m_cy = 0;
+	int m_cx = 0;	// 逻辑单位
+	int m_cy = 0;	// 逻辑单位
 	int m_iPadding = 10;
 
 	int m_cImg = 0;
 
 	int m_cImgPerPack = 50;
 
+	int m_iDpi = 96;
+
 	LONG m_cRef{ 1 };
 
-	EckInline constexpr D2D1_SIZE_U GetPackSize() const
+	EckInline constexpr D2D1_SIZE_U PhyGetPackSize() const
 	{
-		return { (UINT32)m_cx, (UINT32)((m_cy + m_iPadding) * m_cImgPerPack) };
+		return {
+			(UINT32)DpiScale(m_cx, m_iDpi),
+			(UINT32)DpiScale((m_cy + m_iPadding) * m_cImgPerPack, m_iDpi)
+		};
 	}
 
 	HRESULT ReAlloc(int cImg)
@@ -37,11 +42,18 @@ private:
 		const int idxBegin = (int)m_vBmp.size();
 		const int cPack = (cImg + m_cImgPerPack) / m_cImgPerPack;
 		m_vBmp.resize(cPack);
+		D2D1_BITMAP_PROPERTIES1 BmpProp;
+		BmpProp.pixelFormat = m_PixelFormat;
+		m_pDC->GetDpi(&BmpProp.dpiX, &BmpProp.dpiY);
+		BmpProp.bitmapOptions = D2D1_BITMAP_OPTIONS_TARGET;
+		BmpProp.colorContext = nullptr;
+
+		const auto Size = PhyGetPackSize();
 		for (int i = idxBegin; i < (int)m_vBmp.size(); ++i)
 		{
-			ID2D1Bitmap* pBmp;
-			if (HRESULT hr; FAILED(hr = m_pDC->CreateBitmap(GetPackSize(), nullptr, 0,
-				D2D1::BitmapProperties(m_PixelFormat), &pBmp))) ECKUNLIKELY
+			ID2D1Bitmap1* pBmp;
+			if (HRESULT hr; FAILED(hr = m_pDC->CreateBitmap(
+				Size, nullptr, 0, BmpProp, &pBmp))) ECKUNLIKELY
 			{
 				// 若失败，回滚到调用此方法前的状态
 				for (int j = idxBegin; j < i; ++j)
@@ -65,12 +77,22 @@ private:
 		return idxImg % m_cImgPerPack;
 	}
 
-	EckInline constexpr int CalcY(int idxImgInPack) const
+	EckInline constexpr int PhyCalcY(int idxImgInPack) const
+	{
+		return DpiScale(LogCalcY(idxImgInPack), m_iDpi);
+	}
+
+	EckInline constexpr int PhyCalcYFromImgIndex(int idxImg) const
+	{
+		return DpiScale(LogCalcYFromImgIndex(idxImg), m_iDpi);
+	}
+
+	EckInline constexpr int LogCalcY(int idxImgInPack) const
 	{
 		return idxImgInPack * (m_cy + m_iPadding);
 	}
 
-	EckInline constexpr int CalcYFromImgIndex(int idxImg) const
+	EckInline constexpr int LogCalcYFromImgIndex(int idxImg) const
 	{
 		return CalcImgIndexInPack(idxImg) * (m_cy + m_iPadding);
 	}
@@ -105,6 +127,9 @@ public:
 		if (m_PixelFormat.format == DXGI_FORMAT_UNKNOWN)
 			m_PixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM;
 		m_PixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
+		float fDpiX, fDpiY;
+		pRT->GetDpi(&fDpiX, &fDpiY);
+		m_iDpi = (int)(fDpiX + 0.5f);
 		return pRT->QueryInterface(&m_pDC);
 	}
 
@@ -150,11 +175,11 @@ public:
 			return -1;
 		}
 
-		const D2D1_POINT_2U ptDst{ 0,(UINT32)CalcY(CalcImgIndexInPack(m_cImg)) };
+		const D2D1_POINT_2U ptDst{ 0,(UINT32)PhyCalcY(CalcImgIndexInPack(m_cImg - 1)) };
 		D2D1_RECT_U rc;
 		if (!prcSrc)
 		{
-			rc = { 0,0, (UINT32)m_cx, (UINT32)m_cy };
+			rc = { 0,0, (UINT32)DpiScale(m_cx, m_iDpi), (UINT32)DpiScale(m_cy, m_iDpi) };
 			prcSrc = &rc;
 		}
 
@@ -188,15 +213,14 @@ public:
 	{
 		EckAssert(idxImg >= 0 && idxImg < m_cImg);
 		CSrwWriteGuard _{ m_Lk };
-		const int y = CalcYFromImgIndex(idxImg);
+		const int y = LogCalcYFromImgIndex(idxImg);
 		const D2D1_RECT_F rcSrc
 		{
 			0.f,
 			(float)y,
-			(float)m_cx,
+			(float)m_cx * 2,
 			float(y + m_cy)
 		};
-
 		m_pDC->DrawBitmap(m_vBmp[CalcPackIndex(idxImg)], rcDst, fAlpha,
 			iInterpolationMode, &rcSrc, pPerspectiveMatrix);
 		return S_OK;
@@ -216,7 +240,7 @@ public:
 	{
 		EckAssert(idxImg >= 0 && idxImg < m_cImg);
 		CSrwWriteGuard _{ m_Lk };
-		const int y = CalcYFromImgIndex(idxImg);
+		const int y = LogCalcYFromImgIndex(idxImg);
 		const D2D1_RECT_F rcSrc
 		{
 			0.f,
@@ -249,7 +273,7 @@ public:
 		}
 
 		pFx->SetInput(0, m_vBmp[CalcPackIndex(idxImg)]);
-		const int y = CalcYFromImgIndex(idxImg);
+		const int y = LogCalcYFromImgIndex(idxImg);
 		pFx->SetValue(D2D1_ATLAS_PROP_INPUT_RECT,
 			D2D1::Vector4F(0.0f, (float)y, (float)m_cx, (float)(y + m_cy)));
 
@@ -298,11 +322,11 @@ public:
 		if (pidxNew)
 			*pidxNew = idxImg;
 
-		const D2D1_POINT_2U ptDst{ 0,(UINT32)CalcYFromImgIndex(idxImg) };
+		const D2D1_POINT_2U ptDst{ 0,(UINT32)PhyCalcYFromImgIndex(idxImg) };
 		D2D1_RECT_U rc;
 		if (!prcSrc)
 		{
-			rc = { 0,0, (UINT32)m_cx, (UINT32)m_cy };
+			rc = { 0,0, (UINT32)DpiScale(m_cx, m_iDpi), (UINT32)DpiScale(m_cy, m_iDpi) };
 			prcSrc = &rc;
 		}
 

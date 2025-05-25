@@ -742,4 +742,19 @@ inline void RestartExplorer()
 		NtClose(hProcess);
 	}
 }
+
+inline SIZE GetCursorSize(int iDpi)
+{
+	HKEY hKey;
+	DWORD dwBaseSize{}, cb{ sizeof(DWORD) };
+	RegOpenKeyExW(HKEY_CURRENT_USER, LR"(Control Panel\Cursors)",
+		0, KEY_READ, &hKey);
+	if (hKey)
+	{
+		RegQueryValueExW(hKey, L"CursorBaseSize", nullptr,
+			nullptr, (PBYTE)&dwBaseSize, &cb);
+		RegCloseKey(hKey);
+	}
+	return { (int)dwBaseSize,(int)dwBaseSize };
+}
 ECK_NAMESPACE_END

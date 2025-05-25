@@ -122,10 +122,12 @@ private:
 	BITBOOL m_bCaretShow : 1{};
 	BITBOOL m_bHot : 1{};
 
-	BITBOOL m_bAutoSyncTextFmt : 1{ TRUE };// 收到WM_SETFONT时是否同步文本格式
+	// 收到WM_SETFONT时是否同步文本格式
+	BITBOOL m_bAutoSyncTextFmt : 1{ TRUE };
 	// 指示使用RichEdit内部自带滚动机制，因在渲染线程操作RE的影响未知，故提供此后备选项
 	BITBOOL m_bREScrollAn : 1{};
-	BITBOOL m_bSlAutoAlignV : 1{};// 单行模式下按m_eSingleLineAlignV字段垂直对齐
+	// 单行模式下按m_eSingleLineAlignV字段垂直对齐
+	BITBOOL m_bSlAutoAlignV : 1{ TRUE };
 public:
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
@@ -1159,14 +1161,46 @@ inline HRESULT CEditTextHost::TxGetViewInset(LPRECT prc)
 {
 	const auto iDpi = m_pEdit->GetWnd()->GetDpiValue();
 	const auto& mgPix = m_pEdit->m_mgTextAera;
-	*prc =
+	if (m_pEdit->m_bSlAutoAlignV &&
+		!(m_pEdit->m_dwTxProp & TXTBIT_MULTILINE))
 	{
-		mgPix.left * 2540 / 96,
-		mgPix.top * 2540 / 96,
-		mgPix.right * 2540 / 96,
-		mgPix.bottom * 2540 / 96
-	};
-	DpiScale(*prc, iDpi, 96);
+		if (m_pEdit->m_eSingleLineAlignV == Align::Near)
+			goto Normal;
+		const auto cy = (int)roundf(
+			m_pEdit->m_DefCharFormat.yHeight * 96.f / 1440.f) +
+			DpiScale(2, iDpi);
+		int cyTop, cyBtm;
+		const auto cyExtra = DpiScale(m_pEdit->GetHeight() -
+			mgPix.top - mgPix.bottom, iDpi);
+		if (m_pEdit->m_eSingleLineAlignV == Align::Center)
+		{
+			const auto t = (cyExtra - cy) / 2;
+			cyTop = DpiScale(mgPix.top, iDpi) + t;
+			cyBtm = DpiScale(mgPix.bottom, iDpi) + t;
+		}
+		else
+		{
+			cyTop = DpiScale(mgPix.top, iDpi) + (cyExtra - cy);
+			cyBtm = DpiScale(mgPix.bottom, iDpi);
+		}
+		*prc = {
+			DpiScale(mgPix.left * 2540 / 96, iDpi),
+			cyTop * 2540 / 96,
+			DpiScale(mgPix.right * 2540 / 96, iDpi),
+			cyBtm * 2540 / 96
+		};
+	}
+	else
+	{
+	Normal:
+		*prc = {
+			mgPix.left * 2540 / 96,
+			mgPix.top * 2540 / 96,
+			mgPix.right * 2540 / 96,
+			mgPix.bottom * 2540 / 96
+		};
+		DpiScale(*prc, iDpi);
+	}
 	return S_OK;
 }
 

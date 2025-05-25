@@ -1282,13 +1282,16 @@ static HRESULT WINAPI NewDrawThemeParentBackground(HWND hWnd, HDC hDC, const REC
 	{
 		if (!ShouldAppsUseDarkMode())
 			return hr;
+		const auto* const ptc = GetThreadCtx();
+		if (!ptc)
+			return hr;
 		RECT rc;
 		if (!prc)
 		{
 			GetClipBox(hDC, &rc);
 			prc = &rc;
 		}
-		SetDCBrushColor(hDC, GetThreadCtx()->crDefBkg);
+		SetDCBrushColor(hDC, ptc->crDefBkg);
 		FillRect(hDC, prc, GetStockBrush(DC_BRUSH));
 	}
 	return S_OK;
