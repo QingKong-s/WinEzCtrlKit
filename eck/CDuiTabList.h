@@ -4,7 +4,7 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-struct TBL_DISPINFO :DUINMHDR
+struct TBL_DISPINFO : DUINMHDR
 {
 	DispInfoMask uMask;
 	int idx;
@@ -12,6 +12,11 @@ struct TBL_DISPINFO :DUINMHDR
 	int cchText;
 	int idxImage;
 	ID2D1Bitmap* pImage;
+};
+
+struct TBL_ITEM : DUINMHDR
+{
+	int idx;
 };
 
 class CTabList : public CListTemplate
@@ -83,7 +88,7 @@ protected:
 		}
 		if (e.pLayout.Get())
 		{
-			if (rcPaint.left < x && rcPaint.right > x)
+			if (rcPaint.right >= x)
 			{
 				D2D1_COLOR_F cr;
 				GetTheme()->GetSysColor(SysColor::Text, cr);
@@ -219,6 +224,11 @@ public:
 			const auto* const p = (LTN_ITEMCHANGE*)pnm;
 			if ((p->uFlagsOld & LEIF_SELECTED) && !(p->uFlagsNew & LEIF_SELECTED))
 				return TRUE;
+			else
+			{
+				TBL_ITEM nm{ TBLE_SELCHANGED,p->idx };
+				GenElemNotify(&nm);
+			}
 		}
 		return 0;
 	}

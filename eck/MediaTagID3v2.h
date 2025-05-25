@@ -56,23 +56,25 @@ private:
 				cb = (int)wcslen((PCWSTR)w.Data()) * sizeof(WCHAR);
 				cbTNull = 2u;
 			}
-
-			if (*(PWSTR)w.Data() == L'\xFEFF')// 跳BOM
-			{
-				w += sizeof(WCHAR);
-				cb -= sizeof(WCHAR);
-			}
-			else if (*(PWSTR)w.Data() == L'\xFFFE')// for ID3v2.3
-			{
-				w += sizeof(WCHAR);
-				cb -= sizeof(WCHAR);
-				goto Utf16BE;
-			}
+			if (cb)
+				if (memcmp(w.Data(), BOM_UTF16LE, 2) == 0)// 跳BOM
+				{
+					w += sizeof(WCHAR);
+					cb -= sizeof(WCHAR);
+				}
+				else if (memcmp(w.Data(), BOM_UTF16BE, 2) == 0)// for ID3v2.3
+				{
+					w += sizeof(WCHAR);
+					cb -= sizeof(WCHAR);
+					goto Utf16BE;
+				}
 
 			if (cb)
 			{
 				cchBuf = cb / sizeof(WCHAR);
 				rsResult.ReSize(cchBuf);
+				if (cchBuf < 0)
+					DebugBreak();
 				wmemcpy(rsResult.Data(), (PWSTR)w.Data(), cchBuf);
 			}
 			break;
@@ -84,7 +86,7 @@ private:
 				cbTNull = 2u;
 			}
 
-			if (*(PWSTR)w.Data() == L'\xFFFE')// 跳BOM
+			if (cb && memcmp(w.Data(), BOM_UTF16BE, 2) == 0)// 跳BOM
 			{
 				w += sizeof(WCHAR);
 				cb -= sizeof(WCHAR);
@@ -450,7 +452,7 @@ public:
 			for (const auto& e : v)
 				cch += (e.Size() + 1);
 			rs.ReSize(bAddTerNull ? cch : cch - 1);
-			for (PWSTR psz = rs.Data(); const auto & e : v)
+			for (PWSTR psz = rs.Data(); const auto& e : v)
 			{
 				wmemcpy(psz, e.Data(), e.Size() + 1);
 				psz += (e.Size() + 1);
@@ -1218,7 +1220,7 @@ public:
 			if (!cch)
 				return Result::EmptyData;
 			CRefStrW rs(cch);
-			for (PWSTR psz = rs.Data(); const auto & e : vMap)
+			for (PWSTR psz = rs.Data(); const auto& e : vMap)
 			{
 				wmemcpy(psz, e.rsPosition.Data(), e.rsPosition.Size() + 1);
 				psz += (e.rsPosition.Size() + 1);

@@ -93,7 +93,7 @@ public:
 
 	EckInline HRESULT NewFont(_Out_ IDWriteTextFormat*& pTf,
 		Align eAlignText = Align::Near, Align eAlignPara = Align::Near,
-		float fSize = -1.f, int iWeight = 400) noexcept
+		float fSize = -1.f, int iWeight = 400, BOOL bEllipsis = FALSE) noexcept
 	{
 		const auto hr = NewFont(pTf, m_Template.rsFace.Data(),
 			fSize < 0.f ? m_Template.cy : fSize,
@@ -116,6 +116,13 @@ public:
 			case Align::Center: e2 = DWRITE_TEXT_ALIGNMENT_CENTER; break;
 			}
 			pTf->SetTextAlignment(e2);
+			if (bEllipsis)
+			{
+				ComPtr<IDWriteInlineObject> pEllipsis;
+				g_pDwFactory->CreateEllipsisTrimmingSign(pTf, &pEllipsis);
+				constexpr DWRITE_TRIMMING Opt{ DWRITE_TRIMMING_GRANULARITY_CHARACTER };
+				pTf->SetTrimming(&Opt, pEllipsis.Get());
+			}
 		}
 		return hr;
 	}

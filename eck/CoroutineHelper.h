@@ -382,6 +382,7 @@ namespace Priv
 
 		void await_resume() const
 		{
+			pPro->SetCanceller(nullptr, nullptr);
 #ifdef __cpp_exceptions
 			if (pPro->IsCanceled())
 				throw CExceptionCoroCancelled{};

@@ -120,9 +120,8 @@ private:
 		const float Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
 		auto& e = idxGroup < 0 ? m_vItem[idx] : m_Group[idxGroup].Item[idx];
 		auto& pTl = (idxSub ? e.vSubItem[idxSub - 1].pLayout : e.pLayout);
-		if (!pTl.Get() && es.Item.pszText)
+		if (!pTl.Get() && es.Item.pszText && es.Item.cchText > 0)
 		{
-			EckAssert(es.Item.cchText > 0);
 			g_pDwFactory->CreateTextLayout(es.Item.pszText, es.Item.cchText,
 				GetTextFormat(),
 				rcSub.right - rcSub.left - Padding * 3 - sizeImg.width,
