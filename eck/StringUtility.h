@@ -719,6 +719,10 @@ _Ret_maybenull_ EckInlineNd TPtr LTrimStr(_In_z_ TPtr pszText)
 template<ccpIsStdCharPtr TPtr>
 EckInlineNd TPtr LTrimStr(_In_reads_(cchText) TPtr pszText, int cchText)
 {
+	if (cchText < 0)
+		cchText = (int)TcsLen(pszText);
+	if (!cchText)
+		return pszText;
 	TPtr pFind;
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
 		pFind = (TPtr)TcsChrFirstNotOf(pszText, cchText, EckStrAndLen(SpaceCharsA));
@@ -732,6 +736,8 @@ EckInlineNd TPtr RTrimStr(_In_reads_(cchText) TPtr pszText, int cchText)
 {
 	if (cchText < 0)
 		cchText = (int)TcsLen(pszText);
+	if (!cchText)
+		return pszText;
 	TPtr pFind;
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
 		pFind = (TPtr)TcsChrLastNotOf(pszText, cchText, EckStrAndLen(SpaceCharsA));

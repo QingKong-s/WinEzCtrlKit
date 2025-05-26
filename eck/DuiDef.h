@@ -85,16 +85,16 @@ enum :UINT
 enum class PresentMode : BYTE
 {
 	// WS_EX_NRB = WS_EX_NOREDIRECTIONBITMAP
-	//						|最小等待	|	   透明混合		|
-	BitBltSwapChain,	//	|	0	|支持，必须无WS_EX_NRB|
-	FlipSwapChain,		//	|	1	|	   不支持		|
-	DCompositionSurface,//	|	0	|		支持			|
-	WindowRenderTarget,	//  |	1	|支持，必须无WS_EX_NRB|
-	AllDComp,			//	|	0	|		支持			|FIXME
-	DCompositionVisual,	//  | 不适用	|		支持			|
-	DxgiSurface,		//	| 不适用	|		支持			|TODO
-	GdiRenderTarget,	//	| 不适用	|		支持			|TODO
-	UpdateLayeredWindow,//  |   0	|		支持			|TODO
+	//						|	   透明混合		|
+	BitBltSwapChain,	//	|支持，必须无WS_EX_NRB|
+	FlipSwapChain,		//	|	   不支持		|
+	DCompositionSurface,//	|		支持			|
+	WindowRenderTarget,	//  |支持，必须无WS_EX_NRB|
+	AllDComp,			//	|		支持			|FIXME
+	DCompositionVisual,	//  |		支持			|
+	DxgiSurface,		//	|		支持			|TODO
+	GdiRenderTarget,	//	|		支持			|TODO
+	UpdateLayeredWindow,//  |		支持			|TODO
 };
 
 // 渲染事件代码

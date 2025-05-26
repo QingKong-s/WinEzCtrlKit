@@ -601,7 +601,7 @@ public:
 	/// <summary>
 	/// 消息处理函数
 	/// </summary>
-	EckInline virtual LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	virtual LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		return CallWindowProcW(m_pfnRealProc, hWnd, uMsg, wParam, lParam);
 	}
@@ -611,15 +611,13 @@ public:
 	/// </summary>
 	/// <param name="Msg">MSG结构</param>
 	/// <returns>若要禁止派发该消息则返回TRUE，否则返回FALSE</returns>
-	EckInline virtual BOOL PreTranslateMessage(const MSG& Msg)
+	virtual BOOL PreTranslateMessage(const MSG& Msg)
 	{
 		return FALSE;
 	}
 
 	/// <summary>
-	/// 父窗口通知类消息映射。
-	/// 父窗口接收到的通知消息将路由到本方法，一般情况下无需手动调用本方法。
-	/// 路由的消息有以下四种：所有者项目系列（WM_XxxITEM）、
+	/// 父窗口通知类消息映射。接收下列通知：所有者项目系列（WM_XxxITEM）、
 	/// 标准通知系列（WM_COMMAND、WM_NOTIFY）、着色系列（WM_CTLCOLORXxx）、
 	/// 滚动条系列（WM_VSCROLL、WM_HSCROLL）
 	/// </summary>
@@ -627,9 +625,9 @@ public:
 	/// <param name="uMsg">消息</param>
 	/// <param name="wParam">wParam</param>
 	/// <param name="lParam">lParam</param>
-	/// <param name="bProcessed">若设为TRUE，则不再将当前消息交由父窗口处理，调用函数前保证其为FALSE</param>
+	/// <param name="bProcessed">若设为TRUE，则父窗口不在继续处理，调用函数前保证其为FALSE</param>
 	/// <returns>消息返回值</returns>
-	EckInline virtual LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)
+	virtual LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)
 	{
 		return 0;
 	}
