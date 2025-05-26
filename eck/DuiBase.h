@@ -775,7 +775,7 @@ private:
 
 	ID2D1Bitmap* m_pBmpBkg{};		// 背景位图
 	ID2D1SolidColorBrush* m_pBrBkg{};		// 背景画刷
-
+	HANDLE m_hEvtSwapChain{};		// 交换链事件对象
 	CEzD2D m_D2D{};
 	union
 	{
@@ -1021,7 +1021,7 @@ private:
 		}
 	}
 
-	void RedrawDui_DComp(const RECT& rc, BOOL bFullUpdate = FALSE, RECT* prcPhy = nullptr)
+	void RedrawDui_DComp(const RECT& rc, BOOL bFullUpdate = FALSE)
 	{
 		EckAssert(GetPresentMode() == PresentMode::DCompositionSurface ||
 			GetPresentMode() == PresentMode::DCompositionVisual);
@@ -1143,7 +1143,8 @@ private:
 	/// </summary>
 	/// <param name="rc">重画区域，逻辑坐标</param>
 	/// <param name="bFullUpdate">是否全更新，仅用于DComp</param>
-	void RedrawDui(const RECT& rc, BOOL bFullUpdate = FALSE, RECT* prcPhy = nullptr)
+	void RedrawDui(const RECT& rc, BOOL bFullUpdate = FALSE,
+		_Out_ RECT* prcPhy = nullptr)
 	{
 		const auto pDC = GetDeviceContext();
 		switch (m_ePresentMode)
@@ -1186,7 +1187,7 @@ private:
 		return;
 		case PresentMode::DCompositionSurface:
 		case PresentMode::DCompositionVisual:
-			RedrawDui_DComp(rc, bFullUpdate, prcPhy);
+			RedrawDui_DComp(rc, bFullUpdate);
 			return;
 		case PresentMode::AllDComp:
 		{
@@ -1201,15 +1202,16 @@ private:
 	{
 		constexpr int c_iMinGap = 14;
 		CWaitableTimer Timer{};
-		BOOL bActiveTimeLine;
+		BOOL bActiveTimeLine, bWaitSwapChain{};
 
 		WaitObject(m_EvtRender);
 		ULONGLONG ullTime = NtGetTickCount64() - c_iMinGap;
 		EckLoop()
 		{
 			bActiveTimeLine = FALSE;
+			if (m_hEvtSwapChain && bWaitSwapChain)
+				WaitForSingleObjectEx(m_hEvtSwapChain, INFINITE, TRUE);
 			m_cs.Enter();
-
 			if (m_bRenderThreadShouldExit)
 			{
 				m_cs.Leave();
@@ -1248,7 +1250,7 @@ private:
 						(D2D1_ALPHA_MODE)m_eAlphaMode, D2dBmpOpt, (float)m_iUserDpi);
 					break;
 				case PresentMode::FlipSwapChain:
-					m_D2D.ReSize(2, m_cxClient, m_cyClient, 0,
+					m_D2D.ReSize(2, m_cxClient, m_cyClient, DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT,
 						(D2D1_ALPHA_MODE)m_eAlphaMode, D2dBmpOpt, (float)m_iUserDpi);
 					break;
 				case PresentMode::DCompositionSurface:
@@ -1278,12 +1280,20 @@ private:
 					m_rcInvalid = rcClient;
 					RedrawDui(rcClient, TRUE);
 					m_cs.Leave();
-					if (m_ePresentMode == PresentMode::BitBltSwapChain ||
-						m_ePresentMode == PresentMode::FlipSwapChain)
+					switch (m_ePresentMode)
+					{
+					case PresentMode::FlipSwapChain:
+						m_D2D.GetSwapChain()->Present(1, 0);
+						bWaitSwapChain = TRUE;
+						break;
+					case PresentMode::BitBltSwapChain:
 						m_D2D.GetSwapChain()->Present(0, 0);
+						break;
+					}
 				}
 				else
 				{
+					bWaitSwapChain = FALSE;
 					m_rcInvalid = {};
 					m_cs.Leave();
 				}
@@ -1297,18 +1307,18 @@ private:
 					IntersectRect(rc, m_rcInvalid, rcClient);
 					if (IsRectEmpty(rc))
 						goto NoRedraw;
-					RedrawDui(rc, m_bFullUpdate,
-						m_ePresentMode == PresentMode::FlipSwapChain ? &rc : nullptr);
+					const auto bWantPhyRect =
+						(m_ePresentMode == PresentMode::FlipSwapChain ||
+							m_ePresentMode == PresentMode::BitBltSwapChain);
+					RedrawDui(rc, m_bFullUpdate, bWantPhyRect ? &rc : nullptr);
 					if (m_bFullUpdate)
 						m_bFullUpdate = FALSE;
 					m_rcInvalid = {};
 					m_cs.Leave();
 					// 呈现
-
 					switch (m_ePresentMode)
 					{
 					case PresentMode::BitBltSwapChain:
-					case PresentMode::FlipSwapChain:
 					{
 						const DXGI_PRESENT_PARAMETERS pp
 						{
@@ -1318,12 +1328,24 @@ private:
 						m_D2D.GetSwapChain()->Present1(0, 0, &pp);
 					}
 					break;
+					case PresentMode::FlipSwapChain:
+					{
+						const DXGI_PRESENT_PARAMETERS pp
+						{
+							.DirtyRectsCount = 1,
+							.pDirtyRects = &rc,
+						};
+						m_D2D.GetSwapChain()->Present1(1, 0, &pp);
+						bWaitSwapChain = TRUE;
+					}
+					break;
 					}
 				}
 				else
 				{
 				NoRedraw:
 					m_cs.Leave();
+					bWaitSwapChain = FALSE;
 				}
 			}
 
@@ -1589,7 +1611,15 @@ public:
 					auto Param = EZD2D_PARAM::MakeFlip(hWnd, g_pDxgiFactory, g_pDxgiDevice,
 						g_pD2dDevice, rc.right, rc.bottom, (float)m_iUserDpi);
 					Param.uBmpAlphaMode = (D2D1_ALPHA_MODE)m_eAlphaMode;
+					Param.uFlags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 					m_D2D.Create(Param);
+					ComPtr<IDXGISwapChain2> pSwapChain2;
+					m_D2D.GetSwapChain()->QueryInterface(IID_PPV_ARGS(&pSwapChain2));
+					if (pSwapChain2.Get())
+					{
+						pSwapChain2->SetMaximumFrameLatency(1);
+						m_hEvtSwapChain = pSwapChain2->GetFrameLatencyWaitableObject();
+					}
 				}
 				break;
 				case PresentMode::DCompositionSurface:
@@ -1717,6 +1747,11 @@ public:
 			m_cs.Leave();
 			WaitObject(CWaitableObject{ m_hthRender });// 等待渲染线程退出
 			m_hthRender = nullptr;
+			if (m_hEvtSwapChain)
+			{
+				NtClose(m_hEvtSwapChain);
+				m_hEvtSwapChain = nullptr;
+			}
 			// 销毁所有元素
 			auto pElem = m_pFirstChild;
 			while (pElem)
@@ -1754,7 +1789,6 @@ public:
 				SafeRelease(m_pDcDevice);// 外部对象可能未清理完成
 				break;
 			}
-
 			SafeReleaseAssert0(m_pFxBlur);
 			SafeReleaseAssert0(m_pFxCrop);
 			// 销毁其他接口
