@@ -1144,7 +1144,7 @@ private:
 	/// <param name="rc">重画区域，逻辑坐标</param>
 	/// <param name="bFullUpdate">是否全更新，仅用于DComp</param>
 	void RedrawDui(const RECT& rc, BOOL bFullUpdate = FALSE,
-		_Out_ RECT* prcPhy = nullptr)
+		RECT* prcPhy = nullptr)
 	{
 		const auto pDC = GetDeviceContext();
 		switch (m_ePresentMode)
@@ -1210,7 +1210,7 @@ private:
 		{
 			bActiveTimeLine = FALSE;
 			if (m_hEvtSwapChain && bWaitSwapChain)
-				WaitForSingleObjectEx(m_hEvtSwapChain, INFINITE, TRUE);
+				NtWaitForSingleObject(m_hEvtSwapChain, TRUE, nullptr);
 			m_cs.Enter();
 			if (m_bRenderThreadShouldExit)
 			{
@@ -1654,7 +1654,7 @@ public:
 					D2D1_HWND_RENDER_TARGET_PROPERTIES HwRtProp;
 					HwRtProp.hwnd = hWnd;
 					HwRtProp.pixelSize = D2D1::SizeU(rc.right, rc.bottom);
-					HwRtProp.presentOptions = D2D1_PRESENT_OPTIONS_NONE;
+					HwRtProp.presentOptions = D2D1_PRESENT_OPTIONS_IMMEDIATELY;
 					g_pD2dFactory->CreateHwndRenderTarget(RtProp, HwRtProp, &m_pRtHwnd);
 					const auto hr = m_pRtHwnd->QueryInterface(&m_D2D.m_pDC);
 					EckAssert(SUCCEEDED(hr));
