@@ -6,9 +6,8 @@
 ECK_NAMESPACE_BEGIN
 class CInertialScrollView :
 	public CScrollView,
-	public CRefObjMultiThread<CInertialScrollView, ITimeLine>
+	public CUnknown<CInertialScrollView, ITimeLine>
 {
-	ECK_DECL_CUNK_FRIENDS;
 public:
 	using FInertialScrollProc = void(*)(int iPos, int iPrevPos, LPARAM lParam);
 protected:
@@ -23,10 +22,11 @@ protected:
 	FInertialScrollProc m_pfnCallBack = nullptr;
 	LPARAM m_lParam = 0;
 
-	LONG m_cRef = 1;
 	BOOLEAN m_bValid = FALSE;
 	BOOLEAN m_bStop = TRUE;
 public:
+	virtual ~CInertialScrollView() = default;
+
 	void STDMETHODCALLTYPE Tick(int iMs) override
 	{
 		m_iCurrInterval = iMs;

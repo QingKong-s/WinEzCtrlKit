@@ -159,6 +159,7 @@ LRESULT CWndMain::OnCommand(HWND hWnd, int nId, HWND hCtrl, UINT uNotifyCode)
 		case IDMI_INSERT_FORM:
 			break;
 		}
+	return 0;
 }
 
 LRESULT CWndMain::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

@@ -585,9 +585,8 @@ enum
 	ECBF_CONTINUE = 1u << 1,
 };
 
-class CEasingCurve :public CUnknownSingleThread<CEasingCurve, ITimeLine>
+class CEasingCurve : public CUnknown<CEasingCurve, ITimeLine>
 {
-	ECK_DECL_CUNK_FRIENDS;
 public:
 	using FCallBack = void(*)(float fCurrValue, float fOldValue, LPARAM lParam);
 private:
@@ -606,7 +605,6 @@ private:
 
 	BOOLEAN m_bActive{};
 	BOOLEAN m_bReverse{};
-	LONG m_cRef{ 1 };
 
 	EckInline BOOL IntTick(float fMs)
 	{
@@ -631,23 +629,12 @@ private:
 public:
 	ECK_DISABLE_COPY_MOVE_DEF_CONS(CEasingCurve)
 public:
-	~CEasingCurve()
+	virtual ~CEasingCurve()
 	{
 		End();
 	}
-	// **IUnknown**
-	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** ppvObject)
-	{
-		const static QITAB qit[]
-		{
-			QITABENT(CEasingCurve, ITimeLine),
-			{}
-		};
 
-		return QISearch(this, qit, iid, ppvObject);
-	}
-	// **ITimeLine**
-	void STDMETHODCALLTYPE Tick(int iMs)
+	void STDMETHODCALLTYPE Tick(int iMs) override
 	{
 		m_iCurrInterval = iMs;
 		EckAssert(m_pfnCallBack);
@@ -659,12 +646,12 @@ public:
 			End();
 	}
 
-	EckInline BOOL STDMETHODCALLTYPE IsValid()
+	EckInline BOOL STDMETHODCALLTYPE IsValid() override
 	{
 		return m_bActive;
 	}
 
-	EckInline int STDMETHODCALLTYPE GetCurrTickInterval()
+	EckInline int STDMETHODCALLTYPE GetCurrTickInterval() override
 	{
 		return m_iCurrInterval;
 	}

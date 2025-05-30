@@ -7,26 +7,13 @@ class CElem;
 
 // 对于DES_OWNER_COMP_CACHE元素，使用此对象表示图集上的范围
 // 实现必须保证当引用计数减为0时，与其相关联的资源也一同被释放
-class CCompCacheSurface : public CRefObjSingleThread<CCompCacheSurface>
+class CCompCacheSurface : public CRefObj<CCompCacheSurface>
 {
-	ECK_DECL_CUNK_FRIENDS;
 protected:
-	LONG m_cRef{ 1 };
 	D2D1_RECT_F m_rcValid{};
 	ID2D1Bitmap1* m_pBitmap{};
 public:
-	STDMETHODIMP_(ULONG) Release()
-	{
-		const auto cRef = --m_cRef;
-		if (cRef == 0)
-		{
-			OnFinalRelease();
-			delete this;
-		}
-		return cRef;
-	}
-
-	virtual void OnFinalRelease() {}
+	virtual ~CCompCacheSurface() = default;
 
 	EckInlineNdCe auto GetBitmap() const { return m_pBitmap; }
 	EckInlineNdCe auto& GetValidRect() const { return m_rcValid; }
@@ -43,12 +30,8 @@ struct COMP_RENDER_INFO
 
 // 表示一个特定的混合操作，默认的实现不执行任何操作，
 // 通常实现为与元素无关
-class CCompositor : public CRefObjSingleThread<CCompositor>
+struct CCompositor : public CRefObj<CCompositor>
 {
-	ECK_DECL_CUNK_FRIENDS;
-protected:
-	LONG m_cRef{ 1 };
-public:
 	virtual ~CCompositor() = default;
 	/// <summary>
 	/// 坐标 常规到混合后

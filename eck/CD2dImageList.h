@@ -5,9 +5,8 @@
 #include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
-class CD2DImageList : public CRefObjMultiThread<CD2DImageList>
+class CD2DImageList final : public CRefObj<CD2DImageList>
 {
-	ECK_DECL_CUNK_FRIENDS;
 private:
 	CSrwLock m_Lk{};
 	ID2D1DeviceContext* m_pDC{};
@@ -24,8 +23,6 @@ private:
 	int m_cImgPerPack = 50;
 
 	int m_iDpi = 96;
-
-	LONG m_cRef{ 1 };
 
 	EckInline constexpr D2D1_SIZE_U PhyGetPackSize() const
 	{
