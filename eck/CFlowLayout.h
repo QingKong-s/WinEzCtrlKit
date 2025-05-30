@@ -19,7 +19,8 @@ protected:
 
 		ITEM() = default;
 		constexpr ITEM(ILayout* pCtrl, const MARGINS& Margin, UINT uFlags, short cx, short cy)
-			: ITEMBASE{ pCtrl, Margin, uFlags, cx, cy } {}
+			: ITEMBASE{ pCtrl, Margin, uFlags, cx, cy } {
+		}
 	};
 
 	std::vector<ITEM> m_vItem{};
@@ -27,7 +28,7 @@ public:
 	EckInline size_t Add(ILayout* pCtrl, const MARGINS& Margin = {}, const UINT uFlags = 0)
 	{
 		const auto size = pCtrl->LoGetSize();
-		m_vItem.emplace_back(pCtrl, Margin, uFlags, (short)size.first, (short)size.second);
+		m_vItem.emplace_back(pCtrl, Margin, uFlags, (short)size.cx, (short)size.cy);
 		return m_vItem.size() - 1;
 	}
 
@@ -54,8 +55,8 @@ public:
 		for (auto& e : m_vItem)
 		{
 			const auto size = e.pCtrl->LoGetSize();
-			e.cx = (short)size.first;
-			e.cy = (short)size.second;
+			e.cx = (short)size.cx;
+			e.cy = (short)size.cy;
 		}
 	}
 
@@ -140,11 +141,9 @@ public:
 			}
 			else
 			{
-				e.pCtrl->LoGetAppropriateSize(cxAppr, cyAppr);
-				if (e.uFlags & LF_FIX_WIDTH)
-					cxAppr = e.cx;
-				if (e.uFlags & LF_FIX_HEIGHT)
-					cyAppr = e.cy;
+				const auto size = e.pCtrl->LoGetAppropriateSize();
+				cxAppr = (e.uFlags & LF_FIX_WIDTH) ? e.cx : size.cx;
+				cyAppr = (e.uFlags & LF_FIX_HEIGHT) ? e.cy : size.cy;
 			}
 
 			const auto xt = x + e.Margin.cxLeftWidth + e.Margin.cxRightWidth + cxAppr;
@@ -188,15 +187,15 @@ public:
 		PostArrange(hDwp);
 	}
 
-	void LoGetAppropriateSize(int& cx, int& cy) override
+	SIZE LoGetAppropriateSize() override
 	{
-		cx = 0;
-		cy = 0;
+		int cx{}, cy{};
 		for (const auto& e : m_vItem)
 		{
 			cx += e.cx + e.Margin.cxLeftWidth + e.Margin.cxRightWidth;
 			cy = std::max(cy, e.cy + e.Margin.cyTopHeight + e.Margin.cyBottomHeight);
 		}
+		return { cx,cy };
 	}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CFlowLayoutH, CFlowLayoutBase);
@@ -266,11 +265,9 @@ public:
 			}
 			else
 			{
-				e.pCtrl->LoGetAppropriateSize(cxAppr, cyAppr);
-				if (e.uFlags & LF_FIX_WIDTH)
-					cxAppr = e.cx;
-				if (e.uFlags & LF_FIX_HEIGHT)
-					cyAppr = e.cy;
+				const auto size = e.pCtrl->LoGetAppropriateSize();
+				cxAppr = (e.uFlags & LF_FIX_WIDTH) ? e.cx : size.cx;
+				cyAppr = (e.uFlags & LF_FIX_HEIGHT) ? e.cy : size.cy;
 			}
 
 			const auto yt = y + e.Margin.cyTopHeight + e.Margin.cyBottomHeight + cyAppr;
@@ -314,15 +311,15 @@ public:
 		PostArrange(hDwp);
 	}
 
-	void LoGetAppropriateSize(int& cx, int& cy) override
+	SIZE LoGetAppropriateSize() override
 	{
-		cx = 0;
-		cy = 0;
+		int cx{}, cy{};
 		for (const auto& e : m_vItem)
 		{
 			cx = std::max(cx, e.cx + e.Margin.cxLeftWidth + e.Margin.cxRightWidth);
 			cy += e.cy + e.Margin.cyTopHeight + e.Margin.cyBottomHeight;
 		}
+		return { cx,cy };
 	}
 };
 ECK_RTTI_IMPL_BASE_INLINE(CFlowLayoutV, CFlowLayoutBase);

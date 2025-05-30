@@ -1,14 +1,14 @@
-#pragma once
+ï»¿#pragma once
 #include "CLayoutBase.h"
 
 ECK_NAMESPACE_BEGIN
 enum :UINT
 {
-	// ÒÔÏÂ±êÖ¾Ö¸Ê¾ËÄ±ßÈ·¶¨ÐÔ£¬Ò»°ã½ö¹©ÄÚ²¿Ê¹ÓÃ
-	RLF_DTM_L = 1u << 31,// ×ó±ßÈ·¶¨
-	RLF_DTM_R = 1u << 30,// ÓÒ±ßÈ·¶¨
-	RLF_DTM_T = 1u << 29,// ÉÏ±ßÈ·¶¨
-	RLF_DTM_B = 1u << 28,// ÏÂ±ßÈ·¶¨
+	// ä»¥ä¸‹æ ‡å¿—æŒ‡ç¤ºå››è¾¹ç¡®å®šæ€§ï¼Œä¸€èˆ¬ä»…ä¾›å†…éƒ¨ä½¿ç”¨
+	RLF_DTM_L = 1u << 31,// å·¦è¾¹ç¡®å®š
+	RLF_DTM_R = 1u << 30,// å³è¾¹ç¡®å®š
+	RLF_DTM_T = 1u << 29,// ä¸Šè¾¹ç¡®å®š
+	RLF_DTM_B = 1u << 28,// ä¸‹è¾¹ç¡®å®š
 
 	RLF_DTM_ALL = RLF_DTM_L | RLF_DTM_R | RLF_DTM_T | RLF_DTM_B,
 };
@@ -46,8 +46,8 @@ public:
 		e.Margin = Margin;
 		e.uFlags = uFlags;
 		const auto size = e.pCtrl->LoGetSize();
-		e.cx = (short)size.first;
-		e.cy = (short)size.second;
+		e.cx = (short)size.cx;
+		e.cy = (short)size.cy;
 		return e;
 	}
 
@@ -145,8 +145,8 @@ public:
 						const auto it = m_hmItem.find(e.pCenterH);
 						if (it == m_hmItem.end())
 						{
-							e.rcTemp.left = e.pCenterH->LoGetPos().first + e.Margin.cxLeftWidth +
-								(e.pCenterH->LoGetSize().first - e.cx) / 2;
+							e.rcTemp.left = e.pCenterH->LoGetPos().x + e.Margin.cxLeftWidth +
+								(e.pCenterH->LoGetSize().cx - e.cx) / 2;
 							e.rcTemp.right = e.rcTemp.left + e.cx;
 						}
 						else
@@ -181,8 +181,8 @@ public:
 							const auto it = m_hmItem.find(e.pCenterV);
 							if (it == m_hmItem.end())
 							{
-								e.rcTemp.top = e.pCenterV->LoGetPos().second + e.Margin.cyTopHeight +
-									(e.pCenterV->LoGetSize().second - e.cy) / 2;
+								e.rcTemp.top = e.pCenterV->LoGetPos().y + e.Margin.cyTopHeight +
+									(e.pCenterV->LoGetSize().cy - e.cy) / 2;
 								e.rcTemp.bottom = e.rcTemp.top + e.cy;
 							}
 							else
@@ -210,7 +210,7 @@ public:
 						EckAssert(e.pLeftOf != ECK_RL_PARENT);
 						const auto it = m_hmItem.find(e.pLeftOf);
 						if (it == m_hmItem.end())
-							t = e.pLeftOf->LoGetPos().first;
+							t = e.pLeftOf->LoGetPos().x;
 						else
 						{
 							if (it->second.uFlags & RLF_DTM_L)
@@ -231,8 +231,8 @@ public:
 						{
 							const auto it = m_hmItem.find(e.pRightAlign);
 							if (it == m_hmItem.end())
-								e.rcTemp.right = e.pRightAlign->LoGetPos().first +
-								e.pRightAlign->LoGetSize().first - e.Margin.cxRightWidth;
+								e.rcTemp.right = e.pRightAlign->LoGetPos().x +
+								e.pRightAlign->LoGetSize().cx - e.Margin.cxRightWidth;
 							else
 							{
 								if (it->second.uFlags & RLF_DTM_R)
@@ -265,7 +265,7 @@ public:
 						EckAssert(e.pLeftOf != ECK_RL_PARENT);
 						const auto it = m_hmItem.find(e.pRightOf);
 						if (it == m_hmItem.end())
-							t = e.pRightOf->LoGetPos().first + e.pRightOf->LoGetSize().first;
+							t = e.pRightOf->LoGetPos().x + e.pRightOf->LoGetSize().cx;
 						else
 						{
 							if (it->second.uFlags & RLF_DTM_R)
@@ -286,7 +286,7 @@ public:
 						{
 							const auto it = m_hmItem.find(e.pLeftAlign);
 							if (it == m_hmItem.end())
-								e.rcTemp.left = e.pLeftAlign->LoGetPos().first + e.Margin.cxLeftWidth;
+								e.rcTemp.left = e.pLeftAlign->LoGetPos().x + e.Margin.cxLeftWidth;
 							else
 							{
 								if (it->second.uFlags & RLF_DTM_L)
@@ -319,7 +319,7 @@ public:
 						EckAssert(e.pLeftOf != ECK_RL_PARENT);
 						const auto it = m_hmItem.find(e.pTopOf);
 						if (it == m_hmItem.end())
-							t = e.pTopOf->LoGetPos().second;
+							t = e.pTopOf->LoGetPos().y;
 						else
 						{
 							if (it->second.uFlags & RLF_DTM_T)
@@ -340,8 +340,8 @@ public:
 						{
 							const auto it = m_hmItem.find(e.pBottomAlign);
 							if (it == m_hmItem.end())
-								e.rcTemp.bottom = e.pBottomAlign->LoGetPos().second +
-								e.pBottomAlign->LoGetSize().second - e.Margin.cyBottomHeight;
+								e.rcTemp.bottom = e.pBottomAlign->LoGetPos().y +
+								e.pBottomAlign->LoGetSize().cy - e.Margin.cyBottomHeight;
 							else
 							{
 								if (it->second.uFlags & RLF_DTM_B)
@@ -374,7 +374,7 @@ public:
 						EckAssert(e.pLeftOf != ECK_RL_PARENT);
 						const auto it = m_hmItem.find(e.pBottomOf);
 						if (it == m_hmItem.end())
-							t = e.pBottomOf->LoGetPos().second + e.pBottomOf->LoGetSize().second;
+							t = e.pBottomOf->LoGetPos().y + e.pBottomOf->LoGetSize().cy;
 						else
 						{
 							if (it->second.uFlags & RLF_DTM_B)
@@ -395,7 +395,7 @@ public:
 						{
 							const auto it = m_hmItem.find(e.pTopAlign);
 							if (it == m_hmItem.end())
-								e.rcTemp.top = e.pTopAlign->LoGetPos().second + e.Margin.cyTopHeight;
+								e.rcTemp.top = e.pTopAlign->LoGetPos().y + e.Margin.cyTopHeight;
 							else
 							{
 								if (it->second.uFlags & RLF_DTM_T)
@@ -427,7 +427,7 @@ public:
 
 		if (cNoDetermined)
 		{
-			EckDbgPrintWithPos(L"ÎÞ·¨È·¶¨Ïà¶Ô²¼¾ÖµÄÎ»ÖÃ£¬¿ÉÄÜ´æÔÚÑ­»·ÒÀÀµ");
+			EckDbgPrintWithPos(L"æ— æ³•ç¡®å®šç›¸å¯¹å¸ƒå±€çš„ä½ç½®ï¼Œå¯èƒ½å­˜åœ¨å¾ªçŽ¯ä¾èµ–");
 			EckDbgBreak();
 			return;
 		}
@@ -479,8 +479,8 @@ public:
 		for (auto& [_, e] : m_hmItem)
 		{
 			const auto size = e.pCtrl->LoGetSize();
-			e.cx = (short)size.first;
-			e.cy = (short)size.second;
+			e.cx = (short)size.cx;
+			e.cy = (short)size.cy;
 		}
 	}
 

@@ -41,7 +41,8 @@ private:
 		constexpr ITEM(ILayout* pCtrl, const MARGINS& Margin, UINT uFlags, short cx, short cy,
 			int idxRow, int idxCol, int nRowSpan, int nColSpan)
 			: ITEMBASE{ pCtrl, Margin, uFlags, cx, cy }, idxRow{ idxRow }, idxCol{ idxCol },
-			cRowSpan{ nRowSpan }, cColSpan{ nColSpan } {}
+			cRowSpan{ nRowSpan }, cColSpan{ nColSpan } {
+		}
 	};
 
 	struct CELL
@@ -100,7 +101,7 @@ public:
 	{
 		EckAssert(idxRow + nRowSpan < m_cRow && idxCol + nColSpan < m_cCol && L"超出表格范围");
 		const auto s = pCtrl->LoGetSize();
-		auto& e = m_vItem.emplace_back(pCtrl, Mar, uFlags, (short)s.first, (short)s.second,
+		auto& e = m_vItem.emplace_back(pCtrl, Mar, uFlags, (short)s.cx, (short)s.cy,
 			idxRow, idxCol, nRowSpan, nColSpan);
 		if (m_eCellSizeMode == TlCellMode::Auto)
 			UpdateCellSize(e);
@@ -199,14 +200,15 @@ public:
 				t.y = m_Table[i - 1][j].y + m_Table[i - 1][j].cy;
 				t.x = m_Table[i][j - 1].x + m_Table[i][j - 1].cx;
 			}
-		LoGetAppropriateSize(m_cx, m_cy);
+		const auto size = LoGetAppropriateSize();
+		m_cx = size.cx;
+		m_cy = size.cy;
 	}
 
-	void LoGetAppropriateSize(int& cx, int& cy) override
+	SIZE LoGetAppropriateSize() override
 	{
 		const auto& e = m_Table[m_cRow - 1][m_cCol - 1];
-		cx = e.x + e.cx;
-		cy = e.y + e.cy;
+		return { e.x + e.cx, e.y + e.cy };
 	}
 
 	void LoCommit() override

@@ -58,7 +58,7 @@ protected:
 	BOOL m_bPrePostBalanced{};
 #endif
 
-	static void CalcCtrlPosSize(const ITEMBASE& e, const RCWH& cell, 
+	static void CalcCtrlPosSize(const ITEMBASE& e, const RCWH& cell,
 		int& x, int& y, int& cx, int& cy)
 	{
 		if (e.uFlags & LF_FIT)
@@ -93,11 +93,9 @@ protected:
 			}
 			else
 			{
-				e.pCtrl->LoGetAppropriateSize(cx, cy);
-				if (e.uFlags & LF_FIX_WIDTH)
-					cx = e.cx;
-				if (e.uFlags & LF_FIX_HEIGHT)
-					cy = e.cy;
+				const auto size = e.pCtrl->LoGetAppropriateSize();
+				cx = (e.uFlags & LF_FIX_WIDTH) ? e.cx : size.cx;
+				cy = (e.uFlags & LF_FIX_HEIGHT) ? e.cy : size.cy;
 			}
 
 			const int cx1 = cx + e.Margin.cxLeftWidth + e.Margin.cxRightWidth;
@@ -222,36 +220,19 @@ public:
 		m_cy = cy;
 	}
 
-	std::pair<int, int> LoGetPos() override
-	{
-		return { m_x,m_y };
-	}
-
-	std::pair<int, int> LoGetSize() override
-	{
-		return { m_cx,m_cy };
-	}
-
+	POINT LoGetPos() override { return { m_x,m_y }; }
+	SIZE LoGetSize() override { return { m_cx,m_cy }; }
 	void LoShow(BOOL bShow) override {}
+	SIZE LoGetAppropriateSize() override { return { m_cx,m_cy }; }
 
-	void LoGetAppropriateSize(int& cx, int& cy) override
-	{
-		cx = m_cx;
-		cy = m_cy;
-	}
-
-	/// <summary>
-	/// 重置布局对象的状态
-	/// </summary>
+	// 重置布局对象的状态
 	virtual void Clear()
 	{
 		m_x = m_y = m_cx = m_cy = 0;
 		m_bUseDwp = TRUE;
 	}
 
-	/// <summary>
-	/// 强制刷新布局对象信息
-	/// </summary>
+	// 强制刷新布局对象信息
 	virtual void Refresh() {}
 
 	EckInline void Arrange(int cx, int cy)

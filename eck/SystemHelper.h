@@ -2,6 +2,8 @@
 #include "NativeWrapper.h"
 #include "ComPtr.h"
 #include "AutoPtrDef.h"
+#include "CRefStr.h"
+#include "CRefBin.h"
 
 #include <intrin.h>
 #include <wbemcli.h>

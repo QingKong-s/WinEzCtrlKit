@@ -47,8 +47,8 @@ public:
 			e.uFlags = uFlags;
 			e.Margin = Margin;
 			const auto size = pCtrl->LoGetSize();
-			e.cx = size.first;
-			e.cy = size.second;
+			e.cx = (short)size.cx;
+			e.cy = (short)size.cy;
 		}
 		else
 			e.pCtrl = nullptr;

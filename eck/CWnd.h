@@ -632,12 +632,11 @@ public:
 		return 0;
 	}
 
-	void LoGetAppropriateSize(int& cx, int& cy) override
+	SIZE LoGetAppropriateSize() override
 	{
 		RECT rc;
 		GetWindowRect(m_hWnd, &rc);
-		cx = rc.right - rc.left;
-		cy = rc.bottom - rc.top;
+		return { rc.right - rc.left,rc.bottom - rc.top };
 	}
 
 	void LoSetPos(int x, int y) override
@@ -658,27 +657,10 @@ public:
 			SWP_NOZORDER | SWP_NOACTIVATE);
 	}
 
-	std::pair<int, int> LoGetPos() override
-	{
-		const auto pt{ GetPosition() };
-		return { pt.x,pt.y };
-	}
-
-	std::pair<int, int> LoGetSize() override
-	{
-		const auto size{ GetSize() };
-		return { size.cx,size.cy };
-	}
-
-	void LoShow(BOOL bShow) override
-	{
-		ShowWindow(m_hWnd, bShow ? SW_SHOW : SW_HIDE);
-	}
-
-	HWND LoGetHWND() override
-	{
-		return GetHWND();
-	}
+	POINT LoGetPos() override { return GetPosition(); }
+	SIZE LoGetSize() override { return GetSize(); }
+	void LoShow(BOOL bShow) override { Show(bShow ? SW_SHOW : SW_HIDE); }
+	HWND LoGetHWND() override { return GetHWND(); }
 
 	// 跳到当前类序列化数据的尾部
 	[[nodiscard]] EckInline constexpr static PCVOID SkipBaseData(PCVOID p)

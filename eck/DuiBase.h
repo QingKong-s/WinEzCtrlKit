@@ -326,41 +326,13 @@ public:
 	EckInline float GetPhysicalHeightF() const { return Log2PhyF(GetHeightF()); }
 #pragma endregion PosSize
 #pragma region ILayout
-	void LoGetAppropriateSize(int& cx, int& cy) override
-	{
-		cx = GetWidth();
-		cy = GetHeight();
-	}
-
-	void LoSetPos(int x, int y) override
-	{
-		SetPos(x, y);
-	}
-
-	void LoSetSize(int cx, int cy) override
-	{
-		SetSize(cx, cy);
-	}
-
-	void LoSetPosSize(int x, int y, int cx, int cy) override
-	{
-		SetRect({ x,y,x + cx,y + cy });
-	}
-
-	std::pair<int, int> LoGetPos() override
-	{
-		return { GetRect().left,GetRect().top };
-	}
-
-	std::pair<int, int> LoGetSize() override
-	{
-		return { GetWidth(),GetHeight() };
-	}
-
-	void LoShow(BOOL bShow) override
-	{
-		SetVisible(bShow);
-	}
+	SIZE LoGetAppropriateSize() override { return { GetWidth(),GetHeight() }; }
+	void LoSetPos(int x, int y) override { SetPos(x, y); }
+	void LoSetSize(int cx, int cy) override { SetSize(cx, cy); }
+	void LoSetPosSize(int x, int y, int cx, int cy) override { SetRect({ x,y,x + cx,y + cy }); }
+	POINT LoGetPos() override { return { GetRect().left,GetRect().top }; }
+	SIZE LoGetSize() override { return { GetWidth(),GetHeight() }; }
+	void LoShow(BOOL bShow) override { SetVisible(bShow); }
 #pragma endregion ILayout
 #pragma region ElemTree
 	EckInline constexpr CElem* GetFirstChildElem() const { return m_pFirstChild; }

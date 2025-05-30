@@ -4,8 +4,11 @@
 #include "EasingCurve.h"
 
 ECK_NAMESPACE_BEGIN
-class CInertialScrollView : public CScrollView, public ITimeLine
+class CInertialScrollView :
+	public CScrollView,
+	public CRefObjMultiThread<CInertialScrollView, ITimeLine>
 {
+	ECK_DECL_CUNK_FRIENDS;
 public:
 	using FInertialScrollProc = void(*)(int iPos, int iPrevPos, LPARAM lParam);
 protected:
@@ -24,36 +27,13 @@ protected:
 	BOOLEAN m_bValid = FALSE;
 	BOOLEAN m_bStop = TRUE;
 public:
-	// **IUnknown**
-	ULONG STDMETHODCALLTYPE AddRef(void) { return ++m_cRef; }
-
-	ULONG STDMETHODCALLTYPE Release(void)
-	{
-		if (m_cRef == 1)
-		{
-			delete this;
-			return 0;
-		}
-		return --m_cRef;
-	}
-
-	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** ppvObject)
-	{
-		const static QITAB qit[]
-		{
-			QITABENT(CInertialScrollView, ITimeLine),
-			{}
-		};
-
-		return QISearch(this, qit, iid, ppvObject);
-	}
-	// **ITimeLine**
-	void STDMETHODCALLTYPE Tick(int iMs)
+	void STDMETHODCALLTYPE Tick(int iMs) override
 	{
 		m_iCurrInterval = iMs;
 		const int iPrevPos = GetPos();
 		m_iSustain += iMs;
-		int iCurr = (int)Easing::FOutCubic{}((float)m_iSustain, (float)m_iStart,
+		const int iCurr = (int)Easing::OutCubic(
+			(float)m_iSustain, (float)m_iStart,
 			(float)m_iDistance, (float)m_iDuration);
 		if (iCurr > GetMaxWithPage())
 		{
@@ -73,12 +53,12 @@ public:
 		}
 	}
 
-	EckInline BOOL STDMETHODCALLTYPE IsValid()
+	EckInline BOOL STDMETHODCALLTYPE IsValid() override
 	{
 		return m_bValid;
 	}
 
-	EckInline int STDMETHODCALLTYPE GetCurrTickInterval()
+	EckInline int STDMETHODCALLTYPE GetCurrTickInterval() override
 	{
 		return m_iCurrInterval;
 	}
