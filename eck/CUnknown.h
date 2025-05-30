@@ -2,6 +2,43 @@
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
+template<class TThis, ccpIsComInterface... TInterface>
+class CUnknown : public TInterface...
+{
+protected:
+	ULONG m_cRef{ 1ul };
+public:
+	STDMETHODIMP_(ULONG) AddRef() override
+	{
+		return InterlockedIncrement(&m_cRef);
+	}
+
+	STDMETHODIMP_(ULONG) Release() override
+	{
+		const auto cRef = InterlockedDecrement(&m_cRef);
+		if (cRef == 0)
+			delete static_cast<TThis*>(this);
+		return cRef;
+	}
+
+	STDMETHODIMP QueryInterface(REFIID riid, void** ppvObject) override
+	{
+		const QITAB Tab[]{ QiMakeEntry<TInterface>()...,{} };
+		return QISearch(static_cast<TThis*>(this), Tab, riid, ppvObject);
+	}
+private:
+	template<class I>
+	QITAB QiMakeEntry()
+	{
+		return { &__uuidof(I),OFFSETOFCLASS(I, TThis) };
+	}
+};
+
+template<class TThis>
+using CRefObj = CUnknown<TThis, IUnknown>;
+
+
+
 /*
 * 主类必须存在ULONG类型字段m_cRef
 */

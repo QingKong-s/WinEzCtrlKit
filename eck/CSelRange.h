@@ -460,23 +460,11 @@ public:
 
 using CSelRange = CSelRangeT<int>;
 
-class CLVRange :public CUnknownSingleThread<CLVRange, ILVRange>
+class CLVRange final : public CUnknown<CLVRange, ILVRange>
 {
-	ECK_DECL_CUNK_FRIENDS;
 private:
-	ULONG m_cRef{ 1 };
 	CSelRange m_SelRange{};
 public:
-	STDMETHODIMP QueryInterface(REFIID riid, void** ppvObject)
-	{
-		static const QITAB qit[]
-		{
-			QITABENT(CSelRange, ILVRange),
-			{},
-		};
-		return QISearch(this, qit, riid, ppvObject);
-	}
-
 	STDMETHODIMP IncludeRange(LONG idxBegin, LONG idxEnd)
 	{
 		m_SelRange.IncludeRange(idxBegin, idxEnd);

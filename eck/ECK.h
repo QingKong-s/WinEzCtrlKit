@@ -72,6 +72,8 @@
 #define ECK_PRIV_NAMESPACE_END			}
 #define ECK_DUI_NAMESPACE_BEGIN			namespace Dui {
 #define ECK_DUI_NAMESPACE_END			}
+#define ECK_DUIG_NAMESPACE_BEGIN		namespace Duig {
+#define ECK_DUIG_NAMESPACE_END			}
 #define ECK_MEDIATAG_NAMESPACE_BEGIN	namespace MediaTag {
 #define ECK_MEDIATAG_NAMESPACE_END		}
 
@@ -230,6 +232,7 @@ ECK_NAMESPACE_END
 
 // 定义COM接口
 #define ECK_COM_INTERFACE(iid)	__interface __declspec(uuid(iid))
+#define ECK_UUID(iid)			__declspec(uuid(iid))
 
 // 不可达
 #define ECK_UNREACHABLE			__assume(0)

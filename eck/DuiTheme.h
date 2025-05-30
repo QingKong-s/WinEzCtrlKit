@@ -291,8 +291,8 @@ struct DTB_OPT
 // 默认DrawBackground选项
 constexpr inline DTB_OPT DtbOptDefault{};
 
-
-struct ITheme : public IUnknown
+struct __declspec(uuid("85623275-F66F-4D96-8EFE-6F97E2519AC8"))
+	ITheme : public IUnknown
 {
 	virtual ~ITheme() = default;
 	virtual HRESULT DrawBackground(Part ePart, State eState,
@@ -304,7 +304,7 @@ struct ITheme : public IUnknown
 	virtual float GetMetrics(Metrics eMetrics) = 0;
 };
 
-class CThemePalette : public CRefObjMultiThread<CThemePalette>
+class CThemePalette : public CRefObj<CThemePalette>
 {
 	ECK_DECL_CUNK_FRIENDS;
 protected:
@@ -315,13 +315,14 @@ public:
 	CThemePalette(const D2D1_COLOR_F* pEntries, UINT cEntries)
 		: m_vEntries{ pEntries, pEntries + cEntries } {
 	}
+	virtual ~CThemePalette() = default;
 
 	EckInline constexpr const auto& GetEntries() const { return m_vEntries; }
 
 	EckInline constexpr const auto& GetColor(UINT idx) const { return m_vEntries[idx]; }
 };
 // 主题描述
-class CTheme : public CRefObjMultiThread<CTheme>
+class CTheme : public CRefObj<CTheme>
 {
 	ECK_DECL_CUNK_FRIENDS;
 	friend class CThemeRealization;
@@ -599,9 +600,8 @@ public:
 };
 
 // 基于指定DC的主题实现
-class CThemeRealization : public CRefObjMultiThread<CThemeRealization, ITheme>
+class CThemeRealization : public CUnknown<CThemeRealization, ITheme>
 {
-	ECK_DECL_CUNK_FRIENDS;
 protected:
 	ID2D1DeviceContext* m_pDC;	// 关联DC
 	CTheme* m_pTheme;			// 关联主题
@@ -611,7 +611,6 @@ protected:
 
 	ID2D1SolidColorBrush* m_pBrush{};	// 通用画刷
 
-	ULONG m_cRef{ 1 };
 	D2D1_COLOR_F m_crColorization{};
 
 
@@ -688,7 +687,7 @@ public:
 		m_pDC->CreateSolidColorBrush({}, &m_pBrush);
 	}
 
-	~CThemeRealization()
+	virtual ~CThemeRealization()
 	{
 		m_pDC->Release();
 		m_pTheme->Release();
