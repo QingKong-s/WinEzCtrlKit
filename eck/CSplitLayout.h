@@ -12,9 +12,10 @@ protected:
 		UINT uWeight;
 
 		ITEM() = default;
-		constexpr ITEM(ILayout* pCtrl, const MARGINS& Margin, UINT uFlags, short cx, short cy,
-			UINT uWeight)
-			: ITEMBASE{ pCtrl, Margin, uFlags, cx, cy }, uWeight{ uWeight } {}
+		constexpr ITEM(ILayout* pCtrl, const MARGINS& Margin,
+			UINT uFlags, short cx, short cy, UINT uWeight)
+			: ITEMBASE{ pCtrl, Margin, uFlags, cx, cy }, uWeight{ uWeight } {
+		}
 	};
 
 	std::vector<ITEM> m_vItem{};
@@ -70,7 +71,7 @@ public:
 		HDWP hDwp = PreArrange(m_vItem.size());
 		int x, y, cx, cy;
 		int xStep{ m_x }, cxTemp;
-		for (int i{}; const auto & e : m_vItem)
+		for (int i{}; const auto& e : m_vItem)
 		{
 			if (m_bScaleMode)
 				cxTemp = e.uWeight * m_cx / m_uTotalWeight;
@@ -88,10 +89,10 @@ public:
 	{
 		const auto size = pCtrl->LoGetSize();
 		m_vItem.emplace_back(pCtrl, Margin, uFlags,
-			(short)size.first, (short)size.second, uWeight);
+			(short)size.cx, (short)size.cy, uWeight);
 		m_uTotalWeight += uWeight;
-		m_cx += (size.first + Margin.cxLeftWidth + Margin.cxRightWidth);
-		m_cy = std::max(m_cy, size.second + Margin.cyTopHeight + Margin.cyBottomHeight);
+		m_cx += (size.cx + Margin.cxLeftWidth + Margin.cxRightWidth);
+		m_cy = std::max(m_cy, (int)size.cy + Margin.cyTopHeight + Margin.cyBottomHeight);
 	}
 
 	void Refresh() override
@@ -101,11 +102,11 @@ public:
 		for (auto& e : m_vItem)
 		{
 			const auto size = e.pCtrl->LoGetSize();
-			e.cx = (short)size.first;
-			e.cy = (short)size.second;
+			e.cx = (short)size.cx;
+			e.cy = (short)size.cy;
 			m_uTotalWeight += e.uWeight;
-			m_cx += (size.first + e.Margin.cxLeftWidth + e.Margin.cxRightWidth);
-			m_cy = std::max(m_cy, size.second + e.Margin.cyTopHeight + e.Margin.cyBottomHeight);
+			m_cx += (size.cx + e.Margin.cxLeftWidth + e.Margin.cxRightWidth);
+			m_cy = std::max(m_cy, (int)size.cy + e.Margin.cyTopHeight + e.Margin.cyBottomHeight);
 		}
 	}
 };
@@ -121,7 +122,7 @@ public:
 		HDWP hDwp = PreArrange(m_vItem.size());
 		int x, y, cx, cy;
 		int yStep{ m_y }, cyTemp;
-		for (int i{}; const auto & e : m_vItem)
+		for (int i{}; const auto& e : m_vItem)
 		{
 			if (m_bScaleMode)
 				cyTemp = e.uWeight * m_cy / m_uTotalWeight;
@@ -139,10 +140,10 @@ public:
 	{
 		const auto size = pCtrl->LoGetSize();
 		m_vItem.emplace_back(pCtrl, Margin, uFlags,
-			(short)size.first, (short)size.second, uWeight);
+			(short)size.cx, (short)size.cy, uWeight);
 		m_uTotalWeight += uWeight;
-		m_cx += (size.first + Margin.cxLeftWidth + Margin.cxRightWidth);
-		m_cy = std::max(m_cy, size.second);
+		m_cx += (size.cx + Margin.cxLeftWidth + Margin.cxRightWidth);
+		m_cy = std::max(m_cy, (int)size.cy);
 	}
 
 	void Refresh() override
@@ -152,11 +153,11 @@ public:
 		for (auto& e : m_vItem)
 		{
 			const auto size = e.pCtrl->LoGetSize();
-			e.cx = (short)size.first;
-			e.cy = (short)size.second;
+			e.cx = (short)size.cx;
+			e.cy = (short)size.cy;
 			m_uTotalWeight += e.uWeight;
-			m_cx += (size.first + e.Margin.cxLeftWidth + e.Margin.cxRightWidth);
-			m_cy = std::max(m_cy, size.second + e.Margin.cyTopHeight + e.Margin.cyBottomHeight);
+			m_cx += (size.cx + e.Margin.cxLeftWidth + e.Margin.cxRightWidth);
+			m_cy = std::max(m_cy, (int)size.cy + e.Margin.cyTopHeight + e.Margin.cyBottomHeight);
 		}
 	}
 };

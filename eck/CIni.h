@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "SystemHelper.h"
+#include "Utility2.h"
 
 ECK_NAMESPACE_BEGIN
 class CIni

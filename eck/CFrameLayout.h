@@ -11,7 +11,8 @@ private:
 	{
 		ITEM() = default;
 		constexpr ITEM(ILayout* pCtrl, const MARGINS& Margin, UINT uFlags, short cx, short cy)
-			: ITEMBASE{ pCtrl, Margin, uFlags, cx, cy } {}
+			: ITEMBASE{ pCtrl, Margin, uFlags, cx, cy } {
+		}
 	};
 
 	std::vector<ITEM> m_vItem{};
@@ -19,7 +20,7 @@ public:
 	size_t Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u)
 	{
 		const auto size = pCtrl->LoGetSize();
-		m_vItem.emplace_back(pCtrl, Margin, uFlags, (short)size.first, (short)size.second);
+		m_vItem.emplace_back(pCtrl, Margin, uFlags, (short)size.cx, (short)size.cy);
 		return m_vItem.size() - 1;
 	}
 
@@ -70,8 +71,8 @@ public:
 		for (auto& e : m_vItem)
 		{
 			const auto size = e.pCtrl->LoGetSize();
-			e.cx = (short)size.first;
-			e.cy = (short)size.second;
+			e.cx = (short)size.cx;
+			e.cy = (short)size.cy;
 		}
 	}
 

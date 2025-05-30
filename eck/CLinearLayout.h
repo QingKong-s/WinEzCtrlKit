@@ -22,9 +22,10 @@ protected:
 		UINT uWeight;
 
 		ITEM() = default;
-		constexpr ITEM(ILayout* pCtrl, const MARGINS& Margin, UINT uFlags, short cx, short cy,
-			UINT uWeight)
-			: ITEMBASE{ pCtrl, Margin, uFlags, cx, cy }, uWeight{ uWeight } {}
+		constexpr ITEM(ILayout* pCtrl, const MARGINS& Margin,
+			UINT uFlags, short cx, short cy, UINT uWeight)
+			: ITEMBASE{ pCtrl, Margin, uFlags, cx, cy }, uWeight{ uWeight } {
+		}
 	};
 
 	std::vector<ITEM> m_vItem{};
@@ -37,11 +38,9 @@ protected:
 			cx = e.cx, cy = e.cy;
 		else
 		{
-			e.pCtrl->LoGetAppropriateSize(cx, cy);
-			if (e.uFlags & LF_FIX_HEIGHT)
-				cy = e.cy;
-			else if (e.uFlags & LF_FIX_WIDTH)
-				cx = e.cx;
+			const auto size = e.pCtrl->LoGetAppropriateSize();
+			cx = (e.uFlags & LF_FIX_WIDTH) ? e.cx : size.cx;
+			cy = (e.uFlags & LF_FIX_HEIGHT) ? e.cy : size.cy;
 		}
 	}
 public:
@@ -154,28 +153,26 @@ public:
 		PostArrange(hDwp);
 	}
 
-	void LoGetAppropriateSize(int& cx_, int& cy_) override
+	SIZE LoGetAppropriateSize() override
 	{
 		int cx{}, cy{}, cxAppr, cyAppr;
-
 		for (const auto& e : m_vItem)
 		{
 			GetCtrlSize(e, cxAppr, cyAppr);
 			cx = std::max(cx, cxAppr + e.Margin.cxLeftWidth + e.Margin.cxRightWidth);
 			cy += (e.Margin.cyTopHeight + cyAppr + e.Margin.cyBottomHeight);
 		}
-		cx_ = cx;
-		cy_ = cy;
+		return { cx,cy };
 	}
 
 	size_t Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u, UINT uWeight = 0u)
 	{
 		const auto size = pCtrl->LoGetSize();
-		m_vItem.emplace_back(pCtrl, Margin, uFlags, (short)size.first, (short)size.second, uWeight);
+		m_vItem.emplace_back(pCtrl, Margin, uFlags, (short)size.cx, (short)size.cy, uWeight);
 		if (uFlags & (LF_FILL_WIDTH | LF_FILL_HEIGHT))
 			m_bHasFillSizeCtrl = TRUE;
-		m_cx = std::max(m_cx, size.first + Margin.cxLeftWidth + Margin.cxRightWidth);
-		m_cy += (size.second + Margin.cyTopHeight + Margin.cyBottomHeight);
+		m_cx = std::max(m_cx, (int)size.cx + Margin.cxLeftWidth + Margin.cxRightWidth);
+		m_cy += (size.cy + Margin.cyTopHeight + Margin.cyBottomHeight);
 		return m_vItem.size() - 1;
 	}
 
@@ -186,10 +183,10 @@ public:
 		for (auto& e : m_vItem)
 		{
 			const auto size = e.pCtrl->LoGetSize();
-			e.cx = (short)size.first;
-			e.cy = (short)size.second;
-			m_cx = std::max(m_cx, size.first + e.Margin.cxLeftWidth + e.Margin.cxRightWidth);
-			m_cy += (size.second + e.Margin.cyTopHeight + e.Margin.cyBottomHeight);
+			e.cx = (short)size.cx;
+			e.cy = (short)size.cy;
+			m_cx = std::max(m_cx, (int)size.cx + e.Margin.cxLeftWidth + e.Margin.cxRightWidth);
+			m_cy += (size.cy + e.Margin.cyTopHeight + e.Margin.cyBottomHeight);
 		}
 	}
 };
@@ -267,38 +264,26 @@ public:
 		PostArrange(hDwp);
 	}
 
-	void LoGetAppropriateSize(int& cx_, int& cy_) override
+	SIZE LoGetAppropriateSize() override
 	{
 		int cx{}, cy{}, cxAppr, cyAppr;
-
 		for (const auto& e : m_vItem)
 		{
-			if (e.uFlags & (LLF_FIXHEIGHT | LLF_FIXWIDTH))
-				cxAppr = e.cx, cyAppr = e.cy;
-			else
-			{
-				e.pCtrl->LoGetAppropriateSize(cxAppr, cyAppr);
-				if (e.uFlags & LLF_FIXHEIGHT)
-					cyAppr = e.cy;
-				else if (e.uFlags & LLF_FIXWIDTH)
-					cxAppr = e.cx;
-			}
-
+			GetCtrlSize(e, cxAppr, cyAppr);
 			cy = std::max(cy, cyAppr + e.Margin.cyTopHeight + e.Margin.cyBottomHeight);
 			cx += (e.Margin.cxLeftWidth + cxAppr + e.Margin.cxRightWidth);
 		}
-		cx_ = cx;
-		cy_ = cy;
+		return { cx,cy };
 	}
 
 	size_t Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u, UINT uWeight = 0u)
 	{
 		const auto size = pCtrl->LoGetSize();
-		m_vItem.emplace_back(pCtrl, Margin, uFlags, (short)size.first, (short)size.second, uWeight);
+		m_vItem.emplace_back(pCtrl, Margin, uFlags, (short)size.cx, (short)size.cy, uWeight);
 		if (uFlags & (LF_FILL_WIDTH | LF_FILL_HEIGHT))
 			m_bHasFillSizeCtrl = TRUE;
-		m_cx += (size.first + Margin.cxLeftWidth + Margin.cxRightWidth);
-		m_cy = std::max(m_cy, size.second + Margin.cyTopHeight + Margin.cyBottomHeight);
+		m_cx += (size.cx + Margin.cxLeftWidth + Margin.cxRightWidth);
+		m_cy = std::max(m_cy, (int)size.cy + Margin.cyTopHeight + Margin.cyBottomHeight);
 		return m_vItem.size() - 1;
 	}
 
@@ -309,10 +294,10 @@ public:
 		for (auto& e : m_vItem)
 		{
 			const auto size = e.pCtrl->LoGetSize();
-			e.cx = (short)size.first;
-			e.cy = (short)size.second;
-			m_cx += (size.first + e.Margin.cxLeftWidth + e.Margin.cxRightWidth);
-			m_cy = std::max(m_cy, size.second + e.Margin.cyTopHeight + e.Margin.cyBottomHeight);
+			e.cx = (short)size.cx;
+			e.cy = (short)size.cy;
+			m_cx += (size.cx + e.Margin.cxLeftWidth + e.Margin.cxRightWidth);
+			m_cy = std::max(m_cy, (int)size.cy + e.Margin.cyTopHeight + e.Margin.cyBottomHeight);
 		}
 	}
 };
