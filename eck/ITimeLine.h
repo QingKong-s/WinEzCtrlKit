@@ -2,20 +2,15 @@
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
-constexpr inline IID IID_ITimeLine
-{ 0xfaf92698, 0xd74, 0x4d14, { 0x90, 0xa5, 0x4e, 0x66, 0xc1, 0xa, 0x96, 0x30 } };
-
 struct __declspec(uuid("FAF92698-0D74-4D14-90A5-4E66C10A9630"))
 	ITimeLine : public IUnknown
 {
 	// 滴答时间线
-	virtual void STDMETHODCALLTYPE Tick(int iMs) = 0;
-
+	virtual void Tick(int iMs) = 0;
 	// 时间线是否有效
-	virtual BOOL STDMETHODCALLTYPE IsValid() = 0;
-
+	virtual BOOL IsValid() = 0;
 	// 取当前滴答间隔
-	virtual int STDMETHODCALLTYPE GetCurrTickInterval() = 0;
+	virtual int GetCurrTickInterval() = 0;
 };
 
 struct CFixedTimeLine : public ITimeLine
@@ -24,7 +19,7 @@ struct CFixedTimeLine : public ITimeLine
 	ULONG STDMETHODCALLTYPE Release() { return 1; }
 	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) { return E_NOINTERFACE; }
 
-	BOOL STDMETHODCALLTYPE IsValid() { return TRUE; }
-	int STDMETHODCALLTYPE GetCurrTickInterval() { return 0; }
+	BOOL IsValid() { return TRUE; }
+	int GetCurrTickInterval() { return 0; }
 };
 ECK_NAMESPACE_END
