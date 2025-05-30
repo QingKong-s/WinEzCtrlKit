@@ -270,12 +270,12 @@ public:
 		return __super::OnEvent(uMsg, wParam, lParam);
 	}
 
-	void STDMETHODCALLTYPE Tick(int iMs)
+	void Tick(int iMs)
 	{
 
 	}
 
-	BOOL STDMETHODCALLTYPE IsValid() { return m_bAnimating; }
+	BOOL IsValid() { return m_bAnimating; }
 
 	void InvalidateCache(int idx = -1) noexcept
 	{
