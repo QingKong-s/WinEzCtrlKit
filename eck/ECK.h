@@ -230,10 +230,6 @@ ECK_NAMESPACE_END
 // lParam->size 用于处理WM_SIZE
 #define ECK_GET_SIZE_LPARAM(cx, cy, lParam)	{ (cx) = LOWORD(lParam); (cy) = HIWORD(lParam); }
 
-// 定义COM接口
-#define ECK_COM_INTERFACE(iid)	__interface __declspec(uuid(iid))
-#define ECK_UUID(iid)			__declspec(uuid(iid))
-
 // 不可达
 #define ECK_UNREACHABLE			__assume(0)
 

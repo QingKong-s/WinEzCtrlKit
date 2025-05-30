@@ -634,7 +634,7 @@ public:
 		End();
 	}
 
-	void STDMETHODCALLTYPE Tick(int iMs) override
+	void Tick(int iMs) override
 	{
 		m_iCurrInterval = iMs;
 		EckAssert(m_pfnCallBack);
@@ -646,15 +646,8 @@ public:
 			End();
 	}
 
-	EckInline BOOL STDMETHODCALLTYPE IsValid() override
-	{
-		return m_bActive;
-	}
-
-	EckInline int STDMETHODCALLTYPE GetCurrTickInterval() override
-	{
-		return m_iCurrInterval;
-	}
+	EckInline BOOL IsValid() override { return m_bActive; }
+	EckInline int GetCurrTickInterval() override { return m_iCurrInterval; }
 	// 
 	EckInline void SetParam(LPARAM lParam) { m_lParam = lParam; }
 

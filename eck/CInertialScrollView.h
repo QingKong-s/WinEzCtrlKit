@@ -27,7 +27,7 @@ protected:
 public:
 	virtual ~CInertialScrollView() = default;
 
-	void STDMETHODCALLTYPE Tick(int iMs) override
+	void Tick(int iMs) override
 	{
 		m_iCurrInterval = iMs;
 		const int iPrevPos = GetPos();
@@ -53,12 +53,12 @@ public:
 		}
 	}
 
-	EckInline BOOL STDMETHODCALLTYPE IsValid() override
+	EckInline BOOL IsValid() override
 	{
 		return m_bValid;
 	}
 
-	EckInline int STDMETHODCALLTYPE GetCurrTickInterval() override
+	EckInline int GetCurrTickInterval() override
 	{
 		return m_iCurrInterval;
 	}
