@@ -111,8 +111,12 @@ public:
 		break;
 
 		case WM_DPICHANGED:
+		{
+			const auto lResult = __super::OnMsg(hWnd, uMsg, wParam, lParam);
 			UpdateMetrics(HIWORD(wParam));
-			break;
+			return lResult;
+		}
+		break;
 
 		case WM_CHANGEUISTATE:
 		{

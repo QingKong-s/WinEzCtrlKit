@@ -57,11 +57,12 @@ public:
 		return NtCancelTimer(m_hObj, &bPrevState);
 	}
 
-	EckInline NTSTATUS QueryState(BOOLEAN& bState, LONGLONG& llRemainingTime)
+	NTSTATUS QueryState(BOOLEAN& bState, LONGLONG& llRemainingTime)
 	{
 		TIMER_BASIC_INFORMATION	tbi;
 		ULONG cbRet;
-		const auto nts = NtQueryTimer(m_hObj, TimerBasicInformation, &tbi, sizeof(tbi), &cbRet);
+		const auto nts = NtQueryTimer(m_hObj, TimerBasicInformation,
+			&tbi, sizeof(tbi), &cbRet);
 		if (NT_SUCCESS(nts))
 		{
 			bState = tbi.TimerState;

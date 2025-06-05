@@ -6,34 +6,53 @@ ECK_NAMESPACE_BEGIN
 class CConditionVariable
 {
 private:
-	CONDITION_VARIABLE m_cv;
+	RTL_CONDITION_VARIABLE m_cv;
 public:
 	ECK_DISABLE_COPY_MOVE(CConditionVariable)
 public:
-	EckInline CConditionVariable()
+	CConditionVariable()
 	{
-		InitializeConditionVariable(&m_cv);
+		RtlInitializeConditionVariable(&m_cv);
 	}
 
-	EckInline BOOL Sleep(CCriticalSection& cs, DWORD dwTimeout)
+	EckInline NTSTATUS SleepLi(RTL_CRITICAL_SECTION* pcs, LARGE_INTEGER* pli = nullptr)
 	{
-		return SleepConditionVariableCS(&m_cv, cs.GetPCs(), dwTimeout);
+		return RtlSleepConditionVariableCS(&m_cv, pcs, pli);
+	}
+	EckInline NTSTATUS SleepLi(RTL_SRWLOCK* psrw, BOOL bReadLock, LARGE_INTEGER* pli = nullptr)
+	{
+		return RtlSleepConditionVariableSRW(&m_cv, psrw, pli,
+			bReadLock ? CONDITION_VARIABLE_LOCKMODE_SHARED : 0);
 	}
 
-	EckInline BOOL Sleep(CSrwLock& srw, DWORD dwTimeout, BOOL bReadLock)
+	EckInline NTSTATUS Sleep100ns(RTL_CRITICAL_SECTION* pcs, LONGLONG ll)
 	{
-		return SleepConditionVariableSRW(&m_cv, srw.GetPSrw(),
-			dwTimeout, bReadLock ? CONDITION_VARIABLE_LOCKMODE_SHARED : 0);
+		ll *= -1;
+		return SleepLi(pcs, (LARGE_INTEGER*)&ll);
+	}
+	EckInline NTSTATUS Sleep100ns(RTL_SRWLOCK* psrw, BOOL bReadLock, LONGLONG ll)
+	{
+		ll *= -1;
+		return SleepLi(psrw, bReadLock, (LARGE_INTEGER*)&ll);
+	}
+
+	EckInline NTSTATUS Sleep(RTL_CRITICAL_SECTION* pcs, LONGLONG ll)
+	{
+		return Sleep100ns(pcs, ll * 10000ll);
+	}
+	EckInline NTSTATUS Sleep(RTL_SRWLOCK* psrw, BOOL bReadLock, LONGLONG ll)
+	{
+		return Sleep100ns(psrw, bReadLock, ll * 10000ll);
 	}
 
 	EckInline void Wake()
 	{
-		WakeConditionVariable(&m_cv);
+		RtlWakeConditionVariable(&m_cv);
 	}
 
 	EckInline void WakeAll()
 	{
-		WakeAllConditionVariable(&m_cv);
+		RtlWakeAllConditionVariable(&m_cv);
 	}
 
 	EckInline auto GetPCv() { return &m_cv; }

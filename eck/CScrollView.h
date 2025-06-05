@@ -1,8 +1,8 @@
 ﻿#pragma once
-#include "ECK.h"
+#include "IScroll.h"
 
 ECK_NAMESPACE_BEGIN
-class CScrollView
+class CScrollView : public IScroll
 {
 protected:
 	int m_iMin = 0;
@@ -162,7 +162,7 @@ public:
 #endif // _DEBUG
 	}
 
-	EckInline constexpr void SetScrollInfo(const SCROLLINFO& si)
+	constexpr void SetScrollInfo(const SCROLLINFO& si)
 	{
 		if (si.fMask & SIF_RANGE)
 		{
@@ -176,7 +176,7 @@ public:
 		RangeChanged();
 	}
 
-	EckInline constexpr void GetScrollInfo(_Inout_ SCROLLINFO& si) const
+	constexpr void GetScrollInfo(_Inout_ SCROLLINFO& si) const
 	{
 		if (si.fMask & SIF_RANGE)
 		{
@@ -194,5 +194,12 @@ public:
 	{
 		return IsValid() && GetViewSize() > GetMinThumbSize();
 	}
+
+	BOOL ScrIsValid() override { return IsValid(); }
+	BOOL ScrIsVisible() override { return IsVisible(); }
+	void ScrSetScrollInfo(const SCROLLINFO& si) override { SetScrollInfo(si); }
+	void ScrGetScrollInfo(_Inout_ SCROLLINFO& si) override { GetScrollInfo(si); }
+	void ScrSetViewSize(int iViewSize) override { SetViewSize(iViewSize); }
+	int ScrGetViewSize() override { return GetViewSize(); }
 };
 ECK_NAMESPACE_END
