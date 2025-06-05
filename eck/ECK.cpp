@@ -260,7 +260,6 @@ constexpr THEME_INFO InvalidThemeInfo{ .eType = ThemeType::Invalid };
 // 查询主题信息。此函数返回引用，但在主题句柄被使用期间一定有效
 EckInline const THEME_INFO& UxfpGetThemeInfo(HTHEME hTheme)
 {
-	CSrwReadGuard _{ s_LkThemeMap };
 	const auto it = s_hsThemeMap.find(hTheme);
 	return it != s_hsThemeMap.end() ? it->second : InvalidThemeInfo;
 }
@@ -1353,8 +1352,11 @@ static HRESULT WINAPI NewDrawThemeText(HTHEME hTheme, HDC hDC, int iPartId, int 
 	if (ShouldAppsUseDarkMode() && !(dwTextFlags & DT_CALCRECT))
 	{
 		COLORREF cr;
-		if (SUCCEEDED(UxfpGetThemeColor(UxfpGetThemeInfo(hTheme), GetThreadCtx(),
-			hTheme, iPartId, iStateId, TMT_TEXTCOLOR, cr)))
+		s_LkThemeMap.EnterRead();
+		const auto b = SUCCEEDED(UxfpGetThemeColor(UxfpGetThemeInfo(hTheme), GetThreadCtx(),
+			hTheme, iPartId, iStateId, TMT_TEXTCOLOR, cr));
+		s_LkThemeMap.LeaveRead();
+		if (b)
 		{
 			DTTOPTS dtto;
 			dtto.dwSize = sizeof(DTTOPTS);
@@ -1378,8 +1380,9 @@ static HRESULT WINAPI NewDrawThemeTextEx(HTHEME hTheme, HDC hDC, int iPartId, in
 		if (!pOptions || (pOptions->dwFlags & DTT_COLORPROP) ||
 			!(pOptions->dwFlags & DTT_TEXTCOLOR))// 未指定颜色
 		{
-			if (SUCCEEDED(UxfpGetThemeColor(UxfpGetThemeInfo(hTheme), GetThreadCtx(),
-				hTheme, iPartId, iStateId,
+			CSrwReadGuard _{ s_LkThemeMap };
+			if (SUCCEEDED(UxfpGetThemeColor(UxfpGetThemeInfo(hTheme),
+				GetThreadCtx(), hTheme, iPartId, iStateId,
 				(pOptions && (pOptions->dwFlags & DTT_COLORPROP)) ?
 				pOptions->iColorPropId : TMT_TEXTCOLOR, NewOpt.crText)))
 			{
@@ -1409,11 +1412,10 @@ static HRESULT WINAPI NewDrawThemeBackgroundEx(HTHEME hTheme, HDC hDC, int iPart
 {
 	if (ShouldAppsUseDarkMode())
 	{
+		CSrwReadGuard _{ s_LkThemeMap };
 		if (SUCCEEDED(UxfpDrawThemeBackground(UxfpGetThemeInfo(hTheme), GetThreadCtx(),
 			hTheme, hDC, iPartId, iStateId, pRect, pOptions)))
-		{
 			return S_OK;
-		}
 	}
 	return s_pfnDrawThemeBackgroundEx(hTheme, hDC, iPartId, iStateId, pRect, pOptions);
 }
@@ -1432,11 +1434,10 @@ static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hDC, int iPartId
 		}
 		else
 			Options.dwFlags = 0;
+		CSrwReadGuard _{ s_LkThemeMap };
 		if (SUCCEEDED(UxfpDrawThemeBackground(UxfpGetThemeInfo(hTheme), GetThreadCtx(),
 			hTheme, hDC, iPartId, iStateId, pRect, &Options)))
-		{
 			return S_OK;
-		}
 	}
 	return s_pfnDrawThemeBackground(hTheme, hDC, iPartId, iStateId, pRect, pClipRect);
 }
@@ -1446,6 +1447,7 @@ static HRESULT WINAPI NewGetThemeColor(HTHEME hTheme, int iPartId, int iStateId,
 {
 	if (ShouldAppsUseDarkMode())
 	{
+		CSrwReadGuard _{ s_LkThemeMap };
 		if (SUCCEEDED(UxfpGetThemeColor(UxfpGetThemeInfo(hTheme), GetThreadCtx(),
 			hTheme, iPartId, iStateId, iPropId, *pColor)))
 			return S_OK;
@@ -1463,24 +1465,27 @@ static HRESULT WINAPI NewCloseThemeData(HTHEME hTheme)
 static HRESULT WINAPI NewGetThemePartSize(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 	const RECT* prc, THEMESIZE eSize, SIZE* psz)
 {
-	const auto& ti = UxfpGetThemeInfo(hTheme);
-	if (ti.eType == ThemeType::Header)
-		switch (iPartId)
-		{
-		case HP_HEADEROVERFLOW:
-		{
-			int iDpi;
-			if (hDC)
-				iDpi = GetDeviceCaps(hDC, LOGPIXELSX);
-			else if (ti.hWnd)
-				iDpi = GetDpi(ti.hWnd);
-			else
-				iDpi = USER_DEFAULT_SCREEN_DPI;
-			psz->cx = DpiScale(16, iDpi);
-			psz->cy = DpiScale(32, iDpi);
-		}
-		return S_OK;
-		}
+	{
+		CSrwReadGuard _{ s_LkThemeMap };
+		const auto& ti = UxfpGetThemeInfo(hTheme);
+		if (ti.eType == ThemeType::Header)
+			switch (iPartId)
+			{
+			case HP_HEADEROVERFLOW:
+			{
+				int iDpi;
+				if (hDC)
+					iDpi = GetDeviceCaps(hDC, LOGPIXELSX);
+				else if (ti.hWnd)
+					iDpi = GetDpi(ti.hWnd);
+				else
+					iDpi = USER_DEFAULT_SCREEN_DPI;
+				psz->cx = DpiScale(16, iDpi);
+				psz->cy = DpiScale(32, iDpi);
+			}
+			return S_OK;
+			}
+	}
 	return s_pfnGetThemePartSize(hTheme, hDC, iPartId, iStateId, prc, eSize, psz);
 }
 
