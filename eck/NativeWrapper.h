@@ -128,7 +128,9 @@ inline HANDLE NaCreateFile(UNICODE_STRING* pusFile, DWORD dwAccess, DWORD dwShar
 	NTSTATUS nts;
 	IO_STATUS_BLOCK iost;
 	LARGE_INTEGER li{ .QuadPart = (LONGLONG)cbInit };
-	nts = NtCreateFile(&hFile, dwAccess, &oa, piost ? piost : &iost, &li,
+	nts = NtCreateFile(&hFile, dwAccess, &oa, 
+		piost ? piost : &iost, 
+		cbInit ? &li : nullptr,
 		dwAttributes, dwShareMode, dwCreationDisposition, dwOptions, nullptr, 0);
 	if (pnts)
 		*pnts = nts;
@@ -141,7 +143,7 @@ inline HANDLE NaCreateFile(UNICODE_STRING* pusFile, DWORD dwAccess, DWORD dwShar
 /// 打开文件。
 /// 封装与CreateFileW相近的Native API调用，不支持打开控制台
 /// </summary>
-/// <param name="pusFile">文件路径</param>
+/// <param name="pszFile">文件路径</param>
 /// <param name="dwAccess">CreateFileW --> dwAccess</param>
 /// <param name="dwShareMode">CreateFileW --> dwShareMode</param>
 /// <param name="dwOptions">NtCreateFile --> CreateOptions</param>

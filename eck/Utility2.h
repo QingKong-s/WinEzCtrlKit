@@ -455,7 +455,7 @@ inline std::wstring_view GetResourceString(WORD wID, WORD wLangID,
 	if (!hgStr)
 		return {};
 	auto pszBegin = (PCWSTR)LockResource(hgStr);
-	for (size_t i = 0; i < wID % 16; ++i)
+	for (size_t i = 0; i < size_t(wID % 16); ++i)
 		pszBegin += (*pszBegin + 1);
 	const int cch = *pszBegin++;
 	return { pszBegin,(size_t)cch };

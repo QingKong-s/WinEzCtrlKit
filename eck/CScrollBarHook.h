@@ -158,7 +158,7 @@ private:
 				iState = ABS_UPHOVER;
 			else
 				iState = ABS_UPNORMAL;
-			auto hr = DrawThemeBackground(hTheme, hDC, SBP_ARROWBTN, iState, &rc, nullptr);
+			DrawThemeBackground(hTheme, hDC, SBP_ARROWBTN, iState, &rc, nullptr);
 			// 上空白
 			rc.top = rc.bottom;
 			rc.bottom = m_yThumbV;

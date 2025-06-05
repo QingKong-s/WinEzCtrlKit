@@ -616,8 +616,7 @@ static HRESULT UxfpAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 	else
 	{
 		// 特判该路径有两个原因
-		// 1. Ux绘制纯色背景时使用GDI，这导致结果位图中所有像素的Alpha通道为0，
-		// 颜色矩阵需要修改以拉回透明度
+		// 1. Ux绘制纯色背景时使用GDI，这导致结果位图中所有像素的Alpha通道为0
 		// 2. 调整一副位图的亮度显然比调整一个颜色值的亮度要慢得多，此处可作为一个优化
 		COLORREF crFill;
 		if (SUCCEEDED(hr = s_pfnGetThemeColor(hTheme, iPartId, iStateId,
@@ -1805,11 +1804,11 @@ void ThreadInit()
 #else
 	p->hhkCbtDarkMode = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
 		{
-			constexpr static PCWSTR c_pszCommCtrlCls[]// 需要被设置主题的通用控件
+			constexpr static PCWSTR CommCtrlCls[]// 需要被设置主题的通用控件
 			{
-				WC_BUTTONW,
 				WC_HEADERW,
 				WC_LISTVIEWW,
+				WC_BUTTONW,
 				TOOLBARCLASSNAMEW,
 				TOOLTIPS_CLASSW,
 				WC_TREEVIEWW,
@@ -1817,11 +1816,11 @@ void ThreadInit()
 				WC_SCROLLBARW,
 			};
 
-			constexpr int c_cchMaxClsBuf = (int)std::max(
+			constexpr int MaxClsBuf = (int)std::max(
 				{
-					ARRAYSIZE(WC_BUTTONW),
 					ARRAYSIZE(WC_HEADERW),
 					ARRAYSIZE(WC_LISTVIEWW),
+					ARRAYSIZE(WC_BUTTONW),
 					ARRAYSIZE(TOOLBARCLASSNAMEW),
 					ARRAYSIZE(TOOLTIPS_CLASSW),
 					ARRAYSIZE(WC_TREEVIEWW),
@@ -1840,12 +1839,12 @@ void ThreadInit()
 				if (IsWindow(hWnd))
 				{
 					const BOOL bPszIsId = IS_INTRESOURCE(pccw->lpcs->lpszClass);
-					WCHAR szCls[c_cchMaxClsBuf];
+					WCHAR szCls[MaxClsBuf];
 					if (bPszIsId)
-						GetClassNameW(hWnd, szCls, c_cchMaxClsBuf);
+						GetClassNameW(hWnd, szCls, MaxClsBuf);
 
-					const auto itEnd = c_pszCommCtrlCls + ARRAYSIZE(c_pszCommCtrlCls);
-					const auto it = std::find_if(c_pszCommCtrlCls, itEnd,
+					const auto itEnd = CommCtrlCls + ARRAYSIZE(CommCtrlCls);
+					const auto it = std::find_if(CommCtrlCls, itEnd,
 						[szCls, bPszIsId, pccw](PCWSTR psz)
 						{
 							if (bPszIsId)
@@ -1856,10 +1855,10 @@ void ThreadInit()
 
 					if (it != itEnd)
 					{
-						if (it == c_pszCommCtrlCls + 1/*Header*/ ||
-							it == c_pszCommCtrlCls + 2/*ListView*/)
+						if (it == CommCtrlCls + 0/*Header*/ ||
+							it == CommCtrlCls + 1/*ListView*/)
 							SetWindowTheme(hWnd, L"ItemsView", nullptr);
-						else ECKLIKELY
+						else
 							SetWindowTheme(hWnd, L"Explorer", nullptr);
 					}
 				}

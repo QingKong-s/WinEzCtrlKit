@@ -948,14 +948,18 @@ struct THREADCTX
 	CWnd* pCurrWnd{};					// 当前正在创建窗口所属的CWnd指针
 	FWndCreating pfnWndCreatingProc{};	// 当前创建窗口时要调用的过程
 	//-------暗色处理
-	HHOOK hhkCbtDarkMode{};	// 启用暗色支持CBT钩子句柄
-	COLORREF crDefText{};	// 默认前景色
-	COLORREF crDefBkg{};	// 默认背景色
-	COLORREF crDefBtnFace{};// 默认BtnFace颜色
-	COLORREF crBlue1{};		// 蓝色
-	COLORREF crGray1{};		// 灰色
-	COLORREF crTip1{};		// 提示颜色
-	COLORREF crHiLightText{};// 高亮文本颜色，用于适配高对比度主题
+	// 不钩取GetSysColorBrush，因为它的返回值可以被删除，
+	// 因此也不钩取GetSysColor，以免两个应得到相同结果函数的行为不同
+	// 所有绘图操作显式使用下面的颜色字段，若某标准控件使用GetSysColor(Brush)，
+	// 则通过子类化或其他方式修改
+	HHOOK hhkCbtDarkMode{};		// 启用暗色支持CBT钩子句柄
+	COLORREF crDefText{};		// 默认前景色
+	COLORREF crDefBkg{};		// 默认背景色
+	COLORREF crDefBtnFace{};	// 默认BtnFace颜色
+	COLORREF crBlue1{};			// 蓝色
+	COLORREF crGray1{};			// 灰色
+	COLORREF crTip1{};			// 提示颜色
+	COLORREF crHiLightText{};	// 高亮文本颜色，用于适配高对比度主题
 
 	// 是否允许暗色CBT钩子设置窗口，设为FALSE可暂停Hook。
 	// 注意：务必在打开文件对话框前暂停Hook
@@ -964,7 +968,7 @@ struct THREADCTX
 	BOOLEAN bEnterCallback{};	// 当前是否在回调中
 	BOOLEAN bAppDarkMode{};		// 当前是否处于暗色模式
 	//-------回调队列
-	HHOOK hhkMsgFilter{};
+	HHOOK hhkMsgFilter{};		// 在菜单、模态对话框、拖动选择等的消息循环中保持处理UI线程的回调
 	Priv::QueuedCallbackQueue Callback{};
 
 	EckInline void WmAdd(HWND hWnd, CWnd* pWnd)

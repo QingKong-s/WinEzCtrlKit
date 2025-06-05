@@ -26,70 +26,62 @@ inline LONGLONG GetFileSizeWithPath(PCWSTR pszFile, NTSTATUS* pnts = nullptr)
 	return fsi.EndOfFile.QuadPart;
 }
 
-/// <summary>
-/// 读入文件
-/// </summary>
-/// <param name="pszFile">文件路径</param>
-/// <returns>返回字节集</returns>
-inline CRefBin ReadInFile(PCWSTR pszFile)
+inline CRefBin ReadInFile(PCWSTR pszFile, NTSTATUS* pnts = nullptr)
 {
-	const HANDLE hFile = CreateFileW(pszFile, GENERIC_READ, FILE_SHARE_READ, nullptr,
-		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+	const auto hFile = NaOpenFile(pszFile,
+		FILE_READ_DATA | SYNCHRONIZE,
+		FILE_SHARE_READ,
+		FILE_NON_DIRECTORY_FILE | FILE_SEQUENTIAL_ONLY | FILE_SYNCHRONOUS_IO_NONALERT,
+		pnts);
 	if (hFile == INVALID_HANDLE_VALUE)
+		return {};
+	NTSTATUS nts;
+	if (!pnts) pnts = &nts;
+	IO_STATUS_BLOCK iosb;
+	FILE_STANDARD_INFORMATION fsi;
+	fsi.EndOfFile.QuadPart = 0ll;
+	*pnts = NtQueryInformationFile(hFile, &iosb,
+		&fsi, sizeof(fsi), FileStandardInformation);
+	if (!NT_SUCCESS(*pnts))
 	{
-		EckDbgPrintFormatMessage(GetLastError());
+		NtClose(hFile);
 		return {};
 	}
-
-	LARGE_INTEGER i64{};
-	GetFileSizeEx(hFile, &i64);
-	if (i64.QuadPart > 1'073'741'824i64)// 大于1G，不读
+	const auto cbFile = (size_t)fsi.EndOfFile.QuadPart;
+	if (cbFile > (size_t)1'073'741'824u || cbFile < 0)// 大于1G，不读
 	{
-		EckDbgPrintFmt(L"文件太大! 尺寸 = %I64d", i64.QuadPart);
-		CloseHandle(hFile);
+		*pnts = STATUS_BUFFER_TOO_SMALL;
+		NtClose(hFile);
 		return {};
 	}
 
 	CRefBin rb{};
-	rb.Reserve(i64.LowPart + 4/*给调用方预留，例如添加结尾NULL等*/);
-	rb.ReSize(i64.LowPart);
-	DWORD dwRead;
-	if (!ReadFile(hFile, rb.Data(), i64.LowPart, &dwRead, nullptr))
-	{
-		EckDbgPrintFormatMessage(GetLastError());
-		CloseHandle(hFile);
-		return {};
-	}
-
-	CloseHandle(hFile);
+	rb.Reserve(cbFile + 4/*给调用方预留，例如添加结尾NULL等*/);
+	rb.ReSize(cbFile);
+	*pnts = NtReadFile(hFile, nullptr, nullptr, nullptr, &iosb,
+		rb.Data(), (ULONG)rb.Size(), nullptr, nullptr);
+	NtClose(hFile);
 	return rb;
 }
 
-/// <summary>
-/// 写到文件
-/// </summary>
-/// <param name="pszFile">文件路径</param>
-/// <param name="pData">字节流</param>
-/// <param name="cb">字节流长度</param>
-inline BOOL WriteToFile(PCWSTR pszFile, PCVOID pData, DWORD cb)
+inline NTSTATUS WriteToFile(PCWSTR pszFile, PCVOID pData, DWORD cb)
 {
-	const HANDLE hFile = CreateFileW(pszFile, GENERIC_WRITE, FILE_SHARE_READ, nullptr,
-		CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+	NTSTATUS nts;
+	const HANDLE hFile = NaCreateFile(pszFile,
+		FILE_WRITE_DATA | SYNCHRONIZE,
+		FILE_SHARE_READ,
+		FILE_NON_DIRECTORY_FILE | FILE_SEQUENTIAL_ONLY | FILE_SYNCHRONOUS_IO_NONALERT,
+		FILE_OVERWRITE_IF, &nts);
 	if (hFile == INVALID_HANDLE_VALUE)
-		return FALSE;
-
-	DWORD dwRead;
-	const BOOL b = WriteFile(hFile, pData, cb, &dwRead, nullptr);
-	CloseHandle(hFile);
-	return b;
+		return nts;
+	IO_STATUS_BLOCK iosb;
+	nts = NtWriteFile(hFile, nullptr, nullptr, nullptr, &iosb,
+		(void*)pData, cb, nullptr, nullptr);
+	NtClose(hFile);
+	return nts;
 }
 
-/// <summary>
-/// 写到文件
-/// </summary>
-/// <param name="pszFile">文件路径</param>
-/// <param name="rb">字节集</param>
-EckInline BOOL WriteToFile(PCWSTR pszFile, const CRefBin& rb)
+EckInline NTSTATUS WriteToFile(PCWSTR pszFile, const CRefBin& rb)
 {
 	return WriteToFile(pszFile, rb.Data(), (DWORD)rb.Size());
 }
@@ -213,7 +205,7 @@ inline COLORREF GetCursorPosColor()
 /// </summary>
 /// <param name="pWbemSrv">接收IWbemServices指针的变量，该变量的值将被覆盖</param>
 /// <param name="pWbemLoc">接收IWbemLocator指针的变量，该变量的值将被覆盖</param>
-/// <returns>错误代码</returns>
+/// <returns>HRESULT</returns>
 inline HRESULT WmiConnectNamespace(IWbemServices*& pWbemSrv, IWbemLocator*& pWbemLoc)
 {
 	pWbemSrv = nullptr;
@@ -250,7 +242,7 @@ inline HRESULT WmiConnectNamespace(IWbemServices*& pWbemSrv, IWbemLocator*& pWbe
 /// <param name="pszProp">属性</param>
 /// <param name="Var">查询结果，调用方必须对其调用VariantClear以解分配</param>
 /// <param name="pWbemSrv">IWbemServices指针，使用此接口执行查询</param>
-/// <returns>错误代码</returns>
+/// <returns>HRESULT</returns>
 inline HRESULT WmiQueryClassProp(PCWSTR pszWql, PCWSTR pszProp, VARIANT& Var, IWbemServices* pWbemSrv)
 {
 	HRESULT hr;
@@ -272,7 +264,7 @@ inline HRESULT WmiQueryClassProp(PCWSTR pszWql, PCWSTR pszProp, VARIANT& Var, IW
 /// <param name="pszWql">WQL语句</param>
 /// <param name="pszProp">属性</param>
 /// <param name="Var">查询结果</param>
-/// <returns>错误代码</returns>
+/// <returns>HRESULT</returns>
 inline HRESULT WmiQueryClassProp(PCWSTR pszWql, PCWSTR pszProp, VARIANT& Var)
 {
 	IWbemServices* pWbemSrv;
@@ -300,11 +292,6 @@ struct CPUINFO
 	UINT uMaxClockSpeed;// 兆赫兹
 };
 
-/// <summary>
-/// 取CPU信息
-/// </summary>
-/// <param name="ci">接收信息变量</param>
-/// <returns>错误代码</returns>
 inline HRESULT GetCpuInfo(CPUINFO& ci)
 {
 #if !defined(_M_ARM64) && !defined(_M_ARM)
@@ -401,11 +388,7 @@ inline HRESULT GetCpuInfo(CPUINFO& ci)
 #endif// __arm__
 }
 
-/// <summary>
-/// 显示/隐藏桌面
-/// </summary>
-/// <param name="bShow">是否显示</param>
-/// <returns>桌面ListView句柄</returns>
+// 返回桌面ListView句柄
 inline HWND ShowDesktop(BOOL bShow)
 {
 	HWND hPm = FindWindowW(L"Progman", L"Program Manager");
@@ -432,11 +415,6 @@ inline HWND ShowDesktop(BOOL bShow)
 	return hLV;
 }
 
-/// <summary>
-/// 显示/隐藏任务栏
-/// </summary>
-/// <param name="bShow">是否显示</param>
-/// <returns>任务栏句柄</returns>
 EckInline HWND ShowTaskBar(BOOL bShow)
 {
 	const HWND hTb = FindWindowW(L"Shell_TrayWnd", nullptr);
@@ -460,12 +438,6 @@ struct FILEVERINFO
 	CRefStrW SpecialBuild;
 };
 
-/// <summary>
-/// 取文件版本信息
-/// </summary>
-/// <param name="pszFile">文件名</param>
-/// <param name="fvi">版本信息</param>
-/// <returns>成功返回TRUE，失败返回FALSE</returns>
 inline BOOL GetFileVerInfo(PCWSTR pszFile, FILEVERINFO& fvi)
 {
 	const DWORD cbBuf = GetFileVersionInfoSizeW(pszFile, nullptr);

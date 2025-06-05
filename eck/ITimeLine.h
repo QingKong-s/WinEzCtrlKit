@@ -17,7 +17,16 @@ struct CFixedTimeLine : public ITimeLine
 {
 	ULONG STDMETHODCALLTYPE AddRef() { return 1; }
 	ULONG STDMETHODCALLTYPE Release() { return 1; }
-	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) { return E_NOINTERFACE; }
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject)
+	{
+		if (riid == __uuidof(ITimeLine) || riid == IID_IUnknown)
+		{
+			*ppvObject = this;
+			return S_OK;
+		}
+		else
+			return E_NOINTERFACE;
+	}
 
 	BOOL IsValid() { return TRUE; }
 	int GetCurrTickInterval() { return 0; }

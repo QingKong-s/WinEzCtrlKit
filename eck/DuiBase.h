@@ -695,7 +695,7 @@ public:
 		ClientToElem(pt);
 	}
 
-	inline HRESULT CompUpdateCacheBitmap(int cx, int cy);
+	HRESULT CompUpdateCacheBitmap(int cx, int cy);
 
 	EckInline void CompInvalidateCacheBitmap()
 	{
@@ -1192,7 +1192,7 @@ private:
 
 			const auto ullCurrTime = NtGetTickCount64();
 			// 滴答所有时间线
-			int iDeltaTime = (int)(ullCurrTime - ullTime);
+			int iDeltaTime = int(ullCurrTime - ullTime);
 			for (const auto e : m_vTimeLine)
 			{
 				if (e->IsValid())
@@ -2787,24 +2787,15 @@ EckInlineCe int CElem::Phy2Log(int i) const { return GetWnd()->Phy2Log(i); }
 EckInlineCe float CElem::Phy2LogF(float f) const { return GetWnd()->Phy2LogF(f); }
 EckInlineCe ID2D1Bitmap1* CElem::GetCacheBitmap() const { return GetWnd()->GetCacheBitmap(); }
 
-class CDuiDropTarget :public CDropTarget
+class CDuiDropTarget : public CUnknown<CDuiDropTarget, IDropTarget>
 {
 private:
-	CDuiWnd* m_pWnd = nullptr;
+	CDuiWnd* m_pWnd{};
 public:
-	CDuiDropTarget(CDuiWnd* pWnd) :m_pWnd(pWnd) {}
+	CDuiDropTarget(CDuiWnd* pWnd) :m_pWnd{ pWnd } {}
 
-	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppv)
-	{
-		const QITAB qit[]
-		{
-			QITABENT(CDuiDropTarget, IDropTarget),
-			{ 0 },
-		};
-		return QISearch(this, qit, riid, ppv);
-	}
-
-	HRESULT STDMETHODCALLTYPE DragEnter(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
+	HRESULT STDMETHODCALLTYPE DragEnter(IDataObject* pDataObj,
+		DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
 	{
 		m_pWnd->m_pDataObj = pDataObj;
 		POINT pt0{ pt.x, pt.y };
@@ -2901,7 +2892,7 @@ inline HRESULT CDuiWnd::EnableDragDrop(BOOL bEnable)
 	{
 		if (!m_pDropTarget)
 		{
-			m_pDropTarget = new CDuiDropTarget(this);
+			m_pDropTarget = new CDuiDropTarget{ this };
 			return RegisterDragDrop(m_hWnd, m_pDropTarget);
 		}
 	}

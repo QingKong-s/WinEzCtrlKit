@@ -722,9 +722,7 @@ private:
 
 			NMLBNGETDISPINFO nm{};
 			nm.Item.idxItem = idx;
-			auto bb = FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_GETDISPINFO);
-			if (FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_GETDISPINFO)
-				&& nm.Item.cchText > 0)
+			if (RequestItem(nm) && nm.Item.cchText > 0)
 			{
 				RECT rc{ ne.rc };
 				rc.left += DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
