@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "ITimeLine.h"
+#include "CUnknown.h"
 
 #define ECK_EASING_NAMESPACE_BEGIN namespace Easing {
 #define ECK_EASING_NAMESPACE_END }

@@ -420,7 +420,7 @@ namespace Priv
 			if (msTimeout == LLONG_MAX)
 				Wait.SetWait(hWaitable);
 			else
-				Wait.SetWait(hWaitable, msTimeout * 10000ll/*反转符号*/);
+				Wait.SetWait(hWaitable, msTimeout * 10000ll);
 		}
 
 		void await_resume() const

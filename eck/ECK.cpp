@@ -1732,12 +1732,11 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		DetourAttach(&s_pfnOpenThemeData, NewOpenThemeData);
 		DetourAttach(&s_pfnDrawThemeText, NewDrawThemeText);
 		DetourAttach(&s_pfnDrawThemeTextEx, NewDrawThemeTextEx);
-		const HMODULE hModUx = LoadLibraryW(L"UxTheme.dll");
+		const HMODULE hModUx = GetModuleHandleW(L"UxTheme.dll");
 		EckAssert(hModUx);
 		if (s_pfnOpenThemeDataForDpi = (FOpenThemeDataForDpi)
 			GetProcAddress(hModUx, "OpenThemeDataForDpi"))
 			DetourAttach(&s_pfnOpenThemeDataForDpi, NewOpenThemeDataForDpi);
-		FreeLibrary(hModUx);
 		DetourAttach(&s_pfnDrawThemeBackgroundEx, NewDrawThemeBackgroundEx);
 		DetourAttach(&s_pfnDrawThemeBackground, NewDrawThemeBackground);
 		DetourAttach(&s_pfnGetThemeColor, NewGetThemeColor);

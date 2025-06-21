@@ -588,9 +588,6 @@
     <ClInclude Include="eck\EzDx.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\DuigBase.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CCombinationScrollView.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
