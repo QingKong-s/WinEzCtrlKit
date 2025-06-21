@@ -89,7 +89,7 @@ inline HRESULT DciCreateInteropCompositorFactory(
 			winrt::Windows::UI::Composition::Compositor,
 			IInteropCompositorFactoryPartner>().detach();
 	}
-	catch (winrt::hresult_error const& e)
+	catch (const winrt::hresult_error& e)
 	{
 		return e.to_abi();
 	}
@@ -112,8 +112,6 @@ inline HRESULT DciCreateInteropCompositorFactory(
 /// 为互操作合成器创建窗口目标。
 /// winrt侧互操作合成器创建的视觉对象无法QI为Win32 DComp视觉对象，
 /// 但反过来，互操作DComp设备创建的Win32 DComp视觉对象可以QI为Visual。
-/// 可使用合成器和DComp分别创建所需对象。
-/// 16299后最佳做法：只用合成器管理可视化树。
 /// </summary>
 /// <param name="hWnd">窗口句柄</param>
 /// <param name="bTopmost">可视化树是否显示在分层子窗口之上</param>

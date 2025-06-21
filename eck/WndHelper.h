@@ -1175,6 +1175,8 @@ inline HRESULT MatchLogFontFromFamilyName(PCWSTR pszFamilyName,
 	ComPtr<IDWriteFontCollection> pFontCollection_;
 	if (!pFontCollection)
 	{
+		if (!g_pDwFactory)
+			return HRESULT_FROM_WIN32(ERROR_NOT_READY);
 		g_pDwFactory->GetSystemFontCollection(
 			&pFontCollection_, FALSE);
 		pFontCollection = pFontCollection_.Get();

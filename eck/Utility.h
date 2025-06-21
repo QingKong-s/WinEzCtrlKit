@@ -1638,7 +1638,10 @@ EckInline T DynCast(U p)
 		return nullptr;
 	const auto p1 = dynamic_cast<T>(p);
 	if (!p1)
-		throw std::bad_cast();
+	{
+		EckDbgPrint(L"Dynamic cast failed!");
+		EckDbgBreak();
+	}
 	return p1;
 #else
 	return (T)p;
@@ -1739,10 +1742,10 @@ EckInline constexpr LPARAM MakeKeyStrokeFlag(USHORT cRepeat, UINT uScanCode, BOO
 EckInline constexpr void RectCornerToPoint(const D2D1_RECT_F& rc,
 	_Out_writes_(4) D2D1_POINT_2F* ppt)
 {
-	ppt[0] = D2D1_POINT_2F{ rc.left,rc.top };
-	ppt[1] = D2D1_POINT_2F{ rc.right,rc.top };
-	ppt[2] = D2D1_POINT_2F{ rc.left,rc.bottom };
-	ppt[3] = D2D1_POINT_2F{ rc.right,rc.bottom };
+	ppt[0] = { rc.left,rc.top };
+	ppt[1] = { rc.right,rc.top };
+	ppt[2] = { rc.left,rc.bottom };
+	ppt[3] = { rc.right,rc.bottom };
 }
 
 EckInline constexpr void InitObjAttr(OBJECT_ATTRIBUTES& oa, PUNICODE_STRING pusName = nullptr,

@@ -39,7 +39,7 @@ class CWin32UIMgr
 {
 private:
 	CRefStrW m_rsNamePool{};
-	std::unordered_map<std::wstring_view, CObject*> m_Obj{};
+	std::unordered_map<std::wstring_view, CObject*> m_hsObj{};
 public:
 	HRESULT LoadLayout(PCWSTR pszIni, int cchIni, IniResult* pIniResult = nullptr)
 	{
