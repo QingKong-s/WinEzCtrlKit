@@ -182,7 +182,6 @@
     <ClInclude Include="eck\CDuiListTemplate.h" />
     <ClInclude Include="eck\CDuiTabList.h" />
     <ClInclude Include="eck\CDWriteFontFactory.h" />
-    <ClInclude Include="eck\CDwriteGdiRenderer.h" />
     <ClInclude Include="eck\CEnumFile.h" />
     <ClInclude Include="eck\CEnumFile2.h" />
     <ClInclude Include="eck\CHandleTable.h" />
