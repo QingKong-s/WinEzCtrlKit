@@ -1679,7 +1679,7 @@ public:
 
 				if (!m_bTransparent)
 				{
-					const auto crBkg = ColorrefToD2dColorF(GetThreadCtx()->crDefBkg);
+					const auto crBkg = ColorrefToD2DColorF(GetThreadCtx()->crDefBkg);
 					pDC->CreateSolidColorBrush(crBkg, &m_pBrBkg);
 				}
 				m_cxClient = rc.right;
@@ -1982,7 +1982,7 @@ public:
 		DWORD Argb{};
 		BOOL Dummy;
 		DwmGetColorizationColor(&Argb, &Dummy);
-		StUpdateColorizationColor(ARGBToD2dColorF(Argb));
+		StUpdateColorizationColor(ArgbToD2DColorF(Argb));
 	}
 
 	EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)

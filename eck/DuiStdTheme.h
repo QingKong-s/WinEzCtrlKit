@@ -85,7 +85,7 @@ constexpr inline D2D1_COLOR_F Palette_StdLight[]
 	// SysColor
 	StMakeForegroundColorLight(1.f),	// SysText
 	StMakeBackgroundColorLight(1.f),	// SysBk
-	ColorrefToD2dColorF(RGB(0,51,153)),	// SysMainTitle
+	ColorrefToD2DColorF(RGB(0,51,153)),	// SysMainTitle
 	// Button
 	StMakeBackgroundColorLight(0.7f),	// ButtonNormalBk
 	StMakeForegroundColorLight(0.1f),	// ButtonNormalBorder
@@ -132,7 +132,7 @@ constexpr inline D2D1_COLOR_F Palette_StdDark[]
 	// SysColor
 	StMakeForegroundColorDark(1.f),		// SysText
 	StMakeBackgroundColorDark(1.f),		// SysBk
-	ColorrefToD2dColorF(RGB(0,168,255)),// SysMainTitle
+	ColorrefToD2DColorF(RGB(0,168,255)),// SysMainTitle
 	// Button
 	StMakeBackgroundColorDark(0.7f),	// ButtonNormalBk
 	StMakeForegroundColorDark(0.1f),	// ButtonNormalBorder
