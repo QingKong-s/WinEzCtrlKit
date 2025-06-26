@@ -718,15 +718,17 @@ enum :UINT// 控件通知代码
 */
 
 // 消息钩子ID保留范围[1, 511]，此范围仅供内部使用
-constexpr inline UINT_PTR MsgHookIdUserBegin = 512;
 enum :UINT_PTR
 {
-	MHI_SCROLLBAR_HOOK = 1,
+	MHI_NONE,
+	MHI_SCROLLBAR_HOOK,
 	MHI_HEADER_HOOK,
 	MHI_LISTVIEW_ROWHEIGHT,
 	MHI_LVE_HEADER_HEIGHT,
 	MHI_DUI_TITLEBAR,
 	MHI_UXF_MENU,
+
+	MHI_USER = 512,
 };
 
 // 构建号

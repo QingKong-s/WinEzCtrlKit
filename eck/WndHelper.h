@@ -942,7 +942,10 @@ inline void GenerateKeyMsg(HWND hWnd, UINT Vk, KeyType eType, BOOL bExtended = F
 	}
 }
 
-inline BOOL MsgOnSettingChangeFixDpiAwareV2(HWND hWnd, WPARAM wParam, LPARAM lParam)
+// 一般WM_DPICHANGED会重新调整窗口尺寸到一个合适的值，
+// 但若存在特殊情况，即WM_DPICHANGED下尺寸不变时，将bRestoreSize设为TRUE
+inline BOOL MsgOnSettingChangeFixDpiAwareV2(HWND hWnd, WPARAM wParam, LPARAM lParam,
+	BOOL bRestoreSize = FALSE)
 {
 	if (wParam == SPI_SETLOGICALDPIOVERRIDE &&
 		g_NtVer.uBuild > WINVER_11_23H2 &&
@@ -950,11 +953,11 @@ inline BOOL MsgOnSettingChangeFixDpiAwareV2(HWND hWnd, WPARAM wParam, LPARAM lPa
 	{
 		RECT rc;
 		GetWindowRect(hWnd, &rc);
-		const auto cx = rc.right - rc.left, cy = rc.bottom - rc.top;
-		SetWindowPos(hWnd, nullptr, 0, 0, cx + 1, cy,
+		SetWindowPos(hWnd, nullptr, 0, 0, rc.right - rc.left + 1, rc.bottom - rc.top,
 			SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
-		SetWindowPos(hWnd, nullptr, 0, 0, cx, cy,
-			SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+		if (bRestoreSize)
+			SetWindowPos(hWnd, nullptr, 0, 0, rc.right - rc.left, rc.bottom - rc.top,
+				SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 		return TRUE;
 	}
 	return FALSE;
