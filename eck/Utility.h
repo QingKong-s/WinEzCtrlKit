@@ -195,12 +195,12 @@ EckInline constexpr UINT ReverseColorref(COLORREF cr)
 		0);
 }
 
-EckInline constexpr ARGB ColorrefToARGB(COLORREF cr, BYTE byAlpha = 0xFF)
+EckInline constexpr ARGB ColorrefToArgb(COLORREF cr, BYTE byAlpha = 0xFF)
 {
 	return ReverseColorref(cr) | (byAlpha << 24);
 }
 
-EckInline constexpr COLORREF ARGBToColorref(ARGB argb, BYTE* pbyAlpha = nullptr)
+EckInline constexpr COLORREF ArgbToColorref(ARGB argb, BYTE* pbyAlpha = nullptr)
 {
 	if (pbyAlpha)
 		*pbyAlpha = GetIntegerByte<3>(argb);
@@ -208,7 +208,7 @@ EckInline constexpr COLORREF ARGBToColorref(ARGB argb, BYTE* pbyAlpha = nullptr)
 }
 
 #ifdef _D2D1_H_// 与ECK_OPT_NO_DX选项兼容
-EckInline constexpr D2D1_COLOR_F ARGBToD2dColorF(ARGB argb)
+EckInline constexpr D2D1_COLOR_F ArgbToD2DColorF(ARGB argb)
 {
 	return D2D1_COLOR_F
 	{
@@ -219,7 +219,7 @@ EckInline constexpr D2D1_COLOR_F ARGBToD2dColorF(ARGB argb)
 	};
 }
 
-EckInline constexpr D2D1_COLOR_F RgbToD2dColorF(UINT rgb, float fAlpha = 1.f)
+EckInline constexpr D2D1_COLOR_F RgbToD2DColorF(UINT rgb, float fAlpha = 1.f)
 {
 	return D2D1_COLOR_F
 	{
@@ -230,7 +230,7 @@ EckInline constexpr D2D1_COLOR_F RgbToD2dColorF(UINT rgb, float fAlpha = 1.f)
 	};
 }
 
-EckInline constexpr COLORREF D2dColorFToColorref(const D2D1_COLOR_F& cr)
+EckInline constexpr COLORREF D2DColorFToColorref(const D2D1_COLOR_F& cr)
 {
 	return BytesToInteger<COLORREF>(
 		BYTE(cr.r * 255.f),
@@ -239,7 +239,7 @@ EckInline constexpr COLORREF D2dColorFToColorref(const D2D1_COLOR_F& cr)
 		0);
 }
 
-EckInline constexpr D2D1_COLOR_F ColorrefToD2dColorF(COLORREF cr, float fAlpha = 1.f)
+EckInline constexpr D2D1_COLOR_F ColorrefToD2DColorF(COLORREF cr, float fAlpha = 1.f)
 {
 	return D2D1_COLOR_F
 	{

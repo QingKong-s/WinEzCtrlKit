@@ -1223,10 +1223,10 @@ inline COLORREF CEditTextHost::TxGetSysColor(int nIndex)
 	{
 	case COLOR_WINDOWTEXT:
 		m_pEdit->GetTheme()->GetSysColor(SysColor::Text, cr);
-		return D2dColorFToColorref(cr);
+		return D2DColorFToColorref(cr);
 	case COLOR_WINDOW:
 		m_pEdit->GetTheme()->GetSysColor(SysColor::Bk, cr);
-		return D2dColorFToColorref(cr);
+		return D2DColorFToColorref(cr);
 	default:
 		return GetSysColor(nIndex);
 	}
