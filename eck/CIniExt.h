@@ -279,7 +279,7 @@ private:
 
 	// 调用前：psz指向[
 	// 调用后：psz指向]的下一个位置
-	static IniResult EscapeSectionName(TStr& rs, const TChar*& psz, size_t cch)
+	static IniResult UnescapeSectionName(TStr& rs, const TChar*& psz, size_t cch)
 	{
 		const auto pszEnd = psz + cch;
 		for (; psz != pszEnd; ++psz)
@@ -327,7 +327,7 @@ private:
 
 	// 调用前：psz指向键的第一个字符
 	// 调用后：psz指向值最后一个字符的下一个位置
-	static IniResult EscapeKeyValue(TStr& rsKey, TStr& rsVal,
+	static IniResult UnescapeKeyValue(TStr& rsKey, TStr& rsVal,
 		const TChar*& psz, size_t cch, BOOL bKeepSpace)
 	{
 		const auto pOrg = psz;
@@ -418,6 +418,27 @@ private:
 			pR = psz + cch;
 		rs.PushBack(psz, int(pR - psz));
 		psz = pR;
+	}
+
+	// 转义svOrg，并尾插到rsOut中
+	static void EscapeString(TStrView svOrg, TStr& rsOut)
+	{
+		for (const auto ch : svOrg)
+		{
+			switch (ch)
+			{
+			case '\n':	rsOut.PushBackChar('\\').PushBackChar('n');	break;
+			case '\r':	rsOut.PushBackChar('\\').PushBackChar('r');	break;
+			case '\t':	rsOut.PushBackChar('\\').PushBackChar('t');	break;
+			case '\0':	rsOut.PushBackChar('\\').PushBackChar('0');	break;
+			case '\\':	rsOut.PushBackChar('\\').PushBackChar('\\');	break;
+			case ';':	rsOut.PushBackChar('\\').PushBackChar(';');	break;
+			case '[':	rsOut.PushBackChar('\\').PushBackChar('[');	break;
+			case ']':	rsOut.PushBackChar('\\').PushBackChar(']');	break;
+			case '=':	rsOut.PushBackChar('\\').PushBackChar('=');	break;
+			default:	rsOut.PushBackChar(ch);	break;
+			}
+		}
 	}
 
 	static auto EmplacePair(auto Ret)
@@ -637,7 +658,7 @@ public:
 						bContainer = FALSE;
 					TStr rsName{};
 					const auto r = (bEscape ?
-						EscapeSectionName(rsName, pszIni, pszEnd - pszIni) :
+						UnescapeSectionName(rsName, pszIni, pszEnd - pszIni) :
 						ScanSectionName(rsName, pszIni, pszEnd - pszIni));
 					if (r != IniResult::Ok)
 						return r;
@@ -691,7 +712,7 @@ public:
 				}
 				TStr rsKey{}, rsVal{};
 				const auto r = (bEscape ?
-					EscapeKeyValue(rsKey, rsVal, pszIni, pszEnd - pszIni, bKeepSpace) :
+					UnescapeKeyValue(rsKey, rsVal, pszIni, pszEnd - pszIni, bKeepSpace) :
 					ScanKeyValue(rsKey, rsVal, pszIni, pszEnd - pszIni, bKeepSpace));
 				if (r != IniResult::Ok)
 					return r;
@@ -723,6 +744,7 @@ public:
 
 	IniResult Save(TStr& rsOut, UINT uFlags = INIE_IF_NONE) const
 	{
+		const auto bEscape = (uFlags & INIE_IF_ESCAPE);
 		struct STACK
 		{
 			TSecCstIter it{};
@@ -775,12 +797,15 @@ public:
 			}
 			else
 			{
-				// TODO:转义
 				rsOut.PushBack(rsSpace.Data(), rsSpace.Size() - 2);
 				rsOut.PushBackChar('[');
 				if (e.uFlags & INIE_EF_IS_CONTAINER)
 					rsOut.PushBackChar('>');
-				rsOut.PushBack(e.rsName).PushBackChar(']');
+				if (bEscape)
+					EscapeString(e.rsName.ToStringView(), rsOut);
+				else
+					rsOut.PushBack(e.rsName);
+				rsOut.PushBackChar(']');
 				PushBackEol(rsOut);
 				for (auto it = e.Val.begin(); it != e.Val.end(); ++it)
 					vKv.emplace_back(it);
@@ -791,7 +816,14 @@ public:
 				for (const auto& f : vKv)
 				{
 					rsOut.PushBack(rsSpace.Data(), rsSpace.Size() - 2);
-					rsOut
+					if (bEscape)
+					{
+						EscapeString(f->second.rsName.ToStringView(), rsOut);
+						rsOut.PushBackChar('=');
+						EscapeString(f->second.rsValue.ToStringView(), rsOut);
+					}
+					else
+						rsOut
 						.PushBack(f->second.rsName)
 						.PushBackChar('=')
 						.PushBack(f->second.rsValue);
@@ -807,7 +839,10 @@ public:
 					rsOut.PushBack(rsSpace.Data(), rsSpace.Size() - 2);
 					rsOut.PushBackChar('[').PushBackChar('<');
 					if (uFlags & INIE_IF_END_CONTAINER_WITH_NAME)
-						rsOut.PushBack(sContainer.back().svName);
+						if (bEscape)
+							EscapeString(sContainer.back().svName, rsOut);
+						else
+							rsOut.PushBack(sContainer.back().svName);
 					rsOut.PushBackChar(']');
 					PushBackEol(rsOut);
 					sContainer.pop_back();

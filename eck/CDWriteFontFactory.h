@@ -85,7 +85,7 @@ public:
 		return NewFont(pTf, pszFace, fSize, bItalic, (DWRITE_FONT_WEIGHT)iWeight);
 	}
 
-	EckInline HRESULT NewFont(_Out_ IDWriteTextFormat*& pTf) noexcept
+	EckInline HRESULT NewFontWithTemplate(_Out_ IDWriteTextFormat*& pTf) noexcept
 	{
 		return NewFont(pTf, m_Template.rsFace.Data(), m_Template.cy,
 			m_Template.bItalic, m_Template.eWeight);

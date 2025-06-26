@@ -98,6 +98,8 @@ public:
 						idx = (int)p->dwItemSpec;
 					else
 						idx = GetListBox().GetCurrSel();
+					if (idx < 0)
+						return CDRF_DODEFAULT;
 					COLORREF cr = PresetColor[idx].cr;
 					HBRUSH hbr;
 					HDC hDC = p->hdc;

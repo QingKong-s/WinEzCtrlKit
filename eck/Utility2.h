@@ -1175,4 +1175,15 @@ inline CRefStrW FormatBin(PCVOID pData_, SIZE_T cb, int iType)
 	}
 	return rsResult;
 }
+
+inline BOOL GetUserLocaleName(CRefStrW& rsLocaleName)
+{
+	WCHAR sz[LOCALE_NAME_MAX_LENGTH];
+	const auto r = GetUserDefaultLocaleName(sz, ARRAYSIZE(sz));
+	if (r <= 1)
+		return FALSE;
+	rsLocaleName.ReSize(r - 1);
+	TcsCopyLenEnd(rsLocaleName.Data(), sz, r - 1);
+	return TRUE;
+}
 ECK_NAMESPACE_END

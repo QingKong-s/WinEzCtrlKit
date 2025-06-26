@@ -1889,6 +1889,7 @@ void ThreadUnInit()
 	if (!p->hmWnd.empty())
 	{
 		EckDbgPrintWithPos(L"** WARNING ** 反初始化线程上下文时发现窗口映射表不为空");
+		EckDbgPrintWndMap();
 		EckDbgBreak();
 	}
 #endif // _DEBUG
