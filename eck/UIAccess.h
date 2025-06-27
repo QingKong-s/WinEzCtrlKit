@@ -174,6 +174,6 @@ inline NTSTATUS UiaRestart(const UIA& uia)
 		UiaRelease(uia);
 		exit(0);
 	}
-	return NTSTATUS_FROM_WIN32(NtCurrentTeb()->LastErrorValue);
+	return NTSTATUS_FROM_WIN32(NaGetLastError());
 }
 ECK_NAMESPACE_END

@@ -69,7 +69,7 @@ inline HRESULT BecCreateNoiseBrush(const becwuc::Compositor& Compositor,
 		nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_AS_DATAFILE |
 		LOAD_LIBRARY_AS_IMAGE_RESOURCE);
 	if (!hModule)
-		return HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue);
+		return HRESULT_FROM_WIN32(NaGetLastError());
 	const auto spImgData = GetResource(MAKEINTRESOURCEW(2000), RT_RCDATA, hModule);
 	IWICBitmap* pBmp;
 	const auto pStream = new CStreamView{ spImgData };

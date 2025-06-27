@@ -29,15 +29,20 @@ struct DelVA
 	void operator()(T* p) { VFree(p); }
 };
 
-inline HANDLE NaOpenProcess(DWORD dwDesiredAccess, BOOL bInheritHandle, UINT uProcessId)
+inline HANDLE NaOpenProcess(DWORD dwDesiredAccess, BOOL bInheritHandle,
+	UINT uProcessId, NTSTATUS* pnts = nullptr)
 {
-	OBJECT_ATTRIBUTES oa;
-	InitializeObjectAttributes(&oa, nullptr, bInheritHandle ? OBJ_INHERIT : 0, nullptr, nullptr);
+	OBJECT_ATTRIBUTES oa
+	{
+		.Length = sizeof(oa),
+		.Attributes = ULONG(bInheritHandle ? OBJ_INHERIT : 0)
+	};
 	CLIENT_ID cid{ ULongToHandle(uProcessId) };
 	HANDLE hProcess;
-	if (NT_SUCCESS(NtOpenProcess(&hProcess, dwDesiredAccess, &oa, &cid)))
-		return hProcess;
-	return nullptr;
+	NTSTATUS nts;
+	nts = NtOpenProcess(&hProcess, dwDesiredAccess, &oa, &cid);
+	if (pnts) *pnts = nts;
+	return hProcess;
 }
 
 /// <summary>
@@ -197,4 +202,6 @@ inline NTSTATUS NaDeviceIoControl(HANDLE hDevice, DWORD dwIoControlCode, PVOID p
 		*pcbReturned = (DWORD)iosb.Information;
 	return nts;
 }
+
+EckInlineNd ULONG NaGetLastError() { return NtCurrentTeb()->LastErrorValue; }
 ECK_NAMESPACE_END
