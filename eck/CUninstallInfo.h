@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "CRegKey.h"
+#include "NativeWrapper.h"
 
 #include <RegStr.h>
 #include <Msi.h>
@@ -366,7 +367,7 @@ public:
 					return ERROR_SUCCESS;
 				}
 				else
-					return NtCurrentTeb()->LastErrorValue;
+					return NaGetLastError();
 			}
 			else
 				return ERROR_NOT_SUPPORTED;

@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "ECK.h"
+#include "NativeWrapper.h"
 
 ECK_NAMESPACE_BEGIN
 EckInlineNd int WcslCompareLen2(_In_reads_(Len1) PCWCH Str1, int Len1,
@@ -33,7 +33,7 @@ EckInlineNd int WcslFindWorker(_In_reads_(Len) PCWCH Str, int Len,
 #ifdef _DEBUG
 	if (r == -1)
 	{
-		const auto dwErr = NtCurrentTeb()->LastErrorValue;
+		const auto dwErr = NaGetLastError();
 		EckDbgPrintFmt(L"FindNLSStringEx failed. Error code: %d", dwErr);
 		EckDbgPrintFormatMessage(dwErr);
 		EckDbgBreak();

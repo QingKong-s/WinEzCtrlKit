@@ -350,6 +350,7 @@
     <ClInclude Include="eck\CRelativeLayout.h" />
     <ClInclude Include="eck\Snapshot.h" />
     <ClInclude Include="eck\StringUtility.h" />
+    <ClInclude Include="eck\SymbolHelper.h" />
     <ClInclude Include="eck\TextSrvDef.h" />
     <ClInclude Include="eck\ShellHelper.h" />
     <ClInclude Include="eck\CImageMat.h" />

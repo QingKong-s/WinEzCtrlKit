@@ -262,7 +262,7 @@ protected:
 			x, y, cx, cy, hParent, hMenu, hInst, pParam);
 		if (!m_hWnd)
 		{
-			EckDbgPrintFormatMessage(NtCurrentTeb()->LastErrorValue);
+			EckDbgPrintFormatMessage(NaGetLastError());
 			EckDbgBreak();
 		}
 		if (IsWindow(m_hWnd))

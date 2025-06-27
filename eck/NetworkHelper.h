@@ -374,7 +374,7 @@ struct CHttpRequestAsync
 		UniquePtr<DelHWinHttp>
 			hConnect{ WhPrepareConnect(urlc, rsWork, s_hSession.get(), pszUrl, cchUrl) };
 		if (!hConnect)
-			co_return HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue);
+			co_return HRESULT_FROM_WIN32(NaGetLastError());
 
 		struct CTX
 		{
@@ -423,7 +423,7 @@ struct CHttpRequestAsync
 				case WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE:
 					// Expect WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE
 					if (!WinHttpReceiveResponse(hInternet, nullptr))
-						pCtx->Cancel(HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue));
+						pCtx->Cancel(HRESULT_FROM_WIN32(NaGetLastError()));
 					break;
 
 				case WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE:
@@ -457,7 +457,7 @@ struct CHttpRequestAsync
 					{
 						// Expect WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE
 						if (!WinHttpQueryDataAvailable(pCtx->hRequest, nullptr))
-							pCtx->Cancel(HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue));
+							pCtx->Cancel(HRESULT_FROM_WIN32(NaGetLastError()));
 					}
 					break;
 					case 1:
@@ -465,7 +465,7 @@ struct CHttpRequestAsync
 							GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, nullptr);
 						if (pCtx->hFile == INVALID_HANDLE_VALUE)
 						{
-							pCtx->Cancel(HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue));
+							pCtx->Cancel(HRESULT_FROM_WIN32(NaGetLastError()));
 							break;
 						}
 						[[fallthrough]];
@@ -479,7 +479,7 @@ struct CHttpRequestAsync
 						}
 						// Expect WINHTTP_CALLBACK_STATUS_READ_COMPLETE
 						if (!WinHttpReadData(pCtx->hRequest, pCtx->pBuf.get(), BufSize, nullptr))
-							pCtx->Cancel(HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue));
+							pCtx->Cancel(HRESULT_FROM_WIN32(NaGetLastError()));
 					}
 					break;
 					}
@@ -516,7 +516,7 @@ struct CHttpRequestAsync
 							PopBack(pCtx->cbData - dwStatusInformationLength);
 						// Expect WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE
 						if (!WinHttpQueryDataAvailable(pCtx->hRequest, nullptr))
-							pCtx->Cancel(HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue));
+							pCtx->Cancel(HRESULT_FROM_WIN32(NaGetLastError()));
 					}
 					break;
 					case 1:
@@ -573,12 +573,12 @@ struct CHttpRequestAsync
 				}
 			}, WINHTTP_CALLBACK_FLAG_ALL_COMPLETIONS | WINHTTP_CALLBACK_FLAG_HANDLES, 0);
 		if (Ret == WINHTTP_INVALID_STATUS_CALLBACK)
-			co_return HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue);
+			co_return HRESULT_FROM_WIN32(NaGetLastError());
 
 		UniquePtr<DelHWinHttp>
 			hRequest{ WhOpenRequest(urlc, hConnect.get(), pszMethod, rsWork.Data()) };
 		if (!hRequest)
-			co_return HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue);
+			co_return HRESULT_FROM_WIN32(NaGetLastError());
 
 		if (AutoAddHeader)
 		{
@@ -586,13 +586,13 @@ struct CHttpRequestAsync
 			WhCompleteHeader(Header, rsWork, pszMethod, Cookies, pszUserAgent);
 			if (!WinHttpAddRequestHeaders(hRequest.get(),
 				rsWork.Data(), (DWORD)rsWork.Size(), WINHTTP_ADDREQ_FLAG_ADD))
-				co_return HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue);
+				co_return HRESULT_FROM_WIN32(NaGetLastError());
 		}
 		else if (Header)
 		{
 			if (!WinHttpAddRequestHeaders(hRequest.get(),
 				Header, (DWORD)-1, WINHTTP_ADDREQ_FLAG_ADD))
-				co_return HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue);
+				co_return HRESULT_FROM_WIN32(NaGetLastError());
 		}
 
 		if (AutoDecompress)
@@ -600,7 +600,7 @@ struct CHttpRequestAsync
 			DWORD dwFlags{ WINHTTP_DECOMPRESSION_FLAG_ALL };
 			if (!WinHttpSetOption(hRequest.get(), WINHTTP_OPTION_DECOMPRESSION,
 				&dwFlags, sizeof(dwFlags)))
-				co_return HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue);
+				co_return HRESULT_FROM_WIN32(NaGetLastError());
 		}
 		WinHttpSetTimeouts(hRequest.get(), 5000, 5000, 5000, 5000);
 
@@ -615,7 +615,7 @@ struct CHttpRequestAsync
 		if (!WinHttpSendRequest(Ctx.hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
 			Data, (DWORD)DataSize, (DWORD)DataSize, (DWORD_PTR)&Ctx))
 		{
-			Ctx.Cancel(HRESULT_FROM_WIN32(NtCurrentTeb()->LastErrorValue));
+			Ctx.Cancel(HRESULT_FROM_WIN32(NaGetLastError()));
 			Ctx.EvtSafeExit.Signal();
 		}
 

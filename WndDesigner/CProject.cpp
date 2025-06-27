@@ -14,8 +14,8 @@ W32ERR CProject::OpenProject(PCWSTR pszFileName)
 	NewProject();
 	if (rbFile.IsEmpty())
 	{
-		if (NtCurrentTeb()->LastErrorValue)
-			return NtCurrentTeb()->LastErrorValue;
+		if (NaGetLastError())
+			return NaGetLastError();
 		return ERROR_SUCCESS;// 空文档
 	}
 	const auto r = m_Ini.Load((PCWSTR)rbFile.Data(),

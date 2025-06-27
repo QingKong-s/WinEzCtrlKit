@@ -1872,6 +1872,27 @@ EckInline constexpr void Md5ToStringLower(PCVOID pMd5, PSTR pszResult)
 	ToStringLower(pMd5, (size_t)16, pszResult);
 }
 
+EckInlineCe void GuidToStringUpper(const GUID& guid, PWSTR pszResult)
+{
+	const BYTE* p = (const BYTE*)&guid;
+	BYTE by[16];
+	by[0] = p[3];
+	by[1] = p[2];
+	by[2] = p[1];
+	by[3] = p[0];
+
+	by[4] = p[5];
+	by[5] = p[4];
+
+	by[6] = p[7];
+	by[7] = p[6];
+
+	for (int i = 0; i < 8; ++i)
+		by[8 + i] = p[8 + i];
+
+	ToStringUpper(by, 16, pszResult);
+}
+
 EckInline constexpr BLENDFUNCTION MakeBlendFunction(BYTE byAlpha)
 {
 	return { AC_SRC_OVER,0,byAlpha,AC_SRC_ALPHA };
