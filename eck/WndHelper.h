@@ -63,19 +63,36 @@ EckInline DWORD ModifyWindowStyle(HWND hWnd, DWORD dwNew, DWORD dwMask, int idx 
 	return dwStyle;
 }
 
-EckInline int GetDpi(HWND hWnd)
+inline int GetDpi(HWND hWnd)
 {
-#if ECKDPIAPI
+#if ECK_OPT_DYN_NF
 	if (hWnd)
-		return GetDpiForWindow(hWnd);
+	{
+		if (g_pfnGetDpiForWindow)
+			return (int)g_pfnGetDpiForWindow(hWnd);
+	}
 	else
-		return GetDpiForSystem();
-#else
+	{
+		if (g_pfnGetDpiForSystem)
+			return (int)g_pfnGetDpiForSystem();
+	}
 	HDC hDC = GetDC(hWnd);
 	int i = GetDeviceCaps(hDC, LOGPIXELSX);
 	ReleaseDC(hWnd, hDC);
 	return i;
-#endif
+#else
+#  if ECKDPIAPI
+	if (hWnd)
+		return (int)GetDpiForWindow(hWnd);
+	else
+		return (int)GetDpiForSystem();
+#  else
+	HDC hDC = GetDC(hWnd);
+	int i = GetDeviceCaps(hDC, LOGPIXELSX);
+	ReleaseDC(hWnd, hDC);
+	return i;
+#  endif// ECKDPIAPI
+#endif// ECK_OPT_DYN_NF
 }
 
 EckInline int GetMonitorDpi(HMONITOR hMonitor)
@@ -947,7 +964,7 @@ inline void GenerateKeyMsg(HWND hWnd, UINT Vk, KeyType eType, BOOL bExtended = F
 inline BOOL MsgOnSettingChangeFixDpiAwareV2(HWND hWnd, WPARAM wParam, LPARAM lParam,
 	BOOL bRestoreSize = FALSE)
 {
-	if (wParam == SPI_SETLOGICALDPIOVERRIDE &&
+	if (wParam == SPI_SETLOGICALDPIOVERRIDE /*since NT 6.2*/ &&
 		g_NtVer.uBuild > WINVER_11_23H2 &&
 		(GetWindowLongPtrW(hWnd, GWL_EXSTYLE) & WS_EX_TOOLWINDOW))
 	{

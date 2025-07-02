@@ -4296,45 +4296,6 @@ RtlCrc64(
     _In_ ULONGLONG InitialCrc
     );
 
-// RTL_SYSTEM_GLOBAL_DATA_ID
-#define GlobalDataIdUnknown 0
-#define GlobalDataIdRngSeedVersion 1
-#define GlobalDataIdInterruptTime 2
-#define GlobalDataIdTimeZoneBias 3
-#define GlobalDataIdImageNumberLow 4
-#define GlobalDataIdImageNumberHigh 5
-#define GlobalDataIdTimeZoneId 6
-#define GlobalDataIdNtMajorVersion 7
-#define GlobalDataIdNtMinorVersion 8
-#define GlobalDataIdSystemExpirationDate 9
-#define GlobalDataIdKdDebuggerEnabled 10
-#define GlobalDataIdCyclesPerYield 11
-#define GlobalDataIdSafeBootMode 12
-#define GlobalDataIdLastSystemRITEventTickCount 13
-#define GlobalDataIdConsoleSharedDataFlags 14
-#define GlobalDataIdNtSystemRootDrive 15
-#define GlobalDataIdQpcBypassEnabled 16
-#define GlobalDataIdQpcData 17
-#define GlobalDataIdQpcBias 18
-
-NTSYSAPI
-ULONG
-NTAPI
-RtlGetSystemGlobalData(
-    _In_ RTL_SYSTEM_GLOBAL_DATA_ID DataId,
-    _Inout_ PVOID Buffer,
-    _In_ ULONG Size
-    );
-
-NTSYSAPI
-ULONG
-NTAPI
-RtlSetSystemGlobalData(
-    _In_ RTL_SYSTEM_GLOBAL_DATA_ID DataId,
-    _In_ PVOID Buffer,
-    _In_ ULONG Size
-    );
-
 //
 // Environment
 //
