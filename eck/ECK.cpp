@@ -98,7 +98,7 @@ void InitPrivateApi()
 // For program
 
 HINSTANCE	g_hInstance{};
-CRefStrW	g_rsCurrDir{};
+CRefStrW	g_rsRunningDir{};
 DWORD		g_dwTlsSlot{};
 NTVER		g_NtVer{};
 
@@ -131,7 +131,7 @@ void* g_pfnShutdownTextServices20{};
 
 const CRefStrW& GetRunningPath()
 {
-	return g_rsCurrDir;
+	return g_rsRunningDir;
 }
 
 #pragma region WndClass
@@ -1621,11 +1621,8 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	}
 
 	//////////////获取运行目录
-	g_rsCurrDir.ReSize(32768);
-	GetModuleFileNameW(nullptr, g_rsCurrDir.Data(), g_rsCurrDir.Size());
-	PathRemoveFileSpecW(g_rsCurrDir.Data());
-	g_rsCurrDir.ReCalcLen();
-	g_rsCurrDir.ShrinkToFit();
+	GetModuleFile(NtCurrentImageBase(), g_rsRunningDir);
+	g_rsRunningDir.PazRemoveFileSpec();
 
 	HRESULT hr;
 #if !ECK_OPT_NO_DX
@@ -1776,7 +1773,7 @@ void UnInit()
 		g_uGpToken = 0u;
 	}
 	g_hInstance = nullptr;
-	g_rsCurrDir.Clear();
+	g_rsRunningDir.Clear();
 	SafeReleaseAssert0(g_pWicFactory);
 #if !ECK_OPT_NO_DX
 	SafeRelease(g_pDwFactory);
@@ -2100,7 +2097,7 @@ void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 	tdc.cButtons = ARRAYSIZE(Btns);
 	tdc.nDefaultButton = 101;
 	const auto rsContent = Format(L"程序位置：%s\n\n源文件：%s\n\n行号：%s\n\n测试表达式：%s",
-		g_rsCurrDir.Data(), pszFile, pszLine, pszMsg);
+		g_rsRunningDir.Data(), pszFile, pszLine, pszMsg);
 	tdc.pszContent = rsContent.Data();
 	tdc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS;
 

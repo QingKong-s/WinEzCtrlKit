@@ -189,6 +189,7 @@
     <ClInclude Include="eck\CHitter.h" />
     <ClInclude Include="eck\CHotKeyExt.h" />
     <ClInclude Include="eck\CIniExt.h" />
+    <ClInclude Include="eck\ComServerHelper.h" />
     <ClInclude Include="eck\CSequenceIdGenerator.h" />
     <ClInclude Include="eck\CShellMenuInfo.h" />
     <ClInclude Include="eck\CTimeIdGenerator.h" />
@@ -259,6 +260,7 @@
     <ClInclude Include="eck\DistortImage.h" />
     <ClInclude Include="eck\GeometryRender.h" />
     <ClInclude Include="eck\IMem.h" />
+    <ClInclude Include="eck\ProcModule.h" />
     <ClInclude Include="eck\LocaleStringUtility.h" />
     <ClInclude Include="eck\LunarDateTimeHelper.h" />
     <ClInclude Include="eck\Lyric.h" />

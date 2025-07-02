@@ -4,6 +4,7 @@
 #include "CMemWalker.h"
 #include "ILayout.h"
 #include "CSignal.h"
+#include "NativeWrapper.h"
 
 ECK_NAMESPACE_BEGIN
 enum class FrameType
