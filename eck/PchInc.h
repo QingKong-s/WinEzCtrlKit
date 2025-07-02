@@ -5,6 +5,7 @@
 #include "GraphicsHelper.h"
 #include "CObject.h"
 #include "CSrwLock.h"
+#include "ProcModule.h"
 
 #pragma push_macro("free")
 #pragma push_macro("malloc")

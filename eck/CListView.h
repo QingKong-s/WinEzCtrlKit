@@ -254,20 +254,25 @@ public:
 		return (BOOL)SendMsg(LVM_GETCALLBACKMASK, idx, (LPARAM)plvc);
 	}
 
-	EckInline std::vector<int> GetColumnOrderArray() const
-	{
-		std::vector<int> aOrder{};
-		int cColumn = (int)SendMessageW(GetHeaderCtrl().GetHWND(), HDM_GETITEMCOUNT, 0, 0);
-		if (!cColumn)
-			return aOrder;
-		aOrder.resize(cColumn);
-		SendMsg(LVM_GETCOLUMNORDERARRAY, cColumn, (LPARAM)aOrder.data());
-		return aOrder;
-	}
-
 	EckInline BOOL GetColumnOrderArray(int cColumn, int* piOrder) const
 	{
 		return (BOOL)SendMsg(LVM_GETCOLUMNORDERARRAY, cColumn, (LPARAM)piOrder);
+	}
+
+	/// <summary>
+	/// 取列顺序
+	/// </summary>
+	/// <param name="vOrder">将列顺序尾插到此参数</param>
+	/// <returns>尾插的数量</returns>
+	EckInline int GetColumnOrderArray(std::vector<int>& vOrder) const
+	{
+		const int cColumn = (int)GetHeaderCtrl().GetItemCount();
+		if (!cColumn)
+			return 0;
+		const auto cOld = vOrder.size();
+		vOrder.resize(cOld + cColumn);
+		GetColumnOrderArray(cColumn, vOrder.data() + cOld);
+		return cColumn;
 	}
 
 	EckInline int GetColumnWidth(int idx) const

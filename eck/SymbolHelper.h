@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CRefStr.h"
+#include "SystemHelper.h"
 
 #include <DbgHelp.h>
 
@@ -21,13 +21,12 @@ struct PDBInfo
 	CV_INFO_PDB70 Cv{};
 };
 
-inline HRESULT DshQueryPePdb(PDBInfo& PdbInfo, _In_ PCWSTR pszPeFile)
+inline HRESULT DshQueryPePdb(PDBInfo& PdbInfo, _In_ PCWSTR pszPeFile) noexcept
 {
 	NTSTATUS nts;
 	UniquePtr<DelHNtObj> hFile{
 		NaOpenFile(pszPeFile, GENERIC_READ | SYNCHRONIZE, FILE_SHARE_READ,
-			FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE | FILE_SEQUENTIAL_ONLY,
-			&nts)
+			FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE, &nts)
 	};
 	if (!NT_SUCCESS(nts))
 		return HRESULT_FROM_NT(nts);
@@ -44,19 +43,17 @@ inline HRESULT DshQueryPePdb(PDBInfo& PdbInfo, _In_ PCWSTR pszPeFile)
 		nullptr, &cbView, ViewShare, 0, PAGE_READONLY);
 	if (!NT_SUCCESS(nts))
 		return HRESULT_FROM_NT(nts);
+	HRESULT hr;
 	const auto pDosHeader = (IMAGE_DOS_HEADER*)pViewBase;
-	if (pDosHeader->e_magic != IMAGE_DOS_SIGNATURE)
-	{
-		NtUnmapViewOfSection(NtCurrentProcess(), pViewBase);
-		return HRESULT_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
-	}
 	const auto pNtHeaders = (IMAGE_NT_HEADERS*)((BYTE*)pViewBase + pDosHeader->e_lfanew);
-	if (pNtHeaders->Signature != IMAGE_NT_SIGNATURE)
-	{
-		NtUnmapViewOfSection(NtCurrentProcess(), pViewBase);
-		return HRESULT_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
-	}
 	const IMAGE_DATA_DIRECTORY* pDbgDataDir;
+	if (pDosHeader->e_magic != IMAGE_DOS_SIGNATURE ||
+		pNtHeaders->Signature != IMAGE_NT_SIGNATURE)
+	{
+		hr = HRESULT_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
+		goto Exit;
+	}
+
 	switch (pNtHeaders->FileHeader.Machine)
 	{
 	case IMAGE_FILE_MACHINE_I386:
@@ -72,18 +69,19 @@ inline HRESULT DshQueryPePdb(PDBInfo& PdbInfo, _In_ PCWSTR pszPeFile)
 	}
 	break;
 	default:
-		NtUnmapViewOfSection(NtCurrentProcess(), pViewBase);
-		return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
+		hr = HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
+		goto Exit;
 	}
 	if (pDbgDataDir->VirtualAddress == 0 || pDbgDataDir->Size == 0)
 	{
-		NtUnmapViewOfSection(NtCurrentProcess(), pViewBase);
-		return HRESULT_FROM_WIN32(ERROR_NOT_FOUND);
+		hr = HRESULT_FROM_WIN32(ERROR_NOT_FOUND);
+		goto Exit;
 	}
-	const auto pDbgData = (IMAGE_DEBUG_DIRECTORY*)
-		((BYTE*)pViewBase + pDbgDataDir->VirtualAddress);
+
 	for (DWORD i = 0; i < pDbgDataDir->Size / sizeof(IMAGE_DEBUG_DIRECTORY); ++i)
 	{
+		const auto pDbgData = (IMAGE_DEBUG_DIRECTORY*)
+			((BYTE*)pViewBase + pDbgDataDir->VirtualAddress);
 		if (pDbgData[i].Type == IMAGE_DEBUG_TYPE_CODEVIEW)
 		{
 			const auto pCvInfo = (CV_INFO_PDB70*)(
@@ -92,17 +90,19 @@ inline HRESULT DshQueryPePdb(PDBInfo& PdbInfo, _In_ PCWSTR pszPeFile)
 			{
 				PdbInfo.rsPdbFile.DupString(pCvInfo->PdbFileName);
 				PdbInfo.Cv = *pCvInfo;
-				NtUnmapViewOfSection(NtCurrentProcess(), pViewBase);
-				return S_OK;
+				hr = S_OK;
+				goto Exit;
 			}
 		}
 	}
+	hr = HRESULT_FROM_WIN32(ERROR_NOT_FOUND);
+Exit:;
 	NtUnmapViewOfSection(NtCurrentProcess(), pViewBase);
-	return HRESULT_FROM_WIN32(ERROR_NOT_FOUND);
+	return hr;
 }
 
 inline HRESULT DshMakeSymbolUrl(CRefStrW& rsSymbolUrl, const PDBInfo& PdbInfo,
-	std::wstring_view svSymbolSrv = SymSrvMicrosoft)
+	std::wstring_view svSymbolSrv = SymSrvMicrosoft) noexcept
 {
 	const auto rsPdbW = StrX2W(PdbInfo.rsPdbFile, CP_ACP);
 	rsSymbolUrl.Clear();
@@ -121,7 +121,7 @@ inline HRESULT DshMakeSymbolUrl(CRefStrW& rsSymbolUrl, const PDBInfo& PdbInfo,
 
 inline HRESULT DshInit(_Out_ HANDLE& hProcess,
 	DWORD dwOptions = SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_ANYTHING,
-	PCWSTR pszUserSearchPath = nullptr, BOOL bInvadeProcess = FALSE)
+	PCWSTR pszUserSearchPath = nullptr, BOOL bInvadeProcess = FALSE) noexcept
 {
 	NTSTATUS nts;
 	hProcess = NaOpenProcess(SYNCHRONIZE, FALSE, NtCurrentProcessId32(), &nts);
@@ -133,11 +133,24 @@ inline HRESULT DshInit(_Out_ HANDLE& hProcess,
 	return S_OK;
 }
 
+inline HRESULT DshUnInit(HANDLE hProcess) noexcept
+{
+	if (!hProcess || hProcess == INVALID_HANDLE_VALUE)
+		return E_INVALIDARG;
+	HRESULT hr;
+	if (SymCleanup(hProcess))
+		hr = S_OK;
+	else
+		hr = HRESULT_FROM_WIN32(NaGetLastError());
+	NtClose(hProcess);
+	return hr;
+}
+
 inline HRESULT DshLoadPdb(HANDLE hProcess, _In_ PCWSTR pszPdbFile,
-	DWORD64 DllBase = 0x00401000)
+	DWORD64 DllBase = 0x00401000) noexcept
 {
 	NTSTATUS nts;
-	const auto cbPdb = GetFileSizeWithPath(pszPdbFile, &nts);
+	const auto cbPdb = (DWORD)GetFileSizeWithPath(pszPdbFile, &nts);
 	if (!NT_SUCCESS(nts))
 		return HRESULT_FROM_NT(nts);
 	if (!SymLoadModuleExW(hProcess, nullptr, pszPdbFile,

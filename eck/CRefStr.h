@@ -1028,10 +1028,16 @@ public:
 		TPointer p0, p1{ pData }, pCurr{ pData };
 		EckLoop()
 		{
-			p0 = TcsChrFirstNotOf(p1, Size() - (p1 - pData), EckStrAndLen(SpaceCharsW));
+			if constexpr (std::is_same_v<TChar, WCHAR>)
+				p0 = TcsChrFirstNotOf(p1, Size() - (p1 - pData), EckStrAndLen(SpaceCharsW));
+			else
+				p0 = TcsChrFirstNotOf(p1, Size() - (p1 - pData), EckStrAndLen(SpaceCharsA));
 			if (!p0)
 				break;
-			p1 = TcsChrFirstOf(p0, Size() - (p0 - pData), EckStrAndLen(SpaceCharsW));
+			if constexpr (std::is_same_v<TChar, WCHAR>)
+				p1 = TcsChrFirstOf(p0, Size() - (p0 - pData), EckStrAndLen(SpaceCharsW));
+			else
+				p1 = TcsChrFirstOf(p0, Size() - (p0 - pData), EckStrAndLen(SpaceCharsA));
 			if (!p1)
 				p1 = pData + Size();
 			TcsMoveLen(pCurr, p0, p1 - p0);
@@ -1122,6 +1128,188 @@ public:
 		if (cch < 0)
 			cch = (int)TcsLen(psz);
 		return TcsCompareLen2I(Data(), Size(), psz, cch);
+	}
+
+	// 返回文件名的位置
+	[[nodiscard]] int PazFindFileSpec() const
+	{
+		if (IsEmpty())
+			return -1;
+		auto pEnd = Data() + Size() - 1;
+		if (Back() == '\\' || Back() == '/')
+			--pEnd;// 如果以反斜杠结尾，则跳过
+		for (auto p = pEnd; p != Data(); --p)
+		{
+			const auto ch = *p;
+			if (ch == '\\' || ch == '/')
+			{
+				if (p < Data() + 2)// NT路径或UNC路径的起始
+					return -1;
+				return int(p - Data());
+			}
+		}
+		return -1;
+	}
+
+	BOOL PazRemoveFileSpec()
+	{
+		const auto pos = PazFindFileSpec();
+		if (pos < 0)
+			return FALSE;
+		ReSize(pos);
+		return TRUE;
+	}
+
+	BOOL PazRenameFileSpec(TConstPointer pszNewName, int cchNewName = -1)
+	{
+		const auto pos = PazFindFileSpec();
+		if (pos < 0)
+			return FALSE;
+		if (cchNewName < 0)
+			cchNewName = (int)TcsLen(pszNewName);
+		ReSize(pos + cchNewName + 1);
+		*(Data() + pos) = '\\';
+		TcsCopyLen(Data() + pos + 1, pszNewName, cchNewName);
+		return TRUE;
+	}
+
+	[[nodiscard]] int PazFindExtension() const
+	{
+		if (IsEmpty())
+			return -1;
+		int pos{ -1 };
+		for (auto p = Data() + Size() - 1; p != Data(); --p)
+		{
+			const auto ch = *p;
+			if (ch == '.')
+				return int(p - Data());
+			else if (ch == ' ' /*扩展名内不能有空格*/ ||
+				ch == '\\' || ch == '/')
+				return -1;
+		}
+		return -1;
+	}
+
+	BOOL PazRemoveExtension()
+	{
+		const auto pos = PazFindExtension();
+		if (pos < 0)
+			return FALSE;
+		ReSize(pos);
+		return TRUE;
+	}
+
+	void PazRenameExtension(TConstPointer pszNewExt, int cchNewExt = -1)
+	{
+		const auto pos = PazFindExtension();
+		if (pos < 0)
+			PushBack(pszNewExt, cchNewExt);
+		else
+		{
+			if (cchNewExt < 0)
+				cchNewExt = (int)TcsLen(pszNewExt);
+			ReSize(pos + cchNewExt);
+			TcsCopyLen(Data() + pos, pszNewExt, cchNewExt);
+		}
+	}
+
+	// 如果没有反斜杠，则在末尾添加。返回操作前是否已有反斜杠
+	BOOL PazAddBackslash()
+	{
+		if (IsEmpty())
+			return FALSE;
+		if (Back() == '\\' || Back() == '/')
+			return TRUE;
+		PushBackChar('\\');
+		return FALSE;
+	}
+	// 去掉末尾的反斜杠
+	BOOL PazRemoveBackslash()
+	{
+		if (IsEmpty())
+			return FALSE;
+		if (Back() == '\\' || Back() == '/')
+		{
+			PopBack();
+			return TRUE;
+		}
+		return FALSE;
+	}
+	// 将所有斜杠替换为反斜杠
+	void PazConvertToBackslash()
+	{
+		for (auto& ch : *this)
+			if (ch == '/')
+				ch = '\\';
+	}
+	// 将所有反斜杠替换为斜杠
+	void PazConvertToSlash()
+	{
+		for (auto& ch : *this)
+			if (ch == '\\')
+				ch = '/';
+	}
+
+	HRESULT PazParseCommandLine(_Out_ TPointer& pszFile, _Out_ int& cchFile,
+		_Out_ TPointer& pszParam, _Out_ int& cchParam)
+	{
+		if (IsEmpty())
+		{
+			pszFile = pszParam = nullptr;
+			cchFile = cchParam = 0;
+			return S_FALSE;
+		}
+		pszFile = Data();
+		BOOL bQuote = (Front() == '\"');
+		if (bQuote)
+			++pszFile;
+		if (bQuote)
+		{
+			for (auto p = pszFile; p != Data() + Size(); ++p)
+				if (*p == '\"')
+				{
+					cchFile = int(p - pszFile);
+					goto FileNameOk;
+				}
+			cchFile = 0;// 引号不匹配
+			return HRESULT_FROM_WIN32(ERROR_INVALID_COMMAND_LINE);
+		}
+		else
+		{
+			for (auto p = pszFile; p != Data() + Size(); ++p)
+				if (*p == ' ')
+				{
+					cchFile = int(p - pszFile);
+					goto FileNameOk;
+				}
+			cchFile = Size();
+			pszParam = nullptr;
+			cchParam = 0;
+			return S_OK;
+		}
+	FileNameOk:;// 至此文件名处理完毕
+		// 步进到第一个非空格字符
+		pszParam = pszFile + cchFile;
+		if (*pszParam == '\"')
+			++pszParam;
+		for (; pszParam != Data() + Size(); ++pszParam)
+			if (*pszParam != ' ')
+				break;
+		cchParam = int(Data() + Size() - pszParam);
+		return S_OK;
+	}
+
+	HRESULT PazParseCommandLineAndCut(_Out_ TPointer& pszFile, _Out_ int& cchFile,
+		_Out_ TPointer& pszParam, _Out_ int& cchParam)
+	{
+		const auto hr = PazParseCommandLine(pszFile, cchFile,
+			pszParam, cchParam);
+		if (SUCCEEDED(hr))
+		{
+			*(pszFile + cchFile) = '\0';
+			*(pszParam + cchParam) = '\0';
+		}
+		return hr;
 	}
 
 	EckInlineNd TIterator begin() { return Data(); }

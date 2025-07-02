@@ -101,15 +101,18 @@ public:
 
 	EckInline LSTATUS Close()
 	{
-		auto r = RegCloseKey(m_hKey);
+		const auto r = RegCloseKey(m_hKey);
 		m_hKey = nullptr;
 		return r;
 	}
 
 	EckInline LSTATUS Open(HKEY hKey, PCWSTR pszSubKey, REGSAM dwAccess = KEY_READ | KEY_WRITE, DWORD dwOption = 0u)
 	{
+		HKEY hKeyNew;
+		const auto ls = RegOpenKeyExW(hKey, pszSubKey, dwOption, dwAccess, &hKeyNew);
 		Close();
-		return RegOpenKeyExW(hKey, pszSubKey, dwOption, dwAccess, &m_hKey);
+		m_hKey = hKeyNew;
+		return ls;
 	}
 
 	EckInline LSTATUS Open(PCWSTR pszPath, REGSAM dwAccess = KEY_READ | KEY_WRITE, DWORD dwOption = 0u)
@@ -130,9 +133,12 @@ public:
 		DWORD dwOptions = REG_OPTION_NON_VOLATILE, DWORD* pdwDisposition = nullptr,
 		PWSTR pszClass = nullptr, SECURITY_ATTRIBUTES* psa = nullptr)
 	{
+		HKEY hKeyNew;
+		const auto ls = RegCreateKeyExW(hKey, pszSubKey, 0, pszClass, dwOptions,
+			dwAccess, psa, &hKeyNew, pdwDisposition);
 		Close();
-		return RegCreateKeyExW(hKey, pszSubKey, 0, pszClass, dwOptions,
-			dwAccess, psa, &m_hKey, pdwDisposition);
+		m_hKey = hKeyNew;
+		return ls;
 	}
 
 	EckInline LSTATUS Create(PCWSTR pszPath, REGSAM dwAccess = KEY_READ | KEY_WRITE,

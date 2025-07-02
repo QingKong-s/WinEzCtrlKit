@@ -149,6 +149,57 @@ EckInlineNd bool TcsEqualLenI(_In_reads_(Len) TPtr Str1,
 }
 
 template<ccpIsStdCharPtr TPtr>
+EckInlineNd bool TcsEqualLen2(_In_reads_(Len1) TPtr Str1, size_t Len1,
+	_In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2)
+{
+	if (Len1 != Len2)
+		return false;
+	return TcsEqualLen(Str1, Str2, Len1);
+}
+template<ccpIsStdCharPtr TPtr>
+EckInlineNd bool TcsEqualLen2I(_In_reads_(Len1) TPtr Str1, size_t Len1,
+	_In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2)
+{
+	if (Len1 != Len2)
+		return false;
+	return TcsEqualLenI(Str1, Str2, Len1);
+}
+
+template<ccpIsStdCharPtr TPtr>
+EckInlineNd bool TcsIsStartWithLen2(_In_reads_(Len1) TPtr Str1, size_t Len1,
+	_In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2)
+{
+	if (Len1 < Len2)
+		return false;
+	return TcsEqualLen(Str1, Str2, Len2);
+}
+template<ccpIsStdCharPtr TPtr>
+EckInlineNd bool TcsIsStartWithLen2I(_In_reads_(Len1) TPtr Str1, size_t Len1,
+	_In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2)
+{
+	if (Len1 < Len2)
+		return false;
+	return TcsEqualLenI(Str1, Str2, Len2);
+}
+
+template<ccpIsStdCharPtr TPtr>
+EckInlineNd bool TcsIsEndWithLen2(_In_reads_(Len1) TPtr Str1, size_t Len1,
+	_In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2)
+{
+	if (Len1 < Len2)
+		return false;
+	return TcsEqualLen(Str1 + Len1 - Len2, Str2, Len2);
+}
+template<ccpIsStdCharPtr TPtr>
+EckInlineNd bool TcsIsEndWithLen2I(_In_reads_(Len1) TPtr Str1, size_t Len1,
+	_In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2)
+{
+	if (Len1 < Len2)
+		return false;
+	return TcsEqualLenI(Str1 + Len1 - Len2, Str2, Len2);
+}
+
+template<ccpIsStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr TcsChar(_In_z_ TPtr Str, RemoveStdCharPtr_T<TPtr> c)
 {
 	if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
