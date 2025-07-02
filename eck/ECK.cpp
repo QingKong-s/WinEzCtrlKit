@@ -129,6 +129,39 @@ void* g_pfnShutdownTextServices{};
 void* g_pfnCreateTextServices20{};
 void* g_pfnShutdownTextServices20{};
 
+#if ECK_OPT_DYN_NF
+FGetDpiForWindow g_pfnGetDpiForWindow{};
+FGetDpiForMonitor g_pfnGetDpiForMonitor{};
+FGetDpiForSystem g_pfnGetDpiForSystem{};
+FAdjustWindowRectExForDpi g_pfnAdjustWindowRectExForDpi;
+FSystemParametersInfoForDpi g_pfnSystemParametersInfoForDpi;
+FGetSystemMetricsForDpi g_pfnGetSystemMetricsForDpi;
+
+void InitNewApi()
+{
+	const auto hModUser32 = LoadLibraryW(L"user32.dll");
+	if (hModUser32)
+	{
+		g_pfnGetDpiForWindow = (FGetDpiForWindow)
+			GetProcAddress(hModUser32, "GetDpiForWindow");
+		g_pfnGetDpiForSystem = (FGetDpiForSystem)
+			GetProcAddress(hModUser32, "GetDpiForSystem");
+		g_pfnAdjustWindowRectExForDpi = (FAdjustWindowRectExForDpi)
+			GetProcAddress(hModUser32, "AdjustWindowRectExForDpi");
+		g_pfnSystemParametersInfoForDpi = (FSystemParametersInfoForDpi)
+			GetProcAddress(hModUser32, "SystemParametersInfoForDpi");
+		g_pfnGetSystemMetricsForDpi = (FGetSystemMetricsForDpi)
+			GetProcAddress(hModUser32, "GetSystemMetricsForDpi");
+	}
+	const auto hModShCore = LoadLibraryW(L"Shcore.dll");
+	if (hModShCore)
+	{
+		g_pfnGetDpiForMonitor = (FGetDpiForMonitor)
+			GetProcAddress(hModShCore, "GetDpiForMonitor");
+	}
+}
+#endif// ECK_OPT_DYN_NF
+
 const CRefStrW& GetRunningPath()
 {
 	return g_rsRunningDir;
@@ -1567,6 +1600,9 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	g_hInstance = hInstance;
 	RtlGetNtVersionNumbers(&g_NtVer.uMajor, &g_NtVer.uMinor, &g_NtVer.uBuild);
 	InitPrivateApi();
+#if ECK_OPT_DYN_NF
+	InitNewApi();
+#endif// ECK_OPT_DYN_NF
 	g_dwTlsSlot = TlsAlloc();
 	if (!(pInitParam->uFlags & EIF_NOINITTHREAD))
 		ThreadInit();

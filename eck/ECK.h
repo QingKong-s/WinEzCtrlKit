@@ -66,6 +66,13 @@
 #	endif
 #endif
 
+// since NT 6.2
+#ifndef SPI_SETLOGICALDPIOVERRIDE
+#define SPI_SETLOGICALDPIOVERRIDE 0x009F
+#endif// !defined(SPI_SETLOGICALDPIOVERRIDE)
+
+enum MONITOR_DPI_TYPE;
+
 #define ECK_NAMESPACE_BEGIN				namespace eck {
 #define ECK_NAMESPACE_END				}
 #define ECK_PRIV_NAMESPACE_BEGIN		namespace Priv {
@@ -792,6 +799,22 @@ extern IDXGIDebug* g_pDxgiDebug;
 #endif// !ECK_OPT_NO_DX
 
 extern HMODULE g_hModComCtl32;
+
+#if ECK_OPT_DYN_NF
+using FGetDpiForWindow = UINT(WINAPI*)(HWND);
+using FGetDpiForMonitor = UINT(WINAPI*)(HMONITOR, MONITOR_DPI_TYPE, UINT*, UINT*);
+using FGetDpiForSystem = UINT(WINAPI*)();
+using FAdjustWindowRectExForDpi = BOOL(WINAPI*)(RECT*, DWORD, BOOL,DWORD, UINT);
+using FSystemParametersInfoForDpi = BOOL(WINAPI*)(UINT, UINT, PVOID, UINT, UINT);
+using FGetSystemMetricsForDpi = int(WINAPI*)(int, UINT);
+
+extern FGetDpiForWindow g_pfnGetDpiForWindow;
+extern FGetDpiForMonitor g_pfnGetDpiForMonitor;
+extern FGetDpiForSystem g_pfnGetDpiForSystem;
+extern FAdjustWindowRectExForDpi g_pfnAdjustWindowRectExForDpi;
+extern FSystemParametersInfoForDpi g_pfnSystemParametersInfoForDpi;
+extern FGetSystemMetricsForDpi g_pfnGetSystemMetricsForDpi;
+#endif// ECK_OPT_DYN_NF
 #pragma endregion Global
 
 #pragma region Init

@@ -7,6 +7,7 @@
 #include "CSrwLock.h"
 #include "ProcModule.h"
 
+#if !ECK_OPT_NO_YYJSON
 #pragma push_macro("free")
 #pragma push_macro("malloc")
 #pragma push_macro("realloc")
@@ -17,3 +18,4 @@
 #pragma pop_macro("free")
 #pragma pop_macro("malloc")
 #pragma pop_macro("realloc")
+#endif
