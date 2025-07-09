@@ -1012,7 +1012,7 @@ private:
 		e.PreRender.prcNewDirtyPhy = &rcNewPhy;
 		e.PreRender.pSfcNewDst = nullptr;
 		const auto rer = OnRenderEvent(RE_PRERENDER, e);
-		if (rer == RER_NONE)
+		if (!(rer & RER_REDIRECTION))
 		{
 			e.PreRender.ptOffsetPhy.x -= rcPhy.left;
 			e.PreRender.ptOffsetPhy.y -= rcPhy.top;
@@ -1028,7 +1028,7 @@ private:
 		};
 		ComPtr<ID2D1Bitmap1> pBitmap;
 		pDC->CreateBitmapFromDxgiSurface(
-			rer == RER_NONE ? pDxgiSurface.Get() : e.PreRender.pSfcNewDst,
+			(rer & RER_REDIRECTION) ? e.PreRender.pSfcNewDst : pDxgiSurface.Get(),
 			&D2dBmpProp, &pBitmap);
 		pDC->SetTarget(pBitmap.Get());
 		pDC->BeginDraw();
@@ -1039,30 +1039,33 @@ private:
 		OffsetRect(rcFinalF, (float)e.PreRender.ptOffsetPhy.x,
 			(float)e.PreRender.ptOffsetPhy.y);
 		Phy2Log(rcFinalF);
-		if (rer == RER_NONE)
-			rcF = rcFinalF;
-		else
+		if (rer & RER_REDIRECTION)
 		{
 			rcF = MakeD2DRcF(rcNewPhy);
 			Phy2Log(rcF);
 		}
+		else
+			rcF = rcFinalF;
 		// 画背景
-		if (bFullUpdate)
+		if (!(rer & RER_NO_ERASE))
 		{
-			++rcF.right;
-			++rcF.bottom;
-		}
-		if (m_bTransparent)
-		{
-			pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_ALIASED);
-			pDC->Clear({});
-			pDC->PopAxisAlignedClip();
-		}
-		FillBackground(rcF);
-		if (bFullUpdate)
-		{
-			--rcF.right;
-			--rcF.bottom;
+			if (bFullUpdate)
+			{
+				++rcF.right;
+				++rcF.bottom;
+			}
+			if (m_bTransparent)
+			{
+				pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_ALIASED);
+				pDC->Clear({});
+				pDC->PopAxisAlignedClip();
+			}
+			FillBackground(rcF);
+			if (bFullUpdate)
+			{
+				--rcF.right;
+				--rcF.bottom;
+			}
 		}
 		// 画元素树
 		const D2D1_POINT_2F ptLogOffsetFinalF
@@ -1073,10 +1076,7 @@ private:
 		RECT rcReal;
 		OffsetRect(rcFinalF, -ptLogOffsetFinalF.x, -ptLogOffsetFinalF.y);
 		CeilRect(rcFinalF, rcReal);
-		if (rer == RER_NONE)
-			RedrawElem(GetFirstChildElem(), rcReal,
-				ptLogOffsetFinalF.x, ptLogOffsetFinalF.y);
-		else
+		if (rer & RER_REDIRECTION)
 		{
 			const D2D1_POINT_2F ptOrgLogF
 			{
@@ -1086,6 +1086,9 @@ private:
 			RedrawElem(GetFirstChildElem(), rcReal,
 				ptOrgLogF.x - rc.left, ptOrgLogF.y - rc.top);
 		}
+		else
+			RedrawElem(GetFirstChildElem(), rcReal,
+				ptLogOffsetFinalF.x, ptLogOffsetFinalF.y);
 
 #ifdef _DEBUG
 		if (m_bDrawDirtyRect)
@@ -1099,7 +1102,7 @@ private:
 		}
 #endif // _DEBUG
 		pDC->EndDraw();
-		if (rer == RER_REDIRECTION)
+		if (rer & RER_REDIRECTION)
 			OnRenderEvent(RE_POSTRENDER, e);
 		m_pDcSurface->EndDraw();
 		pDC->SetTarget(nullptr);
@@ -1134,23 +1137,27 @@ private:
 				*prcPhy = MakeRect(rcF);
 			Phy2Log(rcF);
 			CeilRect(rcF);
-
-			if (bFullUpdate) [[unlikely]]
+			RENDER_EVENT e;
+			const auto rer = OnRenderEvent(RE_PRERENDER, e);
+			if (!(rer & RER_NO_ERASE))
 			{
-				++rcF.right;
-				++rcF.bottom;
-			}
-			if (m_bTransparent)
-			{
-				pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_ALIASED);
-				pDC->Clear({});
-				pDC->PopAxisAlignedClip();
-			}
-			FillBackground(rcF);
-			if (bFullUpdate) [[unlikely]]
-			{
-				--rcF.right;
-				--rcF.bottom;
+				if (bFullUpdate) [[unlikely]]
+				{
+					++rcF.right;
+					++rcF.bottom;
+				}
+				if (m_bTransparent)
+				{
+					pDC->PushAxisAlignedClip(rcF, D2D1_ANTIALIAS_MODE_ALIASED);
+					pDC->Clear({});
+					pDC->PopAxisAlignedClip();
+				}
+				FillBackground(rcF);
+				if (bFullUpdate) [[unlikely]]
+				{
+					--rcF.right;
+					--rcF.bottom;
+				}
 			}
 
 			RedrawElem(GetFirstChildElem(), MakeRect(rcF), 0.f, 0.f);

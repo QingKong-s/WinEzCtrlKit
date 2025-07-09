@@ -49,6 +49,7 @@
 #pragma comment(lib, "Msi.lib")
 #pragma comment(lib, "Taskschd.lib")
 #pragma comment(lib, "DbgHelp.lib")
+#pragma comment(lib, "d3dcompiler.lib")
 
 #ifdef _M_ARM64
 #	ifdef _DEBUG

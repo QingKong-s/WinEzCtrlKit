@@ -14,7 +14,7 @@ struct CBuffer
 
 	HRESULT Create(size_t cb, D3D11_BIND_FLAG eBind,
 		D3D11_USAGE eUsage, UINT uCPUAccessFlags = 0u,
-		UINT uMiscFlags = 0u, void* pData = nullptr, size_t cbStruct = 0u)
+		UINT uMiscFlags = 0u, const void* pData = nullptr, size_t cbStruct = 0u)
 	{
 		D3D11_BUFFER_DESC Desc;
 		Desc.ByteWidth = (UINT)cb;
@@ -22,7 +22,7 @@ struct CBuffer
 		Desc.BindFlags = eBind;
 		Desc.CPUAccessFlags = uCPUAccessFlags;
 		Desc.MiscFlags = uMiscFlags;
-		Desc.StructureByteStride = cbStruct;
+		Desc.StructureByteStride = (UINT)cbStruct;
 		D3D11_SUBRESOURCE_DATA InitData;
 		if (pData)
 		{
@@ -107,8 +107,10 @@ struct CVSAndInputLayout : public CShader<VS_T>
 		hr = __super::Create(psShader, cchShader, pszEntryPoint,
 			uFlags1, uFlags2, &pBlob, ppErrorBlob);
 		if (FAILED(hr)) return hr;
-		return g_pD3d11Device->CreateInputLayout(pInput, (UINT)cInput,
+		hr = g_pD3d11Device->CreateInputLayout(pInput, (UINT)cInput,
 			pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &pInputLayout);
+		if (ppShaderBlob) *ppShaderBlob = pBlob.Detach();
+		return hr;
 	}
 
 	EckInlineNdCe auto GetInputLayout() const noexcept { return pInputLayout.Get(); }
@@ -154,7 +156,8 @@ struct CSampler
 		D3D11_TEXTURE_ADDRESS_MODE eAddressU = D3D11_TEXTURE_ADDRESS_WRAP,
 		D3D11_TEXTURE_ADDRESS_MODE eAddressV = D3D11_TEXTURE_ADDRESS_WRAP,
 		D3D11_TEXTURE_ADDRESS_MODE eAddressW = D3D11_TEXTURE_ADDRESS_WRAP,
-		D3D11_COMPARISON_FUNC eComparisonFunc = D3D11_COMPARISON_NEVER)
+		D3D11_COMPARISON_FUNC eComparisonFunc = D3D11_COMPARISON_NEVER,
+		_In_reads_opt_(4) const float* pBorderColor = nullptr)
 	{
 		D3D11_SAMPLER_DESC Desc{};
 		Desc.Filter = eFilter;
@@ -163,8 +166,10 @@ struct CSampler
 		Desc.AddressW = eAddressW;
 		Desc.ComparisonFunc = eComparisonFunc;
 		Desc.MaxAnisotropy = 1u;
-		Desc.MinLOD = 0.f;
+		Desc.MinLOD = -FLT_MAX;
 		Desc.MaxLOD = FLT_MAX;
+		if (pBorderColor)
+			memcpy(Desc.BorderColor, pBorderColor, 4 * sizeof(float));
 		return g_pD3d11Device->CreateSamplerState(&Desc, &pSampler);
 	}
 

@@ -83,6 +83,13 @@ public:
 		std::swap(p, x.p);
 	}
 
+	ComPtr(REFCLSID clsid, HRESULT* phr = nullptr)
+	{
+		const auto hr = CoCreateInstance(clsid, nullptr,
+			CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&p));
+		if (phr) *phr = hr;
+	}
+
 	~ComPtr() noexcept
 	{
 		ReleaseIt();
@@ -225,6 +232,12 @@ public:
 	EckInline constexpr void Swap(ComPtr&& x) noexcept
 	{
 		std::swap(p, x.p);
+	}
+
+	HRESULT CreateInstance(REFCLSID clsid) noexcept
+	{
+		ReleaseIt();
+		return CoCreateInstance(clsid, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&p));
 	}
 };
 #if !ECKCXX20

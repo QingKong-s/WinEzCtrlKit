@@ -76,7 +76,7 @@ private:
 	void GetThumbRect(D2D1_RECT_F& rc)
 	{
 		const auto cxy = GetTrackRect(rc);
-		const float fScale = (GetPos() - m_fMin) / (m_fMax - m_fMin);
+		const float fScale = (GetTrackPos() - m_fMin) / (m_fMax - m_fMin);
 		if (m_bVertical)
 			rc.bottom = rc.top + (rc.bottom - rc.top) * fScale;
 		else
@@ -110,7 +110,7 @@ public:
 			GetTheme()->DrawBackground(Part::TrackBar, State::Normal,
 				Opt.rcClip, &Opt);
 
-			const float fScale = (GetPos() - m_fMin) / (m_fMax - m_fMin);
+			const float fScale = (GetTrackPos() - m_fMin) / (m_fMax - m_fMin);
 			if (m_bVertical)
 				Opt.rcClip.bottom = Opt.rcClip.top + (Opt.rcClip.bottom - Opt.rcClip.top) * fScale;
 			else
@@ -196,7 +196,7 @@ public:
 			}
 			else
 			{
-				SetPos(PtToPos(pt));
+				SetTrackPos(PtToPos(pt));
 				InvalidateRect();
 				DUINMHDR nm{ TBE_POSCHANGED };
 				GenElemNotify(&nm);
@@ -213,7 +213,7 @@ public:
 
 				m_bLBtnDown = FALSE;
 				ReleaseCapture();
-				SetPos(PtToPos(pt));
+				SetTrackPos(PtToPos(pt));
 				InvalidateRect();
 				DUINMHDR nm{ TBE_POSCHANGED };
 				GenElemNotify(&nm);
@@ -260,7 +260,7 @@ public:
 			m_fPos = m_fMax;
 	}
 
-	void SetPos(float fPos)
+	void SetTrackPos(float fPos)
 	{
 		m_fPos = fPos;
 		if (m_fPos < m_fMin)
@@ -269,7 +269,7 @@ public:
 			m_fPos = m_fMax;
 	}
 
-	EckInline float GetPos() const
+	EckInline float GetTrackPos() const
 	{
 		return m_bLBtnDown ? m_fDragPos : m_fPos;
 	}

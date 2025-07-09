@@ -583,7 +583,7 @@ private:
 public:
 	IniResult Load(const TChar* pszIni, size_t cchIni = -1, UINT uFlags = INIE_IF_NONE)
 	{
-		m_Root.clear();
+		Clear();
 		if (cchIni < 0)
 			cchIni = TcsLen(pszIni);
 		const auto pszEnd = pszIni + cchIni;
@@ -986,6 +986,15 @@ public:
 			});
 		for (auto e : vVal)
 			Fn(e);
+	}
+
+	EckInlineNd BOOL IsEmpty() const noexcept { return m_Root.empty(); }
+	
+	void Clear()
+	{
+		m_Root.clear();
+		m_vComment.clear();
+		m_uId = 0;
 	}
 };
 ECK_NAMESPACE_END
