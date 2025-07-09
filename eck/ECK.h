@@ -804,7 +804,7 @@ extern HMODULE g_hModComCtl32;
 using FGetDpiForWindow = UINT(WINAPI*)(HWND);
 using FGetDpiForMonitor = UINT(WINAPI*)(HMONITOR, MONITOR_DPI_TYPE, UINT*, UINT*);
 using FGetDpiForSystem = UINT(WINAPI*)();
-using FAdjustWindowRectExForDpi = BOOL(WINAPI*)(RECT*, DWORD, BOOL,DWORD, UINT);
+using FAdjustWindowRectExForDpi = BOOL(WINAPI*)(RECT*, DWORD, BOOL, DWORD, UINT);
 using FSystemParametersInfoForDpi = BOOL(WINAPI*)(UINT, UINT, PVOID, UINT, UINT);
 using FGetSystemMetricsForDpi = int(WINAPI*)(int, UINT);
 
@@ -856,6 +856,11 @@ struct INITPARAM
 	D2D1_FACTORY_TYPE uD2dFactoryType = D2D1_FACTORY_TYPE_MULTI_THREADED;
 	const D3D_FEATURE_LEVEL* pD3dFeatureLevel = c_uDefD3dFeatureLevel;
 	UINT cD3dFeatureLevel = ARRAYSIZE(c_uDefD3dFeatureLevel);
+	UINT uD3dCreateFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT
+#ifdef _DEBUG
+		| D3D11_CREATE_DEVICE_DEBUG
+#endif
+		;
 #endif// !ECK_OPT_NO_DX
 };
 
@@ -865,10 +870,10 @@ struct INITPARAM
 /// 函数将在内部调用eck::ThreadInit，除非设置了EIF_NOINITTHREAD
 /// </summary>
 /// <param name="hInstance">实例句柄，所有自定义窗口类将在此实例上注册</param>
-/// <param name="pInitParam">指向初始化参数的可选指针</param>
+/// <param name="pip">指向初始化参数的可选指针</param>
 /// <param name="pdwErrCode">指向接收错误码变量的可选指针</param>
 /// <returns>错误代码</returns>
-InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam = nullptr, DWORD* pdwErrCode = nullptr);
+InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip = nullptr, DWORD* pdwErrCode = nullptr);
 
 void UnInit();
 
@@ -932,7 +937,7 @@ namespace Priv
 		}
 
 		void EnQueueCoroutine(void* pCoroutine, UINT nPriority = UINT_MAX,
-			BOOL bWakeUiThread = TRUE, ULONGLONG Tag = 0ull, 
+			BOOL bWakeUiThread = TRUE, ULONGLONG Tag = 0ull,
 			BOOL bClearExistingTag = FALSE)
 		{
 			EckAssert(pCoroutine);

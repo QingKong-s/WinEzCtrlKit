@@ -552,7 +552,7 @@
     <ClInclude Include="eck\CColorReducing.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CShellMenuInfo.h">
+    <ClInclude Include="eck\ShellMenuInfo.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CEnumFile2.h">

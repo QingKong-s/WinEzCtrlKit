@@ -1586,15 +1586,15 @@ PCWSTR InitStatusToString(InitStatus iStatus)
 	return c_szErrInitStatus[(int)iStatus];
 }
 
-InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrCode)
+InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, DWORD* pdwErrCode)
 {
 	EckAssert(!g_hInstance && !g_dwTlsSlot);
 	DWORD dwTemp;
 	if (!pdwErrCode)
 		pdwErrCode = &dwTemp;
 	INITPARAM ip{};
-	if (!pInitParam)
-		pInitParam = &ip;
+	if (!pip)
+		pip = &ip;
 	*pdwErrCode = 0;
 
 	g_hInstance = hInstance;
@@ -1604,10 +1604,10 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	InitNewApi();
 #endif// ECK_OPT_DYN_NF
 	g_dwTlsSlot = TlsAlloc();
-	if (!(pInitParam->uFlags & EIF_NOINITTHREAD))
+	if (!(pip->uFlags & EIF_NOINITTHREAD))
 		ThreadInit();
 	//////////////初始化GDI+
-	if (!(pInitParam->uFlags & EIF_NOINITGDIPLUS))
+	if (!(pip->uFlags & EIF_NOINITGDIPLUS))
 	{
 		GdiplusStartupInput gpsi{};
 		const auto gps = GdiplusStartup(&g_uGpToken, &gpsi, nullptr);
@@ -1662,16 +1662,16 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 
 	HRESULT hr;
 #if !ECK_OPT_NO_DX
-	if (!(pInitParam->uFlags & EIF_NOINITD2D))
+	if (!(pip->uFlags & EIF_NOINITD2D))
 	{
 #ifdef _DEBUG
 		D2D1_FACTORY_OPTIONS D2DFactoryOptions;
 		D2DFactoryOptions.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
 		//D2DFactoryOptions.debugLevel = D2D1_DEBUG_LEVEL_WARNING;
-		hr = D2D1CreateFactory(pInitParam->uD2dFactoryType,
+		hr = D2D1CreateFactory(pip->uD2dFactoryType,
 			__uuidof(ID2D1Factory1), &D2DFactoryOptions, (void**)&g_pD2dFactory);
 #else
-		hr = D2D1CreateFactory(pInitParam->uD2dFactoryType, IID_PPV_ARGS(&g_pD2dFactory));
+		hr = D2D1CreateFactory(pip->uD2dFactoryType, IID_PPV_ARGS(&g_pD2dFactory));
 #endif // _DEBUG
 		if (FAILED(hr))
 		{
@@ -1681,11 +1681,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		}
 		//////////////创建DXGI工厂
 		hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
-			D3D11_CREATE_DEVICE_BGRA_SUPPORT
-#ifndef NDEBUG
-			| D3D11_CREATE_DEVICE_DEBUG
-#endif // !NDEBUG
-			, pInitParam->pD3dFeatureLevel, pInitParam->cD3dFeatureLevel,
+			pip->uD3dCreateFlags, pip->pD3dFeatureLevel, pip->cD3dFeatureLevel,
 			D3D11_SDK_VERSION, &g_pD3d11Device, nullptr, nullptr);
 		if (FAILED(hr))
 		{
@@ -1728,9 +1724,9 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	}
 #endif// !ECK_OPT_NO_DX
 	//////////////创建DWrite工厂
-	if (!(pInitParam->uFlags & EIF_NOINITDWRITE))
+	if (!(pip->uFlags & EIF_NOINITDWRITE))
 	{
-		hr = DWriteCreateFactory(pInitParam->uDWriteFactoryType,
+		hr = DWriteCreateFactory(pip->uDWriteFactoryType,
 			__uuidof(IDWriteFactory), (IUnknown**)&g_pDwFactory);
 		if (FAILED(hr))
 		{
@@ -1740,7 +1736,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 		}
 	}
 	//////////////创建WIC工厂
-	if (!(pInitParam->uFlags & EIF_NOINITWIC))
+	if (!(pip->uFlags & EIF_NOINITWIC))
 	{
 		hr = CoCreateInstance(CLSID_WICImagingFactory, nullptr,
 			CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&g_pWicFactory));
@@ -1753,7 +1749,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pInitParam, DWORD* pdwErrC
 	}
 
 #if !ECK_OPT_NO_DARKMODE
-	if (!(pInitParam->uFlags & EIF_NODARKMODE) &&
+	if (!(pip->uFlags & EIF_NODARKMODE) &&
 		g_NtVer.uMajor >= 10 && g_NtVer.uBuild >= WINVER_1809)
 	{
 		SetPreferredAppMode(PreferredAppMode::AllowDark);

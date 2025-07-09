@@ -63,7 +63,7 @@ enum :UINT
 	// TrackBar
 	TBE_POSCHANGED,		// 位置改变
 	// List
-	LEE_GETDISPINFO,	// 【渲染线程】获取显示信息
+	LEE_GETDISPINFO,	// 【渲染线程】获取显示信息(LEE_DISPINFO*)
 	// ListTemplate
 	LTE_ITEMCHANED,		// 项改变(LTN_ITEMCHEANGED*)，返回TRUE禁止修改
 	LTE_HOTITEMCHANED,	// 热点项改变(LTN_HOTITEMCHEANGED*)，返回TRUE禁止修改
@@ -112,8 +112,9 @@ enum
 // 渲染事件返回值
 enum : LRESULT
 {
-	RER_NONE,
-	RER_REDIRECTION,
+	RER_NONE = 0,
+	RER_REDIRECTION = 1 << 0,
+	RER_NO_ERASE = 1 << 1,
 };
 // 渲染事件结构
 struct RENDER_EVENT

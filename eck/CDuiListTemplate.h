@@ -148,6 +148,7 @@ protected:
 	BITBOOL m_bToggleSel : 1{};	// 左键按下时切换项目选中
 	BITBOOL m_bEnableDragSel : 1{ TRUE };	// 启用拖动选择
 	BITBOOL m_bDeSelInSpace : 1{ TRUE };	// 点击空白处时取消所有选中
+	BITBOOL m_bDbgIndex : 1{};	// 显示索引
 
 	BITBOOL m_bDraggingSel : 1{};	// 正在拖动选择
 
@@ -206,11 +207,16 @@ protected:
 					eState, MakeD2DRcF(rc), nullptr);
 			GetSubItemRect(idx, 0, rc);
 			LVPaintSubItem(idx, 0, -1, MakeD2DRcF(rc), rcPaint);
-			CRefStrW rs{};
-			rs.Format(L"%d", idx);
-			if (GetTextFormat())
-			m_pDC->DrawTextW(rs.Data(), rs.Size(), GetTextFormat(), MakeD2DRcF(rc),
-				m_pBrush);
+#if _DEBUG
+			if (m_bDbgIndex)
+			{
+				CRefStrW rs{};
+				rs.Format(L"%d", idx);
+				if (GetTextFormat())
+					m_pDC->DrawTextW(rs.Data(), rs.Size(),
+						GetTextFormat(), MakeD2DRcF(rc), m_pBrush);
+			}
+#endif// _DEBUG
 			if (m_eView == Type::Report)
 				for (int i = 1; i < m_Header.GetItemCount(); i++)
 				{
@@ -1796,6 +1802,9 @@ public:
 
 	EckInlineCe void SetDeSelInSpace(BOOL b) noexcept { m_bDeSelInSpace = b; }
 	EckInlineNdCe BOOL GetDeSelInSpace() const noexcept { return m_bDeSelInSpace; }
+
+	EckInlineCe void SetDbgIndex(BOOL b) noexcept { m_bDbgIndex = b; }
+	EckInlineNdCe BOOL GetDbgIndex() const noexcept { return m_bDbgIndex; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
