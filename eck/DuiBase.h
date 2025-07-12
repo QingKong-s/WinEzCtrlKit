@@ -70,7 +70,7 @@ protected:
 	ID2D1DeviceContext* m_pDC{};		// DC，未加引用
 	union// DComp和手动混合只能选其一
 	{
-		void* PRIV_Dummy[4]{};
+		void* PRIV_Dummy[6]{};
 		struct
 		{
 			IDCompositionVisual* m_pDcVisual;	// DComp视觉对象
@@ -79,8 +79,9 @@ protected:
 		};
 		struct
 		{
-			RECT m_rcCompositedInClient;// 缓存已混合的元素矩形，至少完全包含原始元素矩形相对客户区
-			CCompositor* m_pCompositor;	// 混合操作
+			RECT m_rcCompositedInClient;		// 缓存已混合的元素矩形，至少完全包含原始元素矩形相对客户区
+			RECT m_rcRealCompositedInClient;	// 实际计算得到的混合矩形
+			CCompositor* m_pCompositor;			// 混合操作
 			union
 			{
 				ID2D1Bitmap1* m_pCompCachedBitmap;		// 内容渲染到的位图
@@ -101,9 +102,6 @@ protected:
 	IDWriteTextFormat* m_pTextFormat{};	// 文本格式
 	DWORD m_dwStyle{};					// 样式
 	int m_cChildren{};					// 子元素数量
-#ifdef _DEBUG
-	RECT m_rcRealCompositedInClient{};	// 实际计算得到的混合矩形
-#endif
 
 
 	BOOL IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
@@ -619,9 +617,7 @@ public:
 		if (!GetCompositor()->IsInPlace())
 		{
 			GetCompositor()->CalcCompositedRect(this, m_rcCompositedInClient, TRUE);
-#ifdef _DEBUG
 			m_rcRealCompositedInClient = m_rcCompositedInClient;
-#endif
 			UnionRect(m_rcCompositedInClient, m_rcCompositedInClient, m_rcInClient);
 		}
 	}
@@ -822,6 +818,21 @@ private:
 		}
 	}
 
+	void BlurDrawStyleBkg(CElem* pElem, const RECT& rcClipInClient,
+		float ox, float oy)
+	{
+		EckAssert(pElem->GetStyle() & DES_BLURBKG);
+		GetDeviceContext()->Flush();
+		auto rcfClipInElem{ MakeD2DRcF(rcClipInClient) };
+		auto rcfClipInClient{ rcfClipInElem };
+		pElem->ClientToElem(rcfClipInElem);
+		CacheReserveLogSize(rcfClipInClient.right - rcfClipInClient.left,
+			rcfClipInClient.bottom - rcfClipInClient.top);
+		OffsetRect(rcfClipInClient, ox, oy);
+		BlurDrawDC(rcfClipInClient, { rcfClipInElem.left,rcfClipInElem.top },
+			BlurGetDeviation(), BlurGetUseLayer());
+	}
+
 	/// <summary>
 	/// 重画元素树
 	/// </summary>
@@ -964,6 +975,12 @@ private:
 				IntersectRect(rcRealClip, rcRealClip, rc);
 				pElem->ClientToElem(rcRealClip);
 				pDC->PushAxisAlignedClip(MakeD2DRcF(rcRealClip), D2D1_ANTIALIAS_MODE_ALIASED);
+				if (dwStyle & DES_BLURBKG)
+				{
+					RECT rc0{ pElem->m_rcRealCompositedInClient };
+					IntersectRect(rc0, rc0, rc);
+					BlurDrawStyleBkg(pElem, rc0, ox, oy);
+				}
 				pElem->GetCompositor()->PostRender(cri);
 				pDC->PopAxisAlignedClip();
 #ifdef _DEBUG
@@ -2568,28 +2585,11 @@ inline void CElem::BeginPaint(_Out_ ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lP
 	ClientToElem(eps.rcfClipInElem);
 	eps.ox = pExtra->ox;
 	eps.oy = pExtra->oy;
-	if (uFlags & EBPF_DO_NOT_FILLBK)
-		m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
-	else
-		if (m_dwStyle & DES_BLURBKG)
-		{
-			m_pDC->Flush();
-			m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
-			GetWnd()->CacheReserveLogSize(
-				eps.rcfClip.right - eps.rcfClip.left,
-				eps.rcfClip.bottom - eps.rcfClip.top);
-			auto rc{ eps.rcfClip };
-			OffsetRect(rc, eps.ox, eps.oy);
-			GetWnd()->BlurDrawDC(rc,
-				{ eps.rcfClipInElem.left, eps.rcfClipInElem.top },
-				GetWnd()->BlurGetDeviation(),
-				GetWnd()->BlurGetUseLayer());
-		}
-		else [[likely]]
-		{
-			m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
-			CallEvent(WM_ERASEBKGND, 0, (LPARAM)&eps);
-		}
+	m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
+	if ((GetStyle() & DES_BLURBKG) && !GetCompositor())
+		GetWnd()->BlurDrawStyleBkg(this, *eps.prcClip, eps.ox, eps.oy);
+	else if (!(uFlags & EBPF_DO_NOT_FILLBK))
+		CallEvent(WM_ERASEBKGND, 0, (LPARAM)&eps);
 }
 
 EckInline void CElem::InitEasingCurve(CEasingCurve* pEc)
@@ -2652,7 +2652,7 @@ inline void CElem::tcPostMoveSize(BOOL bSize, BOOL bMove, const RECT& rcOld)
 	{
 		if (GetWnd()->IsElemUseDComp())
 			tcReSizeDCompVisual();
-		else if (GetCompositor())
+		else if (GetCompositor() && m_pCompCachedBitmap)
 		{
 			if (GetStyle() & DES_OWNER_COMP_CACHE)
 			{

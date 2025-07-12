@@ -69,7 +69,7 @@ enum :UINT
 	LTE_HOTITEMCHANED,	// 热点项改变(LTN_HOTITEMCHEANGED*)，返回TRUE禁止修改
 	LTE_SCROLLED,		// 滚动结束(LTN_SCROLLED*)
 	// TabList
-	TBLE_GETDISPINFO,	// 【渲染线程】获取显示信息
+	TBLE_GETDISPINFO,	// 【渲染线程】获取显示信息(TBL_DISPINFO*)
 	TBLE_SELCHANGED,	// 选项卡改变(TBL_ITEM*)
 	// Header
 	HEE_GETDISPINFO,	// 【渲染线程】获取显示信息(HEE_DISPINFO*)
@@ -203,6 +203,7 @@ struct DUINMHDR
 struct CUSTOM_DRAW : DUINMHDR
 {
 	DWORD dwStage;
+	D2D1_RECT_F rc;
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
