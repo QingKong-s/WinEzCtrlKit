@@ -93,18 +93,11 @@ struct CCompositor2DAffineTransform : public CCompositor
 	{
 		const auto cx = pElem->GetWidthF();
 		const auto cy = pElem->GetHeightF();
-		const D2D1_POINT_2F pt[]{ { 0,0 }, { cx,0 }, { cx,cy }, { 0,cy } };
-
-		float l{ FLT_MAX }, t{ FLT_MAX }, r{ FLT_MIN }, b{ FLT_MIN };
-		for (const auto e : pt)
-		{
-			const auto pt0 = Mat.TransformPoint(e);
-			if (pt0.x < l) l = pt0.x;
-			if (pt0.x > r) r = pt0.x;
-			if (pt0.y < t) t = pt0.y;
-			if (pt0.y > b) b = pt0.y;
-		}
-		rc = { (LONG)floorf(l), (LONG)floorf(t), (LONG)ceilf(r), (LONG)ceilf(b) };
+		D2D1_POINT_2F pt[]{ { 0,0 },{ cx,cy } };
+		pt[0] = Mat.TransformPoint(pt[0]);
+		pt[1] = Mat.TransformPoint(pt[1]);
+		rc = { (LONG)floorf(pt[0].x), (LONG)floorf(pt[0].y),
+			(LONG)ceilf(pt[1].x), (LONG)ceilf(pt[1].y) };
 		pElem->ElemToClient(rc);
 		if (!bInClientOrParent && pElem->GetParentElem())
 			pElem->GetParentElem()->ClientToElem(rc);
@@ -225,6 +218,9 @@ public:
 		case Type::Translation:
 		case Type::TranslationOpacity:
 			OffsetRect(rc, Dx, Dy);
+			break;
+		default:
+			rc = {};
 			break;
 		}
 	}

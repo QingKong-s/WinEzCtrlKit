@@ -399,7 +399,7 @@ inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags =
 	return EnumProcess([&](SYSTEM_PROCESS_INFORMATION* pspi)
 		{
 			auto& e = vResult.emplace_back(
-				CRefStrW(pspi->ImageName),
+				pspi->ImageName,
 				pToI32<ULONG>(pspi->UniqueProcessId),
 				pToI32<ULONG>(pspi->InheritedFromUniqueProcessId),
 				pspi->NumberOfThreads,
@@ -455,7 +455,7 @@ EckInline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, UINT& uPid)
 			if (pspi->ImageName.Length &&
 				TcsCompareMaxLenI(pszImageName,
 					pspi->ImageName.Buffer,
-					pspi->ImageName.Length) == 0)
+					pspi->ImageName.Length / sizeof(WCHAR)) == 0)
 			{
 				uPid = pToI32<UINT>(pspi->UniqueProcessId);
 				return FALSE;
@@ -472,7 +472,7 @@ EckInline NTSTATUS GetPidByProcessName(PCWSTR pszImageName, std::vector<UINT>& v
 			if (pspi->ImageName.Length &&
 				TcsCompareMaxLenI(pszImageName,
 					pspi->ImageName.Buffer,
-					pspi->ImageName.Length) == 0)
+					pspi->ImageName.Length / sizeof(WCHAR)) == 0)
 				vPid.emplace_back(pToI32<UINT>(pspi->UniqueProcessId));
 		});
 }

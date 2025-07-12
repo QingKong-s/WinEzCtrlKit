@@ -28,7 +28,7 @@ public:
 	}
 private:
 	template<class I>
-	QITAB QiMakeEntry()
+	EckInline static QITAB QiMakeEntry() noexcept
 	{
 		return { &__uuidof(I),OFFSETOFCLASS(I, TThis) };
 	}

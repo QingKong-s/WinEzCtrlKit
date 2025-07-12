@@ -35,6 +35,11 @@ struct LTN_SCROLLED : DUINMHDR
 	int idxGroupEnd;
 };
 
+struct NMLE_CUSTOMDRAW : CUSTOM_DRAW
+{
+
+};
+
 struct LE_HITTEST
 {
 	POINT pt;
@@ -149,6 +154,7 @@ protected:
 	BITBOOL m_bEnableDragSel : 1{ TRUE };	// 启用拖动选择
 	BITBOOL m_bDeSelInSpace : 1{ TRUE };	// 点击空白处时取消所有选中
 	BITBOOL m_bDbgIndex : 1{};	// 显示索引
+	BITBOOL m_bCustomDraw : 1{};// 自定义绘制
 
 	BITBOOL m_bDraggingSel : 1{};	// 正在拖动选择
 
