@@ -3,12 +3,7 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-enum : UINT
-{
-
-};
-
-struct HEE_DISPINFO : DUINMHDR
+struct NMHEDISPINFO : DUINMHDR
 {
 	DispInfoMask uMask;
 	int idx;
@@ -20,11 +15,11 @@ struct HEE_DISPINFO : DUINMHDR
 	ID2D1Bitmap* pImg;
 };
 
-struct HEE_ITEMNOTIFY : DUINMHDR
+struct NMHEITEMNOTIFY : DUINMHDR
 {
 	int idx;
 };
-struct HEE_DRAG : HEE_ITEMNOTIFY
+struct NMHEDRAG : NMHEITEMNOTIFY
 {
 	BOOL bDragDivider;
 };
@@ -85,7 +80,7 @@ private:
 
 		if (!e.pLayout.Get())
 		{
-			HEE_DISPINFO nm;
+			NMHEDISPINFO nm;
 			nm.uCode = HEE_GETDISPINFO;
 			nm.uMask = DIM_TEXT;
 			nm.idx = idx;
@@ -184,7 +179,7 @@ public:
 					rc.right = GetWidth();
 					ElemToClient(rc);
 					InvalidateRect(rc);
-					HEE_ITEMNOTIFY nm;
+					NMHEITEMNOTIFY nm;
 					nm.uCode = HEE_WIDTHCHANGED;
 					nm.idx = m_idxDrag;
 					GenElemNotify(&nm);
@@ -235,7 +230,7 @@ public:
 				}
 				else
 					m_bDragging = TRUE;
-				HEE_DRAG nm;
+				NMHEDRAG nm;
 				nm.uCode = HEE_BEGINDRAG;
 				nm.bDragDivider = ht.bHitDivider;
 				nm.idx = idx;
@@ -248,7 +243,7 @@ public:
 			if (m_idxDrag >= 0)
 			{
 				ReleaseCapture();
-				HEE_DRAG nm;
+				NMHEDRAG nm;
 				nm.uCode = HEE_ENDDRAG;
 				nm.bDragDivider = m_bDraggingDivider;
 				nm.idx = m_idxDrag;

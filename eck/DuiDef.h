@@ -18,7 +18,7 @@ enum
 	DES_TRANSPARENT = (1u << 3),// 保留，当前无效
 	// 元素的内容受周边其他内容影响，若无效区域与元素相交，
 	// 则必须更新整个元素，设置时DES_BLURBKG强制设置此样式
-	DES_CONTENT_EXPAND = (1u << 4),	
+	DES_CONTENT_EXPAND = (1u << 4),
 	// 元素的内容受周边其他内容影响，确定更新区域时DUI系统发送
 	// EWM_QUERY_EXPAND_RECT以获取扩展矩形
 	DES_CONTENT_EXPAND_RECT = (1u << 5),// TODO
@@ -58,25 +58,25 @@ enum :UINT
 	EE_SCROLL,
 	EE_HSCROLL = EE_SCROLL,
 	EE_VSCROLL = EE_SCROLL,
-	EE_CUSTOMDRAW,		// CUSTOM_DRAW*，返回CDRF_*
+	EE_CUSTOMDRAW,		// NMECUSTOMDRAW*，返回CDRF_*
 
 	// TrackBar
 	TBE_POSCHANGED,		// 位置改变
 	// List
-	LEE_GETDISPINFO,	// 【渲染线程】获取显示信息(LEE_DISPINFO*)
+	LEE_GETDISPINFO,	// 【渲染线程】获取显示信息(NMLEDISPINFO*)
 	// ListTemplate
-	LTE_ITEMCHANED,		// 项改变(LTN_ITEMCHEANGED*)，返回TRUE禁止修改
-	LTE_HOTITEMCHANED,	// 热点项改变(LTN_HOTITEMCHEANGED*)，返回TRUE禁止修改
-	LTE_SCROLLED,		// 滚动结束(LTN_SCROLLED*)
+	LTE_ITEMCHANED,		// 项改变(NMLTITEMCHEANGED*)，返回TRUE禁止修改
+	LTE_HOTITEMCHANED,	// 热点项改变(NMLTHOTITEMCHEANGED*)，返回TRUE禁止修改
+	LTE_SCROLLED,		// 滚动结束(NMLTSCROLLED*)
 	// TabList
-	TBLE_GETDISPINFO,	// 【渲染线程】获取显示信息(TBL_DISPINFO*)
-	TBLE_SELCHANGED,	// 选项卡改变(TBL_ITEM*)
+	TBLE_GETDISPINFO,	// 【渲染线程】获取显示信息(NMHEDISPINFO*)
+	TBLE_SELCHANGED,	// 选项卡改变(NMHEITEMINDEX*)
 	// Header
-	HEE_GETDISPINFO,	// 【渲染线程】获取显示信息(HEE_DISPINFO*)
-	HEE_BEGINDRAG,		// 开始拖拽(HEE_DRAG*)
-	HEE_ENDDRAG,		// 结束拖拽(HEE_DRAG*)
-	HEE_WIDTHCHANGED,	// 宽度改变(HEE_ITEMNOTIFY*)
-	HEE_ORDERCHANGED,	// 顺序改变(HEE_ITEMNOTIFY*)
+	HEE_GETDISPINFO,	// 【渲染线程】获取显示信息(NMHEDISPINFO*)
+	HEE_BEGINDRAG,		// 开始拖拽(NMHEDRAG*)
+	HEE_ENDDRAG,		// 结束拖拽(NMHEDRAG*)
+	HEE_WIDTHCHANGED,	// 宽度改变(NMHEITEMNOTIFY*)
+	HEE_ORDERCHANGED,	// 顺序改变(NMHEITEMNOTIFY*)
 
 	EE_PRIVATE_BEGIN = 0x0400
 };
@@ -105,7 +105,7 @@ enum
 	// 下列返回值有效：
 	// RER_NONE = 执行默认操作
 	// RER_REDIRECTION = 应用程序重定向渲染，DUI系统应使用pSfcNewDst和prcNewDirtyPhy
-	RE_PRERENDER,		
+	RE_PRERENDER,
 	RE_POSTRENDER,		// 渲染完毕，仅当RE_PRERENDER返回RER_REDIRECTION时产生
 	RE_COMMIT,			// DUI系统认为有必要冲洗一切挂起的工作
 };
@@ -200,9 +200,12 @@ struct DUINMHDR
 };
 
 // 通用自定义绘制结构
-struct CUSTOM_DRAW : DUINMHDR
+struct NMECUSTOMDRAW : DUINMHDR
 {
+	int idxItem;
 	DWORD dwStage;
+	Part ePart;
+	State eState;
 	D2D1_RECT_F rc;
 };
 ECK_DUI_NAMESPACE_END

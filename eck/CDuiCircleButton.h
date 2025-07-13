@@ -7,7 +7,7 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-struct CBTN_CUSTOM_DRAW : CUSTOM_DRAW
+struct NMCBTCUSTOMDRAW : NMECUSTOMDRAW
 {
 	State eState;
 	D2D1_RECT_F rcImg;
@@ -58,7 +58,7 @@ public:
 				eState = State::Normal;
 
 			BOOL bSkipDefault{};
-			CBTN_CUSTOM_DRAW cd;
+			NMCBTCUSTOMDRAW cd;
 			if (m_pImg)
 			{
 				cd.rcImg.left = (GetWidthF() - m_sizeImg.width) / 2.f;
