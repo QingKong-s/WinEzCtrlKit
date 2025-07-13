@@ -9,25 +9,25 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-struct LTN_ITEM : DUINMHDR
+struct NMLTITEMINDEX : DUINMHDR
 {
 	int idx;
 	int idxGroup;
 };
 
-struct LTN_ITEMCHANGE : LTN_ITEM
+struct NMLTITEMCHANGE : NMLTITEMINDEX
 {
 	UINT uFlagsOld;
 	UINT uFlagsNew;
 };
 
-struct LTN_HOTITEMCHANGE : LTN_ITEM
+struct NMLTHOTITEMCHANGE : NMLTITEMINDEX
 {
 	int idxOld;
 	int idxGroupOld;
 };
 
-struct LTN_SCROLLED : DUINMHDR
+struct NMLTSCROLLED : DUINMHDR
 {
 	int idxBegin;
 	int idxGroupBegin;
@@ -35,9 +35,10 @@ struct LTN_SCROLLED : DUINMHDR
 	int idxGroupEnd;
 };
 
-struct NMLE_CUSTOMDRAW : CUSTOM_DRAW
+struct NMLTCUSTOMDRAW : NMECUSTOMDRAW
 {
-
+	int idxSub;
+	int idxGroup;
 };
 
 struct LE_HITTEST
@@ -167,52 +168,62 @@ protected:
 
 	virtual void LVPaintItem(int idx, int idxGroup, const D2D1_RECT_F& rcPaint)
 	{
-		RECT rc;
+		NMECUSTOMDRAW cd{};
+		cd.uCode = EE_CUSTOMDRAW;
+		LRESULT r{};
 		if (m_bGroup)
 		{
-			GetGroupPartRect(ListPart::Item, idx, idxGroup, rc);
-			State eState;
+			GetGroupPartRect(ListPart::Item, idx, idxGroup, cd.rc);
 			if ((m_Group[idxGroup].Item[idx].uFlags & LEIF_SELECTED) ||
 				(m_bSingleSel && m_idxSel == idx && m_idxSelItemGroup == idxGroup))
 				if (idx == m_idxHot && idxGroup == m_idxHotItemGroup)
-					eState = State::HotSelected;
+					cd.eState = State::HotSelected;
 				else
-					eState = State::Selected;
+					cd.eState = State::Selected;
 			else if (idx == m_idxHot && idxGroup == m_idxHotItemGroup)
-				eState = State::Hot;
+				cd.eState = State::Hot;
 			else
-				eState = State::None;
-			if (eState != State::None)
-				GetTheme()->DrawBackground(Part::ListItem,
-					eState, MakeD2DRcF(rc), nullptr);
-			GetGroupSubItemRect(idx, 0, idxGroup, rc);
-			LVPaintSubItem(idx, 0, idxGroup, MakeD2DRcF(rc), rcPaint);
+				cd.eState = State::None;
+			if (cd.eState != State::None)
+			{
+				if (m_bCustomDraw)
+					r = GenElemNotify(&cd);
+				if (!(r & CDRF_SKIPDEFAULT))
+					GetTheme()->DrawBackground(Part::ListItem,
+						cd.eState, cd.rc, nullptr);
+			}
+			GetGroupSubItemRect(idx, 0, idxGroup, cd.rc);
+			LVPaintSubItem(idx, 0, idxGroup, cd.rc, rcPaint);
 			if (m_eView == Type::Report)
 				for (int i = 1; i < m_Header.GetItemCount(); i++)
 				{
-					GetGroupSubItemRect(idx, i, idxGroup, rc);
-					LVPaintSubItem(idx, i, idxGroup, MakeD2DRcF(rc), rcPaint);
+					GetGroupSubItemRect(idx, i, idxGroup, cd.rc);
+					LVPaintSubItem(idx, i, idxGroup, cd.rc, rcPaint);
 				}
 		}
 		else
 		{
-			GetItemRect(idx, rc);
-			State eState;
+			GetItemRect(idx, cd.rc);
 			if ((m_vItem[idx].uFlags & LEIF_SELECTED) ||
 				(m_bSingleSel && m_idxSel == idx))
 				if (m_idxHot == idx)
-					eState = State::HotSelected;
+					cd.eState = State::HotSelected;
 				else
-					eState = State::Selected;
+					cd.eState = State::Selected;
 			else if (m_idxHot == idx)
-				eState = State::Hot;
+				cd.eState = State::Hot;
 			else
-				eState = State::None;
-			if (eState != State::None)
-				GetTheme()->DrawBackground(Part::ListItem,
-					eState, MakeD2DRcF(rc), nullptr);
-			GetSubItemRect(idx, 0, rc);
-			LVPaintSubItem(idx, 0, -1, MakeD2DRcF(rc), rcPaint);
+				cd.eState = State::None;
+			if (cd.eState != State::None)
+			{
+				if (m_bCustomDraw)
+					r = GenElemNotify(&cd);
+				if (!(r & CDRF_SKIPDEFAULT))
+					GetTheme()->DrawBackground(Part::ListItem,
+						cd.eState, cd.rc, nullptr);
+			}
+			GetSubItemRect(idx, 0, cd.rc);
+			LVPaintSubItem(idx, 0, -1, cd.rc, rcPaint);
 #if _DEBUG
 			if (m_bDbgIndex)
 			{
@@ -220,14 +231,14 @@ protected:
 				rs.Format(L"%d", idx);
 				if (GetTextFormat())
 					m_pDC->DrawTextW(rs.Data(), rs.Size(),
-						GetTextFormat(), MakeD2DRcF(rc), m_pBrush);
+						GetTextFormat(), cd.rc, m_pBrush);
 			}
 #endif// _DEBUG
 			if (m_eView == Type::Report)
 				for (int i = 1; i < m_Header.GetItemCount(); i++)
 				{
-					GetSubItemRect(idx, i, rc);
-					LVPaintSubItem(idx, i, -1, MakeD2DRcF(rc), rcPaint);
+					GetSubItemRect(idx, i, cd.rc);
+					LVPaintSubItem(idx, i, -1, cd.rc, rcPaint);
 				}
 		}
 	}
@@ -762,7 +773,7 @@ public:
 			}
 
 			int idx = HitTest(ht);
-			LTN_HOTITEMCHANGE nm{ LTE_HOTITEMCHANED };
+			NMLTHOTITEMCHANGE nm{ LTE_HOTITEMCHANED };
 			if (m_bGroup)
 			{
 				if (idx != m_idxHot || m_idxHotItemGroup != ht.idxGroup)
@@ -837,7 +848,7 @@ public:
 			{
 				ReCalcTopItem();
 				InvalidateRect();
-				LTN_SCROLLED nm{ LTE_SCROLLED };
+				NMLTSCROLLED nm{ LTE_SCROLLED };
 				CalcItemRangeInRect(GetViewRect(), nm.idxBegin, nm.idxEnd);
 				GenElemNotify(&nm);
 				return TRUE;
@@ -853,11 +864,11 @@ public:
 				switch (((DUINMHDR*)lParam)->uCode)
 				{
 				case HEE_GETDISPINFO:
-					return GenElemNotify((HEE_DISPINFO*)lParam);
+					return GenElemNotify((NMHEDISPINFO*)lParam);
 				case HEE_WIDTHCHANGED:
 				{
 					EckAssert(m_eView == Type::Report);
-					const auto* const p = (HEE_ITEMNOTIFY*)lParam;
+					const auto* const p = (NMHEITEMNOTIFY*)lParam;
 					ArrangeHeader(TRUE);
 					ReCalcHScroll();
 					RECT rc;
@@ -1023,7 +1034,7 @@ public:
 					pThis->InvalidateRect();
 					if (pThis->m_psvV->IsStop())
 					{
-						LTN_SCROLLED nm{ LTE_SCROLLED };
+						NMLTSCROLLED nm{ LTE_SCROLLED };
 						pThis->CalcItemRangeInRect(
 							pThis->GetViewRect(), nm.idxBegin, nm.idxEnd);
 						pThis->GenElemNotify(&nm);
@@ -1141,6 +1152,14 @@ public:
 		rc.bottom = rc.top + m_cyItem;
 	}
 
+	EckInline void GetSubItemRect(int idx, int idxSub,
+		_Out_ D2D1_RECT_F& rc) const noexcept
+	{
+		RECT rc2;
+		GetSubItemRect(idx, idxSub, rc2);
+		rc = MakeD2DRcF(rc2);
+	}
+
 	void GetGroupPartRect(ListPart ePart, int idxItemInGroup,
 		int idxGroup, _Out_ RECT& rc) const noexcept
 	{
@@ -1217,6 +1236,14 @@ public:
 		}
 		rc.left = rc2.left - m_psvH->GetPos();
 		rc.right = rc2.right - m_psvH->GetPos();
+	}
+
+	EckInline void GetGroupSubItemRect(int idx, int idxSub,
+		int idxGroup, _Out_ D2D1_RECT_F& rc) const noexcept
+	{
+		RECT rc2;
+		GetGroupSubItemRect(idx, idxSub, idxGroup, rc2);
+		rc = MakeD2DRcF(rc2);
 	}
 
 	int HitTest(LE_HITTEST& leht) const
@@ -1316,7 +1343,7 @@ public:
 
 	void DeselectAll(_Out_ RECT& rcInvalid)
 	{
-		LTN_ITEMCHANGE nm{ LTE_ITEMCHANED };
+		NMLTITEMCHANGE nm{ LTE_ITEMCHANED };
 		nm.uFlagsOld = LEIF_SELECTED;
 		nm.uFlagsNew = 0;
 		if (m_bGroup)
@@ -1454,13 +1481,13 @@ public:
 
 	BOOL SelectItemForClick(int idx, int idxGroup = -1)
 	{
-		LTN_ITEM nm{ EE_CLICK };
+		NMLTITEMINDEX nm{ EE_CLICK };
 		nm.idx = idx;
 		nm.idxGroup = idxGroup;
 		GenElemNotify(&nm);
 		if (m_bItemNotify)
 		{
-			LTN_ITEMCHANGE nm2{ LTE_ITEMCHANED };
+			NMLTITEMCHANGE nm2{ LTE_ITEMCHANED };
 			nm2.uFlagsOld = 0;
 			nm2.uFlagsNew = LEIF_SELECTED;
 			nm2.idx = idx;
@@ -1488,7 +1515,7 @@ public:
 	{
 		if (m_bSingleSel)
 			return FALSE;
-		LTN_ITEM nm{ EE_CLICK };
+		NMLTITEMINDEX nm{ EE_CLICK };
 		nm.idx = idx;
 		nm.idxGroup = idxGroup;
 		GenElemNotify(&nm);
@@ -1497,7 +1524,7 @@ public:
 			m_vItem[idx].uFlags;
 		if (m_bItemNotify)
 		{
-			LTN_ITEMCHANGE nm2{ LTE_ITEMCHANED };
+			NMLTITEMCHANGE nm2{ LTE_ITEMCHANED };
 			nm2.uFlagsOld = dwFlags;
 			nm2.uFlagsNew = dwFlags ^ LEIF_SELECTED;
 			nm2.idx = idx;

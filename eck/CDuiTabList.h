@@ -4,7 +4,7 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-struct TBL_DISPINFO : DUINMHDR
+struct NMHEDISPINFO : DUINMHDR
 {
 	DispInfoMask uMask;
 	int idx;
@@ -14,7 +14,7 @@ struct TBL_DISPINFO : DUINMHDR
 	ID2D1Bitmap* pImage;
 };
 
-struct TBL_ITEM : DUINMHDR
+struct NMHEITEMINDEX : DUINMHDR
 {
 	int idx;
 };
@@ -37,7 +37,7 @@ protected:
 	void LVPaintSubItem(int idx, int idxSub, int idxGroup,
 		const D2D1_RECT_F& rcSub, const D2D1_RECT_F& rcPaint) override
 	{
-		TBL_DISPINFO di{ TBLE_GETDISPINFO };
+		NMHEDISPINFO di{ TBLE_GETDISPINFO };
 		di.uMask = DIM_TEXT | DIM_IMAGE;
 		di.idxImage = -1;
 		di.idx = idx;
@@ -196,7 +196,7 @@ public:
 	{
 		if (pnm->uCode == EE_CLICK)
 		{
-			const auto p = (LTN_ITEM*)pnm;
+			const auto p = (NMLTITEMINDEX*)pnm;
 			if (p->idx == m_idxLastSel || p->idx < 0 || m_idxLastSel < 0)
 			{
 				m_idxLastSel = p->idx;
@@ -221,12 +221,12 @@ public:
 		else if (pnm->uCode == LTE_ITEMCHANED)
 		{
 			bProcessed = TRUE;
-			const auto* const p = (LTN_ITEMCHANGE*)pnm;
+			const auto* const p = (NMLTITEMCHANGE*)pnm;
 			if ((p->uFlagsOld & LEIF_SELECTED) && !(p->uFlagsNew & LEIF_SELECTED))
 				return TRUE;
 			else
 			{
-				TBL_ITEM nm{ TBLE_SELCHANGED,p->idx };
+				NMHEITEMINDEX nm{ TBLE_SELCHANGED,p->idx };
 				GenElemNotify(&nm);
 			}
 		}
