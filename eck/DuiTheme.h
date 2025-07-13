@@ -298,6 +298,7 @@ struct __declspec(uuid("85623275-F66F-4D96-8EFE-6F97E2519AC8"))
 	virtual HRESULT DrawBackground(Part ePart, State eState,
 		const D2D1_RECT_F& rc, _In_opt_ const DTB_OPT* pOpt) = 0;
 	virtual HRESULT SetColorizationColor(const D2D1_COLOR_F& cr) = 0;
+	virtual HRESULT GetColorizationColor(_Out_ D2D1_COLOR_F& cr) = 0;
 	virtual HRESULT GetColor(Part ePart, State eState,
 		ClrPart eClrPart, _Out_ D2D1_COLOR_F& cr) = 0;
 	virtual HRESULT GetSysColor(SysColor eSysColor, _Out_ D2D1_COLOR_F& cr) = 0;
@@ -955,6 +956,12 @@ public:
 	HRESULT SetColorizationColor(const D2D1_COLOR_F& cr) override
 	{
 		m_crColorization = cr;
+		return S_OK;
+	}
+
+	HRESULT GetColorizationColor(_Out_ D2D1_COLOR_F& cr) override
+	{
+		cr = m_crColorization;
 		return S_OK;
 	}
 

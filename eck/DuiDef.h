@@ -202,7 +202,7 @@ struct DUINMHDR
 // 通用自定义绘制结构
 struct NMECUSTOMDRAW : DUINMHDR
 {
-	int idxItem;
+	int idx;
 	DWORD dwStage;
 	Part ePart;
 	State eState;
