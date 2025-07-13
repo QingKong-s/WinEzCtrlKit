@@ -37,8 +37,10 @@ struct NMLTSCROLLED : DUINMHDR
 
 struct NMLTCUSTOMDRAW : NMECUSTOMDRAW
 {
+	BITBOOL bColorText : 1;
 	int idxSub;
 	int idxGroup;
+	D2D1_COLOR_F crText;
 };
 
 struct LE_HITTEST
@@ -160,90 +162,93 @@ protected:
 	BITBOOL m_bDraggingSel : 1{};	// 正在拖动选择
 
 
-	virtual void GRPaintGroup(int idxGroup, const D2D1_RECT_F& rcPaint) {}
+	virtual void GRPaintGroup(const D2D1_RECT_F& rcPaint, NMLTCUSTOMDRAW& nm, LRESULT r) {}
 
-	virtual void LVPaintSubItem(int idx, int idxSub, int idxGroup,
-		const D2D1_RECT_F& rcSub, const D2D1_RECT_F& rcPaint) {
-	}
+	virtual void LVPaintSubItem(const D2D1_RECT_F& rcPaint, NMLTCUSTOMDRAW& nm, LRESULT r) {}
 
-	virtual void LVPaintItem(int idx, int idxGroup, const D2D1_RECT_F& rcPaint)
+	virtual void LVPaintItem(const D2D1_RECT_F& rcPaint, NMLTCUSTOMDRAW& nm, LRESULT r)
 	{
-		NMECUSTOMDRAW cd{};
-		cd.uCode = EE_CUSTOMDRAW;
-		LRESULT r{};
+		nm.idxSub = 0;
+		nm.bColorText = FALSE;
 		if (m_bGroup)
 		{
-			GetGroupPartRect(ListPart::Item, idx, idxGroup, cd.rc);
-			if ((m_Group[idxGroup].Item[idx].uFlags & LEIF_SELECTED) ||
-				(m_bSingleSel && m_idxSel == idx && m_idxSelItemGroup == idxGroup))
-				if (idx == m_idxHot && idxGroup == m_idxHotItemGroup)
-					cd.eState = State::HotSelected;
+			GetGroupPartRect(ListPart::Item, nm.idx, nm.idxGroup, nm.rc);
+			if ((m_Group[nm.idxGroup].Item[nm.idx].uFlags & LEIF_SELECTED) ||
+				(m_bSingleSel && m_idxSel == nm.idx && m_idxSelItemGroup == nm.idxGroup))
+				if (nm.idx == m_idxHot && nm.idxGroup == m_idxHotItemGroup)
+					nm.eState = State::HotSelected;
 				else
-					cd.eState = State::Selected;
-			else if (idx == m_idxHot && idxGroup == m_idxHotItemGroup)
-				cd.eState = State::Hot;
+					nm.eState = State::Selected;
+			else if (nm.idx == m_idxHot && nm.idxGroup == m_idxHotItemGroup)
+				nm.eState = State::Hot;
 			else
-				cd.eState = State::None;
-			if (cd.eState != State::None)
+				nm.eState = State::None;
+			if (r & CDRF_NOTIFYITEMDRAW)
 			{
-				if (m_bCustomDraw)
-					r = GenElemNotify(&cd);
-				if (!(r & CDRF_SKIPDEFAULT))
-					GetTheme()->DrawBackground(Part::ListItem,
-						cd.eState, cd.rc, nullptr);
+				nm.dwStage = CDDS_ITEMPREPAINT;
+				r = GenElemNotify(&nm);
 			}
-			GetGroupSubItemRect(idx, 0, idxGroup, cd.rc);
-			LVPaintSubItem(idx, 0, idxGroup, cd.rc, rcPaint);
-			if (m_eView == Type::Report)
-				for (int i = 1; i < m_Header.GetItemCount(); i++)
-				{
-					GetGroupSubItemRect(idx, i, idxGroup, cd.rc);
-					LVPaintSubItem(idx, i, idxGroup, cd.rc, rcPaint);
-				}
+			if (!(r & CDRF_SKIPDEFAULT))
+			{
+				if (nm.eState != State::None)
+					GetTheme()->DrawBackground(Part::ListItem,
+						nm.eState, nm.rc, nullptr);
+				GetGroupSubItemRect(nm.idx, 0, nm.idxGroup, nm.rc);
+				LVPaintSubItem(rcPaint, nm, r);
+				if (m_eView == Type::Report)
+					for (nm.idxSub = 1; nm.idxSub < m_Header.GetItemCount(); ++nm.idxSub)
+					{
+						GetGroupSubItemRect(nm.idx, nm.idxSub, nm.idxGroup, nm.rc);
+						LVPaintSubItem(rcPaint, nm, r);
+					}
+			}
 		}
 		else
 		{
-			GetItemRect(idx, cd.rc);
-			if ((m_vItem[idx].uFlags & LEIF_SELECTED) ||
-				(m_bSingleSel && m_idxSel == idx))
-				if (m_idxHot == idx)
-					cd.eState = State::HotSelected;
+			GetItemRect(nm.idx, nm.rc);
+			if ((m_vItem[nm.idx].uFlags & LEIF_SELECTED) ||
+				(m_bSingleSel && m_idxSel == nm.idx))
+				if (m_idxHot == nm.idx)
+					nm.eState = State::HotSelected;
 				else
-					cd.eState = State::Selected;
-			else if (m_idxHot == idx)
-				cd.eState = State::Hot;
+					nm.eState = State::Selected;
+			else if (m_idxHot == nm.idx)
+				nm.eState = State::Hot;
 			else
-				cd.eState = State::None;
-			if (cd.eState != State::None)
+				nm.eState = State::None;
+			if (r & CDRF_NOTIFYITEMDRAW)
 			{
-				if (m_bCustomDraw)
-					r = GenElemNotify(&cd);
-				if (!(r & CDRF_SKIPDEFAULT))
+				nm.dwStage = CDDS_ITEMPREPAINT;
+				r = GenElemNotify(&nm);
+			}
+			if (!(r & CDRF_SKIPDEFAULT))
+			{
+				if (nm.eState != State::None)
 					GetTheme()->DrawBackground(Part::ListItem,
-						cd.eState, cd.rc, nullptr);
-			}
-			GetSubItemRect(idx, 0, cd.rc);
-			LVPaintSubItem(idx, 0, -1, cd.rc, rcPaint);
+						nm.eState, nm.rc, nullptr);
+				GetSubItemRect(nm.idx, 0, nm.rc);
+				LVPaintSubItem(rcPaint, nm, r);
 #if _DEBUG
-			if (m_bDbgIndex)
-			{
-				CRefStrW rs{};
-				rs.Format(L"%d", idx);
-				if (GetTextFormat())
-					m_pDC->DrawTextW(rs.Data(), rs.Size(),
-						GetTextFormat(), cd.rc, m_pBrush);
-			}
-#endif// _DEBUG
-			if (m_eView == Type::Report)
-				for (int i = 1; i < m_Header.GetItemCount(); i++)
+				if (m_bDbgIndex)
 				{
-					GetSubItemRect(idx, i, cd.rc);
-					LVPaintSubItem(idx, i, -1, cd.rc, rcPaint);
+					CRefStrW rs{};
+					rs.Format(L"%d", nm.idx);
+					if (GetTextFormat())
+						m_pDC->DrawTextW(rs.Data(), rs.Size(),
+							GetTextFormat(), nm.rc, m_pBrush);
 				}
+#endif// _DEBUG
+				if (m_eView == Type::Report)
+					for (nm.idxSub = 1; nm.idxSub < m_Header.GetItemCount(); ++nm.idxSub)
+					{
+						GetSubItemRect(nm.idx, nm.idxSub, nm.rc);
+						LVPaintSubItem(rcPaint, nm, r);
+					}
+			}
 		}
 	}
 
-	virtual void IVPaintItem(int idx, const D2D1_RECT_F& rcPaint) {}
+	virtual void IVPaintItem(const D2D1_RECT_F& rcPaint, NMLTCUSTOMDRAW& nm, LRESULT r) {}
 
 	virtual void PostPaint(ELEMPAINTSTRU& ps) {}
 
@@ -603,6 +608,13 @@ protected:
 	{
 		ELEMPAINTSTRU ps;
 		BeginPaint(ps, wParam, lParam);
+		NMLTCUSTOMDRAW nm{};
+		nm.uCode = EE_CUSTOMDRAW;
+		nm.dwStage = CDDS_PREPAINT;
+		LRESULT r{};
+		if (m_bCustomDraw)
+			if ((r = GenElemNotify(&nm)) & CDRF_SKIPDEFAULT)
+				goto SkipDef;
 
 		switch (m_eView)
 		{
@@ -625,19 +637,26 @@ protected:
 					});
 				if (it != m_Group.begin())
 					--it;
-
-				for (int i = (int)std::distance(m_Group.begin(), it); i < GetGroupCount(); ++i)
+				nm.idxGroup = (int)std::distance(m_Group.begin(), it);
+				for (; nm.idxGroup < GetGroupCount(); ++nm.idxGroup)
 				{
-					const auto& e = m_Group[i];
+					const auto& e = m_Group[nm.idxGroup];
 					if (e.y >= (int)ps.rcfClipInElem.bottom + iSbPos)
 						break;
-					GRPaintGroup(i, ps.rcfClipInElem);
-					for (int j = (i == m_idxTopGroup ? m_idxTop : 0); j < (int)e.Item.size(); ++j)
+					nm.bColorText = FALSE;
+					LRESULT r2{};
+					if (r & CDRF_NOTIFYITEMDRAW)
 					{
-						const auto& f = e.Item[j];
-						if (f.y >= (int)ps.rcfClipInElem.bottom + iSbPos)
+						nm.dwStage = CDDS_ITEMPREPAINT;
+						r2 = GenElemNotify(&nm);
+					}
+					GRPaintGroup(ps.rcfClipInElem, nm, r2);
+					nm.idx = (nm.idxGroup == m_idxTopGroup ? m_idxTop : 0);
+					for (; nm.idx < (int)e.Item.size(); ++nm.idx)
+					{
+						if (e.Item[nm.idx].y >= (int)ps.rcfClipInElem.bottom + iSbPos)
 							break;
-						LVPaintItem(j, i, ps.rcfClipInElem);
+						LVPaintItem(ps.rcfClipInElem, nm, r);
 					}
 				}
 			}
@@ -645,10 +664,12 @@ protected:
 			{
 				if (!GetItemCount())
 					goto EndPaintLabel;
+				nm.idxGroup = -1;
+
 				const int idxBegin = std::max(LVItemFromY((int)ps.rcfClipInElem.top), 0);
 				const int idxEnd = std::min(LVItemFromY((int)ps.rcfClipInElem.bottom), GetItemCount() - 1);
-				for (int i = idxBegin; i <= idxEnd; ++i)
-					LVPaintItem(i, -1, ps.rcfClipInElem);
+				for (nm.idx = idxBegin; nm.idx <= idxEnd; ++nm.idx)
+					LVPaintItem(ps.rcfClipInElem, nm, r);
 			}
 		}
 		break;
@@ -656,6 +677,7 @@ protected:
 		{
 			if (!GetItemCount())
 				goto EndPaintLabel;
+			nm.idxGroup = -1;
 			int idxBegin, idxX, idxY;
 
 			idxX = IVLogItemFromX((int)ps.rcfClipInElem.left + 1);
@@ -682,14 +704,14 @@ protected:
 
 					if (IVGetItemXY(i).second >= (int)ps.rcfClipInElem.bottom)// Y方向重画完成
 						break;
-
-					IVPaintItem(i, ps.rcfClipInElem);
+					nm.idx = i;
+					IVPaintItem(ps.rcfClipInElem, nm, r);
 				}
 		}
 		break;
 		default: ECK_UNREACHABLE;
 		}
-
+	SkipDef:
 		if (m_idxInsertMark >= 0)
 		{
 			D2D1_RECT_F rcIm;
@@ -709,6 +731,12 @@ protected:
 		}
 
 		PostPaint(ps);
+
+		if (r & CDRF_NOTIFYPOSTPAINT)
+		{
+			nm.dwStage = CDDS_POSTPAINT;
+			GenElemNotify(&nm);
+		}
 	EndPaintLabel:
 		ECK_DUI_DBG_DRAW_FRAME;
 		EndPaint(ps);
@@ -1838,6 +1866,9 @@ public:
 
 	EckInlineCe void SetDbgIndex(BOOL b) noexcept { m_bDbgIndex = b; }
 	EckInlineNdCe BOOL GetDbgIndex() const noexcept { return m_bDbgIndex; }
+
+	EckInlineCe void SetCustomDraw(BOOL b) noexcept { m_bCustomDraw = b; }
+	EckInlineNdCe BOOL GetCustomDraw() const noexcept { return m_bCustomDraw; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

@@ -48,14 +48,14 @@ private:
 		return {};
 	}
 
-	void GRPaintGroup(int idxGroup, const D2D1_RECT_F& rcPaint) override
+	void GRPaintGroup(const D2D1_RECT_F& rcPaint, NMLTCUSTOMDRAW& nm, LRESULT r) override
 	{
 		const auto Padding = GetTheme()->GetMetrics(Metrics::Padding);
-		auto& e = m_Group[idxGroup];
+		auto& e = m_Group[nm.idxGroup];
 
 		D2D1_RECT_F rcText, rcGroupImg;
-		GetGroupPartRect(ListPart::GroupHeader, -1, idxGroup, rcText);
-		GetGroupPartRect(ListPart::GroupImg, -1, idxGroup, rcGroupImg);
+		GetGroupPartRect(ListPart::GroupHeader, -1, nm.idxGroup, rcText);
+		GetGroupPartRect(ListPart::GroupImg, -1, nm.idxGroup, rcGroupImg);
 
 		const BOOL bText = !(rcText.bottom <= rcPaint.top ||
 			rcText.top >= rcPaint.bottom);
@@ -71,7 +71,7 @@ private:
 		sldi.uCode = LEE_GETDISPINFO;
 		sldi.bItem = FALSE;
 		sldi.Group.cchText = -1;
-		sldi.Group.idx = idxGroup;
+		sldi.Group.idx = nm.idxGroup;
 		GenElemNotify(&sldi);
 
 		if (bText)
@@ -85,9 +85,14 @@ private:
 			if (e.pLayout.Get())
 			{
 				const auto Padding2 = GetTheme()->GetMetrics(Metrics::LargePadding);
-				D2D1_COLOR_F cr;
-				GetTheme()->GetSysColor(Dui::SysColor::MainTitle, cr);
-				m_pBrush->SetColor(cr);
+				if (nm.bColorText)
+					m_pBrush->SetColor(nm.crText);
+				else
+				{
+					D2D1_COLOR_F cr;
+					GetTheme()->GetSysColor(Dui::SysColor::MainTitle, cr);
+					m_pBrush->SetColor(cr);
+				}
 				m_pDC->DrawTextLayout({ rcText.left + Padding,rcText.top }, e.pLayout.Get(),
 					m_pBrush, DrawTextLayoutFlags);
 				DWRITE_TEXT_METRICS tm;
@@ -104,27 +109,26 @@ private:
 			m_pDC->DrawBitmap(sldi.Group.pImg, &rcGroupImg);
 	}
 
-	void LVPaintSubItem(int idx, int idxSub, int idxGroup,
-		const D2D1_RECT_F& rcSub, const D2D1_RECT_F& rcPaint) override
+	void LVPaintSubItem(const D2D1_RECT_F& rcPaint, NMLTCUSTOMDRAW& nm, LRESULT r) override
 	{
 		LEE_DISPINFO es{ LEE_GETDISPINFO };
 		es.bItem = TRUE;
-		es.Item.idx = idx;
-		es.Item.idxSub = idxSub;
-		es.Item.idxGroup = idxGroup;
+		es.Item.idx = nm.idx;
+		es.Item.idxSub = nm.idxSub;
+		es.Item.idxGroup = nm.idxGroup;
 		es.uMask = DIM_TEXT | DIM_IMAGE;
 		GenElemNotify(&es);
 
 		D2D1_SIZE_F sizeImg = GetImageSize(es);
 
 		const float Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
-		auto& e = idxGroup < 0 ? m_vItem[idx] : m_Group[idxGroup].Item[idx];
-		auto& pTl = (idxSub ? e.vSubItem[idxSub - 1].pLayout : e.pLayout);
+		auto& e = idxGroup < 0 ? m_vItem[nm.idx] : m_Group[nm.idxGroup].Item[nm.idx];
+		auto& pTl = (nm.idxSub ? e.vSubItem[nm.idxSub - 1].pLayout : e.pLayout);
 		if (!pTl.Get() && es.Item.pszText && es.Item.cchText > 0)
 		{
 			g_pDwFactory->CreateTextLayout(es.Item.pszText, es.Item.cchText,
 				GetTextFormat(),
-				rcSub.right - rcSub.left - Padding * 3 - sizeImg.width,
+				nm.rc.right - nm.rc.left - Padding * 3 - sizeImg.width,
 				(float)m_cyItem, &pTl);
 		}
 
@@ -133,7 +137,7 @@ private:
 		float xText;
 		if (es.Item.pImg || (m_pImgList && es.Item.idxImg >= 0))
 		{
-			auto rc{ rcSub };
+			auto rc{ nm.rc };
 			rc.left += xImage;
 			rc.right = rc.left + sizeImg.width;
 			rc.top += yImage;
@@ -146,43 +150,48 @@ private:
 					m_pImgList->Draw(es.Item.idxImg, rc);
 		}
 		else
-			xText = rcSub.left + Padding;
+			xText = nm.rc.left + Padding;
 		if (pTl.Get())
 		{
 			DWRITE_TEXT_METRICS tm;
 			pTl->GetMetrics(&tm);
 			if (!(xText + tm.width <= rcPaint.left || xText >= rcPaint.right))
 			{
-				D2D1_COLOR_F cr;
-				GetTheme()->GetSysColor(SysColor::Text, cr);
-				m_pBrush->SetColor(cr);
-				m_pDC->DrawTextLayout({ xText, rcSub.top }, pTl.Get(), m_pBrush);
+				if (nm.bColorText)
+					m_pBrush->SetColor(nm.crText);
+				else
+				{
+					D2D1_COLOR_F cr;
+					GetTheme()->GetSysColor(SysColor::Text, cr);
+					m_pBrush->SetColor(cr);
+				}
+				m_pDC->DrawTextLayout({ xText, nm.rc.top }, pTl.Get(), m_pBrush);
 			}
 		}
 	}
 
-	void IVPaintItem(int idx, const D2D1_RECT_F& rcPaint) override
+	void IVPaintItem(const D2D1_RECT_F& rcPaint, NMLTCUSTOMDRAW& nm, LRESULT r) override
 	{
 		LEE_DISPINFO es{ LEE_GETDISPINFO };
 		es.bItem = TRUE;
-		es.Item.idx = idx;
+		es.Item.idx = nm.idx;
 		es.uMask = DIM_TEXT | DIM_IMAGE;
 		GenElemNotify(&es);
 
 		D2D1_SIZE_F sizeImg = GetImageSize(es);
-		auto& e = m_vItem[idx];
+		auto& e = m_vItem[nm.idx];
 
 		RECT rcTmp;
-		GetItemRect(idx, rcTmp);
+		GetItemRect(nm.idx, rcTmp);
 		auto rc{ MakeD2DRcF(rcTmp) };
 
 		State eState;
-		if ((e.uFlags & LEIF_SELECTED) || (m_bSingleSel && m_idxSel == idx))
-			if (m_idxHot == idx)
+		if ((e.uFlags & LEIF_SELECTED) || (m_bSingleSel && m_idxSel == nm.idx))
+			if (m_idxHot == nm.idx)
 				eState = State::HotSelected;
 			else
 				eState = State::Selected;
-		else if (m_idxHot == idx)
+		else if (m_idxHot == nm.idx)
 			eState = State::Hot;
 		else
 			eState = State::None;
@@ -219,9 +228,14 @@ private:
 
 		if (e.pLayout.Get())
 		{
-			D2D1_COLOR_F cr;
-			GetTheme()->GetSysColor(SysColor::Text, cr);
-			m_pBrush->SetColor(cr);
+			if (nm.bColorText)
+				m_pBrush->SetColor(nm.crText);
+			else
+			{
+				D2D1_COLOR_F cr;
+				GetTheme()->GetSysColor(SysColor::Text, cr);
+				m_pBrush->SetColor(cr);
+			}
 			m_pDC->DrawTextLayout({ rc.left, rcImg.bottom + Padding },
 				e.pLayout.Get(), m_pBrush);
 		}

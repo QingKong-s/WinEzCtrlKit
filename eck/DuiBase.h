@@ -1,8 +1,8 @@
 ﻿#pragma once
 #include "CWnd.h"
 
-#include "DuiDef.h"
 #include "DuiStdTheme.h"
+#include "DuiDef.h"
 #include "DuiCompositor.h"
 
 #include "GraphicsHelper.h"

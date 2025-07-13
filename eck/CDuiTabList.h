@@ -4,7 +4,7 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-struct NMHEDISPINFO : DUINMHDR
+struct NMTBLDISPINFO : DUINMHDR
 {
 	DispInfoMask uMask;
 	int idx;
@@ -14,7 +14,7 @@ struct NMHEDISPINFO : DUINMHDR
 	ID2D1Bitmap* pImage;
 };
 
-struct NMHEITEMINDEX : DUINMHDR
+struct NMTBLITEMINDEX : DUINMHDR
 {
 	int idx;
 };
@@ -34,13 +34,12 @@ protected:
 	int m_idxLastSel{ -1 };
 	RECT m_rcLastRedraw{};
 
-	void LVPaintSubItem(int idx, int idxSub, int idxGroup,
-		const D2D1_RECT_F& rcSub, const D2D1_RECT_F& rcPaint) override
+	void LVPaintSubItem(const D2D1_RECT_F& rcPaint, NMLTCUSTOMDRAW& nm, LRESULT r) override
 	{
-		NMHEDISPINFO di{ TBLE_GETDISPINFO };
+		NMTBLDISPINFO di{ TBLE_GETDISPINFO };
 		di.uMask = DIM_TEXT | DIM_IMAGE;
 		di.idxImage = -1;
-		di.idx = idx;
+		di.idx = nm.idx;
 		m_rsText.Reserve(MAX_PATH);
 		di.pszText = m_rsText.Data();
 		di.cchText = MAX_PATH;
@@ -49,7 +48,7 @@ protected:
 		const float Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
 		const float Padding2 = GetTheme()->GetMetrics(Metrics::LargePadding);
 		const float cyImg = m_cyItem - Padding2 * 2.f;
-		float x = rcSub.left + (float)CxIndicatorPadding + (float)CxIndicator;
+		float x = nm.rc.left + (float)CxIndicatorPadding + (float)CxIndicator;
 		D2D1_SIZE_F sizeImg;
 		D2D1_RECT_F rc;
 		if (di.pImage)
@@ -69,20 +68,20 @@ protected:
 		}
 		else
 			goto SkipDrawImg;
-		rc.left = rcSub.left + (float)CxIndicatorPadding + (float)CxIndicator;
-		rc.top = rcSub.top + (m_cyItem - sizeImg.height) / 2.f;
+		rc.left = nm.rc.left + (float)CxIndicatorPadding + (float)CxIndicator;
+		rc.top = nm.rc.top + (m_cyItem - sizeImg.height) / 2.f;
 		rc.right = rc.left + sizeImg.width;
 		rc.bottom = rc.top + sizeImg.height;
 		if (IsRectsIntersect(rc, rcPaint))
 			if (di.pImage)
-				m_pDC->DrawBitmap(di.pImage, rc, 1.f, D2D1_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC);
+				m_pDC->DrawBitmap(di.pImage, rc, 1.f);
 			else if (di.idxImage >= 0)
 				m_pImgList->Draw(di.idxImage, rc);
 	SkipDrawImg:
-		auto& e = m_vItem[idx];
+		auto& e = m_vItem[nm.idx];
 		if (!e.pLayout.Get() && di.pszText && di.cchText > 0)
 		{
-			const auto cx = rcSub.right - rcSub.left - x;
+			const auto cx = nm.rc.right - nm.rc.left - x;
 			g_pDwFactory->CreateTextLayout(di.pszText, di.cchText,
 				GetTextFormat(), cx, (float)m_cyItem, &e.pLayout);
 		}
@@ -90,10 +89,15 @@ protected:
 		{
 			if (rcPaint.right >= x)
 			{
-				D2D1_COLOR_F cr;
-				GetTheme()->GetSysColor(SysColor::Text, cr);
-				m_pBrush->SetColor(cr);
-				m_pDC->DrawTextLayout({ x,rcSub.top }, e.pLayout.Get(),
+				if (nm.bColorText)
+					m_pBrush->SetColor(nm.crText);
+				else
+				{
+					D2D1_COLOR_F cr;
+					GetTheme()->GetSysColor(SysColor::Text, cr);
+					m_pBrush->SetColor(cr);
+				}
+				m_pDC->DrawTextLayout({ x,nm.rc.top }, e.pLayout.Get(),
 					m_pBrush, DrawTextLayoutFlags);
 			}
 		}
@@ -101,6 +105,7 @@ protected:
 
 	void PostPaint(ELEMPAINTSTRU& ps) override
 	{
+		D2D1_COLOR_F cr;
 		if (m_pec2->IsActive())
 		{
 			D2D1_RECT_F rc;
@@ -122,7 +127,8 @@ protected:
 				OffsetRect(rc, 0.f,
 					float(m_idxFrom * (m_cyItem + m_cyPadding) - m_psvV->GetPos()));
 			}
-			m_pBrush->SetColor(D2D1::ColorF(0x006FC4));
+			GetTheme()->GetColorizationColor(cr);
+			m_pBrush->SetColor(cr);
 			m_pDC->FillRectangle(rc, m_pBrush);
 		}
 		else if (m_idxSel >= 0)
@@ -133,7 +139,8 @@ protected:
 			rc.right = float(CxIndicatorPadding + CxIndicator);
 			rc.top += (float)CyIndicatorPadding;
 			rc.bottom -= (float)CyIndicatorPadding;
-			m_pBrush->SetColor(D2D1::ColorF(0x006FC4));
+			GetTheme()->GetColorizationColor(cr);
+			m_pBrush->SetColor(cr);
 			m_pDC->FillRectangle(rc, m_pBrush);
 		}
 	}
@@ -226,7 +233,7 @@ public:
 				return TRUE;
 			else
 			{
-				NMHEITEMINDEX nm{ TBLE_SELCHANGED,p->idx };
+				NMTBLITEMINDEX nm{ TBLE_SELCHANGED,p->idx };
 				GenElemNotify(&nm);
 			}
 		}
