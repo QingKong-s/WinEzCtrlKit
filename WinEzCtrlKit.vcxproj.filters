@@ -606,6 +606,21 @@
     <ClInclude Include="eck\ProcModule.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\BaseN.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\Crc.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\EnDeCode.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\Compress.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\Crypt.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">

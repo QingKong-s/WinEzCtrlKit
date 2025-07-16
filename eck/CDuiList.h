@@ -4,7 +4,7 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-struct LEE_DISPINFO : DUINMHDR
+struct NMLEDISPINFO : DUINMHDR
 {
 	DispInfoMask uMask;
 	BOOL bItem;
@@ -35,7 +35,7 @@ struct LEE_DISPINFO : DUINMHDR
 class CList : public CListTemplate
 {
 private:
-	D2D1_SIZE_F GetImageSize(const LEE_DISPINFO& es)
+	D2D1_SIZE_F GetImageSize(const NMLEDISPINFO& es)
 	{
 		if (es.Item.pImg)
 			return es.Item.pImg->GetSize();
@@ -63,7 +63,7 @@ private:
 		if (!bText && !bGroupImg)
 			return;
 
-		LEE_DISPINFO sldi{};
+		NMLEDISPINFO sldi{};
 		if (bText)
 			sldi.uMask |= DIM_TEXT;
 		if (bGroupImg)
@@ -111,7 +111,7 @@ private:
 
 	void LVPaintSubItem(const D2D1_RECT_F& rcPaint, NMLTCUSTOMDRAW& nm, LRESULT r) override
 	{
-		LEE_DISPINFO es{ LEE_GETDISPINFO };
+		NMLEDISPINFO es{ LEE_GETDISPINFO };
 		es.bItem = TRUE;
 		es.Item.idx = nm.idx;
 		es.Item.idxSub = nm.idxSub;
@@ -119,10 +119,9 @@ private:
 		es.uMask = DIM_TEXT | DIM_IMAGE;
 		GenElemNotify(&es);
 
-		D2D1_SIZE_F sizeImg = GetImageSize(es);
-
-		const float Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
-		auto& e = idxGroup < 0 ? m_vItem[nm.idx] : m_Group[nm.idxGroup].Item[nm.idx];
+		const auto sizeImg = GetImageSize(es);
+		const auto Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
+		auto& e = nm.idxGroup < 0 ? m_vItem[nm.idx] : m_Group[nm.idxGroup].Item[nm.idx];
 		auto& pTl = (nm.idxSub ? e.vSubItem[nm.idxSub - 1].pLayout : e.pLayout);
 		if (!pTl.Get() && es.Item.pszText && es.Item.cchText > 0)
 		{
@@ -165,14 +164,15 @@ private:
 					GetTheme()->GetSysColor(SysColor::Text, cr);
 					m_pBrush->SetColor(cr);
 				}
-				m_pDC->DrawTextLayout({ xText, nm.rc.top }, pTl.Get(), m_pBrush);
+				m_pDC->DrawTextLayout({ xText, nm.rc.top }, pTl.Get(), m_pBrush,
+					DrawTextLayoutFlags);
 			}
 		}
 	}
 
 	void IVPaintItem(const D2D1_RECT_F& rcPaint, NMLTCUSTOMDRAW& nm, LRESULT r) override
 	{
-		LEE_DISPINFO es{ LEE_GETDISPINFO };
+		NMLEDISPINFO es{ LEE_GETDISPINFO };
 		es.bItem = TRUE;
 		es.Item.idx = nm.idx;
 		es.uMask = DIM_TEXT | DIM_IMAGE;
@@ -237,7 +237,7 @@ private:
 				m_pBrush->SetColor(cr);
 			}
 			m_pDC->DrawTextLayout({ rc.left, rcImg.bottom + Padding },
-				e.pLayout.Get(), m_pBrush);
+				e.pLayout.Get(), m_pBrush, DrawTextLayoutFlags);
 		}
 	}
 };

@@ -189,19 +189,11 @@ public:
 		return OnEvent(uMsg, wParam, lParam);
 	}
 
-	/// <summary>
-	/// 生成元素通知
-	/// </summary>
-	/// <param name="pnm">通知结构，第一个字段必须为DUINMHDR</param>
-	/// <returns>处理方的返回值</returns>
+	// pnm = 通知结构，第一个字段必须为DUINMHDR
 	EckInline LRESULT GenElemNotify(void* pnm);
 
-	/// <summary>
-	/// 生成元素通知。
-	/// 仅向父元素发送通知，若无父元素，返回0
-	/// </summary>
-	/// <param name="pnm">通知结构，第一个字段必须为DUINMHDR</param>
-	/// <returns>处理方的返回值</returns>
+	// 仅向父元素发送通知，若无父元素，返回0
+	// pnm = 通知结构，第一个字段必须为DUINMHDR
 	EckInline LRESULT GenElemNotifyParent(void* pnm)
 	{
 		BOOL bProcessed{};
@@ -843,7 +835,7 @@ private:
 	/// <param name="oxComp">用于手动混合元素子级的X偏移</param>
 	/// <param name="oyComp">用于手动混合元素子级的Y偏移</param>
 	void RedrawElem(CElem* pElem, const RECT& rc, float ox, float oy,
-		float oxComp = 0.f, float oyComp = 0.f)
+		BOOL bCompParent = FALSE, float oxComp = 0.f, float oyComp = 0.f)
 	{
 		const auto pDC = GetDeviceContext();
 		RECT rcClip;// 相对客户区
@@ -887,12 +879,12 @@ private:
 					(float)m_iUserDpi,
 					(float)m_iUserDpi,
 					D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-					nullptr
 				};
 				pDC->CreateBitmapFromDxgiSurface(pDxgiSurface, &D2dBmpProp, &pBitmap);
 				pDC->BeginDraw();
 				pDC->SetTarget(pBitmap);
-				pDC->SetTransform(D2D1::Matrix3x2F::Translation((float)ptOffset.x, (float)ptOffset.y));
+				pDC->SetTransform(D2D1::Matrix3x2F::Translation(
+					(float)ptOffset.x, (float)ptOffset.y));
 			}
 			else if (pElem->GetCompositor())// 手动合成
 			{
@@ -952,7 +944,7 @@ private:
 				else
 				{
 					RedrawElem(pElem->GetFirstChildElem(), rcClip, 0.f, 0.f,
-						oxComp - rcElem.left, oyComp - rcElem.top);
+						TRUE, oxComp - rcElem.left, oyComp - rcElem.top);
 					pDC->Flush();
 					pDC->SetTarget(pOldTarget);
 					pOldTarget->Release();
@@ -1004,7 +996,13 @@ private:
 #endif
 			}
 			else
-				RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
+			{
+				if (bCompParent)
+					RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy,
+						TRUE, oxComp, oyComp);
+				else
+					RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
+			}
 		NextElem:
 			pElem = pElem->GetNextElem();
 		}
