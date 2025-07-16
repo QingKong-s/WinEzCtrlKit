@@ -32,7 +32,8 @@ public:
 		std::invocable<TInfoStruct&> F
 	>
 	NTSTATUS Enumerate(_In_reads_or_z_(cchPatten) PCWCH pszPatten,
-		int cchPatten, F&& Fn, size_t cbBuf = 4096u)
+		int cchPatten, F&& Fn, size_t cbBuf = 4096u,
+		_Out_writes_bytes_opt_(cbBuf) void* pExternalBuf = nullptr)
 	{
 		FILE_INFORMATION_CLASS eCls;
 		if constexpr (std::is_same_v<TInfoStruct, FILE_DIRECTORY_INFORMATION>)
@@ -58,8 +59,8 @@ public:
 		NTSTATUS nts;
 		IO_STATUS_BLOCK iosb;
 
-		const auto pBuf = (BYTE*)VAlloc(cbBuf);
-		UniquePtr<DelVA<BYTE>> _{ pBuf };
+		const auto pBuf = (BYTE*)(pExternalBuf ? pExternalBuf : VAlloc(cbBuf));
+		UniquePtr<DelVA<BYTE>> _{ pExternalBuf ? nullptr : pBuf };
 
 		UNICODE_STRING usPatten;
 		if (pszPatten)
