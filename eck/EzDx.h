@@ -31,7 +31,7 @@ struct CBuffer
 			InitData.SysMemSlicePitch = 0u;
 		}
 		return g_pD3d11Device->CreateBuffer(&Desc,
-			pData ? &InitData : nullptr, &pBuffer);
+			pData ? &InitData : nullptr, pBuffer.AddrOfClear());
 	}
 
 	EckInlineNdCe auto operator->() const noexcept { return pBuffer.Get(); }
@@ -80,10 +80,10 @@ struct CShader
 		}
 		if constexpr (std::is_same_v<TType, VS_T>)
 			hr = g_pD3d11Device->CreateVertexShader(pBlob->GetBufferPointer(),
-				pBlob->GetBufferSize(), nullptr, &pShader);
+				pBlob->GetBufferSize(), nullptr, pShader.AddrOfClear());
 		else if constexpr (std::is_same_v<TType, PS_T>)
 			hr = g_pD3d11Device->CreatePixelShader(pBlob->GetBufferPointer(),
-				pBlob->GetBufferSize(), nullptr, &pShader);
+				pBlob->GetBufferSize(), nullptr, pShader.AddrOfClear());
 		if (ppShaderBlob) *ppShaderBlob = pBlob.Detach();
 		if (ppErrorBlob) *ppErrorBlob = nullptr;
 		return hr;
@@ -108,7 +108,7 @@ struct CVSAndInputLayout : public CShader<VS_T>
 			uFlags1, uFlags2, &pBlob, ppErrorBlob);
 		if (FAILED(hr)) return hr;
 		hr = g_pD3d11Device->CreateInputLayout(pInput, (UINT)cInput,
-			pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &pInputLayout);
+			pBlob->GetBufferPointer(), pBlob->GetBufferSize(), pInputLayout.AddrOfClear());
 		if (ppShaderBlob) *ppShaderBlob = pBlob.Detach();
 		return hr;
 	}
@@ -141,7 +141,7 @@ struct CTexture
 		Desc.BindFlags = eBind;
 		Desc.CPUAccessFlags = uCPUAccessFlags;
 		Desc.MiscFlags = uMiscFlags;
-		return g_pD3d11Device->CreateTexture2D(&Desc, pInitData, &pTexture);
+		return g_pD3d11Device->CreateTexture2D(&Desc, pInitData, pTexture.AddrOfClear());
 	}
 
 	EckInlineNdCe auto operator->() const noexcept { return pTexture.Get(); }
@@ -170,7 +170,7 @@ struct CSampler
 		Desc.MaxLOD = FLT_MAX;
 		if (pBorderColor)
 			memcpy(Desc.BorderColor, pBorderColor, 4 * sizeof(float));
-		return g_pD3d11Device->CreateSamplerState(&Desc, &pSampler);
+		return g_pD3d11Device->CreateSamplerState(&Desc, pSampler.AddrOfClear());
 	}
 
 	EckInlineNdCe auto operator->() const noexcept { return pSampler.Get(); }
@@ -189,7 +189,7 @@ struct CShaderResourceView
 		Desc.Format = eFormat;
 		Desc.ViewDimension = eDimension;
 		Desc.Texture2D.MipLevels = uMipLevels;
-		return g_pD3d11Device->CreateShaderResourceView(pResource, &Desc, &pSrv);
+		return g_pD3d11Device->CreateShaderResourceView(pResource, &Desc, pSrv.AddrOfClear());
 	}
 
 	EckInlineNdCe auto operator->() const noexcept { return pSrv.Get(); }
@@ -202,7 +202,7 @@ struct CRenderTargetView
 
 	HRESULT Create(ID3D11Resource* pResource)
 	{
-		return g_pD3d11Device->CreateRenderTargetView(pResource, nullptr, &pRtv);
+		return g_pD3d11Device->CreateRenderTargetView(pResource, nullptr, pRtv.AddrOfClear());
 	}
 
 	EckInlineNdCe auto operator->() const noexcept { return pRtv.Get(); }
