@@ -9,24 +9,42 @@ public:
 	using TDefInfo = FILE_FULL_DIR_INFORMATION;
 private:
 	HANDLE m_hDir{};
-	UniquePtr<DelVA<BYTE>> m_pBuf{};
-	size_t m_cbBuf{};
+	BYTE* m_pBuf{};
+	ULONG m_cbBuf{};
+	BOOL m_bExternalBuf{};
 	// 若第一次枚举还未进行，则为nullptr
 	// 若当前缓冲区遍历完成，则为INVALID_HANDLE_VALUE
 	void* m_pCurrItem{};
 public:
 	ECK_DISABLE_COPY_MOVE(CEnumFile2);
 
-	CEnumFile2(size_t cbBuf = 4096)
-		: m_pBuf{ (BYTE*)VAlloc(cbBuf) }, m_cbBuf{ cbBuf }
+	CEnumFile2(size_t cbBuf = 4096, void* pBuf = nullptr)
 	{
+		m_cbBuf = (ULONG)cbBuf;
+		if (pBuf)
+		{
+			m_pBuf = (BYTE*)pBuf;
+			m_bExternalBuf = TRUE;
+		}
+		else
+		{
+			m_pBuf = (BYTE*)VAlloc(m_cbBuf);
+			m_bExternalBuf = FALSE;
+		}
 	}
-	CEnumFile2(_In_z_ PCWSTR pszPath, size_t cbBuf = 4096) : CEnumFile2{ cbBuf }
+
+	CEnumFile2(_In_z_ PCWSTR pszPath, size_t cbBuf = 4096, void* pBuf = nullptr)
+		: CEnumFile2{ cbBuf, pBuf }
 	{
 		Open(pszPath);
 	}
 
-	~CEnumFile2() { Close(); }
+	~CEnumFile2()
+	{
+		Close();
+		if (!m_bExternalBuf)
+			VFree(m_pBuf);
+	}
 
 	NTSTATUS Open(_In_z_ PCWSTR pszPath, _In_opt_ HANDLE hRoot = nullptr)
 	{
@@ -96,28 +114,28 @@ public:
 			UNICODE_STRING* pusPatten{ pszPatten ? &usPatten : nullptr };
 #if PHNT_VERSION >= PHNT_REDSTONE3
 			nts NtQueryDirectoryFileEx(m_hDir, nullptr, nullptr, nullptr, &iosb,
-				m_pBuf.get(), (ULONG)m_cbBuf, eCls, SL_RESTART_SCAN, pusPatten);
+				m_pBuf, (ULONG)m_cbBuf, eCls, SL_RESTART_SCAN, pusPatten);
 #else
 			nts = NtQueryDirectoryFile(m_hDir, nullptr, nullptr, nullptr, &iosb,
-				m_pBuf.get(), (ULONG)m_cbBuf, eCls, FALSE, pusPatten, TRUE);
+				m_pBuf, (ULONG)m_cbBuf, eCls, FALSE, pusPatten, TRUE);
 #endif
 			if (!NT_SUCCESS(nts))
 				return nts;
-			m_pCurrItem = m_pBuf.get();
+			m_pCurrItem = m_pBuf;
 			return Next(nullptr, 0, pInfo);
 		}
 		else
 		{
 #if PHNT_VERSION >= PHNT_REDSTONE3
 			nts = NtQueryDirectoryFileEx(m_hDir, nullptr, nullptr, nullptr, &iosb,
-				m_pBuf.get(), (ULONG)m_cbBuf, eCls, 0u, nullptr);
+				m_pBuf, (ULONG)m_cbBuf, eCls, 0u, nullptr);
 #else
 			nts = NtQueryDirectoryFile(m_hDir, nullptr, nullptr, nullptr, &iosb,
-				m_pBuf.get(), (ULONG)m_cbBuf, eCls, FALSE, nullptr, FALSE);
+				m_pBuf, (ULONG)m_cbBuf, eCls, FALSE, nullptr, FALSE);
 #endif
 			if (!NT_SUCCESS(nts))
 				return nts;
-			m_pCurrItem = m_pBuf.get();
+			m_pCurrItem = m_pBuf;
 			return Next(nullptr, 0, pInfo);
 		}
 		return STATUS_SUCCESS;

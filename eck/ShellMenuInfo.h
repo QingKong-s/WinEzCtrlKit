@@ -215,7 +215,7 @@ private:
 					e.rsDisplayName.DupString(m_rsTmp.Data(), cchBuf);
 			}
 		}
-		if (!e.rsDisplayName.IsEmpty()&&
+		if (!e.rsDisplayName.IsEmpty() &&
 			e.rsDisplayName.Front() == L'@')
 			Priv::ShmpLoadIndirectString(e.rsDisplayName);
 		// 属性
@@ -273,9 +273,20 @@ private:
 		return ERROR_SUCCESS;
 	}
 public:
+	void Reset()
+	{
+		m_RegKey.Close();
+		m_idxEnum = 0;
+		m_idxSource = 0;
+		m_bCurrIsShellEx = FALSE;
+		m_bFileType = FALSE;
+		m_rsFileType.Clear();
+	}
+
 	W32ERR Init(ShmSource eSource, _In_reads_z_(cchFileType)
 		PCWSTR pszFileType = nullptr, int cchFileType = -1)
 	{
+		Reset();
 		m_idxSource = (BYTE)eSource;
 		if (eSource == ShmSource::CustomType)
 		{
@@ -328,6 +339,14 @@ private:
 	int m_cchSendToPath{};
 	CIniExtMut m_IniDesktop{};
 public:
+	void Reset()
+	{
+		m_EnumFile.Close();
+		CoTaskMemFree(m_pszSendToPath);
+		m_cchSendToPath = 0;
+		m_IniDesktop.Clear();
+	}
+
 	W32ERR Init()
 	{
 		if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_SendTo,
@@ -444,38 +463,45 @@ class CShmEnumWinX
 private:
 	CEnumFile2 m_EnumFile{};
 	CEnumFile2 m_EnumStartMenu{};
-	PWSTR m_pszWinXPath{};// RtlFreeHeap
-	int m_cchWinXPath{};
-	CRefStrW m_rsTmp{};
+	CRefStrW m_rsWinXPath{};
+	CRefStrW m_rsCurrGroup{};
+	int m_idxGroup{};
 public:
+	void Reset()
+	{
+		m_EnumFile.Close();
+		m_EnumStartMenu.Close();
+		m_rsWinXPath.Clear();
+		m_rsCurrGroup.Clear();
+		m_idxGroup = 0;
+	}
+
 	W32ERR Init()
 	{
+		Reset();
 		UNICODE_STRING usPath
 			RTL_CONSTANT_STRING(LR"(%LocalAppData%\Microsoft\Windows\WinX)");
 		ULONG cbBuffer{ (47 + 30/*用户名*/ + 5) * sizeof(WCHAR) };
-		m_pszWinXPath = (PWSTR)RtlAllocateHeap(RtlProcessHeap(), 0, cbBuffer);
-		UNICODE_STRING usExpand;
-		usExpand.Buffer = m_pszWinXPath;
-		usExpand.Length = 0;
-		usExpand.MaximumLength = cbBuffer;
+		m_rsWinXPath.Reserve(int(cbBuffer / sizeof(WCHAR)));
+		UNICODE_STRING usExpand{ m_rsWinXPath.ToNtString() };
 		auto nts = RtlExpandEnvironmentStrings_U(
 			nullptr, &usPath, &usExpand, &cbBuffer);
 		if (!NT_SUCCESS(nts))
-			if (nts != STATUS_BUFFER_TOO_SMALL)
+		{
+			if (nts == STATUS_BUFFER_TOO_SMALL)
 			{
-				RtlFreeHeap(RtlProcessHeap(), 0, m_pszWinXPath);
-				m_pszWinXPath = (PWSTR)RtlAllocateHeap(RtlProcessHeap(), 0, cbBuffer);
-				usExpand.Buffer = m_pszWinXPath;
-				usExpand.Length = 0;
-				usExpand.MaximumLength = cbBuffer;
+				m_rsWinXPath.Reserve(int(cbBuffer / sizeof(WCHAR)));
+				usExpand = m_rsWinXPath.ToNtString();
 				if (!NT_SUCCESS(nts = RtlExpandEnvironmentStrings_U(
 					nullptr, &usPath, &usExpand, &cbBuffer)))
 					return WIN32_FROM_NTSTATUS(nts);
 			}
 			else
 				return WIN32_FROM_NTSTATUS(nts);
-		m_cchWinXPath = (int)usExpand.Length / 2;
-		return WIN32_FROM_NTSTATUS(m_EnumFile.Open(m_pszWinXPath));
+		}
+	Ok:
+		m_rsWinXPath.ReSize(int(usExpand.Length / sizeof(WCHAR)));
+		return WIN32_FROM_NTSTATUS(m_EnumFile.Open(m_rsWinXPath.Data()));
 	}
 
 	W32ERR Next(ShmItem& e)
@@ -491,8 +517,10 @@ public:
 					return WIN32_FROM_NTSTATUS(nts);
 				if (*pInfo->FileName == L'.')
 					continue;
-				m_rsTmp.DupString(pInfo->FileName, (int)pInfo->FileNameLength / 2);
-				nts = m_EnumStartMenu.Open(m_rsTmp.Data(), m_EnumFile.GetHDir());
+				m_rsCurrGroup.DupString(pInfo->FileName,
+					int(pInfo->FileNameLength / sizeof(WCHAR)));
+				nts = m_EnumStartMenu.Open(m_rsCurrGroup.Data(), m_EnumFile.GetHDir());
+				++m_idxGroup;
 				if (NT_SUCCESS(nts))
 					break;// 直到找到第一个有效目录
 			}
@@ -508,20 +536,30 @@ public:
 				else
 					return WIN32_FROM_NTSTATUS(nts);
 			}
-			if (*pInfo->FileName == L'.')
+			const int cchFileName = int(pInfo->FileNameLength / sizeof(WCHAR));
+			if (*pInfo->FileName == L'.' ||
+				TcsEqualLen2I(pInfo->FileName, cchFileName, EckStrAndLen(L"desktop.ini")))
 				continue;
 
-			e.rsFile.DupString(m_pszWinXPath, m_cchWinXPath);
+			e.rsFile = m_rsWinXPath;
 			e.rsFile.PushBackChar(L'\\');
-			e.rsFile.PushBack(pInfo->FileName, (int)pInfo->FileNameLength / 2);
+			e.rsFile.PushBack(pInfo->FileName, cchFileName);
 			if (pInfo->FileAttributes & FILE_ATTRIBUTE_HIDDEN)
 				e.uFlags |= ShmFlags::Hidden;
-			e.rsDisplayName.DupString(pInfo->FileName, (int)pInfo->FileNameLength / 2);
+			e.rsDisplayName.DupString(pInfo->FileName, cchFileName);
 			if (e.rsDisplayName.Front() == L'@')
 				Priv::ShmpLoadIndirectString(e.rsDisplayName);
 			e.rsIcon.Clear();
+			break;
 		}
 		return ERROR_SUCCESS;
 	}
+
+	EckInlineNdCe auto& GetWinXPath() const noexcept { return m_rsWinXPath; }
+	// 取当前组文件夹名称
+	EckInlineNdCe auto& GetCurrGroup() const noexcept { return m_rsCurrGroup; }
+	// 开始枚举前，调用方将0作为初始无效值，每次调用Next后与该函数返回值比较，
+	// 若不同，则已开始新组的枚举，否则继续当前组的枚举
+	EckInlineNdCe int GetCurrGroupIndex() const noexcept { return m_idxGroup; }
 };
 ECK_NAMESPACE_END
