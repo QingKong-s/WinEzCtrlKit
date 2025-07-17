@@ -222,9 +222,9 @@ public:
 		return E_NOTIMPL;
 	}
 
-	HRESULT STDMETHODCALLTYPE MemIsLocked(BOOL* pIsLocked)
+	HRESULT STDMETHODCALLTYPE MemIsLocked(BOOL* pbLocked)
 	{
-		*pIsLocked = FALSE;
+		*pbLocked = FALSE;
 		return E_NOTIMPL;
 	}
 };

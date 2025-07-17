@@ -251,9 +251,9 @@ public:
 		return S_OK;
 	}
 
-	HRESULT STDMETHODCALLTYPE MemIsLocked(BOOL* pIsLocked)
+	HRESULT STDMETHODCALLTYPE MemIsLocked(BOOL* pbLocked)
 	{
-		*pIsLocked = m_bLocked;
+		*pbLocked = m_bLocked;
 		return S_OK;
 	}
 };
