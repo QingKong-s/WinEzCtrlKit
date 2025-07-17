@@ -202,7 +202,7 @@ inline std::wstring_view GetResourceString(WORD wID, WORD wLangID,
 }
 
 EckInline std::wstring_view GetResourceStringForCurrLocale(
-	WORD wID,HMODULE hModule = nullptr)
+	WORD wID, HMODULE hModule = nullptr)
 {
 	return GetResourceString(wID, LANGIDFROMLCID(GetThreadLocale()), hModule);
 }
@@ -315,7 +315,7 @@ EckInline NTSTATUS WaitObject(HANDLE hObject, LARGE_INTEGER* pliMilliseconds = n
 	return NtWaitForSingleObject(hObject, FALSE, pliMilliseconds);
 }
 
-inline void RandomBytes(void* p, size_t cb)
+inline void RandomBytes(_Out_writes_bytes_all_(cb) void* p, size_t cb)
 {
 	auto mt = std::mt19937{ std::random_device{}() };
 	auto Dist = std::uniform_int_distribution<USHORT>{ 0,0xFF };
@@ -329,7 +329,7 @@ inline void RandomBytes(CRefBin& rb)
 }
 
 template<size_t N>
-inline void RandomBytes(BYTE(&arr)[N])
+inline void RandomBytes(_Out_ BYTE(&arr)[N])
 {
 	RandomBytes(arr, N);
 }
@@ -392,5 +392,31 @@ inline BOOL GetUserLocaleName(CRefStrW& rsLocaleName)
 	rsLocaleName.ReSize(r - 1);
 	TcsCopyLenEnd(rsLocaleName.Data(), sz, r - 1);
 	return TRUE;
+}
+
+inline NTSTATUS ExpandEnvironmentString(CRefStrW& rsDst,
+	_In_reads_or_z_(cchSrc) PCWCH pszSrc, int cchSrc = -1, int cchInitialBuf = 80)
+{
+	if (cchSrc < 0)
+		cchSrc = (int)TcsLen(pszSrc);
+	const auto cbIn = USHORT(cchSrc * sizeof(WCHAR));
+	UNICODE_STRING usIn{ cbIn,cbIn,(PWCH)pszSrc };
+	ULONG cbOut = ULONG(cchInitialBuf * sizeof(WCHAR));
+	rsDst.Reserve(rsDst.Size() + cchInitialBuf);
+	UNICODE_STRING usOut{ (USHORT)cbOut,(USHORT)cbOut,rsDst.Data() + rsDst.Size() };
+	auto nts = RtlExpandEnvironmentStrings_U(nullptr, &usIn, &usOut, &cbOut);
+	if (NT_SUCCESS(nts))
+	{
+		rsDst.ReSize(rsDst.Size() + int(cbOut / sizeof(WCHAR)));
+		return nts;
+	}
+	else if (nts == STATUS_BUFFER_TOO_SMALL)
+	{
+		usOut.Length = usOut.MaximumLength = (USHORT)cbOut;
+		usOut.Buffer = rsDst.PushBackNoExtra(int(cbOut / sizeof(WCHAR)));
+		return RtlExpandEnvironmentStrings_U(nullptr, &usIn, &usOut, &cbOut);
+	}
+	else
+		return nts;
 }
 ECK_NAMESPACE_END

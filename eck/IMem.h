@@ -9,15 +9,15 @@ struct __declspec(uuid("B23501EB-3F09-4A54-94D4-F2054F17A381"))
 	IMem : public IUnknown
 {
 	// 锁定对象，返回对象关联的内存地址和大小，在调用MemUnlock之前一直有效
-	HRESULT STDMETHODCALLTYPE MemLock(void** ppData, SIZE_T* pSize);
+	virtual HRESULT STDMETHODCALLTYPE MemLock(void** ppData, SIZE_T* pSize) = 0;
 
 	// 解锁对象
-	HRESULT STDMETHODCALLTYPE MemUnlock();
+	virtual HRESULT STDMETHODCALLTYPE MemUnlock() = 0;
 
 	// 获取对象关联的内存地址和大小，当修改对象后返回的信息可能失效
-	HRESULT STDMETHODCALLTYPE MemGetPtr(void** ppData, SIZE_T* pSize);
+	virtual HRESULT STDMETHODCALLTYPE MemGetPtr(void** ppData, SIZE_T* pSize) = 0;
 
 	// 是否已锁定
-	HRESULT STDMETHODCALLTYPE MemIsLocked(BOOL* pIsLocked);
+	virtual HRESULT STDMETHODCALLTYPE MemIsLocked(BOOL* pIsLocked) = 0;
 };
 ECK_NAMESPACE_END

@@ -145,7 +145,7 @@ EckInline CRefBin Base64Decode(_In_reads_or_z_(cch) PCCH psz, int cch)
 
 EckInline CRefBin Base64Decode(_In_reads_or_z_(cch) const char8_t* psz, int cch)
 {
-	return Base64Decode(PCCH(psz), cch);
+	return Base64Decode((PCCH)psz, cch);
 }
 
 EckInline CRefBin Base64Decode(const CRefStrA& rs)

@@ -4,6 +4,7 @@
 #include "ComPtr.h"
 #include "CIniExt.h"
 #include "SystemHelper.h"
+#include "Utility2.h"
 
 ECK_NAMESPACE_BEGIN
 enum class ShmSource : BYTE
@@ -479,28 +480,10 @@ public:
 	W32ERR Init()
 	{
 		Reset();
-		UNICODE_STRING usPath
-			RTL_CONSTANT_STRING(LR"(%LocalAppData%\Microsoft\Windows\WinX)");
-		ULONG cbBuffer{ (47 + 30/*用户名*/ + 5) * sizeof(WCHAR) };
-		m_rsWinXPath.Reserve(int(cbBuffer / sizeof(WCHAR)));
-		UNICODE_STRING usExpand{ m_rsWinXPath.ToNtString() };
-		auto nts = RtlExpandEnvironmentStrings_U(
-			nullptr, &usPath, &usExpand, &cbBuffer);
+		const auto nts = ExpandEnvironmentString(m_rsWinXPath,
+			EckStrAndLen(LR"(%LocalAppData%\Microsoft\Windows\WinX)"));
 		if (!NT_SUCCESS(nts))
-		{
-			if (nts == STATUS_BUFFER_TOO_SMALL)
-			{
-				m_rsWinXPath.Reserve(int(cbBuffer / sizeof(WCHAR)));
-				usExpand = m_rsWinXPath.ToNtString();
-				if (!NT_SUCCESS(nts = RtlExpandEnvironmentStrings_U(
-					nullptr, &usPath, &usExpand, &cbBuffer)))
-					return WIN32_FROM_NTSTATUS(nts);
-			}
-			else
-				return WIN32_FROM_NTSTATUS(nts);
-		}
-	Ok:
-		m_rsWinXPath.ReSize(int(usExpand.Length / sizeof(WCHAR)));
+			return WIN32_FROM_NTSTATUS(nts);
 		return WIN32_FROM_NTSTATUS(m_EnumFile.Open(m_rsWinXPath.Data()));
 	}
 
