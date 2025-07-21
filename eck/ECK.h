@@ -79,8 +79,6 @@ enum MONITOR_DPI_TYPE;
 #define ECK_PRIV_NAMESPACE_END			}
 #define ECK_DUI_NAMESPACE_BEGIN			namespace Dui {
 #define ECK_DUI_NAMESPACE_END			}
-#define ECK_DUIG_NAMESPACE_BEGIN		namespace Duig {
-#define ECK_DUIG_NAMESPACE_END			}
 #define ECK_MEDIATAG_NAMESPACE_BEGIN	namespace MediaTag {
 #define ECK_MEDIATAG_NAMESPACE_END		}
 
@@ -403,7 +401,7 @@ union GDIARGB
 
 union BIT256
 {
-	BIT128 bit128[2];
+	BIT128 u128[2];
 	UINT64 u64[4];
 	UINT32 u32[8];
 	UINT16 u16[16];
@@ -759,6 +757,7 @@ ECK_ENUM_BIT_FLAGS(DispInfoMask);
 
 enum class EolType :BYTE
 {
+	Invalid,
 	Auto,
 	CRLF,
 	CR,

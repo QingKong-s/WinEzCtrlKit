@@ -2,7 +2,7 @@
 #include "ImageHelper.h"
 #include "CStreamWalker.h"
 #include "CMemWalker.h"
-#include "Utility2.h"
+#include "Crc.h"
 
 ECK_NAMESPACE_BEGIN
 struct ICONDIRENTRY

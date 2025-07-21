@@ -159,13 +159,17 @@ inline NTSTATUS UiaRestart(const UIA& uia)
 		NtClose(hTokenUia);
 		return nts;
 	}
+	// 启动新实例
 	STARTUPINFOW si{ sizeof(si) };
 	si.dwFlags = STARTF_USESHOWWINDOW;
 	si.wShowWindow = (WORD)NtCurrentPeb()->ProcessParameters->ShowWindowFlags;
 	PROCESS_INFORMATION pi;
-	// XXX: 此函数命令行长度限定为MAX_PATH
 	CRefStrW rsCmdLine{ NtCurrentPeb()->ProcessParameters->CommandLine };
-	if (CreateProcessAsUserW(hTokenUia, nullptr, rsCmdLine.Data(),
+	PWSTR pszAppName, pszCmdLine;
+	int cchAppName, cchCmdLine;
+	rsCmdLine.PazParseCommandLineAndCut(pszAppName, cchAppName,
+		pszCmdLine, cchCmdLine);
+	if (CreateProcessAsUserW(hTokenUia, pszAppName, pszCmdLine,
 		nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi))
 	{
 		NtClose(pi.hThread);

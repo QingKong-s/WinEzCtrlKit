@@ -96,41 +96,21 @@ public:
 
 	explicit CRefStrT(const TAlloc& Al) : m_Alloc{ Al } {}
 
-	/// <summary>
-	/// 创建自长度
-	/// </summary>
-	/// <param name="cchInit">字符串长度</param>
 	explicit CRefStrT(int cchInit)
 	{
 		ReSize(cchInit);
 	}
 
-	/// <summary>
-	/// 创建自长度
-	/// </summary>
-	/// <param name="cchInit">字符串长度</param>
-	/// <param name="Al">分配器</param>
 	CRefStrT(int cchInit, const TAlloc& Al) : m_Alloc{ Al }
 	{
 		ReSize(cchInit);
 	}
 
-	/// <summary>
-	/// 创建自字符串
-	/// </summary>
-	/// <param name="psz">字符串指针</param>
-	/// <param name="cchText">字符串长度</param>
-	/// <param name="Al">分配器</param>
 	CRefStrT(TConstPointer psz, int cchText, const TAlloc& Al = TAlloc{}) : m_Alloc{ Al }
 	{
 		DupString(psz, cchText);
 	}
 
-	/// <summary>
-	/// 创建自字符串
-	/// </summary>
-	/// <param name="psz">字符串指针</param>
-	/// <param name="Al">分配器</param>
 	CRefStrT(TConstPointer psz, const TAlloc& Al = TAlloc{})
 		: CRefStrT(psz, psz ? (int)TcsLen(psz) : 0, Al) {
 	}
@@ -170,17 +150,17 @@ public:
 	}
 
 	template<class TTraits, class TAlloc1>
-	explicit CRefStrT(const std::basic_string<TChar, TTraits, TAlloc1>& s, const TAlloc& Al = TAlloc{})
+	CRefStrT(const std::basic_string<TChar, TTraits, TAlloc1>& s, const TAlloc& Al = TAlloc{})
 		: CRefStrT(s.data(), (int)s.size(), Al) {
-	}
-
-	explicit CRefStrT(TNtString nts, const TAlloc& Al = TAlloc{})
-		:CRefStrT(nts.Buffer, (int)nts.Length, Al) {
 	}
 
 	template<class TTraits>
 	CRefStrT(std::basic_string_view<TChar, TTraits> sv, const TAlloc& Al = TAlloc{})
 		: CRefStrT(sv.data(), (int)sv.size(), Al) {
+	}
+
+	CRefStrT(TNtString nts, const TAlloc& Al = TAlloc{})
+		:CRefStrT(nts.Buffer, (int)nts.Length, Al) {
 	}
 
 	~CRefStrT()
@@ -256,6 +236,8 @@ public:
 		DupString(x.data(), (int)x.size());
 		return *this;
 	}
+
+	EckInline CRefStrT& operator=(TNtString x) { DupString(x.Buffer, (int)x.Length); }
 
 	EckInlineNdCe TChar& At(int x) { EckAssert(x >= 0 && x < Size()); return *(Data() + x); }
 	EckInlineNdCe TChar At(int x) const { EckAssert(x >= 0 && x < Size()); return *(Data() + x); }
@@ -1302,6 +1284,7 @@ public:
 	HRESULT PazParseCommandLineAndCut(_Out_ TPointer& pszFile, _Out_ int& cchFile,
 		_Out_ TPointer& pszParam, _Out_ int& cchParam)
 	{
+		EckAssert(&pszFile != &pszParam && &cchFile != &cchParam);
 		const auto hr = PazParseCommandLine(pszFile, cchFile,
 			pszParam, cchParam);
 		if (SUCCEEDED(hr))

@@ -388,38 +388,83 @@ inline HRESULT GetCpuInfo(CPUINFO& ci)
 #endif// __arm__
 }
 
-// 返回桌面ListView句柄
-inline HWND ShowDesktop(BOOL bShow)
+inline BOOL GetDesktopPartHWnd(_Out_ HWND& hPmOrWorkerW, _Out_ HWND& hDefView, _Out_ HWND& hLV)
 {
-	HWND hPm = FindWindowW(L"Progman", L"Program Manager");
-	HWND hDefView = FindWindowExW(hPm, nullptr, L"SHELLDLL_DefView", nullptr);
-	HWND hLV = FindWindowExW(hDefView, nullptr, L"SysListView32", nullptr);
-	if (!hLV)
+	hDefView = hLV = nullptr;
+	if (!(hPmOrWorkerW = FindWindowW(L"Progman", L"Program Manager")))
+		return FALSE;
+	if (hDefView = FindWindowExW(hPmOrWorkerW, nullptr, L"SHELLDLL_DefView", nullptr))
+		if (hLV = FindWindowExW(hDefView, nullptr, L"SysListView32", nullptr))
+			return TRUE;
+	hPmOrWorkerW = nullptr;
+	EckCounterNV(1024)
 	{
-		EckCounterNV(1000)
-		{
-			hPm = FindWindowExW(0, hPm, L"WorkerW", nullptr);
-			hDefView = FindWindowExW(hPm, nullptr, L"SHELLDLL_DefView", nullptr);
-			hLV = FindWindowExW(hDefView, nullptr, L"SysListView32", nullptr);
-			if (hLV)
-				goto Succeeded;
-		}
-		EckDbgPrintWithPos(L"寻找桌面窗口失败");
-		return nullptr;
-	Succeeded:;
+		if (!(hPmOrWorkerW = FindWindowExW(0, hPmOrWorkerW, L"WorkerW", nullptr)))
+			break;
+		if (!(hDefView = FindWindowExW(hPmOrWorkerW, nullptr, L"SHELLDLL_DefView", nullptr)))
+			continue;
+		if (hLV = FindWindowExW(hDefView, nullptr, L"SysListView32", nullptr))
+			return TRUE;
 	}
+	return FALSE;
+}
+
+inline BOOL ShowDesktop(BOOL bShow, BOOL bIgnoreProgman = TRUE)
+{
+	HWND hPmOrWorkerW, hDefView, hLV;
+	if (!GetDesktopPartHWnd(hPmOrWorkerW, hDefView, hLV))
+		return FALSE;
 	const int iSw = (bShow ? SW_SHOWNOACTIVATE : SW_HIDE);
 	ShowWindowAsync(hLV, iSw);
 	ShowWindowAsync(hDefView, iSw);
-	ShowWindowAsync(hPm, iSw);
-	return hLV;
+	if (!bIgnoreProgman)
+		ShowWindowAsync(hPmOrWorkerW, iSw);
+	return TRUE;
 }
 
-EckInline HWND ShowTaskBar(BOOL bShow)
+inline BOOL GetTaskBarPartHWnd(_Out_ HWND& hTaskBar,
+	_Out_writes_opt_(*pcSecondary) HWND* phSecondary = nullptr,
+	_Inout_opt_ size_t* pcSecondary = nullptr)
 {
-	const HWND hTb = FindWindowW(L"Shell_TrayWnd", nullptr);
-	ShowWindowAsync(hTb, (bShow ? SW_SHOWNOACTIVATE : SW_HIDE));
-	return hTb;
+	hTaskBar = FindWindowW(L"Shell_TrayWnd", nullptr);
+	if (!hTaskBar)
+	{
+		if (pcSecondary) *pcSecondary = 0u;
+		return FALSE;
+	}
+	if (phSecondary && pcSecondary)
+	{
+		HWND hLast{};
+		size_t c{};
+		while (hLast = FindWindowExW(nullptr, hLast,
+			L"Shell_SecondaryTrayWnd", nullptr))
+		{
+			*phSecondary++ = hLast;
+			if (++c == *pcSecondary)
+				break;
+		}
+		*pcSecondary = c;
+	}
+	return TRUE;
+}
+
+inline BOOL ShowTaskBar(BOOL bShow, BOOL bIgnoreSecondary = FALSE)
+{
+	HWND hTaskBar, hSecondary[16];
+	size_t cSecondary = ARRAYSIZE(hSecondary);
+	if (!GetTaskBarPartHWnd(hTaskBar, hSecondary,
+		bIgnoreSecondary ? nullptr : &cSecondary))
+		return FALSE;
+	const int iSw = (bShow ? SW_SHOWNOACTIVATE : SW_HIDE);
+	if (bIgnoreSecondary)
+		ShowWindowAsync(hTaskBar, iSw);
+	else// 使用ShowWindowAsync会导致副屏任务栏隐藏后再次显示
+	{
+		ShowWindow(hTaskBar, iSw);
+		EckCounter(cSecondary, i)
+			ShowWindow(hSecondary[i], iSw);
+	}
+	return TRUE;
 }
 
 struct FILEVERINFO

@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "MediaTag.h"
 #include "Utility2.h"
+#include "BaseN.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_MEDIATAG_NAMESPACE_BEGIN
