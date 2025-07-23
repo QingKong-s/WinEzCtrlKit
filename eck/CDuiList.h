@@ -40,11 +40,7 @@ private:
 		if (es.Item.pImg)
 			return es.Item.pImg->GetSize();
 		else if (m_pImgList && es.Item.idxImg >= 0)
-		{
-			int cx, cy;
-			m_pImgList->GetImageSize(cx, cy);
-			return { (float)cx, (float)cy };
-		}
+			return m_pImgList->GetImageSize();
 		return {};
 	}
 

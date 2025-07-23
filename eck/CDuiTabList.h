@@ -60,7 +60,7 @@ protected:
 		}
 		else if (di.idxImage >= 0)
 		{
-			int cx, cy;
+			float cx, cy;
 			m_pImgList->GetImageSize(cx, cy);
 			sizeImg.width = cyImg / cy * cx;
 			sizeImg.height = cyImg;
