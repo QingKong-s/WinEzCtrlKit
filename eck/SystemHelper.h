@@ -48,7 +48,7 @@ inline CRefBin ReadInFile(PCWSTR pszFile, NTSTATUS* pnts = nullptr)
 		return {};
 	}
 	const auto cbFile = (size_t)fsi.EndOfFile.QuadPart;
-	if (cbFile > (size_t)1'073'741'824u || cbFile < 0)// 大于1G，不读
+	if (cbFile > (size_t)1'073'741'824u)// 大于1G，不读
 	{
 		*pnts = STATUS_BUFFER_TOO_SMALL;
 		NtClose(hFile);

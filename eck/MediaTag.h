@@ -213,13 +213,40 @@ struct MUSICINFO
 			return &*it;
 	}
 
+	const MUSICPIC* GetMainCover() const
+	{
+		if (vImage.empty())
+			return nullptr;
+		auto it = std::find_if(vImage.begin(), vImage.end(),
+			[](const MUSICPIC& e) { return e.eType == PicType::CoverFront; });
+		if (it == vImage.end())
+			it = std::find_if(vImage.begin(), vImage.end(),
+				[](const MUSICPIC& e) { return e.eType == PicType::CoverBack; });
+		if (it == vImage.end())
+			return vImage.data();
+		else
+			return &*it;
+	}
+
 	CRefStrW& GetArtistStr()
 	{
 		EckAssert(Artist.index() == 1u);
 		return std::get<1>(Artist);
 	}
 
+	const CRefStrW& GetArtistStr() const
+	{
+		EckAssert(Artist.index() == 1u);
+		return std::get<1>(Artist);
+	}
+
 	CRefStrW& GetCommentStr()
+	{
+		EckAssert(Comment.index() == 1u);
+		return std::get<1>(Comment);
+	}
+	
+	const CRefStrW& GetCommentStr() const
 	{
 		EckAssert(Comment.index() == 1u);
 		return std::get<1>(Comment);

@@ -12,11 +12,11 @@
 #include "eck\CComboBoxNew.h"
 #include "eck\CListView.h"
 #include "eck\CEditExt.h"
-#include "eck\CBk.h"
 #include "eck\CTab.h"
 #include "eck\CTreeList.h"
 #include "eck\CLinearLayout.h"
 #include "eck\CSplitLayout.h"
+#include "eck\CTreeView.h"
 
 using eck::PCVOID;
 using eck::PCBYTE;

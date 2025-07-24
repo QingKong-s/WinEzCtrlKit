@@ -180,7 +180,7 @@
     <ClInclude Include="CProject.h" />
     <ClInclude Include="CSelOverlay.h" />
     <ClInclude Include="CWndMain.h" />
-    <ClInclude Include="CWorkWnd.h" />
+    <ClInclude Include="CWndWork.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
@@ -191,7 +191,7 @@
     <ClCompile Include="CProject.cpp" />
     <ClCompile Include="CSelOverlay.cpp" />
     <ClCompile Include="CWndMain.cpp" />
-    <ClCompile Include="CWorkWnd.cpp" />
+    <ClCompile Include="CWndWork.cpp" />
     <ClCompile Include="Entry.cpp" />
     <ClCompile Include="MyEck.cpp" />
     <ClCompile Include="pch.cpp">
