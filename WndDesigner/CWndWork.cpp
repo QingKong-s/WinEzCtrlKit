@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "CWndWork.h"
 
 //LRESULT CWorkWndBk::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 //{
@@ -16,7 +17,7 @@
 //	return __super::OnMsg(hWnd, uMsg, wParam, lParam);
 //}
 //
-//LRESULT CWorkWnd::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+//LRESULT CWndWork::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 //{
 //	switch (uMsg)
 //	{
@@ -72,3 +73,8 @@
 //	}
 //	return DefWindowProcW(hWnd, uMsg, wParam, lParam);
 //}
+
+LRESULT CWndWork::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	return __super::OnMsg(hWnd, uMsg, wParam, lParam);
+}

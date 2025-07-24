@@ -45,7 +45,7 @@
     <ClInclude Include="CApp.h">
       <Filter>程序</Filter>
     </ClInclude>
-    <ClInclude Include="CWorkWnd.h">
+    <ClInclude Include="CWndWork.h">
       <Filter>逻辑</Filter>
     </ClInclude>
     <ClInclude Include="CSelOverlay.h">
@@ -74,7 +74,7 @@
     <ClCompile Include="CApp.cpp">
       <Filter>程序</Filter>
     </ClCompile>
-    <ClCompile Include="CWorkWnd.cpp">
+    <ClCompile Include="CWndWork.cpp">
       <Filter>逻辑</Filter>
     </ClCompile>
     <ClCompile Include="CSelOverlay.cpp">

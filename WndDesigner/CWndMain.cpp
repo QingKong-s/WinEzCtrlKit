@@ -2,6 +2,16 @@
 #include "CWndMain.h"
 #include "CApp.h"
 
+enum : int
+{
+	CyComboBox = 24,
+	CyDescEdit = 100,
+	CxDefProp = 200,
+	CxDefCtrlBox = 200,
+	CyDefProjTree = 220,
+	CxIlMain = 16,
+	CyIlMain = 16,
+};
 
 void CWndMain::OnCreate(HWND hWnd)
 {
@@ -14,27 +24,27 @@ void CWndMain::OnCreate(HWND hWnd)
 	InitMenu();
 	eck::UxfMenuInit(this);
 
-	ComPtr<IStream> pStream;
-	SHCreateStreamOnFileEx(LR"(E:\Desktop\1.il)",
+	/*ComPtr<IStream> pStream;
+	SHCreateStreamOnFileEx(LR"(1.il)",
 		STGM_READ, 0, FALSE, nullptr, &pStream);
 	ImageList_ReadEx(ILP_NORMAL, pStream.Get(), IID_PPV_ARGS(&m_pilMain));
-	m_pilMain->GetIconSize(&m_cxIlMain, &m_cyIlMain);
+	m_pilMain->GetIconSize(&m_cxIlMain, &m_cyIlMain);*/
 
 	constexpr DWORD dwCommStyle = WS_CHILD | WS_VISIBLE | WS_TABSTOP;
 	const MARGINS Mar{ .cxRightWidth = m_Ds.IntPad };
 	{
 		const MARGINS Mar{ .cyBottomHeight = m_Ds.IntPad };
 		m_CBBCtrl.Create(nullptr, dwCommStyle, 0,
-			0, 0, 0, m_Ds.cyComboBox, hWnd, 0);
+			0, 0, 0, eck::DpiScale(CyComboBox, m_iDpi), hWnd, 0);
 		m_LytProp.Add(&m_CBBCtrl, Mar, eck::LF_FIX_HEIGHT | eck::LF_FILL_WIDTH);
 
 		m_PLProp.Create(nullptr, dwCommStyle | WS_BORDER, 0,
-			0, 0, m_Ds.cxDefProp, 0, hWnd, 0);
+			0, 0, eck::DpiScale(CxDefProp, m_iDpi), 0, hWnd, 0);
 		m_LytProp.Add(&m_PLProp, Mar, eck::LF_FILL, 1u);
 
 		m_EDDesc.SetMultiLine(TRUE);
 		m_EDDesc.Create(nullptr, dwCommStyle | ES_AUTOVSCROLL, 0,
-			0, 0, 0, m_Ds.cyDescEdit, hWnd, 0);
+			0, 0, 0, eck::DpiScale(CyDescEdit, m_iDpi), hWnd, 0);
 		m_EDDesc.SetFrameType(3);
 		m_LytProp.Add(&m_EDDesc, {}, eck::LF_FIX_HEIGHT | eck::LF_FILL_WIDTH);
 	}
@@ -44,10 +54,32 @@ void CWndMain::OnCreate(HWND hWnd)
 		0, 0, 0, 0, hWnd, 0);
 	m_Lyt.Add(&m_Tab, Mar, eck::LF_FILL, 1u);
 
-	m_LBCtrl.Create(nullptr, dwCommStyle | WS_BORDER, 0,
-		0, 0, m_Ds.cxDefCtrlBox, 0, hWnd, 0);
-	m_LBCtrl.SetItemCount(ARRAYSIZE(BuiltInCtrls) + 1);
-	m_Lyt.Add(&m_LBCtrl, Mar, eck::LF_FILL_HEIGHT | eck::LF_FIX_WIDTH);
+	{
+		constexpr auto dwTVStyle = TVS_LINESATROOT | TVS_HASBUTTONS |
+			TVS_SHOWSELALWAYS | TVS_TRACKSELECT |
+			TVS_DISABLEDRAGDROP | TVS_FULLROWSELECT;
+		m_TVProject.Create(nullptr, dwCommStyle | WS_BORDER | dwTVStyle, 0,
+			0, 0, eck::DpiScale(CxDefCtrlBox, m_iDpi),
+			eck::DpiScale(CyDefProjTree, m_iDpi), hWnd, 0);
+		m_TVProject.SetTVExtendStyle(TVS_EX_DOUBLEBUFFER | TVS_EX_FADEINOUTEXPANDOS);
+		TVINSERTSTRUCTW tvis;
+		tvis.hParent = TVI_ROOT;
+		tvis.hInsertAfter = TVI_LAST;
+		tvis.itemex.mask = TVIF_TEXT | TVIF_STATE;
+		tvis.itemex.state = tvis.itemex.stateMask = TVIS_EXPANDED;
+		tvis.itemex.pszText = (PWSTR)L"工程";
+		tvis.hParent = m_htiRoot = m_TVProject.InsertItem(&tvis);
+
+		tvis.itemex.pszText = (PWSTR)L"窗体";
+		m_htiForms = m_TVProject.InsertItem(&tvis);
+		m_LytProjAndCtrl.Add(&m_TVProject, Mar, eck::LF_FIX);
+
+		m_LBCtrl.Create(nullptr, dwCommStyle | WS_BORDER, 0,
+			0, 0, eck::DpiScale(CxDefCtrlBox, m_iDpi), 0, hWnd, 0);
+		m_LBCtrl.SetItemCount(ARRAYSIZE(BuiltInCtrls) + 1);
+		m_LytProjAndCtrl.Add(&m_LBCtrl, Mar, eck::LF_FILL,1u);
+	}
+	m_Lyt.Add(&m_LytProjAndCtrl, Mar, eck::LF_FILL_HEIGHT | eck::LF_FIX_WIDTH);
 
 	m_Lyt.LoInitDpi(m_iDpi);
 
@@ -112,7 +144,7 @@ LRESULT CWndMain::OnCustomDrawCtrlListBox(const eck::NMCUSTOMDRAWEXT* p)
 		ildp.x = cxPad;
 		ildp.y = p->rc.top + (p->rc.bottom - p->rc.top - m_cyIlMain) / 2;
 		ildp.rgbBk = CLR_NONE;
-		m_pilMain->Draw(&ildp);
+		//m_pilMain->Draw(&ildp);
 
 		RECT rcText{ p->rc };
 		rcText.left += (ildp.x + m_cxIlMain + cxPad);
@@ -157,6 +189,7 @@ LRESULT CWndMain::OnCommand(HWND hWnd, int nId, HWND hCtrl, UINT uNotifyCode)
 		case IDMI_EDIT_SELECTALL:
 			break;
 		case IDMI_INSERT_FORM:
+			DsAddForm();
 			break;
 		}
 	return 0;
@@ -170,8 +203,8 @@ LRESULT CWndMain::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		const auto cx = LOWORD(lParam);
 		const auto cy = HIWORD(lParam);
-		m_Lyt.Arrange(m_Ds.OutPad, m_Ds.OutPad,
-			cx - m_Ds.OutPad * 2, cy - m_Ds.OutPad * 2);
+		m_Lyt.Arrange(m_Ds.ExtPad, m_Ds.ExtPad,
+			cx - m_Ds.ExtPad * 2, cy - m_Ds.ExtPad * 2);
 	}
 	return 0;
 	case WM_CREATE:
@@ -223,4 +256,15 @@ LRESULT CWndMain::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 
 	return __super::OnMsg(hWnd, uMsg, wParam, lParam);
+}
+
+void CWndMain::DsShowForm()
+{
+}
+
+void CWndMain::DsAddForm()
+{
+	const auto pForm = m_Project.ResAddForm(L"新窗体");
+	m_vTabs.emplace_back(pForm, new CWndWork{ pForm });
+	m_Tab.InsertItem(pForm->rsName.Data());
 }

@@ -117,6 +117,7 @@ private:
 
 		const auto sizeImg = GetImageSize(es);
 		const auto Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
+		const auto Padding2 = GetTheme()->GetMetrics(Metrics::Padding);
 		auto& e = nm.idxGroup < 0 ? m_vItem[nm.idx] : m_Group[nm.idxGroup].Item[nm.idx];
 		auto& pTl = (nm.idxSub ? e.vSubItem[nm.idxSub - 1].pLayout : e.pLayout);
 		if (!pTl.Get() && es.Item.pszText && es.Item.cchText > 0)
@@ -137,7 +138,7 @@ private:
 			rc.right = rc.left + sizeImg.width;
 			rc.top += yImage;
 			rc.bottom = rc.top + sizeImg.height;
-			xText = rc.right + Padding;
+			xText = rc.right + Padding2 * 2;
 			if (!(rc.right <= rcPaint.left || rc.left >= rcPaint.right))
 				if (es.Item.pImg)
 					m_pDC->DrawBitmap(es.Item.pImg, rc);

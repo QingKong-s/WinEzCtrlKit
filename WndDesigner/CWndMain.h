@@ -1,7 +1,11 @@
 ﻿#pragma once
+#include "CProject.h"
+#include "CWndWork.h"
+
+
 class CWndMain :public eck::CForm
 {
-	friend class CWorkWnd;
+	friend class CWndWork;
 public:
 	enum
 	{
@@ -24,7 +28,8 @@ public:
 private:
 	struct ITEMTAB
 	{
-
+		DsForm* pForm{};		// 窗体，不持有所有权
+		CWndWork* pWorkWnd{};	// 工作窗口，销毁标签页时解分配
 	};
 
 	enum
@@ -42,7 +47,10 @@ private:
 
 	eck::CTab m_Tab{};
 
+	eck::CTreeView m_TVProject{};
 	eck::CListBoxNew m_LBCtrl{};
+	eck::CLinearLayoutV m_LytProjAndCtrl{};
+
 	eck::CLinearLayoutH m_Lyt{};
 
 	eck::CMenu m_MenuBarMain{};
@@ -53,6 +61,9 @@ private:
 	ComPtr<IImageList2> m_pilMain{};
 	int m_cxIlMain{}, m_cyIlMain{};
 
+	HTREEITEM m_htiRoot{};
+	HTREEITEM m_htiForms{};
+
 	std::vector<ITEMTAB> m_vTabs{};
 	int m_idxCurrTab = -1;
 
@@ -61,17 +72,15 @@ private:
 
 	BOOL m_bPlacingCtrl = FALSE;
 
+	CProject m_Project{};
+
 	int m_iDpi = USER_DEFAULT_SCREEN_DPI;
 	ECK_DS_BEGIN(DPIS)
 		ECK_DS_ENTRY(IntPad, 4)
-		ECK_DS_ENTRY(OutPad, 6)
-		ECK_DS_ENTRY(cyComboBox, 24)
-		ECK_DS_ENTRY(cyDescEdit, 50)
+		ECK_DS_ENTRY(ExtPad, 6)
 		ECK_DS_ENTRY(sizeBlock, 8)
-		ECK_DS_ENTRY(cxDefProp, 210)
-		ECK_DS_ENTRY(cxDefCtrlBox, 180)
 		;
-	ECK_DS_END_VAR(m_Ds);
+	ECK_DS_END_VAR(m_Ds)
 private:
 	void UpdateDpi()
 	{
@@ -85,6 +94,10 @@ private:
 	LRESULT OnCustomDrawCtrlListBox(const eck::NMCUSTOMDRAWEXT* p);
 
 	LRESULT OnCommand(HWND hWnd, int nId, HWND hCtrl, UINT uNotifyCode);
+
+	void DsShowForm();
+
+	void DsAddForm();
 public:
 	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 };

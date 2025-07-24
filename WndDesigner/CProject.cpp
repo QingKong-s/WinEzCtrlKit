@@ -39,14 +39,9 @@ W32ERR CProject::CloseProject()
 	return W32ERR();
 }
 
-W32ERR CProject::AddResForm(std::wstring_view svName, std::wstring_view svIni)
+DsForm* CProject::ResAddForm(std::wstring_view svName)
 {
-	auto SecRoot = m_Ini.GetSection(L"EckWin32Res"sv);
-	if (!SecRoot)
-		SecRoot = m_Ini.CreateSection(L"EckWin32Res"sv, eck::INIE_EF_IS_CONTAINER);
-	auto SecResForm = m_Ini.GetSection(SecRoot, L"ResForm"sv);
-	if (!SecResForm)// 空文档
-		SecResForm = m_Ini.CreateSection(SecResForm,
-			L"ResForm"sv, eck::INIE_EF_IS_CONTAINER);
-	return W32ERR();
+	auto& Form = m_vForm.emplace_back(std::make_unique<DsForm>());
+	Form->rsName = svName;
+	return 0;
 }
