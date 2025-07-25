@@ -259,7 +259,7 @@ public:
 			m_DwmPartMgr.GetData(&pData, &cbData);
 			const auto pStream = new CStreamView(pData, cbData);
 			IWICBitmapDecoder* pDecoder;
-			IWICBitmap* pBitmap;
+			IWICBitmap* pBitmap{};
 			CreateWicBitmapDecoder(pStream, pDecoder);
 			CreateWicBitmap(pBitmap, pDecoder);
 			m_pDC->CreateBitmapFromWicBitmap(pBitmap, &m_pBmpDwmWndAtlas);
