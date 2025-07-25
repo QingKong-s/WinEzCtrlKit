@@ -170,7 +170,6 @@ public:
 		{
 		case WM_CREATE:
 			__super::OnEvent(uMsg, wParam, lParam);
-			m_pDC->CreateSolidColorBrush({}, &m_pBrush);
 			m_pec1 = new CEasingCurve{};
 			m_pec1->SetAnProc(Easing::OutExpo);
 			m_pec1->SetCallBack([](float fCurrValue, float fOldValue, LPARAM lParam)

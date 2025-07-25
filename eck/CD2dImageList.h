@@ -122,6 +122,12 @@ public:
 		m_cCapacityPerPack{ cCapacityPerPack } {
 	}
 
+	~CD2DImageList()
+	{
+		CSrwWriteGuard _{ m_Lk };
+		DestroyNoLock();
+	}
+
 	HRESULT BindRenderTarget(_In_ ID2D1RenderTarget* pRT)
 	{
 		CSrwWriteGuard _{ m_Lk };

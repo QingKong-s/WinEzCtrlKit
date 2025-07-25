@@ -1088,7 +1088,6 @@ public:
 
 		case WM_DESTROY:
 		{
-			ECK_DUILOCK;
 			m_idxTop = 0;
 			m_idxHot = -1;
 			m_idxSel = -1;
@@ -1100,11 +1099,13 @@ public:
 
 			SafeRelease(m_pBrush);
 			m_vItem.clear();
-			m_pImgList = nullptr;
 			m_bSingleSel = FALSE;
 
 			SafeRelease(m_psvV);
 			SafeRelease(m_psvH);
+			SafeRelease(m_pImgList);
+			SafeRelease(m_pImgListGroup);
+			SafeRelease(m_pTfGroup);
 		}
 		return 0;
 		}
