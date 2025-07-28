@@ -166,7 +166,7 @@ ECK_NAMESPACE_END
 // 强制内联，不丢弃返回值
 #define EckInlineNd				__forceinline [[nodiscard]]
 // 强制内联，不丢弃返回值，且constexpr
-#define EckInlineNdCe			__forceinline [[nodiscard]] constexpr
+#define EckInlineNdCe			[[nodiscard]] __forceinline constexpr
 // 强制内联，且constexpr
 #define EckInlineCe				__forceinline constexpr
 
