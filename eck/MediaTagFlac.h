@@ -158,37 +158,37 @@ public:
 	{
 		for (const auto& e : m_vItem)
 		{
-			if ((mi.uFlag & MIM_TITLE) && e.rsKey.CompareI(EckStrAndLen("TITLE")) == 0)
+			if ((mi.uMask & MIM_TITLE) && e.rsKey.CompareI(EckStrAndLen("TITLE")) == 0)
 			{
 				mi.rsTitle = e.rsValue;
 				mi.uMaskRead |= MIM_TITLE;
 			}
-			else if ((mi.uFlag & MIM_ARTIST) && e.rsKey.CompareI(EckStrAndLen("ARTIST")) == 0)
+			else if ((mi.uMask & MIM_ARTIST) && e.rsKey.CompareI(EckStrAndLen("ARTIST")) == 0)
 			{
 				mi.AppendArtist(e.rsValue);
 				mi.uMaskRead |= MIM_ARTIST;
 			}
-			else if ((mi.uFlag & MIM_ALBUM) && e.rsKey.CompareI(EckStrAndLen("ALBUM")) == 0)
+			else if ((mi.uMask & MIM_ALBUM) && e.rsKey.CompareI(EckStrAndLen("ALBUM")) == 0)
 			{
 				mi.rsAlbum = e.rsValue;
 				mi.uMaskRead |= MIM_ALBUM;
 			}
-			else if ((mi.uFlag & MIM_LRC) && e.rsKey.CompareI(EckStrAndLen("LYRICS")) == 0)
+			else if ((mi.uMask & MIM_LRC) && e.rsKey.CompareI(EckStrAndLen("LYRICS")) == 0)
 			{
 				mi.rsLrc = e.rsValue;
 				mi.uMaskRead |= MIM_LRC;
 			}
-			else if ((mi.uFlag & MIM_COMMENT) && e.rsKey.CompareI(EckStrAndLen("DESCRIPTION")) == 0)
+			else if ((mi.uMask & MIM_COMMENT) && e.rsKey.CompareI(EckStrAndLen("DESCRIPTION")) == 0)
 			{
 				mi.AppendComment(e.rsValue);
 				mi.uMaskRead |= MIM_COMMENT;
 			}
-			else if ((mi.uFlag & MIM_GENRE) && e.rsKey.CompareI(EckStrAndLen("GENRE")) == 0)
+			else if ((mi.uMask & MIM_GENRE) && e.rsKey.CompareI(EckStrAndLen("GENRE")) == 0)
 			{
 				mi.rsGenre = e.rsValue;
 				mi.uMaskRead |= MIM_GENRE;
 			}
-			else if ((mi.uFlag & MIM_DATE) && e.rsKey.CompareI(EckStrAndLen("DATE")) == 0)
+			else if ((mi.uMask & MIM_DATE) && e.rsKey.CompareI(EckStrAndLen("DATE")) == 0)
 			{
 				WORD y, m{}, d{};
 				if (swscanf(e.rsValue.Data(), L"%hd-%hd-%hd", &y, &m, &d) >= 1)
@@ -197,7 +197,7 @@ public:
 					mi.uMaskRead |= MIM_DATE;
 				}
 			}
-			else if (mi.uFlag & MIM_TRACK)
+			else if (mi.uMask & MIM_TRACK)
 			{
 				if (e.rsKey.CompareI("TRACKNUMBER") || e.rsKey.CompareI("TRACK"))
 				{
@@ -212,7 +212,7 @@ public:
 				else if (e.rsKey.CompareI("TRACKTOTAL"))
 					mi.cTotalTrack = (short)_wtoi(e.rsValue.Data());
 			}
-			else if (mi.uFlag & MIM_DISC)
+			else if (mi.uMask & MIM_DISC)
 			{
 				if (e.rsKey.CompareI("DISCNUMBER"))
 				{
@@ -228,7 +228,7 @@ public:
 					mi.cTotalDisc = (short)_wtoi(e.rsValue.Data());
 			}
 		}
-		if ((mi.uFlag & MIM_COVER) && !m_vPic.empty())
+		if ((mi.uMask & MIM_COVER) && !m_vPic.empty())
 		{
 			for (const auto& e : m_vPic)
 			{

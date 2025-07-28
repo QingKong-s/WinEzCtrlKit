@@ -84,7 +84,7 @@ struct LRCLABEL
 };
 
 ECK_PRIV_NAMESPACE_BEGIN
-void ParseLrc_ProcTimeLabel(std::vector<LRCINFO>& Result, std::vector<LRCLABEL>& Label,
+inline void ParseLrc_ProcTimeLabel(std::vector<LRCINFO>& Result, std::vector<LRCLABEL>& Label,
 	const std::vector<LRCTIMELABEL>& TimeLabel, PWSTR pszLrc, int cchLrc)
 {
 #pragma warning (push)
@@ -130,7 +130,7 @@ void ParseLrc_ProcTimeLabel(std::vector<LRCINFO>& Result, std::vector<LRCLABEL>&
 #pragma warning (pop)
 }
 
-BOOL ParseLrc_IsTimeLabelLegal(PCWSTR pszLabel, int cchLabel,
+inline BOOL ParseLrc_IsTimeLabelLegal(PCWSTR pszLabel, int cchLabel,
 	_Out_ int& posFirstDiv, _Out_ int& posSecondDiv, _Out_ BOOL& bMS)
 {
 	posFirstDiv = -1;
@@ -197,7 +197,7 @@ ECK_PRIV_NAMESPACE_END
 /// <param name="eTextEncoding">默认文本编码</param>
 /// <param name="fTotalTime">歌曲总时间，用于计算歌词时间</param>
 /// <returns>HRESULT</returns>
-HRESULT ParseLrc(_In_reads_bytes_(cbMem) PCVOID p, SIZE_T cbMem,
+inline HRESULT ParseLrc(_In_reads_bytes_(cbMem) PCVOID p, SIZE_T cbMem,
 	_Inout_ std::vector<LRCINFO>& Result, _Inout_ std::vector<LRCLABEL>& Label,
 	LrcEncoding eTextEncoding, float fTotalTime)
 {
@@ -219,7 +219,7 @@ HRESULT ParseLrc(_In_reads_bytes_(cbMem) PCVOID p, SIZE_T cbMem,
 	}
 	else
 	{
-		CFile File((PCWSTR)p);
+		CFile File((PCWSTR)p, OPEN_EXISTING, GENERIC_READ, FILE_SHARE_READ);
 		if (File.GetHandle() == INVALID_HANDLE_VALUE)
 			return HRESULT_FROM_WIN32(GetLastError());// TODO:换用NT API
 		cbMem = File.GetSize32();

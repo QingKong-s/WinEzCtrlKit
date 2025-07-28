@@ -546,7 +546,9 @@ public:
 
 	EckInline void InvalidateRect(const D2D1_RECT_F& rc, BOOL bUpdateNow = TRUE)
 	{
-		InvalidateRect(MakeRect(rc), bUpdateNow);
+		RECT rc1;
+		CeilRect(rc, rc1);
+		InvalidateRect(rc1, bUpdateNow);
 	}
 
 	/// <summary>

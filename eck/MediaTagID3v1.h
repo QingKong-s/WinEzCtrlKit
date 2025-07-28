@@ -484,6 +484,12 @@ public:
 			m_Stream.Write(byDummy, 30 - cb);
 
 		m_Stream << m_Info.byGenre;
+		return Result::Ok;
+	}
+
+	void Reset() override
+	{
+		m_Info = {};
 	}
 
 	INFO& GetInfo() { return m_Info; }
