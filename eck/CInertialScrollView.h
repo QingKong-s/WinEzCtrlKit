@@ -52,30 +52,19 @@ public:
 				InterruptAnimation();
 		}
 	}
-
-	EckInline BOOL IsValid() override
-	{
-		return m_bValid;
-	}
-
-	EckInline int GetCurrTickInterval() override
-	{
-		return m_iCurrInterval;
-	}
+	EckInline BOOL IsValid() override { return m_bValid; }
+	EckInline int GetCurrTickInterval() override { return m_iCurrInterval; }
 	// 
-	EckInline void OnMouseWheel2(int iWheelDelta)
-	{
-		SmoothScrollDelta(m_iDelta * iWheelDelta);
-	}
+	EckInline void OnMouseWheel2(int iWheelDelta) { SmoothScrollDelta(m_iDelta * iWheelDelta); }
 
-	EckInline void InterruptAnimation()
+	EckInlineCe void InterruptAnimation()
 	{
 		m_bValid = FALSE;
 		m_iSustain = 0;
 		m_iDistance = 0;
 	}
 
-	void SmoothScrollDelta(int iDelta)
+	constexpr void SmoothScrollDelta(int iDelta)
 	{
 		m_iStart = GetPos();
 		// 计算新的滚动距离；将原先的滚动距离减去已经滑动完的位移再加上滚动事件产生的位移
@@ -89,17 +78,19 @@ public:
 		m_bValid = TRUE;
 	}
 
-	EckInline void SetCallBack(FInertialScrollProc pfnInertialScroll, LPARAM lParam)
+	EckInlineCe void SetCallBack(FInertialScrollProc pfnInertialScroll, LPARAM lParam)
 	{
 		m_pfnCallBack = pfnInertialScroll;
 		m_lParam = lParam;
 	}
 
-	EckInline void SetDuration(int iDuration) { m_iDuration = iDuration; }
-
-	EckInline int GetDuration() const { return m_iDuration; }
+	EckInlineCe void SetDuration(int iDuration) { m_iDuration = iDuration; }
+	EckInlineNdCe int GetDuration() const { return m_iDuration; }
 
 	EckInline void SetDelta(int iDelta) { m_iDelta = iDelta; }
+	EckInlineNdCe int GetDelta() const { return m_iDelta; }
+
+	EckInlineNdCe int GetCurrTime() const { return m_iSustain; }
 
 	EckInlineNdCe BOOL IsStop() const { return m_bStop; }
 };
