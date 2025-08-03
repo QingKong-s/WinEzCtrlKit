@@ -580,12 +580,6 @@ EckInline float Spring(float fCurrTime, float fStart, float fDistance, float fDu
 }
 ECK_EASING_NAMESPACE_END
 
-enum
-{
-	ECBF_DEF = 0,
-	ECBF_CONTINUE = 1u << 1,
-};
-
 class CEasingCurve : public CUnknown<CEasingCurve, ITimeLine>
 {
 public:
@@ -606,6 +600,7 @@ private:
 
 	BOOLEAN m_bActive{};
 	BOOLEAN m_bReverse{};
+	BOOLEAN m_bEnd{};
 
 	EckInline BOOL IntTick(float fMs)
 	{
@@ -630,119 +625,103 @@ private:
 public:
 	ECK_DISABLE_COPY_MOVE_DEF_CONS(CEasingCurve)
 public:
-	virtual ~CEasingCurve()
-	{
-		End();
-	}
+	virtual ~CEasingCurve() = default;
 
 	void Tick(int iMs) override
 	{
 		m_iCurrInterval = iMs;
 		EckAssert(m_pfnCallBack);
 		const float fOldValue = m_fCurrValue;
-		const auto bEnd = IntTick((float)(m_bReverse ? -iMs : iMs));
+		m_bEnd = IntTick(float(m_bReverse ? -iMs : iMs));
 		m_pfnCallBack(m_fCurrValue, fOldValue, m_lParam);
-
-		if (bEnd)
+		if (m_bEnd)
 			End();
 	}
 
 	EckInline BOOL IsValid() override { return m_bActive; }
 	EckInline int GetCurrTickInterval() override { return m_iCurrInterval; }
 	// 
-	EckInline void SetParam(LPARAM lParam) { m_lParam = lParam; }
-
-	EckInline LPARAM GetParam() const { return m_lParam; }
-
+	EckInlineCe void SetAnProc(Easing::FAn pfnAn) { m_pfnAn = pfnAn; }
+	EckInlineCe void SetParam(LPARAM lParam) { m_lParam = lParam; }
+	EckInlineNdCe LPARAM GetParam() const { return m_lParam; }
 	EckInline void SetCallBack(FCallBack pfnCallBack) { m_pfnCallBack = pfnCallBack; }
 
-	EckInline void SetDuration(float fDuration) { m_fDuration = fDuration; }
+	EckInlineCe void SetDuration(float fDuration) { m_fDuration = fDuration; }
+	EckInlineNdCe float GetDuration() const { return m_fDuration; }
 
-	EckInline void SetRange(float fStart, float fDistance)
+	EckInlineCe void SetDistance(float fDistance) { m_fDistance = fDistance; }
+	EckInlineNdCe float GetDistance() const { return m_fDistance; }
+
+	EckInline void SetCurrTime(float fCurrTime) { m_fCurrTime = fCurrTime; }
+	EckInlineNdCe float GetCurrTime() const { return m_fCurrTime; }
+
+	EckInline void SetReverse(BOOL bReverse) { m_bReverse = bReverse; }
+	EckInlineNdCe BOOL GetReverse() const { return m_bReverse; }
+
+	EckInlineCe void Begin(float fStart, float fEnd, BOOL bCheckActive = TRUE)
 	{
-		m_fStart = fStart;
-		m_fDistance = fDistance;
-	}
-
-	EckInline void SetCurrTime(float fCurrTime)
-	{ 
-		m_fCurrTime = fCurrTime;
-	}
-
-	EckInline void SetReverse(BOOL bReverse)
-	{
-		m_bReverse = bReverse;
-		if (!IsActive())
-			if (bReverse)
-				m_fCurrValue = m_fStart + m_fDistance;
-			else
-				m_fCurrValue = m_fStart;
-	}
-
-	/// <summary>
-	/// 
-	/// </summary>
-	/// <param name="uFlags">ECBF_</param>
-	void Begin(UINT uFlags = 0u)
-	{
+		m_fStart = (bCheckActive && m_bActive) ? m_fCurrValue : fStart;
+		m_fDistance = fEnd - m_fStart;
+		m_fCurrTime = 0.f;
 		m_bActive = TRUE;
-		if (!(uFlags & ECBF_CONTINUE))
-		{
-			SetCurrTime(0.f);
-			m_fCurrValue = m_fStart;
-		}
 	}
 
-	EckInline void End()
+	EckInlineCe void End()
 	{
-		m_bActive = FALSE;
 		m_fCurrValue = m_fStart + m_fDistance;
+		m_bActive = FALSE;
 	}
 
-	EckInline BOOL IsActive() const { return m_bActive; }
-
-	EckInline float GetCurrValue() const { return m_fCurrValue; }
-
-	EckInline float GetCurrTime() const { return m_fCurrTime; }
-
-	EckInline float GetDuration() const { return m_fDuration; }
-
-	EckInline float GetStart() const { return m_fStart; }
-
-	EckInline float GetDistance() const { return m_fDistance; }
-
-	EckInline BOOL GetReverse() const { return m_bReverse; }
-
-	EckInline void SetAnProc(Easing::FAn pfnAn) { m_pfnAn = pfnAn; }
+	EckInlineNdCe float GetStart() const { return m_fStart; }
+	EckInlineNdCe float GetCurrValue() const { return m_fCurrValue; }
+	EckInlineNdCe BOOL IsActive() const { return m_bActive; }
+	EckInlineNdCe BOOL IsStop() const { return m_bEnd; }
 };
 
+// 表示单条动画曲线
+// 调用方通常使用CEasingCurveLite表示曲线当前参数，一个BOOLEAN指示曲线是否正在运行
+// 和开始、结束、动画时间等常量描述一个完整的动画曲线
+// 本类不存储任何可能为常量的信息，也不存储状态的BOOLEAN变量，有助于节约内存
 template<class FAn>
-struct CEasingAn
+struct CEasingCurveLite
 {
-	float m_fCurrTime = 0.f;
-	float m_fDuration = 0.f;
-	float m_fStart = 0.f;
-	float m_fDistance = 0.f;
+	float Time{};
+	float Begin{};
+	float Dist{};
+	float K{};
 
-	EckInline void Begin(float fStart, float fDistance, float fDuration)
+	/// <summary>
+	/// 启动曲线
+	/// </summary>
+	/// <param name="fBegin">开始位置，若当前曲线正在运行，则以当前位置作为起始位置并忽略此参数</param>
+	/// <param name="fEnd">结束位置</param>
+	/// <param name="bActive">当前曲线是否正在运行</param>
+	EckInlineCe void Start(float fBegin, float fEnd, BOOLEAN bActive = FALSE)
 	{
-		m_fStart = fStart;
-		m_fDistance = fDistance;
-		m_fDuration = fDuration;
-		m_fCurrTime = 0.f;
+		Begin = bActive ? K : fBegin;
+		Dist = fEnd - Begin;
+		Time = 0.f;
 	}
 
-	EckInline float Tick(float fElapse)
+	// 返回曲线是否正在运行（TRUE = 正在运行，FALSE = 已结束）
+	EckInline BOOLEAN Tick(float fElapse, float fDuration)
 	{
-		m_fCurrTime += fElapse;
-		if (IsEnd())
-			m_fCurrTime = m_fDuration;
-		return FAn{}(m_fCurrTime, m_fStart, m_fDistance, m_fDuration);
-	}
-
-	EckInline BOOL IsEnd()
-	{
-		return m_fCurrTime >= m_fDuration;
+		BOOLEAN bActive;
+		Time += fElapse;
+		if (Time >= fDuration)
+		{
+			Time = fDuration;
+			bActive = FALSE;
+		}
+		else if (Time < 0.f)
+		{
+			Time = 0.f;
+			bActive = FALSE;
+		}
+		else
+			bActive = TRUE;
+		K = FAn{}(Time, Begin, Dist, fDuration);
+		return bActive;
 	}
 };
 ECK_NAMESPACE_END
