@@ -56,8 +56,7 @@ public:
 			if (!m_bHot)
 			{
 				m_bHot = TRUE;
-				m_pec->SetReverse(FALSE);
-				m_pec->Begin(ECBF_CONTINUE);
+				m_pec->Begin(0.f, 1.f);
 				GetWnd()->WakeRenderThread();
 			}
 			if (m_bDragThumb)
@@ -76,8 +75,7 @@ public:
 			if (m_bHot && !m_bDragThumb)
 			{
 				m_bHot = FALSE;
-				m_pec->SetReverse(TRUE);
-				m_pec->Begin(ECBF_CONTINUE);
+				m_pec->Begin(1.f, 0.f);
 				GetWnd()->WakeRenderThread();
 			}
 		}
@@ -215,7 +213,6 @@ public:
 				});
 			m_pec->SetAnProc(Easing::OutSine);
 			m_pec->SetDuration(160);
-			m_pec->SetRange(0.f, 1.f);
 
 			m_psv = new CInertialScrollView{};
 			GetWnd()->RegisterTimeLine(m_psv);

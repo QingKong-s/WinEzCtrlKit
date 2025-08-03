@@ -1235,6 +1235,7 @@ private:
 					CacheClear();
 					GetDeviceContext()->SetDpi((float)m_iUserDpi, (float)m_iUserDpi);
 					m_bUserDpiChanged = FALSE;
+					BroadcastEvent(WM_DPICHANGED, m_iUserDpi, 0);
 					if (!m_bSizeChanged)
 						goto SkipReSize;
 				}
@@ -2130,7 +2131,6 @@ public:
 		if (IsValid())
 		{
 			m_bUserDpiChanged = TRUE;
-			BroadcastEvent(WM_DPICHANGED, iDpi, 0);
 			WakeRenderThread();
 		}
 	}

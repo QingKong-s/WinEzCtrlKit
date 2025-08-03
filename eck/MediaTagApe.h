@@ -76,6 +76,7 @@ public:
 			}
 			m_vItem.emplace_back(std::move(e));
 		}
+		return Result::Ok;
 	}
 
 	Result WriteTag(UINT uFlags = MIF_APPEND_TAG) override

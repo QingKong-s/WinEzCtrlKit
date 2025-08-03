@@ -11,11 +11,11 @@ class CInertialScrollView :
 public:
 	using FInertialScrollProc = void(*)(int iPos, int iPrevPos, LPARAM lParam);
 protected:
-	int m_iStart = 0;		// 起始位置
-	int m_iDistance = 0;	// 当前动画应滚动的总距离
-	int m_iSustain = 0;		// 持续时间，毫秒
-	int m_iDuration = 400;	// 动画总时间
-	int m_iDelta = 80;		// 每次滚动的距离
+	float m_iStart = 0;		// 起始位置
+	float m_iDistance = 0;	// 当前动画应滚动的总距离
+	float m_iSustain = 0;	// 持续时间，毫秒
+	float m_iDuration = 400;// 动画总时间
+	int m_iDelta = 80;	// 每次滚动的距离
 
 	int m_iCurrInterval = 0;
 
@@ -60,20 +60,20 @@ public:
 	EckInlineCe void InterruptAnimation()
 	{
 		m_bValid = FALSE;
-		m_iSustain = 0;
-		m_iDistance = 0;
+		m_iSustain = 0.f;
+		m_iDistance = 0.f;
 	}
 
 	constexpr void SmoothScrollDelta(int iDelta)
 	{
-		m_iStart = GetPos();
+		m_iStart = (float)GetPos();
 		// 计算新的滚动距离；将原先的滚动距离减去已经滑动完的位移再加上滚动事件产生的位移
 		m_iDistance = ((m_iDuration - m_iSustain) * m_iDistance / m_iDuration) + iDelta;
 		if (m_iDistance + m_iStart > GetMaxWithPage())
 			m_iDistance = GetMaxWithPage() - m_iStart;
 		if (m_iDistance + m_iStart < GetMin())
 			m_iDistance = GetMin() - m_iStart;
-		m_iSustain = 0;
+		m_iSustain = 0.f;
 
 		m_bValid = TRUE;
 	}
@@ -84,13 +84,13 @@ public:
 		m_lParam = lParam;
 	}
 
-	EckInlineCe void SetDuration(int iDuration) { m_iDuration = iDuration; }
-	EckInlineNdCe int GetDuration() const { return m_iDuration; }
+	EckInlineCe void SetDuration(float iDuration) { m_iDuration = iDuration; }
+	EckInlineNdCe float GetDuration() const { return m_iDuration; }
 
 	EckInline void SetDelta(int iDelta) { m_iDelta = iDelta; }
 	EckInlineNdCe int GetDelta() const { return m_iDelta; }
 
-	EckInlineNdCe int GetCurrTime() const { return m_iSustain; }
+	EckInlineNdCe float GetCurrTime() const { return m_iSustain; }
 
 	EckInlineNdCe BOOL IsStop() const { return m_bStop; }
 };
