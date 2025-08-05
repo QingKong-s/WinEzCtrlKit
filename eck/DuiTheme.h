@@ -40,6 +40,9 @@ enum class Part : int
 	ScrollButton,
 	ScrollThumb,
 
+	LabelText,
+	LabelBk,
+
 	MaxStdControl,
 
 	UserBegin = 0x1000,
@@ -303,6 +306,8 @@ struct __declspec(uuid("85623275-F66F-4D96-8EFE-6F97E2519AC8"))
 		ClrPart eClrPart, _Out_ D2D1_COLOR_F& cr) = 0;
 	virtual HRESULT GetSysColor(SysColor eSysColor, _Out_ D2D1_COLOR_F& cr) = 0;
 	virtual float GetMetrics(Metrics eMetrics) = 0;
+	virtual HRESULT GetBrush(Part ePart, State eState, const DTB_OPT* pOpt,
+		_Out_ ID2D1Brush*& pBrush) = 0;
 };
 
 class CThemePalette : public CRefObj<CThemePalette>
@@ -979,6 +984,12 @@ public:
 	float GetMetrics(Metrics eMetrics) override
 	{
 		return m_pTheme->GetMetrics(eMetrics);
+	}
+
+	HRESULT GetBrush(Part ePart, State eState, const DTB_OPT* pOpt,
+		_Out_ ID2D1Brush*& pBrush) override
+	{
+		return E_NOTIMPL;
 	}
 
 	EckInlineNdCe auto GetTheme() const { return m_pTheme; }
