@@ -7,21 +7,20 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
+enum : int
+{
+	CxLabelFade = 16,
+};
 class CLabel : public CElem
 {
 private:
 	IDWriteTextLayout* m_pLayout{};
 	ID2D1SolidColorBrush* m_pBrush{};
-
-	D2D1_COLOR_F m_crText{};
-	D2D1_COLOR_F m_crBk{};
-
 	ID2D1Bitmap* m_pBmp{};
 
-	BITBOOL m_bUseThemeColor : 1{ TRUE };
 	BITBOOL m_bTransparent : 1{ TRUE };
-	BITBOOL m_bOnlyBitmap : 1{ FALSE };
-	BITBOOL m_bFullElem : 1{ FALSE };
+	BITBOOL m_bOnlyBitmap : 1{};
+	BITBOOL m_bFullElem : 1{};
 	BkImgMode m_eBkImgMode{ BkImgMode::TopLeft };
 	BYTE m_eInterMode{ D2D1_INTERPOLATION_MODE_LINEAR };
 
@@ -76,15 +75,16 @@ public:
 
 				if (m_pLayout)
 				{
-					if (m_bUseThemeColor)
+					ComPtr<ID2D1Brush> pBr;
+					if (FAILED(GetTheme()->GetBrush(Part::LabelText,
+						State::Normal, nullptr, pBr.RefOf())))
 					{
 						D2D1_COLOR_F cr;
 						GetTheme()->GetSysColor(SysColor::Text, cr);
 						m_pBrush->SetColor(cr);
+						pBr = m_pBrush;
 					}
-					else
-						m_pBrush->SetColor(m_crText);
-					m_pDC->DrawTextLayout({ x }, m_pLayout, m_pBrush,
+					m_pDC->DrawTextLayout({ x }, m_pLayout, pBr.Get(),
 						DrawTextLayoutFlags);
 				}
 			}
@@ -110,17 +110,8 @@ public:
 		{
 			const auto* const pps = (ELEMPAINTSTRU*)lParam;
 			if (!m_bTransparent)
-			{
-				if (m_bUseThemeColor)
-				{
-					D2D1_COLOR_F cr;
-					GetTheme()->GetSysColor(SysColor::Bk, cr);
-					m_pBrush->SetColor(cr);
-				}
-				else
-					m_pBrush->SetColor(m_crBk);
-				m_pDC->FillRectangle(pps->rcfClip, m_pBrush);
-			}
+				GetTheme()->DrawBackground(Part::LabelBk, State::Normal,
+					pps->rcfClipInElem, nullptr);
 		}
 		return 0;
 
@@ -151,9 +142,6 @@ public:
 
 	EckInlineCe auto GetBitmap() const { return m_pBmp; }
 
-	EckInlineCe void SetUseThemeColor(BOOL b) { m_bUseThemeColor = b; }
-	EckInlineCe BOOL GetUseThemeColor() const { return m_bUseThemeColor; }
-
 	EckInlineCe void SetTransparent(BOOL b) { m_bTransparent = b; }
 	EckInlineCe BOOL GetTransparent() const { return m_bTransparent; }
 
@@ -168,12 +156,6 @@ public:
 
 	EckInlineCe void SetInterMode(D2D1_INTERPOLATION_MODE e) { m_eInterMode = e; }
 	EckInlineCe D2D1_INTERPOLATION_MODE GetInterMode() const { return (D2D1_INTERPOLATION_MODE)m_eInterMode; }
-
-	EckInlineCe void SetTextColor(D2D1_COLOR_F cr) { m_crText = cr; }
-	EckInlineCe D2D1_COLOR_F GetTextColor() const { return m_crText; }
-
-	EckInlineCe void SetBkColor(D2D1_COLOR_F cr) { m_crBk = cr; }
-	EckInlineCe D2D1_COLOR_F GetBkColor() const { return m_crBk; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
