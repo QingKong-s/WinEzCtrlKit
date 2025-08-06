@@ -328,7 +328,7 @@ public:
 			memcpy(pfhdr->ID, Id, 4);
 			memcpy(pfhdr->Flags, &uFlags, 2);
 			if (phdr->Ver == 4)
-				DwordToSynchSafeInt(pfhdr->Size, (DWORD)cbFrame);
+				ThDwordToSyncSafeInt(pfhdr->Size, (DWORD)cbFrame);
 			else
 				*(DWORD*)pfhdr->Size = ReverseInteger((DWORD)cbFrame);
 			return w;
@@ -1543,7 +1543,7 @@ private:
 				cbExtra += 1;// 跳过加密类型标识符
 			if (FrameHdr.Flags[1] & ID3V24FF_HAS_DATA_LENGTH_INDICATOR)
 				cbExtra += 4;// 跳过数据长度指示器
-			cbUnit = SynchSafeIntToDWORD(FrameHdr.Size);// v2.4：28位数据（同步安全整数）
+			cbUnit = ThSyncSafeIntToDWORD(FrameHdr.Size);// v2.4：28位数据（同步安全整数）
 		}
 		cbUnit -= cbExtra;
 		m_Stream += cbExtra;
@@ -2299,7 +2299,7 @@ private:
 			m_cbPrependTag = m_cbTag = 0u;
 		}
 		m_Stream >> m_Header;
-		m_cbPrependTag = m_cbTag = SynchSafeIntToDWORD(m_Header.Size);
+		m_cbPrependTag = m_cbTag = ThSyncSafeIntToDWORD(m_Header.Size);
 		m_ExtHdrInfo = {};
 		if (m_Header.Ver == 3)// 2.3
 		{
@@ -2374,7 +2374,7 @@ public:
 			delete e;
 	}
 
-	Result SimpleExtract(_Inout_ MUSICINFO& mi) override
+	Result SimpleGetSet(MUSICINFO& mi, const SIMPLE_OPT& Opt) override
 	{
 		mi.Clear();
 		if (m_vFrame.empty())
@@ -2387,7 +2387,7 @@ public:
 				if (!p->vText.empty())
 				{
 					mi.rsTitle = p->vText[0];
-					mi.uMaskRead |= MIM_TITLE;
+					mi.uMaskChecked |= MIM_TITLE;
 				}
 			}
 			else if ((mi.uMask & MIM_ARTIST) && memcmp(e->Id, "TPE1", 4) == 0)
@@ -2395,8 +2395,8 @@ public:
 				const auto p = DynCast<TEXTFRAME*>(e);
 				for (const auto& e : p->vText)
 				{
-					mi.AppendArtist(e);
-					mi.uMaskRead |= MIM_ARTIST;
+					mi.slArtist.PushBackString(e, Opt.svArtistDiv);
+					mi.uMaskChecked |= MIM_ARTIST;
 				}
 			}
 			else if ((mi.uMask & MIM_ALBUM) && memcmp(e->Id, "TALB", 4) == 0)
@@ -2405,25 +2405,25 @@ public:
 				if (!p->vText.empty())
 				{
 					mi.rsAlbum = p->vText[0];
-					mi.uMaskRead |= MIM_ALBUM;
+					mi.uMaskChecked |= MIM_ALBUM;
 				}
 			}
 			else if ((mi.uMask & MIM_LRC) && memcmp(e->Id, "USLT", 4) == 0)
 			{
 				const auto p = DynCast<USLT*>(e);
 				mi.rsLrc = p->rsLrc;
-				mi.uMaskRead |= MIM_LRC;
+				mi.uMaskChecked |= MIM_LRC;
 			}
 			else if ((mi.uMask & MIM_COMMENT) && memcmp(e->Id, "COMM", 4) == 0)
 			{
 				const auto p = DynCast<COMM*>(e);
-				mi.AppendComment(p->rsText);
-				mi.uMaskRead |= MIM_COMMENT;
+				mi.slComment.PushBackString(p->rsText, Opt.svCommDiv);
+				mi.uMaskChecked |= MIM_COMMENT;
 			}
 			else if ((mi.uMask & MIM_COVER) && memcmp(e->Id, "APIC", 4) == 0)
 			{
 				const auto p = DynCast<APIC*>(e);
-				MUSICPIC Pic{};
+				auto& Pic = mi.vImage.emplace_back();
 				Pic.eType = p->eType;
 				Pic.rsDesc = p->rsDesc;
 				Pic.rsMime = p->rsMime;
@@ -2431,9 +2431,11 @@ public:
 				if (Pic.bLink)
 					Pic.varPic = StrX2W((PCSTR)p->rbData.Data(), (int)p->rbData.Size());
 				else
-					Pic.varPic = p->rbData;
-				mi.vImage.emplace_back(std::move(Pic));
-				mi.uMaskRead |= MIM_COVER;
+				{
+					Pic.varPic = CRefBin(p->rbData.Size());
+					memcpy(Pic.GetPicData().Data(), p->rbData.Data(), p->rbData.Size());
+				}
+				mi.uMaskChecked |= MIM_COVER;
 			}
 			else if ((mi.uMask & MIM_GENRE) && memcmp(e->Id, "TCON", 4) == 0)
 			{
@@ -2441,43 +2443,7 @@ public:
 				if (!p->vText.empty())
 				{
 					mi.rsGenre = p->vText[0];
-					mi.uMaskRead |= MIM_GENRE;
-				}
-			}
-			else if ((mi.uMask & MIM_DATE) && memcmp(e->Id, "TYER", 4) == 0)
-			{
-				const auto p = DynCast<TEXTFRAME*>(e);
-				if (!p->vText.empty())
-				{
-					if (mi.uFlag & MIF_DATE_STRING)
-						mi.Date = p->vText[0];
-					else
-						mi.Date = SYSTEMTIME{ .wYear = (WORD)_wtoi(p->vText[0].Data()) };
-					mi.uMaskRead |= MIM_DATE;
-				}
-			}
-			else if ((mi.uMask & MIM_DATE) && memcmp(e->Id, "TDRC", 4) == 0)
-			{
-				const auto p = DynCast<TEXTFRAME*>(e);
-				if (!p->vText.empty())
-				{
-					if (mi.uFlag & MIF_DATE_STRING)
-					{
-						mi.Date = p->vText[0];
-						mi.uMaskRead |= MIM_DATE;
-					}
-					else
-					{
-						SYSTEMTIME st{};
-						if (swscanf(p->vText[0].Data(), L"%hd-%hd-%hdT%hd:%hd:%hd",
-							&st.wYear, &st.wMonth, &st.wDay,
-							&st.wHour, &st.wMinute, &st.wSecond) > 0)
-						{
-							mi.Date = st;
-							mi.uMaskRead |= MIM_DATE;
-						}
-					}
-					mi.uMaskRead |= MIM_DATE;
+					mi.uMaskChecked |= MIM_GENRE;
 				}
 			}
 			else if ((mi.uMask & MIM_TRACK) && memcmp(e->Id, "TRCK", 4) == 0)
@@ -2491,7 +2457,7 @@ public:
 						mi.cTotalTrack = (short)_wtoi(p->vText[0].Data() + posSlash + 1);
 					else
 						mi.cTotalTrack = 0;
-					mi.uMaskRead |= MIM_TRACK;
+					mi.uMaskChecked |= MIM_TRACK;
 				}
 			}
 			else if ((mi.uMask & MIM_DISC) && memcmp(e->Id, "TPOS", 4) == 0)
@@ -2505,7 +2471,7 @@ public:
 						mi.cTotalDisc = (short)_wtoi(p->vText[0].Data() + posSlash + 1);
 					else
 						mi.cTotalDisc = 0;
-					mi.uMaskRead |= MIM_DISC;
+					mi.uMaskChecked |= MIM_DISC;
 				}
 			}
 		}
@@ -2595,7 +2561,7 @@ public:
 			!(!rbPrepend.IsEmpty() && !rbAppend.IsEmpty());
 
 		const auto cbFrames = (DWORD)(rbPrepend.Size() + rbAppend.Size());
-		DwordToSynchSafeInt(Hdr.Size, cbFrames);
+		ThDwordToSyncSafeInt(Hdr.Size, cbFrames);
 		SIZE_T cbBody{ SIZETMax };
 		SIZE_T dHdrFooterToEnd{ SIZETMax };
 		//-----------------写入追加标签-----------------
@@ -2658,7 +2624,7 @@ public:
 			m_Stream << rbAppend;
 			if (rbPrepend.IsEmpty())
 			{
-				DwordToSynchSafeInt(Hdr.Size, (DWORD)rbPrepend.Size());
+				ThDwordToSyncSafeInt(Hdr.Size, (DWORD)rbPrepend.Size());
 				memcpy(Hdr.Header, "3DI", 3);
 				m_Stream << Hdr;
 			}
@@ -2724,7 +2690,7 @@ public:
 						byRestrictions |= ((BYTE)m_ExtHdrInfo.eImageSize);
 					}
 					cbExtHdr = cbExt + 6;
-					DwordToSynchSafeInt(byExtHdr, (DWORD)cbExtHdr);
+					ThDwordToSyncSafeInt(byExtHdr, (DWORD)cbExtHdr);
 					w += 4;
 					w << cbExt << byFlags;
 					if (m_ExtHdrInfo.bRestrictions)
@@ -2775,7 +2741,7 @@ public:
 			memcpy(Hdr.Header, "ID3", 3);
 			if (!rbAppend.IsEmpty())
 				Hdr.Flags |= ID3V2HF_FOOTER;// 含标签尾
-			DwordToSynchSafeInt(Hdr.Size, (DWORD)cbTotal);
+			ThDwordToSyncSafeInt(Hdr.Size, (DWORD)cbTotal);
 			// 写入
 			m_Stream << Hdr;
 			if (cbExtHdr)

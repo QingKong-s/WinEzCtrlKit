@@ -6,6 +6,7 @@
 #include "CBitSet.h"
 #include "Utility2.h"
 #include "AutoPtrDef.h"
+#include "ComPtr.h"
 
 #include <variant>
 
@@ -34,7 +35,6 @@ enum MIMASKS :UINT
 	MIM_LRC = 1u << 4,		// 歌词
 	MIM_COVER = 1u << 5,	// 封面
 	MIM_GENRE = 1u << 6,	// 风格
-	MIM_DATE = 1u << 7,		// 发行日期
 	MIM_DISC = 1u << 8,		// 碟片号
 	MIM_TRACK = 1u << 9,	// 音轨号
 
@@ -46,14 +46,14 @@ ECK_ENUM_BIT_FLAGS(MIMASKS);
 enum MIFLAGS :UINT
 {
 	//												| ID3v1	| ID3v2 | Flac	|  APE	|
-	// 用指定的分隔符连接多个艺术家
-	MIF_JOIN_ARTIST = 1u << 0,					//	|		|	T	|	T	|	T	|
-	// 用指定的分隔符连接多个备注
-	MIF_JOIN_COMMENT = 1u << 1,					// 	|		|	T	|	T	|	T	|
+	// 在Vorbis注释的TRACK或TRACKNUMBER中写入斜杠"/"加总音轨数
+	MIF_WRITE_TRACK_TOTAL = 1u << 0,			// 	|	 	|	 	|	T	|	 	|
+	// 在Vorbis注释的DISCNUMBER中写入总碟片数
+	MIF_WRITE_DISC_TOTAL = 1u << 1,				// 	|	 	|	 	|	T	|	 	|
 	// 允许保留空白填充
 	MIF_ALLOW_PADDING = 1u << 2,				// 	|		|	T	|	T	|		|
-	// 用当前本地设置格式化日期为字符串
-	MIF_DATE_STRING = 1u << 3,					// 	|	T	|	T	|	T	|	T	|
+	// 写入APE时，若图片类型为无效，则假定为"封面"
+	MIF_APE_INVALID_COVER_AS_FRONT = 1u << 3,	// 	|		|		|	 	|	T	|
 	// 用ID3v2.3规定的斜杠("/")分割艺术家列表
 	MIF_SPLIT_ARTIST_IN_ID3V2_3 = 1u << 4,		// 	|		|	T	|		|		|
 	// 移除其他标记系统
@@ -108,8 +108,8 @@ enum class Result
 enum class PicType :BYTE
 {
 	Invalid = 0xFF,     // 任何无效的值
-	Begin___ = 0,       // ！起始占位
-	Other = Begin___,   // 其他
+	PrivBegin = 0,      // ！起始占位
+	Other = PrivBegin,  // 其他
 	FileIcon32x32,      // 32×32大小文件图标（仅PNG）
 	OtherFileIcon,      // 其他图标
 	CoverFront,         // 封面
@@ -130,39 +130,178 @@ enum class PicType :BYTE
 	Illustration,       // 插画
 	BandLogotype,       // 艺术家/艺术团队Logo
 	PublisherLogotype,  // 发行商/工作室Logo
-	End___              // ！终止占位
+	PrivEnd             // ！终止占位
 };
 
-constexpr inline PCWSTR c_pszPicType[]
+constexpr inline std::string_view ApePicType[]
 {
-	L"无效图片类型",
-	L"其他",
-	L"32×32文件图标",
-	L"其他图标",
-	L"封面",
-	L"封底",
-	L"宣传图",
-	L"实体媒介照片",
-	L"艺术家照片",
-	L"演唱者照片",
-	L"指挥者照片",
-	L"乐队/剧团照片",
-	L"作曲家照片",
-	L"作词者照片",
-	L"录音场地照片",
-	L"录音过程照片",
-	L"表演过程照片",
-	L"视频截图",
-	L"艳鱼图",
-	L"插画",
-	L"艺术家/艺术团队Logo",
-	L"发行商/工作室Logo",
+	"Other"sv,
+	"Icon"sv,
+	"Other File Icon"sv,
+	"Front"sv,
+	"Back"sv,
+	"Leaflet"sv,
+	"Media"sv,
+	"Lead Artist"sv,
+	"Artist"sv,
+	"Conductor"sv,
+	"Band"sv,
+	"Composer"sv,
+	"Lyricist"sv,
+	"Recording Location"sv,
+	"During Recording"sv,
+	"During Performance"sv,
+	"Video Capture"sv,
+	"A Bright Colored Fish"sv,
+	"Illustration"sv,
+	"Band Logotype"sv,
+	"Publisher Logotype"sv,
+	"Invalid"sv,
 };
 
-EckInline constexpr PCWSTR PicTypeToString(PicType e)
+constexpr inline  std::wstring_view ZhPicType[]
 {
-	return c_pszPicType[(int)e + 1];
+	L"其他"sv,
+	L"32×32文件图标"sv,
+	L"其他图标"sv,
+	L"封面"sv,
+	L"封底"sv,
+	L"宣传图"sv,
+	L"实体媒介照片"sv,
+	L"艺术家照片"sv,
+	L"演唱者照片"sv,
+	L"指挥者照片"sv,
+	L"乐队/剧团照片"sv,
+	L"作曲家照片"sv,
+	L"作词者照片"sv,
+	L"录音场地照片"sv,
+	L"录音过程照片"sv,
+	L"表演过程照片"sv,
+	L"视频截图"sv,
+	L"艳鱼图"sv,
+	L"插画"sv,
+	L"艺术家/艺术团队Logo"sv,
+	L"发行商/工作室Logo"sv,
+	L"无效"sv,
+};
+
+static_assert(ARRAYSIZE(ApePicType) == ARRAYSIZE(ZhPicType));
+static_assert(ARRAYSIZE(ApePicType) == (size_t)PicType::PrivEnd + 1);
+
+EckInlineNdCe auto PicTypeToString(PicType e)
+{
+	if (e >= PicType::PrivEnd)
+		return ZhPicType[ARRAYSIZE(ZhPicType) - 1];
+	return ZhPicType[(size_t)e];
 }
+EckInlineNdCe auto PicTypeToApeString(PicType e)
+{
+	if (e >= PicType::PrivEnd)
+		return ApePicType[ARRAYSIZE(ApePicType) - 1];
+	return ApePicType[(size_t)e];
+}
+
+
+struct StrList
+{
+	struct Iterator
+	{
+		PCWSTR p;
+
+		Iterator operator++(int)
+		{
+			const auto r{ *this };
+			p += (*p + 2);
+			if (!*p) p = nullptr;
+			return r;
+		}
+
+		Iterator& operator++()
+		{
+			p += (*p + 2);
+			if (!*p) p = nullptr;
+			return *this;
+		}
+
+		std::wstring_view operator*() const
+		{
+			return { p + 1,(size_t)*p };
+		}
+
+		bool operator==(const Iterator& x) const { return p == x.p; }
+	};
+
+	eck::CRefStrW Str{};
+
+	EckInline void Clear() { Str.Clear(); }
+
+	EckInlineNd PCWSTR FrontData() const
+	{
+		if (Str.IsEmpty()) return nullptr;
+		return Str.Data() + 1;
+	}
+	EckInlineNd PWSTR FrontData()
+	{
+		if (Str.IsEmpty()) return nullptr;
+		return Str.Data() + 1;
+	}
+
+	void PushBackString(std::wstring_view svText, std::wstring_view svDiv)
+	{
+		EckAssert(svText.size() <= 0xFFFF);
+		WCHAR cchText;
+		if (svText.empty())
+			return;
+		cchText = (WCHAR)svText.size();
+		if (svDiv.empty())
+		{
+			Str.PushBackChar(cchText);
+			Str.PushBack(svText.data(), cchText);
+			Str.PushBackChar(L'\0');
+		}
+		else
+		{
+			if (Str.IsEmpty())
+				Str.PushBackChar(L'\0');// 长度
+			else
+				Str.PushBack(svDiv);
+			Str.PushBack(svText.data(), cchText);
+			Str[0] = WCHAR(Str.Size() - 1);
+		}
+	}
+
+	void PushBackString(const CRefStrW& rs, std::wstring_view svDiv)
+	{
+		PushBackString(rs.ToStringView(), svDiv);
+	}
+
+	void PushBackStringU8(const CRefStrA& rs, std::wstring_view svDiv)
+	{
+		EckAssert(rs.Size() <= 0xFFFF);
+		WCHAR cchText;
+		if (rs.IsEmpty())
+			return;
+		cchText = (WCHAR)rs.Size();
+		if (svDiv.empty())
+		{
+			Str.PushBackChar(cchText);
+			StrU82W(rs.Data(), rs.Size(), Str);
+			Str.PushBackChar(L'\0');
+		}
+		else
+		{
+			if (Str.IsEmpty())
+				Str.PushBackChar(L'\0');// 长度
+			else
+				Str.PushBack(svDiv);
+			StrU82W(rs.Data(), rs.Size(), Str);
+			Str[0] = WCHAR(Str.Size() - 1);
+		}
+	}
+
+	Iterator begin() const { return { Str.Data() }; }
+	Iterator end() const { return {}; }
+};
 
 struct MUSICPIC
 {
@@ -171,190 +310,59 @@ struct MUSICPIC
 	CRefStrW rsDesc;
 	CRefStrA rsMime;
 	std::variant<CRefBin, CRefStrW> varPic;
+
+	EckInlineNdCe auto& GetPicPath() { return std::get<CRefStrW>(varPic); }
+	EckInlineNdCe auto& GetPicData() { return std::get<CRefBin>(varPic); }
 };
 
 struct MUSICINFO
 {
 	MIMASKS uMask{ MIM_ALL };	// 指定欲读取信息类型的掩码
-	MIMASKS uMaskRead{};		// 函数返回后设置已读取的信息
-	PCWSTR pszArtistDiv = L"、";	// 若设置了MIF_JOIN_ARTIST，则此字段指示分隔符
-	PCWSTR pszCommDiv = L"\n";	// 若设置了MIF_JOIN_COMMENT，则此字段指示分隔符
-	MIFLAGS uFlag{};	// 操作标志
+	MIMASKS uMaskChecked{};		// 函数返回后设置已读取的信息
+	MIFLAGS uFlag{};			// 控制读写操作的标志
 
 	CRefStrW rsTitle{}; // 标题
-	std::variant<std::vector<CRefStrW>, CRefStrW>
-		Artist{};		// 艺术家
+	StrList slArtist{};	// 艺术家
 	CRefStrW rsAlbum{}; // 专辑
-	std::variant<std::vector<CRefStrW>, CRefStrW>
-		Comment{};		// 备注
+	StrList slComment{};// 备注
 	CRefStrW rsLrc{};	// 歌词
 	CRefStrW rsGenre{};	// 流派
-	std::variant<SYSTEMTIME, CRefStrW>
-		Date{};			// 录制日期
 	std::vector<MUSICPIC> vImage{};// 图片
-	short nTrack{};		// 音轨号
-	short cTotalTrack{};// 总音轨数
-	short nDisc{};		// 碟片号
-	short cTotalDisc{};	// 总碟片数
+	int nTrack{};		// 音轨号
+	int cTotalTrack{};// 总音轨数
+	int nDisc{};		// 碟片号
+	int cTotalDisc{};	// 总碟片数
 
-	// 取主封面。函数遍历图片列表，然后按照 封面 > 封底 > 第一幅图片 的优先级顺序返回指定的图片，若失败则返回NULL
-	MUSICPIC* GetMainCover()
-	{
-		if (vImage.empty())
-			return nullptr;
-		auto it = std::find_if(vImage.begin(), vImage.end(),
-			[](const MUSICPIC& e) { return e.eType == PicType::CoverFront; });
-		if (it == vImage.end())
-			it = std::find_if(vImage.begin(), vImage.end(),
-				[](const MUSICPIC& e) { return e.eType == PicType::CoverBack; });
-		if (it == vImage.end())
-			return vImage.data();
-		else
-			return &*it;
-	}
-
+	// 取主封面。
+	// 函数遍历图片列表，然后按照 封面 > 封底 > 第一幅图片
+	// 的优先级顺序返回指定的图片，若失败则返回NULL
 	const MUSICPIC* GetMainCover() const
 	{
 		if (vImage.empty())
 			return nullptr;
-		auto it = std::find_if(vImage.begin(), vImage.end(),
-			[](const MUSICPIC& e) { return e.eType == PicType::CoverFront; });
-		if (it == vImage.end())
-			it = std::find_if(vImage.begin(), vImage.end(),
-				[](const MUSICPIC& e) { return e.eType == PicType::CoverBack; });
-		if (it == vImage.end())
-			return vImage.data();
-		else
-			return &*it;
-	}
-
-	CRefStrW& GetArtistStr()
-	{
-		EckAssert(Artist.index() == 1u);
-		return std::get<1>(Artist);
-	}
-
-	const CRefStrW& GetArtistStr() const
-	{
-		EckAssert(Artist.index() == 1u);
-		return std::get<1>(Artist);
-	}
-
-	CRefStrW& GetCommentStr()
-	{
-		EckAssert(Comment.index() == 1u);
-		return std::get<1>(Comment);
-	}
-	
-	const CRefStrW& GetCommentStr() const
-	{
-		EckAssert(Comment.index() == 1u);
-		return std::get<1>(Comment);
+		const MUSICPIC* pFront{}, * pBack{};
+		for (const auto& e : vImage)
+		{
+			if (e.eType == PicType::CoverFront)
+				pFront = &e;
+			else if (e.eType == PicType::CoverBack)
+				pBack = &e;
+		}
+		if (pFront) return pFront;
+		if (pBack) return pBack;
+		return vImage.data();
 	}
 
 	void Clear()
 	{
-		uMaskRead = MIM_NONE;
+		uMaskChecked = MIM_NONE;
 		rsTitle.Clear();
-		Artist.emplace<0>();
+		slArtist.Clear();
 		rsAlbum.Clear();
-		Comment.emplace<0>();
+		slComment.Clear();
 		rsLrc.Clear();
 		rsGenre.Clear();
-		Date.emplace<0>();
 		vImage.clear();
-	}
-
-	void AppendArtist(CRefStrW&& rs_)
-	{
-		if (uFlag & MIF_JOIN_ARTIST)
-		{
-			if (Artist.index() == 0)
-				Artist.emplace<1>();
-			auto& rs = std::get<1>(Artist);
-			if (rs.IsEmpty())
-				rs = std::move(rs_);
-			else
-			{
-				rs.PushBack(pszArtistDiv);
-				rs.PushBack(rs_);
-			}
-		}
-		else
-		{
-			if (Artist.index() == 1)
-				Artist.emplace<0>();
-			std::get<0>(Artist).emplace_back(std::move(rs_));
-		}
-	}
-
-	void AppendArtist(const CRefStrW& rs_)
-	{
-		if (uFlag & MIF_JOIN_ARTIST)
-		{
-			if (Artist.index() == 0)
-				Artist.emplace<1>();
-			auto& rs = std::get<1>(Artist);
-			if (rs.IsEmpty())
-				rs = rs_;
-			else
-			{
-				rs.PushBack(pszArtistDiv);
-				rs.PushBack(rs_);
-			}
-		}
-		else
-		{
-			if (Artist.index() == 1)
-				Artist.emplace<0>();
-			std::get<0>(Artist).emplace_back(rs_);
-		}
-	}
-
-	void AppendComment(CRefStrW&& rs_)
-	{
-		if (uFlag & MIF_JOIN_COMMENT)
-		{
-			if (Comment.index() == 0)
-				Comment.emplace<1>();
-			auto& rs = std::get<1>(Comment);
-			if (rs.IsEmpty())
-				rs = std::move(rs_);
-			else
-			{
-				rs.PushBack(pszCommDiv);
-				rs.PushBack(rs_);
-			}
-		}
-		else
-		{
-			if (Comment.index() == 1)
-				Comment.emplace<0>();
-			std::get<0>(Comment).emplace_back(std::move(rs_));
-		}
-	}
-
-	void AppendComment(const CRefStrW& rs_)
-	{
-		if (uFlag & MIF_JOIN_COMMENT)
-		{
-			if (Comment.index() == 0)
-				Comment.emplace<1>();
-			auto& rs = std::get<1>(Comment);
-			if (rs.IsEmpty())
-				rs = rs_;
-			else
-			{
-				rs.PushBack(pszCommDiv);
-				rs.PushBack(rs_);
-			}
-		}
-		else
-		{
-			if (Comment.index() == 1)
-				Comment.emplace<0>();
-			std::get<0>(Comment).emplace_back(rs_);
-		}
 	}
 };
 
@@ -449,17 +457,14 @@ enum :UINT
 	APE_HAS_HEADER = 1u << 31,
 };
 
-/// <summary>
-/// 同步安全整数到32位小端整数
-/// </summary>
-/// <param name="p">输入字节流</param>
-/// <returns>转换结果</returns>
-EckInline constexpr static DWORD SynchSafeIntToDWORD(PCBYTE p)
+// 从p处读取4字节并转换为32位小端整数
+EckInlineNdCe DWORD ThSyncSafeIntToDWORD(_In_reads_bytes_(4) PCBYTE p)
 {
 	return ((p[0] & 0x7F) << 21) | ((p[1] & 0x7F) << 14) | ((p[2] & 0x7F) << 7) | (p[3] & 0x7F);
 }
 
-EckInline constexpr static void DwordToSynchSafeInt(BYTE* p, DWORD dw)
+// 将32位小端整数dw转为同步安全整数，并写入p处
+EckInlineNdCe void ThDwordToSyncSafeInt(_Out_writes_bytes_(4) BYTE* p, DWORD dw)
 {
 	p[3] = (dw) & 0b0111'1111;
 	p[2] = (dw >> 7) & 0b0111'1111;
@@ -467,15 +472,15 @@ EckInline constexpr static void DwordToSynchSafeInt(BYTE* p, DWORD dw)
 	p[0] = (dw >> 21) & 0b0111'1111;
 }
 
-inline constexpr BOOL IsLegalID3v2Header(const ID3v2_Header& hdr)
+[[nodiscard]] inline constexpr BOOL ThIsLegalID3v2Header(const ID3v2_Header& hdr)
 {
 	return hdr.Ver < 0xFF && hdr.Revision < 0xFF &&
 		(hdr.Flags & 0b1111) == 0 &&
 		hdr.Size[0] < 0x80 && hdr.Size[1] < 0x80 && hdr.Size[2] < 0x80 && hdr.Size[3] < 0x80 &&
-		SynchSafeIntToDWORD(hdr.Size) != 0;
+		ThSyncSafeIntToDWORD(hdr.Size) != 0;
 }
 
-inline BOOL IsLegalApeHeader(const APE_Header& hdr)
+[[nodiscard]] inline BOOL ThIsLegalApeHeader(const APE_Header& hdr)
 {
 	return memcmp(hdr.byPreamble, "APETAGEX", 8) == 0 &&
 		(hdr.dwVer == 1000u || hdr.dwVer == 2000u) &&
@@ -483,8 +488,29 @@ inline BOOL IsLegalApeHeader(const APE_Header& hdr)
 		*(ULONGLONG*)hdr.byReserved == 0ull;
 }
 
+inline void ThGetSetNumAndTotalNum(BOOL bSet, BOOL bWriteSlash,
+	int& nNum, int& nTotal, CRefStrW& rsValue)
+{
+	if (bSet)
+		if (nTotal && bWriteSlash)
+			rsValue.Format(L"%d/%d", nNum, nTotal);
+		else
+			rsValue.Format(L"%d", nNum);
+	else
+	{
+		PWCH pEnd;
+		TcsToInt(rsValue.Data(), rsValue.Size(), nNum, 10, &pEnd);
+		const int posSlash = rsValue.FindChar(L'/', int(pEnd - rsValue.Data()));
+		if (posSlash != StrNPos)
+			TcsToInt(rsValue.Data() + (posSlash + 1),
+				rsValue.Size() - (posSlash + 1), nTotal);
+		else
+			nTotal = 0;
+	}
+}
 
-class CMediaFile
+
+class CMediaFile final
 {
 	friend class CID3v1;
 	friend class CID3v2;
@@ -492,7 +518,7 @@ class CMediaFile
 	friend class CMpegInfo;
 	friend class CApe;
 private:
-	IStream* m_pStream{};
+	ComPtr<IStream> m_pStream{};
 	UINT m_uTagType{};
 
 	struct TAG_LOCATION
@@ -516,12 +542,12 @@ private:
 
 	UINT DetectID3_APE()
 	{
-		m_Loc = TAG_LOCATION{};
+		m_Loc = {};
 
 		UINT uRet{};
 		BYTE by[16];
 
-		CStreamWalker w(m_pStream);
+		CStreamWalker w{ m_pStream.Get() };
 		const auto cbSize = w.GetSize();
 		// 查找ID3v1
 		if (cbSize > 128u)
@@ -555,7 +581,7 @@ private:
 			w->Seek(ToLi(-SSIZE_T(cbID3v1 + 32u)), STREAM_SEEK_END, nullptr);
 			APE_Header Hdr;
 			w >> Hdr;
-			if (IsLegalApeHeader(Hdr) && !(Hdr.dwFlags & APE_HEADER))
+			if (ThIsLegalApeHeader(Hdr) && !(Hdr.dwFlags & APE_HEADER))
 			{
 				m_Loc.posApeHdr = cbSize - (cbID3v1 + 32u);
 				m_Loc.posApe = m_Loc.posApeHdr + 32u - Hdr.cbBody;
@@ -573,7 +599,7 @@ private:
 			else
 			{
 				w.MoveToBegin() >> Hdr;
-				if (IsLegalApeHeader(Hdr) && (Hdr.dwFlags & APE_HEADER))
+				if (ThIsLegalApeHeader(Hdr) && (Hdr.dwFlags & APE_HEADER))
 				{
 					m_Loc.posApeHdr = 0u;
 					m_Loc.posApe = 32u;
@@ -590,10 +616,10 @@ private:
 		{
 			ID3v2_Header hdr;
 			w.MoveToBegin() >> hdr;
-			if (memcmp(hdr.Header, "ID3", 3u) == 0 && IsLegalID3v2Header(hdr))
+			if (memcmp(hdr.Header, "ID3", 3u) == 0 && ThIsLegalID3v2Header(hdr))
 			{
 				// 若已找到标签头，则使用其内部的SEEK帧来寻找尾部标签，因此此处不需要继续查找标签尾
-				m_Loc.cbID3v2 = SynchSafeIntToDWORD(hdr.Size);
+				m_Loc.cbID3v2 = ThSyncSafeIntToDWORD(hdr.Size);
 				m_Loc.posV2 = 0u;
 				if (hdr.Ver == 3)
 					uRet |= TAG_ID3V2_3;
@@ -611,9 +637,9 @@ private:
 						if (cbSize > 128u + 227u + 10u)
 						{
 							w.MoveTo(m_Loc.posV1Ext - 10) >> hdr;
-							if (memcmp(hdr.Header, "3DI", 3u) == 0 && IsLegalID3v2Header(hdr))
+							if (memcmp(hdr.Header, "3DI", 3u) == 0 && ThIsLegalID3v2Header(hdr))
 							{
-								cbFrames = SynchSafeIntToDWORD(hdr.Size);
+								cbFrames = ThSyncSafeIntToDWORD(hdr.Size);
 								if (cbSize >= 128u + 227u + 10u + cbFrames)
 								{
 									m_Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
@@ -631,9 +657,9 @@ private:
 						if (cbSize > 128u + 10u)
 						{
 							w.MoveTo(m_Loc.posV1 - 10) >> hdr;
-							if (memcmp(hdr.Header, "3DI", 3u) == 0 && IsLegalID3v2Header(hdr))
+							if (memcmp(hdr.Header, "3DI", 3u) == 0 && ThIsLegalID3v2Header(hdr))
 							{
-								cbFrames = SynchSafeIntToDWORD(hdr.Size);
+								cbFrames = ThSyncSafeIntToDWORD(hdr.Size);
 								if (cbSize >= 128u + 10u + cbFrames)
 								{
 									m_Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
@@ -650,9 +676,9 @@ private:
 					{
 						w->Seek(ToLi(-10), STREAM_SEEK_END, nullptr);
 						w >> hdr;
-						if (memcmp(hdr.Header, "3DI", 3u) == 0 && IsLegalID3v2Header(hdr))
+						if (memcmp(hdr.Header, "3DI", 3u) == 0 && ThIsLegalID3v2Header(hdr))
 						{
-							cbFrames = SynchSafeIntToDWORD(hdr.Size);
+							cbFrames = ThSyncSafeIntToDWORD(hdr.Size);
 							if (cbSize >= 10u + cbFrames)
 							{
 								m_Loc.posV2FooterHdr = (SIZE_T)w.GetPos() - 10u;
@@ -675,7 +701,7 @@ private:
 				if (m_Loc.posV2 != SIZETMax)// 检查预置ID3v2后面
 				{
 					w.MoveTo(m_Loc.posV2 + m_Loc.cbID3v2 + 10u) >> Hdr;
-					if (IsLegalApeHeader(Hdr) && (Hdr.dwFlags & APE_HEADER))
+					if (ThIsLegalApeHeader(Hdr) && (Hdr.dwFlags & APE_HEADER))
 					{
 						m_Loc.posApeHdr = m_Loc.posV2 + m_Loc.cbID3v2 + 10u;
 						m_Loc.posApe = m_Loc.posApe + 32u;
@@ -689,7 +715,7 @@ private:
 					m_Loc.posV2Footer >= m_Loc.cbID3v2 + 32u)// 检查追加ID3v2前面
 				{
 					w.MoveTo(m_Loc.posV2Footer - m_Loc.cbID3v2 - 32u) >> Hdr;
-					if (IsLegalApeHeader(Hdr) && !(Hdr.dwFlags & APE_HEADER))
+					if (ThIsLegalApeHeader(Hdr) && !(Hdr.dwFlags & APE_HEADER))
 					{
 						m_Loc.posApeHdr = m_Loc.posV2Footer - m_Loc.cbID3v2 - 32u;
 						m_Loc.posApe = m_Loc.posApeHdr + 32u - Hdr.cbBody;
@@ -708,10 +734,10 @@ private:
 					{
 						ID3v2_Header Id3Hdr{};
 						w.MoveTo(m_Loc.posV2Footer - m_Loc.cbID3v2 - 10u) >> Id3Hdr;
-						if (IsLegalID3v2Header(Id3Hdr))
+						if (ThIsLegalID3v2Header(Id3Hdr))
 						{
 							w.MoveTo(m_Loc.posV2Footer - m_Loc.cbID3v2 - 32u - 10u) >> Hdr;
-							if (IsLegalApeHeader(Hdr) && !(Hdr.dwFlags & APE_HEADER))
+							if (ThIsLegalApeHeader(Hdr) && !(Hdr.dwFlags & APE_HEADER))
 							{
 								m_Loc.posApeHdr = m_Loc.posV2Footer - m_Loc.cbID3v2 - 32u - 10u;
 								m_Loc.posApe = m_Loc.posApeHdr + 32u - Hdr.cbBody;
@@ -736,7 +762,7 @@ private:
 
 	BOOL DetectFlac()
 	{
-		CStreamWalker w(m_pStream);
+		CStreamWalker w{ m_pStream.Get() };
 		if (m_Loc.posV2 == SIZETMax)
 			w.MoveToBegin();
 		else
@@ -756,26 +782,25 @@ private:
 		}
 	}
 public:
-	ECK_DISABLE_COPY_MOVE(CMediaFile)
-public:
-	CMediaFile(IStream* pStream) : m_pStream{ pStream }
-	{
-		m_pStream->AddRef();
-		DetectTag();
-	}
+	CMediaFile() = default;
+	CMediaFile(IStream* pStream) : m_pStream{ pStream } { DetectTag(); }
 
-	CMediaFile(PCWSTR pszFile, DWORD grfMode = STGM_READWRITE,
+	CMediaFile(PCWSTR pszFile, DWORD grfMode = STGM_READ,
 		DWORD dwAttr = FILE_ATTRIBUTE_NORMAL, BOOL bCreate = FALSE)
 	{
-		SHCreateStreamOnFileEx(pszFile, grfMode, dwAttr, bCreate, nullptr, &m_pStream);
+		SHCreateStreamOnFileEx(pszFile, grfMode, dwAttr,
+			bCreate, nullptr, &m_pStream);
 		DetectTag();
 	}
 
-	~CMediaFile() { m_pStream->Release(); }
+	EckInline void SetStream(IStream* pStream)
+	{
+		m_pStream = pStream;
+		DetectTag();
+	}
+	EckInlineNdCe IStream* GetStream() const { return m_pStream.Get(); }
 
-	IStream* GetStream() const { return m_pStream; }
-
-	UINT GetTagType() const { return m_uTagType; }
+	EckInlineNdCe UINT GetTagType() const { return m_uTagType; }
 
 	UINT DetectTag()
 	{
@@ -786,15 +811,22 @@ public:
 			m_uTagType |= TAG_FLAC;
 		return m_uTagType;
 	}
+};
 
-	void OnFileChanged()
-	{
-		DetectTag();
-	}
+enum : UINT
+{
+	SMOF_NONE = 0,
+	SMOF_MOVE = 1 << 0,	// 允许使用移动操作避免复制
+	SMOF_SET = 1 << 1,	// 将MUSICINFO数据设置到CTag中，若无此标志则相反
+};
 
-	Result SimpleExtract(MUSICINFO& mi)
-	{
-	}
+struct SIMPLE_OPT
+{
+	UINT uFlags{};
+	// 艺术家连接符，若为空则不连接
+	std::wstring_view svArtistDiv{ L"、"sv };
+	// 备注连接符，若为空则不连接
+	std::wstring_view svCommDiv{ L"\n"sv };
 };
 
 class CTag
@@ -803,34 +835,14 @@ protected:
 	CMediaFile& m_File;
 	CStreamWalker m_Stream{};
 public:
-	CTag(CMediaFile& File) :m_File{ File }, m_Stream(File.GetStream())
-	{
-		m_Stream->AddRef();
-	}
-
-	~CTag()
-	{
-		m_Stream->Release();
-	}
-
 	ECK_DISABLE_COPY_MOVE(CTag);
+	CTag(CMediaFile& mf) :m_File{ mf }, m_Stream{ mf.GetStream() } { m_Stream->AddRef(); }
+	~CTag() { m_Stream->Release(); }
 
-	virtual Result SimpleExtract(MUSICINFO& mi) = 0;
-
-	virtual Result SimpleExtractMove(MUSICINFO& mi)
-	{
-		return SimpleExtract(mi);
-	}
-
-	virtual Result SimpleExtractProperty()
-	{
-		return Result::NotSupport;
-	}
+	virtual Result SimpleGetSet(MUSICINFO& mi, const SIMPLE_OPT& Opt) = 0;
 
 	virtual Result ReadTag(UINT uFlags) = 0;
-
 	virtual Result WriteTag(UINT uFlags) = 0;
-
 	virtual void Reset() = 0;
 };
 ECK_MEDIATAG_NAMESPACE_END

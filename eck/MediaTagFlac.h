@@ -74,7 +74,7 @@ private:
 		UINT t;
 		UINT dwType;
 		r >> dwType;// 图片类型
-		if (dwType < (BYTE)PicType::Begin___ || dwType >= (BYTE)PicType::End___)
+		if (dwType < (BYTE)PicType::PrivBegin || dwType >= (BYTE)PicType::PrivEnd)
 			Pic.eType = PicType::Invalid;
 		else
 			Pic.eType = (PicType)dwType;
@@ -154,93 +154,188 @@ public:
 public:
 	CFlac(CMediaFile& File) :CTag(File) {}
 
-	Result SimpleExtract(MUSICINFO& mi) override
+	Result SimpleGetSet(MUSICINFO& mi, const SIMPLE_OPT& Opt) override
 	{
-		for (const auto& e : m_vItem)
+		mi.Clear();
+		if (m_File.m_Loc.posFlac == SIZETMax)
+			return Result::NoTag;
+#undef EckPriv_GetSetVal
+#define EckPriv_GetSetVal(MiField)		\
+		if (bSet)						\
+			if (bMove) {				\
+				e.rsValue = std::move(MiField); \
+				MiField.Clear();		\
+			} else						\
+				e.rsValue = MiField;	\
+		else							\
+			if (bMove)					\
+				MiField = std::move(e.rsValue);	\
+			else						\
+				MiField = e.rsValue;
+
+		const auto bSet = Opt.uFlags & SMOF_SET;
+		const auto bMove = Opt.uFlags & SMOF_MOVE;
+		StrList::Iterator itArt{}, itArtEnd{}, itComm{}, itCommEnd{};
+		if (mi.uMask & MIM_ARTIST)
+		{
+			itArt = mi.slArtist.begin();
+			itArtEnd = mi.slArtist.end();
+		}
+		if (mi.uMask & MIM_COMMENT)
+		{
+			itComm = mi.slComment.begin();
+			itCommEnd = mi.slComment.end();
+		}
+		std::vector<size_t> vDelIdx{};
+
+		for (size_t i{}; auto& e : m_vItem)
 		{
 			if ((mi.uMask & MIM_TITLE) && e.rsKey.CompareI(EckStrAndLen("TITLE")) == 0)
 			{
-				mi.rsTitle = e.rsValue;
-				mi.uMaskRead |= MIM_TITLE;
+				EckPriv_GetSetVal(mi.rsTitle);
+				mi.uMaskChecked |= MIM_TITLE;
 			}
 			else if ((mi.uMask & MIM_ARTIST) && e.rsKey.CompareI(EckStrAndLen("ARTIST")) == 0)
 			{
-				mi.AppendArtist(e.rsValue);
-				mi.uMaskRead |= MIM_ARTIST;
+				if (bSet)
+					if (itArt == itArtEnd)
+						vDelIdx.emplace(vDelIdx.begin(), i);
+					else if (bMove)
+						e.rsValue = std::move(*itArt++);
+					else
+						e.rsValue = *itArt++;
+				else
+					mi.slArtist.PushBackString(e.rsValue, Opt.svArtistDiv);
+				mi.uMaskChecked |= MIM_ARTIST;
 			}
 			else if ((mi.uMask & MIM_ALBUM) && e.rsKey.CompareI(EckStrAndLen("ALBUM")) == 0)
 			{
-				mi.rsAlbum = e.rsValue;
-				mi.uMaskRead |= MIM_ALBUM;
+				EckPriv_GetSetVal(mi.rsAlbum);
+				mi.uMaskChecked |= MIM_ALBUM;
 			}
 			else if ((mi.uMask & MIM_LRC) && e.rsKey.CompareI(EckStrAndLen("LYRICS")) == 0)
 			{
-				mi.rsLrc = e.rsValue;
-				mi.uMaskRead |= MIM_LRC;
+				EckPriv_GetSetVal(mi.rsLrc);
+				mi.uMaskChecked |= MIM_LRC;
 			}
 			else if ((mi.uMask & MIM_COMMENT) && e.rsKey.CompareI(EckStrAndLen("DESCRIPTION")) == 0)
 			{
-				mi.AppendComment(e.rsValue);
-				mi.uMaskRead |= MIM_COMMENT;
+				if (bSet)
+					if (itComm == itCommEnd)
+						vDelIdx.emplace(vDelIdx.begin(), i);
+					else if (bMove)
+						e.rsValue = std::move(*itComm++);
+					else
+						e.rsValue = *itComm++;
+				else
+					mi.slComment.PushBackString(e.rsValue, Opt.svCommDiv);
+				mi.uMaskChecked |= MIM_COMMENT;
 			}
 			else if ((mi.uMask & MIM_GENRE) && e.rsKey.CompareI(EckStrAndLen("GENRE")) == 0)
 			{
-				mi.rsGenre = e.rsValue;
-				mi.uMaskRead |= MIM_GENRE;
-			}
-			else if ((mi.uMask & MIM_DATE) && e.rsKey.CompareI(EckStrAndLen("DATE")) == 0)
-			{
-				WORD y, m{}, d{};
-				if (swscanf(e.rsValue.Data(), L"%hd-%hd-%hd", &y, &m, &d) >= 1)
-				{
-					mi.Date = SYSTEMTIME{ .wYear = y,.wMonth = m,.wDay = d };
-					mi.uMaskRead |= MIM_DATE;
-				}
+				EckPriv_GetSetVal(mi.rsGenre);
+				mi.uMaskChecked |= MIM_GENRE;
 			}
 			else if (mi.uMask & MIM_TRACK)
 			{
 				if (e.rsKey.CompareI("TRACKNUMBER") || e.rsKey.CompareI("TRACK"))
 				{
-					mi.nTrack = (short)_wtoi(e.rsValue.Data());
-					const int posSlash = e.rsValue.FindChar(L'/');
-					if (posSlash != StrNPos)
-						mi.cTotalTrack = (short)_wtoi(e.rsValue.Data() + posSlash + 1);
-					else
-						mi.cTotalTrack = 0;
-					mi.uMaskRead |= MIM_TRACK;
+					ThGetSetNumAndTotalNum(bSet, mi.uFlag & MIF_WRITE_TRACK_TOTAL,
+						mi.nTrack, mi.cTotalTrack, e.rsValue);
+					mi.uMaskChecked |= MIM_TRACK;
 				}
 				else if (e.rsKey.CompareI("TRACKTOTAL"))
-					mi.cTotalTrack = (short)_wtoi(e.rsValue.Data());
+				{
+					if (bSet)
+						e.rsValue.Format(L"%d", mi.cTotalTrack);
+					else
+						TcsToInt(e.rsValue.Data(), e.rsValue.Size(), mi.cTotalTrack);
+					mi.uMaskChecked |= MIM_TRACK;
+				}
 			}
 			else if (mi.uMask & MIM_DISC)
 			{
 				if (e.rsKey.CompareI("DISCNUMBER"))
 				{
-					mi.nDisc = (short)_wtoi(e.rsValue.Data());
-					const int posSlash = e.rsValue.FindChar(L'/');
-					if (posSlash != StrNPos)
-						mi.cTotalDisc = (short)_wtoi(e.rsValue.Data() + posSlash + 1);
-					else
-						mi.cTotalDisc = 0;
-					mi.uMaskRead |= MIM_DISC;
+					ThGetSetNumAndTotalNum(bSet, mi.uFlag & MIF_WRITE_DISC_TOTAL,
+						mi.nDisc, mi.cTotalDisc, e.rsValue);
+					mi.uMaskChecked |= MIM_DISC;
 				}
 				else if (e.rsKey.CompareI("DISCTOTAL"))
-					mi.cTotalDisc = (short)_wtoi(e.rsValue.Data());
+				{
+					if (bSet)
+						e.rsValue.Format(L"%d", mi.cTotalDisc);
+					else
+						TcsToInt(e.rsValue.Data(), e.rsValue.Size(), mi.cTotalDisc);
+					mi.uMaskChecked |= MIM_DISC;
+				}
 			}
+			++i;
 		}
-		if ((mi.uMask & MIM_COVER) && !m_vPic.empty())
-		{
-			for (const auto& e : m_vPic)
+		if (mi.uMask & MIM_COVER)
+			if (bSet)
 			{
-				const BOOL bLink = (e.rsMime == "-->");
-				if (bLink)
-					mi.vImage.emplace_back(e.eType, TRUE, e.rsDesc, e.rsMime,
-						StrX2W((PCSTR)e.rbData.Data(), (int)e.rbData.Size(), CP_UTF8));
-				else ECKLIKELY
-					mi.vImage.emplace_back(e.eType, FALSE, e.rsDesc, e.rsMime,
-						e.rbData);
+				m_vPic.clear();
+				for (auto& e : mi.vImage)
+				{
+					auto& f = m_vPic.emplace_back();
+					f.eType = e.eType;
+					if (bMove)
+					{
+						f.rsMime = std::move(e.rsMime);
+						f.rsDesc = std::move(e.rsDesc);
+					}
+					else
+					{
+						f.rsMime = e.rsMime;
+						f.rsDesc = e.rsDesc;
+					}
+					if (e.bLink)
+					{
+						const auto& rs = e.GetPicPath();
+						StrW2U8(rs.Data(), rs.Size(), f.rbData);
+					}
+					else
+						if (bMove)
+							f.rbData = std::move(e.GetPicData());
+						else
+							f.rbData = e.GetPicData();
+				}
 			}
-			mi.uMaskRead |= MIM_COVER;
+			else if (!m_vPic.empty())
+			{
+				for (auto& e : m_vPic)
+				{
+					if (e.rsMime.Compare(EckStrAndLen("-->")) == 0)
+						mi.vImage.emplace_back(e.eType, TRUE, e.rsDesc, e.rsMime,
+							StrX2W((PCH)e.rbData.Data(), (int)e.rbData.Size(), CP_UTF8));
+					else
+						if (bMove)
+							mi.vImage.emplace_back(e.eType, FALSE,
+								e.rsDesc, e.rsMime, std::move(e.rbData));
+						else
+						{
+							auto& f = mi.vImage.emplace_back(e.eType, FALSE,
+								e.rsDesc, e.rsMime, CRefBin(e.rbData.Size()));
+							memcpy(f.GetPicData().Data(), e.rbData.Data(), e.rbData.Size());
+						}
+				}
+				mi.uMaskChecked |= MIM_COVER;
+			}
+		if (bSet)
+		{
+			for (const auto i : vDelIdx)
+				m_vItem.erase(m_vItem.begin() + i);
+			if ((mi.uMask & MIM_ARTIST) && itArt != itArtEnd)
+				if (bMove)
+					m_vItem.emplace_back("ARTIST"sv, std::move(*itArt));
+				else
+					m_vItem.emplace_back("ARTIST"sv, *itArt);
+			if ((mi.uMask & MIM_COMMENT) && itComm != itCommEnd)
+				if (bMove)
+					m_vItem.emplace_back("DESCRIPTION"sv, std::move(*itComm));
+				else
+					m_vItem.emplace_back("DESCRIPTION"sv, *itComm);
 		}
 		return Result::Ok;
 	}
@@ -470,23 +565,15 @@ public:
 		m_posStreamInfoEnd = SIZETMax;
 	}
 
-	auto& GetVorbisComments() { return m_vItem; }
-
-	const auto& GetVorbisComments() const { return m_vItem; }
-
-	auto& GetImages() { return m_vPic; }
-
-	const auto& GetImages() const { return m_vPic; }
-
-	auto& GetBlocks() { return m_vBlock; }
-
-	const auto& GetBlocks() const { return m_vBlock; }
-
-	const auto& GetStreamInfo() const { return m_si; }
-
-	auto& GetVendor() { return m_rsVendor; }
-
-	const auto& GetVendor() const { return m_rsVendor; }
+	EckInlineNdCe auto& GetVorbisCommentList() { return m_vItem; }
+	EckInlineNdCe const auto& GetVorbisCommentList() const { return m_vItem; }
+	EckInlineNdCe auto& GetImageList() { return m_vPic; }
+	EckInlineNdCe const auto& GetImageList() const { return m_vPic; }
+	EckInlineNdCe auto& GetBlockList() { return m_vBlock; }
+	EckInlineNdCe const auto& GetBlockList() const { return m_vBlock; }
+	EckInlineNdCe const auto& GetStreamInfo() const { return m_si; }
+	EckInlineNdCe auto& GetVendor() { return m_rsVendor; }
+	EckInlineNdCe const auto& GetVendor() const { return m_rsVendor; }
 
 	size_t GetVorbisComment(PCSTR pszKey) const
 	{
