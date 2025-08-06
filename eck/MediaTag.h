@@ -366,6 +366,22 @@ struct MUSICINFO
 	}
 };
 
+enum : UINT
+{
+	SMOF_NONE = 0,
+	SMOF_MOVE = 1 << 0,	// 允许使用移动操作避免复制
+	SMOF_SET = 1 << 1,	// 将MUSICINFO数据设置到CTag中，若无此标志则相反
+};
+
+struct SIMPLE_OPT
+{
+	UINT uFlags{};
+	// 艺术家连接符，若为空则不连接
+	std::wstring_view svArtistDiv{ L"、"sv };
+	// 备注连接符，若为空则不连接
+	std::wstring_view svCommDiv{ L"\n"sv };
+};
+
 
 struct ID3v2_Header		// ID3v2标签头
 {
@@ -813,22 +829,6 @@ public:
 	}
 };
 
-enum : UINT
-{
-	SMOF_NONE = 0,
-	SMOF_MOVE = 1 << 0,	// 允许使用移动操作避免复制
-	SMOF_SET = 1 << 1,	// 将MUSICINFO数据设置到CTag中，若无此标志则相反
-};
-
-struct SIMPLE_OPT
-{
-	UINT uFlags{};
-	// 艺术家连接符，若为空则不连接
-	std::wstring_view svArtistDiv{ L"、"sv };
-	// 备注连接符，若为空则不连接
-	std::wstring_view svCommDiv{ L"\n"sv };
-};
-
 class CTag
 {
 protected:
@@ -837,7 +837,7 @@ protected:
 public:
 	ECK_DISABLE_COPY_MOVE(CTag);
 	CTag(CMediaFile& mf) :m_File{ mf }, m_Stream{ mf.GetStream() } { m_Stream->AddRef(); }
-	~CTag() { m_Stream->Release(); }
+	virtual ~CTag() { m_Stream->Release(); }
 
 	virtual Result SimpleGetSet(MUSICINFO& mi, const SIMPLE_OPT& Opt) = 0;
 
