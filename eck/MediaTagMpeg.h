@@ -128,7 +128,7 @@ public:
 			m_Stream.MoveTo(m_File.m_Loc.posV2);
 			ID3v2_Header Hdr;
 			m_Stream >> Hdr;
-			m_posBegin = SynchSafeIntToDWORD(Hdr.Size) + 10 + m_File.m_Loc.posV2;// 跳过ID3v2以避免错误同步
+			m_posBegin = ThSyncSafeIntToDWORD(Hdr.Size) + 10 + m_File.m_Loc.posV2;// 跳过ID3v2以避免错误同步
 		}
 		else
 			m_posBegin = 0;
@@ -232,11 +232,8 @@ public:
 		return MpegSampleRateTable[idxVer][m_Info.SampleRateIndex];
 	}
 
-	/// <summary>
-	/// 计算每帧持续时间。
-	/// 因ID3v2中某些字段可以用MPEG帧作时长单位，故提供此方法
-	/// </summary>
-	/// <returns>以毫秒计的帧持续时间</returns>
+	// 计算以毫秒计的每帧持续时间。
+	// 因ID3v2中某些字段可以用MPEG帧作时长单位，故提供此方法
 	constexpr double CalcDurationPerFrame() const
 	{
 		size_t idxVer;

@@ -234,65 +234,77 @@ private:
 
 	INFO m_Info{};
 public:
-	CID3v1(CMediaFile& File) :CTag(File) {}
+	CID3v1(CMediaFile& File) : CTag{ File } {}
 
-	Result SimpleExtract(MUSICINFO& mi) override
+	Result SimpleGetSet(MUSICINFO& mi, const SIMPLE_OPT& Opt) override
 	{
 		mi.Clear();
 		if (m_File.m_Loc.posV1 == SIZETMax)
 			return Result::NoTag;
+		const auto bSet = Opt.uFlags & SMOF_SET;
 		if (mi.uMask & MIM_TITLE)
 		{
-			mi.rsTitle = StrX2W(m_Info.rsTitle);
-			mi.uMaskRead |= MIM_TITLE;
+			if (bSet)
+				m_Info.rsTitle = StrW2X(mi.rsTitle);
+			else
+				mi.rsTitle = StrX2W(m_Info.rsTitle);
+			mi.uMaskChecked |= MIM_TITLE;
 		}
 		if (mi.uMask & MIM_ARTIST)
 		{
-			mi.AppendArtist(StrX2W(m_Info.rsArtist));
-			mi.uMaskRead |= MIM_ARTIST;
+			if (bSet)
+				for (const auto sv : mi.slArtist)
+					m_Info.rsArtist.PushBack(StrW2X(sv.data(), (int)sv.size()));
+			else
+				mi.slArtist.PushBackString(StrX2W(m_Info.rsArtist), Opt.svArtistDiv);
+			mi.uMaskChecked |= MIM_ARTIST;
 		}
 		if (mi.uMask & MIM_ALBUM)
 		{
-			mi.rsAlbum = StrX2W(m_Info.rsAlbum);
-			mi.uMaskRead |= MIM_ALBUM;
+			if (bSet)
+				m_Info.rsAlbum = StrW2X(mi.rsAlbum);
+			else
+				mi.rsAlbum = StrX2W(m_Info.rsAlbum);
+			mi.uMaskChecked |= MIM_ALBUM;
 		}
 		if (mi.uMask & MIM_COMMENT)
 		{
-			mi.AppendComment(StrX2W(m_Info.rsComment));
-			mi.uMaskRead |= MIM_COMMENT;
+			if (bSet)
+				for (const auto sv : mi.slComment)
+					m_Info.rsComment.PushBack(StrW2X(sv.data(), (int)sv.size()));
+			else
+				mi.slComment.PushBackString(StrX2W(m_Info.rsComment), Opt.svCommDiv);
+			mi.uMaskChecked |= MIM_COMMENT;
 		}
 		if (mi.uMask & MIM_GENRE)
 		{
-			if (m_Info.rsGenre.IsEmpty())
-			{
-				if (m_Info.byGenre < ARRAYSIZE(Genre))
-				{
-					mi.rsGenre = Genre[m_Info.byGenre].EnName;
-					mi.uMaskRead |= MIM_GENRE;
-				}
-			}
+			if (bSet)
+				m_Info.rsGenre = StrW2X(mi.rsGenre);
 			else
-			{
-				mi.rsGenre = StrX2W(m_Info.rsGenre);
-				mi.uMaskRead |= MIM_GENRE;
-			}
-		}
-		if (mi.uMask & MIM_DATE)
-		{
-			if (m_Info.usYear)
-			{
-				if (mi.uFlag & MIF_DATE_STRING)
-					mi.Date = Format(L"%04d", m_Info.usYear);
+				if (m_Info.rsGenre.IsEmpty())
+				{
+					if (m_Info.byGenre < ARRAYSIZE(Genre))
+					{
+						mi.rsGenre = Genre[m_Info.byGenre].EnName;
+						mi.uMaskChecked |= MIM_GENRE;
+					}
+				}
 				else
-					mi.Date = SYSTEMTIME{ .wYear = m_Info.usYear };
-				mi.uMaskRead |= MIM_DATE;
-			}
+				{
+					mi.rsGenre = StrX2W(m_Info.rsGenre);
+					mi.uMaskChecked |= MIM_GENRE;
+				}
 		}
 		if (mi.uMask & MIM_TRACK)
 		{
-			mi.nTrack = m_Info.byTrack;
-			mi.cTotalTrack = 0;
-			mi.uMaskRead |= MIM_TRACK;
+			if (bSet)
+				m_Info.byTrack = (BYTE)mi.nTrack;
+			else
+			{
+				mi.nTrack = m_Info.byTrack;
+				mi.cTotalTrack = 0;
+			}
+			mi.uMaskChecked |= MIM_TRACK;
 		}
 		return Result::Ok;
 	}
@@ -367,8 +379,8 @@ public:
 		m_Stream.Read(m_Info.rsComment.Data(), 30);
 		if (!m_Info.rsComment[28])
 		{
-			m_Info.rsComment.ReCalcLen();
 			m_Info.byTrack = m_Info.rsComment[29];
+			m_Info.rsComment.ReCalcLen();
 		}
 		else
 		{
