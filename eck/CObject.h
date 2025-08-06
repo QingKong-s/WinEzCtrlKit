@@ -31,15 +31,15 @@ ECK_NAMESPACE_BEGIN
 
 #define ECKPRIV_RTTI_IMPL1_PREFIX(Cls, Base, Prefix)	\
 	::eck::ClassInfo Cls::s_ClassInfo_##Cls				\
-	{ ECKTOSTRW(Prefix##::##Cls), &Base::s_ClassInfo_##Base, RttiStdNewObject<Cls> };
+	{ ECKTOSTRW(Prefix::Cls), &Base::s_ClassInfo_##Base, RttiStdNewObject<Cls> };
 
 // 带名称前缀的非CObject直接子类
 #define ECK_RTTI_IMPL_BASE_PREFIX(Cls, Base, Prefix)	\
 	ECKPRIV_RTTI_IMPL1_PREFIX(Cls, Base, Prefix)		\
 	ECKPRIV_RTTI_IMPL2(Cls, Base)
 // 带名称前缀的非CObject直接子类，并inline
-#define ECK_RTTI_IMPL_BASE_INLINE_PREFIX(Cls, Base)		\
-	inline ECKPRIV_RTTI_IMPL1_PREFIX(Cls, Base, Prefix)	\
+#define ECK_RTTI_IMPL_BASE_INLINE_PREFIX(Cls, Base, Prefix)	\
+	inline ECKPRIV_RTTI_IMPL1_PREFIX(Cls, Base, Prefix)		\
 	inline ECKPRIV_RTTI_IMPL2(Cls, Base)
 
 // 带名称前缀的CObject直接子类
