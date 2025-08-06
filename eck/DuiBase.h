@@ -2002,12 +2002,28 @@ public:
 	{
 		m_vTheme.front()->SetColorizationColor(cr);
 	}
-	void StUpdateColorizationColor()
+
+	BOOL StUpdateColorizationColor()
 	{
-		DWORD Argb{};
-		BOOL Dummy;
-		DwmGetColorizationColor(&Argb, &Dummy);
-		StUpdateColorizationColor(ArgbToD2DColorF(Argb));
+		HKEY hKey;
+		if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\DWM",
+			0, KEY_READ, &hKey) != ERROR_SUCCESS)
+			return FALSE;
+		DWORD dw, cbBuf{ sizeof(DWORD) };
+		if (RegQueryValueExW(hKey, L"ColorizationColor", nullptr, nullptr,
+			(BYTE*)&dw, &cbBuf) != ERROR_SUCCESS)
+		{
+			RegCloseKey(hKey);
+			return FALSE;
+		}
+		if (((dw >> 24) & 0xFF) < 0xC4)
+		{
+			dw &= 0xFFFFFF;
+			dw |= 0xC4000000;
+		}
+		StUpdateColorizationColor(ArgbToD2DColorF(dw));
+		RegCloseKey(hKey);
+		return TRUE;
 	}
 
 	EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
