@@ -75,7 +75,7 @@ public:
 			w >> cbVal >> uItemFlags;
 			e.eType = GetItemType(uItemFlags);
 			w >> e.rsKey;
-			if (e.rsKey.IsStartOfI(EckStrAndLen("Cover Art")))
+			if (e.rsKey.IsStartWithI(EckStrAndLen("Cover Art")))
 			{
 				PicType eType = PicType::Invalid;
 				const auto posBracket0 = e.rsKey.FindChar('(');

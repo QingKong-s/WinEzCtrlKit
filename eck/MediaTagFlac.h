@@ -391,7 +391,7 @@ public:
 						continue;
 					++iPos;
 					const int cchActual = u8.Size() - iPos;
-					if (u8.IsStartOfI("METADATA_BLOCK_PICTURE"))
+					if (u8.IsStartWithI("METADATA_BLOCK_PICTURE"))
 					{
 						auto rb = Base64Decode(u8.Data() + iPos, cchActual);
 						ParseImageBlock(rb, m_vPic.emplace_back());

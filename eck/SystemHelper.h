@@ -736,7 +736,7 @@ Success:
 				if (cch > 0)
 				{
 					szLinkTarget[cch] = L'\\';
-					if (rsBuf.IsStartOfI(szLinkTarget, cch))
+					if (rsBuf.IsStartWithI(szLinkTarget, cch))
 					{
 						rsBuf.Replace(0, cch, p, 2);
 						break;
