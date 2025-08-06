@@ -1028,7 +1028,7 @@ public:
 		ReSize(int(pCurr - pData));
 	}
 
-	[[nodiscard]] BOOL IsStartOf(TConstPointer psz, int cch = -1) const
+	[[nodiscard]] BOOL IsStartWith(TConstPointer psz, int cch = -1) const
 	{
 		if (cch < 0)
 			cch = (int)TcsLen(psz);
@@ -1036,7 +1036,7 @@ public:
 			return FALSE;
 		return TcsEqualLen(Data(), psz, cch);
 	}
-	[[nodiscard]] BOOL IsStartOfI(TConstPointer psz, int cch = -1) const
+	[[nodiscard]] BOOL IsStartWithI(TConstPointer psz, int cch = -1) const
 	{
 		if (cch < 0)
 			cch = (int)TcsLen(psz);
@@ -1044,7 +1044,7 @@ public:
 			return FALSE;
 		return TcsEqualLenI(Data(), psz, cch);
 	}
-	[[nodiscard]] BOOL IsEndOf(TConstPointer psz, int cch = -1) const
+	[[nodiscard]] BOOL IsEndWith(TConstPointer psz, int cch = -1) const
 	{
 		if (cch < 0)
 			cch = (int)TcsLen(psz);
@@ -1052,7 +1052,7 @@ public:
 			return FALSE;
 		return TcsEqualLen(Data() + Size() - cch, psz, cch);
 	}
-	[[nodiscard]] BOOL IsEndOfI(TConstPointer psz, int cch = -1) const
+	[[nodiscard]] BOOL IsEndWithI(TConstPointer psz, int cch = -1) const
 	{
 		if (cch < 0)
 			cch = (int)TcsLen(psz);

@@ -408,7 +408,7 @@ public:
 			Priv::ShmpLoadIndirectString(e.rsDisplayName);
 
 		e.rsIcon.Clear();
-		if (e.rsFile.IsEndOfI(EckStrAndLen(L".lnk")))
+		if (e.rsFile.IsEndWithI(EckStrAndLen(L".lnk")))
 		{
 			e.rsClsidOrCmd.Clear();
 			ComPtr<IShellLinkW> psl;
