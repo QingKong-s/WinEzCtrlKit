@@ -118,7 +118,7 @@ public:
 				const auto pBaseU8 = (PCCH)w.Data();
 				w += cbVal;
 				int pos0{}, pos1{};
-				for (; pos1 < cbVal; ++pos1)
+				for (; pos1 < (int)cbVal; ++pos1)
 				{
 					if (pBaseU8[pos1] == '\0')
 					{
@@ -458,6 +458,7 @@ public:
 				}
 				mi.uMaskChecked |= MIM_COVER;
 			}
+		return Result::Ok;
 	}
 
 	void Reset() override { m_vItem.clear(); }

@@ -103,6 +103,7 @@ enum class Result
 	MpegSyncFailed,		// MPEG同步失败
 	NotSupport,			// 不支持请求的操作
 	OutOfMemory,		// 内存不足
+	FileAccessDenied,	// 无法访问文件
 };
 // 图片类型
 enum class PicType :BYTE
@@ -246,7 +247,7 @@ struct StrList
 		return Str.Data() + 1;
 	}
 
-	void PushBackString(std::wstring_view svText, std::wstring_view svDiv)
+	void PushBackStringView(std::wstring_view svText, std::wstring_view svDiv)
 	{
 		EckAssert(svText.size() <= 0xFFFF);
 		WCHAR cchText;
@@ -272,31 +273,7 @@ struct StrList
 
 	void PushBackString(const CRefStrW& rs, std::wstring_view svDiv)
 	{
-		PushBackString(rs.ToStringView(), svDiv);
-	}
-
-	void PushBackStringU8(const CRefStrA& rs, std::wstring_view svDiv)
-	{
-		EckAssert(rs.Size() <= 0xFFFF);
-		WCHAR cchText;
-		if (rs.IsEmpty())
-			return;
-		cchText = (WCHAR)rs.Size();
-		if (svDiv.empty())
-		{
-			Str.PushBackChar(cchText);
-			StrU82W(rs.Data(), rs.Size(), Str);
-			Str.PushBackChar(L'\0');
-		}
-		else
-		{
-			if (Str.IsEmpty())
-				Str.PushBackChar(L'\0');// 长度
-			else
-				Str.PushBack(svDiv);
-			StrU82W(rs.Data(), rs.Size(), Str);
-			Str[0] = WCHAR(Str.Size() - 1);
-		}
+		PushBackStringView(rs.ToStringView(), svDiv);
 	}
 
 	Iterator begin() const { return { Str.Data() }; }
@@ -817,11 +794,14 @@ public:
 	EckInlineNdCe IStream* GetStream() const { return m_pStream.Get(); }
 
 	EckInlineNdCe UINT GetTagType() const { return m_uTagType; }
+	EckInlineNdCe BOOL IsValid() const { return !!GetStream(); }
 
 	UINT DetectTag()
 	{
 		m_Loc = {};
 		m_uTagType = 0u;
+		if (!IsValid())
+			return 0u;
 		m_uTagType |= DetectID3_APE();
 		if (DetectFlac())
 			m_uTagType |= TAG_FLAC;
