@@ -289,7 +289,23 @@ struct MUSICPIC
 	std::variant<CRefBin, CRefStrW> varPic;
 
 	EckInlineNdCe auto& GetPicPath() { return std::get<CRefStrW>(varPic); }
+	EckInlineNdCe auto& GetPicPath() const { return std::get<CRefStrW>(varPic); }
 	EckInlineNdCe auto& GetPicData() { return std::get<CRefBin>(varPic); }
+	EckInlineNdCe auto& GetPicData() const { return std::get<CRefBin>(varPic); }
+
+	HRESULT CreateStream(_Out_ IStream*& pStream) const
+	{
+		if (bLink)
+		{
+			return SHCreateStreamOnFileEx(GetPicPath().Data(),
+				STGM_READ, 0, FALSE, nullptr, &pStream);
+		}
+		else
+		{
+			pStream = new eck::CStreamView{ GetPicData() };
+			return S_OK;
+		}
+	}
 };
 
 struct MUSICINFO

@@ -456,12 +456,12 @@ public:
 	EckInlineNdCe BOOL IsVisible() const
 	{
 		auto pParent = this;
-		while (pParent)
+		do
 		{
 			if (!(pParent->GetStyle() & DES_VISIBLE))
 				return FALSE;
 			pParent = pParent->GetParentElem();
-		}
+		} while (pParent);
 		return TRUE;
 	}
 
@@ -1280,9 +1280,8 @@ private:
 					switch (m_ePresentMode)
 					{
 					case PresentMode::FlipSwapChain:
-						m_D2D.GetSwapChain()->Present(1, 0);
 						bWaitSwapChain = TRUE;
-						break;
+						[[fallthrough]];
 					case PresentMode::BitBltSwapChain:
 						m_D2D.GetSwapChain()->Present(0, 0);
 						break;
@@ -1308,33 +1307,24 @@ private:
 						(m_ePresentMode == PresentMode::FlipSwapChain ||
 							m_ePresentMode == PresentMode::BitBltSwapChain);
 					RedrawDui(rc, m_bFullUpdate, bWantPhyRect ? &rc : nullptr);
+					DXGI_PRESENT_PARAMETERS pp{};
 					if (m_bFullUpdate)
 						m_bFullUpdate = FALSE;
+					else if (bWantPhyRect)
+					{
+						pp.DirtyRectsCount = 1;
+						pp.pDirtyRects = &rc;
+					}
 					m_rcInvalid = {};
 					m_cs.Leave();
 					// 呈现
 					switch (m_ePresentMode)
 					{
-					case PresentMode::BitBltSwapChain:
-					{
-						const DXGI_PRESENT_PARAMETERS pp
-						{
-							.DirtyRectsCount = 1,
-							.pDirtyRects = &rc,
-						};
-						m_D2D.GetSwapChain()->Present1(0, 0, &pp);
-					}
-					break;
 					case PresentMode::FlipSwapChain:
-					{
-						const DXGI_PRESENT_PARAMETERS pp
-						{
-							.DirtyRectsCount = 1,
-							.pDirtyRects = &rc,
-						};
-						m_D2D.GetSwapChain()->Present1(1, 0, &pp);
 						bWaitSwapChain = TRUE;
-					}
+						[[fallthrough]];
+					case PresentMode::BitBltSwapChain:
+						m_D2D.GetSwapChain()->Present1(0, 0, &pp);
 					break;
 					}
 				}
@@ -1497,6 +1487,7 @@ public:
 				RECT rcInvalid;
 				GetUpdateRect(hWnd, &rcInvalid, FALSE);
 				ValidateRect(hWnd, nullptr);
+				Phy2Log(rcInvalid);
 				IrUnion(rcInvalid);
 				WakeRenderThread();
 			}
@@ -1614,7 +1605,7 @@ public:
 					m_D2D.GetSwapChain()->QueryInterface(IID_PPV_ARGS(&pSwapChain2));
 					if (pSwapChain2.Get())
 					{
-						pSwapChain2->SetMaximumFrameLatency(1);
+						pSwapChain2->SetMaximumFrameLatency(0);
 						m_hEvtSwapChain = pSwapChain2->GetFrameLatencyWaitableObject();
 					}
 				}
@@ -1713,7 +1704,7 @@ public:
 				m_cyClientLog = (int)ceilf(Phy2LogF((float)m_cyClient));
 
 				m_bFullUpdate = TRUE;
-				m_rcInvalid = { 0,0,m_cxClient,m_cyClient };
+				m_rcInvalid = { 0,0,m_cxClientLog,m_cyClientLog };
 
 				m_EvtRender.NoSignal();
 				StartupRenderThread();
@@ -2565,7 +2556,7 @@ EckInline LRESULT CElem::GenElemNotify(void* pnm)
 inline void CElem::InvalidateRect(const RECT& rc, BOOL bUpdateNow)
 {
 	ECK_DUILOCK;
-	if (!(GetStyle() & DES_VISIBLE))
+	if (!IsVisible())
 		return;
 	RECT rcTemp;
 	if (GetStyle() & DES_CONTENT_EXPAND)
