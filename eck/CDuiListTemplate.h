@@ -412,6 +412,11 @@ protected:
 
 	void CalcItemRangeInRect(const RECT& rc, _Out_ int& idxBegin, _Out_ int& idxEnd)
 	{
+		if (!GetItemCount())
+		{
+			idxBegin = idxEnd = -1;
+			return;
+		}
 		switch (m_eView)
 		{
 		case Type::List:
@@ -566,6 +571,8 @@ protected:
 		int idxBegin, idxEnd;
 		RECT rcItem;
 		CalcItemRangeInRect(rcJudge, idxBegin, idxEnd);
+		if (idxEnd < 0)
+			goto Skip;
 		if (idxBegin < 0)
 			idxBegin = 0;
 		if (idxEnd >= GetItemCount())
@@ -600,6 +607,7 @@ protected:
 				}
 			}
 		}
+	Skip:
 		OffsetRect(m_rcDragSel, 0, dy);
 		InvalidateRect();
 	}
@@ -1060,7 +1068,7 @@ public:
 					auto pThis = (CListTemplate*)lParam;
 					pThis->ReCalcTopItem();
 					pThis->InvalidateRect();
-					if (pThis->m_psvV->IsStop())
+					if (pThis->m_psvV->IsStop() && pThis->GetItemCount())
 					{
 						NMLTSCROLLED nm{ LTE_SCROLLED };
 						pThis->CalcItemRangeInRect(
@@ -1800,6 +1808,19 @@ public:
 			return m_idxSel;
 		else
 			return -1;
+	}
+
+	void GetVisibleRange(_Out_ int& idxTop, _Out_ int& idxBottom)
+	{
+		if (!GetItemCount())
+		{
+			idxTop = -1;
+			idxBottom = -2;
+			return;
+		}
+		CalcItemRangeInRect(GetViewRect(), idxTop, idxBottom);
+		if (idxBottom >= GetItemCount())
+			idxBottom = GetItemCount() - 1;
 	}
 
 	EckInline void UpdateHeaderLayout() noexcept { ArrangeHeader(TRUE); }
