@@ -17,7 +17,8 @@ protected:
 	int m_cyBtn{};
 	DwmWndPart m_idxHot{ DwmWndPart::Invalid };
 	DwmWndPart m_idxPressed{ DwmWndPart::Invalid };
-	BITBOOL m_bMaximized{};
+	BOOLEAN m_bMaximized{};
+	BYTE m_eInterMode{ (BYTE)D2D1_INTERPOLATION_MODE_LINEAR };
 
 	DwmWPartState GetPartState(DwmWndPart idx) const
 	{
@@ -58,6 +59,7 @@ public:
 			const auto bDarkMode = ShouldAppsUseDarkMode();
 			const auto iUserDpi = GetWnd()->GetUserDpiValue();
 			const auto dMargin = DpiScaleF(0.5f, 96, iUserDpi);
+			const auto eInterMode = (D2D1_INTERPOLATION_MODE)m_eInterMode;
 
 			m_pDC->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
 			if (m_DwmPartMgr.GetPartRect(rc, rcBkg, DwmWndPart::Close,
@@ -73,7 +75,7 @@ public:
 				CenterRect(rcTemp, rcDst);
 
 				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.f,
-					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRcF(rc));
+					eInterMode, MakeD2DRcF(rc));
 
 				rcDst.left -= dMargin;
 			}
@@ -90,17 +92,12 @@ public:
 				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
 					MakeD2DRcF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing));
 
-				//ID2D1SolidColorBrush* pBrush = nullptr;
-				//m_pDC->CreateSolidColorBrush(bDarkMode ? D2D1::ColorF(0.f, 0.f, 0.f, 1.f) : D2D1::ColorF(1.f, 1.f), &pBrush);
-				//m_pDC->FillRectangle(rcDst, pBrush);
-				//pBrush->Release();
-
 				rcTemp = MakeD2DRcF(rc);
 				GetWnd()->Phy2Log(rcTemp);
 				CenterRect(rcTemp, rcDst);
 
 				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.f,
-					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRcF(rc));
+					eInterMode, MakeD2DRcF(rc));
 
 				rcDst.left -= dMargin;
 			}
@@ -121,14 +118,13 @@ public:
 				CenterRect(rcTemp, rcDst);
 
 				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.0f,
-					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRcF(rc));
+					eInterMode, MakeD2DRcF(rc));
 
 				rcDst.left -= dMargin;
 			}
 			m_pDC->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
 
 			ECK_DUI_DBG_DRAW_FRAME;
-
 			EndPaint(eps);
 		}
 		return 0;
@@ -307,6 +303,15 @@ public:
 		RECT rc{ GetWidth() - m_cxClose - m_cxMaxMin * 2 , 0, GetWidth(), m_cyBtn };
 		ElemToClient(rc);
 		InvalidateRect(rc);
+	}
+
+	EckInlineCe void SetInterpolationMode(D2D1_INTERPOLATION_MODE eInterMode)
+	{
+		m_eInterMode = eInterMode;
+	}
+	EckInlineNdCe D2D1_INTERPOLATION_MODE GetInterpolationMode() const
+	{
+		return (D2D1_INTERPOLATION_MODE)m_eInterMode;
 	}
 };
 ECK_DUI_NAMESPACE_END

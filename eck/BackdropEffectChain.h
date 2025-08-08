@@ -3,6 +3,7 @@
 #include "Utility2.h"
 #include "ImageHelper.h"
 #include "CStreamView.h"
+#include "NativeWrapper.h"
 
 #include <windows.ui.composition.interop.h>
 
