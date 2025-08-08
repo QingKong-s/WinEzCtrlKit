@@ -386,7 +386,7 @@ constexpr inline STD_THEME_DATA StdThemeData
 			.bGeometry = TRUE,
 			.Geo = {
 				.eType = GeoType::FillFrameRect,
-				.fWidth = 3.f
+				.fWidth = 1.f
 			},
 			.ColorIdx = {
 				.idxClrBk = (UINT)StdPal::ListSelRectBk,
