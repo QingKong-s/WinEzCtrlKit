@@ -1569,7 +1569,10 @@ public:
 		case WM_SETTINGCHANGE:
 		{
 			if (IsColorSchemeChangeMessage(lParam))
+			{
+				ECK_DUILOCKWND;
 				BroadcastEvent(EWM_COLORSCHEMECHANGED, ShouldAppsUseDarkMode(), 0);
+			}
 		}
 		break;
 
