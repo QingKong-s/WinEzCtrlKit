@@ -108,6 +108,7 @@ enum
 	RE_PRERENDER,
 	RE_POSTRENDER,		// 渲染完毕，仅当RE_PRERENDER返回RER_REDIRECTION时产生
 	RE_COMMIT,			// DUI系统认为有必要冲洗一切挂起的工作
+	RE_FILLBACKGROUND,	// 正在填充背景
 };
 // 渲染事件返回值
 enum : LRESULT
@@ -129,6 +130,10 @@ struct RENDER_EVENT
 			IDXGISurface* pSfcNewDst;
 			RECT* prcNewDirtyPhy;
 		} PreRender;
+		struct
+		{
+			D2D1_RECT_F rc;
+		} FillBkg;
 	};
 };
 
