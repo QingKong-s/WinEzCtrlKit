@@ -722,7 +722,7 @@ private:
 	CElem* m_pCurrNcHitTestElem{};	// 当前非客户区命中元素
 	CElem* m_pMouseCaptureElem{};	// 当前鼠标捕获元素
 
-	CCriticalSection m_cs{};// 渲染线程同步临界区
+	static CCriticalSection m_cs;// 渲染线程同步临界区
 	CEvent m_EvtRender{};	// 渲染线程事件对象
 	HANDLE m_hthRender{};	// 渲染线程句柄
 
@@ -1891,7 +1891,14 @@ public:
 		return RER_NONE;
 	}
 
-	EckInline constexpr ID2D1SolidColorBrush* GetBkgBrush() const { return m_pBrBkg; }
+	EckInlineNdCe auto BbrGet() const { return m_pBrBkg; }
+	EckInline void BbrDelete() { SafeRelease(m_pBrBkg); }
+	EckInline void BbrCreate()
+	{
+		if (!m_pBrBkg)
+			GetDeviceContext()->CreateSolidColorBrush(
+				ColorrefToD2DColorF(GetThreadCtx()->crDefBkg), &m_pBrBkg);
+	}
 
 	EckInline CElem* ElemFromPoint(POINT pt, _Out_opt_ LRESULT* pResult = nullptr)
 	{
@@ -2121,11 +2128,13 @@ public:
 		}
 	}
 
-	EckInline void Redraw()
+	EckInline void Redraw(BOOL bWake = TRUE)
 	{
 		ECK_DUILOCKWND;
-		m_rcInvalid = { 0,0,m_cxClient,m_cyClient };
-		WakeRenderThread();
+		m_bFullUpdate = TRUE;
+		m_rcInvalid = { 0,0,m_cxClientLog,m_cyClientLog };
+		if (bWake)
+			WakeRenderThread();
 	}
 
 	/// <summary>
@@ -2365,6 +2374,7 @@ public:
 
 	EckInlineNdCe CElem* GetCurrNcHitElem() const noexcept { return m_pCurrNcHitTestElem; }
 };
+inline CCriticalSection CDuiWnd::m_cs{};
 
 inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
 	int x, int y, int cx, int cy, CElem* pParent, CDuiWnd* pWnd, int iId, PCVOID pData)
