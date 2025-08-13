@@ -9,20 +9,22 @@
 #define ECK_LYRIC_NAMESPACE_END		}
 ECK_NAMESPACE_BEGIN
 ECK_LYRIC_NAMESPACE_BEGIN
-struct LRCTIMELABEL
+enum class Result
 {
-	PCWSTR pszLabel;
-	int pos1;
-	int pos2;
+	Ok,
+	TlInvalidChar,		// 字段中含有非法字符
+	TlFieldEmpty,		// 字段为空
+	TlInvalidMsLength,	// 毫秒长度不正确
+	TlUnexpectedEnd,	// 意外结尾
 };
 
-enum class LrcEncoding
+
+struct WordTime
 {
-	Auto,
-	GB2312,
-	UTF8,
-	UTF16LE,
-	UTF16BE
+	PCWCH pszWord;
+	int cchWord;
+	float fTime;
+	float fDuration;
 };
 
 struct Line
@@ -31,36 +33,34 @@ struct Line
 	PCWCH pszTranslation{};
 	USHORT cchLrc{};
 	USHORT cchTranslation{};
-	BOOL bMAlloc{};
+	USHORT cchWordTotal{};
+	BOOLEAN bMAlloc{};
 	float fTime{};
 	float fDuration{};
+	std::vector<WordTime> vWordTime;
 
 	Line() = default;
-	Line(const Line& x)
-	{
-		memcpy(this, &x, sizeof(Line));
-		if (bMAlloc)
-		{
-			const auto p = malloc(Cch2CbW(x.cchLrc + x.cchTranslation + 1));
-			TcsCopyLen((PWSTR)p, x.pszLrc, x.cchLrc + x.cchTranslation + 2);
-			pszLrc = (PCWCH)p;
-			pszTranslation = (PCWCH)p + x.cchLrc + 1;
-		}
-	}
 	Line(Line&& x) noexcept
 	{
-		memcpy(this, &x, sizeof(Line));
-		ZeroMemory(&x, sizeof(Line));
+		std::swap(pszLrc, x.pszLrc);
+		std::swap(pszTranslation, x.pszTranslation);
+		std::swap(cchLrc, x.cchLrc);
+		std::swap(cchTranslation, x.cchTranslation);
+		std::swap(bMAlloc, x.bMAlloc);
+		std::swap(fTime, x.fTime);
+		std::swap(fDuration, x.fDuration);
+		std::swap(vWordTime, x.vWordTime);
 	}
 	Line& operator=(Line&& x) noexcept
 	{
-		if (this != &x)
-		{
-			if (bMAlloc)
-				free((void*)pszLrc);
-			memcpy(this, &x, sizeof(Line));
-			ZeroMemory(&x, sizeof(Line));
-		}
+		std::swap(pszLrc, x.pszLrc);
+		std::swap(pszTranslation, x.pszTranslation);
+		std::swap(cchLrc, x.cchLrc);
+		std::swap(cchTranslation, x.cchTranslation);
+		std::swap(bMAlloc, x.bMAlloc);
+		std::swap(fTime, x.fTime);
+		std::swap(fDuration, x.fDuration);
+		std::swap(vWordTime, x.vWordTime);
 		return *this;
 	}
 	~Line()
@@ -83,43 +83,34 @@ struct Label
 	int cchValue;
 };
 
-struct WordTime
-{
-	PCWCH pszWord;
-	int cchWord;
-	float fTime;
-	float fDuration;
-};
-
 struct LineWord
 {
-	std::vector<WordTime> vWordTime;
+	int cchTotal;
+	float fTime;
+
+	constexpr std::partial_ordering operator<=>(const Line& x) const
+	{
+		return fTime <=> x.fTime;
+	}
 };
 
 class CLyric final : public CRefObj<CLyric>
 {
-public:
-	enum class Result
-	{
-		Ok,
-		TlInvalidChar,
-		TlFieldEmpty,
-		TlInvalidMsLength,
-		TlUnexpectedEnd,
-	};
 private:
 	CRefStrW m_rsLyric{};
 	std::vector<Label> m_vLabel{};
 	std::vector<Line> m_vLine{};
-	std::vector<LineWord> m_vLineWord{};
-	std::vector<LineWord> m_vLineWordTrans{};
-	std::vector<LineWord> m_vLineWordRomaji{};
 
-	Result LrcParseLabel(PCWCH& p, PCWCH pEnd,
-		BOOL* pbAddLrc = nullptr, BOOL* pbAddLabel = nullptr)
+	BOOLEAN m_bDiscardEmptyLine{};
+	BOOLEAN m_bDiscardEmptyWord{ TRUE };
+
+	Result LrcParseLabelWorker(PCWCH& p, PCWCH pEnd,
+		BOOL* pbAddLrc, BOOL* pbAddLabel, BOOL bAngleBracket)
 	{
 		if (pbAddLrc) *pbAddLrc = FALSE;
 		if (pbAddLabel) *pbAddLabel = FALSE;
+		const auto chBracketL = bAngleBracket? L'<' : L'[';
+		const auto chBracketR = bAngleBracket? L'>' : L']';
 		enum class State
 		{
 			Init,
@@ -134,6 +125,7 @@ private:
 		State eState = State::Init;
 		PCWCH pLast{ p };
 		float fTime{};
+		int n;
 		while (p < pEnd)
 		{
 			const auto ch = *p++;
@@ -141,18 +133,30 @@ private:
 			{
 			case State::Init:
 				if (iswalpha(ch))
-					eState = State::Key;// [ar:xxx]等
+					if (bAngleBracket)
+						return Result::TlInvalidChar;
+					else
+						eState = State::Key;// [ar:xxx]等
 				else if (iswdigit(ch))
 					eState = State::M;	// [00:00.000]等
 				else
 					return Result::TlInvalidChar;
 				break;
 			case State::M:
-				if (ch == ':')
+				if (ch == '>' && bAngleBracket)// TRC支持
 				{
 					if (p - pLast <= 1)
 						return Result::TlFieldEmpty;
-					int n;
+					TcsToInt(pLast, p - pLast - 1, n, 10);
+					auto& Line = m_vLine.back();
+					Line.vWordTime.emplace_back().fTime = Line.fTime + (float)n / 1000.f;
+					if (pbAddLrc) *pbAddLrc = TRUE;
+					return Result::Ok;
+				}
+				else if (ch == ':')
+				{
+					if (p - pLast <= 1)
+						return Result::TlFieldEmpty;
 					TcsToInt(pLast, p - pLast - 1, n, 10);
 					fTime = (float)n * 60.f;
 					eState = State::S;
@@ -162,16 +166,18 @@ private:
 					return Result::TlInvalidChar;
 				break;
 			case State::S:
-				if (ch == '.' || ch == ':' || ch == ']')
+				if (ch == '.' || ch == ':' || ch == chBracketR)
 				{
 					if (p - pLast <= 1)
 						return Result::TlFieldEmpty;
-					int n;
 					TcsToInt(pLast, p - pLast - 1, n, 10);
 					fTime += (float)n;
-					if (ch == ']')
+					if (ch == chBracketR)
 					{
-						m_vLine.emplace_back().fTime = fTime;
+						if (bAngleBracket)
+							m_vLine.back().vWordTime.emplace_back().fTime = fTime;
+						else
+							m_vLine.emplace_back().fTime = fTime;
 						if (pbAddLrc) *pbAddLrc = TRUE;
 						return Result::Ok;
 					}
@@ -185,18 +191,20 @@ private:
 					return Result::TlInvalidChar;
 				break;
 			case State::Ms:
-				if (ch == ']')
+				if (ch == chBracketR)
 				{
 					const auto cch = p - pLast - 1;
 					if (cch <= 0)
 						return Result::TlFieldEmpty;
 					else if (cch != 1 && cch != 2 && cch != 3)
 						return Result::TlInvalidMsLength;
-					int n;
 					TcsToInt(pLast, cch, n, 10);
 					fTime += (float)n / (cch == 1 ? 10.f :
 						cch == 2 ? 100.f : 1000.f);
-					m_vLine.emplace_back().fTime = fTime;
+					if (bAngleBracket)
+						m_vLine.back().vWordTime.emplace_back().fTime = fTime;
+					else
+						m_vLine.emplace_back().fTime = fTime;
 					if (pbAddLrc) *pbAddLrc = TRUE;
 					return Result::Ok;
 				}
@@ -204,10 +212,12 @@ private:
 					return Result::TlInvalidChar;
 				break;
 			case State::Key:
+				EckAssert(!bAngleBracket);
 				if (ch == ':')
 				{
 					if (p - pLast <= 1)
 						return Result::TlFieldEmpty;
+
 					auto& e = m_vLabel.emplace_back();
 					e.pszKey = pLast;
 					e.cchKey = int(p - pLast - 1);
@@ -215,11 +225,13 @@ private:
 					pLast = p;
 					if (pbAddLabel) *pbAddLabel = TRUE;
 				}
-				else if (ch == ']' || ch == '[' || ch == '\r' || ch == '\n')
+				else if (ch == chBracketR || ch == chBracketL ||
+					ch == '\r' || ch == '\n')
 					return Result::TlUnexpectedEnd;
 				break;
 			case State::Value:
-				if (ch == ']')
+				EckAssert(!bAngleBracket);
+				if (ch == chBracketR)
 				{
 					if (p - pLast <= 1)
 						return Result::TlFieldEmpty;
@@ -228,7 +240,7 @@ private:
 					e.cchValue = int(p - pLast - 1);
 					return Result::Ok;
 				}
-				else if (ch == '[' || ch == '\r' || ch == '\n')
+				else if (ch == chBracketL || ch == '\r' || ch == '\n')
 					return Result::TlUnexpectedEnd;
 				break;
 			}
@@ -236,14 +248,62 @@ private:
 		return Result::TlUnexpectedEnd;
 	}
 
-	Result ElrcParseWordTime(PCWCH& p, PCWCH pEnd)
+	Result LrcParseLabel(PCWCH& p, PCWCH pEnd,
+		BOOL* pbAddLrc = nullptr, BOOL* pbAddLabel = nullptr)
 	{
+		return LrcParseLabelWorker(p, pEnd, pbAddLrc, pbAddLabel, FALSE);
+	}
 
+	Result LrcParseWordTime(PCWCH& p, PCWCH pEnd, BOOL* pbAddLrc = nullptr)
+	{
+		return LrcParseLabelWorker(p, pEnd, pbAddLrc, nullptr, TRUE);
+	}
+
+	void LrcpWordEnd(PCWCH p0, PCWCH p1, BOOL bAddLrc)
+	{
+		auto& e = *(m_vLine.back().vWordTime.rbegin() + bAddLrc);
+		e.cchWord = int(p1 - p0 - 1);
+		if (!e.cchWord && m_bDiscardEmptyWord)
+			m_vLine.back().vWordTime.pop_back();
+		else
+		{
+			m_vLine.back().cchWordTotal += e.cchWord;
+			e.pszWord = (e.cchWord ? p0 : nullptr);
+			DbgCutString(e);
+		}
+	}
+	void LrcpWordEndEmpty(BOOL bAddLrc)
+	{
+		if (m_bDiscardEmptyWord)
+			if (bAddLrc)
+				m_vLine.back().vWordTime.erase((m_vLine.back().vWordTime.rbegin() + 1).base());
+			else
+				m_vLine.back().vWordTime.pop_back();
 	}
 
 	void SortAndMerge()
 	{
 		std::stable_sort(m_vLine.begin(), m_vLine.end());
+		EckCounter(m_vLine.size(), i)
+		{
+			auto& e = m_vLine[i];
+			if (e.cchWordTotal)
+			{
+				if (e.bMAlloc)
+					free((void*)e.pszLrc);
+				e.bMAlloc = TRUE;
+				e.pszLrc = (PCWCH)malloc(Cch2CbW(e.cchWordTotal));
+				EckCheckMem(e.pszLrc);
+				e.cchLrc = e.cchWordTotal;
+				PWCH p = (PWCH)e.pszLrc;
+				for (const auto& w : e.vWordTime)
+				{
+					TcsCopyLen(p, w.pszWord, w.cchWord);
+					p += w.cchWord;
+				}
+				*p = L'\0';
+			}
+		}
 		// 合并时间相同的行
 		std::vector<float> vLastTime{};
 		std::vector<size_t> vNeedDelIndex{};
@@ -319,6 +379,19 @@ private:
 		for (auto it = vNeedDelIndex.rbegin(); it < vNeedDelIndex.rend(); ++it)
 			m_vLine.erase(m_vLine.begin() + *it);
 	}
+
+	void DbgCutString(const Line& x)
+	{
+		if (x.pszLrc)
+		*((PWCH)x.pszLrc + x.cchLrc) = 0;
+		if (x.pszTranslation)
+		*((PWCH)x.pszTranslation + x.cchTranslation) = 0;
+	}
+	void DbgCutString(const WordTime& x)
+	{
+		if (x.pszWord)
+		*((PWCH)x.pszWord + x.cchWord) = 0;
+	}
 public:
 	void LoadTextStrView(std::wstring_view sv) noexcept
 	{
@@ -339,6 +412,7 @@ public:
 			Label,
 			WordTime,
 			Text,
+			WordText,
 		};
 		Result r;
 		State eState = State::Normal;
@@ -368,7 +442,7 @@ public:
 					++cLabelContinues;
 				if (*p == '[')
 					continue;
-				else if (*p == '<')
+				else if (*p == '<')// 方括号标签后的第一个尖括号
 					eState = State::WordTime;
 				else
 				{
@@ -377,6 +451,20 @@ public:
 				}
 				break;
 			case State::WordTime:
+				r = LrcParseWordTime(p, pEnd, &bAddLrc);
+				if (r != Result::Ok)
+					return r;
+				if (bAddLrc)
+					++cLabelContinues;
+				if (*p == '[')
+					eState = State::Label;
+				else if (*p == '<')
+					eState = State::WordTime;
+				else
+				{
+					pLast = p;
+					eState = State::WordText;
+				}
 				break;
 			case State::Text:
 				if (ch == '[')// 尝试解析标签
@@ -389,10 +477,8 @@ public:
 							it != m_vLine.rbegin() + bAddLrc + cLabelContinues; ++it)
 						{
 							it->cchLrc = USHORT(pOld - pLast - 1);
-							if (it->cchLrc)
-								it->pszLrc = pLast;
-							else
-								it->pszLrc = nullptr;
+							it->pszLrc = (pLast ? pLast : nullptr);
+							DbgCutString(*it);
 						}
 						cLabelContinues = 1;
 						if (*p == '[')
@@ -422,11 +508,75 @@ public:
 						it != m_vLine.rbegin() + cLabelContinues; ++it)
 					{
 						it->cchLrc = USHORT(p - pLast - 1);
-						if (it->cchLrc)
-							it->pszLrc = pLast;
-						else
-							it->pszLrc = nullptr;
+						it->pszLrc = (pLast ? pLast : nullptr);
+						DbgCutString(*it);
 					}
+					cLabelContinues = 0;
+				}
+				break;
+			case State::WordText:
+				if (ch == '[')// 尝试解析标签
+				{
+					const auto pOld = p;
+					r = LrcParseLabel(p, pEnd, &bAddLrc, &bAddLabel);
+					if (r == Result::Ok)// 成功，文本结束
+					{
+						LrcpWordEnd(pLast, pOld, FALSE);
+						cLabelContinues = 1;
+						if (*p == '[')
+						{
+							LrcpWordEndEmpty(bAddLrc);
+							eState = State::Label;
+						}
+						else if (*p == '<')
+						{
+							LrcpWordEndEmpty(bAddLrc);
+							eState = State::WordTime;
+						}
+						else
+							pLast = p;
+					}
+					else// 失败，回退所有修改并继续作为文本处理
+					{
+						p = pOld;
+						if (bAddLrc)
+							m_vLine.pop_back();
+						if (bAddLabel)
+							m_vLabel.pop_back();
+					}
+				}
+				else if (ch == '<')
+				{
+					const auto pOld = p;
+					r = LrcParseWordTime(p, pEnd, &bAddLrc);
+					if (r == Result::Ok)
+					{
+						LrcpWordEnd(pLast, pOld, bAddLrc);
+						cLabelContinues = 1;
+						if (*p == '[')
+						{
+							LrcpWordEndEmpty(bAddLrc);
+							eState = State::Label;
+						}
+						else if (*p == '<')
+						{
+							LrcpWordEndEmpty(bAddLrc);
+							eState = State::WordTime;
+						}
+						else
+							pLast = p;
+					}
+					else
+					{
+						p = pOld;
+						if (bAddLrc)
+							m_vLine.back().vWordTime.pop_back();
+					}
+				}
+				else if (ch == '\r' || ch == '\n' || p == pEnd)
+				{
+					LrcpWordEnd(pLast, p, FALSE);
+					eState = State::Normal;
 					cLabelContinues = 0;
 				}
 				break;
