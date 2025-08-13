@@ -41,7 +41,7 @@ W32ERR CProject::CloseProject()
 
 DsForm* CProject::ResAddForm(std::wstring_view svName)
 {
-	auto& Form = m_vForm.emplace_back(std::make_unique<DsForm>());
-	Form->rsName = svName;
+	//auto& Form = m_vForm.emplace_back(std::make_unique<DsForm>());
+	//Form->rsName = svName;
 	return 0;
 }

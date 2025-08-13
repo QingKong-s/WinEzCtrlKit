@@ -148,6 +148,7 @@ protected:
 	int m_dCursorToItemMax{};	// 鼠标指针到项目的最大距离
 
 	Type m_eView{ Type::List };	// 视图类型
+	BYTE m_eInterMode{ D2D1_INTERPOLATION_MODE_LINEAR };
 
 	BITBOOL m_bSingleSel : 1{};	// 单选
 	BITBOOL m_bGroup : 1{};		// 分组
@@ -1891,6 +1892,9 @@ public:
 
 	EckInlineCe void SetCustomDraw(BOOL b) noexcept { m_bCustomDraw = b; }
 	EckInlineNdCe BOOL GetCustomDraw() const noexcept { return m_bCustomDraw; }
+
+	EckInlineCe void SetInterpolationMode(D2D1_INTERPOLATION_MODE e) { m_eInterMode = (BYTE)e; }
+	EckInlineNdCe D2D1_INTERPOLATION_MODE GetInterpolationMode() const noexcept { return (D2D1_INTERPOLATION_MODE)m_eInterMode; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

@@ -74,9 +74,9 @@ protected:
 		rc.bottom = rc.top + sizeImg.height;
 		if (IsRectsIntersect(rc, rcPaint))
 			if (di.pImage)
-				m_pDC->DrawBitmap(di.pImage, rc, 1.f);
+				m_pDC->DrawBitmap(di.pImage, rc, 1.f, GetInterpolationMode());
 			else if (di.idxImage >= 0)
-				m_pImgList->Draw(di.idxImage, rc);
+				m_pImgList->Draw(di.idxImage, rc, 1.f, GetInterpolationMode());
 	SkipDrawImg:
 		auto& e = m_vItem[nm.idx];
 		if (!e.pLayout.Get() && di.pszText && di.cchText > 0)
