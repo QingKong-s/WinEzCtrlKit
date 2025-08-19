@@ -7,6 +7,13 @@
 
 #define ECK_LYRIC_NAMESPACE_BEGIN	namespace Lyric {
 #define ECK_LYRIC_NAMESPACE_END		}
+
+#if 1
+#define EckLrcValidateHeap()		_CrtCheckMemory()
+#else
+#define EckLrcValidateHeap()		{}
+#endif
+
 ECK_NAMESPACE_BEGIN
 ECK_LYRIC_NAMESPACE_BEGIN
 enum class Result
@@ -46,6 +53,7 @@ struct Line
 		std::swap(pszTranslation, x.pszTranslation);
 		std::swap(cchLrc, x.cchLrc);
 		std::swap(cchTranslation, x.cchTranslation);
+		std::swap(cchWordTotal, x.cchWordTotal);
 		std::swap(bMAlloc, x.bMAlloc);
 		std::swap(fTime, x.fTime);
 		std::swap(fDuration, x.fDuration);
@@ -57,6 +65,7 @@ struct Line
 		std::swap(pszTranslation, x.pszTranslation);
 		std::swap(cchLrc, x.cchLrc);
 		std::swap(cchTranslation, x.cchTranslation);
+		std::swap(cchWordTotal, x.cchWordTotal);
 		std::swap(bMAlloc, x.bMAlloc);
 		std::swap(fTime, x.fTime);
 		std::swap(fDuration, x.fDuration);
@@ -101,16 +110,17 @@ private:
 	std::vector<Label> m_vLabel{};
 	std::vector<Line> m_vLine{};
 
-	BOOLEAN m_bDiscardEmptyLine{};
-	BOOLEAN m_bDiscardEmptyWord{ TRUE };
+	BOOLEAN m_bDiscardEmptyLine{};		// 丢弃空白行
+	BOOLEAN m_bDiscardEmptyWord{ TRUE };// 丢弃空白字
+	BOOLEAN m_bRawLine{};				// 不进行排序合并操作
 
 	Result LrcParseLabelWorker(PCWCH& p, PCWCH pEnd,
 		BOOL* pbAddLrc, BOOL* pbAddLabel, BOOL bAngleBracket)
 	{
 		if (pbAddLrc) *pbAddLrc = FALSE;
 		if (pbAddLabel) *pbAddLabel = FALSE;
-		const auto chBracketL = bAngleBracket? L'<' : L'[';
-		const auto chBracketR = bAngleBracket? L'>' : L']';
+		const auto chBracketL = bAngleBracket ? L'<' : L'[';
+		const auto chBracketR = bAngleBracket ? L'>' : L']';
 		enum class State
 		{
 			Init,
@@ -281,34 +291,129 @@ private:
 				m_vLine.back().vWordTime.pop_back();
 	}
 
-	void SortAndMerge()
+	void MgpCopyWordAsSentence(const std::vector<WordTime>& vWordTime, PWCH p)
 	{
-		std::stable_sort(m_vLine.begin(), m_vLine.end());
-		EckCounter(m_vLine.size(), i)
+		for (const auto& e : vWordTime)
 		{
-			auto& e = m_vLine[i];
-			if (e.cchWordTotal)
+			TcsCopyLen(p, e.pszWord, e.cchWord);
+			p += e.cchWord;
+		}
+	}
+
+	BOOL MgpIsWordTime(const Line& x) { return !!x.vWordTime.size(); }
+
+	void MgpMerge(const std::vector<size_t>& vNeedDelIndex, size_t cLine, Line& TopItem)
+	{
+		if (!cLine)
+			return;
+		const auto bWordTime = MgpIsWordTime(TopItem);
+		if (bWordTime)
+			TopItem.cchLrc = TopItem.cchWordTotal;
+		int cchText{};
+		for (auto it = vNeedDelIndex.rbegin();
+			it != vNeedDelIndex.rbegin() + cLine; ++it)
+		{
+			const auto i = *it;
+			const auto& e = m_vLine[i];
+			const auto bWordTime = MgpIsWordTime(e);
+			if (bWordTime)
 			{
-				if (e.bMAlloc)
-					free((void*)e.pszLrc);
-				e.bMAlloc = TRUE;
-				e.pszLrc = (PCWCH)malloc(Cch2CbW(e.cchWordTotal));
-				EckCheckMem(e.pszLrc);
-				e.cchLrc = e.cchWordTotal;
-				PWCH p = (PWCH)e.pszLrc;
-				for (const auto& w : e.vWordTime)
-				{
-					TcsCopyLen(p, w.pszWord, w.cchWord);
-					p += w.cchWord;
-				}
-				*p = L'\0';
+				if (e.cchWordTotal)
+					cchText += (1/*\n*/ + e.cchWordTotal);
+			}
+			else
+			{
+				if (e.cchLrc)
+					cchText += (1/*\n*/ + e.cchLrc);
+				if (e.cchTranslation)
+					cchText += (1/*\n*/ + e.cchTranslation);
 			}
 		}
-		// 合并时间相同的行
+		const auto cbBuf = Cch2CbW(cchText +
+			TopItem.cchLrc + 1/*\0*/ + 1/*\n*/ + TopItem.cchTranslation + 1/*\0*/);
+		PWCH pszText = (PWCH)malloc(cbBuf);
+		EckCheckMem(pszText);
+		PWCH p = pszText;
+		if (TopItem.bMAlloc)
+			free((void*)TopItem.pszLrc);
+		TopItem.bMAlloc = TRUE;
+		// 第一项正文
+		TopItem.pszLrc = p;
+		if (bWordTime)
+			MgpCopyWordAsSentence(TopItem.vWordTime, p);
+		else
+			TcsCopyLen(p, TopItem.pszLrc, TopItem.cchLrc);
+		p += TopItem.cchLrc;
+		*p++ = L'\0';
+		EckLrcValidateHeap();
+		// 第一项翻译
+		if (TopItem.cchTranslation)
+		{
+			EckAssert(!bWordTime);
+			TcsCopyLen(p, TopItem.pszTranslation, TopItem.cchTranslation);
+			TopItem.pszTranslation = p;
+			p += TopItem.cchTranslation;
+			EckLrcValidateHeap();
+		}
+		else
+			TopItem.pszTranslation = p + 1;
+		// 其他项
+		for (auto it = vNeedDelIndex.rbegin();
+			it != vNeedDelIndex.rbegin() + cLine; ++it)
+		{
+			const auto i = *it;
+			const auto& e = m_vLine[i];
+			const auto bWordTime = MgpIsWordTime(e);
+			if (bWordTime)
+			{
+				if (e.cchWordTotal)
+				{
+					*p++ = L'\n';
+					MgpCopyWordAsSentence(e.vWordTime, p);
+					p += e.cchWordTotal;
+					EckLrcValidateHeap();
+				}
+			}
+			else
+			{
+				if (e.cchLrc)
+				{
+					*p++ = L'\n';
+					TcsCopyLen(p, e.pszLrc, e.cchLrc);
+					p += e.cchLrc;
+					EckLrcValidateHeap();
+				}
+				if (e.cchTranslation)
+				{
+					EckAssert(!bWordTime);
+					*p++ = L'\n';
+					TcsCopyLen(p, e.pszTranslation, e.cchTranslation);
+					p += e.cchTranslation;
+					EckLrcValidateHeap();
+				}
+			}
+		}
+		if (TopItem.pszTranslation < p)
+		{
+			TopItem.cchTranslation = USHORT(p - TopItem.pszTranslation);
+			*((PWCH)TopItem.pszTranslation + TopItem.cchTranslation) = L'\0';
+		}
+		else
+		{
+			TopItem.pszTranslation = nullptr;
+			TopItem.cchTranslation = 0;
+		}
+	}
+
+	void MgpSortAndMerge()
+	{
+		std::stable_sort(m_vLine.begin(), m_vLine.end());
 		std::vector<float> vLastTime{};
 		std::vector<size_t> vNeedDelIndex{};
+		size_t idxTop{};// 连续相同时间的第一项索引
+		size_t cLineSameTime{};
 		vLastTime.reserve(5);
-		vNeedDelIndex.reserve(m_vLine.size() / 2);
+		vNeedDelIndex.reserve(10);
 		EckCounter(m_vLine.size(), i)
 		{
 			auto& e = m_vLine[i];
@@ -317,65 +422,20 @@ private:
 				if (FloatEqual(vLastTime[0], e.fTime))
 				{
 					auto& TopItem = m_vLine[i - vLastTime.size()];// 索引i将合并到该项
-					const auto b1 = (TopItem.cchLrc || TopItem.cchTranslation);
-					const auto b2 = (e.cchLrc || e.cchTranslation);
-					if (!b2)
-						goto NoMerge;
-					if (b1)// 有第一个和第二个
-					{
-						PWCH p, p1;
-						const auto cbNew = Cch2CbW(TopItem.cchLrc + 1 + e.cchLrc + 1 +
-							TopItem.cchTranslation + 1 + e.cchTranslation);
-						// 原文\0翻译
-						if (TopItem.bMAlloc)
-						{
-							p = (PWCH)realloc((void*)TopItem.pszLrc, cbNew);
-							EckCheckMem(p);
-						}
-						else
-						{
-							p = (PWCH)malloc(cbNew);
-							EckCheckMem(p);
-							TopItem.bMAlloc = TRUE;
-							TcsCopyLenEnd(p, TopItem.pszLrc, TopItem.cchLrc);
-							TcsCopyLen(p + TopItem.cchLrc + 1,
-								TopItem.pszTranslation, TopItem.cchTranslation);
-						}
-						// 原文\0翻译\n
-						p1 = p + TopItem.cchLrc + 1 + TopItem.cchTranslation;
-						if (TopItem.cchTranslation)
-							*p1++ = L'\n';
-						// 原文\0翻译\n翻译
-						if (e.cchLrc)
-						{
-							TcsCopyLen(p1, e.pszLrc, e.cchLrc);
-							p1 += e.cchLrc;
-						}
-						// 原文\0翻译\n翻译\n翻译
-						if (e.cchTranslation)
-						{
-							*p1++ = L'\n';
-							TcsCopyLen(p1, e.pszTranslation, e.cchTranslation);
-							p1 += e.cchTranslation;
-						}
-						//
-						*p1 = L'\0';
-
-						TopItem.pszLrc = (PCWCH)p;
-						TopItem.pszTranslation = (PCWCH)p + TopItem.cchLrc + 1;
-						TopItem.cchTranslation = USHORT(p1 - TopItem.pszTranslation);
-					}
-					else// 只有第二个，移动之
-						TopItem = std::move(e);
-				NoMerge:
+					++cLineSameTime;
 					vNeedDelIndex.emplace_back(i);
 				}
 				else
+				{
+					MgpMerge(vNeedDelIndex, cLineSameTime, m_vLine[idxTop]);
 					vLastTime.clear();
+					idxTop = i;
+					cLineSameTime = 0;
+				}
 			}
 			vLastTime.emplace_back(e.fTime);
 		}
-
+		MgpMerge(vNeedDelIndex, cLineSameTime, m_vLine[idxTop]);
 		for (auto it = vNeedDelIndex.rbegin(); it < vNeedDelIndex.rend(); ++it)
 			m_vLine.erase(m_vLine.begin() + *it);
 	}
@@ -383,14 +443,14 @@ private:
 	void DbgCutString(const Line& x)
 	{
 		if (x.pszLrc)
-		*((PWCH)x.pszLrc + x.cchLrc) = 0;
+			*((PWCH)x.pszLrc + x.cchLrc) = 0;
 		if (x.pszTranslation)
-		*((PWCH)x.pszTranslation + x.cchTranslation) = 0;
+			*((PWCH)x.pszTranslation + x.cchTranslation) = 0;
 	}
 	void DbgCutString(const WordTime& x)
 	{
 		if (x.pszWord)
-		*((PWCH)x.pszWord + x.cchWord) = 0;
+			*((PWCH)x.pszWord + x.cchWord) = 0;
 	}
 public:
 	void LoadTextStrView(std::wstring_view sv) noexcept
@@ -582,7 +642,7 @@ public:
 				break;
 			}
 		}
-		SortAndMerge();
+		MgpSortAndMerge();
 		return Result::Ok;
 	}
 
