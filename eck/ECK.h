@@ -540,12 +540,16 @@ constexpr inline auto CchI64ToStrBuf = std::max({ CchI64ToStrBufNoRadix2,
 constexpr inline double Pi = 3.141592653589793;
 constexpr inline float PiF = static_cast<float>(Pi);
 
-constexpr inline UINT CP_UTF16LE = 0xFFFFFFFF;
-constexpr inline UINT CP_UTF16BE = 0xFFFFFFFE;
-constexpr inline UINT CP_ASCII = 0xFFFFFFFD;
+constexpr inline UINT CP_UTF16LE = 1200;
+constexpr inline UINT CP_UTF16BE = 1201;
+constexpr inline UINT CP_UTF32LE = 12000;
+constexpr inline UINT CP_UTF32BE = 12001;
+constexpr inline UINT CP_ASCII = 0xFFFFFFFF;
 
 constexpr inline BYTE BOM_UTF16LE[]{ 0xFF,0xFE };
 constexpr inline BYTE BOM_UTF16BE[]{ 0xFE,0xFF };
+constexpr inline BYTE BOM_UTF32LE[]{ 0xFF,0xFE,0x00,0x00 };
+constexpr inline BYTE BOM_UTF32BE[]{ 0x00,0x00,0xFE,0xFF };
 constexpr inline BYTE BOM_UTF8[]{ 0xEF,0xBB,0xBF };
 
 template<class TChar>

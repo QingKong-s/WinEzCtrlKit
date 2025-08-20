@@ -195,6 +195,7 @@
     <ClInclude Include="eck\Crc.h" />
     <ClInclude Include="eck\Crypt.h" />
     <ClInclude Include="eck\CSequenceIdGenerator.h" />
+    <ClInclude Include="eck\EncodingDetect.h" />
     <ClInclude Include="eck\EnDeCode.h" />
     <ClInclude Include="eck\Eol.h" />
     <ClInclude Include="eck\ShellMenuInfo.h" />

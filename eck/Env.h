@@ -52,37 +52,40 @@
 #pragma comment(lib, "d3dcompiler.lib")
 
 #ifdef _M_ARM64
-#	ifdef _DEBUG
-#		pragma comment(lib,"eck\\Detours\\detours_arm64d.lib")
-#	else
-#		pragma comment(lib,"eck\\Detours\\detours_arm64.lib")
-#	endif
-#elif defined(_WIN64)
-#	ifdef _DEBUG
-#		pragma comment(lib,"eck\\Detours\\detours_x64d.lib")
-#	else
-#		pragma comment(lib,"eck\\Detours\\detours_x64.lib")
-#	endif
+#  ifdef _DEBUG
+#    pragma comment(lib,"eck\\Detours\\detours_arm64d.lib")
+#  else
+#    pragma comment(lib,"eck\\Detours\\detours_arm64.lib")
+#  endif
+#elif defined(_M_X64)
+#  ifdef _DEBUG
+#    pragma comment(lib,"eck\\Detours\\detours_x64d.lib")
+#  else
+#    pragma comment(lib,"eck\\Detours\\detours_x64.lib")
+#  endif
 #else
-#	ifdef _DEBUG
-#		pragma comment(lib,"eck\\Detours\\detours_x86d.lib")
-#	else
-#		pragma comment(lib,"eck\\Detours\\detours_x86.lib")
-#	endif
+#  ifdef _DEBUG
+#    pragma comment(lib,"eck\\Detours\\detours_x86d.lib")
+#  else
+#    pragma comment(lib,"eck\\Detours\\detours_x86.lib")
+#  endif
 #endif
 
-#ifdef _WIN64
-#	ifdef _DEBUG
-#		pragma comment(lib,"eck\\ZLib\\zlib_x64d.lib")
-#	else
-#		pragma comment(lib,"eck\\ZLib\\zlib_x64.lib")
-#	endif
+#ifdef _M_X64
+#  ifdef _DEBUG
+#    pragma comment(lib,"eck\\ZLib\\zlib_x64d.lib")
+#    pragma comment(lib,"eck\\UCharDet\\uchardet_x64d.lib")
+#  else
+#    pragma comment(lib,"eck\\ZLib\\zlib_x64.lib")
+#    pragma comment(lib,"eck\\UCharDet\\uchardet_x64.lib")
+#  endif
 #else
-#	ifdef _DEBUG
-#		pragma comment(lib,"eck\\ZLib\\zlib_x86d.lib")
-#	else
-#		pragma comment(lib,"eck\\ZLib\\zlib_x86.lib")
-#	endif
+#  ifdef _DEBUG
+#    pragma comment(lib,"eck\\ZLib\\zlib_x86d.lib")
+#    pragma comment(lib,"eck\\UCharDet\\uchardet_x86d.lib")
+#  else
+#    pragma comment(lib,"eck\\ZLib\\zlib_x86.lib")
+#    pragma comment(lib,"eck\\UCharDet\\uchardet_x86.lib")
+#  endif
 #endif
-
 #endif// !ECK_OPT_NO_AUTO_ADD_LIB

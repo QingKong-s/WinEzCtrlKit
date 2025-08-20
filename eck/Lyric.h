@@ -1,9 +1,6 @@
 ﻿#pragma once
-#include "CRefStr.h"
-#include "CFile.h"
-#include "AutoPtrDef.h"
-#include "NativeWrapper.h"
 #include "CUnknown.h"
+#include "EncodingDetect.h"
 
 #define ECK_LYRIC_NAMESPACE_BEGIN	namespace Lyric {
 #define ECK_LYRIC_NAMESPACE_END		}
@@ -114,6 +111,8 @@ private:
 	BOOLEAN m_bDiscardEmptyWord{ TRUE };// 丢弃空白字
 	BOOLEAN m_bRawLine{};				// 不进行排序合并操作
 
+	//---------------LRC---------------
+
 	Result LrcParseLabelWorker(PCWCH& p, PCWCH pEnd,
 		BOOL* pbAddLrc, BOOL* pbAddLabel, BOOL bAngleBracket)
 	{
@@ -153,7 +152,7 @@ private:
 					return Result::TlInvalidChar;
 				break;
 			case State::M:
-				if (ch == '>' && bAngleBracket)// TRC支持
+				if (ch == chBracketR)// TRC支持
 				{
 					if (p - pLast <= 1)
 						return Result::TlFieldEmpty;
@@ -248,6 +247,7 @@ private:
 					auto& e = m_vLabel.back();
 					e.pszValue = pLast;
 					e.cchValue = int(p - pLast - 1);
+					DbgCutString(e);
 					return Result::Ok;
 				}
 				else if (ch == chBracketL || ch == '\r' || ch == '\n')
@@ -290,7 +290,7 @@ private:
 			else
 				m_vLine.back().vWordTime.pop_back();
 	}
-
+	//---------------
 	void MgpCopyWordAsSentence(const std::vector<WordTime>& vWordTime, PWCH p)
 	{
 		for (const auto& e : vWordTime)
@@ -338,11 +338,11 @@ private:
 			free((void*)TopItem.pszLrc);
 		TopItem.bMAlloc = TRUE;
 		// 第一项正文
-		TopItem.pszLrc = p;
 		if (bWordTime)
 			MgpCopyWordAsSentence(TopItem.vWordTime, p);
 		else
 			TcsCopyLen(p, TopItem.pszLrc, TopItem.cchLrc);
+		TopItem.pszLrc = p;
 		p += TopItem.cchLrc;
 		*p++ = L'\0';
 		EckLrcValidateHeap();
@@ -452,6 +452,13 @@ private:
 		if (x.pszWord)
 			*((PWCH)x.pszWord + x.cchWord) = 0;
 	}
+	void DbgCutString(const Label& x)
+	{
+		if (x.pszKey)
+			*((PWCH)x.pszKey + x.cchKey) = 0;
+		if (x.pszValue)
+			*((PWCH)x.pszValue + x.cchValue) = 0;
+	}
 public:
 	void LoadTextStrView(std::wstring_view sv) noexcept
 	{
@@ -461,7 +468,16 @@ public:
 	void LoadTextMove(CRefStrW&& rs) noexcept { m_rsLyric = std::move(rs); }
 	NTSTATUS LoadTextFile(PCWSTR pszFileName)
 	{
-		// TODO
+		m_rsLyric.Clear();
+		CRefBin rb;
+		NTSTATUS nts;
+		EcdLoadTextFile(CP_UTF16LE, rb, pszFileName, &nts);
+		if (!rb.IsEmpty())
+		{
+			m_rsLyric.ReSize(int(rb.Size() / sizeof(WCHAR)));
+			memcpy(m_rsLyric.Data(), rb.Data(), rb.Size());
+		}
+		return nts;
 	}
 
 	Result ParseLrc(BOOL bElrcSquareBracket = FALSE)
@@ -659,6 +675,55 @@ public:
 	void ParseKsc()
 	{
 
+	}
+
+	EckInlineNdCe int MgGetLineCount() const noexcept { return (int)m_vLine.size(); }
+	EckInlineNdCe auto& MgGetLine() noexcept { return m_vLine; }
+	EckInlineNdCe auto& MgAtLine(int idx) const noexcept { return m_vLine[idx]; }
+	constexpr int MgTimeToLine(float fTime, int idxCurr = -1) const noexcept
+	{
+		const auto cLrc = MgGetLineCount();
+		if (!cLrc)
+			return -1;
+		if (idxCurr >= 0)// 尝试快速判断
+		{
+			if (idxCurr + 1 < cLrc)
+			{
+				if (fTime >= m_vLine[idxCurr].fTime &&
+					fTime < m_vLine[idxCurr + 1].fTime)
+					return idxCurr;
+				else if (idxCurr + 2 < cLrc &&
+					fTime >= m_vLine[idxCurr + 1].fTime &&
+					fTime < m_vLine[idxCurr + 2].fTime)
+					return idxCurr + 1;
+			}
+			else if (fTime >= m_vLine[idxCurr].fTime)
+				return idxCurr;
+		}
+		const auto it = std::lower_bound(m_vLine.begin(), m_vLine.end(), fTime,
+			[](const Line& Item, float fPos) -> bool {return Item.fTime < fPos; });
+		int idx;
+		if (it == m_vLine.end())
+			idx = cLrc - 1;
+		else if (it == m_vLine.begin())
+			idx = -1;
+		else
+			idx = (int)std::distance(m_vLine.begin(), it - 1);
+		EckAssert(idx >= -1 && idx < cLrc);
+		return idx;
+	}
+
+	EckInlineNdCe auto& MgGetLabel() noexcept { return m_vLine; }
+	EckInlineNdCe auto& MgAtLabel(int idx) const noexcept { return m_vLine[idx]; }
+	int MgAtLabel(std::wstring_view svKey, int idxBegin = 0)
+	{
+		for (size_t i = idxBegin; i < m_vLabel.size(); ++i)
+		{
+			if (TcsEqualLen2I(svKey.data(), svKey.size(),
+				m_vLabel[i].pszKey, m_vLabel[i].cchKey))
+				return (int)i;
+		}
+		return -1;
 	}
 };
 ECK_NAMESPACE_END

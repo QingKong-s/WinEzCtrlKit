@@ -624,6 +624,9 @@
     <ClInclude Include="eck\Eol.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\EncodingDetect.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">

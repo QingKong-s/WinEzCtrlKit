@@ -2152,7 +2152,7 @@ void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 #pragma endregion Dbg
 ECK_NAMESPACE_END
 
-#if !ECK_OPT_NO_YYJSON
+#if ECK_OPT_YYJSON
 #pragma push_macro("free")
 #pragma push_macro("malloc")
 #pragma push_macro("realloc")
@@ -2163,8 +2163,8 @@ ECK_NAMESPACE_END
 #pragma pop_macro("free")
 #pragma pop_macro("malloc")
 #pragma pop_macro("realloc")
-#endif // !ECK_OPT_NO_YYJSON
+#endif // ECK_OPT_YYJSON
 
-#if !ECK_OPT_NO_PUGIXML
+#if ECK_OPT_PUGIXML
 #include "PugiXml/pugixml.cpp"
-#endif // !ECK_OPT_NO_PUGIXML
+#endif // ECK_OPT_PUGIXML
