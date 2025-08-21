@@ -29,6 +29,7 @@ struct WordTime
 	int cchWord;
 	float fTime;
 	float fDuration;
+	BOOL bDurationProcessed;
 };
 
 struct Line
@@ -107,14 +108,25 @@ private:
 	std::vector<Label> m_vLabel{};
 	std::vector<Line> m_vLine{};
 
+	float m_fDuration{};				// 秒
 	BOOLEAN m_bDiscardEmptyLine{};		// 丢弃空白行
 	BOOLEAN m_bDiscardEmptyWord{ TRUE };// 丢弃空白字
 	BOOLEAN m_bRawLine{};				// 不进行排序合并操作
 
 	//---------------LRC---------------
-
-	Result LrcParseLabelWorker(PCWCH& p, PCWCH pEnd,
-		BOOL* pbAddLrc, BOOL* pbAddLabel, BOOL bAngleBracket)
+	/// <summary>
+	/// 解析LRC标签
+	/// </summary>
+	/// <param name="p">工作指针</param>
+	/// <param name="pEnd">结束位置</param>
+	/// <param name="pbAddLrc">返回是否尾插一行</param>
+	/// <param name="pbAddLabel">返回是否尾插非时间标签</param>
+	/// <param name="bAngleBracket">是否为尖括号标签</param>
+	/// <param name="bSquareBracketElrc">是否正在解析方括号扩展LRC</param>
+	/// <param name="bSbElrcAddLine">若bSquareBracketElrc为TRUE，此参数指示是否尾插行，一般用于每行的第一个标签</param>
+	Result LrcpParseLabelWorker(PCWCH& p, PCWCH pEnd,
+		BOOL* pbAddLrc, BOOL* pbAddLabel, BOOL bAngleBracket,
+		BOOL bSquareBracketElrc, BOOL bSbElrcAddLine)
 	{
 		if (pbAddLrc) *pbAddLrc = FALSE;
 		if (pbAddLabel) *pbAddLabel = FALSE;
@@ -135,6 +147,21 @@ private:
 		PCWCH pLast{ p };
 		float fTime{};
 		int n;
+		auto Fn_TimeLabelEnd = [=](float fTime)
+			{
+				if (bSquareBracketElrc)
+				{
+					if (bSbElrcAddLine)
+						m_vLine.emplace_back().fTime = fTime;
+					m_vLine.back().vWordTime.emplace_back().fTime = fTime;
+				}
+				else
+					if (bAngleBracket)
+						m_vLine.back().vWordTime.emplace_back().fTime = fTime;
+					else
+						m_vLine.emplace_back().fTime = fTime;
+				if (pbAddLrc) *pbAddLrc = TRUE;
+			};
 		while (p < pEnd)
 		{
 			const auto ch = *p++;
@@ -145,14 +172,17 @@ private:
 					if (bAngleBracket)
 						return Result::TlInvalidChar;
 					else
-						eState = State::Key;// [ar:xxx]等
+						if (bSquareBracketElrc && !bSbElrcAddLine)
+							return Result::TlInvalidChar;// 非时间标签不可能出现在行中间
+						else
+							eState = State::Key;// [ar:xxx]等
 				else if (iswdigit(ch))
-					eState = State::M;	// [00:00.000]等
+					eState = State::M;// [00:00.000]等
 				else
 					return Result::TlInvalidChar;
 				break;
 			case State::M:
-				if (ch == chBracketR)// TRC支持
+				if (ch == chBracketR && !bSquareBracketElrc)// TRC支持
 				{
 					if (p - pLast <= 1)
 						return Result::TlFieldEmpty;
@@ -183,11 +213,7 @@ private:
 					fTime += (float)n;
 					if (ch == chBracketR)
 					{
-						if (bAngleBracket)
-							m_vLine.back().vWordTime.emplace_back().fTime = fTime;
-						else
-							m_vLine.emplace_back().fTime = fTime;
-						if (pbAddLrc) *pbAddLrc = TRUE;
+						Fn_TimeLabelEnd(fTime);
 						return Result::Ok;
 					}
 					else
@@ -210,11 +236,7 @@ private:
 					TcsToInt(pLast, cch, n, 10);
 					fTime += (float)n / (cch == 1 ? 10.f :
 						cch == 2 ? 100.f : 1000.f);
-					if (bAngleBracket)
-						m_vLine.back().vWordTime.emplace_back().fTime = fTime;
-					else
-						m_vLine.emplace_back().fTime = fTime;
-					if (pbAddLrc) *pbAddLrc = TRUE;
+					Fn_TimeLabelEnd(fTime);
 					return Result::Ok;
 				}
 				else if (!iswdigit(ch))
@@ -242,12 +264,18 @@ private:
 				EckAssert(!bAngleBracket);
 				if (ch == chBracketR)
 				{
-					if (p - pLast <= 1)
-						return Result::TlFieldEmpty;
 					auto& e = m_vLabel.back();
-					e.pszValue = pLast;
-					e.cchValue = int(p - pLast - 1);
-					DbgCutString(e);
+					if (p - pLast <= 1)
+					{
+						e.pszValue = nullptr;
+						e.cchValue = 0;
+					}
+					else
+					{
+						e.pszValue = pLast;
+						e.cchValue = int(p - pLast - 1);
+						DbgCutString(e);
+					}
 					return Result::Ok;
 				}
 				else if (ch == chBracketL || ch == '\r' || ch == '\n')
@@ -261,12 +289,18 @@ private:
 	Result LrcParseLabel(PCWCH& p, PCWCH pEnd,
 		BOOL* pbAddLrc = nullptr, BOOL* pbAddLabel = nullptr)
 	{
-		return LrcParseLabelWorker(p, pEnd, pbAddLrc, pbAddLabel, FALSE);
+		return LrcpParseLabelWorker(p, pEnd, pbAddLrc, pbAddLabel, FALSE, FALSE, FALSE);
 	}
 
 	Result LrcParseWordTime(PCWCH& p, PCWCH pEnd, BOOL* pbAddLrc = nullptr)
 	{
-		return LrcParseLabelWorker(p, pEnd, pbAddLrc, nullptr, TRUE);
+		return LrcpParseLabelWorker(p, pEnd, pbAddLrc, nullptr, TRUE, FALSE, FALSE);
+	}
+
+	Result LrcParseWordTimeSquareBracket(PCWCH& p, PCWCH pEnd, BOOL bFirstInLine,
+		BOOL* pbAddLrc = nullptr, BOOL* pbAddLabel = nullptr)
+	{
+		return LrcpParseLabelWorker(p, pEnd, pbAddLrc, pbAddLabel, FALSE, TRUE, bFirstInLine);
 	}
 
 	void LrcpWordEnd(PCWCH p0, PCWCH p1, BOOL bAddLrc)
@@ -304,11 +338,21 @@ private:
 
 	void MgpMerge(const std::vector<size_t>& vNeedDelIndex, size_t cLine, Line& TopItem)
 	{
-		if (!cLine)
-			return;
 		const auto bWordTime = MgpIsWordTime(TopItem);
 		if (bWordTime)
 			TopItem.cchLrc = TopItem.cchWordTotal;
+		if (!cLine && bWordTime)
+		{
+			const auto p = (PWCH)malloc(Cch2CbW(TopItem.cchLrc));
+			EckCheckMem(p);
+			MgpCopyWordAsSentence(TopItem.vWordTime, p);
+			*(p + TopItem.cchLrc) = L'\0';
+			if (TopItem.bMAlloc)
+				free((void*)TopItem.pszLrc);
+			TopItem.bMAlloc = TRUE;
+			TopItem.pszLrc = p;
+			return;
+		}
 		int cchText{};
 		for (auto it = vNeedDelIndex.rbegin();
 			it != vNeedDelIndex.rbegin() + cLine; ++it)
@@ -440,6 +484,42 @@ private:
 			m_vLine.erase(m_vLine.begin() + *it);
 	}
 
+	void MgpCalculateWordDuration(Line& e)
+	{
+		auto& vWord = e.vWordTime;
+		if (!vWord.empty())
+		{
+			for (size_t j{}; j < vWord.size() - 1; ++j)
+			{
+				auto& f = vWord[j];
+				if (!f.bDurationProcessed)
+				{
+					f.bDurationProcessed = TRUE;
+					f.fDuration = vWord[j + 1].fTime - f.fTime;
+				}
+			}
+			if (!vWord.back().bDurationProcessed)// 最后一个字词
+			{
+				vWord.back().bDurationProcessed = TRUE;
+				vWord.back().fDuration = e.fTime + e.fDuration - vWord.back().fTime;
+			}
+		}
+	}
+
+	void MgpCalculateDuration()
+	{
+		if (m_vLine.empty())
+			return;
+		for (size_t i{}; i < m_vLine.size() - 1; ++i)
+		{
+			auto& e = m_vLine[i];
+			e.fDuration = m_vLine[i + 1].fTime - e.fTime;
+			MgpCalculateWordDuration(e);
+		}
+		m_vLine.back().fDuration = m_fDuration - m_vLine.back().fTime;
+		MgpCalculateWordDuration(m_vLine.back());
+	}
+
 	void DbgCutString(const Line& x)
 	{
 		if (x.pszLrc)
@@ -460,7 +540,7 @@ private:
 			*((PWCH)x.pszValue + x.cchValue) = 0;
 	}
 public:
-	void LoadTextStrView(std::wstring_view sv) noexcept
+	void LoadTextStringView(std::wstring_view sv) noexcept
 	{
 		m_rsLyric.ReSize((int)sv.size());
 		TcsCopyLen(m_rsLyric.Data(), sv.data(), (int)sv.size());
@@ -480,7 +560,9 @@ public:
 		return nts;
 	}
 
-	Result ParseLrc(BOOL bElrcSquareBracket = FALSE)
+	// 解析标准LRC、尖括号逐字LRC、TRC
+	// 支持压缩LRC和无换行LRC
+	Result ParseLrc()
 	{
 		enum class State
 		{
@@ -511,7 +593,7 @@ public:
 				}
 				break;
 			case State::Label:
-				r = LrcParseLabel(p, pEnd, &bAddLrc);
+				r = LrcParseLabel(p, pEnd, &bAddLrc, &bAddLabel);
 				if (r != Result::Ok)
 					return r;
 				if (bAddLrc)
@@ -520,6 +602,8 @@ public:
 					continue;
 				else if (*p == '<')// 方括号标签后的第一个尖括号
 					eState = State::WordTime;
+				else if (bAddLabel)
+					eState = State::Normal;
 				else
 				{
 					pLast = p;
@@ -561,6 +645,8 @@ public:
 							eState = State::Label;
 						else if (*p == '<')
 							eState = State::WordTime;
+						else if (bAddLabel)
+							eState = State::Normal;
 						else
 							pLast = p;
 					}
@@ -573,10 +659,7 @@ public:
 							m_vLabel.pop_back();
 					}
 				}
-				else if (ch == '<')
-				{
-
-				}
+				// else if (ch == '<') {} // 不应处理
 				else if (ch == '\r' || ch == '\n' || p == pEnd)
 				{
 					eState = State::Normal;
@@ -597,18 +680,20 @@ public:
 					r = LrcParseLabel(p, pEnd, &bAddLrc, &bAddLabel);
 					if (r == Result::Ok)// 成功，文本结束
 					{
-						LrcpWordEnd(pLast, pOld, FALSE);
+						LrcpWordEnd(pLast, pOld, bAddLrc);// 结束当前标签的上一个标签对应的文本
 						cLabelContinues = 1;
 						if (*p == '[')
 						{
-							LrcpWordEndEmpty(bAddLrc);
+							LrcpWordEndEmpty(FALSE);// 立即结束当前标签
 							eState = State::Label;
 						}
 						else if (*p == '<')
 						{
-							LrcpWordEndEmpty(bAddLrc);
+							LrcpWordEndEmpty(FALSE);// 立即结束当前标签
 							eState = State::WordTime;
 						}
+						else if (bAddLabel)
+							eState = State::Normal;
 						else
 							pLast = p;
 					}
@@ -631,12 +716,12 @@ public:
 						cLabelContinues = 1;
 						if (*p == '[')
 						{
-							LrcpWordEndEmpty(bAddLrc);
+							LrcpWordEndEmpty(FALSE);
 							eState = State::Label;
 						}
 						else if (*p == '<')
 						{
-							LrcpWordEndEmpty(bAddLrc);
+							LrcpWordEndEmpty(FALSE);
 							eState = State::WordTime;
 						}
 						else
@@ -659,6 +744,88 @@ public:
 			}
 		}
 		MgpSortAndMerge();
+		MgpCalculateDuration();
+		return Result::Ok;
+	}
+
+	// 解析使用方括号表示逐字的LRC
+	Result ParseElrcWithSquareBracket()
+	{
+		enum class State
+		{
+			Normal,
+			Label,
+			WordText,
+		};
+		Result r;
+		State eState = State::Normal;
+		PCWCH p{ m_rsLyric.Data() };
+		const auto pEnd = p + m_rsLyric.Size();
+		PCWCH pLast{ p };
+		BOOL bAddLrc, bAddLabel, bNewLine{ TRUE };
+
+		while (p < pEnd)
+		{
+			const auto ch = *p++;
+			switch (eState)
+			{
+			case State::Normal:
+				if (ch == '[')
+				{
+					--p;
+					eState = State::Label;
+				}
+				break;
+			case State::Label:
+				r = LrcParseWordTimeSquareBracket(p, pEnd, bNewLine, &bAddLrc, &bAddLabel);
+				if (r != Result::Ok)
+					return r;
+				if (*p == '[')
+					continue;
+				else if (bAddLabel)
+					eState = State::Normal;
+				else
+				{
+					pLast = p;
+					eState = State::WordText;
+				}
+				break;
+			case State::WordText:
+				if (ch == '[')// 尝试解析标签
+				{
+					const auto pOld = p;
+					r = LrcParseWordTimeSquareBracket(p, pEnd, FALSE, &bAddLrc, &bAddLabel);
+					if (r == Result::Ok)// 成功，文本结束
+					{
+						LrcpWordEnd(pLast, pOld, TRUE);
+						if (*p == '[')
+						{
+							LrcpWordEndEmpty(FALSE);
+							eState = State::Label;
+						}
+						else
+							pLast = p;
+					}
+					else// 失败，回退所有修改并继续作为文本处理
+					{
+						p = pOld;
+						if (bAddLrc)
+							m_vLine.pop_back();
+						if (bAddLabel)
+							m_vLabel.pop_back();
+					}
+				}
+				else if (ch == '\r' || ch == '\n' || p == pEnd)
+				{
+					bNewLine = TRUE;
+					LrcpWordEnd(pLast, p, FALSE);
+					eState = State::Normal;
+				}
+				break;
+			}
+		}
+		MgpSortAndMerge();
+		MgpCalculateDuration();
 		return Result::Ok;
 	}
 
@@ -676,6 +843,15 @@ public:
 	{
 
 	}
+
+	constexpr void MgClear()
+	{
+		m_vLine.clear();
+		m_vLabel.clear();
+		m_rsLyric.Clear();
+	}
+
+	EckInlineCe void MgSetDuration(float f) noexcept { m_fDuration = f; }
 
 	EckInlineNdCe int MgGetLineCount() const noexcept { return (int)m_vLine.size(); }
 	EckInlineNdCe auto& MgGetLine() noexcept { return m_vLine; }

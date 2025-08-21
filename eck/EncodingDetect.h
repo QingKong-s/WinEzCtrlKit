@@ -85,6 +85,7 @@ namespace Priv
 	};
 }
 
+// 代码页名称转值，失败返回0
 inline UINT EcdNameToCodePage(std::string_view svName)
 {
 	for (const auto& e : Priv::EcdEncodingMap)
@@ -96,6 +97,7 @@ inline UINT EcdNameToCodePage(std::string_view svName)
 	return 0u;
 }
 
+// 检测字节流编码，成功返回代码页，失败返回0
 inline UINT EcdDetectCodePage(PCVOID p, size_t cb)
 {
 	// uchardet不区分LE和BE
@@ -115,15 +117,16 @@ inline UINT EcdDetectCodePage(PCVOID p, size_t cb)
 	uchardet_handle_data(pUcd, (PCCH)p, cb);
 	uchardet_data_end(pUcd);
 	const auto pszName = uchardet_get_charset(pUcd);
-	UINT uCodePage;
+	UINT cp;
 	if (TcsEqualI(pszName, "TIS-620"))
-		uCodePage = CP_UTF8;// uchardet易将utf8错判为tis-620 （from notepad++）
+		cp = CP_UTF8;// uchardet易将utf8错判为tis-620 （from notepad++）
 	else
-		uCodePage = EcdNameToCodePage(pszName);
+		cp = EcdNameToCodePage(pszName);
 	uchardet_delete(pUcd);
-	return uCodePage;
+	return cp;
 }
 
+// 将已知编码的字节流转换为另一种编码，成功返回TRUE，失败返回FALSE
 inline BOOL EcdCovert(PCVOID p, size_t cb,
 	UINT cpSrc, UINT cpDst, CRefBin& rbDst, CRefBin& rbWork,
 	UINT uFlagsMb2Wc = MB_PRECOMPOSED, UINT uFlagsWc2Mb = 0)
@@ -222,6 +225,8 @@ inline BOOL EcdCovert(PCVOID p, size_t cb,
 	return FALSE;
 }
 
+// 检查rbDst中的字节流编码，如果与目标编码不同则执行转换
+// 成功返回TRUE，失败返回FALSE
 inline BOOL EcdLoadTextStream(UINT cpDst, CRefBin& rbDst)
 {
 	if (rbDst.IsEmpty())
@@ -236,6 +241,8 @@ inline BOOL EcdLoadTextStream(UINT cpDst, CRefBin& rbDst)
 	return TRUE;
 }
 
+// 读入指定文件，如果文件内容编码与目标编码不同则执行转换
+// 成功返回TRUE，失败返回FALSE
 inline BOOL EcdLoadTextFile(UINT cpDst, CRefBin& rbDst,
 	PCWSTR pszFile, NTSTATUS* pnts = nullptr)
 {
