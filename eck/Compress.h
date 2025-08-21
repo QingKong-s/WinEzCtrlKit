@@ -6,6 +6,11 @@
 #include "ZLib/zlib.h"
 
 ECK_NAMESPACE_BEGIN
+EckInlineNdCe BOOL ZLibSuccess(int iRet)
+{
+	return iRet == Z_OK || iRet == Z_STREAM_END;
+}
+
 inline int ZLibDecompress(_In_reads_bytes_(cbOrg) PCVOID pOrg,
 	SIZE_T cbOrg, CRefBin& rbResult)
 {
@@ -187,7 +192,7 @@ inline NTSTATUS Compress(_In_reads_bytes_(cbOrg) PCVOID pOrg, SIZE_T cbOrg,
 	ULONG cbRequired, Dummy;
 	if (!NT_SUCCESS(nts = RtlGetCompressionWorkSpaceSize(uEngine, &cbRequired, &Dummy)))
 		return nts;
-	UnqPtrMA pWorkSpace{ malloc(cbRequired) };
+	UnqPtrMA<void> pWorkSpace{ malloc(cbRequired) };
 	rbResult.ExtendToCapacity();
 	if (rbResult.Size() < sizeof(NTCOM_HDR))
 		rbResult.ReSize(sizeof(NTCOM_HDR) + cbOrg * 2 / 3);

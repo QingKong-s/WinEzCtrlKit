@@ -198,6 +198,7 @@
     <ClInclude Include="eck\EncodingDetect.h" />
     <ClInclude Include="eck\EnDeCode.h" />
     <ClInclude Include="eck\Eol.h" />
+    <ClInclude Include="eck\LyricCrypt.h" />
     <ClInclude Include="eck\ShellMenuInfo.h" />
     <ClInclude Include="eck\CTimeIdGenerator.h" />
     <ClInclude Include="eck\CIPEdit.h" />

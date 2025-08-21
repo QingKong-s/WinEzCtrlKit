@@ -627,6 +627,9 @@
     <ClInclude Include="eck\EncodingDetect.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\LyricCrypt.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">
