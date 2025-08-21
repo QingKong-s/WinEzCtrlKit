@@ -1,15 +1,5 @@
 # WinEzCtrlKit
 
-## 示例
-
-待添加...
-
-## 演示
-
-![a](./Screenshot/动画.gif)
-
-![a](./Screenshot/流式布局.gif)
-
 ## 使用的第三方库和引用的代码
 
 **[Detours](https://github.com/microsoft/Detours)**
