@@ -81,6 +81,8 @@ enum MONITOR_DPI_TYPE;
 #define ECK_DUI_NAMESPACE_END			}
 #define ECK_MEDIATAG_NAMESPACE_BEGIN	namespace MediaTag {
 #define ECK_MEDIATAG_NAMESPACE_END		}
+#define ECK_LYRIC_NAMESPACE_BEGIN	namespace Lyric {
+#define ECK_LYRIC_NAMESPACE_END		}
 
 #pragma region Template
 ECK_NAMESPACE_BEGIN

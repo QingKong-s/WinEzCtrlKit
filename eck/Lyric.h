@@ -2,9 +2,6 @@
 #include "CUnknown.h"
 #include "EncodingDetect.h"
 
-#define ECK_LYRIC_NAMESPACE_BEGIN	namespace Lyric {
-#define ECK_LYRIC_NAMESPACE_END		}
-
 #if 1
 #define EckLrcValidateHeap()		_CrtCheckMemory()
 #else
@@ -20,6 +17,7 @@ enum class Result
 	TlFieldEmpty,		// 字段为空
 	TlInvalidMsLength,	// 毫秒长度不正确
 	TlUnexpectedEnd,	// 意外结尾
+	InvalidChar,
 };
 
 
@@ -40,6 +38,7 @@ struct Line
 	USHORT cchTranslation{};
 	USHORT cchWordTotal{};
 	BOOLEAN bMAlloc{};
+	BOOLEAN bDurationProcessed{};
 	float fTime{};
 	float fDuration{};
 	std::vector<WordTime> vWordTime;
@@ -104,6 +103,12 @@ struct LineWord
 class CLyric final : public CRefObj<CLyric>
 {
 private:
+	struct YKQ_VAL
+	{
+		float f1;
+		float f2;
+		float f3;
+	};
 	CRefStrW m_rsLyric{};
 	std::vector<Label> m_vLabel{};
 	std::vector<Line> m_vLine{};
@@ -323,6 +328,125 @@ private:
 				m_vLine.back().vWordTime.erase((m_vLine.back().vWordTime.rbegin() + 1).base());
 			else
 				m_vLine.back().vWordTime.pop_back();
+	}
+	//---------------YRC/KRC/QRC---------------
+
+	Result YkqParseLabel(PCWCH& p, PCWCH pEnd, YKQ_VAL& Val,
+		BOOL bAngleBracket, BOOL b3Value, BOOL* pbAddLabel = nullptr)
+	{
+		if (pbAddLabel) *pbAddLabel = FALSE;
+		const auto chBracketL = bAngleBracket ? L'<' : L'[';
+		const auto chBracketR = bAngleBracket ? L'>' : L']';
+		enum class State
+		{
+			Init,
+
+			V1,
+			V2,
+			V3,
+
+			Key,
+			Value,
+		};
+		State eState = State::Init;
+		PCWCH pLast{ p };
+		int n;
+		while (p < pEnd)
+		{
+			const auto ch = *p++;
+			switch (eState)
+			{
+			case State::Init:
+				if (iswalpha(ch) && !bAngleBracket)
+					eState = State::Key;// [ar:xxx]等
+				else if (iswdigit(ch))
+					eState = State::V1;// [123,456]等
+				else
+					return Result::TlInvalidChar;
+				break;
+			case State::V1:
+				if (ch == ',')
+				{
+					if (p - pLast <= 1)
+						return Result::TlFieldEmpty;
+					TcsToInt(pLast, p - pLast - 1, n, 10);
+					Val.f1 = (float)n;
+					eState = State::V2;
+					pLast = p;
+				}
+				else if (!iswdigit(ch))
+					return Result::TlInvalidChar;
+				break;
+			case State::V2:
+				if (ch == (b3Value ? ',' : chBracketR))
+				{
+					if (p - pLast <= 1)
+						return Result::TlFieldEmpty;
+					TcsToInt(pLast, p - pLast - 1, n, 10);
+					Val.f2 = (float)n;
+					if (b3Value)
+						eState = State::V3;
+					else
+						return Result::Ok;
+					pLast = p;
+				}
+				else if (!iswdigit(ch))
+					return Result::TlInvalidChar;
+				break;
+			case State::V3:
+				if (ch == chBracketR)
+				{
+					if (p - pLast <= 1)
+						return Result::TlFieldEmpty;
+					TcsToInt(pLast, p - pLast - 1, n, 10);
+					Val.f3 = (float)n;
+					pLast = p;
+					return Result::Ok;
+				}
+				else if (!iswdigit(ch))
+					return Result::TlInvalidChar;
+				break;
+			case State::Key:
+				EckAssert(!bAngleBracket);
+				if (ch == ':')
+				{
+					if (p - pLast <= 1)
+						return Result::TlFieldEmpty;
+					auto& e = m_vLabel.emplace_back();
+					e.pszKey = pLast;
+					e.cchKey = int(p - pLast - 1);
+					eState = State::Value;
+					pLast = p;
+					if (pbAddLabel) *pbAddLabel = TRUE;
+				}
+				else if (ch == chBracketR || ch == chBracketL ||
+					ch == '\r' || ch == '\n')
+					return Result::TlUnexpectedEnd;
+				break;
+			case State::Value:
+				EckAssert(!bAngleBracket);
+				if (ch == chBracketR)
+				{
+					auto& e = m_vLabel.back();
+					if (p - pLast <= 1)
+					{
+						e.pszValue = nullptr;
+						e.cchValue = 0;
+					}
+					else
+					{
+						e.pszValue = pLast;
+						e.cchValue = int(p - pLast - 1);
+						DbgCutString(e);
+					}
+					return Result::Ok;
+				}
+				else if (ch == chBracketL || ch == '\r' || ch == '\n')
+					return Result::TlUnexpectedEnd;
+				break;
+			}
+		}
+		return Result::TlUnexpectedEnd;
 	}
 	//---------------
 	void MgpCopyWordAsSentence(const std::vector<WordTime>& vWordTime, PWCH p)
@@ -600,10 +724,10 @@ public:
 					++cLabelContinues;
 				if (*p == '[')
 					continue;
-				else if (*p == '<')// 方括号标签后的第一个尖括号
-					eState = State::WordTime;
 				else if (bAddLabel)
 					eState = State::Normal;
+				else if (*p == '<')// 方括号标签后的第一个尖括号
+					eState = State::WordTime;
 				else
 				{
 					pLast = p;
@@ -829,17 +953,112 @@ public:
 		return Result::Ok;
 	}
 
-	void ParseKrc()
+	Result ParseKrc()
 	{
+		enum class State
+		{
+			Normal,
+			Label,
+			WordTime,
+			Text,
+			WordText,
+		};
+		Result r;
+		State eState = State::Normal;
+		PCWCH p{ m_rsLyric.Data() };
+		const auto pEnd = p + m_rsLyric.Size();
+		YKQ_VAL Val;
+		BOOL bAddLabel;
+		PCWCH pLast{};
 
+		while (p < pEnd)
+		{
+			const auto ch = *p++;
+			switch (eState)
+			{
+			case State::Normal:
+				if (ch == '[')
+				{
+					--p;
+					eState = State::Label;
+				}
+				break;
+			case State::Label:
+				r = YkqParseLabel(p, pEnd, Val, FALSE, FALSE, &bAddLabel);
+				if (r != Result::Ok)
+					return r;
+				if (*p == '[')
+					continue;
+				else if (bAddLabel)
+					eState = State::Normal;
+				else if (*p == '<')// 方括号标签后的第一个尖括号
+				{
+					eState = State::WordTime;
+					auto& e = m_vLine.emplace_back();
+					e.fTime = Val.f1 / 1000.f;
+					e.fDuration = Val.f2 / 1000.f;
+				}
+				else
+					return Result::InvalidChar;
+				break;
+			case State::WordTime:
+			{
+				r = YkqParseLabel(p, pEnd, Val, TRUE, TRUE);
+				if (r != Result::Ok)
+					return r;
+				auto& e = m_vLine.back().vWordTime.emplace_back();
+				e.fTime = m_vLine.back().fTime + Val.f1 / 1000.f;
+				e.fDuration = Val.f2 / 1000.f;
+				e.bDurationProcessed = TRUE;
+				if (*p == '<')
+					eState = State::WordTime;
+				else
+				{
+					pLast = p;
+					eState = State::WordText;
+				}
+			}
+			break;
+			case State::WordText:
+				if (ch == '<')
+				{
+					const auto pOld = p;
+					r = YkqParseLabel(p, pEnd, Val, TRUE, TRUE, &bAddLabel);
+					if (r == Result::Ok)
+					{
+						LrcpWordEnd(pLast, pOld, FALSE);
+						if (*p == '<')
+						{
+							LrcpWordEndEmpty(FALSE);
+							eState = State::WordTime;
+						}
+						else
+							pLast = p;
+						auto& e = m_vLine.back().vWordTime.emplace_back();
+						e.fTime = m_vLine.back().fTime + Val.f1 / 1000.f;
+						e.fDuration = Val.f2 / 1000.f;
+						e.bDurationProcessed = TRUE;
+					}
+					else
+					{
+						p = pOld;
+						if (bAddLabel)
+							m_vLine.back().vWordTime.pop_back();
+					}
+				}
+				else if (ch == '\r' || ch == '\n' || p == pEnd)
+				{
+					LrcpWordEnd(pLast, p, FALSE);
+					eState = State::Normal;
+				}
+				break;
+			}
+		}
+		MgpSortAndMerge();
+		return Result::Ok;
 	}
 
 	void ParseQrc()
-	{
-
-	}
-
-	void ParseKsc()
 	{
 
 	}
@@ -902,5 +1121,5 @@ public:
 		return -1;
 	}
 };
-ECK_NAMESPACE_END
 ECK_LYRIC_NAMESPACE_END
+ECK_NAMESPACE_END
