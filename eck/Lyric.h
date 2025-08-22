@@ -980,6 +980,107 @@ public:
 		return Result::Ok;
 	}
 
+	Result ParseYrc()
+	{
+		enum class State
+		{
+			Normal,
+			Label,
+			WordTime,
+			Text,
+			WordText,
+		};
+		Result r;
+		State eState = State::Normal;
+		PCWCH p{ m_rsLyric.Data() };
+		const auto pEnd = p + m_rsLyric.Size();
+		YKQ_VAL Val;
+		BOOL bAddLabel;
+		PCWCH pLast{};
+
+		while (p < pEnd)
+		{
+			const auto ch = *p++;
+			switch (eState)
+			{
+			case State::Normal:
+				if (ch == '[')
+				{
+					--p;
+					eState = State::Label;
+				}
+				break;
+			case State::Label:
+				r = YkqParseLabel(p, pEnd, Val, BracketType::Square, FALSE, &bAddLabel);
+				if (r != Result::Ok)
+					return r;
+				if (*p == '[')
+					continue;
+				else if (bAddLabel)
+					eState = State::Normal;
+				else if (*p == '(')// 方括号标签后的第一个圆括号
+				{
+					eState = State::WordTime;
+					auto& e = m_vLine.emplace_back();
+					e.fTime = Val.f1;
+					e.fDuration = Val.f2;
+				}
+				else
+					return Result::InvalidChar;
+				break;
+			case State::WordTime:
+			{
+				r = YkqParseLabel(p, pEnd, Val, BracketType::Parenthesis, TRUE);
+				if (r != Result::Ok)
+					return r;
+				auto& e = m_vLine.back().vWordTime.emplace_back();
+				e.fTime = Val.f1;
+				e.fDuration = Val.f2;
+				e.bDurationProcessed = TRUE;
+				if (*p == '(')
+					eState = State::WordTime;
+				else
+				{
+					pLast = p;
+					eState = State::WordText;
+				}
+			}
+			break;
+			case State::WordText:
+				if (ch == '(')
+				{
+					const auto pOld = p;
+					r = YkqParseLabel(p, pEnd, Val, BracketType::Parenthesis, TRUE);
+					if (r == Result::Ok)
+					{
+						LrcpWordEnd(pLast, pOld, FALSE);
+						if (*p == '(')
+						{
+							LrcpWordEndEmpty(FALSE);
+							eState = State::WordTime;
+						}
+						else
+							pLast = p;
+						auto& e = m_vLine.back().vWordTime.emplace_back();
+						e.fTime = Val.f1;
+						e.fDuration = Val.f2;
+						e.bDurationProcessed = TRUE;
+					}
+					else
+						p = pOld;
+				}
+				else if (ch == '\r' || ch == '\n' || p == pEnd)
+				{
+					LrcpWordEnd(pLast, p, FALSE);
+					eState = State::Normal;
+				}
+				break;
+			}
+		}
+		MgpSortAndMerge();
+		return Result::Ok;
+	}
+
 	Result ParseKrc()
 	{
 		enum class State
