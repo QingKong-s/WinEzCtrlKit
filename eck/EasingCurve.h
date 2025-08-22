@@ -292,10 +292,7 @@ struct FInExpo
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
 	{
-		if (FloatEqual(fCurrTime, 0.f))
-			return fStart;
-		else ECKLIKELY
-			return fDistance * powf(2.f, 10.f * (fCurrTime / fDuration - 1.f)) + fStart;
+		return fDistance * powf(2.f, 10.f * (fCurrTime / fDuration - 1.f)) + fStart;
 	}
 };
 
@@ -308,10 +305,7 @@ struct FOutExpo
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
 	{
-		if (FloatEqual(fCurrTime, fDuration))
-			return fStart + fDistance;
-		else ECKLIKELY
-			return fDistance * (-powf(2.f, -10.f * fCurrTime / fDuration) + 1.f) + fStart;
+		return fDistance * (-powf(2.f, -10.f * fCurrTime / fDuration) + 1.f) + fStart;
 	}
 };
 
@@ -324,18 +318,11 @@ struct FInOutExpo
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
 	{
-		if (FloatEqual(fCurrTime, 0.f))
-			return fStart;
-		else if (FloatEqual(fCurrTime, fDuration))
-			return fStart + fDistance;
-		else ECKLIKELY
-		{
-			fCurrTime /= (fDuration / 2.f);
-			if (fCurrTime < 1.f)
-				return fDistance / 2.f * powf(2.f, 10.f * (fCurrTime - 1.f)) + fStart;
-			else
-				return fDistance / 2.f * (-powf(2.f, -10.f * (fCurrTime - 1.f)) + 2.f) + fStart;
-		}
+		fCurrTime /= (fDuration / 2.f);
+		if (fCurrTime < 1.f)
+			return fDistance / 2.f * powf(2.f, 10.f * (fCurrTime - 1.f)) + fStart;
+		else
+			return fDistance / 2.f * (-powf(2.f, -10.f * (fCurrTime - 1.f)) + 2.f) + fStart;
 	}
 };
 
@@ -348,16 +335,9 @@ struct FInElastic
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
 	{
-		if (FloatEqual(fCurrTime, 0.f))
-			return fStart;
-		else if (FloatEqual(fCurrTime, fDuration))
-			return fStart + fDistance;
-		else ECKLIKELY
-		{
-			fCurrTime /= fDuration;
-			const float f = fCurrTime - 1.f;
-			return -fDistance * powf(2.f, 10.f * f) * sinf((f - 0.075f) * 2.f * PiF / 0.3f) + fStart;
-		}
+		fCurrTime /= fDuration;
+		const float f = fCurrTime - 1.f;
+		return -fDistance * powf(2.f, 10.f * f) * sinf((f - 0.075f) * 2.f * PiF / 0.3f) + fStart;
 	}
 };
 
@@ -370,15 +350,8 @@ struct FOutElastic
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
 	{
-		if (FloatEqual(fCurrTime, 0.f))
-			return fStart;
-		else if (FloatEqual(fCurrTime, fDuration))
-			return fStart + fDistance;
-		else ECKLIKELY
-		{
-			fCurrTime /= fDuration;
-			return fDistance * powf(2.f, -10.f * fCurrTime) * sinf((fCurrTime - 0.075f) * 2.f * PiF / 0.3f) + fDistance + fStart;
-		}
+		fCurrTime /= fDuration;
+		return fDistance * powf(2.f, -10.f * fCurrTime) * sinf((fCurrTime - 0.075f) * 2.f * PiF / 0.3f) + fDistance + fStart;
 	}
 };
 
@@ -391,19 +364,12 @@ struct FInOutElastic
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
 	{
-		if (FloatEqual(fCurrTime, 0.f))
-			return fStart;
-		else if (FloatEqual(fCurrTime, fDuration))
-			return fStart + fDistance;
-		else ECKLIKELY
-		{
-			fCurrTime /= (fDuration / 2.f);
-			const float f = fCurrTime - 1.f;
-			if (fCurrTime < 1.f)
-				return -0.5f * fDistance * powf(2.f, 10.f * f) * sinf((f - 0.1125f) * 2.f * PiF / 0.45f) + fStart;
-			else
-				return fDistance * powf(2.f, -10.f * f) * sinf((f - 0.1125f) * 2.f * PiF / 0.45f) * 0.5f + fDistance + fStart;
-		}
+		fCurrTime /= (fDuration / 2.f);
+		const float f = fCurrTime - 1.f;
+		if (fCurrTime < 1.f)
+			return -0.5f * fDistance * powf(2.f, 10.f * f) * sinf((f - 0.1125f) * 2.f * PiF / 0.45f) + fStart;
+		else
+			return fDistance * powf(2.f, -10.f * f) * sinf((f - 0.1125f) * 2.f * PiF / 0.45f) * 0.5f + fDistance + fStart;
 	}
 };
 
@@ -540,15 +506,8 @@ struct FPunch
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
 	{
 		const float f = 9.f;
-		if (fCurrTime == 0.f)
-			return fStart;
-		else if (fCurrTime == fDuration)
-			return fStart + fDistance;
-		else
-		{
-			const float f1 = fCurrTime / fDuration - 1.f;
-			return fDistance * expf(-f1 * f) * sinf(6.f * PiF * f1) + fDistance + fStart;
-		}
+		const float f1 = fCurrTime / fDuration - 1.f;
+		return fDistance * expf(-f1 * f) * sinf(6.f * PiF * f1) + fDistance + fStart;
 	}
 };
 
@@ -561,16 +520,9 @@ struct FSpring
 {
 	EckInline float operator()(float fCurrTime, float fStart, float fDistance, float fDuration)
 	{
-		const float f = 0.3f;
-		if (fCurrTime == 0.f)
-			return fStart;
-		else if (fCurrTime == fDuration)
-			return fStart + fDistance;
-		else
-		{
-			const float g = fCurrTime / fDuration - 1.f;
-			return -fDistance * expf(-g * f) * sinf(2.f * PiF * g / 0.3f) + fDistance + fStart;
-		}
+		constexpr float f = 0.3f;
+		const float g = fCurrTime / fDuration - 1.f;
+		return -fDistance * expf(-g * f) * sinf(2.f * PiF * g / 0.3f) + fDistance + fStart;
 	}
 };
 
