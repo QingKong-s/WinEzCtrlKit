@@ -602,6 +602,8 @@ private:
 
 	void MgpSortAndMerge()
 	{
+		if (m_vLine.empty())
+			return;
 		std::stable_sort(m_vLine.begin(), m_vLine.end());
 		std::vector<float> vLastTime{};
 		std::vector<size_t> vNeedDelIndex{};
@@ -710,6 +712,8 @@ public:
 		}
 		return nts;
 	}
+
+	EckInlineNdCe BOOL IsTextEmpty() const noexcept { return m_rsLyric.IsEmpty(); }
 
 	// 解析标准LRC、尖括号逐字LRC、TRC
 	// 支持压缩LRC和无换行LRC
