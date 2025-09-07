@@ -51,41 +51,46 @@
 #pragma comment(lib, "DbgHelp.lib")
 #pragma comment(lib, "d3dcompiler.lib")
 
-#ifdef _M_ARM64
-#  ifdef _DEBUG
-#    pragma comment(lib,"eck\\Detours\\detours_arm64d.lib")
+#if ECK_OPT_CRT_DLL
+#  ifdef _M_ARM64
+#    ifdef _DEBUG
+#      pragma comment(lib,"eck\\ThirdPartyLib\\ThirdPartyLib_arm64d_Md.lib")
+#    else
+#      pragma comment(lib,"eck\\ThirdPartyLib\\ThirdPartyLib_arm64_Md.lib")
+#    endif
+#  elif defined(_M_X64)
+#    ifdef _DEBUG
+#      pragma comment(lib,"eck\\ThirdPartyLib\\ThirdPartyLib_x64d_Md.lib")
+#    else
+#      pragma comment(lib,"eck\\ThirdPartyLib\\ThirdPartyLib_x64_Md.lib")
+#    endif
 #  else
-#    pragma comment(lib,"eck\\Detours\\detours_arm64.lib")
-#  endif
-#elif defined(_M_X64)
-#  ifdef _DEBUG
-#    pragma comment(lib,"eck\\Detours\\detours_x64d.lib")
-#  else
-#    pragma comment(lib,"eck\\Detours\\detours_x64.lib")
+#    ifdef _DEBUG
+#      pragma comment(lib,"eck\\ThirdPartyLib\\ThirdPartyLib_x86d_Md.lib")
+#    else
+#      pragma comment(lib,"eck\\ThirdPartyLib\\ThirdPartyLib_x86_Md.lib")
+#    endif
 #  endif
 #else
-#  ifdef _DEBUG
-#    pragma comment(lib,"eck\\Detours\\detours_x86d.lib")
+#  ifdef _M_ARM64
+#    ifdef _DEBUG
+#      pragma comment(lib,"eck\\ThirdPartyLib\\ThirdPartyLib_arm64d.lib")
+#    else
+#      pragma comment(lib,"eck\\ThirdPartyLib\\ThirdPartyLib_arm64.lib")
+#    endif
+#  elif defined(_M_X64)
+#    ifdef _DEBUG
+#      pragma comment(lib,"eck\\ThirdPartyLib\\ThirdPartyLib_x64d.lib")
+#    else
+#      pragma comment(lib,"eck\\ThirdPartyLib\\ThirdPartyLib_x64.lib")
+#    endif
 #  else
-#    pragma comment(lib,"eck\\Detours\\detours_x86.lib")
+#    ifdef _DEBUG
+#      pragma comment(lib,"eck\\ThirdPartyLib\\ThirdPartyLib_x86d.lib")
+#    else
+#      pragma comment(lib,"eck\\ThirdPartyLib\\ThirdPartyLib_x86.lib")
+#    endif
 #  endif
-#endif
+#endif// ECK_OPT_CRT_DLL
 
-#ifdef _M_X64
-#  ifdef _DEBUG
-#    pragma comment(lib,"eck\\ZLib\\zlib_x64d.lib")
-#    pragma comment(lib,"eck\\UCharDet\\uchardet_x64d.lib")
-#  else
-#    pragma comment(lib,"eck\\ZLib\\zlib_x64.lib")
-#    pragma comment(lib,"eck\\UCharDet\\uchardet_x64.lib")
-#  endif
-#else
-#  ifdef _DEBUG
-#    pragma comment(lib,"eck\\ZLib\\zlib_x86d.lib")
-#    pragma comment(lib,"eck\\UCharDet\\uchardet_x86d.lib")
-#  else
-#    pragma comment(lib,"eck\\ZLib\\zlib_x86.lib")
-#    pragma comment(lib,"eck\\UCharDet\\uchardet_x86.lib")
-#  endif
-#endif
 #endif// !ECK_OPT_NO_AUTO_ADD_LIB

@@ -1,0 +1,474 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Detours">
+      <UniqueIdentifier>{83260633-6a60-49ef-9ea1-6d1b74df8a15}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UCharDet">
+      <UniqueIdentifier>{c5155fcd-4aca-4374-83fa-5e6406e0d240}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UCharDet\LangModels">
+      <UniqueIdentifier>{5e0fa205-6994-4f9a-be0c-8bc329692bd7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ZLib">
+      <UniqueIdentifier>{8e31ca7a-5cdf-403a-bd01-246c5f1d88cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PugiXml">
+      <UniqueIdentifier>{4d5a1e53-d0ce-45e6-9807-933286b10a4f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="YyJson">
+      <UniqueIdentifier>{0653e6d4-7d04-4ef2-a615-f2aa5ccc2be5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SkiaTessellator">
+      <UniqueIdentifier>{85ac8a82-11f7-416d-bdd7-e1535670ea1b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Detours\creatwth.cpp">
+      <Filter>Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Detours\detours.cpp">
+      <Filter>Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Detours\disasm.cpp">
+      <Filter>Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Detours\disolarm.cpp">
+      <Filter>Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Detours\disolarm64.cpp">
+      <Filter>Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Detours\disolia64.cpp">
+      <Filter>Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Detours\disolx64.cpp">
+      <Filter>Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Detours\disolx86.cpp">
+      <Filter>Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Detours\image.cpp">
+      <Filter>Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Detours\modules.cpp">
+      <Filter>Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\CharDistribution.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\JpCntx.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\nsBig5Prober.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\nsCharSetProber.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\nsEscCharsetProber.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\nsEscSM.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\nsEUCJPProber.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\nsEUCKRProber.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\nsEUCTWProber.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\nsGB2312Prober.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\nsHebrewProber.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\nsLatin1Prober.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\nsMBCSGroupProber.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\nsMBCSSM.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\nsSBCharSetProber.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\nsSBCSGroupProber.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\nsSJISProber.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\nsUniversalDetector.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\nsUTF8Prober.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\uchardet.cpp">
+      <Filter>UCharDet</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangArabicModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangBulgarianModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangCroatianModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangCzechModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangDanishModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangEsperantoModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangEstonianModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangFinnishModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangFrenchModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangGermanModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangGreekModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangHebrewModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangHungarianModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangIrishModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangItalianModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangLatvianModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangLithuanianModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangMalteseModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangNorwegianModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangPolishModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangPortugueseModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangRomanianModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangRussianModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangSlovakModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangSloveneModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangSpanishModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangSwedishModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangThaiModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangTurkishModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="UCharDet\LangModels\LangVietnameseModel.cpp">
+      <Filter>UCharDet\LangModels</Filter>
+    </ClCompile>
+    <ClCompile Include="ZLib\adler32.c">
+      <Filter>ZLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ZLib\compress.c">
+      <Filter>ZLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ZLib\crc32.c">
+      <Filter>ZLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ZLib\deflate.c">
+      <Filter>ZLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ZLib\gzclose.c">
+      <Filter>ZLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ZLib\gzlib.c">
+      <Filter>ZLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ZLib\gzread.c">
+      <Filter>ZLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ZLib\gzwrite.c">
+      <Filter>ZLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ZLib\infback.c">
+      <Filter>ZLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ZLib\inffast.c">
+      <Filter>ZLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ZLib\inflate.c">
+      <Filter>ZLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ZLib\inftrees.c">
+      <Filter>ZLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ZLib\trees.c">
+      <Filter>ZLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ZLib\uncompr.c">
+      <Filter>ZLib</Filter>
+    </ClCompile>
+    <ClCompile Include="ZLib\zutil.c">
+      <Filter>ZLib</Filter>
+    </ClCompile>
+    <ClCompile Include="PugiXml\pugixml.cpp">
+      <Filter>PugiXml</Filter>
+    </ClCompile>
+    <ClCompile Include="YyJson\yyjson.c">
+      <Filter>YyJson</Filter>
+    </ClCompile>
+    <ClCompile Include="SkiaTessellator\GrAATriangulator.cpp">
+      <Filter>SkiaTessellator</Filter>
+    </ClCompile>
+    <ClCompile Include="SkiaTessellator\GrTriangulator.cpp">
+      <Filter>SkiaTessellator</Filter>
+    </ClCompile>
+    <ClCompile Include="SkiaTessellator\SkArenaAlloc.cpp">
+      <Filter>SkiaTessellator</Filter>
+    </ClCompile>
+    <ClCompile Include="SkiaTessellator\SkPoint.cpp">
+      <Filter>SkiaTessellator</Filter>
+    </ClCompile>
+    <ClCompile Include="SkiaTessellator\SkRect.cpp">
+      <Filter>SkiaTessellator</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Detours\detours.h">
+      <Filter>Detours</Filter>
+    </ClInclude>
+    <ClInclude Include="Detours\detver.h">
+      <Filter>Detours</Filter>
+    </ClInclude>
+    <ClInclude Include="Detours\syelog.h">
+      <Filter>Detours</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\CharDistribution.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\JpCntx.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nsBig5Prober.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nsCharSetProber.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nsCodingStateMachine.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nscore.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nsEscCharsetProber.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nsEUCJPProber.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nsEUCKRProber.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nsEUCTWProber.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nsGB2312Prober.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nsHebrewProber.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nsLatin1Prober.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nsMBCSGroupProber.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nsPkgInt.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nsSBCharSetProber.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nsSBCSGroupProber.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nsSJISProber.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nsUniversalDetector.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\nsUTF8Prober.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\prmem.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="UCharDet\uchardet.h">
+      <Filter>UCharDet</Filter>
+    </ClInclude>
+    <ClInclude Include="ZLib\crc32.h">
+      <Filter>ZLib</Filter>
+    </ClInclude>
+    <ClInclude Include="ZLib\deflate.h">
+      <Filter>ZLib</Filter>
+    </ClInclude>
+    <ClInclude Include="ZLib\gzguts.h">
+      <Filter>ZLib</Filter>
+    </ClInclude>
+    <ClInclude Include="ZLib\inffast.h">
+      <Filter>ZLib</Filter>
+    </ClInclude>
+    <ClInclude Include="ZLib\inffixed.h">
+      <Filter>ZLib</Filter>
+    </ClInclude>
+    <ClInclude Include="ZLib\inflate.h">
+      <Filter>ZLib</Filter>
+    </ClInclude>
+    <ClInclude Include="ZLib\inftrees.h">
+      <Filter>ZLib</Filter>
+    </ClInclude>
+    <ClInclude Include="ZLib\trees.h">
+      <Filter>ZLib</Filter>
+    </ClInclude>
+    <ClInclude Include="ZLib\zconf.h">
+      <Filter>ZLib</Filter>
+    </ClInclude>
+    <ClInclude Include="ZLib\zlib.h">
+      <Filter>ZLib</Filter>
+    </ClInclude>
+    <ClInclude Include="ZLib\zutil.h">
+      <Filter>ZLib</Filter>
+    </ClInclude>
+    <ClInclude Include="PugiXml\pugiconfig.hpp">
+      <Filter>PugiXml</Filter>
+    </ClInclude>
+    <ClInclude Include="PugiXml\pugixml.hpp">
+      <Filter>PugiXml</Filter>
+    </ClInclude>
+    <ClInclude Include="YyJson\yyjson.h">
+      <Filter>YyJson</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\GrAATriangulator.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\GrTriangulator.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkArenaAlloc.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkFloatBits.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkFloatingPoint.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkMath.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkMathPriv.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkNx.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkNx_neon.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkNx_sse.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkPathTypes.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkPoint.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkPointPriv.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkRect.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkRectPriv.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkSafe_math.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkSafe32.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkScalar.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkTFitsIn.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkTo.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkTPin.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\SkTypes.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="SkiaTessellator\ISkiaPolygonAccessor.h">
+      <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

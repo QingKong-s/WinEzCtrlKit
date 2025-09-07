@@ -8,7 +8,7 @@
 #undef free
 #undef malloc
 #undef realloc
-#include "YyJson/yyjson.h"
+#include "../ThirdPartyLib/YyJson/yyjson.h"
 
 ECK_NAMESPACE_BEGIN
 using YyReadFlag = yyjson_read_flag;

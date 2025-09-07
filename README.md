@@ -54,3 +54,7 @@ MIT License
 **[uchardet](https://www.freedesktop.org/wiki/Software/uchardet/)**
 
 MPL V1.1
+
+**[skia](https://skia.org/)**
+
+BSD-3-Clause License

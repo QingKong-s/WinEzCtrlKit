@@ -1,0 +1,638 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="MdDebug|ARM64">
+      <Configuration>MdDebug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MdDebug|Win32">
+      <Configuration>MdDebug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MdDebug|x64">
+      <Configuration>MdDebug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MdRelease|ARM64">
+      <Configuration>MdRelease</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MdRelease|Win32">
+      <Configuration>MdRelease</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MdRelease|x64">
+      <Configuration>MdRelease</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MtDebug|ARM64">
+      <Configuration>MtDebug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MtDebug|Win32">
+      <Configuration>MtDebug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MtRelease|ARM64">
+      <Configuration>MtRelease</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MtRelease|Win32">
+      <Configuration>MtRelease</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MtDebug|x64">
+      <Configuration>MtDebug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MtRelease|x64">
+      <Configuration>MtRelease</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{c6470b39-c823-47ea-a8dd-c582a73dd726}</ProjectGuid>
+    <RootNamespace>ThirdPartyLib</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MtDebug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MdDebug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MtRelease|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MdRelease|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MtDebug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MdDebug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MtDebug|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MdDebug|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MtRelease|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MdRelease|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MtRelease|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MdRelease|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='MtDebug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='MdDebug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='MtRelease|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='MdRelease|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='MtDebug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='MdDebug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='MtDebug|ARM64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='MdDebug|ARM64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='MtRelease|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='MdRelease|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='MtRelease|ARM64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='MdRelease|ARM64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MtDebug|Win32'">
+    <TargetName>$(ProjectName)_x86d</TargetName>
+    <OutDir>$(SolutionDir)eck\ThirdPartyLib\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MdDebug|Win32'">
+    <TargetName>$(ProjectName)_x86d_Md</TargetName>
+    <OutDir>$(SolutionDir)eck\ThirdPartyLib\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MtDebug|x64'">
+    <TargetName>$(ProjectName)_x64d</TargetName>
+    <OutDir>$(SolutionDir)eck\ThirdPartyLib\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MdDebug|x64'">
+    <TargetName>$(ProjectName)_x64d_Md</TargetName>
+    <OutDir>$(SolutionDir)eck\ThirdPartyLib\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MtDebug|ARM64'">
+    <TargetName>$(ProjectName)_arm64d</TargetName>
+    <OutDir>$(SolutionDir)eck\ThirdPartyLib\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MdDebug|ARM64'">
+    <TargetName>$(ProjectName)_arm64d_Md</TargetName>
+    <OutDir>$(SolutionDir)eck\ThirdPartyLib\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MtRelease|ARM64'">
+    <TargetName>$(ProjectName)_arm64</TargetName>
+    <OutDir>$(SolutionDir)eck\ThirdPartyLib\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MdRelease|ARM64'">
+    <TargetName>$(ProjectName)_arm64_Md</TargetName>
+    <OutDir>$(SolutionDir)eck\ThirdPartyLib\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MtRelease|Win32'">
+    <OutDir>$(SolutionDir)eck\ThirdPartyLib\</OutDir>
+    <TargetName>$(ProjectName)_x86</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MdRelease|Win32'">
+    <OutDir>$(SolutionDir)eck\ThirdPartyLib\</OutDir>
+    <TargetName>$(ProjectName)_x86_Md</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MtRelease|x64'">
+    <OutDir>$(SolutionDir)eck\ThirdPartyLib\</OutDir>
+    <TargetName>$(ProjectName)_x64</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MdRelease|x64'">
+    <OutDir>$(SolutionDir)eck\ThirdPartyLib\</OutDir>
+    <TargetName>$(ProjectName)_x64_Md</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MtDebug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions);_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MdDebug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions);_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MtRelease|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions);_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MdRelease|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions);_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MtDebug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions);_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MdDebug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions);_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MtDebug|ARM64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions);_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MdDebug|ARM64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions);_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MtRelease|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions);_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MdRelease|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions);_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MtRelease|ARM64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions);_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MdRelease|ARM64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions);_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Detours\creatwth.cpp" />
+    <ClCompile Include="Detours\detours.cpp" />
+    <ClCompile Include="Detours\disasm.cpp" />
+    <ClCompile Include="Detours\disolarm.cpp" />
+    <ClCompile Include="Detours\disolarm64.cpp" />
+    <ClCompile Include="Detours\disolia64.cpp" />
+    <ClCompile Include="Detours\disolx64.cpp" />
+    <ClCompile Include="Detours\disolx86.cpp" />
+    <ClCompile Include="Detours\image.cpp" />
+    <ClCompile Include="Detours\modules.cpp" />
+    <ClCompile Include="PugiXml\pugixml.cpp" />
+    <ClCompile Include="SkiaTessellator\GrAATriangulator.cpp" />
+    <ClCompile Include="SkiaTessellator\GrTriangulator.cpp" />
+    <ClCompile Include="SkiaTessellator\SkArenaAlloc.cpp" />
+    <ClCompile Include="SkiaTessellator\SkPoint.cpp" />
+    <ClCompile Include="SkiaTessellator\SkRect.cpp" />
+    <ClCompile Include="UCharDet\CharDistribution.cpp" />
+    <ClCompile Include="UCharDet\JpCntx.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangArabicModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangBulgarianModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangCroatianModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangCzechModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangDanishModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangEsperantoModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangEstonianModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangFinnishModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangFrenchModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangGermanModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangGreekModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangHebrewModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangHungarianModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangIrishModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangItalianModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangLatvianModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangLithuanianModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangMalteseModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangNorwegianModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangPolishModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangPortugueseModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangRomanianModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangRussianModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangSlovakModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangSloveneModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangSpanishModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangSwedishModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangThaiModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangTurkishModel.cpp" />
+    <ClCompile Include="UCharDet\LangModels\LangVietnameseModel.cpp" />
+    <ClCompile Include="UCharDet\nsBig5Prober.cpp" />
+    <ClCompile Include="UCharDet\nsCharSetProber.cpp" />
+    <ClCompile Include="UCharDet\nsEscCharsetProber.cpp" />
+    <ClCompile Include="UCharDet\nsEscSM.cpp" />
+    <ClCompile Include="UCharDet\nsEUCJPProber.cpp" />
+    <ClCompile Include="UCharDet\nsEUCKRProber.cpp" />
+    <ClCompile Include="UCharDet\nsEUCTWProber.cpp" />
+    <ClCompile Include="UCharDet\nsGB2312Prober.cpp" />
+    <ClCompile Include="UCharDet\nsHebrewProber.cpp" />
+    <ClCompile Include="UCharDet\nsLatin1Prober.cpp" />
+    <ClCompile Include="UCharDet\nsMBCSGroupProber.cpp" />
+    <ClCompile Include="UCharDet\nsMBCSSM.cpp" />
+    <ClCompile Include="UCharDet\nsSBCharSetProber.cpp" />
+    <ClCompile Include="UCharDet\nsSBCSGroupProber.cpp" />
+    <ClCompile Include="UCharDet\nsSJISProber.cpp" />
+    <ClCompile Include="UCharDet\nsUniversalDetector.cpp" />
+    <ClCompile Include="UCharDet\nsUTF8Prober.cpp" />
+    <ClCompile Include="UCharDet\uchardet.cpp" />
+    <ClCompile Include="YyJson\yyjson.c" />
+    <ClCompile Include="ZLib\adler32.c" />
+    <ClCompile Include="ZLib\compress.c" />
+    <ClCompile Include="ZLib\crc32.c" />
+    <ClCompile Include="ZLib\deflate.c" />
+    <ClCompile Include="ZLib\gzclose.c" />
+    <ClCompile Include="ZLib\gzlib.c" />
+    <ClCompile Include="ZLib\gzread.c" />
+    <ClCompile Include="ZLib\gzwrite.c" />
+    <ClCompile Include="ZLib\infback.c" />
+    <ClCompile Include="ZLib\inffast.c" />
+    <ClCompile Include="ZLib\inflate.c" />
+    <ClCompile Include="ZLib\inftrees.c" />
+    <ClCompile Include="ZLib\trees.c" />
+    <ClCompile Include="ZLib\uncompr.c" />
+    <ClCompile Include="ZLib\zutil.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Detours\detours.h" />
+    <ClInclude Include="Detours\detver.h" />
+    <ClInclude Include="Detours\syelog.h" />
+    <ClInclude Include="PugiXml\pugiconfig.hpp" />
+    <ClInclude Include="PugiXml\pugixml.hpp" />
+    <ClInclude Include="SkiaTessellator\GrAATriangulator.h" />
+    <ClInclude Include="SkiaTessellator\GrTriangulator.h" />
+    <ClInclude Include="SkiaTessellator\ISkiaPolygonAccessor.h" />
+    <ClInclude Include="SkiaTessellator\SkArenaAlloc.h" />
+    <ClInclude Include="SkiaTessellator\SkFloatBits.h" />
+    <ClInclude Include="SkiaTessellator\SkFloatingPoint.h" />
+    <ClInclude Include="SkiaTessellator\SkMath.h" />
+    <ClInclude Include="SkiaTessellator\SkMathPriv.h" />
+    <ClInclude Include="SkiaTessellator\SkNx.h" />
+    <ClInclude Include="SkiaTessellator\SkNx_neon.h" />
+    <ClInclude Include="SkiaTessellator\SkNx_sse.h" />
+    <ClInclude Include="SkiaTessellator\SkPathTypes.h" />
+    <ClInclude Include="SkiaTessellator\SkPoint.h" />
+    <ClInclude Include="SkiaTessellator\SkPointPriv.h" />
+    <ClInclude Include="SkiaTessellator\SkRect.h" />
+    <ClInclude Include="SkiaTessellator\SkRectPriv.h" />
+    <ClInclude Include="SkiaTessellator\SkSafe32.h" />
+    <ClInclude Include="SkiaTessellator\SkSafe_math.h" />
+    <ClInclude Include="SkiaTessellator\SkScalar.h" />
+    <ClInclude Include="SkiaTessellator\SkTFitsIn.h" />
+    <ClInclude Include="SkiaTessellator\SkTo.h" />
+    <ClInclude Include="SkiaTessellator\SkTPin.h" />
+    <ClInclude Include="SkiaTessellator\SkTypes.h" />
+    <ClInclude Include="UCharDet\CharDistribution.h" />
+    <ClInclude Include="UCharDet\JpCntx.h" />
+    <ClInclude Include="UCharDet\nsBig5Prober.h" />
+    <ClInclude Include="UCharDet\nsCharSetProber.h" />
+    <ClInclude Include="UCharDet\nsCodingStateMachine.h" />
+    <ClInclude Include="UCharDet\nscore.h" />
+    <ClInclude Include="UCharDet\nsEscCharsetProber.h" />
+    <ClInclude Include="UCharDet\nsEUCJPProber.h" />
+    <ClInclude Include="UCharDet\nsEUCKRProber.h" />
+    <ClInclude Include="UCharDet\nsEUCTWProber.h" />
+    <ClInclude Include="UCharDet\nsGB2312Prober.h" />
+    <ClInclude Include="UCharDet\nsHebrewProber.h" />
+    <ClInclude Include="UCharDet\nsLatin1Prober.h" />
+    <ClInclude Include="UCharDet\nsMBCSGroupProber.h" />
+    <ClInclude Include="UCharDet\nsPkgInt.h" />
+    <ClInclude Include="UCharDet\nsSBCharSetProber.h" />
+    <ClInclude Include="UCharDet\nsSBCSGroupProber.h" />
+    <ClInclude Include="UCharDet\nsSJISProber.h" />
+    <ClInclude Include="UCharDet\nsUniversalDetector.h" />
+    <ClInclude Include="UCharDet\nsUTF8Prober.h" />
+    <ClInclude Include="UCharDet\prmem.h" />
+    <ClInclude Include="UCharDet\uchardet.h" />
+    <ClInclude Include="YyJson\yyjson.h" />
+    <ClInclude Include="ZLib\crc32.h" />
+    <ClInclude Include="ZLib\deflate.h" />
+    <ClInclude Include="ZLib\gzguts.h" />
+    <ClInclude Include="ZLib\inffast.h" />
+    <ClInclude Include="ZLib\inffixed.h" />
+    <ClInclude Include="ZLib\inflate.h" />
+    <ClInclude Include="ZLib\inftrees.h" />
+    <ClInclude Include="ZLib\trees.h" />
+    <ClInclude Include="ZLib\zconf.h" />
+    <ClInclude Include="ZLib\zlib.h" />
+    <ClInclude Include="ZLib\zutil.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
