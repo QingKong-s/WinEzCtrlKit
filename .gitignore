@@ -364,3 +364,11 @@ FodyWeavers.xsd
 
 /CTestWnd.cpp
 /CTestWnd.h
+
+*.lib
+*.idb
+
+MtDebug/
+MdDebug/
+MtRelease/
+MdRelease/

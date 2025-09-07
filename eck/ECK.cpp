@@ -390,6 +390,7 @@ EckInline constexpr BOOL UxfpIsDarkTaskDialogAvailable()
 
 HRESULT UxfMenuInit(CWnd* pWnd)
 {
+	// 参考：https://github.com/adzm/win32-custom-menubar-aero-theme
 	auto& Sig = pWnd->GetSignal();
 	if (Sig.FindSlot(MHI_UXF_MENU))
 		return S_FALSE;
@@ -2151,20 +2152,3 @@ void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 }
 #pragma endregion Dbg
 ECK_NAMESPACE_END
-
-#if ECK_OPT_YYJSON
-#pragma push_macro("free")
-#pragma push_macro("malloc")
-#pragma push_macro("realloc")
-#undef free
-#undef malloc
-#undef realloc
-#include "YyJson/yyjson.c"
-#pragma pop_macro("free")
-#pragma pop_macro("malloc")
-#pragma pop_macro("realloc")
-#endif // ECK_OPT_YYJSON
-
-#if ECK_OPT_PUGIXML
-#include "PugiXml/pugixml.cpp"
-#endif // ECK_OPT_PUGIXML

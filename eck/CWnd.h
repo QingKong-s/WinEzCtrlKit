@@ -193,6 +193,10 @@ struct DESIGNDATA_WND
 	Class() = default;					\
 	Class(HWND hWnd) { m_hWnd = hWnd; }
 
+class CWnd;
+// 窗口句柄到CWnd指针
+EckInline CWnd* CWndFromHWND(HWND hWnd) { return GetThreadCtx()->WmAt(hWnd); }
+
 class CWnd : public ILayout
 {
 	friend HHOOK BeginCbtHook(CWnd*, FWndCreating);

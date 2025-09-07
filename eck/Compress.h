@@ -3,7 +3,7 @@
 #include "CRefBin.h"
 #include "AutoPtrDef.h"
 
-#include "ZLib/zlib.h"
+#include "../ThirdPartyLib/ZLib/zlib.h"
 
 ECK_NAMESPACE_BEGIN
 EckInlineNdCe BOOL ZLibSuccess(int iRet)

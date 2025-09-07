@@ -38,7 +38,7 @@
 #include <array>
 #include <variant>
 
-#include ".\Detours\detours.h"
+#include "../ThirdPartyLib/Detours/detours.h"
 
 #if _MSVC_LANG > 201703L
 #	define ECKCXX20 1
@@ -1076,16 +1076,7 @@ void ThreadInit();
 void ThreadUnInit();
 
 // 取线程上下文
-EckInline THREADCTX* GetThreadCtx()
-{
-	return (THREADCTX*)TlsGetValue(GetThreadCtxTlsSlot());
-}
-
-// 窗口句柄到CWnd指针
-EckInline CWnd* CWndFromHWND(HWND hWnd)
-{
-	return GetThreadCtx()->WmAt(hWnd);
-}
+EckInline THREADCTX* GetThreadCtx() { return (THREADCTX*)TlsGetValue(GetThreadCtxTlsSlot()); }
 
 HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc = nullptr);
 
@@ -1106,8 +1097,8 @@ void InitPrivateApi();
 EckInline constexpr void SetMsgFilter(void*) {}
 
 #if ECK_OPT_NO_DARKMODE
-EckInlineCe HRESULT UxfMenuInit(CWnd* pWnd) { return S_FALSE; }
-EckInlineCe HRESULT UxfMenuUnInit(CWnd* pWnd) { return S_FALSE; }
+EckInlineCe HRESULT UxfMenuInit(CWnd* pWnd) { return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED); }
+EckInlineCe HRESULT UxfMenuUnInit(CWnd* pWnd) { return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED); }
 #else
 HRESULT UxfMenuInit(CWnd* pWnd);
 HRESULT UxfMenuUnInit(CWnd* pWnd);
@@ -1117,7 +1108,12 @@ HRESULT UxfMenuUnInit(CWnd* pWnd);
 [[nodiscard]] EckInline HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,
 	void* pParameter = nullptr, UINT* pThreadId = nullptr, UINT dwCreationFlags = 0)
 {
+#if 0
 	return (HANDLE)_beginthreadex(0, 0, pStartAddress, pParameter, dwCreationFlags, pThreadId);
+#else
+	return CreateThread(nullptr, 0, (PTHREAD_START_ROUTINE)pStartAddress,
+		pParameter, dwCreationFlags, (DWORD*)pThreadId);
+#endif
 }
 ECK_NAMESPACE_END
 

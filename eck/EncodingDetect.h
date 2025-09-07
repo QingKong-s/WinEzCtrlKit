@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "SystemHelper.h"
-#include "UCharDet/uchardet.h"
+#include "../ThirdPartyLib/UCharDet/uchardet.h"
 
 ECK_NAMESPACE_BEGIN
 namespace Priv

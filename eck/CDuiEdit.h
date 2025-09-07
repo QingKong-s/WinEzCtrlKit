@@ -137,7 +137,7 @@ private:
 	void OnDpiChanged()
 	{
 		// RE启动时使用系统DPI，随后整个生命周期内只有下列两种情况下
-		// CTxtEdit::UpdateDPI被调用并更新DPI
+		// msftedit!CTxtEdit::UpdateDPI被调用并更新DPI
 		// 1. 接收WM_DPICHANGED_BEFOREPARENT，RE调用ITextHost2::TxGetWindow，
 		// 并使用返回窗口的DPI
 		// 2. 接收WM_USER + 0x148（即0x548），wParam和lParam分别为
@@ -201,6 +201,15 @@ public:
 	{
 		switch (uMsg)
 		{
+		case WM_SETCURSOR:
+		{
+			if (!(GetStyle() & DES_DISABLE))
+			{
+				SetCursor(LoadCursorW(nullptr, IDC_IBEAM));
+				return TRUE;
+			}
+		}
+		break;
 		case WM_PAINT:
 		{
 			ELEMPAINTSTRU ps;
