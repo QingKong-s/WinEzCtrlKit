@@ -12,13 +12,14 @@ class CTitleBar :public CElem
 protected:
 	CDwmWndPartMgr m_DwmPartMgr{};
 	ID2D1Bitmap1* m_pBmpDwmWndAtlas{};
-	int m_cxClose{};
-	int m_cxMaxMin{};
-	int m_cyBtn{};
+	float m_cxClose{};
+	float m_cxMax{};
+	float m_cxMin{};
+	float m_cyBtn{};
 	DwmWndPart m_idxHot{ DwmWndPart::Invalid };
 	DwmWndPart m_idxPressed{ DwmWndPart::Invalid };
 	BOOLEAN m_bMaximized{};
-	BYTE m_eInterMode{ (BYTE)D2D1_INTERPOLATION_MODE_LINEAR };
+	BYTE m_eInterMode{ (BYTE)D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR };
 
 	DwmWPartState GetPartState(DwmWndPart idx) const
 	{
@@ -58,7 +59,7 @@ public:
 			DWMW_GET_PART_EXTRA Extra;
 			const auto bDarkMode = ShouldAppsUseDarkMode();
 			const auto iUserDpi = GetWnd()->GetUserDpiValue();
-			const auto dMargin = DpiScaleF(0.5f, 96, iUserDpi);
+			const auto dMargin = DpiScaleF(1.f, 96, iUserDpi);
 			const auto eInterMode = (D2D1_INTERPOLATION_MODE)m_eInterMode;
 
 			m_pDC->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
@@ -66,61 +67,57 @@ public:
 				GetPartState(DwmWndPart::Close), bDarkMode, TRUE, iUserDpi, &Extra))
 			{
 				rcDst.left += dMargin;
-				rcDst.right -= dMargin;
 				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
-					MakeD2DRcF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing));
+					MakeD2DRcF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing),
+					(D2D1_INTERPOLATION_MODE)m_eInterMode);
 
 				rcTemp = MakeD2DRcF(rc);
 				GetWnd()->Phy2Log(rcTemp);
 				CenterRect(rcTemp, rcDst);
 
 				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.f,
-					eInterMode, MakeD2DRcF(rc));
-
-				rcDst.left -= dMargin;
+					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRcF(rc));
+				//rcDst.left -= dMargin;
 			}
 
-			rcDst.left -= m_cxMaxMin;
-			rcDst.right = rcDst.left + m_cxMaxMin;
+			rcDst.left -= m_cxMax;
+			rcDst.right = rcDst.left + m_cxMax;
 
 			if (m_DwmPartMgr.GetPartRect(rc, rcBkg,
 				m_bMaximized ? DwmWndPart::Restore : DwmWndPart::Max,
 				GetPartState(DwmWndPart::Max), bDarkMode, TRUE, iUserDpi, &Extra))
 			{
 				rcDst.left += dMargin;
-				rcDst.right -= dMargin;
 				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
-					MakeD2DRcF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing));
+					MakeD2DRcF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing),
+					(D2D1_INTERPOLATION_MODE)m_eInterMode);
 
 				rcTemp = MakeD2DRcF(rc);
 				GetWnd()->Phy2Log(rcTemp);
 				CenterRect(rcTemp, rcDst);
 
 				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.f,
-					eInterMode, MakeD2DRcF(rc));
-
+					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRcF(rc));
 				rcDst.left -= dMargin;
 			}
 
-			rcDst.left -= m_cxMaxMin;
-			rcDst.right -= m_cxMaxMin;
+			rcDst.left -= m_cxMin;
+			rcDst.right = rcDst.left + m_cxMin;
 
 			if (m_DwmPartMgr.GetPartRect(rc, rcBkg, DwmWndPart::Min,
 				GetPartState(DwmWndPart::Min), bDarkMode, TRUE, iUserDpi, &Extra))
 			{
-				rcDst.left += dMargin;
-				rcDst.right -= dMargin;
+				rcDst.left += (dMargin * 2);
 				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
-					MakeD2DRcF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing));
+					MakeD2DRcF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing),
+					(D2D1_INTERPOLATION_MODE)m_eInterMode);
 
 				rcTemp = MakeD2DRcF(rc);
 				GetWnd()->Phy2Log(rcTemp);
 				CenterRect(rcTemp, rcDst);
 
 				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.0f,
-					eInterMode, MakeD2DRcF(rc));
-
-				rcDst.left -= dMargin;
+					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRcF(rc));
 			}
 			m_pDC->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
 
@@ -267,16 +264,39 @@ public:
 
 	void UpdateMetrics()
 	{
+		if (g_NtVer.uBuild >= WINVER_11_21H2)
+		{
+			const auto iWndDpi = GetWnd()->GetDpiValue();
+			//----计算高度
+			m_cyBtn = (float)DaGetSystemMetrics(SM_CYSIZE, iWndDpi);
+			m_cyBtn += float(DaGetSystemMetrics(SM_CXPADDEDBORDER, iWndDpi) +
+				DaGetSystemMetrics(SM_CYFRAME, iWndDpi) +
+				DaGetSystemMetrics(SM_CYBORDER, iWndDpi));
+			m_cyBtn = m_cyBtn * 96.f / iWndDpi;
+			// 高度为SM_CYSIZE + 通常模式下的客户区上边距
+			//----计算宽度
+			int nSys = DaGetSystemMetrics(SM_CYSIZE, iWndDpi);
+			nSys = (int)floorf(nSys * 0.95454544f + 0.5f);
+			// 对于标准的4个按钮（关闭、最大化、最小化、帮助）
+			// 在两边的使用2.2272727，中间的使用2.1818182
+			// 若只有关闭按钮，使用1.6363636
+			m_cxClose = m_cxMin = floorf(nSys * 2.2272727f + 0.5f)
+				* 96.f / iWndDpi;
+			m_cxMax = floorf(nSys * 2.1818182f + 0.5f)
+				* 96.f / iWndDpi;
+			return;
+		}
+
 		if (g_NtVer.uMajor == 6 && (g_NtVer.uMinor == 2 || g_NtVer.uMinor == 3))
 		{
 			m_cxClose = 46;
-			m_cxMaxMin = m_cxClose * 80 / 150;
+			m_cxMax = m_cxMin = m_cxClose * 80 / 150;
 			m_cyBtn = 21;
 		}
 		else
 		{
 			m_cxClose = 46;
-			m_cxMaxMin = m_cxClose;
+			m_cxMax = m_cxMin = m_cxClose;
 			m_cyBtn = 31;
 		}
 	}
@@ -290,9 +310,9 @@ public:
 			return DwmWndPart::Invalid;
 		if (ptClient.x > cx - m_cxClose)
 			return DwmWndPart::Close;
-		else if (ptClient.x > cx - m_cxMaxMin - m_cxClose)
+		else if (ptClient.x > cx - m_cxMax - m_cxClose)
 			return DwmWndPart::Max;
-		else if (ptClient.x > cx - m_cxMaxMin * 2 - m_cxClose)
+		else if (ptClient.x > cx - m_cxMin * 2 - m_cxClose)
 			return DwmWndPart::Min;
 		else
 			return DwmWndPart::Extra;
@@ -300,7 +320,8 @@ public:
 
 	void InvalidateBtnRect()
 	{
-		RECT rc{ GetWidth() - m_cxClose - m_cxMaxMin * 2 , 0, GetWidth(), m_cyBtn };
+		const auto cxBtn = (int)ceilf(m_cxClose + m_cxMax + m_cxMin);
+		RECT rc{ GetWidth() - cxBtn,0,GetWidth(),(int)ceilf(m_cyBtn) };
 		ElemToClient(rc);
 		InvalidateRect(rc);
 	}
