@@ -200,13 +200,8 @@ inline COLORREF GetCursorPosColor()
 	return cr;
 }
 
-/// <summary>
-/// WMI连接命名空间
-/// </summary>
-/// <param name="pWbemSrv">接收IWbemServices指针的变量，该变量的值将被覆盖</param>
-/// <param name="pWbemLoc">接收IWbemLocator指针的变量，该变量的值将被覆盖</param>
-/// <returns>HRESULT</returns>
-inline HRESULT WmiConnectNamespace(IWbemServices*& pWbemSrv, IWbemLocator*& pWbemLoc)
+inline HRESULT WmiConnectNamespace(_Out_ IWbemServices*& pWbemSrv,
+	_Out_ IWbemLocator*& pWbemLoc)
 {
 	pWbemSrv = nullptr;
 	pWbemLoc = nullptr;
@@ -243,7 +238,8 @@ inline HRESULT WmiConnectNamespace(IWbemServices*& pWbemSrv, IWbemLocator*& pWbe
 /// <param name="Var">查询结果，调用方必须对其调用VariantClear以解分配</param>
 /// <param name="pWbemSrv">IWbemServices指针，使用此接口执行查询</param>
 /// <returns>HRESULT</returns>
-inline HRESULT WmiQueryClassProp(PCWSTR pszWql, PCWSTR pszProp, VARIANT& Var, IWbemServices* pWbemSrv)
+inline HRESULT WmiQueryClassProp(_In_ PCWSTR pszWql, _In_ PCWSTR pszProp,
+	_Inout_ VARIANT& Var, _In_ IWbemServices* pWbemSrv)
 {
 	HRESULT hr;
 	ComPtr<IEnumWbemClassObject> pEnum;
@@ -265,7 +261,8 @@ inline HRESULT WmiQueryClassProp(PCWSTR pszWql, PCWSTR pszProp, VARIANT& Var, IW
 /// <param name="pszProp">属性</param>
 /// <param name="Var">查询结果</param>
 /// <returns>HRESULT</returns>
-inline HRESULT WmiQueryClassProp(PCWSTR pszWql, PCWSTR pszProp, VARIANT& Var)
+inline HRESULT WmiQueryClassProp(_In_ PCWSTR pszWql,
+	_In_ PCWSTR pszProp, _Inout_  VARIANT& Var)
 {
 	IWbemServices* pWbemSrv;
 	IWbemLocator* pWbemLoc;
@@ -576,13 +573,13 @@ namespace Priv
 	}
 }
 
-template<class...T>
 /// <summary>
 /// 模拟按键。
 /// 函数顺序按下参数中提供的键，然后倒序将它们放开
 /// </summary>
 /// <param name="wVk">虚拟键代码</param>
 /// <returns>SendInput的返回值</returns>
+template<class...T>
 inline UINT KeyboardEvent(T...wVk)
 {
 	INPUT Args[]{ Priv::KeyboardEventGetArg(wVk)... };
@@ -596,22 +593,6 @@ inline UINT KeyboardEvent(T...wVk)
 }
 
 const CRefStrW& GetRunningPath();
-
-inline CRefStrW GetFileNameFromPath(PCWSTR pszPath, int cchPath = -1)
-{
-	if (cchPath < 0)
-		cchPath = (int)wcslen(pszPath);
-	const PWSTR pTemp = (PWSTR)_malloca((cchPath + 1) * sizeof(WCHAR));
-	EckCheckMem(pTemp);
-	wmemcpy(pTemp, pszPath, cchPath + 1);
-
-	const auto pszFileName = PathFindFileNameW(pTemp);
-	PathRemoveExtensionW(pszFileName);
-	const auto rs = CRefStrW(pszFileName);
-
-	_freea(pTemp);
-	return rs;
-}
 
 EckInline BOOL SystemTimeToULongLong(const SYSTEMTIME& st, ULONGLONG& ull)
 {
@@ -747,19 +728,22 @@ Success:
 	return STATUS_SUCCESS;
 }
 
-inline void RestartExplorer()
+inline NTSTATUS RestartExplorer()
 {
 	const auto hWnd = FindWindowW(L"Shell_TrayWnd", nullptr);
 	if (!hWnd)
-		return;
+		return STATUS_NOT_FOUND;
 	DWORD dwProcessId;
 	GetWindowThreadProcessId(hWnd, &dwProcessId);
-	const auto hProcess = NaOpenProcess(PROCESS_TERMINATE, FALSE, dwProcessId);
+	NTSTATUS nts;
+	const auto hProcess = NaOpenProcess(
+		PROCESS_TERMINATE, FALSE, dwProcessId, &nts);
 	if (hProcess)
 	{
 		NtTerminateProcess(hProcess, 2);
 		NtClose(hProcess);
 	}
+	return nts;
 }
 
 inline SIZE GetCursorSize(int iDpi)
