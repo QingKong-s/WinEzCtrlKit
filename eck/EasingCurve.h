@@ -658,22 +658,9 @@ struct CEasingCurveLite
 	// 返回曲线是否正在运行（TRUE = 正在运行，FALSE = 已结束）
 	EckInline BOOLEAN Tick(float fElapse, float fDuration)
 	{
-		BOOLEAN bActive;
 		Time += fElapse;
-		if (Time >= fDuration)
-		{
-			Time = fDuration;
-			bActive = FALSE;
-		}
-		else if (Time < 0.f)
-		{
-			Time = 0.f;
-			bActive = FALSE;
-		}
-		else
-			bActive = TRUE;
 		K = FAn{}(Time, Begin, Dist, fDuration);
-		return bActive;
+		return !(Dist > 0.f ? K >= Begin + Dist : K <= Begin + Dist);
 	}
 };
 ECK_NAMESPACE_END

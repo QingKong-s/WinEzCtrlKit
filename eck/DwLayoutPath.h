@@ -148,7 +148,7 @@ public:
 
 	STDMETHOD(IsPixelSnappingDisabled)(void* pClientDrawingContext, BOOL* pbDisabled) override
 	{
-		*pbDisabled = FALSE;
+		*pbDisabled = m_bPixelSnappingDisabled;
 		return S_OK;
 	}
 
