@@ -6,8 +6,6 @@
 #include "DuiCompositor.h"
 
 #include "GraphicsHelper.h"
-#include "OleDragDropHelper.h"
-#include "SystemHelper.h"
 #include "CDwmWndPartMgr.h"
 
 #include "EasingCurve.h"

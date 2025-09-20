@@ -1,5 +1,8 @@
 #include "CTestWnd.h"
 
+#ifdef _DEBUG
+#define ECK_OPT_CRT_DLL 1
+#endif
 #include "eck/Env.h"
 
 using namespace std::literals;

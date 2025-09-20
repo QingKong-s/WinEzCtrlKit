@@ -11,15 +11,26 @@
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 class CEdit;
-class CEditTextHost :public CUnknownMultiThread<CEditTextHost, ITextHost2>
+class CEditTextHost : public ITextHost2
 {
-	ECK_DECL_CUNK_FRIENDS;
 private:
 	ULONG m_cRef{ 1 };
 	BITBOOL m_bActive : 1{};
 	CEdit* m_pEdit{};
 public:
 	CEditTextHost(CEdit* pEdit) :m_pEdit{ pEdit } {}
+
+	ULONG STDMETHODCALLTYPE AddRef() override { return _InterlockedIncrement(&m_cRef); }
+
+	ULONG STDMETHODCALLTYPE Release() override
+	{
+		if (_InterlockedDecrement(&m_cRef) == 0)
+		{
+			delete this;
+			return 0;
+		}
+		return m_cRef;
+	}
 
 	STDMETHODIMP QueryInterface(REFIID riid, void** ppvObject) override
 	{
