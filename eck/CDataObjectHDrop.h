@@ -72,7 +72,7 @@ public:
 	HRESULT STDMETHODCALLTYPE GetData(
 		_In_ FORMATETC* pFormatEtc, _Out_ STGMEDIUM* pStgMedium) override
 	{
-		pStgMedium = {};
+		*pStgMedium = {};
 		if (pFormatEtc->lindex != -1)
 			return DV_E_LINDEX;
 		const auto it = FindFormat(pFormatEtc);
@@ -184,6 +184,10 @@ public:
 		return E_NOTIMPL;
 	}
 	HRESULT STDMETHODCALLTYPE DUnadvise(DWORD dwConnection) { return E_NOTIMPL; }
-	HRESULT STDMETHODCALLTYPE EnumDAdvise(IEnumSTATDATA** ppEnumAdvise) { *ppEnumAdvise = nullptr; }
+	HRESULT STDMETHODCALLTYPE EnumDAdvise(IEnumSTATDATA** ppEnumAdvise)
+	{
+		*ppEnumAdvise = nullptr;
+		return E_NOTIMPL;
+	}
 };
 ECK_NAMESPACE_END

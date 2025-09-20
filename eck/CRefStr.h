@@ -787,18 +787,16 @@ public:
 		return cch;
 	}
 
-	/// <summary>
-	/// 取BSTR。
-	/// 调用方必须在使用完返回值后对其调用SysFreeString以解分配
-	/// </summary>
-	/// <returns>BSTR</returns>
+	// 取BSTR。
+	// 调用方负责对返回值使用SysFreeString解分配
 	EckInlineNd BSTR ToBSTR() const
 	{
 		if constexpr (std::is_same_v<TChar, WCHAR>)
 			return SysAllocStringLen(Data(), Size());
 		else
 		{
-			auto rs = StrX2W<CCharTraits<WCHAR>, CAllocatorProcHeap<WCHAR, int>>(Data(), Size(), CP_ACP);
+			const auto rs = StrX2W<CCharTraits<WCHAR>, CAllocatorProcHeap<WCHAR, int>>(
+				Data(), Size(), CP_ACP);
 			return SysAllocStringLen(rs.Data(), rs.Size());
 		}
 	}
@@ -1195,7 +1193,7 @@ public:
 		}
 	}
 
-	// 如果没有反斜杠，则在末尾添加。返回操作前是否已有反斜杠
+	// 如果没有反斜杠，则在末尾添加。返回值指示操作前是否已有反斜杠
 	BOOL PazAddBackslash()
 	{
 		if (IsEmpty())
@@ -1293,6 +1291,27 @@ public:
 			*(pszParam + cchParam) = '\0';
 		}
 		return hr;
+	}
+
+	BOOL PazTrimToFileName(BOOL bKeepExtension = FALSE)
+	{
+		const auto pos0 = PazFindFileSpec();
+		const auto pos1 = bKeepExtension ? PazFindExtension() : Size();
+		if (pos0 < 0 || pos1 < 0 || pos1 <= pos0)
+			return FALSE;
+		TcsMoveLen(Data(), Data() + pos0, pos1 - pos0);
+		ReSize(pos1 - pos0);
+		return TRUE;
+	}
+	BOOL PazTrimToFileName(CRefStrT& rsFileName, BOOL bKeepExtension = FALSE) const
+	{
+		const auto pos0 = PazFindFileSpec();
+		const auto pos1 = bKeepExtension ? PazFindExtension() : Size();
+		if (pos0 < 0 || pos1 < 0 || pos1 <= pos0)
+			return FALSE;
+		rsFileName.PushBackNoExtra(pos1 - pos0);
+		TcsCopyLen(rsFileName.Data(), Data() + pos0, pos1 - pos0);
+		return TRUE;
 	}
 
 	EckInlineNd TIterator begin() { return Data(); }
