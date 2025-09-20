@@ -310,9 +310,7 @@ struct __declspec(uuid("85623275-F66F-4D96-8EFE-6F97E2519AC8"))
 
 class CThemePalette : public CRefObj<CThemePalette>
 {
-	ECK_DECL_CUNK_FRIENDS;
 protected:
-	ULONG m_cRef{ 1 };
 	std::vector<D2D1_COLOR_F> m_vEntries{};
 public:
 	ECK_DISABLE_COPY_MOVE_DEF_CONS(CThemePalette);
@@ -328,7 +326,6 @@ public:
 // 主题描述
 class CTheme : public CRefObj<CTheme>
 {
-	ECK_DECL_CUNK_FRIENDS;
 	friend class CThemeRealization;
 protected:
 	ULONG m_cRef{ 1 };

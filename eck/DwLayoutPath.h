@@ -4,7 +4,7 @@
 
 ECK_NAMESPACE_BEGIN
 #if !ECK_OPT_NO_DX
-class CGeometrySinkForwarder :
+class CGeometrySinkForwarder final :
 	public CUnknown<CGeometrySinkForwarder, ID2D1SimplifiedGeometrySink>
 {
 private:
@@ -77,10 +77,10 @@ public:
 	}
 };
 
-class CDwFetchPathRender : public IDWriteTextRenderer
+// 调用IDWriteTextLayout::Draw时，上下文参数必须为CGeometrySinkForwarder指针
+class CDwFetchPathRender final : public IDWriteTextRenderer
 {
 private:
-	ComPtr<ID2D1Factory> m_pFactory{};
 	float m_fDpi{};
 	BOOL m_bPixelSnappingDisabled{};
 
@@ -101,9 +101,8 @@ private:
 		pSink->EndFigure(D2D1_FIGURE_END_CLOSED);
 	}
 public:
-	CDwFetchPathRender(ID2D1Factory* pFactory, float fDpi, BOOL bPixelSnappingDisabled)
-		: m_pFactory{ pFactory }, m_fDpi{ fDpi },
-		m_bPixelSnappingDisabled{ bPixelSnappingDisabled } {
+	CDwFetchPathRender(float fDpi, BOOL bPixelSnappingDisabled)
+		: m_fDpi{ fDpi }, m_bPixelSnappingDisabled{ bPixelSnappingDisabled } {
 	}
 
 	STDMETHOD(DrawGlyphRun)(void* pClientDrawingContext,
@@ -216,7 +215,7 @@ inline HRESULT GetTextLayoutPathGeometry(
 	pD2DFactory->CreatePathGeometry(&pPath);
 	pPath->Open(&pSink);
 
-	CDwFetchPathRender Renderer{ pD2DFactory,fDpi,bPixelSnappingDisabled };
+	CDwFetchPathRender Renderer{ fDpi,bPixelSnappingDisabled };
 	CGeometrySinkForwarder Forwarder{ pSink.Get() };
 
 	DWRITE_TEXT_METRICS tm;
@@ -236,11 +235,7 @@ inline HRESULT GetTextLayoutPathGeometry(
 	}
 	if (SUCCEEDED(hr))
 		hr = Forwarder.Close();
-
-	if (FAILED(hr))
-		pPathGeometry = nullptr;
-	else
-		pPathGeometry = pPath.Detach();
+	pPathGeometry = (SUCCEEDED(hr) ? pPath.Detach() : nullptr);
 	return hr;
 }
 

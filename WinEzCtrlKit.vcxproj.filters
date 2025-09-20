@@ -201,7 +201,7 @@
     <ClInclude Include="eck\CInputBox.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\OleDragDropHelper.h">
+    <ClInclude Include="eck\CDataObjectHDrop.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CToolTip.h">
@@ -619,9 +619,6 @@
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\Crypt.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
-    <ClInclude Include="eck\Eol.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\EncodingDetect.h">

@@ -2,6 +2,25 @@
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
+#define ECK_DEF_COM_INHERIT(I, ...)	\
+	template<>						\
+	struct Inherits<I>				\
+	{								\
+		using TBaseTuple = std::tuple<__VA_ARGS__>;	\
+	}
+
+namespace UnknownTraits
+{
+	template<class I>
+	struct Inherits
+	{
+		using TBaseTuple = std::tuple<>;
+	};
+
+	ECK_DEF_COM_INHERIT(IStream, ISequentialStream);
+	ECK_DEF_COM_INHERIT(IDWriteTextRenderer, IDWritePixelSnapping);
+}
+
 template<class TThis, ccpIsComInterface... TInterface>
 class CUnknown : public TInterface...
 {
@@ -23,88 +42,55 @@ public:
 
 	STDMETHODIMP QueryInterface(REFIID riid, void** ppvObject) override
 	{
-		const QITAB Tab[]{ QiMakeEntry<TInterface>()...,{} };
-		return QISearch(static_cast<TThis*>(this), Tab, riid, ppvObject);
+		if (riid == IID_IUnknown)
+		{
+			*ppvObject = this;
+			AddRef();
+			return S_OK;
+		}
+		else if (QiCheck<TInterface...>(riid, ppvObject) == S_OK)
+			return S_OK;
+		else
+		{
+			*ppvObject = nullptr;
+			return E_NOINTERFACE;
+		}
 	}
 private:
-	template<class I>
-	EckInline static QITAB QiMakeEntry() noexcept
+	template<class I, class... Is>
+	EckInline HRESULT QiCheck(REFIID riid, void** ppvObject)
 	{
-		return { &__uuidof(I),OFFSETOFCLASS(I, TThis) };
+		if (riid == __uuidof(I))
+		{
+			*ppvObject = static_cast<I*>(this);
+			AddRef();
+			return S_OK;
+		}
+		using TTuple = UnknownTraits::Inherits<I>::TBaseTuple;
+		if (QiCheckInherit<TTuple>{}(this, riid, ppvObject) == S_OK)
+			return S_OK;
+
+		if constexpr (sizeof...(Is))
+			return QiCheck<Is...>(riid, ppvObject);
+		else
+			return E_NOINTERFACE;
 	}
+
+	template<class T>
+	struct QiCheckInherit {};
+	template<class... Is>
+	struct QiCheckInherit<std::tuple<Is...>>
+	{
+		EckInline HRESULT operator()(CUnknown* pThis, REFIID riid, void** ppvObject)
+		{
+			if constexpr (sizeof...(Is))
+				return pThis->QiCheck<Is...>(riid, ppvObject);
+			else
+				return E_NOINTERFACE;
+		}
+	};
 };
 
 template<class TThis>
 using CRefObj = CUnknown<TThis, IUnknown>;
-
-
-
-/*
-* 主类必须存在ULONG类型字段m_cRef
-*/
-
-template<class TThis, class TBase = IUnknown>
-struct CUnknownSingleThread : public TBase
-{
-	STDMETHODIMP_(ULONG) AddRef() override
-	{
-		return ++static_cast<TThis*>(this)->m_cRef;
-	}
-
-	STDMETHODIMP_(ULONG) Release() override
-	{
-		const auto cRef = --static_cast<TThis*>(this)->m_cRef;
-		if (cRef == 0)
-			delete static_cast<TThis*>(this);
-		return cRef;
-	}
-};
-
-template<class TThis, class TBase = IUnknown>
-struct CUnknownMultiThread : public TBase
-{
-	STDMETHODIMP_(ULONG) AddRef() override
-	{
-		return InterlockedIncrement(&static_cast<TThis*>(this)->m_cRef);
-	}
-
-	STDMETHODIMP_(ULONG) Release() override
-	{
-		const auto cRef = InterlockedDecrement(&static_cast<TThis*>(this)->m_cRef);
-		if (cRef == 0)
-			delete static_cast<TThis*>(this);
-		return cRef;
-	}
-};
-
-namespace Priv
-{
-	template<class TUnknown>
-	struct CRefObj : public TUnknown
-	{
-		STDMETHODIMP QueryInterface(REFIID riid, void** ppvObject) override
-		{
-			if (riid == IID_IUnknown)
-			{
-				*ppvObject = static_cast<IUnknown*>(this);
-				static_cast<IUnknown*>(this)->AddRef();
-				return S_OK;
-			}
-			*ppvObject = nullptr;
-			return E_NOINTERFACE;
-		}
-	};
-}
-
-template<class TThis, class TBase = IUnknown>
-using CRefObjSingleThread = Priv::CRefObj<CUnknownSingleThread<TThis, TBase>>;
-
-template<class TThis, class TBase = IUnknown>
-using CRefObjMultiThread = Priv::CRefObj<CUnknownMultiThread<TThis, TBase>>;
-
-#define ECK_DECL_CUNK_FRIENDS			\
-	template<class TThis, class TBase>	\
-	friend struct CUnknownSingleThread; \
-	template<class TThis, class TBase>	\
-	friend struct CUnknownMultiThread;
 ECK_NAMESPACE_END

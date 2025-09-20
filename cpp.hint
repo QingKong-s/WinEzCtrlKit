@@ -30,3 +30,4 @@
 #define ECK_CWNDPROP_TLBE_STYLE(Name, Style) ECKPROP(StyleGet##Name, StyleSet##Name) BOOL Name; BOOL StyleGet##Name() const { if constexpr (Style == 0) return !GetTBExtendStyle(); else return IsBitSet(GetTBExtendStyle(), Style); } void StyleSet##Name(BOOL b) const { SetTBExtendStyle(b ? Style : 0, Style); }
 #define ECK_CWND_SINGLEOWNER_NO_DEF_CONS(Class)
 #define ECK_DECL_HANDLE_DELETER(Name, Type, DelFunc) struct Del##Name { using T = std::remove_pointer_t<Type>; void operator()(Type h) { DelFunc(h); } }; };
+#define ECK_DEF_COM_INHERIT(I, __VA_ARGS__) template<> struct Inherits<I> { using TBaseTuple = std::tuple<__VA_ARGS__>; }
