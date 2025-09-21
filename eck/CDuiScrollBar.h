@@ -40,7 +40,9 @@ public:
 			{
 				if (m_bTransparentTrack)
 				{
-					D2D1_POINT_2F pt{ MakeD2dPtF(ECK_GET_PT_LPARAM(lParam)) };
+					if (!m_psv->IsVisible())
+						return HTTRANSPARENT;
+					D2D1_POINT_2F pt{ MakeD2DPointF(ECK_GET_PT_LPARAM(lParam)) };
 					ClientToElem(pt);
 					D2D1_RECT_F rc;
 					GetPartRect(rc, SbPart::Thumb);
@@ -63,7 +65,7 @@ public:
 			{
 				POINT pt ECK_GET_PT_LPARAM(lParam);
 				ClientToElem(pt);
-				m_psv->OnMouseMove((int)(m_bHorizontal ? pt.x - GetHeightF() : pt.y - GetWidthF()));
+				m_psv->OnMouseMove(m_bHorizontal ? pt.x - GetHeightF() : pt.y - GetWidthF());
 				DUINMHDR nm{ m_bHorizontal ? EE_HSCROLL : EE_VSCROLL };
 				if (!GenElemNotify(&nm))
 					InvalidateRect();
@@ -88,13 +90,13 @@ public:
 			POINT pt ECK_GET_PT_LPARAM(lParam);
 			ClientToElem(pt);
 
-			const D2D1_POINT_2F ptf{ MakeD2dPtF(pt) };
+			const D2D1_POINT_2F ptf{ MakeD2DPointF(pt) };
 			D2D1_RECT_F rcf;
 			GetPartRect(rcf, SbPart::Thumb);
 			if (PtInRect(rcf, ptf))
 			{
 				m_bDragThumb = TRUE;
-				m_psv->OnLButtonDown((int)(m_bHorizontal ? pt.x - GetHeightF() : pt.y - GetWidthF()));
+				m_psv->OnLButtonDown(m_bHorizontal ? pt.x - GetHeightF() : pt.y - GetWidthF());
 			}
 			else
 			{
@@ -132,10 +134,10 @@ public:
 		return 0;
 		case WM_SIZE:
 		{
-			const auto cx = GetWidth(),
-				cy = GetHeight();
+			const auto cx = GetWidthF(),
+				cy = GetHeightF();
 			if (m_bHorizontal)
-				m_psv->SetViewSize(cx - 2 * cy);
+				m_psv->SetViewSize(cx - 2.f * cy);
 			else
 				m_psv->SetViewSize(cy - 2 * cx);
 		}
@@ -147,47 +149,50 @@ public:
 			ELEMPAINTSTRU ps;
 			BeginPaint(ps, wParam, lParam);
 
-			D2D1_RECT_F rc;
-			GetPartRect(rc, SbPart::Thumb);
-			float cxyLeave, cxyMin;
-			if (m_bHorizontal)
+			if (m_psv->IsVisible())
 			{
-				cxyLeave = (rc.bottom - rc.top) / 3 * 2;
-				cxyMin = (rc.bottom - rc.top) - cxyLeave;
-			}
-			else
-			{
-				cxyLeave = (rc.right - rc.left) / 3 * 2;
-				cxyMin = (rc.right - rc.left) - cxyLeave;
-			}
-			if (m_pec->IsActive())
-			{
-				DTB_OPT Opt;
-				Opt.uFlags = DTBO_NEW_OPACITY;
-				Opt.fOpacity = m_pec->GetCurrValue();
-				GetTheme()->DrawBackground(Part::ScrollBar, State::Hot,
-					GetViewRectF(), &Opt);
+				D2D1_RECT_F rc;
+				GetPartRect(rc, SbPart::Thumb);
+				float cxyLeave, cxyMin;
 				if (m_bHorizontal)
-					rc.top = rc.bottom - cxyMin - cxyLeave * m_pec->GetCurrValue();
-				else
-					rc.left = rc.right - cxyMin - cxyLeave * m_pec->GetCurrValue();
-			}
-			else
-			{
-				if (!m_bHot)
 				{
-					if (m_bHorizontal)
-						rc.top += cxyLeave;
-					else
-						rc.left += cxyLeave;
+					cxyLeave = (rc.bottom - rc.top) / 3 * 2;
+					cxyMin = (rc.bottom - rc.top) - cxyLeave;
 				}
 				else
+				{
+					cxyLeave = (rc.right - rc.left) / 3 * 2;
+					cxyMin = (rc.right - rc.left) - cxyLeave;
+				}
+				if (m_pec->IsActive())
+				{
+					DTB_OPT Opt;
+					Opt.uFlags = DTBO_NEW_OPACITY;
+					Opt.fOpacity = m_pec->GetCurrValue();
 					GetTheme()->DrawBackground(Part::ScrollBar, State::Hot,
-						GetViewRectF(), nullptr);
-			}
+						GetViewRectF(), &Opt);
+					if (m_bHorizontal)
+						rc.top = rc.bottom - cxyMin - cxyLeave * m_pec->GetCurrValue();
+					else
+						rc.left = rc.right - cxyMin - cxyLeave * m_pec->GetCurrValue();
+				}
+				else
+				{
+					if (!m_bHot)
+					{
+						if (m_bHorizontal)
+							rc.top += cxyLeave;
+						else
+							rc.left += cxyLeave;
+					}
+					else
+						GetTheme()->DrawBackground(Part::ScrollBar, State::Hot,
+							GetViewRectF(), nullptr);
+				}
 
-			GetTheme()->DrawBackground(Part::ScrollThumb,
-				State::Normal, rc, nullptr);
+				GetTheme()->DrawBackground(Part::ScrollThumb,
+					State::Normal, rc, nullptr);
+			}
 
 			EndPaint(ps);
 		}
@@ -251,8 +256,13 @@ public:
 				return;
 			case SbPart::Thumb:
 			{
-				const int cyThumb = (int)GetTheme()->GetMetrics(Metrics::CyHThumb);
-				const int cxyThumb = m_psv->GetThumbSize();
+				if (!m_psv->IsVisible())
+				{
+					rc = {};
+					return;
+				}
+				const auto cyThumb = GetTheme()->GetMetrics(Metrics::CyHThumb);
+				const auto cxyThumb = m_psv->GetThumbSize();
 				rc.left = cy + m_psv->GetThumbPos(cxyThumb);
 				rc.top = (cy - cyThumb) / 2;
 				rc.right = rc.left + cxyThumb;
@@ -274,8 +284,13 @@ public:
 				return;
 			case SbPart::Thumb:
 			{
-				const int cxThumb = (int)GetTheme()->GetMetrics(Metrics::CxVThumb);
-				const int cxyThumb = m_psv->GetThumbSize();
+				if (!m_psv->IsVisible())
+				{
+					rc = {};
+					return;
+				}
+				const auto cxThumb = (int)GetTheme()->GetMetrics(Metrics::CxVThumb);
+				const auto cxyThumb = m_psv->GetThumbSize();
 				rc.left = (cx - cxThumb) / 2;
 				rc.top = cx + m_psv->GetThumbPos(cxyThumb);
 				rc.right = rc.left + cxThumb;

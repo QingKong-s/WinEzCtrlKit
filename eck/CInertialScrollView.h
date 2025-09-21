@@ -5,75 +5,65 @@
 
 ECK_NAMESPACE_BEGIN
 class CInertialScrollView :
-	public CScrollView,
+	public CScrollViewF,
 	public CUnknown<CInertialScrollView, ITimeLine>
 {
 public:
-	using FInertialScrollProc = void(*)(int iPos, int iPrevPos, LPARAM lParam);
+	using FInertialScrollProc = void(*)(float fPos, float fPrevPos, LPARAM lParam);
 protected:
-	float m_iStart = 0;		// 起始位置
-	float m_iDistance = 0;	// 当前动画应滚动的总距离
-	float m_iSustain = 0;	// 持续时间，毫秒
-	float m_iDuration = 400;// 动画总时间
-	int m_iDelta = 80;	// 每次滚动的距离
+	float m_fStart{};		// 起始位置
+	float m_fDistance{};	// 当前动画应滚动的总距离
+	float m_fSustain{};	// 持续时间，毫秒
+	float m_fDuration{ 400.f };// 动画总时间
+	float m_fDelta{ 80.f };	// 每次滚动的距离
 
-	int m_iCurrInterval = 0;
+	int m_iCurrInterval{};
 
-	FInertialScrollProc m_pfnCallBack = nullptr;
-	LPARAM m_lParam = 0;
+	FInertialScrollProc m_pfnCallBack{};
+	LPARAM m_lParam{};
 
-	BOOLEAN m_bValid = FALSE;
-	BOOLEAN m_bStop = TRUE;
+	BOOL m_bValid{};
+	BOOL m_bStop{ TRUE };
 public:
 	virtual ~CInertialScrollView() = default;
 
 	void Tick(int iMs) override
 	{
 		m_iCurrInterval = iMs;
-		const int iPrevPos = GetPos();
-		m_iSustain += iMs;
-		const int iCurr = (int)Easing::OutCubic(
-			(float)m_iSustain, (float)m_iStart,
-			(float)m_iDistance, (float)m_iDuration);
-		if (iCurr > GetMaxWithPage())
-		{
-			SetPos(GetMaxWithPage());
+		const float fPrevPos = GetPos();
+		m_fSustain += iMs;
+		const float f = Easing::OutCubic(m_fSustain, m_fStart, m_fDistance, m_fDuration);
+		if (SetPos(f))
 			m_bStop = TRUE;
-			m_pfnCallBack(GetPos(), iPrevPos, m_lParam);
-			InterruptAnimation();
-			return;
-		}
 		else
-		{
-			SetPos(iCurr);
-			m_bStop = (m_iSustain >= m_iDuration);
-			m_pfnCallBack(GetPos(), iPrevPos, m_lParam);
-			if (m_bStop)
-				InterruptAnimation();
-		}
+			m_bStop = (m_fDistance > 0.f ?
+				(f >= m_fStart + m_fDistance) : (f <= m_fStart + m_fDistance));
+		m_pfnCallBack(GetPos(), fPrevPos, m_lParam);
+		if (m_bStop)
+			InterruptAnimation();
 	}
 	EckInline BOOL IsValid() override { return m_bValid; }
 	EckInline int GetCurrTickInterval() override { return m_iCurrInterval; }
 	// 
-	EckInline void OnMouseWheel2(int iWheelDelta) { SmoothScrollDelta(m_iDelta * iWheelDelta); }
+	EckInline void OnMouseWheel2(int iWheelDelta) { SmoothScrollDelta(m_fDelta * iWheelDelta); }
 
 	EckInlineCe void InterruptAnimation()
 	{
 		m_bValid = FALSE;
-		m_iSustain = 0.f;
-		m_iDistance = 0.f;
+		m_fSustain = 0.f;
+		m_fDistance = 0.f;
 	}
 
-	constexpr void SmoothScrollDelta(int iDelta)
+	constexpr void SmoothScrollDelta(float iDelta)
 	{
-		m_iStart = (float)GetPos();
+		m_fStart = GetPos();
 		// 计算新的滚动距离；将原先的滚动距离减去已经滑动完的位移再加上滚动事件产生的位移
-		m_iDistance = ((m_iDuration - m_iSustain) * m_iDistance / m_iDuration) + iDelta;
-		if (m_iDistance + m_iStart > GetMaxWithPage())
-			m_iDistance = GetMaxWithPage() - m_iStart;
-		if (m_iDistance + m_iStart < GetMin())
-			m_iDistance = GetMin() - m_iStart;
-		m_iSustain = 0.f;
+		m_fDistance = ((m_fDuration - m_fSustain) * m_fDistance / m_fDuration) + iDelta;
+		if (m_fDistance + m_fStart > GetMaxWithPage())
+			m_fDistance = GetMaxWithPage() - m_fStart;
+		if (m_fDistance + m_fStart < GetMin())
+			m_fDistance = GetMin() - m_fStart;
+		m_fSustain = 0.f;
 
 		m_bValid = TRUE;
 	}
@@ -84,13 +74,13 @@ public:
 		m_lParam = lParam;
 	}
 
-	EckInlineCe void SetDuration(float iDuration) { m_iDuration = iDuration; }
-	EckInlineNdCe float GetDuration() const { return m_iDuration; }
+	EckInlineCe void SetDuration(float iDuration) { m_fDuration = iDuration; }
+	EckInlineNdCe float GetDuration() const { return m_fDuration; }
 
-	EckInline void SetDelta(int iDelta) { m_iDelta = iDelta; }
-	EckInlineNdCe int GetDelta() const { return m_iDelta; }
+	EckInline void SetDelta(float iDelta) { m_fDelta = iDelta; }
+	EckInlineNdCe float GetDelta() const { return m_fDelta; }
 
-	EckInlineNdCe float GetCurrTime() const { return m_iSustain; }
+	EckInlineNdCe float GetCurrTime() const { return m_fSustain; }
 
 	EckInlineNdCe BOOL IsStop() const { return m_bStop; }
 };

@@ -30,7 +30,7 @@ struct CCompositorCornerMapping : public CCompositor
 		PtXToX(pElem, pt, FALSE);
 	}
 
-	void CalcCompositedRect(CElem* pElem, _Out_ RECT& rc, BOOL bInClientOrParent) override
+	void CalcCompositedRect(CElem* pElem, _Out_ D2D1_RECT_F& rc, BOOL bInClientOrParent) override
 	{
 		const auto cx = pElem->GetWidthF();
 		const auto cy = pElem->GetHeightF();
@@ -51,7 +51,7 @@ struct CCompositorCornerMapping : public CCompositor
 			if (y < t) t = y;
 			if (y > b) b = y;
 		}
-		rc = { (LONG)floorf(l), (LONG)floorf(t), (LONG)ceilf(r), (LONG)ceilf(b) };
+		rc = { l,t,r,b };
 		pElem->ElemToClient(rc);
 		if (!bInClientOrParent && pElem->GetParentElem())
 			pElem->GetParentElem()->ClientToElem(rc);
@@ -89,15 +89,14 @@ struct CCompositor2DAffineTransform : public CCompositor
 	{
 		PtXToX(pElem, pt, FALSE);
 	}
-	void CalcCompositedRect(CElem* pElem, _Out_ RECT& rc, BOOL bInClientOrParent) override
+	void CalcCompositedRect(CElem* pElem, _Out_ D2D1_RECT_F& rc, BOOL bInClientOrParent) override
 	{
 		const auto cx = pElem->GetWidthF();
 		const auto cy = pElem->GetHeightF();
 		D2D1_POINT_2F pt[]{ { 0,0 },{ cx,cy } };
 		pt[0] = Mat.TransformPoint(pt[0]);
 		pt[1] = Mat.TransformPoint(pt[1]);
-		rc = { (LONG)floorf(pt[0].x), (LONG)floorf(pt[0].y),
-			(LONG)ceilf(pt[1].x), (LONG)ceilf(pt[1].y) };
+		rc = { pt[0].x,pt[0].y,pt[1].x,pt[1].y };
 		pElem->ElemToClient(rc);
 		if (!bInClientOrParent && pElem->GetParentElem())
 			pElem->GetParentElem()->ClientToElem(rc);
@@ -144,8 +143,8 @@ public:
 
 	float Scale{ 1.f };
 	float Opacity{ 1.f };
-	int Dx{};
-	int Dy{};
+	float Dx{};
+	float Dy{};
 	D2D1_POINT_2F RefPoint{};
 	Corner Corner{};
 private:
@@ -178,8 +177,8 @@ public:
 			m_p2DAffine->PtNormalToComposited(pElem, pt);
 			break;
 		case Type::Translation:
-			pt.x += Dx;
-			pt.y += Dy;
+			pt.x += (int)Dx;
+			pt.y += (int)Dy;
 			break;
 		}
 	}
@@ -197,13 +196,13 @@ public:
 			m_p2DAffine->PtCompositedToNormal(pElem, pt);
 			break;
 		case Type::Translation:
-			pt.x -= Dx;
-			pt.y -= Dy;
+			pt.x -= (int)Dx;
+			pt.y -= (int)Dy;
 			break;
 		}
 	}
 
-	void CalcCompositedRect(CElem* pElem, _Out_ RECT& rc, BOOL bInClientOrParent) override
+	void CalcCompositedRect(CElem* pElem, _Out_ D2D1_RECT_F& rc, BOOL bInClientOrParent) override
 	{
 		switch (m_eType)
 		{
@@ -307,13 +306,13 @@ public:
 		if (!m_pFxCrop)
 			m_pDC->CreateEffect(CLSID_D2D1Crop, &m_pFxCrop);
 	}
-	void InitAsTranslation(int dx = 0, int dy = 0)
+	void InitAsTranslation(float dx = 0, float dy = 0)
 	{
 		m_eType = Type::Translation;
 		Dx = dx;
 		Dy = dy;
 	}
-	void InitAsTranslationOpacity(int dx = 0, int dy = 0, float fOpacity = 1.f)
+	void InitAsTranslationOpacity(float dx = 0, float dy = 0, float fOpacity = 1.f)
 	{
 		m_eType = Type::TranslationOpacity;
 		Dx = dx;

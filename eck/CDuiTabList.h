@@ -22,17 +22,15 @@ struct NMTBLITEMINDEX : DUINMHDR
 class CTabList : public CListTemplate
 {
 public:
-	enum
-	{
+	constexpr static float
 		CxIndicator = 4,
 		CxIndicatorPadding = 4,
-		CyIndicatorPadding = 10
-	};
+		CyIndicatorPadding = 10;
 protected:
 	CEasingCurve* m_pec1{}, * m_pec2{};
 	int m_idxTo{ -1 }, m_idxFrom{ -1 };
 	int m_idxLastSel{ -1 };
-	RECT m_rcLastRedraw{};
+	D2D1_RECT_F m_rcLastRedraw{};
 
 	void LVPaintSubItem(const D2D1_RECT_F& rcPaint, NMLTCUSTOMDRAW& nm, LRESULT r) override
 	{
@@ -48,7 +46,7 @@ protected:
 		const float Padding = GetTheme()->GetMetrics(Metrics::SmallPadding);
 		const float Padding2 = GetTheme()->GetMetrics(Metrics::LargePadding);
 		const float cyImg = m_cyItem - Padding2 * 2.f;
-		float x = nm.rc.left + (float)CxIndicatorPadding + (float)CxIndicator;
+		float x = nm.rc.left + CxIndicatorPadding + CxIndicator;
 		D2D1_SIZE_F sizeImg;
 		D2D1_RECT_F rc;
 		if (di.pImage)
@@ -68,7 +66,7 @@ protected:
 		}
 		else
 			goto SkipDrawImg;
-		rc.left = nm.rc.left + (float)CxIndicatorPadding + (float)CxIndicator;
+		rc.left = nm.rc.left + CxIndicatorPadding + CxIndicator;
 		rc.top = nm.rc.top + (m_cyItem - sizeImg.height) / 2.f;
 		rc.right = rc.left + sizeImg.width;
 		rc.bottom = rc.top + sizeImg.height;
@@ -83,7 +81,7 @@ protected:
 		{
 			const auto cx = nm.rc.right - nm.rc.left - x;
 			g_pDwFactory->CreateTextLayout(di.pszText, di.cchText,
-				GetTextFormat(), cx, (float)m_cyItem, &e.pLayout);
+				GetTextFormat(), cx, m_cyItem, &e.pLayout);
 		}
 		if (e.pLayout.Get())
 		{
@@ -109,23 +107,23 @@ protected:
 		if (m_pec2->IsActive())
 		{
 			D2D1_RECT_F rc;
-			rc.left = (float)CxIndicatorPadding;
-			rc.right = float(CxIndicatorPadding + CxIndicator);
+			rc.left = CxIndicatorPadding;
+			rc.right = CxIndicatorPadding + CxIndicator;
 			if (m_idxTo > m_idxFrom)// 向下
 			{
 				const auto d = (m_idxTo - m_idxFrom) * (m_cyItem + m_cyPadding);
 				rc.bottom = m_pec1->GetCurrValue() * d + (m_cyItem - CyIndicatorPadding);
-				rc.top = m_pec2->GetCurrValue() * d + (float)CyIndicatorPadding;
+				rc.top = m_pec2->GetCurrValue() * d + CyIndicatorPadding;
 				OffsetRect(rc, 0.f,
-					float(m_idxFrom * (m_cyItem + m_cyPadding) - m_psvV->GetPos()));
+					m_idxFrom * (m_cyItem + m_cyPadding) - m_psvV->GetPos());
 			}
 			else// 向上
 			{
 				const auto d = (m_idxFrom - m_idxTo) * (m_cyItem + m_cyPadding);
-				rc.top = -(m_pec1->GetCurrValue() * d - (float)CyIndicatorPadding);
+				rc.top = -(m_pec1->GetCurrValue() * d - CyIndicatorPadding);
 				rc.bottom = -(m_pec2->GetCurrValue() * d - (m_cyItem - CyIndicatorPadding));
 				OffsetRect(rc, 0.f,
-					float(m_idxFrom * (m_cyItem + m_cyPadding) - m_psvV->GetPos()));
+					m_idxFrom * (m_cyItem + m_cyPadding) - m_psvV->GetPos());
 			}
 			GetTheme()->GetColorizationColor(cr);
 			m_pBrush->SetColor(cr);
@@ -135,10 +133,10 @@ protected:
 		{
 			D2D1_RECT_F rc;
 			GetItemRect(m_idxSel, rc);
-			rc.left = (float)CxIndicatorPadding;
-			rc.right = float(CxIndicatorPadding + CxIndicator);
-			rc.top += (float)CyIndicatorPadding;
-			rc.bottom -= (float)CyIndicatorPadding;
+			rc.left = CxIndicatorPadding;
+			rc.right = CxIndicatorPadding + CxIndicator;
+			rc.top += CyIndicatorPadding;
+			rc.bottom -= CyIndicatorPadding;
 			GetTheme()->GetColorizationColor(cr);
 			m_pBrush->SetColor(cr);
 			m_pDC->FillRectangle(rc, m_pBrush);
@@ -148,7 +146,7 @@ protected:
 	static void EasingProc(float fCurrValue, float fOldValue, LPARAM lParam)
 	{
 		const auto p = (CTabList*)lParam;
-		RECT rc, rc2;
+		D2D1_RECT_F rc, rc2;
 		p->GetItemRect(p->m_idxFrom, rc);
 		p->GetItemRect(p->m_idxTo, rc2);
 		UnionRect(rc, rc, rc2);
@@ -212,7 +210,7 @@ public:
 			if (!m_pec1->IsActive() || !m_pec2->IsActive())
 			{
 				GetItemRect(m_idxFrom, m_rcLastRedraw);
-				RECT rc2;
+				D2D1_RECT_F rc2;
 				GetItemRect(m_idxTo, rc2);
 				UnionRect(m_rcLastRedraw, m_rcLastRedraw, rc2);
 			}

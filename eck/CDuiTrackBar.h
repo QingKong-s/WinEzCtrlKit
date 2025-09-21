@@ -186,7 +186,7 @@ public:
 
 			D2D1_RECT_F rcThumb;
 			GetThumbRect(rcThumb);
-			if (PtInRect(rcThumb, MakeD2dPtF(pt)))
+			if (PtInRect(rcThumb, MakeD2DPointF(pt)))
 			{
 				m_bLBtnDown = TRUE;
 				SetCapture();

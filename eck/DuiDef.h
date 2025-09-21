@@ -193,7 +193,6 @@ namespace Priv
 // PaintStruct
 struct ELEMPAINTSTRU
 {
-	const RECT* prcClip;		// 剪裁矩形，相对客户区
 	D2D1_RECT_F rcfClip;		// 剪裁矩形，相对客户区
 	D2D1_RECT_F rcfClipInElem;	// 剪裁矩形，相对元素
 	float ox;

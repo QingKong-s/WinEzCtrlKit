@@ -31,13 +31,13 @@ private:
 
 	BOOL PtInBtn(POINT ptInClient)
 	{
-		const int iRad = std::min(GetWidth(), GetHeight()) / 2;
-		const POINT ptCenter
+		const auto fRad = std::min(GetWidthF(), GetHeightF()) / 2.f;
+		const D2D1_POINT_2F ptCenter
 		{
-			GetRectInClient().left + iRad,
-			GetRectInClient().top + iRad
+			GetRectInClientF().left + fRad,
+			GetRectInClientF().top + fRad
 		};
-		return PtInCircle(ptInClient, ptCenter, iRad);
+		return PtInCircle(MakeD2DPointF( ptInClient), ptCenter, fRad);
 	}
 public:
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override

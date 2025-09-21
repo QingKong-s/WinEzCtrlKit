@@ -178,9 +178,8 @@ private:
 		D2D1_SIZE_F sizeImg = GetImageSize(es);
 		auto& e = m_vItem[nm.idx];
 
-		RECT rcTmp;
-		GetItemRect(nm.idx, rcTmp);
-		auto rc{ MakeD2DRcF(rcTmp) };
+		D2D1_RECT_F rc;
+		GetItemRect(nm.idx, rc);
 
 		State eState;
 		if ((e.uFlags & LEIF_SELECTED) || (m_bSingleSel && m_idxSel == nm.idx))

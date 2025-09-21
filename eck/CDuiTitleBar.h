@@ -68,15 +68,15 @@ public:
 			{
 				rcDst.left += dMargin;
 				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
-					MakeD2DRcF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing),
+					MakeD2DRectF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing),
 					(D2D1_INTERPOLATION_MODE)m_eInterMode);
 
-				rcTemp = MakeD2DRcF(rc);
+				rcTemp = MakeD2DRectF(rc);
 				GetWnd()->Phy2Log(rcTemp);
 				CenterRect(rcTemp, rcDst);
 
 				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.f,
-					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRcF(rc));
+					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRectF(rc));
 				//rcDst.left -= dMargin;
 			}
 
@@ -89,15 +89,15 @@ public:
 			{
 				rcDst.left += dMargin;
 				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
-					MakeD2DRcF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing),
+					MakeD2DRectF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing),
 					(D2D1_INTERPOLATION_MODE)m_eInterMode);
 
-				rcTemp = MakeD2DRcF(rc);
+				rcTemp = MakeD2DRectF(rc);
 				GetWnd()->Phy2Log(rcTemp);
 				CenterRect(rcTemp, rcDst);
 
 				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.f,
-					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRcF(rc));
+					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRectF(rc));
 				rcDst.left -= dMargin;
 			}
 
@@ -109,15 +109,15 @@ public:
 			{
 				rcDst.left += (dMargin * 2);
 				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
-					MakeD2DRcF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing),
+					MakeD2DRectF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing),
 					(D2D1_INTERPOLATION_MODE)m_eInterMode);
 
-				rcTemp = MakeD2DRcF(rc);
+				rcTemp = MakeD2DRectF(rc);
 				GetWnd()->Phy2Log(rcTemp);
 				CenterRect(rcTemp, rcDst);
 
 				m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.0f,
-					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRcF(rc));
+					D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, MakeD2DRectF(rc));
 			}
 			m_pDC->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
 
@@ -303,8 +303,8 @@ public:
 
 	DwmWndPart HitTest(POINT ptClient) const
 	{
-		const int cx = GetWidth();
-		const int cy = GetHeight();
+		const auto cx = GetWidthF();
+		const auto cy = GetHeightF();
 		if (ptClient.x < 0 || ptClient.x > cx || ptClient.y < 0 || ptClient.y > cy ||
 			ptClient.y > m_cyBtn)
 			return DwmWndPart::Invalid;
@@ -320,8 +320,8 @@ public:
 
 	void InvalidateBtnRect()
 	{
-		const auto cxBtn = (int)ceilf(m_cxClose + m_cxMax + m_cxMin);
-		RECT rc{ GetWidth() - cxBtn,0,GetWidth(),(int)ceilf(m_cyBtn) };
+		const auto cxBtn = m_cxClose + m_cxMax + m_cxMin;
+		D2D1_RECT_F rc{ GetWidthF() - cxBtn,0,GetWidthF(),m_cyBtn };
 		ElemToClient(rc);
 		InvalidateRect(rc);
 	}
