@@ -140,7 +140,7 @@ public:
 			case DwmWndPart::Min:
 				return HTMINBUTTON;
 			case DwmWndPart::Extra:
-				if (pt.y < DaGetSystemMetrics(SM_CYFRAME, 96))
+				if (!m_bMaximized && pt.y < DaGetSystemMetrics(SM_CYFRAME, 96))
 					return HTTOP;
 				else
 					return HTCAPTION;
