@@ -51,6 +51,14 @@
 #pragma comment(lib, "DbgHelp.lib")
 #pragma comment(lib, "d3dcompiler.lib")
 
+#ifndef ECK_OPT_CRT_DLL
+#  ifdef _DEBUG
+#    define ECK_OPT_CRT_DLL 1
+#  else
+#    define ECK_OPT_CRT_DLL 0
+#  endif
+#endif
+
 #if ECK_OPT_CRT_DLL
 #  ifdef _M_ARM64
 #    ifdef _DEBUG
