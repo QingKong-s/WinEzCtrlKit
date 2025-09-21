@@ -432,12 +432,12 @@ EckInline constexpr SIZE_T Cch2CbA(int cch)
 	return (cch + 1) * sizeof(CHAR);
 }
 
-EckInline constexpr D2D1_RECT_F MakeD2DRcF(const RECT& rc)
+EckInline constexpr D2D1_RECT_F MakeD2DRectF(const RECT& rc)
 {
 	return { (float)rc.left, (float)rc.top, (float)rc.right, (float)rc.bottom };
 }
 
-EckInline constexpr D2D1_RECT_F MakeD2DRcF(float x, float y, float cx, float cy)
+EckInline constexpr D2D1_RECT_F MakeD2DRectF(float x, float y, float cx, float cy)
 {
 	return { x, y, x + cx, y + cy };
 }
@@ -473,7 +473,7 @@ EckInline GpRectF ToGpRectF(const RECT& rc)
 	return { (REAL)rc.left,(REAL)rc.top,(REAL)(rc.right - rc.left),(REAL)(rc.bottom - rc.top) };
 }
 
-EckInline constexpr D2D1_POINT_2F MakeD2dPtF(POINT pt)
+EckInline constexpr D2D1_POINT_2F MakeD2DPointF(POINT pt)
 {
 	return { (float)pt.x,(float)pt.y };
 }

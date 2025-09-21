@@ -109,14 +109,12 @@ class CEdit :public CElem
 public:
 	constexpr static DWORD DefTxProp = TXTBIT_WORDWRAP |
 		TXTBIT_MULTILINE | TXTBIT_DISABLEDRAG;
-	enum : int
-	{
+	constexpr static float
 		CxyMargin = 6,
 		CyBottomMargin = 8,
 		CxyMarginHIMETRIC = CxyMargin * 2540 / 96,
 		CyBottomMarginHIMETRIC = CyBottomMargin * 2540 / 96,
-		CyBottomBar = CyBottomMargin - CxyMargin,
-	};
+		CyBottomBar = CyBottomMargin - CxyMargin;
 private:
 	CScrollBar m_SBH{};
 	CScrollBar m_SBV{};
@@ -127,7 +125,7 @@ private:
 
 	CHARFORMAT2W m_DefCharFormat{ sizeof(CHARFORMAT2W) };
 	PARAFORMAT2 m_DefParaFormat{ sizeof(PARAFORMAT2) };
-	RECT m_mgTextAera{ CxyMargin,CxyMargin,CxyMargin,CyBottomMargin };
+	D2D1_RECT_F m_mgTextAera{ CxyMargin,CxyMargin,CxyMargin,CyBottomMargin };
 	RECT m_rcViewInset{};
 
 	D2D1_RECT_F m_rcCaret{};
@@ -171,14 +169,13 @@ private:
 		{
 			if (m_eSingleLineAlignV == Align::Near)
 				goto Normal;
-			const auto cy = (int)roundf(
-				m_DefCharFormat.yHeight * 96.f / 1440.f +
-				GetWnd()->Log2PhyF(2.f));
-			int cyTop, cyBtm;
-			const auto cyExtra = GetWnd()->Log2Phy(
-				GetHeight() - m_mgTextAera.top - m_mgTextAera.bottom);
-			cyTop = GetWnd()->Log2Phy(m_mgTextAera.top);
-			cyBtm = GetWnd()->Log2Phy(m_mgTextAera.bottom);
+			const auto cy = m_DefCharFormat.yHeight * 96.f / 1440.f +
+				GetWnd()->Log2PhyF(2.f);
+			float cyTop, cyBtm;
+			const auto cyExtra = GetWnd()->Log2PhyF(
+				GetHeightF() - m_mgTextAera.top - m_mgTextAera.bottom);
+			cyTop = GetWnd()->Log2PhyF(m_mgTextAera.top);
+			cyBtm = GetWnd()->Log2PhyF(m_mgTextAera.bottom);
 			if (m_eSingleLineAlignV == Align::Center)
 			{
 				const auto t = (cyExtra - cy) / 2;
@@ -190,9 +187,9 @@ private:
 			m_rcViewInset =
 			{
 				(int)GetWnd()->Log2PhyF(m_mgTextAera.left * 2540.f / 96.f),
-				cyTop * 2540 / 96,
+				int(cyTop * 2540.f / 96.f),
 				(int)GetWnd()->Log2PhyF(m_mgTextAera.right * 2540.f / 96.f),
-				cyBtm * 2540 / 96
+				int(cyBtm * 2540.f / 96.f)
 			};
 		}
 		else
@@ -237,7 +234,7 @@ public:
 			GetTheme()->DrawBackground(Part::Edit, eState,
 				rcViewF, nullptr);
 
-			rcViewF.top = rcViewF.bottom - (float)CyBottomBar;
+			rcViewF.top = rcViewF.bottom - CyBottomBar;
 			if (eState != State::Focused)
 				eState = State::Normal;
 			GetTheme()->DrawBackground(Part::EditBottomBar, eState,
@@ -301,17 +298,17 @@ public:
 
 		case WM_SIZE:
 		{
-			const auto cxSB = (int)GetTheme()->GetMetrics(Metrics::CxVScroll);
-			const auto cySB = (int)GetTheme()->GetMetrics(Metrics::CyHScroll);
-			m_SBV.SetRect({ GetWidth() - cxSB,0,GetWidth(),GetHeight() });
+			const auto cxSB = GetTheme()->GetMetrics(Metrics::CxVScroll);
+			const auto cySB = GetTheme()->GetMetrics(Metrics::CyHScroll);
+			m_SBV.SetRect({ GetWidthF() - cxSB,0,GetWidthF(),GetHeightF() });
 			m_SBH.SetRect({
 				0,
-				GetHeight() - cySB - CyBottomBar,
-				GetWidth(),
-				GetHeight() - CyBottomBar });
-			m_SBV.GetScrollView()->SetPage(GetHeight() -
+				GetHeightF() - cySB - CyBottomBar,
+				GetWidthF(),
+				GetHeightF() - CyBottomBar });
+			m_SBV.GetScrollView()->SetPage(GetHeightF() -
 				m_mgTextAera.top - m_mgTextAera.bottom);
-			m_SBH.GetScrollView()->SetPage(GetWidth() -
+			m_SBH.GetScrollView()->SetPage(GetWidthF() -
 				m_mgTextAera.left - m_mgTextAera.right);
 			UpdateInsetRect();
 			constexpr auto uBits = TXTBIT_CLIENTRECTCHANGE | TXTBIT_EXTENTCHANGE;
@@ -325,9 +322,9 @@ public:
 			if (pnm->uCode == EE_SCROLL)
 			{
 				if (wParam == (WPARAM)&m_SBV)
-					Scroll(FALSE, m_SBV.GetScrollView()->GetPos());
+					Scroll(FALSE, (int)m_SBV.GetScrollView()->GetPos());
 				else if (wParam == (WPARAM)&m_SBH)
-					Scroll(TRUE, m_SBH.GetScrollView()->GetPos());
+					Scroll(TRUE, (int)m_SBH.GetScrollView()->GetPos());
 				return 0;
 			}
 		}
@@ -397,19 +394,19 @@ public:
 		{
 			m_pDC->CreateSolidColorBrush({}, &pBrush);
 			m_SBV.Create(nullptr, 0, 0, 0, 0, 0, 0, this);
-			m_SBV.GetScrollView()->SetCallBack([](int iPos, int iPrevPos, LPARAM lParam)
+			m_SBV.GetScrollView()->SetCallBack([](float fPos, float fPrevPos, LPARAM lParam)
 				{
 					const auto pThis = (CEdit*)lParam;
-					if (!pThis->m_bREScrollAn && iPos != iPrevPos)
-						pThis->Scroll(FALSE, iPos);
+					if (!pThis->m_bREScrollAn && (int)fPos != (int)fPrevPos)
+						pThis->Scroll(FALSE, (int)fPos);
 				}, (LPARAM)this);
 			m_SBH.Create(nullptr, 0, 0, 0, 0, 0, 0, this);
 			m_SBH.SetHorizontal(TRUE);
-			m_SBH.GetScrollView()->SetCallBack([](int iPos, int iPrevPos, LPARAM lParam)
+			m_SBH.GetScrollView()->SetCallBack([](float fPos, float fPrevPos, LPARAM lParam)
 				{
 					const auto pThis = (CEdit*)lParam;
-					if (!pThis->m_bREScrollAn && iPos != iPrevPos)
-						pThis->Scroll(TRUE, iPos);
+					if (!pThis->m_bREScrollAn && (int)fPos != (int)fPrevPos)
+						pThis->Scroll(TRUE, (int)fPos);
 				}, (LPARAM)this);
 			constexpr auto uBits = TO_DEFAULTCOLOREMOJI | TO_DISPLAYFONTCOLOR;
 			SetTypographyOptions(uBits, uBits);
@@ -1112,17 +1109,17 @@ inline BOOL CEditTextHost::TxEnableScrollBar(INT fuSBFlags, INT fuArrowflags)
 inline BOOL CEditTextHost::TxSetScrollRange(INT fnBar, LONG nMinPos, INT nMaxPos, BOOL fRedraw)
 {
 	CCsGuard _{ m_pEdit->GetCriticalSection() };
-	nMinPos = DpiScale(nMinPos, 96, m_pEdit->GetWnd()->GetDpiValue());
-	nMaxPos = DpiScale(nMaxPos, 96, m_pEdit->GetWnd()->GetDpiValue());
+	const auto fMin = DpiScaleF((float)nMinPos, 96, m_pEdit->GetWnd()->GetDpiValue());
+	const auto fMax = DpiScaleF((float)nMaxPos, 96, m_pEdit->GetWnd()->GetDpiValue());
 	if (fnBar == SB_VERT || fnBar == SB_BOTH)
 	{
-		m_pEdit->m_SBV.GetScrollView()->SetRange(nMinPos, nMaxPos);
+		m_pEdit->m_SBV.GetScrollView()->SetRange(fMin, fMax);
 		if (fRedraw)
 			m_pEdit->m_SBV.InvalidateRect();
 	}
 	if (fnBar == SB_HORZ || fnBar == SB_BOTH)
 	{
-		m_pEdit->m_SBH.GetScrollView()->SetRange(nMinPos, nMaxPos);
+		m_pEdit->m_SBH.GetScrollView()->SetRange(fMin, fMax);
 		if (fRedraw)
 			m_pEdit->m_SBH.InvalidateRect();
 	}
@@ -1132,16 +1129,16 @@ inline BOOL CEditTextHost::TxSetScrollRange(INT fnBar, LONG nMinPos, INT nMaxPos
 inline BOOL CEditTextHost::TxSetScrollPos(INT fnBar, INT nPos, BOOL fRedraw)
 {
 	CCsGuard _{ m_pEdit->GetCriticalSection() };
-	nPos = m_pEdit->GetWnd()->Phy2Log(nPos);
+	const auto fPos = m_pEdit->GetWnd()->Phy2LogF((float)nPos);
 	if (fnBar == SB_VERT || fnBar == SB_BOTH)
 	{
-		m_pEdit->m_SBV.GetScrollView()->SetPos(nPos);
+		m_pEdit->m_SBV.GetScrollView()->SetPos(fPos);
 		if (fRedraw)
 			m_pEdit->m_SBV.InvalidateRect();
 	}
 	if (fnBar == SB_HORZ || fnBar == SB_BOTH)
 	{
-		m_pEdit->m_SBH.GetScrollView()->SetPos(nPos);
+		m_pEdit->m_SBH.GetScrollView()->SetPos(fPos);
 		if (fRedraw)
 			m_pEdit->m_SBH.InvalidateRect();
 	}
@@ -1152,7 +1149,7 @@ inline void CEditTextHost::TxInvalidateRect(LPCRECT prc, BOOL fMode)
 {
 	if (prc)
 	{
-		D2D1_RECT_F rc{ MakeD2DRcF(*prc) };
+		D2D1_RECT_F rc{ MakeD2DRectF(*prc) };
 		m_pEdit->GetWnd()->Phy2Log(rc);
 		m_pEdit->InvalidateRect(rc);
 	}
@@ -1245,8 +1242,9 @@ inline HRESULT CEditTextHost::TxDeactivate(LONG lNewState)
 
 inline HRESULT CEditTextHost::TxGetClientRect(LPRECT prc)
 {
-	*prc = m_pEdit->GetRectInClient();
-	m_pEdit->GetWnd()->Log2Phy(*prc);
+	auto rcF{ m_pEdit->GetRectInClientF() };
+	m_pEdit->GetWnd()->Log2Phy(rcF);
+	*prc = MakeRect(rcF);
 	return S_OK;
 }
 

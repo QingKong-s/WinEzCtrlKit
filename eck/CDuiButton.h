@@ -160,7 +160,8 @@ public:
 				m_bLBtnDown = FALSE;
 				ReleaseCapture();
 				InvalidateRect();
-				if (PtInRect(GetRectInClient(), ECK_GET_PT_LPARAM(lParam)))
+				const POINT pt ECK_GET_PT_LPARAM(lParam);
+				if (PtInRect(GetRectInClientF(), pt))
 				{
 					DUINMHDR nm{ EE_COMMAND };
 					GenElemNotify(&nm);

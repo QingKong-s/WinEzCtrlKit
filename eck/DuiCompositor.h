@@ -58,7 +58,7 @@ struct CCompositor : public CRefObj<CCompositor>
 	/// <param name="pElem">目标元素</param>
 	/// <param name="rc">计算结果</param>
 	/// <param name="bInClient">结果相对于客户区还是相对于父元素</param>
-	virtual void CalcCompositedRect(CElem* pElem, _Out_ RECT& rc, BOOL bInClientOrParent) { rc = {}; }
+	virtual void CalcCompositedRect(CElem* pElem, _Out_ D2D1_RECT_F& rc, BOOL bInClientOrParent) { rc = {}; }
 
 	// 是否原地操作
 	virtual BOOL IsInPlace() const { return TRUE; }

@@ -67,12 +67,10 @@ public:
 		Icon,
 		Report,
 	};
-	enum : int
-	{
+	constexpr static float
 		CyInsertMark = 3,
 		CyDefHeader = 30,
-		CyGroupLine = 1,
-	};
+		CyGroupLine = 1;
 	enum class ListPart
 	{
 		GroupHeader,
@@ -89,14 +87,14 @@ protected:
 	{
 		ComPtr<IDWriteTextLayout> pLayout{};
 		UINT uFlags{};
-		int y{};
+		float y{};
 		std::vector<SUBITEM> vSubItem{};
 	};
 	struct GROUP
 	{
 		ComPtr<IDWriteTextLayout> pLayout{};
 		UINT uFlags{};
-		int y{};
+		float y{};
 		std::vector<ITEM> Item{};
 	};
 
@@ -117,13 +115,13 @@ protected:
 	int m_idxFocus{ -1 };		// 焦点项
 	int m_idxMark{ -1 };		// 标记项
 
-	int m_cyTopExtra{};			// 顶部空白
-	int m_cyBottomExtra{};		// 底部空白
+	float m_cyTopExtra{};			// 顶部空白
+	float m_cyBottomExtra{};		// 底部空白
 
-	int m_cyItem{ 40 };			// 项目高度
-	int m_cyPadding{ 3 };		// 项目间距
+	float m_cyItem{ 40 };			// 项目高度
+	float m_cyPadding{ 3 };		// 项目间距
 
-	int m_oyTopItem{};			// 小于等于零的值，指示第一可见项的遮挡高度
+	float m_oyTopItem{};			// 小于等于零的值，指示第一可见项的遮挡高度
 	int m_idxTop{};				// 第一个可见项
 	//---分组模式
 	int m_idxHotItemGroup{ -1 };	// 热点项所在的组
@@ -131,21 +129,21 @@ protected:
 	int m_idxInsertMarkGroup{ -1 };	// 插入标记所在的组
 	int m_idxFocusItemGroup{ -1 };	// 焦点项所在的组
 	int m_idxMarkItemGroup{ -1 };	// 标记项所在的组
-	int m_cyGroupHeader{ 40 };	// 组头高度
+	float m_cyGroupHeader{ 40 };	// 组头高度
 	int m_idxTopGroup{};		// 第一个可见组
 	int m_idxHotGroup{ -1 };	// 热点组
-	int m_cxGroupImage{};		// 组图片宽度
-	int m_cyGroupImage{};		// 组图片高度
-	int m_cyGroupItemTopPadding{};		// 项目区顶部空白
-	int m_cyGroupItemBottomPadding{};	// 项目区底部空白
+	float m_cxGroupImage{};		// 组图片宽度
+	float m_cyGroupImage{};		// 组图片高度
+	float m_cyGroupItemTopPadding{};		// 项目区顶部空白
+	float m_cyGroupItemBottomPadding{};	// 项目区底部空白
 	//---图标模式
-	int m_cxItem{ 40 };			// 项目宽度
-	int m_cxPadding{ 3 };		// 水平项目间距
+	float m_cxItem{ 40 };			// 项目宽度
+	float m_cxPadding{ 3 };		// 水平项目间距
 	int m_cItemPerRow{};		// 每行项目数
 	//---
 	POINT m_ptDragSelStart{};	// 拖动选择起始点
-	RECT m_rcDragSel{};			// 当前选择矩形
-	int m_dCursorToItemMax{};	// 鼠标指针到项目的最大距离
+	D2D1_RECT_F m_rcDragSel{};	// 当前选择矩形
+	float m_dCursorToItemMax{};	// 鼠标指针到项目的最大距离
 
 	Type m_eView{ Type::List };	// 视图类型
 	BYTE m_eInterMode{ D2D1_INTERPOLATION_MODE_LINEAR };
@@ -257,7 +255,7 @@ protected:
 	{
 		if (m_eView == Type::Report)
 		{
-			m_psvH->SetPage(GetWidth());
+			m_psvH->SetPage(GetWidthF());
 			m_psvH->SetRange(0, m_Header.GetContentWidth() + GetRealGroupImageWidth());
 			m_SBH.SetVisible(m_psvH->IsVisible());
 		}
@@ -268,7 +266,7 @@ protected:
 		if (!m_cyItem || !m_cxItem)
 			return;
 		ReCalcHScroll();
-		m_psvV->SetPage(GetHeight());
+		m_psvV->SetPage(GetHeightF());
 		if (m_bGroup)
 			return;
 		switch (m_eView)
@@ -282,7 +280,7 @@ protected:
 		break;
 		case Type::Icon:
 		{
-			m_cItemPerRow = (GetWidth() + m_cxPadding) / (m_cxItem + m_cxPadding);
+			m_cItemPerRow = int((GetWidthF() + m_cxPadding) / (m_cxItem + m_cxPadding));
 			const int cItemV = (GetItemCount() - 1) / m_cItemPerRow + 1;
 			m_psvV->SetRange(-m_cyTopExtra, cItemV *
 				(m_cyItem + m_cyPadding) + m_cyBottomExtra);
@@ -310,7 +308,7 @@ protected:
 					return;
 				}
 				const auto it = std::lower_bound(m_Group.begin(), m_Group.end(),
-					m_psvV->GetPos(), [](const GROUP& x, int iPos)
+					m_psvV->GetPos(), [](const GROUP& x, float iPos)
 					{
 						return x.y < iPos;
 					});
@@ -322,21 +320,21 @@ protected:
 				EckDbgPrint(m_idxTopGroup);
 				const auto& e = m_Group[m_idxTopGroup];
 				m_oyTopItem = e.y - m_psvV->GetPos();
-				m_idxTop = (m_psvV->GetPos() -
-					(e.y + m_cyGroupHeader + m_cyGroupItemTopPadding)) / m_cyItem;
+				m_idxTop = int((m_psvV->GetPos() -
+					(e.y + m_cyGroupHeader + m_cyGroupItemTopPadding)) / m_cyItem);
 				if (m_idxTop < 0)
 					m_idxTop = 0;
 			}
 			else
 			{
-				m_idxTop = m_psvV->GetPos() / (m_cyItem + m_cyPadding);
+				m_idxTop = int(m_psvV->GetPos() / (m_cyItem + m_cyPadding));
 				m_oyTopItem = m_idxTop * (m_cyItem + m_cyPadding) - m_psvV->GetPos();
 			}
 		}
 		break;
 		case Type::Icon:
 		{
-			const int cItemV = m_psvV->GetPos() / (m_cyItem + m_cyPadding);
+			const int cItemV = int(m_psvV->GetPos() / (m_cyItem + m_cyPadding));
 			m_idxTop = cItemV * m_cItemPerRow;
 			m_oyTopItem = cItemV * (m_cyItem + m_cyPadding) - m_psvV->GetPos();
 		}
@@ -348,46 +346,46 @@ protected:
 	void ArrangeHeader(BOOL bRePos = FALSE)
 	{
 		auto cxContent = m_Header.GetContentWidth();
-		cxContent = std::max(cxContent, GetWidth());
+		cxContent = std::max(cxContent, GetWidthF());
 		if (bRePos)
 		{
-			RECT rc;
+			D2D1_RECT_F rc;
 			rc.left = -m_psvH->GetPos();
 			if (m_bGroup && m_bGroupImage)
 				rc.left += m_cxGroupImage;
 			rc.right = rc.left + cxContent;
 			rc.top = 0;
-			rc.bottom = m_Header.GetHeight();
+			rc.bottom = m_Header.GetHeightF();
 			m_Header.SetRect(rc);
 		}
 		else
 		{
-			if (m_Header.GetWidth() != cxContent)
-				m_Header.SetSize(cxContent, m_Header.GetHeight());
+			if (m_Header.GetWidthF() != cxContent)
+				m_Header.SetSize(cxContent, m_Header.GetHeightF());
 		}
 	}
 
-	EckInlineNdCe int GetRealGroupImageWidth() const
+	EckInlineNdCe float GetRealGroupImageWidth() const
 	{
 		return (m_bGroupImage && m_bGroup) ? m_cxGroupImage : 0;
 	}
 
 	// 从X坐标计算逻辑项目索引，索引相对当前可见范围
-	EckInline int IVLogItemFromX(int x) const
+	EckInline int IVLogItemFromX(float x) const
 	{
 		EckAssert(m_eView == Type::Icon);
-		return x / (m_cxItem + m_cxPadding);
+		return int(x / (m_cxItem + m_cxPadding));
 	}
 	// 从Y坐标计算逻辑项目索引，索引相对当前可见范围
 	// m_idxTop所在行的下一行记为0，上一行记为-1
-	EckInline int IVLogItemFromY(int y) const
+	EckInline int IVLogItemFromY(float y) const
 	{
 		EckAssert(m_eView == Type::Icon);
-		const auto i = (y - m_oyTopItem) / (m_cyItem + m_cyPadding);
+		const auto i = int((y - m_oyTopItem) / (m_cyItem + m_cyPadding));
 		return (y - m_oyTopItem < 0) ? i - 1 : i;
 	}
 
-	EckInline std::pair<int, int> IVGetItemXY(int idx) const
+	EckInline std::pair<float, float> IVGetItemXY(int idx) const
 	{
 		EckAssert(m_eView == Type::Icon);
 		const int idxV = (idx - m_idxTop) / m_cItemPerRow;
@@ -399,19 +397,19 @@ protected:
 	}
 
 	// 由索引得到Y坐标
-	EckInline int LVGetItemY(int idx) const
+	EckInline float LVGetItemY(int idx) const
 	{
 		EckAssert(m_eView == Type::List || m_eView == Type::Report);
 		return m_oyTopItem + (idx - m_idxTop) * (m_cyItem + m_cyPadding);
 	}
 	// 由Y坐标得到索引
-	EckInline int LVItemFromY(int y) const
+	EckInline int LVItemFromY(float y) const
 	{
 		EckAssert(m_eView == Type::List || m_eView == Type::Report);
-		return m_idxTop + (y - m_oyTopItem) / (m_cyItem + m_cyPadding);
+		return m_idxTop + int((y - m_oyTopItem) / (m_cyItem + m_cyPadding));
 	}
 
-	void CalcItemRangeInRect(const RECT& rc, _Out_ int& idxBegin, _Out_ int& idxEnd)
+	void CalcItemRangeInRect(const D2D1_RECT_F& rc, _Out_ int& idxBegin, _Out_ int& idxEnd)
 	{
 		if (!GetItemCount())
 		{
@@ -444,12 +442,12 @@ protected:
 		}
 	}
 
-	// 由索引得到组，坐标相对元素
-	int GRGroupFromY(int y, _Out_ int& idxItemInGroup) const
+	// 由Y坐标得到组，坐标相对元素
+	int GRGroupFromY(float y, _Out_ int& idxItemInGroup) const
 	{
 		y += m_psvV->GetPos();
 		auto it = std::lower_bound(m_Group.begin(), m_Group.end(), y,
-			[](const GROUP& x, int iPos)
+			[](const GROUP& x, float iPos)
 			{
 				return x.y < iPos;
 			});
@@ -460,10 +458,10 @@ protected:
 		else
 			--it;
 		int idxGroup = (int)std::distance(m_Group.begin(), it);
-		const int yGroupBottom = it->y +
+		const float yGroupBottom = it->y +
 			m_cyGroupHeader + m_cyGroupItemTopPadding;
-		const int yInItem = y - yGroupBottom;
-		idxItemInGroup = yInItem / (m_cyItem + m_cyPadding);
+		const float yInItem = y - yGroupBottom;
+		idxItemInGroup = int(yInItem / (m_cyItem + m_cyPadding));
 		if (idxItemInGroup < 0)
 			idxItemInGroup = 0;
 		else if (idxItemInGroup >= (int)it->Item.size())
@@ -479,7 +477,7 @@ protected:
 		return idxGroup;
 	}
 
-	void CalcItemRangeInRect(const RECT& rc, _Out_ int& idxBegin, _Out_ int& idxEnd,
+	void CalcItemRangeInRect(const D2D1_RECT_F& rc, _Out_ int& idxBegin, _Out_ int& idxEnd,
 		_Out_ int& idxGroupBegin, _Out_ int& idxGroupEnd)
 	{
 		idxGroupBegin = GRGroupFromY(rc.top, idxBegin);
@@ -490,14 +488,16 @@ protected:
 	{
 		const auto dy = m_psvV->GetPos();
 		EckAssert(m_bDraggingSel);
-		RECT rcOld{ m_rcDragSel };
+		D2D1_RECT_F rcOld{ m_rcDragSel };
 		OffsetRect(rcOld, 0, -dy);
 
-		m_rcDragSel = MakeRect(pt, POINT{ m_ptDragSelStart.x,m_ptDragSelStart.y - dy });
+		m_rcDragSel = MakeD2DRectF(MakeRect(pt, POINT{
+			m_ptDragSelStart.x,
+			m_ptDragSelStart.y - (int)dy }));
 
 		int idxBegin, idxEnd, idxGroupBegin, idxGroupEnd;
-		RECT rcItem;
-		RECT rcJudge;
+		D2D1_RECT_F rcItem;
+		D2D1_RECT_F rcJudge;
 		UnionRect(rcJudge, rcOld, m_rcDragSel);
 		if (IsRectEmpty(rcJudge))
 			goto Skip;
@@ -541,7 +541,7 @@ protected:
 					// mark设为离光标最远的选中项（标准ListView的行为）
 					if (bIntersectNew && !(wParam & (MK_CONTROL | MK_SHIFT)))
 					{
-						const int d = (pt.x - rcItem.left) * (pt.x - rcItem.left) +
+						const float d = (pt.x - rcItem.left) * (pt.x - rcItem.left) +
 							(pt.y - rcItem.top) * (pt.y - rcItem.top);
 						if (d > m_dCursorToItemMax)
 						{
@@ -553,24 +553,26 @@ protected:
 			}
 		}
 	Skip:
-		OffsetRect(m_rcDragSel, 0, dy);
+		OffsetRect(m_rcDragSel, 0.f, dy);
 		InvalidateRect();
 	}
 
 	void DragSelMouseMove(POINT pt, WPARAM wParam)
 	{
-		const auto dy = m_psvV->GetPos();
+		const auto dy = (float)m_psvV->GetPos();
 		EckAssert(m_bDraggingSel);
-		RECT rcOld{ m_rcDragSel };
+		D2D1_RECT_F rcOld{ m_rcDragSel };
 		OffsetRect(rcOld, 0, -dy);
 
-		m_rcDragSel = MakeRect(pt, POINT{ m_ptDragSelStart.x,m_ptDragSelStart.y - dy });
+		m_rcDragSel = MakeD2DRectF(MakeRect(pt, POINT{
+			m_ptDragSelStart.x,
+			m_ptDragSelStart.y - (int)dy }));
 
-		RECT rcJudge;
+		D2D1_RECT_F rcJudge;
 		UnionRect(rcJudge, rcOld, m_rcDragSel);
 
 		int idxBegin, idxEnd;
-		RECT rcItem;
+		D2D1_RECT_F rcItem;
 		CalcItemRangeInRect(rcJudge, idxBegin, idxEnd);
 		if (idxEnd < 0)
 			goto Skip;
@@ -598,7 +600,7 @@ protected:
 				// mark设为离光标最远的选中项（标准ListView的行为）
 				if (bIntersectNew && !(wParam & (MK_CONTROL | MK_SHIFT)))
 				{
-					const int d = (pt.x - rcItem.left) * (pt.x - rcItem.left) +
+					const float d = (pt.x - rcItem.left) * (pt.x - rcItem.left) +
 						(pt.y - rcItem.top) * (pt.y - rcItem.top);
 					if (d > m_dCursorToItemMax)
 					{
@@ -609,7 +611,7 @@ protected:
 			}
 		}
 	Skip:
-		OffsetRect(m_rcDragSel, 0, dy);
+		OffsetRect(m_rcDragSel, 0.f, dy);
 		InvalidateRect();
 	}
 
@@ -638,9 +640,9 @@ protected:
 				if (m_Group.empty())
 					goto EndPaintLabel;
 
-				const int iSbPos = m_psvV->GetPos();
+				const auto iSbPos = m_psvV->GetPos();
 				auto it = std::lower_bound(m_Group.begin() + m_idxTopGroup, m_Group.end(),
-					(int)ps.rcfClipInElem.top + iSbPos, [](const GROUP& x, int iPos)
+					ps.rcfClipInElem.top + iSbPos, [](const GROUP& x, float iPos)
 					{
 						return x.y < iPos;
 					});
@@ -650,7 +652,7 @@ protected:
 				for (; nm.idxGroup < GetGroupCount(); ++nm.idxGroup)
 				{
 					const auto& e = m_Group[nm.idxGroup];
-					if (e.y >= (int)ps.rcfClipInElem.bottom + iSbPos)
+					if (e.y >= ps.rcfClipInElem.bottom + iSbPos)
 						break;
 					nm.bColorText = FALSE;
 					LRESULT r2{};
@@ -663,7 +665,7 @@ protected:
 					nm.idx = (nm.idxGroup == m_idxTopGroup ? m_idxTop : 0);
 					for (; nm.idx < (int)e.Item.size(); ++nm.idx)
 					{
-						if (e.Item[nm.idx].y >= (int)ps.rcfClipInElem.bottom + iSbPos)
+						if (e.Item[nm.idx].y >= ps.rcfClipInElem.bottom + iSbPos)
 							break;
 						LVPaintItem(ps.rcfClipInElem, nm, r);
 					}
@@ -675,8 +677,8 @@ protected:
 					goto EndPaintLabel;
 				nm.idxGroup = -1;
 
-				const int idxBegin = std::max(LVItemFromY((int)ps.rcfClipInElem.top), 0);
-				const int idxEnd = std::min(LVItemFromY((int)ps.rcfClipInElem.bottom), GetItemCount() - 1);
+				const int idxBegin = std::max(LVItemFromY(ps.rcfClipInElem.top), 0);
+				const int idxEnd = std::min(LVItemFromY(ps.rcfClipInElem.bottom), GetItemCount() - 1);
 				for (nm.idx = idxBegin; nm.idx <= idxEnd; ++nm.idx)
 					LVPaintItem(ps.rcfClipInElem, nm, r);
 			}
@@ -689,12 +691,12 @@ protected:
 			nm.idxGroup = -1;
 			int idxBegin, idxX, idxY;
 
-			idxX = IVLogItemFromX((int)ps.rcfClipInElem.left + 1);
+			idxX = IVLogItemFromX(ps.rcfClipInElem.left + 1);
 			if (idxX < 0 || idxX >= m_cItemPerRow)
 				idxBegin = -1;
 			else
 			{
-				idxY = IVLogItemFromY((int)ps.rcfClipInElem.top + 1);
+				idxY = IVLogItemFromY(ps.rcfClipInElem.top + 1);
 				idxBegin = m_idxTop + idxX + idxY * m_cItemPerRow;
 				if (idxBegin < 0 || idxBegin >= GetItemCount())
 					idxBegin = -1;
@@ -703,7 +705,7 @@ protected:
 			if (idxBegin >= 0)
 				for (int i = idxBegin; i < GetItemCount(); ++i)
 				{
-					if (IVGetItemXY(i).first >= (int)ps.rcfClipInElem.right)// 需要下移一行
+					if (IVGetItemXY(i).first >= ps.rcfClipInElem.right)// 需要下移一行
 					{
 						i = idxBegin + m_cItemPerRow;
 						idxBegin = i;
@@ -711,7 +713,7 @@ protected:
 							break;
 					}
 
-					if (IVGetItemXY(i).second >= (int)ps.rcfClipInElem.bottom)// Y方向重画完成
+					if (IVGetItemXY(i).second >= ps.rcfClipInElem.bottom)// Y方向重画完成
 						break;
 					nm.idx = i;
 					IVPaintItem(ps.rcfClipInElem, nm, r);
@@ -733,7 +735,7 @@ protected:
 
 		if (m_bDraggingSel)
 		{
-			auto rc{ MakeD2DRcF(m_rcDragSel) };
+			auto rc{ m_rcDragSel };
 			OffsetRect(rc, 0.f, (float)-m_psvV->GetPos());
 			GetTheme()->DrawBackground(Part::ListSelRect,
 				State::None, rc, nullptr);
@@ -751,7 +753,7 @@ protected:
 		EndPaint(ps);
 	}
 
-	void IVGetItemRangeRect(int idxBegin, int idxEnd, _Out_ RECT& rc)
+	void IVGetItemRangeRect(int idxBegin, int idxEnd, _Out_ D2D1_RECT_F& rc)
 	{
 		EckAssert(m_eView == Type::Icon);
 		if (idxBegin == idxEnd)
@@ -776,7 +778,7 @@ protected:
 				{
 					0,
 					y1,
-					GetWidth(),
+					GetWidthF(),
 					y2 + m_cyItem
 				};
 			}
@@ -800,8 +802,8 @@ public:
 			{
 				if (ht.pt.x < 0) ht.pt.x = 0;
 				if (ht.pt.y < 0) ht.pt.y = 0;
-				if (ht.pt.x >= GetWidth()) ht.pt.x = GetWidth() - 1;
-				if (ht.pt.y >= GetHeight()) ht.pt.y = GetHeight() - 1;
+				if (ht.pt.x >= GetWidthF()) ht.pt.x = int(GetWidthF() - 1.f);
+				if (ht.pt.y >= GetHeightF()) ht.pt.y = int(GetHeightF() - 1.f);
 				if (m_bGroup)
 					GRDragSelMouseMove(ht.pt, wParam);
 				else
@@ -886,14 +888,14 @@ public:
 				ReCalcTopItem();
 				InvalidateRect();
 				NMLTSCROLLED nm{ LTE_SCROLLED };
-				CalcItemRangeInRect(GetViewRect(), nm.idxBegin, nm.idxEnd);
+				CalcItemRangeInRect(GetViewRectF(), nm.idxBegin, nm.idxEnd);
 				GenElemNotify(&nm);
 				return TRUE;
 			}
 			else if ((wParam == (WPARAM)&m_SBH) &&
 				(((DUINMHDR*)lParam)->uCode == EE_HSCROLL))
 			{
-				m_Header.SetPos(-m_psvH->GetPos() + GetRealGroupImageWidth(), 0);
+				m_Header.SetPos(-m_psvH->GetPos() + (int)GetRealGroupImageWidth(), 0);
 				InvalidateRect();
 				return TRUE;
 			}
@@ -908,7 +910,7 @@ public:
 					const auto* const p = (NMHEITEMNOTIFY*)lParam;
 					ArrangeHeader(TRUE);
 					ReCalcHScroll();
-					RECT rc;
+					D2D1_RECT_F rc;
 					m_Header.GetItemRect(p->idx, rc);
 					if (m_bGroup)
 					{
@@ -931,8 +933,8 @@ public:
 							for (auto& e : m_vItem)
 								e.pLayout.Clear();
 					}
-					rc.right = GetWidth();
-					rc.bottom = GetHeight();
+					rc.right = GetWidthF();
+					rc.bottom = GetHeightF();
 					ElemToClient(rc);
 					InvalidateRect(rc);
 				}
@@ -946,13 +948,13 @@ public:
 			ECK_DUILOCK;
 			ReCalcTopItem();
 			ReCalcScroll();
-			const auto cxSB = (int)GetTheme()->GetMetrics(Metrics::CxVScroll);
+			const auto cxSB = GetTheme()->GetMetrics(Metrics::CxVScroll);
 			m_SBV.SetRect({
-				GetWidth() - cxSB,
+				GetWidthF() - cxSB,
 				m_cyTopExtra,
-				GetWidth(),
-				GetHeight() - m_cyBottomExtra });
-			m_SBH.SetRect({ 0,GetHeight() - cxSB,GetWidth(),GetHeight() });
+				GetWidthF(),
+				GetHeightF() - m_cyBottomExtra });
+			m_SBH.SetRect({ 0,GetHeightF() - cxSB,GetWidthF(),GetHeightF() });
 			ArrangeHeader();
 		}
 		return 0;
@@ -966,10 +968,10 @@ public:
 			ClientToElem(ht.pt);
 			int idx = HitTest(ht);
 
-			RECT rcInvalid;
+			D2D1_RECT_F rcInvalid;
 			if (idx >= 0)
 			{
-				RECT rcItem;
+				D2D1_RECT_F rcItem;
 				BOOL bDid;
 				if (m_bToggleSel && !m_bSingleSel)
 					bDid = ToggleSelectItemForClick(idx, ht.idxGroup);
@@ -1001,7 +1003,7 @@ public:
 					SetCapture();
 					if (!(wParam & (MK_CONTROL | MK_SHIFT)))
 					{
-						RECT rcInvalid;
+						D2D1_RECT_F rcInvalid;
 						DeselectAll(rcInvalid);
 						ElemToClient(rcInvalid);
 						InvalidateRect(rcInvalid);
@@ -1010,10 +1012,10 @@ public:
 					m_rcDragSel = {};
 					if (ht.pt.x < 0) ht.pt.x = 0;
 					if (ht.pt.y < 0) ht.pt.y = 0;
-					if (ht.pt.x >= GetWidth()) ht.pt.x = GetWidth() - 1;
-					if (ht.pt.y >= GetHeight()) ht.pt.y = GetHeight() - 1;
+					if (ht.pt.x >= GetWidthF()) ht.pt.x = int(GetWidthF() - 1);
+					if (ht.pt.y >= GetHeightF()) ht.pt.y = int(GetHeightF() - 1);
 					m_ptDragSelStart = ht.pt;
-					m_ptDragSelStart.y += m_psvV->GetPos();
+					m_ptDragSelStart.y += (int)m_psvV->GetPos();
 					m_dCursorToItemMax = INT_MIN;
 				}
 				else if (m_bDeSelInSpace)
@@ -1064,7 +1066,7 @@ public:
 			m_psvV = m_SBV.GetScrollView();
 			m_psvV->AddRef();
 			m_psvV->SetMinThumbSize(CxyMinScrollThumb);
-			m_psvV->SetCallBack([](int iPos, int iPrevPos, LPARAM lParam)
+			m_psvV->SetCallBack([](float fPos, float fPrevPos, LPARAM lParam)
 				{
 					auto pThis = (CListTemplate*)lParam;
 					pThis->ReCalcTopItem();
@@ -1073,7 +1075,7 @@ public:
 					{
 						NMLTSCROLLED nm{ LTE_SCROLLED };
 						pThis->CalcItemRangeInRect(
-							pThis->GetViewRect(), nm.idxBegin, nm.idxEnd);
+							pThis->GetViewRectF(), nm.idxBegin, nm.idxEnd);
 						pThis->GenElemNotify(&nm);
 					}
 				}, (LPARAM)this);
@@ -1085,10 +1087,10 @@ public:
 			m_psvH = m_SBH.GetScrollView();
 			m_psvH->AddRef();
 			m_psvH->SetMinThumbSize(CxyMinScrollThumb);
-			m_psvH->SetCallBack([](int iPos, int iPrevPos, LPARAM lParam)
+			m_psvH->SetCallBack([](float fPos, float fPrevPos, LPARAM lParam)
 				{
 					auto pThis = (CListTemplate*)lParam;
-					pThis->m_Header.SetPos(-iPos + pThis->GetRealGroupImageWidth(), 0);
+					pThis->m_Header.SetPos(-fPos + pThis->GetRealGroupImageWidth(), 0);
 					pThis->InvalidateRect();
 				}, (LPARAM)this);
 			m_psvH->SetDelta(40);
@@ -1136,13 +1138,13 @@ public:
 	}
 	EckInlineNdCe int GetItemCount() const noexcept { return (int)m_vItem.size(); }
 
-	void GetItemRect(int idx, RECT& rc) const
+	void GetItemRect(int idx, D2D1_RECT_F& rc) const
 	{
 		switch (m_eView)
 		{
 		case Type::List:
 			rc.left = 0;
-			rc.right = GetWidth();
+			rc.right = GetWidthF();
 			rc.top = LVGetItemY(idx);
 			rc.bottom = rc.top + m_cyItem;
 			break;
@@ -1168,14 +1170,7 @@ public:
 		}
 	}
 
-	void GetItemRect(int idx, D2D1_RECT_F& rc) const
-	{
-		RECT rc2;
-		GetItemRect(idx, rc2);
-		rc = MakeD2DRcF(rc2);
-	}
-
-	void GetSubItemRect(int idx, int idxSub, RECT& rc) const noexcept
+	void GetSubItemRect(int idx, int idxSub, D2D1_RECT_F& rc) const noexcept
 	{
 		EckAssert(idx < GetItemCount());
 		if (m_eView != Type::Report)
@@ -1190,24 +1185,16 @@ public:
 		rc.bottom = rc.top + m_cyItem;
 	}
 
-	EckInline void GetSubItemRect(int idx, int idxSub,
-		_Out_ D2D1_RECT_F& rc) const noexcept
-	{
-		RECT rc2;
-		GetSubItemRect(idx, idxSub, rc2);
-		rc = MakeD2DRcF(rc2);
-	}
-
 	void GetGroupPartRect(ListPart ePart, int idxItemInGroup,
-		int idxGroup, _Out_ RECT& rc) const noexcept
+		int idxGroup, _Out_ D2D1_RECT_F& rc) const noexcept
 	{
 		auto& e = m_Group[idxGroup];
-		int dx, cxContent;
+		float dx, cxContent;
 		switch (m_eView)
 		{
 		case Type::List:
 			dx = 0;
-			cxContent = GetWidth();
+			cxContent = GetWidthF();
 			break;
 		case Type::Report:
 			dx = -m_psvH->GetPos();
@@ -1250,22 +1237,14 @@ public:
 		}
 	}
 
-	EckInline void GetGroupPartRect(ListPart ePart, int idxItemInGroup,
-		int idxGroup, _Out_ D2D1_RECT_F& rc) const noexcept
-	{
-		RECT rc2;
-		GetGroupPartRect(ePart, idxItemInGroup, idxGroup, rc2);
-		rc = MakeD2DRcF(rc2);
-	}
-
-	void GetGroupSubItemRect(int idx, int idxSub, int idxGroup, RECT& rc) const noexcept
+	void GetGroupSubItemRect(int idx, int idxSub, int idxGroup, D2D1_RECT_F& rc) const noexcept
 	{
 		EckAssert(idxGroup < GetGroupCount());
 		EckAssert(idx < (int)m_Group[idxGroup].Item.size());
 		GetGroupPartRect(ListPart::Item, idx, idxGroup, rc);
 		if (m_eView != Type::Report)
 			return;
-		RECT rc2;
+		D2D1_RECT_F rc2;
 		m_Header.GetItemRect(idxSub, rc2);
 		if (m_bGroupImage)
 		{
@@ -1276,19 +1255,11 @@ public:
 		rc.right = rc2.right - m_psvH->GetPos();
 	}
 
-	EckInline void GetGroupSubItemRect(int idx, int idxSub,
-		int idxGroup, _Out_ D2D1_RECT_F& rc) const noexcept
-	{
-		RECT rc2;
-		GetGroupSubItemRect(idx, idxSub, idxGroup, rc2);
-		rc = MakeD2DRcF(rc2);
-	}
-
 	int HitTest(LE_HITTEST& leht) const
 	{
 		leht.bHitGroupHeader = FALSE;
 		leht.bHitGroupImage = FALSE;
-		if (!PtInRect(GetViewRect(), leht.pt))
+		if (!PtInRect(GetViewRectF(), leht.pt))
 			return -1;
 
 		switch (m_eView)
@@ -1301,9 +1272,9 @@ public:
 				if (!GetGroupCount())
 					return -1;
 				//---测试组
-				const int y = leht.pt.y + m_psvV->GetPos();
+				const auto y = leht.pt.y + m_psvV->GetPos();
 				auto it = std::lower_bound(m_Group.begin() + m_idxTopGroup, m_Group.end(), y,
-					[](const GROUP& x, int iPos)
+					[](const GROUP& x, float iPos)
 					{
 						return x.y < iPos;
 					});
@@ -1316,7 +1287,7 @@ public:
 				const int idxGroup = (int)std::distance(m_Group.begin(), it);
 				leht.idxGroup = idxGroup;
 				// 测试组部件
-				const int yGroupBottom = it->y +
+				const auto yGroupBottom = it->y +
 					m_cyGroupHeader + m_cyGroupItemTopPadding;
 				if (y > it->y && y < yGroupBottom)
 				{
@@ -1331,10 +1302,10 @@ public:
 					return -1;
 				}
 				//---测试组项
-				const int yInItem = y - yGroupBottom;
+				const auto yInItem = y - yGroupBottom;
 				if (yInItem >= 0)
 				{
-					int idx = yInItem / (m_cyItem + m_cyPadding);
+					int idx = int(yInItem / (m_cyItem + m_cyPadding));
 					if (yInItem > (idx + 1) * (m_cyItem + m_cyPadding) - m_cyPadding)
 						return -1;// 命中项目间隔
 					if (idx < (int)it->Item.size())
@@ -1347,7 +1318,7 @@ public:
 			if (m_eView == Type::Report &&
 				leht.pt.x > m_Header.GetContentWidth())
 				return -1;
-			const int idx = LVItemFromY(leht.pt.y);
+			const int idx = LVItemFromY((float)leht.pt.y);
 			if (leht.pt.y >= LVGetItemY(idx) + m_cyItem)
 				return -1;// 命中项目间隔
 			if (idx >= 0 && idx < GetItemCount())
@@ -1361,10 +1332,10 @@ public:
 		{
 			if (!GetItemCount())
 				return -1;
-			const int idxX = IVLogItemFromX(leht.pt.x);
+			const int idxX = IVLogItemFromX((float)leht.pt.x);
 			if (idxX < 0 || idxX >= m_cItemPerRow)
 				return -1;
-			const int idxY = IVLogItemFromY(leht.pt.y);
+			const int idxY = IVLogItemFromY((float)leht.pt.y);
 			const int idx = m_idxTop + idxX + idxY * m_cItemPerRow;
 			if (idx < 0 || idx >= GetItemCount())
 				return -1;
@@ -1379,7 +1350,7 @@ public:
 		}
 	}
 
-	void DeselectAll(_Out_ RECT& rcInvalid)
+	void DeselectAll(_Out_ D2D1_RECT_F& rcInvalid)
 	{
 		NMLTITEMCHANGE nm{ LTE_ITEMCHANED };
 		nm.uFlagsOld = LEIF_SELECTED;
@@ -1407,9 +1378,9 @@ public:
 			}
 			else
 			{
-				const int iSbPos = m_psvV->GetPos();
-				const int cy = GetHeight();
-				int y0{ INT_MAX }, y1{ INT_MIN }, x{ INT_MAX };
+				const auto iSbPos = m_psvV->GetPos();
+				const auto cy = GetHeightF();
+				float y0{ FLT_MAX }, y1{ FLT_MIN }, x{ FLT_MAX };
 				EckCounter(GetGroupCount(), i)
 				{
 					auto& e = m_Group[i];
@@ -1417,13 +1388,13 @@ public:
 					{
 						// TODO: 通知组改变
 						e.uFlags &= ~LEIF_SELECTED;
-						const int y = e.y - iSbPos;
-						if ((y > -m_cyGroupHeader && y < GetHeight()))
+						const auto y = e.y - iSbPos;
+						if ((y > -m_cyGroupHeader && y < GetHeightF()))
 						{
-							if (y0 == INT_MAX)
+							if (y0 == FLT_MAX)
 								y0 = y;
 							y1 = std::max(y1, y + m_cyGroupHeader);
-							x = std::min(x, 0);
+							x = std::min(x, 0.f);
 						}
 					}
 					EckCounter((int)e.Item.size(), j)
@@ -1439,8 +1410,8 @@ public:
 									goto SkipItem;
 							}
 							f.uFlags &= ~LEIF_SELECTED;
-							const int y = f.y - iSbPos;
-							if ((y > -m_cyItem && y < GetHeight()))
+							const auto y = f.y - iSbPos;
+							if ((y > -m_cyItem && y < GetHeightF()))
 							{
 								if (y0 == INT_MAX)
 									y0 = y;
@@ -1452,7 +1423,7 @@ public:
 						++i;
 					}
 				}
-				rcInvalid = { x, y0, GetWidth(), y1 };
+				rcInvalid = { x, y0, GetWidthF(), y1 };
 			}
 		}
 		else
@@ -1506,7 +1477,7 @@ public:
 					else
 					{
 						GetItemRect(idx0, rcInvalid);
-						RECT rc;
+						D2D1_RECT_F rc;
 						GetItemRect(idx1, rc);
 						UnionRect(rcInvalid, rcInvalid, rc);
 					}
@@ -1607,8 +1578,8 @@ public:
 		}
 		rc.left = 0.f;
 		rc.right = GetWidthF();
-		rc.top = LVGetItemY(m_idxInsertMark) - (float)CyInsertMark * 2.f;
-		rc.bottom = rc.top + (float)CyInsertMark * 5.f;
+		rc.top = LVGetItemY(m_idxInsertMark) - CyInsertMark * 2.f;
+		rc.bottom = rc.top + CyInsertMark * 5.f;
 	}
 
 	void SetInsertMark(int idx, BOOL bRedraw = TRUE)
@@ -1641,7 +1612,7 @@ public:
 	void RedrawItem(int idxBegin, int idxEnd)
 	{
 		EckAssert(idxEnd >= idxBegin);
-		RECT rc;
+		D2D1_RECT_F rc;
 		switch (m_eView)
 		{
 		case Type::List:
@@ -1650,7 +1621,7 @@ public:
 			{
 				0,
 				LVGetItemY(idxBegin),
-				GetWidth(),
+				GetWidthF(),
 				LVGetItemY(idxEnd) + m_cyItem
 			};
 		}
@@ -1659,9 +1630,9 @@ public:
 		{
 			rc =
 			{
-				-m_psvH->GetPos(),
+				(float)-m_psvH->GetPos(),
 				LVGetItemY(idxBegin),
-				std::min(GetWidth(), m_Header.GetContentWidth()),
+				std::min(GetWidthF(), m_Header.GetContentWidth()),
 				LVGetItemY(idxEnd) + m_cyItem
 			};
 		}
@@ -1677,7 +1648,7 @@ public:
 
 	void RedrawItem(int idx)
 	{
-		RECT rc;
+		D2D1_RECT_F rc;
 		GetItemRect(idx, rc);
 		ElemToClient(rc);
 		InvalidateRect(rc);
@@ -1686,7 +1657,7 @@ public:
 	void RedrawGroupItem(int idxGroup, int idxItemInGroup)
 	{
 		EckAssert(GetGroup());
-		RECT rc;
+		D2D1_RECT_F rc;
 		GetGroupPartRect(ListPart::Item, idxItemInGroup, idxGroup, rc);
 		ElemToClient(rc);
 		InvalidateRect(rc);
@@ -1696,7 +1667,7 @@ public:
 	{
 		if (m_bGroup)
 		{
-			int y = 0;
+			float y{};
 			for (size_t i = idxGroupBegin; i < m_Group.size(); ++i)
 			{
 				auto& Group = m_Group[i];
@@ -1719,14 +1690,14 @@ public:
 		ReCalcTopItem();
 	}
 
-	EckInline void SetHeaderHeight(int cy)
+	EckInline void SetHeaderHeight(float cy)
 	{
-		m_Header.SetSize(m_Header.GetWidth(), cy);
+		m_Header.SetSize(m_Header.GetWidthF(), cy);
 	}
-	EckInlineNd int GetHeaderHeight() const noexcept { return m_Header.GetHeight(); }
+	EckInlineNd float GetHeaderHeight() const noexcept { return m_Header.GetHeightF(); }
 
 	void SetColumnCount(int cItem,
-		_In_reads_opt_(cItem) const int* pcx = nullptr) noexcept
+		_In_reads_opt_(cItem) const float* pcx = nullptr) noexcept
 	{
 		EckAssert(m_eView == Type::Report);
 		m_Header.SetItemCount(cItem, pcx);
@@ -1819,7 +1790,7 @@ public:
 			idxBottom = -2;
 			return;
 		}
-		CalcItemRangeInRect(GetViewRect(), idxTop, idxBottom);
+		CalcItemRangeInRect(GetViewRectF(), idxTop, idxBottom);
 		if (idxBottom >= GetItemCount())
 			idxBottom = GetItemCount() - 1;
 	}
@@ -1828,40 +1799,40 @@ public:
 
 	EckInlineNdCe int GetTopItem() noexcept { return m_idxTop; }
 
-	EckInlineCe void SetGroupImageWidth(int cx) noexcept { m_cxGroupImage = cx; }
-	EckInlineNdCe int GetGroupImageWidth() const noexcept { return m_cxGroupImage; }
+	EckInlineCe void SetGroupImageWidth(float cx) noexcept { m_cxGroupImage = cx; }
+	EckInlineNdCe float GetGroupImageWidth() const noexcept { return m_cxGroupImage; }
 
-	EckInlineCe void SetGroupImageHeight(int cy) noexcept { m_cyGroupImage = cy; }
-	EckInlineNdCe int GetGroupImageHeight() const noexcept { return m_cyGroupImage; }
+	EckInlineCe void SetGroupImageHeight(float cy) noexcept { m_cyGroupImage = cy; }
+	EckInlineNdCe float GetGroupImageHeight() const noexcept { return m_cyGroupImage; }
 
 	EckInlineNdCe auto& GetScrollBarV() noexcept { return m_SBV; }
 	EckInlineNdCe auto& GetScrollBarH() noexcept { return m_SBH; }
 	EckInlineNdCe auto& GetHeader() noexcept { return m_Header; }
 
-	EckInlineCe void SetItemHeight(int cy) noexcept { m_cyItem = cy; }
-	EckInlineNdCe int GetItemHeight() const noexcept { return m_cyItem; }
+	EckInlineCe void SetItemHeight(float cy) noexcept { m_cyItem = cy; }
+	EckInlineNdCe float GetItemHeight() const noexcept { return m_cyItem; }
 
-	EckInlineCe void SetItemPadding(int cy) noexcept { m_cyPadding = cy; }
-	EckInlineNdCe int GetItemPadding() const noexcept { return m_cyPadding; }
+	EckInlineCe void SetItemPadding(float cy) noexcept { m_cyPadding = cy; }
+	EckInlineNdCe float GetItemPadding() const noexcept { return m_cyPadding; }
 
-	EckInlineCe void SetItemWidth(int cx) noexcept
+	EckInlineCe void SetItemWidth(float cx) noexcept
 	{
 		EckAssert(m_eView == Type::Icon);
 		m_cxItem = cx;
 	}
-	EckInlineNdCe int GetItemWidth() const noexcept { return m_cxItem; }
+	EckInlineNdCe float GetItemWidth() const noexcept { return m_cxItem; }
 
-	EckInlineCe void SetItemPaddingH(int cx) { m_cxPadding = cx; }
-	EckInlineNdCe int GetItemPaddingH() const noexcept { return m_cxPadding; }
+	EckInlineCe void SetItemPaddingH(float cx) { m_cxPadding = cx; }
+	EckInlineNdCe float GetItemPaddingH() const noexcept { return m_cxPadding; }
 
 	EckInlineCe void SetSingleSel(BOOL bSingleSel) noexcept { m_bSingleSel = bSingleSel; }
 	EckInlineNdCe BOOL GetSingleSel() const noexcept { return m_bSingleSel; }
 
-	EckInlineCe void SetTopExtraSpace(int cy) noexcept { m_cyTopExtra = cy; }
-	EckInlineNdCe int GetTopExtraSpace() const noexcept { return m_cyTopExtra; }
+	EckInlineCe void SetTopExtraSpace(float cy) noexcept { m_cyTopExtra = cy; }
+	EckInlineNdCe float GetTopExtraSpace() const noexcept { return m_cyTopExtra; }
 
-	EckInlineCe void SetBottomExtraSpace(int cy) noexcept { m_cyBottomExtra = cy; }
-	EckInlineNdCe int GetBottomExtraSpace() const noexcept { return m_cyBottomExtra; }
+	EckInlineCe void SetBottomExtraSpace(float cy) noexcept { m_cyBottomExtra = cy; }
+	EckInlineNdCe float GetBottomExtraSpace() const noexcept { return m_cyBottomExtra; }
 
 	EckInlineCe void SetGroup(BOOL bGroup) noexcept { m_bGroup = bGroup; }
 	EckInlineNdCe BOOL GetGroup() const noexcept { return m_bGroup; }
@@ -1869,11 +1840,11 @@ public:
 	EckInlineCe void SetGroupImage(BOOL b) noexcept { m_bGroupImage = b; }
 	EckInlineNdCe BOOL GetGroupImage() const noexcept { return m_bGroupImage; }
 
-	EckInlineCe void SetGroupItemTopPadding(int cy) noexcept { m_cyGroupItemTopPadding = cy; }
-	EckInlineNdCe int GetGroupItemTopPadding() const noexcept { return m_cyGroupItemTopPadding; }
+	EckInlineCe void SetGroupItemTopPadding(float cy) noexcept { m_cyGroupItemTopPadding = cy; }
+	EckInlineNdCe float GetGroupItemTopPadding() const noexcept { return m_cyGroupItemTopPadding; }
 
-	EckInlineCe void SetGroupItemBottomPadding(int cy) noexcept { m_cyGroupItemBottomPadding = cy; }
-	EckInlineNdCe int GetGroupItemBottomPadding() const noexcept { return m_cyGroupItemBottomPadding; }
+	EckInlineCe void SetGroupItemBottomPadding(float cy) noexcept { m_cyGroupItemBottomPadding = cy; }
+	EckInlineNdCe float GetGroupItemBottomPadding() const noexcept { return m_cyGroupItemBottomPadding; }
 
 	EckInlineCe void SetItemNotify(BOOL b) noexcept { m_bItemNotify = b; }
 	EckInlineNdCe BOOL GetItemNotify() const noexcept { return m_bItemNotify; }

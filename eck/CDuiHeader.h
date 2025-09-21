@@ -33,16 +33,13 @@ struct HE_HITTEST
 class CHeader : public CElem, public CFixedTimeLine
 {
 public:
-	enum : int
-	{
-		CxDividerWidthHalf = 6,
-	};
+	constexpr static float CxDividerWidthHalf = 6;
 private:
 	struct ITEM
 	{
 		ComPtr<IDWriteTextLayout> pLayout;
-		int x{};
-		int cx{};
+		float x{};
+		float cx{};
 		float k{};
 	};
 	ID2D1SolidColorBrush* m_pBrush{};
@@ -52,7 +49,7 @@ private:
 	int m_idxPressed{ -1 };
 	int m_idxDrag{ -1 };
 	int m_idxInsertMark{ -1 };
-	int m_cxItemOld{};// 拖动分隔条时用
+	float m_cxItemOld{};// 拖动分隔条时用
 	BITBOOL m_bDraggable : 1{};
 
 	BITBOOL m_bHitDivider : 1{};
@@ -73,8 +70,8 @@ private:
 			eState = State::Normal;
 		rcItem.top = 0;
 		rcItem.bottom = GetHeightF();
-		rcItem.left = (float)e.x;
-		rcItem.right = float(e.x + e.cx);
+		rcItem.left = e.x;
+		rcItem.right = e.x + e.cx;
 		GetTheme()->DrawBackground(Part::HeaderItem, eState,
 			rcItem, nullptr);
 
@@ -89,7 +86,7 @@ private:
 			{
 				EckAssert(nm.cchText > 0);
 				eck::g_pDwFactory->CreateTextLayout(nm.pszText, nm.cchText,
-					GetTextFormat(), float(e.cx - Padding * 2), GetHeightF(), &e.pLayout);
+					GetTextFormat(), e.cx - Padding * 2, GetHeightF(), &e.pLayout);
 			}
 		}
 		if (e.pLayout.Get())
@@ -97,7 +94,7 @@ private:
 			D2D1_COLOR_F cr;
 			GetTheme()->GetSysColor(SysColor::Text, cr);
 			m_pBrush->SetColor(cr);
-			m_pDC->DrawTextLayout({ float(e.x + Padding),0.f }, e.pLayout.Get(),
+			m_pDC->DrawTextLayout({ e.x + Padding,0.f }, e.pLayout.Get(),
 				m_pBrush, DrawTextLayoutFlags);
 		}
 	}
@@ -136,12 +133,12 @@ public:
 		{
 			ELEMPAINTSTRU ps;
 			BeginPaint(ps, wParam, lParam);
-			int xMax{};
+			float xMax{};
 			for (int i{}; i < GetItemCount(); ++i)
 			{
 				auto& e = m_vItem[i];
-				if (e.x > (int)ps.rcfClipInElem.right ||
-					e.x + e.cx < (int)ps.rcfClipInElem.left)
+				if (e.x > ps.rcfClipInElem.right ||
+					e.x + e.cx < ps.rcfClipInElem.left)
 					continue;
 				if (e.x + e.cx > xMax)
 					xMax = e.x + e.cx;
@@ -150,7 +147,7 @@ public:
 			D2D1_RECT_F rcItem;
 			rcItem.top = ps.rcfClipInElem.top;
 			rcItem.bottom = ps.rcfClipInElem.bottom;
-			rcItem.left = (float)xMax;
+			rcItem.left = xMax;
 			rcItem.right = ps.rcfClipInElem.right;
 			GetTheme()->DrawBackground(Part::HeaderItem, State::Normal,
 				rcItem, nullptr);
@@ -174,9 +171,9 @@ public:
 				{
 					m_vItem[m_idxDrag].cx = cxNew;
 					ReCalcItemX();
-					RECT rc;
+					D2D1_RECT_F rc;
 					GetItemRect(m_idxDrag, rc);
-					rc.right = GetWidth();
+					rc.right = GetWidthF();
 					ElemToClient(rc);
 					InvalidateRect(rc);
 					NMHEITEMNOTIFY nm;
@@ -282,7 +279,7 @@ public:
 			m_vItem[idx].pLayout.Clear();
 	}
 
-	void SetItemCount(int cItem, _In_reads_opt_(cItem) const int* pcx = nullptr) noexcept
+	void SetItemCount(int cItem, _In_reads_opt_(cItem) const float* pcx = nullptr) noexcept
 	{
 		ECK_DUILOCK;
 		m_vItem.resize(cItem);
@@ -320,24 +317,24 @@ public:
 		return -1;
 	}
 
-	void GetItemRect(int idx, RECT& rcItem) const noexcept
+	void GetItemRect(int idx, D2D1_RECT_F& rcItem) const noexcept
 	{
 		const auto& e = m_vItem[idx];
 		rcItem.left = e.x;
 		rcItem.right = e.x + e.cx;
 		rcItem.top = 0;
-		rcItem.bottom = GetHeight();
+		rcItem.bottom = GetHeightF();
 	}
 
 	void InvalidateItem(int idx)
 	{
-		RECT rcItem;
+		D2D1_RECT_F rcItem;
 		GetItemRect(idx, rcItem);
 		ElemToClient(rcItem);
 		InvalidateRect(rcItem);
 	}
 
-	int GetContentWidth() const noexcept
+	float GetContentWidth() const noexcept
 	{
 		if (!GetItemCount())
 			return 0;

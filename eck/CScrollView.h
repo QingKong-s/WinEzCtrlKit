@@ -2,93 +2,90 @@
 #include "IScroll.h"
 
 ECK_NAMESPACE_BEGIN
-class CScrollView : public IScroll
+template<class T>
+	requires (std::is_signed_v<T> || std::is_floating_point_v<T>)
+class CScrollViewT : public IScroll
 {
+public:
+	constexpr static T InvalidValue = std::numeric_limits<T>::max();
 protected:
-	int m_iMin = 0;
-	int m_iMax = 0;
-	int m_iPage = 0;
-	int m_iPos = 0;
+	T m_Min{};
+	T m_Max{};
+	T m_Page{};
+	T m_Pos{};
 
-	int m_iViewSize = 0;
-	int m_iMinThumbSize = 0;
+	T m_ViewSize{};
+	T m_MinThumbSize{};
 
-	int m_oxyThumbCursor = 0;
+	T m_oxyThumbCursor{};
 #ifdef _DEBUG
 	BOOL m_bLBtnDown = FALSE;
 #endif // _DEBUG
 
-	void constexpr RangeChanged()
+	BOOL constexpr RangeChanged()
 	{
 		if (!IsValid())
 		{
 			SetPosUncheck(GetMin());
-			return;
+			return TRUE;
 		}
 		if (GetPos() < GetMin())
 			SetPosUncheck(GetMin());
 		else if (GetPos() > GetMaxWithPage())
 			SetPosUncheck(GetMaxWithPage());
+		else
+			return FALSE;
+		return TRUE;
 	}
 public:
-	EckInline constexpr int GetMin() const { return m_iMin; }
-
-	EckInline constexpr void SetMin(int iMin)
+	EckInline constexpr T GetMin() const { return m_Min; }
+	EckInline constexpr void SetMin(T iMin)
 	{
-		m_iMin = iMin;
+		m_Min = iMin;
 		RangeChanged();
 	}
 
-	EckInline constexpr int GetMax() const { return m_iMax; }
-
-	EckInline constexpr int GetMaxWithPage() const { return m_iMax - m_iPage + 1; }
-
-	EckInline constexpr void SetMax(int iMax)
+	EckInline constexpr T GetMax() const { return m_Max; }
+	EckInline constexpr T GetMaxWithPage() const { return m_Max - m_Page + 1; }
+	EckInline constexpr void SetMax(T Max)
 	{
-		m_iMax = iMax;
+		m_Max = Max;
 		RangeChanged();
 	}
 
-	EckInline constexpr int GetPage() const { return m_iPage; }
-
-	EckInline constexpr void SetPage(int iPage)
+	EckInline constexpr T GetPage() const { return m_Page; }
+	EckInline constexpr void SetPage(T Page)
 	{
-		m_iPage = iPage;
+		m_Page = Page;
 		RangeChanged();
 	}
 
-	EckInline constexpr int GetPos() const { return m_iPos; }
-
-	EckInline constexpr void SetPos(int iPos)
+	EckInline constexpr T GetPos() const { return m_Pos; }
+	EckInline constexpr BOOL SetPos(T Pos)
 	{
-		m_iPos = iPos;
+		m_Pos = Pos;
+		return RangeChanged();
+	}
+	EckInline constexpr void SetPosUncheck(T iPos) { m_Pos = iPos; }
+
+	EckInline constexpr void SetRange(T Min, T Max)
+	{
+		m_Min = Min;
+		m_Max = Max;
 		RangeChanged();
 	}
-
-	EckInline constexpr void SetPosUncheck(int iPos)
-	{
-		m_iPos = iPos;
-	}
-
-	EckInline constexpr void SetRange(int iMin, int iMax)
-	{
-		m_iMin = iMin;
-		m_iMax = iMax;
-		RangeChanged();
-	}
-
-	EckInline constexpr int GetRangeDistance() const
+	EckInline constexpr T GetRangeDistance() const
 	{
 		return GetMaxWithPage() - GetMin();
 	}
 
 	EckInline constexpr BOOL IsValid() const { return GetRangeDistance() > 0; }
 
-	constexpr void OnMouseWheel(int iDelta)
+	constexpr void OnMouseWheel(T Delta)
 	{
 		if (!IsValid())
 			return;
-		int iPos = GetPos() + iDelta;
+		T iPos = GetPos() + Delta;
 		if (iPos < GetMin())
 			iPos = GetMin();
 		else if (iPos > GetMaxWithPage())
@@ -99,39 +96,38 @@ public:
 
 	constexpr float GetPrecent() const
 	{
-		const int d = GetMaxWithPage() - GetMin();
+		const T d = GetMaxWithPage() - GetMin();
 		if (d <= 0)
 			return 0.f;
 		else
-			return (float)(GetPos() - GetMin()) / (float)d;
+			return float(GetPos() - GetMin()) / (float)d;
 	}
 
-	EckInline constexpr void SetViewSize(int iViewSize) { m_iViewSize = iViewSize; }
-	EckInline constexpr int GetViewSize() const { return m_iViewSize; }
+	EckInline constexpr void SetViewSize(T ViewSize) { m_ViewSize = ViewSize; }
+	EckInline constexpr T GetViewSize() const { return m_ViewSize; }
 
-	EckInline constexpr void SetMinThumbSize(int iMinThumbSize) { m_iMinThumbSize = iMinThumbSize; }
-	EckInline constexpr int GetMinThumbSize() const { return m_iMinThumbSize; }
+	EckInline constexpr void SetMinThumbSize(T MinThumbSize) { m_MinThumbSize = MinThumbSize; }
+	EckInline constexpr T GetMinThumbSize() const { return m_MinThumbSize; }
 
-	EckInline constexpr int GetThumbSize() const
+	EckInline constexpr T GetThumbSize() const
 	{
-		const int d = GetMax() - GetMin();
+		const T d = GetMax() - GetMin();
 		if (d <= 0)
-			return std::numeric_limits<int>::min();
-		const int i = GetPage() * GetViewSize() / d;
+			return InvalidValue;
+		const T i = GetPage() * GetViewSize() / d;
 		return std::max(GetMinThumbSize(), i);
 	}
 
-	EckInline constexpr int GetThumbPos(int iThumbSize) const
+	EckInline constexpr T GetThumbPos(T ThumbSize) const
 	{
-		const int d = GetRangeDistance();
+		const T d = GetRangeDistance();
 		if (d <= 0)
-			return std::numeric_limits<int>::min();
-		return (GetPos() - GetMin()) * (GetViewSize() - iThumbSize) / d;
+			return InvalidValue;
+		return (GetPos() - GetMin()) * (GetViewSize() - ThumbSize) / d;
 	}
+	EckInline constexpr T GetThumbPos() const { return GetThumbPos(GetThumbSize()); }
 
-	EckInline constexpr int GetThumbPos() const { return GetThumbPos(GetThumbSize()); }
-
-	EckInline constexpr void OnLButtonDown(int xy)
+	EckInline constexpr void OnLButtonDown(T xy)
 	{
 #ifdef _DEBUG
 		EckAssert(!m_bLBtnDown);
@@ -143,7 +139,7 @@ public:
 		m_oxyThumbCursor = xy - GetThumbPos();
 	}
 
-	EckInline constexpr void OnMouseMove(int xy)
+	EckInline constexpr void OnMouseMove(T xy)
 	{
 		EckAssert(m_bLBtnDown);
 		if (!IsValid())
@@ -166,13 +162,13 @@ public:
 	{
 		if (si.fMask & SIF_RANGE)
 		{
-			m_iMin = si.nMin;
-			m_iMax = si.nMax;
+			m_Min = (T)si.nMin;
+			m_Max = (T)si.nMax;
 		}
 		if (si.fMask & SIF_PAGE)
-			m_iPage = (int)si.nPage;
+			m_Page = (T)si.nPage;
 		if (si.fMask & SIF_POS)
-			m_iPos = si.nPos;
+			m_Pos = (T)si.nPos;
 		RangeChanged();
 	}
 
@@ -180,13 +176,13 @@ public:
 	{
 		if (si.fMask & SIF_RANGE)
 		{
-			si.nMin = m_iMin;
-			si.nMax = m_iMax;
+			si.nMin = (int)m_Min;
+			si.nMax = (int)m_Max;
 		}
 		if (si.fMask & SIF_PAGE)
-			si.nPage = m_iPage;
+			si.nPage = (UINT)m_Page;
 		if (si.fMask & SIF_POS)
-			si.nPos = m_iPos;
+			si.nPos = (int)m_Pos;
 	}
 
 	// 是否有必要显示滚动条
@@ -199,7 +195,10 @@ public:
 	BOOL ScrIsVisible() override { return IsVisible(); }
 	void ScrSetScrollInfo(const SCROLLINFO& si) override { SetScrollInfo(si); }
 	void ScrGetScrollInfo(_Inout_ SCROLLINFO& si) override { GetScrollInfo(si); }
-	void ScrSetViewSize(int iViewSize) override { SetViewSize(iViewSize); }
-	int ScrGetViewSize() override { return GetViewSize(); }
+	void ScrSetViewSize(int iViewSize) override { SetViewSize((T)iViewSize); }
+	int ScrGetViewSize() override { return (int)GetViewSize(); }
 };
+
+using CScrollView = CScrollViewT<int>;
+using CScrollViewF = CScrollViewT<float>;
 ECK_NAMESPACE_END
