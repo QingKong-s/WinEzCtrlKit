@@ -11,11 +11,11 @@ class CInertialScrollView :
 public:
 	using FInertialScrollProc = void(*)(float fPos, float fPrevPos, LPARAM lParam);
 protected:
-	float m_fStart{};		// 起始位置
-	float m_fDistance{};	// 当前动画应滚动的总距离
-	float m_fSustain{};	// 持续时间，毫秒
-	float m_fDuration{ 400.f };// 动画总时间
-	float m_fDelta{ 80.f };	// 每次滚动的距离
+	float m_fStart{};           // 起始位置
+	float m_fDistance{};        // 当前动画应滚动的总距离
+	float m_fSustain{};         // 持续时间，毫秒
+	float m_fDuration{ 400.f }; // 动画总时间
+	float m_fDelta{ 80.f };     // 每次滚动的距离
 
 	int m_iCurrInterval{};
 
