@@ -1239,7 +1239,7 @@ private:
                     m_cs.Leave();
                 }
             }
-            else ECKLIKELY
+            else [[likely]]
             {
                 // 更新脏矩形
                 if (!IsRectEmpty(m_rcInvalid)) [[likely]]
@@ -1271,7 +1271,7 @@ private:
                         [[fallthrough]];
                     case PresentMode::BitBltSwapChain:
                         m_D2D.GetSwapChain()->Present1(0, 0, &pp);
-                    break;
+                        break;
                     }
                 }
                 else
