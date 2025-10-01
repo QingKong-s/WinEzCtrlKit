@@ -3,10 +3,6 @@
 #include "CDuiHeader.h"
 #include "CD2DImageList.h"
 
-#if !ECKCXX20
-#error "EckDui requires C++20"
-#endif
-
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 struct NMLTITEMINDEX : DUINMHDR

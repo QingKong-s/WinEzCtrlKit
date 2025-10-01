@@ -46,15 +46,9 @@ inline void CalcSpirographPoint(std::vector<TPt>& vPt, TVal rOut, TVal rInt, TVa
 	const float fOneMinusKDivK = fOneMinusK / k;
 	while (t < tEnd)
 	{
-#if ECKCXX20
 		vPt.emplace_back(
 			(TVal)(rOut * (fOneMinusK * cosf(t) + l * k * cosf(fOneMinusKDivK * t))),
 			(TVal)(rOut * (fOneMinusK * sinf(t) - l * k * sinf(fOneMinusKDivK * t))));
-#else
-		vPt.emplace_back(TPt{
-			(TVal)(rOut * (fOneMinusK * cosf(t) + l * k * cosf(fOneMinusKDivK * t))),
-			(TVal)(rOut * (fOneMinusK * sinf(t) - l * k * sinf(fOneMinusKDivK * t))) });
-#endif
 		t += fStep;
 	}
 	vPt.emplace_back(vPt.front());
@@ -166,11 +160,7 @@ EckInline void CalcButterflyCurvePoint(std::vector<TPt>& vPt, float fDeformation
 	while (t < PiF * 20.f)
 	{
 		const float f = (expf(cosf(t)) - 2.f * cosf(fDeformationCoefficient * t) - powf(sinf(t / 12.f), 5.f));
-#if ECKCXX20
 		vPt.emplace_back((TVal)(sinf(t) * f * fScaleX), (TVal)(cosf(t) * f * fScaleY));
-#else
-		vPt.emplace_back(TPt{ (TVal)(sinf(t) * f * fScaleX), (TVal)(cosf(t) * f * fScaleY) });
-#endif
 		t += fStep;
 	}
 	vPt.emplace_back(vPt.front());
@@ -282,11 +272,7 @@ EckInline void CalcRoseCurvePoint(std::vector<TPt>& vPt, float a = 10.f, float n
 	while (t < PiF * 2.f)
 	{
 		Polar2Rect(a * sinf(n * t), t, x, y);
-#if ECKCXX20
 		vPt.emplace_back((TVal)x, (TVal)y);
-#else
-		vPt.emplace_back(TPt{ (TVal)x, (TVal)y });
-#endif
 		t += fStep;
 	}
 	vPt.emplace_back(vPt.front());
@@ -402,11 +388,7 @@ inline void CalcRegularStar(std::vector<TPt>& vPt, TVal r, int n, float fAngle =
 		EckCounterNV(cLoop)
 		{
 			CalcPointFromCircleAngle<TVal>(r, fTheta + fAngleUnit * i, x, y);
-#if ECKCXX20
 			vPt.emplace_back(x, y);
-#else
-			vPt.emplace_back(TPt{ x, y });
-#endif
 			i += 2;
 			if (i >= n)
 				i %= n;
@@ -419,11 +401,7 @@ inline void CalcRegularStar(std::vector<TPt>& vPt, TVal r, int n, float fAngle =
 			EckCounterNV(cLoop)
 			{
 				CalcPointFromCircleAngle<TVal>(r, fTheta + fAngleUnit * i, x, y);
-#if ECKCXX20
 				vPt.emplace_back(x, y);
-#else
-				vPt.emplace_back(TPt{ x, y });
-#endif
 				i += 2;
 				if (i >= n)
 					i %= n;
@@ -436,11 +414,7 @@ inline void CalcRegularStar(std::vector<TPt>& vPt, TVal r, int n, float fAngle =
 		EckCounter(n, i)
 		{
 			CalcPointFromCircleAngle<TVal>(r, fTheta, x, y);
-#if ECKCXX20
 			vPt.emplace_back(x, y);
-#else
-			vPt.emplace_back(TPt{ x, y });
-#endif
 			fTheta += fAngleUnit;
 		}
 		vPt.emplace_back(vPt.front());

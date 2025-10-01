@@ -2,10 +2,6 @@
 #include "DuiBase.h"
 #include "CInertialScrollView.h"
 
-#if !ECKCXX20
-#error "EckDui requires C++20"
-#endif// !ECKCXX20
-
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 class CScrollBar :public CElem
