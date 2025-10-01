@@ -29,7 +29,6 @@ struct COMP_RENDER_INFO
 };
 
 // 表示一个特定的混合操作，默认的实现不执行任何操作，
-// 通常实现为与元素无关
 struct CCompositor : public CRefObj<CCompositor>
 {
 	virtual ~CCompositor() = default;
@@ -38,7 +37,6 @@ struct CCompositor : public CRefObj<CCompositor>
 	/// </summary>
 	/// <param name="pElem">目标元素</param>
 	/// <param name="pt">坐标，相对pElem</param>
-	/// <param name="pAncestor">pElem的第一个设置了混合器的祖元素，若pElem本身具有混合器，则为nullptr</param>
 	virtual void PtNormalToComposited(CElem* pElem, _Inout_ POINT& pt) {}
 
 	/// <summary>
@@ -46,7 +44,6 @@ struct CCompositor : public CRefObj<CCompositor>
 	/// </summary>
 	/// <param name="pElem">目标元素</param>
 	/// <param name="pt">坐标，相对pElem</param>
-	/// <param name="pAncestor">pElem的第一个设置了混合器的祖元素，若pElem本身具有混合器，则为nullptr</param>
 	virtual void PtCompositedToNormal(CElem* pElem, _Inout_ POINT& pt) {}
 
 	/// <summary>
@@ -57,7 +54,7 @@ struct CCompositor : public CRefObj<CCompositor>
 	/// </summary>
 	/// <param name="pElem">目标元素</param>
 	/// <param name="rc">计算结果</param>
-	/// <param name="bInClient">结果相对于客户区还是相对于父元素</param>
+	/// <param name="bInClientOrParent">结果相对于客户区还是相对于父元素</param>
 	virtual void CalcCompositedRect(CElem* pElem, _Out_ D2D1_RECT_F& rc, BOOL bInClientOrParent) { rc = {}; }
 
 	// 是否原地操作
