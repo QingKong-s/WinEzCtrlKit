@@ -1,12 +1,6 @@
 ﻿#pragma once
 #include "ECK.h"
 
-#include <memory>
-#if ECKCXX20
-#include <concepts>
-#include <bit>
-#endif
-
 ECK_NAMESPACE_BEGIN
 namespace Colorref
 {
@@ -132,11 +126,6 @@ EckInline constexpr const T* PtrStepCb(const T* p, SSIZE_T d)
 {
 	return (const T*)((BYTE*)p + d);
 }
-
-#if !ECKCXX20
-#pragma push_macro("ccpIsInteger")
-#define ccpIsInteger class
-#endif
 
 template<ccpIsInteger T>
 EckInline constexpr BYTE GetIntegerByte(T i, int idxByte)
@@ -924,11 +913,7 @@ inline constexpr BOOL AdjustRectToFitAnother(RECT& rc, const RECT& rcRef)
 		cy0 = rc.bottom - rc.top;
 	if (cxMax <= 0 || cyMax <= 0 || cx0 <= 0 || cy0 <= 0)
 		return FALSE;
-#if ECKCXX20
 	int cx, cy;
-#else
-	int cx{}, cy{};
-#endif
 	if (cxMax * cy0 > cx0 * cyMax)// y对齐
 	{
 		cy = cyMax;
@@ -956,11 +941,7 @@ inline constexpr BOOL AdjustRectToFitAnother(D2D1_RECT_F& rc, const D2D1_RECT_F&
 		cy0 = rc.bottom - rc.top;
 	if (cxMax <= 0 || cyMax <= 0 || cx0 <= 0 || cy0 <= 0)
 		return FALSE;
-#if ECKCXX20
 	float cx, cy;
-#else
-	float cx{}, cy{};
-#endif
 	if (cxMax * cy0 > cx0 * cyMax)// y对齐
 	{
 		cy = cyMax;
@@ -1145,7 +1126,6 @@ EckInline constexpr COLORREF DeltaColorrefLuma(COLORREF cr, float d)
 }
 
 #pragma region ULARGE_INTEGER
-#if ECKCXX20
 EckInline constexpr ULARGE_INTEGER operator+(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
 {
 	return ULARGE_INTEGER{ .QuadPart = x1.QuadPart + x2.QuadPart };
@@ -1195,103 +1175,6 @@ EckInline constexpr std::strong_ordering operator<=>(ULARGE_INTEGER x1, ULONGLON
 {
 	return x1.QuadPart <=> x2;
 }
-#else
-EckInline constexpr ULARGE_INTEGER operator+(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
-{
-	ULARGE_INTEGER ret{};
-	ret.QuadPart = x1.QuadPart + x2.QuadPart;
-	return ret;
-}
-
-EckInline constexpr ULARGE_INTEGER operator+(ULARGE_INTEGER x1, ULONGLONG x2)
-{
-	ULARGE_INTEGER ret{};
-	ret.QuadPart = x1.QuadPart + x2;
-	return ret;
-}
-
-EckInline constexpr ULARGE_INTEGER operator-(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
-{
-	ULARGE_INTEGER ret{};
-	ret.QuadPart = x1.QuadPart - x2.QuadPart;
-	return ret;
-}
-
-EckInline constexpr ULARGE_INTEGER operator-(ULARGE_INTEGER x1, ULONGLONG x2)
-{
-	ULARGE_INTEGER ret{};
-	ret.QuadPart = x1.QuadPart - x2;
-	return ret;
-}
-
-EckInline constexpr ULARGE_INTEGER operator*(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
-{
-	ULARGE_INTEGER ret{};
-	ret.QuadPart = x1.QuadPart * x2.QuadPart;
-	return ret;
-}
-
-EckInline constexpr ULARGE_INTEGER operator*(ULARGE_INTEGER x1, ULONGLONG x2)
-{
-	ULARGE_INTEGER ret{};
-	ret.QuadPart = x1.QuadPart * x2;
-	return ret;
-}
-
-EckInline constexpr ULARGE_INTEGER operator/(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
-{
-	ULARGE_INTEGER ret{};
-	ret.QuadPart = x1.QuadPart / x2.QuadPart;
-	return ret;
-}
-
-EckInline constexpr ULARGE_INTEGER operator/(ULARGE_INTEGER x1, ULONGLONG x2)
-{
-	ULARGE_INTEGER ret{};
-	ret.QuadPart = x1.QuadPart / x2;
-	return ret;
-}
-
-EckInline constexpr bool operator<(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
-{
-	return x1.QuadPart < x2.QuadPart;
-}
-
-EckInline constexpr bool operator<=(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
-{
-	return x1.QuadPart <= x2.QuadPart;
-}
-
-EckInline constexpr bool operator>(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
-{
-	return x1.QuadPart > x2.QuadPart;
-}
-
-EckInline constexpr bool operator>=(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
-{
-	return x1.QuadPart >= x2.QuadPart;
-}
-
-EckInline constexpr bool operator<(ULARGE_INTEGER x1, ULONGLONG x2)
-{
-	return x1.QuadPart < x2;
-}
-
-EckInline constexpr bool operator<=(ULARGE_INTEGER x1, ULONGLONG x2)
-{
-	return x1.QuadPart <= x2;
-}
-
-EckInline constexpr bool operator>(ULARGE_INTEGER x1, ULONGLONG x2)
-{
-	return x1.QuadPart > x2;
-}
-
-EckInline constexpr bool operator>=(ULARGE_INTEGER x1, ULONGLONG x2)
-{
-	return x1.QuadPart >= x2;
-}
-#endif // ECKCXX20
 
 EckInline constexpr bool operator==(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
 {
@@ -1329,7 +1212,6 @@ EckInline constexpr ULARGE_INTEGER operator-=(ULARGE_INTEGER& x1, ULONGLONG x2)
 #pragma endregion ULARGE_INTEGER
 
 #pragma region LARGE_INTEGER
-#if ECKCXX20
 EckInline constexpr LARGE_INTEGER operator+(LARGE_INTEGER x1, LARGE_INTEGER x2)
 {
 	return LARGE_INTEGER{ .QuadPart = x1.QuadPart + x2.QuadPart };
@@ -1379,103 +1261,6 @@ EckInline constexpr std::strong_ordering operator<=>(LARGE_INTEGER x1, LONGLONG 
 {
 	return x1.QuadPart <=> x2;
 }
-#else
-EckInline constexpr LARGE_INTEGER operator+(LARGE_INTEGER x1, LARGE_INTEGER x2)
-{
-	LARGE_INTEGER ret{};
-	ret.QuadPart = x1.QuadPart + x2.QuadPart;
-	return ret;
-}
-
-EckInline constexpr LARGE_INTEGER operator+(LARGE_INTEGER x1, LONGLONG x2)
-{
-	LARGE_INTEGER ret{};
-	ret.QuadPart = x1.QuadPart + x2;
-	return ret;
-}
-
-EckInline constexpr LARGE_INTEGER operator-(LARGE_INTEGER x1, LARGE_INTEGER x2)
-{
-	LARGE_INTEGER ret{};
-	ret.QuadPart = x1.QuadPart - x2.QuadPart;
-	return ret;
-}
-
-EckInline constexpr LARGE_INTEGER operator-(LARGE_INTEGER x1, LONGLONG x2)
-{
-	LARGE_INTEGER ret{};
-	ret.QuadPart = x1.QuadPart - x2;
-	return ret;
-}
-
-EckInline constexpr LARGE_INTEGER operator*(LARGE_INTEGER x1, LARGE_INTEGER x2)
-{
-	LARGE_INTEGER ret{};
-	ret.QuadPart = x1.QuadPart * x2.QuadPart;
-	return ret;
-}
-
-EckInline constexpr LARGE_INTEGER operator*(LARGE_INTEGER x1, LONGLONG x2)
-{
-	LARGE_INTEGER ret{};
-	ret.QuadPart = x1.QuadPart * x2;
-	return ret;
-}
-
-EckInline constexpr LARGE_INTEGER operator/(LARGE_INTEGER x1, LARGE_INTEGER x2)
-{
-	LARGE_INTEGER ret{};
-	ret.QuadPart = x1.QuadPart / x2.QuadPart;
-	return ret;
-}
-
-EckInline constexpr LARGE_INTEGER operator/(LARGE_INTEGER x1, LONGLONG x2)
-{
-	LARGE_INTEGER ret{};
-	ret.QuadPart = x1.QuadPart / x2;
-	return ret;
-}
-
-EckInline constexpr bool operator<(LARGE_INTEGER x1, LARGE_INTEGER x2)
-{
-	return x1.QuadPart < x2.QuadPart;
-}
-
-EckInline constexpr bool operator<=(LARGE_INTEGER x1, LARGE_INTEGER x2)
-{
-	return x1.QuadPart <= x2.QuadPart;
-}
-
-EckInline constexpr bool operator>(LARGE_INTEGER x1, LARGE_INTEGER x2)
-{
-	return x1.QuadPart > x2.QuadPart;
-}
-
-EckInline constexpr bool operator>=(LARGE_INTEGER x1, LARGE_INTEGER x2)
-{
-	return x1.QuadPart >= x2.QuadPart;
-}
-
-EckInline constexpr bool operator<(LARGE_INTEGER x1, LONGLONG x2)
-{
-	return x1.QuadPart < x2;
-}
-
-EckInline constexpr bool operator<=(LARGE_INTEGER x1, LONGLONG x2)
-{
-	return x1.QuadPart <= x2;
-}
-
-EckInline constexpr bool operator>(LARGE_INTEGER x1, LONGLONG x2)
-{
-	return x1.QuadPart > x2;
-}
-
-EckInline constexpr bool operator>=(LARGE_INTEGER x1, LONGLONG x2)
-{
-	return x1.QuadPart >= x2;
-}
-#endif // ECKCXX20
 
 EckInline constexpr bool operator==(LARGE_INTEGER x1, LARGE_INTEGER x2)
 {
@@ -1512,7 +1297,6 @@ EckInline constexpr LARGE_INTEGER operator+=(LARGE_INTEGER& x1, LONGLONG x2)
 }
 #pragma endregion LARGE_INTEGER
 
-#if ECKCXX20
 EckInline constexpr LARGE_INTEGER ToLi(ULARGE_INTEGER x)
 {
 	return LARGE_INTEGER{ .QuadPart = (LONGLONG)x.QuadPart };
@@ -1532,35 +1316,6 @@ EckInline constexpr ULARGE_INTEGER ToUli(ULONGLONG x)
 {
 	return ULARGE_INTEGER{ .QuadPart = x };
 }
-#else
-EckInline constexpr LARGE_INTEGER ToLi(ULARGE_INTEGER x)
-{
-	LARGE_INTEGER ret{};
-	ret.QuadPart = (LONGLONG)x.QuadPart;
-	return ret;
-}
-
-EckInline constexpr LARGE_INTEGER ToLi(LONGLONG x)
-{
-	LARGE_INTEGER ret{};
-	ret.QuadPart = x;
-	return ret;
-}
-
-EckInline constexpr ULARGE_INTEGER ToUli(LARGE_INTEGER x)
-{
-	ULARGE_INTEGER ret{};
-	ret.QuadPart = (ULONGLONG)x.QuadPart;
-	return ret;
-}
-
-EckInline constexpr ULARGE_INTEGER ToUli(ULONGLONG x)
-{
-	ULARGE_INTEGER ret{};
-	ret.QuadPart = x;
-	return ret;
-}
-#endif // ECKCXX20
 
 template<class T, size_t N>
 EckInline constexpr void ArrAssign(T(&x1)[N], const T(&x2)[N])
@@ -1919,9 +1674,4 @@ EckInline void CeilRect(const D2D1_RECT_F& rc, _Out_ RECT& rcOut)
 	rcOut.right = (LONG)ceilf(rc.right);
 	rcOut.bottom = (LONG)ceilf(rc.bottom);
 }
-
-#if !ECKCXX20
-#undef ccpIsInteger
-#pragma pop_macro("ccpIsInteger")
-#endif
 ECK_NAMESPACE_END

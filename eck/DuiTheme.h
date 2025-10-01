@@ -3,10 +3,6 @@
 #include "GraphicsHelper.h"
 #include "CUnknown.h"
 
-#if !ECKCXX20
-#error "EckDui requires C++20"
-#endif// !ECKCXX20
-
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 // 部件

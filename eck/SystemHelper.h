@@ -562,14 +562,7 @@ namespace Priv
 	template<class T>
 	EckInline constexpr INPUT KeyboardEventGetArg(T wVk)
 	{
-#if ECKCXX20
 		return INPUT{ .type = INPUT_KEYBOARD ,.ki = { static_cast<WORD>(wVk) } };
-#else
-		INPUT input{};
-		input.type = INPUT_KEYBOARD;
-		input.ki.wVk = static_cast<WORD>(wVk);
-		return input;
-#endif
 	}
 }
 

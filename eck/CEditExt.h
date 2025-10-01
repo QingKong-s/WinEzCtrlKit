@@ -38,7 +38,7 @@ protected:
 
 	WCHAR m_chMask{};	// 掩码字符
 	InputMode m_iInputMode{ InputMode::Normal };// 输入方式
-#if ECKCXX20
+
 	BITBOOL m_bAutoWrap : 1 = TRUE;				// [多行][延迟标志]自动换行，不加入ES_AUTOHSCROLL
 	BITBOOL m_bMultiLineCueBanner : 1 = TRUE;	// [多行]显示提示
 	BITBOOL m_bMultiLine : 1 = FALSE;			// [延迟标志]多行
@@ -47,22 +47,6 @@ protected:
 	BITBOOL m_bCtrlASelectAll : 1 = TRUE;		// Ctrl+A全选
 
 	BITBOOL m_bEmpty : 1 = FALSE;				// 空编辑框标志
-#else// ECKCXX20
-	union
-	{
-		struct
-		{
-			BITBOOL m_bAutoWrap : 1;
-			BITBOOL m_bMultiLineCueBanner : 1;
-			BITBOOL m_bMultiLine : 1;
-			BITBOOL m_bChangeCreateStyle : 1;
-			BITBOOL m_bDisableColorOptions : 1;
-			BITBOOL m_bCtrlASelectAll : 1;
-			BITBOOL m_bEmpty : 1;
-		};
-		BYTE m_byFlags = 0b0101011
-	};
-#endif// ECKCXX20
 
 	void UpdateTextInfo()
 	{

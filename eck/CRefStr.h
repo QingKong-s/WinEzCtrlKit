@@ -826,18 +826,11 @@ public:
 	{
 		if constexpr (std::is_same_v<TChar, WCHAR>)
 		{
-#if ECKCXX20
-			return RTL_UNICODE_STRING_BUFFER
+			return
 			{
 				.String = ToNtString(),
 				.ByteBuffer = {.Buffer = (PUCHAR)Data(),.Size = ByteCapacity() },
 			};
-#else
-			RTL_UNICODE_STRING_BUFFER Buf{ ToNtString() };
-			Buf.ByteBuffer.Buffer = (PUCHAR)Data();
-			Buf.ByteBuffer.Size = ByteCapacity();
-			return Buf;
-#endif// ECKCXX20
 		}
 		else
 			return {};

@@ -2,11 +2,6 @@
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
-#if !ECKCXX20
-#pragma push_macro("ccpIsComInterface")
-#define ccpIsComInterface class
-#endif
-
 template <ccpIsComInterface T>
 class ComPtr
 {
@@ -44,9 +39,7 @@ public:
 	constexpr ComPtr(std::nullptr_t) noexcept {}
 
 	template<ccpIsComInterface U>
-#if ECKCXX20
 		requires std::is_convertible_v<U*, TInterface*>
-#endif
 	ComPtr(U* x) noexcept :p{ x }
 	{
 		if (p)
@@ -65,9 +58,7 @@ public:
 	}
 
 	template<ccpIsComInterface U>
-#if ECKCXX20
 		requires std::is_convertible_v<U*, TInterface*>
-#endif
 	ComPtr(const ComPtr<U>& x) noexcept : p{ x.p }
 	{
 		if (p)
@@ -75,9 +66,7 @@ public:
 	}
 
 	template<ccpIsComInterface U>
-#if ECKCXX20
 		requires std::is_convertible_v<U*, TInterface*>
-#endif
 	constexpr ComPtr(ComPtr<U>&& x) noexcept
 	{
 		std::swap(p, x.p);
@@ -102,9 +91,7 @@ public:
 	}
 
 	template<ccpIsComInterface U>
-#if ECKCXX20
 		requires std::is_convertible_v<U*, TInterface*>
-#endif
 	constexpr ComPtr& operator=(U* x) noexcept
 	{
 		if (x != p)
@@ -126,9 +113,7 @@ public:
 	}
 
 	template<ccpIsComInterface U>
-#if ECKCXX20
 		requires std::is_convertible_v<U*, TInterface*>
-#endif
 	constexpr ComPtr& operator=(const ComPtr<U>& x) noexcept
 	{
 		ComPtr(x).Swap(*this);
@@ -240,19 +225,11 @@ public:
 		return CoCreateInstance(clsid, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&p));
 	}
 };
-#if !ECKCXX20
-#undef ccpIsComInterface
-#pragma pop_macro("ccpIsComInterface")
-#endif
 ECK_NAMESPACE_END
 
 namespace std
 {
-#if ECKCXX20
 	template<::eck::ccpIsComInterface T>
-#else
-	template<class T>
-#endif
 	constexpr void swap(::eck::ComPtr<T>& a, ::eck::ComPtr<T>& b)
 	{
 		a.Swap(b);

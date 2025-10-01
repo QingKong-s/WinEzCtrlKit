@@ -8,12 +8,12 @@
 #include <wincodec.h>
 #include <dwrite.h>
 #if !ECK_OPT_NO_DX
-#include <d2d1_1.h>
-#include <dxgi1_2.h>
-#include <d3d11.h>
-#ifdef _DEBUG
-#include <dxgidebug.h>
-#endif // _DEBUG
+#  include <d2d1_1.h>
+#  include <dxgi1_2.h>
+#  include <d3d11.h>
+#  ifdef _DEBUG
+#    include <dxgidebug.h>
+#  endif // _DEBUG
 #endif // !ECK_OPT_NO_DX
 #include <Shlwapi.h>
 #include <ShlObj.h>
@@ -37,15 +37,13 @@
 #include <span>
 #include <array>
 #include <variant>
+#include <bit>
+#include <concepts>
 
 #include "../ThirdPartyLib/Detours/detours.h"
 
-#if _MSVC_LANG > 201703L
-#	define ECKCXX20 1
-#elif _MSVC_LANG > 201402L
-#	define ECKCXX20 0
-#else
-#	error "ECK Lib requires C++17 or later"
+#if _MSVC_LANG < 202002L
+#	error "ECK Lib requires C++20 or later"
 #endif
 
 #ifndef ECKDPIAPI
@@ -87,59 +85,36 @@ enum MONITOR_DPI_TYPE;
 #pragma region Template
 ECK_NAMESPACE_BEGIN
 using namespace std::literals;
-#if ECKCXX20
+
+template<class T>
+concept ccpIsIntOrEnum = std::is_integral_v<T> || std::is_enum_v<T>;
+template<class T>
+concept ccpIsComInterface = std::is_base_of_v<IUnknown, std::remove_cvref_t<T>>;
+template<class T>
+concept ccpIsInteger = std::integral<T>;
+template<class T>
+concept ccpIsFloat = std::floating_point<T>;
+
 template <class T>
 using RemoveCVRef_T = std::remove_cvref_t<T>;
-
 template <class T>
 struct RemoveCVRef
 {
 	using Type = std::remove_cvref_t<T>;
 };
 
-template<class T>
-concept ccpIsIntOrEnum = std::is_integral_v<T> || std::is_enum_v<T>;
-
-template<class T>
-concept ccpIsComInterface = std::is_base_of_v<IUnknown, std::remove_cvref_t<T>>;
-
-template<class T>
-concept ccpIsInteger = std::integral<T>;
-
-template<class T>
-concept ccpIsFloat = std::floating_point<T>;
-#else//	ECKCXX20
-template <class T>
-using RemoveCVRef_T = std::remove_cv_t<std::remove_reference_t<T>>;
-
-template <class T>
-struct RemoveCVRef
-{
-	using Type = RemoveCVRef_T<T>;
-};
-
-#pragma push_macro("ccpIsIntOrEnum")
-#define ccpIsIntOrEnum class
-#endif// ECKCXX20
-
 template<ccpIsIntOrEnum T, bool = std::is_enum_v<T>>
 struct UnderlyingType
 {
 	using Type = std::underlying_type_t<T>;
 };
-
 template<ccpIsIntOrEnum T>
 struct UnderlyingType<T, false>
 {
 	using Type = T;
 };
-
 template<ccpIsIntOrEnum T>
 using UnderlyingType_T = UnderlyingType<T>::Type;
-
-#if !ECKCXX20
-#pragma pop_macro("ccpIsIntOrEnum")
-#endif// !ECKCXX20
 ECK_NAMESPACE_END
 #pragma endregion Template
 
@@ -311,15 +286,9 @@ ECK_NAMESPACE_END
 			friend constexpr Type& operator|=(Type& a, Type b);	\
 			friend constexpr Type& operator^=(Type& a, Type b);
 
-#if ECKCXX20
 #define ECKLIKELY		[[likely]]
 #define ECKUNLIKELY		[[unlikely]]
 #define ECKNOUNIQUEADDR [[no_unique_address]]
-#else//	!ECKCXX20
-#define ECKLIKELY
-#define ECKUNLIKELY
-#define ECKNOUNIQUEADDR
-#endif// ECKCXX20
 
 #define ECK_DISABLE_ARITHMETIC_OVERFLOW_WARNING	__pragma(warning(disable:26451))
 #define ECK_SUPPRESS_MISSING_ZERO_TERMINATION	__pragma(warning(suppress:6054))
@@ -567,11 +536,7 @@ constexpr inline COLORREF c_crDarkBtnFace = 0x383838;
 constexpr inline UINT Neg1U{ (UINT)-1 };
 
 constexpr inline LARGE_INTEGER LiZero{};
-#if ECKCXX20
 constexpr inline ULARGE_INTEGER UliMax{ .QuadPart = 0xFFFF'FFFF'FFFF'FFFF };
-#else
-constexpr inline ULARGE_INTEGER UliMax{ 0xFFFF'FFFF, 0xFFFF'FFFF };
-#endif
 
 constexpr inline size_t SizeTMax{ std::numeric_limits<size_t>::max() };
 constexpr inline SIZE_T SIZETMax{ (SIZE_T)SizeTMax };

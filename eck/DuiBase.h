@@ -17,10 +17,6 @@
 #include <dcomp.h>
 #include <oleacc.h>
 
-#if !ECKCXX20
-#error "EckDui requires C++20"
-#endif// !ECKCXX20
-
 #ifdef _DEBUG
 #	define ECK_DUI_DBG_DRAW_FRAME					\
         {											\

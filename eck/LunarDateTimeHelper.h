@@ -89,11 +89,7 @@ EckInline constexpr int LnGetYearDays(int iYear)
 {
 	int c = 0;
 	const int iLeapMonth = LnGetLeapMonth(iYear);
-#if ECKCXX20
 	LunarDate Date{ .wYear = (WORD)iYear,.bLeapMonth = FALSE };
-#else
-	LunarDate Date{ (WORD)iYear,0,0,FALSE };
-#endif
 	for (Date.byMonth = 1; Date.byMonth <= 12; ++Date.byMonth)
 		c += LnGetMonthDays(Date);
 	if (iLeapMonth)
@@ -108,13 +104,8 @@ EckInline constexpr int LnGetYearDays(int iYear)
 inline constexpr LunarDate CeToLunar(CEDate CeDate)
 {
 	EckVerifyCeDate(CeDate);
-#if ECKCXX20
 	LunarDate Date{ .byDay = 1 };
 	int iDays;
-#else
-	LunarDate Date{ 0,0,1,FALSE };
-	int iDays = 0;
-#endif
 	const int iChuYi = LnGetSpringFestivalNum(CeDate.wYear);// 取初一
 	const int iCeDays = GetDateDays(CeDate);// 取给定日期的年内序数
 	int c = iChuYi;

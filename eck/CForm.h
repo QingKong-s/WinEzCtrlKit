@@ -18,11 +18,6 @@ private:
 		DWORD dwState;
 		HICON hIcon;
 		CRefStrW rsTip;
-#if !ECKCXX20
-		TRAY(UINT uID, UINT uFlags, DWORD dwState, HICON hIcon, PCWSTR pszTip) :
-			uID(uID), uFlags(uFlags), dwState(dwState), hIcon(hIcon), rsTip(pszTip) {
-		}
-#endif
 	};
 
 	HBITMAP m_hbmBk = nullptr;
@@ -36,26 +31,11 @@ private:
 
 	std::vector<TRAY> m_Tray{};
 
-#if ECKCXX20
 	BITBOOL m_bMoveable : 1 = TRUE;
 	BITBOOL m_bFullWndImage : 1 = FALSE;
 	BITBOOL m_bEscClose : 1 = FALSE;
 	BITBOOL m_bTotalMove : 1 = FALSE;
 	BITBOOL m_bClrDisableEdit : 1 = FALSE;
-#else
-	union
-	{
-		struct
-		{
-			BITBOOL m_bMoveable : 1;
-			BITBOOL m_bFullWndImage : 1;
-			BITBOOL m_bEscClose : 1;
-			BITBOOL m_bTotalMove : 1;
-			BITBOOL m_bClrDisableEdit : 1;
-		};
-		UINT m_byFlags = 0b1;
-	};
-#endif
 public:
 	static UINT s_uTrayMsg;
 	static UINT s_uTaskbarCreatedMsg;
