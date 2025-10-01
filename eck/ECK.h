@@ -79,8 +79,8 @@ enum MONITOR_DPI_TYPE;
 #define ECK_DUI_NAMESPACE_END			}
 #define ECK_MEDIATAG_NAMESPACE_BEGIN	namespace MediaTag {
 #define ECK_MEDIATAG_NAMESPACE_END		}
-#define ECK_LYRIC_NAMESPACE_BEGIN	namespace Lyric {
-#define ECK_LYRIC_NAMESPACE_END		}
+#define ECK_LYRIC_NAMESPACE_BEGIN		namespace Lyric {
+#define ECK_LYRIC_NAMESPACE_END			}
 
 #pragma region Template
 ECK_NAMESPACE_BEGIN
@@ -100,18 +100,18 @@ using RemoveCVRef_T = std::remove_cvref_t<T>;
 template <class T>
 struct RemoveCVRef
 {
-	using Type = std::remove_cvref_t<T>;
+    using Type = std::remove_cvref_t<T>;
 };
 
 template<ccpIsIntOrEnum T, bool = std::is_enum_v<T>>
 struct UnderlyingType
 {
-	using Type = std::underlying_type_t<T>;
+    using Type = std::underlying_type_t<T>;
 };
 template<ccpIsIntOrEnum T>
 struct UnderlyingType<T, false>
 {
-	using Type = T;
+    using Type = T;
 };
 template<ccpIsIntOrEnum T>
 using UnderlyingType_T = UnderlyingType<T>::Type;
@@ -174,18 +174,18 @@ ECK_NAMESPACE_END
 // 示例：
 // EckCanCallbackContinue(Proc(Arg0, Arg1)) { break; }
 #define EckCanCallbackContinue(F)				\
-	if constexpr (std::is_void_v<decltype(F)>)	\
-		F;										\
-	else if (!F)
+    if constexpr (std::is_void_v<decltype(F)>)	\
+        F;										\
+    else if (!F)
 
 // 计次循环
 #define EckCounter(c, Var) \
-	for(::eck::UnderlyingType_T<::eck::RemoveCVRef_T<decltype(c)>> Var = 0; Var < (c); ++Var)
+    for(::eck::UnderlyingType_T<::eck::RemoveCVRef_T<decltype(c)>> Var = 0; Var < (c); ++Var)
 
 #define ECKPRIV_CounterNVMakeVarName2___(Name)	\
-	ECKPRIV_COUNT_##Name##___
+    ECKPRIV_COUNT_##Name##___
 #define ECKPRIV_CounterNVMakeVarName___(Name)	\
-	ECKPRIV_CounterNVMakeVarName2___(Name)
+    ECKPRIV_CounterNVMakeVarName2___(Name)
 
 // 计次循环，无变量名参数
 #define EckCounterNV(c)			EckCounter((c), ECKPRIV_CounterNVMakeVarName___(__LINE__))
@@ -207,7 +207,7 @@ ECK_NAMESPACE_END
 // lParam->POINT 用于处理鼠标消息
 #define ECK_GET_PT_LPARAM(lParam)			{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) }
 #define ECK_GET_PT_LPARAM_F(lParam)			{ (float)GET_X_LPARAM(lParam), \
-											(float)GET_Y_LPARAM(lParam) }
+                                            (float)GET_Y_LPARAM(lParam) }
 
 // lParam->size 用于处理WM_SIZE
 #define ECK_GET_SIZE_LPARAM(cx, cy, lParam)	{ (cx) = LOWORD(lParam); (cy) = HIWORD(lParam); }
@@ -217,78 +217,74 @@ ECK_NAMESPACE_END
 
 // 定义GUID
 #define ECK_GUID(l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
-			{ l, w1, w2, { b1, b2,  b3,  b4,  b5,  b6,  b7,  b8 } }
+            { l, w1, w2, { b1, b2,  b3,  b4,  b5,  b6,  b7,  b8 } }
 
 #define ECK_DISABLE_COPY_MOVE(e)			\
-			e(const e&) = delete;			\
-			e& operator=(const e&) = delete;\
-			e(e&&) = delete;				\
-			e& operator=(e&&) = delete;
+            e(const e&) = delete;			\
+            e& operator=(const e&) = delete;\
+            e(e&&) = delete;				\
+            e& operator=(e&&) = delete;
 
 #define ECK_DISABLE_COPY_MOVE_DEF_CONS(e)	\
-			e() = default;					\
-			e(const e&) = delete;			\
-			e& operator=(const e&) = delete;\
-			e(e&&) = delete;				\
-			e& operator=(e&&) = delete;
+            e() = default;					\
+            e(const e&) = delete;			\
+            e& operator=(const e&) = delete;\
+            e(e&&) = delete;				\
+            e& operator=(e&&) = delete;
 
 #define ECK_DISABLE_COPY(e)					\
-			e(const e&) = delete;			\
-			e& operator=(const e&) = delete;
+            e(const e&) = delete;			\
+            e& operator=(const e&) = delete;
 
 #define ECK_DISABLE_COPY_DEF_CONS(e)		\
-			e() = default;					\
-			e(const e&) = delete;			\
-			e& operator=(const e&) = delete;
+            e() = default;					\
+            e(const e&) = delete;			\
+            e& operator=(const e&) = delete;
 
 #define ECK_ENUM_BIT_FLAGS(Type)								\
-			EckInline constexpr Type operator&(Type a, Type b)  \
-			{													\
-				return Type((std::underlying_type_t<Type>)a &	\
-					(std::underlying_type_t<Type>)b);			\
-			}													\
-			EckInline constexpr Type operator|(Type a, Type b)	\
-			{													\
-				return Type((std::underlying_type_t<Type>)a |	\
-					(std::underlying_type_t<Type>)b);			\
-			}													\
-			EckInline constexpr Type operator~(Type a)			\
-			{													\
-				return Type(~(std::underlying_type_t<Type>)a);	\
-			}													\
-			EckInline constexpr Type operator^(Type a, Type b)	\
-			{													\
-				return Type((std::underlying_type_t<Type>)a ^	\
-					(std::underlying_type_t<Type>)b);			\
-			}													\
-			EckInline constexpr Type& operator&=(Type& a, Type b)	\
-			{													\
-				a = a & b;										\
-				return a;										\
-			}													\
-			EckInline constexpr Type& operator|=(Type& a, Type b)	\
-			{													\
-				a = a | b;										\
-				return a;										\
-			}													\
-			EckInline constexpr Type& operator^=(Type& a, Type b)	\
-			{													\
-				a = a ^ b;										\
-				return a;										\
-			}
+            EckInline constexpr Type operator&(Type a, Type b)  \
+            {													\
+                return Type((std::underlying_type_t<Type>)a &	\
+                    (std::underlying_type_t<Type>)b);			\
+            }													\
+            EckInline constexpr Type operator|(Type a, Type b)	\
+            {													\
+                return Type((std::underlying_type_t<Type>)a |	\
+                    (std::underlying_type_t<Type>)b);			\
+            }													\
+            EckInline constexpr Type operator~(Type a)			\
+            {													\
+                return Type(~(std::underlying_type_t<Type>)a);	\
+            }													\
+            EckInline constexpr Type operator^(Type a, Type b)	\
+            {													\
+                return Type((std::underlying_type_t<Type>)a ^	\
+                    (std::underlying_type_t<Type>)b);			\
+            }													\
+            EckInline constexpr Type& operator&=(Type& a, Type b)	\
+            {													\
+                a = a & b;										\
+                return a;										\
+            }													\
+            EckInline constexpr Type& operator|=(Type& a, Type b)	\
+            {													\
+                a = a | b;										\
+                return a;										\
+            }													\
+            EckInline constexpr Type& operator^=(Type& a, Type b)	\
+            {													\
+                a = a ^ b;										\
+                return a;										\
+            }
 
 #define ECK_ENUM_BIT_FLAGS_FRIEND(Type)							\
-			friend constexpr Type operator&(Type a, Type b);	\
-			friend constexpr Type operator|(Type a, Type b);	\
-			friend constexpr Type operator~(Type a);			\
-			friend constexpr Type operator^(Type a, Type b);	\
-			friend constexpr Type& operator&=(Type& a, Type b);	\
-			friend constexpr Type& operator|=(Type& a, Type b);	\
-			friend constexpr Type& operator^=(Type& a, Type b);
-
-#define ECKLIKELY		[[likely]]
-#define ECKUNLIKELY		[[unlikely]]
-#define ECKNOUNIQUEADDR [[no_unique_address]]
+            friend constexpr Type operator&(Type a, Type b);	\
+            friend constexpr Type operator|(Type a, Type b);	\
+            friend constexpr Type operator~(Type a);			\
+            friend constexpr Type operator^(Type a, Type b);	\
+            friend constexpr Type& operator&=(Type& a, Type b);	\
+            friend constexpr Type& operator|=(Type& a, Type b);	\
+            friend constexpr Type& operator^=(Type& a, Type b);
 
 #define ECK_DISABLE_ARITHMETIC_OVERFLOW_WARNING	__pragma(warning(disable:26451))
 #define ECK_SUPPRESS_MISSING_ZERO_TERMINATION	__pragma(warning(suppress:6054))
@@ -296,11 +292,11 @@ ECK_NAMESPACE_END
 
 #ifdef _DEBUG
 #define EckCheckMem(p)	\
-			if (!(p))	\
-			{			\
-				OutputDebugStringW(L"内存分配失败: " ECK_FILEW L"(" ECK_LINEW L")\r\n"); \
-				abort();\
-			}
+            if (!(p))	\
+            {			\
+                OutputDebugStringW(L"内存分配失败: " ECK_FILEW L"(" ECK_LINEW L")\r\n"); \
+                abort();\
+            }
 #else
 #define EckCheckMem(p) ((void)(p))
 #endif
@@ -308,182 +304,182 @@ ECK_NAMESPACE_END
 ECK_NAMESPACE_BEGIN
 inline namespace Literals
 {
-	EckInline constexpr WORD operator""_us(ULONGLONG x)
-	{
-		return (WORD)x;
-	}
+    EckInline constexpr WORD operator""_us(ULONGLONG x)
+    {
+        return (WORD)x;
+    }
 
-	EckInline constexpr short operator""_ss(ULONGLONG x)
-	{
-		return (short)x;
-	}
+    EckInline constexpr short operator""_ss(ULONGLONG x)
+    {
+        return (short)x;
+    }
 
-	EckInline constexpr BYTE operator""_by(ULONGLONG x)
-	{
-		return (BYTE)x;
-	}
+    EckInline constexpr BYTE operator""_by(ULONGLONG x)
+    {
+        return (BYTE)x;
+    }
 }
 
 #pragma region Type
 inline namespace BaseType
 {
-	using SCHAR = signed char;
-	using BITBOOL = BYTE;
-	using PCBYTE = const BYTE*;
-	using PCVOID = const void*;
-	using ECKENUM = BYTE;
-	using SSIZE_T = std::make_signed_t<SIZE_T>;
-	using UINTBE = UINT;
-	using PITEMIDLIST = LPITEMIDLIST;
-	using PCITEMIDLIST = LPCITEMIDLIST;
-	using W32ERR = ULONG;
+    using SCHAR = signed char;
+    using BITBOOL = BYTE;
+    using PCBYTE = const BYTE*;
+    using PCVOID = const void*;
+    using ECKENUM = BYTE;
+    using SSIZE_T = std::make_signed_t<SIZE_T>;
+    using UINTBE = UINT;
+    using PITEMIDLIST = LPITEMIDLIST;
+    using PCITEMIDLIST = LPCITEMIDLIST;
+    using W32ERR = ULONG;
 }
 
 union BIT128
 {
-	UINT64 u64[2];
-	UINT32 u32[4];
-	UINT16 u16[8];
-	BYTE u8[16];
+    UINT64 u64[2];
+    UINT32 u32[4];
+    UINT16 u16[8];
+    BYTE u8[16];
 };
 
 struct MD5
 {
-	BIT128 v;
+    BIT128 v;
 };
 
 union GPARGB
 {
-	struct
-	{
-		BYTE b, g, r, a;
-	};
-	DWORD dw;
+    struct
+    {
+        BYTE b, g, r, a;
+    };
+    DWORD dw;
 };
 
 union GDIARGB
 {
-	struct
-	{
-		BYTE r, g, b, a;
-	};
-	DWORD dw;
+    struct
+    {
+        BYTE r, g, b, a;
+    };
+    DWORD dw;
 };
 
 union BIT256
 {
-	BIT128 u128[2];
-	UINT64 u64[4];
-	UINT32 u32[8];
-	UINT16 u16[16];
-	BYTE u8[32];
+    BIT128 u128[2];
+    UINT64 u64[4];
+    UINT32 u32[8];
+    UINT16 u16[16];
+    BYTE u8[32];
 };
 
 // 左顶宽高矩形
 struct RCWH
 {
-	int x;
-	int y;
-	int cx;
-	int cy;
+    int x;
+    int y;
+    int cx;
+    int cy;
 };
 
 // NMCD扩展
 struct NMCUSTOMDRAWEXT :NMCUSTOMDRAW
 {
-	int iStateId;
-	int iPartId;
-	COLORREF crText;
-	COLORREF crBk;
+    int iStateId;
+    int iPartId;
+    COLORREF crText;
+    COLORREF crBk;
 };
 
 // 鼠标类通知（NM_CLICK等）
 struct NMMOUSENOTIFY
 {
-	NMHDR nmhdr;
-	POINT pt;
-	UINT uKeyFlags;
+    NMHDR nmhdr;
+    POINT pt;
+    UINT uKeyFlags;
 };
 
 // 焦点通知
 struct NMFOCUS
 {
-	NMHDR nmhdr;
-	HWND hWnd;
+    NMHDR nmhdr;
+    HWND hWnd;
 };
 
 struct NTVER
 {
-	ULONG uMajor;
-	ULONG uMinor;
-	ULONG uBuild;
+    ULONG uMajor;
+    ULONG uMinor;
+    ULONG uBuild;
 };
 
 inline namespace GpNameSpace
 {
-	using namespace Gdiplus::DllExports;
+    using namespace Gdiplus::DllExports;
 #define ECK_USING_GDIP_TYPE(Type) using Type = ::Gdiplus::Type
 
-	ECK_USING_GDIP_TYPE(GpGraphics);
+    ECK_USING_GDIP_TYPE(GpGraphics);
 
-	ECK_USING_GDIP_TYPE(GpBrush);
-	ECK_USING_GDIP_TYPE(GpTexture);
-	ECK_USING_GDIP_TYPE(GpSolidFill);
-	ECK_USING_GDIP_TYPE(GpLineGradient);
-	ECK_USING_GDIP_TYPE(GpPathGradient);
-	ECK_USING_GDIP_TYPE(GpHatch);
+    ECK_USING_GDIP_TYPE(GpBrush);
+    ECK_USING_GDIP_TYPE(GpTexture);
+    ECK_USING_GDIP_TYPE(GpSolidFill);
+    ECK_USING_GDIP_TYPE(GpLineGradient);
+    ECK_USING_GDIP_TYPE(GpPathGradient);
+    ECK_USING_GDIP_TYPE(GpHatch);
 
-	ECK_USING_GDIP_TYPE(GpPen);
-	ECK_USING_GDIP_TYPE(GpCustomLineCap);
-	ECK_USING_GDIP_TYPE(GpAdjustableArrowCap);
+    ECK_USING_GDIP_TYPE(GpPen);
+    ECK_USING_GDIP_TYPE(GpCustomLineCap);
+    ECK_USING_GDIP_TYPE(GpAdjustableArrowCap);
 
-	ECK_USING_GDIP_TYPE(GpImage);
-	ECK_USING_GDIP_TYPE(GpBitmap);
-	ECK_USING_GDIP_TYPE(GpMetafile);
-	ECK_USING_GDIP_TYPE(GpImageAttributes);
-	using GpEffect = Gdiplus::CGpEffect;
+    ECK_USING_GDIP_TYPE(GpImage);
+    ECK_USING_GDIP_TYPE(GpBitmap);
+    ECK_USING_GDIP_TYPE(GpMetafile);
+    ECK_USING_GDIP_TYPE(GpImageAttributes);
+    using GpEffect = Gdiplus::CGpEffect;
 
-	ECK_USING_GDIP_TYPE(GpPath);
-	ECK_USING_GDIP_TYPE(GpRegion);
-	ECK_USING_GDIP_TYPE(GpPathIterator);
+    ECK_USING_GDIP_TYPE(GpPath);
+    ECK_USING_GDIP_TYPE(GpRegion);
+    ECK_USING_GDIP_TYPE(GpPathIterator);
 
-	ECK_USING_GDIP_TYPE(GpFontFamily);
-	ECK_USING_GDIP_TYPE(GpFont);
-	ECK_USING_GDIP_TYPE(GpStringFormat);
-	ECK_USING_GDIP_TYPE(GpFontCollection);
-	ECK_USING_GDIP_TYPE(GpInstalledFontCollection);
-	ECK_USING_GDIP_TYPE(GpPrivateFontCollection);
+    ECK_USING_GDIP_TYPE(GpFontFamily);
+    ECK_USING_GDIP_TYPE(GpFont);
+    ECK_USING_GDIP_TYPE(GpStringFormat);
+    ECK_USING_GDIP_TYPE(GpFontCollection);
+    ECK_USING_GDIP_TYPE(GpInstalledFontCollection);
+    ECK_USING_GDIP_TYPE(GpPrivateFontCollection);
 
-	ECK_USING_GDIP_TYPE(GpCachedBitmap);
+    ECK_USING_GDIP_TYPE(GpCachedBitmap);
 
-	ECK_USING_GDIP_TYPE(ARGB);
-	ECK_USING_GDIP_TYPE(REAL);
-	ECK_USING_GDIP_TYPE(GpStatus);
-	ECK_USING_GDIP_TYPE(GpRectF);
-	ECK_USING_GDIP_TYPE(GpRect);
-	ECK_USING_GDIP_TYPE(GpPointF);
-	ECK_USING_GDIP_TYPE(GpPoint);
-	ECK_USING_GDIP_TYPE(GpSizeF);
-	using GpSize = Gdiplus::Size;
-	ECK_USING_GDIP_TYPE(GpMatrix);
-	ECK_USING_GDIP_TYPE(GdiplusStartupInput);
-	ECK_USING_GDIP_TYPE(GpFillMode);
-	using GpColor = Gdiplus::Color;
+    ECK_USING_GDIP_TYPE(ARGB);
+    ECK_USING_GDIP_TYPE(REAL);
+    ECK_USING_GDIP_TYPE(GpStatus);
+    ECK_USING_GDIP_TYPE(GpRectF);
+    ECK_USING_GDIP_TYPE(GpRect);
+    ECK_USING_GDIP_TYPE(GpPointF);
+    ECK_USING_GDIP_TYPE(GpPoint);
+    ECK_USING_GDIP_TYPE(GpSizeF);
+    using GpSize = Gdiplus::Size;
+    ECK_USING_GDIP_TYPE(GpMatrix);
+    ECK_USING_GDIP_TYPE(GdiplusStartupInput);
+    ECK_USING_GDIP_TYPE(GpFillMode);
+    using GpColor = Gdiplus::Color;
 
-	using Gdiplus::GdiplusShutdown;
-	using Gdiplus::GdiplusStartup;
+    using Gdiplus::GdiplusShutdown;
+    using Gdiplus::GdiplusStartup;
 
-	using GpBlurParams = Gdiplus::BlurParams;
-	using GpSharpenParams = Gdiplus::SharpenParams;
-	using GpTintParams = Gdiplus::TintParams;
-	using GpRedEyeCorrectionParams = Gdiplus::RedEyeCorrectionParams;
-	using GpColorMatrix = Gdiplus::ColorMatrix;
-	using GpColorLUTParams = Gdiplus::ColorLUTParams;
-	using GpBrightnessContrastParams = Gdiplus::BrightnessContrastParams;
-	using GpHSLParams = Gdiplus::HueSaturationLightnessParams;
-	using GpColorBalanceParams = Gdiplus::ColorBalanceParams;
-	using GpLevelsParams = Gdiplus::LevelsParams;
-	using GpColorCurveParams = Gdiplus::ColorCurveParams;
+    using GpBlurParams = Gdiplus::BlurParams;
+    using GpSharpenParams = Gdiplus::SharpenParams;
+    using GpTintParams = Gdiplus::TintParams;
+    using GpRedEyeCorrectionParams = Gdiplus::RedEyeCorrectionParams;
+    using GpColorMatrix = Gdiplus::ColorMatrix;
+    using GpColorLUTParams = Gdiplus::ColorLUTParams;
+    using GpBrightnessContrastParams = Gdiplus::BrightnessContrastParams;
+    using GpHSLParams = Gdiplus::HueSaturationLightnessParams;
+    using GpColorBalanceParams = Gdiplus::ColorBalanceParams;
+    using GpLevelsParams = Gdiplus::LevelsParams;
+    using GpColorCurveParams = Gdiplus::ColorCurveParams;
 }
 #pragma endregion Type
 
@@ -496,17 +492,17 @@ inline namespace GpNameSpace
 #endif
 
 constexpr inline auto CchI32ToStrBufNoRadix2 = std::max({
-	_MAX_ITOSTR_BASE16_COUNT,_MAX_ITOSTR_BASE10_COUNT,_MAX_ITOSTR_BASE8_COUNT,
-	_MAX_LTOSTR_BASE16_COUNT ,_MAX_LTOSTR_BASE10_COUNT ,_MAX_LTOSTR_BASE8_COUNT,
-	_MAX_ULTOSTR_BASE16_COUNT,_MAX_ULTOSTR_BASE10_COUNT,_MAX_ULTOSTR_BASE8_COUNT });
+    _MAX_ITOSTR_BASE16_COUNT,_MAX_ITOSTR_BASE10_COUNT,_MAX_ITOSTR_BASE8_COUNT,
+    _MAX_LTOSTR_BASE16_COUNT ,_MAX_LTOSTR_BASE10_COUNT ,_MAX_LTOSTR_BASE8_COUNT,
+    _MAX_ULTOSTR_BASE16_COUNT,_MAX_ULTOSTR_BASE10_COUNT,_MAX_ULTOSTR_BASE8_COUNT });
 constexpr inline auto CchI64ToStrBufNoRadix2 = std::max({
-	_MAX_I64TOSTR_BASE16_COUNT,_MAX_I64TOSTR_BASE10_COUNT,_MAX_I64TOSTR_BASE8_COUNT,
-	_MAX_U64TOSTR_BASE16_COUNT,_MAX_U64TOSTR_BASE10_COUNT,_MAX_U64TOSTR_BASE8_COUNT });
+    _MAX_I64TOSTR_BASE16_COUNT,_MAX_I64TOSTR_BASE10_COUNT,_MAX_I64TOSTR_BASE8_COUNT,
+    _MAX_U64TOSTR_BASE16_COUNT,_MAX_U64TOSTR_BASE10_COUNT,_MAX_U64TOSTR_BASE8_COUNT });
 
 constexpr inline auto CchI32ToStrBuf = std::max({ CchI32ToStrBufNoRadix2,
-	_MAX_ITOSTR_BASE2_COUNT,_MAX_LTOSTR_BASE2_COUNT,_MAX_ULTOSTR_BASE2_COUNT });
+    _MAX_ITOSTR_BASE2_COUNT,_MAX_LTOSTR_BASE2_COUNT,_MAX_ULTOSTR_BASE2_COUNT });
 constexpr inline auto CchI64ToStrBuf = std::max({ CchI64ToStrBufNoRadix2,
-	_MAX_I64TOSTR_BASE2_COUNT,_MAX_U64TOSTR_BASE2_COUNT });
+    _MAX_I64TOSTR_BASE2_COUNT,_MAX_U64TOSTR_BASE2_COUNT });
 
 constexpr inline double Pi = 3.141592653589793;
 constexpr inline float PiF = static_cast<float>(Pi);
@@ -613,77 +609,77 @@ constexpr inline UINT SCID_DESIGN = 20230621'01u;
 #pragma region Enum
 enum class InitStatus
 {
-	Ok,
-	RegWndClassError,
-	GdiplusInitError,
-	WicFactoryError,
-	D2dFactoryError,
-	DxgiDeviceError,
-	DWriteFactoryError,
-	D3dDeviceError,
+    Ok,
+    RegWndClassError,
+    GdiplusInitError,
+    WicFactoryError,
+    D2dFactoryError,
+    DxgiDeviceError,
+    DWriteFactoryError,
+    D3dDeviceError,
 };
 
 enum class Align :BYTE
 {
-	Near,
-	Center,
-	Far
+    Near,
+    Center,
+    Far
 };
 
 // For AnimateWindow
 enum class AnimateStyle :BYTE
 {
-	Roll,	// 滚动
-	Slide,	// 滑动
-	Center,	// 折叠
-	Blend	// 淡入淡出
+    Roll,	// 滚动
+    Slide,	// 滑动
+    Center,	// 折叠
+    Blend	// 淡入淡出
 };
 
 enum class ClrPart :BYTE
 {
-	Text,
-	Bk,
-	TextBk,
-	Border,
+    Text,
+    Bk,
+    TextBk,
+    Border,
 };
 
 #pragma warning(suppress:26454)// 算术溢出
 constexpr inline UINT NM_FIRST_ECK = (0u - 0x514Bu * 0x514Bu);
 enum :UINT// 控件通知代码
 {
-	ECKPRIV_NM_FIRST_PLACEHOLDER = NM_FIRST_ECK,
-	NM_CLP_CLRCHANGED,		// NMCLPCLRCHANGED
-	NM_SPB_DRAGGED,			// NMSPBDRAGGED
-	NM_TGL_TASKCLICKED,		// NMTGLCLICKED
+    ECKPRIV_NM_FIRST_PLACEHOLDER = NM_FIRST_ECK,
+    NM_CLP_CLRCHANGED,		// NMCLPCLRCHANGED
+    NM_SPB_DRAGGED,			// NMSPBDRAGGED
+    NM_TGL_TASKCLICKED,		// NMTGLCLICKED
 
-	NM_TL_FILLCHILDREN,		// NMTLFILLCHILDREN
-	NM_TL_GETDISPINFO,		// NMTLGETDISPINFO
-	NM_TL_ITEMEXPANDING,	// NMTLCOMMITEM
-	NM_TL_ITEMEXPANDED,		// NMTLCOMMITEM
-	NM_TL_HD_CLICK,			// NMHEADER
-	NM_TL_FILLALLFLATITEM,	// NMTLFILLALLFLATITEM
-	NM_TL_TTGETDISPINFO,	// NMTLTTGETDISPINFO
-	NM_TL_TTPRESHOW,		// NMTLTTPRESHOW
-	NM_TL_PREEDIT,			// NMTLEDIT
-	NM_TL_POSTEDIT,			// NMTLEDIT
-	NM_TL_MOUSECLICK,		// NMTLMOUSECLICK
-	NM_TL_ITEMCHECKING,		// NMTLCOMMITEM
-	NM_TL_ITEMCHECKED,		// NMTLCOMMITEM
-	NM_TL_BEGINDRAG,		// NMTLDRAG
-	NM_TL_ENDDRAG,			// NMTLDRAG
+    NM_TL_FILLCHILDREN,		// NMTLFILLCHILDREN
+    NM_TL_GETDISPINFO,		// NMTLGETDISPINFO
+    NM_TL_ITEMEXPANDING,	// NMTLCOMMITEM
+    NM_TL_ITEMEXPANDED,		// NMTLCOMMITEM
+    NM_TL_HD_CLICK,			// NMHEADER
+    NM_TL_FILLALLFLATITEM,	// NMTLFILLALLFLATITEM
+    NM_TL_TTGETDISPINFO,	// NMTLTTGETDISPINFO
+    NM_TL_TTPRESHOW,		// NMTLTTPRESHOW
+    NM_TL_PREEDIT,			// NMTLEDIT
+    NM_TL_POSTEDIT,			// NMTLEDIT
+    NM_TL_MOUSECLICK,		// NMTLMOUSECLICK
+    NM_TL_ITEMCHECKING,		// NMTLCOMMITEM
+    NM_TL_ITEMCHECKED,		// NMTLCOMMITEM
+    NM_TL_BEGINDRAG,		// NMTLDRAG
+    NM_TL_ENDDRAG,			// NMTLDRAG
 
-	NM_LBN_GETDISPINFO,		// NMLBNGETDISPINFO
-	NM_LBN_BEGINDRAG,		// NMLBNDRAG
-	NM_LBN_ENDDRAG,			// NMLBNDRAG
-	NM_LBN_DISMISS,			// NMHDR
-	NM_LBN_ITEMCHANGED,		// NMLBNITEMCHANGED
-	NM_LBN_ITEMSTANDBY,		// NMHDR
-	NM_LBN_SEARCH,			// NMLBNSEARCH
+    NM_LBN_GETDISPINFO,		// NMLBNGETDISPINFO
+    NM_LBN_BEGINDRAG,		// NMLBNDRAG
+    NM_LBN_ENDDRAG,			// NMLBNDRAG
+    NM_LBN_DISMISS,			// NMHDR
+    NM_LBN_ITEMCHANGED,		// NMLBNITEMCHANGED
+    NM_LBN_ITEMSTANDBY,		// NMHDR
+    NM_LBN_SEARCH,			// NMLBNSEARCH
 
-	NM_PKB_OWNERDRAW,		// NMPKBOWNERDRAW
-	NM_HTT_SEL,				// NMHTTSEL
+    NM_PKB_OWNERDRAW,		// NMPKBOWNERDRAW
+    NM_HTT_SEL,				// NMHTTSEL
 
-	NM_CBN_LBCUSTOMDRAW,	// NMCBLBCUSTOMDRAW
+    NM_CBN_LBCUSTOMDRAW,	// NMCBLBCUSTOMDRAW
 };
 /*
 * 对于ECK控件，部分标准通知对应的结构如下（可能有特定控件会扩展这些结构）
@@ -696,57 +692,57 @@ enum :UINT// 控件通知代码
 // 消息钩子ID保留范围[1, 511]，此范围仅供内部使用
 enum :UINT_PTR
 {
-	MHI_NONE,
-	MHI_SCROLLBAR_HOOK,
-	MHI_HEADER_HOOK,
-	MHI_LISTVIEW_ROWHEIGHT,
-	MHI_LVE_HEADER_HEIGHT,
-	MHI_DUI_TITLEBAR,
-	MHI_UXF_MENU,
+    MHI_NONE,
+    MHI_SCROLLBAR_HOOK,
+    MHI_HEADER_HOOK,
+    MHI_LISTVIEW_ROWHEIGHT,
+    MHI_LVE_HEADER_HEIGHT,
+    MHI_DUI_TITLEBAR,
+    MHI_UXF_MENU,
 
-	MHI_USER = 512,
+    MHI_USER = 512,
 };
 
 // 构建号
 enum :ULONG
 {
-	WINVER_1607 = 14393,
-	WINVER_1809 = 17763,
-	WINVER_1903 = 18362,
-	WINVER_11_21H2 = 22000,
-	WINVER_11_23H2 = 22631,
+    WINVER_1607 = 14393,
+    WINVER_1809 = 17763,
+    WINVER_1903 = 18362,
+    WINVER_11_21H2 = 22000,
+    WINVER_11_23H2 = 22631,
 };
 
 enum DispInfoMask :UINT
 {
-	DIM_TEXT = 1u << 0,
-	DIM_IMAGE = 1u << 1,
-	DIM_STATE = 1u << 2,
-	DIM_LPARAM = 1u << 3,
+    DIM_TEXT = 1u << 0,
+    DIM_IMAGE = 1u << 1,
+    DIM_STATE = 1u << 2,
+    DIM_LPARAM = 1u << 3,
 };
 ECK_ENUM_BIT_FLAGS(DispInfoMask);
 
 enum class EolType :BYTE
 {
-	Invalid,
-	Auto,
-	CRLF,
-	CR,
-	LF,
+    Invalid,
+    Auto,
+    CRLF,
+    CR,
+    LF,
 };
 
 enum class RegRoot :BYTE
 {
-	ClassesRoot,
-	CurrentUser,
-	LocalMachine,
-	Users,
-	PerformanceData,
-	CurrentConfig,
-	DynData,
-	CurrentUserLocalSettings,
-	PerformanceText = 0x50,
-	PerformanceNlsText = 0x60,
+    ClassesRoot,
+    CurrentUser,
+    LocalMachine,
+    Users,
+    PerformanceData,
+    CurrentConfig,
+    DynData,
+    CurrentUserLocalSettings,
+    PerformanceText = 0x50,
+    PerformanceNlsText = 0x60,
 };
 EckInline HKEY RegRootToKey(RegRoot e) { return HKEY(ULONG_PTR((ULONG)e | 0x80000000ul)); }
 #pragma endregion Enum
@@ -790,47 +786,47 @@ extern FGetSystemMetricsForDpi g_pfnGetSystemMetricsForDpi;
 #pragma region Init
 enum :UINT
 {
-	EIF_DEFAULT = 0,
-	// 不调用ThreadInit
-	EIF_NOINITTHREAD = 1u << 0,
-	// 不初始化GDI+
-	EIF_NOINITGDIPLUS = 1u << 1,
-	// 不初始化WIC
-	EIF_NOINITWIC = 1u << 2,
-	// 不初始化D2D
-	EIF_NOINITD2D = 1u << 3,
-	// 不初始化DWrite
-	EIF_NOINITDWRITE = 1u << 4,
-	// 不适配暗色模式
-	EIF_NODARKMODE = 1u << 5,
+    EIF_DEFAULT = 0,
+    // 不调用ThreadInit
+    EIF_NOINITTHREAD = 1u << 0,
+    // 不初始化GDI+
+    EIF_NOINITGDIPLUS = 1u << 1,
+    // 不初始化WIC
+    EIF_NOINITWIC = 1u << 2,
+    // 不初始化D2D
+    EIF_NOINITD2D = 1u << 3,
+    // 不初始化DWrite
+    EIF_NOINITDWRITE = 1u << 4,
+    // 不适配暗色模式
+    EIF_NODARKMODE = 1u << 5,
 };
 
 #if !ECK_OPT_NO_DX
 constexpr inline D3D_FEATURE_LEVEL c_uDefD3dFeatureLevel[]
 {
-	D3D_FEATURE_LEVEL_11_1,
-	D3D_FEATURE_LEVEL_11_0,
-	D3D_FEATURE_LEVEL_10_1,
-	D3D_FEATURE_LEVEL_10_0,
-	D3D_FEATURE_LEVEL_9_3,
-	D3D_FEATURE_LEVEL_9_2,
-	D3D_FEATURE_LEVEL_9_1
+    D3D_FEATURE_LEVEL_11_1,
+    D3D_FEATURE_LEVEL_11_0,
+    D3D_FEATURE_LEVEL_10_1,
+    D3D_FEATURE_LEVEL_10_0,
+    D3D_FEATURE_LEVEL_9_3,
+    D3D_FEATURE_LEVEL_9_2,
+    D3D_FEATURE_LEVEL_9_1
 };
 #endif// !ECK_OPT_NO_DX
 
 struct INITPARAM
 {
-	UINT uFlags = EIF_DEFAULT;
-	DWRITE_FACTORY_TYPE uDWriteFactoryType = DWRITE_FACTORY_TYPE_SHARED;
+    UINT uFlags = EIF_DEFAULT;
+    DWRITE_FACTORY_TYPE uDWriteFactoryType = DWRITE_FACTORY_TYPE_SHARED;
 #if !ECK_OPT_NO_DX
-	D2D1_FACTORY_TYPE uD2dFactoryType = D2D1_FACTORY_TYPE_MULTI_THREADED;
-	const D3D_FEATURE_LEVEL* pD3dFeatureLevel = c_uDefD3dFeatureLevel;
-	UINT cD3dFeatureLevel = ARRAYSIZE(c_uDefD3dFeatureLevel);
-	UINT uD3dCreateFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT
+    D2D1_FACTORY_TYPE uD2dFactoryType = D2D1_FACTORY_TYPE_MULTI_THREADED;
+    const D3D_FEATURE_LEVEL* pD3dFeatureLevel = c_uDefD3dFeatureLevel;
+    UINT cD3dFeatureLevel = ARRAYSIZE(c_uDefD3dFeatureLevel);
+    UINT uD3dCreateFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT
 #ifdef _DEBUG
-		| D3D11_CREATE_DEVICE_DEBUG
+        | D3D11_CREATE_DEVICE_DEBUG
 #endif
-		;
+        ;
 #endif// !ECK_OPT_NO_DX
 };
 
@@ -860,173 +856,173 @@ struct THREADCTX;
 using FQueueCallback = void(*)(void* pCtx);
 namespace Priv
 {
-	struct QueuedCallback
-	{
-		UINT nPriority;	// 值越小优先级越高
-		std::variant<std::function<void()>, void*> Callback;
-		ULONGLONG Tag;
+    struct QueuedCallback
+    {
+        UINT nPriority;	// 值越小优先级越高
+        std::variant<std::function<void()>, void*> Callback;
+        ULONGLONG Tag;
 
-		constexpr std::weak_ordering operator<=>(const QueuedCallback& x) const
-		{
-			return nPriority <=> x.nPriority;
-		}
-	};
+        constexpr std::weak_ordering operator<=>(const QueuedCallback& x) const
+        {
+            return nPriority <=> x.nPriority;
+        }
+    };
 
-	struct QueuedCallbackQueue
-	{
-		DWORD dwTid{};
-		std::vector<QueuedCallback> q{};
-		RTL_SRWLOCK Lk{};
+    struct QueuedCallbackQueue
+    {
+        DWORD dwTid{};
+        std::vector<QueuedCallback> q{};
+        RTL_SRWLOCK Lk{};
 
-		QueuedCallbackQueue()
-		{
-			RtlInitializeSRWLock(&Lk);
-			dwTid = NtCurrentThreadId32();
-		}
+        QueuedCallbackQueue()
+        {
+            RtlInitializeSRWLock(&Lk);
+            dwTid = NtCurrentThreadId32();
+        }
 
-		template<class F>
-		void EnQueueCallback(F&& fnCallback, UINT nPriority = UINT_MAX,
-			BOOL bWakeUiThread = TRUE, ULONGLONG Tag = 0ull,
-			BOOL bClearExistingTag = FALSE)
-		{
-			RtlAcquireSRWLockExclusive(&Lk);
-			if (bClearExistingTag && !q.empty())
-			{
-				for (size_t i{ q.size() - 1 }; i; --i)
-				{
-					if (q[i].Tag == Tag)
-						q.erase(q.begin() + i);
-				}
-			}
-			q.emplace_back(nPriority,
-				std::function<void()>{ std::forward<F>(fnCallback) }, Tag);
-			std::push_heap(q.begin(), q.end());
-			RtlReleaseSRWLockExclusive(&Lk);
-			if (bWakeUiThread)
-				PostThreadMessageW(dwTid, WM_NULL, 0, 0);
-		}
+        template<class F>
+        void EnQueueCallback(F&& fnCallback, UINT nPriority = UINT_MAX,
+            BOOL bWakeUiThread = TRUE, ULONGLONG Tag = 0ull,
+            BOOL bClearExistingTag = FALSE)
+        {
+            RtlAcquireSRWLockExclusive(&Lk);
+            if (bClearExistingTag && !q.empty())
+            {
+                for (size_t i{ q.size() - 1 }; i; --i)
+                {
+                    if (q[i].Tag == Tag)
+                        q.erase(q.begin() + i);
+                }
+            }
+            q.emplace_back(nPriority,
+                std::function<void()>{ std::forward<F>(fnCallback) }, Tag);
+            std::push_heap(q.begin(), q.end());
+            RtlReleaseSRWLockExclusive(&Lk);
+            if (bWakeUiThread)
+                PostThreadMessageW(dwTid, WM_NULL, 0, 0);
+        }
 
-		void EnQueueCoroutine(void* pCoroutine, UINT nPriority = UINT_MAX,
-			BOOL bWakeUiThread = TRUE, ULONGLONG Tag = 0ull,
-			BOOL bClearExistingTag = FALSE)
-		{
-			EckAssert(pCoroutine);
-			RtlAcquireSRWLockExclusive(&Lk);
-			if (bClearExistingTag && !q.empty())
-			{
-				for (size_t i{ q.size() - 1 }; i; --i)
-				{
-					if (q[i].Tag == Tag)
-						q.erase(q.begin() + i);
-				}
-			}
-			q.emplace_back(nPriority, pCoroutine, Tag);
-			std::push_heap(q.begin(), q.end());
-			RtlReleaseSRWLockExclusive(&Lk);
-			if (bWakeUiThread)
-				PostThreadMessageW(dwTid, WM_NULL, 0, 0);
-		}
+        void EnQueueCoroutine(void* pCoroutine, UINT nPriority = UINT_MAX,
+            BOOL bWakeUiThread = TRUE, ULONGLONG Tag = 0ull,
+            BOOL bClearExistingTag = FALSE)
+        {
+            EckAssert(pCoroutine);
+            RtlAcquireSRWLockExclusive(&Lk);
+            if (bClearExistingTag && !q.empty())
+            {
+                for (size_t i{ q.size() - 1 }; i; --i)
+                {
+                    if (q[i].Tag == Tag)
+                        q.erase(q.begin() + i);
+                }
+            }
+            q.emplace_back(nPriority, pCoroutine, Tag);
+            std::push_heap(q.begin(), q.end());
+            RtlReleaseSRWLockExclusive(&Lk);
+            if (bWakeUiThread)
+                PostThreadMessageW(dwTid, WM_NULL, 0, 0);
+        }
 
-		void UnlockedDeQueue()
-		{
-			if (!q.empty())
-			{
-				std::pop_heap(q.begin(), q.end());
-				q.pop_back();
-			}
-		}
-	};
+        void UnlockedDeQueue()
+        {
+            if (!q.empty())
+            {
+                std::pop_heap(q.begin(), q.end());
+                q.pop_back();
+            }
+        }
+    };
 }
 
 using FWndCreating = void(*)(HWND hWnd, CBT_CREATEWNDW* pcs, THREADCTX* pThreadCtx);
 struct THREADCTX
 {
-	//-------窗口映射
-	std::unordered_map<HWND, CWnd*> hmWnd{};	// HWND->CWnd*
-	std::unordered_map<HWND, CWnd*> hmTopWnd{};	// 顶级窗口映射
-	HHOOK hhkTempCBT{};					// CBT钩子句柄
-	CWnd* pCurrWnd{};					// 当前正在创建窗口所属的CWnd指针
-	FWndCreating pfnWndCreatingProc{};	// 当前创建窗口时要调用的过程
-	//-------暗色处理
-	// 不钩取GetSysColorBrush，因为它的返回值可以被删除，
-	// 因此也不钩取GetSysColor，以免两个应得到相同结果函数的行为不同
-	// 所有绘图操作显式使用下面的颜色字段，若某标准控件使用GetSysColor(Brush)，
-	// 则通过子类化或其他方式修改
-	HHOOK hhkCbtDarkMode{};		// 启用暗色支持CBT钩子句柄
-	COLORREF crDefText{};		// 默认前景色
-	COLORREF crDefBkg{};		// 默认背景色
-	COLORREF crDefBtnFace{};	// 默认BtnFace颜色
-	COLORREF crBlue1{};			// 蓝色
-	COLORREF crGray1{};			// 灰色
-	COLORREF crTip1{};			// 提示颜色
-	COLORREF crHiLightText{};	// 高亮文本颜色，用于适配高对比度主题
+    //-------窗口映射
+    std::unordered_map<HWND, CWnd*> hmWnd{};	// HWND->CWnd*
+    std::unordered_map<HWND, CWnd*> hmTopWnd{};	// 顶级窗口映射
+    HHOOK hhkTempCBT{};					// CBT钩子句柄
+    CWnd* pCurrWnd{};					// 当前正在创建窗口所属的CWnd指针
+    FWndCreating pfnWndCreatingProc{};	// 当前创建窗口时要调用的过程
+    //-------暗色处理
+    // 不钩取GetSysColorBrush，因为它的返回值可以被删除，
+    // 因此也不钩取GetSysColor，以免两个应得到相同结果函数的行为不同
+    // 所有绘图操作显式使用下面的颜色字段，若某标准控件使用GetSysColor(Brush)，
+    // 则通过子类化或其他方式修改
+    HHOOK hhkCbtDarkMode{};		// 启用暗色支持CBT钩子句柄
+    COLORREF crDefText{};		// 默认前景色
+    COLORREF crDefBkg{};		// 默认背景色
+    COLORREF crDefBtnFace{};	// 默认BtnFace颜色
+    COLORREF crBlue1{};			// 蓝色
+    COLORREF crGray1{};			// 灰色
+    COLORREF crTip1{};			// 提示颜色
+    COLORREF crHiLightText{};	// 高亮文本颜色，用于适配高对比度主题
 
-	// 是否允许暗色CBT钩子设置窗口，设为FALSE可暂停Hook。
-	// 注意：务必在打开文件对话框前暂停Hook
-	BOOLEAN bEnableDarkModeHook{ TRUE };
-	BOOLEAN bAutoNcDark{ TRUE };// 自动调整非客户区暗色
-	BOOLEAN bEnterCallback{};	// 当前是否在回调中
-	BOOLEAN bAppDarkMode{};		// 当前是否处于暗色模式
-	//-------回调队列
-	HHOOK hhkMsgFilter{};		// 在菜单、模态对话框、拖动选择等的消息循环中保持处理UI线程的回调
-	Priv::QueuedCallbackQueue Callback{};
+    // 是否允许暗色CBT钩子设置窗口，设为FALSE可暂停Hook。
+    // 注意：务必在打开文件对话框前暂停Hook
+    BOOLEAN bEnableDarkModeHook{ TRUE };
+    BOOLEAN bAutoNcDark{ TRUE };// 自动调整非客户区暗色
+    BOOLEAN bEnterCallback{};	// 当前是否在回调中
+    BOOLEAN bAppDarkMode{};		// 当前是否处于暗色模式
+    //-------回调队列
+    HHOOK hhkMsgFilter{};		// 在菜单、模态对话框、拖动选择等的消息循环中保持处理UI线程的回调
+    Priv::QueuedCallbackQueue Callback{};
 
-	EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
-	{
-		EckAssert(IsWindow(hWnd) && pWnd);
-		hmWnd.insert(std::make_pair(hWnd, pWnd));
-	}
+    EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
+    {
+        EckAssert(IsWindow(hWnd) && pWnd);
+        hmWnd.insert(std::make_pair(hWnd, pWnd));
+    }
 
-	EckInline void WmRemove(HWND hWnd)
-	{
-		const auto it = hmWnd.find(hWnd);
-		if (it != hmWnd.end())
-			hmWnd.erase(it);
+    EckInline void WmRemove(HWND hWnd)
+    {
+        const auto it = hmWnd.find(hWnd);
+        if (it != hmWnd.end())
+            hmWnd.erase(it);
 #ifdef _DEBUG
-		else
-			EckDbgPrintFmt(L"** WARNING ** 从窗口映射中移除%p时失败。", hWnd);
+        else
+            EckDbgPrintFmt(L"** WARNING ** 从窗口映射中移除%p时失败。", hWnd);
 #endif
-	}
+    }
 
-	EckInline CWnd* WmAt(HWND hWnd) const
-	{
-		const auto it = hmWnd.find(hWnd);
-		if (it != hmWnd.end())
-			return it->second;
-		else
-			return nullptr;
-	}
+    EckInline CWnd* WmAt(HWND hWnd) const
+    {
+        const auto it = hmWnd.find(hWnd);
+        if (it != hmWnd.end())
+            return it->second;
+        else
+            return nullptr;
+    }
 
-	EckInline void TwmAdd(HWND hWnd, CWnd* pWnd)
-	{
-		EckAssert(IsWindow(hWnd) && pWnd);
-		EckAssert((GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_CHILD) != WS_CHILD);
-		hmTopWnd.insert(std::make_pair(hWnd, pWnd));
-	}
+    EckInline void TwmAdd(HWND hWnd, CWnd* pWnd)
+    {
+        EckAssert(IsWindow(hWnd) && pWnd);
+        EckAssert((GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_CHILD) != WS_CHILD);
+        hmTopWnd.insert(std::make_pair(hWnd, pWnd));
+    }
 
-	EckInline void TwmRemove(HWND hWnd)
-	{
-		const auto it = hmTopWnd.find(hWnd);
-		if (it != hmTopWnd.end())
-			hmTopWnd.erase(it);
-	}
+    EckInline void TwmRemove(HWND hWnd)
+    {
+        const auto it = hmTopWnd.find(hWnd);
+        if (it != hmTopWnd.end())
+            hmTopWnd.erase(it);
+    }
 
-	EckInline CWnd* TwmAt(HWND hWnd) const
-	{
-		const auto it = hmTopWnd.find(hWnd);
-		if (it != hmTopWnd.end())
-			return it->second;
-		else
-			return nullptr;
-	}
+    EckInline CWnd* TwmAt(HWND hWnd) const
+    {
+        const auto it = hmTopWnd.find(hWnd);
+        if (it != hmTopWnd.end())
+            return it->second;
+        else
+            return nullptr;
+    }
 
-	void SetNcDarkModeForAllTopWnd(BOOL bDark);
+    void SetNcDarkModeForAllTopWnd(BOOL bDark);
 
-	void UpdateDefColor();
+    void UpdateDefColor();
 
-	void SendThemeChangedToAllTopWindow();
+    void SendThemeChangedToAllTopWindow();
 
-	void DoCallback();
+    void DoCallback();
 };
 
 // 取线程上下文TLS槽
@@ -1071,13 +1067,13 @@ HRESULT UxfMenuUnInit(CWnd* pWnd);
 
 
 [[nodiscard]] EckInline HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,
-	void* pParameter = nullptr, UINT* pThreadId = nullptr, UINT dwCreationFlags = 0)
+    void* pParameter = nullptr, UINT* pThreadId = nullptr, UINT dwCreationFlags = 0)
 {
 #if 0
-	return (HANDLE)_beginthreadex(0, 0, pStartAddress, pParameter, dwCreationFlags, pThreadId);
+    return (HANDLE)_beginthreadex(0, 0, pStartAddress, pParameter, dwCreationFlags, pThreadId);
 #else
-	return CreateThread(nullptr, 0, (PTHREAD_START_ROUTINE)pStartAddress,
-		pParameter, dwCreationFlags, (DWORD*)pThreadId);
+    return CreateThread(nullptr, 0, (PTHREAD_START_ROUTINE)pStartAddress,
+        pParameter, dwCreationFlags, (DWORD*)pThreadId);
 #endif
 }
 ECK_NAMESPACE_END
