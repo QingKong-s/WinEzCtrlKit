@@ -1340,6 +1340,9 @@ static HTHEME WINAPI NewOpenNcThemeData(HWND hWnd, PCWSTR pszClassList)
 
 static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
 {
+    const auto* const ptc = GetThreadCtx();
+    if (!ptc || !ptc->bEnableDarkModeHook)
+        return s_pfnOpenThemeData(hWnd, pszClassList);
     HTHEME hTheme;
     if (ShouldAppsUseDarkMode())
     {
@@ -1361,6 +1364,9 @@ static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
 
 static HTHEME WINAPI NewOpenThemeDataForDpi(HWND hWnd, PCWSTR pszClassList, UINT uDpi)
 {
+    const auto* const ptc = GetThreadCtx();
+    if (!ptc || !ptc->bEnableDarkModeHook)
+        return s_pfnOpenThemeData(hWnd, pszClassList);
     HTHEME hTheme;
     if (ShouldAppsUseDarkMode())
     {

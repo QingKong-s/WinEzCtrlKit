@@ -6,10 +6,8 @@
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 // 部件
-enum class Part : int
+enum class Part : BYTE
 {
-	Invalid = -1,
-
 	Button,
 	CircleButton,
 	RadioButton,
@@ -41,10 +39,11 @@ enum class Part : int
 
 	MaxStdControl,
 
-	UserBegin = 0x1000,
+	Invalid = 0xFF,
+	UserBegin = 128,
 };
 // 状态
-enum class State : int
+enum class State : BYTE
 {
 	None,		// 若部件不关心状态，则此值作为占位符
 	// 以下是基本状态
@@ -69,7 +68,7 @@ enum class State : int
 
 	NoFocusSelected,// 无焦点且选中
 
-	UserBegin = 0x1000,
+	UserBegin = 128,
 };
 // 几何类型
 enum class GeoType : UINT
