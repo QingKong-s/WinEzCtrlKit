@@ -749,6 +749,15 @@ protected:
 		EndPaint(ps);
 	}
 
+	void OnVScroll()
+	{
+		ReCalcTopItem();
+		InvalidateRect();
+		NMLTSCROLLED nm{ LTE_SCROLLED };
+		CalcItemRangeInRect(GetViewRectF(), nm.idxBegin, nm.idxEnd);
+		GenElemNotify(&nm);
+	}
+
 	void IVGetItemRangeRect(int idxBegin, int idxEnd, _Out_ D2D1_RECT_F& rc)
 	{
 		EckAssert(m_eView == Type::Icon);
@@ -881,11 +890,7 @@ public:
 			if ((wParam == (WPARAM)&m_SBV) &&
 				(((DUINMHDR*)lParam)->uCode == EE_VSCROLL))
 			{
-				ReCalcTopItem();
-				InvalidateRect();
-				NMLTSCROLLED nm{ LTE_SCROLLED };
-				CalcItemRangeInRect(GetViewRectF(), nm.idxBegin, nm.idxEnd);
-				GenElemNotify(&nm);
+				OnVScroll();
 				return TRUE;
 			}
 			else if ((wParam == (WPARAM)&m_SBH) &&
@@ -1604,6 +1609,11 @@ public:
 					e.pLayout.Clear();
 		}
 	}
+	void InvalidateCache()
+	{
+		for (int i = 0; i < GetItemCount(); ++i)
+			InvalidateCache(i);
+	}
 
 	void RedrawItem(int idxBegin, int idxEnd)
 	{
@@ -1790,6 +1800,35 @@ public:
 		if (idxBottom >= GetItemCount())
 			idxBottom = GetItemCount() - 1;
 	}
+
+	BOOL EnsureVisible(BOOL bSmooth, int idx, int idxGroup = -1)
+	{
+		if (!GetItemCount() || idx < 0 || idx >= GetItemCount())
+			return FALSE;
+		D2D1_RECT_F rcItem;
+		if (m_bGroup)
+			GetGroupPartRect(ListPart::Item, idx, idxGroup, rcItem);
+		else
+			GetItemRect(idx, rcItem);
+		float d;
+		if (rcItem.top < m_cyTopExtra)
+			d = rcItem.top - m_cyTopExtra;
+		else if (rcItem.bottom > GetHeightF() - m_cyBottomExtra)
+			d = rcItem.bottom - GetHeightF() + m_cyBottomExtra;
+		else
+			return FALSE;
+		if (bSmooth)
+		{
+			m_psvV->SmoothScrollDelta(d);
+			GetWnd()->WakeRenderThread();
+		}
+		else
+		{
+			m_psvV->SetPos(d + m_psvV->GetPos());
+			OnVScroll();
+		}
+		return TRUE;
+    }
 
 	EckInline void UpdateHeaderLayout() noexcept { ArrangeHeader(TRUE); }
 
