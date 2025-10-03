@@ -102,6 +102,7 @@ private:
     }
 
     constexpr void tcIrpUnionContentExpandElemRect(_Inout_ D2D1_RECT_F& rcInClient);
+    void utcIrpInvalidate(const D2D1_RECT_F& rcInClient, BOOL bUpdateNow);
 
     constexpr void tcSrpCorrectChildrenRectInClient() const
     {
@@ -298,9 +299,8 @@ public:
                     const auto pHit = pElem->ElemFromPoint(pt, pResult);
                     if (pHit)
                         return pHit;
-                    else if (LRESULT lResult;
-                        (lResult = pElem->CallEvent(WM_NCHITTEST,
-                            0, MAKELPARAM(pt0.x, pt0.y))) != HTTRANSPARENT)
+                    else if (LRESULT lResult; (lResult = pElem->CallEvent(
+                        WM_NCHITTEST, 0, MAKELPARAM(pt0.x, pt0.y))) != HTTRANSPARENT)
                     {
                         if (pResult)
                             *pResult = lResult;
@@ -480,16 +480,16 @@ public:
     EckInlineNdCe CCompositor* GetCompositor() const { return m_pCompositor; }
 #pragma endregion OthersProp
 #pragma region ElemFunc
-    /// <summary>
-    /// 无效化矩形
-    /// </summary>
-    /// <param name="rc">无效区域，相对客户区</param>
-    /// <param name="bUpdateNow">是否立即唤醒渲染线程</param>
-    void InvalidateRect(const D2D1_RECT_F& rc, BOOL bUpdateNow = TRUE);
 
+    EckInline void InvalidateRect(const D2D1_RECT_F& rc, BOOL bUpdateNow = TRUE)
+    {
+        auto rcInClient{ rc };
+        ElemToClient(rcInClient);
+        utcIrpInvalidate(rcInClient, bUpdateNow);
+    }
     EckInline void InvalidateRect(BOOL bUpdateNow = TRUE)
     {
-        InvalidateRect(GetWholeRectInClient(), bUpdateNow);
+        utcIrpInvalidate(GetWholeRectInClient(), bUpdateNow);
     }
 
     /// <summary>
@@ -1441,25 +1441,19 @@ public:
         {
             POINT pt ECK_GET_PT_LPARAM(lParam);
             Phy2Log(pt);
-
             if (m_bMouseCaptured)
                 m_pCurrNcHitTestElem = ElemFromPoint(pt);
-
-            auto pElem = (m_pMouseCaptureElem ? m_pMouseCaptureElem : m_pCurrNcHitTestElem);
+            const auto pElem = (m_pMouseCaptureElem ? m_pMouseCaptureElem : m_pCurrNcHitTestElem);
+            pElem->ClientToElem(pt);
             if (pElem)
-            {
                 if (pElem->CompIsNeedCoordinateTransform())
                 {
                     POINT pt0{ pt };
-                    pElem->ClientToElem(pt0);
                     pElem->CompTransformCoordinate(pt0, TRUE);
-                    pElem->ElemToClient(pt0);
                     pElem->CallEvent(uMsg, wParam, MAKELPARAM(pt0.x, pt0.y));
                 }
                 else
                     pElem->CallEvent(uMsg, wParam, MAKELPARAM(pt.x, pt.y));
-            }
-
             if (uMsg == WM_MOUSEMOVE)// 移出监听
             {
                 if (m_pHoverElem != m_pCurrNcHitTestElem && !m_bMouseCaptured)
@@ -1474,7 +1468,6 @@ public:
                 tme.hwndTrack = hWnd;
                 TrackMouseEvent(&tme);
             }
-
             return 0;
         }
         else if (uMsg >= WM_NCMOUSEMOVE && uMsg <= WM_NCXBUTTONDBLCLK)
@@ -2010,7 +2003,6 @@ public:
         pTl->AddRef();
         m_vTimeLine.emplace_back(pTl);
     }
-
     EckInline void UnregisterTimeLine(ITimeLine* pTl)
     {
         ECK_DUILOCKWND;
@@ -2031,10 +2023,7 @@ public:
             WakeRenderThread();
     }
 
-    /// <summary>
-    /// 置呈现模式。
-    /// 必须在创建窗口之前调用
-    /// </summary>
+    // 必须在创建窗口之前调用
     EckInline void SetPresentMode(PresentMode ePresentMode)
     {
         EckAssert(!IsValid());
@@ -2042,12 +2031,8 @@ public:
     }
     EckInline constexpr PresentMode GetPresentMode() const { return m_ePresentMode; }
 
-    /// <summary>
-    /// 置透明模式。
-    /// 必须在创建窗口之前调用。
-    /// 设置透明后不会生成默认背景画刷，渲染开始前总是清除图面，并且在呈现时不忽略Alpha通道。这在渲染到带背景材料的窗口时尤为有用
-    /// </summary>
-    /// <param name="bTransparent">是否透明</param>
+    // 必须在创建窗口之前调用。
+    // 设置透明后不会生成默认背景画刷，渲染开始前总是清除图面，并且在呈现时不忽略Alpha通道
     EckInline constexpr void SetTransparent(BOOL bTransparent)
     {
         m_bTransparent = bTransparent;
@@ -2594,7 +2579,7 @@ EckInline LRESULT CElem::GenElemNotify(void* pnm)
         return GetWnd()->OnElemEvent(this, ((DUINMHDR*)pnm)->uCode, 0, (LPARAM)pnm);
 }
 
-inline void CElem::InvalidateRect(const D2D1_RECT_F& rc, BOOL bUpdateNow)
+inline void CElem::utcIrpInvalidate(const D2D1_RECT_F& rcInClient, BOOL bUpdateNow)
 {
     ECK_DUILOCK;
     if (!IsVisible())
@@ -2604,7 +2589,7 @@ inline void CElem::InvalidateRect(const D2D1_RECT_F& rc, BOOL bUpdateNow)
         rcTemp = GetWholeRectInClient();
     else
     {
-        rcTemp = rc;
+        rcTemp = rcInClient;
         IntersectRect(rcTemp, rcTemp, GetWholeRectInClient());// 裁剪到元素矩形
     }
     if (IsRectEmpty(rcTemp))

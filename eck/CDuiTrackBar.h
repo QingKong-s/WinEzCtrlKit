@@ -143,11 +143,8 @@ public:
 		{
 			if (m_bLBtnDown)
 			{
-				POINT pt ECK_GET_PT_LPARAM(lParam);
-				ClientToElem(pt);
-
+				const POINT pt ECK_GET_PT_LPARAM(lParam);
 				SetDragPos(PtToPos(pt));
-
 				if (m_bGenEventWhenDragging)
 				{
 					DUINMHDR nm{ TBE_POSCHANGED };
@@ -177,9 +174,7 @@ public:
 
 		case WM_LBUTTONDOWN:
 		{
-			POINT pt ECK_GET_PT_LPARAM(lParam);
-			ClientToElem(pt);
-
+			const POINT pt ECK_GET_PT_LPARAM(lParam);
 			D2D1_RECT_F rcThumb;
 			GetThumbRect(rcThumb);
 			if (PtInRect(rcThumb, MakeD2DPointF(pt)))
@@ -202,9 +197,7 @@ public:
 		{
 			if (m_bLBtnDown)
 			{
-				POINT pt ECK_GET_PT_LPARAM(lParam);
-				ClientToElem(pt);
-
+				const POINT pt ECK_GET_PT_LPARAM(lParam);
 				m_bLBtnDown = FALSE;
 				ReleaseCapture();
 				SetTrackPos(PtToPos(pt));

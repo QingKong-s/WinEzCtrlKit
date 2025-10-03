@@ -157,8 +157,6 @@ protected:
 		if (p->m_rcLastRedraw.bottom > rc.bottom)
 			rc.bottom = p->m_rcLastRedraw.bottom;
 		p->m_rcLastRedraw = rc;
-
-		p->ElemToClient(rc);
 		p->InvalidateRect(rc);
 	}
 public:

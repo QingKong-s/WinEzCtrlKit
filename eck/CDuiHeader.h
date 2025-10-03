@@ -162,7 +162,6 @@ public:
 		{
 			ECK_DUILOCK;
 			HE_HITTEST ht{ ECK_GET_PT_LPARAM(lParam) };
-			ClientToElem(ht.pt);
 			auto idx = HitTest(ht);
 			if (m_bDraggingDivider)
 			{
@@ -174,7 +173,6 @@ public:
 					D2D1_RECT_F rc;
 					GetItemRect(m_idxDrag, rc);
 					rc.right = GetWidthF();
-					ElemToClient(rc);
 					InvalidateRect(rc);
 					NMHEITEMNOTIFY nm;
 					nm.uCode = HEE_WIDTHCHANGED;
@@ -214,7 +212,6 @@ public:
 		{
 			ECK_DUILOCK;
 			HE_HITTEST ht{ ECK_GET_PT_LPARAM(lParam) };
-			ClientToElem(ht.pt);
 			const auto idx = HitTest(ht);
 			if (idx >= 0)
 			{
@@ -330,7 +327,6 @@ public:
 	{
 		D2D1_RECT_F rcItem;
 		GetItemRect(idx, rcItem);
-		ElemToClient(rcItem);
 		InvalidateRect(rcItem);
 	}
 

@@ -157,7 +157,7 @@ public:
 				ReleaseCapture();
 				InvalidateRect();
 				const POINT pt ECK_GET_PT_LPARAM(lParam);
-				if (PtInRect(GetRectInClientF(), pt))
+				if (PtInRect(GetViewRectF(), pt))
 				{
 					DUINMHDR nm{ EE_COMMAND };
 					GenElemNotify(&nm);
