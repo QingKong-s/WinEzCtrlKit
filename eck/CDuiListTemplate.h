@@ -802,7 +802,6 @@ public:
 		{
 			ECK_DUILOCK;
 			LE_HITTEST ht{ ECK_GET_PT_LPARAM(lParam) };
-			ClientToElem(ht.pt);
 			if (m_bDraggingSel)
 			{
 				if (ht.pt.x < 0) ht.pt.x = 0;
@@ -936,7 +935,6 @@ public:
 					}
 					rc.right = GetWidthF();
 					rc.bottom = GetHeightF();
-					ElemToClient(rc);
 					InvalidateRect(rc);
 				}
 				return 0;
@@ -966,7 +964,6 @@ public:
 			POINT pt ECK_GET_PT_LPARAM(lParam);
 			SetFocus();
 			LE_HITTEST ht{ pt };
-			ClientToElem(ht.pt);
 			int idx = HitTest(ht);
 
 			D2D1_RECT_F rcInvalid;
@@ -990,7 +987,6 @@ public:
 						GetItemRect(idx, rcItem);
 					UnionRect(rcInvalid, rcInvalid, rcItem);
 				}
-				ElemToClient(rcInvalid);
 				InvalidateRect(rcInvalid);
 			}
 			else
@@ -1006,7 +1002,6 @@ public:
 					{
 						D2D1_RECT_F rcInvalid;
 						DeselectAll(rcInvalid);
-						ElemToClient(rcInvalid);
 						InvalidateRect(rcInvalid);
 					}
 					m_bDraggingSel = TRUE;
@@ -1022,7 +1017,6 @@ public:
 				else if (m_bDeSelInSpace)
 				{
 					DeselectAll(rcInvalid);
-					ElemToClient(rcInvalid);
 					InvalidateRect(rcInvalid);
 				}
 			}
@@ -1590,7 +1584,6 @@ public:
 		{
 			D2D1_RECT_F rc;
 			GetInsertMarkRect(rc);
-			ElemToClient(rc);
 			InvalidateRect(rc);
 		}
 	}
@@ -1648,7 +1641,6 @@ public:
 			break;
 		default: ECK_UNREACHABLE;
 		}
-		ElemToClient(rc);
 		InvalidateRect(rc);
 	}
 
@@ -1656,7 +1648,6 @@ public:
 	{
 		D2D1_RECT_F rc;
 		GetItemRect(idx, rc);
-		ElemToClient(rc);
 		InvalidateRect(rc);
 	}
 
@@ -1665,7 +1656,6 @@ public:
 		EckAssert(GetGroup());
 		D2D1_RECT_F rc;
 		GetGroupPartRect(ListPart::Item, idxItemInGroup, idxGroup, rc);
-		ElemToClient(rc);
 		InvalidateRect(rc);
 	}
 

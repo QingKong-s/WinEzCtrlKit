@@ -318,7 +318,6 @@ public:
 	{
 		const auto cxBtn = m_cxClose + m_cxMax + m_cxMin;
 		D2D1_RECT_F rc{ GetWidthF() - cxBtn,0,GetWidthF(),m_cyBtn };
-		ElemToClient(rc);
 		InvalidateRect(rc);
 	}
 

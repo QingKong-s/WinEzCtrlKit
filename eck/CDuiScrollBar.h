@@ -39,7 +39,7 @@ public:
 					if (!m_psv->IsVisible())
 						return HTTRANSPARENT;
 					D2D1_POINT_2F pt{ MakeD2DPointF(ECK_GET_PT_LPARAM(lParam)) };
-					ClientToElem(pt);
+                    ClientToElem(pt);
 					D2D1_RECT_F rc;
 					GetPartRect(rc, SbPart::Thumb);
 					if (!PtInRect(rc, pt))
@@ -59,8 +59,7 @@ public:
 			}
 			if (m_bDragThumb)
 			{
-				POINT pt ECK_GET_PT_LPARAM(lParam);
-				ClientToElem(pt);
+				const POINT pt ECK_GET_PT_LPARAM(lParam);
 				m_psv->OnMouseMove(m_bHorizontal ? pt.x - GetHeightF() : pt.y - GetWidthF());
 				DUINMHDR nm{ m_bHorizontal ? EE_HSCROLL : EE_VSCROLL };
 				if (!GenElemNotify(&nm))
@@ -83,9 +82,7 @@ public:
 		{
 			SetCapture();
 			m_bLBtnDown = TRUE;
-			POINT pt ECK_GET_PT_LPARAM(lParam);
-			ClientToElem(pt);
-
+			const POINT pt ECK_GET_PT_LPARAM(lParam);
 			const D2D1_POINT_2F ptf{ MakeD2DPointF(pt) };
 			D2D1_RECT_F rcf;
 			GetPartRect(rcf, SbPart::Thumb);

@@ -127,7 +127,9 @@ public:
 				m_bLBtnDown = FALSE;
 				ReleaseCapture();
 				InvalidateRect();
-				if (PtInBtn(ECK_GET_PT_LPARAM(lParam)))
+                POINT pt ECK_GET_PT_LPARAM(lParam);
+                ElemToClient(pt);
+				if (PtInBtn(pt))
 				{
 					DUINMHDR nm{ EE_COMMAND };
 					GenElemNotify(&nm);

@@ -464,6 +464,7 @@ public:
 			ECK_DUILOCK;
 			POINT pt ECK_GET_PT_LPARAM(lParam);
 			GetWnd()->Log2Phy(pt);
+            ElemToClient(pt);
 			LRESULT lResult;
 			if (m_pSrv->TxSendMessage(uMsg,
 				wParam, POINTTOPOINTS(pt), &lResult) == S_OK)
@@ -1147,6 +1148,7 @@ inline void CEditTextHost::TxInvalidateRect(LPCRECT prc, BOOL fMode)
 	{
 		D2D1_RECT_F rc{ MakeD2DRectF(*prc) };
 		m_pEdit->GetWnd()->Phy2Log(rc);
+        m_pEdit->ClientToElem(rc);
 		m_pEdit->InvalidateRect(rc);
 	}
 	else
@@ -1163,7 +1165,6 @@ inline BOOL CEditTextHost::TxShowCaret(BOOL fShow)
 {
 	m_pEdit->m_bCaretShow = fShow;
 	auto rc{ m_pEdit->m_rcCaret };
-	m_pEdit->ElemToClient(rc);
 	m_pEdit->InvalidateRect(rc);
 	return TRUE;
 }
@@ -1179,9 +1180,8 @@ inline BOOL CEditTextHost::TxSetCaretPos(INT x, INT y)
 	rc.right = ceilf(rc.right);
 	if (rc.right - rc.left < 1.f)
 		rc.right = rc.left + 1.f;
-	const auto rcInClient{ rc };
 	m_pEdit->ClientToElem(rc);
-	m_pEdit->InvalidateRect(rcInClient);
+	m_pEdit->InvalidateRect(rc);
 	return TRUE;
 }
 
