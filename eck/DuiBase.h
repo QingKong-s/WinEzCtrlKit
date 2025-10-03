@@ -641,10 +641,9 @@ public:
 #pragma endregion Composite
 };
 
-class CDuiWnd :public CWnd
+class CDuiWnd :public CWnd, public IDropTarget
 {
     friend class CElem;
-    friend class CDuiDropTarget;
 private:
     struct TIMER
     {
@@ -671,8 +670,7 @@ private:
     std::vector<TIMER> m_vTimer{};      // 需要定时器的元素
     //------拖放------
     CElem* m_pDragDropElem{};           // 当前拖放元素
-    IDataObject* m_pDataObj{};
-    CDuiDropTarget* m_pDropTarget{};
+    ComPtr<IDataObject> m_pDataObj{};
     //------图形------
     D2D1_RECT_F m_rcInvalid{};
     ID2D1SolidColorBrush* m_pBrBkg{};   // 背景画刷
@@ -718,6 +716,7 @@ private:
     BITBOOL m_bUserDpiChanged : 1{};        // 渲染线程应当重设DPI
     BITBOOL m_bFullUpdate : 1{ TRUE };      // 当前是否需要完全重绘
     BITBOOL m_bBlurUseLayer : 1{};          // 模糊是否使用图层
+    BITBOOL m_bEnableDragDrop : 1{};        // 启用拖放
 #ifdef _DEBUG
     BITBOOL m_bDrawDirtyRect : 1 = FALSE;   // 是否绘制脏矩形
 #endif
@@ -1149,9 +1148,9 @@ private:
             int iDeltaTime = int(ullCurrTime - ullTime);
             for (const auto e : m_vTimeLine)
             {
-                if (e->IsValid())
-                    e->Tick(iDeltaTime);
-                bActiveTimeLine = bActiveTimeLine || e->IsValid();
+                if (e->TlIsValid())
+                    e->TlTick(iDeltaTime);
+                bActiveTimeLine = bActiveTimeLine || e->TlIsValid();
             }
 
             D2D1_RECT_F rcClient{ 0,0,(float)m_cxClient,(float)m_cyClient };
@@ -1755,8 +1754,7 @@ public:
             SafeReleaseAssert0(m_pFxBlur);
             SafeReleaseAssert0(m_pFxCrop);
             // 销毁其他接口
-            SafeReleaseAssert0(m_pDataObj);
-            SafeReleaseAssert0(m_pDropTarget);
+            m_pDataObj = nullptr;
 
             for (auto p : m_vTheme)
                 p->Release();
@@ -1866,11 +1864,11 @@ public:
         return FALSE;
     }
 
-    EckInline constexpr CElem* GetFirstChildElem() const { return m_pFirstChild; }
-    EckInline constexpr CElem* GetLastChildElem() const { return m_pLastChild; }
+    EckInlineNdCe CElem* GetFirstChildElem() const { return m_pFirstChild; }
+    EckInlineNdCe CElem* GetLastChildElem() const { return m_pLastChild; }
 
-    EckInline constexpr int GetDpiValue() const { return m_iDpi; }
-    EckInline constexpr int GetUserDpiValue() const { return m_iUserDpi; }
+    EckInlineNdCe int GetDpiValue() const { return m_iDpi; }
+    EckInlineNdCe int GetUserDpi() const { return m_iUserDpi; }
     void SetUserDpi(int iDpi)
     {
         ECK_DUILOCKWND;
@@ -1882,61 +1880,59 @@ public:
         }
     }
 
-    EckInline constexpr int Phy2Log(int i) const { return i * 96 / m_iUserDpi; }
-    EckInline constexpr float Phy2LogF(float i) const { return i * 96.f / m_iUserDpi; }
-    EckInline constexpr int Log2Phy(int i) const { return i * m_iUserDpi / 96; }
-    EckInline constexpr float Log2PhyF(float i) const { return i * m_iUserDpi / 96.f; }
+    EckInlineNdCe int Phy2Log(int i) const { return i * 96 / m_iUserDpi; }
+    EckInlineNdCe float Phy2LogF(float i) const { return i * 96.f / m_iUserDpi; }
+    EckInlineNdCe int Log2Phy(int i) const { return i * m_iUserDpi / 96; }
+    EckInlineNdCe float Log2PhyF(float i) const { return i * m_iUserDpi / 96.f; }
 
-    EckInline constexpr void Phy2Log(_Inout_ POINT& pt) const
+    EckInlineCe void Phy2Log(_Inout_ POINT& pt) const
     {
         pt.x = Phy2Log(pt.x);
         pt.y = Phy2Log(pt.y);
     }
-    EckInline constexpr void Phy2Log(_Inout_ RECT& rc) const
+    EckInlineCe void Phy2Log(_Inout_ RECT& rc) const
     {
         rc.left = Phy2Log(rc.left);
         rc.top = Phy2Log(rc.top);
         rc.right = Phy2Log(rc.right);
         rc.bottom = Phy2Log(rc.bottom);
     }
-    EckInline constexpr void Phy2Log(_Inout_ D2D1_POINT_2F& pt) const
+    EckInlineCe void Phy2Log(_Inout_ D2D1_POINT_2F& pt) const
     {
         pt.x = Phy2LogF(pt.x);
         pt.y = Phy2LogF(pt.y);
     }
-    EckInline constexpr void Phy2Log(_Inout_ D2D1_RECT_F& rc) const
+    EckInlineCe void Phy2Log(_Inout_ D2D1_RECT_F& rc) const
     {
         rc.left = Phy2LogF(rc.left);
         rc.top = Phy2LogF(rc.top);
         rc.right = Phy2LogF(rc.right);
         rc.bottom = Phy2LogF(rc.bottom);
     }
-    EckInline constexpr void Log2Phy(_Inout_ POINT& pt) const
+    EckInlineCe void Log2Phy(_Inout_ POINT& pt) const
     {
         pt.x = Log2Phy(pt.x);
         pt.y = Log2Phy(pt.y);
     }
-    EckInline constexpr void Log2Phy(_Inout_ RECT& rc) const
+    EckInlineCe void Log2Phy(_Inout_ RECT& rc) const
     {
         rc.left = Log2Phy(rc.left);
         rc.top = Log2Phy(rc.top);
         rc.right = Log2Phy(rc.right);
         rc.bottom = Log2Phy(rc.bottom);
     }
-    EckInline constexpr void Log2Phy(_Inout_ D2D1_POINT_2F& pt) const
+    EckInlineCe void Log2Phy(_Inout_ D2D1_POINT_2F& pt) const
     {
         pt.x = Log2PhyF(pt.x);
         pt.y = Log2PhyF(pt.y);
     }
-    EckInline constexpr void Log2Phy(_Inout_ D2D1_RECT_F& rc) const
+    EckInlineCe void Log2Phy(_Inout_ D2D1_RECT_F& rc) const
     {
         rc.left = Log2PhyF(rc.left);
         rc.top = Log2PhyF(rc.top);
         rc.right = Log2PhyF(rc.right);
         rc.bottom = Log2PhyF(rc.bottom);
     }
-
-    HRESULT EnableDragDrop(BOOL bEnable);
 
     EckInline auto GetStdTheme()
     {
@@ -2001,7 +1997,7 @@ public:
         }
     }
 
-    EckInline constexpr CCriticalSection& GetCriticalSection() { return m_cs; }
+    EckInlineNdCe CCriticalSection& GetCriticalSection() { return m_cs; }
 
     EckInline void WakeRenderThread()
     {
@@ -2255,6 +2251,122 @@ public:
     }
 
     EckInlineNdCe CElem* GetCurrNcHitElem() const noexcept { return m_pCurrNcHitTestElem; }
+
+    HRESULT EnableDragDrop(BOOL bEnable)
+    {
+        ECK_DUILOCKWND;
+        if (!!bEnable == m_bEnableDragDrop)
+            return S_FALSE;
+        m_bEnableDragDrop = !!bEnable;
+        if (bEnable)
+            return RegisterDragDrop(HWnd, this);
+        else
+            return RevokeDragDrop(HWnd);
+    }
+
+    ULONG STDMETHODCALLTYPE AddRef() override { return 1; }
+    ULONG STDMETHODCALLTYPE Release() override { return 1; }
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
+    {
+        if (riid == IID_IUnknown || riid == IID_IDropTarget)
+        {
+            *ppvObject = static_cast<IDropTarget*>(this);
+            return S_OK;
+        }
+        *ppvObject = nullptr;
+        return E_NOINTERFACE;
+    }
+    HRESULT STDMETHODCALLTYPE DragEnter(IDataObject* pDataObj,
+        DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
+    {
+        m_pDataObj = pDataObj;
+        POINT pt0{ pt.x, pt.y };
+        ScreenToClient(HWnd, &pt0);
+        DRAGDROPINFO ddi{ pDataObj,grfKeyState,pt,pdwEffect };
+
+        if (SendMsg(WM_DRAGENTER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
+            return ddi.hr;
+
+        const auto pElem = ElemFromPoint(pt0);
+        EckAssert(!m_pDragDropElem);
+        m_pDragDropElem = pElem;
+
+        if (pElem)
+            return (HRESULT)pElem->CallEvent(WM_DRAGENTER,
+                (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
+        else
+            return S_OK;
+    }
+    HRESULT STDMETHODCALLTYPE DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
+    {
+        POINT pt0{ pt.x, pt.y };
+        ScreenToClient(HWnd, &pt0);
+        DRAGDROPINFO ddi{ nullptr,grfKeyState,pt,pdwEffect };
+
+        if (SendMsg(WM_DRAGOVER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
+            return ddi.hr;
+
+        auto pElem = ElemFromPoint(pt0);
+        const auto pOldElem = m_pDragDropElem;
+        m_pDragDropElem = pElem;
+
+        if (pOldElem != pElem)
+        {
+            if (pOldElem)
+                pOldElem->CallEvent(WM_DRAGLEAVE, 0, 0);
+            if (pElem)
+            {
+                ddi.pDataObj = m_pDataObj.Get();
+                return (HRESULT)pElem->CallEvent(WM_DRAGENTER,
+                    (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
+            }
+        }
+        else if (pElem)
+            return (HRESULT)pElem->CallEvent(WM_DRAGOVER,
+                (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
+        return S_OK;
+    }
+    HRESULT STDMETHODCALLTYPE DragLeave(void)
+    {
+        if (SendMsg(WM_DRAGLEAVE, 0, 0))
+        {
+            EckAssert(!m_pDragDropElem);
+            m_pDataObj = nullptr;
+            return S_OK;
+        }
+        m_pDataObj = nullptr;
+
+        const auto pElem = m_pDragDropElem;
+        if (pElem)
+        {
+            m_pDragDropElem = nullptr;
+            return (HRESULT)pElem->CallEvent(WM_DRAGLEAVE, 0, 0);
+        }
+        else
+            return S_OK;
+    }
+    HRESULT STDMETHODCALLTYPE Drop(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
+    {
+        POINT pt0{ pt.x, pt.y };
+        ScreenToClient(HWnd, &pt0);
+        DRAGDROPINFO ddi{ pDataObj, grfKeyState, pt, pdwEffect };
+
+        if (SendMsg(WM_DROP, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
+        {
+            EckAssert(!m_pDragDropElem);
+            m_pDataObj = nullptr;
+            return S_OK;
+        }
+        m_pDataObj = nullptr;
+
+        auto pElem = ElemFromPoint(pt0);
+        m_pDragDropElem = nullptr;
+        if (pElem)
+            return (HRESULT)pElem->CallEvent(WM_DROP,
+                (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
+        else
+            return S_OK;
+    }
 };
 
 inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
@@ -2671,127 +2783,5 @@ EckInlineCe float CElem::Log2PhyF(float f) const { return GetWnd()->Log2PhyF(f);
 EckInlineCe int CElem::Phy2Log(int i) const { return GetWnd()->Phy2Log(i); }
 EckInlineCe float CElem::Phy2LogF(float f) const { return GetWnd()->Phy2LogF(f); }
 EckInlineCe ID2D1Bitmap1* CElem::GetCacheBitmap() const { return GetWnd()->GetCacheBitmap(); }
-
-class CDuiDropTarget : public CUnknown<CDuiDropTarget, IDropTarget>
-{
-private:
-    CDuiWnd* m_pWnd{};
-public:
-    CDuiDropTarget(CDuiWnd* pWnd) :m_pWnd{ pWnd } {}
-
-    HRESULT STDMETHODCALLTYPE DragEnter(IDataObject* pDataObj,
-        DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
-    {
-        m_pWnd->m_pDataObj = pDataObj;
-        POINT pt0{ pt.x, pt.y };
-        ScreenToClient(m_pWnd->HWnd, &pt0);
-        DRAGDROPINFO ddi{ pDataObj, grfKeyState, pt, pdwEffect };
-
-        if (m_pWnd->SendMsg(WM_DRAGENTER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
-            return ddi.hr;
-
-        auto pElem = m_pWnd->ElemFromPoint(pt0);
-        EckAssert(!m_pWnd->m_pDragDropElem);
-        m_pWnd->m_pDragDropElem = pElem;
-
-        if (pElem)
-            return (HRESULT)pElem->CallEvent(WM_DRAGENTER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
-        else
-            return S_OK;
-    }
-
-    HRESULT STDMETHODCALLTYPE DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
-    {
-        POINT pt0{ pt.x, pt.y };
-        ScreenToClient(m_pWnd->HWnd, &pt0);
-        DRAGDROPINFO ddi{ nullptr,grfKeyState, pt, pdwEffect };
-
-        if (m_pWnd->SendMsg(WM_DRAGOVER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
-            return ddi.hr;
-
-        auto pElem = m_pWnd->ElemFromPoint(pt0);
-        const auto pOldElem = m_pWnd->m_pDragDropElem;
-        m_pWnd->m_pDragDropElem = pElem;
-
-        if (pOldElem != pElem)
-        {
-            if (pOldElem)
-                pOldElem->CallEvent(WM_DRAGLEAVE, 0, 0);
-            if (pElem)
-            {
-                ddi.pDataObj = m_pWnd->m_pDataObj;
-                return (HRESULT)pElem->CallEvent(WM_DRAGENTER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
-            }
-        }
-        else if (pElem)
-            return (HRESULT)pElem->CallEvent(WM_DRAGOVER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
-        return S_OK;
-    }
-
-    HRESULT STDMETHODCALLTYPE DragLeave(void)
-    {
-        if (m_pWnd->SendMsg(WM_DRAGLEAVE, 0, 0))
-        {
-            EckAssert(!m_pWnd->m_pDragDropElem);
-            m_pWnd->m_pDataObj = nullptr;
-            return S_OK;
-        }
-        m_pWnd->m_pDataObj = nullptr;
-
-        const auto pElem = m_pWnd->m_pDragDropElem;
-        if (pElem)
-        {
-            m_pWnd->m_pDragDropElem = nullptr;
-            return (HRESULT)pElem->CallEvent(WM_DRAGLEAVE, 0, 0);
-        }
-        else
-            return S_OK;
-    }
-
-    HRESULT STDMETHODCALLTYPE Drop(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
-    {
-        POINT pt0{ pt.x, pt.y };
-        ScreenToClient(m_pWnd->HWnd, &pt0);
-        DRAGDROPINFO ddi{ pDataObj, grfKeyState, pt, pdwEffect };
-
-        if (m_pWnd->SendMsg(WM_DROP, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
-        {
-            EckAssert(!m_pWnd->m_pDragDropElem);
-            m_pWnd->m_pDataObj = nullptr;
-            return S_OK;
-        }
-        m_pWnd->m_pDataObj = nullptr;
-
-        auto pElem = m_pWnd->ElemFromPoint(pt0);
-        m_pWnd->m_pDragDropElem = nullptr;
-        if (pElem)
-            return (HRESULT)pElem->CallEvent(WM_DROP, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y));
-        else
-            return S_OK;
-    }
-};
-
-inline HRESULT CDuiWnd::EnableDragDrop(BOOL bEnable)
-{
-    if (bEnable)
-    {
-        if (!m_pDropTarget)
-        {
-            m_pDropTarget = new CDuiDropTarget{ this };
-            return RegisterDragDrop(m_hWnd, m_pDropTarget);
-        }
-    }
-    else
-    {
-        if (m_pDropTarget)
-        {
-            const auto hr = RevokeDragDrop(m_hWnd);
-            m_pDropTarget->Release();
-            m_pDropTarget = nullptr;
-            return hr;
-        }
-    }
-    return S_FALSE;
-}
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
