@@ -461,12 +461,11 @@ public:
     EckInlineNdCe auto GetTheme() const { return m_pTheme; }
 
     // 置混合操作
-    void SetCompositor(CCompositor* pCompositor)
+    void SetCompositor(CCompositor* pCompositor, BOOL bAutoMarkParentComp = TRUE)
     {
         ECK_DUILOCK;
         if (m_pCompositor == pCompositor)
             return;
-        CompMarkDirty();
         std::swap(m_pCompositor, pCompositor);
         if (m_pCompositor)
             m_pCompositor->AddRef();
@@ -475,6 +474,17 @@ public:
         CompInvalidateCacheBitmap();
         if (m_pCompositor)
             CompReCalcCompositedRect();
+        if (m_pCompositor)
+        {
+            CompMarkDirty();
+            if (bAutoMarkParentComp)
+                CompMarkChildrenParentComp(TRUE);
+        }
+        else
+        {
+            if (bAutoMarkParentComp)
+                CompMarkChildrenParentComp(FALSE);
+        }
     }
     // 取混合操作
     EckInlineNdCe CCompositor* GetCompositor() const { return m_pCompositor; }
@@ -637,6 +647,20 @@ public:
     {
         if (GetCompositor())
             m_dwStyle |= DESP_COMP_CONTENT_INVALID;
+    }
+
+    void CompMarkChildrenParentComp(BOOL bAdd)
+    {
+        auto pElem = GetFirstChildElem();
+        while (pElem)
+        {
+            if (bAdd)
+                pElem->SetStyle(pElem->GetStyle() | DES_PARENT_COMP);
+            else
+                pElem->SetStyle(pElem->GetStyle() & ~DES_PARENT_COMP);
+            pElem->CompMarkChildrenParentComp(bAdd);
+            pElem = pElem->GetNextElem();
+        }
     }
 #pragma endregion Composite
 };
@@ -1444,8 +1468,9 @@ public:
             if (m_bMouseCaptured)
                 m_pCurrNcHitTestElem = ElemFromPoint(pt);
             const auto pElem = (m_pMouseCaptureElem ? m_pMouseCaptureElem : m_pCurrNcHitTestElem);
-            pElem->ClientToElem(pt);
             if (pElem)
+            {
+                pElem->ClientToElem(pt);
                 if (pElem->CompIsNeedCoordinateTransform())
                 {
                     POINT pt0{ pt };
@@ -1454,6 +1479,7 @@ public:
                 }
                 else
                     pElem->CallEvent(uMsg, wParam, MAKELPARAM(pt.x, pt.y));
+            }
             if (uMsg == WM_MOUSEMOVE)// 移出监听
             {
                 if (m_pHoverElem != m_pCurrNcHitTestElem && !m_bMouseCaptured)
