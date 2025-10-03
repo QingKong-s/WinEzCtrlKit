@@ -212,8 +212,8 @@ public:
 				GetItemRect(m_idxTo, rc2);
 				UnionRect(m_rcLastRedraw, m_rcLastRedraw, rc2);
 			}
-			m_pec1->Begin(0.f, 1.f);
-			m_pec2->Begin(0.f, 1.f);
+			m_pec1->Begin(0.f, 1.f, FALSE);
+			m_pec2->Begin(0.f, 1.f, FALSE);
 			m_pec1->SetCurrTime(0.f);
 			m_pec2->SetCurrTime(0.f);
 			GetWnd()->WakeRenderThread();
