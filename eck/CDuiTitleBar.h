@@ -32,6 +32,15 @@ protected:
 			m_bMaximized = IsZoomed(hWnd);
 		return 0;
 	}
+
+	static constexpr BOOL IsNeedRedraw(DwmWndPart ePart)
+	{
+        return ePart != DwmWndPart::Invalid && ePart != DwmWndPart::Extra;
+	}
+	static constexpr BOOL IsNeedRedraw(DwmWndPart ePartOle, DwmWndPart ePartNew)
+	{
+		return (ePartOle != ePartNew) && (IsNeedRedraw(ePartOle) || IsNeedRedraw(ePartNew));
+	}
 public:
 	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
 	{
@@ -150,8 +159,10 @@ public:
 			ScreenToClient(GetWnd()->HWnd, &pt);
 			ClientToElem(pt);
 			GetWnd()->Phy2Log(pt);
+            const auto idxOld = m_idxPressed;
 			m_idxPressed = HitTest(pt);
-			InvalidateBtnRect();
+			if (IsNeedRedraw(idxOld, m_idxPressed))
+				InvalidateBtnRect();
 		}
 		return 0;
 
@@ -180,10 +191,10 @@ public:
 						GetWnd()->PostMsg(WM_SYSCOMMAND, SC_MINIMIZE, 0);
 						break;
 					}
-
+                const auto idxOld = m_idxPressed;
 				m_idxPressed = DwmWndPart::Invalid;
-
-				InvalidateBtnRect();
+				if (IsNeedRedraw(idxOld, DwmWndPart::Invalid))
+                    InvalidateBtnRect();
 			}
 		}
 		return 0;
@@ -196,7 +207,7 @@ public:
 			GetWnd()->Phy2Log(pt);
 			const auto idxOld = m_idxHot;
 			m_idxHot = HitTest(pt);
-			if (m_idxHot != idxOld)
+			if (IsNeedRedraw(m_idxHot, idxOld))
 				InvalidateBtnRect();
 		}
 		return 0;
@@ -205,8 +216,10 @@ public:
 		{
 			if (m_idxHot != DwmWndPart::Invalid)
 			{
+                const auto idxOld = m_idxHot;
 				m_idxHot = DwmWndPart::Invalid;
-				InvalidateBtnRect();
+				if (IsNeedRedraw(idxOld, DwmWndPart::Invalid))
+					InvalidateBtnRect();
 			}
 		}
 		return 0;
@@ -215,8 +228,10 @@ public:
 		{
 			if (m_idxPressed != DwmWndPart::Invalid)
 			{
+				const auto idxOld = m_idxPressed;
 				m_idxPressed = DwmWndPart::Invalid;
-				InvalidateBtnRect();
+				if (IsNeedRedraw(idxOld, DwmWndPart::Invalid))
+					InvalidateBtnRect();
 			}
 		}
 		return 0;
