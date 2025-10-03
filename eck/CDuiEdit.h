@@ -406,7 +406,7 @@ public:
 				}, (LPARAM)this);
 			constexpr auto uBits = TO_DEFAULTCOLOREMOJI | TO_DISPLAYFONTCOLOR;
 			SetTypographyOptions(uBits, uBits);
-			m_pSrv->TxSetText(m_rsText.Data());
+			m_pSrv->TxSetText(GetText().Data());
 			m_pSrv->OnTxInPlaceActivate(nullptr);
 			m_pSrv->OnTxUIActivate();
 			if (GetWnd()->GetUserDpiValue() != GetDpi(nullptr))

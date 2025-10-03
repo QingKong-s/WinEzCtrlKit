@@ -38,8 +38,8 @@ protected:
 		di.uMask = DIM_TEXT | DIM_IMAGE;
 		di.idxImage = -1;
 		di.idx = nm.idx;
-		m_rsText.Reserve(MAX_PATH);
-		di.pszText = m_rsText.Data();
+		GetText().Reserve(MAX_PATH);
+		di.pszText = GetText().Data();
 		di.cchText = MAX_PATH;
 		GenElemNotify(&di);
 
