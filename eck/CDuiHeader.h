@@ -262,12 +262,12 @@ public:
 		return __super::OnEvent(uMsg, wParam, lParam);
 	}
 
-	void Tick(int iMs)
+	void TlTick(int iMs)
 	{
 
 	}
 
-	BOOL IsValid() { return m_bAnimating; }
+	BOOL TlIsValid() { return m_bAnimating; }
 
 	void InvalidateCache(int idx = -1) noexcept
 	{

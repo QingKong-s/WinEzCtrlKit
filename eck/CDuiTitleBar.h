@@ -54,7 +54,7 @@ public:
 			RECT rc, rcBkg;
 			DWMW_GET_PART_EXTRA Extra;
 			const auto bDarkMode = ShouldAppsUseDarkMode();
-			const auto iUserDpi = GetWnd()->GetUserDpiValue();
+			const auto iUserDpi = GetWnd()->GetUserDpi();
 			const auto dMargin = DpiScaleF(1.f, 96, iUserDpi);
 			const auto eInterMode = (D2D1_INTERPOLATION_MODE)m_eInterMode;
 

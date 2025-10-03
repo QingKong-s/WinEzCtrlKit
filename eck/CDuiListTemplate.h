@@ -1051,7 +1051,7 @@ public:
 		return 0;
 
 		case WM_SETFONT:
-			if (m_Header.IsValid())
+			if (m_Header.TlIsValid())
 				m_Header.SetTextFormat(GetTextFormat());
 			break;
 

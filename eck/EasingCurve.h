@@ -579,7 +579,7 @@ public:
 public:
 	virtual ~CEasingCurve() = default;
 
-	void Tick(int iMs) override
+	void TlTick(int iMs) override
 	{
 		m_iCurrInterval = iMs;
 		EckAssert(m_pfnCallBack);
@@ -590,8 +590,8 @@ public:
 			End();
 	}
 
-	EckInline BOOL IsValid() override { return m_bActive; }
-	EckInline int GetCurrTickInterval() override { return m_iCurrInterval; }
+	EckInline BOOL TlIsValid() override { return m_bActive; }
+	EckInline int TlGetCurrentInterval() override { return m_iCurrInterval; }
 	// 
 	EckInlineCe void SetAnProc(Easing::FAn pfnAn) { m_pfnAn = pfnAn; }
 	EckInlineCe void SetParam(LPARAM lParam) { m_lParam = lParam; }

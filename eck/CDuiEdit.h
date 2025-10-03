@@ -147,7 +147,7 @@ private:
 		// 并使用返回窗口的DPI
 		// 2. 接收WM_USER + 0x148（即0x548），wParam和lParam分别为
 		// X和Y方向的DPI。此消息未公开
-		const auto iDpi = GetWnd()->GetUserDpiValue();
+		const auto iDpi = GetWnd()->GetUserDpi();
 		m_pSrv->TxSendMessage(0x548, iDpi, iDpi, nullptr);
 		const auto pTf = GetTextFormat();
 		if (pTf)
@@ -409,7 +409,7 @@ public:
 			m_pSrv->TxSetText(GetText().Data());
 			m_pSrv->OnTxInPlaceActivate(nullptr);
 			m_pSrv->OnTxUIActivate();
-			if (GetWnd()->GetUserDpiValue() != GetDpi(nullptr))
+			if (GetWnd()->GetUserDpi() != GetDpi(nullptr))
 				OnDpiChanged();
 		}
 		break;

@@ -27,7 +27,7 @@ protected:
 public:
 	virtual ~CInertialScrollView() = default;
 
-	void Tick(int iMs) override
+	void TlTick(int iMs) override
 	{
 		m_iCurrInterval = iMs;
 		const float fPrevPos = GetPos();
@@ -42,8 +42,8 @@ public:
 		if (m_bStop)
 			InterruptAnimation();
 	}
-	EckInline BOOL IsValid() override { return m_bValid; }
-	EckInline int GetCurrTickInterval() override { return m_iCurrInterval; }
+	EckInline BOOL TlIsValid() override { return m_bValid; }
+	EckInline int TlGetCurrentInterval() override { return m_iCurrInterval; }
 	// 
 	EckInline void OnMouseWheel2(int iWheelDelta) { SmoothScrollDelta(m_fDelta * iWheelDelta); }
 
