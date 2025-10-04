@@ -357,7 +357,7 @@ public:
     }
 #pragma endregion ElemTree
 #pragma region OthersProp
-    // 置标题【不能在渲染线程调用】
+    // 【不能在渲染线程调用】
     EckInline void SetText(PCWSTR pszText, int cchText = -1)
     {
         if (cchText < 0)
@@ -366,12 +366,10 @@ public:
         if (!CallEvent(WM_SETTEXT, cchText, (LPARAM)pszText))
             m_rsText.DupString(pszText, cchText);
     }
-    // 取标题
     EckInlineNdCe const CRefStrW& GetText() const { return m_rsText; }
 protected:
     EckInlineNdCe CRefStrW& GetText() { return m_rsText; }
 public:
-    // 置样式
     void SetStyle(DWORD dwStyle)
     {
         ECK_DUILOCK;
@@ -379,10 +377,8 @@ public:
         tcSetStyleWorker(dwStyle);
         CallEvent(WM_STYLECHANGED, dwOldStyle, m_dwStyle);
     }
-    // 取样式
     EckInlineNdCe DWORD GetStyle() const { return m_dwStyle; }
 
-    // 置可见性
     void SetVisible(BOOL b)
     {
         ECK_DUILOCK;
@@ -413,10 +409,8 @@ public:
         return TRUE;
     }
 
-    // 置Z序
     void SetZOrder(CElem* pElemAfter);
 
-    // 启用/禁用重绘
     EckInline void SetRedraw(BOOL bRedraw)
     {
         if (bRedraw)
@@ -424,10 +418,9 @@ public:
         else
             SetStyle(GetStyle() | DES_NO_REDRAW);
     }
-    // 是否允许重绘
     EckInlineNdCe BOOL GetRedraw() const { return !(GetStyle() & DES_NO_REDRAW); }
 
-    // 置文本格式【不能在渲染线程调用】
+    // 【不能在渲染线程调用】
     EckInline void SetTextFormat(IDWriteTextFormat* pTf)
     {
         ECK_DUILOCK;
@@ -438,15 +431,13 @@ public:
             pTf->Release();
         CallEvent(WM_SETFONT, 0, 0);
     }
-    // 取文本格式
     EckInlineNdCe IDWriteTextFormat* GetTextFormat() const { return m_pTextFormat; }
 
-    // 置元素ID【不能在渲染线程调用】
+    // 【不能在渲染线程调用】
     EckInline constexpr void SetID(INT_PTR iId) { m_iId = iId; }
-    // 取元素ID
     EckInlineNdCe INT_PTR GetID() const { return m_iId; }
 
-    // 置主题【不能在渲染线程调用】
+    // 【不能在渲染线程调用】
     EckInline void SetTheme(ITheme* pTheme)
     {
         ECK_DUILOCK;
@@ -457,10 +448,8 @@ public:
             pTheme->Release();
         CallEvent(WM_THEMECHANGED, 0, 0);
     }
-    // 取主题
     EckInlineNdCe auto GetTheme() const { return m_pTheme; }
 
-    // 置混合操作
     void SetCompositor(CCompositor* pCompositor, BOOL bAutoMarkParentComp = TRUE)
     {
         ECK_DUILOCK;
@@ -486,7 +475,6 @@ public:
                 CompMarkChildrenParentComp(FALSE);
         }
     }
-    // 取混合操作
     EckInlineNdCe CCompositor* GetCompositor() const { return m_pCompositor; }
 #pragma endregion OthersProp
 #pragma region ElemFunc
@@ -521,17 +509,17 @@ public:
         m_pDC->PopAxisAlignedClip();
     }
 
-    // 捕获鼠标【不能在渲染线程调用】
+    // 【不能在渲染线程调用】
     EckInline CElem* SetCapture();
-    // 释放鼠标【不能在渲染线程调用】
+    // 【不能在渲染线程调用】
     EckInline void ReleaseCapture();
 
-    // 置焦点【不能在渲染线程调用】
+    // 【不能在渲染线程调用】
     EckInline void SetFocus();
 
-    // 安装定时器【不能在渲染线程调用】
+    // 【不能在渲染线程调用】
     EckInline BOOL SetTimer(UINT_PTR uId, UINT uElapse);
-    // 销毁定时器【不能在渲染线程调用】
+    // 【不能在渲染线程调用】
     EckInline BOOL KillTimer(UINT_PTR uId);
 
     EckInlineNdCe BOOL IsValid() const { return !!GetWnd(); }
@@ -690,7 +678,7 @@ private:
     CEvent m_EvtRender{};	// 渲染线程事件对象
     HANDLE m_hthRender{};	// 渲染线程句柄
 
-    std::vector<ITimeLine*> m_vTimeLine{};	// 时间线
+    std::vector<ITimeLine*> m_vTimeLine{};
     std::vector<TIMER> m_vTimer{};      // 需要定时器的元素
     //------拖放------
     CElem* m_pDragDropElem{};           // 当前拖放元素
@@ -718,10 +706,10 @@ private:
         HANDLE m_hEvtSwapChain;                 // 交换链事件对象
     };
 
-    ID2D1Bitmap1* m_pBmpCache{};	// 缓存位图
+    ID2D1Bitmap1* m_pBmpCache{};
     int m_cxCache{}, m_cyCache{};
 
-    std::vector<CThemeRealization*> m_vTheme{};		// 主题列表
+    std::vector<CThemeRealization*> m_vTheme{};
 
     ID2D1Effect* m_pFxBlur{};   // 缓存模糊效果
     ID2D1Effect* m_pFxCrop{};   // 缓存裁剪效果
@@ -729,9 +717,9 @@ private:
     int m_cxClient{}, m_cyClient{};
     float m_cxClientLog{}, m_cyClientLog{};
     int m_cChildren{};		    // 子元素数量，UIAccessible使用
-    float m_fBlurDeviation{ 15.f };			// 高斯模糊标准差
+    float m_fBlurDeviation{ 15.f };
 
-    PresentMode m_ePresentMode{ PresentMode::FlipSwapChain };	// 呈现模式
+    PresentMode m_ePresentMode{ PresentMode::FlipSwapChain };
 
     BITBOOL m_bMouseCaptured : 1{};         // 鼠标是否被捕获
     BITBOOL m_bTransparent : 1{};           // 窗口是透明的
@@ -742,7 +730,7 @@ private:
     BITBOOL m_bBlurUseLayer : 1{};          // 模糊是否使用图层
     BITBOOL m_bEnableDragDrop : 1{};        // 启用拖放
 #ifdef _DEBUG
-    BITBOOL m_bDrawDirtyRect : 1 = FALSE;   // 是否绘制脏矩形
+    BITBOOL m_bDrawDirtyRect : 1{};         // 是否绘制脏矩形
 #endif
 
     BYTE m_eAlphaMode{ D2D1_ALPHA_MODE_IGNORE };		// 缓存D2D透明模式
@@ -1742,7 +1730,7 @@ public:
             }
             m_pFirstChild = m_pLastChild = nullptr;
             m_pFocusElem = m_pCurrNcHitTestElem = nullptr;
-            // 销毁图形堆栈
+
             m_D2D.Destroy();
             SafeReleaseAssert0(m_pBmpCache);
             SafeReleaseAssert0(m_pBrBkg);
@@ -1791,10 +1779,7 @@ public:
         return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
     }
 
-    virtual LRESULT OnElemEvent(CElem* pElem, UINT uMsg, WPARAM wParam, LPARAM lParam)
-    {
-        return 0;
-    }
+    virtual LRESULT OnElemEvent(CElem* pElem, UINT uMsg, WPARAM wParam, LPARAM lParam) { return 0; }
 
     virtual LRESULT OnRenderEvent(UINT uMsg, RENDER_EVENT& e)
     {
@@ -2770,8 +2755,7 @@ inline HRESULT CElem::CompUpdateCacheBitmap(float cx, float cy)
             ccbi.cxPhy = cxPhy;
             ccbi.cyPhy = cyPhy;
             ccbi.hr = E_NOTIMPL;
-            const auto pNotifyElem = GetParentElem() ?
-                GetParentElem() : this;
+            const auto pNotifyElem = GetParentElem() ? GetParentElem() : this;
             if (pNotifyElem->CallEvent(
                 EWM_CREATE_CACHE_BITMAP, (WPARAM)&ccbi, 0))
                 m_pCompCacheSurface = ccbi.pCacheSurface;

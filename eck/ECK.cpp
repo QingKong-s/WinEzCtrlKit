@@ -215,6 +215,30 @@ s_WndClassInfo[]
 #pragma endregion Wnds
 
 #pragma region UxFixer
+/*
+NOTE 251004
+2025年9月29日的更新KB5065789增加了DarkTheme子类，
+所有新增样式以DarkMode_DarkTheme开头，大致的测试结果如下：
+- Button、ComboBox：边框较先前（ComboBox较CFD）更浅
+- Edit：含DLGFRAME样式的下边框被调亮
+- Header：偏蓝色
+- Link、ScrollBar、Spin：未变
+- ListBox：为新增样式，暂空
+- ListView：组相关修改
+- Progress、Rebar、Status、ToolBar、ToolTip：未详细测试，似乎暗色支持已较好
+- Tab：改为单线边框
+- TaskDialog：部分部件（包括文本样式）仍然不支持暗色
+- TreeView：未详细测试，加减号未变，项目为奇怪的浅蓝色
+列表中不存在的项目均未新增对应DarkTheme样式
+
+除上面提到的资源更新外，文件对话框的暗色处理方式似乎也已修改，导致先前的HOOK不兼容，
+此问题已在d2b969522706de66bc7937bcbec4b6e43103416e的提交中修正（10月2日）。
+本次重新测试ToolBar暗色，DarkMode_XxxBBComposited的扩展按钮高度似乎存在问题，
+因此暂时维持当前方案。
+总体而言暂时没有必要移动到新的主题上，待后续新的DarkTheme完善后再做调整。
+届时需要将ToolBar从需设置主题的控件类列表中移除。
+*/
+
 // 未在SDK中定义的部件和状态代码
 enum
 {
@@ -1305,6 +1329,18 @@ static HRESULT UxfpDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* pt
     return E_NOTIMPL;
 }
 
+static PCWSTR UxfpFixupClassList(PCWSTR pszClassList)
+{
+    if (TcsEqualI(pszClassList, L"Combobox"))
+        return L"DarkMode_CFD::Combobox";
+    else if (TcsEqualI(pszClassList, L"Edit"))
+        return L"DarkMode_CFD::Edit";
+    else if (UxfpIsDarkTaskDialogAvailable() &&
+        EckIsStartWithConstStringIW(pszClassList, L"TaskDialog"))
+        return L"DarkMode_Explorer::TaskDialog";
+    else
+        return pszClassList;
+}
 
 // 某些控件使用此函数填充背景，仅父窗口实现WM_ERASEBKGND时成功，这里追加未实现的处理
 static HRESULT WINAPI NewDrawThemeParentBackground(HWND hWnd, HDC hDC, const RECT* prc)
@@ -1343,21 +1379,9 @@ static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
     const auto* const ptc = GetThreadCtx();
     if (!ptc || !ptc->bEnableDarkModeHook)
         return s_pfnOpenThemeData(hWnd, pszClassList);
-    HTHEME hTheme;
     if (ShouldAppsUseDarkMode())
-    {
-        if (TcsEqualI(pszClassList, L"Combobox"))
-            hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Combobox");
-        else if (TcsEqualI(pszClassList, L"Edit"))
-            hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_CFD::Edit");
-        else if (UxfpIsDarkTaskDialogAvailable() &&
-            EckIsStartWithConstStringIW(pszClassList, L"TaskDialog"))
-            hTheme = s_pfnOpenThemeData(hWnd, L"DarkMode_Explorer::TaskDialog");
-        else
-            hTheme = s_pfnOpenThemeData(hWnd, pszClassList);
-    }
-    else
-        hTheme = s_pfnOpenThemeData(hWnd, pszClassList);
+        pszClassList = UxfpFixupClassList(pszClassList);
+    const auto hTheme = s_pfnOpenThemeData(hWnd, pszClassList);
     UxfpOnThemeOpen(hWnd, hTheme, pszClassList);
     return hTheme;
 }
@@ -1367,21 +1391,9 @@ static HTHEME WINAPI NewOpenThemeDataForDpi(HWND hWnd, PCWSTR pszClassList, UINT
     const auto* const ptc = GetThreadCtx();
     if (!ptc || !ptc->bEnableDarkModeHook)
         return s_pfnOpenThemeData(hWnd, pszClassList);
-    HTHEME hTheme;
     if (ShouldAppsUseDarkMode())
-    {
-        if (TcsEqualI(pszClassList, L"Combobox"))
-            hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_CFD::Combobox", uDpi);
-        else if (TcsEqualI(pszClassList, L"Edit"))
-            hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_CFD::Edit", uDpi);
-        else if (UxfpIsDarkTaskDialogAvailable() &&
-            EckIsStartWithConstStringIW(pszClassList, L"TaskDialog"))
-            hTheme = s_pfnOpenThemeDataForDpi(hWnd, L"DarkMode_Explorer::TaskDialog", uDpi);
-        else
-            hTheme = s_pfnOpenThemeDataForDpi(hWnd, pszClassList, uDpi);
-    }
-    else
-        hTheme = s_pfnOpenThemeDataForDpi(hWnd, pszClassList, uDpi);
+        pszClassList = UxfpFixupClassList(pszClassList);
+    const auto hTheme = s_pfnOpenThemeDataForDpi(hWnd, pszClassList, uDpi);
     UxfpOnThemeOpen(hWnd, hTheme, pszClassList);
     return hTheme;
 }
