@@ -30,8 +30,8 @@ private:
 		const auto fRad = std::min(GetWidthF(), GetHeightF()) / 2.f;
 		const D2D1_POINT_2F ptCenter
 		{
-			GetRectInClientF().left + fRad,
-			GetRectInClientF().top + fRad
+			GetOffsetInClientF().x + fRad,
+			GetOffsetInClientF().y + fRad
 		};
 		return PtInCircle(MakeD2DPointF( ptInClient), ptCenter, fRad);
 	}
