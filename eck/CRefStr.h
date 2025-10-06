@@ -260,13 +260,7 @@ public:
     EckInlineNdCe TPointer Data() noexcept { return IsLocal() ? m_szLocal : m_pszText; }
     EckInlineNdCe TConstPointer Data() const noexcept { return IsLocal() ? m_szLocal : m_pszText; }
 
-    /// <summary>
-    /// 克隆字符串。
-    /// 将指定字符串复制到自身
-    /// </summary>
-    /// <param name="pszSrc">字符串指针</param>
-    /// <param name="cchSrc">字符串长度</param>
-    /// <returns>实际复制的字符数</returns>
+    // 返回实际复制的字符数
     int DupString(TConstPointer pszSrc, int cchSrc = -1)
     {
         EckAssert(pszSrc ? TRUE : cchSrc == 0);
@@ -386,12 +380,6 @@ public:
         }
     }
 
-    /// <summary>
-    /// 尾插
-    /// </summary>
-    /// <param name="pszSrc">字符串指针</param>
-    /// <param name="cchSrc">字符串长度</param>
-    /// <returns>实际复制的字符数</returns>
     CRefStrT& PushBack(TConstPointer pszSrc, int cchSrc = -1)
     {
         if (!pszSrc)
@@ -473,10 +461,6 @@ public:
         return *this;
     }
 
-    /// <summary>
-    /// 尾删
-    /// </summary>
-    /// <param name="cch">删除长度</param>
     EckInline CRefStrT& PopBack(int cch = 1)
     {
         EckAssert(Size() >= cch && cch >= 0);
@@ -487,12 +471,7 @@ public:
         return *this;
     }
 
-    /// <summary>
-    /// 复制到
-    /// </summary>
-    /// <param name="pszDst">目的字符串指针</param>
-    /// <param name="cch">字符数</param>
-    /// <returns>实际复制的字符数</returns>
+    // 返回实际复制的字符数
     EckInline int CopyTo(TPointer pszDst, int cch = -1) const
     {
         if (cch < 0 || cch > Size())
@@ -521,16 +500,8 @@ private:
         m_cchCapacity = cch;
     }
 public:
-    /// <summary>
-    /// 保留内存
-    /// </summary>
-    /// <param name="cch">字符数</param>
     EckInline void Reserve(int cch) { ReserveReal(cch + 1); }
 
-    /// <summary>
-    /// 重置尺寸
-    /// </summary>
-    /// <param name="cch">字符数</param>
     void ReSize(int cch)
     {
         EckAssert(cch >= 0);
@@ -548,10 +519,6 @@ public:
         TCharTraits::Cut(Data(), cch);
     }
 
-    /// <summary>
-    /// 重新计算字符串长度
-    /// </summary>
-    /// <returns>长度</returns>
     EckInline int ReCalcLen()
     {
         return m_cchText = (int)TcsLen(Data());
@@ -1453,15 +1420,8 @@ EckInline void DbgPrint(const CRefStrT<CHAR, TCharTraits, TAlloc>& rs, int iType
 
 namespace Literals
 {
-    EckInline auto operator""_rs(PCWSTR psz, size_t cch)
-    {
-        return CRefStrW(psz, (int)cch);
-    }
-
-    EckInline auto operator""_rs(PCSTR psz, size_t cch)
-    {
-        return CRefStrA(psz, (int)cch);
-    }
+    EckInline auto operator""_rs(PCWSTR psz, size_t cch) { return CRefStrW(psz, (int)cch); }
+    EckInline auto operator""_rs(PCSTR psz, size_t cch) { return CRefStrA(psz, (int)cch); }
 }
 
 [[nodiscard]] EckInline void ToFullWidth(CRefStrW& rs, PCWSTR pszText, int cchText = -1)

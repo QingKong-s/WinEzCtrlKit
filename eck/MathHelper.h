@@ -4,14 +4,11 @@
 #include <DirectXMath.h>
 
 ECK_NAMESPACE_BEGIN
-// 角度转弧度
 template<class TVal>
 EckInline constexpr TVal Deg2Rad(TVal fDeg)
 {
     return fDeg * (TVal)Pi / (TVal)180.;
 }
-
-// 弧度转角度
 template<class TVal>
 EckInline constexpr TVal Rad2Deg(TVal fRad)
 {
@@ -29,7 +26,6 @@ EckInline constexpr TVal DegIn0To360(TVal fDeg)
         return fDeg;
 }
 
-// 计算圆上一点
 template<class TVal = int>
 EckInline void CalcPointFromCircleAngle(TVal r, float fAngle,
     _Out_ TVal& xRet, _Out_ TVal& yRet)
@@ -58,8 +54,7 @@ EckInline void CalcPointFromLineScalePos(TVal x1, TVal y1, TVal x2, TVal y2,
     y = (TVal)(y1 - (y1 - y2) * fScale);
 }
 
-// 从角度计算椭圆上一段弧的端点。
-// 计算结果可供Arc、Chord函数等使用
+// 从角度计算椭圆上一段弧的端点
 template<class TVal = int>
 EckInline void CalcArcFromEllipseAngle(HDC hDC, TVal x, TVal y, TVal xr, TVal yr,
     float fStartAngle, float fSweepAngle,
@@ -261,7 +256,7 @@ EckInline void CalcInverseDistortMatrix(const D2D1_RECT_F& rc,
 }
 
 // D2D取矩阵对称
-EckInline D2D1::Matrix3x2F D2dMatrixReflection(float A, float B, float C)
+EckInline D2D1::Matrix3x2F D2DMatrixReflection(float A, float B, float C)
 {
     const float t = A * A + B * B;
     const float u = -2.f * A * B / t;
@@ -272,7 +267,7 @@ EckInline D2D1::Matrix3x2F D2dMatrixReflection(float A, float B, float C)
 }
 
 // XFORM取矩阵平移
-EckInline constexpr XFORM XFORMTranslate(float dx, float dy)
+EckInline constexpr XFORM XFormTranslate(float dx, float dy)
 {
     return
     {
@@ -286,7 +281,7 @@ EckInline constexpr XFORM XFORMTranslate(float dx, float dy)
 }
 
 // XFORM取矩阵旋转
-EckInline XFORM XFORMRotate(float fAngle)
+EckInline XFORM XFormRotate(float fAngle)
 {
     return
     {
@@ -300,7 +295,7 @@ EckInline XFORM XFORMRotate(float fAngle)
 }
 
 // XFORM取矩阵旋转
-EckInline XFORM XFORMRotate(float fAngle, float x, float y)
+EckInline XFORM XFormRotate(float fAngle, float x, float y)
 {
     /*
     |1   0   0|   |m11 m12 0|   |1   0   0|   |m11                m12                0|
@@ -320,7 +315,7 @@ EckInline XFORM XFORMRotate(float fAngle, float x, float y)
 }
 
 // XFORM取矩阵缩放
-EckInline constexpr XFORM XFORMScale(float xScale, float yScale)
+EckInline constexpr XFORM XFormScale(float xScale, float yScale)
 {
     return
     {
@@ -334,7 +329,7 @@ EckInline constexpr XFORM XFORMScale(float xScale, float yScale)
 }
 
 // XFORM取矩阵缩放
-EckInline constexpr XFORM XFORMScale(float xScale, float yScale, float x, float y)
+EckInline constexpr XFORM XFormScale(float xScale, float yScale, float x, float y)
 {
     return
     {
@@ -348,7 +343,7 @@ EckInline constexpr XFORM XFORMScale(float xScale, float yScale, float x, float 
 }
 
 // XFORM取矩阵错切
-EckInline constexpr XFORM XFORMShear(float xFactor, float yFactor)
+EckInline constexpr XFORM XFormShear(float xFactor, float yFactor)
 {
     return
     {
@@ -362,7 +357,7 @@ EckInline constexpr XFORM XFORMShear(float xFactor, float yFactor)
 }
 
 // XFORM取矩阵错切
-EckInline constexpr XFORM XFORMShear(float xFactor, float yFactor, float x, float y)
+EckInline constexpr XFORM XFormShear(float xFactor, float yFactor, float x, float y)
 {
     return
     {
@@ -376,7 +371,7 @@ EckInline constexpr XFORM XFORMShear(float xFactor, float yFactor, float x, floa
 }
 
 // XFORM取矩阵对称
-EckInline constexpr XFORM XFORMReflection(float A, float B, float C)
+EckInline constexpr XFORM XFormReflection(float A, float B, float C)
 {
     const float t = A * A + B * B;
     const float u = -2.f * A * B / t;
@@ -422,7 +417,7 @@ inline void CalcBezierControlPoints(std::vector<TPt>& vPt,
         const auto [x01, y01] = ptMid;
         CalcPointFromLineScalePos<TVal>(x1, y1, x00, y00, K, xMid1, yMid1);
         CalcPointFromLineScalePos<TVal>(x1, y1, x01, y01, K, xMid2, yMid2);
-        CalcPointFromLineScalePos<TVal>(x00, y00, x01, y01, 
+        CalcPointFromLineScalePos<TVal>(x00, y00, x01, y01,
             (float)iLineLenLast / (float)(iLineLen + iLineLenLast), dx, dy);
         dx = x1 - dx;
         dy = y1 - dy;

@@ -216,7 +216,9 @@ public:
     /// <summary>
     /// 拆离指针
     /// </summary>
-    /// <returns></returns>
+    /// <param name="cbCapacity">容量</param>
+    /// <param name="cb">长度</param>
+    /// <returns>指针，必须通过与当前分配器相等的分配器解分配</returns>
     [[nodiscard]] EckInline BYTE* Detach(size_t& cbCapacity, size_t& cb)
     {
         const auto pTemp = m_pStream;
@@ -230,12 +232,6 @@ public:
         return pTemp;
     }
 
-    /// <summary>
-    /// 复制到
-    /// </summary>
-    /// <param name="pDst">目标指针</param>
-    /// <param name="cbMax">最大长度，若过大则自动缩减</param>
-    /// <returns>复制的长度</returns>
     EckInline size_t CopyTo(void* pDst, size_t cbMax) const
     {
         if (cbMax > m_cb)
@@ -244,15 +240,10 @@ public:
         return cbMax;
     }
 
-    /// <summary>
-    /// 保留内存
-    /// </summary>
-    /// <param name="cb">尺寸</param>
     EckInline void Reserve(size_t cb)
     {
         if (m_cbCapacity >= cb)
             return;
-
         const auto pOld = m_pStream;
         m_pStream = m_Alloc.allocate(cb);
         if (pOld)
@@ -260,7 +251,6 @@ public:
             memcpy(Data(), pOld, Size());
             m_Alloc.deallocate(pOld, m_cbCapacity);
         }
-
         m_cbCapacity = cb;
     }
 
