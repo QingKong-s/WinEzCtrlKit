@@ -3,11 +3,6 @@
 #include "IMem.h"
 
 ECK_NAMESPACE_BEGIN
-/// <summary>
-/// 字节集流。
-/// CRefBinT的IStream实现。
-/// 非线程安全
-/// </summary>
 template<class TAlloc>
 class CRefBinStreamT :public IStream, public IMem
 {

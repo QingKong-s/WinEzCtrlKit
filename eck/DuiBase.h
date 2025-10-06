@@ -732,17 +732,18 @@ private:
 
     PresentMode m_ePresentMode{ PresentMode::FlipSwapChain };
 
-    BITBOOL m_bMouseCaptured : 1{};         // 鼠标是否被捕获
-    BITBOOL m_bTransparent : 1{};           // 窗口是透明的
-    BITBOOL m_bRenderThreadShouldExit : 1{};// 渲染线程应当退出
-    BITBOOL m_bSizeChanged : 1{};           // 渲染线程应当重设图面大小
-    BITBOOL m_bUserDpiChanged : 1{};        // 渲染线程应当重设DPI
-    BITBOOL m_bFullUpdate : 1{ TRUE };      // 当前是否需要完全重绘
-    BITBOOL m_bBlurUseLayer : 1{};          // 模糊是否使用图层
-    BITBOOL m_bEnableDragDrop : 1{};        // 启用拖放
 #ifdef _DEBUG
-    BITBOOL m_bDrawDirtyRect : 1{};         // 是否绘制脏矩形
+    BITBOOL m_bDrawDirtyRect : 1{};     // 是否绘制脏矩形
 #endif
+    BITBOOL m_bEnableDragDrop : 1{};    // 启用拖放
+    BITBOOL m_bBlurUseLayer : 1{};      // 模糊是否使用图层
+    BITBOOL m_bTransparent : 1{};       // 窗口是透明的
+
+    BITBOOL m_bMouseCaptured : 1{};     // 鼠标是否被捕获
+    BITBOOL m_bExit : 1{};              // 渲染线程应当退出
+    BITBOOL m_bSizeChanged : 1{};       // 渲染线程应当重设图面大小
+    BITBOOL m_bUserDpiChanged : 1{};    // 渲染线程应当重设DPI
+    BITBOOL m_bFullUpdate : 1{ TRUE };  // 当前是否需要完全重绘
 
     BYTE m_eAlphaMode{ D2D1_ALPHA_MODE_IGNORE };		// 缓存D2D透明模式
     BYTE m_eDxgiAlphaMode{ DXGI_ALPHA_MODE_IGNORE };	// 缓存DXGI透明模式
@@ -773,7 +774,7 @@ private:
         }
     }
 
-    void BlurDrawStyleBkg(CElem* pElem, const D2D1_RECT_F& rcClipInClient,
+    void BlurpDrawStyleBkg(CElem* pElem, const D2D1_RECT_F& rcClipInClient,
         float ox, float oy)
     {
         EckAssert(pElem->GetStyle() & DES_BLURBKG);
@@ -797,7 +798,7 @@ private:
     /// <param name="oy">用于DComp图面的Y偏移</param>
     /// <param name="oxComp">用于手动混合元素子级的X偏移</param>
     /// <param name="oyComp">用于手动混合元素子级的Y偏移</param>
-    void RedrawElem(CElem* pElem, const D2D1_RECT_F& rc, float ox, float oy,
+    void RdRenderTree(CElem* pElem, const D2D1_RECT_F& rc, float ox, float oy,
         BOOL bCompParent = FALSE, float oxComp = 0.f, float oyComp = 0.f)
     {
         const auto pDC = GetDeviceContext();
@@ -821,7 +822,7 @@ private:
             else if (!IntersectRect(rcClip, rcElem, rc))
                 goto NextElem;
 
-            if (pElem->GetCompositor())// 手动合成
+            if (pElem->GetCompositor())
             {
                 cri.pElem = pElem;
                 cri.pDC = GetDeviceContext();
@@ -856,7 +857,7 @@ private:
                     }
                 }
             }
-            else// 直接渲染
+            else
             {
                 pDC->SetTransform(D2D1::Matrix3x2F::Translation(
                     pElem->GetOffsetInClientF().x + ox + oxComp,
@@ -866,10 +867,10 @@ private:
             if (pElem->GetCompositor())
             {
                 if (dwStyle & DES_COMP_NO_REDIRECTION)
-                    RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
+                    RdRenderTree(pElem->GetFirstChildElem(), rcClip, ox, oy);
                 else
                 {
-                    RedrawElem(pElem->GetFirstChildElem(), rcClip, 0.f, 0.f,
+                    RdRenderTree(pElem->GetFirstChildElem(), rcClip, 0.f, 0.f,
                         TRUE, oxComp - rcElem.left, oyComp - rcElem.top);
                     pDC->Flush();
                     pDC->SetTarget(pOldTarget);
@@ -897,7 +898,7 @@ private:
                 {
                     D2D1_RECT_F rc0{ pElem->m_rcRealCompInClient };
                     IntersectRect(rc0, rc0, rc);
-                    BlurDrawStyleBkg(pElem, rc0, ox, oy);
+                    BlurpDrawStyleBkg(pElem, rc0, ox, oy);
                 }
                 pElem->GetCompositor()->PostRender(cri);
                 pDC->PopAxisAlignedClip();
@@ -924,17 +925,16 @@ private:
             else
             {
                 if (bCompParent)
-                    RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy,
+                    RdRenderTree(pElem->GetFirstChildElem(), rcClip, ox, oy,
                         TRUE, oxComp, oyComp);
                 else
-                    RedrawElem(pElem->GetFirstChildElem(), rcClip, ox, oy);
+                    RdRenderTree(pElem->GetFirstChildElem(), rcClip, ox, oy);
             }
         NextElem:
             pElem = pElem->GetNextElem();
         }
     }
-
-    void RedrawDui_DComp(const D2D1_RECT_F& rc, BOOL bFullUpdate = FALSE)
+    void RdRender_DComp(const D2D1_RECT_F& rc, BOOL bFullUpdate = FALSE)
     {
         EckAssert(GetPresentMode() == PresentMode::DCompositionSurface ||
             GetPresentMode() == PresentMode::DCompositionVisual);
@@ -1023,11 +1023,11 @@ private:
                 Phy2LogF((float)rcNewPhy.left),
                 Phy2LogF((float)rcNewPhy.top)
             };
-            RedrawElem(GetFirstChildElem(), rcFinalF,
+            RdRenderTree(GetFirstChildElem(), rcFinalF,
                 ptOrgLogF.x - rc.left, ptOrgLogF.y - rc.top);
         }
         else
-            RedrawElem(GetFirstChildElem(), rcFinalF,
+            RdRenderTree(GetFirstChildElem(), rcFinalF,
                 ptLogOffsetFinalF.x, ptLogOffsetFinalF.y);
 
 #ifdef _DEBUG
@@ -1052,13 +1052,7 @@ private:
         else
             m_pDcDevice->Commit();
     }
-
-    /// <summary>
-    /// 重画DUI
-    /// </summary>
-    /// <param name="rc">重画区域，逻辑坐标</param>
-    /// <param name="bFullUpdate">是否全更新</param>
-    void RedrawDui(const D2D1_RECT_F& rc, BOOL bFullUpdate = FALSE, RECT* prcPhy = nullptr)
+    void RdRender(const D2D1_RECT_F& rc, BOOL bFullUpdate = FALSE, RECT* prcPhy = nullptr)
     {
         const auto pDC = GetDeviceContext();
         switch (m_ePresentMode)
@@ -1100,7 +1094,7 @@ private:
                 }
             }
 
-            RedrawElem(GetFirstChildElem(), rcF, 0.f, 0.f);
+            RdRenderTree(GetFirstChildElem(), rcF, 0.f, 0.f);
             if (m_ePresentMode == PresentMode::UpdateLayeredWindow)
             {
                 HDC hDC;
@@ -1140,27 +1134,26 @@ private:
         return;
         case PresentMode::DCompositionSurface:
         case PresentMode::DCompositionVisual:
-            RedrawDui_DComp(rc, bFullUpdate);
+            RdRender_DComp(rc, bFullUpdate);
             return;
         }
         ECK_UNREACHABLE;
     }
 
-    void RenderThread()
+    void RdThread()
     {
-        constexpr int c_iMinGap = 14;
+        constexpr int MinTickInterval = 14;
         CWaitableTimer Timer{};
         BOOL bActiveTimeLine, bWaitSwapChain{};
 
         WaitObject(m_EvtRender);
-        ULONGLONG ullTime = NtGetTickCount64() - c_iMinGap;
+        ULONGLONG ullTime = NtGetTickCount64() - MinTickInterval;
         EckLoop()
         {
-            bActiveTimeLine = FALSE;
             if (m_hEvtSwapChain && bWaitSwapChain)
                 NtWaitForSingleObject(m_hEvtSwapChain, TRUE, nullptr);
             m_cs.Enter();
-            if (m_bRenderThreadShouldExit)
+            if (m_bExit)
             {
                 m_cs.Leave();
                 break;
@@ -1168,16 +1161,17 @@ private:
 
             const auto ullCurrTime = NtGetTickCount64();
             // 滴答所有时间线
+            bActiveTimeLine = FALSE;
             int iDeltaTime = int(ullCurrTime - ullTime);
             for (const auto e : m_vTimeLine)
             {
                 if (e->TlIsValid())
                     e->TlTick(iDeltaTime);
-                bActiveTimeLine = bActiveTimeLine || e->TlIsValid();
+                if (!bActiveTimeLine && e->TlIsValid())
+                    bActiveTimeLine = TRUE;
             }
 
-            D2D1_RECT_F rcClient{ 0,0,(float)m_cxClient,(float)m_cyClient };
-            Phy2Log(rcClient);
+            D2D1_RECT_F rcClient{ 0,0,m_cxClientLog,m_cyClientLog };
             if (m_bSizeChanged || m_bUserDpiChanged)
             {
                 constexpr auto D2dBmpOpt = D2D1_BITMAP_OPTIONS_TARGET |
@@ -1241,7 +1235,7 @@ private:
                 if (m_cxClient && m_cyClient) [[likely]]
                 {
                     m_rcInvalid = rcClient;
-                    RedrawDui(rcClient, TRUE);
+                    RdRender(rcClient, TRUE);
                     m_cs.Leave();
                     switch (m_ePresentMode)
                     {
@@ -1273,7 +1267,7 @@ private:
                         (m_ePresentMode == PresentMode::FlipSwapChain ||
                             m_ePresentMode == PresentMode::BitBltSwapChain);
                     RECT rcPhy;
-                    RedrawDui(rc, m_bFullUpdate, bWantPhyRect ? &rcPhy : nullptr);
+                    RdRender(rc, m_bFullUpdate, bWantPhyRect ? &rcPhy : nullptr);
                     DXGI_PRESENT_PARAMETERS pp{};
                     if (m_bFullUpdate)
                         m_bFullUpdate = FALSE;
@@ -1307,32 +1301,31 @@ private:
             ullTime = ullCurrTime;
             if (bActiveTimeLine)
             {
-                if (iDeltaTime < c_iMinGap)// 延时
+                if (iDeltaTime < MinTickInterval)// 延时
                 {
-                    Timer.SetDueTime(c_iMinGap - iDeltaTime);
+                    Timer.SetDueTime(MinTickInterval - iDeltaTime);
                     WaitObject(Timer);
                 }
             }
             else
             {
                 WaitObject(m_EvtRender);
-                ullTime = NtGetTickCount64() - c_iMinGap;
+                ullTime = NtGetTickCount64() - MinTickInterval;
             }
         }
 
         Timer.Cancel();
     }
-
-    EckInline void StartupRenderThread()
+    void RdStartup()
     {
         m_hthRender = CrtCreateThread([](void* p)->UINT
             {
-                ((CDuiWnd*)p)->RenderThread();
+                ((CDuiWnd*)p)->RdThread();
                 return 0;
             }, this);
     }
 
-    void InitGraphics()
+    void RduInitGraphics()
     {
         switch (m_ePresentMode)
         {
@@ -1666,7 +1659,7 @@ public:
                 m_cxClientLog = Phy2LogF((float)m_cxClient);
                 m_cyClientLog = Phy2LogF((float)m_cyClient);
 
-                InitGraphics();
+                RduInitGraphics();
 
                 const auto pDC = GetDeviceContext();
 
@@ -1702,7 +1695,7 @@ public:
                 m_rcInvalid = { 0,0,m_cxClientLog,m_cyClientLog };
 
                 m_EvtRender.NoSignal();
-                StartupRenderThread();
+                RdStartup();
             }
             return lResult;
         }
@@ -1721,7 +1714,7 @@ public:
         {
             // 终止渲染线程
             m_cs.Enter();
-            m_bRenderThreadShouldExit = TRUE;
+            m_bExit = TRUE;
             WakeRenderThread();
             m_cs.Leave();
             WaitObject(CWaitableObject{ m_hthRender });// 等待渲染线程退出
@@ -2643,7 +2636,7 @@ inline void CElem::BeginPaint(_Out_ ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lP
     eps.oy = pExtra->oy;
     m_pDC->PushAxisAlignedClip(eps.rcfClipInElem, D2D1_ANTIALIAS_MODE_ALIASED);
     if ((GetStyle() & DES_BLURBKG) && !GetCompositor())
-        GetWnd()->BlurDrawStyleBkg(this, eps.rcfClip, eps.ox, eps.oy);
+        GetWnd()->BlurpDrawStyleBkg(this, eps.rcfClip, eps.ox, eps.oy);
     else if (!(uFlags & EBPF_DO_NOT_FILLBK))
         CallEvent(WM_ERASEBKGND, 0, (LPARAM)&eps);
 }

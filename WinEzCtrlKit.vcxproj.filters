@@ -531,9 +531,6 @@
     <ClInclude Include="eck\CIniExt.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CWin32UIMgr.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\LocaleStringUtility.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
