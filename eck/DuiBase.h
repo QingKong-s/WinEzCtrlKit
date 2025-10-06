@@ -62,6 +62,7 @@ private:
     CSignal<Intercept_T, LRESULT, UINT, WPARAM, LPARAM> m_Sig{};
     //------图形，除DC外渲染和UI线程均可读写------
 public:
+    using HSlot = decltype(m_Sig)::HSlot;
     ID2D1DeviceContext* m_pDC{};        // 未加引用
 private:
     // 缓存已混合的元素矩形，至少完全包含原始元素矩形相对客户区
@@ -1715,11 +1716,6 @@ public:
             m_cs.Leave();
             WaitObject(CWaitableObject{ m_hthRender });// 等待渲染线程退出
             m_hthRender = nullptr;
-            if (m_hEvtSwapChain)
-            {
-                NtClose(m_hEvtSwapChain);
-                m_hEvtSwapChain = nullptr;
-            }
             // 销毁所有元素
             auto pElem = m_pFirstChild;
             while (pElem)
@@ -1736,6 +1732,13 @@ public:
             SafeReleaseAssert0(m_pBrBkg);
             switch (m_ePresentMode)
             {
+            case PresentMode::FlipSwapChain:
+                if (m_hEvtSwapChain)
+                {
+                    NtClose(m_hEvtSwapChain);
+                    m_hEvtSwapChain = nullptr;
+                }
+                break;
             case PresentMode::WindowRenderTarget:
                 SafeReleaseAssert0(m_pRtHwnd);
                 break;

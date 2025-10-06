@@ -959,13 +959,17 @@ inline void GenerateKeyMsg(HWND hWnd, UINT Vk, KeyType eType, BOOL bExtended = F
 	}
 }
 
-// 一般WM_DPICHANGED会重新调整窗口尺寸到一个合适的值，
-// 但若存在特殊情况，即WM_DPICHANGED下尺寸不变时，将bRestoreSize设为TRUE
+// Win11存在一个问题：若某顶级窗口设置了WS_EX_TOOLWINDOW，则更改系统DPI后此窗口
+// 将无法接收WM_DPICHANGED消息，直到窗口尺寸被更改时WM_DPICHANGED才会再次发送。
+// 此函数提供一种简易修正方法。
+// 一般WM_DPICHANGED会重新调整窗口尺寸到一个合适的值，但若存在特殊情况，
+// 即WM_DPICHANGED下尺寸不变时，将bRestoreSize设为TRUE
+// 截止到2025.10.4  26100.6725此问题仍然存在
 inline BOOL MsgOnSettingChangeFixDpiAwareV2(HWND hWnd, WPARAM wParam, LPARAM lParam,
 	BOOL bRestoreSize = FALSE)
 {
 	if (wParam == SPI_SETLOGICALDPIOVERRIDE /*since NT 6.2*/ &&
-		g_NtVer.uBuild > WINVER_11_23H2 &&
+		g_NtVer.uBuild > WINVER_11_23H2 /*经粗略测试Bug在此版本之后引入*/ &&
 		(GetWindowLongPtrW(hWnd, GWL_EXSTYLE) & WS_EX_TOOLWINDOW))
 	{
 		RECT rc;
@@ -1001,13 +1005,6 @@ inline BOOL MsgOnSettingChangeMainWnd(HWND hWnd, WPARAM wParam, LPARAM lParam,
 	}
 	else
 		return FALSE;
-}
-
-// 已弃用
-inline BOOL MsgOnSettingChange(HWND hWnd, WPARAM wParam, LPARAM lParam)
-{
-	EckDbgBreak();
-	return FALSE;
 }
 
 // 提供对WM_SYSCOLORCHANGE的默认处理。
