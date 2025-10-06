@@ -65,7 +65,7 @@ public:
     using HSlot = decltype(m_Sig)::HSlot;
     ID2D1DeviceContext* m_pDC{};        // 未加引用
 private:
-    // 缓存已混合的元素矩形，至少完全包含原始元素矩形相对客户区
+    // 缓存已混合的元素矩形，至少完全包含原始元素矩形，相对客户区
     D2D1_RECT_F m_rcCompInClient;
     D2D1_RECT_F m_rcRealCompInClient;   // 实际计算得到的混合矩形
     CCompositor* m_pCompositor;         // 混合操作
@@ -76,8 +76,8 @@ private:
         CCompCacheSurface* m_pCompCacheSurface;
     };
     //------位置，逻辑坐标------
-    D2D1_RECT_F m_rcf{};                // 相对父元素
-    D2D1_RECT_F m_rcfInClient{};        // 相对客户区
+    D2D1_RECT_F m_rc{};                 // 相对父元素
+    D2D1_POINT_2F m_ptOffsetInClient{}; // 相对客户区左上角的偏移
     //------属性------
     CRefStrW m_rsText{};
     INT_PTR m_iId{};
@@ -110,8 +110,9 @@ private:
         auto pElem = GetFirstChildElem();
         while (pElem)
         {
-            pElem->m_rcfInClient = pElem->m_rcf;
-            OffsetRect(pElem->m_rcfInClient, m_rcfInClient.left, m_rcfInClient.top);
+            pElem->m_ptOffsetInClient = {
+                pElem->m_rc.left + m_ptOffsetInClient.x,
+                pElem->m_rc.top + m_ptOffsetInClient.y };
             pElem->tcSrpCorrectChildrenRectInClient();
             pElem = pElem->GetNextElem();
         }
@@ -119,12 +120,13 @@ private:
 
     constexpr void tcSetRectWorker(const D2D1_RECT_F& rc)
     {
-        m_rcf = rc;
-        m_rcfInClient = m_rcf;
+        m_rc = rc;
+        m_ptOffsetInClient = { m_rc.left,m_rc.top };
         if (m_pParent)
-            OffsetRect(m_rcfInClient,
-                m_pParent->GetRectInClientF().left,
-                m_pParent->GetRectInClientF().top);
+        {
+            m_ptOffsetInClient.x += m_pParent->m_ptOffsetInClient.x;
+            m_ptOffsetInClient.y += m_pParent->m_ptOffsetInClient.y;
+        }
         tcSrpCorrectChildrenRectInClient();
     }
 
@@ -202,19 +204,28 @@ public:
     // 将缓动曲线对象的自定义参数设为this，并注册
     EckInline void InitEasingCurve(CEasingCurve* pEc);
 
-    EckInline constexpr CDuiWnd* GetWnd() const { return m_pWnd; }
-    EckInline constexpr ID2D1DeviceContext* GetDC() const { return m_pDC; }
-    EckInline constexpr auto& GetSignal() { return m_Sig; }
-    EckInline constexpr CCriticalSection& GetCriticalSection() const;
+    EckInlineNdCe CDuiWnd* GetWnd() const { return m_pWnd; }
+    EckInlineNdCe ID2D1DeviceContext* GetDC() const { return m_pDC; }
+    EckInlineNdCe auto& GetSignal() { return m_Sig; }
+    EckInlineNdCe CCriticalSection& GetCriticalSection() const;
     EckInlineNdCe ID2D1Bitmap1* GetCacheBitmap() const;
 #pragma region PosSize
-    EckInline constexpr D2D1_RECT_F GetViewRectF() const
+    EckInlineNdCe D2D1_RECT_F GetViewRectF() const
     {
-        return { 0.f,0.f,m_rcf.right - m_rcf.left,m_rcf.bottom - m_rcf.top };
+        return { 0.f,0.f,m_rc.right - m_rc.left,m_rc.bottom - m_rc.top };
     }
 
-    EckInline constexpr const D2D1_RECT_F& GetRectF() const { return m_rcf; }
-    EckInline constexpr const D2D1_RECT_F& GetRectInClientF() const { return m_rcfInClient; }
+    EckInlineNdCe auto& GetRectF() const { return m_rc; }
+    EckInlineNdCe D2D1_RECT_F GetRectInClientF() const
+    {
+        return {
+            m_ptOffsetInClient.x,
+            m_ptOffsetInClient.y,
+            m_ptOffsetInClient.x + m_rc.right - m_rc.left,
+            m_ptOffsetInClient.y + m_rc.bottom - m_rc.top
+        };
+    }
+    EckInlineNdCe auto& GetOffsetInClientF() const { return m_ptOffsetInClient; }
 
     void SetRect(const D2D1_RECT_F& rc)
     {
@@ -228,12 +239,13 @@ public:
     {
         ECK_DUILOCK;
         const auto rcOld = GetWholeRectInClient();
-        m_rcf = { x,y,x + GetWidthF(),y + GetHeightF() };
-        m_rcfInClient = m_rcf;
+        m_rc = { x,y,x + GetWidthF(),y + GetHeightF() };
+        m_ptOffsetInClient = { x,y };
         if (m_pParent)
-            OffsetRect(m_rcfInClient,
-                m_pParent->GetRectInClientF().left,
-                m_pParent->GetRectInClientF().top);
+        {
+            m_ptOffsetInClient.x += m_pParent->m_ptOffsetInClient.x;
+            m_ptOffsetInClient.y += m_pParent->m_ptOffsetInClient.y;
+        }
         tcSrpCorrectChildrenRectInClient();
         tcPostMoveSize(FALSE, TRUE, rcOld);
     }
@@ -242,23 +254,21 @@ public:
     {
         ECK_DUILOCK;
         const auto rcOld = GetWholeRectInClient();
-        m_rcf.right = m_rcf.left + cx;
-        m_rcf.bottom = m_rcf.top + cy;
-        m_rcfInClient.right = m_rcfInClient.left + cx;
-        m_rcfInClient.bottom = m_rcfInClient.top + cy;
+        m_rc.right = m_rc.left + cx;
+        m_rc.bottom = m_rc.top + cy;
         tcPostMoveSize(TRUE, FALSE, rcOld);
     }
 
-    EckInline constexpr float GetWidthF() const { return m_rcf.right - m_rcf.left; }
-    EckInline constexpr float GetHeightF() const { return m_rcf.bottom - m_rcf.top; }
+    EckInlineNdCe float GetWidthF() const { return m_rc.right - m_rc.left; }
+    EckInlineNdCe float GetHeightF() const { return m_rc.bottom - m_rc.top; }
 
-    EckInline constexpr int Log2Phy(int i) const;
-    EckInline constexpr float Log2PhyF(float f) const;
-    EckInline constexpr int Phy2Log(int i) const;
-    EckInline constexpr float Phy2LogF(float f) const;
+    EckInlineNdCe int Log2Phy(int i) const;
+    EckInlineNdCe float Log2PhyF(float f) const;
+    EckInlineNdCe int Phy2Log(int i) const;
+    EckInlineNdCe float Phy2LogF(float f) const;
 
-    EckInline float GetPhyWidthF() const { return Log2PhyF(GetWidthF()); }
-    EckInline float GetPhyHeightF() const { return Log2PhyF(GetHeightF()); }
+    EckInlineNdCe float GetPhyWidthF() const { return Log2PhyF(GetWidthF()); }
+    EckInlineNdCe float GetPhyHeightF() const { return Log2PhyF(GetHeightF()); }
 #pragma endregion PosSize
 #pragma region ILayout
     SIZE LoGetAppropriateSize() override { return LoGetSize(); }
@@ -268,18 +278,18 @@ public:
     {
         SetRect({ (float)x,(float)y,float(x + cx),float(y + cy) });
     }
-    POINT LoGetPos() override { return { (int)m_rcf.left,(int)m_rcf.top }; }
+    POINT LoGetPos() override { return { (int)m_rc.left,(int)m_rc.top }; }
     SIZE LoGetSize() override { return { (int)GetWidthF(),(int)GetHeightF() }; }
     void LoShow(BOOL bShow) override { SetVisible(bShow); }
 #pragma endregion ILayout
 #pragma region ElemTree
-    EckInline constexpr CElem* GetFirstChildElem() const { return m_pFirstChild; }
-    EckInline constexpr CElem* GetLastChildElem() const { return m_pLastChild; }
-    EckInline constexpr CElem* GetParentElem() const { return m_pParent; }
+    EckInlineNdCe CElem* GetFirstChildElem() const { return m_pFirstChild; }
+    EckInlineNdCe CElem* GetLastChildElem() const { return m_pLastChild; }
+    EckInlineNdCe CElem* GetParentElem() const { return m_pParent; }
     // 取下一元素，Z序高于当前
-    EckInline constexpr CElem* GetNextElem() const { return m_pNext; }
+    EckInlineNdCe CElem* GetNextElem() const { return m_pNext; }
     // 取上一元素，Z序低于当前
-    EckInline constexpr CElem* GetPrevElem() const { return m_pPrev; }
+    EckInlineNdCe CElem* GetPrevElem() const { return m_pPrev; }
 
     static CElem* ElemFromPoint(CElem* pElem, POINT pt, _Out_opt_ LRESULT* pResult = nullptr)
     {
@@ -320,46 +330,46 @@ public:
         return ElemFromPoint(GetLastChildElem(), pt, pResult);
     }
 
-    EckInline constexpr void ClientToElem(_Inout_ RECT& rc) const
+    EckInlineCe void ClientToElem(_Inout_ RECT& rc) const
     {
-        OffsetRect(rc, (int)-m_rcfInClient.left, (int)-m_rcfInClient.top);
+        OffsetRect(rc, (int)-m_ptOffsetInClient.x, (int)-m_ptOffsetInClient.y);
     }
-    EckInline constexpr void ClientToElem(_Inout_ D2D1_RECT_F& rc) const
+    EckInlineCe void ClientToElem(_Inout_ D2D1_RECT_F& rc) const
     {
-        OffsetRect(rc, -m_rcfInClient.left, -m_rcfInClient.top);
+        OffsetRect(rc, -m_ptOffsetInClient.x, -m_ptOffsetInClient.y);
     }
-    EckInline constexpr void ClientToElem(_Inout_ POINT& pt) const
+    EckInlineCe void ClientToElem(_Inout_ POINT& pt) const
     {
-        pt.x -= (int)m_rcfInClient.left;
-        pt.y -= (int)m_rcfInClient.top;
+        pt.x -= (int)m_ptOffsetInClient.x;
+        pt.y -= (int)m_ptOffsetInClient.y;
     }
-    EckInline constexpr void ClientToElem(_Inout_ D2D1_POINT_2F& pt) const
+    EckInlineCe void ClientToElem(_Inout_ D2D1_POINT_2F& pt) const
     {
-        pt.x -= m_rcfInClient.left;
-        pt.y -= m_rcfInClient.top;
+        pt.x -= m_ptOffsetInClient.x;
+        pt.y -= m_ptOffsetInClient.y;
     }
-    EckInline constexpr void ElemToClient(_Inout_ RECT& rc) const
+    EckInlineCe void ElemToClient(_Inout_ RECT& rc) const
     {
-        OffsetRect(rc, (int)m_rcfInClient.left, (int)m_rcfInClient.top);
+        OffsetRect(rc, (int)m_ptOffsetInClient.x, (int)m_ptOffsetInClient.y);
     }
-    EckInline constexpr void ElemToClient(_Inout_ D2D1_RECT_F& rc) const
+    EckInlineCe void ElemToClient(_Inout_ D2D1_RECT_F& rc) const
     {
-        OffsetRect(rc, m_rcfInClient.left, m_rcfInClient.top);
+        OffsetRect(rc, m_ptOffsetInClient.x, m_ptOffsetInClient.y);
     }
-    EckInline constexpr void ElemToClient(_Inout_ POINT& pt) const
+    EckInlineCe void ElemToClient(_Inout_ POINT& pt) const
     {
-        pt.x += (int)m_rcfInClient.left;
-        pt.y += (int)m_rcfInClient.top;
+        pt.x += (int)m_ptOffsetInClient.x;
+        pt.y += (int)m_ptOffsetInClient.y;
     }
-    EckInline constexpr void ElemToClient(_Inout_ D2D1_POINT_2F& pt) const
+    EckInlineCe void ElemToClient(_Inout_ D2D1_POINT_2F& pt) const
     {
-        pt.x += m_rcfInClient.left;
-        pt.y += m_rcfInClient.top;
+        pt.x += m_ptOffsetInClient.x;
+        pt.y += m_ptOffsetInClient.y;
     }
 #pragma endregion ElemTree
 #pragma region OthersProp
     // 【不能在渲染线程调用】
-    EckInline void SetText(PCWSTR pszText, int cchText = -1)
+    void SetText(PCWSTR pszText, int cchText = -1)
     {
         if (cchText < 0)
             cchText = (int)TcsLen(pszText);
@@ -367,9 +377,9 @@ public:
         if (!CallEvent(WM_SETTEXT, cchText, (LPARAM)pszText))
             m_rsText.DupString(pszText, cchText);
     }
-    EckInlineNdCe const CRefStrW& GetText() const { return m_rsText; }
+    EckInlineNdCe auto& GetText() const { return m_rsText; }
 protected:
-    EckInlineNdCe CRefStrW& GetText() { return m_rsText; }
+    EckInlineNdCe auto& GetText() { return m_rsText; }
 public:
     void SetStyle(DWORD dwStyle)
     {
@@ -412,7 +422,7 @@ public:
 
     void SetZOrder(CElem* pElemAfter);
 
-    EckInline void SetRedraw(BOOL bRedraw)
+    void SetRedraw(BOOL bRedraw)
     {
         if (bRedraw)
             SetStyle(GetStyle() & ~DES_NO_REDRAW);
@@ -422,7 +432,7 @@ public:
     EckInlineNdCe BOOL GetRedraw() const { return !(GetStyle() & DES_NO_REDRAW); }
 
     // 【不能在渲染线程调用】
-    EckInline void SetTextFormat(IDWriteTextFormat* pTf)
+    void SetTextFormat(IDWriteTextFormat* pTf)
     {
         ECK_DUILOCK;
         std::swap(m_pTextFormat, pTf);
@@ -439,7 +449,7 @@ public:
     EckInlineNdCe INT_PTR GetID() const { return m_iId; }
 
     // 【不能在渲染线程调用】
-    EckInline void SetTheme(ITheme* pTheme)
+    void SetTheme(ITheme* pTheme)
     {
         ECK_DUILOCK;
         std::swap(m_pTheme, pTheme);
@@ -527,9 +537,9 @@ public:
 #pragma endregion ElemFunc
 #pragma region Composite
     // 取完全包围元素的矩形，相对客户区
-    EckInlineNdCe const D2D1_RECT_F& GetWholeRectInClient() const
+    EckInlineNdCe D2D1_RECT_F GetWholeRectInClient() const
     {
-        return GetCompositor() && !GetCompositor()->IsInPlace() ?
+        return (GetCompositor() && !GetCompositor()->IsInPlace()) ?
             m_rcCompInClient : GetRectInClientF();
     }
 
@@ -545,14 +555,14 @@ public:
         return nullptr;
     }
 
-    EckInline void CompReCalcCompositedRect()
+    void CompReCalcCompositedRect()
     {
         ECK_DUILOCK;
         if (!GetCompositor()->IsInPlace())
         {
             GetCompositor()->CalcCompositedRect(this, m_rcCompInClient, TRUE);
             m_rcRealCompInClient = m_rcCompInClient;
-            UnionRect(m_rcCompInClient, m_rcCompInClient, m_rcfInClient);
+            UnionRect(m_rcCompInClient, m_rcCompInClient, GetRectInClientF());
         }
     }
 
@@ -632,7 +642,7 @@ public:
         SafeRelease(m_pCompBitmap);
     }
 
-    EckInlineNdCe void CompMarkDirty()
+    EckInlineCe void CompMarkDirty()
     {
         if (GetCompositor())
             m_dwStyle |= DESP_COMP_CONTENT_INVALID;
@@ -799,7 +809,7 @@ private:
         Priv::PAINT_EXTRA Extra{ ox,oy };
         while (pElem)
         {
-            const auto& rcElem = pElem->GetRectInClientF();
+            const auto rcElem = pElem->GetRectInClientF();
             const auto dwStyle = pElem->GetStyle();
             if (!(dwStyle & DES_VISIBLE) ||
                 (dwStyle & (DES_NO_REDRAW | DES_EXTERNAL_CONTENT)) ||
@@ -819,8 +829,8 @@ private:
                 if (dwStyle & DES_COMP_NO_REDIRECTION)
                 {
                     pDC->SetTransform(D2D1::Matrix3x2F::Translation(
-                        pElem->GetRectInClientF().left + ox + oxComp,
-                        pElem->GetRectInClientF().top + oy + oyComp));
+                        pElem->GetOffsetInClientF().x + ox + oxComp,
+                        pElem->GetOffsetInClientF().y + oy + oyComp));
                     pElem->GetCompositor()->PreRender(cri);
                 }
                 else
@@ -849,8 +859,8 @@ private:
             else// 直接渲染
             {
                 pDC->SetTransform(D2D1::Matrix3x2F::Translation(
-                    pElem->GetRectInClientF().left + ox + oxComp,
-                    pElem->GetRectInClientF().top + oy + oyComp));
+                    pElem->GetOffsetInClientF().x + ox + oxComp,
+                    pElem->GetOffsetInClientF().y + oy + oyComp));
             }
             pElem->CallEvent(WM_PAINT, (WPARAM)&Extra, (LPARAM)&rcClip);
             if (pElem->GetCompositor())
@@ -867,8 +877,8 @@ private:
                 }
             SkipCompReRender:;
                 pDC->SetTransform(D2D1::Matrix3x2F::Translation(
-                    pElem->GetRectInClientF().left + ox + oxComp,
-                    pElem->GetRectInClientF().top + oy + oyComp));
+                    pElem->GetOffsetInClientF().x + ox + oxComp,
+                    pElem->GetOffsetInClientF().y + oy + oyComp));
                 if (pElem->GetStyle() & DES_OWNER_COMP_CACHE)
                 {
                     cri.pBitmap = pElem->m_pCompCacheSurface->GetBitmap();
@@ -2473,8 +2483,8 @@ inline void CElem::Destroy()
     m_pWnd = nullptr;
     m_pDC = nullptr;
 
-    m_rcf = {};
-    m_rcfInClient = {};
+    m_rc = {};
+    m_ptOffsetInClient = {};
     m_rsText.Clear();
     m_dwStyle = 0;
 }
@@ -2681,7 +2691,7 @@ inline constexpr void CElem::tcIrpUnionContentExpandElemRect(_Inout_ D2D1_RECT_F
 {
     for (const auto e : GetWnd()->m_vContentExpandElem)
     {
-        const auto& rc = e->GetWholeRectInClient();
+        const auto rc = e->GetWholeRectInClient();
         if (IsRectsIntersect(rcInClient, rc))
             UnionRect(rcInClient, rcInClient, rc);
     }
@@ -2775,11 +2785,11 @@ EckInline void CElem::ReleaseCapture() { GetWnd()->ElemReleaseCapture(); }
 EckInline void CElem::SetFocus() { GetWnd()->ElemSetFocus(this); }
 EckInline BOOL CElem::SetTimer(UINT_PTR uId, UINT uElapse) { return GetWnd()->ElemSetTimer(this, uId, uElapse); }
 EckInline BOOL CElem::KillTimer(UINT_PTR uId) { return GetWnd()->ElemKillTimer(this, uId); }
-EckInlineCe CCriticalSection& CElem::GetCriticalSection() const { return GetWnd()->GetCriticalSection(); }
-EckInlineCe int CElem::Log2Phy(int i) const { return GetWnd()->Log2Phy(i); }
-EckInlineCe float CElem::Log2PhyF(float f) const { return GetWnd()->Log2PhyF(f); }
-EckInlineCe int CElem::Phy2Log(int i) const { return GetWnd()->Phy2Log(i); }
-EckInlineCe float CElem::Phy2LogF(float f) const { return GetWnd()->Phy2LogF(f); }
-EckInlineCe ID2D1Bitmap1* CElem::GetCacheBitmap() const { return GetWnd()->GetCacheBitmap(); }
+EckInlineNdCe CCriticalSection& CElem::GetCriticalSection() const { return GetWnd()->GetCriticalSection(); }
+EckInlineNdCe int CElem::Log2Phy(int i) const { return GetWnd()->Log2Phy(i); }
+EckInlineNdCe float CElem::Log2PhyF(float f) const { return GetWnd()->Log2PhyF(f); }
+EckInlineNdCe int CElem::Phy2Log(int i) const { return GetWnd()->Phy2Log(i); }
+EckInlineNdCe float CElem::Phy2LogF(float f) const { return GetWnd()->Phy2LogF(f); }
+EckInlineNdCe ID2D1Bitmap1* CElem::GetCacheBitmap() const { return GetWnd()->GetCacheBitmap(); }
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
