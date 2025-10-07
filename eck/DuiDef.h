@@ -79,7 +79,6 @@ enum :UINT
 	EE_PRIVATE_BEGIN = 0x0400
 };
 
-// DUI图形系统呈现模式
 enum class PresentMode : BYTE
 {
 	// WS_EX_NRB = WS_EX_NOREDIRECTIONBITMAP
@@ -89,7 +88,6 @@ enum class PresentMode : BYTE
 	FlipSwapChain,		// 不支持透明混合
 	WindowRenderTarget,	// 支持透明混合，必须无WS_EX_NRB
 	DxgiSurface,		// TODO
-	GdiRenderTarget,	// TODO
 	UpdateLayeredWindow,
 };
 
@@ -113,7 +111,6 @@ enum : LRESULT
 	RER_REDIRECTION = 1 << 0,
 	RER_NO_ERASE = 1 << 1,
 };
-// 渲染事件结构
 struct RENDER_EVENT
 {
 	union
@@ -133,7 +130,6 @@ struct RENDER_EVENT
 	};
 };
 
-// 拖放信息
 struct DRAGDROPINFO
 {
 	IDataObject* pDataObj;
@@ -151,7 +147,7 @@ struct CREATE_CACHE_BITMAP_INFO
 	CCompCacheSurface* pCacheSurface;
 	HRESULT hr;
 };
-// 事件
+// 元素事件
 enum
 {
 	ECKPRIV_EWM_PLACEHOLDER = WM_USER_SAFE,
@@ -184,7 +180,6 @@ namespace Priv
 	};
 }
 
-// PaintStruct
 struct ELEMPAINTSTRU
 {
 	D2D1_RECT_F rcfClip;		// 剪裁矩形，相对客户区
