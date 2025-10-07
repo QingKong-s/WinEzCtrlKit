@@ -463,8 +463,8 @@ public:
 		TxSend:
 			ECK_DUILOCK;
 			POINT pt ECK_GET_PT_LPARAM(lParam);
-			GetWnd()->Log2Phy(pt);
             ElemToClient(pt);
+			GetWnd()->Log2Phy(pt);
 			LRESULT lResult;
 			if (m_pSrv->TxSendMessage(uMsg,
 				wParam, POINTTOPOINTS(pt), &lResult) == S_OK)
