@@ -263,7 +263,12 @@ public:
     // 返回实际复制的字符数
     int DupString(TConstPointer pszSrc, int cchSrc = -1)
     {
-        EckAssert(pszSrc ? TRUE : cchSrc == 0);
+        if (!pszSrc)
+        {
+            EckAssert(!cchSrc);
+            Clear();
+            return 0;
+        }
         if (cchSrc < 0)
             cchSrc = (int)TcsLen(pszSrc);
         ReSizeExtra(cchSrc);

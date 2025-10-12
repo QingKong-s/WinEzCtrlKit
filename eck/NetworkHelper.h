@@ -1,10 +1,10 @@
 ﻿#pragma once
-#include "Utility.h"
-#include "Utility2.h"
+#include "AutoPtrDef.h"
 #include "CoroutineHelper.h"
 #include "ComPtr.h"
-
-#include <variant>
+#include "CRefStr.h"
+#include "CRefBin.h"
+#include "NativeWrapper.h"
 
 #include <winhttp.h>
 
@@ -77,7 +77,12 @@ inline BOOL RequestUrl(FPostConnect&& fn, BOOL bRealRequest, PCWSTR pszUrl, PCWS
 	if (bAutoHeader)
 	{
 		if (pszHeader)
+		{
 			rsHeader.PushBack(pszHeader);
+			const auto pos = FindStrI(pszHeader, L"Connection: keep-alive");
+			if (pos != StrNPos)
+				rsHeader.ReplaceSubStr(L"Connection: keep-alive\r\n", -1, nullptr, 0, pos, 1);
+		}
 		if (!pszHeader || FindStrI(pszHeader, L"User-Agent:") == StrNPos)
 			rsHeader.PushBack(L"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n");
 		if (!pszHeader || FindStrI(pszHeader, L"Accept:") == StrNPos)
@@ -90,9 +95,6 @@ inline BOOL RequestUrl(FPostConnect&& fn, BOOL bRealRequest, PCWSTR pszUrl, PCWS
 			rsHeader.PushBack(L"Cache-Control: no-cache\r\n");
 		if (wcscmp(pszMethod, L"GET") == 0 && (!pszHeader || FindStrI(pszHeader, L"Content-Type:") == StrNPos))
 			rsHeader.PushBack(L"Content-Type: application/x-www-form-urlencoded\r\n");
-		const auto pos = FindStrI(pszHeader, L"Connection: keep-alive");
-		if (pos != StrNPos)
-			rsHeader.ReplaceSubStr(L"Connection: keep-alive\r\n", -1, nullptr, 0, pos, 1);
 		if (pszCookies && (!pszHeader || FindStrI(pszHeader, L"Cookie:") == StrNPos))
 		{
 			rsHeader.PushBack(L"Cookie: ");
@@ -105,7 +107,7 @@ inline BOOL RequestUrl(FPostConnect&& fn, BOOL bRealRequest, PCWSTR pszUrl, PCWS
 	else
 	{
 		pszHeaderFinal = pszHeader;
-		cchHeaderFinal = (DWORD)wcslen(pszHeader);
+		cchHeaderFinal = (DWORD)TcsLen(pszHeader);
 	}
 
 	if (pszHeaderFinal)

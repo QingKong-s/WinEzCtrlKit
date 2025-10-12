@@ -31,7 +31,7 @@ public:
 		class TInfoStruct = TDefInfo,
 		std::invocable<TInfoStruct&> F
 	>
-	NTSTATUS Enumerate(_In_reads_or_z_(cchPatten) PCWCH pszPatten,
+	NTSTATUS Enumerate(_In_reads_or_z_opt_(cchPatten) PCWCH pszPatten,
 		int cchPatten, F&& Fn, size_t cbBuf = 4096u,
 		_Out_writes_bytes_opt_(cbBuf) void* pExternalBuf = nullptr)
 	{

@@ -66,11 +66,12 @@ public:
     ID2D1DeviceContext* m_pDC{};        // 未加引用
 private:
     // 缓存已混合的元素矩形，至少完全包含原始元素矩形，相对客户区
-    D2D1_RECT_F m_rcCompInClient;
-    D2D1_RECT_F m_rcRealCompInClient;   // 实际计算得到的混合矩形
-    CCompositor* m_pCompositor;         // 混合操作
+    D2D1_RECT_F m_rcCompInClient{};
+    D2D1_RECT_F m_rcRealCompInClient{}; // 实际计算得到的混合矩形
+    CCompositor* m_pCompositor{};       // 混合操作
     union
     {
+        void* PRIV_Dummy{};
         ID2D1Bitmap1* m_pCompBitmap;    // 内容渲染到的位图
         // 内容渲染到的缓存表面，设置DES_OWNER_COMP_CACHE时有效
         CCompCacheSurface* m_pCompCacheSurface;

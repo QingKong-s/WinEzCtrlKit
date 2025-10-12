@@ -759,7 +759,7 @@ EckInlineNd int FindCharLastNotOf(_In_z_ TPtr pszText, int cchText,
 
 // Deprecated. For compatibility.
 template<ccpIsStdCharPtr TPtr>
-_Ret_maybenull_ EckInlineNd TPtr LTrimStr(_In_z_ TPtr pszText)
+EckInlineNd TPtr LTrimStr(_In_z_ TPtr pszText)
 {
 	auto ch = *pszText;
 	while ((ch == L' ' || ch == L'　') && ch != L'\0')

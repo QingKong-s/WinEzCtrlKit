@@ -184,6 +184,7 @@
     <ClInclude Include="eck\CCombinationScrollView.h" />
     <ClInclude Include="eck\CDuiHeader.h" />
     <ClInclude Include="eck\CDuiListTemplate.h" />
+    <ClInclude Include="eck\CDuiTabHeader.h" />
     <ClInclude Include="eck\CDuiTabList.h" />
     <ClInclude Include="eck\CDWriteFontFactory.h" />
     <ClInclude Include="eck\CEnumFile.h" />

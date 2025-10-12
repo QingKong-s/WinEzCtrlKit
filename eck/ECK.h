@@ -787,17 +787,11 @@ extern FGetSystemMetricsForDpi g_pfnGetSystemMetricsForDpi;
 enum :UINT
 {
     EIF_DEFAULT = 0,
-    // 不调用ThreadInit
     EIF_NOINITTHREAD = 1u << 0,
-    // 不初始化GDI+
     EIF_NOINITGDIPLUS = 1u << 1,
-    // 不初始化WIC
     EIF_NOINITWIC = 1u << 2,
-    // 不初始化D2D
     EIF_NOINITD2D = 1u << 3,
-    // 不初始化DWrite
     EIF_NOINITDWRITE = 1u << 4,
-    // 不适配暗色模式
     EIF_NODARKMODE = 1u << 5,
 };
 
@@ -806,11 +800,6 @@ constexpr inline D3D_FEATURE_LEVEL c_uDefD3dFeatureLevel[]
 {
     D3D_FEATURE_LEVEL_11_1,
     D3D_FEATURE_LEVEL_11_0,
-    D3D_FEATURE_LEVEL_10_1,
-    D3D_FEATURE_LEVEL_10_0,
-    D3D_FEATURE_LEVEL_9_3,
-    D3D_FEATURE_LEVEL_9_2,
-    D3D_FEATURE_LEVEL_9_1
 };
 #endif// !ECK_OPT_NO_DX
 
@@ -874,11 +863,7 @@ namespace Priv
         std::vector<QueuedCallback> q{};
         RTL_SRWLOCK Lk{};
 
-        QueuedCallbackQueue()
-        {
-            RtlInitializeSRWLock(&Lk);
-            dwTid = NtCurrentThreadId32();
-        }
+        QueuedCallbackQueue();
 
         template<class F>
         void EnQueueCallback(F&& fnCallback, UINT nPriority = UINT_MAX,
@@ -904,33 +889,9 @@ namespace Priv
 
         void EnQueueCoroutine(void* pCoroutine, UINT nPriority = UINT_MAX,
             BOOL bWakeUiThread = TRUE, ULONGLONG Tag = 0ull,
-            BOOL bClearExistingTag = FALSE)
-        {
-            EckAssert(pCoroutine);
-            RtlAcquireSRWLockExclusive(&Lk);
-            if (bClearExistingTag && !q.empty())
-            {
-                for (size_t i{ q.size() - 1 }; i; --i)
-                {
-                    if (q[i].Tag == Tag)
-                        q.erase(q.begin() + i);
-                }
-            }
-            q.emplace_back(nPriority, pCoroutine, Tag);
-            std::push_heap(q.begin(), q.end());
-            RtlReleaseSRWLockExclusive(&Lk);
-            if (bWakeUiThread)
-                PostThreadMessageW(dwTid, WM_NULL, 0, 0);
-        }
+            BOOL bClearExistingTag = FALSE);
 
-        void UnlockedDeQueue()
-        {
-            if (!q.empty())
-            {
-                std::pop_heap(q.begin(), q.end());
-                q.pop_back();
-            }
-        }
+        void UnlockedDeQueue();
     };
 }
 
@@ -967,59 +928,16 @@ struct THREADCTX
     HHOOK hhkMsgFilter{};		// 在菜单、模态对话框、拖动选择等的消息循环中保持处理UI线程的回调
     Priv::QueuedCallbackQueue Callback{};
 
-    EckInline void WmAdd(HWND hWnd, CWnd* pWnd)
-    {
-        EckAssert(IsWindow(hWnd) && pWnd);
-        hmWnd.insert(std::make_pair(hWnd, pWnd));
-    }
+    void WmAdd(HWND hWnd, CWnd* pWnd);
+    void WmRemove(HWND hWnd);
+    CWnd* WmAt(HWND hWnd) const;
 
-    EckInline void WmRemove(HWND hWnd)
-    {
-        const auto it = hmWnd.find(hWnd);
-        if (it != hmWnd.end())
-            hmWnd.erase(it);
-#ifdef _DEBUG
-        else
-            EckDbgPrintFmt(L"** WARNING ** 从窗口映射中移除%p时失败。", hWnd);
-#endif
-    }
+    void TwmAdd(HWND hWnd, CWnd* pWnd);
+    void TwmRemove(HWND hWnd);
+    CWnd* TwmAt(HWND hWnd) const;
 
-    EckInline CWnd* WmAt(HWND hWnd) const
-    {
-        const auto it = hmWnd.find(hWnd);
-        if (it != hmWnd.end())
-            return it->second;
-        else
-            return nullptr;
-    }
-
-    EckInline void TwmAdd(HWND hWnd, CWnd* pWnd)
-    {
-        EckAssert(IsWindow(hWnd) && pWnd);
-        EckAssert((GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_CHILD) != WS_CHILD);
-        hmTopWnd.insert(std::make_pair(hWnd, pWnd));
-    }
-
-    EckInline void TwmRemove(HWND hWnd)
-    {
-        const auto it = hmTopWnd.find(hWnd);
-        if (it != hmTopWnd.end())
-            hmTopWnd.erase(it);
-    }
-
-    EckInline CWnd* TwmAt(HWND hWnd) const
-    {
-        const auto it = hmTopWnd.find(hWnd);
-        if (it != hmTopWnd.end())
-            return it->second;
-        else
-            return nullptr;
-    }
-
-    void SetNcDarkModeForAllTopWnd(BOOL bDark);
-
+    void SetNcDarkModeForAllTopWindow(BOOL bDark);
     void UpdateDefColor();
-
     void SendThemeChangedToAllTopWindow();
 
     void DoCallback();
@@ -1027,20 +945,16 @@ struct THREADCTX
 
 // 取线程上下文TLS槽
 DWORD GetThreadCtxTlsSlot();
-
 // 初始化线程上下文。
 // 在调用线程上初始化线程上下文，在使用任何ECK窗口功能前必须调用此函数
 void ThreadInit();
-
 // 反初始化线程上下文。
 // 调用此函数后不允许使用任何ECK窗口对象
 void ThreadUnInit();
-
 // 取线程上下文
 EckInline THREADCTX* GetThreadCtx() { return (THREADCTX*)TlsGetValue(GetThreadCtxTlsSlot()); }
 
 HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc = nullptr);
-
 void EndCbtHook();
 
 /// <summary>
@@ -1054,9 +968,6 @@ BOOL PreTranslateMessage(const MSG& Msg);
 
 void InitPrivateApi();
 
-// For compatibility.
-EckInline constexpr void SetMsgFilter(void*) {}
-
 #if ECK_OPT_NO_DARKMODE
 EckInlineCe HRESULT UxfMenuInit(CWnd* pWnd) { return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED); }
 EckInlineCe HRESULT UxfMenuUnInit(CWnd* pWnd) { return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED); }
@@ -1065,16 +976,12 @@ HRESULT UxfMenuInit(CWnd* pWnd);
 HRESULT UxfMenuUnInit(CWnd* pWnd);
 #endif// ECK_OPT_NO_DARKMODE
 
-
-[[nodiscard]] EckInline HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,
+// For compatibility.
+EckInlineNd HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,
     void* pParameter = nullptr, UINT* pThreadId = nullptr, UINT dwCreationFlags = 0)
 {
-#if 0
-    return (HANDLE)_beginthreadex(0, 0, pStartAddress, pParameter, dwCreationFlags, pThreadId);
-#else
     return CreateThread(nullptr, 0, (PTHREAD_START_ROUTINE)pStartAddress,
         pParameter, dwCreationFlags, (DWORD*)pThreadId);
-#endif
 }
 ECK_NAMESPACE_END
 
