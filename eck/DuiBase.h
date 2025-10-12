@@ -813,8 +813,7 @@ private:
         {
             const auto rcElem = pElem->GetRectInClientF();
             const auto dwStyle = pElem->GetStyle();
-            if (!(dwStyle & DES_VISIBLE) ||
-                (dwStyle & (DES_NO_REDRAW | DES_EXTERNAL_CONTENT)) ||
+            if (!(dwStyle & DES_VISIBLE) || (dwStyle & DES_NO_REDRAW) ||
                 IsRectEmpty(rcElem))
                 goto NextElem;
             if ((pElem->GetCompositor() && !(dwStyle & DES_COMP_NO_REDIRECTION) &&
