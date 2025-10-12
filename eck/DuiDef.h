@@ -20,8 +20,7 @@ enum
     DES_CONTENT_EXPAND_RECT = (1u << 5),// TODO
     // DUI系统应当检查当前元素的祖元素，因为它们可能设置了混合器
     DES_PARENT_COMP = (1u << 6),
-    // 使用某外部图面作为当前元素的DComp视觉对象的内容
-    DES_EXTERNAL_CONTENT = (1u << 7),// TODO
+    DES_BORDER = (1u << 7),     // 有边框
     DES_NO_REDRAW = (1u << 8),	// 不允许重绘
     // 对于手动混合元素，DUI不应自行分配后台缓存，而应按下列顺序请求缓存：
     // 调用CCompositor::CreateCacheBitmap，若失败，向元素的父级发送

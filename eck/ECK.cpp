@@ -1642,7 +1642,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, DWORD* pdwErrCode)
     {
         .style = CS_STDWND,
         .lpfnWndProc = DefDlgProcW,
-        .cbWndExtra = DLGWINDOWEXTRA + sizeof(void*),
+        .cbWndExtra = DLGWINDOWEXTRA,
         .hInstance = g_hInstance,
         .hCursor = LoadCursorW(nullptr, IDC_ARROW),
         .lpszClassName = WCN_DLG
