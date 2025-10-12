@@ -1948,14 +1948,92 @@ void ThreadUnInit()
     TlsSetValue(GetThreadCtxTlsSlot(), nullptr);
 }
 
-void THREADCTX::SetNcDarkModeForAllTopWnd(BOOL bDark)
+Priv::QueuedCallbackQueue::QueuedCallbackQueue()
+{
+    RtlInitializeSRWLock(&Lk);
+    dwTid = NtCurrentThreadId32();
+}
+void Priv::QueuedCallbackQueue::EnQueueCoroutine(void* pCoroutine,
+    UINT nPriority, BOOL bWakeUiThread, ULONGLONG Tag, BOOL bClearExistingTag)
+{
+    EckAssert(pCoroutine);
+    RtlAcquireSRWLockExclusive(&Lk);
+    if (bClearExistingTag && !q.empty())
+    {
+        for (size_t i{ q.size() - 1 }; i; --i)
+        {
+            if (q[i].Tag == Tag)
+                q.erase(q.begin() + i);
+        }
+    }
+    q.emplace_back(nPriority, pCoroutine, Tag);
+    std::push_heap(q.begin(), q.end());
+    RtlReleaseSRWLockExclusive(&Lk);
+    if (bWakeUiThread)
+        PostThreadMessageW(dwTid, WM_NULL, 0, 0);
+}
+void Priv::QueuedCallbackQueue::UnlockedDeQueue()
+{
+    if (!q.empty())
+    {
+        std::pop_heap(q.begin(), q.end());
+        q.pop_back();
+    }
+}
+
+
+void THREADCTX::WmAdd(HWND hWnd, CWnd* pWnd)
+{
+    EckAssert(IsWindow(hWnd) && pWnd);
+    hmWnd.insert(std::make_pair(hWnd, pWnd));
+}
+void THREADCTX::WmRemove(HWND hWnd)
+{
+    const auto it = hmWnd.find(hWnd);
+    if (it != hmWnd.end())
+        hmWnd.erase(it);
+#ifdef _DEBUG
+    else
+        EckDbgPrintFmt(L"** WARNING ** 从窗口映射中移除%p时失败。", hWnd);
+#endif
+}
+CWnd* THREADCTX::WmAt(HWND hWnd) const
+{
+    const auto it = hmWnd.find(hWnd);
+    if (it != hmWnd.end())
+        return it->second;
+    else
+        return nullptr;
+}
+
+void THREADCTX::TwmAdd(HWND hWnd, CWnd* pWnd)
+{
+    EckAssert(IsWindow(hWnd) && pWnd);
+    EckAssert((GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_CHILD) != WS_CHILD);
+    hmTopWnd.insert(std::make_pair(hWnd, pWnd));
+}
+void THREADCTX::TwmRemove(HWND hWnd)
+{
+    const auto it = hmTopWnd.find(hWnd);
+    if (it != hmTopWnd.end())
+        hmTopWnd.erase(it);
+}
+CWnd* THREADCTX::TwmAt(HWND hWnd) const
+{
+    const auto it = hmTopWnd.find(hWnd);
+    if (it != hmTopWnd.end())
+        return it->second;
+    else
+        return nullptr;
+}
+
+void THREADCTX::SetNcDarkModeForAllTopWindow(BOOL bDark)
 {
 #if !ECK_OPT_NO_DARKMODE
     for (const auto& e : hmTopWnd)
         EnableWindowNcDarkMode(e.first, bDark);
 #endif // !ECK_OPT_NO_DARKMODE
 }
-
 void THREADCTX::UpdateDefColor()
 {
     bAppDarkMode = ShouldAppsUseDarkMode();
@@ -1971,7 +2049,6 @@ void THREADCTX::UpdateDefColor()
     else
         crHiLightText = crDefText;
 }
-
 void THREADCTX::SendThemeChangedToAllTopWindow()
 {
 #if !ECK_OPT_NO_DARKMODE
