@@ -636,6 +636,12 @@
     <ClInclude Include="eck\CDuiTabHeader.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\DuiCssTheme.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\DuiCssParse.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">

@@ -200,6 +200,8 @@
     <ClInclude Include="eck\Crypt.h" />
     <ClInclude Include="eck\CSequenceIdGenerator.h" />
     <ClInclude Include="eck\CSimplePath.h" />
+    <ClInclude Include="eck\DuiCssTheme.h" />
+    <ClInclude Include="eck\DuiCssParse.h" />
     <ClInclude Include="eck\DuiElemSizeBox.h" />
     <ClInclude Include="eck\DwLayoutPath.h" />
     <ClInclude Include="eck\EncodingDetect.h" />

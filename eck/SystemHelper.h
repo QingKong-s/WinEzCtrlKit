@@ -238,7 +238,7 @@ inline HRESULT WmiConnectNamespace(_Out_ IWbemServices*& pWbemSrv,
 /// <param name="Var">查询结果，调用方必须对其调用VariantClear以解分配</param>
 /// <param name="pWbemSrv">IWbemServices指针，使用此接口执行查询</param>
 /// <returns>HRESULT</returns>
-inline HRESULT WmiQueryClassProp(_In_ PCWSTR pszWql, _In_ PCWSTR pszProp,
+inline HRESULT WmiQueryClassProperty(_In_ PCWSTR pszWql, _In_ PCWSTR pszProp,
 	_Inout_ VARIANT& Var, _In_ IWbemServices* pWbemSrv)
 {
 	HRESULT hr;
@@ -261,7 +261,7 @@ inline HRESULT WmiQueryClassProp(_In_ PCWSTR pszWql, _In_ PCWSTR pszProp,
 /// <param name="pszProp">属性</param>
 /// <param name="Var">查询结果</param>
 /// <returns>HRESULT</returns>
-inline HRESULT WmiQueryClassProp(_In_ PCWSTR pszWql,
+inline HRESULT WmiQueryClassProperty(_In_ PCWSTR pszWql,
 	_In_ PCWSTR pszProp, _Inout_  VARIANT& Var)
 {
 	IWbemServices* pWbemSrv;
@@ -269,7 +269,7 @@ inline HRESULT WmiQueryClassProp(_In_ PCWSTR pszWql,
 	HRESULT hr;
 	if (FAILED(hr = WmiConnectNamespace(pWbemSrv, pWbemLoc)))
 		return hr;
-	hr = WmiQueryClassProp(pszWql, pszProp, Var, pWbemSrv);
+	hr = WmiQueryClassProperty(pszWql, pszProp, Var, pWbemSrv);
 	pWbemSrv->Release();
 	pWbemLoc->Release();
 	return hr;
@@ -480,7 +480,7 @@ struct FILEVERINFO
 	CRefStrW SpecialBuild;
 };
 
-inline BOOL GetFileVerInfo(PCWSTR pszFile, FILEVERINFO& fvi)
+inline BOOL GetFileVersionInformation(PCWSTR pszFile, FILEVERINFO& fvi)
 {
 	const DWORD cbBuf = GetFileVersionInfoSizeW(pszFile, nullptr);
 	if (!cbBuf)
