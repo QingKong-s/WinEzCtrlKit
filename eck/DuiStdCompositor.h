@@ -216,6 +216,7 @@ public:
 			break;
 		case Type::Translation:
 		case Type::TranslationOpacity:
+			rc = bInClientOrParent ? pElem->GetRectInClientF() : pElem->GetRectF();
 			OffsetRect(rc, Dx, Dy);
 			break;
 		default:

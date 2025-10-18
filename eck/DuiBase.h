@@ -207,16 +207,16 @@ public:
 
     EckInlineNdCe CDuiWnd* GetWnd() const { return m_pWnd; }
     EckInlineNdCe ID2D1DeviceContext* GetDC() const { return m_pDC; }
+    // 注意：进行任何连接/断开操作时必须加锁
     EckInlineNdCe auto& GetSignal() { return m_Sig; }
     EckInlineNdCe CCriticalSection& GetCriticalSection() const;
     EckInlineNdCe ID2D1Bitmap1* GetCacheBitmap() const;
 #pragma region PosSize
+    EckInlineNdCe auto& GetRectF() const { return m_rc; }
     EckInlineNdCe D2D1_RECT_F GetViewRectF() const
     {
         return { 0.f,0.f,m_rc.right - m_rc.left,m_rc.bottom - m_rc.top };
     }
-
-    EckInlineNdCe auto& GetRectF() const { return m_rc; }
     EckInlineNdCe D2D1_RECT_F GetRectInClientF() const
     {
         return {
@@ -262,14 +262,13 @@ public:
 
     EckInlineNdCe float GetWidthF() const { return m_rc.right - m_rc.left; }
     EckInlineNdCe float GetHeightF() const { return m_rc.bottom - m_rc.top; }
+    EckInlineNdCe float GetPhyWidthF() const { return Log2PhyF(GetWidthF()); }
+    EckInlineNdCe float GetPhyHeightF() const { return Log2PhyF(GetHeightF()); }
 
     EckInlineNdCe int Log2Phy(int i) const;
     EckInlineNdCe float Log2PhyF(float f) const;
     EckInlineNdCe int Phy2Log(int i) const;
     EckInlineNdCe float Phy2LogF(float f) const;
-
-    EckInlineNdCe float GetPhyWidthF() const { return Log2PhyF(GetWidthF()); }
-    EckInlineNdCe float GetPhyHeightF() const { return Log2PhyF(GetHeightF()); }
 #pragma endregion PosSize
 #pragma region ILayout
     SIZE LoGetAppropriateSize() override { return LoGetSize(); }
