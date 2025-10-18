@@ -56,7 +56,7 @@ EckInline void CalcPointFromLineScalePos(TVal x1, TVal y1, TVal x2, TVal y2,
 
 // 从角度计算椭圆上一段弧的端点
 template<class TVal = int>
-EckInline void CalcArcFromEllipseAngle(HDC hDC, TVal x, TVal y, TVal xr, TVal yr,
+EckInline void CalcArcFromEllipseAngle(TVal x, TVal y, TVal xr, TVal yr,
     float fStartAngle, float fSweepAngle,
     _Out_ TVal& x1, _Out_ TVal& y1, _Out_ TVal& x2, _Out_ TVal& y2)
 {

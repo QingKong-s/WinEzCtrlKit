@@ -630,7 +630,7 @@ public:
 	/// <param name="uMsg">消息</param>
 	/// <param name="wParam">wParam</param>
 	/// <param name="lParam">lParam</param>
-	/// <param name="bProcessed">若设为TRUE，则父窗口不在继续处理，调用函数前保证其为FALSE</param>
+	/// <param name="bProcessed">若设为TRUE，则父窗口不再继续处理，调用函数前保证其为FALSE</param>
 	/// <returns>消息返回值</returns>
 	virtual LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed)
 	{
