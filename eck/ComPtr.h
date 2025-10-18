@@ -52,10 +52,7 @@ public:
             p->AddRef();
     }
 
-    constexpr ComPtr(ComPtr&& x) noexcept
-    {
-        std::swap(p, x.p);
-    }
+    constexpr ComPtr(ComPtr&& x) noexcept { std::swap(p, x.p); }
 
     template<ccpIsComInterface U>
         requires std::is_convertible_v<U*, TInterface*>
@@ -79,10 +76,7 @@ public:
         if (phr) *phr = hr;
     }
 
-    ~ComPtr() noexcept
-    {
-        ReleaseIt();
-    }
+    ~ComPtr() noexcept { ReleaseIt(); }
 
     ComPtr& operator=(std::nullptr_t) noexcept
     {
@@ -92,14 +86,14 @@ public:
 
     template<ccpIsComInterface U>
         requires std::is_convertible_v<U*, TInterface*>
-    constexpr ComPtr& operator=(U* x) noexcept
+    ComPtr& operator=(U* x) noexcept
     {
         if (x != p)
             ComPtr(x).Swap(*this);
         return *this;
     }
 
-    constexpr ComPtr& operator=(const ComPtr& x) noexcept
+    ComPtr& operator=(const ComPtr& x) noexcept
     {
         if (p != x.p)
             ComPtr(x).Swap(*this);
@@ -108,72 +102,45 @@ public:
 
     constexpr ComPtr& operator=(ComPtr&& x) noexcept
     {
-        std::move(x).Swap(*this);
+        std::swap(p, x.p);
         return *this;
     }
 
     template<ccpIsComInterface U>
         requires std::is_convertible_v<U*, TInterface*>
-    constexpr ComPtr& operator=(const ComPtr<U>& x) noexcept
+    ComPtr& operator=(const ComPtr<U>& x) noexcept
     {
         ComPtr(x).Swap(*this);
         return *this;
     }
 
-    EckInline constexpr [[nodiscard]] TInterface* const* operator&() const noexcept
-    {
-        return &p;
-    }
+    EckInlineNdCe TInterface* const* operator&() const noexcept { return &p; }
+    EckInlineNdCe TInterface** operator&() noexcept { return &p; }
 
-    EckInline constexpr [[nodiscard]] TInterface** operator&() noexcept
-    {
-        return &p;
-    }
+    EckInlineNdCe TInterface* Get() const noexcept { return p; }
+    EckInlineNdCe TInterface* operator->() const noexcept { return p; }
 
-    EckInline constexpr [[nodiscard]] TInterface* Get() const noexcept
-    {
-        return p;
-    }
-
-    EckInline constexpr [[nodiscard]] TInterface* operator->() const noexcept
-    {
-        return p;
-    }
-
-    EckInline constexpr [[nodiscard]] TInterface* const* AddrOf() const noexcept
-    {
-        return &p;
-    }
-
-    EckInline constexpr [[nodiscard]] TInterface** AddrOf() noexcept
-    {
-        return &p;
-    }
-
+    EckInlineNdCe TInterface* const* AddrOf() const noexcept { return &p; }
+    EckInlineNdCe TInterface** AddrOf() noexcept { return &p; }
     EckInline [[nodiscard]] TInterface** AddrOfClear() noexcept
     {
         ReleaseIt();
         return &p;
     }
 
-    EckInline constexpr [[nodiscard]] TInterface*& RefOf() noexcept
-    {
-        return p;
-    }
-
-    EckInline constexpr [[nodiscard]] TInterface*& RefOfClear() noexcept
+    EckInlineNdCe TInterface*& RefOf() noexcept { return p; }
+    EckInlineNdCe TInterface*& RefOfClear() noexcept
     {
         ReleaseIt();
         return p;
     }
 
-    EckInline constexpr [[nodiscard]] TInterface* Detach() noexcept
+    EckInlineNdCe TInterface* Detach() noexcept
     {
         TInterface* t{};
         std::swap(p, t);
         return t;
     }
-
     EckInline void Attach(TInterface* x) noexcept
     {
         if (p != nullptr)
@@ -187,37 +154,25 @@ public:
         p = x;
     }
 
-    EckInline ULONG Clear() noexcept
-    {
-        return ReleaseItRet();
-    }
+    EckInline ULONG Clear() noexcept { return ReleaseItRet(); }
 
     template<ccpIsComInterface U>
     EckInline HRESULT As(ComPtr<U>& x) const noexcept
     {
         return p->QueryInterface(__uuidof(U), (void**)x.AddrOfClear());
     }
-
     EckInline HRESULT As(REFIID riid, ComPtr<IUnknown>& x) const noexcept
     {
         return p->QueryInterface(riid, (void**)x.AddrOfClear());
     }
-
     template<ccpIsComInterface U>
     EckInline HRESULT As(U*& x) const noexcept
     {
         return p->QueryInterface(&x);
     }
 
-    EckInline constexpr void Swap(ComPtr& x) noexcept
-    {
-        std::swap(p, x.p);
-    }
-
-    EckInline constexpr void Swap(ComPtr&& x) noexcept
-    {
-        std::swap(p, x.p);
-    }
+    EckInlineCe void Swap(ComPtr& x) noexcept { std::swap(p, x.p); }
+    EckInlineCe void Swap(ComPtr&& x) noexcept { std::swap(p, x.p); }
 
     HRESULT CreateInstance(REFCLSID clsid) noexcept
     {
@@ -226,12 +181,3 @@ public:
     }
 };
 ECK_NAMESPACE_END
-
-namespace std
-{
-    template<::eck::ccpIsComInterface T>
-    constexpr void swap(::eck::ComPtr<T>& a, ::eck::ComPtr<T>& b)
-    {
-        a.Swap(b);
-    }
-}
