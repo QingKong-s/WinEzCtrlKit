@@ -21,7 +21,7 @@ struct CoroPromiseBase
         Cancelled,	// 提供可设置为取消标志的能力
     };
 
-    std::atomic<LONG> m_cRef{ 2 };// 协程引用计数，Task对象与协程帧各持有一份引用
+    LONG m_cRef{ 2 };// 协程引用计数，Task对象与协程帧各持有一份引用
     std::atomic<State> m_eState{ State::Initial };
     std::coroutine_handle<> m_hCoroNext{};// 同步任务应恢复到
     CSrwLock m_Lk{};
@@ -85,12 +85,12 @@ struct CoroPromiseBase
 
     EckInline LONG IncRef() noexcept
     {
-        return m_cRef.fetch_add(1, std::memory_order_relaxed);
+        return _InterlockedIncrement(&m_cRef);
     }
 
     EckInline LONG DecRef() noexcept
     {
-        return m_cRef.fetch_sub(1, std::memory_order_acq_rel);
+        return _InterlockedDecrement(&m_cRef);
     }
 
     bool SyncResumeToIt(std::coroutine_handle<> hCoroNext_) noexcept
