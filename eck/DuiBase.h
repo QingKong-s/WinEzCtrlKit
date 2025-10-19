@@ -366,6 +366,17 @@ public:
         pt.x += m_ptOffsetInClient.x;
         pt.y += m_ptOffsetInClient.y;
     }
+
+    void ForEachElem(const std::invocable<CElem*> auto& Fn)
+    {
+        auto pElem = GetFirstChildElem();
+        while (pElem)
+        {
+            Fn(pElem);
+            pElem->ForEachElem(Fn);
+            pElem = pElem->GetNextElem();
+        }
+    }
 #pragma endregion ElemTree
 #pragma region OthersProp
     // 【不能在渲染线程调用】
@@ -1428,12 +1439,6 @@ private:
             ECK_UNREACHABLE;
         }
     }
-
-    void IrUnion(const D2D1_RECT_F& rc)
-    {
-        EckAssert(!IsRectEmpty(rc));
-        UnionRect(m_rcInvalid, m_rcInvalid, rc);
-    }
 public:
     ECK_CWND_CREATE;
     // 一般不覆写此方法
@@ -2231,8 +2236,7 @@ public:
 
     EckInlineNdCe ID2D1DeviceContext* GetDeviceContext() const noexcept { return m_D2D.GetDC(); }
 
-    template<std::invocable<CElem*> F>
-    void EtForEachElem(const F& Fn, CElem* pElemBegin = nullptr)
+    void EtForEachElem(const std::invocable<CElem*> auto& Fn, CElem* pElemBegin = nullptr)
     {
         auto p{ pElemBegin ? pElemBegin : GetFirstChildElem() };
         while (p)
@@ -2252,6 +2256,12 @@ public:
     }
 
     EckInlineNdCe CElem* GetCurrNcHitElem() const noexcept { return m_pCurrNcHitTestElem; }
+
+    void IrUnion(const D2D1_RECT_F& rc)
+    {
+        EckAssert(!IsRectEmpty(rc));
+        UnionRect(m_rcInvalid, m_rcInvalid, rc);
+    }
 
     HRESULT EnableDragDrop(BOOL bEnable)
     {
