@@ -94,6 +94,19 @@ template<class T>
 concept ccpIsInteger = std::integral<T>;
 template<class T>
 concept ccpIsFloat = std::floating_point<T>;
+template<class TChar>
+concept ccpIsStdChar = std::is_same_v<TChar, CHAR> || std::is_same_v<TChar, WCHAR>;
+template<class TCharPtr>
+concept ccpIsStdCharPtr = std::is_pointer_v<TCharPtr> && ccpIsStdChar<std::remove_cvref_t<std::remove_pointer_t<TCharPtr>>>;
+template<class TCharPtr>
+concept ccpIsNonConstStdCharPtr = std::is_pointer_v<TCharPtr> && ccpIsStdChar<std::remove_volatile_t<std::remove_reference_t<std::remove_pointer_t<TCharPtr>>>>;
+
+template<ccpIsStdCharPtr TPtr>
+using RemoveStdCharPtr_T = std::remove_cvref_t<std::remove_pointer_t<TPtr>>;
+template<ccpIsStdCharPtr TPtr>
+using ConstStdCharPtr_T = const RemoveStdCharPtr_T<TPtr>*;
+template<ccpIsStdCharPtr TPtr1, ccpIsStdCharPtr TPtr2>
+constexpr inline bool IsSameStdCharPtr_V = std::is_same_v<RemoveStdCharPtr_T<TPtr1>, RemoveStdCharPtr_T<TPtr2>>;
 
 template <class T>
 using RemoveCVRef_T = std::remove_cvref_t<T>;
@@ -146,6 +159,13 @@ ECK_NAMESPACE_END
 #define EckInlineNdCe			[[nodiscard]] __forceinline constexpr
 // 强制内联，且constexpr
 #define EckInlineCe				__forceinline constexpr
+
+// 内联，不丢弃返回值
+#define EckNfInlineNd			inline [[nodiscard]]
+// 内联，不丢弃返回值，且constexpr
+#define EckNfInlineNdCe			[[nodiscard]] inline constexpr
+// 内联，且constexpr
+#define EckNfInlineCe			inline constexpr
 
 // 定义读写属性字段
 #define ECKPROP(Getter, Setter) __declspec(property(get = Getter, put = Setter))

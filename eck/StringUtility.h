@@ -19,27 +19,6 @@ inline constexpr CHAR SpaceCharsA[]{ " \t\r\n" };
 // U+FEFF zero width no-break space
 inline constexpr WCHAR SpaceCharsW[]{ L" \t\r\n\u00A0\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u200B\u202F\u205F\u3000\uFEFF" };
 
-template<class TChar>
-concept ccpIsStdChar = std::is_same_v<TChar, CHAR> || std::is_same_v<TChar, WCHAR>;
-
-template<class TCharPtr>
-concept ccpIsStdCharPtr = std::is_pointer_v<TCharPtr> && ccpIsStdChar<std::remove_cvref_t<std::remove_pointer_t<TCharPtr>>>;
-
-template<class TCharPtr>
-concept ccpIsNonConstStdCharPtr = std::is_pointer_v<TCharPtr> && ccpIsStdChar<std::remove_volatile_t<std::remove_reference_t<std::remove_pointer_t<TCharPtr>>>>;
-
-template<ccpIsStdCharPtr TPtr>
-using RemoveStdCharPtr_T = std::remove_cvref_t<std::remove_pointer_t<TPtr>>;
-
-template<ccpIsStdCharPtr TPtr>
-using ConstStdCharPtr_T = const RemoveStdCharPtr_T<TPtr>*;
-
-template<ccpIsStdCharPtr TPtr1, ccpIsStdCharPtr TPtr2>
-constexpr inline bool IsSameStdCharPtr_V = std::is_same_v<RemoveStdCharPtr_T<TPtr1>, RemoveStdCharPtr_T<TPtr2>>;
-
-
-
-
 template<ccpIsStdChar TChar>
 EckInlineNd TChar TchToUpper(TChar c)
 {

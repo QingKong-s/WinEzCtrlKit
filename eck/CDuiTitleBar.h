@@ -73,7 +73,7 @@ public:
 			{
 				rcDst.left += dMargin;
 				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
-					MakeD2DRectF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing),
+					MakeD2DRectF(rcBkg), MarginsToD2DRectF(Extra.pBkg->mgSizing),
 					(D2D1_INTERPOLATION_MODE)m_eInterMode);
 
 				rcTemp = MakeD2DRectF(rc);
@@ -94,7 +94,7 @@ public:
 			{
 				rcDst.left += dMargin;
 				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
-					MakeD2DRectF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing),
+					MakeD2DRectF(rcBkg), MarginsToD2DRectF(Extra.pBkg->mgSizing),
 					(D2D1_INTERPOLATION_MODE)m_eInterMode);
 
 				rcTemp = MakeD2DRectF(rc);
@@ -114,7 +114,7 @@ public:
 			{
 				rcDst.left += (dMargin * 2);
 				DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
-					MakeD2DRectF(rcBkg), MarginsToD2dRcF(Extra.pBkg->mgSizing),
+					MakeD2DRectF(rcBkg), MarginsToD2DRectF(Extra.pBkg->mgSizing),
 					(D2D1_INTERPOLATION_MODE)m_eInterMode);
 
 				rcTemp = MakeD2DRectF(rc);
