@@ -1207,7 +1207,7 @@ public:
         eck::PazParseCommandLineAndCut(Data(), Size(), pszFile, cchFile, pszParam, cchParam);
     }
 
-    void PazFindFileName(BOOL bKeepExtension, _Out_ int& pos0, _Out_ int& pos1)
+    void PazFindFileName(BOOL bKeepExtension, _Out_ int& pos0, _Out_ int& pos1) const
     {
         pos0 = PazFindFileSpec();
         if (bKeepExtension)
@@ -1217,6 +1217,7 @@ public:
         if (pos0 < 0 || pos1 < 0 || pos1 <= pos0)
             pos0 = pos1 = -1;
     }
+
     BOOL PazTrimToFileName(BOOL bKeepExtension = FALSE)
     {
         int pos0, pos1;
