@@ -1,6 +1,6 @@
 ﻿#pragma once
 #pragma warning (disable:4996)
-#include "StringUtility.h"
+#include "PathUtility.h"
 #include "CAllocator.h"
 #include "Utility.h"
 
@@ -1075,7 +1075,7 @@ public:
         return TcsCompareLen2I(Data(), Size(), psz, cch);
     }
 
-    // 返回文件名的位置
+    // 返回文件名的位置，注意：若分隔符在开头则返回-1
     [[nodiscard]] int PazFindFileSpec() const
     {
         if (IsEmpty())
@@ -1090,7 +1090,7 @@ public:
             {
                 if (p < Data() + 2)// NT路径或UNC路径的起始
                     return -1;
-                return int(p - Data());
+                return int(p + 1 - Data());
             }
         }
         return -1;
@@ -1101,7 +1101,8 @@ public:
         const auto pos = PazFindFileSpec();
         if (pos < 0)
             return FALSE;
-        ReSize(pos);
+        EckAssert(pos >= 1);
+        ReSize(pos - 1);
         return TRUE;
     }
 
@@ -1112,9 +1113,8 @@ public:
             return FALSE;
         if (cchNewName < 0)
             cchNewName = (int)TcsLen(pszNewName);
-        ReSize(pos + cchNewName + 1);
-        *(Data() + pos) = '\\';
-        TcsCopyLen(Data() + pos + 1, pszNewName, cchNewName);
+        ReSize(pos + cchNewName);
+        TcsCopyLen(Data() + pos, pszNewName, cchNewName);
         return TRUE;
     }
 
@@ -1198,71 +1198,30 @@ public:
     HRESULT PazParseCommandLine(_Out_ TPointer& pszFile, _Out_ int& cchFile,
         _Out_ TPointer& pszParam, _Out_ int& cchParam)
     {
-        if (IsEmpty())
-        {
-            pszFile = pszParam = nullptr;
-            cchFile = cchParam = 0;
-            return S_FALSE;
-        }
-        pszFile = Data();
-        BOOL bQuote = (Front() == '\"');
-        if (bQuote)
-            ++pszFile;
-        if (bQuote)
-        {
-            for (auto p = pszFile; p != Data() + Size(); ++p)
-                if (*p == '\"')
-                {
-                    cchFile = int(p - pszFile);
-                    goto FileNameOk;
-                }
-            cchFile = 0;// 引号不匹配
-            return HRESULT_FROM_WIN32(ERROR_INVALID_COMMAND_LINE);
-        }
-        else
-        {
-            for (auto p = pszFile; p != Data() + Size(); ++p)
-                if (*p == ' ')
-                {
-                    cchFile = int(p - pszFile);
-                    goto FileNameOk;
-                }
-            cchFile = Size();
-            pszParam = nullptr;
-            cchParam = 0;
-            return S_OK;
-        }
-    FileNameOk:;// 至此文件名处理完毕
-        // 步进到第一个非空格字符
-        pszParam = pszFile + cchFile;
-        if (*pszParam == '\"')
-            ++pszParam;
-        for (; pszParam != Data() + Size(); ++pszParam)
-            if (*pszParam != ' ')
-                break;
-        cchParam = int(Data() + Size() - pszParam);
-        return S_OK;
+        eck::PazParseCommandLine(Data(), Size(), pszFile, cchFile, pszParam, cchParam);
     }
 
     HRESULT PazParseCommandLineAndCut(_Out_ TPointer& pszFile, _Out_ int& cchFile,
         _Out_ TPointer& pszParam, _Out_ int& cchParam)
     {
-        EckAssert(&pszFile != &pszParam && &cchFile != &cchParam);
-        const auto hr = PazParseCommandLine(pszFile, cchFile,
-            pszParam, cchParam);
-        if (SUCCEEDED(hr))
-        {
-            *(pszFile + cchFile) = '\0';
-            *(pszParam + cchParam) = '\0';
-        }
-        return hr;
+        eck::PazParseCommandLineAndCut(Data(), Size(), pszFile, cchFile, pszParam, cchParam);
     }
 
+    void PazFindFileName(BOOL bKeepExtension, _Out_ int& pos0, _Out_ int& pos1)
+    {
+        pos0 = PazFindFileSpec();
+        if (bKeepExtension)
+            pos1 = Size();
+        else if ((pos1 = PazFindExtension()) < 0)
+            pos1 = Size();
+        if (pos0 < 0 || pos1 < 0 || pos1 <= pos0)
+            pos0 = pos1 = -1;
+    }
     BOOL PazTrimToFileName(BOOL bKeepExtension = FALSE)
     {
-        const auto pos0 = PazFindFileSpec();
-        const auto pos1 = bKeepExtension ? PazFindExtension() : Size();
-        if (pos0 < 0 || pos1 < 0 || pos1 <= pos0)
+        int pos0, pos1;
+        PazFindFileName(bKeepExtension, pos0, pos1);
+        if (pos0 < 0)
             return FALSE;
         TcsMoveLen(Data(), Data() + pos0, pos1 - pos0);
         ReSize(pos1 - pos0);
@@ -1270,13 +1229,18 @@ public:
     }
     BOOL PazTrimToFileName(CRefStrT& rsFileName, BOOL bKeepExtension = FALSE) const
     {
-        const auto pos0 = PazFindFileSpec();
-        const auto pos1 = bKeepExtension ? PazFindExtension() : Size();
-        if (pos0 < 0 || pos1 < 0 || pos1 <= pos0)
+        int pos0, pos1;
+        PazFindFileName(bKeepExtension, pos0, pos1);
+        if (pos0 < 0)
             return FALSE;
         rsFileName.PushBackNoExtra(pos1 - pos0);
         TcsCopyLen(rsFileName.Data(), Data() + pos0, pos1 - pos0);
         return TRUE;
+    }
+
+    void PazLegalize(TChar chReplace = '_', BOOL bReplaceDot = FALSE)
+    {
+        eck::PazLegalizeLen(Data(), Size(), chReplace, bReplaceDot);
     }
 
     EckInlineNd TIterator begin() { return Data(); }
