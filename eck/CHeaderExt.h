@@ -499,7 +499,7 @@ private:
 			m_sizeFilter = { bm.bmWidth,bm.bmHeight };
 
 			m_rsEnterTextHere.DupString(
-				GetResourceStringForCurrLocale(0x1050, g_hModComCtl32));
+				GetResourceStringForCurrentLocale(0x1050, g_hModComCtl32));
 		}
 	}
 
