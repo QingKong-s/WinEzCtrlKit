@@ -407,7 +407,7 @@ public:
 				const auto hFont = CreateFontIndirectW(&lf);
 				SelectObject(ps.hdc, hFont);
 
-				const auto svText = GetResourceStringForCurrLocale(
+				const auto svText = GetResourceStringForCurrentLocale(
 					0x700 + lf.lfCharSet, GetModuleHandleW(L"comdlg32.dll"));
 				DrawTextW(ps.hdc, svText.data(), (int)svText.size(), &rc,
 					DT_SINGLELINE | DT_CENTER | DT_VCENTER | DT_NOPREFIX);
