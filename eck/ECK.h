@@ -801,6 +801,9 @@ extern FAdjustWindowRectExForDpi g_pfnAdjustWindowRectExForDpi;
 extern FSystemParametersInfoForDpi g_pfnSystemParametersInfoForDpi;
 extern FGetSystemMetricsForDpi g_pfnGetSystemMetricsForDpi;
 #endif// ECK_OPT_DYN_NF
+using FRtlGetNtSystemRoot = PWSTR(NTAPI*)();
+
+extern FRtlGetNtSystemRoot g_pfnRtlGetNtSystemRoot;
 #pragma endregion Global
 
 #pragma region Init

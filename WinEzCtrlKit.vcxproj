@@ -206,6 +206,7 @@
     <ClInclude Include="eck\DwLayoutPath.h" />
     <ClInclude Include="eck\EncodingDetect.h" />
     <ClInclude Include="eck\EnDeCode.h" />
+    <ClInclude Include="eck\FileHelper.h" />
     <ClInclude Include="eck\LyricCrypt.h" />
     <ClInclude Include="eck\PathUtility.h" />
     <ClInclude Include="eck\ShellMenuInfo.h" />

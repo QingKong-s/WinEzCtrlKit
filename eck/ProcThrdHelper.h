@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "SystemHelper.h"
+#include "FileHelper.h"
 
 ECK_NAMESPACE_BEGIN
 EckInline NTSTATUS GetProcessPeb(HANDLE hProcess, _Out_ void*& Peb)
@@ -49,7 +49,7 @@ inline NTSTATUS GetProcessPath(UINT uPid, CRefStrW& rsPath, BOOL bDosPath = TRUE
 	if (spii.ImageName.MaximumLength &&
 		nts == STATUS_INFO_LENGTH_MISMATCH)
 	{
-		rsPath.ReSize(spii.ImageName.MaximumLength);
+		rsPath.ReSize(spii.ImageName.MaximumLength / sizeof(WCHAR));
 		spii.ImageName.Buffer = rsPath.Data();
 		spii.ImageName.Length = 0;
 		nts = NtQuerySystemInformation(SystemProcessIdInformation,
@@ -57,7 +57,7 @@ inline NTSTATUS GetProcessPath(UINT uPid, CRefStrW& rsPath, BOOL bDosPath = TRUE
 		if (NT_SUCCESS(nts))
 		{
 			if (bDosPath)
-				return NtPathToDosPath(rsPath);
+				return FileNtPathToDosPath(rsPath);
 			else
 				return STATUS_SUCCESS;
 		}
@@ -89,7 +89,7 @@ inline NTSTATUS GetProcessPath(HANDLE hProcess, CRefStrW& rsPath, BOOL bDosPath 
 			pus->Length / sizeof(WCHAR));
 		rsPath.ReSize(pus->Length / sizeof(WCHAR));
 		if (bDosPath)
-			return NtPathToDosPath(rsPath);
+			return FileNtPathToDosPath(rsPath);
 		return STATUS_SUCCESS;
 	}
 

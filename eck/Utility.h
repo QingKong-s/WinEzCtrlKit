@@ -1449,17 +1449,5 @@ EckInline void SafeReleaseAssert0(_Inout_ ccpIsComInterface auto*& pUnk)
     SafeRelease(pUnk);
 #endif
 }
-
-EckNfInlineNd BOOL IsDotFileName(_In_reads_z_(3) ccpIsStdCharPtr auto pszFileName)
-{
-    return pszFileName[0] == '.' && (pszFileName[1] == '\0' ||
-        (pszFileName[1] == '.' && pszFileName[2] == '\0'));
-}
-
-EckNfInlineNd BOOL IsDotFileName(_In_reads_bytes_(cbFileName) PCWCH pszFileName, ULONG cbFileName)
-{
-    return (cbFileName == sizeof(WCHAR) && pszFileName[0] == L'.') ||
-        (cbFileName == sizeof(WCHAR) * 2 && pszFileName[0] == L'.' && pszFileName[1] == L'.');
-}
 #pragma endregion 其他
 ECK_NAMESPACE_END
