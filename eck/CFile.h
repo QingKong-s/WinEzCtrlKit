@@ -1,298 +1,252 @@
 ﻿#pragma once
-#include "CRefBin.h"
+#include "NativeWrapper.h"
 
 ECK_NAMESPACE_BEGIN
-enum
-{
-	FCD_COVER = CREATE_ALWAYS,				// 若文件已存在则清除其数据，若不存在则创建
-	FCD_NOCOVER = OPEN_ALWAYS,				// 若文件已存在则打开，若不存在则创建
-	FCD_ONLYNEW = CREATE_NEW,				// 若文件已存在则失败，若不存在则创建
-	FCD_ONLYEXISTING = OPEN_EXISTING,		// 若文件已存在则打开，若不存在则失败
-	FCD_COVEREXISTING = TRUNCATE_EXISTING,	// 若文件已存在则清除其数据，若不存在则失败
-};
 class CFile
 {
 private:
-	HANDLE m_hFile = INVALID_HANDLE_VALUE;
+    HANDLE m_hFile{};
 public:
-	CFile() = default;
-	CFile(PCWSTR pszFile, DWORD dwMode = OPEN_EXISTING, DWORD dwAccess = GENERIC_READ,
-		DWORD dwShareMode = 0, DWORD dwAttr = FILE_ATTRIBUTE_NORMAL)
-		:m_hFile{ CreateFileW(pszFile, dwAccess, dwShareMode, nullptr, dwMode, dwAttr, nullptr) }
-	{}
+    CFile() = default;
+    CFile(const CFile& e) = delete;
+    CFile& operator=(const CFile& e) = delete;
+    CFile(CFile&& e) noexcept { std::swap(m_hFile, e.m_hFile); }
+    CFile& operator=(CFile&& e) noexcept
+    {
+        std::swap(m_hFile, e.m_hFile);
+        return *this;
+    }
+    ~CFile() { Close(); }
 
-	~CFile()
-	{
-		Close();
-	}
+    BOOL CreateWin32(
+        PCWSTR pszFile,
+        DWORD dwMode = OPEN_EXISTING,
+        DWORD dwAccess = FILE_GENERIC_READ,
+        DWORD dwShareMode = FILE_SHARE_READ,
+        DWORD dwAttr = FILE_ATTRIBUTE_NORMAL) noexcept
+    {
+        Close();
+        return !!(m_hFile = CreateFileW(pszFile, dwAccess,
+            dwShareMode, nullptr, dwMode, dwAttr, nullptr));
+    }
+    NTSTATUS Create(
+        PCWSTR pszFile,
+        DWORD dwDispostion = FILE_OPEN,
+        DWORD dwAccess = FILE_GENERIC_READ,
+        DWORD dwShareMode = FILE_SHARE_READ,
+        DWORD dwOptions = FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        DWORD dwAttr = FILE_ATTRIBUTE_NORMAL,
+        DWORD cbInit = 0,
+        _Out_opt_ IO_STATUS_BLOCK* piosb = nullptr) noexcept
+    {
+        Close();
+        NTSTATUS nts;
+        m_hFile = NaCreateFile(pszFile, dwAccess, dwShareMode,
+            dwOptions, dwDispostion, &nts, piosb, dwAttr, cbInit);
+        return nts;
+    }
 
-	EckInline void Close()
-	{
-		if (m_hFile != INVALID_HANDLE_VALUE && m_hFile)
-		{
-			CloseHandle(m_hFile);
-			m_hFile = INVALID_HANDLE_VALUE;
-		}
-	}
+    EckInlineNdCe BOOL IsValid() const { return m_hFile && m_hFile != INVALID_HANDLE_VALUE; }
 
-	EckInline HANDLE Open(PCWSTR pszFile, DWORD dwMode = OPEN_EXISTING, DWORD dwAccess = GENERIC_READ,
-		DWORD dwShareMode = 0, DWORD dwAttr = FILE_ATTRIBUTE_NORMAL)
-	{
-		Close();
-		return (m_hFile = CreateFileW(pszFile, dwAccess, dwShareMode, nullptr, dwMode, dwAttr, nullptr));
-	}
+    EckInline void Close()
+    {
+        if (IsValid())
+        {
+            NtClose(m_hFile);
+            m_hFile = nullptr;
+        }
+    }
 
-	EckInline HANDLE GetHandle()
-	{
-		return m_hFile;
-	}
+    EckInlineNdCe HANDLE GetHandle() const { return m_hFile; }
 
-	EckInline LONGLONG GetSize()
-	{
-		LARGE_INTEGER lint;
-		GetFileSizeEx(m_hFile, &lint);
-		return lint.QuadPart;
-	}
+    [[nodiscard]] LONGLONG GetSize(_Out_opt_ NTSTATUS* pnts = nullptr) noexcept
+    {
+        IO_STATUS_BLOCK iosb;
+        FILE_STANDARD_INFORMATION Info;
+        const auto nts = NtQueryInformationFile(m_hFile, &iosb,
+            &Info, sizeof(Info), FileStandardInformation);
+        if (pnts) *pnts = nts;
+        return Info.EndOfFile.QuadPart;
+    }
+    EckInlineNd DWORD GetSize32(NTSTATUS* pnts = nullptr) noexcept { return (DWORD)GetSize(pnts); }
 
-	EckInline DWORD GetSize32()
-	{
-		return GetFileSize(m_hFile, nullptr);
-	}
+    EckInline CFile& Read(
+        _Out_writes_bytes_(cbBuf) void* pBuf,
+        DWORD cbBuf,
+        _Out_opt_ DWORD* pcbRead = nullptr,
+        _Out_opt_ NTSTATUS* pnts = nullptr) noexcept
+    {
+        IO_STATUS_BLOCK iosb;
+        const auto nts = NtReadFile(m_hFile, nullptr, nullptr, nullptr,
+            &iosb, pBuf, cbBuf, nullptr, nullptr);
+        if (pcbRead) *pcbRead = (DWORD)iosb.Information;
+        if (pnts) *pnts = nts;
+        return *this;
+    }
+    template<class T>
+    EckInline CFile& operator>>(_Out_ T& Buf) noexcept
+    {
+        Read(&Buf, sizeof(T));
+        return *this;
+    }
 
-	EckInline BOOL Read(void* pBuf, DWORD dwSize, DWORD* pdwRead = nullptr)
-	{
-		DWORD dw;
-		if (!pdwRead)
-			pdwRead = &dw;
-		return ReadFile(m_hFile, pBuf, dwSize, pdwRead, nullptr);
-	}
+    EckInline CFile& Write(
+        _In_reads_bytes_(cbBuf) PCVOID pBuf,
+        DWORD cbBuf,
+        _Out_opt_ DWORD* pcbWritten = nullptr,
+        _Out_opt_ NTSTATUS* pnts = nullptr) noexcept
+    {
+        IO_STATUS_BLOCK iosb;
+        const auto nts = NtWriteFile(m_hFile, nullptr, nullptr, nullptr,
+            &iosb, (void*)pBuf, cbBuf, nullptr, nullptr);
+        if (pcbWritten) *pcbWritten = (DWORD)iosb.Information;
+        if (pnts) *pnts = nts;
+        return *this;
+    }
+    template<class T>
+    EckInline CFile& operator<<(const T& Buf) noexcept
+    {
+        Write(&Buf, sizeof(T));
+        return *this;
+    }
 
-	EckInline CRefBin ReadBin(DWORD dwSize)
-	{
-		CRefBin Bin(dwSize);
-		Read(Bin.Data(), dwSize);
-		return Bin;
-	}
+    NTSTATUS End() noexcept
+    {
+        NTSTATUS nts;
+        IO_STATUS_BLOCK iosb;
+        LARGE_INTEGER Info;
+        nts = NtQueryInformationFile(m_hFile, &iosb, &Info, sizeof(Info), FilePositionInformation);
+        if (!NT_SUCCESS(nts))
+            return nts;
+        nts = NtSetInformationFile(m_hFile, &iosb, &Info, sizeof(Info), FileEndOfFileInformation);
+        if (!NT_SUCCESS(nts))
+            return nts;
+        nts = NtSetInformationFile(m_hFile, &iosb, &Info, sizeof(Info), FileAllocationInformation);
+        return nts;
+    }
 
-	EckInline BOOL Write(PCVOID pBuf, DWORD dwSize, DWORD* pdwWritten = nullptr)
-	{
-		DWORD dw;
-		if (!pdwWritten)
-			pdwWritten = &dw;
-		return WriteFile(m_hFile, pBuf, dwSize, pdwWritten, nullptr);
-	}
+    LONGLONG PosGet(_Out_opt_ NTSTATUS* pnts = nullptr) noexcept
+    {
+        IO_STATUS_BLOCK iosb;
+        FILE_POSITION_INFORMATION Info;
+        const auto nts = NtQueryInformationFile(m_hFile, &iosb,
+            &Info, sizeof(Info), FilePositionInformation);
+        if (pnts) *pnts = nts;
+        return Info.CurrentByteOffset.QuadPart;
+    }
+    CFile& PosSet(LONGLONG pos, _Out_opt_ NTSTATUS* pnts = nullptr) noexcept
+    {
+        IO_STATUS_BLOCK iosb;
+        const auto nts = NtSetInformationFile(m_hFile, &iosb,
+            &pos, sizeof(pos), FilePositionInformation);
+        if (pnts) *pnts = nts;
+        return *this;
+    }
+    CFile& PosDelta(LONGLONG d, _Out_opt_ NTSTATUS* pnts = nullptr) noexcept
+    {
+        NTSTATUS nts;
+        const auto pos = PosGet(&nts);
+        if (NT_SUCCESS(nts))
+            PosSet(pos + d, pnts);
+        else
+            if (pnts) *pnts = nts;
+        return *this;
+    }
+    EckInline CFile& operator+=(LONGLONG d) noexcept { return PosDelta(d); }
+    EckInline CFile& operator-=(LONGLONG d) noexcept { return PosDelta(-d); }
 
-	EckInline BOOL End()
-	{
-		return SetEndOfFile(m_hFile);
-	}
+    EckInline CFile& PosToBegin() noexcept { return PosSet(0); }
+    EckInline CFile& PosToEnd() noexcept { return PosSet(GetSize()); }
 
-	template<class T>
-	EckInline CFile& operator>>(T& Buf)
-	{
-		Read(&Buf, sizeof(T));
-		return *this;
-	}
+    EckInline NTSTATUS Flush() noexcept
+    {
+        IO_STATUS_BLOCK iosb;
+        return NtFlushBuffersFile(m_hFile, &iosb);
+    }
 
-	template<class T>
-	EckInline CFile& operator<<(const T& Buf)
-	{
-		Write(&Buf, sizeof(T));
-		return *this;
-	}
-
-	template<class T, class U, class V>
-	EckInline CFile& operator<<(const CRefStrT<T, U, V>& Buf)
-	{
-		if (Buf.IsEmpty())
-			return *this << U::CharTerminatingNull();
-		else
-		{
-			Write(Buf.Data(), (DWORD)Cch2CbW(Buf.Size()));
-			return *this;
-		}
-	}
-
-	EckInline CFile& operator+=(LONG l)
-	{
-		SetFilePointer(m_hFile, l, nullptr, FILE_CURRENT);
-		return *this;
-	}
-
-	EckInline CFile& operator-=(LONG l)
-	{
-		SetFilePointer(m_hFile, -l, nullptr, FILE_CURRENT);
-		return *this;
-	}
-
-	EckInline CFile& MoveToBegin()
-	{
-		SetFilePointer(m_hFile, 0, nullptr, FILE_BEGIN);
-		return *this;
-	}
-
-	EckInline CFile& MoveToEnd()
-	{
-		SetFilePointer(m_hFile, 0, nullptr, FILE_END);
-		return *this;
-	}
-
-	EckInline CFile& MoveTo(LONG l)
-	{
-		SetFilePointer(m_hFile, l, nullptr, FILE_BEGIN);
-		return *this;
-	}
-
-	EckInline DWORD GetCurrPos()
-	{
-		return SetFilePointer(m_hFile, 0, nullptr, FILE_CURRENT);
-	}
-
-	EckInline void Flush()
-	{
-		FlushFileBuffers(m_hFile);
-	}
-
-	EckInline BOOL IsValid()
-	{
-		return m_hFile != INVALID_HANDLE_VALUE && m_hFile;
-	}
+    EckInline NTSTATUS GetInformation(_Out_ auto& Info,
+        FILE_INFORMATION_CLASS eCls) noexcept
+    {
+        IO_STATUS_BLOCK iosb;
+        return NtQueryInformationFile(m_hFile, &iosb, &Info, sizeof(Info), eCls);
+    }
+    EckInline NTSTATUS GetInformationBuffer(
+        _Out_writes_bytes_(cbBuf) void* pBuf,
+        ULONG cbBuf,
+        FILE_INFORMATION_CLASS eCls,
+        _Out_opt_ ULONG* pcbRet = nullptr) noexcept
+    {
+        IO_STATUS_BLOCK iosb;
+        const auto nts = NtQueryInformationFile(m_hFile, &iosb,
+            pBuf, cbBuf, eCls);
+        if (pcbRet) *pcbRet = iosb.Information;
+        return nts;
+    }
 };
 
-class CMappingFile
+class CFileSectionMap
 {
 private:
-	CFile m_File{};
-	HANDLE m_hMapping = nullptr;
-	void* m_pFile = nullptr;
+    HANDLE m_hSection{};
+    void* m_pMap{};
 public:
-	~CMappingFile()
-	{
-		Close();
-	}
+    CFileSectionMap() = default;
+    CFileSectionMap(const CFileSectionMap&) = delete;
+    CFileSectionMap& operator=(const CFileSectionMap&) = delete;
+    CFileSectionMap(CFileSectionMap&& e) noexcept
+    {
+        std::swap(m_hSection, e.m_hSection);
+        std::swap(m_pMap, e.m_pMap);
+    }
+    CFileSectionMap& operator=(CFileSectionMap&& e) noexcept
+    {
+        std::swap(m_hSection, e.m_hSection);
+        std::swap(m_pMap, e.m_pMap);
+        return *this;
+    }
+    ~CFileSectionMap() { Close(); }
 
-	void Close()
-	{
-		if (m_hMapping && m_pFile)
-		{
-			UnmapViewOfFile(m_pFile);
-			CloseHandle(m_hMapping);
-			m_File.Close();
-			m_pFile = nullptr;
-			m_hMapping = nullptr;
-		}
-	}
+    HANDLE Create(const CFile& File,
+        DWORD dwProtect = PAGE_READONLY,
+        DWORD dwSectionAttr = SEC_COMMIT,
+        _Out_opt_ NTSTATUS* pnts = nullptr) noexcept
+    {
+        NTSTATUS nts;
+        Close();
+        nts = NtCreateSection(&m_hSection, SECTION_ALL_ACCESS, nullptr,
+            nullptr, dwProtect, dwSectionAttr, File.GetHandle());
+        if (pnts) *pnts = nts;
+        return m_hSection;
+    }
 
-	void* Open(PCWSTR pszFile, DWORD dwMap = FILE_MAP_READ, DWORD dwProtect = PAGE_READONLY,
-		DWORD dwMode = OPEN_EXISTING, DWORD dwAccess = GENERIC_READ,
-		DWORD dwShareMode = 0, DWORD dwAttr = FILE_ATTRIBUTE_NORMAL)
-	{
-		if (m_File.Open(pszFile, dwMode, dwAccess, dwShareMode, dwAttr) == INVALID_HANDLE_VALUE)
-			return nullptr;
-		DWORD dwSize = m_File.GetSize32();
-		m_hMapping = CreateFileMappingW(m_File.GetHandle(), nullptr, dwProtect, 0, dwSize, nullptr);
-		if (!m_hMapping)
-		{
-			m_File.Close();
-			return nullptr;
-		}
-		m_pFile = MapViewOfFile(m_hMapping, dwMap, 0, 0, dwSize);
-		if (!m_hMapping)
-		{
-			CloseHandle(m_hMapping);
-			m_File.Close();
-			return nullptr;
-		}
-		return m_pFile;
-	}
+    void Close() noexcept
+    {
+        if (m_hSection)
+        {
+            NtClose(m_hSection);
+            m_hSection = nullptr;
+        }
+        UnMap();
+    }
 
-	EckInline CFile& GetFile()
-	{
-		return m_File;
-	}
+    void* Map(DWORD dwProtect = PAGE_READONLY,
+        _Out_opt_ NTSTATUS* pnts = nullptr) noexcept
+    {
+        UnMap();
+        SIZE_T cbView{};
+        const auto nts = NtMapViewOfSection(m_hSection, NtCurrentProcess(),
+            &m_pMap, 0, 0, nullptr, &cbView, ViewShare, 0, dwProtect);
+        if (pnts) *pnts = nts;
+        return m_pMap;
+    }
 
-	EckInline HANDLE GetHMapping()
-	{
-		return m_hMapping;
-	}
-
-	EckInline void* GetPFile()
-	{
-		return m_pFile;
-	}
-};
-
-class CMappingFile2
-{
-private:
-	CFile& m_File;
-	HANDLE m_hMapping = nullptr;
-	void* m_pFile = nullptr;
-public:
-	CMappingFile2() = delete;
-	CMappingFile2(CFile& File) : m_File(File) {}
-
-	~CMappingFile2()
-	{
-#ifdef _DEBUG
-		if (m_hMapping)
-		{
-			UnmapViewOfFile(m_pFile);
-			CloseHandle(m_hMapping);
-			EckDbgPrintWithPos(L"CMappingFile2已取消映射，请确保File对象仍然存在");
-		}
-#endif
-	}
-
-	void Close()
-	{
-		if (m_hMapping && m_pFile)
-		{
-			UnmapViewOfFile(m_pFile);
-			CloseHandle(m_hMapping);
-			m_pFile = nullptr;
-			m_hMapping = nullptr;
-		}
-	}
-
-	void* Create(DWORD dwMap = FILE_MAP_READ, DWORD dwProtect = PAGE_READONLY)
-	{
-		DWORD dwSize = m_File.GetSize32();
-		m_hMapping = CreateFileMappingW(m_File.GetHandle(), nullptr, dwProtect, 0, dwSize, nullptr);
-		if (!m_hMapping)
-		{
-			m_File.Close();
-			return nullptr;
-		}
-		m_pFile = MapViewOfFile(m_hMapping, dwMap, 0, 0, dwSize);
-		if (!m_hMapping)
-		{
-			CloseHandle(m_hMapping);
-			m_File.Close();
-			return nullptr;
-		}
-		return m_pFile;
-	}
-
-	EckInline CFile& GetFile()
-	{
-		return m_File;
-	}
-
-	EckInline void SetFile(CFile& File)
-	{
-		EckAssert(!m_hMapping);
-		m_File = File;
-	}
-
-	EckInline HANDLE GetHMapping()
-	{
-		return m_hMapping;
-	}
-
-	EckInline void* GetPFile()
-	{
-		return m_pFile;
-	}
+    NTSTATUS UnMap() noexcept
+    {
+        if (!m_pMap)
+            return STATUS_SUCCESS;
+        const auto nts = NtUnmapViewOfSection(NtCurrentProcess(), m_pMap);
+        m_pMap = nullptr;
+        return nts;
+    }
 };
 ECK_NAMESPACE_END

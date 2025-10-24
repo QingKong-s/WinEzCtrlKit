@@ -1,5 +1,6 @@
 ﻿#pragma once
-#include "SystemHelper.h"
+#include "FileHelper.h"
+#include "LocaleStringUtility.h"
 #include "../ThirdPartyLib/UCharDet/uchardet.h"
 
 ECK_NAMESPACE_BEGIN
@@ -146,8 +147,7 @@ inline BOOL EcdCovert(PCVOID p, size_t cb,
 		rbDst.ReSize((cchU16 + sizeof(WCHAR)) * 2);
 		*((PWCH)rbDst.Data() + cchU16) = 0;
 		if (cpDst == CP_UTF16BE)
-			for (auto& e : rbDst)
-				e = ReverseInteger(e);
+            LcsReverseUtf16ByteOrder((PWCH)rbDst.Data(), cchU16);
 		return TRUE;
 	}
 	rbWork.ReSize(cchU16 * sizeof(WCHAR));

@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Utility2.h"
+#include "Crc.h"
 
 ECK_NAMESPACE_BEGIN
 using GETVERSIONOUTPARAMS = GETVERSIONINPARAMS;

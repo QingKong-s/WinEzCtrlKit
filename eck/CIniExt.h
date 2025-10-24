@@ -277,6 +277,11 @@ private:
 		return ch == '\n' || ch == '\r' || ch == ';';
 	}
 
+	EckInlineNdCe static BOOL IsSpaceCharHeader(TChar ch)
+	{
+		return IsSpaceChar(ch) || ch == 0xFEFF;
+	}
+
 	// 调用前：psz指向[
 	// 调用后：psz指向]的下一个位置
 	static IniResult UnescapeSectionName(TStr& rs, const TChar*& psz, size_t cch)
@@ -697,7 +702,7 @@ public:
 					pLastEntry = &Ret.first->second;
 					eState = State::Key;
 				}
-				else
+                else if (!IsSpaceCharHeader(ch))
 					return IniResult::SecIllegalChar;
 			}
 			break;

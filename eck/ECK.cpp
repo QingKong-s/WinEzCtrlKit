@@ -129,6 +129,8 @@ void* g_pfnShutdownTextServices{};
 void* g_pfnCreateTextServices20{};
 void* g_pfnShutdownTextServices20{};
 
+FRtlGetNtSystemRoot g_pfnRtlGetNtSystemRoot{};
+
 #if ECK_OPT_DYN_NF
 FGetDpiForWindow g_pfnGetDpiForWindow{};
 FGetDpiForMonitor g_pfnGetDpiForMonitor{};
@@ -1622,6 +1624,8 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, DWORD* pdwErrCode)
 #if ECK_OPT_DYN_NF
     InitNewApi();
 #endif// ECK_OPT_DYN_NF
+    g_pfnRtlGetNtSystemRoot = (FRtlGetNtSystemRoot)GetProcAddress(
+        GetModuleHandleW(L"ntdll.dll"), "RtlGetNtSystemRoot");
     g_dwTlsSlot = TlsAlloc();
     if (!(pip->uFlags & EIF_NOINITTHREAD))
         ThreadInit();

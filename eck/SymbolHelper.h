@@ -150,7 +150,7 @@ inline HRESULT DshLoadPdb(HANDLE hProcess, _In_ PCWSTR pszPdbFile,
 	DWORD64 DllBase = 0x00401000) noexcept
 {
 	NTSTATUS nts;
-	const auto cbPdb = (DWORD)GetFileSizeWithPath(pszPdbFile, &nts);
+	const auto cbPdb = (DWORD)FileGetSizeByPath(pszPdbFile, &nts);
 	if (!NT_SUCCESS(nts))
 		return HRESULT_FROM_NT(nts);
 	if (!SymLoadModuleExW(hProcess, nullptr, pszPdbFile,

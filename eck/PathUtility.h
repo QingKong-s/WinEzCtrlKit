@@ -120,4 +120,16 @@ HRESULT PazParseCommandLineAndCut(
     }
     return hr;
 }
+
+EckNfInlineNd BOOL PazIsDotFileName(_In_reads_z_(3) ccpIsStdCharPtr auto pszFileName)
+{
+    return pszFileName[0] == '.' && (pszFileName[1] == '\0' ||
+        (pszFileName[1] == '.' && pszFileName[2] == '\0'));
+}
+
+EckNfInlineNd BOOL PazIsDotFileName(_In_reads_bytes_(cbFileName) PCWCH pszFileName, ULONG cbFileName)
+{
+    return (cbFileName == sizeof(WCHAR) && pszFileName[0] == L'.') ||
+        (cbFileName == sizeof(WCHAR) * 2 && pszFileName[0] == L'.' && pszFileName[1] == L'.');
+}
 ECK_NAMESPACE_END
