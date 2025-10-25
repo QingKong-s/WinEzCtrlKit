@@ -179,7 +179,7 @@ public:
         IO_STATUS_BLOCK iosb;
         const auto nts = NtQueryInformationFile(m_hFile, &iosb,
             pBuf, cbBuf, eCls);
-        if (pcbRet) *pcbRet = iosb.Information;
+        if (pcbRet) *pcbRet = (ULONG)iosb.Information;
         return nts;
     }
 };
@@ -206,7 +206,7 @@ public:
     }
     ~CFileSectionMap() { Close(); }
 
-    HANDLE Create(const CFile& File,
+    HANDLE Create(HANDLE hFile,
         DWORD dwProtect = PAGE_READONLY,
         DWORD dwSectionAttr = SEC_COMMIT,
         _Out_opt_ NTSTATUS* pnts = nullptr) noexcept
@@ -214,7 +214,7 @@ public:
         NTSTATUS nts;
         Close();
         nts = NtCreateSection(&m_hSection, SECTION_ALL_ACCESS, nullptr,
-            nullptr, dwProtect, dwSectionAttr, File.GetHandle());
+            nullptr, dwProtect, dwSectionAttr, hFile);
         if (pnts) *pnts = nts;
         return m_hSection;
     }

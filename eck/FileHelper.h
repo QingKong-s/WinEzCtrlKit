@@ -123,7 +123,7 @@ inline NTSTATUS FileNtPathToDosPath(CRefStrW& rsBuf)
             pInBuf->DeviceNameLength = (USHORT)posDevEnd * sizeof(WCHAR);
             TcsCopyLenEnd(pInBuf->DeviceName, rsBuf.Data(), posDevEnd);
             const auto pOutBuf = (MOUNTMGR_VOLUME_PATHS*)pBuf.get() + cbInBuf;
-            const auto cbOutBuf = cbBufTotal - cbInBuf;
+            const auto cbOutBuf = ULONG(cbBufTotal - cbInBuf);
 
             IO_STATUS_BLOCK iosb;
             nts = NtDeviceIoControlFile(hMpm, nullptr, nullptr, nullptr, &iosb,

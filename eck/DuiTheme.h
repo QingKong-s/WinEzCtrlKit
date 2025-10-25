@@ -437,17 +437,19 @@ public:
 	HRESULT Open(_In_z_ PCWSTR pszFileName)
 	{
 		Close();
-		CFile File{ pszFileName,FCD_ONLYEXISTING,FILE_GENERIC_READ };
+		CFile File{};
+		auto nts = File.Create(pszFileName, FILE_OPEN, FILE_GENERIC_READ);
 		if (!File.IsValid())
-			return HRESULT_FROM_WIN32(GetLastError());
+			return HRESULT_FROM_WIN32(WIN32_FROM_NTSTATUS(nts));
 		const auto cbData = File.GetSize32();
 		const auto pData = VAlloc(cbData);
 		if (!pData)
 			return E_OUTOFMEMORY;
-		if (!File.Read(pData, cbData))
+		File.Read(pData, cbData, nullptr, &nts);
+        if (!NT_SUCCESS(nts))
 		{
 			VFree(pData);
-			return HRESULT_FROM_WIN32(GetLastError());
+			return HRESULT_FROM_WIN32(WIN32_FROM_NTSTATUS(nts));
 		}
 		const auto* const pHdr = (const THEME_FILE_HEADER*)pData;
 		if (pHdr->Magic != ThemeFileMagic)

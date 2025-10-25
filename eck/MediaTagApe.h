@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "MediaTag.h"
-#include "SystemHelper.h"
+#include "FileHelper.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_MEDIATAG_NAMESPACE_BEGIN
