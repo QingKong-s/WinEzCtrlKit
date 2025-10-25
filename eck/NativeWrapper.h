@@ -76,6 +76,11 @@ inline HANDLE NaOpenFile(_In_z_ PCWSTR pszFile,
         {
             if (pnts)
                 *pnts = STATUS_OBJECT_PATH_NOT_FOUND;
+            if (piost)
+            {
+                piost->Status = STATUS_OBJECT_PATH_NOT_FOUND;
+                piost->Information = 0;
+            }
             return INVALID_HANDLE_VALUE;
         }
     const auto hFile = NaOpenFile(&usFile, dwAccess, dwShareMode, dwOptions,
@@ -121,6 +126,11 @@ inline HANDLE NaCreateFile(_In_z_ PCWSTR pszFile,
     {
         if (pnts)
             *pnts = STATUS_OBJECT_PATH_NOT_FOUND;
+        if (piost)
+        {
+            piost->Status = STATUS_OBJECT_PATH_NOT_FOUND;
+            piost->Information = 0;
+        }
         return INVALID_HANDLE_VALUE;
     }
     const auto hFile = NaCreateFile(&usFile, dwAccess, dwShareMode, dwOptions,
