@@ -276,10 +276,16 @@ private:
 	{
 		return ch == '\n' || ch == '\r' || ch == ';';
 	}
-
+	EckInlineNdCe static BOOL IsBomChar(TChar ch)
+	{
+        if constexpr (sizeof(TChar) == sizeof(WCHAR))
+			return ch == 0xFEFF;
+		else
+            return ch == 0xFF || ch == 0xFE || ch == 0xEF;
+    }
 	EckInlineNdCe static BOOL IsSpaceCharHeader(TChar ch)
 	{
-		return IsSpaceChar(ch) || ch == 0xFEFF;
+		return IsSpaceChar(ch) || IsBomChar(ch);
 	}
 
 	// 调用前：psz指向[
@@ -395,6 +401,7 @@ private:
 		{
 			rsKey.DupString(psz, int(pR - psz));
 			psz = pR + 1;
+            cch = cch - (psz - pOrg);
 		}
 		else
 			return IniResult::SecRBracketNotFound;
@@ -403,7 +410,9 @@ private:
 			rsKey.RTrim();
 			if (IsBreakLineOrCommentChar(*psz))
 				return IniResult::Ok;
-			psz = LTrimStr(psz, int(cch - (psz - pOrg)));
+			const auto pL = LTrimStr(psz, cch);
+            cch -= (pL - psz);
+			psz = pL;
 		}
 
 		constexpr static TChar ValEnd[]{ ';','\n','\r' };
@@ -767,7 +776,7 @@ public:
 		std::vector<STACK2> sContainer{};
 		TStr rsSpace{};
 
-		auto PushBackSection = [&](const TSectionMap& Map)
+		auto Fn_PushBackSection = [&](const TSectionMap& Map)
 			{
 				if (Map.empty())
 					return;
@@ -789,7 +798,7 @@ public:
 					});
 			};
 
-		PushBackSection(m_Root);
+		Fn_PushBackSection(m_Root);
 		while (!sSec.empty())
 		{
 			auto& e = sSec.back().it->second;
@@ -798,7 +807,7 @@ public:
 				sContainer.emplace_back(sSec.back().it->first, e.Child.size() + 1);
 				rsSpace.PushBackChar(' ').PushBackChar(' ');
 				sSec.back().bExtended = TRUE;
-				PushBackSection(e.Child);
+				Fn_PushBackSection(e.Child);
 			}
 			else
 			{
