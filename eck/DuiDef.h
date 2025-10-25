@@ -204,5 +204,14 @@ struct NMECUSTOMDRAW : DUINMHDR
     State eState;
     D2D1_RECT_F rc;
 };
+
+namespace Priv
+{
+    struct CUSTOM_LAYER
+    {
+        const D2D1_LAYER_PARAMETERS1* pParam;
+        ID2D1Layer* pLayer;
+    };
+}
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

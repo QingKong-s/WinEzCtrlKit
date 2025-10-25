@@ -735,6 +735,8 @@ private:
 
     ID2D1Effect* m_pFxBlur{};   // 缓存模糊效果
     ID2D1Effect* m_pFxCrop{};   // 缓存裁剪效果
+
+    Priv::CUSTOM_LAYER m_CustomLayer{};
     //------其他------
     int m_cxClient{}, m_cyClient{};
     float m_cxClientLog{}, m_cyClientLog{};
@@ -2106,19 +2108,34 @@ private:
         D2D1_POINT_2F ptDrawing, BOOL bUseLayer)
     {
         const auto pDC = GetDeviceContext();
-        const auto iBlend = pDC->GetPrimitiveBlend();
-        pDC->SetPrimitiveBlend(D2D1_PRIMITIVE_BLEND_COPY);
+#ifdef _DEBUG
+        D2D1_LAYER_PARAMETERS1 LyParam
+        {
+            .contentBounds = D2D1::InfiniteRect(),
+            .opacity = 1.f,
+        };
+        pDC->CreateSolidColorBrush({ .a = 1.f }, (ID2D1SolidColorBrush**)&LyParam.opacityBrush);
+#else
         const static D2D1_LAYER_PARAMETERS1 LyParam
         {
             .contentBounds = D2D1::InfiniteRect(),
             .opacity = 1.f,
         };
+#endif
+        const auto iBlend = pDC->GetPrimitiveBlend();
+        pDC->SetPrimitiveBlend(D2D1_PRIMITIVE_BLEND_COPY);
         if (bUseLayer)
-            pDC->PushLayer(LyParam, nullptr);
+            if (m_CustomLayer.pParam)
+                pDC->PushLayer(m_CustomLayer.pParam, m_CustomLayer.pLayer);
+            else
+                pDC->PushLayer(LyParam, nullptr);
         pDC->DrawImage(m_pFxBlur, ptDrawing);
         if (bUseLayer)
             pDC->PopLayer();
         pDC->SetPrimitiveBlend(iBlend);
+#ifdef _DEBUG
+        LyParam.opacityBrush->Release();
+#endif
         return S_OK;
     }
 public:
@@ -2189,6 +2206,13 @@ public:
         m_pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, fDeviation);
         m_pFxBlur->SetInput(0, pBmp);
         return BlurpDrawEffect(m_pFxBlur, ptDrawing, bUseLayer);
+    }
+
+    void BlurSetCustomLayer(const D2D1_LAYER_PARAMETERS1* pParam = nullptr,
+        ID2D1Layer* pLayer = nullptr)
+    {
+        m_CustomLayer.pParam = pParam;
+        m_CustomLayer.pLayer = pLayer;
     }
 
     EckInlineCe void BlurSetUseLayer(BOOL bUseLayer) noexcept { m_bBlurUseLayer = bUseLayer; }
