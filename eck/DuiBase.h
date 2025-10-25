@@ -104,7 +104,7 @@ private:
     }
 
     constexpr void tcIrpUnionContentExpandElemRect(_Inout_ D2D1_RECT_F& rcInClient);
-    void utcIrpInvalidate(const D2D1_RECT_F& rcInClient, BOOL bUpdateNow);
+    void tcIrpInvalidate(const D2D1_RECT_F& rcInClient, BOOL bUpdateNow);
 
     constexpr void tcSrpCorrectChildrenRectInClient() const
     {
@@ -505,11 +505,11 @@ public:
     {
         auto rcInClient{ rc };
         ElemToClient(rcInClient);
-        utcIrpInvalidate(rcInClient, bUpdateNow);
+        tcIrpInvalidate(rcInClient, bUpdateNow);
     }
     EckInline void InvalidateRect(BOOL bUpdateNow = TRUE)
     {
-        utcIrpInvalidate(GetWholeRectInClient(), bUpdateNow);
+        tcIrpInvalidate(GetWholeRectInClient(), bUpdateNow);
     }
 
     /// <summary>
@@ -2627,7 +2627,7 @@ EckInline LRESULT CElem::GenElemNotify(void* pnm)
         return GetWnd()->OnElemEvent(this, ((DUINMHDR*)pnm)->uCode, 0, (LPARAM)pnm);
 }
 
-inline void CElem::utcIrpInvalidate(const D2D1_RECT_F& rcInClient, BOOL bUpdateNow)
+inline void CElem::tcIrpInvalidate(const D2D1_RECT_F& rcInClient, BOOL bUpdateNow)
 {
     ECK_DUILOCK;
     if (!IsVisible())
