@@ -1198,13 +1198,13 @@ public:
     HRESULT PazParseCommandLine(_Out_ TPointer& pszFile, _Out_ int& cchFile,
         _Out_ TPointer& pszParam, _Out_ int& cchParam)
     {
-        eck::PazParseCommandLine(Data(), Size(), pszFile, cchFile, pszParam, cchParam);
+        return eck::PazParseCommandLine(Data(), Size(), pszFile, cchFile, pszParam, cchParam);
     }
 
     HRESULT PazParseCommandLineAndCut(_Out_ TPointer& pszFile, _Out_ int& cchFile,
         _Out_ TPointer& pszParam, _Out_ int& cchParam)
     {
-        eck::PazParseCommandLineAndCut(Data(), Size(), pszFile, cchFile, pszParam, cchParam);
+        return eck::PazParseCommandLineAndCut(Data(), Size(), pszFile, cchFile, pszParam, cchParam);
     }
 
     void PazFindFileName(BOOL bKeepExtension, _Out_ int& pos0, _Out_ int& pos1) const

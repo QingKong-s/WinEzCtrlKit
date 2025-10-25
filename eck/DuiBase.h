@@ -2557,7 +2557,7 @@ inline void CElem::SetZOrder(CElem* pElemAfter)
     auto& pParentLastChild = (m_pParent ? m_pParent->m_pLastChild : m_pWnd->m_pLastChild);
     auto& pParentFirstChild = (m_pParent ? m_pParent->m_pFirstChild : m_pWnd->m_pFirstChild);
 
-    if (pElemAfter == ECK_ELEMTOP)// == nullptr
+    if (pElemAfter == ECK_ELEMBOTTOM)
     {
         if (m_pPrev)
         {
@@ -2573,9 +2573,8 @@ inline void CElem::SetZOrder(CElem* pElemAfter)
                 m_pNext->m_pPrev = this;
             pParentFirstChild = this;
         }
-        // else: 已在最顶层
     }
-    else if (pElemAfter == ECK_ELEMBOTTOM)
+    else if (pElemAfter == ECK_ELEMTOP)
     {
         if (m_pNext)
         {
@@ -2591,7 +2590,6 @@ inline void CElem::SetZOrder(CElem* pElemAfter)
                 m_pPrev->m_pNext = this;
             pParentLastChild = this;
         }
-        // else: 已在最底层
     }
     else
     {

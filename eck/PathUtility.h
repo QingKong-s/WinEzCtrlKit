@@ -109,8 +109,8 @@ HRESULT PazParseCommandLineAndCut(
     _Out_ TPointer& pszParam, _Out_ int& cchParam)
 {
     EckAssert(&pszFile != &pszParam && &cchFile != &cchParam);
-    const auto hr = PazParseCommandLine(pszFile, cchFile,
-        pszParam, cchParam);
+    const auto hr = PazParseCommandLine(pszCmdLine, cchCmdLine,
+        pszFile, cchFile, pszParam, cchParam);
     if (SUCCEEDED(hr))
     {
         if (pszFile)
