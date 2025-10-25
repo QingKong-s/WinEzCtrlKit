@@ -410,7 +410,7 @@ private:
 			rsKey.RTrim();
 			if (IsBreakLineOrCommentChar(*psz))
 				return IniResult::Ok;
-			const auto pL = LTrimStr(psz, cch);
+			const auto pL = LTrimStr(psz, (int)cch);
             cch -= (pL - psz);
 			psz = pL;
 		}

@@ -490,12 +490,10 @@ inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess,
     if (!NT_SUCCESS(nts))
         return nts;
     
-    UNICODE_STRING usPrivilege
-    {
-        .Length = USHORT(svPrivilege * sizeof(WCHAR)),
-        .MaximumLength = USHORT((cchPrivilege + 1) * sizeof(WCHAR)),
-        .Buffer = PWCH(pszPrivilege),
-    };
+    UNICODE_STRING usPrivilege;
+    usPrivilege.Length = usPrivilege.MaximumLength =
+        USHORT(svPrivilege.size() * sizeof(WCHAR));
+    usPrivilege.Buffer = (PWCH)svPrivilege.data();
     TOKEN_PRIVILEGES tp;
     if (!NT_SUCCESS(nts = LsaLookupPrivilegeValue(hToken,
         &usPrivilege, &tp.Privileges[0].Luid)))

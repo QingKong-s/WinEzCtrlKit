@@ -6,12 +6,12 @@ ECK_DUI_NAMESPACE_BEGIN
 class CSizeBox
 {
 private:
-    constexpr static float BorderSize = 3.f;
 
     CElem* m_pElem{};
     CElem::HSlot m_hSlot{};
     HCURSOR m_hCursor{};
     int m_htTracking{};
+    float cxBorder{ 3.f };
     BOOLEAN m_bAllowMove{ TRUE };
     BOOLEAN m_bAllowSize{ TRUE };
     D2D1_POINT_2F m_ptStart{};
@@ -51,27 +51,27 @@ public:
     int HitTestBorder(D2D1_POINT_2F pt) const
     {
         if (m_bAllowSize)
-            if (pt.x < BorderSize)
+            if (pt.x < cxBorder)
             {
-                if (pt.y < BorderSize)
+                if (pt.y < cxBorder)
                     return HTTOPLEFT;
-                else if (pt.y >= m_pElem->GetHeightF() - BorderSize)
+                else if (pt.y >= m_pElem->GetHeightF() - cxBorder)
                     return HTBOTTOMLEFT;
                 else
                     return HTLEFT;
             }
-            else if (pt.x >= m_pElem->GetWidthF() - BorderSize)
+            else if (pt.x >= m_pElem->GetWidthF() - cxBorder)
             {
-                if (pt.y < BorderSize)
+                if (pt.y < cxBorder)
                     return HTTOPRIGHT;
-                else if (pt.y >= m_pElem->GetHeightF() - BorderSize)
+                else if (pt.y >= m_pElem->GetHeightF() - cxBorder)
                     return HTBOTTOMRIGHT;
                 else
                     return HTRIGHT;
             }
-            else if (pt.y < BorderSize)
+            else if (pt.y < cxBorder)
                 return HTTOP;
-            else if (pt.y >= m_pElem->GetHeightF() - BorderSize)
+            else if (pt.y >= m_pElem->GetHeightF() - cxBorder)
                 return HTBOTTOM;
         if (m_bAllowMove)
             return HTCLIENT;
@@ -84,16 +84,19 @@ public:
         {
         case WM_NCHITTEST:
         {
-            D2D1_POINT_2F pt ECK_GET_PT_LPARAM_F(lParam);
-            m_pElem->ClientToElem(pt);
-            const int ht = HitTestBorder(pt);
-            if (ht != HTNOWHERE)
+            if (!m_pElem->GetWnd()->ElemGetCapture())
             {
-                const auto hCursor = LoadCursorFromHtCode(ht);
-                if (hCursor != m_hCursor)
+                D2D1_POINT_2F pt ECK_GET_PT_LPARAM_F(lParam);
+                m_pElem->ClientToElem(pt);
+                const int ht = HitTestBorder(pt);
+                if (ht != HTNOWHERE)
                 {
-                    m_hCursor = hCursor;
-                    SetCursor(m_hCursor);
+                    const auto hCursor = LoadCursorFromHtCode(ht);
+                    if (hCursor != m_hCursor)
+                    {
+                        m_hCursor = hCursor;
+                        SetCursor(m_hCursor);
+                    }
                 }
             }
         }
@@ -153,16 +156,16 @@ public:
                 bChangeR = bChangeB = TRUE;
                 break;
             }
-            if (rcCurr.right - rcCurr.left < BorderSize * 2)
+            if (rcCurr.right - rcCurr.left < cxBorder * 2)
                 if (bChangeR)
-                    rcCurr.right = rcCurr.left + BorderSize * 2;
+                    rcCurr.right = rcCurr.left + cxBorder * 2;
                 else
-                    rcCurr.left = rcCurr.right - BorderSize * 2;
-            if (rcCurr.bottom - rcCurr.top < BorderSize * 2)
+                    rcCurr.left = rcCurr.right - cxBorder * 2;
+            if (rcCurr.bottom - rcCurr.top < cxBorder * 2)
                 if (bChangeB)
-                    rcCurr.bottom = rcCurr.top + BorderSize * 2;
+                    rcCurr.bottom = rcCurr.top + cxBorder * 2;
                 else
-                    rcCurr.top = rcCurr.bottom - BorderSize * 2;
+                    rcCurr.top = rcCurr.bottom - cxBorder * 2;
             m_pElem->SetRect(rcCurr);
         }
         break;
@@ -218,6 +221,8 @@ public:
     EckInlineNdCe BOOLEAN GetAllowMove() const { return m_bAllowMove; }
     EckInlineCe void SetAllowSize(BOOLEAN bAllow) { m_bAllowSize = bAllow; }
     EckInlineNdCe BOOLEAN GetAllowSize() const { return m_bAllowSize; }
+    EckInlineCe void SetBorderWidth(float cx) { cxBorder = cx; }
+    EckInlineNdCe float GetBorderWidth() const { return cxBorder; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
