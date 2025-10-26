@@ -1193,6 +1193,7 @@ private:
                     CacheClear();
                     GetDeviceContext()->SetDpi((float)m_iUserDpi, (float)m_iUserDpi);
                     m_bUserDpiChanged = FALSE;
+                    m_bFullUpdate = TRUE;
                     BroadcastEvent(WM_DPICHANGED, m_iUserDpi, 0);
                     if (!m_bSizeChanged)
                         goto SkipReSize;
