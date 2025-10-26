@@ -6,7 +6,7 @@
 #include "CFile.h"
 
 ECK_NAMESPACE_BEGIN
-inline LONGLONG FileGetSizeByPath(PCWSTR pszFile, NTSTATUS* pnts = nullptr)
+inline LONGLONG FileGetSizeByPath(_In_z_ PCWSTR pszFile, _Out_opt_ NTSTATUS* pnts = nullptr)
 {
     CFile File{};
     const auto nts = File.Create(pszFile, FILE_OPEN, FILE_READ_ATTRIBUTES, FILE_SHARE_READ);
@@ -16,7 +16,7 @@ inline LONGLONG FileGetSizeByPath(PCWSTR pszFile, NTSTATUS* pnts = nullptr)
     return 0;
 }
 
-inline CRefBin ReadInFile(PCWSTR pszFile, NTSTATUS* pnts = nullptr)
+inline CRefBin ReadInFile(_In_z_ PCWSTR pszFile, _Out_opt_ NTSTATUS* pnts = nullptr)
 {
     CFile File{};
     const auto nts = File.Create(pszFile, FILE_OPEN,
@@ -43,7 +43,7 @@ inline CRefBin ReadInFile(PCWSTR pszFile, NTSTATUS* pnts = nullptr)
     return {};
 }
 
-inline NTSTATUS WriteToFile(PCWSTR pszFile, PCVOID pData, DWORD cb)
+inline NTSTATUS WriteToFile(_In_z_ PCWSTR pszFile, _In_reads_bytes_(cb) PCVOID pData, DWORD cb)
 {
     CFile File{};
     auto nts = File.Create(pszFile, FILE_OVERWRITE_IF,
@@ -53,14 +53,14 @@ inline NTSTATUS WriteToFile(PCWSTR pszFile, PCVOID pData, DWORD cb)
         File.Write(pData, cb, nullptr, &nts);
     return nts;
 }
-EckInline NTSTATUS WriteToFile(PCWSTR pszFile, const CRefBin& rb)
+EckInline NTSTATUS WriteToFile(_In_z_ PCWSTR pszFile, const CRefBin& rb)
 {
     return WriteToFile(pszFile, rb.Data(), (DWORD)rb.Size());
 }
 
 namespace Priv
 {
-    NTSTATUS FilepOpenMountPointManager(HANDLE& hMpmDevice)
+    NTSTATUS FilepOpenMountPointManager(_Out_ HANDLE& hMpmDevice)
     {
         constexpr UNICODE_STRING MpmName RTL_CONSTANT_STRING(MOUNTMGR_DEVICE_NAME);
         NTSTATUS nts;

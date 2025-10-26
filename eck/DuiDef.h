@@ -101,9 +101,16 @@ enum
     // RER_NONE = 执行默认操作
     // RER_REDIRECTION = 应用程序重定向渲染，DUI系统应使用pSfcNewDst和prcNewDirtyPhy
     RE_PRERENDER,
-    RE_POSTRENDER,		// 渲染完毕，仅当RE_PRERENDER返回RER_REDIRECTION时产生
-    RE_COMMIT,			// DUI系统认为有必要冲洗一切挂起的工作
-    RE_FILLBACKGROUND,	// 正在填充背景
+    // 渲染完毕，仅当RE_PRERENDER返回RER_REDIRECTION时产生
+    RE_POSTRENDER,
+    // DUI系统认为有必要冲洗一切挂起的工作
+    RE_COMMIT,
+    // 正在填充背景
+    // 下列字段有效：FillBkg
+    // 下列返回值有效：
+    // RER_NONE = 执行默认操作
+    // RER_NO_ERASE = 跳过背景填充
+    RE_FILLBACKGROUND,
 };
 // 渲染事件返回值
 enum : LRESULT
