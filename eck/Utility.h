@@ -235,6 +235,14 @@ EckInlineNdCe D2D1_COLOR_F ArgbToD2DColorF(ARGB argb)
         GetIntegerByte<3>(argb) / 255.f
     };
 }
+EckInlineNdCe ARGB D2DColorFToArgb(const D2D1_COLOR_F& cr)
+{
+    return BytesToInteger<ARGB>(
+        BYTE(cr.r * 255.f),
+        BYTE(cr.g * 255.f),
+        BYTE(cr.b * 255.f),
+        BYTE(cr.a * 255.f));
+}
 EckInlineNdCe D2D1_COLOR_F RgbToD2DColorF(UINT rgb, float fAlpha = 1.f)
 {
     return D2D1_COLOR_F

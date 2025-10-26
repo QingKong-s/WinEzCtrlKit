@@ -19,7 +19,7 @@ public:
     ~CFile() { Close(); }
 
     BOOL CreateWin32(
-        PCWSTR pszFile,
+        _In_z_ PCWSTR pszFile,
         DWORD dwMode = OPEN_EXISTING,
         DWORD dwAccess = FILE_GENERIC_READ,
         DWORD dwShareMode = FILE_SHARE_READ,
@@ -30,7 +30,7 @@ public:
             dwShareMode, nullptr, dwMode, dwAttr, nullptr));
     }
     NTSTATUS Create(
-        PCWSTR pszFile,
+        _In_z_ PCWSTR pszFile,
         DWORD dwDispostion = FILE_OPEN,
         DWORD dwAccess = FILE_GENERIC_READ,
         DWORD dwShareMode = FILE_SHARE_READ,
@@ -68,7 +68,7 @@ public:
         if (pnts) *pnts = nts;
         return Info.EndOfFile.QuadPart;
     }
-    EckInlineNd DWORD GetSize32(NTSTATUS* pnts = nullptr) noexcept { return (DWORD)GetSize(pnts); }
+    EckInlineNd DWORD GetSize32(_Out_opt_ NTSTATUS* pnts = nullptr) noexcept { return (DWORD)GetSize(pnts); }
 
     EckInline CFile& Read(
         _Out_writes_bytes_(cbBuf) void* pBuf,
@@ -206,7 +206,7 @@ public:
     }
     ~CFileSectionMap() { Close(); }
 
-    HANDLE Create(HANDLE hFile,
+    HANDLE Create(_In_ HANDLE hFile,
         DWORD dwProtect = PAGE_READONLY,
         DWORD dwSectionAttr = SEC_COMMIT,
         _Out_opt_ NTSTATUS* pnts = nullptr) noexcept

@@ -162,20 +162,27 @@ public:
 				rs.DupString(this->Data().rsValue.Data(), this->Data().rsValue.Size());
 		}
 
-		EckInline int GetInt(int nDef = 0)
+		template<ccpIsInteger T>
+		T GetIntT(T nDef = 0, BOOL bHex = FALSE)
 		{
 			if (IsEmpty())
 				return nDef;
 			else
-				return _wtoi(this->Data().rsValue.Data());
+			{
+				T i;
+				TcsToInt(this->Data().rsValue.Data(),
+					this->Data().rsValue.Size(), i, bHex ? 16 : 0);
+				return i;
+			}
 		}
 
-		EckInline INT64 GetInt64(UINT nDef = 0)
+		EckInline int GetInt(int nDef = 0, BOOL bHex = FALSE)
 		{
-			if (IsEmpty())
-				return nDef;
-			else
-				return _wtoll(this->Data().rsValue.Data());
+			return GetIntT<int>(nDef, bHex);
+		}
+		EckInline INT64 GetInt64(INT64 nDef = 0, BOOL bHex = FALSE)
+		{
+			return GetIntT<INT64>(nDef, bHex);
 		}
 
 		EckInline double GetDouble(double dDef = 0.0)
