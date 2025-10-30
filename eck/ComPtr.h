@@ -2,10 +2,10 @@
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
-template <ccpIsComInterface T>
+template <CcpIsComInterface T>
 class ComPtr
 {
-    template<ccpIsComInterface U>
+    template<CcpIsComInterface U>
     friend class ComPtr;
 public:
     using TInterface = T;
@@ -38,7 +38,7 @@ public:
 
     constexpr ComPtr(std::nullptr_t) noexcept {}
 
-    template<ccpIsComInterface U>
+    template<CcpIsComInterface U>
         requires std::is_convertible_v<U*, TInterface*>
     ComPtr(U* x) noexcept :p{ x }
     {
@@ -54,7 +54,7 @@ public:
 
     constexpr ComPtr(ComPtr&& x) noexcept { std::swap(p, x.p); }
 
-    template<ccpIsComInterface U>
+    template<CcpIsComInterface U>
         requires std::is_convertible_v<U*, TInterface*>
     ComPtr(const ComPtr<U>& x) noexcept : p{ x.p }
     {
@@ -62,7 +62,7 @@ public:
             p->AddRef();
     }
 
-    template<ccpIsComInterface U>
+    template<CcpIsComInterface U>
         requires std::is_convertible_v<U*, TInterface*>
     constexpr ComPtr(ComPtr<U>&& x) noexcept
     {
@@ -84,7 +84,7 @@ public:
         return *this;
     }
 
-    template<ccpIsComInterface U>
+    template<CcpIsComInterface U>
         requires std::is_convertible_v<U*, TInterface*>
     ComPtr& operator=(U* x) noexcept
     {
@@ -106,7 +106,7 @@ public:
         return *this;
     }
 
-    template<ccpIsComInterface U>
+    template<CcpIsComInterface U>
         requires std::is_convertible_v<U*, TInterface*>
     ComPtr& operator=(const ComPtr<U>& x) noexcept
     {
@@ -156,7 +156,7 @@ public:
 
     EckInline ULONG Clear() noexcept { return ReleaseItRet(); }
 
-    template<ccpIsComInterface U>
+    template<CcpIsComInterface U>
     EckInline HRESULT As(ComPtr<U>& x) const noexcept
     {
         return p->QueryInterface(__uuidof(U), (void**)x.AddrOfClear());
@@ -165,7 +165,7 @@ public:
     {
         return p->QueryInterface(riid, (void**)x.AddrOfClear());
     }
-    template<ccpIsComInterface U>
+    template<CcpIsComInterface U>
     EckInline HRESULT As(U*& x) const noexcept
     {
         return p->QueryInterface(&x);
