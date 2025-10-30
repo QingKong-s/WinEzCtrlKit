@@ -104,14 +104,6 @@ using ConstStdCharPtr_T = const RemoveStdCharPtr_T<TPtr>*;
 template<CcpIsStdCharPtr TPtr1, CcpIsStdCharPtr TPtr2>
 constexpr inline bool IsSameStdCharPtr_V = std::is_same_v<RemoveStdCharPtr_T<TPtr1>, RemoveStdCharPtr_T<TPtr2>>;
 
-template <class T>
-using RemoveCVRef_T = std::remove_cvref_t<T>;
-template <class T>
-struct RemoveCVRef
-{
-    using Type = std::remove_cvref_t<T>;
-};
-
 template<CcpIsIntOrEnum T, bool = std::is_enum_v<T>>
 struct UnderlyingType
 {
@@ -196,7 +188,7 @@ ECK_NAMESPACE_END
 
 // 计次循环
 #define EckCounter(c, Var) \
-    for(::eck::UnderlyingType_T<::eck::RemoveCVRef_T<decltype(c)>> Var = 0; Var < (c); ++Var)
+    for(::eck::UnderlyingType_T<std::remove_cvref_t<decltype(c)>> Var = 0; Var < (c); ++Var)
 
 #define ECKPRIV_CounterNVMakeVarName2___(Name)	\
     ECKPRIV_COUNT_##Name##___

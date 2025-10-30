@@ -1,4 +1,4 @@
-#define ECK_COM_INTERFACE(iid) __interface __declspec(uuid(iid))
+﻿#define ECK_COM_INTERFACE(iid) __interface __declspec(uuid(iid))
 #define ECK_NAMESPACE_BEGIN namespace eck {
 #define EckInline __forceinline
 #define ECK_DISABLE_COPY_DEF_CONS(e) e() = default; e(const e&) = delete; e& operator=(const e&) = delete;
@@ -8,7 +8,7 @@
 #define ECK_ENUM_BIT_FLAGS(Type) EckInline constexpr Type operator&(Type a, Type b) { return Type((std::underlying_type_t<Type>)a & (std::underlying_type_t<Type>)b); } EckInline constexpr Type operator|(Type a, Type b) { return Type((std::underlying_type_t<Type>)a | (std::underlying_type_t<Type>)b); } EckInline constexpr Type operator~(Type a) { return Type(~(std::underlying_type_t<Type>)a); } EckInline constexpr Type operator^(Type a, Type b) { return Type((std::underlying_type_t<Type>)a ^ (std::underlying_type_t<Type>)b); } EckInline constexpr Type& operator&=(Type& a, Type b) { a = a & b; return a; } EckInline constexpr Type& operator|=(Type& a, Type b) { a = a | b; return a; } EckInline constexpr Type& operator^=(Type& a, Type b) { a = a ^ b; return a; }
 #define ECK_RTTI(Cls) static ClassInfo s_ClassInfo_##Cls; constexpr ClassInfo* RttiGetClassInfo() const override { return &s_ClassInfo_##Cls; } static constexpr ClassInfo* RttiClassInfo() { return &s_ClassInfo_##Cls; } static ClassInfoRegister s_ClassInfoRegister_##Cls;
 #define ECK_RTTI_IMPL_INLINE(Cls) ECK_RTTI_IMPL_BASE_INLINE(Cls, CObject)
-#define EckCounter(c, Var) for(::eck::UnderlyingType_T<::eck::RemoveCVRef_T<decltype(c)>> Var = 0; Var < (c); ++Var)
+#define EckCounter(c, Var) for(std::remove_cvref_t<::eck::RemoveCVRef_T<decltype(c)>> Var = 0; Var < (c); ++Var)
 #define ECK_RTTI_IMPL_BASE_INLINE(Cls, Base) inline ClassInfo Cls::s_ClassInfo_##Cls = { L###Cls, &Base::s_ClassInfo_##Base, RttiStdNewObject<Cls> }; inline ClassInfoRegister Cls::s_ClassInfoRegister_##Cls(&Cls::s_ClassInfo_##Cls);
 #define ECK_DECL_ID3FRAME_METHOD_CLONE_DEF_CONS(x) FRAME* Clone() const override { return new x{ *this }; } x(x&&) = default; x(const x&) = default; x() = default;
 #define ECK_DECL_ID3FRAME_METHOD(x) ECK_DECL_ID3FRAME_METHOD_CLONE(x) x() { memcpy(Id, #x, 4); }
