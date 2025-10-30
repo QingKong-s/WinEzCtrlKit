@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
@@ -17,7 +17,7 @@ private:
 public:
 	constexpr static ptrdiff_t NB = ARRAYSIZE(m_Bits) - 1;
 private:
-	template<ccpIsStdChar TChar>
+	template<CcpIsStdChar TChar>
 	void ParseBinText(const TChar* pszBinText, int cchBinText, TChar ch1, TChar ch0, TChar chX)
 	{
 		EckAssert(pszBinText && cchBinText > 0 && ch1 != ch0);
@@ -204,7 +204,7 @@ public:
 
 	EckInline constexpr void Trim()
 	{
-#pragma warning(suppress:6285)// �Ƿ�Ҫʹ�ð�λ��
+#pragma warning(suppress:6285)// 是否要使用按位与
 		constexpr bool b = (N == 0 || N % BitsPerWord != 0);
 		if constexpr (b)
 			m_Bits[NB] &= (TWord{ 1 } << N % BitsPerWord) - 1;

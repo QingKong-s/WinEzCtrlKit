@@ -49,28 +49,28 @@ EckInlineNdCe T* PtrStepCb(T* p, SSIZE_T d)
 #pragma endregion 地址
 
 #pragma region 位
-template<ccpIsInteger T>
+template<std::integral T>
 EckInlineNdCe BYTE GetIntegerByte(T i, int idxByte)
 {
     EckAssert(idxByte >= 0 && idxByte < sizeof(T));
     return (BYTE)((i >> (idxByte * 8)) & 0b11111111);
 }
 
-template<ccpIsInteger T>
+template<std::integral T>
 EckInlineCe void SetIntegerByte(T& i, int idxByte, BYTE by)
 {
     EckAssert(idxByte >= 0 && idxByte < sizeof(T));
     i &= ((~(T)0b11111111) << (idxByte * 8));
 }
 
-template<int N, ccpIsInteger T>
+template<int N, std::integral T>
 EckInlineNdCe BYTE GetIntegerByte(T i)
 {
     static_assert(N >= 0 && N < sizeof(T));
     return (BYTE)((i >> (N * 8)) & 0b11111111);
 }
 
-template<int N, ccpIsInteger T>
+template<int N, std::integral T>
 EckInlineCe void SetIntegerByte(T& i, BYTE by)
 {
     static_assert(N >= 0 && N < sizeof(T));
@@ -84,7 +84,7 @@ EckInlineCe void SetIntegerByte(T& i, BYTE by)
 /// <typeparam name="...T"></typeparam>
 /// <param name="...by">字节组，个数必须等于sizeof(TRet)</param>
 /// <returns>整数</returns>
-template<ccpIsInteger TRet, class... T>
+template<std::integral TRet, class... T>
 EckInlineNdCe TRet BytesToInteger(T... by)
 {
     static_assert(sizeof...(T) == sizeof(TRet));
@@ -102,7 +102,7 @@ EckInlineNdCe TRet BytesToInteger(T... by)
 /// </summary>
 /// <param name="i">输入</param>
 /// <returns>转换结果</returns>
-template<ccpIsInteger T>
+template<std::integral T>
 EckInlineNdCe T ReverseInteger(T i)
 {
     if constexpr (sizeof(T) == 8)
@@ -119,7 +119,7 @@ EckInlineCe void ReverseByteOrder(BYTE* p, size_t cb)
 {
     std::reverse(p, p + cb);
 }
-template<ccpIsInteger T>
+template<std::integral T>
 EckInlineNdCe T ReverseByteOrder(T& i)
 {
     auto p = (BYTE*)&i;
@@ -132,23 +132,23 @@ EckInlineNdCe BOOL IsBitSet(auto dw1, auto dw2)
     return (dw1 & dw2) == dw2;
 }
 
-template<ccpIsInteger T>
+template<std::integral T>
 EckInlineNdCe T GetLowNBits(T x, size_t n)
 {
     return x & ((T{ 1 } << n) - T{ 1 });
 }
-template<ccpIsInteger T>
+template<std::integral T>
 EckInlineNdCe T GetHighNBits(T x, size_t n)
 {
     return (x >> n) & ((T{ 1 } << n) - T{ 1 });
 }
 
-template<ccpIsInteger T>
+template<std::integral T>
 EckInlineNdCe T ClearLowNBits(T x, size_t n)
 {
     return x & ~((T{ 1 } << n) - T{ 1 });
 }
-template<ccpIsInteger T>
+template<std::integral T>
 EckInlineNdCe T ClearHighNBits(T x, size_t n)
 {
     return x & ((T{ 1 } << (sizeof(T) * 8 - n)) - T{ 1 });
@@ -1005,7 +1005,7 @@ EckInlineNdCe BYTE ByteFromHex(CHAR x1, CHAR x2)
 }
 
 EckInlineCe void ToStringUpper(_In_reads_bytes_(cb) PCVOID p, size_t cb,
-    _Out_writes_(cb * 2) ccpIsStdCharPtr auto pszResult)
+    _Out_writes_(cb * 2) CcpIsStdCharPtr auto pszResult)
 {
     EckCounter(cb, i)
     {
@@ -1015,7 +1015,7 @@ EckInlineCe void ToStringUpper(_In_reads_bytes_(cb) PCVOID p, size_t cb,
     }
 }
 EckInlineCe void ToStringLower(_In_reads_bytes_(cb) PCVOID p, size_t cb,
-    _Out_writes_(cb * 2) ccpIsStdCharPtr auto pszResult)
+    _Out_writes_(cb * 2) CcpIsStdCharPtr auto pszResult)
 {
     EckCounter(cb, i)
     {
@@ -1026,7 +1026,7 @@ EckInlineCe void ToStringLower(_In_reads_bytes_(cb) PCVOID p, size_t cb,
 }
 
 EckInlineCe void Md5ToString(_In_reads_bytes_(16) PCVOID pMd5,
-    _Out_writes_(32) ccpIsStdCharPtr auto pszResult, BOOL bUpper = TRUE)
+    _Out_writes_(32) CcpIsStdCharPtr auto pszResult, BOOL bUpper = TRUE)
 {
     if (bUpper)
         ToStringUpper(pMd5, (size_t)16, pszResult);
@@ -1035,7 +1035,7 @@ EckInlineCe void Md5ToString(_In_reads_bytes_(16) PCVOID pMd5,
 }
 
 inline constexpr void GuidToString(const GUID& guid,
-    _Out_writes_(32) ccpIsStdCharPtr auto pszResult, BOOL bUpper = TRUE)
+    _Out_writes_(32) CcpIsStdCharPtr auto pszResult, BOOL bUpper = TRUE)
 {
     const BYTE* p = (const BYTE*)&guid;
     BYTE by[16];
@@ -1177,7 +1177,7 @@ EckInlineNdCe T Abs(T x)
     return (x >= 0) ? x : -x;
 }
 
-template<ccpIsInteger T, ccpIsInteger U>
+template<std::integral T, std::integral U>
 EckInlineNdCe auto DivUpper(T x, U y)
 {
     return (x - 1) / y + 1;
@@ -1436,7 +1436,7 @@ EckInlineNdCe void InitObjAttr(_Out_ OBJECT_ATTRIBUTES& oa, PUNICODE_STRING pusN
     oa.SecurityQualityOfService = nullptr;
 }
 
-EckInline void SafeRelease(_Inout_ ccpIsComInterface auto*& pUnk)
+EckInline void SafeRelease(_Inout_ CcpIsComInterface auto*& pUnk)
 {
     if (pUnk)
     {
@@ -1444,7 +1444,7 @@ EckInline void SafeRelease(_Inout_ ccpIsComInterface auto*& pUnk)
         pUnk = nullptr;
     }
 }
-EckInline void SafeReleaseAssert0(_Inout_ ccpIsComInterface auto*& pUnk)
+EckInline void SafeReleaseAssert0(_Inout_ CcpIsComInterface auto*& pUnk)
 {
 #ifdef _DEBUG
     if (pUnk)

@@ -87,25 +87,21 @@ ECK_NAMESPACE_BEGIN
 using namespace std::literals;
 
 template<class T>
-concept ccpIsIntOrEnum = std::is_integral_v<T> || std::is_enum_v<T>;
+concept CcpIsIntOrEnum = std::is_integral_v<T> || std::is_enum_v<T>;
 template<class T>
-concept ccpIsComInterface = std::is_base_of_v<IUnknown, std::remove_cvref_t<T>>;
-template<class T>
-concept ccpIsInteger = std::integral<T>;
-template<class T>
-concept ccpIsFloat = std::floating_point<T>;
+concept CcpIsComInterface = std::is_base_of_v<IUnknown, std::remove_cvref_t<T>>;
 template<class TChar>
-concept ccpIsStdChar = std::is_same_v<TChar, CHAR> || std::is_same_v<TChar, WCHAR>;
+concept CcpIsStdChar = std::is_same_v<TChar, CHAR> || std::is_same_v<TChar, WCHAR>;
 template<class TCharPtr>
-concept ccpIsStdCharPtr = std::is_pointer_v<TCharPtr> && ccpIsStdChar<std::remove_cvref_t<std::remove_pointer_t<TCharPtr>>>;
+concept CcpIsStdCharPtr = std::is_pointer_v<TCharPtr> && CcpIsStdChar<std::remove_cvref_t<std::remove_pointer_t<TCharPtr>>>;
 template<class TCharPtr>
-concept ccpIsNonConstStdCharPtr = std::is_pointer_v<TCharPtr> && ccpIsStdChar<std::remove_volatile_t<std::remove_reference_t<std::remove_pointer_t<TCharPtr>>>>;
+concept CcpIsNonConstStdCharPtr = std::is_pointer_v<TCharPtr> && CcpIsStdChar<std::remove_volatile_t<std::remove_reference_t<std::remove_pointer_t<TCharPtr>>>>;
 
-template<ccpIsStdCharPtr TPtr>
+template<CcpIsStdCharPtr TPtr>
 using RemoveStdCharPtr_T = std::remove_cvref_t<std::remove_pointer_t<TPtr>>;
-template<ccpIsStdCharPtr TPtr>
+template<CcpIsStdCharPtr TPtr>
 using ConstStdCharPtr_T = const RemoveStdCharPtr_T<TPtr>*;
-template<ccpIsStdCharPtr TPtr1, ccpIsStdCharPtr TPtr2>
+template<CcpIsStdCharPtr TPtr1, CcpIsStdCharPtr TPtr2>
 constexpr inline bool IsSameStdCharPtr_V = std::is_same_v<RemoveStdCharPtr_T<TPtr1>, RemoveStdCharPtr_T<TPtr2>>;
 
 template <class T>
@@ -116,17 +112,17 @@ struct RemoveCVRef
     using Type = std::remove_cvref_t<T>;
 };
 
-template<ccpIsIntOrEnum T, bool = std::is_enum_v<T>>
+template<CcpIsIntOrEnum T, bool = std::is_enum_v<T>>
 struct UnderlyingType
 {
     using Type = std::underlying_type_t<T>;
 };
-template<ccpIsIntOrEnum T>
+template<CcpIsIntOrEnum T>
 struct UnderlyingType<T, false>
 {
     using Type = T;
 };
-template<ccpIsIntOrEnum T>
+template<CcpIsIntOrEnum T>
 using UnderlyingType_T = UnderlyingType<T>::Type;
 ECK_NAMESPACE_END
 #pragma endregion Template

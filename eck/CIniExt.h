@@ -162,7 +162,7 @@ public:
 				rs.DupString(this->Data().rsValue.Data(), this->Data().rsValue.Size());
 		}
 
-		template<ccpIsInteger T>
+		template<std::integral T>
 		T GetIntT(T nDef = 0, BOOL bHex = FALSE)
 		{
 			if (IsEmpty())
