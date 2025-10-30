@@ -979,14 +979,8 @@ EckInlineNdCe BLENDFUNCTION MakeBlendFunction(BYTE byAlpha)
 #pragma endregion 图形结构
 
 #pragma region 字符串
-EckInlineNdCe CHAR ByteToHex(BYTE x)
-{
-    return x > 9 ? x + 55 : x + 48;
-}
-EckInlineNdCe CHAR ByteToHexLower(BYTE x)
-{
-    return x > 9 ? x + 87 : x + 48;
-}
+EckInlineNdCe CHAR ByteToHex(BYTE x) { return x > 9 ? x + 55 : x + 48; }
+EckInlineNdCe CHAR ByteToHexLower(BYTE x) { return x > 9 ? x + 87 : x + 48; }
 
 EckInlineNdCe BYTE ByteFromHex(CHAR x)
 {
@@ -1136,16 +1130,9 @@ EckInline int Rand(int iMin = INT_MIN, int iMax = INT_MAX)
     return rand() % ((LONGLONG)iMax - (LONGLONG)iMin + 1ll) + (LONGLONG)iMin;
 }
 
+EckInlineNdCe BOOL Sign(auto v) { return v >= 0; }
 template<class T>
-EckInlineNdCe BOOL Sign(T v)
-{
-    return v >= 0;
-}
-template<class T>
-EckInlineNdCe T SignVal(T v)
-{
-    return (v >= 0 ? 1 : -1);
-}
+EckInlineNdCe T SignVal(T v) { return (v >= 0 ? 1 : -1); }
 
 template<class T, class U>
 EckInlineNdCe T SetSign(T x, U iSign)
@@ -1155,9 +1142,10 @@ EckInlineNdCe T SetSign(T x, U iSign)
     else return x;
 }
 
-EckInlineNdCe UINT Gcd(UINT a, UINT b)
+template<std::integral T>
+EckInlineNdCe T Gcd(T a, T b)
 {
-    UINT c = 0;
+    T c = 0;
     EckLoop()
     {
         c = a % b;
@@ -1171,17 +1159,9 @@ EckInlineNdCe UINT Gcd(UINT a, UINT b)
     }
 }
 
-template<class T>
-EckInlineNdCe T Abs(T x)
-{
-    return (x >= 0) ? x : -x;
-}
+EckInlineNdCe auto Abs(auto x) { return (x >= 0) ? x : -x; }
 
-template<std::integral T, std::integral U>
-EckInlineNdCe auto DivUpper(T x, U y)
-{
-    return (x - 1) / y + 1;
-}
+EckInlineNdCe auto DivUpper(std::integral auto x, std::integral auto y) { return (x - 1) / y + 1; }
 
 #ifdef _WIN64
 constexpr inline size_t FnvOffsetBasis = 14695981039346656037ull;
@@ -1202,20 +1182,52 @@ EckInlineNdCe size_t Fnv1aHash(PCBYTE p, size_t cb)
     return hash;
 }
 
-EckInline BOOL FloatEqual(float f1, float f2, float fEpsilon = FLT_EPSILON)
-{
-    return fabs(f1 - f2) < fEpsilon;
-}
-EckInline BOOL FloatEqual(double f1, double f2, double fEpsilon = DBL_EPSILON)
-{
-    return abs(f1 - f2) < fEpsilon;
-}
+EckInline BOOL FloatEqual(float f1, float f2, float fEpsilon = FLT_EPSILON) { return fabs(f1 - f2) < fEpsilon; }
+EckInline BOOL FloatEqual(double f1, double f2, double fEpsilon = DBL_EPSILON) { return abs(f1 - f2) < fEpsilon; }
 
 template<class T>
-EckInlineNdCe T ValDistance(T x1, T x2)
+EckInlineNdCe T ValDistance(T x1, T x2) { return (x1 > x2) ? (x1 - x2) : (x2 - x1); }
+
+template<CcpIsNumber T>
+EckInlineNdCe T DpiScale(T i, int iDpiNew, int iDpiOld) { return T(i * iDpiNew / iDpiOld); }
+template<CcpIsNumber T>
+EckInlineNdCe T DpiScale(T i, int iDpi) { return DpiScale(i, iDpi, 96); }
+// deprecated.
+template<CcpIsNumber T>
+EckInlineNdCe T DpiScaleF(T i, int iDpiNew, int iDpiOld) { return T(i * iDpiNew / iDpiOld); }
+// deprecated.
+template<CcpIsNumber T>
+EckInlineNdCe T DpiScaleF(T i, int iDpi) { return DpiScale(i, iDpi, 96); }
+
+EckInlineCe void DpiScale(_Inout_ CcpIsRectStruct auto& rc, int iDpiNew, int iDpiOld)
 {
-    return (x1 > x2) ? (x1 - x2) : (x2 - x1);
+    rc.left = rc.left * iDpiNew / iDpiOld;
+    rc.top = rc.top * iDpiNew / iDpiOld;
+    rc.right = rc.right * iDpiNew / iDpiOld;
+    rc.bottom = rc.bottom * iDpiNew / iDpiOld;
 }
+EckInlineCe void DpiScale(_Inout_ CcpIsRectStruct auto& rc, int iDpi) { DpiScale(rc, iDpi, 96); }
+
+EckInlineCe void DpiScale(_Inout_ SIZE& size, int iDpiNew, int iDpiOld)
+{
+    size.cx = size.cx * iDpiNew / iDpiOld;
+    size.cy = size.cy * iDpiNew / iDpiOld;
+}
+EckInlineCe void DpiScale(_Inout_ SIZE& size, int iDpi) { DpiScale(size, iDpi, 96); }
+
+EckInlineCe void DpiScale(_Inout_ D2D1_SIZE_F& size, int iDpiNew, int iDpiOld)
+{
+    size.width = size.width * iDpiNew / iDpiOld;
+    size.height = size.height * iDpiNew / iDpiOld;
+}
+EckInlineCe void DpiScale(_Inout_ D2D1_SIZE_F& size, int iDpi) { DpiScale(size, iDpi, 96); }
+
+EckInlineCe void DpiScale(_Inout_ CcpIsPointStruct auto& pt, int iDpiNew, int iDpiOld)
+{
+    pt.x = pt.x * iDpiNew / iDpiOld;
+    pt.y = pt.y * iDpiNew / iDpiOld;
+}
+EckInlineCe void DpiScale(_Inout_ CcpIsPointStruct auto& pt, int iDpi) { DpiScale(pt, iDpi, 96); }
 #pragma endregion 运算
 
 #pragma region WinLargeInt
@@ -1449,8 +1461,7 @@ EckInline void SafeReleaseAssert0(_Inout_ CcpIsComInterface auto*& pUnk)
 #ifdef _DEBUG
     if (pUnk)
     {
-        const auto r = pUnk->Release();
-        EckAssert(!r);
+        EckAssert(!pUnk->Release());
         pUnk = nullptr;
     }
 #else

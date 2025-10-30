@@ -96,6 +96,16 @@ template<class TCharPtr>
 concept CcpIsStdCharPtr = std::is_pointer_v<TCharPtr> && CcpIsStdChar<std::remove_cvref_t<std::remove_pointer_t<TCharPtr>>>;
 template<class TCharPtr>
 concept CcpIsNonConstStdCharPtr = std::is_pointer_v<TCharPtr> && CcpIsStdChar<std::remove_volatile_t<std::remove_reference_t<std::remove_pointer_t<TCharPtr>>>>;
+template<class T>
+concept CcpIsNumber = std::integral<T> || std::floating_point<T>;
+
+template<class T>
+concept CcpIsRectStruct = std::is_same_v<T, RECT> || std::is_same_v<T, RECTL> ||
+std::is_same_v<T, D2D1_RECT_F> || std::is_same_v<T, D2D1_RECT_U>;
+
+template<class T>
+concept CcpIsPointStruct = std::is_same_v<T, POINT> || std::is_same_v<T, POINTL> ||
+std::is_same_v<T, D2D1_POINT_2F> || std::is_same_v<T, D2D1_POINT_2U>;
 
 template<CcpIsStdCharPtr TPtr>
 using RemoveStdCharPtr_T = std::remove_cvref_t<std::remove_pointer_t<TPtr>>;
