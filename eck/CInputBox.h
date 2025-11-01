@@ -181,7 +181,7 @@ public:
 	BOOL OnInitDialog(HWND hDlg, HWND hFocus, LPARAM lParam) override
 	{
 		UpdateDpi(GetDpi(hDlg));
-		m_hFont = CreateDefFont(m_iDpi);
+		m_hFont = DftCreate(m_iDpi);
 		UpdateTextMetrics();
 
 		SetExplorerTheme();
@@ -225,9 +225,9 @@ public:
 
 			POINT pt;
 			if (IsBitSet(m_pOpt->uFlags, IPBF_CENTERPARENT))
-				pt = CalcCenterWndPos(HWND(lParam), rc.right - rc.left, rc.bottom - rc.top);
+				pt = CalcCenterWindowPos(HWND(lParam), rc.right - rc.left, rc.bottom - rc.top);
 			else if (IsBitSet(m_pOpt->uFlags, IPBF_CENTERSCREEN))
-				pt = CalcCenterWndPos(nullptr, rc.right - rc.left, rc.bottom - rc.top);
+				pt = CalcCenterWindowPos(nullptr, rc.right - rc.left, rc.bottom - rc.top);
 			else
 				pt = { m_pOpt->x,m_pOpt->y };
 			SetWindowPos(hDlg, nullptr, pt.x, pt.y, rc.right - rc.left, rc.bottom - rc.top,

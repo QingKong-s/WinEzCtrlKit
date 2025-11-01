@@ -1215,6 +1215,17 @@ EckInlineCe void DpiScale(_Inout_ CcpIsPointStruct auto& pt, int iDpiNew, int iD
     pt.x = pt.x * iDpiNew / iDpiOld;
     pt.y = pt.y * iDpiNew / iDpiOld;
 }
+
+EckInlineCe void UpdateDpiSize(auto& Dpis, int iDpi)
+{
+    for (int* p = ((int*)&Dpis) + 1; p < PtrSkipType(&Dpis); p += 2)
+        *p = DpiScale(*(p - 1), iDpi);
+}
+EckInlineCe void UpdateDpiSizeF(auto& Dpis, int iDpi)
+{
+    for (float* p = ((float*)&Dpis) + 1; p < PtrSkipType(&Dpis); p += 2)
+        *p = DpiScaleF(*(p - 1), iDpi);
+}
 #pragma endregion 运算
 
 #pragma region WinLargeInt

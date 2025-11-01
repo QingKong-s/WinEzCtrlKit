@@ -251,9 +251,9 @@ protected:
 	{
 		POINT pt;
 		if (IsBitSet(uDlgFlags, DLGNCF_CENTERPARENT))
-			pt = CalcCenterWndPos(hParent, cx, cy);
+			pt = CalcCenterWindowPos(hParent, cx, cy);
 		else if (IsBitSet(uDlgFlags, DLGNCF_CENTERSCREEN))
-			pt = CalcCenterWndPos(nullptr, cx, cy);
+			pt = CalcCenterWindowPos(nullptr, cx, cy);
 		else
 			pt = { x,y };
 

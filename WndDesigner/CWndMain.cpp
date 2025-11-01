@@ -15,9 +15,9 @@ enum : int
 
 void CWndMain::OnCreate(HWND hWnd)
 {
-	eck::GetThreadCtx()->UpdateDefColor();
+	eck::GetThreadCtx()->UpdateDefaultColor();
 	m_iDpi = eck::GetDpi(hWnd);
-	m_hFontComm = eck::CreateDefFont(m_iDpi);
+	m_hFontComm = eck::DftCreate(m_iDpi);
 	eck::UpdateDpiSize(m_Ds, m_iDpi);
 	UpdateDpi();
 
@@ -83,7 +83,7 @@ void CWndMain::OnCreate(HWND hWnd)
 
 	m_Lyt.LoInitDpi(m_iDpi);
 
-	eck::SetFontForWndAndCtrl(hWnd, m_hFontComm);
+	eck::ApplyWindowFont(hWnd, m_hFontComm);
 }
 
 void CWndMain::InitMenu()
