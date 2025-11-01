@@ -530,17 +530,14 @@ public:
         m_pDC->PopAxisAlignedClip();
     }
 
-    // 【不能在渲染线程调用】
+    // 【下列函数不能在渲染线程调用】
+
     EckInline CElem* SetCapture();
-    // 【不能在渲染线程调用】
+    EckInlineNdCe CElem* GetCapture();
     EckInline void ReleaseCapture();
-
-    // 【不能在渲染线程调用】
     EckInline void SetFocus();
-
-    // 【不能在渲染线程调用】
+    EckInlineNdCe CElem* GetFocus();
     EckInline BOOL SetTimer(UINT_PTR uId, UINT uElapse);
-    // 【不能在渲染线程调用】
     EckInline BOOL KillTimer(UINT_PTR uId);
 
     EckInlineNdCe BOOL IsValid() const { return !!GetWnd(); }
@@ -688,6 +685,7 @@ private:
         CElem* pElem;
         D2D1_RECT_F rcExpand;
         BOOL bCombined;
+        BOOL bVisible;
     };
 
     //------元素树------
@@ -830,9 +828,11 @@ private:
     {
         if (m_vContentExpandElem.empty())
             return;
-        size_t cCombined{}, cLast{};
+        BOOL bChanged{};
         for (auto& e : m_vContentExpandElem)
         {
+            if (!(e.bVisible = e.pElem->IsVisible()))
+                continue;
             const auto rcElem = e.pElem->GetWholeRectInClient();
             if (IsRectsIntersect(rcElem, rcInClient))
             {
@@ -840,31 +840,38 @@ private:
                     UnionRect(rcInClient, rcInClient, rcElem);
                 else
                     e.pElem->CallEvent(EWM_QUERY_EXPAND_RECT, (WPARAM)&rcInClient, 0);
-                ++cCombined;
-                e.bCombined = TRUE;
+                e.bCombined = bChanged = TRUE;
             }
             else
                 e.bCombined = FALSE;
         }
-        BOOL bFirst{};
-        while (cCombined != cLast)
+        bChanged = bChanged && m_vContentExpandElem.size() > 1;
+        while (bChanged)
         {
-            cLast = cCombined;
+            bChanged = FALSE;
             for (auto& e : m_vContentExpandElem)
             {
-                if (e.bCombined)
+                if (!e.bVisible)
+                    continue;
+                if ((e.pElem->GetStyle() & DES_CONTENT_EXPAND) && e.bCombined)
                     continue;
                 const auto rcElem = e.pElem->GetWholeRectInClient();
                 if (IsRectsIntersect(rcElem, rcInClient))
                 {
                     if (e.pElem->GetStyle() & DES_CONTENT_EXPAND)
+                    {
                         UnionRect(rcInClient, rcInClient, rcElem);
+                        bChanged = TRUE;
+                    }
                     else
+                    {
+                        const auto rcOld{ rcInClient };
                         e.pElem->CallEvent(EWM_QUERY_EXPAND_RECT, (WPARAM)&rcInClient, 0);
-                    e.bCombined = TRUE;
+                        e.bCombined = TRUE;
+                        bChanged = (rcInClient != rcOld);
+                    }
                 }
             }
-            bFirst = FALSE;
         }
     }
 
@@ -2607,14 +2614,6 @@ inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
             CompInvalidateCacheBitmap();
         }
         break;
-    case EWM_QUERY_EXPAND_RECT:
-        if (IsBitSet(GetStyle(), DES_CONTENT_EXPAND_RECT | DES_BLURBKG))
-        {
-            const auto prc = (D2D1_RECT_F*)wParam;
-            const auto dxy = GetWnd()->BlurGetDeviation() * 3.f;
-            CeInflateRectWithExpandRadius(*prc, dxy);
-        }
-        break;
     }
     return 0;
 }
@@ -2799,6 +2798,8 @@ inline void CElem::tcIrpUnionContentExpandElemRect(
 
 inline constexpr void CElem::tcSetStyleWorker(DWORD dwStyle)
 {
+    if (dwStyle & DES_BLURBKG)
+        dwStyle |= DES_CONTENT_EXPAND;
     const auto dwOld = m_dwStyle;
     m_dwStyle = dwStyle;
     // 检查DES_CONTENT_EXPAND(_RECT)变动
@@ -2807,7 +2808,7 @@ inline constexpr void CElem::tcSetStyleWorker(DWORD dwStyle)
     if (bExpandChanged)
         bExpand ? GetWnd()->CeAdd(this) : GetWnd()->CeRemove(this);
     // 检查DES_OWNER_COMP_CACHE变动
-    if (((dwOld ^ m_dwStyle) & DES_OWNER_COMP_CACHE) && GetCompositor())
+    if (((dwOld ^ dwStyle) & DES_OWNER_COMP_CACHE) && GetCompositor())
         CompInvalidateCacheBitmap();
 }
 
@@ -2858,8 +2859,10 @@ inline HRESULT CElem::CompUpdateCacheBitmap(float cx, float cy)
 }
 
 EckInline CElem* CElem::SetCapture() { return GetWnd()->ElemSetCapture(this); }
+EckInlineNdCe CElem* CElem::GetCapture() { return GetWnd()->ElemGetCapture(); }
 EckInline void CElem::ReleaseCapture() { GetWnd()->ElemReleaseCapture(); }
 EckInline void CElem::SetFocus() { GetWnd()->ElemSetFocus(this); }
+EckInlineNdCe CElem* CElem::GetFocus() { return GetWnd()->ElemGetFocus(); }
 EckInline BOOL CElem::SetTimer(UINT_PTR uId, UINT uElapse) { return GetWnd()->ElemSetTimer(this, uId, uElapse); }
 EckInline BOOL CElem::KillTimer(UINT_PTR uId) { return GetWnd()->ElemKillTimer(this, uId); }
 EckInlineNdCe CCriticalSection& CElem::GetCriticalSection() const { return GetWnd()->GetCriticalSection(); }

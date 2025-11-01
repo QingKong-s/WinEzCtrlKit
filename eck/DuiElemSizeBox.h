@@ -84,7 +84,7 @@ public:
         {
         case WM_NCHITTEST:
         {
-            if (!m_pElem->GetWnd()->ElemGetCapture())
+            if (!m_pElem->GetCapture())
             {
                 D2D1_POINT_2F pt ECK_GET_PT_LPARAM_F(lParam);
                 m_pElem->ClientToElem(pt);
