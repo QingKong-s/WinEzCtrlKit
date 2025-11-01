@@ -1188,10 +1188,10 @@ EckInline BOOL FloatEqual(double f1, double f2, double fEpsilon = DBL_EPSILON) {
 template<class T>
 EckInlineNdCe T ValDistance(T x1, T x2) { return (x1 > x2) ? (x1 - x2) : (x2 - x1); }
 
-template<CcpIsNumber T>
+template<CcpIsNumberOrEnum T>
 EckInlineNdCe T DpiScale(T i, int iDpiNew, int iDpiOld = 96) { return T(i * iDpiNew / iDpiOld); }
 // deprecated.
-template<CcpIsNumber T>
+template<CcpIsNumberOrEnum T>
 EckInlineNdCe T DpiScaleF(T i, int iDpiNew, int iDpiOld = 96) { return T(i * iDpiNew / iDpiOld); }
 EckInlineCe void DpiScale(_Inout_ CcpIsRectStruct auto& rc, int iDpiNew, int iDpiOld = 96)
 {

@@ -654,8 +654,8 @@ inline BOOL GetWindowClientRect(HWND hWnd, _Out_ RECT& rcClient)
     {
         if (wp.flags & WPF_RESTORETOMAXIMIZED)
         {
-            if (HMONITOR hMonitor;
-                hMonitor = MonitorFromRect(&wp.rcNormalPosition, MONITOR_DEFAULTTONULL))
+            const auto hMonitor = MonitorFromRect(&wp.rcNormalPosition, MONITOR_DEFAULTTONULL);
+            if (hMonitor)
             {
                 MONITORINFO mi;
                 mi.cbSize = sizeof(mi);
@@ -663,7 +663,7 @@ inline BOOL GetWindowClientRect(HWND hWnd, _Out_ RECT& rcClient)
                 rcMainClient = mi.rcMonitor;
             }
             else
-                return FALSE;
+                goto Failed;
         }
         else
             rcMainClient = wp.rcNormalPosition;
@@ -677,6 +677,7 @@ inline BOOL GetWindowClientRect(HWND hWnd, _Out_ RECT& rcClient)
     }
     else
     {
+    Failed:
         rcClient = {};
         return FALSE;
     }
