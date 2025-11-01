@@ -1854,7 +1854,7 @@ void ThreadInit()
     EckAssert(!TlsGetValue(GetThreadCtxTlsSlot()));
     const auto p = new THREADCTX{};
     TlsSetValue(GetThreadCtxTlsSlot(), p);
-    p->UpdateDefColor();
+    p->UpdateDefaultColor();
 #if ECK_OPT_NO_DARKMODE
     p->bEnableDarkModeHook = FALSE;
 #else
@@ -2030,30 +2030,14 @@ CWnd* THREADCTX::TwmAt(HWND hWnd) const
     else
         return nullptr;
 }
-
-void THREADCTX::SetNcDarkModeForAllTopWindow(BOOL bDark)
+void THREADCTX::TwmEnableNcDarkMode(BOOL bDark)
 {
 #if !ECK_OPT_NO_DARKMODE
     for (const auto& e : hmTopWnd)
         EnableWindowNcDarkMode(e.first, bDark);
 #endif // !ECK_OPT_NO_DARKMODE
 }
-void THREADCTX::UpdateDefColor()
-{
-    bAppDarkMode = ShouldAppsUseDarkMode();
-    const auto bDark = GetItemsViewForeBackColor(crDefText, crDefBkg);
-    crDefBtnFace = (bDark ? 0x303030 : GetSysColor(COLOR_BTNFACE));
-    crBlue1 = (bDark ? RGB(0, 168, 255) : RGB(0, 51, 153));
-    crGray1 = (bDark ? RGB(180, 180, 180) : GetSysColor(COLOR_GRAYTEXT));
-    crTip1 = (bDark ? RGB(131, 162, 198) : RGB(97, 116, 139));
-    HIGHCONTRASTW hc{ sizeof(HIGHCONTRASTW) };
-    if (SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(HIGHCONTRASTW), &hc, FALSE) &&
-        (hc.dwFlags & HCF_HIGHCONTRASTON))
-        crHiLightText = GetSysColor(COLOR_HIGHLIGHTTEXT);
-    else
-        crHiLightText = crDefText;
-}
-void THREADCTX::SendThemeChangedToAllTopWindow()
+void THREADCTX::TwmBroadcastThemeChanged()
 {
 #if !ECK_OPT_NO_DARKMODE
     for (const auto& [hWnd, pWnd] : hmTopWnd)
@@ -2089,6 +2073,21 @@ void THREADCTX::SendThemeChangedToAllTopWindow()
 #endif // !ECK_OPT_NO_DARKMODE
 }
 
+void THREADCTX::UpdateDefaultColor()
+{
+    bAppDarkMode = ShouldAppsUseDarkMode();
+    const auto bDark = GetItemsViewForeBackColor(crDefText, crDefBkg);
+    crDefBtnFace = (bDark ? 0x303030 : GetSysColor(COLOR_BTNFACE));
+    crBlue1 = (bDark ? RGB(0, 168, 255) : RGB(0, 51, 153));
+    crGray1 = (bDark ? RGB(180, 180, 180) : GetSysColor(COLOR_GRAYTEXT));
+    crTip1 = (bDark ? RGB(131, 162, 198) : RGB(97, 116, 139));
+    HIGHCONTRASTW hc{ sizeof(HIGHCONTRASTW) };
+    if (SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(HIGHCONTRASTW), &hc, FALSE) &&
+        (hc.dwFlags & HCF_HIGHCONTRASTON))
+        crHiLightText = GetSysColor(COLOR_HIGHLIGHTTEXT);
+    else
+        crHiLightText = crDefText;
+}
 void THREADCTX::DoCallback()
 {
     if (bEnterCallback)

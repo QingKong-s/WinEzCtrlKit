@@ -956,11 +956,10 @@ struct THREADCTX
     void TwmAdd(HWND hWnd, CWnd* pWnd);
     void TwmRemove(HWND hWnd);
     CWnd* TwmAt(HWND hWnd) const;
+    void TwmEnableNcDarkMode(BOOL bDark);
+    void TwmBroadcastThemeChanged();
 
-    void SetNcDarkModeForAllTopWindow(BOOL bDark);
-    void UpdateDefColor();
-    void SendThemeChangedToAllTopWindow();
-
+    void UpdateDefaultColor();
     void DoCallback();
 };
 
@@ -997,7 +996,6 @@ HRESULT UxfMenuInit(CWnd* pWnd);
 HRESULT UxfMenuUnInit(CWnd* pWnd);
 #endif// ECK_OPT_NO_DARKMODE
 
-// For compatibility.
 EckInlineNd HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,
     void* pParameter = nullptr, UINT* pThreadId = nullptr, UINT dwCreationFlags = 0)
 {
