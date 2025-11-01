@@ -17,11 +17,11 @@ enum
     DES_CONTENT_EXPAND = (1u << 4),
     // 元素的内容受周边其他内容影响，确定更新区域时DUI系统发送
     // EWM_QUERY_EXPAND_RECT以获取扩展矩形
-    DES_CONTENT_EXPAND_RECT = (1u << 5),// TODO
+    DES_CONTENT_EXPAND_RECT = (1u << 5),
     // DUI系统应当检查当前元素的祖元素，因为它们可能设置了混合器
     DES_PARENT_COMP = (1u << 6),
-    DES_BORDER = (1u << 7),     // 有边框
-    DES_NO_REDRAW = (1u << 8),	// 不允许重绘
+    DES_BORDER = (1u << 7),     // 有边框 TODO
+    DES_NO_REDRAW = (1u << 8),	// 不允许重绘，一般不使用此样式
     // 对于手动混合元素，DUI不应自行分配后台缓存，而应按下列顺序请求缓存：
     // 调用CCompositor::CreateCacheBitmap，若失败，向元素的父级发送
     // EWM_CREATE_CACHE_BITMAP
@@ -39,6 +39,9 @@ enum
     DESP_COMP_CONTENT_INVALID = (1u << 12),
     // 指示基类事件处理函数应调用BeginPaint/EndPaint对
     DES_BASE_BEGIN_END_PAINT = (1u << 13),
+
+    // 【仅供内部使用】
+    DESP_EXPANDED = DES_CONTENT_EXPAND | DES_CONTENT_EXPAND_RECT,
 };
 
 // 元素产生的通知
@@ -165,7 +168,7 @@ enum
     WM_DROP,
 
     EWM_COLORSCHEMECHANGED,	// 颜色主题改变 (BOOL 是否为暗色, 0)
-    EWM_QUERY_EXPAND_RECT,	// 查询扩展矩形 (_Out_ RECT*, 0)
+    EWM_QUERY_EXPAND_RECT,	// 查询扩展矩形 (_Inout_ D2D1_RECT_F*, 0)
     // 创建缓存位图 (_Inout_ CREATE_CACHE_BITMAP_INFO*, 0)
     // 若成功则应返回TRUE
     EWM_CREATE_CACHE_BITMAP,

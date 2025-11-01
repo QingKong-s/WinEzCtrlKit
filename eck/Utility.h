@@ -1189,45 +1189,32 @@ template<class T>
 EckInlineNdCe T ValDistance(T x1, T x2) { return (x1 > x2) ? (x1 - x2) : (x2 - x1); }
 
 template<CcpIsNumber T>
-EckInlineNdCe T DpiScale(T i, int iDpiNew, int iDpiOld) { return T(i * iDpiNew / iDpiOld); }
-template<CcpIsNumber T>
-EckInlineNdCe T DpiScale(T i, int iDpi) { return DpiScale(i, iDpi, 96); }
+EckInlineNdCe T DpiScale(T i, int iDpiNew, int iDpiOld = 96) { return T(i * iDpiNew / iDpiOld); }
 // deprecated.
 template<CcpIsNumber T>
-EckInlineNdCe T DpiScaleF(T i, int iDpiNew, int iDpiOld) { return T(i * iDpiNew / iDpiOld); }
-// deprecated.
-template<CcpIsNumber T>
-EckInlineNdCe T DpiScaleF(T i, int iDpi) { return DpiScale(i, iDpi, 96); }
-
-EckInlineCe void DpiScale(_Inout_ CcpIsRectStruct auto& rc, int iDpiNew, int iDpiOld)
+EckInlineNdCe T DpiScaleF(T i, int iDpiNew, int iDpiOld = 96) { return T(i * iDpiNew / iDpiOld); }
+EckInlineCe void DpiScale(_Inout_ CcpIsRectStruct auto& rc, int iDpiNew, int iDpiOld = 96)
 {
     rc.left = rc.left * iDpiNew / iDpiOld;
     rc.top = rc.top * iDpiNew / iDpiOld;
     rc.right = rc.right * iDpiNew / iDpiOld;
     rc.bottom = rc.bottom * iDpiNew / iDpiOld;
 }
-EckInlineCe void DpiScale(_Inout_ CcpIsRectStruct auto& rc, int iDpi) { DpiScale(rc, iDpi, 96); }
-
-EckInlineCe void DpiScale(_Inout_ SIZE& size, int iDpiNew, int iDpiOld)
+EckInlineCe void DpiScale(_Inout_ SIZE& size, int iDpiNew, int iDpiOld = 96)
 {
     size.cx = size.cx * iDpiNew / iDpiOld;
     size.cy = size.cy * iDpiNew / iDpiOld;
 }
-EckInlineCe void DpiScale(_Inout_ SIZE& size, int iDpi) { DpiScale(size, iDpi, 96); }
-
-EckInlineCe void DpiScale(_Inout_ D2D1_SIZE_F& size, int iDpiNew, int iDpiOld)
+EckInlineCe void DpiScale(_Inout_ D2D1_SIZE_F& size, int iDpiNew, int iDpiOld = 96)
 {
     size.width = size.width * iDpiNew / iDpiOld;
     size.height = size.height * iDpiNew / iDpiOld;
 }
-EckInlineCe void DpiScale(_Inout_ D2D1_SIZE_F& size, int iDpi) { DpiScale(size, iDpi, 96); }
-
-EckInlineCe void DpiScale(_Inout_ CcpIsPointStruct auto& pt, int iDpiNew, int iDpiOld)
+EckInlineCe void DpiScale(_Inout_ CcpIsPointStruct auto& pt, int iDpiNew, int iDpiOld = 96)
 {
     pt.x = pt.x * iDpiNew / iDpiOld;
     pt.y = pt.y * iDpiNew / iDpiOld;
 }
-EckInlineCe void DpiScale(_Inout_ CcpIsPointStruct auto& pt, int iDpi) { DpiScale(pt, iDpi, 96); }
 #pragma endregion 运算
 
 #pragma region WinLargeInt
