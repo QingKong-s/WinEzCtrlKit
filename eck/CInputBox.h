@@ -236,7 +236,7 @@ public:
 		m_ED.SelAll();
 
 		UpdateDpiCtrlSize();
-		SetFontForWndAndCtrl(hDlg, m_hFont);
+		ApplyWindowFont(hDlg, m_hFont);
 		Show(SW_SHOW);
 		SetFocus(m_ED.HWnd);
 		return FALSE;
@@ -293,7 +293,7 @@ public:
 			UpdateDpi(LOWORD(wParam));
 			const auto hOldFont = m_hFont;
 			m_hFont = ReCreateFontForDpiChanged(m_hFont, m_iDpi, iOldDpi);
-			SetFontForWndAndCtrl(hWnd, m_hFont);
+			ApplyWindowFont(hWnd, m_hFont);
 			DeleteObject(hOldFont);
 
 			UpdateTextMetrics();
