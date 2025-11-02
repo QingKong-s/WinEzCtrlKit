@@ -1435,7 +1435,7 @@ EckInlineNdCe LPARAM MakeKeyStrokeFlag(USHORT cRepeat, UINT uScanCode, BOOL bExt
         (bPreviousState << 30) | (bTransition << 31);
 }
 
-EckInlineNdCe void InitObjAttr(_Out_ OBJECT_ATTRIBUTES& oa, PUNICODE_STRING pusName = nullptr,
+EckInlineNdCe void InitObjAttr(_Out_ OBJECT_ATTRIBUTES& oa, PCUNICODE_STRING pusName = nullptr,
     ULONG ulAttr = 0u, HANDLE hRootDir = nullptr, PSECURITY_DESCRIPTOR pSecDesc = nullptr)
 {
     oa.Length = sizeof(OBJECT_ATTRIBUTES);
@@ -1465,6 +1465,19 @@ EckInline void SafeReleaseAssert0(_Inout_ CcpIsComInterface auto*& pUnk)
 #else
     SafeRelease(pUnk);
 #endif
+}
+
+template<class TChar>
+    requires requires{ sizeof(TChar) == 1 || sizeof(TChar) == 2; }
+EckInlineNdCe auto StringViewToNtString(std::basic_string_view<TChar> sv)
+{
+    using TNtString = std::conditional_t<sizeof(TChar) == 1, ANSI_STRING, UNICODE_STRING>;
+    const auto cb = USHORT(sv.size() * sizeof(TChar));
+    return TNtString{
+        .Length = cb,
+        .MaximumLength = cb,
+        .Buffer = (decltype(TNtString::Buffer))sv.data(),
+    };
 }
 #pragma endregion 其他
 ECK_NAMESPACE_END
