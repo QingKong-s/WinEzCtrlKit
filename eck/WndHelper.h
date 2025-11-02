@@ -126,7 +126,7 @@ EckInline void ApplyWindowFont(HWND hWnd, HFONT hFont, BOOL bRedraw = FALSE)
         RedrawWindow(hWnd, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
 }
 
-EckInline HFONT ReCreateFontForDpiChanged(HFONT hFont,
+EckNfInlineNd HFONT ReCreateFontForDpiChanged(HFONT hFont,
     int iDpiNew, int iDpiOld, BOOL bDeletePrevFont = FALSE)
 {
     LOGFONTW lf;
@@ -135,6 +135,15 @@ EckInline HFONT ReCreateFontForDpiChanged(HFONT hFont,
         DeleteObject(hFont);
     lf.lfHeight = DpiScale(lf.lfHeight, iDpiNew, iDpiOld);
     return CreateFontIndirectW(&lf);
+}
+
+inline void ReCreateAndApplyFontForDpiChanged(
+    HWND hWnd, _Inout_ HFONT& hFontVar, int iDpiNew, int iDpiOld)
+{
+    auto hFont = ReCreateFontForDpiChanged(hFontVar, iDpiNew, iDpiOld);
+    ApplyWindowFont(hWnd, hFont, FALSE);
+    std::swap(hFontVar, hFont);
+    DeleteObject(hFont);
 }
 #pragma endregion Font
 
