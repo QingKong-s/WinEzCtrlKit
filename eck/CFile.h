@@ -1,23 +1,11 @@
 ﻿#pragma once
+#include "CNtObject.h"
 #include "NativeWrapper.h"
 
 ECK_NAMESPACE_BEGIN
-class CFile
+class CFile : public CNtObject
 {
-private:
-    HANDLE m_hFile{};
 public:
-    CFile() = default;
-    CFile(const CFile& e) = delete;
-    CFile& operator=(const CFile& e) = delete;
-    CFile(CFile&& e) noexcept { std::swap(m_hFile, e.m_hFile); }
-    CFile& operator=(CFile&& e) noexcept
-    {
-        std::swap(m_hFile, e.m_hFile);
-        return *this;
-    }
-    ~CFile() { Close(); }
-
     BOOL CreateWin32(
         _In_z_ PCWSTR pszFile,
         DWORD dwMode = OPEN_EXISTING,
@@ -25,8 +13,8 @@ public:
         DWORD dwShareMode = FILE_SHARE_READ,
         DWORD dwAttr = FILE_ATTRIBUTE_NORMAL) noexcept
     {
-        Close();
-        return !!(m_hFile = CreateFileW(pszFile, dwAccess,
+        Clear();
+        return !!(m_hObject = CreateFileW(pszFile, dwAccess,
             dwShareMode, nullptr, dwMode, dwAttr, nullptr));
     }
     NTSTATUS Create(
@@ -39,31 +27,18 @@ public:
         DWORD cbInit = 0,
         _Out_opt_ IO_STATUS_BLOCK* piosb = nullptr) noexcept
     {
-        Close();
+        Clear();
         NTSTATUS nts;
-        m_hFile = NaCreateFile(pszFile, dwAccess, dwShareMode,
+        m_hObject = NaCreateFile(pszFile, dwAccess, dwShareMode,
             dwOptions, dwDispostion, &nts, piosb, dwAttr, cbInit);
         return nts;
     }
-
-    EckInlineNdCe BOOL IsValid() const { return m_hFile && m_hFile != INVALID_HANDLE_VALUE; }
-
-    EckInline void Close()
-    {
-        if (IsValid())
-        {
-            NtClose(m_hFile);
-            m_hFile = nullptr;
-        }
-    }
-
-    EckInlineNdCe HANDLE GetHandle() const { return m_hFile; }
 
     [[nodiscard]] LONGLONG GetSize(_Out_opt_ NTSTATUS* pnts = nullptr) noexcept
     {
         IO_STATUS_BLOCK iosb;
         FILE_STANDARD_INFORMATION Info;
-        const auto nts = NtQueryInformationFile(m_hFile, &iosb,
+        const auto nts = NtQueryInformationFile(m_hObject, &iosb,
             &Info, sizeof(Info), FileStandardInformation);
         if (pnts) *pnts = nts;
         return Info.EndOfFile.QuadPart;
@@ -77,7 +52,7 @@ public:
         _Out_opt_ NTSTATUS* pnts = nullptr) noexcept
     {
         IO_STATUS_BLOCK iosb;
-        const auto nts = NtReadFile(m_hFile, nullptr, nullptr, nullptr,
+        const auto nts = NtReadFile(m_hObject, nullptr, nullptr, nullptr,
             &iosb, pBuf, cbBuf, nullptr, nullptr);
         if (pcbRead) *pcbRead = (DWORD)iosb.Information;
         if (pnts) *pnts = nts;
@@ -97,7 +72,7 @@ public:
         _Out_opt_ NTSTATUS* pnts = nullptr) noexcept
     {
         IO_STATUS_BLOCK iosb;
-        const auto nts = NtWriteFile(m_hFile, nullptr, nullptr, nullptr,
+        const auto nts = NtWriteFile(m_hObject, nullptr, nullptr, nullptr,
             &iosb, (void*)pBuf, cbBuf, nullptr, nullptr);
         if (pcbWritten) *pcbWritten = (DWORD)iosb.Information;
         if (pnts) *pnts = nts;
@@ -115,13 +90,13 @@ public:
         NTSTATUS nts;
         IO_STATUS_BLOCK iosb;
         LARGE_INTEGER Info;
-        nts = NtQueryInformationFile(m_hFile, &iosb, &Info, sizeof(Info), FilePositionInformation);
+        nts = NtQueryInformationFile(m_hObject, &iosb, &Info, sizeof(Info), FilePositionInformation);
         if (!NT_SUCCESS(nts))
             return nts;
-        nts = NtSetInformationFile(m_hFile, &iosb, &Info, sizeof(Info), FileEndOfFileInformation);
+        nts = NtSetInformationFile(m_hObject, &iosb, &Info, sizeof(Info), FileEndOfFileInformation);
         if (!NT_SUCCESS(nts))
             return nts;
-        nts = NtSetInformationFile(m_hFile, &iosb, &Info, sizeof(Info), FileAllocationInformation);
+        nts = NtSetInformationFile(m_hObject, &iosb, &Info, sizeof(Info), FileAllocationInformation);
         return nts;
     }
 
@@ -129,7 +104,7 @@ public:
     {
         IO_STATUS_BLOCK iosb;
         FILE_POSITION_INFORMATION Info;
-        const auto nts = NtQueryInformationFile(m_hFile, &iosb,
+        const auto nts = NtQueryInformationFile(m_hObject, &iosb,
             &Info, sizeof(Info), FilePositionInformation);
         if (pnts) *pnts = nts;
         return Info.CurrentByteOffset.QuadPart;
@@ -137,7 +112,7 @@ public:
     CFile& PosSet(LONGLONG pos, _Out_opt_ NTSTATUS* pnts = nullptr) noexcept
     {
         IO_STATUS_BLOCK iosb;
-        const auto nts = NtSetInformationFile(m_hFile, &iosb,
+        const auto nts = NtSetInformationFile(m_hObject, &iosb,
             &pos, sizeof(pos), FilePositionInformation);
         if (pnts) *pnts = nts;
         return *this;
@@ -161,14 +136,14 @@ public:
     EckInline NTSTATUS Flush() noexcept
     {
         IO_STATUS_BLOCK iosb;
-        return NtFlushBuffersFile(m_hFile, &iosb);
+        return NtFlushBuffersFile(m_hObject, &iosb);
     }
 
     EckInline NTSTATUS GetInformation(_Out_ auto& Info,
         FILE_INFORMATION_CLASS eCls) noexcept
     {
         IO_STATUS_BLOCK iosb;
-        return NtQueryInformationFile(m_hFile, &iosb, &Info, sizeof(Info), eCls);
+        return NtQueryInformationFile(m_hObject, &iosb, &Info, sizeof(Info), eCls);
     }
     EckInline NTSTATUS GetInformationBuffer(
         _Out_writes_bytes_(cbBuf) void* pBuf,
@@ -177,7 +152,7 @@ public:
         _Out_opt_ ULONG* pcbRet = nullptr) noexcept
     {
         IO_STATUS_BLOCK iosb;
-        const auto nts = NtQueryInformationFile(m_hFile, &iosb,
+        const auto nts = NtQueryInformationFile(m_hObject, &iosb,
             pBuf, cbBuf, eCls);
         if (pcbRet) *pcbRet = (ULONG)iosb.Information;
         return nts;
