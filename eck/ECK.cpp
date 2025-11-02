@@ -1590,24 +1590,7 @@ static BOOL WINAPI NewShowScrollBar(HWND hWnd, int nBar, BOOL bShow)
 #pragma endregion ScrollBarHook
 
 #pragma region Init
-constexpr static PCWSTR c_szErrInitStatus[]
-{
-    L"操作成功完成",
-    L"注册窗口类失败",
-    L"GDI+初始化失败",
-    L"WIC初始化失败",
-    L"D2D初始化失败",
-    L"DXGI设备创建失败",
-    L"DWrite初始化失败",
-    L"D3D设备创建失败",
-};
-
-PCWSTR InitStatusToString(InitStatus iStatus)
-{
-    return c_szErrInitStatus[(int)iStatus];
-}
-
-InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, DWORD* pdwErrCode)
+InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwErrCode)
 {
     EckAssert(!g_hInstance && !g_dwTlsSlot);
     DWORD dwTemp;
@@ -2075,14 +2058,13 @@ void THREADCTX::TwmBroadcastThemeChanged()
 
 void THREADCTX::UpdateDefaultColor()
 {
-    bAppDarkMode = ShouldAppsUseDarkMode();
-    const auto bDark = GetItemsViewForeBackColor(crDefText, crDefBkg);
-    crDefBtnFace = (bDark ? 0x303030 : GetSysColor(COLOR_BTNFACE));
-    crBlue1 = (bDark ? RGB(0, 168, 255) : RGB(0, 51, 153));
-    crGray1 = (bDark ? RGB(180, 180, 180) : GetSysColor(COLOR_GRAYTEXT));
-    crTip1 = (bDark ? RGB(131, 162, 198) : RGB(97, 116, 139));
-    HIGHCONTRASTW hc{ sizeof(HIGHCONTRASTW) };
-    if (SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(HIGHCONTRASTW), &hc, FALSE) &&
+    bAppDarkMode = GetItemsViewForeBackColor(crDefText, crDefBkg);
+    crDefBtnFace = (bAppDarkMode ? 0x303030 : GetSysColor(COLOR_BTNFACE));
+    crBlue1 = (bAppDarkMode ? RGB(0, 168, 255) : RGB(0, 51, 153));
+    crGray1 = (bAppDarkMode ? RGB(180, 180, 180) : GetSysColor(COLOR_GRAYTEXT));
+    crTip1 = (bAppDarkMode ? RGB(131, 162, 198) : RGB(97, 116, 139));
+    HIGHCONTRASTW hc{ sizeof(hc) };
+    if (SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(hc), &hc, FALSE) &&
         (hc.dwFlags & HCF_HIGHCONTRASTON))
         crHiLightText = GetSysColor(COLOR_HIGHLIGHTTEXT);
     else
@@ -2131,15 +2113,13 @@ HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc)
                 pCtx->pCurrWnd->m_pfnRealProc =
                     SetWindowProc((HWND)wParam, CWnd::EckWndProc);
                 pCtx->pCurrWnd->m_hWnd = (HWND)wParam;
-                // 插入窗口映射
+                // 窗口映射
                 pCtx->WmAdd((HWND)wParam, pCtx->pCurrWnd);
-                // 插入顶级窗口映射
                 if (!IsBitSet(pcbtcw->lpcs->style, WS_CHILD))
                     pCtx->TwmAdd((HWND)wParam, pCtx->pCurrWnd);
-                // 执行用户回调
+
                 if (pCtx->pfnWndCreatingProc)
                     pCtx->pfnWndCreatingProc((HWND)wParam, pcbtcw, pCtx);
-                // 立即卸载钩子
                 EndCbtHook();
             }
             return CallNextHookEx(pCtx->hhkTempCBT, iCode, wParam, lParam);

@@ -851,11 +851,10 @@ struct INITPARAM
 /// <param name="pip">指向初始化参数的可选指针</param>
 /// <param name="pdwErrCode">指向接收错误码变量的可选指针</param>
 /// <returns>错误代码</returns>
-InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip = nullptr, DWORD* pdwErrCode = nullptr);
+InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip = nullptr,
+    _Out_opt_ DWORD* pdwErrCode = nullptr);
 
 void UnInit();
-
-PCWSTR InitStatusToString(InitStatus iStatus);
 #pragma endregion Init
 
 ECK_NAMESPACE_END
