@@ -175,4 +175,8 @@ EckInlineNd PCWSTR NaGetNtSystemRoot()
         return g_pfnRtlGetNtSystemRoot();
     return USER_SHARED_DATA->NtSystemRoot;
 }
+
+EckInlineNd HANDLE NaGetStandardOutput() { return NtCurrentPeb()->ProcessParameters->StandardOutput; }
+EckInlineNd HANDLE NaGetStandardInput() { return NtCurrentPeb()->ProcessParameters->StandardInput; }
+EckInlineNd HANDLE NaGetStandardError() { return NtCurrentPeb()->ProcessParameters->StandardError; }
 ECK_NAMESPACE_END
