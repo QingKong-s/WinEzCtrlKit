@@ -17,8 +17,7 @@ int wmain(int argc, WCHAR** argv)
     ConErr.CloneFrom(eck::NaGetStandardError());
 
     eck::INITPARAM ip{};
-    ip.uFlags = eck::EIF_NOINITD2D | eck::EIF_NOINITDWRITE |
-        eck::EIF_NOINITTHREAD | eck::EIF_NOINITWIC | eck::EIF_NODARKMODE;
+    ip.uFlags = eck::EIF_CONSOLE_APP;
     DWORD dwErr;
     const auto eInitRet = eck::Init(NtCurrentImageBaseHInst(), &ip, &dwErr);
     if (eInitRet != eck::InitStatus::Ok)

@@ -816,6 +816,9 @@ enum :UINT
     EIF_NOINITD2D = 1u << 3,
     EIF_NOINITDWRITE = 1u << 4,
     EIF_NODARKMODE = 1u << 5,
+    // 移除所有用户界面相关的初始化
+    EIF_CONSOLE_APP = EIF_NOINITTHREAD | EIF_NOINITGDIPLUS | EIF_NOINITWIC |
+                        EIF_NOINITD2D | EIF_NOINITDWRITE | EIF_NODARKMODE,
 };
 
 #if !ECK_OPT_NO_DX

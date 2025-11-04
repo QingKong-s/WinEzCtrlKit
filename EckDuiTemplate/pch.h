@@ -1,4 +1,6 @@
 ﻿#pragma once
+#define _CRTDBG_MAP_ALLOC	1
+
 #include "eck\PchInc.h"
 #include "eck\SystemHelper.h"
 #include "eck\CCommDlg.h"
