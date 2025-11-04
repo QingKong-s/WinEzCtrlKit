@@ -29,12 +29,12 @@ public:
 	/// <returns>成功返回TRUE，失败返回FALSE</returns>
 	EckInline BOOL EnableArrows(int iOp)
 	{
-		EnableScrollBar(m_hWnd, SB_CTL, iOp);
+		return EnableScrollBar(m_hWnd, SB_CTL, iOp);
 	}
 
 	EckInline BOOL EnableArrows(int iOp, int iBarType)
 	{
-		EnableScrollBar(m_hWnd, iBarType, iOp);
+		return EnableScrollBar(m_hWnd, iBarType, iOp);
 	}
 
 	EckInline int GetPos()

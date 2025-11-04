@@ -1,7 +1,7 @@
 ﻿#pragma once
 #pragma warning (disable:4996)
-#include "PathUtility.h"
 #include "CAllocator.h"
+#include "PathUtility.h"
 #include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
