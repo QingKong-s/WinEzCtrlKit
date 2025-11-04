@@ -1076,7 +1076,7 @@ public:
 
 	EckInline BOOL EnableArrows(int iOp, int iBarType)
 	{
-		EnableScrollBar(m_hWnd, iBarType, iOp);
+		return EnableScrollBar(m_hWnd, iBarType, iOp);
 	}
 
 	EckInline int GetSbPos(int iType) const

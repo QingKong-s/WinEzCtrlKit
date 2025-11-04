@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "CAllocator.h"
 #include "MemUtility.h"
+#include "Utility.h"
 
 #include <initializer_list>
 

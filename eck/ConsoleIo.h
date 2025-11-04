@@ -348,12 +348,21 @@ private:
             else
                 break;
         }
+        if (m_eEol == EolType::CRLF &&
+            m_posEol == m_rbBuf.Size() - 1 &&
+            m_rbBuf[m_posEol] == '\r')// 避免截断CRLF
+        {
+            posBegin = m_rbBuf.Size();
+            Read(m_rbBuf.PushBack(m_cbMaxBuffer), m_cbMaxBuffer, &cbRead, &nts);
+            if (cbRead)
+                m_rbBuf.ReSize(posBegin + cbRead);
+        }
     }
 public:
     template<class... T>
     int Scan(T&&... Args)
     {
-        if constexpr (sizeof...(Args))
+        if constexpr (!!sizeof...(Args))
         {
             EnsureReadToEol(m_rbBuf.IsEmpty());
             FROM_STREAM_CTRL c{ m_rbBuf.Data(),m_rbBuf.Data() + m_rbBuf.Size(),m_rbBuf.Data() };
@@ -365,9 +374,18 @@ public:
     }
 
     template<class TTrait, class TAlloc>
-    void ScanLine(CRefStrT<TChar, TTrait, TAlloc>& rs)
+    BOOL ScanLine(CRefStrT<TChar, TTrait, TAlloc>& rs)
     {
-
+        EnsureReadToEol(FALSE);
+        if (m_posEol != SizeTMax)
+        {
+            rs.PushBack((const TChar*)m_rbBuf.Data(), int(m_posEol / sizeof(TChar)));
+            if (rs[m_posEol] == '\r' &&
+                m_posEol + 1 < rs.Size() && rs[m_posEol] == '\n')
+                ++m_posEol;// CRLF检测
+            m_rbBuf.Erase(0, m_posEol + 1);
+            m_posEol = SizeTMax;
+        }
     }
 };
 ECK_CIO_NAMESPACE_END
