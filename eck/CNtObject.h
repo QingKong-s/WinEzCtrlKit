@@ -14,15 +14,13 @@ public:
             NtCurrentProcess(), &m_hObject, 0, 0,
             DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES);
     }
-    CNtObject(CNtObject& x) noexcept : CNtObject{ x.Get() } {}
+    CNtObject(const CNtObject& x) noexcept : CNtObject{ x.Get() } {}
     CNtObject(CNtObject&& x) noexcept { std::swap(m_hObject, x.m_hObject); }
-    CNtObject& operator=(CNtObject& x) noexcept
+    CNtObject& operator=(const CNtObject& x) noexcept
     {
         if (&x == this)
             return *this;
-        NtDuplicateObject(NtCurrentProcess(), x.Get(),
-            NtCurrentProcess(), &m_hObject, 0, 0,
-            DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES);
+        CloneFrom(x.Get());
         return *this;
     }
     CNtObject& operator=(CNtObject&& x) noexcept { std::swap(m_hObject, x.m_hObject); }
@@ -32,8 +30,22 @@ public:
             NtClose(m_hObject);
     }
 
-    EckInlineNdCe HANDLE Attach(HANDLE h) noexcept { return std::exchange(m_hObject, h); }
+    EckInlineNdCe void Attach(HANDLE h) noexcept
+    {
+        if (h != m_hObject)
+        {
+            Clear();
+            m_hObject = h;
+        }
+    }
     EckInlineNdCe HANDLE Detach() noexcept { return std::exchange(m_hObject, nullptr); }
+    NTSTATUS CloneFrom(HANDLE h) noexcept
+    {
+        Clear();
+        return NtDuplicateObject(NtCurrentProcess(), h,
+            NtCurrentProcess(), &m_hObject, 0, 0,
+            DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES);
+    }
     EckInlineNdCe HANDLE Get() const noexcept { return m_hObject; }
     EckInline void Clear() noexcept
     {
