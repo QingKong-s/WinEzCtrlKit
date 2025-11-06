@@ -8,16 +8,17 @@ class CWaitableTimer : public CWaitableObject
 public:
     CWaitableTimer()
     {
-        OBJECT_ATTRIBUTES oa;
-        InitObjAttr(oa);
-        NtCreateTimer(&m_hObject, TIMER_ALL_ACCESS, &oa, SynchronizationTimer);
+        NtCreateTimer(&m_hObject, TIMER_ALL_ACCESS, nullptr, SynchronizationTimer);
     }
 
     CWaitableTimer(std::wstring_view svName, BOOL bManualReset = FALSE, BOOL bInheritHandle = FALSE)
     {
         const auto us{ StringViewToNtString(svName) };
         OBJECT_ATTRIBUTES oa;
-        InitObjAttr(oa, (svName.empty() ? nullptr : &us), (bInheritHandle ? OBJ_INHERIT : 0));
+        InitializeObjectAttributes(&oa,
+            (svName.empty() ? nullptr : &us),
+            (bInheritHandle ? OBJ_INHERIT : 0),
+            nullptr, nullptr);
         NtCreateTimer(&m_hObject, TIMER_ALL_ACCESS, &oa,
             (bManualReset ? NotificationTimer : SynchronizationTimer));
     }
@@ -36,10 +37,7 @@ public:
             nullptr, nullptr, FALSE, lPeriod, nullptr);
     }
 
-    EckInline NTSTATUS SetDueTime(LONG ll)
-    {
-        return SetDueTime100ns(ll * 10000ll);
-    }
+    EckInline NTSTATUS SetDueTime(LONG ll) { return SetDueTime100ns(ll * 10000ll); }
 
     EckInline NTSTATUS SetDueTimeAndPeriod(LONG ll, LONG lPeriod)
     {

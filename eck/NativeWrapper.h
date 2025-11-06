@@ -147,16 +147,11 @@ inline NTSTATUS NaDeviceIoControl(HANDLE hDevice, DWORD dwIoControlCode,
     NTSTATUS nts;
     IO_STATUS_BLOCK iosb;
     if ((dwIoControlCode >> 16) == FILE_DEVICE_FILE_SYSTEM)
-    {
         nts = NtFsControlFile(hDevice, nullptr, nullptr, nullptr, &iosb,
             dwIoControlCode, pInBuf, cbInBuf, pOutBuf, cbOutBuf);
-    }
     else
-    {
         nts = NtDeviceIoControlFile(hDevice, nullptr, nullptr, nullptr, &iosb,
             dwIoControlCode, pInBuf, cbInBuf, pOutBuf, cbOutBuf);
-    }
-
     if (nts == STATUS_PENDING)
     {
         NtWaitForSingleObject(hDevice, FALSE, nullptr);
@@ -171,7 +166,7 @@ EckInlineNd ULONG NaGetLastError() { return NtCurrentTeb()->LastErrorValue; }
 
 EckInlineNd PCWSTR NaGetNtSystemRoot()
 {
-    if (g_pfnRtlGetNtSystemRoot)
+    if (g_pfnRtlGetNtSystemRoot)// 1703，隔离舱兼容
         return g_pfnRtlGetNtSystemRoot();
     return USER_SHARED_DATA->NtSystemRoot;
 }

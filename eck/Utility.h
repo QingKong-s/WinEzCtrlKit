@@ -1435,17 +1435,6 @@ EckInlineNdCe LPARAM MakeKeyStrokeFlag(USHORT cRepeat, UINT uScanCode, BOOL bExt
         (bPreviousState << 30) | (bTransition << 31);
 }
 
-EckInlineNdCe void InitObjAttr(_Out_ OBJECT_ATTRIBUTES& oa, PCUNICODE_STRING pusName = nullptr,
-    ULONG ulAttr = 0u, HANDLE hRootDir = nullptr, PSECURITY_DESCRIPTOR pSecDesc = nullptr)
-{
-    oa.Length = sizeof(OBJECT_ATTRIBUTES);
-    oa.RootDirectory = hRootDir;
-    oa.ObjectName = pusName;
-    oa.Attributes = ulAttr;
-    oa.SecurityDescriptor = pSecDesc;
-    oa.SecurityQualityOfService = nullptr;
-}
-
 EckInline void SafeRelease(_Inout_ CcpIsComInterface auto*& pUnk)
 {
     if (pUnk)
