@@ -223,5 +223,11 @@ namespace Priv
         ID2D1Layer* pLayer;
     };
 }
+
+struct ELEM_MAP
+{
+    std::unordered_map<std::wstring_view, CElem*> hmIdToElem;
+    std::unordered_map<std::wstring_view, std::vector<CElem*>> hmClassToElem;
+};
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
