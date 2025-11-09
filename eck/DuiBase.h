@@ -733,7 +733,8 @@ private:
     ID2D1Bitmap1* m_pBmpCache{};
     int m_cxCache{}, m_cyCache{};
 
-    std::vector<CThemeRealization*> m_vTheme{};
+    // [0] = 标准浅色，[1] = 标准深色
+    std::vector<ComPtr<ITheme>> m_vTheme{};
 
     ID2D1Effect* m_pFxBlur{};   // 缓存模糊效果
     ID2D1Effect* m_pFxCrop{};   // 缓存裁剪效果
@@ -759,6 +760,7 @@ private:
     BITBOOL m_bSizeChanged : 1{};       // 渲染线程应当重设图面大小
     BITBOOL m_bUserDpiChanged : 1{};    // 渲染线程应当重设DPI
     BITBOOL m_bFullUpdate : 1{ TRUE };  // 当前是否需要完全重绘
+    BITBOOL m_bDarkMode : 1{};          // 当前是否处于深色模式
 
     BYTE m_eAlphaMode{ D2D1_ALPHA_MODE_IGNORE };		// 缓存D2D透明模式
     BYTE m_eDxgiAlphaMode{ DXGI_ALPHA_MODE_IGNORE };	// 缓存DXGI透明模式
@@ -1743,23 +1745,11 @@ public:
 
                 const auto pDC = GetDeviceContext();
 
-                const auto pTheme = new CTheme{};
-                pTheme->Open(&StdThemeData, sizeof(StdThemeData), FALSE);
-
-                auto pPal = new CThemePalette{ Palette_StdLight,ARRAYSIZE(Palette_StdLight) };
-                pTheme->AddPalette(pPal);
-                pTheme->SetPalette(pPal);
-                pPal->Release();
-
-                pPal = new CThemePalette{ Palette_StdDark,ARRAYSIZE(Palette_StdDark) };
-                pTheme->AddPalette(pPal);
-                pPal->Release();
-
-                const auto pTr = new CThemeRealization{ pDC, pTheme };
-
-                m_vTheme.emplace_back(pTr);
-
-                pTheme->Release();
+                m_vTheme.resize(2);
+                StMakeTheme(m_vTheme[0].RefOf(), FALSE);
+                m_vTheme[0]->RealizeForDC(pDC);
+                StMakeTheme(m_vTheme[1].RefOf(), TRUE);
+                m_vTheme[1]->RealizeForDC(pDC);
 
                 pDC->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
                 if (m_ePresentMode != PresentMode::WindowRenderTarget)
@@ -1797,7 +1787,8 @@ public:
             m_bExit = TRUE;
             WakeRenderThread();
             m_cs.Leave();
-            WaitObject(CWaitableObject{ m_hthRender });// 等待渲染线程退出
+            // 等待渲染线程退出
+            NtWaitForSingleObject(m_hthRender, FALSE, nullptr);
             m_hthRender = nullptr;
             // 销毁所有元素
             auto pElem = m_pFirstChild;
@@ -1848,10 +1839,6 @@ public:
             SafeReleaseAssert0(m_pFxCrop);
             // 销毁其他接口
             m_pDataObj = nullptr;
-
-            for (auto p : m_vTheme)
-                p->Release();
-            m_vTheme.clear();
 
             for (const auto p : m_vTimeLine)
                 p->Release();
@@ -2024,25 +2011,33 @@ public:
         rc.bottom = Log2PhyF(rc.bottom);
     }
 
-    EckInline auto GetStdTheme()
+    EckInline void StGetCurrentTheme(ITheme*& pTheme)
     {
         ECK_DUILOCKWND;
-        return m_vTheme.front();
+        pTheme = m_vTheme[!!m_bDarkMode].Get();
+        pTheme->AddRef();
     }
     EckInline void StSwitchStdThemeMode(BOOL bDark)
     {
         ECK_DUILOCKWND;
-        const auto pTheme = m_vTheme.front()->GetTheme();
-        pTheme->SetPalette(pTheme->GetPaletteList()[!!bDark]);
+        m_bDarkMode = bDark;
+        const auto pTheme = m_vTheme[!!m_bDarkMode].Get();
+        for (size_t i = 2; i < m_vTheme.size(); ++i)
+            m_vTheme[i]->SetParent(pTheme);
         D2D1_COLOR_F cr;
         pTheme->GetSysColor(SysColor::Bk, cr);
         if (m_pBrBkg)
             m_pBrBkg->SetColor(cr);
-        BroadcastEvent(WM_THEMECHANGED, 0, 0);
+        EtForEachElem([&](CElem* pElem)
+            {
+                pElem->SetTheme(pTheme);
+            }, GetFirstChildElem());
     }
     void StUpdateColorizationColor(const D2D1_COLOR_F& cr)
     {
-        m_vTheme.front()->SetColorizationColor(cr);
+        ECK_DUILOCKWND;
+        for (auto& pTheme : m_vTheme)
+            pTheme->SetColorizationColor(cr);
     }
     BOOL StUpdateColorizationColor()
     {
@@ -2065,6 +2060,17 @@ public:
         StUpdateColorizationColor(ArgbToD2DColorF(dw));
         RegCloseKey(hKey);
         return TRUE;
+    }
+    void StRegisterAutoTheme(ITheme* pTheme)
+    {
+        ECK_DUILOCKWND;
+        EckAssert(std::find_if(m_vTheme.begin(), m_vTheme.end(),
+            [=](const auto& p) { return p.Get() == pTheme; }) == m_vTheme.end());
+        m_vTheme.emplace_back(pTheme);
+        ComPtr<ITheme> pParent;
+        StGetCurrentTheme(pParent.RefOf());
+        pTheme->SetParent(pParent.Get());
+        pTheme->RealizeForDC(GetDeviceContext());
     }
 
     EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -2334,9 +2340,9 @@ public:
 
     EckInlineNdCe ID2D1DeviceContext* GetDeviceContext() const noexcept { return m_D2D.GetDC(); }
 
-    void EtForEachElem(const std::invocable<CElem*> auto& Fn, CElem* pElemBegin = nullptr)
+    void EtForEachElem(const std::invocable<CElem*> auto& Fn, CElem* pElemBegin)
     {
-        auto p{ pElemBegin ? pElemBegin : GetFirstChildElem() };
+        auto p{ pElemBegin };
         while (p)
         {
             EckCanCallbackContinue(Fn(p))
@@ -2489,8 +2495,7 @@ inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
     m_pWnd = pWnd;
     m_pDC = pWnd->GetDeviceContext();
     m_pParent = pParent;
-    m_pTheme = pWnd->m_vTheme.front();
-    m_pTheme->AddRef();
+    GetWnd()->StGetCurrentTheme(m_pTheme);
 
     tcSetStyleWorker(dwStyle);
 
