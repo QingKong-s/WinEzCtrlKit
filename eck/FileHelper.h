@@ -60,16 +60,33 @@ EckInline NTSTATUS WriteToFile(_In_z_ PCWSTR pszFile, const CRefBin& rb)
 
 namespace Priv
 {
+    // 不得关闭返回的句柄
     NTSTATUS FilepOpenMountPointManager(_Out_ HANDLE& hMpmDevice)
     {
         constexpr UNICODE_STRING MpmName RTL_CONSTANT_STRING(MOUNTMGR_DEVICE_NAME);
-        NTSTATUS nts;
-        hMpmDevice = NaOpenFile(&MpmName,
-            FILE_READ_ATTRIBUTES | SYNCHRONIZE,
-            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
-            &nts);
-        return nts;
+        static std::atomic<HANDLE> s_hMpmDevice{};
+        hMpmDevice = s_hMpmDevice.load(std::memory_order_acquire);
+        if (hMpmDevice)
+            return STATUS_SUCCESS;
+        else
+        {
+            NTSTATUS nts;
+            const auto hNew = NaOpenFile(&MpmName,
+                FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                &nts);
+            if (NT_SUCCESS(nts))
+            {
+                s_hMpmDevice.compare_exchange_strong(
+                    hMpmDevice, hNew, std::memory_order_acq_rel);
+                if (hMpmDevice)
+                    NtClose(hNew);
+                else
+                    hMpmDevice = hNew;
+            }
+            return nts;
+        }
     }
 }
 
