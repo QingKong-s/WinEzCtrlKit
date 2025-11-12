@@ -48,8 +48,11 @@
     <ClInclude Include="CWndWork.h">
       <Filter>逻辑</Filter>
     </ClInclude>
-    <ClInclude Include="CSelOverlay.h">
+    <ClInclude Include="CWndSelectOverlay.h">
       <Filter>逻辑</Filter>
+    </ClInclude>
+    <ClInclude Include="BuiltinControl.h">
+      <Filter>程序</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -77,7 +80,7 @@
     <ClCompile Include="CWndWork.cpp">
       <Filter>逻辑</Filter>
     </ClCompile>
-    <ClCompile Include="CSelOverlay.cpp">
+    <ClCompile Include="CWndSelectOverlay.cpp">
       <Filter>逻辑</Filter>
     </ClCompile>
   </ItemGroup>

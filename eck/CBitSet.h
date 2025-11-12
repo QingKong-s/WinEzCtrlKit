@@ -197,7 +197,7 @@ public:
 		return CProxy(*this, n);
 	}
 
-	EckInline [[nodiscard]] constexpr bool operator[](size_t n) const
+	EckInlineNdCe bool operator[](size_t n) const
 	{
 		return Test(n);
 	}
@@ -248,12 +248,12 @@ public:
 		return FALSE;
 	}
 
-	EckInline [[nodiscard]] constexpr BOOL NoneOne() const
+	EckInlineNdCe BOOL NoneOne() const
 	{
 		return !AnyOne();
 	}
 
-	EckInline [[nodiscard]] constexpr BOOL Test(size_t n) const
+	EckInlineNdCe BOOL Test(size_t n) const
 	{
 		EckAssert(n < N);
 		return (m_Bits[n / BitsPerWord] & (TWord{ 1 } << n % BitsPerWord)) != 0;
@@ -279,12 +279,12 @@ public:
 			std::swap(p[i], p[N / 8 - 1 - i]);
 	}
 
-	EckInline [[nodiscard]] constexpr const TWord* Data() const
+	EckInlineNdCe const TWord* Data() const
 	{
 		return m_Bits;
 	}
 
-	EckInline [[nodiscard]] constexpr TWord* Data()
+	EckInlineNdCe TWord* Data()
 	{
 		return m_Bits;
 	}

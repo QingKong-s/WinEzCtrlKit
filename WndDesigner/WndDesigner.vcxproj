@@ -176,9 +176,10 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BuiltinControl.h" />
     <ClInclude Include="CApp.h" />
     <ClInclude Include="CProject.h" />
-    <ClInclude Include="CSelOverlay.h" />
+    <ClInclude Include="CWndSelectOverlay.h" />
     <ClInclude Include="CWndMain.h" />
     <ClInclude Include="CWndWork.h" />
     <ClInclude Include="pch.h" />
@@ -189,7 +190,7 @@
   <ItemGroup>
     <ClCompile Include="CApp.cpp" />
     <ClCompile Include="CProject.cpp" />
-    <ClCompile Include="CSelOverlay.cpp" />
+    <ClCompile Include="CWndSelectOverlay.cpp" />
     <ClCompile Include="CWndMain.cpp" />
     <ClCompile Include="CWndWork.cpp" />
     <ClCompile Include="Entry.cpp" />
