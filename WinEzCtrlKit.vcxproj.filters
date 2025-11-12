@@ -51,9 +51,6 @@
     <ClInclude Include="eck\CUpDown.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\DbgHelper.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\DlgTemplate.h">
       <Filter>ECK Include</Filter>
     </ClInclude>

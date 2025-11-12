@@ -19,27 +19,12 @@ ECK_DECL_HANDLE_DELETER(HMenu, HMENU, DestroyMenu);
 ECK_DECL_HANDLE_DELETER(HGdiObj, HGDIOBJ, DeleteObject);
 ECK_DECL_HANDLE_DELETER(HNtObj, HANDLE, CloseHandle);// 不用NtClose，CloseHandle进行必要的无效检查
 ECK_DECL_HANDLE_DELETER(HTheme, HTHEME, CloseThemeData);
-ECK_DECL_HANDLE_DELETER(GpGraphics, GpGraphics*, GdipDeleteGraphics);
-ECK_DECL_HANDLE_DELETER(GpBrush, GpBrush*, GdipDeleteBrush);
-ECK_DECL_HANDLE_DELETER(GpPen, GpPen*, GdipDeletePen);
-ECK_DECL_HANDLE_DELETER(GpPath, GpPath*, GdipDeletePath);
-ECK_DECL_HANDLE_DELETER(GpFont, GpFont*, GdipDeleteFont);
-ECK_DECL_HANDLE_DELETER(GpFontFamily, GpFontFamily*, GdipDeleteFontFamily);
-ECK_DECL_HANDLE_DELETER(GpImage, GpImage*, GdipDisposeImage);
-ECK_DECL_HANDLE_DELETER(GpBitmap, GpBitmap*, GdipDisposeImage);
-ECK_DECL_HANDLE_DELETER(GpMetafile, GpMetafile*, GdipDisposeImage);
-ECK_DECL_HANDLE_DELETER(GpRegion, GpRegion*, GdipDeleteRegion);
-ECK_DECL_HANDLE_DELETER(GpStringFormat, GpStringFormat*, GdipDeleteStringFormat);
-ECK_DECL_HANDLE_DELETER(GpPathIterator, GpPathIterator*, GdipDeletePathIter);
-ECK_DECL_HANDLE_DELETER(GpCachedBitmap, GpCachedBitmap*, GdipDeleteCachedBitmap);
-ECK_DECL_HANDLE_DELETER(GpImageAttributes, GpImageAttributes*, GdipDisposeImageAttributes);
-ECK_DECL_HANDLE_DELETER(GpEffect, GpEffect*, GdipDeleteEffect);
 
 template<class T_ = void>
 struct DelMA
 {
-	using T = T_;
-	void operator()(T* p) { free(p); }
+    using T = T_;
+    void operator()(T* p) { free(p); }
 };
 
 template<class T = void>

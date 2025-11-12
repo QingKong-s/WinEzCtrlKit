@@ -33,9 +33,8 @@ public:
 
     EckInline void SetHeapSerialize(BOOL b) { m_dwSerialize = (b ? 0 : HEAP_NO_SERIALIZE); }
 
-    EckInline void SetHHeap(HANDLE hHeap) { m_hHeap = hHeap; }
-
-    EckInline HANDLE GetHHeap() const { return m_hHeap; }
+    EckInlineCe void SetHeap(HANDLE hHeap) { m_hHeap = hHeap; }
+    EckInlineNdCe HANDLE GetHeap() const { return m_hHeap; }
 };
 
 template<class T1, class TSize1, class T2, class TSize2>

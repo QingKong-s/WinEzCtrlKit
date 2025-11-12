@@ -477,9 +477,9 @@ EckInlineNd int TcsCompareMaxLenI(_In_reads_or_z_(Max) TPtr Str1,
     _In_reads_or_z_(Max) ConstStdCharPtr_T<TPtr> Str2, size_t Max)
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
-        return strnicmp(Str1, Str2, Max);
+        return _strnicmp(Str1, Str2, Max);
     else
-        return wcsnicmp(Str1, Str2, Max);
+        return _wcsnicmp(Str1, Str2, Max);
 }
 template<CcpIsStdCharPtr TPtr>
 EckInlineNd int TcsCompareLenI(_In_reads_(Len) TPtr Str1,

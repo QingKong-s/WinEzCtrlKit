@@ -2154,9 +2154,9 @@ BOOL PreTranslateMessage(const MSG& Msg)
 #pragma endregion Wnd
 
 #pragma region Dbg
+#ifdef _DEBUG
 void DbgPrintWndMap()
 {
-#ifdef _DEBUG
     const auto* const pCtx = GetThreadCtx();
     auto s = Format(L"当前线程（TID = %u）窗口映射表内容：\n", NtCurrentThreadId32());
     for (const auto& e : pCtx->hmWnd)
@@ -2169,31 +2169,34 @@ void DbgPrintWndMap()
     }
     s.AppendFormat(L"共有%u个窗口\n", (UINT)pCtx->hmWnd.size());
     OutputDebugStringW(s.Data());
-#endif // _DEBUG
 }
 
 void DbgPrintFmt(_Printf_format_string_ PCWSTR pszFormat, ...)
 {
-#ifdef _DEBUG
     va_list vl;
     va_start(vl, pszFormat);
     CRefStrW rs{};
     rs.FormatV(pszFormat, vl);
     DbgPrint(rs);
     va_end(vl);
-#endif // _DEBUG
+}
+void DbgPrintFmt(_Printf_format_string_ PCSTR pszFormat, ...)
+{
+    va_list vl;
+    va_start(vl, pszFormat);
+    CRefStrA rs{};
+    rs.FormatV(pszFormat, vl);
+    DbgPrint(rs);
+    va_end(vl);
 }
 
 void DbgPrintWithPos(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg)
 {
-#ifdef _DEBUG
     DbgPrint(Format(L"%s(%u) -> %s\n%s\n", pszFile, iLine, pszFunc, pszMsg));
-#endif // _DEBUG
 }
 
 void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
 {
-#ifdef _DEBUG
     TASKDIALOGCONFIG tdc{ sizeof(TASKDIALOGCONFIG) };
     tdc.pszMainInstruction = L"断言失败！";
     tdc.pszMainIcon = TD_ERROR_ICON;
@@ -2226,7 +2229,7 @@ void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
     case 102:
         return;
     }
-#endif // _DEBUG
 }
+#endif // _DEBUG
 #pragma endregion Dbg
 ECK_NAMESPACE_END
