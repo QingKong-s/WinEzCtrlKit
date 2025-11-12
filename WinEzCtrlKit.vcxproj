@@ -356,7 +356,6 @@
     <ClInclude Include="eck\CTreeView.h" />
     <ClInclude Include="eck\CUpDown.h" />
     <ClInclude Include="eck\CWnd.h" />
-    <ClInclude Include="eck\DbgHelper.h" />
     <ClInclude Include="eck\DesignerDef.h" />
     <ClInclude Include="eck\DlgTemplate.h" />
     <ClInclude Include="eck\EasingCurve.h" />

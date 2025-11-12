@@ -818,7 +818,7 @@ enum :UINT
     EIF_NODARKMODE = 1u << 5,
     // 移除所有用户界面相关的初始化
     EIF_CONSOLE_APP = EIF_NOINITTHREAD | EIF_NOINITGDIPLUS | EIF_NOINITWIC |
-                        EIF_NOINITD2D | EIF_NOINITDWRITE | EIF_NODARKMODE,
+    EIF_NOINITD2D | EIF_NOINITDWRITE | EIF_NODARKMODE,
 };
 
 #if !ECK_OPT_NO_DX
@@ -860,9 +860,6 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip = nullptr,
 void UnInit();
 #pragma endregion Init
 
-ECK_NAMESPACE_END
-#include "DbgHelper.h"
-ECK_NAMESPACE_BEGIN
 #pragma region Thread
 class CWnd;
 struct THREADCTX;
@@ -1006,6 +1003,85 @@ EckInlineNd HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,
     return CreateThread(nullptr, 0, (PTHREAD_START_ROUTINE)pStartAddress,
         pParameter, dwCreationFlags, (DWORD*)pThreadId);
 }
+
+#ifdef _DEBUG
+void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine);
+inline void DbgPrint(CcpIsNumber auto x, BOOL bNewLine = TRUE)
+{
+    auto s = std::to_string(x);
+    if (bNewLine)
+        s.push_back('\n');
+    OutputDebugStringA(s.c_str());
+}
+void DbgPrintFmt(_Printf_format_string_ PCWSTR pszFormat, ...);
+void DbgPrintFmt(_Printf_format_string_ PCSTR pszFormat, ...);
+EckInline void DbgPrint(PCVOID x, BOOL bNewLine = TRUE) { DbgPrintFmt(bNewLine ? L"0x%p\n" : L"0x%p", x); }
+EckInline void DbgPrint(PCWSTR psz, BOOL bNewLine = TRUE)
+{
+    OutputDebugStringW(psz);
+    if (bNewLine) OutputDebugStringW(L"\n");
+}
+EckInline void DbgPrint(PCSTR psz, BOOL bNewLine = TRUE)
+{
+    OutputDebugStringA(psz);
+    if (bNewLine) OutputDebugStringA("\n");
+}
+template<class T, class U, class V>
+EckInline void DbgPrint(const std::basic_string<T, U, V>& str, BOOL bNewLine = TRUE)
+{
+    DbgPrint(str.c_str(), bNewLine);
+}
+inline void DbgPrintFormatMessage(UINT uErrCode, BOOL bNewLine = TRUE)
+{
+    PWSTR pszInfo;
+    FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, nullptr,
+        uErrCode, 0, (PWSTR)&pszInfo, 0, nullptr);
+    DbgPrint(pszInfo, bNewLine);
+    LocalFree(pszInfo);
+}
+inline void DbgPrintLastError(BOOL bNewLine = TRUE)
+{
+    const auto u = GetLastError();
+    DbgPrintFmt(L"LastError = %u", u);
+    DbgPrintFormatMessage(u, bNewLine);
+}
+void DbgPrintWithPos(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg);
+void DbgPrintWndMap();
+
+#if !ECK_OPT_NO_DBG_MACRO
+#define EckDbgPrintGLE              ::eck::DbgPrintLastError
+#define EckDbgPrint                 ::eck::DbgPrint
+#define EckDbgPrintFormatMessage    ::eck::DbgPrintFormatMessage
+#define EckDbgPrintFmt              ::eck::DbgPrintFmt
+#define EckDbgPrintWithPos(x)       ::eck::DbgPrintWithPos(ECK_FILEW, ECK_FUNCTIONW, __LINE__, x)
+#define EckDbgBreak()               DebugBreak()
+#define EckDbgCheckMemRange(pBase, cbSize, pCurr)   \
+    if(((PCBYTE)(pBase)) + (cbSize) < (pCurr))      \
+    {                                               \
+        EckDbgPrintFmt(                             \
+            L"内存范围检查失败，起始 = %p，尺寸 = %u，当前 = %p，超出 = %u", \
+            pBase,                                  \
+            (UINT)cbSize,                           \
+            pCurr,                                  \
+            (UINT)(((SIZE_T)(pCurr)) - ((SIZE_T)(pBase)) - (cbSize))); \
+        EckDbgBreak();                              \
+    }
+#define EckAssert(x)                (void)(!!(x) || (::eck::Assert(ECKWIDE(#x), ECK_FILEW, ECK_LINEW), 0))
+#define EckDbgPrintWndMap()         ::eck::DbgPrintWndMap()
+#endif// !ECK_OPT_NO_DBG_MACRO
+#else
+#if !ECK_OPT_NO_DBG_MACRO
+#define EckDbgPrintGLE(x)           ;
+#define EckDbgPrint(...)            ;
+#define EckDbgPrintFormatMessage(x) ;
+#define EckDbgPrintFmt(...)         ;
+#define EckDbgPrintWithPos(x)       ;
+#define EckDbgBreak()               ;
+#define EckDbgCheckMemRange(a,b,c)  ;
+#define EckAssert(x)                ;
+#define EckDbgPrintWndMap()         ;
+#endif// !ECK_OPT_NO_DBG_MACRO
+#endif// _DEBUG
 ECK_NAMESPACE_END
 
 #if !ECK_OPT_NO_USING_GDIPLUS
