@@ -54,6 +54,31 @@ public:
 	ECK_CWNDPROP_TVE_STYLE(NoSingleCollapse, TVS_EX_NOSINGLECOLLAPSE);
 	ECK_CWNDPROP_TVE_STYLE(PartialCheckboxes, TVS_EX_PARTIALCHECKBOXES);
 	ECK_CWNDPROP_TVE_STYLE(RichTooltip, TVS_EX_RICHTOOLTIP);
+protected:
+	BOOL m_bAutoDarkMode{ TRUE };
+public:
+	EckInline constexpr void SetAutoDarkMode(BOOL b) { m_bAutoDarkMode = b; }
+
+	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		switch (uMsg)
+		{
+		case WM_CREATE:
+		case WM_THEMECHANGED:
+		{
+			if (m_bAutoDarkMode)
+			{
+				const auto lResult = CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
+				const auto* const ptc = GetThreadCtx();
+				SetTextClr(ptc->crDefText);
+				SetBkClr(ptc->crDefBkg);
+				return lResult;
+			}
+		}
+		break;
+		}
+		return __super::OnMsg(hWnd, uMsg, wParam, lParam);
+	}
 
 	EckInline HIMAGELIST CreateDragImage(HTREEITEM hItem) const
 	{
@@ -112,7 +137,7 @@ public:
 		return (BOOL)SendMsg(TVM_ENSUREVISIBLE, uOp, (LPARAM)hItem);
 	}
 
-	EckInline COLORREF GetBKColor() const
+	EckInline COLORREF GetBkClr() const
 	{
 		return (COLORREF)SendMsg(TVM_GETBKCOLOR, 0, 0);
 	}
@@ -276,7 +301,7 @@ public:
 		return (int)SendMsg(TVM_GETSCROLLTIME, 0, 0);
 	}
 
-	EckInline COLORREF GetTextColor() const
+	EckInline COLORREF GetTextClr() const
 	{
 		return (COLORREF)SendMsg(TVM_GETTEXTCOLOR, 0, 0);
 	}
@@ -354,7 +379,7 @@ public:
 		SendMsg(TVM_SETAUTOSCROLLINFO, iPixelPreSecond, iRedrawGap);
 	}
 
-	EckInline COLORREF SetBKColor(COLORREF cr) const
+	EckInline COLORREF SetBkClr(COLORREF cr) const
 	{
 		return (COLORREF)SendMsg(TVM_SETBKCOLOR, 0, cr);
 	}
@@ -418,7 +443,7 @@ public:
 		return (int)SendMsg(TVM_SETSCROLLTIME, iTime, 0);
 	}
 
-	EckInline COLORREF SetTextColor(COLORREF cr) const
+	EckInline COLORREF SetTextClr(COLORREF cr) const
 	{
 		return (COLORREF)SendMsg(TVM_SETTEXTCOLOR, 0, cr);
 	}

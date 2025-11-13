@@ -61,28 +61,23 @@ namespace Priv
     template<class TThis, class T>
     EckInline auto JsonValAtVarType(TThis& This, const T& x)
     {
-        if constexpr (std::is_integral_v<T>)
+        using T1 = std::remove_cvref_t<T>;
+        if constexpr (std::is_integral_v<T1>)
             return This.ArrAt(x);
-        else if constexpr (std::is_same_v<std::remove_cvref_t<T>, PSTR> ||
-            std::is_same_v<std::remove_cvref_t<T>, PBYTE> ||
-            std::is_same_v<std::remove_cvref_t<T>, char8_t*> ||
-            std::is_same_v<std::remove_cvref_t<T>, PCSTR> ||
-            std::is_same_v<std::remove_cvref_t<T>, PCBYTE> ||
-            std::is_same_v<std::remove_cvref_t<T>, const char8_t*> ||
-            std::is_convertible_v<std::remove_cvref_t<T>, PCSTR> ||
-            std::is_convertible_v<std::remove_cvref_t<T>, PCBYTE> ||
-            std::is_convertible_v<std::remove_cvref_t<T>, const char8_t*>)
+        else if constexpr (std::is_convertible_v<T1, PCCH> ||
+            std::is_convertible_v<T1, PCBYTE> ||
+            std::is_convertible_v<T1, const char8_t*>)
         {
-            return Priv::JsonValAt(This, (PCSTR)x);
+            return JsonValAt(This, (PCSTR)x);
         }
-        else if constexpr (std::is_same_v<std::remove_cvref_t<T>, CRefStrA>)
-            return Priv::JsonValAt(This, x.Data(), x.Size());
-        else if constexpr (std::is_same_v<std::remove_cvref_t<T>, std::string> ||
-            std::is_same_v<std::remove_cvref_t<T>, std::u8string>)
-            return Priv::JsonValAt(This, x.c_str(), x.size());
-        else if constexpr (std::is_same_v<std::remove_cvref_t<T>, std::string_view> ||
-            std::is_same_v<std::remove_cvref_t<T>, std::u8string_view>)
-            return Priv::JsonValAt(This, x.data(), x.size());
+        else if constexpr (IsSameTemplate<CRefStrT, T1>::V)
+            return JsonValAt(This, x.Data(), x.Size());
+        else if constexpr (IsSameTemplate<std::basic_string, T1>::V &&
+            sizeof(typename T1::value_type) == 1)
+            return JsonValAt(This, x.c_str(), x.size());
+        else if constexpr (IsSameTemplate<std::basic_string_view, T1>::V &&
+            sizeof(typename T1::value_type) == 1)
+            return JsonValAt(This, x.data(), x.size());
         else
             static_assert(false, "Unsupported type.");
     }

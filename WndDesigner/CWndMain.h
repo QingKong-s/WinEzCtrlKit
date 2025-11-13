@@ -88,9 +88,22 @@ private:
 
     void DmShowForm(int idxTab);
     void DmAddForm();
+
+    EckInlineNdCe auto& GetCurrentTab() noexcept { return m_vTabs[m_Tab.GetCurSel()]; }
+
+    void UpdateComboBox();
+
+    LRESULT OnGetDisplayInfoComboBox(eck::NMLBNGETDISPINFO* p);
+
+    LRESULT OnControlMsg(DsForm* pDsForm, DsWnd* pDsCtrlWnd,
+        HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
+        eck::SlotCtx& Ctx) noexcept;
+
 public:
     LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 
     void SrvDrawOverlayRect(HWND hWndRef, const RECT* prc, size_t cRc) noexcept;
     void SrvClearOverlayRect() noexcept;
+    void SrvEndSelect() noexcept;
+    void SrvWorkWindowMoved(HWND hWndWork) noexcept;
 };

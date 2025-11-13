@@ -234,7 +234,7 @@ public:
 		return (int)SendMsg(LVM_FINDITEMW, idxStart, (LPARAM)plvfi);
 	}
 
-	EckInline COLORREF GetBKColor() const
+	EckInline COLORREF GetBkClr() const
 	{
 		return (COLORREF)SendMsg(LVM_GETBKCOLOR, 0, 0);
 	}

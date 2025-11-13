@@ -3,12 +3,17 @@ struct DsWnd
 {
     eck::CRefStrW rsName{};     // 名称
     eck::CRefStrW rsTitle{};    // 标题
-    eck::RCWH rcwh{};           // 位置和大小
+    RECT rc{};           // 位置和大小
     DWORD dwStyle{};            // 窗口样式，总有WS_CHILD | WS_VISIBLE
     DWORD dwExStyle{};          // 扩展样式
     int idxBuiltinCtrl{ -1 };   // 内置控件索引
     eck::CWnd* pWnd{};          // 设计器创建的窗口，可能为nullptr
     std::vector<std::shared_ptr<DsWnd>> vChild{};// 子窗口
+
+    std::shared_ptr<DsWnd> AddChild()
+    {
+        return vChild.emplace_back(std::make_shared<DsWnd>());
+    }
 };
 
 struct DsForm : DsWnd
