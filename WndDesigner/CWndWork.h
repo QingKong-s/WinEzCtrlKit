@@ -8,6 +8,7 @@ private:
 	friend class CWndMain;
 
 	BOOLEAN m_bLBtnDown{};
+	BOOLEAN m_bAlignToGrid{};
 	POINT m_ptSelStart{};
 
 	CWndMain* m_pWndMain{};

@@ -4,14 +4,16 @@
 
 void CWndWork::SelBeginDragging(POINT pt)
 {
-    m_ptSelStart = PtAlign(pt, 8);
+    m_ptSelStart = m_bAlignToGrid ? PtAlign(pt, 8) : pt;
     m_vRect.resize(1);
-    m_vRect.front() = eck::MakeRect(pt, pt);
+    m_vRect.front() = eck::MakeRect(m_ptSelStart, m_ptSelStart);
+    Host()->SrvDrawOverlayRect(HWnd, m_vRect.data(), 1);
 }
 
 void CWndWork::SelDraggingMove(POINT pt)
 {
-    m_vRect.front() = eck::MakeRect(m_ptSelStart, PtAlign(pt, 8));
+    m_vRect.front() = eck::MakeRect(m_ptSelStart,
+        m_bAlignToGrid ? PtAlign(pt, 8) : pt);
     Host()->SrvDrawOverlayRect(HWnd, m_vRect.data(), 1);
 }
 
@@ -54,7 +56,7 @@ LRESULT CWndWork::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         {
             m_bLBtnDown = FALSE;
             ReleaseCapture();
-            SelCancel();
+            Host()->SrvEndSelect();
         }
     }
     return 0;
@@ -84,6 +86,13 @@ LRESULT CWndWork::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         const auto pwp = (WINDOWPOS*)lParam;
         pwp->flags |= SWP_NOZORDER;
+    }
+    break;
+    case WM_WINDOWPOSCHANGED:
+    {
+        const auto pwp = (WINDOWPOS*)lParam;
+        if (!(pwp->flags & SWP_NOMOVE))
+            Host()->SrvWorkWindowMoved(hWnd);
     }
     break;
     }

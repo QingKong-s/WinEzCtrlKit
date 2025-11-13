@@ -199,6 +199,59 @@ LRESULT CWndMain::OnCommand(HWND hWnd, int nId, HWND hCtrl, UINT uNotifyCode)
     return 0;
 }
 
+void CWndMain::UpdateComboBox()
+{
+    if (m_Tab.GetCurSel() < 0)
+        m_CBBCtrl.GetListBox().SetItemCount(0);
+    else
+        m_CBBCtrl.GetListBox().SetItemCount(
+            (int)GetCurrentTab().pForm->vChild.size());
+    m_CBBCtrl.Redraw();
+}
+
+LRESULT CWndMain::OnGetDisplayInfoComboBox(eck::NMLBNGETDISPINFO* p)
+{
+    if (m_Tab.GetCurSel() < 0)
+        return 0;
+    const auto& rs = GetCurrentTab().pForm->vChild[p->Item.idxItem]->rsName;
+    p->Item.pszText = rs.Data();
+    p->Item.cchText = rs.Size();
+    return TRUE;
+}
+
+LRESULT CWndMain::OnControlMsg(DsForm* pDsForm, DsWnd* pDsCtrlWnd,
+    HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, eck::SlotCtx& Ctx) noexcept
+{
+    switch (uMsg)
+    {
+    case WM_LBUTTONDOWN:
+    case WM_NCLBUTTONDOWN:
+    case WM_LBUTTONDBLCLK:
+    case WM_NCLBUTTONDBLCLK:
+        Ctx.Processed();
+        SrvDrawOverlayRect(pDsForm->pWnd->HWnd, &pDsCtrlWnd->rc, 1);
+        return 0;
+    case WM_LBUTTONUP:
+    case WM_NCLBUTTONUP:
+        Ctx.Processed();
+        return 0;
+    case WM_NCMOUSEMOVE:
+    case WM_MOUSEMOVE:
+        Ctx.Processed();
+        return 0;
+    case WM_SETCURSOR:
+        Ctx.Processed();
+        return 0;
+    case WM_WINDOWPOSCHANGED:
+    {
+        const auto* const pwp = (WINDOWPOS*)lParam;
+        pDsCtrlWnd->rc = eck::MakeRect(pwp->x, pwp->y, pwp->cx, pwp->cy);
+    }
+    break;
+    }
+    return 0;
+}
+
 LRESULT CWndMain::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
@@ -238,9 +291,16 @@ LRESULT CWndMain::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 if (pnmhdr->hwndFrom == m_Tab.HWnd)
                 {
                     DmShowForm(m_Tab.GetCurSel());
+                    UpdateComboBox();
                     return 0;
                 }
                 break;
+            }
+        else if (pnmhdr->hwndFrom == m_CBBCtrl.HWnd)
+            switch (pnmhdr->code)
+            {
+            case eck::NM_LBN_GETDISPINFO:
+                return OnGetDisplayInfoComboBox((eck::NMLBNGETDISPINFO*)lParam);
             }
     }
     break;
@@ -272,6 +332,68 @@ void CWndMain::SrvClearOverlayRect() noexcept
     m_SelOverlay.Redraw();
 }
 
+void CWndMain::SrvEndSelect() noexcept
+{
+    if (m_SelOverlay.IsEmpty())
+        return;
+    const auto rc = m_SelOverlay.GetRectInWorkWnd();
+    const auto& Tab = GetCurrentTab();
+    const auto idxCtrl = m_LBCtrl.GetCurrSel() - 1;
+    if (idxCtrl < 0)
+    {
+        m_SelOverlay.ClearRect();
+        for (const auto& e : Tab.pForm->vChild)
+        {
+            RECT rr;
+            if (eck::IntersectRect(rr, rc, e->rc))
+                m_SelOverlay.AddRectInWorkWindow(e->rc);
+            rr = {};
+        }
+        m_SelOverlay.EndAddRect(Tab.pWorkWnd->HWnd);
+        m_SelOverlay.Redraw();
+    }
+    else
+    {
+        const auto& e = BuiltInCtrls[idxCtrl];
+        const auto pWnd = eck::DynCast<eck::CWnd*>(eck::RttiNewObject(e.svClsName));
+        if (pWnd)
+        {
+            const auto pDsWnd = Tab.pForm->AddChild();
+            pDsWnd->rsName = e.svDisplayName;
+            pDsWnd->rsTitle = e.svDisplayName;
+            pDsWnd->pWnd = pWnd;
+            pDsWnd->rc = rc;
+            pDsWnd->dwStyle = e.dwDefStyle | WS_VISIBLE | WS_CHILD;
+            pDsWnd->dwExStyle = e.dwDefExStyle;
+
+            pWnd->GetSignal().Connect(
+                [this, pDsForm = Tab.pForm, pDsWnd = pDsWnd](HWND hWnd, UINT uMsg,
+                    WPARAM wParam, LPARAM lParam, eck::SlotCtx& Ctx)->LRESULT
+                {
+                    return OnControlMsg(pDsForm.get(), pDsWnd.get(), hWnd, uMsg, wParam, lParam, Ctx);
+                });
+
+            pWnd->Create(
+                e.svDisplayName.data(),
+                pDsWnd->dwStyle,
+                pDsWnd->dwExStyle,
+                rc.left, rc.top,
+                rc.right - rc.left,
+                rc.bottom - rc.top,
+                Tab.pWorkWnd->HWnd, 0);
+
+            UpdateComboBox();
+        }
+        SrvClearOverlayRect();
+    }
+}
+
+void CWndMain::SrvWorkWindowMoved(HWND hWndWork) noexcept
+{
+    m_SelOverlay.EndAddRect(hWndWork);
+    m_SelOverlay.Redraw();
+}
+
 void CWndMain::DmShowForm(int idxTab)
 {
     for (const auto& x : m_vTabs)
@@ -285,6 +407,7 @@ void CWndMain::DmAddForm()
     m_Tab.InsertItem(pForm->rsName.Data());
 
     auto& e = m_vTabs.emplace_back(pForm, std::make_unique<CWndWork>(pForm, this));
+    pForm->pWnd = e.pWorkWnd.get();
     e.pWorkWnd->Create(pForm->rsName.Data(),
         WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CHILD, 0,
         40, 60, 400, 300, m_Tab.HWnd, 0);
