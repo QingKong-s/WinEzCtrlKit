@@ -76,13 +76,14 @@ inline void Base64Decode(_In_reads_or_z_(cch) PCCH psz, int cch, CRefBin& rb) no
     {
         for (j = i; j < 4; j++)
             temp[j] = 0;
-
         for (j = 0; j < 4; j++)
             temp[j] = Priv::Base64DecodeTable[temp[j]];
-
-        rb[idxBin++] = (temp[0] << 2) + ((temp[1] & 0x30) >> 4);
-        rb[idxBin++] = ((temp[1] & 0xf) << 4) + ((temp[2] & 0x3c) >> 2);
-        rb[idxBin++] = ((temp[2] & 0x3) << 6) + temp[3];
+        if (i >= 2)
+            rb[idxBin++] = (temp[0] << 2) | ((temp[1] & 0x30) >> 4);
+        if (i >= 3)
+            rb[idxBin++] = ((temp[1] & 0x0F) << 4) | ((temp[2] & 0x3C) >> 2);
+        if (i == 4)
+            rb[idxBin++] = ((temp[2] & 0x03) << 6) | temp[3];
     }
     rb.ReSize(idxBin);
 }
