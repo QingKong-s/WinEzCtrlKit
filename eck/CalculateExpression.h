@@ -203,7 +203,7 @@ inline CalcExpResult CalculateExpression(
         cchExp = (int)TcsLen(pszExp);
     std::vector<double> vNum{};
     std::vector<TChar> vOp{};
-    BOOL bLastIsOp = TRUE;
+    BOOL bNumberBegin = TRUE;// TRUE = 期待数字
     for (auto p = pszExp; p < pszExp + cchExp; ++p)
     {
         const auto ch = *p;
@@ -211,20 +211,20 @@ inline CalcExpResult CalculateExpression(
             continue;
         if (TTraits::IsDigit(ch))
         {
-            bLastIsOp = FALSE;
+            bNumberBegin = FALSE;
             vNum.push_back(TTraits::ToDouble(p, &p));
             --p;
             continue;
         }
         else if (ch == '(')
         {
-            bLastIsOp = TRUE;
+            bNumberBegin = TRUE;
             vOp.push_back(ch);
             continue;
         }
         else if (ch == ')')
         {
-            bLastIsOp = FALSE;
+            bNumberBegin = FALSE;
             while (!vOp.empty() && vOp.back() != '(')
                 if (!Priv::CepDoOperation(vNum, vOp))
                     return CalcExpResult::OpError;
@@ -234,13 +234,13 @@ inline CalcExpResult CalculateExpression(
         }
         else if (ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '%' || ch == '^')
         {
-            if (bLastIsOp)
+            if (bNumberBegin)
                 if (ch == '+')
                     continue;
                 else if (ch == '-')
                 {
                     vNum.push_back(0.);
-                    bLastIsOp = FALSE;
+                    bNumberBegin = FALSE;
                 }
                 else
                     return CalcExpResult::AdjacentOp;
@@ -268,7 +268,7 @@ inline CalcExpResult CalculateExpression(
                 {
                     vNum.push_back(e.lfVal);
                     p += (e.cchName - 1);
-                    bLastIsOp = FALSE;
+                    bNumberBegin = FALSE;
                     goto ExitSearchSym;
                 }
             for (const auto& e : Priv::CalcExpFuncList)
@@ -276,7 +276,7 @@ inline CalcExpResult CalculateExpression(
                 {
                     vOp.push_back((TChar)e.eOp);
                     p += (e.cchName - 1);
-                    bLastIsOp = TRUE;
+                    bNumberBegin = TRUE;
                     goto ExitSearchSym;
                 }
             return CalcExpResult::InvalidChar;

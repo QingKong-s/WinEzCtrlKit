@@ -7,359 +7,325 @@ class CBitSet
 {
 public:
 #ifdef _WIN64
-	using TWord = std::conditional_t<N <= 32, ULONG, ULONGLONG>;
+    using TWord = std::conditional_t<N <= 32, ULONG, ULONGLONG>;
 #else
-	using TWord = ULONG;
+    using TWord = ULONG;
 #endif
-	constexpr static ptrdiff_t BitsPerWord = 8 * sizeof(TWord);
+    constexpr static ptrdiff_t BitsPerWord = 8 * sizeof(TWord);
 private:
-	TWord m_Bits[(N - 1) / BitsPerWord + 1]{};
+    TWord m_Bits[(N - 1) / BitsPerWord + 1]{};
 public:
-	constexpr static ptrdiff_t NB = ARRAYSIZE(m_Bits) - 1;
-private:
-	template<CcpIsStdChar TChar>
-	void ParseBinText(const TChar* pszBinText, int cchBinText, TChar ch1, TChar ch0, TChar chX)
-	{
-		EckAssert(pszBinText && cchBinText > 0 && ch1 != ch0);
-		size_t idxInWord{}, idxCurrWord{};
-		TWord u{};
-		for (auto p = pszBinText + cchBinText - 1; p >= pszBinText; --p)
-		{
-			if (*p == chX)
-				continue;
-			u |= (TWord(*p == ch1) << idxInWord);
-			if (++idxInWord == BitsPerWord)
-			{
-				m_Bits[idxCurrWord++] = u;
-				u = TWord{};
-				idxInWord = 0;
-			}
-		}
-
-		if (idxInWord)
-			m_Bits[idxCurrWord++] = u;
-
-		for (size_t i = idxCurrWord; i < ARRAYSIZE(m_Bits); ++i)
-			m_Bits[i] = TWord{};
-	}
+    constexpr static ptrdiff_t NB = ARRAYSIZE(m_Bits) - 1;
 public:
-	class CProxy
-	{
-		friend class CBitSet;
-	private:
-		CBitSet& m_That;
-		size_t m_idx;
+    class Proxy
+    {
+        friend class CBitSet;
+    private:
+        CBitSet& m_That;
+        size_t m_idx;
 
-		CProxy(CBitSet& that, size_t idx) : m_That(that), m_idx(idx) {}
-	public:
-		EckInline operator bool() const { return m_That.Test(m_idx); }
+        constexpr Proxy(CBitSet& that, size_t idx) noexcept : m_That(that), m_idx(idx) {}
+    public:
+        constexpr operator bool() const noexcept { return m_That.Test(m_idx); }
+        Proxy& operator=(bool b) noexcept { m_That.Set(m_idx, b); return *this; }
+        constexpr bool operator~() noexcept { !m_That.Test(m_idx); return *this; }
+        Proxy& operator=(const Proxy& x) noexcept { m_That.Set(m_idx, x); }
+    };
 
-		EckInline CProxy& operator=(bool b) { m_That.Set(m_idx, b); return *this; }
+    CBitSet() = default;
 
-		EckInline CProxy& operator~() { m_That.Flip(m_idx); return *this; }
+    CBitSet(_In_reads_bytes_(cb) PCVOID pBin, size_t cb) noexcept
+    {
+        if (cb > N)
+            cb = N;
+        memcpy(m_Bits, pBin, cb);
+    }
 
-		EckInline CProxy& operator=(const CProxy& x) { m_That.Set(m_idx, x); }
-	};
+    /// <summary>
+    /// 解析二进制文本
+    /// </summary>
+    /// <param name="psz">二进制文本</param>
+    /// <param name="cch">文本长度</param>
+    /// <param name="ch1">表示1的字符</param>
+    /// <param name="ch0">表示0的字符</param>
+    /// <param name="chX">忽略的字符，可用作分隔</param>
+    template<CcpIsStdChar TChar>
+    void ParseBinText(_In_reads_(cch) const TChar* psz, int cch,
+        TChar ch1, TChar ch0, TChar chX = '\'') noexcept
+    {
+        EckAssert(ch1 != ch0);
+        size_t idxInWord{}, idxCurrWord{};
+        TWord u{};
+        for (auto p = psz + cch - 1; p >= psz; --p)
+        {
+            if (*p == chX)
+                continue;
+            u |= (TWord(*p == ch1) << idxInWord);
+            if (++idxInWord == BitsPerWord)
+            {
+                m_Bits[idxCurrWord++] = u;
+                u = TWord{};
+                idxInWord = 0;
+            }
+        }
 
-	CBitSet() = default;
+        if (idxInWord)
+            m_Bits[idxCurrWord++] = u;
 
-	CBitSet(_In_ PCWSTR pszBin, int cchText = -1)
-	{
-		if (cchText < 0)
-			cchText = (int)wcslen(pszBin);
-		ParseBinText(pszBin, cchText, L'1', L'0', L'\'');
-	}
+        for (size_t i = idxCurrWord; i < ARRAYSIZE(m_Bits); ++i)
+            m_Bits[i] = TWord{};
+    }
 
-	CBitSet(_In_ PCSTR pszBin, int cchText = -1)
-	{
-		if (cchText < 0)
-			cchText = (int)strlen(pszBin);
-		ParseBinText(pszBin, cchText, '1', '0', '\'');
-	}
+    constexpr void Set() noexcept
+    {
+        for (auto& e : m_Bits)
+            e = ~TWord{};
+        Trim();
+    }
+    constexpr void Set(size_t n) noexcept
+    {
+        EckAssert(n < N);
+        m_Bits[n / BitsPerWord] |= (TWord{ 1 } << n % BitsPerWord);
+    }
+    constexpr void Set(size_t n, BOOL b) noexcept { b ? Set(n) : Clear(n); }
 
-	CBitSet(_In_reads_bytes_(cb) PCVOID pBin, size_t cb)
-	{
-		if (cb > N)
-			cb = N;
-		memcpy(m_Bits, pBin, cb);
-	}
+    constexpr void Clear(size_t n) noexcept
+    {
+        EckAssert(n < N);
+        m_Bits[n / BitsPerWord] &= ~(TWord{ 1 } << n % BitsPerWord);
+    }
+    constexpr void Clear() noexcept
+    {
+        for (auto& e : m_Bits)
+            e = TWord{};
+        Trim();
+    }
 
-	constexpr void Set()
-	{
-		for (auto& e : m_Bits)
-			e = ~TWord{};
-		Trim();
-	}
+    constexpr CBitSet& operator&=(const CBitSet& x) noexcept
+    {
+        EckCounter(ARRAYSIZE(m_Bits), i)
+            m_Bits[i] &= x.m_Bits[i];
+        return *this;
+    }
+    constexpr CBitSet& operator|=(const CBitSet& x) noexcept
+    {
+        EckCounter(ARRAYSIZE(m_Bits), i)
+            m_Bits[i] |= x.m_Bits[i];
+        return *this;
+    }
+    constexpr CBitSet& operator^=(const CBitSet& x) noexcept
+    {
+        EckCounter(ARRAYSIZE(m_Bits), i)
+            m_Bits[i] ^= x.m_Bits[i];
+        return *this;
+    }
 
-	constexpr void Set(size_t n)
-	{
-		EckAssert(n < N);
-		m_Bits[n / BitsPerWord] |= (TWord{ 1 } << n % BitsPerWord);
-	}
+    constexpr bool operator==(const CBitSet& x) const noexcept
+    {
+        EckCounter(ARRAYSIZE(m_Bits), i)
+            if (m_Bits[i] != x.m_Bits[i])
+                return FALSE;
+        return TRUE;
+    }
+    constexpr bool operator!=(const CBitSet& x) const noexcept { return !(*this == x); }
 
-	EckInline constexpr void Set(size_t n, BOOL b)
-	{
-		if (b)
-			Set(n);
-		else
-			Clear(n);
-	}
+    constexpr CBitSet& operator<<=(size_t n) noexcept
+    {
+        const auto t = n / BitsPerWord;
+        if (t)
+            for (ptrdiff_t i = NB; 0 <= i; --i)
+                m_Bits[i] = t <= i ? m_Bits[i - t] : 0;
 
-	EckInline constexpr void Clear(size_t n)
-	{
-		EckAssert(n < N);
-		m_Bits[n / BitsPerWord] &= ~(TWord{ 1 } << n % BitsPerWord);
-	}
+        if (n %= BitsPerWord)
+        {
+            for (ptrdiff_t i = NB; 0 < i; --i)
+                m_Bits[i] = (m_Bits[i] << n) | (m_Bits[i - 1] >> (BitsPerWord - n));
+            m_Bits[0] <<= n;
+        }
+        Trim();
+        return *this;
+    }
+    constexpr CBitSet& operator>>=(size_t n) noexcept
+    {
+        const auto t = n / BitsPerWord;
+        if (t)
+            for (ptrdiff_t i = 0; i <= NB; ++i)
+                m_Bits[i] = t <= NB - i ? m_Bits[i + t] : 0;
 
-	EckInline constexpr void Clear()
-	{
-		for (auto& e : m_Bits)
-			e = TWord{};
-		Trim();
-	}
+        if (n %= BitsPerWord)
+        {
+            for (ptrdiff_t i = 0; i < NB; ++i)
+                m_Bits[i] = (m_Bits[i] >> n) | (m_Bits[i + 1] << (BitsPerWord - n));
+            m_Bits[NB] >>= n;
+        }
+        return *this;
+    }
 
-	EckInline constexpr CBitSet& operator&=(const CBitSet& x)
-	{
-		EckCounter(ARRAYSIZE(m_Bits), i)
-			m_Bits[i] &= x.m_Bits[i];
-		return *this;
-	}
+    constexpr [[nodiscard]] CBitSet operator~() const noexcept
+    {
+        CBitSet x{ *this };
+        x.Flip();
+        return x;
+    }
 
-	EckInline constexpr CBitSet& operator|=(const CBitSet& x)
-	{
-		EckCounter(ARRAYSIZE(m_Bits), i)
-			m_Bits[i] |= x.m_Bits[i];
-		return *this;
-	}
+    EckInlineNdCe Proxy operator[](size_t n) noexcept { return Proxy(*this, n); }
 
-	EckInline constexpr CBitSet& operator^=(const CBitSet& x)
-	{
-		EckCounter(ARRAYSIZE(m_Bits), i)
-			m_Bits[i] ^= x.m_Bits[i];
-		return *this;
-	}
+    EckInlineCe void Trim() noexcept
+    {
+        if constexpr ((N == 0) || (N % BitsPerWord))
+            m_Bits[NB] &= (TWord{ 1 } << N % BitsPerWord) - 1;
+    }
 
-	EckInline constexpr bool operator==(const CBitSet& x) const
-	{
-		EckCounter(ARRAYSIZE(m_Bits), i)
-			if (m_Bits[i] != x.m_Bits[i])
-				return FALSE;
-		return TRUE;
-	}
-
-	EckInline constexpr bool operator!=(const CBitSet& x) const
-	{
-		return !(*this == x);
-	}
-
-	constexpr CBitSet& operator<<=(size_t n)
-	{
-		const auto t = n / BitsPerWord;
-		if (t)
-			for (ptrdiff_t i = NB; 0 <= i; --i)
-				m_Bits[i] = t <= i ? m_Bits[i - t] : 0;
-
-		if (n %= BitsPerWord)
-		{
-			for (ptrdiff_t i = NB; 0 < i; --i)
-				m_Bits[i] = (m_Bits[i] << n) | (m_Bits[i - 1] >> (BitsPerWord - n));
-			m_Bits[0] <<= n;
-		}
-		Trim();
-		return *this;
-	}
-
-	constexpr CBitSet& operator>>=(size_t n)
-	{
-		const auto t = n / BitsPerWord;
-		if (t)
-			for (ptrdiff_t i = 0; i <= NB; ++i)
-				m_Bits[i] = t <= NB - i ? m_Bits[i + t] : 0;
-
-		if (n %= BitsPerWord)
-		{
-			for (ptrdiff_t i = 0; i < NB; ++i)
-				m_Bits[i] = (m_Bits[i] >> n) | (m_Bits[i + 1] << (BitsPerWord - n));
-			m_Bits[NB] >>= n;
-		}
-		return *this;
-	}
-
-	constexpr [[nodiscard]] CBitSet operator~() const
-	{
-		CBitSet x{ *this };
-		x.Flip();
-		return x;
-	}
-
-	EckInline [[nodiscard]] CProxy operator[](size_t n)
-	{
-		return CProxy(*this, n);
-	}
-
-	EckInlineNdCe bool operator[](size_t n) const
-	{
-		return Test(n);
-	}
-
-	EckInline constexpr void Trim()
-	{
-#pragma warning(suppress:6285)// 是否要使用按位与
-		constexpr bool b = (N == 0 || N % BitsPerWord != 0);
-		if constexpr (b)
-			m_Bits[NB] &= (TWord{ 1 } << N % BitsPerWord) - 1;
-	}
-
-	EckInline [[nodiscard]] size_t PopCount() const
-	{
-		size_t n{};
-		if constexpr (sizeof(TWord) == 8)
-		{
+    [[nodiscard]] size_t PopCount() const noexcept
+    {
+        size_t n{};
+        if constexpr (sizeof(TWord) == 8)
+        {
 #ifdef _WIN64
-			EckCounter(ARRAYSIZE(m_Bits), i)
-				n += __popcnt64(m_Bits[i]);
+            EckCounter(ARRAYSIZE(m_Bits), i)
+                n += __popcnt64(m_Bits[i]);
 #else
-			EckCounter(ARRAYSIZE(m_Bits), i)
-				n += (__popcnt(m_Bits[i]) + __popcnt(m_Bits[i] >> 32));
+            EckCounter(ARRAYSIZE(m_Bits), i)
+                n += (__popcnt(m_Bits[i]) + __popcnt(m_Bits[i] >> 32));
 #endif
-		}
-		else
-		{
-			EckCounter(ARRAYSIZE(m_Bits), i)
-				n += __popcnt(m_Bits[i]);
-		}
-		return n;
-	}
+        }
+        else
+        {
+            EckCounter(ARRAYSIZE(m_Bits), i)
+                n += __popcnt(m_Bits[i]);
+        }
+        return n;
+    }
 
-	[[nodiscard]] constexpr BOOL AllOne() const
-	{
-		constexpr BOOL bNoPadding = N % BitsPerWord == 0;
-		for (size_t i = 0; i < NB + bNoPadding; ++i)
-			if (m_Bits[i] != ~TWord{})
-				return FALSE;
-		return bNoPadding || m_Bits[NB] == (TWord{ 1 } << (N % BitsPerWord)) - 1;
-	}
+    constexpr [[nodiscard]] BOOL AllOne() const noexcept
+    {
+        constexpr BOOL bNoPadding = N % BitsPerWord == 0;
+        for (size_t i = 0; i < NB + bNoPadding; ++i)
+            if (m_Bits[i] != ~TWord{})
+                return FALSE;
+        return bNoPadding || m_Bits[NB] == (TWord{ 1 } << (N % BitsPerWord)) - 1;
+    }
+    constexpr [[nodiscard]] BOOL AnyOne() const noexcept
+    {
+        for (size_t i = 0; i <= NB; ++i)
+            if (m_Bits[i] != 0)
+                return TRUE;
+        return FALSE;
+    }
+    EckInlineNdCe BOOL NoneOne() const noexcept { return !AnyOne(); }
 
-	[[nodiscard]] constexpr BOOL AnyOne() const
-	{
-		for (size_t i = 0; i <= NB; ++i)
-			if (m_Bits[i] != 0)
-				return TRUE;
-		return FALSE;
-	}
+    constexpr [[nodiscard]] BOOL Test(size_t n) const noexcept
+    {
+        EckAssert(n < N);
+        return (m_Bits[n / BitsPerWord] & (TWord{ 1 } << n % BitsPerWord)) != 0;
+    }
 
-	EckInlineNdCe BOOL NoneOne() const
-	{
-		return !AnyOne();
-	}
+    constexpr void Flip() noexcept
+    {
+        for (auto& e : m_Bits)
+            e = ~e;
+        Trim();
+    }
+    constexpr void Flip(size_t n) noexcept
+    {
+        EckAssert(n < N);
+        m_Bits[n / BitsPerWord] ^= (TWord{ 1 } << n % BitsPerWord);
+    }
 
-	EckInlineNdCe BOOL Test(size_t n) const
-	{
-		EckAssert(n < N);
-		return (m_Bits[n / BitsPerWord] & (TWord{ 1 } << n % BitsPerWord)) != 0;
-	}
+    constexpr void ReverseByte() noexcept
+    {
+        const auto p = (BYTE*)m_Bits;
+        for (size_t i = 0, j = sizeof(m_Bits) - 1; i < j; ++i, --j)
+            std::swap(p[i], p[j]);
+    }
 
-	EckInline constexpr void Flip()
-	{
-		for (auto& e : m_Bits)
-			e = ~e;
-		Trim();
-	}
+    EckInlineNdCe const TWord* Data() const noexcept { return m_Bits; }
+    EckInlineNdCe TWord* Data() noexcept { return m_Bits; }
 
-	EckInline constexpr void Flip(size_t n)
-	{
-		EckAssert(n < N);
-		m_Bits[n / BitsPerWord] ^= (TWord{ 1 } << n % BitsPerWord);
-	}
+    void CopyBits(TWord* pDst, size_t pos, size_t cBits) const noexcept
+    {
+        EckAssert(pos + cBits <= N);
+        if (cBits == 0)
+            return;
+        const size_t cSrc = ARRAYSIZE(m_Bits);
+        const size_t idxSrcInWord = pos / BitsPerWord;
+        const size_t nOffset = pos % BitsPerWord;
+        const size_t cDst = (cBits + BitsPerWord - 1) / BitsPerWord;
+        for (size_t i = 0; i < cDst; ++i)
+        {
+            const auto l = (idxSrcInWord + i < cSrc) ?
+                Data()[idxSrcInWord + i] : TWord{};
+            if (nOffset == 0)
+                pDst[i] = l;
+            else// nOffset in (0, BitsPerWord-1]
+            {
+                const auto h = (idxSrcInWord + i + 1 < cSrc) ?
+                    Data()[idxSrcInWord + i + 1] : TWord{};
+                pDst[i] = (l >> nOffset) | (h << (BitsPerWord - nOffset));
+            }
+        }
+        // 清除最后一word中超出cBits的高位
+        const auto rem = cBits % BitsPerWord;
+        if (rem != 0)
+        {
+            TWord Mask = (TWord{ 1 } << rem) - 1;
+            pDst[cDst - 1] &= Mask;
+        }
+    }
 
-	constexpr void ReverseByte()
-	{
-		BYTE* const p = (BYTE*)m_Bits;
-		for (size_t i = 0; i < N / 8 / 2; ++i)
-			std::swap(p[i], p[N / 8 - 1 - i]);
-	}
+    [[nodiscard]] CBitSet SubSet(size_t pos, size_t cBits) noexcept
+    {
+        EckAssert(pos + cBits <= N);
+        CBitSet x{};
+        CopyBits(x.Data(), pos, cBits);
+        x.Trim();
+        return x;
+    }
 
-	EckInlineNdCe const TWord* Data() const
-	{
-		return m_Bits;
-	}
+    template<size_t NPos, size_t NBits>
+        requires requires { NPos < N&& NPos + NBits <= N; }
+    [[nodiscard]] CBitSet<NBits> SubSet() noexcept
+    {
+        CBitSet<NBits> x;
+        if constexpr (sizeof(typename CBitSet<NBits>::TWord) < sizeof(TWord))
+        {
+            CBitSet t{};
+            CopyBits(t.Data(), NPos, NBits);
+            memcpy(x.Data(), t.Data(), sizeof(CBitSet<NBits>::m_Bits));
+        }
+        else
+            CopyBits((TWord*)x.Data(), NPos, NBits);
+        x.Trim();
+        return x;
+    }
 
-	EckInlineNdCe TWord* Data()
-	{
-		return m_Bits;
-	}
+    template<std::integral TInt>
+    [[nodiscard]] TInt SubInt(size_t pos) const noexcept
+    {
+        EckAssert(pos + sizeof(TInt) * 8 < N);
+        using TTemp = std::conditional_t < sizeof(TInt) < sizeof(TWord), TWord, ULONGLONG > ;
+        TTemp x{};
+        CopyBits((TWord*)&x, pos, sizeof(TInt) * 8);
+        return (ULONG)x;
+    }
 
-	EckInline [[nodiscard]] CBitSet SubSet(size_t pos, size_t cBits)
-	{
-		EckAssert(pos + cBits <= N);
-		CBitSet x{};
-		memcpy(x.Data(), Data() + pos / BitsPerWord, (cBits + BitsPerWord - 1) / BitsPerWord);
-		if (pos % BitsPerWord)
-		{
-			EckCounter((pos + cBits) / BitsPerWord, i)
-			{
-				x.Data()[i] = (x.Data()[i] >> pos % BitsPerWord) |
-					(x.Data()[i + 1] << (BitsPerWord - pos % BitsPerWord));
-			}
-		}
-		x.Trim();
-		return x;
-	}
+    template<std::integral TInt>
+    EckInlineNdCe TInt ToInt() const noexcept
+    {
+        if (sizeof(TInt) * 8 <= N)
+            return *(TInt*)m_Bits;
+        else
+            return TInt(*(TWord*)m_Bits);
+    }
 
-	template<size_t NPos, size_t NBits>
-		requires requires { NPos < N&& NPos + NBits <= N; }
-	[[nodiscard]] CBitSet<NBits> SubSet()
-	{
-		CBitSet<NBits> x{};
-		memcpy(x.Data(), Data() + NPos / BitsPerWord, (NBits + BitsPerWord - 1) / BitsPerWord);
-		if (NPos % BitsPerWord)
-		{
-			EckCounter((NPos + NBits) / BitsPerWord, i)
-			{
-				x.Data()[i] = (x.Data()[i] >> NPos % BitsPerWord) |
-					(x.Data()[i + 1] << (BitsPerWord - NPos % BitsPerWord));
-			}
-		}
-		x.Trim();
-		return x;
-	}
-
-	EckInline [[nodiscard]] ULONG SubULong(size_t pos) const
-	{
-		EckAssert(pos + sizeof(ULONG) * 8 < N);
-		TWord x{};
-		CopyBits(m_Bits, &x, pos, 0, sizeof(ULONG) * 8);
-		return (ULONG)x;
-	}
-
-	EckInline [[nodiscard]] ULONGLONG SubULongLong(size_t pos) const
-	{
-		EckAssert(pos + sizeof(ULONGLONG) * 8 < N);
-		ULONGLONG x{};
-		CopyBits(m_Bits, (TWord*)&x, pos, 0, sizeof(ULONGLONG) * 8);
-		return x;
-	}
-
-	EckInline [[nodiscard]] ULONG ToULong() const
-	{
-		EckAssert(sizeof(ULONG) * 8 <= N);
-		return *(ULONG*)m_Bits;
-	}
-
-	EckInline [[nodiscard]] ULONGLONG ToULongLong() const
-	{
-		EckAssert(sizeof(ULONGLONG) * 8 <= N);
-		return *(ULONGLONG*)m_Bits;
-	}
-
-	void Set(PCVOID pBin, size_t cb)
-	{
-		EckAssert(cb * 8 <= N);
-		if (cb > N)
-			cb = N;
-		memcpy(m_Bits, pBin, cb);
-		for (BYTE* p = (BYTE*)m_Bits + cb; p <= (BYTE*)m_Bits + ARRAYSIZE(m_Bits); ++p)
-			*p = 0;
-	}
+    void SetMemory(_In_reads_bytes_(cb) PCVOID pBin, size_t cb) noexcept
+    {
+        if (cb > sizeof(m_Bits))
+            cb = sizeof(m_Bits);
+        memcpy(m_Bits, pBin, cb);
+        const auto pEnd = (BYTE*)m_Bits + sizeof(m_Bits);
+        for (BYTE* p = (BYTE*)m_Bits + cb; p < pEnd; ++p)
+            *p = 0;
+    }
 };
 ECK_NAMESPACE_END

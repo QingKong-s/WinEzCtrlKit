@@ -167,6 +167,7 @@
     <ClCompile Include="TsBaseN.cpp" />
     <ClCompile Include="TsCalcExp.cpp" />
     <ClCompile Include="TsCArray.cpp" />
+    <ClCompile Include="TsCBitSet.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
