@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "CObject.h"
 #include "WndHelper.h"
 #include "CMemWalker.h"
 #include "ILayout.h"
@@ -256,10 +255,9 @@ protected:
 public:
     using HSlot = decltype(m_Sig)::HSlot;
 protected:
-
     EckInline HWND IntCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
         int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
-        FWndCreating pfnCreatingProc = nullptr)
+        FWndCreating pfnCreatingProc = nullptr) noexcept
     {
         BeginCbtHook(this, pfnCreatingProc);
 #ifdef _DEBUG
@@ -281,7 +279,7 @@ protected:
     }
 
     template<class T>
-    EckInline void FillNmhdr(T& nm, UINT uCode) const
+    EckInline void FillNmhdr(T& nm, UINT uCode) const noexcept
     {
         static_assert(sizeof(T) >= sizeof(NMHDR));
         auto p = (NMHDR*)&nm;
@@ -289,39 +287,31 @@ protected:
         p->code = uCode;
         p->idFrom = GetDlgCtrlID(GetHWND());
     }
-
-    template<class T>
-    EckInline LRESULT SendNotify(T& nm, HWND hParent) const
+    EckInline LRESULT SendNotify(auto& nm, HWND hParent) const noexcept
     {
         return SendMessageW(hParent, WM_NOTIFY, ((NMHDR*)&nm)->idFrom, (LPARAM)&nm);
     }
-
-    template<class T>
-    EckInline LRESULT SendNotify(T& nm) const
+    EckInline LRESULT SendNotify(auto& nm) const noexcept
     {
         return SendNotify(nm, GetParent(GetHWND()));
     }
-
-    template<class T>
-    EckInline LRESULT FillNmhdrAndSendNotify(T& nm, HWND hParent, UINT uCode) const
+    EckInline LRESULT FillNmhdrAndSendNotify(auto& nm, HWND hParent, UINT uCode) const noexcept
     {
         FillNmhdr(nm, uCode);
         return SendNotify(nm, hParent);
     }
-
-    template<class T>
-    EckInline LRESULT FillNmhdrAndSendNotify(T& nm, UINT uCode) const
+    EckInline LRESULT FillNmhdrAndSendNotify(auto& nm, UINT uCode) const noexcept
     {
         FillNmhdr(nm, uCode);
         return SendNotify(nm);
     }
 
-    LRESULT DefNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam)
+    LRESULT DefNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
         return CWndFromHWND(hParent)->OnMsg(hParent, uMsg, wParam, lParam);
     }
 
-    EckInline LRESULT CallMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+    EckInline LRESULT CallMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
         SlotCtx Ctx{};
         const auto r = m_Sig.Emit2(Ctx, hWnd, uMsg, wParam, lParam);
@@ -350,7 +340,7 @@ public:
     ECKPROP_R(GetClientHeight)			int			ClientHeight;	// 客户区高度
 
 
-    static LRESULT CALLBACK EckWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+    static LRESULT CALLBACK EckWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
         const auto pCtx = GetThreadCtx();
         const auto p = pCtx->WmAt(hWnd);
@@ -460,7 +450,7 @@ public:
     /// 是否可更改句柄所有权
     /// </summary>
     /// <returns>若类与HWND没有强联系则返回FALSE，否则返回TRUE，此时不能执行依附拆离等操作</returns>
-    [[nodiscard]] EckInline static constexpr BOOL IsSingleOwner() { return FALSE; }
+    EckInlineNdCe static BOOL IsSingleOwner() noexcept { return FALSE; }
 
     CWnd() = default;
 
@@ -469,7 +459,7 @@ public:
     /// 不插入窗口映射，仅用于临时使用
     /// </summary>
     /// <param name="hWnd"></param>
-    CWnd(HWND hWnd) :m_hWnd{ hWnd } {}
+    constexpr CWnd(HWND hWnd) noexcept : m_hWnd{ hWnd } {}
 
     ECK_DISABLE_COPY_MOVE(CWnd);
 
@@ -519,11 +509,8 @@ public:
         SetWindowProc(Detach(), m_pfnRealProc);
     }
 
-    /// <summary>
-    /// 创建窗口
-    /// </summary>
     EckInline HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-        int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = nullptr)
+        int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = nullptr) noexcept
     {
         return Create(pszText, dwStyle, dwExStyle, x, y, cx, cy,
             hParent, i32ToP<HMENU>(nID), pData);
@@ -531,16 +518,12 @@ public:
 
     EckInline HWND NativeCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
         int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
-        FWndCreating pfnCreatingProc = nullptr)
+        FWndCreating pfnCreatingProc = nullptr) noexcept
     {
         return IntCreate(dwExStyle, pszClass, pszText, dwStyle,
             x, y, cx, cy, hParent, hMenu, hInst, pParam, pfnCreatingProc);
     }
 
-    /// <summary>
-    /// 创建窗口。
-    /// 不能调用基类的此方法
-    /// </summary>
     virtual HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
         int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr)
     {
@@ -578,13 +561,13 @@ public:
         {
             p->uFlags |= SERDF_SBH;
             w.SkipPointer(psi);
-            GetSbInfo(SB_HORZ, psi);
+            ScbGetInfo(SB_HORZ, psi);
         }
         if (IsBitSet(dwStyle, WS_VSCROLL))
         {
             p->uFlags |= SERDF_SBV;
             w.SkipPointer(psi);
-            GetSbInfo(SB_VERT, psi);
+            ScbGetInfo(SB_VERT, psi);
         }
     }
 
@@ -596,11 +579,11 @@ public:
         const auto* psi = (const SCROLLINFO*)SkipBaseData(pData);
         if (p->uFlags & SERDF_SBH)
         {
-            SetSbInfo(SB_HORZ, psi);
+            ScbSetInfo(SB_HORZ, psi);
             ++psi;
         }
         if (p->uFlags & SERDF_SBV)
-            SetSbInfo(SB_VERT, psi);
+            ScbSetInfo(SB_VERT, psi);
     }
 
     /// <summary>
@@ -668,7 +651,7 @@ public:
     HWND LoGetHWND() noexcept override { return GetHWND(); }
 
     // 跳到当前类序列化数据的尾部
-    [[nodiscard]] EckInline constexpr static PCVOID SkipBaseData(PCVOID p)
+    EckInlineNdCe static PCVOID SkipBaseData(PCVOID p) noexcept
     {
         return PtrStepCb(p, ((const CTRLDATA_WND*)p)->Size());
     }
@@ -682,7 +665,7 @@ public:
     /// <param name="rcPos">可选的位置（左顶宽高），将覆盖旧位置</param>
     /// <returns>窗口句柄</returns>
     HWND ReCreate(EckOptNul(DWORD, dwNewStyle), EckOptNul(DWORD, dwNewExStyle),
-        EckOptNul(RECT, rcPos), const SERIALIZE_OPT* pSerOpt = nullptr)
+        EckOptNul(RECT, rcPos), const SERIALIZE_OPT* pSerOpt = nullptr) noexcept
     {
         CRefBin rb{};
         SerializeData(rb, pSerOpt);
@@ -723,38 +706,36 @@ public:
         Create(nullptr, 0, 0, NewPos.x, NewPos.y,
             NewPos.cx, NewPos.cy, hParent, iID, rb.Data());
         if (pData->uFlags & SERDF_SBH)
-            SetSbInfo(SB_HORZ, pData->ScrollInfoHorz());
+            ScbSetInfo(SB_HORZ, pData->ScrollInfoHorz());
         if (pData->uFlags & SERDF_SBV)
-            SetSbInfo(SB_VERT, pData->ScrollInfoVert());
+            ScbSetInfo(SB_VERT, pData->ScrollInfoVert());
         HFont = hFont;
         return m_hWnd;
     }
 
-    [[nodiscard]] EckInline constexpr HWND GetHWND() const { return m_hWnd; }
+    EckInlineNdCe HWND GetHWND() const noexcept { return m_hWnd; }
 
-    // 强制重新核算非客户区
-    EckInline void FrameChanged() const
+    EckInline void FrameChanged() const noexcept
     {
         SetWindowPos(m_hWnd, nullptr, 0, 0, 0, 0,
             SWP_NOZORDER | SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
     }
 
-    EckInline void SetRedraw(BOOL bRedraw) const
+    EckInline void SetRedraw(BOOL bRedraw) const noexcept
     {
         SendMsg(WM_SETREDRAW, bRedraw, 0);
     }
 
-    EckInline BOOL Redraw(BOOL bErase = FALSE) const
+    EckInline BOOL Redraw(BOOL bErase = FALSE) const noexcept
     {
         return InvalidateRect(m_hWnd, nullptr, bErase);
     }
-
-    EckInline BOOL Redraw(const RECT& rc, BOOL bErase = FALSE) const
+    EckInline BOOL Redraw(const RECT& rc, BOOL bErase = FALSE) const noexcept
     {
         return InvalidateRect(m_hWnd, &rc, bErase);
     }
 
-    void SetFrameType(enum class FrameType eType) const
+    void SetFrameType(enum class FrameType eType) const noexcept
     {
         DWORD dwStyle = GetStyle() & ~WS_BORDER;
         DWORD dwExStyle = GetExStyle()
@@ -772,11 +753,9 @@ public:
         SetStyle(dwStyle);
         SetExStyle(dwExStyle);
     }
-
     // For compatibility.
-    EckInline void SetFrameType(int iType) const { SetFrameType((enum class FrameType)iType); }
-
-    [[nodiscard]] enum class FrameType GetFrameType() const
+    EckInline void SetFrameType(int iType) const noexcept { SetFrameType((enum class FrameType)iType); }
+    [[nodiscard]] enum class FrameType GetFrameType() const noexcept
     {
         const DWORD dwStyle = GetStyle();
         const DWORD dwExStyle = GetExStyle();
@@ -798,7 +777,7 @@ public:
         return FrameType::None;
     }
 
-    void SetScrollBar(ScrollType eType) const
+    void SetScrollBar(ScrollType eType) const noexcept
     {
         switch (eType)
         {
@@ -820,11 +799,9 @@ public:
             break;
         }
     }
-
     // For compatibility.
-    EckInline void SetScrollBar(int iType) const { SetScrollBar((ScrollType)iType); }
-
-    [[nodiscard]] ScrollType GetScrollBar() const
+    EckInline void SetScrollBar(int iType) const noexcept { SetScrollBar((ScrollType)iType); }
+    [[nodiscard]] ScrollType GetScrollBar() const noexcept
     {
         const BOOL bVSB = IsBitSet(GetWindowLongPtrW(m_hWnd, GWL_STYLE), WS_VSCROLL);
         const BOOL bHSB = IsBitSet(GetWindowLongPtrW(m_hWnd, GWL_STYLE), WS_HSCROLL);
@@ -835,251 +812,218 @@ public:
         return ScrollType::None;
     }
 
-    EckInline LRESULT SendMsg(UINT uMsg, WPARAM wParam, LPARAM lParam) const
+    EckInline LRESULT SendMsg(UINT uMsg, WPARAM wParam, LPARAM lParam) const noexcept
     {
         return SendMessageW(m_hWnd, uMsg, wParam, lParam);
     }
-
-    EckInline LRESULT PostMsg(UINT uMsg, WPARAM wParam, LPARAM lParam) const
+    EckInline LRESULT PostMsg(UINT uMsg, WPARAM wParam, LPARAM lParam) const noexcept
     {
         return PostMessageW(m_hWnd, uMsg, wParam, lParam);
     }
 
-    [[nodiscard]] EckInline DWORD GetStyle() const
+    EckInlineNd DWORD GetStyle() const noexcept
     {
         return (DWORD)GetWindowLongPtrW(m_hWnd, GWL_STYLE);
     }
-
-    [[nodiscard]] EckInline DWORD GetExStyle() const
+    EckInlineNd DWORD GetExStyle() const noexcept
     {
         return (DWORD)GetWindowLongPtrW(m_hWnd, GWL_EXSTYLE);
     }
-
-    /// <summary>
-    /// 修改样式
-    /// </summary>
-    /// <param name="dwNew">新样式</param>
-    /// <param name="dwMask">掩码</param>
-    /// <param name="idx">GWL_常量</param>
-    /// <returns>旧样式</returns>
-    EckInline DWORD ModifyStyle(DWORD dwNew, DWORD dwMask, int idx = GWL_STYLE) const
+    // 返回旧样式
+    EckInline DWORD ModifyStyle(DWORD dwNew, DWORD dwMask, int idx = GWL_STYLE) const noexcept
     {
         return ModifyWindowStyle(m_hWnd, dwNew, dwMask, idx);
     }
-
-    EckInline DWORD SetStyle(DWORD dwStyle) const
+    EckInline DWORD SetStyle(DWORD dwStyle) const noexcept
     {
         return (DWORD)SetWindowLongPtrW(m_hWnd, GWL_STYLE, dwStyle);
     }
-
-    EckInline DWORD SetExStyle(DWORD dwStyle) const
+    EckInline DWORD SetExStyle(DWORD dwStyle) const noexcept
     {
         return (DWORD)SetWindowLongPtrW(m_hWnd, GWL_EXSTYLE, dwStyle);
     }
 
-    int GetText(CRefStrW& rs) const
+    int GetText(CRefStrW& rs) const noexcept
     {
         const int cch = GetWindowTextLengthW(m_hWnd);
         if (cch)
             GetWindowTextW(m_hWnd, rs.PushBack(cch), cch + 1);
         return cch;
     }
-
     // For compatibility.
-    EckInlineNd CRefStrW GetText() const
+    EckInlineNd CRefStrW GetText() const noexcept
     {
         CRefStrW rs{};
         GetText(rs);
         return rs;
     }
-
-    /// <summary>
-    /// 取标题
-    /// </summary>
-    /// <param name="pszBuf">缓冲区</param>
-    /// <param name="cchBuf">缓冲区大小</param>
-    /// <returns>复制的字符数</returns>
-    EckInline int GetText(PWSTR pszBuf, int cchBuf) const
+    // 返回复制的字符数
+    EckInline int GetText(PWSTR pszBuf, int cchBuf) const noexcept
     {
         return GetWindowTextW(m_hWnd, pszBuf, cchBuf);
     }
-
-    EckInline BOOL SetText(PCWSTR pszText) const
+    EckInline BOOL SetText(PCWSTR pszText) const noexcept
     {
         return SetWindowTextW(m_hWnd, pszText);
     }
 
-    EckInline HRESULT SetExplorerTheme() const
+    EckInline HRESULT SetExplorerTheme() const noexcept
     {
         return SetWindowTheme(m_hWnd, L"Explorer", nullptr);
     }
-
-    EckInline HRESULT SetItemsViewTheme() const
+    EckInline HRESULT SetItemsViewTheme() const noexcept
     {
         return SetWindowTheme(m_hWnd, L"ItemsView", nullptr);
     }
-
-    EckInline HRESULT SetTheme(PCWSTR pszAppName, PCWSTR pszSubList = nullptr) const
+    EckInline HRESULT SetTheme(PCWSTR pszAppName, PCWSTR pszSubList = nullptr) const noexcept
     {
         return SetWindowTheme(m_hWnd, pszAppName, pszSubList);
     }
 
-    EckInline BOOL Move(int x, int y, int cx, int cy, BOOL bNoActive = FALSE) const
+    EckInline BOOL Move(int x, int y, int cx, int cy, BOOL bNoActive = TRUE) const noexcept
     {
-        return SetWindowPos(m_hWnd, nullptr, x, y, cx, cy, SWP_NOZORDER | (bNoActive ? SWP_NOACTIVATE : 0));
+        return SetWindowPos(m_hWnd, nullptr, x, y, cx, cy,
+            SWP_NOZORDER | (bNoActive ? SWP_NOACTIVATE : 0));
     }
 
-    EckInline BOOL Destroy()
+    EckInline BOOL Destroy() noexcept
     {
         EckAssert(IsWindow(m_hWnd));
         return DestroyWindow(m_hWnd);
     }
 
-    EckInline void SetFont(HFONT hFont, BOOL bRedraw = FALSE) const
+    EckInline void SetFont(HFONT hFont, BOOL bRedraw = FALSE) const noexcept
     {
         SendMsg(WM_SETFONT, (WPARAM)hFont, bRedraw);
     }
-
-    [[nodiscard]] EckInline HFONT GetFont() const
+    EckInlineNd HFONT GetFont() const noexcept
     {
         return (HFONT)SendMsg(WM_GETFONT, 0, 0);
     }
 
-    EckInline BOOL Show(int nCmdShow) const
+    EckInline BOOL Show(int nCmdShow) const noexcept
     {
         return ShowWindow(m_hWnd, nCmdShow);
     }
-
-    EckInline void SetVisibility(BOOL bVisible) const
+    EckInline void SetVisibility(BOOL bVisible) const noexcept
     {
         Show(bVisible ? SW_SHOW : SW_HIDE);
     }
-
-    EckInline BOOL Enable(BOOL bEnable) const
-    {
-        return EnableWindow(m_hWnd, bEnable);
-    }
-
-    [[nodiscard]] EckInline BOOL IsEnabled() const
-    {
-        return IsWindowEnabled(m_hWnd);
-    }
-
-    [[nodiscard]] EckInline BOOL IsVisible() const
+    [[nodiscard]] EckInline BOOL IsVisible() const noexcept
     {
         return IsWindowVisible(m_hWnd);
     }
 
-    [[nodiscard]] EckInline LONG_PTR GetLong(int i) const
+    EckInline BOOL Enable(BOOL bEnable) const noexcept
+    {
+        return EnableWindow(m_hWnd, bEnable);
+    }
+    EckInlineNd BOOL IsEnabled() const noexcept
+    {
+        return IsWindowEnabled(m_hWnd);
+    }
+
+    [[nodiscard]] EckInline LONG_PTR GetLong(int i) const noexcept
     {
         return GetWindowLongPtrW(m_hWnd, i);
     }
 
-    [[nodiscard]] EckInline LONG_PTR SetLong(int i, LONG_PTR l) const
+    [[nodiscard]] EckInline LONG_PTR SetLong(int i, LONG_PTR l) const noexcept
     {
         return SetWindowLongPtrW(m_hWnd, i, l);
     }
 
-    [[nodiscard]] EckInline CRefStrW GetClsName() const
+    [[nodiscard]] EckInline CRefStrW GetClsName() const noexcept
     {
         CRefStrW rs(256);
         rs.ReSize(GetClassNameW(GetHWND(), rs.Data(), 256 + 1));
         return rs;
     }
 
-    void SetLeft(int i) const
+    void SetLeft(int i) const noexcept
     {
         RECT rc;
         GetWindowRect(m_hWnd, &rc);
         ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
-        SetWindowPos(m_hWnd, nullptr, i, rc.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+        SetWindowPos(m_hWnd, nullptr, i, rc.top, 0, 0,
+            SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
     }
-
-    [[nodiscard]] int GetLeft() const
+    [[nodiscard]] int GetLeft() const noexcept
     {
         RECT rc;
         GetWindowRect(m_hWnd, &rc);
         ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
         return rc.left;
     }
-
-    void SetTop(int i) const
+    void SetTop(int i) const noexcept
     {
         RECT rc;
         GetWindowRect(m_hWnd, &rc);
         ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
         SetWindowPos(m_hWnd, nullptr, rc.left, i, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
     }
-
-    [[nodiscard]] int GetTop() const
+    [[nodiscard]] int GetTop() const noexcept
     {
         RECT rc;
         GetWindowRect(m_hWnd, &rc);
         ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
         return rc.top;
     }
-
-    void SetWidth(int i) const
+    void SetWidth(int i) const noexcept
     {
         RECT rc;
         GetWindowRect(m_hWnd, &rc);
         SetWindowPos(m_hWnd, nullptr, 0, 0, i, rc.bottom - rc.top,
             SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
     }
-
-    [[nodiscard]] int GetWidth() const
+    [[nodiscard]] int GetWidth() const noexcept
     {
         RECT rc;
         GetWindowRect(m_hWnd, &rc);
         return rc.right - rc.left;
     }
-
-    void SetHeight(int i) const
+    void SetHeight(int i) const noexcept
     {
         RECT rc;
         GetWindowRect(m_hWnd, &rc);
         SetWindowPos(m_hWnd, nullptr, 0, 0, rc.right - rc.left, i,
             SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
     }
-
-    [[nodiscard]] int GetHeight() const
+    [[nodiscard]] int GetHeight() const noexcept
     {
         RECT rc;
         GetWindowRect(m_hWnd, &rc);
         return rc.bottom - rc.top;
     }
-
-    EckInline void SetPosition(POINT pt) const
+    EckInline void SetPosition(POINT pt) const noexcept
     {
-        SetWindowPos(m_hWnd, nullptr, pt.x, pt.y, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+        SetWindowPos(m_hWnd, nullptr, pt.x, pt.y, 0, 0,
+            SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
     }
-
-    [[nodiscard]] EckInline POINT GetPosition() const
+    [[nodiscard]] EckInline POINT GetPosition() const noexcept
     {
         RECT rc;
         GetWindowRect(m_hWnd, &rc);
         ScreenToClient(GetParent(m_hWnd), (POINT*)&rc);
         return { rc.left, rc.top };
     }
-
-    EckInline void SetSize(SIZE sz) const
+    EckInline void SetSize(SIZE sz) const noexcept
     {
-        SetWindowPos(m_hWnd, nullptr, 0, 0, sz.cx, sz.cy, SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+        SetWindowPos(m_hWnd, nullptr, 0, 0, sz.cx, sz.cy,
+            SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
     }
-
-    [[nodiscard]] EckInline SIZE GetSize() const
+    EckInlineNd SIZE GetSize() const noexcept
     {
         RECT rc;
         GetWindowRect(m_hWnd, &rc);
         return { rc.right - rc.left, rc.bottom - rc.top };
     }
 
-    EckInline BOOL EnableArrows(int iOp, int iBarType)
+    EckInline BOOL ScbEnableArrows(int iOp, int iBarType)
     {
         return EnableScrollBar(m_hWnd, iBarType, iOp);
     }
-
-    EckInline int GetSbPos(int iType) const
+    int ScbGetPos(int iType) const noexcept
     {
         SCROLLINFO si;
         si.cbSize = sizeof(SCROLLINFO);
@@ -1087,8 +1031,7 @@ public:
         GetScrollInfo(m_hWnd, iType, &si);
         return si.nPos;
     }
-
-    EckInline int GetSbTrackPos(int iType) const
+    int ScbGetTrackPos(int iType) const noexcept
     {
         SCROLLINFO si;
         si.cbSize = sizeof(SCROLLINFO);
@@ -1096,8 +1039,7 @@ public:
         GetScrollInfo(m_hWnd, iType, &si);
         return si.nTrackPos;
     }
-
-    EckInline BOOL GetSbRange(int iType, int* piMin = nullptr, int* piMax = nullptr) const
+    BOOL ScbGetRange(int iType, int* piMin = nullptr, int* piMax = nullptr) const noexcept
     {
         SCROLLINFO si;
         si.cbSize = sizeof(SCROLLINFO);
@@ -1109,8 +1051,7 @@ public:
             *piMax = si.nMax;
         return b;
     }
-
-    EckInline int GetSbPage(int iType) const
+    int ScbGetPage(int iType) const noexcept
     {
         SCROLLINFO si;
         si.cbSize = sizeof(SCROLLINFO);
@@ -1118,14 +1059,12 @@ public:
         GetScrollInfo(m_hWnd, iType, &si);
         return si.nPage;
     }
-
-    EckInline BOOL GetSbInfo(int iType, SCROLLINFO* psi) const
+    EckInline BOOL ScbGetInfo(int iType, SCROLLINFO* psi) const noexcept
     {
         psi->cbSize = sizeof(SCROLLINFO);
         return GetScrollInfo(m_hWnd, iType, psi);
     }
-
-    EckInline void SetSbPos(int iType, int iPos, BOOL bRedraw = TRUE) const
+    void ScbSetPos(int iType, int iPos, BOOL bRedraw = TRUE) const noexcept
     {
         SCROLLINFO si;
         si.cbSize = sizeof(SCROLLINFO);
@@ -1133,8 +1072,7 @@ public:
         si.nPos = iPos;
         SetScrollInfo(m_hWnd, iType, &si, bRedraw);
     }
-
-    EckInline void SetSbRange(int iType, int iMin, int iMax, BOOL bRedraw = TRUE) const
+    void ScbSetRange(int iType, int iMin, int iMax, BOOL bRedraw = TRUE) const noexcept
     {
         SCROLLINFO si;
         si.cbSize = sizeof(SCROLLINFO);
@@ -1143,8 +1081,7 @@ public:
         si.nMin = iMin;
         si.nMax = iMax;
     }
-
-    EckInline void SetSbMin(int iType, int iMin, BOOL bRedraw = TRUE) const
+    void ScbSetMin(int iType, int iMin, BOOL bRedraw = TRUE) const noexcept
     {
         SCROLLINFO si;
         si.cbSize = sizeof(SCROLLINFO);
@@ -1153,8 +1090,7 @@ public:
         si.nMin = iMin;
         SetScrollInfo(m_hWnd, iType, &si, bRedraw);
     }
-
-    EckInline void SetSbMax(int iType, int iMax, BOOL bRedraw = TRUE) const
+    void ScbSetMax(int iType, int iMax, BOOL bRedraw = TRUE) const noexcept
     {
         SCROLLINFO si;
         si.cbSize = sizeof(SCROLLINFO);
@@ -1163,8 +1099,7 @@ public:
         si.nMax = iMax;
         SetScrollInfo(m_hWnd, iType, &si, bRedraw);
     }
-
-    EckInline void SetSbPage(int iType, int iPage, BOOL bRedraw = TRUE) const
+    void ScbSetPage(int iType, int iPage, BOOL bRedraw = TRUE) const noexcept
     {
         SCROLLINFO si;
         si.cbSize = sizeof(SCROLLINFO);
@@ -1172,27 +1107,25 @@ public:
         si.nPage = iPage;
         SetScrollInfo(m_hWnd, iType, &si, bRedraw);
     }
-
-    EckInline void SetSbInfo(int iType, const SCROLLINFO* psi, BOOL bRedraw = TRUE) const
+    void ScbSetInfo(int iType, const SCROLLINFO* psi, BOOL bRedraw = TRUE) const noexcept
     {
         SetScrollInfo(m_hWnd, iType, psi, bRedraw);
     }
 
-    EckInline [[nodiscard]] int GetClientWidth() const
+    EckInlineNd int GetClientWidth() const noexcept
     {
         RECT rc;
         GetClientRect(m_hWnd, &rc);
         return rc.right;
     }
-
-    EckInline [[nodiscard]] int GetClientHeight() const
+    EckInlineNd int GetClientHeight() const noexcept
     {
         RECT rc;
         GetClientRect(m_hWnd, &rc);
         return rc.bottom;
     }
 
-    EckInline [[nodiscard]] BOOL IsValid() const
+    EckInlineNd BOOL IsValid() const noexcept
     {
 #ifdef _DEBUG
         if (!IsWindow(m_hWnd))
@@ -1201,24 +1134,27 @@ public:
         return !!GetHWND();
     }
 
-    EckInline WNDPROC SetWndProc(WNDPROC pfnWndProc)
+    EckInline WNDPROC SetWndProc(WNDPROC pfnWndProc) noexcept
     {
         std::swap(m_pfnRealProc, pfnWndProc);
         return pfnWndProc;
     }
 
-    EckInline void SetTopMost(BOOL bTopMost) const
+    EckInline void SetTopMost(BOOL bTopMost) const noexcept
     {
         SetWindowPos(m_hWnd, bTopMost ? HWND_TOPMOST : HWND_NOTOPMOST,
             0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
     }
 
-    EckInline constexpr [[nodiscard]] auto& GetSignal() { return m_Sig; }
+    EckInlineNdCe auto& GetSignal() noexcept { return m_Sig; }
 };
 ECK_RTTI_IMPL_INLINE(CWnd);
 
-EckInline void AttachDlgItems(HWND hDlg, size_t cItem,
-    _In_reads_(cItem) CWnd* const* pWnd, _In_reads_(cItem) const int* iId)
+EckInline void AttachDlgItems(
+    HWND hDlg,
+    size_t cItem,
+    _In_reads_(cItem) CWnd* const* pWnd,
+    _In_reads_(cItem) const int* iId)
 {
     EckCounter(cItem, i)
         pWnd[i]->AttachNew(GetDlgItem(hDlg, iId[i]));

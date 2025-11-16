@@ -1136,7 +1136,7 @@ public:
 
 			if (m_crGridLineV != CLR_NONE)
 			{
-				const int oxHeader = -GetSbPos(SB_HORZ);
+				const int oxHeader = -ScbGetPos(SB_HORZ);
 				SetDCPenColor(ps.hdc, m_crGridLineV == CLR_DEFAULT ?
 					m_pThrCtx->crDefText : m_crGridLineV);
 				const auto hOld = SelectObject(ps.hdc, GetStockObject(DC_PEN));

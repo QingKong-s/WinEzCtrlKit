@@ -660,9 +660,9 @@ public:
 		UpdateStdSize();
 
 		SCROLLINFO si{ sizeof(si), SIF_ALL };
-		pWnd->GetSbInfo(SB_HORZ, &si);
+		pWnd->ScbGetInfo(SB_HORZ, &si);
 		m_ViewH.SetScrollInfo(si);
-		pWnd->GetSbInfo(SB_VERT, &si);
+		pWnd->ScbGetInfo(SB_VERT, &si);
 		m_ViewV.SetScrollInfo(si);
 
 		m_hTheme = OpenNcThemeData(pWnd->HWnd, L"ScrollBar");
