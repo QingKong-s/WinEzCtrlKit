@@ -244,7 +244,7 @@ private:
 		SCROLLINFO si;
 		si.cbSize = sizeof(si);
 		si.fMask = SIF_ALL;
-		GetSbInfo(SB_VERT, &si);
+		ScbGetInfo(SB_VERT, &si);
 		const int yOld = si.nPos;
 		switch (uCode)
 		{
@@ -272,8 +272,8 @@ private:
 		}
 
 		si.fMask = SIF_POS;
-		SetSbInfo(SB_VERT, &si);
-		GetSbInfo(SB_VERT, &si);
+		ScbSetInfo(SB_VERT, &si);
+		ScbGetInfo(SB_VERT, &si);
 		ReCalcTopItem();
 		if (si.nPos != yOld)
 		{
@@ -649,7 +649,7 @@ private:
 		SCROLLINFO si;
 		si.cbSize = sizeof(SCROLLINFO);
 		si.fMask = SIF_POS;
-		GetSbInfo(SB_VERT, &si);
+		ScbGetInfo(SB_VERT, &si);
 		const int yOld = si.nPos;
 		UINT cScrollLines;
 		SystemParametersInfoW(SPI_GETWHEELSCROLLLINES, 0, &cScrollLines, 0);
@@ -657,8 +657,8 @@ private:
 		if (d > m_cyClient)
 			d = m_cyClient * 5 / 6;
 		si.nPos += d;
-		SetSbInfo(SB_VERT, &si);
-		GetSbInfo(SB_VERT, &si);
+		ScbSetInfo(SB_VERT, &si);
+		ScbGetInfo(SB_VERT, &si);
 		ReCalcTopItem();
 		if (si.nPos != yOld)
 		{
@@ -670,7 +670,7 @@ private:
 
 	void ReCalcTopItem()
 	{
-		const int ySB = GetSbPos(SB_VERT);
+		const int ySB = ScbGetPos(SB_VERT);
 		m_idxTop = ySB / m_cyItem;
 		m_oyTop = m_idxTop * m_cyItem - ySB;
 	}
@@ -764,7 +764,7 @@ private:
 		si.nMin = 0;
 		si.nMax = GetItemCount() * m_cyItem;
 		si.nPage = m_cyClient;
-		SetSbInfo(SB_VERT, &si);
+		ScbSetInfo(SB_VERT, &si);
 		ReCalcTopItem();
 	}
 
@@ -831,7 +831,7 @@ public:
 		case WM_SIZE:
 		{
 			ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
-			SetSbPage(SB_VERT, m_cyClient);
+			ScbSetPage(SB_VERT, m_cyClient);
 			ReCalcTopItem();
 			m_DC.ReSize(hWnd, m_cxClient, m_cyClient);
 		}
@@ -1236,12 +1236,12 @@ public:
 		SCROLLINFO si;
 		si.cbSize = sizeof(si);
 		si.fMask = SIF_ALL;
-		GetSbInfo(SB_VERT, &si);
+		ScbGetInfo(SB_VERT, &si);
 		const int yOld = si.nPos;
 		si.nPos += yDelta;
 		si.fMask = SIF_POS;
-		SetSbInfo(SB_VERT, &si);
-		GetSbInfo(SB_VERT, &si);
+		ScbSetInfo(SB_VERT, &si);
+		ScbGetInfo(SB_VERT, &si);
 		ReCalcTopItem();
 		ScrollWindow(HWnd, 0, yOld - si.nPos, nullptr, nullptr);
 		UpdateWindow(HWnd);

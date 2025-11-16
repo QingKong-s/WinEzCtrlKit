@@ -813,7 +813,7 @@ private:
 
 	EckInline void ReCalcTopItem()
 	{
-		m_idxTopItem = GetSbPos(SB_VERT);
+		m_idxTopItem = ScbGetPos(SB_VERT);
 	}
 
 	EckInline void UpdateThemeInfo()
@@ -919,28 +919,28 @@ private:
 			si.fMask = SIF_ALL;
 			si.nMin = si.nMax = si.nPos = 0;
 			si.nPage = 0;
-			SetSbInfo(SB_VERT, &si);
-			SetSbInfo(SB_HORZ, &si);
+			ScbSetInfo(SB_VERT, &si);
+			ScbSetInfo(SB_HORZ, &si);
 		}
 
 		si.fMask = SIF_POS;
-		GetSbInfo(SB_VERT, &si);
+		ScbGetInfo(SB_VERT, &si);
 		si.fMask = SIF_PAGE | SIF_RANGE | SIF_POS;
 		si.nMin = 0;
 		si.nMax = (int)m_vItem.size() - 1;
 		si.nPage = (cyView - m_cyHeader) / m_cyItem;
-		SetSbInfo(SB_VERT, &si);
+		ScbSetInfo(SB_VERT, &si);
 		ReCalcTopItem();
 
 		si.fMask = SIF_POS;
-		GetSbInfo(SB_HORZ, &si);
+		ScbGetInfo(SB_HORZ, &si);
 		si.fMask = SIF_PAGE | SIF_RANGE | SIF_POS;
 		si.nMin = 0;
 		si.nMax = (cxView >= m_cxItem) ? 0 : (m_cxItem - 1);
 		si.nPage = cxView;
-		SetSbInfo(SB_HORZ, &si);
+		ScbSetInfo(SB_HORZ, &si);
 		si.fMask = SIF_POS;
-		GetSbInfo(SB_HORZ, &si);
+		ScbGetInfo(SB_HORZ, &si);
 		m_dxContent = -si.nPos;
 	}
 
@@ -1128,7 +1128,7 @@ private:
 				si.fMask = SIF_POS | SIF_PAGE | SIF_RANGE;
 				if (GetStyle() & WS_VSCROLL)
 				{
-					GetSbInfo(SB_VERT, &si);
+					ScbGetInfo(SB_VERT, &si);
 					if (pt.y < m_cyHeader)
 					{
 						if (si.nPos > si.nMin)
@@ -1143,7 +1143,7 @@ private:
 
 				if (GetStyle() & WS_HSCROLL)
 				{
-					GetSbInfo(SB_HORZ, &si);
+					ScbGetInfo(SB_HORZ, &si);
 					if (pt.x < 0)
 					{
 						if (si.nPos > si.nMin)
@@ -1917,7 +1917,7 @@ public:
 			SCROLLINFO si;
 			si.cbSize = sizeof(si);
 			si.fMask = SIF_ALL;
-			GetSbInfo(SB_VERT, &si);
+			ScbGetInfo(SB_VERT, &si);
 			const int iOld = si.nPos;
 			switch (LOWORD(wParam))
 			{
@@ -1945,8 +1945,8 @@ public:
 			}
 
 			si.fMask = SIF_POS;
-			SetSbInfo(SB_VERT, &si);
-			GetSbInfo(SB_VERT, &si);
+			ScbSetInfo(SB_VERT, &si);
+			ScbGetInfo(SB_VERT, &si);
 			ReCalcTopItem();
 			if (m_bBackgroundNotSolid)
 				Redraw();
@@ -1966,7 +1966,7 @@ public:
 			SCROLLINFO si;
 			si.cbSize = sizeof(si);
 			si.fMask = SIF_ALL;
-			GetSbInfo(SB_HORZ, &si);
+			ScbGetInfo(SB_HORZ, &si);
 			switch (LOWORD(wParam))
 			{
 			case SB_LEFT:
@@ -1993,8 +1993,8 @@ public:
 			}
 
 			si.fMask = SIF_POS;
-			SetSbInfo(SB_HORZ, &si);
-			GetSbInfo(SB_HORZ, &si);
+			ScbSetInfo(SB_HORZ, &si);
+			ScbGetInfo(SB_HORZ, &si);
 			m_dxContent = -si.nPos;
 			UpdateHeaderPos();
 			Redraw();
@@ -2008,7 +2008,7 @@ public:
 			const int cVisible = (m_cyClient - m_cyHeader) / m_cyItem;
 			const int dLine = -GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA * m_cScrollLine;
 			if (Abs(dLine) > cVisible)
-				ScrollV(SignVal(dLine) * GetSbPage(SB_VERT));
+				ScrollV(SignVal(dLine) * ScbGetPage(SB_VERT));
 			else
 				ScrollV(dLine);
 			UpdateWindow(hWnd);
@@ -2635,11 +2635,11 @@ public:
 		SCROLLINFO si;
 		si.cbSize = sizeof(si);
 		si.fMask = SIF_POS;
-		GetSbInfo(SB_VERT, &si);
+		ScbGetInfo(SB_VERT, &si);
 		const int iOld = si.nPos;
 		si.nPos += iDeltaLine;
-		SetSbInfo(SB_VERT, &si);
-		GetSbInfo(SB_VERT, &si);
+		ScbSetInfo(SB_VERT, &si);
+		ScbGetInfo(SB_VERT, &si);
 		ReCalcTopItem();
 		if (m_bBackgroundNotSolid)
 			Redraw();
@@ -2659,10 +2659,10 @@ public:
 		SCROLLINFO si;
 		si.cbSize = sizeof(si);
 		si.fMask = SIF_POS;
-		GetSbInfo(SB_HORZ, &si);
+		ScbGetInfo(SB_HORZ, &si);
 		si.nPos += xDelta;
-		SetSbInfo(SB_HORZ, &si);
-		GetSbInfo(SB_HORZ, &si);
+		ScbSetInfo(SB_HORZ, &si);
+		ScbGetInfo(SB_HORZ, &si);
 		m_dxContent = -si.nPos;
 		m_Header.Left = m_dxContent;
 		Redraw();

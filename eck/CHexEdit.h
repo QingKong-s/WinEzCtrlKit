@@ -135,13 +135,13 @@ private:
 		si.nMin = 0;
 		si.nMax = m_cRow;
 		si.nPage = (m_cyClient - m_cyChar - D.cyGap) / (m_cyChar + D.cyGap);
-		SetSbInfo(SB_VERT, &si);
+		ScbSetInfo(SB_VERT, &si);
 
 		si.fMask = SIF_RANGE | SIF_PAGE;
 		si.nMin = 0;
 		si.nMax = m_cxContent;
 		si.nPage = m_cxClient;
-		SetSbInfo(SB_HORZ, &si);
+		ScbSetInfo(SB_HORZ, &si);
 	}
 
 	void ReCalcFirstVisible(int posSb)
@@ -165,7 +165,7 @@ private:
 	{
 		WCHAR szBuf[CchI64ToStrBufNoRadix2];
 		// 画列头
-		int xStart = -GetSbPos(SB_HORZ);
+		int xStart = -ScbGetPos(SB_HORZ);
 
 		const auto* const ptc = GetThreadCtx();
 		SetDCBrushColor(hDC, ptc->crDefBkg);
@@ -199,7 +199,7 @@ private:
 		// 画选择区
 		if (m_posDragSelStart != SizeTMax && m_posDragSelEnd != SizeTMax)
 		{
-			const auto dy = -GetSbPos(SB_VERT) * GetRowHeight();
+			const auto dy = -ScbGetPos(SB_VERT) * GetRowHeight();
 			size_t pos0, pos1;
 			if (m_posDragSelStart < m_posDragSelEnd)
 			{
@@ -396,19 +396,19 @@ private:
 	void UpdateCaretPos()
 	{
 		ShowCaret(HWnd);
-		const int idxV = int(D.posCaret / D.cCol - GetSbPos(SB_VERT));
+		const int idxV = int(D.posCaret / D.cCol - ScbGetPos(SB_VERT));
 		const int idxH = D.posCaret % D.cCol;
 		if (D.idxCaretCol < 0)
 		{
 			SetCaretPos(
-				-GetSbPos(SB_HORZ) + m_cxAddress + GetColumnWidth() * idxH +
+				-ScbGetPos(SB_HORZ) + m_cxAddress + GetColumnWidth() * idxH +
 				(D.bCaretInFirstNum ? 0 : m_cxChar),
 				GetHeaderHeight() + idxV * GetRowHeight());
 		}
 		else
 		{
 			SetCaretPos(
-				-GetSbPos(SB_HORZ) + m_cxAddress + m_cxData + m_cxChar * idxH +
+				-ScbGetPos(SB_HORZ) + m_cxAddress + m_cxData + m_cxChar * idxH +
 				GetCharColumnWidth() * D.idxCaretCol,
 				GetHeaderHeight() + idxV * GetRowHeight());
 		}
@@ -558,7 +558,7 @@ public:
 			SCROLLINFO si;
 			si.cbSize = sizeof(si);
 			si.fMask = SIF_ALL;
-			GetSbInfo(SB_VERT, &si);
+			ScbGetInfo(SB_VERT, &si);
 			const int iOld = si.nPos;
 			switch (LOWORD(wParam))
 			{
@@ -586,8 +586,8 @@ public:
 			}
 
 			si.fMask = SIF_POS;
-			SetSbInfo(SB_VERT, &si);
-			GetSbInfo(SB_VERT, &si);
+			ScbSetInfo(SB_VERT, &si);
+			ScbGetInfo(SB_VERT, &si);
 			ReCalcFirstVisible(si.nPos);
 			RECT rc{ 0,m_cyChar + D.cyGap,m_cxClient,m_cyClient };
 			ScrollWindowEx(hWnd, 0, (iOld - si.nPos) * (m_cyChar + D.cyGap), &rc, &rc, nullptr, nullptr, SW_INVALIDATE);
@@ -601,7 +601,7 @@ public:
 			SCROLLINFO si;
 			si.cbSize = sizeof(si);
 			si.fMask = SIF_ALL;
-			GetSbInfo(SB_HORZ, &si);
+			ScbGetInfo(SB_HORZ, &si);
 			const int iOld = si.nPos;
 			switch (LOWORD(wParam))
 			{
@@ -629,8 +629,8 @@ public:
 			}
 
 			si.fMask = SIF_POS;
-			SetSbInfo(SB_HORZ, &si);
-			GetSbInfo(SB_HORZ, &si);
+			ScbSetInfo(SB_HORZ, &si);
+			ScbGetInfo(SB_HORZ, &si);
 			ScrollWindowEx(hWnd, iOld - si.nPos, 0,
 				nullptr, nullptr, nullptr, nullptr, SW_INVALIDATE);
 			UpdateWindow(hWnd);
@@ -758,11 +758,11 @@ public:
 		SCROLLINFO si;
 		si.cbSize = sizeof(si);
 		si.fMask = SIF_POS;
-		GetSbInfo(SB_VERT, &si);
+		ScbGetInfo(SB_VERT, &si);
 		const int iOld = si.nPos;
 		si.nPos += d;
-		SetSbInfo(SB_VERT, &si);
-		GetSbInfo(SB_VERT, &si);
+		ScbSetInfo(SB_VERT, &si);
+		ScbGetInfo(SB_VERT, &si);
 		if (iOld != si.nPos)
 		{
 			ReCalcFirstVisible(si.nPos);
@@ -779,11 +779,11 @@ public:
 		SCROLLINFO si;
 		si.cbSize = sizeof(si);
 		si.fMask = SIF_POS;
-		GetSbInfo(SB_HORZ, &si);
+		ScbGetInfo(SB_HORZ, &si);
 		const int iOld = si.nPos;
 		si.nPos += d;
-		SetSbInfo(SB_HORZ, &si);
-		GetSbInfo(SB_HORZ, &si);
+		ScbSetInfo(SB_HORZ, &si);
+		ScbGetInfo(SB_HORZ, &si);
 		if (iOld != si.nPos)
 		{
 			ScrollWindowEx(HWnd, iOld - si.nPos, 0, nullptr, nullptr,
@@ -795,7 +795,7 @@ public:
 
 	size_t HitTest(HEHITTEST& heht) const
 	{
-		const int xStart = -GetSbPos(SB_HORZ);
+		const int xStart = -ScbGetPos(SB_HORZ);
 		heht.uFlags = 0u;
 		heht.idxRowInView = heht.idxCol = heht.idxCharCol = -1;
 
