@@ -279,16 +279,16 @@ public:
     EckInlineNdCe float Phy2LogF(float f) const;
 #pragma endregion PosSize
 #pragma region ILayout
-    SIZE LoGetAppropriateSize() override { return LoGetSize(); }
-    void LoSetPos(int x, int y) override { SetPos((float)x, (float)y); }
-    void LoSetSize(int cx, int cy) override { SetSize((float)cx, (float)cy); }
-    void LoSetPosSize(int x, int y, int cx, int cy) override
+    SIZE LoGetAppropriateSize() noexcept override { return LoGetSize(); }
+    void LoSetPos(int x, int y) noexcept override { SetPos((float)x, (float)y); }
+    void LoSetSize(int cx, int cy) noexcept override { SetSize((float)cx, (float)cy); }
+    void LoSetPosSize(int x, int y, int cx, int cy) noexcept override
     {
         SetRect({ (float)x,(float)y,float(x + cx),float(y + cy) });
     }
-    POINT LoGetPos() override { return { (int)m_rc.left,(int)m_rc.top }; }
-    SIZE LoGetSize() override { return { (int)GetWidthF(),(int)GetHeightF() }; }
-    void LoShow(BOOL bShow) override { SetVisible(bShow); }
+    POINT LoGetPos() noexcept override { return { (int)m_rc.left,(int)m_rc.top }; }
+    SIZE LoGetSize() noexcept override { return { (int)GetWidthF(),(int)GetHeightF() }; }
+    void LoShow(BOOL bShow) noexcept override { SetVisible(bShow); }
 #pragma endregion ILayout
 #pragma region ElemTree
     EckInlineNdCe CElem* GetFirstChildElem() const { return m_pFirstChild; }
