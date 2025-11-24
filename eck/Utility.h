@@ -1179,7 +1179,7 @@ EckInlineNdCe T DpiScale(T i, int iDpiNew, int iDpiOld = 96) { return T(i * iDpi
 // deprecated.
 template<CcpNumberOrEnum T>
 EckInlineNdCe T DpiScaleF(T i, int iDpiNew, int iDpiOld = 96) { return T(i * iDpiNew / iDpiOld); }
-EckInlineCe void DpiScale(_Inout_ CcpIsRectStruct auto& rc, int iDpiNew, int iDpiOld = 96)
+EckInlineCe void DpiScale(_Inout_ CcpRectStruct auto& rc, int iDpiNew, int iDpiOld = 96)
 {
     rc.left = rc.left * iDpiNew / iDpiOld;
     rc.top = rc.top * iDpiNew / iDpiOld;
@@ -1196,7 +1196,7 @@ EckInlineCe void DpiScale(_Inout_ D2D1_SIZE_F& size, int iDpiNew, int iDpiOld = 
     size.width = size.width * iDpiNew / iDpiOld;
     size.height = size.height * iDpiNew / iDpiOld;
 }
-EckInlineCe void DpiScale(_Inout_ CcpIsPointStruct auto& pt, int iDpiNew, int iDpiOld = 96)
+EckInlineCe void DpiScale(_Inout_ CcpPointStruct auto& pt, int iDpiNew, int iDpiOld = 96)
 {
     pt.x = pt.x * iDpiNew / iDpiOld;
     pt.y = pt.y * iDpiNew / iDpiOld;

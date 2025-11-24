@@ -53,14 +53,12 @@ public:
         if constexpr (std::is_same_v<T, float>)
         {
             const auto r = Next32() >> 8;
-            const auto u = r / 16777216.f;// 2^24
-            return Min + u * (Max - Min);
+            return Min + (r / 16777216.f/* 2^24 */) * (Max - Min);
         }
         else
         {
             const auto r = ((UINT64)Next32() << 21) ^ (Next32() >> 11);
-            const double u = r / 9007199254740992.;// 2^53
-            return Min + T(u) * (Max - Min);
+            return Min + (r / 9007199254740992./* 2^53 */) * (Max - Min);
         }
     }
 
