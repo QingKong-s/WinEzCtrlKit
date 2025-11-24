@@ -21,7 +21,7 @@ namespace UnknownTraits
 	ECK_DEF_COM_INHERIT(IDWriteTextRenderer, IDWritePixelSnapping);
 }
 
-template<class TThis, CcpIsComInterface... TInterface>
+template<class TThis, CcpComInterface... TInterface>
 class CUnknown : public TInterface...
 {
 protected:

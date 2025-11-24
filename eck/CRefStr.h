@@ -5,16 +5,16 @@
 #include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
-template<CcpIsStdChar TChar>
+template<CcpStdChar TChar>
 using TRefStrDefAlloc = CDefAllocator<TChar, int>;
 
-template<CcpIsStdChar TChar_, class TCharTraits_, class TAlloc_>
+template<CcpStdChar TChar_, class TCharTraits_, class TAlloc_>
 class CRefStrT;
 
 template<class TCharTraits, class TAlloc>
 CRefStrT<WCHAR, TCharTraits, TAlloc> StrX2W(PCSTR pszText, int cch, int uCP);
 
-template<CcpIsStdChar TChar_>
+template<CcpStdChar TChar_>
 struct CCharTraits
 {
     using TChar = void;
@@ -44,11 +44,11 @@ struct CCharTraits<CHAR>
     EckInline static int GetFormatCchV(PCSTR pszFmt, va_list vl) { return _vscprintf(pszFmt, vl); }
 };
 
-template<CcpIsStdChar TChar>
+template<CcpStdChar TChar>
 using TRefStrDefTraits = CCharTraits<TChar>;
 
 template<
-    CcpIsStdChar TChar_,
+    CcpStdChar TChar_,
     class TCharTraits_ = TRefStrDefTraits<TChar_>,
     class TAlloc_ = TRefStrDefAlloc<TChar_>
 >

@@ -189,7 +189,7 @@ namespace Priv
     };
 }
 
-template<CcpIsStdCharPtr TPtr>
+template<CcpStdCharPtr TPtr>
 inline CalcExpResult CalculateExpression(
     _Out_ double& lfResult,
     _In_reads_or_z_(cchExp) TPtr pszExp,
