@@ -9,7 +9,7 @@ inline constexpr std::string_view
 IllegalPathCharA{ R"(\/:*?"<>|)" },
 IllegalPathCharWithDotA{ R"(\/:*?"<>|.)" };
 
-template<CcpIsStdCharPtr TPointer>
+template<CcpStdCharPtr TPointer>
 void PazLegalize(_In_z_ TPointer pszPath,
     RemoveStdCharPtr_T<TPointer> chReplace = '_', BOOL bReplaceDot = FALSE)
 {
@@ -28,7 +28,7 @@ void PazLegalize(_In_z_ TPointer pszPath,
             *p++ = chReplace;
     }
 }
-template<CcpIsStdCharPtr TPointer>
+template<CcpStdCharPtr TPointer>
 void PazLegalizeLen(_In_reads_(cchPath) TPointer pszPath, int cchPath,
     RemoveStdCharPtr_T<TPointer> chReplace = '_', BOOL bReplaceDot = FALSE)
 {
@@ -50,7 +50,7 @@ void PazLegalizeLen(_In_reads_(cchPath) TPointer pszPath, int cchPath,
     }
 }
 
-template<CcpIsStdCharPtr TPointer>
+template<CcpStdCharPtr TPointer>
 HRESULT PazParseCommandLine(
     _In_reads_(cchCmdLine) TPointer pszCmdLine, int cchCmdLine,
     _Out_ TPointer& pszFile, _Out_ int& cchFile,
@@ -102,7 +102,7 @@ FileNameOk:;// 至此文件名处理完毕
     cchParam = int(pEnd - pszParam);
     return S_OK;
 }
-template<CcpIsStdCharPtr TPointer>
+template<CcpStdCharPtr TPointer>
 HRESULT PazParseCommandLineAndCut(
     _In_reads_(cchCmdLine) TPointer pszCmdLine, int cchCmdLine,
     _Out_ TPointer& pszFile, _Out_ int& cchFile,
@@ -121,7 +121,7 @@ HRESULT PazParseCommandLineAndCut(
     return hr;
 }
 
-EckNfInlineNd BOOL PazIsDotFileName(_In_reads_z_(3) CcpIsStdCharPtr auto pszFileName)
+EckNfInlineNd BOOL PazIsDotFileName(_In_reads_z_(3) CcpStdCharPtr auto pszFileName)
 {
     return pszFileName[0] == '.' && (pszFileName[1] == '\0' ||
         (pszFileName[1] == '.' && pszFileName[2] == '\0'));

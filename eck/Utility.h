@@ -999,7 +999,7 @@ EckInlineNdCe BYTE ByteFromHex(CHAR x1, CHAR x2)
 }
 
 EckInlineCe void ToStringUpper(_In_reads_bytes_(cb) PCVOID p, size_t cb,
-    _Out_writes_(cb * 2) CcpIsStdCharPtr auto pszResult)
+    _Out_writes_(cb * 2) CcpStdCharPtr auto pszResult)
 {
     EckCounter(cb, i)
     {
@@ -1009,7 +1009,7 @@ EckInlineCe void ToStringUpper(_In_reads_bytes_(cb) PCVOID p, size_t cb,
     }
 }
 EckInlineCe void ToStringLower(_In_reads_bytes_(cb) PCVOID p, size_t cb,
-    _Out_writes_(cb * 2) CcpIsStdCharPtr auto pszResult)
+    _Out_writes_(cb * 2) CcpStdCharPtr auto pszResult)
 {
     EckCounter(cb, i)
     {
@@ -1020,7 +1020,7 @@ EckInlineCe void ToStringLower(_In_reads_bytes_(cb) PCVOID p, size_t cb,
 }
 
 EckInlineCe void Md5ToString(_In_reads_bytes_(16) PCVOID pMd5,
-    _Out_writes_(32) CcpIsStdCharPtr auto pszResult, BOOL bUpper = TRUE)
+    _Out_writes_(32) CcpStdCharPtr auto pszResult, BOOL bUpper = TRUE)
 {
     if (bUpper)
         ToStringUpper(pMd5, (size_t)16, pszResult);
@@ -1029,7 +1029,7 @@ EckInlineCe void Md5ToString(_In_reads_bytes_(16) PCVOID pMd5,
 }
 
 inline constexpr void GuidToString(const GUID& guid,
-    _Out_writes_(32) CcpIsStdCharPtr auto pszResult, BOOL bUpper = TRUE)
+    _Out_writes_(32) CcpStdCharPtr auto pszResult, BOOL bUpper = TRUE)
 {
     const BYTE* p = (const BYTE*)&guid;
     BYTE by[16];
@@ -1188,10 +1188,10 @@ EckInline BOOL FloatEqual(double f1, double f2, double fEpsilon = DBL_EPSILON) {
 template<class T>
 EckInlineNdCe T ValDistance(T x1, T x2) { return (x1 > x2) ? (x1 - x2) : (x2 - x1); }
 
-template<CcpIsNumberOrEnum T>
+template<CcpNumberOrEnum T>
 EckInlineNdCe T DpiScale(T i, int iDpiNew, int iDpiOld = 96) { return T(i * iDpiNew / iDpiOld); }
 // deprecated.
-template<CcpIsNumberOrEnum T>
+template<CcpNumberOrEnum T>
 EckInlineNdCe T DpiScaleF(T i, int iDpiNew, int iDpiOld = 96) { return T(i * iDpiNew / iDpiOld); }
 EckInlineCe void DpiScale(_Inout_ CcpIsRectStruct auto& rc, int iDpiNew, int iDpiOld = 96)
 {
@@ -1435,7 +1435,7 @@ EckInlineNdCe LPARAM MakeKeyStrokeFlag(USHORT cRepeat, UINT uScanCode, BOOL bExt
         (bPreviousState << 30) | (bTransition << 31);
 }
 
-EckInline void SafeRelease(_Inout_ CcpIsComInterface auto*& pUnk)
+EckInline void SafeRelease(_Inout_ CcpComInterface auto*& pUnk)
 {
     if (pUnk)
     {
@@ -1443,7 +1443,7 @@ EckInline void SafeRelease(_Inout_ CcpIsComInterface auto*& pUnk)
         pUnk = nullptr;
     }
 }
-EckInline void SafeReleaseAssert0(_Inout_ CcpIsComInterface auto*& pUnk)
+EckInline void SafeReleaseAssert0(_Inout_ CcpComInterface auto*& pUnk)
 {
 #ifdef _DEBUG
     if (pUnk)

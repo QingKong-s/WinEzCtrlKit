@@ -87,21 +87,21 @@ ECK_NAMESPACE_BEGIN
 using namespace std::literals;
 
 template<class T>
-concept CcpIsIntOrEnum = std::is_integral_v<T> || std::is_enum_v<T>;
+concept CcpIntOrEnum = std::is_integral_v<T> || std::is_enum_v<T>;
 template<class T>
 concept CcpEnum = std::is_enum_v<T>;
 template<class T>
-concept CcpIsComInterface = std::is_base_of_v<IUnknown, std::remove_cvref_t<T>>;
+concept CcpNumber = std::integral<T> || std::floating_point<T>;
+template<class T>
+concept CcpNumberOrEnum = CcpNumber<T> || std::is_enum_v<T>;
+template<class T>
+concept CcpComInterface = std::is_base_of_v<IUnknown, std::remove_cvref_t<T>>;
 template<class TChar>
-concept CcpIsStdChar = std::is_same_v<TChar, CHAR> || std::is_same_v<TChar, WCHAR>;
+concept CcpStdChar = std::is_same_v<TChar, CHAR> || std::is_same_v<TChar, WCHAR>;
 template<class TCharPtr>
-concept CcpIsStdCharPtr = std::is_pointer_v<TCharPtr> && CcpIsStdChar<std::remove_cvref_t<std::remove_pointer_t<TCharPtr>>>;
+concept CcpStdCharPtr = std::is_pointer_v<TCharPtr> && CcpStdChar<std::remove_cvref_t<std::remove_pointer_t<TCharPtr>>>;
 template<class TCharPtr>
-concept CcpIsNonConstStdCharPtr = std::is_pointer_v<TCharPtr> && CcpIsStdChar<std::remove_volatile_t<std::remove_reference_t<std::remove_pointer_t<TCharPtr>>>>;
-template<class T>
-concept CcpIsNumber = std::integral<T> || std::floating_point<T>;
-template<class T>
-concept CcpIsNumberOrEnum = CcpIsNumber<T> || std::is_enum_v<T>;
+concept CcpNonConstStdCharPtr = std::is_pointer_v<TCharPtr> && CcpStdChar<std::remove_volatile_t<std::remove_reference_t<std::remove_pointer_t<TCharPtr>>>>;
 
 template<class T>
 concept CcpIsRectStruct = std::is_same_v<T, RECT> || std::is_same_v<T, RECTL> ||
@@ -111,24 +111,24 @@ template<class T>
 concept CcpIsPointStruct = std::is_same_v<T, POINT> || std::is_same_v<T, POINTL> ||
 std::is_same_v<T, D2D1_POINT_2F> || std::is_same_v<T, D2D1_POINT_2U>;
 
-template<CcpIsStdCharPtr TPtr>
+template<CcpStdCharPtr TPtr>
 using RemoveStdCharPtr_T = std::remove_cvref_t<std::remove_pointer_t<TPtr>>;
-template<CcpIsStdCharPtr TPtr>
+template<CcpStdCharPtr TPtr>
 using ConstStdCharPtr_T = const RemoveStdCharPtr_T<TPtr>*;
-template<CcpIsStdCharPtr TPtr1, CcpIsStdCharPtr TPtr2>
+template<CcpStdCharPtr TPtr1, CcpStdCharPtr TPtr2>
 constexpr inline bool IsSameStdCharPtr_V = std::is_same_v<RemoveStdCharPtr_T<TPtr1>, RemoveStdCharPtr_T<TPtr2>>;
 
-template<CcpIsIntOrEnum T, bool = std::is_enum_v<T>>
+template<CcpIntOrEnum T, bool = std::is_enum_v<T>>
 struct UnderlyingType
 {
     using Type = std::underlying_type_t<T>;
 };
-template<CcpIsIntOrEnum T>
+template<CcpIntOrEnum T>
 struct UnderlyingType<T, false>
 {
     using Type = T;
 };
-template<CcpIsIntOrEnum T>
+template<CcpIntOrEnum T>
 using UnderlyingType_T = UnderlyingType<T>::Type;
 
 template<
@@ -1038,7 +1038,7 @@ EckInlineNd HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,
 
 #ifdef _DEBUG
 void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine);
-inline void DbgPrint(CcpIsNumber auto x, BOOL bNewLine = TRUE)
+inline void DbgPrint(CcpNumber auto x, BOOL bNewLine = TRUE)
 {
     auto s = std::to_string(x);
     if (bNewLine)
