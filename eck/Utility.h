@@ -1116,20 +1116,6 @@ EckInlineNd double RoundTo(double fVal, int cDigits)
     return round(fVal * fTemp) / fTemp;
 }
 
-EckInline void RandSeed(UINT uSeed)
-{
-    srand(uSeed);
-}
-EckInline void RandSeed()
-{
-    srand((UINT)time(nullptr));
-}
-
-EckInline int Rand(int iMin = INT_MIN, int iMax = INT_MAX)
-{
-    return rand() % ((LONGLONG)iMax - (LONGLONG)iMin + 1ll) + (LONGLONG)iMin;
-}
-
 EckInlineNdCe BOOL Sign(auto v) { return v >= 0; }
 template<class T>
 EckInlineNdCe T SignVal(T v) { return (v >= 0 ? 1 : -1); }

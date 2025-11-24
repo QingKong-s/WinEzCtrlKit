@@ -134,7 +134,7 @@ public:
         const auto t = n / BitsPerWord;
         if (t)
             for (ptrdiff_t i = NB; 0 <= i; --i)
-                m_Bits[i] = t <= i ? m_Bits[i - t] : 0;
+                m_Bits[i] = (t <= (size_t)i) ? m_Bits[i - t] : 0;
 
         if (n %= BitsPerWord)
         {
@@ -150,7 +150,7 @@ public:
         const auto t = n / BitsPerWord;
         if (t)
             for (ptrdiff_t i = 0; i <= NB; ++i)
-                m_Bits[i] = t <= NB - i ? m_Bits[i + t] : 0;
+                m_Bits[i] = (t <= size_t(NB - i)) ? m_Bits[i + t] : 0;
 
         if (n %= BitsPerWord)
         {
@@ -306,7 +306,7 @@ public:
         using TTemp = std::conditional_t < sizeof(TInt) < sizeof(TWord), TWord, ULONGLONG > ;
         TTemp x{};
         CopyBits((TWord*)&x, pos, sizeof(TInt) * 8);
-        return (ULONG)x;
+        return (TInt)x;
     }
 
     template<std::integral TInt>
