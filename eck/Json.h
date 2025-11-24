@@ -697,6 +697,10 @@ namespace Priv
         CInitProxy(JArr_T) :eType{ Type::ArrayMark } { v.pObj = nullptr; }
         CInitProxy(const CMutVal& Val) :eType{ Type::JVal } { v.jVal = Val.Ptr(); }
         CInitProxy(const std::initializer_list<CInitProxy>& il) :eType{ Type::Object } { v.pObj = &il; }
+        
+        template<CcpEnum T>
+        CInitProxy(T e) : CInitProxy(std::underlying_type_t<T>(e)) {}
+
         template<class TTraits, class TAlloc>
         CInitProxy(const std::basic_string<char, TTraits, TAlloc>& s) : eType{ Type::String }
         {

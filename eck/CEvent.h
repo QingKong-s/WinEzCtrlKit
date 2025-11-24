@@ -10,7 +10,8 @@ public:
     {
         NtCreateEvent(&m_hObject, EVENT_ALL_ACCESS, nullptr, SynchronizationEvent, FALSE);
     }
-    CEvent(std::wstring_view svName, BOOL bManualReset, BOOL bInheritHandle = FALSE)
+    CEvent(std::wstring_view svName, BOOL bManualReset,
+        BOOL bInitialState, BOOL bInheritHandle = FALSE)
     {
         const auto us{ StringViewToNtString(svName) };
         OBJECT_ATTRIBUTES oa;
@@ -19,7 +20,7 @@ public:
             (bInheritHandle ? OBJ_INHERIT : 0),
             nullptr, nullptr);
         NtCreateEvent(&m_hObject, EVENT_ALL_ACCESS, &oa,
-            bManualReset ? NotificationEvent : SynchronizationEvent, FALSE);
+            bManualReset ? NotificationEvent : SynchronizationEvent, bInitialState);
     }
 
     EckInline NTSTATUS Signal(LONG* plPrevState = nullptr) { return NtSetEvent(m_hObject, plPrevState); }
