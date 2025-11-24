@@ -4,6 +4,8 @@
 
 #include <random>
 
+#include <bcrypt.h>
+
 ECK_NAMESPACE_BEGIN
 #pragma region CRefBinT运算符
 template<class TAlloc, class TChar, class TTraits, class TAlloc1>

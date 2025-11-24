@@ -308,7 +308,7 @@ template<CcpIsStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr TcsChrFirstOf(_In_reads_(Len) TPtr Str, size_t Len,
     _In_reads_(CharsLen) ConstStdCharPtr_T<TPtr> Chars, size_t CharsLen)
 {
-#if defined(_MSC_VER) && _USE_STD_VECTOR_ALGORITHMS
+#if defined(_MSC_VER) && _USE_STD_VECTOR_ALGORITHMS && 0
     TPtr r;
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         r = (TPtr)__std_find_first_of_trivial_1(Str, Str + Len, Chars, Chars + CharsLen);
@@ -340,7 +340,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsChrLastOf(_In_reads_(Len) TPtr Str, size_t L
     _In_reads_(CharsLen) ConstStdCharPtr_T<TPtr> Chars, size_t CharsLen, size_t posStart = SizeTMax)
 {
     EckAssert(Len);
-#if defined(_MSC_VER) && _USE_STD_VECTOR_ALGORITHMS
+#if defined(_MSC_VER) && _USE_STD_VECTOR_ALGORITHMS && 0
     TPtr r;
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         r = (TPtr)__std_find_last_of_trivial_pos_1(

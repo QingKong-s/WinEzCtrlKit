@@ -348,8 +348,9 @@ namespace Priv
 	template<class TTuple, size_t... Idx>
 	void CALLBACK EckTpSimpleCallback(PTP_CALLBACK_INSTANCE Instance, PVOID Context)
 	{
-		std::unique_ptr<TTuple> pParam((TTuple*)(Context));
-		std::invoke(std::move(std::get<Idx>(*pParam))..., Instance);
+		std::unique_ptr<TTuple> pParam(reinterpret_cast<TTuple*>(Context));
+		auto callable = std::move(std::get<0>(*pParam));
+		std::invoke(std::move(callable), std::move(std::get<Idx + 1>(*pParam))..., Instance);
 	}
 
 	template<class TTuple, size_t... Idx>
@@ -365,7 +366,9 @@ EckInline NTSTATUS TpSubmitSimpleCallback(TP_CALLBACK_ENVIRON* pEnv, F&& Fn, TAr
 {
 	using TTuple = std::tuple<std::decay_t<F>, std::decay_t<TArgs>...>;
 	auto pParam = std::make_unique<TTuple>(std::forward<F>(Fn), std::forward<TArgs>(Args)...);
-	return TpSimpleTryPost(Priv::MakeTpSimpleCallback<TTuple>(std::make_index_sequence<sizeof...(TArgs)>{}),
-		pParam.release(), pEnv);
+
+	return TpSimpleTryPost(
+		Priv::MakeTpSimpleCallback<TTuple>(std::make_index_sequence<sizeof...(TArgs)>{}),
+		pParam.release(),pEnv);
 }
 ECK_NAMESPACE_END

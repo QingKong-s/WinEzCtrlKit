@@ -89,6 +89,8 @@ using namespace std::literals;
 template<class T>
 concept CcpIsIntOrEnum = std::is_integral_v<T> || std::is_enum_v<T>;
 template<class T>
+concept CcpEnum = std::is_enum_v<T>;
+template<class T>
 concept CcpIsComInterface = std::is_base_of_v<IUnknown, std::remove_cvref_t<T>>;
 template<class TChar>
 concept CcpIsStdChar = std::is_same_v<TChar, CHAR> || std::is_same_v<TChar, WCHAR>;
