@@ -68,9 +68,9 @@ public:
         const auto u = Next(T(0), T(1));
         const auto c = (Mode - Min) / (Max - Min);
         if (u < c)
-            return Min + std::sqrt(u * (Max - Min) * (Mode - Min));
+            return Min + (T)std::sqrt(u * (Max - Min) * (Mode - Min));
         else
-            return Max - std::sqrt((T(1) - u) * (Max - Min) * (Max - Mode));
+            return Max - (T)std::sqrt((T(1) - u) * (Max - Min) * (Max - Mode));
     }
     // 均值为0，标准差为1
     template<std::floating_point T>
@@ -80,7 +80,7 @@ public:
         const auto u2 = Next(T(0), T(1));
         if (u1 < T(1e-16))
             u1 = T(1e-16);
-        return sqrt(-2. * log(u1)) * cos(2. * 3.141592653589793 * u2);
+        return T(sqrt(-2. * log(u1)) * cos(2. * 3.141592653589793 * u2));
     }
     template<std::floating_point T>
     constexpr T Gaussian(T Mean, T Dev) noexcept { return Mean + Dev * Gaussian<T>(); }

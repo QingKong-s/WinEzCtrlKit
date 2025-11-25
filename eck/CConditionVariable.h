@@ -55,6 +55,6 @@ public:
 		RtlWakeAllConditionVariable(&m_cv);
 	}
 
-	EckInline auto GetPCv() { return &m_cv; }
+	EckInline auto GetPtr() { return &m_cv; }
 };
 ECK_NAMESPACE_END
