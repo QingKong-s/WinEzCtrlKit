@@ -18,6 +18,8 @@
 #include <oleacc.h>
 
 #ifdef _DEBUG
+#include "Random.h"
+
 #	define ECK_DUI_DBG_DRAW_FRAME					\
         {											\
             ID2D1SolidColorBrush* ECKPRIV_pBr___;	\
@@ -749,6 +751,8 @@ private:
     PresentMode m_ePresentMode{ PresentMode::FlipSwapChain };
 
 #ifdef _DEBUG
+    CPcg32 m_Pcg{};
+    
     BITBOOL m_bDrawDirtyRect : 1{};     // 是否绘制脏矩形
 #endif
     BITBOOL m_bEnableDragDrop : 1{};    // 启用拖放
@@ -1123,7 +1127,7 @@ private:
             ComPtr<ID2D1SolidColorBrush> pBr;
             InflateRect(rcF, -1.f, -1.f);
             pDC->SetTransform(D2D1::Matrix3x2F::Identity());
-            ARGB Cr = Rand(0x255) | Rand(0x255) << 8 | Rand(0x255) << 16 | 0xFF000000;
+            ARGB Cr = m_Pcg.Next() | 0xFF000000;
             pDC->CreateSolidColorBrush(D2D1::ColorF(Cr), &pBr);
             pDC->DrawRectangle(rcF, pBr.Get(), 2.f);
         }

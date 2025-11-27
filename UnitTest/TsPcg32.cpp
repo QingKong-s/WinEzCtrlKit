@@ -9,14 +9,14 @@ TS_NS_BEGIN
 TEST_CLASS(TsPcg32)
 {
 public:
-    TEST_METHOD(TestSeedReproducible)
+    TEST_METHOD(TsSeedReproducible)
     {
         CPcg32 a(12345), b(12345);
         for (int i = 0; i < 1000; i++)
             Assert::AreEqual(a.Next<UINT>(), b.Next<UINT>());
     }
 
-    TEST_METHOD(TestRandomNotConstant)
+    TEST_METHOD(TsRandomNotConstant)
     {
         CPcg32 rng;
         UINT a = rng.Next<UINT>();
@@ -24,7 +24,7 @@ public:
         Assert::AreNotEqual(a, b);
     }
 
-    TEST_METHOD(TestIntRange)
+    TEST_METHOD(TsIntRange)
     {
         CPcg32 rng(1);
 
@@ -35,7 +35,7 @@ public:
         }
     }
 
-    TEST_METHOD(TestUIntRange)
+    TEST_METHOD(TsUIntRange)
     {
         CPcg32 rng(2);
 
@@ -46,7 +46,7 @@ public:
         }
     }
 
-    TEST_METHOD(TestFloatRange)
+    TEST_METHOD(TsFloatRange)
     {
         CPcg32 rng(3);
 
@@ -57,7 +57,7 @@ public:
         }
     }
 
-    TEST_METHOD(TestDistributionMeanRough)
+    TEST_METHOD(TsDistributionMeanRough)
     {
         CPcg32 rng(4);
 
@@ -73,7 +73,7 @@ public:
         Assert::IsTrue(mean > 0.49 && mean < 0.51);
     }
 
-    TEST_METHOD(TestTriangularMean)
+    TEST_METHOD(TsTriangularMean)
     {
         CPcg32 rng(5);
 
@@ -91,7 +91,7 @@ public:
         Assert::IsTrue(fabs(mean - theoretical) < 0.1);
     }
 
-    TEST_METHOD(TestGaussianMeanAndVariance)
+    TEST_METHOD(TsGaussianMeanAndVariance)
     {
         CPcg32 rng(6);
 
