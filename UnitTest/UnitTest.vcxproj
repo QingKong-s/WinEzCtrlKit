@@ -169,6 +169,7 @@
     <ClCompile Include="TsCArray.cpp" />
     <ClCompile Include="TsCBitSet.cpp" />
     <ClCompile Include="TsCColorReducing.cpp" />
+    <ClCompile Include="TsDateTimeHelper.cpp" />
     <ClCompile Include="TsMathHelper.cpp" />
     <ClCompile Include="TsPcg32.cpp" />
   </ItemGroup>

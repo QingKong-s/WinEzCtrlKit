@@ -13,7 +13,7 @@ struct alignas(16) CSceneCamera
     DirectX::XMFLOAT3 Right{ 1.f,0.f,0.f }; // (相机X)右向量，单位向量
     float Aspect{ 1.f };                    // 横纵比
     DirectX::XMFLOAT3 Up{ 0.f,1.f,0.f };    // 世界正上向量，单位向量
-    float FovY{ 0.25f * 3.151592653f };     // 纵向视角
+    float FovY{ 0.25f * PiF };              // 纵向视角
 
     EckInlineNd DirectX::XMVECTOR XmLoadPosition() const noexcept
     {

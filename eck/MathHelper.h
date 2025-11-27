@@ -4,12 +4,12 @@
 #include <DirectXMath.h>
 
 ECK_NAMESPACE_BEGIN
-template<class T>
+template<std::floating_point T>
 EckInlineNdCe T Deg2Rad(T fDeg) noexcept { return fDeg * (T)Pi / 180; }
-template<class T>
+template<std::floating_point T>
 EckInlineNdCe T Rad2Deg(T fRad) noexcept { return fRad * 180 / (T)Pi; }
 
-template<class T>
+template<std::floating_point T>
 EckInlineNd T DegIn0To360(T fDeg) noexcept
 {
     fDeg = fmod(fDeg, 360);
@@ -46,7 +46,7 @@ EckInline void CalcPointFromLineScalePos(auto x1, auto y1, auto x2, auto y2,
 
 // 从角度计算椭圆上一段弧的端点
 template<class T>
-EckInline void CalcArcFromEllipseAngle(auto x, auto y, auto xr, auto yr,
+void CalcArcFromEllipseAngle(auto x, auto y, auto xr, auto yr,
     auto fStartAngle, auto fSweepAngle,
     _Out_ T& x1, _Out_ T& y1, _Out_ T& x2, _Out_ T& y2) noexcept
 {
@@ -65,7 +65,8 @@ template<std::floating_point T>
 EckInlineCe void CalcLineEquation(auto x1, auto y1, auto x2, auto y2,
     _Out_ T& A, _Out_ T& B, _Out_ T& C) noexcept
 {
-    const auto m = y1 - y2, n = x1 - x2;
+    const auto m = y1 - y2;
+    const auto n = x1 - x2;
     A = T(m);
     B = T(-n);
     C = T(-m * x2 + n * y2);
@@ -258,7 +259,6 @@ EckInline void CalcInverseDistortMatrix(
         CalcInverseDistortMatrix(rc, pt));
 }
 
-// D2D取矩阵对称
 EckInlineNd D2D1::Matrix3x2F D2DMatrixReflection(float A, float B, float C) noexcept
 {
     const float t = A * A + B * B;
@@ -272,8 +272,7 @@ EckInlineNd D2D1::Matrix3x2F D2DMatrixReflection(float A, float B, float C) noex
         -2.f * B * C / t);
 }
 
-// XFORM取矩阵平移
-EckInlineNd constexpr XFORM XFormTranslate(float dx, float dy) noexcept
+EckInlineNdCe XFORM XFormTranslate(float dx, float dy) noexcept
 {
     return
     {
@@ -282,7 +281,6 @@ EckInlineNd constexpr XFORM XFormTranslate(float dx, float dy) noexcept
         dx, dy
     };
 }
-// XFORM取矩阵旋转
 EckInlineNd XFORM XFormRotate(float fAngle) noexcept
 {
     return
@@ -292,7 +290,6 @@ EckInlineNd XFORM XFormRotate(float fAngle) noexcept
         0.f, 0.f
     };
 }
-// XFORM取矩阵旋转
 EckInlineNd XFORM XFormRotate(float fAngle, float x, float y) noexcept
 {
     /*
@@ -309,8 +306,7 @@ EckInlineNd XFORM XFormRotate(float fAngle, float x, float y) noexcept
         x * sinf(fAngle) - y * cosf(fAngle) + y
     };
 }
-// XFORM取矩阵缩放
-EckInlineNd XFORM XFormScale(float xScale, float yScale) noexcept
+EckInlineNdCe XFORM XFormScale(float xScale, float yScale) noexcept
 {
     return
     {
@@ -319,8 +315,7 @@ EckInlineNd XFORM XFormScale(float xScale, float yScale) noexcept
         0.f, 0.f
     };
 }
-// XFORM取矩阵缩放
-EckInlineNd XFORM XFormScale(float xScale, float yScale, float x, float y) noexcept
+EckInlineNdCe XFORM XFormScale(float xScale, float yScale, float x, float y) noexcept
 {
     return
     {
@@ -329,7 +324,6 @@ EckInlineNd XFORM XFormScale(float xScale, float yScale, float x, float y) noexc
         -x * xScale + x, -y * yScale + y
     };
 }
-// XFORM取矩阵错切
 EckInlineNdCe XFORM XFormShear(float xFactor, float yFactor) noexcept
 {
     return
@@ -339,8 +333,7 @@ EckInlineNdCe XFORM XFormShear(float xFactor, float yFactor) noexcept
         0.f, 0.f
     };
 }
-// XFORM取矩阵错切
-EckInline constexpr XFORM XFormShear(float xFactor, float yFactor, float x, float y) noexcept
+EckInlineNdCe XFORM XFormShear(float xFactor, float yFactor, float x, float y) noexcept
 {
     return
     {
@@ -349,8 +342,7 @@ EckInline constexpr XFORM XFormShear(float xFactor, float yFactor, float x, floa
         -x - y * yFactor + x, -x * xFactor - y + y
     };
 }
-// XFORM取矩阵对称
-EckInline constexpr XFORM XFormReflection(float A, float B, float C) noexcept
+EckInlineNdCe XFORM XFormReflection(float A, float B, float C) noexcept
 {
     const float t = A * A + B * B;
     const float u = -2.f * A * B / t;
