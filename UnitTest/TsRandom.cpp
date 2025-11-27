@@ -2,23 +2,22 @@
 
 #include "../eck/Random.h"
 
-using eck::CPcg32;
-
+using Rm = eck::CRandom<eck::CRmPcg32>;
 
 TS_NS_BEGIN
-TEST_CLASS(TsPcg32)
+TEST_CLASS(TsRandom)
 {
 public:
     TEST_METHOD(TsSeedReproducible)
     {
-        CPcg32 a(12345), b(12345);
+        Rm a(12345), b(12345);
         for (int i = 0; i < 1000; i++)
             Assert::AreEqual(a.Next<UINT>(), b.Next<UINT>());
     }
 
     TEST_METHOD(TsRandomNotConstant)
     {
-        CPcg32 rng;
+        Rm rng;
         UINT a = rng.Next<UINT>();
         UINT b = rng.Next<UINT>();
         Assert::AreNotEqual(a, b);
@@ -26,7 +25,7 @@ public:
 
     TEST_METHOD(TsIntRange)
     {
-        CPcg32 rng(1);
+        Rm rng(1);
 
         for (int i = 0; i < 20000; i++)
         {
@@ -37,7 +36,7 @@ public:
 
     TEST_METHOD(TsUIntRange)
     {
-        CPcg32 rng(2);
+        Rm rng(2);
 
         for (int i = 0; i < 20000; i++)
         {
@@ -48,7 +47,7 @@ public:
 
     TEST_METHOD(TsFloatRange)
     {
-        CPcg32 rng(3);
+        Rm rng(3);
 
         for (int i = 0; i < 20000; i++)
         {
@@ -59,7 +58,7 @@ public:
 
     TEST_METHOD(TsDistributionMeanRough)
     {
-        CPcg32 rng(4);
+        Rm rng(4);
 
         const int N = 500000;
         double sum = 0;
@@ -75,7 +74,7 @@ public:
 
     TEST_METHOD(TsTriangularMean)
     {
-        CPcg32 rng(5);
+        Rm rng(5);
 
         double min = 0, mode = 5, max = 10;
 
@@ -93,7 +92,7 @@ public:
 
     TEST_METHOD(TsGaussianMeanAndVariance)
     {
-        CPcg32 rng(6);
+        Rm rng(6);
 
         const int N = 300000;
 

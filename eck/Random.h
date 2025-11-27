@@ -2,13 +2,17 @@
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
-class CPcg32
+class CRmPcg32
 {
 public:
+    using TSeed = UINT64;
+
     constexpr static UINT64 Multiplier = 6364136223846793005ull;
     constexpr static UINT64 Increment = 1442695040888963407ull;
 private:
     UINT64 State;
+public:
+    CRmPcg32(UINT64 Seed = NtGetTickCount64()) noexcept : State{ Seed + Increment } {}
 
     constexpr UINT Next32() noexcept
     {
@@ -19,10 +23,37 @@ private:
 #pragma warning(suppress:4146)// 一元负运算符应用于无符号类型，结果仍为无符号类型
         return XorShifted >> Rot | XorShifted << (-Rot & 31);
     }
-public:
-    constexpr CPcg32(UINT64 Seed = NtGetTickCount64()) noexcept : State{ Seed + Increment } {}
 
     constexpr void Seed(UINT64 Seed) noexcept { State = Seed + Increment; }
+};
+
+class CRmXorShift32
+{
+public:
+    using TSeed = UINT;
+private:
+    UINT State;
+public:
+    CRmXorShift32(UINT Seed = NtGetTickCount()) noexcept : State{ Seed ? Seed : 1 } {}
+
+    constexpr UINT Next32() noexcept
+    {
+        auto x = State;
+        x ^= x << 13;
+        x ^= x >> 17;
+        x ^= x << 5;
+        State = x;
+        return x;
+    }
+
+    constexpr void Seed(UINT32 SeedVal) noexcept { State = SeedVal ? SeedVal : 1; }
+};
+
+
+template<class TBase>
+struct CRandom : public TBase
+{
+    using TBase::Next32;
 
     template<std::integral T = UINT>
     constexpr T Next() noexcept
@@ -85,4 +116,7 @@ public:
     template<std::floating_point T>
     constexpr T Gaussian(T Mean, T Dev) noexcept { return Mean + Dev * Gaussian<T>(); }
 };
+
+using CPcg32 = CRandom<CRmPcg32>;
+using CXorShift32 = CRandom<CRmXorShift32>;
 ECK_NAMESPACE_END
