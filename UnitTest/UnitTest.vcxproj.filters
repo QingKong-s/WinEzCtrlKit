@@ -30,7 +30,7 @@
     <ClCompile Include="TsCBitSet.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="TsPcg32.cpp">
+    <ClCompile Include="TsRandom.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="TsMathHelper.cpp">
