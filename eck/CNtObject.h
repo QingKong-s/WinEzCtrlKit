@@ -8,13 +8,11 @@ protected:
     HANDLE m_hObject{};
 public:
     CNtObject() = default;
-    CNtObject(HANDLE h) noexcept
+    constexpr CNtObject(HANDLE h) noexcept : m_hObject{ h } {}
+    CNtObject(const CNtObject& x) noexcept
     {
-        NtDuplicateObject(NtCurrentProcess(), h,
-            NtCurrentProcess(), &m_hObject, 0, 0,
-            DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES);
+        CloneFrom(x.Get());
     }
-    CNtObject(const CNtObject& x) noexcept : CNtObject{ x.Get() } {}
     CNtObject(CNtObject&& x) noexcept { std::swap(m_hObject, x.m_hObject); }
     CNtObject& operator=(const CNtObject& x) noexcept
     {
