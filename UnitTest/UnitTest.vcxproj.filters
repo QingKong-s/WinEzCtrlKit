@@ -45,6 +45,9 @@
     <ClCompile Include="TsStringConvert.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="TsCompress.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
