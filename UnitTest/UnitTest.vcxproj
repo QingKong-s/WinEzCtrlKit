@@ -172,6 +172,7 @@
     <ClCompile Include="TsDateTimeHelper.cpp" />
     <ClCompile Include="TsMathHelper.cpp" />
     <ClCompile Include="TsRandom.cpp" />
+    <ClCompile Include="TsStringConvert.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />

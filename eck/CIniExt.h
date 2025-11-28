@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "AutoPtrDef.h"
 #include "CRefStr.h"
+#include "StringConvert.h"
 
 #include <map>
 

@@ -370,6 +370,7 @@
     <ClInclude Include="eck\ProcThrdHelper.h" />
     <ClInclude Include="eck\CRelativeLayout.h" />
     <ClInclude Include="eck\Snapshot.h" />
+    <ClInclude Include="eck\StringConvert.h" />
     <ClInclude Include="eck\StringUtility.h" />
     <ClInclude Include="eck\SymbolHelper.h" />
     <ClInclude Include="eck\TextSrvDef.h" />

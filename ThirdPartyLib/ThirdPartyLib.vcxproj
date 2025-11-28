@@ -572,6 +572,15 @@
     <ClInclude Include="Detours\detours.h" />
     <ClInclude Include="Detours\detver.h" />
     <ClInclude Include="Detours\syelog.h" />
+    <ClInclude Include="FastFloat\ascii_number.h" />
+    <ClInclude Include="FastFloat\bigint.h" />
+    <ClInclude Include="FastFloat\constexpr_feature_detect.h" />
+    <ClInclude Include="FastFloat\decimal_to_binary.h" />
+    <ClInclude Include="FastFloat\digit_comparison.h" />
+    <ClInclude Include="FastFloat\fast_float.h" />
+    <ClInclude Include="FastFloat\fast_table.h" />
+    <ClInclude Include="FastFloat\float_common.h" />
+    <ClInclude Include="FastFloat\parse_number.h" />
     <ClInclude Include="PugiXml\pugiconfig.hpp" />
     <ClInclude Include="PugiXml\pugixml.hpp" />
     <ClInclude Include="SkiaTessellator\GrAATriangulator.h" />

@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "CRefStr.h"
 #include "CRefBin.h"
+#include "StringConvert.h"
 
 ECK_NAMESPACE_BEGIN
 #define ECK_OBJA_DECL \

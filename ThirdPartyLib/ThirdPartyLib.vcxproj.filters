@@ -34,6 +34,9 @@
     <Filter Include="SkiaTessellator">
       <UniqueIdentifier>{85ac8a82-11f7-416d-bdd7-e1535670ea1b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="FastFloat">
+      <UniqueIdentifier>{75da7f6a-24cb-4519-9b7e-86d693a1eb18}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Detours\creatwth.cpp">
@@ -469,6 +472,33 @@
     </ClInclude>
     <ClInclude Include="SkiaTessellator\ISkiaPolygonAccessor.h">
       <Filter>SkiaTessellator</Filter>
+    </ClInclude>
+    <ClInclude Include="FastFloat\ascii_number.h">
+      <Filter>FastFloat</Filter>
+    </ClInclude>
+    <ClInclude Include="FastFloat\bigint.h">
+      <Filter>FastFloat</Filter>
+    </ClInclude>
+    <ClInclude Include="FastFloat\constexpr_feature_detect.h">
+      <Filter>FastFloat</Filter>
+    </ClInclude>
+    <ClInclude Include="FastFloat\decimal_to_binary.h">
+      <Filter>FastFloat</Filter>
+    </ClInclude>
+    <ClInclude Include="FastFloat\digit_comparison.h">
+      <Filter>FastFloat</Filter>
+    </ClInclude>
+    <ClInclude Include="FastFloat\fast_float.h">
+      <Filter>FastFloat</Filter>
+    </ClInclude>
+    <ClInclude Include="FastFloat\fast_table.h">
+      <Filter>FastFloat</Filter>
+    </ClInclude>
+    <ClInclude Include="FastFloat\float_common.h">
+      <Filter>FastFloat</Filter>
+    </ClInclude>
+    <ClInclude Include="FastFloat\parse_number.h">
+      <Filter>FastFloat</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
