@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "DuiTheme.h"
+#include "StringConvert.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN

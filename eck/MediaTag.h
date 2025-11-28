@@ -7,6 +7,7 @@
 #include "Utility2.h"
 #include "AutoPtrDef.h"
 #include "ComPtr.h"
+#include "StringConvert.h"
 
 #include <variant>
 
