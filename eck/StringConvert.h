@@ -34,7 +34,7 @@ enum class TcsCvtErr
 
 // 根据目标整数类型、进制和填充，计算转换所需的最小缓冲区大小（包含结束符和可能的负号）
 template<std::integral TInt>
-EckInlineNdCe size_t TcsCvtCalcBufferSize(int iRadix = 10, int cchFillTo = 0)
+EckInlineNdCe size_t TcsCvtCalcBufferSize(int iRadix = 10, int cchFillTo = 0) noexcept
 {
     if constexpr (sizeof(TInt) == 8)
         return std::max((size_t)Priv::TableI64StringSize[iRadix], (size_t)cchFillTo) + 2;
@@ -57,7 +57,7 @@ inline TcsCvtErr TcsToInt(
     size_t cch,
     _Out_ TInt& i,
     int iRadix = 0,
-    _Outptr_opt_ TPtr* ppEnd = nullptr)
+    _Outptr_opt_ TPtr* ppEnd = nullptr) noexcept
 {
     i = 0;
     if (!cch)
@@ -162,7 +162,7 @@ inline TcsCvtErr TcsFromInt(
     BOOL bUpperCase = TRUE,
     _Outptr_opt_ TPtr* ppEnd = nullptr,
     int cchFillTo = 0,
-    RemoveStdCharPtr_T<TPtr> chFill = '0')
+    RemoveStdCharPtr_T<TPtr> chFill = '0') noexcept
 {
     EckAssert(iRadix >= 2 && iRadix <= 36);
     if (cch < TcsCvtCalcBufferSize<TInt>(iRadix, cchFillTo) - 1)
@@ -230,7 +230,7 @@ enum class TcsFloatFmt
 
 namespace Priv
 {
-    EckInlineNdCe TcsCvtErr CharConvEcToTcsCvtErr(std::errc ec)
+    EckInlineNdCe TcsCvtErr CharConvEcToTcsCvtErr(std::errc ec) noexcept
     {
         switch (ec)
         {
@@ -242,7 +242,7 @@ namespace Priv
         default: return TcsCvtErr::Unknown;
         }
     }
-    EckInlineNdCe auto TcsFloatFmtToFastFloatFmt(TcsFloatFmt e)
+    EckInlineNdCe auto TcsFloatFmtToFastFloatFmt(TcsFloatFmt e) noexcept
     {
         switch (e)
         {
@@ -262,7 +262,7 @@ inline TcsCvtErr TcsToFloat(
     _Out_ TFloat& f,
     _Outptr_opt_ TPtr* ppEnd = nullptr,
     TcsFloatFmt eFmt = TcsFloatFmt::General,
-    int iRadix = 10)
+    int iRadix = 10) noexcept
 {
     using TChar = RemoveStdCharPtr_T<TPtr>;
 
@@ -292,7 +292,7 @@ inline TcsCvtErr TcsFromFloat(
     TFloat f,
     _Outptr_opt_ TPtr* ppEnd = nullptr,
     TcsFloatFmt eFmt = TcsFloatFmt::General,
-    int iPrecision = 6)
+    int iPrecision = 6) noexcept
 {
     using TChar = RemoveStdCharPtr_T<TPtr>;
 

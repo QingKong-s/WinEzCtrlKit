@@ -8,7 +8,7 @@ protected:
     HANDLE m_hObject{};
 public:
     CNtObject() = default;
-    constexpr CNtObject(HANDLE h) noexcept : m_hObject{ h } {}
+    explicit constexpr CNtObject(HANDLE h) noexcept : m_hObject{ h } {}
     CNtObject(const CNtObject& x) noexcept
     {
         CloneFrom(x.Get());
