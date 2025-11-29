@@ -648,7 +648,7 @@
     <ClInclude Include="eck\ConsoleIo.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CSceneCamera.h">
+    <ClInclude Include="eck\CPerspectiveCamera.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\Random.h">

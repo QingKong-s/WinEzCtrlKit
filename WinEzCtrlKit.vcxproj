@@ -198,7 +198,7 @@
     <ClInclude Include="eck\ComServerHelper.h" />
     <ClInclude Include="eck\Crc.h" />
     <ClInclude Include="eck\Crypt.h" />
-    <ClInclude Include="eck\CSceneCamera.h" />
+    <ClInclude Include="eck\CPerspectiveCamera.h" />
     <ClInclude Include="eck\CSequenceIdGenerator.h" />
     <ClInclude Include="eck\ConsoleIo.h" />
     <ClInclude Include="eck\CSimplePath.h" />

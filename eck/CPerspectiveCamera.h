@@ -4,7 +4,7 @@
 #include <DirectXMath.h>
 
 ECK_NAMESPACE_BEGIN
-struct alignas(16) CSceneCamera
+struct alignas(16) CPerspectiveCamera
 {
     DirectX::XMFLOAT3 Pos{};                // 相机位置
     float NearZ{ 1.f };                     // 近平面
