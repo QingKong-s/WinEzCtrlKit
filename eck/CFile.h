@@ -33,6 +33,28 @@ public:
             dwOptions, dwDispostion, &nts, piosb, dwAttr, cbInit);
         return nts;
     }
+    NTSTATUS CreateRelative(
+        _In_ HANDLE hRoot,
+        std::wstring_view svPath,
+        DWORD dwDispostion = FILE_OPEN,
+        DWORD dwAccess = FILE_GENERIC_READ,
+        DWORD dwShareMode = FILE_SHARE_READ,
+        DWORD dwOptions = FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        DWORD dwAttr = FILE_ATTRIBUTE_NORMAL,
+        DWORD cbInit = 0,
+        _Out_opt_ IO_STATUS_BLOCK* piosb = nullptr) noexcept
+    {
+        Clear();
+        const auto usRelPath = StringViewToNtString(svPath);
+        OBJECT_ATTRIBUTES oa;
+        InitializeObjectAttributes(&oa, &usRelPath, OBJ_CASE_INSENSITIVE, hRoot, nullptr);
+        IO_STATUS_BLOCK iosb;
+        if (!piosb) piosb = &iosb;
+        LARGE_INTEGER cbInitLi{ .QuadPart = cbInit };
+        return NtCreateFile(&m_hObject, dwAccess, &oa, piosb,
+            cbInit ? &cbInitLi : nullptr, dwAttr, dwShareMode,
+            dwDispostion, dwOptions, nullptr, 0);
+    }
 
     [[nodiscard]] LONGLONG GetSize(_Out_opt_ NTSTATUS* pnts = nullptr) noexcept
     {

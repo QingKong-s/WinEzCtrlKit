@@ -11,10 +11,10 @@ struct CEDate
 
 #ifdef _DEBUG
 #define EckVerifyCeDate(x)														\
-			EckAssert(x.byMonth >= 1 &&											\
-				x.byMonth <= 12 &&												\
-				x.byDay >= 1 &&													\
-				x.byDay <= GetMonthDays(x.wYear, x.byMonth))
+            EckAssert(x.byMonth >= 1 &&											\
+                x.byMonth <= 12 &&												\
+                x.byDay >= 1 &&													\
+                x.byDay <= GetMonthDays(x.wYear, x.byMonth))
 #else
 #define EckVerifyCeDate(x) ;
 #endif // _DEBUG

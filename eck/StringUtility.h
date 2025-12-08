@@ -231,8 +231,16 @@ _Ret_maybenull_ EckInlineNd TPtr TcsStrI(_In_z_ TPtr Str, _In_z_ ConstStdCharPtr
         return Str;
     for (; *Str; ++Str)
     {
-        if (TchEqualI(*Str, *SubStr) && TcsEqualI(Str, SubStr))
+        if (TchEqualI(*Str, *SubStr))
+        {
+            for (auto p1 = Str, p2 = SubStr; *p2; ++p1, ++p2)
+            {
+                if (!*p1 || !TchEqualI(*p1, *p2))
+                    goto Next;
+            }
             return Str;
+        }
+    Next:;
     }
     return nullptr;
 }

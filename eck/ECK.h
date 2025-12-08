@@ -1038,9 +1038,9 @@ EckInlineNd HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,
 
 #ifdef _DEBUG
 void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine);
-inline void DbgPrint(CcpNumber auto x, BOOL bNewLine = TRUE)
+inline void DbgPrint(CcpNumberOrEnum auto x, BOOL bNewLine = TRUE)
 {
-    auto s = std::to_string(x);
+    auto s = std::to_string((eck::UnderlyingType_T<decltype(x)>)x);
     if (bNewLine)
         s.push_back('\n');
     OutputDebugStringA(s.c_str());

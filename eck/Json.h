@@ -522,15 +522,18 @@ public:
         return CMutVal(yyjson_mut_doc_ptr_getx(m_pDoc, pszPtr,
             cchPtr == SizeTMax ? strlen(pszPtr) : cchPtr, pCtx, pErr), this);
     }
-    EckInlineNd PSTR Write(size_t& cchOut, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
+    EckInlineNd PSTR Write(size_t& cchOut, YyWriteFlag uFlags = 0,
+        YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr) const
     {
         return yyjson_mut_write_opts(m_pDoc, uFlags, pAlc, &cchOut, pErr);
     }
-    EckInline BOOL Write(PCSTR pszFile, YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
+    EckInline BOOL Write(PCSTR pszFile, YyWriteFlag uFlags = 0,
+        YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr) const
     {
         return yyjson_mut_write_file(pszFile, m_pDoc, uFlags, pAlc, pErr);
     }
-    EckInlineNd CRefStrW WriteW(YyWriteFlag uFlags = 0, YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr)
+    EckInlineNd CRefStrW WriteW(YyWriteFlag uFlags = 0,
+        YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr) const
     {
         size_t cchOut;
         const auto pszU8 = Write(cchOut, uFlags, pAlc, pErr);
@@ -690,6 +693,7 @@ namespace Priv
         CInitProxy(uint64_t u64) :eType{ Type::UInt64 } { v.u64 = u64; }
         CInitProxy(int64_t i64) :eType{ Type::Int64 } { v.i64 = i64; }
         CInitProxy(int i) :eType{ Type::Int } { v.i = i; }
+        CInitProxy(UINT i) : CInitProxy(uint64_t(i)) {}
         CInitProxy(double d) :eType{ Type::Real } { v.d = d; }
         CInitProxy(const char* s) :eType{ Type::String } { v.s = s; }
         CInitProxy(const char8_t* s) :eType{ Type::String } { v.s = (PCSTR)s; }
@@ -762,7 +766,11 @@ namespace Priv
             case Type::Int64:   return Doc.NewInt64(v.i64);
             case Type::UInt64:  return Doc.NewUInt64(v.u64);
             case Type::Real:    return Doc.NewReal(v.d);
-            case Type::String:  return Doc.NewStrCpy(v.s, cch == UINT_MAX ? strlen(v.s) : cch);
+            case Type::String:
+                if (!v.s || !cch)
+                    return Doc.NewStr("", 0);
+                else
+                    return Doc.NewStrCpy(v.s, cch == UINT_MAX ? strlen(v.s) : cch);
             case Type::StringW:
             {
                 const auto u8 = StrW2X(v.ws, (int)cch, CP_UTF8);
@@ -810,7 +818,14 @@ namespace Priv
             case Type::Int64:   Val.SetInt64(v.i64);   break;
             case Type::UInt64:  Val.SetUInt64(v.u64);  break;
             case Type::Real:    Val.SetReal(v.d);      break;
-            case Type::String:  Val.SetStr(v.s, cch == UINT_MAX ? strlen(v.s) : cch); break;
+            case Type::String:
+            {
+                if (!v.s || !cch)
+                    Val.SetStr("", 0);
+                else
+                    Val.SetStr(v.s, cch == UINT_MAX ? strlen(v.s) : cch);
+            }
+            break;
             case Type::StringW:
             {
                 const auto u8 = StrW2X(v.ws, (int)cch, CP_UTF8);

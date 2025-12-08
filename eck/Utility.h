@@ -1019,6 +1019,13 @@ EckInlineCe void ToStringLower(_In_reads_bytes_(cb) PCVOID p, size_t cb,
     }
 }
 
+EckInlineCe void FromString(_Out_writes_bytes_(cb) PVOID p, size_t cb,
+    _In_reads_(cb * 2) PCSTR psz)
+{
+    EckCounter(cb, i)
+        *((BYTE*)p + i) = ByteFromHex(psz[i * 2], psz[i * 2 + 1]);
+}
+
 EckInlineCe void Md5ToString(_In_reads_bytes_(16) PCVOID pMd5,
     _Out_writes_(32) CcpStdCharPtr auto pszResult, BOOL bUpper = TRUE)
 {

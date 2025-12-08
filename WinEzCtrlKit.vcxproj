@@ -193,6 +193,7 @@
     <ClInclude Include="eck\CHitter.h" />
     <ClInclude Include="eck\CHotKeyExt.h" />
     <ClInclude Include="eck\CIniExt.h" />
+    <ClInclude Include="eck\ClipboardHelper.h" />
     <ClInclude Include="eck\CNtObject.h" />
     <ClInclude Include="eck\Compress.h" />
     <ClInclude Include="eck\ComServerHelper.h" />

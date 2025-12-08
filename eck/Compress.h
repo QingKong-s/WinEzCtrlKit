@@ -35,7 +35,7 @@ inline int ZLibDecompress(_In_reads_bytes_(cbOrg) PCVOID pOrg,
         {
             rbResult.PopBack(zs.avail_out);
             zs.next_out = rbResult.PushBackNoExtra(cbOrg / 2);
-            zs.avail_out = (uInt)(cbOrg / 2);
+            zs.avail_out = uInt(cbOrg / 2);
         }
         else if (iRet != Z_OK)// 出错
         {
@@ -59,7 +59,7 @@ inline int ZLibCompress(_In_reads_bytes_(cbOrg) PCVOID pOrg,
 
     rbResult.ExtendToCapacity();
     if (rbResult.IsEmpty())
-        rbResult.ReSize(cbOrg * 2 / 3);
+        rbResult.ReSize(std::max(cbOrg * 2 / 3, (size_t)32));
     zs.next_out = rbResult.Data();
     zs.avail_out = (uInt)rbResult.Size();
     EckLoop()
@@ -73,8 +73,9 @@ inline int ZLibCompress(_In_reads_bytes_(cbOrg) PCVOID pOrg,
         else if (iRet == Z_BUF_ERROR)// 缓冲区不足
         {
             rbResult.PopBack(zs.avail_out);
-            zs.next_out = rbResult.PushBackNoExtra(cbOrg / 3);
-            zs.avail_out = (uInt)(cbOrg / 3);
+            const auto cb = std::max(cbOrg / 3, (size_t)32);
+            zs.next_out = rbResult.PushBackNoExtra(cb);
+            zs.avail_out = (uInt)cb;
         }
         else if (iRet != Z_OK)// 出错
         {
@@ -113,7 +114,7 @@ inline int GZipDecompress(_In_reads_bytes_(cbOrg) PCVOID pOrg,
         {
             rbResult.PopBack(zs.avail_out);
             zs.next_out = rbResult.PushBackNoExtra(cbOrg / 2);
-            zs.avail_out = (uInt)(cbOrg / 2);
+            zs.avail_out = uInt(cbOrg / 2);
         }
         else if (iRet != Z_OK)// 出错
         {
@@ -137,7 +138,7 @@ inline int GZipCompress(_In_reads_bytes_(cbOrg) PCVOID pOrg,
 
     rbResult.ExtendToCapacity();
     if (rbResult.IsEmpty())
-        rbResult.ReSize(cbOrg * 2 / 3);
+        rbResult.ReSize(std::max(cbOrg * 2 / 3, (size_t)32));
     zs.next_out = rbResult.Data();
     zs.avail_out = (uInt)rbResult.Size();
     EckLoop()
@@ -151,9 +152,9 @@ inline int GZipCompress(_In_reads_bytes_(cbOrg) PCVOID pOrg,
         else if (iRet == Z_BUF_ERROR)// 缓冲区不足
         {
             rbResult.PopBack(zs.avail_out);
-
-            zs.next_out = rbResult.PushBackNoExtra(cbOrg / 3);
-            zs.avail_out = (uInt)(cbOrg / 3);
+            const auto cb = std::max(cbOrg / 3, (size_t)32);
+            zs.next_out = rbResult.PushBackNoExtra(cb);
+            zs.avail_out = (uInt)cb;
         }
         else if (iRet != Z_OK)// 出错
         {

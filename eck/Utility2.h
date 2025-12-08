@@ -1,8 +1,7 @@
 ﻿#pragma once
 #include "CRefBin.h"
 #include "CRefStr.h"
-
-#include <random>
+#include "Random.h"
 
 #include <bcrypt.h>
 
@@ -249,10 +248,9 @@ inline BOOL GetUserLocaleName(CRefStrW& rsLocaleName)
 #pragma region 其他
 inline void RandomBytes(_Out_writes_bytes_all_(cb) void* p, size_t cb)
 {
-    auto mt = std::mt19937{ std::random_device{}() };
-    auto Dist = std::uniform_int_distribution<USHORT>{ 0,0xFF };
+    CPcg32 Pcg{};
     for (BYTE* pb = (BYTE*)p, *pbEnd = pb + cb; pb < pbEnd; ++pb)
-        *pb = (BYTE)Dist(mt);
+        *pb = Pcg.Next<BYTE>();
 }
 inline void RandomBytes(CRefBin& rb)
 {

@@ -19,8 +19,7 @@ inline HRESULT CompileShader(
 {
     ComPtr<ID3DBlob> pErrorBlob;
     const auto hr = D3DCompile(pszShader, cchShader, nullptr, nullptr, nullptr,
-        pszEntryPoint, pszTarget, uFlags1, uFlags2,
-        &pShaderBlob, &pErrorBlob);
+        pszEntryPoint, pszTarget, uFlags1, uFlags2, &pShaderBlob, &pErrorBlob);
     if (FAILED(hr))
     {
 #ifdef _DEBUG
@@ -87,6 +86,7 @@ struct CBuffer
 
     EckInlineNdCe auto operator->() const noexcept { return pBuffer.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pBuffer.Get(); }
+    EckInlineNdCe auto AddrOf() const noexcept { return pBuffer.AddrOf(); }
 };
 
 namespace Priv
@@ -98,6 +98,7 @@ namespace Priv
 
         EckInlineNdCe auto operator->() const noexcept { return pShader.Get(); }
         EckInlineNdCe auto Get() const noexcept { return pShader.Get(); }
+        EckInlineNdCe auto AddrOf() const noexcept { return pShader.AddrOf(); }
 
         EckInline HRESULT Create(ID3DBlob* pBlob) noexcept
         {
@@ -180,6 +181,7 @@ struct CTexture
 
     EckInlineNdCe auto operator->() const noexcept { return pTexture.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pTexture.Get(); }
+    EckInlineNdCe auto AddrOf() const noexcept { return pTexture.AddrOf(); }
 };
 
 struct CSampler
@@ -209,6 +211,7 @@ struct CSampler
 
     EckInlineNdCe auto operator->() const noexcept { return pSampler.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pSampler.Get(); }
+    EckInlineNdCe auto AddrOf() const noexcept { return pSampler.AddrOf(); }
 };
 
 struct CShaderResourceView
@@ -230,6 +233,7 @@ struct CShaderResourceView
 
     EckInlineNdCe auto operator->() const noexcept { return pSrv.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pSrv.Get(); }
+    EckInlineNdCe auto AddrOf() const noexcept { return pSrv.AddrOf(); }
 };
 
 struct CRenderTargetView
@@ -243,6 +247,22 @@ struct CRenderTargetView
 
     EckInlineNdCe auto operator->() const noexcept { return pRtv.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pRtv.Get(); }
+    EckInlineNdCe auto AddrOf() const noexcept { return pRtv.AddrOf(); }
+};
+
+struct CDepthStencilView
+{
+    ComPtr<ID3D11DepthStencilView> pDsv;
+
+    HRESULT Create(ID3D11Resource* pResource,
+        const D3D11_DEPTH_STENCIL_VIEW_DESC* pDesc = nullptr) noexcept
+    {
+        return g_pD3d11Device->CreateDepthStencilView(pResource, nullptr, pDsv.AddrOfClear());
+    }
+
+    EckInlineNdCe auto operator->() const noexcept { return pDsv.Get(); }
+    EckInlineNdCe auto Get() const noexcept { return pDsv.Get(); }
+    EckInlineNdCe auto AddrOf() const noexcept { return pDsv.AddrOf(); }
 };
 ECK_EZDX_NAMESPACE_END
 ECK_NAMESPACE_END

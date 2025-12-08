@@ -5997,10 +5997,7 @@ RtlUnlockMemoryBlockLookaside(
 NTSYSAPI
 HANDLE
 NTAPI
-RtlGetCurrentTransaction(
-    _In_opt_ PCWSTR ExistingFileName,
-    _In_opt_ PCWSTR NewFileName
-    );
+RtlGetCurrentTransaction();
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
