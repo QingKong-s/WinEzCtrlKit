@@ -3,16 +3,16 @@
 #include "CRefBin.h"
 
 ECK_NAMESPACE_BEGIN
-struct ClipboardGuard { ~ClipboardGuard() { CloseClipboard(); } };
+struct CClipboardGuard { ~CClipboardGuard() { CloseClipboard(); } };
 
-inline BOOL GetClipboardString(CRefStrW& rs, HWND hWnd) noexcept
+inline BOOL GetClipboardString(HWND hWnd, CRefStrW& rs) noexcept
 {
     if (!OpenClipboard(hWnd))
     {
         EckDbgPrintFmt(L"OpenClipboard failed, Owner = %p", GetClipboardOwner());
         return FALSE;
     }
-    ClipboardGuard _{};
+    CClipboardGuard _{};
 
     const HGLOBAL hData = GetClipboardData(CF_UNICODETEXT);
     if (!hData)
@@ -32,15 +32,15 @@ inline BOOL GetClipboardString(CRefStrW& rs, HWND hWnd) noexcept
     }
     return TRUE;
 }
-inline BOOL SetClipboardString(_In_reads_or_z_(cch) PCWSTR pszText,
-    int cch = -1, HWND hWnd) noexcept
+inline BOOL SetClipboardString(HWND hWnd,
+    _In_reads_or_z_(cch) PCWSTR pszText, int cch = -1) noexcept
 {
     if (!OpenClipboard(hWnd))
     {
         EckDbgPrintFmt(L"OpenClipboard failed, Owner = %p", GetClipboardOwner());
         return FALSE;
     }
-    ClipboardGuard _{};
+    CClipboardGuard _{};
 
     if (cch < 0)
         cch = (int)TcsLen(pszText);
@@ -53,7 +53,7 @@ inline BOOL SetClipboardString(_In_reads_or_z_(cch) PCWSTR pszText,
         GlobalFree(hData);
         return FALSE;
     }
-    TcsCopyLenEnd((PWCH)pData, pszText, cch * sizeof(WCHAR));
+    TcsCopyLenEnd((PWCH)pData, pszText, cch);
     GlobalUnlock(hData);
 
     EmptyClipboard();
@@ -65,4 +65,7 @@ inline BOOL SetClipboardString(_In_reads_or_z_(cch) PCWSTR pszText,
         return FALSE;
     }
 }
+
+
+
 ECK_NAMESPACE_END
