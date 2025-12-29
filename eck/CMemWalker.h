@@ -3,356 +3,246 @@
 #include "CRefStr.h"
 
 ECK_NAMESPACE_BEGIN
-struct CMemWriter
+namespace Priv
 {
-	BYTE* m_pMem = nullptr;
-#ifdef _DEBUG
-	BYTE* m_pBase = nullptr;
-	SIZE_T m_cbMax = 0u;
-#endif
+    struct XptMemWalker {};
+    struct XptMemWalkerRange : XptMemWalker
+    {
+        PCBYTE pBase{};
+        size_t cbMax{};
+        PCBYTE pCurr{};
+        constexpr XptMemWalkerRange(PCBYTE b, size_t m, PCBYTE c) noexcept
+            : pBase{ b }, cbMax{ m }, pCurr{ c }
+        {
+        }
+    };
 
-	CMemWriter(void* p)
-	{
-		m_pMem = (BYTE*)p;
-	}
+    struct CMemReaderBase
+    {
+    protected:
+        PCBYTE m_pMem{};
+        PCBYTE m_pBase{};
+        size_t m_cbMax{};
 
-	CMemWriter(PCVOID p, SIZE_T cbMax)
-	{
-		m_pMem = (BYTE*)p;
-#ifdef _DEBUG
-		m_pBase = m_pMem;
-		m_cbMax = cbMax;
-#endif
-	}
+        EckInline void CheckRange(PCBYTE p)
+        {
+            if (m_pBase + m_cbMax < p)
+                throw XptMemWalkerRange{ m_pBase, m_cbMax, p };
+        }
+    public:
+        constexpr CMemReaderBase(_In_reads_bytes_(cbMax) PCVOID p, size_t cbMax) noexcept
+            : m_pMem{ (PCBYTE)p }, m_pBase{ (PCBYTE)p }, m_cbMax{ cbMax }
+        {
+        }
 
-	EckInline CMemWriter& Write(PCVOID pSrc, SIZE_T cb)
-	{
-#ifdef _DEBUG
-		if (m_pBase)
-		{
-			EckDbgCheckMemRange(m_pBase, m_cbMax, m_pMem + cb);
-		}
-#endif
-		memcpy(m_pMem, pSrc, cb);
-		m_pMem += cb;
-		return *this;
-	}
+        constexpr void SetData(PCVOID p, size_t cbMax) noexcept
+        {
+            m_pMem = (BYTE*)p;
+            m_pBase = m_pMem;
+            m_cbMax = cbMax;
+        }
+    };
 
-	template<class T>
-	EckInline CMemWriter& operator<<(const T& Data)
-	{
-		return Write(&Data, sizeof(Data));
-	}
+    class CMemWalkerBase
+    {
+    protected:
+        BYTE* m_pMem{};
+        BYTE* m_pBase{};
+        size_t m_cbMax{};
 
-	template<class T, class U>
-	EckInline CMemWriter& operator<<(const std::basic_string_view<T, U>& Data)
-	{
-		if (Data.empty())
-			return *this << T{ 0 };
-		return Write(Data.data(), Data.size() * sizeof(T)) << T{ 0 };
-	}
+        EckInline void CheckRange(BYTE* p)
+        {
+            if (m_pBase + m_cbMax < p)
+                throw XptMemWalkerRange{ m_pBase, m_cbMax, p };
+        }
+    public:
+        constexpr CMemWalkerBase(_Inout_updates_bytes_(cbMax) void* p, size_t cbMax) noexcept
+            : m_pMem{ (BYTE*)p }, m_pBase{ (BYTE*)p }, m_cbMax{ cbMax }
+        {
+        }
 
-	template<class T, class U>
-	EckInline CMemWriter& operator<<(const std::basic_string<T, U>& Data)
-	{
-		if (Data.empty())
-			return *this << T{ 0 };
-		return Write(Data.c_str(), (Data.size() + 1) * sizeof(T));
-	}
+        EckInline auto& Write(_In_reads_bytes_(cb) PCVOID pSrc, size_t cb)
+        {
+            CheckRange(m_pMem + cb);
+            memcpy(m_pMem, pSrc, cb);
+            m_pMem += cb;
+            return *this;
+        }
+        EckInline auto& WriteRev(_In_reads_bytes_(cb) PCVOID pSrc, size_t cb)
+        {
+            CheckRange(m_pMem + cb);
+            const auto p = (PCBYTE)pSrc;
+            for (size_t i = 0; i < cb; ++i)
+                *m_pMem++ = p[cb - 1 - i];
+            return *this;
+        }
 
-	template<class T, class U>
-	EckInline CMemWriter& operator<<(const std::vector<T, U>& Data)
-	{
-		if (Data.empty())
-			return *this;
-		return Write(Data.data(), Data.size() * sizeof(T));
-	}
+        template<class T>
+        EckInline auto& operator<<(const T& Data) { return Write(&Data, sizeof(T)); }
 
-	template<class T>
-	EckInline CMemWriter& operator<<(const CRefBinT<T>& Data)
-	{
-		if (Data.IsEmpty())
-			return *this;
-		return Write(Data.Data(), Data.Size());
-	}
+        template<class T>
+        EckInline auto& WriteRev(const T& Data) { return WriteRev(&Data, sizeof(T)); }
 
-	template<class T, class U, class V>
-	EckInline CMemWriter& operator<<(const CRefStrT<T, U, V>& Data)
-	{
-		if (Data.IsEmpty())
-			return *this << T{ 0 };
-		return Write(Data.Data(), Data.ByteSize());
-	}
+        template<class T, class U>
+        EckInline auto& operator<<(const std::basic_string<T, U>& Data)
+        {
+            return Write(Data.c_str(), (Data.size() + 1) * sizeof(T));
+        }
+        template<class T, class U>
+        EckInline auto& operator<<(std::basic_string_view<T, U> Data)
+        {
+            return Write(Data.data(), Data.size() * sizeof(T)) << T{};
+        }
+        template<class T, class U>
+        EckInline auto& operator<<(const std::vector<T, U>& Data)
+        {
+            return Write(Data.data(), Data.size() * sizeof(T));
+        }
+        template<class T, size_t N>
+        EckInline auto& operator<<(std::span<T, N> Data)
+        {
+            return Write(Data.data(), Data.size() * sizeof(T));
+        }
+        template<class T>
+        EckInline auto& operator<<(const CRefBinT<T>& Data)
+        {
+            return Write(Data.Data(), Data.Size());
+        }
+        template<class T, class U, class V>
+        EckInline auto& operator<<(const CRefStrT<T, U, V>& Data)
+        {
+            return Write(Data.Data(), Data.ByteSize());
+        }
 
-	EckInline operator BYTE*& () { return m_pMem; }
+        constexpr void SetData(void* p, size_t cbMax) noexcept
+        {
+            m_pMem = (BYTE*)p;
+            m_pBase = m_pMem;
+            m_cbMax = cbMax;
+        }
+    };
 
-	EckInline BYTE* Data() { return m_pMem; }
+    template<class T>
+    class CMemWalkerWarpper : public T
+    {
+    public:
+        using T::T;
 
-	EckInline CMemWriter& operator+=(SIZE_T cb)
-	{
-		m_pMem += cb;
-		return *this;
-	}
+        using Xpt = XptMemWalker;
+        using XptRange = XptMemWalkerRange;
 
-	EckInline CMemWriter& operator-=(SIZE_T cb)
-	{
-		m_pMem -= cb;
-		return *this;
-	}
+        EckInline auto& Read(_Out_writes_bytes_all_(cb) void* pDst, size_t cb)
+        {
+            this->CheckRange(this->m_pMem + cb);
+            memcpy(pDst, this->m_pMem, cb);
+            this->m_pMem += cb;
+            return *this;
+        }
 
-	template<class T>
-	CMemWriter& SkipPointer(T*& p)
-	{
-		p = (T*)m_pMem;
-		m_pMem += sizeof(T);
-		return *this;
-	}
-};
+        EckInline auto& ReadRev(_Out_writes_bytes_all_(cb) void* pDst, size_t cb)
+        {
+            this->CheckRange(this->m_pMem + cb);
+            const auto p = (BYTE*)pDst;
+            for (size_t i = 0; i < cb; ++i)
+                p[cb - 1 - i] = *this->m_pMem++;
+            return *this;
+        }
 
-struct CMemReader
-{
-	const BYTE* m_pMem = nullptr;
-#ifdef _DEBUG
-	const BYTE* m_pBase = nullptr;
-	SIZE_T m_cbMax = 0u;
-#endif
+        template<class T>
+        EckInline auto& operator>>(_Out_ T& Data) { return Read(&Data, sizeof(Data)); }
 
-	CMemReader(PCVOID p, SIZE_T cbMax = 0u)
-	{
-		SetPtr(p, cbMax);
-	}
+        template<class T>
+        EckInline auto& ReadRev(_Out_ T& Data) { return ReadRev(&Data, sizeof(T)); }
 
-	void SetPtr(PCVOID p, SIZE_T cbMax = 0u)
-	{
-		m_pMem = (const BYTE*)p;
-#ifdef _DEBUG
-		if (cbMax)
-		{
-			m_pBase = m_pMem;
-			m_cbMax = cbMax;
-		}
-#endif
-	}
+        template<class T, class U, class V>
+        EckInline auto& operator>>(CRefStrT<T, U, V>& x)
+        {
+            const int cch = CountStringLength<T>();
+            x.ReSize(cch);
+            return Read(x.Data(), (cch + 1) * sizeof(T));
+        }
 
-	EckInline CMemReader& Read(void* pDst, SIZE_T cb)
-	{
-#ifdef _DEBUG
-		if (m_pBase)
-		{
-			EckDbgCheckMemRange(m_pBase, m_cbMax, m_pMem + cb);
-		}
-#endif
-		memcpy(pDst, m_pMem, cb);
-		m_pMem += cb;
-		return *this;
-	}
+        template<class T>
+        int CountStringLength()
+        {
+            auto p = (const T*)Data();
+            const auto pEnd = (const T*)(this->m_pBase + this->m_cbMax);
+            BOOL bFoundNull{};
+            for (; p < pEnd; ++p)
+                if (*p == T{})
+                {
+                    bFoundNull = TRUE;
+                    break;
+                }
+            if (!bFoundNull)
+                throw XptMemWalkerRange{ this->m_pBase, this->m_cbMax, (PCBYTE)p };
+            return int(p - (const T*)Data());
+        }
 
-	template<class T>
-	EckInline CMemReader& operator>>(T& Data)
-	{
-		return Read(&Data, sizeof(Data));
-	}
+        template<class T>
+        int CountStringLengthSafe() noexcept
+        {
+            auto p = (const T*)Data();
+            const auto pEnd = (const T*)(this->m_pBase + this->m_cbMax);
+            BOOL bFoundNull{};
+            for (; p < pEnd; ++p)
+                if (*p == T{})
+                {
+                    bFoundNull = TRUE;
+                    break;
+                }
+            if (!bFoundNull)
+                return (int)GetLeaveSize();
+            return int(p - (const T*)Data());
+        }
 
-	template<class T, class U, class V>
-	EckInline CMemWriter& operator>>(const CRefStrT<T, U, V>& x)
-	{
-		const int cch = U::Len(Data());
-		x.ReSize(cch);
-		return Read(x.Data(), cch * sizeof(WCHAR));
-	}
+        template<class T>
+        auto& SkipPointer(_Out_ T*& p)
+        {
+            this->CheckRange(this->m_pMem + sizeof(T));
+            p = (T*)this->m_pMem;
+            this->m_pMem += sizeof(T);
+            return *this;
+        }
 
-	//EckInline operator const BYTE*& () { return m_pMem; }
+        EckInlineNdCe auto Data() noexcept { return this->m_pMem; }
 
-	EckInline const BYTE* Data() { return m_pMem; }
+        EckInline auto& operator+=(size_t cb)
+        {
+            this->CheckRange(this->m_pMem + cb);
+            this->m_pMem += cb;
+            return *this;
+        }
+        EckInline auto& operator-=(size_t cb)
+        {
+            this->CheckRange(this->m_pMem - cb);
+            this->m_pMem -= cb;
+            return *this;
+        }
 
-	EckInline CMemReader& operator+=(SIZE_T cb)
-	{
-		m_pMem += cb;
-		return *this;
-	}
+        EckInlineCe auto& MoveToBegin() noexcept
+        {
+            this->m_pMem = this->m_pBase;
+            return *this;
+        }
+        EckInlineCe auto& MoveToEnd() noexcept
+        {
+            this->m_pMem = this->m_pBase + this->m_cbMax;
+            return *this;
+        }
+        EckInline auto& MoveTo(size_t pos)
+        {
+            this->CheckRange(this->m_pBase + pos);
+            this->m_pMem = this->m_pBase + pos;
+            return *this;
+        }
+        EckInlineCe size_t GetLeaveSize() const noexcept { return this->m_pBase + this->m_cbMax - this->m_pMem; }
+        EckInlineCe BOOL IsEnd() const noexcept { return this->m_pMem >= this->m_pBase + this->m_cbMax; }
+        EckInlineCe size_t GetPosition() const noexcept { return this->m_pMem - this->m_pBase; }
+    };
+}
 
-	EckInline CMemReader& operator-=(SIZE_T cb)
-	{
-		m_pMem -= cb;
-		return *this;
-	}
-
-	template<class T>
-	CMemReader& SkipPointer(T*& p)
-	{
-		p = (T*)m_pMem;
-		m_pMem += sizeof(T);
-		return *this;
-	}
-};
-
-struct CMemWalker
-{
-	BYTE* m_pMem = nullptr;
-	BYTE* m_pBase = nullptr;
-	SIZE_T m_cbMax = 0u;
-
-	CMemWalker(PVOID p, SIZE_T cbMax)
-	{
-		m_pMem = (BYTE*)p;
-		m_pBase = m_pMem;
-		m_cbMax = cbMax;
-	}
-
-	EckInline CMemWalker& Write(PCVOID pSrc, SIZE_T cb)
-	{
-		EckDbgCheckMemRange(m_pBase, m_cbMax, m_pMem + cb);
-		memcpy(m_pMem, pSrc, cb);
-		m_pMem += cb;
-		return *this;
-	}
-
-	EckInline CMemWalker& WriteRev(PCVOID pSrc, SIZE_T cb)
-	{
-		Write(pSrc, cb);
-		ReverseByteOrder(Data() - cb, cb);
-		return *this;
-	}
-
-	template<class T>
-	EckInline CMemWalker& operator<<(const T& Data)
-	{
-		return Write(&Data, sizeof(T));
-	}
-
-	template<class T>
-	EckInline CMemWalker& WriteRev(const T& Data)
-	{
-		return WriteRev(&Data, sizeof(T));
-	}
-
-	template<class T, class U>
-	EckInline CMemWalker& operator<<(const std::basic_string_view<T, U>& Data)
-	{
-		return Write(Data.data(), Data.size() * sizeof(T)) << L'\0';
-	}
-
-	template<class T, class U>
-	EckInline CMemWalker& operator<<(const std::basic_string<T, U>& Data)
-	{
-		return Write(Data.c_str(), (Data.size() + 1) * sizeof(T));
-	}
-
-	template<class T, class U>
-	EckInline CMemWalker& operator<<(const std::vector<T, U>& Data)
-	{
-		return Write(Data.data(), Data.size() * sizeof(T));
-	}
-
-	template<class T>
-	EckInline CMemWalker& operator<<(const CRefBinT<T>& Data)
-	{
-		return Write(Data.Data(), Data.Size());
-	}
-
-	template<class T, class U, class V>
-	EckInline CMemWalker& operator<<(const CRefStrT<T, U, V>& Data)
-	{
-		return Write(Data.Data(), Data.ByteSize());
-	}
-
-	EckInline BYTE* Data() { return m_pMem; }
-
-	EckInline CMemWalker& operator+=(SIZE_T cb)
-	{
-		m_pMem += cb;
-		return *this;
-	}
-
-	EckInline CMemWalker& operator-=(SIZE_T cb)
-	{
-		m_pMem -= cb;
-		return *this;
-	}
-
-	template<class T>
-	CMemWalker& SkipPointer(T*& p)
-	{
-		p = (T*)m_pMem;
-		m_pMem += sizeof(T);
-		EckDbgCheckMemRange(m_pBase, m_cbMax, m_pMem);
-		return *this;
-	}
-
-	void SetPtr(PVOID p, SIZE_T cbMax)
-	{
-		m_pMem = (BYTE*)p;
-		m_pBase = m_pMem;
-		m_cbMax = cbMax;
-	}
-
-	EckInline CMemWalker& Read(void* pDst, SIZE_T cb)
-	{
-		EckDbgCheckMemRange(m_pBase, m_cbMax, m_pMem + cb);
-		memcpy(pDst, m_pMem, cb);
-		m_pMem += cb;
-		return *this;
-	}
-
-	EckInline CMemWalker& ReadRev(void* pDst, SIZE_T cb)
-	{
-		Read(pDst, cb);
-		ReverseByteOrder((BYTE*)pDst, cb);
-		return *this;
-	}
-
-	template<class T>
-	EckInline CMemWalker& operator>>(T& Data)
-	{
-		return Read(&Data, sizeof(Data));
-	}
-
-	template<class T>
-	EckInline CMemWalker& ReadRev(T& Data)
-	{
-		return ReadRev(&Data, sizeof(T));
-	}
-
-	template<class T, class U, class V>
-	EckInline CMemWalker& operator>>(CRefStrT<T, U, V>& x)
-	{
-		const int cch = (int)TcsLen((const T*)Data());
-		x.ReSize(cch);
-		return Read(x.Data(), (cch + 1) * sizeof(T));
-	}
-
-	EckInline constexpr CMemWalker& MoveToBegin()
-	{
-		m_pMem = m_pBase;
-		return *this;
-	}
-
-	EckInline constexpr CMemWalker& MoveToEnd()
-	{
-		m_pMem = m_pBase + m_cbMax;
-		return *this;
-	}
-
-	EckInline constexpr CMemWalker& MoveTo(SIZE_T pos)
-	{
-		m_pMem = m_pBase + pos;
-		EckDbgCheckMemRange(m_pBase, m_cbMax, m_pMem);
-		return *this;
-	}
-
-	EckInline constexpr SIZE_T GetLeaveSize() const
-	{
-		return m_pBase + m_cbMax - m_pMem;
-	}
-
-	EckInline constexpr BOOL IsEnd() const
-	{
-		return m_pMem >= m_pBase + m_cbMax;
-	}
-
-	EckInline constexpr SIZE_T GetPos() const
-	{
-		return m_pMem - m_pBase;
-	}
-};
+using CMemReader = Priv::CMemWalkerWarpper<Priv::CMemReaderBase>;
+using CMemWalker = Priv::CMemWalkerWarpper<Priv::CMemWalkerBase>;
+using CMemWriter = CMemWalker;// For compatibility.
 ECK_NAMESPACE_END

@@ -410,7 +410,7 @@ public:
         return Data() + m_cb - cb;
     }
 
-    EckInline void PopBack(size_t cb)
+    EckInline void PopBack(size_t cb = 1)
     {
         EckAssert(m_cb >= cb);
         m_cb -= cb;
@@ -487,6 +487,12 @@ public:
     EckInline size_t RFind(PCVOID pSub, size_t cbSub, size_t posStart = SizeTMax) const
     {
         return FindBinRev(Data(), Size(), pSub, cbSub, posStart);
+    }
+
+    EckInline size_t FindByte(BYTE by, size_t posStart = 0) const noexcept
+    {
+        const auto p = memchr(Data() + posStart, by, Size());
+        return p ? size_t(p - Data()) : BinNPos;
     }
 
     EckInlineNdCe std::span<BYTE> ToSpan()

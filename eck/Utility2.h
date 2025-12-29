@@ -71,96 +71,85 @@ EckInline std::wstring_view GetResourceStringForCurrentLocale(
 #pragma endregion 资源
 
 #pragma region Utf8转换
-template<class TCharTraits, class TAlloc>
-void StrW2U8(PCWSTR pszText, int cch, CRefStrT<CHAR, TCharTraits, TAlloc>& rsResult)
-{
-    int cchBuf = WideCharToMultiByte(CP_UTF8, 0, pszText, cch, nullptr, 0, nullptr, nullptr);
-    if (!cchBuf)
-        return;
-    if (cch == -1)
-        --cchBuf;
-    WideCharToMultiByte(CP_UTF8, 0, pszText, cch,
-        rsResult.PushBackNoExtra(cchBuf), cchBuf, nullptr, nullptr);
-}
-template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<CHAR>>
-[[nodiscard]] auto StrW2U8(PCWSTR pszText, int cch = -1)
-{
-    CRefStrT<CHAR, TCharTraits, TAlloc> rs;
-    StrW2U8(pszText, cch, rs);
-    return rs;
-}
-
 template<class TAlloc>
-void StrW2U8(PCWSTR pszText, int cch, CRefBinT<TAlloc>& rbResult)
+void StrW2X(CRefBinT<TAlloc>& rbResult,
+    _In_reads_or_z_(cch) PCWCH pszText,
+    int cch = -1,
+    UINT uCP = CP_ACP,
+    UINT uFlags = WC_COMPOSITECHECK) noexcept
 {
-    int cchBuf = WideCharToMultiByte(CP_UTF8, 0, pszText, cch, nullptr, 0, nullptr, nullptr);
+    int cchBuf = WideCharToMultiByte(uCP, uFlags,
+        pszText, cch, nullptr, 0, nullptr, nullptr);
     if (!cchBuf)
         return;
-    if (cch == -1)
+    if (cch < 0)
         --cchBuf;
-    const auto pszBuf = (PSTR)rbResult.PushBackNoExtra(cchBuf + 1);
-    WideCharToMultiByte(CP_UTF8, 0, pszText, cch, pszBuf, cchBuf, nullptr, nullptr);
+    const auto pszBuf = (PCH)rbResult.PushBackNoExtra(cchBuf + 1);
+    WideCharToMultiByte(uCP, uFlags,
+        pszText, cch, pszBuf, cchBuf, nullptr, nullptr);
     *(pszBuf + cchBuf) = '\0';
 }
-
-template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<CHAR>,
-    class T, class U>
-[[nodiscard]] EckInline CRefStrT<CHAR, TCharTraits, TAlloc> StrW2U8(
-    const CRefStrT<WCHAR, T, U>& rs)
-{
-    return StrW2U8<TCharTraits, TAlloc>(rs.Data(), rs.Size());
-}
-
-template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>>
-[[nodiscard]] CRefStrT<WCHAR, TCharTraits, TAlloc> StrU82W(PCSTR pszText, int cch = -1)
-{
-    int cchBuf = MultiByteToWideChar(CP_UTF8, 0, pszText, cch, nullptr, 0);
-    if (!cchBuf)
-        return {};
-    if (cch == -1)
-        --cchBuf;
-    CRefStrT<WCHAR, TCharTraits, TAlloc> rs(cchBuf);
-    MultiByteToWideChar(CP_UTF8, 0, pszText, cch, rs.Data(), cchBuf);
-    return rs;
-}
-
-template<class TCharTraits, class TAlloc>
-void StrU82W(PCSTR pszText, int cch, CRefStrT<WCHAR, TCharTraits, TAlloc>& rsResult)
-{
-    int cchBuf = MultiByteToWideChar(CP_UTF8, 0, pszText, cch, nullptr, 0);
-    if (!cchBuf)
-        return;
-    if (cch == -1)
-        --cchBuf;
-    MultiByteToWideChar(CP_UTF8, 0, pszText, cch,
-        rsResult.PushBackNoExtra(cchBuf), cchBuf);
-}
-
 template<class TAlloc>
-void StrU82W(PCSTR pszText, int cch, CRefBinT<TAlloc>& rbResult)
+void StrX2W(CRefBinT<TAlloc>& rbResult,
+    _In_reads_or_z_(cch) PCCH pszText,
+    int cch,
+    UINT uCP = CP_ACP,
+    UINT uFlags = MB_PRECOMPOSED) noexcept
 {
-    int cchBuf = MultiByteToWideChar(CP_UTF8, 0, pszText, cch, nullptr, 0);
+    int cchBuf = MultiByteToWideChar(uCP, uFlags, pszText, cch, nullptr, 0);
     if (!cchBuf)
         return;
     if (cch == -1)
         --cchBuf;
-    const auto pszBuf = (PWSTR)rbResult.PushBackNoExtra((cchBuf + 1) * sizeof(WCHAR));
-    MultiByteToWideChar(CP_UTF8, 0, pszText, cch, pszBuf, cchBuf);
+    const auto pszBuf = (PWCH)rbResult.PushBackNoExtra((cchBuf + 1) * sizeof(WCHAR));
+    MultiByteToWideChar(uCP, uFlags, pszText, cch, pszBuf, cchBuf);
     *(pszBuf + cchBuf) = L'\0';
 }
 
-template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>,
-    class T, class U>
-[[nodiscard]] EckInline CRefStrT<WCHAR, TCharTraits, TAlloc> StrU82W(
-    const CRefStrT<CHAR, T, U>& rs)
+template<class TChar, class TTraits, class TAlloc>
+    requires (sizeof(TChar) == 1)
+EckInline void StrW2U8(CRefStrT<TChar, TTraits, TAlloc>& rsResult,
+    _In_reads_or_z_(cch) PCWCH pszText, int cch = -1) noexcept
 {
-    return StrU82W<TCharTraits, TAlloc>(rs.Data(), rs.Size());
+    StrW2X(rsResult, pszText, cch, CP_UTF8, 0u);
+}
+template<class TTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<CHAR>>
+EckInlineNd auto StrW2U8(_In_reads_or_z_(cch) PCWCH pszText, int cch = -1) noexcept
+{
+    CRefStrT<CHAR, TTraits, TAlloc> rs;
+    StrW2U8(rs, pszText, cch);
+    return rs;
+}
+template<class TAlloc>
+void StrW2U8(CRefBinT<TAlloc>& rbResult,
+    _In_reads_or_z_(cch) PCWCH pszText, int cch = -1) noexcept
+{
+    StrW2X(rbResult, pszText, cch, CP_UTF8, 0u);
 }
 
-template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>, class T>
-[[nodiscard]] EckInline CRefStrT<WCHAR, TCharTraits, TAlloc> StrU82W(const CRefBinT<T>& rb)
+template<class TChar, class TTraits, class TAlloc>
+    requires (sizeof(TChar) == 2)
+EckInline void StrU82W(CRefStrT<TChar, TTraits, TAlloc>& rsResult,
+    _In_reads_or_z_(cch) PCCH pszText, int cch = -1) noexcept
 {
-    return StrU82W<TCharTraits, TAlloc>((PCSTR)rb.Data(), (int)rb.Size());
+    StrX2W(rsResult, pszText, cch, CP_UTF8, 0u);
+}
+template<class TTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>>
+EckInlineNd auto StrU82W(_In_reads_or_z_(cch) PCCH pszText, int cch = -1) noexcept
+{
+    CRefStrT<WCHAR, TTraits, TAlloc> rs;
+    StrU82W(rs, pszText, cch);
+    return rs;
+}
+template<class TAlloc>
+void StrU82W(CRefBinT<TAlloc>& rbResult, _In_reads_or_z_(cch) PCCH pszText, int cch) noexcept
+{
+    StrX2W(rbResult, pszText, cch, CP_UTF8);
+}
+template<class TTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>, class T>
+EckInlineNd auto StrU82W(const CRefBinT<T>& rb) noexcept
+{
+    return StrU82W<TTraits, TAlloc>((PCSTR)rb.Data(), (int)rb.Size());
 }
 
 inline NTSTATUS CalcMd5(_In_reads_bytes_(cbData) PCVOID pData,

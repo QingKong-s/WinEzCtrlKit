@@ -38,7 +38,7 @@ struct CBuffer
 
     HRESULT Create(
         size_t cb,
-        D3D11_BIND_FLAG eBind,
+        UINT eBind,
         D3D11_USAGE eUsage,
         UINT uCPUAccessFlags = 0u,
         UINT uMiscFlags = 0u,
@@ -220,6 +220,13 @@ struct CShaderResourceView
 
     HRESULT Create(
         ID3D11Resource* pResource,
+        const D3D11_SHADER_RESOURCE_VIEW_DESC& Desc) noexcept
+    {
+        return g_pD3d11Device->CreateShaderResourceView(
+            pResource, &Desc, pSrv.AddrOfClear());
+    }
+    HRESULT Create(
+        ID3D11Resource* pResource,
         DXGI_FORMAT eFormat = DXGI_FORMAT_UNKNOWN,
         D3D11_SRV_DIMENSION eDimension = D3D11_SRV_DIMENSION_TEXTURE2D,
         UINT uMipLevels = 1u) noexcept
@@ -228,7 +235,7 @@ struct CShaderResourceView
         Desc.Format = eFormat;
         Desc.ViewDimension = eDimension;
         Desc.Texture2D.MipLevels = uMipLevels;
-        return g_pD3d11Device->CreateShaderResourceView(pResource, &Desc, pSrv.AddrOfClear());
+        return Create(pResource, Desc);
     }
 
     EckInlineNdCe auto operator->() const noexcept { return pSrv.Get(); }

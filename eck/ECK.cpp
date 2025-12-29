@@ -1712,7 +1712,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwE
         {
             *pdwErrCode = hr;
             EckDbgPrintFormatMessage(hr);
-            return InitStatus::DxgiDeviceError;
+            return InitStatus::D2dFactoryError;
         }
         //////////////获取调试接口
 #ifdef _DEBUG

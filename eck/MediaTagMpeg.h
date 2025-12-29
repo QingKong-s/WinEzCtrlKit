@@ -126,9 +126,9 @@ public:
 		if (m_File.m_Loc.posV2 != SIZETMax)
 		{
 			m_Stream.MoveTo(m_File.m_Loc.posV2);
-			ID3v2_Header Hdr;
+			ID3v2_HEADER Hdr;
 			m_Stream >> Hdr;
-			m_posBegin = ThSyncSafeIntToDWORD(Hdr.Size) + 10 + m_File.m_Loc.posV2;// 跳过ID3v2以避免错误同步
+			m_posBegin = TagSyncSafeIntToUInt(Hdr.Size) + 10 + m_File.m_Loc.posV2;// 跳过ID3v2以避免错误同步
 		}
 		else
 			m_posBegin = 0;

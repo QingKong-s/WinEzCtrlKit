@@ -999,6 +999,11 @@ public:
             return FALSE;
         return TcsEqualLen(Data(), psz, cch);
     }
+    template<class TTraits>
+    EckInlineNd int IsStartWith(std::basic_string_view<TChar, TTraits> sv) const
+    {
+        return IsStartWith(sv.data(), (int)sv.size());
+    }
     [[nodiscard]] BOOL IsStartWithI(TConstPointer psz, int cch = -1) const
     {
         if (cch < 0)
@@ -1007,6 +1012,12 @@ public:
             return FALSE;
         return TcsEqualLenI(Data(), psz, cch);
     }
+    template<class TTraits>
+    EckInlineNd int IsStartWithI(std::basic_string_view<TChar, TTraits> sv) const
+    {
+        return IsStartWithI(sv.data(), (int)sv.size());
+    }
+
     [[nodiscard]] BOOL IsEndWith(TConstPointer psz, int cch = -1) const
     {
         if (cch < 0)
@@ -1015,6 +1026,11 @@ public:
             return FALSE;
         return TcsEqualLen(Data() + Size() - cch, psz, cch);
     }
+    template<class TTraits>
+    EckInlineNd int IsEndWith(std::basic_string_view<TChar, TTraits> sv) const
+    {
+        return IsEndWith(sv.data(), (int)sv.size());
+    }
     [[nodiscard]] BOOL IsEndWithI(TConstPointer psz, int cch = -1) const
     {
         if (cch < 0)
@@ -1022,6 +1038,11 @@ public:
         if (cch == 0 || Size() < cch)
             return FALSE;
         return TcsEqualLenI(Data() + Size() - cch, psz, cch);
+    }
+    template<class TTraits>
+    EckInlineNd int IsEndWithI(std::basic_string_view<TChar, TTraits> sv) const
+    {
+        return IsEndWithI(sv.data(), (int)sv.size());
     }
 
     EckInlineNd CRefStrT SubStr(int posStart, int cch) const
@@ -1068,11 +1089,21 @@ public:
             cch = (int)TcsLen(psz);
         return TcsCompareLen2(Data(), Size(), psz, cch);
     }
+    template<class TTraits>
+    EckInline int Compare(std::basic_string_view<TChar, TTraits> sv) const noexcept
+    {
+        return Compare(sv.data(), (int)sv.size());
+    }
     EckInline int CompareI(TConstPointer psz, int cch = -1) const
     {
         if (cch < 0)
             cch = (int)TcsLen(psz);
         return TcsCompareLen2I(Data(), Size(), psz, cch);
+    }
+    template<class TTraits>
+    EckInline int CompareI(std::basic_string_view<TChar, TTraits> sv) const noexcept
+    {
+        return CompareI(sv.data(), (int)sv.size());
     }
 
     // 返回文件名的位置，注意：若分隔符在开头则返回-1
@@ -1409,51 +1440,57 @@ namespace Literals
         pszText, cchText, rs.PushBack(cchResult), cchResult, nullptr, nullptr, 0);
 }
 
-template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<CHAR>>
-[[nodiscard]] CRefStrT<CHAR, TCharTraits, TAlloc> StrW2X(PCWSTR pszText, int cch = -1, int uCP = CP_ACP)
+template<class TChar, class TTraits, class TAlloc>
+    requires (sizeof(TChar) == 1)
+void StrW2X(CRefStrT<TChar, TTraits, TAlloc>& rsResult,
+    _In_reads_or_z_(cch) PCWCH pszText,
+    int cch = -1,
+    UINT uCP = CP_ACP,
+    UINT uFlags = WC_COMPOSITECHECK) noexcept
 {
-    int cchBuf = WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, nullptr, 0, nullptr, nullptr);
+    int cchBuf = WideCharToMultiByte(uCP, uFlags,
+        pszText, cch, nullptr, 0, nullptr, nullptr);
     if (!cchBuf)
-        return {};
-    if (cch == -1)
+        return;
+    if (cch < 0)
         --cchBuf;
-    CRefStrT<CHAR, TCharTraits, TAlloc> rs(cchBuf);
-    WideCharToMultiByte(uCP, WC_COMPOSITECHECK, pszText, cch, rs.Data(), cchBuf, nullptr, nullptr);
-    *(rs.Data() + cchBuf) = '\0';
+    WideCharToMultiByte(uCP, uFlags, pszText, cch,
+        (PCH)rsResult.PushBackNoExtra(cchBuf), cchBuf, nullptr, nullptr);
+}
+template<class TTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<CHAR>>
+EckInlineNd auto StrW2X(_In_reads_or_z_(cch) PCWCH pszText, int cch = -1, int uCP = CP_ACP) noexcept
+{
+    CRefStrT<CHAR, TTraits, TAlloc> rs{};
+    StrW2X(rs, pszText, cch, uCP);
     return rs;
 }
 
-template<class TCharTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<CHAR>,
-    class T, class U>
-[[nodiscard]] EckInline CRefStrT<CHAR, TCharTraits, TAlloc> StrW2X(
-    const CRefStrT<WCHAR, T, U>& rs, int uCP = CP_ACP)
+template<class TChar, class TTraits, class TAlloc>
+    requires (sizeof(TChar) == 2)
+void StrX2W(CRefStrT<TChar, TTraits, TAlloc>& rsResult,
+    _In_reads_or_z_(cch) PCCH pszText,
+    int cch = -1,
+    UINT uCP = CP_ACP,
+    UINT uFlags = MB_PRECOMPOSED) noexcept
 {
-    return StrW2X(rs.Data(), rs.Size(), uCP);
-}
-
-template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>>
-[[nodiscard]] CRefStrT<WCHAR, TCharTraits, TAlloc> StrX2W(PCSTR pszText, int cch = -1, int uCP = CP_ACP)
-{
-    int cchBuf = MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, nullptr, 0);
+    int cchBuf = MultiByteToWideChar(uCP, uFlags,
+        pszText, cch, nullptr, 0);
     if (!cchBuf)
-        return {};
-    if (cch == -1)
+        return;
+    if (cch < 0)
         --cchBuf;
-    CRefStrT<WCHAR, TCharTraits, TAlloc> rs(cchBuf);
-    MultiByteToWideChar(uCP, MB_PRECOMPOSED, pszText, cch, rs.Data(), cchBuf);
-    *(rs.Data() + cchBuf) = '\0';
+    MultiByteToWideChar(uCP, uFlags,
+        pszText, cch, rsResult.PushBackNoExtra(cchBuf), cchBuf);
+}
+template<class TTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>>
+EckInlineNd auto StrX2W(_In_reads_or_z_(cch) PCCH pszText, int cch = -1, int uCP = CP_ACP) noexcept
+{
+    CRefStrT<WCHAR, TTraits, TAlloc> rs{};
+    StrX2W(rs, pszText, cch, uCP);
     return rs;
 }
 
-template<class TCharTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>,
-    class T, class U>
-[[nodiscard]] EckInline CRefStrT<WCHAR, TCharTraits, TAlloc> StrX2W(
-    const CRefStrT<CHAR, T, U>& rs, int uCP = CP_ACP)
-{
-    return StrX2W(rs.Data(), rs.Size(), uCP);
-}
-
-EckInline CRefStrW Format(PCWSTR pszFmt, ...)
+EckInlineNd CRefStrW Format(PCWSTR pszFmt, ...)
 {
     CRefStrW rs{};
     va_list vl;
@@ -1462,8 +1499,7 @@ EckInline CRefStrW Format(PCWSTR pszFmt, ...)
     va_end(vl);
     return rs;
 }
-
-EckInline CRefStrA Format(PCSTR pszFmt, ...)
+EckInlineNd CRefStrA Format(PCSTR pszFmt, ...)
 {
     CRefStrA rs{};
     va_list vl;
@@ -1474,11 +1510,11 @@ EckInline CRefStrA Format(PCSTR pszFmt, ...)
 }
 ECK_NAMESPACE_END
 
-template<class TChar, class TCharTraits, class TAlloc>
-struct std::hash<::eck::CRefStrT<TChar, TCharTraits, TAlloc>>
+template<class TChar, class TTraits, class TAlloc>
+struct std::hash<::eck::CRefStrT<TChar, TTraits, TAlloc>>
 {
-    [[nodiscard]] EckInline constexpr size_t operator()(
-        const ::eck::CRefStrT<TChar, TCharTraits, TAlloc>& rs) const noexcept
+    EckInlineNdCe size_t operator()(
+        const ::eck::CRefStrT<TChar, TTraits, TAlloc>& rs) const noexcept
     {
         return ::eck::Fnv1aHash((::eck::PCBYTE)rs.Data(), rs.Size() * sizeof(TChar));
     }

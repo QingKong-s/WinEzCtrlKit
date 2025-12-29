@@ -4,380 +4,318 @@
 #include "IMem.h"
 #include "AutoPtrDef.h"
 #include "NativeWrapper.h"
+#include "ComPtr.h"
 
 ECK_NAMESPACE_BEGIN
-struct CStreamWalker
+class CStreamWalker
 {
-	IStream* m_pStream{};
-	ULONG m_cbLastReadWrite{};
-	HRESULT m_hrLastErr{ S_OK };
+public:
+    struct Xpt {};
+    struct XptHResult : Xpt
+    {
+        HRESULT hr;
+        constexpr explicit XptHResult(HRESULT h) noexcept : hr{ h } {}
+    };
+    struct XptRwSize : Xpt
+    {
+        UINT cb;
+        UINT cbActual;
+        constexpr XptRwSize(UINT c, UINT a) noexcept : cb{ c }, cbActual{ a } {}
+    };
+    struct XptRange : Xpt
+    {
+        size_t pos;
+        size_t cb;
+        size_t cbActual;
+        constexpr XptRange(size_t p, size_t c, size_t a) noexcept
+            : pos{ p }, cb{ c }, cbActual{ a }
+        {
+        }
+    };
+private:
+    ComPtr<IStream> m_pStream{};
+public:
+    CStreamWalker() = default;
+    CStreamWalker(IStream* p) noexcept : m_pStream{ p } {}
 
-	CStreamWalker() = default;
+    CStreamWalker& Write(PCVOID pSrc, size_t cb)
+    {
+        ULONG cbWritten;
+        const auto hr = m_pStream->Write(pSrc, (ULONG)cb, &cbWritten);
+        if (FAILED(hr))
+            throw XptHResult{ hr };
+        if (cbWritten != cb)
+            throw XptRwSize{ (UINT)cb, cbWritten };
+        return *this;
+    }
 
-	constexpr CStreamWalker(IStream* p) :m_pStream{ p } {}
+    EckInline CStreamWalker& operator<<(const auto& Data) { return Write(&Data, sizeof(Data)); }
+    template<class T, class U>
+    EckInline CStreamWalker& operator<<(const std::basic_string_view<T, U>& Data)
+    {
+        return Write(Data.data(), Data.size() * sizeof(T)) << L'\0';
+    }
+    template<class T, class U, class V>
+    EckInline CStreamWalker& operator<<(const std::basic_string<T, U, V>& Data)
+    {
+        return Write(Data.c_str(), (Data.size() + 1) * sizeof(T));
+    }
+    template<class T, class U>
+    EckInline CStreamWalker& operator<<(const std::vector<T, U>& Data)
+    {
+        return Write(Data.data(), Data.size() * sizeof(T));
+    }
+    template<class T>
+    EckInline CStreamWalker& operator<<(const CRefBinT<T>& Data)
+    {
+        return Write(Data.Data(), (ULONG)Data.Size());
+    }
+    template<class T, class U, class V>
+    EckInline CStreamWalker& operator<<(const CRefStrT<T, U, V>& Data)
+    {
+        return Write(Data.Data(), Data.ByteSize());
+    }
 
-	EckInline constexpr ULONG GetLastRWSize() const { return m_cbLastReadWrite; }
+    CStreamWalker& Read(void* pDst, size_t cb)
+    {
+        ULONG cbRead;
+        const auto hr = m_pStream->Read(pDst, (ULONG)cb, &cbRead);
+        if (FAILED(hr))
+            throw XptHResult{ hr };
+        if (cbRead != cb)
+            throw XptRwSize{ (UINT)cb, cbRead };
+        return *this;
+    }
+    EckInline CStreamWalker& operator>>(auto& Data) { return Read(&Data, sizeof(Data)); }
+    CStreamWalker& ReadRev(void* pDst, size_t cb)
+    {
+        Read(pDst, cb);
+        ReverseByteOrder((BYTE*)pDst, cb);
+        return *this;
+    }
 
-	EckInline CStreamWalker& Write(PCVOID pSrc, SIZE_T cb)
-	{
-		m_hrLastErr = m_pStream->Write(pSrc, (ULONG)cb, &m_cbLastReadWrite);
-		return *this;
-	}
+    CStreamWalker& operator+=(size_t cb)
+    {
+        const auto hr = m_pStream->Seek(ToLi((LONGLONG)cb), STREAM_SEEK_CUR, nullptr);
+        if (FAILED(hr))
+            throw XptHResult{ hr };
+        return *this;
+    }
+    CStreamWalker& operator-=(size_t cb)
+    {
+        const auto hr = m_pStream->Seek(ToLi(-(LONGLONG)cb), STREAM_SEEK_CUR, nullptr);
+        if (FAILED(hr))
+            throw XptHResult{ hr };
+        return *this;
+    }
 
-	template<class T>
-	EckInline CStreamWalker& operator<<(const T& Data)
-	{
-		return Write(&Data, sizeof(Data));
-	}
+    CStreamWalker& MoveToBegin()
+    {
+        const auto hr = m_pStream->Seek(LiZero, STREAM_SEEK_SET, nullptr);
+        if (FAILED(hr))
+            throw XptHResult{ hr };
+        return *this;
+    }
+    CStreamWalker& MoveToEnd()
+    {
+        const auto hr = m_pStream->Seek(LiZero, STREAM_SEEK_END, nullptr);
+        if (FAILED(hr))
+            throw XptHResult{ hr };
+        return *this;
+    }
+    CStreamWalker& MoveTo(size_t x)
+    {
+        const auto hr = m_pStream->Seek(ToLi((LONGLONG)x), STREAM_SEEK_SET, nullptr);
+        if (FAILED(hr))
+            throw XptHResult{ hr };
+        return *this;
+    }
 
-	template<class T, class U>
-	EckInline CStreamWalker& operator<<(const std::basic_string_view<T, U>& Data)
-	{
-		return Write(Data.data(), Data.size() * sizeof(T)) << L'\0';
-	}
+    CStreamWalker& Seek(SSIZE_T x, UINT uOrg = STREAM_SEEK_SET,
+        size_t* pposNew = nullptr)
+    {
+        ULARGE_INTEGER uliNew;
+        const auto hr = m_pStream->Seek(ToLi(x), uOrg, &uliNew);
+        if (FAILED(hr))
+            throw XptHResult{ hr };
+        if (pposNew)
+            *pposNew = (size_t)uliNew.QuadPart;
+        return *this;
+    }
 
-	template<class T, class U>
-	EckInline CStreamWalker& operator<<(const std::basic_string<T, U>& Data)
-	{
-		return Write(Data.c_str(), (Data.size() + 1) * sizeof(T));
-	}
+    size_t GetPos()
+    {
+        ULARGE_INTEGER uli{};
+        const auto hr = m_pStream->Seek(LiZero, STREAM_SEEK_CUR, &uli);
+        if (FAILED(hr))
+            throw XptHResult{ hr };
+        return (size_t)uli.QuadPart;
+    }
 
-	template<class T, class U>
-	EckInline CStreamWalker& operator<<(const std::vector<T, U>& Data)
-	{
-		return Write(Data.data(), Data.size() * sizeof(T));
-	}
+    size_t GetSize()
+    {
+        STATSTG ss;
+        const auto hr = m_pStream->Stat(&ss, STATFLAG_NONAME);
+        if (FAILED(hr))
+            throw XptHResult{ hr };
+        return (size_t)ss.cbSize.QuadPart;
+    }
 
-	template<class T>
-	EckInline CStreamWalker& operator<<(const CRefBinT<T>& Data)
-	{
-		return Write(Data.Data(), (ULONG)Data.Size());
-	}
+    // 此函数返回后当前流位置未定义
+    // 若抛出，则流内容未定义
+    void MoveData(size_t posDst, size_t posSrc,
+        size_t cbSize, size_t cbMoveBuf = 4096u, void* pMoveBuf = nullptr)
+    {
+        if (posDst == posSrc || cbSize == 0ull)
+            return;
+        EckAssert(posSrc < GetSize() && posSrc + cbSize <= GetSize());
+        // 若流实现IMem，则尝试memmove
+        ComPtr<IMem> pMem;
+        if (SUCCEEDED(m_pStream.As(pMem)))
+        {
+            void* pData;
+            size_t cbData;
+            if (SUCCEEDED(pMem->MemGetPtr(&pData, &cbData)))// 支持取指针
+            {
+                memmove((BYTE*)pData + posDst, (PCBYTE)pData + posSrc, cbSize);
+                return;
+            }
+            else if (SUCCEEDED(pMem->MemLock(&pData, &cbData)))// 支持锁定
+            {
+                memmove((BYTE*)pData + posDst, (PCBYTE)pData + posSrc, cbSize);
+                pMem->MemUnlock();
+                return;
+            }
+        }
+        // 若流支持克隆，则优先使用其CopyTo实现
+        ComPtr<IStream> pSelf;
+        if (SUCCEEDED(m_pStream->Clone(&pSelf)))
+        {
+            MoveTo(posSrc);
+            auto hr = pSelf->Seek(ToLi(posDst), STREAM_SEEK_SET, nullptr);
+            if (SUCCEEDED(hr))
+            {
+                hr = m_pStream->CopyTo(pSelf.Get(), ToUli(cbSize), nullptr, nullptr);
+                if (SUCCEEDED(hr))
+                    return;
+            }
+        }
+        //
+        BOOL bExternalBuf = FALSE;
+        if (!pMoveBuf)
+        {
+            pMoveBuf = VAlloc(cbMoveBuf);
+            if (!pMoveBuf)
+                throw XptHResult{ E_OUTOFMEMORY };
+            bExternalBuf = TRUE;
+        }
+        const UniquePtr<DelVA<void>> _{ bExternalBuf ? pMoveBuf : nullptr };
 
-	template<class T, class U, class V>
-	EckInline CStreamWalker& operator<<(const CRefStrT<T, U, V>& Data)
-	{
-		return Write(Data.Data(), Data.ByteSize());
-	}
+        if (cbSize <= cbMoveBuf)
+        {
+            MoveTo(posSrc);
+            Read(pMoveBuf, (ULONG)cbSize);
+            MoveTo(posDst);
+            Write(pMoveBuf, (ULONG)cbSize);
+            return;
+        }
 
-	EckInline constexpr auto GetStream() const { return m_pStream; }
+        const auto posSrcEnd = posSrc + cbSize;
+        const auto posDstEnd = posDst + cbSize;
+        if (posDst > posSrc)// 从后向前复制
+        {
+            size_t posRead = posSrcEnd - cbMoveBuf;
+            size_t posWrite = posDstEnd - cbMoveBuf;
+            EckLoop()
+            {
+                MoveTo(posRead);
+                Read(pMoveBuf, cbMoveBuf);
+                MoveTo(posWrite);
+                Write(pMoveBuf, cbMoveBuf);
 
-	EckInline CStreamWalker& operator+=(SIZE_T cb)
-	{
-		m_hrLastErr = m_pStream->Seek({ .QuadPart = (LONGLONG)cb }, STREAM_SEEK_CUR, nullptr);
-		return *this;
-	}
+                if (const auto cb = posRead - posSrc; cb < cbMoveBuf)
+                {
+                    if (!cb)
+                        break;
+                    MoveTo(posSrc);
+                    Read(pMoveBuf, cb);
+                    MoveTo(posDst);
+                    Write(pMoveBuf, cb);
+                    break;
+                }
+                else
+                {
+                    posRead -= cbMoveBuf;
+                    posWrite -= cbMoveBuf;
+                }
+            }
+        }
+        else// 从前向后复制
+        {
+            size_t posRead = posSrc;
+            size_t posWrite = posDst;
+            EckLoop()
+            {
+                MoveTo(posRead);
+                Read(pMoveBuf, cbMoveBuf);
+                MoveTo(posWrite);
+                Write(pMoveBuf, cbMoveBuf);
 
-	EckInline CStreamWalker& operator-=(SIZE_T cb)
-	{
-		m_hrLastErr = m_pStream->Seek({ .QuadPart = -(LONGLONG)cb }, STREAM_SEEK_CUR, nullptr);
-		return *this;
-	}
+                if (const auto cb = posSrcEnd - (posRead + cbMoveBuf); cb < cbMoveBuf)
+                {
+                    if (!cb)
+                        break;
+                    MoveTo(posRead + cbMoveBuf);
+                    Read(pMoveBuf, cb);
+                    MoveTo(posWrite + cbMoveBuf);
+                    Write(pMoveBuf, cb);
+                    break;
+                }
+                else
+                {
+                    posRead += cbMoveBuf;
+                    posWrite += cbMoveBuf;
+                }
+            }
+        }
+    }
 
-	EckInline CStreamWalker& Read(void* pDst, SIZE_T cb)
-	{
-		m_hrLastErr = m_pStream->Read(pDst, (ULONG)cb, &m_cbLastReadWrite);
-		return *this;
-	}
+    void Insert(size_t pos, size_t cbSize)
+    {
+        if (!cbSize)
+            return;
+        const auto uliStrmSize = GetSize();
+        m_pStream->SetSize(ToUli(GetSize() + cbSize));
+        if (pos != uliStrmSize)
+            MoveData(pos + cbSize, pos, uliStrmSize - pos);
+    }
 
-	EckInline CStreamWalker& ReadRev(void* pDst, SIZE_T cb)
-	{
-		Read(pDst, cb);
-		ReverseByteOrder((BYTE*)pDst, cb);
-		return *this;
-	}
+    void Erase(size_t pos, size_t cbSize)
+    {
+        if (!cbSize)
+            return;
+        const auto cbTotal = GetSize();
+        if (pos + cbSize > cbTotal)
+            throw XptRange{ pos, cbSize, cbTotal - pos };
+        if (pos + cbSize != cbTotal)
+            MoveData(pos, pos + cbSize, cbTotal - pos - cbSize);
+        ReSize(cbTotal - cbSize);
+    }
 
-	template<class T>
-	EckInline CStreamWalker& operator>>(T& Data)
-	{
-		return Read(&Data, sizeof(Data));
-	}
+    void ReSize(size_t cbSize)
+    {
+        const auto hr = m_pStream->SetSize(ToUli(cbSize));
+        if (FAILED(hr))
+            throw XptHResult{ hr };
+    }
 
-	EckInline CStreamWalker& MoveToBegin()
-	{
-		m_hrLastErr = m_pStream->Seek(LiZero, STREAM_SEEK_SET, nullptr);
-		return *this;
-	}
+    void Commit(DWORD grfCommitFlags = STGC_DEFAULT)
+    {
+        const auto hr = m_pStream->Commit(grfCommitFlags);
+        if (FAILED(hr))
+            throw XptHResult{ hr };
+    }
 
-	EckInline CStreamWalker& MoveToEnd()
-	{
-		m_hrLastErr = m_pStream->Seek(LiZero, STREAM_SEEK_END, nullptr);
-		return *this;
-	}
-
-	EckInline CStreamWalker& MoveTo(LARGE_INTEGER li)
-	{
-		m_hrLastErr = m_pStream->Seek(li, STREAM_SEEK_SET, nullptr);
-		return *this;
-	}
-
-	EckInline CStreamWalker& MoveTo(ULARGE_INTEGER uli)
-	{
-		m_hrLastErr = m_pStream->Seek(ToLi(uli), STREAM_SEEK_SET, nullptr);
-		return *this;
-	}
-
-	EckInline CStreamWalker& MoveTo(SIZE_T x)
-	{
-		m_hrLastErr = m_pStream->Seek(ToLi((LONGLONG)x), STREAM_SEEK_SET, nullptr);
-		return *this;
-	}
-
-	EckInline CStreamWalker& MoveTo(SSIZE_T x)
-	{
-		m_hrLastErr = m_pStream->Seek(ToLi((LONGLONG)x), STREAM_SEEK_SET, nullptr);
-		return *this;
-	}
-
-	EckInline SIZE_T GetPos()
-	{
-		ULARGE_INTEGER uli{};
-		m_hrLastErr = m_pStream->Seek(LiZero, STREAM_SEEK_CUR, &uli);
-		return (SIZE_T)uli.QuadPart;
-	}
-
-	EckInline ULARGE_INTEGER GetPosUli()
-	{
-		ULARGE_INTEGER uli{};
-		m_hrLastErr = m_pStream->Seek(LiZero, STREAM_SEEK_CUR, &uli);
-		return uli;
-	}
-
-	EckInline ULARGE_INTEGER GetSizeUli()
-	{
-		STATSTG ss;
-		m_hrLastErr = m_pStream->Stat(&ss, STATFLAG_NONAME);
-		return ss.cbSize;
-	}
-
-	EckInline SIZE_T GetSize()
-	{
-		return (SIZE_T)GetSizeUli().QuadPart;
-	}
-
-	EckInline CRefBin ReadBin(SIZE_T cb)
-	{
-		CRefBin rb(cb);
-		Read(rb.Data(), (ULONG)cb);
-		return rb;
-	}
-
-	void MoveData(ULARGE_INTEGER posDst, ULARGE_INTEGER posSrc,
-		ULARGE_INTEGER cbSize, SIZE_T cbMoveBuf = 4096u, void* pMoveBuf = nullptr)
-	{
-		if (posDst == posSrc || cbSize == 0ull)
-		{
-			m_hrLastErr = S_FALSE;
-			return;
-		}
-		EckAssert(posSrc < GetSizeUli() && posSrc + cbSize <= GetSizeUli());
-		// 若流实现IMem，则尝试memmove
-		IMem* pMem;
-		if (SUCCEEDED(m_pStream->QueryInterface(&pMem)))
-		{
-			void* pData;
-			SIZE_T cbData;
-			if (SUCCEEDED(pMem->MemGetPtr(&pData, &cbData)))// 支持取指针
-			{
-				memmove((BYTE*)pData + (SIZE_T)posDst.QuadPart,
-					(BYTE*)pData + (SIZE_T)posSrc.QuadPart, (SIZE_T)cbSize.QuadPart);
-				pMem->Release();
-				m_hrLastErr = S_OK;
-				return;
-			}
-			else if (SUCCEEDED(pMem->MemLock(&pData, &cbData)))// 支持锁定
-			{
-				memmove((BYTE*)pData + (SIZE_T)posDst.QuadPart,
-					(BYTE*)pData + (SIZE_T)posSrc.QuadPart, (SIZE_T)cbSize.QuadPart);
-				pMem->MemUnlock();
-				pMem->Release();
-				m_hrLastErr = S_OK;
-				return;
-			}
-			else
-				pMem->Release();
-		}
-		// 若流支持克隆，则优先使用其CopyTo实现
-		IStream* pSelf;
-		if (SUCCEEDED(m_pStream->Clone(&pSelf)))
-		{
-			MoveTo(posSrc);
-			pSelf->Seek(ToLi(posDst), STREAM_SEEK_SET, nullptr);
-			const auto hr = m_pStream->CopyTo(pSelf, cbSize, nullptr, nullptr);
-			pSelf->Release();
-			if (SUCCEEDED(hr)) return;
-		}
-
-		BOOL bExternalBuf = FALSE;
-		if (!pMoveBuf)
-		{
-			pMoveBuf = VAlloc(cbMoveBuf);
-			if (!pMoveBuf)
-			{
-				m_hrLastErr = E_OUTOFMEMORY;
-				return;
-			}
-			bExternalBuf = TRUE;
-		}
-		UniquePtr<DelVA<void>> _{ bExternalBuf ? pMoveBuf : nullptr };
-
-		if (cbSize <= cbMoveBuf)
-		{
-			MoveTo(posSrc);
-			Read(pMoveBuf, (ULONG)cbSize.QuadPart);
-			if (FAILED(m_hrLastErr))
-				return;
-			MoveTo(posDst);
-			Write(pMoveBuf, (ULONG)cbSize.QuadPart);
-			return;
-		}
-
-		const auto posSrcEnd = posSrc + cbSize;
-		const auto posDstEnd = posDst + cbSize;
-		if (posDst > posSrc)// 从后向前复制
-		{
-			LARGE_INTEGER posRead = ToLi(posSrcEnd - cbMoveBuf);
-			LARGE_INTEGER posWrite = ToLi(posDstEnd - cbMoveBuf);
-			const LARGE_INTEGER liPosSrc = ToLi(posSrc);
-			EckLoop()
-			{
-				MoveTo(posRead);
-				Read(pMoveBuf, cbMoveBuf);
-				if (FAILED(m_hrLastErr))
-					return;
-				if (m_cbLastReadWrite != cbMoveBuf)
-				{
-					m_hrLastErr = E_FAIL;
-					return;
-				}
-				MoveTo(posWrite);
-				Write(pMoveBuf, cbMoveBuf);
-				if (FAILED(m_hrLastErr))
-					return;
-				if (m_cbLastReadWrite != cbMoveBuf)
-				{
-					m_hrLastErr = E_FAIL;
-					return;
-				}
-
-				const auto posPrev = posRead;
-				posRead -= cbMoveBuf;
-				posWrite -= cbMoveBuf;
-				if (posRead < liPosSrc)
-				{
-					posRead = liPosSrc;
-					posWrite = posRead + ToLi(posDst - posSrc);
-					const ULONG cbRead = (ULONG)(posPrev - liPosSrc).QuadPart;
-					MoveTo(posRead);
-					Read(pMoveBuf, cbRead);
-					if (m_cbLastReadWrite != cbRead)
-					{
-						m_hrLastErr = E_FAIL;
-						return;
-					}
-					MoveTo(posWrite);
-					Write(pMoveBuf, cbRead);
-					if (m_cbLastReadWrite != cbRead)
-					{
-						m_hrLastErr = E_FAIL;
-						return;
-					}
-					break;
-				}
-			}
-		}
-		else// 从前向后复制
-		{
-			LARGE_INTEGER posRead = ToLi(posSrc);
-			LARGE_INTEGER posWrite = ToLi(posDst);
-			const LARGE_INTEGER liPosSrcEnd = ToLi(posSrcEnd);
-			EckLoop()
-			{
-				MoveTo(posRead);
-				Read(pMoveBuf, cbMoveBuf);
-				if (FAILED(m_hrLastErr))
-					return;
-				if (m_cbLastReadWrite != cbMoveBuf)
-				{
-					m_hrLastErr = E_FAIL;
-					return;
-				}
-				MoveTo(posWrite);
-				Write(pMoveBuf, cbMoveBuf);
-				if (FAILED(m_hrLastErr))
-					return;
-				if (m_cbLastReadWrite != cbMoveBuf)
-				{
-					m_hrLastErr = E_FAIL;
-					return;
-				}
-
-				const auto posPrev = posRead;
-				posRead += cbMoveBuf;
-				posWrite += cbMoveBuf;
-				if (posRead >= liPosSrcEnd)
-				{
-					const ULONG cbRead = (ULONG)(liPosSrcEnd - posPrev).QuadPart;
-					MoveTo(posRead);
-					Read(pMoveBuf, cbRead);
-					if (m_cbLastReadWrite != cbRead)
-					{
-						m_hrLastErr = E_FAIL;
-						return;
-					}
-					MoveTo(posWrite);
-					Write(pMoveBuf, cbRead);
-					if (m_cbLastReadWrite != cbRead)
-					{
-						m_hrLastErr = E_FAIL;
-						return;
-					}
-					break;
-				}
-			}
-		}
-		m_hrLastErr = S_OK;
-	}
-
-	EckInline void MoveData(SIZE_T posDst, SIZE_T posSrc, SIZE_T cbSize,
-		SIZE_T cbMoveBuf = 4096u, void* pMoveBuf = nullptr)
-	{
-		MoveData(ToUli(posDst), ToUli(posSrc), ToUli(cbSize), cbMoveBuf, pMoveBuf);
-	}
-
-	void Insert(ULARGE_INTEGER pos, ULARGE_INTEGER cbSize)
-	{
-		if (cbSize == 0ull)
-			return;
-		const auto uliStrmSize = GetSizeUli();
-		m_pStream->SetSize(GetSizeUli() + cbSize);
-		if (pos != uliStrmSize)
-			MoveData(pos + cbSize, pos, uliStrmSize - pos);
-	}
-
-	EckInline void Insert(SIZE_T pos, SIZE_T cbSize) { Insert(ToUli(pos), ToUli(cbSize)); }
-
-	void Erase(ULARGE_INTEGER pos, ULARGE_INTEGER cbSize)
-	{
-		if (cbSize == 0ull)
-			return;
-		const auto cbTotal = GetSizeUli();
-		EckAssert(pos < cbTotal && pos + cbSize <= cbTotal);
-		MoveData(pos, pos + cbSize, cbTotal - pos - cbSize);
-		ReSize(GetSizeUli() - cbSize);
-	}
-
-	EckInline void Erase(SIZE_T pos, SIZE_T cbSize) { Erase(ToUli(pos), ToUli(cbSize)); }
-
-	EckInline BOOL ReSize(ULARGE_INTEGER cbSize)
-	{
-		return SUCCEEDED(m_hrLastErr = m_pStream->SetSize(cbSize));
-	}
-
-	EckInline BOOL ReSize(SIZE_T cbSize) { return ReSize(ToUli(cbSize)); }
-
-	EckInlineNdCe HRESULT GetLastErr() const { return m_hrLastErr; }
-
-	EckInlineNdCe IStream* operator->() const { return m_pStream; }
+    EckInlineNdCe auto GetStream() const noexcept { return m_pStream.Get(); }
 };
 ECK_NAMESPACE_END
