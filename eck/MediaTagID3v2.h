@@ -2390,7 +2390,7 @@ private:
                 }
                 if (by & ID3V24EH_RESTRICTIONS)
                 {
-                    if (cb < 7 + (m_ExtHdrInfo.bCrc ? 5 : 0))
+                    if (cb < UINT(7 + (m_ExtHdrInfo.bCrc ? 5 : 0)))
                         return Result::Length;
                     m_ExtHdrInfo.bRestrictions = TRUE;
                     m_Stream >> by;

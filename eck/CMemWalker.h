@@ -30,6 +30,7 @@ namespace Priv
                 throw XptMemWalkerRange{ m_pBase, m_cbMax, p };
         }
     public:
+        CMemReaderBase() = default;
         constexpr CMemReaderBase(_In_reads_bytes_(cbMax) PCVOID p, size_t cbMax) noexcept
             : m_pMem{ (PCBYTE)p }, m_pBase{ (PCBYTE)p }, m_cbMax{ cbMax }
         {
@@ -56,6 +57,7 @@ namespace Priv
                 throw XptMemWalkerRange{ m_pBase, m_cbMax, p };
         }
     public:
+        CMemWalkerBase() = default;
         constexpr CMemWalkerBase(_Inout_updates_bytes_(cbMax) void* p, size_t cbMax) noexcept
             : m_pMem{ (BYTE*)p }, m_pBase{ (BYTE*)p }, m_cbMax{ cbMax }
         {
@@ -184,15 +186,9 @@ namespace Priv
         {
             auto p = (const T*)Data();
             const auto pEnd = (const T*)(this->m_pBase + this->m_cbMax);
-            BOOL bFoundNull{};
             for (; p < pEnd; ++p)
                 if (*p == T{})
-                {
-                    bFoundNull = TRUE;
                     break;
-                }
-            if (!bFoundNull)
-                return (int)GetLeaveSize();
             return int(p - (const T*)Data());
         }
 
