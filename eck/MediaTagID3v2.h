@@ -619,6 +619,26 @@ public:
             }
             return TRUE;
         }
+
+        static void StepOverTerminator(
+            CMemReader& w,
+            TextEncoding eEncoding) noexcept
+        {
+            switch (eEncoding)
+            {
+            case TextEncoding::Latin1:
+            case TextEncoding::UTF8:
+                w += 1;
+                break;
+            case TextEncoding::UTF16LE:
+            case TextEncoding::UTF16BE:
+                w += 2;
+                break;
+            default:
+                EckDbgBreak();
+                break;
+            }
+        }
     };
 
     struct UFID final : public FRAME
@@ -690,7 +710,7 @@ public:
 
                 ConvertTextEncoding(vText.emplace_back(), w, cb, eEncoding);
                 if (!w.IsEnd())
-                    w += 1;
+                    StepOverTerminator(w, eEncoding);
             }
             return PostDeserialize(rb, Ctx);
         }
@@ -1895,7 +1915,7 @@ public:
 
                 auto& e = vMap.emplace_back();
                 ConvertTextEncoding(e.rsPosition, w, cb, eEncoding);
-                w += 1;
+                StepOverTerminator(w, eEncoding);
 
                 if (eEncoding == TextEncoding::Latin1 ||
                     eEncoding == TextEncoding::UTF8)
@@ -1910,7 +1930,7 @@ public:
                 ConvertTextEncoding(e.rsName, w, cb, eEncoding);
 
                 if (!w.IsEnd())
-                    w += 1;
+                    StepOverTerminator(w, eEncoding);
             }
             return PostDeserialize(rb, Ctx);
         }

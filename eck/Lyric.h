@@ -684,16 +684,28 @@ private:
     // 若当前文件被认为是分隔符歌词则返回TRUE
     BOOL MgpScanDivider(std::vector<DIV_POS>& vPos)
     {
-        size_t cDivLine{};
+        if (m_vLine.empty())
+            return FALSE;
+        size_t cDivLine{}, cValidLine{};
         EckCounter(m_vLine.size(), i)
         {
             const auto& Line = m_vLine[i];
             if (Line.cchTranslation)// 已有相同时间的多行，跳过
+            {
+                vPos[i] = { -1,-1,-1 };
+                ++cValidLine;
                 continue;
+            }
+            if (!Line.cchLrc)
+            {
+                vPos[i] = { -1,-1,-1 };
+                continue;
+            }
             if (MgpScanLineDivider(Line, vPos[i]))
                 ++cDivLine;
+            ++cValidLine;
         }
-        return (float)cDivLine / (float)m_vLine.size() >= 0.6f;
+        return cDivLine * 100 / cValidLine >= 60;
     }
 
     void MgpPostProcess()
