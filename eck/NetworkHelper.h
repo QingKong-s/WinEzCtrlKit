@@ -398,7 +398,7 @@ struct CHttpRequestAsync
 			// 下列字段由回调和调用方共享
 
 			HRESULT hr;					// 因失败而取消
-			CEvent EvtSafeExit{ nullptr,FALSE,FALSE };	// 安全退出事件
+			CEvent EvtSafeExit{ {},FALSE,FALSE };	// 安全退出事件
 
 			void Cancel(HRESULT hr)
 			{

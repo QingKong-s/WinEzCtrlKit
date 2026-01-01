@@ -864,6 +864,7 @@ private:
                 const auto rcElem = e.pElem->GetWholeRectInClient();
                 if (IsRectsIntersect(rcElem, rcInClient))
                 {
+                    e.bCombined = TRUE;
                     if (e.pElem->GetStyle() & DES_CONTENT_EXPAND)
                     {
                         UnionRect(rcInClient, rcInClient, rcElem);
@@ -873,7 +874,6 @@ private:
                     {
                         const auto rcOld{ rcInClient };
                         e.pElem->CallEvent(EWM_QUERY_EXPAND_RECT, (WPARAM)&rcInClient, 0);
-                        e.bCombined = TRUE;
                         bChanged = (rcInClient != rcOld);
                     }
                 }

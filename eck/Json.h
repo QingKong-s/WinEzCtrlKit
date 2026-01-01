@@ -97,7 +97,7 @@ namespace Priv
                 return true;
     }
 
-    CRefStrW WriteW(PSTR pszU8, size_t cchU8, _In_opt_ YyAlc* pAlc)
+    inline CRefStrW WriteW(PSTR pszU8, size_t cchU8, _In_opt_ YyAlc* pAlc)
     {
         if (!pszU8)
             return {};

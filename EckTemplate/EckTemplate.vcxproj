@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{4afbb15e-9656-4698-b7db-580b50a5b922}</ProjectGuid>
+    <ProjectGuid>{bd5ae098-1c5a-48bc-8ccd-26f78ff503e9}</ProjectGuid>
     <RootNamespace>EckTemplate</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
