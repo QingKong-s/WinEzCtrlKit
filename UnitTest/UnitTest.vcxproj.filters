@@ -48,6 +48,12 @@
     <ClCompile Include="TsCompress.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="TsTrivialBuffer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="TsCRefStr.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">

@@ -68,10 +68,10 @@ public:
         CRefBin compressed, decompressed;
 
         int ret = ZLibCompress(nullptr, 0, compressed);
-        Assert::AreEqual(Z_STREAM_ERROR, ret);
+        Assert::AreEqual(Z_STREAM_END, ret);
 
         ret = ZLibDecompress(compressed.Data(), compressed.Size(), decompressed);
-        Assert::AreEqual(Z_STREAM_ERROR, ret);
+        Assert::AreEqual(Z_STREAM_END, ret);
 
         Assert::AreEqual((size_t)0, decompressed.Size());
     }

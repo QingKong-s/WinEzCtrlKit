@@ -55,31 +55,10 @@ public:
         DupStream(x.Data(), x.Size());
     }
 
-    CRefBinT(const CRefBinT& x, const TAlloc& Al) : m_Alloc{ Al }
-    {
-        DupStream(x.Data(), x.Size());
-    }
-
     CRefBinT(CRefBinT&& x) noexcept
         :m_pStream{ x.m_pStream }, m_cb{ x.m_cb }, m_cbCapacity{ x.m_cbCapacity },
         m_Alloc{ std::move(x.m_Alloc) }
     {
-        ResetThat(x);
-    }
-
-    CRefBinT(CRefBinT&& x, const TAlloc& Al) noexcept(TAllocTraits::is_always_equal::value)
-        : m_pStream{ x.m_pStream }, m_cb{ x.m_cb }, m_cbCapacity{ x.m_cbCapacity },
-        m_Alloc{ Al }
-    {
-        if constexpr (!TAllocTraits::is_always_equal::value)
-        {
-            if (Al != x.m_Alloc)
-            {
-                x.m_Alloc.deallocate(m_pStream, m_cbCapacity);
-                m_pStream = m_Alloc.allocate(m_cbCapacity);
-                memcpy(Data(), x.Data(), x.Size());
-            }
-        }
         ResetThat(x);
     }
 
@@ -96,17 +75,12 @@ public:
     CRefBinT& operator=(const CRefBinT& x)
     {
         if constexpr (!TAllocTraits::is_always_equal::value)
-        {
             if (m_Alloc != x.m_Alloc)
             {
-                m_Alloc = x.m_Alloc;
                 m_Alloc.deallocate(m_pStream, m_cbCapacity);
                 ResetThat(*this);
             }
-            else if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
-                m_Alloc = x.m_Alloc;
-        }
-        else if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
+        if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
             m_Alloc = x.m_Alloc;
 
         DupStream(x.Data(), x.Size());
@@ -117,7 +91,14 @@ public:
         if (this == &x)
             return *this;
         if constexpr (TAllocTraits::propagate_on_container_move_assignment::value)
+        {
+            m_Alloc.deallocate(m_pStream, m_cbCapacity);
             m_Alloc = std::move(x.m_Alloc);
+            m_pStream = x.m_pStream;
+            m_cb = x.m_cb;
+            m_cbCapacity = x.m_cbCapacity;
+            ResetThat(x);
+        }
         else if constexpr (!TAllocTraits::is_always_equal::value)
             if (m_Alloc != x.m_Alloc)
             {
@@ -518,18 +499,18 @@ public:
         return std::span<const BYTE>(Data() + posBegin, cb);
     }
 
-    [[nodiscard]] EckInline TIterator begin() { return Data(); }
-    [[nodiscard]] EckInline TIterator end() { return begin() + Size(); }
-    [[nodiscard]] EckInline TConstIterator begin() const { return Data(); }
-    [[nodiscard]] EckInline TConstIterator end() const { return begin() + Size(); }
-    [[nodiscard]] EckInline TConstIterator cbegin() const { begin(); }
-    [[nodiscard]] EckInline TConstIterator cend() const { end(); }
-    [[nodiscard]] EckInline TReverseIterator rbegin() { return TReverseIterator(begin()); }
-    [[nodiscard]] EckInline TReverseIterator rend() { return TReverseIterator(end()); }
-    [[nodiscard]] EckInline TConstReverseIterator rbegin() const { return TConstReverseIterator(begin()); }
-    [[nodiscard]] EckInline TConstReverseIterator rend() const { return TConstReverseIterator(end()); }
-    [[nodiscard]] EckInline TConstReverseIterator crbegin() const { return rbegin(); }
-    [[nodiscard]] EckInline TConstReverseIterator crend() const { return rend(); }
+    EckInlineNdCe TIterator begin() { return Data(); }
+    EckInlineNdCe TIterator end() { return begin() + Size(); }
+    EckInlineNdCe TConstIterator begin() const { return Data(); }
+    EckInlineNdCe TConstIterator end() const { return begin() + Size(); }
+    EckInlineNdCe TConstIterator cbegin() const { return begin(); }
+    EckInlineNdCe TConstIterator cend() const { return end(); }
+    EckInlineNdCe TReverseIterator rbegin() { return TReverseIterator(begin()); }
+    EckInlineNdCe TReverseIterator rend() { return TReverseIterator(end()); }
+    EckInlineNdCe TConstReverseIterator rbegin() const { return TConstReverseIterator(begin()); }
+    EckInlineNdCe TConstReverseIterator rend() const { return TConstReverseIterator(end()); }
+    EckInlineNdCe TConstReverseIterator crbegin() const { return rbegin(); }
+    EckInlineNdCe TConstReverseIterator crend() const { return rend(); }
 };
 
 using CRefBin = CRefBinT<TRefBinDefAllocator>;

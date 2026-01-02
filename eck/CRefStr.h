@@ -121,30 +121,9 @@ public:
         DupString(x.Data(), x.Size());
     }
 
-    CRefStrT(const CRefStrT& x, const TAlloc& Al) : m_Alloc{ Al }
-    {
-        DupString(x.Data(), x.Size());
-    }
-
     CRefStrT(CRefStrT&& x) noexcept
         : m_cchText{ x.m_cchText }, m_cchCapacity{ x.m_cchCapacity }, m_Alloc{ std::move(x.m_Alloc) }
     {
-        std::copy(std::begin(x.m_szLocal), std::end(x.m_szLocal), std::begin(m_szLocal));
-        ResetThat(x);
-    }
-
-    CRefStrT(CRefStrT&& x, const TAlloc& Al)
-        : m_cchText{ x.m_cchText }, m_cchCapacity{ x.m_cchCapacity }, m_Alloc{ Al }
-    {
-        if constexpr (!TAllocTraits::is_always_equal::value)
-        {
-            if (Al != x.m_Alloc)
-            {
-                DupString(x.Data(), x.Size());
-                ResetThat(x);
-                return;
-            }
-        }
         std::copy(std::begin(x.m_szLocal), std::end(x.m_szLocal), std::begin(m_szLocal));
         ResetThat(x);
     }
@@ -183,18 +162,13 @@ public:
         if (this == &x)
             return *this;
         if constexpr (!TAllocTraits::is_always_equal::value)
-        {
             if (m_Alloc != x.m_Alloc)
             {
                 if (!IsLocal())
                     m_Alloc.deallocate(m_pszText, m_cchCapacity);
                 ResetThat(*this);
-                m_Alloc = x.m_Alloc;
             }
-            else if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
-                m_Alloc = x.m_Alloc;
-        }
-        else if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
+        if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
             m_Alloc = x.m_Alloc;
 
         DupString(x.Data(), x.Size());
@@ -206,7 +180,15 @@ public:
         if (this == &x)
             return *this;
         if constexpr (TAllocTraits::propagate_on_container_move_assignment::value)
+        {
+            if (!IsLocal())
+                m_Alloc.deallocate(m_pszText, m_cchCapacity);
             m_Alloc = std::move(x.m_Alloc);
+            m_pszText = x.m_pszText;
+            m_cchText = x.m_cchText;
+            m_cchCapacity = x.m_cchCapacity;
+            ResetThat(x);
+        }
         else if constexpr (!TAllocTraits::is_always_equal::value)
             if (m_Alloc != x.m_Alloc)
             {
@@ -767,9 +749,17 @@ public:
             return SysAllocStringLen(Data(), Size());
         else
         {
-            const auto rs = StrX2W<CCharTraits<WCHAR>, CAllocatorProcHeap<WCHAR, int>>(
-                Data(), Size(), CP_ACP);
-            return SysAllocStringLen(rs.Data(), rs.Size());
+            const auto cch = MultiByteToWideChar(
+                CP_ACP, MB_PRECOMPOSED, Data(), Size(), nullptr, 0);
+            if (cch > 0)
+            {
+                const auto bstr = SysAllocStringLen(nullptr, cch);
+                MultiByteToWideChar(
+                    CP_ACP, MB_PRECOMPOSED, Data(), Size(), bstr, cch);
+                return bstr;
+            }
+            else
+                return SysAllocStringLen(nullptr, 0);
         }
     }
 
@@ -1275,18 +1265,18 @@ public:
         eck::PazLegalizeLen(Data(), Size(), chReplace, bReplaceDot);
     }
 
-    EckInlineNd TIterator begin() { return Data(); }
-    EckInlineNd TIterator end() { return begin() + Size(); }
-    EckInlineNd TConstIterator begin() const { return Data(); }
-    EckInlineNd TConstIterator end() const { return begin() + Size(); }
-    EckInlineNd TConstIterator cbegin() const { begin(); }
-    EckInlineNd TConstIterator cend() const { end(); }
-    EckInlineNd TReverseIterator rbegin() { return TReverseIterator(begin()); }
-    EckInlineNd TReverseIterator rend() { return TReverseIterator(end()); }
-    EckInlineNd TConstReverseIterator rbegin() const { return TConstReverseIterator(begin()); }
-    EckInlineNd TConstReverseIterator rend() const { return TConstReverseIterator(end()); }
-    EckInlineNd TConstReverseIterator crbegin() const { return rbegin(); }
-    EckInlineNd TConstReverseIterator crend() const { return rend(); }
+    EckInlineNdCe TIterator begin() { return Data(); }
+    EckInlineNdCe TIterator end() { return begin() + Size(); }
+    EckInlineNdCe TConstIterator begin() const { return Data(); }
+    EckInlineNdCe TConstIterator end() const { return begin() + Size(); }
+    EckInlineNdCe TConstIterator cbegin() const { return begin(); }
+    EckInlineNdCe TConstIterator cend() const { return end(); }
+    EckInlineNdCe TReverseIterator rbegin() { return TReverseIterator(begin()); }
+    EckInlineNdCe TReverseIterator rend() { return TReverseIterator(end()); }
+    EckInlineNdCe TConstReverseIterator rbegin() const { return TConstReverseIterator(begin()); }
+    EckInlineNdCe TConstReverseIterator rend() const { return TConstReverseIterator(end()); }
+    EckInlineNdCe TConstReverseIterator crbegin() const { return rbegin(); }
+    EckInlineNdCe TConstReverseIterator crend() const { return rend(); }
 };
 
 using CRefStrW = CRefStrT<WCHAR, CCharTraits<WCHAR>>;

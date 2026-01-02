@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "SystemHelper.h"
+#include "FileHelper.h"
 
 #include <DbgHelp.h>
 
@@ -104,7 +104,8 @@ Exit:;
 inline HRESULT DshMakeSymbolUrl(CRefStrW& rsSymbolUrl, const PDBInfo& PdbInfo,
 	std::wstring_view svSymbolSrv = SymSrvMicrosoft) noexcept
 {
-	const auto rsPdbW = StrX2W(PdbInfo.rsPdbFile, CP_ACP);
+	const auto rsPdbW = StrX2W(PdbInfo.rsPdbFile.Data(),
+		PdbInfo.rsPdbFile.Size(), CP_ACP);
 	rsSymbolUrl.Clear();
 	if (PdbInfo.rsPdbFile.IsEmpty())
 		return E_INVALIDARG;
@@ -113,7 +114,7 @@ inline HRESULT DshMakeSymbolUrl(CRefStrW& rsSymbolUrl, const PDBInfo& PdbInfo,
 		rsSymbolUrl.PushBackChar(L'/');
 	rsSymbolUrl.PushBack(rsPdbW);
 	rsSymbolUrl.PushBackChar(L'/');
-	GuidToStringUpper(PdbInfo.Cv.Signature, rsSymbolUrl.PushBack(32));
+	GuidToString(PdbInfo.Cv.Signature, rsSymbolUrl.PushBack(32));
 	rsSymbolUrl.AppendFormat(L"%u/", PdbInfo.Cv.Age);
 	rsSymbolUrl.PushBack(rsPdbW);
 	return S_OK;
