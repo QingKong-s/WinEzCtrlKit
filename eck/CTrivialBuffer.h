@@ -138,6 +138,14 @@ public:
     EckInlineNdCe size_t Size() const noexcept { return m_cSize; }
     EckInlineNdCe size_t ByteSize() const noexcept { return m_cSize * sizeof(TElem); }
 
+    EckInlineNdCe BOOL IsEmpty() const noexcept { return !m_cSize; }
+
+    EckInlineNdCe auto& Front() noexcept { EckAssert(!IsEmpty()); return *m_pData; }
+    EckInlineNdCe auto& Front() const noexcept { EckAssert(!IsEmpty()); return *m_pData; }
+
+    EckInlineNdCe auto& Back() noexcept { EckAssert(!IsEmpty()); return m_pData[m_cSize - 1]; }
+    EckInlineNdCe auto& Back() const noexcept { EckAssert(!IsEmpty()); return m_pData[m_cSize - 1]; }
+
     EckInlineNdCe auto& At(size_t idx) noexcept
     {
         EckAssert(idx < Size());
@@ -158,12 +166,11 @@ public:
         memcpy(Data() + cOld, p, c * sizeof(TElem));
     }
 
-    template<class T>
-    EckInline void PushBack(T&& e) noexcept
+    EckInline void PushBack(const TElem& e) noexcept
     {
         const auto cOld = Size();
         ReSizeExtra(Size() + 1);
-        Data()[cOld] = std::forward<T>(e);
+        Data()[cOld] = e;
     }
 
     template<class T, size_t N>
@@ -191,7 +198,7 @@ public:
         m_cSize -= c;
     }
 
-    void Erase(size_t pos, size_t c) noexcept
+    void Erase(size_t pos, size_t c = 1) noexcept
     {
         EckAssert(Size() >= pos + c);
         memmove(
@@ -212,6 +219,30 @@ public:
             Data() + posStart + cReplacing,
             (cOld - posStart - cReplacing) * sizeof(TElem));
         memcpy(Data() + posStart, pNew, cNew * sizeof(TElem));
+    }
+
+    void Insert(size_t pos, _In_reads_(c) TConstPointer p, size_t c) noexcept
+    {
+        EckAssert(pos <= Size());
+        const auto cOld = Size();
+        ReSizeExtra(Size() + c);
+        memmove(
+            Data() + pos + c,
+            Data() + pos,
+            (cOld - pos) * sizeof(TElem));
+        memcpy(Data() + pos, p, c * sizeof(TElem));
+    }
+
+    void Insert(size_t pos, const TElem& e) noexcept
+    {
+        EckAssert(pos <= Size());
+        const auto cOld = Size();
+        ReSizeExtra(Size() + 1);
+        memmove(
+            Data() + pos + 1,
+            Data() + pos,
+            (cOld - pos) * sizeof(TElem));
+        Data()[pos] = e;
     }
 
     EckInlineNdCe TIterator begin() noexcept { return Data(); }

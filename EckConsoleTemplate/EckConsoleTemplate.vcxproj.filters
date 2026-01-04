@@ -16,9 +16,6 @@
     <Filter Include="pch">
       <UniqueIdentifier>{73bc0a28-8805-4d26-9bc9-abdafe7373ff}</UniqueIdentifier>
     </Filter>
-    <Filter Include="eck">
-      <UniqueIdentifier>{30828aac-5dab-40f5-860a-fd97a4fa5752}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Entry.cpp">
@@ -28,7 +25,7 @@
       <Filter>pch</Filter>
     </ClCompile>
     <ClCompile Include="MyEck.cpp">
-      <Filter>eck</Filter>
+      <Filter>pch</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

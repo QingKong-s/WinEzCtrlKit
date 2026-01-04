@@ -13,9 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="eck">
-      <UniqueIdentifier>{f5a12c05-5724-4c4c-9306-c0b37b6a6f34}</UniqueIdentifier>
-    </Filter>
     <Filter Include="pch">
       <UniqueIdentifier>{fe295838-cf38-4b9f-a8b8-0a8715b12b26}</UniqueIdentifier>
     </Filter>
@@ -51,7 +48,7 @@
       <Filter>pch</Filter>
     </ClCompile>
     <ClCompile Include="MyEck.cpp">
-      <Filter>eck</Filter>
+      <Filter>pch</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

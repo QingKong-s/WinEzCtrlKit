@@ -8,8 +8,8 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 #define TS_NS_BEGIN namespace Ts {
 #define TS_NS_END	}
 
-#define EckAssert(x)                (void)(!!(x) || (Assert::Fail(ECKWIDE(#x)), 0))
-#define EckDbgBreak()               Assert::Fail(L"DebugBreak!")
+#define EckAssert(x)                (void)(!!(x) || (DebugBreak(), 0))
+#define EckDbgBreak()               DebugBreak()
 #define EckDbgPrint(x)              ;
 /*
 #include "pch.h"

@@ -207,7 +207,6 @@ public:
     TEST_METHOD(TsTcsFromInt_Padding)
     {
         char buffer[128];
-        PCH a;
         auto err = TcsFromInt(buffer, sizeof(buffer), 5, 10, TRUE, (PCH*)nullptr, 3, '0');
         Assert::AreEqual((int)TcsCvtErr::Ok, (int)err);
         Assert::AreEqual("005", buffer);

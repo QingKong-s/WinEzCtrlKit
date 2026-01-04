@@ -316,5 +316,34 @@ public:
             Assert::AreEqual(static_cast<int>(i), buffer[i]);
         }
     }
+
+    TEST_METHOD(TestInsert)
+    {
+        CTrivialBuffer<int> buffer;
+        buffer.PushBack(1);
+        buffer.PushBack(2);
+        buffer.PushBack(3);
+        // Insert 2,3 at position 1
+        int arr[] = { 4, 5 };
+        buffer.Insert(1, arr, 2);
+
+        Assert::AreEqual(size_t(5), buffer.Size());
+        Assert::AreEqual(1, buffer[0]);
+        Assert::AreEqual(4, buffer[1]);
+        Assert::AreEqual(5, buffer[2]);
+        Assert::AreEqual(2, buffer[3]);
+        Assert::AreEqual(3, buffer[4]);
+
+        buffer.Insert(4, 999);
+
+        Assert::AreEqual(size_t(6), buffer.Size());
+        Assert::AreEqual(1, buffer[0]);
+        Assert::AreEqual(4, buffer[1]);
+        Assert::AreEqual(5, buffer[2]);
+        Assert::AreEqual(2, buffer[3]);
+        Assert::AreEqual(999, buffer[4]);
+        Assert::AreEqual(3, buffer[5]);
+    }
+
 };
 TS_NS_END
