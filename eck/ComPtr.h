@@ -177,7 +177,7 @@ public:
     HRESULT CreateInstance(REFCLSID clsid) noexcept
     {
         ReleaseIt();
-        return CoCreateInstance(clsid, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&p));
+        return CoCreateInstance(clsid, nullptr, CLSCTX_ALL, IID_PPV_ARGS(&p));
     }
 };
 ECK_NAMESPACE_END

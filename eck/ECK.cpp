@@ -112,9 +112,9 @@ ULONG_PTR	g_uGpToken{};
 IWICImagingFactory* g_pWicFactory{};
 IDWriteFactory* g_pDwFactory{};
 #if !ECK_OPT_NO_DX
-ID2D1Factory1* g_pD2dFactory{};
-ID2D1Device* g_pD2dDevice{};
-ID3D11Device* g_pD3d11Device{};
+ID2D1Factory1* g_pD2DFactory{};
+ID2D1Device* g_pD2DDevice{};
+ID3D11Device* g_pD3D11Device{};
 IDXGIDevice1* g_pDxgiDevice{};
 IDXGIFactory2* g_pDxgiFactory{};
 #ifdef _DEBUG
@@ -1675,9 +1675,9 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwE
         D2DFactoryOptions.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
         //D2DFactoryOptions.debugLevel = D2D1_DEBUG_LEVEL_WARNING;
         hr = D2D1CreateFactory(pip->uD2dFactoryType,
-            __uuidof(ID2D1Factory1), &D2DFactoryOptions, (void**)&g_pD2dFactory);
+            __uuidof(ID2D1Factory1), &D2DFactoryOptions, (void**)&g_pD2DFactory);
 #else
-        hr = D2D1CreateFactory(pip->uD2dFactoryType, IID_PPV_ARGS(&g_pD2dFactory));
+        hr = D2D1CreateFactory(pip->uD2dFactoryType, IID_PPV_ARGS(&g_pD2DFactory));
 #endif // _DEBUG
         if (FAILED(hr))
         {
@@ -1688,14 +1688,14 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwE
         //////////////创建DXGI工厂
         hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
             pip->uD3dCreateFlags, pip->pD3dFeatureLevel, pip->cD3dFeatureLevel,
-            D3D11_SDK_VERSION, &g_pD3d11Device, nullptr, nullptr);
+            D3D11_SDK_VERSION, &g_pD3D11Device, nullptr, nullptr);
         if (FAILED(hr))
         {
             *pdwErrCode = hr;
             EckDbgPrintFormatMessage(hr);
             return InitStatus::D3dDeviceError;
         }
-        g_pD3d11Device->QueryInterface(&g_pDxgiDevice);
+        g_pD3D11Device->QueryInterface(&g_pDxgiDevice);
         if (FAILED(hr) || !g_pDxgiDevice)
         {
             *pdwErrCode = hr;
@@ -1707,7 +1707,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwE
         g_pDxgiDevice->GetAdapter(&pDxgiAdapter);
         pDxgiAdapter->GetParent(IID_PPV_ARGS(&g_pDxgiFactory));
         //////////////创建DXGI设备
-        hr = g_pD2dFactory->CreateDevice(g_pDxgiDevice, &g_pD2dDevice);
+        hr = g_pD2DFactory->CreateDevice(g_pDxgiDevice, &g_pD2DDevice);
         if (FAILED(hr))
         {
             *pdwErrCode = hr;
@@ -1815,9 +1815,9 @@ void UnInit()
     SafeReleaseAssert0(g_pWicFactory);
 #if !ECK_OPT_NO_DX
     SafeRelease(g_pDwFactory);
-    SafeRelease(g_pD3d11Device);
-    SafeRelease(g_pD2dFactory);
-    SafeRelease(g_pD2dDevice);
+    SafeRelease(g_pD3D11Device);
+    SafeRelease(g_pD2DFactory);
+    SafeRelease(g_pD2DDevice);
     SafeRelease(g_pDxgiDevice);
     SafeRelease(g_pDxgiFactory);
 #endif// !ECK_OPT_NO_DX

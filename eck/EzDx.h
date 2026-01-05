@@ -59,7 +59,7 @@ struct CBuffer
             InitData.SysMemPitch = 0u;
             InitData.SysMemSlicePitch = 0u;
         }
-        return g_pD3d11Device->CreateBuffer(
+        return g_pD3D11Device->CreateBuffer(
             &Desc,
             pData ? &InitData : nullptr,
             pBuffer.AddrOfClear());
@@ -113,7 +113,7 @@ struct CPixelShader : Priv::CShader<CPixelShader, ID3D11PixelShader>
         _In_reads_bytes_(cbBytecode) PCVOID pBytecode,
         size_t cbBytecode) noexcept
     {
-        return g_pD3d11Device->CreatePixelShader(pBytecode,
+        return g_pD3D11Device->CreatePixelShader(pBytecode,
             cbBytecode, nullptr, pShader.AddrOfClear());
     }
 };
@@ -123,7 +123,7 @@ struct CVertexShader : Priv::CShader<CVertexShader, ID3D11VertexShader>
         _In_reads_bytes_(cbBytecode) PCVOID pBytecode,
         size_t cbBytecode) noexcept
     {
-        return g_pD3d11Device->CreateVertexShader(pBytecode,
+        return g_pD3D11Device->CreateVertexShader(pBytecode,
             cbBytecode, nullptr, pShader.AddrOfClear());
     }
 };
@@ -141,7 +141,7 @@ struct CVSAndInputLayout
         HRESULT hr;
         hr = Shader.Create(pBytecode, cbBytecode);
         if (FAILED(hr)) return hr;
-        hr = g_pD3d11Device->CreateInputLayout(pInput, (UINT)cInput,
+        hr = g_pD3D11Device->CreateInputLayout(pInput, (UINT)cInput,
             pBytecode, cbBytecode, pInputLayout.AddrOfClear());
         return hr;
     }
@@ -176,7 +176,7 @@ struct CTexture
         Desc.BindFlags = eBind;
         Desc.CPUAccessFlags = uCPUAccessFlags;
         Desc.MiscFlags = uMiscFlags;
-        return g_pD3d11Device->CreateTexture2D(&Desc, pInitData, pTexture.AddrOfClear());
+        return g_pD3D11Device->CreateTexture2D(&Desc, pInitData, pTexture.AddrOfClear());
     }
 
     EckInlineNdCe auto operator->() const noexcept { return pTexture.Get(); }
@@ -206,7 +206,7 @@ struct CSampler
         Desc.MaxLOD = FLT_MAX;
         if (pBorderColor)
             memcpy(Desc.BorderColor, pBorderColor, 4 * sizeof(float));
-        return g_pD3d11Device->CreateSamplerState(&Desc, pSampler.AddrOfClear());
+        return g_pD3D11Device->CreateSamplerState(&Desc, pSampler.AddrOfClear());
     }
 
     EckInlineNdCe auto operator->() const noexcept { return pSampler.Get(); }
@@ -222,7 +222,7 @@ struct CShaderResourceView
         ID3D11Resource* pResource,
         const D3D11_SHADER_RESOURCE_VIEW_DESC& Desc) noexcept
     {
-        return g_pD3d11Device->CreateShaderResourceView(
+        return g_pD3D11Device->CreateShaderResourceView(
             pResource, &Desc, pSrv.AddrOfClear());
     }
     HRESULT Create(
@@ -249,7 +249,7 @@ struct CRenderTargetView
 
     HRESULT Create(ID3D11Resource* pResource) noexcept
     {
-        return g_pD3d11Device->CreateRenderTargetView(pResource, nullptr, pRtv.AddrOfClear());
+        return g_pD3D11Device->CreateRenderTargetView(pResource, nullptr, pRtv.AddrOfClear());
     }
 
     EckInlineNdCe auto operator->() const noexcept { return pRtv.Get(); }
@@ -264,7 +264,7 @@ struct CDepthStencilView
     HRESULT Create(ID3D11Resource* pResource,
         const D3D11_DEPTH_STENCIL_VIEW_DESC* pDesc = nullptr) noexcept
     {
-        return g_pD3d11Device->CreateDepthStencilView(pResource, nullptr, pDsv.AddrOfClear());
+        return g_pD3D11Device->CreateDepthStencilView(pResource, nullptr, pDsv.AddrOfClear());
     }
 
     EckInlineNdCe auto operator->() const noexcept { return pDsv.Get(); }

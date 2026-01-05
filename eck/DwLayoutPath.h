@@ -209,7 +209,7 @@ inline HRESULT GetTextLayoutPathGeometry(
 	_In_opt_ ID2D1Factory1* pD2DFactory = nullptr)
 {
 	if (!pD2DFactory)
-		pD2DFactory = g_pD2dFactory;
+		pD2DFactory = g_pD2DFactory;
 	ComPtr<ID2D1PathGeometry1> pPath;
 	ComPtr<ID2D1GeometrySink> pSink;
 	pD2DFactory->CreatePathGeometry(&pPath);

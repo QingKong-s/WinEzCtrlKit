@@ -806,9 +806,9 @@ extern HINSTANCE g_hInstance;
 extern IWICImagingFactory* g_pWicFactory;
 extern IDWriteFactory* g_pDwFactory;
 #if !ECK_OPT_NO_DX
-extern ID2D1Factory1* g_pD2dFactory;
-extern ID2D1Device* g_pD2dDevice;
-extern ID3D11Device* g_pD3d11Device;
+extern ID2D1Factory1* g_pD2DFactory;
+extern ID2D1Device* g_pD2DDevice;
+extern ID3D11Device* g_pD3D11Device;
 extern IDXGIDevice1* g_pDxgiDevice;
 extern IDXGIFactory2* g_pDxgiFactory;
 #ifdef _DEBUG

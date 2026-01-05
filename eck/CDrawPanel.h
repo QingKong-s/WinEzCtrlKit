@@ -110,7 +110,7 @@ public:
 			m_D2D.ReSize(0, LOWORD(lParam), HIWORD(lParam), 0);
 			return 0;
 		case WM_CREATE:
-			m_D2D.Create(EZD2D_PARAM::MakeBitblt(hWnd, g_pDxgiFactory, g_pDxgiDevice, g_pD2dDevice, 0, 0));
+			m_D2D.Create(EZD2D_PARAM::MakeBitblt(hWnd, g_pDxgiFactory, g_pDxgiDevice, g_pD2DDevice, 0, 0));
 			return 0;
 		}
 		return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);

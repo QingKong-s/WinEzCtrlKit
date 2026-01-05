@@ -25,7 +25,7 @@ inline HRESULT BecCreateNoiseBrush(
     ID2D1Device* pD2DDevice = nullptr) noexcept
 {
     if (!pD2DDevice)
-        pD2DDevice = eck::g_pD2dDevice;
+        pD2DDevice = eck::g_pD2DDevice;
     namespace wgdx = winrt::Windows::Graphics::DirectX;
     HRESULT hr;
     UINT cx, cy;

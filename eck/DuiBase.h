@@ -1424,7 +1424,7 @@ private:
         case PresentMode::BitBltSwapChain:
         {
             auto Param = EZD2D_PARAM::MakeBitblt(HWnd, g_pDxgiFactory, g_pDxgiDevice,
-                g_pD2dDevice, m_cxClient, m_cyClient, (float)m_iUserDpi);
+                g_pD2DDevice, m_cxClient, m_cyClient, (float)m_iUserDpi);
             Param.uBmpAlphaMode = (D2D1_ALPHA_MODE)m_eAlphaMode;
             m_D2D.Create(Param);
         }
@@ -1432,7 +1432,7 @@ private:
         case PresentMode::FlipSwapChain:
         {
             auto Param = EZD2D_PARAM::MakeFlip(HWnd, g_pDxgiFactory, g_pDxgiDevice,
-                g_pD2dDevice, m_cxClient, m_cyClient, (float)m_iUserDpi);
+                g_pD2DDevice, m_cxClient, m_cyClient, (float)m_iUserDpi);
             Param.uBmpAlphaMode = (D2D1_ALPHA_MODE)m_eAlphaMode;
             Param.uFlags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
             m_D2D.Create(Param);
@@ -1447,7 +1447,7 @@ private:
         break;
         case PresentMode::DCompositionSurface:
         {
-            g_pD2dDevice->CreateDeviceContext(
+            g_pD2DDevice->CreateDeviceContext(
                 EZD2D_PARAM::MakeFlip(0, nullptr, nullptr, nullptr, 0, 0).uDcOptions,
                 &m_D2D.m_pDC);
 
@@ -1477,14 +1477,14 @@ private:
             HwRtProp.hwnd = HWnd;
             HwRtProp.pixelSize = D2D1::SizeU(m_cxClient, m_cyClient);
             HwRtProp.presentOptions = D2D1_PRESENT_OPTIONS_IMMEDIATELY;
-            g_pD2dFactory->CreateHwndRenderTarget(RtProp, HwRtProp, &m_pRtHwnd);
+            g_pD2DFactory->CreateHwndRenderTarget(RtProp, HwRtProp, &m_pRtHwnd);
             const auto hr = m_pRtHwnd->QueryInterface(&m_D2D.m_pDC);
             EckAssert(SUCCEEDED(hr));
         }
         break;
         case PresentMode::DCompositionVisual:
         {
-            g_pD2dDevice->CreateDeviceContext(
+            g_pD2DDevice->CreateDeviceContext(
                 D2D1_DEVICE_CONTEXT_OPTIONS_ENABLE_MULTITHREADED_OPTIMIZATIONS,
                 &m_D2D.m_pDC);
 
@@ -1501,7 +1501,7 @@ private:
         break;
         case PresentMode::UpdateLayeredWindow:
         {
-            g_pD2dDevice->CreateDeviceContext(
+            g_pD2DDevice->CreateDeviceContext(
                 D2D1_DEVICE_CONTEXT_OPTIONS_ENABLE_MULTITHREADED_OPTIMIZATIONS,
                 &m_D2D.m_pDC);
             const D2D1_BITMAP_PROPERTIES1 BmpProp
