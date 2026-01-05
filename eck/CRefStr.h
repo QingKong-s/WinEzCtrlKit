@@ -161,15 +161,13 @@ public:
     {
         if (this == &x)
             return *this;
-        if constexpr (!TAllocTraits::is_always_equal::value)
-            if (m_Alloc != x.m_Alloc)
-            {
-                if (!IsLocal())
-                    m_Alloc.deallocate(m_pszText, m_cchCapacity);
-                ResetThat(*this);
-            }
         if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
-            m_Alloc = x.m_Alloc;
+        {
+            if constexpr (TAllocTraits::is_always_equal::value)
+                m_Alloc = x.m_Alloc;
+            else if (m_Alloc != x.m_Alloc)
+                m_Alloc = x.m_Alloc;
+        }
 
         DupString(x.Data(), x.Size());
         return *this;
@@ -181,13 +179,17 @@ public:
             return *this;
         if constexpr (TAllocTraits::propagate_on_container_move_assignment::value)
         {
-            if (!IsLocal())
-                m_Alloc.deallocate(m_pszText, m_cchCapacity);
-            m_Alloc = std::move(x.m_Alloc);
-            m_pszText = x.m_pszText;
-            m_cchText = x.m_cchText;
-            m_cchCapacity = x.m_cchCapacity;
-            ResetThat(x);
+            if constexpr (TAllocTraits::is_always_equal::value)
+                m_Alloc = std::move(x.m_Alloc);
+            else if (m_Alloc != x.m_Alloc)
+            {
+                if (!IsLocal())
+                {
+                    m_Alloc.deallocate(m_pszText, m_cchCapacity);
+                    ResetThat(*this);
+                }
+                m_Alloc = std::move(x.m_Alloc);
+            }
         }
         else if constexpr (!TAllocTraits::is_always_equal::value)
             if (m_Alloc != x.m_Alloc)
@@ -195,11 +197,7 @@ public:
                 DupString(x.Data(), x.Size());
                 return *this;
             }
-        TChar szTemp[LocalBufferSize];
-        std::copy(std::begin(x.m_szLocal), std::end(x.m_szLocal), std::begin(szTemp));
-        std::copy(std::begin(m_szLocal), std::end(m_szLocal), std::begin(x.m_szLocal));
-        std::copy(std::begin(szTemp), std::end(szTemp), std::begin(m_szLocal));
-
+        std::swap(m_szLocal, x.m_szLocal);
         std::swap(m_cchText, x.m_cchText);
         std::swap(m_cchCapacity, x.m_cchCapacity);
         return *this;

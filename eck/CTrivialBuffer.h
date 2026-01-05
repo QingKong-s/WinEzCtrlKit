@@ -79,11 +79,16 @@ public:
             return *this;
         if constexpr (TAllocTraits::propagate_on_container_move_assignment::value)
         {
-            m_Alloc.deallocate(m_pData, m_cCapacity);
-            m_Alloc = std::move(x.m_Alloc);
-            m_pData = x.m_pData, x.m_pData = nullptr;
-            m_cSize = x.m_cSize, x.m_cSize = 0;
-            m_cCapacity = x.m_cCapacity, x.m_cCapacity = 0;
+            if constexpr (TAllocTraits::is_always_equal::value)
+                m_Alloc = std::move(x.m_Alloc);
+            else if (m_Alloc != x.m_Alloc)
+            {
+                m_Alloc.deallocate(m_pData, m_cCapacity);
+                m_Alloc = std::move(x.m_Alloc);
+                x.m_pData = nullptr;
+                x.m_cSize = 0;
+                x.m_cCapacity = 0;
+            }
             return *this;
         }
         else if constexpr (!TAllocTraits::is_always_equal::value)

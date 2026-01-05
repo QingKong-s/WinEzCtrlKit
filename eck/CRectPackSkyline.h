@@ -5,7 +5,7 @@ ECK_NAMESPACE_BEGIN
 class CRectPackSkyline
 {
 public:
-    using TCoord = int;
+    using TCoord = UINT;
 
     struct RECT
     {
@@ -258,10 +258,19 @@ private:
     }
 #endif
 public:
+    CRectPackSkyline() = default;
     CRectPackSkyline(TCoord cx, TCoord cy) noexcept : m_cx{ cx }, m_cy{ cy }
     {
-        m_vSkyline.Reserve(std::min(36, cx / 4));
+        m_vSkyline.Reserve(std::min((TCoord)36, cx / 4));
         m_vSkyline.PushBack({ 0, 0, cx });
+    }
+
+    void Initialize(TCoord cx, TCoord cy) noexcept
+    {
+        m_cx = cx, m_cy = cy;
+        m_vSkyline.Reserve(std::min((TCoord)36, cx / 4));
+        m_vSkyline.ReSize(1);
+        m_vSkyline[0] = { 0, 0, cx };
     }
 
     BOOL AllocateBottomLeft(TCoord cx, TCoord cy, RECT& rcNew) noexcept

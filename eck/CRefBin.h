@@ -74,14 +74,13 @@ public:
 
     CRefBinT& operator=(const CRefBinT& x)
     {
-        if constexpr (!TAllocTraits::is_always_equal::value)
-            if (m_Alloc != x.m_Alloc)
-            {
-                m_Alloc.deallocate(m_pStream, m_cbCapacity);
-                ResetThat(*this);
-            }
+        if (this == &x)
+            return *this;
         if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
-            m_Alloc = x.m_Alloc;
+            if constexpr (TAllocTraits::is_always_equal::value)
+                m_Alloc = x.m_Alloc;
+            else if (m_Alloc != x.m_Alloc)
+                m_Alloc = x.m_Alloc;
 
         DupStream(x.Data(), x.Size());
         return *this;
@@ -92,12 +91,14 @@ public:
             return *this;
         if constexpr (TAllocTraits::propagate_on_container_move_assignment::value)
         {
-            m_Alloc.deallocate(m_pStream, m_cbCapacity);
-            m_Alloc = std::move(x.m_Alloc);
-            m_pStream = x.m_pStream;
-            m_cb = x.m_cb;
-            m_cbCapacity = x.m_cbCapacity;
-            ResetThat(x);
+            if constexpr (TAllocTraits::is_always_equal::value)
+                m_Alloc = std::move(x.m_Alloc);
+            else if (m_Alloc != x.m_Alloc)
+            {
+                m_Alloc.deallocate(m_pStream, m_cbCapacity);
+                ResetThat(x);
+                m_Alloc = std::move(x.m_Alloc);
+            }
         }
         else if constexpr (!TAllocTraits::is_always_equal::value)
             if (m_Alloc != x.m_Alloc)
