@@ -96,7 +96,7 @@ public:
             else if (m_Alloc != x.m_Alloc)
             {
                 m_Alloc.deallocate(m_pStream, m_cbCapacity);
-                ResetThat(x);
+                ResetThat(*this);
                 m_Alloc = std::move(x.m_Alloc);
             }
         }

@@ -85,11 +85,10 @@ public:
             {
                 m_Alloc.deallocate(m_pData, m_cCapacity);
                 m_Alloc = std::move(x.m_Alloc);
-                x.m_pData = nullptr;
-                x.m_cSize = 0;
-                x.m_cCapacity = 0;
+                m_pData = nullptr;
+                m_cSize = 0;
+                m_cCapacity = 0;
             }
-            return *this;
         }
         else if constexpr (!TAllocTraits::is_always_equal::value)
             if (m_Alloc != x.m_Alloc)

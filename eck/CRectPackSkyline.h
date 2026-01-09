@@ -273,7 +273,7 @@ public:
         m_vSkyline[0] = { 0, 0, cx };
     }
 
-    BOOL AllocateBottomLeft(TCoord cx, TCoord cy, RECT& rcNew) noexcept
+    BOOL AllocateBottomLeft(_Inout_ RECT& rcNew) noexcept
     {
         constexpr auto InvalidCoord = std::numeric_limits<TCoord>::max();
 
@@ -282,9 +282,9 @@ public:
 
         for (size_t i = 0; i < m_vSkyline.Size(); ++i)
         {
-            if (m_vSkyline[i].x + cx > m_cx)
+            if (m_vSkyline[i].x + rcNew.cx > m_cx)
                 break;
-            if (!BlfCanPlaceAtLeft(i, cx, cy, Pos))
+            if (!BlfCanPlaceAtLeft(i, rcNew.cx, rcNew.cy, Pos))
                 continue;
             if (Pos.y < BestPos.y)
                 BestPos = Pos;
@@ -295,10 +295,9 @@ public:
 
         rcNew.x = m_vSkyline[BestPos.idx].x;
         rcNew.y = BestPos.y;
-        rcNew.cx = cx;
-        rcNew.cy = cy;
 
-        LmPlaceRectangle(cx, cy, BestPos, FALSE);
+        LmPlaceRectangle(rcNew.cx, rcNew.cy, BestPos, FALSE);
+
 #if ECK_OPT_SKYLINE_VALIDATE
         DbgValidateSkyline();
         DbgValidateAllocatedRectangle(rcNew);
@@ -306,7 +305,7 @@ public:
         return TRUE;
     }
 
-    BOOL AllocateMinWaste(TCoord cx, TCoord cy, RECT& rcNew) noexcept
+    BOOL AllocateMinimumWaste(_Inout_ RECT& rcNew) noexcept
     {
         constexpr auto InvalidCoord = std::numeric_limits<TCoord>::max();
 
@@ -318,12 +317,12 @@ public:
         for (size_t i = 0; i < m_vSkyline.Size(); ++i)
         {
             const auto& e = m_vSkyline[i];
-            if (e.x + cx <= m_cx)
+            if (e.x + rcNew.cx <= m_cx)
             {
-                const auto bL = BlfCanPlaceAtLeft(i, cx, cy, Pos);
+                const auto bL = BlfCanPlaceAtLeft(i, rcNew.cx, rcNew.cy, Pos);
                 if (bL)
                 {
-                    const auto Waste = BlfCalculateWasteArea(Pos, cx);
+                    const auto Waste = BlfCalculateWasteArea(Pos, rcNew.cx);
                     if (Pos.y < BestPos.y ||
                         (Pos.y == BestPos.y && MinWaste > Waste))
                     {
@@ -334,12 +333,12 @@ public:
                 }
             }
 
-            if (e.x + e.cx >= cx)
+            if (e.x + e.cx >= rcNew.cx)
             {
-                const auto bR = BlfCanPlaceAtRight(i, cx, cy, Pos);
+                const auto bR = BlfCanPlaceAtRight(i, rcNew.cx, rcNew.cy, Pos);
                 if (bR)
                 {
-                    const auto Waste = BlfCalculateWasteArea(Pos, cx);
+                    const auto Waste = BlfCalculateWasteArea(Pos, rcNew.cx);
                     if (Pos.y < BestPos.y ||
                         (Pos.y == BestPos.y && MinWaste > Waste))
                     {
@@ -352,14 +351,15 @@ public:
         }
         if (BestPos.y == InvalidCoord)
             return FALSE;
+
         if (bRight)
             rcNew.x = m_vSkyline[BestPos.idx].x + BestPos.cxLineLeave;
         else
             rcNew.x = m_vSkyline[BestPos.idx].x;
         rcNew.y = BestPos.y;
-        rcNew.cx = cx;
-        rcNew.cy = cy;
-        LmPlaceRectangle(cx, cy, BestPos, bRight);
+
+        LmPlaceRectangle(rcNew.cx, rcNew.cy, BestPos, bRight);
+
 #if ECK_OPT_SKYLINE_VALIDATE
         DbgValidateSkyline();
         DbgValidateAllocatedRectangle(rcNew);

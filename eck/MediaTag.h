@@ -302,7 +302,7 @@ struct StrList
 
 struct MUSICPIC
 {
-    PicType eType{};
+    PicType eType{ PicType::CoverFront };
     BOOL bLink{};
     CRefStrW rsDesc{};
     CRefStrA rsMime{};

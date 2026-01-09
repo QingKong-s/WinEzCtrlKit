@@ -122,7 +122,9 @@ public:
         MaxV2_3,
         UTF16BE = MaxV2_3,
         UTF8,
-        Max
+        Max,
+
+        Default = UTF16LE
     };
 
     enum class LrcContentType : BYTE
@@ -674,7 +676,7 @@ public:
 
     struct TEXTFRAME : public FRAME
     {
-        TextEncoding eEncoding{};
+        TextEncoding eEncoding{ TextEncoding::Default };
         std::vector<CRefStrW> vText{};
 
         Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
@@ -724,7 +726,7 @@ public:
 
     struct TXXX : public FRAME
     {
-        TextEncoding eEncoding{};
+        TextEncoding eEncoding{ TextEncoding::Default };
         CRefStrW rsDesc{};
         CRefStrW rsText{};
 
@@ -780,7 +782,7 @@ public:
 
     struct WXXX : public FRAME
     {
-        TextEncoding eEncoding{};
+        TextEncoding eEncoding{ TextEncoding::Default };
         CRefStrW rsDesc{};
         CRefStrA rsUrl{};
 
@@ -954,8 +956,8 @@ public:
 
     struct USLT final : public FRAME
     {
-        TextEncoding eEncoding{};
-        CHAR byLang[3]{};
+        TextEncoding eEncoding{ TextEncoding::Default };
+        CHAR byLang[3]{ 'X','X','X' };
         CRefStrW rsDesc{};
         CRefStrW rsLrc{};
 
@@ -999,10 +1001,10 @@ public:
             UINT uTimestamp{};
         };
 
-        TextEncoding eEncoding{};
-        CHAR byLang[3]{};
+        TextEncoding eEncoding{ TextEncoding::Default };
+        CHAR byLang[3]{ 'X','X','X' };
         TimestampFmt eTimestampFmt{};
-        LrcContentType eContent{};
+        LrcContentType eContent{ LrcContentType::Lyrics };
         CRefStrW rsDesc{};
         std::vector<SYNC> vSync{};
 
@@ -1071,8 +1073,8 @@ public:
 
     struct COMM final : public FRAME
     {
-        TextEncoding eEncoding{};
-        CHAR byLang[3]{};
+        TextEncoding eEncoding{ TextEncoding::Default };
+        CHAR byLang[3]{ 'X','X','X' };
         CRefStrW rsDesc{};
         CRefStrW rsText{};
 
@@ -1251,16 +1253,14 @@ public:
 
     struct APIC final : public FRAME
     {
-        TextEncoding eEncoding{};
-        PicType eType{};
+        TextEncoding eEncoding{ TextEncoding::Default };
+        PicType eType{ PicType::CoverFront };
         CRefStrA rsMime{};
         CRefStrW rsDesc{};
         CRefBin rbData{};
 
         Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
         {
-            if (rsMime.IsEmpty())
-                rsMime.DupString("image/"sv);
             Ctx.rbWork.Clear();
             CovertTextEncoding(Ctx.rbWork, rsDesc, eEncoding, TRUE);
             const size_t cbFrame = 2 + rsMime.Size() + 1 +
@@ -1291,7 +1291,7 @@ public:
 
     struct GEOB final : public FRAME
     {
-        TextEncoding eEncoding{};
+        TextEncoding eEncoding{ TextEncoding::Default };
         CRefStrA rsMime{};
         CRefStrW rsFile{};
         CRefStrW rsDesc{};
@@ -1536,8 +1536,8 @@ public:
 
     struct USER final : public FRAME
     {
-        TextEncoding eEncoding{};
-        CHAR byLang[3]{};
+        TextEncoding eEncoding{ TextEncoding::Default };
+        CHAR byLang[3]{ 'X','X','X' };
         CRefStrW rsText{};
 
         Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
@@ -1570,7 +1570,7 @@ public:
 
     struct OWNE final : public FRAME
     {
-        TextEncoding eEncoding{};
+        TextEncoding eEncoding{ TextEncoding::Default };
         CRefStrA rsPrice{};
         CHAR szDate[8]{};
         CRefStrW rsSeller{};
@@ -1605,7 +1605,7 @@ public:
 
     struct COMR final : public FRAME
     {
-        TextEncoding eEncoding{};
+        TextEncoding eEncoding{ TextEncoding::Default };
         ReceivedWay eReceivedWay{};
         CRefStrA rsPrice{};
         CHAR szDate[8]{};
@@ -1871,7 +1871,7 @@ public:
             CRefStrW rsPosition{};
             CRefStrW rsName{};
         };
-        TextEncoding eEncoding{};
+        TextEncoding eEncoding{ TextEncoding::Default };
         std::vector<MAP> vMap{};
 
         Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
