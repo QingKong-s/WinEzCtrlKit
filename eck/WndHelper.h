@@ -1064,10 +1064,10 @@ namespace Priv
         return g_pDwFactory->CreateTextFormat(
             lf.lfFaceName,
             nullptr,
-            (DWRITE_FONT_WEIGHT)lf.lfWeight,
+            (DWRITE_FONT_WEIGHT)std::clamp(lf.lfWeight, 1L, 999L),
             lf.lfItalic ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
             DWRITE_FONT_STRETCH_NORMAL,
-            cy,
+            cy * iDpi / 96.f,
             szLocaleName,
             &pTf);
     }
@@ -1085,7 +1085,7 @@ EckNfInlineNd HRESULT DftCreateDWrite(_Out_ IDWriteTextFormat*& pTf, int iDpi = 
     LOGFONTW lf;
     if (!DftGetLogFont(lf, iDpi))
         return HRESULT_FROM_WIN32(NaGetLastError());
-    return Priv::DftpCreate(pTf, lf, fabs((float)lf.lfHeight), iDpi);
+    return Priv::DftpCreate(pTf, lf, fabs((float)lf.lfHeight), 96);
 }
 #pragma endregion SystemFont
 ECK_NAMESPACE_END

@@ -104,23 +104,40 @@ NTVER		g_NtVer{};
 
 HMODULE		g_hModComCtl32{ (HMODULE)SIZETMax };
 
+#if !ECK_OPT_NO_GDIPLUS
 // For GdiPlus
 ULONG_PTR	g_uGpToken{};
+#endif // !ECK_OPT_NO_GDIPLUS
 
 // For DirectX
 
 IWICImagingFactory* g_pWicFactory{};
+
+#if !ECK_OPT_NO_DWRITE
 IDWriteFactory* g_pDwFactory{};
+#if ECK_OPT_DWRITE_V1
+IDWriteFactory1* g_pDwFactory1{};
+#endif
+#if ECK_OPT_DWRITE_V2
+IDWriteFactory2* g_pDwFactory2{};
+#endif
+#endif // !ECK_OPT_NO_DWRITE
+
 #if !ECK_OPT_NO_DX
+#if !ECK_OPT_NO_D2D
 ID2D1Factory1* g_pD2DFactory{};
+#if ECK_OPT_D2D_V1_2
+ID2D1Factory2* g_pD2DFactory2{};
+#endif // ECK_OPT_D2D_V1_2
 ID2D1Device* g_pD2DDevice{};
+#endif // !ECK_OPT_NO_D2D
 ID3D11Device* g_pD3D11Device{};
 IDXGIDevice1* g_pDxgiDevice{};
 IDXGIFactory2* g_pDxgiFactory{};
 #ifdef _DEBUG
 IDXGIDebug* g_pDxgiDebug{};
 #endif
-#endif// !ECK_OPT_NO_DX
+#endif // !ECK_OPT_NO_DX
 
 // For Text Services
 
@@ -1612,7 +1629,9 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwE
     g_dwTlsSlot = TlsAlloc();
     if (!(pip->uFlags & EIF_NOINITTHREAD))
         ThreadInit();
-    //////////////初始化GDI+
+
+#if !ECK_OPT_NO_GDIPLUS
+    // GDI+
     if (!(pip->uFlags & EIF_NOINITGDIPLUS))
     {
         GdiplusStartupInput gpsi{};
@@ -1620,10 +1639,12 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwE
         if (gps != Gdiplus::Ok)
         {
             *pdwErrCode = gps;
-            return InitStatus::GdiplusInitError;
+            return InitStatus::GdiplusInit;
         }
     }
-    //////////////注册窗口类
+#endif// !ECK_OPT_NO_GDIPLUS
+
+    // 注册窗口类
     s_WndClassInfo[0].iType = RWCT_CUSTOM;
     s_WndClassInfo[0].wc =
     {
@@ -1645,7 +1666,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwE
                 *pdwErrCode = GetLastError();
                 EckDbgPrintFormatMessage(*pdwErrCode);
                 EckDbgBreak();
-                return InitStatus::RegWndClassError;
+                return InitStatus::RegWndClass;
             }
             break;
         case RWCT_CUSTOM:
@@ -1654,7 +1675,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwE
                 *pdwErrCode = GetLastError();
                 EckDbgPrintFormatMessage(*pdwErrCode);
                 EckDbgBreak();
-                return InitStatus::RegWndClassError;
+                return InitStatus::RegWndClass;
             }
             break;
         default:
@@ -1662,7 +1683,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwE
         }
     }
 
-    //////////////获取运行目录
+    // 运行目录
     GetModuleFile(NtCurrentImageBase(), g_rsRunningDir);
     g_rsRunningDir.PazRemoveFileSpec();
 
@@ -1670,51 +1691,63 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwE
 #if !ECK_OPT_NO_DX
     if (!(pip->uFlags & EIF_NOINITD2D))
     {
+#if !ECK_OPT_NO_D2D
+        // D2D工厂
 #ifdef _DEBUG
         D2D1_FACTORY_OPTIONS D2DFactoryOptions;
         D2DFactoryOptions.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
         //D2DFactoryOptions.debugLevel = D2D1_DEBUG_LEVEL_WARNING;
-        hr = D2D1CreateFactory(pip->uD2dFactoryType,
+        hr = D2D1CreateFactory(pip->uD2DFactoryType,
             __uuidof(ID2D1Factory1), &D2DFactoryOptions, (void**)&g_pD2DFactory);
 #else
-        hr = D2D1CreateFactory(pip->uD2dFactoryType, IID_PPV_ARGS(&g_pD2DFactory));
+        hr = D2D1CreateFactory(pip->uD2DFactoryType, IID_PPV_ARGS(&g_pD2DFactory));
 #endif // _DEBUG
         if (FAILED(hr))
         {
             *pdwErrCode = hr;
             EckDbgPrintFormatMessage(hr);
-            return InitStatus::D2dFactoryError;
+            return InitStatus::D2DFactory;
         }
-        //////////////创建DXGI工厂
+#if ECK_OPT_D2D_V1_2
+        g_pD2DFactory->QueryInterface(&g_pD2DFactory2);
+#endif // ECK_OPT_D2D_V1_2
+#endif // !ECK_OPT_NO_D2D
+
+        // D3D设备
         hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
-            pip->uD3dCreateFlags, pip->pD3dFeatureLevel, pip->cD3dFeatureLevel,
+            pip->uD3DCreateFlags, pip->pD3DFeatureLevel, pip->cD3DFeatureLevel,
             D3D11_SDK_VERSION, &g_pD3D11Device, nullptr, nullptr);
         if (FAILED(hr))
         {
             *pdwErrCode = hr;
             EckDbgPrintFormatMessage(hr);
-            return InitStatus::D3dDeviceError;
+            return InitStatus::D3DDevice;
         }
+        // DXGI设备
         g_pD3D11Device->QueryInterface(&g_pDxgiDevice);
         if (FAILED(hr) || !g_pDxgiDevice)
         {
             *pdwErrCode = hr;
             EckDbgPrintFormatMessage(hr);
-            return InitStatus::DxgiDeviceError;
+            return InitStatus::DxgiDevice;
         }
-
+        // DXGI工厂
         ComPtr<IDXGIAdapter> pDxgiAdapter;
         g_pDxgiDevice->GetAdapter(&pDxgiAdapter);
         pDxgiAdapter->GetParent(IID_PPV_ARGS(&g_pDxgiFactory));
-        //////////////创建DXGI设备
+
+#if !ECK_OPT_NO_D2D
+        // D2D设备
         hr = g_pD2DFactory->CreateDevice(g_pDxgiDevice, &g_pD2DDevice);
         if (FAILED(hr))
         {
             *pdwErrCode = hr;
             EckDbgPrintFormatMessage(hr);
-            return InitStatus::D2dFactoryError;
+            return InitStatus::D2DDevice;
         }
-        //////////////获取调试接口
+#endif // !ECK_OPT_NO_D2D
+       
+        // DXGI调试
 #ifdef _DEBUG
         const auto hModDxgiDbg = GetModuleHandleW(L"dxgidebug.dll");
         if (hModDxgiDbg)
@@ -1729,7 +1762,9 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwE
 #endif // _DEBUG
     }
 #endif// !ECK_OPT_NO_DX
-    //////////////创建DWrite工厂
+
+#if !ECK_OPT_NO_DWRITE
+    // DWrite工厂
     if (!(pip->uFlags & EIF_NOINITDWRITE))
     {
         hr = DWriteCreateFactory(pip->uDWriteFactoryType,
@@ -1738,10 +1773,18 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwE
         {
             *pdwErrCode = hr;
             EckDbgPrintFormatMessage(hr);
-            return InitStatus::DWriteFactoryError;
+            return InitStatus::DWriteFactory;
         }
+#if ECK_OPT_DWRITE_V1
+        g_pDwFactory->QueryInterface(&g_pDwFactory1);
+#endif
+#if ECK_OPT_DWRITE_V2
+        g_pDwFactory->QueryInterface(&g_pDwFactory2);
+#endif
     }
-    //////////////创建WIC工厂
+#endif// !ECK_OPT_NO_DWRITE
+
+    // WIC工厂
     if (!(pip->uFlags & EIF_NOINITWIC))
     {
         hr = CoCreateInstance(CLSID_WICImagingFactory, nullptr,
@@ -1750,7 +1793,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwE
         {
             *pdwErrCode = hr;
             EckDbgPrintFormatMessage(hr);
-            return InitStatus::WicFactoryError;
+            return InitStatus::WicFactory;
         }
     }
 
@@ -1805,22 +1848,36 @@ void UnInit()
         TlsFree(g_dwTlsSlot);
         g_dwTlsSlot = 0;
     }
+#if !ECK_OPT_NO_GDIPLUS
     if (g_uGpToken)
     {
         GdiplusShutdown(g_uGpToken);
         g_uGpToken = 0u;
     }
+#endif // !ECK_OPT_NO_GDIPLUS
     g_hInstance = nullptr;
     g_rsRunningDir.Clear();
     SafeReleaseAssert0(g_pWicFactory);
-#if !ECK_OPT_NO_DX
+
+#if !ECK_OPT_NO_DWRITE
     SafeRelease(g_pDwFactory);
-    SafeRelease(g_pD3D11Device);
+#if ECK_OPT_DWRITE_V1
+    SafeRelease(g_pDwFactory1);
+#endif
+#if ECK_OPT_DWRITE_V2
+    SafeRelease(g_pDwFactory2);
+#endif
+#endif // !ECK_OPT_NO_DWRITE
+
+#if !ECK_OPT_NO_DX
+#if !ECK_OPT_NO_D2D
     SafeRelease(g_pD2DFactory);
     SafeRelease(g_pD2DDevice);
+#endif // !ECK_OPT_NO_D2D
+    SafeRelease(g_pD3D11Device);
     SafeRelease(g_pDxgiDevice);
     SafeRelease(g_pDxgiFactory);
-#endif// !ECK_OPT_NO_DX
+#endif // !ECK_OPT_NO_DX
 }
 #pragma endregion Init
 

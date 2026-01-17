@@ -1,26 +1,58 @@
 ﻿#pragma once
 #define GDIPVER 0x110
 
+#define ECK_OPT_NO_GDIPLUS 1
+
+#if ECK_OPT_NO_DX
+#undef ECK_OPT_NO_D2D
+#define ECK_OPT_NO_D2D 1
+#endif // ECK_OPT_NO_DX
+
+#if ECK_OPT_NO_GDIPLUS
+#undef ECK_OPT_NO_DARKMODE
+#define ECK_OPT_NO_DARKMODE 1
+#endif // ECK_OPT_NO_GDIPLUS
+
 #include "PrivateApi.h"
 
 #include <vsstyle.h>
 #include <dwmapi.h>
 #include <wincodec.h>
-#include <dwrite.h>
+
+#if !ECK_OPT_NO_DWRITE
+#  include <dwrite.h>
+#  if ECK_OPT_DWRITE_V1
+#    include <dwrite_1.h>
+#  endif
+#  if ECK_OPT_DWRITE_V2
+#    include <dwrite_2.h>
+#endif
+#endif // !ECK_OPT_NO_DWRITE
+
 #if !ECK_OPT_NO_DX
-#  include <d2d1_1.h>
+#  if !ECK_OPT_NO_D2D
+#    include <d2d1_1.h>
+#  if ECK_OPT_D2D_V1_2
+#    include <d2d1_2.h>
+#  endif // ECK_OPT_D2D_V1_2
+#  endif // !ECK_OPT_NO_D2D
+
 #  include <dxgi1_2.h>
 #  include <d3d11.h>
 #  ifdef _DEBUG
 #    include <dxgidebug.h>
 #  endif // _DEBUG
 #endif // !ECK_OPT_NO_DX
+
 #include <Shlwapi.h>
 #include <ShlObj.h>
 #include <commoncontrols.h>
 //#include <CommCtrl.h>
+
+#if !ECK_OPT_NO_GDIPLUS
 #pragma warning(suppress:5260)
 #include <gdiplus.h>
+#endif // !ECK_OPT_NO_GDIPLUS
 
 #include <assert.h>
 #include <crtdbg.h>
@@ -43,25 +75,25 @@
 #include "../ThirdPartyLib/Detours/detours.h"
 
 #if _MSVC_LANG < 202002L
-#	error "ECK Lib requires C++20 or later"
+#  error "ECK Lib requires C++20 or later"
 #endif
 
 #ifndef ECKDPIAPI
-#	if _WIN32_WINNT >= 0x0605
-#		define ECKDPIAPI 1
-#	else
-#		define ECKDPIAPI 0
-#		ifndef WM_DPICHANGED_BEFOREPARENT// 不会触发这些消息，但为了通过编译在此将其定义
-#			define WM_DPICHANGED_BEFOREPARENT      0x02E2
-#			define WM_DPICHANGED_AFTERPARENT       0x02E3
-#			define WM_GETDPISCALEDSIZE             0x02E4
-#		endif// !defined(WM_DPICHANGED_BEFOREPARENT)
-#	endif// _WIN32_WINNT >= 0x0605
+#  if _WIN32_WINNT >= 0x0605
+#    define ECKDPIAPI 1
+#  else
+#    define ECKDPIAPI 0
+#    ifndef WM_DPICHANGED_BEFOREPARENT// 不会触发这些消息，但为了通过编译在此将其定义
+#      define WM_DPICHANGED_BEFOREPARENT      0x02E2
+#      define WM_DPICHANGED_AFTERPARENT       0x02E3
+#      define WM_GETDPISCALEDSIZE             0x02E4
+#    endif// !defined(WM_DPICHANGED_BEFOREPARENT)
+#  endif// _WIN32_WINNT >= 0x0605
 #else
-#	define ECKDPIAPI 0
-#	if _WIN32_WINNT < 0x0605
-#		error "Dpi api requires _WIN32_WINNT >= 0x0605."
-#	endif
+#  define ECKDPIAPI 0
+#  if _WIN32_WINNT < 0x0605
+#    error "Dpi api requires _WIN32_WINNT >= 0x0605."
+#  endif
 #endif
 
 // since NT 6.2
@@ -165,50 +197,32 @@ ECK_NAMESPACE_END
 
 #pragma region MacroTools
 #define ECKPRIV_ECKWIDE2___(x)	L##x
-// ANSI字符串到宽字符串
 #define ECKWIDE(x)				ECKPRIV_ECKWIDE2___(x)
 
 #define ECKPRIV_ECKTOSTR2___(x)	#x
-// 到ANSI字符串
 #define ECKTOSTR(x)				ECKPRIV_ECKTOSTR2___(x)
-// 到宽字符串
 #define ECKTOSTRW(x)			ECKWIDE(ECKPRIV_ECKTOSTR2___(x))
 
-// [预定义] 当前函数名W
 #define ECK_FUNCTIONW			ECKWIDE(__FUNCTION__)
-// [预定义] 行号W
 #define ECK_LINEW				ECKTOSTRW(__LINE__)
-// [预定义] 当前文件W
 #define ECK_FILEW				__FILEW__
 #pragma endregion MacroTools
 
 #pragma region Generator
-// 强制内联
 #define EckInline				__forceinline
-// 强制内联，不丢弃返回值
 #define EckInlineNd				__forceinline [[nodiscard]]
-// 强制内联，不丢弃返回值，且constexpr
 #define EckInlineNdCe			[[nodiscard]] __forceinline constexpr
-// 强制内联，且constexpr
 #define EckInlineCe				__forceinline constexpr
 
-// 内联，不丢弃返回值
 #define EckNfInlineNd			inline [[nodiscard]]
-// 内联，不丢弃返回值，且constexpr
 #define EckNfInlineNdCe			[[nodiscard]] inline constexpr
-// 内联，且constexpr
 #define EckNfInlineCe			inline constexpr
 
-// 定义读写属性字段
 #define ECKPROP(Getter, Setter) __declspec(property(get = Getter, put = Setter))
-// 定义只读属性字段
 #define ECKPROP_R(Getter)		__declspec(property(get = Getter))
-// 定义只写属性字段
 #define ECKPROP_W(Setter)		__declspec(property(put = Setter))
 
-// 复制字符串字面量
 #define EckCopyConstStringA(pszDst, Src) memcpy(pszDst, Src, ARRAYSIZE(Src))
-// 复制宽字符串字面量
 #define EckCopyConstStringW(pszDst, Src) wmemcpy(pszDst, Src, ARRAYSIZE(Src))
 
 #define EckIsStartWithConstStringA(psz, sz) (strncmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
@@ -230,7 +244,6 @@ ECK_NAMESPACE_END
         F;										\
     else if (!F)
 
-// 计次循环
 #define EckCounter(c, Var) \
     for(::eck::UnderlyingType_T<std::remove_cvref_t<decltype(c)>> Var = 0; Var < (c); ++Var)
 
@@ -239,35 +252,24 @@ ECK_NAMESPACE_END
 #define ECKPRIV_CounterNVMakeVarName___(Name)	\
     ECKPRIV_CounterNVMakeVarName2___(Name)
 
-// 计次循环，无变量名参数
 #define EckCounterNV(c)			EckCounter((c), ECKPRIV_CounterNVMakeVarName___(__LINE__))
 
-// 无限循环
 #define EckLoop()				while (true)
 
-// 可空
 #define EckOpt(Type, Name)		std::optional<Type> Name
-// 可空，默认为空
 #define EckOptNul(Type, Name)	std::optional<Type> Name = std::nullopt
 
-// 原子到PWSTR
 #define ECKMAKEINTATOMW(i)		(PWSTR)((ULONG_PTR)((WORD)(i)))
 
-// 自取反
 #define ECKBOOLNOT(x)			((x) = !(x))
 
-// lParam->POINT 用于处理鼠标消息
 #define ECK_GET_PT_LPARAM(lParam)			{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) }
-#define ECK_GET_PT_LPARAM_F(lParam)			{ (float)GET_X_LPARAM(lParam), \
-                                            (float)GET_Y_LPARAM(lParam) }
+#define ECK_GET_PT_LPARAM_F(lParam)			{ (float)GET_X_LPARAM(lParam),(float)GET_Y_LPARAM(lParam) }
 
-// lParam->size 用于处理WM_SIZE
 #define ECK_GET_SIZE_LPARAM(cx, cy, lParam)	{ (cx) = LOWORD(lParam); (cy) = HIWORD(lParam); }
 
-// 不可达
 #define ECK_UNREACHABLE			__assume(0)
 
-// 定义GUID
 #define ECK_GUID(l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
             { l, w1, w2, { b1, b2,  b3,  b4,  b5,  b6,  b7,  b8 } }
 
@@ -467,6 +469,7 @@ struct NTVER
     ULONG uBuild;
 };
 
+#if !ECK_OPT_NO_GDIPLUS
 inline namespace GpNameSpace
 {
     using namespace Gdiplus::DllExports;
@@ -533,6 +536,9 @@ inline namespace GpNameSpace
     using GpLevelsParams = Gdiplus::LevelsParams;
     using GpColorCurveParams = Gdiplus::ColorCurveParams;
 }
+#else
+using ARGB = UINT;
+#endif // !ECK_OPT_NO_GDIPLUS
 #pragma endregion Type
 
 #pragma region Const
@@ -662,13 +668,14 @@ constexpr inline UINT SCID_DESIGN = 20230621'01u;
 enum class InitStatus
 {
     Ok,
-    RegWndClassError,
-    GdiplusInitError,
-    WicFactoryError,
-    D2dFactoryError,
-    DxgiDeviceError,
-    DWriteFactoryError,
-    D3dDeviceError,
+    RegWndClass,
+    GdiplusInit,
+    WicFactory,
+    DWriteFactory,
+    D2DFactory,
+    D3DDevice,
+    DxgiDevice,
+    D2DDevice,
 };
 
 enum class Align :BYTE
@@ -804,10 +811,24 @@ extern NTVER g_NtVer;
 
 extern HINSTANCE g_hInstance;
 extern IWICImagingFactory* g_pWicFactory;
+#if !ECK_OPT_NO_DWRITE
 extern IDWriteFactory* g_pDwFactory;
+#if ECK_OPT_DWRITE_V1
+extern IDWriteFactory1* g_pDwFactory1;
+#endif
+#if ECK_OPT_DWRITE_V2
+extern IDWriteFactory2* g_pDwFactory2;
+#endif
+#endif// !ECK_OPT_NO_DWRITE
+
 #if !ECK_OPT_NO_DX
+#if !ECK_OPT_NO_D2D
 extern ID2D1Factory1* g_pD2DFactory;
+#if ECK_OPT_D2D_V1_2
+extern ID2D1Factory2* g_pD2DFactory2;
+#endif // ECK_OPT_D2D_V1_2
 extern ID2D1Device* g_pD2DDevice;
+#endif// !ECK_OPT_NO_D2D
 extern ID3D11Device* g_pD3D11Device;
 extern IDXGIDevice1* g_pDxgiDevice;
 extern IDXGIFactory2* g_pDxgiFactory;
@@ -839,7 +860,7 @@ extern FRtlGetNtSystemRoot g_pfnRtlGetNtSystemRoot;
 #pragma endregion Global
 
 #pragma region Init
-enum :UINT
+enum : UINT
 {
     EIF_DEFAULT = 0,
     EIF_NOINITTHREAD = 1u << 0,
@@ -851,29 +872,28 @@ enum :UINT
     // 移除所有用户界面相关的初始化
     EIF_CONSOLE_APP = EIF_NOINITTHREAD | EIF_NOINITGDIPLUS | EIF_NOINITWIC |
     EIF_NOINITD2D | EIF_NOINITDWRITE | EIF_NODARKMODE,
-};
 
-#if !ECK_OPT_NO_DX
-constexpr inline D3D_FEATURE_LEVEL c_uDefD3dFeatureLevel[]
-{
-    D3D_FEATURE_LEVEL_11_1,
-    D3D_FEATURE_LEVEL_11_0,
+#ifdef _DEBUG
+    D3D_DEVICE_DEFAULT_FLAGS = D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG,
+#else
+    D3D_DEVICE_DEFAULT_FLAGS = D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+#endif
 };
-#endif// !ECK_OPT_NO_DX
 
 struct INITPARAM
 {
     UINT uFlags = EIF_DEFAULT;
+#if !ECK_OPT_NO_DWRITE
     DWRITE_FACTORY_TYPE uDWriteFactoryType = DWRITE_FACTORY_TYPE_SHARED;
+#endif // !ECK_OPT_NO_DWRITE
+
 #if !ECK_OPT_NO_DX
-    D2D1_FACTORY_TYPE uD2dFactoryType = D2D1_FACTORY_TYPE_MULTI_THREADED;
-    const D3D_FEATURE_LEVEL* pD3dFeatureLevel = c_uDefD3dFeatureLevel;
-    UINT cD3dFeatureLevel = ARRAYSIZE(c_uDefD3dFeatureLevel);
-    UINT uD3dCreateFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT
-#ifdef _DEBUG
-        | D3D11_CREATE_DEVICE_DEBUG
-#endif
-        ;
+#if !ECK_OPT_NO_D2D
+    D2D1_FACTORY_TYPE uD2DFactoryType = D2D1_FACTORY_TYPE_MULTI_THREADED;
+#endif // !ECK_OPT_NO_D2D
+    const D3D_FEATURE_LEVEL* pD3DFeatureLevel{};
+    UINT cD3DFeatureLevel{};
+    UINT uD3DCreateFlags = D3D_DEVICE_DEFAULT_FLAGS;
 #endif// !ECK_OPT_NO_DX
 };
 
@@ -1116,9 +1136,11 @@ void DbgPrintWndMap();
 #endif// _DEBUG
 ECK_NAMESPACE_END
 
+#if !ECK_OPT_NO_GDIPLUS
 #if !ECK_OPT_NO_USING_GDIPLUS
 using namespace eck::GpNameSpace;
 #endif// !ECK_OPT_NO_USING_GDIPLUS
+#endif// !ECK_OPT_NO_GDIPLUS
 
 #if !ECK_OPT_NO_USING_BASE_TYPES
 using namespace eck::BaseType;

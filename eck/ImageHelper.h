@@ -9,6 +9,7 @@ ECK_NAMESPACE_BEGIN
 constexpr inline GUID DefWicPixelFormat
 ECK_GUID(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x10);
 
+#if !ECK_OPT_NO_GDIPLUS
 /// <summary>
 /// 从字节流创建HBITMAP
 /// </summary>
@@ -62,6 +63,7 @@ inline [[nodiscard]] HBITMAP CreateHBITMAP(_In_z_ PCWSTR pszFile)
     GdipDisposeImage(pBitmap);
     return hbm;
 }
+#endif// !ECK_OPT_NO_GDIPLUS
 
 /// <summary>
 /// 从WIC位图创建HBITMAP
@@ -87,6 +89,7 @@ inline [[nodiscard]] HBITMAP CreateHBITMAP(_In_ IWICBitmap* pBmp)
     return hBitmap;
 }
 
+#if !ECK_OPT_NO_GDIPLUS
 /// <summary>
 /// 从字节流创建HICON
 /// </summary>
@@ -140,6 +143,7 @@ inline [[nodiscard]] HICON CreateHICON(_In_z_ PCWSTR pszFile)
     GdipDisposeImage(pBitmap);
     return hIcon;
 }
+#endif // !ECK_OPT_NO_GDIPLUS
 
 /// <summary>
 /// 从WIC位图创建HICON
@@ -697,7 +701,7 @@ enum class ImageType
     MaxValue
 };
 
-constexpr inline PCWSTR c_szImgMime[]
+constexpr inline PCWSTR GpImageMime[]
 {
     L"",
     L"image/bmp",
@@ -709,7 +713,7 @@ constexpr inline PCWSTR c_szImgMime[]
     L"image/vnd.ms-dds",// dds
 };
 
-const inline GUID c_guidWicEncoder[]
+const inline GUID WicEncoderGuid[]
 {
     GUID_NULL,
     GUID_ContainerFormatBmp,
@@ -721,14 +725,15 @@ const inline GUID c_guidWicEncoder[]
     GUID_ContainerFormatDds,
 };
 
-static_assert((int)ImageType::MaxValue == ARRAYSIZE(c_szImgMime) &&
-    ARRAYSIZE(c_szImgMime) == ARRAYSIZE(c_guidWicEncoder));
+static_assert((int)ImageType::MaxValue == ARRAYSIZE(GpImageMime) &&
+    ARRAYSIZE(GpImageMime) == ARRAYSIZE(WicEncoderGuid));
 
 EckInline [[nodiscard]] constexpr PCWSTR GetImageMime(ImageType iType)
 {
-    return c_szImgMime[(int)iType];
+    return GpImageMime[(int)iType];
 }
 
+#if !ECK_OPT_NO_GDIPLUS
 inline Gdiplus::GpStatus GetGpEncoderClsid(_In_z_ PCWSTR pszType, _Out_ CLSID& clsid)
 {
     Gdiplus::GpStatus gps;
@@ -756,10 +761,11 @@ inline Gdiplus::GpStatus GetGpEncoderClsid(_In_z_ PCWSTR pszType, _Out_ CLSID& c
     clsid = GUID_NULL;
     return Gdiplus::UnknownImageFormat;
 }
+#endif // !ECK_OPT_NO_GDIPLUS
 
 EckInline const GUID& GetWicEncoderGuid(ImageType iType)
 {
-    return c_guidWicEncoder[(int)iType];
+    return WicEncoderGuid[(int)iType];
 }
 
 inline HRESULT SaveWicBitmap(_In_ IStream* pStream,
@@ -807,6 +813,7 @@ inline HRESULT SaveWicBitmap(_In_z_ PCWSTR pszFile, _In_ IWICBitmap* pBitmap,
     return SaveWicBitmap(pStream.Get(), pBitmap, iType);
 }
 
+#if !ECK_OPT_NO_GDIPLUS
 inline Gdiplus::GpStatus SaveGpImage(_In_ IStream* pStream,
     _In_ Gdiplus::GpImage* pImage, ImageType iType = ImageType::Png)
 {
@@ -838,9 +845,10 @@ inline Gdiplus::GpStatus SaveGpImage(_In_z_ PCWSTR pszFile,
         return gps;
     return GdipSaveImageToFile(pImage, pszFile, &clsid, nullptr);
 }
+#endif // !ECK_OPT_NO_GDIPLUS
 
-#if !ECK_OPT_NO_DX
-inline HRESULT LoadD2dBitmap(_In_z_ PCWSTR pszFile,
+#if !ECK_OPT_NO_D2D
+inline HRESULT LoadD2DBitmap(_In_z_ PCWSTR pszFile,
     _In_ ID2D1RenderTarget* pRT, _Out_ ID2D1Bitmap*& pD2dBitmap,
     int cxNew = -1, int cyNew = -1)
 {
@@ -854,8 +862,9 @@ inline HRESULT LoadD2dBitmap(_In_z_ PCWSTR pszFile,
         return hr;
     return pRT->CreateBitmapFromWicBitmap(pBitmap.Get(), &pD2dBitmap);
 }
-#endif// !ECK_OPT_NO_DX
+#endif// !ECK_OPT_NO_D2D
 
+#if !ECK_OPT_NO_GDIPLUS
 inline [[nodiscard]] GpBitmap* ScaleGpBitmap(_In_ GpBitmap* pBitmap, int cxNew, int cyNew,
     Gdiplus::InterpolationMode eInterp = Gdiplus::InterpolationModeDefault)
 {
@@ -883,4 +892,5 @@ inline [[nodiscard]] GpBitmap* ScaleGpBitmap(_In_ GpBitmap* pBitmap, int cxNew, 
     GdipDeleteGraphics(pGraphics);
     return pNewBitmap;
 }
+#endif // !ECK_OPT_NO_GDIPLUS
 ECK_NAMESPACE_END

@@ -84,6 +84,21 @@ struct CBuffer
             0u, pData);
     }
 
+    HRESULT UpdateDynamicBuffer(
+        _In_ ID3D11DeviceContext* pContext,
+        _In_reads_bytes_(cbData) PCVOID pData,
+        size_t cbData) noexcept
+    {
+        D3D11_MAPPED_SUBRESOURCE Mapped;
+        const auto hr = pContext->Map(
+            pBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped);
+        if (FAILED(hr))
+            return hr;
+        memcpy(Mapped.pData, pData, cbData);
+        pContext->Unmap(pBuffer.Get(), 0);
+        return S_OK;
+    }
+
     EckInlineNdCe auto operator->() const noexcept { return pBuffer.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pBuffer.Get(); }
     EckInlineNdCe auto AddrOf() const noexcept { return pBuffer.AddrOf(); }
@@ -159,10 +174,10 @@ struct CTexture
         DXGI_FORMAT eFormat = DXGI_FORMAT_B8G8R8A8_UNORM,
         UINT eBind = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET,
         D3D11_USAGE eUsage = D3D11_USAGE_DEFAULT,
+        const D3D11_SUBRESOURCE_DATA* pInitData = nullptr,
         UINT uCPUAccessFlags = 0u,
         UINT uMiscFlags = 0u,
-        UINT uMipLevels = 1u,
-        const D3D11_SUBRESOURCE_DATA* pInitData = nullptr) noexcept
+        UINT uMipLevels = 1u) noexcept
     {
         D3D11_TEXTURE2D_DESC Desc;
         Desc.Width = cx;
@@ -189,9 +204,9 @@ struct CSampler
     ComPtr<ID3D11SamplerState> pSampler;
 
     HRESULT Create(D3D11_FILTER eFilter = D3D11_FILTER_MIN_MAG_MIP_LINEAR,
-        D3D11_TEXTURE_ADDRESS_MODE eAddressU = D3D11_TEXTURE_ADDRESS_WRAP,
-        D3D11_TEXTURE_ADDRESS_MODE eAddressV = D3D11_TEXTURE_ADDRESS_WRAP,
-        D3D11_TEXTURE_ADDRESS_MODE eAddressW = D3D11_TEXTURE_ADDRESS_WRAP,
+        D3D11_TEXTURE_ADDRESS_MODE eAddressU = D3D11_TEXTURE_ADDRESS_CLAMP,
+        D3D11_TEXTURE_ADDRESS_MODE eAddressV = D3D11_TEXTURE_ADDRESS_CLAMP,
+        D3D11_TEXTURE_ADDRESS_MODE eAddressW = D3D11_TEXTURE_ADDRESS_CLAMP,
         D3D11_COMPARISON_FUNC eComparisonFunc = D3D11_COMPARISON_NEVER,
         _In_reads_opt_(4) const float* pBorderColor = nullptr) noexcept
     {
@@ -201,13 +216,22 @@ struct CSampler
         Desc.AddressV = eAddressV;
         Desc.AddressW = eAddressW;
         Desc.ComparisonFunc = eComparisonFunc;
-        Desc.MaxAnisotropy = 1u;
-        Desc.MinLOD = -FLT_MAX;
-        Desc.MaxLOD = FLT_MAX;
         if (pBorderColor)
             memcpy(Desc.BorderColor, pBorderColor, 4 * sizeof(float));
         return g_pD3D11Device->CreateSamplerState(&Desc, pSampler.AddrOfClear());
     }
+    HRESULT Create(
+        _In_reads_opt_(4) const float* pBorderColor,
+        D3D11_FILTER eFilter = D3D11_FILTER_MIN_MAG_MIP_LINEAR) noexcept
+    {
+        return Create(eFilter,
+            D3D11_TEXTURE_ADDRESS_BORDER,
+            D3D11_TEXTURE_ADDRESS_BORDER,
+            D3D11_TEXTURE_ADDRESS_BORDER,
+            D3D11_COMPARISON_NEVER,
+            pBorderColor);
+    }
+
 
     EckInlineNdCe auto operator->() const noexcept { return pSampler.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pSampler.Get(); }

@@ -436,10 +436,12 @@ EckInlineNdCe RECT MakeRect(int x, int y, int cx, int cy)
     return { x, y, x + cx, y + cy };
 }
 
+#if !ECK_OPT_NO_GDIPLUS
 EckInline GpRectF MakeGpRectF(const RECT& rc)
 {
     return { (REAL)rc.left,(REAL)rc.top,(REAL)(rc.right - rc.left),(REAL)(rc.bottom - rc.top) };
 }
+#endif
 
 EckInlineNdCe RCWH MakeRcwh(const RECT& rc)
 {
