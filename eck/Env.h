@@ -50,6 +50,10 @@
 #pragma comment(lib, "Taskschd.lib")
 #pragma comment(lib, "DbgHelp.lib")
 #pragma comment(lib, "d3dcompiler.lib")
+#pragma comment(lib, "Mfuuid.lib")
+#pragma comment(lib, "Mf.lib")
+#pragma comment(lib, "Mfplat.lib")
+#pragma comment(lib, "Strmiids.lib")
 
 #ifndef ECK_OPT_CRT_DLL
 #  ifdef _DEBUG

@@ -1052,6 +1052,14 @@ EckNfInlineNd HFONT DftCreate(int iDpi = 96)
         return nullptr;
     return CreateFontIndirectW(&lf);
 }
+EckNfInlineNd HFONT DftCreateWithSize(int cy, int iDpi = 96)
+{
+    LOGFONTW lf;
+    if (!DftGetLogFont(lf, iDpi))
+        return nullptr;
+    lf.lfHeight = cy;
+    return CreateFontIndirectW(&lf);
+}
 
 namespace Priv
 {

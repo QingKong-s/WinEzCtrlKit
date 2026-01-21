@@ -180,6 +180,7 @@
     <ClInclude Include="eck\BaseN.h" />
     <ClInclude Include="eck\Alpc.h" />
     <ClInclude Include="eck\CArray2D.h" />
+    <ClInclude Include="eck\CMediaPlayer.h" />
     <ClInclude Include="eck\CBorderLayout.h" />
     <ClInclude Include="eck\CColorReducing.h" />
     <ClInclude Include="eck\CCombinationScrollView.h" />

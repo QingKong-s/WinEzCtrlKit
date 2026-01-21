@@ -246,7 +246,7 @@ inline NTSTATUS FileEnsureDirectoryExist(
 /// </summary>
 /// <param name="pszRoot">根目录路径，若不存在则函数失败</param>
 /// <param name="svRelative">相对目录，不能以反斜杠开头，但可以以反斜杠结尾</param>
-/// <param name="phFinalDir">返回最后一个目录的句柄</param>
+/// <param name="phFinalDir">返回(根目录+相对目录)所指向目录的句柄</param>
 /// <returns>NTSTATUS</returns>
 inline NTSTATUS FileEnsureDirectoryExist(
     _In_z_ PCWSTR pszRoot,
