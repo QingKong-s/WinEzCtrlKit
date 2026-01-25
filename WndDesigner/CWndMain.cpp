@@ -30,12 +30,12 @@ void CWndMain::OnCreate(HWND hWnd)
     ImageList_ReadEx(ILP_NORMAL, pStream.Get(), IID_PPV_ARGS(&m_pilMain));
     m_pilMain->GetIconSize(&m_cxIlMain, &m_cyIlMain);*/
 
-    const auto cxIntPad = eck::DpiScale(CxIntPadding, m_iDpi);
+    const auto cxIntPad = eck::DpiScale((eck::TLytCoord)CxIntPadding, m_iDpi);
 
     constexpr DWORD dwCommStyle = WS_CHILD | WS_VISIBLE | WS_TABSTOP;
-    const MARGINS Mar{ .cxRightWidth = cxIntPad };
+    const eck::LYTMARGINS Mar{ .r = cxIntPad };
     {
-        const MARGINS Mar{ .cyBottomHeight = cxIntPad };
+        const eck::LYTMARGINS Mar{ .b = cxIntPad };
         m_CBBCtrl.Create(nullptr, dwCommStyle, 0,
             0, 0, 0, eck::DpiScale(CyComboBox, m_iDpi), hWnd, 0);
         m_LytProp.Add(&m_CBBCtrl, Mar, eck::LF_FIX_HEIGHT | eck::LF_FILL_WIDTH);
@@ -85,7 +85,7 @@ void CWndMain::OnCreate(HWND hWnd)
     }
     m_Lyt.Add(&m_LytProjAndCtrl, Mar, eck::LF_FILL_HEIGHT | eck::LF_FIX_WIDTH);
 
-    m_Lyt.LoInitDpi(m_iDpi);
+    m_Lyt.LoInitializeDpi(m_iDpi);
 
     eck::ApplyWindowFont(hWnd, m_hFontComm);
 }

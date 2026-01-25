@@ -291,9 +291,6 @@
     <ClInclude Include="eck\CLink.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CSplitLayout.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CPictureBox.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
@@ -393,9 +390,6 @@
     <ClInclude Include="eck\CHitter.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CRelativeLayout.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CTableLayout.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
@@ -409,9 +403,6 @@
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CWaitableTimer.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
-    <ClInclude Include="eck\CBorderLayout.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CProcessorUsage.h">

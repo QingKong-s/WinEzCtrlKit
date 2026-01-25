@@ -187,6 +187,8 @@ public:
         return Data() + cOld;
     }
 
+    EckInline auto& PushBack() noexcept { return *PushBackSize(1); }
+
     template<class... T>
     auto& EmplaceBack(T&&... Args) noexcept
     {
@@ -247,6 +249,26 @@ public:
             Data() + pos,
             (cOld - pos) * sizeof(TElem));
         Data()[pos] = e;
+    }
+
+    EckInlineNdCe std::span<TElem> ToSpan() noexcept
+    {
+        return { Data(), Data() + Size() };
+    }
+    EckInlineNdCe std::span<const TElem> ToSpan() const noexcept
+    {
+        return { Data(), Data() + Size() };
+    }
+
+    EckInlineNdCe std::span<TElem> SubSpan(size_t pos, size_t c) noexcept
+    {
+        EckAssert(pos + c <= Size());
+        return { Data() + pos, Data() + pos + c };
+    }
+    EckInlineNdCe std::span<const TElem> SubSpan(size_t pos, size_t c) const noexcept
+    {
+        EckAssert(pos + c <= Size());
+        return { Data() + pos, Data() + pos + c };
     }
 
     EckInlineNdCe TIterator begin() noexcept { return Data(); }

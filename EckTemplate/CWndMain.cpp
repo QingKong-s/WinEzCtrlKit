@@ -31,7 +31,7 @@ LRESULT CWndMain::OnCreate(HWND hWnd, CREATESTRUCT* pcs)
     constexpr DWORD Style = WS_CHILD | WS_VISIBLE | WS_TABSTOP;
     constexpr DWORD GroupStyle = WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_GROUP;
 
-    const MARGINS Mar{ .cyBottomHeight = DpiScale(8,m_iDpi) };
+    const eck::LYTMARGINS Mar{ .b = DpiScale((eck::TLytCoord)8, m_iDpi) };
     const auto cy = DpiScale(30, m_iDpi);
     const auto cxED = DpiScale(300, m_iDpi);
     {
@@ -49,7 +49,7 @@ LRESULT CWndMain::OnCreate(HWND hWnd, CREATESTRUCT* pcs)
             0, 0, DpiScale(70, m_iDpi), cy, hWnd, 0);
         m_Layout.Add(&m_BT, Mar, eck::LF_FIX | eck::LF_ALIGN_CENTER);
     }
-    m_Layout.LoInitDpi(m_iDpi);
+    m_Layout.LoInitializeDpi(m_iDpi);
 
     eck::ApplyWindowFont(hWnd, m_hFont);
     return 0;
@@ -60,8 +60,11 @@ LRESULT CWndMain::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     switch (uMsg)
     {
     case WM_SIZE:
-        m_Layout.Arrange(0, eck::DpiScale(70, m_iDpi),
-            LOWORD(lParam), HIWORD(lParam));
+        m_Layout.Arrange(
+            0,
+            eck::DpiScale((eck::TLytCoord)70, m_iDpi),
+            (eck::TLytCoord)LOWORD(lParam),
+            (eck::TLytCoord)HIWORD(lParam));
         break;
 
     case WM_COMMAND:

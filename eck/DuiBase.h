@@ -49,7 +49,7 @@ enum : int
     CxyMinScrollThumb = 20,
 };
 
-class CElem :public ILayout
+class CElem : public ILayout
 {
     friend class CDuiWnd;
 private:
@@ -281,15 +281,14 @@ public:
     EckInlineNdCe float Phy2LogF(float f) const;
 #pragma endregion PosSize
 #pragma region ILayout
-    SIZE LoGetAppropriateSize() noexcept override { return LoGetSize(); }
-    void LoSetPos(int x, int y) noexcept override { SetPos((float)x, (float)y); }
-    void LoSetSize(int cx, int cy) noexcept override { SetSize((float)cx, (float)cy); }
-    void LoSetPosSize(int x, int y, int cx, int cy) noexcept override
+    void LoSetPosition(LYTPOINT pt) noexcept override { SetPos((float)pt.x, (float)pt.y); }
+    void LoSetSize(LYTSIZE size) noexcept override { SetSize((float)size.cx, (float)size.cy); }
+    void LoSetRect(const LYTRECT& rc) noexcept override
     {
-        SetRect({ (float)x,(float)y,float(x + cx),float(y + cy) });
+        SetRect({ (float)rc.x, (float)rc.y, float(rc.x + rc.cx), float(rc.y + rc.cy) });
     }
-    POINT LoGetPos() noexcept override { return { (int)m_rc.left,(int)m_rc.top }; }
-    SIZE LoGetSize() noexcept override { return { (int)GetWidthF(),(int)GetHeightF() }; }
+    LYTPOINT LoGetPosition() noexcept override { return { (TLytCoord)m_rc.left, (TLytCoord)m_rc.top }; }
+    LYTSIZE LoGetSize() noexcept override { return { (TLytCoord)GetWidthF(), (TLytCoord)GetHeightF() }; }
     void LoShow(BOOL bShow) noexcept override { SetVisible(bShow); }
 #pragma endregion ILayout
 #pragma region ElemTree

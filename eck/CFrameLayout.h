@@ -1,96 +1,103 @@
 ﻿#pragma once
 #include "CLayoutBase.h"
+#include "CTrivialBuffer.h"
 
 ECK_NAMESPACE_BEGIN
-class CFrameLayout final :public CLayoutBase
+// 
+// 帧布局
+// 支持九向对齐
+// 支持FIX、IDEAL和SCALE，其余均被视为FLEX
+//
+
+class CFrameLayout : public CLayoutBase
 {
 public:
     ECK_RTTI(CFrameLayout);
 private:
-    struct ITEM : ITEMBASE
-    {
-        ITEM() = default;
-        constexpr ITEM(ILayout* pCtrl, const MARGINS& Margin,
-            UINT uFlags, short cx, short cy) noexcept
-            : ITEMBASE{ pCtrl, Margin, uFlags, cx, cy }
-        {
-        }
-    };
+    struct ITEM : ITEMBASE {};
 
-    std::vector<ITEM> m_vItem{};
-public:
-    size_t Add(ILayout* pCtrl, const MARGINS& Margin = {}, UINT uFlags = 0u) noexcept
+    CTrivialBuffer<ITEM> m_vItem{};
+
+    void OnAddObject(ITEM& e) noexcept
     {
-        const auto size = pCtrl->LoGetSize();
-        m_vItem.emplace_back(pCtrl, Margin, uFlags, (short)size.cx, (short)size.cy);
-        return m_vItem.size() - 1;
+        if (e.uFlags & LF_FIX)
+        {
+            const auto size = e.pObject->LoGetSize();
+            e.cx = size.cx;
+            e.cy = size.cy;
+        }
+    }
+public:
+    void LoShow(BOOL bShow) noexcept override
+    {
+        for (const auto& e : m_vItem)
+            e.pObject->LoShow(bShow);
     }
 
     void LoCommit() noexcept override
     {
-        int x, y, cx, cy;
-        HDWP hDwp = PreArrange(m_vItem.size());
+        LYTRECT rc;
         for (const auto& e : m_vItem)
         {
-            CalcCtrlPosSize(e, { m_x, m_y, m_cx, m_cy },
-                x, y, cx, cy);
-            MoveCtrlPosSize(e, hDwp, x, y, cx, cy);
+            ArgCalculateRect(e, { m_x, m_y, m_cx, m_cy }, rc);
+            ArgMoveObject(e, rc);
         }
-        PostArrange(hDwp);
+    }
+
+    void LoInitializeDpi(int iDpi) noexcept override
+    {
+        m_iDpi = iDpi;
+        for (const auto& e : m_vItem)
+            e.pObject->LoInitializeDpi(iDpi);
     }
 
     void LoOnDpiChanged(int iDpi) noexcept override
     {
-        Refresh();
         for (auto& e : m_vItem)
         {
-            ReCalcDpiSize(e, iDpi);
-            e.pCtrl->LoOnDpiChanged(iDpi);
+            ReCalculateDpiSize(e, iDpi);
+            e.pObject->LoOnDpiChanged(iDpi);
         }
         m_iDpi = iDpi;
     }
 
-    void LoInitDpi(int iDpi) noexcept override
+    void LobRefresh() noexcept override
     {
-        m_iDpi = iDpi;
         for (auto& e : m_vItem)
-            e.pCtrl->LoInitDpi(iDpi);
+            OnAddObject(e);
+    }
+
+    void LobClear() noexcept override
+    {
+        __super::LobClear();
+        m_vItem.Clear();
+    }
+
+    size_t LobGetObjectCount() const noexcept override { return m_vItem.Size(); }
+
+    size_t Add(ILayout* pCtrl, const LYTMARGINS& Margin = {}, UINT uFlags = 0u) noexcept
+    {
+        auto& e = m_vItem.PushBack();
+        e.pObject = pCtrl;
+        e.Margin = Margin;
+        e.uFlags = uFlags;
+        OnAddObject(e);
+        return m_vItem.Size() - 1;
     }
 
     void ShowFrame(int idx) noexcept
     {
-        EckAssert(idx >= 0 && idx < (int)m_vItem.size());
+        EckAssert(idx >= 0 && idx < (int)m_vItem.Size());
         int i{};
-        m_vItem[idx].pCtrl->LoShow(TRUE);
+        m_vItem[idx].pObject->LoShow(TRUE);
         for (; i < idx; ++i)
-            m_vItem[i].pCtrl->LoShow(FALSE);
-        for (i = idx + 1; i < (int)m_vItem.size(); ++i)
-            m_vItem[i].pCtrl->LoShow(FALSE);
-    }
-
-    void Refresh() noexcept override
-    {
-        for (auto& e : m_vItem)
-        {
-            const auto size = e.pCtrl->LoGetSize();
-            e.cx = (short)size.cx;
-            e.cy = (short)size.cy;
-        }
-    }
-
-    void Clear() noexcept override
-    {
-        CLayoutBase::Clear();
-        m_vItem.clear();
+            m_vItem[i].pObject->LoShow(FALSE);
+        for (i = idx + 1; i < (int)m_vItem.Size(); ++i)
+            m_vItem[i].pObject->LoShow(FALSE);
     }
 
     EckInlineNdCe auto& GetList() noexcept { return m_vItem; }
-
-    void LoShow(BOOL bShow) noexcept override
-    {
-        for (const auto& e : GetList())
-            e.pCtrl->LoShow(bShow);
-    }
+    EckInlineNdCe auto& GetList() const noexcept { return m_vItem; }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CFrameLayout, CLayoutBase);
 ECK_NAMESPACE_END

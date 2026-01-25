@@ -1,166 +1,138 @@
 ﻿#pragma once
 #include "CLayoutBase.h"
+#include "CTrivialBuffer.h"
 
 ECK_NAMESPACE_BEGIN
-enum :UINT
+// 
+// 流式布局
+// 在非布局流动方向上支持线对齐
+// 支持FIX和IDEAL，其余选项均被视为FLEX（特别注意不支持SCALE）
+//
+
+enum : UINT
 {
     // 在前方插入换行
-    FLF_BREAKLINE = 1u << 15,
+    FLF_BREAKLINE = 1u << 31,
 };
 
-class CFlowLayoutBase : public CLayoutBase
+// 不得直接实例化此类
+class __declspec(novtable) CFlowLayoutBase : public CLayoutBase
 {
 public:
     ECK_RTTI(CFlowLayoutBase);
 protected:
     struct ITEM : ITEMBASE
     {
-        RCWH rcPos{};
-
-        ITEM() = default;
-        constexpr ITEM(ILayout* pCtrl, const MARGINS& Margin,
-            UINT uFlags, short cx, short cy) noexcept
-            : ITEMBASE{ pCtrl, Margin, uFlags, cx, cy }
-        {
-        }
+        TLytCoord xy;
     };
 
-    std::vector<ITEM> m_vItem{};
-public:
-    size_t Add(ILayout* pCtrl,
-        const MARGINS& Margin = {}, const UINT uFlags = 0) noexcept
+    CTrivialBuffer<ITEM> m_vItem{};
+
+    void OnAddObject(ITEM& e) noexcept
     {
-        const auto size = pCtrl->LoGetSize();
-        m_vItem.emplace_back(pCtrl, Margin, uFlags, (short)size.cx, (short)size.cy);
-        return m_vItem.size() - 1;
+        if (e.uFlags & LF_FIX)
+        {
+            const auto size = e.pObject->LoGetSize();
+            e.cx = size.cx;
+            e.cy = size.cy;
+        }
+    }
+public:
+    void LoShow(BOOL bShow) noexcept override
+    {
+        for (const auto& e : m_vItem)
+            e.pObject->LoShow(bShow);
+    }
+
+    void LoInitializeDpi(int iDpi) noexcept override
+    {
+        m_iDpi = iDpi;
+        for (auto& e : m_vItem)
+            e.pObject->LoInitializeDpi(iDpi);
     }
 
     void LoOnDpiChanged(int iDpi) noexcept override
     {
-        Refresh();
         for (auto& e : m_vItem)
         {
-            ReCalcDpiSize(e, iDpi);
-            e.pCtrl->LoOnDpiChanged(iDpi);
+            ReCalculateDpiSize(e, iDpi);
+            e.pObject->LoOnDpiChanged(iDpi);
         }
         m_iDpi = iDpi;
     }
 
-    void LoInitDpi(int iDpi) noexcept override
+    void LobClear() noexcept override
     {
-        m_iDpi = iDpi;
-        for (auto& e : m_vItem)
-            e.pCtrl->LoInitDpi(iDpi);
+        __super::LobClear();
+        m_vItem.Clear();
     }
 
-    void Refresh() noexcept override
+    void LobRefresh() noexcept override
     {
         for (auto& e : m_vItem)
-        {
-            const auto size = e.pCtrl->LoGetSize();
-            e.cx = (short)size.cx;
-            e.cy = (short)size.cy;
-        }
+            OnAddObject(e);
     }
 
-    void Clear() noexcept override
+    size_t LobGetObjectCount() const noexcept override { return m_vItem.Size(); }
+
+    size_t Add(ILayout* pObject, const LYTMARGINS& Margin = {},
+        const UINT uFlags = 0) noexcept
     {
-        CLayoutBase::Clear();
-        m_vItem.clear();
+        auto& e = m_vItem.PushBack();
+        e.pObject = pObject;
+        e.Margin = Margin;
+        e.uFlags = uFlags;
+        OnAddObject(e);
+        return m_vItem.Size() - 1;
     }
 
     EckInlineNdCe auto& GetList() noexcept { return m_vItem; }
-
-    void LoShow(BOOL bShow) noexcept override
-    {
-        for (const auto& e : GetList())
-            e.pCtrl->LoShow(bShow);
-    }
+    EckInlineNdCe auto& GetList() const noexcept { return m_vItem; }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CFlowLayoutBase, CLayoutBase);
 
-class CFlowLayoutH final : public CFlowLayoutBase
+class CFlowLayoutH : public CFlowLayoutBase
 {
 public:
     ECK_RTTI(CFlowLayoutH);
 private:
-    void MoveCtrl(ITEM& e, HDWP& hDwp, int cyLineMax, int y) noexcept
+    void ArrangeObject(ITEM& e, TLytCoord yLine, TLytCoord cyLineMax) noexcept
     {
-        if (e.uFlags & LF_FIX_HEIGHT)
-            switch (GetSingleAlignFromFlags(e.uFlags))
-            {
-            case LF_ALIGN_NEAR:
-                e.rcPos.y = y;
-                break;
-            case LF_ALIGN_CENTER:
-                e.rcPos.y = y + (cyLineMax -
-                    (e.rcPos.cy + e.Margin.cyTopHeight + e.Margin.cyBottomHeight)) / 2;
-                break;
-            case LF_ALIGN_FAR:
-                e.rcPos.y = y + cyLineMax - e.rcPos.cy - e.Margin.cyBottomHeight;
-                break;
-            default:
-                ECK_UNREACHABLE;
-            }
-        else if (e.uFlags & LF_FILL_HEIGHT)
-        {
-            e.rcPos.y = y + e.Margin.cyTopHeight;
-            e.rcPos.cy = cyLineMax - e.Margin.cyBottomHeight - e.Margin.cyTopHeight;
-        }
-
-        if (const auto hWnd = e.pCtrl->LoGetHWND())
-        {
-            if (e.uFlags & LF_FIX_HEIGHT)
-                hDwp = DeferWindowPos(hDwp, hWnd, nullptr, e.rcPos.x, e.rcPos.y, 0, 0,
-                    SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE);
-            else
-                hDwp = DeferWindowPos(hDwp, hWnd, nullptr,
-                    e.rcPos.x, e.rcPos.y, e.rcPos.cx, e.rcPos.cy,
-                    SWP_NOZORDER | SWP_NOACTIVATE);
-        }
-        else
-        {
-            if (e.uFlags & LF_FIX_HEIGHT)
-                e.pCtrl->LoSetPos(e.rcPos.x, e.rcPos.y);
-            else
-                e.pCtrl->LoSetPosSize(e.rcPos.x, e.rcPos.y, e.rcPos.cx, e.rcPos.cy);
-            e.pCtrl->LoCommit();
-        }
+        if (!(e.uFlags & (LF_FIX_HEIGHT | LF_IDEAL_HEIGHT)))
+            e.cy = cyLineMax - e.Margin.t - e.Margin.b;
+        const auto y = ArgCalculateVerticalAlignment(
+            yLine, cyLineMax, e, e.cy);
+        ArgMoveObject(e, { e.xy, y, e.cx, e.cy });
     }
 public:
     void LoCommit() noexcept override
     {
-        HDWP hDwp = PreArrange(m_vItem.size());
-        int x = m_x;
-        int y = m_y;
-        int cxAppr, cyAppr;
-        int cyLineMax = 0;
-        int idxInLine = 0;
-        EckCounter(m_vItem.size(), i)
+        TLytCoord x = m_x;
+        TLytCoord y = m_y;
+        TLytCoord cyLineMax{};
+        size_t idxInLine{};
+        EckCounter(m_vItem.Size(), i)
         {
             auto& e = m_vItem[i];
-            if (IsBitSet(e.uFlags, LF_FIX))
+
+            LYTSIZE sizeIdeal{};
+            if (e.uFlags & LF_IDEAL)
             {
-                cxAppr = e.cx;
-                cyAppr = e.cy;
-            }
-            else
-            {
-                const auto size = e.pCtrl->LoGetAppropriateSize();
-                cxAppr = (e.uFlags & LF_FIX_WIDTH) ? e.cx : size.cx;
-                cyAppr = (e.uFlags & LF_FIX_HEIGHT) ? e.cy : size.cy;
+                e.pObject->LoGetIdealSize(sizeIdeal);
+                if (e.uFlags & LF_IDEAL_WIDTH)
+                    e.cx = sizeIdeal.cx;
+                if (e.uFlags & LF_IDEAL_HEIGHT)
+                    e.cy = sizeIdeal.cy;
             }
 
-            const auto xt = x + e.Margin.cxLeftWidth + e.Margin.cxRightWidth + cxAppr;
+            const auto xt = x + e.Margin.l + e.Margin.r + e.cx;
             if (!(e.uFlags & FLF_BREAKLINE) &&
-                (xt <= m_x + m_cx || idxInLine == 0/*无论有没有空间，至少要放下一个控件*/))
+                (xt <= m_x + m_cx || idxInLine == 0/*不管有没有空间，至少要放下一个控件*/))
             {
-                const int cyReal = cyAppr + e.Margin.cyTopHeight + e.Margin.cyBottomHeight;
+                const auto cyReal = e.cy + e.Margin.t + e.Margin.b;
                 if (cyReal > cyLineMax)
                     cyLineMax = cyReal;
-                e.rcPos.x = x + e.Margin.cxLeftWidth;
-                e.rcPos.cx = cxAppr;
-                e.rcPos.cy = cyAppr;
+                e.xy = x + e.Margin.l;
                 ++idxInLine;
                 x = xt;
             }
@@ -168,123 +140,69 @@ public:
             {
                 // 归位上一行
                 for (size_t j = i - idxInLine; j < i; ++j)
-                    MoveCtrl(m_vItem[j], hDwp, cyLineMax, y);
-
+                    ArrangeObject(m_vItem[j], y, cyLineMax);
                 // 重置行参数
                 x = m_x;
                 y += cyLineMax;
                 cyLineMax = 0;
                 idxInLine = 0;
-
                 // 本行第一个控件
-                const int cyReal = cyAppr + e.Margin.cyTopHeight + e.Margin.cyBottomHeight;
+                const auto cyReal = e.cy + e.Margin.t + e.Margin.b;
                 if (cyReal > cyLineMax)
                     cyLineMax = cyReal;
-                e.rcPos.x = x + e.Margin.cxLeftWidth;
-                e.rcPos.cx = cxAppr;
-                e.rcPos.cy = cyAppr;
+                e.xy = x + e.Margin.l;
                 ++idxInLine;
-                x += (e.Margin.cxLeftWidth + e.Margin.cxRightWidth + cxAppr);
+                x += (e.Margin.l + e.Margin.r + e.cx);
             }
         }
-        for (size_t j = m_vItem.size() - idxInLine; j < m_vItem.size(); ++j)
-            MoveCtrl(m_vItem[j], hDwp, cyLineMax, y);
-        PostArrange(hDwp);
-    }
-
-    SIZE LoGetAppropriateSize() noexcept override
-    {
-        int cx{}, cy{};
-        for (const auto& e : m_vItem)
-        {
-            cx += e.cx + e.Margin.cxLeftWidth + e.Margin.cxRightWidth;
-            cy = std::max(cy, e.cy + e.Margin.cyTopHeight + e.Margin.cyBottomHeight);
-        }
-        return { cx,cy };
+        for (size_t j = m_vItem.Size() - idxInLine; j < m_vItem.Size(); ++j)
+            ArrangeObject(m_vItem[j], y, cyLineMax);
     }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CFlowLayoutH, CFlowLayoutBase);
 
-class CFlowLayoutV final :public CFlowLayoutBase
+class CFlowLayoutV : public CFlowLayoutBase
 {
 public:
     ECK_RTTI(CFlowLayoutV);
 private:
-    void MoveCtrl(ITEM& e, HDWP& hDwp, int cxLineMax, int x) noexcept
+    void ArrangeObject(ITEM& e, TLytCoord xLine, TLytCoord cxLineMax) noexcept
     {
-        if (e.uFlags & LF_FIX_WIDTH)
-            switch (GetSingleAlignFromFlags(e.uFlags))
-            {
-            case LF_ALIGN_NEAR:
-                e.rcPos.x = x;
-                break;
-            case LF_ALIGN_CENTER:
-                e.rcPos.x = x + (cxLineMax - (e.rcPos.cx + e.Margin.cxLeftWidth + e.Margin.cxRightWidth)) / 2;
-                break;
-            case LF_ALIGN_FAR:
-                e.rcPos.x = x + cxLineMax - e.rcPos.cx - e.Margin.cxRightWidth;
-                break;
-            default:
-                ECK_UNREACHABLE;
-            }
-        else if (e.uFlags & LF_FILL_WIDTH)
-        {
-            e.rcPos.x = x + e.Margin.cxLeftWidth;
-            e.rcPos.cx = cxLineMax - e.Margin.cxLeftWidth - e.Margin.cxRightWidth;
-        }
-
-        if (const auto hWnd = e.pCtrl->LoGetHWND())
-        {
-            if (e.uFlags & LF_FIX_WIDTH)
-                hDwp = DeferWindowPos(hDwp, hWnd, nullptr, e.rcPos.x, e.rcPos.y, 0, 0,
-                    SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE);
-            else
-                hDwp = DeferWindowPos(hDwp, hWnd, nullptr, e.rcPos.x, e.rcPos.y, e.rcPos.cx, e.rcPos.cy,
-                    SWP_NOZORDER | SWP_NOACTIVATE);
-        }
-        else
-        {
-            if (e.uFlags & LF_FIX_WIDTH)
-                e.pCtrl->LoSetPos(e.rcPos.x, e.rcPos.y);
-            else
-                e.pCtrl->LoSetPosSize(e.rcPos.x, e.rcPos.y, e.rcPos.cx, e.rcPos.cy);
-            e.pCtrl->LoCommit();
-        }
+        if (!(e.uFlags & (LF_FIX_HEIGHT | LF_IDEAL_HEIGHT)))
+            e.cx = cxLineMax - e.Margin.l - e.Margin.r;
+        const auto x = ArgCalculateHorizontalAlignment(
+            xLine, cxLineMax, e, e.cx);
+        ArgMoveObject(e, { x, e.xy, e.cx, e.cy });
     }
 public:
     void LoCommit() noexcept override
     {
-        HDWP hDwp = PreArrange(m_vItem.size());
-        int x = m_x;
-        int y = m_y;
-        int cxAppr, cyAppr;
-        int cxLineMax = 0;
-        int idxInLine = 0;
-        EckCounter(m_vItem.size(), i)
+        TLytCoord x = m_x;
+        TLytCoord y = m_y;
+        TLytCoord cxLineMax{};
+        size_t idxInLine{};
+        EckCounter(m_vItem.Size(), i)
         {
             auto& e = m_vItem[i];
-            if (IsBitSet(e.uFlags, LF_FIX))
+
+            LYTSIZE sizeIdeal{};
+            if (e.uFlags & LF_IDEAL)
             {
-                cxAppr = e.cx;
-                cyAppr = e.cy;
-            }
-            else
-            {
-                const auto size = e.pCtrl->LoGetAppropriateSize();
-                cxAppr = (e.uFlags & LF_FIX_WIDTH) ? e.cx : size.cx;
-                cyAppr = (e.uFlags & LF_FIX_HEIGHT) ? e.cy : size.cy;
+                e.pObject->LoGetIdealSize(sizeIdeal);
+                if (e.uFlags & LF_IDEAL_WIDTH)
+                    e.cx = sizeIdeal.cx;
+                if (e.uFlags & LF_IDEAL_HEIGHT)
+                    e.cy = sizeIdeal.cy;
             }
 
-            const auto yt = y + e.Margin.cyTopHeight + e.Margin.cyBottomHeight + cyAppr;
+            const auto yt = y + e.Margin.t + e.Margin.b + e.cy;
             if (!(e.uFlags & FLF_BREAKLINE) &&
-                (yt <= m_y + m_cy || idxInLine == 0/*无论有没有空间，至少要放下一个控件*/))
+                (yt <= m_y + m_cy || idxInLine == 0/*不管有没有空间，至少要放下一个控件*/))
             {
-                const int cxReal = cxAppr + e.Margin.cxLeftWidth + e.Margin.cxRightWidth;
+                const auto cxReal = e.cx + e.Margin.l + e.Margin.r;
                 if (cxReal > cxLineMax)
                     cxLineMax = cxReal;
-                e.rcPos.y = y + e.Margin.cyTopHeight;
-                e.rcPos.cy = cyAppr;
-                e.rcPos.cx = cxAppr;
+                e.xy = y + e.Margin.t;
                 ++idxInLine;
                 y = yt;
             }
@@ -292,39 +210,23 @@ public:
             {
                 // 归位上一行
                 for (size_t j = i - idxInLine; j < i; ++j)
-                    MoveCtrl(m_vItem[j], hDwp, cxLineMax, x);
-
+                    ArrangeObject(m_vItem[j], x, cxLineMax);
                 // 重置行参数
                 y = m_y;
                 x += cxLineMax;
                 cxLineMax = 0;
                 idxInLine = 0;
-
                 // 本行第一个控件
-                const int cxReal = cxAppr + e.Margin.cxLeftWidth + e.Margin.cxRightWidth;
+                const auto cxReal = e.cx + e.Margin.l + e.Margin.r;
                 if (cxReal > cxLineMax)
                     cxLineMax = cxReal;
-                e.rcPos.y = y + e.Margin.cyTopHeight;
-                e.rcPos.cy = cyAppr;
-                e.rcPos.cx = cxAppr;
+                e.xy = y + e.Margin.t;
                 ++idxInLine;
-                y += (e.Margin.cyTopHeight + e.Margin.cyBottomHeight + cyAppr);
+                y += (e.Margin.t + e.Margin.b + e.cy);
             }
         }
-        for (size_t j = m_vItem.size() - idxInLine; j < m_vItem.size(); ++j)
-            MoveCtrl(m_vItem[j], hDwp, cxLineMax, x);
-        PostArrange(hDwp);
-    }
-
-    SIZE LoGetAppropriateSize() noexcept override
-    {
-        int cx{}, cy{};
-        for (const auto& e : m_vItem)
-        {
-            cx = std::max(cx, e.cx + e.Margin.cxLeftWidth + e.Margin.cxRightWidth);
-            cy += e.cy + e.Margin.cyTopHeight + e.Margin.cyBottomHeight;
-        }
-        return { cx,cy };
+        for (size_t j = m_vItem.Size() - idxInLine; j < m_vItem.Size(); ++j)
+            ArrangeObject(m_vItem[j], x, cxLineMax);
     }
 };
 ECK_RTTI_IMPL_BASE_INLINE(CFlowLayoutV, CFlowLayoutBase);

@@ -620,33 +620,31 @@ public:
         return 0;
     }
 
-    SIZE LoGetAppropriateSize() noexcept override
+    void LoSetPosition(LYTPOINT pt) noexcept override
     {
-        RECT rc;
-        GetWindowRect(m_hWnd, &rc);
-        return { rc.right - rc.left,rc.bottom - rc.top };
-    }
-
-    void LoSetPos(int x, int y) noexcept override
-    {
-        SetWindowPos(m_hWnd, nullptr, x, y, 0, 0,
+        SetWindowPos(m_hWnd, nullptr, (int)pt.x, (int)pt.y, 0, 0,
             SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
     }
-
-    void LoSetSize(int cx, int cy) noexcept override
+    void LoSetSize(LYTSIZE size) noexcept override
     {
-        SetWindowPos(m_hWnd, nullptr, 0, 0, cx, cy,
+        SetWindowPos(m_hWnd, nullptr, 0, 0, (int)size.cx, (int)size.cy,
             SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
     }
-
-    void LoSetPosSize(int x, int y, int cx, int cy) noexcept override
+    void LoSetRect(const LYTRECT& rc) noexcept override
     {
-        SetWindowPos(m_hWnd, nullptr, x, y, cx, cy,
+        SetWindowPos(m_hWnd, nullptr, (int)rc.x, (int)rc.y, (int)rc.cx, (int)rc.cy,
             SWP_NOZORDER | SWP_NOACTIVATE);
     }
-
-    POINT LoGetPos() noexcept override { return GetPosition(); }
-    SIZE LoGetSize() noexcept override { return GetSize(); }
+    LYTPOINT LoGetPosition() noexcept override
+    {
+        const auto pt{ GetPosition() };
+        return { TLytCoord(pt.x), TLytCoord(pt.y) };
+    }
+    LYTSIZE LoGetSize() noexcept override
+    {
+        const auto size{ GetSize() };
+        return { TLytCoord(size.cx), TLytCoord(size.cy) };
+    }
     void LoShow(BOOL bShow) noexcept override { Show(bShow ? SW_SHOW : SW_HIDE); }
     HWND LoGetHWND() noexcept override { return GetHWND(); }
 
@@ -1000,7 +998,7 @@ public:
         SetWindowPos(m_hWnd, nullptr, pt.x, pt.y, 0, 0,
             SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
     }
-    [[nodiscard]] EckInline POINT GetPosition() const noexcept
+    [[nodiscard]] POINT GetPosition() const noexcept
     {
         RECT rc;
         GetWindowRect(m_hWnd, &rc);

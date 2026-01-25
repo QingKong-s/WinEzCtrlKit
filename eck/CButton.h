@@ -123,7 +123,15 @@ public:
             SetNote(p->Note());
     }
 
-    EckInline BOOL GetIdealSize(_Out_ SIZE* psize) const noexcept
+    BOOL LoGetIdealSize(LYTSIZE& size) noexcept override
+    {
+        SIZE sizeInt{ (int)size.cx };
+        const auto b = GetIdealSize(&sizeInt);
+        size = { (TLytCoord)sizeInt.cx, (TLytCoord)sizeInt.cy };
+        return b;
+    }
+
+    EckInline BOOL GetIdealSize(_Inout_ SIZE* psize) const noexcept
     {
         return (int)SendMsg(BCM_GETIDEALSIZE, 0, (LPARAM)psize);
     }
