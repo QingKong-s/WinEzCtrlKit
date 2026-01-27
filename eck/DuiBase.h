@@ -92,9 +92,9 @@ private:
 
     BOOL IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
         float x, float y, float cx, float cy, CElem* pParent, CDuiWnd* pWnd,
-        INT_PTR iId = 0, PCVOID pData = nullptr);
+        INT_PTR iId = 0, PCVOID pData = nullptr) noexcept;
 
-    void utcDestroyChild(CElem* pElem)
+    void utcDestroyChild(CElem* pElem) noexcept
     {
         auto pChild = pElem->GetFirstChildElem();
         while (pChild)
@@ -105,10 +105,10 @@ private:
         }
     }
 
-    void tcIrpUnionContentExpandElemRect(CElem* pElem, _Inout_ D2D1_RECT_F& rcInClient);
-    void tcIrpInvalidate(const D2D1_RECT_F& rcInClient, BOOL bUpdateNow);
+    void tcIrpUnionContentExpandElemRect(CElem* pElem, _Inout_ D2D1_RECT_F& rcInClient) noexcept;
+    void tcIrpInvalidate(const D2D1_RECT_F& rcInClient, BOOL bUpdateNow) noexcept;
 
-    constexpr void tcSrpCorrectChildrenRectInClient() const
+    constexpr void tcSrpCorrectChildrenRectInClient() const noexcept
     {
         auto pElem = GetFirstChildElem();
         while (pElem)
@@ -121,7 +121,7 @@ private:
         }
     }
 
-    constexpr void tcSetRectWorker(const D2D1_RECT_F& rc)
+    constexpr void tcSetRectWorker(const D2D1_RECT_F& rc) noexcept
     {
         m_rc = rc;
         m_ptOffsetInClient = { m_rc.left,m_rc.top };
@@ -133,27 +133,27 @@ private:
         tcSrpCorrectChildrenRectInClient();
     }
 
-    constexpr void tcSetStyleWorker(DWORD dwStyle);
+    constexpr void tcSetStyleWorker(DWORD dwStyle) noexcept;
 
-    void tcPostMoveSize(BOOL bSize, BOOL bMove, const D2D1_RECT_F& rcOld);
+    void tcPostMoveSize(BOOL bSize, BOOL bMove, const D2D1_RECT_F& rcOld) noexcept;
 public:
     virtual BOOL Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
         float x, float y, float cx, float cy, CElem* pParent,
-        CDuiWnd* pWnd = nullptr, INT_PTR iId = 0, PCVOID pData = nullptr)
+        CDuiWnd* pWnd = nullptr, INT_PTR iId = 0, PCVOID pData = nullptr) noexcept
     {
         return IntCreate(pszText, dwStyle, dwExStyle,
             x, y, cx, cy, pParent, pWnd, iId, pData);
     }
 
-    void Destroy();
+    void Destroy() noexcept;
 
     // 事件处理函数，一般不直接调用此函数
-    virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam);
+    virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept;
 
-    virtual LRESULT OnNotify(DUINMHDR* pnm, BOOL& bProcessed) { return 0; }
+    virtual LRESULT OnNotify(DUINMHDR* pnm, BOOL& bProcessed) noexcept { return 0; }
 
     // 调用事件处理
-    EckInline LRESULT CallEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
+    EckInline LRESULT CallEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
         if (GetCompositor() && uMsg == WM_DPICHANGED)
             CompInvalidateCacheBitmap();
@@ -165,11 +165,11 @@ public:
     }
 
     // pnm = 通知结构，第一个字段必须为DUINMHDR
-    EckInline LRESULT GenElemNotify(void* pnm);
+    EckInline LRESULT GenElemNotify(void* pnm) noexcept;
 
     // 仅向父元素发送通知，若无父元素，返回0
     // pnm = 通知结构，第一个字段必须为DUINMHDR
-    EckInline LRESULT GenElemNotifyParent(void* pnm)
+    EckInline LRESULT GenElemNotifyParent(void* pnm) noexcept
     {
         BOOL bProcessed{};
         const auto lResult = OnNotify((DUINMHDR*)pnm, bProcessed);
@@ -181,7 +181,7 @@ public:
             return 0;
     }
 
-    EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
+    EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
         CallEvent(uMsg, wParam, lParam);
         auto pElem = GetFirstChildElem();
@@ -192,7 +192,7 @@ public:
         }
     }
 
-    EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT lStop)
+    EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT lStop) noexcept
     {
         if (CallEvent(uMsg, wParam, lParam) == lStop)
             return;
@@ -205,9 +205,9 @@ public:
     }
 
     // 将缓动曲线对象的自定义参数设为this，并注册
-    EckInline void InitEasingCurve(CEasingCurve* pEc);
+    EckInline void InitEasingCurve(CEasingCurve* pEc) noexcept;
 
-    void CeInflateRectWithExpandRadius(_Inout_ D2D1_RECT_F& rc, float f)
+    void CeInflateRectWithExpandRadius(_Inout_ D2D1_RECT_F& rc, float f) noexcept
     {
         auto rcTemp{ rc };
         InflateRect(rcTemp, f, f);
@@ -215,19 +215,19 @@ public:
             UnionRect(rc, rc, rcTemp);
     }
 
-    EckInlineNdCe CDuiWnd* GetWnd() const { return m_pWnd; }
-    EckInlineNdCe ID2D1DeviceContext* GetDC() const { return m_pDC; }
+    EckInlineNdCe CDuiWnd* GetWnd() const noexcept { return m_pWnd; }
+    EckInlineNdCe ID2D1DeviceContext* GetDC() const noexcept { return m_pDC; }
     // 注意：进行任何连接/断开操作时必须加锁
-    EckInlineNdCe auto& GetSignal() { return m_Sig; }
-    EckInlineNdCe CCriticalSection& GetCriticalSection() const;
-    EckInlineNdCe ID2D1Bitmap1* GetCacheBitmap() const;
+    EckInlineNdCe auto& GetSignal() noexcept { return m_Sig; }
+    EckInlineNdCe CCriticalSection& GetCriticalSection() const noexcept;
+    EckInlineNdCe ID2D1Bitmap1* GetCacheBitmap() const noexcept;
 #pragma region PosSize
-    EckInlineNdCe auto& GetRectF() const { return m_rc; }
-    EckInlineNdCe D2D1_RECT_F GetViewRectF() const
+    EckInlineNdCe auto& GetRectF() const noexcept { return m_rc; }
+    EckInlineNdCe D2D1_RECT_F GetViewRectF() const noexcept
     {
         return { 0.f,0.f,m_rc.right - m_rc.left,m_rc.bottom - m_rc.top };
     }
-    EckInlineNdCe D2D1_RECT_F GetRectInClientF() const
+    EckInlineNdCe D2D1_RECT_F GetRectInClientF() const noexcept
     {
         return {
             m_ptOffsetInClient.x,
@@ -236,9 +236,9 @@ public:
             m_ptOffsetInClient.y + m_rc.bottom - m_rc.top
         };
     }
-    EckInlineNdCe auto& GetOffsetInClientF() const { return m_ptOffsetInClient; }
+    EckInlineNdCe auto& GetOffsetInClientF() const noexcept { return m_ptOffsetInClient; }
 
-    void SetRect(const D2D1_RECT_F& rc)
+    void SetRect(const D2D1_RECT_F& rc) noexcept
     {
         ECK_DUILOCK;
         const auto rcOld = GetWholeRectInClient();
@@ -246,7 +246,7 @@ public:
         tcPostMoveSize(TRUE, TRUE, rcOld);
     }
 
-    void SetPos(float x, float y)
+    void SetPosition(float x, float y) noexcept
     {
         ECK_DUILOCK;
         const auto rcOld = GetWholeRectInClient();
@@ -261,7 +261,7 @@ public:
         tcPostMoveSize(FALSE, TRUE, rcOld);
     }
 
-    void SetSize(float cx, float cy)
+    void SetSize(float cx, float cy) noexcept
     {
         ECK_DUILOCK;
         const auto rcOld = GetWholeRectInClient();
@@ -270,18 +270,18 @@ public:
         tcPostMoveSize(TRUE, FALSE, rcOld);
     }
 
-    EckInlineNdCe float GetWidthF() const { return m_rc.right - m_rc.left; }
-    EckInlineNdCe float GetHeightF() const { return m_rc.bottom - m_rc.top; }
-    EckInlineNdCe float GetPhyWidthF() const { return Log2PhyF(GetWidthF()); }
-    EckInlineNdCe float GetPhyHeightF() const { return Log2PhyF(GetHeightF()); }
+    EckInlineNdCe float GetWidthF() const noexcept { return m_rc.right - m_rc.left; }
+    EckInlineNdCe float GetHeightF() const noexcept { return m_rc.bottom - m_rc.top; }
+    EckInlineNdCe float GetPhyWidthF() const noexcept { return Log2PhyF(GetWidthF()); }
+    EckInlineNdCe float GetPhyHeightF() const noexcept { return Log2PhyF(GetHeightF()); }
 
-    EckInlineNdCe int Log2Phy(int i) const;
-    EckInlineNdCe float Log2PhyF(float f) const;
-    EckInlineNdCe int Phy2Log(int i) const;
-    EckInlineNdCe float Phy2LogF(float f) const;
+    EckInlineNdCe int Log2Phy(int i) const noexcept;
+    EckInlineNdCe float Log2PhyF(float f) const noexcept;
+    EckInlineNdCe int Phy2Log(int i) const noexcept;
+    EckInlineNdCe float Phy2LogF(float f) const noexcept;
 #pragma endregion PosSize
 #pragma region ILayout
-    void LoSetPosition(LYTPOINT pt) noexcept override { SetPos((float)pt.x, (float)pt.y); }
+    void LoSetPosition(LYTPOINT pt) noexcept override { SetPosition((float)pt.x, (float)pt.y); }
     void LoSetSize(LYTSIZE size) noexcept override { SetSize((float)size.cx, (float)size.cy); }
     void LoSetRect(const LYTRECT& rc) noexcept override
     {
@@ -292,15 +292,16 @@ public:
     void LoShow(BOOL bShow) noexcept override { SetVisible(bShow); }
 #pragma endregion ILayout
 #pragma region ElemTree
-    EckInlineNdCe CElem* GetFirstChildElem() const { return m_pFirstChild; }
-    EckInlineNdCe CElem* GetLastChildElem() const { return m_pLastChild; }
-    EckInlineNdCe CElem* GetParentElem() const { return m_pParent; }
+    EckInlineNdCe CElem* GetFirstChildElem() const noexcept { return m_pFirstChild; }
+    EckInlineNdCe CElem* GetLastChildElem() const noexcept { return m_pLastChild; }
+    EckInlineNdCe CElem* GetParentElem() const noexcept { return m_pParent; }
     // 取下一元素，Z序高于当前
-    EckInlineNdCe CElem* GetNextElem() const { return m_pNext; }
+    EckInlineNdCe CElem* GetNextElem() const noexcept { return m_pNext; }
     // 取上一元素，Z序低于当前
-    EckInlineNdCe CElem* GetPrevElem() const { return m_pPrev; }
+    EckInlineNdCe CElem* GetPrevElem() const noexcept { return m_pPrev; }
 
-    static CElem* ElemFromPoint(CElem* pElem, POINT pt, _Out_opt_ LRESULT* pResult = nullptr)
+    static CElem* ElemFromPoint(CElem* pElem, POINT pt,
+        _Out_opt_ LRESULT* pResult = nullptr) noexcept
     {
         POINT pt0;
         while (pElem)
@@ -334,49 +335,49 @@ public:
             *pResult = HTNOWHERE;
         return nullptr;
     }
-    EckInline CElem* ElemFromPoint(POINT pt, _Out_opt_ LRESULT* pResult = nullptr)
+    EckInline CElem* ElemFromPoint(POINT pt, _Out_opt_ LRESULT* pResult = nullptr) noexcept
     {
         return ElemFromPoint(GetLastChildElem(), pt, pResult);
     }
 
-    EckInlineCe void ClientToElem(_Inout_ RECT& rc) const
+    EckInlineCe void ClientToElem(_Inout_ RECT& rc) const noexcept
     {
         OffsetRect(rc, (int)-m_ptOffsetInClient.x, (int)-m_ptOffsetInClient.y);
     }
-    EckInlineCe void ClientToElem(_Inout_ D2D1_RECT_F& rc) const
+    EckInlineCe void ClientToElem(_Inout_ D2D1_RECT_F& rc) const noexcept
     {
         OffsetRect(rc, -m_ptOffsetInClient.x, -m_ptOffsetInClient.y);
     }
-    EckInlineCe void ClientToElem(_Inout_ POINT& pt) const
+    EckInlineCe void ClientToElem(_Inout_ POINT& pt) const noexcept
     {
         pt.x -= (int)m_ptOffsetInClient.x;
         pt.y -= (int)m_ptOffsetInClient.y;
     }
-    EckInlineCe void ClientToElem(_Inout_ D2D1_POINT_2F& pt) const
+    EckInlineCe void ClientToElem(_Inout_ D2D1_POINT_2F& pt) const noexcept
     {
         pt.x -= m_ptOffsetInClient.x;
         pt.y -= m_ptOffsetInClient.y;
     }
-    EckInlineCe void ElemToClient(_Inout_ RECT& rc) const
+    EckInlineCe void ElemToClient(_Inout_ RECT& rc) const noexcept
     {
         OffsetRect(rc, (int)m_ptOffsetInClient.x, (int)m_ptOffsetInClient.y);
     }
-    EckInlineCe void ElemToClient(_Inout_ D2D1_RECT_F& rc) const
+    EckInlineCe void ElemToClient(_Inout_ D2D1_RECT_F& rc) const noexcept
     {
         OffsetRect(rc, m_ptOffsetInClient.x, m_ptOffsetInClient.y);
     }
-    EckInlineCe void ElemToClient(_Inout_ POINT& pt) const
+    EckInlineCe void ElemToClient(_Inout_ POINT& pt) const noexcept
     {
         pt.x += (int)m_ptOffsetInClient.x;
         pt.y += (int)m_ptOffsetInClient.y;
     }
-    EckInlineCe void ElemToClient(_Inout_ D2D1_POINT_2F& pt) const
+    EckInlineCe void ElemToClient(_Inout_ D2D1_POINT_2F& pt) const noexcept
     {
         pt.x += m_ptOffsetInClient.x;
         pt.y += m_ptOffsetInClient.y;
     }
 
-    void ForEachElem(const std::invocable<CElem*> auto& Fn)
+    void ForEachElem(const std::invocable<CElem*> auto& Fn) noexcept
     {
         auto pElem = GetFirstChildElem();
         while (pElem)
@@ -389,28 +390,28 @@ public:
 #pragma endregion ElemTree
 #pragma region OthersProp
     // 【不能在渲染线程调用】
-    void SetText(PCWSTR pszText, int cchText = -1)
+    void SetText(PCWSTR pszText, int cchText = -1) noexcept
     {
         if (cchText < 0)
             cchText = (int)TcsLen(pszText);
         ECK_DUILOCK;
         if (!CallEvent(WM_SETTEXT, cchText, (LPARAM)pszText))
-            m_rsText.DupString(pszText, cchText);
+            m_rsText.Assign(pszText, cchText);
     }
-    EckInlineNdCe auto& GetText() const { return m_rsText; }
+    EckInlineNdCe auto& GetText() const noexcept { return m_rsText; }
 protected:
-    EckInlineNdCe auto& GetText() { return m_rsText; }
+    EckInlineNdCe auto& GetText() noexcept { return m_rsText; }
 public:
-    void SetStyle(DWORD dwStyle)
+    void SetStyle(DWORD dwStyle) noexcept
     {
         ECK_DUILOCK;
         const auto dwOldStyle = m_dwStyle;
         tcSetStyleWorker(dwStyle);
         CallEvent(WM_STYLECHANGED, dwOldStyle, m_dwStyle);
     }
-    EckInlineNdCe DWORD GetStyle() const { return m_dwStyle; }
+    EckInlineNdCe DWORD GetStyle() const noexcept { return m_dwStyle; }
 
-    void SetVisible(BOOL b)
+    void SetVisible(BOOL b) noexcept
     {
         ECK_DUILOCK;
         DWORD dwStyle = GetStyle();
@@ -428,7 +429,7 @@ public:
         InvalidateRect();
     }
     // 是否可见。函数自底向上遍历父元素，如果存在不可见父元素，则返回FALSE，否则返回TRUE。
-    EckInlineNdCe BOOL IsVisible() const
+    EckInlineNdCe BOOL IsVisible() const noexcept
     {
         auto pParent = this;
         do
@@ -440,10 +441,10 @@ public:
         return TRUE;
     }
 
-    void SetZOrder(CElem* pElemAfter);
+    void SetZOrder(CElem* pElemAfter) noexcept;
 
     // 【不能在渲染线程调用】
-    void SetTextFormat(IDWriteTextFormat* pTf)
+    void SetTextFormat(IDWriteTextFormat* pTf) noexcept
     {
         ECK_DUILOCK;
         std::swap(m_pTextFormat, pTf);
@@ -453,14 +454,14 @@ public:
             pTf->Release();
         CallEvent(WM_SETFONT, 0, 0);
     }
-    EckInlineNdCe IDWriteTextFormat* GetTextFormat() const { return m_pTextFormat; }
+    EckInlineNdCe IDWriteTextFormat* GetTextFormat() const noexcept { return m_pTextFormat; }
 
     // 【不能在渲染线程调用】
-    EckInline constexpr void SetID(INT_PTR iId) { m_iId = iId; }
-    EckInlineNdCe INT_PTR GetID() const { return m_iId; }
+    EckInlineCe void SetID(INT_PTR iId) noexcept { m_iId = iId; }
+    EckInlineNdCe INT_PTR GetID() const noexcept { return m_iId; }
 
     // 【不能在渲染线程调用】
-    void SetTheme(ITheme* pTheme)
+    void SetTheme(ITheme* pTheme) noexcept
     {
         ECK_DUILOCK;
         std::swap(m_pTheme, pTheme);
@@ -470,9 +471,9 @@ public:
             pTheme->Release();
         CallEvent(WM_THEMECHANGED, 0, 0);
     }
-    EckInlineNdCe auto GetTheme() const { return m_pTheme; }
+    EckInlineNdCe auto GetTheme() const noexcept { return m_pTheme; }
 
-    void SetCompositor(CCompositor* pCompositor, BOOL bAutoMarkParentComp = TRUE)
+    void SetCompositor(CCompositor* pCompositor, BOOL bAutoMarkParentComp = TRUE) noexcept
     {
         ECK_DUILOCK;
         if (m_pCompositor == pCompositor)
@@ -497,17 +498,17 @@ public:
                 CompMarkChildrenParentComp(FALSE);
         }
     }
-    EckInlineNdCe CCompositor* GetCompositor() const { return m_pCompositor; }
+    EckInlineNdCe CCompositor* GetCompositor() const noexcept { return m_pCompositor; }
 #pragma endregion OthersProp
 #pragma region ElemFunc
 
-    EckInline void InvalidateRect(const D2D1_RECT_F& rc, BOOL bUpdateNow = TRUE)
+    EckInline void InvalidateRect(const D2D1_RECT_F& rc, BOOL bUpdateNow = TRUE) noexcept
     {
         auto rcInClient{ rc };
         ElemToClient(rcInClient);
         tcIrpInvalidate(rcInClient, bUpdateNow);
     }
-    EckInline void InvalidateRect(BOOL bUpdateNow = TRUE)
+    EckInline void InvalidateRect(BOOL bUpdateNow = TRUE) noexcept
     {
         tcIrpInvalidate(GetWholeRectInClient(), bUpdateNow);
     }
@@ -520,38 +521,38 @@ public:
     /// <param name="wParam">事件wParam，目前未用</param>
     /// <param name="lParam">事件lParam</param>
     /// <param name="uFlags">标志，EBPF_常量</param>
-    void BeginPaint(_Out_ ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uFlags = 0u);
+    void BeginPaint(_Out_ ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uFlags = 0u) noexcept;
 
     /// <summary>
     /// 结束画图
     /// </summary>
     /// <param name="eps">BeginPaint返回的结构，目前未用</param>
-    EckInline void EndPaint(const ELEMPAINTSTRU& eps)
+    EckInline void EndPaint(const ELEMPAINTSTRU& eps) noexcept
     {
         m_pDC->PopAxisAlignedClip();
     }
 
     // 【下列函数不能在渲染线程调用】
 
-    EckInline CElem* SetCapture();
-    EckInlineNdCe CElem* GetCapture();
-    EckInline void ReleaseCapture();
-    EckInline void SetFocus();
-    EckInlineNdCe CElem* GetFocus();
-    EckInline BOOL SetTimer(UINT_PTR uId, UINT uElapse);
-    EckInline BOOL KillTimer(UINT_PTR uId);
+    EckInline CElem* SetCapture() noexcept;
+    EckInlineNdCe CElem* GetCapture() noexcept;
+    EckInline void ReleaseCapture() noexcept;
+    EckInline void SetFocus() noexcept;
+    EckInlineNdCe CElem* GetFocus() noexcept;
+    EckInline BOOL SetTimer(UINT_PTR uId, UINT uElapse) noexcept;
+    EckInline BOOL KillTimer(UINT_PTR uId) noexcept;
 
-    EckInlineNdCe BOOL IsValid() const { return !!GetWnd(); }
+    EckInlineNdCe BOOL IsValid() const noexcept { return !!GetWnd(); }
 #pragma endregion ElemFunc
 #pragma region Composite
     // 取完全包围元素的矩形，相对客户区
-    EckInlineNdCe D2D1_RECT_F GetWholeRectInClient() const
+    EckInlineNdCe D2D1_RECT_F GetWholeRectInClient() const noexcept
     {
         return (GetCompositor() && !GetCompositor()->IsInPlace()) ?
             m_rcCompInClient : GetRectInClientF();
     }
 
-    EckInlineNdCe CElem* CompGetFirstCompositedAncestor() const
+    EckInlineNdCe CElem* CompGetFirstCompositedAncestor() const noexcept
     {
         if (GetStyle() & DES_PARENT_COMP)
         {
@@ -563,7 +564,7 @@ public:
         return nullptr;
     }
 
-    void CompReCalcCompositedRect()
+    void CompReCalcCompositedRect() noexcept
     {
         ECK_DUILOCK;
         if (!GetCompositor()->IsInPlace())
@@ -574,12 +575,12 @@ public:
         }
     }
 
-    EckInlineNdCe BOOL CompIsNeedCoordinateTransform() const
+    EckInlineNdCe BOOL CompIsNeedCoordinateTransform() const noexcept
     {
         return GetCompositor() || (GetStyle() & DES_PARENT_COMP);
     }
 
-    void CompTransformCoordinate(_Inout_ POINT& pt, BOOL bNormalToComposited)
+    void CompTransformCoordinate(_Inout_ POINT& pt, BOOL bNormalToComposited) noexcept
     {
         if (GetCompositor() && !(GetStyle() & DES_PARENT_COMP))// OPTIMIZATION
         {
@@ -643,20 +644,20 @@ public:
         ClientToElem(pt);
     }
 
-    HRESULT CompUpdateCacheBitmap(float cx, float cy);
+    HRESULT CompUpdateCacheBitmap(float cx, float cy) noexcept;
 
-    EckInline void CompInvalidateCacheBitmap()
+    EckInline void CompInvalidateCacheBitmap() noexcept
     {
         SafeRelease(m_pCompBitmap);
     }
 
-    EckInlineCe void CompMarkDirty()
+    EckInlineCe void CompMarkDirty() noexcept
     {
         if (GetCompositor())
             m_dwStyle |= DESP_COMP_CONTENT_INVALID;
     }
 
-    void CompMarkChildrenParentComp(BOOL bAdd)
+    void CompMarkChildrenParentComp(BOOL bAdd) noexcept
     {
         auto pElem = GetFirstChildElem();
         while (pElem)
@@ -672,7 +673,7 @@ public:
 #pragma endregion Composite
 };
 
-class CDuiWnd :public CWnd, public IDropTarget
+class CDuiWnd : public CWnd, public IDropTarget
 {
     friend class CElem;
 private:
@@ -751,7 +752,7 @@ private:
 
 #ifdef _DEBUG
     CPcg32 m_Pcg{};
-    
+
     BITBOOL m_bDrawDirtyRect : 1{};     // 是否绘制脏矩形
 #endif
     BITBOOL m_bEnableDragDrop : 1{};    // 启用拖放
@@ -772,7 +773,7 @@ private:
     USHORT m_iDpi{ USER_DEFAULT_SCREEN_DPI };
 
 
-    void ElemDestroying(CElem* pElem)
+    void ElemDestroying(CElem* pElem) noexcept
     {
         if (m_pFocusElem == pElem)
             m_pFocusElem = nullptr;
@@ -795,7 +796,7 @@ private:
     }
 
     void BlurpDrawStyleBkg(CElem* pElem, const D2D1_RECT_F& rcClipInClient,
-        float ox, float oy)
+        float ox, float oy) noexcept
     {
         EckAssert(pElem->GetStyle() & DES_BLURBKG);
         GetDeviceContext()->Flush();
@@ -809,14 +810,14 @@ private:
             BlurGetDeviation(), BlurGetUseLayer());
     }
 
-    void CeAdd(CElem* pElem)
+    void CeAdd(CElem* pElem) noexcept
     {
         auto& v = m_vContentExpandElem;
         EckAssert(std::find_if(v.begin(), v.end(),
             [=](const EXPAND_ITEM& e) {return e.pElem == pElem; }) == v.end());
         v.emplace_back(pElem);
     }
-    void CeRemove(CElem* pElem)
+    void CeRemove(CElem* pElem) noexcept
     {
         auto& v = m_vContentExpandElem;
         for (auto it = v.begin(); it != v.end(); ++it)
@@ -829,7 +830,7 @@ private:
         }
         EckAssert(FALSE);// 未找到匹配元素
     }
-    void CeUnion(_Inout_ D2D1_RECT_F& rcInClient)
+    void CeUnion(_Inout_ D2D1_RECT_F& rcInClient) noexcept
     {
         if (m_vContentExpandElem.empty())
             return;
@@ -890,7 +891,7 @@ private:
     /// <param name="oxComp">用于手动混合元素子级的X偏移</param>
     /// <param name="oyComp">用于手动混合元素子级的Y偏移</param>
     void RdRenderTree(CElem* pElem, const D2D1_RECT_F& rc, float ox, float oy,
-        BOOL bCompParent = FALSE, float oxComp = 0.f, float oyComp = 0.f)
+        BOOL bCompParent = FALSE, float oxComp = 0.f, float oyComp = 0.f) noexcept
     {
         const auto pDC = GetDeviceContext();
         D2D1_RECT_F rcClip;// 相对客户区
@@ -1024,7 +1025,7 @@ private:
             pElem = pElem->GetNextElem();
         }
     }
-    void RdRender_DComp(const D2D1_RECT_F& rc, BOOL bFullUpdate = FALSE)
+    void RdRender_DComp(const D2D1_RECT_F& rc, BOOL bFullUpdate = FALSE) noexcept
     {
         EckAssert(GetPresentMode() == PresentMode::DCompositionSurface ||
             GetPresentMode() == PresentMode::DCompositionVisual);
@@ -1142,7 +1143,8 @@ private:
         else
             m_pDcDevice->Commit();
     }
-    void RdRender(const D2D1_RECT_F& rc, BOOL bFullUpdate = FALSE, RECT* prcPhy = nullptr)
+    void RdRender(const D2D1_RECT_F& rc, BOOL bFullUpdate = FALSE,
+        RECT* prcPhy = nullptr) noexcept
     {
         const auto pDC = GetDeviceContext();
         switch (m_ePresentMode)
@@ -1230,7 +1232,7 @@ private:
         ECK_UNREACHABLE;
     }
 
-    void RdThread()
+    void RdThread() noexcept
     {
         constexpr int MinTickInterval = 14;
         CWaitableTimer Timer{};
@@ -1407,7 +1409,7 @@ private:
 
         Timer.Cancel();
     }
-    void RdStartup()
+    void RdStartup() noexcept
     {
         m_hthRender = CrtCreateThread([](void* p)->UINT
             {
@@ -1416,7 +1418,7 @@ private:
             }, this);
     }
 
-    void RduInitGraphics()
+    void RduInitGraphics() noexcept
     {
         switch (m_ePresentMode)
         {
@@ -1524,7 +1526,7 @@ public:
     ECK_CWND_CREATE;
     // 一般不覆写此方法
     HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-        int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) override
+        int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) noexcept override
     {
         if (m_ePresentMode == PresentMode::FlipSwapChain ||
             m_ePresentMode == PresentMode::DCompositionSurface ||
@@ -1536,7 +1538,7 @@ public:
             x, y, cx, cy, hParent, hMenu, g_hInstance, nullptr);
     }
 
-    LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
+    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         if ((uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST))
         {
@@ -1603,7 +1605,7 @@ public:
             {
                 if (pElem)
                 {
-                    const auto lResult = CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
+                    const auto lResult = CWnd::OnMessage(hWnd, uMsg, wParam, lParam);
                     POINT pt;
                     GetCursorPos(&pt);
                     pElem->CallEvent(WM_NCLBUTTONUP, wParam, MAKELPARAM(pt.x, pt.y));
@@ -1731,7 +1733,7 @@ public:
 
         case WM_CREATE:
         {
-            auto lResult = CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
+            auto lResult = CWnd::OnMessage(hWnd, uMsg, wParam, lParam);
             if (!lResult)
             {
                 m_iDpi = GetDpi(hWnd);
@@ -1762,7 +1764,7 @@ public:
                     pDC->CreateSolidColorBrush({}, &m_pBrBkg);
                 else
                     pDC->CreateSolidColorBrush(
-                        ColorrefToD2DColorF(GetThreadCtx()->crDefBkg), &m_pBrBkg);
+                        ColorrefToD2DColorF(PtcCurrent()->crDefBkg), &m_pBrBkg);
 
                 m_bFullUpdate = TRUE;
                 m_rcInvalid = { 0,0,m_cxClientLog,m_cyClientLog };
@@ -1852,12 +1854,12 @@ public:
         break;
         }
 
-        return CWnd::OnMsg(hWnd, uMsg, wParam, lParam);
+        return CWnd::OnMessage(hWnd, uMsg, wParam, lParam);
     }
 
-    virtual LRESULT OnElemEvent(CElem* pElem, UINT uMsg, WPARAM wParam, LPARAM lParam) { return 0; }
+    virtual LRESULT OnElemEvent(CElem* pElem, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept { return 0; }
 
-    virtual LRESULT OnRenderEvent(UINT uMsg, RENDER_EVENT& e)
+    virtual LRESULT OnRenderEvent(UINT uMsg, RENDER_EVENT& e) noexcept
     {
         if (uMsg == RE_FILLBACKGROUND)
         {
@@ -1867,21 +1869,21 @@ public:
         return RER_NONE;
     }
 
-    EckInlineNdCe auto BbrGet() const { return m_pBrBkg; }
-    EckInline void BbrDelete() { SafeRelease(m_pBrBkg); }
-    EckInline void BbrCreate()
+    EckInlineNdCe auto BbrGet() const noexcept { return m_pBrBkg; }
+    EckInline void BbrDelete() noexcept { SafeRelease(m_pBrBkg); }
+    EckInline void BbrCreate() noexcept
     {
         if (!m_pBrBkg)
             GetDeviceContext()->CreateSolidColorBrush(
-                ColorrefToD2DColorF(GetThreadCtx()->crDefBkg), &m_pBrBkg);
+                ColorrefToD2DColorF(PtcCurrent()->crDefBkg), &m_pBrBkg);
     }
 
-    EckInline CElem* ElemFromPoint(POINT pt, _Out_opt_ LRESULT* pResult = nullptr)
+    EckInline CElem* ElemFromPoint(POINT pt, _Out_opt_ LRESULT* pResult = nullptr) noexcept
     {
         return CElem::ElemFromPoint(GetLastChildElem(), pt, pResult);
     }
 
-    CElem* ElemSetFocus(CElem* pElem)
+    CElem* ElemSetFocus(CElem* pElem) noexcept
     {
         SetFocus(HWnd);
         if (m_pFocusElem == pElem)
@@ -1893,9 +1895,9 @@ public:
         pElem->CallEvent(WM_SETFOCUS, (WPARAM)pOld, 0);
         return pOld;
     }
-    EckInline constexpr CElem* ElemGetFocus() const { return m_pFocusElem; }
+    EckInline constexpr CElem* ElemGetFocus() const noexcept { return m_pFocusElem; }
 
-    CElem* ElemSetCapture(CElem* pElem)
+    CElem* ElemSetCapture(CElem* pElem) noexcept
     {
         auto pOld = m_pMouseCaptureElem;
         m_pMouseCaptureElem = pElem;
@@ -1908,7 +1910,7 @@ public:
             pOld->CallEvent(WM_CAPTURECHANGED, 0, (LPARAM)pElem);
         return pOld;
     }
-    EckInline void ElemReleaseCapture()
+    EckInline void ElemReleaseCapture() noexcept
     {
         ReleaseCapture();
 
@@ -1916,9 +1918,9 @@ public:
         // m_pMouseCaptureElem->CallEvent(WM_CAPTURECHANGED, 0, nullptr);
         // m_pMouseCaptureElem = nullptr;
     }
-    EckInline constexpr CElem* ElemGetCapture() const { return m_pMouseCaptureElem; }
+    EckInline constexpr CElem* ElemGetCapture() const noexcept { return m_pMouseCaptureElem; }
 
-    BOOL ElemSetTimer(CElem* pElem, UINT_PTR uId, UINT uElapse)
+    BOOL ElemSetTimer(CElem* pElem, UINT_PTR uId, UINT uElapse) noexcept
     {
         if (!SetTimer(HWnd, uId, uElapse, nullptr))
             return FALSE;
@@ -1930,7 +1932,7 @@ public:
         m_vTimer.emplace_back(pElem, uId);
         return TRUE;
     }
-    BOOL ElemKillTimer(CElem* pElem, UINT_PTR uId)
+    BOOL ElemKillTimer(CElem* pElem, UINT_PTR uId) noexcept
     {
         for (auto it = m_vTimer.begin(); it != m_vTimer.end(); ++it)
         {
@@ -1944,12 +1946,12 @@ public:
         return FALSE;
     }
 
-    EckInlineNdCe CElem* GetFirstChildElem() const { return m_pFirstChild; }
-    EckInlineNdCe CElem* GetLastChildElem() const { return m_pLastChild; }
+    EckInlineNdCe CElem* GetFirstChildElem() const noexcept { return m_pFirstChild; }
+    EckInlineNdCe CElem* GetLastChildElem() const noexcept { return m_pLastChild; }
 
-    EckInlineNdCe int GetDpiValue() const { return m_iDpi; }
-    EckInlineNdCe int GetUserDpi() const { return m_iUserDpi; }
-    void SetUserDpi(int iDpi)
+    EckInlineNdCe int GetDpiValue() const noexcept { return m_iDpi; }
+    EckInlineNdCe int GetUserDpi() const noexcept { return m_iUserDpi; }
+    void SetUserDpi(int iDpi) noexcept
     {
         ECK_DUILOCKWND;
         m_iUserDpi = iDpi;
@@ -1960,53 +1962,53 @@ public:
         }
     }
 
-    EckInlineNdCe int Phy2Log(int i) const { return i * 96 / m_iUserDpi; }
-    EckInlineNdCe float Phy2LogF(float i) const { return i * 96.f / m_iUserDpi; }
-    EckInlineNdCe int Log2Phy(int i) const { return i * m_iUserDpi / 96; }
-    EckInlineNdCe float Log2PhyF(float i) const { return i * m_iUserDpi / 96.f; }
+    EckInlineNdCe int Phy2Log(int i) const noexcept { return i * 96 / m_iUserDpi; }
+    EckInlineNdCe float Phy2LogF(float i) const noexcept { return i * 96.f / m_iUserDpi; }
+    EckInlineNdCe int Log2Phy(int i) const noexcept { return i * m_iUserDpi / 96; }
+    EckInlineNdCe float Log2PhyF(float i) const noexcept { return i * m_iUserDpi / 96.f; }
 
-    EckInlineCe void Phy2Log(_Inout_ POINT& pt) const
+    EckInlineCe void Phy2Log(_Inout_ POINT& pt) const noexcept
     {
         pt.x = Phy2Log(pt.x);
         pt.y = Phy2Log(pt.y);
     }
-    EckInlineCe void Phy2Log(_Inout_ RECT& rc) const
+    EckInlineCe void Phy2Log(_Inout_ RECT& rc) const noexcept
     {
         rc.left = Phy2Log(rc.left);
         rc.top = Phy2Log(rc.top);
         rc.right = Phy2Log(rc.right);
         rc.bottom = Phy2Log(rc.bottom);
     }
-    EckInlineCe void Phy2Log(_Inout_ D2D1_POINT_2F& pt) const
+    EckInlineCe void Phy2Log(_Inout_ D2D1_POINT_2F& pt) const noexcept
     {
         pt.x = Phy2LogF(pt.x);
         pt.y = Phy2LogF(pt.y);
     }
-    EckInlineCe void Phy2Log(_Inout_ D2D1_RECT_F& rc) const
+    EckInlineCe void Phy2Log(_Inout_ D2D1_RECT_F& rc) const noexcept
     {
         rc.left = Phy2LogF(rc.left);
         rc.top = Phy2LogF(rc.top);
         rc.right = Phy2LogF(rc.right);
         rc.bottom = Phy2LogF(rc.bottom);
     }
-    EckInlineCe void Log2Phy(_Inout_ POINT& pt) const
+    EckInlineCe void Log2Phy(_Inout_ POINT& pt) const noexcept
     {
         pt.x = Log2Phy(pt.x);
         pt.y = Log2Phy(pt.y);
     }
-    EckInlineCe void Log2Phy(_Inout_ RECT& rc) const
+    EckInlineCe void Log2Phy(_Inout_ RECT& rc) const noexcept
     {
         rc.left = Log2Phy(rc.left);
         rc.top = Log2Phy(rc.top);
         rc.right = Log2Phy(rc.right);
         rc.bottom = Log2Phy(rc.bottom);
     }
-    EckInlineCe void Log2Phy(_Inout_ D2D1_POINT_2F& pt) const
+    EckInlineCe void Log2Phy(_Inout_ D2D1_POINT_2F& pt) const noexcept
     {
         pt.x = Log2PhyF(pt.x);
         pt.y = Log2PhyF(pt.y);
     }
-    EckInlineCe void Log2Phy(_Inout_ D2D1_RECT_F& rc) const
+    EckInlineCe void Log2Phy(_Inout_ D2D1_RECT_F& rc) const noexcept
     {
         rc.left = Log2PhyF(rc.left);
         rc.top = Log2PhyF(rc.top);
@@ -2014,13 +2016,13 @@ public:
         rc.bottom = Log2PhyF(rc.bottom);
     }
 
-    EckInline void StGetCurrentTheme(ITheme*& pTheme)
+    EckInline void StGetCurrentTheme(ITheme*& pTheme) noexcept
     {
         ECK_DUILOCKWND;
         pTheme = m_vTheme[!!m_bDarkMode].Get();
         pTheme->AddRef();
     }
-    EckInline void StSwitchStdThemeMode(BOOL bDark)
+    EckInline void StSwitchStdThemeMode(BOOL bDark) noexcept
     {
         ECK_DUILOCKWND;
         m_bDarkMode = bDark;
@@ -2036,13 +2038,13 @@ public:
                 pElem->SetTheme(pTheme);
             }, GetFirstChildElem());
     }
-    void StUpdateColorizationColor(const D2D1_COLOR_F& cr)
+    void StUpdateColorizationColor(const D2D1_COLOR_F& cr) noexcept
     {
         ECK_DUILOCKWND;
         for (auto& pTheme : m_vTheme)
             pTheme->SetColorizationColor(cr);
     }
-    BOOL StUpdateColorizationColor()
+    BOOL StUpdateColorizationColor() noexcept
     {
         HKEY hKey;
         if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\DWM",
@@ -2064,7 +2066,7 @@ public:
         RegCloseKey(hKey);
         return TRUE;
     }
-    void StRegisterAutoTheme(ITheme* pTheme)
+    void StRegisterAutoTheme(ITheme* pTheme) noexcept
     {
         ECK_DUILOCKWND;
         EckAssert(std::find_if(m_vTheme.begin(), m_vTheme.end(),
@@ -2076,7 +2078,7 @@ public:
         pTheme->RealizeForDC(GetDeviceContext());
     }
 
-    EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
+    EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
         auto pElem = GetFirstChildElem();
         while (pElem)
@@ -2086,7 +2088,7 @@ public:
         }
     }
 
-    EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT lStop)
+    EckInline void BroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT lStop) noexcept
     {
         auto pElem = GetFirstChildElem();
         while (pElem)
@@ -2096,20 +2098,20 @@ public:
         }
     }
 
-    EckInlineNdCe CCriticalSection& GetCriticalSection() { return m_cs; }
+    EckInlineNdCe CCriticalSection& GetCriticalSection() noexcept { return m_cs; }
 
-    EckInline void WakeRenderThread()
+    EckInline void WakeRenderThread() noexcept
     {
         m_EvtRender.Signal();
     }
 
-    EckInline void RegisterTimeLine(ITimeLine* pTl)
+    EckInline void RegisterTimeLine(ITimeLine* pTl) noexcept
     {
         ECK_DUILOCKWND;
         pTl->AddRef();
         m_vTimeLine.emplace_back(pTl);
     }
-    EckInline void UnregisterTimeLine(ITimeLine* pTl)
+    EckInline void UnregisterTimeLine(ITimeLine* pTl) noexcept
     {
         ECK_DUILOCKWND;
         const auto it = std::find(m_vTimeLine.begin(), m_vTimeLine.end(), pTl);
@@ -2120,7 +2122,7 @@ public:
         }
     }
 
-    EckInline void Redraw(BOOL bWake = TRUE)
+    EckInline void Redraw(BOOL bWake = TRUE) noexcept
     {
         ECK_DUILOCKWND;
         m_bFullUpdate = TRUE;
@@ -2130,28 +2132,28 @@ public:
     }
 
     // 必须在创建窗口之前调用
-    EckInline void SetPresentMode(PresentMode ePresentMode)
+    EckInline void SetPresentMode(PresentMode ePresentMode) noexcept
     {
         EckAssert(!IsValid());
         m_ePresentMode = ePresentMode;
     }
-    EckInline constexpr PresentMode GetPresentMode() const { return m_ePresentMode; }
+    EckInlineNdCe PresentMode GetPresentMode() const noexcept { return m_ePresentMode; }
 
     // 必须在创建窗口之前调用。
     // 设置透明后不会生成默认背景画刷，渲染开始前总是清除图面，并且在呈现时不忽略Alpha通道
-    EckInline constexpr void SetTransparent(BOOL bTransparent)
+    EckInlineCe void SetTransparent(BOOL bTransparent) noexcept
     {
         m_bTransparent = bTransparent;
         m_eAlphaMode = (bTransparent ? D2D1_ALPHA_MODE_PREMULTIPLIED : D2D1_ALPHA_MODE_IGNORE);
         m_eDxgiAlphaMode = (bTransparent ? DXGI_ALPHA_MODE_PREMULTIPLIED : DXGI_ALPHA_MODE_IGNORE);
     }
-    EckInline constexpr BOOL GetTransparent() const { return m_bTransparent; }
+    EckInlineNdCe BOOL GetTransparent() const noexcept { return m_bTransparent; }
 
-    EckInline constexpr int GetChildrenCount() const { return m_cChildren; }
+    EckInlineNdCe int GetChildrenCount() const noexcept { return m_cChildren; }
 
-    EckInline constexpr ID2D1Bitmap1* GetCacheBitmap() const { return m_pBmpCache; }
+    EckInlineNdCe ID2D1Bitmap1* GetCacheBitmap() const noexcept { return m_pBmpCache; }
 
-    void CacheReserve(int cxPhy, int cyPhy)
+    void CacheReserve(int cxPhy, int cyPhy) noexcept
     {
         if (cxPhy > m_cxCache || cyPhy > m_cyCache)
         {
@@ -2162,11 +2164,11 @@ public:
             BmpNew(m_cxCache, m_cyCache, m_pBmpCache);
         }
     }
-    void CacheReserveLogSize(float cx, float cy)
+    void CacheReserveLogSize(float cx, float cy) noexcept
     {
         CacheReserve((int)ceilf(Log2PhyF(cx)), (int)ceilf(Log2PhyF(cy)));
     }
-    void CacheClear()
+    void CacheClear() noexcept
     {
         if (m_pBmpCache)
             m_pBmpCache->Release();
@@ -2174,7 +2176,7 @@ public:
         m_cxCache = m_cyCache = 0;
     }
 
-    void BlurInit()
+    void BlurInit() noexcept
     {
         ECK_DUILOCKWND;
         if (!m_pFxBlur)
@@ -2188,7 +2190,7 @@ public:
     }
 private:
     HRESULT BlurpDrawEffect(ID2D1Effect* pFx,
-        D2D1_POINT_2F ptDrawing, BOOL bUseLayer)
+        D2D1_POINT_2F ptDrawing, BOOL bUseLayer) noexcept
     {
         const auto pDC = GetDeviceContext();
 #ifdef _DEBUG
@@ -2232,7 +2234,7 @@ public:
     /// <param name="bUseLayer">是否使用图层</param>
     /// <returns>HRESULT</returns>
     HRESULT BlurDrawDC(const D2D1_RECT_F& rc,
-        D2D1_POINT_2F ptDrawing, float fDeviation, BOOL bUseLayer = FALSE)
+        D2D1_POINT_2F ptDrawing, float fDeviation, BOOL bUseLayer = FALSE) noexcept
     {
         ComPtr<ID2D1Bitmap1> pBmp;
         ComPtr<ID2D1Image> pTarget;
@@ -2270,7 +2272,7 @@ public:
     /// <param name="bUseLayer">是否使用图层</param>
     /// <returns>HRESULT</returns>
     HRESULT BlurDrawDirect(ID2D1Bitmap1* pBmp, const D2D1_RECT_F& rc,
-        D2D1_POINT_2F ptDrawing, float fDeviation, BOOL bUseLayer = FALSE)
+        D2D1_POINT_2F ptDrawing, float fDeviation, BOOL bUseLayer = FALSE) noexcept
     {
         m_pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, fDeviation);
         m_pFxCrop->SetValue(D2D1_CROP_PROP_RECT,
@@ -2284,7 +2286,7 @@ public:
     // 模糊指定位图的内容，并画出。
     // 忽略裁剪效果
     HRESULT BlurDrawDirect(ID2D1Bitmap1* pBmp,
-        D2D1_POINT_2F ptDrawing, float fDeviation, BOOL bUseLayer = FALSE)
+        D2D1_POINT_2F ptDrawing, float fDeviation, BOOL bUseLayer = FALSE) noexcept
     {
         m_pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, fDeviation);
         m_pFxBlur->SetInput(0, pBmp);
@@ -2292,7 +2294,7 @@ public:
     }
 
     void BlurSetCustomLayer(const D2D1_LAYER_PARAMETERS1* pParam = nullptr,
-        ID2D1Layer* pLayer = nullptr)
+        ID2D1Layer* pLayer = nullptr) noexcept
     {
         m_CustomLayer.pParam = pParam;
         m_CustomLayer.pLayer = pLayer;
@@ -2303,7 +2305,7 @@ public:
     EckInlineCe void BlurSetDeviation(float fDeviation) noexcept { m_fBlurDeviation = fDeviation; }
     EckInlineNdCe float BlurGetDeviation() const noexcept { return m_fBlurDeviation; }
 
-    HRESULT BmpNew(int cxPhy, int cyPhy, _Out_ ID2D1Bitmap1*& pBmp)
+    HRESULT BmpNew(int cxPhy, int cyPhy, _Out_ ID2D1Bitmap1*& pBmp) noexcept
     {
         const D2D1_BITMAP_PROPERTIES1 Prop
         {
@@ -2315,7 +2317,7 @@ public:
         return GetDeviceContext()->CreateBitmap(D2D1::SizeU(cxPhy, cyPhy),
             nullptr, 0, Prop, &pBmp);
     }
-    HRESULT BmpNewLogSize(float cx, float cy, _Out_ ID2D1Bitmap1*& pBmp)
+    HRESULT BmpNewLogSize(float cx, float cy, _Out_ ID2D1Bitmap1*& pBmp) noexcept
     {
         return BmpNew((int)ceilf(Log2PhyF(cx)), (int)ceilf(Log2PhyF(cy)), pBmp);
     }
@@ -2331,7 +2333,7 @@ public:
     /// </summary>
     /// <param name="pVisual">目标视觉对象，窗口内容渲染到此对象</param>
     /// <param name="pDevice">DComp设备</param>
-    void DcvInit(IDCompositionVisual* pVisual, IDCompositionDevice* pDevice)
+    void DcvInit(IDCompositionVisual* pVisual, IDCompositionDevice* pDevice) noexcept
     {
         EckAssert(m_ePresentMode == PresentMode::DCompositionVisual);
         EckAssert(!m_pDcVisual && !m_pDcSurface && !m_pDcDevice);
@@ -2343,7 +2345,7 @@ public:
 
     EckInlineNdCe ID2D1DeviceContext* GetDeviceContext() const noexcept { return m_D2D.GetDC(); }
 
-    void EtForEachElem(const std::invocable<CElem*> auto& Fn, CElem* pElemBegin)
+    void EtForEachElem(const std::invocable<CElem*> auto& Fn, CElem* pElemBegin) noexcept
     {
         auto p{ pElemBegin };
         while (p)
@@ -2355,7 +2357,7 @@ public:
         }
     }
 
-    EckInlineCe void SetDrawDirtyRect(BOOL b)
+    EckInlineCe void SetDrawDirtyRect(BOOL b) noexcept
     {
 #ifdef _DEBUG
         m_bDrawDirtyRect = b;
@@ -2370,7 +2372,7 @@ public:
         UnionRect(m_rcInvalid, m_rcInvalid, rc);
     }
 
-    HRESULT EnableDragDrop(BOOL bEnable)
+    HRESULT EnableDragDrop(BOOL bEnable) noexcept
     {
         ECK_DUILOCKWND;
         if (!!bEnable == m_bEnableDragDrop)
@@ -2488,7 +2490,8 @@ public:
 };
 
 inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
-    float x, float y, float cx, float cy, CElem* pParent, CDuiWnd* pWnd, INT_PTR iId, PCVOID pData)
+    float x, float y, float cx, float cy, CElem* pParent,
+    CDuiWnd* pWnd, INT_PTR iId, PCVOID pData) noexcept
 {
     EckAssert(!m_pWnd && !m_pDC);
 
@@ -2545,7 +2548,7 @@ inline BOOL CElem::IntCreate(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
     }
 }
 
-inline void CElem::Destroy()
+inline void CElem::Destroy() noexcept
 {
     ECK_DUILOCK;
     if (m_pParent)
@@ -2597,7 +2600,7 @@ inline void CElem::Destroy()
     m_dwStyle = 0;
 }
 
-inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
+inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
 {
     switch (uMsg)
     {
@@ -2626,7 +2629,7 @@ inline LRESULT CElem::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-inline void CElem::SetZOrder(CElem* pElemAfter)
+inline void CElem::SetZOrder(CElem* pElemAfter) noexcept
 {
     ECK_DUILOCK;
     auto& pParentLastChild = (m_pParent ? m_pParent->m_pLastChild : m_pWnd->m_pLastChild);
@@ -2690,7 +2693,7 @@ inline void CElem::SetZOrder(CElem* pElemAfter)
     }
 }
 
-EckInline LRESULT CElem::GenElemNotify(void* pnm)
+EckInline LRESULT CElem::GenElemNotify(void* pnm) noexcept
 {
     BOOL bProcessed{};
     const auto lResult = OnNotify((DUINMHDR*)pnm, bProcessed);
@@ -2702,7 +2705,7 @@ EckInline LRESULT CElem::GenElemNotify(void* pnm)
         return GetWnd()->OnElemEvent(this, ((DUINMHDR*)pnm)->uCode, 0, (LPARAM)pnm);
 }
 
-inline void CElem::tcIrpInvalidate(const D2D1_RECT_F& rcInClient, BOOL bUpdateNow)
+inline void CElem::tcIrpInvalidate(const D2D1_RECT_F& rcInClient, BOOL bUpdateNow) noexcept
 {
     ECK_DUILOCK;
     if (!IsVisible())
@@ -2732,7 +2735,8 @@ inline void CElem::tcIrpInvalidate(const D2D1_RECT_F& rcInClient, BOOL bUpdateNo
         GetWnd()->WakeRenderThread();
 }
 
-inline void CElem::BeginPaint(_Out_ ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lParam, UINT uFlags)
+inline void CElem::BeginPaint(_Out_ ELEMPAINTSTRU& eps,
+    WPARAM wParam, LPARAM lParam, UINT uFlags) noexcept
 {
     const auto pExtra = (Priv::PAINT_EXTRA*)wParam;
     eps.rcfClip = *(const D2D1_RECT_F*)lParam;
@@ -2747,13 +2751,13 @@ inline void CElem::BeginPaint(_Out_ ELEMPAINTSTRU& eps, WPARAM wParam, LPARAM lP
         CallEvent(WM_ERASEBKGND, 0, (LPARAM)&eps);
 }
 
-EckInline void CElem::InitEasingCurve(CEasingCurve* pEc)
+EckInline void CElem::InitEasingCurve(CEasingCurve* pEc) noexcept
 {
-    pEc->SetParam((LPARAM)this);
+    pEc->SetCallbackData((LPARAM)this);
     GetWnd()->RegisterTimeLine(pEc);
 }
 
-inline void CElem::tcPostMoveSize(BOOL bSize, BOOL bMove, const D2D1_RECT_F& rcOld)
+inline void CElem::tcPostMoveSize(BOOL bSize, BOOL bMove, const D2D1_RECT_F& rcOld) noexcept
 {
     if (bSize)
     {
@@ -2787,7 +2791,7 @@ inline void CElem::tcPostMoveSize(BOOL bSize, BOOL bMove, const D2D1_RECT_F& rcO
 }
 
 inline void CElem::tcIrpUnionContentExpandElemRect(
-    CElem* pElem, _Inout_ D2D1_RECT_F& rcInClient)
+    CElem* pElem, _Inout_ D2D1_RECT_F& rcInClient) noexcept
 {
     while (pElem)
     {
@@ -2804,7 +2808,7 @@ inline void CElem::tcIrpUnionContentExpandElemRect(
     }
 }
 
-inline constexpr void CElem::tcSetStyleWorker(DWORD dwStyle)
+inline constexpr void CElem::tcSetStyleWorker(DWORD dwStyle) noexcept
 {
     if (dwStyle & DES_BLURBKG)
         dwStyle |= DES_CONTENT_EXPAND;
@@ -2820,7 +2824,7 @@ inline constexpr void CElem::tcSetStyleWorker(DWORD dwStyle)
         CompInvalidateCacheBitmap();
 }
 
-inline HRESULT CElem::CompUpdateCacheBitmap(float cx, float cy)
+inline HRESULT CElem::CompUpdateCacheBitmap(float cx, float cy) noexcept
 {
     if (m_pCompBitmap)
     {
@@ -2866,18 +2870,18 @@ inline HRESULT CElem::CompUpdateCacheBitmap(float cx, float cy)
     return S_OK;
 }
 
-EckInline CElem* CElem::SetCapture() { return GetWnd()->ElemSetCapture(this); }
-EckInlineNdCe CElem* CElem::GetCapture() { return GetWnd()->ElemGetCapture(); }
-EckInline void CElem::ReleaseCapture() { GetWnd()->ElemReleaseCapture(); }
-EckInline void CElem::SetFocus() { GetWnd()->ElemSetFocus(this); }
-EckInlineNdCe CElem* CElem::GetFocus() { return GetWnd()->ElemGetFocus(); }
-EckInline BOOL CElem::SetTimer(UINT_PTR uId, UINT uElapse) { return GetWnd()->ElemSetTimer(this, uId, uElapse); }
-EckInline BOOL CElem::KillTimer(UINT_PTR uId) { return GetWnd()->ElemKillTimer(this, uId); }
-EckInlineNdCe CCriticalSection& CElem::GetCriticalSection() const { return GetWnd()->GetCriticalSection(); }
-EckInlineNdCe int CElem::Log2Phy(int i) const { return GetWnd()->Log2Phy(i); }
-EckInlineNdCe float CElem::Log2PhyF(float f) const { return GetWnd()->Log2PhyF(f); }
-EckInlineNdCe int CElem::Phy2Log(int i) const { return GetWnd()->Phy2Log(i); }
-EckInlineNdCe float CElem::Phy2LogF(float f) const { return GetWnd()->Phy2LogF(f); }
-EckInlineNdCe ID2D1Bitmap1* CElem::GetCacheBitmap() const { return GetWnd()->GetCacheBitmap(); }
+EckInline CElem* CElem::SetCapture() noexcept { return GetWnd()->ElemSetCapture(this); }
+EckInlineNdCe CElem* CElem::GetCapture() noexcept { return GetWnd()->ElemGetCapture(); }
+EckInline void CElem::ReleaseCapture() noexcept { GetWnd()->ElemReleaseCapture(); }
+EckInline void CElem::SetFocus() noexcept { GetWnd()->ElemSetFocus(this); }
+EckInlineNdCe CElem* CElem::GetFocus() noexcept { return GetWnd()->ElemGetFocus(); }
+EckInline BOOL CElem::SetTimer(UINT_PTR uId, UINT uElapse) noexcept { return GetWnd()->ElemSetTimer(this, uId, uElapse); }
+EckInline BOOL CElem::KillTimer(UINT_PTR uId) noexcept { return GetWnd()->ElemKillTimer(this, uId); }
+EckInlineNdCe CCriticalSection& CElem::GetCriticalSection() const noexcept { return GetWnd()->GetCriticalSection(); }
+EckInlineNdCe int CElem::Log2Phy(int i) const noexcept { return GetWnd()->Log2Phy(i); }
+EckInlineNdCe float CElem::Log2PhyF(float f) const noexcept { return GetWnd()->Log2PhyF(f); }
+EckInlineNdCe int CElem::Phy2Log(int i) const noexcept { return GetWnd()->Phy2Log(i); }
+EckInlineNdCe float CElem::Phy2LogF(float f) const noexcept { return GetWnd()->Phy2LogF(f); }
+EckInlineNdCe ID2D1Bitmap1* CElem::GetCacheBitmap() const noexcept { return GetWnd()->GetCacheBitmap(); }
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

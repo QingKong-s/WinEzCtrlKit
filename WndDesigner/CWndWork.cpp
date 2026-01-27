@@ -22,7 +22,7 @@ void CWndWork::SelCancel()
     Host()->SrvClearOverlayRect();
 }
 
-LRESULT CWndWork::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CWndWork::OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
     {
@@ -30,9 +30,9 @@ LRESULT CWndWork::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         PAINTSTRUCT ps;
         BeginPaint(hWnd, &ps);
-        SetDCBrushColor(ps.hdc, eck::GetThreadCtx()->crDefBkg);
+        SetDCBrushColor(ps.hdc, eck::PtcCurrent()->crDefBkg);
         FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
-        //DrawGridPoint(ps.hdc, ps.rcPaint, 8, eck::GetThreadCtx()->crDefText);
+        //DrawGridPoint(ps.hdc, ps.rcPaint, 8, eck::PtcCurrent()->crDefText);
         EndPaint(hWnd, &ps);
     }
     return 0;
@@ -96,5 +96,5 @@ LRESULT CWndWork::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
     break;
     }
-    return __super::OnMsg(hWnd, uMsg, wParam, lParam);
+    return __super::OnMessage(hWnd, uMsg, wParam, lParam);
 }

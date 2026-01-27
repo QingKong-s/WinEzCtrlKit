@@ -48,17 +48,17 @@ public:
     /// <param name="cch">文本长度</param>
     /// <param name="ch1">表示1的字符</param>
     /// <param name="ch0">表示0的字符</param>
-    /// <param name="chX">忽略的字符，可用作分隔</param>
+    /// <param name="chIgnore">忽略的字符，可用作分隔</param>
     template<CcpStdChar TChar>
-    void ParseBinText(_In_reads_(cch) const TChar* psz, int cch,
-        TChar ch1, TChar ch0, TChar chX = '\'') noexcept
+    void FromText(_In_reads_(cch) const TChar* psz, int cch,
+        TChar ch1, TChar ch0, TChar chIgnore = '\'') noexcept
     {
         EckAssert(ch1 != ch0);
         size_t idxInWord{}, idxCurrWord{};
         TWord u{};
         for (auto p = psz + cch - 1; p >= psz; --p)
         {
-            if (*p == chX)
+            if (*p == chIgnore)
                 continue;
             u |= (TWord(*p == ch1) << idxInWord);
             if (++idxInWord == BitsPerWord)
@@ -318,7 +318,7 @@ public:
             return TInt(*(TWord*)m_Bits);
     }
 
-    void SetMemory(_In_reads_bytes_(cb) PCVOID pBin, size_t cb) noexcept
+    void FromMemory(_In_reads_bytes_(cb) PCVOID pBin, size_t cb) noexcept
     {
         if (cb > sizeof(m_Bits))
             cb = sizeof(m_Bits);

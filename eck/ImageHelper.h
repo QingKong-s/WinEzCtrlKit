@@ -6,7 +6,7 @@
 
 ECK_NAMESPACE_BEGIN
 // 32bppPBGRA   D2D要求预乘
-constexpr inline GUID DefWicPixelFormat
+constexpr inline GUID DefaultWicPixelFormat
 ECK_GUID(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x10);
 
 #if !ECK_OPT_NO_GDIPLUS
@@ -17,7 +17,7 @@ ECK_GUID(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0
 /// <param name="cbData">字节流尺寸</param>
 /// <returns>位图句柄</returns>
 inline [[nodiscard]] HBITMAP CreateHBITMAP(
-    _In_reads_bytes_(cbData) PCVOID pData, SIZE_T cbData)
+    _In_reads_bytes_(cbData) PCVOID pData, SIZE_T cbData) noexcept
 {
     HBITMAP hbm;
     GpBitmap* pBitmap;
@@ -46,7 +46,7 @@ inline [[nodiscard]] HBITMAP CreateHBITMAP(
 /// </summary>
 /// <param name="pszFile">文件名</param>
 /// <returns>位图句柄</returns>
-inline [[nodiscard]] HBITMAP CreateHBITMAP(_In_z_ PCWSTR pszFile)
+inline [[nodiscard]] HBITMAP CreateHBITMAP(_In_z_ PCWSTR pszFile) noexcept
 {
     HBITMAP hbm;
     GpBitmap* pBitmap;
@@ -70,7 +70,7 @@ inline [[nodiscard]] HBITMAP CreateHBITMAP(_In_z_ PCWSTR pszFile)
 /// </summary>
 /// <param name="pBmp">WIC位图</param>
 /// <returns>位图句柄</returns>
-inline [[nodiscard]] HBITMAP CreateHBITMAP(_In_ IWICBitmap* pBmp)
+inline [[nodiscard]] HBITMAP CreateHBITMAP(_In_ IWICBitmap* pBmp) noexcept
 {
     UINT cx, cy;
     pBmp->GetSize(&cx, &cy);
@@ -97,7 +97,7 @@ inline [[nodiscard]] HBITMAP CreateHBITMAP(_In_ IWICBitmap* pBmp)
 /// <param name="cbData">字节流尺寸</param>
 /// <returns>图标句柄</returns>
 inline [[nodiscard]] HICON CreateHICON(
-    _In_reads_bytes_(cbData) PCVOID pData, SIZE_T cbData)
+    _In_reads_bytes_(cbData) PCVOID pData, SIZE_T cbData) noexcept
 {
     HICON hIcon;
     GpBitmap* pBitmap;
@@ -126,7 +126,7 @@ inline [[nodiscard]] HICON CreateHICON(
 /// </summary>
 /// <param name="pszFile">文件名</param>
 /// <returns>图标句柄</returns>
-inline [[nodiscard]] HICON CreateHICON(_In_z_ PCWSTR pszFile)
+inline [[nodiscard]] HICON CreateHICON(_In_z_ PCWSTR pszFile) noexcept
 {
     HICON hIcon;
     GpBitmap* pBitmap;
@@ -152,7 +152,7 @@ inline [[nodiscard]] HICON CreateHICON(_In_z_ PCWSTR pszFile)
 /// <param name="hbmMask">掩码，若为NULL，则使用全1掩码</param>
 /// <returns>图标句柄</returns>
 inline [[nodiscard]] HICON CreateHICON(
-    _In_ IWICBitmap* pBmp, HBITMAP hbmMask = nullptr)
+    _In_ IWICBitmap* pBmp, HBITMAP hbmMask = nullptr) noexcept
 {
     const HBITMAP hbmColor = CreateHBITMAP(pBmp);
     ICONINFO ii{};
@@ -180,7 +180,7 @@ inline [[nodiscard]] HICON CreateHICON(
 }
 
 inline HRESULT ScaleWicBitmap(_In_ IWICBitmapSource* pSrc, _Out_ IWICBitmap*& pDst,
-    int cx, int cy, WICBitmapInterpolationMode eInterMode = WICBitmapInterpolationModeLinear)
+    int cx, int cy, WICBitmapInterpolationMode eInterMode = WICBitmapInterpolationModeLinear) noexcept
 {
     pDst = nullptr;
     ComPtr<IWICBitmapScaler> pScaler;
@@ -200,7 +200,7 @@ inline HRESULT ScaleWicBitmap(_In_ IWICBitmapSource* pSrc, _Out_ IWICBitmap*& pD
 /// <param name="pDecoder">接收解码器变量引用</param>
 /// <returns>成功返回S_OK，失败返回错误代码</returns>
 EckInline HRESULT CreateWicBitmapDecoder(_In_z_ PCWSTR pszFile,
-    _Out_ IWICBitmapDecoder*& pDecoder)
+    _Out_ IWICBitmapDecoder*& pDecoder) noexcept
 {
     pDecoder = nullptr;
     return g_pWicFactory->CreateDecoderFromFilename(pszFile, nullptr, GENERIC_READ,
@@ -215,7 +215,7 @@ EckInline HRESULT CreateWicBitmapDecoder(_In_z_ PCWSTR pszFile,
 /// <param name="pWicFactory">WIC工厂</param>
 /// <returns>成功返回S_OK，失败返回错误代码</returns>
 EckInline HRESULT CreateWicBitmapDecoder(_In_ IStream* pStream,
-    _Out_ IWICBitmapDecoder*& pDecoder)
+    _Out_ IWICBitmapDecoder*& pDecoder) noexcept
 {
     pDecoder = nullptr;
     return g_pWicFactory->CreateDecoderFromStream(pStream, nullptr,
@@ -229,8 +229,10 @@ EckInline HRESULT CreateWicBitmapDecoder(_In_ IStream* pStream,
 /// <param name="pDecoder">解码器</param>
 /// <param name="pWicFactory">WIC工厂</param>
 /// <returns>成功返回S_OK，失败返回错误代码</returns>
-inline HRESULT CreateWicBitmap(_Inout_ std::vector<IWICBitmap*>& vResult,
-    _In_ IWICBitmapDecoder* pDecoder, const GUID& guidFmt = GUID_WICPixelFormat32bppBGRA)
+inline HRESULT CreateWicBitmap(
+    std::vector<IWICBitmap*>& vResult,
+    _In_ IWICBitmapDecoder* pDecoder,
+    const GUID& guidFmt = GUID_WICPixelFormat32bppBGRA) noexcept
 {
     HRESULT hr;
     UINT cFrame;
@@ -271,8 +273,8 @@ inline HRESULT CreateWicBitmap(_Inout_ std::vector<IWICBitmap*>& vResult,
 }
 
 inline HRESULT CreateWicBitmap(_Out_ IWICBitmap*& pBmp, _In_ IWICBitmapDecoder* pDecoder,
-    int cxNew = -1, int cyNew = -1, const GUID& guidFmt = DefWicPixelFormat,
-    WICBitmapInterpolationMode eInterMode = WICBitmapInterpolationModeLinear)
+    int cxNew = -1, int cyNew = -1, const GUID& guidFmt = DefaultWicPixelFormat,
+    WICBitmapInterpolationMode eInterMode = WICBitmapInterpolationModeLinear) noexcept
 {
     HRESULT hr;
     GUID guidSrcFmt;
@@ -305,8 +307,8 @@ inline HRESULT CreateWicBitmap(_Out_ IWICBitmap*& pBmp, _In_ IWICBitmapDecoder* 
 }
 
 inline HRESULT CreateWicBitmap(_Out_ IWICBitmap*& pBmp, _In_z_ PCWSTR psz,
-    int cxNew = -1, int cyNew = -1, const GUID& guidFmt = DefWicPixelFormat,
-    WICBitmapInterpolationMode eInterMode = WICBitmapInterpolationModeLinear)
+    int cxNew = -1, int cyNew = -1, const GUID& guidFmt = DefaultWicPixelFormat,
+    WICBitmapInterpolationMode eInterMode = WICBitmapInterpolationModeLinear) noexcept
 {
     IWICBitmapDecoder* pDecoder;
     HRESULT hr = CreateWicBitmapDecoder(psz, pDecoder);
@@ -318,8 +320,8 @@ inline HRESULT CreateWicBitmap(_Out_ IWICBitmap*& pBmp, _In_z_ PCWSTR psz,
 }
 
 inline HRESULT CreateWicBitmap(_Out_ IWICBitmap*& pBmp, _In_ IStream* pStream,
-    int cxNew = -1, int cyNew = -1, const GUID& guidFmt = DefWicPixelFormat,
-    WICBitmapInterpolationMode eInterMode = WICBitmapInterpolationModeLinear)
+    int cxNew = -1, int cyNew = -1, const GUID& guidFmt = DefaultWicPixelFormat,
+    WICBitmapInterpolationMode eInterMode = WICBitmapInterpolationModeLinear) noexcept
 {
     IWICBitmapDecoder* pDecoder;
     HRESULT hr = CreateWicBitmapDecoder(pStream, pDecoder);
@@ -330,7 +332,7 @@ inline HRESULT CreateWicBitmap(_Out_ IWICBitmap*& pBmp, _In_ IStream* pStream,
     return hr;
 }
 
-EckInline [[nodiscard]] WORD GetPaletteEntryCount(_In_ HPALETTE hPalette)
+EckInlineNd WORD GetPaletteEntryCount(_In_ HPALETTE hPalette) noexcept
 {
     WORD w{};
     GetObjectW(hPalette, sizeof(w), &w);
@@ -344,7 +346,7 @@ private:
 public:
     ECK_DISABLE_COPY_DEF_CONS(CDib);
 
-    CDib(CDib&& x) noexcept :m_hBitmap{ x.m_hBitmap } {}
+    CDib(CDib&& x) noexcept : m_hBitmap{ x.m_hBitmap } {}
     CDib& operator=(CDib&& x) noexcept { m_hBitmap = x.m_hBitmap; }
 
     ~CDib() { Destroy(); }
@@ -362,7 +364,7 @@ public:
     /// <param name="rc">要复制的矩形区域，若为空则复制整个位图</param>
     /// <returns>创建的DIB节</returns>
     HBITMAP Create(HDC hDC, BOOL bTopToBottom = FALSE,
-        HPALETTE hPalette = nullptr, const RCWH& rc = {})
+        HPALETTE hPalette = nullptr, const RCWH& rc = {}) noexcept
     {
         Destroy();
         BITMAP bmp;
@@ -426,7 +428,7 @@ public:
     /// <param name="pData">位图数据</param>
     /// <param name="hDC">要使用调色板的DC，若该参数为nullptr，则使用DIB_RGB_COLORS创建DIB节，否则使用DIB_PAL_COLORS</param>
     /// <returns>创建的DIB节</returns>
-    HBITMAP Create(_In_ PCVOID pData, HDC hDC = nullptr)
+    HBITMAP Create(_In_ PCVOID pData, HDC hDC = nullptr) noexcept
     {
         Destroy();
         PCBYTE p = (PCBYTE)pData;
@@ -529,7 +531,7 @@ public:
     /// <param name="cx">宽度</param>
     /// <param name="cy">高度，负值为自上而下位图</param>
     /// <returns>创建的DIB节</returns>
-    HBITMAP Create(int cx, int cy)
+    HBITMAP Create(int cx, int cy) noexcept
     {
         Destroy();
         BITMAPINFOHEADER bih{};
@@ -544,9 +546,9 @@ public:
         return m_hBitmap;
     }
 
-    EckInline [[nodiscard]] HBITMAP GetHBitmap() const { return m_hBitmap; }
+    EckInlineNd HBITMAP GetHBitmap() const noexcept { return m_hBitmap; }
 
-    EckInline [[nodiscard]] SIZE_T GetBmpDataSize() const
+    EckInlineNd SIZE_T GetBitmapDataSize() const noexcept
     {
         DIBSECTION ds;
         GetObjectW(m_hBitmap, sizeof(ds), &ds);
@@ -561,13 +563,13 @@ public:
     /// 使用Windows3.0版位图头
     /// </summary>
     /// <returns>BMP数据</returns>
-    [[nodiscard]] CRefBin GetBmpData() const
+    [[nodiscard]] CRefBin GetBitmapData() const noexcept
     {
         if (!m_hBitmap)
             return {};
         DIBSECTION ds;
         GetObjectW(m_hBitmap, sizeof(ds), &ds);
-        const size_t cbTotal = GetBmpDataSize();
+        const size_t cbTotal = GetBitmapDataSize();
         CRefBin rb(cbTotal);
         const auto pfh = (BITMAPFILEHEADER*)rb.Data();
         const auto pih = (BITMAPINFOHEADER*)(pfh + 1);
@@ -601,19 +603,19 @@ public:
         return rb;
     }
 
-    EckInline void Destroy()
+    EckInline void Destroy() noexcept
     {
         DeleteObject(m_hBitmap);
         m_hBitmap = nullptr;
     }
 
-    EckInline void Attach(HBITMAP hBitmap)
+    EckInline void Attach(HBITMAP hBitmap) noexcept
     {
         DeleteObject(m_hBitmap);
         m_hBitmap = hBitmap;
     }
 
-    [[nodiscard]] EckInline HBITMAP Detach()
+    EckInlineNd HBITMAP Detach() noexcept
     {
         HBITMAP hBitmap = m_hBitmap;
         m_hBitmap = nullptr;
@@ -629,7 +631,7 @@ enum class SnapshotDib
 };
 
 inline [[nodiscard]] HBITMAP Snapshot(HWND hWnd, const RCWH& rc, BOOL bCursor,
-    SnapshotDib eDib = SnapshotDib::Ddb)
+    SnapshotDib eDib = SnapshotDib::Ddb) noexcept
 {
     if (IsRectEmpty(rc))
         GetClientRect(hWnd, (RECT*)&rc);
@@ -728,13 +730,13 @@ const inline GUID WicEncoderGuid[]
 static_assert((int)ImageType::MaxValue == ARRAYSIZE(GpImageMime) &&
     ARRAYSIZE(GpImageMime) == ARRAYSIZE(WicEncoderGuid));
 
-EckInline [[nodiscard]] constexpr PCWSTR GetImageMime(ImageType iType)
+EckInlineNdCe PCWSTR GetImageMime(ImageType iType) noexcept
 {
     return GpImageMime[(int)iType];
 }
 
 #if !ECK_OPT_NO_GDIPLUS
-inline Gdiplus::GpStatus GetGpEncoderClsid(_In_z_ PCWSTR pszType, _Out_ CLSID& clsid)
+inline Gdiplus::GpStatus GetGpEncoderClsid(_In_z_ PCWSTR pszType, _Out_ CLSID& clsid) noexcept
 {
     Gdiplus::GpStatus gps;
     UINT cEncoders, cbEncoders;
@@ -769,7 +771,7 @@ EckInline const GUID& GetWicEncoderGuid(ImageType iType)
 }
 
 inline HRESULT SaveWicBitmap(_In_ IStream* pStream,
-    _In_ IWICBitmapSource* pBitmap, ImageType iType = ImageType::Png)
+    _In_ IWICBitmapSource* pBitmap, ImageType iType = ImageType::Png) noexcept
 {
     HRESULT hr;
     ComPtr<IWICBitmapEncoder> pEncoder;
@@ -790,7 +792,7 @@ inline HRESULT SaveWicBitmap(_In_ IStream* pStream,
 }
 
 inline [[nodiscard]] CRefBin SaveWicBitmap(_In_ IWICBitmap* pBitmap,
-    ImageType iType = ImageType::Png, _Out_opt_ HRESULT* phr = nullptr)
+    ImageType iType = ImageType::Png, _Out_opt_ HRESULT* phr = nullptr) noexcept
 {
     CRefBin rb{};
     const auto pStream = new CRefBinStream(rb);
@@ -802,7 +804,7 @@ inline [[nodiscard]] CRefBin SaveWicBitmap(_In_ IWICBitmap* pBitmap,
 }
 
 inline HRESULT SaveWicBitmap(_In_z_ PCWSTR pszFile, _In_ IWICBitmap* pBitmap,
-    ImageType iType = ImageType::Png)
+    ImageType iType = ImageType::Png) noexcept
 {
     HRESULT hr;
     ComPtr<IWICStream> pStream;
@@ -815,7 +817,7 @@ inline HRESULT SaveWicBitmap(_In_z_ PCWSTR pszFile, _In_ IWICBitmap* pBitmap,
 
 #if !ECK_OPT_NO_GDIPLUS
 inline Gdiplus::GpStatus SaveGpImage(_In_ IStream* pStream,
-    _In_ Gdiplus::GpImage* pImage, ImageType iType = ImageType::Png)
+    _In_ Gdiplus::GpImage* pImage, ImageType iType = ImageType::Png) noexcept
 {
     CLSID clsid;
     Gdiplus::GpStatus gps;
@@ -825,7 +827,7 @@ inline Gdiplus::GpStatus SaveGpImage(_In_ IStream* pStream,
 }
 
 inline [[nodiscard]] CRefBin SaveGpImage(_In_ Gdiplus::GpImage* pImage,
-    ImageType iType = ImageType::Png, _Out_opt_ Gdiplus::GpStatus* pgps = nullptr)
+    ImageType iType = ImageType::Png, _Out_opt_ Gdiplus::GpStatus* pgps = nullptr) noexcept
 {
     CRefBin rb{};
     const auto pStream = new CRefBinStream(rb);
@@ -837,7 +839,7 @@ inline [[nodiscard]] CRefBin SaveGpImage(_In_ Gdiplus::GpImage* pImage,
 }
 
 inline Gdiplus::GpStatus SaveGpImage(_In_z_ PCWSTR pszFile,
-    _In_ Gdiplus::GpImage* pImage, ImageType iType = ImageType::Png)
+    _In_ Gdiplus::GpImage* pImage, ImageType iType = ImageType::Png) noexcept
 {
     CLSID clsid;
     Gdiplus::GpStatus gps;
@@ -850,7 +852,7 @@ inline Gdiplus::GpStatus SaveGpImage(_In_z_ PCWSTR pszFile,
 #if !ECK_OPT_NO_D2D
 inline HRESULT LoadD2DBitmap(_In_z_ PCWSTR pszFile,
     _In_ ID2D1RenderTarget* pRT, _Out_ ID2D1Bitmap*& pD2dBitmap,
-    int cxNew = -1, int cyNew = -1)
+    int cxNew = -1, int cyNew = -1) noexcept
 {
     pD2dBitmap = nullptr;
     HRESULT hr;
@@ -866,7 +868,7 @@ inline HRESULT LoadD2DBitmap(_In_z_ PCWSTR pszFile,
 
 #if !ECK_OPT_NO_GDIPLUS
 inline [[nodiscard]] GpBitmap* ScaleGpBitmap(_In_ GpBitmap* pBitmap, int cxNew, int cyNew,
-    Gdiplus::InterpolationMode eInterp = Gdiplus::InterpolationModeDefault)
+    Gdiplus::InterpolationMode eInterp = Gdiplus::InterpolationModeDefault) noexcept
 {
     if (cxNew < 0 && cyNew < 0)
         return nullptr;

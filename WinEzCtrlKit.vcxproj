@@ -236,7 +236,6 @@
     <ClInclude Include="eck\CWndScroll.h" />
     <ClInclude Include="eck\DateTimeHelper.h" />
     <ClInclude Include="eck\DDX.h" />
-    <ClInclude Include="eck\DDXImpl.h" />
     <ClInclude Include="eck\DpiApi.h" />
     <ClInclude Include="eck\DuiCompositor.h" />
     <ClInclude Include="eck\DuiDef.h" />
@@ -328,7 +327,6 @@
     <ClInclude Include="eck\CToolTip.h" />
     <ClInclude Include="eck\CTreeList.h" />
     <ClInclude Include="eck\CtrlGraphics.h" />
-    <ClInclude Include="eck\CWindowMask.h" />
     <ClInclude Include="eck\GraphicsHelper.h" />
     <ClInclude Include="eck\ILayout.h" />
     <ClInclude Include="eck\ITimeLine.h" />
@@ -340,7 +338,6 @@
     <ClInclude Include="eck\PrivateApi.h" />
     <ClInclude Include="eck\PchInc.h" />
     <ClInclude Include="eck\CTab.h" />
-    <ClInclude Include="eck\CTabHeader.h" />
     <ClInclude Include="eck\CTaskGroupList.h" />
     <ClInclude Include="eck\CHeader.h" />
     <ClInclude Include="eck\CHotKey.h" />
@@ -361,7 +358,6 @@
     <ClInclude Include="eck\CTreeView.h" />
     <ClInclude Include="eck\CUpDown.h" />
     <ClInclude Include="eck\CWnd.h" />
-    <ClInclude Include="eck\DesignerDef.h" />
     <ClInclude Include="eck\DlgTemplate.h" />
     <ClInclude Include="eck\EasingCurve.h" />
     <ClInclude Include="eck\ECK.h" />
@@ -392,7 +388,6 @@
   <ItemGroup>
     <ClCompile Include="CTestWnd.cpp" />
     <ClCompile Include="eck\CScrollBar.h" />
-    <ClCompile Include="eck\DesignerDef.cpp" />
     <ClCompile Include="eck\ECK.cpp" />
     <ClCompile Include="t_main.cpp" />
   </ItemGroup>

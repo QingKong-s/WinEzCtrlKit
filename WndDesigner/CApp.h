@@ -6,7 +6,7 @@ public:
 private:
 	UINT m_cfCtrl{};
 public:
-	void Init();
+	void Initialize();
 
 	EckInlineNdCe UINT GetClipboardFormat() const noexcept { return m_cfCtrl; }
 };

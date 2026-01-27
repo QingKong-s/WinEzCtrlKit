@@ -97,7 +97,7 @@ namespace Priv
 class CTableLayout : public CLayoutBase
 {
 public:
-    ECK_RTTI(CTableLayout);
+    ECK_RTTI(CTableLayout, CLayoutBase);
 private:
     struct ITEM : ITEMBASE
     {
@@ -376,5 +376,4 @@ public:
 
     EckInlineCe void SetHasIdeal(BOOL b) noexcept { m_Table.SetHasIdeal(b); }
 };
-ECK_RTTI_IMPL_BASE_INLINE(CTableLayout, CLayoutBase);
 ECK_NAMESPACE_END

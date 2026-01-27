@@ -14,7 +14,7 @@ struct CTRLDATA_BUTTON
 
     EckInline constexpr PCWSTR Note() const
     {
-        return (PCWSTR)PtrSkipType(this);
+        return (PCWSTR)PointerSkipType(this);
     }
 };
 #pragma pack(pop)
@@ -25,10 +25,10 @@ inline constexpr DWORD ButtonTypeMask = (BS_PUSHBUTTON | BS_DEFPUSHBUTTON |
     BS_3STATE | BS_AUTO3STATE | BS_GROUPBOX);
 
 // 建议直接使用此类代替其他细分类
-class CButton :public CWnd
+class CButton : public CWnd
 {
 public:
-    ECK_RTTI(CButton);
+    ECK_RTTI(CButton, CWnd);
     ECK_CWND_NOSINGLEOWNER(CButton);
     ECK_CWND_CREATE_CLS(WC_BUTTONW);
 
@@ -87,10 +87,10 @@ public:
     EckInlineNdCe static PCVOID SkipBaseData(PCVOID p) noexcept
     {
         const auto* const p2 = (CTRLDATA_BUTTON*)CWnd::SkipBaseData(p);
-        return PtrStepCb(p2, sizeof(CTRLDATA_BUTTON) + (p2->cchNote + 1) * sizeof(WCHAR));
+        return PointerStepBytes(p2, sizeof(CTRLDATA_BUTTON) + (p2->cchNote + 1) * sizeof(WCHAR));
     }
 
-    void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) override
+    void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept override
     {
         auto cchNote = GetNoteLength();
         const SIZE_T cbSize = sizeof(CTRLDATA_BUTTON) +
@@ -112,7 +112,7 @@ public:
             *(PWSTR)w.Data() = L'\0';
     }
 
-    void PostDeserialize(PCVOID pData) override
+    void PostDeserialize(PCVOID pData) noexcept override
     {
         CWnd::PostDeserialize(pData);
         const auto* const p = (const CTRLDATA_BUTTON*)CWnd::SkipBaseData(pData);
@@ -169,7 +169,7 @@ public:
         return rs;
     }
 
-    EckInline BOOL GetSplitInfo(_Inout_ BUTTON_SPLITINFO* pbsi) const noexcept
+    EckInline BOOL GetSplitInfomation(_Inout_ BUTTON_SPLITINFO* pbsi) const noexcept
     {
         return (BOOL)SendMsg(BCM_GETSPLITINFO, 0, (LPARAM)pbsi);
     }
@@ -199,7 +199,7 @@ public:
         SendMsg(BCM_SETSHIELD, 0, bShieldIcon);
     }
 
-    EckInline BOOL SetSplitInfo(_In_ BUTTON_SPLITINFO* pbsi) const noexcept
+    EckInline BOOL SetSplitInfomation(_In_ BUTTON_SPLITINFO* pbsi) const noexcept
     {
         return (BOOL)SendMsg(BCM_SETSPLITINFO, 0, (LPARAM)pbsi);
     }
@@ -265,21 +265,18 @@ public:
         Style = dwStyle;
     }
 
-    /// <summary>
-    /// 置图片文本同时显示
-    /// </summary>
-    /// <param name="bShowTextAndImage">是否同时显示</param>
-    void SetTextImageShowing(BOOL bShowTextAndImage) const noexcept
+    /// 指定图片和文本是否同时显示
+    void SetTextImageShowing(BOOL b) const noexcept
     {
         DWORD dwStyle = GetStyle();
-        if (bShowTextAndImage)
+        if (b)
             dwStyle &= ~(BS_BITMAP);
         else if (SendMsg(BM_GETIMAGE, IMAGE_BITMAP, 0) || SendMsg(BM_GETIMAGE, IMAGE_ICON, 0))
             dwStyle |= BS_BITMAP;
         SetStyle(dwStyle);
     }
 
-    void SetAlign(BOOL bHAlign, Align iAlign) const noexcept
+    void SetAlignment(BOOL bHAlign, Align iAlign) const noexcept
     {
         DWORD dwStyle = GetStyle();
         if (bHAlign)
@@ -305,7 +302,7 @@ public:
         SetStyle(dwStyle);
     }
 
-    Align GetAlign(BOOL bHAlign) const noexcept
+    Align GetAlignment(BOOL bHAlign) const noexcept
     {
         DWORD dwStyle = GetStyle();
         if (bHAlign)
@@ -326,136 +323,6 @@ public:
             else
                 return Align::Near;
         }
-    }
-};
-ECK_RTTI_IMPL_BASE_INLINE(CButton, CWnd);
-
-// 普通按钮
-class CPushButton :public CButton
-{
-public:
-    /// <summary>
-    /// 置类型
-    /// </summary>
-    /// <param name="iType">类型，0 - 普通  1 - 拆分</param>
-    void SetType(int iType) noexcept
-    {
-        const BOOL bDef = GetDef();
-        DWORD dwStyle = GetStyle() &
-            ~(BS_PUSHBUTTON | BS_SPLITBUTTON | BS_DEFPUSHBUTTON | BS_DEFSPLITBUTTON);
-
-        switch (iType)
-        {
-        case 0:
-            dwStyle |= (bDef ? BS_DEFPUSHBUTTON : BS_PUSHBUTTON);
-            break;
-        case 1:
-            dwStyle |= (bDef ? BS_DEFSPLITBUTTON : BS_SPLITBUTTON);
-            break;
-        }
-
-        SetStyle(dwStyle);
-    }
-
-    /// <summary>
-    /// 取类型
-    /// </summary>
-    /// <returns>类型，0 - 普通  1 - 拆分  -1 - 未知</returns>
-    int GetType() noexcept
-    {
-        const auto dwStyle = GetStyle();
-        if (IsBitSet(dwStyle, BS_SPLITBUTTON) || IsBitSet(dwStyle, BS_DEFSPLITBUTTON))
-            return 1;
-        else if (IsBitSet(dwStyle, BS_PUSHBUTTON) || IsBitSet(dwStyle, BS_DEFPUSHBUTTON))
-            return 0;
-        return -1;
-    }
-
-    void SetDef(BOOL bDef) noexcept
-    {
-        const int iType = GetType();
-        DWORD dwStyle = GetStyle() &
-            ~(BS_DEFPUSHBUTTON | BS_DEFSPLITBUTTON | BS_PUSHBUTTON | BS_SPLITBUTTON);
-        if (bDef)
-            if (iType)
-                dwStyle |= BS_DEFSPLITBUTTON;
-            else
-                dwStyle |= BS_DEFPUSHBUTTON;
-        else
-            if (iType)
-                dwStyle |= BS_SPLITBUTTON;
-            else
-                dwStyle |= BS_PUSHBUTTON;
-
-        SetStyle(dwStyle);
-    }
-
-    EckInline BOOL GetDef() noexcept
-    {
-        const auto dwStyle = GetStyle();
-        return (IsBitSet(dwStyle, BS_DEFSPLITBUTTON) || IsBitSet(dwStyle, BS_DEFPUSHBUTTON));
-    }
-};
-
-// 选择框
-class CCheckButton :public CButton
-{
-public:
-    /// <summary>
-    /// 置类型
-    /// </summary>
-    /// <param name="iType">类型，0 - 单选框  1 - 复选框  2 - 三态复选框</param>
-    void SetType(int iType) noexcept
-    {
-        DWORD dwStyle = GetStyle() &
-            ~(BS_AUTORADIOBUTTON | BS_AUTOCHECKBOX | BS_AUTO3STATE);
-        switch (iType)
-        {
-        case 0: dwStyle |= BS_AUTORADIOBUTTON; break;
-        case 1: dwStyle |= BS_AUTOCHECKBOX; break;
-        case 2: dwStyle |= BS_AUTO3STATE; break;
-        default: EckDbgBreak(); return;
-        }
-        SetStyle(dwStyle);
-    }
-
-    /// <summary>
-    /// 取类型
-    /// </summary>
-    /// <returns>类型，0 - 单选框  1 - 复选框  2 - 三态复选框  -1 - 未知</returns>
-    int GetType() noexcept
-    {
-        DWORD dwStyle = GetStyle();
-        if (IsBitSet(dwStyle, BS_AUTORADIOBUTTON))
-            return 0;
-        else if (IsBitSet(dwStyle, BS_AUTOCHECKBOX))
-            return 1;
-        else if (IsBitSet(dwStyle, BS_AUTO3STATE))
-            return 2;
-        else
-            return -1;
-    }
-};
-
-// 命令链接
-class CCommandLink :public CButton
-{
-public:
-    void SetDef(BOOL bDef) noexcept
-    {
-        DWORD dwStyle = GetStyle() &
-            ~(BS_DEFPUSHBUTTON | BS_PUSHBUTTON | BS_DEFCOMMANDLINK | BS_COMMANDLINK);
-        if (bDef)
-            dwStyle |= BS_DEFCOMMANDLINK;
-        else
-            dwStyle |= BS_COMMANDLINK;
-
-        SetStyle(dwStyle);
-    }
-
-    EckInline BOOL GetDef() noexcept
-    {
-        return IsBitSet(Style, BS_DEFCOMMANDLINK);
     }
 };
 ECK_NAMESPACE_END

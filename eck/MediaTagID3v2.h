@@ -663,7 +663,7 @@ public:
             if (w.GetLeaveSize() > 64u)
                 return Result::TooLargeData;
             else
-                rbOwnerData.DupStream(w.Data(), w.GetLeaveSize());
+                rbOwnerData.Assign(w.Data(), w.GetLeaveSize());
             return PostDeserialize(rb, Ctx);
         }
         catch (const CMemReader::Xpt&)
@@ -773,7 +773,7 @@ public:
         Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             auto w = PreDeserialize(rb, Ctx);
-            rsUrl.DupString((PCCH)w.Data(), (int)w.GetLeaveSize());
+            rsUrl.Assign((PCCH)w.Data(), (int)w.GetLeaveSize());
             return PostDeserialize(rb, Ctx);
         }
 
@@ -804,7 +804,7 @@ public:
             if (eEncoding >= TextEncoding::Max)
                 return Result::Enum_TextEncoding;
             ConvertTextEncoding(rsDesc, w, -1, eEncoding);
-            rsUrl.DupString((PCCH)w.Data(), (int)w.GetLeaveSize());
+            rsUrl.Assign((PCCH)w.Data(), (int)w.GetLeaveSize());
             return PostDeserialize(rb, Ctx);
         }
         catch (const CMemReader::Xpt&)
@@ -829,7 +829,7 @@ public:
         Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             auto w = PreDeserialize(rb, Ctx);
-            rbToc.DupStream(w.Data(), w.GetLeaveSize());
+            rbToc.Assign(w.Data(), w.GetLeaveSize());
             return PostDeserialize(rb, Ctx);
         }
 
@@ -1278,7 +1278,7 @@ public:
                 return Result::Enum_TextEncoding;
             w >> rsMime >> eType;
             ConvertTextEncoding(rsDesc, w, -1, eEncoding);
-            rbData.DupStream(w.Data(), w.GetLeaveSize());
+            rbData.Assign(w.Data(), w.GetLeaveSize());
             return PostDeserialize(rb, Ctx);
         }
         catch (const CMemReader::Xpt&)
@@ -1318,7 +1318,7 @@ public:
             w >> rsMime;
             ConvertTextEncoding(rsFile, w, -1, eEncoding);
             ConvertTextEncoding(rsDesc, w, -1, eEncoding);
-            rbObj.DupStream(w.Data(), w.GetLeaveSize());
+            rbObj.Assign(w.Data(), w.GetLeaveSize());
             return PostDeserialize(rb, Ctx);
         }
         catch (const CMemReader::Xpt&)
@@ -1459,7 +1459,7 @@ public:
             auto w = PreDeserialize(rb, Ctx);
             w >> rsOwnerId;
             w.ReadRev(usPreviewBegin).ReadRev(usPreviewLength);
-            rbData.DupStream(w.Data(), w.GetLeaveSize());
+            rbData.Assign(w.Data(), w.GetLeaveSize());
             return PostDeserialize(rb, Ctx);
         }
         catch (const CMemReader::Xpt&)
@@ -1490,7 +1490,7 @@ public:
             auto w = PreDeserialize(rb, Ctx);
             w.Read(szIdTarget, 4);
             w >> rsUrl;
-            rsAdditional.DupString((PCCH)w.Data(), (int)w.GetLeaveSize());
+            rsAdditional.Assign((PCCH)w.Data(), (int)w.GetLeaveSize());
             return PostDeserialize(rb, Ctx);
         }
         catch (const CMemReader::Xpt&)
@@ -1642,7 +1642,7 @@ public:
             ConvertTextEncoding(rsSeller, w, -1, eEncoding);
             ConvertTextEncoding(rsDesc, w, -1, eEncoding);
             w >> rsMime;
-            rbLogo.DupStream(w.Data(), w.GetLeaveSize());
+            rbLogo.Assign(w.Data(), w.GetLeaveSize());
             return PostDeserialize(rb, Ctx);
         }
         catch (const CMemReader::Xpt&)
@@ -1671,7 +1671,7 @@ public:
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> rsEmail >> byMethod;
-            rbData.DupStream(w.Data(), w.GetLeaveSize());
+            rbData.Assign(w.Data(), w.GetLeaveSize());
             return PostDeserialize(rb, Ctx);
         }
         catch (const CMemReader::Xpt&)
@@ -1700,7 +1700,7 @@ public:
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> rsEmail >> byId;
-            rbData.DupStream(w.Data(), w.GetLeaveSize());
+            rbData.Assign(w.Data(), w.GetLeaveSize());
             return PostDeserialize(rb, Ctx);
         }
         catch (const CMemReader::Xpt&)
@@ -1728,7 +1728,7 @@ public:
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> rsEmail;
-            rbData.DupStream(w.Data(), w.GetLeaveSize());
+            rbData.Assign(w.Data(), w.GetLeaveSize());
             return PostDeserialize(rb, Ctx);
         }
         catch (const CMemReader::Xpt&)
@@ -1756,7 +1756,7 @@ public:
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> byGroupId;
-            rbData.DupStream(w.Data(), w.GetLeaveSize());
+            rbData.Assign(w.Data(), w.GetLeaveSize());
             return PostDeserialize(rb, Ctx);
         }
         catch (const CMemReader::Xpt&)
@@ -1855,7 +1855,7 @@ public:
         Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             auto w = PreDeserialize(rb, Ctx);
-            rbData.DupStream(w.Data(), w.GetLeaveSize());
+            rbData.Assign(w.Data(), w.GetLeaveSize());
             return PostDeserialize(rb, Ctx);
         }
 
@@ -2259,7 +2259,7 @@ private:
             .pFrameHdr = &FrameHdr,
             .bFrameHdr = FALSE
         };
-        while (m_Stream.GetPos() < posEnd)
+        while (m_Stream.GetPosition() < posEnd)
         {
             m_Stream >> FrameHdr;
             const auto cbUnit = TagGetFrameLength(&m_Header, &FrameHdr);
@@ -2335,7 +2335,7 @@ private:
             else// 此帧错误，停止
             {
                 if (pposActualEnd)
-                    *pposActualEnd = m_Stream.GetPos() - 10;
+                    *pposActualEnd = m_Stream.GetPosition() - 10;
                 return Result::Ok;
             }
         }
@@ -2549,7 +2549,7 @@ public:
         {
             if ((mi.uMask & MIM_TITLE) && e->EqualId("TIT2"))
             {
-                const auto p = DynCast<TEXTFRAME*>(e.get());
+                const auto p = DbgDynamicCast<TEXTFRAME*>(e.get());
                 if (!p->vText.empty())
                 {
                     if (bMove)
@@ -2561,7 +2561,7 @@ public:
             }
             else if ((mi.uMask & MIM_ARTIST) && e->EqualId("TPE1"))
             {
-                const auto p = DynCast<TEXTFRAME*>(e.get());
+                const auto p = DbgDynamicCast<TEXTFRAME*>(e.get());
                 if (!p->vText.empty())
                     mi.uMaskChecked |= MIM_ARTIST;
                 for (const auto& f : p->vText)
@@ -2569,7 +2569,7 @@ public:
             }
             else if ((mi.uMask & MIM_ALBUM) && e->EqualId("TALB"))
             {
-                const auto p = DynCast<TEXTFRAME*>(e.get());
+                const auto p = DbgDynamicCast<TEXTFRAME*>(e.get());
                 if (!p->vText.empty())
                 {
                     if (bMove)
@@ -2581,7 +2581,7 @@ public:
             }
             else if ((mi.uMask & MIM_LRC) && e->EqualId("USLT"))
             {
-                const auto p = DynCast<USLT*>(e.get());
+                const auto p = DbgDynamicCast<USLT*>(e.get());
                 if (bMove)
                     mi.rsLrc = std::move(p->rsLrc);
                 else
@@ -2590,13 +2590,13 @@ public:
             }
             else if ((mi.uMask & MIM_COMMENT) && e->EqualId("COMM"))
             {
-                const auto p = DynCast<COMM*>(e.get());
+                const auto p = DbgDynamicCast<COMM*>(e.get());
                 mi.slComment.PushBackString(p->rsText, Opt.svCommDiv);
                 mi.uMaskChecked |= MIM_COMMENT;
             }
             else if ((mi.uMask & MIM_COVER) && e->EqualId("APIC"))
             {
-                const auto p = DynCast<APIC*>(e.get());
+                const auto p = DbgDynamicCast<APIC*>(e.get());
                 auto& Pic = mi.vPic.emplace_back();
                 Pic.eType = p->eType;
                 if (bMove)
@@ -2625,7 +2625,7 @@ public:
             }
             else if ((mi.uMask & MIM_GENRE) && e->EqualId("TCON"))
             {
-                const auto p = DynCast<TEXTFRAME*>(e.get());
+                const auto p = DbgDynamicCast<TEXTFRAME*>(e.get());
                 if (!p->vText.empty())
                 {
                     if (bMove)
@@ -2637,7 +2637,7 @@ public:
             }
             else if ((mi.uMask & MIM_TRACK) && e->EqualId("TRCK"))
             {
-                const auto p = DynCast<TEXTFRAME*>(e.get());
+                const auto p = DbgDynamicCast<TEXTFRAME*>(e.get());
                 if (!p->vText.empty())
                 {
                     if (TagGetNumberAndTotal(p->vText[0].ToStringView(),
@@ -2673,7 +2673,7 @@ public:
             if (mi.uMaskChecked & Mask)             \
                 it = m_vItem.erase(it);             \
             else {                                  \
-                const auto p = DynCast<TEXTFRAME*>(e.get());  \
+                const auto p = DbgDynamicCast<TEXTFRAME*>(e.get());  \
                 p->vText.resize(1);                     \
                 if (bMove)                              \
                     __pragma(warning(suppress: 26800))/*对象已移动*/    \
@@ -2697,7 +2697,7 @@ public:
                     it = m_vItem.erase(it);
                     continue;
                 }
-                const auto p = DynCast<TEXTFRAME*>(e.get());
+                const auto p = DbgDynamicCast<TEXTFRAME*>(e.get());
                 p->vText.resize(1);
                 p->vText[0] = *itArt++;
                 ++it;
@@ -2712,7 +2712,7 @@ public:
                     it = m_vItem.erase(it);
                     continue;
                 }
-                const auto p = DynCast<USLT*>(e.get());
+                const auto p = DbgDynamicCast<USLT*>(e.get());
                 if (bMove)
                     p->rsLrc = std::move(mi.rsLrc);
                 else
@@ -2727,7 +2727,7 @@ public:
                     it = m_vItem.erase(it);
                     continue;
                 }
-                const auto p = DynCast<COMM*>(e.get());
+                const auto p = DbgDynamicCast<COMM*>(e.get());
                 TagpSetComment(p, mi.slComment, Opt);
                 ++it;
                 mi.uMaskChecked |= MIM_COMMENT;
@@ -2741,7 +2741,7 @@ public:
                     it = m_vItem.erase(it);
                     continue;
                 }
-                const auto p = DynCast<TEXTFRAME*>(e.get());
+                const auto p = DbgDynamicCast<TEXTFRAME*>(e.get());
                 TagpSetTrack(p, mi.nTrack, mi.cTotalTrack, Opt);
                 ++it;
                 mi.uMaskChecked |= MIM_TRACK;
@@ -2753,7 +2753,7 @@ public:
                     it = m_vItem.erase(it);
                     continue;
                 }
-                const auto p = DynCast<APIC*>(e.get());
+                const auto p = DbgDynamicCast<APIC*>(e.get());
                 TagpSetPicture(p, *itPic++, Opt, bMove);
                 ++it;
                 mi.uMaskChecked |= MIM_COVER;
@@ -2999,9 +2999,9 @@ public:
             }
 
             if (Loc.posV2 == CMediaFile::NPos)
-                ocbNextTag = m_Stream.GetPos();
+                ocbNextTag = m_Stream.GetPosition();
             else
-                ocbNextTag = m_Stream.GetPos() - m_cbPrependTag - Loc.posV2 - 10;
+                ocbNextTag = m_Stream.GetPosition() - m_cbPrependTag - Loc.posV2 - 10;
             m_Stream << rbAppend;
             if (rbPrepend.IsEmpty())// 前置标签为空，立即写入标签尾
             {
@@ -3010,7 +3010,7 @@ public:
                 m_Stream << Hdr;
             }
             else
-                dHdrFooterToEnd = m_Stream.GetSize() - m_Stream.GetPos();
+                dHdrFooterToEnd = m_Stream.GetSize() - m_Stream.GetPosition();
         }
         else if (Loc.posV2Footer != CMediaFile::NPos)// 删除先前的后置标签
         {

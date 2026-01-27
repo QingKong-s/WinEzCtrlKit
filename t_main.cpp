@@ -10,7 +10,7 @@ using namespace std::literals;
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ PWSTR pszCmdLine, _In_ int nCmdShow)
 {
 	OleInitialize(NULL);
-	if (eck::InitStatus b; (b = eck::Init(hInstance)) != eck::InitStatus::Ok)
+	if (eck::InitStatus b; (b = eck::Initialize(hInstance)) != eck::InitStatus::Ok)
 	{
 		MessageBoxW(NULL, L"≥ı ºªØ ß∞‹", std::to_wstring((int)b).c_str(), 0);
 		return 1;

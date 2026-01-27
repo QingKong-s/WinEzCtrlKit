@@ -19,7 +19,7 @@ enum : UINT
 class __declspec(novtable) CLinearLayoutBase : public CLayoutBase
 {
 public:
-    ECK_RTTI(CLinearLayoutBase);
+    ECK_RTTI(CLinearLayoutBase, CLayoutBase);
 protected:
     struct ITEM : ITEMBASE
     {
@@ -72,12 +72,11 @@ public:
     EckInlineNdCe auto& GetList() noexcept { return m_vItem; }
     EckInlineNdCe auto& GetList() const noexcept { return m_vItem; }
 };
-ECK_RTTI_IMPL_BASE_INLINE(CLinearLayoutBase, CLayoutBase);
 
 class CLinearLayoutV : public CLinearLayoutBase
 {
 public:
-    ECK_RTTI(CLinearLayoutV);
+    ECK_RTTI(CLinearLayoutV, CLinearLayoutBase);
 private:
     static void PreArrangeObject(ITEM& e, _Inout_ TLytCoord& dLeave) noexcept
     {
@@ -246,12 +245,11 @@ public:
         return m_vItem.Size() - 1;
     }
 };
-ECK_RTTI_IMPL_BASE_INLINE(CLinearLayoutV, CLinearLayoutBase);
 
 class CLinearLayoutH : public CLinearLayoutBase
 {
 public:
-    ECK_RTTI(CLinearLayoutH);
+    ECK_RTTI(CLinearLayoutH, CLinearLayoutBase);
 private:
     static void PreArrangeObject(ITEM& e, _Inout_ TLytCoord& dLeave) noexcept
     {
@@ -420,5 +418,4 @@ public:
         return m_vItem.Size() - 1;
     }
 };
-ECK_RTTI_IMPL_BASE_INLINE(CLinearLayoutH, CLinearLayoutBase);
 ECK_NAMESPACE_END

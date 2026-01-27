@@ -46,13 +46,13 @@ public:
     CRefBinT(PCVOID p, size_t cb, const TAlloc& Al = TAlloc{}) : m_Alloc{ Al }
     {
         EckAssert(p ? TRUE : (cb == 0));
-        DupStream(p, cb);
+        Assign(p, cb);
     }
 
     CRefBinT(const CRefBinT& x)
         : m_Alloc{ TAllocTraits::select_on_container_copy_construction(x.m_Alloc) }
     {
-        DupStream(x.Data(), x.Size());
+        Assign(x.Data(), x.Size());
     }
 
     CRefBinT(CRefBinT&& x) noexcept
@@ -64,7 +64,7 @@ public:
 
     CRefBinT(std::initializer_list<BYTE> x, const TAlloc& Al = TAlloc{}) : m_Alloc{ Al }
     {
-        DupStream(x.begin(), x.size());
+        Assign(x.begin(), x.size());
     }
 
     ~CRefBinT()
@@ -82,7 +82,7 @@ public:
             else if (m_Alloc != x.m_Alloc)
                 m_Alloc = x.m_Alloc;
 
-        DupStream(x.Data(), x.Size());
+        Assign(x.Data(), x.Size());
         return *this;
     }
     CRefBinT& operator=(CRefBinT&& x) noexcept
@@ -103,7 +103,7 @@ public:
         else if constexpr (!TAllocTraits::is_always_equal::value)
             if (m_Alloc != x.m_Alloc)
             {
-                DupStream(x.Data(), x.Size());
+                Assign(x.Data(), x.Size());
                 return *this;
             }
 
@@ -114,13 +114,13 @@ public:
     }
     EckInline CRefBinT& operator=(std::initializer_list<BYTE> x)
     {
-        DupStream(x);
+        Assign(x);
         return *this;
     }
     template<class T, size_t E>
     CRefBinT& operator=(std::span<T, E> x)
     {
-        DupStream(x.data(), x.size_bytes());
+        Assign(x.data(), x.size_bytes());
         return *this;
     }
 
@@ -144,33 +144,33 @@ public:
     }
 
     EckInlineNd TAlloc GetAllocator() const { return m_Alloc; }
-    EckInlineNdCe BYTE& At(size_t idx) { EckAssert(idx < Size()); return *(Data() + idx); }
-    EckInlineNdCe BYTE At(size_t idx) const { EckAssert(idx < Size()); return *(Data() + idx); }
-    EckInlineNdCe BYTE& operator[](size_t idx) { return At(idx); }
-    EckInlineNdCe BYTE operator[](size_t idx) const { return At(idx); }
-    EckInlineNdCe BYTE& Front() { return At(0); }
-    EckInlineNdCe BYTE Front() const { return At(0); }
-    EckInlineNdCe BYTE& Back() { return At(Size() - 1); }
-    EckInlineNdCe BYTE Back() const { return At(Size() - 1); }
-    EckInlineNdCe BYTE* Data() { return m_pStream; }
-    EckInlineNdCe const BYTE* Data() const { return m_pStream; }
-    EckInlineNdCe size_t Capacity() const { return m_cbCapacity; }
-    EckInlineNdCe size_t Size() const { return m_cb; }
-    EckInlineNdCe BOOL IsEmpty() const { return Size() == 0; }
+    EckInlineNdCe BYTE& At(size_t idx) noexcept { EckAssert(idx < Size()); return *(Data() + idx); }
+    EckInlineNdCe BYTE At(size_t idx) const noexcept { EckAssert(idx < Size()); return *(Data() + idx); }
+    EckInlineNdCe BYTE& operator[](size_t idx) noexcept { return At(idx); }
+    EckInlineNdCe BYTE operator[](size_t idx) const noexcept { return At(idx); }
+    EckInlineNdCe BYTE& Front() noexcept { return At(0); }
+    EckInlineNdCe BYTE Front() const noexcept { return At(0); }
+    EckInlineNdCe BYTE& Back() noexcept { return At(Size() - 1); }
+    EckInlineNdCe BYTE Back() const noexcept { return At(Size() - 1); }
+    EckInlineNdCe BYTE* Data() noexcept { return m_pStream; }
+    EckInlineNdCe const BYTE* Data() const noexcept { return m_pStream; }
+    EckInlineNdCe size_t Capacity() const noexcept { return m_cbCapacity; }
+    EckInlineNdCe size_t Size() const noexcept { return m_cb; }
+    EckInlineNdCe BOOL IsEmpty() const noexcept { return Size() == 0; }
 
-    EckInline void DupStream(PCVOID p, size_t cb)
+    EckInline void Assign(PCVOID p, size_t cb)
     {
         ReSizeExtra(cb);
         memcpy(Data(), p, cb);
     }
-    EckInline void DupStream(std::initializer_list<BYTE> x)
+    EckInline void Assign(std::initializer_list<BYTE> x)
     {
-        DupStream(x.begin(), x.size());
+        Assign(x.begin(), x.size());
     }
     template<class T, size_t E>
-    EckInline void DupStream(std::span<T, E> x)
+    EckInline void Assign(std::span<T, E> x)
     {
-        DupStream(x.data(), x.size_bytes());
+        Assign(x.data(), x.size_bytes());
     }
 
     /// <summary>
@@ -180,7 +180,7 @@ public:
     /// <param name="p">指针，必须可通过当前分配器解分配</param>
     /// <param name="cbCapacity">容量</param>
     /// <param name="cb">当前长度</param>
-    void Attach(BYTE* p, size_t cbCapacity, size_t cb)
+    void Attach(BYTE* p, size_t cbCapacity, size_t cb) noexcept
     {
         m_Alloc.deallocate(m_pStream, m_cbCapacity);
         if (!p)
@@ -202,7 +202,7 @@ public:
     /// <param name="cbCapacity">容量</param>
     /// <param name="cb">长度</param>
     /// <returns>指针，必须通过与当前分配器相等的分配器解分配</returns>
-    [[nodiscard]] EckInline BYTE* Detach(size_t& cbCapacity, size_t& cb)
+    EckInlineNd BYTE* Detach(size_t& cbCapacity, size_t& cb) noexcept
     {
         const auto pTemp = m_pStream;
         m_pStream = nullptr;
@@ -215,7 +215,7 @@ public:
         return pTemp;
     }
 
-    EckInline size_t CopyTo(void* pDst, size_t cbMax) const
+    EckInline size_t CopyTo(void* pDst, size_t cbMax) const noexcept
     {
         if (cbMax > m_cb)
             cbMax = m_cb;
@@ -256,7 +256,8 @@ public:
     /// <param name="cbReplacing">替换长度</param>
     /// <param name="pNew">用作替换的字节集指针</param>
     /// <param name="cbNew">用作替换的字节集长度</param>
-    EckInline void Replace(size_t posStart, size_t cbReplacing, PCVOID pNew = nullptr, size_t cbNew = 0u)
+    EckInline void Replace(size_t posStart, size_t cbReplacing,
+        PCVOID pNew = nullptr, size_t cbNew = 0u)
     {
         EckAssert(cbNew ? (!!pNew) : TRUE);
         const size_t cbOrg = Size();
@@ -398,9 +399,9 @@ public:
         m_cb -= cb;
     }
 
-    EckInline constexpr void Clear() { m_cb = 0u; }
+    EckInline constexpr void Clear() noexcept { m_cb = 0u; }
 
-    EckInline void Zero() { RtlZeroMemory(Data(), Size()); }
+    EckInline void Zero() noexcept { RtlZeroMemory(Data(), Size()); }
 
     EckInline CRefBinT& Insert(size_t pos, PCVOID p, size_t cb)
     {
@@ -438,7 +439,7 @@ public:
         return Insert(pos, &by, 1u);
     }
 
-    EckInline void Erase(size_t pos, size_t cb)
+    EckInline void Erase(size_t pos, size_t cb) noexcept
     {
         EckAssert(Size() >= pos + cb);
         memmove(
@@ -460,13 +461,13 @@ public:
         m_cbCapacity = m_cb;
     }
 
-    EckInlineCe void ExtendToCapacity() { m_cb = Capacity(); }
+    EckInlineCe void ExtendToCapacity() noexcept { m_cb = Capacity(); }
 
-    EckInline size_t Find(PCVOID pSub, size_t cbSub, size_t posStart = 0) const
+    EckInline size_t Find(PCVOID pSub, size_t cbSub, size_t posStart = 0) const noexcept
     {
         return FindBin(Data(), Size(), pSub, cbSub, posStart);
     }
-    EckInline size_t RFind(PCVOID pSub, size_t cbSub, size_t posStart = SizeTMax) const
+    EckInline size_t RFind(PCVOID pSub, size_t cbSub, size_t posStart = SizeTMax) const noexcept
     {
         return FindBinRev(Data(), Size(), pSub, cbSub, posStart);
     }
@@ -477,13 +478,22 @@ public:
         return p ? size_t(p - Data()) : BinNPos;
     }
 
-    EckInlineNdCe std::span<BYTE> ToSpan()
+    EckInlineNdCe std::span<BYTE> ToSpan() noexcept
     {
         return std::span<BYTE>(Data(), Size());
     }
-    EckInlineNdCe std::span<const BYTE> ToSpan() const
+    EckInlineNdCe std::span<const BYTE> ToSpan() const noexcept
     {
         return std::span<const BYTE>(Data(), Size());
+    }
+
+    EckInlineNdCe std::span<BYTE> SubSpan(size_t posBegin, size_t cb) noexcept
+    {
+        return std::span<BYTE>(Data() + posBegin, cb);
+    }
+    EckInlineNdCe std::span<const BYTE> SubSpan(size_t posBegin, size_t cb) const noexcept
+    {
+        return std::span<const BYTE>(Data() + posBegin, cb);
     }
 
     template<class TAlloc1 = TAlloc>
@@ -491,27 +501,19 @@ public:
     {
         return CRefBinT<TAlloc1>(Data() + posBegin, cb);
     }
-    EckInlineNdCe std::span<BYTE> SubSpan(size_t posBegin, size_t cb)
-    {
-        return std::span<BYTE>(Data() + posBegin, cb);
-    }
-    EckInlineNdCe std::span<const BYTE> SubSpan(size_t posBegin, size_t cb) const
-    {
-        return std::span<const BYTE>(Data() + posBegin, cb);
-    }
 
-    EckInlineNdCe TIterator begin() { return Data(); }
-    EckInlineNdCe TIterator end() { return begin() + Size(); }
-    EckInlineNdCe TConstIterator begin() const { return Data(); }
-    EckInlineNdCe TConstIterator end() const { return begin() + Size(); }
-    EckInlineNdCe TConstIterator cbegin() const { return begin(); }
-    EckInlineNdCe TConstIterator cend() const { return end(); }
-    EckInlineNdCe TReverseIterator rbegin() { return TReverseIterator(begin()); }
-    EckInlineNdCe TReverseIterator rend() { return TReverseIterator(end()); }
-    EckInlineNdCe TConstReverseIterator rbegin() const { return TConstReverseIterator(begin()); }
-    EckInlineNdCe TConstReverseIterator rend() const { return TConstReverseIterator(end()); }
-    EckInlineNdCe TConstReverseIterator crbegin() const { return rbegin(); }
-    EckInlineNdCe TConstReverseIterator crend() const { return rend(); }
+    EckInlineNdCe TIterator begin() noexcept { return Data(); }
+    EckInlineNdCe TIterator end() noexcept { return begin() + Size(); }
+    EckInlineNdCe TConstIterator begin() const noexcept { return Data(); }
+    EckInlineNdCe TConstIterator end() const noexcept { return begin() + Size(); }
+    EckInlineNdCe TConstIterator cbegin() const noexcept { return begin(); }
+    EckInlineNdCe TConstIterator cend() const noexcept { return end(); }
+    EckInlineNdCe TReverseIterator rbegin() noexcept { return TReverseIterator(begin()); }
+    EckInlineNdCe TReverseIterator rend() noexcept { return TReverseIterator(end()); }
+    EckInlineNdCe TConstReverseIterator rbegin() const noexcept { return TConstReverseIterator(begin()); }
+    EckInlineNdCe TConstReverseIterator rend() const noexcept { return TConstReverseIterator(end()); }
+    EckInlineNdCe TConstReverseIterator crbegin() const noexcept { return rbegin(); }
+    EckInlineNdCe TConstReverseIterator crend() const noexcept { return rend(); }
 };
 
 using CRefBin = CRefBinT<TRefBinDefAllocator>;
@@ -526,7 +528,7 @@ CRefBinT<TAlloc> operator+(const CRefBinT<TAlloc1>& rb1, const CRefBinT<TAlloc2>
 }
 
 template<class TAlloc1, class TAlloc2>
-[[nodiscard]] EckInline bool operator==(const CRefBinT<TAlloc1>& rb1, const CRefBinT<TAlloc2>& rb2)
+EckInlineNd bool operator==(const CRefBinT<TAlloc1>& rb1, const CRefBinT<TAlloc2>& rb2) noexcept
 {
     if (rb1.Size() != rb2.Size())
         return false;
@@ -534,7 +536,7 @@ template<class TAlloc1, class TAlloc2>
         return memcmp(rb1.Data(), rb2.Data(), rb1.Size()) == 0;
 }
 template<class TAlloc>
-[[nodiscard]] EckInline bool operator==(const CRefBinT<TAlloc>& rb1, std::initializer_list<BYTE> il)
+EckInlineNd bool operator==(const CRefBinT<TAlloc>& rb1, std::initializer_list<BYTE> il) noexcept
 {
     if (rb1.Size() != il.size())
         return false;
@@ -543,14 +545,14 @@ template<class TAlloc>
 }
 
 template<class TAlloc1, class TAlloc2>
-[[nodiscard]] EckInline size_t FindBin(const CRefBinT<TAlloc1>& rbMain,
-    const CRefBinT<TAlloc2>& rbSub, size_t posStart = 0)
+EckInlineNd size_t FindBin(const CRefBinT<TAlloc1>& rbMain,
+    const CRefBinT<TAlloc2>& rbSub, size_t posStart = 0) noexcept
 {
     return FindBin(rbMain.Data(), rbMain.Size(), rbSub.Data(), rbSub.Size(), posStart);
 }
 template<class TAlloc1, class TAlloc2>
-[[nodiscard]] EckInline size_t FindBinRev(const CRefBinT<TAlloc1>& rbMain,
-    const CRefBinT<TAlloc2>& rbSub, size_t posStart = 0)
+EckInlineNd size_t FindBinRev(const CRefBinT<TAlloc1>& rbMain,
+    const CRefBinT<TAlloc2>& rbSub, size_t posStart = 0) noexcept
 {
     return FindBinRev(rbMain.Data(), rbMain.Size(), rbSub.Data(), rbSub.Size(), posStart);
 }
@@ -559,7 +561,7 @@ ECK_NAMESPACE_END
 template<class TAlloc>
 struct std::hash<::eck::CRefBinT<TAlloc>>
 {
-    [[nodiscard]] EckInline size_t operator()(
+    EckInlineNd size_t operator()(
         const ::eck::CRefBinT<TAlloc>& rb) const noexcept
     {
         return ::eck::Fnv1aHash(rb.Data(), rb.Size());

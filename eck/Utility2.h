@@ -29,7 +29,7 @@ EckInline CRefBinT<TAlloc>& operator<<(CRefBinT<TAlloc>& rb, const T& t)
 
 #pragma region 资源
 inline std::span<const BYTE> GetResource(PCWSTR pszName, PCWSTR pszType,
-    HMODULE hModule = nullptr)
+    HMODULE hModule = nullptr) noexcept
 {
     const auto hRes = FindResourceW(hModule, pszName, pszType);
     if (!hRes)
@@ -47,7 +47,7 @@ inline std::span<const BYTE> GetResource(PCWSTR pszName, PCWSTR pszType,
 }
 
 inline std::wstring_view GetResourceString(WORD wID, WORD wLangID,
-    HMODULE hModule = nullptr)
+    HMODULE hModule = nullptr) noexcept
 {
     const auto hRes = FindResourceExW(hModule, RT_STRING,
         MAKEINTRESOURCEW(1 + wID / 16), wLangID);
@@ -64,7 +64,7 @@ inline std::wstring_view GetResourceString(WORD wID, WORD wLangID,
 }
 
 EckInline std::wstring_view GetResourceStringForCurrentLocale(
-    WORD wID, HMODULE hModule = nullptr)
+    WORD wID, HMODULE hModule = nullptr) noexcept
 {
     return GetResourceString(wID, LANGIDFROMLCID(GetThreadLocale()), hModule);
 }
@@ -152,8 +152,8 @@ EckInlineNd auto StrU82W(const CRefBinT<T>& rb) noexcept
     return StrU82W<TTraits, TAlloc>((PCSTR)rb.Data(), (int)rb.Size());
 }
 
-inline NTSTATUS CalcMd5(_In_reads_bytes_(cbData) PCVOID pData,
-    SIZE_T cbData, _Out_writes_bytes_all_(16) void* pResult)
+inline NTSTATUS CalculateMd5(_In_reads_bytes_(cbData) PCVOID pData,
+    SIZE_T cbData, _Out_writes_bytes_all_(16) void* pResult) noexcept
 {
     NTSTATUS nts;
     BCRYPT_ALG_HANDLE hAlg;
@@ -185,36 +185,26 @@ TidyUp:
 #pragma endregion Utf8转换
 
 #pragma region 包装器
-EckInline void FreeSTRRET(const STRRET& strret)
+EckInline void FreeSTRRET(const STRRET& strret) noexcept
 {
     if (strret.uType == STRRET_WSTR)
         CoTaskMemFree(strret.pOleStr);
 }
 
-EckInline const auto* UserSharedData() { return USER_SHARED_DATA; }
+EckInline const auto* UserSharedData() noexcept { return USER_SHARED_DATA; }
 
-EckInline HANDLE DuplicateStdThreadHandle(std::thread& thr, NTSTATUS* pnts = nullptr)
-{
-    HANDLE hThread{};
-    const auto nts = NtDuplicateObject(NtCurrentProcess(), thr.native_handle(),
-        NtCurrentProcess(), &hThread,
-        0, 0, DUPLICATE_SAME_ATTRIBUTES | DUPLICATE_SAME_ACCESS);
-    if (pnts) *pnts = nts;
-    return hThread;
-}
-
-EckInline NTSTATUS WaitObject(HANDLE hObject, LONGLONG llMilliseconds)
+EckInline NTSTATUS WaitObject(HANDLE hObject, LONGLONG llMilliseconds) noexcept
 {
     return NtWaitForSingleObject(hObject, FALSE, (LARGE_INTEGER*)&llMilliseconds);
 }
 
-EckInline NTSTATUS WaitObject(HANDLE hObject, LARGE_INTEGER* pliMilliseconds = nullptr)
+EckInline NTSTATUS WaitObject(HANDLE hObject, LARGE_INTEGER* pliMilliseconds = nullptr) noexcept
 {
     return NtWaitForSingleObject(hObject, FALSE, pliMilliseconds);
 }
 
 EckInline int GetKeyNameTextByVk(WORD wVk, PWSTR pszBuf, int cchBuf,
-    BOOL bExtended = FALSE, BOOL bDontCare = FALSE)
+    BOOL bExtended = FALSE, BOOL bDontCare = FALSE) noexcept
 {
     return GetKeyNameTextW((MapVirtualKeyW(wVk, MAPVK_VK_TO_VSC) << 16) |
         ((!!bExtended) << 24) |
@@ -222,7 +212,7 @@ EckInline int GetKeyNameTextByVk(WORD wVk, PWSTR pszBuf, int cchBuf,
         pszBuf, cchBuf);
 }
 
-inline BOOL GetUserLocaleName(CRefStrW& rsLocaleName)
+inline BOOL GetUserLocaleName(CRefStrW& rsLocaleName) noexcept
 {
     WCHAR sz[LOCALE_NAME_MAX_LENGTH];
     const auto r = GetUserDefaultLocaleName(sz, ARRAYSIZE(sz));
@@ -235,31 +225,31 @@ inline BOOL GetUserLocaleName(CRefStrW& rsLocaleName)
 #pragma endregion 包装器
 
 #pragma region 其他
-inline void RandomBytes(_Out_writes_bytes_all_(cb) void* p, size_t cb)
+inline void RandomBytes(_Out_writes_bytes_all_(cb) void* p, size_t cb) noexcept
 {
     CPcg32 Pcg{};
     for (BYTE* pb = (BYTE*)p, *pbEnd = pb + cb; pb < pbEnd; ++pb)
         *pb = Pcg.Next<BYTE>();
 }
-inline void RandomBytes(CRefBin& rb)
+inline void RandomBytes(CRefBin& rb) noexcept
 {
     RandomBytes(rb.Data(), rb.Size());
 }
 template<size_t N>
-inline void RandomBytes(_Out_ BYTE(&arr)[N])
+inline void RandomBytes(_Out_ BYTE(&arr)[N]) noexcept
 {
     RandomBytes(arr, N);
 }
 
 // iType  0 - 空格分割的十六进制  1 - 易语言字节集调试输出
-inline CRefStrW FormatBin(PCVOID pData_, size_t cb, int iType)
+inline CRefStrW FormatBin(PCVOID pData_, size_t cb, int iType) noexcept
 {
     const auto pData = (PCBYTE)pData_;
     CRefStrW rsResult{};
     if (!pData || !cb)
     {
         if (iType == 1)
-            rsResult.DupString(EckStrAndLen(L"{ }"));
+            rsResult.Assign(EckStrAndLen(L"{ }"));
         return rsResult;
     }
 
@@ -269,16 +259,16 @@ inline CRefStrW FormatBin(PCVOID pData_, size_t cb, int iType)
     {
         rsResult.Reserve((int)cb * 3 + 10);
         for (SIZE_T i = 0u; i < cb; ++i)
-            rsResult.AppendFormat(L"%02hhX ", pData[i]);
+            rsResult.PushBackFormat(L"%02hhX ", pData[i]);
     }
     break;
     case 1:
     {
         rsResult.Reserve((int)cb * 4 + 10);
         rsResult.PushBack(EckStrAndLen(L"{ "));
-        rsResult.AppendFormat(L"%hhu", pData[0]);
+        rsResult.PushBackFormat(L"%hhu", pData[0]);
         for (SIZE_T i = 1u; i < cb; ++i)
-            rsResult.AppendFormat(L",%hhu", pData[i]);
+            rsResult.PushBackFormat(L",%hhu", pData[i]);
         rsResult.PushBack(EckStrAndLen(L" }"));
     }
     break;
@@ -288,19 +278,19 @@ inline CRefStrW FormatBin(PCVOID pData_, size_t cb, int iType)
 #pragma endregion 其他
 
 // 弃用
-EckInline BOOL IsFILETIMEZero(const FILETIME& ft)
+EckInline BOOL IsFILETIMEZero(const FILETIME& ft) noexcept
 {
     return ft.dwLowDateTime == 0 && ft.dwHighDateTime == 0;
 }
-EckInline bool operator==(const FILETIME& ft1, const FILETIME& ft2)
+EckInline bool operator==(const FILETIME& ft1, const FILETIME& ft2) noexcept
 {
     return CompareFileTime(&ft1, &ft2) == 0;
 }
-EckInline bool operator>(const FILETIME& ft1, const FILETIME& ft2)
+EckInline bool operator>(const FILETIME& ft1, const FILETIME& ft2) noexcept
 {
     return CompareFileTime(&ft1, &ft2) == 1;
 }
-EckInline bool operator<(const FILETIME& ft1, const FILETIME& ft2)
+EckInline bool operator<(const FILETIME& ft1, const FILETIME& ft2) noexcept
 {
     return CompareFileTime(&ft1, &ft2) == -1;
 }

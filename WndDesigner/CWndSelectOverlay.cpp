@@ -12,7 +12,7 @@ void CWndSelectOverlay::DrawDragBlock(HDC hDC) noexcept
     const auto cxyBlock = 8;
     SetDCBrushColor(hDC, GetSysColor(COLOR_HIGHLIGHT));
     SelectObject(hDC, GetStockObject(DC_BRUSH));
-    SetDCPenColor(hDC, eck::GetThreadCtx()->crDefText);
+    SetDCPenColor(hDC, eck::PtcCurrent()->crDefText);
     SelectObject(hDC, GetStockObject(DC_PEN));
     int x, y;
     for (const auto& e : m_vRect)
@@ -41,7 +41,7 @@ void CWndSelectOverlay::DrawDragBlock(HDC hDC) noexcept
     }
 }
 
-LRESULT CWndSelectOverlay::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CWndSelectOverlay::OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
     {
@@ -89,7 +89,7 @@ LRESULT CWndSelectOverlay::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
         break;
     }
 
-    return __super::OnMsg(hWnd, uMsg, wParam, lParam);
+    return __super::OnMessage(hWnd, uMsg, wParam, lParam);
 }
 
 void CWndSelectOverlay::SetRect(HWND hWndRef, const RECT* prc, size_t cRc) noexcept

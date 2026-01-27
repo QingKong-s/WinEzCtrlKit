@@ -113,14 +113,14 @@ private:
             {
             case 0:// 流信息
                 m_Stream += cbBlock;
-                m_posStreamInfoEnd = m_Stream.GetPos();
+                m_posStreamInfoEnd = m_Stream.GetPosition();
                 break;
             default:
                 m_Stream += cbBlock;
                 break;
             }
         } while (!(Header.eType & 0b1000'0000));
-        m_posFlacTagEnd = m_Stream.GetPos();
+        m_posFlacTagEnd = m_Stream.GetPosition();
         return Result::Ok;
     }
 
@@ -360,7 +360,7 @@ public:
 #define ECKTEMP_SET_VAL(MiField, KeyStr) \
         {                                \
             ITEM e{};                    \
-            e.rsKey.DupString(KeyStr);   \
+            e.rsKey.Assign(KeyStr);   \
             if (bMove)                   \
                 e.rsValue = std::move(MiField); \
             else                         \
@@ -466,7 +466,7 @@ public:
                 m_si.cBitsPerSample = (BYTE)GetLowNBits(ull >> 23, 5) + 1;
                 m_si.ullTotalSamples = GetHighNBits(ull, 36);
                 m_Stream.Read(m_si.Md5, 16);
-                m_posStreamInfoEnd = m_Stream.GetPos();
+                m_posStreamInfoEnd = m_Stream.GetPosition();
             }
             break;
             case 4:// Vorbis注释（小端）
@@ -500,7 +500,7 @@ public:
                     else [[likely]]
                     {
                         m_vItem.emplace_back(
-                            rsTemp.SubStr(0, pos - 1),
+                            rsTemp.SubString(0, pos - 1),
                             StrU82W(rsTemp.Data() + pos, cchActual));
                     }
                 }
@@ -527,7 +527,7 @@ public:
             break;
             }
         } while (!(Header.eType & 0x80));
-        m_posFlacTagEnd = m_Stream.GetPos();
+        m_posFlacTagEnd = m_Stream.GetPosition();
         return Result::Ok;
     }
     catch (const CStreamWalker::XptHResult& e)
@@ -733,7 +733,7 @@ public:
         if (const auto it = ItmAt(svKey); it == ItmEndIterator())
             return *it;
         ITEM e{};
-        e.rsKey.DupString(svKey);
+        e.rsKey.Assign(svKey);
         return m_vItem.emplace_back(std::move(e));
     }
 

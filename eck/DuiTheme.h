@@ -353,9 +353,18 @@ public:
 
 
 
-EckInlineNdCe BOOL ThGeoIsFill(GeoType e) { return e > GeoType::FillBegin && e < GeoType::FillEnd; }
-EckInlineNdCe BOOL ThGeoIsFrame(GeoType e) { return e > GeoType::FrameBegin && e < GeoType::FrameEnd; }
-EckInlineNdCe BOOL ThGeoIsFillFrame(GeoType e) { return e > GeoType::FillFrameBegin && e < GeoType::FillFrameEnd; }
+EckInlineNdCe BOOL ThGeoIsFill(GeoType e) noexcept
+{
+    return e > GeoType::FillBegin && e < GeoType::FillEnd;
+}
+EckInlineNdCe BOOL ThGeoIsFrame(GeoType e) noexcept
+{
+    return e > GeoType::FrameBegin && e < GeoType::FrameEnd;
+}
+EckInlineNdCe BOOL ThGeoIsFillFrame(GeoType e) noexcept
+{
+    return e > GeoType::FillFrameBegin && e < GeoType::FillFrameEnd;
+}
 
 struct THEME_DRAW_GEO_INFO
 {
@@ -372,7 +381,7 @@ struct THEME_DRAW_GEO_INFO
 
 // 调用方处理
 inline BOOL ThDrawGeometry(const THEME_DRAW_GEO_INFO& Info,
-    const D2D1_RECT_F& rc, const GEO_PARAM& Param)
+    const D2D1_RECT_F& rc, const GEO_PARAM& Param) noexcept
 {
     GEO_PARAM Geo{};
     switch (Info.eType)

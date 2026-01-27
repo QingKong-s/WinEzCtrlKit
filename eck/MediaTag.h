@@ -15,7 +15,7 @@
 ECK_NAMESPACE_BEGIN
 ECK_MEDIATAG_NAMESPACE_BEGIN
 // 标签类型
-enum :UINT
+enum : UINT
 {
     TAG_INVALID = 0u,
     TAG_NONE = 1u << 0,
@@ -657,7 +657,7 @@ private:
             w.Read(by, 3);
             if (memcmp(by, "TAG", 3) == 0)
             {
-                m_Loc.posV1 = w.GetPos() - 3u;
+                m_Loc.posV1 = w.GetPosition() - 3u;
                 m_uTagType |= TAG_ID3V1;
             }
             if (cbSize > 128 + 227)
@@ -666,7 +666,7 @@ private:
                 w.Read(by, 4);
                 if (memcmp(by, "TAG+", 4) == 0)
                 {
-                    m_Loc.posV1Ext = w.GetPos() - 4u;
+                    m_Loc.posV1Ext = w.GetPosition() - 4u;
                     m_uTagType |= TAG_ID3V1Ext;
                 }
             }
@@ -743,7 +743,7 @@ private:
                                 cbFrames = TagSyncSafeIntToUInt(hdr.Size);
                                 if (cbSize >= 128u + 227u + 10u + cbFrames)
                                 {
-                                    m_Loc.posV2FooterHdr = w.GetPos() - 10u;
+                                    m_Loc.posV2FooterHdr = w.GetPosition() - 10u;
                                     m_Loc.posV2Footer = m_Loc.posV2FooterHdr - cbFrames;
                                     if (hdr.Ver == 3)
                                         m_uTagType |= TAG_ID3V2_3;
@@ -763,7 +763,7 @@ private:
                                 cbFrames = TagSyncSafeIntToUInt(hdr.Size);
                                 if (cbSize >= 128u + 10u + cbFrames)
                                 {
-                                    m_Loc.posV2FooterHdr = (size_t)w.GetPos() - 10u;
+                                    m_Loc.posV2FooterHdr = (size_t)w.GetPosition() - 10u;
                                     m_Loc.posV2Footer = m_Loc.posV2FooterHdr - cbFrames;
                                     if (hdr.Ver == 3)
                                         m_uTagType |= TAG_ID3V2_3;
@@ -782,7 +782,7 @@ private:
                             cbFrames = TagSyncSafeIntToUInt(hdr.Size);
                             if (cbSize >= 10u + cbFrames)
                             {
-                                m_Loc.posV2FooterHdr = w.GetPos() - 10u;
+                                m_Loc.posV2FooterHdr = w.GetPosition() - 10u;
                                 m_Loc.posV2Footer = m_Loc.posV2FooterHdr - cbFrames;
                                 if (hdr.Ver == 3)
                                     m_uTagType |= TAG_ID3V2_3;
@@ -813,7 +813,7 @@ private:
         // XXX: 若失配则向后查找
         if (memcmp(by, "fLaC", 4) == 0)
         {
-            m_Loc.posFlac = w.GetPos() - 4u;
+            m_Loc.posFlac = w.GetPosition() - 4u;
             m_uTagType |= TAG_FLAC;
         }
     }

@@ -20,16 +20,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	eck::InitStatus iRetInit;
 	eck::INITPARAM ip{};
 	ip.uFlags = eck::EIF_NOINITD2D;
-	if ((iRetInit = eck::Init(hInstance, &ip, &dwErr)) != eck::InitStatus::Ok)
+	if ((iRetInit = eck::Initialize(hInstance, &ip, &dwErr)) != eck::InitStatus::Ok)
 	{
 		EckDbgPrintFormatMessage(dwErr);
-		eck::MsgBox(eck::Format(L"Init failed!\nInitStatus = %d\nError code = %08X",
+		eck::MsgBox(eck::Format(L"Initialize failed!\nInitStatus = %d\nError code = %08X",
 			(int)iRetInit, dwErr), L"Error", MB_ICONERROR);
 		return 0;
 	}
 
 	App = new CApp{};
-	App->Init();
+	App->Initialize();
 	const auto pWnd = new CWndMain{};
 	pWnd->Create(L"示例Win32程序", WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, 0,
 		CW_USEDEFAULT, CW_USEDEFAULT,
@@ -47,8 +47,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	}
 	delete pWnd;
 	delete App;
-	eck::ThreadUnInit();
-	eck::UnInit();
+	eck::ThreadUninitialize();
+	eck::Uninitialize();
 	CoUninitialize();
 	return (int)msg.wParam;
 }

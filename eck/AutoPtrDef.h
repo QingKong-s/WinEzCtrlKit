@@ -5,12 +5,12 @@ ECK_NAMESPACE_BEGIN
 template<class TDeleter>
 using UniquePtr = std::unique_ptr<typename TDeleter::T, TDeleter>;
 
-#define ECK_DECL_HANDLE_DELETER(Name, Type, DelFunc)	\
-	struct Del##Name {									\
-		using T = std::remove_pointer_t<Type>;			\
-		void operator()(Type h) { DelFunc(h); }			\
-	};													\
-	using UnqPtr##Name = UniquePtr<Del##Name>;			\
+#define ECK_DECL_HANDLE_DELETER(Name, Type, DelFunc) \
+    struct Del##Name {                          \
+        using T = std::remove_pointer_t<Type>;  \
+        void operator()(Type h) { DelFunc(h); } \
+    };                                          \
+    using UnqPtr##Name = UniquePtr<Del##Name>;  \
 
 ECK_DECL_HANDLE_DELETER(HImgList, HIMAGELIST, ImageList_Destroy);
 ECK_DECL_HANDLE_DELETER(HIcon, HICON, DestroyIcon);

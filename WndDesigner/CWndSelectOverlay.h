@@ -13,7 +13,7 @@ private:
 public:
     ECK_CWND_CREATE_CLS_HINST(eck::WCN_DUMMY, eck::g_hInstance);
 
-    LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
+    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 
     void SetRect(HWND hWndRef, const RECT* prc, size_t cRc) noexcept;
     void ClearRect() noexcept;

@@ -17,13 +17,15 @@ public:
 	using TCoord = POINT;
 
 	CMifptpHBITMAP() = default;
-	explicit CMifptpHBITMAP(HBITMAP hBitmap) :m_hBitmap{ hBitmap } { GetObjectW(hBitmap, sizeof(m_Bmp), &m_Bmp); }
+	explicit CMifptpHBITMAP(HBITMAP hBitmap) noexcept
+		: m_hBitmap{ hBitmap }
+	{ GetObjectW(hBitmap, sizeof(m_Bmp), &m_Bmp); }
 
-	EckInline constexpr static TCoord MakeCoord(int x, int y) { return { x,y }; }
+	EckInline static TCoord MakeCoord(int x, int y) noexcept { return { x,y }; }
 
-	EckInline constexpr static BYTE GetColorComp(COLORREF cr, int k) { return ((BYTE*)&cr)[k]; }
+	EckInline static BYTE GetColorComp(COLORREF cr, int k) noexcept { return ((BYTE*)&cr)[k]; }
 
-	EckInline constexpr static TColor MakeColor(const TColorComp(&Comp)[4])
+	EckInline constexpr static TColor MakeColor(const TColorComp(&Comp)[4]) noexcept
 	{
 		return RGB(Comp[0], Comp[1], Comp[2]) | (Comp[3] << 24);
 	}

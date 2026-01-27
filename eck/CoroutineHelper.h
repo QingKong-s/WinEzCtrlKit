@@ -499,6 +499,6 @@ EckInline auto CoroCaptureUiThread(THREADCTX* ptc = nullptr)
 
         EckInlineNdCe auto GetCallbackQueue() const noexcept { return m_pCallback; }
     };
-    return Context{ ptc ? ptc : GetThreadCtx() };
+    return Context{ ptc ? ptc : PtcCurrent() };
 }
 ECK_NAMESPACE_END

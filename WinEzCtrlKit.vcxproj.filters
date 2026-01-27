@@ -90,9 +90,6 @@
     <ClInclude Include="eck\CBk.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\DesignerDef.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CLunarCalendar.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
@@ -124,9 +121,6 @@
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CEditExt.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
-    <ClInclude Include="eck\CTabHeader.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CComboBoxEx.h">
@@ -175,9 +169,6 @@
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CStreamView.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
-    <ClInclude Include="eck\CWindowMask.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CRefBinStream.h">
@@ -429,9 +420,6 @@
     <ClInclude Include="eck\DDX.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\DDXImpl.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\CHeaderExt.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
@@ -670,9 +658,6 @@
     </ClCompile>
     <ClCompile Include="eck\CScrollBar.h">
       <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\DesignerDef.cpp">
-      <Filter>ECK Src</Filter>
     </ClCompile>
     <ClCompile Include="t_main.cpp">
       <Filter>源文件</Filter>

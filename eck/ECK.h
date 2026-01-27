@@ -54,13 +54,14 @@
 
 #include <assert.h>
 #include <crtdbg.h>
+#include <process.h>
 
+#include <algorithm>
 #include <vector>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <type_traits>
-#include <execution>
 #include <memory>
 #include <optional>
 #include <functional>
@@ -98,6 +99,8 @@
 #ifndef SPI_SETLOGICALDPIOVERRIDE
 #define SPI_SETLOGICALDPIOVERRIDE 0x009F
 #endif// !defined(SPI_SETLOGICALDPIOVERRIDE)
+
+#undef GetCurrentTime
 
 enum MONITOR_DPI_TYPE;
 
@@ -353,8 +356,8 @@ ECK_NAMESPACE_END
 #define EckCheckMem(p) ((void)(p))
 #endif
 
-ECK_NAMESPACE_BEGIN
-inline namespace Literals
+    ECK_NAMESPACE_BEGIN
+    inline namespace Literals
 {
     EckInline constexpr WORD operator""_us(ULONGLONG x)
     {
@@ -857,7 +860,7 @@ using FRtlGetNtSystemRoot = PWSTR(NTAPI*)();
 extern FRtlGetNtSystemRoot g_pfnRtlGetNtSystemRoot;
 #pragma endregion Global
 
-#pragma region Init
+#pragma region Initialize
 enum : UINT
 {
     EIF_DEFAULT = 0,
@@ -900,17 +903,17 @@ struct INITPARAM
 /// <summary>
 /// 初始化ECK Lib。
 /// 使用任何ECK功能之前需调用该函数。仅允许调用一次。
-/// 函数将在内部调用eck::ThreadInit，除非设置了EIF_NOINITTHREAD
+/// 函数将在内部调用eck::ThreadInitialize，除非设置了EIF_NOINITTHREAD
 /// </summary>
 /// <param name="hInstance">实例句柄，所有自定义窗口类将在此实例上注册</param>
 /// <param name="pip">指向初始化参数的可选指针</param>
 /// <param name="pdwErrCode">指向接收错误码变量的可选指针</param>
 /// <returns>错误代码</returns>
-InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip = nullptr,
-    _Out_opt_ DWORD* pdwErrCode = nullptr);
+InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip = nullptr,
+    _Out_opt_ DWORD* pdwErrCode = nullptr) noexcept;
 
-void UnInit();
-#pragma endregion Init
+void Uninitialize() noexcept;
+#pragma endregion Initialize
 
 #pragma region Thread
 class CWnd;
@@ -937,12 +940,12 @@ namespace Priv
         std::vector<QueuedCallback> q{};
         RTL_SRWLOCK Lk{};
 
-        QueuedCallbackQueue();
+        QueuedCallbackQueue() noexcept;
 
         template<class F>
         void EnQueueCallback(F&& fnCallback, UINT nPriority = UINT_MAX,
             BOOL bWakeUiThread = TRUE, ULONGLONG Tag = 0ull,
-            BOOL bClearExistingTag = FALSE)
+            BOOL bClearExistingTag = FALSE) noexcept
         {
             RtlAcquireSRWLockExclusive(&Lk);
             if (bClearExistingTag && !q.empty())
@@ -963,9 +966,9 @@ namespace Priv
 
         void EnQueueCoroutine(void* pCoroutine, UINT nPriority = UINT_MAX,
             BOOL bWakeUiThread = TRUE, ULONGLONG Tag = 0ull,
-            BOOL bClearExistingTag = FALSE);
+            BOOL bClearExistingTag = FALSE) noexcept;
 
-        void UnlockedDeQueue();
+        void UnlockedDeQueue() noexcept;
     };
 }
 
@@ -1002,33 +1005,33 @@ struct THREADCTX
     HHOOK hhkMsgFilter{};		// 在菜单、模态对话框、拖动选择等的消息循环中保持处理UI线程的回调
     Priv::QueuedCallbackQueue Callback{};
 
-    void WmAdd(HWND hWnd, CWnd* pWnd);
-    void WmRemove(HWND hWnd);
-    CWnd* WmAt(HWND hWnd) const;
+    void WmAdd(HWND hWnd, CWnd* pWnd) noexcept;
+    void WmRemove(HWND hWnd) noexcept;
+    CWnd* WmAt(HWND hWnd) const noexcept;
 
-    void TwmAdd(HWND hWnd, CWnd* pWnd);
-    void TwmRemove(HWND hWnd);
-    CWnd* TwmAt(HWND hWnd) const;
-    void TwmEnableNcDarkMode(BOOL bDark);
-    void TwmBroadcastThemeChanged();
+    void TwmAdd(HWND hWnd, CWnd* pWnd) noexcept;
+    void TwmRemove(HWND hWnd) noexcept;
+    CWnd* TwmAt(HWND hWnd) const noexcept;
+    void TwmEnableNcDarkMode(BOOL bDark) noexcept;
+    void TwmBroadcastThemeChanged() noexcept;
 
-    void UpdateDefaultColor();
-    void DoCallback();
+    void UpdateDefaultColor() noexcept;
+    void DoCallback() noexcept;
 };
 
 // 取线程上下文TLS槽
-DWORD GetThreadCtxTlsSlot();
+DWORD GetThreadContextTlsSlot() noexcept;
 // 初始化线程上下文。
 // 在调用线程上初始化线程上下文，在使用任何ECK窗口功能前必须调用此函数
-void ThreadInit();
+void ThreadInitialize() noexcept;
 // 反初始化线程上下文。
 // 调用此函数后不允许使用任何ECK窗口对象
-void ThreadUnInit();
+void ThreadUninitialize() noexcept;
 // 取线程上下文
-EckInline THREADCTX* GetThreadCtx() { return (THREADCTX*)TlsGetValue(GetThreadCtxTlsSlot()); }
+EckInlineNd THREADCTX* PtcCurrent() noexcept { return (THREADCTX*)TlsGetValue(GetThreadContextTlsSlot()); }
 
-HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc = nullptr);
-void EndCbtHook();
+HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc = nullptr) noexcept;
+void EndCbtHook() noexcept;
 
 /// <summary>
 /// 过滤消息。
@@ -1036,54 +1039,54 @@ void EndCbtHook();
 /// </summary>
 /// <param name="Msg">即将处理的消息</param>
 /// <returns>若返回值为TRUE，则不应继续处理消息；否则应正常进行剩余步骤</returns>
-BOOL PreTranslateMessage(const MSG& Msg);
+BOOL PreTranslateMessage(const MSG& Msg) noexcept;
 #pragma endregion Thread
 
-void InitPrivateApi();
+void InitializePrivateApi() noexcept;
 
 #if ECK_OPT_NO_DARKMODE
-EckInlineCe HRESULT UxfMenuInit(CWnd* pWnd) { return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED); }
-EckInlineCe HRESULT UxfMenuUnInit(CWnd* pWnd) { return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED); }
+EckInlineCe HRESULT UxfMenuInitialize(CWnd* pWnd) { return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED); }
+EckInlineCe HRESULT UxfMenuUninitialize(CWnd* pWnd) { return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED); }
 #else
-HRESULT UxfMenuInit(CWnd* pWnd);
-HRESULT UxfMenuUnInit(CWnd* pWnd);
+HRESULT UxfMenuInitialize(CWnd* pWnd) noexcept;
+HRESULT UxfMenuUninitialize(CWnd* pWnd) noexcept;
 #endif// ECK_OPT_NO_DARKMODE
 
 EckInlineNd HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,
-    void* pParameter = nullptr, UINT* pThreadId = nullptr, UINT dwCreationFlags = 0)
+    void* pParameter = nullptr, UINT* pThreadId = nullptr, UINT dwCreationFlags = 0) noexcept
 {
     return CreateThread(nullptr, 0, (PTHREAD_START_ROUTINE)pStartAddress,
         pParameter, dwCreationFlags, (DWORD*)pThreadId);
 }
 
 #ifdef _DEBUG
-void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine);
-inline void DbgPrint(CcpNumberOrEnum auto x, BOOL bNewLine = TRUE)
+void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine) noexcept;
+inline void DbgPrint(CcpNumberOrEnum auto x, BOOL bNewLine = TRUE) noexcept
 {
     auto s = std::to_string((eck::UnderlyingType_T<decltype(x)>)x);
     if (bNewLine)
         s.push_back('\n');
     OutputDebugStringA(s.c_str());
 }
-void DbgPrintFmt(_Printf_format_string_ PCWSTR pszFormat, ...);
-void DbgPrintFmt(_Printf_format_string_ PCSTR pszFormat, ...);
-EckInline void DbgPrint(PCVOID x, BOOL bNewLine = TRUE) { DbgPrintFmt(bNewLine ? L"0x%p\n" : L"0x%p", x); }
-EckInline void DbgPrint(PCWSTR psz, BOOL bNewLine = TRUE)
+void DbgPrintFmt(_Printf_format_string_ PCWSTR pszFormat, ...) noexcept;
+void DbgPrintFmt(_Printf_format_string_ PCSTR pszFormat, ...) noexcept;
+EckInline void DbgPrint(PCVOID x, BOOL bNewLine = TRUE) noexcept { DbgPrintFmt(bNewLine ? L"0x%p\n" : L"0x%p", x); }
+EckInline void DbgPrint(PCWSTR psz, BOOL bNewLine = TRUE) noexcept
 {
     OutputDebugStringW(psz);
     if (bNewLine) OutputDebugStringW(L"\n");
 }
-EckInline void DbgPrint(PCSTR psz, BOOL bNewLine = TRUE)
+EckInline void DbgPrint(PCSTR psz, BOOL bNewLine = TRUE) noexcept
 {
     OutputDebugStringA(psz);
     if (bNewLine) OutputDebugStringA("\n");
 }
 template<class T, class U, class V>
-EckInline void DbgPrint(const std::basic_string<T, U, V>& str, BOOL bNewLine = TRUE)
+EckInline void DbgPrint(const std::basic_string<T, U, V>& str, BOOL bNewLine = TRUE) noexcept
 {
     DbgPrint(str.c_str(), bNewLine);
 }
-inline void DbgPrintFormatMessage(UINT uErrCode, BOOL bNewLine = TRUE)
+inline void DbgPrintFormatMessage(UINT uErrCode, BOOL bNewLine = TRUE) noexcept
 {
     PWSTR pszInfo;
     FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, nullptr,
@@ -1091,14 +1094,14 @@ inline void DbgPrintFormatMessage(UINT uErrCode, BOOL bNewLine = TRUE)
     DbgPrint(pszInfo, bNewLine);
     LocalFree(pszInfo);
 }
-inline void DbgPrintLastError(BOOL bNewLine = TRUE)
+inline void DbgPrintLastError(BOOL bNewLine = TRUE) noexcept
 {
     const auto u = GetLastError();
     DbgPrintFmt(L"LastError = %u", u);
     DbgPrintFormatMessage(u, bNewLine);
 }
-void DbgPrintWithPos(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg);
-void DbgPrintWndMap();
+void DbgPrintWithPos(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg) noexcept;
+void DbgPrintWndMap() noexcept;
 
 #if !ECK_OPT_NO_DBG_MACRO
 #define EckDbgPrintGLE              ::eck::DbgPrintLastError

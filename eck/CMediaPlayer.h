@@ -583,6 +583,7 @@ public:
         hr = pRateSupport->GetFastestRate(MFRATE_REVERSE, TRUE, &Support.fMaxReverseThin);
         if (FAILED(hr))
             Support.fMaxReverseThin = 1.0f;
+        return S_OK;
     }
 
     HRESULT GetRate(_Out_ float& fRate, _Out_opt_ BOOL* pbThin = nullptr) noexcept

@@ -19,7 +19,7 @@ enum : UINT
 class __declspec(novtable) CFlowLayoutBase : public CLayoutBase
 {
 public:
-    ECK_RTTI(CFlowLayoutBase);
+    ECK_RTTI(CFlowLayoutBase, CLayoutBase);
 protected:
     struct ITEM : ITEMBASE
     {
@@ -89,12 +89,11 @@ public:
     EckInlineNdCe auto& GetList() noexcept { return m_vItem; }
     EckInlineNdCe auto& GetList() const noexcept { return m_vItem; }
 };
-ECK_RTTI_IMPL_BASE_INLINE(CFlowLayoutBase, CLayoutBase);
 
 class CFlowLayoutH : public CFlowLayoutBase
 {
 public:
-    ECK_RTTI(CFlowLayoutH);
+    ECK_RTTI(CFlowLayoutH, CFlowLayoutBase);
 private:
     void ArrangeObject(ITEM& e, TLytCoord yLine, TLytCoord cyLineMax) noexcept
     {
@@ -159,12 +158,11 @@ public:
             ArrangeObject(m_vItem[j], y, cyLineMax);
     }
 };
-ECK_RTTI_IMPL_BASE_INLINE(CFlowLayoutH, CFlowLayoutBase);
 
 class CFlowLayoutV : public CFlowLayoutBase
 {
 public:
-    ECK_RTTI(CFlowLayoutV);
+    ECK_RTTI(CFlowLayoutV, CFlowLayoutBase);
 private:
     void ArrangeObject(ITEM& e, TLytCoord xLine, TLytCoord cxLineMax) noexcept
     {
@@ -229,5 +227,4 @@ public:
             ArrangeObject(m_vItem[j], x, cxLineMax);
     }
 };
-ECK_RTTI_IMPL_BASE_INLINE(CFlowLayoutV, CFlowLayoutBase);
 ECK_NAMESPACE_END

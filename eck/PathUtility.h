@@ -11,7 +11,7 @@ IllegalPathCharWithDotA{ R"(\/:*?"<>|.)" };
 
 template<CcpStdCharPtr TPointer>
 void PazLegalize(_In_z_ TPointer pszPath,
-    RemoveStdCharPtr_T<TPointer> chReplace = '_', BOOL bReplaceDot = FALSE)
+    RemoveStdCharPtr_T<TPointer> chReplace = '_', BOOL bReplaceDot = FALSE) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPointer>, char>)
     {
@@ -29,8 +29,8 @@ void PazLegalize(_In_z_ TPointer pszPath,
     }
 }
 template<CcpStdCharPtr TPointer>
-void PazLegalizeLen(_In_reads_(cchPath) TPointer pszPath, int cchPath,
-    RemoveStdCharPtr_T<TPointer> chReplace = '_', BOOL bReplaceDot = FALSE)
+void PazLegalizeLength(_In_reads_(cchPath) TPointer pszPath, int cchPath,
+    RemoveStdCharPtr_T<TPointer> chReplace = '_', BOOL bReplaceDot = FALSE) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPointer>, char>)
     {
@@ -54,7 +54,7 @@ template<CcpStdCharPtr TPointer>
 HRESULT PazParseCommandLine(
     _In_reads_(cchCmdLine) TPointer pszCmdLine, int cchCmdLine,
     _Out_ TPointer& pszFile, _Out_ int& cchFile,
-    _Out_ TPointer& pszParam, _Out_ int& cchParam)
+    _Out_ TPointer& pszParam, _Out_ int& cchParam) noexcept
 {
     if (!pszCmdLine || !cchCmdLine)
     {
@@ -106,7 +106,7 @@ template<CcpStdCharPtr TPointer>
 HRESULT PazParseCommandLineAndCut(
     _In_reads_(cchCmdLine) TPointer pszCmdLine, int cchCmdLine,
     _Out_ TPointer& pszFile, _Out_ int& cchFile,
-    _Out_ TPointer& pszParam, _Out_ int& cchParam)
+    _Out_ TPointer& pszParam, _Out_ int& cchParam) noexcept
 {
     EckAssert(&pszFile != &pszParam && &cchFile != &cchParam);
     const auto hr = PazParseCommandLine(pszCmdLine, cchCmdLine,
@@ -121,13 +121,15 @@ HRESULT PazParseCommandLineAndCut(
     return hr;
 }
 
-EckNfInlineNd BOOL PazIsDotFileName(_In_reads_z_(3) CcpStdCharPtr auto pszFileName)
+EckNfInlineNd BOOL PazIsDotFileName(_In_reads_z_(3) CcpStdCharPtr auto pszFileName) noexcept
 {
     return pszFileName[0] == '.' && (pszFileName[1] == '\0' ||
         (pszFileName[1] == '.' && pszFileName[2] == '\0'));
 }
 
-EckNfInlineNd BOOL PazIsDotFileName(_In_reads_bytes_(cbFileName) PCWCH pszFileName, ULONG cbFileName)
+EckNfInlineNd BOOL PazIsDotFileName(
+    _In_reads_bytes_(cbFileName) PCWCH pszFileName,
+    ULONG cbFileName) noexcept
 {
     return (cbFileName == sizeof(WCHAR) && pszFileName[0] == L'.') ||
         (cbFileName == sizeof(WCHAR) * 2 && pszFileName[0] == L'.' && pszFileName[1] == L'.');

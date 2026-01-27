@@ -3,7 +3,7 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-class CTrackBar :public CElem
+class CTrackBar : public CElem
 {
 private:
     CEasingCurve m_ec{};
@@ -29,7 +29,7 @@ private:
     {
         if (m_bThinTrack)
             if (m_ec.IsActive())
-                return  m_cxyTrack / 2.f + m_cxyTrack / 2.f * m_ec.GetCurrValue();
+                return  m_cxyTrack / 2.f + m_cxyTrack / 2.f * m_ec.GetCurrentValue();
             else
                 return (m_bHover ? m_cxyTrack : m_cxyTrack / 2.f);
         else
@@ -61,7 +61,7 @@ private:
     void GetThumbRect(float cxyTrack, const D2D1_RECT_F& rcTrack, _Out_ D2D1_RECT_F& rc)
     {
         const float cxy = m_bThinTrack ?
-            (GetTrackCapSpacing() * m_ec.GetCurrValue()) :
+            (GetTrackCapSpacing() * m_ec.GetCurrentValue()) :
             GetTrackCapSpacing();
         if (m_bVertical)
         {
@@ -96,7 +96,7 @@ private:
             m_fDragPos = m_fMax;
     }
 public:
-    LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
+    LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -233,8 +233,8 @@ public:
         {
             InitEasingCurve(&m_ec);
             m_ec.SetDuration(200);
-            m_ec.SetAnProc(Easing::OutSine);
-            m_ec.SetCallBack([](float fCurrValue, float fOldValue, LPARAM lParam)
+            m_ec.SetProcedure(Easing::OutSine);
+            m_ec.SetCallback([](float fCurrValue, float fOldValue, LPARAM lParam)
                 {
                     ((CElem*)lParam)->InvalidateRect();
                 });

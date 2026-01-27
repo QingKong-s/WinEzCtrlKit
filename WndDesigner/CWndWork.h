@@ -26,5 +26,5 @@ public:
 
 	CWndWork(std::shared_ptr<DsForm> pForm, CWndMain* pWndMain) : m_pForm{ pForm }, m_pWndMain{ pWndMain } {}
 
-	LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
+	LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 };

@@ -33,7 +33,7 @@ FNtWow64QueryInformationProcess64 pfnNtWow64QueryInformationProcess64{};
 #endif
 
 ECK_NAMESPACE_BEGIN
-void InitPrivateApi()
+void InitializePrivateApi() noexcept
 {
     const auto hModUser32 = LoadLibraryW(L"User32.dll");
     EckAssert(hModUser32);
@@ -156,7 +156,7 @@ FAdjustWindowRectExForDpi g_pfnAdjustWindowRectExForDpi;
 FSystemParametersInfoForDpi g_pfnSystemParametersInfoForDpi;
 FGetSystemMetricsForDpi g_pfnGetSystemMetricsForDpi;
 
-void InitNewApi()
+void InitializeNewApi() noexcept
 {
     const auto hModUser32 = LoadLibraryW(L"user32.dll");
     if (hModUser32)
@@ -181,7 +181,7 @@ void InitNewApi()
 }
 #endif// ECK_OPT_DYN_NF
 
-const CRefStrW& GetRunningPath()
+const CRefStrW& GetRunningPath() noexcept
 {
     return g_rsRunningDir;
 }
@@ -334,14 +334,14 @@ static CSrwLock s_LkThemeMap{};
 constexpr THEME_INFO InvalidThemeInfo{ .eType = ThemeType::Invalid };
 
 // 查询主题信息。此函数返回引用，但在主题句柄被使用期间一定有效
-EckInline const THEME_INFO& UxfpGetThemeInfo(HTHEME hTheme)
+EckInline const THEME_INFO& UxfpGetThemeInfomation(HTHEME hTheme) noexcept
 {
     const auto it = s_hsThemeMap.find(hTheme);
     return it != s_hsThemeMap.end() ? it->second : InvalidThemeInfo;
 }
 
 // 注册主题句柄
-static void UxfpOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
+static void UxfpOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList) noexcept
 {
     if (!hTheme)
         return;
@@ -408,7 +408,7 @@ static void UxfpOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList)
 }
 
 // 注销主题句柄
-static void UxfpOnThemeClose(HTHEME hTheme)
+static void UxfpOnThemeClose(HTHEME hTheme) noexcept
 {
     CSrwWriteGuard _{ s_LkThemeMap };
     const auto it = s_hsThemeMap.find(hTheme);
@@ -426,12 +426,12 @@ static void UxfpOnThemeClose(HTHEME hTheme)
     }
 }
 
-EckInline constexpr BOOL UxfpIsDarkTaskDialogAvailable()
+EckInline constexpr BOOL UxfpIsDarkTaskDialogAvailable() noexcept
 {
     return g_NtVer.uBuild >= WINVER_11_21H2;
 }
 
-HRESULT UxfMenuInit(CWnd* pWnd)
+HRESULT UxfMenuInitialize(CWnd* pWnd) noexcept
 {
     // 参考：https://github.com/adzm/win32-custom-menubar-aero-theme
     auto& Sig = pWnd->GetSignal();
@@ -535,7 +535,7 @@ HRESULT UxfMenuInit(CWnd* pWnd)
                     Ctx.Processed();
                     return lResult;
                 }
-                pWnd->OnMsg(hWnd, uMsg, wParam, lParam);
+                pWnd->OnMessage(hWnd, uMsg, wParam, lParam);
 
                 MENUBARINFO mbi;
                 mbi.cbSize = sizeof(mbi);
@@ -553,7 +553,7 @@ HRESULT UxfMenuInit(CWnd* pWnd)
                 --rcLine.top;
 
                 const auto hDC = GetWindowDC(hWnd);
-                SetDCBrushColor(hDC, GetThreadCtx()->crDefBtnFace);
+                SetDCBrushColor(hDC, PtcCurrent()->crDefBtnFace);
                 FillRect(hDC, &rcLine, GetStockBrush(DC_BRUSH));
                 ReleaseDC(hWnd, hDC);
                 Ctx.Processed();
@@ -573,7 +573,7 @@ HRESULT UxfMenuInit(CWnd* pWnd)
                 hTheme = nullptr;
                 break;
             case WM_NCDESTROY:
-                UxfMenuUnInit(pWnd);
+                UxfMenuUninitialize(pWnd);
                 break;
             }
             return 0;
@@ -583,7 +583,7 @@ HRESULT UxfMenuInit(CWnd* pWnd)
     return S_OK;
 }
 
-HRESULT UxfMenuUnInit(CWnd* pWnd)
+HRESULT UxfMenuUninitialize(CWnd* pWnd) noexcept
 {
     return pWnd->GetSignal().Disconnect(MHI_UXF_MENU) ? S_OK : S_FALSE;
 }
@@ -595,7 +595,7 @@ HRESULT UxfMenuUnInit(CWnd* pWnd)
 /// <param name="bInvert">是否反转颜色</param>
 static HRESULT UxfpAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
     _In_ const RECT* prc, _In_opt_ const DTBGOPTS* pOpt,
-    float fDelta, BOOL bInvert = FALSE)
+    float fDelta, BOOL bInvert = FALSE) noexcept
 {
     const BOOL bClip = pOpt && (pOpt->dwFlags & DTBG_CLIPRECT);
     HRESULT hr;
@@ -711,7 +711,7 @@ static HRESULT UxfpAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 
 // 取主题颜色，主要是文本颜色
 static HRESULT UxfpGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
-    HTHEME hTheme, int iPartId, int iStateId, int iPropId, _Out_ COLORREF& cr)
+    HTHEME hTheme, int iPartId, int iStateId, int iPropId, _Out_ COLORREF& cr) noexcept
 {
     switch (ti.eType)
     {
@@ -1020,7 +1020,7 @@ static HRESULT UxfpGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
 // 绘制主题背景
 static HRESULT UxfpDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc,
     HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
-    _In_ const RECT* prc, _In_opt_ const DTBGOPTS* pOptions)
+    _In_ const RECT* prc, _In_opt_ const DTBGOPTS* pOptions) noexcept
 {
     switch (ti.eType)
     {
@@ -1348,7 +1348,7 @@ static HRESULT UxfpDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* pt
     return E_NOTIMPL;
 }
 
-static PCWSTR UxfpFixupClassList(PCWSTR pszClassList)
+static PCWSTR UxfpFixupClassList(PCWSTR pszClassList) noexcept
 {
     if (TcsEqualI(pszClassList, L"Combobox"))
         return L"DarkMode_CFD::Combobox";
@@ -1369,7 +1369,7 @@ static HRESULT WINAPI NewDrawThemeParentBackground(HWND hWnd, HDC hDC, const REC
     {
         if (!ShouldAppsUseDarkMode())
             return hr;
-        const auto* const ptc = GetThreadCtx();
+        const auto* const ptc = PtcCurrent();
         if (!ptc)
             return hr;
         RECT rc;
@@ -1395,7 +1395,7 @@ static HTHEME WINAPI NewOpenNcThemeData(HWND hWnd, PCWSTR pszClassList)
 
 static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
 {
-    const auto* const ptc = GetThreadCtx();
+    const auto* const ptc = PtcCurrent();
     if (!ptc || !ptc->bEnableDarkModeHook)
         return s_pfnOpenThemeData(hWnd, pszClassList);
     if (ShouldAppsUseDarkMode())
@@ -1407,7 +1407,7 @@ static HTHEME WINAPI NewOpenThemeData(HWND hWnd, PCWSTR pszClassList)
 
 static HTHEME WINAPI NewOpenThemeDataForDpi(HWND hWnd, PCWSTR pszClassList, UINT uDpi)
 {
-    const auto* const ptc = GetThreadCtx();
+    const auto* const ptc = PtcCurrent();
     if (!ptc || !ptc->bEnableDarkModeHook)
         return s_pfnOpenThemeData(hWnd, pszClassList);
     if (ShouldAppsUseDarkMode())
@@ -1424,7 +1424,7 @@ static HRESULT WINAPI NewDrawThemeText(HTHEME hTheme, HDC hDC, int iPartId, int 
     {
         COLORREF cr;
         s_LkThemeMap.EnterRead();
-        const auto b = SUCCEEDED(UxfpGetThemeColor(UxfpGetThemeInfo(hTheme), GetThreadCtx(),
+        const auto b = SUCCEEDED(UxfpGetThemeColor(UxfpGetThemeInfomation(hTheme), PtcCurrent(),
             hTheme, iPartId, iStateId, TMT_TEXTCOLOR, cr));
         s_LkThemeMap.LeaveRead();
         if (b)
@@ -1452,8 +1452,8 @@ static HRESULT WINAPI NewDrawThemeTextEx(HTHEME hTheme, HDC hDC, int iPartId, in
             !(pOptions->dwFlags & DTT_TEXTCOLOR))// 未指定颜色
         {
             CSrwReadGuard _{ s_LkThemeMap };
-            if (SUCCEEDED(UxfpGetThemeColor(UxfpGetThemeInfo(hTheme),
-                GetThreadCtx(), hTheme, iPartId, iStateId,
+            if (SUCCEEDED(UxfpGetThemeColor(UxfpGetThemeInfomation(hTheme),
+                PtcCurrent(), hTheme, iPartId, iStateId,
                 (pOptions && (pOptions->dwFlags & DTT_COLORPROP)) ?
                 pOptions->iColorPropId : TMT_TEXTCOLOR, NewOpt.crText)))
             {
@@ -1484,7 +1484,7 @@ static HRESULT WINAPI NewDrawThemeBackgroundEx(HTHEME hTheme, HDC hDC, int iPart
     if (ShouldAppsUseDarkMode())
     {
         CSrwReadGuard _{ s_LkThemeMap };
-        if (SUCCEEDED(UxfpDrawThemeBackground(UxfpGetThemeInfo(hTheme), GetThreadCtx(),
+        if (SUCCEEDED(UxfpDrawThemeBackground(UxfpGetThemeInfomation(hTheme), PtcCurrent(),
             hTheme, hDC, iPartId, iStateId, pRect, pOptions)))
             return S_OK;
     }
@@ -1506,7 +1506,7 @@ static HRESULT WINAPI NewDrawThemeBackground(HTHEME hTheme, HDC hDC, int iPartId
         else
             Options.dwFlags = 0;
         CSrwReadGuard _{ s_LkThemeMap };
-        if (SUCCEEDED(UxfpDrawThemeBackground(UxfpGetThemeInfo(hTheme), GetThreadCtx(),
+        if (SUCCEEDED(UxfpDrawThemeBackground(UxfpGetThemeInfomation(hTheme), PtcCurrent(),
             hTheme, hDC, iPartId, iStateId, pRect, &Options)))
             return S_OK;
     }
@@ -1519,7 +1519,7 @@ static HRESULT WINAPI NewGetThemeColor(HTHEME hTheme, int iPartId, int iStateId,
     if (ShouldAppsUseDarkMode())
     {
         CSrwReadGuard _{ s_LkThemeMap };
-        if (SUCCEEDED(UxfpGetThemeColor(UxfpGetThemeInfo(hTheme), GetThreadCtx(),
+        if (SUCCEEDED(UxfpGetThemeColor(UxfpGetThemeInfomation(hTheme), PtcCurrent(),
             hTheme, iPartId, iStateId, iPropId, *pColor)))
             return S_OK;
     }
@@ -1538,7 +1538,7 @@ static HRESULT WINAPI NewGetThemePartSize(HTHEME hTheme, HDC hDC, int iPartId, i
 {
     {
         CSrwReadGuard _{ s_LkThemeMap };
-        const auto& ti = UxfpGetThemeInfo(hTheme);
+        const auto& ti = UxfpGetThemeInfomation(hTheme);
         if (ti.eType == ThemeType::Header)
             switch (iPartId)
             {
@@ -1562,7 +1562,7 @@ static HRESULT WINAPI NewGetThemePartSize(HTHEME hTheme, HDC hDC, int iPartId, i
 
 static int WINAPI NewSoftModalMessageBox(void* p)
 {
-    const auto ptc = GetThreadCtx();
+    const auto ptc = PtcCurrent();
     if (!ptc)
         return s_pfnSoftModalMessageBox(p);
     CMsgBoxHook Mb{};
@@ -1606,8 +1606,8 @@ static BOOL WINAPI NewShowScrollBar(HWND hWnd, int nBar, BOOL bShow)
 #endif// ECK_SBHOOK_INCLUDED
 #pragma endregion ScrollBarHook
 
-#pragma region Init
-InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwErrCode)
+#pragma region Initialize
+InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwErrCode) noexcept
 {
     EckAssert(!g_hInstance && !g_dwTlsSlot);
     DWORD dwTemp;
@@ -1620,15 +1620,15 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwE
 
     g_hInstance = hInstance;
     RtlGetNtVersionNumbers(&g_NtVer.uMajor, &g_NtVer.uMinor, &g_NtVer.uBuild);
-    InitPrivateApi();
+    InitializePrivateApi();
 #if ECK_OPT_DYN_NF
-    InitNewApi();
+    InitializeNewApi();
 #endif// ECK_OPT_DYN_NF
     g_pfnRtlGetNtSystemRoot = (FRtlGetNtSystemRoot)GetProcAddress(
         GetModuleHandleW(L"ntdll.dll"), "RtlGetNtSystemRoot");
     g_dwTlsSlot = TlsAlloc();
     if (!(pip->uFlags & EIF_NOINITTHREAD))
-        ThreadInit();
+        ThreadInitialize();
 
 #if !ECK_OPT_NO_GDIPLUS
     // GDI+
@@ -1661,7 +1661,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwE
         switch (e.iType)
         {
         case RWCT_EZREG:
-            if (!EzRegisterWndClass(e.ez.pszClass, e.ez.uClassStyle))
+            if (!RegisterWindowClass(e.ez.pszClass, e.ez.uClassStyle))
             {
                 *pdwErrCode = GetLastError();
                 EckDbgPrintFormatMessage(*pdwErrCode);
@@ -1746,7 +1746,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwE
             return InitStatus::D2DDevice;
         }
 #endif // !ECK_OPT_NO_D2D
-       
+
         // DXGI调试
 #ifdef _DEBUG
         const auto hModDxgiDbg = GetModuleHandleW(L"dxgidebug.dll");
@@ -1841,7 +1841,7 @@ InitStatus Init(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwE
     return InitStatus::Ok;
 }
 
-void UnInit()
+void Uninitialize() noexcept
 {
     if (g_dwTlsSlot)
     {
@@ -1879,21 +1879,21 @@ void UnInit()
     SafeRelease(g_pDxgiFactory);
 #endif // !ECK_OPT_NO_DX
 }
-#pragma endregion Init
+#pragma endregion Initialize
 
 #pragma region Thread
-DWORD GetThreadCtxTlsSlot()
+DWORD GetThreadContextTlsSlot() noexcept
 {
     return g_dwTlsSlot;
 }
 
-void ThreadInit()
+void ThreadInitialize() noexcept
 {
     if ((SIZE_T)g_hModComCtl32 == SIZETMax)
         g_hModComCtl32 = GetModuleHandleW(L"comctl32.dll");
-    EckAssert(!TlsGetValue(GetThreadCtxTlsSlot()));
+    EckAssert(!TlsGetValue(GetThreadContextTlsSlot()));
     const auto p = new THREADCTX{};
-    TlsSetValue(GetThreadCtxTlsSlot(), p);
+    TlsSetValue(GetThreadContextTlsSlot(), p);
     p->UpdateDefaultColor();
 #if ECK_OPT_NO_DARKMODE
     p->bEnableDarkModeHook = FALSE;
@@ -1924,7 +1924,7 @@ void ThreadInit()
                     ARRAYSIZE(WC_SCROLLBARW),
                 }) + 1;
 
-            const auto* const p = GetThreadCtx();
+            const auto* const p = PtcCurrent();
             if (iCode == HCBT_CREATEWND && p->bEnableDarkModeHook)
             {
                 const auto pccw = (CBT_CREATEWNDW*)lParam;
@@ -1967,16 +1967,16 @@ void ThreadInit()
 
     p->hhkMsgFilter = SetWindowsHookExW(WH_MSGFILTER, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
         {
-            const auto pCtx = GetThreadCtx();
+            const auto pCtx = PtcCurrent();
             pCtx->DoCallback();
             return CallNextHookEx(pCtx->hhkMsgFilter, iCode, wParam, lParam);
         }, nullptr, NtCurrentThreadId32());
 }
 
-void ThreadUnInit()
+void ThreadUninitialize() noexcept
 {
-    EckAssert(TlsGetValue(GetThreadCtxTlsSlot()));
-    const auto p = (THREADCTX*)TlsGetValue(GetThreadCtxTlsSlot());
+    EckAssert(TlsGetValue(GetThreadContextTlsSlot()));
+    const auto p = (THREADCTX*)TlsGetValue(GetThreadContextTlsSlot());
 #ifdef _DEBUG
     if (!p->hmWnd.empty())
     {
@@ -1989,16 +1989,16 @@ void ThreadUnInit()
     UnhookWindowsHookEx(p->hhkCbtDarkMode);
     UnhookWindowsHookEx(p->hhkMsgFilter);
     delete p;
-    TlsSetValue(GetThreadCtxTlsSlot(), nullptr);
+    TlsSetValue(GetThreadContextTlsSlot(), nullptr);
 }
 
-Priv::QueuedCallbackQueue::QueuedCallbackQueue()
+Priv::QueuedCallbackQueue::QueuedCallbackQueue() noexcept
 {
     RtlInitializeSRWLock(&Lk);
     dwTid = NtCurrentThreadId32();
 }
 void Priv::QueuedCallbackQueue::EnQueueCoroutine(void* pCoroutine,
-    UINT nPriority, BOOL bWakeUiThread, ULONGLONG Tag, BOOL bClearExistingTag)
+    UINT nPriority, BOOL bWakeUiThread, ULONGLONG Tag, BOOL bClearExistingTag) noexcept
 {
     EckAssert(pCoroutine);
     RtlAcquireSRWLockExclusive(&Lk);
@@ -2016,7 +2016,7 @@ void Priv::QueuedCallbackQueue::EnQueueCoroutine(void* pCoroutine,
     if (bWakeUiThread)
         PostThreadMessageW(dwTid, WM_NULL, 0, 0);
 }
-void Priv::QueuedCallbackQueue::UnlockedDeQueue()
+void Priv::QueuedCallbackQueue::UnlockedDeQueue() noexcept
 {
     if (!q.empty())
     {
@@ -2026,12 +2026,12 @@ void Priv::QueuedCallbackQueue::UnlockedDeQueue()
 }
 
 
-void THREADCTX::WmAdd(HWND hWnd, CWnd* pWnd)
+void THREADCTX::WmAdd(HWND hWnd, CWnd* pWnd) noexcept
 {
     EckAssert(IsWindow(hWnd) && pWnd);
     hmWnd.insert(std::make_pair(hWnd, pWnd));
 }
-void THREADCTX::WmRemove(HWND hWnd)
+void THREADCTX::WmRemove(HWND hWnd) noexcept
 {
     const auto it = hmWnd.find(hWnd);
     if (it != hmWnd.end())
@@ -2041,7 +2041,7 @@ void THREADCTX::WmRemove(HWND hWnd)
         EckDbgPrintFmt(L"** WARNING ** 从窗口映射中移除%p时失败。", hWnd);
 #endif
 }
-CWnd* THREADCTX::WmAt(HWND hWnd) const
+CWnd* THREADCTX::WmAt(HWND hWnd) const noexcept
 {
     const auto it = hmWnd.find(hWnd);
     if (it != hmWnd.end())
@@ -2050,19 +2050,19 @@ CWnd* THREADCTX::WmAt(HWND hWnd) const
         return nullptr;
 }
 
-void THREADCTX::TwmAdd(HWND hWnd, CWnd* pWnd)
+void THREADCTX::TwmAdd(HWND hWnd, CWnd* pWnd) noexcept
 {
     EckAssert(IsWindow(hWnd) && pWnd);
     EckAssert((GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_CHILD) != WS_CHILD);
     hmTopWnd.insert(std::make_pair(hWnd, pWnd));
 }
-void THREADCTX::TwmRemove(HWND hWnd)
+void THREADCTX::TwmRemove(HWND hWnd) noexcept
 {
     const auto it = hmTopWnd.find(hWnd);
     if (it != hmTopWnd.end())
         hmTopWnd.erase(it);
 }
-CWnd* THREADCTX::TwmAt(HWND hWnd) const
+CWnd* THREADCTX::TwmAt(HWND hWnd) const noexcept
 {
     const auto it = hmTopWnd.find(hWnd);
     if (it != hmTopWnd.end())
@@ -2070,14 +2070,14 @@ CWnd* THREADCTX::TwmAt(HWND hWnd) const
     else
         return nullptr;
 }
-void THREADCTX::TwmEnableNcDarkMode(BOOL bDark)
+void THREADCTX::TwmEnableNcDarkMode(BOOL bDark) noexcept
 {
 #if !ECK_OPT_NO_DARKMODE
     for (const auto& e : hmTopWnd)
         EnableWindowNcDarkMode(e.first, bDark);
 #endif // !ECK_OPT_NO_DARKMODE
 }
-void THREADCTX::TwmBroadcastThemeChanged()
+void THREADCTX::TwmBroadcastThemeChanged() noexcept
 {
 #if !ECK_OPT_NO_DARKMODE
     for (const auto& [hWnd, pWnd] : hmTopWnd)
@@ -2113,7 +2113,7 @@ void THREADCTX::TwmBroadcastThemeChanged()
 #endif // !ECK_OPT_NO_DARKMODE
 }
 
-void THREADCTX::UpdateDefaultColor()
+void THREADCTX::UpdateDefaultColor() noexcept
 {
     bAppDarkMode = GetItemsViewForeBackColor(crDefText, crDefBkg);
     crDefBtnFace = (bAppDarkMode ? 0x303030 : GetSysColor(COLOR_BTNFACE));
@@ -2127,7 +2127,7 @@ void THREADCTX::UpdateDefaultColor()
     else
         crHiLightText = crDefText;
 }
-void THREADCTX::DoCallback()
+void THREADCTX::DoCallback() noexcept
 {
     if (bEnterCallback)
         return;
@@ -2152,23 +2152,23 @@ void THREADCTX::DoCallback()
 #pragma endregion Thread
 
 #pragma region Wnd
-HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc)
+HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc) noexcept
 {
     EckAssert(pCurrWnd);
-    const auto pCtx = GetThreadCtx();
+    const auto pCtx = PtcCurrent();
     pCtx->pCurrWnd = pCurrWnd;
     pCtx->pfnWndCreatingProc = pfnCreatingProc;
     EckAssert(!pCtx->hhkTempCBT);
     pCtx->hhkTempCBT = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
         {
-            const auto pCtx = GetThreadCtx();
+            const auto pCtx = PtcCurrent();
             if (iCode == HCBT_CREATEWND)
             {
                 const auto pcbtcw = (CBT_CREATEWNDW*)lParam;
                 // 执行CWnd初始化
                 EckAssert(!pCtx->pCurrWnd->m_hWnd);
                 pCtx->pCurrWnd->m_pfnRealProc =
-                    SetWindowProc((HWND)wParam, CWnd::EckWndProc);
+                    SetWindowProcedure((HWND)wParam, CWnd::EckWndProc);
                 pCtx->pCurrWnd->m_hWnd = (HWND)wParam;
                 // 窗口映射
                 pCtx->WmAdd((HWND)wParam, pCtx->pCurrWnd);
@@ -2184,19 +2184,19 @@ HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc)
     return pCtx->hhkTempCBT;
 }
 
-void EndCbtHook()
+void EndCbtHook() noexcept
 {
-    const auto pCtx = GetThreadCtx();
+    const auto pCtx = PtcCurrent();
     EckAssert(pCtx->hhkTempCBT);
     UnhookWindowsHookEx(pCtx->hhkTempCBT);
     pCtx->hhkTempCBT = nullptr;
 }
 
-BOOL PreTranslateMessage(const MSG& Msg)
+BOOL PreTranslateMessage(const MSG& Msg) noexcept
 {
     HWND hWnd = Msg.hwnd;
     CWnd* pWnd;
-    const auto pCtx = GetThreadCtx();
+    const auto pCtx = PtcCurrent();
     pCtx->DoCallback();
 
     while (hWnd)
@@ -2212,23 +2212,23 @@ BOOL PreTranslateMessage(const MSG& Msg)
 
 #pragma region Dbg
 #ifdef _DEBUG
-void DbgPrintWndMap()
+void DbgPrintWndMap() noexcept
 {
-    const auto* const pCtx = GetThreadCtx();
+    const auto* const pCtx = PtcCurrent();
     auto s = Format(L"当前线程（TID = %u）窗口映射表内容：\n", NtCurrentThreadId32());
     for (const auto& e : pCtx->hmWnd)
     {
-        s.AppendFormat(L"\tCWnd指针 = 0x%0p，HWND = 0x%0p，标题 = %s，类名 = %s\n",
+        s.PushBackFormat(L"\tCWnd指针 = 0x%0p，HWND = 0x%0p，标题 = %s，类名 = %s\n",
             e.second,
             e.first,
             e.second->GetText().Data(),
-            e.second->GetClsName().Data());
+            e.second->GetWindowClass().Data());
     }
-    s.AppendFormat(L"共有%u个窗口\n", (UINT)pCtx->hmWnd.size());
+    s.PushBackFormat(L"共有%u个窗口\n", (UINT)pCtx->hmWnd.size());
     OutputDebugStringW(s.Data());
 }
 
-void DbgPrintFmt(_Printf_format_string_ PCWSTR pszFormat, ...)
+void DbgPrintFmt(_Printf_format_string_ PCWSTR pszFormat, ...) noexcept
 {
     va_list vl;
     va_start(vl, pszFormat);
@@ -2237,7 +2237,7 @@ void DbgPrintFmt(_Printf_format_string_ PCWSTR pszFormat, ...)
     DbgPrint(rs);
     va_end(vl);
 }
-void DbgPrintFmt(_Printf_format_string_ PCSTR pszFormat, ...)
+void DbgPrintFmt(_Printf_format_string_ PCSTR pszFormat, ...) noexcept
 {
     va_list vl;
     va_start(vl, pszFormat);
@@ -2247,12 +2247,12 @@ void DbgPrintFmt(_Printf_format_string_ PCSTR pszFormat, ...)
     va_end(vl);
 }
 
-void DbgPrintWithPos(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg)
+void DbgPrintWithPos(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg) noexcept
 {
     DbgPrint(Format(L"%s(%u) -> %s\n%s\n", pszFile, iLine, pszFunc, pszMsg));
 }
 
-void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine)
+void Assert(PCWSTR pszMsg, PCWSTR pszFile, PCWSTR pszLine) noexcept
 {
     TASKDIALOGCONFIG tdc{ sizeof(TASKDIALOGCONFIG) };
     tdc.pszMainInstruction = L"断言失败！";

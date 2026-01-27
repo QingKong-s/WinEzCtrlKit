@@ -3,7 +3,7 @@
 
 CApp* App = nullptr;
 
-void CApp::Init()
+void CApp::Initialize()
 {
 	m_cfCtrl = RegisterClipboardFormatW(ClipboardFormat);
 }

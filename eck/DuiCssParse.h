@@ -16,7 +16,7 @@ enum class CssResult
 
 namespace Priv
 {
-    EckInlineNdCe BOOL CsspIsSpace(WCHAR ch)
+    EckInlineNdCe BOOL CsspIsSpace(WCHAR ch) noexcept
     {
         return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n';
     }
@@ -46,7 +46,7 @@ struct CSS_DOC
     std::vector<CSS_SELECTOR> vSel;
 };
 
-inline CssResult CssParse(std::wstring_view svCss, CSS_DOC& Doc)
+inline CssResult CssParse(std::wstring_view svCss, CSS_DOC& Doc) noexcept
 {
     enum class State
     {
@@ -168,7 +168,7 @@ inline CssResult CssParse(std::wstring_view svCss, CSS_DOC& Doc)
     return CssResult::Ok;
 }
 
-inline Part CssNcTagToPart(std::wstring_view svTag)
+inline Part CssNcTagToPart(std::wstring_view svTag) noexcept
 {
 #define ECK_CSS_HIT_PART(Str) TcsEqualLen2I(svTag.data(), svTag.size(), EckStrAndLen(Str))
     if (ECK_CSS_HIT_PART(L"Button"))
@@ -221,7 +221,7 @@ inline Part CssNcTagToPart(std::wstring_view svTag)
     return Part::Invalid;
 }
 
-inline State CssNcPseudoToState(std::wstring_view svPseudo)
+inline State CssNcPseudoToState(std::wstring_view svPseudo) noexcept
 {
 #define ECK_CSS_HIT_STATE(Str) TcsEqualLen2I(svPseudo.data(), svPseudo.size(), EckStrAndLen(Str))
     if (svPseudo.empty())
@@ -269,7 +269,7 @@ inline State CssNcPseudoToState(std::wstring_view svPseudo)
 #undef ECK_CSS_HIT_STATE
 }
 
-inline GeoType CssNcToGeometryType(std::wstring_view svName)
+inline GeoType CssNcToGeometryType(std::wstring_view svName) noexcept
 {
 #define ECK_CSS_HIT_TYPE(Str) TcsEqualLen2I(svName.data(), svName.size(), EckStrAndLen(Str))
     if (ECK_CSS_HIT_TYPE(L"FillRect"))
@@ -300,7 +300,7 @@ inline GeoType CssNcToGeometryType(std::wstring_view svName)
 #undef ECK_CSS_HIT_TYPE
 }
 
-inline BOOL CssParseColor(std::wstring_view svColor, _Out_ D2D1_COLOR_F& cr)
+inline BOOL CssParseColor(std::wstring_view svColor, _Out_ D2D1_COLOR_F& cr) noexcept
 {
     cr = {};
     if (svColor.empty())
@@ -366,7 +366,7 @@ inline BOOL CssParseColor(std::wstring_view svColor, _Out_ D2D1_COLOR_F& cr)
     return TRUE;
 }
 
-inline BOOL CssIsColorization(std::wstring_view sv)
+inline BOOL CssIsColorization(std::wstring_view sv) noexcept
 {
     return TcsEqualLen2I(sv.data(), sv.size(), EckStrAndLen(L"colorization")) ||
         TcsEqualLen2I(sv.data(), sv.size(), EckStrAndLen(L"theme"));

@@ -36,7 +36,7 @@ enum class ShmSource : BYTE
     Priv_SsEnd = RecycleBin,
 };
 
-enum class ShmFlags :UINT
+enum class ShmFlags : UINT
 {
     None = 0u,
     ShellAndShellEx = 1u << 0,	// 该项含Shell和ShellEx
@@ -76,7 +76,8 @@ namespace Priv
     };
     constexpr inline std::wstring_view ShmCtxMenuHnd{ L"shellex\\ContextMenuHandlers"sv };
 
-    BOOL ShmpQueryComDisplayName(_In_reads_(38) PCWCH pszClsid, CRefStrW& rsDisplayName)
+    BOOL ShmpQueryComDisplayName(
+        _In_reads_(38) PCWCH pszClsid, CRefStrW& rsDisplayName) noexcept
     {
         WCHAR szPath[38 + 10];
         EckCopyConstStringW(szPath, L"CLSID\\");
@@ -91,13 +92,13 @@ namespace Priv
         };
         for (const auto psz : DisplayName)
         {
-            if (Key.QueryValueStr(rsDisplayName, psz) == ERROR_SUCCESS)
+            if (Key.QueryValueString(rsDisplayName, psz) == ERROR_SUCCESS)
                 return TRUE;
         }
         return FALSE;
     }
 
-    void ShmpLoadIndirectString(CRefStrW& rs)
+    void ShmpLoadIndirectString(CRefStrW& rs) noexcept
     {
         // XXX: 
         rs.Reserve(64);
@@ -130,17 +131,17 @@ private:
     CRefStrW m_rsFileType{};
     CRefStrW m_rsTmp{};
 
-    void ReserveTempBuffer()
+    void ReserveTempBuffer() noexcept
     {
         DWORD cchMaxBuf;
-        m_RegKey.QueryInfo(nullptr, nullptr, nullptr, &cchMaxBuf);
+        m_RegKey.QueryInfomation(nullptr, nullptr, nullptr, &cchMaxBuf);
         m_rsTmp.Reserve(cchMaxBuf * 3 / 2);
     }
 
-    LSTATUS InitShell()
+    LSTATUS InitializeShell() noexcept
     {
         m_idxEnum = 0;
-        GetCurrentRegPath(m_rsTmp);
+        GetCurrentRegistryPath(m_rsTmp);
         m_rsTmp.PushBack(EckStrAndLen(L"shell"));
         const auto ls = m_RegKey.Open(RegRootToKey(Priv::ShmSource[m_idxSource].eKey),
             m_rsTmp.Data(), KEY_READ);
@@ -151,10 +152,10 @@ private:
         return ERROR_SUCCESS;
     }
 
-    LSTATUS InitShellEx()
+    LSTATUS InitializeShellEx() noexcept
     {
         m_idxEnum = 0;
-        GetCurrentRegPath(m_rsTmp);
+        GetCurrentRegistryPath(m_rsTmp);
         m_rsTmp.PushBack(Priv::ShmCtxMenuHnd);
         const auto ls = m_RegKey.Open(RegRootToKey(Priv::ShmSource[m_idxSource].eKey),
             m_rsTmp.Data(), KEY_READ);
@@ -165,24 +166,24 @@ private:
         return ERROR_SUCCESS;
     }
 
-    LSTATUS NextShell(ShmItem& e)
+    LSTATUS NextShell(ShmItem& e) noexcept
     {
         e.uFlags = ShmFlags::None;
         LSTATUS ls;
         DWORD cchBuf{ (DWORD)m_rsTmp.Capacity() };
-        ls = m_RegKey.EnumKey(m_idxEnum++, m_rsTmp.Data(), &cchBuf);
+        ls = m_RegKey.EnumerateKey(m_idxEnum++, m_rsTmp.Data(), &cchBuf);
         if (ls != ERROR_SUCCESS)
             return ls;
         // m_rsTmp现在是项目名
         CRegKey Key{ m_RegKey.GetHKey(),m_rsTmp.Data(),KEY_READ };// 当前项目
         // 注册表路径
         e.rsRegPath.Reserve(cchBuf + 10);
-        e.rsRegPath.DupString(L"shell\\");
+        e.rsRegPath.Assign(L"shell\\");
         e.rsRegPath.PushBack(m_rsTmp.Data(), cchBuf);
         // CLSID/命令行
         e.rsClsidOrCmd.Clear();
         BOOL bClsid{};
-        ls = Key.QueryValueStr(e.rsClsidOrCmd, L"ExplorerCommandHandler");
+        ls = Key.QueryValueString(e.rsClsidOrCmd, L"ExplorerCommandHandler");
         if (ls == ERROR_SUCCESS)// 有ExplorerCommandHandler
         {
             e.uFlags |= ShmFlags::Com;
@@ -190,10 +191,10 @@ private:
         }
         else// 检查是否有command\DelegateExecute
         {
-            ls = Key.GetValueStr(e.rsClsidOrCmd, L"command", nullptr);
+            ls = Key.GetValueString(e.rsClsidOrCmd, L"command", nullptr);
             if (ls != ERROR_SUCCESS)
             {
-                ls = Key.GetValueStr(e.rsClsidOrCmd,
+                ls = Key.GetValueString(e.rsClsidOrCmd,
                     L"command", L"DelegateExecute");
                 if (ls == ERROR_SUCCESS)
                 {
@@ -201,19 +202,19 @@ private:
                     bClsid = TRUE;
                 }
                 else// 没有DelegateExecute，检查默认值
-                    Key.GetValueStr(e.rsClsidOrCmd, L"command", nullptr);
+                    Key.GetValueString(e.rsClsidOrCmd, L"command", nullptr);
             }
         }
         // 显示名称
-        ls = Key.QueryValueStr(e.rsDisplayName, L"MUIVerb");
+        ls = Key.QueryValueString(e.rsDisplayName, L"MUIVerb");
         if (ls != ERROR_SUCCESS)
         {
-            ls = Key.QueryValueStr(e.rsDisplayName, nullptr);
+            ls = Key.QueryValueString(e.rsDisplayName, nullptr);
             if (ls != ERROR_SUCCESS)
             {
                 if (!bClsid || !Priv::ShmpQueryComDisplayName(
                     e.rsClsidOrCmd.Data(), e.rsDisplayName))
-                    e.rsDisplayName.DupString(m_rsTmp.Data(), cchBuf);
+                    e.rsDisplayName.Assign(m_rsTmp.Data(), cchBuf);
             }
         }
         if (!e.rsDisplayName.IsEmpty() &&
@@ -233,48 +234,48 @@ private:
         return ERROR_SUCCESS;
     }
 
-    LSTATUS NextShellEx(ShmItem& e)
+    LSTATUS NextShellEx(ShmItem& e) noexcept
     {
         LSTATUS ls;
         DWORD cchBuf{ (DWORD)m_rsTmp.Capacity() };
-        ls = m_RegKey.EnumKey(m_idxEnum++, m_rsTmp.Data(), &cchBuf);
+        ls = m_RegKey.EnumerateKey(m_idxEnum++, m_rsTmp.Data(), &cchBuf);
         if (ls != ERROR_SUCCESS)
             return ls;
         // m_rsTmp现在是项目名
         CRegKey Key{ m_RegKey.GetHKey(),m_rsTmp.Data(),KEY_READ };// 当前项目
         // 注册表路径
         e.rsRegPath.Reserve(cchBuf + 36);
-        e.rsRegPath.DupString(Priv::ShmCtxMenuHnd);
+        e.rsRegPath.Assign(Priv::ShmCtxMenuHnd);
         e.rsRegPath.PushBackChar(L'\\');
         e.rsRegPath.PushBack(m_rsTmp.Data(), cchBuf);
         // CLSID
         BOOL bClsid{};
-        ls = Key.QueryValueStr(e.rsClsidOrCmd, nullptr);
+        ls = Key.QueryValueString(e.rsClsidOrCmd, nullptr);
         if (ls == ERROR_SUCCESS && !e.rsClsidOrCmd.IsEmpty())
         {
             if (e.rsClsidOrCmd.Front() != L'{')// 默认值并非CLSID...
             {
                 const auto t{ std::move(e.rsClsidOrCmd) };
-                e.rsClsidOrCmd.DupString(m_rsTmp.Data(), cchBuf);
-                m_rsTmp.DupString(t.Data(), t.Size());
+                e.rsClsidOrCmd.Assign(m_rsTmp.Data(), cchBuf);
+                m_rsTmp.Assign(t.Data(), t.Size());
             }
             e.uFlags |= ShmFlags::Com;
             bClsid = TRUE;
         }
         // 显示名称
-        ls = Key.QueryValueStr(e.rsDisplayName, L"MUIVerb");
+        ls = Key.QueryValueString(e.rsDisplayName, L"MUIVerb");
         if (ls != ERROR_SUCCESS)
         {
             if (!bClsid || !Priv::ShmpQueryComDisplayName(
                 e.rsClsidOrCmd.Data(), e.rsDisplayName))
-                e.rsDisplayName.DupString(m_rsTmp.Data(), cchBuf);
+                e.rsDisplayName.Assign(m_rsTmp.Data(), cchBuf);
         }
         if (e.rsDisplayName.Front() == L'@')
             Priv::ShmpLoadIndirectString(e.rsDisplayName);
         return ERROR_SUCCESS;
     }
 public:
-    void Reset()
+    void Reset() noexcept
     {
         m_RegKey.Close();
         m_idxEnum = 0;
@@ -284,14 +285,14 @@ public:
         m_rsFileType.Clear();
     }
 
-    W32ERR Init(ShmSource eSource, _In_reads_z_(cchFileType)
-        PCWSTR pszFileType = nullptr, int cchFileType = -1)
+    W32ERR Initialize(ShmSource eSource, _In_reads_z_(cchFileType)
+        PCWSTR pszFileType = nullptr, int cchFileType = -1) noexcept
     {
         Reset();
         m_idxSource = (BYTE)eSource;
         if (eSource == ShmSource::CustomType)
         {
-            m_rsFileType.DupString(pszFileType, cchFileType);
+            m_rsFileType.Assign(pszFileType, cchFileType);
             if (m_rsFileType.IsEmpty())
                 return ERROR_INVALID_PARAMETER;
             if (m_rsFileType.Back() != L'\\')
@@ -300,19 +301,19 @@ public:
 
         m_bFileType = (eSource == ShmSource::CustomType ||
             eSource == ShmSource::AllFiles);
-        InitShell();
+        InitializeShell();
         return ERROR_SUCCESS;
     }
 
     // 仅当函数返回ERROR_SUCCESS时，e才有效
-    W32ERR Next(ShmItem& e)
+    W32ERR Next(ShmItem& e) noexcept
     {
         if (!m_bCurrIsShellEx)
         {
             if (NextShell(e) != ERROR_SUCCESS)
             {
                 // 若枚举失败，则尝试切换到ShellEx
-                if (InitShellEx() != ERROR_SUCCESS)
+                if (InitializeShellEx() != ERROR_SUCCESS)
                     return ERROR_NO_MORE_ITEMS;// 切换失败
                 return NextShellEx(e);
             }
@@ -323,12 +324,12 @@ public:
     }
 
     // 末尾带反斜杠
-    void GetCurrentRegPath(CRefStrW& rs) const
+    void GetCurrentRegistryPath(CRefStrW& rs) const noexcept
     {
         if (m_idxSource == (BYTE)ShmSource::CustomType)
             rs = m_rsFileType;
         else
-            rs.DupString(Priv::ShmSource[m_idxSource].svSubKey);
+            rs.Assign(Priv::ShmSource[m_idxSource].svSubKey);
     }
 };
 
@@ -340,7 +341,7 @@ private:
     int m_cchSendToPath{};
     CIniExtMut m_IniDesktop{};
 public:
-    void Reset()
+    void Reset() noexcept
     {
         m_EnumFile.Clear();
         CoTaskMemFree(m_pszSendToPath);
@@ -348,7 +349,7 @@ public:
         m_IniDesktop.Clear();
     }
 
-    W32ERR Init()
+    W32ERR Initialize() noexcept
     {
         if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_SendTo,
             SHGFP_TYPE_CURRENT, nullptr, &m_pszSendToPath)))
@@ -359,7 +360,7 @@ public:
         return ERROR_ACCESS_DENIED;
     }
 
-    LSTATUS Next(ShmItem& e)
+    LSTATUS Next(ShmItem& e) noexcept
     {
         e.uFlags = ShmFlags::None;
         CEnumFileSingle::TDefInfo* pInfo;
@@ -379,7 +380,7 @@ public:
                 continue;
             break;
         }
-        e.rsFile.DupString(m_pszSendToPath, m_cchSendToPath);
+        e.rsFile.Assign(m_pszSendToPath, m_cchSendToPath);
         e.rsFile.PushBackChar(L'\\');
 
         if (m_IniDesktop.IsEmpty())
@@ -400,7 +401,7 @@ public:
         if (Kv)
             e.rsDisplayName = Kv->rsValue;
         {
-            e.rsDisplayName.DupString(pInfo->FileName, (int)pInfo->FileNameLength);
+            e.rsDisplayName.Assign(pInfo->FileName, (int)pInfo->FileNameLength);
             e.rsDisplayName.PazRemoveExtension();
         }
 
@@ -426,7 +427,7 @@ public:
                     e.rsIcon.Data(), e.rsIcon.Capacity(), &idxIcon)))
                     goto Fail;
                 e.rsIcon.ReCalcLen();
-                e.rsIcon.AppendFormat(L",%d", idxIcon);
+                e.rsIcon.PushBackFormat(L",%d", idxIcon);
             }
         Fail:;
         }
@@ -436,19 +437,19 @@ public:
             if (posExt < 0)
                 goto NotLnkOrCom;
             CRegKey Key{ HKEY_CLASSES_ROOT,e.rsFile.Data() + posExt,KEY_READ };
-            Key.QueryValueStr(e.rsIcon, nullptr);// CLSID路径
+            Key.QueryValueString(e.rsIcon, nullptr);// CLSID路径
             if (e.rsIcon.IsEmpty())
                 goto NotLnkOrCom;
 
             const auto posClsid = e.rsIcon.FindChar(L'{');
-            e.rsClsidOrCmd.DupString(e.rsIcon.Data() + posClsid, 38);
+            e.rsClsidOrCmd.Assign(e.rsIcon.Data() + posClsid, 38);
             e.uFlags |= ShmFlags::Com;
 
             if (e.rsIcon.Back() != L'\\')
                 e.rsIcon.PushBackChar(L'\\');
             e.rsIcon.PushBack(EckStrAndLen(L"DefaultIcon"));
             if (Key.Open(HKEY_CLASSES_ROOT, e.rsIcon.Data(), KEY_READ) == ERROR_SUCCESS)
-                Key.QueryValueStr(e.rsIcon, nullptr);
+                Key.QueryValueString(e.rsIcon, nullptr);
             else
                 e.rsIcon.Clear();
         }
@@ -468,7 +469,7 @@ private:
     CRefStrW m_rsCurrGroup{};
     int m_idxGroup{};
 public:
-    void Reset()
+    void Reset() noexcept
     {
         m_EnumFile.Clear();
         m_EnumStartMenu.Clear();
@@ -477,7 +478,7 @@ public:
         m_idxGroup = 0;
     }
 
-    W32ERR Init()
+    W32ERR Initialize() noexcept
     {
         Reset();
         const auto nts = ExpandEnvironmentString(m_rsWinXPath,
@@ -487,7 +488,7 @@ public:
         return WIN32_FROM_NTSTATUS(m_EnumFile.Open(m_rsWinXPath.Data()));
     }
 
-    W32ERR Next(ShmItem& e)
+    W32ERR Next(ShmItem& e) noexcept
     {
         NTSTATUS nts;
         CEnumFileSingle::TDefInfo* pInfo;
@@ -500,7 +501,7 @@ public:
                     return WIN32_FROM_NTSTATUS(nts);
                 if (*pInfo->FileName == L'.')
                     continue;
-                m_rsCurrGroup.DupString(pInfo->FileName,
+                m_rsCurrGroup.Assign(pInfo->FileName,
                     int(pInfo->FileNameLength / sizeof(WCHAR)));
                 nts = m_EnumStartMenu.Open(m_rsCurrGroup.Data(), m_EnumFile.Get());
                 ++m_idxGroup;
@@ -529,7 +530,7 @@ public:
             e.rsFile.PushBack(pInfo->FileName, cchFileName);
             if (pInfo->FileAttributes & FILE_ATTRIBUTE_HIDDEN)
                 e.uFlags |= ShmFlags::Hidden;
-            e.rsDisplayName.DupString(pInfo->FileName, cchFileName);
+            e.rsDisplayName.Assign(pInfo->FileName, cchFileName);
             if (e.rsDisplayName.Front() == L'@')
                 Priv::ShmpLoadIndirectString(e.rsDisplayName);
             e.rsIcon.Clear();
@@ -540,9 +541,9 @@ public:
 
     EckInlineNdCe auto& GetWinXPath() const noexcept { return m_rsWinXPath; }
     // 取当前组文件夹名称
-    EckInlineNdCe auto& GetCurrGroup() const noexcept { return m_rsCurrGroup; }
+    EckInlineNdCe auto& GetCurrentGroup() const noexcept { return m_rsCurrGroup; }
     // 开始枚举前，调用方将0作为初始无效值，每次调用Next后与该函数返回值比较，
     // 若不同，则已开始新组的枚举，否则继续当前组的枚举
-    EckInlineNdCe int GetCurrGroupIndex() const noexcept { return m_idxGroup; }
+    EckInlineNdCe int GetCurrentGroupIndex() const noexcept { return m_idxGroup; }
 };
 ECK_NAMESPACE_END

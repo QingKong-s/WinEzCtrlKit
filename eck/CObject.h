@@ -2,158 +2,124 @@
 #include "ObjectAttribute.h"
 
 ECK_NAMESPACE_BEGIN
-#define ECK_RTTI(Cls)							\
-	static ::eck::ClassInfo s_ClassInfo_##Cls;	\
-	constexpr ::eck::ClassInfo* RttiGetClassInfo() const override { return &s_ClassInfo_##Cls; }	\
-	static constexpr ::eck::ClassInfo* RttiClassInfo() { return &s_ClassInfo_##Cls; }				\
-	static ::eck::Priv::ClassInfoRegister s_ClassInfoRegister_##Cls;
-
-#define ECKPRIV_RTTI_IMPL1(Cls, Base)			\
-	::eck::ClassInfo Cls::s_ClassInfo_##Cls		\
-	{ L###Cls, &Base::s_ClassInfo_##Base, RttiStdNewObject<Cls> };
-#define ECKPRIV_RTTI_IMPL2(Cls, Base)			\
-	::eck::Priv::ClassInfoRegister Cls::s_ClassInfoRegister_##Cls(&Cls::s_ClassInfo_##Cls);
-
-// 非CObject直接子类
-#define ECK_RTTI_IMPL_BASE(Cls, Base)			\
-	ECKPRIV_RTTI_IMPL1(Cls, Base)				\
-	ECKPRIV_RTTI_IMPL2(Cls, Base)
-// 非CObject直接子类，并inline
-#define ECK_RTTI_IMPL_BASE_INLINE(Cls, Base)	\
-	inline ECKPRIV_RTTI_IMPL1(Cls, Base)		\
-	inline ECKPRIV_RTTI_IMPL2(Cls, Base)
-
-// CObject直接子类
-#define ECK_RTTI_IMPL(Cls) ECK_RTTI_IMPL_BASE(Cls, CObject)
-// CObject直接子类，并inline
-#define ECK_RTTI_IMPL_INLINE(Cls) ECK_RTTI_IMPL_BASE_INLINE(Cls, CObject)
-
-
-#define ECKPRIV_RTTI_IMPL1_PREFIX(Cls, Base, Prefix)	\
-	::eck::ClassInfo Cls::s_ClassInfo_##Cls				\
-	{ ECKTOSTRW(Prefix::Cls), &Base::s_ClassInfo_##Base, RttiStdNewObject<Cls> };
-
-// 带名称前缀的非CObject直接子类
-#define ECK_RTTI_IMPL_BASE_PREFIX(Cls, Base, Prefix)	\
-	ECKPRIV_RTTI_IMPL1_PREFIX(Cls, Base, Prefix)		\
-	ECKPRIV_RTTI_IMPL2(Cls, Base)
-// 带名称前缀的非CObject直接子类，并inline
-#define ECK_RTTI_IMPL_BASE_INLINE_PREFIX(Cls, Base, Prefix)	\
-	inline ECKPRIV_RTTI_IMPL1_PREFIX(Cls, Base, Prefix)		\
-	inline ECKPRIV_RTTI_IMPL2(Cls, Base)
-
-// 带名称前缀的CObject直接子类
-#define ECK_RTTI_IMPL_PREFIX(Cls, Prefix) ECK_RTTI_IMPL_BASE_PREFIX(Cls, CObject, Prefix)
-// 带名称前缀的CObject直接子类，并inline
-#define ECK_RTTI_IMPL_INLINE_PREFIX(Cls, Prefix) ECK_RTTI_IMPL_BASE_INLINE_PREFIX(Cls, CObject, Prefix)
+#define ECK_RTTI(Cls, Base)         \
+    inline static ::eck::ClassInfo s_ClassInfo_##Cls \
+    {                               \
+        L###Cls,                    \
+        &Base::s_ClassInfo_##Base,  \
+        RttiDefaultNewObject<Cls>   \
+    };                              \
+    constexpr ::eck::ClassInfo* RttiGetClass() const noexcept override \
+    { return &s_ClassInfo_##Cls; }	\
+    static constexpr ::eck::ClassInfo* RttiThisClass() \
+    { return &s_ClassInfo_##Cls; }  \
+    inline static ::eck::Priv::ClassRegister s_ClassRegister_##Cls{ &Cls::s_ClassInfo_##Cls };
 
 
 class CObject;
 struct ClassInfo
 {
-	using FNewObject = CObject * (*)();
+    using FNewObject = CObject * (*)();
 
-	std::wstring_view svClassName;
-	ClassInfo* pBaseClass;
-	FNewObject pfnNewObject;
+    std::wstring_view svClassName;
+    ClassInfo* pBaseClass;
+    FNewObject pfnNewObject;
 
-	EckInline [[nodiscard]] CObject* NewObject() const { return pfnNewObject(); }
+    EckInlineNd CObject* NewObject() const noexcept { return pfnNewObject(); }
 };
 
 namespace Priv
 {
-	struct ClassInfoRegister { ClassInfoRegister(ClassInfo* pInfo); };
+    struct ClassRegister { ClassRegister(ClassInfo* pInfo) noexcept; };
 }
 
 // 绝对不能直接实例化此类
 class __declspec(novtable) CObject
 {
-	friend struct Priv::ClassInfoRegister;
-private:
-	static Priv::ClassInfoRegister s_ClassInfoRegister_CObject;
+    friend struct Priv::ClassRegister;
 public:
-	static ClassInfo s_ClassInfo_CObject;
+    inline static ClassInfo s_ClassInfo_CObject{ L"CObject"sv };
+private:
+    inline static Priv::ClassRegister s_ClassRegister_CObject{ &s_ClassInfo_CObject };
+public:
+    virtual ~CObject() = default;
 
-	virtual ~CObject() = default;
+    EckInlineNdCe static ClassInfo* RttiThisClass() noexcept { return &s_ClassInfo_CObject; }
 
-	static constexpr ClassInfo* RttiClassInfo() { return &s_ClassInfo_CObject; }
+    EckInlineNd static auto& RttiClassMap() noexcept
+    {
+        static std::unordered_map<std::wstring_view, ClassInfo*> s_hsClassInfo{};
+        return s_hsClassInfo;
+    }
 
-	EckInlineNd static auto& RttiClassInfoMap()
-	{
-		static std::unordered_map<std::wstring_view, ClassInfo*> s_hsClassInfo{};
-		return s_hsClassInfo;
-	}
+    EckInlineNdCe virtual ClassInfo* RttiGetClass() const noexcept
+    {
+        return &s_ClassInfo_CObject;
+    }
 
-	[[nodiscard]] virtual constexpr ClassInfo* RttiGetClassInfo() const
-	{
-		return &s_ClassInfo_CObject;
-	}
+    EckNfInlineNdCe BOOL RttiIsKindOf(const ClassInfo* pInfo) const noexcept
+    {
+        auto p = RttiGetClass();
+        do
+        {
+            if (p == pInfo)
+                return TRUE;
+            p = p->pBaseClass;
+        } while (p);
+        return FALSE;
+    }
 
-	[[nodiscard]] constexpr BOOL RttiIsKindOf(const ClassInfo* pInfo) const
-	{
-		auto pThisInfo = RttiGetClassInfo();
-		do
-		{
-			if (pThisInfo == pInfo)
-				return TRUE;
-			pThisInfo = pThisInfo->pBaseClass;
-		} while (pThisInfo);
-		return FALSE;
-	}
+    template<class T>
+    EckInlineNdCe BOOL RttiIsKindOf() const noexcept
+    {
+        return RttiIsKindOf(T::RttiThisClass());
+    }
 
-	template<class T>
-	EckInline [[nodiscard]] constexpr BOOL RttiIsKindOf() const
-	{
-		return RttiIsKindOf(T::RttiClassInfo());
-	}
+    virtual ObjAttrErr GetSetAttribute(std::wstring_view svName,
+        std::wstring_view svValue, CRefStrW& rsValue, BOOL bSet) noexcept
+    {
+        return ObjAttrErr::InvalidAttr;
+    }
 
-	virtual ObjAttrErr GetSetAttribute(std::wstring_view svName,
-		std::wstring_view svValue, CRefStrW& rsValue, BOOL bSet)
-	{
-		return ObjAttrErr::InvalidAttr;
-	}
-
-	EckInline ObjAttrErr GetAttribute(std::wstring_view svName, CRefStrW& rsValue)
-	{
-		return GetSetAttribute(svName, {}, rsValue, FALSE);
-	}
-	EckInline ObjAttrErr SetAttribute(std::wstring_view svName, std::wstring_view svValue)
-	{
-		CRefStrW Dummy{};
-		return GetSetAttribute(svName, svValue, Dummy, TRUE);
-	}
+    EckInline ObjAttrErr GetAttribute(std::wstring_view svName, CRefStrW& rsValue) noexcept
+    {
+        return GetSetAttribute(svName, {}, rsValue, FALSE);
+    }
+    EckInline ObjAttrErr SetAttribute(std::wstring_view svName, std::wstring_view svValue) noexcept
+    {
+        CRefStrW Dummy{};
+        return GetSetAttribute(svName, svValue, Dummy, TRUE);
+    }
 };
-inline ClassInfo CObject::s_ClassInfo_CObject{ std::wstring_view{ L"CObject" } };
-inline Priv::ClassInfoRegister CObject::s_ClassInfoRegister_CObject{ CObject::RttiClassInfo() };
 
-inline Priv::ClassInfoRegister::ClassInfoRegister(ClassInfo* pInfo)
+inline Priv::ClassRegister::ClassRegister(ClassInfo* pInfo) noexcept
 {
-	EckAssert(!CObject::RttiClassInfoMap().contains(pInfo->svClassName));
-	CObject::RttiClassInfoMap().emplace(pInfo->svClassName, pInfo);
+    EckAssert(!CObject::RttiClassMap().contains(pInfo->svClassName));
+    CObject::RttiClassMap().emplace(pInfo->svClassName, pInfo);
 }
 
 template<class T>
-inline CObject* RttiStdNewObject()
+inline CObject* RttiDefaultNewObject() noexcept
 {
-	if constexpr (std::is_abstract_v<T>)
-		return nullptr;
-	else
-		return new T{};
+    if constexpr (std::is_abstract_v<T>)
+        return nullptr;
+    else
+        return new T{};
 }
 
-EckInline ClassInfo* RttiGetClassInfo(std::wstring_view svClassName)
+EckInline ClassInfo* RttiGetClass(std::wstring_view svClassName) noexcept
 {
-	const auto it = CObject::RttiClassInfoMap().find(svClassName);
-	if (it == CObject::RttiClassInfoMap().end())
-		return nullptr;
-	return it->second;
+    const auto it = CObject::RttiClassMap().find(svClassName);
+    if (it == CObject::RttiClassMap().end())
+        return nullptr;
+    return it->second;
 }
 
-EckInlineNd CObject* RttiNewObject(std::wstring_view svClassName)
+EckInlineNd CObject* RttiNewObject(std::wstring_view svClassName) noexcept
 {
-	const auto pInfo = RttiGetClassInfo(svClassName);
-	if (!pInfo)
-		return nullptr;
-	return pInfo->NewObject();
+    const auto pInfo = RttiGetClass(svClassName);
+    if (!pInfo)
+        return nullptr;
+    return pInfo->NewObject();
 }
 ECK_NAMESPACE_END

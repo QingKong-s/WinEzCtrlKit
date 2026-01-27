@@ -10,7 +10,7 @@ public:
     using TDefInfo = FILE_FULL_DIR_INFORMATION;
 
     template<class TInfoStruct>
-    EckInlineNdCe static FILE_INFORMATION_CLASS StructToInfoClass()
+    EckInlineNdCe static FILE_INFORMATION_CLASS StructToClassEnum() noexcept
     {
         if constexpr (std::is_same_v<TInfoStruct, FILE_DIRECTORY_INFORMATION>)
             return FileDirectoryInformation;
@@ -33,22 +33,8 @@ public:
         else
             return 0;
     }
-protected:
-    static UNICODE_STRING* PattenToNtString(UNICODE_STRING& usTemp, PCWCH pszPatten, int cchPatten)
-    {
-        if (pszPatten && cchPatten)
-        {
-            usTemp.Buffer = (PWCH)pszPatten;
-            if (cchPatten < 0)
-                cchPatten = (int)wcslen(pszPatten);
-            usTemp.Length = usTemp.MaximumLength = USHORT(cchPatten * 2);
-            return &usTemp;
-        }
-        else
-            return nullptr;
-    }
 public:
-    NTSTATUS Open(_In_z_ PCWSTR pszPath, HANDLE hRoot = nullptr)
+    NTSTATUS Open(_In_z_ PCWSTR pszPath, HANDLE hRoot = nullptr) noexcept
     {
         Clear();
         NTSTATUS nts;
@@ -66,12 +52,11 @@ public:
     template<class TInfoStruct = TDefInfo, std::invocable<TInfoStruct&> F>
     NTSTATUS Enumerate(
         F&& Fn,
-        _In_reads_or_z_opt_(cchPatten) PCWCH pszPatten = nullptr,
-        int cchPatten = 0,
+        std::wstring_view svPattern,
         size_t cbBuf = 4096u,
-        _Out_writes_bytes_opt_(cbBuf) void* pExternalBuf = nullptr)
+        _Out_writes_bytes_opt_(cbBuf) void* pExternalBuf = nullptr) noexcept
     {
-        constexpr auto eCls = StructToInfoClass<TInfoStruct>();
+        constexpr auto eCls = StructToClassEnum<TInfoStruct>();
         if constexpr (!eCls)
             return STATUS_NOT_SUPPORTED;
         NTSTATUS nts;
@@ -80,10 +65,11 @@ public:
         const auto pBuf = (BYTE*)(pExternalBuf ? pExternalBuf : VAlloc(cbBuf));
         UniquePtr<DelVA<BYTE>> _{ pExternalBuf ? nullptr : pBuf };
 
-        UNICODE_STRING usTemp;
-        const auto pusPatten{ PattenToNtString(usTemp, pszPatten, cchPatten) };
+        auto usPattern = StringViewToNtString(svPattern);
         nts = NtQueryDirectoryFile(m_hObject, nullptr, nullptr, nullptr, &iosb,
-            pBuf, (ULONG)cbBuf, eCls, FALSE, pusPatten, TRUE);
+            pBuf, (ULONG)cbBuf, eCls, FALSE,
+            svPattern.empty() ? nullptr : &usPattern,
+            TRUE);
         if (nts == STATUS_NO_MORE_FILES)
             return STATUS_SUCCESS;
         if (!NT_SUCCESS(nts))
@@ -120,13 +106,13 @@ private:
     // 若当前缓冲区遍历完成，则为INVALID_HANDLE_VALUE
     void* m_pCurrItem{};
 
-    void AllocateBuffer()
+    void AllocateBuffer() noexcept
     {
         m_bExternalBuf = FALSE;
         m_pBuffer = VAlloc(m_cbBuffer);
     }
 
-    void FreeBuffer()
+    void FreeBuffer() noexcept
     {
         if (!m_bExternalBuf && m_pBuffer)
             VFree(m_pBuffer);
@@ -139,10 +125,9 @@ public:
     template<class TInfoStruct = TDefInfo>
     NTSTATUS Next(
         _Out_ TInfoStruct*& pInfo,
-        _In_reads_or_z_opt_(cchPatten) PCWCH pszPatten = nullptr,
-        int cchPatten = 0)
+        std::wstring_view svPattern = {}) noexcept
     {
-        constexpr auto eCls = StructToInfoClass<TInfoStruct>();
+        constexpr auto eCls = StructToClassEnum<TInfoStruct>();
         if constexpr (!eCls)
             return STATUS_NOT_SUPPORTED;
         NTSTATUS nts;
@@ -154,10 +139,11 @@ public:
 
         if (!m_pCurrItem)
         {
-            UNICODE_STRING usTemp;
-            const auto pusPatten{ PattenToNtString(usTemp, pszPatten, cchPatten) };
+            auto usPattern = StringViewToNtString(svPattern);
             nts = NtQueryDirectoryFile(m_hObject, nullptr, nullptr, nullptr, &iosb,
-                m_pBuffer, m_cbBuffer, eCls, FALSE, pusPatten, TRUE);
+                m_pBuffer, m_cbBuffer, eCls, FALSE,
+                svPattern.empty() ? nullptr : &usPattern,
+                TRUE);
         }
         else if (m_pCurrItem == INVALID_HANDLE_VALUE)
         {
@@ -182,9 +168,9 @@ public:
 
     // 在下一次调用Next时重启枚举
     // 若为不同的目录重用本类，则打开新目录时必须调用此方法
-    void ReStart() { m_pCurrItem = nullptr; }
+    void ReStart() noexcept { m_pCurrItem = nullptr; }
 
-    void SetBuffer(size_t cbBuffer, void* pBuffer = nullptr)
+    void SetBuffer(size_t cbBuffer, void* pBuffer = nullptr) noexcept
     {
         m_pCurrItem = nullptr;
         if (pBuffer)

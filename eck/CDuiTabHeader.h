@@ -24,7 +24,7 @@ private:
     std::vector<ITEM> m_vItem{};
     CD2DImageList* m_pImgList{};
 public:
-    LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
+    LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {

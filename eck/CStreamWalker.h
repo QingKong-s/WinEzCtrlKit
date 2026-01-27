@@ -143,7 +143,7 @@ public:
         return *this;
     }
 
-    size_t GetPos()
+    size_t GetPosition()
     {
         ULARGE_INTEGER uli{};
         const auto hr = m_pStream->Seek(LiZero, STREAM_SEEK_CUR, &uli);

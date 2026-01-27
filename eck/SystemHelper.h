@@ -10,7 +10,7 @@
 #include <comdef.h>
 
 ECK_NAMESPACE_BEGIN
-inline COLORREF GetCursorPosColor()
+inline COLORREF GetCursorPositionColor() noexcept
 {
     POINT pt;
     GetCursorPos(&pt);
@@ -21,7 +21,7 @@ inline COLORREF GetCursorPosColor()
 }
 
 inline HRESULT WmiConnectNamespace(_Out_ IWbemServices*& pWbemSrv,
-    _Out_ IWbemLocator*& pWbemLoc)
+    _Out_ IWbemLocator*& pWbemLoc) noexcept
 {
     pWbemSrv = nullptr;
     pWbemLoc = nullptr;
@@ -59,7 +59,7 @@ inline HRESULT WmiConnectNamespace(_Out_ IWbemServices*& pWbemSrv,
 /// <param name="pWbemSrv">IWbemServices指针，使用此接口执行查询</param>
 /// <returns>HRESULT</returns>
 inline HRESULT WmiQueryClassProperty(_In_ PCWSTR pszWql, _In_ PCWSTR pszProp,
-    _Inout_ VARIANT& Var, _In_ IWbemServices* pWbemSrv)
+    _Inout_ VARIANT& Var, _In_ IWbemServices* pWbemSrv) noexcept
 {
     HRESULT hr;
     ComPtr<IEnumWbemClassObject> pEnum;
@@ -82,7 +82,7 @@ inline HRESULT WmiQueryClassProperty(_In_ PCWSTR pszWql, _In_ PCWSTR pszProp,
 /// <param name="Var">查询结果</param>
 /// <returns>HRESULT</returns>
 inline HRESULT WmiQueryClassProperty(_In_ PCWSTR pszWql,
-    _In_ PCWSTR pszProp, _Inout_  VARIANT& Var)
+    _In_ PCWSTR pszProp, _Inout_  VARIANT& Var) noexcept
 {
     IWbemServices* pWbemSrv;
     IWbemLocator* pWbemLoc;
@@ -109,7 +109,7 @@ struct CPUINFO
     UINT uMaxClockSpeed;// 兆赫兹
 };
 
-inline HRESULT GetCpuInfo(CPUINFO& ci)
+inline HRESULT GetCpuInfomation(CPUINFO& ci) noexcept
 {
 #if !defined(_M_ARM64) && !defined(_M_ARM)
     int Register[4];
@@ -173,7 +173,7 @@ inline HRESULT GetCpuInfo(CPUINFO& ci)
         // 取描述
         if (SUCCEEDED(pClsObj->Get(L"Description", 0, &Var, nullptr, nullptr)))
         {
-            ci.rsDescription.DupBSTR(Var.bstrVal);
+            ci.rsDescription.AssignBSTR(Var.bstrVal);
             VariantClear(&Var);
         }
         // 取二级缓存
@@ -205,7 +205,10 @@ inline HRESULT GetCpuInfo(CPUINFO& ci)
 #endif// __arm__
 }
 
-inline BOOL GetDesktopPartHWnd(_Out_ HWND& hPmOrWorkerW, _Out_ HWND& hDefView, _Out_ HWND& hLV)
+inline BOOL GetDesktopPartHWnd(
+    _Out_ HWND& hPmOrWorkerW,
+    _Out_ HWND& hDefView,
+    _Out_ HWND& hLV) noexcept
 {
     hDefView = hLV = nullptr;
     if (!(hPmOrWorkerW = FindWindowW(L"Progman", L"Program Manager")))
@@ -226,7 +229,7 @@ inline BOOL GetDesktopPartHWnd(_Out_ HWND& hPmOrWorkerW, _Out_ HWND& hDefView, _
     return FALSE;
 }
 
-inline BOOL ShowDesktop(BOOL bShow, BOOL bIgnoreProgman = TRUE)
+inline BOOL ShowDesktop(BOOL bShow, BOOL bIgnoreProgman = TRUE) noexcept
 {
     HWND hPmOrWorkerW, hDefView, hLV;
     if (!GetDesktopPartHWnd(hPmOrWorkerW, hDefView, hLV))
@@ -239,9 +242,10 @@ inline BOOL ShowDesktop(BOOL bShow, BOOL bIgnoreProgman = TRUE)
     return TRUE;
 }
 
-inline BOOL GetTaskBarPartHWnd(_Out_ HWND& hTaskBar,
+inline BOOL GetTaskBarPartHWnd(
+    _Out_ HWND& hTaskBar,
     _Out_writes_opt_(*pcSecondary) HWND* phSecondary = nullptr,
-    _Inout_opt_ size_t* pcSecondary = nullptr)
+    _Inout_opt_ size_t* pcSecondary = nullptr) noexcept
 {
     hTaskBar = FindWindowW(L"Shell_TrayWnd", nullptr);
     if (!hTaskBar)
@@ -265,7 +269,7 @@ inline BOOL GetTaskBarPartHWnd(_Out_ HWND& hTaskBar,
     return TRUE;
 }
 
-inline BOOL ShowTaskBar(BOOL bShow, BOOL bIgnoreSecondary = FALSE)
+inline BOOL ShowTaskBar(BOOL bShow, BOOL bIgnoreSecondary = FALSE) noexcept
 {
     HWND hTaskBar, hSecondary[16];
     size_t cSecondary = ARRAYSIZE(hSecondary);
@@ -300,7 +304,7 @@ struct FILEVERINFO
     CRefStrW SpecialBuild;
 };
 
-inline BOOL GetFileVersionInformation(PCWSTR pszFile, FILEVERINFO& fvi)
+inline BOOL GetFileVersionInformation(PCWSTR pszFile, FILEVERINFO& fvi) noexcept
 {
     const DWORD cbBuf = GetFileVersionInfoSizeW(pszFile, nullptr);
     if (!cbBuf)
@@ -329,58 +333,58 @@ inline BOOL GetFileVersionInformation(PCWSTR pszFile, FILEVERINFO& fvi)
     UINT cchStr;
     EckCopyConstStringW(pszName, L"Comment");
     VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
-    fvi.Comment.DupString((PCWSTR)pStr, (int)cchStr);
+    fvi.Comment.Assign((PCWSTR)pStr, (int)cchStr);
 
     EckCopyConstStringW(pszName, L"InternalName");
     VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
-    fvi.InternalName.DupString((PCWSTR)pStr, (int)cchStr);
+    fvi.InternalName.Assign((PCWSTR)pStr, (int)cchStr);
 
     EckCopyConstStringW(pszName, L"ProductName");
     VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
-    fvi.ProductName.DupString((PCWSTR)pStr, (int)cchStr);
+    fvi.ProductName.Assign((PCWSTR)pStr, (int)cchStr);
 
     EckCopyConstStringW(pszName, L"CompanyName");
     VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
-    fvi.CompanyName.DupString((PCWSTR)pStr, (int)cchStr);
+    fvi.CompanyName.Assign((PCWSTR)pStr, (int)cchStr);
 
     EckCopyConstStringW(pszName, L"LegalCopyright");
     VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
-    fvi.LegalCopyright.DupString((PCWSTR)pStr, (int)cchStr);
+    fvi.LegalCopyright.Assign((PCWSTR)pStr, (int)cchStr);
 
     EckCopyConstStringW(pszName, L"ProductVersion");
     VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
-    fvi.ProductVersion.DupString((PCWSTR)pStr, (int)cchStr);
+    fvi.ProductVersion.Assign((PCWSTR)pStr, (int)cchStr);
 
     EckCopyConstStringW(pszName, L"FileDescription");
     VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
-    fvi.FileDescription.DupString((PCWSTR)pStr, (int)cchStr);
+    fvi.FileDescription.Assign((PCWSTR)pStr, (int)cchStr);
 
     EckCopyConstStringW(pszName, L"LegalTrademarks");
     VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
-    fvi.LegalTrademarks.DupString((PCWSTR)pStr, (int)cchStr);
+    fvi.LegalTrademarks.Assign((PCWSTR)pStr, (int)cchStr);
 
     EckCopyConstStringW(pszName, L"PrivateBuild");
     VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
-    fvi.PrivateBuild.DupString((PCWSTR)pStr, (int)cchStr);
+    fvi.PrivateBuild.Assign((PCWSTR)pStr, (int)cchStr);
 
     EckCopyConstStringW(pszName, L"FileVersion");
     VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
-    fvi.FileVersion.DupString((PCWSTR)pStr, (int)cchStr);
+    fvi.FileVersion.Assign((PCWSTR)pStr, (int)cchStr);
 
     EckCopyConstStringW(pszName, L"OriginalFilename");
     VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
-    fvi.OriginalFilename.DupString((PCWSTR)pStr, (int)cchStr);
+    fvi.OriginalFilename.Assign((PCWSTR)pStr, (int)cchStr);
 
     EckCopyConstStringW(pszName, L"SpecialBuild");
     VerQueryValueW(pBuf, rsSub.Data(), &pStr, &cchStr);
-    fvi.SpecialBuild.DupString((PCWSTR)pStr, (int)cchStr);
+    fvi.SpecialBuild.Assign((PCWSTR)pStr, (int)cchStr);
     return TRUE;
 }
 
 namespace Priv
 {
     template<class T>
-    EckInline constexpr INPUT KeyboardEventGetArg(T wVk)
+    EckInlineNdCe INPUT KeyboardEventGetArg(T wVk) noexcept
     {
         return INPUT{ .type = INPUT_KEYBOARD ,.ki = { static_cast<WORD>(wVk) } };
     }
@@ -393,7 +397,7 @@ namespace Priv
 /// <param name="wVk">虚拟键代码</param>
 /// <returns>SendInput的返回值</returns>
 template<class...T>
-inline UINT KeyboardEvent(T...wVk)
+inline UINT KeyboardEvent(T...wVk) noexcept
 {
     INPUT Args[]{ Priv::KeyboardEventGetArg(wVk)... };
     INPUT input[ARRAYSIZE(Args) * 2];
@@ -405,15 +409,15 @@ inline UINT KeyboardEvent(T...wVk)
     return SendInput(ARRAYSIZE(input), input, sizeof(INPUT));
 }
 
-const CRefStrW& GetRunningPath();
+const CRefStrW& GetRunningPath() noexcept;
 
-EckInline BOOL SystemTimeToULongLong(const SYSTEMTIME& st, ULONGLONG& ull)
+EckInline BOOL SystemTimeToULongLong(const SYSTEMTIME& st, ULONGLONG& ull) noexcept
 {
     return SystemTimeToFileTime(&st, (FILETIME*)&ull);
 }
 
 inline CRefStrW FormatDate(const SYSTEMTIME& st, PCWSTR pszFmt = nullptr, DWORD dwFlags = 0u,
-    PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT)
+    PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT) noexcept
 {
     const int cchDate = GetDateFormatEx(pszLocale, dwFlags, &st, pszFmt, nullptr, 0, nullptr);
     if (!cchDate)
@@ -424,7 +428,7 @@ inline CRefStrW FormatDate(const SYSTEMTIME& st, PCWSTR pszFmt = nullptr, DWORD 
 }
 
 inline CRefStrW FormatTime(const SYSTEMTIME& st, PCWSTR pszFmt = nullptr, DWORD dwFlags = 0u,
-    PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT)
+    PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT) noexcept
 {
     const int cchTime = GetTimeFormatEx(pszLocale, dwFlags, &st, pszFmt, nullptr, 0);
     if (!cchTime)
@@ -436,7 +440,7 @@ inline CRefStrW FormatTime(const SYSTEMTIME& st, PCWSTR pszFmt = nullptr, DWORD 
 
 inline CRefStrW FormatDateTime(const SYSTEMTIME& st,
     PCWSTR pszFmtDate = nullptr, PCWSTR pszFmtTime = nullptr, DWORD dwFlags = 0u,
-    PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT)
+    PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT) noexcept
 {
     const int cchDate = GetDateFormatEx(pszLocale, dwFlags, &st, pszFmtDate, nullptr, 0, nullptr);
     const int cchTime = GetTimeFormatEx(pszLocale, dwFlags, &st, pszFmtTime, nullptr, 0);
@@ -449,7 +453,7 @@ inline CRefStrW FormatDateTime(const SYSTEMTIME& st,
     return rs;
 }
 
-inline void InputChar(WCHAR ch, BOOL bExtended = FALSE, BOOL bReplaceEndOfLine = TRUE)
+inline void InputChar(WCHAR ch, BOOL bExtended = FALSE, BOOL bReplaceEndOfLine = TRUE) noexcept
 {
     INPUT input[2]{ {.type = INPUT_KEYBOARD } };
     if (bReplaceEndOfLine && (ch == L'\r' || ch == L'\n'))
@@ -466,7 +470,7 @@ inline void InputChar(WCHAR ch, BOOL bExtended = FALSE, BOOL bReplaceEndOfLine =
 }
 
 inline void InputChar(PCWSTR pszText, int cchText = -1,
-    BOOL bExtended = FALSE, BOOL bReplaceEndOfLine = TRUE)
+    BOOL bExtended = FALSE, BOOL bReplaceEndOfLine = TRUE) noexcept
 {
     if (cchText < 0)
         cchText = (int)wcslen(pszText);
@@ -488,7 +492,7 @@ inline void InputChar(PCWSTR pszText, int cchText = -1,
     }
 }
 
-inline NTSTATUS RestartExplorer()
+inline NTSTATUS RestartExplorer() noexcept
 {
     const auto hWnd = FindWindowW(L"Shell_TrayWnd", nullptr);
     if (!hWnd)
@@ -506,7 +510,7 @@ inline NTSTATUS RestartExplorer()
     return nts;
 }
 
-inline SIZE GetCursorSize(int iDpi)
+inline SIZE GetCursorSize(int iDpi) noexcept
 {
     HKEY hKey;
     DWORD dwBaseSize{}, cb{ sizeof(DWORD) };
@@ -522,7 +526,7 @@ inline SIZE GetCursorSize(int iDpi)
 }
 
 inline NTSTATUS ExpandEnvironmentString(CRefStrW& rsDst,
-    _In_reads_or_z_(cchSrc) PCWCH pszSrc, int cchSrc = -1, int cchInitialBuf = 80)
+    _In_reads_or_z_(cchSrc) PCWCH pszSrc, int cchSrc = -1, int cchInitialBuf = 80) noexcept
 {
     if (cchSrc < 0)
         cchSrc = (int)TcsLen(pszSrc);

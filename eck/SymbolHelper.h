@@ -88,7 +88,7 @@ inline HRESULT DshQueryPePdb(PDBInfo& PdbInfo, _In_ PCWSTR pszPeFile) noexcept
 				(BYTE*)pViewBase + pDbgData[i].PointerToRawData);
 			if (pCvInfo->CvSignature == 'SDSR')
 			{
-				PdbInfo.rsPdbFile.DupString(pCvInfo->PdbFileName);
+				PdbInfo.rsPdbFile.Assign(pCvInfo->PdbFileName);
 				PdbInfo.Cv = *pCvInfo;
 				hr = S_OK;
 				goto Exit;
@@ -115,7 +115,7 @@ inline HRESULT DshMakeSymbolUrl(CRefStrW& rsSymbolUrl, const PDBInfo& PdbInfo,
 	rsSymbolUrl.PushBack(rsPdbW);
 	rsSymbolUrl.PushBackChar(L'/');
 	GuidToString(PdbInfo.Cv.Signature, rsSymbolUrl.PushBack(32));
-	rsSymbolUrl.AppendFormat(L"%u/", PdbInfo.Cv.Age);
+	rsSymbolUrl.PushBackFormat(L"%u/", PdbInfo.Cv.Age);
 	rsSymbolUrl.PushBack(rsPdbW);
 	return S_OK;
 }

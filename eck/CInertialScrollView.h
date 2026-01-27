@@ -19,7 +19,7 @@ protected:
 
 	int m_iCurrInterval{};
 
-	FInertialScrollProc m_pfnCallBack{};
+	FInertialScrollProc m_pfnCallback{};
 	LPARAM m_lParam{};
 
 	BOOL m_bValid{};
@@ -27,61 +27,61 @@ protected:
 public:
 	virtual ~CInertialScrollView() = default;
 
-	void TlTick(int iMs) override
+	void TlTick(int iMs) noexcept override
 	{
 		m_iCurrInterval = iMs;
-		const float fPrevPos = GetPos();
+		const float fPrevPos = GetPosition();
 		m_fSustain += iMs;
 		const float f = Easing::OutCubic(m_fSustain, m_fStart, m_fDistance, m_fDuration);
-		if (SetPos(f))
+		if (SetPosition(f))
 			m_bStop = TRUE;
 		else
 			m_bStop = (m_fDistance > 0.f ?
 				(f >= m_fStart + m_fDistance) : (f <= m_fStart + m_fDistance));
-		m_pfnCallBack(GetPos(), fPrevPos, m_lParam);
+		m_pfnCallback(GetPosition(), fPrevPos, m_lParam);
 		if (m_bStop)
 			InterruptAnimation();
 	}
-	EckInline BOOL TlIsValid() override { return m_bValid; }
-	EckInline int TlGetCurrentInterval() override { return m_iCurrInterval; }
+	EckInline BOOL TlIsValid() noexcept override { return m_bValid; }
+	EckInline int TlGetCurrentInterval() noexcept override { return m_iCurrInterval; }
 	// 
-	EckInline void OnMouseWheel2(int iWheelDelta) { SmoothScrollDelta(m_fDelta * iWheelDelta); }
+	EckInline void OnMouseWheel2(int iWheelDelta) noexcept { SmoothScrollDelta(m_fDelta * iWheelDelta); }
 
-	EckInlineCe void InterruptAnimation()
+	EckInlineCe void InterruptAnimation() noexcept
 	{
 		m_bValid = FALSE;
 		m_fSustain = 0.f;
 		m_fDistance = 0.f;
 	}
 
-	constexpr void SmoothScrollDelta(float iDelta)
+	constexpr void SmoothScrollDelta(float iDelta) noexcept
 	{
-		m_fStart = GetPos();
+		m_fStart = GetPosition();
 		// 计算新的滚动距离；将原先的滚动距离减去已经滑动完的位移再加上滚动事件产生的位移
 		m_fDistance = ((m_fDuration - m_fSustain) * m_fDistance / m_fDuration) + iDelta;
 		if (m_fDistance + m_fStart > GetMaxWithPage())
 			m_fDistance = GetMaxWithPage() - m_fStart;
-		if (m_fDistance + m_fStart < GetMin())
-			m_fDistance = GetMin() - m_fStart;
+		if (m_fDistance + m_fStart < GetMinimum())
+			m_fDistance = GetMinimum() - m_fStart;
 		m_fSustain = 0.f;
 
 		m_bValid = TRUE;
 	}
 
-	EckInlineCe void SetCallBack(FInertialScrollProc pfnInertialScroll, LPARAM lParam)
+	EckInlineCe void SetCallback(FInertialScrollProc pfnInertialScroll, LPARAM lParam) noexcept
 	{
-		m_pfnCallBack = pfnInertialScroll;
+		m_pfnCallback = pfnInertialScroll;
 		m_lParam = lParam;
 	}
 
-	EckInlineCe void SetDuration(float iDuration) { m_fDuration = iDuration; }
-	EckInlineNdCe float GetDuration() const { return m_fDuration; }
+	EckInlineCe void SetDuration(float iDuration) noexcept { m_fDuration = iDuration; }
+	EckInlineNdCe float GetDuration() const noexcept { return m_fDuration; }
 
-	EckInline void SetDelta(float iDelta) { m_fDelta = iDelta; }
-	EckInlineNdCe float GetDelta() const { return m_fDelta; }
+	EckInline void SetDelta(float iDelta) noexcept { m_fDelta = iDelta; }
+	EckInlineNdCe float GetDelta() const noexcept { return m_fDelta; }
 
-	EckInlineNdCe float GetCurrTime() const { return m_fSustain; }
+	EckInlineNdCe float GetCurrentTime() const noexcept { return m_fSustain; }
 
-	EckInlineNdCe BOOL IsStop() const { return m_bStop; }
+	EckInlineNdCe BOOL IsStop() const noexcept { return m_bStop; }
 };
 ECK_NAMESPACE_END

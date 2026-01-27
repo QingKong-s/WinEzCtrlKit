@@ -9,7 +9,7 @@ private:
 	CSelRangeT<T> m_RgDeleted{};
 	T m_Curr{};
 public:
-	constexpr T Generate()
+	constexpr T Generate() noexcept
 	{
 		if (m_RgDeleted.IsEmpty())
 			return m_Curr++;
@@ -21,12 +21,12 @@ public:
 		}
 	}
 
-	constexpr void Free(T Id)
+	constexpr void Free(T Id) noexcept
 	{
 		m_RgDeleted.IncludeItem(Id);
 	}
 
-	constexpr void Reset()
+	constexpr void Reset() noexcept
 	{
 		m_RgDeleted.Clear();
 		m_Curr = T{};

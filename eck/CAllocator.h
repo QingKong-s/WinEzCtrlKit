@@ -16,7 +16,7 @@ public:
     using size_type = TSize;
     using difference_type = std::make_signed_t<size_type>;
 
-    [[nodiscard]] EckInline T* allocate(size_type c)
+    EckInlineNd T* allocate(size_type c)
     {
         auto p = (T*)RtlAllocateHeap(m_hHeap, m_dwSerialize, c * sizeof(value_type));
         if (p)
@@ -55,7 +55,7 @@ struct CAllocatorProcHeap
     using size_type = TSize;
     using difference_type = std::make_signed_t<size_type>;
 
-    [[nodiscard]] EckInline T* allocate(size_type c)
+    EckInlineNd T* allocate(size_type c)
     {
         auto p = (T*)HeapAlloc(GetProcessHeap(), 0, c * sizeof(value_type));
         if (p)
@@ -103,7 +103,7 @@ struct CAllocatorVA
 
     constexpr CAllocatorVA& operator=(const CAllocatorVA&) = default;
 
-    [[nodiscard]] EckInline T* allocate(size_type c)
+    EckInlineNd T* allocate(size_type c)
     {
         auto p = (T*)VAlloc(c * sizeof(value_type));
         if (p)
@@ -119,10 +119,10 @@ struct CAllocatorVA
 
     EckInline static TSize MakeCapacity(TSize c)
     {
-        return AlignMemSize(c * sizeof(value_type), s_cbPage) / sizeof(value_type);
+        return AlignedSize(c * sizeof(value_type), s_cbPage) / sizeof(value_type);
     }
 private:
-    EckInline constexpr static TSize AlignMemSize(TSize cbSize, TSize cbAlign)
+    EckInline constexpr static TSize AlignedSize(TSize cbSize, TSize cbAlign)
     {
         if (cbSize / cbAlign * cbAlign == cbSize)
             return cbSize;
@@ -186,7 +186,7 @@ struct CDefAllocator :public std::allocator<T>
         __super::deallocate(p, (size_t)c);
     }
 
-    EckInline [[nodiscard]] constexpr __declspec(allocator) T* allocate(const TSize c)
+    EckInlineNdCe __declspec(allocator) T* allocate(const TSize c)
     {
         return __super::allocate((size_t)c);
     }

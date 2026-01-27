@@ -19,11 +19,11 @@ int wmain(int argc, WCHAR** argv)
     eck::INITPARAM ip{};
     ip.uFlags = eck::EIF_CONSOLE_APP;
     DWORD dwErr;
-    const auto eInitRet = eck::Init(NtCurrentImageBaseHInst(), &ip, &dwErr);
+    const auto eInitRet = eck::Initialize(NtCurrentImageBaseHInst(), &ip, &dwErr);
     if (eInitRet != eck::InitStatus::Ok)
     {
         EckDbgPrintFormatMessage(dwErr);
-        ConOut.PrintLine(L"Init failed: ",
+        ConOut.PrintLine(L"Initialize failed: ",
             (int)eInitRet, "(0x", Cio::IoInt{ dwErr,16,8 }, ")");
         return 0;
     }
@@ -33,6 +33,6 @@ int wmain(int argc, WCHAR** argv)
     ConIn.Scan(Age);
     ConOut.PrintLine(u8"您的年龄是：", Age);
 
-    eck::UnInit();
+    eck::Uninitialize();
     return 0;
 }

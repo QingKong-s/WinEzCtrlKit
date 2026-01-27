@@ -5,39 +5,38 @@ ECK_NAMESPACE_BEGIN
 class CIPEdit : public CWnd
 {
 public:
-	ECK_RTTI(CIPEdit);
-	ECK_CWND_NOSINGLEOWNER(CIPEdit);
-	ECK_CWND_CREATE_CLS(WC_IPADDRESSW);
+    ECK_RTTI(CIPEdit, CWnd);
+    ECK_CWND_NOSINGLEOWNER(CIPEdit);
+    ECK_CWND_CREATE_CLS(WC_IPADDRESSW);
 
-	EckInline void Clear() const
-	{
-		SendMsg(IPM_CLEARADDRESS, 0, 0);
-	}
+    EckInline void Clear() const noexcept
+    {
+        SendMsg(IPM_CLEARADDRESS, 0, 0);
+    }
 
-	EckInline int GetAddress(DWORD* pdwAddress) const
-	{
-		return (int)SendMsg(IPM_GETADDRESS, 0, (LPARAM)pdwAddress);
-	}
+    EckInline int GetAddress(_Out_ DWORD* pdwAddress) const noexcept
+    {
+        return (int)SendMsg(IPM_GETADDRESS, 0, (LPARAM)pdwAddress);
+    }
 
-	EckInline BOOL IsBlank() const
-	{
-		return (BOOL)SendMsg(IPM_ISBLANK, 0, 0);
-	}
+    EckInline BOOL IsBlank() const noexcept
+    {
+        return (BOOL)SendMsg(IPM_ISBLANK, 0, 0);
+    }
 
-	EckInline void SetAddress(DWORD dwAddress) const
-	{
-		SendMsg(IPM_SETADDRESS, 0, (LPARAM)dwAddress);
-	}
+    EckInline void SetAddress(DWORD dwAddress) const noexcept
+    {
+        SendMsg(IPM_SETADDRESS, 0, (LPARAM)dwAddress);
+    }
 
-	EckInline void SetFieldFocus(int iField) const
-	{
-		SendMsg(IPM_SETFOCUS, iField, 0);
-	}
+    EckInline void SetFieldFocus(int iField) const noexcept
+    {
+        SendMsg(IPM_SETFOCUS, iField, 0);
+    }
 
-	EckInline void SetFieldRange(int iField, WORD wLimit) const
-	{
-		SendMsg(IPM_SETRANGE, iField, (LPARAM)wLimit);
-	}
+    EckInline void SetFieldRange(int iField, WORD wLimit) const noexcept
+    {
+        SendMsg(IPM_SETRANGE, iField, (LPARAM)wLimit);
+    }
 };
-ECK_RTTI_IMPL_BASE_INLINE(CIPEdit, CWnd);
 ECK_NAMESPACE_END

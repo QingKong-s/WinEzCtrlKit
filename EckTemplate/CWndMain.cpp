@@ -23,7 +23,7 @@ void CWndMain::OnDestory()
 
 LRESULT CWndMain::OnCreate(HWND hWnd, CREATESTRUCT* pcs)
 {
-    eck::GetThreadCtx()->UpdateDefaultColor();
+    eck::PtcCurrent()->UpdateDefaultColor();
 
     m_iDpi = eck::GetDpi(hWnd);
     m_hFont = eck::DftCreate(m_iDpi);
@@ -55,7 +55,7 @@ LRESULT CWndMain::OnCreate(HWND hWnd, CREATESTRUCT* pcs)
     return 0;
 }
 
-LRESULT CWndMain::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CWndMain::OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
 {
     switch (uMsg)
     {
@@ -87,20 +87,20 @@ LRESULT CWndMain::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         return 0;
 
     case WM_SYSCOLORCHANGE:
-        eck::MsgOnSysColorChangeMainWnd(hWnd, wParam, lParam);
+        eck::MsgOnSystemColorChangeMainWindow(hWnd, wParam, lParam);
         break;
     case WM_SETTINGCHANGE:
-        eck::MsgOnSettingChangeMainWnd(hWnd, wParam, lParam);
+        eck::MsgOnSettingChangeMainWindow(hWnd, wParam, lParam);
         break;
     case WM_DPICHANGED:
         DmNewDpi(HIWORD(wParam));
         eck::MsgOnDpiChanged(hWnd, lParam);
         return 0;
     }
-    return __super::OnMsg(hWnd, uMsg, wParam, lParam);
+    return __super::OnMessage(hWnd, uMsg, wParam, lParam);
 }
 
-BOOL CWndMain::PreTranslateMessage(const MSG& Msg)
+BOOL CWndMain::PreTranslateMessage(const MSG& Msg) noexcept
 {
     if (IsDialogMessageW(HWnd, (MSG*)&Msg))
         return TRUE;

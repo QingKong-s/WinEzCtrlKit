@@ -5,185 +5,185 @@ ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 struct NMCBTCUSTOMDRAW : NMECUSTOMDRAW
 {
-	State eState;
-	D2D1_RECT_F rcImg;
-	ID2D1Bitmap* pImg;
+    State eState;
+    D2D1_RECT_F rcImg;
+    ID2D1Bitmap* pImg;
 };
 
-class CCircleButton :public CElem
+class CCircleButton : public CElem
 {
 private:
-	ID2D1Bitmap* m_pImg{};
+    ID2D1Bitmap* m_pImg{};
 
-	D2D1_SIZE_F m_sizeImg{};
-	BYTE m_eInterpolation{ D2D1_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC };
+    D2D1_SIZE_F m_sizeImg{};
+    BYTE m_eInterpolation{ D2D1_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC };
 
-	BITBOOL m_bHot : 1{ FALSE };
-	BITBOOL m_bLBtnDown : 1{ FALSE };
+    BITBOOL m_bHot : 1{ FALSE };
+    BITBOOL m_bLBtnDown : 1{ FALSE };
 
-	BITBOOL m_bAutoImgSize : 1{ TRUE };
-	BITBOOL m_bCustomDraw : 1{ FALSE };
-	BITBOOL m_bTransparentBk : 1{ FALSE };
+    BITBOOL m_bAutoImgSize : 1{ TRUE };
+    BITBOOL m_bCustomDraw : 1{ FALSE };
+    BITBOOL m_bTransparentBk : 1{ FALSE };
 
-	BOOL PtInBtn(POINT ptInClient)
-	{
-		const auto fRad = std::min(GetWidthF(), GetHeightF()) / 2.f;
-		const D2D1_POINT_2F ptCenter
-		{
-			GetOffsetInClientF().x + fRad,
-			GetOffsetInClientF().y + fRad
-		};
-		return PtInCircle(MakeD2DPointF( ptInClient), ptCenter, fRad);
-	}
+    BOOL PtInBtn(POINT ptInClient)
+    {
+        const auto fRad = std::min(GetWidthF(), GetHeightF()) / 2.f;
+        const D2D1_POINT_2F ptCenter
+        {
+            GetOffsetInClientF().x + fRad,
+            GetOffsetInClientF().y + fRad
+        };
+        return PtInCircle(MakeD2DPointF(ptInClient), ptCenter, fRad);
+    }
 public:
-	LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) override
-	{
-		switch (uMsg)
-		{
-		case WM_PAINT:
-		{
-			ELEMPAINTSTRU ps;
-			BeginPaint(ps, wParam, lParam);
+    LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    {
+        switch (uMsg)
+        {
+        case WM_PAINT:
+        {
+            ELEMPAINTSTRU ps;
+            BeginPaint(ps, wParam, lParam);
 
-			State eState;
-			if (m_bLBtnDown)
-				eState = State::Selected;
-			else if (m_bHot)
-				eState = State::Hot;
-			else
-				eState = State::Normal;
+            State eState;
+            if (m_bLBtnDown)
+                eState = State::Selected;
+            else if (m_bHot)
+                eState = State::Hot;
+            else
+                eState = State::Normal;
 
-			BOOL bSkipDefault{};
-			NMCBTCUSTOMDRAW cd;
-			if (m_pImg)
-			{
-				cd.rcImg.left = (GetWidthF() - m_sizeImg.width) / 2.f;
-				cd.rcImg.top = (GetHeightF() - m_sizeImg.height) / 2.f;
-				cd.rcImg.right = cd.rcImg.left + m_sizeImg.width;
-				cd.rcImg.bottom = cd.rcImg.top + m_sizeImg.height;
-			}
+            BOOL bSkipDefault{};
+            NMCBTCUSTOMDRAW cd;
+            if (m_pImg)
+            {
+                cd.rcImg.left = (GetWidthF() - m_sizeImg.width) / 2.f;
+                cd.rcImg.top = (GetHeightF() - m_sizeImg.height) / 2.f;
+                cd.rcImg.right = cd.rcImg.left + m_sizeImg.width;
+                cd.rcImg.bottom = cd.rcImg.top + m_sizeImg.height;
+            }
 
-			if (m_bCustomDraw)
-			{
-				cd.uCode = EE_CUSTOMDRAW;
-				cd.dwStage = CDDS_PREPAINT;
-				cd.eState = eState;
-				cd.pImg = m_pImg;
+            if (m_bCustomDraw)
+            {
+                cd.uCode = EE_CUSTOMDRAW;
+                cd.dwStage = CDDS_PREPAINT;
+                cd.eState = eState;
+                cd.pImg = m_pImg;
 
-				bSkipDefault = (GenElemNotify(&cd) & CDRF_SKIPDEFAULT);
-			}
+                bSkipDefault = (GenElemNotify(&cd) & CDRF_SKIPDEFAULT);
+            }
 
-			if (!bSkipDefault)
-			{
-				if (!(m_bTransparentBk && eState == State::Normal))
-					GetTheme()->DrawBackground(Part::CircleButton, eState,
-						GetViewRectF(), nullptr);
-				if (m_pImg)
-					m_pDC->DrawBitmap(m_pImg, cd.rcImg, 1.f,
-						(D2D1_INTERPOLATION_MODE)m_eInterpolation);
-			}
+            if (!bSkipDefault)
+            {
+                if (!(m_bTransparentBk && eState == State::Normal))
+                    GetTheme()->DrawBackground(Part::CircleButton, eState,
+                        GetViewRectF(), nullptr);
+                if (m_pImg)
+                    m_pDC->DrawBitmap(m_pImg, cd.rcImg, 1.f,
+                        (D2D1_INTERPOLATION_MODE)m_eInterpolation);
+            }
 
-			EndPaint(ps);
-		}
-		return 0;
+            EndPaint(ps);
+        }
+        return 0;
 
-		case WM_NCHITTEST:
-			return (PtInBtn(ECK_GET_PT_LPARAM(lParam)) ? HTCLIENT : HTTRANSPARENT);
+        case WM_NCHITTEST:
+            return (PtInBtn(ECK_GET_PT_LPARAM(lParam)) ? HTCLIENT : HTTRANSPARENT);
 
-		case WM_MOUSEMOVE:
-		{
-			if (!m_bHot)
-			{
-				m_bHot = TRUE;
-				InvalidateRect();
-			}
-		}
-		return 0;
+        case WM_MOUSEMOVE:
+        {
+            if (!m_bHot)
+            {
+                m_bHot = TRUE;
+                InvalidateRect();
+            }
+        }
+        return 0;
 
-		case WM_MOUSELEAVE:
-		{
-			if (m_bHot)
-			{
-				m_bHot = FALSE;
-				InvalidateRect();
-			}
-		}
-		return 0;
+        case WM_MOUSELEAVE:
+        {
+            if (m_bHot)
+            {
+                m_bHot = FALSE;
+                InvalidateRect();
+            }
+        }
+        return 0;
 
-		case WM_LBUTTONDBLCLK:// 连击修正
-		case WM_LBUTTONDOWN:
-		{
-			SetFocus();
-			m_bLBtnDown = TRUE;
-			SetCapture();
-			InvalidateRect();
-		}
-		return 0;
+        case WM_LBUTTONDBLCLK:// 连击修正
+        case WM_LBUTTONDOWN:
+        {
+            SetFocus();
+            m_bLBtnDown = TRUE;
+            SetCapture();
+            InvalidateRect();
+        }
+        return 0;
 
-		case WM_LBUTTONUP:
-		{
-			if (m_bLBtnDown)
-			{
-				m_bLBtnDown = FALSE;
-				ReleaseCapture();
-				InvalidateRect();
+        case WM_LBUTTONUP:
+        {
+            if (m_bLBtnDown)
+            {
+                m_bLBtnDown = FALSE;
+                ReleaseCapture();
+                InvalidateRect();
                 POINT pt ECK_GET_PT_LPARAM(lParam);
                 ElemToClient(pt);
-				if (PtInBtn(pt))
-				{
-					DUINMHDR nm{ EE_COMMAND };
-					GenElemNotify(&nm);
-				}
-			}
-		}
-		return 0;
+                if (PtInBtn(pt))
+                {
+                    DUINMHDR nm{ EE_COMMAND };
+                    GenElemNotify(&nm);
+                }
+            }
+        }
+        return 0;
 
-		case WM_SIZE:
-		{
-			if (m_bAutoImgSize)
-			{
-				m_sizeImg.width = std::min(GetWidthF(), GetHeightF());
-				m_sizeImg.width /= 1.414f;
-				m_sizeImg.height = m_sizeImg.width;
-			}
-		}
-		return 0;
+        case WM_SIZE:
+        {
+            if (m_bAutoImgSize)
+            {
+                m_sizeImg.width = std::min(GetWidthF(), GetHeightF());
+                m_sizeImg.width /= 1.414f;
+                m_sizeImg.height = m_sizeImg.width;
+            }
+        }
+        return 0;
 
-		case WM_DESTROY:
-		{
-			SafeRelease(m_pImg);
-			m_bHot = FALSE;
-			m_bLBtnDown = FALSE;
-		}
-		return 0;
-		}
-		return CElem::OnEvent(uMsg, wParam, lParam);
-	}
+        case WM_DESTROY:
+        {
+            SafeRelease(m_pImg);
+            m_bHot = FALSE;
+            m_bLBtnDown = FALSE;
+        }
+        return 0;
+        }
+        return CElem::OnEvent(uMsg, wParam, lParam);
+    }
 
-	void SetImage(ID2D1Bitmap* pImg)
-	{
-		std::swap(m_pImg, pImg);
-		if (m_pImg)
-			m_pImg->AddRef();
-		if (pImg)
-			pImg->Release();
-	}
-	EckInlineNdCe ID2D1Bitmap* GetImage() const { return m_pImg; }
+    void SetImage(ID2D1Bitmap* pImg)
+    {
+        std::swap(m_pImg, pImg);
+        if (m_pImg)
+            m_pImg->AddRef();
+        if (pImg)
+            pImg->Release();
+    }
+    EckInlineNdCe ID2D1Bitmap* GetImage() const { return m_pImg; }
 
-	EckInlineCe void SetImageSize(D2D1_SIZE_F s) { m_sizeImg = s; }
-	EckInlineNdCe D2D1_SIZE_F GetImageSize() const { return m_sizeImg; }
+    EckInlineCe void SetImageSize(D2D1_SIZE_F s) { m_sizeImg = s; }
+    EckInlineNdCe D2D1_SIZE_F GetImageSize() const { return m_sizeImg; }
 
-	EckInlineCe void SetInterpolationMode(D2D1_INTERPOLATION_MODE e) { m_eInterpolation = (BYTE)e; }
-	EckInlineNdCe D2D1_INTERPOLATION_MODE GetInterpolationMode() const { return (D2D1_INTERPOLATION_MODE)m_eInterpolation; }
+    EckInlineCe void SetInterpolationMode(D2D1_INTERPOLATION_MODE e) { m_eInterpolation = (BYTE)e; }
+    EckInlineNdCe D2D1_INTERPOLATION_MODE GetInterpolationMode() const { return (D2D1_INTERPOLATION_MODE)m_eInterpolation; }
 
-	EckInlineCe void SetAutoImageSize(BOOL b) { m_bAutoImgSize = b; }
-	EckInlineNdCe BOOL GetAutoImageSize() const { return m_bAutoImgSize; }
+    EckInlineCe void SetAutoImageSize(BOOL b) { m_bAutoImgSize = b; }
+    EckInlineNdCe BOOL GetAutoImageSize() const { return m_bAutoImgSize; }
 
-	EckInlineCe void SetCustomDraw(BOOL b) { m_bCustomDraw = b; }
-	EckInlineNdCe BOOL GetCustomDraw() const { return m_bCustomDraw; }
+    EckInlineCe void SetCustomDraw(BOOL b) { m_bCustomDraw = b; }
+    EckInlineNdCe BOOL GetCustomDraw() const { return m_bCustomDraw; }
 
-	EckInlineCe void SetTransparentBk(BOOL b) { m_bTransparentBk = b; }
-	EckInlineNdCe BOOL GetTransparentBk() const { return m_bTransparentBk; }
+    EckInlineCe void SetTransparentBk(BOOL b) { m_bTransparentBk = b; }
+    EckInlineNdCe BOOL GetTransparentBk() const { return m_bTransparentBk; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

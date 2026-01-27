@@ -4,7 +4,7 @@
 ECK_NAMESPACE_BEGIN
 EckInlineNd int LcswCompareLen2(_In_reads_(Len1) PCWCH Str1, int Len1,
     _In_reads_(Len2) PCWCH Str2, int Len2,
-    UINT uFlags, _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT)
+    UINT uFlags, _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT) noexcept
 {
     const int r = CompareStringEx(pszLocaleName, uFlags,
         Str1, Len1, Str2, Len2, nullptr, nullptr, 0);
@@ -19,14 +19,15 @@ EckInlineNd int LcswCompareLen2(_In_reads_(Len1) PCWCH Str1, int Len1,
 }
 EckInlineNd int LcswCompareLen(_In_reads_(Len) PCWCH Str1,
     _In_reads_(Len) PCWCH Str2, int Len,
-    UINT uFlags, _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT)
+    UINT uFlags, _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT) noexcept
 {
     return LcswCompareLen2(Str1, Len, Str2, Len, uFlags, pszLocaleName);
 }
 
 EckInlineNd int LcswFindWorker(_In_reads_(Len) PCWCH Str, int Len,
     _In_reads_(SubLen) PCWCH SubStr, int SubLen,
-    UINT uFlags, int* pcchMatch = nullptr, _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT)
+    UINT uFlags, int* pcchMatch = nullptr,
+    _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT) noexcept
 {
     const auto r = FindNLSStringEx(pszLocaleName, uFlags,
         Str, Len, SubStr, SubLen, pcchMatch, nullptr, nullptr, 0);
@@ -44,62 +45,70 @@ EckInlineNd int LcswFindWorker(_In_reads_(Len) PCWCH Str, int Len,
 
 EckInlineNd int LcswStrLen(_In_reads_(Len) PCWCH Str, int Len,
     _In_reads_(SubLen) PCWCH SubStr, int SubLen,
-    UINT uFlags = 0, int* pcchMatch = nullptr, _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT)
+    UINT uFlags = 0, int* pcchMatch = nullptr,
+    _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT) noexcept
 {
     return LcswFindWorker(Str, Len, SubStr, SubLen,
         uFlags | FIND_FROMSTART, pcchMatch, pszLocaleName);
 }
 EckInlineNd int LcswStrLenI(_In_reads_(Len) PCWCH Str, int Len,
     _In_reads_(SubLen) PCWCH SubStr, int SubLen,
-    UINT uFlags = 0, int* pcchMatch = nullptr, _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT)
+    UINT uFlags = 0, int* pcchMatch = nullptr,
+    _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT) noexcept
 {
     return LcswFindWorker(Str, Len, SubStr, SubLen,
         uFlags | FIND_FROMSTART | NORM_IGNORECASE, pcchMatch, pszLocaleName);
 }
 EckInlineNd int LcswStrRLen(_In_reads_(Len) PCWCH Str, int Len,
     _In_reads_(SubLen) PCWCH SubStr, int SubLen,
-    UINT uFlags = 0, int* pcchMatch = nullptr, _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT)
+    UINT uFlags = 0, int* pcchMatch = nullptr,
+    _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT) noexcept
 {
     return LcswFindWorker(Str, Len, SubStr, SubLen,
         uFlags | FIND_FROMEND, pcchMatch, pszLocaleName);
 }
 EckInlineNd int LcswStrRLenI(_In_reads_(Len) PCWCH Str, int Len,
     _In_reads_(SubLen) PCWCH SubStr, int SubLen,
-    UINT uFlags = 0, int* pcchMatch = nullptr, _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT)
+    UINT uFlags = 0, int* pcchMatch = nullptr,
+    _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT) noexcept
 {
     return LcswFindWorker(Str, Len, SubStr, SubLen,
         uFlags | FIND_FROMEND | NORM_IGNORECASE, pcchMatch, pszLocaleName);
 }
 EckInlineNd int LcswIsStartWith(_In_reads_(Len) PCWCH Str, int Len,
     _In_reads_(SubLen) PCWCH SubStr, int SubLen,
-    UINT uFlags = 0, int* pcchMatch = nullptr, _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT)
+    UINT uFlags = 0, int* pcchMatch = nullptr,
+    _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT) noexcept
 {
     return LcswFindWorker(Str, Len, SubStr, SubLen,
         uFlags | FIND_STARTSWITH, pcchMatch, pszLocaleName);
 }
 EckInlineNd int LcswIsStartWithI(_In_reads_(Len) PCWCH Str, int Len,
     _In_reads_(SubLen) PCWCH SubStr, int SubLen,
-    UINT uFlags = 0, int* pcchMatch = nullptr, _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT)
+    UINT uFlags = 0, int* pcchMatch = nullptr,
+    _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT) noexcept
 {
     return LcswFindWorker(Str, Len, SubStr, SubLen,
         uFlags | FIND_STARTSWITH | NORM_IGNORECASE, pcchMatch, pszLocaleName);
 }
 EckInlineNd int LcswIsEndWith(_In_reads_(Len) PCWCH Str, int Len,
     _In_reads_(SubLen) PCWCH SubStr, int SubLen,
-    UINT uFlags = 0, int* pcchMatch = nullptr, _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT)
+    UINT uFlags = 0, int* pcchMatch = nullptr,
+    _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT) noexcept
 {
     return LcswFindWorker(Str, Len, SubStr, SubLen,
         uFlags | FIND_ENDSWITH, pcchMatch, pszLocaleName);
 }
 EckInlineNd int LcswIsEndWithI(_In_reads_(Len) PCWCH Str, int Len,
     _In_reads_(SubLen) PCWCH SubStr, int SubLen,
-    UINT uFlags = 0, int* pcchMatch = nullptr, _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT)
+    UINT uFlags = 0, int* pcchMatch = nullptr,
+    _In_opt_z_ PCWSTR pszLocaleName = LOCALE_NAME_USER_DEFAULT) noexcept
 {
     return LcswFindWorker(Str, Len, SubStr, SubLen,
         uFlags | FIND_ENDSWITH | NORM_IGNORECASE, pcchMatch, pszLocaleName);
 }
 
-EckNfInlineNdCe int LcsCountUtf8Char(_In_reads_or_z_(cch) PCCH psz, int cch)
+EckNfInlineNdCe int LcsUtf8CountChar(_In_reads_or_z_(cch) PCCH psz, int cch) noexcept
 {
     if (cch < 0)
         cch = (int)strlen(psz);
@@ -122,7 +131,7 @@ EckNfInlineNdCe int LcsCountUtf8Char(_In_reads_or_z_(cch) PCCH psz, int cch)
     return cchChars;
 }
 
-EckNfInlineNd int LcsCountDbcsChar(_In_reads_or_z_(cch) PCCH psz, int cch, UINT uCp = CP_ACP)
+EckNfInlineNd int LcsDbcsCountChar(_In_reads_or_z_(cch) PCCH psz, int cch, UINT uCp = CP_ACP) noexcept
 {
     if (cch < 0)
         cch = (int)strlen(psz);
@@ -137,7 +146,7 @@ EckNfInlineNd int LcsCountDbcsChar(_In_reads_or_z_(cch) PCCH psz, int cch, UINT 
     return c;
 }
 
-inline void LcsReverseUtf16ByteOrder(_Inout_updates_(cch) PWCH psz, int cch)
+inline void LcsUtf16ReverseByteOrder(_Inout_updates_(cch) PWCH psz, int cch) noexcept
 {
     const auto pEnd = psz + cch;
     for (; psz < pEnd; ++psz)

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Utility.h"
 #include "CRefStr.h"
 #include "CMsgBoxHook.h"

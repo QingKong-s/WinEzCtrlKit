@@ -17,12 +17,12 @@ enum : int
 
 void CWndMain::OnCreate(HWND hWnd)
 {
-    eck::GetThreadCtx()->UpdateDefaultColor();
+    eck::PtcCurrent()->UpdateDefaultColor();
     m_iDpi = eck::GetDpi(hWnd);
     m_hFontComm = eck::DftCreate(m_iDpi);
 
     InitMenu();
-    eck::UxfMenuInit(this);
+    eck::UxfMenuInitialize(this);
 
     /*ComPtr<IStream> pStream;
     SHCreateStreamOnFileEx(LR"(1.il)",
@@ -201,7 +201,7 @@ LRESULT CWndMain::OnCommand(HWND hWnd, int nId, HWND hCtrl, UINT uNotifyCode)
 
 void CWndMain::UpdateComboBox()
 {
-    if (m_Tab.GetCurSel() < 0)
+    if (m_Tab.GetCurrentSelection() < 0)
         m_CBBCtrl.GetListBox().SetItemCount(0);
     else
         m_CBBCtrl.GetListBox().SetItemCount(
@@ -211,7 +211,7 @@ void CWndMain::UpdateComboBox()
 
 LRESULT CWndMain::OnGetDisplayInfoComboBox(eck::NMLBNGETDISPINFO* p)
 {
-    if (m_Tab.GetCurSel() < 0)
+    if (m_Tab.GetCurrentSelection() < 0)
         return 0;
     const auto& rs = GetCurrentTab().pForm->vChild[p->Item.idxItem]->rsName;
     p->Item.pszText = rs.Data();
@@ -252,7 +252,7 @@ LRESULT CWndMain::OnControlMsg(DsForm* pDsForm, DsWnd* pDsCtrlWnd,
     return 0;
 }
 
-LRESULT CWndMain::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CWndMain::OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
     {
@@ -290,7 +290,7 @@ LRESULT CWndMain::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             case TCN_SELCHANGE:
                 if (pnmhdr->hwndFrom == m_Tab.HWnd)
                 {
-                    DmShowForm(m_Tab.GetCurSel());
+                    DmShowForm(m_Tab.GetCurrentSelection());
                     UpdateComboBox();
                     return 0;
                 }
@@ -313,11 +313,11 @@ LRESULT CWndMain::OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         m_Lyt.LoOnDpiChanged(m_iDpi);
         return 0;
     case WM_SETTINGCHANGE:
-        if (!eck::MsgOnSettingChangeMainWnd(hWnd, wParam, lParam))
+        if (!eck::MsgOnSettingChangeMainWindow(hWnd, wParam, lParam))
             eck::BroadcastChildrenMessage(hWnd, uMsg, wParam, lParam);
         return 0;
     }
-    return __super::OnMsg(hWnd, uMsg, wParam, lParam);
+    return __super::OnMessage(hWnd, uMsg, wParam, lParam);
 }
 
 void CWndMain::SrvDrawOverlayRect(HWND hWndRef, const RECT* prc, size_t cRc) noexcept
@@ -338,7 +338,7 @@ void CWndMain::SrvEndSelect() noexcept
         return;
     const auto rc = m_SelOverlay.GetRectInWorkWnd();
     const auto& Tab = GetCurrentTab();
-    const auto idxCtrl = m_LBCtrl.GetCurrSel() - 1;
+    const auto idxCtrl = m_LBCtrl.GetCurrentSelection() - 1;
     if (idxCtrl < 0)
     {
         m_SelOverlay.ClearRect();
@@ -355,7 +355,7 @@ void CWndMain::SrvEndSelect() noexcept
     else
     {
         const auto& e = BuiltInCtrls[idxCtrl];
-        const auto pWnd = eck::DynCast<eck::CWnd*>(eck::RttiNewObject(e.svClsName));
+        const auto pWnd = eck::DbgDynamicCast<eck::CWnd*>(eck::RttiNewObject(e.svClsName));
         if (pWnd)
         {
             const auto pDsWnd = Tab.pForm->AddChild();

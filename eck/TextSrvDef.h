@@ -17,55 +17,55 @@ IID_ITextHost{ 0x13e670f4,0x1a5a,0x11cf,{ 0xab,0xeb,0x00,0xaa,0x00,0xb6,0x5e,0xa
 IID_ITextHost2{ 0x13e670f5,0x1a5a,0x11cf,{ 0xab,0xeb,0x00,0xaa,0x00,0xb6,0x5e,0xa1 } };
 
 
-EckInline BOOL TsiInit()
+EckInline BOOL TsiInit() noexcept
 {
-	const auto hMod = LoadLibraryW(L"Msftedit.dll");
-	if (!hMod)
-		return FALSE;
-	g_pfnCreateTextServices = GetProcAddress(hMod, "CreateTextServices");
-	g_pfnShutdownTextServices = GetProcAddress(hMod, "ShutdownTextServices");
-	return TRUE;
+    const auto hMod = LoadLibraryW(L"Msftedit.dll");
+    if (!hMod)
+        return FALSE;
+    g_pfnCreateTextServices = GetProcAddress(hMod, "CreateTextServices");
+    g_pfnShutdownTextServices = GetProcAddress(hMod, "ShutdownTextServices");
+    return TRUE;
 }
 
-EckInlineNdCe BOOL TsiIsAvailable()
+EckInlineNdCe BOOL TsiIsAvailable() noexcept
 {
-	return g_pfnCreateTextServices && g_pfnShutdownTextServices;
+    return g_pfnCreateTextServices && g_pfnShutdownTextServices;
 }
 
 EckInline HRESULT TsiCreateTextServices(IUnknown* punkOuter,
-	ITextHost* pHost, IUnknown** ppSrv)
+    ITextHost* pHost, IUnknown** ppSrv) noexcept
 {
-	return PCreateTextServices(g_pfnCreateTextServices)(punkOuter, pHost, ppSrv);
+    return PCreateTextServices(g_pfnCreateTextServices)(punkOuter, pHost, ppSrv);
 }
 
-EckInline HRESULT TsiShutdownTextServices(IUnknown* pSrv)
+EckInline HRESULT TsiShutdownTextServices(IUnknown* pSrv) noexcept
 {
-	return PShutdownTextServices(g_pfnShutdownTextServices)(pSrv);
+    return PShutdownTextServices(g_pfnShutdownTextServices)(pSrv);
 }
 
-inline BOOL Tsi20Init()
+inline BOOL Tsi20Init() noexcept
 {
-	const auto hMod = LoadLibraryW(L"Riched20.dll");
-	if (!hMod)
-		return FALSE;
-	g_pfnCreateTextServices20 = GetProcAddress(hMod, "CreateTextServices");
-	g_pfnShutdownTextServices20 = GetProcAddress(hMod, "ShutdownTextServices");
-	return TRUE;
+    const auto hMod = LoadLibraryW(L"Riched20.dll");
+    if (!hMod)
+        return FALSE;
+    g_pfnCreateTextServices20 = GetProcAddress(hMod, "CreateTextServices");
+    g_pfnShutdownTextServices20 = GetProcAddress(hMod, "ShutdownTextServices");
+    return TRUE;
 }
 
-EckInlineNdCe BOOL Tsi20IsAvailable()
+EckInlineNdCe BOOL Tsi20IsAvailable() noexcept
 {
-	return g_pfnCreateTextServices20 && g_pfnShutdownTextServices20;
+    return g_pfnCreateTextServices20 && g_pfnShutdownTextServices20;
 }
 
 EckInline HRESULT Tsi20CreateTextServices(IUnknown* punkOuter,
-	ITextHost* pHost, IUnknown** ppSrv)
+    ITextHost* pHost, IUnknown** ppSrv) noexcept
 {
-	return PCreateTextServices(g_pfnCreateTextServices20)(punkOuter, pHost, ppSrv);
+    return PCreateTextServices(g_pfnCreateTextServices20)(punkOuter, pHost, ppSrv);
 }
 
-EckInline HRESULT Tsi20ShutdownTextServices(IUnknown* pSrv)
+EckInline HRESULT Tsi20ShutdownTextServices(IUnknown* pSrv) noexcept
 {
-	return PShutdownTextServices(g_pfnShutdownTextServices20)(pSrv);
+    return PShutdownTextServices(g_pfnShutdownTextServices20)(pSrv);
 }
 ECK_NAMESPACE_END

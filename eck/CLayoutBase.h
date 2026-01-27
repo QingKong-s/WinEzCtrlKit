@@ -50,7 +50,7 @@ enum : UINT
 class __declspec(novtable) CLayoutBase : public ILayout
 {
 public:
-    ECK_RTTI(CLayoutBase);
+    ECK_RTTI(CLayoutBase, ILayout);
 protected:
     struct ITEMBASE
     {
@@ -310,5 +310,4 @@ public:
 
     EckInlineNdCe int GetDpi() const noexcept { return m_iDpi; }
 };
-ECK_RTTI_IMPL_BASE_INLINE(CLayoutBase, ILayout);
 ECK_NAMESPACE_END

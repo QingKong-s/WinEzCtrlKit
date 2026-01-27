@@ -11,7 +11,7 @@ struct CSSTHEME_FILL_PARAM
 };
 
 inline void CssFillDrawEntry(_Inout_ THEME_DRAW_ENTRY& Draw,
-    const std::vector<CSS_STYLE>& vStyle, const CSSTHEME_FILL_PARAM& Param)
+    const std::vector<CSS_STYLE>& vStyle, const CSSTHEME_FILL_PARAM& Param) noexcept
 {
     Draw.eDraw = ThemeDraw::None;
     for (const auto& e : vStyle)

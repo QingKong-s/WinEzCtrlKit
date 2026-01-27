@@ -17,7 +17,7 @@ struct CTRLDATA_COLOR_PICK_BLOCK
 class CColorPickBlock : public CStatic
 {
 public:
-    ECK_RTTI(CColorPickBlock);
+    ECK_RTTI(CColorPickBlock, CStatic);
 private:
     COLORREF m_crCust[16]{};
     COLORREF m_cr{ CLR_INVALID };
@@ -32,10 +32,10 @@ private:
 public:
     EckInlineNdCe static PCVOID SkipBaseData(PCVOID p) noexcept
     {
-        return PtrStepCb(CStatic::SkipBaseData(p), sizeof(CTRLDATA_COLOR_PICK_BLOCK));
+        return PointerStepBytes(CStatic::SkipBaseData(p), sizeof(CTRLDATA_COLOR_PICK_BLOCK));
     }
 
-    void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) override
+    void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept override
     {
         CStatic::SerializeData(rb, pOpt);
         constexpr auto cbSize = sizeof(CTRLDATA_COLOR_PICK_BLOCK);
@@ -48,7 +48,7 @@ public:
         p->dwCCFlags = m_dwCCFlags;
     }
 
-    void PostDeserialize(PCVOID pData) override
+    void PostDeserialize(PCVOID pData) noexcept override
     {
         __super::PostDeserialize(pData);
         const auto* const p = (CTRLDATA_COLOR_PICK_BLOCK*)__super::SkipBaseData(pData);
@@ -58,20 +58,20 @@ public:
         m_dwCCFlags = p->dwCCFlags;
     }
 
-    void AttachNew(HWND hWnd) override
+    void AttachNew(HWND hWnd) noexcept override
     {
         __super::AttachNew(hWnd);
         SetText(nullptr);
         Redraw();
     }
 
-    void DetachNew() override
+    void DetachNew() noexcept override
     {
         __super::DetachNew();
         CleanupForDestroyWindow();
     }
 
-    LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
+    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -99,10 +99,11 @@ public:
             CleanupForDestroyWindow();
             break;
         }
-        return CStatic::OnMsg(hWnd, uMsg, wParam, lParam);
+        return CStatic::OnMessage(hWnd, uMsg, wParam, lParam);
     }
 
-    LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed) override
+    LRESULT OnNotifyMessage(HWND hParent, UINT uMsg,
+        WPARAM wParam, LPARAM lParam, BOOL& bProcessed) noexcept override
     {
         switch (uMsg)
         {
@@ -114,7 +115,7 @@ public:
         }
         break;
         }
-        return CStatic::OnNotifyMsg(hParent, uMsg, wParam, lParam, bProcessed);
+        return CStatic::OnNotifyMessage(hParent, uMsg, wParam, lParam, bProcessed);
     }
 
     EckInlineCe void SetColor(COLORREF cr) noexcept { m_cr = cr; }
@@ -126,5 +127,4 @@ public:
     EckInlineNdCe DWORD GetChooseColorFlags() const noexcept { return m_dwCCFlags; }
     EckInlineCe void SetChooseColorFlags(DWORD dwFlags) noexcept { m_dwCCFlags = dwFlags; }
 };
-ECK_RTTI_IMPL_BASE_INLINE(CColorPickBlock, CStatic);
 ECK_NAMESPACE_END

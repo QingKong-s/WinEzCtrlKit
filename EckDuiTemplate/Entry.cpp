@@ -18,11 +18,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     }
 
     DWORD dwErr;
-    const auto eInitRet = eck::Init(hInstance, nullptr, &dwErr);
+    const auto eInitRet = eck::Initialize(hInstance, nullptr, &dwErr);
     if (eInitRet != eck::InitStatus::Ok)
     {
         EckDbgPrintFormatMessage(dwErr);
-        eck::MsgBox(eck::Format(L"Init failed: %d(0x%08X)", (int)eInitRet, dwErr), L"", MB_ICONERROR);
+        eck::MsgBox(eck::Format(L"Initialize failed: %d(0x%08X)", (int)eInitRet, dwErr), L"", MB_ICONERROR);
         return 0;
     }
 
@@ -33,7 +33,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     const auto iDpi = eck::GetMonitorDpi(hMon);
     auto size = SIZE{ 640,480 };
     DpiScale(size, iDpi);
-    const auto pt = eck::CalcCenterWindowPos(nullptr, size.cx, size.cy, FALSE);
+    const auto pt = eck::CalculateCenterWindowPosition(nullptr, size.cx, size.cy, FALSE);
     pWnd->SetUserDpi(iDpi);
     pWnd->SetPresentMode(Dui::PresentMode::DCompositionSurface);
     pWnd->Create(L"示例Win32程序", WS_OVERLAPPEDWINDOW, 0,
@@ -51,8 +51,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     }
     delete pWnd;
     delete App;
-    eck::ThreadUnInit();
-    eck::UnInit();
+    eck::ThreadUninitialize();
+    eck::Uninitialize();
     CoUninitialize();
     return (int)msg.wParam;
 }

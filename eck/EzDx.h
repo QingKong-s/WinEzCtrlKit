@@ -15,7 +15,7 @@ inline HRESULT CompileShader(
     PCSTR pszEntryPoint,
     PCSTR pszTarget,
     UINT uFlags1 = 0u,
-    UINT uFlags2 = 0u)
+    UINT uFlags2 = 0u) noexcept
 {
     ComPtr<ID3DBlob> pErrorBlob;
     const auto hr = D3DCompile(pszShader, cchShader, nullptr, nullptr, nullptr,

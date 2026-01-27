@@ -204,10 +204,10 @@ constexpr inline ID3_GENRE Id3Genre[]
     { L"迷幻驰放"sv, L"Psybient"sv },
 };
 
-class CID3v1 :public CTag
+class CID3v1 : public CTag
 {
 public:
-    enum class Speed :BYTE
+    enum class Speed : BYTE
     {
         None,
         Slow,

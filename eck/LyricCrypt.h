@@ -193,7 +193,7 @@ namespace Priv
         state[0] = f(state[1], key[15]) ^ state[0];
         InvIP(state, out);
     }
-    static void Qrc3DesSetupKey(const BYTE key[], BYTE schedule[][16][6], QRC_DES_MODE mode)
+    static void Qrc3DesSetupKey(const BYTE key[], BYTE schedule[][16][6], QRC_DES_MODE mode) noexcept
     {
         if (mode == QRC_DES_ENCRYPT) {
             des_key_setup(&key[0], schedule[0], mode);
@@ -206,14 +206,14 @@ namespace Priv
             des_key_setup(&key[0], schedule[2], mode);
         }
     }
-    static void Qrc3DesCrypt(const BYTE in[], BYTE out[], const BYTE key[][16][6])
+    static void Qrc3DesCrypt(const BYTE in[], BYTE out[], const BYTE key[][16][6]) noexcept
     {
         des_crypt(in, out, key[0]);
         des_crypt(out, out, key[1]);
         des_crypt(out, out, key[2]);
     }
 
-    inline void Qmc1Decrypt(BYTE* p, size_t cb)
+    inline void Qmc1Decrypt(BYTE* p, size_t cb) noexcept
     {
         constexpr BYTE Key[128]
         {
@@ -240,7 +240,7 @@ namespace Priv
     }
 }
 
-inline BOOL KrcDecrypt(_Inout_bytecount_(cb) void* p, size_t cb, CRefBin& rbResult)
+inline BOOL KrcDecrypt(_Inout_bytecount_(cb) void* p, size_t cb, CRefBin& rbResult) noexcept
 {
     if (!p || cb <= 4)
         return FALSE;
@@ -254,7 +254,7 @@ inline BOOL KrcDecrypt(_Inout_bytecount_(cb) void* p, size_t cb, CRefBin& rbResu
     return ZLibSuccess(ZLibDecompress(p, cb, rbResult));
 }
 
-inline BOOL QrcDecrypt(_Inout_bytecount_(cb) void* p, size_t cb, CRefBin& rbResult)
+inline BOOL QrcDecrypt(_Inout_bytecount_(cb) void* p, size_t cb, CRefBin& rbResult) noexcept
 {
     if (!p || cb <= 11)
         return FALSE;

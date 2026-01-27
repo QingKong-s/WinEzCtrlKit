@@ -119,7 +119,7 @@ struct DLGTDLG : DLGTHEADER
     } Font;
     CRefStrW rsFontName;
 
-    PCWSTR GetMenu() const
+    PCWSTR GetMenu() const noexcept
     {
         if (Menu)
         {
@@ -133,7 +133,7 @@ struct DLGTDLG : DLGTHEADER
             return nullptr;
     }
 
-    PCWSTR GetClass() const
+    PCWSTR GetClass() const noexcept
     {
         if (Class)
         {
@@ -147,7 +147,7 @@ struct DLGTDLG : DLGTHEADER
             return ECKMAKEINTATOMW(32770);
     }
 
-    PCWSTR GetCaption() const
+    PCWSTR GetCaption() const noexcept
     {
         if (Caption)
             return Caption->Data();
@@ -162,7 +162,7 @@ struct DLGTITEM : DLGITEMTHEADER
     std::variant<WORD, CRefStrW> Caption;
     CRefBin rbExtra;
 
-    PCWSTR GetClass() const
+    PCWSTR GetClass() const noexcept
     {
         if (Class.index() == 0)// 类原子
             return ECKMAKEINTATOMW(std::get<0>(Class));
@@ -225,7 +225,7 @@ inline HRESULT SerializeDialogTemplate(
         cbTotal += ((Dlg.rsFontName.Size() + 1) * sizeof(WCHAR));
     }
 
-    cbTotal += CalcNextAlignBoundaryDistance(nullptr, (PCVOID)cbTotal, sizeof(DWORD));
+    cbTotal += CalculateNextAlignmentBoundaryDistance(nullptr, (PCVOID)cbTotal, sizeof(DWORD));
 
     cbTotal += (vItem.size() * (
         sizeof(DLGITEMTHEADER) /*头*/ +
@@ -243,9 +243,9 @@ inline HRESULT SerializeDialogTemplate(
             cbTotal += ((std::get<1>(e.Caption).Size() + 1) * sizeof(WCHAR));
 
         if (e.rbExtra.Size())
-            cbTotal += AlignMemSize(e.rbExtra.Size(), 2);
+            cbTotal += AlignedSize(e.rbExtra.Size(), 2);
 
-        cbTotal += CalcNextAlignBoundaryDistance(nullptr, (PCVOID)cbTotal, sizeof(DWORD));
+        cbTotal += CalculateNextAlignmentBoundaryDistance(nullptr, (PCVOID)cbTotal, sizeof(DWORD));
     }
 
     rbTemplate.PushBackNoExtra(cbTotal);
@@ -283,7 +283,7 @@ inline HRESULT SerializeDialogTemplate(
     if (bHasFontStru)
         w << Dlg.Font << Dlg.rsFontName;
 
-    w += CalcNextAlignBoundaryDistance(rbTemplate.Data(), w.Data(), sizeof(DWORD));
+    w += CalculateNextAlignmentBoundaryDistance(rbTemplate.Data(), w.Data(), sizeof(DWORD));
 
     for (const auto& x : vItem)
     {
@@ -303,10 +303,10 @@ inline HRESULT SerializeDialogTemplate(
         if (x.rbExtra.Size())
         {
             memcpy(w.Data(), x.rbExtra.Data(), x.rbExtra.Size());
-            w += AlignMemSize(x.rbExtra.Size(), 2);
+            w += AlignedSize(x.rbExtra.Size(), 2);
         }
 
-        w += CalcNextAlignBoundaryDistance(rbTemplate.Data(), w.Data(), sizeof(DWORD));
+        w += CalculateNextAlignmentBoundaryDistance(rbTemplate.Data(), w.Data(), sizeof(DWORD));
     }
 
     return S_OK;
@@ -387,7 +387,7 @@ inline HRESULT DeserializeDialogTemplate(
     else
         Dlg.rsFontName.Clear();
 
-    r += CalcNextAlignBoundaryDistance(pTemplate, r.Data(), sizeof(DWORD));
+    r += CalculateNextAlignmentBoundaryDistance(pTemplate, r.Data(), sizeof(DWORD));
 
     Items.resize(Dlg.cDlgItems);
     for (auto& x : Items)
@@ -431,7 +431,7 @@ inline HRESULT DeserializeDialogTemplate(
         else
             x.rbExtra.Clear();
 
-        r += CalcNextAlignBoundaryDistance(pTemplate, r.Data(), sizeof(DWORD));
+        r += CalculateNextAlignmentBoundaryDistance(pTemplate, r.Data(), sizeof(DWORD));
     }
 
     return S_OK;

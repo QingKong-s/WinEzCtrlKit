@@ -3,19 +3,19 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-EckInlineNdCe D2D1_COLOR_F StMakeForegroundColorLight(float fOpacity)
+EckInlineNdCe D2D1_COLOR_F StMakeForegroundColorLight(float fOpacity) noexcept
 {
     return { 0.f,0.f,0.f,fOpacity };
 }
-EckInlineNdCe D2D1_COLOR_F StMakeForegroundColorDark(float fOpacity)
+EckInlineNdCe D2D1_COLOR_F StMakeForegroundColorDark(float fOpacity) noexcept
 {
     return { 1.f,1.f,1.f,fOpacity };
 }
-EckInlineNdCe D2D1_COLOR_F StMakeBackgroundColorLight(float fOpacity)
+EckInlineNdCe D2D1_COLOR_F StMakeBackgroundColorLight(float fOpacity) noexcept
 {
     return { 1.f,1.f,1.f,fOpacity };
 }
-EckInlineNdCe D2D1_COLOR_F StMakeBackgroundColorDark(float fOpacity)
+EckInlineNdCe D2D1_COLOR_F StMakeBackgroundColorDark(float fOpacity) noexcept
 {
     return { 0.f,0.f,0.f,fOpacity };
 }
@@ -322,7 +322,7 @@ namespace Priv
         constexpr static D2D1_COLOR_F SpCrDarkTrackBarThumb{ 0.3f,0.3f,0.3f,1.f };
         constexpr static D2D1_COLOR_F SpCrDarkTrackBarThumbFrame{ 0.35f,0.35f,0.35f,1.f };
 
-        void SpDrawTrackBarThumb(const D2D1_RECT_F& rc, const DTB_OPT* pOpt, BOOL bDark) const
+        void SpDrawTrackBarThumb(const D2D1_RECT_F& rc, const DTB_OPT* pOpt, BOOL bDark) const noexcept
         {
             if (!pOpt)
                 pOpt = &DtbOptDefault;
@@ -404,7 +404,7 @@ namespace Priv
     };
 }
 
-inline CssResult StMakeTheme(ITheme*& pTheme, BOOL bDark)
+inline CssResult StMakeTheme(ITheme*& pTheme, BOOL bDark) noexcept
 {
     CSS_DOC Css;
     const auto r = CssParse(bDark ? StdDark : StdLight, Css);

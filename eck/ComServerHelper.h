@@ -26,7 +26,7 @@ constexpr inline std::wstring_view RegThreadingModel[]
 	L"Apartment"sv,L"Free"sv,L"Both"sv,L"Neutral"sv,{}
 };
 
-inline HRESULT RegisterInProcComServer(REFCLSID clsid,
+inline HRESULT RegisterInProcessComServer(REFCLSID clsid,
 	const CSH_REG_INPROC_SRV& Params) noexcept
 {
 	std::wstring_view svModFile{};
@@ -78,7 +78,7 @@ inline HRESULT RegisterInProcComServer(REFCLSID clsid,
 	return S_OK;
 }
 
-inline HRESULT UnregisterInProcComServer(REFCLSID clsid) noexcept
+inline HRESULT UnregisterInProcessComServer(REFCLSID clsid) noexcept
 {
 	CRegKey Key{};
 	const auto ls = Key.Open(HKEY_CLASSES_ROOT, L"CLSID", KEY_ENUMERATE_SUB_KEYS | DELETE);

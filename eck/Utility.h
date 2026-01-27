@@ -10,7 +10,8 @@ ECK_NAMESPACE_BEGIN
 /// <param name="pCurr">当前地址</param>
 /// <param name="cbAlign">对齐尺寸</param>
 /// <returns>当前地址到下一对齐边界的距离，如果当前地址已经落在对齐边界上，则返回0</returns>
-EckInlineNdCe SIZE_T CalcNextAlignBoundaryDistance(const void* pStart, const void* pCurr, SIZE_T cbAlign)
+EckInlineNdCe SIZE_T CalculateNextAlignmentBoundaryDistance(
+    const void* pStart, const void* pCurr, SIZE_T cbAlign) noexcept
 {
     SIZE_T uDistance = (SIZE_T)pCurr - (SIZE_T)pStart;
     return (((uDistance - 1u) / cbAlign + 1u) * cbAlign - uDistance);
@@ -24,16 +25,16 @@ EckInlineNdCe SIZE_T CalcNextAlignBoundaryDistance(const void* pStart, const voi
 /// <param name="cbAlign">对齐尺寸</param>
 /// <returns>步进后的指针，如果当前指针已经落在对齐边界上，则指针不变</returns>
 template<class T>
-EckInlineNdCe T* StepToNextAlignBoundary(T* pStart, T* pCurr, SIZE_T cbAlign)
+EckInlineNdCe T* StepToNextAlignmentBoundary(T* pStart, T* pCurr, SIZE_T cbAlign) noexcept
 {
-    return (T*)((BYTE*)pCurr + CalcNextAlignBoundaryDistance(pStart, pCurr, cbAlign));
+    return (T*)((BYTE*)pCurr + CalculateNextAlignmentBoundaryDistance(pStart, pCurr, cbAlign));
 }
 
-EckInlineNdCe void* PtrSkipType(auto* p) { return (void*)((BYTE*)p + sizeof(*p)); }
-EckInlineNdCe const void* PtrSkipType(const auto* p) { return (const void*)((PCBYTE)p + sizeof(*p)); }
+EckInlineNdCe void* PointerSkipType(auto* p) noexcept { return (void*)((BYTE*)p + sizeof(*p)); }
+EckInlineNdCe const void* PointerSkipType(const auto* p) noexcept { return (const void*)((PCBYTE)p + sizeof(*p)); }
 
 // 计算对齐后内存尺寸
-EckInlineNdCe SIZE_T AlignMemSize(SIZE_T cbSize, SIZE_T cbAlign)
+EckInlineNdCe SIZE_T AlignedSize(SIZE_T cbSize, SIZE_T cbAlign) noexcept
 {
     if (cbSize / cbAlign * cbAlign == cbSize)
         return cbSize;
@@ -42,7 +43,7 @@ EckInlineNdCe SIZE_T AlignMemSize(SIZE_T cbSize, SIZE_T cbAlign)
 }
 
 template<class T>
-EckInlineNdCe T* PtrStepCb(T* p, SSIZE_T d)
+EckInlineNdCe T* PointerStepBytes(T* p, SSIZE_T d) noexcept
 {
     return (T*)((BYTE*)p + d);
 }
@@ -50,28 +51,28 @@ EckInlineNdCe T* PtrStepCb(T* p, SSIZE_T d)
 
 #pragma region 位
 template<std::integral T>
-EckInlineNdCe BYTE GetIntegerByte(T i, int idxByte)
+EckInlineNdCe BYTE GetIntegerByte(T i, int idxByte) noexcept
 {
     EckAssert(idxByte >= 0 && idxByte < sizeof(T));
     return (BYTE)((i >> (idxByte * 8)) & 0b11111111);
 }
 
 template<std::integral T>
-EckInlineCe void SetIntegerByte(T& i, int idxByte, BYTE by)
+EckInlineCe void SetIntegerByte(T& i, int idxByte, BYTE by) noexcept
 {
     EckAssert(idxByte >= 0 && idxByte < sizeof(T));
     i &= ((~(T)0b11111111) << (idxByte * 8));
 }
 
 template<int N, std::integral T>
-EckInlineNdCe BYTE GetIntegerByte(T i)
+EckInlineNdCe BYTE GetIntegerByte(T i) noexcept
 {
     static_assert(N >= 0 && N < sizeof(T));
     return (BYTE)((i >> (N * 8)) & 0b11111111);
 }
 
 template<int N, std::integral T>
-EckInlineCe void SetIntegerByte(T& i, BYTE by)
+EckInlineCe void SetIntegerByte(T& i, BYTE by) noexcept
 {
     static_assert(N >= 0 && N < sizeof(T));
     i &= ((~(T)0b11111111) << (N * 8));
@@ -85,7 +86,7 @@ EckInlineCe void SetIntegerByte(T& i, BYTE by)
 /// <param name="...by">字节组，个数必须等于sizeof(TRet)</param>
 /// <returns>整数</returns>
 template<std::integral TRet, class... T>
-EckInlineNdCe TRet BytesToInteger(T... by)
+EckInlineNdCe TRet BytesToInteger(T... by) noexcept
 {
     static_assert(sizeof...(T) == sizeof(TRet));
     int i = 0;
@@ -103,7 +104,7 @@ EckInlineNdCe TRet BytesToInteger(T... by)
 /// <param name="i">输入</param>
 /// <returns>转换结果</returns>
 template<std::integral T>
-EckInlineNdCe T ReverseInteger(T i)
+EckInlineNdCe T ReverseInteger(T i) noexcept
 {
     if constexpr (sizeof(T) == 8)
         return (T)_byteswap_uint64((UINT64)i);
@@ -115,41 +116,41 @@ EckInlineNdCe T ReverseInteger(T i)
         return i;
 }
 
-EckInlineCe void ReverseByteOrder(BYTE* p, size_t cb)
+EckInlineCe void ReverseByteOrder(BYTE* p, size_t cb) noexcept
 {
     std::reverse(p, p + cb);
 }
 template<std::integral T>
-EckInlineNdCe T ReverseByteOrder(T& i)
+EckInlineNdCe T ReverseByteOrder(T& i) noexcept
 {
     auto p = (BYTE*)&i;
     std::reverse(p, p + sizeof(T));
     return i;
 }
 
-EckInlineNdCe BOOL IsBitSet(auto dw1, auto dw2)
+EckInlineNdCe BOOL IsBitSet(auto dw1, auto dw2) noexcept
 {
     return (dw1 & dw2) == dw2;
 }
 
 template<std::integral T>
-EckInlineNdCe T GetLowNBits(T x, size_t n)
+EckInlineNdCe T GetLowNBits(T x, size_t n) noexcept
 {
     return x & ((T{ 1 } << n) - T{ 1 });
 }
 template<std::integral T>
-EckInlineNdCe T GetHighNBits(T x, size_t n)
+EckInlineNdCe T GetHighNBits(T x, size_t n) noexcept
 {
     return (x >> n) & ((T{ 1 } << n) - T{ 1 });
 }
 
 template<std::integral T>
-EckInlineNdCe T ClearLowNBits(T x, size_t n)
+EckInlineNdCe T ClearLowNBits(T x, size_t n) noexcept
 {
     return x & ~((T{ 1 } << n) - T{ 1 });
 }
 template<std::integral T>
-EckInlineNdCe T ClearHighNBits(T x, size_t n)
+EckInlineNdCe T ClearHighNBits(T x, size_t n) noexcept
 {
     return x & ((T{ 1 } << (sizeof(T) * 8 - n)) - T{ 1 });
 }
@@ -204,7 +205,7 @@ namespace Colorref
         ;
 }
 
-EckInlineNdCe UINT ReverseColorref(COLORREF cr)
+EckInlineNdCe UINT ReverseColorref(COLORREF cr) noexcept
 {
     return BytesToInteger<UINT>(
         GetIntegerByte<2>(cr),
@@ -213,19 +214,19 @@ EckInlineNdCe UINT ReverseColorref(COLORREF cr)
         0);
 }
 
-EckInlineNdCe ARGB ColorrefToArgb(COLORREF cr, BYTE byAlpha = 0xFF)
+EckInlineNdCe ARGB ColorrefToArgb(COLORREF cr, BYTE byAlpha = 0xFF) noexcept
 {
     return ReverseColorref(cr) | (byAlpha << 24);
 }
-EckInlineNdCe COLORREF ArgbToColorref(ARGB argb, BYTE* pbyAlpha = nullptr)
+EckInlineNdCe COLORREF ArgbToColorref(ARGB argb, BYTE* pbyAlpha = nullptr) noexcept
 {
     if (pbyAlpha)
         *pbyAlpha = GetIntegerByte<3>(argb);
     return ReverseColorref(argb);
 }
 
-#ifdef _D2D1_H_// 与ECK_OPT_NO_DX选项兼容
-EckInlineNdCe D2D1_COLOR_F ArgbToD2DColorF(ARGB argb)
+#ifdef _D2D1_H_
+EckInlineNdCe D2D1_COLOR_F ArgbToD2DColorF(ARGB argb) noexcept
 {
     return D2D1_COLOR_F
     {
@@ -235,7 +236,7 @@ EckInlineNdCe D2D1_COLOR_F ArgbToD2DColorF(ARGB argb)
         GetIntegerByte<3>(argb) / 255.f
     };
 }
-EckInlineNdCe ARGB D2DColorFToArgb(const D2D1_COLOR_F& cr)
+EckInlineNdCe ARGB D2DColorFToArgb(const D2D1_COLOR_F& cr) noexcept
 {
     return BytesToInteger<ARGB>(
         BYTE(cr.r * 255.f),
@@ -243,7 +244,7 @@ EckInlineNdCe ARGB D2DColorFToArgb(const D2D1_COLOR_F& cr)
         BYTE(cr.b * 255.f),
         BYTE(cr.a * 255.f));
 }
-EckInlineNdCe D2D1_COLOR_F RgbToD2DColorF(UINT rgb, float fAlpha = 1.f)
+EckInlineNdCe D2D1_COLOR_F RgbToD2DColorF(UINT rgb, float fAlpha = 1.f) noexcept
 {
     return D2D1_COLOR_F
     {
@@ -254,7 +255,7 @@ EckInlineNdCe D2D1_COLOR_F RgbToD2DColorF(UINT rgb, float fAlpha = 1.f)
     };
 }
 
-EckInlineNdCe COLORREF D2DColorFToColorref(const D2D1_COLOR_F& cr)
+EckInlineNdCe COLORREF D2DColorFToColorref(const D2D1_COLOR_F& cr) noexcept
 {
     return BytesToInteger<COLORREF>(
         BYTE(cr.r * 255.f),
@@ -262,7 +263,7 @@ EckInlineNdCe COLORREF D2DColorFToColorref(const D2D1_COLOR_F& cr)
         BYTE(cr.b * 255.f),
         0);
 }
-EckInlineNdCe D2D1_COLOR_F ColorrefToD2DColorF(COLORREF cr, float fAlpha = 1.f)
+EckInlineNdCe D2D1_COLOR_F ColorrefToD2DColorF(COLORREF cr, float fAlpha = 1.f) noexcept
 {
     return D2D1_COLOR_F
     {
@@ -274,7 +275,7 @@ EckInlineNdCe D2D1_COLOR_F ColorrefToD2DColorF(COLORREF cr, float fAlpha = 1.f)
 }
 #endif// _D2D1_H_
 
-EckInlineNdCe COLORREF ColorrefAlphaBlend(COLORREF cr, COLORREF crBK, BYTE byAlpha)
+EckInlineNdCe COLORREF ColorrefAlphaBlend(COLORREF cr, COLORREF crBK, BYTE byAlpha) noexcept
 {
     return BytesToInteger<COLORREF>(
         GetIntegerByte<0>(cr) * byAlpha / 0xFF + GetIntegerByte<0>(crBK) * (0xFF - byAlpha) / 0xFF,
@@ -282,7 +283,7 @@ EckInlineNdCe COLORREF ColorrefAlphaBlend(COLORREF cr, COLORREF crBK, BYTE byAlp
         GetIntegerByte<2>(cr) * byAlpha / 0xFF + GetIntegerByte<2>(crBK) * (0xFF - byAlpha) / 0xFF,
         0);
 }
-EckInlineNdCe ARGB ArgbAlphaBlend(ARGB cr, ARGB crBK)
+EckInlineNdCe ARGB ArgbAlphaBlend(ARGB cr, ARGB crBK) noexcept
 {
     const BYTE byAlpha = GetIntegerByte<3>(cr);
     return BytesToInteger<ARGB>(
@@ -292,18 +293,18 @@ EckInlineNdCe ARGB ArgbAlphaBlend(ARGB cr, ARGB crBK)
         GetIntegerByte<3>(cr) * byAlpha / 0xFF + GetIntegerByte<3>(crBK) * (0xFF - byAlpha) / 0xFF);
 }
 
-EckInlineNdCe BOOL IsColorLight(BYTE r, BYTE g, BYTE b)
+EckInlineNdCe BOOL IsColorLight(BYTE r, BYTE g, BYTE b) noexcept
 {
     return 5 * g + 2 * r + b > 8 * 128;
 }
-EckInlineNdCe BOOL IsColorLightArgb(ARGB argb)
+EckInlineNdCe BOOL IsColorLightArgb(ARGB argb) noexcept
 {
     return IsColorLight(
         GetIntegerByte<2>(argb),
         GetIntegerByte<1>(argb),
         GetIntegerByte<0>(argb));
 }
-EckInlineNdCe BOOL IsColorLightColorref(COLORREF cr)
+EckInlineNdCe BOOL IsColorLightColorref(COLORREF cr) noexcept
 {
     return IsColorLight(
         GetIntegerByte<0>(cr),
@@ -311,64 +312,65 @@ EckInlineNdCe BOOL IsColorLightColorref(COLORREF cr)
         GetIntegerByte<2>(cr));
 }
 
-EckInlineNdCe BYTE GetArgbR(ARGB argb)
+EckInlineNdCe BYTE GetArgbR(ARGB argb) noexcept
 {
     return GetIntegerByte<2>(argb);
 }
-EckInlineNdCe BYTE GetArgbG(ARGB argb)
+EckInlineNdCe BYTE GetArgbG(ARGB argb) noexcept
 {
     return GetIntegerByte<1>(argb);
 }
-EckInlineNdCe BYTE GetArgbB(ARGB argb)
+EckInlineNdCe BYTE GetArgbB(ARGB argb) noexcept
 {
     return GetIntegerByte<0>(argb);
 }
-EckInlineNdCe BYTE GetArgbA(ARGB argb)
+EckInlineNdCe BYTE GetArgbA(ARGB argb) noexcept
 {
     return GetIntegerByte<3>(argb);
 }
 
 template<class TOut>
-inline constexpr void RgbToYuv(BYTE r, BYTE g, BYTE b, TOut& y, TOut& u, TOut& v)
+inline constexpr void RgbToYuv(BYTE r, BYTE g, BYTE b, TOut& y, TOut& u, TOut& v) noexcept
 {
     y = TOut(0.299f * r + 0.587f * g + 0.114f * b);
     u = TOut(-0.14713f * r - 0.28886f * g + 0.436f * b);
     v = TOut(0.615f * r - 0.51499f * g - 0.10001f * b);
 }
 
-EckNfInlineNd float CalcColorDiff(BYTE r1, BYTE g1, BYTE b1, BYTE r2, BYTE g2, BYTE b2)
+EckNfInlineNd float CalculateColorDifference(BYTE r1, BYTE g1, BYTE b1,
+    BYTE r2, BYTE g2, BYTE b2) noexcept
 {
     float y1, u1, v1, y2, u2, v2;
     RgbToYuv(r1, g1, b1, y1, u1, v1);
     RgbToYuv(r2, g2, b2, y2, u2, v2);
     return sqrtf((y1 - y2) * (y1 - y2) + (u1 - u2) * (u1 - u2) + (v1 - v2) * (v1 - v2));
 }
-EckInlineNd float CalcColorDiffColorref(COLORREF cr1, COLORREF cr2)
+EckInlineNd float CalculateColorrefDifference(COLORREF cr1, COLORREF cr2) noexcept
 {
-    return CalcColorDiff(GetRValue(cr1), GetGValue(cr1), GetBValue(cr1),
+    return CalculateColorDifference(GetRValue(cr1), GetGValue(cr1), GetBValue(cr1),
         GetRValue(cr2), GetGValue(cr2), GetBValue(cr2));
 }
-EckInlineNd float CalcColorDiffArgb(ARGB argb1, ARGB argb2)
+EckInlineNd float CalculateArgbDifference(ARGB argb1, ARGB argb2) noexcept
 {
-    return CalcColorDiff(GetArgbR(argb1), GetArgbG(argb1), GetArgbB(argb1),
+    return CalculateColorDifference(GetArgbR(argb1), GetArgbG(argb1), GetArgbB(argb1),
         GetArgbR(argb2), GetArgbG(argb2), GetArgbB(argb2));
 }
 
-EckInlineNdCe COLORREF AdjustColorrefLuma(COLORREF cr, int iPrecent)
+EckInlineNdCe COLORREF AdjustColorrefLuma(COLORREF cr, int iPrecent) noexcept
 {
     return RGB(
         std::min(GetRValue(cr) * iPrecent / 100, 0xFF),
         std::min(GetGValue(cr) * iPrecent / 100, 0xFF),
         std::min(GetBValue(cr) * iPrecent / 100, 0xFF));
 }
-EckInlineNdCe COLORREF DeltaColorrefLuma(COLORREF cr, int d)
+EckInlineNdCe COLORREF DeltaColorrefLuma(COLORREF cr, int d) noexcept
 {
     return RGB(
         std::clamp(GetRValue(cr) + d, 0, 0xFF),
         std::clamp(GetGValue(cr) + d, 0, 0xFF),
         std::clamp(GetBValue(cr) + d, 0, 0xFF));
 }
-EckInlineNdCe COLORREF DeltaColorrefLuma(COLORREF cr, float d)
+EckInlineNdCe COLORREF DeltaColorrefLuma(COLORREF cr, float d) noexcept
 {
     return RGB(
         std::clamp(int(GetRValue(cr) + d * 255), 0, 0xFF),
@@ -378,13 +380,13 @@ EckInlineNdCe COLORREF DeltaColorrefLuma(COLORREF cr, float d)
 #pragma endregion 颜色
 
 #pragma region 图形结构
-EckInlineNdCe BOOL EquRect(const RECT& rc1, const RECT& rc2)
+EckInlineNdCe BOOL EquRect(const RECT& rc1, const RECT& rc2) noexcept
 {
     return rc1.left == rc2.left && rc1.top == rc2.top &&
         rc1.right == rc2.right && rc1.bottom == rc2.bottom;
 }
 
-EckNfInlineNdCe RECT MakeRect(POINT pt1, POINT pt2)
+EckNfInlineNdCe RECT MakeRect(POINT pt1, POINT pt2) noexcept
 {
     RECT rc;
     if (pt1.x >= pt2.x)
@@ -399,75 +401,75 @@ EckNfInlineNdCe RECT MakeRect(POINT pt1, POINT pt2)
     return rc;
 }
 
-EckInlineNdCe BOOL IsRectsIntersect(const RECT& rc1, const RECT& rc2)
+EckInlineNdCe BOOL IsRectsIntersect(const RECT& rc1, const RECT& rc2) noexcept
 {
     if (std::max(rc1.left, rc2.left) < std::min(rc1.right, rc2.right))
         return std::max(rc1.top, rc2.top) < std::min(rc1.bottom, rc2.bottom);
     return FALSE;
 }
-EckInlineNdCe BOOL IsRectsIntersect(const D2D1_RECT_F& rc1, const D2D1_RECT_F& rc2)
+EckInlineNdCe BOOL IsRectsIntersect(const D2D1_RECT_F& rc1, const D2D1_RECT_F& rc2) noexcept
 {
     if (std::max(rc1.left, rc2.left) < std::min(rc1.right, rc2.right))
         return std::max(rc1.top, rc2.top) < std::min(rc1.bottom, rc2.bottom);
     return FALSE;
 }
-EckInlineNdCe BOOL IsRectsIntersect(const RCWH& rc1, const RCWH& rc2)
+EckInlineNdCe BOOL IsRectsIntersect(const RCWH& rc1, const RCWH& rc2) noexcept
 {
     if (std::max(rc1.x, rc2.x) < std::min(rc1.x + rc1.cx, rc2.x + rc2.cx))
         return std::max(rc1.y, rc2.y) < std::min(rc1.y + rc1.cy, rc2.y + rc2.cy);
     return FALSE;
 }
 
-EckInlineNdCe D2D1_RECT_F MakeD2DRectF(const RECT& rc)
+EckInlineNdCe D2D1_RECT_F MakeD2DRectF(const RECT& rc) noexcept
 {
     return { (float)rc.left, (float)rc.top, (float)rc.right, (float)rc.bottom };
 }
-EckInlineNdCe D2D1_RECT_F MakeD2DRectF(float x, float y, float cx, float cy)
+EckInlineNdCe D2D1_RECT_F MakeD2DRectF(float x, float y, float cx, float cy) noexcept
 {
     return { x, y, x + cx, y + cy };
 }
 
-EckInlineNdCe RECT MakeRect(const D2D1_RECT_F& rc)
+EckInlineNdCe RECT MakeRect(const D2D1_RECT_F& rc) noexcept
 {
     return { (LONG)rc.left, (LONG)rc.top, (LONG)rc.right, (LONG)rc.bottom };
 }
-EckInlineNdCe RECT MakeRect(int x, int y, int cx, int cy)
+EckInlineNdCe RECT MakeRect(int x, int y, int cx, int cy) noexcept
 {
     return { x, y, x + cx, y + cy };
 }
 
 #if !ECK_OPT_NO_GDIPLUS
-EckInline GpRectF MakeGpRectF(const RECT& rc)
+EckInline GpRectF MakeGpRectF(const RECT& rc) noexcept
 {
     return { (REAL)rc.left,(REAL)rc.top,(REAL)(rc.right - rc.left),(REAL)(rc.bottom - rc.top) };
 }
 #endif
 
-EckInlineNdCe RCWH MakeRcwh(const RECT& rc)
+EckInlineNdCe RCWH MakeRcwh(const RECT& rc) noexcept
 {
     return RCWH{ rc.left,rc.top,rc.right - rc.left,rc.bottom - rc.top };
 }
 
-EckInlineNdCe D2D1_POINT_2F MakeD2DPointF(POINT pt)
+EckInlineNdCe D2D1_POINT_2F MakeD2DPointF(POINT pt) noexcept
 {
     return { (float)pt.x,(float)pt.y };
 }
 
-EckInlineCe void InflateRect(D2D1_RECT_F& rc, float dx, float dy)
+EckInlineCe void InflateRect(D2D1_RECT_F& rc, float dx, float dy) noexcept
 {
     rc.left -= dx;
     rc.top -= dy;
     rc.right += dx;
     rc.bottom += dy;
 }
-EckInlineCe void InflateRect(RECT& rc, int dx, int dy)
+EckInlineCe void InflateRect(RECT& rc, int dx, int dy) noexcept
 {
     rc.left -= dx;
     rc.top -= dy;
     rc.right += dx;
     rc.bottom += dy;
 }
-EckInlineCe void InflateRect(RCWH& rc, int dx, int dy)
+EckInlineCe void InflateRect(RCWH& rc, int dx, int dy) noexcept
 {
     rc.x -= dx;
     rc.y -= dy;
@@ -475,7 +477,8 @@ EckInlineCe void InflateRect(RCWH& rc, int dx, int dy)
     rc.cy += dy;
 }
 
-EckInlineCe BOOL IntersectRect(D2D1_RECT_F& rcDst, const D2D1_RECT_F& rcSrc1, const D2D1_RECT_F& rcSrc2)
+EckInlineCe BOOL IntersectRect(D2D1_RECT_F& rcDst,
+    const D2D1_RECT_F& rcSrc1, const D2D1_RECT_F& rcSrc2) noexcept
 {
     rcDst.left = std::max(rcSrc1.left, rcSrc2.left);
     rcDst.right = std::min(rcSrc1.right, rcSrc2.right);
@@ -489,7 +492,8 @@ EckInlineCe BOOL IntersectRect(D2D1_RECT_F& rcDst, const D2D1_RECT_F& rcSrc1, co
     rcDst = {};
     return FALSE;
 }
-EckInlineCe BOOL IntersectRect(RECT& rcDst, const RECT& rcSrc1, const RECT& rcSrc2)
+EckInlineCe BOOL IntersectRect(RECT& rcDst,
+    const RECT& rcSrc1, const RECT& rcSrc2) noexcept
 {
     rcDst.left = std::max(rcSrc1.left, rcSrc2.left);
     rcDst.right = std::min(rcSrc1.right, rcSrc2.right);
@@ -503,7 +507,8 @@ EckInlineCe BOOL IntersectRect(RECT& rcDst, const RECT& rcSrc1, const RECT& rcSr
     rcDst = {};
     return FALSE;
 }
-EckInlineCe BOOL IntersectRect(RCWH& rcDst, const RCWH& rcSrc1, const RCWH& rcSrc2)
+EckInlineCe BOOL IntersectRect(RCWH& rcDst,
+    const RCWH& rcSrc1, const RCWH& rcSrc2) noexcept
 {
     rcDst.x = std::max(rcSrc1.x, rcSrc2.x);
     rcDst.cx = std::min(rcSrc1.x + rcSrc1.cx, rcSrc2.x + rcSrc2.cx) - rcDst.x;
@@ -518,56 +523,57 @@ EckInlineCe BOOL IntersectRect(RCWH& rcDst, const RCWH& rcSrc1, const RCWH& rcSr
     return FALSE;
 }
 
-EckInlineCe void OffsetRect(D2D1_RECT_F& rc, float dx, float dy)
+EckInlineCe void OffsetRect(D2D1_RECT_F& rc, float dx, float dy) noexcept
 {
     rc.left += dx;
     rc.top += dy;
     rc.right += dx;
     rc.bottom += dy;
 }
-EckInlineCe void OffsetRect(RECT& rc, int dx, int dy)
+EckInlineCe void OffsetRect(RECT& rc, int dx, int dy) noexcept
 {
     rc.left += dx;
     rc.top += dy;
     rc.right += dx;
     rc.bottom += dy;
 }
-EckInlineCe void OffsetRect(RCWH& rc, int dx, int dy)
+EckInlineCe void OffsetRect(RCWH& rc, int dx, int dy) noexcept
 {
     rc.x += dx;
     rc.y += dy;
 }
 
-EckInlineNdCe BOOL PtInRect(const RECT& rc, POINT pt)
+EckInlineNdCe BOOL PtInRect(const RECT& rc, POINT pt) noexcept
 {
     return ((pt.x >= rc.left) && (pt.x < rc.right) &&
         (pt.y >= rc.top) && (pt.y < rc.bottom));
 }
-EckInlineNdCe BOOL PtInRect(const D2D1_RECT_F& rc, D2D1_POINT_2F pt)
+EckInlineNdCe BOOL PtInRect(const D2D1_RECT_F& rc, D2D1_POINT_2F pt) noexcept
 {
     return ((pt.x >= rc.left) && (pt.x < rc.right) &&
         (pt.y >= rc.top) && (pt.y < rc.bottom));
 }
-EckInlineNdCe BOOL PtInRect(const D2D1_RECT_F& rc, POINT pt)
+EckInlineNdCe BOOL PtInRect(const D2D1_RECT_F& rc, POINT pt) noexcept
 {
     return ((pt.x >= rc.left) && (pt.x < rc.right) &&
         (pt.y >= rc.top) && (pt.y < rc.bottom));
 }
 
-EckInlineNdCe BOOL IsRectEmpty(const RECT& rc)
+EckInlineNdCe BOOL IsRectEmpty(const RECT& rc) noexcept
 {
     return rc.left >= rc.right || rc.top >= rc.bottom;
 }
-EckInlineNdCe BOOL IsRectEmpty(const D2D1_RECT_F& rc)
+EckInlineNdCe BOOL IsRectEmpty(const D2D1_RECT_F& rc) noexcept
 {
     return rc.left >= rc.right || rc.top >= rc.bottom;
 }
-EckInlineNdCe BOOL IsRectEmpty(const RCWH& rc)
+EckInlineNdCe BOOL IsRectEmpty(const RCWH& rc) noexcept
 {
     return rc.cx <= 0 || rc.cy <= 0;
 }
 
-EckNfInlineCe void UnionRect(RECT& rcDst, const RECT& rcSrc1, const RECT& rcSrc2)
+EckNfInlineCe void UnionRect(RECT& rcDst,
+    const RECT& rcSrc1, const RECT& rcSrc2) noexcept
 {
     const BOOL b1 = IsRectEmpty(rcSrc1), b2 = IsRectEmpty(rcSrc2);
     if (b1)
@@ -587,7 +593,8 @@ EckNfInlineCe void UnionRect(RECT& rcDst, const RECT& rcSrc1, const RECT& rcSrc2
         rcDst.bottom = std::max(rcSrc1.bottom, rcSrc2.bottom);
     }
 }
-EckNfInlineCe void UnionRect(D2D1_RECT_F& rcDst, const D2D1_RECT_F& rcSrc1, const D2D1_RECT_F& rcSrc2)
+EckNfInlineCe void UnionRect(D2D1_RECT_F& rcDst,
+    const D2D1_RECT_F& rcSrc1, const D2D1_RECT_F& rcSrc2) noexcept
 {
     const BOOL b1 = IsRectEmpty(rcSrc1), b2 = IsRectEmpty(rcSrc2);
     if (b1)
@@ -607,7 +614,8 @@ EckNfInlineCe void UnionRect(D2D1_RECT_F& rcDst, const D2D1_RECT_F& rcSrc1, cons
         rcDst.bottom = std::max(rcSrc1.bottom, rcSrc2.bottom);
     }
 }
-EckNfInlineCe void UnionRect(RCWH& rcDst, const RCWH& rcSrc1, const RCWH& rcSrc2)
+EckNfInlineCe void UnionRect(RCWH& rcDst,
+    const RCWH& rcSrc1, const RCWH& rcSrc2) noexcept
 {
     const BOOL b1 = IsRectEmpty(rcSrc1), b2 = IsRectEmpty(rcSrc2);
     if (b1)
@@ -628,35 +636,35 @@ EckNfInlineCe void UnionRect(RCWH& rcDst, const RCWH& rcSrc1, const RCWH& rcSrc2
     }
 }
 
-EckInlineNdCe BOOL IsRectInclude(const RECT& rcIn, const RECT& rcOut)
+EckInlineNdCe BOOL IsRectInclude(const RECT& rcIn, const RECT& rcOut) noexcept
 {
     return rcIn.left <= rcOut.left && rcIn.top <= rcOut.top &&
         rcIn.right >= rcOut.right && rcIn.bottom >= rcOut.bottom;
 }
-EckInlineNdCe BOOL IsRectInclude(const RCWH& rcIn, const RCWH& rcOut)
+EckInlineNdCe BOOL IsRectInclude(const RCWH& rcIn, const RCWH& rcOut) noexcept
 {
     return rcIn.x <= rcOut.x && rcIn.y <= rcOut.y &&
         rcIn.x + rcIn.cx >= rcOut.x + rcOut.cx && rcIn.y + rcIn.cy >= rcOut.y + rcOut.cy;
 }
 
-EckInlineNdCe bool operator==(const D2D1_RECT_F& rc1, const D2D1_RECT_F& rc2)
+EckInlineNdCe bool operator==(const D2D1_RECT_F& rc1, const D2D1_RECT_F& rc2) noexcept
 {
     return rc1.left == rc2.left && rc1.top == rc2.top &&
         rc1.right == rc2.right && rc1.bottom == rc2.bottom;
 }
-EckInlineNdCe bool operator==(const D2D1_POINT_2F& pt1, const D2D1_POINT_2F& pt2)
+EckInlineNdCe bool operator==(const D2D1_POINT_2F& pt1, const D2D1_POINT_2F& pt2) noexcept
 {
     return pt1.x == pt2.x && pt1.y == pt2.y;
 }
-EckInlineNdCe bool operator==(const D2D1_SIZE_F& sz1, const D2D1_SIZE_F& sz2)
+EckInlineNdCe bool operator==(const D2D1_SIZE_F& sz1, const D2D1_SIZE_F& sz2) noexcept
 {
     return sz1.width == sz2.width && sz1.height == sz2.height;
 }
-EckInlineNdCe bool operator==(const D2D1_SIZE_U& sz1, const D2D1_SIZE_U& sz2)
+EckInlineNdCe bool operator==(const D2D1_SIZE_U& sz1, const D2D1_SIZE_U& sz2) noexcept
 {
     return sz1.width == sz2.width && sz1.height == sz2.height;
 }
-EckInlineNdCe bool operator==(const RCWH& rc1, const RCWH& rc2)
+EckInlineNdCe bool operator==(const RCWH& rc1, const RCWH& rc2) noexcept
 {
     return rc1.x == rc2.x && rc1.y == rc2.y && rc1.cx == rc2.cx && rc1.cy == rc2.cy;
 }
@@ -668,7 +676,7 @@ EckInlineNdCe bool operator==(const RCWH& rc1, const RCWH& rc2)
 /// <param name="rc">要调整的矩形</param>
 /// <param name="rcRef">参照矩形</param>
 /// <returns>成功返回TRUE，失败或无需调整返回FALSE</returns>
-EckNfInlineCe BOOL AdjustRectIntoAnother(RECT& rc, const RECT& rcRef)
+EckNfInlineCe BOOL AdjustRectIntoAnother(RECT& rc, const RECT& rcRef) noexcept
 {
     if (rc.right - rc.left > rcRef.right - rcRef.left ||
         rc.bottom - rc.top > rcRef.bottom - rcRef.top)
@@ -699,7 +707,7 @@ EckNfInlineCe BOOL AdjustRectIntoAnother(RECT& rc, const RECT& rcRef)
     OffsetRect(rc, dxLeft, dyTop);
     return TRUE;
 }
-EckNfInlineCe BOOL AdjustRectIntoAnother(RCWH& rc, const RCWH& rcRef)
+EckNfInlineCe BOOL AdjustRectIntoAnother(RCWH& rc, const RCWH& rcRef) noexcept
 {
     if (rc.cx > rcRef.cx || rc.cy > rcRef.cy)
         return FALSE;
@@ -737,7 +745,7 @@ EckNfInlineCe BOOL AdjustRectIntoAnother(RCWH& rc, const RCWH& rcRef)
 /// <param name="rc">欲调整的矩形</param>
 /// <param name="rcRef">参照矩形</param>
 /// <returns>成功返回TRUE，失败返回FALSE</returns>
-EckNfInlineCe BOOL AdjustRectToFitAnother(RECT& rc, const RECT& rcRef)
+EckNfInlineCe BOOL AdjustRectToFitAnother(RECT& rc, const RECT& rcRef) noexcept
 {
     const int
         cxMax = rcRef.right - rcRef.left,
@@ -764,7 +772,7 @@ EckNfInlineCe BOOL AdjustRectToFitAnother(RECT& rc, const RECT& rcRef)
     rc.bottom = rc.top + cy;
     return TRUE;
 }
-EckNfInlineCe BOOL AdjustRectToFitAnother(D2D1_RECT_F& rc, const D2D1_RECT_F& rcRef)
+EckNfInlineCe BOOL AdjustRectToFitAnother(D2D1_RECT_F& rc, const D2D1_RECT_F& rcRef) noexcept
 {
     const float
         cxMax = rcRef.right - rcRef.left,
@@ -799,7 +807,7 @@ EckNfInlineCe BOOL AdjustRectToFitAnother(D2D1_RECT_F& rc, const D2D1_RECT_F& rc
 /// <param name="rc">欲调整的矩形</param>
 /// <param name="rcRef">参照矩形</param>
 /// <returns>成功返回TRUE，失败返回FALSE</returns>
-EckNfInlineCe BOOL AdjustRectToFillAnother(RECT& rc, const RECT& rcRef)
+EckNfInlineCe BOOL AdjustRectToFillAnother(RECT& rc, const RECT& rcRef) noexcept
 {
     const int
         cxMax = rcRef.right - rcRef.left,
@@ -836,7 +844,7 @@ EckNfInlineCe BOOL AdjustRectToFillAnother(RECT& rc, const RECT& rcRef)
     };
     return TRUE;
 }
-EckNfInlineCe BOOL AdjustRectToFillAnother(D2D1_RECT_F& rc, const D2D1_RECT_F& rcRef)
+EckNfInlineCe BOOL AdjustRectToFillAnother(D2D1_RECT_F& rc, const D2D1_RECT_F& rcRef) noexcept
 {
     const float
         cxMax = rcRef.right - rcRef.left,
@@ -880,7 +888,7 @@ EckNfInlineCe BOOL AdjustRectToFillAnother(D2D1_RECT_F& rc, const D2D1_RECT_F& r
 /// </summary>
 /// <param name="rc">欲调整的矩形</param>
 /// <param name="rcRef">参照矩形</param>
-EckNfInlineCe void CenterRect(RECT& rc, const RECT& rcRef)
+EckNfInlineCe void CenterRect(RECT& rc, const RECT& rcRef) noexcept
 {
     const int
         cx = rc.right - rc.left,
@@ -892,7 +900,7 @@ EckNfInlineCe void CenterRect(RECT& rc, const RECT& rcRef)
     rc.right = rc.left + cx;
     rc.bottom = rc.top + cy;
 }
-EckNfInlineCe void CenterRect(D2D1_RECT_F& rc, const D2D1_RECT_F& rcRef)
+EckNfInlineCe void CenterRect(D2D1_RECT_F& rc, const D2D1_RECT_F& rcRef) noexcept
 {
     const float
         cx = rc.right - rc.left,
@@ -905,53 +913,53 @@ EckNfInlineCe void CenterRect(D2D1_RECT_F& rc, const D2D1_RECT_F& rcRef)
     rc.bottom = rc.top + cy;
 }
 
-EckInlineNdCe MARGINS MakeMargin(int i)
+EckInlineNdCe MARGINS MakeMargin(int i) noexcept
 {
     return { i,i,i,i };
 }
-EckInlineNdCe MARGINS MakeMarginTopBottom(int i)
+EckInlineNdCe MARGINS MakeMarginTopBottom(int i) noexcept
 {
     return { 0,0,i,i };
 }
-EckInlineNdCe MARGINS MakeMarginLeftRight(int i)
+EckInlineNdCe MARGINS MakeMarginLeftRight(int i) noexcept
 {
     return { i,i,0,0 };
 }
-EckInlineNdCe MARGINS MakeMarginHV(int h, int v)
+EckInlineNdCe MARGINS MakeMarginHV(int h, int v) noexcept
 {
     return { h,h,v,v };
 }
 
-EckInlineNdCe BOOL PtInCircle(D2D1_POINT_2F pt, D2D1_POINT_2F ptCenter, float fRadius)
+EckInlineNdCe BOOL PtInCircle(D2D1_POINT_2F pt, D2D1_POINT_2F ptCenter, float fRadius) noexcept
 {
     return (pt.x - ptCenter.x) * (pt.x - ptCenter.x) + (pt.y - ptCenter.y) * (pt.y - ptCenter.y) <=
         fRadius * fRadius;
 }
-EckInlineNdCe BOOL PtInCircle(POINT pt, POINT ptCenter, int iRadius)
+EckInlineNdCe BOOL PtInCircle(POINT pt, POINT ptCenter, int iRadius) noexcept
 {
     return (pt.x - ptCenter.x) * (pt.x - ptCenter.x) + (pt.y - ptCenter.y) * (pt.y - ptCenter.y) <=
         iRadius * iRadius;
 }
 
 #ifdef _D2D1_H_// 与ECK_OPT_NO_DX选项兼容
-EckInlineNdCe D2D1_ELLIPSE MakeD2DEllipse(float x, float y, float w, float h)
+EckInlineNdCe D2D1_ELLIPSE MakeD2DEllipse(float x, float y, float w, float h) noexcept
 {
     return D2D1_ELLIPSE{ { x + w / 2.f,y + h / 2.f },w / 2.f,h / 2.f };
 }
 #endif // _D2D1_H_
 
-EckInlineNdCe MARGINS D2DRectFToMargins(const D2D1_RECT_F& rc)
+EckInlineNdCe MARGINS D2DRectFToMargins(const D2D1_RECT_F& rc) noexcept
 {
     return MARGINS{ (int)rc.left, (int)rc.top, (int)rc.right, (int)rc.bottom };
 }
-EckInlineNdCe D2D1_RECT_F MarginsToD2DRectF(const MARGINS& m)
+EckInlineNdCe D2D1_RECT_F MarginsToD2DRectF(const MARGINS& m) noexcept
 {
     return D2D1_RECT_F{ (float)m.cxLeftWidth,(float)m.cyTopHeight,
         (float)m.cxRightWidth,(float)m.cyBottomHeight };
 }
 
 EckInlineCe void RectCornerToPoint(const D2D1_RECT_F& rc,
-    _Out_writes_(4) D2D1_POINT_2F* ppt)
+    _Out_writes_(4) D2D1_POINT_2F* ppt) noexcept
 {
     ppt[0] = { rc.left,rc.top };
     ppt[1] = { rc.right,rc.top };
@@ -959,14 +967,14 @@ EckInlineCe void RectCornerToPoint(const D2D1_RECT_F& rc,
     ppt[3] = { rc.right,rc.bottom };
 }
 
-EckInline void CeilRect(_Inout_ D2D1_RECT_F& rc)
+EckInline void CeilRect(_Inout_ D2D1_RECT_F& rc) noexcept
 {
     rc.left = floorf(rc.left);
     rc.top = floorf(rc.top);
     rc.right = ceilf(rc.right);
     rc.bottom = ceilf(rc.bottom);
 }
-EckInline void CeilRect(const D2D1_RECT_F& rc, _Out_ RECT& rcOut)
+EckInline void CeilRect(const D2D1_RECT_F& rc, _Out_ RECT& rcOut) noexcept
 {
     rcOut.left = (LONG)floorf(rc.left);
     rcOut.top = (LONG)floorf(rc.top);
@@ -981,10 +989,10 @@ EckInlineNdCe BLENDFUNCTION MakeBlendFunction(BYTE byAlpha)
 #pragma endregion 图形结构
 
 #pragma region 字符串
-EckInlineNdCe CHAR ByteToHex(BYTE x) { return x > 9 ? x + 55 : x + 48; }
-EckInlineNdCe CHAR ByteToHexLower(BYTE x) { return x > 9 ? x + 87 : x + 48; }
+EckInlineNdCe CHAR ByteToHex(BYTE x) noexcept { return x > 9 ? x + 55 : x + 48; }
+EckInlineNdCe CHAR ByteToHexLower(BYTE x) noexcept { return x > 9 ? x + 87 : x + 48; }
 
-EckInlineNdCe BYTE ByteFromHex(CHAR x)
+EckInlineNdCe BYTE ByteFromHex(CHAR x) noexcept
 {
     if (x >= 'A' && x <= 'Z')
         return x - 'A' + 10;
@@ -995,13 +1003,13 @@ EckInlineNdCe BYTE ByteFromHex(CHAR x)
     else
         return 0;
 }
-EckInlineNdCe BYTE ByteFromHex(CHAR x1, CHAR x2)
+EckInlineNdCe BYTE ByteFromHex(CHAR x1, CHAR x2) noexcept
 {
     return (ByteFromHex(x1) << 4) | ByteFromHex(x2);
 }
 
 EckInlineCe void ToStringUpper(_In_reads_bytes_(cb) PCVOID p, size_t cb,
-    _Out_writes_(cb * 2) CcpStdCharPtr auto pszResult)
+    _Out_writes_(cb * 2) CcpStdCharPtr auto pszResult) noexcept
 {
     EckCounter(cb, i)
     {
@@ -1011,7 +1019,7 @@ EckInlineCe void ToStringUpper(_In_reads_bytes_(cb) PCVOID p, size_t cb,
     }
 }
 EckInlineCe void ToStringLower(_In_reads_bytes_(cb) PCVOID p, size_t cb,
-    _Out_writes_(cb * 2) CcpStdCharPtr auto pszResult)
+    _Out_writes_(cb * 2) CcpStdCharPtr auto pszResult) noexcept
 {
     EckCounter(cb, i)
     {
@@ -1022,14 +1030,14 @@ EckInlineCe void ToStringLower(_In_reads_bytes_(cb) PCVOID p, size_t cb,
 }
 
 EckInlineCe void FromString(_Out_writes_bytes_(cb) PVOID p, size_t cb,
-    _In_reads_(cb * 2) PCSTR psz)
+    _In_reads_(cb * 2) PCSTR psz) noexcept
 {
     EckCounter(cb, i)
-        *((BYTE*)p + i) = ByteFromHex(psz[i * 2], psz[i * 2 + 1]);
+        * ((BYTE*)p + i) = ByteFromHex(psz[i * 2], psz[i * 2 + 1]);
 }
 
 EckInlineCe void Md5ToString(_In_reads_bytes_(16) PCVOID pMd5,
-    _Out_writes_(32) CcpStdCharPtr auto pszResult, BOOL bUpper = TRUE)
+    _Out_writes_(32) CcpStdCharPtr auto pszResult, BOOL bUpper = TRUE) noexcept
 {
     if (bUpper)
         ToStringUpper(pMd5, (size_t)16, pszResult);
@@ -1038,7 +1046,7 @@ EckInlineCe void Md5ToString(_In_reads_bytes_(16) PCVOID pMd5,
 }
 
 inline constexpr void GuidToString(const GUID& guid,
-    _Out_writes_(32) CcpStdCharPtr auto pszResult, BOOL bUpper = TRUE)
+    _Out_writes_(32) CcpStdCharPtr auto pszResult, BOOL bUpper = TRUE) noexcept
 {
     const BYTE* p = (const BYTE*)&guid;
     BYTE by[16];
@@ -1064,38 +1072,38 @@ inline constexpr void GuidToString(const GUID& guid,
 
 #pragma region 转换
 template<class T, class U>
-EckInlineNdCe T i32ToP(U i)
+EckInlineNdCe T DwordToPtr(U i) noexcept
 {
     return (T)((ULONG_PTR)i);
 }
 template<class T, class U>
-EckInlineNdCe T pToI32(U p)
+EckInlineNdCe T PtrToDword(U p) noexcept
 {
     return (T)((ULONG_PTR)p);
 }
 
-EckInlineNdCe SIZE_T Cch2CbW(int cch)
+EckInlineNdCe SIZE_T Cch2CbW(int cch) noexcept
 {
     return (cch + 1) * sizeof(WCHAR);
 }
-EckInlineNdCe SIZE_T Cch2CbA(int cch)
+EckInlineNdCe SIZE_T Cch2CbA(int cch) noexcept
 {
     return (cch + 1) * sizeof(CHAR);
 }
 
-EckInlineNdCe HRESULT HResultFromBool(BOOL b)
+EckInlineNdCe HRESULT HResultFromBool(BOOL b) noexcept
 {
     return b ? S_OK : E_FAIL;
 }
 
 template<class T1, class T2>
-EckInlineNdCe T1 ReinterpretValue(T2 v)
+EckInlineNdCe T1 ReinterpretValue(T2 v) noexcept
 {
     return std::bit_cast<T1>(v);
 }
 
 template<class T, class U>
-EckInline T DynCast(U p)
+EckInline T DbgDynamicCast(U p) noexcept
 {
 #ifdef _DEBUG
     if (!p)
@@ -1114,23 +1122,23 @@ EckInline T DynCast(U p)
 #pragma endregion 转换
 
 #pragma region 运算
-EckInlineNd float RoundToF(float fVal, int cDigits)
+EckInlineNd float RoundToF(float fVal, int cDigits) noexcept
 {
     float fTemp = powf(10, (float)cDigits);
     return roundf(fVal * fTemp) / fTemp;
 }
-EckInlineNd double RoundTo(double fVal, int cDigits)
+EckInlineNd double RoundTo(double fVal, int cDigits) noexcept
 {
     double fTemp = pow(10, (double)cDigits);
     return round(fVal * fTemp) / fTemp;
 }
 
-EckInlineNdCe BOOL Sign(auto v) { return v >= 0; }
+EckInlineNdCe BOOL Sign(auto v) noexcept { return v >= 0; }
 template<class T>
-EckInlineNdCe T SignVal(T v) { return (v >= 0 ? 1 : -1); }
+EckInlineNdCe T SignValue(T v) noexcept { return (v >= 0 ? 1 : -1); }
 
 template<class T, class U>
-EckInlineNdCe T SetSign(T x, U iSign)
+EckInlineNdCe T SetSign(T x, U iSign) noexcept
 {
     if (iSign > 0) return Abs(x);
     if (iSign < 0) return -Abs(x);
@@ -1138,7 +1146,7 @@ EckInlineNdCe T SetSign(T x, U iSign)
 }
 
 template<std::integral T>
-EckInlineNdCe T Gcd(T a, T b)
+EckInlineNdCe T Gcd(T a, T b) noexcept
 {
     T c = 0;
     EckLoop()
@@ -1154,9 +1162,9 @@ EckInlineNdCe T Gcd(T a, T b)
     }
 }
 
-EckInlineNdCe auto Abs(auto x) { return (x >= 0) ? x : -x; }
+EckInlineNdCe auto Abs(auto x) noexcept { return (x >= 0) ? x : -x; }
 
-EckInlineNdCe auto DivUpper(std::integral auto x, std::integral auto y) { return (x - 1) / y + 1; }
+EckInlineNdCe auto DivUpper(std::integral auto x, std::integral auto y) noexcept { return (x - 1) / y + 1; }
 
 #ifdef _WIN64
 constexpr inline size_t FnvOffsetBasis = 14695981039346656037ull;
@@ -1166,7 +1174,7 @@ constexpr inline size_t FnvOffsetBasis = 2166136261u;
 constexpr inline size_t FnvPrime = 16777619u;
 #endif// _WIN64
 
-EckInlineNdCe size_t Fnv1aHash(PCBYTE p, size_t cb)
+EckInlineNdCe size_t Fnv1aHash(PCBYTE p, size_t cb) noexcept
 {
     size_t hash = FnvOffsetBasis;
     EckCounter(cb, i)
@@ -1177,226 +1185,232 @@ EckInlineNdCe size_t Fnv1aHash(PCBYTE p, size_t cb)
     return hash;
 }
 
-EckInline BOOL FloatEqual(float f1, float f2, float fEpsilon = FLT_EPSILON) { return fabs(f1 - f2) < fEpsilon; }
-EckInline BOOL FloatEqual(double f1, double f2, double fEpsilon = DBL_EPSILON) { return abs(f1 - f2) < fEpsilon; }
+EckInline BOOL FloatEqual(float f1, float f2, float fEpsilon = FLT_EPSILON) noexcept
+{
+    return fabs(f1 - f2) < fEpsilon;
+}
+EckInline BOOL FloatEqual(double f1, double f2, double fEpsilon = DBL_EPSILON) noexcept
+{
+    return abs(f1 - f2) < fEpsilon;
+}
 
 template<class T>
-EckInlineNdCe T ValDistance(T x1, T x2) { return (x1 > x2) ? (x1 - x2) : (x2 - x1); }
+EckInlineNdCe T ValDistance(T x1, T x2) noexcept { return (x1 > x2) ? (x1 - x2) : (x2 - x1); }
 
 template<CcpNumberOrEnum T>
-EckInlineNdCe T DpiScale(T i, int iDpiNew, int iDpiOld = 96) { return T(i * iDpiNew / iDpiOld); }
+EckInlineNdCe T DpiScale(T i, int iDpiNew, int iDpiOld = 96) noexcept { return T(i * iDpiNew / iDpiOld); }
 // deprecated.
 template<CcpNumberOrEnum T>
-EckInlineNdCe T DpiScaleF(T i, int iDpiNew, int iDpiOld = 96) { return T(i * iDpiNew / iDpiOld); }
-EckInlineCe void DpiScale(_Inout_ CcpRectStruct auto& rc, int iDpiNew, int iDpiOld = 96)
+EckInlineNdCe T DpiScaleF(T i, int iDpiNew, int iDpiOld = 96) noexcept { return T(i * iDpiNew / iDpiOld); }
+EckInlineCe void DpiScale(_Inout_ CcpRectStruct auto& rc, int iDpiNew, int iDpiOld = 96) noexcept
 {
     rc.left = rc.left * iDpiNew / iDpiOld;
     rc.top = rc.top * iDpiNew / iDpiOld;
     rc.right = rc.right * iDpiNew / iDpiOld;
     rc.bottom = rc.bottom * iDpiNew / iDpiOld;
 }
-EckInlineCe void DpiScale(_Inout_ SIZE& size, int iDpiNew, int iDpiOld = 96)
+EckInlineCe void DpiScale(_Inout_ SIZE& size, int iDpiNew, int iDpiOld = 96) noexcept
 {
     size.cx = size.cx * iDpiNew / iDpiOld;
     size.cy = size.cy * iDpiNew / iDpiOld;
 }
-EckInlineCe void DpiScale(_Inout_ D2D1_SIZE_F& size, int iDpiNew, int iDpiOld = 96)
+EckInlineCe void DpiScale(_Inout_ D2D1_SIZE_F& size, int iDpiNew, int iDpiOld = 96) noexcept
 {
     size.width = size.width * iDpiNew / iDpiOld;
     size.height = size.height * iDpiNew / iDpiOld;
 }
-EckInlineCe void DpiScale(_Inout_ CcpPointStruct auto& pt, int iDpiNew, int iDpiOld = 96)
+EckInlineCe void DpiScale(_Inout_ CcpPointStruct auto& pt, int iDpiNew, int iDpiOld = 96) noexcept
 {
     pt.x = pt.x * iDpiNew / iDpiOld;
     pt.y = pt.y * iDpiNew / iDpiOld;
 }
 
-EckInlineCe void UpdateDpiSize(auto& Dpis, int iDpi)
+EckInlineCe void UpdateDpiSize(auto& Dpis, int iDpi) noexcept
 {
-    for (int* p = ((int*)&Dpis) + 1; p < PtrSkipType(&Dpis); p += 2)
+    for (int* p = ((int*)&Dpis) + 1; p < PointerSkipType(&Dpis); p += 2)
         *p = DpiScale(*(p - 1), iDpi);
 }
-EckInlineCe void UpdateDpiSizeF(auto& Dpis, int iDpi)
+EckInlineCe void UpdateDpiSizeF(auto& Dpis, int iDpi) noexcept
 {
-    for (float* p = ((float*)&Dpis) + 1; p < PtrSkipType(&Dpis); p += 2)
+    for (float* p = ((float*)&Dpis) + 1; p < PointerSkipType(&Dpis); p += 2)
         *p = DpiScaleF(*(p - 1), iDpi);
 }
 #pragma endregion 运算
 
 #pragma region WinLargeInt
-EckInlineNdCe ULARGE_INTEGER operator+(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
+EckInlineNdCe ULARGE_INTEGER operator+(ULARGE_INTEGER x1, ULARGE_INTEGER x2) noexcept
 {
     return ULARGE_INTEGER{ .QuadPart = x1.QuadPart + x2.QuadPart };
 }
-EckInlineNdCe ULARGE_INTEGER operator+(ULARGE_INTEGER x1, ULONGLONG x2)
+EckInlineNdCe ULARGE_INTEGER operator+(ULARGE_INTEGER x1, ULONGLONG x2) noexcept
 {
     return ULARGE_INTEGER{ .QuadPart = x1.QuadPart + x2 };
 }
 
-EckInlineNdCe ULARGE_INTEGER operator-(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
+EckInlineNdCe ULARGE_INTEGER operator-(ULARGE_INTEGER x1, ULARGE_INTEGER x2) noexcept
 {
     return ULARGE_INTEGER{ .QuadPart = x1.QuadPart - x2.QuadPart };
 }
-EckInlineNdCe ULARGE_INTEGER operator-(ULARGE_INTEGER x1, ULONGLONG x2)
+EckInlineNdCe ULARGE_INTEGER operator-(ULARGE_INTEGER x1, ULONGLONG x2) noexcept
 {
     return ULARGE_INTEGER{ .QuadPart = x1.QuadPart - x2 };
 }
 
-EckInlineNdCe ULARGE_INTEGER operator*(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
+EckInlineNdCe ULARGE_INTEGER operator*(ULARGE_INTEGER x1, ULARGE_INTEGER x2) noexcept
 {
     return ULARGE_INTEGER{ .QuadPart = x1.QuadPart * x2.QuadPart };
 }
-EckInlineNdCe ULARGE_INTEGER operator*(ULARGE_INTEGER x1, ULONGLONG x2)
+EckInlineNdCe ULARGE_INTEGER operator*(ULARGE_INTEGER x1, ULONGLONG x2) noexcept
 {
     return ULARGE_INTEGER{ .QuadPart = x1.QuadPart * x2 };
 }
 
-EckInlineNdCe ULARGE_INTEGER operator/(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
+EckInlineNdCe ULARGE_INTEGER operator/(ULARGE_INTEGER x1, ULARGE_INTEGER x2) noexcept
 {
     return ULARGE_INTEGER{ .QuadPart = x1.QuadPart / x2.QuadPart };
 }
-EckInlineNdCe ULARGE_INTEGER operator/(ULARGE_INTEGER x1, ULONGLONG x2)
+EckInlineNdCe ULARGE_INTEGER operator/(ULARGE_INTEGER x1, ULONGLONG x2) noexcept
 {
     return ULARGE_INTEGER{ .QuadPart = x1.QuadPart / x2 };
 }
 
-EckInlineNdCe std::strong_ordering operator<=>(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
+EckInlineNdCe std::strong_ordering operator<=>(ULARGE_INTEGER x1, ULARGE_INTEGER x2) noexcept
 {
     return x1.QuadPart <=> x2.QuadPart;
 }
-EckInlineNdCe std::strong_ordering operator<=>(ULARGE_INTEGER x1, ULONGLONG x2)
+EckInlineNdCe std::strong_ordering operator<=>(ULARGE_INTEGER x1, ULONGLONG x2) noexcept
 {
     return x1.QuadPart <=> x2;
 }
 
-EckInlineNdCe bool operator==(ULARGE_INTEGER x1, ULARGE_INTEGER x2)
+EckInlineNdCe bool operator==(ULARGE_INTEGER x1, ULARGE_INTEGER x2) noexcept
 {
     return x1.QuadPart == x2.QuadPart;
 }
-EckInlineNdCe bool operator==(ULARGE_INTEGER x1, ULONGLONG x2)
+EckInlineNdCe bool operator==(ULARGE_INTEGER x1, ULONGLONG x2) noexcept
 {
     return x1.QuadPart == x2;
 }
 
-EckInlineCe ULARGE_INTEGER operator+=(ULARGE_INTEGER& x1, ULARGE_INTEGER x2)
+EckInlineCe ULARGE_INTEGER operator+=(ULARGE_INTEGER& x1, ULARGE_INTEGER x2) noexcept
 {
     x1.QuadPart += x2.QuadPart;
     return x1;
 }
-EckInlineCe ULARGE_INTEGER operator+=(ULARGE_INTEGER& x1, ULONGLONG x2)
+EckInlineCe ULARGE_INTEGER operator+=(ULARGE_INTEGER& x1, ULONGLONG x2) noexcept
 {
     x1.QuadPart += x2;
     return x1;
 }
 
-EckInlineCe ULARGE_INTEGER operator-=(ULARGE_INTEGER& x1, ULARGE_INTEGER x2)
+EckInlineCe ULARGE_INTEGER operator-=(ULARGE_INTEGER& x1, ULARGE_INTEGER x2) noexcept
 {
     x1.QuadPart -= x2.QuadPart;
     return x1;
 }
-EckInlineCe ULARGE_INTEGER operator-=(ULARGE_INTEGER& x1, ULONGLONG x2)
+EckInlineCe ULARGE_INTEGER operator-=(ULARGE_INTEGER& x1, ULONGLONG x2) noexcept
 {
     x1.QuadPart -= x2;
     return x1;
 }
 
-EckInlineNdCe LARGE_INTEGER operator+(LARGE_INTEGER x1, LARGE_INTEGER x2)
+EckInlineNdCe LARGE_INTEGER operator+(LARGE_INTEGER x1, LARGE_INTEGER x2) noexcept
 {
     return LARGE_INTEGER{ .QuadPart = x1.QuadPart + x2.QuadPart };
 }
-EckInlineNdCe LARGE_INTEGER operator+(LARGE_INTEGER x1, LONGLONG x2)
+EckInlineNdCe LARGE_INTEGER operator+(LARGE_INTEGER x1, LONGLONG x2) noexcept
 {
     return LARGE_INTEGER{ .QuadPart = x1.QuadPart + x2 };
 }
 
-EckInlineNdCe LARGE_INTEGER operator-(LARGE_INTEGER x1, LARGE_INTEGER x2)
+EckInlineNdCe LARGE_INTEGER operator-(LARGE_INTEGER x1, LARGE_INTEGER x2) noexcept
 {
     return LARGE_INTEGER{ .QuadPart = x1.QuadPart - x2.QuadPart };
 }
-EckInlineNdCe LARGE_INTEGER operator-(LARGE_INTEGER x1, LONGLONG x2)
+EckInlineNdCe LARGE_INTEGER operator-(LARGE_INTEGER x1, LONGLONG x2) noexcept
 {
     return LARGE_INTEGER{ .QuadPart = x1.QuadPart - x2 };
 }
 
-EckInlineNdCe LARGE_INTEGER operator*(LARGE_INTEGER x1, LARGE_INTEGER x2)
+EckInlineNdCe LARGE_INTEGER operator*(LARGE_INTEGER x1, LARGE_INTEGER x2) noexcept
 {
     return LARGE_INTEGER{ .QuadPart = x1.QuadPart * x2.QuadPart };
 }
-EckInlineNdCe LARGE_INTEGER operator*(LARGE_INTEGER x1, LONGLONG x2)
+EckInlineNdCe LARGE_INTEGER operator*(LARGE_INTEGER x1, LONGLONG x2) noexcept
 {
     return LARGE_INTEGER{ .QuadPart = x1.QuadPart * x2 };
 }
 
-EckInlineNdCe LARGE_INTEGER operator/(LARGE_INTEGER x1, LARGE_INTEGER x2)
+EckInlineNdCe LARGE_INTEGER operator/(LARGE_INTEGER x1, LARGE_INTEGER x2) noexcept
 {
     return LARGE_INTEGER{ .QuadPart = x1.QuadPart / x2.QuadPart };
 }
-EckInlineNdCe LARGE_INTEGER operator/(LARGE_INTEGER x1, LONGLONG x2)
+EckInlineNdCe LARGE_INTEGER operator/(LARGE_INTEGER x1, LONGLONG x2) noexcept
 {
     return LARGE_INTEGER{ .QuadPart = x1.QuadPart / x2 };
 }
 
-EckInlineNdCe std::strong_ordering operator<=>(LARGE_INTEGER x1, LARGE_INTEGER x2)
+EckInlineNdCe std::strong_ordering operator<=>(LARGE_INTEGER x1, LARGE_INTEGER x2) noexcept
 {
     return x1.QuadPart <=> x2.QuadPart;
 }
-EckInlineNdCe std::strong_ordering operator<=>(LARGE_INTEGER x1, LONGLONG x2)
+EckInlineNdCe std::strong_ordering operator<=>(LARGE_INTEGER x1, LONGLONG x2) noexcept
 {
     return x1.QuadPart <=> x2;
 }
 
-EckInlineNdCe bool operator==(LARGE_INTEGER x1, LARGE_INTEGER x2)
+EckInlineNdCe bool operator==(LARGE_INTEGER x1, LARGE_INTEGER x2) noexcept
 {
     return x1.QuadPart == x2.QuadPart;
 }
-EckInlineNdCe bool operator==(LARGE_INTEGER x1, LONGLONG x2)
+EckInlineNdCe bool operator==(LARGE_INTEGER x1, LONGLONG x2) noexcept
 {
     return x1.QuadPart == x2;
 }
 
-EckInlineCe LARGE_INTEGER& operator-=(LARGE_INTEGER& x1, LARGE_INTEGER x2)
+EckInlineCe LARGE_INTEGER& operator-=(LARGE_INTEGER& x1, LARGE_INTEGER x2) noexcept
 {
     x1.QuadPart -= x2.QuadPart;
     return x1;
 }
-EckInlineCe LARGE_INTEGER operator-=(LARGE_INTEGER& x1, LONGLONG x2)
+EckInlineCe LARGE_INTEGER operator-=(LARGE_INTEGER& x1, LONGLONG x2) noexcept
 {
     x1.QuadPart -= x2;
     return x1;
 }
 
-EckInlineCe LARGE_INTEGER& operator+=(LARGE_INTEGER& x1, LARGE_INTEGER x2)
+EckInlineCe LARGE_INTEGER& operator+=(LARGE_INTEGER& x1, LARGE_INTEGER x2) noexcept
 {
     x1.QuadPart += x2.QuadPart;
     return x1;
 }
-EckInlineCe LARGE_INTEGER operator+=(LARGE_INTEGER& x1, LONGLONG x2)
+EckInlineCe LARGE_INTEGER operator+=(LARGE_INTEGER& x1, LONGLONG x2) noexcept
 {
     x1.QuadPart += x2;
     return x1;
 }
 
-EckInlineNdCe LARGE_INTEGER ToLi(ULARGE_INTEGER x)
+EckInlineNdCe LARGE_INTEGER ToLi(ULARGE_INTEGER x) noexcept
 {
     return LARGE_INTEGER{ .QuadPart = (LONGLONG)x.QuadPart };
 }
-EckInlineNdCe LARGE_INTEGER ToLi(LONGLONG x)
+EckInlineNdCe LARGE_INTEGER ToLi(LONGLONG x) noexcept
 {
     return LARGE_INTEGER{ .QuadPart = x };
 }
 
-EckInlineNdCe ULARGE_INTEGER ToUli(LARGE_INTEGER x)
+EckInlineNdCe ULARGE_INTEGER ToUli(LARGE_INTEGER x) noexcept
 {
     return ULARGE_INTEGER{ .QuadPart = (ULONGLONG)x.QuadPart };
 }
-EckInlineNdCe ULARGE_INTEGER ToUli(ULONGLONG x)
+EckInlineNdCe ULARGE_INTEGER ToUli(ULONGLONG x) noexcept
 {
     return ULARGE_INTEGER{ .QuadPart = x };
 }
 #pragma endregion WinLargeInt
 
 #pragma region 其他
-EckInlineNdCe BOOL IsGuidEqu(REFGUID x1, REFGUID x2)
+EckInlineNdCe BOOL IsGuidEqu(REFGUID x1, REFGUID x2) noexcept
 {
     return
         x1.Data1 == x2.Data1 &&
@@ -1413,14 +1427,14 @@ EckInlineNdCe BOOL IsGuidEqu(REFGUID x1, REFGUID x2)
 }
 
 template<class T, size_t N>
-EckInlineNdCe void ArrAssign(T(&x1)[N], const T(&x2)[N])
+EckInlineNdCe void AssignArray(T(&x1)[N], const T(&x2)[N]) noexcept
 {
     EckCounter(N, i)
         x1[i] = x2[i];
 }
 
 EckInlineNdCe LPARAM MakeKeyStrokeFlag(USHORT cRepeat, UINT uScanCode, BOOL bExtended,
-    BOOL bAlt, BOOL bPreviousState, BOOL bTransition)
+    BOOL bAlt, BOOL bPreviousState, BOOL bTransition) noexcept
 {
     EckAssert(bExtended == 0 || bExtended == 1);
     EckAssert(bAlt == 0 || bAlt == 1);
@@ -1430,7 +1444,7 @@ EckInlineNdCe LPARAM MakeKeyStrokeFlag(USHORT cRepeat, UINT uScanCode, BOOL bExt
         (bPreviousState << 30) | (bTransition << 31);
 }
 
-EckInline void SafeRelease(_Inout_ CcpComInterface auto*& pUnk)
+EckInline void SafeRelease(_Inout_ CcpComInterface auto*& pUnk) noexcept
 {
     if (pUnk)
     {
@@ -1438,7 +1452,7 @@ EckInline void SafeRelease(_Inout_ CcpComInterface auto*& pUnk)
         pUnk = nullptr;
     }
 }
-EckInline void SafeReleaseAssert0(_Inout_ CcpComInterface auto*& pUnk)
+EckInline void SafeReleaseAssert0(_Inout_ CcpComInterface auto*& pUnk) noexcept
 {
 #ifdef _DEBUG
     if (pUnk)
@@ -1453,7 +1467,7 @@ EckInline void SafeReleaseAssert0(_Inout_ CcpComInterface auto*& pUnk)
 
 template<class TChar>
     requires requires{ sizeof(TChar) == 1 || sizeof(TChar) == 2; }
-EckInlineNdCe auto StringViewToNtString(std::basic_string_view<TChar> sv)
+EckInlineNdCe auto StringViewToNtString(std::basic_string_view<TChar> sv) noexcept
 {
     using TNtString = std::conditional_t<sizeof(TChar) == 1, ANSI_STRING, UNICODE_STRING>;
     const auto cb = USHORT(sv.size() * sizeof(TChar));

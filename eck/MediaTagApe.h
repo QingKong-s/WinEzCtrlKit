@@ -237,7 +237,7 @@ public:
 #define ECKTEMP_SET_VAL(MiField, KeyStr) \
         {                                \
             ITEM e{};                    \
-            e.rsKey.DupString(KeyStr);   \
+            e.rsKey.Assign(KeyStr);   \
             if (bMove)                   \
                 e.EnsureStrList().emplace_back(std::move(MiField)); \
             else                         \
@@ -249,7 +249,7 @@ public:
 #define ECKTEMP_SET_VAL_LIST(MiField, KeyStr)   \
         {                                       \
             ITEM e{};                           \
-            e.rsKey.DupString(KeyStr);          \
+            e.rsKey.Assign(KeyStr);          \
             auto& v = e.EnsureStrList();        \
             for (const auto f : MiField)        \
                 v.emplace_back(f);              \
@@ -294,7 +294,7 @@ public:
             if (!svKey.empty() && p != szBuf)
             {
                 ITEM e{};
-                e.rsKey.DupString(svKey);
+                e.rsKey.Assign(svKey);
                 e.EnsureStrList().emplace_back(CRefStrW{ szBuf, int(p - szBuf) });
                 m_vItem.emplace_back(std::move(e));
             }
@@ -331,10 +331,10 @@ public:
                     e.rsDesc,
                     std::move(rbData));
                 if (eType == PicType::Invalid)
-                    f.rsKey.DupString(EckStrAndLen("Cover Art"));
+                    f.rsKey.Assign(EckStrAndLen("Cover Art"));
                 else
                 {
-                    f.rsKey.DupString(EckStrAndLen("Cover Art ("));
+                    f.rsKey.Assign(EckStrAndLen("Cover Art ("));
                     f.rsKey.PushBack(TagPictureTypeToApeString(eType));
                     f.rsKey.PushBackChar(')');
                 }
@@ -639,7 +639,7 @@ public:
         if (const auto it = ItmAt(svKey); it == ItmEndIterator())
             return *it;
         ITEM e{};
-        e.rsKey.DupString(svKey);
+        e.rsKey.Assign(svKey);
         return m_vItem.emplace_back(std::move(e));
     }
 

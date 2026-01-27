@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "ImageHelper.h"
 #include "CStreamWalker.h"
 #include "CMemWalker.h"
@@ -7,48 +7,48 @@
 ECK_NAMESPACE_BEGIN
 struct ICONDIRENTRY
 {
-	BYTE bWidth;		// ¿í¶È
-	BYTE bHeight;		// ¸ß¶È
-	BYTE bColorCount;	// ÑÕÉ«Êı
-	BYTE bReserved;		// ±£Áô£¬±ØĞëÎª0
-	WORD wPlanes;		// ÑÕÉ«Æ½ÃæÊı£¬±ØĞëÎª1
-	WORD wBitCount;		// Î»Éî¶È
-	DWORD dwBytesInRes;	// ÔÚ×ÊÔ´ÖĞµÄ×Ö½ÚÊı
-	DWORD dwImageOffset;// ÔÚÓ³ÏñÎÄ¼şÖĞµÄÆ«ÒÆ
+    BYTE bWidth;		// å®½åº¦
+    BYTE bHeight;		// é«˜åº¦
+    BYTE bColorCount;	// é¢œè‰²æ•°
+    BYTE bReserved;		// ä¿ç•™ï¼Œå¿…é¡»ä¸º0
+    WORD wPlanes;		// é¢œè‰²å¹³é¢æ•°ï¼Œå¿…é¡»ä¸º1
+    WORD wBitCount;		// ä½æ·±åº¦
+    DWORD dwBytesInRes;	// åœ¨èµ„æºä¸­çš„å­—èŠ‚æ•°
+    DWORD dwImageOffset;// åœ¨æ˜ åƒæ–‡ä»¶ä¸­çš„åç§»
 };
 
 struct ICONDIR
 {
-	WORD idReserved;	// ±£Áô£¬±ØĞëÎª0
-	WORD idType;		// ×ÊÔ´ÀàĞÍ£¬1 = Í¼±ê
-	WORD idCount;		// Í¼±êÊı
-	// ICONDIRENTRY idEntries[1]; // Í¼ÏñÊı×é
+    WORD idReserved;	// ä¿ç•™ï¼Œå¿…é¡»ä¸º0
+    WORD idType;		// èµ„æºç±»å‹ï¼Œ1 = å›¾æ ‡
+    WORD idCount;		// å›¾æ ‡æ•°
+    // ICONDIRENTRY idEntries[1]; // å›¾åƒæ•°ç»„
 };
 
-enum class PngColorType :BYTE
+enum class PngColorType : BYTE
 {
-	Grayscale = 0,
-	Truecolor = 2,
-	Indexed = 3,
-	GrayscaleAlpha = 4,
-	TruecolorAlpha = 6
+    Grayscale = 0,
+    Truecolor = 2,
+    Indexed = 3,
+    GrayscaleAlpha = 4,
+    TruecolorAlpha = 6
 };
 
 struct PngIHDR
 {
-	BYTE Width[4];		// ¿í¶È
-	BYTE Height[4];		// ¸ß¶È
-	BYTE BitDepth;		// Î»Éî¶È
-	PngColorType ColorType;	// ÑÕÉ«ÀàĞÍ
-	BYTE CompressionMethod;	// Ñ¹Ëõ·½·¨£¬½ö¶¨Òå0
-	BYTE FilterMethod;		// ¹ıÂË·½·¨£¬½ö¶¨Òå0
-	BYTE InterlaceMethod;	// ¸ôĞĞÉ¨Ãè£¬0 = ²»¸ôĞĞÉ¨Ãè£¬1 = Adm7¸ôĞĞÉ¨Ãè
+    BYTE Width[4];		// å®½åº¦
+    BYTE Height[4];		// é«˜åº¦
+    BYTE BitDepth;		// ä½æ·±åº¦
+    PngColorType ColorType;	// é¢œè‰²ç±»å‹
+    BYTE CompressionMethod;	// å‹ç¼©æ–¹æ³•ï¼Œä»…å®šä¹‰0
+    BYTE FilterMethod;		// è¿‡æ»¤æ–¹æ³•ï¼Œä»…å®šä¹‰0
+    BYTE InterlaceMethod;	// éš”è¡Œæ‰«æï¼Œ0 = ä¸éš”è¡Œæ‰«æï¼Œ1 = Adm7éš”è¡Œæ‰«æ
 };
 
-enum class PngBlendOp :BYTE
+enum class PngBlendOp : BYTE
 {
-	Source,
-	Over
+    Source,
+    Over
 };
 
 static_assert(sizeof(PngIHDR) == 13);
@@ -56,598 +56,595 @@ static_assert(sizeof(PngIHDR) == 13);
 class CMultiFrameImageWic
 {
 public:
-	enum class Disposal
-	{
-		Undefined,
-		None,
-		Background,
-		Previous
-	};
+    enum class Disposal
+    {
+        Undefined,
+        None,
+        Background,
+        Previous
+    };
 private:
-	struct ITEM
-	{
-		IWICBitmapSource* pBitmap;
-		int msDelay;
-		int ox;
-		int oy;
-		int cx;
-		int cy;
-		Disposal eDisposalMethod;
-	};
-	std::vector<ITEM> m_Frames{};
-	int m_cRepeat{};
-	int m_cx{};
-	int m_cy{};
-	BOOL m_bTransparent{};
-	Disposal m_eDisposalMethod{};
-	WICColor m_crBkg{};
-	int m_cxAct{};
-	int m_cyAct{};
+    struct ITEM
+    {
+        IWICBitmapSource* pBitmap;
+        int msDelay;
+        int ox;
+        int oy;
+        int cx;
+        int cy;
+        Disposal eDisposalMethod;
+    };
+    std::vector<ITEM> m_Frames{};
+    int m_cRepeat{};
+    int m_cx{};
+    int m_cy{};
+    BOOL m_bTransparent{};
+    Disposal m_eDisposalMethod{};
+    WICColor m_crBkg{};
+    int m_cxAct{};
+    int m_cyAct{};
 public:
-	ECKPROP(GetRepeatCount, SetRepeatCount)	int RepeatCount;
-	ECKPROP(GetHeight, SetHeight)			int Height;
-	ECKPROP(GetWidth, SetWidth)				int Width;
-	ECKPROP(GetTransparent, SetTransparent) BOOL Transparent;
-	ECKPROP(GetDisposalMethod, SetDisposalMethod) Disposal DisposalMethod;
-	ECKPROP_R(GetFrameCount)				int FrameCount;
-	ECKPROP(GetBackgroundColor, SetBackgroundColor) WICColor BackgroundColor;
+    ECKPROP(GetRepeatCount, SetRepeatCount)	int RepeatCount;
+    ECKPROP(GetHeight, SetHeight)			int Height;
+    ECKPROP(GetWidth, SetWidth)				int Width;
+    ECKPROP(GetTransparent, SetTransparent) BOOL Transparent;
+    ECKPROP(GetDisposalMethod, SetDisposalMethod) Disposal DisposalMethod;
+    ECKPROP_R(GetFrameCount)				int FrameCount;
+    ECKPROP(GetBackgroundColor, SetBackgroundColor) WICColor BackgroundColor;
 
-	ECK_DISABLE_COPY_MOVE_DEF_CONS(CMultiFrameImageWic);
+    ECK_DISABLE_COPY_MOVE_DEF_CONS(CMultiFrameImageWic);
 
-	/// <summary>
-	/// Ìí¼ÓÖ¡
-	/// </summary>
-	/// <param name="pBitmap">WICÎ»Í¼Ô´</param>
-	/// <param name="msDelay">ÒÔºÁÃë¼ÆµÄÏÔÊ¾ÑÓ³Ù</param>
-	/// <param name="ox">XÆ«ÒÆ</param>
-	/// <param name="oy">YÆ«ÒÆ</param>
-	/// <param name="cx">ĞÂ¿í¶È£¬0±íÊ¾²»±ä</param>
-	/// <param name="cy">ĞÂ¸ß¶È£¬0±íÊ¾²»±ä</param>
-	/// <param name="eDisposalMethod">´¦Àí·½Ê½</param>
-	/// <param name="eInterpolation">Ëõ·ÅÊ±Ê¹ÓÃµÄ²åÖµ·½Ê½</param>
-	/// <returns>HRESULT</returns>
-	HRESULT AddFrame(IWICBitmapSource* pBitmap, int msDelay,
-		int ox = 0, int oy = 0, int cx = 0, int cy = 0,
-		Disposal eDisposalMethod = Disposal::Undefined,
-		WICBitmapInterpolationMode eInterpolation = WICBitmapInterpolationModeLinear)
-	{
-		EckAssert(cx >= 0 && cy >= 0);
-		if (cx || cy)
-		{
-			// TODO: ÏŞÖÆ·¶Î§
-			HRESULT hr;
-			if (cx || cy)
-			{
-				IWICBitmap* pNew;
-				if (FAILED(hr = ScaleWicBitmap(pBitmap, pNew, cx, cy, eInterpolation)))
-					return hr;
-				pBitmap = pNew;
-			}
-			else
-			{
-				pBitmap->AddRef();
-				pBitmap->GetSize((UINT*)&cx, (UINT*)&cy);
-			}
-			m_Frames.emplace_back(pBitmap, msDelay, ox, oy, cx, cy, eDisposalMethod);
-		}
-		else
-		{
-			pBitmap->AddRef();
-			pBitmap->GetSize((UINT*)&cx, (UINT*)&cy);
-			m_Frames.emplace_back(pBitmap, msDelay, ox, oy, cx, cy, eDisposalMethod);
-		}
-		m_cxAct = std::max(m_cxAct, ox + cx);
-		m_cyAct = std::max(m_cyAct, oy + cy);
-		return S_OK;
-	}
+    /// <summary>
+    /// æ·»åŠ å¸§
+    /// </summary>
+    /// <param name="pBitmap">WICä½å›¾æº</param>
+    /// <param name="msDelay">ä»¥æ¯«ç§’è®¡çš„æ˜¾ç¤ºå»¶è¿Ÿ</param>
+    /// <param name="ox">Xåç§»</param>
+    /// <param name="oy">Yåç§»</param>
+    /// <param name="cx">æ–°å®½åº¦ï¼Œ0è¡¨ç¤ºä¸å˜</param>
+    /// <param name="cy">æ–°é«˜åº¦ï¼Œ0è¡¨ç¤ºä¸å˜</param>
+    /// <param name="eDisposalMethod">å¤„ç†æ–¹å¼</param>
+    /// <param name="eInterpolation">ç¼©æ”¾æ—¶ä½¿ç”¨çš„æ’å€¼æ–¹å¼</param>
+    /// <returns>HRESULT</returns>
+    HRESULT AddFrame(IWICBitmapSource* pBitmap, int msDelay,
+        int ox = 0, int oy = 0, int cx = 0, int cy = 0,
+        Disposal eDisposalMethod = Disposal::Undefined,
+        WICBitmapInterpolationMode eInterpolation = WICBitmapInterpolationModeLinear) noexcept
+    {
+        EckAssert(cx >= 0 && cy >= 0);
+        if (cx || cy)
+        {
+            // TODO: é™åˆ¶èŒƒå›´
+            HRESULT hr;
+            if (cx || cy)
+            {
+                IWICBitmap* pNew;
+                if (FAILED(hr = ScaleWicBitmap(pBitmap, pNew, cx, cy, eInterpolation)))
+                    return hr;
+                pBitmap = pNew;
+            }
+            else
+            {
+                pBitmap->AddRef();
+                pBitmap->GetSize((UINT*)&cx, (UINT*)&cy);
+            }
+            m_Frames.emplace_back(pBitmap, msDelay, ox, oy, cx, cy, eDisposalMethod);
+        }
+        else
+        {
+            pBitmap->AddRef();
+            pBitmap->GetSize((UINT*)&cx, (UINT*)&cy);
+            m_Frames.emplace_back(pBitmap, msDelay, ox, oy, cx, cy, eDisposalMethod);
+        }
+        m_cxAct = std::max(m_cxAct, ox + cx);
+        m_cyAct = std::max(m_cyAct, oy + cy);
+        return S_OK;
+    }
 
-	/// <summary>
-	/// Ìí¼ÓÖ¡¡£
-	/// Ìí¼ÓWICÎ»Í¼½âÂëÆ÷ÖĞµÄËùÓĞÖ¡
-	/// </summary>
-	/// <param name="pDecoder">WICÎ»Í¼½âÂëÆ÷</param>
-	/// <param name="msDelay">ÒÔºÁÃë¼ÆµÄÏÔÊ¾ÑÓ³Ù</param>
-	/// <param name="ox">XÆ«ÒÆ</param>
-	/// <param name="oy">YÆ«ÒÆ</param>
-	/// <param name="cx">ĞÂ¿í¶È£¬0±íÊ¾²»±ä</param>
-	/// <param name="cy">ĞÂ¸ß¶È£¬0±íÊ¾²»±ä</param>
-	/// <param name="eDisposalMethod">´¦Àí·½Ê½</param>
-	/// <param name="eInterpolation">Ëõ·ÅÊ±Ê¹ÓÃµÄ²åÖµ·½Ê½</param>
-	/// <returns>HRESULT</returns>
-	HRESULT AddFrame(IWICBitmapDecoder* pDecoder, int msDelay,
-		int ox = 0, int oy = 0, int cx = 0, int cy = 0,
-		Disposal eDisposalMethod = Disposal::Undefined,
-		WICBitmapInterpolationMode eInterpolation = WICBitmapInterpolationModeLinear)
-	{
-		HRESULT hr;
-		UINT cFrame;
-		pDecoder->GetFrameCount(&cFrame);
-		EckCounter(cFrame, i)
-		{
-			ComPtr<IWICBitmapFrameDecode> pFrame;
-			if (FAILED(hr = pDecoder->GetFrame(i, &pFrame)))
-				return hr;
-			if (FAILED(hr = AddFrame(pFrame.Get(), msDelay,
-				ox, oy, cx, cy, eDisposalMethod, eInterpolation)))
-				return hr;
-		}
-		return S_OK;
-	}
+    /// <summary>
+    /// æ·»åŠ å¸§ã€‚
+    /// æ·»åŠ WICä½å›¾è§£ç å™¨ä¸­çš„æ‰€æœ‰å¸§
+    /// </summary>
+    /// <param name="pDecoder">WICä½å›¾è§£ç å™¨</param>
+    /// <param name="msDelay">ä»¥æ¯«ç§’è®¡çš„æ˜¾ç¤ºå»¶è¿Ÿ</param>
+    /// <param name="ox">Xåç§»</param>
+    /// <param name="oy">Yåç§»</param>
+    /// <param name="cx">æ–°å®½åº¦ï¼Œ0è¡¨ç¤ºä¸å˜</param>
+    /// <param name="cy">æ–°é«˜åº¦ï¼Œ0è¡¨ç¤ºä¸å˜</param>
+    /// <param name="eDisposalMethod">å¤„ç†æ–¹å¼</param>
+    /// <param name="eInterpolation">ç¼©æ”¾æ—¶ä½¿ç”¨çš„æ’å€¼æ–¹å¼</param>
+    /// <returns>HRESULT</returns>
+    HRESULT AddFrame(IWICBitmapDecoder* pDecoder, int msDelay,
+        int ox = 0, int oy = 0, int cx = 0, int cy = 0,
+        Disposal eDisposalMethod = Disposal::Undefined,
+        WICBitmapInterpolationMode eInterpolation = WICBitmapInterpolationModeLinear) noexcept
+    {
+        HRESULT hr;
+        UINT cFrame;
+        pDecoder->GetFrameCount(&cFrame);
+        EckCounter(cFrame, i)
+        {
+            ComPtr<IWICBitmapFrameDecode> pFrame;
+            if (FAILED(hr = pDecoder->GetFrame(i, &pFrame)))
+                return hr;
+            if (FAILED(hr = AddFrame(pFrame.Get(), msDelay,
+                ox, oy, cx, cy, eDisposalMethod, eInterpolation)))
+                return hr;
+        }
+        return S_OK;
+    }
 
-	/// <summary>
-	/// Ìí¼ÓÖ¡
-	/// </summary>
-	/// <param name="pBmps">WICÎ»Í¼Ô´Êı×é</param>
-	/// <param name="cBmps">Êı×éÖĞµÄÔªËØÊı</param>
-	/// <param name="msDelay">ÒÔºÁÃë¼ÆµÄÏÔÊ¾ÑÓ³Ù</param>
-	/// <param name="ox">XÆ«ÒÆ</param>
-	/// <param name="oy">YÆ«ÒÆ</param>
-	/// <param name="cx">ĞÂ¿í¶È£¬0±íÊ¾²»±ä</param>
-	/// <param name="cy">ĞÂ¸ß¶È£¬0±íÊ¾²»±ä</param>
-	/// <param name="eDisposalMethod">´¦Àí·½Ê½</param>
-	/// <param name="eInterpolation">Ëõ·ÅÊ±Ê¹ÓÃµÄ²åÖµ·½Ê½</param>
-	/// <returns>HRESULT</returns>
-	HRESULT AddFrame(IWICBitmapSource** pBmps, int cBmps, int msDelay,
-		int ox = 0, int oy = 0, int cx = 0, int cy = 0,
-		Disposal eDisposalMethod = Disposal::Undefined,
-		WICBitmapInterpolationMode eInterpolation = WICBitmapInterpolationModeLinear)
-	{
-		HRESULT hr;
-		EckCounter(cBmps, i)
-		{
-			if (FAILED(hr = AddFrame(pBmps[i], msDelay,
-				ox, oy, cx, cy, eDisposalMethod, eInterpolation)))
-				return hr;
-		}
-		return S_OK;
-	}
+    /// <summary>
+    /// æ·»åŠ å¸§
+    /// </summary>
+    /// <param name="pBmps">WICä½å›¾æºæ•°ç»„</param>
+    /// <param name="cBmps">æ•°ç»„ä¸­çš„å…ƒç´ æ•°</param>
+    /// <param name="msDelay">ä»¥æ¯«ç§’è®¡çš„æ˜¾ç¤ºå»¶è¿Ÿ</param>
+    /// <param name="ox">Xåç§»</param>
+    /// <param name="oy">Yåç§»</param>
+    /// <param name="cx">æ–°å®½åº¦ï¼Œ0è¡¨ç¤ºä¸å˜</param>
+    /// <param name="cy">æ–°é«˜åº¦ï¼Œ0è¡¨ç¤ºä¸å˜</param>
+    /// <param name="eDisposalMethod">å¤„ç†æ–¹å¼</param>
+    /// <param name="eInterpolation">ç¼©æ”¾æ—¶ä½¿ç”¨çš„æ’å€¼æ–¹å¼</param>
+    /// <returns>HRESULT</returns>
+    HRESULT AddFrame(IWICBitmapSource** pBmps, int cBmps, int msDelay,
+        int ox = 0, int oy = 0, int cx = 0, int cy = 0,
+        Disposal eDisposalMethod = Disposal::Undefined,
+        WICBitmapInterpolationMode eInterpolation = WICBitmapInterpolationModeLinear) noexcept
+    {
+        HRESULT hr;
+        EckCounter(cBmps, i)
+        {
+            if (FAILED(hr = AddFrame(pBmps[i], msDelay,
+                ox, oy, cx, cy, eDisposalMethod, eInterpolation)))
+                return hr;
+        }
+        return S_OK;
+    }
 
-	int GetFrameCount() const { return (int)m_Frames.size(); }
+    int GetFrameCount() const noexcept { return (int)m_Frames.size(); }
 
-	EckInline void SetRepeatCount(int c) { m_cRepeat = c; }
+    EckInline void SetRepeatCount(int c) noexcept { m_cRepeat = c; }
+    EckInline int GetRepeatCount() const noexcept { return m_cRepeat; }
 
-	EckInline int GetRepeatCount() const { return m_cRepeat; }
+    EckInline void SetHeight(int h) noexcept { m_cy = h; }
+    EckInline int GetHeight() const noexcept { return m_cy; }
 
-	EckInline void SetHeight(int h) { m_cy = h; }
+    EckInline void SetWidth(int w) noexcept { m_cx = w; }
+    EckInline int GetWidth() const noexcept { return m_cx; }
 
-	EckInline int GetHeight() const { return m_cy; }
+    // ç½®æ˜¯å¦é€æ˜ã€‚
+    // è‹¥ä¸ºTRUEï¼Œåˆ™å°†æ‰€æœ‰é€æ˜åº¦å°äº50ï¼ˆçº¦20%ï¼‰çš„åƒç´ è§†ä¸ºé€æ˜
+    EckInline void SetTransparent(BOOL b) noexcept { m_bTransparent = b; }
+    EckInline BOOL GetTransparent() const noexcept { return m_bTransparent; }
 
-	EckInline void SetWidth(int w) { m_cx = w; }
+    EckInline void SetDisposalMethod(Disposal e) noexcept { m_eDisposalMethod = e; }
+    EckInline Disposal GetDisposalMethod() const noexcept { return m_eDisposalMethod; }
 
-	EckInline int GetWidth() const { return m_cx; }
+    EckInline void SetBackgroundColor(WICColor cr) noexcept { m_crBkg = cr; }
+    EckInline WICColor GetBackgroundColor() const noexcept { return m_crBkg; }
 
-	/// <summary>
-	/// ÖÃÊÇ·ñÍ¸Ã÷¡£
-	/// ÈôÎªTRUE£¬Ôò½«ËùÓĞ°¢¶û·¨ÖµĞ¡ÓÚ50£¨Ô¼20%£©µÄÏñËØÊÓÎªÍ¸Ã÷
-	/// </summary>
-	EckInline void SetTransparent(BOOL b) { m_bTransparent = b; }
+    void Clear() noexcept
+    {
+        for (const auto& e : m_Frames)
+            e.pBitmap->Release();
+        m_Frames.clear();
+        m_cRepeat = 0;
+        m_cx = 0;
+        m_cy = 0;
+        m_bTransparent = FALSE;
+        m_eDisposalMethod = Disposal::Undefined;
+        m_crBkg = 0u;
+    }
 
-	EckInline BOOL GetTransparent() const { return m_bTransparent; }
+    /// <summary>
+    /// ä¿å­˜ä¸ºGIF
+    /// </summary>
+    /// <param name="pStream">æµ</param>
+    /// <returns>HRESULT</returns>
+    HRESULT SaveAsGif(IStream* pStream) noexcept
+    {
+        HRESULT hr;
+        PROPVARIANT Var{};
+        ComPtr<IWICBitmapEncoder> pEncoder;
+        g_pWicFactory->CreateEncoder(GUID_ContainerFormatGif, nullptr, &pEncoder);
+        if (FAILED(hr = pEncoder->Initialize(pStream, WICBitmapEncoderNoCache)))
+            return hr;
+        // å†™å¾ªç¯æ¬¡æ•°
+        ComPtr<IWICMetadataQueryWriter> pMdWriter;
+        if (FAILED(hr = pEncoder->GetMetadataQueryWriter(&pMdWriter)))
+            return hr;
+        BYTE byApp[]{ 'N','E','T','S','C','A','P','E','2','.','0' };// æˆ–ANIMEXTS1.0
+        Var.vt = VT_UI1 | VT_VECTOR;
+        Var.caub.cElems = sizeof(byApp);
+        Var.caub.pElems = byApp;
+        if (FAILED(hr = pMdWriter->SetMetadataByName(L"/appext/Application", &Var)))
+            return hr;
 
-	EckInline void SetDisposalMethod(Disposal e) { m_eDisposalMethod = e; }
+        BYTE byData[]
+        {
+            0x03,0x01,
+            (BYTE)(m_cRepeat),(BYTE)(m_cRepeat >> 8),
+            0x00
+        };
+        Var.caub.cElems = sizeof(byData);
+        Var.caub.pElems = byData;
+        if (FAILED(hr = pMdWriter->SetMetadataByName(L"/appext/Data", &Var)))
+            return hr;
+        // å†™å®½é«˜
+        if (m_cx && m_cy)
+        {
+            Var.vt = VT_UI2;
+            Var.uiVal = m_cx;
+            if (FAILED(hr = pMdWriter->SetMetadataByName(L"/logscrdesc/Width", &Var)))
+                return hr;
+            Var.uiVal = m_cy;
+            if (FAILED(hr = pMdWriter->SetMetadataByName(L"/logscrdesc/Height", &Var)))
+                return hr;
+        }
+        ComPtr<IWICPalette> pPalette;
+        // å†™èƒŒæ™¯è‰²
+        if (m_crBkg)
+        {
+            g_pWicFactory->CreatePalette(&pPalette);
+            pPalette->InitializeCustom(&m_crBkg, 1);
+            if (FAILED(hr = pEncoder->SetPalette(pPalette.Get())))
+                return hr;
+            Var.vt = VT_BOOL;
+            Var.boolVal = VARIANT_TRUE;
+            hr = pMdWriter->SetMetadataByName(L"/logscrdesc/GlobalColorTableFlag", &Var);
+            Var.vt = VT_UI1;
+            Var.bVal = 0;
+            hr = pMdWriter->SetMetadataByName(L"/logscrdesc/BackgroundColorIndex", &Var);
+        }
+        for (const auto& e : m_Frames)
+        {
+            ComPtr<IWICBitmapFrameEncode> pFrameEncode;
+            ComPtr<IWICMetadataQueryWriter> pMdWriter;
 
-	EckInline Disposal GetDisposalMethod() const { return m_eDisposalMethod; }
+            if (FAILED(hr = pEncoder->CreateNewFrame(&pFrameEncode, nullptr)))
+                return hr;
+            if (FAILED(hr = pFrameEncode->Initialize(nullptr)))
+                return hr;
+            if (FAILED(hr = pFrameEncode->GetMetadataQueryWriter(&pMdWriter)))
+                return hr;
+            // å†™å¸§å»¶è¿Ÿ
+            Var.vt = VT_UI2;
+            Var.uiVal = e.msDelay / 10;
+            pMdWriter->SetMetadataByName(L"/grctlext/Delay", &Var);
+            // å†™åç§»
+            if (e.ox)
+            {
+                Var.uiVal = e.ox;
+                pMdWriter->SetMetadataByName(L"/imgdesc/Left", &Var);
+            }
+            if (e.oy)
+            {
+                Var.uiVal = e.oy;
+                pMdWriter->SetMetadataByName(L"/imgdesc/Top", &Var);
+            }
+            // å†™æ“¦é™¤æ ‡å¿—
+            if (m_eDisposalMethod != Disposal::Undefined)
+            {
+                Var.vt = VT_UI1;
+                Var.bVal = (BYTE)m_eDisposalMethod;
+                pMdWriter->SetMetadataByName(L"/grctlext/Disposal", &Var);
+            }
+            // å†™é€æ˜æ ‡å¿—
+            if (m_crBkg || m_bTransparent)
+            {
+                ComPtr<IWICPalette> pPalette;
+                g_pWicFactory->CreatePalette(&pPalette);
+                if (FAILED(hr = pPalette->InitializeFromBitmap(e.pBitmap, 256, TRUE)))
+                    return hr;
+                if (m_bTransparent)
+                {
+                    UINT cClr{}, cActualClr;
+                    pPalette->GetColorCount(&cClr);
+                    if (!cClr)
+                        return E_FAIL;
+                    const auto pcr = new WICColor[cClr];
+                    pPalette->GetColors(cClr, pcr, &cActualClr);
+                    const auto it = std::find(pcr, pcr + cClr, 0);
+                    if (it != pcr + cClr)
+                    {
+                        Var.vt = VT_UI1;
+                        Var.bVal = (BYTE)(it - pcr);
+                        pMdWriter->SetMetadataByName(L"/grctlext/TransparentColorIndex", &Var);
+                        Var.vt = VT_BOOL;
+                        Var.boolVal = VARIANT_TRUE;
+                        pMdWriter->SetMetadataByName(L"/grctlext/TransparencyFlag", &Var);
+                    }
+                    delete[] pcr;
+                }
+                ComPtr<IWICFormatConverter> pConverter;
+                g_pWicFactory->CreateFormatConverter(&pConverter);
+                hr = pConverter->Initialize(
+                    e.pBitmap,
+                    GUID_WICPixelFormat8bppIndexed,
+                    WICBitmapDitherTypeNone,
+                    pPalette.Get(),
+                    50. / 255.,
+                    WICBitmapPaletteTypeCustom);
+                if (FAILED(hr))
+                    return hr;
+                pFrameEncode->SetPalette(pPalette.Get());
+                if (FAILED(hr = pFrameEncode->WriteSource(pConverter.Get(), nullptr)))
+                    return hr;
+            }
+            else
+                if (FAILED(hr = pFrameEncode->WriteSource(e.pBitmap, nullptr)))
+                    return hr;
+            if (FAILED(hr = pFrameEncode->Commit()))
+                return hr;
+        }
+        return pEncoder->Commit();
+    }
 
-	EckInline WICColor GetBackgroundColor() const { return m_crBkg; }
+    /// <summary>
+    /// ä¿å­˜ä¸ºAPNGã€‚
+    /// </summary>
+    /// <param name="pStream">æµ</param>
+    /// <returns>HRESULT</returns>
+    HRESULT SaveAsApng(IStream* pStream, PngBlendOp eBlendOp = PngBlendOp::Source,
+        BOOL bInterlace = FALSE, WICPngFilterOption eFilter = WICPngFilterUnspecified) noexcept
+    {
+        constexpr BYTE PngSignature[]{ 0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A };
+        constexpr BYTE IdIHDR[]{ 0x49,0x48,0x44,0x52 };
+        constexpr BYTE IdacTL[]{ 0x61,0x63,0x54,0x4C };
+        constexpr BYTE IdfcTL[]{ 0x66,0x63,0x54,0x4C };
+        constexpr BYTE IdfdAT[]{ 0x66,0x64,0x41,0x54 };
+        constexpr BYTE IdIDAT[]{ 0x49,0x44,0x41,0x54 };
+        constexpr BYTE IdIEND[]{ 0x49,0x45,0x4E,0x44 };
+        CStreamWalker w(pStream);
+        w << PngSignature;
+        // å†™IHDR
+        BYTE byBuf[36];
+        const auto posIhdr = w.GetPosition();
+        constexpr size_t CbIHDR = 13 + 4 + 4 + 4;
+        w += CbIHDR;// æ‚¬è€Œæœªå†³ï¼Œå¾…åç»­å†™å…¥
+        // å†™acTL
+        CMemWalker wkChunk(byBuf, sizeof(byBuf));
+        wkChunk << ReverseInteger(8u) << IdacTL
+            << ReverseInteger((UINT)m_Frames.size())
+            << ReverseInteger((UINT)m_cRepeat);
+        w.Write(byBuf, wkChunk.GetPosition())
+            << ReverseInteger(CalculateCrc32(byBuf + 4, wkChunk.GetPosition() - 4));
+        wkChunk.MoveToBegin();
+        // å†™å…¥å¸§æ•°æ®
+        UINT uSerialNum{};
+        CRefBin rbPng{};
+        ComPtr<CRefBinStream> pPngStream(new CRefBinStream(rbPng));
+        CHAR chChunkId[4];
+        UINT cbChunkData;
+        BOOL bFirstFrame{ TRUE };
+        BYTE* pChunkIdBegin;
+        for (const auto& e : m_Frames)
+        {
+            BYTE byDisposalMethod;
+            if (e.eDisposalMethod == Disposal::Undefined)
+                byDisposalMethod =
+                (m_eDisposalMethod == Disposal::Undefined) ?
+                ((BYTE)m_eDisposalMethod - 1) : 0;
+            else
+                byDisposalMethod = (BYTE)e.eDisposalMethod - 1;
+            // å†™fcTL
+            wkChunk << ReverseInteger(26u) << IdfcTL
+                << ReverseInteger(uSerialNum++)
+                << ReverseInteger(e.cx)
+                << ReverseInteger(e.cy)
+                << ReverseInteger(e.ox)
+                << ReverseInteger(e.oy)
+                << ReverseInteger((USHORT)(e.msDelay / 10))
+                << ReverseInteger(0_us)// 1/100ç§’
+                << byDisposalMethod
+                << eBlendOp
+                ;
+            w.Write(byBuf, wkChunk.GetPosition())
+                << ReverseInteger(CalculateCrc32(byBuf + 4, wkChunk.GetPosition() - 4));
+            wkChunk.MoveToBegin();
+            // å†™IDATæˆ–fdAT
+            pPngStream->Seek(ToLi(0), STREAM_SEEK_SET, nullptr);
 
-	EckInline void SetBackgroundColor(WICColor cr) { m_crBkg = cr; }
+            HRESULT hr;
+            ComPtr<IWICBitmapEncoder> pEncoder;
+            ComPtr<IWICBitmapFrameEncode> pFrame;
+            if (FAILED(hr = g_pWicFactory->CreateEncoder(GUID_ContainerFormatPng, nullptr, &pEncoder)))
+                return hr;
+            if (FAILED(hr = pEncoder->Initialize(pPngStream.Get(), WICBitmapEncoderNoCache)))
+                return hr;
+            if (bInterlace || (eFilter != WICPngFilterUnspecified))
+            {
+                ComPtr<IPropertyBag2> pPropBag;
+                if (FAILED(hr = pEncoder->CreateNewFrame(&pFrame, &pPropBag)))
+                    return hr;
+                PROPBAG2 Prop{ .pstrName = (PWSTR)L"InterlaceOption" };
+                VARIANT Var{};
+                Var.vt = VT_BOOL;
+                Var.bVal = (bInterlace ? VARIANT_TRUE : VARIANT_FALSE);
+                pPropBag->Write(1, &Prop, &Var);
+                Prop.pstrName = (PWSTR)L"FilterOption";
+                Var.vt = VT_UI1;
+                Var.bVal = (BYTE)eFilter;
+                pPropBag->Write(1, &Prop, &Var);
+                if (FAILED(hr = pFrame->Initialize(pPropBag.Get())))
+                    return hr;
+            }
+            else
+            {
+                if (FAILED(hr = pEncoder->CreateNewFrame(&pFrame, nullptr)))
+                    return hr;
+                if (FAILED(hr = pFrame->Initialize(nullptr)))
+                    return hr;
+            }
+            GUID guidFmt{ GUID_WICPixelFormat32bppBGRA };
+            pFrame->SetPixelFormat(&guidFmt);
+            if (FAILED(hr = pFrame->WriteSource(e.pBitmap, nullptr)))
+                return hr;
+            if (FAILED(hr = pFrame->Commit()))
+                return hr;
+            if (FAILED(hr = pEncoder->Commit()))
+                return hr;
+            CMemWalker wt(rbPng.Data(), rbPng.Size());
+            wt += 8;// è·³è¿‡PNGç­¾å
+            EckLoop()
+            {
+                wt.ReadRev(cbChunkData) >> chChunkId;
+                if (memcmp(chChunkId, IdIHDR, 4) == 0)
+                {
+                    if (bFirstFrame)// å¤åˆ¶ç¬¬ä¸€å¸§IHDRåˆ°æµé¦–éƒ¨
+                    {
+                        const auto pos = w.GetPosition();
+                        w.GetStream()->Seek(ToLi(posIhdr), STREAM_SEEK_SET, nullptr);
+                        w.Write(wt.Data() - 8, CbIHDR);
+                        w.GetStream()->Seek(ToLi(pos), STREAM_SEEK_SET, nullptr);
+                    }
+                    wt += (cbChunkData + 4);// è·³è¿‡æ•°æ®å’ŒCRC
+                }
+                else if (memcmp(chChunkId, IdIDAT, 4) == 0)
+                {
+                    if (bFirstFrame)
+                        pChunkIdBegin = wt.Data() - 4;
+                    else
+                    {
+                        pChunkIdBegin = wt.Data() - 8;
+                        memcpy(pChunkIdBegin, IdfdAT, 4);
+                        memcpy(pChunkIdBegin + 4, &uSerialNum, 4);
+                        ++uSerialNum;
+                        cbChunkData += 4;
+                    }
+                    w << ReverseInteger(cbChunkData);
+                    w.Write(pChunkIdBegin, cbChunkData + 4);
+                    if (bFirstFrame)
+                    {
+                        w.Write(pChunkIdBegin + cbChunkData + 4, 4);
+                        bFirstFrame = FALSE;
+                    }
+                    else
+                        w << ReverseInteger(CalculateCrc32(pChunkIdBegin, cbChunkData + 4));
+                    break;
+                }
+                else if (memcmp(chChunkId, IdIEND, 4) == 0)
+                    break;
+                else
+                    wt += (cbChunkData + 4);// è·³è¿‡æ•°æ®å’ŒCRC
+            }
+        }
+        // å†™IEND
+        w << 0u << IdIEND << ReverseInteger(CalculateCrc32(IdIEND, 4));
+        return S_OK;
+    }
 
-	void Clear()
-	{
-		for (const auto& e : m_Frames)
-			e.pBitmap->Release();
-		m_Frames.clear();
-		m_cRepeat = 0;
-		m_cx = 0;
-		m_cy = 0;
-		m_bTransparent = FALSE;
-		m_eDisposalMethod = Disposal::Undefined;
-		m_crBkg = 0u;
-	}
-
-	/// <summary>
-	/// ±£´æÎªGIF
-	/// </summary>
-	/// <param name="pStream">Á÷</param>
-	/// <returns>HRESULT</returns>
-	HRESULT SaveAsGif(IStream* pStream)
-	{
-		HRESULT hr;
-		PROPVARIANT Var{};
-		ComPtr<IWICBitmapEncoder> pEncoder;
-		g_pWicFactory->CreateEncoder(GUID_ContainerFormatGif, nullptr, &pEncoder);
-		if (FAILED(hr = pEncoder->Initialize(pStream, WICBitmapEncoderNoCache)))
-			return hr;
-		// Ğ´Ñ­»·´ÎÊı
-		ComPtr<IWICMetadataQueryWriter> pMdWriter;
-		if (FAILED(hr = pEncoder->GetMetadataQueryWriter(&pMdWriter)))
-			return hr;
-		BYTE byApp[]{ 'N','E','T','S','C','A','P','E','2','.','0' };// »òANIMEXTS1.0
-		Var.vt = VT_UI1 | VT_VECTOR;
-		Var.caub.cElems = sizeof(byApp);
-		Var.caub.pElems = byApp;
-		if (FAILED(hr = pMdWriter->SetMetadataByName(L"/appext/Application", &Var)))
-			return hr;
-
-		BYTE byData[]
-		{
-			0x03,0x01,
-			(BYTE)(m_cRepeat),(BYTE)(m_cRepeat >> 8),
-			0x00
-		};
-		Var.caub.cElems = sizeof(byData);
-		Var.caub.pElems = byData;
-		if (FAILED(hr = pMdWriter->SetMetadataByName(L"/appext/Data", &Var)))
-			return hr;
-		// Ğ´¿í¸ß
-		if (m_cx && m_cy)
-		{
-			Var.vt = VT_UI2;
-			Var.uiVal = m_cx;
-			if (FAILED(hr = pMdWriter->SetMetadataByName(L"/logscrdesc/Width", &Var)))
-				return hr;
-			Var.uiVal = m_cy;
-			if (FAILED(hr = pMdWriter->SetMetadataByName(L"/logscrdesc/Height", &Var)))
-				return hr;
-		}
-		ComPtr<IWICPalette> pPalette;
-		// Ğ´±³¾°É«
-		if (m_crBkg)
-		{
-			g_pWicFactory->CreatePalette(&pPalette);
-			pPalette->InitializeCustom(&m_crBkg, 1);
-			if (FAILED(hr = pEncoder->SetPalette(pPalette.Get())))
-				return hr;
-			Var.vt = VT_BOOL;
-			Var.boolVal = VARIANT_TRUE;
-			hr = pMdWriter->SetMetadataByName(L"/logscrdesc/GlobalColorTableFlag", &Var);
-			Var.vt = VT_UI1;
-			Var.bVal = 0;
-			hr = pMdWriter->SetMetadataByName(L"/logscrdesc/BackgroundColorIndex", &Var);
-		}
-		for (const auto& e : m_Frames)
-		{
-			ComPtr<IWICBitmapFrameEncode> pFrameEncode;
-			ComPtr<IWICMetadataQueryWriter> pMdWriter;
-
-			if (FAILED(hr = pEncoder->CreateNewFrame(&pFrameEncode, nullptr)))
-				return hr;
-			if (FAILED(hr = pFrameEncode->Initialize(nullptr)))
-				return hr;
-			if (FAILED(hr = pFrameEncode->GetMetadataQueryWriter(&pMdWriter)))
-				return hr;
-			// Ğ´Ö¡ÑÓ³Ù
-			Var.vt = VT_UI2;
-			Var.uiVal = e.msDelay / 10;
-			pMdWriter->SetMetadataByName(L"/grctlext/Delay", &Var);
-			// Ğ´Æ«ÒÆ
-			if (e.ox)
-			{
-				Var.uiVal = e.ox;
-				pMdWriter->SetMetadataByName(L"/imgdesc/Left", &Var);
-			}
-			if (e.oy)
-			{
-				Var.uiVal = e.oy;
-				pMdWriter->SetMetadataByName(L"/imgdesc/Top", &Var);
-			}
-			// Ğ´²Á³ı±êÖ¾
-			if (m_eDisposalMethod != Disposal::Undefined)
-			{
-				Var.vt = VT_UI1;
-				Var.bVal = (BYTE)m_eDisposalMethod;
-				pMdWriter->SetMetadataByName(L"/grctlext/Disposal", &Var);
-			}
-			// Ğ´Í¸Ã÷±êÖ¾
-			if (m_crBkg || m_bTransparent)
-			{
-				ComPtr<IWICPalette> pPalette;
-				g_pWicFactory->CreatePalette(&pPalette);
-				if (FAILED(hr = pPalette->InitializeFromBitmap(e.pBitmap, 256, TRUE)))
-					return hr;
-				if (m_bTransparent)
-				{
-					UINT cClr{}, cActualClr;
-					pPalette->GetColorCount(&cClr);
-					if (!cClr)
-						return E_FAIL;
-					const auto pcr = new WICColor[cClr];
-					pPalette->GetColors(cClr, pcr, &cActualClr);
-					const auto it = std::find(pcr, pcr + cClr, 0);
-					if (it != pcr + cClr)
-					{
-						Var.vt = VT_UI1;
-						Var.bVal = (BYTE)(it - pcr);
-						pMdWriter->SetMetadataByName(L"/grctlext/TransparentColorIndex", &Var);
-						Var.vt = VT_BOOL;
-						Var.boolVal = VARIANT_TRUE;
-						pMdWriter->SetMetadataByName(L"/grctlext/TransparencyFlag", &Var);
-					}
-					delete[] pcr;
-				}
-				ComPtr<IWICFormatConverter> pConverter;
-				g_pWicFactory->CreateFormatConverter(&pConverter);
-				hr = pConverter->Initialize(
-					e.pBitmap,
-					GUID_WICPixelFormat8bppIndexed,
-					WICBitmapDitherTypeNone,
-					pPalette.Get(),
-					50. / 255.,
-					WICBitmapPaletteTypeCustom);
-				if (FAILED(hr))
-					return hr;
-				pFrameEncode->SetPalette(pPalette.Get());
-				if (FAILED(hr = pFrameEncode->WriteSource(pConverter.Get(), nullptr)))
-					return hr;
-			}
-			else
-				if (FAILED(hr = pFrameEncode->WriteSource(e.pBitmap, nullptr)))
-					return hr;
-			if (FAILED(hr = pFrameEncode->Commit()))
-				return hr;
-		}
-		return pEncoder->Commit();
-	}
-
-	/// <summary>
-	/// ±£´æÎªAPNG¡£
-	/// </summary>
-	/// <param name="pStream">Á÷</param>
-	/// <returns>HRESULT</returns>
-	HRESULT SaveAsApng(IStream* pStream, PngBlendOp eBlendOp = PngBlendOp::Source,
-		BOOL bInterlace = FALSE, WICPngFilterOption eFilter = WICPngFilterUnspecified)
-	{
-		constexpr BYTE PngSignature[]{ 0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A };
-		constexpr BYTE IdIHDR[]{ 0x49,0x48,0x44,0x52 };
-		constexpr BYTE IdacTL[]{ 0x61,0x63,0x54,0x4C };
-		constexpr BYTE IdfcTL[]{ 0x66,0x63,0x54,0x4C };
-		constexpr BYTE IdfdAT[]{ 0x66,0x64,0x41,0x54 };
-		constexpr BYTE IdIDAT[]{ 0x49,0x44,0x41,0x54 };
-		constexpr BYTE IdIEND[]{ 0x49,0x45,0x4E,0x44 };
-		CStreamWalker w(pStream);
-		w << PngSignature;
-		// Ğ´IHDR
-		BYTE byBuf[36];
-		const auto posIhdr = w.GetPos();
-		constexpr size_t CbIHDR = 13 + 4 + 4 + 4;
-		w += CbIHDR;// Ğü¶øÎ´¾ö£¬´ıºóĞøĞ´Èë
-		// Ğ´acTL
-		CMemWalker wkChunk(byBuf, sizeof(byBuf));
-		wkChunk << ReverseInteger(8u) << IdacTL
-			<< ReverseInteger((UINT)m_Frames.size())
-			<< ReverseInteger((UINT)m_cRepeat);
-		w.Write(byBuf, wkChunk.GetPos())
-			<< ReverseInteger(CalcCrc32(byBuf + 4, wkChunk.GetPos() - 4));
-		wkChunk.MoveToBegin();
-		// Ğ´ÈëÖ¡Êı¾İ
-		UINT uSerialNum{};
-		CRefBin rbPng{};
-		ComPtr<CRefBinStream> pPngStream(new CRefBinStream(rbPng));
-		CHAR chChunkId[4];
-		UINT cbChunkData;
-		BOOL bFirstFrame{ TRUE };
-		BYTE* pChunkIdBegin;
-		for (const auto& e : m_Frames)
-		{
-			BYTE byDisposalMethod;
-			if (e.eDisposalMethod == Disposal::Undefined)
-				byDisposalMethod =
-				(m_eDisposalMethod == Disposal::Undefined) ?
-				((BYTE)m_eDisposalMethod - 1) : 0;
-			else
-				byDisposalMethod = (BYTE)e.eDisposalMethod - 1;
-			// Ğ´fcTL
-			wkChunk << ReverseInteger(26u) << IdfcTL
-				<< ReverseInteger(uSerialNum++)
-				<< ReverseInteger(e.cx)
-				<< ReverseInteger(e.cy)
-				<< ReverseInteger(e.ox)
-				<< ReverseInteger(e.oy)
-				<< ReverseInteger((USHORT)(e.msDelay / 10))
-				<< ReverseInteger(0_us)// 1/100Ãë
-				<< byDisposalMethod
-				<< eBlendOp
-				;
-			w.Write(byBuf, wkChunk.GetPos())
-				<< ReverseInteger(CalcCrc32(byBuf + 4, wkChunk.GetPos() - 4));
-			wkChunk.MoveToBegin();
-			// Ğ´IDAT»òfdAT
-			pPngStream->Seek(ToLi(0), STREAM_SEEK_SET, nullptr);
-
-			HRESULT hr;
-			ComPtr<IWICBitmapEncoder> pEncoder;
-			ComPtr<IWICBitmapFrameEncode> pFrame;
-			if (FAILED(hr = g_pWicFactory->CreateEncoder(GUID_ContainerFormatPng, nullptr, &pEncoder)))
-				return hr;
-			if (FAILED(hr = pEncoder->Initialize(pPngStream.Get(), WICBitmapEncoderNoCache)))
-				return hr;
-			if (bInterlace || (eFilter != WICPngFilterUnspecified))
-			{
-				ComPtr<IPropertyBag2> pPropBag;
-				if (FAILED(hr = pEncoder->CreateNewFrame(&pFrame, &pPropBag)))
-					return hr;
-				PROPBAG2 Prop{ .pstrName = (PWSTR)L"InterlaceOption" };
-				VARIANT Var{};
-				Var.vt = VT_BOOL;
-				Var.bVal = (bInterlace ? VARIANT_TRUE : VARIANT_FALSE);
-				pPropBag->Write(1, &Prop, &Var);
-				Prop.pstrName = (PWSTR)L"FilterOption";
-				Var.vt = VT_UI1;
-				Var.bVal = (BYTE)eFilter;
-				pPropBag->Write(1, &Prop, &Var);
-				if (FAILED(hr = pFrame->Initialize(pPropBag.Get())))
-					return hr;
-			}
-			else
-			{
-				if (FAILED(hr = pEncoder->CreateNewFrame(&pFrame, nullptr)))
-					return hr;
-				if (FAILED(hr = pFrame->Initialize(nullptr)))
-					return hr;
-			}
-			GUID guidFmt{ GUID_WICPixelFormat32bppBGRA };
-			pFrame->SetPixelFormat(&guidFmt);
-			if (FAILED(hr = pFrame->WriteSource(e.pBitmap, nullptr)))
-				return hr;
-			if (FAILED(hr = pFrame->Commit()))
-				return hr;
-			if (FAILED(hr= pEncoder->Commit()))
-				return hr;
-			CMemWalker wt(rbPng.Data(), rbPng.Size());
-			wt += 8;// Ìø¹ıPNGÇ©Ãû
-			EckLoop()
-			{
-				wt.ReadRev(cbChunkData) >> chChunkId;
-				if (memcmp(chChunkId, IdIHDR, 4) == 0)
-				{
-					if (bFirstFrame)// ¸´ÖÆµÚÒ»Ö¡IHDRµ½Á÷Ê×²¿
-					{
-						const auto pos = w.GetPos();
-						w.GetStream()->Seek(ToLi(posIhdr), STREAM_SEEK_SET, nullptr);
-						w.Write(wt.Data() - 8, CbIHDR);
-						w.GetStream()->Seek(ToLi(pos), STREAM_SEEK_SET, nullptr);
-					}
-					wt += (cbChunkData + 4);// Ìø¹ıÊı¾İºÍCRC
-				}
-				else if (memcmp(chChunkId, IdIDAT, 4) == 0)
-				{
-					if (bFirstFrame)
-						pChunkIdBegin = wt.Data() - 4;
-					else
-					{
-						pChunkIdBegin = wt.Data() - 8;
-						memcpy(pChunkIdBegin, IdfdAT, 4);
-						memcpy(pChunkIdBegin + 4, &uSerialNum, 4);
-						++uSerialNum;
-						cbChunkData += 4;
-					}
-					w << ReverseInteger(cbChunkData);
-					w.Write(pChunkIdBegin, cbChunkData + 4);
-					if (bFirstFrame)
-					{
-						w.Write(pChunkIdBegin + cbChunkData + 4, 4);
-						bFirstFrame = FALSE;
-					}
-					else
-						w << ReverseInteger(CalcCrc32(pChunkIdBegin, cbChunkData + 4));
-					break;
-				}
-				else if (memcmp(chChunkId, IdIEND, 4) == 0)
-					break;
-				else
-					wt += (cbChunkData + 4);// Ìø¹ıÊı¾İºÍCRC
-			}
-		}
-		// Ğ´IEND
-		w << 0u << IdIEND << ReverseInteger(CalcCrc32(IdIEND, 4));
-		return S_OK;
-	}
-
-	/// <summary>
-	/// ±£´æÎªTIFF.
-	/// ½«ºöÂÔÏÂÁĞÊôĞÔ£ºÖØ¸´´ÎÊı¡¢ÊÇ·ñÍ¸Ã÷¡¢±³¾°ÑÕÉ«¡¢´¦Àí·½Ê½
-	/// </summary>
-	/// <param name="pStream">Á÷</param>
-	/// <returns>HRESULT</returns>
-	HRESULT SaveAsTiff(IStream* pStream, float fCompressionQuality = 0.f,
-		WICTiffCompressionOption eCompression = WICTiffCompressionDontCare)
-	{
-		HRESULT hr;
-		ComPtr<IWICBitmapEncoder> pEncoder;
-		g_pWicFactory->CreateEncoder(GUID_ContainerFormatTiff, nullptr, &pEncoder);
-		if (FAILED(hr = pEncoder->Initialize(pStream, WICBitmapEncoderNoCache)))
-			return hr;
-		for (const auto& e : m_Frames)
-		{
-			ComPtr<IWICBitmapFrameEncode> pFrameEncode;
-			if (fCompressionQuality > 0.f || eCompression != WICTiffCompressionDontCare)
-			{
-				ComPtr<IPropertyBag2> pPropBag;
-				if (FAILED(hr = pEncoder->CreateNewFrame(&pFrameEncode, &pPropBag)))
-					return hr;
-				PROPBAG2 Prop{ .pstrName = (PWSTR)L"TiffCompressionMethod" };
-				VARIANT Var{};
-				Var.vt = VT_UI1;
-				Var.bVal = eCompression;
-				pPropBag->Write(1, &Prop, &Var);
-				Prop.pstrName = (PWSTR)L"TiffCompressionQuality";
-				Var.vt = VT_R4;
-				Var.fltVal = fCompressionQuality;
-				pPropBag->Write(1, &Prop, &Var);
-				if (FAILED(hr = pFrameEncode->Initialize(pPropBag.Get())))
-					return hr;
-			}
-			else
-			{
-				if (FAILED(hr = pEncoder->CreateNewFrame(&pFrameEncode, nullptr)))
-					return hr;
-				if (FAILED(hr = pFrameEncode->Initialize(nullptr)))
-					return hr;
-			}
-			if (FAILED(hr = pFrameEncode->WriteSource(e.pBitmap, nullptr)))
-				return hr;
-			if (FAILED(hr = pFrameEncode->Commit()))
-				return hr;
-		}
-		return pEncoder->Commit();
-	}
+    /// <summary>
+    /// ä¿å­˜ä¸ºTIFF.
+    /// å°†å¿½ç•¥ä¸‹åˆ—å±æ€§ï¼šé‡å¤æ¬¡æ•°ã€æ˜¯å¦é€æ˜ã€èƒŒæ™¯é¢œè‰²ã€å¤„ç†æ–¹å¼
+    /// </summary>
+    /// <param name="pStream">æµ</param>
+    /// <returns>HRESULT</returns>
+    HRESULT SaveAsTiff(IStream* pStream, float fCompressionQuality = 0.f,
+        WICTiffCompressionOption eCompression = WICTiffCompressionDontCare) noexcept
+    {
+        HRESULT hr;
+        ComPtr<IWICBitmapEncoder> pEncoder;
+        g_pWicFactory->CreateEncoder(GUID_ContainerFormatTiff, nullptr, &pEncoder);
+        if (FAILED(hr = pEncoder->Initialize(pStream, WICBitmapEncoderNoCache)))
+            return hr;
+        for (const auto& e : m_Frames)
+        {
+            ComPtr<IWICBitmapFrameEncode> pFrameEncode;
+            if (fCompressionQuality > 0.f || eCompression != WICTiffCompressionDontCare)
+            {
+                ComPtr<IPropertyBag2> pPropBag;
+                if (FAILED(hr = pEncoder->CreateNewFrame(&pFrameEncode, &pPropBag)))
+                    return hr;
+                PROPBAG2 Prop{ .pstrName = (PWSTR)L"TiffCompressionMethod" };
+                VARIANT Var{};
+                Var.vt = VT_UI1;
+                Var.bVal = eCompression;
+                pPropBag->Write(1, &Prop, &Var);
+                Prop.pstrName = (PWSTR)L"TiffCompressionQuality";
+                Var.vt = VT_R4;
+                Var.fltVal = fCompressionQuality;
+                pPropBag->Write(1, &Prop, &Var);
+                if (FAILED(hr = pFrameEncode->Initialize(pPropBag.Get())))
+                    return hr;
+            }
+            else
+            {
+                if (FAILED(hr = pEncoder->CreateNewFrame(&pFrameEncode, nullptr)))
+                    return hr;
+                if (FAILED(hr = pFrameEncode->Initialize(nullptr)))
+                    return hr;
+            }
+            if (FAILED(hr = pFrameEncode->WriteSource(e.pBitmap, nullptr)))
+                return hr;
+            if (FAILED(hr = pFrameEncode->Commit()))
+                return hr;
+        }
+        return pEncoder->Commit();
+    }
 };
 
 class CIcoFileReader
 {
 private:
-	PCBYTE m_pData = nullptr;
-	const ICONDIR* m_pHeader = nullptr;
-	const ICONDIRENTRY* m_pEntry = nullptr;
+    PCBYTE m_pData = nullptr;
+    const ICONDIR* m_pHeader = nullptr;
+    const ICONDIRENTRY* m_pEntry = nullptr;
 public:
-	CIcoFileReader(PCBYTE pData)
-	{
-		AnalyzeData(pData);
-	}
+    CIcoFileReader(PCBYTE pData) noexcept
+    {
+        AnalyzeData(pData);
+    }
 
-	EckInline int AnalyzeData(PCBYTE pData)
-	{
-		m_pData = pData;
-		m_pHeader = (ICONDIR*)pData;
-		m_pEntry = (ICONDIRENTRY*)(pData + sizeof(ICONDIR));
-		return m_pHeader->idCount;
-	}
+    EckInline int AnalyzeData(PCBYTE pData) noexcept
+    {
+        m_pData = pData;
+        m_pHeader = (ICONDIR*)pData;
+        m_pEntry = (ICONDIRENTRY*)(pData + sizeof(ICONDIR));
+        return m_pHeader->idCount;
+    }
 
-	EckInline auto GetHeader() const { return m_pHeader; }
+    EckInline auto GetHeader() const noexcept { return m_pHeader; }
 
-	EckInline auto GetEntry() const { return m_pEntry; }
+    EckInline auto GetEntry() const noexcept { return m_pEntry; }
 
-	EckInline PCVOID GetIconData(int idx) const
-	{
-		EckAssert(idx >= 0 && idx < GetIconCount());
-		return m_pData + m_pEntry[idx].dwImageOffset;
-	}
+    EckInline PCVOID GetIconData(int idx) const noexcept
+    {
+        EckAssert(idx >= 0 && idx < GetIconCount());
+        return m_pData + m_pEntry[idx].dwImageOffset;
+    }
 
-	EckInline DWORD GetIconDataSize(int idx) const
-	{
-		EckAssert(idx >= 0 && idx < GetIconCount());
-		return m_pEntry[idx].dwBytesInRes;
-	}
+    EckInline DWORD GetIconDataSize(int idx) const noexcept
+    {
+        EckAssert(idx >= 0 && idx < GetIconCount());
+        return m_pEntry[idx].dwBytesInRes;
+    }
 
-	EckInline int GetIconCount() const { return m_pHeader->idCount; }
+    EckInline int GetIconCount() const noexcept { return m_pHeader->idCount; }
 
-	EckInline int FindIcon(int cx, int cy) const
-	{
-		EckCounter(GetIconCount(), i)
-		{
-			if (m_pEntry[i].bWidth == cx && m_pEntry[i].bHeight == cy)
-				return i;
-		}
-		return -1;
-	}
+    EckInline int FindIcon(int cx, int cy) const noexcept
+    {
+        EckCounter(GetIconCount(), i)
+        {
+            if (m_pEntry[i].bWidth == cx && m_pEntry[i].bHeight == cy)
+                return i;
+        }
+        return -1;
+    }
 
-	EckInline HICON CreateHICON(int idx, int cx = 0, int cy = 0, UINT uFlags = 0u) const
-	{
-		EckAssert(idx >= 0 && idx < GetIconCount());
-		return CreateIconFromResourceEx((BYTE*)GetIconData(idx), GetIconDataSize(idx),
-			TRUE, 0x00030000, cx, cy, uFlags);
-	}
+    EckInline HICON CreateHICON(int idx,
+        int cx = 0, int cy = 0, UINT uFlags = 0u) const noexcept
+    {
+        EckAssert(idx >= 0 && idx < GetIconCount());
+        return CreateIconFromResourceEx((BYTE*)GetIconData(idx), GetIconDataSize(idx),
+            TRUE, 0x00030000, cx, cy, uFlags);
+    }
 
-	auto At(int idx) const { EckAssert(idx >= 0 && idx < GetIconCount()); return m_pEntry + idx; }
+    auto At(int idx) const noexcept
+    {
+        EckAssert(idx >= 0 && idx < GetIconCount());
+        return m_pEntry + idx;
+    }
 };
 ECK_NAMESPACE_END

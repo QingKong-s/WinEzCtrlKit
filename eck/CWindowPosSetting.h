@@ -23,7 +23,7 @@ struct CWindowPosSetting
     int x{}, y{}, cx{}, cy{};
     BOOL bMaximized{};
 
-    BOOL FromWindow(HWND hWnd)
+    BOOL FromWindow(HWND hWnd) noexcept
     {
         WINDOWPLACEMENT wp;
         wp.length = sizeof(wp);
@@ -37,7 +37,7 @@ struct CWindowPosSetting
         return TRUE;
     }
 
-    BOOL FromString(PCWSTR psz)
+    BOOL FromString(PCWSTR psz) noexcept
     {
         if (TcsEqualMaxLenI(psz, Version, VersionLength) != 0)
             return FALSE;
@@ -45,7 +45,7 @@ struct CWindowPosSetting
             &x, &y, &cx, &cy, &bMaximized) == 5;
     }
 
-    BOOL ToWindow(HWND hWnd)
+    BOOL ToWindow(HWND hWnd) noexcept
     {
         if (bMaximized)
             return ShowWindow(hWnd, SW_SHOWMAXIMIZED);
@@ -53,12 +53,12 @@ struct CWindowPosSetting
             return SetWindowPos(hWnd, nullptr, x, y, cx, cy, SWP_NOZORDER);
     }
 
-    void ToString(CRefStrW& rs)
+    void ToString(CRefStrW& rs) noexcept
     {
-        rs.AppendFormat(L"%s,%d,%d,%d,%d,%d", Version, x, y, cx, cy, bMaximized);
+        rs.PushBackFormat(L"%s,%d,%d,%d,%d,%d", Version, x, y, cx, cy, bMaximized);
     }
 
-    Result EnsureVisible()
+    Result EnsureVisible() noexcept
     {
         RECT rcWnd{ x,y,x + cx,y + cy };
         if (IsRectEmpty(rcWnd))

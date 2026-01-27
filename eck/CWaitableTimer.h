@@ -6,12 +6,15 @@ ECK_NAMESPACE_BEGIN
 class CWaitableTimer : public CWaitableObject
 {
 public:
-    CWaitableTimer()
+    CWaitableTimer() noexcept
     {
         NtCreateTimer(&m_hObject, TIMER_ALL_ACCESS, nullptr, SynchronizationTimer);
     }
 
-    CWaitableTimer(std::wstring_view svName, BOOL bManualReset = FALSE, BOOL bInheritHandle = FALSE)
+    CWaitableTimer(
+        std::wstring_view svName,
+        BOOL bManualReset = FALSE,
+        BOOL bInheritHandle = FALSE) noexcept
     {
         const auto us{ StringViewToNtString(svName) };
         OBJECT_ATTRIBUTES oa;
@@ -23,33 +26,33 @@ public:
             (bManualReset ? NotificationTimer : SynchronizationTimer));
     }
 
-    EckInline NTSTATUS SetDueTime100ns(LONGLONG ll)
+    EckInline NTSTATUS SetDueTime100ns(LONGLONG ll) noexcept
     {
         ll *= -1;
         return NtSetTimer(m_hObject, (LARGE_INTEGER*)&ll,
             nullptr, nullptr, FALSE, 0, nullptr);
     }
 
-    EckInline NTSTATUS SetDueTimeAndPeriod100ns(LONGLONG ll, LONG lPeriod)
+    EckInline NTSTATUS SetDueTimeAndPeriod100ns(LONGLONG ll, LONG lPeriod) noexcept
     {
         ll *= -1;
         return NtSetTimer(m_hObject, (LARGE_INTEGER*)&ll,
             nullptr, nullptr, FALSE, lPeriod, nullptr);
     }
 
-    EckInline NTSTATUS SetDueTime(LONG ll) { return SetDueTime100ns(ll * 10000ll); }
+    EckInline NTSTATUS SetDueTime(LONG ll) noexcept { return SetDueTime100ns(ll * 10000ll); }
 
-    EckInline NTSTATUS SetDueTimeAndPeriod(LONG ll, LONG lPeriod)
+    EckInline NTSTATUS SetDueTimeAndPeriod(LONG ll, LONG lPeriod) noexcept
     {
         return SetDueTimeAndPeriod100ns(ll * 10000ll, lPeriod);
     }
 
-    EckInline NTSTATUS Cancel(BOOLEAN* pbPrevState = nullptr)
+    EckInline NTSTATUS Cancel(BOOLEAN* pbPrevState = nullptr) noexcept
     {
         return NtCancelTimer(m_hObject, pbPrevState);
     }
 
-    NTSTATUS QueryState(_Out_ BOOLEAN& bState, _Out_ LONGLONG& llRemainingTime)
+    NTSTATUS QueryState(_Out_ BOOLEAN& bState, _Out_ LONGLONG& llRemainingTime) noexcept
     {
         TIMER_BASIC_INFORMATION	tbi;
         ULONG cbRet;

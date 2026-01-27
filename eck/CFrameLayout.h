@@ -12,7 +12,7 @@ ECK_NAMESPACE_BEGIN
 class CFrameLayout : public CLayoutBase
 {
 public:
-    ECK_RTTI(CFrameLayout);
+    ECK_RTTI(CFrameLayout, CLayoutBase);
 private:
     struct ITEM : ITEMBASE {};
 
@@ -99,5 +99,4 @@ public:
     EckInlineNdCe auto& GetList() noexcept { return m_vItem; }
     EckInlineNdCe auto& GetList() const noexcept { return m_vItem; }
 };
-ECK_RTTI_IMPL_BASE_INLINE(CFrameLayout, CLayoutBase);
 ECK_NAMESPACE_END

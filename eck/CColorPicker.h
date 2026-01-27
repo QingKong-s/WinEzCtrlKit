@@ -13,7 +13,7 @@ struct NMCLPCLRCHANGED
 class CColorPicker : public CComboBoxNew
 {
 public:
-    ECK_RTTI(CColorPicker);
+    ECK_RTTI(CColorPicker, CComboBoxNew);
 
     constexpr static int IdxCustom = 1;
 private:
@@ -69,7 +69,8 @@ private:
     constexpr static int ItemPadding = 2;
     constexpr static int ClrBlockWidth = 20;
 public:
-    LRESULT OnNotifyMsg(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bProcessed) override
+    LRESULT OnNotifyMessage(HWND hParent, UINT uMsg,
+        WPARAM wParam, LPARAM lParam, BOOL& bProcessed) noexcept override
     {
         switch (uMsg)
         {
@@ -97,14 +98,14 @@ public:
                     if (p->hdr.code == NM_CBN_LBCUSTOMDRAW)
                         idx = (int)p->dwItemSpec;
                     else
-                        idx = GetListBox().GetCurrSel();
+                        idx = GetListBox().GetCurrentSelection();
                     if (idx < 0)
                         return CDRF_DODEFAULT;
                     COLORREF cr = PresetColor[idx].cr;
                     HBRUSH hbr;
                     HDC hDC = p->hdc;
 
-                    const auto* const ptc = GetThreadCtx();
+                    const auto* const ptc = PtcCurrent();
                     const auto crText = (p->uItemState & CDIS_SELECTED) ?
                         ptc->crHiLightText : ptc->crDefText;
 
@@ -176,26 +177,26 @@ public:
         }
         return 0;
         }
-        return __super::OnNotifyMsg(hParent, uMsg, wParam, lParam, bProcessed);
+        return __super::OnNotifyMessage(hParent, uMsg, wParam, lParam, bProcessed);
     }
 
-    LRESULT OnMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override
+    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
         case WM_CREATE:
         {
-            const auto lResult = __super::OnMsg(hWnd, uMsg, wParam, lParam);
+            const auto lResult = __super::OnMessage(hWnd, uMsg, wParam, lParam);
             GetListBox().SetItemCount(ARRAYSIZE(PresetColor));
             return lResult;
         }
         }
-        return __super::OnMsg(hWnd, uMsg, wParam, lParam);
+        return __super::OnMessage(hWnd, uMsg, wParam, lParam);
     }
 
     COLORREF GetColor() noexcept
     {
-        const auto idx = GetListBox().GetCurrSel();
+        const auto idx = GetListBox().GetCurrentSelection();
         if (idx < 0)
             return CLR_INVALID;
         const auto cr = PresetColor[idx].cr;
@@ -215,14 +216,14 @@ public:
         {
             if (e.cr == cr)
             {
-                LB.SetCurrSel(i);
+                LB.SetCurrentSelection(i);
                 LB.SetGenerateItemNotify(TRUE);
                 return TRUE;
             }
             ++i;
         }
         m_crCustom = cr;
-        LB.SetCurrSel(1);
+        LB.SetCurrentSelection(1);
         LB.SetGenerateItemNotify(TRUE);
         return TRUE;
     }
@@ -231,9 +232,8 @@ public:
     {
         auto& LB = GetListBox();
         LB.SetGenerateItemNotify(FALSE);
-        LB.SetCurrSel(idx);
+        LB.SetCurrentSelection(idx);
         LB.SetGenerateItemNotify(TRUE);
     }
 };
-ECK_RTTI_IMPL_BASE_INLINE(CColorPicker, CComboBoxNew);
 ECK_NAMESPACE_END

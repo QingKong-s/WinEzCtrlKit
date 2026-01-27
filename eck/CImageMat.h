@@ -5,6 +5,7 @@
 
 #include <stack>
 #include <set>
+#include <queue>
 
 ECK_NAMESPACE_BEGIN
 inline constexpr float KernelX_Sobel[]
@@ -1147,7 +1148,7 @@ public:
                     size_t idxBegin{};
                     for (size_t k{}; const auto& e : vMax)
                     {
-                        const auto f = CalcLineLength(e, vMin[0]);
+                        const auto f = CalculateLineLength(e, vMin[0]);
                         if (f < fDist)
                         {
                             fDist = f;
@@ -1173,7 +1174,7 @@ public:
                                 b1 = (k - idxBegin == vMin.size());
                                 break;
                             }
-                            const auto f = CalcLineLength(vMax[k], vMin[k - idxBegin]);
+                            const auto f = CalculateLineLength(vMax[k], vMin[k - idxBegin]);
                             if (fabsf(f - fDist) > fDistDelta)// 浮动超出容差，不应该删除
                             {
                                 b1 = FALSE;
@@ -1197,7 +1198,7 @@ public:
                                     b2 = (idxBegin - k == vMin.size());
                                     break;
                                 }
-                                const auto f = CalcLineLength(vMax[k], vMin[idxBegin - k]);
+                                const auto f = CalculateLineLength(vMax[k], vMin[idxBegin - k]);
                                 if (fabsf(f - fDist) > fDistDelta)// 浮动超出容差，不应该删除
                                 {
                                     b2 = FALSE;
@@ -1225,7 +1226,7 @@ public:
                 std::vector<size_t> vIdxToRemove{};
                 for (size_t i = 2; i < v.size() - 1; ++i)
                 {
-                    if (CalcPointToLineDistance(v[i], v[idxRef], v[idxRef + 1]) > iLineTolerance)
+                    if (CalculatePointToLineDistance(v[i], v[idxRef], v[idxRef + 1]) > iLineTolerance)
                         idxRef = i - 1;
                     else
                         vIdxToRemove.push_back(i);
@@ -1327,11 +1328,11 @@ public:
         GdipDisposeImage(m_pBitmap);
     }
 
-    EckInline [[nodiscard]] constexpr GpBitmap* GetGpBitmap() const { return m_pBitmap; }
+    EckInlineNdCe GpBitmap* GetGpBitmap() const { return m_pBitmap; }
 
-    EckInline [[nodiscard]] constexpr const Gdiplus::BitmapData& GetBitmapData() { return m_BitmapData; }
+    EckInlineNdCe const Gdiplus::BitmapData& GetBitmapData() { return m_BitmapData; }
 
-    EckInline [[nodiscard]] constexpr BOOL IsValid() const { return m_pBitmap != nullptr; }
+    EckInlineNdCe BOOL IsValid() const { return m_pBitmap != nullptr; }
 
     EckInline GpStatus Lock()
     {

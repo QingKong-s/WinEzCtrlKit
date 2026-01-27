@@ -20,7 +20,7 @@ inline constexpr CHAR SpaceCharsA[]{ " \t\r\n" };
 inline constexpr WCHAR SpaceCharsW[]{ L" \t\r\n\u00A0\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u200B\u202F\u205F\u3000\uFEFF" };
 
 template<CcpStdChar TChar>
-EckInlineNd TChar TchToUpper(TChar c)
+EckInlineNd TChar TchToUpper(TChar c) noexcept
 {
 #if ECK_OPT_NO_ASCII_UPPER_LOWER
     if constexpr (std::is_same_v<TChar, char>)
@@ -35,7 +35,7 @@ EckInlineNd TChar TchToUpper(TChar c)
 #endif
 }
 template<CcpStdChar TChar>
-EckInlineNd TChar TchToLower(TChar c)
+EckInlineNd TChar TchToLower(TChar c) noexcept
 {
 #if ECK_OPT_NO_ASCII_UPPER_LOWER
     if constexpr (std::is_same_v<TChar, char>)
@@ -51,18 +51,18 @@ EckInlineNd TChar TchToLower(TChar c)
 }
 
 template<CcpStdChar TChar>
-EckInlineNdCe bool TchEqual(TChar c1, TChar c2)
+EckInlineNdCe bool TchEqual(TChar c1, TChar c2) noexcept
 {
     return c1 == c2;
 }
 template<CcpStdChar TChar>
-EckInlineNd bool TchEqualI(TChar c1, TChar c2)
+EckInlineNd bool TchEqualI(TChar c1, TChar c2) noexcept
 {
     return TchToUpper(c1) == TchToUpper(c2);
 }
 
 template<CcpStdCharPtr TPtr>
-EckInlineNd size_t TcsLen(_In_z_ TPtr Str)
+EckInlineNd size_t TcsLen(_In_z_ TPtr Str) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return strlen(Str);
@@ -71,7 +71,7 @@ EckInlineNd size_t TcsLen(_In_z_ TPtr Str)
 }
 
 template<CcpStdCharPtr TPtr>
-EckInlineNd bool TcsEqual(_In_z_ TPtr Str1, _In_z_ ConstStdCharPtr_T<TPtr> Str2)
+EckInlineNd bool TcsEqual(_In_z_ TPtr Str1, _In_z_ ConstStdCharPtr_T<TPtr> Str2) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return strcmp(Str1, Str2) == 0;
@@ -79,7 +79,7 @@ EckInlineNd bool TcsEqual(_In_z_ TPtr Str1, _In_z_ ConstStdCharPtr_T<TPtr> Str2)
         return wcscmp(Str1, Str2) == 0;
 }
 template<CcpStdCharPtr TPtr>
-EckInlineNd bool TcsEqualI(_In_z_ TPtr Str1, _In_z_ ConstStdCharPtr_T<TPtr> Str2)
+EckInlineNd bool TcsEqualI(_In_z_ TPtr Str1, _In_z_ ConstStdCharPtr_T<TPtr> Str2) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return stricmp(Str1, Str2) == 0;
@@ -89,7 +89,7 @@ EckInlineNd bool TcsEqualI(_In_z_ TPtr Str1, _In_z_ ConstStdCharPtr_T<TPtr> Str2
 
 template<CcpStdCharPtr TPtr>
 EckInlineNd bool TcsEqualMaxLen(_In_reads_or_z_(Max) TPtr Str1,
-    _In_reads_or_z_(Max) ConstStdCharPtr_T<TPtr> Str2, size_t Max)
+    _In_reads_or_z_(Max) ConstStdCharPtr_T<TPtr> Str2, size_t Max) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return strncmp(Str1, Str2, Max) == 0;
@@ -98,7 +98,7 @@ EckInlineNd bool TcsEqualMaxLen(_In_reads_or_z_(Max) TPtr Str1,
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd bool TcsEqualMaxLenI(_In_reads_or_z_(Max) TPtr Str1,
-    _In_reads_or_z_(Max) ConstStdCharPtr_T<TPtr> Str2, size_t Max)
+    _In_reads_or_z_(Max) ConstStdCharPtr_T<TPtr> Str2, size_t Max) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return strnicmp(Str1, Str2, Max) == 0;
@@ -108,7 +108,7 @@ EckInlineNd bool TcsEqualMaxLenI(_In_reads_or_z_(Max) TPtr Str1,
 
 template<CcpStdCharPtr TPtr>
 EckInlineNd bool TcsEqualLen(_In_reads_(Len) TPtr Str1,
-    _In_reads_(Len) ConstStdCharPtr_T<TPtr> Str2, size_t Len)
+    _In_reads_(Len) ConstStdCharPtr_T<TPtr> Str2, size_t Len) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return memcmp(Str1, Str2, Len) == 0;
@@ -117,7 +117,7 @@ EckInlineNd bool TcsEqualLen(_In_reads_(Len) TPtr Str1,
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd bool TcsEqualLenI(_In_reads_(Len) TPtr Str1,
-    _In_reads_(Len) ConstStdCharPtr_T<TPtr> Str2, size_t Len)
+    _In_reads_(Len) ConstStdCharPtr_T<TPtr> Str2, size_t Len) noexcept
 {
     EckCounter(Len, i)
     {
@@ -129,7 +129,7 @@ EckInlineNd bool TcsEqualLenI(_In_reads_(Len) TPtr Str1,
 
 template<CcpStdCharPtr TPtr>
 EckInlineNd bool TcsEqualLen2(_In_reads_(Len1) TPtr Str1, size_t Len1,
-    _In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2)
+    _In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2) noexcept
 {
     if (Len1 != Len2)
         return false;
@@ -137,7 +137,7 @@ EckInlineNd bool TcsEqualLen2(_In_reads_(Len1) TPtr Str1, size_t Len1,
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd bool TcsEqualLen2I(_In_reads_(Len1) TPtr Str1, size_t Len1,
-    _In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2)
+    _In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2) noexcept
 {
     if (Len1 != Len2)
         return false;
@@ -146,7 +146,7 @@ EckInlineNd bool TcsEqualLen2I(_In_reads_(Len1) TPtr Str1, size_t Len1,
 
 template<CcpStdCharPtr TPtr>
 EckInlineNd bool TcsIsStartWithLen2(_In_reads_(Len1) TPtr Str1, size_t Len1,
-    _In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2)
+    _In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2) noexcept
 {
     if (Len1 < Len2)
         return false;
@@ -154,7 +154,7 @@ EckInlineNd bool TcsIsStartWithLen2(_In_reads_(Len1) TPtr Str1, size_t Len1,
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd bool TcsIsStartWithLen2I(_In_reads_(Len1) TPtr Str1, size_t Len1,
-    _In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2)
+    _In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2) noexcept
 {
     if (Len1 < Len2)
         return false;
@@ -163,7 +163,7 @@ EckInlineNd bool TcsIsStartWithLen2I(_In_reads_(Len1) TPtr Str1, size_t Len1,
 
 template<CcpStdCharPtr TPtr>
 EckInlineNd bool TcsIsEndWithLen2(_In_reads_(Len1) TPtr Str1, size_t Len1,
-    _In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2)
+    _In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2) noexcept
 {
     if (Len1 < Len2)
         return false;
@@ -171,7 +171,7 @@ EckInlineNd bool TcsIsEndWithLen2(_In_reads_(Len1) TPtr Str1, size_t Len1,
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd bool TcsIsEndWithLen2I(_In_reads_(Len1) TPtr Str1, size_t Len1,
-    _In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2)
+    _In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2) noexcept
 {
     if (Len1 < Len2)
         return false;
@@ -179,7 +179,7 @@ EckInlineNd bool TcsIsEndWithLen2I(_In_reads_(Len1) TPtr Str1, size_t Len1,
 }
 
 template<CcpStdCharPtr TPtr>
-_Ret_maybenull_ EckInlineNd TPtr TcsChar(_In_z_ TPtr Str, RemoveStdCharPtr_T<TPtr> c)
+_Ret_maybenull_ EckInlineNd TPtr TcsChar(_In_z_ TPtr Str, RemoveStdCharPtr_T<TPtr> c) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return (TPtr)strchr((CHAR*)Str, (CHAR)c);
@@ -188,7 +188,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsChar(_In_z_ TPtr Str, RemoveStdCharPtr_T<TPt
 }
 template<CcpStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr TcsCharLen(_In_reads_(Len) TPtr Str, size_t Len,
-    RemoveStdCharPtr_T<TPtr> c)
+    RemoveStdCharPtr_T<TPtr> c) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return (TPtr)memchr((CHAR*)Str, (CHAR)c, Len);
@@ -197,7 +197,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsCharLen(_In_reads_(Len) TPtr Str, size_t Len
 }
 
 template<CcpStdCharPtr TPtr>
-_Ret_maybenull_ EckInlineNd TPtr TcsRChar(_In_z_ TPtr Str, RemoveStdCharPtr_T<TPtr> c)
+_Ret_maybenull_ EckInlineNd TPtr TcsRChar(_In_z_ TPtr Str, RemoveStdCharPtr_T<TPtr> c) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return (TPtr)strrchr((CHAR*)Str, (CHAR)c);
@@ -206,7 +206,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsRChar(_In_z_ TPtr Str, RemoveStdCharPtr_T<TP
 }
 template<CcpStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr TcsRCharLen(_In_reads_(Len) TPtr Str, size_t Len,
-    RemoveStdCharPtr_T<TPtr> c)
+    RemoveStdCharPtr_T<TPtr> c) noexcept
 {
     for (auto p = Str + Len - 1; p >= Str; --p)
     {
@@ -217,7 +217,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsRCharLen(_In_reads_(Len) TPtr Str, size_t Le
 }
 
 template<CcpStdCharPtr TPtr>
-_Ret_maybenull_ EckInlineNd TPtr TcsStr(_In_z_ TPtr Str, _In_z_ ConstStdCharPtr_T<TPtr> SubStr)
+_Ret_maybenull_ EckInlineNd TPtr TcsStr(_In_z_ TPtr Str, _In_z_ ConstStdCharPtr_T<TPtr> SubStr) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return (TPtr)strstr((CHAR*)Str, SubStr);
@@ -225,7 +225,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsStr(_In_z_ TPtr Str, _In_z_ ConstStdCharPtr_
         return (TPtr)wcsstr((WCHAR*)Str, SubStr);
 }
 template<CcpStdCharPtr TPtr>
-_Ret_maybenull_ EckInlineNd TPtr TcsStrI(_In_z_ TPtr Str, _In_z_ ConstStdCharPtr_T<TPtr> SubStr)
+_Ret_maybenull_ EckInlineNd TPtr TcsStrI(_In_z_ TPtr Str, _In_z_ ConstStdCharPtr_T<TPtr> SubStr) noexcept
 {
     if (!*SubStr)
         return Str;
@@ -247,7 +247,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsStrI(_In_z_ TPtr Str, _In_z_ ConstStdCharPtr
 
 template<CcpStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr TcsStrLen(_In_reads_(Len) TPtr Str, size_t Len,
-    _In_reads_(SubLen) ConstStdCharPtr_T<TPtr> SubStr, size_t SubLen)
+    _In_reads_(SubLen) ConstStdCharPtr_T<TPtr> SubStr, size_t SubLen) noexcept
 {
     if (Len < SubLen)
         return nullptr;
@@ -267,7 +267,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsStrLen(_In_reads_(Len) TPtr Str, size_t Len,
 }
 template<CcpStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr TcsStrLenI(_In_reads_(Len) TPtr Str, size_t Len,
-    _In_reads_(SubLen) ConstStdCharPtr_T<TPtr> SubStr, size_t SubLen)
+    _In_reads_(SubLen) ConstStdCharPtr_T<TPtr> SubStr, size_t SubLen) noexcept
 {
     if (Len < SubLen)
         return nullptr;
@@ -283,7 +283,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsStrLenI(_In_reads_(Len) TPtr Str, size_t Len
 
 template<CcpStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr TcsRStrLen(_In_reads_(Len) TPtr Str, size_t Len,
-    _In_reads_(SubLen) ConstStdCharPtr_T<TPtr> SubStr, size_t SubLen, size_t posStart = SizeTMax)
+    _In_reads_(SubLen) ConstStdCharPtr_T<TPtr> SubStr, size_t SubLen, size_t posStart = SizeTMax) noexcept
 {
     if (Len < SubLen)
         return nullptr;
@@ -298,7 +298,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsRStrLen(_In_reads_(Len) TPtr Str, size_t Len
 }
 template<CcpStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr TcsRStrLenI(_In_reads_(Len) TPtr Str, size_t Len,
-    _In_reads_(SubLen) ConstStdCharPtr_T<TPtr> SubStr, size_t SubLen, size_t posStart = SizeTMax)
+    _In_reads_(SubLen) ConstStdCharPtr_T<TPtr> SubStr, size_t SubLen, size_t posStart = SizeTMax) noexcept
 {
     if (Len < SubLen)
         return nullptr;
@@ -314,7 +314,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsRStrLenI(_In_reads_(Len) TPtr Str, size_t Le
 
 template<CcpStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr TcsChrFirstOf(_In_reads_(Len) TPtr Str, size_t Len,
-    _In_reads_(CharsLen) ConstStdCharPtr_T<TPtr> Chars, size_t CharsLen)
+    _In_reads_(CharsLen) ConstStdCharPtr_T<TPtr> Chars, size_t CharsLen) noexcept
 {
 #if defined(_MSC_VER) && _USE_STD_VECTOR_ALGORITHMS && 0
     TPtr r;
@@ -334,7 +334,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsChrFirstOf(_In_reads_(Len) TPtr Str, size_t 
 }
 template<CcpStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr TcsChrFirstNotOf(_In_reads_(Len) TPtr Str, size_t Len,
-    _In_reads_(CharsLen) ConstStdCharPtr_T<TPtr> Chars, size_t CharsLen)
+    _In_reads_(CharsLen) ConstStdCharPtr_T<TPtr> Chars, size_t CharsLen) noexcept
 {
     for (auto p = Str; p < Str + Len; ++p)
     {
@@ -345,7 +345,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsChrFirstNotOf(_In_reads_(Len) TPtr Str, size
 }
 template<CcpStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr TcsChrLastOf(_In_reads_(Len) TPtr Str, size_t Len,
-    _In_reads_(CharsLen) ConstStdCharPtr_T<TPtr> Chars, size_t CharsLen, size_t posStart = SizeTMax)
+    _In_reads_(CharsLen) ConstStdCharPtr_T<TPtr> Chars, size_t CharsLen, size_t posStart = SizeTMax) noexcept
 {
     EckAssert(Len);
 #if defined(_MSC_VER) && _USE_STD_VECTOR_ALGORITHMS && 0
@@ -368,7 +368,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsChrLastOf(_In_reads_(Len) TPtr Str, size_t L
 }
 template<CcpStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr TcsChrLastNotOf(_In_reads_(Len) TPtr Str, size_t Len,
-    _In_reads_(CharsLen) ConstStdCharPtr_T<TPtr> Chars, size_t CharsLen, size_t posStart = SizeTMax)
+    _In_reads_(CharsLen) ConstStdCharPtr_T<TPtr> Chars, size_t CharsLen, size_t posStart = SizeTMax) noexcept
 {
     EckAssert(Len);
     for (auto p = Str + std::min(posStart, Len - 1); p >= Str; --p)
@@ -380,7 +380,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsChrLastNotOf(_In_reads_(Len) TPtr Str, size_
 }
 
 template<CcpStdCharPtr TPtr>
-_Ret_maybenull_ EckInlineNd TPtr TcsChrFirstOf(_In_z_ TPtr Str, _In_z_ ConstStdCharPtr_T<TPtr> Chars)
+_Ret_maybenull_ EckInlineNd TPtr TcsChrFirstOf(_In_z_ TPtr Str, _In_z_ ConstStdCharPtr_T<TPtr> Chars) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return (TPtr)strpbrk(Str, Chars);
@@ -390,7 +390,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsChrFirstOf(_In_z_ TPtr Str, _In_z_ ConstStdC
 
 template<CcpNonConstStdCharPtr TPtr>
 _Post_equal_to_(Dst) EckInlineNd TPtr TcsCopy(_Out_writes_z_(_String_length_(Src) + 1) TPtr Dst,
-    _In_z_ ConstStdCharPtr_T<TPtr> Src)
+    _In_z_ ConstStdCharPtr_T<TPtr> Src) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return strcpy(Dst, Src);
@@ -399,7 +399,7 @@ _Post_equal_to_(Dst) EckInlineNd TPtr TcsCopy(_Out_writes_z_(_String_length_(Src
 }
 template<CcpNonConstStdCharPtr TPtr>
 _Post_equal_to_(Dst) EckInlineNd TPtr TcsCopyLen(_Out_writes_(Len) TPtr Dst,
-    _In_z_ ConstStdCharPtr_T<TPtr> Src, size_t Len)
+    _In_z_ ConstStdCharPtr_T<TPtr> Src, size_t Len) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return (TPtr)memcpy(Dst, Src, Len);
@@ -408,7 +408,7 @@ _Post_equal_to_(Dst) EckInlineNd TPtr TcsCopyLen(_Out_writes_(Len) TPtr Dst,
 }
 template<CcpNonConstStdCharPtr TPtr>
 _Post_equal_to_(Dst) EckInlineNd TPtr TcsCopyLenEnd(_Out_writes_(Len) TPtr Dst,
-    _In_z_ ConstStdCharPtr_T<TPtr> Src, size_t Len)
+    _In_z_ ConstStdCharPtr_T<TPtr> Src, size_t Len) noexcept
 {
     *(TcsCopyLen(Dst, Src, Len) + Len) = 0;
     return Dst;
@@ -416,7 +416,7 @@ _Post_equal_to_(Dst) EckInlineNd TPtr TcsCopyLenEnd(_Out_writes_(Len) TPtr Dst,
 
 template<CcpNonConstStdCharPtr TPtr>
 _Post_equal_to_(Dst) EckInlineNd TPtr TcsMoveLen(_Out_writes_(Len) TPtr Dst,
-    _In_z_ ConstStdCharPtr_T<TPtr> Src, size_t Len)
+    _In_z_ ConstStdCharPtr_T<TPtr> Src, size_t Len) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return (TPtr)memmove(Dst, Src, Len);
@@ -425,14 +425,14 @@ _Post_equal_to_(Dst) EckInlineNd TPtr TcsMoveLen(_Out_writes_(Len) TPtr Dst,
 }
 template<CcpNonConstStdCharPtr TPtr>
 _Post_equal_to_(Dst) EckInlineNd TPtr TcsMoveLenEnd(_Out_writes_(Len) TPtr Dst,
-    _In_z_ ConstStdCharPtr_T<TPtr> Src, size_t Len)
+    _In_z_ ConstStdCharPtr_T<TPtr> Src, size_t Len) noexcept
 {
     *(TcsMoveLen(Dst, Src, Len) + Len) = 0;
     return Dst;
 }
 
 template<CcpStdCharPtr TPtr>
-EckInlineNd int TcsCompare(_In_z_ TPtr Str1, _In_z_ ConstStdCharPtr_T<TPtr> Str2)
+EckInlineNd int TcsCompare(_In_z_ TPtr Str1, _In_z_ ConstStdCharPtr_T<TPtr> Str2) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return strcmp(Str1, Str2);
@@ -441,7 +441,7 @@ EckInlineNd int TcsCompare(_In_z_ TPtr Str1, _In_z_ ConstStdCharPtr_T<TPtr> Str2
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd int TcsCompareMaxLen(_In_reads_or_z_(Max) TPtr Str1,
-    _In_reads_or_z_(Max) ConstStdCharPtr_T<TPtr> Str2, size_t Max)
+    _In_reads_or_z_(Max) ConstStdCharPtr_T<TPtr> Str2, size_t Max) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return strncmp(Str1, Str2, Max);
@@ -450,7 +450,7 @@ EckInlineNd int TcsCompareMaxLen(_In_reads_or_z_(Max) TPtr Str1,
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd int TcsCompareLen(_In_reads_(Len) TPtr Str1,
-    _In_reads_(Len) ConstStdCharPtr_T<TPtr> Str2, size_t Len)
+    _In_reads_(Len) ConstStdCharPtr_T<TPtr> Str2, size_t Len) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return memcmp(Str1, Str2, Len);
@@ -459,7 +459,7 @@ EckInlineNd int TcsCompareLen(_In_reads_(Len) TPtr Str1,
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd int TcsCompareLen2(_In_reads_(Len1) TPtr Str1, size_t Len1,
-    _In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2)
+    _In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2) noexcept
 {
     const auto r = TcsCompareLen(Str1, Str2, std::min(Len1, Len2));
     if (r)
@@ -473,7 +473,7 @@ EckInlineNd int TcsCompareLen2(_In_reads_(Len1) TPtr Str1, size_t Len1,
 }
 
 template<CcpStdCharPtr TPtr>
-EckInlineNd int TcsCompareI(_In_z_ TPtr Str1, _In_z_ ConstStdCharPtr_T<TPtr> Str2)
+EckInlineNd int TcsCompareI(_In_z_ TPtr Str1, _In_z_ ConstStdCharPtr_T<TPtr> Str2) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return stricmp(Str1, Str2);
@@ -482,7 +482,7 @@ EckInlineNd int TcsCompareI(_In_z_ TPtr Str1, _In_z_ ConstStdCharPtr_T<TPtr> Str
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd int TcsCompareMaxLenI(_In_reads_or_z_(Max) TPtr Str1,
-    _In_reads_or_z_(Max) ConstStdCharPtr_T<TPtr> Str2, size_t Max)
+    _In_reads_or_z_(Max) ConstStdCharPtr_T<TPtr> Str2, size_t Max) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return _strnicmp(Str1, Str2, Max);
@@ -491,7 +491,7 @@ EckInlineNd int TcsCompareMaxLenI(_In_reads_or_z_(Max) TPtr Str1,
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd int TcsCompareLenI(_In_reads_(Len) TPtr Str1,
-    _In_reads_(Len) ConstStdCharPtr_T<TPtr> Str2, size_t Len)
+    _In_reads_(Len) ConstStdCharPtr_T<TPtr> Str2, size_t Len) noexcept
 {
     using TChar = RemoveStdCharPtr_T<TPtr>;
     if constexpr (std::is_same_v<TChar, char>)
@@ -511,7 +511,7 @@ EckInlineNd int TcsCompareLenI(_In_reads_(Len) TPtr Str1,
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd int TcsCompareLen2I(_In_reads_(Len1) TPtr Str1, size_t Len1,
-    _In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2)
+    _In_reads_(Len2) ConstStdCharPtr_T<TPtr> Str2, size_t Len2) noexcept
 {
     const auto r = TcsCompareLenI(Str1, Str2, std::min(Len1, Len2));
     if (r)
@@ -526,7 +526,7 @@ EckInlineNd int TcsCompareLen2I(_In_reads_(Len1) TPtr Str1, size_t Len1,
 
 template<CcpNonConstStdCharPtr TPtr>
 EckInlineNd TPtr TcsSet(_Out_writes_z_(cchDst) TPtr Dst,
-    RemoveStdCharPtr_T<TPtr> ch, size_t cchDst)
+    RemoveStdCharPtr_T<TPtr> ch, size_t cchDst) noexcept
 {
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
         return (TPtr)memset(Dst, ch, cchDst);
@@ -537,14 +537,14 @@ EckInlineNd TPtr TcsSet(_Out_writes_z_(cchDst) TPtr Dst,
 
 template<CcpStdCharPtr TPtr>
 EckInlineNd int FindStr(_In_z_ TPtr pszText,
-    _In_z_ ConstStdCharPtr_T<TPtr> pszSub, int posStart = 0)
+    _In_z_ ConstStdCharPtr_T<TPtr> pszSub, int posStart = 0) noexcept
 {
     const auto pszFind = TcsStr(pszText + posStart, pszSub);
     return pszFind ? int(pszFind - pszText) : StrNPos;
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd int FindStrI(_In_z_ TPtr pszText,
-    _In_z_ ConstStdCharPtr_T<TPtr> pszSub, int posStart = 0)
+    _In_z_ ConstStdCharPtr_T<TPtr> pszSub, int posStart = 0) noexcept
 {
     const auto pszFind = TcsStrI(pszText + posStart, pszSub);
     return pszFind ? int(pszFind - pszText) : StrNPos;
@@ -552,14 +552,14 @@ EckInlineNd int FindStrI(_In_z_ TPtr pszText,
 
 template<CcpStdCharPtr TPtr>
 EckInlineNd int FindStrLen(_In_reads_(cchText) TPtr pszText, int cchText,
-    _In_reads_(cchSub) ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = 0)
+    _In_reads_(cchSub) ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = 0) noexcept
 {
     const auto pFind = TcsStrLen(pszText + posStart, cchText - posStart, pszSub, cchSub);
     return pFind ? int(pFind - pszText) : StrNPos;
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd int FindStrLenI(_In_reads_(cchText) TPtr pszText, int cchText,
-    _In_reads_(cchSub) ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = 0)
+    _In_reads_(cchSub) ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = 0) noexcept
 {
     const auto pFind = TcsStrLenI(pszText + posStart, cchText - posStart, pszSub, cchSub);
     return pFind ? int(pFind - pszText) : StrNPos;
@@ -567,28 +567,28 @@ EckInlineNd int FindStrLenI(_In_reads_(cchText) TPtr pszText, int cchText,
 
 template<CcpStdCharPtr TPtr>
 EckInlineNd int FindStrRev(_In_reads_(cchText) TPtr pszText, int cchText,
-    _In_reads_(cchSub) ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = -1)
+    _In_reads_(cchSub) ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = -1) noexcept
 {
     const auto pFind = TcsRStrLen(pszText, cchText, pszSub, cchSub, posStart);
     return pFind ? int(pFind - pszText) : StrNPos;
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd int FindStrRevI(_In_reads_(cchText) TPtr pszText, int cchText,
-    _In_reads_(cchSub) ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = -1)
+    _In_reads_(cchSub) ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = -1) noexcept
 {
     const auto pFind = TcsRStrLenI(pszText, cchText, pszSub, cchSub, posStart);
     return pFind ? int(pFind - pszText) : StrNPos;
 }
 
 template<CcpStdCharPtr TPtr>
-EckInlineNd int FindChar(_In_z_ TPtr pszText, RemoveStdCharPtr_T<TPtr> ch, int posStart = 0)
+EckInlineNd int FindChar(_In_z_ TPtr pszText, RemoveStdCharPtr_T<TPtr> ch, int posStart = 0) noexcept
 {
     const auto pszFind = TcsChar(pszText + posStart, ch);
     return pszFind ? int(pszFind - pszText) : StrNPos;
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd int FindCharLen(_In_reads_(cchText) TPtr pszText, int cchText,
-    RemoveStdCharPtr_T<TPtr> ch, int posStart = 0)
+    RemoveStdCharPtr_T<TPtr> ch, int posStart = 0) noexcept
 {
     EckAssert(posStart >= 0 && posStart <= cchText);
     const auto pFind = TcsCharLen(pszText + posStart, cchText - posStart, ch);
@@ -596,7 +596,7 @@ EckInlineNd int FindCharLen(_In_reads_(cchText) TPtr pszText, int cchText,
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd int FindCharRevLen(_In_reads_(cchText) TPtr pszText, int cchText,
-    RemoveStdCharPtr_T<TPtr> ch, int posStart = -1)
+    RemoveStdCharPtr_T<TPtr> ch, int posStart = -1) noexcept
 {
     if (posStart < 0)
         posStart = cchText - 1;
@@ -607,28 +607,28 @@ EckInlineNd int FindCharRevLen(_In_reads_(cchText) TPtr pszText, int cchText,
 
 template<CcpStdCharPtr TPtr>
 EckInlineNd int FindCharFirstOf(_In_z_ TPtr pszText, int cchText,
-    _In_reads_(cchChars) ConstStdCharPtr_T<TPtr> pszChars, int cchChars, int posStart = 0)
+    _In_reads_(cchChars) ConstStdCharPtr_T<TPtr> pszChars, int cchChars, int posStart = 0) noexcept
 {
     const auto pszFind = TcsChrFirstOf(pszText + posStart, pszChars, cchChars);
     return pszFind ? int(pszFind - pszText) : StrNPos;
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd int FindCharFirstNotOf(_In_z_ TPtr pszText, int cchText,
-    _In_reads_(cchChars) ConstStdCharPtr_T<TPtr> pszChars, int cchChars, int posStart = 0)
+    _In_reads_(cchChars) ConstStdCharPtr_T<TPtr> pszChars, int cchChars, int posStart = 0) noexcept
 {
     const auto pszFind = TcsChrFirstNotOf(pszText + posStart, cchText - posStart, pszChars, cchChars);
     return pszFind ? int(pszFind - pszText) : StrNPos;
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd int FindCharLastOf(_In_z_ TPtr pszText, int cchText,
-    _In_reads_(cchChars) ConstStdCharPtr_T<TPtr> pszChars, int cchChars, int posStart = -1)
+    _In_reads_(cchChars) ConstStdCharPtr_T<TPtr> pszChars, int cchChars, int posStart = -1) noexcept
 {
     const auto pszFind = TcsChrLastOf(pszText, cchText, pszChars, cchChars, posStart);
     return pszFind ? int(pszFind - pszText) : StrNPos;
 }
 template<CcpStdCharPtr TPtr>
 EckInlineNd int FindCharLastNotOf(_In_z_ TPtr pszText, int cchText,
-    _In_reads_(cchChars) ConstStdCharPtr_T<TPtr> pszChars, int cchChars, int posStart = -1)
+    _In_reads_(cchChars) ConstStdCharPtr_T<TPtr> pszChars, int cchChars, int posStart = -1) noexcept
 {
     const auto pszFind = TcsChrLastNotOf(pszText, cchText, pszChars, cchChars, posStart);
     return pszFind ? int(pszFind - pszText) : StrNPos;
@@ -636,7 +636,7 @@ EckInlineNd int FindCharLastNotOf(_In_z_ TPtr pszText, int cchText,
 
 // Deprecated. For compatibility.
 template<CcpStdCharPtr TPtr>
-EckInlineNd TPtr LTrimStr(_In_z_ TPtr pszText)
+EckInlineNd TPtr LTrimStr(_In_z_ TPtr pszText) noexcept
 {
     auto ch = *pszText;
     while ((ch == L' ' || ch == L'　') && ch != L'\0')
@@ -645,7 +645,7 @@ EckInlineNd TPtr LTrimStr(_In_z_ TPtr pszText)
 }
 
 template<CcpStdCharPtr TPtr>
-EckInlineNd TPtr LTrimStr(_In_reads_(cchText) TPtr pszText, int cchText)
+EckInlineNd TPtr LTrimStr(_In_reads_(cchText) TPtr pszText, int cchText) noexcept
 {
     if (cchText < 0)
         cchText = (int)TcsLen(pszText);
@@ -660,7 +660,7 @@ EckInlineNd TPtr LTrimStr(_In_reads_(cchText) TPtr pszText, int cchText)
 }
 
 template<CcpStdCharPtr TPtr>
-EckInlineNd TPtr RTrimStr(_In_reads_(cchText) TPtr pszText, int cchText)
+EckInlineNd TPtr RTrimStr(_In_reads_(cchText) TPtr pszText, int cchText) noexcept
 {
     if (cchText < 0)
         cchText = (int)TcsLen(pszText);
@@ -676,7 +676,7 @@ EckInlineNd TPtr RTrimStr(_In_reads_(cchText) TPtr pszText, int cchText)
 
 template<CcpStdCharPtr TPtr>
 EckInlineNdCe std::basic_string_view<RemoveStdCharPtr_T<TPtr>> LRTrimStr(
-    _In_reads_(cchText) TPtr pszText, int cchText)
+    _In_reads_(cchText) TPtr pszText, int cchText) noexcept
 {
     auto pStart = LTrimStr(pszText, cchText);
     auto pEnd = RTrimStr(pStart, cchText);
@@ -689,7 +689,7 @@ EckInlineNdCe std::basic_string_view<RemoveStdCharPtr_T<TPtr>> LRTrimStr(
 template<CcpStdCharPtr TPtr, class TProcessor>
 inline void SplitStr(TPtr pszText, int cchText,
     ConstStdCharPtr_T<TPtr> pszDiv, int cchDiv,
-    int cSubTextExpected, TProcessor&& Processor)
+    int cSubTextExpected, TProcessor&& Processor) noexcept
 {
     using TChar = RemoveStdCharPtr_T<TPtr>;
     if (cchText < 0)
@@ -716,7 +716,7 @@ inline void SplitStr(TPtr pszText, int cchText,
 // For compatibility.
 template<CcpStdCharPtr TPtr, class TProcessor>
 EckInline void SplitStr(TPtr pszText, ConstStdCharPtr_T<TPtr> pszDiv,
-    int cSubTextExpected, int cchText, int cchDiv, TProcessor&& Processor)
+    int cSubTextExpected, int cchText, int cchDiv, TProcessor&& Processor) noexcept
 {
     SplitStr(pszText, cchText, pszDiv, cchDiv, cSubTextExpected,
         std::forward<TProcessor>(Processor));
@@ -726,7 +726,7 @@ EckInline void SplitStr(TPtr pszText, ConstStdCharPtr_T<TPtr> pszDiv,
 template<CcpStdCharPtr TPtr, class TProcessor>
 inline void SplitStrWithMultiChar(TPtr pszText, int cchText,
     ConstStdCharPtr_T<TPtr> pszDiv, int cchDiv,
-    int cSubTextExpected, TProcessor&& Processor)
+    int cSubTextExpected, TProcessor&& Processor) noexcept
 {
     using TChar = RemoveStdCharPtr_T<TPtr>;
     if (cchText < 0)
@@ -754,7 +754,7 @@ inline void SplitStrWithMultiChar(TPtr pszText, int cchText,
 // For compatibility.
 template<CcpStdCharPtr TPtr, class TProcessor>
 EckInline void SplitStrWithMultiChar(TPtr pszText, ConstStdCharPtr_T<TPtr> pszDiv,
-    int cSubTextExpected, int cchText, int cchDiv, TProcessor&& Processor)
+    int cSubTextExpected, int cchText, int cchDiv, TProcessor&& Processor) noexcept
 {
     SplitStrWithMultiChar(pszText, cchText, pszDiv, cchDiv,
         cSubTextExpected, std::forward<TProcessor>(Processor));
@@ -763,7 +763,7 @@ EckInline void SplitStrWithMultiChar(TPtr pszText, ConstStdCharPtr_T<TPtr> pszDi
 template<CcpNonConstStdCharPtr TPtr, CcpStdCharPtr TPtr2>
     requires IsSameStdCharPtr_V<TPtr, TPtr2>
 EckInline void SplitStrAndCut(TPtr pszText, int cchText, ConstStdCharPtr_T<TPtr> pszDiv, int cchDiv,
-    std::vector<TPtr2>& vResult, int cSubTextExpected = 0)
+    std::vector<TPtr2>& vResult, int cSubTextExpected = 0) noexcept
 {
     SplitStr(pszText, cchText, pszDiv, cchDiv, cSubTextExpected,
         [&](TPtr pszStart, int cchSub)
@@ -777,7 +777,7 @@ template<CcpNonConstStdCharPtr TPtr, CcpStdCharPtr TPtr2>
     requires IsSameStdCharPtr_V<TPtr, TPtr2>
 EckInline void SplitStrWithMultiCharAndCut(TPtr pszText, int cchText,
     ConstStdCharPtr_T<TPtr> pszDiv, int cchDiv,
-    std::vector<TPtr2>& vResult, int cSubTextExpected = 0)
+    std::vector<TPtr2>& vResult, int cSubTextExpected = 0) noexcept
 {
     SplitStrWithMultiChar(pszText, pszDiv, cSubTextExpected, cchText, cchDiv,
         [&](TPtr pszStart, int cchSub)
@@ -790,14 +790,14 @@ EckInline void SplitStrWithMultiCharAndCut(TPtr pszText, int cchText,
 // For compatibility.
 template<CcpStdCharPtr TPtr>
 EckInlineNd int FindStrNcs(TPtr pszText, int cchText,
-    ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = 0)
+    ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = 0) noexcept
 {
     return FindStrLenI(pszText, cchText, pszSub, cchSub, posStart);
 }
 // For compatibility.
 template<CcpStdCharPtr TPtr>
 EckInline int FindStrRevNcs(TPtr pszText, int cchText,
-    ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = -1)
+    ConstStdCharPtr_T<TPtr> pszSub, int cchSub, int posStart = -1) noexcept
 {
     return FindStrRevI(pszText, cchText, pszSub, cchSub, posStart);
 }

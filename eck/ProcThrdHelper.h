@@ -2,7 +2,7 @@
 #include "FileHelper.h"
 
 ECK_NAMESPACE_BEGIN
-EckInline NTSTATUS GetProcessPeb(HANDLE hProcess, _Out_ void*& Peb)
+EckInline NTSTATUS GetProcessPeb(HANDLE hProcess, _Out_ void*& Peb) noexcept
 {
     PROCESS_BASIC_INFORMATION pbi;
     NTSTATUS nts;
@@ -16,13 +16,13 @@ EckInline NTSTATUS GetProcessPeb(HANDLE hProcess, _Out_ void*& Peb)
     return STATUS_SUCCESS;
 }
 
-EckInline NTSTATUS GetProcessPeb32(HANDLE hProcess, _Out_ void*& Peb)
+EckInline NTSTATUS GetProcessPeb32(HANDLE hProcess, _Out_ void*& Peb) noexcept
 {
     return NtQueryInformationProcess(hProcess,
         ProcessWow64Information, &Peb, sizeof(Peb), nullptr);
 }
 
-EckInline NTSTATUS GetProcessPeb64(HANDLE hProcess, _Out_ ULONG64& Peb)
+EckInline NTSTATUS GetProcessPeb64(HANDLE hProcess, _Out_ ULONG64& Peb) noexcept
 {
 #ifndef _WIN64
     PROCESS_BASIC_INFORMATION64 pbi;
@@ -41,9 +41,9 @@ EckInline NTSTATUS GetProcessPeb64(HANDLE hProcess, _Out_ ULONG64& Peb)
 #endif// !defined(_WIN64)
 }
 
-inline NTSTATUS GetProcessPath(UINT uPid, CRefStrW& rsPath, BOOL bDosPath = TRUE)
+inline NTSTATUS GetProcessPath(UINT uPid, CRefStrW& rsPath, BOOL bDosPath = TRUE) noexcept
 {
-    SYSTEM_PROCESS_ID_INFORMATION spii{ .ProcessId = i32ToP<HANDLE>(uPid) };
+    SYSTEM_PROCESS_ID_INFORMATION spii{ .ProcessId = DwordToPtr<HANDLE>(uPid) };
     NTSTATUS nts = NtQuerySystemInformation(SystemProcessIdInformation,
         &spii, sizeof(spii), nullptr);
     if (spii.ImageName.MaximumLength &&
@@ -66,7 +66,8 @@ inline NTSTATUS GetProcessPath(UINT uPid, CRefStrW& rsPath, BOOL bDosPath = TRUE
     return nts;
 }
 
-inline NTSTATUS GetProcessPath(HANDLE hProcess, CRefStrW& rsPath, BOOL bDosPath = TRUE)
+inline NTSTATUS GetProcessPath(HANDLE hProcess,
+    CRefStrW& rsPath, BOOL bDosPath = TRUE) noexcept
 {
     rsPath.ReSize(MAX_PATH + sizeof(UNICODE_STRING)/* 多一点无所谓 */);
     ULONG cbReal;
@@ -119,7 +120,8 @@ struct MODULE_INFO
 /// <param name="hProcess">进程句柄，必须具有PROCESS_QUERY_INFORMATION | PROCESS_VM_READ权限</param>
 /// <param name="vResult">枚举结果，不会清空该容器</param>
 /// <returns>NTSTATUS</returns>
-inline NTSTATUS EnumProcessModules(HANDLE hProcess, std::vector<MODULE_INFO>& vResult)
+inline NTSTATUS EnumerateProcessModules(
+    HANDLE hProcess, std::vector<MODULE_INFO>& vResult) noexcept
 {
     NTSTATUS nts;
     // 取PEB
@@ -183,7 +185,8 @@ inline NTSTATUS EnumProcessModules(HANDLE hProcess, std::vector<MODULE_INFO>& vR
 /// <param name="hProcess">进程句柄，必须具有PROCESS_QUERY_INFORMATION | PROCESS_VM_READ权限</param>
 /// <param name="vResult">枚举结果，不会清空该容器</param>
 /// <returns>NTSTATUS</returns>
-inline NTSTATUS EnumProcessModules64On32(HANDLE hProcess, std::vector<MODULE_INFO>& vResult)
+inline NTSTATUS EnumerateProcessModules64On32(
+    HANDLE hProcess, std::vector<MODULE_INFO>& vResult) noexcept
 {
 #ifndef _WIN64
     NTSTATUS nts;
@@ -249,7 +252,8 @@ inline NTSTATUS EnumProcessModules64On32(HANDLE hProcess, std::vector<MODULE_INF
 /// <param name="hProcess">进程句柄，必须具有PROCESS_QUERY_INFORMATION | PROCESS_VM_READ权限</param>
 /// <param name="vResult">枚举结果，不会清空该容器</param>
 /// <returns>NTSTATUS</returns>
-inline NTSTATUS EnumProcessModules32On64(HANDLE hProcess, std::vector<MODULE_INFO>& vResult)
+inline NTSTATUS EnumerateProcessModules32On64(
+    HANDLE hProcess, std::vector<MODULE_INFO>& vResult) noexcept
 {
 #ifdef _WIN64
     NTSTATUS nts;
@@ -355,7 +359,8 @@ ECK_ENUM_BIT_FLAGS(EPFLAGS);
 /// </summary>
 /// <param name="Fn">回调，参数：(SYSTEM_PROCESS_INFORMATION*)</param>
 /// <returns>NTSTATUS</returns>
-inline NTSTATUS EnumProcess(std::invocable<SYSTEM_PROCESS_INFORMATION*> auto&& Fn)
+inline NTSTATUS EnumerateProcess(
+    std::invocable<SYSTEM_PROCESS_INFORMATION*> auto&& Fn) noexcept
 {
     NTSTATUS nts;
     ULONG cb{ 0x4000u };
@@ -381,7 +386,7 @@ inline NTSTATUS EnumProcess(std::invocable<SYSTEM_PROCESS_INFORMATION*> auto&& F
             break;
         if (pspi->NextEntryOffset == 0)
             break;
-        pspi = PtrStepCb(pspi, pspi->NextEntryOffset);
+        pspi = PointerStepBytes(pspi, pspi->NextEntryOffset);
     }
     VFree(pBuf);
     return STATUS_SUCCESS;
@@ -393,15 +398,16 @@ inline NTSTATUS EnumProcess(std::invocable<SYSTEM_PROCESS_INFORMATION*> auto&& F
 /// <param name="vResult">枚举结果，不会清空该容器</param>
 /// <param name="uFlags">EPF_常量</param>
 /// <returns>NTSTATUS</returns>
-inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags = EPF_NONE)
+inline NTSTATUS EnumerateProcess(std::vector<PROCESS_INFO>& vResult,
+    EPFLAGS uFlags = EPF_NONE) noexcept
 {
     vResult.reserve(150u);
-    return EnumProcess([&](SYSTEM_PROCESS_INFORMATION* pspi)
+    return EnumerateProcess([&](SYSTEM_PROCESS_INFORMATION* pspi)
         {
             auto& e = vResult.emplace_back(
                 pspi->ImageName,
-                pToI32<ULONG>(pspi->UniqueProcessId),
-                pToI32<ULONG>(pspi->InheritedFromUniqueProcessId),
+                PtrToDword<ULONG>(pspi->UniqueProcessId),
+                PtrToDword<ULONG>(pspi->InheritedFromUniqueProcessId),
                 pspi->NumberOfThreads,
                 pspi->SessionId,
                 pspi->HandleCount,
@@ -427,7 +433,7 @@ inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags =
                 for (auto p = pBegin; p < pEnd; ++p)
                 {
                     auto& t = e.vThreads[p - pBegin];
-                    t.uTid = pToI32<ULONG>(p->ClientId.UniqueThread);
+                    t.uTid = PtrToDword<ULONG>(p->ClientId.UniqueThread);
                     t.StartAddress = p->StartAddress;
                     t.Priority = p->Priority;
                     t.BasePriority = p->BasePriority;
@@ -440,38 +446,40 @@ inline NTSTATUS EnumProcess(std::vector<PROCESS_INFO>& vResult, EPFLAGS uFlags =
                     PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, e.uPid);
                 if (hProcess)
                 {
-                    EnumProcessModules(hProcess, e.vModules);
+                    EnumerateProcessModules(hProcess, e.vModules);
                     NtClose(hProcess);
                 }
             }
         });
 }
 
-EckInline NTSTATUS GetPidByProcessName(std::wstring_view svImage, UINT& uPid)
+EckInline NTSTATUS GetProcessIdByName(
+    std::wstring_view svImage, _Out_ UINT& uPid) noexcept
 {
     uPid = 0u;
-    return EnumProcess([&](SYSTEM_PROCESS_INFORMATION* pspi)
+    return EnumerateProcess([&](SYSTEM_PROCESS_INFORMATION* pspi)
         {
             if (pspi->ImageName.Length &&
                 TcsCompareLen2I(svImage.data(), svImage.size(),
                     pspi->ImageName.Buffer, pspi->ImageName.Length / sizeof(WCHAR)) == 0)
             {
-                uPid = pToI32<UINT>(pspi->UniqueProcessId);
+                uPid = PtrToDword<UINT>(pspi->UniqueProcessId);
                 return FALSE;
             }
             return TRUE;
         });
 }
 
-EckInline NTSTATUS GetPidByProcessName(std::wstring_view svImage, std::vector<UINT>& vPid)
+EckInline NTSTATUS GetProcessIdByName(
+    std::wstring_view svImage, std::vector<UINT>& vPid) noexcept
 {
     vPid.clear();
-    return EnumProcess([&](SYSTEM_PROCESS_INFORMATION* pspi)
+    return EnumerateProcess([&](SYSTEM_PROCESS_INFORMATION* pspi)
         {
             if (pspi->ImageName.Length &&
                 TcsCompareLen2I(svImage.data(), svImage.size(),
                     pspi->ImageName.Buffer, pspi->ImageName.Length / sizeof(WCHAR)) == 0)
-                vPid.emplace_back(pToI32<UINT>(pspi->UniqueProcessId));
+                vPid.emplace_back(PtrToDword<UINT>(pspi->UniqueProcessId));
         });
 }
 
@@ -482,14 +490,14 @@ EckInline NTSTATUS GetPidByProcessName(std::wstring_view svImage, std::vector<UI
 /// <param name="bEnable">是否启用</param>
 /// <param name="svPrivilege">特权名</param>
 /// <returns>NTSTATUS</returns>
-inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess, 
-    BOOL bEnable, std::wstring_view svPrivilege)
+inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess,
+    BOOL bEnable, std::wstring_view svPrivilege) noexcept
 {
     HANDLE hToken;
     NTSTATUS nts = NtOpenProcessToken(hProcess, TOKEN_ADJUST_PRIVILEGES, &hToken);
     if (!NT_SUCCESS(nts))
         return nts;
-    
+
     UNICODE_STRING usPrivilege;
     usPrivilege.Length = usPrivilege.MaximumLength =
         USHORT(svPrivilege.size() * sizeof(WCHAR));
@@ -509,7 +517,7 @@ inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess,
     return nts;
 }
 
-[[nodiscard]] inline HICON GetWindowSmallIcon(HWND hWnd, int msTimeOut = 300)
+[[nodiscard]] inline HICON GetWindowSmallIcon(HWND hWnd, int msTimeOut = 300) noexcept
 {
     HICON hIcon;
     if (!SendMessageTimeoutW(hWnd, WM_GETICON, ICON_SMALL, 0,
@@ -528,7 +536,7 @@ inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess,
     return hIcon;
 }
 
-[[nodiscard]] inline HICON GetWindowLargeIcon(HWND hWnd, int msTimeOut = 300)
+[[nodiscard]] inline HICON GetWindowLargeIcon(HWND hWnd, int msTimeOut = 300) noexcept
 {
     HICON hIcon;
     if (!SendMessageTimeoutW(hWnd, WM_GETICON, ICON_BIG, 0,
@@ -551,7 +559,7 @@ inline NTSTATUS AdjustProcessPrivilege(HANDLE hProcess,
 /// <returns>若成功返回图标句柄，失败返回nullptr</returns>
 _Ret_maybenull_
 [[nodiscard]] inline HICON GetWindowIcon(HWND hWnd,
-    BOOL& bFileIcon, BOOL bSmall = FALSE, int msTimeOut = 300)
+    BOOL& bFileIcon, BOOL bSmall = FALSE, int msTimeOut = 300) noexcept
 {
     bFileIcon = FALSE;
     const HICON hIcon = (bSmall ?

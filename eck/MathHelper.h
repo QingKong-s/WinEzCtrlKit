@@ -5,19 +5,19 @@
 
 ECK_NAMESPACE_BEGIN
 template<std::floating_point T>
-EckInlineNdCe T Deg2Rad(T fDeg) noexcept { return fDeg * (T)Pi / 180; }
+EckInlineNdCe T DegreeToRadian(T fDeg) noexcept { return fDeg * (T)Pi / 180; }
 template<std::floating_point T>
-EckInlineNdCe T Rad2Deg(T fRad) noexcept { return fRad * 180 / (T)Pi; }
+EckInlineNdCe T RadianToDegree(T fRad) noexcept { return fRad * 180 / (T)Pi; }
 
 template<std::floating_point T>
-EckInlineNd T DegIn0To360(T fDeg) noexcept
+EckInlineNd T DegreeIn0To360(T fDeg) noexcept
 {
     fDeg = fmod(fDeg, 360);
     return fDeg < 0 ? fDeg + 360 : fDeg;
 }
 
 template<class T>
-EckInline void CalcPointFromCircleAngle(auto r, auto fAngle,
+EckInline void CalculatePointFromCircleAngle(auto r, auto fAngle,
     _Out_ T& xRet, _Out_ T& yRet) noexcept
 {
     xRet = T(r * cos(fAngle));
@@ -25,19 +25,19 @@ EckInline void CalcPointFromCircleAngle(auto r, auto fAngle,
 }
 
 template<class T = float>
-EckInline T CalcLineLength(auto x1, auto y1, auto x2, auto y2) noexcept
+EckInline T CalculateLineLength(auto x1, auto y1, auto x2, auto y2) noexcept
 {
     return (T)sqrt(((double)x1 - x2) * ((double)x1 - x2) +
         ((double)y1 - y2) * ((double)y1 - y2));
 }
 template<class T = float>
-EckInline T CalcLineLength(POINT pt1, POINT pt2) noexcept
+EckInline T CalculateLineLength(POINT pt1, POINT pt2) noexcept
 {
-    return CalcLineLength<T>(pt1.x, pt1.y, pt2.x, pt2.y);
+    return CalculateLineLength<T>(pt1.x, pt1.y, pt2.x, pt2.y);
 }
 
 template<class T>
-EckInline void CalcPointFromLineScalePos(auto x1, auto y1, auto x2, auto y2,
+EckInline void CalculatePointFromLineScale(auto x1, auto y1, auto x2, auto y2,
     float fScale, _Out_ T& x, _Out_ T& y) noexcept
 {
     x = T(x1 - (x1 - x2) * fScale);
@@ -46,14 +46,14 @@ EckInline void CalcPointFromLineScalePos(auto x1, auto y1, auto x2, auto y2,
 
 // 从角度计算椭圆上一段弧的端点
 template<class T>
-void CalcArcFromEllipseAngle(auto x, auto y, auto xr, auto yr,
+void CalculateArcFromEllipseAngle(auto x, auto y, auto xr, auto yr,
     auto fStartAngle, auto fSweepAngle,
     _Out_ T& x1, _Out_ T& y1, _Out_ T& x2, _Out_ T& y2) noexcept
 {
     T x10, y10, x20, y20;
     const auto a = T((xr - x) / 2), b = T((yr - y) / 2);
-    CalcPointFromEllipseAngle(a, b, fStartAngle, x10, y10);
-    CalcPointFromEllipseAngle(a, b, fStartAngle + fSweepAngle, x20, y20);
+    CalculatePointFromEllipseAngle(a, b, fStartAngle, x10, y10);
+    CalculatePointFromEllipseAngle(a, b, fStartAngle + fSweepAngle, x20, y20);
     x1 = x10 + a + x;
     y1 = -y10 + b + y;
     x2 = x20 + a + x;
@@ -62,7 +62,7 @@ void CalcArcFromEllipseAngle(auto x, auto y, auto xr, auto yr,
 
 // 从两点计算直线方程
 template<std::floating_point T>
-EckInlineCe void CalcLineEquation(auto x1, auto y1, auto x2, auto y2,
+EckInlineCe void CalculateLineEquation(auto x1, auto y1, auto x2, auto y2,
     _Out_ T& A, _Out_ T& B, _Out_ T& C) noexcept
 {
     const auto m = y1 - y2;
@@ -73,7 +73,7 @@ EckInlineCe void CalcLineEquation(auto x1, auto y1, auto x2, auto y2,
 }
 // 从一点和斜率计算直线方程
 template<std::floating_point T>
-EckInlineCe void CalcLineEquation(auto x, auto y, auto k,
+EckInlineCe void CalculateLineEquation(auto x, auto y, auto k,
     _Out_ T& A, _Out_ T& B, _Out_ T& C) noexcept
 {
     A = T(k);
@@ -82,14 +82,14 @@ EckInlineCe void CalcLineEquation(auto x, auto y, auto k,
 }
 
 template<class T>
-EckInline void Polar2Rect(auto fRho, auto fTheta,
+EckInline void PolarToRect(auto fRho, auto fTheta,
     _Out_ T& x, _Out_ T& y) noexcept
 {
     x = T(fRho * cos(fTheta));
     y = T(fRho * sin(fTheta));
 }
 template<class T>
-EckInline void Rect2Polar(auto x, auto y,
+EckInline void RectToPolar(auto x, auto y,
     _Out_ T& fRho, _Out_ T& fTheta) noexcept
 {
     fRho = (T)sqrt(x * x + y * y);
@@ -105,7 +105,7 @@ EckInline void Rect2Polar(auto x, auto y,
 /// <param name="xRet">点X坐标</param>
 /// <param name="yRet">点Y坐标</param>
 template<class T>
-EckInline void CalcPointFromEllipseAngle(auto a, auto b, auto fAngle,
+EckInline void CalculatePointFromEllipseAngle(auto a, auto b, auto fAngle,
     _Out_ T& xRet, _Out_ T& yRet) noexcept
 {
     const auto fEccentricAngle = atan2(tan(fAngle) * a, b);
@@ -114,7 +114,7 @@ EckInline void CalcPointFromEllipseAngle(auto a, auto b, auto fAngle,
 }
 
 template<std::floating_point T = float, CcpPointStruct TPt>
-EckInlineNd T CalcPointToLineDistance(TPt pt, TPt pt1, TPt pt2) noexcept
+EckInlineNd T CalculatePointToLineDistance(TPt pt, TPt pt1, TPt pt2) noexcept
 {
     return T(fabs((pt2.y - pt1.y) * pt.x - (pt2.x - pt1.x) * pt.y + pt2.x * pt1.y - pt2.y * pt1.x) /
         sqrt((pt2.x - pt1.x) * (pt2.x - pt1.x) + (pt2.y - pt1.y) * (pt2.y - pt1.y)));
@@ -127,7 +127,7 @@ EckInlineNd T CalcPointToLineDistance(TPt pt, TPt pt1, TPt pt2) noexcept
 /// <param name="rc">矩形</param>
 /// <param name="pt">映射到的点，至少指向四个D2D1_POINT_2F，分别对应左上、右上、左下、右下</param>
 /// <returns>结果矩阵</returns>
-inline DirectX::XMMATRIX CalcDistortMatrix(const D2D1_RECT_F& rc,
+inline DirectX::XMMATRIX CalculateDistortMatrix(const D2D1_RECT_F& rc,
     _In_reads_(4) const D2D1_POINT_2F* pt) noexcept
 {
     /*
@@ -183,13 +183,13 @@ inline DirectX::XMMATRIX CalcDistortMatrix(const D2D1_RECT_F& rc,
 /// <param name="rc">矩形</param>
 /// <param name="pt">映射到的点，至少指向四个D2D1_POINT_2F，分别对应左上、右上、左下、右下</param>
 /// <param name="MatrixResult">结果矩阵</param>
-EckInline void CalcDistortMatrix(
+EckInline void CalculateDistortMatrix(
     const D2D1_RECT_F& rc,
     _In_reads_(4) const D2D1_POINT_2F* pt,
     _Out_ D2D1_MATRIX_4X4_F& MatrixResult) noexcept
 {
     DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4*)&MatrixResult,
-        CalcDistortMatrix(rc, pt));
+        CalculateDistortMatrix(rc, pt));
 }
 
 /// <summary>
@@ -199,7 +199,7 @@ EckInline void CalcDistortMatrix(
 /// <param name="rc">矩形</param>
 /// <param name="pt">映射到的点，至少指向四个D2D1_POINT_2F，分别对应左上、右上、左下、右下</param>
 /// <returns>结果矩阵</returns>
-inline DirectX::XMMATRIX CalcInverseDistortMatrix(const D2D1_RECT_F& rc,
+inline DirectX::XMMATRIX CalculateInverseDistortMatrix(const D2D1_RECT_F& rc,
     _In_reads_(4) const D2D1_POINT_2F* pt) noexcept
 {
     /*
@@ -250,13 +250,13 @@ inline DirectX::XMMATRIX CalcInverseDistortMatrix(const D2D1_RECT_F& rc,
 /// <param name="rc">矩形</param>
 /// <param name="pt">映射到的点，至少指向四个D2D1_POINT_2F，分别对应左上、右上、左下、右下</param>
 /// <param name="MatrixResult">结果矩阵</param>
-EckInline void CalcInverseDistortMatrix(
+EckInline void CalculateInverseDistortMatrix(
     const D2D1_RECT_F& rc,
     _In_reads_(4) const D2D1_POINT_2F* pt,
     _Out_ D2D1_MATRIX_4X4_F& MatrixResult) noexcept
 {
     DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4*)&MatrixResult,
-        CalcInverseDistortMatrix(rc, pt));
+        CalculateInverseDistortMatrix(rc, pt));
 }
 
 EckInlineNd D2D1::Matrix3x2F D2DMatrixReflection(float A, float B, float C) noexcept
@@ -365,7 +365,7 @@ EckInlineNdCe XFORM XFormReflection(float A, float B, float C) noexcept
 /// <param name="cPt">离散点数量</param>
 /// <param name="K">张力</param>
 template<class TPt>
-inline void CalcBezierControlPoints(
+inline void CalculateBezierControlPoints(
     std::vector<TPt>& vPt,
     _In_reads_(cPt) const TPt* pPt,
     size_t cPt,
@@ -382,18 +382,18 @@ inline void CalcBezierControlPoints(
 
     T xMid1, yMid1, xMid2, yMid2, dx, dy;
     TPt ptMidLast{ (x1 + x2) / 2,(y1 + y2) / 2 };
-    float LineLenLast = CalcLineLength(x1, y1, x2, y2);
+    float LineLenLast = CalculateLineLength(x1, y1, x2, y2);
     for (int i = 1; i < cPt - 1; ++i)
     {
         const auto [x2, y2] = pPt[i + 1];
         const auto [x1, y1] = pPt[i];
         const TPt ptMid{ (x1 + x2) / 2,(y1 + y2) / 2 };
-        const float LineLen = CalcLineLength(x1, y1, x2, y2);
+        const float LineLen = CalculateLineLength(x1, y1, x2, y2);
         const auto [x00, y00] = ptMidLast;
         const auto [x01, y01] = ptMid;
-        CalcPointFromLineScalePos(x1, y1, x00, y00, K, xMid1, yMid1);
-        CalcPointFromLineScalePos(x1, y1, x01, y01, K, xMid2, yMid2);
-        CalcPointFromLineScalePos(x00, y00, x01, y01,
+        CalculatePointFromLineScale(x1, y1, x00, y00, K, xMid1, yMid1);
+        CalculatePointFromLineScale(x1, y1, x01, y01, K, xMid2, yMid2);
+        CalculatePointFromLineScale(x00, y00, x01, y01,
             LineLenLast / (LineLen + LineLenLast), dx, dy);
         dx = x1 - dx;
         dy = y1 - dy;

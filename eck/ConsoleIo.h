@@ -11,7 +11,7 @@ ECK_CIO_NAMESPACE_BEGIN
 namespace Priv
 {
     template<class TChar>
-    EckInlineNdCe UINT CodePageFromCharType()
+    EckInlineNdCe UINT CodePageFromCharType() noexcept
     {
         return (std::is_same_v<TChar, WCHAR> ? CP_UTF16LE :
             std::is_same_v<TChar, char8_t> ? CP_UTF8 :
@@ -19,7 +19,7 @@ namespace Priv
     }
 
     template<class TChar>
-    void PushBackEol(CRefBin& rb, EolType eEol)
+    void PushBackEol(CRefBin& rb, EolType eEol) noexcept
     {
         if constexpr (std::is_same_v<TChar, WCHAR>)
         {
@@ -55,7 +55,7 @@ namespace Priv
     }
 
     template<class TChar>
-    size_t ScanEol(PCBYTE pBegin, size_t cb, size_t posBegin = 0)
+    size_t ScanEol(PCBYTE pBegin, size_t cb, size_t posBegin = 0) noexcept
     {
         const auto pEnd = (const TChar*)pBegin + cb / sizeof(TChar);
         for (auto p = (const TChar*)(pBegin + posBegin); p < pEnd; ++p)
@@ -88,7 +88,7 @@ struct IoCstStr
     IoCstStr() = default;
 
     template<class TCharString, size_t N>
-    IoCstStr(const TCharString(&s)[N], UINT cp) : Str{ s }, Len{ int(N - 1) }, Cp{ cp } {}
+    IoCstStr(const TCharString(&s)[N], UINT cp) noexcept : Str{ s }, Len{ int(N - 1) }, Cp{ cp } {}
 };
 // 跳过连续的空白字符
 struct IoSpace {};
@@ -123,7 +123,7 @@ namespace TypeIo
     };
 
     template<class TChar, class TFmtInt, class TFmtChar>
-    Ret ToStream(const TO_STREAM_CTRL& c, IoInt<TFmtInt, TFmtChar> v)
+    Ret ToStream(const TO_STREAM_CTRL& c, IoInt<TFmtInt, TFmtChar> v) noexcept
     {
         const auto cchExtra = TcsCvtCalcBufferSize<TFmtInt>(v.Radix, v.FillWidth);
         const auto p = (TChar*)c.rbDst.PushBack(cchExtra * 2);
@@ -133,13 +133,13 @@ namespace TypeIo
         return Ret::Ok;
     }
     template<class TChar>
-    Ret ToStream(const TO_STREAM_CTRL& c, std::integral auto i)
+    Ret ToStream(const TO_STREAM_CTRL& c, std::integral auto i) noexcept
     {
         return ToStream<TChar>(c, IoInt{ i });
     }
 
     template<class TChar, class TCharString>
-    Ret ToStream(const TO_STREAM_CTRL& c, const IoCstStr<TCharString>& Str)
+    Ret ToStream(const TO_STREAM_CTRL& c, const IoCstStr<TCharString>& Str) noexcept
     {
         if constexpr (std::is_same_v<TChar, TCharString>)
             c.rbDst.PushBack(Str.Str, Str.Len * sizeof(TChar));
@@ -164,7 +164,7 @@ namespace TypeIo
         return *(Str.Str + Str.Len - 1) == '\n' ? Ret::Flush : Ret::Ok;
     }
     template<class TChar, class TCharString, size_t N>
-    Ret ToStream(const TO_STREAM_CTRL& c, const TCharString(&s)[N])
+    Ret ToStream(const TO_STREAM_CTRL& c, const TCharString(&s)[N]) noexcept
     {
         constexpr UINT cpInput = Priv::CodePageFromCharType<TCharString>();
         return ToStream<TChar>(c, IoCstStr<TCharString>{ s, cpInput });
@@ -172,7 +172,7 @@ namespace TypeIo
 
 
     template<class TChar>
-    Ret FromStream(FROM_STREAM_CTRL& c, std::integral auto& i)
+    Ret FromStream(FROM_STREAM_CTRL& c, std::integral auto& i) noexcept
     {
         const auto pEnd = (const TChar*)c.pEnd;
         const auto pCurr = (const TChar*)c.pCurr;
@@ -189,7 +189,7 @@ namespace TypeIo
 
     template<class TChar, class TCharString>
         requires requires { sizeof(TChar) == sizeof(TCharString); }
-    Ret FromStream(FROM_STREAM_CTRL& c, const IoCstStr<TCharString>& Str)
+    Ret FromStream(FROM_STREAM_CTRL& c, const IoCstStr<TCharString>& Str) noexcept
     {
         const auto pEnd = (const TChar*)c.pEnd;
         const auto pCurr = (const TChar*)c.pCurr;
@@ -204,14 +204,14 @@ namespace TypeIo
     }
 
     template<class TChar, class TCharString, size_t N>
-    Ret FromStream(FROM_STREAM_CTRL& c, const TCharString(&s)[N])
+    Ret FromStream(FROM_STREAM_CTRL& c, const TCharString(&s)[N]) noexcept
     {
         constexpr UINT cpInput = Priv::CodePageFromCharType<TCharString>();
         return FromStream<TChar>(c, IoCstStr<TCharString>{ s, cpInput });
     }
 
     template<class TChar>
-    Ret FromStream(FROM_STREAM_CTRL& c, IoSpace)
+    Ret FromStream(FROM_STREAM_CTRL& c, IoSpace) noexcept
     {
         const auto pEnd = (const TChar*)c.pEnd;
         auto pCurr = (const TChar*)c.pCurr;
@@ -239,7 +239,7 @@ private:
     USHORT m_cbMaxBuffer{ 512 };
     EolType m_eEol{ EolType::CRLF };
 
-    BOOL PushBackBuffer(auto&& Arg, auto&&... Args)
+    BOOL PushBackBuffer(auto&& Arg, auto&&... Args) noexcept
     {
         const auto b = (TypeIo::ToStream<TChar>(
             TO_STREAM_CTRL{ m_rbBuf, m_cp }, Arg) == TypeIo::Ret::Flush);
@@ -249,7 +249,7 @@ private:
             return b;
     }
 public:
-    auto& Flush()
+    auto& Flush() noexcept
     {
         if (!m_rbBuf.IsEmpty())
         {
@@ -258,7 +258,7 @@ public:
         }
         return *this;
     }
-    auto& WriteRaw(_In_reads_bytes_(cb) PCVOID p, DWORD cb, DWORD* pcbWritten = nullptr)
+    auto& WriteRaw(_In_reads_bytes_(cb) PCVOID p, DWORD cb, DWORD* pcbWritten = nullptr) noexcept
     {
         if (m_rbBuf.IsEmpty())
             Write(p, cb, pcbWritten);
@@ -270,7 +270,7 @@ public:
         return *this;
     }
 
-    auto& Print(auto&&... Args)
+    auto& Print(auto&&... Args) noexcept
     {
         if constexpr (sizeof...(Args))
         {
@@ -280,7 +280,7 @@ public:
         }
         return *this;
     }
-    auto& PrintLine(auto&&... Args)
+    auto& PrintLine(auto&&... Args) noexcept
     {
         if constexpr (sizeof...(Args))
             PushBackBuffer(Args...);
@@ -289,7 +289,7 @@ public:
         return *this;
     }
 #ifdef _DEBUG
-    auto DbgGetBuffer() const { return (const TChar*)m_rbBuf.Data(); }
+    auto DbgGetBuffer() const noexcept { return (const TChar*)m_rbBuf.Data(); }
 #endif
 };
 
@@ -304,7 +304,7 @@ private:
     EolType m_eEol{ EolType::CRLF };
 
     template<class T, class... Ts>
-    void IntScan(FROM_STREAM_CTRL& c, T&& Arg, Ts&&... Args)
+    void IntScan(FROM_STREAM_CTRL& c, T&& Arg, Ts&&... Args) noexcept
     {
         ++c.cArg;
         TypeIo::Ret r;
@@ -322,7 +322,7 @@ private:
             IntScan(c, std::forward<Ts>(Args)...);
     }
 
-    void EnsureReadToEol(BOOL bEmpty)
+    void EnsureReadToEol(BOOL bEmpty) noexcept
     {
         NTSTATUS nts;
         DWORD cbRead;
@@ -360,7 +360,7 @@ private:
     }
 public:
     template<class... T>
-    int Scan(T&&... Args)
+    int Scan(T&&... Args) noexcept
     {
         if constexpr (!!sizeof...(Args))
         {
@@ -374,7 +374,7 @@ public:
     }
 
     template<class TTrait, class TAlloc>
-    BOOL ScanLine(CRefStrT<TChar, TTrait, TAlloc>& rs)
+    BOOL ScanLine(CRefStrT<TChar, TTrait, TAlloc>& rs) noexcept
     {
         EnsureReadToEol(FALSE);
         if (m_posEol != SizeTMax)

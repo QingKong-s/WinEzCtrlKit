@@ -2,19 +2,19 @@
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
-EckInline void* VAlloc(SIZE_T cb, ULONG ulProtect)
+EckInline void* VAlloc(SIZE_T cb, ULONG ulProtect) noexcept
 {
     void* p{};
     (void)NtAllocateVirtualMemory(NtCurrentProcess(), &p, 0, &cb, MEM_COMMIT, ulProtect);
     return p;
 }
-EckInline void* VAlloc(SIZE_T cb)
+EckInline void* VAlloc(SIZE_T cb) noexcept
 {
     void* p{};
     (void)NtAllocateVirtualMemory(NtCurrentProcess(), &p, 0, &cb, MEM_COMMIT, PAGE_READWRITE);
     return p;
 }
-EckInline NTSTATUS VFree(void* p)
+EckInline NTSTATUS VFree(void* p) noexcept
 {
     SIZE_T cb{};
     return NtFreeVirtualMemory(NtCurrentProcess(), &p, &cb, MEM_RELEASE);
@@ -24,11 +24,11 @@ template<class T_ = void>
 struct DelVA
 {
     using T = T_;
-    void operator()(T* p) { VFree(p); }
+    void operator()(T* p) noexcept { VFree(p); }
 };
 
 inline HANDLE NaOpenProcess(DWORD dwDesiredAccess, BOOL bInheritHandle,
-    UINT uProcessId, NTSTATUS* pnts = nullptr)
+    UINT uProcessId, NTSTATUS* pnts = nullptr) noexcept
 {
     OBJECT_ATTRIBUTES oa
     {
@@ -47,7 +47,7 @@ inline HANDLE NaOpenFile(_In_ const UNICODE_STRING* pusFile,
     DWORD dwAccess, DWORD dwShareMode, DWORD dwOptions = 0u,
     _Out_opt_ NTSTATUS* pnts = nullptr,
     _Out_opt_ IO_STATUS_BLOCK* piost = nullptr,
-    BOOL bInheritHandle = FALSE, HANDLE hRootDirectory = nullptr)
+    BOOL bInheritHandle = FALSE, HANDLE hRootDirectory = nullptr) noexcept
 {
     OBJECT_ATTRIBUTES oa;
     InitializeObjectAttributes(&oa, pusFile, OBJ_CASE_INSENSITIVE, hRootDirectory, nullptr);
@@ -66,7 +66,7 @@ inline HANDLE NaOpenFile(_In_z_ PCWSTR pszFile,
     DWORD dwAccess, DWORD dwShareMode, DWORD dwOptions = 0u,
     _Out_opt_ NTSTATUS* pnts = nullptr,
     _Out_opt_ IO_STATUS_BLOCK* piost = nullptr,
-    BOOL bInheritHandle = FALSE, HANDLE hRootDirectory = nullptr)
+    BOOL bInheritHandle = FALSE, HANDLE hRootDirectory = nullptr) noexcept
 {
     UNICODE_STRING usFile;
     if (hRootDirectory)
@@ -95,7 +95,7 @@ inline HANDLE NaCreateFile(_In_ const UNICODE_STRING* pusFile,
     _Out_opt_ NTSTATUS* pnts = nullptr,
     _Out_opt_ IO_STATUS_BLOCK* piost = nullptr,
     DWORD dwAttributes = FILE_ATTRIBUTE_NORMAL, ULONGLONG cbInit = 0ll,
-    BOOL bInheritHandle = FALSE, HANDLE hRootDirectory = nullptr)
+    BOOL bInheritHandle = FALSE, HANDLE hRootDirectory = nullptr) noexcept
 {
     OBJECT_ATTRIBUTES oa;
     InitializeObjectAttributes(&oa, pusFile, OBJ_CASE_INSENSITIVE, hRootDirectory, nullptr);
@@ -119,7 +119,7 @@ inline HANDLE NaCreateFile(_In_z_ PCWSTR pszFile,
     _Out_opt_ NTSTATUS* pnts = nullptr,
     _Out_opt_ IO_STATUS_BLOCK* piost = nullptr,
     DWORD dwAttributes = FILE_ATTRIBUTE_NORMAL, ULONGLONG cbInit = 0ll,
-    BOOL bInheritHandle = FALSE)
+    BOOL bInheritHandle = FALSE) noexcept
 {
     UNICODE_STRING usFile;
     if (!RtlDosPathNameToNtPathName_U(pszFile, &usFile, nullptr, nullptr))
@@ -142,7 +142,7 @@ inline HANDLE NaCreateFile(_In_z_ PCWSTR pszFile,
 inline NTSTATUS NaDeviceIoControl(HANDLE hDevice, DWORD dwIoControlCode,
     _In_reads_bytes_opt_(cbInBuf) PVOID pInBuf, DWORD cbInBuf,
     _Out_writes_bytes_opt_(cbOutBuf) PVOID pOutBuf, DWORD cbOutBuf,
-    _Out_opt_  DWORD* pcbReturned = nullptr)
+    _Out_opt_  DWORD* pcbReturned = nullptr) noexcept
 {
     NTSTATUS nts;
     IO_STATUS_BLOCK iosb;
@@ -162,16 +162,16 @@ inline NTSTATUS NaDeviceIoControl(HANDLE hDevice, DWORD dwIoControlCode,
     return nts;
 }
 
-EckInlineNd ULONG NaGetLastError() { return NtCurrentTeb()->LastErrorValue; }
+EckInlineNd ULONG NaGetLastError() noexcept { return NtCurrentTeb()->LastErrorValue; }
 
-EckInlineNd PCWSTR NaGetNtSystemRoot()
+EckInlineNd PCWSTR NaGetNtSystemRoot() noexcept
 {
     if (g_pfnRtlGetNtSystemRoot)// 1703，隔离舱兼容
         return g_pfnRtlGetNtSystemRoot();
     return USER_SHARED_DATA->NtSystemRoot;
 }
 
-EckInlineNd HANDLE NaGetStandardOutput() { return NtCurrentPeb()->ProcessParameters->StandardOutput; }
-EckInlineNd HANDLE NaGetStandardInput() { return NtCurrentPeb()->ProcessParameters->StandardInput; }
-EckInlineNd HANDLE NaGetStandardError() { return NtCurrentPeb()->ProcessParameters->StandardError; }
+EckInlineNd HANDLE NaGetStandardOutput() noexcept { return NtCurrentPeb()->ProcessParameters->StandardOutput; }
+EckInlineNd HANDLE NaGetStandardInput() noexcept { return NtCurrentPeb()->ProcessParameters->StandardInput; }
+EckInlineNd HANDLE NaGetStandardError() noexcept { return NtCurrentPeb()->ProcessParameters->StandardError; }
 ECK_NAMESPACE_END

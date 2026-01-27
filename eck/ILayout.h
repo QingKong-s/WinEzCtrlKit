@@ -61,7 +61,7 @@ EckNfInlineCe BOOL AdjustRectToFitAnother(_Inout_ LYTRECT& rc, const LYTRECT& rc
 // CWnd、Dui::CElem和内置布局器实现此接口
 struct __declspec(novtable) ILayout : public CObject
 {
-    ECK_RTTI(ILayout);
+    ECK_RTTI(ILayout, CObject);
 
     // 输入参照尺寸（可为0），基于参照尺寸计算理想尺寸，更具体的行为由实现决定
     // 如果未实现此函数，返回FALSE
@@ -87,12 +87,11 @@ struct __declspec(novtable) ILayout : public CObject
     //
     // 使用布局器时，必须对最顶层布局器显式调用LoDwpAttach，内置布局器自动传播
     // 到其下的所有子布局
-    // WARNING Win32要求被录制窗口必须具有相同的父窗口，考虑常见场景，此要求不太
-    // 可能成为一个限制，但若确实可能发生，调用方可对布局器使用SetUseDwp
+    // WARNING Win32要求被录制窗口必须具有相同的父窗口，若确实可能发生此情况，
+    // 调用方可对布局器使用SetUseDwp
     virtual BOOL LoDwpAttach(HDWP hDwp) noexcept { return FALSE; }
     // 取回DWP句柄，若返回值有效，所有权归属调用方
     // LoDwpAttach成功后必须调用本函数
     virtual HDWP LoDwpDetach() noexcept { return nullptr; }
 };
-ECK_RTTI_IMPL_BASE_INLINE(ILayout, CObject);
 ECK_NAMESPACE_END

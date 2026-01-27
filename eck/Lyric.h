@@ -81,7 +81,7 @@ struct Line
             free((void*)pszLrc);
     }
 
-    constexpr std::partial_ordering operator<=>(const Line& x) const
+    constexpr std::partial_ordering operator<=>(const Line& x) const noexcept
     {
         return fTime <=> x.fTime;
     }
@@ -100,7 +100,7 @@ struct LineWord
     int cchTotal;
     float fTime;
 
-    constexpr std::partial_ordering operator<=>(const Line& x) const
+    constexpr std::partial_ordering operator<=>(const Line& x) const noexcept
     {
         return fTime <=> x.fTime;
     }
@@ -138,7 +138,7 @@ private:
     BOOLEAN m_bDiscardEmptyWord{ TRUE };// 丢弃空白字
     BOOLEAN m_bRawLine{};				// 不进行排序合并操作
 
-    WCHAR LBracketFromType(BracketType e) const
+    WCHAR LBracketFromType(BracketType e) const noexcept
     {
         switch (e)
         {
@@ -148,7 +148,7 @@ private:
         default: ECK_UNREACHABLE;
         }
     }
-    WCHAR RBracketFromType(BracketType e) const
+    WCHAR RBracketFromType(BracketType e) const noexcept
     {
         switch (e)
         {
@@ -172,7 +172,7 @@ private:
     /// <param name="bSbElrcAddLine">若bSquareBracketElrc为TRUE，此参数指示是否尾插行，一般用于每行的第一个标签</param>
     Result LrcpParseLabelWorker(PCWCH& p, PCWCH pEnd,
         BOOL* pbAddLrc, BOOL* pbAddLabel, BOOL bAngleBracket,
-        BOOL bSquareBracketElrc, BOOL bSbElrcAddLine)
+        BOOL bSquareBracketElrc, BOOL bSbElrcAddLine) noexcept
     {
         if (pbAddLrc) *pbAddLrc = FALSE;
         if (pbAddLabel) *pbAddLabel = FALSE;
@@ -333,23 +333,23 @@ private:
     }
 
     Result LrcParseLabel(PCWCH& p, PCWCH pEnd,
-        BOOL* pbAddLrc = nullptr, BOOL* pbAddLabel = nullptr)
+        BOOL* pbAddLrc = nullptr, BOOL* pbAddLabel = nullptr) noexcept
     {
         return LrcpParseLabelWorker(p, pEnd, pbAddLrc, pbAddLabel, FALSE, FALSE, FALSE);
     }
 
-    Result LrcParseWordTime(PCWCH& p, PCWCH pEnd, BOOL* pbAddLrc = nullptr)
+    Result LrcParseWordTime(PCWCH& p, PCWCH pEnd, BOOL* pbAddLrc = nullptr) noexcept
     {
         return LrcpParseLabelWorker(p, pEnd, pbAddLrc, nullptr, TRUE, FALSE, FALSE);
     }
 
     Result LrcParseWordTimeSquareBracket(PCWCH& p, PCWCH pEnd, BOOL bFirstInLine,
-        BOOL* pbAddLrc = nullptr, BOOL* pbAddLabel = nullptr)
+        BOOL* pbAddLrc = nullptr, BOOL* pbAddLabel = nullptr) noexcept
     {
         return LrcpParseLabelWorker(p, pEnd, pbAddLrc, pbAddLabel, FALSE, TRUE, bFirstInLine);
     }
 
-    void LrcpWordEnd(PCWCH p0, PCWCH p1, BOOL bAddLrc)
+    void LrcpWordEnd(PCWCH p0, PCWCH p1, BOOL bAddLrc) noexcept
     {
         auto& e = *(m_vLine.back().vWordTime.rbegin() + bAddLrc);
         e.cchWord = int(p1 - p0 - 1);
@@ -362,7 +362,7 @@ private:
             DbgCutString(e);
         }
     }
-    void LrcpWordEndEmpty(BOOL bAddLrc)
+    void LrcpWordEndEmpty(BOOL bAddLrc) noexcept
     {
         if (m_bDiscardEmptyWord)
             if (bAddLrc)
@@ -373,7 +373,7 @@ private:
     //---------------YRC/KRC/QRC---------------
 
     Result YkqParseLabel(PCWCH& p, PCWCH pEnd, YKQ_VAL& Val,
-        BracketType eBracketType, BOOL b3Value, BOOL* pbAddLabel = nullptr)
+        BracketType eBracketType, BOOL b3Value, BOOL* pbAddLabel = nullptr) noexcept
     {
         if (pbAddLabel) *pbAddLabel = FALSE;
         const auto chBracketL = LBracketFromType(eBracketType);
@@ -490,7 +490,7 @@ private:
         return Result::TlUnexpectedEnd;
     }
     //---------------
-    void MgpCopyWordAsSentence(const std::vector<WordTime>& vWordTime, PWCH p)
+    void MgpCopyWordAsSentence(const std::vector<WordTime>& vWordTime, PWCH p) noexcept
     {
         for (const auto& e : vWordTime)
         {
@@ -499,9 +499,10 @@ private:
         }
     }
 
-    BOOL MgpIsWordTime(const Line& x) { return !!x.vWordTime.size(); }
+    BOOL MgpIsWordTime(const Line& x) noexcept { return !!x.vWordTime.size(); }
 
-    void MgpMerge(const std::vector<size_t>& vNeedDelIndex, size_t cLine, Line& TopItem)
+    void MgpMerge(const std::vector<size_t>& vNeedDelIndex,
+        size_t cLine, Line& TopItem) noexcept
     {
         const auto bWordTime = MgpIsWordTime(TopItem);
         if (bWordTime)
@@ -614,7 +615,7 @@ private:
         }
     }
 
-    void MgpSplitMainAndTranslation(const std::vector<DIV_POS>& vPos)
+    void MgpSplitMainAndTranslation(const std::vector<DIV_POS>& vPos) noexcept
     {
         EckCounter(m_vLine.size(), i)
         {
@@ -641,7 +642,7 @@ private:
         }
     }
 
-    BOOL MgpScanLineDivider(const Line& Line, DIV_POS& Pos)
+    BOOL MgpScanLineDivider(const Line& Line, DIV_POS& Pos) noexcept
     {
         Pos.idxDiv = Pos.pos1 = Pos.pos2 = -1;
         EckCounter(m_vDiv.size(), i)
@@ -682,7 +683,7 @@ private:
     }
 
     // 若当前文件被认为是分隔符歌词则返回TRUE
-    BOOL MgpScanDivider(std::vector<DIV_POS>& vPos)
+    BOOL MgpScanDivider(std::vector<DIV_POS>& vPos) noexcept
     {
         if (m_vLine.empty())
             return FALSE;
@@ -708,7 +709,7 @@ private:
         return cDivLine * 100 / cValidLine >= 60;
     }
 
-    void MgpPostProcess()
+    void MgpPostProcess() noexcept
     {
         if (m_vLine.empty())
             return;
@@ -749,7 +750,7 @@ private:
         }
     }
 
-    void MgpCalculateWordDuration(Line& e)
+    void MgpCalculateWordDuration(Line& e) noexcept
     {
         auto& vWord = e.vWordTime;
         if (!vWord.empty())
@@ -771,7 +772,7 @@ private:
         }
     }
 
-    void MgpCalculateDuration()
+    void MgpCalculateDuration() noexcept
     {
         if (m_vLine.empty())
             return;
@@ -785,19 +786,19 @@ private:
         MgpCalculateWordDuration(m_vLine.back());
     }
 
-    void DbgCutString(const Line& x)
+    void DbgCutString(const Line& x) noexcept
     {
         if (x.pszLrc)
             *((PWCH)x.pszLrc + x.cchLrc) = 0;
         if (x.pszTranslation)
             *((PWCH)x.pszTranslation + x.cchTranslation) = 0;
     }
-    void DbgCutString(const WordTime& x)
+    void DbgCutString(const WordTime& x) noexcept
     {
         if (x.pszWord)
             *((PWCH)x.pszWord + x.cchWord) = 0;
     }
-    void DbgCutString(const Label& x)
+    void DbgCutString(const Label& x) noexcept
     {
         if (x.pszKey)
             *((PWCH)x.pszKey + x.cchKey) = 0;
@@ -811,7 +812,7 @@ public:
         TcsCopyLen(m_rsLyric.Data(), sv.data(), (int)sv.size());
     }
     void LoadTextMove(CRefStrW&& rs) noexcept { m_rsLyric = std::move(rs); }
-    NTSTATUS LoadTextFile(PCWSTR pszFileName)
+    NTSTATUS LoadTextFile(PCWSTR pszFileName) noexcept
     {
         m_rsLyric.Clear();
         CRefBin rb;
@@ -829,7 +830,7 @@ public:
 
     // 解析标准LRC、尖括号逐字LRC、TRC
     // 支持压缩LRC和无换行LRC
-    Result ParseLrc()
+    Result ParseLrc() noexcept
     {
         enum class State
         {
@@ -1018,7 +1019,7 @@ public:
     }
 
     // 解析使用方括号表示逐字的LRC
-    Result ParseElrcWithSquareBracket()
+    Result ParseElrcWithSquareBracket() noexcept
     {
         enum class State
         {
@@ -1098,7 +1099,7 @@ public:
         return Result::Ok;
     }
 
-    Result ParseYrc()
+    Result ParseYrc() noexcept
     {
         enum class State
         {
@@ -1199,7 +1200,7 @@ public:
         return Result::Ok;
     }
 
-    Result ParseKrc()
+    Result ParseKrc() noexcept
     {
         enum class State
         {
@@ -1300,7 +1301,7 @@ public:
         return Result::Ok;
     }
 
-    Result ParseQrc()
+    Result ParseQrc() noexcept
     {
         enum class State
         {
@@ -1374,7 +1375,7 @@ public:
         return Result::Ok;
     }
 
-    constexpr void MgClear()
+    constexpr void MgClear() noexcept
     {
         m_vLine.clear();
         m_vLabel.clear();
@@ -1421,7 +1422,7 @@ public:
 
     EckInlineNdCe auto& MgGetLabel() noexcept { return m_vLine; }
     EckInlineNdCe auto& MgAtLabel(int idx) const noexcept { return m_vLine[idx]; }
-    int MgAtLabel(std::wstring_view svKey, int idxBegin = 0)
+    int MgAtLabel(std::wstring_view svKey, int idxBegin = 0) noexcept
     {
         for (size_t i = idxBegin; i < m_vLabel.size(); ++i)
         {
@@ -1432,7 +1433,7 @@ public:
         return -1;
     }
 
-    void MgAddDividerString(std::wstring_view svDiv1, std::wstring_view svDiv2)
+    void MgAddDividerString(std::wstring_view svDiv1, std::wstring_view svDiv2) noexcept
     {
         m_vDiv.emplace_back(svDiv1, svDiv2);
     }

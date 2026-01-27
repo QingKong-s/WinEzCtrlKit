@@ -6,7 +6,6 @@ ECK_DUI_NAMESPACE_BEGIN
 class CSizeBox
 {
 private:
-
     CElem* m_pElem{};
     CElem::HSlot m_hSlot{};
     HCURSOR m_hCursor{};
@@ -20,7 +19,7 @@ public:
     ECK_DISABLE_COPY_MOVE_DEF_CONS(CSizeBox);
     ~CSizeBox() { Detach(); }
 
-    static HCURSOR LoadCursorFromHtCode(int ht)
+    static HCURSOR LoadCursorFromHtCode(int ht) noexcept
     {
         PCWSTR pszCursor;
         switch (ht)
@@ -48,7 +47,7 @@ public:
         return LoadCursorW(nullptr, pszCursor);
     }
 
-    int HitTestBorder(D2D1_POINT_2F pt) const
+    int HitTestBorder(D2D1_POINT_2F pt) const noexcept
     {
         if (m_bAllowSize)
             if (pt.x < cxBorder)
@@ -78,7 +77,7 @@ public:
         return HTNOWHERE;
     }
 
-    LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
+    LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx) noexcept
     {
         switch (uMsg)
         {
@@ -115,7 +114,7 @@ public:
             const auto dy = pt.y - m_ptStart.y;
             if (m_htTracking == HTCLIENT)
             {
-                m_pElem->SetPos(m_rcStart.left + dx, m_rcStart.top + dy);
+                m_pElem->SetPosition(m_rcStart.left + dx, m_rcStart.top + dy);
                 break;
             }
             auto rcCurr{ m_rcStart };
@@ -198,14 +197,14 @@ public:
         return 0;
     }
 
-    void Attach(CElem* pElem)
+    void Attach(CElem* pElem) noexcept
     {
         if (m_pElem)
             Detach();
         m_pElem = pElem;
         m_hSlot = m_pElem->GetSignal().Connect(this, &CSizeBox::OnEvent);
     }
-    void Detach()
+    void Detach() noexcept
     {
         if (m_pElem)
         {
@@ -217,12 +216,12 @@ public:
         }
     }
 
-    EckInlineCe void SetAllowMove(BOOLEAN bAllow) { m_bAllowMove = bAllow; }
-    EckInlineNdCe BOOLEAN GetAllowMove() const { return m_bAllowMove; }
-    EckInlineCe void SetAllowSize(BOOLEAN bAllow) { m_bAllowSize = bAllow; }
-    EckInlineNdCe BOOLEAN GetAllowSize() const { return m_bAllowSize; }
-    EckInlineCe void SetBorderWidth(float cx) { cxBorder = cx; }
-    EckInlineNdCe float GetBorderWidth() const { return cxBorder; }
+    EckInlineCe void SetAllowMove(BOOLEAN bAllow) noexcept { m_bAllowMove = bAllow; }
+    EckInlineNdCe BOOLEAN GetAllowMove() const noexcept { return m_bAllowMove; }
+    EckInlineCe void SetAllowSize(BOOLEAN bAllow) noexcept { m_bAllowSize = bAllow; }
+    EckInlineNdCe BOOLEAN GetAllowSize() const noexcept { return m_bAllowSize; }
+    EckInlineCe void SetBorderWidth(float cx) noexcept { cxBorder = cx; }
+    EckInlineNdCe float GetBorderWidth() const noexcept { return cxBorder; }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

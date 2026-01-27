@@ -12,7 +12,7 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_LUNAR_NAMESPACE_BEGIN
-inline constexpr int iStartYearShuXiang = 0;// 1600年为鼠年
+inline constexpr int iStartYearChineseZodiac = 0;// 1600年为鼠年
 inline constexpr int iStartYear = 1600;// 数据起始年份（公历）
 inline constexpr int iEndYear = 2401;// 数据终止年份（不包含该年）
 
