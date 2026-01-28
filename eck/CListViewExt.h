@@ -59,14 +59,14 @@ struct LVE_CELL_COLOR
 };
 
 #ifdef _DEBUG
-constexpr inline DWORD LveItemDataMagic{ 'LEID' };
+constexpr inline UINT LveItemDataMagic{ 'LEID' };
 #endif
 
 // 非所有者数据模式下项目lParam指向的结构
 struct LVE_ITEM_DATA
 {
 #ifdef _DEBUG
-    DWORD dwMagic{ LveItemDataMagic };
+    UINT dwMagic{ LveItemDataMagic };
 #endif
     LVE_CELL_COLOR LineClr{};
     std::map<int, LVE_CELL_COLOR> CellClr{};

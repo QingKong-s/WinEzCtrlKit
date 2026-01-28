@@ -45,13 +45,13 @@ public:
     ECK_DISABLE_COPY_MOVE_DEF_CONS(CQueueTimer)
 public:
     EckInline NTSTATUS SetTimer(WAITORTIMERCALLBACK pfnCallBack, void* pParam,
-        DWORD dwDueTime, DWORD dwPeriod = std::numeric_limits<DWORD>::max(), UINT uFlags = 0u) noexcept
+        UINT uDueTime, UINT uPeriod = std::numeric_limits<UINT>::max(), UINT uFlags = 0u) noexcept
     {
         EckAssert(!m_hTimer);
-        if (dwPeriod == std::numeric_limits<DWORD>::max())
-            dwPeriod = dwDueTime;
+        if (uPeriod == std::numeric_limits<DWORD>::max())
+            uPeriod = uDueTime;
         return RtlCreateTimer(m_hQueue, &m_hTimer, pfnCallBack, pParam,
-            dwDueTime, dwPeriod, uFlags);
+            uDueTime, uPeriod, uFlags);
     }
 
     EckInline BOOL KillTimer(HANDLE hEvent = INVALID_HANDLE_VALUE) noexcept
@@ -61,9 +61,9 @@ public:
         return RtlDeleteTimer(m_hQueue, hTimer, hEvent);
     }
 
-    EckInline BOOL ChangeTimer(DWORD dwDueTime, DWORD dwPeriod) noexcept
+    EckInline BOOL ChangeTimer(UINT uDueTime, UINT uPeriod) noexcept
     {
-        return RtlUpdateTimer(m_hQueue, m_hTimer, dwDueTime, dwPeriod);
+        return RtlUpdateTimer(m_hQueue, m_hTimer, uDueTime, uPeriod);
     }
 
     EckInlineCe void SetHQueue(HANDLE hQueue) noexcept { EckAssert(!m_hTimer); m_hQueue = hQueue; }

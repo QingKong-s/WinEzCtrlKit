@@ -193,7 +193,7 @@ EckInline WNDPROC SetWindowProcedure(HWND hWnd, WNDPROC pfnWndProc) noexcept
 }
 
 #if NTDDI_VERSION < NTDDI_WIN10_NI// 22621 SDK将NTDDI_VERSION设置为NTDDI_WIN10_NI
-EckInline HRESULT EnableWindowMica(HWND hWnd, DWORD uType = 2) noexcept
+EckInline HRESULT EnableWindowMica(HWND hWnd, UINT uType = 2) noexcept
 {
     return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
 }
@@ -505,12 +505,12 @@ inline LRESULT MsgOnControlColorXxx(
 #pragma endregion MessageHandler
 
 #pragma region Thread
-inline HWND GetThreadFirstWindow(DWORD dwTid) noexcept
+inline HWND GetThreadFirstWindow(UINT uTid) noexcept
 {
     HWND hWnd = GetActiveWindow();
     if (!hWnd)
         return hWnd;
-    EnumThreadWindows(dwTid, [](HWND hWnd, LPARAM lParam)->BOOL
+    EnumThreadWindows(uTid, [](HWND hWnd, LPARAM lParam)->BOOL
         {
             if (IsWindowVisible(hWnd))
             {
@@ -792,9 +792,9 @@ inline HMONITOR GetOwnerMonitor(HWND hWnd) noexcept
     else
     {
         const auto hForegnd = GetForegroundWindow();
-        DWORD dwPID;
-        GetWindowThreadProcessId(hForegnd, &dwPID);
-        if (dwPID == NtCurrentProcessId32())// 如果前台窗口是自进程窗口，返回这个窗口所在的显示器
+        DWORD dwPid;
+        GetWindowThreadProcessId(hForegnd, &dwPid);
+        if (dwPid == NtCurrentProcessId32())// 如果前台窗口是自进程窗口，返回这个窗口所在的显示器
             return MonitorFromWindow(hForegnd, MONITOR_DEFAULTTOPRIMARY);
         else// 否则返回主显示器
             return GetPrimaryMonitor();

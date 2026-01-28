@@ -582,10 +582,10 @@ public:
             if (hFile == INVALID_HANDLE_VALUE)
                 return FALSE;
 
-            DWORD dwWritten;
+            DWORD cbWritten;
             if (bAddBom)
-                WriteFile(hFile, BOM_UTF16LE, ARRAYSIZE(BOM_UTF16LE), &dwWritten, nullptr);
-            const BOOL b = WriteFile(hFile, m_rsText.Data(), (DWORD)m_rsText.ByteSize(), &dwWritten, nullptr);
+                WriteFile(hFile, BOM_UTF16LE, ARRAYSIZE(BOM_UTF16LE), &cbWritten, nullptr);
+            const BOOL b = WriteFile(hFile, m_rsText.Data(), (DWORD)m_rsText.ByteSize(), &cbWritten, nullptr);
             CloseHandle(hFile);
             return b;
         }

@@ -615,7 +615,7 @@ public:
         return m_pData + m_pEntry[idx].dwImageOffset;
     }
 
-    EckInline DWORD GetIconDataSize(int idx) const noexcept
+    EckInline UINT GetIconDataSize(int idx) const noexcept
     {
         EckAssert(idx >= 0 && idx < GetIconCount());
         return m_pEntry[idx].dwBytesInRes;

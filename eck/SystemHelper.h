@@ -416,25 +416,25 @@ EckInline BOOL SystemTimeToULongLong(const SYSTEMTIME& st, ULONGLONG& ull) noexc
     return SystemTimeToFileTime(&st, (FILETIME*)&ull);
 }
 
-inline CRefStrW FormatDate(const SYSTEMTIME& st, PCWSTR pszFmt = nullptr, DWORD dwFlags = 0u,
+inline CRefStrW FormatDate(const SYSTEMTIME& st, PCWSTR pszFmt = nullptr, UINT uFlags = 0u,
     PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT) noexcept
 {
-    const int cchDate = GetDateFormatEx(pszLocale, dwFlags, &st, pszFmt, nullptr, 0, nullptr);
+    const int cchDate = GetDateFormatEx(pszLocale, uFlags, &st, pszFmt, nullptr, 0, nullptr);
     if (!cchDate)
         return {};
     CRefStrW rs(cchDate);
-    GetDateFormatEx(pszLocale, dwFlags, &st, pszFmt, rs.Data(), cchDate, nullptr);
+    GetDateFormatEx(pszLocale, uFlags, &st, pszFmt, rs.Data(), cchDate, nullptr);
     return rs;
 }
 
-inline CRefStrW FormatTime(const SYSTEMTIME& st, PCWSTR pszFmt = nullptr, DWORD dwFlags = 0u,
+inline CRefStrW FormatTime(const SYSTEMTIME& st, PCWSTR pszFmt = nullptr, UINT uFlags = 0u,
     PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT) noexcept
 {
-    const int cchTime = GetTimeFormatEx(pszLocale, dwFlags, &st, pszFmt, nullptr, 0);
+    const int cchTime = GetTimeFormatEx(pszLocale, uFlags, &st, pszFmt, nullptr, 0);
     if (!cchTime)
         return {};
     CRefStrW rs(cchTime);
-    GetTimeFormatEx(pszLocale, dwFlags, &st, pszFmt, rs.Data(), cchTime);
+    GetTimeFormatEx(pszLocale, uFlags, &st, pszFmt, rs.Data(), cchTime);
     return rs;
 }
 

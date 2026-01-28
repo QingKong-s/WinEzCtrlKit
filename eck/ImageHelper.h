@@ -432,7 +432,7 @@ public:
     {
         Destroy();
         PCBYTE p = (PCBYTE)pData;
-        DWORD ocbBits = 0;
+        UINT ocbBits = 0;
         if (*((WORD*)p) == 0x4D42)
         {
             ocbBits = ((BITMAPFILEHEADER*)p)->bfOffBits;
@@ -442,7 +442,7 @@ public:
         PCBYTE pBitsData;
         const BITMAPV4HEADER* pV4;
         size_t cbBits;
-        switch (*((DWORD*)p))
+        switch (*((UINT*)p))
         {
         case (sizeof(BITMAPINFOHEADER)):
         {
@@ -455,7 +455,7 @@ public:
                     (p - sizeof(BITMAPFILEHEADER) + ocbBits) :
                     (p + sizeof(BITMAPINFOHEADER) /*跳过信息头*/ +
                         pbih->biClrUsed * sizeof(RGBQUAD) /*跳过颜色表*/ +
-                        (bBitFields ? (3 * sizeof(DWORD)) : 0) /*跳过颜色掩码*/
+                        (bBitFields ? (3 * sizeof(UINT)) : 0) /*跳过颜色掩码*/
                         ));
             cbBits = (pbih->biSizeImage ? pbih->biSizeImage :
                 (((((pbih->biWidth * pbih->biBitCount) + 31) & ~31) >> 3) * pbih->biHeight));

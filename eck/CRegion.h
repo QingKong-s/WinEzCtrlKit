@@ -73,13 +73,13 @@ private:
     BOOL m_bRecordingPoint{};
 #endif
 
-    constexpr void AllocComplexRegion() noexcept
+    void AllocComplexRegion() noexcept
     {
         EckAssert(!m_pComplex && L"ComplexRegion has already been allocated.");
         m_pComplex = std::make_unique<ComplexRegion>();
     }
 
-    constexpr void FreeComplexRegion() noexcept
+    void FreeComplexRegion() noexcept
     {
         EckAssert(m_pComplex && L"ComplexRegion has not been allocated.");
         m_pComplex.reset();
@@ -651,7 +651,7 @@ public:
         return Gdiplus::Ok;
     }
 
-    constexpr BOOL IsEmpty() const noexcept
+    BOOL IsEmpty() const noexcept
     {
         EckAssert(!m_bRecordingPoint);
         if (m_pComplex)
@@ -659,7 +659,7 @@ public:
         return m_rc.left >= m_rc.right || m_rc.top >= m_rc.bottom;
     }
 
-    constexpr BOOL IsInfinite() const noexcept
+    BOOL IsInfinite() const noexcept
     {
         EckAssert(!m_bRecordingPoint);
         if (m_pComplex)
@@ -668,7 +668,7 @@ public:
             m_rc.right == InfMax && m_rc.bottom == InfMax;
     }
 
-    constexpr size_t GetRectCount() const noexcept
+    size_t GetRectCount() const noexcept
     {
         EckAssert(!m_bRecordingPoint);
         if (m_pComplex)
@@ -681,7 +681,7 @@ public:
         return (IsEmpty() || IsInfinite()) ? 0 : 1;
     }
 
-    constexpr void GetRect(std::vector<RECT>& vRc) const noexcept
+    void GetRect(std::vector<RECT>& vRc) const noexcept
     {
         EckAssert(!m_bRecordingPoint);
         if (m_pComplex)

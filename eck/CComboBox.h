@@ -16,7 +16,7 @@ struct CTRLDATA_COMBOBOX
     };
 
     int iVer;
-    DWORD cbSize;// 整块数据的大小
+    UINT cbSize;// 整块数据的大小
     int idxCurrSel;
     int cchCueBanner;
     int cxDropped;
@@ -24,8 +24,8 @@ struct CTRLDATA_COMBOBOX
     int cyItem;
     int cyCombo;
     LCID lcid;
-    DWORD dwEditSelStart;
-    DWORD dwEditSelEnd;
+    UINT uEditSelStart;
+    UINT uEditSelEnd;
     int cMinVisible;
     int cxHorzExtent;
     int idxTop;
@@ -111,14 +111,14 @@ public:
         }
         const auto p = (CTRLDATA_COMBOBOX*)(rb.Data() + ocbHeader);
         p->iVer = CDV_COMBOBOX_1;
-        p->cbSize = DWORD(rb.Size() - ocbHeader);
+        p->cbSize = UINT(rb.Size() - ocbHeader);
         p->idxCurrSel = GetCurrentSelection();
         p->cxDropped = GetDroppedWidth();
         p->cItem = cItem;
         p->cyItem = GetItemHeight(0);
         p->cyCombo = GetItemHeight(-1);
         p->lcid = GetLocale();
-        GetEditSelection(&p->dwEditSelStart, &p->dwEditSelEnd);
+        GetEditSelection(&p->uEditSelStart, &p->uEditSelEnd);
         p->cMinVisible = GetMinimumVisible();
         p->cxHorzExtent = GetHorizontalExtent();
         p->idxTop = GetTopIndex();
@@ -167,7 +167,7 @@ public:
         if (!bOdVar)
             SetItemHeight(0, p->cyItem);
         SetLocale(p->lcid);
-        SetEditSelection((WORD)p->dwEditSelStart, (WORD)p->dwEditSelEnd);
+        SetEditSelection((WORD)p->uEditSelStart, (WORD)p->uEditSelEnd);
         SetMinimumVisible(p->cMinVisible);
         SetHorizontalExtent(p->cxHorzExtent);
         SetTopIndex(p->idxTop);
@@ -296,10 +296,11 @@ public:
         return (BOOL)SendMsg(CB_GETDROPPEDWIDTH, 0, 0);
     }
 
-    EckInline void GetEditSelection(_Out_opt_ DWORD* pdwStart = nullptr,
-        _Out_opt_ DWORD* pdwEnd = nullptr) const noexcept
+    EckInline void GetEditSelection(
+        _Out_opt_ UINT* puStart = nullptr,
+        _Out_opt_ UINT* puEnd = nullptr) const noexcept
     {
-        SendMsg(CB_GETEDITSEL, (WPARAM)pdwStart, (LPARAM)pdwEnd);
+        SendMsg(CB_GETEDITSEL, (WPARAM)puStart, (LPARAM)puEnd);
     }
 
     EckInline BOOL GetExtendUi() const noexcept

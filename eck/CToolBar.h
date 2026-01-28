@@ -113,9 +113,9 @@ public:
 		return (int)SendMsg(TB_GETBITMAP, idCommand, 0);
 	}
 
-	EckInline DWORD GetBitmapFlags() const noexcept
+	EckInline UINT GetBitmapFlags() const noexcept
 	{
-		return (DWORD)SendMsg(TB_GETBITMAPFLAGS, 0, 0);
+		return (UINT)SendMsg(TB_GETBITMAPFLAGS, 0, 0);
 	}
 
 	EckInline BOOL GetButton(int idxButton, TBBUTTON* ptbb) const noexcept
@@ -128,18 +128,18 @@ public:
 		return (int)SendMsg(TB_GETBUTTONINFOW, idCommand, (LPARAM)ptbbi);
 	}
 
-	EckInline DWORD GetButtonSize() const noexcept
+	EckInline UINT GetButtonSize() const noexcept
 	{
-		return (DWORD)SendMsg(TB_GETBUTTONSIZE, 0, 0);
+		return (UINT)SendMsg(TB_GETBUTTONSIZE, 0, 0);
 	}
 
 	EckInline void GetButtonSize(int* pcx, int* pcy) const noexcept
 	{
-		DWORD dwRet = (DWORD)SendMsg(TB_GETBUTTONSIZE, 0, 0);
+		const auto uRet = (UINT)SendMsg(TB_GETBUTTONSIZE, 0, 0);
 		if (pcx)
-			*pcx = LOWORD(dwRet);
+			*pcx = LOWORD(uRet);
 		if (pcy)
-			*pcy = HIWORD(dwRet);
+			*pcy = HIWORD(uRet);
 	}
 
 	EckInline int GetButtonText(int idCommand, PWSTR pszBuf) const noexcept
@@ -232,18 +232,18 @@ public:
 		return (HRESULT)SendMsg(TB_GETOBJECT, (WPARAM)&riid, (LPARAM)ppDropTarget);
 	}
 
-	EckInline DWORD GetPadding() const noexcept
+	EckInline UINT GetPadding() const noexcept
 	{
-		return (DWORD)SendMsg(TB_GETPADDING, 0, 0);
+		return (UINT)SendMsg(TB_GETPADDING, 0, 0);
 	}
 
 	EckInline void GetPadding(int* pxPadding, int* pcPadding) const noexcept
 	{
-		DWORD dwRet = (DWORD)SendMsg(TB_GETPADDING, 0, 0);
+		const auto uRet = (UINT)SendMsg(TB_GETPADDING, 0, 0);
 		if (pxPadding)
-			*pxPadding = LOWORD(dwRet);
+			*pxPadding = LOWORD(uRet);
 		if (pcPadding)
-			*pcPadding = HIWORD(dwRet);
+			*pcPadding = HIWORD(uRet);
 	}
 
 	EckInline HIMAGELIST GetPressedImageList() const noexcept
@@ -436,9 +436,9 @@ public:
 		return (int)SendMsg(TB_SETHOTITEM, idxHot, 0);
 	}
 
-	EckInline int SetHotItem(int idxHot, DWORD dwFlags) const noexcept
+	EckInline int SetHotItem(int idxHot, UINT uFlags) const noexcept
 	{
-		return (int)SendMsg(TB_SETHOTITEM2, idxHot, dwFlags);
+		return (int)SendMsg(TB_SETHOTITEM2, idxHot, uFlags);
 	}
 
 	EckInline HIMAGELIST SetImageList(HIMAGELIST hImageList, int idxImageList = 0) const noexcept
@@ -476,9 +476,9 @@ public:
 		SendMsg(TB_SETMETRICS, 0, (LPARAM)ptbm);
 	}
 
-	EckInline DWORD SetPadding(int xPadding, int yPadding) const noexcept
+	EckInline UINT SetPadding(int xPadding, int yPadding) const noexcept
 	{
-		return (DWORD)SendMsg(TB_SETPADDING, 0, MAKELPARAM(xPadding, yPadding));
+		return (UINT)SendMsg(TB_SETPADDING, 0, MAKELPARAM(xPadding, yPadding));
 	}
 
 	EckInline HWND SetParent(HWND hWndNotify) const noexcept

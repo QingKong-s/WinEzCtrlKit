@@ -55,7 +55,7 @@ struct LBITEMINFO
 struct EXELISTBOXDATA
 {
     int iVer;				// 版本号
-    DWORD dwReserved;		// 保留
+    UINT uReserved;		// 保留
 
     int idxCurrSel;			// 现行选中
     int cyItem;				// 行高

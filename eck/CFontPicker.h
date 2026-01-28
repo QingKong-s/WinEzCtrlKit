@@ -15,7 +15,7 @@ class CFontPicker : public CEditNcComp
 public:
     ECK_RTTI(CFontPicker, CEditNcComp);
 private:
-    DWORD m_dwCfFlags = CF_SCREENFONTS | CF_FORCEFONTEXIST | CF_NOVERTFONTS;
+    UINT m_uCfFlags = CF_SCREENFONTS | CF_FORCEFONTEXIST | CF_NOVERTFONTS;
 
     static int FindFontName(const CRefStrW& rs) noexcept
     {
@@ -77,7 +77,7 @@ public:
         CHOOSEFONTW cf{ sizeof(CHOOSEFONTW) };
         cf.hwndOwner = HWnd;
         cf.lpLogFont = &lf;
-        cf.Flags = m_dwCfFlags | (bHasInfo ? CF_INITTOLOGFONTSTRUCT : 0u);
+        cf.Flags = m_uCfFlags | (bHasInfo ? CF_INITTOLOGFONTSTRUCT : 0u);
         CFontDialog Dlg{};
         if (Dlg.CreateModalDialog(nullptr, &cf))
         {

@@ -210,11 +210,11 @@ public:
 
     void SetItemSize(int cx, int cy, int* piOldWidth = nullptr, int* piOldHeight = nullptr) const noexcept
     {
-        DWORD dwRet = (DWORD)SendMsg(TCM_SETITEMSIZE, 0, MAKELPARAM(cx, cy));
+        const auto uRet = (UINT)SendMsg(TCM_SETITEMSIZE, 0, MAKELPARAM(cx, cy));
         if (piOldWidth)
-            *piOldWidth = LOWORD(dwRet);
+            *piOldWidth = LOWORD(uRet);
         if (piOldHeight)
-            *piOldHeight = HIWORD(dwRet);
+            *piOldHeight = HIWORD(uRet);
     }
 
     int SetMinimumTabWidth(int cxMin = -1) const noexcept

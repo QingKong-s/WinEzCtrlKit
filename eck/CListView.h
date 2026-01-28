@@ -133,11 +133,11 @@ public:
     EckInline void ApproximateViewRect(int cItems = -1, int cxRef = -1, int cyRef = -1,
         int* piApprWidth = nullptr, int* piApprHeight = nullptr) const noexcept
     {
-        DWORD dwRet = (DWORD)SendMsg(LVM_APPROXIMATEVIEWRECT, cItems, MAKEWPARAM(cxRef, cyRef));
+        const auto uRet = (UINT)SendMsg(LVM_APPROXIMATEVIEWRECT, cItems, MAKEWPARAM(cxRef, cyRef));
         if (piApprWidth)
-            *piApprWidth = LOWORD(dwRet);
+            *piApprWidth = LOWORD(uRet);
         if (piApprHeight)
-            *piApprHeight = HIWORD(dwRet);
+            *piApprHeight = HIWORD(uRet);
     }
 
     /// <summary>
@@ -386,9 +386,9 @@ public:
         return (int)SendMsg(LVM_GETHOTITEM, 0, 0);
     }
 
-    EckInline DWORD GetHoverTime() const noexcept
+    EckInline UINT GetHoverTime() const noexcept
     {
-        return (DWORD)SendMsg(LVM_GETHOVERTIME, 0, 0);
+        return (UINT)SendMsg(LVM_GETHOVERTIME, 0, 0);
     }
 
     /// <summary>
@@ -405,7 +405,11 @@ public:
     {
         LVINSERTMARK lvim{ sizeof(LVINSERTMARK) };
         if (!SendMsg(LVM_GETINSERTMARK, 0, (LPARAM)&lvim))
+        {
+            if (pbAfterItem)
+                *pbAfterItem = FALSE;
             return -1;
+        }
         if (pbAfterItem)
             *pbAfterItem = IsBitSet(lvim.dwFlags, LVIM_AFTER);
         return lvim.iItem;
@@ -461,11 +465,11 @@ public:
         _Out_opt_ int* pxSpacing = nullptr,
         _Out_opt_ int* pySpacing = nullptr) const noexcept
     {
-        DWORD dwRet = (DWORD)SendMsg(LVM_GETITEMSPACING, bSmallIconView, 0);
+        const auto uRet = (UINT)SendMsg(LVM_GETITEMSPACING, bSmallIconView, 0);
         if (pxSpacing)
-            *pxSpacing = LOWORD(dwRet);
+            *pxSpacing = LOWORD(uRet);
         if (pySpacing)
-            *pySpacing = HIWORD(dwRet);
+            *pySpacing = HIWORD(uRet);
     }
 
     /// <summary>
@@ -803,11 +807,11 @@ public:
     /// <summary>
     /// 置回调掩码
     /// </summary>
-    /// <param name="dwMask">掩码，LVIS_常量</param>
+    /// <param name="uMask">掩码，LVIS_常量</param>
     /// <returns>成功返回TRUE，失败返回FALSE</returns>
-    EckInline BOOL SetCallbackMask(DWORD dwMask) const noexcept
+    EckInline BOOL SetCallbackMask(UINT uMask) const noexcept
     {
-        return (BOOL)SendMsg(LVM_SETCALLBACKMASK, dwMask, 0);
+        return (BOOL)SendMsg(LVM_SETCALLBACKMASK, uMask, 0);
     }
 
     EckInline BOOL SetColumn(int idx, LVCOLUMNW* plvc) const noexcept
@@ -868,9 +872,9 @@ public:
         return (int)SendMsg(LVM_SETHOTITEM, idx, 0);
     }
 
-    EckInline DWORD SetHoverTime(DWORD dwTime = (DWORD)-1) const noexcept
+    EckInline UINT SetHoverTime(UINT uTime = (UINT)-1) const noexcept
     {
-        return (DWORD)SendMsg(LVM_SETHOVERTIME, 0, dwTime);
+        return (UINT)SendMsg(LVM_SETHOVERTIME, 0, uTime);
     }
 
     /// <summary>
@@ -880,9 +884,9 @@ public:
     /// <param name="xSpacing">水平间隔</param>
     /// <param name="ySpacing">垂直间隔</param>
     /// <returns>返回值的低字为先前的水平距离，高字为先前的垂直距离</returns>
-    EckInline DWORD SetIconSpacing(int xSpacing = -1, int ySpacing = -1) const noexcept
+    EckInline UINT SetIconSpacing(int xSpacing = -1, int ySpacing = -1) const noexcept
     {
-        return (DWORD)SendMsg(LVM_SETICONSPACING, 0, MAKELPARAM(xSpacing, ySpacing));
+        return (UINT)SendMsg(LVM_SETICONSPACING, 0, MAKELPARAM(xSpacing, ySpacing));
     }
 
     EckInline HIMAGELIST SetImageList(HIMAGELIST hImageList, UINT uType = LVSIL_NORMAL) const noexcept
@@ -898,7 +902,7 @@ public:
 
     EckInline BOOL SetInsertMark(int idx, BOOL bAfterItem = FALSE) const noexcept
     {
-        LVINSERTMARK lvim{ sizeof(LVINSERTMARK),DWORD(bAfterItem ? LVIM_AFTER : 0),idx };
+        LVINSERTMARK lvim{ sizeof(LVINSERTMARK), (bAfterItem ? LVIM_AFTER : 0), idx };
         return (BOOL)SendMsg(LVM_SETINSERTMARK, 0, (LPARAM)&lvim);
     }
 
@@ -1037,9 +1041,9 @@ public:
         return (BOOL)SendMsg(LVM_SETUNICODEFORMAT, bUnicode, 0);
     }
 
-    EckInline BOOL SetView(DWORD dwView) const noexcept
+    EckInline BOOL SetView(UINT uView) const noexcept
     {
-        return (SendMsg(LVM_SETVIEW, dwView, 0) > 0);
+        return (SendMsg(LVM_SETVIEW, uView, 0) > 0);
     }
 
     EckInline void SetWorkArea(_In_reads_opt_(c) const RECT* prc, int c) const noexcept

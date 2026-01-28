@@ -55,14 +55,15 @@ public:
         return (HWND)SendMsg(DTM_GETMONTHCAL, 0, 0);
     }
 
-    DWORD GetRange(_Out_writes_(2) SYSTEMTIME* pst) const noexcept
+    // 返回GDTR_*组合
+    UINT GetRange(_Out_writes_(2) SYSTEMTIME* pst) const noexcept
     {
-        return (DWORD)SendMsg(DTM_GETRANGE, 0, (LPARAM)pst);
+        return (UINT)SendMsg(DTM_GETRANGE, 0, (LPARAM)pst);
     }
 
-    DWORD GetSystemTime(_In_ SYSTEMTIME* pst) const noexcept
+    UINT GetSystemTime(_In_ SYSTEMTIME* pst) const noexcept
     {
-        return (DWORD)SendMsg(DTM_GETSYSTEMTIME, 0, (LPARAM)pst);
+        return (UINT)SendMsg(DTM_GETSYSTEMTIME, 0, (LPARAM)pst);
     }
 
     BOOL SetFormat(_In_z_ PCWSTR pszText) const noexcept
@@ -85,14 +86,14 @@ public:
         return (DWORD)SendMsg(DTM_SETMCSTYLE, 0, dwStyle);
     }
 
-    BOOL SetRange(DWORD dwFlags, _In_reads_(2) const SYSTEMTIME* pst) const noexcept
+    BOOL SetRange(UINT uFlags, _In_reads_(2) const SYSTEMTIME* pst) const noexcept
     {
-        return (BOOL)SendMsg(DTM_SETRANGE, dwFlags, (LPARAM)pst);
+        return (BOOL)SendMsg(DTM_SETRANGE, uFlags, (LPARAM)pst);
     }
 
-    BOOL SetSystemTime(DWORD dwFlags, _In_ SYSTEMTIME* pst) const noexcept
+    BOOL SetSystemTime(UINT uFlags, _In_ SYSTEMTIME* pst) const noexcept
     {
-        return (BOOL)SendMsg(DTM_SETSYSTEMTIME, 0, (LPARAM)pst);
+        return (BOOL)SendMsg(DTM_SETSYSTEMTIME, uFlags, (LPARAM)pst);
     }
 };
 ECK_NAMESPACE_END

@@ -247,11 +247,11 @@ inline HRESULT Snapshot(IWICBitmap*& pBmp, const RCWH& rc,
                         {
                             for (int j = xStart; j < xEnd; ++j)
                             {
-                                const auto dwSrc = *(DWORD*)(Cursor.rbCursor.Data() +
+                                const auto uSrc = *(UINT*)(Cursor.rbCursor.Data() +
                                     i * Cursor.ShapeInfo.Pitch + j * 4);
-                                const auto pdwDst = (DWORD*)(pBits +
+                                const auto puDst = (UINT*)(pBits +
                                     (ptCursor.y + i) * cbStride + (ptCursor.x + j) * 4);
-                                *pdwDst = ArgbAlphaBlend(dwSrc, *pdwDst);
+                                *puDst = ArgbAlphaBlend(uSrc, *puDst);
                             }
                         }
                     }
@@ -268,10 +268,10 @@ inline HRESULT Snapshot(IWICBitmap*& pBmp, const RCWH& rc,
                                 const auto bySrcXor = (*(Cursor.rbCursor.Data() +
                                     (i + Cursor.ShapeInfo.Height / 2) * Cursor.ShapeInfo.Pitch +
                                     j / 8)) & byMask;
-                                const auto pdwDst = (DWORD*)(pBits +
+                                const auto puDst = (UINT*)(pBits +
                                     (ptCursor.y + i) * cbStride + (ptCursor.x + j) * 4);
 
-                                *pdwDst = (*pdwDst & (bySrcAnd ? 0xFFFFFFFF : 0xFF000000)) ^
+                                *puDst = (*puDst & (bySrcAnd ? 0xFFFFFFFF : 0xFF000000)) ^
                                     (bySrcXor ? 0x00FFFFFF : 0x00000000);
 
                                 if (byMask == 1)
@@ -288,14 +288,14 @@ inline HRESULT Snapshot(IWICBitmap*& pBmp, const RCWH& rc,
                         {
                             for (int j = xStart; j < xEnd; ++j)
                             {
-                                const auto dwSrc = *(DWORD*)(Cursor.rbCursor.Data() +
+                                const auto uSrc = *(UINT*)(Cursor.rbCursor.Data() +
                                     i * Cursor.ShapeInfo.Pitch + j * 4);
-                                const auto pdwDst = (DWORD*)(pBits +
+                                const auto puDst = (UINT*)(pBits +
                                     (ptCursor.y + i) * cbStride + (ptCursor.x + j) * 4);
-                                if (dwSrc & 0xFF000000)
-                                    *pdwDst = (*pdwDst ^ dwSrc) | 0xFF000000;
+                                if (uSrc & 0xFF000000)
+                                    *puDst = (*puDst ^ uSrc) | 0xFF000000;
                                 else
-                                    *pdwDst = dwSrc | 0xFF000000;
+                                    *puDst = uSrc | 0xFF000000;
                             }
                         }
                     }

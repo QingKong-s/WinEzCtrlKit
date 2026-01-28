@@ -18,13 +18,13 @@ int wmain(int argc, WCHAR** argv)
 
     eck::INITPARAM ip{};
     ip.uFlags = eck::EIF_CONSOLE_APP;
-    DWORD dwErr;
-    const auto eInitRet = eck::Initialize(NtCurrentImageBaseHInst(), &ip, &dwErr);
+    UINT uErr;
+    const auto eInitRet = eck::Initialize(NtCurrentImageBaseHInst(), &ip, &uErr);
     if (eInitRet != eck::InitStatus::Ok)
     {
-        EckDbgPrintFormatMessage(dwErr);
+        EckDbgPrintFormatMessage(uErr);
         ConOut.PrintLine(L"Initialize failed: ",
-            (int)eInitRet, "(0x", Cio::IoInt{ dwErr,16,8 }, ")");
+            (int)eInitRet, "(0x", Cio::IoInt{ uErr,16,8 }, ")");
         return 0;
     }
 

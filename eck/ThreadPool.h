@@ -33,9 +33,9 @@ public:
         }
     }
 
-    EckInline void SetMaximumThreads(DWORD c) noexcept { TpSetPoolMaxThreads(m_pPool, c); }
+    EckInline void SetMaximumThreads(UINT c) noexcept { TpSetPoolMaxThreads(m_pPool, c); }
 
-    EckInline NTSTATUS SetMinimumThreads(DWORD c)  noexcept { return TpSetPoolMinThreads(m_pPool, c); }
+    EckInline NTSTATUS SetMinimumThreads(UINT c)  noexcept { return TpSetPoolMinThreads(m_pPool, c); }
 
     EckInlineNdCe TP_POOL* GetPool() const noexcept { return m_pPool; }
 };
@@ -323,12 +323,12 @@ public:
         }
     }
 
-    EckInline void SetTimer2(LARGE_INTEGER* pliDueTime, DWORD msPeriod, DWORD msAdjust = 0) noexcept
+    EckInline void SetTimer2(LARGE_INTEGER* pliDueTime, UINT msPeriod, UINT msAdjust = 0) noexcept
     {
         TpSetTimer(m_pTimer, pliDueTime, msPeriod, msAdjust);
     }
 
-    EckInline void SetTimer(LONGLONG llDueTime, DWORD msPeriod, DWORD msAdjust = 0) noexcept
+    EckInline void SetTimer(LONGLONG llDueTime, UINT msPeriod, UINT msAdjust = 0) noexcept
     {
         SetTimer2((LARGE_INTEGER*)&llDueTime, msPeriod, msAdjust);
     }

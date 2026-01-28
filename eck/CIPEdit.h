@@ -14,9 +14,9 @@ public:
         SendMsg(IPM_CLEARADDRESS, 0, 0);
     }
 
-    EckInline int GetAddress(_Out_ DWORD* pdwAddress) const noexcept
+    EckInline int GetAddress(_Out_ UINT* puAddress) const noexcept
     {
-        return (int)SendMsg(IPM_GETADDRESS, 0, (LPARAM)pdwAddress);
+        return (int)SendMsg(IPM_GETADDRESS, 0, (LPARAM)puAddress);
     }
 
     EckInline BOOL IsBlank() const noexcept
@@ -24,9 +24,9 @@ public:
         return (BOOL)SendMsg(IPM_ISBLANK, 0, 0);
     }
 
-    EckInline void SetAddress(DWORD dwAddress) const noexcept
+    EckInline void SetAddress(UINT uAddress) const noexcept
     {
-        SendMsg(IPM_SETADDRESS, 0, (LPARAM)dwAddress);
+        SendMsg(IPM_SETADDRESS, 0, (LPARAM)uAddress);
     }
 
     EckInline void SetFieldFocus(int iField) const noexcept

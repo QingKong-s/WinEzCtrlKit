@@ -85,9 +85,9 @@ public:
         return (BOOL)SendMsg(MCM_GETCURSEL, 0, (LPARAM)pst);
     }
 
-    EckInline DWORD GetFirstDayOfWeek() const noexcept
+    EckInline UINT GetFirstDayOfWeek() const noexcept
     {
-        return (DWORD)SendMsg(MCM_GETFIRSTDAYOFWEEK, 0, 0);
+        return (UINT)SendMsg(MCM_GETFIRSTDAYOFWEEK, 0, 0);
     }
 
     EckInline BOOL GetFirstDayOfWeek(_Out_ int* pnDay) const noexcept
@@ -134,9 +134,9 @@ public:
     /// </summary>
     /// <param name="pst">依次接收最小值和最大值</param>
     /// <returns>GDTR_常量</returns>
-    EckInline DWORD GetRange(_Out_writes_(2) SYSTEMTIME* pst) const noexcept
+    EckInline UINT GetRange(_Out_writes_(2) SYSTEMTIME* pst) const noexcept
     {
-        return (DWORD)SendMsg(MCM_GETRANGE, 0, (LPARAM)pst);
+        return (UINT)SendMsg(MCM_GETRANGE, 0, (LPARAM)pst);
     }
 
     EckInline BOOL GetSelectionRange(_Out_writes_(2) SYSTEMTIME* pst) const noexcept
@@ -195,9 +195,9 @@ public:
         return (BOOL)SendMsg(MCM_SETDAYSTATE, c, (LPARAM)pmds);
     }
 
-    EckInline DWORD SetFirstDayOfWeek(int nDay) const noexcept
+    EckInline UINT SetFirstDayOfWeek(int nDay) const noexcept
     {
-        return (DWORD)SendMsg(MCM_SETFIRSTDAYOFWEEK, 0, nDay);
+        return (UINT)SendMsg(MCM_SETFIRSTDAYOFWEEK, 0, nDay);
     }
 
     EckInline BOOL SetMaxSelectionCount(int cMax) const noexcept

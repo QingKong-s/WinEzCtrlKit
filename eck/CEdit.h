@@ -130,15 +130,15 @@ public:
     int CharFromPosition(POINT pt, _Out_opt_ int* piPosInLine = nullptr) const noexcept
     {
         int posChar;
-        DWORD dwRet = (DWORD)SendMsg(EM_CHARFROMPOS, 0, MAKELPARAM(pt.x, pt.y));
-        USHORT usPos = LOWORD(dwRet);
+        UINT uRet = (UINT)SendMsg(EM_CHARFROMPOS, 0, MAKELPARAM(pt.x, pt.y));
+        USHORT usPos = LOWORD(uRet);
         if (usPos == 65535)
             posChar = -1;
         else
             posChar = usPos;
         if (piPosInLine)
         {
-            usPos = HIWORD(dwRet);
+            usPos = HIWORD(uRet);
             if (usPos == 65535)
                 *piPosInLine = -1;
             else
@@ -248,19 +248,19 @@ public:
         return (int)SendMsg(EM_GETLINECOUNT, 0, 0);
     }
 
-    EckInline DWORD GetMargins() const noexcept
+    EckInline UINT GetMargins() const noexcept
     {
-        return (DWORD)SendMsg(EM_GETMARGINS, 0, 0);
+        return (UINT)SendMsg(EM_GETMARGINS, 0, 0);
     }
 
     EckInline void GetMargins(_Out_opt_ int* piLeftMargin,
         _Out_opt_ int* piRightMargin) const noexcept
     {
-        DWORD dwRet = (DWORD)SendMsg(EM_GETMARGINS, 0, 0);
+        UINT uRet = (UINT)SendMsg(EM_GETMARGINS, 0, 0);
         if (piLeftMargin)
-            *piLeftMargin = LOWORD(dwRet);
+            *piLeftMargin = LOWORD(uRet);
         if (piRightMargin)
-            *piRightMargin = HIWORD(dwRet);
+            *piRightMargin = HIWORD(uRet);
     }
 
     EckInline int GetModify() const noexcept
@@ -340,10 +340,10 @@ public:
 
     EckInline POINT PositionFromChar(int posChar) const noexcept
     {
-        DWORD dwRet = (DWORD)SendMsg(EM_LINESCROLL, posChar, 0);
+        UINT uRet = (UINT)SendMsg(EM_LINESCROLL, posChar, 0);
         POINT pt;
-        pt.x = LOWORD(dwRet);
-        pt.y = HIWORD(dwRet);
+        pt.x = LOWORD(uRet);
+        pt.y = HIWORD(uRet);
         return pt;
     }
 

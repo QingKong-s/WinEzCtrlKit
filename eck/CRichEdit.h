@@ -184,9 +184,9 @@ public:
         SendMsg(EM_GETBIDIOPTIONS, 0, (LPARAM)pbidio);
     }
 
-    EckInline DWORD GetCharFormat(int iRange, CHARFORMAT2W* pcf) const noexcept
+    EckInline UINT GetCharFormat(int iRange, CHARFORMAT2W* pcf) const noexcept
     {
-        return (DWORD)SendMsg(EM_GETCHARFORMAT, iRange, (LPARAM)pcf);
+        return (UINT)SendMsg(EM_GETCHARFORMAT, iRange, (LPARAM)pcf);
     }
 
     EckInline int GetCtfModeBias() const noexcept
@@ -209,9 +209,9 @@ public:
         return (UINT)SendMsg(EM_GETEDITSTYLEEX, 0, 0);
     }
 
-    EckInline DWORD GetEllipsisMode() const noexcept
+    EckInline UINT GetEllipsisMode() const noexcept
     {
-        DWORD dw;
+        UINT dw;
         SendMsg(EM_GETELLIPSISMODE, 0, (LPARAM)&dw);
         return dw;
     }
@@ -436,9 +436,9 @@ public:
         return (UINT)SendMsg(EM_SETEDITSTYLEEX, dwStyleEx, dwMask);
     }
 
-    EckInline BOOL SetEllipsisMode(DWORD dwElideMode) const noexcept
+    EckInline BOOL SetEllipsisMode(UINT uEllipsisMode) const noexcept
     {
-        return (BOOL)SendMsg(EM_SETELLIPSISMODE, 0, dwElideMode);
+        return (BOOL)SendMsg(EM_SETELLIPSISMODE, 0, uEllipsisMode);
     }
 
     EckInline UINT SetEventMask(UINT dwEventMask) const noexcept

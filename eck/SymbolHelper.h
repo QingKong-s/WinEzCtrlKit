@@ -101,8 +101,11 @@ Exit:;
 	return hr;
 }
 
-inline HRESULT DshMakeSymbolUrl(CRefStrW& rsSymbolUrl, const PDBInfo& PdbInfo,
-	std::wstring_view svSymbolSrv = SymSrvMicrosoft) noexcept
+inline HRESULT DshMakeSymbolUrl(
+	CRefStrW& rsSymbolUrl,
+	const PDBInfo& PdbInfo,
+	std::wstring_view svSymbolSrv = SymSrvMicrosoft
+) noexcept
 {
 	const auto rsPdbW = StrX2W(PdbInfo.rsPdbFile.Data(),
 		PdbInfo.rsPdbFile.Size(), CP_ACP);
@@ -120,9 +123,12 @@ inline HRESULT DshMakeSymbolUrl(CRefStrW& rsSymbolUrl, const PDBInfo& PdbInfo,
 	return S_OK;
 }
 
-inline HRESULT DshInit(_Out_ HANDLE& hProcess,
-	DWORD dwOptions = SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_ANYTHING,
-	PCWSTR pszUserSearchPath = nullptr, BOOL bInvadeProcess = FALSE) noexcept
+inline HRESULT DshInit(
+	_Out_ HANDLE& hProcess,
+	UINT uOptions = SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_ANYTHING,
+	PCWSTR pszUserSearchPath = nullptr,
+	BOOL bInvadeProcess = FALSE
+) noexcept
 {
 	NTSTATUS nts;
 	hProcess = NaOpenProcess(SYNCHRONIZE, FALSE, NtCurrentProcessId32(), &nts);
@@ -130,7 +136,7 @@ inline HRESULT DshInit(_Out_ HANDLE& hProcess,
 		return HRESULT_FROM_NT(nts);
 	if (!SymInitializeW(hProcess, nullptr, bInvadeProcess))
 		return HRESULT_FROM_WIN32(NaGetLastError());
-	SymSetOptions(dwOptions);
+	SymSetOptions(uOptions);
 	return S_OK;
 }
 
@@ -151,7 +157,7 @@ inline HRESULT DshLoadPdb(HANDLE hProcess, _In_ PCWSTR pszPdbFile,
 	DWORD64 DllBase = 0x00401000) noexcept
 {
 	NTSTATUS nts;
-	const auto cbPdb = (DWORD)FileGetSizeByPath(pszPdbFile, &nts);
+	const auto cbPdb = (UINT)FileGetSizeByPath(pszPdbFile, &nts);
 	if (!NT_SUCCESS(nts))
 		return HRESULT_FROM_NT(nts);
 	if (!SymLoadModuleExW(hProcess, nullptr, pszPdbFile,

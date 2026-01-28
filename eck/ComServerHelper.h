@@ -54,26 +54,26 @@ inline HRESULT RegisterInProcessComServer(REFCLSID clsid,
 	// + DefaultIcon
 	//   - (Default)		图标路径
 	Key.SetValue(nullptr, nullptr, Params.svName.data(),
-		DWORD(Params.svName.size() * sizeof(WCHAR)), REG_SZ);
+		UINT(Params.svName.size() * sizeof(WCHAR)), REG_SZ);
 	if (!Params.svInfoTip.empty())
 	{
 		Key.SetValue(L"InfoTip", nullptr, Params.svInfoTip.data(),
-			DWORD(Params.svInfoTip.size() * sizeof(WCHAR)), REG_SZ);
+			UINT(Params.svInfoTip.size() * sizeof(WCHAR)), REG_SZ);
 	}
 	CRegKey Key2{};
 	//
 	Key2.Create(Key.GetHKey(), L"InprocServer32");
 	Key2.SetValue(nullptr, nullptr, svModFile.data(),
-		DWORD(svModFile.size() * sizeof(WCHAR)), REG_SZ);
+		UINT(svModFile.size() * sizeof(WCHAR)), REG_SZ);
 	const auto& Model = RegThreadingModel[size_t(Params.eModel)];
 	Key2.SetValue(nullptr, L"ThreadingModel", Model.data(),
-		DWORD(Model.size() * sizeof(WCHAR)), REG_SZ);
+		UINT(Model.size() * sizeof(WCHAR)), REG_SZ);
 	//
 	if (!Params.svIcon.empty())
 	{
 		Key2.Create(Key.GetHKey(), L"DefaultIcon");
 		Key2.SetValue(nullptr, nullptr, Params.svIcon.data(),
-			DWORD(Params.svIcon.size() * sizeof(WCHAR)), REG_SZ);
+			UINT(Params.svIcon.size() * sizeof(WCHAR)), REG_SZ);
 	}
 	return S_OK;
 }

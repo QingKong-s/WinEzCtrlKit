@@ -8,9 +8,9 @@ private:
     RTL_CRITICAL_SECTION m_cs;
 public:
     ECK_DISABLE_COPY_MOVE(CCriticalSection);
-    CCriticalSection(DWORD dwSpinCount) noexcept
+    CCriticalSection(UINT cSpin) noexcept
     {
-        RtlInitializeCriticalSectionAndSpinCount(&m_cs, dwSpinCount);
+        RtlInitializeCriticalSectionAndSpinCount(&m_cs, cSpin);
     }
     CCriticalSection() noexcept
     {

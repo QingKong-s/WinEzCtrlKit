@@ -8,9 +8,9 @@
 // phnt additions
 // ================
 
-#define NtCurrentThreadId32() ((DWORD)(DWORD_PTR)NtCurrentThreadId())
-#define NtCurrentProcessId32() ((DWORD)(DWORD_PTR)NtCurrentProcessId())
-#define NtCurrentImageBaseHInst() ((HINSTANCE)NtCurrentImageBase())
+#define NtCurrentThreadId32()       ((UINT)(UINT_PTR)NtCurrentThreadId())
+#define NtCurrentProcessId32()      ((UINT)(UINT_PTR)NtCurrentProcessId())
+#define NtCurrentImageBaseHInst()   ((HINSTANCE)NtCurrentImageBase())
 
 #define WOW64_POINTER_64(Type) ULONG64
 

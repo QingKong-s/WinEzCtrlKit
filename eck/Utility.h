@@ -25,7 +25,7 @@ EckInlineNdCe SIZE_T CalculateNextAlignmentBoundaryDistance(
 /// <param name="cbAlign">对齐尺寸</param>
 /// <returns>步进后的指针，如果当前指针已经落在对齐边界上，则指针不变</returns>
 template<class T>
-EckInlineNdCe T* StepToNextAlignmentBoundary(T* pStart, T* pCurr, SIZE_T cbAlign) noexcept
+EckInlineNdCe T* StepToNextAlignmentBoundary(T* pStart, T* pCurr, size_t cbAlign) noexcept
 {
     return (T*)((BYTE*)pCurr + CalculateNextAlignmentBoundaryDistance(pStart, pCurr, cbAlign));
 }
@@ -34,7 +34,7 @@ EckInlineNdCe void* PointerSkipType(auto* p) noexcept { return (void*)((BYTE*)p 
 EckInlineNdCe const void* PointerSkipType(const auto* p) noexcept { return (const void*)((PCBYTE)p + sizeof(*p)); }
 
 // 计算对齐后内存尺寸
-EckInlineNdCe SIZE_T AlignedSize(SIZE_T cbSize, SIZE_T cbAlign) noexcept
+EckInlineNdCe size_t AlignedSize(size_t cbSize, size_t cbAlign) noexcept
 {
     if (cbSize / cbAlign * cbAlign == cbSize)
         return cbSize;

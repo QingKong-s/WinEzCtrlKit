@@ -157,14 +157,14 @@ inline NTSTATUS CalculateMd5(_In_reads_bytes_(cbData) PCVOID pData,
 {
     NTSTATUS nts;
     BCRYPT_ALG_HANDLE hAlg;
-    DWORD cbHashObject;
+    UINT cbHashObject;
     ULONG cbRet;
     BCRYPT_HASH_HANDLE hHash{};
     UCHAR* pHashObject{};
     if (!NT_SUCCESS(nts = BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_MD5_ALGORITHM, nullptr, 0)))
         return nts;
     if (!NT_SUCCESS(nts = BCryptGetProperty(hAlg, BCRYPT_OBJECT_LENGTH, (BYTE*)&cbHashObject,
-        sizeof(DWORD), &cbRet, 0)))
+        sizeof(UINT), &cbRet, 0)))
         goto TidyUp;
     pHashObject = (UCHAR*)_malloca(cbHashObject);
     if (!NT_SUCCESS(nts = BCryptCreateHash(hAlg, &hHash, pHashObject, cbHashObject,

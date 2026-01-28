@@ -71,9 +71,9 @@ public:
     /// 取刻度线位置数组
     /// </summary>
     /// <returns>返回数组在修改刻度线前有效，数组总数为(GetTickMarkCount() - 2)</returns>
-    EckInline DWORD* GetTickMarkLogicalPositionArray() const noexcept
+    EckInline UINT* GetTickMarkLogicalPositionArray() const noexcept
     {
-        return (DWORD*)SendMsg(TBM_GETPTICS, 0, 0);
+        return (UINT*)SendMsg(TBM_GETPTICS, 0, 0);
     }
 
     EckInline int GetRangeMaximum() const noexcept

@@ -85,19 +85,19 @@ public:
         return (int)SendMsg(PBM_SETPOS, i, 0);
     }
 
-    EckInline DWORD SetRange(int iMin, int iMax) const noexcept
+    EckInline UINT SetRange(int iMin, int iMax) const noexcept
     {
-        return (DWORD)SendMsg(PBM_SETRANGE32, iMin, iMax);
+        return (UINT)SendMsg(PBM_SETRANGE32, iMin, iMax);
     }
 
-    EckInline DWORD SetMinimum(int i) const noexcept
+    EckInline UINT SetMinimum(int i) const noexcept
     {
-        return (DWORD)SendMsg(PBM_SETRANGE32, i, GetMaximum());
+        return (UINT)SendMsg(PBM_SETRANGE32, i, GetMaximum());
     }
 
-    EckInline DWORD SetMaximum(int i) const noexcept
+    EckInline UINT SetMaximum(int i) const noexcept
     {
-        return (DWORD)SendMsg(PBM_SETRANGE32, GetMinimum(), i);
+        return (UINT)SendMsg(PBM_SETRANGE32, GetMinimum(), i);
     }
 
     /// <summary>

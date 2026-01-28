@@ -259,7 +259,7 @@ public:
         {
             m_DwmPartMgr.AnalyzeDefaultTheme();
             PCVOID pData;
-            DWORD cbData;
+            UINT cbData;
             m_DwmPartMgr.GetData(&pData, &cbData);
             const auto pStream = new CStreamView(pData, cbData);
             IWICBitmapDecoder* pDecoder;

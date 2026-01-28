@@ -73,7 +73,8 @@ inline BOOL RequestUrl(FPostConnect&& fn,
         SECURITY_FLAG_IGNORE_CERT_DATE_INVALID |
         SECURITY_FLAG_IGNORE_UNKNOWN_CA |
         SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE;
-    WinHttpSetOption(hRequest.get(), WINHTTP_OPTION_SECURITY_FLAGS, &uSecurityFlags, sizeof(uSecurityFlags));
+    WinHttpSetOption(hRequest.get(), WINHTTP_OPTION_SECURITY_FLAGS,
+        &uSecurityFlags, sizeof(uSecurityFlags));
     // 处理请求头
     CRefStrW rsHeader{};
     PCWSTR pszHeaderFinal;

@@ -16,22 +16,22 @@ struct UIA
 
 inline BOOL UiaIsAcquired() noexcept
 {
-    DWORD dw;
+    UINT u;
     ULONG cbRet;
     if (NT_SUCCESS(NtQueryInformationToken(NtCurrentProcessToken(),
-        TokenUIAccess, &dw, sizeof(dw), &cbRet)))
-        return !!dw;
+        TokenUIAccess, &u, sizeof(u), &cbRet)))
+        return !!u;
     return FALSE;
 }
 
 inline NTSTATUS UiaTryAcquire(_Out_ UIA& uia) noexcept
 {
     NTSTATUS nts;
-    DWORD dwSid;
+    UINT uSid;
     ULONG cbRet;
     // 取当前会话ID
     if (!NT_SUCCESS(nts = NtQueryInformationToken(NtCurrentProcessToken(),
-        TokenSessionId, &dwSid, sizeof(dwSid), &cbRet)))
+        TokenSessionId, &uSid, sizeof(uSid), &cbRet)))
         return nts;
     // 克隆winlogon.exe的令牌以取得SeTcbPrivilege
     constexpr static WCHAR szWinlogon[]{ L"winlogon.exe" };
@@ -83,10 +83,10 @@ inline NTSTATUS UiaTryAcquire(_Out_ UIA& uia) noexcept
                 NtClose(hToken);
                 return TRUE;
             }
-            DWORD dwWinlogonSid;
+            UINT uWinlogonSid;
             if (!NT_SUCCESS(NtQueryInformationToken(hToken,
-                TokenSessionId, &dwWinlogonSid, sizeof(dwWinlogonSid),
-                &cbRet)) || dwWinlogonSid != dwSid)
+                TokenSessionId, &uWinlogonSid, sizeof(uWinlogonSid),
+                &cbRet)) || uWinlogonSid != uSid)
             {
                 NtClose(hToken);
                 return TRUE;
@@ -152,8 +152,8 @@ inline NTSTATUS UiaRestart(const UIA& uia) noexcept
     NtClose(hTokenCurr);
     if (!NT_SUCCESS(nts))
         return nts;
-    DWORD dw{ 1 };
-    nts = NtSetInformationToken(hTokenUia, TokenUIAccess, &dw, sizeof(dw));
+    UINT u{ 1 };
+    nts = NtSetInformationToken(hTokenUia, TokenUIAccess, &u, sizeof(u));
     if (!NT_SUCCESS(nts))
     {
         NtClose(hTokenUia);

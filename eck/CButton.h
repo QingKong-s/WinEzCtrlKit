@@ -9,7 +9,7 @@ struct CTRLDATA_BUTTON
 {
     int iVer;
     BYTE eCheckState;
-    DWORD cchNote;
+    UINT cchNote;
     // WCHAR szNote[];// 长度为cchNote + 1
 
     EckInline constexpr PCWSTR Note() const
@@ -93,7 +93,7 @@ public:
     void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept override
     {
         auto cchNote = GetNoteLength();
-        const SIZE_T cbSize = sizeof(CTRLDATA_BUTTON) +
+        const size_t cbSize = sizeof(CTRLDATA_BUTTON) +
             (cchNote + 1) * sizeof(WCHAR);
         CWnd::SerializeData(rb, pOpt);
         CMemWriter w(rb.PushBack(cbSize), cbSize);
@@ -142,19 +142,19 @@ public:
     }
 
     ECK_SUPPRESS_MISSING_ZERO_TERMINATION;
-    EckInline BOOL GetNote(_Out_writes_(cchBuf) PWSTR pszBuf, _Inout_ DWORD& cchBuf) const noexcept
+    EckInline BOOL GetNote(_Out_writes_(cchBuf) PWSTR pszBuf, _Inout_ UINT& cchBuf) const noexcept
     {
         return (BOOL)SendMsg(BCM_GETNOTE, (WPARAM)&cchBuf, (LPARAM)pszBuf);
     }
 
-    EckInlineNd DWORD GetNoteLength() const noexcept
+    EckInlineNd UINT GetNoteLength() const noexcept
     {
-        return (DWORD)SendMsg(BCM_GETNOTELENGTH, 0, 0);
+        return (UINT)SendMsg(BCM_GETNOTELENGTH, 0, 0);
     }
 
     BOOL GetNote(_Inout_ CRefStrW& rs) const noexcept
     {
-        DWORD cch = GetNoteLength();
+        auto cch = GetNoteLength();
         if (!cch)
             return FALSE;
         rs.PushBack(cch);
@@ -268,7 +268,7 @@ public:
     /// 指定图片和文本是否同时显示
     void SetTextImageShowing(BOOL b) const noexcept
     {
-        DWORD dwStyle = GetStyle();
+        auto dwStyle = GetStyle();
         if (b)
             dwStyle &= ~(BS_BITMAP);
         else if (SendMsg(BM_GETIMAGE, IMAGE_BITMAP, 0) || SendMsg(BM_GETIMAGE, IMAGE_ICON, 0))
@@ -278,7 +278,7 @@ public:
 
     void SetAlignment(BOOL bHAlign, Align iAlign) const noexcept
     {
-        DWORD dwStyle = GetStyle();
+        auto dwStyle = GetStyle();
         if (bHAlign)
         {
             dwStyle &= (~(BS_LEFT | BS_CENTER | BS_RIGHT));
@@ -304,7 +304,7 @@ public:
 
     Align GetAlignment(BOOL bHAlign) const noexcept
     {
-        DWORD dwStyle = GetStyle();
+        auto dwStyle = GetStyle();
         if (bHAlign)
         {
             if (IsBitSet(dwStyle, BS_CENTER))

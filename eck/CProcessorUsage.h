@@ -46,9 +46,9 @@ public:
         return Value.doubleValue;
     }
 
-    EckInline PDH_STATUS GetUsage(DWORD dwFmt, PDH_FMT_COUNTERVALUE& Value) noexcept
+    EckInline PDH_STATUS GetUsage(UINT uFmt, PDH_FMT_COUNTERVALUE& Value) noexcept
     {
-        return PdhGetFormattedCounterValue(m_hCounter, dwFmt, nullptr, &Value);
+        return PdhGetFormattedCounterValue(m_hCounter, uFmt, nullptr, &Value);
     }
 
     void Close() noexcept

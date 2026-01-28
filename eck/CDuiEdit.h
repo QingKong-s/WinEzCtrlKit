@@ -933,9 +933,9 @@ public:
         return (UINT)TxSendMessage(EM_SETEDITSTYLEEX, dwStyleEx, dwMask);
     }
 
-    EckInline BOOL SetEllipsisMode(DWORD dwElideMode) const
+    EckInline BOOL SetEllipsisMode(UINT uEllipsisMode) const
     {
-        return (BOOL)TxSendMessage(EM_SETELLIPSISMODE, 0, dwElideMode);
+        return (BOOL)TxSendMessage(EM_SETELLIPSISMODE, 0, uEllipsisMode);
     }
 
     EckInline UINT SetEventMask(UINT dwEventMask) const

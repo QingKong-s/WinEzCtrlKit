@@ -111,7 +111,7 @@ public:
     TEST_METHOD(TsParseBinText)
     {
         BS bs{};
-        bs.ParseBinText(EckStrAndLen("1'0'1'1"), '1', '0', '\'');
+        bs.FromText(EckStrAndLen("1'0'1'1"), '1', '0', '\'');
 
         Assert::IsTrue(bs.Test(0));
         Assert::IsTrue(bs.Test(1));
@@ -124,7 +124,7 @@ public:
     {
         BS bs{};
         ULONGLONG v = 0x1122334455667788ULL;
-        bs.SetMemory(&v, sizeof(v));
+        bs.FromMemory(&v, sizeof(v));
 
         Assert::AreEqual(v, bs.ToInt<ULONGLONG>());
     }
@@ -133,7 +133,7 @@ public:
     {
         BS bs{};
         ULONGLONG v = 0xAABBCCDDEEFF0011ULL;
-        bs.SetMemory(&v, sizeof(v));
+        bs.FromMemory(&v, sizeof(v));
 
         // 取低 64 bits 的前 16 bits
         int x = bs.SubInt<USHORT>(0);
@@ -171,7 +171,7 @@ public:
     {
         BS bs{};
         BYTE buffer[8] = { 1,2,3,4,5,6,7,8 };
-        bs.SetMemory(buffer, 8);
+        bs.FromMemory(buffer, 8);
         bs.ReverseByte();
 
         BYTE* p = (BYTE*)bs.Data();

@@ -245,12 +245,12 @@ public:
     }
 
     INT_PTR CreateModalDialog(HWND hParent, COLORREF crInit = 0,
-        DWORD dwFlags = 0, _Inout_opt_count_(16) COLORREF* pcrCust = nullptr)
+        UINT uFlags = 0, _Inout_opt_count_(16) COLORREF* pcrCust = nullptr)
     {
         CHOOSECOLORW cc{ sizeof(cc) };
         cc.hwndOwner = hParent;
         cc.rgbResult = crInit;
-        cc.Flags = dwFlags;
+        cc.Flags = uFlags;
         cc.lpCustColors = (pcrCust ? pcrCust : m_crCust);
         return CreateModalDialog(hParent, &cc);
     }
@@ -436,10 +436,10 @@ public:
     {
         SendMsg(WM_CHOOSEFONT_SETFLAGS, 0, (LPARAM)pcf);
     }
-    EckInline void SetFlags(DWORD dwFlags) const noexcept
+    EckInline void SetFlags(UINT uFlags) const noexcept
     {
         CHOOSEFONTW cf{ sizeof(cf) };
-        cf.Flags = dwFlags;
+        cf.Flags = uFlags;
         SetFlags(&cf);
     }
 };

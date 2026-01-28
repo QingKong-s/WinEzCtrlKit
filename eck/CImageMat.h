@@ -149,11 +149,11 @@ protected:
         {
             BYTE b, g, r, a;
         };
-        DWORD dw;
+        UINT u;
     };
 
     using TComp = decltype(TArgb::r);
-    using TColor = decltype(TArgb::dw);
+    using TColor = decltype(TArgb::u);
 
     void* m_pBits{};
     int m_cx{}, m_cy{};
@@ -181,7 +181,7 @@ protected:
                 const auto f = sqrt(fSumX * fSumX + fSumY * fSumY);
                 auto& NewPix = Dst.Pixel(i, j);
                 if (bBinary)
-                    NewPix.dw = ((f > fThreshold) ? 0xFFFFFFFF : 0);
+                    NewPix.u = ((f > fThreshold) ? 0xFFFFFFFF : 0);
                 else
                 {
                     NewPix.r = NewPix.g = NewPix.b = (BYTE)f;
@@ -347,7 +347,7 @@ public:
                 const auto G = sqrt(G1 * G1 + G2 * G2);
                 auto& NewPix = Dst.Pixel(i, j);
                 if (bBinary)
-                    NewPix.dw = ((G > fThreshold) ? 0xFFFFFFFF : 0);
+                    NewPix.u = ((G > fThreshold) ? 0xFFFFFFFF : 0);
                 else
                 {
                     NewPix.r = NewPix.g = NewPix.b = (BYTE)G;
@@ -440,11 +440,11 @@ public:
                 const auto f = Suppressed[i][j];
                 auto& Pix = Dst.Pixel(i, j);
                 if (f >= fHighThresh)
-                    Pix.dw = 0xFFFFFFFF;
+                    Pix.u = 0xFFFFFFFF;
                 else if (f >= fLowThresh)
-                    Pix.dw = WeakColor;
+                    Pix.u = WeakColor;
                 else
-                    Pix.dw = 0;
+                    Pix.u = 0;
             }
         // 弱边处理
         std::stack<POINT> s{};
@@ -454,11 +454,11 @@ public:
             for (int i = cxyHalf; i < m_cx - cxyHalf; ++i)
             {
                 auto& Pix = Dst.Pixel(i, j);
-                if (Pix.dw == WeakColor)
+                if (Pix.u == WeakColor)
                 {
                     s.emplace(i, j);
                     q.emplace(i, j);
-                    Pix.dw = WeakLabelColor;
+                    Pix.u = WeakLabelColor;
 
                     while (!s.empty())
                     {
@@ -469,13 +469,13 @@ public:
                             for (int l = -1; l <= 1; ++l)
                             {
                                 auto& PixNeighbor = Dst.Pixel(pt.x + k, pt.y + l);
-                                if (PixNeighbor.dw == WeakColor)// 弱点
+                                if (PixNeighbor.u == WeakColor)// 弱点
                                 {
                                     s.emplace(pt.x + k, pt.y + l);
                                     q.emplace(pt.x + k, pt.y + l);
-                                    PixNeighbor.dw = WeakLabelColor;
+                                    PixNeighbor.u = WeakLabelColor;
                                 }
-                                if (!bConnected && PixNeighbor.dw == 0xFFFFFFFF)// 强点
+                                if (!bConnected && PixNeighbor.u == 0xFFFFFFFF)// 强点
                                     bConnected = TRUE;
                             }
                     }
@@ -486,7 +486,7 @@ public:
                         {
                             const POINT pt = q.front();
                             q.pop();
-                            Dst.Pixel(pt.x, pt.y).dw = 0xFFFFFFFF;
+                            Dst.Pixel(pt.x, pt.y).u = 0xFFFFFFFF;
                         }
                         bConnected = FALSE;
                     }
@@ -496,7 +496,7 @@ public:
                         {
                             const POINT pt = q.front();
                             q.pop();
-                            Dst.Pixel(pt.x, pt.y).dw = 0;
+                            Dst.Pixel(pt.x, pt.y).u = 0;
                         }
                     }
                 }
@@ -537,20 +537,20 @@ public:
                 switch (eChannel)
                 {
                 case ImageChannel::Gray:
-                    PixNew.dw = (BYTE(0.299f * Pix.r + 0.587f * Pix.g + 0.114f * Pix.b) > byThreshold ?
+                    PixNew.u = (BYTE(0.299f * Pix.r + 0.587f * Pix.g + 0.114f * Pix.b) > byThreshold ?
                         0xFFFFFFFF : 0);
                     break;
                 case ImageChannel::Red:
-                    PixNew.dw = (Pix.r > byThreshold ? 0xFFFFFFFF : 0);
+                    PixNew.u = (Pix.r > byThreshold ? 0xFFFFFFFF : 0);
                     break;
                 case ImageChannel::Green:
-                    PixNew.dw = (Pix.g > byThreshold ? 0xFFFFFFFF : 0);
+                    PixNew.u = (Pix.g > byThreshold ? 0xFFFFFFFF : 0);
                     break;
                 case ImageChannel::Blue:
-                    PixNew.dw = (Pix.b > byThreshold ? 0xFFFFFFFF : 0);
+                    PixNew.u = (Pix.b > byThreshold ? 0xFFFFFFFF : 0);
                     break;
                 case ImageChannel::Alpha:
-                    PixNew.dw = (Pix.a > byThreshold ? 0xFFFFFFFF : 0);
+                    PixNew.u = (Pix.a > byThreshold ? 0xFFFFFFFF : 0);
                     break;
                 default: ECK_UNREACHABLE;
                 }
@@ -598,7 +598,7 @@ public:
             for (int i = 0; i < m_cx; ++i)
             {
                 auto& NewPix = Dst.Pixel(i, j);
-                NewPix.dw = 0;
+                NewPix.u = 0;
                 for (int k = 0; k < cyStruct; ++k)
                     for (int l = 0; l < cxStruct; ++l)
                     {
@@ -606,9 +606,9 @@ public:
                         const int y = j - cyStruct / 2 + k;
                         if (x >= 0 && x < m_cx && y >= 0 && y < m_cy &&
                             pbyStruct[k * cxStruct + l] &&
-                            Pixel(x, y).dw)
+                            Pixel(x, y).u)
                         {
-                            NewPix.dw = 0xFFFFFFFF;
+                            NewPix.u = 0xFFFFFFFF;
                             goto NextPixel;
                         }
                     }
@@ -637,7 +637,7 @@ public:
             for (int i = 0; i < m_cx; ++i)
             {
                 auto& NewPix = Dst.Pixel(i, j);
-                NewPix.dw = 0xFFFFFFFF;
+                NewPix.u = 0xFFFFFFFF;
                 for (int k = 0; k < cyStruct; ++k)
                     for (int l = 0; l < cxStruct; ++l)
                     {
@@ -645,9 +645,9 @@ public:
                         const int y = j - cyStruct / 2 + k;
                         if (x >= 0 && x < m_cx && y >= 0 && y < m_cy &&
                             pbyStruct[k * cxStruct + l] &&
-                            Pixel(x, y).dw == 0)
+                            Pixel(x, y).u == 0)
                         {
-                            NewPix.dw = 0;
+                            NewPix.u = 0;
                             goto NextPixel;
                         }
                     }
@@ -840,7 +840,7 @@ public:
     /// <param name="crNew">替换为</param>
     void FloodFill(int x, int y, TColor crNew) const
     {
-        const auto crOld = Pixel(x, y).dw;
+        const auto crOld = Pixel(x, y).u;
         if (crOld == crNew)
             return;
 
@@ -854,25 +854,25 @@ public:
 
             // 向左扫描
             int l = pt.x;
-            while (l >= 0 && Pixel(l, pt.y).dw == crOld)
+            while (l >= 0 && Pixel(l, pt.y).u == crOld)
                 l--;
             l++;// 恢复到最后一个有效位置
 
             // 向右扫描
             int r = pt.x;
-            while (r < m_cx && Pixel(r, pt.y).dw == crOld)
+            while (r < m_cx && Pixel(r, pt.y).u == crOld)
                 r++;
             r--;// 恢复到最后一个有效位置
 
             // 填充这一行
             for (int i = l; i <= r; ++i)
             {
-                Pixel(i, pt.y).dw = crNew;
+                Pixel(i, pt.y).u = crNew;
                 // 上一行
-                if (pt.y - 1 >= 0 && Pixel(i, pt.y - 1).dw == crOld)
+                if (pt.y - 1 >= 0 && Pixel(i, pt.y - 1).u == crOld)
                     s.emplace(i, pt.y - 1);
                 // 下一行
-                if (pt.y + 1 < m_cy && Pixel(i, pt.y + 1).dw == crOld)
+                if (pt.y + 1 < m_cy && Pixel(i, pt.y + 1).u == crOld)
                     s.emplace(i, pt.y + 1);
             }
         }
@@ -945,7 +945,7 @@ public:
                 const auto Pix = Pixel(i, j);
                 const auto MaskPix = Mask.Pixel(i, j);
                 auto& NewPix = Dst.Pixel(i, j);
-                NewPix.dw = Pix.dw;
+                NewPix.u = Pix.u;
                 if (bIgnoreAlpha)
                     NewPix.a = BYTE(Pix.a * MaskPix.r / 255);
                 else
@@ -964,13 +964,13 @@ public:
             for (int i = 0; i < m_cx; ++i)
             {
                 auto& Pix = Pixel(i, j);
-                if (Pix.dw)
+                if (Pix.u)
                 {
                     int c{};
                     for (int k = -1; k <= 1; ++k)
                         for (int l = -1; l <= 1; ++l)
                         {
-                            if (Pixel(i + k, j + l, BorderOpt::Zero).dw)
+                            if (Pixel(i + k, j + l, BorderOpt::Zero).u)
                             {
                                 ++c;
                                 if (c >= nLevel)
@@ -978,7 +978,7 @@ public:
                             }
                         }
                     if (c < nLevel)
-                        Pix.dw = Marker;
+                        Pix.u = Marker;
                 }
             NextPixel:;
             }
@@ -986,8 +986,8 @@ public:
             for (int i = 0; i < m_cx; ++i)
             {
                 auto& Pix = Pixel(i, j);
-                if (Pix.dw == Marker)
-                    Pix.dw = 0;
+                if (Pix.u == Marker)
+                    Pix.u = 0;
             }
     }
 
@@ -1045,7 +1045,7 @@ private:
             const int idxCurr = (idxStart + i * iWeight + 8) % 8;
             const int x = ptCenter.x + Neighbors[idxCurr].x - 1;
             const int y = ptCenter.y + Neighbors[idxCurr].y - 1;
-            if (Pixel(x, y).dw == 0xFFFFFFFF)
+            if (Pixel(x, y).u == 0xFFFFFFFF)
                 return { x,y };
         }
         return { TBInvalidPt,TBInvalidPt };
@@ -1054,7 +1054,7 @@ private:
     constexpr void TraceBoundary_Follow(POINT ptCenter, POINT ptStart, BOOL bClockWise,
         std::vector<POINT>& vEdge) const
     {
-        Pixel(ptCenter.x, ptCenter.y).dw = TBMarkPt;
+        Pixel(ptCenter.x, ptCenter.y).u = TBMarkPt;
         POINT ptNewCenter = ptCenter;
         POINT ptNeighbor = ptStart;
         POINT ptNewNeighbor = TraceBoundary_FindNeighbor(ptNewCenter, ptNeighbor, bClockWise);
@@ -1062,7 +1062,7 @@ private:
         {
             int x = ptNewCenter.x;
             int y = ptNewCenter.y;
-            Pixel(ptNewCenter.x, ptNewCenter.y).dw = TBMarkPt;
+            Pixel(ptNewCenter.x, ptNewCenter.y).u = TBMarkPt;
             vEdge.emplace_back(ptNewCenter);
 
             ptNeighbor = ptNewCenter;
@@ -1086,13 +1086,13 @@ public:
         for (int i = 0; i < m_cy; ++i)
             for (int j = 1; j < m_cx - 1; ++j)
             {
-                if (Pixel(j, i).dw == 0xFFFFFFFF && Pixel(j - 1, i).dw == 0)// out
+                if (Pixel(j, i).u == 0xFFFFFFFF && Pixel(j - 1, i).u == 0)// out
                 {
                     TraceBoundary_Follow({ j,i }, { j - 1,i }, FALSE, vBoundary.emplace_back());
                     if (vBoundary.back().size() < cMinPoints)
                         vBoundary.pop_back();
                 }
-                else if (Pixel(j, i).dw == 0xFFFFFFFF && Pixel(j + 1, i).dw == 0)// in
+                else if (Pixel(j, i).u == 0xFFFFFFFF && Pixel(j + 1, i).u == 0)// in
                 {
                     TraceBoundary_Follow({ j,i }, { j + 1,i }, TRUE, vBoundary.emplace_back());
                     if (vBoundary.back().size() < cMinPoints)
@@ -1107,8 +1107,8 @@ public:
         for (int i = 0; i < m_cx; ++i)
             for (int j = 0; j < m_cy; ++j)
             {
-                if (Pixel(i, j).dw == TBMarkPt)
-                    Pixel(i, j).dw = 0xFFFFFFFF;
+                if (Pixel(i, j).u == TBMarkPt)
+                    Pixel(i, j).u = 0xFFFFFFFF;
             }
     }
 

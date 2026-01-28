@@ -21,7 +21,7 @@ struct CTRLDATA_COMBOBOXEX
     };
 
     CTRLDATA_COMBOBOX Base;// 无项目数据
-    DWORD cbImageList;
+    UINT cbImageList;
     // ITEM Items[];// 长度CTRLDATA_COMBOBOX::cItem
 };
 #pragma pack(pop)
@@ -102,14 +102,14 @@ public:
             pStream->LeaveRelease();
 
             pBase = (CTRLDATA_COMBOBOX*)(rb.Data() + ocbBase);
-            ((CTRLDATA_COMBOBOXEX*)pBase)->cbImageList = (DWORD)(rb.Size() - ocb);
+            ((CTRLDATA_COMBOBOXEX*)pBase)->cbImageList = UINT(rb.Size() - ocb);
         }
         else
         {
             pBase = (CTRLDATA_COMBOBOX*)(rb.Data() + ocbBase);
             ((CTRLDATA_COMBOBOXEX*)pBase)->cbImageList = 0;
         }
-        pBase->cbSize = DWORD(rb.Size() - ocbBase);
+        pBase->cbSize = UINT(rb.Size() - ocbBase);
     }
 
     void PostDeserialize(PCVOID pData) noexcept override

@@ -195,9 +195,10 @@ public:
         Clear();
     }
 
-    EckInline HRESULT GetData(PCVOID* pp, DWORD* pcb) const noexcept
+    EckInline HRESULT GetData(PCVOID* pp, UINT* pcb) const noexcept
     {
-        return GetThemeStream(m_hTheme, 0, 0, TMT_DISKSTREAM, (void**)pp, pcb, m_hInstStyle);
+        return GetThemeStream(m_hTheme, 0, 0, TMT_DISKSTREAM,
+            (void**)pp, (DWORD*)pcb, m_hInstStyle);
     }
 
     /// <summary>

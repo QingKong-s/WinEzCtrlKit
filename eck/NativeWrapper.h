@@ -139,10 +139,15 @@ inline HANDLE NaCreateFile(_In_z_ PCWSTR pszFile,
     return hFile;
 }
 
-inline NTSTATUS NaDeviceIoControl(HANDLE hDevice, DWORD dwIoControlCode,
-    _In_reads_bytes_opt_(cbInBuf) PVOID pInBuf, DWORD cbInBuf,
-    _Out_writes_bytes_opt_(cbOutBuf) PVOID pOutBuf, DWORD cbOutBuf,
-    _Out_opt_  DWORD* pcbReturned = nullptr) noexcept
+inline NTSTATUS NaDeviceIoControl(
+    HANDLE hDevice,
+    DWORD dwIoControlCode,
+    _In_reads_bytes_opt_(cbInBuf) PVOID pInBuf,
+    DWORD cbInBuf,
+    _Out_writes_bytes_opt_(cbOutBuf) PVOID pOutBuf,
+    DWORD cbOutBuf,
+    _Out_opt_ DWORD* pcbReturned = nullptr
+) noexcept
 {
     NTSTATUS nts;
     IO_STATUS_BLOCK iosb;

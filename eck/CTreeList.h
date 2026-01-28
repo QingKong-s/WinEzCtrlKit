@@ -1827,8 +1827,8 @@ public:
                             return 0;
                     }
 
-                    const DWORD dwPos = GetMessagePos();
-                    POINT pt ECK_GET_PT_LPARAM(dwPos);
+                    const auto uPos = GetMessagePos();
+                    POINT pt ECK_GET_PT_LPARAM(uPos);
                     ScreenToClient(hWnd, &pt);
 
                     TLHITTEST tlht;

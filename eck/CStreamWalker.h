@@ -309,7 +309,7 @@ public:
             throw XptHResult{ hr };
     }
 
-    void Commit(DWORD grfCommitFlags = STGC_DEFAULT)
+    void Commit(UINT grfCommitFlags = STGC_DEFAULT)
     {
         const auto hr = m_pStream->Commit(grfCommitFlags);
         if (FAILED(hr))

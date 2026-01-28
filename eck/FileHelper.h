@@ -58,7 +58,7 @@ inline CRefBin ReadInFile(
 inline NTSTATUS WriteToFile(
     _In_z_ PCWSTR pszFile,
     _In_reads_bytes_(cb) PCVOID pData,
-    DWORD cb) noexcept
+    UINT cb) noexcept
 {
     CFile File{};
     auto nts = File.Create(pszFile,

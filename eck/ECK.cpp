@@ -1607,16 +1607,16 @@ static BOOL WINAPI NewShowScrollBar(HWND hWnd, int nBar, BOOL bShow)
 #pragma endregion ScrollBarHook
 
 #pragma region Initialize
-InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD* pdwErrCode) noexcept
+InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ UINT* puErrCode) noexcept
 {
     EckAssert(!g_hInstance && !g_dwTlsSlot);
-    DWORD dwTemp;
-    if (!pdwErrCode)
-        pdwErrCode = &dwTemp;
+    UINT uTemp;
+    if (!puErrCode)
+        puErrCode = &uTemp;
     INITPARAM ip{};
     if (!pip)
         pip = &ip;
-    *pdwErrCode = 0;
+    *puErrCode = 0;
 
     g_hInstance = hInstance;
     RtlGetNtVersionNumbers(&g_NtVer.uMajor, &g_NtVer.uMinor, &g_NtVer.uBuild);
@@ -1638,7 +1638,7 @@ InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD
         const auto gps = GdiplusStartup(&g_uGpToken, &gpsi, nullptr);
         if (gps != Gdiplus::Ok)
         {
-            *pdwErrCode = gps;
+            *puErrCode = gps;
             return InitStatus::GdiplusInit;
         }
     }
@@ -1663,8 +1663,8 @@ InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD
         case RWCT_EZREG:
             if (!RegisterWindowClass(e.ez.pszClass, e.ez.uClassStyle))
             {
-                *pdwErrCode = GetLastError();
-                EckDbgPrintFormatMessage(*pdwErrCode);
+                *puErrCode = GetLastError();
+                EckDbgPrintFormatMessage(*puErrCode);
                 EckDbgBreak();
                 return InitStatus::RegWndClass;
             }
@@ -1672,8 +1672,8 @@ InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD
         case RWCT_CUSTOM:
             if (!RegisterClassW(&e.wc))
             {
-                *pdwErrCode = GetLastError();
-                EckDbgPrintFormatMessage(*pdwErrCode);
+                *puErrCode = GetLastError();
+                EckDbgPrintFormatMessage(*puErrCode);
                 EckDbgBreak();
                 return InitStatus::RegWndClass;
             }
@@ -1704,7 +1704,7 @@ InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD
 #endif // _DEBUG
         if (FAILED(hr))
         {
-            *pdwErrCode = hr;
+            *puErrCode = hr;
             EckDbgPrintFormatMessage(hr);
             return InitStatus::D2DFactory;
         }
@@ -1719,7 +1719,7 @@ InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD
             D3D11_SDK_VERSION, &g_pD3D11Device, nullptr, nullptr);
         if (FAILED(hr))
         {
-            *pdwErrCode = hr;
+            *puErrCode = hr;
             EckDbgPrintFormatMessage(hr);
             return InitStatus::D3DDevice;
         }
@@ -1727,7 +1727,7 @@ InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD
         g_pD3D11Device->QueryInterface(&g_pDxgiDevice);
         if (FAILED(hr) || !g_pDxgiDevice)
         {
-            *pdwErrCode = hr;
+            *puErrCode = hr;
             EckDbgPrintFormatMessage(hr);
             return InitStatus::DxgiDevice;
         }
@@ -1741,7 +1741,7 @@ InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD
         hr = g_pD2DFactory->CreateDevice(g_pDxgiDevice, &g_pD2DDevice);
         if (FAILED(hr))
         {
-            *pdwErrCode = hr;
+            *puErrCode = hr;
             EckDbgPrintFormatMessage(hr);
             return InitStatus::D2DDevice;
         }
@@ -1771,7 +1771,7 @@ InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD
             __uuidof(IDWriteFactory), (IUnknown**)&g_pDwFactory);
         if (FAILED(hr))
         {
-            *pdwErrCode = hr;
+            *puErrCode = hr;
             EckDbgPrintFormatMessage(hr);
             return InitStatus::DWriteFactory;
         }
@@ -1791,7 +1791,7 @@ InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ DWORD
             CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&g_pWicFactory));
         if (FAILED(hr))
         {
-            *pdwErrCode = hr;
+            *puErrCode = hr;
             EckDbgPrintFormatMessage(hr);
             return InitStatus::WicFactory;
         }

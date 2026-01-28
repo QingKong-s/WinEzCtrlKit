@@ -214,8 +214,8 @@ private:
         lRet = SendNotify(ne, m_hParent);
         if (!(lRet & CDRF_SKIPDEFAULT))
         {
-            const auto idxTop = (DWORD)std::max(m_idxTop + (int)ps.rcPaint.top / m_cyItem - 1, m_idxTop);
-            const auto idxBottom = (DWORD)std::min(m_idxTop + (int)ps.rcPaint.bottom / m_cyItem + 1,
+            const auto idxTop = (int)std::max(m_idxTop + (int)ps.rcPaint.top / m_cyItem - 1, m_idxTop);
+            const auto idxBottom = (int)std::min(m_idxTop + (int)ps.rcPaint.bottom / m_cyItem + 1,
                 GetItemCount() - 1);
             if (idxTop >= 0 && idxBottom >= 0)
             {

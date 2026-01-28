@@ -19,12 +19,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
     eck::INITPARAM ip{};
     ip.uFlags = eck::EIF_NOINITD2D | eck::EIF_NOINITDWRITE;
-    DWORD dwErr;
-    const auto eInitRet = eck::Initialize(hInstance, &ip, &dwErr);
+    UINT uErr;
+    const auto eInitRet = eck::Initialize(hInstance, &ip, &uErr);
     if (eInitRet != eck::InitStatus::Ok)
     {
-        EckDbgPrintFormatMessage(dwErr);
-        eck::MsgBox(eck::Format(L"Initialize failed: %d(0x%08X)", (int)eInitRet, dwErr), L"", MB_ICONERROR);
+        EckDbgPrintFormatMessage(uErr);
+        eck::MsgBox(eck::Format(L"Initialize failed: %d(0x%08X)", (int)eInitRet, uErr), L"", MB_ICONERROR);
         return 0;
     }
 

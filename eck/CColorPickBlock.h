@@ -10,7 +10,7 @@ struct CTRLDATA_COLOR_PICK_BLOCK
     int iVer;
     COLORREF crCust[16];
     COLORREF cr;
-    DWORD dwCCFlags;
+    UINT uCCFlags;
 };
 #pragma pack(pop)
 
@@ -21,13 +21,13 @@ public:
 private:
     COLORREF m_crCust[16]{};
     COLORREF m_cr{ CLR_INVALID };
-    DWORD m_dwCCFlags{ CC_FULLOPEN };
+    UINT m_uCCFlags{ CC_FULLOPEN };
 
     void CleanupForDestroyWindow() noexcept
     {
         ZeroMemory(m_crCust, sizeof(m_crCust));
         m_cr = CLR_INVALID;
-        m_dwCCFlags = CC_FULLOPEN;
+        m_uCCFlags = CC_FULLOPEN;
     }
 public:
     EckInlineNdCe static PCVOID SkipBaseData(PCVOID p) noexcept
@@ -45,7 +45,7 @@ public:
         p->iVer = CDV_COLOR_PICK_BLOCK_1;
         memcpy(p->crCust, m_crCust, sizeof(m_crCust));
         p->cr = m_cr;
-        p->dwCCFlags = m_dwCCFlags;
+        p->uCCFlags = m_uCCFlags;
     }
 
     void PostDeserialize(PCVOID pData) noexcept override
@@ -55,7 +55,7 @@ public:
 
         memcpy(m_crCust, p->crCust, sizeof(m_crCust));
         m_cr = p->cr;
-        m_dwCCFlags = p->dwCCFlags;
+        m_uCCFlags = p->uCCFlags;
     }
 
     void AttachNew(HWND hWnd) noexcept override
@@ -79,7 +79,7 @@ public:
         {
             CHOOSECOLORW cc{ sizeof(CHOOSECOLORW) };
             cc.hwndOwner = hWnd;
-            cc.Flags = m_dwCCFlags;
+            cc.Flags = m_uCCFlags;
             cc.lpCustColors = m_crCust;
             if (ChooseColorW(&cc))
             {
@@ -124,7 +124,7 @@ public:
     EckInlineNdCe auto GetCustomColor() const noexcept { return m_crCust; }
     EckInlineNdCe auto GetCustomColor() noexcept { return m_crCust; }
 
-    EckInlineNdCe DWORD GetChooseColorFlags() const noexcept { return m_dwCCFlags; }
-    EckInlineCe void SetChooseColorFlags(DWORD dwFlags) noexcept { m_dwCCFlags = dwFlags; }
+    EckInlineNdCe UINT GetChooseColorFlags() const noexcept { return m_uCCFlags; }
+    EckInlineCe void SetChooseColorFlags(UINT u) noexcept { m_uCCFlags = u; }
 };
 ECK_NAMESPACE_END
