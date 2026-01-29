@@ -215,6 +215,7 @@
     <ClInclude Include="eck\EnDeCode.h" />
     <ClInclude Include="eck\FileHelper.h" />
     <ClInclude Include="eck\KwDef.h" />
+    <ClInclude Include="eck\KwFlatten.h" />
     <ClInclude Include="eck\LyricCrypt.h" />
     <ClInclude Include="eck\PathUtility.h" />
     <ClInclude Include="eck\Random.h" />

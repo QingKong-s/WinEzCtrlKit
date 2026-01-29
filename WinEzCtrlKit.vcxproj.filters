@@ -657,6 +657,9 @@
     <ClInclude Include="eck\KwDef.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\KwFlatten.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">

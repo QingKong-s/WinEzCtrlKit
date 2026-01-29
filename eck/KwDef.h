@@ -15,9 +15,21 @@ EckInlineNdCe Vec2 operator+(const Vec2& a, const Vec2& b) noexcept
 {
     return { a.x + b.x, a.y + b.y };
 }
+EckInlineCe Vec2& operator+=(Vec2& a, const Vec2& b) noexcept
+{
+    a.x += b.x;
+    a.y += b.y;
+    return a;
+}
 EckInlineNdCe Vec2 operator-(const Vec2& a, const Vec2& b) noexcept
 {
     return { a.x - b.x, a.y - b.y };
+}
+EckInlineCe Vec2& operator-=(Vec2& a, const Vec2& b) noexcept
+{
+    a.x -= b.x;
+    a.y -= b.y;
+    return a;
 }
 EckInlineNdCe Vec2 operator*(const Vec2& v, float s) noexcept
 {
