@@ -5,6 +5,7 @@
 ECK_NAMESPACE_BEGIN
 KW2D_NAMESPACE_BEGIN
 // https://patents.google.com/patent/EP0577131B1/en
+
 class CHfdCubicBezier
 {
 public:
@@ -20,8 +21,8 @@ private:
         const Vec2& b2, const Vec2& b3) noexcept :
         e0{ b0 },
         e1{ b3 - b0 },
-        e2{ (b3 - b2 * 2.0f + b1) * 6.0f },
-        e3{ (b2 - b1 * 2.0f + b0) * 6.0f }
+        e2{ (b3 - b2 * 2.f + b1) * 6.f },
+        e3{ (b2 - b1 * 2.f + b0) * 6.f }
     {
     }
 
@@ -90,7 +91,7 @@ public:
     {
         vResult.PushBack(b0);
         fTolerance *= 6.f;
-        const auto fMiniTol = fTolerance / 4.f;
+        const auto fMiniTol = fTolerance / 4.f/*AdjustUp*/;
         CHfdCubicBezier s{ PtToVec2(b0), PtToVec2(b1), PtToVec2(b2), PtToVec2(b3) };
 
         UINT cStep = 1u;
@@ -118,6 +119,97 @@ public:
             else// 展平过程中误差累积，导致最后一点与p3有微小偏移
             {
                 vResult.PushBack(b3);
+                break;
+            }
+        }
+    }
+};
+
+class CHfdQuadraticBezier
+{
+public:
+    using T = float;
+private:
+    Vec2 e0;
+    Vec2 e1;
+    Vec2 e2;
+
+    constexpr CHfdQuadraticBezier(
+        const Vec2& b0,
+        const Vec2& b1,
+        const Vec2& b2) noexcept :
+        e0{ b0 },
+        e1{ b2 - b0 },
+        e2{ (b2 - b1 * 2.0f + b0) * 2.f }
+    {
+    }
+
+    EckInlineNdCe static T Abs(T v) noexcept
+    {
+        return v >= 0 ? v : -v;
+    }
+
+    EckInlineNdCe BOOL IsFlatEnough(T tol) const noexcept
+    {
+        return std::max(Abs(e2.x), Abs(e2.y)) <= tol;
+    }
+
+    EckInlineCe void AdjustDown() noexcept
+    {
+        const auto ne1 = e1 * 0.5f - e2 * 0.125f;
+        const auto ne2 = e2 * 0.25f;
+        e1 = ne1;
+        e2 = ne2;
+    }
+
+    EckInlineCe void StepForward() noexcept
+    {
+        e0 += e1;
+        e1 += e2;
+    }
+
+    EckInlineCe void AdjustUp() noexcept
+    {
+        const auto ne1 = e1 * 2.f + e2;
+        const auto ne2 = e2 * 4.f;
+        e1 = ne1;
+        e2 = ne2;
+    }
+
+    EckInlineNdCe static Vec2 PtToVec2(auto pt) noexcept
+    {
+        const auto [x, y] = pt;
+        return { x, y };
+    }
+public:
+    template<class TPt>
+    static void Flatten(
+        const TPt& b0, const TPt& b1, const TPt& b2,
+        T fTolerance,
+        CTrivialBuffer<TPt>& vResult) noexcept
+    {
+        vResult.PushBack(b0);
+        fTolerance *= 6.f;
+        CHfdQuadraticBezier s{ PtToVec2(b0), PtToVec2(b1), PtToVec2(b2) };
+
+        UINT cStep = 1u;
+        EckLoop()
+        {
+            if (!s.IsFlatEnough(fTolerance))
+            {
+                s.AdjustDown();
+                cStep <<= 1u;
+                continue;
+            }
+
+            if (--cStep)
+            {
+                s.StepForward();
+                vResult.PushBack({ s.e0.x, s.e0.y });
+            }
+            else
+            {
+                vResult.PushBack(b2);
                 break;
             }
         }
