@@ -4,24 +4,33 @@
 #include <DirectXMath.h>
 
 ECK_NAMESPACE_BEGIN
+// double计算后转为float：1e-6，只使用float：1e-4
+using TAngle = double;
+
 template<std::floating_point T>
 EckInlineNdCe T DegreeToRadian(T fDeg) noexcept { return fDeg * (T)Pi / 180; }
 template<std::floating_point T>
 EckInlineNdCe T RadianToDegree(T fRad) noexcept { return fRad * 180 / (T)Pi; }
 
 template<std::floating_point T>
-EckInlineNd T DegreeIn0To360(T fDeg) noexcept
+EckInlineNd T DegreeIn0To360(T f) noexcept
 {
-    fDeg = fmod(fDeg, 360);
-    return fDeg < 0 ? fDeg + 360 : fDeg;
+    f = fmod(f, 360);
+    return f < 0 ? f + 360 : f;
+}
+template<std::floating_point T>
+EckInlineNd T RadianIn0To2Pi(T f) noexcept
+{
+    f = fmod(f, Pi * 2.f);
+    return f < 0 ? (f + Pi * 2.f) : f;
 }
 
 template<class T>
-EckInline void CalculatePointFromCircleAngle(auto r, auto fAngle,
+EckInline void CalculatePointFromCircleAngle(auto r, TAngle ag,
     _Out_ T& xRet, _Out_ T& yRet) noexcept
 {
-    xRet = T(r * cos(fAngle));
-    yRet = T(r * sin(fAngle));
+    xRet = T(r * cos(ag));
+    yRet = T(r * sin(ag));
 }
 
 template<class T = float>
@@ -47,13 +56,13 @@ EckInline void CalculatePointFromLineScale(auto x1, auto y1, auto x2, auto y2,
 // 从角度计算椭圆上一段弧的端点
 template<class T>
 void CalculateArcFromEllipseAngle(auto x, auto y, auto xr, auto yr,
-    auto fStartAngle, auto fSweepAngle,
+    TAngle agStart, TAngle agSweep,
     _Out_ T& x1, _Out_ T& y1, _Out_ T& x2, _Out_ T& y2) noexcept
 {
     T x10, y10, x20, y20;
     const auto a = T((xr - x) / 2), b = T((yr - y) / 2);
-    CalculatePointFromEllipseAngle(a, b, fStartAngle, x10, y10);
-    CalculatePointFromEllipseAngle(a, b, fStartAngle + fSweepAngle, x20, y20);
+    CalculatePointFromEllipseAngle(a, b, agStart, x10, y10);
+    CalculatePointFromEllipseAngle(a, b, agStart + agSweep, x20, y20);
     x1 = x10 + a + x;
     y1 = -y10 + b + y;
     x2 = x20 + a + x;
@@ -101,16 +110,16 @@ EckInline void RectToPolar(auto x, auto y,
 /// </summary>
 /// <param name="a">半长轴</param>
 /// <param name="b">半短轴</param>
-/// <param name="fAngle">角度</param>
+/// <param name="ag">角度，圆心角</param>
 /// <param name="xRet">点X坐标</param>
 /// <param name="yRet">点Y坐标</param>
 template<class T>
-EckInline void CalculatePointFromEllipseAngle(auto a, auto b, auto fAngle,
-    _Out_ T& xRet, _Out_ T& yRet) noexcept
+EckInline void CalculatePointFromEllipseAngle(auto a, auto b,
+    TAngle ag, _Out_ T& xRet, _Out_ T& yRet) noexcept
 {
-    const auto fEccentricAngle = atan2(tan(fAngle) * a, b);
-    xRet = T(a * cos(fEccentricAngle));
-    yRet = T(b * sin(fEccentricAngle));
+    const auto agEccentric = atan2(a * sin(ag), b * cos(ag));
+    xRet = T(a * cos(agEccentric));
+    yRet = T(b * sin(agEccentric));
 }
 
 template<std::floating_point T = float, CcpPointStruct TPt>
@@ -406,5 +415,23 @@ inline void CalculateBezierControlPoints(
     }
     *itResult++ = pPt[cPt - 1];// 控点2
     *itResult++ = pPt[cPt - 1];// 终点
+}
+
+template<std::floating_point T>
+inline BOOL RadianInArc(T ag, T agStart, T agSweep) noexcept
+{
+    constexpr auto TwoPi = T(Pi * 2.);
+    if (agSweep >= TwoPi || agSweep <= -TwoPi)
+        return TRUE;
+    if (agSweep < 0)
+    {
+        agStart += agSweep;
+        agSweep = abs(agSweep);
+    }
+
+    auto d = (T)fmod(ag - agStart, TwoPi);
+    if (d < 0)
+        d += TwoPi;
+    return d <= (agSweep + std::numeric_limits<T>::epsilon());
 }
 ECK_NAMESPACE_END

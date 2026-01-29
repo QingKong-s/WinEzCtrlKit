@@ -180,6 +180,7 @@
     <ClInclude Include="eck\BaseN.h" />
     <ClInclude Include="eck\Alpc.h" />
     <ClInclude Include="eck\CArray2D.h" />
+    <ClInclude Include="eck\CGeometryBounds.h" />
     <ClInclude Include="eck\CMediaPlayer.h" />
     <ClInclude Include="eck\CColorReducing.h" />
     <ClInclude Include="eck\CCombinationScrollView.h" />
@@ -213,6 +214,7 @@
     <ClInclude Include="eck\EncodingDetect.h" />
     <ClInclude Include="eck\EnDeCode.h" />
     <ClInclude Include="eck\FileHelper.h" />
+    <ClInclude Include="eck\KwDef.h" />
     <ClInclude Include="eck\LyricCrypt.h" />
     <ClInclude Include="eck\PathUtility.h" />
     <ClInclude Include="eck\Random.h" />

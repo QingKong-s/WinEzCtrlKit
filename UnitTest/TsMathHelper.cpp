@@ -115,4 +115,158 @@ public:
         Assert::IsTrue(fabs(y - 0.0) < 1e-6);
     }
 };
+
+TEST_CLASS(RadianInArcTest)
+{
+public:
+    // 测试完整圆弧（扫描角度 >= 2π）
+    TEST_METHOD(TsFullCirclePositive)
+    {
+        Assert::IsTrue(RadianInArc(0.0, 0.0, 2 * Pi));
+        Assert::IsTrue(RadianInArc(Pi, 0.0, 2 * Pi));
+        Assert::IsTrue(RadianInArc(-Pi, 0.0, 2 * Pi));
+        Assert::IsTrue(RadianInArc(3.5, 1.0, 3 * Pi));
+    }
+
+    TEST_METHOD(TsFullCircleNegative)
+    {
+        Assert::IsTrue(RadianInArc(0.0, 0.0, -2 * Pi));
+        Assert::IsTrue(RadianInArc(Pi, 0.0, -2 * Pi));
+        Assert::IsTrue(RadianInArc(-Pi, 0.0, -2 * Pi));
+    }
+
+    // 测试正向扫描（逆时针）
+    TEST_METHOD(TsPositiveSweepInRange)
+    {
+        // 从0开始，扫描π/2
+        Assert::IsTrue(RadianInArc(0.0, 0.0, Pi / 2));
+        Assert::IsTrue(RadianInArc(Pi / 4, 0.0, Pi / 2));
+        Assert::IsTrue(RadianInArc(Pi / 2, 0.0, Pi / 2));
+    }
+
+    TEST_METHOD(TsPositiveSweepOutOfRange)
+    {
+        // 从0开始，扫描π/2
+        Assert::IsFalse(RadianInArc(-0.1, 0.0, Pi / 2));
+        Assert::IsFalse(RadianInArc(Pi / 2 + 0.1, 0.0, Pi / 2));
+        Assert::IsFalse(RadianInArc(Pi, 0.0, Pi / 2));
+    }
+
+    // 测试负向扫描（顺时针）
+    TEST_METHOD(TsNegativeSweepInRange)
+    {
+        // 从0开始，扫描-π/2
+        Assert::IsTrue(RadianInArc(0.0, 0.0, -Pi / 2));
+        Assert::IsTrue(RadianInArc(-Pi / 4, 0.0, -Pi / 2));
+        Assert::IsTrue(RadianInArc(-Pi / 2, 0.0, -Pi / 2));
+    }
+
+    TEST_METHOD(TsNegativeSweepOutOfRange)
+    {
+        // 从0开始，扫描-π/2
+        Assert::IsFalse(RadianInArc(0.1, 0.0, -Pi / 2));
+        Assert::IsFalse(RadianInArc(-Pi / 2 - 0.1, 0.0, -Pi / 2));
+        Assert::IsFalse(RadianInArc(Pi, 0.0, -Pi / 2));
+    }
+
+    // 测试跨越0度的情况
+    TEST_METHOD(TsCrossingZero)
+    {
+        // 从-π/4开始，扫描π/2，应该包含0
+        Assert::IsTrue(RadianInArc(0.0, -Pi / 4, Pi / 2));
+        Assert::IsTrue(RadianInArc(-Pi / 4, -Pi / 4, Pi / 2));
+        Assert::IsTrue(RadianInArc(Pi / 4, -Pi / 4, Pi / 2));
+        Assert::IsFalse(RadianInArc(Pi / 2, -Pi / 4, Pi / 2));
+    }
+
+    // 测试跨越±π边界的情况
+    TEST_METHOD(TsCrossingPiBoundary)
+    {
+        // 从π/2开始，扫描π，应该跨越π/-π边界
+        Assert::IsTrue(RadianInArc(Pi / 2, Pi / 2, Pi));
+        Assert::IsTrue(RadianInArc(Pi, Pi / 2, Pi));
+        Assert::IsTrue(RadianInArc(-Pi + 0.5, Pi / 2, Pi));
+        Assert::IsTrue(RadianInArc(-Pi / 2, Pi / 2, Pi));
+    }
+
+    // 测试不同起始角度
+    TEST_METHOD(TsDifferentStartAngles)
+    {
+        // 从π/4开始，扫描π/2
+        Assert::IsTrue(RadianInArc(Pi / 4, Pi / 4, Pi / 2));
+        Assert::IsTrue(RadianInArc(Pi / 2, Pi / 4, Pi / 2));
+        Assert::IsTrue(RadianInArc(3 * Pi / 4, Pi / 4, Pi / 2));
+        Assert::IsFalse(RadianInArc(0.0, Pi / 4, Pi / 2));
+        Assert::IsFalse(RadianInArc(Pi, Pi / 4, Pi / 2));
+    }
+
+    // 测试大于2π的角度输入（周期性）
+    TEST_METHOD(TsAngleNormalization)
+    {
+        // ag = 2π + π/4 应该等价于 π/4
+        Assert::IsTrue(RadianInArc(2 * Pi + Pi / 4, 0.0, Pi / 2));
+        Assert::IsTrue(RadianInArc(-2 * Pi + Pi / 4, 0.0, Pi / 2));
+
+        // 起始角度也可以大于2π
+        Assert::IsTrue(RadianInArc(Pi / 4, 2 * Pi, Pi / 2));
+    }
+
+    // 边界条件测试
+    TEST_METHOD(TsBoundaryConditions)
+    {
+        const double epsilon = 1e-10;
+
+        // 恰好在边界上
+        Assert::IsTrue(RadianInArc(0.0, 0.0, Pi));
+        Assert::IsTrue(RadianInArc(Pi, 0.0, Pi));
+
+        // 刚好超出边界
+        Assert::IsFalse(RadianInArc(Pi + epsilon, 0.0, Pi));
+        Assert::IsFalse(RadianInArc(-epsilon, 0.0, Pi));
+    }
+
+    // 零扫描角度
+    TEST_METHOD(TsZeroSweep)
+    {
+        Assert::IsTrue(RadianInArc(0.0, 0.0, 0.0));
+        Assert::IsFalse(RadianInArc(0.1, 0.0, 0.0));
+        Assert::IsFalse(RadianInArc(-0.1, 0.0, 0.0));
+    }
+
+    // 测试float类型
+    TEST_METHOD(TsFloatType)
+    {
+        Assert::IsTrue(RadianInArc(0.0f, 0.0f, static_cast<float>(Pi / 2)));
+        Assert::IsTrue(RadianInArc(static_cast<float>(Pi / 4), 0.0f, static_cast<float>(Pi / 2)));
+        Assert::IsFalse(RadianInArc(static_cast<float>(Pi), 0.0f, static_cast<float>(Pi / 2)));
+    }
+
+    // 逆时针完整测试
+    TEST_METHOD(TsCounterClockwiseArc)
+    {
+        // 从90度开始，逆时针扫描180度
+        double start = Pi / 2;
+        double sweep = Pi;
+
+        Assert::IsTrue(RadianInArc(Pi / 2, start, sweep));      // 起点
+        Assert::IsTrue(RadianInArc(Pi, start, sweep));          // 中点
+        Assert::IsTrue(RadianInArc(3 * Pi / 2, start, sweep));  // 终点
+        Assert::IsFalse(RadianInArc(0.0, start, sweep));        // 在弧外
+        Assert::IsFalse(RadianInArc(Pi / 4, start, sweep));     // 在弧外
+    }
+
+    // 顺时针完整测试
+    TEST_METHOD(TsClockwiseArc)
+    {
+        // 从90度开始，顺时针扫描180度
+        double start = Pi / 2;
+        double sweep = -Pi;
+
+        Assert::IsTrue(RadianInArc(Pi / 2, start, sweep));      // 起点
+        Assert::IsTrue(RadianInArc(0.0, start, sweep));         // 中点
+        Assert::IsTrue(RadianInArc(-Pi / 2, start, sweep));     // 终点
+        Assert::IsFalse(RadianInArc(Pi, start, sweep));         // 在弧外
+        Assert::IsFalse(RadianInArc(3 * Pi / 4, start, sweep)); // 在弧外
+    }
+};
 TS_NS_END
