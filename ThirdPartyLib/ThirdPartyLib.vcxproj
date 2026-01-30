@@ -585,7 +585,7 @@
     <ClInclude Include="PugiXml\pugixml.hpp" />
     <ClInclude Include="SkiaTessellator\GrAATriangulator.h" />
     <ClInclude Include="SkiaTessellator\GrTriangulator.h" />
-    <ClInclude Include="SkiaTessellator\ISkiaPolygonAccessor.h" />
+    <ClInclude Include="SkiaTessellator\ISkiaTessellationHost.h" />
     <ClInclude Include="SkiaTessellator\SkArenaAlloc.h" />
     <ClInclude Include="SkiaTessellator\SkFloatBits.h" />
     <ClInclude Include="SkiaTessellator\SkFloatingPoint.h" />

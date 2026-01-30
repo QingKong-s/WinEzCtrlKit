@@ -470,7 +470,7 @@
     <ClInclude Include="SkiaTessellator\SkTypes.h">
       <Filter>SkiaTessellator</Filter>
     </ClInclude>
-    <ClInclude Include="SkiaTessellator\ISkiaPolygonAccessor.h">
+    <ClInclude Include="SkiaTessellator\ISkiaTessellationHost.h">
       <Filter>SkiaTessellator</Filter>
     </ClInclude>
     <ClInclude Include="FastFloat\ascii_number.h">

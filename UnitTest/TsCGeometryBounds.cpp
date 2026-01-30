@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "../eck/CGeometryBounds.h"
 
 using namespace eck;

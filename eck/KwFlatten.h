@@ -10,6 +10,8 @@ class CHfdCubicBezier
 {
 public:
     using T = float;
+
+    constexpr static T DefaultTolerance = 0.4f;
 private:
     Vec2 e0;
     Vec2 e1;
@@ -129,6 +131,8 @@ class CHfdQuadraticBezier
 {
 public:
     using T = float;
+
+    constexpr static T DefaultTolerance = 0.4f;
 private:
     Vec2 e0;
     Vec2 e1;
@@ -149,9 +153,9 @@ private:
         return v >= 0 ? v : -v;
     }
 
-    EckInlineNdCe BOOL IsFlatEnough(T tol) const noexcept
+    EckInlineNdCe BOOL IsFlatEnough(T Tol) const noexcept
     {
-        return std::max(Abs(e2.x), Abs(e2.y)) <= tol;
+        return std::max(Abs(e2.x), Abs(e2.y)) <= Tol;
     }
 
     EckInlineCe void AdjustDown() noexcept

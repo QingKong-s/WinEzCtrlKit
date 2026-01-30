@@ -345,5 +345,171 @@ public:
         Assert::AreEqual(3, buffer[5]);
     }
 
+    TEST_METHOD(TestPushBackMultiple_EmptyBuffer)
+    {
+        // 测试在空缓冲区中添加多个相同元素
+        CTrivialBuffer<int> buffer;
+
+        buffer.PushBackMultiple(42, 5);
+
+        Assert::AreEqual((size_t)5, buffer.Size(), L"Size should be 5 after pushing 5 elements");
+
+        // 验证所有元素都是42
+        for (size_t i = 0; i < buffer.Size(); ++i)
+        {
+            Assert::AreEqual(42, buffer[i], L"All elements should be 42");
+        }
+    }
+
+    TEST_METHOD(TestPushBackMultiple_NonEmptyBuffer)
+    {
+        // 测试在非空缓冲区中添加多个相同元素
+        CTrivialBuffer<int> buffer;
+
+        // 先添加一些元素
+        buffer.PushBack(10);
+        buffer.PushBack(20);
+        buffer.PushBack(30);
+
+        // 再添加多个相同元素
+        buffer.PushBackMultiple(99, 3);
+
+        Assert::AreEqual((size_t)6, buffer.Size(), L"Size should be 6");
+
+        // 验证前三个元素
+        Assert::AreEqual(10, buffer[0]);
+        Assert::AreEqual(20, buffer[1]);
+        Assert::AreEqual(30, buffer[2]);
+
+        // 验证新添加的元素
+        Assert::AreEqual(99, buffer[3]);
+        Assert::AreEqual(99, buffer[4]);
+        Assert::AreEqual(99, buffer[5]);
+    }
+
+    TEST_METHOD(TestPushBackMultiple_ZeroCount)
+    {
+        // 测试添加0个元素
+        CTrivialBuffer<int> buffer;
+        buffer.PushBack(10);
+
+        size_t originalSize = buffer.Size();
+        buffer.PushBackMultiple(42, 0);
+
+        Assert::AreEqual(originalSize, buffer.Size(), L"Size should not change when count is 0");
+        Assert::AreEqual(10, buffer[0], L"Original element should remain unchanged");
+    }
+
+    TEST_METHOD(TestInsertSize_EmptyBuffer)
+    {
+        // 测试在空缓冲区中插入空间
+        CTrivialBuffer<int> buffer;
+
+        buffer.InsertSize(0, 5);
+
+        Assert::AreEqual((size_t)5, buffer.Size(), L"Size should be 5 after inserting 5 slots");
+
+        // 注意：InsertSize只分配空间，不初始化值
+        // 所以我们只验证大小
+    }
+
+    TEST_METHOD(TestInsertSize_AtBeginning)
+    {
+        // 测试在开头插入空间
+        CTrivialBuffer<int> buffer;
+        buffer.PushBack(10);
+        buffer.PushBack(20);
+        buffer.PushBack(30);
+
+        buffer.InsertSize(0, 2);
+
+        Assert::AreEqual((size_t)5, buffer.Size(), L"Size should be 5");
+
+        // 原始元素应该被移到后面
+        Assert::AreEqual(10, buffer[2], L"Original first element should be at index 2");
+        Assert::AreEqual(20, buffer[3], L"Original second element should be at index 3");
+        Assert::AreEqual(30, buffer[4], L"Original third element should be at index 4");
+    }
+
+    TEST_METHOD(TestInsertSize_AtMiddle)
+    {
+        // 测试在中间插入空间
+        CTrivialBuffer<int> buffer;
+        buffer.PushBack(10);
+        buffer.PushBack(20);
+        buffer.PushBack(30);
+        buffer.PushBack(40);
+
+        buffer.InsertSize(2, 3);
+
+        Assert::AreEqual((size_t)7, buffer.Size(), L"Size should be 7");
+
+        // 验证插入点之前的元素
+        Assert::AreEqual(10, buffer[0]);
+        Assert::AreEqual(20, buffer[1]);
+
+        // 验证插入点之后的元素被正确移动
+        Assert::AreEqual(30, buffer[5], L"Element at index 2 should now be at index 5");
+        Assert::AreEqual(40, buffer[6], L"Element at index 3 should now be at index 6");
+    }
+
+    TEST_METHOD(TestInsertSize_AtEnd)
+    {
+        // 测试在末尾插入空间
+        CTrivialBuffer<int> buffer;
+        buffer.PushBack(10);
+        buffer.PushBack(20);
+
+        size_t originalSize = buffer.Size();
+        buffer.InsertSize(originalSize, 3);
+
+        Assert::AreEqual((size_t)5, buffer.Size(), L"Size should be 5");
+
+        // 原始元素应该保持不变
+        Assert::AreEqual(10, buffer[0]);
+        Assert::AreEqual(20, buffer[1]);
+    }
+
+    TEST_METHOD(TestInsertSize_ZeroCount)
+    {
+        // 测试插入0个空间
+        CTrivialBuffer<int> buffer;
+        buffer.PushBack(10);
+        buffer.PushBack(20);
+
+        size_t originalSize = buffer.Size();
+        buffer.InsertSize(1, 0);
+
+        Assert::AreEqual(originalSize, buffer.Size(), L"Size should not change when inserting 0 slots");
+        Assert::AreEqual(10, buffer[0]);
+        Assert::AreEqual(20, buffer[1]);
+    }
+
+    TEST_METHOD(TestInsertMultiple)
+    {
+        // 测试在中间插入多个相同元素
+        CTrivialBuffer<int> buffer;
+        buffer.PushBack(10);
+        buffer.PushBack(20);
+        buffer.PushBack(30);
+        buffer.PushBack(40);
+
+        buffer.InsertMultiple(2, 88, 3);
+
+        Assert::AreEqual((size_t)7, buffer.Size());
+
+        // 验证插入点之前的元素
+        Assert::AreEqual(10, buffer[0]);
+        Assert::AreEqual(20, buffer[1]);
+
+        // 验证插入的元素
+        Assert::AreEqual(88, buffer[2]);
+        Assert::AreEqual(88, buffer[3]);
+        Assert::AreEqual(88, buffer[4]);
+
+        // 验证插入点之后的元素
+        Assert::AreEqual(30, buffer[5]);
+        Assert::AreEqual(40, buffer[6]);
+    }
 };
 TS_NS_END

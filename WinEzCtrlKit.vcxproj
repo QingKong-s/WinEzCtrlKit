@@ -181,6 +181,7 @@
     <ClInclude Include="eck\Alpc.h" />
     <ClInclude Include="eck\CArray2D.h" />
     <ClInclude Include="eck\CGeometryBounds.h" />
+    <ClInclude Include="eck\CGeometrySinkOffsetTranformer.h" />
     <ClInclude Include="eck\CMediaPlayer.h" />
     <ClInclude Include="eck\CColorReducing.h" />
     <ClInclude Include="eck\CCombinationScrollView.h" />
@@ -206,7 +207,7 @@
     <ClInclude Include="eck\CPerspectiveCamera.h" />
     <ClInclude Include="eck\CSequenceIdGenerator.h" />
     <ClInclude Include="eck\ConsoleIo.h" />
-    <ClInclude Include="eck\CSimplePath.h" />
+    <ClInclude Include="eck\CGeometryPath.h" />
     <ClInclude Include="eck\DuiCssTheme.h" />
     <ClInclude Include="eck\DuiCssParse.h" />
     <ClInclude Include="eck\DuiElemSizeBox.h" />
@@ -214,6 +215,7 @@
     <ClInclude Include="eck\EncodingDetect.h" />
     <ClInclude Include="eck\EnDeCode.h" />
     <ClInclude Include="eck\FileHelper.h" />
+    <ClInclude Include="eck\IGeometrySinkTransformer.h" />
     <ClInclude Include="eck\KwDef.h" />
     <ClInclude Include="eck\KwFlatten.h" />
     <ClInclude Include="eck\LyricCrypt.h" />

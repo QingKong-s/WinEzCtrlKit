@@ -1,104 +1,51 @@
 ﻿#pragma once
-#include "CUnknown.h"
-#include "ComPtr.h"
+#include "CGeometrySinkOffsetTranformer.h"
 
 ECK_NAMESPACE_BEGIN
 #if !ECK_OPT_NO_DX
-class CGeometrySinkForwarder final :
-    public CUnknown<CGeometrySinkForwarder, ID2D1SimplifiedGeometrySink>
-{
-private:
-    ComPtr<ID2D1SimplifiedGeometrySink> m_pSink{};
-    float m_oxCurr{}, m_oyCurr{};
-public:
-    CGeometrySinkForwarder(ID2D1SimplifiedGeometrySink* pSink) : m_pSink{ pSink } {}
-
-    STDMETHOD_(void, SetFillMode)(D2D1_FILL_MODE fillMode) { m_pSink->SetFillMode(fillMode); }
-
-    STDMETHOD_(void, SetSegmentFlags)(D2D1_PATH_SEGMENT vertexFlags) { m_pSink->SetSegmentFlags(vertexFlags); }
-
-    STDMETHOD_(void, BeginFigure)(D2D1_POINT_2F startPoint, D2D1_FIGURE_BEGIN figureBegin)
-    {
-        startPoint.x += m_oxCurr;
-        startPoint.y += m_oyCurr;
-        m_pSink->BeginFigure(startPoint, figureBegin);
-    }
-
-    STDMETHOD_(void, AddLines)(CONST D2D1_POINT_2F* points, UINT32 pointsCount)
-    {
-        if (m_oxCurr != 0.f || m_oyCurr != 0.f)
-        {
-            auto p = (D2D1_POINT_2F*)_malloca(pointsCount * sizeof(D2D1_POINT_2F));
-            EckAssert(p);
-            memcpy(p, points, pointsCount * sizeof(D2D1_POINT_2F));
-            EckCounter(pointsCount, i)
-            {
-                p[i].x += m_oxCurr;
-                p[i].y += m_oyCurr;
-            }
-            m_pSink->AddLines(p, pointsCount);
-            _freea(p);
-        }
-        else
-            m_pSink->AddLines(points, pointsCount);
-    }
-
-    STDMETHOD_(void, AddBeziers)(CONST D2D1_BEZIER_SEGMENT* beziers, UINT32 beziersCount)
-    {
-        if (m_oxCurr != 0.f || m_oyCurr != 0.f)
-        {
-            auto p = (D2D1_BEZIER_SEGMENT*)_malloca(beziersCount * sizeof(D2D1_BEZIER_SEGMENT));
-            EckAssert(p);
-            memcpy(p, beziers, beziersCount * sizeof(D2D1_BEZIER_SEGMENT));
-            EckCounter(beziersCount, i)
-            {
-                p[i].point1.x += m_oxCurr;
-                p[i].point1.y += m_oyCurr;
-                p[i].point2.x += m_oxCurr;
-                p[i].point2.y += m_oyCurr;
-                p[i].point3.x += m_oxCurr;
-                p[i].point3.y += m_oyCurr;
-            }
-            m_pSink->AddBeziers(p, beziersCount);
-            _freea(p);
-        }
-        else
-            m_pSink->AddBeziers(beziers, beziersCount);
-    }
-
-    STDMETHOD_(void, EndFigure)(D2D1_FIGURE_END figureEnd) { m_pSink->EndFigure(figureEnd); }
-
-    STDMETHOD(Close)() { return m_pSink->Close(); }
-
-    void SetOffset(float ox, float oy)
-    {
-        m_oxCurr = ox;
-        m_oyCurr = oy;
-    }
-};
-
-// 调用IDWriteTextLayout::Draw时，上下文参数必须为CGeometrySinkForwarder指针
+// 将此类实例传入IDWriteTextLayout::Draw以提取字形轮廓
+// 1. 上下文参数必须为IUnknown指针，该接口必须可被QI为
+//    ID2D1SimplifiedGeometrySink和IGeometrySinkTransformer
+// 2. 调用方负责在调用Draw前对IGeometrySinkTransformer使用GstEnableOffset(TRUE)
 class CDwFetchPathRender final : public IDWriteTextRenderer
 {
 private:
     float m_fDpi{};
     BOOL m_bPixelSnappingDisabled{};
+    ComPtr<ID2D1SimplifiedGeometrySink> m_pSink{};
+    ComPtr<IGeometrySinkTransformer> m_pTransformer{};
 
-    void DrawLine(CGeometrySinkForwarder* pSink,
-        float x, float y, float cx, float cy)
+    void DrawLine(float x, float y, float cx, float cy)
     {
-        pSink->SetOffset(0.f, 0.f);
+        m_pTransformer->GstEnableOffset(FALSE);
         D2D1_POINT_2F pt[3];
         pt[0].x = x;
         pt[0].y = y;
-        pSink->BeginFigure(pt[0], D2D1_FIGURE_BEGIN_FILLED);
+        m_pSink->BeginFigure(pt[0], D2D1_FIGURE_BEGIN_FILLED);
         pt[0].x += cx;
         pt[1].x = pt[0].x;
         pt[1].y = pt[0].y + cy;
         pt[2].x = x;
         pt[2].y = pt[1].y;
-        pSink->AddLines(pt, 3);
-        pSink->EndFigure(D2D1_FIGURE_END_CLOSED);
+        m_pSink->AddLines(pt, 3);
+        m_pSink->EndFigure(D2D1_FIGURE_END_CLOSED);
+        m_pTransformer->GstEnableOffset(TRUE);
+    }
+
+    HRESULT PrepareSink(void* pClientDrawingContext)
+    {
+        if (!m_pSink.Get())
+        {
+            const auto pUnknown = (IUnknown*)pClientDrawingContext;
+            HRESULT hr;
+            hr = pUnknown->QueryInterface(m_pSink.AddrOfClear());
+            if (FAILED(hr))
+                return E_NOINTERFACE;
+            hr = pUnknown->QueryInterface(m_pTransformer.AddrOfClear());
+            if (FAILED(hr))
+                return E_NOINTERFACE;
+        }
+        return S_OK;
     }
 public:
     constexpr CDwFetchPathRender(float fDpi, BOOL bPixelSnappingDisabled) noexcept
@@ -111,21 +58,28 @@ public:
         DWRITE_MEASURING_MODE MeasuringMode, DWRITE_GLYPH_RUN const* pGlyphRun,
         DWRITE_GLYPH_RUN_DESCRIPTION const* pGlyphRunDesc, IUnknown* pClientDrawingEffect) override
     {
-        const auto pSink = (CGeometrySinkForwarder*)pClientDrawingContext;
-        pSink->SetOffset(xOrgBaseline, yOrgBaseline);
+        const auto hr = PrepareSink(pClientDrawingContext);
+        if (FAILED(hr))
+            return hr;
+        m_pTransformer->GstSetOffset(xOrgBaseline, yOrgBaseline);
         return pGlyphRun->fontFace->GetGlyphRunOutline(pGlyphRun->fontEmSize,
             pGlyphRun->glyphIndices, pGlyphRun->glyphAdvances,
             pGlyphRun->glyphOffsets, pGlyphRun->glyphCount,
-            pGlyphRun->isSideways, pGlyphRun->bidiLevel, pSink);
+            pGlyphRun->isSideways, pGlyphRun->bidiLevel & 1, m_pSink.Get());
     }
 
     STDMETHOD(DrawUnderline)(void* pClientDrawingContext,
         FLOAT xOrgBaseline, FLOAT yOrgBaseline,
         DWRITE_UNDERLINE const* pUnderline, IUnknown* pClientDrawingEffect) override
     {
-        const auto pSink = (CGeometrySinkForwarder*)pClientDrawingContext;
-        DrawLine(pSink, xOrgBaseline, yOrgBaseline + pUnderline->offset,
-            pUnderline->width, pUnderline->thickness);
+        const auto hr = PrepareSink(pClientDrawingContext);
+        if (FAILED(hr))
+            return hr;
+        DrawLine(
+            xOrgBaseline,
+            yOrgBaseline + pUnderline->offset,
+            pUnderline->width,
+            pUnderline->thickness);
         return S_OK;
     }
 
@@ -133,9 +87,14 @@ public:
         FLOAT xOrgBaseline, FLOAT yOrgBaseline,
         DWRITE_STRIKETHROUGH const* strikethrough, IUnknown* pClientDrawingEffect) override
     {
-        const auto pSink = (CGeometrySinkForwarder*)pClientDrawingContext;
-        DrawLine(pSink, xOrgBaseline, yOrgBaseline + strikethrough->offset,
-            strikethrough->width, strikethrough->thickness);
+        const auto hr = PrepareSink(pClientDrawingContext);
+        if (FAILED(hr))
+            return hr;
+        DrawLine(
+            xOrgBaseline,
+            yOrgBaseline + strikethrough->offset,
+            strikethrough->width,
+            strikethrough->thickness);
         return S_OK;
     }
 
@@ -143,7 +102,8 @@ public:
         FLOAT xOrg, FLOAT yOrg, IDWriteInlineObject* pInlineObject,
         BOOL bSideways, BOOL bRightToLeft, IUnknown* pClientDrawingEffect) override
     {
-        return E_NOTIMPL;
+        return pInlineObject->Draw(pClientDrawingContext, this,
+            xOrg, yOrg, bSideways, bRightToLeft, pClientDrawingEffect);
     }
 
     STDMETHOD(IsPixelSnappingDisabled)(void* pClientDrawingContext, BOOL* pbDisabled) override
@@ -217,7 +177,9 @@ inline HRESULT GetTextLayoutPathGeometry(
     pPath->Open(&pSink);
 
     CDwFetchPathRender Renderer{ fDpi,bPixelSnappingDisabled };
-    CGeometrySinkForwarder Forwarder{ pSink.Get() };
+    CGeometrySinkOffsetTranformer Forwarder{};
+    Forwarder.GstSetSink(pSink.Get());
+    Forwarder.GstEnableOffset(TRUE);
 
     DWRITE_TEXT_METRICS tm;
     HRESULT hr = S_OK;
