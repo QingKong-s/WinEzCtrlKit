@@ -7,7 +7,7 @@ ECK_NAMESPACE_BEGIN
 // 1. 上下文参数必须为IUnknown指针，该接口必须可被QI为
 //    ID2D1SimplifiedGeometrySink和IGeometrySinkTransformer
 // 2. 调用方负责在调用Draw前对IGeometrySinkTransformer使用GstEnableOffset(TRUE)
-class CDwFetchPathRender final : public IDWriteTextRenderer
+class CDwFetchPathRenderer final : public IDWriteTextRenderer
 {
 private:
     float m_fDpi{};
@@ -48,7 +48,7 @@ private:
         return S_OK;
     }
 public:
-    constexpr CDwFetchPathRender(float fDpi, BOOL bPixelSnappingDisabled) noexcept
+    constexpr CDwFetchPathRenderer(float fDpi, BOOL bPixelSnappingDisabled) noexcept
         : m_fDpi{ fDpi }, m_bPixelSnappingDisabled{ bPixelSnappingDisabled }
     {
     }
@@ -133,8 +133,8 @@ public:
     {
         const static QITAB qit[]
         {
-            QITABENT(CDwFetchPathRender, IDWriteTextRenderer),
-            QITABENT(CDwFetchPathRender, IDWritePixelSnapping),
+            QITABENT(CDwFetchPathRenderer, IDWriteTextRenderer),
+            QITABENT(CDwFetchPathRenderer, IDWritePixelSnapping),
             {},
         };
         return QISearch(this, qit, iid, ppvObj);
@@ -176,7 +176,7 @@ inline HRESULT GetTextLayoutPathGeometry(
     pD2DFactory->CreatePathGeometry(&pPath);
     pPath->Open(&pSink);
 
-    CDwFetchPathRender Renderer{ fDpi,bPixelSnappingDisabled };
+    CDwFetchPathRenderer Renderer{ fDpi,bPixelSnappingDisabled };
     CGeometrySinkOffsetTranformer Forwarder{};
     Forwarder.GstSetSink(pSink.Get());
     Forwarder.GstEnableOffset(TRUE);
