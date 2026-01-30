@@ -537,9 +537,6 @@
     <ClInclude Include="eck\WinRtDCompInterop.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\BackdropEffectChain.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\DuiCompositor.h">
       <Filter>ECK Include</Filter>
     </ClInclude>

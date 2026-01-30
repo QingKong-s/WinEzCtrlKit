@@ -176,7 +176,6 @@
   <ItemGroup>
     <ClInclude Include="CTestWnd.h" />
     <ClInclude Include="eck\AutoPtrDef.h" />
-    <ClInclude Include="eck\BackdropEffectChain.h" />
     <ClInclude Include="eck\BaseN.h" />
     <ClInclude Include="eck\Alpc.h" />
     <ClInclude Include="eck\CArray2D.h" />
