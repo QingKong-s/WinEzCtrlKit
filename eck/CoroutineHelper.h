@@ -478,7 +478,7 @@ EckInline auto CoroWait(HANDLE hWaitable, LONGLONG msTimeout = LLONG_MAX)
 }
 
 // 捕获UI线程上下文，稍后可使用co_await返回至UI线程
-EckInline auto CoroCaptureUiThread(THREADCTX* ptc = nullptr)
+EckInline auto CoroCaptureUiThread(ThreadContext* ptc = nullptr)
 {
     struct Context
     {
@@ -488,7 +488,7 @@ EckInline auto CoroCaptureUiThread(THREADCTX* ptc = nullptr)
         UINT Priority{ UINT_MAX };
         BOOL IsWakeUiThread{ FALSE };
 
-        Context(THREADCTX* ptc = nullptr) : m_pCallback{ &ptc->Callback } {}
+        Context(ThreadContext* ptc = nullptr) : m_pCallback{ &ptc->Callback } {}
 
         constexpr bool await_ready() const noexcept { return false; }
         void await_suspend(std::coroutine_handle<> h) const noexcept

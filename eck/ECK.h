@@ -920,7 +920,7 @@ void Uninitialize() noexcept;
 
 #pragma region Thread
 class CWnd;
-struct THREADCTX;
+struct ThreadContext;
 
 using FQueueCallback = void(*)(void* pCtx);
 namespace Priv
@@ -975,8 +975,8 @@ namespace Priv
     };
 }
 
-using FWndCreating = void(*)(HWND hWnd, CBT_CREATEWNDW* pcs, THREADCTX* pThreadCtx);
-struct THREADCTX
+using FWndCreating = void(*)(HWND hWnd, CBT_CREATEWNDW* pcs, ThreadContext* pThreadCtx);
+struct ThreadContext
 {
     //-------窗口映射
     std::unordered_map<HWND, CWnd*> hmWnd{};	// HWND->CWnd*
@@ -1031,7 +1031,7 @@ void ThreadInitialize() noexcept;
 // 调用此函数后不允许使用任何ECK窗口对象
 void ThreadUninitialize() noexcept;
 // 取线程上下文
-EckInlineNd THREADCTX* PtcCurrent() noexcept { return (THREADCTX*)TlsGetValue(GetThreadContextTlsSlot()); }
+EckInlineNd ThreadContext* PtcCurrent() noexcept { return (ThreadContext*)TlsGetValue(GetThreadContextTlsSlot()); }
 
 HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc = nullptr) noexcept;
 void EndCbtHook() noexcept;

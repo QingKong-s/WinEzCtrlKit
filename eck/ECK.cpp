@@ -710,7 +710,7 @@ static HRESULT UxfpAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
 }
 
 // 取主题颜色，主要是文本颜色
-static HRESULT UxfpGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
+static HRESULT UxfpGetThemeColor(const THEME_INFO& ti, const ThreadContext* ptc,
     HTHEME hTheme, int iPartId, int iStateId, int iPropId, _Out_ COLORREF& cr) noexcept
 {
     switch (ti.eType)
@@ -1018,7 +1018,7 @@ static HRESULT UxfpGetThemeColor(const THEME_INFO& ti, const THREADCTX* ptc,
 }
 
 // 绘制主题背景
-static HRESULT UxfpDrawThemeBackground(const THEME_INFO& ti, const THREADCTX* ptc,
+static HRESULT UxfpDrawThemeBackground(const THEME_INFO& ti, const ThreadContext* ptc,
     HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
     _In_ const RECT* prc, _In_opt_ const DTBGOPTS* pOptions) noexcept
 {
@@ -1892,7 +1892,7 @@ void ThreadInitialize() noexcept
     if ((SIZE_T)g_hModComCtl32 == SIZETMax)
         g_hModComCtl32 = GetModuleHandleW(L"comctl32.dll");
     EckAssert(!TlsGetValue(GetThreadContextTlsSlot()));
-    const auto p = new THREADCTX{};
+    const auto p = new ThreadContext{};
     TlsSetValue(GetThreadContextTlsSlot(), p);
     p->UpdateDefaultColor();
 #if ECK_OPT_NO_DARKMODE
@@ -1976,7 +1976,7 @@ void ThreadInitialize() noexcept
 void ThreadUninitialize() noexcept
 {
     EckAssert(TlsGetValue(GetThreadContextTlsSlot()));
-    const auto p = (THREADCTX*)TlsGetValue(GetThreadContextTlsSlot());
+    const auto p = (ThreadContext*)TlsGetValue(GetThreadContextTlsSlot());
 #ifdef _DEBUG
     if (!p->hmWnd.empty())
     {
@@ -2026,12 +2026,12 @@ void Priv::QueuedCallbackQueue::UnlockedDeQueue() noexcept
 }
 
 
-void THREADCTX::WmAdd(HWND hWnd, CWnd* pWnd) noexcept
+void ThreadContext::WmAdd(HWND hWnd, CWnd* pWnd) noexcept
 {
     EckAssert(IsWindow(hWnd) && pWnd);
     hmWnd.insert(std::make_pair(hWnd, pWnd));
 }
-void THREADCTX::WmRemove(HWND hWnd) noexcept
+void ThreadContext::WmRemove(HWND hWnd) noexcept
 {
     const auto it = hmWnd.find(hWnd);
     if (it != hmWnd.end())
@@ -2041,7 +2041,7 @@ void THREADCTX::WmRemove(HWND hWnd) noexcept
         EckDbgPrintFmt(L"** WARNING ** 从窗口映射中移除%p时失败。", hWnd);
 #endif
 }
-CWnd* THREADCTX::WmAt(HWND hWnd) const noexcept
+CWnd* ThreadContext::WmAt(HWND hWnd) const noexcept
 {
     const auto it = hmWnd.find(hWnd);
     if (it != hmWnd.end())
@@ -2050,19 +2050,19 @@ CWnd* THREADCTX::WmAt(HWND hWnd) const noexcept
         return nullptr;
 }
 
-void THREADCTX::TwmAdd(HWND hWnd, CWnd* pWnd) noexcept
+void ThreadContext::TwmAdd(HWND hWnd, CWnd* pWnd) noexcept
 {
     EckAssert(IsWindow(hWnd) && pWnd);
     EckAssert((GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_CHILD) != WS_CHILD);
     hmTopWnd.insert(std::make_pair(hWnd, pWnd));
 }
-void THREADCTX::TwmRemove(HWND hWnd) noexcept
+void ThreadContext::TwmRemove(HWND hWnd) noexcept
 {
     const auto it = hmTopWnd.find(hWnd);
     if (it != hmTopWnd.end())
         hmTopWnd.erase(it);
 }
-CWnd* THREADCTX::TwmAt(HWND hWnd) const noexcept
+CWnd* ThreadContext::TwmAt(HWND hWnd) const noexcept
 {
     const auto it = hmTopWnd.find(hWnd);
     if (it != hmTopWnd.end())
@@ -2070,14 +2070,14 @@ CWnd* THREADCTX::TwmAt(HWND hWnd) const noexcept
     else
         return nullptr;
 }
-void THREADCTX::TwmEnableNcDarkMode(BOOL bDark) noexcept
+void ThreadContext::TwmEnableNcDarkMode(BOOL bDark) noexcept
 {
 #if !ECK_OPT_NO_DARKMODE
     for (const auto& e : hmTopWnd)
         EnableWindowNcDarkMode(e.first, bDark);
 #endif // !ECK_OPT_NO_DARKMODE
 }
-void THREADCTX::TwmBroadcastThemeChanged() noexcept
+void ThreadContext::TwmBroadcastThemeChanged() noexcept
 {
 #if !ECK_OPT_NO_DARKMODE
     for (const auto& [hWnd, pWnd] : hmTopWnd)
@@ -2113,7 +2113,7 @@ void THREADCTX::TwmBroadcastThemeChanged() noexcept
 #endif // !ECK_OPT_NO_DARKMODE
 }
 
-void THREADCTX::UpdateDefaultColor() noexcept
+void ThreadContext::UpdateDefaultColor() noexcept
 {
     bAppDarkMode = GetItemsViewForeBackColor(crDefText, crDefBkg);
     crDefBtnFace = (bAppDarkMode ? 0x303030 : GetSysColor(COLOR_BTNFACE));
@@ -2127,7 +2127,7 @@ void THREADCTX::UpdateDefaultColor() noexcept
     else
         crHiLightText = crDefText;
 }
-void THREADCTX::DoCallback() noexcept
+void ThreadContext::DoCallback() noexcept
 {
     if (bEnterCallback)
         return;

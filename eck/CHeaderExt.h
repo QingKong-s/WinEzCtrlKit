@@ -60,7 +60,7 @@ private:
     COLORREF m_crSortUp{ CLR_DEFAULT };
     //
     std::vector<ITEM> m_vData{};
-    const THREADCTX* m_ptc{};
+    const ThreadContext* m_ptc{};
     int m_cxClient{};
     int m_cyClient{};
 

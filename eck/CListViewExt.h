@@ -213,7 +213,7 @@ private:
     FOwnerData m_pfnOwnerData{};	// [OD]所有者数据回调函数
     void* m_pOdProcData{};			// [OD]所有者数据回调函数参数
     // 
-    const THREADCTX* m_ptc{};// 线程上下文
+    const ThreadContext* m_ptc{};// 线程上下文
     CRefStrW m_rsTextBuf{ MAX_PATH };
     int m_cxEdge{};
     std::unique_ptr<CEditExt> m_pEdit{};
