@@ -907,12 +907,12 @@ struct INITPARAM
 /// </summary>
 /// <param name="hInstance">实例句柄，所有自定义窗口类将在此实例上注册</param>
 /// <param name="pip">指向初始化参数的可选指针</param>
-/// <param name="pdwErrCode">指向接收错误码变量的可选指针</param>
+/// <param name="puErrCode">指向接收错误码变量的可选指针</param>
 /// <returns>错误代码</returns>
 InitStatus Initialize(
     HINSTANCE hInstance,
     const INITPARAM* pip = nullptr,
-    _Out_opt_ UINT* pdwErrCode = nullptr
+    _Out_opt_ UINT* puErrCode = nullptr
 ) noexcept;
 
 void Uninitialize() noexcept;

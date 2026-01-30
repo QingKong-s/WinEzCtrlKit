@@ -48,7 +48,7 @@ private:
         return S_OK;
     }
 public:
-    constexpr CDwFetchPathRenderer(float fDpi, BOOL bPixelSnappingDisabled) noexcept
+    constexpr CDwFetchPathRenderer(float fDpi = 96.f, BOOL bPixelSnappingDisabled = FALSE) noexcept
         : m_fDpi{ fDpi }, m_bPixelSnappingDisabled{ bPixelSnappingDisabled }
     {
     }

@@ -279,13 +279,28 @@ public:
 
     EckInline int AssignBSTR(BSTR bstr)
     {
-        if (bstr)
-            return Assign(TConstPointer(((PCBYTE)bstr) + 4), (int)SysStringLen(bstr));
-        else
+        if (!bstr)
         {
             Clear();
             return 0;
         }
+        
+        const auto cchBstr = (int)SysStringLen(bstr);
+        if constexpr (std::is_same_v<TChar, CHAR>)
+        {
+            const int cch = WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK, bstr, cchBstr,
+                nullptr, 0, nullptr, nullptr);
+            if (cch > 1)
+            {
+                ReSize(cch);
+                return WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK, bstr, cchBstr,
+                    Data(), cch, nullptr, nullptr);
+            }
+            else
+                Clear();
+        }
+        else
+            Assign(bstr, cchBstr);
     }
 
     int AssignSTRRET(const STRRET& strret, PITEMIDLIST pidl = nullptr)
@@ -302,11 +317,13 @@ public:
                 return Assign(strret.cStr);
             else
             {
-                const int cch = MultiByteToWideChar(CP_ACP, 0, strret.cStr, -1, nullptr, 0);
+                const int cch = MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED,
+                    strret.cStr, -1, nullptr, 0);
                 if (cch > 1)
                 {
                     ReSize(cch);
-                    return MultiByteToWideChar(CP_ACP, 0, strret.cStr, -1, Data(), cch);
+                    return MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED,
+                        strret.cStr, -1, Data(), cch);
                 }
                 else
                     Clear();
