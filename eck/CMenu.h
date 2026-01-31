@@ -29,7 +29,7 @@ private:
             pszBuf = (PWSTR)(pItem + 1);
             pItem->uState = mii.fState;
             pItem->uType = mii.fType;
-            pItem->uID = mii.wID;
+            pItem->uId = mii.wID;
             pItem->uData = (ULONGLONG)mii.dwItemData;
             pItem->cchText = mii.cch - 1;
             if (mii.hSubMenu)
@@ -57,7 +57,7 @@ private:
             r.SkipPointer(pItem);
             mii.fState = pItem->uState;
             mii.fType = pItem->uType;
-            mii.wID = pItem->uID;
+            mii.wID = pItem->uId;
             mii.dwItemData = (ULONG_PTR)pItem->uData;
             mii.dwTypeData = (PWSTR)r.Data();
             r += Cch2CbW(pItem->cchText);
@@ -83,7 +83,7 @@ public:
     {
         UINT uState;
         UINT uType;
-        UINT uID;
+        UINT uId;
         ULONGLONG uData;
         int cchText;
         int cSubItem;
@@ -93,7 +93,7 @@ public:
     struct INITITEM
     {
         PCWSTR pszText = nullptr;
-        UINT uID = 0u;
+        UINT uId = 0u;
         UINT uFlags = 0u;
     };
 
@@ -107,7 +107,7 @@ public:
         : m_hMenu{ CreatePopupMenu() }
     {
         for (auto x : Items)
-            AppendItem(x.pszText, x.uID, x.uFlags);
+            AppendItem(x.pszText, x.uId, x.uFlags);
     }
 
     CMenu(HMENU hMenu) noexcept : m_hMenu{ hMenu } {}
@@ -178,19 +178,19 @@ public:
 
     EckInlineNd HMENU GetHMenu() const noexcept { return m_hMenu; }
 
-    EckInline BOOL AppendItem(PCWSTR pszText, UINT uID, UINT uFlags = 0u) const noexcept
+    EckInline BOOL AppendItem(PCWSTR pszText, UINT uId, UINT uFlags = 0u) const noexcept
     {
-        return AppendMenuW(m_hMenu, uFlags | MF_STRING, uID, pszText);
+        return AppendMenuW(m_hMenu, uFlags | MF_STRING, uId, pszText);
     }
 
-    EckInline BOOL AppendItem(HBITMAP hBitmap, UINT uID, UINT uFlags = 0u) const noexcept
+    EckInline BOOL AppendItem(HBITMAP hBitmap, UINT uId, UINT uFlags = 0u) const noexcept
     {
-        return AppendMenuW(m_hMenu, uFlags | MF_BITMAP, uID, (PCWSTR)hBitmap);
+        return AppendMenuW(m_hMenu, uFlags | MF_BITMAP, uId, (PCWSTR)hBitmap);
     }
 
-    EckInline BOOL AppendItem(LPARAM lParam, UINT uID, UINT uFlags = 0u) const noexcept
+    EckInline BOOL AppendItem(LPARAM lParam, UINT uId, UINT uFlags = 0u) const noexcept
     {
-        return AppendMenuW(m_hMenu, uFlags | MF_OWNERDRAW, uID, (PCWSTR)lParam);
+        return AppendMenuW(m_hMenu, uFlags | MF_OWNERDRAW, uId, (PCWSTR)lParam);
     }
 
     EckInline BOOL AppendItem(PCWSTR pszText, HMENU hSubMenu, UINT uFlags = 0u) const noexcept
@@ -344,19 +344,19 @@ public:
             PosBool2UINT(bPosition) | (bHiLite ? MF_HILITE : MF_UNHILITE));
     }
 
-    EckInline BOOL InsertItem(PCWSTR pszText, UINT uID, UINT uPos, UINT uFlags = 0u) const noexcept
+    EckInline BOOL InsertItem(PCWSTR pszText, UINT uId, UINT uPos, UINT uFlags = 0u) const noexcept
     {
-        return InsertMenuW(m_hMenu, uPos, uFlags | MF_STRING, uID, pszText);
+        return InsertMenuW(m_hMenu, uPos, uFlags | MF_STRING, uId, pszText);
     }
 
-    EckInline BOOL InsertItem(HBITMAP hBitmap, UINT uID, UINT uPos, UINT uFlags = 0u) const noexcept
+    EckInline BOOL InsertItem(HBITMAP hBitmap, UINT uId, UINT uPos, UINT uFlags = 0u) const noexcept
     {
-        return InsertMenuW(m_hMenu, uPos, uFlags | MF_BITMAP, uID, (PCWSTR)hBitmap);
+        return InsertMenuW(m_hMenu, uPos, uFlags | MF_BITMAP, uId, (PCWSTR)hBitmap);
     }
 
-    EckInline BOOL InsertItem(LPARAM lParam, UINT uID, UINT uPos, UINT uFlags = 0u) const noexcept
+    EckInline BOOL InsertItem(LPARAM lParam, UINT uId, UINT uPos, UINT uFlags = 0u) const noexcept
     {
-        return InsertMenuW(m_hMenu, uPos, uFlags | MF_OWNERDRAW, uID, (PCWSTR)lParam);
+        return InsertMenuW(m_hMenu, uPos, uFlags | MF_OWNERDRAW, uId, (PCWSTR)lParam);
     }
 
     EckInline BOOL InsertItem(PCWSTR pszText, HMENU hSubMenu, UINT uPos, UINT uFlags = 0u) const noexcept
@@ -394,19 +394,19 @@ public:
         return MenuItemFromPoint(hWnd, m_hMenu, pt);
     }
 
-    EckInline BOOL ModifyItem(PCWSTR pszText, UINT uID, UINT uPos, UINT uFlags = 0u) const noexcept
+    EckInline BOOL ModifyItem(PCWSTR pszText, UINT uId, UINT uPos, UINT uFlags = 0u) const noexcept
     {
-        return ModifyMenuW(m_hMenu, uPos, uFlags | MF_STRING, uID, pszText);
+        return ModifyMenuW(m_hMenu, uPos, uFlags | MF_STRING, uId, pszText);
     }
 
-    EckInline BOOL ModifyItem(HBITMAP hBitmap, UINT uID, UINT uPos, UINT uFlags = 0u) const noexcept
+    EckInline BOOL ModifyItem(HBITMAP hBitmap, UINT uId, UINT uPos, UINT uFlags = 0u) const noexcept
     {
-        return ModifyMenuW(m_hMenu, uPos, uFlags | MF_BITMAP, uID, (PCWSTR)hBitmap);
+        return ModifyMenuW(m_hMenu, uPos, uFlags | MF_BITMAP, uId, (PCWSTR)hBitmap);
     }
 
-    EckInline BOOL ModifyItem(LPARAM lParam, UINT uID, UINT uPos, UINT uFlags = 0u) const noexcept
+    EckInline BOOL ModifyItem(LPARAM lParam, UINT uId, UINT uPos, UINT uFlags = 0u) const noexcept
     {
-        return ModifyMenuW(m_hMenu, uPos, uFlags | MF_OWNERDRAW, uID, (PCWSTR)lParam);
+        return ModifyMenuW(m_hMenu, uPos, uFlags | MF_OWNERDRAW, uId, (PCWSTR)lParam);
     }
 
     EckInline BOOL ModifyItem(PCWSTR pszText, HMENU hSubMenu, UINT uPos, UINT uFlags = 0u) const noexcept

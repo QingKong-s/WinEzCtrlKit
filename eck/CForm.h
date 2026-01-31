@@ -11,34 +11,22 @@ public:
     ECK_CWND_NOSINGLEOWNER(CForm);
     ECK_CWND_CREATE_CLS_HINST(WCN_FORM, g_hInstance);
 private:
-    struct TRAY
-    {
-        UINT uID;
-        UINT uFlags;
-        DWORD dwState;
-        HICON hIcon;
-        CRefStrW rsTip;
-    };
+    HBITMAP m_hbmBk{};
+    int m_cxImage{},
+        m_cyImage{};
 
-    HBITMAP m_hbmBk = nullptr;
-    int m_cxImage = 0,
-        m_cyImage = 0;
-    BkImgMode m_iBkImageMode = BkImgMode::TopLeft;
-    COLORREF m_crBk = CLR_DEFAULT;
+    COLORREF m_crBk{ CLR_DEFAULT };
 
-    int m_cxClient = 0,
-        m_cyClient = 0;
+    int m_cxClient{},
+        m_cyClient{};
 
-    std::vector<TRAY> m_Tray{};
+    BkImgMode m_eBkImageMode{ BkImgMode::TopLeft };
 
     BITBOOL m_bMoveable : 1 = TRUE;
     BITBOOL m_bFillWndImage : 1 = FALSE;
     BITBOOL m_bEscClose : 1 = FALSE;
     BITBOOL m_bMoveAnywhere : 1 = FALSE;
     BITBOOL m_bClrDisableEdit : 1 = FALSE;
-public:
-    static UINT s_uTrayMsg;
-    static UINT s_uTaskbarCreatedMsg;
 public:
     ECKPROP(GetBackgroundImage, SetBackgroundImage) HBITMAP		BkImage;		// 背景图片
     ECKPROP(GetBackgroundMode, SetBackgroundMode)   BkImgMode	BkImageMode;	// 背景图片模式
@@ -121,7 +109,7 @@ public:
                 SelectObject(hCDC, m_hbmBk);
                 const RECT rc{ 0,0,m_cxClient,m_cyClient };
                 DrawBackgroundImage32(ps.hdc, hCDC, rc, m_cxImage, m_cyImage,
-                    m_iBkImageMode, m_bFillWndImage);
+                    m_eBkImageMode, m_bFillWndImage);
                 DeleteDC(hCDC);
             }
             EndPaint(hWnd, wParam, ps);
@@ -138,60 +126,10 @@ public:
             FillRect(hDC, &rc, GetStockBrush(DC_BRUSH));
         }
         return TRUE;
-
-        case WM_DESTROY:
-        {
-            for (const auto& e : m_Tray)
-            {
-                NOTIFYICONDATAW nid;
-                nid.cbSize = sizeof(nid);
-                nid.hWnd = hWnd;
-                nid.uID = e.uID;
-                nid.uFlags = 0;
-                Shell_NotifyIconW(NIM_DELETE, &nid);
-            }
-            m_Tray.clear();
-        }
-        break;
         }
 
-        if (uMsg == s_uTrayMsg)
-        {
-            OnTrayNotify(LOWORD(lParam), HIWORD(lParam),
-                GET_X_LPARAM(wParam), GET_Y_LPARAM(wParam));
-            return 0;
-        }
-        else if (uMsg == s_uTaskbarCreatedMsg)
-        {
-            NOTIFYICONDATAW nid;
-            nid.cbSize = sizeof(nid);
-            nid.hWnd = hWnd;
-            nid.uCallbackMessage = s_uTrayMsg;
-            for (const auto& e : m_Tray)
-            {
-                nid.uID = e.uID;
-                nid.uFlags = e.uFlags | NIF_MESSAGE;
-                nid.dwState = nid.dwStateMask = e.dwState;
-                nid.hIcon = e.hIcon;
-                if (e.rsTip.IsEmpty())
-                    nid.szTip[0] = L'\0';
-                else
-                    TcsCopyLenEnd(nid.szTip, e.rsTip.Data(),
-                        std::min(e.rsTip.Size(), (int)ARRAYSIZE(nid.szTip)));
-                Shell_NotifyIconW(NIM_SETVERSION, &nid);
-                Shell_NotifyIconW(NIM_ADD, &nid);
-            }
-            return 0;
-        }
-        return CWnd::OnMessage(hWnd, uMsg, wParam, lParam);
+        return __super::OnMessage(hWnd, uMsg, wParam, lParam);
     }
-
-    virtual void OnTrayNotify(UINT uMsg, UINT uID, int x, int y) noexcept
-    {
-
-    }
-
-    EckInlineNdCe HBITMAP GetBackgroundImage() const noexcept { return m_hbmBk; }
 
     EckInline void SetBackgroundImage(HBITMAP hbmBk) noexcept
     {
@@ -201,9 +139,10 @@ public:
         m_cxImage = bm.bmWidth;
         m_cyImage = bm.bmHeight;
     }
+    EckInlineNdCe HBITMAP GetBackgroundImage() const noexcept { return m_hbmBk; }
 
-    EckInlineCe void SetBackgroundMode(BkImgMode iMode) noexcept { m_iBkImageMode = iMode; }
-    EckInlineNdCe BkImgMode GetBackgroundMode() const noexcept { return m_iBkImageMode; }
+    EckInlineCe void SetBackgroundMode(BkImgMode iMode) noexcept { m_eBkImageMode = iMode; }
+    EckInlineNdCe BkImgMode GetBackgroundMode() const noexcept { return m_eBkImageMode; }
 
     EckInlineCe void SetBackgroundFillWindow(BOOL b) noexcept { m_bFillWndImage = b; }
     EckInlineNdCe BOOL GetBackgroundFillWindow() const noexcept { return m_bFillWndImage; }
@@ -230,133 +169,5 @@ public:
     EckInlineNdCe COLORREF GetBackgroundColor() const noexcept { return m_crBk; }
 
     EckInlineNdCe SIZE GetBackgroundImageSize() const noexcept { return { m_cxImage, m_cyImage }; }
-
-    BOOL TrayAdd(UINT uID, HICON hIcon, PCWSTR pszTip,
-        DWORD dwState = 0u, BOOL bShowTip = TRUE) noexcept
-    {
-        NOTIFYICONDATAW nid;
-        nid.cbSize = sizeof(nid);
-        nid.hWnd = HWnd;
-        nid.uID = uID;
-        nid.uFlags = NIF_MESSAGE | NIF_STATE | (bShowTip ? NIF_TIP : 0);
-        nid.uCallbackMessage = s_uTrayMsg;
-        nid.uVersion = NOTIFYICON_VERSION_4;
-        nid.dwState = nid.dwStateMask = dwState;
-        if (hIcon)
-        {
-            nid.uFlags |= NIF_ICON;
-            nid.hIcon = hIcon;
-        }
-        if (pszTip)
-        {
-            nid.uFlags |= NIF_TIP;
-            wcscpy_s(nid.szTip, pszTip);
-        }
-
-        Shell_NotifyIconW(NIM_SETVERSION, &nid);
-        m_Tray.emplace_back(uID, nid.uFlags, dwState, hIcon, pszTip);
-        if (!Shell_NotifyIconW(NIM_ADD, &nid))
-            return FALSE;
-        return TRUE;
-    }
-
-    BOOL TrayModify(UINT uID, UINT uFlags, HICON hIcon = nullptr,
-        PCWSTR pszTip = nullptr, DWORD dwState = 0u) noexcept
-    {
-        auto it = std::find_if(m_Tray.begin(), m_Tray.end(), [uID](const TRAY& x)
-            {
-                return x.uID == uID;
-            });
-        if (it == m_Tray.end())
-        {
-            EckDbgPrint(L"** WARNING ** 试图修改未经内部维护的托盘图标");
-            return FALSE;
-        }
-        EckAssert(uFlags == (uFlags & ~(NIF_ICON | NIF_TIP | NIF_STATE)));
-        uFlags &= ~(NIF_ICON | NIF_TIP | NIF_STATE | NIF_SHOWTIP);
-        NOTIFYICONDATAW nid;
-        nid.cbSize = sizeof(nid);
-        nid.hWnd = HWnd;
-        nid.uID = uID;
-        nid.uFlags = uFlags;
-        it->uFlags = uFlags;
-        if (IsBitSet(uFlags, NIF_ICON))
-        {
-            it->hIcon = hIcon;
-            nid.hIcon = hIcon;
-        }
-        if (IsBitSet(uFlags, NIF_TIP))
-        {
-            it->rsTip = pszTip;
-            wcscpy_s(nid.szTip, pszTip);
-        }
-        if (IsBitSet(uFlags, NIF_STATE))
-        {
-            it->dwState = dwState;
-            nid.dwState = nid.dwStateMask = dwState;
-        }
-
-        return Shell_NotifyIconW(NIM_MODIFY, &nid);
-    }
-
-    BOOL TrayDelete(UINT uID) noexcept
-    {
-        auto it = std::find_if(m_Tray.begin(), m_Tray.end(), [uID](const TRAY& x)
-            {
-                return x.uID == uID;
-            });
-        if (it == m_Tray.end())
-        {
-            EckDbgPrint(L"** WARNING ** 试图删除未经内部维护的托盘图标");
-            return FALSE;
-        }
-        NOTIFYICONDATAW nid;
-        nid.cbSize = sizeof(nid);
-        nid.hWnd = HWnd;
-        nid.uID = uID;
-        nid.uFlags = 0;
-
-        if (!Shell_NotifyIconW(NIM_DELETE, &nid))
-            return FALSE;
-        else
-        {
-            m_Tray.erase(it);
-            return TRUE;
-        }
-    }
-
-    BOOL TraySetFocus(UINT uID) noexcept
-    {
-        NOTIFYICONDATAW nid;
-        nid.cbSize = sizeof(nid);
-        nid.hWnd = HWnd;
-        nid.uID = uID;
-        nid.uFlags = 0;
-        return Shell_NotifyIconW(NIM_SETFOCUS, &nid);
-    }
-
-    BOOL TrayPopBalloon(UINT uID, PCWSTR pszContent, PCWSTR pszTitle = nullptr,
-        HICON hBalloonIcon = nullptr, DWORD dwInfoFlags = 0u, BOOL bRealTime = FALSE) noexcept
-    {
-        NOTIFYICONDATAW nid;
-        nid.cbSize = sizeof(nid);
-        nid.hWnd = HWnd;
-        nid.uID = uID;
-        nid.uFlags = NIF_INFO | (bRealTime ? NIF_REALTIME : 0);
-
-        if (pszContent)
-            wcscpy_s(nid.szInfo, pszContent);
-        else
-            nid.szInfo[0] = L'\0';
-        if (pszTitle)
-            wcscpy_s(nid.szInfoTitle, pszTitle);
-        else
-            nid.szInfoTitle[0] = L'\0';
-        nid.hBalloonIcon = hBalloonIcon;
-        nid.dwInfoFlags = dwInfoFlags;
-        return Shell_NotifyIconW(NIM_MODIFY, &nid);
-    }
 };
-inline UINT CForm::s_uTrayMsg = RegisterWindowMessageW(MSGREG_FORMTRAY);
-inline UINT CForm::s_uTaskbarCreatedMsg = RegisterWindowMessageW(L"TaskbarCreated");
 ECK_NAMESPACE_END

@@ -754,9 +754,9 @@ public:
         return (UINT)SendMsg(LVM_MAPIDTOINDEX, idx, 0);
     }
 
-    EckInline int MapIndexToId(UINT uID) const noexcept
+    EckInline int MapIndexToId(UINT uId) const noexcept
     {
-        return (int)SendMsg(LVM_MAPINDEXTOID, uID, 0);
+        return (int)SendMsg(LVM_MAPINDEXTOID, uId, 0);
     }
 
     EckInline BOOL RedrawItems(int idxStart, int idxEnd) const noexcept

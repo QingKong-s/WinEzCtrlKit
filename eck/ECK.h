@@ -660,7 +660,7 @@ constexpr inline PCWSTR WCN_HEXEDIT = WCN_DUMMY;
 constexpr inline PCWSTR WCN_HITTER = WCN_DUMMY;
 #endif// defined(ECK_OPT_NO_SIMPLE_WND_CLS)
 
-constexpr inline PCWSTR MSGREG_FORMTRAY = L"Eck.Message.FormTray";
+constexpr inline PCWSTR MSGREG_TRAY = L"Eck.Message.Tray";
 
 constexpr inline UINT SCID_DESIGN = 20230621'01u;
 #pragma endregion Const

@@ -34,9 +34,9 @@ namespace SkiaTessellator
         STDMETHOD(PaGetBounds)(_Out_ pk::SkRect* prc) noexcept = 0;
 
 
-        // 指示在当前已有数据的基础上追加多少顶点和索引
-        // 注意调用方应将此值与当前数量相加，而非细分开始前的数量，即预留函数可能被多次调用
+        // 即将追加指定数量个顶点
         STDMETHOD(TslReserveVertex)(UINT cVert) noexcept = 0;
+        // 即将追加指定数量个索引
         STDMETHOD(TslReserveIndex)(UINT cIdx) noexcept = 0;
 
         STDMETHOD_(void, TslAppendVertex)(float x, float y, float fAlpha) noexcept = 0;

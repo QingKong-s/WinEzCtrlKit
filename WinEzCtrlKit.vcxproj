@@ -201,6 +201,7 @@
     <ClInclude Include="eck\ComServerHelper.h" />
     <ClInclude Include="eck\Crc.h" />
     <ClInclude Include="eck\CRectPackSkyline.h" />
+    <ClInclude Include="eck\CTrayIcon.h" />
     <ClInclude Include="eck\CTrivialBuffer.h" />
     <ClInclude Include="eck\Crypt.h" />
     <ClInclude Include="eck\CPerspectiveCamera.h" />
