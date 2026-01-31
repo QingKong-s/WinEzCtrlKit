@@ -528,7 +528,7 @@
     <ClInclude Include="eck\ShellMenuInfo.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\UIAccess.h">
+    <ClInclude Include="eck\CUiAccess.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\WinRtD2DInteropFx.h">

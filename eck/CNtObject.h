@@ -53,6 +53,14 @@ public:
             m_hObject = nullptr;
         }
     }
-    EckInlineNdCe BOOL IsValid() const noexcept { return m_hObject && m_hObject != INVALID_HANDLE_VALUE; }
+    EckInlineNdCe BOOL IsValid() const noexcept
+    { return m_hObject && m_hObject != INVALID_HANDLE_VALUE; }
+
+    EckInlineNdCe HANDLE* AddrOf() noexcept { return &m_hObject; }
+    EckInlineNd HANDLE* AddrOfClear() noexcept
+    {
+        Clear();
+        return &m_hObject;
+    }
 };
 ECK_NAMESPACE_END
