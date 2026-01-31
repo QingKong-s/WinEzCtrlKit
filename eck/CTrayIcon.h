@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "CWnd.h"
-#include "CTrivialBuffer.h"
 
 ECK_NAMESPACE_BEGIN
 class CTrayIcon
@@ -104,7 +103,6 @@ public:
             m_vItem.clear();
         }
     }
-
 
     // bUseStdTip指示是否使用标准工具提示，若为TRUE则设置NIF_SHOWTIP
     BOOL Add(
@@ -240,7 +238,7 @@ public:
         HICON hBalloonIcon = nullptr,
         BOOL bRealTime = FALSE) noexcept
     {
-        NOTIFYICONDATAW nid{};
+        NOTIFYICONDATAW nid;
         nid.cbSize = sizeof(nid);
         nid.hWnd = m_pWnd->HWnd;
         nid.uID = uId;
@@ -260,6 +258,20 @@ public:
 
         nid.hBalloonIcon = hBalloonIcon;
         nid.dwInfoFlags = dwInfoFlags;
+        return Shell_NotifyIconW(NIM_MODIFY, &nid);
+    }
+
+    BOOL DismissBalloon(USHORT uId) noexcept
+    {
+        NOTIFYICONDATAW nid{};
+        nid.cbSize = sizeof(nid);
+        nid.hWnd = m_pWnd->HWnd;
+        nid.uID = uId;
+        nid.uFlags = NIF_INFO;
+        nid.szInfo[0] = L'\0';
+        nid.szInfoTitle[0] = L'\0';
+        nid.hBalloonIcon = nullptr;
+        nid.dwInfoFlags = 0;
         return Shell_NotifyIconW(NIM_MODIFY, &nid);
     }
 };
