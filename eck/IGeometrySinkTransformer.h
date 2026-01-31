@@ -3,11 +3,11 @@
 
 ECK_NAMESPACE_BEGIN
 constexpr IID IID_IGeometrySinkTransformer
-{ 0xb23501eb, 0x3f09, 0x4a54, { 0x94, 0xd4, 0xf2, 0x5, 0x4f, 0x17, 0xa3, 0x81 } };
+{ 0x6abd0903, 0x4980, 0x48a0, { 0xa7, 0xd4, 0x2a, 0x9c, 0x36, 0x36, 0x3d, 0x14 } };
 
 // 提供控制D2D简单几何接收器转换层的能力
 // 转换层在向几何接收器传递数据前对点集做指定的变换
-struct __declspec(uuid("61C06969-75F9-4216-9B7A-DCE590E5B35A"))
+struct __declspec(uuid("6ABD0903-4980-48A0-A7D4-2A9C36363D14"))
     IGeometrySinkTransformer : public IUnknown
 {
     // 指定写入数据的目标接收器，在写入前转换层执行必要的变换
