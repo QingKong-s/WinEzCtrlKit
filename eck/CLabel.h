@@ -10,7 +10,6 @@ struct LA_HITTEST
     BITBOOL bHitImg : 1;
 };
 
-constexpr inline std::array<COLORREF, 3> DefLabelGradient{ 0x808080,0xFFFFFF,0x808080 };
 
 class CLabel : public CWnd
 {
@@ -19,6 +18,8 @@ public:
     ECK_CWND_SINGLEOWNER(CLabel);
     ECK_CWND_CREATE_CLS_HINST(WCN_LABEL, g_hInstance);
 
+    constexpr static std::array<COLORREF, 3> DefaultGradient{ 0x808080,0xFFFFFF,0x808080 };
+    
     enum class Ellipsis :BYTE
     {
         None,
@@ -67,9 +68,9 @@ private:
     BITBOOL m_bPartMetricsDirty : 1{ TRUE };// 部件矩形需要重新计算
 
     COLORREF m_crText{ CLR_DEFAULT };	// 文本颜色
-    COLORREF m_crTextBK{ CLR_DEFAULT };	// 文本背景颜色
-    COLORREF m_crBK{ CLR_DEFAULT };		// 背景颜色
-    std::array<COLORREF, 3> m_crGradient{ DefLabelGradient };
+    COLORREF m_crTextBk{ CLR_DEFAULT };	// 文本背景颜色
+    COLORREF m_crBk{ CLR_DEFAULT };		// 背景颜色
+    std::array<COLORREF, 3> m_crGradient{ DefaultGradient };
 
     int m_cxClient{},
         m_cyClient{};
@@ -271,16 +272,30 @@ private:
         const auto* const ptc = PtcCurrent();
         SelectObject(hDC, m_hFont);
         SetTextColor(hDC, m_crText == CLR_DEFAULT ? ptc->crDefText : m_crText);
-        SetDCBrushColor(hDC, m_crBK == CLR_DEFAULT ? ptc->crDefBkg : m_crBK);
-        if (m_crTextBK == CLR_DEFAULT)
+        SetDCBrushColor(hDC, m_crBk == CLR_DEFAULT ? ptc->crDefBkg : m_crBk);
+        if (m_crTextBk == CLR_DEFAULT)
             SetBkMode(hDC, TRANSPARENT);
         else
         {
             SetBkMode(hDC, OPAQUE);
-            SetBkColor(hDC, m_crTextBK);
+            SetBkColor(hDC, m_crTextBk);
         }
     }
 public:
+    BOOL LoGetIdealSize(_Inout_ LYTSIZE& Size) noexcept override
+    {
+        if (m_bPartMetricsDirty)
+        {
+            m_bPartMetricsDirty = FALSE;
+            CalculatePartsRect();
+        }
+        Size.cx = TLytCoord((m_rcPartImg.right - m_rcPartImg.left) +
+            (m_rcPartText.right - m_rcPartText.left));
+        Size.cy = (TLytCoord)std::max(m_rcPartImg.bottom - m_rcPartImg.top,
+            m_rcPartText.bottom - m_rcPartText.top);
+        return TRUE;
+    }
+
     LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
@@ -403,8 +418,8 @@ public:
             m_bAutoWrap = m_bFillWndImg = m_bTransparent =
                 m_bImgAlpha = m_bBkImgAlpha = FALSE;
             m_bPartMetricsDirty = TRUE;
-            m_crText = m_crTextBK = m_crBK = CLR_DEFAULT;
-            m_crGradient = DefLabelGradient;
+            m_crText = m_crTextBk = m_crBk = CLR_DEFAULT;
+            m_crGradient = DefaultGradient;
         }
         break;
         }
@@ -497,13 +512,13 @@ public:
             SetTextColor(m_DC.GetDC(), cr);
             break;
         case ClrPart::Bk:
-            m_crBK = cr;
+            m_crBk = cr;
             if (cr == CLR_DEFAULT)
                 cr = GetSysColor(COLOR_BTNFACE);
             SetDCBrushColor(m_DC.GetDC(), cr);
             break;
         case ClrPart::TextBk:
-            m_crTextBK = cr;
+            m_crTextBk = cr;
             if (cr == CLR_DEFAULT)
                 SetBkMode(m_DC.GetDC(), TRANSPARENT);
             else
@@ -523,8 +538,8 @@ public:
         switch (ePart)
         {
         case ClrPart::Text: return m_crText;
-        case ClrPart::Bk: return m_crBK;
-        case ClrPart::TextBk: return m_crTextBK;
+        case ClrPart::Bk: return m_crBk;
+        case ClrPart::TextBk: return m_crTextBk;
         }
         ECK_UNREACHABLE;
     }

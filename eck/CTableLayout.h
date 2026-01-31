@@ -44,6 +44,7 @@ namespace Priv
             m_cRow = cRow;
             m_cCol = cCol;
             m_RowCol.ReSize(cRow + cCol);
+            ZeroMemory(m_RowCol.Data(), m_RowCol.ByteSize());
         }
 
         void Clear() noexcept
@@ -117,6 +118,10 @@ private:
             const auto size = e.pObject->LoGetSize();
             e.cx = size.cx;
             e.cy = size.cy;
+            if (e.uFlags & LF_FIX_WIDTH)
+                OnAddFixedWidthObject(e);
+            if (e.uFlags & LF_FIX_HEIGHT)
+                OnAddFixedHeightObject(e);
         }
     }
 public:
@@ -240,6 +245,7 @@ public:
             e.pObject->LoOnDpiChanged(iDpi);
         }
         m_iDpi = iDpi;
+        LobRefresh();
     }
 
     void LobClear() noexcept override
@@ -261,6 +267,8 @@ public:
         const LYTMARGINS& Margin = {}, UINT uFlags = 0,
         USHORT cRowSpan = 1, USHORT cColSpan = 1) noexcept
     {
+        EckAssert(cRowSpan && cColSpan);
+        EckAssert(LfValidateFlags(uFlags));
         auto& e = m_vItem.PushBack();
         e.pObject = pObject;
         e.Margin = Margin;
@@ -375,5 +383,23 @@ public:
     }
 
     EckInlineCe void SetHasIdeal(BOOL b) noexcept { m_Table.SetHasIdeal(b); }
+
+    void CommitTableSize() noexcept
+    {
+        TLytCoord d;
+        d = 0;
+        for (const auto& e : m_Table.Row())
+            if (e.uFlags & LF_FIX)
+                d += e.d;
+        if (d > m_cy)
+            m_cy = d;
+
+        d = 0;
+        for (const auto& e : m_Table.Column())
+            if (e.uFlags & LF_FIX)
+                d += e.d;
+        if (d > m_cx)
+            m_cx = d;
+    }
 };
 ECK_NAMESPACE_END

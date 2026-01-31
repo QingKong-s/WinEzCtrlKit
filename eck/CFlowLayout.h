@@ -5,7 +5,7 @@
 ECK_NAMESPACE_BEGIN
 // 
 // 流式布局
-// 在非布局流动方向上支持线对齐
+// 在非布局流动方向上支持单行对齐
 // 支持FIX和IDEAL，其余选项均被视为FLEX（特别注意不支持SCALE）
 //
 
@@ -35,6 +35,10 @@ protected:
             const auto size = e.pObject->LoGetSize();
             e.cx = size.cx;
             e.cy = size.cy;
+            if (e.uFlags & LF_FIX_WIDTH)
+                OnAddFixedWidthObject(e);
+            if (e.uFlags & LF_FIX_HEIGHT)
+                OnAddFixedHeightObject(e);
         }
     }
 public:

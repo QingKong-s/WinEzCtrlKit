@@ -25,6 +25,10 @@ private:
             const auto size = e.pObject->LoGetSize();
             e.cx = size.cx;
             e.cy = size.cy;
+            if (e.uFlags & LF_FIX_WIDTH)
+                OnAddFixedWidthObject(e);
+            if (e.uFlags & LF_FIX_HEIGHT)
+                OnAddFixedHeightObject(e);
         }
     }
 public:
@@ -59,6 +63,7 @@ public:
             e.pObject->LoOnDpiChanged(iDpi);
         }
         m_iDpi = iDpi;
+        LobRefresh();
     }
 
     void LobRefresh() noexcept override

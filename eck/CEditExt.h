@@ -28,8 +28,8 @@ protected:
     CRefStrW m_rsCueBanner{};			// 输入提示
 
     COLORREF m_crText{ CLR_DEFAULT };	// 文本颜色
-    COLORREF m_crTextBK{ CLR_DEFAULT };	// 文本背景色
-    COLORREF m_crBK{ CLR_DEFAULT };		// 编辑框背景色
+    COLORREF m_crTextBk{ CLR_DEFAULT };	// 文本背景色
+    COLORREF m_crBk{ CLR_DEFAULT };		// 编辑框背景色
 
     int m_cyText{};		// 文本高度
     int m_cxWnd{};		// 客户区宽度
@@ -85,7 +85,7 @@ protected:
         m_bMultiLine = m_bDisableColorOptions = FALSE;
         m_iInputMode = InputMode::Normal;
         m_chMask = L'\0';
-        m_crText = m_crTextBK = m_crBK = CLR_DEFAULT;
+        m_crText = m_crTextBk = m_crBk = CLR_DEFAULT;
         m_rsCueBanner.Clear();
     }
 public:
@@ -346,7 +346,7 @@ public:
             DeleteObject(hRgnBK);
             DeleteObject(hRgnText);
             // 填充背景
-            SetDCBrushColor(hDC, m_crBK != CLR_DEFAULT ? m_crBK : PtcCurrent()->crDefBkg);
+            SetDCBrushColor(hDC, m_crBk != CLR_DEFAULT ? m_crBk : PtcCurrent()->crDefBkg);
             FillRect(hDC, &rcWnd, GetStockBrush(DC_BRUSH));
             ReleaseDC(hWnd, hDC);
         }
@@ -411,8 +411,8 @@ public:
                 bProcessed = TRUE;
                 const auto* const ptc = PtcCurrent();
                 SetTextColor((HDC)wParam, m_crText != CLR_DEFAULT ? m_crText : ptc->crDefText);
-                SetBkColor((HDC)wParam, m_crTextBK != CLR_DEFAULT ? m_crTextBK : ptc->crDefBkg);
-                SetDCBrushColor((HDC)wParam, m_crBK != CLR_DEFAULT ? m_crBK : ptc->crDefBkg);
+                SetBkColor((HDC)wParam, m_crTextBk != CLR_DEFAULT ? m_crTextBk : ptc->crDefBkg);
+                SetDCBrushColor((HDC)wParam, m_crBk != CLR_DEFAULT ? m_crBk : ptc->crDefBkg);
                 return (LRESULT)GetStockObject(DC_BRUSH);
             }
         }
@@ -470,9 +470,9 @@ public:
         switch (ePart)
         {
         case ClrPart::Text: m_crText = cr; break;
-        case ClrPart::TextBk: m_crTextBK = cr; break;
+        case ClrPart::TextBk: m_crTextBk = cr; break;
         case ClrPart::Bk:
-            m_crBK = cr;
+            m_crBk = cr;
             SendMsg(WM_NCPAINT, 0, 0);
             break;
         }
@@ -483,8 +483,8 @@ public:
         switch (ePart)
         {
         case ClrPart::Text: return m_crText;
-        case ClrPart::TextBk: return m_crTextBK;
-        case ClrPart::Bk: return m_crBK;
+        case ClrPart::TextBk: return m_crTextBk;
+        case ClrPart::Bk: return m_crBk;
         default: return CLR_INVALID;
         }
     }

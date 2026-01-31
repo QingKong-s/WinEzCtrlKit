@@ -26,7 +26,7 @@ private:
     int m_xyMin{},
         m_xyMax{};
 
-    COLORREF m_crBK = CLR_DEFAULT;
+    COLORREF m_crBk = CLR_DEFAULT;
     COLORREF m_crMark = 0xFFCC66;
     BYTE m_byMarkAlpha = 0xA0;
 
@@ -173,7 +173,7 @@ public:
         {
             PAINTSTRUCT ps;
             BeginPaint(hWnd, &ps);
-            SetDCBrushColor(ps.hdc, m_crBK == CLR_DEFAULT ? PtcCurrent()->crDefBkg : m_crBK);
+            SetDCBrushColor(ps.hdc, m_crBk == CLR_DEFAULT ? PtcCurrent()->crDefBkg : m_crBk);
             FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
             EndPaint(hWnd, &ps);
         }
@@ -251,7 +251,7 @@ public:
     {
         if (i == 0)
         {
-            m_crBK = cr;
+            m_crBk = cr;
             Redraw();
         }
         else if (i == 1)
@@ -272,7 +272,7 @@ public:
     EckInline COLORREF GetColor(int i) const noexcept
     {
         if (i == 0)
-            return m_crBK;
+            return m_crBk;
         else if (i == 1)
             return m_crMark;
         else

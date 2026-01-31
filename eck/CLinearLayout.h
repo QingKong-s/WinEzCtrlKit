@@ -5,7 +5,7 @@
 ECK_NAMESPACE_BEGIN
 // 
 // 线性布局
-// 在非布局流动方向上支持线对齐
+// 在非布局流动方向上支持单行对齐
 // 支持所有其他布局选项
 //
 
@@ -49,13 +49,13 @@ public:
 
     void LoOnDpiChanged(int iDpi) noexcept override
     {
-        LobRefresh();
         for (auto& e : m_vItem)
         {
             ReCalculateDpiSize(e, iDpi);
             e.pObject->LoOnDpiChanged(iDpi);
         }
         m_iDpi = iDpi;
+        LobRefresh();
     }
 
     // 清除布局内容
@@ -117,6 +117,10 @@ private:
             e.cy = size.cy;
             if (e.uFlags & LF_FIX_HEIGHT)
                 m_dFixedSum += size.cy;
+            if (e.uFlags & LF_FIX_WIDTH)
+                OnAddFixedWidthObject(e);
+            if (e.uFlags & LF_FIX_HEIGHT)
+                OnAddFixedHeightObject(e);
         }
         m_dFixedSum += (e.Margin.t + e.Margin.b);
         if (!(e.uFlags & (LF_FIX_HEIGHT | LF_IDEAL_HEIGHT)))
@@ -242,6 +246,8 @@ public:
         e.uFlags = uFlags;
         e.uWeight = uWeight;
         OnAddObject(e);
+        if (m_dFixedSum > m_cy)
+            m_cy = m_dFixedSum;
         return m_vItem.Size() - 1;
     }
 };
@@ -290,6 +296,10 @@ private:
             e.cy = size.cy;
             if (e.uFlags & LF_FIX_WIDTH)
                 m_dFixedSum += size.cx;
+            if (e.uFlags & LF_FIX_WIDTH)
+                OnAddFixedWidthObject(e);
+            if (e.uFlags & LF_FIX_HEIGHT)
+                OnAddFixedHeightObject(e);
         }
         m_dFixedSum += (e.Margin.l + e.Margin.r);
         if (!(e.uFlags & (LF_FIX_WIDTH | LF_IDEAL_WIDTH)))
@@ -415,6 +425,8 @@ public:
         e.uFlags = uFlags;
         e.uWeight = uWeight;
         OnAddObject(e);
+        if (m_dFixedSum > m_cx)
+            m_cx = m_dFixedSum;
         return m_vItem.Size() - 1;
     }
 };

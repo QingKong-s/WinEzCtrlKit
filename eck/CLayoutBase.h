@@ -5,7 +5,7 @@
 
 ECK_NAMESPACE_BEGIN
 // 通用布局选项，低16位
-// 对齐选项：所有布局器要么支持九向对齐，要么支持线对齐
+// 对齐选项：所有布局器要么支持九向对齐，要么支持单行对齐
 // 其他选项：取决于布局类型
 enum : UINT
 {
@@ -22,7 +22,7 @@ enum : UINT
     LF_ALIGN_B,	// 下
     LF_ALIGN_RB,// 右下
 
-    // 线对齐
+    // 单行对齐
     LF_ALIGN_NEAR = 0,
     LF_ALIGN_CENTER,
     LF_ALIGN_FAR,
@@ -181,7 +181,6 @@ protected:
         }
     }
 
-    // 必须在放置结束时调用ArgEnd
     void ArgMoveObject(const ITEMBASE& e, const LYTRECT& rc) noexcept
     {
         const auto hWnd = e.pObject->LoGetHWND();
@@ -223,6 +222,21 @@ protected:
             e.cy = DpiScale(e.cy, iDpiNew, m_iDpi);
             e.pObject->LoSetSize({ e.cx, e.cy });
         }
+    }
+
+    void OnAddFixedWidthObject(ITEMBASE& e) noexcept
+    {
+        EckAssert(e.uFlags & LF_FIX_WIDTH);
+        const auto d = e.cx + e.Margin.l + e.Margin.r;
+        if (d > m_cx)
+            m_cx = d;
+    }
+    void OnAddFixedHeightObject(ITEMBASE& e) noexcept
+    {
+        EckAssert(e.uFlags & LF_FIX_HEIGHT);
+        const auto d = e.cy + e.Margin.t + e.Margin.b;
+        if (d > m_cy)
+            m_cy = d;
     }
 public:
     EckInlineNdCe static UINT Lf9Align(UINT u) noexcept { return GetLowNBits(u, 4); }

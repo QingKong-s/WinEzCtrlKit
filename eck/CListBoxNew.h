@@ -1358,7 +1358,7 @@ public:
 
     EckInlineCe void SetNotifyParentWindow(HWND h) noexcept { m_hParent = h; }
 
-    EckInlineCe void SetTextBufferSize(int cch) noexcept { m_rsTextBuf.ReSize(cch); }
+    EckInline void SetTextBufferSize(int cch) noexcept { m_rsTextBuf.ReSize(cch); }
     EckInlineNdCe int GetTextBufferSize() const noexcept { return m_rsTextBuf.Size(); }
 
     LRESULT RequestItem(NMLBNGETDISPINFO& nm) noexcept

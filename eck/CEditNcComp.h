@@ -190,7 +190,7 @@ public:
         else
         {
             const auto* const ptc = PtcCurrent();
-            SetDCBrushColor(hDC, m_crBK != CLR_DEFAULT ? m_crBK : ptc->crDefBkg);
+            SetDCBrushColor(hDC, m_crBk != CLR_DEFAULT ? m_crBk : ptc->crDefBkg);
             FillRect(hDC, &m_rcBtn, GetStockBrush(DC_BRUSH));
             crOld = SetTextColor(hDC, m_crText != CLR_DEFAULT ? m_crText : ptc->crDefText);
         }
