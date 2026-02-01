@@ -93,7 +93,7 @@ public:
     {
         vResult.PushBack(b0);
         fTolerance *= 6.f;
-        const auto fMiniTol = fTolerance / 4.f/*AdjustUp*/;
+        const auto fMiniTol = fTolerance / 4.f;
         CHfdCubicBezier s{ PtToVec2(b0), PtToVec2(b1), PtToVec2(b2), PtToVec2(b3) };
 
         UINT cStep = 1u;

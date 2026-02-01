@@ -1,10 +1,10 @@
 ﻿#pragma once
-#include "IScroll.h"
+#include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
 template<class T>
     requires (std::is_signed_v<T> || std::is_floating_point_v<T>)
-class CScrollViewT : public IScroll
+class CScrollViewT
 {
 public:
     constexpr static T InvalidValue = std::numeric_limits<T>::max();
@@ -190,13 +190,6 @@ public:
     {
         return IsValid() && GetViewSize() > GetMinThumbSize();
     }
-
-    BOOL ScrIsValid() override { return IsValid(); }
-    BOOL ScrIsVisible() override { return IsVisible(); }
-    void ScrSetScrollInfo(const SCROLLINFO& si) override { SetScrollInfomation(si); }
-    void ScrGetScrollInfo(_Inout_ SCROLLINFO& si) override { GetScrollInfomation(si); }
-    void ScrSetViewSize(int iViewSize) override { SetViewSize((T)iViewSize); }
-    int ScrGetViewSize() override { return (int)GetViewSize(); }
 };
 
 using CScrollView = CScrollViewT<int>;

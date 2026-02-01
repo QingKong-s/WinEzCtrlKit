@@ -555,15 +555,6 @@
     <ClInclude Include="eck\EzDx.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CCombinationScrollView.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
-    <ClInclude Include="eck\IScroll.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
-    <ClInclude Include="eck\CWndScroll.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\SymbolHelper.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
