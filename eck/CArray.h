@@ -256,10 +256,10 @@ public:
     EckInlineNdCe TConstIterator end() const noexcept { return begin() + Size(); }
     EckInlineNdCe TConstIterator cbegin() const noexcept { begin(); }
     EckInlineNdCe TConstIterator cend() const noexcept { end(); }
-    EckInlineNdCe TReverseIterator rbegin() noexcept { return TReverseIterator(begin()); }
-    EckInlineNdCe TReverseIterator rend() noexcept { return TReverseIterator(end()); }
-    EckInlineNdCe TConstReverseIterator rbegin() const noexcept { return TConstReverseIterator(begin()); }
-    EckInlineNdCe TConstReverseIterator rend() const noexcept { return TConstReverseIterator(end()); }
+    EckInlineNdCe TReverseIterator rbegin() noexcept { return TReverseIterator(end()); }
+    EckInlineNdCe TReverseIterator rend() noexcept { return TReverseIterator(begin()); }
+    EckInlineNdCe TConstReverseIterator rbegin() const noexcept { return TConstReverseIterator(end()); }
+    EckInlineNdCe TConstReverseIterator rend() const noexcept { return TConstReverseIterator(begin()); }
     EckInlineNdCe TConstReverseIterator crbegin() const noexcept { return rbegin(); }
     EckInlineNdCe TConstReverseIterator crend() const noexcept { return rend(); }
 };

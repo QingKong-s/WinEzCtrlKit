@@ -4,14 +4,15 @@
 
 ECK_NAMESPACE_BEGIN
 KW2D_NAMESPACE_BEGIN
+constexpr inline float DefaultHfdTolerance = 0.5f;
+constexpr inline float DefaultTolerance = 0.25f;
+
 // https://patents.google.com/patent/EP0577131B1/en
 
 class CHfdCubicBezier
 {
 public:
     using T = float;
-
-    constexpr static T DefaultTolerance = 0.4f;
 private:
     Vec2 e0;
     Vec2 e1;
@@ -77,24 +78,17 @@ private:
         e2 = ne2;
         e3 = ne3;
     }
-
-    EckInlineNdCe static Vec2 PtToVec2(auto pt) noexcept
-    {
-        const auto [x, y] = pt;
-        return { x,y };
-    }
 public:
-    template<class TPt>
     static void Flatten(
-        const TPt& b0, const TPt& b1,
-        const TPt& b2, const TPt& b3,
-        T fTolerance,
-        CTrivialBuffer<TPt>& vResult) noexcept
+        CTrivialBuffer<Vec2>& vResult,
+        const Vec2& b0, const Vec2& b1,
+        const Vec2& b2, const Vec2& b3,
+        T fTolerance = DefaultHfdTolerance) noexcept
     {
         vResult.PushBack(b0);
         fTolerance *= 6.f;
         const auto fMiniTol = fTolerance / 4.f;
-        CHfdCubicBezier s{ PtToVec2(b0), PtToVec2(b1), PtToVec2(b2), PtToVec2(b3) };
+        CHfdCubicBezier s{ b0, b1, b2, b3 };
 
         UINT cStep = 1u;
         EckLoop()
@@ -131,8 +125,6 @@ class CHfdQuadraticBezier
 {
 public:
     using T = float;
-
-    constexpr static T DefaultTolerance = 0.4f;
 private:
     Vec2 e0;
     Vec2 e1;
@@ -179,22 +171,15 @@ private:
         e1 = ne1;
         e2 = ne2;
     }
-
-    EckInlineNdCe static Vec2 PtToVec2(auto pt) noexcept
-    {
-        const auto [x, y] = pt;
-        return { x, y };
-    }
 public:
-    template<class TPt>
     static void Flatten(
-        const TPt& b0, const TPt& b1, const TPt& b2,
-        T fTolerance,
-        CTrivialBuffer<TPt>& vResult) noexcept
+        CTrivialBuffer<Vec2>& vResult,
+        const Vec2& b0, const Vec2& b1, const Vec2& b2,
+        T fTolerance = DefaultHfdTolerance) noexcept
     {
         vResult.PushBack(b0);
         fTolerance *= 6.f;
-        CHfdQuadraticBezier s{ PtToVec2(b0), PtToVec2(b1), PtToVec2(b2) };
+        CHfdQuadraticBezier s{ b0, b1, b2 };
 
         UINT cStep = 1u;
         EckLoop()
@@ -219,5 +204,96 @@ public:
         }
     }
 };
+
+
+inline void FlattenArc(
+    CTrivialBuffer<Vec2>& vResult,
+    Vec2 ptCenter, float r,
+    double agStart, double agSweep,
+    float fTolerance = DefaultTolerance) noexcept
+{
+    const auto e = fTolerance / r;
+    const auto dt = sqrt(8.f * e / (1.f + e));
+    const auto n = std::max(1u, UINT(ceil(abs(agSweep) / dt)));
+    const auto fTheta = agSweep / n;
+
+    const auto fCosT = cos(fTheta);
+    const auto fSinT = sin(fTheta);
+    auto fCos = cos(agStart);
+    auto fSin = sin(agStart);
+
+    auto p = vResult.PushBackSize(n + 1);
+
+    for (UINT i = 0; i <= n; ++i)
+    {
+        *p++ =
+        {
+            float(ptCenter.x + r * fCos),
+            float(ptCenter.y + r * fSin)
+        };
+        const auto nc = fCos * fCosT - fSin * fSinT;
+        const auto ns = fCos * fSinT + fSin * fCosT;
+        fCos = nc;
+        fSin = ns;
+    }
+}
+
+inline void FlattenEllipticalArc(
+    CTrivialBuffer<Vec2>& vResult,
+    Vec2 ptCenter, float a, float b,
+    double agStart, double agSweep,
+    float fTolerance = DefaultTolerance) noexcept
+{
+    const auto B2 = b * b;
+    const auto A2MinusB2 = a * a - B2;
+    const auto fFactor = sqrtf(8.f * fTolerance / (a * b));
+
+    auto t = agStart;
+    const auto tEnd = agStart + agSweep;
+    auto fSin = (float)sin(agStart);
+    auto fCos = (float)cos(agStart);
+    vResult.PushBack(
+        {
+            ptCenter.x + a * fCos,
+            ptCenter.y + b * fSin
+        });
+
+    BOOL bExit{};
+    EckLoop()
+    {
+        const auto D = B2 + A2MinusB2 * fSin * fSin;
+        const auto dt = fFactor * (float)sqrt(sqrt(D));
+
+        if (agSweep > 0.f)
+        {
+            t += dt;
+            if (t > tEnd)
+            {
+                t = tEnd;
+                bExit = TRUE;
+            }
+        }
+        else
+        {
+            t -= dt;
+            if (t < tEnd)
+            {
+                t = tEnd;
+                bExit = TRUE;
+            }
+        }
+
+        fSin = (float)sin(t);
+        fCos = (float)cos(t);
+        vResult.PushBack(
+            {
+                ptCenter.x + a * fCos,
+                ptCenter.y + b * fSin
+            });
+
+        if (bExit)
+            break;
+    }
+}
 KW2D_NAMESPACE_END
 ECK_NAMESPACE_END

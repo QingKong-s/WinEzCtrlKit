@@ -274,7 +274,7 @@ public:
     void Flatten(
         CTrivialBuffer<Kw::Vec2>& vPoint,
         CTrivialBuffer<PathType>& vType,
-        float fTolerance = Kw::CHfdCubicBezier::DefaultTolerance) const noexcept
+        float fTolerance = Kw::DefaultHfdTolerance) const noexcept
     {
         if (m_vPoint.IsEmpty() || m_vType.IsEmpty())
             return;
@@ -288,12 +288,12 @@ public:
 
                 const auto cPreOp = vPoint.Size();
                 Kw::CHfdCubicBezier::Flatten(
+                    vPoint,
                     m_vPoint[i - 1],
                     m_vPoint[i + 0],
                     m_vPoint[i + 1],
                     m_vPoint[i + 2],
-                    fTolerance,
-                    vPoint);
+                    fTolerance);
 
                 const auto eBezierType = eType & ~PathType::GmBezier;
                 const auto eNewType = (m_bUseBezierSegFlags ?
@@ -322,7 +322,7 @@ public:
     // 函数清除Data的内容
     void Flatten(
         PORTABLE_DATA& Data,
-        float fTolerance = Kw::CHfdCubicBezier::DefaultTolerance) const noexcept
+        float fTolerance = Kw::DefaultHfdTolerance) const noexcept
     {
         Data.fTolerance = fTolerance;
         Data.eFillMode = (D2D1_FILL_MODE)m_eFillMode;

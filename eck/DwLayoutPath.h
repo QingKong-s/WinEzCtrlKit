@@ -85,16 +85,16 @@ public:
 
     STDMETHOD(DrawStrikethrough)(void* pClientDrawingContext,
         FLOAT xOrgBaseline, FLOAT yOrgBaseline,
-        DWRITE_STRIKETHROUGH const* strikethrough, IUnknown* pClientDrawingEffect) override
+        DWRITE_STRIKETHROUGH const* pStrikeThrough, IUnknown* pClientDrawingEffect) override
     {
         const auto hr = PrepareSink(pClientDrawingContext);
         if (FAILED(hr))
             return hr;
         DrawLine(
             xOrgBaseline,
-            yOrgBaseline + strikethrough->offset,
-            strikethrough->width,
-            strikethrough->thickness);
+            yOrgBaseline + pStrikeThrough->offset,
+            pStrikeThrough->width,
+            pStrikeThrough->thickness);
         return S_OK;
     }
 
