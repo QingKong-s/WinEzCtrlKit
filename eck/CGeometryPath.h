@@ -19,6 +19,7 @@ enum class PathType : BYTE
     // Point: |    P0   |   P1   |   P2   |   P3   |
     // Type:  | Unknown | Bezier | Bezier | Bezier |
     GmBezier = 1 << 0,
+    GmMask = GmLine | GmBezier,
 
     // 以下为子图形起点终点标志
 
@@ -30,7 +31,7 @@ enum class PathType : BYTE
     FgFill = SkiaTessellator::PathType::Fill,
     // 在子图形终点设置，指示子图形闭合，一般情况下，此标志仅影响描边
     FgClose = 1 << 2,
-    FgMask = FgClose | FgFill | FgEnd,
+    FgMask = FgBegin | FgClose | FgFill | FgEnd,
 
     // 以下联接标志在每个点（贝塞尔曲线的三个点标志相同）设置
     // 子图形的第一点不设置联接标志，第二点设置但通常无意义
@@ -41,7 +42,7 @@ enum class PathType : BYTE
     SgUnstroked = 1 << 3,
     // D2D1_PATH_SEGMENT_FORCE_ROUND_LINE_JOIN，描边时应使用圆形联接
     SgRoundJoin = 1 << 4,
-    SgMask = SgUnstroked | SgRoundJoin,
+    SgMask = SgDefault | SgUnstroked | SgRoundJoin,
 };
 ECK_ENUM_BIT_FLAGS(PathType);
 
@@ -243,7 +244,7 @@ public:
                     }
                 }
 
-                switch (eType & ~PathType::FgMask)
+                switch (eType & PathType::GmMask)
                 {
                 case PathType::GmLine:
                     pSink->AddLines(&pt, 1);
