@@ -181,6 +181,7 @@
     <ClCompile Include="TsDateTimeHelper.cpp" />
     <ClCompile Include="TsMathHelper.cpp" />
     <ClCompile Include="TsRandom.cpp" />
+    <ClCompile Include="TsRectOp.cpp" />
     <ClCompile Include="TsStringConvert.cpp" />
     <ClCompile Include="TsTrivialBuffer.cpp" />
   </ItemGroup>

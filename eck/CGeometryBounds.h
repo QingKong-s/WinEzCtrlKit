@@ -201,7 +201,7 @@ public:
     void AddArc(Kw::Vec2 ptCenter, float a, float b,
         TAngle agStart, TAngle agSweep) noexcept
     {
-        if (fabsf(agSweep) >= Pi * 2.f)
+        if (abs(agSweep) >= Pi * 2.)
         {
             AddRect({
                     ptCenter.x - a, ptCenter.y - b,
@@ -246,8 +246,8 @@ public:
                 continue;
             // 特殊位置，无需计算离心角
             AddPoint({
-                    a * cosf(e) + ptCenter.x,
-                    b * sinf(e) + ptCenter.y
+                    float(a * cos(e) + ptCenter.x),
+                    float(b * sin(e) + ptCenter.y)
                 });
         }
     }

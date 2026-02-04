@@ -657,6 +657,9 @@
     <ClInclude Include="eck\CTrayIcon.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\RectTraits.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">

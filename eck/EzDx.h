@@ -102,6 +102,7 @@ struct CBuffer
     EckInlineNdCe auto operator->() const noexcept { return pBuffer.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pBuffer.Get(); }
     EckInlineNdCe auto AddrOf() const noexcept { return pBuffer.AddrOf(); }
+    EckInline void Clear() noexcept { pBuffer.Clear(); }
 };
 
 namespace Priv
@@ -114,6 +115,7 @@ namespace Priv
         EckInlineNdCe auto operator->() const noexcept { return pShader.Get(); }
         EckInlineNdCe auto Get() const noexcept { return pShader.Get(); }
         EckInlineNdCe auto AddrOf() const noexcept { return pShader.AddrOf(); }
+        EckInline void Clear() noexcept { pShader.Clear(); }
 
         EckInline HRESULT Create(ID3DBlob* pBlob) noexcept
         {
@@ -163,6 +165,11 @@ struct CVSAndInputLayout
 
     EckInlineNdCe auto GetInputLayout() const noexcept { return pInputLayout.Get(); }
     EckInlineNdCe auto GetShader() const noexcept { return Shader.Get(); }
+    EckInline void Clear() noexcept
+    {
+        Shader.Clear();
+        pInputLayout.Clear();
+    }
 };
 
 struct CTexture
@@ -197,6 +204,7 @@ struct CTexture
     EckInlineNdCe auto operator->() const noexcept { return pTexture.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pTexture.Get(); }
     EckInlineNdCe auto AddrOf() const noexcept { return pTexture.AddrOf(); }
+    EckInline void Clear() noexcept { pTexture.Clear(); }
 };
 
 struct CSampler
@@ -220,7 +228,7 @@ struct CSampler
             memcpy(Desc.BorderColor, pBorderColor, 4 * sizeof(float));
         return g_pD3D11Device->CreateSamplerState(&Desc, pSampler.AddrOfClear());
     }
-    HRESULT Create(
+    HRESULT CreateBorder(
         _In_reads_opt_(4) const float* pBorderColor,
         D3D11_FILTER eFilter = D3D11_FILTER_MIN_MAG_MIP_LINEAR) noexcept
     {
@@ -232,10 +240,10 @@ struct CSampler
             pBorderColor);
     }
 
-
     EckInlineNdCe auto operator->() const noexcept { return pSampler.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pSampler.Get(); }
     EckInlineNdCe auto AddrOf() const noexcept { return pSampler.AddrOf(); }
+    EckInline void Clear() noexcept { pSampler.Clear(); }
 };
 
 struct CShaderResourceView
@@ -265,6 +273,7 @@ struct CShaderResourceView
     EckInlineNdCe auto operator->() const noexcept { return pSrv.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pSrv.Get(); }
     EckInlineNdCe auto AddrOf() const noexcept { return pSrv.AddrOf(); }
+    EckInline void Clear() noexcept { pSrv.Clear(); }
 };
 
 struct CRenderTargetView
@@ -279,6 +288,7 @@ struct CRenderTargetView
     EckInlineNdCe auto operator->() const noexcept { return pRtv.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pRtv.Get(); }
     EckInlineNdCe auto AddrOf() const noexcept { return pRtv.AddrOf(); }
+    EckInline void Clear() noexcept { pRtv.Clear(); }
 };
 
 struct CDepthStencilView
@@ -294,6 +304,7 @@ struct CDepthStencilView
     EckInlineNdCe auto operator->() const noexcept { return pDsv.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pDsv.Get(); }
     EckInlineNdCe auto AddrOf() const noexcept { return pDsv.AddrOf(); }
+    EckInline void Clear() noexcept { pDsv.Clear(); }
 };
 ECK_EZDX_NAMESPACE_END
 ECK_NAMESPACE_END

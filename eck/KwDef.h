@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "ECK.h"
+#include "RectTraits.h"
 
 #define KW2D_NAMESPACE_BEGIN    namespace Kw {
 #define KW2D_NAMESPACE_END      }
@@ -53,8 +53,27 @@ EckInlineCe Vec2& operator/=(Vec2& v, float s) noexcept
 }
 
 
-using Rect = D2D1_RECT_F;
-using RectU = D2D1_RECT_U;
+struct Rect
+{
+    float left;
+    float top;
+    float right;
+    float bottom;
+};
+struct RectU
+{
+    UINT left;
+    UINT top;
+    UINT right;
+    UINT bottom;
+};
+struct RectI
+{
+    int left;
+    int top;
+    int right;
+    int bottom;
+};
 
 
 struct ColorF
@@ -62,4 +81,7 @@ struct ColorF
     float r, g, b, a;
 };
 KW2D_NAMESPACE_END
+ECK_DEF_RECT_TRAITS(Kw::Rect);
+ECK_DEF_RECT_TRAITS(Kw::RectU);
+ECK_DEF_RECT_TRAITS(Kw::RectI);
 ECK_NAMESPACE_END

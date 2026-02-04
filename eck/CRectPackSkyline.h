@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "CTrivialBuffer.h"
+#include "RectTraits.h"
 
 ECK_NAMESPACE_BEGIN
 class CRectPackSkyline
@@ -456,4 +457,6 @@ public:
     }
 #endif
 };
+
+ECK_DEF_RECT_TRAITS_RCWH(CRectPackSkyline::RECT);
 ECK_NAMESPACE_END
