@@ -213,7 +213,7 @@ inline void FlattenArc(
     float fTolerance = DefaultTolerance) noexcept
 {
     const auto e = fTolerance / r;
-    const auto dt = sqrt(8.f * e / (1.f + e));
+    const auto dt = sqrt(48.f * e / (6.f - e));
     const auto n = std::max(1u, UINT(ceil(abs(agSweep) / dt)));
     const auto fTheta = agSweep / n;
 
