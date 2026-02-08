@@ -178,6 +178,7 @@
     <ClCompile Include="TsCompress.cpp" />
     <ClCompile Include="TsCRectPackSkyline.cpp" />
     <ClCompile Include="TsCRefStr.cpp" />
+    <ClCompile Include="TsCSelRange.cpp" />
     <ClCompile Include="TsDateTimeHelper.cpp" />
     <ClCompile Include="TsMathHelper.cpp" />
     <ClCompile Include="TsRandom.cpp" />

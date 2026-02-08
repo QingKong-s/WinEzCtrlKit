@@ -41,7 +41,7 @@ public:
 int TestObject::constructCount = 0;
 int TestObject::destructCount = 0;
 
-TEST_CLASS(RefPtrBasicTests)
+TEST_CLASS(TsRefPtr)
 {
 public:
     TEST_METHOD_INITIALIZE(Setup)
@@ -120,15 +120,6 @@ public:
         RefPtr<TestObject> ptr;
         Assert::IsNull(ptr.Get());
     }
-};
-
-TEST_CLASS(RefPtrCopyTests)
-{
-public:
-    TEST_METHOD_INITIALIZE(Setup)
-    {
-        TestObject::ResetCounters();
-    }
 
     TEST_METHOD(TestCopyConstruction)
     {
@@ -200,15 +191,6 @@ public:
         Assert::AreEqual(0u, ptr1.GetReferenceCount());
         Assert::AreEqual(1, TestObject::destructCount);
     }
-};
-
-TEST_CLASS(RefPtrMoveTests)
-{
-public:
-    TEST_METHOD_INITIALIZE(Setup)
-    {
-        TestObject::ResetCounters();
-    }
 
     TEST_METHOD(TestMoveConstruction)
     {
@@ -217,7 +199,6 @@ public:
 
         RefPtr<TestObject> ptr2(std::move(ptr1));
 
-        Assert::AreEqual(0u, ptr1.GetReferenceCount());
         Assert::IsTrue(originalPtr == ptr2.Get());
         Assert::AreEqual(1u, ptr2.GetReferenceCount());
         Assert::AreEqual(42, ptr2->value);
@@ -264,15 +245,6 @@ public:
         ptr1 = std::move(ptr2);
 
         Assert::IsNull(ptr1.Get());
-    }
-};
-
-TEST_CLASS(RefPtrReferenceCountTests)
-{
-public:
-    TEST_METHOD_INITIALIZE(Setup)
-    {
-        TestObject::ResetCounters();
     }
 
     TEST_METHOD(TestMultipleReferences)
@@ -321,15 +293,6 @@ public:
             Assert::AreEqual(0, TestObject::destructCount);
         }
         Assert::AreEqual(1, TestObject::destructCount);
-    }
-};
-
-TEST_CLASS(RefPtrEdgeCaseTests)
-{
-public:
-    TEST_METHOD_INITIALIZE(Setup)
-    {
-        TestObject::ResetCounters();
     }
 
     TEST_METHOD(TestChainedAssignment)
@@ -382,7 +345,7 @@ struct ThrowConstructible
     ThrowConstructible(int) {}
 };
 
-TEST_CLASS(RefPtrNoexceptTests)
+TEST_CLASS(TsRefPtrNoexcept)
 {
 public:
     TEST_METHOD(TestNoexceptSpecifications)

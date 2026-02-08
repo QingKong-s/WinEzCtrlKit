@@ -116,7 +116,7 @@ public:
     }
 };
 
-TEST_CLASS(RadianInArcTest)
+TEST_CLASS(TsRadianInArc)
 {
 public:
     // 测试完整圆弧（扫描角度 >= 2π）
