@@ -264,6 +264,8 @@ public:
         Data()[pos] = e;
     }
 
+    EckInline auto& Insert(size_t pos) noexcept { return *InsertSize(pos, 1); }
+
     EckInline void InsertMultiple(size_t pos, const TElem& e, size_t c) noexcept
     {
         const auto p = InsertSize(pos, c);

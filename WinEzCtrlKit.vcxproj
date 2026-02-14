@@ -179,6 +179,7 @@
     <ClInclude Include="eck\BaseN.h" />
     <ClInclude Include="eck\Alpc.h" />
     <ClInclude Include="eck\CArray2D.h" />
+    <ClInclude Include="eck\CD3DImageList.h" />
     <ClInclude Include="eck\CGeometryBounds.h" />
     <ClInclude Include="eck\CGeometrySinkOffsetTranformer.h" />
     <ClInclude Include="eck\CMediaPlayer.h" />
@@ -200,6 +201,7 @@
     <ClInclude Include="eck\ComServerHelper.h" />
     <ClInclude Include="eck\Crc.h" />
     <ClInclude Include="eck\CRectPackSkyline.h" />
+    <ClInclude Include="eck\CRectPackTile.h" />
     <ClInclude Include="eck\CTrayIcon.h" />
     <ClInclude Include="eck\CTrivialBuffer.h" />
     <ClInclude Include="eck\Crypt.h" />

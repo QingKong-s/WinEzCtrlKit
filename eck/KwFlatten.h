@@ -4,7 +4,7 @@
 
 ECK_NAMESPACE_BEGIN
 KW2D_NAMESPACE_BEGIN
-constexpr inline float DefaultHfdTolerance = 0.5f;
+constexpr inline float DefaultHfdTolerance = 0.4f;
 constexpr inline float DefaultTolerance = 0.25f;
 
 // https://patents.google.com/patent/EP0577131B1/en

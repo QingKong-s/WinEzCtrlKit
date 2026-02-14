@@ -311,6 +311,7 @@ EckInlineNd ULONGLONG GetUnixTimestampMs() noexcept
     ull /= 10000ull;
     return ull;
 }
+EckInlineNd ULONGLONG GetUnixTimestamp() noexcept { return GetUnixTimestampMs() / 1000ull; }
 
 EckInlineNdCe SYSTEMTIME UnixTimestampToSystemTimeMs(ULONGLONG ull) noexcept
 {

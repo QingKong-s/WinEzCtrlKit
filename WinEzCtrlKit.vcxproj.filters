@@ -663,6 +663,12 @@
     <ClInclude Include="eck\RefPtr.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\CRectPackTile.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CD3DImageList.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">
