@@ -217,8 +217,14 @@
     <ClInclude Include="eck\EnDeCode.h" />
     <ClInclude Include="eck\FileHelper.h" />
     <ClInclude Include="eck\IGeometrySinkTransformer.h" />
+    <ClInclude Include="eck\KwConvexPolygon.h" />
     <ClInclude Include="eck\KwDef.h" />
+    <ClInclude Include="eck\KwDwTextRenderer.h" />
     <ClInclude Include="eck\KwFlatten.h" />
+    <ClInclude Include="eck\KwFontAtlasManager.h" />
+    <ClInclude Include="eck\KwLinearGradient.h" />
+    <ClInclude Include="eck\KwMirroredAtlas.h" />
+    <ClInclude Include="eck\KwMirroredTexture.h" />
     <ClInclude Include="eck\LyricCrypt.h" />
     <ClInclude Include="eck\PathUtility.h" />
     <ClInclude Include="eck\Random.h" />

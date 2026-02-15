@@ -306,5 +306,44 @@ struct CDepthStencilView
     EckInlineNdCe auto AddrOf() const noexcept { return pDsv.AddrOf(); }
     EckInline void Clear() noexcept { pDsv.Clear(); }
 };
+
+class CGpuRwTexture
+{
+private:
+    EzDx::CTexture m_Tex{};
+    EzDx::CRenderTargetView m_Rtv{};
+    EzDx::CShaderResourceView m_Srv{};
+public:
+    HRESULT Create(UINT cx, UINT cy,
+        DXGI_FORMAT eFormat = DXGI_FORMAT_B8G8R8A8_UNORM,
+        PCVOID pData = nullptr,
+        UINT cbStride = 0u) noexcept
+    {
+        HRESULT hr;
+        constexpr static UINT Bind =
+            D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+        if (pData)
+        {
+            const D3D11_SUBRESOURCE_DATA Data{ pData,cbStride };
+            hr = m_Tex.Create(cx, cy, eFormat, Bind,
+                D3D11_USAGE_DEFAULT, &Data);
+        }
+        else
+            hr = m_Tex.Create(cx, cy, eFormat, Bind);
+        if (FAILED(hr))
+            return hr;
+        hr = m_Srv.Create(m_Tex.Get());
+        if (FAILED(hr))
+            return hr;
+        return m_Rtv.Create(m_Tex.Get());
+    }
+
+    EckInlineNdCe auto& GetTexture() noexcept { return m_Tex; }
+    EckInlineNdCe auto& GetRenderTargetView() noexcept { return m_Rtv; }
+    EckInlineNdCe auto& GetShaderResourceView() noexcept { return m_Srv; }
+    EckInlineNdCe auto& GetTexture() const noexcept { return m_Tex; }
+    EckInlineNdCe auto& GetRenderTargetView() const noexcept { return m_Rtv; }
+    EckInlineNdCe auto& GetShaderResourceView() const noexcept { return m_Srv; }
+};
 ECK_EZDX_NAMESPACE_END
 ECK_NAMESPACE_END
