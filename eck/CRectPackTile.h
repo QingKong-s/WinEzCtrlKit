@@ -126,7 +126,7 @@ public:
     }
 
     EckInlineNdCe BOOL HasFreeTile() const noexcept { return !m_rgFree.IsEmpty(); }
-    EckInlineNdCe UINT GetPageCount() const noexcept { return m_vPage.Size(); }
+    EckInlineNdCe UINT GetPageCount() const noexcept { return (UINT)m_vPage.Size(); }
     EckInlineNdCe UINT GetCount() const noexcept { return m_cTile - m_rgFree.CountIncluded(); }
 };
 ECK_NAMESPACE_END

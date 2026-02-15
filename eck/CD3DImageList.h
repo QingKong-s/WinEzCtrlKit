@@ -105,7 +105,7 @@ public:
     EckInlineNdCe UINT GetPadding() const noexcept { return 1; }
 
     // 返回页索引
-    UINT CalculateUv(
+    constexpr UINT CalculateUv(
         UINT uId,
         _Out_ float& u0, _Out_ float& v0,
         _Out_ float& u1, _Out_ float& v1) const noexcept

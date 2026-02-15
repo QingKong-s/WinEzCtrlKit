@@ -74,9 +74,12 @@ public:
         _Out_opt_ NTSTATUS* pnts = nullptr) noexcept
     {
         IO_STATUS_BLOCK iosb;
-        const auto nts = NtReadFile(m_hObject, nullptr, nullptr, nullptr,
+        auto nts = NtReadFile(m_hObject, nullptr, nullptr, nullptr,
             &iosb, pBuf, cbBuf, nullptr, nullptr);
-        if (pcbRead) *pcbRead = (DWORD)iosb.Information;
+        if (nts == STATUS_PENDING)
+            nts = NtWaitForSingleObject(m_hObject, FALSE, nullptr);
+        if (pcbRead)
+            *pcbRead = (DWORD)iosb.Information;
         if (pnts) *pnts = nts;
         return *this;
     }
@@ -94,9 +97,12 @@ public:
         _Out_opt_ NTSTATUS* pnts = nullptr) noexcept
     {
         IO_STATUS_BLOCK iosb;
-        const auto nts = NtWriteFile(m_hObject, nullptr, nullptr, nullptr,
+        auto nts = NtWriteFile(m_hObject, nullptr, nullptr, nullptr,
             &iosb, (void*)pBuf, cbBuf, nullptr, nullptr);
-        if (pcbWritten) *pcbWritten = (DWORD)iosb.Information;
+        if (nts == STATUS_PENDING)
+            nts = NtWaitForSingleObject(m_hObject, FALSE, nullptr);
+        if (pcbWritten)
+            *pcbWritten = (DWORD)iosb.Information;
         if (pnts) *pnts = nts;
         return *this;
     }
@@ -161,13 +167,14 @@ public:
         return NtFlushBuffersFile(m_hObject, &iosb);
     }
 
-    EckInline NTSTATUS GetInformation(_Out_ auto& Info,
+    EckInline NTSTATUS GetInformation(
+        _Out_ auto& Info,
         FILE_INFORMATION_CLASS eCls) noexcept
     {
         IO_STATUS_BLOCK iosb;
         return NtQueryInformationFile(m_hObject, &iosb, &Info, sizeof(Info), eCls);
     }
-    EckInline NTSTATUS GetInformationBuffer(
+    EckInline NTSTATUS GetInformation(
         _Out_writes_bytes_(cbBuf) void* pBuf,
         ULONG cbBuf,
         FILE_INFORMATION_CLASS eCls,
@@ -178,6 +185,32 @@ public:
             pBuf, cbBuf, eCls);
         if (pcbRet) *pcbRet = (ULONG)iosb.Information;
         return nts;
+    }
+
+    EckInline NTSTATUS SetInformation(
+        const auto& Info,
+        FILE_INFORMATION_CLASS eCls) noexcept
+    {
+        IO_STATUS_BLOCK iosb;
+        return NtSetInformationFile(m_hObject, &iosb, (void*)&Info, sizeof(Info), eCls);
+    }
+    EckInline NTSTATUS SetInformation(
+        PCVOID pBuf,
+        ULONG cbBuf,
+        FILE_INFORMATION_CLASS eCls,
+        _Out_opt_ ULONG* pcbRet = nullptr) noexcept
+    {
+        IO_STATUS_BLOCK iosb;
+        const auto nts = NtSetInformationFile(m_hObject, &iosb,
+            (void*)pBuf, cbBuf, eCls);
+        if (pcbRet) *pcbRet = (ULONG)iosb.Information;
+        return nts;
+    }
+
+    NTSTATUS Delete(BOOLEAN bDelete = TRUE) noexcept
+    {
+        const FILE_DISPOSITION_INFORMATION Info{ bDelete };
+        return SetInformation(Info, FileDispositionInformation);
     }
 };
 
