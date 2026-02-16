@@ -15,7 +15,7 @@ public:
         short x;
         short y;
 
-        MsgParam(WPARAM wParam, LPARAM lParam) noexcept :
+        constexpr MsgParam(WPARAM wParam, LPARAM lParam) noexcept :
             uEvent{ LOWORD(lParam) },
             uId{ HIWORD(lParam) },
             x{ GET_X_LPARAM(wParam) },

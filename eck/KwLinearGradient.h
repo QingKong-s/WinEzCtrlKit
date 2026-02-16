@@ -27,16 +27,16 @@ public:
         UINT argb;
     };
 private:
-    CTrivialBuffer<STOP> m_vStop;
-    Vec2 m_ptStart, m_ptEnd;
-    float m_kStart, m_kEnd;
+    CTrivialBuffer<STOP> m_vStop{};
+    Vec2 m_ptStart{}, m_ptEnd{};
+    float m_kStart{}, m_kEnd{};
 
     Vec2 m_vecDirection{};
-    float m_fDirVecLenSq;
+    float m_fDirVecLenSq{};
 
     float m_fGammaUser{ 2.2f };
     GammaMode m_eGammaMode{ GammaMode::Gamma2_2 };
-    ExtendMode m_eExtendMode;
+    ExtendMode m_eExtendMode{ ExtendMode::Clamp };
 
     float MapK(float k) const noexcept
     {
