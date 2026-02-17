@@ -54,7 +54,7 @@ struct CoroPromiseBase
                     hNext.resume();
                 // 若减引用后为0，说明Task已析构，则返回false，协程结束并自动销毁；否则，
                 // Task仍保留一份引用，此时返回true，协程暂停在最终暂停点，等待Task析构时主动销毁
-                return Pro.DecRef() != 0;
+                return Pro.Dereference() != 0;
             }
             constexpr void await_resume() const noexcept {}
         };
@@ -83,17 +83,17 @@ struct CoroPromiseBase
     }
 #endif // __cpp_exceptions
 
-    EckInline LONG IncRef() noexcept
+    EckInline LONG Reference() noexcept
     {
         return _InterlockedIncrement(&m_cRef);
     }
 
-    EckInline LONG DecRef() noexcept
+    EckInline LONG Dereference() noexcept
     {
         return _InterlockedDecrement(&m_cRef);
     }
 
-    bool SyncResumeToIt(std::coroutine_handle<> hCoroNext_) noexcept
+    bool SetNextCoroutine(std::coroutine_handle<> hCoroNext_) noexcept
     {
         EckAssert(!m_hCoroNext && L"不能重复等待同步任务");
         m_hCoroNext = hCoroNext_;
@@ -202,8 +202,8 @@ public:
         m_RetVal.emplace(std::forward<T>(Val));
     }
 
-    constexpr auto& GetRetVal() const noexcept { return m_RetVal; }
-    constexpr auto& GetRetVal() noexcept { return m_RetVal; }
+    constexpr auto& GetReturnValue() const noexcept { return m_RetVal; }
+    constexpr auto& GetReturnValue() noexcept { return m_RetVal; }
 };
 
 // 无返回值
@@ -268,7 +268,7 @@ struct CoroTask
             bool await_ready() const noexcept { return Pro.IsCompleted(); }
             bool await_suspend(std::coroutine_handle<> h) const noexcept
             {
-                return Pro.SyncResumeToIt(h);
+                return Pro.SetNextCoroutine(h);
             }
             constexpr void await_resume() const noexcept {}
         };
@@ -282,7 +282,7 @@ struct CoroTask
         if (&x != this)
         {
             if (hCoroutine = x.hCoroutine)
-                hCoroutine.promise().IncRef();
+                hCoroutine.promise().Reference();
         }
     }
 
@@ -297,7 +297,7 @@ struct CoroTask
         {
             CoroTask t{ hCoroutine };
             if (hCoroutine = x.hCoroutine)
-                hCoroutine.promise().IncRef();
+                hCoroutine.promise().Reference();
         }
         return *this;
     }
@@ -310,11 +310,11 @@ struct CoroTask
 
     ~CoroTask()
     {
-        if (hCoroutine && (hCoroutine.promise().DecRef() == 0))
+        if (hCoroutine && (hCoroutine.promise().Dereference() == 0))
             hCoroutine.destroy();
     }
 
-    void SyncWait() const
+    void Wait() const
     {
         CEvent Event(nullptr, FALSE, FALSE);
 
@@ -329,8 +329,8 @@ struct CoroTask
     // Forwarder
 
     EckInline auto& GetPromise() const noexcept { return hCoroutine.promise(); }
-    EckInline auto& GetRetVal() const noexcept { return GetPromise().GetRetVal(); }
-    EckInline auto& GetRetVal() noexcept { return GetPromise().GetRetVal(); }
+    EckInline auto& GetReturnValue() const noexcept { return GetPromise().GetReturnValue(); }
+    EckInline auto& GetReturnValue() noexcept { return GetPromise().GetReturnValue(); }
     EckInline BOOL IsCompleted() const noexcept { return GetPromise().IsCompleted(); }
     EckInline BOOL TryCancel() noexcept { return GetPromise().TryCancel(); }
     EckInline BOOL IsCanceled() const noexcept { return GetPromise().IsCanceled(); }
@@ -488,7 +488,7 @@ EckInline auto CoroCaptureUiThread(ThreadContext* ptc = nullptr)
         UINT Priority{ UINT_MAX };
         BOOL IsWakeUiThread{ FALSE };
 
-        Context(ThreadContext* ptc = nullptr) : m_pCallback{ &ptc->Callback } {}
+        constexpr Context(ThreadContext* ptc) noexcept : m_pCallback{ &ptc->Callback } {}
 
         constexpr bool await_ready() const noexcept { return false; }
         void await_suspend(std::coroutine_handle<> h) const noexcept

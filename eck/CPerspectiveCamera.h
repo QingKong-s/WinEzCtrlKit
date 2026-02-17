@@ -32,17 +32,17 @@ struct alignas(16) CPerspectiveCamera
         return DirectX::XMLoadFloat3A((const DirectX::XMFLOAT3A*)&Up);
     }
 
-    EckInlineNd DirectX::XMMATRIX CalcViewMatrix() const noexcept
+    EckInlineNd DirectX::XMMATRIX CalculateViewMatrix() const noexcept
     {
         return DirectX::XMMatrixLookToLH(XmLoadPosition(), XmLoadLookTo(), XmLoadWorldUp());
     }
-    EckInlineNd DirectX::XMMATRIX CalcProjectMatrix() const noexcept
+    EckInlineNd DirectX::XMMATRIX CalculateProjectMatrix() const noexcept
     {
         return DirectX::XMMatrixPerspectiveFovLH(FovY, Aspect, NearZ, FarZ);
     }
-    EckInlineNd DirectX::XMMATRIX CalcViewProjectMatrix() const noexcept
+    EckInlineNd DirectX::XMMATRIX CalculateViewProjectMatrix() const noexcept
     {
-        return CalcViewMatrix() * CalcProjectMatrix();
+        return CalculateViewMatrix() * CalculateProjectMatrix();
     }
 
     void WalkX(float d) noexcept

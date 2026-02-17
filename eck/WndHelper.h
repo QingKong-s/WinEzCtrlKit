@@ -941,22 +941,25 @@ inline void GenerateKeyMessage(HWND hWnd, UINT Vk,
 #pragma region Others
 inline SIZE GetCharDimension(HWND hWnd, HFONT hFont) noexcept
 {
+    const auto hDC = GetDC(hWnd);
+    const auto hFontOld = (HFONT)SelectObject(hDC, hFont);
     TEXTMETRICW tm;
-    HDC hDC = GetDC(hWnd);
-    HFONT hFontOld = (HFONT)SelectObject(hDC, hFont);
     GetTextMetricsW(hDC, &tm);
-    ReleaseDC(hWnd, hDC);
     if (tm.tmPitchAndFamily & TMPF_FIXED_PITCH)
     {
         SIZE size;
         GetTextExtentPoint32W(hDC,
             L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 52, &size);
+        ReleaseDC(hWnd, hDC);
         size.cx = ((size.cx / 26) + 1) / 2;
         size.cy = tm.tmHeight;
         return size;
     }
     else
+    {
+        ReleaseDC(hWnd, hDC);
         return { tm.tmAveCharWidth, tm.tmHeight };
+    }
 }
 
 // 根据位置判断窗口是否应显示大小调整控件。该函数无视被判断窗口的样式
