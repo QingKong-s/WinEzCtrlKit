@@ -105,9 +105,9 @@ struct CRandom : public TBase
         const auto u = Next(T(0), T(1));
         const auto c = (Mode - Min) / (Max - Min);
         if (u < c)
-            return Min + (T)std::sqrt(u * (Max - Min) * (Mode - Min));
+            return Min + (T)sqrt(u * (Max - Min) * (Mode - Min));
         else
-            return Max - (T)std::sqrt((T(1) - u) * (Max - Min) * (Max - Mode));
+            return Max - (T)sqrt((T(1) - u) * (Max - Min) * (Max - Mode));
     }
     // 均值为0，标准差为1
     template<std::floating_point T>

@@ -66,7 +66,7 @@ public:
     {
         return p ? p->cRef.load(std::memory_order_relaxed) : 0;
     }
-private:
+
     void Clear() noexcept
     {
         if (p)
