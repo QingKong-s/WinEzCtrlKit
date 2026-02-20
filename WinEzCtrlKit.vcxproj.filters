@@ -687,6 +687,9 @@
     <ClInclude Include="eck\KwLinearGradient.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\WinUiMgr.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">
