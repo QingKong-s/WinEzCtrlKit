@@ -135,8 +135,8 @@ namespace Priv
 class CUninstallInfo
 {
 private:
-    CRegKey m_Reg{};
-    CRefStrW m_rsBuffer{};
+    CRegistryKey m_Reg{};
+    CStringW m_rsBuffer{};
     DWORD m_idxCurr{};
     BYTE m_idxCurrSource{};
     BITBOOL m_bAutoCompleteAppInfo : 1{ TRUE };
@@ -189,8 +189,8 @@ public:
     {
         friend class CUninstallInfo;
 
-        CRegKey Reg{};
-        CRefStrW StrBuffer{};
+        CRegistryKey Reg{};
+        CStringW StrBuffer{};
         DWORD EstimatedSize{};
         AppwizFlags Flags{};
         DWORD MajorVersion{};

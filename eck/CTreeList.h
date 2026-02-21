@@ -308,8 +308,8 @@ private:
     int m_msDraggingSelScrollGap = 30;	// 拖动选择时自动滚动最小间隔
     int m_cyHSB = 0;					// 水平滚动条高度，用于底部悬浮滚动条
     //--------
-    CRefStrW m_rsWatermark{};			// 水印文本
-    CRefStrW m_rsTextBuf{};				// 文本缓冲区
+    CStringW m_rsWatermark{};			// 水印文本
+    CStringW m_rsTextBuf{};				// 文本缓冲区
     //--------内部标志
 #ifdef _DEBUG
     BITBOOL m_bDbgDrawIndex : 1 = 0;			// 【调试】绘制项目索引
@@ -2722,7 +2722,7 @@ public:
     EckInlineNdCe BOOL GetFlatMode() const noexcept { return m_bFlatMode; }
 
     EckInline void SetWatermarkString(PCWSTR pszText) noexcept { m_rsWatermark = pszText; }
-    EckInlineNdCe const CRefStrW& GetWatermarkString() const noexcept { return m_rsWatermark; }
+    EckInlineNdCe const CStringW& GetWatermarkString() const noexcept { return m_rsWatermark; }
 
     EckInlineCe void SetBackgroundNotSolid(BOOL b) noexcept { m_bBackgroundNotSolid = b; }
     EckInlineNdCe BOOL GetBackgroundNotSolid() const noexcept { return m_bBackgroundNotSolid; }

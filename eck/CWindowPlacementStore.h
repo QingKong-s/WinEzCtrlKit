@@ -1,9 +1,9 @@
 ﻿#pragma once
-#include "CRefStr.h"
+#include "CString.h"
 #include "WndHelper.h"
 
 ECK_NAMESPACE_BEGIN
-struct CWindowPosSetting
+struct CWindowPlacementStore
 {
     enum class Result
     {
@@ -53,7 +53,7 @@ struct CWindowPosSetting
             return SetWindowPos(hWnd, nullptr, x, y, cx, cy, SWP_NOZORDER);
     }
 
-    void ToString(CRefStrW& rs) noexcept
+    void ToString(CStringW& rs) noexcept
     {
         rs.PushBackFormat(L"%s,%d,%d,%d,%d,%d", Version, x, y, cx, cy, bMaximized);
     }

@@ -218,10 +218,10 @@ public:
 private:
     struct INFO
     {
-        CRefStrW rsTitle{};
-        CRefStrW rsArtist{};
-        CRefStrW rsAlbum{};
-        CRefStrW rsComment{};
+        CStringW rsTitle{};
+        CStringW rsArtist{};
+        CStringW rsAlbum{};
+        CStringW rsComment{};
         USHORT usYear{};
         BYTE byTrack{};
         BYTE byGenre{ 0xFF };
@@ -229,7 +229,7 @@ private:
         // 以下为ID3v1.2信息
 
         Speed eSpeed{};
-        CRefStrW rsGenre{};
+        CStringW rsGenre{};
         UINT uBeginSec{};
         UINT uEndSec{};
     };
@@ -237,14 +237,14 @@ private:
     INFO m_Info{};
     BOOL m_bEmpty{ TRUE };
 
-    static void TagpZeroTail(CRefStrA& rs, int cchMax) noexcept
+    static void TagpZeroTail(CStringA& rs, int cchMax) noexcept
     {
         EckAssert(rs.Capacity() >= cchMax);
         if (rs.Size() < cchMax)
             ZeroMemory(rs.Data() + rs.Size(), cchMax - rs.Size());
     }
 
-    void TagpWriteString(const CRefStrW& rs, int cchMax, CRefStrA& rsWork) noexcept
+    void TagpWriteString(const CStringW& rs, int cchMax, CStringA& rsWork) noexcept
     {
         rsWork.Clear();
         StrW2X(rsWork, rs.Data(), std::min(rs.Size(), cchMax + 8));
@@ -252,7 +252,7 @@ private:
         m_Stream.Write(rsWork.Data(), cchMax);
     }
 
-    void TagpWriteSecond(UINT uSecTotal, CRefStrA& rsWork) noexcept
+    void TagpWriteSecond(UINT uSecTotal, CStringA& rsWork) noexcept
     {
         constexpr BYTE ZeroBytes[6]{};
 
@@ -274,7 +274,7 @@ private:
         _Out_writes_(cchMax) PCH pszWork,
         int cchMax,
         _Out_ int& cchNew,
-        CRefStrW& rs) noexcept
+        CStringW& rs) noexcept
     {
         m_Stream.Read(pszWork, cchMax);
         if (pszWork[cchMax - 1])
@@ -484,7 +484,7 @@ public:
 
     Result WriteTag(UINT uFlags) noexcept override try
     {
-        CRefStrA rsTemp{};
+        CStringA rsTemp{};
         rsTemp.Reserve(60);
 
         const auto& Loc = m_File.GetTagLocation();

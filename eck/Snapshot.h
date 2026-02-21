@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "ComPtr.h"
-#include "CRefBin.h"
+#include "CByteBuffer.h"
 #include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
@@ -20,7 +20,7 @@ struct SNP_ADAPTER
 
 struct SNP_CURSOR
 {
-    CRefBin rbCursor;
+    CByteBuffer rbCursor;
     DXGI_OUTDUPL_POINTER_SHAPE_INFO ShapeInfo;
     DXGI_OUTDUPL_POINTER_POSITION Position;
 };

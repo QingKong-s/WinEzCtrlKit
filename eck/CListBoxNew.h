@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CWnd.h"
+#include "CWindow.h"
 #include "CtrlGraphics.h"
 #include "CSelRange.h"
 
@@ -83,7 +83,7 @@ private:
     CSelRange m_SelRange{};
     int m_cItem{};
 
-    CRefStrW m_rsTextBuf{};
+    CStringW m_rsTextBuf{};
 
     HWND m_hComboBox{};	// 关联的组合框，可以是除自身外的任何窗口
     HWND m_hParent{};	// 接收通知的父窗口

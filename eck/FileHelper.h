@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "NativeWrapper.h"
-#include "CRefBin.h"
-#include "CRefStr.h"
+#include "CByteBuffer.h"
+#include "CString.h"
 #include "AutoPtrDef.h"
 #include "CFile.h"
 
@@ -18,7 +18,7 @@ inline LONGLONG FileGetSizeByPath(
     return 0;
 }
 
-inline NTSTATUS ReadInFile(_In_z_ PCWSTR pszFile, CRefBin& rb) noexcept
+inline NTSTATUS ReadInFile(_In_z_ PCWSTR pszFile, CByteBuffer& rb) noexcept
 {
     CFile File{};
     auto nts = File.Create(pszFile,
@@ -45,11 +45,11 @@ inline NTSTATUS ReadInFile(_In_z_ PCWSTR pszFile, CRefBin& rb) noexcept
     }
     return STATUS_SUCCESS;
 }
-inline CRefBin ReadInFile(
+inline CByteBuffer ReadInFile(
     _In_z_ PCWSTR pszFile,
     _Out_opt_ NTSTATUS* pnts = nullptr) noexcept
 {
-    CRefBin rb{};
+    CByteBuffer rb{};
     const auto nts = ReadInFile(pszFile, rb);
     if (pnts) *pnts = nts;
     return rb;
@@ -70,7 +70,7 @@ inline NTSTATUS WriteToFile(
         File.Write(pData, cb, nullptr, &nts);
     return nts;
 }
-EckInline NTSTATUS WriteToFile(_In_z_ PCWSTR pszFile, const CRefBin& rb) noexcept
+EckInline NTSTATUS WriteToFile(_In_z_ PCWSTR pszFile, const CByteBuffer& rb) noexcept
 {
     return WriteToFile(pszFile, rb.Data(), (DWORD)rb.Size());
 }
@@ -107,7 +107,7 @@ namespace Priv
     }
 }
 
-inline NTSTATUS FileNtPathToDosPath(CRefStrW& rsBuf) noexcept
+inline NTSTATUS FileNtPathToDosPath(CStringW& rsBuf) noexcept
 {
     if (rsBuf.IsStartWith(EckStrAndLen(LR"(\??\)")))
         rsBuf.Erase(0, 4);

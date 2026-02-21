@@ -1,12 +1,10 @@
 ﻿#pragma once
-#include "Utility.h"
-#include "CRefStr.h"
-#include "CRefBin.h"
+#include "CString.h"
+#include "CByteBuffer.h"
 
-#include <functional>
 
 ECK_NAMESPACE_BEGIN
-class CRegKey
+class CRegistryKey
 {
 private:
     HKEY m_hKey = nullptr;
@@ -42,14 +40,14 @@ public:
         return hKeyRoot;
     }
 
-    ECK_DISABLE_COPY_DEF_CONS(CRegKey);
+    ECK_DISABLE_COPY_DEF_CONS(CRegistryKey);
 
     /// <summary>
     /// 构造自路径
     /// </summary>
     /// <param name="pszKey">注册项路径，应当以HKLM、HKCU、HKCR、HKU、HKCC五者其中之一开头</param>
     /// <param name="dwAccess">访问权限</param>
-    CRegKey(PCWSTR pszPath,
+    CRegistryKey(PCWSTR pszPath,
         REGSAM dwAccess = KEY_READ | KEY_WRITE,
         LSTATUS* plStatus = nullptr) noexcept
     {
@@ -69,7 +67,7 @@ public:
         }
     }
 
-    CRegKey(HKEY hKey, PCWSTR pszKey,
+    CRegistryKey(HKEY hKey, PCWSTR pszKey,
         REGSAM dwAccess = KEY_READ | KEY_WRITE,
         LSTATUS* plStatus = nullptr) noexcept
     {
@@ -78,16 +76,16 @@ public:
             *plStatus = r;
     }
 
-    constexpr CRegKey(HKEY hKey) noexcept : m_hKey{ hKey } {}
+    constexpr CRegistryKey(HKEY hKey) noexcept : m_hKey{ hKey } {}
 
-    ~CRegKey()
+    ~CRegistryKey()
     {
         Close();
     }
 
-    constexpr CRegKey(CRegKey&& x) noexcept :m_hKey{ x.m_hKey } { x.m_hKey = nullptr; }
+    constexpr CRegistryKey(CRegistryKey&& x) noexcept :m_hKey{ x.m_hKey } { x.m_hKey = nullptr; }
 
-    constexpr CRegKey& operator=(CRegKey&& x) noexcept
+    constexpr CRegistryKey& operator=(CRegistryKey&& x) noexcept
     {
         std::swap(m_hKey, x.m_hKey);
         return *this;
@@ -189,7 +187,7 @@ public:
             pszClassNameBuf, pcchClassName, pftLastWrite);
     }
 
-    int EnumerateKey(std::invocable<CRefStrW&> auto&& Fn,
+    int EnumerateKey(std::invocable<CStringW&> auto&& Fn,
         _Out_opt_ LSTATUS* plStatus = nullptr) noexcept
     {
         if (plStatus)
@@ -197,7 +195,7 @@ public:
         DWORD cchMaxSub = 0;
         QueryInfomation(nullptr, nullptr, nullptr, &cchMaxSub);
         DWORD idx = 0;
-        CRefStrW rs(cchMaxSub);
+        CStringW rs(cchMaxSub);
         DWORD dw = cchMaxSub + 1;
         LSTATUS lStatus;
         while ((lStatus = EnumerateKey(idx, rs.Data(), &dw)) != ERROR_NO_MORE_ITEMS)
@@ -224,14 +222,14 @@ public:
             nullptr, pdwType, (BYTE*)pDataBuf, pcbDataBuf);
     }
 
-    int EnumerateValue(const std::function<BOOL(CRefStrW& rsName, DWORD dwType)>& fn,
+    int EnumerateValue(const std::function<BOOL(CStringW& rsName, DWORD dwType)>& fn,
         LSTATUS* plStatus = nullptr) noexcept
     {
         if (plStatus)
             *plStatus = ERROR_SUCCESS;
         constexpr int c_cchMax = 32770 / 2;
         DWORD idx = 0;
-        CRefStrW rs(c_cchMax);
+        CStringW rs(c_cchMax);
         DWORD dw = c_cchMax;
         DWORD dwType;
         LSTATUS lStatus;
@@ -273,7 +271,7 @@ public:
     /// <param name="dwFlags">标志，本函数将自动添加类型限制标志</param>
     /// <param name="plStatus">接收错误码变量的可选指针</param>
     /// <returns>数据</returns>
-    [[nodiscard]] CRefBin GetValueBin(PCWSTR pszSubKey,
+    [[nodiscard]] CByteBuffer GetValueBin(PCWSTR pszSubKey,
         PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = nullptr) noexcept
     {
         EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
@@ -286,7 +284,7 @@ public:
         {
             if (cb)
             {
-                CRefBin rb(cb);
+                CByteBuffer rb(cb);
                 GetValue(pszSubKey, pszValue, rb.Data(), &cb, dwFlags);
                 return rb;
             }
@@ -331,7 +329,7 @@ public:
         return 0u;
     }
 
-    LSTATUS GetValueString(CRefStrW& rs, PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u) noexcept
+    LSTATUS GetValueString(CStringW& rs, PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u) noexcept
     {
         EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
         dwFlags |= RRF_RT_REG_SZ;
@@ -369,7 +367,7 @@ public:
         return RegQueryValueExW(m_hKey, pszValue, nullptr, pdwType, (BYTE*)pBuf, pcbBuf);
     }
 
-    [[nodiscard]] CRefBin QueryValueBin(PCWSTR pszValue, LSTATUS* plStatus = nullptr) noexcept
+    [[nodiscard]] CByteBuffer QueryValueBin(PCWSTR pszValue, LSTATUS* plStatus = nullptr) noexcept
     {
         EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
         if (plStatus)
@@ -380,7 +378,7 @@ public:
         {
             if (cb)
             {
-                CRefBin rb(cb);
+                CByteBuffer rb(cb);
                 QueryValue(pszValue, rb.Data(), &cb);
                 return rb;
             }
@@ -421,7 +419,7 @@ public:
         return 0u;
     }
 
-    LSTATUS QueryValueString(CRefStrW& rs, PCWSTR pszValue, DWORD* pdwType = nullptr) noexcept
+    LSTATUS QueryValueString(CStringW& rs, PCWSTR pszValue, DWORD* pdwType = nullptr) noexcept
     {
         EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
         DWORD cb{}, dwType{};
@@ -469,12 +467,12 @@ public:
         return SetValue(pszSubKey, pszValue, &ullData, sizeof(ullData), REG_QWORD);
     }
 
-    EckInline LSTATUS SetValue(PCWSTR pszSubKey, PCWSTR pszValue, const CRefStrW& rs) noexcept
+    EckInline LSTATUS SetValue(PCWSTR pszSubKey, PCWSTR pszValue, const CStringW& rs) noexcept
     {
         return SetValue(pszSubKey, pszValue, rs.Data(), (DWORD)rs.ByteSize(), REG_SZ);
     }
 
-    EckInline LSTATUS SetValue(PCWSTR pszSubKey, PCWSTR pszValue, const CRefBin& rs) noexcept
+    EckInline LSTATUS SetValue(PCWSTR pszSubKey, PCWSTR pszValue, const CByteBuffer& rs) noexcept
     {
         return SetValue(pszSubKey, pszValue, rs.Data(), (DWORD)rs.Size(), REG_BINARY);
     }
@@ -494,12 +492,12 @@ public:
         return SetValue(pszValue, &ullData, sizeof(ullData), REG_QWORD);
     }
 
-    EckInline LSTATUS SetValue(PCWSTR pszValue, const CRefStrW& rs) noexcept
+    EckInline LSTATUS SetValue(PCWSTR pszValue, const CStringW& rs) noexcept
     {
         return SetValue(pszValue, rs.Data(), (DWORD)rs.ByteSize(), REG_SZ);
     }
 
-    EckInline LSTATUS SetValue(PCWSTR pszValue, const CRefBin& rs) noexcept
+    EckInline LSTATUS SetValue(PCWSTR pszValue, const CByteBuffer& rs) noexcept
     {
         return SetValue(pszValue, rs.Data(), (DWORD)rs.Size(), REG_BINARY);
     }

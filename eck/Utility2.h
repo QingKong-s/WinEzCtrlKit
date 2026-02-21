@@ -1,26 +1,26 @@
 ﻿#pragma once
-#include "CRefBin.h"
-#include "CRefStr.h"
+#include "CByteBuffer.h"
+#include "CString.h"
 #include "Random.h"
 
 #include <bcrypt.h>
 
 ECK_NAMESPACE_BEGIN
 #pragma region CRefBinT运算符
-template<class TAlloc, class TChar, class TTraits, class TAlloc1>
-EckInline CRefBinT<TAlloc>& operator<<(CRefBinT<TAlloc>& rb, const CRefStrT<TChar, TTraits, TAlloc1>& rs)
+template<class TAllocator, class TChar, class TTraits, class TAllocator1>
+EckInline CByteBufferT<TAllocator>& operator<<(CByteBufferT<TAllocator>& rb, const CStringT<TChar, TTraits, TAllocator1>& rs)
 {
     rb.PushBack(rs.Data(), rs.ByteSize());
     return rb;
 }
-template<class TAlloc, class TAlloc1>
-EckInline CRefBinT<TAlloc>& operator<<(CRefBinT<TAlloc>& rb, const CRefBinT<TAlloc1>& rb1)
+template<class TAllocator, class TAllocator1>
+EckInline CByteBufferT<TAllocator>& operator<<(CByteBufferT<TAllocator>& rb, const CByteBufferT<TAllocator1>& rb1)
 {
     rb.PushBack(rb1.Data(), rb1.Size());
     return rb;
 }
-template<class TAlloc, class T>
-EckInline CRefBinT<TAlloc>& operator<<(CRefBinT<TAlloc>& rb, const T& t)
+template<class TAllocator, class T>
+EckInline CByteBufferT<TAllocator>& operator<<(CByteBufferT<TAllocator>& rb, const T& t)
 {
     rb.PushBack(&t, sizeof(T));
     return rb;
@@ -71,8 +71,8 @@ EckInline std::wstring_view GetResourceStringForCurrentLocale(
 #pragma endregion 资源
 
 #pragma region Utf8转换
-template<class TAlloc>
-void StrW2X(CRefBinT<TAlloc>& rbResult,
+template<class TAllocator>
+void StrW2X(CByteBufferT<TAllocator>& rbResult,
     _In_reads_or_z_(cch) PCWCH pszText,
     int cch = -1,
     UINT uCP = CP_ACP,
@@ -89,8 +89,8 @@ void StrW2X(CRefBinT<TAlloc>& rbResult,
         pszText, cch, pszBuf, cchBuf, nullptr, nullptr);
     *(pszBuf + cchBuf) = '\0';
 }
-template<class TAlloc>
-void StrX2W(CRefBinT<TAlloc>& rbResult,
+template<class TAllocator>
+void StrX2W(CByteBufferT<TAllocator>& rbResult,
     _In_reads_or_z_(cch) PCCH pszText,
     int cch,
     UINT uCP = CP_ACP,
@@ -106,50 +106,50 @@ void StrX2W(CRefBinT<TAlloc>& rbResult,
     *(pszBuf + cchBuf) = L'\0';
 }
 
-template<class TChar, class TTraits, class TAlloc>
+template<class TChar, class TTraits, class TAllocator>
     requires (sizeof(TChar) == 1)
-EckInline void StrW2U8(CRefStrT<TChar, TTraits, TAlloc>& rsResult,
+EckInline void StrW2U8(CStringT<TChar, TTraits, TAllocator>& rsResult,
     _In_reads_or_z_(cch) PCWCH pszText, int cch = -1) noexcept
 {
     StrW2X(rsResult, pszText, cch, CP_UTF8, 0u);
 }
-template<class TTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<CHAR>>
+template<class TTraits = CCharTraits<CHAR>, class TAllocator = TStringDefaultAllocator<CHAR>>
 EckInlineNd auto StrW2U8(_In_reads_or_z_(cch) PCWCH pszText, int cch = -1) noexcept
 {
-    CRefStrT<CHAR, TTraits, TAlloc> rs;
+    CStringT<CHAR, TTraits, TAllocator> rs;
     StrW2U8(rs, pszText, cch);
     return rs;
 }
-template<class TAlloc>
-void StrW2U8(CRefBinT<TAlloc>& rbResult,
+template<class TAllocator>
+void StrW2U8(CByteBufferT<TAllocator>& rbResult,
     _In_reads_or_z_(cch) PCWCH pszText, int cch = -1) noexcept
 {
     StrW2X(rbResult, pszText, cch, CP_UTF8, 0u);
 }
 
-template<class TChar, class TTraits, class TAlloc>
+template<class TChar, class TTraits, class TAllocator>
     requires (sizeof(TChar) == 2)
-EckInline void StrU82W(CRefStrT<TChar, TTraits, TAlloc>& rsResult,
+EckInline void StrU82W(CStringT<TChar, TTraits, TAllocator>& rsResult,
     _In_reads_or_z_(cch) PCCH pszText, int cch = -1) noexcept
 {
     StrX2W(rsResult, pszText, cch, CP_UTF8, 0u);
 }
-template<class TTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>>
+template<class TTraits = CCharTraits<WCHAR>, class TAllocator = TStringDefaultAllocator<WCHAR>>
 EckInlineNd auto StrU82W(_In_reads_or_z_(cch) PCCH pszText, int cch = -1) noexcept
 {
-    CRefStrT<WCHAR, TTraits, TAlloc> rs;
+    CStringT<WCHAR, TTraits, TAllocator> rs;
     StrU82W(rs, pszText, cch);
     return rs;
 }
-template<class TAlloc>
-void StrU82W(CRefBinT<TAlloc>& rbResult, _In_reads_or_z_(cch) PCCH pszText, int cch) noexcept
+template<class TAllocator>
+void StrU82W(CByteBufferT<TAllocator>& rbResult, _In_reads_or_z_(cch) PCCH pszText, int cch) noexcept
 {
     StrX2W(rbResult, pszText, cch, CP_UTF8);
 }
-template<class TTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>, class T>
-EckInlineNd auto StrU82W(const CRefBinT<T>& rb) noexcept
+template<class TTraits = CCharTraits<WCHAR>, class TAllocator = TStringDefaultAllocator<WCHAR>, class T>
+EckInlineNd auto StrU82W(const CByteBufferT<T>& rb) noexcept
 {
-    return StrU82W<TTraits, TAlloc>((PCSTR)rb.Data(), (int)rb.Size());
+    return StrU82W<TTraits, TAllocator>((PCSTR)rb.Data(), (int)rb.Size());
 }
 
 inline NTSTATUS CalculateMd5(_In_reads_bytes_(cbData) PCVOID pData,
@@ -212,7 +212,7 @@ EckInline int GetKeyNameTextByVk(WORD wVk, PWSTR pszBuf, int cchBuf,
         pszBuf, cchBuf);
 }
 
-inline BOOL GetUserLocaleName(CRefStrW& rsLocaleName) noexcept
+inline BOOL GetUserLocaleName(CStringW& rsLocaleName) noexcept
 {
     WCHAR sz[LOCALE_NAME_MAX_LENGTH];
     const auto r = GetUserDefaultLocaleName(sz, ARRAYSIZE(sz));
@@ -231,7 +231,7 @@ inline void RandomBytes(_Out_writes_bytes_all_(cb) void* p, size_t cb) noexcept
     for (BYTE* pb = (BYTE*)p, *pbEnd = pb + cb; pb < pbEnd; ++pb)
         *pb = Pcg.Next<BYTE>();
 }
-inline void RandomBytes(CRefBin& rb) noexcept
+inline void RandomBytes(CByteBuffer& rb) noexcept
 {
     RandomBytes(rb.Data(), rb.Size());
 }
@@ -242,10 +242,10 @@ inline void RandomBytes(_Out_ BYTE(&arr)[N]) noexcept
 }
 
 // iType  0 - 空格分割的十六进制  1 - 易语言字节集调试输出
-inline CRefStrW FormatBin(PCVOID pData_, size_t cb, int iType) noexcept
+inline CStringW FormatBin(PCVOID pData_, size_t cb, int iType) noexcept
 {
     const auto pData = (PCBYTE)pData_;
-    CRefStrW rsResult{};
+    CStringW rsResult{};
     if (!pData || !cb)
     {
         if (iType == 1)

@@ -5,26 +5,26 @@
 #include <commdlg.h>
 
 ECK_NAMESPACE_BEGIN
-struct TASKDIALOGCTX
-{
-    TASKDIALOGCONFIG* ptdc;
-    int iRadioButton;
-    BOOL bChecked;
-    HRESULT hr;
-};
-
 class CTaskDialog : public CDialog
 {
 public:
     ECK_RTTI(CTaskDialog, CDialog);
     ECK_CWND_SINGLEOWNER(CTaskDialog);
+public:
+    struct DLGCTX
+    {
+        TASKDIALOGCONFIG* ptdc;
+        int iRadioButton;
+        BOOL bChecked;
+        HRESULT hr;
+    };
 protected:
-    TASKDIALOGCTX* m_pParam{};
+    DLGCTX* m_pParam{};
     PFTASKDIALOGCALLBACK m_pfnRealCallBack{};
     LONG_PTR m_lRealRefData{};
     CSignal<Intercept_T, HRESULT, HWND, UINT, WPARAM, LPARAM > m_CallbackSig{};
 
-    static LRESULT CALLBACK EckTdLinkParentSubclassProc(
+    static LRESULT CALLBACK LinkParentSubclassProcedure(
         HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
         UINT_PTR uSubclassId, DWORD_PTR lRefData) noexcept
     {
@@ -40,9 +40,13 @@ protected:
             }
             return 0;
             case WM_CTLCOLORSTATIC:
-                SetTextColor((HDC)wParam, PtcCurrent()->crDefText);
-                SetBkColor((HDC)wParam, PtcCurrent()->crDefBkg);
-                return (LRESULT)GetStockBrush(BLACK_BRUSH);// 防止展开时出现闪烁的白色部分
+            {
+                const auto* const ptc = PtcCurrent();
+                SetTextColor((HDC)wParam, ptc->crDefText);
+                SetBkColor((HDC)wParam, ptc->crDefBkg);
+                SetDCBrushColor((HDC)wParam, ptc->crDefBkg);
+            }
+            return (LRESULT)GetStockBrush(DC_BRUSH);// 防止展开时出现闪烁的白色部分
             }
         return DefSubclassProc(hWnd, uMsg, wParam, lParam);
     }
@@ -58,8 +62,10 @@ protected:
         {
             EnumChildWindows(hWnd, [](HWND hWnd, LPARAM lParam)->BOOL
                 {
-                    if (_wcsicmp(CWindow(hWnd).GetWindowClass().Data(), WC_LINK) == 0)
-                        SetWindowSubclass(GetParent(hWnd), EckTdLinkParentSubclassProc, 0, 0);
+                    WCHAR szCls[ARRAYSIZE(WC_LINK) + 2];
+                    GetClassNameW(hWnd, szCls, ARRAYSIZE(szCls));
+                    if (_wcsicmp(szCls, WC_LINK) == 0)
+                        SetWindowSubclass(GetParent(hWnd), LinkParentSubclassProcedure, 0, 0);
                     return TRUE;
                 }, 0);
         }
@@ -69,11 +75,10 @@ protected:
         return p->OnTdNotify(hWnd, uMsg, wParam, lParam);
     }
 public:
-    // TASKDIALOGCTX*
     INT_PTR CreateModalDialog(HWND hParent,
-        _In_reads_bytes_(sizeof(TASKDIALOGCTX)) void* pData) noexcept override
+        _In_reads_bytes_(sizeof(DLGCTX)) void* pData) noexcept override
     {
-        auto pCtx = (TASKDIALOGCTX*)pData;
+        auto pCtx = (DLGCTX*)pData;
         const auto ptdc = pCtx->ptdc;
 
         m_pfnRealCallBack = ptdc->pfCallback;
@@ -450,7 +455,7 @@ EckInline int MsgBox(_In_z_ PCWSTR pszText,
     return MessageBoxW(hParent, pszText, pszCaption, uType);
 }
 
-EckInline int MsgBox(const CRefStrW& rs,
+EckInline int MsgBox(const CStringW& rs,
     PCWSTR pszCaption = L"", UINT uType = 0, HWND hParent = nullptr) noexcept
 {
     return MessageBoxW(hParent, rs.Data(), pszCaption, uType);

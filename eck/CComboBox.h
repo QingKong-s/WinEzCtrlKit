@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CWnd.h"
+#include "CWindow.h"
 
 ECK_NAMESPACE_BEGIN
 inline constexpr int CDV_COMBOBOX_1 = 0;
@@ -63,7 +63,7 @@ public:
         return PointerStepBytes(p2, p2->cbSize);
     }
 
-    void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept override
+    void SerializeData(CByteBuffer& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept override
     {
         CWindow::SerializeData(rb, pOpt);
         COMBOBOXINFO cbi;
@@ -81,7 +81,7 @@ public:
             pWndData->uFlags |= SERDF_CY;
         }
 
-        CRefStrW rs;
+        CStringW rs;
         GetCueBanner(rs);
         rb.Reserve(rb.Size() + sizeof(CTRLDATA_COMBOBOX) + rs.ByteSize() + 512);
         const auto pTemp = (CTRLDATA_COMBOBOX*)rb.PushBack(sizeof(CTRLDATA_COMBOBOX));
@@ -253,7 +253,7 @@ public:
     }
 
     // 取提示横幅文本
-    EckInline int GetCueBanner(_Inout_ CRefStrW& rs) const noexcept
+    EckInline int GetCueBanner(_Inout_ CStringW& rs) const noexcept
     {
         rs.ReSize(MAX_PATH);
         const auto cch = GetCueBanner(rs.Data(), MAX_PATH);
@@ -334,7 +334,7 @@ public:
         return (int)SendMsg(CB_GETLBTEXT, idx, (LPARAM)pszBuf);
     }
 
-    EckInline BOOL GetItemText(int idx, _Inout_ CRefStrW& rs) const noexcept
+    EckInline BOOL GetItemText(int idx, _Inout_ CStringW& rs) const noexcept
     {
         int cch = GetItemTextLength(idx);
         if (cch <= 0)
@@ -343,9 +343,9 @@ public:
         return GetItemText(idx, rs.Data()) >= 0;
     }
 
-    EckInline CRefStrW GetItemText(int idx) const noexcept
+    EckInline CStringW GetItemText(int idx) const noexcept
     {
-        CRefStrW rs;
+        CStringW rs;
         GetItemText(idx, rs);
         return rs;
     }

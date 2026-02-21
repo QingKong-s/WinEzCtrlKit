@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "CRefStr.h"
-#include "CRefBin.h"
+#include "CString.h"
+#include "CByteBuffer.h"
 
 #pragma push_macro("free")
 #pragma push_macro("malloc")
@@ -70,7 +70,7 @@ namespace Priv
         {
             return JsonValueAt(This, (PCSTR)x);
         }
-        else if constexpr (IsSameTemplate<CRefStrT, T1>::V)
+        else if constexpr (IsSameTemplate<CStringT, T1>::V)
             return JsonValueAt(This, x.Data(), x.Size());
         else if constexpr (IsSameTemplate<std::basic_string, T1>::V &&
             sizeof(typename T1::value_type) == 1)
@@ -97,11 +97,11 @@ namespace Priv
                 return true;
     }
 
-    inline CRefStrW WriteW(PSTR pszU8, size_t cchU8, _In_opt_ YyAlc* pAlc) noexcept
+    inline CStringW WriteW(PSTR pszU8, size_t cchU8, _In_opt_ YyAlc* pAlc) noexcept
     {
         if (!pszU8)
             return {};
-        CRefStrW rs{ StrX2W(pszU8, (int)cchU8, CP_UTF8) };
+        CStringW rs{ StrX2W(pszU8, (int)cchU8, CP_UTF8) };
         if (pAlc && pAlc->free)
             pAlc->free(pAlc->ctx, pszU8);
         else
@@ -147,7 +147,7 @@ namespace Priv
         EckInlineNd double GetNumber() const noexcept { return yyjson_get_num((yyjson_val*)m_pVal); }
         EckInlineNd PCSTR GetString() const noexcept { return yyjson_get_str((yyjson_val*)m_pVal); }
         EckInlineNd size_t GetLength() const noexcept { return yyjson_get_len((yyjson_val*)m_pVal); }
-        EckInlineNd CRefStrW GetStringW() const noexcept { return StrX2W(GetString(), (int)GetLength(), CP_UTF8); }
+        EckInlineNd CStringW GetStringW() const noexcept { return StrX2W(GetString(), (int)GetLength(), CP_UTF8); }
     };
 }
 
@@ -187,7 +187,7 @@ public:
     {
         return yyjson_val_write_file(pszFile, GetPointer(), uFlags, pAlc, pErr);
     }
-    CRefStrW WriteW(YyWriteFlag uFlags = 0,
+    CStringW WriteW(YyWriteFlag uFlags = 0,
         YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr) noexcept
     {
         size_t cchU8{};
@@ -220,22 +220,22 @@ public:
             uFlags, pAlc, pErr);
     }
 
-    template<class TAlloc>
-    CDoc(const CRefBinT<TAlloc>& rb, YyReadFlag uFlags = 0,
+    template<class TAllocator>
+    CDoc(const CByteBufferT<TAllocator>& rb, YyReadFlag uFlags = 0,
         const YyAlc* pAlc = nullptr, YyReadErr* pErr = nullptr) noexcept
         : CDoc((PCSTR)rb.Data(), rb.Size(), uFlags, pAlc, pErr)
     {
     }
 
-    template<class TTraits, class TAlloc>
-    CDoc(const CRefStrT<CHAR, TTraits, TAlloc>& rs, YyReadFlag uFlags = 0,
+    template<class TTraits, class TAllocator>
+    CDoc(const CStringT<CHAR, TTraits, TAllocator>& rs, YyReadFlag uFlags = 0,
         const YyAlc* pAlc = nullptr, YyReadErr* pErr = nullptr) noexcept
         : CDoc(rs.Data(), rs.Size(), uFlags, pAlc, pErr)
     {
     }
 
-    template<class TTraits, class TAlloc>
-    CDoc(const std::basic_string<CHAR, TTraits, TAlloc>& s, YyReadFlag uFlags = 0,
+    template<class TTraits, class TAllocator>
+    CDoc(const std::basic_string<CHAR, TTraits, TAllocator>& s, YyReadFlag uFlags = 0,
         const YyAlc* pAlc = nullptr, YyReadErr* pErr = nullptr) noexcept
         : CDoc(s.c_str(), s.size(), uFlags, pAlc, pErr)
     {
@@ -305,7 +305,7 @@ public:
     {
         return yyjson_write_file(pszFile, m_pDoc, uFlags, pAlc, pErr);
     }
-    CRefStrW WriteW(YyWriteFlag uFlags = 0,
+    CStringW WriteW(YyWriteFlag uFlags = 0,
         YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr) const noexcept
     {
         size_t cchU8{};
@@ -457,7 +457,7 @@ public:
     {
         return yyjson_mut_val_write_file(pszFile, Ptr(), uFlags, pAlc, pErr);
     }
-    EckInlineNd CRefStrW WriteW(YyWriteFlag uFlags = 0,
+    EckInlineNd CStringW WriteW(YyWriteFlag uFlags = 0,
         YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr) const noexcept
     {
         size_t cchOut;
@@ -566,7 +566,7 @@ public:
     {
         return yyjson_mut_write_file(pszFile, m_pDoc, uFlags, pAlc, pErr);
     }
-    EckInlineNd CRefStrW WriteW(YyWriteFlag uFlags = 0,
+    EckInlineNd CStringW WriteW(YyWriteFlag uFlags = 0,
         YyAlc* pAlc = nullptr, YyWriteErr* pErr = nullptr) const noexcept
     {
         size_t cchOut;
@@ -739,18 +739,18 @@ namespace Priv
         template<CcpEnum T>
         CInitProxy(T e) noexcept : CInitProxy(std::underlying_type_t<T>(e)) {}
 
-        template<class TTraits, class TAlloc>
-        CInitProxy(const std::basic_string<char, TTraits, TAlloc>& s) noexcept : eType{ Type::String }
+        template<class TTraits, class TAllocator>
+        CInitProxy(const std::basic_string<char, TTraits, TAllocator>& s) noexcept : eType{ Type::String }
         {
             v.s = s.data(); cch = (UINT)s.size();
         }
-        template<class TTraits, class TAlloc>
-        CInitProxy(const std::basic_string<char8_t, TTraits, TAlloc>& s) noexcept : eType{ Type::String }
+        template<class TTraits, class TAllocator>
+        CInitProxy(const std::basic_string<char8_t, TTraits, TAllocator>& s) noexcept : eType{ Type::String }
         {
             v.s = (PCSTR)s.data(); cch = (UINT)s.size();
         }
-        template<class TTraits, class TAlloc>
-        CInitProxy(const std::basic_string<WCHAR, TTraits, TAlloc>& s) noexcept : eType{ Type::StringW }
+        template<class TTraits, class TAllocator>
+        CInitProxy(const std::basic_string<WCHAR, TTraits, TAllocator>& s) noexcept : eType{ Type::StringW }
         {
             v.ws = s.data(); cch = (UINT)s.size();
         }
@@ -769,23 +769,23 @@ namespace Priv
         {
             v.ws = s.data(); cch = (UINT)s.size();
         }
-        template<class TTraits, class TAlloc>
-        CInitProxy(const CRefStrT<char, TTraits, TAlloc>& rs) noexcept : eType{ Type::String }
+        template<class TTraits, class TAllocator>
+        CInitProxy(const CStringT<char, TTraits, TAllocator>& rs) noexcept : eType{ Type::String }
         {
             v.s = rs.Data(); cch = (UINT)rs.Size();
         }
-        template<class TTraits, class TAlloc>
-        CInitProxy(const CRefStrT<char8_t, TTraits, TAlloc>& rs) noexcept : eType{ Type::String }
+        template<class TTraits, class TAllocator>
+        CInitProxy(const CStringT<char8_t, TTraits, TAllocator>& rs) noexcept : eType{ Type::String }
         {
             v.s = (PCSTR)rs.Data(); cch = (UINT)rs.Size();
         }
-        template<class TTraits, class TAlloc>
-        CInitProxy(const CRefStrT<WCHAR, TTraits, TAlloc>& rs) noexcept : eType{ Type::StringW }
+        template<class TTraits, class TAllocator>
+        CInitProxy(const CStringT<WCHAR, TTraits, TAllocator>& rs) noexcept : eType{ Type::StringW }
         {
             v.ws = rs.Data(); cch = (UINT)rs.Size();
         }
-        template<class TAlloc>
-        CInitProxy(const CRefBinT<TAlloc>& rb) noexcept : eType{ Type::String }
+        template<class TAllocator>
+        CInitProxy(const CByteBufferT<TAllocator>& rb) noexcept : eType{ Type::String }
         {
             v.s = (PCSTR)rb.Data(); cch = (UINT)rb.Size();
         }

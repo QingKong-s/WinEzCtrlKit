@@ -129,7 +129,7 @@ inline UINT EcdDetectCodePage(PCVOID p, size_t cb) noexcept
 
 // 将已知编码的字节流转换为另一种编码，成功返回TRUE，失败返回FALSE
 inline BOOL EcdCovert(PCVOID p, size_t cb,
-    UINT cpSrc, UINT cpDst, CRefBin& rbDst, CRefBin& rbWork,
+    UINT cpSrc, UINT cpDst, CByteBuffer& rbDst, CByteBuffer& rbWork,
     UINT uFlagsMb2Wc = MB_PRECOMPOSED, UINT uFlagsWc2Mb = 0) noexcept
 {
     EckAssert(cpSrc != 0u && cpDst != 0u && cpSrc != cpDst);
@@ -227,14 +227,14 @@ inline BOOL EcdCovert(PCVOID p, size_t cb,
 
 // 检查rbDst中的字节流编码，如果与目标编码不同则执行转换
 // 成功返回TRUE，失败返回FALSE
-inline BOOL EcdLoadTextStream(UINT cpDst, CRefBin& rbDst) noexcept
+inline BOOL EcdLoadTextStream(UINT cpDst, CByteBuffer& rbDst) noexcept
 {
     if (rbDst.IsEmpty())
         return TRUE;
     const auto cpSrc = EcdDetectCodePage(rbDst.Data(), rbDst.Size());
     if (!cpSrc || cpSrc == cpDst)
         return TRUE;
-    CRefBin rb, rbWork;
+    CByteBuffer rb, rbWork;
     if (!EcdCovert(rbDst.Data(), rbDst.Size(), cpSrc, cpDst, rb, rbWork))
         return FALSE;
     rbDst = std::move(rb);
@@ -243,7 +243,7 @@ inline BOOL EcdLoadTextStream(UINT cpDst, CRefBin& rbDst) noexcept
 
 // 读入指定文件，如果文件内容编码与目标编码不同则执行转换
 // 成功返回TRUE，失败返回FALSE
-inline BOOL EcdLoadTextFile(UINT cpDst, CRefBin& rbDst,
+inline BOOL EcdLoadTextFile(UINT cpDst, CByteBuffer& rbDst,
     PCWSTR pszFile, NTSTATUS* pnts = nullptr) noexcept
 {
     rbDst = ReadInFile(pszFile, pnts);

@@ -1,11 +1,11 @@
 ﻿#pragma once
-#include "CRefStr.h"
-#include "CRefBin.h"
+#include "CString.h"
+#include "CByteBuffer.h"
 
 ECK_NAMESPACE_BEGIN
 struct CClipboardGuard { ~CClipboardGuard() { CloseClipboard(); } };
 
-inline BOOL GetClipboardString(HWND hWnd, CRefStrW& rs) noexcept
+inline BOOL GetClipboardString(HWND hWnd, CStringW& rs) noexcept
 {
     if (!OpenClipboard(hWnd))
     {

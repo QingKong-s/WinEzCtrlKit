@@ -226,7 +226,7 @@ protected:
 #if _DEBUG
                 if (m_bDbgIndex)
                 {
-                    CRefStrW rs{};
+                    CStringW rs{};
                     rs.Format(L"%d", nm.idx);
                     if (GetTextFormat())
                         m_pDC->DrawTextW(rs.Data(), rs.Size(),

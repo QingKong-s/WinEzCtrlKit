@@ -6,13 +6,13 @@
 
 ECK_NAMESPACE_BEGIN
 template<CcpStdChar TChar>
-using TRefStrDefAlloc = CDefAllocator<TChar, int>;
+using TStringDefaultAllocator = CDefaultAllocator<TChar, int>;
 
-template<CcpStdChar TChar_, class TCharTraits_, class TAlloc_>
-class CRefStrT;
+template<CcpStdChar TChar_, class TCharTraits_, class TAllocator_>
+class CStringT;
 
-template<class TCharTraits, class TAlloc>
-CRefStrT<WCHAR, TCharTraits, TAlloc> StrX2W(PCSTR pszText, int cch, int uCP) noexcept;
+template<class TCharTraits, class TAllocator>
+CStringT<WCHAR, TCharTraits, TAllocator> StrX2W(PCSTR pszText, int cch, int uCP) noexcept;
 
 template<CcpStdChar TChar_>
 struct CCharTraits
@@ -45,21 +45,21 @@ struct CCharTraits<CHAR>
 };
 
 template<CcpStdChar TChar>
-using TRefStrDefTraits = CCharTraits<TChar>;
+using TStringDefaultTraits = CCharTraits<TChar>;
 
 template<
     CcpStdChar TChar_,
-    class TCharTraits_ = TRefStrDefTraits<TChar_>,
-    class TAlloc_ = TRefStrDefAlloc<TChar_>
+    class TCharTraits_ = TStringDefaultTraits<TChar_>,
+    class TAllocator_ = TStringDefaultAllocator<TChar_>
 >
-class CRefStrT
+class CStringT
 {
 public:
     using TChar = TChar_;
     using TCharTraits = TCharTraits_;
-    using TAlloc = TAlloc_;
+    using TAllocator = TAllocator_;
 
-    using TAllocTraits = CAllocatorTraits<TAlloc>;
+    using TAllocatorTraits = CAllocatorTraits<TAllocator>;
     using TPointer = TChar*;
     using TConstPointer = const TChar*;
 
@@ -70,7 +70,7 @@ public:
 
     using TNtString = std::conditional_t<std::is_same_v<TChar, CHAR>, ANSI_STRING, UNICODE_STRING>;
 
-    static_assert(std::is_same_v<typename TAllocTraits::size_type, int>);
+    static_assert(std::is_same_v<typename TAllocatorTraits::size_type, int>);
 private:
     union
     {
@@ -80,9 +80,9 @@ private:
     int m_cchText{};
     int m_cchCapacity{ ARRAYSIZE(m_szLocal) };
 
-    [[no_unique_address]] TAlloc m_Alloc{};
+    [[no_unique_address]] TAllocator m_Alloc{};
 
-    static constexpr void ResetThat(CRefStrT& x)
+    static constexpr void ResetThat(CStringT& x)
     {
         x.m_pszText = nullptr;// 保证清空指针和截断sso缓冲区
         x.m_cchText = 0;
@@ -92,67 +92,67 @@ public:
     constexpr static int LocalBufferSize = ARRAYSIZE(m_szLocal);
     constexpr static int EnsureNotLocalBufferSize = ARRAYSIZE(m_szLocal) * 3 / 2;
 
-    CRefStrT() = default;
+    CStringT() = default;
 
-    explicit CRefStrT(const TAlloc& Al) : m_Alloc{ Al } {}
+    explicit CStringT(const TAllocator& Al) : m_Alloc{ Al } {}
 
-    explicit CRefStrT(int cchInit)
+    explicit CStringT(int cchInit)
     {
         ReSize(cchInit);
     }
 
-    CRefStrT(int cchInit, const TAlloc& Al) : m_Alloc{ Al }
+    CStringT(int cchInit, const TAllocator& Al) : m_Alloc{ Al }
     {
         ReSize(cchInit);
     }
 
-    CRefStrT(TConstPointer psz, int cchText, const TAlloc& Al = TAlloc{}) : m_Alloc{ Al }
+    CStringT(TConstPointer psz, int cchText, const TAllocator& Al = TAllocator{}) : m_Alloc{ Al }
     {
         Assign(psz, cchText);
     }
 
-    CRefStrT(TConstPointer psz, const TAlloc& Al = TAlloc{})
-        : CRefStrT(psz, psz ? (int)TcsLen(psz) : 0, Al)
+    CStringT(TConstPointer psz, const TAllocator& Al = TAllocator{})
+        : CStringT(psz, psz ? (int)TcsLen(psz) : 0, Al)
     {
     }
 
-    CRefStrT(const CRefStrT& x)
-        : m_Alloc{ TAllocTraits::select_on_container_copy_construction(x.m_Alloc) }
+    CStringT(const CStringT& x)
+        : m_Alloc{ TAllocatorTraits::select_on_container_copy_construction(x.m_Alloc) }
     {
         Assign(x.Data(), x.Size());
     }
 
-    CRefStrT(CRefStrT&& x) noexcept
+    CStringT(CStringT&& x) noexcept
         : m_cchText{ x.m_cchText }, m_cchCapacity{ x.m_cchCapacity }, m_Alloc{ std::move(x.m_Alloc) }
     {
         std::copy(std::begin(x.m_szLocal), std::end(x.m_szLocal), std::begin(m_szLocal));
         ResetThat(x);
     }
 
-    template<class TTraits, class TAlloc1>
-    CRefStrT(const std::basic_string<TChar, TTraits, TAlloc1>& s, const TAlloc& Al = TAlloc{})
-        : CRefStrT(s.data(), (int)s.size(), Al)
+    template<class TTraits, class TAllocator1>
+    CStringT(const std::basic_string<TChar, TTraits, TAllocator1>& s, const TAllocator& Al = TAllocator{})
+        : CStringT(s.data(), (int)s.size(), Al)
     {
     }
 
     template<class TTraits>
-    CRefStrT(std::basic_string_view<TChar, TTraits> sv, const TAlloc& Al = TAlloc{})
-        : CRefStrT(sv.data(), (int)sv.size(), Al)
+    CStringT(std::basic_string_view<TChar, TTraits> sv, const TAllocator& Al = TAllocator{})
+        : CStringT(sv.data(), (int)sv.size(), Al)
     {
     }
 
-    CRefStrT(TNtString nts, const TAlloc& Al = TAlloc{})
-        :CRefStrT(nts.Buffer, (int)nts.Length, Al)
+    CStringT(TNtString nts, const TAllocator& Al = TAllocator{})
+        :CStringT(nts.Buffer, (int)nts.Length, Al)
     {
     }
 
-    ~CRefStrT()
+    ~CStringT()
     {
         if (!IsLocal())
             m_Alloc.deallocate(m_pszText, m_cchCapacity);
     }
 
-    EckInline CRefStrT& operator=(TConstPointer pszSrc)
+    EckInline CStringT& operator=(TConstPointer pszSrc)
     {
         if (pszSrc)
             Assign(pszSrc);
@@ -161,13 +161,13 @@ public:
         return *this;
     }
 
-    EckInline CRefStrT& operator=(const CRefStrT& x)
+    EckInline CStringT& operator=(const CStringT& x)
     {
         if (this == &x)
             return *this;
-        if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
+        if constexpr (TAllocatorTraits::propagate_on_container_copy_assignment::value)
         {
-            if constexpr (TAllocTraits::is_always_equal::value)
+            if constexpr (TAllocatorTraits::is_always_equal::value)
                 m_Alloc = x.m_Alloc;
             else if (m_Alloc != x.m_Alloc)
                 m_Alloc = x.m_Alloc;
@@ -177,13 +177,13 @@ public:
         return *this;
     }
 
-    EckInline CRefStrT& operator=(CRefStrT&& x) noexcept
+    EckInline CStringT& operator=(CStringT&& x) noexcept
     {
         if (this == &x)
             return *this;
-        if constexpr (TAllocTraits::propagate_on_container_move_assignment::value)
+        if constexpr (TAllocatorTraits::propagate_on_container_move_assignment::value)
         {
-            if constexpr (TAllocTraits::is_always_equal::value)
+            if constexpr (TAllocatorTraits::is_always_equal::value)
                 m_Alloc = std::move(x.m_Alloc);
             else if (m_Alloc != x.m_Alloc)
             {
@@ -195,7 +195,7 @@ public:
                 m_Alloc = std::move(x.m_Alloc);
             }
         }
-        else if constexpr (!TAllocTraits::is_always_equal::value)
+        else if constexpr (!TAllocatorTraits::is_always_equal::value)
             if (m_Alloc != x.m_Alloc)
             {
                 Assign(x.Data(), x.Size());
@@ -207,21 +207,21 @@ public:
         return *this;
     }
 
-    template<class TTraits, class TAlloc1>
-    EckInline CRefStrT& operator=(const std::basic_string<TChar, TTraits, TAlloc1>& x)
+    template<class TTraits, class TAllocator1>
+    EckInline CStringT& operator=(const std::basic_string<TChar, TTraits, TAllocator1>& x)
     {
         Assign(x.data(), (int)x.size());
         return *this;
     }
 
     template<class TTraits>
-    EckInline CRefStrT& operator=(std::basic_string_view<TChar, TTraits> x)
+    EckInline CStringT& operator=(std::basic_string_view<TChar, TTraits> x)
     {
         Assign(x.data(), (int)x.size());
         return *this;
     }
 
-    EckInline CRefStrT& operator=(TNtString x) { Assign(x.Buffer, (int)x.Length); }
+    EckInline CStringT& operator=(TNtString x) { Assign(x.Buffer, (int)x.Length); }
 
     EckInlineNdCe TChar& At(int x) noexcept { EckAssert(x >= 0 && x < Size()); return *(Data() + x); }
     EckInlineNdCe TChar At(int x) const noexcept { EckAssert(x >= 0 && x < Size()); return *(Data() + x); }
@@ -233,7 +233,7 @@ public:
     EckInlineNdCe TChar& Back() noexcept { return At(Size() - 1); }
     EckInlineNdCe TChar Back() const noexcept { return At(Size() - 1); }
 
-    EckInlineNd TAlloc GetAllocator() const noexcept { return m_Alloc; }
+    EckInlineNd TAllocator GetAllocator() const noexcept { return m_Alloc; }
     EckInlineNdCe int Size() const noexcept { return m_cchText; }
     EckInlineNdCe BOOL IsEmpty() const noexcept { return Size() == 0; }
     EckInlineNdCe size_t ByteSize() const noexcept { return (m_cchText + 1) * sizeof(TChar); }
@@ -265,8 +265,8 @@ public:
         return Assign((TConstPointer)nts.Buffer, (int)nts.Length);
     }
 
-    template<class TTraits, class TAlloc1>
-    EckInline int Assign(const std::basic_string<TChar, TTraits, TAlloc1>& x)
+    template<class TTraits, class TAllocator1>
+    EckInline int Assign(const std::basic_string<TChar, TTraits, TAllocator1>& x)
     {
         return Assign(x.data(), (int)x.size());
     }
@@ -386,7 +386,7 @@ public:
         }
     }
 
-    CRefStrT& PushBack(TConstPointer pszSrc, int cchSrc = -1)
+    CStringT& PushBack(TConstPointer pszSrc, int cchSrc = -1)
     {
         if (!pszSrc)
             return *this;
@@ -397,7 +397,7 @@ public:
         return *this;
     }
 
-    EckInline CRefStrT& PushBack(const CRefStrT& rs)
+    EckInline CStringT& PushBack(const CStringT& rs)
     {
         return PushBack(rs.Data(), rs.Size());
     }
@@ -409,19 +409,19 @@ public:
         return Data() + Size() - cch;
     }
 
-    template<class TTraits, class TAlloc1>
-    EckInline CRefStrT& PushBack(const std::basic_string<TChar, TTraits>& s)
+    template<class TTraits, class TAllocator1>
+    EckInline CStringT& PushBack(const std::basic_string<TChar, TTraits>& s)
     {
         return PushBack(s.data(), (int)s.size());
     }
 
     template<class TTraits>
-    EckInline CRefStrT& PushBack(std::basic_string_view<TChar, TTraits> sv)
+    EckInline CStringT& PushBack(std::basic_string_view<TChar, TTraits> sv)
     {
         return PushBack(sv.data(), (int)sv.size());
     }
 
-    EckInline CRefStrT& PushBackChar(TChar ch)
+    EckInline CStringT& PushBackChar(TChar ch)
     {
         ReSizeExtra(Size() + 1);
         *(Data() + Size() - 1) = ch;
@@ -435,39 +435,39 @@ public:
         return Data() + Size() - cch;
     }
 
-    EckInline CRefStrT& operator+=(TConstPointer psz)
+    EckInline CStringT& operator+=(TConstPointer psz)
     {
         PushBack(psz);
         return *this;
     }
 
-    EckInline CRefStrT& operator+=(const CRefStrT& x)
+    EckInline CStringT& operator+=(const CStringT& x)
     {
         PushBack(x.Data(), x.Size());
         return *this;
     }
 
-    template<class TTraits, class TAlloc1>
-    EckInline CRefStrT& operator+=(const std::basic_string<TChar, TTraits, TAlloc1>& x)
+    template<class TTraits, class TAllocator1>
+    EckInline CStringT& operator+=(const std::basic_string<TChar, TTraits, TAllocator1>& x)
     {
         PushBack(x.data(), (int)x.size());
         return *this;
     }
 
     template<class TTraits>
-    EckInline CRefStrT& operator+=(std::basic_string_view<TChar, TTraits> x)
+    EckInline CStringT& operator+=(std::basic_string_view<TChar, TTraits> x)
     {
         PushBack(x.data(), (int)x.size());
         return *this;
     }
 
-    EckInline CRefStrT& operator+=(TChar ch)
+    EckInline CStringT& operator+=(TChar ch)
     {
         PushBackChar(ch);
         return *this;
     }
 
-    EckInline CRefStrT& PopBack(int cch = 1) noexcept
+    EckInline CStringT& PopBack(int cch = 1) noexcept
     {
         EckAssert(Size() >= cch && cch >= 0);
         if (!cch)
@@ -520,7 +520,7 @@ public:
     {
         EckAssert(cch >= 0);
         if (m_cchCapacity < cch + 1)
-            ReserveReal(TAllocTraits::MakeCapacity(cch + 1));
+            ReserveReal(TAllocatorTraits::MakeCapacity(cch + 1));
         m_cchText = cch;
         TCharTraits::Cut(Data(), cch);
     }
@@ -560,7 +560,7 @@ public:
     /// <param name="posStart">替换位置</param>
     /// <param name="cchReplacing">替换长度</param>
     /// <param name="rsNew">用作替换的字符串</param>
-    EckInline void Replace(int posStart, int cchReplacing, const CRefStrT& rsNew)
+    EckInline void Replace(int posStart, int cchReplacing, const CStringT& rsNew)
     {
         Replace(posStart, cchReplacing, rsNew.Data(), rsNew.Size());
     }
@@ -603,7 +603,7 @@ public:
     /// <param name="rsSrc">用作替换的字符串</param>
     /// <param name="posStart">起始位置</param>
     /// <param name="cReplacing">替换进行的次数，0为执行所有替换</param>
-    EckInline void ReplaceSubString(const CRefStrT& rsReplaced, const CRefStrT& rsSrc,
+    EckInline void ReplaceSubString(const CStringT& rsReplaced, const CStringT& rsSrc,
         int posStart = 0, int cReplacing = 0)
     {
         ReplaceSubString(rsReplaced.Data(), rsReplaced.Size(), rsSrc.Data(), rsSrc.Size(), posStart, cReplacing);
@@ -627,7 +627,7 @@ public:
             TcsCopyLen(pszCurr, pszText, cchText);
         TCharTraits::Cut(Data(), Size());
     }
-    EckInline void MakeRepeatedSequence(int cCount, const CRefStrT& rsText, int posStart = 0)
+    EckInline void MakeRepeatedSequence(int cCount, const CStringT& rsText, int posStart = 0)
     {
         MakeRepeatedStrSequence(rsText.Data(), rsText.Size(), cCount, posStart);
     }
@@ -652,14 +652,14 @@ public:
         TcsCopyLen(Data() + pos, pszText, cchText);
     }
 
-    template<class TTraits, class TAlloc1>
-    EckInline void Insert(int pos, const CRefStrT<TChar, TTraits, TAlloc1>& rs)
+    template<class TTraits, class TAllocator1>
+    EckInline void Insert(int pos, const CStringT<TChar, TTraits, TAllocator1>& rs)
     {
         Insert(pos, rs.Data(), rs.Size());
     }
 
-    template<class TTraits, class TAlloc1>
-    EckInline void Insert(int pos, const std::basic_string<TChar, TTraits, TAlloc1>& s)
+    template<class TTraits, class TAllocator1>
+    EckInline void Insert(int pos, const std::basic_string<TChar, TTraits, TAllocator1>& s)
     {
         Insert(pos, s.data(), (int)s.size());
     }
@@ -782,10 +782,10 @@ public:
         }
     }
 
-    template<class TTraits = std::char_traits<TChar>, class TAlloc1 = std::allocator<TChar>>
+    template<class TTraits = std::char_traits<TChar>, class TAllocator1 = std::allocator<TChar>>
     EckInlineNd auto ToStdString() const
     {
-        return std::basic_string<TChar, TTraits, TAlloc1>(Data(), (size_t)Size());
+        return std::basic_string<TChar, TTraits, TAllocator1>(Data(), (size_t)Size());
     }
 
     EckInlineNdCe auto ToStringView() const noexcept
@@ -823,13 +823,13 @@ public:
             cchSub = (int)TcsLen(pszSub);
         return FindStrLen(Data(), Size(), pszSub, cchSub, posStart);
     }
-    template<class TTraits, class TAlloc1>
-    EckInlineNd int Find(const CRefStrT<TChar, TTraits, TAlloc1>& rs, int posStart = 0) const noexcept
+    template<class TTraits, class TAllocator1>
+    EckInlineNd int Find(const CStringT<TChar, TTraits, TAllocator1>& rs, int posStart = 0) const noexcept
     {
         return Find(rs.Data(), rs.Size(), posStart);
     }
-    template<class TTraits, class TAlloc1>
-    EckInlineNd int Find(const std::basic_string<TChar, TTraits, TAlloc1>& s, int posStart = 0) const noexcept
+    template<class TTraits, class TAllocator1>
+    EckInlineNd int Find(const std::basic_string<TChar, TTraits, TAllocator1>& s, int posStart = 0) const noexcept
     {
         return Find(s.data(), (int)s.size(), posStart);
     }
@@ -845,13 +845,13 @@ public:
             cchSub = (int)TcsLen(pszSub);
         return FindStrLenI(Data(), Size(), pszSub, cchSub, posStart);
     }
-    template<class TTraits, class TAlloc1>
-    EckInlineNd int FindI(const CRefStrT<TChar, TTraits, TAlloc1>& rs, int posStart = 0) const noexcept
+    template<class TTraits, class TAllocator1>
+    EckInlineNd int FindI(const CStringT<TChar, TTraits, TAllocator1>& rs, int posStart = 0) const noexcept
     {
         return FindI(rs.Data(), rs.Size(), posStart);
     }
-    template<class TTraits, class TAlloc1>
-    EckInlineNd int FindI(const std::basic_string<TChar, TTraits, TAlloc1>& s, int posStart = 0) const noexcept
+    template<class TTraits, class TAllocator1>
+    EckInlineNd int FindI(const std::basic_string<TChar, TTraits, TAllocator1>& s, int posStart = 0) const noexcept
     {
         return FindI(s.data(), (int)s.size(), posStart);
     }
@@ -867,13 +867,13 @@ public:
             cchSub = (int)TcsLen(pszSub);
         return FindStrRev(Data(), Size(), pszSub, cchSub, posStart);
     }
-    template<class TTraits, class TAlloc1>
-    EckInlineNd int RFind(const CRefStrT<TChar, TTraits, TAlloc1>& rs, int posStart = -1) const noexcept
+    template<class TTraits, class TAllocator1>
+    EckInlineNd int RFind(const CStringT<TChar, TTraits, TAllocator1>& rs, int posStart = -1) const noexcept
     {
         return RFind(rs.Data(), rs.Size(), posStart);
     }
-    template<class TTraits, class TAlloc1>
-    EckInlineNd int RFind(const std::basic_string<TChar, TTraits, TAlloc1>& s, int posStart = -1) const noexcept
+    template<class TTraits, class TAllocator1>
+    EckInlineNd int RFind(const std::basic_string<TChar, TTraits, TAllocator1>& s, int posStart = -1) const noexcept
     {
         return RFind(s.data(), (int)s.size(), posStart);
     }
@@ -889,13 +889,13 @@ public:
             cchSub = (int)TcsLen(pszSub);
         return FindStrRevI(Data(), Size(), pszSub, cchSub, posStart);
     }
-    template<class TTraits, class TAlloc1>
-    EckInlineNd int RFindI(const CRefStrT<TChar, TTraits, TAlloc1>& rs, int posStart = -1) const noexcept
+    template<class TTraits, class TAllocator1>
+    EckInlineNd int RFindI(const CStringT<TChar, TTraits, TAllocator1>& rs, int posStart = -1) const noexcept
     {
         return RFindI(rs.Data(), rs.Size(), posStart);
     }
-    template<class TTraits, class TAlloc1>
-    EckInlineNd int RFindI(const std::basic_string<TChar, TTraits, TAlloc1>& s, int posStart = -1) const noexcept
+    template<class TTraits, class TAllocator1>
+    EckInlineNd int RFindI(const std::basic_string<TChar, TTraits, TAllocator1>& s, int posStart = -1) const noexcept
     {
         return RFindI(s.data(), (int)s.size(), posStart);
     }
@@ -1054,13 +1054,13 @@ public:
         return IsEndWithI(sv.data(), (int)sv.size());
     }
 
-    EckInlineNd CRefStrT SubString(int posStart, int cch) const
+    EckInlineNd CStringT SubString(int posStart, int cch) const
     {
         EckAssert(posStart >= 0 && posStart < Size());
         if (cch < 0)
             cch = Size() - posStart;
         EckAssert(cch != 0 && posStart + cch <= Size());
-        return CRefStrT(Data() + posStart, cch);
+        return CStringT(Data() + posStart, cch);
     }
     EckInlineNd auto SubStringView(int posStart, int cch) const noexcept
     {
@@ -1268,7 +1268,7 @@ public:
         ReSize(pos1 - pos0);
         return TRUE;
     }
-    BOOL PazTrimToFileName(CRefStrT& rsFileName, BOOL bKeepExtension = FALSE) const noexcept
+    BOOL PazTrimToFileName(CStringT& rsFileName, BOOL bKeepExtension = FALSE) const noexcept
     {
         int pos0, pos1;
         PazFindFileName(bKeepExtension, pos0, pos1);
@@ -1298,14 +1298,14 @@ public:
     EckInlineNdCe TConstReverseIterator crend() const noexcept { return rend(); }
 };
 
-using CRefStrW = CRefStrT<WCHAR, CCharTraits<WCHAR>>;
-using CRefStrA = CRefStrT<CHAR, CCharTraits<CHAR>>;
+using CStringW = CStringT<WCHAR, CCharTraits<WCHAR>>;
+using CStringA = CStringT<CHAR, CCharTraits<CHAR>>;
 
 #undef EckTemp
-#define EckTemp CRefStrT<TChar, TCharTraits, TAlloc>
+#define EckTemp CStringT<TChar, TCharTraits, TAllocator>
 
 #pragma region Operator
-template<class TChar, class TCharTraits, class TAlloc>
+template<class TChar, class TCharTraits, class TAllocator>
 EckInline EckTemp operator+(const EckTemp& rs1, const EckTemp& rs2)
 {
     EckTemp x(rs1.Size() + rs2.Size());
@@ -1313,7 +1313,7 @@ EckInline EckTemp operator+(const EckTemp& rs1, const EckTemp& rs2)
     TcsCopyLenEnd(x.Data() + rs1.Size(), rs2.Data(), rs2.Size());
     return x;
 }
-template<class TChar, class TCharTraits, class TAlloc>
+template<class TChar, class TCharTraits, class TAllocator>
 EckInline EckTemp operator+(const EckTemp& rs, const TChar* psz)
 {
     const int cch = (psz ? (int)TcsLen(psz) : 0);
@@ -1323,7 +1323,7 @@ EckInline EckTemp operator+(const EckTemp& rs, const TChar* psz)
     return x;
 }
 
-template<class TChar, class TCharTraits, class TAlloc>
+template<class TChar, class TCharTraits, class TAllocator>
 EckInlineNd bool operator==(const EckTemp& rs1, const TChar* psz2) noexcept
 {
     if (rs1.IsEmpty())
@@ -1333,13 +1333,13 @@ EckInlineNd bool operator==(const EckTemp& rs1, const TChar* psz2) noexcept
     else
         return TcsCompareLen2(rs1.Data(), rs1.Size(), psz2, (int)TcsLen(psz2)) == 0;
 }
-template<class TChar, class TCharTraits, class TAlloc>
+template<class TChar, class TCharTraits, class TAllocator>
 EckInlineNd bool operator==(const TChar* psz2, const EckTemp& rs1) noexcept
 {
     return operator==(rs1, psz2);
 }
 
-template<class TChar, class TCharTraits, class TAlloc>
+template<class TChar, class TCharTraits, class TAllocator>
 EckInlineNd std::weak_ordering operator<=>(const EckTemp& rs1, const TChar* psz2) noexcept
 {
     if (rs1.IsEmpty())
@@ -1349,7 +1349,7 @@ EckInlineNd std::weak_ordering operator<=>(const EckTemp& rs1, const TChar* psz2
     else
         return TcsCompareLen2(rs1.Data(), rs1.Size(), psz2, (int)TcsLen(psz2)) <=> 0;
 }
-template<class TChar, class TCharTraits, class TAlloc>
+template<class TChar, class TCharTraits, class TAllocator>
 EckInlineNd std::weak_ordering operator<=>(const TChar* psz2, const EckTemp& rs1) noexcept
 {
     if (!psz2)
@@ -1360,88 +1360,88 @@ EckInlineNd std::weak_ordering operator<=>(const TChar* psz2, const EckTemp& rs1
         return TcsCompareLen2(psz2, (int)TcsLen(psz2), rs1.Data(), rs1.Size()) <=> 0;
 }
 
-template<class TChar, class TCharTraits, class TAlloc>
+template<class TChar, class TCharTraits, class TAllocator>
 EckInlineNd bool operator==(const EckTemp& rs1, const EckTemp& rs2) noexcept
 {
     return TcsCompareLen2(rs1.Data(), rs1.Size(), rs2.Data(), rs2.Size()) == 0;
 }
 
-template<class TChar, class TCharTraits, class TAlloc>
+template<class TChar, class TCharTraits, class TAllocator>
 EckInlineNd std::weak_ordering operator<=>(const EckTemp& rs1, const EckTemp& rs2) noexcept
 {
     return TcsCompareLen2(rs1.Data(), rs1.Size(), rs2.Data(), rs2.Size()) <=> 0;
 }
 #pragma endregion Operator
 
-template<class TCharTraits, class TAlloc>
-EckInline void DbgPrint(const CRefStrT<WCHAR, TCharTraits, TAlloc>& rs, int iType = 1, BOOL bNewLine = TRUE) noexcept
+template<class TCharTraits, class TAllocator>
+EckInline void DbgPrint(const CStringT<WCHAR, TCharTraits, TAllocator>& rs, int iType = 1, BOOL bNewLine = TRUE) noexcept
 {
     OutputDebugStringW(rs.Data());
     if (bNewLine)
         OutputDebugStringW(L"\n");
 }
 
-template<class TCharTraits, class TAlloc>
-EckInline void DbgPrint(const CRefStrT<CHAR, TCharTraits, TAlloc>& rs, int iType = 1, BOOL bNewLine = TRUE) noexcept
+template<class TCharTraits, class TAllocator>
+EckInline void DbgPrint(const CStringT<CHAR, TCharTraits, TAllocator>& rs, int iType = 1, BOOL bNewLine = TRUE) noexcept
 {
     OutputDebugStringA(rs.Data());
     if (bNewLine)
         OutputDebugStringA("\n");
 }
 
-EckInlineNd CRefStrW ToString(int x, int iRadix = 10) noexcept
+EckInlineNd CStringW ToString(int x, int iRadix = 10) noexcept
 {
-    CRefStrW rs(CchI32ToStrBuf);
+    CStringW rs(CchI32ToStrBuf);
     _itow(x, rs.Data(), iRadix);
     rs.ReCalcLen();
     return rs;
 }
 
-EckInlineNd CRefStrW ToString(UINT x, int iRadix = 10) noexcept
+EckInlineNd CStringW ToString(UINT x, int iRadix = 10) noexcept
 {
-    CRefStrW rs(CchI32ToStrBuf);
+    CStringW rs(CchI32ToStrBuf);
     _ultow(x, rs.Data(), iRadix);
     rs.ReCalcLen();
     return rs;
 }
 
-EckInlineNd CRefStrW ToString(LONGLONG x, int iRadix = 10) noexcept
+EckInlineNd CStringW ToString(LONGLONG x, int iRadix = 10) noexcept
 {
-    CRefStrW rs(CchI64ToStrBuf);
+    CStringW rs(CchI64ToStrBuf);
     _i64tow(x, rs.Data(), iRadix);
     rs.ReCalcLen();
     return rs;
 }
 
-EckInlineNd CRefStrW ToString(ULONGLONG x, int iRadix = 10) noexcept
+EckInlineNd CStringW ToString(ULONGLONG x, int iRadix = 10) noexcept
 {
-    CRefStrW rs(CchI64ToStrBuf);
+    CStringW rs(CchI64ToStrBuf);
     _ui64tow(x, rs.Data(), iRadix);
     rs.ReCalcLen();
     return rs;
 }
 
-EckInlineNd CRefStrW ToString(double x, int iPrecision = 6) noexcept
+EckInlineNd CStringW ToString(double x, int iPrecision = 6) noexcept
 {
-    CRefStrW rs{};
+    CStringW rs{};
     rs.Format(L"%.*g", iPrecision, x);
     return rs;
 }
 
 namespace Literals
 {
-    EckInline auto operator""_rs(PCWSTR psz, size_t cch) { return CRefStrW(psz, (int)cch); }
-    EckInline auto operator""_rs(PCSTR psz, size_t cch) { return CRefStrA(psz, (int)cch); }
+    EckInline auto operator""_rs(PCWSTR psz, size_t cch) { return CStringW(psz, (int)cch); }
+    EckInline auto operator""_rs(PCSTR psz, size_t cch) { return CStringA(psz, (int)cch); }
 }
 
-EckInlineNd void ToFullWidth(CRefStrW& rs, PCWSTR pszText, int cchText = -1)
+EckInlineNd void ToFullWidth(CStringW& rs, PCWSTR pszText, int cchText = -1)
 {
     const int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_FULLWIDTH,
         pszText, cchText, nullptr, 0, nullptr, nullptr, 0);
     LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_FULLWIDTH,
         pszText, cchText, rs.PushBack(cchResult), cchResult, nullptr, nullptr, 0);
 }
-EckInlineNd void ToHalfWidth(CRefStrW& rs, PCWSTR pszText, int cchText = -1)
+EckInlineNd void ToHalfWidth(CStringW& rs, PCWSTR pszText, int cchText = -1)
 {
     const int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_HALFWIDTH,
         pszText, cchText, nullptr, 0, nullptr, nullptr, 0);
@@ -1449,9 +1449,9 @@ EckInlineNd void ToHalfWidth(CRefStrW& rs, PCWSTR pszText, int cchText = -1)
         pszText, cchText, rs.PushBack(cchResult), cchResult, nullptr, nullptr, 0);
 }
 
-template<class TChar, class TTraits, class TAlloc>
+template<class TChar, class TTraits, class TAllocator>
     requires (sizeof(TChar) == 1)
-void StrW2X(CRefStrT<TChar, TTraits, TAlloc>& rsResult,
+void StrW2X(CStringT<TChar, TTraits, TAllocator>& rsResult,
     _In_reads_or_z_(cch) PCWCH pszText,
     int cch = -1,
     UINT uCP = CP_ACP,
@@ -1466,17 +1466,17 @@ void StrW2X(CRefStrT<TChar, TTraits, TAlloc>& rsResult,
     WideCharToMultiByte(uCP, uFlags, pszText, cch,
         (PCH)rsResult.PushBackNoExtra(cchBuf), cchBuf, nullptr, nullptr);
 }
-template<class TTraits = CCharTraits<CHAR>, class TAlloc = TRefStrDefAlloc<CHAR>>
+template<class TTraits = CCharTraits<CHAR>, class TAllocator = TStringDefaultAllocator<CHAR>>
 EckInlineNd auto StrW2X(_In_reads_or_z_(cch) PCWCH pszText, int cch = -1, int uCP = CP_ACP) noexcept
 {
-    CRefStrT<CHAR, TTraits, TAlloc> rs{};
+    CStringT<CHAR, TTraits, TAllocator> rs{};
     StrW2X(rs, pszText, cch, uCP);
     return rs;
 }
 
-template<class TChar, class TTraits, class TAlloc>
+template<class TChar, class TTraits, class TAllocator>
     requires (sizeof(TChar) == 2)
-void StrX2W(CRefStrT<TChar, TTraits, TAlloc>& rsResult,
+void StrX2W(CStringT<TChar, TTraits, TAllocator>& rsResult,
     _In_reads_or_z_(cch) PCCH pszText,
     int cch = -1,
     UINT uCP = CP_ACP,
@@ -1491,26 +1491,26 @@ void StrX2W(CRefStrT<TChar, TTraits, TAlloc>& rsResult,
     MultiByteToWideChar(uCP, uFlags,
         pszText, cch, rsResult.PushBackNoExtra(cchBuf), cchBuf);
 }
-template<class TTraits = CCharTraits<WCHAR>, class TAlloc = TRefStrDefAlloc<WCHAR>>
+template<class TTraits = CCharTraits<WCHAR>, class TAllocator = TStringDefaultAllocator<WCHAR>>
 EckInlineNd auto StrX2W(_In_reads_or_z_(cch) PCCH pszText, int cch = -1, int uCP = CP_ACP) noexcept
 {
-    CRefStrT<WCHAR, TTraits, TAlloc> rs{};
+    CStringT<WCHAR, TTraits, TAllocator> rs{};
     StrX2W(rs, pszText, cch, uCP);
     return rs;
 }
 
-EckInlineNd CRefStrW Format(PCWSTR pszFmt, ...)
+EckInlineNd CStringW Format(PCWSTR pszFmt, ...)
 {
-    CRefStrW rs{};
+    CStringW rs{};
     va_list vl;
     va_start(vl, pszFmt);
     rs.FormatV(pszFmt, vl);
     va_end(vl);
     return rs;
 }
-EckInlineNd CRefStrA Format(PCSTR pszFmt, ...)
+EckInlineNd CStringA Format(PCSTR pszFmt, ...)
 {
-    CRefStrA rs{};
+    CStringA rs{};
     va_list vl;
     va_start(vl, pszFmt);
     rs.FormatV(pszFmt, vl);
@@ -1519,11 +1519,11 @@ EckInlineNd CRefStrA Format(PCSTR pszFmt, ...)
 }
 ECK_NAMESPACE_END
 
-template<class TChar, class TTraits, class TAlloc>
-struct std::hash<::eck::CRefStrT<TChar, TTraits, TAlloc>>
+template<class TChar, class TTraits, class TAllocator>
+struct std::hash<::eck::CStringT<TChar, TTraits, TAllocator>>
 {
     EckInlineNdCe size_t operator()(
-        const ::eck::CRefStrT<TChar, TTraits, TAlloc>& rs) const noexcept
+        const ::eck::CStringT<TChar, TTraits, TAllocator>& rs) const noexcept
     {
         return ::eck::Fnv1aHash((::eck::PCBYTE)rs.Data(), rs.Size() * sizeof(TChar));
     }

@@ -98,7 +98,7 @@ void InitializePrivateApi() noexcept
 // For program
 
 HINSTANCE	g_hInstance{};
-CRefStrW	g_rsRunningDir{};
+CStringW	g_rsRunningDir{};
 DWORD		g_dwTlsSlot{};
 NTVER		g_NtVer{};
 
@@ -181,7 +181,7 @@ void InitializeNewApi() noexcept
 }
 #endif// ECK_OPT_DYN_NF
 
-const CRefStrW& GetRunningPath() noexcept
+const CStringW& GetRunningPath() noexcept
 {
     return g_rsRunningDir;
 }
@@ -1565,7 +1565,7 @@ static int WINAPI NewSoftModalMessageBox(void* p)
     const auto ptc = PtcCurrent();
     if (!ptc)
         return s_pfnSoftModalMessageBox(p);
-    CMsgBoxHook Mb{};
+    CMessageBoxHook Mb{};
     BeginCbtHook(&Mb);
     return s_pfnSoftModalMessageBox(p);
 }
@@ -2232,7 +2232,7 @@ void DbgPrintFmt(_Printf_format_string_ PCWSTR pszFormat, ...) noexcept
 {
     va_list vl;
     va_start(vl, pszFormat);
-    CRefStrW rs{};
+    CStringW rs{};
     rs.FormatV(pszFormat, vl);
     DbgPrint(rs);
     va_end(vl);
@@ -2241,7 +2241,7 @@ void DbgPrintFmt(_Printf_format_string_ PCSTR pszFormat, ...) noexcept
 {
     va_list vl;
     va_start(vl, pszFormat);
-    CRefStrA rs{};
+    CStringA rs{};
     rs.FormatV(pszFormat, vl);
     DbgPrint(rs);
     va_end(vl);

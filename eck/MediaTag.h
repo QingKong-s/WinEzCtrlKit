@@ -1,8 +1,8 @@
 ﻿#pragma once
-#include "CRefStr.h"
-#include "CRefBin.h"
+#include "CString.h"
+#include "CByteBuffer.h"
 #include "CStreamWalker.h"
-#include "CMemWalker.h"
+#include "MemWalker.h"
 #include "CBitSet.h"
 #include "Utility2.h"
 #include "AutoPtrDef.h"
@@ -247,7 +247,7 @@ struct StrList
         EckInlineNdCe bool operator==(const Iterator& x) const noexcept { return p == x.p; }
     };
 
-    eck::CRefStrW Str{};
+    eck::CStringW Str{};
 
     EckInlineCe void Clear() noexcept { Str.Clear(); }
 
@@ -291,7 +291,7 @@ struct StrList
         }
     }
 
-    void PushBackString(const CRefStrW& rs, std::wstring_view svDiv) noexcept
+    void PushBackString(const CStringW& rs, std::wstring_view svDiv) noexcept
     {
         PushBackStringView(rs.ToStringView(), svDiv);
     }
@@ -304,14 +304,14 @@ struct MUSICPIC
 {
     PicType eType{ PicType::CoverFront };
     BOOL bLink{};
-    CRefStrW rsDesc{};
-    CRefStrA rsMime{};
-    std::variant<CRefBin, CRefStrW> varPic{};
+    CStringW rsDesc{};
+    CStringA rsMime{};
+    std::variant<CByteBuffer, CStringW> varPic{};
 
-    EckInlineNdCe auto& GetPicturePath() noexcept { return std::get<CRefStrW>(varPic); }
-    EckInlineNdCe auto& GetPicturePath() const noexcept { return std::get<CRefStrW>(varPic); }
-    EckInlineNdCe auto& GetPictureData() noexcept { return std::get<CRefBin>(varPic); }
-    EckInlineNdCe auto& GetPictureData() const noexcept { return std::get<CRefBin>(varPic); }
+    EckInlineNdCe auto& GetPicturePath() noexcept { return std::get<CStringW>(varPic); }
+    EckInlineNdCe auto& GetPicturePath() const noexcept { return std::get<CStringW>(varPic); }
+    EckInlineNdCe auto& GetPictureData() noexcept { return std::get<CByteBuffer>(varPic); }
+    EckInlineNdCe auto& GetPictureData() const noexcept { return std::get<CByteBuffer>(varPic); }
 
     // 从当前内容创建图片数据字节流
     // 若bLink为假，调用方必须保证在当前实例析构前销毁返回的流
@@ -336,12 +336,12 @@ struct MUSICINFO
     MIMASKS uMaskChecked{};		// 读操作返回后，设置已读取的信息；写操作时忽略
     MIFLAGS uFlag{};
 
-    CRefStrW rsTitle{};
+    CStringW rsTitle{};
     StrList slArtist{};
-    CRefStrW rsAlbum{};
+    CStringW rsAlbum{};
     StrList slComment{};
-    CRefStrW rsLrc{};
-    CRefStrW rsGenre{};
+    CStringW rsLrc{};
+    CStringW rsGenre{};
     std::vector<MUSICPIC> vPic{};
     int nTrack{};
     int cTotalTrack{};

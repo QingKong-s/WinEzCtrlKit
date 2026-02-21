@@ -34,8 +34,8 @@ struct LBITEMCOMMINFO
 // 只用于运行时保存信息
 struct LBITEMINFO
 {
-    CRefStrW rsCaption;	       // 标题
-    CRefStrW rsTip;		       // 提示文本
+    CStringW rsCaption;	       // 标题
+    CStringW rsTip;		       // 提示文本
     HBRUSH hbrBK;		       // 背景画刷
     HBRUSH hbrSelBK;	       // 选中背景画刷
     LBITEMCOMMINFO Info;       // 通用信息
@@ -90,8 +90,8 @@ public:
     int m_cxImage = 0,
         m_cyImage = 0;      // 图像列表尺寸
     //////////文件框相关
-    CRefStrW m_rsDir{};
-    CRefStrW m_rsFilePattern{};
+    CStringW m_rsDir{};
+    CStringW m_rsFilePattern{};
     //////////通用信息
     HBRUSH m_hbrBK = nullptr;   // 通用表项背景画刷
     HBRUSH m_hbrSelBK = nullptr;   // 通用选择表项背景画刷
@@ -771,7 +771,7 @@ public:
         AddFile();
     }
 
-    EckInline const CRefStrW& GetDirectory() noexcept
+    EckInline const CStringW& GetDirectory() noexcept
     {
         return m_rsDir;
     }
@@ -782,7 +782,7 @@ public:
         AddFile();
     }
 
-    EckInline const CRefStrW& GetFilePattern() noexcept
+    EckInline const CStringW& GetFilePattern() noexcept
     {
         return m_rsFilePattern;
     }

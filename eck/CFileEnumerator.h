@@ -5,7 +5,7 @@
 #include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
-class CEnumFile : public CNtObject
+class CFileEnumerator : public CNtObject
 {
 public:
     using TDefInfo = FILE_FULL_DIR_INFORMATION;
@@ -97,7 +97,7 @@ public:
     }
 };
 
-class CEnumFileSingle : public CEnumFile
+class CFileEnumeratorSingle : public CFileEnumerator
 {
 private:
     void* m_pBuffer{};
@@ -119,7 +119,7 @@ private:
             VFree(m_pBuffer);
     }
 public:
-    ~CEnumFileSingle() { FreeBuffer(); }
+    ~CFileEnumeratorSingle() { FreeBuffer(); }
 
     // 调用本函数后获得一个枚举条目信息。
     // 调用方使用NT_SUCCESS宏判断枚举是否已终止

@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CWnd.h"
+#include "CWindow.h"
 
 ECK_NAMESPACE_BEGIN
 constexpr inline UINT TVS_EX_ALL{/*TVS_EX_NOSINGLECOLLAPSE | TVS_EX_MULTISELECT |*/
@@ -182,9 +182,9 @@ public:
         return (COLORREF)SendMsg(TVM_GETINSERTMARKCOLOR, 0, 0);
     }
 
-    EckInline CRefStrW GetIncrementalSearchString() const noexcept
+    EckInline CStringW GetIncrementalSearchString() const noexcept
     {
-        CRefStrW rs;
+        CStringW rs;
         int cch = (int)SendMsg(TVM_GETISEARCHSTRINGW, 0, NULL);
         if (cch <= 0)
             return rs;

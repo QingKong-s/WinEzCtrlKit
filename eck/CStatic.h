@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CWnd.h"
+#include "CWindow.h"
 
 ECK_NAMESPACE_BEGIN
 inline constexpr int CDV_STATIC_1 = 1;
@@ -58,7 +58,7 @@ public:
         return PointerStepBytes(CWindow::SkipBaseData(p), sizeof(CTRLDATA_STATIC));
     }
 
-    void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept override
+    void SerializeData(CByteBuffer& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept override
     {
         CWindow::SerializeData(rb, pOpt);
         constexpr auto cbSize = sizeof(CTRLDATA_STATIC);

@@ -164,10 +164,10 @@
     <ClCompile Include="eck\CEditExt.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CEditNcComp.h">
+    <ClCompile Include="eck\CEditNc.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CEnumFile.h">
+    <ClCompile Include="eck\CFileEnumerator.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\CEvent.h">
@@ -281,7 +281,7 @@
     <ClCompile Include="eck\CMemorySet.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CMemWalker.h">
+    <ClCompile Include="eck\MemWalker.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\CMenu.h">
@@ -290,7 +290,7 @@
     <ClCompile Include="eck\CMonthCalendar.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CMsgBoxHook.h">
+    <ClCompile Include="eck\CMessageBoxHook.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\CNtObject.h">
@@ -344,19 +344,19 @@
     <ClCompile Include="eck\CRectPackTile.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CRefBin.h">
+    <ClCompile Include="eck\CByteBuffer.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CRefBinStream.h">
+    <ClCompile Include="eck\CByteBufferStream.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CRefStr.h">
+    <ClCompile Include="eck\CString.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\CRegion.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CRegKey.h">
+    <ClCompile Include="eck\CRegistryKey.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\CRichEdit.h">
@@ -371,7 +371,7 @@
     <ClCompile Include="eck\CScrollView.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CSelRange.h">
+    <ClCompile Include="eck\CSelectionRange.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\CSequenceIdGenerator.h">
@@ -455,10 +455,10 @@
     <ClCompile Include="eck\CWaitableTimer.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CWindowPosSetting.h">
+    <ClCompile Include="eck\CWindowPlacementStore.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CWnd.h">
+    <ClCompile Include="eck\CWindow.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\DateTimeHelper.h">
@@ -545,7 +545,7 @@
     <ClCompile Include="eck\ImageHelper.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\IMem.h">
+    <ClCompile Include="eck\IMemoryView.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\ISO8601Time.h">

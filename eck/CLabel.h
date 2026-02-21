@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CWnd.h"
+#include "CWindow.h"
 #include "GraphicsHelper.h"
 
 ECK_NAMESPACE_BEGIN
@@ -49,7 +49,7 @@ private:
     int m_cxBkImg{},
         m_cyBkImg{};		// 底图大小
     HFONT m_hFont{};		// 字体，无需销毁
-    CRefStrW m_rsText{};
+    CStringW m_rsText{};
 
     BkImgMode m_eBkImgMode{ BkImgMode::TopLeft };		// 底图模式
     GradientMode m_eGradientMode{ GradientMode::None };	// 渐变模式

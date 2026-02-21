@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "CRefStr.h"
-#include "CRefBin.h"
+#include "CString.h"
+#include "CByteBuffer.h"
 #include "StringConvert.h"
 
 ECK_NAMESPACE_BEGIN
@@ -9,7 +9,7 @@ ECK_NAMESPACE_BEGIN
 
 #define ECK_OBJA_BEGIN() \
 	virtual ObjAttrErr GetSetAttribute(std::wstring_view svName, \
-		std::wstring_view svValue, CRefStrW& rsValue, BOOL bSet) noexcept override \
+		std::wstring_view svValue, CStringW& rsValue, BOOL bSet) noexcept override \
 	{
 #define ECK_OBJA_END() \
 		return ObjAttrErr::InvalidAttr; \
@@ -81,7 +81,7 @@ ECK_NAMESPACE_BEGIN
 #define ECK_OBJA_STRING(Name, Field) \
 	if (::eck::TcsCompareLen2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
 		if (bSet) { \
-			CRefStrW v; \
+			CStringW v; \
 			const auto r = ::eck::OamFromString<::eck::ObjAttrType::String>(svValue, v); \
 			if (r == ::eck::ObjAttrErr::Ok) Field = v; \
 			return r; \
@@ -163,8 +163,8 @@ std::conditional_t<E == ObjAttrType::Char, char,
     std::conditional_t<E == ObjAttrType::Float, float,
     std::conditional_t<E == ObjAttrType::Double, double,
     std::conditional_t<E == ObjAttrType::Bool, BOOL,
-    std::conditional_t<E == ObjAttrType::String, CRefStrW,
-    std::conditional_t<E == ObjAttrType::Bin, CRefBin,
+    std::conditional_t<E == ObjAttrType::String, CStringW,
+    std::conditional_t<E == ObjAttrType::Bin, CByteBuffer,
     std::conditional_t<E == ObjAttrType::Colorref, COLORREF,
     void>>>>>>>>>>>>>>;
 
@@ -182,8 +182,8 @@ std::is_same_v<T, char> ? ObjAttrType::Char :
     std::is_same_v<T, float> ? ObjAttrType::Float :
     std::is_same_v<T, double> ? ObjAttrType::Double :
     std::is_same_v<T, BOOL> ? ObjAttrType::Bool :
-    std::is_same_v<T, CRefStrW> ? ObjAttrType::String :
-    std::is_same_v<T, CRefBin> ? ObjAttrType::Bin :
+    std::is_same_v<T, CStringW> ? ObjAttrType::String :
+    std::is_same_v<T, CByteBuffer> ? ObjAttrType::Bin :
     std::is_same_v<T, COLORREF> ? ObjAttrType::Colorref :
     ObjAttrType::None;
 
@@ -278,7 +278,7 @@ inline ObjAttrErr OamFromString(std::wstring_view Str, TOamValFrom<E> Val) noexc
 }
 
 template<ObjAttrType E>
-inline ObjAttrErr OamToString(TOamValTo<E> Val, CRefStrW& Str) noexcept
+inline ObjAttrErr OamToString(TOamValTo<E> Val, CStringW& Str) noexcept
 {
     constexpr auto BaseType = OatGetBaseType(E);
     if constexpr (BaseType <= ObjAttrType::ULongLong &&

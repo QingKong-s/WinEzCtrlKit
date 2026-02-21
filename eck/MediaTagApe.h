@@ -18,9 +18,9 @@ private:
     struct ITEM
     {
         ItemType eType;
-        CRefStrA rsKey;
-        std::variant<std::vector<CRefStrW>, CRefBin> Value;
-        CRefStrA rsU8Cache;// 调用方可以随意修改此字段
+        CStringA rsKey;
+        std::variant<std::vector<CStringW>, CByteBuffer> Value;
+        CStringA rsU8Cache;// 调用方可以随意修改此字段
 
         EckInlineCe auto& EnsureStrList(ItemType eType_ = ItemType::String) noexcept
         {
@@ -45,10 +45,10 @@ private:
     struct PIC
     {
         PicType eType;
-        eck::CRefStrA rsKey;
-        eck::CRefStrW rsDesc;
-        eck::CRefBin rbData;
-        CRefStrA rsU8Cache;// 调用方可以随意修改此字段
+        eck::CStringA rsKey;
+        eck::CStringW rsDesc;
+        eck::CByteBuffer rbData;
+        CStringA rsU8Cache;// 调用方可以随意修改此字段
     };
 
     size_t m_cbTag{};
@@ -62,7 +62,7 @@ private:
         return (ItemType)GetLowNBits(uFlags >> 1, 2);
     }
 
-    static BOOL IsStringItem(const CRefStrA& rsKey) noexcept
+    static BOOL IsStringItem(const CStringA& rsKey) noexcept
     {
         return
             rsKey.CompareI("TITLE"sv) == 0 ||
@@ -181,7 +181,7 @@ public:
                         e.eType,
                         FALSE,
                         std::move(e.rsDesc),
-                        CRefStrA{},
+                        CStringA{},
                         std::move(e.rbData));
                 else
                 {
@@ -189,8 +189,8 @@ public:
                         e.eType,
                         FALSE,
                         e.rsDesc,
-                        CRefStrA{},
-                        CRefBin(e.rbData.Size()));
+                        CStringA{},
+                        CByteBuffer(e.rbData.Size()));
                     memcpy(f.GetPictureData().Data(),
                         e.rbData.Data(), e.rbData.Size());
                 }
@@ -295,7 +295,7 @@ public:
             {
                 ITEM e{};
                 e.rsKey.Assign(svKey);
-                e.EnsureStrList().emplace_back(CRefStrW{ szBuf, int(p - szBuf) });
+                e.EnsureStrList().emplace_back(CStringW{ szBuf, int(p - szBuf) });
                 m_vItem.emplace_back(std::move(e));
             }
         }
@@ -311,7 +311,7 @@ public:
                     e.eType == PicType::Invalid &&
                     (mi.uFlag & MIF_APE_INVALID_COVER_AS_FRONT) ?
                     PicType::CoverFront : e.eType);
-                CRefBin rbData{};
+                CByteBuffer rbData{};
                 if (e.bLink)
                     rbData = ReadInFile(e.GetPicturePath().Data());
                 else
@@ -327,7 +327,7 @@ public:
                 }
                 auto& f = m_vPic.emplace_back(
                     eType,
-                    CRefStrA{},
+                    CStringA{},
                     e.rsDesc,
                     std::move(rbData));
                 if (eType == PicType::Invalid)
@@ -357,14 +357,14 @@ public:
         const UniquePtr<DelVA<BYTE>> _{ pBuf };
         m_Stream.MoveTo(Loc.posApe).Read(pBuf, m_Hdr.cbBody);
 
-        CMemReader w{ pBuf, m_Hdr.cbBody };
+        CMemoryReader w{ pBuf, m_Hdr.cbBody };
         UINT cbVal, uItemFlags;
 
         EckCounterNV(m_Hdr.cItems)
         {
             ITEM e{};
             w >> cbVal >> uItemFlags;
-            if (cbVal > w.GetLeaveSize())
+            if (cbVal > w.GetRemainingSize())
                 return Result::Length;
             e.eType = GetItemType(uItemFlags);
             w >> e.rsKey;
@@ -403,7 +403,7 @@ public:
                     eType,
                     std::move(e.rsKey),
                     StrU82W(pBaseU8, cchDesc),
-                    CRefBin(cbData));
+                    CByteBuffer(cbData));
                 memcpy(f.rbData.Data(), w.Data() + cchDesc + 1, cbData);
                 w += cbVal;
             }
@@ -449,7 +449,7 @@ public:
     {
         return Result::Length;
     }
-    catch (const CMemReader::Xpt&)
+    catch (const CMemoryReader::Xpt&)
     {
         return Result::Length;
     }

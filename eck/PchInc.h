@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "Utility.h"
-#include "CRefStr.h"
+#include "CString.h"
 #include "CMsgBoxHook.h"
 #include "GraphicsHelper.h"
 #include "CObject.h"

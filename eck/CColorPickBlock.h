@@ -35,7 +35,7 @@ public:
         return PointerStepBytes(CStatic::SkipBaseData(p), sizeof(CTRLDATA_COLOR_PICK_BLOCK));
     }
 
-    void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept override
+    void SerializeData(CByteBuffer& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept override
     {
         CStatic::SerializeData(rb, pOpt);
         constexpr auto cbSize = sizeof(CTRLDATA_COLOR_PICK_BLOCK);

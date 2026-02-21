@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CRefStr.h"
+#include "CString.h"
 #include "ImageHelper.h"
 
 #include <taskschd.h>
@@ -46,7 +46,7 @@ namespace Priv
 {
     inline UINT __stdcall OpenInExplorerThread(void* pParam) noexcept
     {
-        const auto pvPath = (std::vector<CRefStrW>*)pParam;
+        const auto pvPath = (std::vector<CStringW>*)pParam;
         if (FAILED(CoInitialize(nullptr)))
         {
             delete pvPath;
@@ -116,7 +116,7 @@ namespace Priv
 /// 可一次性传递多个文件，且父目录可以不同
 /// </summary>
 /// <param name="vPath">路径</param>
-EckInline void OpenInExplorer(const std::vector<CRefStrW>& vPath) noexcept
+EckInline void OpenInExplorer(const std::vector<CStringW>& vPath) noexcept
 {
     NtClose(CrtCreateThread(Priv::OpenInExplorerThread, new std::vector{ vPath }));
 }
@@ -126,7 +126,7 @@ EckInline void OpenInExplorer(const std::vector<CRefStrW>& vPath) noexcept
 /// 可一次性传递多个文件，且父目录可以不同
 /// </summary>
 /// <param name="pvPath">路径vector指针，传递后不可再使用</param>
-EckInline void OpenInExplorer(std::unique_ptr<std::vector<CRefStrW>>& pvPath) noexcept
+EckInline void OpenInExplorer(std::unique_ptr<std::vector<CStringW>>& pvPath) noexcept
 {
     NtClose(CrtCreateThread(Priv::OpenInExplorerThread, pvPath.release()));
 }
@@ -137,7 +137,7 @@ EckInline void OpenInExplorer(std::unique_ptr<std::vector<CRefStrW>>& pvPath) no
 /// <param name="pszFolder">文件夹路径</param>
 /// <param name="vFile">文件路径，必须全部在pszFolder指定的文件夹之下</param>
 /// <returns>HRESULT</returns>
-EckInline HRESULT OpenInExplorer(PCWSTR pszFolder, const std::vector<CRefStrW>& vFile) noexcept
+EckInline HRESULT OpenInExplorer(PCWSTR pszFolder, const std::vector<CStringW>& vFile) noexcept
 {
     HRESULT hr;
     PIDLIST_ABSOLUTE pIDL;

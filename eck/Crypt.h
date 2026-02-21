@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "BaseN.h"
-#include "CMemWalker.h"
+#include "MemWalker.h"
 #include "AutoPtrDef.h"
 
 ECK_NAMESPACE_BEGIN
@@ -36,7 +36,7 @@ enum class CryptChain
 
 
 inline NTSTATUS AesEncrypt(PCVOID pKey, SIZE_T cbKey, PCVOID pIv, SIZE_T cbIv,
-    PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult,
+    PCVOID pOrg, SIZE_T cbOrg, CByteBuffer& rbResult,
     CryptChain eChain = CryptChain::CBC, ULONG cbBlock = 0) noexcept
 {
     NTSTATUS nts;
@@ -92,7 +92,7 @@ Tidyup:;
 }
 
 inline NTSTATUS DesDecrypt(PCVOID pKey, SIZE_T cbKey, PCVOID pIv, SIZE_T cbIv,
-    PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult, CryptChain eChain = CryptChain::CBC,
+    PCVOID pOrg, SIZE_T cbOrg, CByteBuffer& rbResult, CryptChain eChain = CryptChain::CBC,
     ULONG ulPadding = BCRYPT_BLOCK_PADDING) noexcept
 {
     NTSTATUS nts;
@@ -137,7 +137,7 @@ Tidyup:;
 }
 
 inline NTSTATUS DesEncrypt(PCVOID pKey, SIZE_T cbKey, PCVOID pIv, SIZE_T cbIv,
-    PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult, CryptChain eChain = CryptChain::CBC,
+    PCVOID pOrg, SIZE_T cbOrg, CByteBuffer& rbResult, CryptChain eChain = CryptChain::CBC,
     ULONG ulPadding = BCRYPT_BLOCK_PADDING) noexcept
 {
     NTSTATUS nts;
@@ -186,10 +186,10 @@ inline BOOL ImportPublicKeyFromPEM(PCSTR pszKey, int cchKey, BCRYPT_KEY_HANDLE& 
 }
 
 inline BOOL GetExponentAndModulusFromPEM(PCSTR pszKey, int cchKey,
-    CRefBin& rbExponent, CRefBin& rbModulus) noexcept
+    CByteBuffer& rbExponent, CByteBuffer& rbModulus) noexcept
 {
     const auto rb = Base64Decode(pszKey, cchKey);
-    CMemReader r(rb.Data(), rb.Size());
+    CMemoryReader r(rb.Data(), rb.Size());
     USHORT us;
     BYTE by[15];
     constexpr BYTE ByMagic[]{ 0x30, 0x0D, 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86,
@@ -256,7 +256,7 @@ inline BOOL GetExponentAndModulusFromPEM(PCSTR pszKey, int cchKey,
 inline BOOL MakeBCryptRsaKeyBlob(PCVOID pKey, SIZE_T cbKey, UCHAR*& pBlob, ULONG& cbBlob) noexcept
 {
     BYTE* pKeyBlob;
-    CRefBin rbExp{}, rbMod{};
+    CByteBuffer rbExp{}, rbMod{};
     if (!GetExponentAndModulusFromPEM((PCSTR)pKey, (int)cbKey, rbExp, rbMod))
     {
         pBlob = nullptr;
@@ -279,7 +279,7 @@ inline BOOL MakeBCryptRsaKeyBlob(PCVOID pKey, SIZE_T cbKey, UCHAR*& pBlob, ULONG
 }
 
 inline NTSTATUS RsaEncrypt(PCVOID pKey, SIZE_T cbKey,
-    PCVOID pOrg, SIZE_T cbOrg, CRefBin& rbResult, ULONG ulPadding = BCRYPT_PAD_PKCS1) noexcept
+    PCVOID pOrg, SIZE_T cbOrg, CByteBuffer& rbResult, ULONG ulPadding = BCRYPT_PAD_PKCS1) noexcept
 {
     NTSTATUS nts;
     BCRYPT_ALG_HANDLE hAlg;

@@ -15,7 +15,7 @@ static std::vector<uint8_t> GenRandomData(size_t n)
     return buf;
 }
 
-static void AssertBinEqual(const CRefBin& a, const std::vector<uint8_t>& b)
+static void AssertBinEqual(const CByteBuffer& a, const std::vector<uint8_t>& b)
 {
     Assert::AreEqual((size_t)a.Size(), b.size(), L"Size mismatch");
     Assert::IsTrue(memcmp(a.Data(), b.data(), b.size()) == 0, L"Binary content mismatch");
@@ -36,7 +36,7 @@ public:
     TEST_METHOD(TestZLibCompressDecompress)
     {
         std::string src = "Hello Zlib Compression!";
-        CRefBin compressed, decompressed;
+        CByteBuffer compressed, decompressed;
 
         int ret = ZLibCompress(src.data(), src.size(), compressed);
         Assert::AreEqual(Z_STREAM_END, ret);
@@ -51,7 +51,7 @@ public:
     TEST_METHOD(TestZLibRandomData)
     {
         auto data = GenRandomData(4096);
-        CRefBin compressed, decompressed;
+        CByteBuffer compressed, decompressed;
 
         int ret = ZLibCompress(data.data(), data.size(), compressed);
         Assert::AreEqual(Z_STREAM_END, ret);
@@ -65,7 +65,7 @@ public:
     TEST_METHOD(TestZLibEmpty)
     {
         uint8_t dummy = 1;
-        CRefBin compressed, decompressed;
+        CByteBuffer compressed, decompressed;
 
         int ret = ZLibCompress(nullptr, 0, compressed);
         Assert::AreEqual(Z_STREAM_END, ret);
@@ -79,7 +79,7 @@ public:
     TEST_METHOD(TestGZipCompressDecompress)
     {
         std::string src = "Hello GZip Compression!";
-        CRefBin compressed, decompressed;
+        CByteBuffer compressed, decompressed;
 
         int ret = GZipCompress(src.data(), src.size(), compressed);
         Assert::AreEqual(Z_STREAM_END, ret);
@@ -94,7 +94,7 @@ public:
     TEST_METHOD(TestGZipRandomData)
     {
         auto data = GenRandomData(10000);
-        CRefBin compressed, decompressed;
+        CByteBuffer compressed, decompressed;
 
         int ret = GZipCompress(data.data(), data.size(), compressed);
         Assert::AreEqual(Z_STREAM_END, ret);
@@ -108,7 +108,7 @@ public:
     TEST_METHOD(TestNTCompressDecompress)
     {
         std::string src = "NT native compression test.";
-        CRefBin compressed, decompressed;
+        CByteBuffer compressed, decompressed;
 
         NTSTATUS nts = Compress(src.data(), src.size(), compressed, COMPRESSION_FORMAT_LZNT1);
         Assert::IsTrue(NT_SUCCESS(nts));
@@ -124,7 +124,7 @@ public:
     {
         auto data = GenRandomData(8000);
 
-        CRefBin compressed, decompressed;
+        CByteBuffer compressed, decompressed;
 
         NTSTATUS nts = Compress(data.data(), data.size(), compressed, COMPRESSION_FORMAT_LZNT1);
         Assert::IsTrue(NT_SUCCESS(nts));
@@ -139,7 +139,7 @@ public:
     {
         // 伪造错误数据
         uint8_t fakeData[16] = { 0 };
-        CRefBin out;
+        CByteBuffer out;
 
         NTSTATUS nts = Decompress(fakeData, sizeof(fakeData), out);
         Assert::AreEqual((NTSTATUS)STATUS_UNSUPPORTED_COMPRESSION, nts);

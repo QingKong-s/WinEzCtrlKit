@@ -2,8 +2,8 @@
 #include "AutoPtrDef.h"
 #include "CoroutineHelper.h"
 #include "ComPtr.h"
-#include "CRefStr.h"
-#include "CRefBin.h"
+#include "CString.h"
+#include "CByteBuffer.h"
 #include "NativeWrapper.h"
 
 #include <winhttp.h>
@@ -50,12 +50,12 @@ inline BOOL RequestUrl(FPostConnect&& fn,
         pszProxy, WINHTTP_NO_PROXY_BYPASS, 0));
     if (!hSession)
         return FALSE;
-    const CRefStrW rsHost(urlc.lpszHostName, urlc.dwHostNameLength);
+    const CStringW rsHost(urlc.lpszHostName, urlc.dwHostNameLength);
     const UniquePtr<DelHWinHttp>
         hConnect(WinHttpConnect(hSession.get(), rsHost.Data(), urlc.nPort, 0));
     if (!hConnect)
         return FALSE;
-    CRefStrW rsPath{};
+    CStringW rsPath{};
     rsPath.Reserve(urlc.dwUrlPathLength + urlc.dwExtraInfoLength + 1);
     if (urlc.dwUrlPathLength)
         rsPath.PushBack(urlc.lpszUrlPath, urlc.dwUrlPathLength);
@@ -76,7 +76,7 @@ inline BOOL RequestUrl(FPostConnect&& fn,
     WinHttpSetOption(hRequest.get(), WINHTTP_OPTION_SECURITY_FLAGS,
         &uSecurityFlags, sizeof(uSecurityFlags));
     // 处理请求头
-    CRefStrW rsHeader{};
+    CStringW rsHeader{};
     PCWSTR pszHeaderFinal;
     DWORD cchHeaderFinal;
     if (bAutoHeader)
@@ -148,16 +148,16 @@ inline BOOL RequestUrl(FPostConnect&& fn,
 /// <param name="pszProxy">代理</param>
 /// <param name="pszUserAgent">UA</param>
 /// <returns>成功返回请求到的数据，失败返回空字节集</returns>
-inline CRefBin RequestUrl(PCWSTR pszUrl, PCWSTR pszMethod = L"GET",
+inline CByteBuffer RequestUrl(PCWSTR pszUrl, PCWSTR pszMethod = L"GET",
     void* pData = nullptr, SIZE_T cbData = 0u,
     PCWSTR pszHeader = nullptr, PCWSTR pszCookies = nullptr, BOOL bAutoHeader = TRUE,
-    CRefStrW* prsResponseHeaders = nullptr,
+    CStringW* prsResponseHeaders = nullptr,
     PCWSTR pszProxy = nullptr, PCWSTR pszUserAgent = nullptr) noexcept
 {
-    CRefBin rb{};
+    CByteBuffer rb{};
     if (!RequestUrl([&](HINTERNET hSession, HINTERNET hConnect, HINTERNET hRequest) -> BOOL
         {
-            CRefStrW rsResponseHeaders{};
+            CStringW rsResponseHeaders{};
             DWORD cbHeaders = 0;
             WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_RAW_HEADERS_CRLF,
                 WINHTTP_HEADER_NAME_BY_INDEX, nullptr, &cbHeaders, WINHTTP_NO_HEADER_INDEX);
@@ -209,8 +209,8 @@ struct CHttpRequest
     PCWSTR UserAgent{};
     PCWSTR Proxy{};
 
-    CRefStrW ResponseHeader{};
-    CRefBin Response{};
+    CStringW ResponseHeader{};
+    CByteBuffer Response{};
 
     void DoRequest(PCWSTR pszUrl, PCWSTR pszMethod = L"GET") noexcept
     {
@@ -261,7 +261,7 @@ struct CHttpRequest
             Header, Cookies, AutoAddHeader, Proxy, UserAgent);
     }
 
-    void DoRequest(const CRefStrW& rsUrl, PCWSTR pszMethod = L"GET") noexcept
+    void DoRequest(const CStringW& rsUrl, PCWSTR pszMethod = L"GET") noexcept
     {
         DoRequest(rsUrl.Data(), pszMethod);
     }
@@ -291,7 +291,7 @@ EckInline HWhSession WhOpenSession(BOOL bAsync = TRUE,
         pszProxy, WINHTTP_NO_PROXY_BYPASS, bAsync ? WINHTTP_FLAG_ASYNC : 0);
 }
 
-inline HWhConnect WhPrepareConnect(_Out_ URL_COMPONENTSW& urlc, _Inout_ CRefStrW& rsWork,
+inline HWhConnect WhPrepareConnect(_Out_ URL_COMPONENTSW& urlc, _Inout_ CStringW& rsWork,
     _In_ HWhSession hSession, _In_reads_(cchUrl) PCWSTR pszUrl, int cchUrl) noexcept
 {
     // 分解URL
@@ -324,7 +324,7 @@ EckInline HWhRequest WhOpenRequest(const URL_COMPONENTSW& urlc, HWhConnect hConn
         (urlc.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0));
 }
 
-inline void WhCompleteHeader(_In_opt_z_ PCWSTR pszHeader, _Inout_ CRefStrW& rsHeader,
+inline void WhCompleteHeader(_In_opt_z_ PCWSTR pszHeader, _Inout_ CStringW& rsHeader,
     _In_z_ PCWSTR pszMethod, _In_opt_z_ PCWSTR pszCookies, _In_opt_z_ PCWSTR pszUserAgent) noexcept
 {
     if (pszHeader)
@@ -363,8 +363,8 @@ struct CHttpRequestAsync
     BITBOOL AutoDecompress : 1{ TRUE };
 
     int ResponseCode{};
-    CRefStrW ResponseHeader{};
-    std::variant<CRefBin, CRefStrW, ComPtr<IStream>> Response{};
+    CStringW ResponseHeader{};
+    std::variant<CByteBuffer, CStringW, ComPtr<IStream>> Response{};
 
     // 异步发送请求
     // 进度结果：(已接收字节数，Content-Length)，其中Content-Length可能为0
@@ -377,7 +377,7 @@ struct CHttpRequestAsync
         static UniquePtr<DelHWinHttp> s_hSession{ WhOpenSession() };
 
         URL_COMPONENTSW urlc;
-        CRefStrW rsWork;
+        CStringW rsWork;
         UniquePtr<DelHWinHttp>
             hConnect{ WhPrepareConnect(urlc, rsWork, s_hSession.get(), pszUrl, cchUrl) };
         if (!hConnect)
@@ -453,7 +453,7 @@ struct CHttpRequestAsync
                                 svContentLength.data(), nullptr, 10);
                             pCtx->cbTotal = (SIZE_T)cbContent;
                             if (pCtx->pThis->Response.index() == 0)
-                                std::get<CRefBin>(pCtx->pThis->Response)
+                                std::get<CByteBuffer>(pCtx->pThis->Response)
                                 .Reserve((size_t)cbContent);
                         }
                     }
@@ -468,7 +468,7 @@ struct CHttpRequestAsync
                     }
                     break;
                     case 1:
-                        pCtx->hFile = CreateFileW(std::get<CRefStrW>(pCtx->pThis->Response).Data(),
+                        pCtx->hFile = CreateFileW(std::get<CStringW>(pCtx->pThis->Response).Data(),
                             GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, nullptr);
                         if (pCtx->hFile == INVALID_HANDLE_VALUE)
                         {
@@ -501,7 +501,7 @@ struct CHttpRequestAsync
                     {
                         // Expect WINHTTP_CALLBACK_STATUS_READ_COMPLETE
                         if (!WinHttpReadData(
-                            pCtx->hRequest, std::get<CRefBin>(pCtx->pThis->Response).PushBack(cbData),
+                            pCtx->hRequest, std::get<CByteBuffer>(pCtx->pThis->Response).PushBack(cbData),
                             cbData, nullptr))
                             pCtx->Cancel(FALSE);
                     }
@@ -519,7 +519,7 @@ struct CHttpRequestAsync
                     {
                     case 0:
                     {
-                        std::get<CRefBin>(pCtx->pThis->Response).
+                        std::get<CByteBuffer>(pCtx->pThis->Response).
                             PopBack(pCtx->cbData - dwStatusInformationLength);
                         // Expect WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE
                         if (!WinHttpQueryDataAvailable(pCtx->hRequest, nullptr))
@@ -634,25 +634,25 @@ struct CHttpRequestAsync
         co_return Ctx.hr;
     }
 
-    EckInlineNdCe auto& GetBin() const noexcept { return std::get<CRefBin>(Response); }
-    EckInlineNdCe auto& GetBin() noexcept { return std::get<CRefBin>(Response); }
-    EckInlineNdCe auto& GetFilePath() const noexcept { return std::get<CRefStrW>(Response); }
-    EckInlineNdCe auto& GetFilePath() noexcept { return std::get<CRefStrW>(Response); }
+    EckInlineNdCe auto& GetBin() const noexcept { return std::get<CByteBuffer>(Response); }
+    EckInlineNdCe auto& GetBin() noexcept { return std::get<CByteBuffer>(Response); }
+    EckInlineNdCe auto& GetFilePath() const noexcept { return std::get<CStringW>(Response); }
+    EckInlineNdCe auto& GetFilePath() noexcept { return std::get<CStringW>(Response); }
     EckInlineNdCe auto& GetStream() const noexcept { return std::get<ComPtr<IStream>>(Response); }
     EckInlineNdCe auto& GetStream() noexcept { return std::get<ComPtr<IStream>>(Response); }
 
     constexpr void WantBin() noexcept
     {
         if (Response.index() == 0)
-            std::get<CRefBin>(Response).Clear();
+            std::get<CByteBuffer>(Response).Clear();
         else
-            Response.emplace<CRefBin>();
+            Response.emplace<CByteBuffer>();
     }
 
     template<class T>
     constexpr void WantFilePath(T&& rsFilePath) noexcept
     {
-        Response.emplace<CRefStrW>(std::forward<T>(rsFilePath));
+        Response.emplace<CStringW>(std::forward<T>(rsFilePath));
     }
 
     constexpr void WantStream(IStream* pStream) noexcept
@@ -665,8 +665,8 @@ struct CHttpRequestAsync
         ResponseHeader.Clear();
         switch (Response.index())
         {
-        case 0: std::get<CRefBin>(Response).Clear(); break;
-        case 1: std::get<CRefStrW>(Response).Clear(); break;
+        case 0: std::get<CByteBuffer>(Response).Clear(); break;
+        case 1: std::get<CStringW>(Response).Clear(); break;
         case 2: std::get<ComPtr<IStream>>(Response).Clear(); break;
         }
     }

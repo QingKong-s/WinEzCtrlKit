@@ -8,7 +8,7 @@ TEST_CLASS(TsBase64Core)
 public:
     TEST_METHOD(TsEncode_Empty)
     {
-        CRefStrA rs{};
+        CStringA rs{};
         BYTE buf[1] = {};
         Base64Encode(buf, 0, rs);
 
@@ -17,7 +17,7 @@ public:
 
     TEST_METHOD(TsDecode_Empty)
     {
-        CRefBin rb{};
+        CByteBuffer rb{};
         Base64Decode("", 0, rb);
 
         Assert::AreEqual((size_t)0, rb.Size());
@@ -26,7 +26,7 @@ public:
     TEST_METHOD(TsEncode_Man)
     {
         const char* src = "Man";
-        CRefStrA rs{};
+        CStringA rs{};
         Base64Encode(src, 3, rs);
 
         Assert::AreEqual(4, rs.Size());
@@ -35,7 +35,7 @@ public:
 
     TEST_METHOD(TsDecode_TWFu)
     {
-        CRefBin rb{};
+        CByteBuffer rb{};
         Base64Decode("TWFu", 4, rb);
 
         Assert::AreEqual((size_t)3, rb.Size());
@@ -47,7 +47,7 @@ public:
     TEST_METHOD(TsEncode_Ma)
     {
         const char* src = "Ma";
-        CRefStrA rs{};
+        CStringA rs{};
         Base64Encode(src, 2, rs);
 
         Assert::AreEqual(4, rs.Size());
@@ -56,7 +56,7 @@ public:
 
     TEST_METHOD(TsDecode_TWE_)
     {
-        CRefBin rb{};
+        CByteBuffer rb{};
         Base64Decode("TWE=", 4, rb);
 
         Assert::AreEqual((size_t)2, rb.Size());
@@ -67,7 +67,7 @@ public:
     TEST_METHOD(TsEncode_M)
     {
         const char* src = "M";
-        CRefStrA rs{};
+        CStringA rs{};
         Base64Encode(src, 1, rs);
 
         Assert::AreEqual(4, rs.Size());
@@ -76,7 +76,7 @@ public:
 
     TEST_METHOD(TsDecode_TQ__)
     {
-        CRefBin rb{};
+        CByteBuffer rb{};
         Base64Decode("TQ==", 4, rb);
 
         Assert::AreEqual((size_t)1, rb.Size());
@@ -85,7 +85,7 @@ public:
 
     TEST_METHOD(TsDecode_NoPad)
     {
-        CRefBin rb{};
+        CByteBuffer rb{};
         Base64Decode("TWE", 3, rb);
 
         Assert::AreEqual((size_t)2, rb.Size());
@@ -97,10 +97,10 @@ public:
     {
         BYTE src[] = { 0x01, 0xFE, 0x88, 0x39, 0x7F };
 
-        CRefStrA enc{};
+        CStringA enc{};
         Base64Encode(src, sizeof(src), enc);
 
-        CRefBin dec{};
+        CByteBuffer dec{};
         Base64Decode(enc.Data(), (int)enc.Size(), dec);
 
         Assert::AreEqual(sizeof(src), dec.Size());
@@ -110,7 +110,7 @@ public:
 
     TEST_METHOD(TsDecode_StopAtPad)
     {
-        CRefBin rb{};
+        CByteBuffer rb{};
         Base64Decode("AAAA==ZZZZ", 10, rb);
 
         // "AAAA" → {0,0,0}

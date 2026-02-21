@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "CRefBin.h"
-#include "CRefStr.h"
+#include "CByteBuffer.h"
+#include "CString.h"
 
 ECK_NAMESPACE_BEGIN
 namespace Priv
@@ -47,7 +47,7 @@ namespace Priv
     constexpr inline char Base64EncodeTable[]{ "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" };
 }
 
-inline void Base64Decode(_In_reads_or_z_(cch) PCCH psz, int cch, CRefBin& rb) noexcept
+inline void Base64Decode(_In_reads_or_z_(cch) PCCH psz, int cch, CByteBuffer& rb) noexcept
 {
     if (cch < 0)
         cch = (int)TcsLen(psz);
@@ -88,12 +88,12 @@ inline void Base64Decode(_In_reads_or_z_(cch) PCCH psz, int cch, CRefBin& rb) no
     rb.ReSize(idxBin);
 }
 
-EckInline void Base64Decode(_In_reads_or_z_(cch) const char8_t* psz, int cch, CRefBin& rb) noexcept
+EckInline void Base64Decode(_In_reads_or_z_(cch) const char8_t* psz, int cch, CByteBuffer& rb) noexcept
 {
     Base64Decode((PCCH)psz, cch, rb);
 }
 
-inline void Base64Encode(_In_reads_bytes_(cb) PCVOID p_, size_t cb, CRefStrA& rs) noexcept
+inline void Base64Encode(_In_reads_bytes_(cb) PCVOID p_, size_t cb, CStringA& rs) noexcept
 {
     PCBYTE p = (PCBYTE)p_;
     const auto pDst = rs.PushBackNoExtra(int(4 * ((cb + 2) / 3)));
@@ -137,36 +137,36 @@ inline void Base64Encode(_In_reads_bytes_(cb) PCVOID p_, size_t cb, CRefStrA& rs
     }
 }
 
-EckInline CRefBin Base64Decode(_In_reads_or_z_(cch) PCCH psz, int cch) noexcept
+EckInline CByteBuffer Base64Decode(_In_reads_or_z_(cch) PCCH psz, int cch) noexcept
 {
-    CRefBin rb{};
+    CByteBuffer rb{};
     Base64Decode(psz, cch, rb);
     return rb;
 }
-EckInline CRefBin Base64Decode(_In_reads_or_z_(cch) const char8_t* psz, int cch) noexcept
+EckInline CByteBuffer Base64Decode(_In_reads_or_z_(cch) const char8_t* psz, int cch) noexcept
 {
     return Base64Decode((PCCH)psz, cch);
 }
-EckInline CRefBin Base64Decode(const CRefStrA& rs) noexcept
+EckInline CByteBuffer Base64Decode(const CStringA& rs) noexcept
 {
     return Base64Decode(rs.Data(), rs.Size());
 }
-EckInline void Base64Decode(const CRefStrA& rs, CRefBin& rb) noexcept
+EckInline void Base64Decode(const CStringA& rs, CByteBuffer& rb) noexcept
 {
     Base64Decode(rs.Data(), rs.Size(), rb);
 }
 
-EckInline CRefStrA Base64Encode(_In_reads_bytes_(cb) PCVOID p, size_t cb) noexcept
+EckInline CStringA Base64Encode(_In_reads_bytes_(cb) PCVOID p, size_t cb) noexcept
 {
-    CRefStrA rs{};
+    CStringA rs{};
     Base64Encode(p, cb, rs);
     return rs;
 }
-EckInline CRefStrA Base64Encode(const CRefBin& rb) noexcept
+EckInline CStringA Base64Encode(const CByteBuffer& rb) noexcept
 {
     return Base64Encode(rb.Data(), rb.Size());
 }
-EckInline void Base64Encode(const CRefBin& rb, CRefStrA& rs) noexcept
+EckInline void Base64Encode(const CByteBuffer& rb, CStringA& rs) noexcept
 {
     Base64Encode(rb.Data(), rb.Size(), rs);
 }

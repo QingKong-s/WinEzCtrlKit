@@ -17,7 +17,7 @@ struct CV_INFO_PDB70
 
 struct PDBInfo
 {
-	CRefStrA rsPdbFile{};
+	CStringA rsPdbFile{};
 	CV_INFO_PDB70 Cv{};
 };
 
@@ -102,7 +102,7 @@ Exit:;
 }
 
 inline HRESULT DshMakeSymbolUrl(
-	CRefStrW& rsSymbolUrl,
+	CStringW& rsSymbolUrl,
 	const PDBInfo& PdbInfo,
 	std::wstring_view svSymbolSrv = SymSrvMicrosoft
 ) noexcept

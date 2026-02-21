@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CEditNcComp.h"
+#include "CEditNc.h"
 #include "CommDlg.h"
 
 ECK_NAMESPACE_BEGIN
@@ -10,14 +10,14 @@ struct FONTPICKERINFO
     int iWeight;
 };
 
-class CFontPicker : public CEditNcComp
+class CFontPicker : public CEditNc
 {
 public:
-    ECK_RTTI(CFontPicker, CEditNcComp);
+    ECK_RTTI(CFontPicker, CEditNc);
 private:
     UINT m_uCfFlags = CF_SCREENFONTS | CF_FORCEFONTEXIST | CF_NOVERTFONTS;
 
-    static int FindFontName(const CRefStrW& rs) noexcept
+    static int FindFontName(const CStringW& rs) noexcept
     {
         if (rs.IsEmpty())
             return -1;
@@ -58,7 +58,7 @@ public:
         return TRUE;
     }
 
-    [[nodiscard]] CRefStrW ToInfomation(FONTPICKERINFO& fpi)
+    [[nodiscard]] CStringW ToInfomation(FONTPICKERINFO& fpi)
     {
         fpi.pszFontName = nullptr;
         auto rs = GetText();

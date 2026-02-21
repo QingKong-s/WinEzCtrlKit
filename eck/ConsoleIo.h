@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "CFile.h"
-#include "CRefBin.h"
-#include "CRefStr.h"
+#include "CByteBuffer.h"
+#include "CString.h"
 #include "StringConvert.h"
 
 #define ECK_CIO_NAMESPACE_BEGIN namespace Cio {
@@ -20,7 +20,7 @@ namespace Priv
     }
 
     template<class TChar>
-    void PushBackEol(CRefBin& rb, EolType eEol) noexcept
+    void PushBackEol(CByteBuffer& rb, EolType eEol) noexcept
     {
         if constexpr (std::is_same_v<TChar, WCHAR>)
         {
@@ -96,7 +96,7 @@ struct IoSpace {};
 
 struct TO_STREAM_CTRL
 {
-    CRefBin& rbDst;
+    CByteBuffer& rbDst;
     UINT cp;
 };
 
@@ -235,7 +235,7 @@ template<class TChar>
 class CWriter : public CFile
 {
 private:
-    CRefBin m_rbBuf{};
+    CByteBuffer m_rbBuf{};
     UINT m_cp{ 0 };
     USHORT m_cbMaxBuffer{ 512 };
     EolType m_eEol{ EolType::CRLF };
@@ -298,7 +298,7 @@ template<class TChar>
 class CReader : public CFile
 {
 private:
-    CRefBin m_rbBuf{};
+    CByteBuffer m_rbBuf{};
     size_t m_posCurr{};
     size_t m_posEol{ SizeTMax };
     USHORT m_cbMaxBuffer{ 64 };
@@ -374,8 +374,8 @@ public:
         return 0;
     }
 
-    template<class TTrait, class TAlloc>
-    BOOL ScanLine(CRefStrT<TChar, TTrait, TAlloc>& rs) noexcept
+    template<class TTrait, class TAllocator>
+    BOOL ScanLine(CStringT<TChar, TTrait, TAllocator>& rs) noexcept
     {
         EnsureReadToEol(FALSE);
         if (m_posEol != SizeTMax)

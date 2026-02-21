@@ -1,10 +1,10 @@
 ﻿#pragma once
-#include "CRefBin.h"
-#include "IMem.h"
+#include "CByteBuffer.h"
+#include "IMemoryView.h"
 #include "CUnknown.h"
 
 ECK_NAMESPACE_BEGIN
-class CStreamView : public CUnknown<CStreamView, IStream, IMem>
+class CStreamView : public CUnknown<CStreamView, IStream, IMemoryView>
 {
 private:
     PCBYTE m_pMem{};
@@ -17,11 +17,11 @@ public:
     {
     }
 
-    template<class TAlloc>
-    constexpr CStreamView(const CRefBinT<TAlloc>& rb) noexcept : CStreamView(rb.Data(), rb.Size()) {}
+    template<class TAllocator>
+    constexpr CStreamView(const CByteBufferT<TAllocator>& rb) noexcept : CStreamView(rb.Data(), rb.Size()) {}
 
-    template<class T, class TAlloc>
-    constexpr CStreamView(const std::vector<T, TAlloc>& v) noexcept : CStreamView(v.data(), v.size() * sizeof(T)) {}
+    template<class T, class TAllocator>
+    constexpr CStreamView(const std::vector<T, TAllocator>& v) noexcept : CStreamView(v.data(), v.size() * sizeof(T)) {}
 
     template<class T>
     constexpr CStreamView(const std::span<T>& s) noexcept : CStreamView(s.data(), s.size() * sizeof(T)) {}

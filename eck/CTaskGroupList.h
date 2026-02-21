@@ -35,14 +35,14 @@ private:
 
     struct SUBTASK
     {
-        CRefStrW rsText;
+        CStringW rsText;
         UINT uFlags;
         int cx;
     };
 
     struct TASKITEM
     {
-        CRefStrW rsText;
+        CStringW rsText;
         int idxImage;
         std::vector<SUBTASK> SubTasks;
         int cx;

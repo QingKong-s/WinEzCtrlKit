@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CWnd.h"
+#include "CWindow.h"
 
 ECK_NAMESPACE_BEGIN
 class CListBox : public CWindow
@@ -167,9 +167,9 @@ public:
         return (int)SendMsg(LB_GETSELITEMS, c, (LPARAM)piSelItems);
     }
 
-    EckInline CRefStrW GetItemText(int idx) const noexcept
+    EckInline CStringW GetItemText(int idx) const noexcept
     {
-        CRefStrW rs;
+        CStringW rs;
         int cch = GetItemTextLength(idx);
         if (cch <= 0)
             return rs;

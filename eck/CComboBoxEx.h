@@ -59,7 +59,7 @@ public:
         return CComboBox::SkipBaseData(p);
     }
 
-    void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept override
+    void SerializeData(CByteBuffer& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept override
     {
         SERIALIZE_OPT Opt{ pOpt ? *pOpt : SERIALIZE_OPT{} };
         Opt.uFlags |= SERF_NO_COMBO_ITEM;
@@ -68,7 +68,7 @@ public:
         auto pBase = (CTRLDATA_COMBOBOX*)CWindow::SkipBaseData(rb.Data());
         const auto ocbBase = (PCBYTE)pBase - rb.Data();
         pBase->iVer = CDV_COMBOBOXEX_1;
-        CRefStrW rs{ (pOpt && pOpt->cchTextBuf) ? pOpt->cchTextBuf : MAX_PATH };
+        CStringW rs{ (pOpt && pOpt->cchTextBuf) ? pOpt->cchTextBuf : MAX_PATH };
         COMBOBOXEXITEMW cbei;
         cbei.mask = CBEIF_IMAGE | CBEIF_INDENT | CBEIF_LPARAM | CBEIF_OVERLAY |
             CBEIF_SELECTEDIMAGE | CBEIF_TEXT;
@@ -95,7 +95,7 @@ public:
             (!pOpt || !(pOpt->uFlags & SERF_EXCLUDE_IMAGELIST)))
         {
             const auto ocb = rb.Size();
-            const auto pStream = new CRefBinStream{ rb };
+            const auto pStream = new CByteBufferStream{ rb };
             pStream->Seek(ToLi(0), STREAM_SEEK_END, nullptr);
             if (SUCCEEDED(ImageList_WriteEx(hIL, ILP_NORMAL, pStream)))
                 ((CTRLDATA_WND*)rb.Data())->uFlags |= SERDF_IMAGELIST;
@@ -183,7 +183,7 @@ public:
         return (BOOL)SendMsg(CBEM_GETITEMW, 0, (LPARAM)pcbei);
     }
 
-    EckInline BOOL GetItemText(int idx, _Inout_ CRefStrW& rs) const
+    EckInline BOOL GetItemText(int idx, _Inout_ CStringW& rs) const
     {
         rs.ReSize(MAX_PATH);
         COMBOBOXEXITEMW cbei;
@@ -202,9 +202,9 @@ public:
         return bRet;
     }
 
-    EckInline CRefStrW GetItemText(int idx) const
+    EckInline CStringW GetItemText(int idx) const
     {
-        CRefStrW rs;
+        CStringW rs;
         GetItemText(idx, rs);
         return rs;
     }

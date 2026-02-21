@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CRefStr.h"
+#include "CString.h"
 #include "ProcThrdHelper.h"
 #include "CNtObject.h"
 
@@ -162,7 +162,7 @@ public:
         si.dwFlags = STARTF_USESHOWWINDOW;
         si.wShowWindow = (WORD)NtCurrentPeb()->ProcessParameters->ShowWindowFlags;
         PROCESS_INFORMATION pi;
-        CRefStrW rsCmdLine{ NtCurrentPeb()->ProcessParameters->CommandLine };
+        CStringW rsCmdLine{ NtCurrentPeb()->ProcessParameters->CommandLine };
         PWSTR pszAppName, pszCmdLine;
         int cchAppName, cchCmdLine;
         rsCmdLine.PazParseCommandLineAndCut(pszAppName, cchAppName,

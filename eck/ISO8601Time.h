@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "DateTimeHelper.h"
-#include "CRefStr.h"
+#include "CString.h"
 
 ECK_NAMESPACE_BEGIN
 inline BOOL Iso8601ToSystemTime(PCSTR pszIso8601, SYSTEMTIME& st) noexcept
@@ -372,7 +372,7 @@ inline BOOL Iso8601ToSystemTime(PCSTR pszIso8601, SYSTEMTIME& st) noexcept
     return FALSE;
 }
 
-inline void SystemTimeToIso8601(const SYSTEMTIME& st, CRefStrA& rs,
+inline void SystemTimeToIso8601(const SYSTEMTIME& st, CStringA& rs,
     int iTzHour = 0, int iTzMinute = 0) noexcept
 {
     rs.PushBackFormat("%04d", st.wYear);

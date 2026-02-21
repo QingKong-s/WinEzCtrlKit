@@ -1,8 +1,8 @@
 ﻿#pragma once
-#include "CWnd.h"
+#include "CWindow.h"
 
 ECK_NAMESPACE_BEGIN
-class CMsgBoxHook : public CWindow
+class CMessageBoxHook : public CWindow
 {
 private:
     RECT m_rcMainPanel{};

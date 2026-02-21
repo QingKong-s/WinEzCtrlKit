@@ -142,13 +142,13 @@ private:
     };
     struct SUBITEM
     {
-        CRefStrW rsText;
+        CStringW rsText;
         LVE_CELL_COLOR Clr;
     };
 
     struct ITEM
     {
-        CRefStrW rsText;
+        CStringW rsText;
         int idxImage;
         LVE_CELL_COLOR Clr;
         std::vector<SUBITEM> vSubItems;
@@ -214,7 +214,7 @@ private:
     void* m_pOdProcData{};			// [OD]所有者数据回调函数参数
     // 
     const ThreadContext* m_ptc{};// 线程上下文
-    CRefStrW m_rsTextBuf{ MAX_PATH };
+    CStringW m_rsTextBuf{ MAX_PATH };
     int m_cxEdge{};
     std::unique_ptr<CEditExt> m_pEdit{};
     CWindow::HSlot m_hmsEdit{};

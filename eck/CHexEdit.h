@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CWnd.h"
+#include "CWindow.h"
 #include "GraphicsHelper.h"
 
 ECK_NAMESPACE_BEGIN
@@ -66,7 +66,7 @@ private:
         COLORREF crCol;
         int cbMaxChar;
         int x;
-        CRefStrW rsName;
+        CStringW rsName;
         BYTE LeadByteRange[MAX_LEADBYTES];
         int xOrg;
         PCBYTE pNeedle;

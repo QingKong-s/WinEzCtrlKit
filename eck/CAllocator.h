@@ -147,18 +147,18 @@ EckInline constexpr bool operator==(const CAllocatorVA<T1, TSize1>& a1, const CA
 }
 
 
-template<class TAlloc, class TSize, class = void>
+template<class TAllocator, class TSize, class = void>
 struct HasMakeCapacity : std::false_type {};
 
-template<class TAlloc, class TSize>
-struct HasMakeCapacity<TAlloc, TSize,
-    std::void_t<decltype(TAlloc::MakeCapacity(std::declval<const TSize&>()))>> : std::true_type {};
+template<class TAllocator, class TSize>
+struct HasMakeCapacity<TAllocator, TSize,
+    std::void_t<decltype(TAllocator::MakeCapacity(std::declval<const TSize&>()))>> : std::true_type {};
 
-template<class TAlloc>
-struct CAllocatorTraits : std::allocator_traits<TAlloc>
+template<class TAllocator>
+struct CAllocatorTraits : std::allocator_traits<TAllocator>
 {
 private:
-    using TBase = std::allocator_traits<TAlloc>;
+    using TBase = std::allocator_traits<TAllocator>;
 public:
     EckInline static typename TBase::size_type MakeCapacity(typename TBase::size_type c)
     {
@@ -170,16 +170,16 @@ public:
 };
 
 template<class T,class TSize = size_t>
-struct CDefAllocator :public std::allocator<T>
+struct CDefaultAllocator :public std::allocator<T>
 {
     using size_type = TSize;
 
-    constexpr CDefAllocator() noexcept = default;
-    constexpr CDefAllocator(const CDefAllocator&) noexcept = default;
+    constexpr CDefaultAllocator() noexcept = default;
+    constexpr CDefaultAllocator(const CDefaultAllocator&) noexcept = default;
     template <class U>
-    constexpr CDefAllocator(const CDefAllocator<U>&) noexcept {}
-    constexpr ~CDefAllocator() = default;
-    constexpr CDefAllocator& operator=(const CDefAllocator&) = default;
+    constexpr CDefaultAllocator(const CDefaultAllocator<U>&) noexcept {}
+    constexpr ~CDefaultAllocator() = default;
+    constexpr CDefaultAllocator& operator=(const CDefaultAllocator&) = default;
 
     EckInline constexpr void deallocate(T* const p, const TSize c)
     {
@@ -193,8 +193,8 @@ struct CDefAllocator :public std::allocator<T>
 };
 
 template<class T1, class TSize1, class T2, class TSize2>
-EckInline constexpr bool operator==(const CDefAllocator<T1, TSize1>& a1, 
-    const CDefAllocator<T2, TSize2>& a2) noexcept
+EckInline constexpr bool operator==(const CDefaultAllocator<T1, TSize1>& a1, 
+    const CDefaultAllocator<T2, TSize2>& a2) noexcept
 {
     return true;
 }

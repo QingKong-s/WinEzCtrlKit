@@ -76,18 +76,18 @@ public:
     }
 
     virtual ObjAttrErr GetSetAttribute(std::wstring_view svName,
-        std::wstring_view svValue, CRefStrW& rsValue, BOOL bSet) noexcept
+        std::wstring_view svValue, CStringW& rsValue, BOOL bSet) noexcept
     {
         return ObjAttrErr::InvalidAttr;
     }
 
-    EckInline ObjAttrErr GetAttribute(std::wstring_view svName, CRefStrW& rsValue) noexcept
+    EckInline ObjAttrErr GetAttribute(std::wstring_view svName, CStringW& rsValue) noexcept
     {
         return GetSetAttribute(svName, {}, rsValue, FALSE);
     }
     EckInline ObjAttrErr SetAttribute(std::wstring_view svName, std::wstring_view svValue) noexcept
     {
-        CRefStrW Dummy{};
+        CStringW Dummy{};
         return GetSetAttribute(svName, svValue, Dummy, TRUE);
     }
 };

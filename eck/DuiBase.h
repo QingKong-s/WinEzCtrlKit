@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CWnd.h"
+#include "CWindow.h"
 
 #include "DuiStdTheme.h"
 #include "DuiDef.h"
@@ -82,7 +82,7 @@ private:
     D2D1_RECT_F m_rc{};                 // 相对父元素
     D2D1_POINT_2F m_ptOffsetInClient{}; // 相对客户区左上角的偏移
     //------属性------
-    CRefStrW m_rsText{};
+    CStringW m_rsText{};
     INT_PTR m_iId{};
     ITheme* m_pTheme{};
     IDWriteTextFormat* m_pTextFormat{};

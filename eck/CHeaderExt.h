@@ -12,8 +12,8 @@ public:
 private:
     struct ITEM
     {
-        CRefStrW rsMainText{};
-        CRefStrW rsSubText{};
+        CStringW rsMainText{};
+        CStringW rsSubText{};
         COLORREF crText{ CLR_DEFAULT };
         COLORREF crTextBk{ CLR_DEFAULT };
         COLORREF crTextSubText{ CLR_DEFAULT };
@@ -65,7 +65,7 @@ private:
     int m_cxClient{};
     int m_cyClient{};
 
-    CRefStrW m_rsTextBuf{ MAX_PATH };
+    CStringW m_rsTextBuf{ MAX_PATH };
 
     int m_iDpi{ USER_DEFAULT_SCREEN_DPI };
     int m_cxEdge{};
@@ -76,7 +76,7 @@ private:
 
     CEzCDC m_DcFilterBmp{};
     SIZE m_sizeFilter{};
-    CRefStrW m_rsEnterTextHere{};
+    CStringW m_rsEnterTextHere{};
 
     ECK_DS_BEGIN(DPIS)
         ECK_DS_ENTRY(cxFilterGlyph, 13)

@@ -4,7 +4,7 @@
 ECK_NAMESPACE_BEGIN
 template<class T>
     requires std::is_signed_v<T>
-class CSelRangeT
+class CSelectionRangeT
 {
 public:
     struct RANGE// 闭区间
@@ -37,8 +37,8 @@ private:
         return it;
     }
 public:
-    CSelRangeT() = default;
-    constexpr CSelRangeT(std::initializer_list<RANGE> il) noexcept : m_vRange{ il } {}
+    CSelectionRangeT() = default;
+    constexpr CSelectionRangeT(std::initializer_list<RANGE> il) noexcept : m_vRange{ il } {}
 
     // 并闭区间
     void IncludeRange(T idxBegin, T idxEnd) noexcept
@@ -359,7 +359,7 @@ public:
     }
 };
 
-using CSelRange = CSelRangeT<int>;
+using CSelRange = CSelectionRangeT<int>;
 
 class CLVRange final : public CUnknown<CLVRange, ILVRange>
 {

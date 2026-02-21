@@ -6,7 +6,7 @@ template<class T>
 class CSequenceIdGenerator
 {
 private:
-	CSelRangeT<T> m_RgDeleted{};
+	CSelectionRangeT<T> m_RgDeleted{};
 	T m_Curr{};
 public:
 	constexpr T Generate() noexcept

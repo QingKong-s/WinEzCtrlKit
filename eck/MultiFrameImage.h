@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "ImageHelper.h"
 #include "CStreamWalker.h"
-#include "CMemWalker.h"
+#include "MemWalker.h"
 #include "Crc.h"
 
 ECK_NAMESPACE_BEGIN
@@ -404,7 +404,7 @@ public:
         constexpr size_t CbIHDR = 13 + 4 + 4 + 4;
         w += CbIHDR;// 悬而未决，待后续写入
         // 写acTL
-        CMemWalker wkChunk(byBuf, sizeof(byBuf));
+        CMemoryWalker wkChunk(byBuf, sizeof(byBuf));
         wkChunk << ReverseInteger(8u) << IdacTL
             << ReverseInteger((UINT)m_Frames.size())
             << ReverseInteger((UINT)m_cRepeat);
@@ -413,8 +413,8 @@ public:
         wkChunk.MoveToBegin();
         // 写入帧数据
         UINT uSerialNum{};
-        CRefBin rbPng{};
-        ComPtr<CRefBinStream> pPngStream(new CRefBinStream(rbPng));
+        CByteBuffer rbPng{};
+        ComPtr<CByteBufferStream> pPngStream(new CByteBufferStream(rbPng));
         CHAR chChunkId[4];
         UINT cbChunkData;
         BOOL bFirstFrame{ TRUE };
@@ -485,7 +485,7 @@ public:
                 return hr;
             if (FAILED(hr = pEncoder->Commit()))
                 return hr;
-            CMemWalker wt(rbPng.Data(), rbPng.Size());
+            CMemoryWalker wt(rbPng.Data(), rbPng.Size());
             wt += 8;// 跳过PNG签名
             EckLoop()
             {

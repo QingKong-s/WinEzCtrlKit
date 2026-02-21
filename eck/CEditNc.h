@@ -2,10 +2,10 @@
 #include "CEditExt.h"
 
 ECK_NAMESPACE_BEGIN
-class CEditNcComp : public CEditExt
+class CEditNc : public CEditExt
 {
 public:
-    ECK_RTTI(CEditNcComp, CEditExt);
+    ECK_RTTI(CEditNc, CEditExt);
 protected:
     RECT m_rcBtn{};
     int m_cxBtn{};

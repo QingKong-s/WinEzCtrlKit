@@ -240,7 +240,7 @@ namespace Priv
     }
 }
 
-inline BOOL KrcDecrypt(_Inout_bytecount_(cb) void* p, size_t cb, CRefBin& rbResult) noexcept
+inline BOOL KrcDecrypt(_Inout_bytecount_(cb) void* p, size_t cb, CByteBuffer& rbResult) noexcept
 {
     if (!p || cb <= 4)
         return FALSE;
@@ -254,7 +254,7 @@ inline BOOL KrcDecrypt(_Inout_bytecount_(cb) void* p, size_t cb, CRefBin& rbResu
     return ZLibSuccess(ZLibDecompress(p, cb, rbResult));
 }
 
-inline BOOL QrcDecrypt(_Inout_bytecount_(cb) void* p, size_t cb, CRefBin& rbResult) noexcept
+inline BOOL QrcDecrypt(_Inout_bytecount_(cb) void* p, size_t cb, CByteBuffer& rbResult) noexcept
 {
     if (!p || cb <= 11)
         return FALSE;

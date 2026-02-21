@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CWnd.h"
+#include "CWindow.h"
 
 ECK_NAMESPACE_BEGIN
 class CTrayIcon
@@ -30,7 +30,7 @@ private:
         BOOLEAN bUseStdTip;
         DWORD dwState;
         HICON hIcon;
-        CRefStrW rsTip;
+        CStringW rsTip;
     };
 
     std::vector<ITEM> m_vItem{};

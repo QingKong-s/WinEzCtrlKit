@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CRefStr.h"
+#include "CString.h"
 #include "CSignal.h"
 #include "CObject.h"
 
@@ -27,9 +27,9 @@ ECK_ENUM_BIT_FLAGS(DDXType);
 struct DDXData
 {
     DDXType eType;
-    std::variant<int, LONGLONG, float, double, BYTE, COLORREF, CRefStrW,
+    std::variant<int, LONGLONG, float, double, BYTE, COLORREF, CStringW,
         std::vector<int>, std::vector<LONGLONG>, std::vector<float>, std::vector<double>,
-        std::vector<BYTE>, std::vector<COLORREF>, std::vector<CRefStrW>>
+        std::vector<BYTE>, std::vector<COLORREF>, std::vector<CStringW>>
         Data;// 不要改动顺序
 };
 
@@ -157,7 +157,7 @@ protected:
         m_Sig.Emit(*this);
     }
 
-    void IntSet(const CRefStrW& Value) noexcept
+    void IntSet(const CStringW& Value) noexcept
     {
         m_Data.eType = DDXType::String;
         m_Data.Data = Value;
@@ -210,7 +210,7 @@ protected:
         m_Sig.Emit(*this);
     }
 
-    void IntSet(const std::vector<CRefStrW>& Value) noexcept
+    void IntSet(const std::vector<CStringW>& Value) noexcept
     {
         m_Data.eType = DDXType::Array | DDXType::String;
         m_Data.Data = Value;
@@ -263,7 +263,7 @@ protected:
         m_Sig.Emit(*this);
     }
 
-    void IntSet(std::vector<CRefStrW>&& Value) noexcept
+    void IntSet(std::vector<CStringW>&& Value) noexcept
     {
         m_Data.eType = DDXType::Array | DDXType::String;
         m_Data.Data = std::move(Value);
@@ -280,14 +280,14 @@ public:
     EckInlineNdCe bool GetBool() const noexcept { return std::get<(size_t)DDXType::Bool>(m_Data.Data); }
     EckInlineNdCe COLORREF GetColor() const noexcept { return std::get<(size_t)DDXType::Color>(m_Data.Data); }
 
-    EckInlineNdCe const CRefStrW& GetString() const noexcept { return std::get<(size_t)DDXType::String>(m_Data.Data); }
+    EckInlineNdCe const CStringW& GetString() const noexcept { return std::get<(size_t)DDXType::String>(m_Data.Data); }
     EckInlineNdCe const std::vector<int>& GetIntArray() const noexcept { return std::get<(size_t)DDXType::PRIV_Count>(m_Data.Data); }
     EckInlineNdCe const std::vector<LONGLONG>& GetLongLongArray() const noexcept { return std::get<(size_t)DDXType::PRIV_Count + 1>(m_Data.Data); }
     EckInlineNdCe const std::vector<float>& GetFloatArray() const noexcept { return std::get<(size_t)DDXType::PRIV_Count + 2>(m_Data.Data); }
     EckInlineNdCe const std::vector<double>& GetDoubleArray() const noexcept { return std::get<(size_t)DDXType::PRIV_Count + 3>(m_Data.Data); }
     EckInlineNdCe const std::vector<BYTE>& GetBoolArray() const noexcept { return std::get<(size_t)DDXType::PRIV_Count + 4>(m_Data.Data); }
     EckInlineNdCe const std::vector<COLORREF>& GetColorArray() const noexcept { return std::get<(size_t)DDXType::PRIV_Count + 5>(m_Data.Data); }
-    EckInlineNdCe const std::vector<CRefStrW>& GetStringArray() const noexcept { return std::get<(size_t)DDXType::PRIV_Count + 6>(m_Data.Data); }
+    EckInlineNdCe const std::vector<CStringW>& GetStringArray() const noexcept { return std::get<(size_t)DDXType::PRIV_Count + 6>(m_Data.Data); }
 
     void Set(const DDXData& Data) noexcept
     {
@@ -357,7 +357,7 @@ public:
         m_Sig.Emit(*this);
     }
 
-    void SetString(const CRefStrW& Value) noexcept
+    void SetString(const CStringW& Value) noexcept
     {
         m_Data.eType = DDXType::String;
         m_Data.Data = Value;
@@ -416,7 +416,7 @@ public:
         m_Sig.Emit(*this);
     }
 
-    void SetStringArray(const std::vector<CRefStrW>& Value) noexcept
+    void SetStringArray(const std::vector<CStringW>& Value) noexcept
     {
         m_Data.eType = DDXType::Array | DDXType::String;
         m_Data.Data = Value;
@@ -424,7 +424,7 @@ public:
         m_Sig.Emit(*this);
     }
 
-    void SetString(CRefStrW&& Value) noexcept
+    void SetString(CStringW&& Value) noexcept
     {
         m_Data.eType = DDXType::String;
         m_Data.Data = std::move(Value);
@@ -484,7 +484,7 @@ public:
         m_Sig.Emit(*this);
     }
 
-    void SetStringArray(std::vector<CRefStrW>&& Value) noexcept
+    void SetStringArray(std::vector<CStringW>&& Value) noexcept
     {
         m_Data.eType = DDXType::Array | DDXType::String;
         m_Data.Data = std::move(Value);
@@ -540,13 +540,13 @@ public:
         return *this;
     }
 
-    CDdx& operator=(const CRefStrW& Value) noexcept
+    CDdx& operator=(const CStringW& Value) noexcept
     {
         SetString(Value);
         return *this;
     }
 
-    CDdx& operator=(CRefStrW&& Value) noexcept
+    CDdx& operator=(CStringW&& Value) noexcept
     {
         SetString(std::move(Value));
         return *this;
@@ -554,7 +554,7 @@ public:
 
     CDdx& operator=(PCWSTR Value) noexcept
     {
-        SetString(CRefStrW(Value));
+        SetString(CStringW(Value));
         return *this;
     }
 
@@ -630,13 +630,13 @@ public:
         return *this;
     }
 
-    CDdx& operator=(const std::vector<CRefStrW>& Value) noexcept
+    CDdx& operator=(const std::vector<CStringW>& Value) noexcept
     {
         SetStringArray(Value);
         return *this;
     }
 
-    CDdx& operator=(std::vector<CRefStrW>&& Value) noexcept
+    CDdx& operator=(std::vector<CStringW>&& Value) noexcept
     {
         SetStringArray(std::move(Value));
         return *this;

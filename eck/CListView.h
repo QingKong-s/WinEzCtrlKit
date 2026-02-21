@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CWnd.h"
+#include "CWindow.h"
 
 ECK_NAMESPACE_BEGIN
 using FLvItemCompare = int(CALLBACK*)(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
@@ -507,9 +507,9 @@ public:
     /// <param name="idx">项目</param>
     /// <param name="idxSubItem">列</param>
     /// <returns>文本</returns>
-    EckInline CRefStrW GetItemText(int idx, int idxSubItem) const noexcept
+    EckInline CStringW GetItemText(int idx, int idxSubItem) const noexcept
     {
-        CRefStrW rs;
+        CStringW rs;
         rs.ReSize(MAX_PATH - 1);
         LVITEMW li;
         li.iSubItem = idxSubItem;

@@ -30,7 +30,7 @@ inline HRESULT RegisterInProcessComServer(REFCLSID clsid,
 	const CSH_REG_INPROC_SRV& Params) noexcept
 {
 	std::wstring_view svModFile{};
-	CRefStrW rsModFile{};
+	CStringW rsModFile{};
 	if (Params.svFileName.empty())
 	{
 		GetModuleFile(NtCurrentImageBase(), rsModFile);
@@ -41,7 +41,7 @@ inline HRESULT RegisterInProcessComServer(REFCLSID clsid,
 
 	WCHAR szTopPath[6 + 38 + 1]{ L"CLSID\\" };
 	(void)StringFromGUID2(clsid, szTopPath + 6, 39);
-	CRegKey Key{};
+	CRegistryKey Key{};
 	const auto ls = Key.Create(HKEY_CLASSES_ROOT, szTopPath, KEY_WRITE);
 	if (ls)
 		return HRESULT_FROM_WIN32(ls);
@@ -60,7 +60,7 @@ inline HRESULT RegisterInProcessComServer(REFCLSID clsid,
 		Key.SetValue(L"InfoTip", nullptr, Params.svInfoTip.data(),
 			UINT(Params.svInfoTip.size() * sizeof(WCHAR)), REG_SZ);
 	}
-	CRegKey Key2{};
+	CRegistryKey Key2{};
 	//
 	Key2.Create(Key.GetHKey(), L"InprocServer32");
 	Key2.SetValue(nullptr, nullptr, svModFile.data(),
@@ -80,7 +80,7 @@ inline HRESULT RegisterInProcessComServer(REFCLSID clsid,
 
 inline HRESULT UnregisterInProcessComServer(REFCLSID clsid) noexcept
 {
-	CRegKey Key{};
+	CRegistryKey Key{};
 	const auto ls = Key.Open(HKEY_CLASSES_ROOT, L"CLSID", KEY_ENUMERATE_SUB_KEYS | DELETE);
 	if (ls)
 		return HRESULT_FROM_WIN32(ls);

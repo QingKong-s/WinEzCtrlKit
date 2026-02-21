@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CRefStr.h"
+#include "CString.h"
 
 #include <winrt/Windows.UI.Composition.Effects.h>
 #include <windows.graphics.effects.interop.h>
@@ -92,7 +92,7 @@ private:
         }
     };
 
-    eck::CRefStrW m_rsName{};
+    eck::CStringW m_rsName{};
     std::vector<SOURCE> m_vSource{};// 从小到大排序
     std::vector<PROPERTY> m_vProp{};// 从小到大排序
 public:

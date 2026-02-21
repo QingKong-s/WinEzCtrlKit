@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "CRefStr.h"
-#include "CRefBin.h"
-#include "CMemWalker.h"
+#include "CString.h"
+#include "CByteBuffer.h"
+#include "MemWalker.h"
 
 ECK_NAMESPACE_BEGIN
 class CMenu
@@ -11,7 +11,7 @@ private:
 
     EckInline static constexpr UINT PosBool2UINT(BOOL bPosition) noexcept { return bPosition ? MF_BYPOSITION : MF_BYCOMMAND; }
 
-    static void SerializeData(CRefBin& rb, HMENU hMenu) noexcept
+    static void SerializeData(CByteBuffer& rb, HMENU hMenu) noexcept
     {
         MENUITEMINFOW mii;
         mii.cbSize = sizeof(mii);
@@ -47,7 +47,7 @@ private:
         }
     }
 
-    static void DeserializeData(CMemReader& r, HMENU hMenu, int cItem) noexcept
+    static void DeserializeData(CMemoryReader& r, HMENU hMenu, int cItem) noexcept
     {
         MENUITEMINFOW mii{};
         mii.cbSize = sizeof(mii);
@@ -143,7 +143,7 @@ public:
     /// <param name="cbData">长度</param>
     void AppendSerializedItems(PCVOID pData, size_t cbData) noexcept
     {
-        CMemReader r{ pData, cbData };
+        CMemoryReader r{ pData, cbData };
         const DATAHEADER* pHeader;
         r.SkipPointer(pHeader);
         if (pHeader->iVer != c_DataVer1)
@@ -158,7 +158,7 @@ public:
     /// 序列化数据
     /// </summary>
     /// <param name="rb">字节集</param>
-    EckInline void SerializeData(CRefBin& rb) noexcept
+    EckInline void SerializeData(CByteBuffer& rb) noexcept
     {
         const auto pHeader = rb.PushBack<DATAHEADER>();
         pHeader->iVer = c_DataVer1;
@@ -304,14 +304,14 @@ public:
         return GetMenuState(m_hMenu, uPos, PosBool2UINT(bPosition));
     }
 
-    EckInlineNd CRefStrW GetItemString(UINT uPos, BOOL bPosition = FALSE) const noexcept
+    EckInlineNd CStringW GetItemString(UINT uPos, BOOL bPosition = FALSE) const noexcept
     {
         MENUITEMINFOW mii;
         mii.cbSize = sizeof(mii);
         mii.fMask = MIIM_TYPE;
         mii.cch = 0;
         GetItemInfomation(&mii, uPos, bPosition);
-        CRefStrW rs(mii.cch);
+        CStringW rs(mii.cch);
         if (mii.cch)
         {
             ++mii.cch;

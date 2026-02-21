@@ -2,8 +2,8 @@
 #include "NativeWrapper.h"
 #include "ComPtr.h"
 #include "AutoPtrDef.h"
-#include "CRefStr.h"
-#include "CRefBin.h"
+#include "CString.h"
+#include "CByteBuffer.h"
 
 #include <intrin.h>
 #include <wbemcli.h>
@@ -97,10 +97,10 @@ inline HRESULT WmiQueryClassProperty(_In_ PCWSTR pszWql,
 
 struct CPUINFO
 {
-    CRefStrW rsVendor;
-    CRefStrW rsBrand;
-    CRefStrW rsSerialNum;
-    CRefStrW rsDescription;
+    CStringW rsVendor;
+    CStringW rsBrand;
+    CStringW rsSerialNum;
+    CStringW rsDescription;
     UINT uL2Cache;// 千字节
     UINT uL3Cache;// 千字节
     UINT uDataWidth;
@@ -290,18 +290,18 @@ inline BOOL ShowTaskBar(BOOL bShow, BOOL bIgnoreSecondary = FALSE) noexcept
 
 struct FILEVERINFO
 {
-    CRefStrW Comment;
-    CRefStrW InternalName;
-    CRefStrW ProductName;
-    CRefStrW CompanyName;
-    CRefStrW LegalCopyright;
-    CRefStrW ProductVersion;
-    CRefStrW FileDescription;
-    CRefStrW LegalTrademarks;
-    CRefStrW PrivateBuild;
-    CRefStrW FileVersion;
-    CRefStrW OriginalFilename;
-    CRefStrW SpecialBuild;
+    CStringW Comment;
+    CStringW InternalName;
+    CStringW ProductName;
+    CStringW CompanyName;
+    CStringW LegalCopyright;
+    CStringW ProductVersion;
+    CStringW FileDescription;
+    CStringW LegalTrademarks;
+    CStringW PrivateBuild;
+    CStringW FileVersion;
+    CStringW OriginalFilename;
+    CStringW SpecialBuild;
 };
 
 inline BOOL GetFileVersionInformation(PCWSTR pszFile, FILEVERINFO& fvi) noexcept
@@ -326,7 +326,7 @@ inline BOOL GetFileVersionInformation(PCWSTR pszFile, FILEVERINFO& fvi) noexcept
 
     WCHAR szLangCp[9];
     _swprintf(szLangCp, L"%04X%04X", pLangCp[0].wLanguage, pLangCp[0].wCodePage);
-    CRefStrW rsSub = CRefStrW(LR"(\StringFileInfo\)") + szLangCp + L"\\";
+    CStringW rsSub = CStringW(LR"(\StringFileInfo\)") + szLangCp + L"\\";
     const auto pszName = rsSub.PushBackNoExtra(20);
 
     void* pStr;
@@ -409,36 +409,36 @@ inline UINT KeyboardEvent(T...wVk) noexcept
     return SendInput(ARRAYSIZE(input), input, sizeof(INPUT));
 }
 
-const CRefStrW& GetRunningPath() noexcept;
+const CStringW& GetRunningPath() noexcept;
 
 EckInline BOOL SystemTimeToULongLong(const SYSTEMTIME& st, ULONGLONG& ull) noexcept
 {
     return SystemTimeToFileTime(&st, (FILETIME*)&ull);
 }
 
-inline CRefStrW FormatDate(const SYSTEMTIME& st, PCWSTR pszFmt = nullptr, UINT uFlags = 0u,
+inline CStringW FormatDate(const SYSTEMTIME& st, PCWSTR pszFmt = nullptr, UINT uFlags = 0u,
     PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT) noexcept
 {
     const int cchDate = GetDateFormatEx(pszLocale, uFlags, &st, pszFmt, nullptr, 0, nullptr);
     if (!cchDate)
         return {};
-    CRefStrW rs(cchDate);
+    CStringW rs(cchDate);
     GetDateFormatEx(pszLocale, uFlags, &st, pszFmt, rs.Data(), cchDate, nullptr);
     return rs;
 }
 
-inline CRefStrW FormatTime(const SYSTEMTIME& st, PCWSTR pszFmt = nullptr, UINT uFlags = 0u,
+inline CStringW FormatTime(const SYSTEMTIME& st, PCWSTR pszFmt = nullptr, UINT uFlags = 0u,
     PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT) noexcept
 {
     const int cchTime = GetTimeFormatEx(pszLocale, uFlags, &st, pszFmt, nullptr, 0);
     if (!cchTime)
         return {};
-    CRefStrW rs(cchTime);
+    CStringW rs(cchTime);
     GetTimeFormatEx(pszLocale, uFlags, &st, pszFmt, rs.Data(), cchTime);
     return rs;
 }
 
-inline CRefStrW FormatDateTime(const SYSTEMTIME& st,
+inline CStringW FormatDateTime(const SYSTEMTIME& st,
     PCWSTR pszFmtDate = nullptr, PCWSTR pszFmtTime = nullptr, DWORD dwFlags = 0u,
     PCWSTR pszLocale = LOCALE_NAME_USER_DEFAULT) noexcept
 {
@@ -446,7 +446,7 @@ inline CRefStrW FormatDateTime(const SYSTEMTIME& st,
     const int cchTime = GetTimeFormatEx(pszLocale, dwFlags, &st, pszFmtTime, nullptr, 0);
     if (!cchDate || !cchTime)
         return {};
-    CRefStrW rs(cchTime + cchDate - 2 + 1);
+    CStringW rs(cchTime + cchDate - 2 + 1);
     GetDateFormatEx(pszLocale, dwFlags, &st, pszFmtDate, rs.Data(), cchDate, nullptr);
     GetTimeFormatEx(pszLocale, dwFlags, &st, pszFmtTime, rs.Data() + cchDate, cchTime);
     rs[cchDate - 1] = L' ';
@@ -525,7 +525,7 @@ inline SIZE GetCursorSize(int iDpi) noexcept
     return { (int)dwBaseSize,(int)dwBaseSize };
 }
 
-inline NTSTATUS ExpandEnvironmentString(CRefStrW& rsDst,
+inline NTSTATUS ExpandEnvironmentString(CStringW& rsDst,
     _In_reads_or_z_(cchSrc) PCWCH pszSrc, int cchSrc = -1, int cchInitialBuf = 80) noexcept
 {
     if (cchSrc < 0)

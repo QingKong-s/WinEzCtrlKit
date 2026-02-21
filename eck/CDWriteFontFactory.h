@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CRefStr.h"
+#include "CString.h"
 #include "DpiApi.h"
 #include "ComPtr.h"
 
@@ -11,14 +11,14 @@ class CDWriteFontFactory
 private:
     struct TEMPLATE
     {
-        CRefStrW rsFace;
+        CStringW rsFace;
         float cy;
         DWRITE_FONT_WEIGHT eWeight;
         BOOL bItalic;
     };
     IDWriteFontCollection* m_pFontCollection{};
     TEMPLATE m_Template{};
-    CRefStrW m_rsLocalName{};
+    CStringW m_rsLocalName{};
 public:
     CDWriteFontFactory(DwFontFactoryNoDef_T) noexcept {}
 

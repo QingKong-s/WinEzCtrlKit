@@ -10,7 +10,7 @@ private:
     size_t idxCurrDim;
     std::vector<size_t>* DimInfo;
 
-    template<class TElem, class TAllocator>
+    template<class TElem, class TAllocatorator>
     friend class CArray;
 public:
     EckInlineNdCe operator TElem& () noexcept { return *e; }
@@ -48,12 +48,12 @@ public:
     EckInlineNdCe const TElem& Data() const { return *e; }
 };
 
-template<class TElem, class TAllocator = std::allocator<TElem>>
+template<class TElem, class TAllocatorator = std::allocator<TElem>>
 class CArray
 {
 public:
-    using TAlloc = TAllocator;
-    using TAllocTraits = CAllocatorTraits<TAlloc>;
+    using TAllocator = TAllocatorator;
+    using TAllocatorTraits = CAllocatorTraits<TAllocator>;
     using TAryDim = ArrayDim<TElem>;
 
     using TPointer = TElem*;
@@ -68,7 +68,7 @@ private:
     size_t m_cCount = 0u;
     size_t m_cCapacity = 0u;
     std::vector<size_t> m_Dim{};
-    TAlloc m_Alloc{};
+    TAllocator m_Alloc{};
 
     constexpr void UnpackSizeArgs(size_t& cTotal) noexcept {}
 
@@ -97,7 +97,7 @@ public:
 
     CArray(const CArray& x) noexcept
         :m_cCount{ x.m_cCount }, m_cCapacity{ x.m_cCapacity }, m_Dim{ x.m_Dim },
-        m_Alloc{ TAllocTraits::select_on_container_copy_construction(x.m_Alloc) }
+        m_Alloc{ TAllocatorTraits::select_on_container_copy_construction(x.m_Alloc) }
     {
         m_pMem = m_Alloc.allocate(m_cCapacity);
         std::uninitialized_copy(x.begin(), x.end(), begin());
@@ -116,7 +116,7 @@ public:
     {
         if (this == &x)
             return *this;
-        if constexpr (!TAllocTraits::is_always_equal::value)
+        if constexpr (!TAllocatorTraits::is_always_equal::value)
         {
             if (m_Alloc != x.m_Alloc)
             {
@@ -128,10 +128,10 @@ public:
                 std::uninitialized_copy(x.begin(), x.end(), begin());
                 return *this;
             }
-            else if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
+            else if constexpr (TAllocatorTraits::propagate_on_container_copy_assignment::value)
                 m_Alloc = x.m_Alloc;
         }
-        else if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
+        else if constexpr (TAllocatorTraits::propagate_on_container_copy_assignment::value)
             m_Alloc = x.m_Alloc;
 
         m_Dim = x.m_Dim;
@@ -139,7 +139,7 @@ public:
         {
             m_Alloc.deallocate(m_pMem, m_cCapacity);
             m_cCount = x.m_cCount;
-            m_cCapacity = TAllocTraits::MakeCapacity(m_cCount);
+            m_cCapacity = TAllocatorTraits::MakeCapacity(m_cCount);
             m_pMem = m_Alloc.allocate(m_cCapacity);
             std::uninitialized_copy(x.begin(), x.end(), begin());
             return *this;
@@ -167,15 +167,15 @@ public:
 
         if (this == &x)
             return *this;
-        if constexpr (TAllocTraits::propagate_on_container_move_assignment::value)
+        if constexpr (TAllocatorTraits::propagate_on_container_move_assignment::value)
             m_Alloc = std::move(x.m_Alloc);
-        else if constexpr (!TAllocTraits::is_always_equal::value)
+        else if constexpr (!TAllocatorTraits::is_always_equal::value)
             if (m_Alloc != x.m_Alloc)
             {
                 m_Alloc.deallocate(m_pMem, m_cCapacity);
                 m_Alloc = std::move(x.m_Alloc);
                 m_cCount = x.m_cCount;
-                m_cCapacity = TAllocTraits::MakeCapacity(m_cCount);
+                m_cCapacity = TAllocatorTraits::MakeCapacity(m_cCount);
                 m_pMem = m_Alloc.allocate(m_cCapacity);
                 std::uninitialized_copy(x.begin(), x.end(), begin());
                 return *this;

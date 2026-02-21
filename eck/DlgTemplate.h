@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CMemWalker.h"
+#include "MemWalker.h"
 
 ECK_NAMESPACE_BEGIN
 
@@ -107,9 +107,9 @@ struct DLGITEMTEXTRA
 
 struct DLGTDLG : DLGTHEADER
 {
-    std::optional<std::variant<WORD, CRefStrW>> Menu;
-    std::optional<std::variant<ATOM, CRefStrW>> Class;
-    std::optional<CRefStrW> Caption;
+    std::optional<std::variant<WORD, CStringW>> Menu;
+    std::optional<std::variant<ATOM, CStringW>> Class;
+    std::optional<CStringW> Caption;
     struct
     {
         WORD      wPoint;
@@ -117,7 +117,7 @@ struct DLGTDLG : DLGTHEADER
         BYTE      bItalic;
         BYTE      byCharSet;
     } Font;
-    CRefStrW rsFontName;
+    CStringW rsFontName;
 
     PCWSTR GetMenu() const noexcept
     {
@@ -158,9 +158,9 @@ struct DLGTDLG : DLGTHEADER
 
 struct DLGTITEM : DLGITEMTHEADER
 {
-    std::variant<ATOM, CRefStrW> Class;
-    std::variant<WORD, CRefStrW> Caption;
-    CRefBin rbExtra;
+    std::variant<ATOM, CStringW> Class;
+    std::variant<WORD, CStringW> Caption;
+    CByteBuffer rbExtra;
 
     PCWSTR GetClass() const noexcept
     {
@@ -180,7 +180,7 @@ struct DLGTITEM : DLGITEMTHEADER
 /// <param name="vItem">对话框项目信息</param>
 /// <returns>HRESULT</returns>
 inline HRESULT SerializeDialogTemplate(
-    CRefBin& rbTemplate,
+    CByteBuffer& rbTemplate,
     const DLGTDLG& Dlg,
     const std::vector<DLGTITEM>& vItem) noexcept
 {
@@ -326,13 +326,13 @@ inline HRESULT DeserializeDialogTemplate(
     _Inout_ std::vector<DLGTITEM>& Items) noexcept
 {
     using namespace eck::Literals;
-    CMemReader r{ pTemplate, cbTemplate };
+    CMemoryReader r{ pTemplate, cbTemplate };
     r.Read(&Dlg, sizeof(DLGTHEADER));
     if (Dlg.wVer != 1_us || Dlg.wSignature != 0xFFFF_us)
         return HRESULT_FROM_WIN32(ERROR_BAD_FORMAT);
 
     WORD us;
-    CRefStrW rs{};
+    CStringW rs{};
 
     r >> us;
     switch (us)
@@ -423,7 +423,7 @@ inline HRESULT DeserializeDialogTemplate(
         r >> us;
         if (us)
         {
-            CRefBin rb;
+            CByteBuffer rb;
             rb.ReSize(us);
             r.Read(rb.Data(), rb.Size());
             x.rbExtra = std::move(rb);

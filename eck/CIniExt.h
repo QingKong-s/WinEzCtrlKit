@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "AutoPtrDef.h"
-#include "CRefStr.h"
+#include "CString.h"
 #include "StringConvert.h"
 
 #include <map>
@@ -49,7 +49,7 @@ class CIniExtMut
 public:
     using TChar = TChar_;
     using TStrView = std::basic_string_view<TChar>;
-    using TStr = CRefStrT<TChar>;
+    using TStr = CStringT<TChar>;
 
     struct FCmpCaseInsensitive
     {
@@ -92,7 +92,7 @@ public:
 
     struct Value : Entry
     {
-        CRefStrT<TChar> rsValue{};
+        CStringT<TChar> rsValue{};
     };
 
     using TValueMap = std::conditional_t<IsOrderedMap || !IsCaseSensitive,

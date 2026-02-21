@@ -25,7 +25,7 @@ public:
         Priv_NeedFilterKey = Password,// 仅供内部使用
     };
 protected:
-    CRefStrW m_rsCueBanner{};			// 输入提示
+    CStringW m_rsCueBanner{};			// 输入提示
 
     COLORREF m_crText{ CLR_DEFAULT };	// 文本颜色
     COLORREF m_crTextBk{ CLR_DEFAULT };	// 文本背景色

@@ -1,6 +1,6 @@
 ﻿#pragma once
 #define ECK_SBHOOK_INCLUDED 1
-#include "CWnd.h"
+#include "CWindow.h"
 #include "CScrollView.h"
 
 ECK_NAMESPACE_BEGIN

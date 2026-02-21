@@ -127,7 +127,7 @@ private:
         Angle,		// <>
         Parenthesis,// ()
     };
-    CRefStrW m_rsLyric{};
+    CStringW m_rsLyric{};
     std::vector<Label> m_vLabel{};
     std::vector<Line> m_vLine{};
 
@@ -811,11 +811,11 @@ public:
         m_rsLyric.ReSize((int)sv.size());
         TcsCopyLen(m_rsLyric.Data(), sv.data(), (int)sv.size());
     }
-    void LoadTextMove(CRefStrW&& rs) noexcept { m_rsLyric = std::move(rs); }
+    void LoadTextMove(CStringW&& rs) noexcept { m_rsLyric = std::move(rs); }
     NTSTATUS LoadTextFile(PCWSTR pszFileName) noexcept
     {
         m_rsLyric.Clear();
-        CRefBin rb;
+        CByteBuffer rb;
         NTSTATUS nts;
         EcdLoadTextFile(CP_UTF16LE, rb, pszFileName, &nts);
         if (!rb.IsEmpty())

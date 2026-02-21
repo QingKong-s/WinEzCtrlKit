@@ -10,8 +10,8 @@ class CFlac : public CTag
 public:
     struct ITEM
     {
-        CRefStrA rsKey;
-        CRefStrW rsValue;
+        CStringA rsKey;
+        CStringW rsValue;
     };
 
     enum class BlockType : BYTE
@@ -29,7 +29,7 @@ public:
     struct BLOCK
     {
         BlockType eType;
-        CRefBin rbData;
+        CByteBuffer rbData;
     };
 
     struct STREAMINFO
@@ -48,9 +48,9 @@ public:
     struct PIC
     {
         PicType eType{};
-        CRefStrA rsMime{};
-        CRefStrW rsDesc{};
-        CRefBin rbData{};
+        CStringA rsMime{};
+        CStringW rsDesc{};
+        CByteBuffer rbData{};
         UINT cx{};
         UINT cy{};
         UINT bpp{};
@@ -63,15 +63,15 @@ private:
     STREAMINFO m_si{};				// 流信息
     std::vector<BLOCK> m_vBlock{};	// 其他块
 
-    CRefStrW m_rsVendor{};
+    CStringW m_rsVendor{};
 
     size_t m_posStreamInfoEnd{ CMediaFile::NPos };
     size_t m_posFlacTagEnd{ CMediaFile::NPos };
 
     // WARNING 函数返回后rb已被移动
-    static Result ParseImageBlock(CRefBin& rb, PIC& Pic) noexcept
+    static Result ParseImageBlock(CByteBuffer& rb, PIC& Pic) noexcept
     {
-        CMemWalker r(rb.Data(), rb.Size());
+        CMemoryWalker r(rb.Data(), rb.Size());
         UINT t;
         UINT uType;
         r.ReadRev(uType);// 图片类型
@@ -125,7 +125,7 @@ private:
     }
 
     // 尾插到rbImage
-    void SerializePicture(const PIC& e, CRefBin& rbImage) noexcept
+    void SerializePicture(const PIC& e, CByteBuffer& rbImage) noexcept
     {
         const auto cbCurr = rbImage.Size();
         rbImage.PushBack(4u);// 悬而未决
@@ -277,7 +277,7 @@ public:
                             FALSE,
                             e.rsDesc,
                             e.rsMime,
-                            CRefBin(e.rbData.Size()));
+                            CByteBuffer(e.rbData.Size()));
                         memcpy(f.GetPictureData().Data(), e.rbData.Data(), e.rbData.Size());
                     }
             }
@@ -394,13 +394,13 @@ public:
             {
                 TcsFromInt(szBuf, ARRAYSIZE(szBuf), mi.nTrack, 10, TRUE, &p);
                 if (p != szBuf)
-                    m_vItem.emplace_back("TRACKNUMBER"sv, CRefStrW{ szBuf, int(p - szBuf) });
+                    m_vItem.emplace_back("TRACKNUMBER"sv, CStringW{ szBuf, int(p - szBuf) });
             }
             if (mi.cTotalTrack > 0)
             {
                 TcsFromInt(szBuf, ARRAYSIZE(szBuf), mi.cTotalTrack, 10, TRUE, &p);
                 if (p != szBuf)
-                    m_vItem.emplace_back("TRACKTOTAL"sv, CRefStrW{ szBuf, int(p - szBuf) });
+                    m_vItem.emplace_back("TRACKTOTAL"sv, CStringW{ szBuf, int(p - szBuf) });
             }
         }
 #undef ECKTEMP_SET_VAL
@@ -471,7 +471,7 @@ public:
             break;
             case 4:// Vorbis注释（小端）
             {
-                CRefStrA rsTemp{};
+                CStringA rsTemp{};
 
                 m_Stream >> t;// 编码器信息大小
                 rsTemp.ReSize((int)t);
@@ -508,7 +508,7 @@ public:
             break;
             case 6:// 图片
             {
-                CRefBin rb(cbBlock);
+                CByteBuffer rb(cbBlock);
                 m_Stream.Read(rb.Data(), cbBlock);
                 ParseImageBlock(rb, m_vPic.emplace_back());
             }
@@ -519,7 +519,7 @@ public:
                     m_Stream += cbBlock;
                 else
                 {
-                    CRefBin rb(cbBlock);
+                    CByteBuffer rb(cbBlock);
                     m_Stream.Read(rb.Data(), cbBlock);
                     m_vBlock.emplace_back((BlockType)(Header.eType & 0x7F), std::move(rb));
                 }
@@ -550,7 +550,7 @@ public:
         if (m_posFlacTagEnd == CMediaFile::NPos ||
             m_posStreamInfoEnd == CMediaFile::NPos)
             return Result::Tag;
-        CRefBin rbVorbis{}, rbPic{};
+        CByteBuffer rbVorbis{}, rbPic{};
         //
         // 序列化Vorbis注释
         //
@@ -596,7 +596,7 @@ public:
             cbImageGuess += (e.rsMime.Size() + e.rsDesc.Size() * 2 + e.rbData.Size() + 40);
         rbPic.Reserve(cbImageGuess);
 
-        CRefBin rbTemp{};
+        CByteBuffer rbTemp{};
         constexpr CHAR Key_MetaDataBlockPicture[]{ "METADATA_BLOCK_PICTURE" };
         for (const auto& e : m_vPic)
         {

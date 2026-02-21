@@ -41,7 +41,7 @@ EckInline NTSTATUS GetProcessPeb64(HANDLE hProcess, _Out_ ULONG64& Peb) noexcept
 #endif// !defined(_WIN64)
 }
 
-inline NTSTATUS GetProcessPath(UINT uPid, CRefStrW& rsPath, BOOL bDosPath = TRUE) noexcept
+inline NTSTATUS GetProcessPath(UINT uPid, CStringW& rsPath, BOOL bDosPath = TRUE) noexcept
 {
     SYSTEM_PROCESS_ID_INFORMATION spii{ .ProcessId = DwordToPtr<HANDLE>(uPid) };
     NTSTATUS nts = NtQuerySystemInformation(SystemProcessIdInformation,
@@ -67,7 +67,7 @@ inline NTSTATUS GetProcessPath(UINT uPid, CRefStrW& rsPath, BOOL bDosPath = TRUE
 }
 
 inline NTSTATUS GetProcessPath(HANDLE hProcess,
-    CRefStrW& rsPath, BOOL bDosPath = TRUE) noexcept
+    CStringW& rsPath, BOOL bDosPath = TRUE) noexcept
 {
     rsPath.ReSize(MAX_PATH + sizeof(UNICODE_STRING)/* 多一点无所谓 */);
     ULONG cbReal;
@@ -100,8 +100,8 @@ inline NTSTATUS GetProcessPath(HANDLE hProcess,
 
 struct MODULE_INFO
 {
-    CRefStrW rsModuleName{};
-    CRefStrW rsModulePath{};
+    CStringW rsModuleName{};
+    CStringW rsModulePath{};
 #ifdef _WIN64
     void* BaseAddress{};
 #else
@@ -324,7 +324,7 @@ struct THREAD_INFO
 
 struct PROCESS_INFO
 {
-    CRefStrW rsImageName;	// 进程名
+    CStringW rsImageName;	// 进程名
     ULONG uPid;				// 进程ID
     ULONG uParentPid;		// 父进程ID
     ULONG cThreads;			// 线程数
@@ -340,7 +340,7 @@ struct PROCESS_INFO
     SIZE_T cbPeakQuotaNonPagedPoolUsage;// 峰值非页面缓冲池
     SIZE_T cbPageFileUsage;				// 已提交
     SIZE_T cbPeakPageFileUsage;			// 峰值已提交
-    CRefStrW rsFilePath;	// 进程路径
+    CStringW rsFilePath;	// 进程路径
     std::vector<THREAD_INFO> vThreads;	// 线程信息
     std::vector<MODULE_INFO> vModules;	// 模块信息
 };
@@ -572,7 +572,7 @@ _Ret_maybenull_
     GetWindowThreadProcessId(hWnd, &dwPid);
     if (!dwPid)
         return nullptr;
-    CRefStrW rsPath{};
+    CStringW rsPath{};
     if (!NT_SUCCESS(GetProcessPath(dwPid, rsPath)))
         return nullptr;
 

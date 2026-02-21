@@ -77,13 +77,13 @@ namespace Priv
     constexpr inline std::wstring_view ShmCtxMenuHnd{ L"shellex\\ContextMenuHandlers"sv };
 
     BOOL ShmpQueryComDisplayName(
-        _In_reads_(38) PCWCH pszClsid, CRefStrW& rsDisplayName) noexcept
+        _In_reads_(38) PCWCH pszClsid, CStringW& rsDisplayName) noexcept
     {
         WCHAR szPath[38 + 10];
         EckCopyConstStringW(szPath, L"CLSID\\");
         TcsCopyLen(szPath + 6, pszClsid, 38 + 1);
 
-        CRegKey Key{ HKEY_CLASSES_ROOT,szPath,KEY_READ };
+        CRegistryKey Key{ HKEY_CLASSES_ROOT,szPath,KEY_READ };
         constexpr PCWSTR DisplayName[]
         {
             L"LocalizedString",
@@ -98,7 +98,7 @@ namespace Priv
         return FALSE;
     }
 
-    void ShmpLoadIndirectString(CRefStrW& rs) noexcept
+    void ShmpLoadIndirectString(CStringW& rs) noexcept
     {
         // XXX: 
         rs.Reserve(64);
@@ -112,24 +112,24 @@ struct ShmItem
 {
     ShmFlags uFlags{};
     RegRoot eRegRoot{};			// 注册表根
-    CRefStrW rsRegPath{};		// 注册表全路径
-    CRefStrW rsDisplayName{};	// 显示名称
-    CRefStrW rsClsidOrCmd{};	// 若有ShmFlags::Com，则为CLSID，否则为命令行
-    CRefStrW rsFile{};			// 关联的文件
-    CRefStrW rsIcon{};			// 图标，若未显式指定则为空
+    CStringW rsRegPath{};		// 注册表全路径
+    CStringW rsDisplayName{};	// 显示名称
+    CStringW rsClsidOrCmd{};	// 若有ShmFlags::Com，则为CLSID，否则为命令行
+    CStringW rsFile{};			// 关联的文件
+    CStringW rsIcon{};			// 图标，若未显式指定则为空
 };
 
 // 含有shell和shellex的来源
 class CShmEnumClass
 {
 private:
-    CRegKey m_RegKey{};
+    CRegistryKey m_RegKey{};
     DWORD m_idxEnum{};
     BYTE m_idxSource{};
     BOOLEAN m_bCurrIsShellEx{};
     BOOLEAN m_bFileType{};
-    CRefStrW m_rsFileType{};
-    CRefStrW m_rsTmp{};
+    CStringW m_rsFileType{};
+    CStringW m_rsTmp{};
 
     void ReserveTempBuffer() noexcept
     {
@@ -175,7 +175,7 @@ private:
         if (ls != ERROR_SUCCESS)
             return ls;
         // m_rsTmp现在是项目名
-        CRegKey Key{ m_RegKey.GetHKey(),m_rsTmp.Data(),KEY_READ };// 当前项目
+        CRegistryKey Key{ m_RegKey.GetHKey(),m_rsTmp.Data(),KEY_READ };// 当前项目
         // 注册表路径
         e.rsRegPath.Reserve(cchBuf + 10);
         e.rsRegPath.Assign(L"shell\\");
@@ -242,7 +242,7 @@ private:
         if (ls != ERROR_SUCCESS)
             return ls;
         // m_rsTmp现在是项目名
-        CRegKey Key{ m_RegKey.GetHKey(),m_rsTmp.Data(),KEY_READ };// 当前项目
+        CRegistryKey Key{ m_RegKey.GetHKey(),m_rsTmp.Data(),KEY_READ };// 当前项目
         // 注册表路径
         e.rsRegPath.Reserve(cchBuf + 36);
         e.rsRegPath.Assign(Priv::ShmCtxMenuHnd);
@@ -324,7 +324,7 @@ public:
     }
 
     // 末尾带反斜杠
-    void GetCurrentRegistryPath(CRefStrW& rs) const noexcept
+    void GetCurrentRegistryPath(CStringW& rs) const noexcept
     {
         if (m_idxSource == (BYTE)ShmSource::CustomType)
             rs = m_rsFileType;
@@ -336,7 +336,7 @@ public:
 class CShmEnumSendTo
 {
 private:
-    CEnumFileSingle m_EnumFile{};
+    CFileEnumeratorSingle m_EnumFile{};
     PWSTR m_pszSendToPath{};// CoTaskMemFree
     int m_cchSendToPath{};
     CIniExtMut m_IniDesktop{};
@@ -363,7 +363,7 @@ public:
     LSTATUS Next(ShmItem& e) noexcept
     {
         e.uFlags = ShmFlags::None;
-        CEnumFileSingle::TDefInfo* pInfo;
+        CFileEnumeratorSingle::TDefInfo* pInfo;
         NTSTATUS nts;
         EckLoop()
         {
@@ -436,7 +436,7 @@ public:
             const auto posExt = e.rsFile.PazFindExtension();
             if (posExt < 0)
                 goto NotLnkOrCom;
-            CRegKey Key{ HKEY_CLASSES_ROOT,e.rsFile.Data() + posExt,KEY_READ };
+            CRegistryKey Key{ HKEY_CLASSES_ROOT,e.rsFile.Data() + posExt,KEY_READ };
             Key.QueryValueString(e.rsIcon, nullptr);// CLSID路径
             if (e.rsIcon.IsEmpty())
                 goto NotLnkOrCom;
@@ -463,10 +463,10 @@ public:
 class CShmEnumWinX
 {
 private:
-    CEnumFileSingle m_EnumFile{};
-    CEnumFileSingle m_EnumStartMenu{};
-    CRefStrW m_rsWinXPath{};
-    CRefStrW m_rsCurrGroup{};
+    CFileEnumeratorSingle m_EnumFile{};
+    CFileEnumeratorSingle m_EnumStartMenu{};
+    CStringW m_rsWinXPath{};
+    CStringW m_rsCurrGroup{};
     int m_idxGroup{};
 public:
     void Reset() noexcept
@@ -491,7 +491,7 @@ public:
     W32ERR Next(ShmItem& e) noexcept
     {
         NTSTATUS nts;
-        CEnumFileSingle::TDefInfo* pInfo;
+        CFileEnumeratorSingle::TDefInfo* pInfo;
         if (!m_EnumStartMenu.Get())
         {
             EckLoop()

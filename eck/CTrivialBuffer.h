@@ -2,15 +2,15 @@
 #include "CAllocator.h"
 
 ECK_NAMESPACE_BEGIN
-template<class T_, class TAlloc_ = CDefAllocator<T_>>
+template<class T_, class TAllocator_ = CDefaultAllocator<T_>>
     requires std::is_trivial<T_>::value
 class CTrivialBuffer
 {
 public:
     using TElem = T_;
-    using TAlloc = TAlloc_;
+    using TAllocator = TAllocator_;
 
-    using TAllocTraits = CAllocatorTraits<TAlloc>;
+    using TAllocatorTraits = CAllocatorTraits<TAllocator>;
 
     using TPointer = TElem*;
     using TConstPointer = const TElem*;
@@ -24,7 +24,7 @@ private:
     size_t m_cSize{};
     size_t m_cCapacity{};
 
-    [[no_unique_address]] TAlloc m_Alloc{};
+    [[no_unique_address]] TAllocator m_Alloc{};
 public:
     CTrivialBuffer() = default;
 
@@ -38,7 +38,7 @@ public:
     }
 
     CTrivialBuffer(const CTrivialBuffer& x) noexcept
-        : m_Alloc{ TAllocTraits::select_on_container_copy_construction(x.m_Alloc) }
+        : m_Alloc{ TAllocatorTraits::select_on_container_copy_construction(x.m_Alloc) }
     {
         Assign(x.Data(), x.Size());
     }
@@ -59,7 +59,7 @@ public:
     {
         if (this == &x)
             return *this;
-        if constexpr (!TAllocTraits::is_always_equal::value)
+        if constexpr (!TAllocatorTraits::is_always_equal::value)
             if (m_Alloc != x.m_Alloc)
             {
                 m_Alloc.deallocate(m_pData, m_cCapacity);
@@ -67,7 +67,7 @@ public:
                 m_cSize = 0;
                 m_cCapacity = 0;
             }
-        if constexpr (TAllocTraits::propagate_on_container_copy_assignment::value)
+        if constexpr (TAllocatorTraits::propagate_on_container_copy_assignment::value)
             m_Alloc = x.m_Alloc;
 
         Assign(x.Data(), x.Size());
@@ -77,9 +77,9 @@ public:
     {
         if (this == &x)
             return *this;
-        if constexpr (TAllocTraits::propagate_on_container_move_assignment::value)
+        if constexpr (TAllocatorTraits::propagate_on_container_move_assignment::value)
         {
-            if constexpr (TAllocTraits::is_always_equal::value)
+            if constexpr (TAllocatorTraits::is_always_equal::value)
                 m_Alloc = std::move(x.m_Alloc);
             else if (m_Alloc != x.m_Alloc)
             {
@@ -90,7 +90,7 @@ public:
                 m_cCapacity = 0;
             }
         }
-        else if constexpr (!TAllocTraits::is_always_equal::value)
+        else if constexpr (!TAllocatorTraits::is_always_equal::value)
             if (m_Alloc != x.m_Alloc)
             {
                 Assign(x.Data(), x.Size());
@@ -130,7 +130,7 @@ public:
     EckInline void ReSizeExtra(size_t c) noexcept
     {
         if (m_cCapacity < c)
-            Reserve(TAllocTraits::MakeCapacity(c));
+            Reserve(TAllocatorTraits::MakeCapacity(c));
         m_cSize = c;
     }
 

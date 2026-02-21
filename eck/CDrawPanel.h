@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CWnd.h"
+#include "CWindow.h"
 #include "Utility.h"
 #include "GraphicsHelper.h"
 

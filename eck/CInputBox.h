@@ -27,7 +27,7 @@ struct INPUTBOXOPT
     PCWSTR pszInitContent;
     PCWSTR pszMainTip;
     PCWSTR pszTip;
-    CRefStrW rsInput;
+    CStringW rsInput;
     UINT uFlags;
     int x;
     int y;
@@ -138,7 +138,7 @@ private:
         constexpr PCWSTR pszDiv2 = L"\r\n---------------------------\r\n";
         constexpr PCWSTR pszDiv3 = L"\r\n---------------------------";
 
-        CRefStrW rs{};
+        CStringW rs{};
         rs.PushBack(pszDiv);
         rs.PushBack(m_pOpt->pszTitle);
         rs.PushBack(pszDiv2);
@@ -332,7 +332,7 @@ public:
 
     void OnCancel(HWND hCtrl) noexcept override
     {
-        m_pOpt->rsInput = CRefStrW{};
+        m_pOpt->rsInput = CStringW{};
         EndDialog(FALSE);
     }
 
@@ -360,7 +360,7 @@ public:
     }
 };
 
-inline BOOL InputBox(CRefStrW& rs, HWND hParent, PCWSTR pszMainTip, PCWSTR pszTip = nullptr,
+inline BOOL InputBox(CStringW& rs, HWND hParent, PCWSTR pszMainTip, PCWSTR pszTip = nullptr,
     PCWSTR pszInitContent = nullptr, PCWSTR pszTitle = nullptr, BOOL bMultiLine = FALSE,
     CEditExt::InputMode eInputMode = CEditExt::InputMode::Normal) noexcept
 {

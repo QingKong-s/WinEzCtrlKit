@@ -1,5 +1,5 @@
 #pragma once
-#include "CWnd.h"
+#include "CWindow.h"
 
 ECK_NAMESPACE_BEGIN
 // 标准链接标签产生WM_CTLCOLORSTATIC消息，

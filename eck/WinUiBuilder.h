@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CWnd.h"
+#include "CWindow.h"
 #include "CLinearLayout.h"
 
 #define ECK_UIMGR_NAMESPACE_BEGIN   namespace UiManager {

@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "WndHelper.h"
-#include "CMemWalker.h"
+#include "MemWalker.h"
 #include "ILayout.h"
 #include "CSignal.h"
 #include "NativeWrapper.h"
@@ -114,7 +114,7 @@ struct SERIALIZE_OPT
 #ifdef ECK_CTRL_DESIGN_INTERFACE
 struct DESIGNDATA_WND
 {
-    CRefStrW rsName;
+    CStringW rsName;
     BITBOOL bVisible : 1;
     BITBOOL bEnable : 1;
 };
@@ -205,14 +205,14 @@ public:
     ECK_RTTI(CWindow, ILayout);
 #if !ECK_OPT_NO_OBJA
     EckInline ObjAttrErr OagsText(std::wstring_view svValue,
-        CRefStrW& rsValue, BOOL bSet) noexcept
+        CStringW& rsValue, BOOL bSet) noexcept
     {
         if (bSet) SetText(svValue.data());
         else GetText(rsValue);
         return ObjAttrErr::Ok;
     }
     EckInline ObjAttrErr OagsRcwh(std::wstring_view svValue,
-        CRefStrW& rsValue, BOOL bSet) noexcept
+        CStringW& rsValue, BOOL bSet) noexcept
     {
         RCWH rc;
         if (bSet)
@@ -248,7 +248,7 @@ public:
 #endif
 
 #ifdef _DEBUG
-    CRefStrW DbgTag{};
+    CStringW DbgTag{};
 #endif
 protected:
     HWND m_hWnd{};
@@ -326,7 +326,7 @@ public:
     ECKPROP(GetFont, SetFont)			HFONT		HFont;			// 字体句柄
     ECKPROP(GetStyle, SetStyle)			DWORD		Style;			// 窗口样式
     ECKPROP(GetExStyle, SetExStyle)		DWORD		ExStyle;		// 扩展窗口样式
-    ECKPROP_R(GetText)					CRefStrW	Text;			// 标题
+    ECKPROP_R(GetText)					CStringW	Text;			// 标题
     ECKPROP(GetFrameType, SetFrameType) enum class FrameType FrameType;		// 边框类型
     ECKPROP(GetScrollBar, SetScrollBar) ScrollType	ScrollBarType;	// 滚动条类型
     ECKPROP(IsVisible, SetVisibility)	BOOL		Visible;		// 可视
@@ -540,16 +540,16 @@ public:
     /// </summary>
     /// <param name="rb">字节集</param>
     /// <param name="pOpt">可选的序列化选项</param>
-    virtual void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept
+    virtual void SerializeData(CByteBuffer& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept
     {
-        CRefStrW rsText = GetText();
+        CStringW rsText = GetText();
         const auto dwStyle = GetStyle();
 
         const SIZE_T cbSize = sizeof(CTRLDATA_WND) + rsText.ByteSize() +
             (IsBitSet(dwStyle, WS_HSCROLL) ? sizeof(SCROLLINFO) : 0) +
             (IsBitSet(dwStyle, WS_VSCROLL) ? sizeof(SCROLLINFO) : 0);
 
-        CMemWriter w(rb.PushBack(cbSize), cbSize);
+        CMemoryWalker w(rb.PushBack(cbSize), cbSize);
         CTRLDATA_WND* p;
         w.SkipPointer(p);
         p->uFlags = 0u;
@@ -668,7 +668,7 @@ public:
     HWND ReCreate(EckOptNul(DWORD, dwNewStyle), EckOptNul(DWORD, dwNewExStyle),
         EckOptNul(RECT, rcPos), const SERIALIZE_OPT* pSerOpt = nullptr) noexcept
     {
-        CRefBin rb{};
+        CByteBuffer rb{};
         SerializeData(rb, pSerOpt);
         const HWND hParent = GetParent(m_hWnd);
         const int iID = GetDlgCtrlID(m_hWnd);
@@ -844,7 +844,7 @@ public:
         return (DWORD)SetWindowLongPtrW(m_hWnd, GWL_EXSTYLE, dwStyle);
     }
 
-    int GetText(CRefStrW& rs) const noexcept
+    int GetText(CStringW& rs) const noexcept
     {
         const int cch = GetWindowTextLengthW(m_hWnd);
         if (cch)
@@ -852,9 +852,9 @@ public:
         return cch;
     }
     // For compatibility.
-    EckInlineNd CRefStrW GetText() const noexcept
+    EckInlineNd CStringW GetText() const noexcept
     {
-        CRefStrW rs{};
+        CStringW rs{};
         GetText(rs);
         return rs;
     }
@@ -934,9 +934,9 @@ public:
         return SetWindowLongPtrW(m_hWnd, i, l);
     }
 
-    EckInlineNd CRefStrW GetWindowClass() const noexcept
+    EckInlineNd CStringW GetWindowClass() const noexcept
     {
-        CRefStrW rs(256);
+        CStringW rs(256);
         rs.ReSize(GetClassNameW(GetHWND(), rs.Data(), 256 + 1));
         return rs;
     }

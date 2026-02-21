@@ -1,20 +1,20 @@
 ﻿#pragma once
-#include "CRefBin.h"
-#include "IMem.h"
+#include "CByteBuffer.h"
+#include "IMemoryView.h"
 #include "CUnknown.h"
 
 ECK_NAMESPACE_BEGIN
-template<class TAlloc>
-class CRefBinStreamT : public CUnknown<CRefBinStreamT<TAlloc>, IStream, IMem>
+template<class TAllocator>
+class CByteBufferStreamT : public CUnknown<CByteBufferStreamT<TAllocator>, IStream, IMemoryView>
 {
 private:
     BOOL m_bLocked{};
 
-    CRefBinT<TAlloc>& m_rb;
+    CByteBufferT<TAllocator>& m_rb;
     size_t m_posSeek{};	// 相对于m_rb的起始位置
     size_t m_posBegin{};// 若要强制追加数据，则此字段记录追加起始位置
 public:
-    CRefBinStreamT(CRefBinT<TAlloc>& rb) :m_rb{ rb } {}
+    CByteBufferStreamT(CByteBufferT<TAllocator>& rb) :m_rb{ rb } {}
 
     // 强制从指定位置追加数据
     EckInlineCe void SetBeginPosition(size_t pos) noexcept
@@ -187,7 +187,7 @@ public:
 
     HRESULT STDMETHODCALLTYPE Clone(IStream** ppstm)
     {
-        const auto p = new CRefBinStreamT(m_rb);
+        const auto p = new CByteBufferStreamT(m_rb);
         p->m_posSeek = m_posSeek;
         p->m_posBegin = m_posBegin;
         p->m_bLocked = m_bLocked;
@@ -223,5 +223,5 @@ public:
     }
 };
 
-using CRefBinStream = CRefBinStreamT<TRefBinDefAllocator>;
+using CByteBufferStream = CByteBufferStreamT<TByteBufferDefaultAllocator>;
 ECK_NAMESPACE_END

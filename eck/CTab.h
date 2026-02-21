@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CWnd.h"
+#include "CWindow.h"
 
 ECK_NAMESPACE_BEGIN
 #define ECK_CWNDPROP_TABE_STYLE(Name, Style)			\

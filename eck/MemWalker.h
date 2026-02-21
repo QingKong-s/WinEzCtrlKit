@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "CRefBin.h"
-#include "CRefStr.h"
+#include "CByteBuffer.h"
+#include "CString.h"
 
 ECK_NAMESPACE_BEGIN
 namespace Priv
@@ -17,7 +17,7 @@ namespace Priv
         }
     };
 
-    struct CMemReaderBase
+    struct CMemoryReaderBase
     {
     protected:
         PCBYTE m_pMem{};
@@ -30,8 +30,8 @@ namespace Priv
                 throw XptMemWalkerRange{ m_pBase, m_cbMax, p };
         }
     public:
-        CMemReaderBase() = default;
-        constexpr CMemReaderBase(_In_reads_bytes_(cbMax) PCVOID p, size_t cbMax) noexcept
+        CMemoryReaderBase() = default;
+        constexpr CMemoryReaderBase(_In_reads_bytes_(cbMax) PCVOID p, size_t cbMax) noexcept
             : m_pMem{ (PCBYTE)p }, m_pBase{ (PCBYTE)p }, m_cbMax{ cbMax }
         {
         }
@@ -44,7 +44,7 @@ namespace Priv
         }
     };
 
-    class CMemWalkerBase
+    class CMemoryWalkerBase
     {
     protected:
         BYTE* m_pMem{};
@@ -57,8 +57,8 @@ namespace Priv
                 throw XptMemWalkerRange{ m_pBase, m_cbMax, p };
         }
     public:
-        CMemWalkerBase() = default;
-        constexpr CMemWalkerBase(_Inout_updates_bytes_(cbMax) void* p, size_t cbMax) noexcept
+        CMemoryWalkerBase() = default;
+        constexpr CMemoryWalkerBase(_Inout_updates_bytes_(cbMax) void* p, size_t cbMax) noexcept
             : m_pMem{ (BYTE*)p }, m_pBase{ (BYTE*)p }, m_cbMax{ cbMax }
         {
         }
@@ -106,12 +106,12 @@ namespace Priv
             return Write(Data.data(), Data.size() * sizeof(T));
         }
         template<class T>
-        EckInline auto& operator<<(const CRefBinT<T>& Data)
+        EckInline auto& operator<<(const CByteBufferT<T>& Data)
         {
             return Write(Data.Data(), Data.Size());
         }
         template<class T, class U, class V>
-        EckInline auto& operator<<(const CRefStrT<T, U, V>& Data)
+        EckInline auto& operator<<(const CStringT<T, U, V>& Data)
         {
             return Write(Data.Data(), Data.ByteSize());
         }
@@ -125,7 +125,7 @@ namespace Priv
     };
 
     template<class T>
-    class CMemWalkerWarpper : public T
+    class CMemoryWalkerWarpper : public T
     {
     public:
         using T::T;
@@ -157,7 +157,7 @@ namespace Priv
         EckInline auto& ReadRev(_Out_ T& Data) { return ReadRev(&Data, sizeof(T)); }
 
         template<class T, class U, class V>
-        EckInline auto& operator>>(CRefStrT<T, U, V>& x)
+        EckInline auto& operator>>(CStringT<T, U, V>& x)
         {
             const int cch = CountStringLength<T>();
             x.ReSize(cch);
@@ -232,13 +232,12 @@ namespace Priv
             this->m_pMem = this->m_pBase + pos;
             return *this;
         }
-        EckInlineCe size_t GetLeaveSize() const noexcept { return this->m_pBase + this->m_cbMax - this->m_pMem; }
+        EckInlineCe size_t GetRemainingSize() const noexcept { return this->m_pBase + this->m_cbMax - this->m_pMem; }
         EckInlineCe BOOL IsEnd() const noexcept { return this->m_pMem >= this->m_pBase + this->m_cbMax; }
         EckInlineCe size_t GetPosition() const noexcept { return this->m_pMem - this->m_pBase; }
     };
 }
 
-using CMemReader = Priv::CMemWalkerWarpper<Priv::CMemReaderBase>;
-using CMemWalker = Priv::CMemWalkerWarpper<Priv::CMemWalkerBase>;
-using CMemWriter = CMemWalker;// For compatibility.
+using CMemoryReader = Priv::CMemoryWalkerWarpper<Priv::CMemoryReaderBase>;
+using CMemoryWalker = Priv::CMemoryWalkerWarpper<Priv::CMemoryWalkerBase>;
 ECK_NAMESPACE_END

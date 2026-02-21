@@ -201,7 +201,7 @@ public:
     {
         struct SERIAL_CTX
         {
-            CRefBin& rbWork;
+            CByteBuffer& rbWork;
             const ID3v2_HEADER* pTagHdr;
             const ID3v2_FRAME_HEADER* pFrameHdr;
             BOOLEAN bFrameHdr;
@@ -224,8 +224,8 @@ public:
 
         virtual ~FRAME() = default;
 
-        virtual Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept = 0;
-        virtual Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept = 0;
+        virtual Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept = 0;
+        virtual Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept = 0;
 
         virtual FRAME* Clone() const noexcept = 0;
 
@@ -234,7 +234,7 @@ public:
             return memcmp(Id, Id_, 4) == 0;
         }
 
-        static void TagUnsynchronize(CRefBin& rb, size_t posBegin) noexcept
+        static void TagUnsynchronize(CByteBuffer& rb, size_t posBegin) noexcept
         {
             EckAssert(rb.Size() >= posBegin);
             for (size_t i = posBegin; i < rb.Size() - 1; )
@@ -258,13 +258,13 @@ public:
         }
     protected:
         // 准备空间，bFrameHdr控制是否写入帧头
-        CMemWalker PreSerialize(CRefBin& rb,
+        CMemoryWalker PreSerialize(CByteBuffer& rb,
             const SERIAL_CTX& Ctx, size_t cbFrame) const noexcept
         {
             if (!Ctx.bFrameHdr)
                 return { rb.PushBack(cbFrame), cbFrame };
             const size_t cbTotal = cbFrame + sizeof(ID3v2_FRAME_HEADER);
-            CMemWalker w{ rb.PushBack(cbTotal), cbTotal };
+            CMemoryWalker w{ rb.PushBack(cbTotal), cbTotal };
 
             ID3v2_FRAME_HEADER* pFrameHdr;
             w.SkipPointer(pFrameHdr);
@@ -317,7 +317,7 @@ public:
             return w;
         }
         // 完成序列化，处理非同步和压缩等
-        Result PostSerialize(CRefBin& rb,
+        Result PostSerialize(CByteBuffer& rb,
             const SERIAL_CTX& Ctx, size_t cbFrame) const noexcept
         {
             const size_t posFrameData = Ctx.bFrameHdr ?
@@ -348,7 +348,7 @@ public:
         // 使用pFrameHdr中的信息更新当前状态
         // 如果bFrameHdr为TRUE，则rb包含帧头
         // 调用方从返回爬行器的当前位置开始读取帧内容，不能假定当前位置一定在起始处
-        CMemReader PreDeserialize(CRefBin& rb, const SERIAL_CTX& Ctx)
+        CMemoryReader PreDeserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx)
         {
             EckAssert(Ctx.bFrameHdr ? rb.Size() >= sizeof(ID3v2_FRAME_HEADER) : TRUE);
             memcpy(Id, Ctx.pFrameHdr->Id, 4);
@@ -371,7 +371,7 @@ public:
                 bUnsynchronized = bHasDataLengthIndicator = FALSE;
 
                 if (Ctx.pTagHdr->Flags & ID3V2HF_UNSYNCHRONIZATION)
-                    rb.ReplaceSubBin({ 0xFF, 0x00 }, { 0xFF });
+                    rb.ReplaceSub({ 0xFF, 0x00 }, { 0xFF });
             }
             else
             {
@@ -395,10 +395,10 @@ public:
 
                 if (Ctx.pTagHdr->Flags & ID3V2HF_UNSYNCHRONIZATION ||
                     bUnsynchronized)
-                    rb.ReplaceSubBin({ 0xFF, 0x00 }, { 0xFF });
+                    rb.ReplaceSub({ 0xFF, 0x00 }, { 0xFF });
             }
 
-            CMemReader w{ rb.Data(), rb.Size() };
+            CMemoryReader w{ rb.Data(), rb.Size() };
             if (Ctx.bFrameHdr)
                 w += sizeof(ID3v2_FRAME_HEADER);
             // 读附加信息
@@ -406,7 +406,7 @@ public:
             if (Ctx.pTagHdr->Ver == 3)
             {
                 cbBody = ReverseInteger(*(UINT*)Ctx.pFrameHdr->Size);
-                if (cbBody != w.GetLeaveSize())
+                if (cbBody != w.GetRemainingSize())
                     w.MoveToEnd() += 1;// throw
                 if (Ctx.pFrameHdr->Flags[1] & ID3V23FF_HAS_GROUP_IDENTITY)
                     w >> byGroupId;
@@ -418,7 +418,7 @@ public:
             else/* if (Ctx.pTagHdr->Ver == 4)*/
             {
                 cbBody = TagSyncSafeIntToUInt(Ctx.pFrameHdr->Size);
-                if (cbBody != w.GetLeaveSize())
+                if (cbBody != w.GetRemainingSize())
                     w.MoveToEnd() += 1;// throw
                 if (Ctx.pFrameHdr->Flags[1] & ID3V24FF_HAS_GROUP_IDENTITY)
                     w >> byGroupId;
@@ -428,10 +428,10 @@ public:
                     w >> cbOrg;
             }
 
-            if (bCompressed && w.GetLeaveSize())
+            if (bCompressed && w.GetRemainingSize())
             {
                 Ctx.rbWork.Clear();
-                ZLibDecompress(w.Data(), w.GetLeaveSize(), Ctx.rbWork);
+                ZLibDecompress(w.Data(), w.GetRemainingSize(), Ctx.rbWork);
                 std::swap(rb, Ctx.rbWork);
                 return { rb.Data(), rb.Size() };
             }
@@ -439,15 +439,15 @@ public:
                 return w;
         }
 
-        Result PostDeserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept
+        Result PostDeserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept
         {
             return Result::Ok;
         }
 
         // 给定Utf16 LE字符串，转换为指定编码，并将结果追加到rbResult
         static void CovertTextEncoding(
-            CRefBin& rb,
-            const CRefStrW& rsStr,
+            CByteBuffer& rb,
+            const CStringW& rsStr,
             TextEncoding eEncoding,
             BOOL bTerminator = FALSE) noexcept
         {
@@ -513,8 +513,8 @@ public:
         }
 
         static void CovertTextEncoding(
-            CRefBin& rb,
-            const std::vector<CRefStrW>& v,
+            CByteBuffer& rb,
+            const std::vector<CStringW>& v,
             TextEncoding eEncoding,
             BOOL bTerminator = FALSE) noexcept
         {
@@ -526,8 +526,8 @@ public:
         }
 
         static void ConvertTextEncoding(
-            CRefStrW& rsResult,
-            CMemReader& w,
+            CStringW& rsResult,
+            CMemoryReader& w,
             int cb,
             int iTextEncoding)
         {
@@ -601,8 +601,8 @@ public:
         }
 
         EckInline static void ConvertTextEncoding(
-            CRefStrW& rsResult,
-            CMemReader& w,
+            CStringW& rsResult,
+            CMemoryReader& w,
             int cb,
             TextEncoding iTextEncoding)
         {
@@ -623,7 +623,7 @@ public:
         }
 
         static void StepOverTerminator(
-            CMemReader& w,
+            CMemoryReader& w,
             TextEncoding eEncoding) noexcept
         {
             switch (eEncoding)
@@ -645,10 +645,10 @@ public:
 
     struct UFID final : public FRAME
     {
-        CRefStrA rsEmail{};
-        CRefBin rbOwnerData{};
+        CStringA rsEmail{};
+        CByteBuffer rbOwnerData{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             const size_t cbFrame = rsEmail.Size() + 1 + rbOwnerData.Size();
             auto w = PreSerialize(rb, Ctx, cbFrame);
@@ -656,17 +656,17 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> rsEmail;
-            if (w.GetLeaveSize() > 64u)
+            if (w.GetRemainingSize() > 64u)
                 return Result::TooLargeData;
             else
-                rbOwnerData.Assign(w.Data(), w.GetLeaveSize());
+                rbOwnerData.Assign(w.Data(), w.GetRemainingSize());
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -677,9 +677,9 @@ public:
     struct TEXTFRAME : public FRAME
     {
         TextEncoding eEncoding{ TextEncoding::Default };
-        std::vector<CRefStrW> vText{};
+        std::vector<CStringW> vText{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             if (EqualId("TENC") || EqualId("TLEN"))
                 bFileAlterDiscard = TRUE;
@@ -692,7 +692,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> eEncoding;
@@ -716,7 +716,7 @@ public:
             }
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -727,10 +727,10 @@ public:
     struct TXXX : public FRAME
     {
         TextEncoding eEncoding{ TextEncoding::Default };
-        CRefStrW rsDesc{};
-        CRefStrW rsText{};
+        CStringW rsDesc{};
+        CStringW rsText{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             Ctx.rbWork.Clear();
             CovertTextEncoding(Ctx.rbWork, rsDesc, eEncoding, TRUE);
@@ -741,17 +741,17 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> eEncoding;
             if (eEncoding >= TextEncoding::Max)
                 return Result::Enum_TextEncoding;
             ConvertTextEncoding(rsDesc, w, -1, eEncoding);
-            ConvertTextEncoding(rsText, w, (int)w.GetLeaveSize(), eEncoding);
+            ConvertTextEncoding(rsText, w, (int)w.GetRemainingSize(), eEncoding);
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -761,19 +761,19 @@ public:
 
     struct LINKFRAME : public FRAME
     {
-        CRefStrA rsUrl{};
+        CStringA rsUrl{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             auto w = PreSerialize(rb, Ctx, rsUrl.Size());
             w.Write(rsUrl.Data(), rsUrl.Size());
             return PostSerialize(rb, Ctx, rsUrl.Size());
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             auto w = PreDeserialize(rb, Ctx);
-            rsUrl.Assign((PCCH)w.Data(), (int)w.GetLeaveSize());
+            rsUrl.Assign((PCCH)w.Data(), (int)w.GetRemainingSize());
             return PostDeserialize(rb, Ctx);
         }
 
@@ -783,10 +783,10 @@ public:
     struct WXXX : public FRAME
     {
         TextEncoding eEncoding{ TextEncoding::Default };
-        CRefStrW rsDesc{};
-        CRefStrA rsUrl{};
+        CStringW rsDesc{};
+        CStringA rsUrl{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             Ctx.rbWork.Clear();
             CovertTextEncoding(Ctx.rbWork, rsDesc, eEncoding, TRUE);
@@ -797,17 +797,17 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> eEncoding;
             if (eEncoding >= TextEncoding::Max)
                 return Result::Enum_TextEncoding;
             ConvertTextEncoding(rsDesc, w, -1, eEncoding);
-            rsUrl.Assign((PCCH)w.Data(), (int)w.GetLeaveSize());
+            rsUrl.Assign((PCCH)w.Data(), (int)w.GetRemainingSize());
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -817,19 +817,19 @@ public:
 
     struct MCID final : public FRAME
     {
-        CRefBin rbToc{};
+        CByteBuffer rbToc{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             auto w = PreSerialize(rb, Ctx, rbToc.Size());
             w << rbToc;
             return PostSerialize(rb, Ctx, rbToc.Size());
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             auto w = PreDeserialize(rb, Ctx);
-            rbToc.Assign(w.Data(), w.GetLeaveSize());
+            rbToc.Assign(w.Data(), w.GetRemainingSize());
             return PostDeserialize(rb, Ctx);
         }
 
@@ -847,7 +847,7 @@ public:
         TimestampFmt eTimestampFmt{};
         std::vector<EVENT> vEvent{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             bFileAlterDiscard = TRUE;
 
@@ -859,7 +859,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> eTimestampFmt;
@@ -876,7 +876,7 @@ public:
             }
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -896,7 +896,7 @@ public:
         TimestampFmt eTimestampFmt{};
         std::vector<TEMPO> vTempo{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             size_t cbFrame = 1 + vTempo.size() * (4 + 1/*时间戳4B，BPM基础1B*/);
             for (const auto& e : vTempo)
@@ -923,7 +923,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> eTimestampFmt;
@@ -946,7 +946,7 @@ public:
             }
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -958,10 +958,10 @@ public:
     {
         TextEncoding eEncoding{ TextEncoding::Default };
         CHAR byLang[3]{ 'X','X','X' };
-        CRefStrW rsDesc{};
-        CRefStrW rsLrc{};
+        CStringW rsDesc{};
+        CStringW rsLrc{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             CheckLanguageId(byLang);
 
@@ -974,7 +974,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> eEncoding;
@@ -982,10 +982,10 @@ public:
                 return Result::Enum_TextEncoding;
             w.Read(byLang, 3);
             ConvertTextEncoding(rsDesc, w, -1, eEncoding);
-            ConvertTextEncoding(rsLrc, w, (int)w.GetLeaveSize(), eEncoding);
+            ConvertTextEncoding(rsLrc, w, (int)w.GetRemainingSize(), eEncoding);
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -997,7 +997,7 @@ public:
     {
         struct SYNC
         {
-            CRefStrW rsText{};
+            CStringW rsText{};
             UINT uTimestamp{};
         };
 
@@ -1005,10 +1005,10 @@ public:
         CHAR byLang[3]{ 'X','X','X' };
         TimestampFmt eTimestampFmt{};
         LrcContentType eContent{ LrcContentType::Lyrics };
-        CRefStrW rsDesc{};
+        CStringW rsDesc{};
         std::vector<SYNC> vSync{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             bFileAlterDiscard = TRUE;
             CheckLanguageId(byLang);
@@ -1039,7 +1039,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> eEncoding;
@@ -1063,7 +1063,7 @@ public:
             }
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1075,10 +1075,10 @@ public:
     {
         TextEncoding eEncoding{ TextEncoding::Default };
         CHAR byLang[3]{ 'X','X','X' };
-        CRefStrW rsDesc{};
-        CRefStrW rsText{};
+        CStringW rsDesc{};
+        CStringW rsText{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             CheckLanguageId(byLang);
 
@@ -1091,7 +1091,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> eEncoding;
@@ -1099,10 +1099,10 @@ public:
                 return Result::Enum_TextEncoding;
             w.Read(byLang, 3);
             ConvertTextEncoding(rsDesc, w, -1, eEncoding);
-            ConvertTextEncoding(rsText, w, (int)w.GetLeaveSize(), eEncoding);
+            ConvertTextEncoding(rsText, w, (int)w.GetRemainingSize(), eEncoding);
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1120,10 +1120,10 @@ public:
             CBitSet<256> bsPeekVol{};
         };
 
-        CRefStrA rsId{};
+        CStringA rsId{};
         std::vector<CHANNEL> vChannel{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             bFileAlterDiscard = TRUE;
 
@@ -1143,7 +1143,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> rsId;
@@ -1160,7 +1160,7 @@ public:
             }
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1177,10 +1177,10 @@ public:
         };
 
         Interpolation eInterpolation{};
-        CRefStrA rsId{};
+        CStringA rsId{};
         std::vector<POINT> vPoint{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             bFileAlterDiscard = TRUE;
 
@@ -1192,7 +1192,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> eInterpolation;
@@ -1208,7 +1208,7 @@ public:
             }
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1229,7 +1229,7 @@ public:
         BYTE PremixLeftToRight{};
         BYTE PremixRightToLeft{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             constexpr size_t cbFrame = 12;
             auto w = PreSerialize(rb, Ctx, cbFrame);
@@ -1237,13 +1237,13 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w.ReadRev(Left).ReadRev(Right).Read(&BouncesLeft, 8);
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1255,11 +1255,11 @@ public:
     {
         TextEncoding eEncoding{ TextEncoding::Default };
         PicType eType{ PicType::CoverFront };
-        CRefStrA rsMime{};
-        CRefStrW rsDesc{};
-        CRefBin rbData{};
+        CStringA rsMime{};
+        CStringW rsDesc{};
+        CByteBuffer rbData{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             Ctx.rbWork.Clear();
             CovertTextEncoding(Ctx.rbWork, rsDesc, eEncoding, TRUE);
@@ -1270,7 +1270,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> eEncoding;
@@ -1278,10 +1278,10 @@ public:
                 return Result::Enum_TextEncoding;
             w >> rsMime >> eType;
             ConvertTextEncoding(rsDesc, w, -1, eEncoding);
-            rbData.Assign(w.Data(), w.GetLeaveSize());
+            rbData.Assign(w.Data(), w.GetRemainingSize());
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1292,12 +1292,12 @@ public:
     struct GEOB final : public FRAME
     {
         TextEncoding eEncoding{ TextEncoding::Default };
-        CRefStrA rsMime{};
-        CRefStrW rsFile{};
-        CRefStrW rsDesc{};
-        CRefBin rbObj{};
+        CStringA rsMime{};
+        CStringW rsFile{};
+        CStringW rsDesc{};
+        CByteBuffer rbObj{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             Ctx.rbWork.Clear();
             CovertTextEncoding(Ctx.rbWork, rsFile, eEncoding, TRUE);
@@ -1309,7 +1309,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> eEncoding;
@@ -1318,10 +1318,10 @@ public:
             w >> rsMime;
             ConvertTextEncoding(rsFile, w, -1, eEncoding);
             ConvertTextEncoding(rsDesc, w, -1, eEncoding);
-            rbObj.Assign(w.Data(), w.GetLeaveSize());
+            rbObj.Assign(w.Data(), w.GetRemainingSize());
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1333,7 +1333,7 @@ public:
     {
         ULONGLONG cPlay{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             size_t cbFrame = 4;
             for (int i = 7; i >= 4; --i)
@@ -1349,11 +1349,11 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             auto w = PreDeserialize(rb, Ctx);
             cPlay = 0;
-            w.ReadRev(&cPlay, std::min(w.GetLeaveSize(), (size_t)8));
+            w.ReadRev(&cPlay, std::min(w.GetRemainingSize(), (size_t)8));
             return PostDeserialize(rb, Ctx);
         }
 
@@ -1362,11 +1362,11 @@ public:
 
     struct POPM final : public FRAME
     {
-        CRefStrA rsEmail{};
+        CStringA rsEmail{};
         BYTE byRating{};
         ULONGLONG cPlay{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             size_t cbPlayCount = 4;
             for (int i = 7; i >= 4; --i)
@@ -1384,15 +1384,15 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> rsEmail >> byRating;
             cPlay = 0;
-            w.ReadRev(&cPlay, std::min(w.GetLeaveSize(), (size_t)8));
+            w.ReadRev(&cPlay, std::min(w.GetRemainingSize(), (size_t)8));
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1406,7 +1406,7 @@ public:
         BYTE b{};
         UINT ocbNextTag{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             if (b != 0 && b != 1)
                 return Result::ReservedData;
@@ -1417,7 +1417,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             cbBuf = 0;
@@ -1427,7 +1427,7 @@ public:
             w.ReadRev(ocbNextTag);
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1437,12 +1437,12 @@ public:
 
     struct AENC final : public FRAME
     {
-        CRefStrA rsOwnerId{};
+        CStringA rsOwnerId{};
         USHORT usPreviewBegin{};
         USHORT usPreviewLength{};
-        CRefBin rbData{};
+        CByteBuffer rbData{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             bFileAlterDiscard = TRUE;
 
@@ -1454,15 +1454,15 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> rsOwnerId;
             w.ReadRev(usPreviewBegin).ReadRev(usPreviewLength);
-            rbData.Assign(w.Data(), w.GetLeaveSize());
+            rbData.Assign(w.Data(), w.GetRemainingSize());
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1473,10 +1473,10 @@ public:
     struct LINK final : public FRAME
     {
         CHAR szIdTarget[4]{};
-        CRefStrA rsUrl{};
-        CRefStrA rsAdditional{};
+        CStringA rsUrl{};
+        CStringA rsAdditional{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             const size_t cbFrame = 4 + rsUrl.Size() + 1 + rsUrl.Size();
             auto w = PreSerialize(rb, Ctx, cbFrame);
@@ -1485,15 +1485,15 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w.Read(szIdTarget, 4);
             w >> rsUrl;
-            rsAdditional.Assign((PCCH)w.Data(), (int)w.GetLeaveSize());
+            rsAdditional.Assign((PCCH)w.Data(), (int)w.GetRemainingSize());
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1506,7 +1506,7 @@ public:
         TimestampFmt eTimestamp{};
         UINT uTime{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             bFileAlterDiscard = TRUE;
 
@@ -1517,7 +1517,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> eTimestamp;
@@ -1526,7 +1526,7 @@ public:
             w.ReadRev(uTime);
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1538,9 +1538,9 @@ public:
     {
         TextEncoding eEncoding{ TextEncoding::Default };
         CHAR byLang[3]{ 'X','X','X' };
-        CRefStrW rsText{};
+        CStringW rsText{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             Ctx.rbWork.Clear();
             CovertTextEncoding(Ctx.rbWork, rsText, eEncoding);
@@ -1550,17 +1550,17 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> eEncoding;
             if (eEncoding >= TextEncoding::Max)
                 return Result::Enum_TextEncoding;
             w.Read(byLang, 3);
-            ConvertTextEncoding(rsText, w, (int)w.GetLeaveSize(), eEncoding);
+            ConvertTextEncoding(rsText, w, (int)w.GetRemainingSize(), eEncoding);
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1571,11 +1571,11 @@ public:
     struct OWNE final : public FRAME
     {
         TextEncoding eEncoding{ TextEncoding::Default };
-        CRefStrA rsPrice{};
+        CStringA rsPrice{};
         CHAR szDate[8]{};
-        CRefStrW rsSeller{};
+        CStringW rsSeller{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             Ctx.rbWork.Clear();
             CovertTextEncoding(Ctx.rbWork, rsSeller, eEncoding);
@@ -1585,17 +1585,17 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> eEncoding;
             if (eEncoding >= TextEncoding::Max)
                 return Result::Enum_TextEncoding;
             w >> rsPrice >> szDate;
-            ConvertTextEncoding(rsSeller, w, (int)w.GetLeaveSize(), eEncoding);
+            ConvertTextEncoding(rsSeller, w, (int)w.GetRemainingSize(), eEncoding);
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1607,15 +1607,15 @@ public:
     {
         TextEncoding eEncoding{ TextEncoding::Default };
         ReceivedWay eReceivedWay{};
-        CRefStrA rsPrice{};
+        CStringA rsPrice{};
         CHAR szDate[8]{};
-        CRefStrA rsUrl{};
-        CRefStrW rsSeller{};
-        CRefStrW rsDesc{};
-        CRefStrA rsMime{};
-        CRefBin rbLogo{};
+        CStringA rsUrl{};
+        CStringW rsSeller{};
+        CStringW rsDesc{};
+        CStringA rsMime{};
+        CByteBuffer rbLogo{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             Ctx.rbWork.Clear();
             CovertTextEncoding(Ctx.rbWork, rsSeller, eEncoding, TRUE);
@@ -1630,7 +1630,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> eEncoding;
@@ -1642,10 +1642,10 @@ public:
             ConvertTextEncoding(rsSeller, w, -1, eEncoding);
             ConvertTextEncoding(rsDesc, w, -1, eEncoding);
             w >> rsMime;
-            rbLogo.Assign(w.Data(), w.GetLeaveSize());
+            rbLogo.Assign(w.Data(), w.GetRemainingSize());
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1655,11 +1655,11 @@ public:
 
     struct ENCR final : public FRAME
     {
-        CRefStrA rsEmail{};
+        CStringA rsEmail{};
         BYTE byMethod{};
-        CRefBin rbData{};
+        CByteBuffer rbData{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             const size_t cbFrame = 1 + rsEmail.Size() + 1 + rbData.Size();
             auto w = PreSerialize(rb, Ctx, cbFrame);
@@ -1667,14 +1667,14 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> rsEmail >> byMethod;
-            rbData.Assign(w.Data(), w.GetLeaveSize());
+            rbData.Assign(w.Data(), w.GetRemainingSize());
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1684,11 +1684,11 @@ public:
 
     struct GRID final : public FRAME
     {
-        CRefStrA rsEmail{};
+        CStringA rsEmail{};
         BYTE byId{};
-        CRefBin rbData{};
+        CByteBuffer rbData{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             const size_t cbFrame = 1 + rsEmail.Size() + 1 + rbData.Size();
             auto w = PreSerialize(rb, Ctx, cbFrame);
@@ -1696,14 +1696,14 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> rsEmail >> byId;
-            rbData.Assign(w.Data(), w.GetLeaveSize());
+            rbData.Assign(w.Data(), w.GetRemainingSize());
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1713,10 +1713,10 @@ public:
 
     struct PRIV final : public FRAME
     {
-        CRefStrA rsEmail{};
-        CRefBin rbData{};
+        CStringA rsEmail{};
+        CByteBuffer rbData{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             const size_t cbFrame = rsEmail.Size() + 1 + rbData.Size();
             auto w = PreSerialize(rb, Ctx, cbFrame);
@@ -1724,14 +1724,14 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> rsEmail;
-            rbData.Assign(w.Data(), w.GetLeaveSize());
+            rbData.Assign(w.Data(), w.GetRemainingSize());
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1742,9 +1742,9 @@ public:
     struct SIGN final : public FRAME
     {
         BYTE byGroupId{};
-        CRefBin rbData{};
+        CByteBuffer rbData{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             const size_t cbFrame = 1 + rbData.Size();
             auto w = PreSerialize(rb, Ctx, cbFrame);
@@ -1752,14 +1752,14 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> byGroupId;
-            rbData.Assign(w.Data(), w.GetLeaveSize());
+            rbData.Assign(w.Data(), w.GetRemainingSize());
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1771,7 +1771,7 @@ public:
     {
         UINT ocbNextTag{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             bFileAlterDiscard = TRUE;
 
@@ -1781,13 +1781,13 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w.ReadRev(ocbNextTag);
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1803,7 +1803,7 @@ public:
         BYTE b{};
         std::vector<USHORT> vIndex{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             if (N != 8 && N != 16)
                 return Result::Value;
@@ -1817,7 +1817,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w.ReadRev(S).ReadRev(L).ReadRev(N) >> b;
@@ -1832,7 +1832,7 @@ public:
             }
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1842,9 +1842,9 @@ public:
 
     struct OTHERFRAME : public FRAME
     {
-        CRefBin rbData;
+        CByteBuffer rbData;
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             const size_t cbFrame = rbData.Size();
             auto w = PreSerialize(rb, Ctx, cbFrame);
@@ -1852,10 +1852,10 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             auto w = PreDeserialize(rb, Ctx);
-            rbData.Assign(w.Data(), w.GetLeaveSize());
+            rbData.Assign(w.Data(), w.GetRemainingSize());
             return PostDeserialize(rb, Ctx);
         }
 
@@ -1868,13 +1868,13 @@ public:
     {
         struct MAP
         {
-            CRefStrW rsPosition{};
-            CRefStrW rsName{};
+            CStringW rsPosition{};
+            CStringW rsName{};
         };
         TextEncoding eEncoding{ TextEncoding::Default };
         std::vector<MAP> vMap{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             if (vMap.empty())
                 return Result::EmptyData;
@@ -1897,7 +1897,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> eEncoding;
@@ -1934,7 +1934,7 @@ public:
             }
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -1962,7 +1962,7 @@ public:
         ULONGLONG VolBass{};        // 低音调整
         ULONGLONG PeakBass{};       // 低音峰值
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             if (byCtrl & 0b1100'0000)
                 return Result::ReservedData;
@@ -2005,7 +2005,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> byCtrl >> cBits;
@@ -2048,7 +2048,7 @@ public:
             }
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -2066,7 +2066,7 @@ public:
         BYTE cBits{};
         std::vector<ADJ> vAdjust{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             if (!cBits || cBits > 63)
                 return Result::Value;
@@ -2086,7 +2086,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> cBits;
@@ -2106,7 +2106,7 @@ public:
             }
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -2118,11 +2118,11 @@ public:
 
     struct CRM final : public FRAME
     {
-        CRefStrA rsEmail{};
-        CRefStrA rsDesc{};
-        CRefBin rbData{};
+        CStringA rsEmail{};
+        CStringA rsDesc{};
+        CByteBuffer rbData{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             const size_t cbFrame = 2 + rsEmail.Size() + rsDesc.Size() + rbData.Size();
             auto w = PreSerialize(rb, Ctx, cbFrame);
@@ -2130,7 +2130,7 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             return Result::NotSupport;
         }
@@ -2153,7 +2153,7 @@ public:
         ReplayGainType eType{};
         float fVal{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             bFileAlterDiscard = TRUE;
 
@@ -2207,7 +2207,7 @@ public:
         USHORT usTrackGain{};
         USHORT usAlbumGain{};
 
-        Result Serialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override
+        Result Serialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override
         {
             bFileAlterDiscard = TRUE;
 
@@ -2217,13 +2217,13 @@ public:
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
-        Result Deserialize(CRefBin& rb, const SERIAL_CTX& Ctx) noexcept override try
+        Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
             w.ReadRev(ulPeak).ReadRev(usTrackGain).ReadRev(usAlbumGain);
             return PostDeserialize(rb, Ctx);
         }
-        catch (const CMemReader::Xpt&)
+        catch (const CMemoryReader::Xpt&)
         {
             return Result::Broken;
         }
@@ -2235,7 +2235,7 @@ private:
     EXTHDR_INFO m_ExtHdrInfo{};
     std::vector<std::unique_ptr<FRAME>> m_vItem{};
 
-    CRefBin m_rbWork;
+    CByteBuffer m_rbWork;
 
     size_t m_cbTag{};       // 标签长度
     size_t m_cbPrependTag{};// 前置标签长度
@@ -2251,7 +2251,7 @@ private:
         posEnd = std::min(posEnd, m_Stream.GetSize());
         ID3v2_FRAME_HEADER FrameHdr;
         Result r;
-        CRefBin rbFrame;
+        CByteBuffer rbFrame;
         const FRAME::SERIAL_CTX SerialCtx
         {
             .rbWork = m_rbWork,
@@ -2496,7 +2496,7 @@ private:
         if (m_Header.Ver == 3)// 至多14字节
         {
             cb = 4 + 6;
-            CMemWalker w{ Buf.by, cb };
+            CMemoryWalker w{ Buf.by, cb };
             w << ReverseInteger(6u) << 0_us;
             w.SkipPointer(pcbPadding);// PENDEING 填充大小
         }
@@ -2519,7 +2519,7 @@ private:
                 byRestrictions |= ((BYTE)m_ExtHdrInfo.eImageSize);
             }
 
-            CMemWalker w{ Buf.by, cb };
+            CMemoryWalker w{ Buf.by, cb };
             TagUIntToSyncSafeInt((BYTE*)w.Data(), (UINT)cb);
             w += 4;
             w << 1_by/*标志字节长度*/ << byFlags;
@@ -2618,7 +2618,7 @@ public:
                         Pic.varPic = std::move(p->rbData);
                     else
                     {
-                        Pic.varPic = CRefBin(p->rbData.Size());
+                        Pic.varPic = CByteBuffer(p->rbData.Size());
                         memcpy(Pic.GetPictureData().Data(), p->rbData.Data(), p->rbData.Size());
                     }
                 mi.uMaskChecked |= MIM_COVER;
@@ -2919,7 +2919,7 @@ public:
             .bFrameHdr = TRUE,
         };
 
-        CRefBin rbPrepend{}, rbAppend{};
+        CByteBuffer rbPrepend{}, rbAppend{};
         BOOL bSeekFrameFound{};
         for (const auto& e : m_vItem)
         {

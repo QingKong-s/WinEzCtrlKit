@@ -563,14 +563,14 @@ public:
     /// 使用Windows3.0版位图头
     /// </summary>
     /// <returns>BMP数据</returns>
-    [[nodiscard]] CRefBin GetBitmapData() const noexcept
+    [[nodiscard]] CByteBuffer GetBitmapData() const noexcept
     {
         if (!m_hBitmap)
             return {};
         DIBSECTION ds;
         GetObjectW(m_hBitmap, sizeof(ds), &ds);
         const size_t cbTotal = GetBitmapDataSize();
-        CRefBin rb(cbTotal);
+        CByteBuffer rb(cbTotal);
         const auto pfh = (BITMAPFILEHEADER*)rb.Data();
         const auto pih = (BITMAPINFOHEADER*)(pfh + 1);
         // 制文件头
@@ -791,11 +791,11 @@ inline HRESULT SaveWicBitmap(_In_ IStream* pStream,
     return pEncoder->Commit();// 提交编码器
 }
 
-inline [[nodiscard]] CRefBin SaveWicBitmap(_In_ IWICBitmap* pBitmap,
+inline [[nodiscard]] CByteBuffer SaveWicBitmap(_In_ IWICBitmap* pBitmap,
     ImageType iType = ImageType::Png, _Out_opt_ HRESULT* phr = nullptr) noexcept
 {
-    CRefBin rb{};
-    const auto pStream = new CRefBinStream(rb);
+    CByteBuffer rb{};
+    const auto pStream = new CByteBufferStream(rb);
     const auto hr = SaveWicBitmap(pStream, pBitmap, iType);
     if (phr)
         *phr = hr;
@@ -826,11 +826,11 @@ inline Gdiplus::GpStatus SaveGpImage(_In_ IStream* pStream,
     return GdipSaveImageToStream(pImage, pStream, &clsid, nullptr);
 }
 
-inline [[nodiscard]] CRefBin SaveGpImage(_In_ Gdiplus::GpImage* pImage,
+inline [[nodiscard]] CByteBuffer SaveGpImage(_In_ Gdiplus::GpImage* pImage,
     ImageType iType = ImageType::Png, _Out_opt_ Gdiplus::GpStatus* pgps = nullptr) noexcept
 {
-    CRefBin rb{};
-    const auto pStream = new CRefBinStream(rb);
+    CByteBuffer rb{};
+    const auto pStream = new CByteBufferStream(rb);
     const auto gps = SaveGpImage(pStream, pImage, iType);
     pStream->LeaveRelease();
     if (pgps)

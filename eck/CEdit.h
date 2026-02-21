@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CWnd.h"
+#include "CWindow.h"
 
 ECK_NAMESPACE_BEGIN
 inline constexpr int CDV_EDIT_1 = 0;
@@ -84,7 +84,7 @@ public:
             (((const CTRLDATA_EDIT*)p)->cchCueBanner + 1) * sizeof(WCHAR);
     }
 
-    void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept override
+    void SerializeData(CByteBuffer& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept override
     {
         const auto rsCueBanner = GetCueBanner((pOpt && pOpt->cchTextBuf ?
             pOpt->cchTextBuf : MAX_PATH));
@@ -169,7 +169,7 @@ public:
         return (BOOL)SendMsg(EM_GETCUEBANNER, (WPARAM)pszBuf, cchBuf);
     }
 
-    EckInline BOOL GetCueBanner(CRefStrW& rs, int cchMax = MAX_PATH,
+    EckInline BOOL GetCueBanner(CStringW& rs, int cchMax = MAX_PATH,
         BOOL bReCalcLen = TRUE) const noexcept
     {
         rs.ReSize(cchMax);
@@ -185,10 +185,10 @@ public:
     }
 
     // For compatibility
-    EckInline CRefStrW GetCueBanner(int cchMax = MAX_PATH,
+    EckInline CStringW GetCueBanner(int cchMax = MAX_PATH,
         BOOL bReCalcLen = TRUE) const noexcept
     {
-        CRefStrW rs;
+        CStringW rs;
         GetCueBanner(rs, cchMax, bReCalcLen);
         return rs;
     }
@@ -227,7 +227,7 @@ public:
         return cch;
     }
 
-    void GetLine(CRefStrW& rs, int posChar) const noexcept
+    void GetLine(CStringW& rs, int posChar) const noexcept
     {
         rs.ReSize(LineLength(posChar));
         if (rs.IsEmpty())
@@ -236,9 +236,9 @@ public:
     }
 
     // For compatibility
-    CRefStrW GetLine(int posChar) const noexcept
+    CStringW GetLine(int posChar) const noexcept
     {
-        CRefStrW rs;
+        CStringW rs;
         GetLine(rs, posChar);
         return rs;
     }
@@ -622,7 +622,7 @@ public:
         return iEnd;
     }
 
-    void GetSelectedText(CRefStrW& rs) const noexcept
+    void GetSelectedText(CStringW& rs) const noexcept
     {
         int iStart, iEnd;
         GetSelection(&iStart, &iEnd);
@@ -637,9 +637,9 @@ public:
     }
 
     // For compatibility
-    CRefStrW GetSelectedText() const noexcept
+    CStringW GetSelectedText() const noexcept
     {
-        CRefStrW rs;
+        CStringW rs;
         GetSelectedText(rs);
         return rs;
     }

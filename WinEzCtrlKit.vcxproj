@@ -189,7 +189,7 @@
     <ClCompile Include="eck\CDuiTabHeader.h" />
     <ClCompile Include="eck\CDuiTabList.h" />
     <ClCompile Include="eck\CDWriteFontFactory.h" />
-    <ClCompile Include="eck\CEnumFile.h" />
+    <ClCompile Include="eck\CFileEnumerator.h" />
     <ClCompile Include="eck\CHandleTable.h" />
     <ClCompile Include="eck\CHeaderExt.h" />
     <ClCompile Include="eck\CHitter.h" />
@@ -237,10 +237,10 @@
     <ClCompile Include="eck\CLayoutDummy.h" />
     <ClCompile Include="eck\CMemorySet.h" />
     <ClCompile Include="eck\CMonthCalendar.h" />
-    <ClCompile Include="eck\CMsgBoxHook.h" />
+    <ClCompile Include="eck\CMessageBoxHook.h" />
     <ClCompile Include="eck\CObject.h" />
     <ClCompile Include="eck\CRegion.h" />
-    <ClCompile Include="eck\CSelRange.h" />
+    <ClCompile Include="eck\CSelectionRange.h" />
     <ClCompile Include="eck\CStatusBar.h" />
     <ClCompile Include="eck\CTableLayout.h" />
     <ClCompile Include="eck\CUninstallInfo.h" />
@@ -285,7 +285,7 @@
     <ClCompile Include="eck\CDuiTitleBar.h" />
     <ClCompile Include="eck\CDuiTrackBar.h" />
     <ClCompile Include="eck\CDwmWndPartMgr.h" />
-    <ClCompile Include="eck\CEditNcComp.h" />
+    <ClCompile Include="eck\CEditNc.h" />
     <ClCompile Include="eck\CEvent.h" />
     <ClCompile Include="eck\CFontPicker.h" />
     <ClCompile Include="eck\CFrameLayout.h" />
@@ -294,7 +294,7 @@
     <ClCompile Include="eck\CRichEdit.h" />
     <ClCompile Include="eck\DistortImage.h" />
     <ClCompile Include="eck\GeometryRender.h" />
-    <ClCompile Include="eck\IMem.h" />
+    <ClCompile Include="eck\IMemoryView.h" />
     <ClCompile Include="eck\ProcModule.h" />
     <ClCompile Include="eck\LocaleStringUtility.h" />
     <ClCompile Include="eck\LunarDateTimeHelper.h" />
@@ -320,7 +320,7 @@
     <ClCompile Include="eck\CSrwLock.h" />
     <ClCompile Include="eck\CTrackBar.h" />
     <ClCompile Include="eck\CTreeListExt.h" />
-    <ClCompile Include="eck\CWindowPosSetting.h" />
+    <ClCompile Include="eck\CWindowPlacementStore.h" />
     <ClCompile Include="eck\DuiBase.h" />
     <ClCompile Include="eck\CEditExt.h" />
     <ClCompile Include="eck\CFile.h" />
@@ -329,10 +329,10 @@
     <ClCompile Include="eck\CInputBox.h" />
     <ClCompile Include="eck\CListBoxNew.h" />
     <ClCompile Include="eck\CListViewExt.h" />
-    <ClCompile Include="eck\CMemWalker.h" />
+    <ClCompile Include="eck\MemWalker.h" />
     <ClCompile Include="eck\CMenu.h" />
-    <ClCompile Include="eck\CRefBinStream.h" />
-    <ClCompile Include="eck\CRegKey.h" />
+    <ClCompile Include="eck\CByteBufferStream.h" />
+    <ClCompile Include="eck\CRegistryKey.h" />
     <ClCompile Include="eck\CScrollView.h" />
     <ClCompile Include="eck\CSplitBar.h" />
     <ClCompile Include="eck\CStreamView.h" />
@@ -356,7 +356,7 @@
     <ClCompile Include="eck\CListView.h" />
     <ClCompile Include="eck\CLunarCalendar.h" />
     <ClCompile Include="eck\CPropertySheet.h" />
-    <ClCompile Include="eck\CRefBin.h" />
+    <ClCompile Include="eck\CByteBuffer.h" />
     <ClCompile Include="eck\CButton.h" />
     <ClCompile Include="eck\CColorPicker.h" />
     <ClCompile Include="eck\CEdit.h" />
@@ -364,12 +364,12 @@
     <ClCompile Include="eck\CLabel.h" />
     <ClCompile Include="eck\CListBox.h" />
     <ClCompile Include="eck\CListBoxExt.h" />
-    <ClCompile Include="eck\CRefStr.h" />
+    <ClCompile Include="eck\CString.h" />
     <ClCompile Include="eck\CStatic.h" />
     <ClCompile Include="eck\CToolBar.h" />
     <ClCompile Include="eck\CTreeView.h" />
     <ClCompile Include="eck\CUpDown.h" />
-    <ClCompile Include="eck\CWnd.h" />
+    <ClCompile Include="eck\CWindow.h" />
     <ClCompile Include="eck\DlgTemplate.h" />
     <ClCompile Include="eck\EasingCurve.h" />
     <ClCompile Include="eck\ECK.h" />

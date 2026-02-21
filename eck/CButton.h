@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CWnd.h"
+#include "CWindow.h"
 
 ECK_NAMESPACE_BEGIN
 inline constexpr int CDV_BUTTON_1 = 1;
@@ -90,7 +90,7 @@ public:
         return PointerStepBytes(p2, sizeof(CTRLDATA_BUTTON) + (p2->cchNote + 1) * sizeof(WCHAR));
     }
 
-    void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept override
+    void SerializeData(CByteBuffer& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept override
     {
         auto cchNote = GetNoteLength();
         const size_t cbSize = sizeof(CTRLDATA_BUTTON) +
@@ -152,7 +152,7 @@ public:
         return (UINT)SendMsg(BCM_GETNOTELENGTH, 0, 0);
     }
 
-    BOOL GetNote(_Inout_ CRefStrW& rs) const noexcept
+    BOOL GetNote(_Inout_ CStringW& rs) const noexcept
     {
         auto cch = GetNoteLength();
         if (!cch)
@@ -162,9 +162,9 @@ public:
         return GetNote(rs.Data(), cch);
     }
     // For compatibility
-    EckInlineNd CRefStrW GetNote() const noexcept
+    EckInlineNd CStringW GetNote() const noexcept
     {
-        CRefStrW rs;
+        CStringW rs;
         GetNote(rs);
         return rs;
     }

@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "CRefStr.h"
-#include "CRefBin.h"
-#include "IMem.h"
+#include "CString.h"
+#include "CByteBuffer.h"
+#include "IMemoryView.h"
 #include "AutoPtrDef.h"
 #include "NativeWrapper.h"
 #include "ComPtr.h"
@@ -66,12 +66,12 @@ public:
         return Write(Data.data(), Data.size() * sizeof(T));
     }
     template<class T>
-    EckInline CStreamWalker& operator<<(const CRefBinT<T>& Data)
+    EckInline CStreamWalker& operator<<(const CByteBufferT<T>& Data)
     {
         return Write(Data.Data(), (ULONG)Data.Size());
     }
     template<class T, class U, class V>
-    EckInline CStreamWalker& operator<<(const CRefStrT<T, U, V>& Data)
+    EckInline CStreamWalker& operator<<(const CStringT<T, U, V>& Data)
     {
         return Write(Data.Data(), Data.ByteSize());
     }
@@ -170,7 +170,7 @@ public:
             return;
         EckAssert(posSrc < GetSize() && posSrc + cbSize <= GetSize());
         // 若流实现IMem，则尝试memmove
-        ComPtr<IMem> pMem;
+        ComPtr<IMemoryView> pMem;
         if (SUCCEEDED(m_pStream.As(pMem)))
         {
             void* pData;

@@ -6,7 +6,7 @@ ECK_NAMESPACE_BEGIN
 class CIni
 {
 private:
-    CRefStrW m_rsText{};
+    CStringW m_rsText{};
     WCHAR m_szLineBreak[3]{ L'\r',L'\n',L'\0' };
     short m_cchLineBreak = 2;
 
@@ -23,7 +23,7 @@ private:
         if (m_rsText.IsEmpty())
             return StrNPos;
 
-        CRefStrW rsUnescaping{};
+        CStringW rsUnescaping{};
         if (m_bParseEscape)
         {
             rsUnescaping = pszSection;
@@ -32,7 +32,7 @@ private:
         }
 
         int pos;
-        CRefStrW rsSection{};
+        CStringW rsSection{};
         rsSection.PushBack(m_szLineBreak);
         rsSection.PushBackChar(L'[');
         rsSection.PushBack(pszSection);
@@ -62,7 +62,7 @@ private:
             pszKey = rsUnescaping.Data();
         }
 
-        CRefStrW rsKey{};
+        CStringW rsKey{};
         rsKey.PushBack(m_szLineBreak);
         rsKey.PushBack(pszKey);
         rsKey.PushBackChar(L'=');
@@ -113,7 +113,7 @@ private:
         BOOL bMustExist = FALSE, BOOL bUnEscapeChar = TRUE) noexcept
     {
         int pos1, posSectionEnd;
-        CRefStrW rsNew{}, rsUnescaping{};
+        CStringW rsNew{}, rsUnescaping{};
         int pos0 = FindValuePosition(pszSection, pszKey, &posSectionEnd);
         if (pos0 == StrNPos)
         {
@@ -209,7 +209,7 @@ private:
         return TRUE;
     }
 public:
-    static void Escape(CRefStrW& rsText, int posBegin = 0) noexcept
+    static void Escape(CStringW& rsText, int posBegin = 0) noexcept
     {
         for (int i = posBegin; i < rsText.Size() - 1; i++)
         {
@@ -227,7 +227,7 @@ public:
             rsText.PopBack(1);
     }
 
-    static void UnEscape(CRefStrW& rsText, int posBegin = 0) noexcept
+    static void UnEscape(CStringW& rsText, int posBegin = 0) noexcept
     {
         for (int i = posBegin; i < rsText.Size(); i++)
         {
@@ -316,14 +316,14 @@ public:
             return !!_wtoi(m_rsText.Data() + pos0);
     }
 
-    CRefStrW ReadString(PCWSTR pszSection, PCWSTR pszKey,
+    CStringW ReadString(PCWSTR pszSection, PCWSTR pszKey,
         PCWSTR Default = L"") noexcept
     {
         int pos0 = FindValuePosition(pszSection, pszKey);
         if (pos0 == StrNPos)
             return Default;
         int pos1 = FindValueEndPosition(pos0);
-        auto rs = CRefStrW(m_rsText.Data() + pos0, pos1 - pos0);
+        auto rs = CStringW(m_rsText.Data() + pos0, pos1 - pos0);
         if (m_bParseEscape)
             Escape(rs);
         return rs;
@@ -383,7 +383,7 @@ public:
         return TRUE;
     }
 
-    BOOL ReadStringArray(std::vector<CRefStrW>& v, PCWSTR pszSection, PCWSTR pszKey) noexcept
+    BOOL ReadStringArray(std::vector<CStringW>& v, PCWSTR pszSection, PCWSTR pszKey) noexcept
     {
         int pos0 = FindValuePosition(pszSection, pszKey);
         if (pos0 == StrNPos)
@@ -439,7 +439,7 @@ public:
     BOOL WriteIntArray(PCWSTR pszSection, PCWSTR pszKey,
         const int* Value, int cValue, BOOL bMustExist = FALSE) noexcept
     {
-        CRefStrW rs{};
+        CStringW rs{};
         EckCounter(cValue, i)
             rs.PushBackFormat(L"%d,", Value[i]);
         if (cValue)
@@ -450,7 +450,7 @@ public:
     BOOL WriteDoubleArray(PCWSTR pszSection, PCWSTR pszKey,
         const double* Value, int cValue, BOOL bMustExist = FALSE) noexcept
     {
-        CRefStrW rs{};
+        CStringW rs{};
         EckCounter(cValue, i)
             rs.PushBackFormat(L"%f,", Value[i]);
         if (cValue)
@@ -462,7 +462,7 @@ public:
     BOOL WriteIntArray(PCWSTR pszSection, PCWSTR pszKey,
         const TBool* Value, int cValue, BOOL bMustExist = FALSE) noexcept
     {
-        CRefStrW rs{};
+        CStringW rs{};
         rs.Reserve(6 * cValue);
         EckCounter(cValue, i)
         {
@@ -477,9 +477,9 @@ public:
     }
 
     BOOL WriteStringArray(PCWSTR pszSection, PCWSTR pszKey,
-        const CRefStrW* Value, int cValue, BOOL bMustExist = FALSE) noexcept
+        const CStringW* Value, int cValue, BOOL bMustExist = FALSE) noexcept
     {
-        CRefStrW rs{};
+        CStringW rs{};
         if (m_bParseEscape)
         {
             EckCounter(cValue, i)
@@ -507,7 +507,7 @@ public:
     BOOL DeleteSection(PCWSTR pszSection) noexcept
     {
         int pos0;
-        CRefStrW rsUnescaping{};
+        CStringW rsUnescaping{};
         if (m_bParseEscape)
         {
             rsUnescaping = pszSection;
@@ -515,7 +515,7 @@ public:
             pszSection = rsUnescaping.Data();
         }
 
-        CRefStrW rsSection{};
+        CStringW rsSection{};
         rsSection.PushBack(m_szLineBreak);
         rsSection.PushBackChar(L'[');
         rsSection.PushBack(pszSection);
@@ -574,7 +574,7 @@ public:
 
     BOOL Save(PCWSTR pszFileName, UINT uCp = CP_UTF8, BOOL bAddBom = TRUE) noexcept
     {
-        CRefBin rb{};
+        CByteBuffer rb{};
         if (uCp == CP_UTF16LE)
         {
             const HANDLE hFile = CreateFileW(pszFileName, GENERIC_WRITE, FILE_SHARE_READ, nullptr,
@@ -616,7 +616,7 @@ public:
         return WriteToFile(pszFileName, rb);
     }
 
-    EckInline const CRefStrW& GetText() const noexcept { return m_rsText; }
+    EckInline const CStringW& GetText() const noexcept { return m_rsText; }
 
     void SetParseEscape(BOOL bParseEscapeChar) noexcept { m_bParseEscape = bParseEscapeChar; }
 
@@ -633,8 +633,8 @@ public:
     }
 
     EckInline void SetText(PCWSTR pszText) noexcept { m_rsText = pszText; }
-    EckInline void SetText(const CRefStrW& rsText) noexcept { m_rsText = rsText; }
-    EckInline void SetText(CRefStrW&& rsText) noexcept { m_rsText = std::move(rsText); }
+    EckInline void SetText(const CStringW& rsText) noexcept { m_rsText = rsText; }
+    EckInline void SetText(CStringW&& rsText) noexcept { m_rsText = std::move(rsText); }
 
     EckInline void Clear() noexcept { m_rsText.Clear(); }
 };

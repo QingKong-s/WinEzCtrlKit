@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CRefStr.h"
+#include "CString.h"
 
 ECK_NAMESPACE_BEGIN
 struct CLoaderLockGuard
@@ -33,7 +33,7 @@ inline LDR_DATA_TABLE_ENTRY* FindModuleEntry(
     return nullptr;
 }
 
-inline BOOL GetModuleFile(void* pBase, eck::CRefStrW& rsFileName) noexcept
+inline BOOL GetModuleFile(void* pBase, eck::CStringW& rsFileName) noexcept
 {
     CLoaderLockGuard _{};
     const auto pEntry = FindModuleEntry(pBase);

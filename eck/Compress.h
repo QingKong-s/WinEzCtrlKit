@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "CRefStr.h"
-#include "CRefBin.h"
+#include "CString.h"
+#include "CByteBuffer.h"
 #include "AutoPtrDef.h"
 
 #include "../ThirdPartyLib/ZLib/zlib.h"
@@ -9,7 +9,7 @@ ECK_NAMESPACE_BEGIN
 EckInlineNdCe BOOL ZLibSuccess(int iRet) noexcept { return iRet >= 0; }
 
 inline int ZLibDecompress(_In_reads_bytes_(cbOrg) PCVOID pOrg,
-    size_t cbOrg, CRefBin& rbResult) noexcept
+    size_t cbOrg, CByteBuffer& rbResult) noexcept
 {
     int iRet;
     z_stream zs{};
@@ -48,7 +48,7 @@ inline int ZLibDecompress(_In_reads_bytes_(cbOrg) PCVOID pOrg,
 }
 
 inline int ZLibCompress(_In_reads_bytes_(cbOrg) PCVOID pOrg,
-    size_t cbOrg, CRefBin& rbResult, int iLevel = Z_DEFAULT_COMPRESSION) noexcept
+    size_t cbOrg, CByteBuffer& rbResult, int iLevel = Z_DEFAULT_COMPRESSION) noexcept
 {
     int iRet;
     z_stream zs{};
@@ -88,7 +88,7 @@ inline int ZLibCompress(_In_reads_bytes_(cbOrg) PCVOID pOrg,
 }
 
 inline int GZipDecompress(_In_reads_bytes_(cbOrg) PCVOID pOrg,
-    size_t cbOrg, CRefBin& rbResult) noexcept
+    size_t cbOrg, CByteBuffer& rbResult) noexcept
 {
     int iRet;
     z_stream zs{};
@@ -127,7 +127,7 @@ inline int GZipDecompress(_In_reads_bytes_(cbOrg) PCVOID pOrg,
 }
 
 inline int GZipCompress(_In_reads_bytes_(cbOrg) PCVOID pOrg,
-    size_t cbOrg, CRefBin& rbResult, int iLevel = Z_DEFAULT_COMPRESSION) noexcept
+    size_t cbOrg, CByteBuffer& rbResult, int iLevel = Z_DEFAULT_COMPRESSION) noexcept
 {
     int iRet;
     z_stream zs{};
@@ -177,7 +177,7 @@ struct NTCOM_HDR
 // NT压缩。
 // 函数将在压缩结果前附加NTCOM_HDR头
 inline NTSTATUS Compress(_In_reads_bytes_(cbOrg) PCVOID pOrg, size_t cbOrg,
-    CRefBin& rbResult, USHORT uEngine = COMPRESSION_FORMAT_LZNT1) noexcept
+    CByteBuffer& rbResult, USHORT uEngine = COMPRESSION_FORMAT_LZNT1) noexcept
 {
     NTSTATUS nts;
     ULONG cbRequired, Dummy;
@@ -223,7 +223,7 @@ inline NTSTATUS Compress(_In_reads_bytes_(cbOrg) PCVOID pOrg, size_t cbOrg,
 // NT解压。
 // 函数能且只能解压由Compress函数压缩的结果
 inline NTSTATUS Decompress(_In_reads_bytes_(cbOrg) PCVOID pOrg,
-    size_t cbOrg, CRefBin& rbResult) noexcept
+    size_t cbOrg, CByteBuffer& rbResult) noexcept
 {
     if (cbOrg < sizeof(NTCOM_HDR))
         return STATUS_UNSUPPORTED_COMPRESSION;
