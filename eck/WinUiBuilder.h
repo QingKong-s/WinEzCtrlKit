@@ -2,11 +2,11 @@
 #include "CWindow.h"
 #include "CLinearLayout.h"
 
-#define ECK_UIMGR_NAMESPACE_BEGIN   namespace UiManager {
-#define ECK_UIMGR_NAMESPACE_END     }
+#define ECK_UIBUILDER_NAMESPACE_BEGIN   namespace UiBuilder {
+#define ECK_UIBUILDER_NAMESPACE_END     }
 
 ECK_NAMESPACE_BEGIN
-ECK_UIMGR_NAMESPACE_BEGIN
+ECK_UIBUILDER_NAMESPACE_BEGIN
 struct Rect
 {
     int x;
@@ -477,5 +477,5 @@ inline Result Create(CWindow* pWndParent, Priv::Proxy pr) noexcept
     else
         return Priv::CfgCreate(pr, Parent);
 }
-ECK_UIMGR_NAMESPACE_END
+ECK_UIBUILDER_NAMESPACE_END
 ECK_NAMESPACE_END
