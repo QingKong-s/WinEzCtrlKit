@@ -2,6 +2,7 @@
 #include "NativeWrapper.h"
 #include "AutoPtrDef.h"
 #include "CNtObject.h"
+#include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
 class CEnumFile : public CNtObject

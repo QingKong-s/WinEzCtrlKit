@@ -50,7 +50,7 @@ namespace Priv
         CepOp eOp;
         SCHAR cchName;
     };
-#define ECKPRIV_CALCEXP_FUNCNAME(s) L#s, #s, CepOp::##s, ARRAYSIZE(#s) - 1
+#define ECKPRIV_CALCEXP_FUNCNAME(s) L## #s, #s, CepOp::s, CHAR(sizeof(#s) - 1)
     constexpr inline CepSymFunc CalcExpFuncList[]
     {
         { ECKPRIV_CALCEXP_FUNCNAME(Ln) },
@@ -80,10 +80,10 @@ namespace Priv
     {
         WCHAR szNameW[3];
         char szNameA[3];
-        SCHAR cchName;
+        CHAR cchName;
         double lfVal;
     };
-#define ECKPRIV_CALCEXP_CONSTNAME(s) L#s, #s, ARRAYSIZE(#s) - 1
+#define ECKPRIV_CALCEXP_CONSTNAME(s) L## #s, #s, CHAR(sizeof(#s) - 1)
     constexpr inline CepSymConst CalcExpConstList[]
     {
         { ECKPRIV_CALCEXP_CONSTNAME(Pi), 3.141592653589793 },

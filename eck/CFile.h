@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "CNtObject.h"
 #include "NativeWrapper.h"
+#include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
 class CFile : public CNtObject

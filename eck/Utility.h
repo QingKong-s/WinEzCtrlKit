@@ -1087,23 +1087,6 @@ EckInlineNdCe T SetSign(T x, U iSign) noexcept
     else return x;
 }
 
-template<std::integral T>
-EckInlineNdCe T Gcd(T a, T b) noexcept
-{
-    T c = 0;
-    EckLoop()
-    {
-        c = a % b;
-        if (c)
-        {
-            a = b;
-            b = c;
-        }
-        else
-            return b;
-    }
-}
-
 EckInlineNdCe auto Abs(auto x) noexcept { return (x >= 0) ? x : -x; }
 
 EckInlineNdCe auto DivUpper(std::integral auto x, std::integral auto y) noexcept { return (x - 1) / y + 1; }

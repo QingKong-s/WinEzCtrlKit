@@ -2,6 +2,7 @@
 #include "CFile.h"
 #include "CRefBin.h"
 #include "CRefStr.h"
+#include "StringConvert.h"
 
 #define ECK_CIO_NAMESPACE_BEGIN namespace Cio {
 #define ECK_CIO_NAMESPACE_END   }

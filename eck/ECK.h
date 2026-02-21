@@ -60,7 +60,6 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <type_traits>
 #include <memory>
 #include <optional>
@@ -70,6 +69,7 @@
 #include <variant>
 #include <bit>
 #include <concepts>
+#include <numeric>
 
 #include "../ThirdPartyLib/Detours/detours.h"
 

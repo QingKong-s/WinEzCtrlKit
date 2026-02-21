@@ -42,7 +42,7 @@ inline void FlattenSpirograph(std::vector<TPt>& vPt,
     float t = 0.f;
     const float k = (float)rInt / (float)rOut;
     const float l = (float)iOffsetPtPen / (float)rInt;
-    const float tEnd = 2.f * PiF * (float)rInt / (float)Gcd((UINT)rOut, (UINT)rInt);
+    const float tEnd = 2.f * PiF * (float)rInt / (float)std::gcd((UINT)rOut, (UINT)rInt);
     const float fOneMinusK = 1 - k;
     const float fOneMinusKDivK = fOneMinusK / k;
     while (t < tEnd)

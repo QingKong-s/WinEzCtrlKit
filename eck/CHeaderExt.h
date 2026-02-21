@@ -2,6 +2,7 @@
 #include "CHeader.h"
 #include "CEditExt.h"
 #include "Utility2.h"
+#include "GraphicsHelper.h"
 
 ECK_NAMESPACE_BEGIN
 class CHeaderExt : public CHeader
@@ -931,7 +932,7 @@ public:
     // 取过滤器当前编辑项
     EckInlineNdCe int HeGetCurrEditingItem() const noexcept { return m_idxFilterEditing; }
     // 取过滤器编辑控件
-    EckInlineNdCe CEditExt* HeGetFilterEdit() const noexcept { return m_pEDFilter.get(); }
+    EckInlineNd CEditExt* HeGetFilterEdit() const noexcept { return m_pEDFilter.get(); }
 
     void HeSetTextBufferSize(int cch) noexcept { m_rsTextBuf.ReSize(cch); }
     EckInlineNdCe int HeGetTextBufferSize() const noexcept { return m_rsTextBuf.Size(); }

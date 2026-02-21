@@ -53,7 +53,7 @@ struct DDXRange
 class __declspec(novtable) CDdx : public CObject
 {
 public:
-    ECK_RTTI(CDdx);
+    ECK_RTTI(CDdx, CObject);
 protected:
     DDXData m_Data{};
     DDXRange m_Range{};
@@ -670,5 +670,4 @@ public:
         m_Range.Data = DDXRange::Range{ Min, Max };
     }
 };
-ECK_RTTI_IMPL_BASE_INLINE(CDdx, CObject);
 ECK_NAMESPACE_END

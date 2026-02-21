@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "CRefStr.h"
 #include "CRefBin.h"
+#include "CMemWalker.h"
 
 ECK_NAMESPACE_BEGIN
 class CMenu

@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "ECK.h"
+#include "DuiTheme.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
