@@ -2,10 +2,10 @@
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
-class CProgressBar : public CWnd
+class CProgressBar : public CWindow
 {
 public:
-    ECK_RTTI(CProgressBar, CWnd);
+    ECK_RTTI(CProgressBar, CWindow);
     ECK_CWND_NOSINGLEOWNER(CProgressBar);
     ECK_CWND_CREATE_CLS(PROGRESS_CLASSW);
 

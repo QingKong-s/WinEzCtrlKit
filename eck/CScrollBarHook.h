@@ -43,7 +43,7 @@ private:
         TE_REPEAT = 60,
     };
 
-    CWnd* m_pWnd{};
+    CWindow* m_pWnd{};
     HTHEME m_hTheme{};
     CScrollView m_ViewV{}, m_ViewH{}, m_ViewTracking{};
     int m_nLastTrackPos{ INT_MIN };
@@ -650,7 +650,7 @@ public:
         return 0;
     }
 
-    HRESULT Attach(CWnd* pWnd) noexcept
+    HRESULT Attach(CWindow* pWnd) noexcept
     {
         if (pWnd->GetSignal().FindSlot(MHI_SCROLLBAR_HOOK))
             return S_FALSE;

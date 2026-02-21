@@ -2,10 +2,10 @@
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
-class CTrackBar : public CWnd
+class CTrackBar : public CWindow
 {
 public:
-    ECK_RTTI(CTrackBar, CWnd);
+    ECK_RTTI(CTrackBar, CWindow);
     ECK_CWND_NOSINGLEOWNER(CTrackBar);
     ECK_CWND_CREATE_CLS(TRACKBAR_CLASSW);
 

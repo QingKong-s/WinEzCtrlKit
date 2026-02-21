@@ -68,7 +68,7 @@ namespace Priv
         std::variant <
             std::monostate,
             const std::initializer_list<Proxy>*,
-            CWnd*,
+            CWindow*,
             CLayoutBase*,
             PCWSTR,
             Font,
@@ -90,7 +90,7 @@ namespace Priv
         > v{};
 
         Proxy(const std::initializer_list<Proxy>& x) noexcept : v{ &x } {}
-        Proxy(CWnd& x) noexcept : v{ &x } {}
+        Proxy(CWindow& x) noexcept : v{ &x } {}
         Proxy(CLayoutBase& x) noexcept : v{ &x } {}
         Proxy(PCWSTR x) noexcept : v{ x } {}
         Proxy(Font x) noexcept : v{ x } {}
@@ -152,7 +152,7 @@ namespace Priv
 {
     struct PARENT_NODE
     {
-        CWnd* pWndParent{};
+        CWindow* pWndParent{};
         CLayoutBase* pLytParent{};
 
         HFONT hDefFont{};
@@ -236,7 +236,7 @@ namespace Priv
         LytParam.uWeight = Parent.uDefWeight;
 
         pNewObject = nullptr;
-        CWnd* pWnd{};
+        CWindow* pWnd{};
         PCWSTR pszCaption{};
         Rect rc{ Parent.DefRect };
         DWORD dwStyle{ Parent.dwDefStyle };
@@ -461,7 +461,7 @@ namespace Priv
     }
 }
 
-inline Result Create(CWnd* pWndParent, Priv::Proxy pr) noexcept
+inline Result Create(CWindow* pWndParent, Priv::Proxy pr) noexcept
 {
     const Priv::PARENT_NODE Parent{ .pWndParent = pWndParent };
     if (pr.GetType() == Priv::Type::List)

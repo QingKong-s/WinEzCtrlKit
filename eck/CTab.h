@@ -16,10 +16,10 @@ ECK_NAMESPACE_BEGIN
 		SetTABExtendStyle(b ? Style : 0, Style);		\
 	}
 
-class CTab : public CWnd
+class CTab : public CWindow
 {
 public:
-    ECK_RTTI(CTab, CWnd);
+    ECK_RTTI(CTab, CWindow);
     ECK_CWND_NOSINGLEOWNER(CTab);
     ECK_CWND_CREATE_CLS(WC_TABCONTROLW);
 

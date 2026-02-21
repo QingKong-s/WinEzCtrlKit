@@ -58,7 +58,7 @@ protected:
         {
             EnumChildWindows(hWnd, [](HWND hWnd, LPARAM lParam)->BOOL
                 {
-                    if (_wcsicmp(CWnd(hWnd).GetWindowClass().Data(), WC_LINK) == 0)
+                    if (_wcsicmp(CWindow(hWnd).GetWindowClass().Data(), WC_LINK) == 0)
                         SetWindowSubclass(GetParent(hWnd), EckTdLinkParentSubclassProc, 0, 0);
                     return TRUE;
                 }, 0);

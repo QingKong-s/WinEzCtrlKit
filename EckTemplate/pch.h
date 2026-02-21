@@ -7,7 +7,7 @@
 #include "eck\CButton.h"
 #include "eck\CEditExt.h"
 #include "eck\CLinearLayout.h"
-#include "eck\CCommDlg.h"
+#include "eck\CommDlg.h"
 
 using eck::PCVOID;
 using eck::PCBYTE;

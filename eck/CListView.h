@@ -19,10 +19,10 @@ using FLvItemCompareEx = int(CALLBACK*)(int idx1, int idx2, LPARAM lParamSort);
 		SetLVExtendStyle(b ? Style : 0, Style);			\
 	}
 
-class CListView : public CWnd
+class CListView : public CWindow
 {
 public:
-    ECK_RTTI(CListView, CWnd);
+    ECK_RTTI(CListView, CWindow);
     ECK_CWND_NOSINGLEOWNER(CListView);
     ECK_CWND_CREATE_CLS(WC_LISTVIEWW);
 
@@ -108,7 +108,7 @@ public:
         {
             if (m_bAutoDarkMode)
             {
-                const auto lResult = CWnd::OnMessage(hWnd, uMsg, wParam, lParam);
+                const auto lResult = CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
                 const auto* const ptc = PtcCurrent();
                 SetTextForegroundColor(ptc->crDefText);
                 SetBackgroundColor(ptc->crDefBkg);
@@ -118,7 +118,7 @@ public:
         }
         break;
         }
-        return CWnd::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
     }
 
     /// <summary>

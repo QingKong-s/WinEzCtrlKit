@@ -16,10 +16,10 @@ inline constexpr DWORD StaticTypeMask = (SS_LEFT | SS_CENTER | SS_RIGHT | SS_ICO
     SS_WHITEFRAME | SS_USERITEM | SS_SIMPLE | SS_LEFTNOWORDWRAP | SS_OWNERDRAW |
     SS_BITMAP | SS_ENHMETAFILE | SS_ETCHEDHORZ | SS_ETCHEDVERT | SS_ETCHEDFRAME);
 
-class CStatic : public CWnd
+class CStatic : public CWindow
 {
 public:
-    ECK_RTTI(CStatic, CWnd);
+    ECK_RTTI(CStatic, CWindow);
     ECK_CWND_NOSINGLEOWNER(CStatic);
     ECK_CWND_CREATE_CLS(WC_STATICW);
 
@@ -55,12 +55,12 @@ public:
 
     EckInlineNdCe static PCVOID SkipBaseData(PCVOID p)
     {
-        return PointerStepBytes(CWnd::SkipBaseData(p), sizeof(CTRLDATA_STATIC));
+        return PointerStepBytes(CWindow::SkipBaseData(p), sizeof(CTRLDATA_STATIC));
     }
 
     void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept override
     {
-        CWnd::SerializeData(rb, pOpt);
+        CWindow::SerializeData(rb, pOpt);
         constexpr auto cbSize = sizeof(CTRLDATA_STATIC);
         CMemWriter w(rb.PushBack(cbSize), cbSize);
         CTRLDATA_STATIC* p;

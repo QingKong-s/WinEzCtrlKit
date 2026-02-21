@@ -22,10 +22,10 @@ ECK_NAMESPACE_BEGIN
 constexpr inline DWORD ToolBarPrettyStyle = TBSTYLE_LIST | TBSTYLE_TRANSPARENT |
 CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER;
 
-class CToolBar : public CWnd
+class CToolBar : public CWindow
 {
 public:
-	ECK_RTTI(CToolBar, CWnd);
+	ECK_RTTI(CToolBar, CWindow);
 	ECK_CWND_NOSINGLEOWNER(CToolBar);
 	ECK_CWND_CREATE_CLS(TOOLBARCLASSNAMEW);
 

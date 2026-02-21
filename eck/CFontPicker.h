@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "CEditNcComp.h"
-#include "CCommDlg.h"
+#include "CommDlg.h"
 
 ECK_NAMESPACE_BEGIN
 struct FONTPICKERINFO

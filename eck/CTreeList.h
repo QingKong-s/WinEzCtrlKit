@@ -220,12 +220,12 @@ public:
     LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override;
 };
 
-class CTreeList : public CWnd
+class CTreeList : public CWindow
 {
     friend class CTLHeader;
     friend class CTLEditExt;
 public:
-    ECK_RTTI(CTreeList, CWnd);
+    ECK_RTTI(CTreeList, CWindow);
     ECK_CWND_SINGLEOWNER(CTreeList);
     ECK_CWND_CREATE_CLS_HINST(WCN_TREELIST, g_hInstance);
 
@@ -2318,7 +2318,7 @@ public:
             UpdateSystemParameter();
             break;
         }
-        return CWnd::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
     }
 
     /// <summary>

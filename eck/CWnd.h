@@ -159,12 +159,12 @@ struct DESIGNDATA_WND
 #define ECK_CWND_DISABLE_ATTACH \
     void Attach(HWND hWnd) noexcept override \
     {                           \
-        EckDbgPrintWithPos(L"** WARNING ** CWnd::Attach is disabled."); \
+        EckDbgPrintWithPos(L"** WARNING ** CWindow::Attach is disabled."); \
         abort();                \
     }                           \
     HWND Detach() noexcept override     \
     {                           \
-        EckDbgPrintWithPos(L"** WARNING ** CWnd::Detach is disabled."); \
+        EckDbgPrintWithPos(L"** WARNING ** CWindow::Detach is disabled."); \
         abort();                \
         return nullptr;         \
     }
@@ -172,12 +172,12 @@ struct DESIGNDATA_WND
 #define ECK_CWND_DISABLE_ATTACHNEW      \
     void AttachNew(HWND hWnd) noexcept override \
     {                                   \
-        EckDbgPrintWithPos(L"** WARNING ** CWnd::AttachNew is disabled."); \
+        EckDbgPrintWithPos(L"** WARNING ** CWindow::AttachNew is disabled."); \
         abort();                        \
     }                                   \
     void DetachNew() noexcept override  \
     {                                   \
-        EckDbgPrintWithPos(L"** WARNING ** CWnd::DetachNew is disabled."); \
+        EckDbgPrintWithPos(L"** WARNING ** CWindow::DetachNew is disabled."); \
         abort();                        \
     }
 
@@ -194,15 +194,15 @@ struct DESIGNDATA_WND
     Class() = default;                  \
     Class(HWND hWnd) { m_hWnd = hWnd; }
 
-class CWnd;
+class CWindow;
 // 窗口句柄到CWnd指针
-EckInline CWnd* CWndFromHWND(HWND hWnd) noexcept { return PtcCurrent()->WmAt(hWnd); }
+EckInline CWindow* CWndFromHWND(HWND hWnd) noexcept { return PtcCurrent()->WmAt(hWnd); }
 
-class CWnd : public ILayout
+class CWindow : public ILayout
 {
-    friend HHOOK BeginCbtHook(CWnd*, FWndCreating) noexcept;
+    friend HHOOK BeginCbtHook(CWindow*, FWndCreating) noexcept;
 public:
-    ECK_RTTI(CWnd, ILayout);
+    ECK_RTTI(CWindow, ILayout);
 #if !ECK_OPT_NO_OBJA
     EckInline ObjAttrErr OagsText(std::wstring_view svValue,
         CRefStrW& rsValue, BOOL bSet) noexcept
@@ -348,7 +348,7 @@ public:
         const auto p = pCtx->WmAt(hWnd);
         EckAssert(p);
 
-        CWnd* pChild;
+        CWindow* pChild;
         BOOL bProcessed = FALSE;
         switch (uMsg)
         {
@@ -441,7 +441,7 @@ public:
         case WM_NCDESTROY:// 窗口生命周期中的最后一个消息，在这里解绑HWND和CWnd，从窗口映射中清除无效内容
         {
             const auto lResult = p->CallProcedure(hWnd, uMsg, wParam, lParam);
-            (void)p->CWnd::Detach();// 控件类可能不允许拆离，必须使用基类拆离
+            (void)p->CWindow::Detach();// 控件类可能不允许拆离，必须使用基类拆离
             return lResult;
         }
         }
@@ -454,18 +454,18 @@ public:
     /// <returns>若类与HWND没有强联系则返回FALSE，否则返回TRUE，此时不能执行依附拆离等操作</returns>
     EckInlineNdCe static BOOL IsSingleOwner() noexcept { return FALSE; }
 
-    CWnd() = default;
+    CWindow() = default;
 
     /// <summary>
     /// 构造自句柄。
     /// 不插入窗口映射，仅用于临时使用
     /// </summary>
     /// <param name="hWnd"></param>
-    constexpr CWnd(HWND hWnd) noexcept : m_hWnd{ hWnd } {}
+    constexpr CWindow(HWND hWnd) noexcept : m_hWnd{ hWnd } {}
 
-    ECK_DISABLE_COPY_MOVE(CWnd);
+    ECK_DISABLE_COPY_MOVE(CWindow);
 
-    virtual ~CWnd()
+    virtual ~CWindow()
     {
 #ifdef _DEBUG
         // 对于已添加进映射的窗口，CWnd的生命周期必须在窗口生命周期之内
@@ -501,7 +501,7 @@ public:
     // 依附句柄，并同步状态
     EckInline virtual void AttachNew(HWND hWnd) noexcept
     {
-        CWnd::Attach(hWnd);
+        CWindow::Attach(hWnd);
         m_pfnRealProc = eck::SetWindowProcedure(hWnd, EckWndProc);
     }
 
@@ -529,7 +529,7 @@ public:
     virtual HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
         int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) noexcept
     {
-        EckDbgPrintWithPos(L"** ERROR ** CWnd::Create未实现");
+        EckDbgPrintWithPos(L"** ERROR ** CWindow::Create未实现");
         EckDbgBreak();
         abort();
     }
@@ -1153,7 +1153,7 @@ public:
 EckInline void AttachDialogItems(
     HWND hDlg,
     size_t cItem,
-    _In_reads_(cItem) CWnd* const* pWnd,
+    _In_reads_(cItem) CWindow* const* pWnd,
     _In_reads_(cItem) const int* iId) noexcept
 {
     EckCounter(cItem, i)

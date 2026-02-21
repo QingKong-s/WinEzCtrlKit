@@ -6,10 +6,10 @@
 #include <dxgi1_2.h>
 
 ECK_NAMESPACE_BEGIN
-class CDrawPanel : public CWnd
+class CDrawPanel : public CWindow
 {
 public:
-    ECK_RTTI(CDrawPanel, CWnd);
+    ECK_RTTI(CDrawPanel, CWindow);
     ECK_CWND_SINGLEOWNER(CDrawPanel);
     ECK_CWND_CREATE_CLS_HINST(WCN_DRAWPANEL, g_hInstance);
 private:
@@ -88,10 +88,10 @@ public:
     }
 };
 
-class CDrawPanelD2D : public CWnd
+class CDrawPanelD2D : public CWindow
 {
 public:
-    ECK_RTTI(CDrawPanelD2D, CWnd);
+    ECK_RTTI(CDrawPanelD2D, CWindow);
     ECK_CWND_SINGLEOWNER(CDrawPanelD2D);
     ECK_CWND_CREATE_CLS_HINST(WCN_DRAWPANEL, g_hInstance);
 private:

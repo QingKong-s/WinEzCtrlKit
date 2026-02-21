@@ -36,10 +36,10 @@ struct CTRLDATA_COMBOBOX
 #pragma pack(pop)
 
 inline constexpr DWORD ComboTypeMask = CBS_SIMPLE | CBS_DROPDOWN | CBS_DROPDOWNLIST;
-class CComboBox : public CWnd
+class CComboBox : public CWindow
 {
 public:
-    ECK_RTTI(CComboBox, CWnd);
+    ECK_RTTI(CComboBox, CWindow);
     ECK_CWND_NOSINGLEOWNER(CComboBox);
     ECK_CWND_CREATE_CLS(WC_COMBOBOXW);
 
@@ -59,13 +59,13 @@ public:
 
     EckInlineNdCe static PCVOID SkipBaseData(PCVOID p)
     {
-        const auto* const p2 = (CTRLDATA_COMBOBOX*)CWnd::SkipBaseData(p);
+        const auto* const p2 = (CTRLDATA_COMBOBOX*)CWindow::SkipBaseData(p);
         return PointerStepBytes(p2, p2->cbSize);
     }
 
     void SerializeData(CRefBin& rb, const SERIALIZE_OPT* pOpt = nullptr) noexcept override
     {
-        CWnd::SerializeData(rb, pOpt);
+        CWindow::SerializeData(rb, pOpt);
         COMBOBOXINFO cbi;
         cbi.cbSize = sizeof(cbi);
         if (GetComboBoxInfomation(&cbi))
@@ -127,8 +127,8 @@ public:
 
     void PostDeserialize(PCVOID pData) noexcept override
     {
-        CWnd::PostDeserialize(pData);
-        const auto* const p = (CTRLDATA_COMBOBOX*)CWnd::SkipBaseData(pData);
+        CWindow::PostDeserialize(pData);
+        const auto* const p = (CTRLDATA_COMBOBOX*)CWindow::SkipBaseData(pData);
         if (p->iVer < CDV_COMBOBOX_1)
             return;
         SetRedraw(FALSE);

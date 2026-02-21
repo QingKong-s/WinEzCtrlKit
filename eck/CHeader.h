@@ -13,10 +13,10 @@ struct HEADER_FILTER
     };
 };
 
-class CHeader : public CWnd
+class CHeader : public CWindow
 {
 public:
-    ECK_RTTI(CHeader, CWnd);
+    ECK_RTTI(CHeader, CWindow);
     ECK_CWND_NOSINGLEOWNER(CHeader);
     ECK_CWND_CREATE_CLS(WC_HEADERW);
 

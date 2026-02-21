@@ -11,10 +11,10 @@ struct LA_HITTEST
 };
 
 
-class CLabel : public CWnd
+class CLabel : public CWindow
 {
 public:
-    ECK_RTTI(CLabel, CWnd);
+    ECK_RTTI(CLabel, CWindow);
     ECK_CWND_SINGLEOWNER(CLabel);
     ECK_CWND_CREATE_CLS_HINST(WCN_LABEL, g_hInstance);
 
@@ -424,7 +424,7 @@ public:
         break;
         }
 
-        return CWnd::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
     }
 
     void Redraw() noexcept

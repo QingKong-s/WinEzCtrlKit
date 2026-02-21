@@ -2,10 +2,10 @@
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
-class CToolTip : public CWnd
+class CToolTip : public CWindow
 {
 public:
-    ECK_RTTI(CToolTip, CWnd);
+    ECK_RTTI(CToolTip, CWindow);
     ECK_CWND_NOSINGLEOWNER(CToolTip);
     ECK_CWND_CREATE_CLS(TOOLTIPS_CLASS);
 

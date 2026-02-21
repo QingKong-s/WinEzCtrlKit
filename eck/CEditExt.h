@@ -91,7 +91,7 @@ protected:
 public:
     void AttachNew(HWND hWnd) noexcept override
     {
-        CWnd::AttachNew(hWnd);
+        CWindow::AttachNew(hWnd);
         const auto dwStyle = GetStyle();
         m_bMultiLine = Multiline;
         m_bAutoWrap = (m_bMultiLine ? IsBitSet(dwStyle, ES_AUTOHSCROLL) : FALSE);
@@ -101,7 +101,7 @@ public:
 
     void DetachNew() noexcept override
     {
-        CWnd::DetachNew();
+        CWindow::DetachNew();
         CleanupForDestroyWindow();
     }
 

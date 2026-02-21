@@ -2,10 +2,10 @@
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
-class CPropertySheet : public CWnd
+class CPropertySheet : public CWindow
 {
 public:
-    ECK_RTTI(CPropertySheet, CWnd);
+    ECK_RTTI(CPropertySheet, CWindow);
 
     EckInline INT_PTR Create(const PROPSHEETHEADERW* ppsh) noexcept
     {

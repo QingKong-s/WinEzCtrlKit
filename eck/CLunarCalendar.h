@@ -3,10 +3,10 @@
 #include "LunarDateTimeHelper.h"
 
 ECK_NAMESPACE_BEGIN
-class CLunarCalendar :public CWnd
+class CLunarCalendar :public CWindow
 {
 public:
-    ECK_RTTI(CLunarCalendar, CWnd);
+    ECK_RTTI(CLunarCalendar, CWindow);
     ECK_CWND_SINGLEOWNER(CLunarCalendar);
     ECK_CWND_CREATE_CLS_HINST(WCN_LUNARCALENDAR, g_hInstance);
 

@@ -919,7 +919,7 @@ void Uninitialize() noexcept;
 #pragma endregion Initialize
 
 #pragma region Thread
-class CWnd;
+class CWindow;
 struct ThreadContext;
 
 using FQueueCallback = void(*)(void* pCtx);
@@ -979,10 +979,10 @@ using FWndCreating = void(*)(HWND hWnd, CBT_CREATEWNDW* pcs, ThreadContext* pThr
 struct ThreadContext
 {
     //-------窗口映射
-    std::unordered_map<HWND, CWnd*> hmWnd{};	// HWND->CWnd*
-    std::unordered_map<HWND, CWnd*> hmTopWnd{};	// 顶级窗口映射
+    std::unordered_map<HWND, CWindow*> hmWnd{};	// HWND->CWindow*
+    std::unordered_map<HWND, CWindow*> hmTopWnd{};	// 顶级窗口映射
     HHOOK hhkTempCBT{};					// CBT钩子句柄
-    CWnd* pCurrWnd{};					// 当前正在创建窗口所属的CWnd指针
+    CWindow* pCurrWnd{};					// 当前正在创建窗口所属的CWnd指针
     FWndCreating pfnWndCreatingProc{};	// 当前创建窗口时要调用的过程
     //-------暗色处理
     // 不钩取GetSysColorBrush，因为它的返回值可以被删除，
@@ -1008,13 +1008,13 @@ struct ThreadContext
     HHOOK hhkMsgFilter{};		// 在菜单、模态对话框、拖动选择等的消息循环中保持处理UI线程的回调
     Priv::QueuedCallbackQueue Callback{};
 
-    void WmAdd(HWND hWnd, CWnd* pWnd) noexcept;
+    void WmAdd(HWND hWnd, CWindow* pWnd) noexcept;
     void WmRemove(HWND hWnd) noexcept;
-    CWnd* WmAt(HWND hWnd) const noexcept;
+    CWindow* WmAt(HWND hWnd) const noexcept;
 
-    void TwmAdd(HWND hWnd, CWnd* pWnd) noexcept;
+    void TwmAdd(HWND hWnd, CWindow* pWnd) noexcept;
     void TwmRemove(HWND hWnd) noexcept;
-    CWnd* TwmAt(HWND hWnd) const noexcept;
+    CWindow* TwmAt(HWND hWnd) const noexcept;
     void TwmEnableNcDarkMode(BOOL bDark) noexcept;
     void TwmBroadcastThemeChanged() noexcept;
 
@@ -1033,7 +1033,7 @@ void ThreadUninitialize() noexcept;
 // 取线程上下文
 EckInlineNd ThreadContext* PtcCurrent() noexcept { return (ThreadContext*)TlsGetValue(GetThreadContextTlsSlot()); }
 
-HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc = nullptr) noexcept;
+HHOOK BeginCbtHook(CWindow* pCurrWnd, FWndCreating pfnCreatingProc = nullptr) noexcept;
 void EndCbtHook() noexcept;
 
 /// <summary>
@@ -1048,11 +1048,11 @@ BOOL PreTranslateMessage(const MSG& Msg) noexcept;
 void InitializePrivateApi() noexcept;
 
 #if ECK_OPT_NO_DARKMODE
-EckInlineCe HRESULT UxfMenuInitialize(CWnd* pWnd) { return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED); }
-EckInlineCe HRESULT UxfMenuUninitialize(CWnd* pWnd) { return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED); }
+EckInlineCe HRESULT UxfMenuInitialize(CWindow* pWnd) { return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED); }
+EckInlineCe HRESULT UxfMenuUninitialize(CWindow* pWnd) { return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED); }
 #else
-HRESULT UxfMenuInitialize(CWnd* pWnd) noexcept;
-HRESULT UxfMenuUninitialize(CWnd* pWnd) noexcept;
+HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept;
+HRESULT UxfMenuUninitialize(CWindow* pWnd) noexcept;
 #endif// ECK_OPT_NO_DARKMODE
 
 EckInlineNd HANDLE CrtCreateThread(_beginthreadex_proc_type pStartAddress,

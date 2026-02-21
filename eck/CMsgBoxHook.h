@@ -2,7 +2,7 @@
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
-class CMsgBoxHook : public CWnd
+class CMsgBoxHook : public CWindow
 {
 private:
     RECT m_rcMainPanel{};

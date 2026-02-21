@@ -21,10 +21,10 @@ constexpr inline UINT TVS_EX_ALL{/*TVS_EX_NOSINGLECOLLAPSE | TVS_EX_MULTISELECT 
 		SetTVExtendStyle(b ? Style : 0, Style);			\
 	}
 
-class CTreeView : public CWnd
+class CTreeView : public CWindow
 {
 public:
-    ECK_RTTI(CTreeView, CWnd);
+    ECK_RTTI(CTreeView, CWindow);
     ECK_CWND_NOSINGLEOWNER(CTreeView);
     ECK_CWND_CREATE_CLS(WC_TREEVIEWW);
 
@@ -68,7 +68,7 @@ public:
         {
             if (m_bAutoDarkMode)
             {
-                const auto lResult = CWnd::OnMessage(hWnd, uMsg, wParam, lParam);
+                const auto lResult = CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
                 const auto* const ptc = PtcCurrent();
                 SetTextForegroundColor(ptc->crDefText);
                 SetBackgroundColor(ptc->crDefBkg);

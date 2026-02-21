@@ -65,7 +65,7 @@ public:
         Opt.uFlags |= SERF_NO_COMBO_ITEM;
         CComboBox::SerializeData(rb, &Opt);
         rb.PushBack(sizeof(CTRLDATA_COMBOBOXEX) - sizeof(CTRLDATA_COMBOBOX));
-        auto pBase = (CTRLDATA_COMBOBOX*)CWnd::SkipBaseData(rb.Data());
+        auto pBase = (CTRLDATA_COMBOBOX*)CWindow::SkipBaseData(rb.Data());
         const auto ocbBase = (PCBYTE)pBase - rb.Data();
         pBase->iVer = CDV_COMBOBOXEX_1;
         CRefStrW rs{ (pOpt && pOpt->cchTextBuf) ? pOpt->cchTextBuf : MAX_PATH };
@@ -114,7 +114,7 @@ public:
 
     void PostDeserialize(PCVOID pData) noexcept override
     {
-        const auto pBase = (CTRLDATA_COMBOBOXEX*)CWnd::SkipBaseData(pData);
+        const auto pBase = (CTRLDATA_COMBOBOXEX*)CWindow::SkipBaseData(pData);
         if (pBase->Base.iVer < CDV_COMBOBOXEX_1)
             return;
         if ((((CTRLDATA_WND*)pData)->uFlags & SERDF_IMAGELIST) && pBase->cbImageList)

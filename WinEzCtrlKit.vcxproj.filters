@@ -33,7 +33,7 @@
     <ClInclude Include="eck\CEdit.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CCommDlg.h">
+    <ClInclude Include="eck\CommDlg.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CLabel.h">
@@ -87,7 +87,7 @@
     <ClInclude Include="eck\CListView.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CBk.h">
+    <ClInclude Include="eck\CDummyWindow.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\CLunarCalendar.h">
@@ -477,7 +477,7 @@
     <ClInclude Include="eck\CStatusBar.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CalculateExpression.h">
+    <ClInclude Include="eck\CalcExp.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\ThreadPool.h">
@@ -687,7 +687,7 @@
     <ClInclude Include="eck\KwLinearGradient.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\WinUiMgr.h">
+    <ClInclude Include="eck\WinUiBuilder.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
   </ItemGroup>

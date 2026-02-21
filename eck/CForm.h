@@ -4,10 +4,10 @@
 #include "CMenu.h"
 
 ECK_NAMESPACE_BEGIN
-class CForm : public CWnd
+class CForm : public CWindow
 {
 public:
-    ECK_RTTI(CForm, CWnd);
+    ECK_RTTI(CForm, CWindow);
     ECK_CWND_NOSINGLEOWNER(CForm);
     ECK_CWND_CREATE_CLS_HINST(WCN_FORM, g_hInstance);
 private:

@@ -42,10 +42,10 @@ struct CTRLDATA_EDIT
 	}
 #endif// NTDDI_VERSION >= NTDDI_WIN10_RS5
 
-class CEdit : public CWnd
+class CEdit : public CWindow
 {
 public:
-    ECK_RTTI(CEdit, CWnd);
+    ECK_RTTI(CEdit, CWindow);
     ECK_CWND_NOSINGLEOWNER(CEdit);
     ECK_CWND_CREATE_CLS(WC_EDITW);
 
@@ -89,7 +89,7 @@ public:
         const auto rsCueBanner = GetCueBanner((pOpt && pOpt->cchTextBuf ?
             pOpt->cchTextBuf : MAX_PATH));
         const SIZE_T cbSize = sizeof(CTRLDATA_EDIT) + rsCueBanner.ByteSize();
-        CWnd::SerializeData(rb, pOpt);
+        CWindow::SerializeData(rb, pOpt);
         const auto p = (CTRLDATA_EDIT*)rb.PushBack(cbSize);
         p->iVer = CDV_EDIT_1;
         p->chPassword = GetPasswordChar();

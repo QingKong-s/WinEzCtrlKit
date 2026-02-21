@@ -3,10 +3,10 @@
 #include "CEditExt.h"
 
 ECK_NAMESPACE_BEGIN
-class CComboBoxNew : public CWnd
+class CComboBoxNew : public CWindow
 {
 public:
-    ECK_RTTI(CComboBoxNew, CWnd);
+    ECK_RTTI(CComboBoxNew, CWindow);
     ECK_CWND_SINGLEOWNER(CComboBoxNew);
     ECK_CWND_CREATE_CLS_HINST(WCN_COMBOBOXNEW, g_hInstance);
 
@@ -448,7 +448,7 @@ public:
         }
         break;
         }
-        return CWnd::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
     }
 
     void DropList()

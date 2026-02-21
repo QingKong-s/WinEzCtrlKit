@@ -10,10 +10,10 @@ struct NMPKBOWNERDRAW
     RECT rcSrc;
 };
 
-class CPictureBox : public CWnd
+class CPictureBox : public CWindow
 {
 public:
-    ECK_RTTI(CPictureBox, CWnd);
+    ECK_RTTI(CPictureBox, CWindow);
     ECK_CWND_SINGLEOWNER(CPictureBox);
     ECK_CWND_CREATE_CLS_HINST(WCN_PICTUREBOX, g_hInstance);
 private:
@@ -98,7 +98,7 @@ public:
             ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
             return 0;
         }
-        return CWnd::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
     }
 
     BOOL SetImage(HBITMAP hbm) noexcept

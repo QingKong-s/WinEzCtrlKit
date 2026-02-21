@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CBk.h"
+#include "CDummyWindow.h"
 
 ECK_NAMESPACE_BEGIN
 struct NMSPBDRAGGED
@@ -8,14 +8,14 @@ struct NMSPBDRAGGED
     int xyPos;
 };
 
-class CSplitBar : public CWnd
+class CSplitBar : public CWindow
 {
 public:
-    ECK_RTTI(CSplitBar, CWnd);
+    ECK_RTTI(CSplitBar, CWindow);
     ECK_CWND_SINGLEOWNER_NO_DEF_CONS(CSplitBar);
     ECK_CWND_CREATE_CLS_HINST(WCN_SPLITBAR, g_hInstance);
 private:
-    CBk m_BkMark{};
+    CDummyWindow m_BkMark{};
 
     int m_cxClient{},
         m_cyClient{};

@@ -2,10 +2,10 @@
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
-class CStatusBar : public CWnd
+class CStatusBar : public CWindow
 {
 public:
-    ECK_RTTI(CStatusBar, CWnd);
+    ECK_RTTI(CStatusBar, CWindow);
     ECK_CWND_NOSINGLEOWNER(CStatusBar);
     ECK_CWND_CREATE_CLS(STATUSCLASSNAMEW);
 

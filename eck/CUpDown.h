@@ -2,10 +2,10 @@
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
-class CUpDown : public CWnd
+class CUpDown : public CWindow
 {
 public:
-    ECK_RTTI(CUpDown, CWnd);
+    ECK_RTTI(CUpDown, CWindow);
     ECK_CWND_NOSINGLEOWNER(CUpDown);
     ECK_CWND_CREATE_CLS(UPDOWN_CLASSW);
 

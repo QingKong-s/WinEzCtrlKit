@@ -2,10 +2,10 @@
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
-class CScrollBar : public CWnd
+class CScrollBar : public CWindow
 {
 public:
-    ECK_RTTI(CScrollBar, CWnd);
+    ECK_RTTI(CScrollBar, CWindow);
     ECK_CWND_NOSINGLEOWNER(CScrollBar);
     ECK_CWND_CREATE_CLS(WC_SCROLLBARW);
 

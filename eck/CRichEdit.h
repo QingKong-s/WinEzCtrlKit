@@ -33,10 +33,10 @@ ECK_NAMESPACE_BEGIN
 		SetEditStyleEx(b ? Style : 0, Style);			\
 	}
 
-class CRichEdit : public CWnd
+class CRichEdit : public CWindow
 {
 public:
-    ECK_RTTI(CRichEdit, CWnd);
+    ECK_RTTI(CRichEdit, CWindow);
     ECK_CWND_NOSINGLEOWNER(CRichEdit);
     ECK_CWND_CREATE_CLS(MSFTEDIT_CLASS);
 

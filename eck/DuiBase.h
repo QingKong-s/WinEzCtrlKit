@@ -673,7 +673,7 @@ public:
 #pragma endregion Composite
 };
 
-class CDuiWnd : public CWnd, public IDropTarget
+class CDuiWnd : public CWindow, public IDropTarget
 {
     friend class CElem;
 private:
@@ -1605,7 +1605,7 @@ public:
             {
                 if (pElem)
                 {
-                    const auto lResult = CWnd::OnMessage(hWnd, uMsg, wParam, lParam);
+                    const auto lResult = CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
                     POINT pt;
                     GetCursorPos(&pt);
                     pElem->CallEvent(WM_NCLBUTTONUP, wParam, MAKELPARAM(pt.x, pt.y));
@@ -1733,7 +1733,7 @@ public:
 
         case WM_CREATE:
         {
-            auto lResult = CWnd::OnMessage(hWnd, uMsg, wParam, lParam);
+            auto lResult = CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
             if (!lResult)
             {
                 m_iDpi = GetDpi(hWnd);
@@ -1854,7 +1854,7 @@ public:
         break;
         }
 
-        return CWnd::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
     }
 
     virtual LRESULT OnElemEvent(CElem* pElem, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept { return 0; }

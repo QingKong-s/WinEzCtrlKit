@@ -2,10 +2,10 @@
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
-class CHotKey : public CWnd
+class CHotKey : public CWindow
 {
 public:
-    ECK_RTTI(CHotKey, CWnd);
+    ECK_RTTI(CHotKey, CWindow);
     ECK_CWND_NOSINGLEOWNER(CHotKey);
     ECK_CWND_CREATE_CLS(HOTKEY_CLASSW);
 

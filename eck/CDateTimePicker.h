@@ -4,10 +4,10 @@
 ECK_NAMESPACE_BEGIN
 constexpr inline UINT DateTimePickerFormatMask = 0xC;
 constexpr inline UINT DTS_TIMEFORMAT_NO_UPDOWN = 0x8;
-class CDateTimePicker : public CWnd
+class CDateTimePicker : public CWindow
 {
 public:
-    ECK_RTTI(CDateTimePicker, CWnd);
+    ECK_RTTI(CDateTimePicker, CWindow);
     ECK_CWND_NOSINGLEOWNER(CDateTimePicker);
     ECK_CWND_CREATE_CLS(DATETIMEPICK_CLASSW);
 

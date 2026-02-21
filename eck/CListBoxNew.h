@@ -73,10 +73,10 @@ struct CTRLDATA_LBN
 * NM_RCLICK
 * NM_CUSTOMDRAW
 */
-class CListBoxNew : public CWnd
+class CListBoxNew : public CWindow
 {
 public:
-    ECK_RTTI(CListBoxNew, CWnd);
+    ECK_RTTI(CListBoxNew, CWindow);
     ECK_CWND_SINGLEOWNER(CListBoxNew);
     ECK_CWND_CREATE_CLS_HINST(WCN_LISTBOXNEW, g_hInstance);
 private:
@@ -1146,7 +1146,7 @@ public:
         break;
         }
 
-        return CWnd::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
     }
 
     void SetItemCount(int cItem) noexcept

@@ -2,12 +2,12 @@
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
-class CMonthCalendar : public CWnd
+class CMonthCalendar : public CWindow
 {
 private:
     BOOL m_bAutoDarkMode{ TRUE };
 public:
-    ECK_RTTI(CMonthCalendar, CWnd);
+    ECK_RTTI(CMonthCalendar, CWindow);
     ECK_CWND_NOSINGLEOWNER(CMonthCalendar);
     ECK_CWND_CREATE_CLS(MONTHCAL_CLASSW);
 

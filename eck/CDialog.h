@@ -2,10 +2,10 @@
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
-class CDialog : public CWnd
+class CDialog : public CWindow
 {
 public:
-    ECK_RTTI(CDialog, CWnd);
+    ECK_RTTI(CDialog, CWindow);
 protected:
     INT_PTR m_iResult{};
     HWND m_hTop{};
@@ -135,7 +135,7 @@ public:
         }
         break;
         case WM_CTLCOLORSTATIC:
-            if ((!m_bClrDisableEdit && CWnd((HWND)lParam).GetWindowClass() == WC_EDITW))
+            if ((!m_bClrDisableEdit && CWindow((HWND)lParam).GetWindowClass() == WC_EDITW))
                 break;
             [[fallthrough]];
         case WM_CTLCOLORBTN:

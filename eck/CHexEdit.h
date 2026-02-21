@@ -53,10 +53,10 @@ struct HEHITTEST
     int idxCharCol;		// 命中的字符区栏索引，仅命中字符区时有效
 };
 
-class CHexEdit : public CWnd
+class CHexEdit : public CWindow
 {
 public:
-    ECK_RTTI(CHexEdit, CWnd);
+    ECK_RTTI(CHexEdit, CWindow);
     ECK_CWND_SINGLEOWNER_NO_DEF_CONS(CHexEdit);
     ECK_CWND_CREATE_CLS_HINST(WCN_HEXEDIT, g_hInstance);
 private:
@@ -664,7 +664,7 @@ public:
             UpdateSystemConfig();
             break;
         }
-        return CWnd::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
     }
 
     void SetData(PCVOID pData, SIZE_T cbData) noexcept

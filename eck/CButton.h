@@ -25,10 +25,10 @@ inline constexpr DWORD ButtonTypeMask = (BS_PUSHBUTTON | BS_DEFPUSHBUTTON |
     BS_3STATE | BS_AUTO3STATE | BS_GROUPBOX);
 
 // 建议直接使用此类代替其他细分类
-class CButton : public CWnd
+class CButton : public CWindow
 {
 public:
-    ECK_RTTI(CButton, CWnd);
+    ECK_RTTI(CButton, CWindow);
     ECK_CWND_NOSINGLEOWNER(CButton);
     ECK_CWND_CREATE_CLS(WC_BUTTONW);
 
@@ -86,7 +86,7 @@ public:
 
     EckInlineNdCe static PCVOID SkipBaseData(PCVOID p) noexcept
     {
-        const auto* const p2 = (CTRLDATA_BUTTON*)CWnd::SkipBaseData(p);
+        const auto* const p2 = (CTRLDATA_BUTTON*)CWindow::SkipBaseData(p);
         return PointerStepBytes(p2, sizeof(CTRLDATA_BUTTON) + (p2->cchNote + 1) * sizeof(WCHAR));
     }
 
@@ -95,7 +95,7 @@ public:
         auto cchNote = GetNoteLength();
         const size_t cbSize = sizeof(CTRLDATA_BUTTON) +
             (cchNote + 1) * sizeof(WCHAR);
-        CWnd::SerializeData(rb, pOpt);
+        CWindow::SerializeData(rb, pOpt);
         CMemWriter w(rb.PushBack(cbSize), cbSize);
 
         CTRLDATA_BUTTON* p;
@@ -114,8 +114,8 @@ public:
 
     void PostDeserialize(PCVOID pData) noexcept override
     {
-        CWnd::PostDeserialize(pData);
-        const auto* const p = (const CTRLDATA_BUTTON*)CWnd::SkipBaseData(pData);
+        CWindow::PostDeserialize(pData);
+        const auto* const p = (const CTRLDATA_BUTTON*)CWindow::SkipBaseData(pData);
         if (p->iVer != CDV_BUTTON_1)
             return;
         SetCheckState(p->eCheckState);

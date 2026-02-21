@@ -2,10 +2,10 @@
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
-class CListBox : public CWnd
+class CListBox : public CWindow
 {
 public:
-    ECK_RTTI(CListBox, CWnd);
+    ECK_RTTI(CListBox, CWindow);
     ECK_CWND_NOSINGLEOWNER(CListBox);
     ECK_CWND_CREATE_CLS(WC_LISTBOXW);
 

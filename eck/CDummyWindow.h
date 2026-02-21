@@ -2,11 +2,11 @@
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
-class CBk : public CWnd
+class CDummyWindow : public CWindow
 {
 public:
-    ECK_RTTI(CBk, CWnd);
-    ECK_CWND_SINGLEOWNER(CBk);
+    ECK_RTTI(CDummyWindow, CWindow);
+    ECK_CWND_SINGLEOWNER(CDummyWindow);
     ECK_CWND_CREATE_CLS_HINST(WCN_BK, g_hInstance);
 };
 ECK_NAMESPACE_END

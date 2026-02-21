@@ -581,13 +581,13 @@ public:
 
     void AttachNew(HWND hWnd) noexcept override
     {
-        CWnd::AttachNew(hWnd);
+        CWindow::AttachNew(hWnd);
         InitializeForNewWindow(hWnd);
     }
 
     void DetachNew() noexcept override
     {
-        CWnd::DetachNew();
+        CWindow::DetachNew();
         CleanupForDestroyWindow();
     }
 

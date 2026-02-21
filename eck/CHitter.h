@@ -8,10 +8,10 @@ struct NMHTTSEL
     POINT pt;
 };
 
-class CHitter : public CWnd
+class CHitter : public CWindow
 {
 public:
-    ECK_RTTI(CHitter, CWnd);
+    ECK_RTTI(CHitter, CWindow);
     ECK_CWND_SINGLEOWNER(CHitter);
     ECK_CWND_CREATE_CLS_HINST(WCN_HITTER, g_hInstance);
 private:

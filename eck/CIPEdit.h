@@ -2,10 +2,10 @@
 #include "CWnd.h"
 
 ECK_NAMESPACE_BEGIN
-class CIPEdit : public CWnd
+class CIPEdit : public CWindow
 {
 public:
-    ECK_RTTI(CIPEdit, CWnd);
+    ECK_RTTI(CIPEdit, CWindow);
     ECK_CWND_NOSINGLEOWNER(CIPEdit);
     ECK_CWND_CREATE_CLS(WC_IPADDRESSW);
 

@@ -431,7 +431,7 @@ EckInline constexpr BOOL UxfpIsDarkTaskDialogAvailable() noexcept
     return g_NtVer.uBuild >= WINVER_11_21H2;
 }
 
-HRESULT UxfMenuInitialize(CWnd* pWnd) noexcept
+HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
 {
     // 参考：https://github.com/adzm/win32-custom-menubar-aero-theme
     auto& Sig = pWnd->GetSignal();
@@ -583,7 +583,7 @@ HRESULT UxfMenuInitialize(CWnd* pWnd) noexcept
     return S_OK;
 }
 
-HRESULT UxfMenuUninitialize(CWnd* pWnd) noexcept
+HRESULT UxfMenuUninitialize(CWindow* pWnd) noexcept
 {
     return pWnd->GetSignal().Disconnect(MHI_UXF_MENU) ? S_OK : S_FALSE;
 }
@@ -2026,7 +2026,7 @@ void Priv::QueuedCallbackQueue::UnlockedDeQueue() noexcept
 }
 
 
-void ThreadContext::WmAdd(HWND hWnd, CWnd* pWnd) noexcept
+void ThreadContext::WmAdd(HWND hWnd, CWindow* pWnd) noexcept
 {
     EckAssert(IsWindow(hWnd) && pWnd);
     hmWnd.insert(std::make_pair(hWnd, pWnd));
@@ -2041,7 +2041,7 @@ void ThreadContext::WmRemove(HWND hWnd) noexcept
         EckDbgPrintFmt(L"** WARNING ** 从窗口映射中移除%p时失败。", hWnd);
 #endif
 }
-CWnd* ThreadContext::WmAt(HWND hWnd) const noexcept
+CWindow* ThreadContext::WmAt(HWND hWnd) const noexcept
 {
     const auto it = hmWnd.find(hWnd);
     if (it != hmWnd.end())
@@ -2050,7 +2050,7 @@ CWnd* ThreadContext::WmAt(HWND hWnd) const noexcept
         return nullptr;
 }
 
-void ThreadContext::TwmAdd(HWND hWnd, CWnd* pWnd) noexcept
+void ThreadContext::TwmAdd(HWND hWnd, CWindow* pWnd) noexcept
 {
     EckAssert(IsWindow(hWnd) && pWnd);
     EckAssert((GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_CHILD) != WS_CHILD);
@@ -2062,7 +2062,7 @@ void ThreadContext::TwmRemove(HWND hWnd) noexcept
     if (it != hmTopWnd.end())
         hmTopWnd.erase(it);
 }
-CWnd* ThreadContext::TwmAt(HWND hWnd) const noexcept
+CWindow* ThreadContext::TwmAt(HWND hWnd) const noexcept
 {
     const auto it = hmTopWnd.find(hWnd);
     if (it != hmTopWnd.end())
@@ -2152,7 +2152,7 @@ void ThreadContext::DoCallback() noexcept
 #pragma endregion Thread
 
 #pragma region Wnd
-HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc) noexcept
+HHOOK BeginCbtHook(CWindow* pCurrWnd, FWndCreating pfnCreatingProc) noexcept
 {
     EckAssert(pCurrWnd);
     const auto pCtx = PtcCurrent();
@@ -2168,7 +2168,7 @@ HHOOK BeginCbtHook(CWnd* pCurrWnd, FWndCreating pfnCreatingProc) noexcept
                 // 执行CWnd初始化
                 EckAssert(!pCtx->pCurrWnd->m_hWnd);
                 pCtx->pCurrWnd->m_pfnRealProc =
-                    SetWindowProcedure((HWND)wParam, CWnd::EckWndProc);
+                    SetWindowProcedure((HWND)wParam, CWindow::EckWndProc);
                 pCtx->pCurrWnd->m_hWnd = (HWND)wParam;
                 // 窗口映射
                 pCtx->WmAdd((HWND)wParam, pCtx->pCurrWnd);
@@ -2195,7 +2195,7 @@ void EndCbtHook() noexcept
 BOOL PreTranslateMessage(const MSG& Msg) noexcept
 {
     HWND hWnd = Msg.hwnd;
-    CWnd* pWnd;
+    CWindow* pWnd;
     const auto pCtx = PtcCurrent();
     pCtx->DoCallback();
 

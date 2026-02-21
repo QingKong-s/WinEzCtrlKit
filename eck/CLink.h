@@ -4,10 +4,10 @@
 ECK_NAMESPACE_BEGIN
 // 标准链接标签产生WM_CTLCOLORSTATIC消息，
 // 若要适配暗色则父窗口应给予处理
-class CLink : public CWnd
+class CLink : public CWindow
 {
 public:
-    ECK_RTTI(CLink, CWnd);
+    ECK_RTTI(CLink, CWindow);
     ECK_CWND_NOSINGLEOWNER(CLink);
     ECK_CWND_CREATE_CLS(WC_LINK);
 

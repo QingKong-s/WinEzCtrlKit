@@ -217,7 +217,7 @@ private:
     CRefStrW m_rsTextBuf{ MAX_PATH };
     int m_cxEdge{};
     std::unique_ptr<CEditExt> m_pEdit{};
-    CWnd::HSlot m_hmsEdit{};
+    CWindow::HSlot m_hmsEdit{};
 
     void GetColumnMetrics(int* px, int cCol, int dx) const noexcept
     {
@@ -1087,13 +1087,13 @@ public:
 
     void AttachNew(HWND hWnd) noexcept override
     {
-        CWnd::AttachNew(hWnd);
+        CWindow::AttachNew(hWnd);
         InitializeForNewWindow(hWnd);
     }
 
     void DetachNew() noexcept override
     {
-        CWnd::DetachNew();
+        CWindow::DetachNew();
         CleanupForDestroyWindow();
     }
 

@@ -34,8 +34,8 @@ private:
     };
 
     std::vector<ITEM> m_vItem{};
-    CWnd* m_pWnd{};
-    CWnd::HSlot m_hSlot{};
+    CWindow* m_pWnd{};
+    CWindow::HSlot m_hSlot{};
 
     EckInlineNd BOOL Add(NOTIFYICONDATAW& nid) noexcept
     {
@@ -88,7 +88,7 @@ private:
 public:
     ECK_DISABLE_COPY_DEF_CONS(CTrayIcon);
 
-    void Attach(CWnd* pWnd) noexcept
+    void Attach(CWindow* pWnd) noexcept
     {
         m_pWnd = pWnd;
         m_hSlot = m_pWnd->GetSignal().Connect(this, &CTrayIcon::OnMessage);
