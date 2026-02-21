@@ -26,8 +26,7 @@ private:
         e1{ b3 - b0 },
         e2{ (b3 - b2 * 2.f + b1) * 6.f },
         e3{ (b2 - b1 * 2.f + b0) * 6.f }
-    {
-    }
+    {}
 
     EckInlineNdCe static T Abs(T f) noexcept
     {
@@ -137,8 +136,7 @@ private:
         e0{ b0 },
         e1{ b2 - b0 },
         e2{ (b2 - b1 * 2.0f + b0) * 2.f }
-    {
-    }
+    {}
 
     EckInlineNdCe static T Abs(T v) noexcept
     {

@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "GraphicsHelper.h"
 #include "CUnknown.h"
+#include "ComPtr.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN

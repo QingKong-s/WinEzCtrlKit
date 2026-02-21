@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "CString.h"
 #include "CByteBuffer.h"
 #include "AutoPtrDef.h"
 

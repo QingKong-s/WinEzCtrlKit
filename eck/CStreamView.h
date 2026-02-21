@@ -14,8 +14,7 @@ public:
     CStreamView() = default;
     constexpr CStreamView(PCVOID p, SIZE_T cb) noexcept
         : m_pMem{ (PCBYTE)p }, m_cbSize{ cb }, m_pSeek{ (PCBYTE)p }
-    {
-    }
+    {}
 
     template<class TAllocator>
     constexpr CStreamView(const CByteBufferT<TAllocator>& rb) noexcept : CStreamView(rb.Data(), rb.Size()) {}

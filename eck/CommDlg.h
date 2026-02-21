@@ -2,8 +2,6 @@
 #include "CDialog.h"
 #include "Utility2.h"
 
-#include <commdlg.h>
-
 ECK_NAMESPACE_BEGIN
 class CTaskDialog : public CDialog
 {

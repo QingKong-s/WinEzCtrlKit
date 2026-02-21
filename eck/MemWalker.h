@@ -13,8 +13,7 @@ namespace Priv
         PCBYTE pCurr{};
         constexpr XptMemWalkerRange(PCBYTE b, size_t m, PCBYTE c) noexcept
             : pBase{ b }, cbMax{ m }, pCurr{ c }
-        {
-        }
+        {}
     };
 
     struct CMemoryReaderBase
@@ -33,8 +32,7 @@ namespace Priv
         CMemoryReaderBase() = default;
         constexpr CMemoryReaderBase(_In_reads_bytes_(cbMax) PCVOID p, size_t cbMax) noexcept
             : m_pMem{ (PCBYTE)p }, m_pBase{ (PCBYTE)p }, m_cbMax{ cbMax }
-        {
-        }
+        {}
 
         constexpr void SetData(PCVOID p, size_t cbMax) noexcept
         {
@@ -60,8 +58,7 @@ namespace Priv
         CMemoryWalkerBase() = default;
         constexpr CMemoryWalkerBase(_Inout_updates_bytes_(cbMax) void* p, size_t cbMax) noexcept
             : m_pMem{ (BYTE*)p }, m_pBase{ (BYTE*)p }, m_cbMax{ cbMax }
-        {
-        }
+        {}
 
         EckInline auto& Write(_In_reads_bytes_(cb) PCVOID pSrc, size_t cb)
         {

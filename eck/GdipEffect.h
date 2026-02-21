@@ -262,19 +262,16 @@ public:
 
     CGpFxRedEyeCorrection(const std::vector<RECT>& vAreas) noexcept
         : CGpFxRedEyeCorrection{ { (UINT)vAreas.size(), (RECT*)vAreas.data() } }
-    {
-    }
+    {}
 
     template<size_t N>
     CGpFxRedEyeCorrection(const RECT(&Areas)[N]) noexcept
         : CGpFxRedEyeCorrection{ { (UINT)N, (RECT*)Areas } }
-    {
-    }
+    {}
 
     CGpFxRedEyeCorrection(UINT cAreas, const RECT* pAreas) noexcept
         : CGpFxRedEyeCorrection{ { cAreas, (RECT*)pAreas } }
-    {
-    }
+    {}
 
     EckInline GpStatus SetParameters(const GpRedEyeCorrectionParams& Params) noexcept
     {
@@ -358,8 +355,7 @@ public:
 
     CGpFxBrightnessContrast(int nBrightness, int nContrast) noexcept
         : CGpFxBrightnessContrast{ { nBrightness, nContrast } }
-    {
-    }
+    {}
 
     EckInline GpStatus SetParameters(const GpBrightnessContrastParams& Params) noexcept
     {
@@ -388,8 +384,7 @@ public:
     /// <param name="nLightness">-100~100</param>
     CGpFxHSL(int nHue, int nSaturation, int nLightness) noexcept
         : CGpFxHSL{ { nHue, nSaturation, nLightness } }
-    {
-    }
+    {}
 
     EckInline GpStatus SetParameters(const GpHSLParams& Params) noexcept
     {
@@ -418,8 +413,7 @@ public:
     /// <param name="nYellowBlue">-100~100，黄->蓝</param>
     CGpFxColorBalance(int nCyanRed, int nMagentaGreen, int nYellowBlue) noexcept
         : CGpFxColorBalance{ { nCyanRed, nMagentaGreen, nYellowBlue } }
-    {
-    }
+    {}
 
     EckInline GpStatus SetParameters(const GpColorBalanceParams& Params) noexcept
     {
@@ -448,8 +442,7 @@ public:
     /// <param name="nShadow">0~100</param>
     CGpFxLevels(int nHighlight, int nMidTone, int nShadow) noexcept
         : CGpFxLevels{ { nHighlight, nMidTone, nShadow } }
-    {
-    }
+    {}
 
     EckInline GpStatus SetParameters(const GpLevelsParams& Params) noexcept
     {
@@ -476,8 +469,7 @@ public:
     CGpFxColorCurve(Gdiplus::CurveAdjustments Adjustments, Gdiplus::CurveChannel Channel,
         int nAdjustVal) noexcept
         : CGpFxColorCurve{ { Adjustments, Channel, nAdjustVal } }
-    {
-    }
+    {}
 
     EckInline GpStatus SetParameters(const GpColorCurveParams& Params) noexcept
     {

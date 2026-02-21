@@ -224,35 +224,30 @@ public:
     CDoc(const CByteBufferT<TAllocator>& rb, YyReadFlag uFlags = 0,
         const YyAlc* pAlc = nullptr, YyReadErr* pErr = nullptr) noexcept
         : CDoc((PCSTR)rb.Data(), rb.Size(), uFlags, pAlc, pErr)
-    {
-    }
+    {}
 
     template<class TTraits, class TAllocator>
     CDoc(const CStringT<CHAR, TTraits, TAllocator>& rs, YyReadFlag uFlags = 0,
         const YyAlc* pAlc = nullptr, YyReadErr* pErr = nullptr) noexcept
         : CDoc(rs.Data(), rs.Size(), uFlags, pAlc, pErr)
-    {
-    }
+    {}
 
     template<class TTraits, class TAllocator>
     CDoc(const std::basic_string<CHAR, TTraits, TAllocator>& s, YyReadFlag uFlags = 0,
         const YyAlc* pAlc = nullptr, YyReadErr* pErr = nullptr) noexcept
         : CDoc(s.c_str(), s.size(), uFlags, pAlc, pErr)
-    {
-    }
+    {}
 
     template<class TTraits>
     CDoc(const std::basic_string_view<CHAR, TTraits>& sv, YyReadFlag uFlags = 0,
         const YyAlc* pAlc = nullptr, YyReadErr* pErr = nullptr) noexcept
         : CDoc(sv.data(), sv.size(), uFlags, pAlc, pErr)
-    {
-    }
+    {}
 
     CDoc(const char8_t* pszJson, size_t cchJson = SizeTMax, YyReadFlag uFlags = 0,
         const YyAlc* pAlc = nullptr, YyReadErr* pErr = nullptr) noexcept
         :CDoc((PCSTR)pszJson, cchJson, uFlags, pAlc, pErr)
-    {
-    }
+    {}
 
     constexpr CDoc(YyDoc* pDoc) noexcept : m_pDoc{ pDoc } {}
     constexpr CDoc(CDoc&& x) noexcept : m_pDoc{ x.Detach() } {}
@@ -381,8 +376,7 @@ private:
 public:
     constexpr CMutVal(YyMutVal* pVal, const CMutDoc* pDoc = nullptr) noexcept
         : CValBase{ pVal }, m_pDoc{ pDoc }
-    {
-    }
+    {}
     EckInlineNdCe auto Ptr() const noexcept { return (YyMutVal*)m_pVal; }
     EckInlineNdCe BOOL IsValid() const noexcept { return !!m_pVal; }
 
@@ -490,12 +484,10 @@ public:
     CMutDoc() : m_pDoc{ yyjson_mut_doc_new(nullptr) } {}
     explicit CMutDoc(const CDoc& Doc, const YyAlc* pAlc = nullptr) noexcept
         : m_pDoc{ yyjson_doc_mut_copy(Doc.GetPointer(), pAlc) }
-    {
-    }
+    {}
     explicit CMutDoc(const CMutDoc& Doc, const YyAlc* pAlc = nullptr) noexcept
         : m_pDoc{ yyjson_mut_doc_mut_copy(Doc.GetPointer(), pAlc) }
-    {
-    }
+    {}
     explicit constexpr CMutDoc(YyMutDoc* pDoc) noexcept : m_pDoc{ pDoc } {}
 
     constexpr CMutDoc(CMutDoc&& x) noexcept : m_pDoc{ x.Detach() } {}

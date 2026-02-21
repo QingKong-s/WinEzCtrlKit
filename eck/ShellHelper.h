@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "CString.h"
-#include "ImageHelper.h"
+#include "ComPtr.h"
 
 #include <taskschd.h>
 #include <comutil.h>

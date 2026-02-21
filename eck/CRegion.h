@@ -429,8 +429,7 @@ public:
         CRegion* m_pThat;
 
         constexpr CPtRecorder(ComplexRegion* pComplex, CRegion* pThat)
-            :m_pComplex{ pComplex }, m_pThat{ pThat } {
-        }
+            :m_pComplex{ pComplex }, m_pThat{ pThat } {}
     public:
         constexpr void BeginLine(int y) noexcept
         {

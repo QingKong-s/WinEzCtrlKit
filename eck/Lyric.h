@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "CUnknown.h"
 #include "EncodingDetect.h"
 #include "StringConvert.h"
 
@@ -106,7 +105,7 @@ struct LineWord
     }
 };
 
-class CLyric final : public CRefObj<CLyric>
+class CLyric final
 {
 private:
     struct DIV_POS

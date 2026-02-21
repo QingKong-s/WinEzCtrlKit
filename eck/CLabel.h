@@ -20,7 +20,7 @@ public:
     ECK_CWND_CREATE_CLS_HINST(WCN_LABEL, g_hInstance);
 
     constexpr static std::array<COLORREF, 3> DefaultGradient{ 0x808080,0xFFFFFF,0x808080 };
-    
+
     enum class Ellipsis :BYTE
     {
         None,

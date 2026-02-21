@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "CWindow.h"
 #include "CMemoryDC.h"
-#include "GraphicsHelper.h"
+#include "CEasyD2D.h"
 
 #include <dxgi1_2.h>
 
@@ -95,7 +95,7 @@ public:
     ECK_CWND_SINGLEOWNER(CDrawPanelD2D);
     ECK_CWND_CREATE_CLS_HINST(WCN_DRAWPANEL, g_hInstance);
 private:
-    CEzD2D m_D2D{};
+    CEasyD2D m_D2D{};
 public:
     LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {

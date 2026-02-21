@@ -192,8 +192,7 @@ protected:
 public:
     constexpr CImageMat() = default;
     constexpr CImageMat(void* pBits, int cx, int cy, UINT cbStride)
-        : m_pBits{ pBits }, m_cx{ cx }, m_cy{ cy }, m_cbStride{ cbStride } {
-    }
+        : m_pBits{ pBits }, m_cx{ cx }, m_cy{ cy }, m_cbStride{ cbStride } {}
 
     virtual ~CImageMat() = default;
 

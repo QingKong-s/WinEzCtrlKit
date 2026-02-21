@@ -113,8 +113,7 @@ public:
 
     CStringT(TConstPointer psz, const TAllocator& Al = TAllocator{})
         : CStringT(psz, psz ? (int)TcsLength(psz) : 0, Al)
-    {
-    }
+    {}
 
     CStringT(const CStringT& x)
         : m_Alloc{ TAllocatorTraits::select_on_container_copy_construction(x.m_Alloc) }
@@ -132,19 +131,16 @@ public:
     template<class TTraits, class TAllocator1>
     CStringT(const std::basic_string<TChar, TTraits, TAllocator1>& s, const TAllocator& Al = TAllocator{})
         : CStringT(s.data(), (int)s.size(), Al)
-    {
-    }
+    {}
 
     template<class TTraits>
     CStringT(std::basic_string_view<TChar, TTraits> sv, const TAllocator& Al = TAllocator{})
         : CStringT(sv.data(), (int)sv.size(), Al)
-    {
-    }
+    {}
 
     CStringT(TNtString nts, const TAllocator& Al = TAllocator{})
         :CStringT(nts.Buffer, (int)nts.Length, Al)
-    {
-    }
+    {}
 
     ~CStringT()
     {
@@ -284,7 +280,7 @@ public:
             Clear();
             return 0;
         }
-        
+
         const auto cchBstr = (int)SysStringLen(bstr);
         if constexpr (std::is_same_v<TChar, CHAR>)
         {

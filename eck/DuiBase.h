@@ -5,7 +5,7 @@
 #include "DuiDef.h"
 #include "DuiCompositor.h"
 
-#include "GraphicsHelper.h"
+#include "CEasyD2D.h"
 #include "CDwmWndPartMgr.h"
 
 #include "EasingCurve.h"
@@ -15,7 +15,6 @@
 #include "CWaitableTimer.h"
 
 #include <dcomp.h>
-#include <oleacc.h>
 
 #ifdef _DEBUG
 #include "Random.h"
@@ -712,7 +711,7 @@ private:
     //------图形------
     D2D1_RECT_F m_rcInvalid{};
     ID2D1SolidColorBrush* m_pBrBkg{};   // 背景画刷
-    CEzD2D m_D2D{};
+    CEasyD2D m_D2D{};
     union
     {
         void* PRIV_Dummy[4];

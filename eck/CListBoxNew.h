@@ -80,7 +80,7 @@ public:
     ECK_CWND_SINGLEOWNER(CListBoxNew);
     ECK_CWND_CREATE_CLS_HINST(WCN_LISTBOXNEW, g_hInstance);
 private:
-    CSelRange m_SelRange{};
+    CSelectionRange m_SelRange{};
     int m_cItem{};
 
     CStringW m_rsTextBuf{};

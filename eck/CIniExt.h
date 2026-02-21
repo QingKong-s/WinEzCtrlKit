@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "AutoPtrDef.h"
 #include "CString.h"
 #include "StringConvert.h"
 

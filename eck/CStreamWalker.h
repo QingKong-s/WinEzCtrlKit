@@ -29,8 +29,7 @@ public:
         size_t cbActual;
         constexpr XptRange(size_t p, size_t c, size_t a) noexcept
             : pos{ p }, cb{ c }, cbActual{ a }
-        {
-        }
+        {}
     };
 private:
     ComPtr<IStream> m_pStream{};

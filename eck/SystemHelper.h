@@ -3,7 +3,6 @@
 #include "ComPtr.h"
 #include "AutoPtrDef.h"
 #include "CString.h"
-#include "CByteBuffer.h"
 
 #include <intrin.h>
 #include <wbemcli.h>

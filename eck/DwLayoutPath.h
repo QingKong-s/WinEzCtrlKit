@@ -50,8 +50,7 @@ private:
 public:
     constexpr CDwFetchPathRenderer(float fDpi = 96.f, BOOL bPixelSnappingDisabled = FALSE) noexcept
         : m_fDpi{ fDpi }, m_bPixelSnappingDisabled{ bPixelSnappingDisabled }
-    {
-    }
+    {}
 
     STDMETHOD(DrawGlyphRun)(void* pClientDrawingContext,
         FLOAT xOrgBaseline, FLOAT yOrgBaseline,

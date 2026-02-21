@@ -478,8 +478,8 @@ EckNfInlineNdCe BOOL TagCheckID3v2Header(const ID3v2_HEADER& hdr,
     BOOL bHeaderOrFooter = TRUE) noexcept
 {
     return (bHeaderOrFooter ?
-            memcmp(hdr.Header, "ID3", 3) == 0 :
-            memcmp(hdr.Header, "3DI", 3) == 0) &&
+        memcmp(hdr.Header, "ID3", 3) == 0 :
+        memcmp(hdr.Header, "3DI", 3) == 0) &&
         hdr.Ver < 0xFF && hdr.Revision < 0xFF &&
         (hdr.Flags & 0b1111) == 0 &&
         hdr.Size[0] < 0x80 && hdr.Size[1] < 0x80 &&

@@ -2,7 +2,6 @@
 #include "CString.h"
 #include "CByteBuffer.h"
 
-
 ECK_NAMESPACE_BEGIN
 class CRegistryKey
 {

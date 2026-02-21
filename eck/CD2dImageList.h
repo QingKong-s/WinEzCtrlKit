@@ -11,7 +11,7 @@ private:
     CSrwLock m_Lk{};
     ID2D1DeviceContext* m_pDC{};
     std::vector<ID2D1Bitmap1*> m_vBmp{};
-    CSelRange m_FreeRange{};
+    CSelectionRange m_FreeRange{};
     D2D1_PIXEL_FORMAT m_PixelFormat{};
 
     float m_cxLog{}, m_cyLog{};
@@ -119,8 +119,7 @@ public:
     ECK_DISABLE_COPY_MOVE_DEF_CONS(CD2DImageList);
     CD2DImageList(float cx, float cy, float iPadding = 1, int cCapacityPerPack = 50)
         : m_cxLog{ cx }, m_cyLog{ cy }, m_fPaddingLog{ iPadding },
-        m_cCapacityPerPack{ cCapacityPerPack } {
-    }
+        m_cCapacityPerPack{ cCapacityPerPack } {}
 
     ~CD2DImageList()
     {

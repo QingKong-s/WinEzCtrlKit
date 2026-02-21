@@ -72,8 +72,7 @@ struct CCompositor : public CRefObj<CCompositor>
     // 永远不会对未设置混合器的元素调用。
     // 混合元素渲染到独立的图面，当该元素连同其所有子元素都渲染完毕后调用此方法
     virtual void PostRender(COMP_RENDER_INFO& cri) noexcept
-    {
-    }
+    {}
 
     // 分配缓存位图。
     // 仅当需要创建元素的混合重定向表面时，DUI才调用此方法。

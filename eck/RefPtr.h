@@ -15,8 +15,7 @@ private:
         ControlBlock(Ts&&... Args)
             noexcept(std::is_nothrow_constructible<T, Ts...>::value)
             : cRef{ 1 }, Data{ std::forward<Ts>(Args)... }
-        {
-        }
+        {}
     };
 
     ControlBlock* p{};

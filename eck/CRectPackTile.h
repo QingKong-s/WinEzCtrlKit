@@ -16,7 +16,7 @@ private:
         TId idxBegin;// 本页第一个磁贴的线性索引
     };
     CTrivialBuffer<Page> m_vPage{};
-    CSelRange m_rgFree{};
+    CSelectionRange m_rgFree{};
     TCoord m_cxTile{}, m_cyTile{};
     TCoord m_cxPage{}, m_cyPage{};
     TCoord m_cxPageMax{}, m_cyPageMax{};

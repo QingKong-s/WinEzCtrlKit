@@ -20,8 +20,7 @@ public:
             uId{ HIWORD(lParam) },
             x{ GET_X_LPARAM(wParam) },
             y{ GET_Y_LPARAM(wParam) }
-        {
-        }
+        {}
     };
 private:
     struct ITEM

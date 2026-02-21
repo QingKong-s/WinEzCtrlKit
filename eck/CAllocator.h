@@ -169,7 +169,7 @@ public:
     }
 };
 
-template<class T,class TSize = size_t>
+template<class T, class TSize = size_t>
 struct CDefaultAllocator :public std::allocator<T>
 {
     using size_type = TSize;
@@ -193,7 +193,7 @@ struct CDefaultAllocator :public std::allocator<T>
 };
 
 template<class T1, class TSize1, class T2, class TSize2>
-EckInline constexpr bool operator==(const CDefaultAllocator<T1, TSize1>& a1, 
+EckInline constexpr bool operator==(const CDefaultAllocator<T1, TSize1>& a1,
     const CDefaultAllocator<T2, TSize2>& a2) noexcept
 {
     return true;

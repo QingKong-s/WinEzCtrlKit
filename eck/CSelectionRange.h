@@ -359,12 +359,12 @@ public:
     }
 };
 
-using CSelRange = CSelectionRangeT<int>;
+using CSelectionRange = CSelectionRangeT<int>;
 
 class CLVRange final : public CUnknown<CLVRange, ILVRange>
 {
 private:
-    CSelRange m_SelRange{};
+    CSelectionRange m_SelRange{};
 public:
     STDMETHODIMP IncludeRange(LONG idxBegin, LONG idxEnd)
     {

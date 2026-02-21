@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "DuiBase.h"
+#include "ImageHelper.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN

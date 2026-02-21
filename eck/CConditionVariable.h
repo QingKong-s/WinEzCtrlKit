@@ -1,6 +1,5 @@
 ﻿#pragma once
-#include "CCriticalSection.h"
-#include "CSrwLock.h"
+#include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
 class CConditionVariable

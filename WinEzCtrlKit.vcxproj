@@ -395,6 +395,7 @@
     <ClCompile Include="eck\WinRtD2DInteropFx.h" />
     <ClCompile Include="eck\WinRtDCompInterop.h" />
     <ClCompile Include="eck\WndHelper.h" />
+    <ClInclude Include="eck\CEasyD2D.h" />
     <ClInclude Include="eck\CMemoryDC.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />

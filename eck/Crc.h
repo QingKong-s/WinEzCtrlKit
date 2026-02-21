@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include "ECK.h"
 
-
 ECK_NAMESPACE_BEGIN
 namespace Priv
 {

@@ -54,7 +54,9 @@ public:
         }
     }
     EckInlineNdCe BOOL IsValid() const noexcept
-    { return m_hObject && m_hObject != INVALID_HANDLE_VALUE; }
+    {
+        return m_hObject && m_hObject != INVALID_HANDLE_VALUE;
+    }
 
     EckInlineNdCe HANDLE* AddrOf() noexcept { return &m_hObject; }
     EckInlineNd HANDLE* AddrOfClear() noexcept
