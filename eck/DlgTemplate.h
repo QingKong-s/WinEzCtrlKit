@@ -250,7 +250,7 @@ inline HRESULT SerializeDialogTemplate(
 
     rbTemplate.PushBackNoExtra(cbTotal);
 
-    CMemWriter w(rbTemplate.Data(), rbTemplate.Size());
+    CMemoryWalker w(rbTemplate.Data(), rbTemplate.Size());
     w.Write(&Dlg, sizeof(DLGTHEADER));
 
     if (Dlg.Menu)

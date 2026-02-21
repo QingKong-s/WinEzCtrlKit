@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "CWindow.h"
-#include "GraphicsHelper.h"
+#include "CMemoryDC.h"
 
 ECK_NAMESPACE_BEGIN
 #pragma pack(push, ECK_CTRLDATA_ALIGN)
@@ -77,7 +77,7 @@ private:
     SIZE_T m_posFirstVisible{};
 
     std::vector<CHAR_COL> m_vCharCol{};
-    CEzCDC m_DC{};
+    CMemoryDC m_DC{};
     HFONT m_hFont{};
 
     int m_cxChar{};

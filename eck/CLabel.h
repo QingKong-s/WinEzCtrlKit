@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "CWindow.h"
 #include "GraphicsHelper.h"
+#include "CMemoryDC.h"
 
 ECK_NAMESPACE_BEGIN
 struct LA_HITTEST
@@ -43,7 +44,7 @@ public:
         Transparent,
     };
 private:
-    CEzCDC m_DC{};			// 兼容DC
+    CMemoryDC m_DC{};			// 兼容DC
     HBITMAP m_hbmImg{};		// 图片，无需销毁
     HBITMAP m_hbmBkImg{};	// 底图，无需销毁
     int m_cxBkImg{},

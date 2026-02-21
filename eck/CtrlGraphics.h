@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "GraphicsHelper.h"
+#include "CMemoryDC.h"
 
 ECK_NAMESPACE_BEGIN
 EckInline HRESULT DrawListViewColumnDetail(HTHEME hTheme,
@@ -73,7 +73,7 @@ inline void DrawPlusMinusGlyph(HDC hDC, BOOL bPlus, const RECT& rc,
 inline BOOL AlphaBlendColor(HDC hDC, const RECT& rc,
     COLORREF cr, BYTE byAlpha = ColorFillAlpha) noexcept
 {
-    CEzCDC DC{};
+    CMemoryDC DC{};
     DC.CreateFromDC(hDC, 1, 1);
     constexpr RECT rcDst{ 0,0,1,1 };
     SetDCBrushColor(DC.GetDC(), cr);

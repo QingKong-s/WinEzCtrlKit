@@ -1,6 +1,8 @@
 ﻿#pragma once
 #define GDIPVER 0x110
 
+__pragma(warning(disable:5260))
+
 #if ECK_OPT_NO_DX
 #undef ECK_OPT_NO_D2D
 #define ECK_OPT_NO_D2D 1

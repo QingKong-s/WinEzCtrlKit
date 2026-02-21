@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "CRegKey.h"
-#include "CEnumFile.h"
+#include "CRegistryKey.h"
+#include "CFileEnumerator.h"
 #include "ComPtr.h"
 #include "CIniExt.h"
 #include "SystemHelper.h"

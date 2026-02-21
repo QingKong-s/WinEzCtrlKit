@@ -603,7 +603,7 @@ static HRESULT UxfpAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
     GetThemeEnumValue(hTheme, iPartId, iStateId, TMT_BGTYPE, &eBgType);
     if (eBgType == BT_IMAGEFILE)
     {
-        CEzCDC DC{};
+        CMemoryDC DC{};
         int cxBuf, cyBuf;
         if (bClip)
         {

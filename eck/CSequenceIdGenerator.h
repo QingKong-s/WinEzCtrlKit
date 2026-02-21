@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CSelRange.h"
+#include "CSelectionRange.h"
 
 ECK_NAMESPACE_BEGIN
 template<class T>

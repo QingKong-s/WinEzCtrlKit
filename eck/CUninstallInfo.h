@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CRegKey.h"
+#include "CRegistryKey.h"
 #include "NativeWrapper.h"
 
 #include <RegStr.h>

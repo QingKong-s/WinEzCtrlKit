@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "CWindow.h"
+#include "CMemoryDC.h"
 
 ECK_NAMESPACE_BEGIN
 #define ECK_CWNDPROP_TABE_STYLE(Name, Style)			\
@@ -54,7 +55,7 @@ public:
         {
             PAINTSTRUCT ps;
             BeginPaint(hWnd, wParam, ps);
-            CEzCDC DC{};
+            CMemoryDC DC{};
             DC.Create(hWnd, ps.rcPaint.right - ps.rcPaint.left,
                 ps.rcPaint.bottom - ps.rcPaint.top);
             SetWindowOrgEx(DC.GetDC(), ps.rcPaint.left, ps.rcPaint.top, nullptr);

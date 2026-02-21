@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "CWindow.h"
 #include "CtrlGraphics.h"
-#include "CSelRange.h"
+#include "CSelectionRange.h"
 
 ECK_NAMESPACE_BEGIN
 enum : UINT
@@ -88,7 +88,7 @@ private:
     HWND m_hComboBox{};	// 关联的组合框，可以是除自身外的任何窗口
     HWND m_hParent{};	// 接收通知的父窗口
 
-    CEzCDC m_DC{};
+    CMemoryDC m_DC{};
     HFONT m_hFont{};
 
     HTHEME m_hTheme{};

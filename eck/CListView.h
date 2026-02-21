@@ -902,7 +902,7 @@ public:
 
     EckInline BOOL SetInsertMark(int idx, BOOL bAfterItem = FALSE) const noexcept
     {
-        LVINSERTMARK lvim{ sizeof(LVINSERTMARK), (bAfterItem ? LVIM_AFTER : 0), idx };
+        LVINSERTMARK lvim{ sizeof(LVINSERTMARK), DWORD(bAfterItem ? LVIM_AFTER : 0), idx };
         return (BOOL)SendMsg(LVM_SETINSERTMARK, 0, (LPARAM)&lvim);
     }
 

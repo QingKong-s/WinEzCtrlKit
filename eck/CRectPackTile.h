@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "CTrivialBuffer.h"
-#include "CSelRange.h"
+#include "CSelectionRange.h"
 
 ECK_NAMESPACE_BEGIN
 class CRectPackTile

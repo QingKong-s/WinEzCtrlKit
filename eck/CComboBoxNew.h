@@ -24,7 +24,7 @@ protected:
 
     HFONT m_hFont{};
     HTHEME m_hTheme{};
-    CEzCDC m_DC{};
+    CMemoryDC m_DC{};
 
     int m_cxClient{},
         m_cyClient{};

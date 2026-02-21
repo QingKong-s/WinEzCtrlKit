@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "CWindow.h"
-#include "Utility.h"
+#include "CMemoryDC.h"
 #include "GraphicsHelper.h"
 
 #include <dxgi1_2.h>
@@ -13,7 +13,7 @@ public:
     ECK_CWND_SINGLEOWNER(CDrawPanel);
     ECK_CWND_CREATE_CLS_HINST(WCN_DRAWPANEL, g_hInstance);
 private:
-    CEzCDC m_DC{};
+    CMemoryDC m_DC{};
     GpGraphics* m_pGraphics{};
     int m_cxClient{},
         m_cyClient{};

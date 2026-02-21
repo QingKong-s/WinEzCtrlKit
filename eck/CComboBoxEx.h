@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "CComboBox.h"
-#include "CRefBinStream.h"
+#include "CByteBufferStream.h"
 #include "CStreamView.h"
 
 ECK_NAMESPACE_BEGIN

@@ -78,7 +78,7 @@ EckInline NTSTATUS WriteToFile(_In_z_ PCWSTR pszFile, const CByteBuffer& rb) noe
 namespace Priv
 {
     // 不得关闭返回的句柄
-    NTSTATUS FilepOpenMountPointManager(_Out_ HANDLE& hMpmDevice) noexcept
+    inline NTSTATUS FilepOpenMountPointManager(_Out_ HANDLE& hMpmDevice) noexcept
     {
         constexpr UNICODE_STRING MpmName RTL_CONSTANT_STRING(MOUNTMGR_DEVICE_NAME);
         static std::atomic<HANDLE> s_hMpmDevice{};

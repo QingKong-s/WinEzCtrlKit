@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "../eck/CSelRange.h"
+#include "../eck/CSelectionRange.h"
 
 using namespace eck;
 

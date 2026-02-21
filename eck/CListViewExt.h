@@ -180,7 +180,7 @@ private:
     // 图形
     HTHEME m_hTheme{};		// 主题句柄
     int m_iDpi{ USER_DEFAULT_SCREEN_DPI };	// DPI
-    CEzCDC m_DcAlpha{};		// DC，用作暗色下的颜色Alpha混合
+    CMemoryDC m_DcAlpha{};		// DC，用作暗色下的颜色Alpha混合
 
     // 选项
     COLORREF m_crDefText = CLR_DEFAULT;		// 默认文本颜色

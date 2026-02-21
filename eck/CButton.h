@@ -96,7 +96,7 @@ public:
         const size_t cbSize = sizeof(CTRLDATA_BUTTON) +
             (cchNote + 1) * sizeof(WCHAR);
         CWindow::SerializeData(rb, pOpt);
-        CMemWriter w(rb.PushBack(cbSize), cbSize);
+        CMemoryWalker w(rb.PushBack(cbSize), cbSize);
 
         CTRLDATA_BUTTON* p;
         w.SkipPointer(p);

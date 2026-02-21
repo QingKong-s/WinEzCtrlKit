@@ -2,7 +2,7 @@
 #include "CHeader.h"
 #include "CEditExt.h"
 #include "Utility2.h"
-#include "GraphicsHelper.h"
+#include "CMemoryDC.h"
 
 ECK_NAMESPACE_BEGIN
 class CHeaderExt : public CHeader
@@ -49,7 +49,7 @@ private:
     COLORREF m_crTextFilter{ CLR_DEFAULT };		// 过滤器文本颜色
     COLORREF m_crTextBkFilter{ CLR_DEFAULT };	// 过滤器文本背景色
     // 图形
-    CEzCDC m_DcAlpha{};
+    CMemoryDC m_DcAlpha{};
     HFONT m_hFontMainText{};
     HTHEME m_hTheme{};
     HTHEME m_hThemeCB{};
@@ -74,7 +74,7 @@ private:
 
     std::unique_ptr<CEditExt> m_pEDFilter{};
 
-    CEzCDC m_DcFilterBmp{};
+    CMemoryDC m_DcFilterBmp{};
     SIZE m_sizeFilter{};
     CStringW m_rsEnterTextHere{};
 

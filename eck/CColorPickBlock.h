@@ -39,7 +39,7 @@ public:
     {
         CStatic::SerializeData(rb, pOpt);
         constexpr auto cbSize = sizeof(CTRLDATA_COLOR_PICK_BLOCK);
-        CMemWriter w(rb.PushBack(cbSize), cbSize);
+        CMemoryWalker w(rb.PushBack(cbSize), cbSize);
         CTRLDATA_COLOR_PICK_BLOCK* p;
         w.SkipPointer(p);
         p->iVer = CDV_COLOR_PICK_BLOCK_1;

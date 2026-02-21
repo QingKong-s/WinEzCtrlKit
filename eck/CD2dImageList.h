@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CSelRange.h"
+#include "CSelectionRange.h"
 #include "CUnknown.h"
 #include "CSrwLock.h"
 #include "Utility.h"

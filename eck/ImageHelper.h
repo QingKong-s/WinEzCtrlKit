@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "Utility.h"
 #include "CStreamView.h"
-#include "CRefBinStream.h"
+#include "CByteBufferStream.h"
 #include "ComPtr.h"
 
 ECK_NAMESPACE_BEGIN

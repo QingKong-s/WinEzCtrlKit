@@ -68,12 +68,12 @@ inline HRESULT IntSnapshot(F1 fnPreFetch, F2 fnFetch,
                 if (bEmpty)
                 {
                     ++cOutput;
-                    UnionRect(rcBound, rcBound, ToRCWH(Desc.DesktopCoordinates));
+                    UnionRect(rcBound, rcBound, MakeRcwh(Desc.DesktopCoordinates));
                     IDXGIOutput1* pOutput1;
                     pOutput->QueryInterface(&pOutput1);
-                    e.vOutput.emplace_back(idxOutput, pOutput1, ToRCWH(Desc.DesktopCoordinates));
+                    e.vOutput.emplace_back(idxOutput, pOutput1, MakeRcwh(Desc.DesktopCoordinates));
                 }
-                else if (RCWH rcTemp; IntersectRect(rcTemp, rc, ToRCWH(Desc.DesktopCoordinates)))
+                else if (RCWH rcTemp; IntersectRect(rcTemp, rc, MakeRcwh(Desc.DesktopCoordinates)))
                 {
                     ++cOutput;
                     UnionRect(rcBound, rcBound, rcTemp);

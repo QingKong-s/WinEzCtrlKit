@@ -62,7 +62,7 @@ public:
     {
         CWindow::SerializeData(rb, pOpt);
         constexpr auto cbSize = sizeof(CTRLDATA_STATIC);
-        CMemWriter w(rb.PushBack(cbSize), cbSize);
+        CMemoryWalker w(rb.PushBack(cbSize), cbSize);
         CTRLDATA_STATIC* p;
         w.SkipPointer(p);
         p->iVer = CDV_STATIC_1;

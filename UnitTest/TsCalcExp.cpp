@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "../eck/CalculateExpression.h"
+#include "../eck/CalcExp.h"
 
 using namespace eck;
 

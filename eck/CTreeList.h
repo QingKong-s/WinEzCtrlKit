@@ -262,7 +262,7 @@ private:
     HTHEME m_hThemeLV{};				// ItemsView主题
     HTHEME m_hThemeBT{};				// Button主题
     HFONT m_hFont{};					// 字体
-    CEzCDC m_DC{};						// 兼容DC
+    CMemoryDC m_DC{};						// 兼容DC
     COLORREF m_crBranchLine = CLR_DEFAULT;	// 分支线颜色
     COLORREF m_crBkg = CLR_DEFAULT;		// 背景颜色
     COLORREF m_crText = CLR_DEFAULT;	// 文本颜色

@@ -2,6 +2,7 @@
 #include "Utility2.h"
 #include "Crc.h"
 #include "NativeWrapper.h"
+#include "AutoPtrDef.h"
 
 ECK_NAMESPACE_BEGIN
 using GETVERSIONOUTPARAMS = GETVERSIONINPARAMS;

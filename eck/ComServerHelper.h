@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CRegKey.h"
+#include "CRegistryKey.h"
 #include "ProcModule.h"
 
 ECK_NAMESPACE_BEGIN
