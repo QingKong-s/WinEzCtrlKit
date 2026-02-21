@@ -382,7 +382,7 @@ public:
                         EckCounter(ARRAYSIZE(ApePicType), i)
                         {
                             const auto& sv = ApePicType[i];
-                            if (TcsEqualLen2I(sv.data(), sv.size(),
+                            if (TcsEqualLength2I(sv.data(), sv.size(),
                                 e.rsKey.Data() + posBracket0 + 1,
                                 cchType))
                             {
@@ -394,7 +394,7 @@ public:
                 }
                 // 备注
                 const auto pBaseU8 = (PCCH)w.Data();
-                const auto cchDesc = (int)TcsLen(pBaseU8);
+                const auto cchDesc = (int)TcsLength(pBaseU8);
                 if (cchDesc + 1 > (int)cbVal)
                     return Result::Length;
                 //

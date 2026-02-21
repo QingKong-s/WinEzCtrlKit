@@ -114,7 +114,7 @@ inline NTSTATUS FileNtPathToDosPath(CStringW& rsBuf) noexcept
     else if (rsBuf.IsStartWithI(EckStrAndLen(LR"(\SystemRoot)")))
     {
         const auto pszRoot = NaGetNtSystemRoot();
-        rsBuf.Replace(0, 11, pszRoot, (int)TcsLen(pszRoot));
+        rsBuf.Replace(0, 11, pszRoot, (int)TcsLength(pszRoot));
     }
     else if (rsBuf.IsStartWithI(EckStrAndLen(LR"(System32\)"))
 #ifdef _WIN64
@@ -127,16 +127,16 @@ inline NTSTATUS FileNtPathToDosPath(CStringW& rsBuf) noexcept
         )
     {
         const auto pszRoot = NaGetNtSystemRoot();
-        const auto cchRoot = (int)TcsLen(pszRoot);
+        const auto cchRoot = (int)TcsLength(pszRoot);
         const auto pszDst = rsBuf.Insert(0, cchRoot + 1);
-        TcsCopyLen(pszDst, pszRoot, cchRoot);
+        TcsCopyLength(pszDst, pszRoot, cchRoot);
         *(pszDst + cchRoot) = L'\\';
     }
     else if (rsBuf.IsStartWithI(EckStrAndLen(LR"(\Windows)")))
     {
         const auto pszRoot = NaGetNtSystemRoot();
         const auto pszDst = rsBuf.Insert(0, 2);
-        TcsCopyLen(pszDst, pszRoot, 2);
+        TcsCopyLength(pszDst, pszRoot, 2);
     }
     else if (rsBuf.Front() == L'\\')
     {
@@ -157,7 +157,7 @@ inline NTSTATUS FileNtPathToDosPath(CStringW& rsBuf) noexcept
             const auto pInBuf = (MOUNTMGR_TARGET_NAME*)pBuf.get();
             const auto cbInBuf = ULONG(posDevEnd * sizeof(WCHAR) + sizeof(USHORT) + sizeof(WCHAR));
             pInBuf->DeviceNameLength = (USHORT)posDevEnd * sizeof(WCHAR);
-            TcsCopyLenEnd(pInBuf->DeviceName, rsBuf.Data(), posDevEnd);
+            TcsCopyLengthEnd(pInBuf->DeviceName, rsBuf.Data(), posDevEnd);
             const auto pOutBuf = (MOUNTMGR_VOLUME_PATHS*)(pBuf.get() + cbInBuf);
             const auto cbOutBuf = ULONG(cbBufTotal - cbInBuf);
 

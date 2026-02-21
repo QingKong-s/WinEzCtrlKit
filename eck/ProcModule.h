@@ -20,10 +20,10 @@ inline LDR_DATA_TABLE_ENTRY* FindModuleEntry(
         // InLoadOrderModuleList刚好指向LDR_DATA_TABLE_ENTRY中的第一个字段
         const auto pEntry = (LDR_DATA_TABLE_ENTRY*)p;
         if ((!pBase || pEntry->DllBase == pBase) &&
-            (!svModuleName.empty() || TcsIsStartWithLen2I(
+            (!svModuleName.empty() || TcsIsStartWithLength2I(
                 pEntry->BaseDllName.Buffer, pEntry->BaseDllName.Length / sizeof(WCHAR),
                 svModuleName.data(), svModuleName.size())) &&
-            (!svModulePath.empty() || TcsIsStartWithLen2I(
+            (!svModulePath.empty() || TcsIsStartWithLength2I(
                 pEntry->FullDllName.Buffer, pEntry->FullDllName.Length / sizeof(WCHAR),
                 svModulePath.data(), svModulePath.size())))
         {

@@ -300,7 +300,7 @@ public:
         size_t pos = 0u;
         for (int c = 1;; ++c)
         {
-            pos = FindBin(m_pStream, m_cb, pReplacedBin, cbReplacedBin, posStart + pos);
+            pos = FindMemory(m_pStream, m_cb, pReplacedBin, cbReplacedBin, posStart + pos);
             if (pos == BinNPos)
                 break;
             Replace(pos, cbReplacedBin, pSrcBin, cbSrcBin);
@@ -465,11 +465,11 @@ public:
 
     EckInline size_t Find(PCVOID pSub, size_t cbSub, size_t posStart = 0) const noexcept
     {
-        return FindBin(Data(), Size(), pSub, cbSub, posStart);
+        return FindMemory(Data(), Size(), pSub, cbSub, posStart);
     }
     EckInline size_t RFind(PCVOID pSub, size_t cbSub, size_t posStart = SizeTMax) const noexcept
     {
-        return FindBinRev(Data(), Size(), pSub, cbSub, posStart);
+        return RFindMemory(Data(), Size(), pSub, cbSub, posStart);
     }
 
     EckInline size_t FindByte(BYTE by, size_t posStart = 0) const noexcept
@@ -545,16 +545,16 @@ EckInlineNd bool operator==(const CByteBufferT<TAllocator>& rb1, std::initialize
 }
 
 template<class TAllocator1, class TAllocator2>
-EckInlineNd size_t FindBin(const CByteBufferT<TAllocator1>& rbMain,
+EckInlineNd size_t FindMemory(const CByteBufferT<TAllocator1>& rbMain,
     const CByteBufferT<TAllocator2>& rbSub, size_t posStart = 0) noexcept
 {
-    return FindBin(rbMain.Data(), rbMain.Size(), rbSub.Data(), rbSub.Size(), posStart);
+    return FindMemory(rbMain.Data(), rbMain.Size(), rbSub.Data(), rbSub.Size(), posStart);
 }
 template<class TAllocator1, class TAllocator2>
-EckInlineNd size_t FindBinRev(const CByteBufferT<TAllocator1>& rbMain,
+EckInlineNd size_t RFindMemory(const CByteBufferT<TAllocator1>& rbMain,
     const CByteBufferT<TAllocator2>& rbSub, size_t posStart = 0) noexcept
 {
-    return FindBinRev(rbMain.Data(), rbMain.Size(), rbSub.Data(), rbSub.Size(), posStart);
+    return RFindMemory(rbMain.Data(), rbMain.Size(), rbSub.Data(), rbSub.Size(), posStart);
 }
 ECK_NAMESPACE_END
 

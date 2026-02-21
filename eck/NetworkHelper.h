@@ -20,15 +20,15 @@ inline std::wstring_view HeaderGetParam(
     _In_z_ PCWSTR pszName,
     int cchName = -1) noexcept
 {
-    const auto pos = FindStrI(pszHeader, pszName);
+    const auto pos = FindStringI(pszHeader, pszName);
     if (pos == StrNPos)
         return {};
-    const auto posEnd = FindStrI(pszHeader, L"\r\n", pos);
+    const auto posEnd = FindStringI(pszHeader, L"\r\n", pos);
     if (posEnd == StrNPos)
         return {};
     if (cchName < 0)
-        cchName = (int)TcsLen(pszName);
-    const auto pszValue = LTrimStr(pszHeader + pos + cchName + 2);
+        cchName = (int)TcsLength(pszName);
+    const auto pszValue = TrimStringLeft(pszHeader + pos + cchName + 2);
     return { pszValue, size_t(posEnd - (pszValue - pszHeader)) };
 }
 
@@ -84,23 +84,23 @@ inline BOOL RequestUrl(FPostConnect&& fn,
         if (pszHeader)
         {
             rsHeader.PushBack(pszHeader);
-            const auto pos = FindStrI(pszHeader, L"Connection: keep-alive");
+            const auto pos = FindStringI(pszHeader, L"Connection: keep-alive");
             if (pos != StrNPos)
                 rsHeader.ReplaceSubString(L"Connection: keep-alive\r\n", -1, nullptr, 0, pos, 1);
         }
-        if (!pszHeader || FindStrI(pszHeader, L"User-Agent:") == StrNPos)
+        if (!pszHeader || FindStringI(pszHeader, L"User-Agent:") == StrNPos)
             rsHeader.PushBack(L"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n");
-        if (!pszHeader || FindStrI(pszHeader, L"Accept:") == StrNPos)
+        if (!pszHeader || FindStringI(pszHeader, L"Accept:") == StrNPos)
             rsHeader.PushBack(L"Accept: text/html, application/xhtml+xml, */*\r\n");
-        if (!pszHeader || FindStrI(pszHeader, L"Accept-Language:") == StrNPos)
+        if (!pszHeader || FindStringI(pszHeader, L"Accept-Language:") == StrNPos)
             rsHeader.PushBack(L"Accept-Language: *\r\n");
-        if (!pszHeader || FindStrI(pszHeader, L"Accept-Encoding:") == StrNPos)
+        if (!pszHeader || FindStringI(pszHeader, L"Accept-Encoding:") == StrNPos)
             rsHeader.PushBack(L"Accept-Encoding: gzip, deflate\r\n");
-        if (!pszHeader || FindStrI(pszHeader, L"Cache-Control:") == StrNPos)
+        if (!pszHeader || FindStringI(pszHeader, L"Cache-Control:") == StrNPos)
             rsHeader.PushBack(L"Cache-Control: no-cache\r\n");
-        if (wcscmp(pszMethod, L"GET") == 0 && (!pszHeader || FindStrI(pszHeader, L"Content-Type:") == StrNPos))
+        if (wcscmp(pszMethod, L"GET") == 0 && (!pszHeader || FindStringI(pszHeader, L"Content-Type:") == StrNPos))
             rsHeader.PushBack(L"Content-Type: application/x-www-form-urlencoded\r\n");
-        if (pszCookies && (!pszHeader || FindStrI(pszHeader, L"Cookie:") == StrNPos))
+        if (pszCookies && (!pszHeader || FindStringI(pszHeader, L"Cookie:") == StrNPos))
         {
             rsHeader.PushBack(L"Cookie: ");
             rsHeader.PushBack(pszCookies);
@@ -112,7 +112,7 @@ inline BOOL RequestUrl(FPostConnect&& fn,
     else
     {
         pszHeaderFinal = pszHeader;
-        cchHeaderFinal = (DWORD)TcsLen(pszHeader);
+        cchHeaderFinal = (DWORD)TcsLength(pszHeader);
     }
 
     if (pszHeaderFinal)
@@ -329,20 +329,20 @@ inline void WhCompleteHeader(_In_opt_z_ PCWSTR pszHeader, _Inout_ CStringW& rsHe
 {
     if (pszHeader)
         rsHeader.PushBack(pszHeader);
-    if (!pszHeader || FindStrI(pszHeader, L"User-Agent:") == StrNPos)
+    if (!pszHeader || FindStringI(pszHeader, L"User-Agent:") == StrNPos)
         rsHeader.PushBack(L"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n");
-    if (!pszHeader || FindStrI(pszHeader, L"Accept:") == StrNPos)
+    if (!pszHeader || FindStringI(pszHeader, L"Accept:") == StrNPos)
         rsHeader.PushBack(L"Accept: text/html, application/xhtml+xml, */*\r\n");
-    if (!pszHeader || FindStrI(pszHeader, L"Accept-Language:") == StrNPos)
+    if (!pszHeader || FindStringI(pszHeader, L"Accept-Language:") == StrNPos)
         rsHeader.PushBack(L"Accept-Language: *\r\n");
-    if (!pszHeader || FindStrI(pszHeader, L"Accept-Encoding:") == StrNPos)
+    if (!pszHeader || FindStringI(pszHeader, L"Accept-Encoding:") == StrNPos)
         rsHeader.PushBack(L"Accept-Encoding: gzip, deflate\r\n");
-    if (!pszHeader || FindStrI(pszHeader, L"Cache-Control:") == StrNPos)
+    if (!pszHeader || FindStringI(pszHeader, L"Cache-Control:") == StrNPos)
         rsHeader.PushBack(L"Cache-Control: no-cache\r\n");
-    if (wcscmp(pszMethod, L"GET") == 0 && (!pszHeader || FindStrI(pszHeader, L"Content-Type:") == StrNPos))
+    if (wcscmp(pszMethod, L"GET") == 0 && (!pszHeader || FindStringI(pszHeader, L"Content-Type:") == StrNPos))
         rsHeader.PushBack(L"Content-Type: application/x-www-form-urlencoded\r\n");
     rsHeader.ReplaceSubString(L"Connection: keep-alive\r\n", -1, nullptr, 0, 0, 1);
-    if (pszCookies && (!pszHeader || FindStrI(pszHeader, L"Cookie:") == StrNPos))
+    if (pszCookies && (!pszHeader || FindStringI(pszHeader, L"Cookie:") == StrNPos))
     {
         rsHeader.PushBack(L"Cookie: ");
         rsHeader.PushBack(pszCookies);

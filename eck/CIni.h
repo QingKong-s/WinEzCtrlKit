@@ -336,7 +336,7 @@ public:
             return FALSE;
         const int pos1 = FindValueEndPosition(pos0);
         const int cch = pos1 - pos0;
-        SplitStr(m_rsText.Data() + pos0, L",", 0, cch, 1,
+        SplitString(m_rsText.Data() + pos0, L",", 0, cch, 1,
             [&v](PCWSTR pszStart, int cchSub)
             {
                 v.emplace_back(_wtoi(pszStart));
@@ -352,7 +352,7 @@ public:
             return FALSE;
         const int pos1 = FindValueEndPosition(pos0);
         const int cch = pos1 - pos0;
-        SplitStr(m_rsText.Data() + pos0, L",", 0, cch, 1,
+        SplitString(m_rsText.Data() + pos0, L",", 0, cch, 1,
             [&v](PCWSTR pszStart, int cchSub)
             {
                 v.emplace_back(_wtof(pszStart));
@@ -369,7 +369,7 @@ public:
             return FALSE;
         const int pos1 = FindValueEndPosition(pos0);
         const int cch = pos1 - pos0;
-        SplitStr(m_rsText.Data() + pos0, L",", 0, cch, 1,
+        SplitString(m_rsText.Data() + pos0, L",", 0, cch, 1,
             [&v](PCWSTR pszStart, int cchSub)
             {
                 if (cchSub == 4 && wcsnicmp(pszStart, L"True", 4) == 0)
@@ -393,14 +393,14 @@ public:
         if (pos0 + 1 >= m_rsText.Size() || cch <= 0)
             return FALSE;
         if (m_bParseEscape)
-            SplitStr(m_rsText.Data() + pos0 + 1, LR"(",")", 0, cch, 1,
+            SplitString(m_rsText.Data() + pos0 + 1, LR"(",")", 0, cch, 1,
                 [&v](PCWSTR pszStart, int cchSub)
                 {
                     Escape(v.emplace_back(pszStart, cchSub));
                     return FALSE;
                 });
         else
-            SplitStr(m_rsText.Data() + pos0 + 1, LR"(",")", 0, cch, 1,
+            SplitString(m_rsText.Data() + pos0 + 1, LR"(",")", 0, cch, 1,
                 [&v](PCWSTR pszStart, int cchSub)
                 {
                     v.emplace_back(pszStart, cchSub);

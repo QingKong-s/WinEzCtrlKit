@@ -81,7 +81,7 @@ namespace Priv
     {
         WCHAR szPath[38 + 10];
         EckCopyConstStringW(szPath, L"CLSID\\");
-        TcsCopyLen(szPath + 6, pszClsid, 38 + 1);
+        TcsCopyLength(szPath + 6, pszClsid, 38 + 1);
 
         CRegistryKey Key{ HKEY_CLASSES_ROOT,szPath,KEY_READ };
         constexpr PCWSTR DisplayName[]
@@ -354,7 +354,7 @@ public:
         if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_SendTo,
             SHGFP_TYPE_CURRENT, nullptr, &m_pszSendToPath)))
         {
-            m_cchSendToPath = (int)TcsLen(m_pszSendToPath);
+            m_cchSendToPath = (int)TcsLength(m_pszSendToPath);
             return WIN32_FROM_NTSTATUS(m_EnumFile.Open(m_pszSendToPath));
         }
         return ERROR_ACCESS_DENIED;
@@ -372,7 +372,7 @@ public:
             // 跳过desktop.ini
             constexpr WCHAR DesktopIni[]{ L"desktop.ini" };
             if (pInfo->FileNameLength == sizeof(DesktopIni) - sizeof(WCHAR) &&
-                TcsEqualLenI(pInfo->FileName, DesktopIni,
+                TcsEqualLengthI(pInfo->FileName, DesktopIni,
                     pInfo->FileNameLength / sizeof(WCHAR)))
                 continue;
             // 跳过.和..
@@ -522,7 +522,7 @@ public:
             }
             const int cchFileName = int(pInfo->FileNameLength / sizeof(WCHAR));
             if (*pInfo->FileName == L'.' ||
-                TcsEqualLen2I(pInfo->FileName, cchFileName, EckStrAndLen(L"desktop.ini")))
+                TcsEqualLength2I(pInfo->FileName, cchFileName, EckStrAndLen(L"desktop.ini")))
                 continue;
 
             e.rsFile = m_rsWinXPath;

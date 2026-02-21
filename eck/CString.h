@@ -112,7 +112,7 @@ public:
     }
 
     CStringT(TConstPointer psz, const TAllocator& Al = TAllocator{})
-        : CStringT(psz, psz ? (int)TcsLen(psz) : 0, Al)
+        : CStringT(psz, psz ? (int)TcsLength(psz) : 0, Al)
     {
     }
 
@@ -254,9 +254,9 @@ public:
             return 0;
         }
         if (cchSrc < 0)
-            cchSrc = (int)TcsLen(pszSrc);
+            cchSrc = (int)TcsLength(pszSrc);
         ReSizeExtra(cchSrc);
-        TcsCopyLenEnd(Data(), pszSrc, cchSrc);
+        TcsCopyLengthEnd(Data(), pszSrc, cchSrc);
         return cchSrc;
     }
 
@@ -369,7 +369,7 @@ public:
             const auto p = m_Alloc.allocate(cchCapacity);
             // 必须在分配完毕后更新cchText，因为cchCapacity与cchText可能为同一个变量
             cchText = m_cchText;
-            TcsCopyLen(p, m_szLocal, m_cchText + 1);
+            TcsCopyLength(p, m_szLocal, m_cchText + 1);
             return p;
         }
         else
@@ -391,9 +391,9 @@ public:
         if (!pszSrc)
             return *this;
         if (cchSrc < 0)
-            cchSrc = (int)TcsLen(pszSrc);
+            cchSrc = (int)TcsLength(pszSrc);
         ReSizeExtra(Size() + cchSrc);
-        TcsCopyLenEnd(Data() + Size() - cchSrc, pszSrc, cchSrc);
+        TcsCopyLengthEnd(Data() + Size() - cchSrc, pszSrc, cchSrc);
         return *this;
     }
 
@@ -482,7 +482,7 @@ public:
     {
         if (cch < 0 || cch > Size())
             cch = Size();
-        TcsCopyLenEnd(pszDst, Data(), cch);
+        TcsCopyLengthEnd(pszDst, Data(), cch);
         return cch;
     }
 private:
@@ -496,7 +496,7 @@ private:
         const auto pNew = m_Alloc.allocate(cch);
         if (pOld)
         {
-            TcsCopyLen(pNew, pOld, m_cchText + 1);// 多拷一个结尾NULL
+            TcsCopyLength(pNew, pOld, m_cchText + 1);// 多拷一个结尾NULL
             if (!IsLocal())
                 m_Alloc.deallocate(pOld, m_cchCapacity);
         }
@@ -527,7 +527,7 @@ public:
 
     EckInline int ReCalcLen() noexcept
     {
-        return m_cchText = (int)TcsLen(Data());
+        return m_cchText = (int)TcsLength(Data());
     }
 
     /// <summary>
@@ -541,16 +541,16 @@ public:
     {
         EckAssert(pszNew ? TRUE : cchNew == 0);
         if (cchNew < 0)
-            cchNew = (int)TcsLen(pszNew);
+            cchNew = (int)TcsLength(pszNew);
         const int cchOrg = Size();
         const int cchAfter = Size() + cchNew - cchReplacing;
         Reserve(cchAfter);
-        TcsMoveLen(
+        TcsMoveLength(
             Data() + posStart + cchNew,
             Data() + posStart + cchReplacing,
             cchOrg - posStart - cchReplacing);
         if (pszNew)
-            TcsCopyLen(Data() + posStart, pszNew, cchNew);
+            TcsCopyLength(Data() + posStart, pszNew, cchNew);
         ReSize(cchAfter);
     }
 
@@ -580,13 +580,13 @@ public:
         EckAssert(pszReplaced);
         EckAssert(pszSrc ? TRUE : cchSrc == 0);
         if (cchReplaced < 0)
-            cchReplaced = (int)TcsLen(pszReplaced);
+            cchReplaced = (int)TcsLength(pszReplaced);
         if (cchSrc < 0)
-            cchSrc = (int)TcsLen(pszSrc);
+            cchSrc = (int)TcsLength(pszSrc);
         int pos = 0;
         for (int c = 1;; ++c)
         {
-            pos = FindStrLen(Data(), Size(), pszReplaced, cchReplaced, posStart + pos);
+            pos = FindStringLength(Data(), Size(), pszReplaced, cchReplaced, posStart + pos);
             if (pos < 0)
                 break;
             Replace(pos, cchReplaced, pszSrc, cchSrc);
@@ -620,11 +620,11 @@ public:
     {
         EckAssert(pszText);
         if (cchText < 0)
-            cchText = (int)TcsLen(pszText);
+            cchText = (int)TcsLength(pszText);
         ReSize(posStart + cchText * cCount);
         auto pszCurr = Data() + posStart;
         for (int i = 0; i < cCount; ++i, pszCurr += cchText)
-            TcsCopyLen(pszCurr, pszText, cchText);
+            TcsCopyLength(pszCurr, pszText, cchText);
         TCharTraits::Cut(Data(), Size());
     }
     EckInline void MakeRepeatedSequence(int cCount, const CStringT& rsText, int posStart = 0)
@@ -643,13 +643,13 @@ public:
         EckAssert(pos <= Size() && pos >= 0);
         EckAssert(pszText ? TRUE : (cchText == 0));
         if (cchText < 0)
-            cchText = (int)TcsLen(pszText);
+            cchText = (int)TcsLength(pszText);
         ReSizeExtra(Size() + cchText);
-        TcsMoveLenEnd(
+        TcsMoveLengthEnd(
             Data() + pos + cchText,
             Data() + pos,
             Size() - cchText - pos);
-        TcsCopyLen(Data() + pos, pszText, cchText);
+        TcsCopyLength(Data() + pos, pszText, cchText);
     }
 
     template<class TTraits, class TAllocator1>
@@ -674,7 +674,7 @@ public:
     {
         EckAssert(pos <= Size() && pos >= 0);
         ReSizeExtra(Size() + cchText);
-        TcsMoveLenEnd(
+        TcsMoveLengthEnd(
             Data() + pos + cchText,
             Data() + pos,
             Size() - cchText - pos);
@@ -685,7 +685,7 @@ public:
     {
         EckAssert(pos <= Size() && pos >= 0);
         ReSizeExtra(Size() + 1);
-        TcsMoveLenEnd(
+        TcsMoveLengthEnd(
             Data() + pos + 1,
             Data() + pos,
             Size() - 1 - pos);
@@ -695,7 +695,7 @@ public:
     EckInline void Erase(int pos, int cch = 1) noexcept
     {
         EckAssert(Size() >= pos + cch);
-        TcsMoveLenEnd(
+        TcsMoveLengthEnd(
             Data() + pos,
             Data() + pos + cch,
             Size() - pos - cch);
@@ -709,7 +709,7 @@ public:
             return;
         const auto pOld = m_pszText;
         m_pszText = m_Alloc.allocate(m_cchText + 1);
-        TcsCopyLen(Data(), pOld, m_cchText + 1);
+        TcsCopyLength(Data(), pOld, m_cchText + 1);
         m_Alloc.deallocate(pOld, m_cchCapacity);
         m_cchCapacity = m_cchText + 1;
     }
@@ -820,8 +820,8 @@ public:
     EckInlineNd int Find(TConstPointer pszSub, int cchSub = -1, int posStart = 0) const noexcept
     {
         if (cchSub < 0)
-            cchSub = (int)TcsLen(pszSub);
-        return FindStrLen(Data(), Size(), pszSub, cchSub, posStart);
+            cchSub = (int)TcsLength(pszSub);
+        return FindStringLength(Data(), Size(), pszSub, cchSub, posStart);
     }
     template<class TTraits, class TAllocator1>
     EckInlineNd int Find(const CStringT<TChar, TTraits, TAllocator1>& rs, int posStart = 0) const noexcept
@@ -842,8 +842,8 @@ public:
     EckInlineNd int FindI(TConstPointer pszSub, int cchSub = -1, int posStart = 0) const noexcept
     {
         if (cchSub < 0)
-            cchSub = (int)TcsLen(pszSub);
-        return FindStrLenI(Data(), Size(), pszSub, cchSub, posStart);
+            cchSub = (int)TcsLength(pszSub);
+        return FindStringLengthI(Data(), Size(), pszSub, cchSub, posStart);
     }
     template<class TTraits, class TAllocator1>
     EckInlineNd int FindI(const CStringT<TChar, TTraits, TAllocator1>& rs, int posStart = 0) const noexcept
@@ -864,8 +864,8 @@ public:
     EckInlineNd int RFind(TConstPointer pszSub, int cchSub = -1, int posStart = -1) const noexcept
     {
         if (cchSub < 0)
-            cchSub = (int)TcsLen(pszSub);
-        return FindStrRev(Data(), Size(), pszSub, cchSub, posStart);
+            cchSub = (int)TcsLength(pszSub);
+        return RFindString(Data(), Size(), pszSub, cchSub, posStart);
     }
     template<class TTraits, class TAllocator1>
     EckInlineNd int RFind(const CStringT<TChar, TTraits, TAllocator1>& rs, int posStart = -1) const noexcept
@@ -886,8 +886,8 @@ public:
     EckInlineNd int RFindI(TConstPointer pszSub, int cchSub = -1, int posStart = -1) const noexcept
     {
         if (cchSub < 0)
-            cchSub = (int)TcsLen(pszSub);
-        return FindStrRevI(Data(), Size(), pszSub, cchSub, posStart);
+            cchSub = (int)TcsLength(pszSub);
+        return RFindStringI(Data(), Size(), pszSub, cchSub, posStart);
     }
     template<class TTraits, class TAllocator1>
     EckInlineNd int RFindI(const CStringT<TChar, TTraits, TAllocator1>& rs, int posStart = -1) const noexcept
@@ -909,37 +909,37 @@ public:
     {
         if (IsEmpty())
             return StrNPos;
-        return FindCharLen(Data(), Size(), ch, posStart);
+        return FindCharLength(Data(), Size(), ch, posStart);
     }
     EckInlineNd int RFindChar(TChar ch, int posStart = -1) const noexcept
     {
         if (IsEmpty())
             return StrNPos;
-        return FindCharRevLen(Data(), Size(), ch, posStart);
+        return RFindCharLength(Data(), Size(), ch, posStart);
     }
 
     EckInlineNd int FindFirstOf(TConstPointer pszChars, int cchChars = -1, int posStart = 0) const noexcept
     {
         if (cchChars < 0)
-            cchChars = (int)TcsLen(pszChars);
+            cchChars = (int)TcsLength(pszChars);
         return FindCharFirstOf(Data(), Size(), pszChars, cchChars, posStart);
     }
     EckInlineNd int FindFirstNotOf(TConstPointer pszChars, int cchChars = -1, int posStart = 0) const noexcept
     {
         if (cchChars < 0)
-            cchChars = (int)TcsLen(pszChars);
+            cchChars = (int)TcsLength(pszChars);
         return FindCharFirstNotOf(Data(), Size(), pszChars, cchChars, posStart);
     }
     EckInlineNd int FindLastOf(TConstPointer pszChars, int cchChars = -1, int posStart = -1) const noexcept
     {
         if (cchChars < 0)
-            cchChars = (int)TcsLen(pszChars);
+            cchChars = (int)TcsLength(pszChars);
         return FindCharLastOf(Data(), Size(), pszChars, cchChars, posStart);
     }
     EckInlineNd int FindLastNotOf(TConstPointer pszChars, int cchChars = -1, int posStart = -1) const noexcept
     {
         if (cchChars < 0)
-            cchChars = (int)TcsLen(pszChars);
+            cchChars = (int)TcsLength(pszChars);
         return FindCharLastNotOf(Data(), Size(), pszChars, cchChars, posStart);
     }
 
@@ -947,30 +947,30 @@ public:
     {
         if (IsEmpty())
             return;
-        const auto pszBegin = LTrimStr(Data(), Size());
+        const auto pszBegin = TrimStringLeft(Data(), Size());
         const int cchNew = Size() - int(pszBegin - Data());
-        TcsMoveLen(Data(), pszBegin, cchNew);
+        TcsMoveLength(Data(), pszBegin, cchNew);
         ReSize(cchNew);
     }
     void RTrim() noexcept
     {
         if (IsEmpty())
             return;
-        const auto pszEnd = RTrimStr(Data(), Size());
+        const auto pszEnd = TrimStringRight(Data(), Size());
         ReSize(int(pszEnd - Data()));
     }
     void LRTrim() noexcept
     {
         if (IsEmpty())
             return;
-        const auto pszBegin = LTrimStr(Data(), Size());
-        const auto pszEnd = RTrimStr(Data(), Size());
+        const auto pszBegin = TrimStringLeft(Data(), Size());
+        const auto pszEnd = TrimStringRight(Data(), Size());
         if (pszEnd < pszBegin)
             Clear();
         else
         {
             const int cchNew = int(pszEnd - pszBegin);
-            TcsMoveLen(Data(), pszBegin, cchNew);
+            TcsMoveLength(Data(), pszBegin, cchNew);
             ReSize(cchNew);
         }
     }
@@ -983,18 +983,18 @@ public:
         EckLoop()
         {
             if constexpr (std::is_same_v<TChar, WCHAR>)
-                p0 = TcsChrFirstNotOf(p1, Size() - (p1 - pData), EckStrAndLen(SpaceCharsW));
+                p0 = TcsCharFirstNotOf(p1, Size() - (p1 - pData), EckStrAndLen(SpaceCharsW));
             else
-                p0 = TcsChrFirstNotOf(p1, Size() - (p1 - pData), EckStrAndLen(SpaceCharsA));
+                p0 = TcsCharFirstNotOf(p1, Size() - (p1 - pData), EckStrAndLen(SpaceCharsA));
             if (!p0)
                 break;
             if constexpr (std::is_same_v<TChar, WCHAR>)
-                p1 = TcsChrFirstOf(p0, Size() - (p0 - pData), EckStrAndLen(SpaceCharsW));
+                p1 = TcsCharFirstOf(p0, Size() - (p0 - pData), EckStrAndLen(SpaceCharsW));
             else
-                p1 = TcsChrFirstOf(p0, Size() - (p0 - pData), EckStrAndLen(SpaceCharsA));
+                p1 = TcsCharFirstOf(p0, Size() - (p0 - pData), EckStrAndLen(SpaceCharsA));
             if (!p1)
                 p1 = pData + Size();
-            TcsMoveLen(pCurr, p0, p1 - p0);
+            TcsMoveLength(pCurr, p0, p1 - p0);
             pCurr += (p1 - p0);
         }
         ReSize(int(pCurr - pData));
@@ -1003,10 +1003,10 @@ public:
     [[nodiscard]] BOOL IsStartWith(TConstPointer psz, int cch = -1) const noexcept
     {
         if (cch < 0)
-            cch = (int)TcsLen(psz);
+            cch = (int)TcsLength(psz);
         if (cch == 0 || Size() < cch)
             return FALSE;
-        return TcsEqualLen(Data(), psz, cch);
+        return TcsEqualLength(Data(), psz, cch);
     }
     template<class TTraits>
     EckInlineNd int IsStartWith(std::basic_string_view<TChar, TTraits> sv) const noexcept
@@ -1016,10 +1016,10 @@ public:
     [[nodiscard]] BOOL IsStartWithI(TConstPointer psz, int cch = -1) const noexcept
     {
         if (cch < 0)
-            cch = (int)TcsLen(psz);
+            cch = (int)TcsLength(psz);
         if (cch == 0 || Size() < cch)
             return FALSE;
-        return TcsEqualLenI(Data(), psz, cch);
+        return TcsEqualLengthI(Data(), psz, cch);
     }
     template<class TTraits>
     EckInlineNd int IsStartWithI(std::basic_string_view<TChar, TTraits> sv) const noexcept
@@ -1030,10 +1030,10 @@ public:
     [[nodiscard]] BOOL IsEndWith(TConstPointer psz, int cch = -1) const noexcept
     {
         if (cch < 0)
-            cch = (int)TcsLen(psz);
+            cch = (int)TcsLength(psz);
         if (cch == 0 || Size() < cch)
             return FALSE;
-        return TcsEqualLen(Data() + Size() - cch, psz, cch);
+        return TcsEqualLength(Data() + Size() - cch, psz, cch);
     }
     template<class TTraits>
     EckInlineNd int IsEndWith(std::basic_string_view<TChar, TTraits> sv) const noexcept
@@ -1043,10 +1043,10 @@ public:
     [[nodiscard]] BOOL IsEndWithI(TConstPointer psz, int cch = -1) const noexcept
     {
         if (cch < 0)
-            cch = (int)TcsLen(psz);
+            cch = (int)TcsLength(psz);
         if (cch == 0 || Size() < cch)
             return FALSE;
-        return TcsEqualLenI(Data() + Size() - cch, psz, cch);
+        return TcsEqualLengthI(Data() + Size() - cch, psz, cch);
     }
     template<class TTraits>
     EckInlineNd int IsEndWithI(std::basic_string_view<TChar, TTraits> sv) const noexcept
@@ -1095,8 +1095,8 @@ public:
     EckInline int Compare(TConstPointer psz, int cch = -1) const noexcept
     {
         if (cch < 0)
-            cch = (int)TcsLen(psz);
-        return TcsCompareLen2(Data(), Size(), psz, cch);
+            cch = (int)TcsLength(psz);
+        return TcsCompareLength2(Data(), Size(), psz, cch);
     }
     template<class TTraits>
     EckInline int Compare(std::basic_string_view<TChar, TTraits> sv) const noexcept
@@ -1106,8 +1106,8 @@ public:
     EckInline int CompareI(TConstPointer psz, int cch = -1) const noexcept
     {
         if (cch < 0)
-            cch = (int)TcsLen(psz);
-        return TcsCompareLen2I(Data(), Size(), psz, cch);
+            cch = (int)TcsLength(psz);
+        return TcsCompareLength2I(Data(), Size(), psz, cch);
     }
     template<class TTraits>
     EckInline int CompareI(std::basic_string_view<TChar, TTraits> sv) const noexcept
@@ -1152,9 +1152,9 @@ public:
         if (pos < 0)
             return FALSE;
         if (cchNewName < 0)
-            cchNewName = (int)TcsLen(pszNewName);
+            cchNewName = (int)TcsLength(pszNewName);
         ReSize(pos + cchNewName);
-        TcsCopyLen(Data() + pos, pszNewName, cchNewName);
+        TcsCopyLength(Data() + pos, pszNewName, cchNewName);
         return TRUE;
     }
 
@@ -1192,9 +1192,9 @@ public:
         else
         {
             if (cchNewExt < 0)
-                cchNewExt = (int)TcsLen(pszNewExt);
+                cchNewExt = (int)TcsLength(pszNewExt);
             ReSize(pos + cchNewExt);
-            TcsCopyLen(Data() + pos, pszNewExt, cchNewExt);
+            TcsCopyLength(Data() + pos, pszNewExt, cchNewExt);
         }
     }
 
@@ -1264,7 +1264,7 @@ public:
         PazFindFileName(bKeepExtension, pos0, pos1);
         if (pos0 < 0)
             return FALSE;
-        TcsMoveLen(Data(), Data() + pos0, pos1 - pos0);
+        TcsMoveLength(Data(), Data() + pos0, pos1 - pos0);
         ReSize(pos1 - pos0);
         return TRUE;
     }
@@ -1275,7 +1275,7 @@ public:
         if (pos0 < 0)
             return FALSE;
         rsFileName.PushBackNoExtra(pos1 - pos0);
-        TcsCopyLen(rsFileName.Data(), Data() + pos0, pos1 - pos0);
+        TcsCopyLength(rsFileName.Data(), Data() + pos0, pos1 - pos0);
         return TRUE;
     }
 
@@ -1309,17 +1309,17 @@ template<class TChar, class TCharTraits, class TAllocator>
 EckInline EckTemp operator+(const EckTemp& rs1, const EckTemp& rs2)
 {
     EckTemp x(rs1.Size() + rs2.Size());
-    TcsCopyLen(x.Data(), rs1.Data(), rs1.Size());
-    TcsCopyLenEnd(x.Data() + rs1.Size(), rs2.Data(), rs2.Size());
+    TcsCopyLength(x.Data(), rs1.Data(), rs1.Size());
+    TcsCopyLengthEnd(x.Data() + rs1.Size(), rs2.Data(), rs2.Size());
     return x;
 }
 template<class TChar, class TCharTraits, class TAllocator>
 EckInline EckTemp operator+(const EckTemp& rs, const TChar* psz)
 {
-    const int cch = (psz ? (int)TcsLen(psz) : 0);
+    const int cch = (psz ? (int)TcsLength(psz) : 0);
     EckTemp x(rs.Size() + cch);
-    TcsCopyLen(x.Data(), rs.Data(), rs.Size());
-    TcsCopyLenEnd(x.Data() + rs.Size(), psz, cch);
+    TcsCopyLength(x.Data(), rs.Data(), rs.Size());
+    TcsCopyLengthEnd(x.Data() + rs.Size(), psz, cch);
     return x;
 }
 
@@ -1331,7 +1331,7 @@ EckInlineNd bool operator==(const EckTemp& rs1, const TChar* psz2) noexcept
     else if (!psz2)
         return false;
     else
-        return TcsCompareLen2(rs1.Data(), rs1.Size(), psz2, (int)TcsLen(psz2)) == 0;
+        return TcsCompareLength2(rs1.Data(), rs1.Size(), psz2, (int)TcsLength(psz2)) == 0;
 }
 template<class TChar, class TCharTraits, class TAllocator>
 EckInlineNd bool operator==(const TChar* psz2, const EckTemp& rs1) noexcept
@@ -1347,7 +1347,7 @@ EckInlineNd std::weak_ordering operator<=>(const EckTemp& rs1, const TChar* psz2
     else if (!psz2)
         return std::weak_ordering::greater;
     else
-        return TcsCompareLen2(rs1.Data(), rs1.Size(), psz2, (int)TcsLen(psz2)) <=> 0;
+        return TcsCompareLength2(rs1.Data(), rs1.Size(), psz2, (int)TcsLength(psz2)) <=> 0;
 }
 template<class TChar, class TCharTraits, class TAllocator>
 EckInlineNd std::weak_ordering operator<=>(const TChar* psz2, const EckTemp& rs1) noexcept
@@ -1357,19 +1357,19 @@ EckInlineNd std::weak_ordering operator<=>(const TChar* psz2, const EckTemp& rs1
     else if (rs1.IsEmpty())
         return std::weak_ordering::greater;
     else
-        return TcsCompareLen2(psz2, (int)TcsLen(psz2), rs1.Data(), rs1.Size()) <=> 0;
+        return TcsCompareLength2(psz2, (int)TcsLength(psz2), rs1.Data(), rs1.Size()) <=> 0;
 }
 
 template<class TChar, class TCharTraits, class TAllocator>
 EckInlineNd bool operator==(const EckTemp& rs1, const EckTemp& rs2) noexcept
 {
-    return TcsCompareLen2(rs1.Data(), rs1.Size(), rs2.Data(), rs2.Size()) == 0;
+    return TcsCompareLength2(rs1.Data(), rs1.Size(), rs2.Data(), rs2.Size()) == 0;
 }
 
 template<class TChar, class TCharTraits, class TAllocator>
 EckInlineNd std::weak_ordering operator<=>(const EckTemp& rs1, const EckTemp& rs2) noexcept
 {
-    return TcsCompareLen2(rs1.Data(), rs1.Size(), rs2.Data(), rs2.Size()) <=> 0;
+    return TcsCompareLength2(rs1.Data(), rs1.Size(), rs2.Data(), rs2.Size()) <=> 0;
 }
 #pragma endregion Operator
 

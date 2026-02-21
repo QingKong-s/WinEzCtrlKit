@@ -195,8 +195,8 @@ namespace TypeIo
         const auto pEnd = (const TChar*)c.pEnd;
         const auto pCurr = (const TChar*)c.pCurr;
         if (Str.IgnoreCase ?
-            TcsIsStartWithLen2I(pCurr, pEnd - pCurr, (const TChar*)Str.Str, Str.Len) :
-            TcsIsStartWithLen2(pCurr, pEnd - pCurr, (const TChar*)Str.Str, Str.Len))
+            TcsIsStartWithLength2I(pCurr, pEnd - pCurr, (const TChar*)Str.Str, Str.Len) :
+            TcsIsStartWithLength2(pCurr, pEnd - pCurr, (const TChar*)Str.Str, Str.Len))
         {
             c.pCurr += Str.Len;
             return Ret::Ok;

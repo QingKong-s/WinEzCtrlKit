@@ -21,10 +21,10 @@ private:
     {
         if (rs.IsEmpty())
             return -1;
-        int iPos = FindStrRev(rs.Data(), rs.Size(), L",", 1);
+        int iPos = RFindString(rs.Data(), rs.Size(), L",", 1);
         if (iPos <= 1)
             return -1;// 找不到逗号
-        iPos = FindStrRev(rs.Data(), rs.Size(), L",", 1, iPos - 1);
+        iPos = RFindString(rs.Data(), rs.Size(), L",", 1, iPos - 1);
         if (iPos <= 1)
             return -1;// 找不到逗号
         return iPos;

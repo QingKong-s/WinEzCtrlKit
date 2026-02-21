@@ -494,7 +494,7 @@ private:
     {
         for (const auto& e : vWordTime)
         {
-            TcsCopyLen(p, e.pszWord, e.cchWord);
+            TcsCopyLength(p, e.pszWord, e.cchWord);
             p += e.cchWord;
         }
     }
@@ -551,7 +551,7 @@ private:
         if (bWordTime)
             MgpCopyWordAsSentence(TopItem.vWordTime, p);
         else
-            TcsCopyLen(p, TopItem.pszLrc, TopItem.cchLrc);
+            TcsCopyLength(p, TopItem.pszLrc, TopItem.cchLrc);
         TopItem.pszLrc = p;
         p += TopItem.cchLrc;
         *p++ = L'\0';
@@ -560,7 +560,7 @@ private:
         if (TopItem.cchTranslation)
         {
             EckAssert(!bWordTime);
-            TcsCopyLen(p, TopItem.pszTranslation, TopItem.cchTranslation);
+            TcsCopyLength(p, TopItem.pszTranslation, TopItem.cchTranslation);
             TopItem.pszTranslation = p;
             p += TopItem.cchTranslation;
             EckLrcValidateHeap();
@@ -589,7 +589,7 @@ private:
                 if (e.cchLrc)
                 {
                     *p++ = L'\n';
-                    TcsCopyLen(p, e.pszLrc, e.cchLrc);
+                    TcsCopyLength(p, e.pszLrc, e.cchLrc);
                     p += e.cchLrc;
                     EckLrcValidateHeap();
                 }
@@ -597,7 +597,7 @@ private:
                 {
                     EckAssert(!bWordTime);
                     *p++ = L'\n';
-                    TcsCopyLen(p, e.pszTranslation, e.cchTranslation);
+                    TcsCopyLength(p, e.pszTranslation, e.cchTranslation);
                     p += e.cchTranslation;
                     EckLrcValidateHeap();
                 }
@@ -652,7 +652,7 @@ private:
                 continue;
             if (d.svDiv2.empty())
             {
-                const auto p = TcsStrLenI(Line.pszLrc, Line.cchLrc,
+                const auto p = TcsStringLengthI(Line.pszLrc, Line.cchLrc,
                     d.svDiv1.data(), d.svDiv1.size());
                 if (p)
                 {
@@ -663,11 +663,11 @@ private:
             }
             else
             {
-                const auto pos1 = FindStrLenI(Line.pszLrc, Line.cchLrc,
+                const auto pos1 = FindStringLengthI(Line.pszLrc, Line.cchLrc,
                     d.svDiv1.data(), (int)d.svDiv1.size());
                 if (pos1 >= 0)
                 {
-                    const auto pos2 = FindStrRevI(Line.pszLrc, Line.cchLrc,
+                    const auto pos2 = RFindStringI(Line.pszLrc, Line.cchLrc,
                         d.svDiv2.data(), (int)d.svDiv2.size());
                     if (pos2 >= 0 && pos2 > pos1)
                     {
@@ -809,7 +809,7 @@ public:
     void LoadTextStringView(std::wstring_view sv) noexcept
     {
         m_rsLyric.ReSize((int)sv.size());
-        TcsCopyLen(m_rsLyric.Data(), sv.data(), (int)sv.size());
+        TcsCopyLength(m_rsLyric.Data(), sv.data(), (int)sv.size());
     }
     void LoadTextMove(CStringW&& rs) noexcept { m_rsLyric = std::move(rs); }
     NTSTATUS LoadTextFile(PCWSTR pszFileName) noexcept
@@ -901,7 +901,7 @@ public:
                     r = LrcParseLabel(p, pEnd, &bAddLrc, &bAddLabel);
                     if (r == Result::Ok)// 成功，文本结束
                     {
-                        pLast = LTrimStr(pLast, int(pOld - pLast - 1));
+                        pLast = TrimStringLeft(pLast, int(pOld - pLast - 1));
                         for (auto it = m_vLine.rbegin() + bAddLrc;
                             it != m_vLine.rbegin() + bAddLrc + cLabelContinues; ++it)
                         {
@@ -932,7 +932,7 @@ public:
                 else if (ch == '\r' || ch == '\n' || p == pEnd)
                 {
                     eState = State::Normal;
-                    pLast = LTrimStr(pLast, int(p - pLast - 1));
+                    pLast = TrimStringLeft(pLast, int(p - pLast - 1));
                     for (auto it = m_vLine.rbegin();
                         it != m_vLine.rbegin() + cLabelContinues; ++it)
                     {
@@ -1426,7 +1426,7 @@ public:
     {
         for (size_t i = idxBegin; i < m_vLabel.size(); ++i)
         {
-            if (TcsEqualLen2I(svKey.data(), svKey.size(),
+            if (TcsEqualLength2I(svKey.data(), svKey.size(),
                 m_vLabel[i].pszKey, m_vLabel[i].cchKey))
                 return (int)i;
         }

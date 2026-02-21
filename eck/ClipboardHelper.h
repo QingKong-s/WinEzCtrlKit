@@ -43,7 +43,7 @@ inline BOOL SetClipboardString(HWND hWnd,
     CClipboardGuard _{};
 
     if (cch < 0)
-        cch = (int)TcsLen(pszText);
+        cch = (int)TcsLength(pszText);
     const auto hData = GlobalAlloc(GMEM_MOVEABLE, Cch2CbW(cch));
     if (!hData)
         return FALSE;
@@ -53,7 +53,7 @@ inline BOOL SetClipboardString(HWND hWnd,
         GlobalFree(hData);
         return FALSE;
     }
-    TcsCopyLenEnd((PWCH)pData, pszText, cch);
+    TcsCopyLengthEnd((PWCH)pData, pszText, cch);
     GlobalUnlock(hData);
 
     EmptyClipboard();

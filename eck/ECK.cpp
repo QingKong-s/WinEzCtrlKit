@@ -360,12 +360,12 @@ static void UxfpOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList) noexc
         eType = ThemeType::AeroWizard;
     else if (TcsEqualI(pszClassList, L"DatePicker"))
         eType = ThemeType::DateTimePicker;
-    else if (TcsStrI(pszClassList, L"ListView") ||
+    else if (TcsStringI(pszClassList, L"ListView") ||
         TcsEqualI(pszClassList, L"ItemsView"))
         eType = ThemeType::ListView;
     else if (TcsEqualI(pszClassList, L"Link"))
         eType = ThemeType::Link;
-    else if (TcsStrI(pszClassList, L"Header"))
+    else if (TcsStringI(pszClassList, L"Header"))
         eType = ThemeType::Header;
     else if (TcsEqualI(pszClassList, L"TextStyle"))
         eType = ThemeType::TextStyle;

@@ -16,7 +16,7 @@ ECK_NAMESPACE_BEGIN
 	}
 
 #define ECK_OBJA_INT(Name, Field) \
-	if (::eck::TcsCompareLen2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
+	if (::eck::TcsCompareLength2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
 		if (bSet) { \
 			int v; \
 			const auto r = ::eck::OamFromString<::eck::ObjAttrType::Int>(svValue, v); \
@@ -25,7 +25,7 @@ ECK_NAMESPACE_BEGIN
 		} \
 		return ::eck::OamToString<::eck::ObjAttrType::Int>(Field, rsValue); }
 #define ECK_OBJA_UINT(Name, Field) \
-	if (::eck::TcsCompareLen2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
+	if (::eck::TcsCompareLength2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
 		if (bSet) { \
 			unsigned int v; \
 			const auto r = ::eck::OamFromString<::eck::ObjAttrType::UInt>(svValue, v); \
@@ -34,7 +34,7 @@ ECK_NAMESPACE_BEGIN
 		} \
 		return ::eck::OamToString<::eck::ObjAttrType::UInt>(Field, rsValue); }
 #define ECK_OBJA_LONGLONG(Name, Field) \
-	if (::eck::TcsCompareLen2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
+	if (::eck::TcsCompareLength2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
 		if (bSet) { \
 			long long v; \
 			const auto r = ::eck::OamFromString<::eck::ObjAttrType::LongLong>(svValue, v); \
@@ -43,7 +43,7 @@ ECK_NAMESPACE_BEGIN
 		} \
 		return ::eck::OamToString<::eck::ObjAttrType::LongLong>(Field, rsValue); }
 #define ECK_OBJA_ULONGLONG(Name, Field) \
-	if (::eck::TcsCompareLen2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
+	if (::eck::TcsCompareLength2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
 		if (bSet) { \
 			unsigned long long v; \
 			const auto r = ::eck::OamFromString<::eck::ObjAttrType::ULongLong>(svValue, v); \
@@ -52,7 +52,7 @@ ECK_NAMESPACE_BEGIN
 		} \
 		return ::eck::OamToString<::eck::ObjAttrType::ULongLong>(Field, rsValue); }
 #define ECK_OBJA_FLOAT(Name, Field) \
-	if (::eck::TcsCompareLen2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
+	if (::eck::TcsCompareLength2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
 		if (bSet) { \
 			float v; \
 			const auto r = ::eck::OamFromString<::eck::ObjAttrType::Float>(svValue, v); \
@@ -61,7 +61,7 @@ ECK_NAMESPACE_BEGIN
 		} \
 		return ::eck::OamToString<::eck::ObjAttrType::Float>(Field, rsValue); }
 #define ECK_OBJA_DOUBLE(Name, Field) \
-	if (::eck::TcsCompareLen2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
+	if (::eck::TcsCompareLength2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
 		if (bSet) { \
 			double v; \
 			const auto r = ::eck::OamFromString<::eck::ObjAttrType::Double>(svValue, v); \
@@ -70,7 +70,7 @@ ECK_NAMESPACE_BEGIN
 		} \
 		return ::eck::OamToString<::eck::ObjAttrType::Double>(Field, rsValue); }
 #define ECK_OBJA_BOOL(Name, Field) \
-	if (::eck::TcsCompareLen2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
+	if (::eck::TcsCompareLength2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
 		if (bSet) { \
 			BOOL v; \
 			const auto r = ::eck::OamFromString<::eck::ObjAttrType::Bool>(svValue, v); \
@@ -79,7 +79,7 @@ ECK_NAMESPACE_BEGIN
 		} \
 		return ::eck::OamToString<::eck::ObjAttrType::Bool>(Field, rsValue); }
 #define ECK_OBJA_STRING(Name, Field) \
-	if (::eck::TcsCompareLen2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
+	if (::eck::TcsCompareLength2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
 		if (bSet) { \
 			CStringW v; \
 			const auto r = ::eck::OamFromString<::eck::ObjAttrType::String>(svValue, v); \
@@ -88,7 +88,7 @@ ECK_NAMESPACE_BEGIN
 		} \
 		return ::eck::OamToString<::eck::ObjAttrType::String>(Field, rsValue); }
 #define ECK_OBJA_ENUM(Name, Field) \
-	if (::eck::TcsCompareLen2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
+	if (::eck::TcsCompareLength2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
 		using TUnderlying = ::eck::UnderlyingType_T<decltype(Field)>; \
 		if (bSet) { \
 			TUnderlying v; \
@@ -99,7 +99,7 @@ ECK_NAMESPACE_BEGIN
 		return ::eck::OamToString<::eck::ObjAttrTypeEnum<TUnderlying>>(static_cast<TUnderlying>(Field), rsValue); }
 // 设置枚举，并检查范围，范围为[Min, Max]
 #define ECK_OBJA_ENUM_CHECK(Name, Field, Min, Max) \
-	if (::eck::TcsCompareLen2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
+	if (::eck::TcsCompareLength2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) { \
 		using TUnderlying = ::eck::UnderlyingType_T<decltype(Field)>; \
 		if (bSet) { \
 			TUnderlying v; \
@@ -113,7 +113,7 @@ ECK_NAMESPACE_BEGIN
 		} \
 		return ::eck::OamToString<::eck::ObjAttrTypeEnum<TUnderlying>>(static_cast<TUnderlying>(Field), rsValue); }
 #define ECK_OBJA_CUSTOM(Name, GetSetFunc) \
-	if (::eck::TcsCompareLen2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) \
+	if (::eck::TcsCompareLength2I(svName.data(), svName.size(), EckStrAndLen(Name)) == 0) \
 		return GetSetFunc(svValue, rsValue, bSet);
 
 
@@ -234,12 +234,12 @@ inline ObjAttrErr OamFromString(std::wstring_view Str, TOamValFrom<E> Val) noexc
     else if constexpr (BaseType == ObjAttrType::Float ||
         BaseType == ObjAttrType::Double)
     {
-        const auto pszBegin = LTrimStr(Str.data(), (int)Str.size());
+        const auto pszBegin = TrimStringLeft(Str.data(), (int)Str.size());
         const auto cch = Str.size() - (pszBegin - Str.data());
         if (cch == 0)
             Val = 0;
         const auto pszTmp = (PWSTR)_malloca(Cch2CbW(cch));
-        TcsCopyLenEnd(pszTmp, pszBegin, cch);
+        TcsCopyLengthEnd(pszTmp, pszBegin, cch);
         PWSTR pszEnd;
         Val = (TObjAttrType<E>)wcstod(pszTmp, &pszEnd);
         _freea(pszTmp);
@@ -249,9 +249,9 @@ inline ObjAttrErr OamFromString(std::wstring_view Str, TOamValFrom<E> Val) noexc
     }
     else if constexpr (BaseType == ObjAttrType::Bool)
     {
-        if (TcsCompareLen2I(Str.data(), Str.size(), EckStrAndLen(L"true")) == 0 ||
-            TcsCompareLen2(Str.data(), Str.size(), EckStrAndLen(L"1")) == 0 ||
-            TcsCompareLen2(Str.data(), Str.size(), EckStrAndLen(L"真")) == 0)
+        if (TcsCompareLength2I(Str.data(), Str.size(), EckStrAndLen(L"true")) == 0 ||
+            TcsCompareLength2(Str.data(), Str.size(), EckStrAndLen(L"1")) == 0 ||
+            TcsCompareLength2(Str.data(), Str.size(), EckStrAndLen(L"真")) == 0)
             Val = TRUE;
         else
             Val = FALSE;

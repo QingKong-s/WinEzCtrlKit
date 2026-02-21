@@ -10,7 +10,7 @@ concept ccpIsPtr = std::is_pointer_v<TPtr>;
 
 
 template<ccpIsPtr TPtr, ccpIsPtr TPattern>
-_Ret_maybenull_ EckInline TPtr MemMem(_In_reads_bytes_(Len) TPtr Mem, size_t Len,
+_Ret_maybenull_ EckInline TPtr MemMemory(_In_reads_bytes_(Len) TPtr Mem, size_t Len,
     _In_reads_bytes_(SubLen) TPattern SubMem, size_t SubLen) noexcept
 {
     if (Len < SubLen)
@@ -31,7 +31,7 @@ _Ret_maybenull_ EckInline TPtr MemMem(_In_reads_bytes_(Len) TPtr Mem, size_t Len
 }
 
 template<ccpIsPtr TPtr, ccpIsPtr TPattern>
-_Ret_maybenull_ EckInline TPtr MemRMem(_In_reads_bytes_(Len) TPtr Mem, size_t Len,
+_Ret_maybenull_ EckInline TPtr MemRMemory(_In_reads_bytes_(Len) TPtr Mem, size_t Len,
     _In_reads_bytes_(SubLen) TPattern SubMem, size_t SubLen, size_t posStart = SizeTMax) noexcept
 {
     if (Len < SubLen)
@@ -48,25 +48,25 @@ _Ret_maybenull_ EckInline TPtr MemRMem(_In_reads_bytes_(Len) TPtr Mem, size_t Le
 
 
 template<ccpIsPtr TPtr, ccpIsPtr TPattern>
-EckInlineNd size_t FindBin(_In_reads_bytes_(cbMain) TPtr pMain, size_t cbMain,
+EckInlineNd size_t FindMemory(_In_reads_bytes_(cbMain) TPtr pMain, size_t cbMain,
     _In_reads_bytes_(cbSub) TPattern pSub, size_t cbSub, size_t posStart = 0) noexcept
 {
-    const auto pFind = MemMem(pMain + posStart, cbMain - posStart, pSub, cbSub);
+    const auto pFind = MemMemory(pMain + posStart, cbMain - posStart, pSub, cbSub);
     return pFind ? ((PCBYTE)pFind - (PCBYTE)pMain) : -1;
 }
 template<ccpIsPtr TPtr, ccpIsPtr TPattern>
-EckInlineNd size_t FindBinRev(_In_reads_bytes_(cbMain) TPtr pMain, size_t cbMain,
+EckInlineNd size_t RFindMemory(_In_reads_bytes_(cbMain) TPtr pMain, size_t cbMain,
     _In_reads_bytes_(cbSub) TPattern pSub, size_t cbSub, size_t posStart = SizeTMax) noexcept
 {
-    const auto pFind = MemRMem(pMain, cbMain, pSub, cbSub, posStart);
+    const auto pFind = MemRMemory(pMain, cbMain, pSub, cbSub, posStart);
     return pFind ? ((PCBYTE)pFind - (PCBYTE)pMain) : -1;
 }
 
 template<class TProcesser, ccpIsPtr TPtr, ccpIsPtr TPtr2>
-inline void SplitBin(TPtr pMain, size_t cbMain, TPtr2 pDiv, size_t cbDiv,
+inline void SplitMemory(TPtr pMain, size_t cbMain, TPtr2 pDiv, size_t cbDiv,
     int cSubBinExpected, TProcesser&& Processer) noexcept
 {
-    auto pFind = (PCBYTE)MemMem(pMain, cbMain, pDiv, cbDiv);
+    auto pFind = (PCBYTE)MemMemory(pMain, cbMain, pDiv, cbDiv);
     auto pPrevFirst = (PCBYTE)pMain;
     int c{};
     while (pFind)
@@ -77,7 +77,7 @@ inline void SplitBin(TPtr pMain, size_t cbMain, TPtr2 pDiv, size_t cbDiv,
         if (c == cSubBinExpected)
             return;
         pPrevFirst = pFind + cbDiv;
-        pFind = (PCBYTE)MemMem(pPrevFirst, cbMain - (pPrevFirst - pMain), pDiv, cbDiv);
+        pFind = (PCBYTE)MemMemory(pPrevFirst, cbMain - (pPrevFirst - pMain), pDiv, cbDiv);
     }
     Processer((TPtr)pPrevFirst, pMain + cbMain - pPrevFirst);
 }

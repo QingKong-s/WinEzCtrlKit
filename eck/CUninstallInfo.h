@@ -356,7 +356,7 @@ public:
                 si.cb = sizeof(si);
                 const auto pszBuf = (PWSTR)_malloca((spCmd.cch + 1) * sizeof(WCHAR));
                 EckCheckMem(pszBuf);
-                TcsCopyLen(pszBuf, StrBuffer.Data() + spCmd.idx, spCmd.cch + 1);
+                TcsCopyLength(pszBuf, StrBuffer.Data() + spCmd.idx, spCmd.cch + 1);
                 const auto b = CreateProcessW(nullptr, pszBuf,
                     nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
                 _freea(pszBuf);

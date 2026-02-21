@@ -16,7 +16,7 @@ inline void CssFillDrawEntry(_Inout_ THEME_DRAW_ENTRY& Draw,
     Draw.eDraw = ThemeDraw::None;
     for (const auto& e : vStyle)
     {
-#define ECK_CSS_HIT_STYLE(Str) TcsEqualLen2I(e.svKey.data(), e.svKey.size(), EckStrAndLen(Str))
+#define ECK_CSS_HIT_STYLE(Str) TcsEqualLength2I(e.svKey.data(), e.svKey.size(), EckStrAndLen(Str))
         if (ECK_CSS_HIT_STYLE(L"background-color") ||
             ECK_CSS_HIT_STYLE(L"color"))
         {
@@ -234,9 +234,9 @@ public:
         p->m_cchId = (BYTE)svId.size();
         p->m_cchClass = (BYTE)svClass.size();
         auto pszDst = PWCH(p + 1);
-        TcsCopyLenEnd(pszDst, svId.data(), svId.size());
+        TcsCopyLengthEnd(pszDst, svId.data(), svId.size());
         pszDst += (svId.size() + 1);
-        TcsCopyLenEnd(pszDst, svClass.data(), svClass.size());
+        TcsCopyLengthEnd(pszDst, svClass.data(), svClass.size());
         return p;
     }
     static void Delete(CCssInfo* p) noexcept

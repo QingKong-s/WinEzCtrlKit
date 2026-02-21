@@ -55,7 +55,7 @@ public:
     {
         EckInlineNd bool operator()(TStrView x1, TStrView x2) const noexcept
         {
-            return TcsCompareLen2I(x1.data(), x1.size(), x2.data(), x2.size()) < 0;
+            return TcsCompareLength2I(x1.data(), x1.size(), x2.data(), x2.size()) < 0;
         }
     };
     using FCmpCaseSensitive = std::less<TStrView>;
@@ -331,7 +331,7 @@ private:
     // 调用后：psz指向]的下一个位置
     static IniResult ScanSectionName(TStr& rs, const TChar*& psz, size_t cch) noexcept
     {
-        const auto pR = TcsCharLen(psz, cch, ']');
+        const auto pR = TcsCharLength(psz, cch, ']');
         if (pR)
         {
             if (pR + 1 < psz + cch && !IsBreakLineOrCommentChar(*(pR + 1)))
@@ -376,7 +376,7 @@ private:
         if (!bKeepSpace)
         {
             rsKey.RTrim();
-            psz = LTrimStr(psz, int(pszEnd - psz));
+            psz = TrimStringLeft(psz, int(pszEnd - psz));
         }
         // 值
         for (; psz != pszEnd; ++psz)
@@ -404,7 +404,7 @@ private:
         const TChar*& psz, size_t cch, BOOL bKeepSpace) noexcept
     {
         const auto pOrg = psz;
-        auto pR = TcsCharLen(psz, cch, '=');
+        auto pR = TcsCharLength(psz, cch, '=');
         if (pR)
         {
             rsKey.Assign(psz, int(pR - psz));
@@ -418,13 +418,13 @@ private:
             rsKey.RTrim();
             if (IsBreakLineOrCommentChar(*psz))
                 return IniResult::Ok;
-            const auto pL = LTrimStr(psz, (int)cch);
+            const auto pL = TrimStringLeft(psz, (int)cch);
             cch -= (pL - psz);
             psz = pL;
         }
 
         constexpr static TChar ValEnd[]{ ';','\n','\r' };
-        pR = TcsChrFirstOf(psz, cch, EckArrAndLen(ValEnd));
+        pR = TcsCharFirstOf(psz, cch, EckArrAndLen(ValEnd));
         if (!pR)// 若找不到值结束符，则包括到结尾
             pR = psz + cch;
         rsVal.Assign(psz, int(pR - psz));
@@ -435,7 +435,7 @@ private:
     static void ScanComments(TStr& rs, const TChar*& psz, size_t cch) noexcept
     {
         constexpr static TChar ValEnd[]{ '\n','\r' };
-        auto pR = TcsChrFirstOf(psz, cch, EckArrAndLen(ValEnd));
+        auto pR = TcsCharFirstOf(psz, cch, EckArrAndLen(ValEnd));
         if (!pR)
             pR = psz + cch;
         rs.PushBack(psz, int(pR - psz));
@@ -607,7 +607,7 @@ public:
     {
         Clear();
         if (cchIni < 0)
-            cchIni = TcsLen(pszIni);
+            cchIni = TcsLength(pszIni);
         const auto pszEnd = pszIni + cchIni;
         enum class State
         {

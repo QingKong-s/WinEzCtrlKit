@@ -6,7 +6,7 @@ inline void UrlEncode(_In_reads_or_z_(cchText) PCCH pszText,
     int cchText, CStringA& rs, BOOL bPlusForSpace = TRUE) noexcept
 {
     if (cchText < 0)
-        cchText = (int)TcsLen(pszText);
+        cchText = (int)TcsLength(pszText);
     rs.Reserve(cchText + cchText / 2);
     CHAR ch;
     const auto pszEnd = pszText + cchText;
@@ -35,7 +35,7 @@ inline void UrlDecode(_In_reads_or_z_(cchText) PCCH pszText,
     int cchText, CStringA& rs) noexcept
 {
     if (cchText < 0)
-        cchText = (int)TcsLen(pszText);
+        cchText = (int)TcsLength(pszText);
     rs.Reserve(cchText);
     CHAR ch;
     const auto pszEnd = pszText + cchText;

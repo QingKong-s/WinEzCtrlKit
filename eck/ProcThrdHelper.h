@@ -85,7 +85,7 @@ inline NTSTATUS GetProcessPath(HANDLE hProcess,
     const auto pus = (UNICODE_STRING*)rsPath.Data();
     if (NT_SUCCESS(nts) && !RtlIsNullOrEmptyUnicodeString(pus))
     {
-        TcsMoveLenEnd(rsPath.Data(),
+        TcsMoveLengthEnd(rsPath.Data(),
             PCWCH((BYTE*)rsPath.Data() + sizeof(UNICODE_STRING)),
             pus->Length / sizeof(WCHAR));
         rsPath.ReSize(pus->Length / sizeof(WCHAR));
@@ -460,7 +460,7 @@ EckInline NTSTATUS GetProcessIdByName(
     return EnumerateProcess([&](SYSTEM_PROCESS_INFORMATION* pspi)
         {
             if (pspi->ImageName.Length &&
-                TcsCompareLen2I(svImage.data(), svImage.size(),
+                TcsCompareLength2I(svImage.data(), svImage.size(),
                     pspi->ImageName.Buffer, pspi->ImageName.Length / sizeof(WCHAR)) == 0)
             {
                 uPid = PtrToDword<UINT>(pspi->UniqueProcessId);
@@ -477,7 +477,7 @@ EckInline NTSTATUS GetProcessIdByName(
     return EnumerateProcess([&](SYSTEM_PROCESS_INFORMATION* pspi)
         {
             if (pspi->ImageName.Length &&
-                TcsCompareLen2I(svImage.data(), svImage.size(),
+                TcsCompareLength2I(svImage.data(), svImage.size(),
                     pspi->ImageName.Buffer, pspi->ImageName.Length / sizeof(WCHAR)) == 0)
                 vPid.emplace_back(PtrToDword<UINT>(pspi->UniqueProcessId));
         });

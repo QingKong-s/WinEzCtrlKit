@@ -75,7 +75,7 @@ private:
                 if (e.rsTip.IsEmpty())
                     nid.szTip[0] = L'\0';
                 else
-                    TcsCopyLenEnd(nid.szTip, e.rsTip.Data(),
+                    TcsCopyLengthEnd(nid.szTip, e.rsTip.Data(),
                         std::min(e.rsTip.Size(), int(ARRAYSIZE(nid.szTip) - 1)));
                 if (Add(nid))
                     ++it;
@@ -128,7 +128,7 @@ public:
         if (!svTip.empty())
         {
             nid.uFlags |= NIF_TIP;
-            TcsCopyLenEnd(nid.szTip, svTip.data(),
+            TcsCopyLengthEnd(nid.szTip, svTip.data(),
                 std::min(svTip.size(), ARRAYSIZE(nid.szTip) - 1));
         }
         if (!Add(nid))
@@ -168,7 +168,7 @@ public:
 
         if (uFlags & NIF_TIP)
         {
-            TcsCopyLenEnd(nid.szTip, svTip.data(),
+            TcsCopyLengthEnd(nid.szTip, svTip.data(),
                 std::min(svTip.size(), ARRAYSIZE(nid.szTip) - 1));
         }
 
@@ -245,13 +245,13 @@ public:
         nid.uFlags = NIF_INFO | (bRealTime ? NIF_REALTIME : 0);
 
         if (!svContent.empty())
-            TcsCopyLenEnd(nid.szInfo, svContent.data(),
+            TcsCopyLengthEnd(nid.szInfo, svContent.data(),
                 std::min(svContent.size(), ARRAYSIZE(nid.szInfo) - 1));
         else
             nid.szInfo[0] = L'\0';
 
         if (!svTitle.empty())
-            TcsCopyLenEnd(nid.szInfoTitle, svTitle.data(),
+            TcsCopyLengthEnd(nid.szInfoTitle, svTitle.data(),
                 std::min(svTitle.size(), ARRAYSIZE(nid.szInfoTitle) - 1));
         else
             nid.szInfoTitle[0] = L'\0';

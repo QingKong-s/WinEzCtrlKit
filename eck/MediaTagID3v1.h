@@ -280,7 +280,7 @@ private:
         if (pszWork[cchMax - 1])
             cchNew = cchMax;
         else
-            cchNew = (int)TcsLen(pszWork);
+            cchNew = (int)TcsLength(pszWork);
         rs.Clear();
         StrX2W(rs, pszWork, cchNew);
     }
@@ -456,7 +456,7 @@ public:
         if (!szTemp[28])
         {
             m_Info.byTrack = szTemp[29];
-            cchTemp = std::min((int)TcsLen(szTemp), 30);
+            cchTemp = std::min((int)TcsLength(szTemp), 30);
         }
         else
         {
@@ -464,7 +464,7 @@ public:
             if (szTemp[29])
                 cchTemp = 30;
             else
-                cchTemp = std::min((int)TcsLen(szTemp), 30);
+                cchTemp = std::min((int)TcsLength(szTemp), 30);
         }
         m_Info.rsComment.Clear();
         StrX2W(m_Info.rsComment, szTemp, cchTemp);

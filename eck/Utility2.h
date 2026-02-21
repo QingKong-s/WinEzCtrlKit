@@ -219,7 +219,7 @@ inline BOOL GetUserLocaleName(CStringW& rsLocaleName) noexcept
     if (r <= 1)
         return FALSE;
     rsLocaleName.ReSize(r - 1);
-    TcsCopyLenEnd(rsLocaleName.Data(), sz, r - 1);
+    TcsCopyLengthEnd(rsLocaleName.Data(), sz, r - 1);
     return TRUE;
 }
 #pragma endregion 包装器

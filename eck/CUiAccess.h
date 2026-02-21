@@ -66,7 +66,7 @@ public:
                     return TRUE;
                 const auto cch = pspi->ImageName.Length / sizeof(WCHAR);
                 if (ARRAYSIZE(szWinlogon) - 1 != cch ||
-                    !TcsEqualLenI(szWinlogon, pspi->ImageName.Buffer, cch))
+                    !TcsEqualLengthI(szWinlogon, pspi->ImageName.Buffer, cch))
                     return TRUE;
                 // 打开进程
                 CNtObject hProcess;

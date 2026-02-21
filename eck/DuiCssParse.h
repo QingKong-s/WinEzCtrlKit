@@ -72,7 +72,7 @@ inline CssResult CssParse(std::wstring_view svCss, CSS_DOC& Doc) noexcept
             {
                 if (!pTemp || p <= pTemp)
                     return CssResult::SelectorEmpty;
-                const auto pCurrEnd = RTrimStr(pTemp, int(p - pTemp));
+                const auto pCurrEnd = TrimStringRight(pTemp, int(p - pTemp));
                 if (pCurrEnd <= pTemp)
                     return CssResult::SelectorEmpty;
                 auto& Sel = Doc.vSel.emplace_back();
@@ -92,7 +92,7 @@ inline CssResult CssParse(std::wstring_view svCss, CSS_DOC& Doc) noexcept
                 }
                 if (pCurrEnd <= pTemp)
                     return CssResult::SelectorEmpty;
-                const auto pPseudo = TcsCharLen(pTemp, pCurrEnd - pTemp, L':');
+                const auto pPseudo = TcsCharLength(pTemp, pCurrEnd - pTemp, L':');
                 if (pPseudo)
                 {
                     if (pCurrEnd <= pPseudo)
@@ -118,7 +118,7 @@ inline CssResult CssParse(std::wstring_view svCss, CSS_DOC& Doc) noexcept
             {
                 if (!pTemp || p <= pTemp)
                     return CssResult::PropertyEmpty;
-                const auto pCurrEnd = RTrimStr(pTemp, int(p - pTemp));
+                const auto pCurrEnd = TrimStringRight(pTemp, int(p - pTemp));
                 if (pCurrEnd <= pTemp)
                     return CssResult::PropertyEmpty;
                 auto& Style = Doc.vSel.back().vStyle.emplace_back();
@@ -144,7 +144,7 @@ inline CssResult CssParse(std::wstring_view svCss, CSS_DOC& Doc) noexcept
             {
                 if (!pTemp || p <= pTemp)
                     return CssResult::PropertyValueEmpty;
-                const auto pCurrEnd = RTrimStr(pTemp, int(p - pTemp));
+                const auto pCurrEnd = TrimStringRight(pTemp, int(p - pTemp));
                 if (pCurrEnd <= pTemp)
                     return CssResult::PropertyEmpty;
                 auto& Style = Doc.vSel.back().vStyle.back();
@@ -171,7 +171,7 @@ inline CssResult CssParse(std::wstring_view svCss, CSS_DOC& Doc) noexcept
 
 inline Part CssNcTagToPart(std::wstring_view svTag) noexcept
 {
-#define ECK_CSS_HIT_PART(Str) TcsEqualLen2I(svTag.data(), svTag.size(), EckStrAndLen(Str))
+#define ECK_CSS_HIT_PART(Str) TcsEqualLength2I(svTag.data(), svTag.size(), EckStrAndLen(Str))
     if (ECK_CSS_HIT_PART(L"Button"))
         return Part::Button;
     if (ECK_CSS_HIT_PART(L"CircleButton"))
@@ -224,7 +224,7 @@ inline Part CssNcTagToPart(std::wstring_view svTag) noexcept
 
 inline State CssNcPseudoToState(std::wstring_view svPseudo) noexcept
 {
-#define ECK_CSS_HIT_STATE(Str) TcsEqualLen2I(svPseudo.data(), svPseudo.size(), EckStrAndLen(Str))
+#define ECK_CSS_HIT_STATE(Str) TcsEqualLength2I(svPseudo.data(), svPseudo.size(), EckStrAndLen(Str))
     if (svPseudo.empty())
         return State::Normal;
     if (ECK_CSS_HIT_STATE(L"hover"))
@@ -272,7 +272,7 @@ inline State CssNcPseudoToState(std::wstring_view svPseudo) noexcept
 
 inline GeoType CssNcToGeometryType(std::wstring_view svName) noexcept
 {
-#define ECK_CSS_HIT_TYPE(Str) TcsEqualLen2I(svName.data(), svName.size(), EckStrAndLen(Str))
+#define ECK_CSS_HIT_TYPE(Str) TcsEqualLength2I(svName.data(), svName.size(), EckStrAndLen(Str))
     if (ECK_CSS_HIT_TYPE(L"FillRect"))
         return GeoType::FillRect;
     if (ECK_CSS_HIT_TYPE(L"FillRoundRect"))
@@ -314,10 +314,10 @@ inline BOOL CssParseColor(std::wstring_view svColor, _Out_ D2D1_COLOR_F& cr) noe
         if (!(argb & 0xFF00'0000))
             argb |= 0xFF00'0000;
     }
-    else if (TcsIsStartWithLen2I(svColor.data(), svColor.size(), EckStrAndLen(L"rgb(")) ||
-        TcsIsStartWithLen2I(svColor.data(), svColor.size(), EckStrAndLen(L"argb(")))
+    else if (TcsIsStartWithLength2I(svColor.data(), svColor.size(), EckStrAndLen(L"rgb(")) ||
+        TcsIsStartWithLength2I(svColor.data(), svColor.size(), EckStrAndLen(L"argb(")))
     {
-        const auto pEnd = RTrimStr(svColor.data(), (int)svColor.size());
+        const auto pEnd = TrimStringRight(svColor.data(), (int)svColor.size());
         if (pEnd == svColor.data() || *(pEnd - 1) != L')')
             return FALSE;
         auto p = svColor.data() + 3;
@@ -327,14 +327,14 @@ inline BOOL CssParseColor(std::wstring_view svColor, _Out_ D2D1_COLOR_F& cr) noe
         int cPart{};
         BOOL bInvalid{};
         BYTE by[4]{};
-        SplitStr(p, int(pEnd - p), EckStrAndLen(L","), 0, [&](PCWCH psz, int cch)
+        SplitString(p, int(pEnd - p), EckStrAndLen(L","), 0, [&](PCWCH psz, int cch)
             {
                 if (++cPart > 4)
                 {
                     bInvalid = TRUE;
                     return FALSE;
                 }
-                const auto p = LTrimStr(psz, cch);
+                const auto p = TrimStringLeft(psz, cch);
                 if (p >= psz + cch)
                 {
                     bInvalid = TRUE;
@@ -369,8 +369,8 @@ inline BOOL CssParseColor(std::wstring_view svColor, _Out_ D2D1_COLOR_F& cr) noe
 
 inline BOOL CssIsColorization(std::wstring_view sv) noexcept
 {
-    return TcsEqualLen2I(sv.data(), sv.size(), EckStrAndLen(L"colorization")) ||
-        TcsEqualLen2I(sv.data(), sv.size(), EckStrAndLen(L"theme"));
+    return TcsEqualLength2I(sv.data(), sv.size(), EckStrAndLen(L"colorization")) ||
+        TcsEqualLength2I(sv.data(), sv.size(), EckStrAndLen(L"theme"));
 }
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

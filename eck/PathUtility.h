@@ -17,14 +17,14 @@ void PazLegalize(_In_z_ TPointer pszPath,
     {
         const auto IllegalChars{ bReplaceDot ? IllegalPathCharA : IllegalPathCharWithDotA };
         auto p{ pszPath };
-        while (p = TcsChrFirstOf(p, IllegalChars.data()))
+        while (p = TcsCharFirstOf(p, IllegalChars.data()))
             *p++ = chReplace;
     }
     else
     {
         const auto IllegalChars{ bReplaceDot ? IllegalPathCharW : IllegalPathCharWithDotW };
         auto p{ pszPath };
-        while (p = TcsChrFirstOf(p, IllegalChars.data()))
+        while (p = TcsCharFirstOf(p, IllegalChars.data()))
             *p++ = chReplace;
     }
 }
@@ -37,7 +37,7 @@ void PazLegalizeLength(_In_reads_(cchPath) TPointer pszPath, int cchPath,
         const auto IllegalChars{ bReplaceDot ? IllegalPathCharA : IllegalPathCharWithDotA };
         const auto pEnd = pszPath + cchPath;
         auto p{ pszPath };
-        while (p = TcsChrFirstOf(p, pEnd - p, IllegalChars.data(), IllegalChars.size()))
+        while (p = TcsCharFirstOf(p, pEnd - p, IllegalChars.data(), IllegalChars.size()))
             *p++ = chReplace;
     }
     else
@@ -45,7 +45,7 @@ void PazLegalizeLength(_In_reads_(cchPath) TPointer pszPath, int cchPath,
         const auto IllegalChars{ bReplaceDot ? IllegalPathCharW : IllegalPathCharWithDotW };
         const auto pEnd = pszPath + cchPath;
         auto p{ pszPath };
-        while (p = TcsChrFirstOf(p, pEnd - p, IllegalChars.data(), IllegalChars.size()))
+        while (p = TcsCharFirstOf(p, pEnd - p, IllegalChars.data(), IllegalChars.size()))
             *p++ = chReplace;
     }
 }

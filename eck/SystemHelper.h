@@ -529,7 +529,7 @@ inline NTSTATUS ExpandEnvironmentString(CStringW& rsDst,
     _In_reads_or_z_(cchSrc) PCWCH pszSrc, int cchSrc = -1, int cchInitialBuf = 80) noexcept
 {
     if (cchSrc < 0)
-        cchSrc = (int)TcsLen(pszSrc);
+        cchSrc = (int)TcsLength(pszSrc);
     const auto cbIn = USHORT(cchSrc * sizeof(WCHAR));
     UNICODE_STRING usIn{ cbIn,cbIn,(PWCH)pszSrc };
     ULONG cbOut = ULONG(cchInitialBuf * sizeof(WCHAR));

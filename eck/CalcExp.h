@@ -200,7 +200,7 @@ inline CalcExpResult CalculateExpression(
 
     lfResult = 0.;
     if (cchExp < 0)
-        cchExp = (int)TcsLen(pszExp);
+        cchExp = (int)TcsLength(pszExp);
     std::vector<double> vNum{};
     std::vector<TChar> vOp{};
     BOOL bNumberBegin = TRUE;// TRUE = 期待数字
@@ -264,7 +264,7 @@ inline CalcExpResult CalculateExpression(
         else if (TTraits::IsAlpha(ch))
         {
             for (const auto& e : Priv::CalcExpConstList)
-                if (TcsCompareMaxLenI(p, TTraits::GetConstName(e), e.cchName) == 0)
+                if (TcsCompareMaxLengthI(p, TTraits::GetConstName(e), e.cchName) == 0)
                 {
                     vNum.push_back(e.lfVal);
                     p += (e.cchName - 1);
@@ -272,7 +272,7 @@ inline CalcExpResult CalculateExpression(
                     goto ExitSearchSym;
                 }
             for (const auto& e : Priv::CalcExpFuncList)
-                if (TcsCompareMaxLenI(p, TTraits::GetFuntionName(e), e.cchName) == 0)
+                if (TcsCompareMaxLengthI(p, TTraits::GetFuntionName(e), e.cchName) == 0)
                 {
                     vOp.push_back((TChar)e.eOp);
                     p += (e.cchName - 1);

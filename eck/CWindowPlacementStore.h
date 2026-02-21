@@ -39,7 +39,7 @@ struct CWindowPlacementStore
 
     BOOL FromString(PCWSTR psz) noexcept
     {
-        if (TcsEqualMaxLenI(psz, Version, VersionLength) != 0)
+        if (TcsEqualMaxLengthI(psz, Version, VersionLength) != 0)
             return FALSE;
         return swscanf(psz + VersionLength, L",%d,%d,%d,%d,%d",
             &x, &y, &cx, &cy, &bMaximized) == 5;

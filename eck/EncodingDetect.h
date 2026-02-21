@@ -91,7 +91,7 @@ inline UINT EcdNameToCodePage(std::string_view svName) noexcept
 {
     for (const auto& e : Priv::EcdEncodingMap)
     {
-        if (TcsEqualLen2I(svName.data(), svName.size(),
+        if (TcsEqualLength2I(svName.data(), svName.size(),
             e.pszName, e.cchName))
             return e.uCodePage;
     }

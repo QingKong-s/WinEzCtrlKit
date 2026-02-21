@@ -393,7 +393,7 @@ public:
     void SetText(PCWSTR pszText, int cchText = -1) noexcept
     {
         if (cchText < 0)
-            cchText = (int)TcsLen(pszText);
+            cchText = (int)TcsLength(pszText);
         ECK_DUILOCK;
         if (!CallEvent(WM_SETTEXT, cchText, (LPARAM)pszText))
             m_rsText.Assign(pszText, cchText);

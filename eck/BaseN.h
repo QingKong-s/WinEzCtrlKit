@@ -50,7 +50,7 @@ namespace Priv
 inline void Base64Decode(_In_reads_or_z_(cch) PCCH psz, int cch, CByteBuffer& rb) noexcept
 {
     if (cch < 0)
-        cch = (int)TcsLen(psz);
+        cch = (int)TcsLength(psz);
     int i{}, j{};
     size_t idxBin{ rb.Size() }, idxText{};
     BYTE temp[4];
