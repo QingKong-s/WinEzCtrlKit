@@ -20,7 +20,7 @@ protected:
     DLGCTX* m_pParam{};
     PFTASKDIALOGCALLBACK m_pfnRealCallBack{};
     LONG_PTR m_lRealRefData{};
-    CSignal<Intercept_T, HRESULT, HWND, UINT, WPARAM, LPARAM > m_CallbackSig{};
+    CEventChain<Intercept_T, HRESULT, HWND, UINT, WPARAM, LPARAM > m_CallbackSig{};
 
     static LRESULT CALLBACK LinkParentSubclassProcedure(
         HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,

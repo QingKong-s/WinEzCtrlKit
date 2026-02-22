@@ -96,13 +96,13 @@ public:
     {
         Detach();
         m_pWnd = pWnd;
-        m_hSlot = m_pWnd->GetSignal().Connect(this, &CTrayIcon::OnMessage);
+        m_hSlot = m_pWnd->GetEventChain().Connect(this, &CTrayIcon::OnMessage);
     }
     void Detach() noexcept
     {
         if (m_pWnd)
         {
-            m_pWnd->GetSignal().Disconnect(m_hSlot);
+            m_pWnd->GetEventChain().Disconnect(m_hSlot);
             m_hSlot = nullptr;
             m_pWnd = nullptr;
             m_vItem.clear();

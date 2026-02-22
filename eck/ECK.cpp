@@ -434,7 +434,7 @@ EckInline constexpr BOOL UxfpIsDarkTaskDialogAvailable() noexcept
 HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
 {
     // 参考：https://github.com/adzm/win32-custom-menubar-aero-theme
-    auto& Sig = pWnd->GetSignal();
+    auto& Sig = pWnd->GetEventChain();
     if (Sig.FindSlot(MHI_UXF_MENU))
         return S_FALSE;
     const auto hTheme = OpenThemeData(pWnd->GetHWND(), L"Menu");
@@ -528,7 +528,7 @@ HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
                 if (!ShouldAppsUseDarkMode())
                     break;
                 auto TmpCtx{ Ctx };
-                const auto lResult = pWnd->GetSignal().CallNext(TmpCtx,
+                const auto lResult = pWnd->GetEventChain().CallNext(TmpCtx,
                     hWnd, uMsg, wParam, lParam);
                 if (TmpCtx.IsProcessed())
                 {
@@ -585,7 +585,7 @@ HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
 
 HRESULT UxfMenuUninitialize(CWindow* pWnd) noexcept
 {
-    return pWnd->GetSignal().Disconnect(MHI_UXF_MENU) ? S_OK : S_FALSE;
+    return pWnd->GetEventChain().Disconnect(MHI_UXF_MENU) ? S_OK : S_FALSE;
 }
 
 /// <summary>

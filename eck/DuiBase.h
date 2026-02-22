@@ -60,10 +60,10 @@ private:
     CElem* m_pLastChild{};
     //------UI系统------
     CDuiWnd* m_pWnd{};
-    CSignal<Intercept_T, LRESULT, UINT, WPARAM, LPARAM> m_Sig{};
+    CEventChain<Intercept_T, LRESULT, UINT, WPARAM, LPARAM> m_ec{};
     //------图形，除DC外渲染和UI线程均可读写------
 public:
-    using HSlot = decltype(m_Sig)::HSlot;
+    using HSlot = decltype(m_ec)::HSlot;
     ID2D1DeviceContext* m_pDC{};        // 未加引用
 private:
     // 缓存已混合的元素矩形，至少完全包含原始元素矩形，相对客户区
@@ -157,7 +157,7 @@ public:
         if (GetCompositor() && uMsg == WM_DPICHANGED)
             CompInvalidateCacheBitmap();
         SlotCtx Ctx{};
-        const auto r = m_Sig.Emit2(Ctx, uMsg, wParam, lParam);
+        const auto r = m_ec.EmitWithContext(Ctx, uMsg, wParam, lParam);
         if (Ctx.IsProcessed())
             return r;
         return OnEvent(uMsg, wParam, lParam);
@@ -217,7 +217,7 @@ public:
     EckInlineNdCe CDuiWnd* GetWnd() const noexcept { return m_pWnd; }
     EckInlineNdCe ID2D1DeviceContext* GetDC() const noexcept { return m_pDC; }
     // 注意：进行任何连接/断开操作时必须加锁
-    EckInlineNdCe auto& GetSignal() noexcept { return m_Sig; }
+    EckInlineNdCe auto& GetEventChain() noexcept { return m_ec; }
     EckInlineNdCe CCriticalSection& GetCriticalSection() const noexcept;
     EckInlineNdCe ID2D1Bitmap1* GetCacheBitmap() const noexcept;
 #pragma region PosSize

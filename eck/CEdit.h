@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "CWindow.h"
+#include "DDX.h"
 
 ECK_NAMESPACE_BEGIN
 inline constexpr int CDV_EDIT_1 = 0;
@@ -730,4 +731,36 @@ public:
             return Align::Near;
     }
 };
+
+inline CWindow::HSlot DdxBindEdit(CEdit& Ctrl, CWindow& Parent, Observable<CStringW>& o) noexcept
+{
+    o.SetCallback([](const CStringW& v, void* p)
+        {
+            ((CEdit*)p)->SetText(v.Data());
+        }, &Ctrl);
+
+    struct Fn : public CDdxControlCollection
+    {
+        LRESULT operator()(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
+        {
+            if (uMsg == WM_COMMAND && HIWORD(wParam) == EN_UPDATE)
+            {
+                const auto pObservable = (Observable<CStringW>*)At((HWND)lParam);
+                if (!pObservable)
+                    return 0;
+                auto& rs = pObservable->Get();
+                auto cch = GetWindowTextLengthW((HWND)lParam);
+                rs.ReSize(cch);
+                if (cch)
+                {
+                    cch = GetWindowTextW((HWND)lParam, rs.Data(), cch + 1);
+                    if (cch != rs.Size())
+                        rs.ReSize(cch);
+                }
+            }
+            return 0;
+        }
+    };
+    return DdxpConnectSlot<Fn, MHI_DDX_EDIT>(Parent, Ctrl, o);
+}
 ECK_NAMESPACE_END

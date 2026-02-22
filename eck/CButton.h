@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "CWindow.h"
+#include "DDX.h"
 
 ECK_NAMESPACE_BEGIN
 inline constexpr int CDV_BUTTON_1 = 1;
@@ -325,4 +326,28 @@ public:
         }
     }
 };
+
+template<class T>
+inline CWindow::HSlot DdxBindCheckBox(CButton& Ctrl, CWindow& Parent, Observable<T>& o) noexcept
+{
+    o.SetCallback([](const T& v, void* p)
+        {
+            ((CButton*)p)->SetCheckState((int)v);
+        }, &Ctrl);
+
+    struct Fn : public CDdxControlCollection
+    {
+        LRESULT operator()(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
+        {
+            if (uMsg == WM_COMMAND && HIWORD(wParam) == BN_CLICKED)
+            {
+                const auto pObservable = (Observable<T>*)At((HWND)lParam);
+                if (pObservable)
+                    pObservable->Set((T)SendMessageW((HWND)lParam, BM_GETCHECK, 0, 0));
+            }
+            return 0;
+        }
+    };
+    return DdxpConnectSlot<Fn, MHI_DDX_CHECKBOX>(Parent, Ctrl, o);
+}
 ECK_NAMESPACE_END

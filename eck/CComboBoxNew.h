@@ -552,7 +552,7 @@ public:
             else
             {
                 m_pED = std::make_unique<CEditExt>();
-                m_pED->GetSignal().Connect(this, &CComboBoxNew::OnEditMessage);
+                m_pED->GetEventChain().Connect(this, &CComboBoxNew::OnEditMessage);
                 RCWH rc;
                 GetEditRect(rc);
                 m_pED->Create(nmdi.Item.pszText,

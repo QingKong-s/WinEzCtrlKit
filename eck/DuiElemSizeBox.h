@@ -202,13 +202,13 @@ public:
         if (m_pElem)
             Detach();
         m_pElem = pElem;
-        m_hSlot = m_pElem->GetSignal().Connect(this, &CSizeBox::OnEvent);
+        m_hSlot = m_pElem->GetEventChain().Connect(this, &CSizeBox::OnEvent);
     }
     void Detach() noexcept
     {
         if (m_pElem)
         {
-            m_pElem->GetSignal().Disconnect(m_hSlot);
+            m_pElem->GetEventChain().Disconnect(m_hSlot);
             m_hSlot = {};
             m_pElem = nullptr;
             m_htTracking = HTNOWHERE;

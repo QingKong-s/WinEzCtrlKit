@@ -120,7 +120,7 @@ private:
 public:
     CSplitBar() noexcept
     {
-        m_BkMark.GetSignal().Connect(this, &CSplitBar::OnMarkMessage);
+        m_BkMark.GetEventChain().Connect(this, &CSplitBar::OnMarkMessage);
     }
 
     LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override

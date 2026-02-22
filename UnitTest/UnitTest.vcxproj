@@ -173,6 +173,7 @@
     <ClCompile Include="TsCArray.cpp" />
     <ClCompile Include="TsCBitSet.cpp" />
     <ClCompile Include="TsCColorReducing.cpp" />
+    <ClCompile Include="TsCEventChain.cpp" />
     <ClCompile Include="TsCGeometryBounds.cpp" />
     <ClCompile Include="TsCGeometryPath.cpp" />
     <ClCompile Include="TsCompress.cpp" />

@@ -829,7 +829,7 @@ private:
         CloseThemeData(m_hTheme);
         m_hTheme = nullptr;
         if (m_bInstalledHeaderHook)
-            m_Header.GetSignal().Disconnect(MHI_LVE_HEADER_HEIGHT);
+            m_Header.GetEventChain().Disconnect(MHI_LVE_HEADER_HEIGHT);
         (void)m_Header.DetachNew();
         m_hIL[0] = m_hIL[1] = m_hIL[2] = m_hIL[3] = nullptr;
         m_sizeIL[0] = m_sizeIL[1] = m_sizeIL[2] = m_sizeIL[3] = {};
@@ -1050,7 +1050,7 @@ private:
             m_pEdit->SelectAll();
             SetFocus(m_pEdit->HWnd);
             if (!m_hmsEdit)
-                m_hmsEdit = m_pEdit->GetSignal().Connect(this, &CListViewExt::OnMessageEdit);
+                m_hmsEdit = m_pEdit->GetEventChain().Connect(this, &CListViewExt::OnMessageEdit);
             m_pEdit->HFont = HFont;
             m_pEdit->SetFrameType(FrameType::Single);
             m_pEdit->FrameChanged();
@@ -1633,7 +1633,7 @@ public:
         {
             if (!m_bInstalledHeaderHook)
             {
-                m_Header.GetSignal().Connect(
+                m_Header.GetEventChain().Connect(
                     [this](HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)->LRESULT
                     {
                         if (uMsg == HDM_LAYOUT && m_cyHeader > 0)
@@ -1652,7 +1652,7 @@ public:
         }
         else if (m_bInstalledHeaderHook)
         {
-            m_Header.GetSignal().Disconnect(MHI_LVE_HEADER_HEIGHT);
+            m_Header.GetEventChain().Disconnect(MHI_LVE_HEADER_HEIGHT);
             m_bInstalledHeaderHook = FALSE;
         }
         // force recalc it

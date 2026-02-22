@@ -507,7 +507,7 @@ public:
         {
             Ctx.Processed();
             auto Ctx1{ Ctx };
-            m_pWnd->GetSignal().CallNext(Ctx1, hWnd, uMsg, wParam, lParam);
+            m_pWnd->GetEventChain().CallNext(Ctx1, hWnd, uMsg, wParam, lParam);
             if (!Ctx1.IsProcessed())
                 m_pWnd->OnMessage(hWnd, uMsg, wParam, lParam);
             Redraw();
@@ -652,7 +652,7 @@ public:
 
     HRESULT Attach(CWindow* pWnd) noexcept
     {
-        if (pWnd->GetSignal().FindSlot(MHI_SCROLLBAR_HOOK))
+        if (pWnd->GetEventChain().FindSlot(MHI_SCROLLBAR_HOOK))
             return S_FALSE;
         SetPropW(pWnd->HWnd, PROP_SBHOOK, this);
         m_pWnd = pWnd;
@@ -674,7 +674,7 @@ public:
         m_rcWnd.left = 0;
         m_rcWnd.top = 0;
 
-        pWnd->GetSignal().Connect(this, &CScrollBarHook::OnWindowMessage, MHI_SCROLLBAR_HOOK);
+        pWnd->GetEventChain().Connect(this, &CScrollBarHook::OnWindowMessage, MHI_SCROLLBAR_HOOK);
         pWnd->FrameChanged();
 
         UpdateVisibleFromStyle();
@@ -687,10 +687,10 @@ public:
     {
         if (!m_pWnd)
             return S_FALSE;
-        const auto hSlot = m_pWnd->GetSignal().FindSlot(MHI_SCROLLBAR_HOOK);
+        const auto hSlot = m_pWnd->GetEventChain().FindSlot(MHI_SCROLLBAR_HOOK);
         if (!hSlot)
             return S_FALSE;
-        m_pWnd->GetSignal().Disconnect(hSlot);
+        m_pWnd->GetEventChain().Disconnect(hSlot);
         m_pWnd->FrameChanged();
         m_pWnd = nullptr;
         return S_OK;

@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "CWindow.h"
+#include "DDX.h"
 
 ECK_NAMESPACE_BEGIN
 class CTrackBar : public CWindow
@@ -213,4 +214,29 @@ public:
         return (HWND)SendMessage(TBM_SETTOOLTIPS, (WPARAM)hToolTips, 0);
     }
 };
+
+template<class T>
+inline CWindow::HSlot DdxBindTrackBar(CTrackBar& Ctrl, CWindow& Parent, Observable<T>& o) noexcept
+{
+    o.SetCallback(
+        [](const T& v, void* p)
+        {
+            ((CTrackBar*)p)->SetPosition((int)v);
+        }, &Ctrl);
+
+    struct Fn : public CDdxControlCollection
+    {
+        LRESULT operator()(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
+        {
+            if (uMsg == WM_HSCROLL || uMsg == WM_VSCROLL)
+            {
+                const auto pObservable = (Observable<T>*)At((HWND)lParam);
+                if (pObservable)
+                    pObservable->Set((T)SendMessageW((HWND)lParam, TBM_GETPOS, 0, 0));
+            }
+            return 0;
+        }
+    };
+    return DdxpConnectSlot<Fn, MHI_DDX_TRACKBAR>(Parent, Ctrl, o);
+}
 ECK_NAMESPACE_END

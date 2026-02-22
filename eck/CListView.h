@@ -1109,7 +1109,7 @@ public:
         const auto pParent = CWindowFromHWND(GetParent(HWnd));
         if (!pParent)
             return FALSE;
-        const auto hSlot = pParent->GetSignal().Connect(
+        const auto hSlot = pParent->GetEventChain().Connect(
             [cy, bSetOrAdd](HWND, UINT uMsg, WPARAM, LPARAM lParam, SlotCtx& Ctx)->LRESULT
             {
                 if (uMsg == WM_MEASUREITEM)
@@ -1133,7 +1133,7 @@ public:
         };
         SendMessage(WM_WINDOWPOSCHANGED, 0, (LPARAM)&wp);
         Style &= ~LVS_OWNERDRAWFIXED;
-        pParent->GetSignal().Disconnect(hSlot);
+        pParent->GetEventChain().Disconnect(hSlot);
         return TRUE;
     }
 

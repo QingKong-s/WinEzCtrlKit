@@ -754,7 +754,7 @@ enum :UINT// 控件通知代码
 */
 
 // 消息钩子ID保留范围[1, 511]，此范围仅供内部使用
-enum :UINT_PTR
+enum : USHORT
 {
     MHI_NONE,
     MHI_SCROLLBAR_HOOK,
@@ -763,6 +763,10 @@ enum :UINT_PTR
     MHI_LVE_HEADER_HEIGHT,
     MHI_DUI_TITLEBAR,
     MHI_UXF_MENU,
+
+    MHI_DDX_CHECKBOX,
+    MHI_DDX_EDIT,
+    MHI_DDX_TRACKBAR,
 
     MHI_USER = 512,
 };

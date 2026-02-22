@@ -239,7 +239,7 @@ public:
 
         case WM_CREATE:
         {
-            GetWnd()->GetSignal().Connect(this, &CTitleBar::OnWindowMessage, MHI_DUI_TITLEBAR);
+            GetWnd()->GetEventChain().Connect(this, &CTitleBar::OnWindowMessage, MHI_DUI_TITLEBAR);
             m_bMaximized = IsZoomed(GetWnd()->HWnd);
             UpdateTitleBarInfo(TRUE);
             UpdateMetrics();
@@ -247,7 +247,7 @@ public:
         break;
 
         case WM_DESTROY:
-            GetWnd()->GetSignal().Disconnect(MHI_DUI_TITLEBAR);
+            GetWnd()->GetEventChain().Disconnect(MHI_DUI_TITLEBAR);
             SafeRelease(m_pBmpDwmWndAtlas);
             break;
         }

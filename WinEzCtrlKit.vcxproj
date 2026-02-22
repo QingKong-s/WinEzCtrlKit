@@ -261,7 +261,7 @@
     <ClCompile Include="eck\CoroutineHelper.h" />
     <ClCompile Include="eck\ISO8601Time.h" />
     <ClCompile Include="eck\Json.h" />
-    <ClCompile Include="eck\CSignal.h" />
+    <ClCompile Include="eck\CEventChain.h" />
     <ClCompile Include="eck\CAllocator.h" />
     <ClCompile Include="eck\CArray.h" />
     <ClCompile Include="eck\CBitSet.h" />

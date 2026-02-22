@@ -2,7 +2,7 @@
 #include "WndHelper.h"
 #include "MemWalker.h"
 #include "ILayout.h"
-#include "CSignal.h"
+#include "CEventChain.h"
 #include "NativeWrapper.h"
 
 ECK_NAMESPACE_BEGIN
@@ -201,9 +201,9 @@ public:
 protected:
     HWND m_hWnd{};
     WNDPROC m_pfnRealProc{ DefWindowProcW };
-    CSignal<Intercept_T, LRESULT, HWND, UINT, WPARAM, LPARAM> m_Sig{};
+    CEventChain<InterceptDelete_T, LRESULT, HWND, UINT, WPARAM, LPARAM> m_ec{};
 public:
-    using HSlot = decltype(m_Sig)::HSlot;
+    using HSlot = decltype(m_ec)::HSlot;
 protected:
     EckInline HWND IntCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
         int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
@@ -264,7 +264,7 @@ protected:
     EckInline LRESULT CallProcedure(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
         SlotCtx Ctx{};
-        const auto r = m_Sig.Emit2(Ctx, hWnd, uMsg, wParam, lParam);
+        const auto r = m_ec.EmitWithContext(Ctx, hWnd, uMsg, wParam, lParam);
         if (Ctx.IsProcessed())
             return r;
         return OnMessage(hWnd, uMsg, wParam, lParam);
@@ -1088,7 +1088,7 @@ public:
             0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
     }
 
-    EckInlineNdCe auto& GetSignal() noexcept { return m_Sig; }
+    EckInlineNdCe auto& GetEventChain() noexcept { return m_ec; }
 };
 
 EckInline void AttachDialogItems(

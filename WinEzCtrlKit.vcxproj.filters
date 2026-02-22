@@ -383,7 +383,7 @@
     <ClCompile Include="eck\CSequenceIdGenerator.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CSignal.h">
+    <ClCompile Include="eck\CEventChain.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\CSplitBar.h">
