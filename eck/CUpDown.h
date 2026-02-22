@@ -21,7 +21,7 @@ public:
     EckInline int GetAcceleration(
         _Out_writes_opt_(cBuf) UDACCEL* pBuf, int cBuf) const noexcept
     {
-        return (int)SendMsg(UDM_GETACCEL, cBuf, (LPARAM)pBuf);
+        return (int)SendMessage(UDM_GETACCEL, cBuf, (LPARAM)pBuf);
     }
 
     EckInline void GetAcceleration(std::vector<UDACCEL>& vAccel) const noexcept
@@ -35,49 +35,49 @@ public:
 
     EckInline int GetBase() const noexcept
     {
-        return (int)SendMsg(UDM_GETBASE, 0, 0);
+        return (int)SendMessage(UDM_GETBASE, 0, 0);
     }
 
     EckInline HWND GetBuddy() const noexcept
     {
-        return (HWND)SendMsg(UDM_GETBUDDY, 0, 0);
+        return (HWND)SendMessage(UDM_GETBUDDY, 0, 0);
     }
 
     EckInline int GetPosition(_Out_opt_ BOOL* pbSuccess = nullptr) const noexcept
     {
-        return (int)SendMsg(UDM_GETPOS32, 0, (LPARAM)pbSuccess);
+        return (int)SendMessage(UDM_GETPOS32, 0, (LPARAM)pbSuccess);
     }
 
     EckInline void GetRange(
         _Out_opt_ int* piMin = nullptr,
         _Out_opt_ int* piMax = nullptr) const noexcept
     {
-        SendMsg(UDM_GETRANGE32, (WPARAM)piMin, (LPARAM)piMax);
+        SendMessage(UDM_GETRANGE32, (WPARAM)piMin, (LPARAM)piMax);
     }
 
     EckInline BOOL SetAcceleration(_In_reads_(c) const UDACCEL* puda, int c) const noexcept
     {
-        return (BOOL)SendMsg(UDM_SETACCEL, c, (LPARAM)puda);
+        return (BOOL)SendMessage(UDM_SETACCEL, c, (LPARAM)puda);
     }
 
     EckInline BOOL SetBase(int iBase) const noexcept
     {
-        return (BOOL)SendMsg(UDM_SETBASE, iBase, 0);
+        return (BOOL)SendMessage(UDM_SETBASE, iBase, 0);
     }
 
     EckInline HWND SetBuddy(HWND hBuddy) const noexcept
     {
-        return (HWND)SendMsg(UDM_SETBUDDY, (WPARAM)hBuddy, 0);
+        return (HWND)SendMessage(UDM_SETBUDDY, (WPARAM)hBuddy, 0);
     }
 
     EckInline int SetPosition(int iPos) const noexcept
     {
-        return (int)SendMsg(UDM_SETPOS, 0, iPos);
+        return (int)SendMessage(UDM_SETPOS, 0, iPos);
     }
 
     EckInline void SetRange(int iMin, int iMax) const noexcept
     {
-        SendMsg(UDM_SETRANGE32, iMin, iMax);
+        SendMessage(UDM_SETRANGE32, iMin, iMax);
     }
 
     EckInline void SetMinimum(int iMin) const noexcept

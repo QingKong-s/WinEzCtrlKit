@@ -177,12 +177,12 @@ public:
 
     EckInline int AddString(_In_z_ PCWSTR psz) const noexcept
     {
-        return (int)SendMsg(CB_ADDSTRING, 0, (LPARAM)psz);
+        return (int)SendMessage(CB_ADDSTRING, 0, (LPARAM)psz);
     }
 
     EckInline int AddString(LPARAM lParam) const noexcept
     {
-        return (int)SendMsg(CB_ADDSTRING, 0, lParam);
+        return (int)SendMessage(CB_ADDSTRING, 0, lParam);
     }
 
     /// <summary>
@@ -192,7 +192,7 @@ public:
     /// <returns>返回剩余项目数</returns>
     EckInline int DeleteString(int idx) const noexcept
     {
-        return (int)SendMsg(CB_DELETESTRING, idx, 0);
+        return (int)SendMessage(CB_DELETESTRING, idx, 0);
     }
 
     /// <summary>
@@ -203,7 +203,7 @@ public:
     /// <returns>索引</returns>
     EckInline int Directory(_In_z_ PCWSTR pszPath, UINT uFlags) const noexcept
     {
-        return (int)SendMsg(CB_DIR, uFlags, (LPARAM)pszPath);
+        return (int)SendMessage(CB_DIR, uFlags, (LPARAM)pszPath);
     }
 
     /// <summary>
@@ -215,7 +215,7 @@ public:
     /// <returns>索引</returns>
     EckInline int FindString(_In_z_ PCWSTR pszText, int idxStart = -1) const noexcept
     {
-        return (int)SendMsg(CB_FINDSTRING, idxStart, (LPARAM)pszText);
+        return (int)SendMessage(CB_FINDSTRING, idxStart, (LPARAM)pszText);
     }
 
     /// <summary>
@@ -227,17 +227,17 @@ public:
     /// <returns>索引</returns>
     EckInline int FindStringExact(_In_z_ PCWSTR pszText, int idxStart = -1) const noexcept
     {
-        return (int)SendMsg(CB_FINDSTRINGEXACT, idxStart, (LPARAM)pszText);
+        return (int)SendMessage(CB_FINDSTRINGEXACT, idxStart, (LPARAM)pszText);
     }
 
     EckInline BOOL GetComboBoxInfomation(_Inout_ COMBOBOXINFO* pcbi) const noexcept
     {
-        return (BOOL)SendMsg(CB_GETCOMBOBOXINFO, 0, (LPARAM)pcbi);
+        return (BOOL)SendMessage(CB_GETCOMBOBOXINFO, 0, (LPARAM)pcbi);
     }
 
     EckInline int GetItemCount() const noexcept
     {
-        return (int)SendMsg(CB_GETCOUNT, 0, 0);
+        return (int)SendMessage(CB_GETCOUNT, 0, 0);
     }
 
     ECK_SUPPRESS_MISSING_ZERO_TERMINATION;
@@ -249,7 +249,7 @@ public:
     /// <returns>成功返回1，失败返回错误代码</returns>
     EckInline int GetCueBanner(_Out_writes_(cchBuf) PWSTR pszBuf, int cchBuf) const noexcept
     {
-        return (int)SendMsg(CB_GETCUEBANNER, (WPARAM)pszBuf, cchBuf);
+        return (int)SendMessage(CB_GETCUEBANNER, (WPARAM)pszBuf, cchBuf);
     }
 
     // 取提示横幅文本
@@ -268,7 +268,7 @@ public:
     /// <returns>索引</returns>
     EckInline int GetCurrentSelection() const noexcept
     {
-        return (int)SendMsg(CB_GETCURSEL, 0, 0);
+        return (int)SendMessage(CB_GETCURSEL, 0, 0);
     }
 
     /// <summary>
@@ -278,12 +278,12 @@ public:
     /// <returns>成功返回TRUE，失败返回FALSE</returns>
     EckInline BOOL GetDroppedControlRect(_Out_ RECT* prc) const noexcept
     {
-        return (BOOL)SendMsg(CB_GETDROPPEDCONTROLRECT, 0, (LPARAM)prc);
+        return (BOOL)SendMessage(CB_GETDROPPEDCONTROLRECT, 0, (LPARAM)prc);
     }
 
     EckInline BOOL GetDroppedState() const noexcept
     {
-        return (BOOL)SendMsg(CB_GETDROPPEDSTATE, 0, 0);
+        return (BOOL)SendMessage(CB_GETDROPPEDSTATE, 0, 0);
     }
 
     /// <summary>
@@ -293,34 +293,34 @@ public:
     /// <returns>成功返回正的最小宽度，失败返回CB_ERR</returns>
     EckInline BOOL GetDroppedWidth() const noexcept
     {
-        return (BOOL)SendMsg(CB_GETDROPPEDWIDTH, 0, 0);
+        return (BOOL)SendMessage(CB_GETDROPPEDWIDTH, 0, 0);
     }
 
     EckInline void GetEditSelection(
         _Out_opt_ UINT* puStart = nullptr,
         _Out_opt_ UINT* puEnd = nullptr) const noexcept
     {
-        SendMsg(CB_GETEDITSEL, (WPARAM)puStart, (LPARAM)puEnd);
+        SendMessage(CB_GETEDITSEL, (WPARAM)puStart, (LPARAM)puEnd);
     }
 
     EckInline BOOL GetExtendUi() const noexcept
     {
-        return (BOOL)SendMsg(CB_GETEXTENDEDUI, 0, 0);
+        return (BOOL)SendMessage(CB_GETEXTENDEDUI, 0, 0);
     }
 
     EckInline int GetHorizontalExtent() const noexcept
     {
-        return (int)SendMsg(CB_GETHORIZONTALEXTENT, 0, 0);
+        return (int)SendMessage(CB_GETHORIZONTALEXTENT, 0, 0);
     }
 
     EckInline LPARAM GetItemData(int idx) const noexcept
     {
-        return SendMsg(CB_GETITEMDATA, idx, 0);
+        return SendMessage(CB_GETITEMDATA, idx, 0);
     }
 
     EckInline int GetItemHeight(int idx) const noexcept
     {
-        return (int)SendMsg(CB_GETITEMHEIGHT, idx, 0);
+        return (int)SendMessage(CB_GETITEMHEIGHT, idx, 0);
     }
 
     /// <summary>
@@ -331,7 +331,7 @@ public:
     /// <returns>返回字符数（不含结尾NULL），失败返回-1</returns>
     EckInline int GetItemText(int idx, PWSTR pszBuf) const noexcept
     {
-        return (int)SendMsg(CB_GETLBTEXT, idx, (LPARAM)pszBuf);
+        return (int)SendMessage(CB_GETLBTEXT, idx, (LPARAM)pszBuf);
     }
 
     EckInline BOOL GetItemText(int idx, _Inout_ CStringW& rs) const noexcept
@@ -357,22 +357,22 @@ public:
     /// <returns>返回字符数（不含结尾NULL）</returns>
     EckInline int GetItemTextLength(int idx) const noexcept
     {
-        return (int)SendMsg(CB_GETLBTEXTLEN, idx, 0);
+        return (int)SendMessage(CB_GETLBTEXTLEN, idx, 0);
     }
 
     EckInline LCID GetLocale() const noexcept
     {
-        return (LCID)SendMsg(CB_GETLOCALE, 0, 0);
+        return (LCID)SendMessage(CB_GETLOCALE, 0, 0);
     }
 
     EckInline int GetMinimumVisible() const noexcept
     {
-        return (int)SendMsg(CB_GETMINVISIBLE, 0, 0);
+        return (int)SendMessage(CB_GETMINVISIBLE, 0, 0);
     }
 
     EckInline int GetTopIndex() const noexcept
     {
-        return (int)SendMsg(CB_GETTOPINDEX, 0, 0);
+        return (int)SendMessage(CB_GETTOPINDEX, 0, 0);
     }
 
     /// <summary>
@@ -383,17 +383,17 @@ public:
     /// <returns>成功返回已预分配的项目总数，失败返回CB_ERRSPACE</returns>
     EckInline int InitialzeStorage(int cItems, SIZE_T cbString) const noexcept
     {
-        return (int)SendMsg(CB_INITSTORAGE, cItems, cbString);
+        return (int)SendMessage(CB_INITSTORAGE, cItems, cbString);
     }
 
     EckInline int InsertString(_In_z_ PCWSTR psz, int idxPos = -1) const noexcept
     {
-        return (int)SendMsg(CB_INSERTSTRING, idxPos, (LPARAM)psz);
+        return (int)SendMessage(CB_INSERTSTRING, idxPos, (LPARAM)psz);
     }
 
     EckInline int InsertString(LPARAM lParam, int idxPos = -1) const noexcept
     {
-        return (int)SendMsg(CB_INSERTSTRING, idxPos, lParam);
+        return (int)SendMessage(CB_INSERTSTRING, idxPos, lParam);
     }
 
     /// <summary>
@@ -402,12 +402,12 @@ public:
     /// <param name="cch">字符串最长长度，若为0则限制为0x7FFFFFFE</param>
     EckInline void LimitText(int cch = 0) const noexcept
     {
-        SendMsg(CB_LIMITTEXT, cch, 0);
+        SendMessage(CB_LIMITTEXT, cch, 0);
     }
 
     EckInline void ResetContent() const noexcept
     {
-        SendMsg(CB_RESETCONTENT, 0, 0);
+        SendMessage(CB_RESETCONTENT, 0, 0);
     }
 
     /// <summary>
@@ -419,7 +419,7 @@ public:
     /// <returns>索引，失败返回CB_ERR</returns>
     EckInline int SelectString(_In_z_ PCWSTR pszText, int idxStart = -1) const noexcept
     {
-        return (int)SendMsg(CB_SELECTSTRING, idxStart, (LPARAM)pszText);
+        return (int)SendMessage(CB_SELECTSTRING, idxStart, (LPARAM)pszText);
     }
 
     /// <summary>
@@ -429,12 +429,12 @@ public:
     /// <returns>成功返回1，失败返回错误码</returns>
     EckInline int SetCueBanner(_In_z_ PWSTR pszText) const noexcept
     {
-        return (int)SendMsg(CB_SETCUEBANNER, 0, (LPARAM)pszText);
+        return (int)SendMessage(CB_SETCUEBANNER, 0, (LPARAM)pszText);
     }
 
     EckInline BOOL SetCurrentSelection(int idxSel = -1) const noexcept
     {
-        int iRet = (int)SendMsg(CB_SETCURSEL, idxSel, 0);
+        int iRet = (int)SendMessage(CB_SETCURSEL, idxSel, 0);
         if (idxSel < 0)
             return TRUE;
         else
@@ -443,27 +443,27 @@ public:
 
     EckInline BOOL SetDroppedWidth(int cx = 0) const noexcept
     {
-        return (SendMsg(CB_SETDROPPEDWIDTH, cx, 0) != CB_ERR);
+        return (SendMessage(CB_SETDROPPEDWIDTH, cx, 0) != CB_ERR);
     }
 
     EckInline void SetEditSelection(WORD wStart, WORD wEnd) const noexcept
     {
-        SendMsg(CB_SETEDITSEL, 0, MAKELPARAM(wStart, wEnd));
+        SendMessage(CB_SETEDITSEL, 0, MAKELPARAM(wStart, wEnd));
     }
 
     EckInline BOOL SetExtendUi(BOOL bExtUI) const noexcept
     {
-        return (SendMsg(CB_SETEXTENDEDUI, bExtUI, 0) != CB_ERR);
+        return (SendMessage(CB_SETEXTENDEDUI, bExtUI, 0) != CB_ERR);
     }
 
     EckInline void SetHorizontalExtent(int iHorizontalExtent) const noexcept
     {
-        SendMsg(CB_SETHORIZONTALEXTENT, iHorizontalExtent, 0);
+        SendMessage(CB_SETHORIZONTALEXTENT, iHorizontalExtent, 0);
     }
 
     EckInline BOOL SetItemData(int idx, LPARAM lParam) const noexcept
     {
-        return (SendMsg(CB_SETITEMDATA, idx, lParam) != CB_ERR);
+        return (SendMessage(CB_SETITEMDATA, idx, lParam) != CB_ERR);
     }
 
     /// <summary>
@@ -475,7 +475,7 @@ public:
     /// <returns>成功返回TRUE，失败返回FALSE</returns>
     EckInline BOOL SetItemHeight(int idx, int cy) const noexcept
     {
-        return (SendMsg(CB_SETITEMHEIGHT, idx, cy) != CB_ERR);
+        return (SendMessage(CB_SETITEMHEIGHT, idx, cy) != CB_ERR);
     }
 
     /// <summary>
@@ -485,22 +485,22 @@ public:
     /// <returns>成功返回先前的LCID，失败返回CB_ERR</returns>
     EckInline LCID SetLocale(LCID lcid) const noexcept
     {
-        return (LCID)SendMsg(CB_SETLOCALE, lcid, 0);
+        return (LCID)SendMessage(CB_SETLOCALE, lcid, 0);
     }
 
     EckInline BOOL SetMinimumVisible(int cItems) const noexcept
     {
-        return (BOOL)SendMsg(CB_SETMINVISIBLE, cItems, 0);
+        return (BOOL)SendMessage(CB_SETMINVISIBLE, cItems, 0);
     }
 
     EckInline BOOL SetTopIndex(int idx) const noexcept
     {
-        return (SendMsg(CB_SETTOPINDEX, idx, 0) != CB_ERR);
+        return (SendMessage(CB_SETTOPINDEX, idx, 0) != CB_ERR);
     }
 
     EckInline void ShowDropDown(BOOL bShow) const noexcept
     {
-        SendMsg(CB_SHOWDROPDOWN, bShow, 0);
+        SendMessage(CB_SHOWDROPDOWN, bShow, 0);
     }
 
     /// <summary>
@@ -513,8 +513,8 @@ public:
     {
         RECT rc;
         GetClientRect(m_hWnd, &rc);
-        int iOffset = rc.bottom - (int)SendMsg(CB_GETITEMHEIGHT, -1, 0);
-        return (SendMsg(CB_SETITEMHEIGHT, -1, cy - iOffset) != CB_ERR);
+        int iOffset = rc.bottom - (int)SendMessage(CB_GETITEMHEIGHT, -1, 0);
+        return (SendMessage(CB_SETITEMHEIGHT, -1, cy - iOffset) != CB_ERR);
     }
 
     void SetItemString(int idx, _In_z_ PCWSTR pszText) const noexcept

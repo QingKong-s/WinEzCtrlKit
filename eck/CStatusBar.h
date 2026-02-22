@@ -19,7 +19,7 @@ public:
     /// <returns>成功返回TRUE，失败返回FALSE</returns>
     EckInline BOOL GetBorders(_Out_writes_(3) int* pi) const noexcept
     {
-        return (BOOL)SendMsg(SB_GETBORDERS, 0, (LPARAM)pi);
+        return (BOOL)SendMessage(SB_GETBORDERS, 0, (LPARAM)pi);
     }
 
     /// <summary>
@@ -29,7 +29,7 @@ public:
     /// <returns>图标句柄</returns>
     EckInline HICON GetIcon(int idx) const noexcept
     {
-        return (HICON)SendMsg(SB_GETICON, idx, 0);
+        return (HICON)SendMessage(SB_GETICON, idx, 0);
     }
 
     /// <summary>
@@ -40,12 +40,12 @@ public:
     /// <returns>返回实际部件数</returns>
     EckInline int GetParts(int cParts, _Out_writes_opt_(cParts) int* pRights) const noexcept
     {
-        return (int)SendMsg(SB_GETPARTS, cParts, (LPARAM)pRights);
+        return (int)SendMessage(SB_GETPARTS, cParts, (LPARAM)pRights);
     }
 
     EckInline BOOL GetRect(int idx, _Out_ RECT* prc) const noexcept
     {
-        return (BOOL)SendMsg(SB_GETRECT, idx, (LPARAM)prc);
+        return (BOOL)SendMessage(SB_GETRECT, idx, (LPARAM)prc);
     }
 
 #pragma warning(push)
@@ -60,7 +60,7 @@ public:
     EckInline int GetPartText(int idx, _Out_ PWSTR pszBuf,
         _Out_opt_ int* pDrawFlags = nullptr) const noexcept
     {
-        const auto lRet = SendMsg(SB_GETTEXTW, idx, (LPARAM)pszBuf);
+        const auto lRet = SendMessage(SB_GETTEXTW, idx, (LPARAM)pszBuf);
         if (pDrawFlags)
             *pDrawFlags = HIWORD(lRet);
         return LOWORD(lRet);
@@ -76,7 +76,7 @@ public:
     EckInline int GetPartTextLength(int idx,
         _Out_opt_ int* pDrawFlags = nullptr) const noexcept
     {
-        const auto lRet = SendMsg(SB_GETTEXTLENGTHW, idx, 0);
+        const auto lRet = SendMessage(SB_GETTEXTLENGTHW, idx, 0);
         if (pDrawFlags)
             *pDrawFlags = HIWORD(lRet);
         return LOWORD(lRet);
@@ -85,17 +85,17 @@ public:
     ECK_SUPPRESS_MISSING_ZERO_TERMINATION;
     EckInline void GetTipText(int idx, _Out_writes_(cchBuf) PWSTR pszBuf, int cchBuf) const noexcept
     {
-        SendMsg(SB_GETTIPTEXTW, MAKEWPARAM(idx, cchBuf), (LPARAM)pszBuf);
+        SendMessage(SB_GETTIPTEXTW, MAKEWPARAM(idx, cchBuf), (LPARAM)pszBuf);
     }
 
     EckInline BOOL IsSimple() const noexcept
     {
-        return (BOOL)SendMsg(SB_ISSIMPLE, 0, 0);
+        return (BOOL)SendMessage(SB_ISSIMPLE, 0, 0);
     }
 
     EckInline COLORREF SetBackgroundColor(COLORREF cr) const noexcept
     {
-        return (COLORREF)SendMsg(SB_SETBKCOLOR, 0, (LPARAM)cr);
+        return (COLORREF)SendMessage(SB_SETBKCOLOR, 0, (LPARAM)cr);
     }
 
     /// <summary>
@@ -106,12 +106,12 @@ public:
     /// <returns>成功返回TRUE，失败返回FALSE</returns>
     EckInline BOOL SetIcon(int idx, HICON hIcon) const noexcept
     {
-        return (BOOL)SendMsg(SB_SETICON, idx, (LPARAM)hIcon);
+        return (BOOL)SendMessage(SB_SETICON, idx, (LPARAM)hIcon);
     }
 
     EckInline void SetMinimumHeight(int cy) const noexcept
     {
-        SendMsg(SB_SETMINHEIGHT, cy, 0);
+        SendMessage(SB_SETMINHEIGHT, cy, 0);
     }
 
     /// <summary>
@@ -122,27 +122,27 @@ public:
     /// <returns>成功返回TRUE，失败返回FALSE</returns>
     EckInline BOOL SetParts(int cParts, _In_reads_(cParts) int* pWidths) const noexcept
     {
-        return (BOOL)SendMsg(SB_SETPARTS, cParts, (LPARAM)pWidths);
+        return (BOOL)SendMessage(SB_SETPARTS, cParts, (LPARAM)pWidths);
     }
 
     EckInline BOOL SetPartText(int idx, _In_z_ PCWSTR pszText, int iDrawFlags = 0) const noexcept
     {
-        return (BOOL)SendMsg(SB_SETTEXTW, MAKEWORD(idx, iDrawFlags), (LPARAM)pszText);
+        return (BOOL)SendMessage(SB_SETTEXTW, MAKEWORD(idx, iDrawFlags), (LPARAM)pszText);
     }
 
     EckInline BOOL SetPartData(int idx, LPARAM lParam) const noexcept
     {
-        return (BOOL)SendMsg(SB_SETTEXTW, MAKEWORD(idx, SBT_OWNERDRAW), lParam);
+        return (BOOL)SendMessage(SB_SETTEXTW, MAKEWORD(idx, SBT_OWNERDRAW), lParam);
     }
 
     EckInline void SetTipText(int idx, _In_z_ PCWSTR pszText) const noexcept
     {
-        SendMsg(SB_SETTIPTEXTW, idx, (LPARAM)pszText);
+        SendMessage(SB_SETTIPTEXTW, idx, (LPARAM)pszText);
     }
 
     EckInline void SetSimple(BOOL bSimple) const noexcept
     {
-        SendMsg(SB_SIMPLE, bSimple, 0);
+        SendMessage(SB_SIMPLE, bSimple, 0);
     }
 };
 ECK_NAMESPACE_END

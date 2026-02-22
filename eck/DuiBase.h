@@ -2403,7 +2403,7 @@ public:
         ScreenToClient(HWnd, &pt0);
         DRAGDROPINFO ddi{ pDataObj,grfKeyState,pt,pdwEffect };
 
-        if (SendMsg(WM_DRAGENTER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
+        if (SendMessage(WM_DRAGENTER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
             return ddi.hr;
 
         const auto pElem = ElemFromPoint(pt0);
@@ -2422,7 +2422,7 @@ public:
         ScreenToClient(HWnd, &pt0);
         DRAGDROPINFO ddi{ nullptr,grfKeyState,pt,pdwEffect };
 
-        if (SendMsg(WM_DRAGOVER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
+        if (SendMessage(WM_DRAGOVER, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
             return ddi.hr;
 
         auto pElem = ElemFromPoint(pt0);
@@ -2447,7 +2447,7 @@ public:
     }
     HRESULT STDMETHODCALLTYPE DragLeave(void)
     {
-        if (SendMsg(WM_DRAGLEAVE, 0, 0))
+        if (SendMessage(WM_DRAGLEAVE, 0, 0))
         {
             EckAssert(!m_pDragDropElem);
             m_pDataObj = nullptr;
@@ -2470,7 +2470,7 @@ public:
         ScreenToClient(HWnd, &pt0);
         DRAGDROPINFO ddi{ pDataObj, grfKeyState, pt, pdwEffect };
 
-        if (SendMsg(WM_DROP, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
+        if (SendMessage(WM_DROP, (WPARAM)&ddi, MAKELPARAM(pt0.x, pt0.y)))
         {
             EckAssert(!m_pDragDropElem);
             m_pDataObj = nullptr;

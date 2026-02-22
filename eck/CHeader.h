@@ -39,49 +39,49 @@ public:
     /// <returns></returns>
     EckInline BOOL ClearFilter(int idx) const noexcept
     {
-        return (BOOL)SendMsg(HDM_CLEARFILTER, idx, 0);
+        return (BOOL)SendMessage(HDM_CLEARFILTER, idx, 0);
     }
 
     EckInline HIMAGELIST CreateDragImage(int idx) const noexcept
     {
-        return (HIMAGELIST)SendMsg(HDM_CREATEDRAGIMAGE, idx, 0);
+        return (HIMAGELIST)SendMessage(HDM_CREATEDRAGIMAGE, idx, 0);
     }
 
     EckInline BOOL DeleteItem(int idx) const noexcept
     {
-        return (BOOL)SendMsg(HDM_DELETEITEM, idx, 0);
+        return (BOOL)SendMessage(HDM_DELETEITEM, idx, 0);
     }
 
     EckInline BOOL EditFilter(int idx, BOOL bDiscardUserInput) const noexcept
     {
-        return (BOOL)SendMsg(HDM_CLEARFILTER, idx, bDiscardUserInput);
+        return (BOOL)SendMessage(HDM_CLEARFILTER, idx, bDiscardUserInput);
     }
 
     EckInline int GetBitmapMargin() const noexcept
     {
-        return (int)SendMsg(HDM_GETBITMAPMARGIN, 0, 0);
+        return (int)SendMessage(HDM_GETBITMAPMARGIN, 0, 0);
     }
 
     EckInline int GetFocusItem() const noexcept
     {
-        return (int)SendMsg(HDM_GETFOCUSEDITEM, 0, 0);
+        return (int)SendMessage(HDM_GETFOCUSEDITEM, 0, 0);
     }
 
     EckInline HIMAGELIST GetImageList(UINT uType) const noexcept
     {
-        return (HIMAGELIST)SendMsg(HDM_GETIMAGELIST, uType, 0);
+        return (HIMAGELIST)SendMessage(HDM_GETIMAGELIST, uType, 0);
     }
 
     EckInline HIMAGELIST GetImageList() const noexcept { return GetImageList(HDSIL_NORMAL); }
 
     EckInline BOOL GetItem(int idx, _Inout_ HDITEMW* phdi) const noexcept
     {
-        return (BOOL)SendMsg(HDM_GETITEMW, idx, (LPARAM)phdi);
+        return (BOOL)SendMessage(HDM_GETITEMW, idx, (LPARAM)phdi);
     }
 
     EckInline int GetItemCount() const noexcept
     {
-        return (int)SendMsg(HDM_GETITEMCOUNT, 0, 0);
+        return (int)SendMessage(HDM_GETITEMCOUNT, 0, 0);
     }
 
     /// <summary>
@@ -92,7 +92,7 @@ public:
     /// <returns>成功返回TRUE，失败返回FALSE</returns>
     EckInline BOOL GetItemDropDownRect(int idx, _Out_ RECT* prc) const noexcept
     {
-        return (BOOL)SendMsg(HDM_GETITEMDROPDOWNRECT, idx, (LPARAM)prc);
+        return (BOOL)SendMessage(HDM_GETITEMDROPDOWNRECT, idx, (LPARAM)prc);
     }
 
     /// <summary>
@@ -103,12 +103,12 @@ public:
     /// <returns>成功返回TRUE，失败返回FALSE</returns>
     EckInline BOOL GetItemRect(int idx, _Out_ RECT* prc) const noexcept
     {
-        return (BOOL)SendMsg(HDM_GETITEMRECT, idx, (LPARAM)prc);
+        return (BOOL)SendMessage(HDM_GETITEMRECT, idx, (LPARAM)prc);
     }
 
     EckInline BOOL GetOrderArray(_Out_writes_(cBuf) int* piOrder, size_t cBuf) const noexcept
     {
-        return (BOOL)SendMsg(HDM_GETORDERARRAY, cBuf, (LPARAM)piOrder);
+        return (BOOL)SendMessage(HDM_GETORDERARRAY, cBuf, (LPARAM)piOrder);
     }
 
     EckInline BOOL GetOrderArray(std::vector<int>& vOrder) const noexcept
@@ -124,17 +124,17 @@ public:
     /// <returns>成功返回TRUE，失败返回FALSE</returns>
     EckInline BOOL GetOverFlowRect(_Out_ RECT* prc) const noexcept
     {
-        return (BOOL)SendMsg(HDM_GETOVERFLOWRECT, 0, (LPARAM)prc);
+        return (BOOL)SendMessage(HDM_GETOVERFLOWRECT, 0, (LPARAM)prc);
     }
 
     EckInline int HitTest(_Inout_ HDHITTESTINFO* phdhti) const noexcept
     {
-        return (int)SendMsg(HDM_HITTEST, 0, (LPARAM)phdhti);
+        return (int)SendMessage(HDM_HITTEST, 0, (LPARAM)phdhti);
     }
 
     EckInline int InsertItem(int idx, _In_ const HDITEMW* phdi) const noexcept
     {
-        return (int)SendMsg(HDM_INSERTITEMW, idx, (LPARAM)phdi);
+        return (int)SendMessage(HDM_INSERTITEMW, idx, (LPARAM)phdi);
     }
 
     EckInline int InsertItem(PCWSTR pszText, int idx = -1, int cxItem = -1,
@@ -164,42 +164,42 @@ public:
 
     EckInline BOOL Layout(_Inout_ HDLAYOUT* phdl) const noexcept
     {
-        return (BOOL)SendMsg(HDM_LAYOUT, 0, (LPARAM)phdl);
+        return (BOOL)SendMessage(HDM_LAYOUT, 0, (LPARAM)phdl);
     }
 
     EckInline int OrderToIndex(int iOrder) const noexcept
     {
-        return (int)SendMsg(HDM_ORDERTOINDEX, iOrder, 0);
+        return (int)SendMessage(HDM_ORDERTOINDEX, iOrder, 0);
     }
 
     EckInline int SetBitmapMargin(int iMargin) const noexcept
     {
-        return (int)SendMsg(HDM_SETBITMAPMARGIN, iMargin, 0);
+        return (int)SendMessage(HDM_SETBITMAPMARGIN, iMargin, 0);
     }
 
     EckInline int SetFilterChangeTimeout(int iTimeout) const noexcept
     {
-        return (int)SendMsg(HDM_SETFILTERCHANGETIMEOUT, 0, iTimeout);
+        return (int)SendMessage(HDM_SETFILTERCHANGETIMEOUT, 0, iTimeout);
     }
 
     EckInline BOOL SetFocusedItem(int idx) const noexcept
     {
-        return (BOOL)SendMsg(HDM_SETFOCUSEDITEM, 0, idx);
+        return (BOOL)SendMessage(HDM_SETFOCUSEDITEM, 0, idx);
     }
 
     EckInline int SetHotDivider(int idxDivider) const noexcept
     {
-        return (int)SendMsg(HDM_SETHOTDIVIDER, FALSE, idxDivider);
+        return (int)SendMessage(HDM_SETHOTDIVIDER, FALSE, idxDivider);
     }
 
     EckInline int SetHotDivider(POINT ptCursor) const noexcept
     {
-        return (int)SendMsg(HDM_SETHOTDIVIDER, TRUE, MAKELPARAM(ptCursor.x, ptCursor.y));
+        return (int)SendMessage(HDM_SETHOTDIVIDER, TRUE, MAKELPARAM(ptCursor.x, ptCursor.y));
     }
 
     EckInline HIMAGELIST SetImageList(HIMAGELIST hImageList, UINT uType) const noexcept
     {
-        return (HIMAGELIST)SendMsg(HDM_SETIMAGELIST, uType, (LPARAM)hImageList);
+        return (HIMAGELIST)SendMessage(HDM_SETIMAGELIST, uType, (LPARAM)hImageList);
     }
 
     EckInline HIMAGELIST SetImageList(HIMAGELIST hImageList) const noexcept
@@ -209,12 +209,12 @@ public:
 
     EckInline BOOL SetItem(int idx, _In_ const HDITEMW* phdi) const noexcept
     {
-        return (BOOL)SendMsg(HDM_SETITEMW, idx, (LPARAM)phdi);
+        return (BOOL)SendMessage(HDM_SETITEMW, idx, (LPARAM)phdi);
     }
 
     EckInline BOOL SetOrderArray(const int* piOrder) const noexcept
     {
-        return (BOOL)SendMsg(HDM_SETORDERARRAY, GetItemCount(), (LPARAM)piOrder);
+        return (BOOL)SendMessage(HDM_SETORDERARRAY, GetItemCount(), (LPARAM)piOrder);
     }
 
     void RadioSetSortMark(int idx, int iFmt) const noexcept

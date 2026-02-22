@@ -118,7 +118,7 @@ public:
 
     EckInline BOOL CanUndo() const noexcept
     {
-        return (BOOL)SendMsg(EM_CANUNDO, 0, 0);
+        return (BOOL)SendMessage(EM_CANUNDO, 0, 0);
     }
 
     /// <summary>
@@ -130,7 +130,7 @@ public:
     int CharFromPosition(POINT pt, _Out_opt_ int* piPosInLine = nullptr) const noexcept
     {
         int posChar;
-        UINT uRet = (UINT)SendMsg(EM_CHARFROMPOS, 0, MAKELPARAM(pt.x, pt.y));
+        UINT uRet = (UINT)SendMessage(EM_CHARFROMPOS, 0, MAKELPARAM(pt.x, pt.y));
         USHORT usPos = LOWORD(uRet);
         if (usPos == 65535)
             posChar = -1;
@@ -149,12 +149,12 @@ public:
 
     EckInline void EmptyUndoBuffer() const noexcept
     {
-        SendMsg(EM_EMPTYUNDOBUFFER, 0, 0);
+        SendMessage(EM_EMPTYUNDOBUFFER, 0, 0);
     }
 
     EckInline void FormatLines(BOOL bSoftLineBreakChar) const noexcept
     {
-        SendMsg(EM_FMTLINES, bSoftLineBreakChar, 0);
+        SendMessage(EM_FMTLINES, bSoftLineBreakChar, 0);
     }
 
     ECK_SUPPRESS_MISSING_ZERO_TERMINATION
@@ -166,7 +166,7 @@ public:
         /// <returns>成功返回TRUE，失败返回FALSE</returns>
         EckInline BOOL GetCueBanner(_Out_writes_(cchBuf) PWSTR pszBuf, int cchBuf) const noexcept
     {
-        return (BOOL)SendMsg(EM_GETCUEBANNER, (WPARAM)pszBuf, cchBuf);
+        return (BOOL)SendMessage(EM_GETCUEBANNER, (WPARAM)pszBuf, cchBuf);
     }
 
     EckInline BOOL GetCueBanner(CStringW& rs, int cchMax = MAX_PATH,
@@ -199,22 +199,22 @@ public:
     /// <returns>多行：返回行索引，单行：返回第一个可见字符索引</returns>
     EckInline int GetFirstVisibleLine() const noexcept
     {
-        return (int)SendMsg(EM_GETFIRSTVISIBLELINE, 0, 0);
+        return (int)SendMessage(EM_GETFIRSTVISIBLELINE, 0, 0);
     }
 
     EckInline HLOCAL GetHandle() const noexcept
     {
-        return (HLOCAL)SendMsg(EM_GETHANDLE, 0, 0);
+        return (HLOCAL)SendMessage(EM_GETHANDLE, 0, 0);
     }
 
     EckInline UINT GetImeState(UINT uMask) const noexcept
     {
-        return (UINT)SendMsg(EM_GETIMESTATUS, uMask, 0);
+        return (UINT)SendMessage(EM_GETIMESTATUS, uMask, 0);
     }
 
     EckInline int GetLimitText() const noexcept
     {
-        return (int)SendMsg(EM_GETLIMITTEXT, 0, 0);
+        return (int)SendMessage(EM_GETLIMITTEXT, 0, 0);
     }
 
     int GetLine(int idxLine, _Out_writes_(cchMax) PWSTR pszBuf, int cchMax) const noexcept
@@ -222,7 +222,7 @@ public:
         if (!pszBuf || cchMax < 1)
             return 0;
         *(WORD*)pszBuf = cchMax - 1;
-        int cch = (int)SendMsg(EM_GETLINE, idxLine, (LPARAM)pszBuf);
+        int cch = (int)SendMessage(EM_GETLINE, idxLine, (LPARAM)pszBuf);
         *(pszBuf + cch) = L'\0';
         return cch;
     }
@@ -245,18 +245,18 @@ public:
 
     EckInline int GetLineCount() const noexcept
     {
-        return (int)SendMsg(EM_GETLINECOUNT, 0, 0);
+        return (int)SendMessage(EM_GETLINECOUNT, 0, 0);
     }
 
     EckInline UINT GetMargins() const noexcept
     {
-        return (UINT)SendMsg(EM_GETMARGINS, 0, 0);
+        return (UINT)SendMessage(EM_GETMARGINS, 0, 0);
     }
 
     EckInline void GetMargins(_Out_opt_ int* piLeftMargin,
         _Out_opt_ int* piRightMargin) const noexcept
     {
-        UINT uRet = (UINT)SendMsg(EM_GETMARGINS, 0, 0);
+        UINT uRet = (UINT)SendMessage(EM_GETMARGINS, 0, 0);
         if (piLeftMargin)
             *piLeftMargin = LOWORD(uRet);
         if (piRightMargin)
@@ -265,23 +265,23 @@ public:
 
     EckInline int GetModify() const noexcept
     {
-        return (int)SendMsg(EM_GETMODIFY, 0, 0);
+        return (int)SendMessage(EM_GETMODIFY, 0, 0);
     }
 
     EckInline WCHAR GetPasswordChar() const noexcept
     {
-        return (WCHAR)SendMsg(EM_GETPASSWORDCHAR, 0, 0);
+        return (WCHAR)SendMessage(EM_GETPASSWORDCHAR, 0, 0);
     }
 
     EckInline void GetRect(_Out_ RECT* prc) const noexcept
     {
-        SendMsg(EM_GETRECT, 0, (LPARAM)prc);
+        SendMessage(EM_GETRECT, 0, (LPARAM)prc);
     }
 
     EckInline void GetSelection(_Out_opt_ int* piSelStart,
         _Out_opt_ int* piSelEnd) const noexcept
     {
-        SendMsg(EM_GETSEL, (WPARAM)piSelStart, (LPARAM)piSelEnd);
+        SendMessage(EM_GETSEL, (WPARAM)piSelStart, (LPARAM)piSelEnd);
     }
 
     /// <summary>
@@ -290,17 +290,17 @@ public:
     /// <returns>位置</returns>
     EckInline int GetThumbPosition() const noexcept
     {
-        return (int)SendMsg(EM_GETTHUMB, 0, 0);
+        return (int)SendMessage(EM_GETTHUMB, 0, 0);
     }
 
     EckInline EDITWORDBREAKPROCW GetWordBreakProcedure() const noexcept
     {
-        return (EDITWORDBREAKPROCW)SendMsg(EM_GETWORDBREAKPROC, 0, 0);
+        return (EDITWORDBREAKPROCW)SendMessage(EM_GETWORDBREAKPROC, 0, 0);
     }
 
     EckInline void HideBalloonTip() const noexcept
     {
-        SendMsg(EM_HIDEBALLOONTIP, 0, 0);
+        SendMessage(EM_HIDEBALLOONTIP, 0, 0);
     }
 
     /// <summary>
@@ -310,7 +310,7 @@ public:
     /// <returns>返回行索引</returns>
     EckInline int LineFromChar(int posChar) const noexcept
     {
-        return (int)SendMsg(EM_LINEFROMCHAR, posChar, 0);
+        return (int)SendMessage(EM_LINEFROMCHAR, posChar, 0);
     }
 
     /// <summary>
@@ -320,7 +320,7 @@ public:
     /// <returns>返回一行的第一个字符的索引</returns>
     EckInline int LineIndex(int iLine) const noexcept
     {
-        return (int)SendMsg(EM_LINEINDEX, iLine, 0);
+        return (int)SendMessage(EM_LINEINDEX, iLine, 0);
     }
 
     /// <summary>
@@ -330,17 +330,17 @@ public:
     /// <returns>返回长度，失败返回0</returns>
     EckInline int LineLength(int posChar) const noexcept
     {
-        return (int)SendMsg(EM_LINELENGTH, posChar, 0);
+        return (int)SendMessage(EM_LINELENGTH, posChar, 0);
     }
 
     EckInline void LineScroll(int cchHScroll, int cchVScroll) const noexcept
     {
-        SendMsg(EM_LINESCROLL, cchHScroll, cchVScroll);
+        SendMessage(EM_LINESCROLL, cchHScroll, cchVScroll);
     }
 
     EckInline POINT PositionFromChar(int posChar) const noexcept
     {
-        UINT uRet = (UINT)SendMsg(EM_LINESCROLL, posChar, 0);
+        UINT uRet = (UINT)SendMessage(EM_LINESCROLL, posChar, 0);
         POINT pt;
         pt.x = LOWORD(uRet);
         pt.y = HIWORD(uRet);
@@ -349,7 +349,7 @@ public:
 
     EckInline void ReplaceSelection(PCWSTR pszText, BOOL bAllowUndo) const noexcept
     {
-        SendMsg(EM_REPLACESEL, bAllowUndo, (LPARAM)pszText);
+        SendMessage(EM_REPLACESEL, bAllowUndo, (LPARAM)pszText);
     }
 
     /// <summary>
@@ -359,32 +359,32 @@ public:
     /// <returns>成功返回TRUE</returns>
     EckInline BOOL Scroll(int iOp) const noexcept
     {
-        return HIWORD(SendMsg(EM_SCROLL, iOp, 0));
+        return HIWORD(SendMessage(EM_SCROLL, iOp, 0));
     }
 
     EckInline void ScrollCaret() const noexcept
     {
-        SendMsg(EM_SCROLLCARET, 0, 0);
+        SendMessage(EM_SCROLLCARET, 0, 0);
     }
 
     EckInline BOOL SetCueBanner(PCWSTR psz, BOOL bShowAlways = TRUE) const noexcept
     {
-        return (BOOL)SendMsg(EM_SETCUEBANNER, bShowAlways, (LPARAM)psz);
+        return (BOOL)SendMessage(EM_SETCUEBANNER, bShowAlways, (LPARAM)psz);
     }
 
     EckInline void SetHandle(HLOCAL hLocal) const noexcept
     {
-        SendMsg(EM_SETHANDLE, (WPARAM)hLocal, 0);
+        SendMessage(EM_SETHANDLE, (WPARAM)hLocal, 0);
     }
 
     EckInline UINT SetImeState(UINT uMask) const noexcept
     {
-        return (UINT)SendMsg(EM_SETIMESTATUS, uMask, 0);
+        return (UINT)SendMessage(EM_SETIMESTATUS, uMask, 0);
     }
 
     EckInline void SetLimitText(int iMaxLen) const noexcept
     {
-        SendMsg(EM_SETLIMITTEXT, iMaxLen, 0);
+        SendMessage(EM_SETLIMITTEXT, iMaxLen, 0);
     }
 
     /// <summary>
@@ -395,37 +395,37 @@ public:
     /// <param name="uMask">EC_LEFTMARGIN、EC_RIGHTMARGIN</param>
     EckInline void SetMargins(int iLeftMargin, int iRightMargin, UINT uMask) const noexcept
     {
-        SendMsg(EM_SETMARGINS, uMask, MAKELPARAM(iLeftMargin, iRightMargin));
+        SendMessage(EM_SETMARGINS, uMask, MAKELPARAM(iLeftMargin, iRightMargin));
     }
 
     EckInline void SetModify(BOOL bModify) const noexcept
     {
-        SendMsg(EM_SETMODIFY, bModify, 0);
+        SendMessage(EM_SETMODIFY, bModify, 0);
     }
 
     EckInline void SetPasswordChar(WCHAR chMask) const noexcept
     {
-        SendMsg(EM_SETPASSWORDCHAR, chMask, 0);
+        SendMessage(EM_SETPASSWORDCHAR, chMask, 0);
     }
 
     EckInline BOOL SetReadOnly(BOOL bReadOnly) const noexcept
     {
-        return (BOOL)SendMsg(EM_SETREADONLY, bReadOnly, 0);
+        return (BOOL)SendMessage(EM_SETREADONLY, bReadOnly, 0);
     }
 
     EckInline void SetRect(_In_opt_ const RECT* prc) const noexcept
     {
-        SendMsg(EM_SETRECT, 0, (LPARAM)prc);
+        SendMessage(EM_SETRECT, 0, (LPARAM)prc);
     }
 
     EckInline void SetRectNoPaint(_In_opt_ const RECT* prc) const noexcept
     {
-        SendMsg(EM_SETRECTNP, 0, (LPARAM)prc);
+        SendMessage(EM_SETRECTNP, 0, (LPARAM)prc);
     }
 
     EckInline void SetSelection(int iSelStart, int iSelEnd) const noexcept
     {
-        SendMsg(EM_SETSEL, iSelStart, iSelEnd);
+        SendMessage(EM_SETSEL, iSelStart, iSelEnd);
     }
 
     /// <summary>
@@ -435,12 +435,12 @@ public:
     /// <param name="c">数组元素数，若为0则设置默认制表位</param>
     EckInline void SetTabStop(_In_reads_opt_(c) const int* piTabStop, int c) const noexcept
     {
-        SendMsg(EM_SETTABSTOPS, c, (LPARAM)piTabStop);
+        SendMessage(EM_SETTABSTOPS, c, (LPARAM)piTabStop);
     }
 
     EckInline void SetWordBreakProcedure(EDITWORDBREAKPROCW pfnProc) const noexcept
     {
-        SendMsg(EM_SETWORDBREAKPROC, 0, (LPARAM)pfnProc);
+        SendMessage(EM_SETWORDBREAKPROC, 0, (LPARAM)pfnProc);
     }
 
     /// <summary>
@@ -458,78 +458,78 @@ public:
         ebt.pszText = pszContent;
         ebt.ttiIcon = iIcon;
 
-        return (BOOL)SendMsg(EM_SHOWBALLOONTIP, 0, (LPARAM)&ebt);
+        return (BOOL)SendMessage(EM_SHOWBALLOONTIP, 0, (LPARAM)&ebt);
     }
 
     EckInline BOOL ShowBalloonTip(const EDITBALLOONTIP* pebt) const noexcept
     {
-        return (BOOL)SendMsg(EM_SHOWBALLOONTIP, 0, (LPARAM)pebt);
+        return (BOOL)SendMessage(EM_SHOWBALLOONTIP, 0, (LPARAM)pebt);
     }
 
 #if NTDDI_VERSION >= NTDDI_WIN10_RS5// 1809+
     EckInline HRESULT SetEDExtendStyle(DWORD dwStyle, DWORD dwMask) const noexcept
     {
-        return (HRESULT)SendMsg(EM_SETEXTENDEDSTYLE, dwMask, dwStyle);
+        return (HRESULT)SendMessage(EM_SETEXTENDEDSTYLE, dwMask, dwStyle);
     }
 
     EckInline DWORD GetEDExtendStyle() const noexcept
     {
-        return (DWORD)SendMsg(EM_GETEXTENDEDSTYLE, 0, 0);
+        return (DWORD)SendMessage(EM_GETEXTENDEDSTYLE, 0, 0);
     }
 
     EckInline BOOL SetEndOfLine(EC_ENDOFLINE eEol) const noexcept
     {
-        return (BOOL)SendMsg(EM_SETENDOFLINE, (WPARAM)eEol, 0);
+        return (BOOL)SendMessage(EM_SETENDOFLINE, (WPARAM)eEol, 0);
     }
 
     EckInline EC_ENDOFLINE GetEndOfLine() const noexcept
     {
-        return (EC_ENDOFLINE)SendMsg(EM_GETENDOFLINE, 0, 0);
+        return (EC_ENDOFLINE)SendMessage(EM_GETENDOFLINE, 0, 0);
     }
 
     EckInline void EnableSearchWeb(BOOL bEnable) const noexcept
     {
-        SendMsg(EM_ENABLESEARCHWEB, bEnable, 0);
+        SendMessage(EM_ENABLESEARCHWEB, bEnable, 0);
     }
 
     EckInline void SearchWeb() const noexcept
     {
-        SendMsg(EM_SEARCHWEB, 0, 0);
+        SendMessage(EM_SEARCHWEB, 0, 0);
     }
 
     EckInline void SetCaretIndex(int idx) const noexcept
     {
-        SendMsg(EM_SETCARETINDEX, idx, 0);
+        SendMessage(EM_SETCARETINDEX, idx, 0);
     }
 
     EckInline int GetCaretIndex() const noexcept
     {
-        return (int)SendMsg(EM_GETCARETINDEX, 0, 0);
+        return (int)SendMessage(EM_GETCARETINDEX, 0, 0);
     }
 
     EckInline BOOL SetZoom(int nZoomNumerator, int nZoomDenominator) const noexcept
     {
-        return (BOOL)SendMsg(EM_SETZOOM, nZoomNumerator, nZoomDenominator);
+        return (BOOL)SendMessage(EM_SETZOOM, nZoomNumerator, nZoomDenominator);
     }
 
     EckInline BOOL GetZoom(int* pnZoomNumerator, int* pnZoomDenominator) const noexcept
     {
-        return (BOOL)SendMsg(EM_GETZOOM, (WPARAM)pnZoomNumerator, (LPARAM)pnZoomDenominator);
+        return (BOOL)SendMessage(EM_GETZOOM, (WPARAM)pnZoomNumerator, (LPARAM)pnZoomDenominator);
     }
 
     EckInline int FileLineFromChar(int posChar) const noexcept
     {
-        return (int)SendMsg(EM_FILELINEFROMCHAR, posChar, 0);
+        return (int)SendMessage(EM_FILELINEFROMCHAR, posChar, 0);
     }
 
     EckInline int FileLineIndex(int iLine) const noexcept
     {
-        return (int)SendMsg(EM_FILELINEINDEX, iLine, 0);
+        return (int)SendMessage(EM_FILELINEINDEX, iLine, 0);
     }
 
     EckInline int FileLineLength(int posChar) const noexcept
     {
-        return (int)SendMsg(EM_FILELINELENGTH, posChar, 0);
+        return (int)SendMessage(EM_FILELINELENGTH, posChar, 0);
     }
 
     EckInline int GetFileLine(int idxLine,
@@ -538,35 +538,35 @@ public:
         if (!pszBuf || cchMax < 1)
             return 0;
         *(WORD*)pszBuf = cchMax - 1;
-        int cch = (int)SendMsg(EM_GETFILELINE, idxLine, (LPARAM)pszBuf);
+        int cch = (int)SendMessage(EM_GETFILELINE, idxLine, (LPARAM)pszBuf);
         *(pszBuf + cch) = L'\0';
         return cch;
     }
 
     EckInline int GetFileLineCount() const noexcept
     {
-        return (int)SendMsg(EM_GETFILELINECOUNT, 0, 0);
+        return (int)SendMessage(EM_GETFILELINECOUNT, 0, 0);
     }
 #endif // NTDDI_VERSION >= NTDDI_WIN10_RS5
 
     EckInline BOOL Undo() const noexcept
     {
-        return (BOOL)SendMsg(EM_UNDO, 0, 0);
+        return (BOOL)SendMessage(EM_UNDO, 0, 0);
     }
 
     EckInline void Paste() const noexcept
     {
-        SendMsg(WM_PASTE, 0, 0);
+        SendMessage(WM_PASTE, 0, 0);
     }
 
     EckInline void Copy() const noexcept
     {
-        SendMsg(WM_COPY, 0, 0);
+        SendMessage(WM_COPY, 0, 0);
     }
 
     EckInline void Cut() const noexcept
     {
-        SendMsg(WM_CUT, 0, 0);
+        SendMessage(WM_CUT, 0, 0);
     }
 
     EckInline void SelectAll() const noexcept

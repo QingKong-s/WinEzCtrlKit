@@ -180,16 +180,16 @@ public:
                     switch (idx)
                     {
                     case DwmWndPart::Close:
-                        GetWnd()->PostMsg(WM_SYSCOMMAND, SC_CLOSE, 0);
+                        GetWnd()->PostMessage(WM_SYSCOMMAND, SC_CLOSE, 0);
                         break;
                     case DwmWndPart::Max:
                         if (m_bMaximized)
-                            GetWnd()->PostMsg(WM_SYSCOMMAND, SC_RESTORE, 0);
+                            GetWnd()->PostMessage(WM_SYSCOMMAND, SC_RESTORE, 0);
                         else
-                            GetWnd()->PostMsg(WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+                            GetWnd()->PostMessage(WM_SYSCOMMAND, SC_MAXIMIZE, 0);
                         break;
                     case DwmWndPart::Min:
-                        GetWnd()->PostMsg(WM_SYSCOMMAND, SC_MINIMIZE, 0);
+                        GetWnd()->PostMessage(WM_SYSCOMMAND, SC_MINIMIZE, 0);
                         break;
                     }
                 const auto idxOld = m_idxPressed;

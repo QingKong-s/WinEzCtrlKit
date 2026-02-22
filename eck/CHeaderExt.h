@@ -604,7 +604,7 @@ public:
                 hdhti.iItem = -1;
                 HitTest(&hdhti);
                 if (hdhti.iItem >= 0 && !(hdhti.flags & HHT_ONDIVIDER))
-                    PostMsg(WM_LBUTTONDOWN, wParam, lParam);
+                    PostMessage(WM_LBUTTONDOWN, wParam, lParam);
             }
             break;
 

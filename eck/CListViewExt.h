@@ -1659,7 +1659,7 @@ public:
         Update();
         RECT rc;
         GetClientRect(HWnd, &rc);
-        SendMsg(WM_SIZE, 0, MAKELPARAM(rc.right, rc.bottom));
+        SendMessage(WM_SIZE, 0, MAKELPARAM(rc.right, rc.bottom));
     }
 
     CHeaderExt& LveGetHeader() noexcept { return m_Header; }

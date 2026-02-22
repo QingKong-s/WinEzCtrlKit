@@ -29,12 +29,12 @@ public:
 
     EckInline int AddString(PCWSTR psz) const noexcept
     {
-        return (int)SendMsg(LB_ADDSTRING, 0, (LPARAM)psz);
+        return (int)SendMessage(LB_ADDSTRING, 0, (LPARAM)psz);
     }
 
     EckInline int AddString(LPARAM lParam) const noexcept
     {
-        return (int)SendMsg(LB_ADDSTRING, 0, lParam);
+        return (int)SendMessage(LB_ADDSTRING, 0, lParam);
     }
 
     /// <summary>
@@ -44,7 +44,7 @@ public:
     /// <returns>返回剩余项目数</returns>
     EckInline int DeleteString(int idx) const noexcept
     {
-        return (int)SendMsg(LB_DELETESTRING, idx, 0);
+        return (int)SendMessage(LB_DELETESTRING, idx, 0);
     }
 
     /// <summary>
@@ -55,7 +55,7 @@ public:
     /// <returns>索引</returns>
     EckInline int Directory(PCWSTR pszPath, UINT uFlags) const noexcept
     {
-        return (int)SendMsg(LB_DIR, uFlags, (LPARAM)pszPath);
+        return (int)SendMessage(LB_DIR, uFlags, (LPARAM)pszPath);
     }
 
     /// <summary>
@@ -67,7 +67,7 @@ public:
     /// <returns>索引</returns>
     EckInline int FindString(PCWSTR pszText, int idxStart = -1) const noexcept
     {
-        return (int)SendMsg(LB_FINDSTRING, idxStart, (LPARAM)pszText);
+        return (int)SendMessage(LB_FINDSTRING, idxStart, (LPARAM)pszText);
     }
 
     /// <summary>
@@ -79,12 +79,12 @@ public:
     /// <returns>索引</returns>
     EckInline int FindStringExact(PCWSTR pszText, int idxStart = -1) const noexcept
     {
-        return (int)SendMsg(LB_FINDSTRINGEXACT, idxStart, (LPARAM)pszText);
+        return (int)SendMessage(LB_FINDSTRINGEXACT, idxStart, (LPARAM)pszText);
     }
 
     EckInline int GetAnchorIndex() const noexcept
     {
-        return (int)SendMsg(LB_GETANCHORINDEX, 0, 0);
+        return (int)SendMessage(LB_GETANCHORINDEX, 0, 0);
     }
 
     /// <summary>
@@ -94,12 +94,12 @@ public:
     /// <returns></returns>
     EckInline int GetCaretIndex() const noexcept
     {
-        return (int)SendMsg(LB_GETCARETINDEX, 0, 0);
+        return (int)SendMessage(LB_GETCARETINDEX, 0, 0);
     }
 
     EckInline int GetItemCount() const noexcept
     {
-        return (int)SendMsg(LB_GETCOUNT, 0, 0);
+        return (int)SendMessage(LB_GETCOUNT, 0, 0);
     }
 
     /// <summary>
@@ -109,42 +109,42 @@ public:
     /// <returns>索引</returns>
     EckInline int GetCurrentSelection() const noexcept
     {
-        return (int)SendMsg(LB_GETCURSEL, 0, 0);
+        return (int)SendMessage(LB_GETCURSEL, 0, 0);
     }
 
     EckInline int GetHorizontalExtent() const noexcept
     {
-        return (int)SendMsg(LB_GETHORIZONTALEXTENT, 0, 0);
+        return (int)SendMessage(LB_GETHORIZONTALEXTENT, 0, 0);
     }
 
     EckInline LPARAM GetItemData(int idx) const noexcept
     {
-        return SendMsg(LB_GETITEMDATA, idx, 0);
+        return SendMessage(LB_GETITEMDATA, idx, 0);
     }
 
     EckInline int GetItemHeight(int idx) const noexcept
     {
-        return (int)SendMsg(LB_GETITEMHEIGHT, idx, 0);
+        return (int)SendMessage(LB_GETITEMHEIGHT, idx, 0);
     }
 
     EckInline BOOL GetItemRect(int idx, _Out_ RECT* prc) const noexcept
     {
-        return (SendMsg(LB_GETITEMRECT, idx, (LPARAM)prc) != LB_ERR);
+        return (SendMessage(LB_GETITEMRECT, idx, (LPARAM)prc) != LB_ERR);
     }
 
     EckInline int GetItemCountPreColumn() const noexcept
     {
-        return (int)SendMsg(LB_GETLISTBOXINFO, 0, 0);
+        return (int)SendMessage(LB_GETLISTBOXINFO, 0, 0);
     }
 
     EckInline LCID GetLocale() const noexcept
     {
-        return (LCID)SendMsg(LB_GETLOCALE, 0, 0);
+        return (LCID)SendMessage(LB_GETLOCALE, 0, 0);
     }
 
     EckInline int GetSelection(int idx) const noexcept
     {
-        return (SendMsg(LB_GETSEL, idx, 0) > 0);
+        return (SendMessage(LB_GETSEL, idx, 0) > 0);
     }
 
     /// <summary>
@@ -153,7 +153,7 @@ public:
     /// <returns>数目，若为单选列表框，则返回-1</returns>
     EckInline int GetSelectedCount() const noexcept
     {
-        return (int)SendMsg(LB_GETSELCOUNT, 0, 0);
+        return (int)SendMessage(LB_GETSELCOUNT, 0, 0);
     }
 
     /// <summary>
@@ -164,7 +164,7 @@ public:
     /// <returns>项目数，若为单选列表，则返回-1</returns>
     EckInline int GetSelectedItems(_Out_writes_(c) int* piSelItems, int c) const noexcept
     {
-        return (int)SendMsg(LB_GETSELITEMS, c, (LPARAM)piSelItems);
+        return (int)SendMessage(LB_GETSELITEMS, c, (LPARAM)piSelItems);
     }
 
     EckInline CStringW GetItemText(int idx) const noexcept
@@ -174,7 +174,7 @@ public:
         if (cch <= 0)
             return rs;
         rs.ReSize(cch);
-        SendMsg(LB_GETTEXT, idx, (LPARAM)rs.Data());
+        SendMessage(LB_GETTEXT, idx, (LPARAM)rs.Data());
         return rs;
     }
 
@@ -186,7 +186,7 @@ public:
     /// <returns>返回字符数（不含结尾NULL），失败返回-1</returns>
     EckInline int GetItemText(int idx, PWSTR pszBuf) const noexcept
     {
-        return (int)SendMsg(LB_GETTEXT, idx, (LPARAM)pszBuf);
+        return (int)SendMessage(LB_GETTEXT, idx, (LPARAM)pszBuf);
     }
 
     /// <summary>
@@ -196,12 +196,12 @@ public:
     /// <returns>返回字符数（不含结尾NULL）</returns>
     EckInline int GetItemTextLength(int idx) const noexcept
     {
-        return (int)SendMsg(LB_GETTEXTLEN, idx, 0);
+        return (int)SendMessage(LB_GETTEXTLEN, idx, 0);
     }
 
     EckInline int GetTopIndex() const noexcept
     {
-        return (int)SendMsg(LB_GETTOPINDEX, 0, 0);
+        return (int)SendMessage(LB_GETTOPINDEX, 0, 0);
     }
 
     /// <summary>
@@ -212,17 +212,17 @@ public:
     /// <returns>成功返回已预分配的项目总数，失败返回LB_ERRSPACE</returns>
     EckInline int InitialzeStorage(int cItems, SIZE_T cbString) const noexcept
     {
-        return (int)SendMsg(LB_INITSTORAGE, cItems, cbString);
+        return (int)SendMessage(LB_INITSTORAGE, cItems, cbString);
     }
 
     EckInline int InsertString(PCWSTR psz, int idxPos = -1) const noexcept
     {
-        return (int)SendMsg(LB_INSERTSTRING, idxPos, (LPARAM)psz);
+        return (int)SendMessage(LB_INSERTSTRING, idxPos, (LPARAM)psz);
     }
 
     EckInline int InsertString(LPARAM lParam, int idxPos = -1) const noexcept
     {
-        return (int)SendMsg(LB_INSERTSTRING, idxPos, lParam);
+        return (int)SendMessage(LB_INSERTSTRING, idxPos, lParam);
     }
 
     EckInline int ItemFromPoint(POINT pt, BOOL bAutoScroll = FALSE) const noexcept
@@ -233,7 +233,7 @@ public:
 
     EckInline void ResetContent() const noexcept
     {
-        SendMsg(LB_RESETCONTENT, 0, 0);
+        SendMessage(LB_RESETCONTENT, 0, 0);
     }
 
     /// <summary>
@@ -245,39 +245,39 @@ public:
     /// <returns>索引，失败返回LB_ERR</returns>
     EckInline int SelectString(PCWSTR pszText, int idxStart = -1) const noexcept
     {
-        return (int)SendMsg(LB_SELECTSTRING, idxStart, (LPARAM)pszText);
+        return (int)SendMessage(LB_SELECTSTRING, idxStart, (LPARAM)pszText);
     }
 
     EckInline BOOL SelectItemRange(int idxStart, int idxEnd, BOOL bSel) const noexcept
     {
         if (!bSel)
             std::swap(idxStart, idxEnd);
-        return (SendMsg(LB_SELITEMRANGEEX, idxStart, idxEnd) != LB_ERR);
+        return (SendMessage(LB_SELITEMRANGEEX, idxStart, idxEnd) != LB_ERR);
     }
 
     EckInline BOOL SetAnchorIndex(int idx) const noexcept
     {
-        return (SendMsg(LB_SETANCHORINDEX, idx, 0) != LB_ERR);
+        return (SendMessage(LB_SETANCHORINDEX, idx, 0) != LB_ERR);
     }
 
     EckInline BOOL SetCaretIndex(int idx, BOOL bNoFullVisible = FALSE) const noexcept
     {
-        return (SendMsg(LB_SETCARETINDEX, idx, bNoFullVisible) != LB_ERR);
+        return (SendMessage(LB_SETCARETINDEX, idx, bNoFullVisible) != LB_ERR);
     }
 
     EckInline void SetColumnWidth(int cxColumn) const noexcept
     {
-        SendMsg(LB_SETCOLUMNWIDTH, cxColumn, 0);
+        SendMessage(LB_SETCOLUMNWIDTH, cxColumn, 0);
     }
 
     EckInline int SetCount(int cItems) const noexcept
     {
-        return (int)SendMsg(LB_SETCOUNT, cItems, 0);
+        return (int)SendMessage(LB_SETCOUNT, cItems, 0);
     }
 
     EckInline BOOL SetCurrentSelection(int idxSel = -1) const noexcept
     {
-        int iRet = (int)SendMsg(LB_SETCURSEL, idxSel, 0);
+        int iRet = (int)SendMessage(LB_SETCURSEL, idxSel, 0);
         if (idxSel < 0)
             return TRUE;
         else
@@ -286,12 +286,12 @@ public:
 
     EckInline void SetHorizontalExtent(int iHorizontalExtent) const noexcept
     {
-        SendMsg(LB_SETHORIZONTALEXTENT, iHorizontalExtent, 0);
+        SendMessage(LB_SETHORIZONTALEXTENT, iHorizontalExtent, 0);
     }
 
     EckInline BOOL SetItemData(int idx, LPARAM lParam) const noexcept
     {
-        return (SendMsg(LB_SETITEMDATA, idx, lParam) != LB_ERR);
+        return (SendMessage(LB_SETITEMDATA, idx, lParam) != LB_ERR);
     }
 
     /// <summary>
@@ -302,7 +302,7 @@ public:
     /// <returns>成功返回TRUE，失败返回FALSE</returns>
     EckInline BOOL SetItemHeight(int idx, int cy) const noexcept
     {
-        return (SendMsg(LB_SETITEMHEIGHT, idx, cy) != LB_ERR);
+        return (SendMessage(LB_SETITEMHEIGHT, idx, cy) != LB_ERR);
     }
 
     /// <summary>
@@ -312,7 +312,7 @@ public:
     /// <returns>成功返回先前的LCID，失败返回LB_ERR</returns>
     EckInline LCID SetLocale(LCID lcid) const noexcept
     {
-        return (LCID)SendMsg(LB_SETLOCALE, lcid, 0);
+        return (LCID)SendMessage(LB_SETLOCALE, lcid, 0);
     }
 
     /// <summary>
@@ -324,17 +324,17 @@ public:
     /// <returns></returns>
     EckInline BOOL SetSelection(int idx, BOOL bSel) const noexcept
     {
-        return (SendMsg(LB_SETSEL, bSel, idx) != LB_ERR);
+        return (SendMessage(LB_SETSEL, bSel, idx) != LB_ERR);
     }
 
     EckInline BOOL SetTabStop(_In_reads_(c) const int* piTabStop, int c) const noexcept
     {
-        return (BOOL)SendMsg(LB_SETTABSTOPS, c, (LPARAM)piTabStop);
+        return (BOOL)SendMessage(LB_SETTABSTOPS, c, (LPARAM)piTabStop);
     }
 
     EckInline BOOL SetTopIndex(int idx) const noexcept
     {
-        return (SendMsg(LB_SETTOPINDEX, idx, 0) != LB_ERR);
+        return (SendMessage(LB_SETTOPINDEX, idx, 0) != LB_ERR);
     }
 
     EckInline void RedrawItem(int idx) const noexcept

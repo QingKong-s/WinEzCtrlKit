@@ -1,9 +1,9 @@
-#pragma once
+ï»¿#pragma once
 #include "CWindow.h"
 
 ECK_NAMESPACE_BEGIN
-// ±ê×¼Á´½Ó±êÇ©²úÉúWM_CTLCOLORSTATICÏûÏ¢£¬
-// ÈôÒªÊÊÅä°µÉ«Ôò¸¸´°¿ÚÓ¦¸øÓè´¦Àí
+// æ ‡å‡†é“¾æ¥æ ‡ç­¾äº§ç”ŸWM_CTLCOLORSTATICæ¶ˆæ¯ï¼Œ
+// è‹¥è¦é€‚é…æš—è‰²åˆ™çˆ¶çª—å£åº”ç»™äºˆå¤„ç†
 class CLink : public CWindow
 {
 public:
@@ -20,27 +20,27 @@ public:
 
     EckInline int GetIdealHeight() const noexcept
     {
-        return (int)SendMsg(LM_GETIDEALHEIGHT, 0, 0);
+        return (int)SendMessage(LM_GETIDEALHEIGHT, 0, 0);
     }
 
     EckInline int GetIdealSize(int cxMax, _Out_ SIZE* psize) const noexcept
     {
-        return (int)SendMsg(LM_GETIDEALSIZE, cxMax, (LPARAM)psize);
+        return (int)SendMessage(LM_GETIDEALSIZE, cxMax, (LPARAM)psize);
     }
 
     EckInline BOOL GetItem(_Inout_ LITEM* pli) const noexcept
     {
-        return (BOOL)SendMsg(LM_GETITEM, 0, (LPARAM)pli);
+        return (BOOL)SendMessage(LM_GETITEM, 0, (LPARAM)pli);
     }
 
     EckInline BOOL HitTest(_Inout_ LHITTESTINFO* plht) const noexcept
     {
-        return (BOOL)SendMsg(LM_HITTEST, 0, (LPARAM)plht);
+        return (BOOL)SendMessage(LM_HITTEST, 0, (LPARAM)plht);
     }
 
     EckInline BOOL SetItem(_In_ const LITEM* pli) const noexcept
     {
-        return (BOOL)SendMsg(LM_SETITEM, 0, (LPARAM)pli);
+        return (BOOL)SendMessage(LM_SETITEM, 0, (LPARAM)pli);
     }
 };
 ECK_NAMESPACE_END

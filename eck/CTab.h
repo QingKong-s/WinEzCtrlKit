@@ -75,17 +75,17 @@ public:
     /// <param name="bValidAeraToWndAera">为TRUE则从显示区域转换到窗口区域，为FALSE则相反</param>
     void AdjustRect(RECT* prc, BOOL bValidAeraToWndAera) const noexcept
     {
-        SendMsg(TCM_ADJUSTRECT, bValidAeraToWndAera, (LPARAM)prc);
+        SendMessage(TCM_ADJUSTRECT, bValidAeraToWndAera, (LPARAM)prc);
     }
 
     BOOL DeleteAllItems() const noexcept
     {
-        return (BOOL)SendMsg(TCM_DELETEALLITEMS, 0, 0);
+        return (BOOL)SendMessage(TCM_DELETEALLITEMS, 0, 0);
     }
 
     BOOL DeleteItem(int idx) const noexcept
     {
-        return (BOOL)SendMsg(TCM_DELETEITEM, idx, 0);
+        return (BOOL)SendMessage(TCM_DELETEITEM, idx, 0);
     }
 
     /// <summary>
@@ -95,67 +95,67 @@ public:
     /// <param name="bAllTab">若为TRUE，则重置所有项，若为FALSE，则重置除当前页面之外的所有项</param>
     void DeselectAll(BOOL bAllTab) const noexcept
     {
-        SendMsg(TCM_DESELECTALL, bAllTab, 0);
+        SendMessage(TCM_DESELECTALL, bAllTab, 0);
     }
 
     int GetCurrentFocus() const noexcept
     {
-        return (int)SendMsg(TCM_GETCURFOCUS, 0, 0);
+        return (int)SendMessage(TCM_GETCURFOCUS, 0, 0);
     }
 
     int GetCurrentSelection() const noexcept
     {
-        return (int)SendMsg(TCM_GETCURSEL, 0, 0);
+        return (int)SendMessage(TCM_GETCURSEL, 0, 0);
     }
 
     DWORD GetTABExtendStyle() const noexcept
     {
-        return (DWORD)SendMsg(TCM_GETEXTENDEDSTYLE, 0, 0);
+        return (DWORD)SendMessage(TCM_GETEXTENDEDSTYLE, 0, 0);
     }
 
     HIMAGELIST GetImageList() const noexcept
     {
-        return (HIMAGELIST)SendMsg(TCM_GETIMAGELIST, 0, 0);
+        return (HIMAGELIST)SendMessage(TCM_GETIMAGELIST, 0, 0);
     }
 
     BOOL GetItem(int idx, TCITEMW* ptci) const noexcept
     {
-        return (BOOL)SendMsg(TCM_GETITEMW, idx, (LPARAM)ptci);
+        return (BOOL)SendMessage(TCM_GETITEMW, idx, (LPARAM)ptci);
     }
 
     int GetItemCount() const noexcept
     {
-        return (int)SendMsg(TCM_GETITEMCOUNT, 0, 0);
+        return (int)SendMessage(TCM_GETITEMCOUNT, 0, 0);
     }
 
     BOOL GetItemRect(int idx, RECT* prc) const noexcept
     {
-        return (BOOL)SendMsg(TCM_GETITEMRECT, idx, (LPARAM)prc);
+        return (BOOL)SendMessage(TCM_GETITEMRECT, idx, (LPARAM)prc);
     }
 
     int GetRowCount() const noexcept
     {
-        return (int)SendMsg(TCM_GETROWCOUNT, 0, 0);
+        return (int)SendMessage(TCM_GETROWCOUNT, 0, 0);
     }
 
     HWND GetToolTips() const noexcept
     {
-        return (HWND)SendMsg(TCM_GETTOOLTIPS, 0, 0);
+        return (HWND)SendMessage(TCM_GETTOOLTIPS, 0, 0);
     }
 
     BOOL HighlightItem(int idx, BOOL bHighlight) const noexcept
     {
-        return (BOOL)SendMsg(TCM_HIGHLIGHTITEM, idx, MAKELPARAM(bHighlight, 0));
+        return (BOOL)SendMessage(TCM_HIGHLIGHTITEM, idx, MAKELPARAM(bHighlight, 0));
     }
 
     int HitTest(TCHITTESTINFO* ptchti) const noexcept
     {
-        return (int)SendMsg(TCM_HITTEST, 0, (LPARAM)ptchti);
+        return (int)SendMessage(TCM_HITTEST, 0, (LPARAM)ptchti);
     }
 
     int InsertItem(int idx, TCITEMW* ptci) const noexcept
     {
-        return (int)SendMsg(TCM_INSERTITEMW, idx, (LPARAM)ptci);
+        return (int)SendMessage(TCM_INSERTITEMW, idx, (LPARAM)ptci);
     }
 
     int InsertItem(PCWSTR pszText, int idx = -1, int idxImage = -1, LPARAM lParam = 0) const noexcept
@@ -176,42 +176,42 @@ public:
 
     void RemoveImage(int idx) const noexcept
     {
-        SendMsg(TCM_REMOVEIMAGE, idx, 0);
+        SendMessage(TCM_REMOVEIMAGE, idx, 0);
     }
 
     void SetCurrentFocus(int idx) const noexcept
     {
-        SendMsg(TCM_SETCURFOCUS, idx, 0);
+        SendMessage(TCM_SETCURFOCUS, idx, 0);
     }
 
     int SetCurrentSelection(int idx) const noexcept
     {
-        return (int)SendMsg(TCM_SETCURSEL, idx, 0);
+        return (int)SendMessage(TCM_SETCURSEL, idx, 0);
     }
 
     DWORD SetTABExtendStyle(DWORD dwNew, DWORD dwMask) const noexcept
     {
-        return (DWORD)SendMsg(TCM_SETEXTENDEDSTYLE, dwMask, dwNew);
+        return (DWORD)SendMessage(TCM_SETEXTENDEDSTYLE, dwMask, dwNew);
     }
 
     HIMAGELIST SetImageList(HIMAGELIST hImageList) const noexcept
     {
-        return (HIMAGELIST)SendMsg(TCM_SETIMAGELIST, 0, (LPARAM)hImageList);
+        return (HIMAGELIST)SendMessage(TCM_SETIMAGELIST, 0, (LPARAM)hImageList);
     }
 
     BOOL SetItem(int idx, TCITEMW* ptci) const noexcept
     {
-        return (BOOL)SendMsg(TCM_SETITEMW, idx, (LPARAM)ptci);
+        return (BOOL)SendMessage(TCM_SETITEMW, idx, (LPARAM)ptci);
     }
 
     BOOL SetItemExtra(SIZE_T cbExtra) const noexcept
     {
-        return (BOOL)SendMsg(TCM_SETITEMEXTRA, cbExtra, 0);
+        return (BOOL)SendMessage(TCM_SETITEMEXTRA, cbExtra, 0);
     }
 
     void SetItemSize(int cx, int cy, int* piOldWidth = nullptr, int* piOldHeight = nullptr) const noexcept
     {
-        const auto uRet = (UINT)SendMsg(TCM_SETITEMSIZE, 0, MAKELPARAM(cx, cy));
+        const auto uRet = (UINT)SendMessage(TCM_SETITEMSIZE, 0, MAKELPARAM(cx, cy));
         if (piOldWidth)
             *piOldWidth = LOWORD(uRet);
         if (piOldHeight)
@@ -220,17 +220,17 @@ public:
 
     int SetMinimumTabWidth(int cxMin = -1) const noexcept
     {
-        return (int)SendMsg(TCM_SETMINTABWIDTH, 0, cxMin);
+        return (int)SendMessage(TCM_SETMINTABWIDTH, 0, cxMin);
     }
 
     void SetPadding(int cx, int cy) const noexcept
     {
-        SendMsg(TCM_SETITEMSIZE, 0, MAKELPARAM(cx, cy));
+        SendMessage(TCM_SETITEMSIZE, 0, MAKELPARAM(cx, cy));
     }
 
     void SetToolTips(HWND hToolTip) const noexcept
     {
-        SendMsg(TCM_SETTOOLTIPS, (WPARAM)hToolTip, 0);
+        SendMessage(TCM_SETTOOLTIPS, (WPARAM)hToolTip, 0);
     }
 };
 ECK_NAMESPACE_END

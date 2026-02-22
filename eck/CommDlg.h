@@ -120,42 +120,42 @@ public:
 
     EckInline void ClickButton(int iID) const noexcept
     {
-        SendMsg(TDM_CLICK_BUTTON, iID, 0);
+        SendMessage(TDM_CLICK_BUTTON, iID, 0);
     }
 
     EckInline void ClickRadioButton(int iID) const noexcept
     {
-        SendMsg(TDM_CLICK_RADIO_BUTTON, iID, 0);
+        SendMessage(TDM_CLICK_RADIO_BUTTON, iID, 0);
     }
 
     EckInline void ClickCheckBox(BOOL bChecked, BOOL bSetFocus = FALSE) const noexcept
     {
-        SendMsg(TDM_CLICK_VERIFICATION, bChecked, bSetFocus);
+        SendMessage(TDM_CLICK_VERIFICATION, bChecked, bSetFocus);
     }
 
     EckInline void EnableButton(int iID, BOOL bEnable) const noexcept
     {
-        SendMsg(TDM_ENABLE_BUTTON, iID, bEnable);
+        SendMessage(TDM_ENABLE_BUTTON, iID, bEnable);
     }
 
     EckInline void EnableRadioButton(int iID, BOOL bEnable) const noexcept
     {
-        SendMsg(TDM_ENABLE_RADIO_BUTTON, iID, bEnable);
+        SendMessage(TDM_ENABLE_RADIO_BUTTON, iID, bEnable);
     }
 
     EckInline void NavigatePage(_In_ TASKDIALOGCONFIG* pInfo) const noexcept
     {
-        SendMsg(TDM_NAVIGATE_PAGE, 0, (LPARAM)pInfo);
+        SendMessage(TDM_NAVIGATE_PAGE, 0, (LPARAM)pInfo);
     }
 
     EckInline void NavigatePage() const noexcept
     {
-        SendMsg(TDM_NAVIGATE_PAGE, 0, (LPARAM)m_pParam->ptdc);
+        SendMessage(TDM_NAVIGATE_PAGE, 0, (LPARAM)m_pParam->ptdc);
     }
 
     EckInline void SetShieldIcon(int iID, BOOL bShieldIcon) const noexcept
     {
-        SendMsg(TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, iID, bShieldIcon);
+        SendMessage(TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, iID, bShieldIcon);
     }
 
     /// <summary>
@@ -166,27 +166,27 @@ public:
     /// <param name="pszText">文本</param>
     EckInline void SetElementText(UINT uType, _In_z_ PCWSTR pszText) const noexcept
     {
-        SendMsg(TDM_SET_ELEMENT_TEXT, uType, (LPARAM)pszText);
+        SendMessage(TDM_SET_ELEMENT_TEXT, uType, (LPARAM)pszText);
     }
 
     EckInline void PBSetMarqueeShowing(BOOL bShowing) const noexcept
     {
-        SendMsg(TDM_SET_MARQUEE_PROGRESS_BAR, bShowing, 0);
+        SendMessage(TDM_SET_MARQUEE_PROGRESS_BAR, bShowing, 0);
     }
 
     EckInline void PBSetMarquee(BOOL bMarquee, UINT uAnimationGap = 0u) const noexcept
     {
-        SendMsg(TDM_SET_PROGRESS_BAR_MARQUEE, bMarquee, uAnimationGap);
+        SendMessage(TDM_SET_PROGRESS_BAR_MARQUEE, bMarquee, uAnimationGap);
     }
 
     EckInline void PBSetPosition(int iPos) const noexcept
     {
-        SendMsg(TDM_SET_PROGRESS_BAR_POS, iPos, 0);
+        SendMessage(TDM_SET_PROGRESS_BAR_POS, iPos, 0);
     }
 
     EckInline void PBSetRange(int iMin, int iMax) const noexcept
     {
-        SendMsg(TDM_SET_PROGRESS_BAR_POS, 0, MAKELPARAM(iMin, iMax));
+        SendMessage(TDM_SET_PROGRESS_BAR_POS, 0, MAKELPARAM(iMin, iMax));
     }
 
     /// <summary>
@@ -195,7 +195,7 @@ public:
     /// <param name="uState">状态，PBST_常量</param>
     EckInline void PBSetState(UINT uState) const noexcept
     {
-        SendMsg(TDM_SET_PROGRESS_BAR_STATE, uState, 0);
+        SendMessage(TDM_SET_PROGRESS_BAR_STATE, uState, 0);
     }
 
     /// <summary>
@@ -206,7 +206,7 @@ public:
     /// <param name="pszText">文本</param>
     EckInline void UpdateElementText(UINT uType, _In_z_ PCWSTR pszText) const noexcept
     {
-        SendMsg(TDM_UPDATE_ELEMENT_TEXT, uType, (LPARAM)pszText);
+        SendMessage(TDM_UPDATE_ELEMENT_TEXT, uType, (LPARAM)pszText);
     }
 
     /// <summary>
@@ -216,12 +216,12 @@ public:
     /// <param name="Icon">图标，可为HICON或PCWSTR，取决于创建对话框时的设置</param>
     EckInline void UpdateIcon(UINT uType, HICON hIcon) const noexcept
     {
-        SendMsg(TDM_UPDATE_ICON, uType, (LPARAM)hIcon);
+        SendMessage(TDM_UPDATE_ICON, uType, (LPARAM)hIcon);
     }
 
     EckInline void UpdateIcon(UINT uType, PCWSTR pszIcon) const noexcept
     {
-        SendMsg(TDM_UPDATE_ICON, uType, (LPARAM)pszIcon);
+        SendMessage(TDM_UPDATE_ICON, uType, (LPARAM)pszIcon);
     }
 
     EckInline constexpr auto& GetCallbackSignal() const noexcept { return m_CallbackSig; }
@@ -261,7 +261,7 @@ public:
     void OnOk(HWND hCtrl) noexcept override {}
     void OnCancel(HWND hCtrl) noexcept override {}
 
-    EckInline void SetColor(COLORREF cr) const { SendMsg(MessageSetColor, 0, cr); }
+    EckInline void SetColor(COLORREF cr) const { SendMessage(MessageSetColor, 0, cr); }
 };
 
 class CFontDialog : public CDialog
@@ -429,15 +429,15 @@ public:
 
     EckInline void GetLogFont(_Out_ LOGFONTW* plf) const noexcept
     {
-        SendMsg(WM_CHOOSEFONT_GETLOGFONT, 0, (LPARAM)plf);
+        SendMessage(WM_CHOOSEFONT_GETLOGFONT, 0, (LPARAM)plf);
     }
     EckInline void SetLogFont(_In_ LOGFONTW* plf) const noexcept
     {
-        SendMsg(WM_CHOOSEFONT_SETLOGFONT, 0, (LPARAM)plf);
+        SendMessage(WM_CHOOSEFONT_SETLOGFONT, 0, (LPARAM)plf);
     }
     EckInline void SetFlags(_In_ CHOOSEFONTW* pcf) const noexcept
     {
-        SendMsg(WM_CHOOSEFONT_SETFLAGS, 0, (LPARAM)pcf);
+        SendMessage(WM_CHOOSEFONT_SETFLAGS, 0, (LPARAM)pcf);
     }
     EckInline void SetFlags(UINT uFlags) const noexcept
     {

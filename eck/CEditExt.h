@@ -473,7 +473,7 @@ public:
         case ClrPart::TextBk: m_crTextBk = cr; break;
         case ClrPart::Bk:
             m_crBk = cr;
-            SendMsg(WM_NCPAINT, 0, 0);
+            SendMessage(WM_NCPAINT, 0, 0);
             break;
         }
     }
@@ -498,8 +498,8 @@ public:
     void SetInputMode(InputMode iInputMode) noexcept
     {
         m_iInputMode = iInputMode;
-        SendMsg(EM_SETREADONLY, iInputMode == InputMode::ReadOnly, 0);
-        SendMsg(EM_SETPASSWORDCHAR, (iInputMode == InputMode::Password ? m_chMask : 0), 0);
+        SendMessage(EM_SETREADONLY, iInputMode == InputMode::ReadOnly, 0);
+        SendMessage(EM_SETPASSWORDCHAR, (iInputMode == InputMode::Password ? m_chMask : 0), 0);
     }
     EckInlineNdCe InputMode GetInputMode() const noexcept { return m_iInputMode; }
 

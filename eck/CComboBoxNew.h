@@ -407,7 +407,7 @@ public:
         {
             CloseThemeData(m_hTheme);
             m_hTheme = OpenThemeData(hWnd, L"Combobox");
-            m_LB.SendMsg(WM_THEMECHANGED, wParam, lParam);
+            m_LB.SendMessage(WM_THEMECHANGED, wParam, lParam);
         }
         break;
 

@@ -13,3 +13,6 @@ using eck::PCVOID;
 using eck::PCBYTE;
 using eck::SafeRelease;
 using eck::DpiScale;
+
+#undef SendMessage
+#undef PostMessage

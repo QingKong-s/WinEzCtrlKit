@@ -325,10 +325,10 @@ private:
         default:				return;
         }
     GenH:;
-        m_pWnd->SendMsg(WM_HSCROLL, MAKEWPARAM(uCode, 0), 0);
+        m_pWnd->SendMessage(WM_HSCROLL, MAKEWPARAM(uCode, 0), 0);
         return;
     GenV:;
-        m_pWnd->SendMsg(WM_VSCROLL, MAKEWPARAM(uCode, 0), 0);
+        m_pWnd->SendMessage(WM_VSCROLL, MAKEWPARAM(uCode, 0), 0);
     }
 
     void CancelRepeat() noexcept
@@ -386,7 +386,7 @@ public:
                 Redraw();
                 if (m_ViewTracking.GetPosition() != m_nLastTrackPos)
                 {
-                    m_pWnd->SendMsg(WM_VSCROLL, MAKEWPARAM(SB_THUMBTRACK, m_ViewTracking.GetPosition()), 0);
+                    m_pWnd->SendMessage(WM_VSCROLL, MAKEWPARAM(SB_THUMBTRACK, m_ViewTracking.GetPosition()), 0);
                     m_nLastTrackPos = m_ViewTracking.GetPosition();
                 }
                 return 0;
@@ -400,7 +400,7 @@ public:
                 Redraw();
                 if (m_ViewTracking.GetPosition() != m_nLastTrackPos)
                 {
-                    m_pWnd->SendMsg(WM_HSCROLL, MAKEWPARAM(SB_THUMBTRACK, m_ViewTracking.GetPosition()), 0);
+                    m_pWnd->SendMessage(WM_HSCROLL, MAKEWPARAM(SB_THUMBTRACK, m_ViewTracking.GetPosition()), 0);
                     m_nLastTrackPos = m_ViewTracking.GetPosition();
                 }
                 return 0;
@@ -418,14 +418,14 @@ public:
                 if (m_eLBtnDownPart == Part::ThumbV)
                 {
                     m_ViewTracking.OnLButtonUp();
-                    m_pWnd->SendMsg(WM_VSCROLL, MAKEWPARAM(SB_THUMBPOSITION, m_ViewTracking.GetPosition()), 0);
-                    m_pWnd->SendMsg(WM_VSCROLL, MAKEWPARAM(SB_ENDSCROLL, 0), 0);
+                    m_pWnd->SendMessage(WM_VSCROLL, MAKEWPARAM(SB_THUMBPOSITION, m_ViewTracking.GetPosition()), 0);
+                    m_pWnd->SendMessage(WM_VSCROLL, MAKEWPARAM(SB_ENDSCROLL, 0), 0);
                 }
                 else if (m_eLBtnDownPart == Part::ThumbH)
                 {
                     m_ViewTracking.OnLButtonUp();
-                    m_pWnd->SendMsg(WM_HSCROLL, MAKEWPARAM(SB_THUMBPOSITION, m_ViewTracking.GetPosition()), 0);
-                    m_pWnd->SendMsg(WM_HSCROLL, MAKEWPARAM(SB_ENDSCROLL, 0), 0);
+                    m_pWnd->SendMessage(WM_HSCROLL, MAKEWPARAM(SB_THUMBPOSITION, m_ViewTracking.GetPosition()), 0);
+                    m_pWnd->SendMessage(WM_HSCROLL, MAKEWPARAM(SB_ENDSCROLL, 0), 0);
                 }
                 m_eLBtnDownPart = Part::Invalid;
                 ReleaseCapture();

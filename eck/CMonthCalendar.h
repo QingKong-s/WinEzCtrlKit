@@ -39,17 +39,17 @@ public:
 
     EckInline int GetCalendarBorder() const noexcept
     {
-        return (int)SendMsg(MCM_GETCALENDARBORDER, 0, 0);
+        return (int)SendMessage(MCM_GETCALENDARBORDER, 0, 0);
     }
 
     EckInline int GetCalendarCount() const noexcept
     {
-        return (int)SendMsg(MCM_GETCALENDARCOUNT, 0, 0);
+        return (int)SendMessage(MCM_GETCALENDARCOUNT, 0, 0);
     }
 
     EckInline BOOL GetGridInfomation(_Inout_ MCGRIDINFO* pmcgi) const noexcept
     {
-        return (BOOL)SendMsg(MCM_GETCALENDARGRIDINFO, 0, (LPARAM)pmcgi);
+        return (BOOL)SendMessage(MCM_GETCALENDARGRIDINFO, 0, (LPARAM)pmcgi);
     }
 
     /// <summary>
@@ -58,7 +58,7 @@ public:
     /// <returns>CAL_常量</returns>
     EckInline int GetCalendarId() const noexcept
     {
-        return (int)SendMsg(MCM_GETCALID, 0, 0);
+        return (int)SendMessage(MCM_GETCALID, 0, 0);
     }
 
     /// <summary>
@@ -68,7 +68,7 @@ public:
     /// <returns>成功返回颜色，失败返回CLR_INVALID</returns>
     EckInline COLORREF GetColor(int iType) const noexcept
     {
-        return (COLORREF)SendMsg(MCM_GETCOLOR, iType, 0);
+        return (COLORREF)SendMessage(MCM_GETCOLOR, iType, 0);
     }
 
     /// <summary>
@@ -77,17 +77,17 @@ public:
     /// <returns>MCMV_常量</returns>
     EckInline int GetView() const noexcept
     {
-        return (int)SendMsg(MCM_GETCURRENTVIEW, 0, 0);
+        return (int)SendMessage(MCM_GETCURRENTVIEW, 0, 0);
     }
 
     EckInline BOOL GetCurrentSelection(_Out_ SYSTEMTIME* pst) const noexcept
     {
-        return (BOOL)SendMsg(MCM_GETCURSEL, 0, (LPARAM)pst);
+        return (BOOL)SendMessage(MCM_GETCURSEL, 0, (LPARAM)pst);
     }
 
     EckInline UINT GetFirstDayOfWeek() const noexcept
     {
-        return (UINT)SendMsg(MCM_GETFIRSTDAYOFWEEK, 0, 0);
+        return (UINT)SendMessage(MCM_GETFIRSTDAYOFWEEK, 0, 0);
     }
 
     EckInline BOOL GetFirstDayOfWeek(_Out_ int* pnDay) const noexcept
@@ -99,22 +99,22 @@ public:
 
     EckInline int GetMaxSelectionCount() const noexcept
     {
-        return (int)SendMsg(MCM_GETMAXSELCOUNT, 0, 0);
+        return (int)SendMessage(MCM_GETMAXSELCOUNT, 0, 0);
     }
 
     EckInline int GetMaxTodayWidth() const noexcept
     {
-        return (int)SendMsg(MCM_GETMAXTODAYWIDTH, 0, 0);
+        return (int)SendMessage(MCM_GETMAXTODAYWIDTH, 0, 0);
     }
 
     EckInline BOOL GetMinimumRect(_Out_ RECT* prc) const noexcept
     {
-        return (BOOL)SendMsg(MCM_GETMINREQRECT, 0, (LPARAM)prc);
+        return (BOOL)SendMessage(MCM_GETMINREQRECT, 0, (LPARAM)prc);
     }
 
     EckInline int GetMonthDelta() const noexcept
     {
-        return (int)SendMsg(MCM_GETMONTHDELTA, 0, 0);
+        return (int)SendMessage(MCM_GETMONTHDELTA, 0, 0);
     }
 
     /// <summary>
@@ -125,7 +125,7 @@ public:
     /// <returns>范围跨越的月数</returns>
     EckInline int GetMonthRange(int iOption, _Out_writes_(2) SYSTEMTIME* pst) const noexcept
     {
-        return (int)SendMsg(MCM_GETMONTHRANGE, iOption, (LPARAM)pst);
+        return (int)SendMessage(MCM_GETMONTHRANGE, iOption, (LPARAM)pst);
     }
 
     /// <summary>
@@ -136,32 +136,32 @@ public:
     /// <returns>GDTR_常量</returns>
     EckInline UINT GetRange(_Out_writes_(2) SYSTEMTIME* pst) const noexcept
     {
-        return (UINT)SendMsg(MCM_GETRANGE, 0, (LPARAM)pst);
+        return (UINT)SendMessage(MCM_GETRANGE, 0, (LPARAM)pst);
     }
 
     EckInline BOOL GetSelectionRange(_Out_writes_(2) SYSTEMTIME* pst) const noexcept
     {
-        return (BOOL)SendMsg(MCM_GETSELRANGE, 0, (LPARAM)pst);
+        return (BOOL)SendMessage(MCM_GETSELRANGE, 0, (LPARAM)pst);
     }
 
     EckInline BOOL GetToday(_Out_ SYSTEMTIME* pst) const noexcept
     {
-        return (BOOL)SendMsg(MCM_GETTODAY, 0, (LPARAM)pst);
+        return (BOOL)SendMessage(MCM_GETTODAY, 0, (LPARAM)pst);
     }
 
     EckInline UINT HitTest(_Inout_ MCHITTESTINFO* pMCHitTest) const noexcept
     {
-        return (UINT)SendMsg(MCM_HITTEST, 0, (LPARAM)pMCHitTest);
+        return (UINT)SendMessage(MCM_HITTEST, 0, (LPARAM)pMCHitTest);
     }
 
     EckInline void SetCalendarBorder(int i, BOOL bSetOrReset) const noexcept
     {
-        SendMsg(MCM_SETCALENDARBORDER, bSetOrReset, i);
+        SendMessage(MCM_SETCALENDARBORDER, bSetOrReset, i);
     }
 
     EckInline void SetCalendarId(int iCalID) const noexcept
     {
-        SendMsg(MCM_SETCALID, iCalID, 0);
+        SendMessage(MCM_SETCALID, iCalID, 0);
     }
 
     /// <summary>
@@ -172,7 +172,7 @@ public:
     /// <returns>成功返回上一个颜色，失败返回CLR_INVALID</returns>
     EckInline COLORREF SetColor(int iType, COLORREF crColor) const noexcept
     {
-        return (COLORREF)SendMsg(MCM_SETCOLOR, iType, (LPARAM)crColor);
+        return (COLORREF)SendMessage(MCM_SETCOLOR, iType, (LPARAM)crColor);
     }
 
     /// <summary>
@@ -182,47 +182,47 @@ public:
     /// <returns>成功返回TRUE，失败返回FALSE</returns>
     EckInline BOOL SetView(int iView) const noexcept
     {
-        return (BOOL)SendMsg(MCM_SETCURRENTVIEW, iView, 0);
+        return (BOOL)SendMessage(MCM_SETCURRENTVIEW, iView, 0);
     }
 
     EckInline BOOL SetCurrentSelection(_In_ SYSTEMTIME* pst) const noexcept
     {
-        return (BOOL)SendMsg(MCM_SETCURSEL, 0, (LPARAM)pst);
+        return (BOOL)SendMessage(MCM_SETCURSEL, 0, (LPARAM)pst);
     }
 
     EckInline BOOL SetDayState(_In_ MONTHDAYSTATE* pmds, int c)
     {
-        return (BOOL)SendMsg(MCM_SETDAYSTATE, c, (LPARAM)pmds);
+        return (BOOL)SendMessage(MCM_SETDAYSTATE, c, (LPARAM)pmds);
     }
 
     EckInline UINT SetFirstDayOfWeek(int nDay) const noexcept
     {
-        return (UINT)SendMsg(MCM_SETFIRSTDAYOFWEEK, 0, nDay);
+        return (UINT)SendMessage(MCM_SETFIRSTDAYOFWEEK, 0, nDay);
     }
 
     EckInline BOOL SetMaxSelectionCount(int cMax) const noexcept
     {
-        return (BOOL)SendMsg(MCM_SETMAXSELCOUNT, cMax, 0);
+        return (BOOL)SendMessage(MCM_SETMAXSELCOUNT, cMax, 0);
     }
 
     EckInline int SetMonthDelta(int nDelta) const noexcept
     {
-        return (int)SendMsg(MCM_SETMONTHDELTA, nDelta, 0);
+        return (int)SendMessage(MCM_SETMONTHDELTA, nDelta, 0);
     }
 
     EckInline BOOL SetRange(UINT uType, _In_ SYSTEMTIME* pst) const noexcept
     {
-        return (BOOL)SendMsg(MCM_SETRANGE, uType, (LPARAM)pst);
+        return (BOOL)SendMessage(MCM_SETRANGE, uType, (LPARAM)pst);
     }
 
     EckInline BOOL SetSelectionRange(_In_reads_(2) SYSTEMTIME* pst) const noexcept
     {
-        return (BOOL)SendMsg(MCM_SETSELRANGE, 0, (LPARAM)pst);
+        return (BOOL)SendMessage(MCM_SETSELRANGE, 0, (LPARAM)pst);
     }
 
     EckInline void SetToday(_In_ SYSTEMTIME* pst) const noexcept
     {
-        SendMsg(MCM_SETTODAY, 0, (LPARAM)pst);
+        SendMessage(MCM_SETTODAY, 0, (LPARAM)pst);
     }
 
     EckInline constexpr void SetAutoDarkMode(BOOL b) noexcept { m_bAutoDarkMode = b; }

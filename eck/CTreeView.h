@@ -82,12 +82,12 @@ public:
 
     EckInline HIMAGELIST CreateDragImage(HTREEITEM hItem) const noexcept
     {
-        return (HIMAGELIST)SendMsg(TVM_CREATEDRAGIMAGE, 0, (LPARAM)hItem);
+        return (HIMAGELIST)SendMessage(TVM_CREATEDRAGIMAGE, 0, (LPARAM)hItem);
     }
 
     EckInline BOOL DeleteItem(HTREEITEM hItem) const noexcept
     {
-        return (BOOL)SendMsg(TVM_DELETEITEM, 0, (LPARAM)hItem);
+        return (BOOL)SendMessage(TVM_DELETEITEM, 0, (LPARAM)hItem);
     }
 
     /// <summary>
@@ -98,12 +98,12 @@ public:
     /// <returns>成功返回编辑框句柄，失败返回NULL</returns>
     EckInline HWND EditLabel(HTREEITEM hItem) const noexcept
     {
-        return (HWND)SendMsg(TVM_EDITLABELW, 0, (LPARAM)hItem);
+        return (HWND)SendMessage(TVM_EDITLABELW, 0, (LPARAM)hItem);
     }
 
     EckInline BOOL EndEditLabel(BOOL bSave) const noexcept
     {
-        return (BOOL)SendMsg(TVM_ENDEDITLABELNOW, bSave, 0);
+        return (BOOL)SendMessage(TVM_ENDEDITLABELNOW, bSave, 0);
     }
 
     /// <summary>
@@ -115,9 +115,9 @@ public:
     EckInline BOOL EnsureVisible(HTREEITEM hItem, BOOL bTop = FALSE) const noexcept
     {
         if (bTop)
-            return (BOOL)SendMsg(TVM_SELECTITEM, TVGN_FIRSTVISIBLE, (LPARAM)hItem);
+            return (BOOL)SendMessage(TVM_SELECTITEM, TVGN_FIRSTVISIBLE, (LPARAM)hItem);
         else
-            return (BOOL)SendMsg(TVM_ENSUREVISIBLE, 0, (LPARAM)hItem);
+            return (BOOL)SendMessage(TVM_ENSUREVISIBLE, 0, (LPARAM)hItem);
     }
 
     /// <summary>
@@ -134,27 +134,27 @@ public:
     /// <returns>成功返回TRUE</returns>
     EckInline BOOL Expand(HTREEITEM hItem, UINT uOp) const noexcept
     {
-        return (BOOL)SendMsg(TVM_ENSUREVISIBLE, uOp, (LPARAM)hItem);
+        return (BOOL)SendMessage(TVM_ENSUREVISIBLE, uOp, (LPARAM)hItem);
     }
 
     EckInline COLORREF GetBackgroundColor() const noexcept
     {
-        return (COLORREF)SendMsg(TVM_GETBKCOLOR, 0, 0);
+        return (COLORREF)SendMessage(TVM_GETBKCOLOR, 0, 0);
     }
 
     EckInline int GetItemCount() const noexcept
     {
-        return (int)SendMsg(TVM_GETCOUNT, 0, 0);
+        return (int)SendMessage(TVM_GETCOUNT, 0, 0);
     }
 
     EckInline HWND GetEditControl() const noexcept
     {
-        return (HWND)SendMsg(TVM_GETEDITCONTROL, 0, 0);
+        return (HWND)SendMessage(TVM_GETEDITCONTROL, 0, 0);
     }
 
     EckInline DWORD GetTVExtendStyle() const noexcept
     {
-        return (DWORD)SendMsg(TVM_GETEXTENDEDSTYLE, 0, 0);
+        return (DWORD)SendMessage(TVM_GETEXTENDEDSTYLE, 0, 0);
     }
 
     /// <summary>
@@ -164,7 +164,7 @@ public:
     /// <returns>图像列表句柄</returns>
     EckInline HIMAGELIST GetImageList(UINT uType = TVSIL_NORMAL) const noexcept
     {
-        return (HIMAGELIST)SendMsg(TVM_GETIMAGELIST, uType, 0);
+        return (HIMAGELIST)SendMessage(TVM_GETIMAGELIST, uType, 0);
     }
 
     /// <summary>
@@ -174,38 +174,38 @@ public:
     /// <returns>缩进宽度</returns>
     EckInline int GetIndent() const noexcept
     {
-        return (int)SendMsg(TVM_GETINDENT, 0, 0);
+        return (int)SendMessage(TVM_GETINDENT, 0, 0);
     }
 
     EckInline COLORREF GetInsertMarkColor() const noexcept
     {
-        return (COLORREF)SendMsg(TVM_GETINSERTMARKCOLOR, 0, 0);
+        return (COLORREF)SendMessage(TVM_GETINSERTMARKCOLOR, 0, 0);
     }
 
     EckInline CStringW GetIncrementalSearchString() const noexcept
     {
         CStringW rs;
-        int cch = (int)SendMsg(TVM_GETISEARCHSTRINGW, 0, NULL);
+        int cch = (int)SendMessage(TVM_GETISEARCHSTRINGW, 0, NULL);
         if (cch <= 0)
             return rs;
         rs.ReSize(cch);
-        SendMsg(TVM_GETISEARCHSTRINGW, 0, (LPARAM)rs.Data());
+        SendMessage(TVM_GETISEARCHSTRINGW, 0, (LPARAM)rs.Data());
         return rs;
     }
 
     EckInline int GetIncrementalSearchString(_In_opt_ PWSTR pszBuf) const noexcept
     {
-        return (int)SendMsg(TVM_GETISEARCHSTRINGW, 0, (LPARAM)pszBuf);
+        return (int)SendMessage(TVM_GETISEARCHSTRINGW, 0, (LPARAM)pszBuf);
     }
 
     EckInline BOOL GetItem(_Inout_ TVITEMEXW* ptvi) const noexcept
     {
-        return (BOOL)SendMsg(TVM_GETITEMW, 0, (LPARAM)ptvi);
+        return (BOOL)SendMessage(TVM_GETITEMW, 0, (LPARAM)ptvi);
     }
 
     EckInline int GetItemHeight() const noexcept
     {
-        return (int)SendMsg(TVM_GETITEMHEIGHT, 0, 0);
+        return (int)SendMessage(TVM_GETITEMHEIGHT, 0, 0);
     }
 
     /// <summary>
@@ -219,22 +219,22 @@ public:
         _Out_ RECT* prc, BOOL bOnlyText = FALSE) const noexcept
     {
         *(HTREEITEM*)prc = hItem;
-        return (BOOL)SendMsg(TVM_GETITEMRECT, bOnlyText, (LPARAM)prc);
+        return (BOOL)SendMessage(TVM_GETITEMRECT, bOnlyText, (LPARAM)prc);
     }
 
     EckInline UINT GetItemState(HTREEITEM hItem, UINT uMask) const noexcept
     {
-        return (UINT)SendMsg(TVM_GETITEMSTATE, (WPARAM)hItem, uMask);
+        return (UINT)SendMessage(TVM_GETITEMSTATE, (WPARAM)hItem, uMask);
     }
 
     EckInline COLORREF GetLineColor() const noexcept
     {
-        return (COLORREF)SendMsg(TVM_GETLINECOLOR, 0, 0);
+        return (COLORREF)SendMessage(TVM_GETLINECOLOR, 0, 0);
     }
 
     EckInline HTREEITEM GetNextItem(HTREEITEM hItem, UINT uFlag) const noexcept
     {
-        return (HTREEITEM)SendMsg(TVM_GETNEXTITEM, uFlag, (LPARAM)hItem);
+        return (HTREEITEM)SendMessage(TVM_GETNEXTITEM, uFlag, (LPARAM)hItem);
     }
 
     EckInline HTREEITEM GetCurrentSelection() const noexcept
@@ -299,22 +299,22 @@ public:
 
     EckInline int GetScrollTime() const noexcept
     {
-        return (int)SendMsg(TVM_GETSCROLLTIME, 0, 0);
+        return (int)SendMessage(TVM_GETSCROLLTIME, 0, 0);
     }
 
     EckInline COLORREF GetTextForegroundColor() const noexcept
     {
-        return (COLORREF)SendMsg(TVM_GETTEXTCOLOR, 0, 0);
+        return (COLORREF)SendMessage(TVM_GETTEXTCOLOR, 0, 0);
     }
 
     EckInline HWND GetToolTip() const noexcept
     {
-        return (HWND)SendMsg(TVM_GETTOOLTIPS, 0, 0);
+        return (HWND)SendMessage(TVM_GETTOOLTIPS, 0, 0);
     }
 
     EckInline int GetVisibleCount() const noexcept
     {
-        return (int)SendMsg(TVM_GETVISIBLECOUNT, 0, 0);
+        return (int)SendMessage(TVM_GETVISIBLECOUNT, 0, 0);
     }
 
     /// <summary>
@@ -326,7 +326,7 @@ public:
     EckInline HTREEITEM HitTest(POINT pt, _Out_opt_ UINT* puFlags = nullptr) const noexcept
     {
         TVHITTESTINFO tvhti{ pt };
-        SendMsg(TVM_HITTEST, 0, (LPARAM)&tvhti);
+        SendMessage(TVM_HITTEST, 0, (LPARAM)&tvhti);
         if (puFlags)
             *puFlags = tvhti.flags;
         return tvhti.hItem;
@@ -341,7 +341,7 @@ public:
     /// <returns>项目句柄，失败返回NULL</returns>
     EckInline HTREEITEM InsertItem(_In_ TVINSERTSTRUCTW* ptvis) const noexcept
     {
-        return (HTREEITEM)SendMsg(TVM_INSERTITEMW, 0, (LPARAM)ptvis);
+        return (HTREEITEM)SendMessage(TVM_INSERTITEMW, 0, (LPARAM)ptvis);
     }
 
     EckInline HTREEITEM InsertItem(_In_z_ PCWSTR pszText, HTREEITEM hParent = TVI_ROOT,
@@ -366,28 +366,28 @@ public:
     /// <returns>成功返回TRUE，失败返回FALSE</returns>
     EckInline BOOL SelectItem(HTREEITEM hItem, BOOL bNoSingleExpand = FALSE) const noexcept
     {
-        return (BOOL)SendMsg(TVM_SELECTITEM, TVGN_CARET |
+        return (BOOL)SendMessage(TVM_SELECTITEM, TVGN_CARET |
             (bNoSingleExpand ? TVSI_NOSINGLEEXPAND : 0), (LPARAM)hItem);
     }
 
     EckInline BOOL SelectDropTargetItem(HTREEITEM hItem) const noexcept
     {
-        return (BOOL)SendMsg(TVM_SELECTITEM, TVGN_DROPHILITE, (LPARAM)hItem);
+        return (BOOL)SendMessage(TVM_SELECTITEM, TVGN_DROPHILITE, (LPARAM)hItem);
     }
 
     EckInline void SetAutoScrollInfomation(int iPixelPreSecond, int iRedrawGap) const noexcept
     {
-        SendMsg(TVM_SETAUTOSCROLLINFO, iPixelPreSecond, iRedrawGap);
+        SendMessage(TVM_SETAUTOSCROLLINFO, iPixelPreSecond, iRedrawGap);
     }
 
     EckInline COLORREF SetBackgroundColor(COLORREF cr) const noexcept
     {
-        return (COLORREF)SendMsg(TVM_SETBKCOLOR, 0, cr);
+        return (COLORREF)SendMessage(TVM_SETBKCOLOR, 0, cr);
     }
 
     EckInline HRESULT SetTVExtendStyle(DWORD dwNew, DWORD dwMask) const noexcept
     {
-        return (HRESULT)SendMsg(TVM_SETEXTENDEDSTYLE, dwMask, dwNew);
+        return (HRESULT)SendMessage(TVM_SETEXTENDEDSTYLE, dwMask, dwNew);
     }
 
     EckInline HRESULT SetTVExtendStyle(DWORD dwNew) const noexcept
@@ -397,7 +397,7 @@ public:
 
     EckInline HIMAGELIST SetImageList(HIMAGELIST hImageList, UINT uType = TVSIL_NORMAL) const noexcept
     {
-        return (HIMAGELIST)SendMsg(TVM_SETIMAGELIST, uType, (LPARAM)hImageList);
+        return (HIMAGELIST)SendMessage(TVM_SETIMAGELIST, uType, (LPARAM)hImageList);
     }
 
     /// <summary>
@@ -406,22 +406,22 @@ public:
     /// <param name="iIndent">缩进宽度，若小于最小缩进宽度，则设为最小缩进宽度的值</param>
     EckInline void SetIndent(int iIndent) const noexcept
     {
-        SendMsg(TVM_SETINDENT, iIndent, 0);
+        SendMessage(TVM_SETINDENT, iIndent, 0);
     }
 
     EckInline BOOL SetInsertMark(HTREEITEM hItem, BOOL bInsertAfterItem = TRUE) const noexcept
     {
-        return (BOOL)SendMsg(TVM_SETINSERTMARK, bInsertAfterItem, (LPARAM)hItem);
+        return (BOOL)SendMessage(TVM_SETINSERTMARK, bInsertAfterItem, (LPARAM)hItem);
     }
 
     EckInline COLORREF SetInsertMarkColor(COLORREF cr) const noexcept
     {
-        return (COLORREF)SendMsg(TVM_SETINSERTMARKCOLOR, 0, cr);
+        return (COLORREF)SendMessage(TVM_SETINSERTMARKCOLOR, 0, cr);
     }
 
     EckInline BOOL SetItem(_Inout_ TVITEMEXW* ptvi) const noexcept
     {
-        return (BOOL)SendMsg(TVM_SETITEM, 0, (LPARAM)ptvi);
+        return (BOOL)SendMessage(TVM_SETITEM, 0, (LPARAM)ptvi);
     }
 
     /// <summary>
@@ -431,32 +431,32 @@ public:
     /// <returns></returns>
     EckInline int SetItemHeight(int cy) const noexcept
     {
-        return (int)SendMsg(TVM_SETITEMHEIGHT, cy, 0);
+        return (int)SendMessage(TVM_SETITEMHEIGHT, cy, 0);
     }
 
     EckInline COLORREF SetLineColor(COLORREF cr) const noexcept
     {
-        return (COLORREF)SendMsg(TVM_SETLINECOLOR, 0, cr);
+        return (COLORREF)SendMessage(TVM_SETLINECOLOR, 0, cr);
     }
 
     EckInline int SetScrollTime(int iTime) const noexcept
     {
-        return (int)SendMsg(TVM_SETSCROLLTIME, iTime, 0);
+        return (int)SendMessage(TVM_SETSCROLLTIME, iTime, 0);
     }
 
     EckInline COLORREF SetTextForegroundColor(COLORREF cr) const noexcept
     {
-        return (COLORREF)SendMsg(TVM_SETTEXTCOLOR, 0, cr);
+        return (COLORREF)SendMessage(TVM_SETTEXTCOLOR, 0, cr);
     }
 
     EckInline HWND SetToolTip(HWND hToolTip) const noexcept
     {
-        return (HWND)SendMsg(TVM_SETTOOLTIPS, (WPARAM)hToolTip, 0);
+        return (HWND)SendMessage(TVM_SETTOOLTIPS, (WPARAM)hToolTip, 0);
     }
 
     EckInline void ShowTip(HTREEITEM hItem) const noexcept
     {
-        SendMsg(TVM_SHOWINFOTIP, 0, (LPARAM)hItem);
+        SendMessage(TVM_SHOWINFOTIP, 0, (LPARAM)hItem);
     }
 
     /// <summary>
@@ -467,7 +467,7 @@ public:
     /// <returns>成功返回TRUE，失败返回FALSE</returns>
     EckInline BOOL SortChildren(HTREEITEM hItem, BOOL bAllChildren = TRUE) const noexcept
     {
-        return (BOOL)SendMsg(TVM_SORTCHILDREN, bAllChildren, (LPARAM)hItem);
+        return (BOOL)SendMessage(TVM_SORTCHILDREN, bAllChildren, (LPARAM)hItem);
     }
 
     /// <summary>
@@ -488,7 +488,7 @@ public:
         tvscb.hParent = hItem;
         tvscb.lpfnCompare = pfnCompare;
         tvscb.lParam = lParam;
-        return (BOOL)SendMsg(TVM_SORTCHILDRENCB, 0, (LPARAM)&tvscb);
+        return (BOOL)SendMessage(TVM_SORTCHILDRENCB, 0, (LPARAM)&tvscb);
     }
 };
 ECK_NAMESPACE_END

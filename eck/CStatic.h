@@ -70,7 +70,7 @@ public:
 
     EckInline HICON GetIcon() const noexcept
     {
-        return (HICON)SendMsg(STM_GETICON, 0, 0);
+        return (HICON)SendMessage(STM_GETICON, 0, 0);
     }
 
     /// <summary>
@@ -80,12 +80,12 @@ public:
     /// <returns></returns>
     EckInline HANDLE GetImage(UINT uType = IMAGE_BITMAP) const noexcept
     {
-        return (HANDLE)SendMsg(STM_GETIMAGE, uType, 0);
+        return (HANDLE)SendMessage(STM_GETIMAGE, uType, 0);
     }
 
     EckInline HICON SetIcon(HICON hIcon) const noexcept
     {
-        return (HICON)SendMsg(STM_SETICON, (WPARAM)hIcon, 0);
+        return (HICON)SendMessage(STM_SETICON, (WPARAM)hIcon, 0);
     }
 
     /// <summary>
@@ -96,7 +96,7 @@ public:
     /// <returns>先前的图像句柄</returns>
     EckInline HANDLE SetImage(HANDLE h, UINT uType = IMAGE_BITMAP) const noexcept
     {
-        return (HANDLE)SendMsg(STM_SETIMAGE, uType, (LPARAM)h);
+        return (HANDLE)SendMessage(STM_SETIMAGE, uType, (LPARAM)h);
     }
 };
 ECK_NAMESPACE_END

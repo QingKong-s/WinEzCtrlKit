@@ -155,32 +155,32 @@ public:
     /// <returns>成功返回剩余项数，失败返回CB_ERR</returns>
     EckInline int DeleteItem(int idx) const
     {
-        return (int)SendMsg(CBEM_DELETEITEM, idx, 0);
+        return (int)SendMessage(CBEM_DELETEITEM, idx, 0);
     }
 
     EckInline HWND GetComboBoxControl() const
     {
-        return (HWND)SendMsg(CBEM_GETCOMBOCONTROL, 0, 0);
+        return (HWND)SendMessage(CBEM_GETCOMBOCONTROL, 0, 0);
     }
 
     EckInline HWND GetEditControl() const
     {
-        return (HWND)SendMsg(CBEM_GETEDITCONTROL, 0, 0);
+        return (HWND)SendMessage(CBEM_GETEDITCONTROL, 0, 0);
     }
 
     EckInline DWORD GetExtendedStyle() const
     {
-        return (DWORD)SendMsg(CBEM_GETEXTENDEDSTYLE, 0, 0);
+        return (DWORD)SendMessage(CBEM_GETEXTENDEDSTYLE, 0, 0);
     }
 
     EckInline HIMAGELIST GetImageList() const
     {
-        return (HIMAGELIST)SendMsg(CBEM_GETIMAGELIST, 0, 0);
+        return (HIMAGELIST)SendMessage(CBEM_GETIMAGELIST, 0, 0);
     }
 
     EckInline BOOL GetItem(_Inout_ COMBOBOXEXITEMW* pcbei) const
     {
-        return (BOOL)SendMsg(CBEM_GETITEMW, 0, (LPARAM)pcbei);
+        return (BOOL)SendMessage(CBEM_GETITEMW, 0, (LPARAM)pcbei);
     }
 
     EckInline BOOL GetItemText(int idx, _Inout_ CStringW& rs) const
@@ -211,12 +211,12 @@ public:
 
     EckInline BOOL HasEditChanged() const
     {
-        return (BOOL)SendMsg(CBEM_HASEDITCHANGED, 0, 0);
+        return (BOOL)SendMessage(CBEM_HASEDITCHANGED, 0, 0);
     }
 
     EckInline int InsertItem(_In_ COMBOBOXEXITEMW* pcbei) const
     {
-        return (int)SendMsg(CBEM_INSERTITEMW, 0, (LPARAM)pcbei);
+        return (int)SendMessage(CBEM_INSERTITEMW, 0, (LPARAM)pcbei);
     }
 
     int InsertItem(_In_z_ PCWSTR pszText, int idx = -1, int iImage = -1,
@@ -240,12 +240,12 @@ public:
     /// <returns>返回先前样式</returns>
     EckInline DWORD SetExtendedStyle(DWORD dwStyle, DWORD dwMask = 0u) const
     {
-        return (DWORD)SendMsg(CBEM_SETEXTENDEDSTYLE, dwMask, dwStyle);
+        return (DWORD)SendMessage(CBEM_SETEXTENDEDSTYLE, dwMask, dwStyle);
     }
 
     EckInline HIMAGELIST SetImageList(HIMAGELIST hImageList) const
     {
-        return (HIMAGELIST)SendMsg(CBEM_SETIMAGELIST, 0, (LPARAM)hImageList);
+        return (HIMAGELIST)SendMessage(CBEM_SETIMAGELIST, 0, (LPARAM)hImageList);
     }
 
     EckInline IImageList* SetImageList(IImageList* pImageList) const
@@ -255,7 +255,7 @@ public:
 
     EckInline BOOL SetItem(_In_ COMBOBOXEXITEMW* pcbei) const
     {
-        return (BOOL)SendMsg(CBEM_SETITEMW, 0, (LPARAM)pcbei);
+        return (BOOL)SendMessage(CBEM_SETITEMW, 0, (LPARAM)pcbei);
     }
 
     EckInline BOOL SetItemText(int idx, _In_z_ PCWSTR pszText) const

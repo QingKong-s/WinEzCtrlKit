@@ -724,7 +724,7 @@ public:
 
     EckInline void SetRedraw(BOOL bRedraw) const noexcept
     {
-        SendMsg(WM_SETREDRAW, bRedraw, 0);
+        SendMessage(WM_SETREDRAW, bRedraw, 0);
     }
 
     EckInline BOOL Redraw(BOOL bErase = FALSE) const noexcept
@@ -813,11 +813,11 @@ public:
         return ScrollType::None;
     }
 
-    EckInline LRESULT SendMsg(UINT uMsg, WPARAM wParam, LPARAM lParam) const noexcept
+    EckInline LRESULT SendMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) const noexcept
     {
         return SendMessageW(m_hWnd, uMsg, wParam, lParam);
     }
-    EckInline LRESULT PostMsg(UINT uMsg, WPARAM wParam, LPARAM lParam) const noexcept
+    EckInline LRESULT PostMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) const noexcept
     {
         return PostMessageW(m_hWnd, uMsg, wParam, lParam);
     }
@@ -895,11 +895,11 @@ public:
 
     EckInline void SetFont(HFONT hFont, BOOL bRedraw = FALSE) const noexcept
     {
-        SendMsg(WM_SETFONT, (WPARAM)hFont, bRedraw);
+        SendMessage(WM_SETFONT, (WPARAM)hFont, bRedraw);
     }
     EckInlineNd HFONT GetFont() const noexcept
     {
-        return (HFONT)SendMsg(WM_GETFONT, 0, 0);
+        return (HFONT)SendMessage(WM_GETFONT, 0, 0);
     }
 
     EckInline BOOL Show(int nCmdShow) const noexcept
