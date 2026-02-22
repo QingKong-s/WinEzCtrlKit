@@ -74,7 +74,7 @@ inline BOOL AlphaBlendColor(HDC hDC, const RECT& rc,
     COLORREF cr, BYTE byAlpha = ColorFillAlpha) noexcept
 {
     CMemoryDC DC{};
-    DC.CreateFromDC(hDC, 1, 1);
+    DC.FromDC(hDC, 1, 1);
     constexpr RECT rcDst{ 0,0,1,1 };
     SetDCBrushColor(DC.GetDC(), cr);
     FillRect(DC.GetDC(), &rcDst, GetStockBrush(DC_BRUSH));

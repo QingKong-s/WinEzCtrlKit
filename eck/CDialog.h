@@ -89,7 +89,7 @@ protected:
 public:
     static INT_PTR CALLBACK EckDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
-        const auto pDlg = DbgDynamicCast<CDialog*>(CWndFromHWND(hDlg));
+        const auto pDlg = DbgDynamicCast<CDialog*>(CWindowFromHWND(hDlg));
 #ifdef _DEBUG
         if (!pDlg)
         {

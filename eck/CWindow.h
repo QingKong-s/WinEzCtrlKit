@@ -111,15 +111,6 @@ struct SERIALIZE_OPT
     void* pUserData;
 };
 
-#ifdef ECK_CTRL_DESIGN_INTERFACE
-struct DESIGNDATA_WND
-{
-    CStringW rsName;
-    BITBOOL bVisible : 1;
-    BITBOOL bEnable : 1;
-};
-#endif
-
 // 生成以ID创建的方法
 #define ECK_CWND_CREATE                                         \
     HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle, \
@@ -196,56 +187,13 @@ struct DESIGNDATA_WND
 
 class CWindow;
 // 窗口句柄到CWnd指针
-EckInline CWindow* CWndFromHWND(HWND hWnd) noexcept { return PtcCurrent()->WmAt(hWnd); }
+EckInline CWindow* CWindowFromHWND(HWND hWnd) noexcept { return PtcCurrent()->WmAt(hWnd); }
 
 class CWindow : public ILayout
 {
     friend HHOOK BeginCbtHook(CWindow*, FWndCreating) noexcept;
 public:
     ECK_RTTI(CWindow, ILayout);
-#if !ECK_OPT_NO_OBJA
-    EckInline ObjAttrErr OagsText(std::wstring_view svValue,
-        CStringW& rsValue, BOOL bSet) noexcept
-    {
-        if (bSet) SetText(svValue.data());
-        else GetText(rsValue);
-        return ObjAttrErr::Ok;
-    }
-    EckInline ObjAttrErr OagsRcwh(std::wstring_view svValue,
-        CStringW& rsValue, BOOL bSet) noexcept
-    {
-        RCWH rc;
-        if (bSet)
-        {
-            if (swscanf_s(svValue.data(), L"%d,%d,%d,%d",
-                &rc.x, &rc.y, &rc.cx, &rc.cy) != 4)
-                return ObjAttrErr::InvalidValue;
-            SetWindowPos(HWnd, nullptr, rc.x, rc.y, rc.cx, rc.cy,
-                SWP_NOZORDER | SWP_NOACTIVATE);
-            return ObjAttrErr::Ok;
-        }
-        GetWindowRect(HWnd, (RECT*)&rc);
-        ScreenToClient(GetParent(HWnd), (RECT*)&rc);
-        rc.cx -= rc.x;
-        rc.cy -= rc.y;
-        rsValue.PushBackFormat(L"%d,%d,%d,%d",
-            rc.x, rc.y, rc.cx, rc.cy);
-        return ObjAttrErr::Ok;
-    }
-    ECK_OBJA_BEGIN()
-        ECK_OBJA_CUSTOM(L"Text", OagsText)	// 一般在创建时处理
-        ECK_OBJA_UINT(L"Style", Style)		// 一般在创建时处理
-        ECK_OBJA_UINT(L"ExStyle", ExStyle)	// 一般在创建时处理
-        ECK_OBJA_CUSTOM(L"RCWH", OagsRcwh)	// 一般在创建时处理
-        ECK_OBJA_ENUM_CHECK(L"Frame", FrameType, FrameType::Min, FrameType::Max)
-        ECK_OBJA_ENUM_CHECK(L"ScrollBar", ScrollBarType, ScrollType::Min, ScrollType::Max)
-        ;
-    ECK_OBJA_END()
-#endif // !ECK_OPT_NO_OBJA
-public:
-#ifdef ECK_CTRL_DESIGN_INTERFACE
-    DESIGNDATA_WND m_DDBase{};
-#endif
 
 #ifdef _DEBUG
     CStringW DbgTag{};
@@ -310,7 +258,7 @@ protected:
 
     LRESULT DefaultNotifyMessage(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
-        return CWndFromHWND(hParent)->OnMessage(hParent, uMsg, wParam, lParam);
+        return CWindowFromHWND(hParent)->OnMessage(hParent, uMsg, wParam, lParam);
     }
 
     EckInline LRESULT CallProcedure(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
@@ -416,25 +364,27 @@ public:
             if (wParam == GWL_STYLE)
             {
                 const auto* const pss = (STYLESTRUCT*)lParam;
-                if (!IsBitSet(pss->styleNew, WS_CHILD) && IsBitSet(pss->styleOld, WS_CHILD))
+                if (!(pss->styleNew & WS_CHILD) &&
+                    (pss->styleOld & WS_CHILD))
                 {
                     const auto pCtx = PtcCurrent();
-                    EckAssert(!pCtx->TwmAt(hWnd));
-                    pCtx->TwmAdd(hWnd, p);
+                    EckAssert(!pCtx->TwmAt(hWnd).bTopLevel);
+                    pCtx->TwmMarkTopLevel(hWnd, TRUE);
                 }
 
-                if (IsBitSet(pss->styleNew, WS_CHILD) && !IsBitSet(pss->styleOld, WS_CHILD))
+                if ((pss->styleNew & WS_CHILD) &&
+                    !(pss->styleOld & WS_CHILD))
                 {
                     const auto pCtx = PtcCurrent();
-                    EckAssert(pCtx->TwmAt(hWnd));
-                    pCtx->TwmRemove(hWnd);
+                    EckAssert(pCtx->TwmAt(hWnd).bTopLevel);
+                    pCtx->TwmMarkTopLevel(hWnd, FALSE);
                 }
             }
         }
         break;
         case WM_CREATE:
         {
-            if (pCtx->bAutoNcDark && pCtx->TwmAt(hWnd) == p)
+            if (pCtx->bAutoNcDark && pCtx->TwmAt(hWnd).pWnd == p)
                 EnableWindowNcDarkMode(hWnd, ShouldAppsUseDarkMode());
         }
         break;
@@ -481,9 +431,7 @@ public:
         const auto pCtx = PtcCurrent();
         EckAssert(!pCtx->WmAt(hWnd));// 新句柄必须未被CWnd持有
         m_hWnd = hWnd;
-        pCtx->WmAdd(hWnd, this);
-        if (!IsBitSet(GetStyle(), WS_CHILD))
-            pCtx->TwmAdd(hWnd, this);
+        pCtx->WmAdd(hWnd, this, !(GetStyle() & WS_CHILD));
     }
 
     // 拆离句柄。 函数将从窗口映射中移除句柄
@@ -494,7 +442,6 @@ public:
         const auto pCtx = PtcCurrent();
         EckAssert(pCtx->WmAt(hWnd) == this);// 检查匹配性
         pCtx->WmRemove(hWnd);
-        pCtx->TwmRemove(hWnd);
         return hWnd;
     }
 
@@ -607,14 +554,12 @@ public:
     }
 
     /// <summary>
-    /// 父窗口通知类消息映射。接收下列通知：所有者项目系列（WM_XxxITEM）、
-    /// 标准通知系列（WM_COMMAND、WM_NOTIFY）、着色系列（WM_CTLCOLORXxx）、
+    /// 父窗口通知类消息映射。接收下列通知：
+    /// 所有者项目系列（WM_XxxITEM）
+    /// 标准通知系列（WM_COMMAND、WM_NOTIFY）
+    /// 着色系列（WM_CTLCOLORXxx）
     /// 滚动条系列（WM_VSCROLL、WM_HSCROLL）
     /// </summary>
-    /// <param name="hParent">父窗口句柄</param>
-    /// <param name="uMsg">消息</param>
-    /// <param name="wParam">wParam</param>
-    /// <param name="lParam">lParam</param>
     /// <param name="bProcessed">若设为TRUE，则父窗口不再继续处理，调用函数前保证其为FALSE</param>
     /// <returns>消息返回值</returns>
     virtual LRESULT OnNotifyMessage(HWND hParent, UINT uMsg,
@@ -754,8 +699,6 @@ public:
         SetStyle(dwStyle);
         SetExStyle(dwExStyle);
     }
-    // For compatibility.
-    EckInline void SetFrameType(int iType) const noexcept { SetFrameType((enum class FrameType)iType); }
     [[nodiscard]] enum class FrameType GetFrameType() const noexcept
     {
         const DWORD dwStyle = GetStyle();
@@ -800,8 +743,6 @@ public:
             break;
         }
     }
-    // For compatibility.
-    EckInline void SetScrollBar(int iType) const noexcept { SetScrollBar((ScrollType)iType); }
     [[nodiscard]] ScrollType GetScrollBar() const noexcept
     {
         const BOOL bVSB = IsBitSet(GetWindowLongPtrW(m_hWnd, GWL_STYLE), WS_VSCROLL);
@@ -887,7 +828,7 @@ public:
             SWP_NOZORDER | (bNoActive ? SWP_NOACTIVATE : 0));
     }
 
-    EckInline BOOL Destroy() noexcept
+    EckInline BOOL Destroy() const noexcept
     {
         EckAssert(IsWindow(m_hWnd));
         return DestroyWindow(m_hWnd);

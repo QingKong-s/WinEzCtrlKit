@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "CObject.h"
+#include "RectTraits.h"
 
 ECK_NAMESPACE_BEGIN
 using TLytCoord = float;
@@ -29,33 +30,7 @@ struct LYTMARGINS
     TLytCoord b;
 };
 
-EckNfInlineCe BOOL AdjustRectToFitAnother(_Inout_ LYTRECT& rc, const LYTRECT& rcRef)
-{
-    const float
-        cxMax = rcRef.cx,
-        cyMax = rcRef.cy,
-        cx0 = rc.cx,
-        cy0 = rc.cy;
-    if (cxMax <= 0 || cyMax <= 0 || cx0 <= 0 || cy0 <= 0)
-        return FALSE;
-    float cx, cy;
-    if (cxMax * cy0 > cx0 * cyMax)// y对齐
-    {
-        cy = cyMax;
-        cx = cx0 * cy / cy0;
-    }
-    else// x对齐
-    {
-        cx = cxMax;
-        cy = cx * cy0 / cx0;
-    }
-
-    rc.x = rcRef.x + (cxMax - cx) / 2;
-    rc.y = rcRef.y + (cyMax - cy) / 2;
-    rc.cx = cx;
-    rc.cy = cy;
-    return TRUE;
-}
+ECK_DEF_RECT_TRAITS_RCWH(LYTRECT);
 
 // 表示一个可调整位置和大小的对象，并提供非原子布局（如布局器）的管理能力
 // CWnd、Dui::CElem和内置布局器实现此接口

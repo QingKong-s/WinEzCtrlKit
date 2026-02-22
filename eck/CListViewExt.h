@@ -812,7 +812,7 @@ private:
             m_bEditLabel = FALSE;
         m_ptc = PtcCurrent();
         m_cxEdge = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
-        m_DcAlpha.Create(hWnd, 1, 1);
+        m_DcAlpha.FromWindow(hWnd, 1, 1);
         if (const auto hHeader = GetHeaderControl())
             m_Header.AttachNew(hHeader);
         m_hTheme = OpenThemeData(hWnd, L"ListView");
@@ -1052,7 +1052,7 @@ private:
             if (!m_hmsEdit)
                 m_hmsEdit = m_pEdit->GetSignal().Connect(this, &CListViewExt::OnMessageEdit);
             m_pEdit->HFont = HFont;
-            m_pEdit->SetFrameType(5);
+            m_pEdit->SetFrameType(FrameType::Single);
             m_pEdit->FrameChanged();
         }
     }

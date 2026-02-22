@@ -23,22 +23,15 @@ private:
     {
         HDC hDC = GetDC(hWnd);
 
-        HBITMAP hBitmap = CreateCompatibleBitmap(hDC, cx, cy);
-        HDC hCDC = CreateCompatibleDC(hDC);
-        HGDIOBJ hOld = SelectObject(hCDC, hBitmap);
-        const RECT rc{ 0,0,cx,cy };
-        m_DC.Create(hWnd);
-        FillRect(m_DC.GetDC(), &rc, m_hbrBK);
-        BitBlt(hCDC, 0, 0, std::min(cx, m_cxClient), std::min(cy, m_cyClient), m_DC.GetDC(), 0, 0, SRCCOPY);
+        CMemoryDC DC{};
+        DC.FromWindow(hWnd, cx, cy);
 
-        SelectObject(hCDC, hOld);
-        DeleteDC(hCDC);
+        const RECT rc{ 0, 0, cx, cy };
+        FillRect(DC.GetDC(), &rc, m_hbrBK);
+        BitBlt(DC.GetDC(), 0, 0, std::min(cx, m_cxClient), std::min(cy, m_cyClient),
+            m_DC.GetDC(), 0, 0, SRCCOPY);
 
-        SelectObject(m_DC.m_hCDC, m_DC.m_hOld);
-        DeleteObject(m_DC.m_hBmp);
-
-        m_DC.m_hOld = SelectObject(m_DC.m_hCDC, hBitmap);
-        m_DC.m_hBmp = hBitmap;
+        std::swap(m_DC, DC);
 
         GdipDeleteGraphics(m_pGraphics);
         GdipCreateFromHDC(m_DC.GetDC(), &m_pGraphics);
@@ -66,7 +59,7 @@ public:
         {
             RECT rc;
             GetClientRect(hWnd, &rc);
-            m_DC.Create(hWnd);
+            m_DC.FromWindow(hWnd);
             FillRect(m_DC.GetDC(), &rc, m_hbrBK);
             GdipCreateFromHDC(m_DC.GetDC(), &m_pGraphics);
             GdipSetSmoothingMode(m_pGraphics, Gdiplus::SmoothingModeHighQuality);

@@ -430,7 +430,7 @@ public:
         {
         case WM_CREATE:
         {
-            m_DC.Create(hWnd);
+            m_DC.FromWindow(hWnd);
             UpdateDCAttributes();
             UpdateSystemConfig();
         }

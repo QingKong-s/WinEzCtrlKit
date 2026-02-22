@@ -398,7 +398,7 @@ public:
         case WM_CREATE:
         {
             m_rsText = ((CREATESTRUCTW*)lParam)->lpszName;
-            m_DC.Create(hWnd);
+            m_DC.FromWindow(hWnd);
             SetDCAttributes(m_DC.GetDC());
         }
         break;

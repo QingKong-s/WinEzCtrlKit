@@ -982,12 +982,16 @@ namespace Priv
 using FWndCreating = void(*)(HWND hWnd, CBT_CREATEWNDW* pcs, ThreadContext* pThreadCtx);
 struct ThreadContext
 {
+    struct WND
+    {
+        CWindow* pWnd;
+        BOOL bTopLevel;
+    };
     //-------窗口映射
-    std::unordered_map<HWND, CWindow*> hmWnd{};	// HWND->CWindow*
-    std::unordered_map<HWND, CWindow*> hmTopWnd{};	// 顶级窗口映射
-    HHOOK hhkTempCBT{};					// CBT钩子句柄
-    CWindow* pCurrWnd{};					// 当前正在创建窗口所属的CWnd指针
-    FWndCreating pfnWndCreatingProc{};	// 当前创建窗口时要调用的过程
+    std::unordered_map<HWND, WND> hmWnd{};
+    HHOOK hhkTempCBT{};
+    CWindow* pCurrWnd{};                // 当前正在创建窗口所属的CWnd指针
+    FWndCreating pfnWndCreatingProc{};  // 当前创建窗口时要调用的过程
     //-------暗色处理
     // 不钩取GetSysColorBrush，因为它的返回值可以被删除，
     // 因此也不钩取GetSysColor，以免两个应得到相同结果函数的行为不同
@@ -1012,13 +1016,12 @@ struct ThreadContext
     HHOOK hhkMsgFilter{};		// 在菜单、模态对话框、拖动选择等的消息循环中保持处理UI线程的回调
     Priv::QueuedCallbackQueue Callback{};
 
-    void WmAdd(HWND hWnd, CWindow* pWnd) noexcept;
+    void WmAdd(HWND hWnd, CWindow* pWnd, BOOL bTopLevel) noexcept;
     void WmRemove(HWND hWnd) noexcept;
     CWindow* WmAt(HWND hWnd) const noexcept;
 
-    void TwmAdd(HWND hWnd, CWindow* pWnd) noexcept;
-    void TwmRemove(HWND hWnd) noexcept;
-    CWindow* TwmAt(HWND hWnd) const noexcept;
+    void TwmMarkTopLevel(HWND hWnd, BOOL bTopLevel) noexcept;
+    WND TwmAt(HWND hWnd) noexcept;
     void TwmEnableNcDarkMode(BOOL bDark) noexcept;
     void TwmBroadcastThemeChanged() noexcept;
 
@@ -1129,7 +1132,6 @@ void DbgPrintWndMap() noexcept;
         EckDbgBreak();                              \
     }
 #define EckAssert(x)                (void)(!!(x) || (::eck::Assert(ECKWIDE(#x), ECK_FILEW, ECK_LINEW), 0))
-#define EckDbgPrintWndMap()         ::eck::DbgPrintWndMap()
 #endif// !ECK_OPT_NO_DBG_MACRO
 #else
 #if !ECK_OPT_NO_DBG_MACRO
@@ -1141,7 +1143,6 @@ void DbgPrintWndMap() noexcept;
 #define EckDbgBreak()               ;
 #define EckDbgCheckMemRange(a,b,c)  ;
 #define EckAssert(x)                ;
-#define EckDbgPrintWndMap()         ;
 #endif// !ECK_OPT_NO_DBG_MACRO
 #endif// _DEBUG
 ECK_NAMESPACE_END

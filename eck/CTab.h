@@ -56,7 +56,7 @@ public:
             PAINTSTRUCT ps;
             BeginPaint(hWnd, wParam, ps);
             CMemoryDC DC{};
-            DC.Create(hWnd, ps.rcPaint.right - ps.rcPaint.left,
+            DC.FromWindow(hWnd, ps.rcPaint.right - ps.rcPaint.left,
                 ps.rcPaint.bottom - ps.rcPaint.top);
             SetWindowOrgEx(DC.GetDC(), ps.rcPaint.left, ps.rcPaint.top, nullptr);
             __super::OnMessage(hWnd, WM_PAINT, (WPARAM)DC.GetDC(), lParam);

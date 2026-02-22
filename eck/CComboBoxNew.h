@@ -426,7 +426,7 @@ public:
             m_LB.SetGenerateItemNotify(TRUE);
 
             m_hTheme = OpenThemeData(hWnd, L"Combobox");
-            m_DC.Create(hWnd);
+            m_DC.FromWindow(hWnd);
             SetBkMode(m_DC.GetDC(), TRANSPARENT);
         }
         break;

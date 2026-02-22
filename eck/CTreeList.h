@@ -2201,7 +2201,7 @@ public:
             UpdateDpiSize(m_Ds, m_iDpi);
             m_cyHeader = m_Ds.cyHeaderDef;
             m_cyItem = m_Ds.cyItemDef;
-            m_DC.Create(hWnd);
+            m_DC.FromWindow(hWnd);
             UpdateDCAttribute();
             m_Header.Create(nullptr, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
                 0, 0, ClientWidth, m_Ds.cyHeaderDef, hWnd, IDC_HEADER);
@@ -3351,7 +3351,7 @@ public:
                 WS_CHILD | ES_AUTOHSCROLL, 0,
                 nm.rc.left, nm.rc.top, nm.rc.right - nm.rc.left, nm.rc.bottom - nm.rc.top, m_hWnd,
                 IDC_EDIT);
-            m_Edit.SetFrameType(5);
+            m_Edit.SetFrameType(FrameType::Single);
             m_Edit.SetFont(m_hFont);
             m_Edit.SelectAll();
             m_Edit.Show(SW_SHOW);

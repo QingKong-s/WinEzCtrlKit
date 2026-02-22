@@ -3,14 +3,14 @@
 
 ECK_NAMESPACE_BEGIN
 template<class T>
-struct CRectTraits
+struct RectTraits
 {
     constexpr static BOOL Empty{};
 };
 
 #define ECK_DEF_RECT_TRAITS(Type)               \
     template<>                                  \
-    struct CRectTraits<Type>                    \
+    struct RectTraits<Type>                    \
     {                                           \
         using T = decltype(Type{}.left);        \
         constexpr static bool IsRcwh = false;   \
@@ -18,7 +18,7 @@ struct CRectTraits
 
 #define ECK_DEF_RECT_TRAITS_RCWH(Type)          \
     template<>                                  \
-    struct CRectTraits<Type>                    \
+    struct RectTraits<Type>                    \
     {                                           \
         using T = decltype(Type{}.x);           \
         constexpr static bool IsRcwh = true;    \
@@ -33,5 +33,5 @@ ECK_DEF_RECT_TRAITS(D2D1_RECT_U);
 #endif
 
 template<class T>
-concept CcpRect = !requires { CRectTraits<T>::Empty; };
+concept CcpRect = !requires { RectTraits<T>::Empty; };
 ECK_NAMESPACE_END

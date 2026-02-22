@@ -491,12 +491,14 @@ private:
         m_bFilterBar = IsBitSet(dwStyle, HDS_FILTERBAR);
         if (m_bFilterBar)
         {
-            m_DcFilterBmp.m_hBmp = (HBITMAP)LoadImageW(g_hModComCtl32, MAKEINTRESOURCEW(140),
-                IMAGE_BITMAP, 0, 0, LR_SHARED);
-            m_DcFilterBmp.m_hCDC = CreateCompatibleDC(nullptr);
-            m_DcFilterBmp.m_hOld = SelectObject(m_DcFilterBmp.m_hCDC, m_DcFilterBmp.m_hBmp);
+            m_DcFilterBmp.Attach(
+                CreateCompatibleDC(nullptr),
+                (HBITMAP)LoadImageW(g_hModComCtl32, MAKEINTRESOURCEW(140),
+                    IMAGE_BITMAP, 0, 0, LR_SHARED),
+                TRUE);
+
             BITMAP bm;
-            GetObjectW(m_DcFilterBmp.m_hBmp, sizeof(bm), &bm);
+            GetObjectW(m_DcFilterBmp.GetBitmap(), sizeof(bm), &bm);
             m_sizeFilter = { bm.bmWidth,bm.bmHeight };
 
             m_rsEnterTextHere.Assign(
@@ -532,7 +534,7 @@ private:
         m_cyMenuCheck = DaGetSystemMetrics(SM_CYMENUCHECK, m_iDpi);
         m_cxBorder = DaGetSystemMetrics(SM_CXBORDER, m_iDpi);
 
-        m_DcAlpha.Create32(hWnd, 1, 1);
+        m_DcAlpha.DibFromWindow(hWnd, 1, 1);
         m_ptc = PtcCurrent();
         m_hTheme = OpenThemeData(hWnd, L"Header");
         m_hThemeCB = OpenThemeData(hWnd, L"Button");
@@ -685,7 +687,7 @@ public:
                     if (!m_pEDFilter)
                         m_pEDFilter = std::make_unique<CEditExt>();
                     m_pEDFilter->AttachNew(HWND(lParam));
-                    m_pEDFilter->SetFrameType(5);
+                    m_pEDFilter->SetFrameType(FrameType::Single);
                     RECT rc;
                     GetClientRect(m_pEDFilter->HWnd, &rc);
                     rc.left = rc.right / 2;

@@ -162,7 +162,7 @@ private:
 
         m_iDpi = GetDpi(hWnd);
 
-        m_DC.Create(hWnd);
+        m_DC.FromWindow(hWnd);
         SetBkMode(m_DC.GetDC(), TRANSPARENT);
 
         SetItemsViewTheme();

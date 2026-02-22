@@ -1106,7 +1106,7 @@ public:
 
     BOOL SetRowHeight(int cy, BOOL bSetOrAdd = TRUE) const noexcept
     {
-        const auto pParent = CWndFromHWND(GetParent(HWnd));
+        const auto pParent = CWindowFromHWND(GetParent(HWnd));
         if (!pParent)
             return FALSE;
         const auto hSlot = pParent->GetSignal().Connect(

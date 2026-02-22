@@ -610,14 +610,14 @@ static HRESULT UxfpAdjustLuma(HTHEME hTheme, HDC hDC, int iPartId, int iStateId,
             // OPTIMIZATION：减少GDI+处理的像素
             cxBuf = pOpt->rcClip.right - pOpt->rcClip.left;
             cyBuf = pOpt->rcClip.bottom - pOpt->rcClip.top;
-            DC.CreateFromDC32(hDC, cxBuf, cyBuf);
+            DC.DibFromDC(hDC, cxBuf, cyBuf);
             SetWindowOrgEx(DC.GetDC(), pOpt->rcClip.left, pOpt->rcClip.top, nullptr);
         }
         else
         {
             cxBuf = prc->right - prc->left;
             cyBuf = prc->bottom - prc->top;
-            DC.CreateFromDC32(hDC, cxBuf, cyBuf);
+            DC.DibFromDC(hDC, cxBuf, cyBuf);
         }
 
         if (bClip)
@@ -1981,7 +1981,6 @@ void ThreadUninitialize() noexcept
     if (!p->hmWnd.empty())
     {
         EckDbgPrintWithPos(L"** WARNING ** 反初始化线程上下文时发现窗口映射表不为空");
-        EckDbgPrintWndMap();
         EckDbgBreak();
     }
 #endif // _DEBUG
@@ -2026,10 +2025,10 @@ void Priv::QueuedCallbackQueue::UnlockedDeQueue() noexcept
 }
 
 
-void ThreadContext::WmAdd(HWND hWnd, CWindow* pWnd) noexcept
+void ThreadContext::WmAdd(HWND hWnd, CWindow* pWnd, BOOL bTopLevel) noexcept
 {
     EckAssert(IsWindow(hWnd) && pWnd);
-    hmWnd.insert(std::make_pair(hWnd, pWnd));
+    hmWnd.insert(std::make_pair(hWnd, WND{ pWnd, bTopLevel }));
 }
 void ThreadContext::WmRemove(HWND hWnd) noexcept
 {
@@ -2038,50 +2037,54 @@ void ThreadContext::WmRemove(HWND hWnd) noexcept
         hmWnd.erase(it);
 #ifdef _DEBUG
     else
+    {
         EckDbgPrintFmt(L"** WARNING ** 从窗口映射中移除%p时失败。", hWnd);
+        EckDbgBreak();
+    }
 #endif
 }
 CWindow* ThreadContext::WmAt(HWND hWnd) const noexcept
 {
     const auto it = hmWnd.find(hWnd);
     if (it != hmWnd.end())
-        return it->second;
+        return it->second.pWnd;
     else
         return nullptr;
 }
 
-void ThreadContext::TwmAdd(HWND hWnd, CWindow* pWnd) noexcept
+void ThreadContext::TwmMarkTopLevel(HWND hWnd, BOOL bTopLevel) noexcept
 {
-    EckAssert(IsWindow(hWnd) && pWnd);
-    EckAssert((GetWindowLongPtrW(hWnd, GWL_STYLE) & WS_CHILD) != WS_CHILD);
-    hmTopWnd.insert(std::make_pair(hWnd, pWnd));
+    const auto it = hmWnd.find(hWnd);
+    if (it != hmWnd.end())
+        it->second.bTopLevel = bTopLevel;
 }
-void ThreadContext::TwmRemove(HWND hWnd) noexcept
+
+ThreadContext::WND ThreadContext::TwmAt(HWND hWnd) noexcept
 {
-    const auto it = hmTopWnd.find(hWnd);
-    if (it != hmTopWnd.end())
-        hmTopWnd.erase(it);
-}
-CWindow* ThreadContext::TwmAt(HWND hWnd) const noexcept
-{
-    const auto it = hmTopWnd.find(hWnd);
-    if (it != hmTopWnd.end())
+    const auto it = hmWnd.find(hWnd);
+    if (it != hmWnd.end())
         return it->second;
     else
-        return nullptr;
+        return {};
 }
+
 void ThreadContext::TwmEnableNcDarkMode(BOOL bDark) noexcept
 {
 #if !ECK_OPT_NO_DARKMODE
-    for (const auto& e : hmTopWnd)
-        EnableWindowNcDarkMode(e.first, bDark);
+    for (const auto& e : hmWnd)
+    {
+        if (e.second.bTopLevel)
+            EnableWindowNcDarkMode(e.first, bDark);
+    }
 #endif // !ECK_OPT_NO_DARKMODE
 }
 void ThreadContext::TwmBroadcastThemeChanged() noexcept
 {
 #if !ECK_OPT_NO_DARKMODE
-    for (const auto& [hWnd, pWnd] : hmTopWnd)
+    for (const auto& [hWnd, Wnd] : hmWnd)
     {
+        if (!Wnd.bTopLevel)
+            continue;
         // WM_THEMECHANGED
         // wParam
         // 改变的部分，分为高低WORD两个代码，-1表示所有，0似乎是无效值。
@@ -2171,9 +2174,10 @@ HHOOK BeginCbtHook(CWindow* pCurrWnd, FWndCreating pfnCreatingProc) noexcept
                     SetWindowProcedure((HWND)wParam, CWindow::EckWndProc);
                 pCtx->pCurrWnd->m_hWnd = (HWND)wParam;
                 // 窗口映射
-                pCtx->WmAdd((HWND)wParam, pCtx->pCurrWnd);
-                if (!IsBitSet(pcbtcw->lpcs->style, WS_CHILD))
-                    pCtx->TwmAdd((HWND)wParam, pCtx->pCurrWnd);
+                pCtx->WmAdd(
+                    (HWND)wParam,
+                    pCtx->pCurrWnd,
+                    !(pcbtcw->lpcs->style & WS_CHILD));
 
                 if (pCtx->pfnWndCreatingProc)
                     pCtx->pfnWndCreatingProc((HWND)wParam, pcbtcw, pCtx);
@@ -2212,22 +2216,6 @@ BOOL PreTranslateMessage(const MSG& Msg) noexcept
 
 #pragma region Dbg
 #ifdef _DEBUG
-void DbgPrintWndMap() noexcept
-{
-    const auto* const pCtx = PtcCurrent();
-    auto s = Format(L"当前线程（TID = %u）窗口映射表内容：\n", NtCurrentThreadId32());
-    for (const auto& e : pCtx->hmWnd)
-    {
-        s.PushBackFormat(L"\tCWnd指针 = 0x%0p，HWND = 0x%0p，标题 = %s，类名 = %s\n",
-            e.second,
-            e.first,
-            e.second->GetText().Data(),
-            e.second->GetWindowClass().Data());
-    }
-    s.PushBackFormat(L"共有%u个窗口\n", (UINT)pCtx->hmWnd.size());
-    OutputDebugStringW(s.Data());
-}
-
 void DbgPrintFmt(_Printf_format_string_ PCWSTR pszFormat, ...) noexcept
 {
     va_list vl;

@@ -455,7 +455,7 @@ EckInlineNdCe D2D1_POINT_2F MakeD2DPointF(POINT pt) noexcept
 template<CcpRect T>
 EckInlineNdCe BOOL IsRectsIntersect(const T& rc1, const T& rc2) noexcept
 {
-    if constexpr (CRectTraits<T>::IsRcwh)
+    if constexpr (RectTraits<T>::IsRcwh)
     {
         if (std::max(rc1.x, rc2.x) < std::min(rc1.x + rc1.cx, rc2.x + rc2.cx))
             return std::max(rc1.y, rc2.y) < std::min(rc1.y + rc1.cy, rc2.y + rc2.cy);
@@ -472,7 +472,7 @@ EckInlineNdCe BOOL IsRectsIntersect(const T& rc1, const T& rc2) noexcept
 template<CcpRect T>
 EckInlineCe void InflateRect(_Inout_ T& rc, auto dx, auto dy) noexcept
 {
-    if constexpr (CRectTraits<T>::IsRcwh)
+    if constexpr (RectTraits<T>::IsRcwh)
     {
         rc.x -= dx;
         rc.y -= dy;
@@ -491,7 +491,7 @@ EckInlineCe void InflateRect(_Inout_ T& rc, auto dx, auto dy) noexcept
 template<CcpRect T>
 EckInlineCe BOOL IntersectRect(_Out_ T& rcDst, const T& rcSrc1, const T& rcSrc2) noexcept
 {
-    if constexpr (CRectTraits<T>::IsRcwh)
+    if constexpr (RectTraits<T>::IsRcwh)
     {
         rcDst.x = std::max(rcSrc1.x, rcSrc2.x);
         rcDst.cx = std::min(rcSrc1.x + rcSrc1.cx, rcSrc2.x + rcSrc2.cx) - rcDst.x;
@@ -524,7 +524,7 @@ EckInlineCe BOOL IntersectRect(_Out_ T& rcDst, const T& rcSrc1, const T& rcSrc2)
 template<CcpRect T>
 EckInlineCe void OffsetRect(_Inout_ T& rc, auto dx, auto dy) noexcept
 {
-    if constexpr (CRectTraits<T>::IsRcwh)
+    if constexpr (RectTraits<T>::IsRcwh)
     {
         rc.x += dx;
         rc.y += dy;
@@ -541,7 +541,7 @@ EckInlineCe void OffsetRect(_Inout_ T& rc, auto dx, auto dy) noexcept
 template<CcpRect T>
 EckInlineNdCe BOOL IsRectEmpty(const T& rc) noexcept
 {
-    if constexpr (CRectTraits<T>::IsRcwh)
+    if constexpr (RectTraits<T>::IsRcwh)
         return rc.cx <= 0 || rc.cy <= 0;
     else
         return rc.left >= rc.right || rc.top >= rc.bottom;
@@ -550,7 +550,7 @@ EckInlineNdCe BOOL IsRectEmpty(const T& rc) noexcept
 template<CcpRect T>
 EckNfInlineCe void UnionRect(T& rcDst, const T& rcSrc1, const T& rcSrc2) noexcept
 {
-    if constexpr (CRectTraits<T>::IsRcwh)
+    if constexpr (RectTraits<T>::IsRcwh)
     {
         const BOOL b1 = IsRectEmpty(rcSrc1), b2 = IsRectEmpty(rcSrc2);
         if (b1)
@@ -595,7 +595,7 @@ EckNfInlineCe void UnionRect(T& rcDst, const T& rcSrc1, const T& rcSrc2) noexcep
 template<CcpRect T>
 EckInlineNdCe BOOL IsRectInclude(const T& rcIn, const T& rcOut) noexcept
 {
-    if constexpr (CRectTraits<T>::IsRcwh)
+    if constexpr (RectTraits<T>::IsRcwh)
         return
         rcIn.x <= rcOut.x &&
         rcIn.y <= rcOut.y &&
@@ -641,9 +641,9 @@ EckInlineNdCe bool operator==(const RCWH& rc1, const RCWH& rc2) noexcept
 template<CcpRect T>
 EckNfInlineCe BOOL AdjustRectIntoAnother(_Inout_ T& rc, const T& rcRef) noexcept
 {
-    constexpr auto MaxValue = std::numeric_limits<typename CRectTraits<T>::T>::max();
-    typename CRectTraits<T>::T dxLeft, dxRight, dyTop, dyBottom;
-    if constexpr (CRectTraits<T>::IsRcwh)
+    constexpr auto MaxValue = std::numeric_limits<typename RectTraits<T>::T>::max();
+    typename RectTraits<T>::T dxLeft, dxRight, dyTop, dyBottom;
+    if constexpr (RectTraits<T>::IsRcwh)
     {
         if (rc.cx > rcRef.cx || rc.cy > rcRef.cy)
             return FALSE;
@@ -695,7 +695,7 @@ EckNfInlineCe BOOL AdjustRectIntoAnother(_Inout_ T& rc, const T& rcRef) noexcept
 template<CcpRect T>
 EckNfInlineCe BOOL AdjustRectToFitAnother(_Inout_ T& rc, const T& rcRef) noexcept
 {
-    if constexpr (CRectTraits<T>::IsRcwh)
+    if constexpr (RectTraits<T>::IsRcwh)
     {
         const auto
             cxMax = rcRef.cx,
@@ -704,7 +704,7 @@ EckNfInlineCe BOOL AdjustRectToFitAnother(_Inout_ T& rc, const T& rcRef) noexcep
             cy0 = rc.cy;
         if (cxMax <= 0 || cyMax <= 0 || cx0 <= 0 || cy0 <= 0)
             return FALSE;
-        typename CRectTraits<T>::T cx, cy;
+        typename RectTraits<T>::T cx, cy;
         if (cxMax * cy0 > cx0 * cyMax)// y对齐
         {
             cy = cyMax;
@@ -731,7 +731,7 @@ EckNfInlineCe BOOL AdjustRectToFitAnother(_Inout_ T& rc, const T& rcRef) noexcep
             cy0 = rc.bottom - rc.top;
         if (cxMax <= 0 || cyMax <= 0 || cx0 <= 0 || cy0 <= 0)
             return FALSE;
-        typename CRectTraits<T>::T cx, cy;
+        typename RectTraits<T>::T cx, cy;
         if (cxMax * cy0 > cx0 * cyMax)// y对齐
         {
             cy = cyMax;
@@ -761,7 +761,7 @@ EckNfInlineCe BOOL AdjustRectToFitAnother(_Inout_ T& rc, const T& rcRef) noexcep
 template<CcpRect T>
 EckNfInlineCe BOOL AdjustRectToFillAnother(_Inout_ T& rc, const T& rcRef) noexcept
 {
-    if constexpr (CRectTraits<T>::IsRcwh)
+    if constexpr (RectTraits<T>::IsRcwh)
     {
         const auto
             cxMax = rcRef.cx,
@@ -771,7 +771,7 @@ EckNfInlineCe BOOL AdjustRectToFillAnother(_Inout_ T& rc, const T& rcRef) noexce
         if (cxMax <= 0 || cyMax <= 0 || cx0 <= 0 || cy0 <= 0)
             return FALSE;
 
-        typename CRectTraits<T>::T cxRgn, cyRgn, x, y;
+        typename RectTraits<T>::T cxRgn, cyRgn, x, y;
         cxRgn = cyMax * cx0 / cy0;
         if (cxRgn < cxMax)// 先尝试y对齐，看x方向是否充满
         {
@@ -803,7 +803,7 @@ EckNfInlineCe BOOL AdjustRectToFillAnother(_Inout_ T& rc, const T& rcRef) noexce
         if (cxMax <= 0 || cyMax <= 0 || cx0 <= 0 || cy0 <= 0)
             return FALSE;
 
-        typename CRectTraits<T>::T cxRgn, cyRgn, x, y;
+        typename RectTraits<T>::T cxRgn, cyRgn, x, y;
         cxRgn = cyMax * cx0 / cy0;
         if (cxRgn < cxMax)// 先尝试y对齐，看x方向是否充满
         {
@@ -836,7 +836,7 @@ EckNfInlineCe BOOL AdjustRectToFillAnother(_Inout_ T& rc, const T& rcRef) noexce
 template<CcpRect T>
 EckNfInlineCe void CenterRect(_Inout_ T& rc, const T& rcRef) noexcept
 {
-    if constexpr (CRectTraits<T>::IsRcwh)
+    if constexpr (RectTraits<T>::IsRcwh)
     {
         rc.x = rcRef.x + (rcRef.cx - rc.cx) / 2;
         rc.y = rcRef.y + (rcRef.cy - rc.cy) / 2;
