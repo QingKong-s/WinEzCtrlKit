@@ -41,7 +41,7 @@ public:
     constexpr CSelectionRangeT(std::initializer_list<RANGE> il) noexcept : m_vRange{ il } {}
 
     // 并闭区间
-    void IncludeRange(T idxBegin, T idxEnd) noexcept
+    constexpr void IncludeRange(T idxBegin, T idxEnd) noexcept
     {
         EckAssert(idxEnd >= idxBegin);
         // 第一个End >= idxBegin - 1的区间
@@ -62,13 +62,10 @@ public:
         }
     }
 
-    constexpr void IncludeItem(T idxItem) noexcept
-    {
-        IncludeRange(idxItem, idxItem);
-    }
+    constexpr void IncludeItem(T idxItem) noexcept { IncludeRange(idxItem, idxItem); }
 
     // 差闭区间
-    void ExcludeRange(T idxBegin, T idxEnd) noexcept
+    constexpr void ExcludeRange(T idxBegin, T idxEnd) noexcept
     {
         EckAssert(idxEnd >= idxBegin);
         // 可能被切除的第一个区间(End >= Begin)
@@ -113,10 +110,7 @@ public:
         }
     }
 
-    constexpr void ExcludeItem(T idxItem) noexcept
-    {
-        ExcludeRange(idxItem, idxItem);
-    }
+    constexpr void ExcludeItem(T idxItem) noexcept { ExcludeRange(idxItem, idxItem); }
 
     // 取反闭区间
     constexpr void InvertRange(T idxBegin, T idxEnd) noexcept
@@ -180,10 +174,7 @@ public:
         m_vRange.insert(itInsertPos, vNewItems.begin(), vNewItems.end());
     }
 
-    constexpr void InvertItem(T idxItem) noexcept
-    {
-        InvertRange(idxItem, idxItem);
-    }
+    constexpr void InvertItem(T idxItem) noexcept { InvertRange(idxItem, idxItem); }
 
     // 插入项目。
     // 在指定的位置增加一个未选择项目（即新项目），此操作会使目标索引其后的所有项目索引+1
@@ -255,10 +246,7 @@ public:
             m_vRange.erase(it);
     }
 
-    EckInlineCe void Clear() noexcept
-    {
-        m_vRange.clear();
-    }
+    EckInlineCe void Clear() noexcept { m_vRange.clear(); }
 
     /// <summary>
     /// 清除。
@@ -266,7 +254,8 @@ public:
     /// </summary>
     /// <param name="idxVisibleBegin、idxVisibleEnd">可视区间</param>
     /// <param name="idxChangedBegin、idxChangedEnd">被更改区间，若无需更新则为-1</param>
-    EckInlineCe void Clear(T idxVisibleBegin, T idxVisibleEnd,
+    EckInlineCe void Clear(
+        T idxVisibleBegin, T idxVisibleEnd,
         _Out_ T& idxChangedBegin, _Out_ T& idxChangedEnd) noexcept
     {
         BOOL bFound;

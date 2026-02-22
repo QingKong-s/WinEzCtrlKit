@@ -232,7 +232,7 @@ class CColorDialog : public CDialog
 public:
     ECK_RTTI(CColorDialog, CDialog);
 
-    inline static UINT s_uMsgSetRgb = RegisterWindowMessageW(SETRGBSTRINGW);
+    const inline static UINT MessageSetColor = RegisterWindowMessageW(SETRGBSTRINGW);
 protected:
     COLORREF m_crCust[16]{};
 public:
@@ -261,7 +261,7 @@ public:
     void OnOk(HWND hCtrl) noexcept override {}
     void OnCancel(HWND hCtrl) noexcept override {}
 
-    EckInline void SetColor(COLORREF cr) const { SendMsg(s_uMsgSetRgb, 0, cr); }
+    EckInline void SetColor(COLORREF cr) const { SendMsg(MessageSetColor, 0, cr); }
 };
 
 class CFontDialog : public CDialog

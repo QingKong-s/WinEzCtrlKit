@@ -86,9 +86,15 @@ private:
     }
 public:
     ECK_DISABLE_COPY_DEF_CONS(CTrayIcon);
+    ~CTrayIcon() noexcept
+    {
+        DeleteAll();
+        Detach();
+    }
 
     void Attach(CWindow* pWnd) noexcept
     {
+        Detach();
         m_pWnd = pWnd;
         m_hSlot = m_pWnd->GetSignal().Connect(this, &CTrayIcon::OnMessage);
     }
@@ -97,7 +103,7 @@ public:
         if (m_pWnd)
         {
             m_pWnd->GetSignal().Disconnect(m_hSlot);
-            m_hSlot = {};
+            m_hSlot = nullptr;
             m_pWnd = nullptr;
             m_vItem.clear();
         }
@@ -262,7 +268,7 @@ public:
 
     BOOL DismissBalloon(USHORT uId) noexcept
     {
-        NOTIFYICONDATAW nid{};
+        NOTIFYICONDATAW nid;
         nid.cbSize = sizeof(nid);
         nid.hWnd = m_pWnd->HWnd;
         nid.uID = uId;

@@ -10,7 +10,7 @@ ECK_UIBUILDER_NAMESPACE_BEGIN
 struct Rect
 {
     int x;
-    int y;
+    int y; 
     int cx;
     int cy;
 };
