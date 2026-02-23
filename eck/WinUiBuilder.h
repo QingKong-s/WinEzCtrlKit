@@ -23,11 +23,26 @@ struct Margin
     int b;
 };
 
-struct Style { DWORD dwStyle; };
-struct ExStyle { DWORD dwExStyle; };
+constexpr inline BOOL Replace = TRUE;
+constexpr inline BOOL Merge = FALSE;
+
+struct Style
+{
+    DWORD dwStyle;
+    BOOL bReplace;
+};
+struct ExStyle
+{
+    DWORD dwExStyle;
+    BOOL bReplace;
+};
 struct Id { int iId; };
 struct Weight { UINT uWeight; };
-struct Flags { UINT uFlags; };
+struct Flags
+{
+    UINT uFlags;
+    BOOL bReplace;
+};
 struct Font { HFONT hFont; };
 
 struct Window;
@@ -193,6 +208,10 @@ namespace Priv
 
         HFONT hDefFont{};
 
+        BOOLEAN bReplaceStyle{};
+        BOOLEAN bReplaceExStyle{};
+        BOOLEAN bReplaceFlags{};
+
         Rect DefRect{};
         DWORD dwDefStyle{ WS_CHILD | WS_VISIBLE };
         DWORD dwDefExStyle{};
@@ -232,32 +251,50 @@ namespace Priv
 
     inline Result CfgParseDefault(
         const Priv::Proxy& pr,
-        PARENT_NODE& Parent) noexcept
+        PARENT_NODE& NewParent) noexcept
     {
         for (const auto& e : pr.Get<Type::Default>()->il)
         {
             switch (e.GetType())
             {
             case Type::Margin:
-                Parent.DefMargin = *e.Get<Type::Margin>();
+                NewParent.DefMargin = *e.Get<Type::Margin>();
                 break;
             case Type::Rect:
-                Parent.DefRect = *e.Get<Type::Rect>();
+                NewParent.DefRect = *e.Get<Type::Rect>();
                 break;
             case Type::Style:
-                Parent.dwDefStyle |= e.Get<Type::Style>().dwStyle;
-                break;
+            {
+                const auto& f = e.Get<Type::Style>();
+                if (NewParent.bReplaceStyle = f.bReplace)
+                    NewParent.dwDefStyle = f.dwStyle;
+                else
+                    NewParent.dwDefStyle |= f.dwStyle;
+            }
+            break;
             case Type::ExStyle:
-                Parent.dwDefExStyle |= e.Get<Type::ExStyle>().dwExStyle;
-                break;
+            {
+                const auto& f = e.Get<Type::ExStyle>();
+                if (NewParent.bReplaceExStyle = f.bReplace)
+                    NewParent.dwDefExStyle = f.dwExStyle;
+                else
+                    NewParent.dwDefExStyle |= f.dwExStyle;
+            }
+            break;
             case Type::Flags:
-                Parent.uDefFlags |= e.Get<Type::Flags>().uFlags;
-                break;
+            {
+                const auto& f = e.Get<Type::Flags>();
+                if (NewParent.bReplaceFlags = f.bReplace)
+                    NewParent.uDefFlags = f.uFlags;
+                else
+                    NewParent.uDefFlags |= f.uFlags;
+            }
+            break;
             case Type::Weight:
-                Parent.uDefWeight = e.Get<Type::Weight>().uWeight;
+                NewParent.uDefWeight = e.Get<Type::Weight>().uWeight;
                 break;
             case Type::Font:
-                Parent.hDefFont = e.Get<Type::Font>().hFont;
+                NewParent.hDefFont = e.Get<Type::Font>().hFont;
                 break;
             default:
                 return Result::InvalidConfigDefault;
@@ -314,11 +351,23 @@ namespace Priv
                 rc = *it->Get<Type::Rect>();
                 break;
             case Type::Style:
-                dwStyle |= it->Get<Type::Style>().dwStyle;
-                break;
+            {
+                const auto& e = it->Get<Type::Style>();
+                if (e.bReplace)
+                    dwStyle = e.dwStyle;
+                else
+                    dwStyle |= e.dwStyle;
+            }
+            break;
             case Type::ExStyle:
-                dwExStyle |= it->Get<Type::ExStyle>().dwExStyle;
-                break;
+            {
+                const auto& e = it->Get<Type::ExStyle>();
+                if (e.bReplace)
+                    dwExStyle = e.dwExStyle;
+                else
+                    dwExStyle |= e.dwExStyle;
+            }
+            break;
             case Type::Id:
                 iId = it->Get<Type::Id>().iId;
                 break;
@@ -338,8 +387,14 @@ namespace Priv
                 LytParam.uWeight = it->Get<Type::Weight>().uWeight;
                 break;
             case Type::Flags:
-                LytParam.uFlags = it->Get<Type::Flags>().uFlags;
-                break;
+            {
+                const auto& e = it->Get<Type::Flags>();
+                if (e.bReplace)
+                    LytParam.uFlags = e.uFlags;
+                else
+                    LytParam.uFlags |= e.uFlags;
+            }
+            break;
 
             default:
                 return Result::InvalidConfigWindow;
@@ -421,8 +476,14 @@ namespace Priv
                 LytParam.uWeight = it->Get<Type::Weight>().uWeight;
                 break;
             case Type::Flags:
-                LytParam.uFlags = it->Get<Type::Flags>().uFlags;
-                break;
+            {
+                const auto& e = it->Get<Type::Flags>();
+                if (e.bReplace)
+                    LytParam.uFlags = e.uFlags;
+                else
+                    LytParam.uFlags |= e.uFlags;
+            }
+            break;
 
             case Type::String:// 仅用于诊断
                 ErrCtx.rsPath
