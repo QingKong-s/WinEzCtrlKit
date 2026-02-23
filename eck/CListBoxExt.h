@@ -208,7 +208,7 @@ private:
             return -1;
 
         RECT rcItem;
-        if (SendMessageW(m_hWnd, LB_GETITEMRECT, idx, (LPARAM)&rcItem) == LB_ERR)
+        if (GetItemRect(idx, &rcItem) == LB_ERR)
             return -1;
         rcItem.left += c_LBPadding;
         rcItem.right = rcItem.left + m_cxCheckBox;
@@ -462,6 +462,7 @@ public:
     {
         switch (uMsg)
         {
+        case WM_LBUTTONDBLCLK:// 连击修复
         case WM_LBUTTONDOWN:// 更新检查框
         {
             if (!m_InfoEx.iCheckBoxMode)
@@ -503,15 +504,6 @@ public:
         }
         break;
 
-        case WM_LBUTTONDBLCLK:// 连击修复
-        {
-            POINT pt{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) };
-            int idx = HitTestCheckBox(pt);
-            if (idx >= 0)
-                PostMessageW(hWnd, WM_LBUTTONDOWN, wParam, lParam);
-        }
-        break;
-
         case WM_MOUSEMOVE:
         {
             if (!m_InfoEx.bToolTip)
@@ -529,24 +521,24 @@ public:
         {
             if (!m_InfoEx.bToolTip)
                 break;
-            SendMessageW(m_hToolTip, TTM_TRACKACTIVATE, FALSE, (LPARAM)&m_ti);
+            ::SendMessageW(m_hToolTip, TTM_TRACKACTIVATE, FALSE, (LPARAM)&m_ti);
             POINT ptScr{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) };
             ClientToScreen(hWnd, &ptScr);
             int idx = LBItemFromPt(hWnd, ptScr, FALSE);
             if (idx < 0)
                 break;
-            SendMessageW(m_hToolTip, TTM_GETTOOLINFOW, 0, (LPARAM)&m_ti);
+            ::SendMessageW(m_hToolTip, TTM_GETTOOLINFOW, 0, (LPARAM)&m_ti);
             m_ti.lpszText = m_ItemsInfo[idx].rsTip.Data();
-            SendMessageW(m_hToolTip, TTM_SETTOOLINFOW, 0, (LPARAM)&m_ti);
-            SendMessageW(m_hToolTip, TTM_TRACKPOSITION, 0, MAKELPARAM(ptScr.x, ptScr.y));
-            SendMessageW(m_hToolTip, TTM_TRACKACTIVATE, TRUE, (LPARAM)&m_ti);
+            ::SendMessageW(m_hToolTip, TTM_SETTOOLINFOW, 0, (LPARAM)&m_ti);
+            ::SendMessageW(m_hToolTip, TTM_TRACKPOSITION, 0, MAKELPARAM(ptScr.x, ptScr.y));
+            ::SendMessageW(m_hToolTip, TTM_TRACKACTIVATE, TRUE, (LPARAM)&m_ti);
         }
         break;
 
         case WM_MOUSELEAVE:
             if (!m_InfoEx.bToolTip)
                 break;
-            SendMessageW(m_hToolTip, TTM_TRACKACTIVATE, FALSE, (LPARAM)&m_ti);
+            ::SendMessageW(m_hToolTip, TTM_TRACKACTIVATE, FALSE, (LPARAM)&m_ti);
             break;
 
         case WM_THEMECHANGED:
@@ -588,14 +580,14 @@ public:
         UpdateThemeInfomation();
 
         m_ti.hwnd = m_hWnd;
-        SendMessageW(m_hToolTip, TTM_ADDTOOL, 0, (LPARAM)&m_ti);
+        ::SendMessageW(m_hToolTip, TTM_ADDTOOL, 0, (LPARAM)&m_ti);
         return m_hWnd;
     }
 
     int InsertString(PCWSTR pszString, PCWSTR pszTip,
         const LBITEMCOMMINFO& CommInfo, int iPos = -1) noexcept
     {
-        int idx = (int)SendMessageW(m_hWnd, LB_INSERTSTRING, iPos, (LPARAM)L"");
+        int idx = (int)::SendMessageW(m_hWnd, LB_INSERTSTRING, iPos, (LPARAM)L"");
         if (idx == LB_ERR)
             return -1;
         LBITEMINFO Item{ pszString,pszTip,nullptr,nullptr,CommInfo };
@@ -626,7 +618,7 @@ public:
 
     int AddString(PCWSTR pszString, PCWSTR pszTip, const LBITEMCOMMINFO& CommInfo) noexcept
     {
-        int idx = (int)SendMessageW(m_hWnd, LB_ADDSTRING, 0, (LPARAM)L"");
+        int idx = (int)::SendMessageW(m_hWnd, LB_ADDSTRING, 0, (LPARAM)L"");
         if (idx == LB_ERR)
             return -1;
         LBITEMINFO Item{ pszString,pszTip,nullptr,nullptr,CommInfo };
@@ -666,7 +658,7 @@ public:
     {
         if (iPos < 0)
         {
-            SendMessageW(m_hWnd, LB_RESETCONTENT, 0, 0);
+            ::SendMessageW(m_hWnd, LB_RESETCONTENT, 0, 0);
             for (auto& x : m_ItemsInfo)
             {
                 DeleteObject(x.hbrBK);
@@ -676,7 +668,7 @@ public:
         }
         else if (iPos >= 0 && iPos < (int)m_ItemsInfo.size())
         {
-            if (SendMessageW(m_hWnd, LB_DELETESTRING, iPos, 0) == LB_ERR)
+            if (::SendMessageW(m_hWnd, LB_DELETESTRING, iPos, 0) == LB_ERR)
                 return FALSE;
             auto& Item = m_ItemsInfo[iPos];
             DeleteObject(Item.hbrBK);
@@ -689,7 +681,7 @@ public:
 
     BOOL InitialzeStorage(int cItems) noexcept
     {
-        if (SendMessageW(m_hWnd, LB_INITSTORAGE, cItems, 0) == LB_ERRSPACE)
+        if (::SendMessageW(m_hWnd, LB_INITSTORAGE, cItems, 0) == LB_ERRSPACE)
             return FALSE;
         m_ItemsInfo.reserve(cItems);
         return TRUE;

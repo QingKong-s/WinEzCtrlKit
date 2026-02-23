@@ -106,483 +106,483 @@ public:
     /// <returns>HRESULT</returns>
     EckInline HRESULT AutoUrlDetect(int iType, PCWSTR pszUrlPatterns = nullptr) const noexcept
     {
-        return (HRESULT)SendMessage(EM_AUTOURLDETECT, iType, (LPARAM)pszUrlPatterns);
+        return (HRESULT)SendMessageW(EM_AUTOURLDETECT, iType, (LPARAM)pszUrlPatterns);
     }
 
     EckInline HRESULT CallAutoCorrectProcedure(WCHAR ch) const noexcept
     {
-        return (HRESULT)SendMessage(EM_CALLAUTOCORRECTPROC, ch, 0);
+        return (HRESULT)SendMessageW(EM_CALLAUTOCORRECTPROC, ch, 0);
     }
 
     EckInline HRESULT CanPaste(UINT uClipboardFormat) const noexcept
     {
-        return (HRESULT)SendMessage(EM_CANPASTE, uClipboardFormat, 0);
+        return (HRESULT)SendMessageW(EM_CANPASTE, uClipboardFormat, 0);
     }
 
     EckInline HRESULT CanRedo() const noexcept
     {
-        return (HRESULT)SendMessage(EM_CANREDO, 0, 0);
+        return (HRESULT)SendMessageW(EM_CANREDO, 0, 0);
     }
 
     EckInline BOOL DisplayBand(RECT* prc) const noexcept
     {
-        return (BOOL)SendMessage(EM_DISPLAYBAND, 0, (LPARAM)prc);
+        return (BOOL)SendMessageW(EM_DISPLAYBAND, 0, (LPARAM)prc);
     }
 
     EckInline void GetSelection(CHARRANGE* pchrg) const noexcept
     {
-        SendMessage(EM_EXGETSEL, 0, (LPARAM)pchrg);
+        SendMessageW(EM_EXGETSEL, 0, (LPARAM)pchrg);
     }
 
     EckInline void LimitText(int cch) const noexcept
     {
-        SendMessage(EM_EXLIMITTEXT, 0, cch);
+        SendMessageW(EM_EXLIMITTEXT, 0, cch);
     }
 
     EckInline int LineFromChar(int ich) const noexcept
     {
-        return (int)SendMessage(EM_EXLINEFROMCHAR, 0, ich);
+        return (int)SendMessageW(EM_EXLINEFROMCHAR, 0, ich);
     }
 
     EckInline LRESULT SetSelection(CHARRANGE* pchrg) const noexcept
     {
-        return SendMessage(EM_EXSETSEL, 0, (LPARAM)pchrg);
+        return SendMessageW(EM_EXSETSEL, 0, (LPARAM)pchrg);
     }
 
     EckInline int FindTextW(UINT uFlags, FINDTEXTW* pFindText) const noexcept
     {
-        return (int)SendMessage(EM_FINDTEXTW, uFlags, (LPARAM)pFindText);
+        return (int)SendMessageW(EM_FINDTEXTW, uFlags, (LPARAM)pFindText);
     }
 
     EckInline int FindTextEx(UINT uFlags, FINDTEXTEXW* pFindText) const noexcept
     {
-        return (int)SendMessage(EM_FINDTEXTEXW, uFlags, (LPARAM)pFindText);
+        return (int)SendMessageW(EM_FINDTEXTEXW, uFlags, (LPARAM)pFindText);
     }
 
     EckInline int FindWordBreak(UINT uFlags, int idxChar) const noexcept
     {
-        return (int)SendMessage(EM_FINDWORDBREAK, uFlags, idxChar);
+        return (int)SendMessageW(EM_FINDWORDBREAK, uFlags, idxChar);
     }
 
     EckInline int FormatRange(BOOL bInPlace, FORMATRANGE* pfr) const noexcept
     {
-        return (int)SendMessage(EM_FORMATRANGE, bInPlace, (LPARAM)pfr);
+        return (int)SendMessageW(EM_FORMATRANGE, bInPlace, (LPARAM)pfr);
     }
 
     EckInline AutoCorrectProc GetAutoCorrectProcedure() const noexcept
     {
-        return (AutoCorrectProc)SendMessage(EM_GETAUTOCORRECTPROC, 0, 0);
+        return (AutoCorrectProc)SendMessageW(EM_GETAUTOCORRECTPROC, 0, 0);
     }
 
     EckInline BOOL GetAutoUrlDetect() const noexcept
     {
-        return (BOOL)SendMessage(EM_GETAUTOURLDETECT, 0, 0);
+        return (BOOL)SendMessageW(EM_GETAUTOURLDETECT, 0, 0);
     }
 
     EckInline void GetBidiOptions(BIDIOPTIONS* pbidio) const noexcept
     {
-        SendMessage(EM_GETBIDIOPTIONS, 0, (LPARAM)pbidio);
+        SendMessageW(EM_GETBIDIOPTIONS, 0, (LPARAM)pbidio);
     }
 
     EckInline UINT GetCharFormat(int iRange, CHARFORMAT2W* pcf) const noexcept
     {
-        return (UINT)SendMessage(EM_GETCHARFORMAT, iRange, (LPARAM)pcf);
+        return (UINT)SendMessageW(EM_GETCHARFORMAT, iRange, (LPARAM)pcf);
     }
 
     EckInline int GetCtfModeBias() const noexcept
     {
-        return (int)SendMessage(EM_GETCTFMODEBIAS, 0, 0);
+        return (int)SendMessageW(EM_GETCTFMODEBIAS, 0, 0);
     }
 
     EckInline BOOL GetCtfOpenStatus() const noexcept
     {
-        return (BOOL)SendMessage(EM_GETCTFOPENSTATUS, 0, 0);
+        return (BOOL)SendMessageW(EM_GETCTFOPENSTATUS, 0, 0);
     }
 
     EckInline UINT GetEditStyle() const noexcept
     {
-        return (UINT)SendMessage(EM_GETEDITSTYLE, 0, 0);
+        return (UINT)SendMessageW(EM_GETEDITSTYLE, 0, 0);
     }
 
     EckInline UINT GetEditStyleEx() const noexcept
     {
-        return (UINT)SendMessage(EM_GETEDITSTYLEEX, 0, 0);
+        return (UINT)SendMessageW(EM_GETEDITSTYLEEX, 0, 0);
     }
 
     EckInline UINT GetEllipsisMode() const noexcept
     {
         UINT dw;
-        SendMessage(EM_GETELLIPSISMODE, 0, (LPARAM)&dw);
+        SendMessageW(EM_GETELLIPSISMODE, 0, (LPARAM)&dw);
         return dw;
     }
 
     EckInline BOOL GetEllipsisState() const noexcept
     {
-        return (BOOL)SendMessage(EM_GETELLIPSISSTATE, 0, 0);
+        return (BOOL)SendMessageW(EM_GETELLIPSISSTATE, 0, 0);
     }
 
     EckInline UINT GetEventMask() const noexcept
     {
-        return (UINT)SendMessage(EM_GETEVENTMASK, 0, 0);
+        return (UINT)SendMessageW(EM_GETEVENTMASK, 0, 0);
     }
 
     EckInline void GetHyphenateInfomation(HYPHRESULT* phr) const noexcept
     {
-        SendMessage(EM_GETHYPHENATEINFO, (WPARAM)phr, 0);
+        SendMessageW(EM_GETHYPHENATEINFO, (WPARAM)phr, 0);
     }
 
     EckInline int GetImeCompositionMode() const noexcept
     {
-        return (int)SendMessage(EM_GETIMECOMPMODE, 0, 0);
+        return (int)SendMessageW(EM_GETIMECOMPMODE, 0, 0);
     }
 
     EckInline int GetImeCompositionText(IMECOMPTEXT* pict, PWSTR pszBuf) const noexcept
     {
-        return (int)SendMessage(EM_GETIMECOMPTEXT, (WPARAM)pict, (LPARAM)pszBuf);
+        return (int)SendMessageW(EM_GETIMECOMPTEXT, (WPARAM)pict, (LPARAM)pszBuf);
     }
 
     EckInline int GetImeModeBias() const noexcept
     {
-        return (int)SendMessage(EM_GETIMEMODEBIAS, 0, 0);
+        return (int)SendMessageW(EM_GETIMEMODEBIAS, 0, 0);
     }
 
     EckInline UINT GetImeProperty(int iType) const noexcept
     {
-        return (UINT)SendMessage(EM_GETIMEPROPERTY, iType, 0);
+        return (UINT)SendMessageW(EM_GETIMEPROPERTY, iType, 0);
     }
 
     EckInline UINT GetLangOptions() const noexcept
     {
-        return (UINT)SendMessage(EM_GETLANGOPTIONS, 0, 0);
+        return (UINT)SendMessageW(EM_GETLANGOPTIONS, 0, 0);
     }
 
     EckInline HRESULT GetOleInterface(IRichEditOle** ppRichEditOle) const noexcept
     {
-        return (HRESULT)SendMessage(EM_GETOLEINTERFACE, 0, (LPARAM)ppRichEditOle);
+        return (HRESULT)SendMessageW(EM_GETOLEINTERFACE, 0, (LPARAM)ppRichEditOle);
     }
 
     EckInline UINT GetOptions() const noexcept
     {
-        return (UINT)SendMessage(EM_GETOPTIONS, 0, 0);
+        return (UINT)SendMessageW(EM_GETOPTIONS, 0, 0);
     }
 
     EckInline UINT GetPageRotate() const noexcept
     {
-        return (UINT)SendMessage(EM_GETPAGEROTATE, 0, 0);
+        return (UINT)SendMessageW(EM_GETPAGEROTATE, 0, 0);
     }
 
     EckInline UINT GetParagraphFormat(PARAFORMAT2* ppf) const noexcept
     {
-        return (UINT)SendMessage(EM_GETPARAFORMAT, 0, (LPARAM)ppf);
+        return (UINT)SendMessageW(EM_GETPARAFORMAT, 0, (LPARAM)ppf);
     }
 
     EckInline UNDONAMEID GetRedoName() const noexcept
     {
-        return (UNDONAMEID)SendMessage(EM_GETREDONAME, 0, 0);
+        return (UNDONAMEID)SendMessageW(EM_GETREDONAME, 0, 0);
     }
 
     EckInline void GetScrollPosition(POINT* ppt) const noexcept
     {
-        SendMessage(EM_GETSCROLLPOS, 0, (LPARAM)ppt);
+        SendMessageW(EM_GETSCROLLPOS, 0, (LPARAM)ppt);
     }
 
     EckInline int GetSelectedText(PWSTR pszBuf) const noexcept
     {
-        return (int)SendMessage(EM_GETSELTEXT, 0, (LPARAM)pszBuf);
+        return (int)SendMessageW(EM_GETSELTEXT, 0, (LPARAM)pszBuf);
     }
 
     EckInline int GetStoryType(int idxStory) const noexcept
     {
-        return (int)SendMessage(EM_GETSTORYTYPE, idxStory, 0);
+        return (int)SendMessageW(EM_GETSTORYTYPE, idxStory, 0);
     }
 
     EckInline HRESULT GetTableParameters(TABLEROWPARMS* ptrp, TABLECELLPARMS* ptcp) const noexcept
     {
-        return (HRESULT)SendMessage(EM_GETTABLEPARMS, (WPARAM)ptrp, (LPARAM)ptcp);
+        return (HRESULT)SendMessageW(EM_GETTABLEPARMS, (WPARAM)ptrp, (LPARAM)ptcp);
     }
 
     EckInline int GetTextEx(GETTEXTEX* pgt, PWSTR pszBuf) const noexcept
     {
-        return (int)SendMessage(EM_GETTEXTEX, (WPARAM)pgt, (LPARAM)pszBuf);
+        return (int)SendMessageW(EM_GETTEXTEX, (WPARAM)pgt, (LPARAM)pszBuf);
     }
 
     EckInline int GetTextLengthEx(GETTEXTLENGTHEX* pgtl) const noexcept
     {
-        return (int)SendMessage(EM_GETTEXTLENGTHEX, (WPARAM)pgtl, 0);
+        return (int)SendMessageW(EM_GETTEXTLENGTHEX, (WPARAM)pgtl, 0);
     }
 
     EckInline TEXTMODE GetTextMode() const noexcept
     {
-        return (TEXTMODE)SendMessage(EM_GETTEXTMODE, 0, 0);
+        return (TEXTMODE)SendMessageW(EM_GETTEXTMODE, 0, 0);
     }
 
     EckInline int GetTextRange(TEXTRANGEW* pTextRange) const noexcept
     {
-        return (int)SendMessage(EM_GETTEXTRANGE, 0, (LPARAM)pTextRange);
+        return (int)SendMessageW(EM_GETTEXTRANGE, 0, (LPARAM)pTextRange);
     }
 
     EckInline BOOL GetTouchOptions() const noexcept
     {
-        return (BOOL)SendMessage(EM_GETTOUCHOPTIONS, RTO_SHOWHANDLES, 0);
+        return (BOOL)SendMessageW(EM_GETTOUCHOPTIONS, RTO_SHOWHANDLES, 0);
     }
 
     EckInline UINT GetTypographyOptions() const noexcept
     {
-        return (UINT)SendMessage(EM_GETTYPOGRAPHYOPTIONS, 0, 0);
+        return (UINT)SendMessageW(EM_GETTYPOGRAPHYOPTIONS, 0, 0);
     }
 
     EckInline UNDONAMEID GetUndoName() const noexcept
     {
-        return (UNDONAMEID)SendMessage(EM_GETUNDONAME, 0, 0);
+        return (UNDONAMEID)SendMessageW(EM_GETUNDONAME, 0, 0);
     }
 
     EckInline EDITWORDBREAKPROCEX GetWordBreakProcedure() const noexcept
     {
-        return (EDITWORDBREAKPROCEX)SendMessage(EM_GETWORDBREAKPROCEX, 0, 0);
+        return (EDITWORDBREAKPROCEX)SendMessageW(EM_GETWORDBREAKPROCEX, 0, 0);
     }
 
     EckInline BOOL GetZoom(int* pnZoomNumerator, int* pnZoomDenominator) const noexcept
     {
-        return (BOOL)SendMessage(EM_GETZOOM, (WPARAM)pnZoomNumerator, (LPARAM)pnZoomDenominator);
+        return (BOOL)SendMessageW(EM_GETZOOM, (WPARAM)pnZoomNumerator, (LPARAM)pnZoomDenominator);
     }
 
     EckInline void HideSelection(BOOL bHide) const noexcept
     {
-        SendMessage(EM_HIDESELECTION, bHide, 0);
+        SendMessageW(EM_HIDESELECTION, bHide, 0);
     }
 
     EckInline HRESULT InsertImage(RICHEDIT_IMAGE_PARAMETERS* pImageParams) const noexcept
     {
-        return (HRESULT)SendMessage(EM_INSERTIMAGE, 0, (LPARAM)pImageParams);
+        return (HRESULT)SendMessageW(EM_INSERTIMAGE, 0, (LPARAM)pImageParams);
     }
 
     EckInline HRESULT InsertTable(TABLEROWPARMS* ptrp, TABLECELLPARMS* ptcp) const noexcept
     {
-        return (HRESULT)SendMessage(EM_INSERTTABLE, (WPARAM)ptrp, (LPARAM)ptcp);
+        return (HRESULT)SendMessageW(EM_INSERTTABLE, (WPARAM)ptrp, (LPARAM)ptcp);
     }
 
     EckInline BOOL IsIme() const noexcept
     {
-        return (BOOL)SendMessage(EM_ISIME, 0, 0);
+        return (BOOL)SendMessageW(EM_ISIME, 0, 0);
     }
 
     EckInline void PasteSpecial(UINT uClipFormat, REPASTESPECIAL* prps) const noexcept
     {
-        SendMessage(EM_PASTESPECIAL, uClipFormat, (LPARAM)prps);
+        SendMessageW(EM_PASTESPECIAL, uClipFormat, (LPARAM)prps);
     }
 
     EckInline void Reconversion() const noexcept
     {
-        SendMessage(EM_RECONVERSION, 0, 0);
+        SendMessageW(EM_RECONVERSION, 0, 0);
     }
 
     EckInline BOOL Redo() const noexcept
     {
-        return (BOOL)SendMessage(EM_REDO, 0, 0);
+        return (BOOL)SendMessageW(EM_REDO, 0, 0);
     }
 
     EckInline void RequestResize() const noexcept
     {
-        SendMessage(EM_REQUESTRESIZE, 0, 0);
+        SendMessageW(EM_REQUESTRESIZE, 0, 0);
     }
 
     EckInline UINT SelectionType() const noexcept
     {
-        return (UINT)SendMessage(EM_SELECTIONTYPE, 0, 0);
+        return (UINT)SendMessageW(EM_SELECTIONTYPE, 0, 0);
     }
 
     EckInline BOOL SetAutoCorrectProcedure(AutoCorrectProc pfnNewProc) const noexcept
     {
-        return (BOOL)SendMessage(EM_SETAUTOCORRECTPROC, (WPARAM)pfnNewProc, 0);
+        return (BOOL)SendMessageW(EM_SETAUTOCORRECTPROC, (WPARAM)pfnNewProc, 0);
     }
 
     EckInline void SetBidiOptions(BIDIOPTIONS* pbidio) const noexcept
     {
-        SendMessage(EM_SETBIDIOPTIONS, 0, (LPARAM)pbidio);
+        SendMessageW(EM_SETBIDIOPTIONS, 0, (LPARAM)pbidio);
     }
 
     EckInline COLORREF SetBackgroundColor(BOOL bSysColor, COLORREF cr) const noexcept
     {
-        return (COLORREF)SendMessage(EM_SETBKGNDCOLOR, bSysColor, cr);
+        return (COLORREF)SendMessageW(EM_SETBKGNDCOLOR, bSysColor, cr);
     }
 
     EckInline BOOL SetCharFormat(int iFmt, CHARFORMAT2W* pcf) const noexcept
     {
-        return (BOOL)SendMessage(EM_SETCHARFORMAT, iFmt, (LPARAM)pcf);
+        return (BOOL)SendMessageW(EM_SETCHARFORMAT, iFmt, (LPARAM)pcf);
     }
 
     EckInline int SetCtfModeBias(int iModeBias) const noexcept
     {
-        return (int)SendMessage(EM_SETCTFMODEBIAS, iModeBias, 0);
+        return (int)SendMessageW(EM_SETCTFMODEBIAS, iModeBias, 0);
     }
 
     EckInline BOOL SetCtfOpenStatus(BOOL bOpen) const noexcept
     {
-        return (BOOL)SendMessage(EM_SETCTFOPENSTATUS, bOpen, 0);
+        return (BOOL)SendMessageW(EM_SETCTFOPENSTATUS, bOpen, 0);
     }
 
     EckInline BOOL SetDisableOleLinkConversion(BOOL bDisable) const noexcept
     {
-        return (BOOL)SendMessage(EM_SETDISABLEOLELINKCONVERSION, 0, bDisable);
+        return (BOOL)SendMessageW(EM_SETDISABLEOLELINKCONVERSION, 0, bDisable);
     }
 
     EckInline UINT SetEditStyle(UINT dwStyle, UINT uMask) const noexcept
     {
-        return (UINT)SendMessage(EM_SETEDITSTYLE, dwStyle, uMask);
+        return (UINT)SendMessageW(EM_SETEDITSTYLE, dwStyle, uMask);
     }
 
     EckInline UINT SetEditStyleEx(UINT dwStyleEx, UINT dwMask) const noexcept
     {
-        return (UINT)SendMessage(EM_SETEDITSTYLEEX, dwStyleEx, dwMask);
+        return (UINT)SendMessageW(EM_SETEDITSTYLEEX, dwStyleEx, dwMask);
     }
 
     EckInline BOOL SetEllipsisMode(UINT uEllipsisMode) const noexcept
     {
-        return (BOOL)SendMessage(EM_SETELLIPSISMODE, 0, uEllipsisMode);
+        return (BOOL)SendMessageW(EM_SETELLIPSISMODE, 0, uEllipsisMode);
     }
 
     EckInline UINT SetEventMask(UINT dwEventMask) const noexcept
     {
-        return (UINT)SendMessage(EM_SETEVENTMASK, 0, dwEventMask);
+        return (UINT)SendMessageW(EM_SETEVENTMASK, 0, dwEventMask);
     }
 
     EckInline BOOL SetFontSize(int iSize) const noexcept
     {
-        return (BOOL)SendMessage(EM_SETFONTSIZE, iSize, 0);
+        return (BOOL)SendMessageW(EM_SETFONTSIZE, iSize, 0);
     }
 
     EckInline void SetHyphenateInfomation(HYPHENATEINFO* phr) const noexcept
     {
-        SendMessage(EM_SETHYPHENATEINFO, (LPARAM)phr, 0);
+        SendMessageW(EM_SETHYPHENATEINFO, (LPARAM)phr, 0);
     }
 
     EckInline int SetImeModeBias(int iModeBias) const noexcept
     {
-        return (int)SendMessage(EM_SETIMEMODEBIAS, iModeBias, iModeBias);
+        return (int)SendMessageW(EM_SETIMEMODEBIAS, iModeBias, iModeBias);
     }
 
     EckInline void SetLangOptions(UINT dwOptions) const noexcept
     {
-        SendMessage(EM_SETLANGOPTIONS, 0, dwOptions);
+        SendMessageW(EM_SETLANGOPTIONS, 0, dwOptions);
     }
 
     EckInline BOOL SetOleCallback(IRichEditOleCallback* pCallback) const noexcept
     {
-        return (BOOL)SendMessage(EM_SETOLECALLBACK, 0, (LPARAM)pCallback);
+        return (BOOL)SendMessageW(EM_SETOLECALLBACK, 0, (LPARAM)pCallback);
     }
 
     EckInline UINT SetOptions(int iType, UINT dwOptions) const noexcept
     {
-        return (UINT)SendMessage(EM_SETOPTIONS, iType, dwOptions);
+        return (UINT)SendMessageW(EM_SETOPTIONS, iType, dwOptions);
     }
 
     EckInline BOOL SetParagraphFormat(PARAFORMAT2* ppf) const noexcept
     {
-        return (BOOL)SendMessage(EM_SETPARAFORMAT, 0, (LPARAM)ppf);
+        return (BOOL)SendMessageW(EM_SETPARAFORMAT, 0, (LPARAM)ppf);
     }
 
     EckInline int SetPageRotate(int iRotate) const noexcept
     {
-        return (int)SendMessage(EM_SETPAGEROTATE, iRotate, 0);
+        return (int)SendMessageW(EM_SETPAGEROTATE, iRotate, 0);
     }
 
     EckInline void SetPalette(HPALETTE hPal) const noexcept
     {
-        SendMessage(EM_SETPALETTE, (WPARAM)hPal, 0);
+        SendMessageW(EM_SETPALETTE, (WPARAM)hPal, 0);
     }
 
     EckInline HRESULT SetQueryConvertOleLinkCallback(WPARAM Context,
         OLESTREAMQUERYCONVERTOLELINKCALLBACK pfnCallback) const noexcept
     {
-        return (HRESULT)SendMessage(EM_SETQUERYCONVERTOLELINKCALLBACK,
+        return (HRESULT)SendMessageW(EM_SETQUERYCONVERTOLELINKCALLBACK,
             Context, (LPARAM)pfnCallback);
     }
 
     EckInline void SetScrollPosition(POINT* ppt) const noexcept
     {
-        SendMessage(EM_SETSCROLLPOS, 0, (LPARAM)ppt);
+        SendMessageW(EM_SETSCROLLPOS, 0, (LPARAM)ppt);
     }
 
     EckInline int SetStoryType(int idxStory, int iStoryType) const noexcept
     {
-        return (int)SendMessage(EM_SETSTORYTYPE, idxStory, iStoryType);
+        return (int)SendMessageW(EM_SETSTORYTYPE, idxStory, iStoryType);
     }
 
     EckInline HRESULT SetTableParameters(TABLEROWPARMS* ptrp, TABLECELLPARMS* ptcp) const noexcept
     {
-        return (HRESULT)SendMessage(EM_SETTABLEPARMS, (WPARAM)ptrp, (LPARAM)ptcp);
+        return (HRESULT)SendMessageW(EM_SETTABLEPARMS, (WPARAM)ptrp, (LPARAM)ptcp);
     }
 
     EckInline HRESULT SetTargetDevice(HDC hDC, int cxLine) const noexcept
     {
-        return (HRESULT)SendMessage(EM_SETTARGETDEVICE, (WPARAM)hDC, cxLine);
+        return (HRESULT)SendMessageW(EM_SETTARGETDEVICE, (WPARAM)hDC, cxLine);
     }
 
     EckInline int SetTextEx(SETTEXTEX* pst, PCWSTR pszText) const noexcept
     {
         EckAssert(pst->codepage == 1200);
-        return (int)SendMessage(EM_SETTEXTEX, (WPARAM)pst, (LPARAM)pszText);
+        return (int)SendMessageW(EM_SETTEXTEX, (WPARAM)pst, (LPARAM)pszText);
     }
 
     EckInline int SetTextEx(SETTEXTEX* pst, PCSTR pszText) const noexcept
     {
         EckAssert(pst->codepage != 1200);
-        return (int)SendMessage(EM_SETTEXTEX, (WPARAM)pst, (LPARAM)pszText);
+        return (int)SendMessageW(EM_SETTEXTEX, (WPARAM)pst, (LPARAM)pszText);
     }
 
     EckInline BOOL SetTextMode(TEXTMODE tm) const noexcept
     {
-        return (BOOL)SendMessage(EM_SETTEXTMODE, tm, 0);
+        return (BOOL)SendMessageW(EM_SETTEXTMODE, tm, 0);
     }
 
     EckInline void SetTouchOptions(BOOL bShowHandles) const noexcept
     {
-        SendMessage(EM_SETTOUCHOPTIONS, RTO_SHOWHANDLES, bShowHandles);
+        SendMessageW(EM_SETTOUCHOPTIONS, RTO_SHOWHANDLES, bShowHandles);
     }
 
     EckInline BOOL SetTypographyOptions(UINT dwOptions, UINT dwMask) const noexcept
     {
-        return (BOOL)SendMessage(EM_SETTYPOGRAPHYOPTIONS, dwOptions, dwMask);
+        return (BOOL)SendMessageW(EM_SETTYPOGRAPHYOPTIONS, dwOptions, dwMask);
     }
 
     EckInline BOOL SetUiAutomationName(PCWSTR pszText) const noexcept
     {
-        return (BOOL)SendMessage(EM_SETUIANAME, 0, (LPARAM)pszText);
+        return (BOOL)SendMessageW(EM_SETUIANAME, 0, (LPARAM)pszText);
     }
 
     EckInline int SetUndoLimit(int cLimit) const noexcept
     {
-        return (int)SendMessage(EM_SETUNDOLIMIT, cLimit, 0);
+        return (int)SendMessageW(EM_SETUNDOLIMIT, cLimit, 0);
     }
 
     EckInline EDITWORDBREAKPROCEX SetWordBreakProcedure(EDITWORDBREAKPROCEX pfnNewProc) const noexcept
     {
-        return (EDITWORDBREAKPROCEX)SendMessage(EM_SETWORDBREAKPROCEX, 0, (LPARAM)pfnNewProc);
+        return (EDITWORDBREAKPROCEX)SendMessageW(EM_SETWORDBREAKPROCEX, 0, (LPARAM)pfnNewProc);
     }
 
     EckInline BOOL SetZoom(int iZoomNumerator, int iZoomDenominator) const noexcept
     {
-        return (BOOL)SendMessage(EM_SETZOOM, iZoomNumerator, iZoomDenominator);
+        return (BOOL)SendMessageW(EM_SETZOOM, iZoomNumerator, iZoomDenominator);
     }
 
     EckInline void ShowScrollBar(int iBar, BOOL bShow) const noexcept
     {
-        SendMessage(EM_SHOWSCROLLBAR, iBar, bShow);
+        SendMessageW(EM_SHOWSCROLLBAR, iBar, bShow);
     }
 
     EckInline void StopGroupTyping() const noexcept
     {
-        SendMessage(EM_STOPGROUPTYPING, 0, 0);
+        SendMessageW(EM_STOPGROUPTYPING, 0, 0);
     }
 
     EckInline int StreamIn(UINT uFlags, EDITSTREAM* es) const noexcept
     {
-        return (int)SendMessage(EM_STREAMIN, uFlags, (LPARAM)es);
+        return (int)SendMessageW(EM_STREAMIN, uFlags, (LPARAM)es);
     }
 
     EckInline int StreamOut(UINT uFlags, EDITSTREAM* es) const noexcept
     {
-        return (int)SendMessage(EM_STREAMOUT, uFlags, (LPARAM)es);
+        return (int)SendMessageW(EM_STREAMOUT, uFlags, (LPARAM)es);
     }
 };
 ECK_NAMESPACE_END

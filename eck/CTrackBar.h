@@ -30,42 +30,42 @@ public:
 
     EckInline void ClearSelection(BOOL bRedraw) const noexcept
     {
-        SendMessage(TBM_CLEARSEL, bRedraw, 0);
+        SendMessageW(TBM_CLEARSEL, bRedraw, 0);
     }
 
     EckInline void ClearTickMarks(BOOL bRedraw) const noexcept
     {
-        SendMessage(TBM_CLEARTICS, bRedraw, 0);
+        SendMessageW(TBM_CLEARTICS, bRedraw, 0);
     }
 
     EckInline HWND GetBuddy(BOOL bLeftTopOrRightBottom) const noexcept
     {
-        return (HWND)SendMessage(TBM_GETBUDDY, bLeftTopOrRightBottom, 0);
+        return (HWND)SendMessageW(TBM_GETBUDDY, bLeftTopOrRightBottom, 0);
     }
 
     EckInline void GetChannelRect(_Out_ RECT* prc) const noexcept
     {
-        SendMessage(TBM_GETCHANNELRECT, 0, (LPARAM)prc);
+        SendMessageW(TBM_GETCHANNELRECT, 0, (LPARAM)prc);
     }
 
     EckInline int GetLineSize() const noexcept
     {
-        return (int)SendMessage(TBM_GETLINESIZE, 0, 0);
+        return (int)SendMessageW(TBM_GETLINESIZE, 0, 0);
     }
 
     EckInline int GetTickMarkCount() const noexcept
     {
-        return (int)SendMessage(TBM_GETNUMTICS, 0, 0);
+        return (int)SendMessageW(TBM_GETNUMTICS, 0, 0);
     }
 
     EckInline int GetPageSize() const noexcept
     {
-        return (int)SendMessage(TBM_GETPAGESIZE, 0, 0);
+        return (int)SendMessageW(TBM_GETPAGESIZE, 0, 0);
     }
 
     EckInline int GetPosition() const noexcept
     {
-        return (int)SendMessage(TBM_GETPOS, 0, 0);
+        return (int)SendMessageW(TBM_GETPOS, 0, 0);
     }
 
     /// <summary>
@@ -74,93 +74,93 @@ public:
     /// <returns>返回数组在修改刻度线前有效，数组总数为(GetTickMarkCount() - 2)</returns>
     EckInline UINT* GetTickMarkLogicalPositionArray() const noexcept
     {
-        return (UINT*)SendMessage(TBM_GETPTICS, 0, 0);
+        return (UINT*)SendMessageW(TBM_GETPTICS, 0, 0);
     }
 
     EckInline int GetRangeMaximum() const noexcept
     {
-        return (int)SendMessage(TBM_GETRANGEMAX, 0, 0);
+        return (int)SendMessageW(TBM_GETRANGEMAX, 0, 0);
     }
 
     EckInline int GetRangeMinimum() const noexcept
     {
-        return (int)SendMessage(TBM_GETRANGEMIN, 0, 0);
+        return (int)SendMessageW(TBM_GETRANGEMIN, 0, 0);
     }
 
     EckInline int GetSelectionEnd() const noexcept
     {
-        return (int)SendMessage(TBM_GETSELEND, 0, 0);
+        return (int)SendMessageW(TBM_GETSELEND, 0, 0);
     }
 
     EckInline int GetSelectionBegin() const noexcept
     {
-        return (int)SendMessage(TBM_GETSELSTART, 0, 0);
+        return (int)SendMessageW(TBM_GETSELSTART, 0, 0);
     }
 
     EckInline int GetThumbLength() const noexcept
     {
-        return (int)SendMessage(TBM_GETTHUMBLENGTH, 0, 0);
+        return (int)SendMessageW(TBM_GETTHUMBLENGTH, 0, 0);
     }
 
     EckInline int GetThumbRect(_Out_ RECT* prc) const noexcept
     {
-        return (int)SendMessage(TBM_GETTHUMBRECT, 0, (LPARAM)prc);
+        return (int)SendMessageW(TBM_GETTHUMBRECT, 0, (LPARAM)prc);
     }
 
     EckInline int GetTickMarkLogicalPosition(int idxTic) const noexcept
     {
-        return (int)SendMessage(TBM_GETTIC, idxTic, 0);
+        return (int)SendMessageW(TBM_GETTIC, idxTic, 0);
     }
 
     EckInline int GetTickMarkPosition(int idxTic) const noexcept
     {
-        return (int)SendMessage(TBM_GETTICPOS, idxTic, 0);
+        return (int)SendMessageW(TBM_GETTICPOS, idxTic, 0);
     }
 
     EckInline HWND GetToolTips() const noexcept
     {
-        return (HWND)SendMessage(TBM_GETTOOLTIPS, 0, 0);
+        return (HWND)SendMessageW(TBM_GETTOOLTIPS, 0, 0);
     }
 
     EckInline HWND SetBuddy(HWND hBuddy, BOOL bLeftTopOrRightBottom) const noexcept
     {
-        return (HWND)SendMessage(TBM_SETBUDDY, bLeftTopOrRightBottom, (LPARAM)hBuddy);
+        return (HWND)SendMessageW(TBM_SETBUDDY, bLeftTopOrRightBottom, (LPARAM)hBuddy);
     }
 
     EckInline int SetLineSize(int nSize) const noexcept
     {
-        return (int)SendMessage(TBM_SETLINESIZE, 0, nSize);
+        return (int)SendMessageW(TBM_SETLINESIZE, 0, nSize);
     }
 
     EckInline int SetPageSize(int nSize) const noexcept
     {
-        return (int)SendMessage(TBM_SETPAGESIZE, 0, nSize);
+        return (int)SendMessageW(TBM_SETPAGESIZE, 0, nSize);
     }
 
     EckInline void SetPosition(int nPos, BOOL bRedraw = TRUE) const noexcept
     {
-        SendMessage(TBM_SETPOS, bRedraw, nPos);
+        SendMessageW(TBM_SETPOS, bRedraw, nPos);
     }
 
     // 与SetPosition相同，但会产生滚动通知
     EckInline void SetPositionNotify(int nPos) const noexcept
     {
-        SendMessage(TBM_SETPOSNOTIFY, 0, nPos);
+        SendMessageW(TBM_SETPOSNOTIFY, 0, nPos);
     }
 
     EckInline void SetRange16(int nMin, int nMax, BOOL bRedraw = TRUE) const noexcept
     {
-        SendMessage(TBM_SETRANGE, bRedraw, MAKELPARAM(nMin, nMax));
+        SendMessageW(TBM_SETRANGE, bRedraw, MAKELPARAM(nMin, nMax));
     }
 
     EckInline void SetRangeMaximum(int nMax, BOOL bRedraw = TRUE) const noexcept
     {
-        SendMessage(TBM_SETRANGEMAX, bRedraw, nMax);
+        SendMessageW(TBM_SETRANGEMAX, bRedraw, nMax);
     }
 
     EckInline void SetRangeMinimum(int nMin, BOOL bRedraw = TRUE) const noexcept
     {
-        SendMessage(TBM_SETRANGEMIN, bRedraw, nMin);
+        SendMessageW(TBM_SETRANGEMIN, bRedraw, nMin);
     }
 
     EckInline void SetRange(int nMin, int nMax, BOOL bRedraw = TRUE) const noexcept
@@ -171,32 +171,32 @@ public:
 
     EckInline void SetSelection(int nStart, int nEnd, BOOL bRedraw = TRUE) const noexcept
     {
-        SendMessage(TBM_SETSEL, bRedraw, MAKELPARAM(nStart, nEnd));
+        SendMessageW(TBM_SETSEL, bRedraw, MAKELPARAM(nStart, nEnd));
     }
 
     EckInline void SetSelectionEnd(int nEnd, BOOL bRedraw = TRUE) const noexcept
     {
-        SendMessage(TBM_SETSELEND, bRedraw, nEnd);
+        SendMessageW(TBM_SETSELEND, bRedraw, nEnd);
     }
 
     EckInline void SetSelectionBegin(int nStart, BOOL bRedraw = TRUE) const noexcept
     {
-        SendMessage(TBM_SETSELSTART, bRedraw, nStart);
+        SendMessageW(TBM_SETSELSTART, bRedraw, nStart);
     }
 
     EckInline void SetThumbLength(int nLength) const noexcept
     {
-        SendMessage(TBM_SETTHUMBLENGTH, nLength, 0);
+        SendMessageW(TBM_SETTHUMBLENGTH, nLength, 0);
     }
 
     EckInline BOOL SetTickMark(int nLogPos) const noexcept
     {
-        return (BOOL)SendMessage(TBM_SETTIC, 0, nLogPos);
+        return (BOOL)SendMessageW(TBM_SETTIC, 0, nLogPos);
     }
 
     EckInline void SetTickMarkFrequency(int nFreq) const noexcept
     {
-        SendMessage(TBM_SETTICFREQ, nFreq, 0);
+        SendMessageW(TBM_SETTICFREQ, nFreq, 0);
     }
 
     /// <summary>
@@ -206,12 +206,12 @@ public:
     /// <returns>返回先前位置，TBTS_*</returns>
     EckInline int SetTipSide(int nLocation) const noexcept
     {
-        return (int)SendMessage(TBM_SETTIPSIDE, nLocation, 0);
+        return (int)SendMessageW(TBM_SETTIPSIDE, nLocation, 0);
     }
 
     EckInline HWND SetToolTips(HWND hToolTips) const noexcept
     {
-        return (HWND)SendMessage(TBM_SETTOOLTIPS, (WPARAM)hToolTips, 0);
+        return (HWND)SendMessageW(TBM_SETTOOLTIPS, (WPARAM)hToolTips, 0);
     }
 };
 

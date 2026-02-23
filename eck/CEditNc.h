@@ -21,7 +21,7 @@ protected:
 
     EckInline void RedrawButton()
     {
-        SendMessage(WM_NCPAINT, 0, 0);
+        SendMessageW(WM_NCPAINT, 0, 0);
     }
 
     void CleanupForDestroyWindow()

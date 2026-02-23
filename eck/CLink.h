@@ -20,27 +20,27 @@ public:
 
     EckInline int GetIdealHeight() const noexcept
     {
-        return (int)SendMessage(LM_GETIDEALHEIGHT, 0, 0);
+        return (int)SendMessageW(LM_GETIDEALHEIGHT, 0, 0);
     }
 
     EckInline int GetIdealSize(int cxMax, _Out_ SIZE* psize) const noexcept
     {
-        return (int)SendMessage(LM_GETIDEALSIZE, cxMax, (LPARAM)psize);
+        return (int)SendMessageW(LM_GETIDEALSIZE, cxMax, (LPARAM)psize);
     }
 
     EckInline BOOL GetItem(_Inout_ LITEM* pli) const noexcept
     {
-        return (BOOL)SendMessage(LM_GETITEM, 0, (LPARAM)pli);
+        return (BOOL)SendMessageW(LM_GETITEM, 0, (LPARAM)pli);
     }
 
     EckInline BOOL HitTest(_Inout_ LHITTESTINFO* plht) const noexcept
     {
-        return (BOOL)SendMessage(LM_HITTEST, 0, (LPARAM)plht);
+        return (BOOL)SendMessageW(LM_HITTEST, 0, (LPARAM)plht);
     }
 
     EckInline BOOL SetItem(_In_ const LITEM* pli) const noexcept
     {
-        return (BOOL)SendMessage(LM_SETITEM, 0, (LPARAM)pli);
+        return (BOOL)SendMessageW(LM_SETITEM, 0, (LPARAM)pli);
     }
 };
 ECK_NAMESPACE_END

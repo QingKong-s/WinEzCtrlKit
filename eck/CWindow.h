@@ -239,7 +239,7 @@ protected:
     }
     EckInline LRESULT SendNotify(auto& nm, HWND hParent) const noexcept
     {
-        return SendMessageW(hParent, WM_NOTIFY, ((NMHDR*)&nm)->idFrom, (LPARAM)&nm);
+        return ::SendMessageW(hParent, WM_NOTIFY, ((NMHDR*)&nm)->idFrom, (LPARAM)&nm);
     }
     EckInline LRESULT SendNotify(auto& nm) const noexcept
     {
@@ -669,7 +669,7 @@ public:
 
     EckInline void SetRedraw(BOOL bRedraw) const noexcept
     {
-        SendMessage(WM_SETREDRAW, bRedraw, 0);
+        SendMessageW(WM_SETREDRAW, bRedraw, 0);
     }
 
     EckInline BOOL Redraw(BOOL bErase = FALSE) const noexcept
@@ -754,13 +754,21 @@ public:
         return ScrollType::None;
     }
 
-    EckInline LRESULT SendMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) const noexcept
+    EckInline LRESULT SendMessageW(UINT uMsg, WPARAM wParam, LPARAM lParam) const noexcept
     {
-        return SendMessageW(m_hWnd, uMsg, wParam, lParam);
+        return ::SendMessageW(m_hWnd, uMsg, wParam, lParam);
     }
-    EckInline LRESULT PostMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) const noexcept
+    EckInline LRESULT SendMessageA(UINT uMsg, WPARAM wParam, LPARAM lParam) const noexcept
     {
-        return PostMessageW(m_hWnd, uMsg, wParam, lParam);
+        return ::SendMessageA(m_hWnd, uMsg, wParam, lParam);
+    }
+    EckInline LRESULT PostMessageW(UINT uMsg, WPARAM wParam, LPARAM lParam) const noexcept
+    {
+        return ::PostMessageW(m_hWnd, uMsg, wParam, lParam);
+    }
+    EckInline LRESULT PostMessageA(UINT uMsg, WPARAM wParam, LPARAM lParam) const noexcept
+    {
+        return ::PostMessageA(m_hWnd, uMsg, wParam, lParam);
     }
 
     EckInlineNd DWORD GetStyle() const noexcept
@@ -836,11 +844,11 @@ public:
 
     EckInline void SetFont(HFONT hFont, BOOL bRedraw = FALSE) const noexcept
     {
-        SendMessage(WM_SETFONT, (WPARAM)hFont, bRedraw);
+        SendMessageW(WM_SETFONT, (WPARAM)hFont, bRedraw);
     }
     EckInlineNd HFONT GetFont() const noexcept
     {
-        return (HFONT)SendMessage(WM_GETFONT, 0, 0);
+        return (HFONT)SendMessageW(WM_GETFONT, 0, 0);
     }
 
     EckInline BOOL Show(int nCmdShow) const noexcept

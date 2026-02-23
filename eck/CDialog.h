@@ -257,7 +257,7 @@ protected:
         if (m_hWnd)
         {
             HWND hFirstCtrl = GetNextDlgTabItem(m_hWnd, nullptr, FALSE);
-            if (SendMessage(WM_INITDIALOG, (WPARAM)hFirstCtrl, (LPARAM)pParam))
+            if (SendMessageW(WM_INITDIALOG, (WPARAM)hFirstCtrl, (LPARAM)pParam))
             {
                 hFirstCtrl = GetNextDlgTabItem(m_hWnd, nullptr, FALSE);
                 SetFocus(hFirstCtrl);

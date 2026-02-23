@@ -337,7 +337,7 @@ public:
                 ForwardNotify:
                     pnmhdr->hwndFrom = hWnd;
                     pnmhdr->idFrom = GetDlgCtrlID(hWnd);
-                    return SendMessageW(m_hParent, uMsg, pnmhdr->idFrom, lParam);
+                    return ::SendMessageW(m_hParent, uMsg, pnmhdr->idFrom, lParam);
                 }
         }
         break;
@@ -390,7 +390,7 @@ public:
 
         case WM_SETFONT:
         {
-            SendMessageW(m_LB.HWnd, uMsg, wParam, lParam);
+            m_LB.SendMessageW(uMsg, wParam, lParam);
             if (m_LB.GetAutoItemHeight() && m_bAutoDropSize)
                 UpdateDropSize();
             m_hFont = (HFONT)wParam;
@@ -407,7 +407,7 @@ public:
         {
             CloseThemeData(m_hTheme);
             m_hTheme = OpenThemeData(hWnd, L"Combobox");
-            m_LB.SendMessage(WM_THEMECHANGED, wParam, lParam);
+            m_LB.SendMessageW(WM_THEMECHANGED, wParam, lParam);
         }
         break;
 

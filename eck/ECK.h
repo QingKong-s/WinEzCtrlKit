@@ -103,8 +103,6 @@ __pragma(warning(disable:5260))
 #endif// !defined(SPI_SETLOGICALDPIOVERRIDE)
 
 #undef GetCurrentTime
-#undef SendMessage
-#undef PostMessage
 
 enum MONITOR_DPI_TYPE;
 

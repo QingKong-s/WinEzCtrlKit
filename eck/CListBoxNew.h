@@ -569,7 +569,7 @@ private:
             {
                 NMHDR nm;
                 FillNmhdr(nm, NM_LBN_DISMISS);
-                SendMessageW(m_hComboBox, WM_NOTIFY, nm.idFrom, (LPARAM)&nm);
+                ::SendMessageW(m_hComboBox, WM_NOTIFY, nm.idFrom, (LPARAM)&nm);
                 return;
             }
             else if (rc = { 0,0,m_cxClient,m_cyClient };

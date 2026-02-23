@@ -11,32 +11,32 @@ public:
 
     EckInline void Clear() const noexcept
     {
-        SendMessage(IPM_CLEARADDRESS, 0, 0);
+        SendMessageW(IPM_CLEARADDRESS, 0, 0);
     }
 
     EckInline int GetAddress(_Out_ UINT* puAddress) const noexcept
     {
-        return (int)SendMessage(IPM_GETADDRESS, 0, (LPARAM)puAddress);
+        return (int)SendMessageW(IPM_GETADDRESS, 0, (LPARAM)puAddress);
     }
 
     EckInline BOOL IsBlank() const noexcept
     {
-        return (BOOL)SendMessage(IPM_ISBLANK, 0, 0);
+        return (BOOL)SendMessageW(IPM_ISBLANK, 0, 0);
     }
 
     EckInline void SetAddress(UINT uAddress) const noexcept
     {
-        SendMessage(IPM_SETADDRESS, 0, (LPARAM)uAddress);
+        SendMessageW(IPM_SETADDRESS, 0, (LPARAM)uAddress);
     }
 
     EckInline void SetFieldFocus(int iField) const noexcept
     {
-        SendMessage(IPM_SETFOCUS, iField, 0);
+        SendMessageW(IPM_SETFOCUS, iField, 0);
     }
 
     EckInline void SetFieldRange(int iField, WORD wLimit) const noexcept
     {
-        SendMessage(IPM_SETRANGE, iField, (LPARAM)wLimit);
+        SendMessageW(IPM_SETRANGE, iField, (LPARAM)wLimit);
     }
 };
 ECK_NAMESPACE_END

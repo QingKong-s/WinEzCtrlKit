@@ -25,7 +25,7 @@ private:
         // 其字符高度来源为GdiGetCharDimensions(Ex)，
         // 该函数简单地将字符高度设为tmHeight
         const auto hCDC = CreateCompatibleDC(nullptr);
-        SelectObject(hCDC, (HGDIOBJ)SendMessageW(hStatic, WM_GETFONT, 0, 0));
+        SelectObject(hCDC, (HGDIOBJ)::SendMessageW(hStatic, WM_GETFONT, 0, 0));
         TEXTMETRICW tm;
         GetTextMetricsW(hCDC, &tm);
         DeleteDC(hCDC);
@@ -63,7 +63,7 @@ public:
             const auto lResult = __super::OnMessage(hWnd, uMsg, wParam, lParam);
             if (HWND hStaticIcon; hStaticIcon = GetDlgItem(hWnd, 0x14))
             {
-                m_hIcon = (HICON)SendMessageW(hStaticIcon, STM_GETICON, 0, 0);
+                m_hIcon = (HICON)::SendMessageW(hStaticIcon, STM_GETICON, 0, 0);
                 // OD修正图标白底
                 SetWindowLongPtrW(hStaticIcon, GWL_STYLE,
                     (GetWindowLongPtrW(hStaticIcon, GWL_STYLE) & ~SS_ICON) | SS_OWNERDRAW);

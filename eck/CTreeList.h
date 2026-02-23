@@ -2156,7 +2156,7 @@ public:
             tlht.uFlags = TLHTF_NOHITTEXTLABEL;
             HitTest(tlht);
             if (tlht.iPart == TLIP_EXPANDBTN || tlht.iPart == TLIP_CHECKBOX)
-                PostMessage(WM_LBUTTONDOWN, wParam, lParam);// 连击修正
+                PostMessageW(WM_LBUTTONDOWN, wParam, lParam);// 连击修正
         }
         return 0;
 

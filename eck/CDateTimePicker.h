@@ -22,78 +22,78 @@ public:
 
     void CloseMonthCalendar() const noexcept
     {
-        SendMessage(DTM_CLOSEMONTHCAL, 0, 0);
+        SendMessageW(DTM_CLOSEMONTHCAL, 0, 0);
     }
 
     void GetDateTimePickerInfomation(_Inout_ DATETIMEPICKERINFO* pdtpi) const noexcept
     {
-        SendMessage(DTM_GETDATETIMEPICKERINFO, 0, (LPARAM)pdtpi);
+        SendMessageW(DTM_GETDATETIMEPICKERINFO, 0, (LPARAM)pdtpi);
     }
 
     void GetIdealSize(_Out_ SIZE* psize) const noexcept
     {
-        SendMessage(DTM_GETIDEALSIZE, 0, (LPARAM)psize);
+        SendMessageW(DTM_GETIDEALSIZE, 0, (LPARAM)psize);
     }
 
     COLORREF GetMonthCalendarColor(int iType) const noexcept
     {
-        return (COLORREF)SendMessage(DTM_GETMCCOLOR, iType, 0);
+        return (COLORREF)SendMessageW(DTM_GETMCCOLOR, iType, 0);
     }
 
     HFONT GetMonthCalendarFont() const noexcept
     {
-        return (HFONT)SendMessage(DTM_GETMCFONT, 0, 0);
+        return (HFONT)SendMessageW(DTM_GETMCFONT, 0, 0);
     }
 
     DWORD GetMonthCalendarStyle() const noexcept
     {
-        return (DWORD)SendMessage(DTM_GETMCSTYLE, 0, 0);
+        return (DWORD)SendMessageW(DTM_GETMCSTYLE, 0, 0);
     }
 
     HWND GetMonthCalendar() const noexcept
     {
-        return (HWND)SendMessage(DTM_GETMONTHCAL, 0, 0);
+        return (HWND)SendMessageW(DTM_GETMONTHCAL, 0, 0);
     }
 
     // 返回GDTR_*组合
     UINT GetRange(_Out_writes_(2) SYSTEMTIME* pst) const noexcept
     {
-        return (UINT)SendMessage(DTM_GETRANGE, 0, (LPARAM)pst);
+        return (UINT)SendMessageW(DTM_GETRANGE, 0, (LPARAM)pst);
     }
 
     UINT GetSystemTime(_In_ SYSTEMTIME* pst) const noexcept
     {
-        return (UINT)SendMessage(DTM_GETSYSTEMTIME, 0, (LPARAM)pst);
+        return (UINT)SendMessageW(DTM_GETSYSTEMTIME, 0, (LPARAM)pst);
     }
 
     BOOL SetFormat(_In_z_ PCWSTR pszText) const noexcept
     {
-        return (BOOL)SendMessage(DTM_SETFORMATW, 0, (LPARAM)pszText);
+        return (BOOL)SendMessageW(DTM_SETFORMATW, 0, (LPARAM)pszText);
     }
 
     COLORREF GetMonthCalendarColor(int iType, COLORREF cr) const noexcept
     {
-        return (COLORREF)SendMessage(DTM_SETMCCOLOR, iType, cr);
+        return (COLORREF)SendMessageW(DTM_SETMCCOLOR, iType, cr);
     }
 
     void SetMonthCalendarFont(HFONT hFont, BOOL bRedraw = TRUE) const noexcept
     {
-        SendMessage(DTM_SETMCFONT, (WPARAM)hFont, bRedraw);
+        SendMessageW(DTM_SETMCFONT, (WPARAM)hFont, bRedraw);
     }
 
     DWORD SetMonthCalendarStyle(DWORD dwStyle) const noexcept
     {
-        return (DWORD)SendMessage(DTM_SETMCSTYLE, 0, dwStyle);
+        return (DWORD)SendMessageW(DTM_SETMCSTYLE, 0, dwStyle);
     }
 
     BOOL SetRange(UINT uFlags, _In_reads_(2) const SYSTEMTIME* pst) const noexcept
     {
-        return (BOOL)SendMessage(DTM_SETRANGE, uFlags, (LPARAM)pst);
+        return (BOOL)SendMessageW(DTM_SETRANGE, uFlags, (LPARAM)pst);
     }
 
     BOOL SetSystemTime(UINT uFlags, _In_ SYSTEMTIME* pst) const noexcept
     {
-        return (BOOL)SendMessage(DTM_SETSYSTEMTIME, uFlags, (LPARAM)pst);
+        return (BOOL)SendMessageW(DTM_SETSYSTEMTIME, uFlags, (LPARAM)pst);
     }
 };
 ECK_NAMESPACE_END

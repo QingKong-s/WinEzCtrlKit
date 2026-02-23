@@ -138,7 +138,7 @@ public:
         case WM_KEYDOWN:
             if (m_bCtrlASelectAll && wParam == 'A')
                 if (GetKeyState(VK_CONTROL) & 0x80000000)
-                    SendMessageW(hWnd, EM_SETSEL, 0, -1);// Ctrl + A全选
+                    ::SendMessageW(hWnd, EM_SETSEL, 0, -1);// Ctrl + A全选
             break;
 
         case WM_CHAR:
@@ -473,7 +473,7 @@ public:
         case ClrPart::TextBk: m_crTextBk = cr; break;
         case ClrPart::Bk:
             m_crBk = cr;
-            SendMessage(WM_NCPAINT, 0, 0);
+            SendMessageW(WM_NCPAINT, 0, 0);
             break;
         }
     }
@@ -498,8 +498,8 @@ public:
     void SetInputMode(InputMode iInputMode) noexcept
     {
         m_iInputMode = iInputMode;
-        SendMessage(EM_SETREADONLY, iInputMode == InputMode::ReadOnly, 0);
-        SendMessage(EM_SETPASSWORDCHAR, (iInputMode == InputMode::Password ? m_chMask : 0), 0);
+        SendMessageW(EM_SETREADONLY, iInputMode == InputMode::ReadOnly, 0);
+        SendMessageW(EM_SETPASSWORDCHAR, (iInputMode == InputMode::Password ? m_chMask : 0), 0);
     }
     EckInlineNdCe InputMode GetInputMode() const noexcept { return m_iInputMode; }
 

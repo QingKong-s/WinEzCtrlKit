@@ -45,7 +45,7 @@ public:
         {
             if (m_bEscClose && Msg.wParam == VK_ESCAPE && IsWindowEnabled(GetHWND()))
             {
-                PostMessageW(GetHWND(), WM_CLOSE, 0, 0);
+                PostMessageW(WM_CLOSE, 0, 0);
                 return TRUE;
             }
         }
@@ -54,9 +54,9 @@ public:
         {
             if (m_bMoveAnywhere && IsWindowEnabled(GetHWND()))
                 if ((Msg.hwnd == GetHWND() ||
-                    (SendMessageW(Msg.hwnd, WM_GETDLGCODE, Msg.wParam, (LPARAM)&Msg) & DLGC_STATIC)))
+                    (::SendMessageW(Msg.hwnd, WM_GETDLGCODE, Msg.wParam, (LPARAM)&Msg) & DLGC_STATIC)))
                 {
-                    PostMessageW(GetHWND(), WM_NCLBUTTONDOWN, HTCAPTION, 0);
+                    PostMessageW(WM_NCLBUTTONDOWN, HTCAPTION, 0);
                     return TRUE;
                 }
         }
