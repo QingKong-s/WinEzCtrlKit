@@ -149,6 +149,7 @@ public:
         HICON hIcon = nullptr,
         std::wstring_view svTip = {},
         DWORD dwState = 0u,
+        DWORD dwStateMask = 0u,
         BOOL bUseStdTip = TRUE) noexcept
     {
         const auto it = std::find_if(m_vItem.begin(), m_vItem.end(),
@@ -178,7 +179,10 @@ public:
         }
 
         if (uFlags & NIF_STATE)
-            nid.dwState = nid.dwStateMask = dwState;
+        {
+            nid.dwState = dwState;
+            nid.dwStateMask = dwStateMask;
+        }
 
         if (!Shell_NotifyIconW(NIM_MODIFY, &nid))
             return FALSE;
@@ -189,7 +193,7 @@ public:
         if (uFlags & NIF_TIP)
             it->rsTip = svTip;
         if (uFlags & NIF_STATE)
-            it->dwState = dwState;
+            it->dwState = (it->dwState & ~dwStateMask) | (dwState & dwStateMask);
         return TRUE;
     }
 
