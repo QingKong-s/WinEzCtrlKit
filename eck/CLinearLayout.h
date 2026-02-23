@@ -11,8 +11,7 @@ ECK_NAMESPACE_BEGIN
 
 enum : UINT
 {
-    LLFP_IDEAL_SIZE_CACHE = 1u << 31,   // 理想尺寸有效
-    LLFP_CUT = 1u << 30,                // 从迭代中排除
+    LLFP_CUT = 1u << 31,                // 从迭代中排除
 };
 
 // 不得直接实例化此类
@@ -24,12 +23,11 @@ protected:
     struct ITEM : ITEMBASE
     {
         UINT uWeight;
-        TLytCoord cxIdeal;
-        TLytCoord cyIdeal;
         TLytCoord dAlloc;
     };
 
     CTrivialBuffer<ITEM> m_vItem{};
+    TLytCoord m_dIdealSum{};
     TLytCoord m_dFixedSum{};
     UINT m_uWeightSum : 31{};
     UINT m_bHasIdeal : 1{};
@@ -78,7 +76,22 @@ class CLinearLayoutV : public CLinearLayoutBase
 public:
     ECK_RTTI(CLinearLayoutV, CLinearLayoutBase);
 private:
-    static void PreArrangeObject(ITEM& e, _Inout_ TLytCoord& dLeave) noexcept
+    static void PreArrangeObject(ITEM& e) noexcept
+    {
+        e.uFlags &= ~LLFP_CUT;
+        if (e.uFlags & LF_FIX_HEIGHT)// 固定尺寸
+        {
+            e.dAlloc = e.cy;
+            e.uFlags |= LLFP_CUT;
+        }
+        else if (e.uFlags & LF_IDEAL_HEIGHT)// 固定为理想尺寸
+        {
+            e.dAlloc = e.cy;
+            e.uFlags |= LLFP_CUT;
+        }
+    }
+
+    void UpdateObjectIdealSize(ITEM& e) noexcept
     {
         LYTSIZE sizeIdeal{};
         const auto bHasIdealSize =
@@ -87,29 +100,16 @@ private:
             FALSE;
         if (bHasIdealSize)
         {
-            e.cxIdeal = sizeIdeal.cx;
-            e.cyIdeal = sizeIdeal.cy;
-            e.uFlags |= LLFP_IDEAL_SIZE_CACHE;
-        }
-        else
-            e.uFlags &= ~LLFP_IDEAL_SIZE_CACHE;
-        e.uFlags &= ~LLFP_CUT;
-
-        if (e.uFlags & LF_FIX_HEIGHT)// 固定尺寸
-        {
-            e.dAlloc = e.cy;
-            e.uFlags |= LLFP_CUT;
-        }
-        else if (e.uFlags & LF_IDEAL_HEIGHT)// 固定为理想尺寸
-        {
-            e.dAlloc = e.cyIdeal;
-            e.uFlags |= LLFP_CUT;
-            dLeave -= e.cyIdeal;
+            e.cx = sizeIdeal.cx;
+            e.cy = sizeIdeal.cy;
+            if (e.uFlags & LF_IDEAL_HEIGHT)
+                m_dIdealSum += (e.cy + e.Margin.t + e.Margin.b);
         }
     }
 
     void OnAddObject(ITEM& e) noexcept
     {
+        // 需要绝对尺寸
         if (e.uFlags & (LF_FIX | LF_SCALE))
         {
             const auto size = e.pObject->LoGetSize();
@@ -117,11 +117,24 @@ private:
             e.cy = size.cy;
             if (e.uFlags & LF_FIX_HEIGHT)
                 m_dFixedSum += size.cy;
-            if (e.uFlags & LF_FIX_WIDTH)
-                OnAddFixedWidthObject(e);
-            if (e.uFlags & LF_FIX_HEIGHT)
-                OnAddFixedHeightObject(e);
         }
+        // 需要理想尺寸
+        UpdateObjectIdealSize(e);
+        // 更新尺寸和理想尺寸
+        if (e.uFlags & (LF_FIX_WIDTH | LF_FILL_WIDTH | LF_IDEAL_WIDTH))
+        {
+            const auto d = e.cx + e.Margin.l + e.Margin.r;
+            if (d > m_cx)
+                m_cx = d;
+            m_cxIdeal = m_cx;
+        }
+        if (e.uFlags & (LF_FIX_HEIGHT | LF_FILL_HEIGHT | LF_IDEAL_HEIGHT))
+        {
+            const auto d = e.cy + e.Margin.t + e.Margin.b;
+            m_cy += d;
+            m_cyIdeal = m_cy;
+        }
+        // 更新固定尺寸和与权重
         m_dFixedSum += (e.Margin.t + e.Margin.b);
         if (!(e.uFlags & (LF_FIX_HEIGHT | LF_IDEAL_HEIGHT)))
             m_uWeightSum += e.uWeight;
@@ -132,20 +145,11 @@ public:
     void LoCommit() noexcept override
     {
         //
-        // 将理想尺寸从剩余空间中排除
-        //
-
-        TLytCoord dLeave = m_cy - m_dFixedSum;
-        BOOL bPrepared{};
-        if (m_bHasIdeal)
-        {
-            for (auto& e : m_vItem)
-                PreArrangeObject(e, dLeave);
-            bPrepared = TRUE;
-        }
-        //
         // 假设空间充足，为带权对象做有下限（即理想尺寸）的分配
         //
+
+        TLytCoord dLeave = m_cy - m_dFixedSum - m_dIdealSum;
+        BOOL bPrepared{};
 
         UINT wSum = m_uWeightSum;
         UINT wShrinkableSum{};// 可收缩对象的权重和
@@ -156,16 +160,16 @@ public:
             for (auto& e : m_vItem)
             {
                 if (!bPrepared)
-                    PreArrangeObject(e, dLeave);
+                    PreArrangeObject(e);
                 if (e.uFlags & LLFP_CUT)
                     continue;
 
                 const auto dTemp = dLeave * e.uWeight / wSum;
-                if (IsBitSet(e.uFlags, LF_FILL_HEIGHT | LLFP_IDEAL_SIZE_CACHE) &&
-                    dTemp < e.cyIdeal)// FILL，且有理想尺寸，且比例分配到的尺寸过小
+                if (IsBitSet(e.uFlags, LF_FILL_HEIGHT) &&
+                    dTemp < e.cy)// FILL，且有理想尺寸，且比例分配到的尺寸过小
                 {
-                    e.dAlloc = e.cyIdeal;
-                    dLeave -= e.cyIdeal;
+                    e.dAlloc = e.cy;
+                    dLeave -= e.cy;
                     e.uFlags |= LLFP_CUT;
                     bClamped = TRUE;
                 }
@@ -212,10 +216,8 @@ public:
             if (cy < 0)
                 cy = 0;
 
-            if (e.uFlags & LF_FIX_WIDTH)
+            if (e.uFlags & (LF_FIX_WIDTH | LF_IDEAL_WIDTH))
                 cx = e.cx;
-            else if (e.uFlags & LF_IDEAL_WIDTH)
-                cx = e.cxIdeal;
             else if (e.uFlags & LF_SCALE)
                 cx = std::min(cy * e.cx / e.cy, m_cx - e.Margin.l - e.Margin.r);
             else
@@ -234,6 +236,18 @@ public:
         m_bHasIdeal = FALSE;
         for (auto& e : m_vItem)
             OnAddObject(e);
+    }
+
+    void LobUpdateIdealSize() noexcept override
+    {
+        m_cxIdeal = m_cyIdeal = m_dIdealSum = 0;
+        for (auto& e : m_vItem)
+        {
+            UpdateObjectIdealSize(e);
+            m_cyIdeal += (e.cy + e.Margin.t + e.Margin.b);
+            const auto cx = e.cx + e.Margin.l + e.Margin.r;
+            m_cxIdeal = std::max(m_cxIdeal, cx);
+        }
     }
 
     size_t Add(ILayout* pObject, const LYTMARGINS& Margin = {},
@@ -257,7 +271,22 @@ class CLinearLayoutH : public CLinearLayoutBase
 public:
     ECK_RTTI(CLinearLayoutH, CLinearLayoutBase);
 private:
-    static void PreArrangeObject(ITEM& e, _Inout_ TLytCoord& dLeave) noexcept
+    static void PreArrangeObject(ITEM& e) noexcept
+    {
+        e.uFlags &= ~LLFP_CUT;
+        if (e.uFlags & LF_FIX_WIDTH)// 固定尺寸
+        {
+            e.dAlloc = e.cx;
+            e.uFlags |= LLFP_CUT;
+        }
+        else if (e.uFlags & LF_IDEAL_WIDTH)// 固定为理想尺寸
+        {
+            e.dAlloc = e.cx;
+            e.uFlags |= LLFP_CUT;
+        }
+    }
+
+    void UpdateObjectIdealSize(ITEM& e) noexcept
     {
         LYTSIZE sizeIdeal{};
         const auto bHasIdealSize =
@@ -266,29 +295,16 @@ private:
             FALSE;
         if (bHasIdealSize)
         {
-            e.cxIdeal = sizeIdeal.cx;
-            e.cyIdeal = sizeIdeal.cy;
-            e.uFlags |= LLFP_IDEAL_SIZE_CACHE;
-        }
-        else
-            e.uFlags &= ~LLFP_IDEAL_SIZE_CACHE;
-        e.uFlags &= ~LLFP_CUT;
-
-        if (e.uFlags & LF_FIX_WIDTH)// 固定尺寸
-        {
-            e.dAlloc = e.cx;
-            e.uFlags |= LLFP_CUT;
-        }
-        else if (e.uFlags & LF_IDEAL_WIDTH)// 固定为理想尺寸
-        {
-            e.dAlloc = e.cxIdeal;
-            e.uFlags |= LLFP_CUT;
-            dLeave -= e.cxIdeal;
+            e.cx = sizeIdeal.cx;
+            e.cy = sizeIdeal.cy;
+            if (e.uFlags & LF_IDEAL_WIDTH)
+                m_dIdealSum += (e.cx + e.Margin.l + e.Margin.r);
         }
     }
 
     void OnAddObject(ITEM& e) noexcept
     {
+        // 需要绝对尺寸
         if (e.uFlags & (LF_FIX | LF_SCALE))
         {
             const auto size = e.pObject->LoGetSize();
@@ -296,11 +312,24 @@ private:
             e.cy = size.cy;
             if (e.uFlags & LF_FIX_WIDTH)
                 m_dFixedSum += size.cx;
-            if (e.uFlags & LF_FIX_WIDTH)
-                OnAddFixedWidthObject(e);
-            if (e.uFlags & LF_FIX_HEIGHT)
-                OnAddFixedHeightObject(e);
         }
+        // 需要理想尺寸
+        UpdateObjectIdealSize(e);
+        // 更新尺寸和理想尺寸
+        if (e.uFlags & (LF_FIX_WIDTH | LF_FILL_WIDTH | LF_IDEAL_WIDTH))
+        {
+            const auto d = e.cx + e.Margin.l + e.Margin.r;
+            m_cx += d;
+            m_cxIdeal = m_cx;
+        }
+        if (e.uFlags & (LF_FIX_HEIGHT | LF_FILL_HEIGHT | LF_IDEAL_HEIGHT))
+        {
+            const auto d = e.cy + e.Margin.t + e.Margin.b;
+            if (d > m_cy)
+                m_cy = d;
+            m_cyIdeal = m_cy;
+        }
+        // 更新固定尺寸和与权重
         m_dFixedSum += (e.Margin.l + e.Margin.r);
         if (!(e.uFlags & (LF_FIX_WIDTH | LF_IDEAL_WIDTH)))
             m_uWeightSum += e.uWeight;
@@ -311,21 +340,12 @@ public:
     void LoCommit() noexcept override
     {
         //
-        // 将理想尺寸从剩余空间中排除
-        //
-
-        TLytCoord dLeave = m_cx - m_dFixedSum;
-        BOOL bPrepared{};
-        if (m_bHasIdeal)
-        {
-            for (auto& e : m_vItem)
-                PreArrangeObject(e, dLeave);
-            bPrepared = TRUE;
-        }
-        //
         // 假设空间充足，为带权对象做有下限（即理想尺寸）的分配
         //
 
+        TLytCoord dLeave = m_cx - m_dFixedSum - m_dIdealSum;
+        BOOL bPrepared{};
+        
         UINT wSum = m_uWeightSum;
         UINT wShrinkableSum{};// 可收缩对象的权重和
         EckLoop()
@@ -335,16 +355,16 @@ public:
             for (auto& e : m_vItem)
             {
                 if (!bPrepared)
-                    PreArrangeObject(e, dLeave);
+                    PreArrangeObject(e);
                 if (e.uFlags & LLFP_CUT)
                     continue;
 
                 const auto dTemp = dLeave * e.uWeight / wSum;
-                if (IsBitSet(e.uFlags, LF_FILL_WIDTH | LLFP_IDEAL_SIZE_CACHE) &&
-                    dTemp < e.cxIdeal)// FILL，且有理想尺寸，且比例分配到的尺寸过小
+                if (IsBitSet(e.uFlags, LF_FILL_WIDTH) &&
+                    dTemp < e.cx)// FILL，且有理想尺寸，且比例分配到的尺寸过小
                 {
-                    e.dAlloc = e.cxIdeal;
-                    dLeave -= e.cxIdeal;
+                    e.dAlloc = e.cx;
+                    dLeave -= e.cx;
                     e.uFlags |= LLFP_CUT;
                     bClamped = TRUE;
                 }
@@ -391,10 +411,8 @@ public:
             if (cx < 0)
                 cx = 0;
 
-            if (e.uFlags & LF_FIX_HEIGHT)
+            if (e.uFlags & (LF_FIX_HEIGHT | LF_IDEAL_HEIGHT))
                 cy = e.cy;
-            else if (e.uFlags & LF_IDEAL_HEIGHT)
-                cy = e.cyIdeal;
             else if (e.uFlags & LF_SCALE)
                 cy = std::min(cx * e.cy / e.cx, m_cy - e.Margin.t - e.Margin.b);
             else
@@ -413,6 +431,18 @@ public:
         m_bHasIdeal = FALSE;
         for (auto& e : m_vItem)
             OnAddObject(e);
+    }
+
+    void LobUpdateIdealSize() noexcept override
+    {
+        m_cxIdeal = m_cyIdeal = m_dIdealSum = 0;
+        for (auto& e : m_vItem)
+        {
+            UpdateObjectIdealSize(e);
+            m_cxIdeal += (e.cx + e.Margin.l + e.Margin.r);
+            const auto cy = e.cy + e.Margin.t + e.Margin.b;
+            m_cyIdeal = std::max(m_cyIdeal, cy);
+        }
     }
 
     size_t Add(ILayout* pObject, const LYTMARGINS& Margin = {},

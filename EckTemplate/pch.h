@@ -6,10 +6,12 @@
 #include "eck\SystemHelper.h"
 #include "eck\CButton.h"
 #include "eck\CEditExt.h"
-#include "eck\CLinearLayout.h"
+#include "eck\WinUiBuilder.h"
 #include "eck\CommDlg.h"
 
 using eck::PCVOID;
 using eck::PCBYTE;
 using eck::SafeRelease;
 using eck::DpiScale;
+
+namespace Ui = eck::UiBuilder;

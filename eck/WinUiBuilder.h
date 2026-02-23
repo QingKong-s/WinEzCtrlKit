@@ -108,26 +108,26 @@ namespace Priv
             Flags
         > v{};
 
-        Proxy(const std::initializer_list<Proxy>& x) noexcept : v{ &x } {}
-        Proxy(CWindow& x) noexcept : v{ &x } {}
-        Proxy(CLayoutBase& x) noexcept : v{ &x } {}
-        Proxy(PCWSTR x) noexcept : v{ x } {}
-        Proxy(Font x) noexcept : v{ x } {}
+        constexpr Proxy(const std::initializer_list<Proxy>& x) noexcept : v{ &x } {}
+        constexpr Proxy(CWindow& x) noexcept : v{ &x } {}
+        constexpr Proxy(CLayoutBase& x) noexcept : v{ &x } {}
+        constexpr Proxy(PCWSTR x) noexcept : v{ x } {}
+        constexpr Proxy(Font x) noexcept : v{ x } {}
 
-        Proxy(const Window& x) noexcept : v{ &x } {}
-        Proxy(const VBox& x) noexcept : v{ &x } {}
-        Proxy(const HBox& x) noexcept : v{ &x } {}
-        Proxy(const Default& x) noexcept : v{ &x } {}
-        Proxy(const Local& x) noexcept : v{ &x } {}
+        constexpr Proxy(const Window& x) noexcept : v{ &x } {}
+        constexpr Proxy(const VBox& x) noexcept : v{ &x } {}
+        constexpr Proxy(const HBox& x) noexcept : v{ &x } {}
+        constexpr Proxy(const Default& x) noexcept : v{ &x } {}
+        constexpr Proxy(const Local& x) noexcept : v{ &x } {}
 
-        Proxy(const Rect& x) noexcept : v{ &x } {}
-        Proxy(const Margin& x) noexcept : v{ &x } {}
+        constexpr Proxy(const Rect& x) noexcept : v{ &x } {}
+        constexpr Proxy(const Margin& x) noexcept : v{ &x } {}
 
-        Proxy(Style x) noexcept : v{ x } {}
-        Proxy(ExStyle x) noexcept : v{ x } {}
-        Proxy(Id x) noexcept : v{ x } {}
-        Proxy(Weight x) noexcept : v{ x } {}
-        Proxy(Flags x) noexcept : v{ x } {}
+        constexpr Proxy(Style x) noexcept : v{ x } {}
+        constexpr Proxy(ExStyle x) noexcept : v{ x } {}
+        constexpr Proxy(Id x) noexcept : v{ x } {}
+        constexpr Proxy(Weight x) noexcept : v{ x } {}
+        constexpr Proxy(Flags x) noexcept : v{ x } {}
 
         EckInlineNdCe Type GetType() const noexcept { return (Type)v.index(); }
 
@@ -632,13 +632,9 @@ namespace Priv
 
 inline Result Create(
     CWindow* pWndParent,
-    ERR_CTX* pErrCtx,
+    ERR_CTX& ErrCtx,
     Priv::Proxy pr) noexcept
 {
-    ERR_CTX ErrCtx{};
-    if (!pErrCtx)
-        pErrCtx = &ErrCtx;
-
     const Priv::PARENT_NODE Parent{ .pWndParent = pWndParent };
     constexpr Priv::DEF_PARAM Default{};
     constexpr Priv::DEF_PARAM Local{};
@@ -647,7 +643,7 @@ inline Result Create(
     {
         for (int i{}; const auto& e : *pr.Get<Priv::Type::List>())
         {
-            const auto r = Priv::CfgCreate(e, Parent, Default, Local, *pErrCtx, i);
+            const auto r = Priv::CfgCreate(e, Parent, Default, Local, ErrCtx, i);
             if (r != Result::Ok)
                 return r;
             ++i;
@@ -655,7 +651,7 @@ inline Result Create(
         return Result::Ok;
     }
     else
-        return Priv::CfgCreate(pr, Parent, Default, Local, *pErrCtx, 0);
+        return Priv::CfgCreate(pr, Parent, Default, Local, ErrCtx, 0);
 }
 ECK_UIBUILDER_NAMESPACE_END
 ECK_NAMESPACE_END

@@ -34,24 +34,60 @@ LRESULT CWndMain::OnCreate(HWND hWnd, CREATESTRUCT* pcs)
     const eck::LYTMARGINS Mar{ .b = DpiScale((eck::TLytCoord)8, m_iDpi) };
     const auto cy = DpiScale(30, m_iDpi);
     const auto cxED = DpiScale(300, m_iDpi);
-    {
-        m_EDUserName.Create(nullptr, GroupStyle, WS_EX_CLIENTEDGE,
-            0, 0, cxED, cy, hWnd, 0);
-        m_EDUserName.SetCueBanner(L"用户名");
-        m_Layout.Add(&m_EDUserName, Mar, eck::LF_FIX | eck::LF_ALIGN_CENTER);
 
-        m_EDPassword.Create(nullptr, Style, WS_EX_CLIENTEDGE,
-            0, 0, cxED, cy, hWnd, 0);
-        m_EDPassword.SetCueBanner(L"密码");
-        m_Layout.Add(&m_EDPassword, Mar, eck::LF_FIX | eck::LF_ALIGN_CENTER);
+    m_CBRememberPassword.DbgTag = L"CBRememberPassword";
+    m_CBShowPassword.DbgTag = L"CBShowPassword";
 
-        m_BT.Create(L"登录", GroupStyle | BS_PUSHBUTTON, 0,
-            0, 0, DpiScale(70, m_iDpi), cy, hWnd, 0);
-        m_Layout.Add(&m_BT, Mar, eck::LF_FIX | eck::LF_ALIGN_CENTER);
-    }
+    Ui::ERR_CTX ErrCtx{};
+    const auto r = Ui::Create(this, ErrCtx,
+        Ui::VBox{
+            m_Layout,
+            Ui::Default{
+                Ui::Style{ Style },
+                Ui::Font{ m_hFont },
+            },
+
+            Ui::Window{
+                m_EDUserName,
+                Ui::ExStyle{ WS_EX_CLIENTEDGE },
+                Ui::Flags{ eck::LF_IDEAL_HEIGHT }
+            },
+            Ui::HBox{
+                m_LytPassword,
+                Ui::Flags{ eck::LF_IDEAL_HEIGHT },
+
+                Ui::Window{
+                    m_EDPassword,
+                    Ui::ExStyle{ WS_EX_CLIENTEDGE },
+                    Ui::Flags{ eck::LF_IDEAL_HEIGHT },
+                    Ui::Weight{ 1 },
+                },
+                Ui::Window{
+                    m_CBShowPassword, L"●",
+                    Ui::Flags{ eck::LF_IDEAL_WIDTH }
+                }
+            },
+            Ui::HBox{
+                m_LytOption,
+                Ui::Flags{ eck::LF_IDEAL | eck::LF_ALIGN_CENTER },
+
+                Ui::Window{
+                    m_CBRememberPassword, L"记住密码",
+                    Ui::Flags{ eck::LF_IDEAL },
+                    //Ui::Weight{ 1 },
+                },
+                Ui::Window{
+                    m_CBLoginAuto, L"自动登录",
+                    Ui::Flags{ eck::LF_IDEAL },
+                },
+            },
+            Ui::Window{
+                m_BTLogin, L"登录",
+                Ui::Flags{ eck::LF_IDEAL | eck::LF_ALIGN_CENTER }
+            },
+        });
+    EckAssert(r == Ui::Result::Ok);
     m_Layout.LoInitializeDpi(m_iDpi);
-
-    eck::ApplyWindowFont(hWnd, m_hFont);
     return 0;
 }
 
@@ -72,7 +108,7 @@ LRESULT CWndMain::OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         switch (HIWORD(wParam))
         {
         case BN_CLICKED:
-            if ((LPARAM)m_BT.HWnd == lParam)
+            if ((LPARAM)m_BTLogin.HWnd == lParam)
                 MessageBoxW(hWnd, L"Hello World!", L"Hello", MB_OK);
             return 0;
         }

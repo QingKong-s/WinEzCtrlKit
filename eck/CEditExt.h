@@ -465,6 +465,18 @@ public:
         return m_hWnd;
     };
 
+    BOOL LoGetIdealSize(_Inout_ LYTSIZE& Size) noexcept override
+    {
+        if (!GetMultiLine())
+        {
+            if (Size.cx <= 0)
+                Size.cx = (TLytCoord)m_cxWnd;
+            Size.cy = TLytCoord(m_cyText + DaGetSystemMetrics(SM_CYEDGE, GetDpi(HWnd)) * 2);
+            return TRUE;
+        }
+        return FALSE;
+    }
+
     void SetColor(ClrPart ePart, COLORREF cr) noexcept
     {
         switch (ePart)

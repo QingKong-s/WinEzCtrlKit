@@ -4,9 +4,17 @@
 class CWndMain final : public eck::CForm
 {
 private:
-	eck::CButton m_BT{};
 	eck::CEditExt m_EDUserName{};
+
 	eck::CEditExt m_EDPassword{};
+    eck::CButton m_CBShowPassword{};
+	eck::CLinearLayoutH m_LytPassword{};
+
+    eck::CButton m_CBRememberPassword{};
+    eck::CButton m_CBLoginAuto{};
+    eck::CLinearLayoutH m_LytOption{};
+
+	eck::CButton m_BTLogin{};
 	eck::CLinearLayoutV m_Layout{};
 
 	HFONT m_hFont{};

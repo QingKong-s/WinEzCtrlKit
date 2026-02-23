@@ -62,6 +62,7 @@ protected:
     };
 
     TLytCoord m_x{}, m_y{}, m_cx{}, m_cy{};
+    TLytCoord m_cxIdeal{}, m_cyIdeal{};
     int m_iDpi{ USER_DEFAULT_SCREEN_DPI };
     BOOL m_bUseDwp{ TRUE };
     HDWP m_hDwpCurrent{};
@@ -226,14 +227,12 @@ protected:
 
     void OnAddFixedWidthObject(ITEMBASE& e) noexcept
     {
-        EckAssert(e.uFlags & LF_FIX_WIDTH);
         const auto d = e.cx + e.Margin.l + e.Margin.r;
         if (d > m_cx)
             m_cx = d;
     }
     void OnAddFixedHeightObject(ITEMBASE& e) noexcept
     {
-        EckAssert(e.uFlags & LF_FIX_HEIGHT);
         const auto d = e.cy + e.Margin.t + e.Margin.b;
         if (d > m_cy)
             m_cy = d;
@@ -254,6 +253,13 @@ public:
         const auto u2 = u & HEIGHT_EXCLUSIVE_MASK;
         if (u2 && (u2 & (u2 - 1)))
             return FALSE;
+        return TRUE;
+    }
+
+    BOOL LoGetIdealSize(_Inout_ LYTSIZE& Size) noexcept override
+    {
+        Size.cx = m_cxIdeal;
+        Size.cy = m_cyIdeal;
         return TRUE;
     }
 
@@ -310,6 +316,8 @@ public:
     virtual void LobRefresh() noexcept {}
 
     virtual size_t LobGetObjectCount() const noexcept = 0;
+
+    virtual void LobUpdateIdealSize() noexcept {}
 
     EckInline void Arrange(TLytCoord x, TLytCoord y, TLytCoord cx, TLytCoord cy) noexcept
     {
