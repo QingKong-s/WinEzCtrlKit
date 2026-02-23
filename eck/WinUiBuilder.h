@@ -49,6 +49,7 @@ struct Window;
 struct VBox;
 struct HBox;
 struct Default;
+struct Local;
 
 namespace Priv
 {
@@ -68,6 +69,7 @@ namespace Priv
         HBox,
 
         Default,
+        Local,
 
         Rect,
         Margin,
@@ -94,6 +96,7 @@ namespace Priv
             const HBox*,
 
             const Default*,
+            const Local*,
 
             const Rect*,
             const Margin*,
@@ -115,6 +118,7 @@ namespace Priv
         Proxy(const VBox& x) noexcept : v{ &x } {}
         Proxy(const HBox& x) noexcept : v{ &x } {}
         Proxy(const Default& x) noexcept : v{ &x } {}
+        Proxy(const Local& x) noexcept : v{ &x } {}
 
         Proxy(const Rect& x) noexcept : v{ &x } {}
         Proxy(const Margin& x) noexcept : v{ &x } {}
@@ -158,16 +162,17 @@ enum class Result
     Ok,
 
     InvalidConfig,          // 不支持某种子配置
-    InvalidConfigDefault,   // Default内不支持某种子配置
-    InvalidConfigLocal,     // Local内不支持某种子配置
+    InvalidConfigDefault,   // Default或Local内不支持某种子配置
     InvalidConfigWindow,    // Window内不支持某种子配置
     InvalidConfigLayout,    // 布局配置内不支持某种子配置
 
-    InvalidLayout,  // 不支持的布局类型
-    Win32,          // Win32错误，已设置LastError
+    InvalidLayout,      // 不支持的布局类型
+    Win32,              // Win32错误，已设置LastError
 
-    NoCWnd,         // 未指定CWnd
-    NoCLayoutBase,  // 未指定CLayoutBase
+    NoCWnd,             // 未指定CWnd
+    NoCLayoutBase,      // 未指定CLayoutBase
+
+    DefaultAfterLocal,  // Default出现在Local之后
 };
 
 struct ERR_CTX
@@ -177,6 +182,7 @@ struct ERR_CTX
 
 namespace Priv
 {
+    // 压入当前节点名称
     struct ScopedPath
     {
         ERR_CTX& ErrCtx;
@@ -203,14 +209,13 @@ namespace Priv
 
     struct PARENT_NODE
     {
-        CWindow* pWndParent{};
-        CLayoutBase* pLytParent{};
+        CWindow* pWndParent;
+        CLayoutBase* pLytParent;
+    };
 
+    struct DEF_PARAM
+    {
         HFONT hDefFont{};
-
-        BOOLEAN bReplaceStyle{};
-        BOOLEAN bReplaceExStyle{};
-        BOOLEAN bReplaceFlags{};
 
         Rect DefRect{};
         DWORD dwDefStyle{ WS_CHILD | WS_VISIBLE };
@@ -220,6 +225,7 @@ namespace Priv
         UINT uDefFlags{};
         UINT uDefWeight{};
     };
+
     struct LYT_PARAM
     {
         Margin Margin;
@@ -233,12 +239,16 @@ namespace Priv
     inline Result CfgCreateWindow(
         const Priv::Proxy& pr,
         const PARENT_NODE& Parent,
+        const DEF_PARAM& Default,
+        const DEF_PARAM& Local,
         _Out_ LYT_PARAM& LytParam,
         _Out_ ILayout*& pNewObject,
         ERR_CTX& ErrCtx) noexcept;
     inline Result CfgCreateLinearLayout(
         const Priv::Proxy& pr,
         const PARENT_NODE& Parent,
+        const DEF_PARAM& Default,
+        const DEF_PARAM& Local,
         _Out_ LYT_PARAM& LytParam,
         _Out_ ILayout*& pNewObject,
         ERR_CTX& ErrCtx) noexcept;
@@ -246,55 +256,61 @@ namespace Priv
     inline Result CfgCreate(
         const Priv::Proxy& pr,
         const PARENT_NODE& Parent,
+        const DEF_PARAM& Default,
+        const DEF_PARAM& Local,
         ERR_CTX& ErrCtx,
         int idxNode) noexcept;
 
     inline Result CfgParseDefault(
         const Priv::Proxy& pr,
-        PARENT_NODE& NewParent) noexcept
+        DEF_PARAM& Param,
+        BOOL bDefaultOrLocal) noexcept
     {
-        for (const auto& e : pr.Get<Type::Default>()->il)
+        const auto& il = (bDefaultOrLocal ?
+            pr.Get<Type::Default>()->il :
+            pr.Get<Type::Local>()->il);
+        for (const auto& e : il)
         {
             switch (e.GetType())
             {
             case Type::Margin:
-                NewParent.DefMargin = *e.Get<Type::Margin>();
+                Param.DefMargin = *e.Get<Type::Margin>();
                 break;
             case Type::Rect:
-                NewParent.DefRect = *e.Get<Type::Rect>();
+                Param.DefRect = *e.Get<Type::Rect>();
                 break;
             case Type::Style:
             {
                 const auto& f = e.Get<Type::Style>();
-                if (NewParent.bReplaceStyle = f.bReplace)
-                    NewParent.dwDefStyle = f.dwStyle;
+                if (f.bReplace)
+                    Param.dwDefStyle = f.dwStyle;
                 else
-                    NewParent.dwDefStyle |= f.dwStyle;
+                    Param.dwDefStyle |= f.dwStyle;
             }
             break;
             case Type::ExStyle:
             {
                 const auto& f = e.Get<Type::ExStyle>();
-                if (NewParent.bReplaceExStyle = f.bReplace)
-                    NewParent.dwDefExStyle = f.dwExStyle;
+                if (f.bReplace)
+                    Param.dwDefExStyle = f.dwExStyle;
                 else
-                    NewParent.dwDefExStyle |= f.dwExStyle;
+                    Param.dwDefExStyle |= f.dwExStyle;
             }
             break;
             case Type::Flags:
             {
                 const auto& f = e.Get<Type::Flags>();
-                if (NewParent.bReplaceFlags = f.bReplace)
-                    NewParent.uDefFlags = f.uFlags;
+                if (f.bReplace)
+                    Param.uDefFlags = f.uFlags;
                 else
-                    NewParent.uDefFlags |= f.uFlags;
+                    Param.uDefFlags |= f.uFlags;
             }
             break;
             case Type::Weight:
-                NewParent.uDefWeight = e.Get<Type::Weight>().uWeight;
+                Param.uDefWeight = e.Get<Type::Weight>().uWeight;
                 break;
             case Type::Font:
-                NewParent.hDefFont = e.Get<Type::Font>().hFont;
+                Param.hDefFont = e.Get<Type::Font>().hFont;
                 break;
             default:
                 return Result::InvalidConfigDefault;
@@ -306,25 +322,28 @@ namespace Priv
     inline Result CfgCreateWindow(
         const Priv::Proxy& pr,
         const PARENT_NODE& Parent,
+        const DEF_PARAM& Default,
+        const DEF_PARAM& Local,
         _Out_ LYT_PARAM& LytParam,
         _Out_ ILayout*& pNewObject,
         ERR_CTX& ErrCtx) noexcept
     {
-        LytParam.Margin = Parent.DefMargin;
-        LytParam.uFlags = Parent.uDefFlags;
-        LytParam.uWeight = Parent.uDefWeight;
+        LytParam.Margin = Local.DefMargin;
+        LytParam.uFlags = Local.uDefFlags;
+        LytParam.uWeight = Local.uDefWeight;
 
         pNewObject = nullptr;
         CWindow* pWnd{};
         PCWSTR pszCaption{};
-        Rect rc{ Parent.DefRect };
-        DWORD dwStyle{ Parent.dwDefStyle };
-        DWORD dwExStyle{ Parent.dwDefExStyle };
-        HFONT hFont{ Parent.hDefFont };
+        Rect rc{ Local.DefRect };
+        DWORD dwStyle{ Local.dwDefStyle };
+        DWORD dwExStyle{ Local.dwDefExStyle };
+        HFONT hFont{ Local.hDefFont };
         int iId{};
 
         Result r;
-        PARENT_NODE NewParent{ Parent };
+        DEF_PARAM NewDefault{ Default }, NewLocal{ Default };
+        BOOLEAN bLocal{};
 
         const auto& il = pr.Get<Type::Window>()->il;
         auto it = il.begin();
@@ -333,9 +352,18 @@ namespace Priv
             switch (it->GetType())
             {
             case Type::Default:
-                r = CfgParseDefault(*it, NewParent);
+                if (bLocal)// Default必须在Local前
+                    return Result::DefaultAfterLocal;
+                r = CfgParseDefault(*it, NewDefault, TRUE);
                 if (r != Result::Ok)
                     return r;
+                NewLocal = NewDefault;
+                break;
+            case Type::Local:
+                r = CfgParseDefault(*it, NewLocal, FALSE);
+                if (r != Result::Ok)
+                    return r;
+                bLocal = TRUE;
                 break;
             case Type::CWnd:
                 pWnd = it->Get<Type::CWnd>();
@@ -413,12 +441,12 @@ namespace Priv
 
         if (it != il.end())
         {
-            NewParent.pLytParent = nullptr;// 规定布局同一层级内有效
-            NewParent.pWndParent = pWnd;
+            const PARENT_NODE Current{ pWnd };
             const auto itBegin = it;
             for (; it != il.end(); ++it)
             {
-                r = CfgCreate(*it, NewParent, ErrCtx, int(it - itBegin));
+                r = CfgCreate(*it, Current,
+                    NewDefault, NewLocal, ErrCtx, int(it - itBegin));
                 if (r != Result::Ok)
                     return r;
             }
@@ -430,18 +458,21 @@ namespace Priv
     inline Result CfgCreateLinearLayout(
         const Priv::Proxy& pr,
         const PARENT_NODE& Parent,
+        const DEF_PARAM& Default,
+        const DEF_PARAM& Local,
         _Out_ LYT_PARAM& LytParam,
         _Out_ ILayout*& pNewObject,
         ERR_CTX& ErrCtx) noexcept
     {
-        LytParam.Margin = Parent.DefMargin;
-        LytParam.uFlags = Parent.uDefFlags;
-        LytParam.uWeight = Parent.uDefWeight;
+        LytParam.Margin = Local.DefMargin;
+        LytParam.uFlags = Local.uDefFlags;
+        LytParam.uWeight = Local.uDefWeight;
 
         pNewObject = nullptr;
         CLayoutBase* pLyt{};
-        PARENT_NODE NewParent{ Parent };
+        DEF_PARAM NewDefault{ Default }, NewLocal{ Default };
         Result r;
+        BOOLEAN bLocal{};
 
         const auto eType = pr.GetType();
         const auto& il = (
@@ -455,12 +486,19 @@ namespace Priv
             switch (it->GetType())
             {
             case Type::Default:
-            {
-                r = CfgParseDefault(*it, NewParent);
+                if (bLocal)// Default必须在Local前
+                    return Result::DefaultAfterLocal;
+                r = CfgParseDefault(*it, NewDefault, TRUE);
                 if (r != Result::Ok)
                     return r;
-            }
-            break;
+                NewLocal = NewDefault;
+                break;
+            case Type::Local:
+                r = CfgParseDefault(*it, NewLocal, FALSE);
+                if (r != Result::Ok)
+                    return r;
+                bLocal = TRUE;
+                break;
             case Type::CLayoutBase:
                 pLyt = it->Get<Type::CLayoutBase>();
                 break;
@@ -501,11 +539,11 @@ namespace Priv
             return Result::NoCLayoutBase;
         if (it != il.end())
         {
-            NewParent.pLytParent = pLyt;
+            const PARENT_NODE NewParent{ Parent.pWndParent, pLyt };
             const auto itBegin = it;
             for (; it != il.end(); ++it)
             {
-                r = CfgCreate(*it, NewParent, ErrCtx, int(it - itBegin));
+                r = CfgCreate(*it, NewParent, NewDefault, NewLocal, ErrCtx, int(it - itBegin));
                 if (r != Result::Ok)
                     return r;
             }
@@ -548,6 +586,8 @@ namespace Priv
     inline Result CfgCreate(
         const Priv::Proxy& pr,
         const PARENT_NODE& Parent,
+        const DEF_PARAM& Default,
+        const DEF_PARAM& Local,
         ERR_CTX& ErrCtx,
         int idxNode) noexcept
     {
@@ -561,7 +601,7 @@ namespace Priv
         case Type::Window:
         {
             ScopedPath Path{ ErrCtx, L"/Window"sv, idxNode };
-            r = CfgCreateWindow(pr, Parent, Param, pNewObject, ErrCtx);
+            r = CfgCreateWindow(pr, Parent, Default, Local, Param, pNewObject, ErrCtx);
             if (r != Result::Ok)
                 return r;
             r = CfgAddLayout(pNewObject, Parent, Param);
@@ -574,7 +614,7 @@ namespace Priv
         case Type::HBox:
         {
             ScopedPath Path{ ErrCtx, (eType == Type::VBox) ? L"/VBox"sv : L"/HBox"sv, idxNode };
-            r = CfgCreateLinearLayout(pr, Parent, Param, pNewObject, ErrCtx);
+            r = CfgCreateLinearLayout(pr, Parent, Default, Local, Param, pNewObject, ErrCtx);
             if (r != Result::Ok)
                 return r;
             r = CfgAddLayout(pNewObject, Parent, Param);
@@ -600,11 +640,14 @@ inline Result Create(
         pErrCtx = &ErrCtx;
 
     const Priv::PARENT_NODE Parent{ .pWndParent = pWndParent };
+    constexpr Priv::DEF_PARAM Default{};
+    constexpr Priv::DEF_PARAM Local{};
+
     if (pr.GetType() == Priv::Type::List)
     {
         for (int i{}; const auto& e : *pr.Get<Priv::Type::List>())
         {
-            const auto r = Priv::CfgCreate(e, Parent, *pErrCtx, i);
+            const auto r = Priv::CfgCreate(e, Parent, Default, Local, *pErrCtx, i);
             if (r != Result::Ok)
                 return r;
             ++i;
@@ -612,7 +655,7 @@ inline Result Create(
         return Result::Ok;
     }
     else
-        return Priv::CfgCreate(pr, Parent, *pErrCtx, 0);
+        return Priv::CfgCreate(pr, Parent, Default, Local, *pErrCtx, 0);
 }
 ECK_UIBUILDER_NAMESPACE_END
 ECK_NAMESPACE_END
