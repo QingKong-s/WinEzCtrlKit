@@ -10,7 +10,7 @@ ECK_UIBUILDER_NAMESPACE_BEGIN
 struct Rect
 {
     int x;
-    int y; 
+    int y;
     int cx;
     int cy;
 };
@@ -37,6 +37,7 @@ struct Default;
 
 namespace Priv
 {
+    // WARNING 必须与Proxy完全对齐
     enum class Type : BYTE
     {
         Invalid,
@@ -131,6 +132,7 @@ namespace Priv
 
 ECK_UI_DECL_CONTAINER(Window);
 ECK_UI_DECL_CONTAINER(Default);
+ECK_UI_DECL_CONTAINER(Local);
 ECK_UI_DECL_CONTAINER(VBox);
 ECK_UI_DECL_CONTAINER(HBox);
 
@@ -140,7 +142,12 @@ enum class Result
 {
     Ok,
 
-    InvalidConfig,  // 当前配置不支持某种子配置
+    InvalidConfig,          // 不支持某种子配置
+    InvalidConfigDefault,   // Default内不支持某种子配置
+    InvalidConfigLocal,     // Local内不支持某种子配置
+    InvalidConfigWindow,    // Window内不支持某种子配置
+    InvalidConfigLayout,    // 布局配置内不支持某种子配置
+
     InvalidLayout,  // 不支持的布局类型
     Win32,          // Win32错误，已设置LastError
 
@@ -148,8 +155,37 @@ enum class Result
     NoCLayoutBase,  // 未指定CLayoutBase
 };
 
+struct ERR_CTX
+{
+    CStringW rsPath;
+};
+
 namespace Priv
 {
+    struct ScopedPath
+    {
+        ERR_CTX& ErrCtx;
+        int cchOld;
+
+        ScopedPath(ERR_CTX& ErrCtx_, std::wstring_view sv, int idxNode) noexcept
+            : ErrCtx{ ErrCtx_ }, cchOld{ ErrCtx.rsPath.Size() }
+        {
+            constexpr size_t cchBuf = TcsCvtCalcBufferSize<int>();
+
+            auto p = ErrCtx.rsPath.PushBack(int(sv.size() + cchBuf));
+            TcsCopyLength(p, sv.data(), sv.size());
+            p += sv.size();
+
+            PWCH pEnd;
+            TcsFromInt(p, cchBuf, idxNode, 10, TRUE, &pEnd);
+            ErrCtx.rsPath.ReSize(int(pEnd - ErrCtx.rsPath.Data()));
+        }
+        void Pop() noexcept
+        {
+            ErrCtx.rsPath.ReSize(cchOld);
+        }
+    };
+
     struct PARENT_NODE
     {
         CWindow* pWndParent{};
@@ -179,15 +215,20 @@ namespace Priv
         const Priv::Proxy& pr,
         const PARENT_NODE& Parent,
         _Out_ LYT_PARAM& LytParam,
-        _Out_ ILayout*& pNewObject) noexcept;
+        _Out_ ILayout*& pNewObject,
+        ERR_CTX& ErrCtx) noexcept;
     inline Result CfgCreateLinearLayout(
         const Priv::Proxy& pr,
         const PARENT_NODE& Parent,
         _Out_ LYT_PARAM& LytParam,
-        _Out_ ILayout*& pNewObject) noexcept;
+        _Out_ ILayout*& pNewObject,
+        ERR_CTX& ErrCtx) noexcept;
+    // idxNode: pr在同级配置中的序号，从0开始，用于诊断
     inline Result CfgCreate(
         const Priv::Proxy& pr,
-        const PARENT_NODE& Parent) noexcept;
+        const PARENT_NODE& Parent,
+        ERR_CTX& ErrCtx,
+        int idxNode) noexcept;
 
     inline Result CfgParseDefault(
         const Priv::Proxy& pr,
@@ -219,7 +260,7 @@ namespace Priv
                 Parent.hDefFont = e.Get<Type::Font>().hFont;
                 break;
             default:
-                return Result::InvalidConfig;
+                return Result::InvalidConfigDefault;
             }
         }
         return Result::Ok;
@@ -229,7 +270,8 @@ namespace Priv
         const Priv::Proxy& pr,
         const PARENT_NODE& Parent,
         _Out_ LYT_PARAM& LytParam,
-        _Out_ ILayout*& pNewObject) noexcept
+        _Out_ ILayout*& pNewObject,
+        ERR_CTX& ErrCtx) noexcept
     {
         LytParam.Margin = Parent.DefMargin;
         LytParam.uFlags = Parent.uDefFlags;
@@ -263,6 +305,10 @@ namespace Priv
                 break;
             case Type::String:
                 pszCaption = it->Get<Type::String>();
+                ErrCtx.rsPath
+                    .PushBackChar(L'[')
+                    .PushBack(pszCaption)
+                    .PushBackChar(L']');
                 break;
             case Type::Rect:
                 rc = *it->Get<Type::Rect>();
@@ -296,7 +342,7 @@ namespace Priv
                 break;
 
             default:
-                return Result::InvalidConfig;
+                return Result::InvalidConfigWindow;
             }
         }
     EndLoop:
@@ -314,9 +360,10 @@ namespace Priv
         {
             NewParent.pLytParent = nullptr;// 规定布局同一层级内有效
             NewParent.pWndParent = pWnd;
+            const auto itBegin = it;
             for (; it != il.end(); ++it)
             {
-                r = CfgCreate(*it, NewParent);
+                r = CfgCreate(*it, NewParent, ErrCtx, int(it - itBegin));
                 if (r != Result::Ok)
                     return r;
             }
@@ -329,7 +376,8 @@ namespace Priv
         const Priv::Proxy& pr,
         const PARENT_NODE& Parent,
         _Out_ LYT_PARAM& LytParam,
-        _Out_ ILayout*& pNewObject) noexcept
+        _Out_ ILayout*& pNewObject,
+        ERR_CTX& ErrCtx) noexcept
     {
         LytParam.Margin = Parent.DefMargin;
         LytParam.uFlags = Parent.uDefFlags;
@@ -376,8 +424,15 @@ namespace Priv
                 LytParam.uFlags = it->Get<Type::Flags>().uFlags;
                 break;
 
+            case Type::String:// 仅用于诊断
+                ErrCtx.rsPath
+                    .PushBackChar(L'[')
+                    .PushBack(it->Get<Type::String>())
+                    .PushBackChar(L']');
+                break;
+
             default:
-                return Result::InvalidConfig;
+                return Result::InvalidConfigLayout;
             }
         }
     EndLoop:
@@ -386,9 +441,10 @@ namespace Priv
         if (it != il.end())
         {
             NewParent.pLytParent = pLyt;
+            const auto itBegin = it;
             for (; it != il.end(); ++it)
             {
-                r = CfgCreate(*it, NewParent);
+                r = CfgCreate(*it, NewParent, ErrCtx, int(it - itBegin));
                 if (r != Result::Ok)
                     return r;
             }
@@ -430,30 +486,42 @@ namespace Priv
 
     inline Result CfgCreate(
         const Priv::Proxy& pr,
-        const PARENT_NODE& Parent) noexcept
+        const PARENT_NODE& Parent,
+        ERR_CTX& ErrCtx,
+        int idxNode) noexcept
     {
         Result r;
         LYT_PARAM Param{};
         ILayout* pNewObject;
-        switch (pr.GetType())
+
+        const auto eType = pr.GetType();
+        switch (eType)
         {
         case Type::Window:
-            r = CfgCreateWindow(pr, Parent, Param, pNewObject);
+        {
+            ScopedPath Path{ ErrCtx, L"/Window"sv, idxNode };
+            r = CfgCreateWindow(pr, Parent, Param, pNewObject, ErrCtx);
             if (r != Result::Ok)
                 return r;
             r = CfgAddLayout(pNewObject, Parent, Param);
             if (r != Result::Ok)
                 return r;
-            break;
+            Path.Pop();
+        }
+        break;
         case Type::VBox:
         case Type::HBox:
-            r = CfgCreateLinearLayout(pr, Parent, Param, pNewObject);
+        {
+            ScopedPath Path{ ErrCtx, (eType == Type::VBox) ? L"/VBox"sv : L"/HBox"sv, idxNode };
+            r = CfgCreateLinearLayout(pr, Parent, Param, pNewObject, ErrCtx);
             if (r != Result::Ok)
                 return r;
             r = CfgAddLayout(pNewObject, Parent, Param);
             if (r != Result::Ok)
                 return r;
-            break;
+            Path.Pop();
+        }
+        break;
         default:
             return Result::InvalidConfig;
         }
@@ -461,21 +529,29 @@ namespace Priv
     }
 }
 
-inline Result Create(CWindow* pWndParent, Priv::Proxy pr) noexcept
+inline Result Create(
+    CWindow* pWndParent,
+    ERR_CTX* pErrCtx,
+    Priv::Proxy pr) noexcept
 {
+    ERR_CTX ErrCtx{};
+    if (!pErrCtx)
+        pErrCtx = &ErrCtx;
+
     const Priv::PARENT_NODE Parent{ .pWndParent = pWndParent };
     if (pr.GetType() == Priv::Type::List)
     {
-        for (const auto& e : *pr.Get<Priv::Type::List>())
+        for (int i{}; const auto& e : *pr.Get<Priv::Type::List>())
         {
-            const auto r = Priv::CfgCreate(e, Parent);
+            const auto r = Priv::CfgCreate(e, Parent, *pErrCtx, i);
             if (r != Result::Ok)
                 return r;
+            ++i;
         }
         return Result::Ok;
     }
     else
-        return Priv::CfgCreate(pr, Parent);
+        return Priv::CfgCreate(pr, Parent, *pErrCtx, 0);
 }
 ECK_UIBUILDER_NAMESPACE_END
 ECK_NAMESPACE_END
