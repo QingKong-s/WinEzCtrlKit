@@ -79,13 +79,14 @@ public:
     }
 };
 
+template<class TExtra>
 class CDdxControlCollection
 {
 private:
     struct CTRL
     {
         HWND hWnd;
-        void* pObservable;
+        TExtra Extra;
     };
     std::vector<CTRL> m_vCtrl{};
 
@@ -100,41 +101,52 @@ private:
             [](const CTRL& x, HWND h) { return x.hWnd < h; });
     }
 public:
-    void Add(HWND hWnd, void* pObservable) noexcept
+    void Add(HWND hWnd, const TExtra& Extra) noexcept
     {
         const auto it = LowerBound(hWnd);
         if (it != m_vCtrl.end() && it->hWnd == hWnd)
-            it->pObservable = pObservable;
+            it->Extra = Extra;
         else
-            m_vCtrl.emplace(it, CTRL{ hWnd, pObservable });
+            m_vCtrl.emplace(it, CTRL{ hWnd, Extra });
     }
-    void Remove(HWND hWnd) noexcept
+    BOOL Remove(HWND hWnd) noexcept
     {
         const auto it = LowerBound(hWnd);
         if (it != m_vCtrl.end() && it->hWnd == hWnd)
+        {
             m_vCtrl.erase(it);
+            return TRUE;
+        }
+        return FALSE;
     }
-    void* At(HWND hWnd) const noexcept
+    const TExtra* At(HWND hWnd) const noexcept
     {
         const auto it = LowerBound(hWnd);
         if (it != m_vCtrl.end() && it->hWnd == hWnd)
-            return it->pObservable;
+            return &it->Extra;
         else
             return nullptr;
     }
 };
 
-template<class Fn, USHORT Id, class T>
-    requires std::derived_from<Fn, CDdxControlCollection>
-EckInlineNd CWindow::HSlot DdxpConnectSlot(CWindow& Parent, CWindow& Ctrl, Observable<T>& o) noexcept
+template<class Fn, USHORT Id, class TExtra>
+    requires std::derived_from<Fn, CDdxControlCollection<TExtra>>
+EckInlineNd CWindow::HSlot DdxpConnect(CWindow& Ctrl, CWindow& Parent, const TExtra& Extra) noexcept
 {
     auto& ec = Parent.GetEventChain();
     auto hSlot = ec.FindSlot(Id);
     if (!hSlot)
         hSlot = ec.Connect(Fn{}, Id);
-
-    Fn* const p = ec.GetFunctionTarget<Fn>(hSlot);
-    p->Add(Ctrl.HWnd, &o);
+    ec.GetFunctionTarget<Fn>(hSlot)->Add(Ctrl.HWnd, Extra);
     return hSlot;
+}
+template<class Fn, USHORT Id>
+EckInlineNd BOOL DdxpDisconnect(CWindow& Ctrl, CWindow& Parent) noexcept
+{
+    auto& ec = Parent.GetEventChain();
+    const auto hSlot = ec.FindSlot(Id);
+    if (hSlot)
+        return ec.GetFunctionTarget<Fn>(hSlot)->Remove(Ctrl.HWnd);
+    return FALSE;
 }
 ECK_NAMESPACE_END

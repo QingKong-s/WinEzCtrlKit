@@ -215,28 +215,52 @@ public:
     }
 };
 
-template<class T>
-inline CWindow::HSlot DdxBindTrackBar(CTrackBar& Ctrl, CWindow& Parent, Observable<T>& o) noexcept
+namespace Priv
 {
-    o.SetCallback(
-        [](const T& v, void* p)
-        {
-            ((CTrackBar*)p)->SetPosition((int)v);
-        }, &Ctrl);
+    struct DDXE_TRACKBAR
+    {
+        using FSetInt = void(*)(void*, int);
 
-    struct Fn : public CDdxControlCollection
+        void* pObservable;
+        FSetInt pfnSetInt;
+    };
+
+    struct DdxFnTrackBar : public CDdxControlCollection<DDXE_TRACKBAR>
     {
         LRESULT operator()(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
         {
             if (uMsg == WM_HSCROLL || uMsg == WM_VSCROLL)
             {
-                const auto pObservable = (Observable<T>*)At((HWND)lParam);
-                if (pObservable)
-                    pObservable->Set((T)SendMessageW((HWND)lParam, TBM_GETPOS, 0, 0));
+                const auto pExtra = At((HWND)lParam);
+                if (pExtra)
+                    pExtra->pfnSetInt(
+                        pExtra->pObservable,
+                        (int)SendMessageW((HWND)lParam, TBM_GETPOS, 0, 0));
             }
             return 0;
         }
     };
-    return DdxpConnectSlot<Fn, MHI_DDX_TRACKBAR>(Parent, Ctrl, o);
+}
+
+template<class T>
+inline CWindow::HSlot DdxBindTrackBar(CTrackBar& Ctrl, CWindow& Parent, Observable<T>& o) noexcept
+{
+    o.SetCallback([](const T& v, void* p)
+        {
+            ((CTrackBar*)p)->SetPosition((int)v);
+        }, &Ctrl);
+    return DdxpConnect<Priv::DdxFnTrackBar, MHI_DDX_TRACKBAR>(Ctrl, Parent,
+        Priv::DDXE_TRACKBAR{
+            &o, [](void* p, int v)
+            {
+                ((Observable<T>*)p)->Get() = (T)v;
+            }
+        });
+}
+template<class T>
+inline CWindow::HSlot DdxUnbindTrackBar(CTrackBar& Ctrl, CWindow& Parent, Observable<T>& o) noexcept
+{
+    o.ClearCallback();
+    return DdxpDisconnect<Priv::DdxFnTrackBar, MHI_DDX_TRACKBAR>(Ctrl, Parent);
 }
 ECK_NAMESPACE_END

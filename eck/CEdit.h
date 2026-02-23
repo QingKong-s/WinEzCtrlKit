@@ -732,23 +732,23 @@ public:
     }
 };
 
-inline CWindow::HSlot DdxBindEdit(CEdit& Ctrl, CWindow& Parent, Observable<CStringW>& o) noexcept
+namespace Priv
 {
-    o.SetCallback([](const CStringW& v, void* p)
-        {
-            ((CEdit*)p)->SetText(v.Data());
-        }, &Ctrl);
+    struct DDXE_EDIT
+    {
+        void* pObservable;
+    };
 
-    struct Fn : public CDdxControlCollection
+    struct DdxFnEdit : public CDdxControlCollection<DDXE_EDIT>
     {
         LRESULT operator()(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
         {
             if (uMsg == WM_COMMAND && HIWORD(wParam) == EN_UPDATE)
             {
-                const auto pObservable = (Observable<CStringW>*)At((HWND)lParam);
-                if (!pObservable)
+                const auto pExtra = At((HWND)lParam);
+                if (!pExtra)
                     return 0;
-                auto& rs = pObservable->Get();
+                auto& rs = ((Observable<CStringW>*)pExtra->pObservable)->Get();
                 auto cch = GetWindowTextLengthW((HWND)lParam);
                 rs.ReSize(cch);
                 if (cch)
@@ -761,6 +761,19 @@ inline CWindow::HSlot DdxBindEdit(CEdit& Ctrl, CWindow& Parent, Observable<CStri
             return 0;
         }
     };
-    return DdxpConnectSlot<Fn, MHI_DDX_EDIT>(Parent, Ctrl, o);
+}
+
+inline CWindow::HSlot DdxBindEdit(CEdit& Ctrl, CWindow& Parent, Observable<CStringW>& o) noexcept
+{
+    o.SetCallback([](const CStringW& v, void* p)
+        {
+            ((CEdit*)p)->SetText(v.Data());
+        }, &Ctrl);
+    return DdxpConnect<Priv::DdxFnEdit, MHI_DDX_EDIT>(Ctrl, Parent, Priv::DDXE_EDIT{ &o });
+}
+inline BOOL DdxUnbindEdit(CEdit& Ctrl, CWindow& Parent, Observable<CStringW>& o) noexcept
+{
+    o.ClearCallback();
+    return DdxpDisconnect<Priv::DdxFnEdit, MHI_DDX_EDIT>(Ctrl, Parent);
 }
 ECK_NAMESPACE_END

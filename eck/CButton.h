@@ -327,6 +327,33 @@ public:
     }
 };
 
+namespace Priv
+{
+    struct DDXE_CHECKBOX
+    {
+        using FSetInt = void(*)(void*, int);
+
+        void* pObservable;
+        FSetInt pfnSetInt;
+    };
+
+    struct DdxFnCheckBox : public CDdxControlCollection<DDXE_CHECKBOX>
+    {
+        LRESULT operator()(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
+        {
+            if (uMsg == WM_COMMAND && HIWORD(wParam) == BN_CLICKED)
+            {
+                const auto pExtra = At((HWND)lParam);
+                if (pExtra)
+                    pExtra->pfnSetInt(
+                        pExtra->pObservable,
+                        (int)SendMessageW((HWND)lParam, BM_GETCHECK, 0, 0));
+            }
+            return 0;
+        }
+    };
+}
+
 template<class T>
 inline CWindow::HSlot DdxBindCheckBox(CButton& Ctrl, CWindow& Parent, Observable<T>& o) noexcept
 {
@@ -334,20 +361,18 @@ inline CWindow::HSlot DdxBindCheckBox(CButton& Ctrl, CWindow& Parent, Observable
         {
             ((CButton*)p)->SetCheckState((int)v);
         }, &Ctrl);
-
-    struct Fn : public CDdxControlCollection
-    {
-        LRESULT operator()(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
-        {
-            if (uMsg == WM_COMMAND && HIWORD(wParam) == BN_CLICKED)
+    return DdxpConnect<Priv::DdxFnCheckBox, MHI_DDX_CHECKBOX>(Ctrl, Parent,
+        Priv::DDXE_CHECKBOX{
+            &o, [](void* p, int v)
             {
-                const auto pObservable = (Observable<T>*)At((HWND)lParam);
-                if (pObservable)
-                    pObservable->Set((T)SendMessageW((HWND)lParam, BM_GETCHECK, 0, 0));
+                ((Observable<T>*)p)->Get() = (T)v;
             }
-            return 0;
-        }
-    };
-    return DdxpConnectSlot<Fn, MHI_DDX_CHECKBOX>(Parent, Ctrl, o);
+        });
+}
+template<class T>
+inline BOOL DdxUnbindCheckBox(CButton& Ctrl, CWindow& Parent, Observable<T>& o) noexcept
+{
+    o.ClearCallback();
+    return DdxpDisconnect<Priv::DdxFnCheckBox, MHI_DDX_CHECKBOX>(Ctrl, Parent);
 }
 ECK_NAMESPACE_END
