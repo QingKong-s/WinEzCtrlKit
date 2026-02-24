@@ -85,7 +85,7 @@ namespace Priv
         template<class T, class U>
         EckInline auto& operator<<(const std::basic_string<T, U>& Data)
         {
-            return Write(Data.c_str(), (Data.size() + 1) * sizeof(T));
+            return Write(Data.data(), (Data.size() + 1) * sizeof(T));
         }
         template<class T, class U>
         EckInline auto& operator<<(std::basic_string_view<T, U> Data)

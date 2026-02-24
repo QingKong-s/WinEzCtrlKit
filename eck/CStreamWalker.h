@@ -57,7 +57,7 @@ public:
     template<class T, class U, class V>
     EckInline CStreamWalker& operator<<(const std::basic_string<T, U, V>& Data)
     {
-        return Write(Data.c_str(), (Data.size() + 1) * sizeof(T));
+        return Write(Data.data(), (Data.size() + 1) * sizeof(T));
     }
     template<class T, class U>
     EckInline CStreamWalker& operator<<(const std::vector<T, U>& Data)

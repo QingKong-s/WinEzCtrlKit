@@ -1085,7 +1085,7 @@ inline void DbgPrint(CcpNumberOrEnum auto x, BOOL bNewLine = TRUE) noexcept
     auto s = std::to_string((eck::UnderlyingType_T<decltype(x)>)x);
     if (bNewLine)
         s.push_back('\n');
-    OutputDebugStringA(s.c_str());
+    OutputDebugStringA(s.data());
 }
 void DbgPrintFmt(_Printf_format_string_ PCWSTR pszFormat, ...) noexcept;
 void DbgPrintFmt(_Printf_format_string_ PCSTR pszFormat, ...) noexcept;
@@ -1103,7 +1103,7 @@ EckInline void DbgPrint(PCSTR psz, BOOL bNewLine = TRUE) noexcept
 template<class T, class U, class V>
 EckInline void DbgPrint(const std::basic_string<T, U, V>& str, BOOL bNewLine = TRUE) noexcept
 {
-    DbgPrint(str.c_str(), bNewLine);
+    DbgPrint(str.data(), bNewLine);
 }
 inline void DbgPrintFormatMessage(UINT uErrCode, BOOL bNewLine = TRUE) noexcept
 {

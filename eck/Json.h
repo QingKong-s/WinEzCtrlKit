@@ -74,7 +74,7 @@ namespace Priv
             return JsonValueAt(This, x.Data(), x.Size());
         else if constexpr (IsSameTemplate<std::basic_string, T1>::V &&
             sizeof(typename T1::value_type) == 1)
-            return JsonValueAt(This, x.c_str(), x.size());
+            return JsonValueAt(This, x.data(), x.size());
         else if constexpr (IsSameTemplate<std::basic_string_view, T1>::V &&
             sizeof(typename T1::value_type) == 1)
             return JsonValueAt(This, x.data(), x.size());
@@ -235,7 +235,7 @@ public:
     template<class TTraits, class TAllocator>
     CDoc(const std::basic_string<CHAR, TTraits, TAllocator>& s, YyReadFlag uFlags = 0,
         const YyAlc* pAlc = nullptr, YyReadErr* pErr = nullptr) noexcept
-        : CDoc(s.c_str(), s.size(), uFlags, pAlc, pErr)
+        : CDoc(s.data(), s.size(), uFlags, pAlc, pErr)
     {}
 
     template<class TTraits>

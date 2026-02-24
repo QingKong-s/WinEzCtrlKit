@@ -12,7 +12,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     OleInitialize(NULL);
     if (eck::InitStatus b; (b = eck::Initialize(hInstance)) != eck::InitStatus::Ok)
     {
-        MessageBoxW(NULL, L"初始化失败", std::to_wstring((int)b).c_str(), 0);
+        MessageBoxW(NULL, L"初始化失败", std::to_wstring((int)b).data(), 0);
         return 1;
     }
 
