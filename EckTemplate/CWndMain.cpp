@@ -74,7 +74,6 @@ LRESULT CWndMain::OnCreate(HWND hWnd, CREATESTRUCT* pcs)
                 Ui::Window{
                     m_CBRememberPassword, L"记住密码",
                     Ui::Flags{ eck::LF_IDEAL },
-                    //Ui::Weight{ 1 },
                 },
                 Ui::Window{
                     m_CBLoginAuto, L"自动登录",

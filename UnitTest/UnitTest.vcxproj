@@ -181,6 +181,7 @@
     <ClCompile Include="TsCRefStr.cpp" />
     <ClCompile Include="TsCSelRange.cpp" />
     <ClCompile Include="TsDateTimeHelper.cpp" />
+    <ClCompile Include="TsGpPtr.cpp" />
     <ClCompile Include="TsMathHelper.cpp" />
     <ClCompile Include="TsRandom.cpp" />
     <ClCompile Include="TsRectOp.cpp" />
