@@ -385,7 +385,6 @@
     <ClCompile Include="eck\SymbolHelper.h" />
     <ClCompile Include="eck\TextSrvDef.h" />
     <ClCompile Include="eck\ShellHelper.h" />
-    <ClCompile Include="eck\CImageMat.h" />
     <ClCompile Include="eck\SystemHelper.h" />
     <ClCompile Include="eck\ThreadPool.h" />
     <ClCompile Include="eck\CUiAccess.h" />

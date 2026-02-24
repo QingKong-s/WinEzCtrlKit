@@ -227,9 +227,6 @@
     <ClCompile Include="eck\CHotKeyExt.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CImageMat.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
     <ClCompile Include="eck\CInertialScrollView.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
