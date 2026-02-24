@@ -855,7 +855,7 @@ public:
             auto w = PreSerialize(rb, Ctx, cbFrame);
             w << eTimestampFmt;
             for (const auto& e : vEvent)
-                (w << e.eType).WriteRev(e.uTimestamp);
+                (w << e.eType).WriteReversed(e.uTimestamp);
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
@@ -872,7 +872,7 @@ public:
                 w >> e.eType;
                 if (e.eType >= EventType::InvalidEnd)
                     return Result::Enum;
-                w.ReadRev(e.uTimestamp);
+                w.ReadReversed(e.uTimestamp);
             }
             return PostDeserialize(rb, Ctx);
         }
@@ -918,7 +918,7 @@ public:
                     w << (BYTE)0xFF << (BYTE)(e.usBpm - 0xFF);
                 else
                     w << (BYTE)e.usBpm;
-                w.WriteRev(e.uTimestamp);
+                w.WriteReversed(e.uTimestamp);
             }
             return PostSerialize(rb, Ctx, cbFrame);
         }
@@ -942,7 +942,7 @@ public:
                 }
                 else
                     e.usBpm = byBpm;
-                w.ReadRev(e.uTimestamp);
+                w.ReadReversed(e.uTimestamp);
             }
             return PostDeserialize(rb, Ctx);
         }
@@ -1034,7 +1034,7 @@ public:
             {
                 const auto r = vRange[i + 1];
                 w << Ctx.rbWork.SubSpan(r.first, r.second - r.first);
-                w.WriteRev(vSync[i].uTimestamp);
+                w.WriteReversed(vSync[i].uTimestamp);
             }
             return PostSerialize(rb, Ctx, cbFrame);
         }
@@ -1058,7 +1058,7 @@ public:
             {
                 SYNC sync;
                 ConvertTextEncoding(sync.rsText, w, -1, eEncoding);
-                w.ReadRev(sync.uTimestamp);
+                w.ReadReversed(sync.uTimestamp);
                 vSync.push_back(std::move(sync));
             }
             return PostDeserialize(rb, Ctx);
@@ -1136,9 +1136,9 @@ public:
             for (const auto& e : vChannel)
             {
                 w << e.eChannel;
-                w.WriteRev(e.shVol);
+                w.WriteReversed(e.shVol);
                 w << e.cPeekVolBit;
-                w.WriteRev(e.bsPeekVol.Data(), DivUpper(e.cPeekVolBit, 8));
+                w.WriteReversed(e.bsPeekVol.Data(), DivUpper(e.cPeekVolBit, 8));
             }
             return PostSerialize(rb, Ctx, cbFrame);
         }
@@ -1154,9 +1154,9 @@ public:
                 w >> e.eChannel;
                 if (e.eChannel >= ChannelType::Max)
                     return Result::Enum;
-                w.ReadRev(e.shVol);
+                w.ReadReversed(e.shVol);
                 w >> e.cPeekVolBit;
-                w.ReadRev(e.bsPeekVol.Data(), DivUpper(e.cPeekVolBit, 8));
+                w.ReadReversed(e.bsPeekVol.Data(), DivUpper(e.cPeekVolBit, 8));
             }
             return PostDeserialize(rb, Ctx);
         }
@@ -1188,7 +1188,7 @@ public:
             auto w = PreSerialize(rb, Ctx, cbFrame);
             w << eInterpolation << rsId;
             for (auto e : vPoint)
-                w.WriteRev(e.uFreq).WriteRev(e.shVol);
+                w.WriteReversed(e.uFreq).WriteReversed(e.shVol);
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
@@ -1203,8 +1203,8 @@ public:
             while (!w.IsEnd())
             {
                 auto& e = vPoint.emplace_back();
-                w.ReadRev(e.uFreq);
-                w.ReadRev(e.shVol);
+                w.ReadReversed(e.uFreq);
+                w.ReadReversed(e.shVol);
             }
             return PostDeserialize(rb, Ctx);
         }
@@ -1233,14 +1233,14 @@ public:
         {
             constexpr size_t cbFrame = 12;
             auto w = PreSerialize(rb, Ctx, cbFrame);
-            w.WriteRev(Left).WriteRev(Right).Write(&BouncesLeft, 8);
+            w.WriteReversed(Left).WriteReversed(Right).Write(&BouncesLeft, 8);
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
         Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
-            w.ReadRev(Left).ReadRev(Right).Read(&BouncesLeft, 8);
+            w.ReadReversed(Left).ReadReversed(Right).Read(&BouncesLeft, 8);
             return PostDeserialize(rb, Ctx);
         }
         catch (const CMemoryReader::Xpt&)
@@ -1345,7 +1345,7 @@ public:
                 }
             }
             auto w = PreSerialize(rb, Ctx, cbFrame);
-            w.WriteRev(&cPlay, cbFrame);
+            w.WriteReversed(&cPlay, cbFrame);
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
@@ -1353,7 +1353,7 @@ public:
         {
             auto w = PreDeserialize(rb, Ctx);
             cPlay = 0;
-            w.ReadRev(&cPlay, std::min(w.GetRemainingSize(), (size_t)8));
+            w.ReadReversed(&cPlay, std::min(w.GetRemainingSize(), (size_t)8));
             return PostDeserialize(rb, Ctx);
         }
 
@@ -1380,7 +1380,7 @@ public:
             const size_t cbFrame = rsEmail.Size() + 1 + 1 + cbPlayCount;
             auto w = PreSerialize(rb, Ctx, cbFrame);
             w << rsEmail << byRating;
-            w.WriteRev(&cPlay, cbPlayCount);
+            w.WriteReversed(&cPlay, cbPlayCount);
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
@@ -1389,7 +1389,7 @@ public:
             auto w = PreDeserialize(rb, Ctx);
             w >> rsEmail >> byRating;
             cPlay = 0;
-            w.ReadRev(&cPlay, std::min(w.GetRemainingSize(), (size_t)8));
+            w.ReadReversed(&cPlay, std::min(w.GetRemainingSize(), (size_t)8));
             return PostDeserialize(rb, Ctx);
         }
         catch (const CMemoryReader::Xpt&)
@@ -1412,8 +1412,8 @@ public:
                 return Result::ReservedData;
             constexpr size_t cbFrame = 8;
             auto w = PreSerialize(rb, Ctx, cbFrame);
-            w.WriteRev(&cbBuf, 3) << b;
-            w.WriteRev(ocbNextTag);
+            w.WriteReversed(&cbBuf, 3) << b;
+            w.WriteReversed(ocbNextTag);
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
@@ -1421,10 +1421,10 @@ public:
         {
             auto w = PreDeserialize(rb, Ctx);
             cbBuf = 0;
-            w.ReadRev(&cbBuf, 3) >> b;
+            w.ReadReversed(&cbBuf, 3) >> b;
             if (b != 0 && b != 1)
                 return Result::ReservedData;
-            w.ReadRev(ocbNextTag);
+            w.ReadReversed(ocbNextTag);
             return PostDeserialize(rb, Ctx);
         }
         catch (const CMemoryReader::Xpt&)
@@ -1449,7 +1449,7 @@ public:
             const size_t cbFrame = rsOwnerId.Size() + 1 + 4 + rbData.Size();
             auto w = PreSerialize(rb, Ctx, cbFrame);
             w << rsOwnerId;
-            w.WriteRev(usPreviewBegin).WriteRev(usPreviewLength);
+            w.WriteReversed(usPreviewBegin).WriteReversed(usPreviewLength);
             w << rbData;
             return PostSerialize(rb, Ctx, cbFrame);
         }
@@ -1458,7 +1458,7 @@ public:
         {
             auto w = PreDeserialize(rb, Ctx);
             w >> rsOwnerId;
-            w.ReadRev(usPreviewBegin).ReadRev(usPreviewLength);
+            w.ReadReversed(usPreviewBegin).ReadReversed(usPreviewLength);
             rbData.Assign(w.Data(), w.GetRemainingSize());
             return PostDeserialize(rb, Ctx);
         }
@@ -1513,7 +1513,7 @@ public:
             constexpr size_t cbFrame = 5;
             auto w = PreSerialize(rb, Ctx, cbFrame);
             w << eTimestamp;
-            w.WriteRev(uTime);
+            w.WriteReversed(uTime);
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
@@ -1523,7 +1523,7 @@ public:
             w >> eTimestamp;
             if (eTimestamp >= TimestampFmt::Max)
                 return Result::Enum;
-            w.ReadRev(uTime);
+            w.ReadReversed(uTime);
             return PostDeserialize(rb, Ctx);
         }
         catch (const CMemoryReader::Xpt&)
@@ -1777,14 +1777,14 @@ public:
 
             constexpr size_t cbFrame = 4;
             auto w = PreSerialize(rb, Ctx, cbFrame);
-            w.WriteRev(ocbNextTag);
+            w.WriteReversed(ocbNextTag);
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
         Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
-            w.ReadRev(ocbNextTag);
+            w.ReadReversed(ocbNextTag);
             return PostDeserialize(rb, Ctx);
         }
         catch (const CMemoryReader::Xpt&)
@@ -1811,23 +1811,23 @@ public:
 
             const size_t cbFrame = 11 + vIndex.size() * 2;
             auto w = PreSerialize(rb, Ctx, cbFrame);
-            w.WriteRev(S).WriteRev(L).WriteRev(N) << b;
+            w.WriteReversed(S).WriteReversed(L).WriteReversed(N) << b;
             for (const auto e : vIndex)
-                w.WriteRev(&e, b / 8);
+                w.WriteReversed(&e, b / 8);
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
         Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
-            w.ReadRev(S).ReadRev(L).ReadRev(N) >> b;
+            w.ReadReversed(S).ReadReversed(L).ReadReversed(N) >> b;
             if (N != 8 && N != 16)
                 return Result::Value;
             vIndex.clear();
             while (!w.IsEnd())
             {
                 USHORT us{};
-                w.ReadRev(&us, N / 8);
+                w.ReadReversed(&us, N / 8);
                 vIndex.push_back(us);
             }
             return PostDeserialize(rb, Ctx);
@@ -1981,26 +1981,26 @@ public:
 
             auto w = PreSerialize(rb, Ctx, cbFrame);
             w << byCtrl << cBits;
-            w.WriteRev(&VolRight, cbField);
-            w.WriteRev(&VolLeft, cbField);
-            w.WriteRev(&PeakRight, cbField);
-            w.WriteRev(&PeakLeft, cbField);
+            w.WriteReversed(&VolRight, cbField);
+            w.WriteReversed(&VolLeft, cbField);
+            w.WriteReversed(&PeakRight, cbField);
+            w.WriteReversed(&PeakLeft, cbField);
             if (bHasBack)
             {
-                w.WriteRev(&VolRightBack, cbField);
-                w.WriteRev(&VolLeftBack, cbField);
-                w.WriteRev(&PeakRightBack, cbField);
-                w.WriteRev(&PeakLeftBack, cbField);
+                w.WriteReversed(&VolRightBack, cbField);
+                w.WriteReversed(&VolLeftBack, cbField);
+                w.WriteReversed(&PeakRightBack, cbField);
+                w.WriteReversed(&PeakLeftBack, cbField);
             }
             if (bHasCenter)
             {
-                w.WriteRev(&VolCenter, cbField);
-                w.WriteRev(&PeakCenter, cbField);
+                w.WriteReversed(&VolCenter, cbField);
+                w.WriteReversed(&PeakCenter, cbField);
             }
             if (bHasBass)
             {
-                w.WriteRev(&VolBass, cbField);
-                w.WriteRev(&PeakBass, cbField);
+                w.WriteReversed(&VolBass, cbField);
+                w.WriteReversed(&PeakBass, cbField);
             }
             return PostSerialize(rb, Ctx, cbFrame);
         }
@@ -2019,32 +2019,32 @@ public:
             VolCenter = PeakCenter = VolBass = PeakBass = 0;
 
             const size_t cbField = DivUpper(cBits, 8);
-            w.ReadRev(&VolRight, cbField);
-            w.ReadRev(&VolLeft, cbField);
+            w.ReadReversed(&VolRight, cbField);
+            w.ReadReversed(&VolLeft, cbField);
             if (!w.IsEnd())
             {
-                w.ReadRev(&PeakRight, cbField);
-                w.ReadRev(&PeakLeft, cbField);
+                w.ReadReversed(&PeakRight, cbField);
+                w.ReadReversed(&PeakLeft, cbField);
             }
             if (!w.IsEnd())
             {
                 bHasBack = TRUE;
-                w.ReadRev(&VolRightBack, cbField);
-                w.ReadRev(&VolLeftBack, cbField);
-                w.ReadRev(&PeakRightBack, cbField);
-                w.ReadRev(&PeakLeftBack, cbField);
+                w.ReadReversed(&VolRightBack, cbField);
+                w.ReadReversed(&VolLeftBack, cbField);
+                w.ReadReversed(&PeakRightBack, cbField);
+                w.ReadReversed(&PeakLeftBack, cbField);
             }
             if (!w.IsEnd())
             {
                 bHasCenter = TRUE;
-                w.ReadRev(&VolCenter, cbField);
-                w.ReadRev(&PeakCenter, cbField);
+                w.ReadReversed(&VolCenter, cbField);
+                w.ReadReversed(&PeakCenter, cbField);
             }
             if (!w.IsEnd())
             {
                 bHasBass = TRUE;
-                w.ReadRev(&VolBass, cbField);
-                w.ReadRev(&PeakBass, cbField);
+                w.ReadReversed(&VolBass, cbField);
+                w.ReadReversed(&PeakBass, cbField);
             }
             return PostDeserialize(rb, Ctx);
         }
@@ -2081,7 +2081,7 @@ public:
                 const auto us = (e.usFreq & 0b0111'1111) |
                     ((e.llAdjust >= 0) ? 0b1000'0000 : 0);
                 const auto ull = Abs(e.llAdjust);
-                w.WriteRev(&us, 2).WriteRev(&ull, cbField);
+                w.WriteReversed(&us, 2).WriteReversed(&ull, cbField);
             }
             return PostSerialize(rb, Ctx, cbFrame);
         }
@@ -2098,8 +2098,8 @@ public:
             {
                 auto& e = vAdjust.emplace_back();
                 USHORT us{};
-                w.ReadRev(&us, 2);
-                w.ReadRev(&e.llAdjust, cbField);
+                w.ReadReversed(&us, 2);
+                w.ReadReversed(&e.llAdjust, cbField);
                 e.usFreq = us & 0b0111'1111;
                 if (us & 0b1000'0000)
                     e.llAdjust = -e.llAdjust;
@@ -2213,14 +2213,14 @@ public:
 
             const size_t cbFrame = 4 + 2 + 2;
             auto w = PreSerialize(rb, Ctx, cbFrame);
-            w.WriteRev(ulPeak).WriteRev(usTrackGain).WriteRev(usAlbumGain);
+            w.WriteReversed(ulPeak).WriteReversed(usTrackGain).WriteReversed(usAlbumGain);
             return PostSerialize(rb, Ctx, cbFrame);
         }
 
         Result Deserialize(CByteBuffer& rb, const SERIAL_CTX& Ctx) noexcept override try
         {
             auto w = PreDeserialize(rb, Ctx);
-            w.ReadRev(ulPeak).ReadRev(usTrackGain).ReadRev(usAlbumGain);
+            w.ReadReversed(ulPeak).ReadReversed(usTrackGain).ReadReversed(usAlbumGain);
             return PostDeserialize(rb, Ctx);
         }
         catch (const CMemoryReader::Xpt&)

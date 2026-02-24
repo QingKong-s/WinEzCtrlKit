@@ -67,7 +67,7 @@ namespace Priv
             m_pMem += cb;
             return *this;
         }
-        EckInline auto& WriteRev(_In_reads_bytes_(cb) PCVOID pSrc, size_t cb)
+        EckInline auto& WriteReversed(_In_reads_bytes_(cb) PCVOID pSrc, size_t cb)
         {
             CheckRange(m_pMem + cb);
             const auto p = (PCBYTE)pSrc;
@@ -80,7 +80,7 @@ namespace Priv
         EckInline auto& operator<<(const T& Data) { return Write(&Data, sizeof(T)); }
 
         template<class T>
-        EckInline auto& WriteRev(const T& Data) { return WriteRev(&Data, sizeof(T)); }
+        EckInline auto& WriteReversed(const T& Data) { return WriteReversed(&Data, sizeof(T)); }
 
         template<class T, class U>
         EckInline auto& operator<<(const std::basic_string<T, U>& Data)
@@ -138,7 +138,7 @@ namespace Priv
             return *this;
         }
 
-        EckInline auto& ReadRev(_Out_writes_bytes_all_(cb) void* pDst, size_t cb)
+        EckInline auto& ReadReversed(_Out_writes_bytes_all_(cb) void* pDst, size_t cb)
         {
             this->CheckRange(this->m_pMem + cb);
             const auto p = (BYTE*)pDst;
@@ -151,7 +151,7 @@ namespace Priv
         EckInline auto& operator>>(_Out_ T& Data) { return Read(&Data, sizeof(Data)); }
 
         template<class T>
-        EckInline auto& ReadRev(_Out_ T& Data) { return ReadRev(&Data, sizeof(T)); }
+        EckInline auto& ReadReversed(_Out_ T& Data) { return ReadReversed(&Data, sizeof(T)); }
 
         template<class T, class U, class V>
         EckInline auto& operator>>(CStringT<T, U, V>& x)

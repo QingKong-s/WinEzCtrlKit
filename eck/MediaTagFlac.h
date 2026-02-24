@@ -74,23 +74,23 @@ private:
         CMemoryWalker r(rb.Data(), rb.Size());
         UINT t;
         UINT uType;
-        r.ReadRev(uType);// 图片类型
+        r.ReadReversed(uType);// 图片类型
         if (uType < (BYTE)PicType::PrivBegin || uType >= (BYTE)PicType::PrivEnd)
             Pic.eType = PicType::Invalid;
         else
             Pic.eType = (PicType)uType;
 
-        r.ReadRev(t);// 长度
+        r.ReadReversed(t);// 长度
         Pic.rsMime.ReSize(t);
         r.Read(Pic.rsMime.Data(), t);// MIME类型字符串
 
-        r.ReadRev(t);// 描述字符串长度
+        r.ReadReversed(t);// 描述字符串长度
         Pic.rsDesc = StrX2W((PCCH)r.Data(), (int)t, CP_UTF8);
         r += t;
 
-        r.ReadRev(Pic.cx).ReadRev(Pic.cy).ReadRev(Pic.bpp).ReadRev(Pic.cColor);
+        r.ReadReversed(Pic.cx).ReadReversed(Pic.cy).ReadReversed(Pic.bpp).ReadReversed(Pic.cColor);
 
-        r.ReadRev(t);// 图片数据长度
+        r.ReadReversed(t);// 图片数据长度
 
         rb.Erase(0, r.Data() - rb.Data());
         Pic.rbData = std::move(rb);
@@ -455,9 +455,9 @@ public:
             case 0:// 流信息
             {
                 m_Stream
-                    .ReadRev(&m_si.cBlockSampleMin, 2)
-                    .ReadRev(&m_si.cBlockSampleMax, 2)
-                    .ReadRev(&m_si.cbMinFrame, 3)
+                    .ReadReversed(&m_si.cBlockSampleMin, 2)
+                    .ReadReversed(&m_si.cBlockSampleMax, 2)
+                    .ReadReversed(&m_si.cbMinFrame, 3)
                     .Read(&m_si.cbMaxFrame, 3);
                 ULONGLONG ull;
                 m_Stream >> ull;

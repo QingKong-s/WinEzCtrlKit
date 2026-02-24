@@ -489,7 +489,7 @@ public:
             wt += 8;// 跳过PNG签名
             EckLoop()
             {
-                wt.ReadRev(cbChunkData) >> chChunkId;
+                wt.ReadReversed(cbChunkData) >> chChunkId;
                 if (memcmp(chChunkId, IdIHDR, 4) == 0)
                 {
                     if (bFirstFrame)// 复制第一帧IHDR到流首部

@@ -174,7 +174,7 @@ public:
         return S_OK;
     }
 
-    HRESULT STDMETHODCALLTYPE MemGetPtr(void** ppvData, SIZE_T* pcbData)
+    HRESULT STDMETHODCALLTYPE MemGetPointer(void** ppvData, SIZE_T* pcbData)
     {
         *ppvData = (void*)m_pMem;
         *pcbData = m_cbSize;

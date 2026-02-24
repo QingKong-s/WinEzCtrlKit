@@ -15,7 +15,7 @@ struct __declspec(uuid("B23501EB-3F09-4A54-94D4-F2054F17A381"))
     STDMETHOD(MemUnlock)() = 0;
 
     // 获取对象关联的内存地址和大小，当修改对象后返回的信息可能失效
-    STDMETHOD(MemGetPtr)(void** ppData, SIZE_T* pSize) = 0;
+    STDMETHOD(MemGetPointer)(void** ppData, SIZE_T* pSize) = 0;
 
     // 是否已锁定
     STDMETHOD(MemIsLocked)(BOOL* pIsLocked) = 0;

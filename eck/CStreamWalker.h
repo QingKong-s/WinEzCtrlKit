@@ -86,7 +86,7 @@ public:
         return *this;
     }
     EckInline CStreamWalker& operator>>(auto& Data) { return Read(&Data, sizeof(Data)); }
-    CStreamWalker& ReadRev(void* pDst, size_t cb)
+    CStreamWalker& ReadReversed(void* pDst, size_t cb)
     {
         Read(pDst, cb);
         ReverseByteOrder((BYTE*)pDst, cb);
@@ -174,7 +174,7 @@ public:
         {
             void* pData;
             size_t cbData;
-            if (SUCCEEDED(pMem->MemGetPtr(&pData, &cbData)))// 支持取指针
+            if (SUCCEEDED(pMem->MemGetPointer(&pData, &cbData)))// 支持取指针
             {
                 memmove((BYTE*)pData + posDst, (PCBYTE)pData + posSrc, cbSize);
                 return;
