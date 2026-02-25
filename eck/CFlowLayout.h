@@ -27,18 +27,21 @@ protected:
     };
 
     CTrivialBuffer<ITEM> m_vItem{};
+    TLytCoord m_dTemp{};
 
-    void OnAddObject(ITEM& e) noexcept
+    static void UpdateObjectIdealSize(ITEM& e) noexcept
     {
-        if (e.uFlags & LF_FIX)
+        LYTSIZE sizeIdeal{};
+        const auto bHasIdealSize =
+            (e.uFlags & LF_IDEAL) ?
+            e.pObject->LoGetIdealSize(sizeIdeal) :
+            FALSE;
+        if (bHasIdealSize)
         {
-            const auto size = e.pObject->LoGetSize();
-            e.cx = size.cx;
-            e.cy = size.cy;
-            if (e.uFlags & LF_FIX_WIDTH)
-                OnAddFixedWidthObject(e);
-            if (e.uFlags & LF_FIX_HEIGHT)
-                OnAddFixedHeightObject(e);
+            if (e.uFlags & LF_IDEAL_WIDTH)
+                e.cx = sizeIdeal.cx + e.cxExtra;
+            if (e.uFlags & LF_IDEAL_HEIGHT)
+                e.cy = sizeIdeal.cy + e.cyExtra;
         }
     }
 public:
@@ -71,24 +74,7 @@ public:
         m_vItem.Clear();
     }
 
-    void LobRefresh() noexcept override
-    {
-        for (auto& e : m_vItem)
-            OnAddObject(e);
-    }
-
     size_t LobGetObjectCount() const noexcept override { return m_vItem.Size(); }
-
-    size_t Add(ILayout* pObject, const LYTMARGINS& Margin = {},
-        const UINT uFlags = 0) noexcept
-    {
-        auto& e = m_vItem.PushBack();
-        e.pObject = pObject;
-        e.Margin = Margin;
-        e.uFlags = uFlags;
-        OnAddObject(e);
-        return m_vItem.Size() - 1;
-    }
 
     EckInlineNdCe auto& GetList() noexcept { return m_vItem; }
     EckInlineNdCe auto& GetList() const noexcept { return m_vItem; }
@@ -107,6 +93,23 @@ private:
             yLine, cyLineMax, e, e.cy);
         ArgMoveObject(e, { e.xy, y, e.cx, e.cy });
     }
+
+    void OnAddObject(ITEM& e) noexcept
+    {
+        if (e.uFlags & LF_FIX)
+        {
+            const auto size = e.pObject->LoGetSize();
+            if (e.uFlags & LF_FIX_WIDTH)
+                e.cx = size.cx;
+            if (e.uFlags & LF_FIX_HEIGHT)
+                e.cy = size.cy;
+        }
+        UpdateObjectIdealSize(e);
+        // 更新尺寸和理想尺寸
+        m_dTemp += (e.cx + e.Margin.l + e.Margin.r);
+        m_cxIdeal = m_cx = std::max(m_cx, m_dTemp);
+        m_cyIdeal = m_cy = std::max(m_cy, e.cy + e.Margin.t + e.Margin.b);
+    }
 public:
     void LoCommit() noexcept override
     {
@@ -117,17 +120,6 @@ public:
         EckCounter(m_vItem.Size(), i)
         {
             auto& e = m_vItem[i];
-
-            LYTSIZE sizeIdeal{};
-            if (e.uFlags & LF_IDEAL)
-            {
-                e.pObject->LoGetIdealSize(sizeIdeal);
-                if (e.uFlags & LF_IDEAL_WIDTH)
-                    e.cx = sizeIdeal.cx;
-                if (e.uFlags & LF_IDEAL_HEIGHT)
-                    e.cy = sizeIdeal.cy;
-            }
-
             const auto xt = x + e.Margin.l + e.Margin.r + e.cx;
             if (!(e.uFlags & FLF_BREAKLINE) &&
                 (xt <= m_x + m_cx || idxInLine == 0/*不管有没有空间，至少要放下一个控件*/))
@@ -161,6 +153,25 @@ public:
         for (size_t j = m_vItem.Size() - idxInLine; j < m_vItem.Size(); ++j)
             ArrangeObject(m_vItem[j], y, cyLineMax);
     }
+
+    void LobRefresh() noexcept override
+    {
+        m_cxIdeal = m_cyIdeal = m_dTemp = 0;
+        for (auto& e : m_vItem)
+        {
+            UpdateObjectIdealSize(e);
+            m_dTemp += (e.cx + e.Margin.l + e.Margin.r);
+            m_cxIdeal = std::max(m_cxIdeal, m_dTemp);
+            m_cyIdeal = std::max(m_cyIdeal, e.cy + e.Margin.t + e.Margin.b);
+        }
+    }
+
+    void LobAddObject(const LOB_PARAM& Param) noexcept override
+    {
+        auto& e = m_vItem.PushBack();
+        AssignItem(e, Param);
+        OnAddObject(e);
+    }
 };
 
 class CFlowLayoutV : public CFlowLayoutBase
@@ -176,6 +187,23 @@ private:
             xLine, cxLineMax, e, e.cx);
         ArgMoveObject(e, { x, e.xy, e.cx, e.cy });
     }
+
+    void OnAddObject(ITEM& e) noexcept
+    {
+        if (e.uFlags & LF_FIX)
+        {
+            const auto size = e.pObject->LoGetSize();
+            if (e.uFlags & LF_FIX_WIDTH)
+                e.cx = size.cx;
+            if (e.uFlags & LF_FIX_HEIGHT)
+                e.cy = size.cy;
+        }
+        UpdateObjectIdealSize(e);
+        // 更新尺寸和理想尺寸
+        m_dTemp += (e.cy + e.Margin.t + e.Margin.b);
+        m_cyIdeal = m_cy = std::max(m_cy, m_dTemp);
+        m_cxIdeal = m_cx = std::max(m_cx, e.cx + e.Margin.l + e.Margin.r);
+    }
 public:
     void LoCommit() noexcept override
     {
@@ -186,17 +214,6 @@ public:
         EckCounter(m_vItem.Size(), i)
         {
             auto& e = m_vItem[i];
-
-            LYTSIZE sizeIdeal{};
-            if (e.uFlags & LF_IDEAL)
-            {
-                e.pObject->LoGetIdealSize(sizeIdeal);
-                if (e.uFlags & LF_IDEAL_WIDTH)
-                    e.cx = sizeIdeal.cx;
-                if (e.uFlags & LF_IDEAL_HEIGHT)
-                    e.cy = sizeIdeal.cy;
-            }
-
             const auto yt = y + e.Margin.t + e.Margin.b + e.cy;
             if (!(e.uFlags & FLF_BREAKLINE) &&
                 (yt <= m_y + m_cy || idxInLine == 0/*不管有没有空间，至少要放下一个控件*/))
@@ -229,6 +246,25 @@ public:
         }
         for (size_t j = m_vItem.Size() - idxInLine; j < m_vItem.Size(); ++j)
             ArrangeObject(m_vItem[j], x, cxLineMax);
+    }
+
+    void LobRefresh() noexcept override
+    {
+        m_cxIdeal = m_cyIdeal = m_dTemp = 0;
+        for (auto& e : m_vItem)
+        {
+            UpdateObjectIdealSize(e);
+            m_dTemp += (e.cy + e.Margin.t + e.Margin.b);
+            m_cyIdeal = std::max(m_cyIdeal, m_dTemp);
+            m_cxIdeal = std::max(m_cxIdeal, e.cx + e.Margin.l + e.Margin.r);
+        }
+    }
+
+    void LobAddObject(const LOB_PARAM& Param) noexcept override
+    {
+        auto& e = m_vItem.PushBack();
+        AssignItem(e, Param);
+        OnAddObject(e);
     }
 };
 ECK_NAMESPACE_END

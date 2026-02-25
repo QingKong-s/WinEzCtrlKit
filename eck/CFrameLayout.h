@@ -18,18 +18,35 @@ private:
 
     CTrivialBuffer<ITEM> m_vItem{};
 
+    static void UpdateObjectIdealSize(ITEM& e) noexcept
+    {
+        LYTSIZE sizeIdeal{};
+        const auto bHasIdealSize =
+            (e.uFlags & LF_IDEAL) ?
+            e.pObject->LoGetIdealSize(sizeIdeal) :
+            FALSE;
+        if (bHasIdealSize)
+        {
+            if (e.uFlags & LF_IDEAL_WIDTH)
+                e.cx = sizeIdeal.cx + e.cxExtra;
+            if (e.uFlags & LF_IDEAL_HEIGHT)
+                e.cy = sizeIdeal.cy + e.cyExtra;
+        }
+    }
+
     void OnAddObject(ITEM& e) noexcept
     {
         if (e.uFlags & LF_FIX)
         {
             const auto size = e.pObject->LoGetSize();
-            e.cx = size.cx;
-            e.cy = size.cy;
             if (e.uFlags & LF_FIX_WIDTH)
-                OnAddFixedWidthObject(e);
+                e.cx = size.cx;
             if (e.uFlags & LF_FIX_HEIGHT)
-                OnAddFixedHeightObject(e);
+                e.cy = size.cy;
         }
+        UpdateObjectIdealSize(e);
+        m_cxIdeal = m_cx = std::max(m_cx, e.cx + e.Margin.l + e.Margin.r);
+        m_cyIdeal = m_cy = std::max(m_cy, e.cy + e.Margin.t + e.Margin.b);
     }
 public:
     void LoShow(BOOL bShow) noexcept override
@@ -68,6 +85,7 @@ public:
 
     void LobRefresh() noexcept override
     {
+        m_cx = m_cy = m_cxIdeal = m_cyIdeal = 0;
         for (auto& e : m_vItem)
             OnAddObject(e);
     }
@@ -80,14 +98,22 @@ public:
 
     size_t LobGetObjectCount() const noexcept override { return m_vItem.Size(); }
 
-    size_t Add(ILayout* pCtrl, const LYTMARGINS& Margin = {}, UINT uFlags = 0u) noexcept
+    void LobUpdateIdealSize() noexcept override
+    {
+        m_cxIdeal = m_cyIdeal = 0;
+        for (auto& e : m_vItem)
+        {
+            UpdateObjectIdealSize(e);
+            m_cxIdeal = std::max(m_cxIdeal, e.cx + e.Margin.l + e.Margin.r);
+            m_cyIdeal = std::max(m_cyIdeal, e.cy + e.Margin.t + e.Margin.b);
+        }
+    }
+
+    void LobAddObject(const LOB_PARAM& Param) noexcept override
     {
         auto& e = m_vItem.PushBack();
-        e.pObject = pCtrl;
-        e.Margin = Margin;
-        e.uFlags = uFlags;
+        AssignItem(e, Param);
         OnAddObject(e);
-        return m_vItem.Size() - 1;
     }
 
     void ShowFrame(int idx) noexcept

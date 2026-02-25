@@ -8,6 +8,7 @@
 #include "eck\CEditExt.h"
 #include "eck\WinUiBuilder.h"
 #include "eck\CommDlg.h"
+#include "eck\CLinearLayout.h"
 
 using eck::PCVOID;
 using eck::PCBYTE;

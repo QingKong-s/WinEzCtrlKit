@@ -46,6 +46,9 @@ LRESULT CWndMain::OnCreate(HWND hWnd, CREATESTRUCT* pcs)
                 Ui::Style{ Style },
                 Ui::Font{ m_hFont },
             },
+            Ui::Local{
+                Ui::Margin{ .b = 10 },
+            },
 
             Ui::Window{
                 m_EDUserName,
@@ -73,11 +76,14 @@ LRESULT CWndMain::OnCreate(HWND hWnd, CREATESTRUCT* pcs)
 
                 Ui::Window{
                     m_CBRememberPassword, L"记住密码",
-                    Ui::Flags{ eck::LF_IDEAL },
+                    Ui::Flags{ eck::LF_IDEAL, Ui::Replace },
+                    Ui::Weight{ 1 },
+                    Ui::Style{ BS_AUTOCHECKBOX },
                 },
                 Ui::Window{
                     m_CBLoginAuto, L"自动登录",
                     Ui::Flags{ eck::LF_IDEAL },
+                    Ui::Style{ BS_AUTOCHECKBOX },
                 },
             },
             Ui::Window{

@@ -100,8 +100,10 @@ private:
             FALSE;
         if (bHasIdealSize)
         {
-            e.cx = sizeIdeal.cx;
-            e.cy = sizeIdeal.cy;
+            if (e.uFlags & (LF_FILL_WIDTH | LF_IDEAL_WIDTH))
+                e.cx = sizeIdeal.cx + e.cxExtra;
+            if (e.uFlags & (LF_FILL_HEIGHT | LF_IDEAL_HEIGHT))
+                e.cy = sizeIdeal.cy + e.cyExtra;
             if (e.uFlags & LF_IDEAL_HEIGHT)
                 m_dIdealSum += (e.cy + e.Margin.t + e.Margin.b);
         }
@@ -113,27 +115,19 @@ private:
         if (e.uFlags & (LF_FIX | LF_SCALE))
         {
             const auto size = e.pObject->LoGetSize();
-            e.cx = size.cx;
-            e.cy = size.cy;
+            if (e.uFlags & (LF_FIX_WIDTH | LF_SCALE))
+                e.cx = size.cx;
+            if (e.uFlags & (LF_FIX_HEIGHT | LF_SCALE))
+                e.cy = size.cy;
             if (e.uFlags & LF_FIX_HEIGHT)
                 m_dFixedSum += size.cy;
         }
         // 需要理想尺寸
         UpdateObjectIdealSize(e);
         // 更新尺寸和理想尺寸
-        if (e.uFlags & (LF_FIX_WIDTH | LF_FILL_WIDTH | LF_IDEAL_WIDTH))
-        {
-            const auto d = e.cx + e.Margin.l + e.Margin.r;
-            if (d > m_cx)
-                m_cx = d;
-            m_cxIdeal = m_cx;
-        }
-        if (e.uFlags & (LF_FIX_HEIGHT | LF_FILL_HEIGHT | LF_IDEAL_HEIGHT))
-        {
-            const auto d = e.cy + e.Margin.t + e.Margin.b;
-            m_cy += d;
-            m_cyIdeal = m_cy;
-        }
+        m_cxIdeal = m_cx = std::max(m_cx, e.cx + e.Margin.l + e.Margin.r);
+        m_cy += (e.cy + e.Margin.t + e.Margin.b);
+        m_cyIdeal = m_cy;
         // 更新固定尺寸和与权重
         m_dFixedSum += (e.Margin.t + e.Margin.b);
         if (!(e.uFlags & (LF_FIX_HEIGHT | LF_IDEAL_HEIGHT)))
@@ -245,24 +239,17 @@ public:
         {
             UpdateObjectIdealSize(e);
             m_cyIdeal += (e.cy + e.Margin.t + e.Margin.b);
-            const auto cx = e.cx + e.Margin.l + e.Margin.r;
-            m_cxIdeal = std::max(m_cxIdeal, cx);
+            m_cxIdeal = std::max(m_cxIdeal, e.cx + e.Margin.l + e.Margin.r);
         }
     }
 
-    size_t Add(ILayout* pObject, const LYTMARGINS& Margin = {},
-        UINT uFlags = 0u, UINT uWeight = 0u) noexcept
+    void LobAddObject(const LOB_PARAM& Param) noexcept override
     {
-        EckAssert(LfValidateFlags(uFlags));
+        EckAssert(LfValidateFlags(Param.uFlags));
         auto& e = m_vItem.PushBack();
-        e.pObject = pObject;
-        e.Margin = Margin;
-        e.uFlags = uFlags;
-        e.uWeight = uWeight;
+        AssignItem(e, Param);
+        e.uWeight = Param.uWeight;
         OnAddObject(e);
-        if (m_dFixedSum > m_cy)
-            m_cy = m_dFixedSum;
-        return m_vItem.Size() - 1;
     }
 };
 
@@ -295,8 +282,10 @@ private:
             FALSE;
         if (bHasIdealSize)
         {
-            e.cx = sizeIdeal.cx;
-            e.cy = sizeIdeal.cy;
+            if (e.uFlags & (LF_FILL_WIDTH | LF_IDEAL_WIDTH))
+                e.cx = sizeIdeal.cx + e.cxExtra;
+            if (e.uFlags & (LF_FILL_HEIGHT | LF_IDEAL_HEIGHT))
+                e.cy = sizeIdeal.cy + e.cyExtra;
             if (e.uFlags & LF_IDEAL_WIDTH)
                 m_dIdealSum += (e.cx + e.Margin.l + e.Margin.r);
         }
@@ -308,27 +297,19 @@ private:
         if (e.uFlags & (LF_FIX | LF_SCALE))
         {
             const auto size = e.pObject->LoGetSize();
-            e.cx = size.cx;
-            e.cy = size.cy;
+            if (e.uFlags & (LF_FIX_WIDTH | LF_SCALE))
+                e.cx = size.cx;
+            if (e.uFlags & (LF_FIX_HEIGHT | LF_SCALE))
+                e.cy = size.cy;
             if (e.uFlags & LF_FIX_WIDTH)
                 m_dFixedSum += size.cx;
         }
         // 需要理想尺寸
         UpdateObjectIdealSize(e);
         // 更新尺寸和理想尺寸
-        if (e.uFlags & (LF_FIX_WIDTH | LF_FILL_WIDTH | LF_IDEAL_WIDTH))
-        {
-            const auto d = e.cx + e.Margin.l + e.Margin.r;
-            m_cx += d;
-            m_cxIdeal = m_cx;
-        }
-        if (e.uFlags & (LF_FIX_HEIGHT | LF_FILL_HEIGHT | LF_IDEAL_HEIGHT))
-        {
-            const auto d = e.cy + e.Margin.t + e.Margin.b;
-            if (d > m_cy)
-                m_cy = d;
-            m_cyIdeal = m_cy;
-        }
+        m_cx += (e.cx + e.Margin.l + e.Margin.r);
+        m_cxIdeal = m_cx;
+        m_cyIdeal = m_cy = std::max(m_cy, e.cy + e.Margin.t + e.Margin.b);
         // 更新固定尺寸和与权重
         m_dFixedSum += (e.Margin.l + e.Margin.r);
         if (!(e.uFlags & (LF_FIX_WIDTH | LF_IDEAL_WIDTH)))
@@ -345,7 +326,7 @@ public:
 
         TLytCoord dLeave = m_cx - m_dFixedSum - m_dIdealSum;
         BOOL bPrepared{};
-        
+
         UINT wSum = m_uWeightSum;
         UINT wShrinkableSum{};// 可收缩对象的权重和
         EckLoop()
@@ -440,24 +421,17 @@ public:
         {
             UpdateObjectIdealSize(e);
             m_cxIdeal += (e.cx + e.Margin.l + e.Margin.r);
-            const auto cy = e.cy + e.Margin.t + e.Margin.b;
-            m_cyIdeal = std::max(m_cyIdeal, cy);
+            m_cyIdeal = std::max(m_cyIdeal, e.cy + e.Margin.t + e.Margin.b);
         }
     }
 
-    size_t Add(ILayout* pObject, const LYTMARGINS& Margin = {},
-        UINT uFlags = 0u, UINT uWeight = 0u) noexcept
+    void LobAddObject(const LOB_PARAM& Param) noexcept override
     {
-        EckAssert(LfValidateFlags(uFlags));
+        EckAssert(LfValidateFlags(Param.uFlags));
         auto& e = m_vItem.PushBack();
-        e.pObject = pObject;
-        e.Margin = Margin;
-        e.uFlags = uFlags;
-        e.uWeight = uWeight;
+        AssignItem(e, Param);
+        e.uWeight = Param.uWeight;
         OnAddObject(e);
-        if (m_dFixedSum > m_cx)
-            m_cx = m_dFixedSum;
-        return m_vItem.Size() - 1;
     }
 };
 ECK_NAMESPACE_END

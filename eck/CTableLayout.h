@@ -111,17 +111,31 @@ private:
     CTrivialBuffer<ITEM> m_vItem{};
     Priv::CTableManager m_Table{};
 
+    static void UpdateObjectIdealSize(ITEM& e) noexcept
+    {
+        LYTSIZE sizeIdeal{};
+        const auto bHasIdealSize =
+            (e.uFlags & LF_IDEAL) ?
+            e.pObject->LoGetIdealSize(sizeIdeal) :
+            FALSE;
+        if (bHasIdealSize)
+        {
+            if (e.uFlags & LF_IDEAL_WIDTH)
+                e.cx = sizeIdeal.cx + e.cxExtra;
+            if (e.uFlags & LF_IDEAL_HEIGHT)
+                e.cy = sizeIdeal.cy + e.cyExtra;
+        }
+    }
+
     void OnAddObject(ITEM& e) noexcept
     {
         if (e.uFlags & LF_FIX)
         {
             const auto size = e.pObject->LoGetSize();
-            e.cx = size.cx;
-            e.cy = size.cy;
             if (e.uFlags & LF_FIX_WIDTH)
-                OnAddFixedWidthObject(e);
+                e.cx = size.cx;
             if (e.uFlags & LF_FIX_HEIGHT)
-                OnAddFixedHeightObject(e);
+                e.cy = size.cy;
         }
     }
 public:
@@ -263,22 +277,17 @@ public:
 
     size_t LobGetObjectCount() const noexcept override { return m_vItem.Size(); }
 
-    size_t Add(ILayout* pObject, USHORT idxRow, USHORT idxCol,
-        const LYTMARGINS& Margin = {}, UINT uFlags = 0,
-        USHORT cRowSpan = 1, USHORT cColSpan = 1) noexcept
+    void LobUpdateIdealSize() noexcept override {}
+
+    void LobAddObject(const LOB_PARAM& Param) noexcept override
     {
-        EckAssert(cRowSpan && cColSpan);
-        EckAssert(LfValidateFlags(uFlags));
         auto& e = m_vItem.PushBack();
-        e.pObject = pObject;
-        e.Margin = Margin;
-        e.uFlags = uFlags;
-        e.idxRow = idxRow;
-        e.idxCol = idxCol;
-        e.cRowSpan = cRowSpan;
-        e.cColSpan = cColSpan;
+        AssignItem(e, Param);
+        e.idxRow =   Param.idxRow;
+        e.idxCol =   Param.idxCol;
+        e.cRowSpan = Param.cRowSpan;
+        e.cColSpan = Param.cColSpan;
         OnAddObject(e);
-        return m_vItem.Size() - 1;
     }
 
     EckInlineNdCe auto& GetList() noexcept { return m_vItem; }

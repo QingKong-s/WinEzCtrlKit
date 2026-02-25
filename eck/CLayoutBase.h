@@ -47,6 +47,24 @@ enum : UINT
     LF_IDEAL = LF_IDEAL_WIDTH | LF_IDEAL_HEIGHT,// 【复合】
 };
 
+struct LOB_PARAM
+{
+    ILayout* pObject;
+    LYTMARGINS Margins;
+    UINT uFlags;
+    TLytCoord cxExtra;
+    TLytCoord cyExtra;
+    union
+    {
+        UINT uWeight;
+        struct
+        {
+            USHORT idxRow, idxCol;
+            USHORT cRowSpan, cColSpan;
+        };
+    };
+};
+
 class __declspec(novtable) CLayoutBase : public ILayout
 {
 public:
@@ -57,8 +75,8 @@ protected:
         ILayout* pObject;
         LYTMARGINS Margin;
         UINT uFlags;
-        TLytCoord cx;
-        TLytCoord cy;
+        TLytCoord cx, cy;
+        TLytCoord cxExtra, cyExtra;// 仅IDEAL
     };
 
     TLytCoord m_x{}, m_y{}, m_cx{}, m_cy{};
@@ -225,17 +243,14 @@ protected:
         }
     }
 
-    void OnAddFixedWidthObject(ITEMBASE& e) noexcept
+    EckInlineCe static void AssignItem(_Out_ ITEMBASE& e, const LOB_PARAM& Param) noexcept
     {
-        const auto d = e.cx + e.Margin.l + e.Margin.r;
-        if (d > m_cx)
-            m_cx = d;
-    }
-    void OnAddFixedHeightObject(ITEMBASE& e) noexcept
-    {
-        const auto d = e.cy + e.Margin.t + e.Margin.b;
-        if (d > m_cy)
-            m_cy = d;
+        e.pObject = Param.pObject;
+        e.Margin = Param.Margins;
+        e.uFlags = Param.uFlags;
+        e.cx = e.cy = 0;
+        e.cxExtra = Param.cxExtra;
+        e.cyExtra = Param.cyExtra;
     }
 public:
     EckInlineNdCe static UINT Lf9Align(UINT u) noexcept { return GetLowNBits(u, 4); }
@@ -317,7 +332,9 @@ public:
 
     virtual size_t LobGetObjectCount() const noexcept = 0;
 
-    virtual void LobUpdateIdealSize() noexcept {}
+    virtual void LobUpdateIdealSize() noexcept = 0;
+
+    virtual void LobAddObject(const LOB_PARAM& Param) noexcept = 0;
 
     EckInline void Arrange(TLytCoord x, TLytCoord y, TLytCoord cx, TLytCoord cy) noexcept
     {

@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "CWindow.h"
-#include "CLinearLayout.h"
+#include "CLayoutBase.h"
 
 #define ECK_UIBUILDER_NAMESPACE_BEGIN   namespace UiBuilder {
 #define ECK_UIBUILDER_NAMESPACE_END     }
@@ -568,18 +568,14 @@ namespace Priv
             (TLytCoord)Param.Margin.b
         };
 
-        if (Parent.pLytParent->RttiIsKindOf<CLinearLayoutV>())
+        LOB_PARAM LobParam
         {
-            const auto pLyt = DbgDynamicCast<CLinearLayoutV*>(Parent.pLytParent);
-            pLyt->Add(pNewObject, m, Param.uFlags, Param.uWeight);
-        }
-        else if (Parent.pLytParent->RttiIsKindOf<CLinearLayoutH>())
-        {
-            const auto pLyt = DbgDynamicCast<CLinearLayoutH*>(Parent.pLytParent);
-            pLyt->Add(pNewObject, m, Param.uFlags, Param.uWeight);
-        }
-        else
-            return Result::InvalidLayout;
+            .pObject = pNewObject,
+            .Margins = m,
+            .uFlags = Param.uFlags,
+            .uWeight = Param.uWeight
+        };
+        Parent.pLytParent->LobAddObject(LobParam);
         return Result::Ok;
     }
 
