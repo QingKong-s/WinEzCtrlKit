@@ -519,7 +519,7 @@ public:
         }
         break;
         default:
-            EckDbgPrintWithPos(L"无法识别的位图格式");
+            EckDbgPrintWithLocation(L"无法识别的位图格式");
             return nullptr;
         }
         return m_hBitmap;

@@ -323,7 +323,7 @@ public:
                             bDelFont = TRUE;
 #ifdef _DEBUG
                         else
-                            EckDbgPrintFmt(L"CFontDialog::OnMessage: %s not found", pszBuf);
+                            EckDbgPrintFormat(L"CFontDialog::OnMessage: %s not found", pszBuf);
 #endif// _DEBUG
                     }
                 }

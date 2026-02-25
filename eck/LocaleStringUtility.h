@@ -35,7 +35,7 @@ EckInlineNd int LcswFindWorker(_In_reads_(Len) PCWCH Str, int Len,
     if (r == -1)
     {
         const auto dwErr = NaGetLastError();
-        EckDbgPrintFmt(L"FindNLSStringEx failed. Error code: %d", dwErr);
+        EckDbgPrintFormat(L"FindNLSStringEx failed. Error code: %d", dwErr);
         EckDbgPrintFormatMessage(dwErr);
         EckDbgBreak();
     }

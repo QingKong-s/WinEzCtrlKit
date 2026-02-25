@@ -345,7 +345,7 @@ static void UxfpOnThemeOpen(HWND hWnd, HTHEME hTheme, PCWSTR pszClassList) noexc
 {
     if (!hTheme)
         return;
-    /*EckDbgPrintFmt(L"UxfpOnThemeOpen: hWnd = %p, hTheme = %p, pszClassList = %s",
+    /*EckDbgPrintFormat(L"UxfpOnThemeOpen: hWnd = %p, hTheme = %p, pszClassList = %s",
         hWnd, hTheme, pszClassList);*/
     ThemeType eType;
     if (EckIsStartWithConstStringIW(pszClassList, L"Button"))
@@ -1980,7 +1980,7 @@ void ThreadUninitialize() noexcept
 #ifdef _DEBUG
     if (!p->hmWnd.empty())
     {
-        EckDbgPrintWithPos(L"** WARNING ** 反初始化线程上下文时发现窗口映射表不为空");
+        EckDbgPrintWithLocation(L"** WARNING ** 反初始化线程上下文时发现窗口映射表不为空");
         EckDbgBreak();
     }
 #endif // _DEBUG
@@ -2038,7 +2038,7 @@ void ThreadContext::WmRemove(HWND hWnd) noexcept
 #ifdef _DEBUG
     else
     {
-        EckDbgPrintFmt(L"** WARNING ** 从窗口映射中移除%p时失败。", hWnd);
+        EckDbgPrintFormat(L"** WARNING ** 从窗口映射中移除%p时失败。", hWnd);
         EckDbgBreak();
     }
 #endif
@@ -2216,7 +2216,7 @@ BOOL PreTranslateMessage(const MSG& Msg) noexcept
 
 #pragma region Dbg
 #ifdef _DEBUG
-void DbgPrintFmt(_Printf_format_string_ PCWSTR pszFormat, ...) noexcept
+void DbgPrintFormat(_Printf_format_string_ PCWSTR pszFormat, ...) noexcept
 {
     va_list vl;
     va_start(vl, pszFormat);
@@ -2225,7 +2225,7 @@ void DbgPrintFmt(_Printf_format_string_ PCWSTR pszFormat, ...) noexcept
     DbgPrint(rs);
     va_end(vl);
 }
-void DbgPrintFmt(_Printf_format_string_ PCSTR pszFormat, ...) noexcept
+void DbgPrintFormat(_Printf_format_string_ PCSTR pszFormat, ...) noexcept
 {
     va_list vl;
     va_start(vl, pszFormat);
@@ -2235,7 +2235,7 @@ void DbgPrintFmt(_Printf_format_string_ PCSTR pszFormat, ...) noexcept
     va_end(vl);
 }
 
-void DbgPrintWithPos(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg) noexcept
+void DbgPrintWithLocation(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg) noexcept
 {
     DbgPrint(Format(L"%s(%u) -> %s\n%s\n", pszFile, iLine, pszFunc, pszMsg));
 }

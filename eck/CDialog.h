@@ -93,7 +93,7 @@ public:
 #ifdef _DEBUG
         if (!pDlg)
         {
-            EckDbgPrintWithPos(L"** WARNING **  CDialog指针为NULL");
+            EckDbgPrintWithLocation(L"** WARNING **  CDialog指针为NULL");
             EckDbgBreak();
             return FALSE;
         }
@@ -159,14 +159,14 @@ public:
 
     virtual HWND CreateModelessDialog(HWND hParent, void* pData = nullptr) noexcept
     {
-        EckDbgPrintWithPos(L"** ERROR ** 未实现方法");
+        EckDbgPrintWithLocation(L"** ERROR ** 未实现方法");
         EckDbgBreak();
         abort();
     }
 
     virtual INT_PTR CreateModalDialog(HWND hParent, void* pData = nullptr) noexcept
     {
-        EckDbgPrintWithPos(L"** ERROR ** 未实现方法");
+        EckDbgPrintWithLocation(L"** ERROR ** 未实现方法");
         EckDbgBreak();
         abort();
     }

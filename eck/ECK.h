@@ -594,11 +594,6 @@ constexpr inline TChar EOL_CR{ '\r' };
 template<class TChar>
 constexpr inline TChar EOL_CRLF[]{ '\r','\n' };
 
-constexpr inline COLORREF c_crDarkWnd = RGB(32, 32, 32);
-constexpr inline COLORREF c_crDarkBtnFace = 0x383838;
-
-constexpr inline UINT Neg1U{ (UINT)-1 };
-
 constexpr inline LARGE_INTEGER LiZero{};
 constexpr inline ULARGE_INTEGER UliMax{ .QuadPart = 0xFFFF'FFFF'FFFF'FFFF };
 
@@ -617,10 +612,10 @@ constexpr inline BOOL Win64{ TRUE };
 constexpr inline BOOL Win64{ FALSE };
 #endif
 
-constexpr inline BLENDFUNCTION BlendFuncAlpha{ AC_SRC_OVER,0,255,AC_SRC_ALPHA };
+constexpr inline BLENDFUNCTION BlendFuncAlpha{ AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
 
 template<BYTE Alpha>
-constexpr inline BLENDFUNCTION BlendFuncAlphaN{ AC_SRC_OVER,0,Alpha,AC_SRC_ALPHA };
+constexpr inline BLENDFUNCTION BlendFuncAlphaN{ AC_SRC_OVER, 0, Alpha, AC_SRC_ALPHA };
 
 constexpr inline BYTE ColorFillAlpha{ 80 };
 
@@ -688,7 +683,7 @@ enum class InitStatus
     D2DDevice,
 };
 
-enum class Align :BYTE
+enum class Align : BYTE
 {
     Near,
     Center,
@@ -696,7 +691,7 @@ enum class Align :BYTE
 };
 
 // For AnimateWindow
-enum class AnimateStyle :BYTE
+enum class AnimateStyle : BYTE
 {
     Roll,	// 滚动
     Slide,	// 滑动
@@ -704,7 +699,7 @@ enum class AnimateStyle :BYTE
     Blend	// 淡入淡出
 };
 
-enum class ClrPart :BYTE
+enum class ClrPart : BYTE
 {
     Text,
     Bk,
@@ -714,7 +709,7 @@ enum class ClrPart :BYTE
 
 #pragma warning(suppress:26454)// 算术溢出
 constexpr inline UINT NM_FIRST_ECK = (0u - 0x514Bu * 0x514Bu);
-enum :UINT// 控件通知代码
+enum : UINT// 控件通知代码
 {
     ECKPRIV_NM_FIRST_PLACEHOLDER = NM_FIRST_ECK,
     NM_CLP_CLRCHANGED,		// NMCLPCLRCHANGED
@@ -777,7 +772,7 @@ enum : USHORT
 };
 
 // 构建号
-enum :ULONG
+enum : ULONG
 {
     WINVER_1607 = 14393,
     WINVER_1809 = 17763,
@@ -786,7 +781,7 @@ enum :ULONG
     WINVER_11_23H2 = 22631,
 };
 
-enum DispInfoMask :UINT
+enum DispInfoMask : UINT
 {
     DIM_TEXT = 1u << 0,
     DIM_IMAGE = 1u << 1,
@@ -795,7 +790,7 @@ enum DispInfoMask :UINT
 };
 ECK_ENUM_BIT_FLAGS(DispInfoMask);
 
-enum class EolType :BYTE
+enum class EolType : BYTE
 {
     Invalid,
     Auto,
@@ -804,7 +799,7 @@ enum class EolType :BYTE
     LF,
 };
 
-enum class RegRoot :BYTE
+enum class RegRoot : BYTE
 {
     ClassesRoot,
     CurrentUser,
@@ -812,7 +807,7 @@ enum class RegRoot :BYTE
     Users,
     PerformanceData,
     CurrentConfig,
-    DynData,
+    DynamicData,
     CurrentUserLocalSettings,
     PerformanceText = 0x50,
     PerformanceNlsText = 0x60,
@@ -1087,9 +1082,9 @@ inline void DbgPrint(CcpNumberOrEnum auto x, BOOL bNewLine = TRUE) noexcept
         s.push_back('\n');
     OutputDebugStringA(s.data());
 }
-void DbgPrintFmt(_Printf_format_string_ PCWSTR pszFormat, ...) noexcept;
-void DbgPrintFmt(_Printf_format_string_ PCSTR pszFormat, ...) noexcept;
-EckInline void DbgPrint(PCVOID x, BOOL bNewLine = TRUE) noexcept { DbgPrintFmt(bNewLine ? L"0x%p\n" : L"0x%p", x); }
+void DbgPrintFormat(_Printf_format_string_ PCWSTR pszFormat, ...) noexcept;
+void DbgPrintFormat(_Printf_format_string_ PCSTR pszFormat, ...) noexcept;
+EckInline void DbgPrint(PCVOID x, BOOL bNewLine = TRUE) noexcept { DbgPrintFormat(bNewLine ? L"0x%p\n" : L"0x%p", x); }
 EckInline void DbgPrint(PCWSTR psz, BOOL bNewLine = TRUE) noexcept
 {
     OutputDebugStringW(psz);
@@ -1116,42 +1111,42 @@ inline void DbgPrintFormatMessage(UINT uErrCode, BOOL bNewLine = TRUE) noexcept
 inline void DbgPrintLastError(BOOL bNewLine = TRUE) noexcept
 {
     const auto u = GetLastError();
-    DbgPrintFmt(L"LastError = %u", u);
+    DbgPrintFormat(L"LastError = %u", u);
     DbgPrintFormatMessage(u, bNewLine);
 }
-void DbgPrintWithPos(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg) noexcept;
+void DbgPrintWithLocation(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg) noexcept;
 void DbgPrintWndMap() noexcept;
 
 #if !ECK_OPT_NO_DBG_MACRO
-#define EckDbgPrintGLE              ::eck::DbgPrintLastError
+#define EckDbgPrintLastError        ::eck::DbgPrintLastError
 #define EckDbgPrint                 ::eck::DbgPrint
 #define EckDbgPrintFormatMessage    ::eck::DbgPrintFormatMessage
-#define EckDbgPrintFmt              ::eck::DbgPrintFmt
-#define EckDbgPrintWithPos(x)       ::eck::DbgPrintWithPos(ECK_FILEW, ECK_FUNCTIONW, __LINE__, x)
+#define EckDbgPrintFormat           ::eck::DbgPrintFormat
+#define EckDbgPrintWithLocation(x)  ::eck::DbgPrintWithLocation(ECK_FILEW, ECK_FUNCTIONW, __LINE__, x)
 #define EckDbgBreak()               DebugBreak()
-#define EckDbgCheckMemRange(pBase, cbSize, pCurr)   \
-    if(((PCBYTE)(pBase)) + (cbSize) < (pCurr))      \
-    {                                               \
-        EckDbgPrintFmt(                             \
-            L"内存范围检查失败，起始 = %p，尺寸 = %u，当前 = %p，超出 = %u", \
-            pBase,                                  \
-            (UINT)cbSize,                           \
-            pCurr,                                  \
+#define EckDbgCheckMemoryRange(pBase, cbSize, pCurr) \
+    if(((PCBYTE)(pBase)) + (cbSize) < (pCurr))       \
+    {                                                \
+        EckDbgPrintFormat(                           \
+            "EckDbgCheckMemoryRange: pBase = %p, cbSize = %u, pCurr = %p, cbOverflow = %u", \
+            pBase,                                   \
+            (UINT)cbSize,                            \
+            pCurr,                                   \
             (UINT)(((SIZE_T)(pCurr)) - ((SIZE_T)(pBase)) - (cbSize))); \
-        EckDbgBreak();                              \
+        EckDbgBreak();                               \
     }
 #define EckAssert(x)                (void)(!!(x) || (::eck::Assert(ECKWIDE(#x), ECK_FILEW, ECK_LINEW), 0))
 #endif// !ECK_OPT_NO_DBG_MACRO
 #else
 #if !ECK_OPT_NO_DBG_MACRO
-#define EckDbgPrintGLE(x)           ;
-#define EckDbgPrint(...)            ;
-#define EckDbgPrintFormatMessage(x) ;
-#define EckDbgPrintFmt(...)         ;
-#define EckDbgPrintWithPos(x)       ;
-#define EckDbgBreak()               ;
-#define EckDbgCheckMemRange(a,b,c)  ;
-#define EckAssert(x)                ;
+#define EckDbgPrintLastError(x)       ;
+#define EckDbgPrint(...)              ;
+#define EckDbgPrintFormatMessage(x)   ;
+#define EckDbgPrintFormat(...)        ;
+#define EckDbgPrintWithLocation(x)    ;
+#define EckDbgBreak()                 ;
+#define EckDbgCheckMemoryRange(a,b,c) ;
+#define EckAssert(x)                  ;
 #endif// !ECK_OPT_NO_DBG_MACRO
 #endif// _DEBUG
 ECK_NAMESPACE_END

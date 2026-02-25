@@ -9,7 +9,7 @@ inline BOOL GetClipboardString(HWND hWnd, CStringW& rs) noexcept
 {
     if (!OpenClipboard(hWnd))
     {
-        EckDbgPrintFmt(L"OpenClipboard failed, Owner = %p", GetClipboardOwner());
+        EckDbgPrintFormat(L"OpenClipboard failed, Owner = %p", GetClipboardOwner());
         return FALSE;
     }
     CClipboardGuard _{};
@@ -37,7 +37,7 @@ inline BOOL SetClipboardString(HWND hWnd,
 {
     if (!OpenClipboard(hWnd))
     {
-        EckDbgPrintFmt(L"OpenClipboard failed, Owner = %p", GetClipboardOwner());
+        EckDbgPrintFormat(L"OpenClipboard failed, Owner = %p", GetClipboardOwner());
         return FALSE;
     }
     CClipboardGuard _{};

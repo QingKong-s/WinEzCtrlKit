@@ -150,12 +150,12 @@ struct SERIALIZE_OPT
 #define ECK_CWND_DISABLE_ATTACH \
     void Attach(HWND hWnd) noexcept override \
     {                           \
-        EckDbgPrintWithPos(L"** WARNING ** CWindow::Attach is disabled."); \
+        EckDbgPrintWithLocation(L"** WARNING ** CWindow::Attach is disabled."); \
         abort();                \
     }                           \
     HWND Detach() noexcept override     \
     {                           \
-        EckDbgPrintWithPos(L"** WARNING ** CWindow::Detach is disabled."); \
+        EckDbgPrintWithLocation(L"** WARNING ** CWindow::Detach is disabled."); \
         abort();                \
         return nullptr;         \
     }
@@ -163,12 +163,12 @@ struct SERIALIZE_OPT
 #define ECK_CWND_DISABLE_ATTACHNEW      \
     void AttachNew(HWND hWnd) noexcept override \
     {                                   \
-        EckDbgPrintWithPos(L"** WARNING ** CWindow::AttachNew is disabled."); \
+        EckDbgPrintWithLocation(L"** WARNING ** CWindow::AttachNew is disabled."); \
         abort();                        \
     }                                   \
     void DetachNew() noexcept override  \
     {                                   \
-        EckDbgPrintWithPos(L"** WARNING ** CWindow::DetachNew is disabled."); \
+        EckDbgPrintWithLocation(L"** WARNING ** CWindow::DetachNew is disabled."); \
         abort();                        \
     }
 
@@ -476,7 +476,7 @@ public:
     virtual HWND Create(PCWSTR pszText, DWORD dwStyle, DWORD dwExStyle,
         int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, PCVOID pData = nullptr) noexcept
     {
-        EckDbgPrintWithPos(L"** ERROR ** CWindow::Create未实现");
+        EckDbgPrintWithLocation(L"** ERROR ** CWindow::Create未实现");
         EckDbgBreak();
         abort();
     }
