@@ -45,8 +45,8 @@ private:
                 e.cy = size.cy;
         }
         UpdateObjectIdealSize(e);
-        m_cxIdeal = m_cx = std::max(m_cx, e.cx + e.Margin.l + e.Margin.r);
-        m_cyIdeal = m_cy = std::max(m_cy, e.cy + e.Margin.t + e.Margin.b);
+        m_cxIdeal = m_cx = std::max(m_cx, e.cx + e.Margins.l + e.Margins.r);
+        m_cyIdeal = m_cy = std::max(m_cy, e.cy + e.Margins.t + e.Margins.b);
     }
 public:
     void LoShow(BOOL bShow) noexcept override
@@ -104,8 +104,8 @@ public:
         for (auto& e : m_vItem)
         {
             UpdateObjectIdealSize(e);
-            m_cxIdeal = std::max(m_cxIdeal, e.cx + e.Margin.l + e.Margin.r);
-            m_cyIdeal = std::max(m_cyIdeal, e.cy + e.Margin.t + e.Margin.b);
+            m_cxIdeal = std::max(m_cxIdeal, e.cx + e.Margins.l + e.Margins.r);
+            m_cyIdeal = std::max(m_cyIdeal, e.cy + e.Margins.t + e.Margins.b);
         }
     }
 

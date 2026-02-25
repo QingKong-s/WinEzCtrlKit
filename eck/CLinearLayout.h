@@ -105,7 +105,7 @@ private:
             if (e.uFlags & (LF_FILL_HEIGHT | LF_IDEAL_HEIGHT))
                 e.cy = sizeIdeal.cy + e.cyExtra;
             if (e.uFlags & LF_IDEAL_HEIGHT)
-                m_dIdealSum += (e.cy + e.Margin.t + e.Margin.b);
+                m_dIdealSum += (e.cy + e.Margins.t + e.Margins.b);
         }
     }
 
@@ -125,11 +125,11 @@ private:
         // 需要理想尺寸
         UpdateObjectIdealSize(e);
         // 更新尺寸和理想尺寸
-        m_cxIdeal = m_cx = std::max(m_cx, e.cx + e.Margin.l + e.Margin.r);
-        m_cy += (e.cy + e.Margin.t + e.Margin.b);
+        m_cxIdeal = m_cx = std::max(m_cx, e.cx + e.Margins.l + e.Margins.r);
+        m_cy += (e.cy + e.Margins.t + e.Margins.b);
         m_cyIdeal = m_cy;
         // 更新固定尺寸和与权重
-        m_dFixedSum += (e.Margin.t + e.Margin.b);
+        m_dFixedSum += (e.Margins.t + e.Margins.b);
         if (!(e.uFlags & (LF_FIX_HEIGHT | LF_IDEAL_HEIGHT)))
             m_uWeightSum += e.uWeight;
         if (e.uFlags & LF_IDEAL_HEIGHT)
@@ -213,13 +213,13 @@ public:
             if (e.uFlags & (LF_FIX_WIDTH | LF_IDEAL_WIDTH))
                 cx = e.cx;
             else if (e.uFlags & LF_SCALE)
-                cx = std::min(cy * e.cx / e.cy, m_cx - e.Margin.l - e.Margin.r);
+                cx = std::min(cy * e.cx / e.cy, m_cx - e.Margins.l - e.Margins.r);
             else
-                cx = m_cx - e.Margin.l - e.Margin.r;
+                cx = m_cx - e.Margins.l - e.Margins.r;
 
             x = ArgCalculateHorizontalAlignment(m_x, m_cx, e, cx);
-            ArgMoveObject(e, { x, y + e.Margin.t, cx, cy });
-            y += (cy + e.Margin.t + e.Margin.b);
+            ArgMoveObject(e, { x, y + e.Margins.t, cx, cy });
+            y += (cy + e.Margins.t + e.Margins.b);
         }
     }
 
@@ -238,8 +238,8 @@ public:
         for (auto& e : m_vItem)
         {
             UpdateObjectIdealSize(e);
-            m_cyIdeal += (e.cy + e.Margin.t + e.Margin.b);
-            m_cxIdeal = std::max(m_cxIdeal, e.cx + e.Margin.l + e.Margin.r);
+            m_cyIdeal += (e.cy + e.Margins.t + e.Margins.b);
+            m_cxIdeal = std::max(m_cxIdeal, e.cx + e.Margins.l + e.Margins.r);
         }
     }
 
@@ -287,7 +287,7 @@ private:
             if (e.uFlags & (LF_FILL_HEIGHT | LF_IDEAL_HEIGHT))
                 e.cy = sizeIdeal.cy + e.cyExtra;
             if (e.uFlags & LF_IDEAL_WIDTH)
-                m_dIdealSum += (e.cx + e.Margin.l + e.Margin.r);
+                m_dIdealSum += (e.cx + e.Margins.l + e.Margins.r);
         }
     }
 
@@ -307,11 +307,11 @@ private:
         // 需要理想尺寸
         UpdateObjectIdealSize(e);
         // 更新尺寸和理想尺寸
-        m_cx += (e.cx + e.Margin.l + e.Margin.r);
+        m_cx += (e.cx + e.Margins.l + e.Margins.r);
         m_cxIdeal = m_cx;
-        m_cyIdeal = m_cy = std::max(m_cy, e.cy + e.Margin.t + e.Margin.b);
+        m_cyIdeal = m_cy = std::max(m_cy, e.cy + e.Margins.t + e.Margins.b);
         // 更新固定尺寸和与权重
-        m_dFixedSum += (e.Margin.l + e.Margin.r);
+        m_dFixedSum += (e.Margins.l + e.Margins.r);
         if (!(e.uFlags & (LF_FIX_WIDTH | LF_IDEAL_WIDTH)))
             m_uWeightSum += e.uWeight;
         if (e.uFlags & LF_IDEAL_WIDTH)
@@ -395,13 +395,13 @@ public:
             if (e.uFlags & (LF_FIX_HEIGHT | LF_IDEAL_HEIGHT))
                 cy = e.cy;
             else if (e.uFlags & LF_SCALE)
-                cy = std::min(cx * e.cy / e.cx, m_cy - e.Margin.t - e.Margin.b);
+                cy = std::min(cx * e.cy / e.cx, m_cy - e.Margins.t - e.Margins.b);
             else
-                cy = m_cy - e.Margin.t - e.Margin.b;
+                cy = m_cy - e.Margins.t - e.Margins.b;
 
             y = ArgCalculateVerticalAlignment(m_y, m_cy, e, cy);
-            ArgMoveObject(e, { x + e.Margin.l, y, cx, cy });
-            x += (cx + e.Margin.l + e.Margin.r);
+            ArgMoveObject(e, { x + e.Margins.l, y, cx, cy });
+            x += (cx + e.Margins.l + e.Margins.r);
         }
     }
 
@@ -420,8 +420,8 @@ public:
         for (auto& e : m_vItem)
         {
             UpdateObjectIdealSize(e);
-            m_cxIdeal += (e.cx + e.Margin.l + e.Margin.r);
-            m_cyIdeal = std::max(m_cyIdeal, e.cy + e.Margin.t + e.Margin.b);
+            m_cxIdeal += (e.cx + e.Margins.l + e.Margins.r);
+            m_cyIdeal = std::max(m_cyIdeal, e.cy + e.Margins.t + e.Margins.b);
         }
     }
 

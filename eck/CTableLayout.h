@@ -168,7 +168,7 @@ public:
             if (e.cRowSpan == 1)
                 if (Row.uFlags & LF_IDEAL)
                 {
-                    d = e.Margin.t + e.Margin.b;
+                    d = e.Margins.t + e.Margins.b;
                     if (e.uFlags & (LF_FIX_HEIGHT | LF_IDEAL_HEIGHT))
                         d += e.cy;
                     if (d > Row.d)
@@ -183,7 +183,7 @@ public:
             if (e.cColSpan == 1)
                 if (Col.uFlags & LF_IDEAL)
                 {
-                    d = e.Margin.l + e.Margin.r;
+                    d = e.Margins.l + e.Margins.r;
                     if (e.uFlags & (LF_FIX_WIDTH | LF_IDEAL_WIDTH))
                         d += e.cx;
                     if (d > Col.d)

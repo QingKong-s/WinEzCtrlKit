@@ -73,7 +73,7 @@ protected:
     struct ITEMBASE
     {
         ILayout* pObject;
-        LYTMARGINS Margin;
+        LYTMARGINS Margins;
         UINT uFlags;
         TLytCoord cx, cy;
         TLytCoord cxExtra, cyExtra;// 仅IDEAL
@@ -93,10 +93,10 @@ protected:
             rc = { 0, 0, e.cx, e.cy };
             const LYTRECT rcRef
             {
-                rcCell.x + e.Margin.l,
-                rcCell.y + e.Margin.t,
-                rcCell.x + rcCell.cx - e.Margin.r,
-                rcCell.y + rcCell.cy - e.Margin.b
+                rcCell.x + e.Margins.l,
+                rcCell.y + e.Margins.t,
+                rcCell.x + rcCell.cx - e.Margins.r,
+                rcCell.y + rcCell.cy - e.Margins.b
             };
             AdjustRectToFitAnother(rc, rcRef);
             return;
@@ -111,54 +111,54 @@ protected:
         else if (e.uFlags & LF_FIX_WIDTH)
             rc.cx = e.cx;
         else
-            rc.cx = rcCell.cx - e.Margin.l - e.Margin.r;
+            rc.cx = rcCell.cx - e.Margins.l - e.Margins.r;
 
         if (e.uFlags & LF_IDEAL_HEIGHT)
             rc.cy = size.cy;
         else if (e.uFlags & LF_FIX_HEIGHT)
             rc.cy = e.cy;
         else
-            rc.cy = rcCell.cy - e.Margin.t - e.Margin.b;
+            rc.cy = rcCell.cy - e.Margins.t - e.Margins.b;
 
-        const auto cx1 = rc.cx + e.Margin.l + e.Margin.r;
-        const auto cy1 = rc.cy + e.Margin.t + e.Margin.b;
+        const auto cx1 = rc.cx + e.Margins.l + e.Margins.r;
+        const auto cy1 = rc.cy + e.Margins.t + e.Margins.b;
         switch (Lf9Align(e.uFlags))
         {
         case LF_ALIGN_LT:
-            rc.x = rcCell.x + e.Margin.l;
-            rc.y = rcCell.y + e.Margin.t;
+            rc.x = rcCell.x + e.Margins.l;
+            rc.y = rcCell.y + e.Margins.t;
             break;
         case LF_ALIGN_T:
-            rc.x = rcCell.x + (rcCell.cx - cx1) / 2 + e.Margin.l;
-            rc.y = rcCell.y + e.Margin.t;
+            rc.x = rcCell.x + (rcCell.cx - cx1) / 2 + e.Margins.l;
+            rc.y = rcCell.y + e.Margins.t;
             break;
         case LF_ALIGN_RT:
-            rc.x = rcCell.x + rcCell.cx - rc.cx - e.Margin.r;
-            rc.y = rcCell.y + e.Margin.t;
+            rc.x = rcCell.x + rcCell.cx - rc.cx - e.Margins.r;
+            rc.y = rcCell.y + e.Margins.t;
             break;
         case LF_ALIGN_L:
-            rc.x = rcCell.x + e.Margin.l;
-            rc.y = rcCell.y + (rcCell.cy - (rc.cy + e.Margin.t + e.Margin.b)) / 2 + e.Margin.t;
+            rc.x = rcCell.x + e.Margins.l;
+            rc.y = rcCell.y + (rcCell.cy - (rc.cy + e.Margins.t + e.Margins.b)) / 2 + e.Margins.t;
             break;
         case LF_ALIGN_C:
-            rc.x = rcCell.x + (rcCell.cx - cx1) / 2 + e.Margin.l;
-            rc.y = rcCell.y + (rcCell.cy - (rc.cy + e.Margin.t + e.Margin.b)) / 2 + e.Margin.t;
+            rc.x = rcCell.x + (rcCell.cx - cx1) / 2 + e.Margins.l;
+            rc.y = rcCell.y + (rcCell.cy - (rc.cy + e.Margins.t + e.Margins.b)) / 2 + e.Margins.t;
             break;
         case LF_ALIGN_R:
-            rc.x = rcCell.x + rcCell.cx - rc.cx - e.Margin.r;
-            rc.y = rcCell.y + (rcCell.cy - (rc.cy + e.Margin.t + e.Margin.b)) / 2 + e.Margin.t;
+            rc.x = rcCell.x + rcCell.cx - rc.cx - e.Margins.r;
+            rc.y = rcCell.y + (rcCell.cy - (rc.cy + e.Margins.t + e.Margins.b)) / 2 + e.Margins.t;
             break;
         case LF_ALIGN_LB:
-            rc.x = rcCell.x + e.Margin.l;
-            rc.y = rcCell.y + rcCell.cy - rc.cy - e.Margin.b;
+            rc.x = rcCell.x + e.Margins.l;
+            rc.y = rcCell.y + rcCell.cy - rc.cy - e.Margins.b;
             break;
         case LF_ALIGN_B:
-            rc.x = rcCell.x + (rcCell.cx - cx1) / 2 + e.Margin.l;
-            rc.y = rcCell.y + rcCell.cy - rc.cy - e.Margin.b;
+            rc.x = rcCell.x + (rcCell.cx - cx1) / 2 + e.Margins.l;
+            rc.y = rcCell.y + rcCell.cy - rc.cy - e.Margins.b;
             break;
         case LF_ALIGN_RB:
-            rc.x = rcCell.x + rcCell.cx - rc.cx - e.Margin.r;
-            rc.y = rcCell.y + rcCell.cy - rc.cy - e.Margin.b;
+            rc.x = rcCell.x + rcCell.cx - rc.cx - e.Margins.r;
+            rc.y = rcCell.y + rcCell.cy - rc.cy - e.Margins.b;
             break;
         default:
             ECK_UNREACHABLE;
@@ -172,12 +172,12 @@ protected:
         switch (LfLineAlign(e.uFlags))
         {
         case LF_ALIGN_NEAR:
-            return xStart + e.Margin.l;
+            return xStart + e.Margins.l;
         case LF_ALIGN_CENTER:
-            return xStart + e.Margin.l +
-                (cxCell - (cxObject + e.Margin.l + e.Margin.r)) / 2;
+            return xStart + e.Margins.l +
+                (cxCell - (cxObject + e.Margins.l + e.Margins.r)) / 2;
         case LF_ALIGN_FAR:
-            return xStart + cxCell - cxObject - e.Margin.r;
+            return xStart + cxCell - cxObject - e.Margins.r;
         default:
             ECK_UNREACHABLE;
         }
@@ -189,12 +189,12 @@ protected:
         switch (LfLineAlign(e.uFlags))
         {
         case LF_ALIGN_NEAR:
-            return yStart + e.Margin.t;
+            return yStart + e.Margins.t;
         case LF_ALIGN_CENTER:
-            return yStart + e.Margin.t +
-                (cyCell - (cyObject + e.Margin.t + e.Margin.b)) / 2;
+            return yStart + e.Margins.t +
+                (cyCell - (cyObject + e.Margins.t + e.Margins.b)) / 2;
         case LF_ALIGN_FAR:
-            return yStart + cyCell - cyObject - e.Margin.b;
+            return yStart + cyCell - cyObject - e.Margins.b;
         default:
             ECK_UNREACHABLE;
         }
@@ -231,10 +231,12 @@ protected:
 
     void ReCalculateDpiSize(ITEMBASE& e, int iDpiNew) noexcept
     {
-        e.Margin.l = DpiScale(e.Margin.l, iDpiNew, m_iDpi);
-        e.Margin.t = DpiScale(e.Margin.t, iDpiNew, m_iDpi);
-        e.Margin.r = DpiScale(e.Margin.r, iDpiNew, m_iDpi);
-        e.Margin.b = DpiScale(e.Margin.b, iDpiNew, m_iDpi);
+        e.Margins.l = DpiScale(e.Margins.l, iDpiNew, m_iDpi);
+        e.Margins.t = DpiScale(e.Margins.t, iDpiNew, m_iDpi);
+        e.Margins.r = DpiScale(e.Margins.r, iDpiNew, m_iDpi);
+        e.Margins.b = DpiScale(e.Margins.b, iDpiNew, m_iDpi);
+        e.cxExtra = DpiScale(e.cxExtra, iDpiNew, m_iDpi);
+        e.cyExtra = DpiScale(e.cyExtra, iDpiNew, m_iDpi);
         if (e.uFlags & LF_FIX)
         {
             e.cx = DpiScale(e.cx, iDpiNew, m_iDpi);
@@ -246,7 +248,7 @@ protected:
     EckInlineCe static void AssignItem(_Out_ ITEMBASE& e, const LOB_PARAM& Param) noexcept
     {
         e.pObject = Param.pObject;
-        e.Margin = Param.Margins;
+        e.Margins = Param.Margins;
         e.uFlags = Param.uFlags;
         e.cx = e.cy = 0;
         e.cxExtra = Param.cxExtra;
