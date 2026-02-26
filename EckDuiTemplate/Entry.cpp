@@ -28,7 +28,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
     App = new CApp{};
 
-    const auto pWnd = new CWndMain{};
+    const auto pWnd = new CWindowMain{};
     const auto hMon = eck::GetOwnerMonitor(nullptr);
     const auto iDpi = eck::GetMonitorDpi(hMon);
     auto size = SIZE{ 640,480 };

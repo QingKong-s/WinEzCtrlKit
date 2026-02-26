@@ -3,11 +3,11 @@
 #include "CWndMain.h"
 
 
-void CWndMain::OnDestory()
+void CWindowMain::OnDestory()
 {
 }
 
-LRESULT CWndMain::OnCreate()
+LRESULT CWindowMain::OnCreate()
 {
     eck::PtcCurrent()->UpdateDefaultColor();
     StSwitchStdThemeMode(eck::PtcCurrent()->bAppDarkMode);
@@ -38,7 +38,7 @@ LRESULT CWndMain::OnCreate()
     return 0;
 }
 
-LRESULT CWndMain::OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
+LRESULT CWindowMain::OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
 {
     switch (uMsg)
     {

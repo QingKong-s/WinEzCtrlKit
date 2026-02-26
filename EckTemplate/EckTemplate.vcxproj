@@ -195,14 +195,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CApp.h" />
-    <ClInclude Include="CWndMain.h" />
+    <ClInclude Include="CWindowMain.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CApp.cpp" />
-    <ClCompile Include="CWndMain.cpp" />
+    <ClCompile Include="CWindowMain.cpp" />
     <ClCompile Include="Entry.cpp" />
     <ClCompile Include="MyEck.cpp" />
     <ClCompile Include="pch.cpp">

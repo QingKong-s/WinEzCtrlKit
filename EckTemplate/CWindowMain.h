@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "CApp.h"
 
-class CWndMain final : public eck::CForm
+class CWindowMain final : public eck::CForm
 {
 private:
 	eck::CEditExt m_EDUserName{};
@@ -27,7 +27,7 @@ private:
 	void OnDestory() noexcept;
 	LRESULT OnCreate(CREATESTRUCT* pcs) noexcept;
 public:
-	ECK_CWND_SINGLEOWNER(CWndMain);
+	ECK_CWND_SINGLEOWNER(CWindowMain);
 	ECK_CWND_CREATE_CLS_HINST(eck::WCN_DUMMY, eck::g_hInstance);
 
 	LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override;

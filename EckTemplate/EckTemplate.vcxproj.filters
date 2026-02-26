@@ -27,7 +27,7 @@
     <ClInclude Include="CApp.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="CWndMain.h">
+    <ClInclude Include="CWindowMain.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="pch.h">
@@ -41,7 +41,7 @@
     <ClCompile Include="CApp.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="CWndMain.cpp">
+    <ClCompile Include="CWindowMain.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="pch.cpp">

@@ -1,8 +1,7 @@
 ﻿#include "pch.h"
+#include "CWindowMain.h"
 
-#include "CWndMain.h"
-
-void CWndMain::DmNewDpi(int iDpi) noexcept
+void CWindowMain::DmNewDpi(int iDpi) noexcept
 {
     const int iDpiOld = m_iDpi;
     m_iDpi = iDpi;
@@ -11,17 +10,17 @@ void CWndMain::DmNewDpi(int iDpi) noexcept
     DmUpdateFixedSize();
 }
 
-void CWndMain::DmUpdateFixedSize() noexcept
+void CWindowMain::DmUpdateFixedSize() noexcept
 {
 }
 
-void CWndMain::OnDestory() noexcept
+void CWindowMain::OnDestory() noexcept
 {
     DeleteObject(m_hFont);
     m_hFont = nullptr;
 }
 
-LRESULT CWndMain::OnCreate(CREATESTRUCT* pcs) noexcept
+LRESULT CWindowMain::OnCreate(CREATESTRUCT* pcs) noexcept
 {
     eck::PtcCurrent()->UpdateDefaultColor();
 
@@ -96,7 +95,7 @@ LRESULT CWndMain::OnCreate(CREATESTRUCT* pcs) noexcept
     return 0;
 }
 
-LRESULT CWndMain::OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
+LRESULT CWindowMain::OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
 {
     switch (uMsg)
     {
@@ -141,7 +140,7 @@ LRESULT CWndMain::OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     return __super::OnMessage(uMsg, wParam, lParam);
 }
 
-BOOL CWndMain::PreTranslateMessage(const MSG& Msg) noexcept
+BOOL CWindowMain::PreTranslateMessage(const MSG& Msg) noexcept
 {
     if (IsDialogMessageW(HWnd, (MSG*)&Msg))
         return TRUE;

@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "CApp.h"
 
-class CWndMain final : public Dui::CDuiWnd
+class CWindowMain final : public Dui::CDuiWnd
 {
 private:
 	Dui::CButton m_BT{};
@@ -12,7 +12,7 @@ private:
 	void OnDestory();
 	LRESULT OnCreate();
 public:
-	ECK_CWND_SINGLEOWNER(CWndMain);
+	ECK_CWND_SINGLEOWNER(CWindowMain);
 	ECK_CWND_CREATE_CLS_HINST(eck::WCN_DUMMY, eck::g_hInstance);
 
 	LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override;
