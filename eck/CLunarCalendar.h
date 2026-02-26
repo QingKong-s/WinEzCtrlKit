@@ -50,7 +50,7 @@ public:
             DrawThemeBackground(m_hTheme, hDC, MC_BORDERS, 0, &rcClient, nullptr);
     }
 public:
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -63,7 +63,7 @@ public:
 
         case WM_CREATE:
         {
-            m_hTheme = OpenThemeData(hWnd, L"MonthCal");
+            m_hTheme = OpenThemeData(HWnd, L"MonthCal");
             UpdateTipText();
         }
         break;
@@ -72,14 +72,14 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(hWnd, wParam, ps);
+            BeginPaint(HWnd, wParam, ps);
             Paint(ps.hdc, ps.rcPaint);
-            EndPaint(hWnd, wParam, ps);
+            EndPaint(HWnd, wParam, ps);
         }
         return 0;
         }
 
-        return __super::OnMessage(hWnd, uMsg, wParam, lParam);
+        return __super::OnMessage(uMsg, wParam, lParam);
     }
 };
 ECK_NAMESPACE_END

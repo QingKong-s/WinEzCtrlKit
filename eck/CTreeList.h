@@ -206,7 +206,7 @@ private:
 public:
     CTLHeader(CTreeList& tl) :m_TL{ tl } {}
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override;
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override;
 };
 
 class CTLEditExt final : public CEditExt
@@ -217,7 +217,7 @@ private:
 public:
     CTLEditExt(CTreeList& tl) :m_TL{ tl } {}
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override;
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override;
 };
 
 class CTreeList : public CWindow
@@ -1684,7 +1684,7 @@ public:
     ECKPROP(GetDisableSelectAllWithCtrlA,
         SetDisableSelectAllWithCtrlA)			BOOL DisableSelectAllWithCtrlA;
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -1704,14 +1704,14 @@ public:
         [[fallthrough]];
         case WM_NCMOUSEMOVE:
         {
-            MSG msg{ hWnd,uMsg,wParam,lParam };
+            MSG msg{ HWnd,uMsg,wParam,lParam };
             m_ToolTip.RelayEvent(&msg);
         }
         break;
 
         case WM_MOUSEMOVE:
         {
-            MSG msg{ hWnd,uMsg,wParam,lParam };
+            MSG msg{ HWnd,uMsg,wParam,lParam };
             m_ToolTip.RelayEvent(&msg);
 
             TLHITTEST tlht;
@@ -1742,7 +1742,7 @@ public:
             TRACKMOUSEEVENT tme;
             tme.cbSize = sizeof(tme);
             tme.dwFlags = TME_LEAVE;
-            tme.hwndTrack = hWnd;
+            tme.hwndTrack = HWnd;
             TrackMouseEvent(&tme);
         }
         return 0;
@@ -1818,7 +1818,7 @@ public:
                     auto p = (NMTTDISPINFOW*)lParam;
                     if (p->uFlags & TTF_IDISHWND)
                     {
-                        if (p->hdr.idFrom != (UINT_PTR)hWnd)
+                        if (p->hdr.idFrom != (UINT_PTR)HWnd)
                             return 0;
                     }
                     else
@@ -1829,7 +1829,7 @@ public:
 
                     const auto uPos = GetMessagePos();
                     POINT pt ECK_GET_PT_LPARAM(uPos);
-                    ScreenToClient(hWnd, &pt);
+                    ScreenToClient(HWnd, &pt);
 
                     TLHITTEST tlht;
                     tlht.pt = pt;
@@ -1883,7 +1883,7 @@ public:
                         {
                             RECT rc;
                             GetItemTextRect(m_idxToolTip, m_idxToolTipSubItemDisplay, rc);
-                            ClientToScreen(hWnd, &rc);
+                            ClientToScreen(HWnd, &rc);
                             m_ToolTip.AdjustRect(TRUE, &rc);
                             SetWindowPos(m_ToolTip.HWnd, HWND_TOPMOST,
                                 rc.left, rc.top, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE);
@@ -1953,9 +1953,9 @@ public:
             else
             {
                 RECT rc{ 0,m_cyHeader,m_cxClient,m_cyClient };
-                ScrollWindowEx(hWnd, 0, (iOld - si.nPos) * m_cyItem, &rc, &rc, nullptr, nullptr, SW_INVALIDATE);
+                ScrollWindowEx(HWnd, 0, (iOld - si.nPos) * m_cyItem, &rc, &rc, nullptr, nullptr, SW_INVALIDATE);
             }
-            UpdateWindow(hWnd);
+            UpdateWindow(HWnd);
         }
         return 0;
 
@@ -2011,7 +2011,7 @@ public:
                 ScrollV(SignValue(dLine) * ScbGetPage(SB_VERT));
             else
                 ScrollV(dLine);
-            UpdateWindow(hWnd);
+            UpdateWindow(HWnd);
         }
         return 0;
 
@@ -2023,7 +2023,7 @@ public:
                 ScrollH(SignValue(dx) * m_cxClient);
             else
                 ScrollH(dx);
-            UpdateWindow(hWnd);
+            UpdateWindow(HWnd);
         }
         return 0;
 
@@ -2038,7 +2038,7 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(hWnd, wParam, ps);
+            BeginPaint(HWnd, wParam, ps);
             const int yOrg = ps.rcPaint.top;
             if (ps.rcPaint.top < m_cyHeader)// 永远不在表头控件区域内重画
                 ps.rcPaint.top = m_cyHeader;
@@ -2069,14 +2069,14 @@ public:
             PaintDraggingSelectRect(m_DC.GetDC());
             BitBltPs(&ps, m_DC.GetDC());
             ps.rcPaint.top = yOrg;
-            EndPaint(hWnd, wParam, ps);
+            EndPaint(HWnd, wParam, ps);
         }
         return 0;
 
         case WM_SIZE:
         {
             ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
-            m_DC.ReSize(hWnd, m_cxClient, m_cyClient);
+            m_DC.ReSize(HWnd, m_cxClient, m_cyClient);
             UpdateDCAttribute();
 
             UpdateScrollBar();
@@ -2084,7 +2084,7 @@ public:
 
             TTTOOLINFOW ti;
             ti.cbSize = sizeof(ti);
-            ti.hwnd = hWnd;
+            ti.hwnd = HWnd;
             ti.uId = TLI_MAIN;
             ti.rect = { 0,0,m_cxClient,m_cyClient };
             m_ToolTip.NewToolRect(&ti);
@@ -2092,12 +2092,12 @@ public:
         return 0;
 
         case WM_KEYDOWN:
-            OnKeyDown(hWnd, uMsg, wParam, lParam);
+            OnKeyDown(HWnd, uMsg, wParam, lParam);
             break;
 
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
-            OnLRButtonDown(hWnd, uMsg, wParam, lParam);
+            OnLRButtonDown(HWnd, uMsg, wParam, lParam);
             break;
         case WM_LBUTTONUP:
         {
@@ -2144,7 +2144,7 @@ public:
             nm.lParam = lParam;
             FillNmhdrAndSendNotify(nm, NM_TL_MOUSECLICK);
 
-            MSG msg{ hWnd,uMsg,wParam,lParam };
+            MSG msg{ HWnd,uMsg,wParam,lParam };
             m_ToolTip.RelayEvent(&msg);
         }
         break;
@@ -2183,7 +2183,7 @@ public:
         {
             if (wParam != IDT_EDITDELAY)
                 break;
-            KillTimer(hWnd, IDT_EDITDELAY);
+            KillTimer(HWnd, IDT_EDITDELAY);
             if (m_bWaitEditDelay && m_idxEditing >= 0)
             {
                 const int idx = m_idxEditing;
@@ -2197,37 +2197,37 @@ public:
         case WM_CREATE:
         {
             m_hParent = ((CREATESTRUCTW*)lParam)->hwndParent;
-            m_iDpi = GetDpi(hWnd);
+            m_iDpi = GetDpi(HWnd);
             UpdateDpiSize(m_Ds, m_iDpi);
             m_cyHeader = m_Ds.cyHeaderDef;
             m_cyItem = m_Ds.cyItemDef;
-            m_DC.FromWindow(hWnd);
+            m_DC.FromWindow(HWnd);
             UpdateDCAttribute();
             m_Header.Create(nullptr, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
-                0, 0, ClientWidth, m_Ds.cyHeaderDef, hWnd, IDC_HEADER);
+                0, 0, ClientWidth, m_Ds.cyHeaderDef, HWnd, IDC_HEADER);
             //m_HeaderFixed.Create(NULL, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
-            //	0, 0, ClientWidth, m_Ds.cyHeaderDef, hWnd, IDC_HEADERFIXED);
+            //	0, 0, ClientWidth, m_Ds.cyHeaderDef, HWnd, IDC_HEADERFIXED);
             SetExplorerTheme();
-            m_hThemeTV = OpenThemeData(hWnd, L"TreeView");
+            m_hThemeTV = OpenThemeData(HWnd, L"TreeView");
             m_hThemeLV = OpenThemeData(nullptr, L"ItemsView::ListView");
-            m_hThemeBT = OpenThemeData(hWnd, L"Button");
+            m_hThemeBT = OpenThemeData(HWnd, L"Button");
             UpdateThemeInfomation();
-            m_bHasFocus = (GetFocus() == hWnd);
+            m_bHasFocus = (GetFocus() == HWnd);
             UpdateSystemParameter();
 
             m_ToolTip.Create(nullptr, TTS_NOPREFIX, WS_EX_TRANSPARENT,
-                0, 0, 0, 0, hWnd, nullptr);
+                0, 0, 0, 0, HWnd, nullptr);
             TTTOOLINFOW ti{ sizeof(TTTOOLINFOW) };
             ti.uFlags = TTF_TRANSPARENT;
-            ti.hwnd = hWnd;
+            ti.hwnd = HWnd;
             ti.uId = TLI_MAIN;
             ti.lpszText = LPSTR_TEXTCALLBACKW;
             m_ToolTip.AddTool(&ti);
 
             m_SBV.Create(nullptr, WS_CHILD | (m_bSplitCol0 ? WS_VISIBLE : 0) | SBS_VERT, 0,
-                0, 0, 0, 0, hWnd, IDC_SBV);
+                0, 0, 0, 0, HWnd, IDC_SBV);
             m_SBH.Create(nullptr, WS_CHILD | (m_bSplitCol0 ? WS_VISIBLE : 0) | SBS_HORZ, 0,
-                0, 0, 0, 0, hWnd, IDC_SBH);
+                0, 0, 0, 0, HWnd, IDC_SBH);
             UpdateScrollBar();
         }
         return 0;
@@ -2245,16 +2245,16 @@ public:
             return (LRESULT)m_hFont;
 
         case WM_DPICHANGED_BEFOREPARENT:
-            UpdateDpiSize(m_Ds, m_iDpi = GetDpi(hWnd));
+            UpdateDpiSize(m_Ds, m_iDpi = GetDpi(HWnd));
             [[fallthrough]];
         case WM_THEMECHANGED:
         {
             CloseThemeData(m_hThemeTV);
-            m_hThemeTV = OpenThemeData(hWnd, L"TreeView");
+            m_hThemeTV = OpenThemeData(HWnd, L"TreeView");
             CloseThemeData(m_hThemeLV);
             m_hThemeLV = OpenThemeData(nullptr, L"ItemsView::ListView");
             CloseThemeData(m_hThemeBT);
-            m_hThemeBT = OpenThemeData(hWnd, L"Button");
+            m_hThemeBT = OpenThemeData(HWnd, L"Button");
             UpdateThemeInfomation();
             UpdateDCAttribute();
             Redraw();
@@ -2318,7 +2318,7 @@ public:
             UpdateSystemParameter();
             break;
         }
-        return CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CWindow::OnMessage(uMsg, wParam, lParam);
     }
 
     /// <summary>
@@ -3491,14 +3491,14 @@ public:
     EckInlineNdCe int GetTextBufferSize() const noexcept { return m_rsTextBuf.Size(); }
 };
 
-inline LRESULT CTLHeader::OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
+inline LRESULT CTLHeader::OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
 {
     LRESULT lResult;
     switch (uMsg)
     {
     case HDM_INSERTITEMW:
         m_TL.DismissEdit();
-        lResult = __super::OnMessage(hWnd, uMsg, wParam, lParam);
+        lResult = __super::OnMessage(uMsg, wParam, lParam);
         if (lResult >= 0)
         {
             m_TL.m_vCol.emplace_back();
@@ -3508,7 +3508,7 @@ inline LRESULT CTLHeader::OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 
     case HDM_DELETEITEM:
         m_TL.DismissEdit();
-        lResult = __super::OnMessage(hWnd, uMsg, wParam, lParam);
+        lResult = __super::OnMessage(uMsg, wParam, lParam);
         if (lResult)
         {
             m_TL.m_vCol.pop_back();
@@ -3518,15 +3518,15 @@ inline LRESULT CTLHeader::OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 
     case HDM_SETORDERARRAY:
         m_TL.DismissEdit();
-        lResult = __super::OnMessage(hWnd, uMsg, wParam, lParam);
+        lResult = __super::OnMessage(uMsg, wParam, lParam);
         if (lResult)
             m_TL.UpdateColumnInfomation();
         return lResult;
     }
-    return __super::OnMessage(hWnd, uMsg, wParam, lParam);
+    return __super::OnMessage(uMsg, wParam, lParam);
 }
 
-inline LRESULT CTLEditExt::OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
+inline LRESULT CTLEditExt::OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
 {
     switch (uMsg)
     {
@@ -3549,6 +3549,6 @@ inline LRESULT CTLEditExt::OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
         break;
     }
 
-    return __super::OnMessage(hWnd, uMsg, wParam, lParam);
+    return __super::OnMessage(uMsg, wParam, lParam);
 }
 ECK_NAMESPACE_END

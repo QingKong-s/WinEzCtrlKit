@@ -38,14 +38,14 @@ public:
         CleanupForDestroyWindow();
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
         case WM_NCHITTEST:
         {
             POINT pt ECK_GET_PT_LPARAM(lParam);
-            ScreenToClient(hWnd, &pt);
+            ScreenToClient(HWnd, &pt);
             FixCursorPosition(pt);
             if (PtInRect(m_rcBtn, pt))
                 return HTCLIENT;
@@ -54,7 +54,7 @@ public:
 
         case WM_NCCALCSIZE:
         {
-            const auto lResult = CEditExt::OnMessage(hWnd, uMsg, wParam, lParam);
+            const auto lResult = CEditExt::OnMessage(uMsg, wParam, lParam);
             const auto prcClient = (RECT*)lParam;
 
             int cyWnd;
@@ -63,11 +63,11 @@ public:
             else
             {
                 RECT rc;
-                GetWindowRect(hWnd, &rc);
+                GetWindowRect(HWnd, &rc);
                 cyWnd = rc.bottom - rc.top;
             }
 
-            const int cxBtn = (m_cxBtn ? m_cxBtn : DpiScale(20, GetDpi(hWnd)));
+            const int cxBtn = (m_cxBtn ? m_cxBtn : DpiScale(20, GetDpi(HWnd)));
             m_rcBtn.right = m_rcMargins.left + (prcClient->right - prcClient->left);
             m_rcBtn.left = m_rcBtn.right - cxBtn;
             m_rcBtn.top = m_rcMargins.top;
@@ -80,10 +80,10 @@ public:
 
         case WM_NCPAINT:
         {
-            const auto lResult = CEditExt::OnMessage(hWnd, uMsg, wParam, lParam);
-            const HDC hDC = GetWindowDC(hWnd);
+            const auto lResult = CEditExt::OnMessage(uMsg, wParam, lParam);
+            const HDC hDC = GetWindowDC(HWnd);
             OnPaintButton(hDC);
-            ReleaseDC(hWnd, hDC);
+            ReleaseDC(HWnd, hDC);
             return lResult;
         }
         break;
@@ -100,7 +100,7 @@ public:
                 TRACKMOUSEEVENT tme;
                 tme.cbSize = sizeof(tme);
                 tme.dwFlags = TME_LEAVE;
-                tme.hwndTrack = hWnd;
+                tme.hwndTrack = HWnd;
                 TrackMouseEvent(&tme);
                 return 0;
             }
@@ -130,7 +130,7 @@ public:
             FixCursorPosition(pt);
             if (PtInRect(m_rcBtn, pt))
             {
-                SetCapture(hWnd);
+                SetCapture(HWnd);
                 m_bLBtnDown = TRUE;
                 RedrawButton();
                 return 0;
@@ -171,7 +171,7 @@ public:
             CleanupForDestroyWindow();
             break;
         }
-        return CEditExt::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CEditExt::OnMessage(uMsg, wParam, lParam);
     }
 
     virtual void OnPaintButton(HDC hDC) noexcept

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "CWindow.h"
 
 ECK_NAMESPACE_BEGIN
@@ -21,15 +21,15 @@ private:
 
     BITBOOL m_bCaptured : 1 = FALSE;
 public:
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
         case WM_LBUTTONDOWN:
             m_bCaptured = TRUE;
             Redraw();
-            UpdateWindow(hWnd);
-            SetCapture(hWnd);
+            UpdateWindow(HWnd);
+            SetCapture(HWnd);
             SetCursor(m_hcHit ? m_hcHit : m_hcDef);
             return 0;
 
@@ -39,7 +39,7 @@ public:
             {
                 m_bCaptured = FALSE;
                 Redraw();
-                UpdateWindow(hWnd);
+                UpdateWindow(HWnd);
                 ReleaseCapture();
                 NMHTTSEL nm;
                 GetCursorPos(&nm.pt);
@@ -58,12 +58,12 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(hWnd, &ps);
+            BeginPaint(HWnd, &ps);
             SetDCBrushColor(ps.hdc, PtcCurrent()->crDefBkg);
             FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
             if (!m_bCaptured)
                 DrawIcon(ps.hdc, 0, 0, (HICON)(m_hcNormal ? m_hcNormal : m_hcDef));
-            EndPaint(hWnd, &ps);
+            EndPaint(HWnd, &ps);
         }
         return 0;
 
@@ -72,7 +72,7 @@ public:
             m_hcDef = LoadCursorW(nullptr, IDC_CROSS);
             break;
         }
-        return __super::OnMessage(hWnd, uMsg, wParam, lParam);
+        return __super::OnMessage(uMsg, wParam, lParam);
     }
 
     EckInlineCe void SetNormalCursor(HCURSOR hc) noexcept { m_hcNormal = hc; }

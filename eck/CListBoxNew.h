@@ -581,8 +581,8 @@ private:
                 m_bLBtnDown = FALSE;
                 CbBeginProtectCapture();
                 ReleaseCapture();
-                __super::OnMessage(hWnd, WM_NCLBUTTONDOWN,
-                    __super::OnMessage(hWnd, WM_NCHITTEST, 0, POINTTOPOINTS(ptScr)),
+                __super::OnMessage(WM_NCLBUTTONDOWN,
+                    __super::OnMessage(WM_NCHITTEST, 0, POINTTOPOINTS(ptScr)),
                     POINTTOPOINTS(ptScr));
                 SetCapture(hWnd);
                 CbEndProtectCapture();
@@ -788,7 +788,7 @@ private:
         return FillNmhdrAndSendNotify(nm, m_hParent, NM_LBN_DISMISS);
     }
 public:
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -823,7 +823,7 @@ public:
             TRACKMOUSEEVENT tme;
             tme.cbSize = sizeof(TRACKMOUSEEVENT);
             tme.dwFlags = TME_LEAVE;
-            tme.hwndTrack = hWnd;
+            tme.hwndTrack = HWnd;
             TrackMouseEvent(&tme);
         }
         break;
@@ -833,20 +833,20 @@ public:
             ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
             ScbSetPage(SB_VERT, m_cyClient);
             ReCalculateTopItem();
-            m_DC.ReSize(hWnd, m_cxClient, m_cyClient);
+            m_DC.ReSize(HWnd, m_cxClient, m_cyClient);
         }
         break;
 
         case WM_PRINTCLIENT:
         case WM_PAINT:
-            OnPaint(hWnd, wParam);
+            OnPaint(HWnd, wParam);
             return 0;
 
         case WM_VSCROLL:
-            return HANDLE_WM_VSCROLL(hWnd, wParam, lParam, OnVScroll);
+            return HANDLE_WM_VSCROLL(HWnd, wParam, lParam, OnVScroll);
 
         case WM_MOUSEWHEEL:
-            HANDLE_WM_MOUSEWHEEL(hWnd, wParam, lParam, OnMouseWheel);
+            HANDLE_WM_MOUSEWHEEL(HWnd, wParam, lParam, OnMouseWheel);
             break;
 
         case WM_RBUTTONDOWN:
@@ -863,7 +863,7 @@ public:
             else
             {
                 m_bRBtnDown = TRUE;
-                SetCapture(hWnd);
+                SetCapture(HWnd);
             }
         }
         break;
@@ -876,8 +876,8 @@ public:
                 if (!PtInRect(&rcClient, ECK_GET_PT_LPARAM(lParam)))// 客户区之外，可能正在右击滚动条
                 {
                     CbBeginProtectCapture();
-                    const auto lResult = __super::OnMessage(hWnd, uMsg, wParam, lParam);
-                    SetCapture(hWnd);
+                    const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
+                    SetCapture(HWnd);
                     CbEndProtectCapture();
                     return lResult;
                 }
@@ -896,7 +896,7 @@ public:
         break;
 
         case WM_LBUTTONDOWN:
-            HANDLE_WM_LBUTTONDOWN(hWnd, wParam, lParam, OnLButtonDown);
+            HANDLE_WM_LBUTTONDOWN(HWnd, wParam, lParam, OnLButtonDown);
             break;
 
         case WM_LBUTTONUP:
@@ -1063,8 +1063,8 @@ public:
                 {
                     POINT pt;
                     GetCursorPos(&pt);
-                    ScreenToClient(hWnd, &pt);
-                    OnMessage(hWnd, WM_LBUTTONUP, 0, POINTTOPOINTS(pt));
+                    ScreenToClient(HWnd, &pt);
+                    OnMessage(WM_LBUTTONUP, 0, POINTTOPOINTS(pt));
                 }
             }
         }
@@ -1111,13 +1111,13 @@ public:
         case WM_THEMECHANGED:
         {
             CloseThemeData(m_hTheme);
-            m_hTheme = OpenThemeData(hWnd, L"ListView");
+            m_hTheme = OpenThemeData(HWnd, L"ListView");
         }
         return 0;
 
         case WM_DPICHANGED_BEFOREPARENT:
         {
-            m_iDpi = GetDpi(hWnd);
+            m_iDpi = GetDpi(HWnd);
             if (m_bAutoItemHeight)
             {
                 UpdateDefaultItemHeight();
@@ -1127,7 +1127,7 @@ public:
         return 0;
 
         case WM_CREATE:
-            HANDLE_WM_CREATE(hWnd, wParam, lParam, OnCreate);
+            HANDLE_WM_CREATE(HWnd, wParam, lParam, OnCreate);
             break;
 
         case WM_DESTROY:
@@ -1146,7 +1146,7 @@ public:
         break;
         }
 
-        return CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CWindow::OnMessage(uMsg, wParam, lParam);
     }
 
     void SetItemCount(int cItem) noexcept

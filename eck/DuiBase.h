@@ -1537,7 +1537,7 @@ public:
             x, y, cx, cy, hParent, hMenu, g_hInstance, nullptr);
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         if ((uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST))
         {
@@ -1569,7 +1569,7 @@ public:
                 TRACKMOUSEEVENT tme;
                 tme.cbSize = sizeof(tme);
                 tme.dwFlags = TME_LEAVE;
-                tme.hwndTrack = hWnd;
+                tme.hwndTrack = HWnd;
                 TrackMouseEvent(&tme);
             }
             return 0;
@@ -1579,7 +1579,7 @@ public:
             if (m_bMouseCaptured)
             {
                 POINT pt ECK_GET_PT_LPARAM(lParam);
-                ScreenToClient(hWnd, &pt);
+                ScreenToClient(HWnd, &pt);
                 m_pCurrNcHitTestElem = ElemFromPoint(pt);
             }
             auto pElem = (m_pMouseCaptureElem ? m_pMouseCaptureElem : m_pCurrNcHitTestElem);
@@ -1597,14 +1597,14 @@ public:
                 TRACKMOUSEEVENT tme;
                 tme.cbSize = sizeof(tme);
                 tme.dwFlags = TME_LEAVE | TME_NONCLIENT;
-                tme.hwndTrack = hWnd;
+                tme.hwndTrack = HWnd;
                 TrackMouseEvent(&tme);
             }
             else if (uMsg == WM_NCLBUTTONDOWN)// 修正放开事件
             {
                 if (pElem)
                 {
-                    const auto lResult = CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
+                    const auto lResult = CWindow::OnMessage(uMsg, wParam, lParam);
                     POINT pt;
                     GetCursorPos(&pt);
                     pElem->CallEvent(WM_NCLBUTTONUP, wParam, MAKELPARAM(pt.x, pt.y));
@@ -1624,7 +1624,7 @@ public:
         case WM_NCHITTEST:
         {
             POINT pt ECK_GET_PT_LPARAM(lParam);
-            ScreenToClient(hWnd, &pt);
+            ScreenToClient(HWnd, &pt);
             Phy2Log(pt);
             LRESULT lResult;
             if (m_pCurrNcHitTestElem = ElemFromPoint(pt, &lResult))
@@ -1638,15 +1638,15 @@ public:
                 m_ePresentMode == PresentMode::WindowRenderTarget)
             {
                 RECT rcInvalid;
-                GetUpdateRect(hWnd, &rcInvalid, FALSE);
-                ValidateRect(hWnd, nullptr);
+                GetUpdateRect(HWnd, &rcInvalid, FALSE);
+                ValidateRect(HWnd, nullptr);
                 D2D1_RECT_F rcF{ MakeD2DRectF(rcInvalid) };
                 Phy2Log(rcF);
                 IrUnion(rcF);
                 WakeRenderThread();
             }
             else
-                ValidateRect(hWnd, nullptr);
+                ValidateRect(HWnd, nullptr);
         }
         return 0;
 
@@ -1732,12 +1732,12 @@ public:
 
         case WM_CREATE:
         {
-            auto lResult = CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
+            auto lResult = CWindow::OnMessage(uMsg, wParam, lParam);
             if (!lResult)
             {
-                m_iDpi = GetDpi(hWnd);
+                m_iDpi = GetDpi(HWnd);
                 RECT rc;
-                GetClientRect(hWnd, &rc);
+                GetClientRect(HWnd, &rc);
                 rc.right = std::max(rc.right, 8L);
                 rc.bottom = std::max(rc.bottom, 8L);
                 m_cxClient = rc.right;
@@ -1777,11 +1777,11 @@ public:
 
         case WM_DPICHANGED:// For top-level window.
             m_iDpi = HIWORD(wParam);
-            MsgOnDpiChanged(hWnd, lParam);
+            MsgOnDpiChanged(HWnd, lParam);
             return 0;
 
         case WM_DPICHANGED_AFTERPARENT:// For child window.
-            m_iDpi = GetDpi(hWnd);
+            m_iDpi = GetDpi(HWnd);
             return 0;
 
         case WM_DESTROY:
@@ -1853,7 +1853,7 @@ public:
         break;
         }
 
-        return CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CWindow::OnMessage(uMsg, wParam, lParam);
     }
 
     virtual LRESULT OnElemEvent(CElem* pElem, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept { return 0; }

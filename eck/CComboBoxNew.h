@@ -161,7 +161,7 @@ protected:
             m_LB.GetItemCount() * m_LB.GetItemHeight() + DaGetSystemMetrics(SM_CYEDGE, m_iDpi) * 2);
     }
 
-    LRESULT OnEditMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
+    LRESULT OnEditMessage(CWindow* pWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
     {
         switch (uMsg)
         {
@@ -172,11 +172,11 @@ protected:
             * 不会重置选择位置。无法从外部设置此样式，因为其行为不明确。
             * 这里处理WM_LBUTTONDOWN模拟。
             */
-            if (GetFocus() == hWnd)
+            if (GetFocus() == pWnd->HWnd)
                 break;
             Ctx.Processed();// Eat it.
             m_bHasFocus = TRUE;
-            SetFocus(hWnd);
+            SetFocus(pWnd->HWnd);
             m_pED->SelectAll();
             Redraw();
             return 0;
@@ -205,19 +205,19 @@ public:
         return __super::PreTranslateMessage(Msg);
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
         case WM_PRINTCLIENT:
         case WM_PAINT:
-            OnPaint(hWnd, wParam);
+            OnPaint(HWnd, wParam);
             return 0;
 
         case WM_SIZE:
         {
             ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
-            m_DC.ReSize(hWnd, m_cxClient, m_cyClient);
+            m_DC.ReSize(HWnd, m_cxClient, m_cyClient);
             SetBkMode(m_DC.GetDC(), TRANSPARENT);
             UpdateDropSize();
             if (m_eView == View::DropDownEdit)
@@ -254,7 +254,7 @@ public:
             TRACKMOUSEEVENT tme;
             tme.cbSize = sizeof(tme);
             tme.dwFlags = TME_LEAVE;
-            tme.hwndTrack = hWnd;
+            tme.hwndTrack = HWnd;
             TrackMouseEvent(&tme);
         }
         break;
@@ -271,7 +271,7 @@ public:
 
         case WM_LBUTTONDBLCLK:
         case WM_LBUTTONDOWN:
-            SetFocus(hWnd);
+            SetFocus(HWnd);
             if (m_bDrop)
                 DismissList();
             else
@@ -289,7 +289,7 @@ public:
                     DismissList();
                     break;
                 }
-                m_LB.OnMessage(m_LB.HWnd, uMsg, wParam, lParam);
+                m_LB.OnMessage(uMsg, wParam, lParam);
             }
             break;
 
@@ -307,7 +307,7 @@ public:
                         if (m_eView == View::DropDown)
                         {
                             Redraw();
-                            UpdateWindow(hWnd);
+                            UpdateWindow(HWnd);
                         }
                         else
                         {
@@ -335,8 +335,8 @@ public:
 
                 default:
                 ForwardNotify:
-                    pnmhdr->hwndFrom = hWnd;
-                    pnmhdr->idFrom = GetDlgCtrlID(hWnd);
+                    pnmhdr->hwndFrom = HWnd;
+                    pnmhdr->idFrom = GetDlgCtrlID(HWnd);
                     return ::SendMessageW(m_hParent, uMsg, pnmhdr->idFrom, lParam);
                 }
         }
@@ -406,7 +406,7 @@ public:
         case WM_THEMECHANGED:
         {
             CloseThemeData(m_hTheme);
-            m_hTheme = OpenThemeData(hWnd, L"Combobox");
+            m_hTheme = OpenThemeData(HWnd, L"Combobox");
             m_LB.SendMessageW(WM_THEMECHANGED, wParam, lParam);
         }
         break;
@@ -414,19 +414,19 @@ public:
         case WM_CREATE:
         {
             m_hParent = ((CREATESTRUCTW*)lParam)->hwndParent;
-            m_iDpi = GetDpi(hWnd);
+            m_iDpi = GetDpi(HWnd);
 #if _DEBUG
             m_LB.DbgTag = L"CComboBoxNew::m_LB";
 #endif
             m_LB.Create(nullptr, WS_POPUP | WS_BORDER,
                 WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TOPMOST,
-                0, 0, ((CREATESTRUCTW*)lParam)->cx, 500, hWnd, nullptr);
-            SetWindowLongPtrW(m_LB.HWnd, GWLP_HWNDPARENT, (LONG_PTR)hWnd);
-            m_LB.SetComboBox(hWnd);
+                0, 0, ((CREATESTRUCTW*)lParam)->cx, 500, HWnd, nullptr);
+            SetWindowLongPtrW(m_LB.HWnd, GWLP_HWNDPARENT, (LONG_PTR)HWnd);
+            m_LB.SetComboBox(HWnd);
             m_LB.SetGenerateItemNotify(TRUE);
 
-            m_hTheme = OpenThemeData(hWnd, L"Combobox");
-            m_DC.FromWindow(hWnd);
+            m_hTheme = OpenThemeData(HWnd, L"Combobox");
+            m_DC.FromWindow(HWnd);
             SetBkMode(m_DC.GetDC(), TRANSPARENT);
         }
         break;
@@ -448,7 +448,7 @@ public:
         }
         break;
         }
-        return CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CWindow::OnMessage(uMsg, wParam, lParam);
     }
 
     void DropList()

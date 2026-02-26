@@ -91,21 +91,21 @@ public:
         return iButton;
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(hWnd, &ps);
+            BeginPaint(HWnd, &ps);
             SetDCBrushColor(ps.hdc, PtcCurrent()->crDefBkg);
             FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
-            EndPaint(hWnd, &ps);
+            EndPaint(HWnd, &ps);
         }
         return 0;
         }
-        return CDialog::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CDialog::OnMessage(uMsg, wParam, lParam);
     }
 
     EckInline BOOL EndDialog(INT_PTR nResult) noexcept override { return FALSE; }
@@ -277,7 +277,7 @@ public:
         return ChooseFontW((CHOOSEFONTW*)pData);
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -381,15 +381,15 @@ public:
             if (!ShouldAppsUseDarkMode())
                 break;
             PAINTSTRUCT ps;
-            BeginPaint(hWnd, &ps);
-            const auto hBTSample = GetDlgItem(hWnd, 0x431);
+            BeginPaint(HWnd, &ps);
+            const auto hBTSample = GetDlgItem(HWnd, 0x431);
             RECT rc;
             GetWindowRect(hBTSample, &rc);
-            ScreenToClient(hWnd, &rc);
+            ScreenToClient(HWnd, &rc);
             if (IsRectsIntersect(ps.rcPaint, rc))
             {
                 const auto* const ptc = PtcCurrent();
-                const auto hCBBColor = GetDlgItem(hWnd, 0x473);
+                const auto hCBBColor = GetDlgItem(HWnd, 0x473);
                 COLORREF cr{ CLR_INVALID };
                 if (GetWindowLongPtrW(hCBBColor, GWL_STYLE) & WS_VISIBLE)
                 {
@@ -417,11 +417,11 @@ public:
                     DT_SINGLELINE | DT_CENTER | DT_VCENTER | DT_NOPREFIX);
                 DeleteObject(hFont);
             }
-            EndPaint(hWnd, &ps);
+            EndPaint(HWnd, &ps);
         }
         return 0;
         }
-        return __super::OnMessage(hWnd, uMsg, wParam, lParam);
+        return __super::OnMessage(uMsg, wParam, lParam);
     }
 
     void OnOk(HWND hCtrl) noexcept override {}

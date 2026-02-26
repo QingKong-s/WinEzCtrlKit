@@ -38,7 +38,7 @@ private:
         m_rcCommandEdge.top = m_rcMainPanel.bottom;
     }
 public:
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -48,20 +48,20 @@ public:
                 break;
             const auto* const ptc = PtcCurrent();
             PAINTSTRUCT ps;
-            BeginPaint(hWnd, &ps);
+            BeginPaint(HWnd, &ps);
             SetDCBrushColor(ps.hdc, ptc->crDefBkg);
             FillRect(ps.hdc, &m_rcMainPanel, GetStockBrush(DC_BRUSH));
             SetDCBrushColor(ps.hdc, ptc->crDefBtnFace);
             FillRect(ps.hdc, &m_rcCommandEdge, GetStockBrush(DC_BRUSH));
-            EndPaint(hWnd, &ps);
+            EndPaint(HWnd, &ps);
         }
         return 0;
 
         case WM_INITDIALOG:
         {
             // Call默认过程，先执行初始化
-            const auto lResult = __super::OnMessage(hWnd, uMsg, wParam, lParam);
-            if (HWND hStaticIcon; hStaticIcon = GetDlgItem(hWnd, 0x14))
+            const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
+            if (HWND hStaticIcon; hStaticIcon = GetDlgItem(HWnd, 0x14))
             {
                 m_hIcon = (HICON)::SendMessageW(hStaticIcon, STM_GETICON, 0, 0);
                 // OD修正图标白底
@@ -69,8 +69,8 @@ public:
                     (GetWindowLongPtrW(hStaticIcon, GWL_STYLE) & ~SS_ICON) | SS_OWNERDRAW);
             }
 
-            UpdateMetrics(GetDpi(hWnd));
-            EnableWindowNcDarkMode(hWnd, ShouldAppsUseDarkMode());
+            UpdateMetrics(GetDpi(HWnd));
+            EnableWindowNcDarkMode(HWnd, ShouldAppsUseDarkMode());
             return lResult;
         }
         break;
@@ -112,7 +112,7 @@ public:
 
         case WM_DPICHANGED:
         {
-            const auto lResult = __super::OnMessage(hWnd, uMsg, wParam, lParam);
+            const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
             UpdateMetrics(HIWORD(wParam));
             return lResult;
         }
@@ -122,14 +122,14 @@ public:
         {
             if (ShouldAppsUseDarkMode())// 焦点指示器状态改变将导致重绘错误。。。。
             {
-                const auto lResult = __super::OnMessage(hWnd, uMsg, wParam, lParam);
-                RedrawWindow(hWnd, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
+                const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
+                RedrawWindow(HWnd, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
                 return lResult;
             }
         }
         break;
         }
-        return __super::OnMessage(hWnd, uMsg, wParam, lParam);
+        return __super::OnMessage(uMsg, wParam, lParam);
     }
 };
 ECK_NAMESPACE_END

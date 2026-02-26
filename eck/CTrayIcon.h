@@ -49,7 +49,7 @@ private:
         return TRUE;
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx) noexcept
+    LRESULT OnMessage(CWindow* pWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx) noexcept
     {
         if (uMsg == WM_DESTROY)
         {
@@ -60,7 +60,7 @@ private:
         {
             NOTIFYICONDATAW nid;
             nid.cbSize = sizeof(nid);
-            nid.hWnd = hWnd;
+            nid.hWnd = pWnd->HWnd;
             nid.uCallbackMessage = MessageTray;
             for (auto it = m_vItem.begin(); it != m_vItem.end(); )
             {

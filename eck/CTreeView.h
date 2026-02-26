@@ -59,7 +59,7 @@ protected:
 public:
     EckInlineCe void SetAutoDarkMode(BOOL b) { m_bAutoDarkMode = b; }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
         switch (uMsg)
         {
@@ -68,7 +68,7 @@ public:
         {
             if (m_bAutoDarkMode)
             {
-                const auto lResult = CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
+                const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
                 const auto* const ptc = PtcCurrent();
                 SetTextForegroundColor(ptc->crDefText);
                 SetBackgroundColor(ptc->crDefBkg);
@@ -77,7 +77,7 @@ public:
         }
         break;
         }
-        return __super::OnMessage(hWnd, uMsg, wParam, lParam);
+        return __super::OnMessage(uMsg, wParam, lParam);
     }
 
     EckInline HIMAGELIST CreateDragImage(HTREEITEM hItem) const noexcept

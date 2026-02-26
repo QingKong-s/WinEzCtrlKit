@@ -2,7 +2,7 @@
 
 #include "CWndMain.h"
 
-void CWndMain::DmNewDpi(int iDpi)
+void CWndMain::DmNewDpi(int iDpi) noexcept
 {
     const int iDpiOld = m_iDpi;
     m_iDpi = iDpi;
@@ -11,21 +11,21 @@ void CWndMain::DmNewDpi(int iDpi)
     DmUpdateFixedSize();
 }
 
-void CWndMain::DmUpdateFixedSize()
+void CWndMain::DmUpdateFixedSize() noexcept
 {
 }
 
-void CWndMain::OnDestory()
+void CWndMain::OnDestory() noexcept
 {
     DeleteObject(m_hFont);
     m_hFont = nullptr;
 }
 
-LRESULT CWndMain::OnCreate(HWND hWnd, CREATESTRUCT* pcs)
+LRESULT CWndMain::OnCreate(CREATESTRUCT* pcs) noexcept
 {
     eck::PtcCurrent()->UpdateDefaultColor();
 
-    m_iDpi = eck::GetDpi(hWnd);
+    m_iDpi = eck::GetDpi(HWnd);
     m_hFont = eck::DftCreate(m_iDpi);
 
     constexpr DWORD Style = WS_CHILD | WS_VISIBLE | WS_TABSTOP;
@@ -96,7 +96,7 @@ LRESULT CWndMain::OnCreate(HWND hWnd, CREATESTRUCT* pcs)
     return 0;
 }
 
-LRESULT CWndMain::OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
+LRESULT CWndMain::OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
 {
     switch (uMsg)
     {
@@ -114,31 +114,31 @@ LRESULT CWndMain::OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         {
         case BN_CLICKED:
             if ((LPARAM)m_BTLogin.HWnd == lParam)
-                MessageBoxW(hWnd, L"Hello World!", L"Hello", MB_OK);
+                MessageBoxW(HWnd, L"Hello World!", L"Hello", MB_OK);
             return 0;
         }
     }
     break;
 
     case WM_CREATE:
-        return OnCreate(hWnd, (CREATESTRUCT*)lParam);
+        return OnCreate((CREATESTRUCT*)lParam);
     case WM_DESTROY:
         OnDestory();
         PostQuitMessage(0);
         return 0;
 
     case WM_SYSCOLORCHANGE:
-        eck::MsgOnSystemColorChangeMainWindow(hWnd, wParam, lParam);
+        eck::MsgOnSystemColorChangeMainWindow(HWnd, wParam, lParam);
         break;
     case WM_SETTINGCHANGE:
-        eck::MsgOnSettingChangeMainWindow(hWnd, wParam, lParam);
+        eck::MsgOnSettingChangeMainWindow(HWnd, wParam, lParam);
         break;
     case WM_DPICHANGED:
         DmNewDpi(HIWORD(wParam));
-        eck::MsgOnDpiChanged(hWnd, lParam);
+        eck::MsgOnDpiChanged(HWnd, lParam);
         return 0;
     }
-    return __super::OnMessage(hWnd, uMsg, wParam, lParam);
+    return __super::OnMessage(uMsg, wParam, lParam);
 }
 
 BOOL CWndMain::PreTranslateMessage(const MSG& Msg) noexcept

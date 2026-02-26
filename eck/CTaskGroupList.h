@@ -184,14 +184,14 @@ public:
         return CListView::OnNotifyMessage(hParent, uMsg, wParam, lParam, bProcessed);
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
         case WM_MOUSEMOVE:
         {
             POINT pt ECK_GET_PT_LPARAM(lParam);
-            LRESULT lResult = DefSubclassProc(hWnd, uMsg, wParam, lParam);
+            LRESULT lResult = __super::OnMessage(uMsg, wParam, lParam);
             int idxHot = GetHotItem();
             BOOL bRedraw = FALSE, bHotChanged = FALSE;
             if (m_idxHot != idxHot)
@@ -235,7 +235,7 @@ public:
             TRACKMOUSEEVENT tme;
             tme.cbSize = sizeof(TRACKMOUSEEVENT);
             tme.dwFlags = TME_LEAVE;
-            tme.hwndTrack = hWnd;
+            tme.hwndTrack = HWnd;
             TrackMouseEvent(&tme);
 
             return lResult;
@@ -271,7 +271,7 @@ public:
                 if (uPart == TGLP_SECTIONTITLE || uPart == TGLP_SUBTASK)
                 {
                     m_bLBtnDown = TRUE;
-                    SetCapture(hWnd);
+                    SetCapture(HWnd);
                     RedrawItems(lvhti.iItem, lvhti.iItem);
                     return 0;
                 }
@@ -323,7 +323,7 @@ public:
 
         case WM_DPICHANGED_AFTERPARENT:
         {
-            int iDpi = GetDpi(hWnd);
+            int iDpi = GetDpi(HWnd);
             m_cxPadding = DpiScale(c_iPadding, iDpi);
             m_cxSubTaskPadding = DpiScale(c_iSubTaskPadding, iDpi);
         }
@@ -357,7 +357,7 @@ public:
         }
         break;
         }
-        return CListView::OnMessage(hWnd, uMsg, wParam, lParam);
+        return __super::OnMessage(uMsg, wParam, lParam);
     }
 
     ECK_CWND_CREATE;

@@ -20,7 +20,7 @@ public:
     ECK_CWNDPROP_STYLE(ShortDaysOfWeek, MCS_SHORTDAYSOFWEEK);
     ECK_CWNDPROP_STYLE(NoSelChangeOnNav, MCS_NOSELCHANGEONNAV);
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         if (m_bAutoDarkMode)
             switch (uMsg)
@@ -28,13 +28,13 @@ public:
             case WM_THEMECHANGED:
             case WM_CREATE:
             {
-                const auto lResult = __super::OnMessage(hWnd, uMsg, wParam, lParam);
+                const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
                 SetCorrectColor();
                 return lResult;
             }
             break;
             }
-        return __super::OnMessage(hWnd, uMsg, wParam, lParam);
+        return __super::OnMessage(uMsg, wParam, lParam);
     }
 
     EckInline int GetCalendarBorder() const noexcept

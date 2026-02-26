@@ -47,25 +47,25 @@ public:
     ECK_CWNDPROP_TABE_STYLE(FlatSeparators, TCS_EX_FLATSEPARATORS);
     ECK_CWNDPROP_TABE_STYLE(RegisterDrop, TCS_EX_REGISTERDROP);
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(hWnd, wParam, ps);
+            BeginPaint(HWnd, wParam, ps);
             CMemoryDC DC{};
-            DC.FromWindow(hWnd, ps.rcPaint.right - ps.rcPaint.left,
+            DC.FromWindow(HWnd, ps.rcPaint.right - ps.rcPaint.left,
                 ps.rcPaint.bottom - ps.rcPaint.top);
             SetWindowOrgEx(DC.GetDC(), ps.rcPaint.left, ps.rcPaint.top, nullptr);
-            __super::OnMessage(hWnd, WM_PAINT, (WPARAM)DC.GetDC(), lParam);
+            __super::OnMessage(WM_PAINT, (WPARAM)DC.GetDC(), lParam);
             BitBltPs(&ps, DC.GetDC());
-            EndPaint(hWnd, wParam, ps);
+            EndPaint(HWnd, wParam, ps);
         }
         return 0;
         }
-        return __super::OnMessage(hWnd, uMsg, wParam, lParam);
+        return __super::OnMessage(uMsg, wParam, lParam);
     }
 
     /// <summary>

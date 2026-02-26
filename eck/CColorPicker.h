@@ -180,18 +180,18 @@ public:
         return __super::OnNotifyMessage(hParent, uMsg, wParam, lParam, bProcessed);
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
         case WM_CREATE:
         {
-            const auto lResult = __super::OnMessage(hWnd, uMsg, wParam, lParam);
+            const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
             GetListBox().SetItemCount(ARRAYSIZE(PresetColor));
             return lResult;
         }
         }
-        return __super::OnMessage(hWnd, uMsg, wParam, lParam);
+        return __super::OnMessage(uMsg, wParam, lParam);
     }
 
     COLORREF GetColor() noexcept

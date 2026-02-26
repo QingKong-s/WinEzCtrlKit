@@ -103,13 +103,13 @@ public:
         return FALSE;
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
         case WM_NCCREATE:
             m_iResult = 0;
-            SetWindowLongPtrW(hWnd, DWLP_DLGPROC, (LONG_PTR)EckDlgProc);
+            SetWindowLongPtrW(HWnd, DWLP_DLGPROC, (LONG_PTR)EckDlgProc);
 #ifdef _DEBUG
             m_bDlgProcInit = TRUE;
             break;
@@ -152,7 +152,7 @@ public:
         break;
         }
 
-        return __super::OnMessage(hWnd, uMsg, wParam, lParam);
+        return __super::OnMessage(uMsg, wParam, lParam);
     }
 
     virtual BOOL OnInitializeDialog(HWND hDlg, HWND hFocus, LPARAM lParam) noexcept { return TRUE; }

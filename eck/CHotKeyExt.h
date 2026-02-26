@@ -8,7 +8,7 @@ class CHotKeyExt : public CHotKey
 public:
     ECK_RTTI(CHotKeyExt, CHotKey);
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -17,9 +17,9 @@ public:
         {
             if (!ShouldAppsUseDarkMode())
                 break;
-            HideCaret(hWnd);
+            HideCaret(HWnd);
             PAINTSTRUCT ps;
-            BeginPaint(hWnd, wParam, ps);
+            BeginPaint(HWnd, wParam, ps);
 
             const auto svPlus = GetResourceStringForCurrentLocale(0x0401, g_hModComCtl32);
             UINT uFunc;
@@ -63,7 +63,7 @@ public:
             }
 
             const auto* const ptc = PtcCurrent();
-            const auto iDpi = GetDpi(hWnd);
+            const auto iDpi = GetDpi(HWnd);
             const auto cxBorder = DaGetSystemMetrics(SM_CXBORDER, iDpi);
             const auto cyBorder = DaGetSystemMetrics(SM_CYBORDER, iDpi);
 
@@ -71,7 +71,7 @@ public:
             FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
             const auto hOld = SelectObject(ps.hdc, GetFont());
             SetBkMode(ps.hdc, TRANSPARENT);
-            if (IsWindowEnabled(hWnd))
+            if (IsWindowEnabled(HWnd))
                 SetTextColor(ps.hdc, ptc->crDefText);
             else
                 SetTextColor(ps.hdc, ptc->crGray1);
@@ -80,15 +80,15 @@ public:
             SIZE size;
             GetTextExtentPoint32W(ps.hdc, szBuf, pos, &size);
 
-            if (GetFocus() == hWnd)
+            if (GetFocus() == HWnd)
                 SetCaretPos(size.cx + cxBorder, cyBorder);
-            ShowCaret(hWnd);
+            ShowCaret(HWnd);
 
-            EndPaint(hWnd, wParam, ps);
+            EndPaint(HWnd, wParam, ps);
         }
         return 0;
         }
-        return __super::OnMessage(hWnd, uMsg, wParam, lParam);
+        return __super::OnMessage(uMsg, wParam, lParam);
     }
 };
 ECK_NAMESPACE_END

@@ -105,7 +105,7 @@ public:
         CleanupForDestroyWindow();
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -116,9 +116,9 @@ public:
                 !m_rsCueBanner.IsEmpty())
             {
                 PAINTSTRUCT ps;
-                BeginPaint(hWnd, wParam, ps);
+                BeginPaint(HWnd, wParam, ps);
 
-                CEdit::OnMessage(hWnd, WM_PAINT, (WPARAM)ps.hdc, 0);
+                CEdit::OnMessage(WM_PAINT, (WPARAM)ps.hdc, 0);
                 RECT rcText;
                 GetRect(&rcText);
 
@@ -129,7 +129,7 @@ public:
                 SetTextColor(ps.hdc, crOld);
                 SelectObject(ps.hdc, hOld);
 
-                EndPaint(hWnd, wParam, ps);
+                EndPaint(HWnd, wParam, ps);
                 return 0;
             }
         }
@@ -138,7 +138,7 @@ public:
         case WM_KEYDOWN:
             if (m_bCtrlASelectAll && wParam == 'A')
                 if (GetKeyState(VK_CONTROL) & 0x80000000)
-                    ::SendMessageW(hWnd, EM_SETSEL, 0, -1);// Ctrl + A全选
+                    ::SendMessageW(HWnd, EM_SETSEL, 0, -1);// Ctrl + A全选
             break;
 
         case WM_CHAR:
@@ -246,7 +246,7 @@ public:
 
             case InputMode::Float:
             {
-                cchText = GetWindowTextLengthW(hWnd) + 10;
+                cchText = GetWindowTextLengthW(HWnd) + 10;
                 if (!cchText)
                     break;
                 pszText = (PWSTR)_malloca(Cch2CbW(cchText));
@@ -268,7 +268,7 @@ public:
 
             case InputMode::Double:
             {
-                cchText = GetWindowTextLengthW(hWnd) + 10;
+                cchText = GetWindowTextLengthW(HWnd) + 10;
                 if (!cchText)
                     break;
                 pszText = (PWSTR)_malloca(Cch2CbW(cchText));
@@ -293,13 +293,13 @@ public:
             }
 
             if (pszCorrectValue)
-                SetWindowTextW(hWnd, pszCorrectValue);
+                SetWindowTextW(HWnd, pszCorrectValue);
         }
         break;
 
         case EM_SETCUEBANNER:
         {
-            const auto lResult = CEdit::OnMessage(hWnd, uMsg, wParam, lParam);
+            const auto lResult = CEdit::OnMessage(uMsg, wParam, lParam);
             if (lResult && m_bMultiLine)
                 m_rsCueBanner.Assign((PCWSTR)lParam);
             return lResult;
@@ -312,7 +312,7 @@ public:
             const auto prc = (RECT*)lParam;
             m_rcMargins = *prc;// 保存非客户区尺寸
             const auto lResult = CEdit::OnMessage(
-                hWnd, uMsg, wParam, lParam);// call默认过程，计算标准边框尺寸
+                uMsg, wParam, lParam);// call默认过程，计算标准边框尺寸
             // 保存边框尺寸
             m_rcMargins.left = prc->left - m_rcMargins.left;
             m_rcMargins.top = prc->top - m_rcMargins.top;
@@ -327,10 +327,10 @@ public:
 
         case WM_NCPAINT:
         {
-            CEdit::OnMessage(hWnd, uMsg, wParam, lParam);// 画默认边框
+            CEdit::OnMessage(uMsg, wParam, lParam);// 画默认边框
             if (GetMultiLine())
                 return 0;
-            const HDC hDC = GetWindowDC(hWnd);
+            const HDC hDC = GetWindowDC(HWnd);
             RECT rcWnd{ 0,0,m_cxWnd,m_cyWnd };
             const RECT rcText{ GetSingleLineTextRect() };
             // 非客户区矩形减掉边框
@@ -348,13 +348,13 @@ public:
             // 填充背景
             SetDCBrushColor(hDC, m_crBk != CLR_DEFAULT ? m_crBk : PtcCurrent()->crDefBkg);
             FillRect(hDC, &rcWnd, GetStockBrush(DC_BRUSH));
-            ReleaseDC(hWnd, hDC);
+            ReleaseDC(HWnd, hDC);
         }
         return 0;
 
         case WM_SETFONT:
         {
-            auto lResult = CEdit::OnMessage(hWnd, uMsg, wParam, lParam);
+            auto lResult = CEdit::OnMessage(uMsg, wParam, lParam);
             if (!GetMultiLine())
             {
                 UpdateTextInfomation();
@@ -373,7 +373,7 @@ public:
 
         case WM_NCHITTEST:
         {
-            auto lResult = CEdit::OnMessage(hWnd, uMsg, wParam, lParam);
+            auto lResult = CEdit::OnMessage(uMsg, wParam, lParam);
             if (!GetMultiLine())
             {
                 if (lResult == HTNOWHERE || lResult == HTBORDER)
@@ -395,7 +395,7 @@ public:
             break;
         }
 
-        return CEdit::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CEdit::OnMessage(uMsg, wParam, lParam);
     }
 
     LRESULT OnNotifyMessage(HWND hParent, UINT uMsg,

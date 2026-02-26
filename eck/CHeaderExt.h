@@ -594,7 +594,7 @@ public:
         CleanupForDestroyWindow();
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -627,7 +627,7 @@ public:
                 {
                     RECT rc;
                     GetItemRect(m_idxHotItem, &rc);
-                    InvalidateRect(hWnd, &rc, FALSE);
+                    InvalidateRect(HWnd, &rc, FALSE);
                 }
             }
             if (b2 != m_bFilterBtnHot)
@@ -637,14 +637,14 @@ public:
                 {
                     RECT rc;
                     GetItemRect(m_idxHotItem, &rc);
-                    InvalidateRect(hWnd, &rc, FALSE);
+                    InvalidateRect(HWnd, &rc, FALSE);
                 }
             }
 
             //TRACKMOUSEEVENT tme;
             //tme.cbSize = sizeof(tme);
             //tme.dwFlags = TME_LEAVE;
-            //tme.hwndTrack = hWnd;
+            //tme.hwndTrack = HWnd;
             //TrackMouseEvent(&tme);
         }
         break;
@@ -657,12 +657,12 @@ public:
         case WM_LBUTTONUP:
         {
             // 先call默认过程，因为控件内部可能要重排列
-            LRESULT lResult = CHeader::OnMessage(hWnd, uMsg, wParam, lParam);
+            LRESULT lResult = CHeader::OnMessage(uMsg, wParam, lParam);
 
             HDHITTESTINFO hdhti;
             hdhti.pt = ECK_GET_PT_LPARAM(lParam);
             hdhti.iItem = -1;
-            CHeader::OnMessage(hWnd, HDM_HITTEST, 0, (LPARAM)&hdhti);
+            CHeader::OnMessage(HDM_HITTEST, 0, (LPARAM)&hdhti);
             m_idxHotItem = hdhti.iItem;
 
             return lResult;
@@ -683,7 +683,7 @@ public:
                 GetClassNameW(HWND(lParam), szCls, ARRAYSIZE(szCls));
                 if (wcscmp(szCls, WC_EDITW) == 0)
                 {
-                    const auto lResult = CHeader::OnMessage(hWnd, uMsg, wParam, lParam);
+                    const auto lResult = CHeader::OnMessage(uMsg, wParam, lParam);
                     if (!m_pEDFilter)
                         m_pEDFilter = std::make_unique<CEditExt>();
                     m_pEDFilter->AttachNew(HWND(lParam));
@@ -692,7 +692,7 @@ public:
                     GetClientRect(m_pEDFilter->HWnd, &rc);
                     rc.left = rc.right / 2;
                     rc.top = rc.bottom / 2;
-                    MapWindowPoints(HWND(lParam), hWnd, (POINT*)&rc, 1);
+                    MapWindowPoints(HWND(lParam), HWnd, (POINT*)&rc, 1);
                     HDHITTESTINFO hdhti;
                     hdhti.pt = *(POINT*)&rc;
                     hdhti.iItem = -1;
@@ -715,9 +715,9 @@ public:
         case WM_THEMECHANGED:
         {
             CloseThemeData(m_hTheme);
-            m_hTheme = OpenThemeData(hWnd, L"Header");
+            m_hTheme = OpenThemeData(HWnd, L"Header");
             CloseThemeData(m_hThemeCB);
-            m_hThemeCB = OpenThemeData(hWnd, L"Button");
+            m_hThemeCB = OpenThemeData(HWnd, L"Button");
             UpdateThemeMetrics();
         }
         break;
@@ -735,7 +735,7 @@ public:
 
         case WM_DPICHANGED_BEFOREPARENT:
         {
-            m_iDpi = GetDpi(hWnd);
+            m_iDpi = GetDpi(HWnd);
             UpdateDpiSize(m_Ds, m_iDpi);
             m_cxEdge = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
             m_cyMenuCheck = DaGetSystemMetrics(SM_CYMENUCHECK, m_iDpi);
@@ -745,8 +745,8 @@ public:
 
         case WM_CREATE:
         {
-            const auto lResult = CHeader::OnMessage(hWnd, uMsg, wParam, lParam);
-            InitializeForNewWindow(hWnd);
+            const auto lResult = CHeader::OnMessage(uMsg, wParam, lParam);
+            InitializeForNewWindow(HWnd);
             return lResult;
         }
         break;
@@ -759,7 +759,7 @@ public:
 
         case HDM_HITTEST:
         {
-            const auto lResult = CHeader::OnMessage(hWnd, uMsg, wParam, lParam);
+            const auto lResult = CHeader::OnMessage(uMsg, wParam, lParam);
             if (lResult >= 0)
             {
                 const auto p = (HDHITTESTINFO*)lParam;
@@ -781,7 +781,7 @@ public:
 
         case HDM_INSERTITEMW:
         {
-            const auto lResult = CHeader::OnMessage(hWnd, uMsg, wParam, lParam);
+            const auto lResult = CHeader::OnMessage(uMsg, wParam, lParam);
             if (lResult >= 0)
             {
                 const auto it = m_vData.emplace(m_vData.begin() + lResult);
@@ -795,7 +795,7 @@ public:
 
         case HDM_SETITEMW:
         {
-            const auto lResult = CHeader::OnMessage(hWnd, uMsg, wParam, lParam);
+            const auto lResult = CHeader::OnMessage(uMsg, wParam, lParam);
             if (lResult >= 0)
             {
                 const auto* const p = (HDITEMW*)lParam;
@@ -808,7 +808,7 @@ public:
 
         case HDM_DELETEITEM:
         {
-            const auto lResult = CHeader::OnMessage(hWnd, uMsg, wParam, lParam);
+            const auto lResult = CHeader::OnMessage(uMsg, wParam, lParam);
             if (lResult)
                 m_vData.erase(m_vData.begin() + wParam);
             return lResult;
@@ -817,7 +817,7 @@ public:
 
         case HDM_SETIMAGELIST:
         {
-            const auto lResult = CHeader::OnMessage(hWnd, uMsg, wParam, lParam);
+            const auto lResult = CHeader::OnMessage(uMsg, wParam, lParam);
             if (wParam == HDSIL_NORMAL)
             {
                 m_hIL = (HIMAGELIST)lParam;
@@ -827,7 +827,7 @@ public:
         }
         break;
         }
-        return CHeader::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CHeader::OnMessage(uMsg, wParam, lParam);
     }
 
     LRESULT OnNotifyMessage(HWND hParent, UINT uMsg,

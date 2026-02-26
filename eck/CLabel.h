@@ -297,7 +297,7 @@ public:
         return TRUE;
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -309,7 +309,7 @@ public:
                 case MouseOpt::TransparentSpace:
                 {
                     POINT pt{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) };
-                    ScreenToClient(hWnd, &pt);
+                    ScreenToClient(HWnd, &pt);
                     LA_HITTEST laht;
                     HitTest(pt, laht);
                     if (!laht.bHitImg && !laht.bHitText)
@@ -336,7 +336,7 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(hWnd, wParam, ps);
+            BeginPaint(HWnd, wParam, ps);
             if (m_bTransparent)
             {
                 SaveDC(ps.hdc);
@@ -349,7 +349,7 @@ public:
                 Paint(m_DC.GetDC(), ps.rcPaint);
                 BitBltPs(ps, m_DC.GetDC());
             }
-            EndPaint(hWnd, wParam, ps);
+            EndPaint(HWnd, wParam, ps);
         }
         return 0;
 
@@ -389,7 +389,7 @@ public:
         {
             m_cxClient = LOWORD(lParam);
             m_cyClient = HIWORD(lParam);
-            m_DC.ReSize(hWnd, m_cxClient, m_cyClient);
+            m_DC.ReSize(HWnd, m_cxClient, m_cyClient);
             SetDCAttributes(m_DC.GetDC());
             CalculatePartsRect();
         }
@@ -398,7 +398,7 @@ public:
         case WM_CREATE:
         {
             m_rsText = ((CREATESTRUCTW*)lParam)->lpszName;
-            m_DC.FromWindow(hWnd);
+            m_DC.FromWindow(HWnd);
             SetDCAttributes(m_DC.GetDC());
         }
         break;
@@ -425,7 +425,7 @@ public:
         break;
         }
 
-        return CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CWindow::OnMessage(uMsg, wParam, lParam);
     }
 
     void Redraw() noexcept

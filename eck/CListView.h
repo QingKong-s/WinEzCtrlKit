@@ -78,7 +78,7 @@ protected:
 public:
     EckInlineCe void SetAutoDarkMode(BOOL b) { m_bAutoDarkMode = b; }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -108,7 +108,7 @@ public:
         {
             if (m_bAutoDarkMode)
             {
-                const auto lResult = CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
+                const auto lResult = CWindow::OnMessage(uMsg, wParam, lParam);
                 const auto* const ptc = PtcCurrent();
                 SetTextForegroundColor(ptc->crDefText);
                 SetBackgroundColor(ptc->crDefBkg);
@@ -118,7 +118,7 @@ public:
         }
         break;
         }
-        return CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CWindow::OnMessage(uMsg, wParam, lParam);
     }
 
     /// <summary>
@@ -1110,7 +1110,7 @@ public:
         if (!pParent)
             return FALSE;
         const auto hSlot = pParent->GetEventChain().Connect(
-            [cy, bSetOrAdd](HWND, UINT uMsg, WPARAM, LPARAM lParam, SlotCtx& Ctx)->LRESULT
+            [cy, bSetOrAdd](CWindow*, UINT uMsg, WPARAM, LPARAM lParam, SlotCtx& Ctx)->LRESULT
             {
                 if (uMsg == WM_MEASUREITEM)
                 {

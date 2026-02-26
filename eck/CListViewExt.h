@@ -922,7 +922,7 @@ private:
         m_bWaitEditDelay = FALSE;
     }
 
-    LRESULT OnMessageEdit(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx) noexcept
+    LRESULT OnMessageEdit(CWindow* pWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx) noexcept
     {
         switch (uMsg)
         {
@@ -1097,7 +1097,7 @@ public:
         CleanupForDestroyWindow();
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -1107,8 +1107,8 @@ public:
             if (!m_bGridLines || (m_iViewType != LV_VIEW_DETAILS))
                 break;
             PAINTSTRUCT ps;
-            BeginPaint(hWnd, wParam, ps);
-            CListView::OnMessage(hWnd, WM_PAINT, (WPARAM)ps.hdc, 0);
+            BeginPaint(HWnd, wParam, ps);
+            CListView::OnMessage(WM_PAINT, (WPARAM)ps.hdc, 0);
 
             RECT rcItem;
             const auto cCol = m_Header.GetItemCount();
@@ -1151,7 +1151,7 @@ public:
                 }
                 SelectObject(ps.hdc, hOld);
             }
-            EndPaint(hWnd, wParam, ps);
+            EndPaint(HWnd, wParam, ps);
             return 0;
         }
         break;
@@ -1258,7 +1258,7 @@ public:
         case WM_THEMECHANGED:
         {
             CloseThemeData(m_hTheme);
-            m_hTheme = OpenThemeData(hWnd, L"ListView");
+            m_hTheme = OpenThemeData(HWnd, L"ListView");
             if (m_ptc)
                 HandleThemeChange();
         }
@@ -1276,7 +1276,7 @@ public:
         break;
 
         case WM_DPICHANGED_BEFOREPARENT:
-            m_iDpi = GetDpi(hWnd);
+            m_iDpi = GetDpi(HWnd);
             m_cxEdge = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
             break;
 
@@ -1301,9 +1301,9 @@ public:
 
         case WM_CREATE:
         {
-            const auto lResult = CListView::OnMessage(hWnd, uMsg, wParam, lParam);
+            const auto lResult = CListView::OnMessage(uMsg, wParam, lParam);
             if (!lResult)
-                InitializeForNewWindow(hWnd);
+                InitializeForNewWindow(HWnd);
             return lResult;
         }
         break;
@@ -1314,7 +1314,7 @@ public:
 
         case LVM_SETTILEVIEWINFO:
         {
-            const auto lResult = CListView::OnMessage(hWnd, uMsg, wParam, lParam);
+            const auto lResult = CListView::OnMessage(uMsg, wParam, lParam);
             if (lResult)
             {
                 const auto* const p = (LVTILEVIEWINFO*)lParam;
@@ -1331,7 +1331,7 @@ public:
         {
             if (m_bEditLabel && m_bEnableExtEdit)
                 CancelExtendEdit(FALSE);
-            const auto lResult = CListView::OnMessage(hWnd, uMsg, wParam, lParam);
+            const auto lResult = CListView::OnMessage(uMsg, wParam, lParam);
             if (!m_Header.IsValid())
                 if (const auto hHeader = GetHeaderControl())
                     m_Header.AttachNew(hHeader);
@@ -1343,7 +1343,7 @@ public:
 
         case LVM_SETIMAGELIST:
         {
-            const auto lResult = CListView::OnMessage(hWnd, uMsg, wParam, lParam);
+            const auto lResult = CListView::OnMessage(uMsg, wParam, lParam);
             if (wParam >= 0 && wParam <= 3)
             {
                 m_hIL[wParam] = (HIMAGELIST)lParam;
@@ -1362,7 +1362,7 @@ public:
                 wParam &= ~LVS_EX_GRIDLINES;
                 lParam &= ~LVS_EX_GRIDLINES;
             }
-            const auto lResult = CListView::OnMessage(hWnd, uMsg, wParam, lParam);
+            const auto lResult = CListView::OnMessage(uMsg, wParam, lParam);
             if ((wParam & LVS_EX_CHECKBOXES) || !wParam)
             {
                 m_hIL[LVSIL_STATE] = GetImageList(LVSIL_STATE);
@@ -1374,7 +1374,7 @@ public:
         }
         break;
         }
-        return CListView::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CListView::OnMessage(uMsg, wParam, lParam);
     }
 
     LRESULT OnNotifyMessage(HWND hParent, UINT uMsg,
@@ -1634,12 +1634,12 @@ public:
             if (!m_bInstalledHeaderHook)
             {
                 m_Header.GetEventChain().Connect(
-                    [this](HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)->LRESULT
+                    [this](CWindow*, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)->LRESULT
                     {
                         if (uMsg == HDM_LAYOUT && m_cyHeader > 0)
                         {
                             Ctx.Processed();
-                            const auto lResult = m_Header.OnMessage(hWnd, uMsg, wParam, lParam);
+                            const auto lResult = m_Header.OnMessage(uMsg, wParam, lParam);
                             const auto phdlo = (HDLAYOUT*)lParam;
                             phdlo->prc->top = m_cyHeader;// 这个矩形是ListView工作区的矩形，就是表头矩形的补集
                             phdlo->pwpos->cy = m_cyHeader;

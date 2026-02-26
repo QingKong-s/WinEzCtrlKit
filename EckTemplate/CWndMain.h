@@ -21,16 +21,16 @@ private:
 
 	int m_iDpi{ 96 };
 
-	void DmNewDpi(int iDpi);
-	void DmUpdateFixedSize();
+	void DmNewDpi(int iDpi) noexcept;
+	void DmUpdateFixedSize() noexcept;
 
-	void OnDestory();
-	LRESULT OnCreate(HWND hWnd, CREATESTRUCT* pcs);
+	void OnDestory() noexcept;
+	LRESULT OnCreate(CREATESTRUCT* pcs) noexcept;
 public:
 	ECK_CWND_SINGLEOWNER(CWndMain);
 	ECK_CWND_CREATE_CLS_HINST(eck::WCN_DUMMY, eck::g_hInstance);
 
-	LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override;
+	LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override;
 
 	BOOL PreTranslateMessage(const MSG& Msg) noexcept override;
 };

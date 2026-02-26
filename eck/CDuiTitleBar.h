@@ -27,10 +27,10 @@ protected:
         return DwmWPartState::Normal;
     }
 
-    LRESULT OnWindowMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx&)
+    LRESULT OnWindowMessage(CWindow* pWnd, UINT uMsg, WPARAM, LPARAM, SlotCtx&)
     {
         if (uMsg == WM_WINDOWPOSCHANGED)
-            m_bMaximized = IsZoomed(hWnd);
+            m_bMaximized = IsZoomed(pWnd->HWnd);
         return 0;
     }
 

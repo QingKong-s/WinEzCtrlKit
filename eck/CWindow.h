@@ -201,7 +201,7 @@ public:
 protected:
     HWND m_hWnd{};
     WNDPROC m_pfnRealProc{ DefWindowProcW };
-    CEventChain<InterceptDelete_T, LRESULT, HWND, UINT, WPARAM, LPARAM> m_ec{};
+    CEventChain<InterceptDelete_T, LRESULT, CWindow*, UINT, WPARAM, LPARAM> m_ec{};
 public:
     using HSlot = decltype(m_ec)::HSlot;
 protected:
@@ -258,16 +258,16 @@ protected:
 
     LRESULT DefaultNotifyMessage(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
-        return CWindowFromHWND(hParent)->OnMessage(hParent, uMsg, wParam, lParam);
+        return CWindowFromHWND(hParent)->OnMessage(uMsg, wParam, lParam);
     }
 
-    EckInline LRESULT CallProcedure(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
+    EckInline LRESULT CallProcedure(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
         SlotCtx Ctx{};
-        const auto r = m_ec.EmitWithContext(Ctx, hWnd, uMsg, wParam, lParam);
+        const auto r = m_ec.EmitWithContext(Ctx, this, uMsg, wParam, lParam);
         if (Ctx.IsProcessed())
             return r;
-        return OnMessage(hWnd, uMsg, wParam, lParam);
+        return OnMessage(uMsg, wParam, lParam);
     }
 public:
     ECKPROP_R(GetHWND)					HWND		HWnd;			// 窗口句柄
@@ -390,12 +390,12 @@ public:
         break;
         case WM_NCDESTROY:// 窗口生命周期中的最后一个消息，在这里解绑HWND和CWnd，从窗口映射中清除无效内容
         {
-            const auto lResult = p->CallProcedure(hWnd, uMsg, wParam, lParam);
+            const auto lResult = p->CallProcedure(uMsg, wParam, lParam);
             (void)p->CWindow::Detach();// 控件类可能不允许拆离，必须使用基类拆离
             return lResult;
         }
         }
-        return p->CallProcedure(hWnd, uMsg, wParam, lParam);
+        return p->CallProcedure(uMsg, wParam, lParam);
     }
 
     /// <summary>
@@ -538,9 +538,9 @@ public:
     /// <summary>
     /// 消息处理函数
     /// </summary>
-    virtual LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
+    virtual LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
-        return CallWindowProcW(m_pfnRealProc, hWnd, uMsg, wParam, lParam);
+        return CallWindowProcW(m_pfnRealProc, HWnd, uMsg, wParam, lParam);
     }
 
     /// <summary>

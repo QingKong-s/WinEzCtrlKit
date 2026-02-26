@@ -458,7 +458,7 @@ public:
         return __super::OnNotifyMessage(hParent, uMsg, wParam, lParam, bProcessed);
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -512,7 +512,7 @@ public:
             tme.cbSize = sizeof(TRACKMOUSEEVENT);
             tme.dwFlags = TME_HOVER | TME_LEAVE;
             tme.dwHoverTime = 400;
-            tme.hwndTrack = hWnd;
+            tme.hwndTrack = HWnd;
             TrackMouseEvent(&tme);
         }
         break;
@@ -523,8 +523,8 @@ public:
                 break;
             ::SendMessageW(m_hToolTip, TTM_TRACKACTIVATE, FALSE, (LPARAM)&m_ti);
             POINT ptScr{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) };
-            ClientToScreen(hWnd, &ptScr);
-            int idx = LBItemFromPt(hWnd, ptScr, FALSE);
+            ClientToScreen(HWnd, &ptScr);
+            int idx = LBItemFromPt(HWnd, ptScr, FALSE);
             if (idx < 0)
                 break;
             ::SendMessageW(m_hToolTip, TTM_GETTOOLINFOW, 0, (LPARAM)&m_ti);
@@ -546,7 +546,7 @@ public:
             break;
         }
 
-        return CListBox::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CListBox::OnMessage(uMsg, wParam, lParam);
     }
 
     ECK_CWND_CREATE;

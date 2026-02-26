@@ -33,7 +33,7 @@ private:
     BITBOOL m_bLBtnDown : 1 = FALSE;
     BITBOOL m_bHorizontal : 1 = FALSE;
 
-    LRESULT OnMarkMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx) noexcept
+    LRESULT OnMarkMessage(CWindow* pWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx) noexcept
     {
         switch (uMsg)
         {
@@ -42,10 +42,10 @@ private:
         {
             Ctx.Processed();
             PAINTSTRUCT ps;
-            BeginPaint(hWnd, wParam, ps);
+            BeginPaint(HWnd, wParam, ps);
             SetDCBrushColor(ps.hdc, m_crMark);
             FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
-            EndPaint(hWnd, wParam, ps);
+            EndPaint(HWnd, wParam, ps);
         }
         return 0;
         }
@@ -123,7 +123,7 @@ public:
         m_BkMark.GetEventChain().Connect(this, &CSplitBar::OnMarkMessage);
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -146,13 +146,13 @@ public:
                 if (m_bHorizontal)
                 {
                     ptNew.y = xyPos;
-                    ClientToScreen(GetParent(hWnd), &ptNew);
+                    ClientToScreen(GetParent(HWnd), &ptNew);
                     ptNew.x = m_xyFixed;
                 }
                 else
                 {
                     ptNew.x = xyPos;
-                    ClientToScreen(GetParent(hWnd), &ptNew);
+                    ClientToScreen(GetParent(HWnd), &ptNew);
                     ptNew.y = m_xyFixed;
                 }
 
@@ -172,21 +172,21 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(hWnd, &ps);
+            BeginPaint(HWnd, &ps);
             SetDCBrushColor(ps.hdc, m_crBk == CLR_DEFAULT ? PtcCurrent()->crDefBkg : m_crBk);
             FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
-            EndPaint(hWnd, &ps);
+            EndPaint(HWnd, &ps);
         }
         return 0;
 
         case WM_LBUTTONDBLCLK:// 连击修正
         case WM_LBUTTONDOWN:
         {
-            SetFocus(hWnd);
-            SetCapture(hWnd);
+            SetFocus(HWnd);
+            SetCapture(HWnd);
             m_bLBtnDown = TRUE;
             RECT rc;
-            GetWindowRect(hWnd, &rc);
+            GetWindowRect(HWnd, &rc);
 
             if (m_bHorizontal)
             {
@@ -233,13 +233,13 @@ public:
         {
             m_BkMark.Create(nullptr, WS_POPUP | WS_DISABLED,
                 WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_NOACTIVATE,
-                -32000, -32000, 0, 0, hWnd, 0);
+                -32000, -32000, 0, 0, HWnd, 0);
             UpdateMarkWindowAlpha();
         }
         break;
         }
 
-        return __super::OnMessage(hWnd, uMsg, wParam, lParam);
+        return __super::OnMessage(uMsg, wParam, lParam);
     }
 
     /// <summary>

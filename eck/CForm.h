@@ -65,7 +65,7 @@ public:
         return __super::PreTranslateMessage(Msg);
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -99,7 +99,7 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(hWnd, wParam, ps);
+            BeginPaint(HWnd, wParam, ps);
             SetDCBrushColor(ps.hdc, m_crBk == CLR_DEFAULT ?
                 PtcCurrent()->crDefBkg : m_crBk);
             FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
@@ -112,7 +112,7 @@ public:
                     m_eBkImageMode, m_bFillWndImage);
                 DeleteDC(hCDC);
             }
-            EndPaint(hWnd, wParam, ps);
+            EndPaint(HWnd, wParam, ps);
         }
         return 0;
 
@@ -128,7 +128,7 @@ public:
         return TRUE;
         }
 
-        return __super::OnMessage(hWnd, uMsg, wParam, lParam);
+        return __super::OnMessage(uMsg, wParam, lParam);
     }
 
     EckInline void SetBackgroundImage(HBITMAP hbmBk) noexcept

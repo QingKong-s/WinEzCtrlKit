@@ -424,13 +424,13 @@ public:
         D.cyGap = 10;
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
         case WM_CREATE:
         {
-            m_DC.FromWindow(hWnd);
+            m_DC.FromWindow(HWnd);
             UpdateDCAttributes();
             UpdateSystemConfig();
         }
@@ -439,21 +439,21 @@ public:
         case WM_PRINTCLIENT:
         case WM_PAINT:
         {
-            HideCaret(hWnd);
+            HideCaret(HWnd);
             PAINTSTRUCT ps;
-            BeginPaint(hWnd, wParam, ps);
+            BeginPaint(HWnd, wParam, ps);
             OnPaint(m_DC.GetDC(), ps.rcPaint);
             BitBltPs(ps, m_DC.GetDC());
-            EndPaint(hWnd, wParam, ps);
-            ShowCaret(hWnd);
+            EndPaint(HWnd, wParam, ps);
+            ShowCaret(HWnd);
         }
         break;
 
         case WM_LBUTTONDOWN:
         {
             m_bLBtnDown = TRUE;
-            SetFocus(hWnd);
-            SetCapture(hWnd);
+            SetFocus(HWnd);
+            SetCapture(HWnd);
             HEHITTEST heht;
             heht.pt = ECK_GET_PT_LPARAM(lParam);
             const auto pos = HitTest(heht);
@@ -484,7 +484,7 @@ public:
                     D.posCaret = pos;
                     UpdateCaretPosition();
                     m_posDragSelEnd = pos;
-                    InvalidateRect(hWnd, nullptr, FALSE);
+                    InvalidateRect(HWnd, nullptr, FALSE);
                 }
             }
         }
@@ -506,7 +506,7 @@ public:
                     D.bCaretInFirstNum = heht.bFirstNumber;
                     D.posCaret = pos;
                     UpdateCaretPosition();
-                    InvalidateRect(hWnd, nullptr, FALSE);
+                    InvalidateRect(HWnd, nullptr, FALSE);
                 }
             }
         }
@@ -583,8 +583,8 @@ public:
             ScbGetInfomation(SB_VERT, &si);
             ReCalculateFirstVisible(si.nPos);
             RECT rc{ 0,m_cyChar + D.cyGap,m_cxClient,m_cyClient };
-            ScrollWindowEx(hWnd, 0, (iOld - si.nPos) * (m_cyChar + D.cyGap), &rc, &rc, nullptr, nullptr, SW_INVALIDATE);
-            UpdateWindow(hWnd);
+            ScrollWindowEx(HWnd, 0, (iOld - si.nPos) * (m_cyChar + D.cyGap), &rc, &rc, nullptr, nullptr, SW_INVALIDATE);
+            UpdateWindow(HWnd);
             UpdateCaretPosition();
         }
         return 0;
@@ -624,9 +624,9 @@ public:
             si.fMask = SIF_POS;
             ScbSetInfomation(SB_HORZ, &si);
             ScbGetInfomation(SB_HORZ, &si);
-            ScrollWindowEx(hWnd, iOld - si.nPos, 0,
+            ScrollWindowEx(HWnd, iOld - si.nPos, 0,
                 nullptr, nullptr, nullptr, nullptr, SW_INVALIDATE);
-            UpdateWindow(hWnd);
+            UpdateWindow(HWnd);
             UpdateCaretPosition();
         }
         return 0;
@@ -634,7 +634,7 @@ public:
         case WM_SIZE:
         {
             ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
-            m_DC.ReSize(hWnd, m_cxClient, m_cyClient);
+            m_DC.ReSize(HWnd, m_cxClient, m_cyClient);
             UpdateDCAttributes();
             UpdateScrollBar();
         }
@@ -642,7 +642,7 @@ public:
 
         case WM_SETFOCUS:
             m_bFocus = TRUE;
-            CreateCaret(hWnd, nullptr, m_cxChar, m_cyChar);
+            CreateCaret(HWnd, nullptr, m_cxChar, m_cyChar);
             return 0;
 
         case WM_KILLFOCUS:
@@ -664,7 +664,7 @@ public:
             UpdateSystemConfig();
             break;
         }
-        return CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CWindow::OnMessage(uMsg, wParam, lParam);
     }
 
     void SetData(PCVOID pData, SIZE_T cbData) noexcept

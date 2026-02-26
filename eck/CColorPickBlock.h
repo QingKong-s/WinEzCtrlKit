@@ -71,14 +71,14 @@ public:
         CleanupForDestroyWindow();
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
         case WM_LBUTTONDBLCLK:
         {
             CHOOSECOLORW cc{ sizeof(CHOOSECOLORW) };
-            cc.hwndOwner = hWnd;
+            cc.hwndOwner = HWnd;
             cc.Flags = m_uCCFlags;
             cc.lpCustColors = m_crCust;
             if (ChooseColorW(&cc))
@@ -99,7 +99,7 @@ public:
             CleanupForDestroyWindow();
             break;
         }
-        return CStatic::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CStatic::OnMessage(uMsg, wParam, lParam);
     }
 
     LRESULT OnNotifyMessage(HWND hParent, UINT uMsg,

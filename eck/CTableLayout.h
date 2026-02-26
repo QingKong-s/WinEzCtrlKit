@@ -283,10 +283,10 @@ public:
     {
         auto& e = m_vItem.PushBack();
         AssignItem(e, Param);
-        e.idxRow =   Param.idxRow;
-        e.idxCol =   Param.idxCol;
-        e.cRowSpan = Param.cRowSpan;
-        e.cColSpan = Param.cColSpan;
+        e.idxRow = Param.idxRow;
+        e.idxCol = Param.idxCol;
+        e.cRowSpan = std::max(Param.cRowSpan, 1_us);
+        e.cColSpan = std::max(Param.cColSpan, 1_us);
         OnAddObject(e);
     }
 

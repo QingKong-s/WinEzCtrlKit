@@ -438,7 +438,7 @@ HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
     if (Sig.FindSlot(MHI_UXF_MENU))
         return S_FALSE;
     const auto hTheme = OpenThemeData(pWnd->GetHWND(), L"Menu");
-    auto Fn = [hTheme = hTheme, pWnd](HWND hWnd, UINT uMsg,
+    auto Fn = [hTheme = hTheme](CWindow* pWnd, UINT uMsg,
         WPARAM wParam, LPARAM lParam, SlotCtx& Ctx) mutable -> LRESULT
         {
             if (Ctx.IsDeleting())
@@ -457,13 +457,13 @@ HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
 
                 MENUBARINFO mbi;
                 mbi.cbSize = sizeof(mbi);
-                GetMenuBarInfo(hWnd, OBJID_MENU, 0, &mbi);
+                GetMenuBarInfo(pWnd->HWnd, OBJID_MENU, 0, &mbi);
                 RECT rcWindow;
-                GetWindowRect(hWnd, &rcWindow);
+                GetWindowRect(pWnd->HWnd, &rcWindow);
                 OffsetRect(&mbi.rcBar, -rcWindow.left, -rcWindow.top);
                 DrawThemeBackground(hTheme, ((UAHMENU*)lParam)->hdc,
                     MENU_BARBACKGROUND,
-                    (GetForegroundWindow() == hWnd) ? MB_ACTIVE : MB_INACTIVE,
+                    (GetForegroundWindow() == pWnd->HWnd) ? MB_ACTIVE : MB_INACTIVE,
                     &mbi.rcBar, nullptr);
             }
             return 0;
@@ -513,14 +513,14 @@ HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
                 else
                     DrawThemeBackground(hTheme, pudmi->um.hdc,
                         MENU_BARBACKGROUND,
-                        (GetForegroundWindow() == hWnd) ? MB_ACTIVE : MB_INACTIVE,
+                        (GetForegroundWindow() == pWnd->HWnd) ? MB_ACTIVE : MB_INACTIVE,
                         &pudmi->dis.rcItem, nullptr);
                 DrawThemeText(hTheme, pudmi->um.hdc, MENU_BARITEM, iState,
                     szText, mii.cch, dwDtFlags, 0, &pudmi->dis.rcItem);
             }
             return 0;
             case WM_NCACTIVATE:
-                if (IsIconic(hWnd))
+                if (IsIconic(pWnd->HWnd))
                     break;
                 [[fallthrough]];
             case WM_NCPAINT:
@@ -529,13 +529,14 @@ HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
                     break;
                 auto TmpCtx{ Ctx };
                 const auto lResult = pWnd->GetEventChain().CallNext(TmpCtx,
-                    hWnd, uMsg, wParam, lParam);
+                    pWnd, uMsg, wParam, lParam);
                 if (TmpCtx.IsProcessed())
                 {
                     Ctx.Processed();
                     return lResult;
                 }
-                pWnd->OnMessage(hWnd, uMsg, wParam, lParam);
+                pWnd->OnMessage(uMsg, wParam, lParam);
+                const auto hWnd = pWnd->HWnd;
 
                 MENUBARINFO mbi;
                 mbi.cbSize = sizeof(mbi);
@@ -566,7 +567,7 @@ HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
             case WM_CREATE:
             case WM_THEMECHANGED:
                 CloseThemeData(hTheme);
-                hTheme = OpenThemeData(hWnd, L"Menu");
+                hTheme = OpenThemeData(pWnd->HWnd, L"Menu");
                 break;
             case WM_DESTROY:
                 CloseThemeData(hTheme);

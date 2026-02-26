@@ -40,14 +40,14 @@ private:
     BITBOOL m_bLBtnDown : 1 = TRUE;
     BITBOOL m_bCurrFit : 1 = FALSE;
 public:
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(hWnd, &ps);
+            BeginPaint(HWnd, &ps);
             SetDCBrushColor(ps.hdc, m_crBk == CLR_DEFAULT ? PtcCurrent()->crDefBkg : m_crBk);
             FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
 
@@ -91,14 +91,14 @@ public:
                     DeleteDC(hCDC);
                 }
             }
-            EndPaint(hWnd, &ps);
+            EndPaint(HWnd, &ps);
         }
         return 0;
         case WM_SIZE:
             ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
             return 0;
         }
-        return CWindow::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CWindow::OnMessage(uMsg, wParam, lParam);
     }
 
     BOOL SetImage(HBITMAP hbm) noexcept

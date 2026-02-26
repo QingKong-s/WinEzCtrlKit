@@ -241,7 +241,7 @@ public:
         return FALSE;
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -249,7 +249,7 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(hWnd, wParam, ps);
+            BeginPaint(HWnd, wParam, ps);
             const auto* const ptc = PtcCurrent();
             SetDCBrushColor(ps.hdc, ptc->crDefBkg);
             FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
@@ -266,7 +266,7 @@ public:
             rc.top += (m_cyMainTip + m_Ds.TextPadding);
             DrawThemeTextEx(m_hTheme, ps.hdc, TEXT_BODYTEXT, 0, m_pOpt->pszTip, -1,
                 DT_NOPREFIX | DT_EDITCONTROL | DT_WORDBREAK | DT_NOCLIP, &rc, nullptr);
-            EndPaint(hWnd, wParam, ps);
+            EndPaint(HWnd, wParam, ps);
         }
         return 0;
 
@@ -281,18 +281,18 @@ public:
         case WM_DPICHANGED:
         {
             const auto prc = (RECT*)lParam;
-            SetWindowPos(hWnd, nullptr,
+            SetWindowPos(HWnd, nullptr,
                 prc->left, prc->top, prc->right - prc->left, prc->bottom - prc->top,
                 SWP_NOZORDER | SWP_NOACTIVATE);
 
             CloseThemeData(m_hTheme);
-            m_hTheme = OpenThemeData(hWnd, L"TextStyle");
+            m_hTheme = OpenThemeData(HWnd, L"TextStyle");
 
             const int iOldDpi = m_iDpi;
             UpdateDpi(LOWORD(wParam));
             const auto hOldFont = m_hFont;
             m_hFont = ReCreateFontForDpiChanged(m_hFont, m_iDpi, iOldDpi);
-            ApplyWindowFont(hWnd, m_hFont);
+            ApplyWindowFont(HWnd, m_hFont);
             DeleteObject(hOldFont);
 
             UpdateTextMetrics();
@@ -303,7 +303,7 @@ public:
 
         case WM_THEMECHANGED:
             CloseThemeData(m_hTheme);
-            m_hTheme = OpenThemeData(hWnd, L"TextStyle");
+            m_hTheme = OpenThemeData(HWnd, L"TextStyle");
             Redraw();
             break;
 
@@ -321,7 +321,7 @@ public:
         break;
         }
 
-        return CDialogNew::OnMessage(hWnd, uMsg, wParam, lParam);
+        return CDialogNew::OnMessage(uMsg, wParam, lParam);
     }
 
     void OnOk(HWND hCtrl) noexcept override

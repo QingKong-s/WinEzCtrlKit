@@ -7,21 +7,9 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_UIBUILDER_NAMESPACE_BEGIN
-struct Rect
-{
-    int x;
-    int y;
-    int cx;
-    int cy;
-};
-
-struct Margin
-{
-    int l;
-    int t;
-    int r;
-    int b;
-};
+struct Rect { int x, y, cx, cy; };
+struct Margin { int l, t, r, b; };
+struct Extra { int cx, cy; };
 
 constexpr inline BOOL Replace = TRUE;
 constexpr inline BOOL Merge = FALSE;
@@ -44,10 +32,15 @@ struct Flags
     BOOL bReplace;
 };
 struct Font { HFONT hFont; };
+struct Table { USHORT r, c, rSpan, cSpan; };
 
 struct Window;
 struct VBox;
 struct HBox;
+struct FrameBox;
+struct VFlowBox;
+struct HFlowBox;
+struct TableBox;
 struct Default;
 struct Local;
 
@@ -67,12 +60,18 @@ namespace Priv
         Window,
         VBox,
         HBox,
+        VFlowBox,
+        HFlowBox,
+        FrameBox,
+        TableBox,
 
         Default,
         Local,
 
         Rect,
         Margin,
+        Extra,
+        Table,
 
         Style,
         ExStyle,
@@ -94,12 +93,18 @@ namespace Priv
             const Window*,
             const VBox*,
             const HBox*,
+            const VFlowBox*,
+            const HFlowBox*,
+            const FrameBox*,
+            const TableBox*,
 
             const Default*,
             const Local*,
 
             const Rect*,
             const Margin*,
+            const Extra*,
+            const Table*,
 
             Style,
             ExStyle,
@@ -117,11 +122,17 @@ namespace Priv
         constexpr Proxy(const Window& x) noexcept : v{ &x } {}
         constexpr Proxy(const VBox& x) noexcept : v{ &x } {}
         constexpr Proxy(const HBox& x) noexcept : v{ &x } {}
+        constexpr Proxy(const VFlowBox& x) noexcept : v{ &x } {}
+        constexpr Proxy(const HFlowBox& x) noexcept : v{ &x } {}
+        constexpr Proxy(const FrameBox& x) noexcept : v{ &x } {}
+        constexpr Proxy(const TableBox& x) noexcept : v{ &x } {}
         constexpr Proxy(const Default& x) noexcept : v{ &x } {}
         constexpr Proxy(const Local& x) noexcept : v{ &x } {}
 
         constexpr Proxy(const Rect& x) noexcept : v{ &x } {}
         constexpr Proxy(const Margin& x) noexcept : v{ &x } {}
+        constexpr Proxy(const Extra& x) noexcept : v{ &x } {}
+        constexpr Proxy(const Table& x) noexcept : v{ &x } {}
 
         constexpr Proxy(Style x) noexcept : v{ x } {}
         constexpr Proxy(ExStyle x) noexcept : v{ x } {}
@@ -154,6 +165,10 @@ ECK_UI_DECL_CONTAINER(Default);
 ECK_UI_DECL_CONTAINER(Local);
 ECK_UI_DECL_CONTAINER(VBox);
 ECK_UI_DECL_CONTAINER(HBox);
+ECK_UI_DECL_CONTAINER(FrameBox);
+ECK_UI_DECL_CONTAINER(VFlowBox);
+ECK_UI_DECL_CONTAINER(HFlowBox);
+ECK_UI_DECL_CONTAINER(TableBox);
 
 #undef ECK_UI_DECL_CONTAINER
 
@@ -210,6 +225,7 @@ namespace Priv
     struct PARENT_NODE
     {
         CWindow* pWndParent;
+        Type eType;
         CLayoutBase* pLytParent;
     };
 
@@ -222,6 +238,7 @@ namespace Priv
         DWORD dwDefExStyle{};
 
         Margin DefMargin{};
+        Extra DefExtra{};
         UINT uDefFlags{};
         UINT uDefWeight{};
     };
@@ -229,11 +246,11 @@ namespace Priv
     struct LYT_PARAM
     {
         Margin Margin;
+        Extra Extra;
         UINT uFlags;
-        union
-        {
-            UINT uWeight;
-        };
+        UINT uWeight;
+        USHORT idxRow, idxCol;
+        USHORT cRowSpan, cColSpan;
     };
 
     inline Result CfgCreateWindow(
@@ -244,7 +261,7 @@ namespace Priv
         _Out_ LYT_PARAM& LytParam,
         _Out_ ILayout*& pNewObject,
         ERR_CTX& ErrCtx) noexcept;
-    inline Result CfgCreateLinearLayout(
+    inline Result CfgCreateLayout(
         const Priv::Proxy& pr,
         const PARENT_NODE& Parent,
         const DEF_PARAM& Default,
@@ -278,6 +295,9 @@ namespace Priv
                 break;
             case Type::Rect:
                 Param.DefRect = *e.Get<Type::Rect>();
+                break;
+            case Type::Extra:
+                Param.DefExtra = *e.Get<Type::Extra>();
                 break;
             case Type::Style:
             {
@@ -319,6 +339,45 @@ namespace Priv
         return Result::Ok;
     }
 
+    inline Result CfgParseLayoutParamters(
+        const Proxy* it,
+        LYT_PARAM& LytParam) noexcept
+    {
+        switch (it->GetType())
+        {
+        case Type::Margin:
+            LytParam.Margin = *it->Get<Type::Margin>();
+            break;
+        case Type::Weight:
+            LytParam.uWeight = it->Get<Type::Weight>().uWeight;
+            break;
+        case Type::Flags:
+        {
+            const auto& e = it->Get<Type::Flags>();
+            if (e.bReplace)
+                LytParam.uFlags = e.uFlags;
+            else
+                LytParam.uFlags |= e.uFlags;
+        }
+        break;
+        case Type::Extra:
+            LytParam.Extra = *it->Get<Type::Extra>();
+            break;
+        case Type::Table:
+        {
+            const auto p = it->Get<Type::Table>();
+            LytParam.idxRow = p->r;
+            LytParam.idxCol= p->c;
+            LytParam.cRowSpan = p->rSpan;
+            LytParam.cColSpan = p->cSpan;
+        }
+        break;
+        default:
+            return Result::InvalidConfig;
+        }
+        return Result::Ok;
+    }
+
     inline Result CfgCreateWindow(
         const Priv::Proxy& pr,
         const PARENT_NODE& Parent,
@@ -329,6 +388,7 @@ namespace Priv
         ERR_CTX& ErrCtx) noexcept
     {
         LytParam.Margin = Local.DefMargin;
+        LytParam.Extra = Local.DefExtra;
         LytParam.uFlags = Local.uDefFlags;
         LytParam.uWeight = Local.uDefWeight;
 
@@ -404,28 +464,17 @@ namespace Priv
                 break;
 
             case Type::Window:
-            case Type::VBox:
-            case Type::HBox:
+            case Type::VBox:     case Type::HBox:
+            case Type::VFlowBox: case Type::HFlowBox:
+            case Type::FrameBox: case Type::TableBox:
                 goto EndLoop;
 
-            case Type::Margin:
-                LytParam.Margin = *it->Get<Type::Margin>();
-                break;
-            case Type::Weight:
-                LytParam.uWeight = it->Get<Type::Weight>().uWeight;
-                break;
-            case Type::Flags:
-            {
-                const auto& e = it->Get<Type::Flags>();
-                if (e.bReplace)
-                    LytParam.uFlags = e.uFlags;
-                else
-                    LytParam.uFlags |= e.uFlags;
-            }
-            break;
-
             default:
-                return Result::InvalidConfigWindow;
+                r = CfgParseLayoutParamters(it, LytParam);
+                if (r == Result::InvalidConfig)
+                    return Result::InvalidConfigWindow;
+                else if (r != Result::Ok)
+                    return r;
             }
         }
     EndLoop:
@@ -455,7 +504,7 @@ namespace Priv
         return Result::Ok;
     }
 
-    inline Result CfgCreateLinearLayout(
+    inline Result CfgCreateLayout(
         const Priv::Proxy& pr,
         const PARENT_NODE& Parent,
         const DEF_PARAM& Default,
@@ -478,6 +527,10 @@ namespace Priv
         const auto& il = (
             (eType == Type::VBox) ? pr.Get<Type::VBox>()->il :
             (eType == Type::HBox) ? pr.Get<Type::HBox>()->il :
+            (eType == Type::FrameBox) ? pr.Get<Type::FrameBox>()->il :
+            (eType == Type::VFlowBox) ? pr.Get<Type::VFlowBox>()->il :
+            (eType == Type::HFlowBox) ? pr.Get<Type::HFlowBox>()->il :
+            (eType == Type::TableBox) ? pr.Get<Type::TableBox>()->il :
             pr.Get<Type::HBox>()->il);
 
         auto it = il.begin();
@@ -503,25 +556,10 @@ namespace Priv
                 pLyt = it->Get<Type::CLayoutBase>();
                 break;
             case Type::Window:
-            case Type::VBox:
-            case Type::HBox:
+            case Type::VBox:     case Type::HBox:
+            case Type::VFlowBox: case Type::HFlowBox:
+            case Type::FrameBox: case Type::TableBox:
                 goto EndLoop;
-
-            case Type::Margin:
-                LytParam.Margin = *it->Get<Type::Margin>();
-                break;
-            case Type::Weight:
-                LytParam.uWeight = it->Get<Type::Weight>().uWeight;
-                break;
-            case Type::Flags:
-            {
-                const auto& e = it->Get<Type::Flags>();
-                if (e.bReplace)
-                    LytParam.uFlags = e.uFlags;
-                else
-                    LytParam.uFlags |= e.uFlags;
-            }
-            break;
 
             case Type::String:// 仅用于诊断
                 ErrCtx.rsPath
@@ -531,7 +569,11 @@ namespace Priv
                 break;
 
             default:
-                return Result::InvalidConfigLayout;
+                r = CfgParseLayoutParamters(it, LytParam);
+                if (r == Result::InvalidConfig)
+                    return Result::InvalidConfigWindow;
+                else if (r != Result::Ok)
+                    return r;
             }
         }
     EndLoop:
@@ -539,7 +581,7 @@ namespace Priv
             return Result::NoCLayoutBase;
         if (it != il.end())
         {
-            const PARENT_NODE NewParent{ Parent.pWndParent, pLyt };
+            const PARENT_NODE NewParent{ Parent.pWndParent, eType, pLyt };
             const auto itBegin = it;
             for (; it != il.end(); ++it)
             {
@@ -573,8 +615,21 @@ namespace Priv
             .pObject = pNewObject,
             .Margins = m,
             .uFlags = Param.uFlags,
-            .uWeight = Param.uWeight
+            .cxExtra = (TLytCoord)Param.Extra.cx,
+            .cyExtra = (TLytCoord)Param.Extra.cy,
         };
+        switch (Parent.eType)
+        {
+        case Type::VBox: case Type::HBox:
+            LobParam.uWeight = Param.uWeight;
+            break;
+        case Type::Table:
+            LobParam.idxRow = Param.idxRow;
+            LobParam.idxCol = Param.idxCol;
+            LobParam.cRowSpan = Param.cRowSpan;
+            LobParam.cColSpan = Param.cColSpan;
+            break;
+        }
         Parent.pLytParent->LobAddObject(LobParam);
         return Result::Ok;
     }
@@ -608,9 +663,27 @@ namespace Priv
         break;
         case Type::VBox:
         case Type::HBox:
+        case Type::FrameBox:
+        case Type::VFlowBox:
+        case Type::HFlowBox:
+        case Type::TableBox:
         {
-            ScopedPath Path{ ErrCtx, (eType == Type::VBox) ? L"/VBox"sv : L"/HBox"sv, idxNode };
-            r = CfgCreateLinearLayout(pr, Parent, Default, Local, Param, pNewObject, ErrCtx);
+            const auto FnGetNodeName = [](Type eType) -> std::wstring_view
+                {
+                    switch (eType)
+                    {
+                    case Type::VBox:     return L"/VBox"sv;
+                    case Type::HBox:     return L"/HBox"sv;
+                    case Type::FrameBox: return L"/FrameBox"sv;
+                    case Type::VFlowBox: return L"/VFlowBox"sv;
+                    case Type::HFlowBox: return L"/GFlowBox"sv;
+                    case Type::TableBox: return L"/TableBox"sv;
+                    default:             ECK_UNREACHABLE;
+                    }
+                };
+
+            ScopedPath Path{ ErrCtx, FnGetNodeName(eType), idxNode };
+            r = CfgCreateLayout(pr, Parent, Default, Local, Param, pNewObject, ErrCtx);
             if (r != Result::Ok)
                 return r;
             r = CfgAddLayout(pNewObject, Parent, Param);

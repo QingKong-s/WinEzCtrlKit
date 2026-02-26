@@ -346,7 +346,7 @@ private:
         m_pWnd = nullptr;
     }
 public:
-    LRESULT OnWindowMessage(HWND hWnd, UINT uMsg,
+    LRESULT OnWindowMessage(CWindow* pWnd, UINT uMsg,
         WPARAM wParam, LPARAM lParam, SlotCtx& Ctx) noexcept
     {
         if (Ctx.IsDeleting())
@@ -361,7 +361,7 @@ public:
             if (!m_bVisibleH && !m_bVisibleV)
                 break;
             POINT pt ECK_GET_PT_LPARAM(lParam);
-            ScreenToClient(hWnd, &pt);
+            ScreenToClient(pWnd->HWnd, &pt);
             if (m_bVisibleV && PtInRect(m_rcSBV, pt))
             {
                 Ctx.Processed();
@@ -432,7 +432,7 @@ public:
 
                 POINT pt ECK_GET_PT_LPARAM(lParam);
                 if (uMsg == WM_NCLBUTTONUP)
-                    ScreenToClient(hWnd, &pt);
+                    ScreenToClient(pWnd->HWnd, &pt);
                 const auto ePart = HitTest(pt);
                 const auto eHot = (
                     ePart == Part::ThumbV ? HotState::VSB :
@@ -454,7 +454,7 @@ public:
             Ctx.Processed();
             POINT pt;
             GetCursorPos(&pt);
-            ScreenToClient(hWnd, &pt);
+            ScreenToClient(pWnd->HWnd, &pt);
             GenerateScrollMessage(HitTest(pt));
         }
         break;
@@ -481,7 +481,7 @@ public:
                 m_pWnd->SetStyle(dwStyle & ~(WS_HSCROLL | WS_VSCROLL));
             }
             const RECT rcWnd{ *(RECT*)lParam };
-            m_pWnd->OnMessage(hWnd, uMsg, wParam, lParam);
+            m_pWnd->OnMessage(uMsg, wParam, lParam);
             if (dwStyle & (WS_HSCROLL | WS_VSCROLL))
             {
                 m_pWnd->SetStyle(dwStyle);
@@ -507,9 +507,9 @@ public:
         {
             Ctx.Processed();
             auto Ctx1{ Ctx };
-            m_pWnd->GetEventChain().CallNext(Ctx1, hWnd, uMsg, wParam, lParam);
+            m_pWnd->GetEventChain().CallNext(Ctx1, m_pWnd, uMsg, wParam, lParam);
             if (!Ctx1.IsProcessed())
-                m_pWnd->OnMessage(hWnd, uMsg, wParam, lParam);
+                m_pWnd->OnMessage(uMsg, wParam, lParam);
             Redraw();
         }
         return 0;
@@ -521,7 +521,7 @@ public:
                 break;
             Ctx.Processed();
             POINT pt ECK_GET_PT_LPARAM(lParam);
-            ScreenToClient(hWnd, &pt);
+            ScreenToClient(pWnd->HWnd, &pt);
             const auto ePart = HitTest(pt);
             m_eLBtnDownPart = ePart;
             if (wParam == HTVSCROLL)
@@ -545,13 +545,13 @@ public:
                 }
             }
             GenerateScrollMessage(ePart);
-            SetCapture(hWnd);
+            SetCapture(pWnd->HWnd);
             CancelRepeat();
             if (m_eLBtnDownPart != Part::Invalid &&
                 m_eLBtnDownPart != Part::ThumbV &&
                 m_eLBtnDownPart != Part::ThumbH)
             {
-                SetTimer(hWnd, IDT_REPEAT_DELAY, TE_REPEAT_DELAY,
+                SetTimer(pWnd->HWnd, IDT_REPEAT_DELAY, TE_REPEAT_DELAY,
                     [](HWND hWnd, UINT, UINT_PTR uId, DWORD)
                     {
                         KillTimer(hWnd, uId);
@@ -583,7 +583,7 @@ public:
             TRACKMOUSEEVENT tme;
             tme.cbSize = sizeof(tme);
             tme.dwFlags = TME_LEAVE | TME_NONCLIENT;
-            tme.hwndTrack = hWnd;
+            tme.hwndTrack = pWnd->HWnd;
             TrackMouseEvent(&tme);
             if (eOldHot != m_eHotState)
                 Redraw();
@@ -637,7 +637,7 @@ public:
         case WM_DPICHANGED:
         case WM_DPICHANGED_BEFOREPARENT:
         {
-            m_iDpi = GetDpi(hWnd);
+            m_iDpi = GetDpi(pWnd->HWnd);
             if (m_bStdSize)
                 UpdateStandardSize();
         }

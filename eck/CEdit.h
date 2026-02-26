@@ -741,7 +741,7 @@ namespace Priv
 
     struct DdxFnEdit : public CDdxControlCollection<DDXE_EDIT>
     {
-        LRESULT operator()(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
+        LRESULT operator()(CWindow* pWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
         {
             if (uMsg == WM_COMMAND && HIWORD(wParam) == EN_UPDATE)
             {

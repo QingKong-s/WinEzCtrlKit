@@ -28,7 +28,7 @@ public:
         UpdateEditMetrics();
     }
 
-    LRESULT OnMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
+    LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
@@ -38,7 +38,7 @@ public:
             if (!ShouldAppsUseDarkMode())
                 break;
             PAINTSTRUCT ps;
-            BeginPaint(hWnd, wParam, ps);
+            BeginPaint(HWnd, wParam, ps);
             const auto* const ptc = PtcCurrent();
             SetDCBrushColor(ps.hdc, ptc->crDefBkg);
             FillRect(ps.hdc, &ps.rcPaint, (HBRUSH)GetStockObject(DC_BRUSH));
@@ -55,7 +55,7 @@ public:
             }
             SelectObject(ps.hdc, hOld);
 
-            EndPaint(hWnd, wParam, ps);
+            EndPaint(HWnd, wParam, ps);
         }
         return 0;
 
@@ -72,7 +72,7 @@ public:
         // 大小变化时并不会改变编辑框尺寸。。。
         case WM_SIZE:
         {
-            const auto lResult = __super::OnMessage(hWnd, uMsg, wParam, lParam);
+            const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
             UpdateEditMetrics(LOWORD(lParam));
             int x{ 3 };
             EckCounter(4, i)
@@ -87,10 +87,10 @@ public:
 
         case WM_SETFONT:
         {
-            const auto lResult = __super::OnMessage(hWnd, uMsg, wParam, lParam);
+            const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
             m_hFont = (HFONT)wParam;
             RECT rc;
-            GetClientRect(hWnd, &rc);
+            GetClientRect(HWnd, &rc);
             UpdateEditMetrics(rc.right - rc.left);
             return lResult;
         }
@@ -101,17 +101,17 @@ public:
 
         case WM_CREATE:
         {
-            const auto lResult = __super::OnMessage(hWnd, uMsg, wParam, lParam);
+            const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
             HWND hEdit{};
             EckCounter(4, i)
             {
-                hEdit = FindWindowExW(hWnd, hEdit, L"Edit", nullptr);
+                hEdit = FindWindowExW(HWnd, hEdit, L"Edit", nullptr);
                 m_hEdit[i] = hEdit;
             }
             return lResult;
         }
         }
-        return __super::OnMessage(hWnd, uMsg, wParam, lParam);
+        return __super::OnMessage(uMsg, wParam, lParam);
     }
 
     void UpdateEditMetrics() noexcept
