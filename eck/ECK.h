@@ -54,11 +54,6 @@ __pragma(warning(disable:5260))
 #if !ECK_OPT_NO_GDIPLUS
 #pragma warning(suppress:5260)
 #include <gdiplus.h>
-namespace Gdiplus// 使下面两个类型成为完整类型
-{
-    class CGpEffect {};
-    class GpCachedBitmap {};
-}
 #endif // !ECK_OPT_NO_GDIPLUS
 
 #include <assert.h>

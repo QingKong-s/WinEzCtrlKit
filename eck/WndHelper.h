@@ -990,6 +990,7 @@ inline BOOL ShouldWindowDisplaySizeGrip(HWND hWnd, int iDpi = -1) noexcept
     return FALSE;
 }
 
+#if !ECK_OPT_NO_DWRITE
 inline HRESULT MatchLogFontFromFamilyName(PCWSTR pszFamilyName,
     _Out_ LOGFONTW& lf, IDWriteFontCollection* pFontCollection = nullptr) noexcept
 {
@@ -1058,6 +1059,7 @@ FallbackToGdi:;
     else
         return hr;
 }
+#endif// !ECK_ECK_OPT_NO_DWRITE
 #pragma endregion Others
 
 #pragma region SystemFont
@@ -1082,6 +1084,7 @@ EckNfInlineNd HFONT DftCreateWithSize(int cy, int iDpi = 96) noexcept
     return CreateFontIndirectW(&lf);
 }
 
+#if !ECK_OPT_NO_DWRITE
 namespace Priv
 {
     EckNfInlineNd HRESULT DftpCreate(_Out_ IDWriteTextFormat*& pTf,
@@ -1117,5 +1120,6 @@ EckNfInlineNd HRESULT DftCreateDWrite(_Out_ IDWriteTextFormat*& pTf, int iDpi = 
         return HRESULT_FROM_WIN32(NaGetLastError());
     return Priv::DftpCreate(pTf, lf, fabs((float)lf.lfHeight), 96);
 }
+#endif // !ECK_OPT_NO_DWRITE
 #pragma endregion SystemFont
 ECK_NAMESPACE_END

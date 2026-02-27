@@ -104,7 +104,8 @@ public:
         return m_hCDC;
     }
 
-    HDC DibFromWindow(HWND hWnd, int cx = -1, int cy = -1) noexcept
+    HDC DibFromWindow(HWND hWnd, int cx = -1, int cy = -1,
+        _Outptr_opt_ void** ppPixel = nullptr) noexcept
     {
         Destroy();
         const auto hDC = ::GetDC(hWnd);
@@ -115,7 +116,7 @@ public:
             cx = rc.right;
             cy = rc.bottom;
         }
-        DibFromDC(hDC, cx, cy);
+        DibFromDC(hDC, cx, cy, ppPixel);
         ReleaseDC(hWnd, hDC);
         return m_hCDC;
     }

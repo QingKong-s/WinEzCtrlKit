@@ -2,6 +2,19 @@
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
+template<std::integral T>
+EckInlineNd T GenerateSeed() noexcept
+{
+    T i;
+    if (!NT_SUCCESS(BCryptGenRandom(nullptr,
+        (UCHAR*)&i, sizeof(i), BCRYPT_USE_SYSTEM_PREFERRED_RNG)))
+    {
+        i = (T)NtGetTickCount64();
+        i ^= (T)NtCurrentThreadId32();
+    }
+    return i;
+}
+
 class CRmPcg32
 {
 public:
@@ -9,12 +22,10 @@ public:
 
     constexpr static UINT64 Multiplier = 6364136223846793005ull;
     constexpr static UINT64 Increment = 1442695040888963407ull;
-
-    static UINT64 DefaultSeed() noexcept { return NtGetTickCount64(); }
 private:
     UINT64 State;
 public:
-    constexpr CRmPcg32(UINT64 Seed = NtGetTickCount64()) noexcept : State{ Seed + Increment } {}
+    constexpr CRmPcg32(UINT64 Seed) noexcept : State{ Seed + Increment } {}
 
     constexpr UINT Next32() noexcept
     {
@@ -33,12 +44,10 @@ class CRmXorShift32
 {
 public:
     using TSeed = UINT;
-
-    static UINT DefaultSeed() noexcept { return NtGetTickCount(); }
 private:
     UINT State;
 public:
-    constexpr CRmXorShift32(UINT Seed = NtGetTickCount()) noexcept : State{ Seed ? Seed : 1 } {}
+    constexpr CRmXorShift32(UINT Seed) noexcept : State{ Seed ? Seed : 1 } {}
 
     constexpr UINT Next32() noexcept
     {
@@ -59,7 +68,7 @@ struct CRandom : public TBase
 {
     using TBase::Next32;
 
-    constexpr CRandom(TBase::TSeed Seed = TBase::DefaultSeed()) noexcept : TBase{ Seed } {}
+    constexpr CRandom(TBase::TSeed Seed = GenerateSeed<typename TBase::TSeed>()) noexcept : TBase{ Seed } {}
 
     template<std::integral T = UINT>
     constexpr T Next() noexcept
@@ -122,6 +131,7 @@ struct CRandom : public TBase
     template<std::floating_point T>
     constexpr T Gaussian(T Mean, T Dev) noexcept { return Mean + Dev * Gaussian<T>(); }
 };
+
 
 using CPcg32 = CRandom<CRmPcg32>;
 using CXorShift32 = CRandom<CRmXorShift32>;

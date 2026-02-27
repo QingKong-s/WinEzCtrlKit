@@ -10,7 +10,12 @@ private:
 
     EckInline void ClearInternal() noexcept
     {
-        if constexpr (std::is_same_v<T, GpGraphics>)
+        if constexpr (std::is_same_v<T, GpEffect>)
+            GdipDeleteEffect(p);
+        else if constexpr (std::is_same_v<T, GpCachedBitmap>)
+            GdipDeleteCachedBitmap(p);
+
+        else if constexpr (std::is_same_v<T, GpGraphics>)
             GdipDeleteGraphics(p);
         else if constexpr (std::is_base_of_v<GpBrush, T>)
             GdipDeleteBrush(p);
@@ -36,12 +41,8 @@ private:
             GdipDeleteStringFormat(p);
         else if constexpr (std::is_base_of_v<GpFontCollection, T>)
             GdipDeletePrivateFontCollection(p);
-        else if constexpr (std::is_same_v<T, GpCachedBitmap>)
-            GdipDeleteCachedBitmap(p);
         else if constexpr (std::is_same_v<T, GpMatrix>)
             GdipDeleteMatrix(p);
-        else if constexpr (std::is_same_v<T, GpEffect>)
-            GdipDeleteEffect(p);
         else
             static_assert(!sizeof(T), "Unsupported GDI+ type");
     }
@@ -108,7 +109,11 @@ public:
             pNew.Clear();
             return Gdiplus::GenericError;
         }
-        if constexpr (std::is_base_of_v<GpBrush, T>)
+        if constexpr (
+            std::is_same_v<T, GpEffect> ||
+            std::is_same_v<T, GpCachedBitmap>)
+            static_assert(!sizeof(T), "Unsupported Clone GDI+ type");
+        else if constexpr (std::is_base_of_v<GpBrush, T>)
             return GdipCloneBrush(p, (GpBrush**)pNew.AddrOfClear());
         else if constexpr (std::is_same_v<T, GpPen>)
             return GdipClonePen(p, pNew.AddrOfClear());

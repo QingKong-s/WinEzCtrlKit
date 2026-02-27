@@ -2,6 +2,8 @@
 
 #include "../eck/Random.h"
 
+#pragma comment(lib, "bcrypt.lib")
+
 using Rm = eck::CRandom<eck::CRmPcg32>;
 
 TS_NS_BEGIN

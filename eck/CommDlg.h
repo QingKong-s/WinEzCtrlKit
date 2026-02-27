@@ -277,6 +277,7 @@ public:
         return ChooseFontW((CHOOSEFONTW*)pData);
     }
 
+#if !ECK_OPT_NO_DWRITE && !ECK_OPT_NO_DARKMODE
     LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
@@ -423,6 +424,7 @@ public:
         }
         return __super::OnMessage(uMsg, wParam, lParam);
     }
+#endif // !ECK_OPT_NO_DWRITE && !ECK_OPT_NO_DARKMODE
 
     void OnOk(HWND hCtrl) noexcept override {}
     void OnCancel(HWND hCtrl) noexcept override {}
