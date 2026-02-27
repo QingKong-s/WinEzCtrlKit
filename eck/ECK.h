@@ -1014,6 +1014,8 @@ struct ThreadContext
     //-------回调队列
     HHOOK hhkMsgFilter{};		// 在菜单、模态对话框、拖动选择等的消息循环中保持处理UI线程的回调
     Priv::QueuedCallbackQueue Callback{};
+    //
+    HWND hGhost{};
 
     void WmAdd(HWND hWnd, CWindow* pWnd, BOOL bTopLevel) noexcept;
     void WmRemove(HWND hWnd) noexcept;
@@ -1026,6 +1028,8 @@ struct ThreadContext
 
     void UpdateDefaultColor() noexcept;
     void DoCallback() noexcept;
+
+    HWND CreateGhostWindow(BOOL bMsgOnly = FALSE) noexcept;
 };
 
 // 取线程上下文TLS槽

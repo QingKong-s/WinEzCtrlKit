@@ -1988,6 +1988,8 @@ void ThreadUninitialize() noexcept
     UnhookWindowsHookEx(p->hhkTempCBT);
     UnhookWindowsHookEx(p->hhkCbtDarkMode);
     UnhookWindowsHookEx(p->hhkMsgFilter);
+    if (p->hGhost)
+        DestroyWindow(p->hGhost);
     delete p;
     TlsSetValue(GetThreadContextTlsSlot(), nullptr);
 }
@@ -2152,6 +2154,18 @@ void ThreadContext::DoCallback() noexcept
         RtlAcquireSRWLockExclusive(&Callback.Lk);
     }
     RtlReleaseSRWLockExclusive(&Callback.Lk);
+}
+
+HWND ThreadContext::CreateGhostWindow(BOOL bMsgOnly) noexcept
+{
+    if (hGhost)
+        return hGhost;
+    hGhost = CreateWindowExW(
+        0, WCN_DUMMY, nullptr, WS_POPUP,
+        -32000, -32000, 0, 0,
+        bMsgOnly ? HWND_MESSAGE : nullptr,
+        nullptr, g_hInstance, nullptr);
+    return hGhost;
 }
 #pragma endregion Thread
 
