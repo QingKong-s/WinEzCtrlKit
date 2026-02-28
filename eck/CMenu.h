@@ -1,7 +1,5 @@
 ﻿#pragma once
-#include "CString.h"
-#include "CByteBuffer.h"
-#include "MemWalker.h"
+#include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
 class CMenu
@@ -9,7 +7,7 @@ class CMenu
 private:
     HMENU m_hMenu{};
 
-    EckInlineNdCe static UINT PosBool2UINT(BOOL bPos) noexcept { return bPos ? MF_BYPOSITION : MF_BYCOMMAND; }
+    EckInlineNdCe static UINT PositionFlag(BOOL bPos) noexcept { return bPos ? MF_BYPOSITION : MF_BYCOMMAND; }
 public:
     struct INITITEM
     {
@@ -99,7 +97,7 @@ public:
 
     EckInline BOOL CheckRadioItem(UINT uBegin, UINT uEnd, UINT uCheck, BOOL bPosition = FALSE) const noexcept
     {
-        return CheckMenuRadioItem(m_hMenu, uBegin, uEnd, uCheck, PosBool2UINT(bPosition));
+        return CheckMenuRadioItem(m_hMenu, uBegin, uEnd, uCheck, PositionFlag(bPosition));
     }
 
     EckInline HMENU Create() noexcept
@@ -115,7 +113,7 @@ public:
 
     EckInline BOOL DeleteItem(UINT uPos, BOOL bPosition = FALSE) const noexcept
     {
-        return DeleteMenu(m_hMenu, uPos, PosBool2UINT(bPosition));
+        return DeleteMenu(m_hMenu, uPos, PositionFlag(bPosition));
     }
 
     EckInline BOOL Clear() noexcept
@@ -125,12 +123,12 @@ public:
 
     EckInline int EnableItem(UINT uPos, UINT uFlags, BOOL bPosition = FALSE) const noexcept
     {
-        return EnableMenuItem(m_hMenu, uPos, PosBool2UINT(bPosition) | uFlags);
+        return EnableMenuItem(m_hMenu, uPos, PositionFlag(bPosition) | uFlags);
     }
 
     EckInline UINT GetDefaultItem(UINT uFlags, BOOL bPosition = FALSE) const noexcept
     {
-        return GetMenuDefaultItem(m_hMenu, PosBool2UINT(bPosition), uFlags);
+        return GetMenuDefaultItem(m_hMenu, PositionFlag(bPosition), uFlags);
     }
 
     EckInline BOOL GetInfomation(MENUINFO* pmi) const noexcept
@@ -161,7 +159,7 @@ public:
 
     EckInlineNd UINT GetItemState(UINT uPos, BOOL bPosition = FALSE) const noexcept
     {
-        return GetMenuState(m_hMenu, uPos, PosBool2UINT(bPosition));
+        return GetMenuState(m_hMenu, uPos, PositionFlag(bPosition));
     }
 
     EckInlineNd BOOL GetItemString(CStringW& rs, UINT uPos, BOOL bPosition = FALSE) const noexcept
@@ -202,7 +200,7 @@ public:
         UINT uPos, BOOL bPosition = FALSE) const noexcept
     {
         return HiliteMenuItem(hWnd, m_hMenu, uPos,
-            PosBool2UINT(bPosition) | (bHiLite ? MF_HILITE : MF_UNHILITE));
+            PositionFlag(bPosition) | (bHiLite ? MF_HILITE : MF_UNHILITE));
     }
 
     EckInline BOOL InsertString(PCWSTR pszText, UINT uId, UINT uPos, UINT uFlags = 0u) const noexcept
@@ -289,7 +287,7 @@ public:
 
     EckInline BOOL RemoveItem(UINT uPos, BOOL bPosition = FALSE) const noexcept
     {
-        return RemoveMenu(m_hMenu, uPos, PosBool2UINT(bPosition));
+        return RemoveMenu(m_hMenu, uPos, PositionFlag(bPosition));
     }
 
     EckInline BOOL SetMenu(HWND hWnd) const noexcept
@@ -310,7 +308,7 @@ public:
     EckInline BOOL SetItemBitmaps(HBITMAP hbmUnchecked,
         HBITMAP hbmChecked, UINT uPos, BOOL bPosition = FALSE) const noexcept
     {
-        return SetMenuItemBitmaps(m_hMenu, uPos, PosBool2UINT(bPosition), hbmUnchecked, hbmChecked);
+        return SetMenuItemBitmaps(m_hMenu, uPos, PositionFlag(bPosition), hbmUnchecked, hbmChecked);
     }
 
     EckInline BOOL SetItemInfomation(const MENUITEMINFOW* pmii,
