@@ -334,12 +334,14 @@ public:
     /// 先前的内存将被释放
     /// </summary>
     /// <param name="psz">指针，必须可通过当前分配器解分配</param>
-    /// <param name="cchCapacity">容量</param>
+    /// <param name="cchCapacity">容量，**字节数**必须为偶数</param>
     /// <param name="cchText">字符数</param>
     void Attach(TPointer psz, int cchCapacity, int cchText) noexcept
     {
         EckAssert(cchCapacity > 0 && cchText >= 0);
-        m_Alloc.deallocate(m_pszText, std::max(m_cchCapacity, LocalBufferSize + 1));
+        EckAssert(!(cchCapacity & 1) && cchText < cchCapacity);
+        if (!IsLocal())
+            m_Alloc.deallocate(m_pszText, m_cchCapacity);
         if (!psz)
         {
             m_pszText = nullptr;
@@ -356,8 +358,10 @@ public:
     /// <summary>
     /// 拆离指针
     /// </summary>
+    /// <param name="cchCapacity">输出容量，**字节数**一定为偶数</param>
+    /// <param name="cchText">输出字符数</param>
     /// <returns>指针，必须通过与当前分配器相等的分配器解分配</returns>
-    EckInlineNd TPointer Detach(int& cchCapacity, int& cchText) noexcept
+    EckInlineNd TPointer Detach(_Out_ int& cchCapacity, _Out_ int& cchText) noexcept
     {
         if (IsLocal())
         {
@@ -489,6 +493,8 @@ private:
         if (IsLocal() && cch <= LocalBufferSize)
             return;
         const auto pOld = IsLocal() ? m_szLocal : m_pszText;
+        if constexpr (sizeof(TChar) == 1)
+            cch += (cch & 1);
         const auto pNew = m_Alloc.allocate(cch);
         if (pOld)
         {

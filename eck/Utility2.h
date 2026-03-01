@@ -3,8 +3,6 @@
 #include "CString.h"
 #include "Random.h"
 
-#include <bcrypt.h>
-
 ECK_NAMESPACE_BEGIN
 #pragma region CRefBinT运算符
 template<class TAllocator, class TChar, class TTraits, class TAllocator1>
@@ -24,6 +22,83 @@ EckInline CByteBufferT<TAllocator>& operator<<(CByteBufferT<TAllocator>& rb, con
 {
     rb.PushBack(&t, sizeof(T));
     return rb;
+}
+
+// rb的最后一个TChar被置0
+template<class TAllocator1, class TChar, class TAllocator2, class Traits>
+EckInline BOOL SwapResource(
+    CByteBufferT<TAllocator1>& rb,
+    CStringT<TChar, TAllocator2, Traits>& rs) noexcept
+{
+    if (rb.GetAllocator() != rs.GetAllocator())
+        return FALSE;
+    size_t cbCap1;
+    size_t cb1;
+    int cchCap2;
+    int cch2;
+    const auto p1 = rb.Detach(cbCap1, cb1);
+    const auto p2 = rs.Detach(cchCap2, cch2);
+    EckAssert(!(cbCap1 & 1) && !((cchCap2 * sizeof(TChar)) & 1));
+    if (cchCap2)
+        rb.Attach(
+            (BYTE*)p2,
+            size_t(cchCap2 * sizeof(TChar)),
+            size_t(cch2 * sizeof(TChar)));
+    if (cbCap1)
+    {
+        cb1 /= sizeof(TChar);
+        cbCap1 /= sizeof(TChar);
+        *((TChar*)p1 + (cb1 ? cb1 : cbCap1) - 1) = 0;
+        rs.Attach((TChar*)p1, (int)cbCap1, (int)cb1);
+    }
+    return TRUE;
+}
+
+template<class TAllocator1, class TChar, class TAllocator2, class Traits>
+EckInline BOOL SwapResource(
+    CStringT<TChar, TAllocator2, Traits>& rs,
+    CByteBufferT<TAllocator1>& rb) noexcept
+{
+    return SwapResource(rb, rs);
+}
+
+template<class TAllocator1, class TChar, class TAllocator2, class Traits>
+EckInline BOOL MoveResource(
+    CByteBufferT<TAllocator1>& rb,
+    CStringT<TChar, TAllocator2, Traits>& rs) noexcept
+{
+    if (rb.GetAllocator() != rs.GetAllocator())
+        return FALSE;
+    if (rs.IsLocal())
+    {
+        if (!rs.IsEmpty())
+            rb.Assign(rs.Data(), rs.ByteSize());
+        else
+            rb.Clear();
+        return TRUE;
+    }
+    else
+        return SwapResource(rb, rs);
+}
+
+template<class TAllocator1, class TChar, class TAllocator2, class Traits>
+EckInline BOOL MoveResource(
+    CStringT<TChar, TAllocator2, Traits>& rs,
+    CByteBufferT<TAllocator1>& rb) noexcept
+{
+    if (rb.GetAllocator() != rs.GetAllocator())
+        return FALSE;
+    if (rs.IsLocal())
+    {
+        const auto cch = int(rb.Size() / sizeof(TChar));
+        if (cch)
+            rs.Assign((TChar*)rb.Data(), cch - 1);
+        else
+            rs.Clear();
+        return TRUE;
+    }
+    else
+        return SwapResource(rb, rs);
 }
 #pragma endregion CRefBinT运算符
 

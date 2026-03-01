@@ -178,10 +178,11 @@ public:
     /// 先前的内存将被释放
     /// </summary>
     /// <param name="p">指针，必须可通过当前分配器解分配</param>
-    /// <param name="cbCapacity">容量</param>
+    /// <param name="cbCapacity">容量，必须为偶数</param>
     /// <param name="cb">当前长度</param>
     void Attach(BYTE* p, size_t cbCapacity, size_t cb) noexcept
     {
+        EckAssert(!(cbCapacity & 1) && cb <= cbCapacity);
         m_Alloc.deallocate(m_pStream, m_cbCapacity);
         if (!p)
         {
@@ -199,10 +200,10 @@ public:
     /// <summary>
     /// 拆离指针
     /// </summary>
-    /// <param name="cbCapacity">容量</param>
+    /// <param name="cbCapacity">容量，一定为偶数</param>
     /// <param name="cb">长度</param>
     /// <returns>指针，必须通过与当前分配器相等的分配器解分配</returns>
-    EckInlineNd BYTE* Detach(size_t& cbCapacity, size_t& cb) noexcept
+    EckInlineNd BYTE* Detach(_Out_ size_t& cbCapacity, _Out_ size_t& cb) noexcept
     {
         const auto pTemp = m_pStream;
         m_pStream = nullptr;
@@ -215,7 +216,7 @@ public:
         return pTemp;
     }
 
-    EckInline size_t CopyTo(void* pDst, size_t cbMax) const noexcept
+    EckInline size_t CopyTo(_Out_writes_(cbMax) void* pDst, size_t cbMax) const noexcept
     {
         if (cbMax > m_cb)
             cbMax = m_cb;
@@ -228,6 +229,7 @@ public:
         if (m_cbCapacity >= cb)
             return;
         const auto pOld = m_pStream;
+        cb += (cb & 1);
         m_pStream = m_Alloc.allocate(cb);
         if (pOld)
         {
