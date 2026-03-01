@@ -10,7 +10,7 @@ A Win32 common utilities library.
 
   ```C++
   Observable<CStringW> obString{};
-  eck::DdxBindEdit(m_Edit, *this/* parent */, obString);
+  DdxBindEdit(m_Edit, *this/* parent */, obString);
   ```
 * Uses `OnMessage` instead of a traditional window procedure. Additionally, the following mechanisms are provided to customize message handling:
 

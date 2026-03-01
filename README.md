@@ -11,7 +11,7 @@
 * 通过`Observable<>`和`DdxBind`前缀函数提供简单双向数据绑定支持
   ```C++
   Observable<CStringW> obString{};
-  eck::DdxBindEdit(m_Edit, *this/* parent */, obString);
+  DdxBindEdit(m_Edit, *this/* parent */, obString);
   ```
 * `OnMessage`代替窗口过程，除此以外，提供以下机制调整消息处理
   * 消息循环过滤：为`IsDialogMessageW`、翻译加速器、按键过滤等提供支持
