@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "NativeWrapper.h"
+#include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
 EckInlineNd int LcswCompareLen2(_In_reads_(Len1) PCWCH Str1, int Len1,
@@ -108,27 +109,65 @@ EckInlineNd int LcswIsEndWithI(_In_reads_(Len) PCWCH Str, int Len,
         uFlags | FIND_ENDSWITH | NORM_IGNORECASE, pcchMatch, pszLocaleName);
 }
 
-EckNfInlineNdCe int LcsUtf8CountChar(_In_reads_or_z_(cch) PCCH psz, int cch) noexcept
+namespace Priv
+{
+    constexpr inline BYTE Utf8Dfa[]
+    {
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 00..1f
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 20..3f
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 40..5f
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 60..7f
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9, // 80..9f
+        7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7, // a0..bf
+        8,8,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, // c0..df
+        0xa,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x4,0x3,0x3, // e0..ef
+        0xb,0x6,0x6,0x6,0x5,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8, // f0..ff
+        0x0,0x1,0x2,0x3,0x5,0x8,0x7,0x1,0x1,0x1,0x4,0x6,0x1,0x1,0x1,0x1, // s0..s0
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,1, // s1..s2
+        1,2,1,1,1,1,1,2,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1, // s3..s4
+        1,2,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,3,1,3,1,1,1,1,1,1, // s5..s6
+        1,3,1,1,1,1,1,3,1,3,1,1,1,1,1,1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1, // s7..s8
+    };
+}
+
+enum : BYTE
+{
+    UTF8DC_ACCEPT,
+    UTF8DC_REJECT,
+};
+
+inline void LcsUtf8DecodeChar(
+    _Inout_ BYTE& byState, _Inout_ UINT& uCodePoint, UINT byUtf8)
+{
+    const UINT Type = Priv::Utf8Dfa[byUtf8];
+    uCodePoint = (byState != UTF8DC_ACCEPT) ?
+        (byUtf8 & 0x3fu) | (uCodePoint << 6) :
+        (0xff >> Type) & (byUtf8);
+    byState = Priv::Utf8Dfa[256 + byState * 16 + Type];
+}
+
+EckNfInlineNdCe int LcsUtf8CountChar(
+    _In_reads_or_z_(cch) PCCH psz, int cch, _Out_ BOOL& bValid) noexcept
 {
     if (cch < 0)
         cch = (int)strlen(psz);
-    int cchChars{};
-    for (int i = 0; i < cch; )
+    UINT Dummy{};
+    BYTE byState{};
+    int c{};
+    const auto pEnd = psz + cch;
+    for (; psz < pEnd; ++psz)
     {
-        const unsigned char ch = (unsigned char)psz[i];
-        if (ch < 0x80)
-            i += 1;
-        else if ((ch & 0xE0) == 0xC0)
-            i += 2;
-        else if ((ch & 0xF0) == 0xE0)
-            i += 3;
-        else if ((ch & 0xF8) == 0xF0)
-            i += 4;
-        else
-            i += 1;
-        ++cchChars;
+        LcsUtf8DecodeChar(byState, Dummy, (BYTE)*psz);
+        if (byState == UTF8DC_ACCEPT)
+            ++c;
+        else if (byState == UTF8DC_REJECT)
+        {
+            bValid = FALSE;
+            return c;
+        }
     }
-    return cchChars;
+    bValid = (byState == UTF8DC_ACCEPT);
+    return c;
 }
 
 EckNfInlineNd int LcsDbcsCountChar(_In_reads_or_z_(cch) PCCH psz, int cch, UINT uCp = CP_ACP) noexcept
@@ -151,5 +190,58 @@ inline void LcsUtf16ReverseByteOrder(_Inout_updates_(cch) PWCH psz, int cch) noe
     const auto pEnd = psz + cch;
     for (; psz < pEnd; ++psz)
         *psz = _byteswap_ushort(*psz);
+}
+
+// 返回UTF32长度，pOut
+// WARNING 不会在pOut添加结尾NULL
+
+/// <summary>
+/// UTF16LE到UTF32
+/// </summary>
+/// <param name="psz、cch">输入UTF16序列</param>
+/// <param name="pOut">输出缓冲区，必须提供尺寸至少为cch的缓冲区</param>
+/// <param name="bValid">返回UTF16序列是否合法</param>
+/// <param name="bLittleEndian">输出UTF32序列的端序</param>
+/// <returns>若UTF16序列有效，返回正值，表示输出UTF32序列的长度
+/// <para/>
+/// 若UTF16序列无效，返回负值，表示输入UTF16序列的出错位置
+/// </returns>
+inline int LcsUtf16LeToUtf32(
+    _In_reads_or_z_(cch) PCWCH psz,
+    int cch,
+    _Out_writes_(cch) UINT* pOut,
+    _Out_ BOOL& bValid,
+    BOOL bLittleEndian) noexcept
+{
+    if (cch < 0)
+        cch = (int)wcslen(psz);
+    const auto pOutOrg = pOut;
+    const auto pEnd = psz + cch;
+    for (auto p = psz; psz < pEnd; ++psz)
+    {
+        UINT u;
+        if (IS_HIGH_SURROGATE(*p))
+        {
+            const auto pNext = p + 1;
+            if (pNext >= pEnd ||
+                !IS_LOW_SURROGATE(*pNext))
+            {
+                bValid = FALSE;
+                return int(psz - p);
+            }
+            u = 0x10000 + (((*p - 0xD800) << 10) | (*pNext - 0xDC00));
+            ++p;
+        }
+        else if (IS_LOW_SURROGATE(*p))
+        {
+            bValid = FALSE;
+            return int(psz - p);
+        }
+        else
+            u = *p;
+        *pOut++ = (bLittleEndian ? u : ReverseInteger(u));
+    }
+    bValid = TRUE;
+    return int(pOut - pOutOrg);
 }
 ECK_NAMESPACE_END

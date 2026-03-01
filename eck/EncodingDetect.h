@@ -8,81 +8,59 @@ namespace Priv
 {
     struct ECD_STRING
     {
-        PCSTR pszName;
-        int cchName;
+        std::string_view svName;
         UINT uCodePage;
     };
     constexpr inline ECD_STRING EcdEncodingMap[]
     {
-        { EckStrAndLen("UTF-8"),       65001 },
-        { EckStrAndLen("UTF-16LE"),    1200  },// 注意，uchardet不区分le和be
-        { EckStrAndLen("UTF-16BE"),    1201  },
-        { EckStrAndLen("UTF-32LE"),    12000 },
-        { EckStrAndLen("UTF-32BE"),    12001 },
+        { "UTF-8"sv,        65001 },
+        { "UTF-16LE"sv,     1200  }, // 注意，uchardet不区分le和be
+        { "UTF-16BE"sv,     1201  },
+        { "UTF-32LE"sv,     12000 },
+        { "UTF-32BE"sv,     12001 },
 
-        // 西欧 / 拉丁
-        { EckStrAndLen("windows-1252"),1252  },
-        { EckStrAndLen("ISO-8859-1"),  28591 },
-        { EckStrAndLen("ISO-8859-2"),  28592 },
-        { EckStrAndLen("ISO-8859-3"),  28593 },
-        { EckStrAndLen("ISO-8859-4"),  28594 },
-        { EckStrAndLen("ISO-8859-9"),  28599 },
-        { EckStrAndLen("ISO-8859-15"), 28605 },
-        { EckStrAndLen("windows-1250"),1250  },
-        { EckStrAndLen("windows-1254"),1254  },
-        { EckStrAndLen("windows-1257"),1257  },
-        { EckStrAndLen("windows-1258"),1258  },
-
-        // 西里尔文
-        { EckStrAndLen("windows-1251"),1251  },
-        { EckStrAndLen("ISO-8859-5"),  28595 },
-        { EckStrAndLen("KOI8-R"),      20866 },
-        { EckStrAndLen("KOI8-U"),      21866 },
-
-        // 希腊 / 希伯来 / 阿拉伯
-        { EckStrAndLen("windows-1253"),1253  },
-        { EckStrAndLen("ISO-8859-7"),  28597 },
-        { EckStrAndLen("windows-1255"),1255  },
-        { EckStrAndLen("ISO-8859-8"),  28598 },
-        { EckStrAndLen("windows-1256"),1256  },
-        { EckStrAndLen("ISO-8859-6"),  28596 },
-
-        // 中文
-        { EckStrAndLen("GB18030"),     54936 },
-        { EckStrAndLen("GBK"),         936   },
-        { EckStrAndLen("GB2312"),      936   },
-        { EckStrAndLen("Big5"),        950   },
-        { EckStrAndLen("Big5-HKSCS"),  950   },
-        { EckStrAndLen("HZ-GB-2312"),  52936 },
-        { EckStrAndLen("x-euc-tw"),    51950 },
-
-        // 日文
-        { EckStrAndLen("Shift_JIS"),   932   },
-        { EckStrAndLen("Windows-31J"), 932   },
-        { EckStrAndLen("EUC-JP"),      20932 },
-        { EckStrAndLen("ISO-2022-JP"), 50220 },
-        { EckStrAndLen("ISO-2022-JP-1"),50221},
-        { EckStrAndLen("ISO-2022-JP-2"),50222},
-
-        // 韩文
-        { EckStrAndLen("ISO-2022-KR"), 50225 },
-        { EckStrAndLen("EUC-KR"),      949   },
-        { EckStrAndLen("Johab"),       1361  },
-
-        // 泰文
-        { EckStrAndLen("TIS-620"),     874   },
-        { EckStrAndLen("ISO-8859-11"), 874   },
-
-        // 杂项
-        { EckStrAndLen("MacRoman"),    10000 },
-        { EckStrAndLen("MacCyrillic"), 10007 },
-        { EckStrAndLen("IBM866"),      866   },
-        { EckStrAndLen("IBM850"),      850   },
-        { EckStrAndLen("IBM852"),      852   },
-        { EckStrAndLen("IBM855"),      855   },
-        { EckStrAndLen("IBM857"),      857   },
-        { EckStrAndLen("IBM862"),      862   },
-        { EckStrAndLen("IBM864"),      864   },
+        { "ASCII"sv,        20127 }, // us-ascii
+        { "BIG5"sv,         950   },
+        { "EUC-JP"sv,       51932 },
+        { "EUC-KR"sv,       51949 },
+        { "EUC-TW"sv,       51950 }, // EUC Traditional Chinese
+        { "GB18030"sv,      54936 }, // 注意不会输出GB2312，以GB18030代替
+        { "HZ-GB-2312"sv,   52936 },
+        { "IBM852"sv,       852   }, // OEM Latin 2
+        { "IBM855"sv,       855   }, // OEM Cyrillic
+        { "IBM865"sv,       865   }, // OEM Nordic
+        { "IBM866"sv,       866   }, // OEM Russian
+        { "ISO-2022-CN"sv,  50227 }, // x-cp50227
+        { "ISO-2022-JP"sv,  50220 },
+        { "ISO-2022-KR"sv,  50225 },
+        { "ISO-8859-1"sv,   28591 }, // Latin-1, Western Europe
+        { "ISO-8859-2"sv,   28592 }, // Latin-2, Central Europe
+        { "ISO-8859-3"sv,   28593 }, // Latin-3, South Europe
+        { "ISO-8859-4"sv,   28594 }, // Latin-4, North Europe
+        { "ISO-8859-5"sv,   28595 }, // Cyrillic
+        { "ISO-8859-6"sv,   28596 }, // Arabic
+        { "ISO-8859-7"sv,   28597 }, // Greek
+        { "ISO-8859-8"sv,   28598 }, // Hebrew
+        { "ISO-8859-9"sv,   28599 }, // Latin-5, Turkish
+        { "ISO-8859-10"sv,  28600 }, // Latin-6, Nordic
+        { "ISO-8859-11"sv,  28601 }, // Thai, 兼容TIS-620
+        { "ISO-8859-13"sv,  28603 }, // Latin-7, Baltic Rim
+        { "ISO-8859-15"sv,  28605 }, // Latin-9, Euro, Latin-1的修订版
+        { "ISO-8859-16"sv,  28606 }, // Latin-10, South-Eastern European
+        { "KOI8-R"sv,       20866 },
+        { "MAC-CENTRALEUROPE"sv, 10029 }, // x-mac-ce
+        { "MAC-CYRILLIC"sv, 10007 }, // x-mac-cyrillic
+        { "SHIFT_JIS"sv,    932   },
+        { "TIS-620"sv,      874   }, // Windows-874, Thai
+        { "WINDOWS-1250"sv, 1250  }, // Central Europe
+        { "WINDOWS-1251"sv, 1251  }, // Cyrillic
+        { "WINDOWS-1252"sv, 1252  }, // Western Europe
+        { "WINDOWS-1253"sv, 1253  }, // Greek
+        { "WINDOWS-1255"sv, 1255  }, // Hebrew
+        { "WINDOWS-1256"sv, 1256  }, // Arabic
+        { "WINDOWS-1257"sv, 1257  }, // Baltic
+        { "WINDOWS-1258"sv, 1258  }, // Vietnamese
+        //{ "VISCII"sv,         0   }, // 不支持
     };
 }
 
@@ -92,44 +70,80 @@ inline UINT EcdNameToCodePage(std::string_view svName) noexcept
     for (const auto& e : Priv::EcdEncodingMap)
     {
         if (TcsEqualLength2I(svName.data(), svName.size(),
-            e.pszName, e.cchName))
+            e.svName.data(), e.svName.size()))
             return e.uCodePage;
     }
     return 0u;
 }
 
-// 检测字节流编码，成功返回代码页，失败返回0
-inline UINT EcdDetectCodePage(PCVOID p, size_t cb) noexcept
+enum : UINT
 {
-    // uchardet不区分LE和BE
-    if (cb <= sizeof(BOM_UTF16LE) &&
-        memcmp(p, BOM_UTF16LE, sizeof(BOM_UTF16LE)) == 0)
-        return CP_UTF16LE;
-    else if (cb <= sizeof(BOM_UTF16BE) &&
-        memcmp(p, BOM_UTF16BE, sizeof(BOM_UTF16BE)) == 0)
-        return CP_UTF16BE;
-    else if (cb <= sizeof(BOM_UTF32LE) &&
-        memcmp(p, BOM_UTF32LE, sizeof(BOM_UTF32LE)) == 0)
+    // 使用advapi32!IsTextUnicode细化UTF16的分析
+    ECD_USE_IS_TEXT_UNICODE = 1u << 0,
+    // 禁用TIS-620检测，使其映射为UTF-8
+    ECD_DISABLE_TIS_620 = 1u << 1,
+};
+
+// 检测字节流编码，成功返回代码页，失败返回0
+inline UINT EcdDetectCodePage(
+    _In_reads_bytes_(cb) PCVOID p, size_t cb,
+    UINT uFlags = ECD_DISABLE_TIS_620) noexcept
+{
+    if (cb < 4)
+        return 0u;
+#undef ECK_TEMP_HIT
+#define ECK_TEMP_HIT(Bom) memcmp(p, Bom, sizeof(Bom)) == 0
+
+    /* */if (ECK_TEMP_HIT(BOM_UTF32LE))
         return CP_UTF32LE;
-    else if (cb <= sizeof(BOM_UTF32BE) &&
-        memcmp(p, BOM_UTF32BE, sizeof(BOM_UTF32BE)) == 0)
+    else if (ECK_TEMP_HIT(BOM_UTF32BE))
         return CP_UTF32BE;
-    uchardet_t pUcd = uchardet_new();
+    else if (ECK_TEMP_HIT(BOM_UTF16LE))
+        return CP_UTF16LE;
+    else if (ECK_TEMP_HIT(BOM_UTF16BE))
+        return CP_UTF16BE;
+    else if (ECK_TEMP_HIT(BOM_UTF8))
+        return CP_UTF8;
+
+#undef ECK_TEMP_HIT
+
+    if (uFlags & ECD_USE_IS_TEXT_UNICODE)
+    {
+        int i = IS_TEXT_UNICODE_REVERSE_STATISTICS;
+        if (IsTextUnicode(p, (int)cb, &i))
+            return CP_UTF16BE;
+        i = IS_TEXT_UNICODE_STATISTICS;
+        if (IsTextUnicode(p, (int)cb, &i))
+            return CP_UTF16LE;
+    }
+
+    const auto pUcd = uchardet_new();
     uchardet_handle_data(pUcd, (PCCH)p, cb);
     uchardet_data_end(pUcd);
     const auto pszName = uchardet_get_charset(pUcd);
     UINT cp;
-    if (TcsEqualI(pszName, "TIS-620"))
-        cp = CP_UTF8;// uchardet易将utf8错判为tis-620 （from notepad++）
+    if ((uFlags & ECD_DISABLE_TIS_620) &&
+        TcsEqualI(pszName, "TIS-620"))
+    {
+        BOOL bValid;
+        (void)LcsUtf8CountChar((PCSTR)p, cb, bValid);
+        if (bValid)
+            cp = CP_UTF8;
+        else
+            cp = EcdNameToCodePage(pszName);
+    }
     else
         cp = EcdNameToCodePage(pszName);
     uchardet_delete(pUcd);
     return cp;
 }
 
-// 将已知编码的字节流转换为另一种编码，成功返回TRUE，失败返回FALSE
-inline BOOL EcdCovert(PCVOID p, size_t cb,
-    UINT cpSrc, UINT cpDst, CByteBuffer& rbDst, CByteBuffer& rbWork,
+// 将已知编码的字节流转换为另一种编码
+// 成功返回TRUE，失败返回FALSE
+inline BOOL EcdConvert(
+    PCVOID p, size_t cb,
+    UINT cpSrc, UINT cpDst,
+    CByteBuffer& rbDst, CByteBuffer& rbWork,
     UINT uFlagsMb2Wc = MB_PRECOMPOSED, UINT uFlagsWc2Mb = 0) noexcept
 {
     EckAssert(cpSrc != 0u && cpDst != 0u && cpSrc != cpDst);
@@ -139,15 +153,14 @@ inline BOOL EcdCovert(PCVOID p, size_t cb,
         return FALSE;
     if (cpDst == CP_UTF16LE || cpDst == CP_UTF16BE)
     {
-        rbDst.ReSize(cchU16 * sizeof(WCHAR));
+        const auto pNew = (PWCH)rbDst.PushBackNoExtra((cchU16 + 1) * sizeof(WCHAR));
         cchU16 = MultiByteToWideChar(cpSrc, uFlagsMb2Wc,
-            (PCCH)p, (int)cb, (PWCH)rbDst.Data(), cchU16);
+            (PCCH)p, (int)cb, pNew, cchU16);
         if (!cchU16)
             return FALSE;
-        rbDst.ReSize((cchU16 + sizeof(WCHAR)) * 2);
-        *((PWCH)rbDst.Data() + cchU16) = 0;
+        *(pNew + cchU16) = 0;
         if (cpDst == CP_UTF16BE)
-            LcsUtf16ReverseByteOrder((PWCH)rbDst.Data(), cchU16);
+            LcsUtf16ReverseByteOrder(pNew, cchU16);
         return TRUE;
     }
     rbWork.ReSize(cchU16 * sizeof(WCHAR));
@@ -155,74 +168,29 @@ inline BOOL EcdCovert(PCVOID p, size_t cb,
         (PCCH)p, (int)cb, (PWCH)rbWork.Data(), cchU16);
     if (!cchU16)
         return FALSE;
-    switch (cpDst)
+    if (cpDst == CP_UTF32LE || cpDst == CP_UTF32BE)
     {
-    case CP_UTF32LE:
-    {
-        rbDst.ReSize(cchU16 * 4);
-        UINT* pU32 = (UINT*)rbDst.Data();
-        const auto pU16End = (PCWCH)rbWork.Data() + cchU16;
-        for (PCWCH pU16 = (PCWCH)rbWork.Data(); pU16 < pU16End; ++pU16)
-        {
-            if (IS_HIGH_SURROGATE(*pU16))
-            {
-                const auto pU16Next = pU16 + 1;
-                if (pU16Next >= pU16End)
-                {
-                    EckDbgBreak();
-                    return FALSE;
-                }
-                EckAssert(IS_LOW_SURROGATE(*pU16Next));
-                *pU32++ = 0x10000 + (((*pU16 - 0xD800) << 10) | (*pU16Next - 0xDC00));
-            }
-            else
-                *pU32++ = *pU16;
-        }
-        rbDst.ReSize((pU32 - (UINT*)rbDst.Data()) * 4);
+        auto pU32 = (UINT*)rbDst.PushBackNoExtra(cchU16 * sizeof(UINT));
+        BOOL bValid;
+        const auto cchU32 = LcsUtf16LeToUtf32(
+            (PCWSTR)rbWork.Data(), cchU16,
+            pU32, bValid, (cpDst == CP_UTF32LE));
+        rbDst.ReSize((BYTE*)(pU32 + cchU32) - rbDst.Data());
+        EckAssert(bValid);
+        return bValid;
     }
+
+    int cbMb = WideCharToMultiByte(cpDst, uFlagsWc2Mb,
+        (PCWCH)rbWork.Data(), cchU16, nullptr, 0, nullptr, nullptr);
+    if (!cbMb)
+        return FALSE;
+    rbDst.ReSize(cbMb + 1);
+    cbMb = WideCharToMultiByte(cpDst, uFlagsWc2Mb,
+        (PCWCH)rbWork.Data(), cchU16, (PCH)rbDst.Data(), cbMb, nullptr, nullptr);
+    if (!cbMb)
+        return FALSE;
+    *((PCH)rbDst.Data() + cbMb) = 0;
     return TRUE;
-    case CP_UTF32BE:
-    {
-        rbDst.ReSize(cchU16 * 4);
-        UINT* pU32 = (UINT*)rbDst.Data();
-        const auto pU16End = (PCWCH)rbWork.Data() + cchU16;
-        for (PCWCH pU16 = (PCWCH)rbWork.Data(); pU16 < pU16End; ++pU16)
-        {
-            if (IS_HIGH_SURROGATE(*pU16))
-            {
-                const auto pU16Next = pU16 + 1;
-                if (pU16Next >= pU16End)
-                {
-                    EckDbgBreak();
-                    return FALSE;
-                }
-                EckAssert(IS_LOW_SURROGATE(*pU16Next));
-                *pU32++ = ReverseInteger(UINT(
-                    0x10000 + (((*pU16 - 0xD800) << 10) | (*pU16Next - 0xDC00))));
-            }
-            else
-                *pU32++ = ReverseInteger((UINT)*pU16);
-        }
-        rbDst.ReSize((pU32 - (UINT*)rbDst.Data()) * 4);
-    }
-    return TRUE;
-    default:
-    {
-        int cbMb = WideCharToMultiByte(cpDst, uFlagsWc2Mb,
-            (PCWCH)rbWork.Data(), cchU16, nullptr, 0, nullptr, nullptr);
-        if (!cbMb)
-            return FALSE;
-        rbDst.ReSize(cbMb);
-        cbMb = WideCharToMultiByte(cpDst, uFlagsWc2Mb,
-            (PCWCH)rbWork.Data(), cchU16, (PCH)rbDst.Data(), cbMb, nullptr, nullptr);
-        if (!cbMb)
-            return FALSE;
-        rbDst.ReSize(cbMb + 1);
-        *((PCH)rbDst.Data() + cbMb) = 0;
-    }
-    return TRUE;
-    }
-    return FALSE;
 }
 
 // 检查rbDst中的字节流编码，如果与目标编码不同则执行转换
@@ -235,7 +203,7 @@ inline BOOL EcdLoadTextStream(UINT cpDst, CByteBuffer& rbDst) noexcept
     if (!cpSrc || cpSrc == cpDst)
         return TRUE;
     CByteBuffer rb, rbWork;
-    if (!EcdCovert(rbDst.Data(), rbDst.Size(), cpSrc, cpDst, rb, rbWork))
+    if (!EcdConvert(rbDst.Data(), rbDst.Size(), cpSrc, cpDst, rb, rbWork))
         return FALSE;
     rbDst = std::move(rb);
     return TRUE;
