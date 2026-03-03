@@ -126,7 +126,7 @@ inline UINT EcdDetectCodePage(
         TcsEqualI(pszName, "TIS-620"))
     {
         BOOL bValid;
-        (void)LcsUtf8CountChar((PCSTR)p, cb, bValid);
+        (void)LcsUtf8CountChar((PCSTR)p, (int)cb, bValid);
         if (bValid)
             cp = CP_UTF8;
         else

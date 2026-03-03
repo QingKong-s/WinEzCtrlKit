@@ -305,7 +305,7 @@
     <ClCompile Include="eck\MediaTagID3v2.h" />
     <ClCompile Include="eck\MediaTagMpeg.h" />
     <ClCompile Include="eck\MemUtility.h" />
-    <ClCompile Include="eck\MultiFrameImage.h" />
+    <ClCompile Include="eck\CWicMultiFrameImage.h" />
     <ClCompile Include="eck\CInertialScrollView.h" />
     <ClCompile Include="eck\CIni.h" />
     <ClCompile Include="eck\CLayoutBase.h" />
@@ -395,6 +395,7 @@
     <ClCompile Include="eck\WinRtDCompInterop.h" />
     <ClCompile Include="eck\WndHelper.h" />
     <ClInclude Include="eck\CEasyD2D.h" />
+    <ClInclude Include="eck\CIcoFileReader.h" />
     <ClInclude Include="eck\CMemoryDC.h" />
     <ClInclude Include="eck\CPixelEditor.h" />
     <ClInclude Include="eck\CScopeGuard.h" />

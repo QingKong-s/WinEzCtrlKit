@@ -1,30 +1,10 @@
 ﻿#pragma once
-#include "ImageHelper.h"
 #include "CStreamWalker.h"
 #include "MemWalker.h"
 #include "Crc.h"
+#include "CByteBufferStream.h"
 
 ECK_NAMESPACE_BEGIN
-struct ICONDIRENTRY
-{
-    BYTE bWidth;		// 宽度
-    BYTE bHeight;		// 高度
-    BYTE bColorCount;	// 颜色数
-    BYTE bReserved;		// 保留，必须为0
-    WORD wPlanes;		// 颜色平面数，必须为1
-    WORD wBitCount;		// 位深度
-    DWORD dwBytesInRes;	// 在资源中的字节数
-    DWORD dwImageOffset;// 在映像文件中的偏移
-};
-
-struct ICONDIR
-{
-    WORD idReserved;	// 保留，必须为0
-    WORD idType;		// 资源类型，1 = 图标
-    WORD idCount;		// 图标数
-    // ICONDIRENTRY idEntries[1]; // 图像数组
-};
-
 enum class PngColorType : BYTE
 {
     Grayscale = 0,
@@ -53,7 +33,7 @@ enum class PngBlendOp : BYTE
 
 static_assert(sizeof(PngIHDR) == 13);
 
-class CMultiFrameImageWic
+class CWicMultiFrameImage
 {
 public:
     enum class Disposal
@@ -66,7 +46,7 @@ public:
 private:
     struct ITEM
     {
-        IWICBitmapSource* pBitmap;
+        ComPtr<IWICBitmapSource> pSource;
         int msDelay;
         int ox;
         int oy;
@@ -74,7 +54,7 @@ private:
         int cy;
         Disposal eDisposalMethod;
     };
-    std::vector<ITEM> m_Frames{};
+    std::vector<ITEM> m_vFrame{};
     int m_cRepeat{};
     int m_cx{};
     int m_cy{};
@@ -84,58 +64,58 @@ private:
     int m_cxAct{};
     int m_cyAct{};
 public:
-    ECKPROP(GetRepeatCount, SetRepeatCount)	int RepeatCount;
-    ECKPROP(GetHeight, SetHeight)			int Height;
-    ECKPROP(GetWidth, SetWidth)				int Width;
-    ECKPROP(GetTransparent, SetTransparent) BOOL Transparent;
-    ECKPROP(GetDisposalMethod, SetDisposalMethod) Disposal DisposalMethod;
-    ECKPROP_R(GetFrameCount)				int FrameCount;
-    ECKPROP(GetBackgroundColor, SetBackgroundColor) WICColor BackgroundColor;
-
-    ECK_DISABLE_COPY_MOVE_DEF_CONS(CMultiFrameImageWic);
+    ECK_DISABLE_COPY_MOVE_DEF_CONS(CWicMultiFrameImage);
 
     /// <summary>
     /// 添加帧
     /// </summary>
     /// <param name="pBitmap">WIC位图源</param>
     /// <param name="msDelay">以毫秒计的显示延迟</param>
-    /// <param name="ox">X偏移</param>
-    /// <param name="oy">Y偏移</param>
-    /// <param name="cx">新宽度，0表示不变</param>
-    /// <param name="cy">新高度，0表示不变</param>
+    /// <param name="ox、oy">偏移</param>
+    /// <param name="cx、cy">新尺寸，0表示不变</param>
     /// <param name="eDisposalMethod">处理方式</param>
     /// <param name="eInterpolation">缩放时使用的插值方式</param>
     /// <returns>HRESULT</returns>
-    HRESULT AddFrame(IWICBitmapSource* pBitmap, int msDelay,
+    HRESULT AddFrame(IWICBitmapSource* pSource_, int msDelay,
         int ox = 0, int oy = 0, int cx = 0, int cy = 0,
         Disposal eDisposalMethod = Disposal::Undefined,
         WICBitmapInterpolationMode eInterpolation = WICBitmapInterpolationModeLinear) noexcept
     {
+        HRESULT hr;
+        UINT cxOrg, cyOrg;
+        hr = pSource_->GetSize(&cxOrg, &cyOrg);
+        if (FAILED(hr))
+            return hr;
         EckAssert(cx >= 0 && cy >= 0);
-        if (cx || cy)
+
+        BOOL bScale{};
+        if (cx && cx != (int)cxOrg)
+            bScale = TRUE;
+        else
+            cx = (int)cxOrg;
+
+        if (cy && cy != (int)cyOrg)
+            bScale = TRUE;
+        else
+            cy = (int)cyOrg;
+
+        ComPtr<IWICBitmapSource> pSource;
+        if (bScale)
         {
-            // TODO: 限制范围
-            HRESULT hr;
-            if (cx || cy)
-            {
-                IWICBitmap* pNew;
-                if (FAILED(hr = ScaleWicBitmap(pBitmap, pNew, cx, cy, eInterpolation)))
-                    return hr;
-                pBitmap = pNew;
-            }
-            else
-            {
-                pBitmap->AddRef();
-                pBitmap->GetSize((UINT*)&cx, (UINT*)&cy);
-            }
-            m_Frames.emplace_back(pBitmap, msDelay, ox, oy, cx, cy, eDisposalMethod);
+            ComPtr<IWICBitmapScaler> pScaler;
+            hr = g_pWicFactory->CreateBitmapScaler(&pScaler);
+            if (FAILED(hr))
+                return hr;
+            hr = pScaler->Initialize(pSource_, cx, cy, eInterpolation);
+            if (FAILED(hr))
+                return hr;
+            pSource.Attach(pScaler.Detach());
         }
         else
-        {
-            pBitmap->AddRef();
-            pBitmap->GetSize((UINT*)&cx, (UINT*)&cy);
-            m_Frames.emplace_back(pBitmap, msDelay, ox, oy, cx, cy, eDisposalMethod);
-        }
+            pSource = pSource_;
+
+        m_vFrame.emplace_back(pSource.Get(), msDelay,
+            ox, oy, cx, cy, eDisposalMethod);
         m_cxAct = std::max(m_cxAct, ox + cx);
         m_cyAct = std::max(m_cyAct, oy + cy);
         return S_OK;
@@ -147,10 +127,8 @@ public:
     /// </summary>
     /// <param name="pDecoder">WIC位图解码器</param>
     /// <param name="msDelay">以毫秒计的显示延迟</param>
-    /// <param name="ox">X偏移</param>
-    /// <param name="oy">Y偏移</param>
-    /// <param name="cx">新宽度，0表示不变</param>
-    /// <param name="cy">新高度，0表示不变</param>
+    /// <param name="ox、oy">偏移</param>
+    /// <param name="cx、cy">新尺寸，0表示不变</param>
     /// <param name="eDisposalMethod">处理方式</param>
     /// <param name="eInterpolation">缩放时使用的插值方式</param>
     /// <returns>HRESULT</returns>
@@ -174,74 +152,38 @@ public:
         return S_OK;
     }
 
-    /// <summary>
-    /// 添加帧
-    /// </summary>
-    /// <param name="pBmps">WIC位图源数组</param>
-    /// <param name="cBmps">数组中的元素数</param>
-    /// <param name="msDelay">以毫秒计的显示延迟</param>
-    /// <param name="ox">X偏移</param>
-    /// <param name="oy">Y偏移</param>
-    /// <param name="cx">新宽度，0表示不变</param>
-    /// <param name="cy">新高度，0表示不变</param>
-    /// <param name="eDisposalMethod">处理方式</param>
-    /// <param name="eInterpolation">缩放时使用的插值方式</param>
-    /// <returns>HRESULT</returns>
-    HRESULT AddFrame(IWICBitmapSource** pBmps, int cBmps, int msDelay,
-        int ox = 0, int oy = 0, int cx = 0, int cy = 0,
-        Disposal eDisposalMethod = Disposal::Undefined,
-        WICBitmapInterpolationMode eInterpolation = WICBitmapInterpolationModeLinear) noexcept
-    {
-        HRESULT hr;
-        EckCounter(cBmps, i)
-        {
-            if (FAILED(hr = AddFrame(pBmps[i], msDelay,
-                ox, oy, cx, cy, eDisposalMethod, eInterpolation)))
-                return hr;
-        }
-        return S_OK;
-    }
+    EckInlineNdCe int GetFrameCount() const noexcept { return (int)m_vFrame.size(); }
 
-    int GetFrameCount() const noexcept { return (int)m_Frames.size(); }
+    EckInlineCe void SetRepeatCount(int c) noexcept { m_cRepeat = c; }
+    EckInlineNdCe int GetRepeatCount() const noexcept { return m_cRepeat; }
 
-    EckInline void SetRepeatCount(int c) noexcept { m_cRepeat = c; }
-    EckInline int GetRepeatCount() const noexcept { return m_cRepeat; }
+    EckInlineCe void SetHeight(int h) noexcept { m_cy = h; }
+    EckInlineNdCe int GetHeight() const noexcept { return m_cy; }
 
-    EckInline void SetHeight(int h) noexcept { m_cy = h; }
-    EckInline int GetHeight() const noexcept { return m_cy; }
-
-    EckInline void SetWidth(int w) noexcept { m_cx = w; }
-    EckInline int GetWidth() const noexcept { return m_cx; }
+    EckInlineCe void SetWidth(int w) noexcept { m_cx = w; }
+    EckInlineNdCe int GetWidth() const noexcept { return m_cx; }
 
     // 置是否透明。
     // 若为TRUE，则将所有透明度小于50（约20%）的像素视为透明
-    EckInline void SetTransparent(BOOL b) noexcept { m_bTransparent = b; }
-    EckInline BOOL GetTransparent() const noexcept { return m_bTransparent; }
+    EckInlineCe void SetTransparent(BOOL b) noexcept { m_bTransparent = b; }
+    EckInlineNdCe BOOL GetTransparent() const noexcept { return m_bTransparent; }
 
-    EckInline void SetDisposalMethod(Disposal e) noexcept { m_eDisposalMethod = e; }
-    EckInline Disposal GetDisposalMethod() const noexcept { return m_eDisposalMethod; }
+    EckInlineCe void SetDisposalMethod(Disposal e) noexcept { m_eDisposalMethod = e; }
+    EckInlineNdCe Disposal GetDisposalMethod() const noexcept { return m_eDisposalMethod; }
 
-    EckInline void SetBackgroundColor(WICColor cr) noexcept { m_crBkg = cr; }
-    EckInline WICColor GetBackgroundColor() const noexcept { return m_crBkg; }
+    EckInlineCe void SetBackgroundColor(WICColor cr) noexcept { m_crBkg = cr; }
+    EckInlineNdCe WICColor GetBackgroundColor() const noexcept { return m_crBkg; }
 
     void Clear() noexcept
     {
-        for (const auto& e : m_Frames)
-            e.pBitmap->Release();
-        m_Frames.clear();
+        m_vFrame.clear();
         m_cRepeat = 0;
-        m_cx = 0;
-        m_cy = 0;
+        m_cx = m_cy = m_cxAct = m_cyAct = 0;
         m_bTransparent = FALSE;
         m_eDisposalMethod = Disposal::Undefined;
         m_crBkg = 0u;
     }
 
-    /// <summary>
-    /// 保存为GIF
-    /// </summary>
-    /// <param name="pStream">流</param>
-    /// <returns>HRESULT</returns>
     HRESULT SaveAsGif(IStream* pStream) noexcept
     {
         HRESULT hr;
@@ -297,7 +239,8 @@ public:
             Var.bVal = 0;
             hr = pMdWriter->SetMetadataByName(L"/logscrdesc/BackgroundColorIndex", &Var);
         }
-        for (const auto& e : m_Frames)
+        // 写所有帧
+        for (const auto& e : m_vFrame)
         {
             ComPtr<IWICBitmapFrameEncode> pFrameEncode;
             ComPtr<IWICMetadataQueryWriter> pMdWriter;
@@ -335,7 +278,7 @@ public:
             {
                 ComPtr<IWICPalette> pPalette;
                 g_pWicFactory->CreatePalette(&pPalette);
-                if (FAILED(hr = pPalette->InitializeFromBitmap(e.pBitmap, 256, TRUE)))
+                if (FAILED(hr = pPalette->InitializeFromBitmap(e.pSource.Get(), 256, TRUE)))
                     return hr;
                 if (m_bTransparent)
                 {
@@ -343,24 +286,23 @@ public:
                     pPalette->GetColorCount(&cClr);
                     if (!cClr)
                         return E_FAIL;
-                    const auto pcr = new WICColor[cClr];
-                    pPalette->GetColors(cClr, pcr, &cActualClr);
-                    const auto it = std::find(pcr, pcr + cClr, 0);
-                    if (it != pcr + cClr)
+                    const auto pcr{ std::make_unique<WICColor[]>(cClr) };
+                    pPalette->GetColors(cClr, pcr.get(), &cActualClr);
+                    const auto it = std::find(pcr.get(), pcr.get() + cClr, 0);
+                    if (it != pcr.get() + cClr)
                     {
                         Var.vt = VT_UI1;
-                        Var.bVal = (BYTE)(it - pcr);
+                        Var.bVal = (BYTE)(it - pcr.get());
                         pMdWriter->SetMetadataByName(L"/grctlext/TransparentColorIndex", &Var);
                         Var.vt = VT_BOOL;
                         Var.boolVal = VARIANT_TRUE;
                         pMdWriter->SetMetadataByName(L"/grctlext/TransparencyFlag", &Var);
                     }
-                    delete[] pcr;
                 }
                 ComPtr<IWICFormatConverter> pConverter;
                 g_pWicFactory->CreateFormatConverter(&pConverter);
                 hr = pConverter->Initialize(
-                    e.pBitmap,
+                    e.pSource.Get(),
                     GUID_WICPixelFormat8bppIndexed,
                     WICBitmapDitherTypeNone,
                     pPalette.Get(),
@@ -373,7 +315,7 @@ public:
                     return hr;
             }
             else
-                if (FAILED(hr = pFrameEncode->WriteSource(e.pBitmap, nullptr)))
+                if (FAILED(hr = pFrameEncode->WriteSource(e.pSource.Get(), nullptr)))
                     return hr;
             if (FAILED(hr = pFrameEncode->Commit()))
                 return hr;
@@ -381,13 +323,11 @@ public:
         return pEncoder->Commit();
     }
 
-    /// <summary>
-    /// 保存为APNG。
-    /// </summary>
-    /// <param name="pStream">流</param>
-    /// <returns>HRESULT</returns>
-    HRESULT SaveAsApng(IStream* pStream, PngBlendOp eBlendOp = PngBlendOp::Source,
-        BOOL bInterlace = FALSE, WICPngFilterOption eFilter = WICPngFilterUnspecified) noexcept
+    HRESULT SaveAsApng(
+        IStream* pStream,
+        PngBlendOp eBlendOp = PngBlendOp::Source,
+        BOOL bInterlace = FALSE,
+        WICPngFilterOption eFilter = WICPngFilterUnspecified) noexcept
     {
         constexpr BYTE PngSignature[]{ 0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A };
         constexpr BYTE IdIHDR[]{ 0x49,0x48,0x44,0x52 };
@@ -406,7 +346,7 @@ public:
         // 写acTL
         CMemoryWalker wkChunk(byBuf, sizeof(byBuf));
         wkChunk << ReverseInteger(8u) << IdacTL
-            << ReverseInteger((UINT)m_Frames.size())
+            << ReverseInteger((UINT)m_vFrame.size())
             << ReverseInteger((UINT)m_cRepeat);
         w.Write(byBuf, wkChunk.GetPosition())
             << ReverseInteger(CalculateCrc32(byBuf + 4, wkChunk.GetPosition() - 4));
@@ -414,12 +354,12 @@ public:
         // 写入帧数据
         UINT uSerialNum{};
         CByteBuffer rbPng{};
-        ComPtr<CByteBufferStream> pPngStream(new CByteBufferStream(rbPng));
+        CByteBufferStream PngStream{ rbPng };
         CHAR chChunkId[4];
         UINT cbChunkData;
         BOOL bFirstFrame{ TRUE };
         BYTE* pChunkIdBegin;
-        for (const auto& e : m_Frames)
+        for (const auto& e : m_vFrame)
         {
             BYTE byDisposalMethod;
             if (e.eDisposalMethod == Disposal::Undefined)
@@ -429,13 +369,14 @@ public:
             else
                 byDisposalMethod = (BYTE)e.eDisposalMethod - 1;
             // 写fcTL
-            wkChunk << ReverseInteger(26u) << IdfcTL
+            wkChunk
+                << ReverseInteger(26u) << IdfcTL
                 << ReverseInteger(uSerialNum++)
                 << ReverseInteger(e.cx)
                 << ReverseInteger(e.cy)
                 << ReverseInteger(e.ox)
                 << ReverseInteger(e.oy)
-                << ReverseInteger((USHORT)(e.msDelay / 10))
+                << ReverseInteger(USHORT(e.msDelay / 10))
                 << ReverseInteger(0_us)// 1/100秒
                 << byDisposalMethod
                 << eBlendOp
@@ -444,14 +385,16 @@ public:
                 << ReverseInteger(CalculateCrc32(byBuf + 4, wkChunk.GetPosition() - 4));
             wkChunk.MoveToBegin();
             // 写IDAT或fdAT
-            pPngStream->Seek(ToLi(0), STREAM_SEEK_SET, nullptr);
-
+            PngStream.Seek(ToLi(0), STREAM_SEEK_SET, nullptr);
+            // WIC编码一帧
             HRESULT hr;
             ComPtr<IWICBitmapEncoder> pEncoder;
             ComPtr<IWICBitmapFrameEncode> pFrame;
-            if (FAILED(hr = g_pWicFactory->CreateEncoder(GUID_ContainerFormatPng, nullptr, &pEncoder)))
+            if (FAILED(hr = g_pWicFactory->CreateEncoder(
+                GUID_ContainerFormatPng, nullptr, &pEncoder)))
                 return hr;
-            if (FAILED(hr = pEncoder->Initialize(pPngStream.Get(), WICBitmapEncoderNoCache)))
+            if (FAILED(hr = pEncoder->Initialize(
+                &PngStream, WICBitmapEncoderCacheInMemory)))
                 return hr;
             if (bInterlace || (eFilter != WICPngFilterUnspecified))
             {
@@ -479,13 +422,17 @@ public:
             }
             GUID guidFmt{ GUID_WICPixelFormat32bppBGRA };
             pFrame->SetPixelFormat(&guidFmt);
-            if (FAILED(hr = pFrame->WriteSource(e.pBitmap, nullptr)))
+            if (FAILED(hr = pFrame->WriteSource(e.pSource.Get(), nullptr)))
                 return hr;
             if (FAILED(hr = pFrame->Commit()))
                 return hr;
             if (FAILED(hr = pEncoder->Commit()))
                 return hr;
-            CMemoryWalker wt(rbPng.Data(), rbPng.Size());
+            pEncoder.Clear();
+            pFrame.Clear();
+            PngStream.AssertReference(1);
+
+            CMemoryWalker wt{ rbPng.Data(), rbPng.Size() };
             wt += 8;// 跳过PNG签名
             EckLoop()
             {
@@ -495,9 +442,9 @@ public:
                     if (bFirstFrame)// 复制第一帧IHDR到流首部
                     {
                         const auto pos = w.GetPosition();
-                        w.GetStream()->Seek(ToLi(posIhdr), STREAM_SEEK_SET, nullptr);
+                        w.Seek(posIhdr, STREAM_SEEK_SET, nullptr);
                         w.Write(wt.Data() - 8, CbIHDR);
-                        w.GetStream()->Seek(ToLi(pos), STREAM_SEEK_SET, nullptr);
+                        w.Seek(pos, STREAM_SEEK_SET, nullptr);
                     }
                     wt += (cbChunkData + 4);// 跳过数据和CRC
                 }
@@ -535,12 +482,7 @@ public:
         return S_OK;
     }
 
-    /// <summary>
-    /// 保存为TIFF.
-    /// 将忽略下列属性：重复次数、是否透明、背景颜色、处理方式
-    /// </summary>
-    /// <param name="pStream">流</param>
-    /// <returns>HRESULT</returns>
+    // 将忽略下列属性：重复次数、是否透明、背景颜色、处理方式
     HRESULT SaveAsTiff(IStream* pStream, float fCompressionQuality = 0.f,
         WICTiffCompressionOption eCompression = WICTiffCompressionDontCare) noexcept
     {
@@ -549,7 +491,7 @@ public:
         g_pWicFactory->CreateEncoder(GUID_ContainerFormatTiff, nullptr, &pEncoder);
         if (FAILED(hr = pEncoder->Initialize(pStream, WICBitmapEncoderNoCache)))
             return hr;
-        for (const auto& e : m_Frames)
+        for (const auto& e : m_vFrame)
         {
             ComPtr<IWICBitmapFrameEncode> pFrameEncode;
             if (fCompressionQuality > 0.f || eCompression != WICTiffCompressionDontCare)
@@ -576,75 +518,12 @@ public:
                 if (FAILED(hr = pFrameEncode->Initialize(nullptr)))
                     return hr;
             }
-            if (FAILED(hr = pFrameEncode->WriteSource(e.pBitmap, nullptr)))
+            if (FAILED(hr = pFrameEncode->WriteSource(e.pSource.Get(), nullptr)))
                 return hr;
             if (FAILED(hr = pFrameEncode->Commit()))
                 return hr;
         }
         return pEncoder->Commit();
-    }
-};
-
-class CIcoFileReader
-{
-private:
-    PCBYTE m_pData = nullptr;
-    const ICONDIR* m_pHeader = nullptr;
-    const ICONDIRENTRY* m_pEntry = nullptr;
-public:
-    CIcoFileReader(PCBYTE pData) noexcept
-    {
-        AnalyzeData(pData);
-    }
-
-    EckInline int AnalyzeData(PCBYTE pData) noexcept
-    {
-        m_pData = pData;
-        m_pHeader = (ICONDIR*)pData;
-        m_pEntry = (ICONDIRENTRY*)(pData + sizeof(ICONDIR));
-        return m_pHeader->idCount;
-    }
-
-    EckInline auto GetHeader() const noexcept { return m_pHeader; }
-
-    EckInline auto GetEntry() const noexcept { return m_pEntry; }
-
-    EckInline PCVOID GetIconData(int idx) const noexcept
-    {
-        EckAssert(idx >= 0 && idx < GetIconCount());
-        return m_pData + m_pEntry[idx].dwImageOffset;
-    }
-
-    EckInline UINT GetIconDataSize(int idx) const noexcept
-    {
-        EckAssert(idx >= 0 && idx < GetIconCount());
-        return m_pEntry[idx].dwBytesInRes;
-    }
-
-    EckInline int GetIconCount() const noexcept { return m_pHeader->idCount; }
-
-    EckInline int FindIcon(int cx, int cy) const noexcept
-    {
-        EckCounter(GetIconCount(), i)
-        {
-            if (m_pEntry[i].bWidth == cx && m_pEntry[i].bHeight == cy)
-                return i;
-        }
-        return -1;
-    }
-
-    EckInline HICON CreateHICON(int idx,
-        int cx = 0, int cy = 0, UINT uFlags = 0u) const noexcept
-    {
-        EckAssert(idx >= 0 && idx < GetIconCount());
-        return CreateIconFromResourceEx((BYTE*)GetIconData(idx), GetIconDataSize(idx),
-            TRUE, 0x00030000, cx, cy, uFlags);
-    }
-
-    auto At(int idx) const noexcept
-    {
-        EckAssert(idx >= 0 && idx < GetIconCount());
-        return m_pEntry + idx;
     }
 };
 ECK_NAMESPACE_END

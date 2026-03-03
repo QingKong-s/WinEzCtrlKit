@@ -262,15 +262,15 @@ public:
             PCVOID pData;
             UINT cbData;
             m_DwmPartMgr.GetData(&pData, &cbData);
-            const auto pStream = new CStreamView(pData, cbData);
-            IWICBitmapDecoder* pDecoder;
-            IWICBitmap* pBitmap{};
-            CreateWicBitmapDecoder(pStream, pDecoder);
-            CreateWicBitmap(pBitmap, pDecoder);
-            m_pDC->CreateBitmapFromWicBitmap(pBitmap, &m_pBmpDwmWndAtlas);
-            pDecoder->Release();
-            pBitmap->Release();
-            pStream->LeaveRelease();
+            CStreamView Stream{ pData, cbData };
+            {
+                ComPtr<IWICBitmapDecoder> pDecoder;
+                ComPtr<IWICBitmapSource> pBitmap;
+                WicCreateDecoder(pDecoder.RefOf(), &Stream);
+                WicLoadSource(pBitmap.RefOf(), pDecoder.Get());
+                m_pDC->CreateBitmapFromWicBitmap(pBitmap.Get(), &m_pBmpDwmWndAtlas);
+            }
+            Stream.AssertReference(1);
         }
     }
 

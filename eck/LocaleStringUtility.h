@@ -210,14 +210,11 @@ inline void LcsUtf16ReverseByteOrder(_Inout_updates_(cch) PWCH psz, int cch) noe
         *psz = _byteswap_ushort(*psz);
 }
 
-// 返回UTF32长度，pOut
-// WARNING 不会在pOut添加结尾NULL
-
 /// <summary>
 /// UTF16LE到UTF32
 /// </summary>
 /// <param name="psz、cch">输入UTF16序列</param>
-/// <param name="pOut">输出缓冲区，必须提供尺寸至少为cch的缓冲区</param>
+/// <param name="pOut">输出缓冲区，必须提供尺寸至少为cch的缓冲区，**不会**添加结尾NULL</param>
 /// <param name="bValid">返回UTF16序列是否合法</param>
 /// <param name="bLittleEndian">输出UTF32序列的端序</param>
 /// <returns>若UTF16序列有效，返回正值，表示输出UTF32序列的长度

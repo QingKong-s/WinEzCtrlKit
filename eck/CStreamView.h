@@ -41,10 +41,7 @@ public:
 #endif
     }
 
-    EckInline void Assert1Reference() noexcept
-    {
-        EckAssert(AddRef() == 2);
-    }
+    EckInline void AssertReference(LONG l) noexcept { EckAssert(m_cRef == l); }
 
     HRESULT STDMETHODCALLTYPE Read(void* pv, ULONG cb, ULONG* pcbRead)
     {

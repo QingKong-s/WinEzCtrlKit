@@ -33,4 +33,16 @@ struct DelMA
 
 template<class T = void>
 using UnqPtrMA = UniquePtr<DelMA<T>>;
+
+// WARNING 函数使用字节数
+template<class T>
+    requires std::is_trivial<T>::value
+EckInlineNd UniquePtr<DelMA<T>> CrtMakeTrivialUnique(size_t cb) noexcept
+{
+    if constexpr (std::is_unbounded_array_v<T>)
+        EckAssert(cb >= sizeof(std::remove_extent_t<T>));
+    else
+        EckAssert(cb >= sizeof(T));
+    return { (T*)malloc(cb) };
+}
 ECK_NAMESPACE_END
