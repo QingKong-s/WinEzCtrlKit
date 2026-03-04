@@ -28,7 +28,7 @@ template<class T_ = void>
 struct DelMA
 {
     using T = T_;
-    void operator()(T* p) { free(p); }
+    void operator()(std::remove_extent_t<T>* p) { free(p); }
 };
 
 template<class T = void>
@@ -39,10 +39,8 @@ template<class T>
     requires std::is_trivial<T>::value
 EckInlineNd UniquePtr<DelMA<T>> CrtMakeTrivialUnique(size_t cb) noexcept
 {
-    if constexpr (std::is_unbounded_array_v<T>)
-        EckAssert(cb >= sizeof(std::remove_extent_t<T>));
-    else
-        EckAssert(cb >= sizeof(T));
-    return { (T*)malloc(cb) };
+    using U = std::remove_extent_t<T>;
+    EckAssert(cb >= sizeof(U));
+    return UniquePtr<DelMA<T>>{ (U*)malloc(cb) };
 }
 ECK_NAMESPACE_END

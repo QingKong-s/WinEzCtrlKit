@@ -36,12 +36,12 @@ static_assert(sizeof(PngIHDR) == 13);
 class CWicMultiFrameImage
 {
 public:
-    enum class Disposal
+    enum class Disposal : BYTE
     {
-        Undefined,
-        None,
-        Background,
-        Previous
+        Undefined,  // 未指定
+        None,       // 直接叠加
+        Background, // 清除为背景颜色
+        Previous    // 还原为上一帧绘制前状态
     };
 private:
     struct ITEM
@@ -52,17 +52,33 @@ private:
         int oy;
         int cx;
         int cy;
-        Disposal eDisposalMethod;
+        Disposal eDisposal;
     };
+
     std::vector<ITEM> m_vFrame{};
     int m_cRepeat{};
-    int m_cx{};
-    int m_cy{};
-    BOOL m_bTransparent{};
-    Disposal m_eDisposalMethod{};
+    int m_cx{}, m_cy{};
     WICColor m_crBkg{};
-    int m_cxAct{};
-    int m_cyAct{};
+    WICColor m_crTransparent{};
+    BOOLEAN m_bTransparent{};
+    Disposal m_eDisposal{};
+    BYTE m_byAlphaThreshold{ 255 };
+
+    BYTE PngGetDisposal(const ITEM& e) const noexcept
+    {
+        if (e.eDisposal == Disposal::Undefined)
+            if (m_eDisposal == Disposal::Undefined)
+                return 0;// None
+            else
+                return (BYTE)m_eDisposal - 1;
+        else
+            return (BYTE)e.eDisposal - 1;
+    }
+
+    BYTE GifGetDisposal(const ITEM& e) const noexcept
+    {
+        return (BYTE)e.eDisposal;
+    }
 public:
     ECK_DISABLE_COPY_MOVE_DEF_CONS(CWicMultiFrameImage);
 
@@ -71,15 +87,16 @@ public:
     /// </summary>
     /// <param name="pBitmap">WIC位图源</param>
     /// <param name="msDelay">以毫秒计的显示延迟</param>
-    /// <param name="ox、oy">偏移</param>
-    /// <param name="cx、cy">新尺寸，0表示不变</param>
-    /// <param name="eDisposalMethod">处理方式</param>
-    /// <param name="eInterpolation">缩放时使用的插值方式</param>
+    /// <param name="ox, oy">偏移</param>
+    /// <param name="cx, cy">新尺寸，0表示不变</param>
+    /// <param name="eDisposal">处理方式</param>
+    /// <param name="eInter">缩放时使用的插值方式</param>
     /// <returns>HRESULT</returns>
-    HRESULT AddFrame(IWICBitmapSource* pSource_, int msDelay,
+    HRESULT AddFrame(
+        IWICBitmapSource* pSource_, int msDelay,
         int ox = 0, int oy = 0, int cx = 0, int cy = 0,
-        Disposal eDisposalMethod = Disposal::Undefined,
-        WICBitmapInterpolationMode eInterpolation = WICBitmapInterpolationModeLinear) noexcept
+        Disposal eDisposal = Disposal::Undefined,
+        WICBitmapInterpolationMode eInter = WICBitmapInterpolationModeLinear) noexcept
     {
         HRESULT hr;
         UINT cxOrg, cyOrg;
@@ -106,7 +123,7 @@ public:
             hr = g_pWicFactory->CreateBitmapScaler(&pScaler);
             if (FAILED(hr))
                 return hr;
-            hr = pScaler->Initialize(pSource_, cx, cy, eInterpolation);
+            hr = pScaler->Initialize(pSource_, cx, cy, eInter);
             if (FAILED(hr))
                 return hr;
             pSource.Attach(pScaler.Detach());
@@ -115,9 +132,9 @@ public:
             pSource = pSource_;
 
         m_vFrame.emplace_back(pSource.Get(), msDelay,
-            ox, oy, cx, cy, eDisposalMethod);
-        m_cxAct = std::max(m_cxAct, ox + cx);
-        m_cyAct = std::max(m_cyAct, oy + cy);
+            ox, oy, cx, cy, eDisposal);
+        m_cx = std::max(m_cx, cx);
+        m_cy = std::max(m_cy, cy);
         return S_OK;
     }
 
@@ -127,15 +144,16 @@ public:
     /// </summary>
     /// <param name="pDecoder">WIC位图解码器</param>
     /// <param name="msDelay">以毫秒计的显示延迟</param>
-    /// <param name="ox、oy">偏移</param>
-    /// <param name="cx、cy">新尺寸，0表示不变</param>
-    /// <param name="eDisposalMethod">处理方式</param>
-    /// <param name="eInterpolation">缩放时使用的插值方式</param>
+    /// <param name="ox, oy">偏移</param>
+    /// <param name="cx, cy">新尺寸，0表示不变</param>
+    /// <param name="eDisposal">处理方式</param>
+    /// <param name="eInter">缩放时使用的插值方式</param>
     /// <returns>HRESULT</returns>
-    HRESULT AddFrame(IWICBitmapDecoder* pDecoder, int msDelay,
+    HRESULT AddFrame(
+        IWICBitmapDecoder* pDecoder, int msDelay,
         int ox = 0, int oy = 0, int cx = 0, int cy = 0,
-        Disposal eDisposalMethod = Disposal::Undefined,
-        WICBitmapInterpolationMode eInterpolation = WICBitmapInterpolationModeLinear) noexcept
+        Disposal eDisposal = Disposal::Undefined,
+        WICBitmapInterpolationMode eInter = WICBitmapInterpolationModeLinear) noexcept
     {
         HRESULT hr;
         UINT cFrame;
@@ -146,42 +164,16 @@ public:
             if (FAILED(hr = pDecoder->GetFrame(i, &pFrame)))
                 return hr;
             if (FAILED(hr = AddFrame(pFrame.Get(), msDelay,
-                ox, oy, cx, cy, eDisposalMethod, eInterpolation)))
+                ox, oy, cx, cy, eDisposal, eInter)))
                 return hr;
         }
         return S_OK;
     }
 
-    EckInlineNdCe int GetFrameCount() const noexcept { return (int)m_vFrame.size(); }
-
-    EckInlineCe void SetRepeatCount(int c) noexcept { m_cRepeat = c; }
-    EckInlineNdCe int GetRepeatCount() const noexcept { return m_cRepeat; }
-
-    EckInlineCe void SetHeight(int h) noexcept { m_cy = h; }
-    EckInlineNdCe int GetHeight() const noexcept { return m_cy; }
-
-    EckInlineCe void SetWidth(int w) noexcept { m_cx = w; }
-    EckInlineNdCe int GetWidth() const noexcept { return m_cx; }
-
-    // 置是否透明。
-    // 若为TRUE，则将所有透明度小于50（约20%）的像素视为透明
-    EckInlineCe void SetTransparent(BOOL b) noexcept { m_bTransparent = b; }
-    EckInlineNdCe BOOL GetTransparent() const noexcept { return m_bTransparent; }
-
-    EckInlineCe void SetDisposalMethod(Disposal e) noexcept { m_eDisposalMethod = e; }
-    EckInlineNdCe Disposal GetDisposalMethod() const noexcept { return m_eDisposalMethod; }
-
-    EckInlineCe void SetBackgroundColor(WICColor cr) noexcept { m_crBkg = cr; }
-    EckInlineNdCe WICColor GetBackgroundColor() const noexcept { return m_crBkg; }
-
     void Clear() noexcept
     {
         m_vFrame.clear();
-        m_cRepeat = 0;
-        m_cx = m_cy = m_cxAct = m_cyAct = 0;
-        m_bTransparent = FALSE;
-        m_eDisposalMethod = Disposal::Undefined;
-        m_crBkg = 0u;
+        m_cx = m_cy = 0;
     }
 
     HRESULT SaveAsGif(IStream* pStream) noexcept
@@ -205,8 +197,8 @@ public:
 
         BYTE byData[]
         {
-            0x03,0x01,
-            (BYTE)(m_cRepeat),(BYTE)(m_cRepeat >> 8),
+            0x03, 0x01,
+            (BYTE)m_cRepeat, BYTE(m_cRepeat >> 8),
             0x00
         };
         Var.caub.cElems = sizeof(byData);
@@ -267,38 +259,55 @@ public:
                 pMdWriter->SetMetadataByName(L"/imgdesc/Top", &Var);
             }
             // 写擦除标志
-            if (m_eDisposalMethod != Disposal::Undefined)
+            if (e.eDisposal != Disposal::Undefined)
             {
                 Var.vt = VT_UI1;
-                Var.bVal = (BYTE)m_eDisposalMethod;
+                Var.bVal = GifGetDisposal(e);
                 pMdWriter->SetMetadataByName(L"/grctlext/Disposal", &Var);
             }
-            // 写透明标志
-            if (m_crBkg || m_bTransparent)
+            // 写入帧
+            if (m_bTransparent)
             {
                 ComPtr<IWICPalette> pPalette;
                 g_pWicFactory->CreatePalette(&pPalette);
-                if (FAILED(hr = pPalette->InitializeFromBitmap(e.pSource.Get(), 256, TRUE)))
+                // 计算调色板时必须指定是否增加颜色值为0的条目
+                hr = pPalette->InitializeFromBitmap(
+                    e.pSource.Get(), 256, !m_crTransparent);
+                if (FAILED(hr))
                     return hr;
-                if (m_bTransparent)
+                UINT cColor;
+                pPalette->GetColorCount(&cColor);
+                if (!cColor)
+                    return E_FAIL;
+                BYTE idxTrans;
+                BOOLEAN bHasTrans;
+                if (m_crTransparent)
                 {
-                    UINT cClr{}, cActualClr;
-                    pPalette->GetColorCount(&cClr);
-                    if (!cClr)
-                        return E_FAIL;
-                    const auto pcr{ std::make_unique<WICColor[]>(cClr) };
-                    pPalette->GetColors(cClr, pcr.get(), &cActualClr);
-                    const auto it = std::find(pcr.get(), pcr.get() + cClr, 0);
-                    if (it != pcr.get() + cClr)
-                    {
-                        Var.vt = VT_UI1;
-                        Var.bVal = (BYTE)(it - pcr.get());
-                        pMdWriter->SetMetadataByName(L"/grctlext/TransparentColorIndex", &Var);
-                        Var.vt = VT_BOOL;
-                        Var.boolVal = VARIANT_TRUE;
-                        pMdWriter->SetMetadataByName(L"/grctlext/TransparencyFlag", &Var);
-                    }
+                    UINT cActualColor;
+                    const auto pcr{ std::make_unique<WICColor[]>(cColor) };
+                    pPalette->GetColors(cColor, pcr.get(), &cActualColor);
+
+                    const auto itEnd = pcr.get() + std::min(cColor, cActualColor);
+                    const auto it = std::find(pcr.get(), itEnd, m_crTransparent);
+                    bHasTrans = (it != itEnd);
+                    idxTrans = BYTE(it - pcr.get());
                 }
+                else
+                {
+                    bHasTrans = TRUE;
+                    idxTrans = BYTE(cColor - 1);
+                }
+
+                if (bHasTrans)
+                {
+                    Var.vt = VT_UI1;
+                    Var.bVal = idxTrans;
+                    pMdWriter->SetMetadataByName(L"/grctlext/TransparentColorIndex", &Var);
+                    Var.vt = VT_BOOL;
+                    Var.boolVal = VARIANT_TRUE;
+                    pMdWriter->SetMetadataByName(L"/grctlext/TransparencyFlag", &Var);
+                }
+
                 ComPtr<IWICFormatConverter> pConverter;
                 g_pWicFactory->CreateFormatConverter(&pConverter);
                 hr = pConverter->Initialize(
@@ -306,7 +315,7 @@ public:
                     GUID_WICPixelFormat8bppIndexed,
                     WICBitmapDitherTypeNone,
                     pPalette.Get(),
-                    50. / 255.,
+                    m_crTransparent ? 0. : ((double)m_byAlphaThreshold / 255.),
                     WICBitmapPaletteTypeCustom);
                 if (FAILED(hr))
                     return hr;
@@ -323,6 +332,7 @@ public:
         return pEncoder->Commit();
     }
 
+    // WARNING 第一帧偏移必须为0，后续帧矩形必须完全包含在第一帧内
     HRESULT SaveAsApng(
         IStream* pStream,
         PngBlendOp eBlendOp = PngBlendOp::Source,
@@ -336,7 +346,7 @@ public:
         constexpr BYTE IdfdAT[]{ 0x66,0x64,0x41,0x54 };
         constexpr BYTE IdIDAT[]{ 0x49,0x44,0x41,0x54 };
         constexpr BYTE IdIEND[]{ 0x49,0x45,0x4E,0x44 };
-        CStreamWalker w(pStream);
+        CStreamWalker w{ pStream };
         w << PngSignature;
         // 写IHDR
         BYTE byBuf[36];
@@ -344,7 +354,7 @@ public:
         constexpr size_t CbIHDR = 13 + 4 + 4 + 4;
         w += CbIHDR;// 悬而未决，待后续写入
         // 写acTL
-        CMemoryWalker wkChunk(byBuf, sizeof(byBuf));
+        CMemoryWalker wkChunk{ byBuf, sizeof(byBuf) };
         wkChunk << ReverseInteger(8u) << IdacTL
             << ReverseInteger((UINT)m_vFrame.size())
             << ReverseInteger((UINT)m_cRepeat);
@@ -361,13 +371,6 @@ public:
         BYTE* pChunkIdBegin;
         for (const auto& e : m_vFrame)
         {
-            BYTE byDisposalMethod;
-            if (e.eDisposalMethod == Disposal::Undefined)
-                byDisposalMethod =
-                (m_eDisposalMethod == Disposal::Undefined) ?
-                ((BYTE)m_eDisposalMethod - 1) : 0;
-            else
-                byDisposalMethod = (BYTE)e.eDisposalMethod - 1;
             // 写fcTL
             wkChunk
                 << ReverseInteger(26u) << IdfcTL
@@ -378,7 +381,7 @@ public:
                 << ReverseInteger(e.oy)
                 << ReverseInteger(USHORT(e.msDelay / 10))
                 << ReverseInteger(0_us)// 1/100秒
-                << byDisposalMethod
+                << PngGetDisposal(e)
                 << eBlendOp
                 ;
             w.Write(byBuf, wkChunk.GetPosition())
@@ -394,7 +397,7 @@ public:
                 GUID_ContainerFormatPng, nullptr, &pEncoder)))
                 return hr;
             if (FAILED(hr = pEncoder->Initialize(
-                &PngStream, WICBitmapEncoderCacheInMemory)))
+                &PngStream, WICBitmapEncoderNoCache)))
                 return hr;
             if (bInterlace || (eFilter != WICPngFilterUnspecified))
             {
@@ -437,45 +440,48 @@ public:
             EckLoop()
             {
                 wt.ReadReversed(cbChunkData) >> chChunkId;
+                const auto cbOriginalData = cbChunkData;
                 if (memcmp(chChunkId, IdIHDR, 4) == 0)
                 {
                     if (bFirstFrame)// 复制第一帧IHDR到流首部
                     {
                         const auto pos = w.GetPosition();
-                        w.Seek(posIhdr, STREAM_SEEK_SET, nullptr);
+                        w.Seek(posIhdr, STREAM_SEEK_SET);
                         w.Write(wt.Data() - 8, CbIHDR);
-                        w.Seek(pos, STREAM_SEEK_SET, nullptr);
+                        w.Seek(pos, STREAM_SEEK_SET);
                     }
-                    wt += (cbChunkData + 4);// 跳过数据和CRC
+                    wt += (cbOriginalData + 4);// 跳过数据和CRC
                 }
                 else if (memcmp(chChunkId, IdIDAT, 4) == 0)
                 {
                     if (bFirstFrame)
+                    {
                         pChunkIdBegin = wt.Data() - 4;
+                        w << ReverseInteger(cbOriginalData);
+                        w.Write(pChunkIdBegin, cbOriginalData + 4);
+                        w.Write(pChunkIdBegin + cbOriginalData + 4, 4);
+                    }
                     else
                     {
                         pChunkIdBegin = wt.Data() - 8;
                         memcpy(pChunkIdBegin, IdfdAT, 4);
-                        memcpy(pChunkIdBegin + 4, &uSerialNum, 4);
+                        const auto u = ReverseInteger(uSerialNum);
+                        memcpy(pChunkIdBegin + 4, &u, 4);
                         ++uSerialNum;
+
                         cbChunkData += 4;
-                    }
-                    w << ReverseInteger(cbChunkData);
-                    w.Write(pChunkIdBegin, cbChunkData + 4);
-                    if (bFirstFrame)
-                    {
-                        w.Write(pChunkIdBegin + cbChunkData + 4, 4);
-                        bFirstFrame = FALSE;
-                    }
-                    else
+                        w << ReverseInteger(cbChunkData);
+                        w.Write(pChunkIdBegin, cbChunkData + 4);
                         w << ReverseInteger(CalculateCrc32(pChunkIdBegin, cbChunkData + 4));
-                    break;
+                    }
+                    wt += (cbOriginalData + 4);// 跳过当前的IDAT数据及CRC
                 }
                 else if (memcmp(chChunkId, IdIEND, 4) == 0)
                     break;
                 else
-                    wt += (cbChunkData + 4);// 跳过数据和CRC
+                    wt += (cbOriginalData + 4);// 跳过数据和CRC
             }
+            bFirstFrame = FALSE;
         }
         // 写IEND
         w << 0u << IdIEND << ReverseInteger(CalculateCrc32(IdIEND, 4));
@@ -483,7 +489,9 @@ public:
     }
 
     // 将忽略下列属性：重复次数、是否透明、背景颜色、处理方式
-    HRESULT SaveAsTiff(IStream* pStream, float fCompressionQuality = 0.f,
+    HRESULT SaveAsTiff(
+        IStream* pStream,
+        float fCompressionQuality = 0.f,
         WICTiffCompressionOption eCompression = WICTiffCompressionDontCare) noexcept
     {
         HRESULT hr;
@@ -494,7 +502,8 @@ public:
         for (const auto& e : m_vFrame)
         {
             ComPtr<IWICBitmapFrameEncode> pFrameEncode;
-            if (fCompressionQuality > 0.f || eCompression != WICTiffCompressionDontCare)
+            if (fCompressionQuality > 0.f ||
+                eCompression != WICTiffCompressionDontCare)
             {
                 ComPtr<IPropertyBag2> pPropBag;
                 if (FAILED(hr = pEncoder->CreateNewFrame(&pFrameEncode, &pPropBag)))
@@ -525,5 +534,31 @@ public:
         }
         return pEncoder->Commit();
     }
+
+    EckInlineNdCe int GetFrameCount() const noexcept { return (int)m_vFrame.size(); }
+
+    // 0表示无限播放
+    EckInlineCe void SetRepeatCount(int c) noexcept { m_cRepeat = c; }
+    EckInlineNdCe int GetRepeatCount() const noexcept { return m_cRepeat; }
+
+    // 仅影响GIF，TRUE指示应写入透明信息
+    EckInlineCe void SetTransparent(BOOL b) noexcept { m_bTransparent = b; }
+    EckInlineNdCe BOOL GetTransparent() const noexcept { return m_bTransparent; }
+
+    // 仅影响GIF，将指定的颜色值视为透明
+    EckInlineCe void SetTransparentColor(WICColor cr) noexcept { m_crTransparent = cr; }
+    EckInlineNdCe WICColor GetTransparentColor() const noexcept { return m_crTransparent; }
+
+    // 仅影响GIF，指定一个阈值，透明度低于该值的颜色将被视为透明（仅当未指定透明颜色时有效）
+    EckInlineCe void SetAlphaThreshold(BYTE by) noexcept { m_byAlphaThreshold = by; }
+    EckInlineNdCe BYTE GetAlphaThreshold() const noexcept { return m_byAlphaThreshold; }
+
+    // 仅影响APNG，当帧的处理模式设为Undefined时使用此处指定的值，
+    // 若此值也为Undefined，则默认使用None
+    EckInlineCe void SetDisposalMethod(Disposal e) noexcept { m_eDisposal = e; }
+    EckInlineNdCe Disposal GetDisposalMethod() const noexcept { return m_eDisposal; }
+
+    EckInlineCe void SetBackgroundColor(WICColor cr) noexcept { m_crBkg = cr; }
+    EckInlineNdCe WICColor GetBackgroundColor() const noexcept { return m_crBkg; }
 };
 ECK_NAMESPACE_END

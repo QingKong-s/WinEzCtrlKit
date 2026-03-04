@@ -66,7 +66,7 @@ EckInline const GUID& WicImageTypeToGuid(ImageType e)
 EckInline HRESULT WicCreateDecoder(
     _Out_ IWICBitmapDecoder*& pDecoder,
     _In_z_ PCWSTR pszFile,
-    DWORD dwAccess = FILE_GENERIC_READ) noexcept
+    DWORD dwAccess = GENERIC_READ) noexcept
 {
     return g_pWicFactory->CreateDecoderFromFilename(
         pszFile, nullptr, dwAccess,
@@ -577,7 +577,7 @@ inline HRESULT D2DLoadBitmap(
 
 namespace Priv
 {
-    inline BYTE* SaveDibHeader(
+    inline BYTE* GdiSaveDibHeader(
         CByteBuffer& rb,
         size_t cbStride,
         int cx, int cy,
@@ -615,7 +615,7 @@ namespace Priv
     }
 }
 
-inline void SaveDib(
+inline BOOL GdiSaveDib(
     CByteBuffer& rb,
     void* pBits,
     size_t cbStride,
@@ -625,7 +625,9 @@ inline void SaveDib(
     UINT cPaletteEntry = 0,
     UINT cPaletteImportant = 0) noexcept
 {
-    auto p = Priv::SaveDibHeader(rb, cbStride, cx, cy,
+    if (cPaletteEntry && !pPalette)
+        return FALSE;
+    auto p = Priv::GdiSaveDibHeader(rb, cbStride, cx, cy,
         cBitPerPixel, cPaletteEntry, cPaletteImportant);
     // 制颜色表
     const size_t cbPalette = sizeof(RGBQUAD) * cPaletteEntry;
@@ -636,15 +638,16 @@ inline void SaveDib(
     }
     // 制像素
     memcpy(p, pBits, cbStride * Abs(cy));
+    return TRUE;
 }
 
-inline BOOL SaveDib(CByteBuffer& rb, HBITMAP hDib) noexcept
+inline BOOL GdiSaveDib(CByteBuffer& rb, HBITMAP hDib) noexcept
 {
     DIBSECTION ds;
     if (!GetObjectW(hDib, sizeof(ds), &ds))
         return FALSE;
 
-    auto p = Priv::SaveDibHeader(
+    auto p = Priv::GdiSaveDibHeader(
         rb, ds.dsBm.bmWidthBytes,
         ds.dsBmih.biWidth, ds.dsBmih.biHeight,
         ds.dsBmih.biBitCount,
@@ -665,5 +668,76 @@ inline BOOL SaveDib(CByteBuffer& rb, HBITMAP hDib) noexcept
         ds.dsBm.bmBits,
         ds.dsBm.bmWidthBytes * Abs(ds.dsBmih.biHeight));
     return TRUE;
+}
+
+/// <summary>
+/// 保存DDB为32bppDIB。
+/// 此函数总保存为自上而下DIB
+/// </summary>
+/// <param name="rb">追加结果</param>
+/// <param name="hDdb">DDB句柄，必须保证此位图未被选入任何DC</param>
+/// <param name="hDC">DC，未传入则使用屏幕DC</param>
+/// <param name="bUnpremul">是否反预乘</param>
+/// <returns>成功返回TRUE，失败返回FALSE，已设置LastError</returns>
+inline BOOL GdiSaveDdbAs32bppDib(
+    CByteBuffer& rb,
+    HBITMAP hDdb,
+    HDC hDC = nullptr,
+    BOOL bUnpremul = FALSE) noexcept
+{
+    BITMAP bm;
+    if (!GetObjectW(hDdb, sizeof(bm), &bm))
+        return FALSE;
+
+    auto p = Priv::GdiSaveDibHeader(
+        rb, bm.bmWidth * 4,
+        bm.bmWidth, -bm.bmHeight, 32);
+
+    BITMAPINFO bi{};
+    bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bi.bmiHeader.biWidth = bm.bmWidth;
+    bi.bmiHeader.biHeight = -bm.bmHeight;
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 32;
+    BOOL bDeleteDC{};
+    if (!hDC)
+    {
+        hDC = GetDC(nullptr);
+        bDeleteDC = TRUE;
+    }
+    const auto bRet = GetDIBits(hDC, hDdb, 0,
+        bm.bmHeight, p, &bi, DIB_RGB_COLORS);
+    if (bDeleteDC)
+        ReleaseDC(nullptr, hDC);
+    if (bRet && bUnpremul)
+    {
+        const auto pEnd = p + bm.bmWidth * bm.bmHeight * 4;
+        for (; p < pEnd; p += 4)
+        {
+            const auto A = p[3];
+            if (A)
+            {
+                p[0] = BYTE(p[0] * 255 / A);
+                p[1] = BYTE(p[1] * 255 / A);
+                p[2] = BYTE(p[2] * 255 / A);
+            }
+        }
+    }
+    return bRet;
+}
+
+inline HBITMAP GdiCreate32bppDibSection(
+    int cx, int cy,
+    _Outptr_opt_ void** pBits = nullptr) noexcept
+{
+    BITMAPINFO bmi{};
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = (LONG)cx;
+    bmi.bmiHeader.biHeight = -(LONG)cy;
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    void* Dummy{};
+    return CreateDIBSection(nullptr, &bmi,
+        DIB_RGB_COLORS, pBits ? pBits : &Dummy, nullptr, 0);
 }
 ECK_NAMESPACE_END
