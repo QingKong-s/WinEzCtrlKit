@@ -77,7 +77,10 @@ private:
 
     BYTE GifGetDisposal(const ITEM& e) const noexcept
     {
-        return (BYTE)e.eDisposal;
+        if (e.eDisposal == Disposal::Undefined)
+            return (BYTE)m_eDisposal;
+        else
+            return (BYTE)e.eDisposal;
     }
 public:
     ECK_DISABLE_COPY_MOVE_DEF_CONS(CWicMultiFrameImage);
@@ -206,27 +209,28 @@ public:
         if (FAILED(hr = pMdWriter->SetMetadataByName(L"/appext/Data", &Var)))
             return hr;
         // 写宽高
-        if (m_cx && m_cy)
-        {
-            Var.vt = VT_UI2;
-            Var.uiVal = m_cx;
-            if (FAILED(hr = pMdWriter->SetMetadataByName(L"/logscrdesc/Width", &Var)))
-                return hr;
-            Var.uiVal = m_cy;
-            if (FAILED(hr = pMdWriter->SetMetadataByName(L"/logscrdesc/Height", &Var)))
-                return hr;
-        }
-        ComPtr<IWICPalette> pPalette;
+        Var.vt = VT_UI2;
+        Var.uiVal = m_cx;
+        if (FAILED(hr = pMdWriter->SetMetadataByName(L"/logscrdesc/Width", &Var)))
+            return hr;
+        Var.uiVal = m_cy;
+        if (FAILED(hr = pMdWriter->SetMetadataByName(L"/logscrdesc/Height", &Var)))
+            return hr;
         // 写背景色
         if (m_crBkg)
         {
+            const WICColor crPal[2]{ m_crBkg, m_crBkg };
+            ComPtr<IWICPalette> pPalette;
             g_pWicFactory->CreatePalette(&pPalette);
-            pPalette->InitializeCustom(&m_crBkg, 1);
+            pPalette->InitializeCustom((WICColor*)&crPal, 2);
             if (FAILED(hr = pEncoder->SetPalette(pPalette.Get())))
                 return hr;
             Var.vt = VT_BOOL;
             Var.boolVal = VARIANT_TRUE;
             hr = pMdWriter->SetMetadataByName(L"/logscrdesc/GlobalColorTableFlag", &Var);
+            Var.vt = VT_UI1;
+            Var.bVal = 0; // 2 ^ (0 + 1) = 2 colors
+            hr = pMdWriter->SetMetadataByName(L"/logscrdesc/GlobalColorTableSize", &Var);
             Var.vt = VT_UI1;
             Var.bVal = 0;
             hr = pMdWriter->SetMetadataByName(L"/logscrdesc/BackgroundColorIndex", &Var);
@@ -259,12 +263,9 @@ public:
                 pMdWriter->SetMetadataByName(L"/imgdesc/Top", &Var);
             }
             // 写擦除标志
-            if (e.eDisposal != Disposal::Undefined)
-            {
-                Var.vt = VT_UI1;
-                Var.bVal = GifGetDisposal(e);
-                pMdWriter->SetMetadataByName(L"/grctlext/Disposal", &Var);
-            }
+            Var.vt = VT_UI1;
+            Var.bVal = GifGetDisposal(e);
+            pMdWriter->SetMetadataByName(L"/grctlext/Disposal", &Var);
             // 写入帧
             if (m_bTransparent)
             {

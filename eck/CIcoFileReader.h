@@ -4,21 +4,21 @@
 ECK_NAMESPACE_BEGIN
 struct ICONDIRENTRY
 {
-    BYTE bWidth;		// 宽度
-    BYTE bHeight;		// 高度
-    BYTE bColorCount;	// 颜色数
-    BYTE bReserved;		// 保留，必须为0
-    WORD wPlanes;		// 颜色平面数，必须为1
-    WORD wBitCount;		// 位深度
-    DWORD dwBytesInRes;	// 在资源中的字节数
+    BYTE bWidth;        // 宽度
+    BYTE bHeight;       // 高度
+    BYTE bColorCount;   // 颜色数
+    BYTE bReserved;     // 保留，必须为0
+    WORD wPlanes;       // 颜色平面数，必须为1
+    WORD wBitCount;     // 位深度
+    DWORD dwBytesInRes; // 在资源中的字节数
     DWORD dwImageOffset;// 在映像文件中的偏移
 };
 
 struct ICONDIR
 {
-    WORD idReserved;	// 保留，必须为0
-    WORD idType;		// 资源类型，1 = 图标
-    WORD idCount;		// 图标数
+    WORD idReserved;    // 保留，必须为0
+    WORD idType;        // 资源类型，1 = 图标
+    WORD idCount;       // 图标数
     // ICONDIRENTRY idEntries[1]; // 图像数组
 };
 
