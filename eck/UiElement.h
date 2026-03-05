@@ -20,14 +20,6 @@ namespace Declaration
         DES_BUBBLE_ALL = 1u << 6,   // 冒泡所有事件
     };
 
-    struct BBEVENT
-    {
-        UINT uMsg;
-        WPARAM wParam;
-        LPARAM lParam;
-        LRESULT lResult;// Out
-    };
-
     enum : UINT
     {
         EWM_DUMMY = WM_USER_SAFE,
@@ -484,6 +476,15 @@ public:
 
     const static inline CElement* EtTop{};
     const static inline CElement* EtBottom{ (CElement*)(UINT_PTR)1 };
+
+    struct BBEVENT
+    {
+        THost* pEle;
+        UINT uMsg;
+        WPARAM wParam;
+        LPARAM lParam;
+        LRESULT lResult;// Out
+    };
 private:
     THost* m_pNext{};    // 下一元素，Z序高于当前
     THost* m_pPrev{};    // 上一元素，Z序低于当前
@@ -562,7 +563,7 @@ public:
         auto pParent = EtParent();
         if (!pParent)
             return 0;
-        BBEVENT Event{ uMsg, wParam, lParam };
+        BBEVENT Event{ (THost*)this, uMsg, wParam, lParam };
         while (pParent)
         {
             if (pParent->CallEvent(EWM_BUBBLE, 0, (LPARAM)&Event))
@@ -578,10 +579,7 @@ public:
     {
         if (GetStyle() & DES_BUBBLE_ALL)
             return TRUE;
-        if ((GetStyle() & DES_BUBBLE_INPUT) && (
-            (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST) ||
-            (uMsg >= WM_NCMOUSEMOVE && uMsg <= WM_NCXBUTTONDBLCLK) ||
-            (uMsg >= WM_KEYFIRST && uMsg <= WM_IME_KEYLAST)))
+        if ((GetStyle() & DES_BUBBLE_INPUT) && IsInputMessage(uMsg))
             return TRUE;
         return FALSE;
     }

@@ -660,8 +660,10 @@ constexpr inline PCWSTR WCN_HITTER = WCN_DUMMY;
 #endif// defined(ECK_OPT_NO_SIMPLE_WND_CLS)
 
 constexpr inline PCWSTR MSGREG_TRAY = L"Eck.Message.Tray";
+constexpr inline PCWSTR MSGREG_BUBBLE = L"Eck.Message.Bubble";
 
-constexpr inline UINT SCID_DESIGN = 20230621'01u;
+// BOOL(0, BBMSG*)  返回是否拦截
+const inline UINT MessageBubble = RegisterWindowMessageW(MSGREG_BUBBLE);
 #pragma endregion Const
 
 #pragma region Enum
@@ -808,6 +810,17 @@ enum class RegRoot : BYTE
     PerformanceNlsText = 0x60,
 };
 EckInline HKEY RegRootToKey(RegRoot e) { return HKEY(ULONG_PTR((ULONG)e | 0x80000000ul)); }
+
+// 冒泡消息类别
+enum : BYTE
+{
+    BBWM_INPUT = 1u << 0,   // 冒泡输入消息
+    BBWM_NOTIFY = 1u << 1,  // 冒泡通知消息
+    BBWM_ALL = 1u << 2,     // 冒泡所有消息，一般不使用
+    // EckWndProc不应调用CWindow::BubbleMessage，由应用程序自行处理
+    // 此时上述所有标志失效
+    BBWM_DEF_NO_BUBBLE = 1u << 3,
+};
 #pragma endregion Enum
 
 #pragma region Global
@@ -984,7 +997,8 @@ struct ThreadContext
     struct WND
     {
         CWindow* pWnd;
-        BOOL bTopLevel;
+        BOOLEAN bTopLevel;
+        BYTE uBubbleFlags;
     };
     //-------窗口映射
     std::unordered_map<HWND, WND> hmWnd{};
@@ -1020,6 +1034,9 @@ struct ThreadContext
     void WmAdd(HWND hWnd, CWindow* pWnd, BOOL bTopLevel) noexcept;
     void WmRemove(HWND hWnd) noexcept;
     CWindow* WmAt(HWND hWnd) const noexcept;
+    WND* WmAtInternal(HWND hWnd) noexcept;
+    // BBWM_*
+    void WmSetBubbleFlags(HWND hWnd, BYTE uFlags) noexcept;
 
     void TwmMarkTopLevel(HWND hWnd, BOOL bTopLevel) noexcept;
     WND TwmAt(HWND hWnd) noexcept;

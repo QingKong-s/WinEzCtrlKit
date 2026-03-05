@@ -186,6 +186,16 @@ struct SERIALIZE_OPT
     Class(HWND hWnd) { m_hWnd = hWnd; }
 
 class CWindow;
+
+struct BBMSG
+{
+    CWindow* pWnd;
+    UINT uMsg;
+    WPARAM wParam;
+    LPARAM lParam;
+    LRESULT lResult;
+};
+
 // 窗口句柄到CWnd指针
 EckInline CWindow* CWindowFromHWND(HWND hWnd) noexcept { return PtcCurrent()->WmAt(hWnd); }
 
@@ -293,11 +303,11 @@ public:
     static LRESULT CALLBACK EckWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
         const auto pCtx = PtcCurrent();
-        const auto p = pCtx->WmAt(hWnd);
-        EckAssert(p);
+        const auto e = pCtx->WmAtInternal(hWnd);
+        EckAssert(e);
 
-        CWindow* pChild;
-        BOOL bProcessed = FALSE;
+        CWindow* pChild{};
+        BOOL bProcessed{};
         switch (uMsg)
         {
         case WM_NOTIFY:
@@ -321,40 +331,26 @@ public:
         case WM_CTLCOLORSCROLLBAR:
         case WM_CTLCOLORSTATIC:
             if (pChild = pCtx->WmAt((HWND)lParam))
-            {
-                const auto lResult = pChild->OnNotifyMessage(hWnd, uMsg, wParam, lParam, bProcessed);
-                if (bProcessed)
-                    return lResult;
-            }
+                goto CallOnNotify;
             break;
         case WM_DRAWITEM:
             if (pChild = pCtx->WmAt(((DRAWITEMSTRUCT*)lParam)->hwndItem))
-            {
-                const auto lResult = pChild->OnNotifyMessage(hWnd, uMsg, wParam, lParam, bProcessed);
-                if (bProcessed)
-                    return lResult;
-            }
+                goto CallOnNotify;
             break;
         case WM_MEASUREITEM:
             if (pChild = pCtx->WmAt(GetDlgItem(hWnd, ((MEASUREITEMSTRUCT*)lParam)->CtlID)))
-            {
-                const auto lResult = pChild->OnNotifyMessage(hWnd, uMsg, wParam, lParam, bProcessed);
-                if (bProcessed)
-                    return lResult;
-            }
+                goto CallOnNotify;
             break;
         case WM_DELETEITEM:
             if (pChild = pCtx->WmAt(((DELETEITEMSTRUCT*)lParam)->hwndItem))
-            {
-                const auto lResult = pChild->OnNotifyMessage(hWnd, uMsg, wParam, lParam, bProcessed);
-                if (bProcessed)
-                    return lResult;
-            }
+                goto CallOnNotify;
             break;
         case WM_COMPAREITEM:
             if (pChild = pCtx->WmAt(((COMPAREITEMSTRUCT*)lParam)->hwndItem))
             {
-                const auto lResult = pChild->OnNotifyMessage(hWnd, uMsg, wParam, lParam, bProcessed);
+            CallOnNotify:
+                const auto lResult = pChild->OnNotifyMessage(
+                    hWnd, uMsg, wParam, lParam, bProcessed);
                 if (bProcessed)
                     return lResult;
             }
@@ -367,7 +363,6 @@ public:
                 if (!(pss->styleNew & WS_CHILD) &&
                     (pss->styleOld & WS_CHILD))
                 {
-                    const auto pCtx = PtcCurrent();
                     EckAssert(!pCtx->TwmAt(hWnd).bTopLevel);
                     pCtx->TwmMarkTopLevel(hWnd, TRUE);
                 }
@@ -375,7 +370,6 @@ public:
                 if ((pss->styleNew & WS_CHILD) &&
                     !(pss->styleOld & WS_CHILD))
                 {
-                    const auto pCtx = PtcCurrent();
                     EckAssert(pCtx->TwmAt(hWnd).bTopLevel);
                     pCtx->TwmMarkTopLevel(hWnd, FALSE);
                 }
@@ -384,18 +378,30 @@ public:
         break;
         case WM_CREATE:
         {
-            if (pCtx->bAutoNcDark && pCtx->TwmAt(hWnd).pWnd == p)
+            if (pCtx->bAutoNcDark && pCtx->TwmAt(hWnd).pWnd == e->pWnd)
                 EnableWindowNcDarkMode(hWnd, ShouldAppsUseDarkMode());
         }
         break;
         case WM_NCDESTROY:// 窗口生命周期中的最后一个消息，在这里解绑HWND和CWnd，从窗口映射中清除无效内容
         {
-            const auto lResult = p->CallProcedure(uMsg, wParam, lParam);
-            (void)p->CWindow::Detach();// 控件类可能不允许拆离，必须使用基类拆离
+            const auto lResult = e->pWnd->CallProcedure(uMsg, wParam, lParam);
+            (void)e->pWnd->CWindow::Detach();// 控件类可能不允许拆离，必须使用基类拆离
             return lResult;
         }
         }
-        return p->CallProcedure(uMsg, wParam, lParam);
+        const auto lResult = e->pWnd->CallProcedure(uMsg, wParam, lParam);
+        if (e->uBubbleFlags && !(e->uBubbleFlags & BBWM_DEF_NO_BUBBLE))
+        {
+            if ((e->uBubbleFlags & BBWM_ALL) ||
+                ((e->uBubbleFlags & BBWM_INPUT) && IsInputMessage(uMsg)) ||
+                ((e->uBubbleFlags & BBWM_NOTIFY) && pChild))
+            {
+                const auto lNew = e->pWnd->BubbleMessage(uMsg, wParam, lParam, bProcessed);
+                if (bProcessed)
+                    return lNew;
+            }
+        }
+        return lResult;
     }
 
     /// <summary>
@@ -565,6 +571,28 @@ public:
     virtual LRESULT OnNotifyMessage(HWND hParent, UINT uMsg,
         WPARAM wParam, LPARAM lParam, BOOL& bProcessed) noexcept
     {
+        return 0;
+    }
+
+    LRESULT BubbleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam,
+        _Out_ BOOL& bProcessed) noexcept
+    {
+        bProcessed = FALSE;
+        auto hParent = GetParent(HWnd);
+        if (!hParent)
+            return 0;
+        const auto pCtx = PtcCurrent();
+        BBMSG Msg{ this, uMsg, wParam, lParam };
+        while (hParent)
+        {
+            const auto pWnd = pCtx->WmAt(hParent);
+            if (pWnd && pWnd->SendMessageW(MessageBubble, 0, (LPARAM)&Msg))
+            {
+                bProcessed = TRUE;
+                return Msg.lResult;
+            }
+            hParent = GetParent(hParent);
+        }
         return 0;
     }
 

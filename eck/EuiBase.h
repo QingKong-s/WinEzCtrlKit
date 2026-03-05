@@ -78,6 +78,8 @@ public:
     EckInlineNdCe GpGraphics* GetGraphics() const noexcept;
 };
 
+using BBEVENT = CElement::BBEVENT;
+
 class CEuiWindow : public UiElement::CElementContainer<CElement>
 {
 private:

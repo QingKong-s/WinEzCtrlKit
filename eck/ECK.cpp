@@ -2031,7 +2031,11 @@ void Priv::QueuedCallbackQueue::UnlockedDeQueue() noexcept
 void ThreadContext::WmAdd(HWND hWnd, CWindow* pWnd, BOOL bTopLevel) noexcept
 {
     EckAssert(IsWindow(hWnd) && pWnd);
-    hmWnd.insert(std::make_pair(hWnd, WND{ pWnd, bTopLevel }));
+    hmWnd.insert(std::make_pair(hWnd,
+        WND{
+            .pWnd = pWnd,
+            .bTopLevel = (BOOLEAN)bTopLevel
+        }));
 }
 void ThreadContext::WmRemove(HWND hWnd) noexcept
 {
@@ -2053,6 +2057,22 @@ CWindow* ThreadContext::WmAt(HWND hWnd) const noexcept
         return it->second.pWnd;
     else
         return nullptr;
+}
+
+ThreadContext::WND* ThreadContext::WmAtInternal(HWND hWnd) noexcept
+{
+    const auto it = hmWnd.find(hWnd);
+    if (it != hmWnd.end())
+        return &it->second;
+    else
+        return nullptr;
+}
+
+void ThreadContext::WmSetBubbleFlags(HWND hWnd, BYTE uFlags) noexcept
+{
+    const auto it = hmWnd.find(hWnd);
+    if (it != hmWnd.end())
+        it->second.uBubbleFlags = uFlags;
 }
 
 void ThreadContext::TwmMarkTopLevel(HWND hWnd, BOOL bTopLevel) noexcept

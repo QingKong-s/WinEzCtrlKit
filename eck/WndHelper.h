@@ -936,6 +936,22 @@ inline void GenerateKeyMessage(HWND hWnd, UINT Vk,
         ECK_UNREACHABLE;
     }
 }
+
+constexpr BOOL IsInputMessage(UINT uMsg) noexcept
+{
+    return
+        (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST) ||
+        (uMsg >= WM_NCMOUSEMOVE && uMsg <= WM_NCXBUTTONDBLCLK) ||
+        (uMsg >= WM_KEYFIRST && uMsg <= WM_IME_KEYLAST) ||
+        uMsg == WM_INPUT ||
+#if _WIN32_WINNT >= 0x0602
+        (uMsg >= WM_POINTERDEVICECHANGE && uMsg <= WM_POINTERDEVICEOUTOFRANGE) ||
+        (uMsg >= WM_NCPOINTERUPDATE && uMsg <= WM_POINTERROUTEDRELEASED) ||
+#endif
+        uMsg == WM_TOUCH ||
+        uMsg == WM_GESTURE ||
+        uMsg == WM_GESTURENOTIFY;
+}
 #pragma endregion Input
 
 #pragma region Others
