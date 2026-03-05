@@ -71,6 +71,7 @@ public:
     EckInlineNdCe CElement* GetFocus() noexcept;
     EckInline BOOL SetTimer(UINT_PTR uId, UINT uElapse) noexcept;
     EckInline BOOL KillTimer(UINT_PTR uId) noexcept;
+    EckInlineNdCe BOOL IsShowingFocus() const noexcept;
 
     EckInlineNdCe auto& GetWindow() const noexcept { return *(CEuiWindow*)GetContainer(); }
     EckInlineNdCe HDC GetDC() const noexcept;
@@ -234,12 +235,13 @@ EckInlineNdCe GpGraphics* CElement::GetGraphics() const noexcept
     return GetWindow().GetGraphics();
 }
 
-EckInline CElement* CElement::SetCapture() noexcept { return GetContainer()->EleSetCapture(this); }
-EckInlineNdCe CElement* CElement::GetCapture() noexcept { return GetContainer()->EleGetCapture(); }
-EckInline void CElement::ReleaseCapture() noexcept { GetContainer()->EleReleaseCapture(); }
-EckInline void CElement::SetFocus() noexcept { GetContainer()->EleSetFocus(this); }
-EckInlineNdCe CElement* CElement::GetFocus() noexcept { return GetContainer()->EleGetFocus(); }
-EckInline BOOL CElement::SetTimer(UINT_PTR uId, UINT uElapse) noexcept { return GetContainer()->EleSetTimer(this, uId, uElapse); }
-EckInline BOOL CElement::KillTimer(UINT_PTR uId) noexcept { return GetContainer()->EleKillTimer(this, uId); }
+EckInline CElement* CElement::SetCapture() noexcept { return GetWindow().EleSetCapture(this); }
+EckInlineNdCe CElement* CElement::GetCapture() noexcept { return GetWindow().EleGetCapture(); }
+EckInline void CElement::ReleaseCapture() noexcept { GetWindow().EleReleaseCapture(); }
+EckInline void CElement::SetFocus() noexcept { GetWindow().EleSetFocus(this); }
+EckInlineNdCe CElement* CElement::GetFocus() noexcept { return GetWindow().EleGetFocus(); }
+EckInline BOOL CElement::SetTimer(UINT_PTR uId, UINT uElapse) noexcept { return GetWindow().EleSetTimer(this, uId, uElapse); }
+EckInline BOOL CElement::KillTimer(UINT_PTR uId) noexcept { return GetWindow().EleKillTimer(this, uId); }
+EckInlineNdCe BOOL CElement::IsShowingFocus() const noexcept { return GetWindow().EleIsShowingFocus(); }
 ECK_EUI_NAMESPACE_END
 ECK_NAMESPACE_END

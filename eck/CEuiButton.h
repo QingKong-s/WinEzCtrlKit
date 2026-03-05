@@ -19,14 +19,28 @@ public:
             const auto hDC = GetDC();
 
             FillRect(hDC, &ps.rcClipInClient,
-                GetStockBrush(m_bLBtnDown ? BLACK_BRUSH : GRAY_BRUSH));
-            FrameRect(hDC, &ps.rcClipInClient,
-                GetStockBrush(m_bLBtnDown ? GRAY_BRUSH : BLACK_BRUSH));
+                GetStockBrush(m_bLBtnDown ? BLACK_BRUSH : WHITE_BRUSH));
+            auto rc{ GetRectInClient() };
+            FrameRect(hDC, &rc,
+                GetStockBrush(m_bLBtnDown ? WHITE_BRUSH : BLACK_BRUSH));
+
+            DrawTextW(hDC, GetText().Data(), GetText().Size(), (RECT*)&rc,
+                DT_SINGLELINE | DT_CENTER | DT_VCENTER | DT_NOCLIP);
+
+            if (GetFocus() == this && IsShowingFocus())
+            {
+                InflateRect(rc, -4, -4);
+                FrameRect(hDC, &rc,
+                    GetStockBrush(m_bLBtnDown ? WHITE_BRUSH : BLACK_BRUSH));
+                //DrawFocusRect(hDC, &rc);
+            }
+
             EndPaint(ps);
         }
         return 0;
         case WM_LBUTTONDOWN:
         case WM_LBUTTONDBLCLK:
+            SetFocus();
             SetCapture();
             m_bLBtnDown = TRUE;
             Redraw();
@@ -38,6 +52,14 @@ public:
             m_bLBtnDown = FALSE;
             Redraw();
             return 0;
+        case WM_SETFOCUS:
+        case WM_KILLFOCUS:
+            if (IsShowingFocus())
+                Redraw();
+            break;
+        case EWM_SHOWFOCUS:
+            Redraw();
+            break;
         }
         return __super::OnEvent(uMsg, wParam, lParam);
     }

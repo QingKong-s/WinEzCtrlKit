@@ -14,6 +14,15 @@ namespace Declaration
         DES_VISIBLE = 1u << 0,
         DES_NO_REDRAW = 1u << 1,
         DES_NO_CLIP = 1u << 2,
+        DES_DISABLE = 1u << 3,
+        DES_TABSTOP = 1u << 4,
+    };
+
+    enum : UINT
+    {
+        EWM_DUMMY = WM_USER_SAFE,
+        EWM_SHOWFOCUS,// void(bShow, 0)
+        EWM_SYSBEGIN,
     };
 }
 using namespace Declaration;
@@ -52,7 +61,8 @@ private:
 
     int m_cChildren{};
 
-    BITBOOL m_bMouseCaptured : 1;
+    BOOLEAN m_bMouseCaptured{};
+    BOOLEAN m_bShowFocus{};
 private:
     void ElementDestroying(TElement* pEle) noexcept
     {
@@ -86,6 +96,8 @@ public:
     {
         if ((uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST))
         {
+            if (uMsg == WM_LBUTTONUP)
+                EleShowFocus(FALSE);
             TPoint pt{ (TCoord)GET_X_LPARAM(lParam), (TCoord)GET_Y_LPARAM(lParam) };
             PixelToLogical(pt);
             if (m_bMouseCaptured)
@@ -112,7 +124,7 @@ public:
                 tme.hwndTrack = HWnd;
                 TrackMouseEvent(&tme);
             }
-            return 0;
+            goto CallDefault;
         }
         else if (uMsg >= WM_NCMOUSEMOVE && uMsg <= WM_NCXBUTTONDBLCLK)
         {
@@ -153,12 +165,46 @@ public:
                     return lResult;
                 }
             }
+            goto CallDefault;
         }
         else if (uMsg >= WM_KEYFIRST && uMsg <= WM_IME_KEYLAST)
         {
-            if (m_pFocus)
-                m_pFocus->CallEvent(uMsg, wParam, lParam);
-            return 0;
+            if (!m_pFocus)
+                goto CallDefault;
+            const MSG Msg
+            {
+                .message = uMsg,
+                .wParam = wParam,
+                .lParam = lParam
+            };
+            switch (uMsg)
+            {
+            case WM_KEYDOWN:
+            {
+                switch (wParam)
+                {
+                case VK_TAB:
+                {
+                    const auto uDlgCode = m_pFocus->CallEvent(
+                        WM_GETDLGCODE, wParam, (LPARAM)&Msg);
+                    if (uDlgCode & (DLGC_WANTMESSAGE | DLGC_WANTTAB))
+                        break;
+                    const auto pNextFocus =
+                        m_pFocus->EtNextTabStop(!(GetKeyState(VK_SHIFT) & 0x8000));
+                    if (pNextFocus)
+                    {
+                        EleShowFocus(TRUE);
+                        EleSetFocus(pNextFocus);
+                        goto CallDefault;
+                    }
+                }
+                break;
+                }
+            }
+            break;
+            }
+            m_pFocus->CallEvent(uMsg, wParam, lParam);
+            goto CallDefault;
         }
 
         switch (uMsg)
@@ -258,6 +304,7 @@ public:
         }
         break;
         }
+    CallDefault:
         return __super::OnMessage(uMsg, wParam, lParam);
     }
 protected:
@@ -311,6 +358,17 @@ public:
 public:
     EckInlineNdCe TElement* EtFirstChild() const noexcept { return m_pFirstChild; }
     EckInlineNdCe TElement* EtLastChild() const noexcept { return m_pLastChild; }
+
+    void EtBroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
+    {
+        auto pEle = EtFirstChild();
+        while (pEle)
+        {
+            pEle->CallEvent(uMsg, wParam, lParam);
+            pEle->EtBroadcastEvent(uMsg, wParam, lParam);
+            pEle = pEle->EtNext();
+        }
+    }
 public:
     TElement* EleSetFocus(TElement* pEle) noexcept
     {
@@ -318,9 +376,9 @@ public:
         if (m_pFocus == pEle)
             return pEle;
         auto pOld = m_pFocus;
+        m_pFocus = pEle;
         if (pOld)
             pOld->CallEvent(WM_KILLFOCUS, (WPARAM)pEle, 0);
-        m_pFocus = pEle;
         pEle->CallEvent(WM_SETFOCUS, (WPARAM)pOld, 0);
         return pOld;
     }
@@ -330,9 +388,9 @@ public:
     {
         auto pOld = m_pMouseCapture;
         m_pMouseCapture = pEle;
-        if (GetCapture() != m_hWnd)
+        if (GetCapture() != HWnd)
         {
-            SetCapture(m_hWnd);
+            SetCapture(HWnd);
             m_bMouseCaptured = TRUE;
         }
         if (pOld)
@@ -373,6 +431,15 @@ public:
         }
         return FALSE;
     }
+
+    void EleShowFocus(BOOL bShow) noexcept
+    {
+        if (m_bShowFocus == !!bShow)
+            return;
+        m_bShowFocus = !!bShow;
+        EtBroadcastEvent(EWM_SHOWFOCUS, m_bShowFocus, 0);
+    }
+    EckInlineNdCe BOOL EleIsShowingFocus() const noexcept { return m_bShowFocus; }
 public:
     EckInlineNdCe TCoord GetClientWidthLogical() const noexcept { return m_sizeClientLog.x; }
     EckInlineNdCe TCoord GetClientHeightLogical() const noexcept { return m_sizeClientLog.y; }
@@ -666,6 +733,53 @@ public:
         _Out_opt_ LRESULT* pResult = nullptr) noexcept
     {
         return EtHitTest(EtLastChild(), ptInClient, pResult);
+    }
+private:
+    static THost* EtpNextConteol(CElement* pCurr, BOOL bNextOrPrev) noexcept
+    {
+        THost* pEle;
+        if (bNextOrPrev)
+        {
+            pEle = pCurr->EtNext();
+            if (!pEle)
+                pEle = (pCurr->EtParent() ?
+                    pCurr->EtParent()->EtFirstChild() :
+                    pCurr->GetContainer()->EtFirstChild());
+        }
+        else
+        {
+            pEle = pCurr->EtPrevious();
+            if (!pEle)
+                pEle = (pCurr->EtParent() ?
+                    pCurr->EtParent()->EtLastChild() :
+                    pCurr->GetContainer()->EtLastChild());
+        }
+        return pEle;
+    }
+public:
+    THost* EtNextTabStop(BOOL bNextOrPrev) noexcept
+    {
+        auto pEle = EtpNextConteol(this, bNextOrPrev);
+        while (pEle != this)
+        {
+            const auto uStyle = pEle->GetStyle();
+            if ((uStyle & (DES_VISIBLE | DES_DISABLE | DES_TABSTOP)) ==
+                (DES_VISIBLE | DES_TABSTOP))
+                return pEle;
+            pEle = EtpNextConteol(pEle, bNextOrPrev);
+        }
+        return nullptr;
+    }
+
+    void EtBroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
+    {
+        auto pEle = EtFirstChild();
+        while (pEle)
+        {
+            pEle->CallEvent(uMsg, wParam, lParam);
+            pEle->EtBroadcastEvent(uMsg, wParam, lParam);
+            pEle = pEle->EtNext();
+        }
     }
 protected:
     void SetZOrder(THost* pEleAfter) noexcept
