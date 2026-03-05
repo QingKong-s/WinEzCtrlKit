@@ -13,15 +13,26 @@ namespace Declaration
     {
         DES_VISIBLE = 1u << 0,
         DES_NO_REDRAW = 1u << 1,
-        DES_NO_CLIP = 1u << 2,
-        DES_DISABLE = 1u << 3,
-        DES_TABSTOP = 1u << 4,
+        DES_DISABLE = 1u << 2,
+        DES_TABSTOP = 1u << 3,
+        DES_DEF_NO_BUBBLE = 1u << 4,// 默认事件过程不应将事件向上冒泡 
+        DES_BUBBLE_INPUT = 1u << 5, // 冒泡所有输入事件
+        DES_BUBBLE_ALL = 1u << 6,   // 冒泡所有事件
+    };
+
+    struct BBEVENT
+    {
+        UINT uMsg;
+        WPARAM wParam;
+        LPARAM lParam;
+        LRESULT lResult;// Out
     };
 
     enum : UINT
     {
         EWM_DUMMY = WM_USER_SAFE,
-        EWM_SHOWFOCUS,// void(bShow, 0)
+        EWM_SHOWFOCUS,  // void(bShow, 0)
+        EWM_BUBBLE,     // BOOL(0, BBEVENT*)  返回是否拦截
         EWM_SYSBEGIN,
     };
 }
@@ -521,6 +532,15 @@ public:
         case WM_NCHITTEST:
             return HTCLIENT;
         }
+
+        if (!(GetStyle() & DES_DEF_NO_BUBBLE) &&
+            IsNeedBubble(uMsg))
+        {
+            BOOL b;
+            const auto lResult = BubbleEvent(uMsg, wParam, lParam, b);
+            if (b)
+                return lResult;
+        }
         return 0;
     }
 
@@ -533,6 +553,37 @@ public:
         if (Ctx.IsProcessed())
             return r;
         return OnEvent(uMsg, wParam, lParam);
+    }
+
+    LRESULT BubbleEvent(UINT uMsg, WPARAM wParam, LPARAM lParam,
+        _Out_ BOOL& bProcessed) noexcept
+    {
+        bProcessed = FALSE;
+        auto pParent = EtParent();
+        if (!pParent)
+            return 0;
+        BBEVENT Event{ uMsg, wParam, lParam };
+        while (pParent)
+        {
+            if (pParent->CallEvent(EWM_BUBBLE, 0, (LPARAM)&Event))
+            {
+                bProcessed = TRUE;
+                return Event.lResult;
+            }
+        }
+        return 0;
+    }
+
+    EckInlineNdCe BOOL IsNeedBubble(UINT uMsg) const noexcept
+    {
+        if (GetStyle() & DES_BUBBLE_ALL)
+            return TRUE;
+        if ((GetStyle() & DES_BUBBLE_INPUT) && (
+            (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST) ||
+            (uMsg >= WM_NCMOUSEMOVE && uMsg <= WM_NCXBUTTONDBLCLK) ||
+            (uMsg >= WM_KEYFIRST && uMsg <= WM_IME_KEYLAST)))
+            return TRUE;
+        return FALSE;
     }
 protected:
     void OnCreate(

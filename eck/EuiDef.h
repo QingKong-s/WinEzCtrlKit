@@ -10,6 +10,7 @@ using namespace UiElement::Declaration;
 enum : UINT
 {
     DES_BACK_BUFFER = 1u << 31,
+    DES_NO_CLIP = 1u << 30,
 };
 
 enum : UINT
