@@ -79,6 +79,30 @@ public:
     }
 };
 
+template<class F>
+class DdxCommand
+{
+private:
+    std::function<F> m_Fn{};
+public:
+    DdxCommand() = default;
+
+    template<class F1>
+    DdxCommand(F1&& Fn) noexcept : m_Fn{ std::forward<F1>(Fn) } {}
+
+    void Call(auto&&... Args) const
+    {
+        if (m_Fn)
+            m_Fn(std::forward<decltype(Args)>(Args)...);
+    }
+
+    template<class F1>
+    void Set(F1&& Fn) noexcept
+    {
+        m_Fn = std::forward<F1>(Fn);
+    }
+};
+
 template<class TExtra>
 class CDdxControlCollection
 {
