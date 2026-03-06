@@ -37,6 +37,7 @@ namespace Declaration
 }
 using namespace Declaration;
 
+// Win8+
 static HRESULT UiaDisconnectProvider_I(IRawElementProviderSimple* p) noexcept
 {
     using FUiaDisconnectProvider = HRESULT(WINAPI*)(IRawElementProviderSimple*);
@@ -47,7 +48,7 @@ static HRESULT UiaDisconnectProvider_I(IRawElementProviderSimple* p) noexcept
                 return (FUiaDisconnectProvider)GetProcAddress(h, "UiaDisconnectProvider");
             return (FUiaDisconnectProvider)nullptr;
         }();
-    if (s_pfn)// Win8+
+    if (s_pfn)
         return s_pfn(p);
     return S_FALSE;
 }
@@ -84,14 +85,14 @@ private:
             *pRetVal = ProviderOptions_ServerSideProvider | ProviderOptions_UseComThreading;
             return S_OK;
         }
-        STDMETHODIMP GetPatternProvider(PATTERNID patternId, IUnknown** pRetVal) override
+        STDMETHODIMP GetPatternProvider(PATTERNID idPattern, IUnknown** pRetVal) override
         {
             *pRetVal = nullptr;
             return S_OK;
         }
-        STDMETHODIMP GetPropertyValue(PROPERTYID propertyId, VARIANT* pRetVal) override
+        STDMETHODIMP GetPropertyValue(PROPERTYID idProp, VARIANT* pRetVal) override
         {
-            switch (propertyId)
+            switch (idProp)
             {
             case UIA_ControlTypePropertyId:
                 pRetVal->vt = VT_I4;
@@ -122,14 +123,14 @@ private:
         }
         // -----IRawElementProviderFragment-----
 
-        STDMETHODIMP Navigate(NavigateDirection direction,
+        STDMETHODIMP Navigate(NavigateDirection eDirection,
             IRawElementProviderFragment** pRetVal) override
         {
             *pRetVal = nullptr;
             if (!m_pContainer)
                 return UIA_E_ELEMENTNOTAVAILABLE;
             TElement* pEle;
-            switch (direction)
+            switch (eDirection)
             {
             case NavigateDirection_FirstChild: pEle = m_pContainer->EtFirstChild(); break;
             case NavigateDirection_LastChild:  pEle = m_pContainer->EtLastChild();  break;
@@ -165,10 +166,7 @@ private:
             *pRetVal = nullptr;
             return S_OK;
         }
-        STDMETHODIMP SetFocus(void) override
-        {
-            return S_OK;
-        }
+        STDMETHODIMP SetFocus() override { return S_OK; }
         STDMETHODIMP get_FragmentRoot(IRawElementProviderFragmentRoot** pRetVal) override
         {
             *pRetVal = this;
@@ -273,6 +271,9 @@ private:
     }
 
     EckInlineNdCe BOOL UiaIsInitialized() const noexcept { return !!m_pUia.Get(); }
+public:
+    ECK_CWND_SINGLEOWNER(CElementContainer);
+    ECK_CWND_CREATE_CLS_HINST(WCN_DUIHOST, g_hInstance);
 public:
     LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
@@ -738,19 +739,19 @@ public:
             *pRetVal = ProviderOptions_ServerSideProvider | ProviderOptions_UseComThreading;
             return S_OK;
         }
-        STDMETHODIMP GetPatternProvider(PATTERNID patternId, IUnknown** pRetVal) override
+        STDMETHODIMP GetPatternProvider(PATTERNID idPattern, IUnknown** pRetVal) override
         {
             *pRetVal = nullptr;
             return S_OK;
         }
-        STDMETHODIMP GetPropertyValue(PROPERTYID propertyId, VARIANT* pRetVal) override
+        STDMETHODIMP GetPropertyValue(PROPERTYID idProp, VARIANT* pRetVal) override
         {
             if (!m_pEle)
             {
                 pRetVal->vt = VT_EMPTY;
                 return UIA_E_ELEMENTNOTAVAILABLE;
             }
-            switch (propertyId)
+            switch (idProp)
             {
             case UIA_ControlTypePropertyId:
                 pRetVal->vt = VT_I4;
@@ -779,14 +780,14 @@ public:
         }
         // -----IRawElementProviderFragment-----
 
-        STDMETHODIMP Navigate(NavigateDirection direction,
+        STDMETHODIMP Navigate(NavigateDirection eDirection,
             IRawElementProviderFragment** pRetVal) override
         {
             *pRetVal = nullptr;
             if (!m_pEle)
                 return UIA_E_ELEMENTNOTAVAILABLE;
             THost* pEle;
-            switch (direction)
+            switch (eDirection)
             {
             case NavigateDirection_Parent:
             {
@@ -842,7 +843,7 @@ public:
             *pRetVal = nullptr;
             return S_OK;
         }
-        STDMETHODIMP SetFocus(void) override
+        STDMETHODIMP SetFocus() override
         {
             if (!m_pEle)
                 return UIA_E_ELEMENTNOTAVAILABLE;
@@ -1221,7 +1222,7 @@ public:
         return EtHitTest(EtLastChild(), ptInClient, pResult);
     }
 private:
-    static THost* EtpNextConteol(CElement* pCurr, BOOL bNextOrPrev) noexcept
+    static THost* EtpNextElement(CElement* pCurr, BOOL bNextOrPrev) noexcept
     {
         THost* pEle;
         if (bNextOrPrev)
@@ -1247,13 +1248,13 @@ public:
     {
         constexpr UINT Style = DES_VISIBLE | DES_TABSTOP;
         constexpr UINT StyleExclude = DES_DISABLE | DES_NO_FOCUSABLE;
-        auto pEle = EtpNextConteol(this, bNextOrPrev);
+        auto pEle = EtpNextElement(this, bNextOrPrev);
         while (pEle != this)
         {
             const auto uStyle = pEle->GetStyle();
             if ((uStyle & (Style | StyleExclude)) == Style)
                 return pEle;
-            pEle = EtpNextConteol(pEle, bNextOrPrev);
+            pEle = EtpNextElement(pEle, bNextOrPrev);
         }
         return nullptr;
     }

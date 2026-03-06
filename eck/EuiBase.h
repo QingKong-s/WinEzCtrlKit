@@ -76,10 +76,10 @@ public:
     void Redraw() noexcept;
 
     EckInline CElement* SetCapture() noexcept;
-    EckInlineNdCe CElement* GetCapture() noexcept;
-    EckInline void ReleaseCapture() noexcept;
+    EckInlineNdCe CElement* GetCapture() const noexcept;
+    EckInline void ReleaseCapture() const noexcept;
     EckInline void SetFocus() noexcept;
-    EckInlineNdCe CElement* GetFocus() noexcept;
+    EckInlineNdCe CElement* GetFocus() const noexcept;
     EckInline BOOL SetTimer(UINT_PTR uId, UINT uElapse) noexcept;
     EckInline BOOL KillTimer(UINT_PTR uId) noexcept;
     EckInlineNdCe BOOL IsShowingFocus() const noexcept;
@@ -118,9 +118,6 @@ private:
             pEle = pEle->EtNext();
         }
     }
-public:
-    ECK_CWND_SINGLEOWNER(CEuiWindow);
-    ECK_CWND_CREATE_CLS_HINST(WCN_DUIHOST, g_hInstance);
 public:
     LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
@@ -252,10 +249,10 @@ EckInlineNdCe GpGraphics* CElement::GetGraphics() const noexcept
 }
 
 EckInline CElement* CElement::SetCapture() noexcept { return GetWindow().EleSetCapture(this); }
-EckInlineNdCe CElement* CElement::GetCapture() noexcept { return GetWindow().EleGetCapture(); }
-EckInline void CElement::ReleaseCapture() noexcept { GetWindow().EleReleaseCapture(); }
+EckInlineNdCe CElement* CElement::GetCapture() const noexcept { return GetWindow().EleGetCapture(); }
+EckInline void CElement::ReleaseCapture() const noexcept { GetWindow().EleReleaseCapture(); }
 EckInline void CElement::SetFocus() noexcept { GetWindow().EleSetFocus(this); }
-EckInlineNdCe CElement* CElement::GetFocus() noexcept { return GetWindow().EleGetFocus(); }
+EckInlineNdCe CElement* CElement::GetFocus() const noexcept { return GetWindow().EleGetFocus(); }
 EckInline BOOL CElement::SetTimer(UINT_PTR uId, UINT uElapse) noexcept { return GetWindow().EleSetTimer(this, uId, uElapse); }
 EckInline BOOL CElement::KillTimer(UINT_PTR uId) noexcept { return GetWindow().EleKillTimer(this, uId); }
 EckInlineNdCe BOOL CElement::IsShowingFocus() const noexcept { return GetWindow().EleIsShowingFocus(); }
@@ -263,17 +260,17 @@ EckInlineNdCe BOOL CElement::IsShowingFocus() const noexcept { return GetWindow(
 class CUiaBase : public CElement::CUiaElement
 {
 public:
-    STDMETHODIMP GetPropertyValue(PROPERTYID propertyId, VARIANT* pRetVal) override
+    STDMETHODIMP GetPropertyValue(PROPERTYID idProp, VARIANT* pRetVal) override
     {
         const auto pEle = (CElement*)m_pEle;
-        switch (propertyId)
+        switch (idProp)
         {
         case UIA_NamePropertyId:
             pRetVal->vt = VT_BSTR;
             pRetVal->bstrVal = pEle->GetText().ToBSTR();
             return S_OK;
         }
-        return __super::GetPropertyValue(propertyId, pRetVal);
+        return __super::GetPropertyValue(idProp, pRetVal);
     }
 };
 inline HRESULT CElement::EhUiaMakeInterface() noexcept

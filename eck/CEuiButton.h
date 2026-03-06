@@ -82,7 +82,6 @@ class CUiaButton : public CUnknownAppend<CUiaBase, IInvokeProvider>
 
     STDMETHODIMP Invoke() override
     {
-        MsgBox(L"Invoke");
         return S_OK;
     }
 };
