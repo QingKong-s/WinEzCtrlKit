@@ -12,9 +12,20 @@ private:
     CStringW m_rsText{};
     INT_PTR m_iId{};
 public:
+    HRESULT EhUiaMakeInterface() noexcept override;
+
     void Create(std::wstring_view svText, UINT uStyle, UINT uExStyle,
         int x, int y, int cx, int cy, CElement* pParent, CEuiWindow* pWnd,
         INT_PTR iId = 0, PCVOID pData = nullptr) noexcept;
+
+    void Destroy()
+    {
+        PreDestroy();
+        CallEvent(WM_DESTROY, 0, 0);
+        m_rsText.Clear();
+        m_iId = 0;
+        PostDestroy();
+    }
 
     void SetPosition(int x, int y) noexcept
     {
@@ -168,12 +179,15 @@ inline void CElement::Create(std::wstring_view svText, UINT uStyle, UINT uExStyl
     int x, int y, int cx, int cy, CElement* pParent, CEuiWindow* pWnd,
     INT_PTR iId, PCVOID pData) noexcept
 {
+    if (!pWnd && pParent)
+        pWnd = &pParent->GetWindow();
     m_rsText = svText;
     m_iId = iId;
-    OnCreate(TRect{ x, y, x + cx, y + cy }, uStyle, pParent, pWnd);
+    PreCreate(TRect{ x, y, x + cx, y + cy }, uStyle, pParent, pWnd);
     CallEvent(WM_CREATE, 0, (LPARAM)pData);
     CallEvent(WM_MOVE, 0, 0);
     CallEvent(WM_SIZE, 0, 0);
+    PostCreate();
 }
 
 inline void CElement::BeginPaint(_Out_ PAINTINFO& ps,
@@ -245,5 +259,29 @@ EckInlineNdCe CElement* CElement::GetFocus() noexcept { return GetWindow().EleGe
 EckInline BOOL CElement::SetTimer(UINT_PTR uId, UINT uElapse) noexcept { return GetWindow().EleSetTimer(this, uId, uElapse); }
 EckInline BOOL CElement::KillTimer(UINT_PTR uId) noexcept { return GetWindow().EleKillTimer(this, uId); }
 EckInlineNdCe BOOL CElement::IsShowingFocus() const noexcept { return GetWindow().EleIsShowingFocus(); }
+
+class CUiaBase : public CElement::CUiaElement
+{
+public:
+    STDMETHODIMP GetPropertyValue(PROPERTYID propertyId, VARIANT* pRetVal) override
+    {
+        const auto pEle = (CElement*)m_pEle;
+        switch (propertyId)
+        {
+        case UIA_NamePropertyId:
+            pRetVal->vt = VT_BSTR;
+            pRetVal->bstrVal = pEle->GetText().ToBSTR();
+            return S_OK;
+        }
+        return __super::GetPropertyValue(propertyId, pRetVal);
+    }
+};
+inline HRESULT CElement::EhUiaMakeInterface() noexcept
+{
+    const auto p = new CUiaBase{};
+    UiaSetInterface(p);
+    p->Release();
+    return S_OK;
+}
 ECK_EUI_NAMESPACE_END
 ECK_NAMESPACE_END

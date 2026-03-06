@@ -1,6 +1,12 @@
 ﻿#pragma once
 #include "CWindow.h"
 #include "KwDef.h"
+#include "CUnknown.h"
+#include "ComPtr.h"
+
+#include <UIAutomation.h>
+
+#pragma comment(lib, "Uiautomationcore.lib")
 
 #define ECK_UIELE_NAMESPACE_BEGIN namespace UiElement {
 #define ECK_UIELE_NAMESPACE_END   }
@@ -18,6 +24,7 @@ namespace Declaration
         DES_DEF_NO_BUBBLE = 1u << 4,// 默认事件过程不应将事件向上冒泡 
         DES_BUBBLE_INPUT = 1u << 5, // 冒泡所有输入事件
         DES_BUBBLE_ALL = 1u << 6,   // 冒泡所有事件
+        DES_NO_FOCUSABLE = 1u << 7,
     };
 
     enum : UINT
@@ -30,6 +37,21 @@ namespace Declaration
 }
 using namespace Declaration;
 
+static HRESULT UiaDisconnectProvider_I(IRawElementProviderSimple* p) noexcept
+{
+    using FUiaDisconnectProvider = HRESULT(WINAPI*)(IRawElementProviderSimple*);
+    const static auto s_pfn = []
+        {
+            const auto h = GetModuleHandleW(L"UIAutomationCore.dll");
+            if (h)
+                return (FUiaDisconnectProvider)GetProcAddress(h, "UiaDisconnectProvider");
+            return (FUiaDisconnectProvider)nullptr;
+        }();
+    if (s_pfn)// Win8+
+        return s_pfn(p);
+    return S_FALSE;
+}
+
 template<class TElement>
 class CElementContainer : public CWindow
 {
@@ -40,6 +62,148 @@ public:
     using TPoint = typename TElement::TPoint;
     using TCoord = typename TElement::TCoord;
 private:
+    class CUiaContainer final : public CUnknown<CUiaContainer,
+        IRawElementProviderSimple,
+        IRawElementProviderFragment,
+        IRawElementProviderFragmentRoot>
+    {
+    private:
+        CElementContainer* m_pContainer{};
+    public:
+        virtual ~CUiaContainer() = default;
+        void SetContainer(CElementContainer* p) noexcept
+        {
+            if (!p)
+                UiaDisconnectProvider_I(this);
+            m_pContainer = p;
+        }
+        // -----IRawElementProviderSimple-----
+
+        STDMETHODIMP get_ProviderOptions(ProviderOptions* pRetVal) override
+        {
+            *pRetVal = ProviderOptions_ServerSideProvider | ProviderOptions_UseComThreading;
+            return S_OK;
+        }
+        STDMETHODIMP GetPatternProvider(PATTERNID patternId, IUnknown** pRetVal) override
+        {
+            *pRetVal = nullptr;
+            return S_OK;
+        }
+        STDMETHODIMP GetPropertyValue(PROPERTYID propertyId, VARIANT* pRetVal) override
+        {
+            switch (propertyId)
+            {
+            case UIA_ControlTypePropertyId:
+                pRetVal->vt = VT_I4;
+                pRetVal->intVal = UIA_WindowControlTypeId;
+                break;
+            case UIA_IsEnabledPropertyId:
+                pRetVal->vt = VT_BOOL;
+                pRetVal->boolVal = VARIANT_TRUE;
+                break;
+            case UIA_IsKeyboardFocusablePropertyId:
+                pRetVal->vt = VT_BOOL;
+                pRetVal->boolVal = VARIANT_TRUE;
+                break;
+            default:
+                pRetVal->vt = VT_EMPTY;
+                break;
+            }
+            return S_OK;
+        }
+        STDMETHODIMP get_HostRawElementProvider(IRawElementProviderSimple** pRetVal) override
+        {
+            if (!m_pContainer)
+            {
+                *pRetVal = nullptr;
+                return UIA_E_ELEMENTNOTAVAILABLE;
+            }
+            return UiaHostProviderFromHwnd(m_pContainer->HWnd, pRetVal);
+        }
+        // -----IRawElementProviderFragment-----
+
+        STDMETHODIMP Navigate(NavigateDirection direction,
+            IRawElementProviderFragment** pRetVal) override
+        {
+            *pRetVal = nullptr;
+            if (!m_pContainer)
+                return UIA_E_ELEMENTNOTAVAILABLE;
+            TElement* pEle;
+            switch (direction)
+            {
+            case NavigateDirection_FirstChild: pEle = m_pContainer->EtFirstChild(); break;
+            case NavigateDirection_LastChild:  pEle = m_pContainer->EtLastChild();  break;
+            default:                           pEle = nullptr;
+            }
+            if (pEle)
+                return pEle->UiaQueryInterface(pRetVal);
+            return S_OK;
+        }
+
+        STDMETHODIMP GetRuntimeId(SAFEARRAY** pRetVal) override
+        {
+            *pRetVal = nullptr;
+            return S_OK;
+        }
+        STDMETHODIMP get_BoundingRectangle(UiaRect* pRetVal) override
+        {
+            if (!m_pContainer)
+            {
+                *pRetVal = {};
+                return UIA_E_ELEMENTNOTAVAILABLE;
+            }
+            RECT rcInScr{ 0, 0, m_pContainer->m_cxClient, m_pContainer->m_cyClient };
+            ClientToScreen(m_pContainer->HWnd, &rcInScr);
+            pRetVal->left = (double)rcInScr.left;
+            pRetVal->top = (double)rcInScr.top;
+            pRetVal->width = double(rcInScr.right - rcInScr.left);
+            pRetVal->height = double(rcInScr.bottom - rcInScr.top);
+            return S_OK;
+        }
+        STDMETHODIMP GetEmbeddedFragmentRoots(SAFEARRAY** pRetVal) override
+        {
+            *pRetVal = nullptr;
+            return S_OK;
+        }
+        STDMETHODIMP SetFocus(void) override
+        {
+            return S_OK;
+        }
+        STDMETHODIMP get_FragmentRoot(IRawElementProviderFragmentRoot** pRetVal) override
+        {
+            *pRetVal = this;
+            this->AddRef();
+            return S_OK;
+        }
+        // -----IRawElementProviderFragmentRoot-----
+
+        STDMETHODIMP ElementProviderFromPoint(double x, double y,
+            IRawElementProviderFragment** pRetVal) override
+        {
+            *pRetVal = nullptr;
+            if (!m_pContainer)
+                return UIA_E_ELEMENTNOTAVAILABLE;
+            POINT ptInClient{ (int)x, (int)y };
+            ScreenToClient(m_pContainer->HWnd, &ptInClient);
+            TPoint pt{ (TCoord)ptInClient.x, (TCoord)ptInClient.y };
+            m_pContainer->PixelToLogical(pt);
+            const auto pEle = TElement::EtHitTest(m_pContainer->EtLastChild(), pt);
+            if (pEle)
+                return pEle->UiaQueryInterface(pRetVal);
+            return S_OK;
+        }
+        STDMETHODIMP GetFocus(IRawElementProviderFragment** pRetVal) override
+        {
+            *pRetVal = nullptr;
+            if (!m_pContainer)
+                return UIA_E_ELEMENTNOTAVAILABLE;
+            const auto pEle = m_pContainer->EleGetFocus();
+            if (pEle)
+                return pEle->UiaQueryInterface(pRetVal);
+            return S_OK;
+        }
+    };
+
     struct TIMER
     {
         TElement* pEle;
@@ -53,6 +217,8 @@ private:
     TElement* m_pCurrNcHitTest{};
     TElement* m_pMouseCapture{};
 
+    ComPtr<CUiaContainer> m_pUia{};
+
     std::vector<TIMER> m_vTimer{};
 
     int m_iUserDpi{ 96 };
@@ -62,7 +228,7 @@ private:
     int m_cxClient{};
     int m_cyClient{};
 
-    int m_cChildren{};
+    UINT m_UiaId{};
 
     BOOLEAN m_bMouseCaptured{};
     BOOLEAN m_bShowFocus{};
@@ -94,6 +260,19 @@ private:
         m_sizeClientLog = { (TCoord)m_cxClient, (TCoord)m_cyClient };
         PixelToLogical(m_sizeClientLog);
     }
+
+    EckInlineNdCe UINT UiaGenerateId() noexcept { return m_UiaId++; }
+
+    void UiaMakeInterface() noexcept
+    {
+        if (!m_pUia.Get())
+        {
+            m_pUia.Attach(new CUiaContainer{});
+            m_pUia->SetContainer(this);
+        }
+    }
+
+    EckInlineNdCe BOOL UiaIsInitialized() const noexcept { return !!m_pUia.Get(); }
 public:
     LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
@@ -285,9 +464,13 @@ public:
 
         case WM_GETOBJECT:
         {
-
+            if (lParam == UiaRootObjectId)
+            {
+                UiaMakeInterface();
+                return UiaReturnRawElementProvider(HWnd, wParam, lParam, m_pUia.Get());
+            }
         }
-        return 0;
+        break;
 
         case WM_DPICHANGED:
             m_iDpi = HIWORD(wParam);
@@ -306,9 +489,40 @@ public:
             UpdateLogicalClientSize();
         }
         break;
+        case WM_DESTROY:
+        {
+            auto pElem = EtFirstChild();
+            while (pElem)
+            {
+                auto pNext = pElem->EtNext();
+                pElem->Destroy();
+                pElem = pNext;
+            }
+            m_pFirstChild = m_pLastChild = nullptr;
+            m_pFocus = m_pHover = m_pCurrNcHitTest = m_pMouseCapture = nullptr;
+
+            if (m_pUia.Get())
+            {
+                m_pUia->SetContainer(nullptr);
+                UiaRaiseStructureChangedEvent(
+                    m_pUia.Get(),
+                    StructureChangeType_ChildRemoved,
+                    nullptr, 0);
+                m_pUia.Clear();
+                UiaReturnRawElementProvider(HWnd, 0, 0, nullptr);
+            }
+        }
+        break;
         }
     CallDefault:
         return __super::OnMessage(uMsg, wParam, lParam);
+    }
+
+    template<CcpComInterface T>
+    EckInline HRESULT UiaQueryInterface(T** p) noexcept
+    {
+        UiaMakeInterface();
+        return m_pUia->QueryInterface(IID_PPV_ARGS(p));
     }
 protected:
     EckInlineCe void SetUserDpi(int iDpi) noexcept
@@ -325,12 +539,22 @@ public:
     template<std::integral T>
     EckInlineNdCe T PixelToLogical(T v) const noexcept
     {
-        return T(v * 96.f / m_iUserDpi + 0.5f);
+        return T(v * 96.f / m_iUserDpi);
     }
     template<std::integral T>
     EckInlineNdCe T LogicalToPixel(T v) const noexcept
     {
-        return T(v * m_iUserDpi / 96.f + 0.5f);
+        return T(v * m_iUserDpi / 96.f);
+    }
+    template<std::integral T>
+    EckInlineNd T PixelToLogicalRound(T v) const noexcept
+    {
+        return (T)roundf(v * 96.f / m_iUserDpi);
+    }
+    template<std::integral T>
+    EckInlineNd T LogicalToPixelRound(T v) const noexcept
+    {
+        return (T)roundf(v * m_iUserDpi / 96.f);
     }
 
     EckInlineCe void PixelToLogical(_Inout_ TPoint& pt) const noexcept
@@ -377,12 +601,15 @@ public:
     {
         SetFocus(HWnd);
         if (m_pFocus == pEle)
-            return pEle;
+            return m_pFocus;
+        if (pEle && (pEle->GetStyle() & DES_NO_FOCUSABLE))
+            return m_pFocus;
         auto pOld = m_pFocus;
         m_pFocus = pEle;
         if (pOld)
             pOld->CallEvent(WM_KILLFOCUS, (WPARAM)pEle, 0);
-        pEle->CallEvent(WM_SETFOCUS, (WPARAM)pOld, 0);
+        if (pEle)
+            pEle->CallEvent(WM_SETFOCUS, (WPARAM)pOld, 0);
         return pOld;
     }
     EckInlineNdCe TElement* EleGetFocus() const noexcept { return m_pFocus; }
@@ -464,6 +691,10 @@ public:
 * WM_CAPTURECHANGED                     (0      , pEleNew     )
 * WM_SETFOCUS                           (pEleOld, 0           )
 * WM_KILLFOCUS                          (pEleNew, 0           )
+* WM_GETDLGCODE                         (Vk     , MSG*        )
+*
+* 若某类派生自此类，则必须有下列方法
+* Destroy
 */
 template<class THost_, bool IsFloat>
 class CElement : public ILayout
@@ -485,6 +716,149 @@ public:
         LPARAM lParam;
         LRESULT lResult;// Out
     };
+public:
+    class CUiaElement : public CUnknown<CUiaElement,
+        IRawElementProviderSimple,
+        IRawElementProviderFragment>
+    {
+    protected:
+        CElement* m_pEle{};
+    public:
+        virtual ~CUiaElement() = default;
+        void SetElement(CElement* p) noexcept
+        {
+            if (!p)
+                UiaDisconnectProvider_I(this);
+            m_pEle = p;
+        }
+        // -----IRawElementProviderSimple-----
+
+        STDMETHODIMP get_ProviderOptions(ProviderOptions* pRetVal) override
+        {
+            *pRetVal = ProviderOptions_ServerSideProvider | ProviderOptions_UseComThreading;
+            return S_OK;
+        }
+        STDMETHODIMP GetPatternProvider(PATTERNID patternId, IUnknown** pRetVal) override
+        {
+            *pRetVal = nullptr;
+            return S_OK;
+        }
+        STDMETHODIMP GetPropertyValue(PROPERTYID propertyId, VARIANT* pRetVal) override
+        {
+            if (!m_pEle)
+            {
+                pRetVal->vt = VT_EMPTY;
+                return UIA_E_ELEMENTNOTAVAILABLE;
+            }
+            switch (propertyId)
+            {
+            case UIA_ControlTypePropertyId:
+                pRetVal->vt = VT_I4;
+                pRetVal->intVal = UIA_CustomControlTypeId;
+                break;
+            case UIA_IsEnabledPropertyId:
+                pRetVal->vt = VT_BOOL;
+                pRetVal->boolVal = (m_pEle->GetStyle() & DES_DISABLE) ?
+                    VARIANT_FALSE : VARIANT_TRUE;
+                break;
+            case UIA_IsKeyboardFocusablePropertyId:
+                pRetVal->vt = VT_BOOL;
+                pRetVal->boolVal = (m_pEle->GetStyle() & DES_NO_FOCUSABLE) ?
+                    VARIANT_FALSE : VARIANT_TRUE;
+                break;
+            default:
+                pRetVal->vt = VT_EMPTY;
+                break;
+            }
+            return S_OK;
+        }
+        STDMETHODIMP get_HostRawElementProvider(IRawElementProviderSimple** pRetVal) override
+        {
+            *pRetVal = nullptr;
+            return S_OK;
+        }
+        // -----IRawElementProviderFragment-----
+
+        STDMETHODIMP Navigate(NavigateDirection direction,
+            IRawElementProviderFragment** pRetVal) override
+        {
+            *pRetVal = nullptr;
+            if (!m_pEle)
+                return UIA_E_ELEMENTNOTAVAILABLE;
+            THost* pEle;
+            switch (direction)
+            {
+            case NavigateDirection_Parent:
+            {
+                pEle = m_pEle->EtParent();
+                if (!pEle)
+                    return m_pEle->GetContainer()->UiaQueryInterface(pRetVal);
+            }
+            break;
+            case NavigateDirection_NextSibling:     pEle = m_pEle->EtNext();       break;
+            case NavigateDirection_PreviousSibling: pEle = m_pEle->EtPrevious();   break;
+            case NavigateDirection_FirstChild:      pEle = m_pEle->EtFirstChild(); break;
+            case NavigateDirection_LastChild:       pEle = m_pEle->EtLastChild();     break;
+            default:                                pEle = nullptr;
+            }
+            if (pEle)
+                return pEle->UiaQueryInterface(pRetVal);
+            return S_OK;
+        }
+
+        STDMETHODIMP GetRuntimeId(SAFEARRAY** pRetVal) override
+        {
+            const auto psa = SafeArrayCreateVector(VT_I4, 0, 2);
+            *pRetVal = psa;
+            if (!psa)
+                return E_OUTOFMEMORY;
+            int iId{ UiaAppendRuntimeId };
+            LONG i{};
+            (void)SafeArrayPutElement(psa, &i, (void*)&iId);
+            iId = m_pEle->UiaGetRuntimeId();
+            i = 1;
+            (void)SafeArrayPutElement(psa, &i, (void*)&iId);
+            return S_OK;
+        }
+        STDMETHODIMP get_BoundingRectangle(UiaRect* pRetVal) override
+        {
+            if (!m_pEle)
+            {
+                *pRetVal = {};
+                return UIA_E_ELEMENTNOTAVAILABLE;
+            }
+            TRect rc{ m_pEle->GetRectInClient() };
+            m_pEle->GetContainer()->LogicalToPixel(rc);
+            RECT rcInScr{ (int)rc.left, (int)rc.top, (int)rc.right, (int)rc.bottom };
+            ClientToScreen(m_pEle->GetContainer()->HWnd, &rcInScr);
+            pRetVal->left = (double)rcInScr.left;
+            pRetVal->top = (double)rcInScr.top;
+            pRetVal->width = double(rcInScr.right - rcInScr.left);
+            pRetVal->height = double(rcInScr.bottom - rcInScr.top);
+            return S_OK;
+        }
+        STDMETHODIMP GetEmbeddedFragmentRoots(SAFEARRAY** pRetVal) override
+        {
+            *pRetVal = nullptr;
+            return S_OK;
+        }
+        STDMETHODIMP SetFocus(void) override
+        {
+            if (!m_pEle)
+                return UIA_E_ELEMENTNOTAVAILABLE;
+            m_pEle->GetContainer()->EleSetFocus((THost*)m_pEle);
+            return S_OK;
+        }
+        STDMETHODIMP get_FragmentRoot(IRawElementProviderFragmentRoot** pRetVal) override
+        {
+            if (!m_pEle)
+            {
+                *pRetVal = nullptr;
+                return UIA_E_ELEMENTNOTAVAILABLE;
+            }
+            return m_pEle->GetContainer()->UiaQueryInterface(pRetVal);
+        }
+    };
 private:
     THost* m_pNext{};    // 下一元素，Z序高于当前
     THost* m_pPrev{};    // 上一元素，Z序低于当前
@@ -495,11 +869,13 @@ private:
 
     CEventChain<Intercept_T, LRESULT, UINT, WPARAM, LPARAM> m_ec{};
 
+    ComPtr<CUiaElement> m_pUia{};
+
     TRect m_rc{};           // 相对父元素
     TPoint m_ptInClient{};  // 相对于客户区的坐标
 
     UINT m_uStyle{};
-    UINT m_cChildren{};     // 暂时未用
+    UINT m_UiaId{};
 
     constexpr void CorrectChildrenRectInClient() const noexcept
     {
@@ -547,6 +923,31 @@ public:
 
     virtual BOOL EhTransform(_Inout_ TPoint& pt, BOOL bInClient) noexcept { return FALSE; }
 
+    virtual HRESULT EhUiaMakeInterface() noexcept
+    {
+        const auto p = new CUiaElement{};
+        UiaSetInterface(p);
+        p->Release();
+        return S_OK;
+    }
+
+    EckInline void UiaSetInterface(CUiaElement* p) noexcept
+    {
+        if (m_pUia.Get())
+            m_pUia->SetElement(nullptr);
+        m_pUia = p;
+        m_pUia->SetElement(this);
+    }
+    template<CcpComInterface T>
+    EckInline HRESULT UiaQueryInterface(T** p) noexcept
+    {
+        if (!m_pUia.Get())
+            EhUiaMakeInterface();
+        return m_pUia->QueryInterface(IID_PPV_ARGS(p));
+    }
+
+    EckInlineNdCe int UiaGetRuntimeId() const noexcept { return (int)m_UiaId; }
+
     EckInline LRESULT CallEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
         SlotCtx Ctx{};
@@ -571,6 +972,7 @@ public:
                 bProcessed = TRUE;
                 return Event.lResult;
             }
+            pParent = pParent->EtParent();
         }
         return 0;
     }
@@ -583,8 +985,12 @@ public:
             return TRUE;
         return FALSE;
     }
+
+    EckInlineNdCe auto& GetEventChain() noexcept { return m_ec; }
 protected:
-    void OnCreate(
+    // 函数返回后，由于派生类还未初始化，当前对象状态无效
+    // 派生类执行初始化使对象有效后产生创建事件，然后调用PostCreate
+    void PreCreate(
         const TRect& rc, UINT uStyle,
         THost* pParent,
         CElementContainer<THost>* pContainer) noexcept
@@ -593,16 +999,12 @@ protected:
         m_pContainer = pContainer;
         SetRect(rc);
         SetStyle(uStyle);
+        m_UiaId = pContainer->UiaGenerateId();
 
         auto& pParentLastChild =
             (pParent ? pParent->m_pLastChild : pContainer->m_pLastChild);
         auto& pParentFirstChild =
             (pParent ? pParent->m_pFirstChild : pContainer->m_pFirstChild);
-        if (pParent)
-            ++pParent->m_cChildren;
-        else
-            ++pContainer->m_cChildren;
-
         if (pParentLastChild)
         {
             m_pPrev = pParentLastChild;
@@ -617,15 +1019,44 @@ protected:
             pParentLastChild = (THost*)this;
         }
     }
-
-    void OnDestroy() noexcept
+    // 函数调用时对象完全初始化完毕
+    void PostCreate() noexcept
     {
-        if (m_pParent)
-            --m_pParent->m_cChildren;
-        else
-            --m_pContainer->m_cChildren;
-        m_pContainer->ElementDestroying(this);
+        if (GetContainer()->UiaIsInitialized() &&
+            UiaClientsAreListening())
+        {
+            EhUiaMakeInterface();
+            UiaRaiseStructureChangedEvent(
+                m_pUia.Get(),
+                StructureChangeType_ChildAdded,
+                nullptr, 0);
+        }
+    }
 
+    // 函数返回后当前对象仍然有效，派生类产生销毁事件，然后调用PostDestroy
+    void PreDestroy() noexcept
+    {
+        auto pChild = EtFirstChild();
+        while (pChild)
+        {
+            auto pNext = pChild->EtNext();
+            pChild->Destroy();
+            pChild = pNext;
+        }
+        m_pContainer->ElementDestroying((THost*)this);
+        if (m_pUia.Get())
+        {
+            UiaRaiseStructureChangedEvent(
+                m_pUia.Get(),
+                StructureChangeType_ChildRemoved,
+                nullptr, 0);
+            m_pUia->SetElement(nullptr);
+            m_pUia.Clear();
+        }
+    }
+    // 函数返回后对象无效
+    void PostDestroy() noexcept
+    {
         if (m_pPrev)
             m_pPrev->m_pNext = m_pNext;
         else
@@ -657,7 +1088,13 @@ protected:
         m_ptInClient = {};
     }
 protected:
-    EckInlineCe void SetStyle(UINT uStyle) noexcept { m_uStyle = uStyle; }
+    void SetStyle(UINT uStyle) noexcept
+    {
+        m_uStyle = uStyle;
+        if ((m_uStyle & DES_NO_FOCUSABLE) &&
+            GetContainer()->EleGetFocus() == this)
+            GetContainer()->EleSetFocus(nullptr);
+    }
     EckInlineNdCe UINT GetStyle() const noexcept { return m_uStyle; }
 
     EckInlineCe void SetContainer(CElementContainer<THost>* p) noexcept { m_pContainer = p; }
@@ -808,12 +1245,13 @@ private:
 public:
     THost* EtNextTabStop(BOOL bNextOrPrev) noexcept
     {
+        constexpr UINT Style = DES_VISIBLE | DES_TABSTOP;
+        constexpr UINT StyleExclude = DES_DISABLE | DES_NO_FOCUSABLE;
         auto pEle = EtpNextConteol(this, bNextOrPrev);
         while (pEle != this)
         {
             const auto uStyle = pEle->GetStyle();
-            if ((uStyle & (DES_VISIBLE | DES_DISABLE | DES_TABSTOP)) ==
-                (DES_VISIBLE | DES_TABSTOP))
+            if ((uStyle & (Style | StyleExclude)) == Style)
                 return pEle;
             pEle = EtpNextConteol(pEle, bNextOrPrev);
         }

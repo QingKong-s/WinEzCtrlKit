@@ -33,7 +33,6 @@ public:
     {
         return InterlockedIncrement(&m_cRef);
     }
-
     STDMETHODIMP_(ULONG) Release() override
     {
         const auto cRef = InterlockedDecrement(&m_cRef);
@@ -41,12 +40,12 @@ public:
             delete static_cast<TThis*>(this);
         return cRef;
     }
-
     STDMETHODIMP QueryInterface(REFIID riid, void** ppvObject) override
     {
         if (riid == IID_IUnknown)
         {
-            *ppvObject = this;
+            using TInterface0 = std::tuple_element_t<0, std::tuple<TInterface...>>;
+            *ppvObject = static_cast<TInterface0*>(this);
             AddRef();
             return S_OK;
         }
@@ -86,7 +85,58 @@ private:
         EckInline HRESULT operator()(CUnknown* pThis, REFIID riid, void** ppvObject) noexcept
         {
             if constexpr (sizeof...(Is))
-                return pThis->QiCheck<Is...>(riid, ppvObject);
+                return pThis->template QiCheck<Is...>(riid, ppvObject);
+            else
+                return E_NOINTERFACE;
+        }
+    };
+};
+
+// WARNING TBase必须虚析构
+template<class TBase, CcpComInterface... TInterface>
+class CUnknownAppend : public TBase, public TInterface...
+{
+public:
+    STDMETHODIMP_(ULONG) AddRef() override { return TBase::AddRef(); }
+    STDMETHODIMP_(ULONG) Release() override { return TBase::Release(); }
+    STDMETHODIMP QueryInterface(REFIID riid, void** ppvObject) override
+    {
+        const auto hr = TBase::QueryInterface(riid, ppvObject);
+        if (SUCCEEDED(hr))
+            return hr;
+        if (QiCheck<TInterface...>(riid, ppvObject) == S_OK)
+            return S_OK;
+        return E_NOINTERFACE;
+    }
+private:
+    template<class I, class... Is>
+    EckInline HRESULT QiCheck(REFIID riid, void** ppvObject) noexcept
+    {
+        if (riid == __uuidof(I))
+        {
+            *ppvObject = static_cast<I*>(this);
+            AddRef();
+            return S_OK;
+        }
+        using TTuple = UnknownTraits::Inherits<I>::TBaseTuple;
+        if (QiCheckInherit<TTuple>{}(this, riid, ppvObject) == S_OK)
+            return S_OK;
+
+        if constexpr (sizeof...(Is))
+            return QiCheck<Is...>(riid, ppvObject);
+        else
+            return E_NOINTERFACE;
+    }
+
+    template<class T>
+    struct QiCheckInherit {};
+    template<class... Is>
+    struct QiCheckInherit<std::tuple<Is...>>
+    {
+        EckInline HRESULT operator()(CUnknownAppend* pThis, REFIID riid, void** ppvObject) noexcept
+        {
+            if constexpr (sizeof...(Is))
+                return pThis->template QiCheck<Is...>(riid, ppvObject);
             else
                 return E_NOINTERFACE;
         }
