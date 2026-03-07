@@ -63,6 +63,12 @@
     <ClInclude Include="eck\CEuiButton.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
+    <ClInclude Include="eck\CReferenceCounted.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\EuiTheme.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eck\ECK.cpp">
@@ -732,6 +738,9 @@
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\WndHelper.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\UiTheme.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
   </ItemGroup>

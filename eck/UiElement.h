@@ -8,11 +8,8 @@
 
 #pragma comment(lib, "Uiautomationcore.lib")
 
-#define ECK_UIELE_NAMESPACE_BEGIN namespace UiElement {
-#define ECK_UIELE_NAMESPACE_END   }
-
 ECK_NAMESPACE_BEGIN
-ECK_UIELE_NAMESPACE_BEGIN
+ECK_UIBASIC_NAMESPACE_BEGIN
 namespace Declaration
 {
     enum : UINT
@@ -1367,5 +1364,5 @@ public:
         return TRUE;
     }
 };
-ECK_UIELE_NAMESPACE_END
+ECK_UIBASIC_NAMESPACE_END
 ECK_NAMESPACE_END

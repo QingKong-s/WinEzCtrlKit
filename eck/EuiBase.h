@@ -1,22 +1,82 @@
 ﻿#pragma once
-#include "EuiDef.h"
+#include "EuiTheme.h"
 #include "CMemoryDC.h"
 #include "GpPtr.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_EUI_NAMESPACE_BEGIN
 class CEuiWindow;
-class CElement : public UiElement::CElement<CElement, false>
+class CElement : public UiBasic::CElement<CElement, false>
 {
 private:
     CStringW m_rsText{};
-    INT_PTR m_iId{};
+    RcPtr<CThemeBase> m_pTheme{};
+    RcPtr<CThemeStyleCollection> m_pStyleCollection{};
+    int m_iId{};
+protected:
+    UINT m_uTmState{ SaNormal };
+protected:
+    // 返回状态是否改变
+    BOOL TmOnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
+    {
+        switch (uMsg)
+        {
+        case WM_MOUSEMOVE:
+            if (m_uTmState & SaHot)
+                break;
+            m_uTmState |= SaHot;
+            return TRUE;
+        case WM_MOUSELEAVE:
+            if (!(m_uTmState & SaHot))
+                break;
+            m_uTmState &= ~SaHot;
+            return TRUE;
+        case WM_LBUTTONDOWN:
+        case WM_LBUTTONDBLCLK:
+            m_uTmState |= (SaActive | SapLButtonDown);
+            SetCapture();
+            return TRUE;
+        case WM_LBUTTONUP:
+            if (m_uTmState & SapLButtonDown)
+                ReleaseCapture();
+            return TRUE;
+        case WM_CAPTURECHANGED:
+            if (m_uTmState & SapLButtonDown)
+            {
+                m_uTmState &= ~(SaActive | SapLButtonDown);
+                return TRUE;
+            }
+            break;
+        case WM_SETFOCUS:
+            if (m_uTmState & SaFocus)
+                break;
+            m_uTmState |= SaFocus;
+            return TRUE;
+        case WM_KILLFOCUS:
+            if (!(m_uTmState & SaFocus))
+                break;
+            m_uTmState &= ~SaFocus;
+            return TRUE;
+        case WM_STYLECHANGED:
+            if (!(((UINT)wParam ^ GetStyle()) & DES_DISABLE))
+                break;
+            [[fallthrough]];
+        case WM_CREATE:
+            if (GetStyle() & DES_DISABLE)
+            {
+                m_uTmState |= SaDisable;
+                return TRUE;
+            }
+            break;
+        }
+        return FALSE;
+    }
 public:
     HRESULT EhUiaMakeInterface() noexcept override;
 
     void Create(std::wstring_view svText, UINT uStyle, UINT uExStyle,
         int x, int y, int cx, int cy, CElement* pParent, CEuiWindow* pWnd,
-        INT_PTR iId = 0, PCVOID pData = nullptr) noexcept;
+        int iId = 0, PCVOID pData = nullptr) noexcept;
 
     void Destroy()
     {
@@ -54,13 +114,14 @@ public:
 
     EckInline void SetStyle(UINT uStyle) noexcept
     {
+        const auto uOld = GetStyle();
         __super::SetStyle(uStyle);
-        CallEvent(WM_STYLECHANGED, 0, 0);
+        CallEvent(WM_STYLECHANGED, uOld, 0);
     }
     EckInlineNdCe UINT GetStyle() const noexcept { return __super::GetStyle(); }
 
-    EckInline void SetId(INT_PTR iId) noexcept { m_iId = iId; }
-    EckInlineNdCe INT_PTR GetId() const noexcept { return m_iId; }
+    EckInline void SetId(int iId) noexcept { m_iId = iId; }
+    EckInlineNdCe int GetId() const noexcept { return m_iId; }
 
     EckInline void SetText(std::wstring_view svText) noexcept
     {
@@ -87,15 +148,68 @@ public:
     EckInlineNdCe auto& GetWindow() const noexcept { return *(CEuiWindow*)GetContainer(); }
     EckInlineNdCe HDC GetDC() const noexcept;
     EckInlineNdCe GpGraphics* GetGraphics() const noexcept;
+
+    EckInline void SetTheme(CThemeBase* p) noexcept { m_pTheme = p; }
+    EckInlineNdCe CThemeBase* GetTheme() const noexcept { return m_pTheme.Get(); }
+
+    EckInlineNdCe UINT GetThemeState() const noexcept { return m_uTmState; }
+
+    EckInline void SetThemeStyleCollection(CThemeStyleCollection* p) noexcept { m_pStyleCollection = p; }
+    EckInlineNdCe auto GetThemeStyleCollection() const noexcept { return m_pStyleCollection.Get(); }
 };
 
 using BBEVENT = CElement::BBEVENT;
 
-class CEuiWindow : public UiElement::CElementContainer<CElement>
+class CEuiWindow : public UiBasic::CElementContainer<CElement>
 {
+public:
+    struct RENDER_STOCK
+    {
+        HDC hCDC{};
+        GpPtr<GpSolidFill> pBrush{};
+        GpPtr<GpPen> pPen{};
+        GpPtr<GpStringFormat> pStrFmt{};
+        BOOLEAN bStrFmtSingleLine{ TRUE };
+        BOOLEAN bStrFmtNoClip{ TRUE };
+        BYTE eAlign{};
+        BYTE eLineAlign{};
+
+        void SetStringFormatFromDtFlags(UINT uDt) noexcept
+        {
+            BOOL bSetFlags{};
+            int uNewFlags{};
+            const BOOLEAN bNoClip = !!(uDt & DT_NOCLIP);
+            if (bNoClip != bStrFmtNoClip)
+            {
+                bSetFlags = TRUE;
+                bStrFmtNoClip = bNoClip;
+                if (bNoClip)
+                    uNewFlags |= Gdiplus::StringFormatFlagsNoClip;
+            }
+            const BOOLEAN bSingleLine = !!(uDt & DT_SINGLELINE);
+            if (bSingleLine != bStrFmtSingleLine)
+            {
+                bSetFlags = TRUE;
+                bStrFmtSingleLine = bSingleLine;
+                if (bSingleLine)
+                    uNewFlags |= Gdiplus::StringFormatFlagsNoWrap;
+            }
+            if (bSetFlags)
+                GdipSetStringFormatFlags(pStrFmt.Get(), uNewFlags);
+
+            GdipSetStringFormatAlign(pStrFmt.Get(),
+                (uDt & DT_RIGHT) ? Gdiplus::StringAlignmentFar :
+                (uDt & DT_CENTER) ? Gdiplus::StringAlignmentCenter :
+                Gdiplus::StringAlignmentNear);
+            GdipSetStringFormatLineAlign(pStrFmt.Get(),
+                (uDt & DT_VCENTER) ? Gdiplus::StringAlignmentCenter :
+                Gdiplus::StringAlignmentNear);
+        }
+    };
 private:
     CMemoryDC m_DC{};
     GpPtr<GpGraphics> m_pGraphics{};
+    RENDER_STOCK m_RenderStock{};
 
     UINT m_uRenderFlags{};
 
@@ -117,6 +231,20 @@ private:
         NextElement:
             pEle = pEle->EtNext();
         }
+    }
+
+    void RdCreateObjectCache() noexcept
+    {
+        if (m_RenderStock.hCDC)
+            DeleteDC(m_RenderStock.hCDC);
+        const auto hDC = GetDC(HWnd);
+        m_RenderStock.hCDC = CreateCompatibleDC(hDC);
+        ReleaseDC(HWnd, hDC);
+        GdipCreateSolidFill(0, m_RenderStock.pBrush.AddrOfClear());
+        GdipCreatePen1(0, 1.f, Gdiplus::UnitPixel, m_RenderStock.pPen.AddrOfClear());
+        GdipCreateStringFormat(
+            Gdiplus::StringFormatFlagsNoWrap | Gdiplus::StringFormatFlagsNoClip,
+            LANG_NEUTRAL, m_RenderStock.pStrFmt.AddrOfClear());
     }
 public:
     LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
@@ -167,6 +295,11 @@ public:
 
     EckInlineNdCe auto& GetMemoryDC() const noexcept { return m_DC; }
     EckInlineNdCe auto GetGraphics() const noexcept { return m_pGraphics.Get(); }
+    EckInlineNdCe auto& GetRenderStock() const noexcept { return m_RenderStock; }
+    EckInline void SetStockStringFormatFromDtFlags(UINT uDt) noexcept
+    {
+        m_RenderStock.SetStringFormatFromDtFlags(uDt);
+    }
 
     EckInlineCe void SetRenderFlags(UINT uFlags) noexcept { m_uRenderFlags = uFlags; }
     EckInlineNdCe UINT GetRenderFlags() const noexcept { return m_uRenderFlags; }
@@ -174,7 +307,7 @@ public:
 
 inline void CElement::Create(std::wstring_view svText, UINT uStyle, UINT uExStyle,
     int x, int y, int cx, int cy, CElement* pParent, CEuiWindow* pWnd,
-    INT_PTR iId, PCVOID pData) noexcept
+    int iId, PCVOID pData) noexcept
 {
     if (!pWnd && pParent)
         pWnd = &pParent->GetWindow();
@@ -198,7 +331,7 @@ inline void CElement::BeginPaint(_Out_ PAINTINFO& ps,
         GetClipBox(hDC, &ps.rcOldClip);
         IntersectClipRect(hDC,
             prcClip->left, prcClip->top, prcClip->right, prcClip->bottom);
-        if (GetWindow().GetRenderFlags() & RDF_GDIX)
+        if (GetWindow().GetRenderFlags() & (RDF_GDIX_GEO | RDF_GDIX_TEXT))
         {
             GdipSetClipRectI(GetGraphics(),
                 prcClip->left, prcClip->top,
@@ -216,7 +349,7 @@ inline void CElement::EndPaint(const PAINTINFO& ps) noexcept
         const auto hRgn = CreateRectRgnIndirect(&ps.rcOldClip);
         SelectClipRgn(hDC, hRgn);
         DeleteObject(hRgn);
-        if (GetWindow().GetRenderFlags() & RDF_GDIX)
+        if (GetWindow().GetRenderFlags() & (RDF_GDIX_GEO | RDF_GDIX_TEXT))
         {
             GdipSetClipRectI(GetGraphics(),
                 ps.rcOldClip.left, ps.rcOldClip.top,
@@ -279,6 +412,154 @@ inline HRESULT CElement::EhUiaMakeInterface() noexcept
     UiaSetInterface(p);
     p->Release();
     return S_OK;
+}
+
+inline TmResult TmGenericDrawBackground(
+    CElement* pEle,
+    const CThemeStyleCollection::STYLE* pStyle,
+    const RECT& rc) noexcept
+{
+    const auto uRenderFlags = pEle->GetWindow().GetRenderFlags();
+    const auto& Stock = pEle->GetWindow().GetRenderStock();
+    if (uRenderFlags & RDF_GDI_GEO)
+    {
+        const auto hDC = pEle->GetDC();
+        SetDCBrushColor(hDC, ArgbToColorref(pStyle->argbBack));
+        SelectObject(hDC, GetStockObject(DC_BRUSH));
+        SelectObject(hDC, GetStockObject(NULL_PEN));
+        Rectangle(hDC, rc.left, rc.top, rc.right, rc.bottom);
+
+        if (pStyle->dLeft || pStyle->dRight ||
+            pStyle->dTop || pStyle->dBottom)
+        {
+            if (const auto pImg = pStyle->pImgBack.Get();
+                pImg && pImg->GdiGet())
+            {
+                const auto hOld = SelectObject(Stock.hCDC, pImg->GdiGet());
+                DrawBackgroundImage32(hDC, Stock.hCDC,
+                    rc, pImg->GdiGetWidth(), pImg->GdiGetHeight(),
+                    pStyle->eImgModeBack, TRUE);
+                SelectObject(Stock.hCDC, hOld);
+            }
+            SetDCBrushColor(hDC, ArgbToColorref(pStyle->argbBorder));
+            if (pStyle->dLeft)
+                Rectangle(hDC, rc.left, rc.top, rc.left + pStyle->dLeft, rc.bottom);
+            if (pStyle->dTop)
+                Rectangle(hDC, rc.left, rc.top, rc.right, rc.top + pStyle->dTop);
+            if (pStyle->dRight)
+                Rectangle(hDC, rc.right - pStyle->dRight, rc.top, rc.right, rc.bottom);
+            if (pStyle->dBottom)
+                Rectangle(hDC, rc.left, rc.bottom - pStyle->dBottom, rc.right, rc.bottom);
+        }
+    }
+    else if (uRenderFlags & RDF_GDIX_GEO)
+    {
+        const auto pGraphics = pEle->GetGraphics();
+        GdipSetSolidFillColor(Stock.pBrush.Get(), pStyle->argbBack);
+        GdipFillRectangle(pGraphics, Stock.pBrush.Get(),
+            (float)rc.left, (float)rc.top,
+            float(rc.right - rc.left),
+            float(rc.bottom - rc.top));
+        if (pStyle->dLeft || pStyle->dRight ||
+            pStyle->dTop || pStyle->dBottom)
+        {
+            if (const auto pImg = pStyle->pImgBack.Get();
+                pImg && pImg->GpGet())
+            {
+                UINT cx, cy;
+                GdipGetImageWidth(pImg->GpGet(), &cx);
+                GdipGetImageHeight(pImg->GpGet(), &cy);
+                DrawBackgroundImage(pGraphics, pImg->GpGet(),
+                    rc, (int)cx, (int)cy,
+                    pStyle->eImgModeBack, TRUE);
+            }
+            if (pStyle->dLeft)
+                GdipFillRectangle(pGraphics, Stock.pBrush.Get(),
+                    (float)rc.left,
+                    (float)rc.top,
+                    (float)pStyle->dLeft,
+                    float(rc.bottom - rc.top));
+            if (pStyle->dTop)
+                GdipFillRectangle(pGraphics, Stock.pBrush.Get(),
+                    (float)rc.left,
+                    (float)rc.top,
+                    float(rc.right - rc.left),
+                    (float)pStyle->dTop);
+            if (pStyle->dRight)
+                GdipFillRectangle(pGraphics, Stock.pBrush.Get(),
+                    float(rc.right - pStyle->dRight),
+                    (float)rc.top,
+                    (float)pStyle->dRight,
+                    float(rc.bottom - rc.top));
+            if (pStyle->dBottom)
+                GdipFillRectangle(pGraphics, Stock.pBrush.Get(),
+                    (float)rc.left,
+                    float(rc.top - pStyle->dBottom),
+                    float(rc.right - rc.left),
+                    (float)pStyle->dBottom);
+        }
+    }
+    return TmResult::Ok;
+}
+
+inline TmResult TmGenericDrawText(
+    CElement* pEle,
+    const CThemeStyleCollection::STYLE* pStyle,
+    const RECT& rc,
+    UINT uDtFlags) noexcept
+{
+    const auto uRenderFlags = pEle->GetWindow().GetRenderFlags();
+    const auto& Stock = pEle->GetWindow().GetRenderStock();
+    const auto& rsText = pEle->GetText();
+    if (rsText.IsEmpty())
+        return TmResult::Ok;
+    uDtFlags &= ~(DT_CALCRECT);
+    uDtFlags |= (DT_NOPREFIX);
+    if (uRenderFlags & (RDF_GDI_TEXT | RDF_PREFER_GDI))
+    {
+        const auto hDC = pEle->GetDC();
+        SetTextColor(hDC, ArgbToColorref(pStyle->argbFore));
+        const auto hOld = SelectObject(hDC, pStyle->pFont->GdiGet());
+        DrawTextW(hDC, rsText.Data(), rsText.Size(),
+            (RECT*)&rc, uDtFlags);
+        SelectObject(hDC, hOld);
+    }
+    else if (uRenderFlags & RDF_GDIX_TEXT)
+    {
+        const auto pFont = pStyle->pFont->GpGet();
+        if (!pFont)
+            return TmResult::NoFont;
+        const auto rcF = MakeGpRectF(rc);
+        pEle->GetWindow().SetStockStringFormatFromDtFlags(uDtFlags);
+        GdipSetSolidFillColor(Stock.pBrush.Get(), pStyle->argbFore);
+        GdipDrawString(pEle->GetGraphics(), rsText.Data(), rsText.Size(),
+            pFont, &rcF, Stock.pStrFmt.Get(), Stock.pBrush.Get());
+    }
+    return TmResult::Ok;
+}
+
+inline auto TmSelectStyle(CElement* pEle) noexcept
+{
+    const auto pStyleCollection = pEle->GetThemeStyleCollection();
+    const auto uState = pEle->GetThemeState();
+    const CThemeStyleCollection::STYLE* pStyle;
+    if (pEle->GetStyle() & DES_DISABLE)
+    {
+        pStyle = pStyleCollection->FindStyle(SaDisable);
+        if (!pStyle)
+            pStyle = pStyleCollection->FindStyle(SaNormal);
+    }
+
+    if (uState & SaActive)
+        pStyle = pStyleCollection->FindStyle(SaActive);
+    else if (uState & SaHot)
+        pStyle = pStyleCollection->FindStyle(SaHot);
+    else
+        pStyle = nullptr;
+
+    if (!pStyle)
+        pStyle = pStyleCollection->FindStyle(SaNormal);
+    return pStyle;
 }
 ECK_EUI_NAMESPACE_END
 ECK_NAMESPACE_END

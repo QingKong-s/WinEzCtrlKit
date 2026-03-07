@@ -16,22 +16,9 @@ private:
     {
         if (p)
         {
-            TInterface* t{};
-            std::swap(p, t);
-            t->Release();
+            p->Release();
+            p = nullptr;
         }
-    }
-
-    EckInline ULONG ReleaseItRet() noexcept
-    {
-        if (p)
-        {
-            TInterface* t{};
-            std::swap(p, t);
-            return t->Release();
-        }
-        else
-            return 0;
     }
 public:
     ComPtr() = default;
@@ -72,7 +59,7 @@ public:
     ComPtr(REFCLSID clsid, HRESULT* phr = nullptr)
     {
         const auto hr = CoCreateInstance(clsid, nullptr,
-            CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&p));
+            CLSCTX_ALL, IID_PPV_ARGS(&p));
         if (phr) *phr = hr;
     }
 
@@ -89,14 +76,14 @@ public:
     ComPtr& operator=(U* x) noexcept
     {
         if (x != p)
-            ComPtr(x).Swap(*this);
+            ComPtr{ x }.Swap(*this);
         return *this;
     }
 
     ComPtr& operator=(const ComPtr& x) noexcept
     {
         if (p != x.p)
-            ComPtr(x).Swap(*this);
+            ComPtr{ x }.Swap(*this);
         return *this;
     }
 
@@ -110,7 +97,7 @@ public:
         requires std::is_convertible_v<U*, TInterface*>
     ComPtr& operator=(const ComPtr<U>& x) noexcept
     {
-        ComPtr(x).Swap(*this);
+        ComPtr{ x }.Swap(*this);
         return *this;
     }
 
@@ -137,24 +124,27 @@ public:
 
     EckInlineNdCe TInterface* Detach() noexcept
     {
-        TInterface* t{};
-        std::swap(p, t);
+        const auto t = p;
+        p = nullptr;
         return t;
     }
     EckInline void Attach(TInterface* x) noexcept
     {
-        if (p != nullptr)
-        {
-#ifdef _DEBUG
-            EckAssert(p->Release() || p != x);
-#else
+        if (p && p != x)
             p->Release();
-#endif
-        }
         p = x;
     }
 
-    EckInline ULONG Clear() noexcept { return ReleaseItRet(); }
+    EckInline ULONG Clear() noexcept
+    {
+        if (p)
+        {
+            const auto r = p->Release();
+            p = nullptr;
+            return r;
+        }
+        return 0;
+    }
 
     template<CcpComInterface U>
     EckInline HRESULT As(ComPtr<U>& x) const noexcept

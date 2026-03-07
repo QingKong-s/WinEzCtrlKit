@@ -108,16 +108,18 @@ __pragma(warning(disable:5260))
 
 enum MONITOR_DPI_TYPE;
 
-#define ECK_NAMESPACE_BEGIN				namespace eck {
-#define ECK_NAMESPACE_END				}
-#define ECK_PRIV_NAMESPACE_BEGIN		namespace Priv {
-#define ECK_PRIV_NAMESPACE_END			}
-#define ECK_DUI_NAMESPACE_BEGIN			namespace Dui {
-#define ECK_DUI_NAMESPACE_END			}
-#define ECK_MEDIATAG_NAMESPACE_BEGIN	namespace MediaTag {
-#define ECK_MEDIATAG_NAMESPACE_END		}
-#define ECK_LYRIC_NAMESPACE_BEGIN		namespace Lyric {
-#define ECK_LYRIC_NAMESPACE_END			}
+#define ECK_NAMESPACE_BEGIN             namespace eck {
+#define ECK_NAMESPACE_END               }
+#define ECK_PRIV_NAMESPACE_BEGIN        namespace Priv {
+#define ECK_PRIV_NAMESPACE_END          }
+#define ECK_DUI_NAMESPACE_BEGIN         namespace Dui {
+#define ECK_DUI_NAMESPACE_END           }
+#define ECK_MEDIATAG_NAMESPACE_BEGIN    namespace MediaTag {
+#define ECK_MEDIATAG_NAMESPACE_END      }
+#define ECK_LYRIC_NAMESPACE_BEGIN       namespace Lyric {
+#define ECK_LYRIC_NAMESPACE_END         }
+#define ECK_UIBASIC_NAMESPACE_BEGIN     namespace UiBasic {
+#define ECK_UIBASIC_NAMESPACE_END       }
 
 #pragma region Template
 ECK_NAMESPACE_BEGIN

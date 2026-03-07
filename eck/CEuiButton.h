@@ -5,55 +5,56 @@ ECK_NAMESPACE_BEGIN
 ECK_EUI_NAMESPACE_BEGIN
 class CButton : public CElement
 {
-private:
-    BOOL m_bLBtnDown{};
 public:
+    static RcPtr<CThemeBase> TmDefaultTheme() noexcept;
+
+    static RcPtr<CThemeStyleCollection> TmMakeDefaultStyle(BOOL bDarkMode) noexcept
+    {
+        auto p = RcPtr<CThemeStyleCollection>::Make();
+        auto& vStyle = p->GetList();
+        vStyle.resize(3);
+        vStyle[0] =
+        {
+            .uState = SaNormal,
+            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'B2B2B2),
+            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'191919),
+        };
+        vStyle[1] =
+        {
+            .uState = SaHot,
+            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'191919),
+            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'191919),
+        };
+        vStyle[2] =
+        {
+            .uState = SaActive,
+            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'333333),
+            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'191919),
+        };
+        p->SetBorderWidth(2);
+        return p;
+    }
+
     HRESULT EhUiaMakeInterface() noexcept override;
 
     LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
+        const auto uOldThemeState = GetThemeState();
+        TmOnEvent(uMsg, wParam, lParam);
         switch (uMsg)
         {
         case WM_PAINT:
         {
             PAINTINFO ps;
             BeginPaint(ps, wParam, lParam);
-            const auto hDC = GetDC();
-
-            FillRect(hDC, &ps.rcClipInClient,
-                GetStockBrush(m_bLBtnDown ? BLACK_BRUSH : WHITE_BRUSH));
-            auto rc{ GetRectInClient() };
-            FrameRect(hDC, &rc,
-                GetStockBrush(m_bLBtnDown ? WHITE_BRUSH : BLACK_BRUSH));
-
-            DrawTextW(hDC, GetText().Data(), GetText().Size(), (RECT*)&rc,
-                DT_SINGLELINE | DT_CENTER | DT_VCENTER | DT_NOCLIP);
-
-            if (GetFocus() == this && IsShowingFocus())
-            {
-                InflateRect(rc, -4, -4);
-                FrameRect(hDC, &rc,
-                    GetStockBrush(m_bLBtnDown ? WHITE_BRUSH : BLACK_BRUSH));
-                //DrawFocusRect(hDC, &rc);
-            }
-
+            GetTheme()->Draw(this, IdPtNormal, GetRectInClient());
             EndPaint(ps);
         }
         return 0;
         case WM_LBUTTONDOWN:
         case WM_LBUTTONDBLCLK:
             SetFocus();
-            SetCapture();
-            m_bLBtnDown = TRUE;
-            Redraw();
             break;
-        case WM_LBUTTONUP:
-            ReleaseCapture();
-            break;
-        case WM_CAPTURECHANGED:
-            m_bLBtnDown = FALSE;
-            Redraw();
-            return 0;
         case WM_SETFOCUS:
         case WM_KILLFOCUS:
             if (IsShowingFocus())
@@ -62,10 +63,39 @@ public:
         case EWM_SHOWFOCUS:
             Redraw();
             break;
+        case WM_CREATE:
+            SetTheme(TmDefaultTheme().Get());
+            break;
         }
+        if ((GetThemeState() ^ uOldThemeState) & (SaHot | SaActive | SaDisable))
+            Redraw();
         return __super::OnEvent(uMsg, wParam, lParam);
     }
 };
+
+class CTmButton : public CThemeBase
+{
+public:
+    TmResult Draw(CElement* pEle, UINT idPart, const RECT& rc) noexcept override
+    {
+        if (idPart != IdPtNormal)
+            return TmResult::NotSupport;
+        const auto pStyle = TmSelectStyle(pEle);
+        if (!pStyle)
+            return TmResult::NoStyle;
+        const auto r = TmGenericDrawBackground(pEle, pStyle, rc);
+        if (r != TmResult::Ok)
+            return r;
+        const auto uDt = DT_SINGLELINE | DT_CENTER | DT_VCENTER |
+            ((pEle->GetStyle() & DES_NO_CLIP) ? 0 : DT_NOCLIP);
+        return TmGenericDrawText(pEle, pStyle, rc, uDt);
+    }
+};
+inline RcPtr<CThemeBase> CButton::TmDefaultTheme() noexcept
+{
+    static CTmButton s_Theme{};
+    return RcPtr<CThemeBase>{ static_cast<CThemeBase*>(&s_Theme) };
+}
 
 class CUiaButton : public CUnknownAppend<CUiaBase, IInvokeProvider>
 {
