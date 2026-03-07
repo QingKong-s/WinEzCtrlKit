@@ -30,6 +30,14 @@ namespace Declaration
         EWM_SHOWFOCUS,  // void(bShow, 0)
         EWM_BUBBLE,     // BOOL(0, BBEVENT*)  返回是否拦截
         EWM_SYSBEGIN,
+
+        // 转发OLE拖放
+        EWM_DRAGENTER,  // HRESULT(DRAGDROPINFO*, 0)
+        EWM_DRAGLEAVE,  // HRESULT(0, 0)
+        EWM_DRAGOVER,   // HRESULT(DRAGDROPINFO*, 0)
+        EWM_DROP,       // HRESULT(DRAGDROPINFO*, 0)
+
+        EWM_DROP_WIN31, // void(HDROP, 0)  转发Win3.1风格拖放WM_DROPFILES
     };
 }
 using namespace Declaration;
@@ -59,6 +67,15 @@ public:
     using TRect = typename TElement::TRect;
     using TPoint = typename TElement::TPoint;
     using TCoord = typename TElement::TCoord;
+
+    struct DRAGDROPINFO
+    {
+        IDataObject* pDataObj;
+        DWORD grfKeyState;
+        DWORD* pdwEffect;
+        POINT ptInClient;// 物理坐标
+        TPoint ptInClientLog;
+    };
 private:
     class CUiaContainer final : public CUnknown<CUiaContainer,
         IRawElementProviderSimple,
@@ -199,20 +216,71 @@ private:
         }
     };
 
+    class CDropTarget final : public CUnknown<CDropTarget, IDropTarget>
+    {
+    private:
+        CElementContainer* m_pContainer{};
+    public:
+        EckInlineCe void SetContainer(CElementContainer* p) noexcept { m_pContainer = p; }
+
+        STDMETHODIMP DragEnter(IDataObject* pDataObject,
+            DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override
+        {
+            if (!m_pContainer)
+            {
+                *pdwEffect = DROPEFFECT_NONE;
+                return E_UNEXPECTED;
+            }
+            return m_pContainer->DragEnter(pDataObject, grfKeyState, pt, pdwEffect);
+        }
+
+        STDMETHODIMP DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override
+        {
+            if (!m_pContainer)
+            {
+                *pdwEffect = DROPEFFECT_NONE;
+                return E_UNEXPECTED;
+            }
+            return m_pContainer->DragOver(grfKeyState, pt, pdwEffect);
+        }
+
+        STDMETHODIMP DragLeave() override
+        {
+            if (!m_pContainer)
+                return E_UNEXPECTED;
+            return m_pContainer->DragLeave();
+        }
+
+        STDMETHODIMP Drop(IDataObject* pDataObject,
+            DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override
+        {
+            if (!m_pContainer)
+            {
+                *pdwEffect = DROPEFFECT_NONE;
+                return E_UNEXPECTED;
+            }
+            return m_pContainer->Drop(pDataObject, grfKeyState, pt, pdwEffect);
+        }
+    };
+
     struct TIMER
     {
         TElement* pEle;
         UINT_PTR uId;
     };
 
-    TElement* m_pFirstChild{};
-    TElement* m_pLastChild{};
-    TElement* m_pFocus{};
-    TElement* m_pHover{};// WM_MOUSELEAVE使用
-    TElement* m_pCurrNcHitTest{};
-    TElement* m_pMouseCapture{};
+    TElement* m_pEleFirstChild{};
+    TElement* m_pEleLastChild{};
+    TElement* m_pEleFocus{};
+    TElement* m_pEleHover{};// WM_MOUSELEAVE使用
+    TElement* m_pEleCurrNcHitTest{};
+    TElement* m_pEleMouseCapture{};
+    TElement* m_pEleDragDrop{};
 
     ComPtr<CUiaContainer> m_pUia{};
+
+    ComPtr<IDataObject> m_pDataObject{};// DragOver使用
+    ComPtr<CDropTarget> m_pDropTarget{};
 
     std::vector<TIMER> m_vTimer{};
 
@@ -230,14 +298,16 @@ private:
 private:
     void ElementDestroying(TElement* pEle) noexcept
     {
-        if (m_pFocus == pEle)
-            m_pFocus = nullptr;
-        if (m_pCurrNcHitTest == pEle)
-            m_pCurrNcHitTest = nullptr;
-        if (m_pMouseCapture == pEle)
+        if (m_pEleFocus == pEle)
+            m_pEleFocus = nullptr;
+        if (m_pEleCurrNcHitTest == pEle)
+            m_pEleCurrNcHitTest = nullptr;
+        if (m_pEleMouseCapture == pEle)
             EleReleaseCapture();
-        if (m_pHover == pEle)
-            m_pHover = nullptr;
+        if (m_pEleHover == pEle)
+            m_pEleHover = nullptr;
+        if (m_pEleDragDrop)
+            m_pEleDragDrop = nullptr;
         for (auto it = m_vTimer.begin(); it != m_vTimer.end(); )
         {
             if (it->pEle == pEle)
@@ -281,8 +351,8 @@ public:
             TPoint pt{ (TCoord)GET_X_LPARAM(lParam), (TCoord)GET_Y_LPARAM(lParam) };
             PixelToLogical(pt);
             if (m_bMouseCaptured)
-                m_pCurrNcHitTest = TElement::EtHitTest(EtLastChild(), pt);
-            const auto pEle = (m_pMouseCapture ? m_pMouseCapture : m_pCurrNcHitTest);
+                m_pEleCurrNcHitTest = TElement::EtHitTest(EtLastChild(), pt);
+            const auto pEle = (m_pEleMouseCapture ? m_pEleMouseCapture : m_pEleCurrNcHitTest);
             if (pEle)
             {
                 pEle->ClientToElement(pt);
@@ -292,11 +362,11 @@ public:
 
             if (uMsg == WM_MOUSEMOVE)// 移出监听
             {
-                if (m_pHover != m_pCurrNcHitTest && !m_bMouseCaptured)
+                if (m_pEleHover != m_pEleCurrNcHitTest && !m_bMouseCaptured)
                 {
-                    if (m_pHover)
-                        m_pHover->CallEvent(WM_MOUSELEAVE, 0, 0);
-                    m_pHover = m_pCurrNcHitTest;
+                    if (m_pEleHover)
+                        m_pEleHover->CallEvent(WM_MOUSELEAVE, 0, 0);
+                    m_pEleHover = m_pEleCurrNcHitTest;
                 }
                 TRACKMOUSEEVENT tme;
                 tme.cbSize = sizeof(tme);
@@ -314,19 +384,19 @@ public:
                 ScreenToClient(HWnd, &pt);
                 TPoint ptLog{ (TCoord)pt.x, (TCoord)pt.y };
                 PixelToLogical(ptLog);
-                m_pCurrNcHitTest = TElement::EtHitTest(EtLastChild(), ptLog);
+                m_pEleCurrNcHitTest = TElement::EtHitTest(EtLastChild(), ptLog);
             }
-            const auto pEle = (m_pMouseCapture ? m_pMouseCapture : m_pCurrNcHitTest);
+            const auto pEle = (m_pEleMouseCapture ? m_pEleMouseCapture : m_pEleCurrNcHitTest);
             if (pEle)
                 pEle->CallEvent(uMsg, wParam, lParam);
 
             if (uMsg == WM_NCMOUSEMOVE)// 移出监听
             {
-                if (m_pHover != m_pCurrNcHitTest && !m_bMouseCaptured)
+                if (m_pEleHover != m_pEleCurrNcHitTest && !m_bMouseCaptured)
                 {
-                    if (m_pHover)
-                        m_pHover->CallEvent(WM_MOUSELEAVE, 0, 0);
-                    m_pHover = m_pCurrNcHitTest;
+                    if (m_pEleHover)
+                        m_pEleHover->CallEvent(WM_MOUSELEAVE, 0, 0);
+                    m_pEleHover = m_pEleCurrNcHitTest;
                 }
                 TRACKMOUSEEVENT tme;
                 tme.cbSize = sizeof(tme);
@@ -349,7 +419,7 @@ public:
         }
         else if (uMsg >= WM_KEYFIRST && uMsg <= WM_IME_KEYLAST)
         {
-            if (!m_pFocus)
+            if (!m_pEleFocus)
                 goto CallDefault;
             const MSG Msg
             {
@@ -365,12 +435,12 @@ public:
                 {
                 case VK_TAB:
                 {
-                    const auto uDlgCode = m_pFocus->CallEvent(
+                    const auto uDlgCode = m_pEleFocus->CallEvent(
                         WM_GETDLGCODE, wParam, (LPARAM)&Msg);
                     if (uDlgCode & (DLGC_WANTMESSAGE | DLGC_WANTTAB))
                         break;
                     const auto pNextFocus =
-                        m_pFocus->EtNextTabStop(!(GetKeyState(VK_SHIFT) & 0x8000));
+                        m_pEleFocus->EtNextTabStop(!(GetKeyState(VK_SHIFT) & 0x8000));
                     if (pNextFocus)
                     {
                         EleShowFocus(TRUE);
@@ -383,7 +453,7 @@ public:
             }
             break;
             }
-            m_pFocus->CallEvent(uMsg, wParam, lParam);
+            m_pEleFocus->CallEvent(uMsg, wParam, lParam);
             goto CallDefault;
         }
 
@@ -399,14 +469,14 @@ public:
             TPoint ptLog{ (TCoord)pt.x, (TCoord)pt.y };
             PixelToLogical(ptLog);
             LRESULT lResultNew;
-            if (m_pCurrNcHitTest = TElement::EtHitTest(EtLastChild(), ptLog, &lResultNew))
+            if (m_pEleCurrNcHitTest = TElement::EtHitTest(EtLastChild(), ptLog, &lResultNew))
                 return lResultNew;
             return lResult;
         }
 
         case WM_SETCURSOR:
         {
-            const auto pEle = (m_pMouseCapture ? m_pMouseCapture : m_pCurrNcHitTest);
+            const auto pEle = (m_pEleMouseCapture ? m_pEleMouseCapture : m_pEleCurrNcHitTest);
             if (pEle && pEle->CallEvent(uMsg, wParam, lParam))
                 return TRUE;
         }
@@ -434,10 +504,10 @@ public:
 
         case WM_NCMOUSELEAVE:
         case WM_MOUSELEAVE:
-            if (m_pHover)
+            if (m_pEleHover)
             {
-                m_pHover->CallEvent(WM_MOUSELEAVE, 0, 0);
-                m_pHover = nullptr;
+                m_pEleHover->CallEvent(WM_MOUSELEAVE, 0, 0);
+                m_pEleHover = nullptr;
             }
             break;
 
@@ -446,19 +516,32 @@ public:
             if (m_bMouseCaptured)
             {
                 m_bMouseCaptured = FALSE;
-                if (m_pMouseCapture)
+                if (m_pEleMouseCapture)
                 {
-                    m_pMouseCapture->CallEvent(WM_CAPTURECHANGED, 0, NULL);
-                    if (m_pHover && m_pHover != m_pMouseCapture)
+                    m_pEleMouseCapture->CallEvent(WM_CAPTURECHANGED, 0, NULL);
+                    if (m_pEleHover && m_pEleHover != m_pEleMouseCapture)
                     {
-                        m_pHover->CallEvent(WM_MOUSELEAVE, 0, 0);
-                        m_pHover = nullptr;
+                        m_pEleHover->CallEvent(WM_MOUSELEAVE, 0, 0);
+                        m_pEleHover = nullptr;
                     }
-                    m_pMouseCapture = nullptr;
+                    m_pEleMouseCapture = nullptr;
                 }
             }
         }
         break;
+
+        case WM_DROPFILES:
+        {
+            POINT pt;
+            DragQueryPoint((HDROP)wParam, &pt);
+            ScreenToClient(HWnd, &pt);
+            TPoint ptLog{ (TCoord)pt.x, (TCoord)pt.y };
+            PixelToLogical(ptLog);
+            const auto pEle = TElement::EtHitTest(EtLastChild(), ptLog);
+            if (pEle)
+                pEle->CallEvent(EWM_DROP_WIN31, wParam, lParam);
+        }
+        return 0;
 
         case WM_GETOBJECT:
         {
@@ -496,8 +579,9 @@ public:
                 pElem->Destroy();
                 pElem = pNext;
             }
-            m_pFirstChild = m_pLastChild = nullptr;
-            m_pFocus = m_pHover = m_pCurrNcHitTest = m_pMouseCapture = nullptr;
+            m_pEleFirstChild = m_pEleLastChild = nullptr;
+            m_pEleFocus = m_pEleHover = m_pEleCurrNcHitTest =
+                m_pEleMouseCapture = m_pEleDragDrop = nullptr;
 
             if (m_pUia.Get())
             {
@@ -508,6 +592,12 @@ public:
                     nullptr, 0);
                 m_pUia.Clear();
                 UiaReturnRawElementProvider(HWnd, 0, 0, nullptr);
+            }
+
+            if (m_pDropTarget.Get())
+            {
+                m_pDropTarget->SetContainer(nullptr);
+                m_pDropTarget.Clear();
             }
         }
         break;
@@ -581,8 +671,8 @@ public:
         rc.bottom = LogicalToPixel(rc.bottom);
     }
 public:
-    EckInlineNdCe TElement* EtFirstChild() const noexcept { return m_pFirstChild; }
-    EckInlineNdCe TElement* EtLastChild() const noexcept { return m_pLastChild; }
+    EckInlineNdCe TElement* EtFirstChild() const noexcept { return m_pEleFirstChild; }
+    EckInlineNdCe TElement* EtLastChild() const noexcept { return m_pEleLastChild; }
 
     void EtBroadcastEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
@@ -598,24 +688,24 @@ public:
     TElement* EleSetFocus(TElement* pEle) noexcept
     {
         SetFocus(HWnd);
-        if (m_pFocus == pEle)
-            return m_pFocus;
+        if (m_pEleFocus == pEle)
+            return m_pEleFocus;
         if (pEle && (pEle->GetStyle() & DES_NO_FOCUSABLE))
-            return m_pFocus;
-        auto pOld = m_pFocus;
-        m_pFocus = pEle;
+            return m_pEleFocus;
+        auto pOld = m_pEleFocus;
+        m_pEleFocus = pEle;
         if (pOld)
             pOld->CallEvent(WM_KILLFOCUS, (WPARAM)pEle, 0);
         if (pEle)
             pEle->CallEvent(WM_SETFOCUS, (WPARAM)pOld, 0);
         return pOld;
     }
-    EckInlineNdCe TElement* EleGetFocus() const noexcept { return m_pFocus; }
+    EckInlineNdCe TElement* EleGetFocus() const noexcept { return m_pEleFocus; }
 
     TElement* EleSetCapture(TElement* pEle) noexcept
     {
-        auto pOld = m_pMouseCapture;
-        m_pMouseCapture = pEle;
+        auto pOld = m_pEleMouseCapture;
+        m_pEleMouseCapture = pEle;
         if (GetCapture() != HWnd)
         {
             SetCapture(HWnd);
@@ -629,10 +719,10 @@ public:
     {
         ReleaseCapture();
         // WM_CAPTURECHANGED will process it:
-        // m_pMouseCapture->CallEvent(WM_CAPTURECHANGED, 0, nullptr);
-        // m_pMouseCapture = nullptr;
+        // m_pEleMouseCapture->CallEvent(WM_CAPTURECHANGED, 0, nullptr);
+        // m_pEleMouseCapture = nullptr;
     }
-    EckInlineNdCe TElement* EleGetCapture() const noexcept { return m_pMouseCapture; }
+    EckInlineNdCe TElement* EleGetCapture() const noexcept { return m_pEleMouseCapture; }
 
     BOOL EleSetTimer(TElement* pEle, UINT_PTR uId, UINT uElapse) noexcept
     {
@@ -673,6 +763,96 @@ public:
     EckInlineNdCe TCoord GetClientHeightLogical() const noexcept { return m_sizeClientLog.y; }
     EckInlineNdCe int GetClientWidth() const noexcept { return m_cxClient; }
     EckInlineNdCe int GetClientHeight() const noexcept { return m_cyClient; }
+public:
+    HRESULT GetDropTarget(_Out_ IDropTarget*& p) noexcept
+    {
+        if (!m_pDropTarget.Get())
+        {
+            m_pDropTarget.Attach(new CDropTarget{});
+            m_pDropTarget->SetContainer(this);
+        }
+        p = m_pDropTarget.Get();
+        p->AddRef();
+        return S_OK;
+    }
+protected:
+    virtual HRESULT DragEnter(IDataObject* pDataObject,
+        DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) noexcept
+    {
+        EckAssert(!m_pDataObject.Get() && !m_pEleDragDrop);
+        m_pDataObject = pDataObject;
+
+        POINT ptInClient{ pt.x, pt.y };
+        ScreenToClient(HWnd, &ptInClient);
+        TPoint ptLog{ (TCoord)ptInClient.x, (TCoord)ptInClient.y };
+        PixelToLogical(ptLog);
+
+        m_pEleDragDrop = TElement::EtHitTest(EtLastChild(), ptLog);
+        if (m_pEleDragDrop)
+        {
+            DRAGDROPINFO ddi{ pDataObject, grfKeyState, pdwEffect, ptInClient, ptLog };
+            return (HRESULT)m_pEleDragDrop->CallEvent(
+                EWM_DRAGENTER, (WPARAM)&ddi, 0);
+        }
+        return S_OK;
+    }
+    virtual HRESULT DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) noexcept
+    {
+        POINT ptInClient{ pt.x, pt.y };
+        ScreenToClient(HWnd, &ptInClient);
+        TPoint ptLog{ (TCoord)ptInClient.x, (TCoord)ptInClient.y };
+        PixelToLogical(ptLog);
+
+        const auto pOldElem = m_pEleDragDrop;
+        m_pEleDragDrop = TElement::EtHitTest(EtLastChild(), ptLog);;
+
+        DRAGDROPINFO ddi{ m_pDataObject.Get(), grfKeyState, pdwEffect, ptInClient, ptLog };
+        if (pOldElem != m_pEleDragDrop)
+        {
+            if (pOldElem)
+                pOldElem->CallEvent(EWM_DRAGLEAVE, 0, 0);
+            if (m_pEleDragDrop)
+            {
+                return (HRESULT)m_pEleDragDrop->CallEvent(
+                    EWM_DRAGENTER, (WPARAM)&ddi, 0);
+            }
+        }
+        else if (m_pEleDragDrop)
+            return (HRESULT)m_pEleDragDrop->CallEvent(
+                EWM_DRAGOVER, (WPARAM)&ddi, 0);
+        return S_OK;
+    }
+    virtual HRESULT DragLeave() noexcept
+    {
+        m_pDataObject.Clear();
+        const auto pEle = m_pEleDragDrop;
+        if (pEle)
+        {
+            m_pEleDragDrop = nullptr;
+            return (HRESULT)pEle->CallEvent(EWM_DRAGLEAVE, 0, 0);
+        }
+        return S_OK;
+    }
+    virtual HRESULT Drop(IDataObject* pDataObject,
+        DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) noexcept
+    {
+        m_pDataObject.Clear();
+
+        POINT ptInClient{ pt.x, pt.y };
+        ScreenToClient(HWnd, &ptInClient);
+        TPoint ptLog{ (TCoord)ptInClient.x, (TCoord)ptInClient.y };
+        PixelToLogical(ptLog);
+
+        DRAGDROPINFO ddi{ pDataObject, grfKeyState, pdwEffect, ptInClient, ptLog };
+        const auto pEle = TElement::EtHitTest(EtLastChild(), ptLog);;
+        if (pEle)
+        {
+            m_pEleDragDrop = nullptr;
+            return (HRESULT)pEle->CallEvent(
+                EWM_DROP, (WPARAM)&ddi, 0);
+        }
+        return S_OK;
+    }
 };
 
 /*
@@ -861,8 +1041,8 @@ private:
     THost* m_pNext{};    // 下一元素，Z序高于当前
     THost* m_pPrev{};    // 上一元素，Z序低于当前
     THost* m_pParent{};
-    THost* m_pFirstChild{};
-    THost* m_pLastChild{};
+    THost* m_pEleFirstChild{};
+    THost* m_pEleLastChild{};
     CElementContainer<THost>* m_pContainer{};
 
     CEventChain<Intercept_T, LRESULT, UINT, WPARAM, LPARAM> m_ec{};
@@ -874,8 +1054,10 @@ private:
 
     UINT m_uStyle{};
     UINT m_UiaId{};
-
-    constexpr void CorrectChildrenRectInClient() const noexcept
+public:
+    using HSlot = decltype(m_ec)::HSlot;
+private:
+    constexpr void CorrectChildrenOffsetInClient() const noexcept
     {
         auto pEle = EtFirstChild();
         while (pEle)
@@ -885,7 +1067,7 @@ private:
                 pEle->m_rc.left + m_ptInClient.x,
                 pEle->m_rc.top + m_ptInClient.y
             };
-            pEle->CorrectChildrenRectInClient();
+            pEle->CorrectChildrenOffsetInClient();
             pEle = pEle->EtNext();
         }
     }
@@ -1000,9 +1182,9 @@ protected:
         m_UiaId = pContainer->UiaGenerateId();
 
         auto& pParentLastChild =
-            (pParent ? pParent->m_pLastChild : pContainer->m_pLastChild);
+            (pParent ? pParent->m_pEleLastChild : pContainer->m_pEleLastChild);
         auto& pParentFirstChild =
-            (pParent ? pParent->m_pFirstChild : pContainer->m_pFirstChild);
+            (pParent ? pParent->m_pEleFirstChild : pContainer->m_pEleFirstChild);
         if (pParentLastChild)
         {
             m_pPrev = pParentLastChild;
@@ -1060,9 +1242,9 @@ protected:
         else
         {
             if (m_pParent)
-                m_pParent->m_pFirstChild = m_pNext;
+                m_pParent->m_pEleFirstChild = m_pNext;
             else
-                m_pContainer->m_pFirstChild = m_pNext;
+                m_pContainer->m_pEleFirstChild = m_pNext;
         }
 
         if (m_pNext)
@@ -1070,16 +1252,16 @@ protected:
         else
         {
             if (m_pParent)
-                m_pParent->m_pLastChild = m_pPrev;
+                m_pParent->m_pEleLastChild = m_pPrev;
             else
-                m_pContainer->m_pLastChild = m_pPrev;
+                m_pContainer->m_pEleLastChild = m_pPrev;
         }
 
         m_pNext = nullptr;
         m_pPrev = nullptr;
         m_pParent = nullptr;
-        m_pFirstChild = nullptr;
-        m_pLastChild = nullptr;
+        m_pEleFirstChild = nullptr;
+        m_pEleLastChild = nullptr;
         m_pContainer = nullptr;
 
         m_rc = {};
@@ -1108,7 +1290,7 @@ protected:
             m_ptInClient.x += m_pParent->m_ptInClient.x;
             m_ptInClient.y += m_pParent->m_ptInClient.y;
         }
-        CorrectChildrenRectInClient();
+        CorrectChildrenOffsetInClient();
     }
     constexpr void SetPosition(TCoord x, TCoord y) noexcept
     {
@@ -1119,7 +1301,7 @@ protected:
             m_ptInClient.x += m_pParent->m_ptInClient.x;
             m_ptInClient.y += m_pParent->m_ptInClient.y;
         }
-        CorrectChildrenRectInClient();
+        CorrectChildrenOffsetInClient();
     }
     void SetSize(TCoord cx, TCoord cy) noexcept
     {
@@ -1168,8 +1350,8 @@ public:
 
 #pragma region ElementTree
 public:
-    EckInlineNdCe THost* EtFirstChild() const noexcept { return m_pFirstChild; }
-    EckInlineNdCe THost* EtLastChild() const noexcept { return m_pLastChild; }
+    EckInlineNdCe THost* EtFirstChild() const noexcept { return m_pEleFirstChild; }
+    EckInlineNdCe THost* EtLastChild() const noexcept { return m_pEleLastChild; }
     EckInlineNdCe THost* EtParent() const noexcept { return m_pParent; }
     // 取下一元素，Z序高于当前
     EckInlineNdCe THost* EtNext() const noexcept { return m_pNext; }
@@ -1270,11 +1452,11 @@ protected:
     void SetZOrder(THost* pEleAfter) noexcept
     {
         auto& pParentLastChild = (m_pParent ?
-            m_pParent->m_pLastChild :
-            m_pContainer->m_pLastChild);
+            m_pParent->m_pEleLastChild :
+            m_pContainer->m_pEleLastChild);
         auto& pParentFirstChild = (m_pParent ?
-            m_pParent->m_pFirstChild :
-            m_pContainer->m_pFirstChild);
+            m_pParent->m_pEleFirstChild :
+            m_pContainer->m_pEleFirstChild);
 
         if (pEleAfter == EtBottom)
         {
