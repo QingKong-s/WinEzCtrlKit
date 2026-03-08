@@ -3,6 +3,11 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_EUI_NAMESPACE_BEGIN
+struct NM_BUTTON_CLICK : ELENMHDR
+{
+
+};
+
 class CButton : public CElement
 {
 public:
@@ -16,22 +21,22 @@ public:
         vStyle[0] =
         {
             .uState = SaNormal,
-            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'B2B2B2),
-            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'191919),
+            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'F0F0F0),
+            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
         };
         vStyle[1] =
         {
             .uState = SaHot,
-            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'191919),
-            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'191919),
+            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'E0E0E0),
+            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
         };
         vStyle[2] =
         {
             .uState = SaActive,
-            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'333333),
-            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'191919),
+            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
+            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
         };
-        p->SetBorderWidth(2);
+        p->SetBorderWidth(1);
         return p;
     }
 
@@ -55,6 +60,11 @@ public:
         case WM_LBUTTONDBLCLK:
             SetFocus();
             break;
+        case WM_LBUTTONUP:
+            if (!(GetThemeState() & SaActive) &&
+                uOldThemeState & SaActive)
+                EvtClick();
+            break;
         case WM_SETFOCUS:
         case WM_KILLFOCUS:
             if (IsShowingFocus())
@@ -70,6 +80,12 @@ public:
         if ((GetThemeState() ^ uOldThemeState) & (SaHot | SaActive | SaDisable))
             Redraw();
         return __super::OnEvent(uMsg, wParam, lParam);
+    }
+
+    void EvtClick() noexcept
+    {
+        ELENMHDR nm{ NMC_COMMAND };
+        SendNotify(&nm);
     }
 };
 
@@ -112,6 +128,7 @@ class CUiaButton : public CUnknownAppend<CUiaBase, IInvokeProvider>
 
     STDMETHODIMP Invoke() override
     {
+        DbgDynamicCast<CButton*>(m_pEle)->EvtClick();
         return S_OK;
     }
 };

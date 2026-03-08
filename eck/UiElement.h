@@ -22,6 +22,9 @@ namespace Declaration
         DES_BUBBLE_INPUT = 1u << 5, // 冒泡所有输入事件
         DES_BUBBLE_ALL = 1u << 6,   // 冒泡所有事件
         DES_NO_FOCUSABLE = 1u << 7,
+        DES_NOTIFY_WND = 1u << 8,   // 元素产生的通知发送到窗口
+        DES_NOTIFY_PARENT = 1u << 9,// 元素产生的通知发送到父元素
+        DES_DBG_FRAME = 1u << 10,
     };
 
     enum : UINT
@@ -38,6 +41,12 @@ namespace Declaration
         EWM_DROP,       // HRESULT(DRAGDROPINFO*, 0)
 
         EWM_DROP_WIN31, // void(HDROP, 0)  转发Win3.1风格拖放WM_DROPFILES
+    };
+
+    struct ELENMHDR
+    {
+        UINT uNotify;
+        BOOL bProcessed;
     };
 }
 using namespace Declaration;
@@ -533,13 +542,15 @@ public:
         case WM_DROPFILES:
         {
             POINT pt;
-            DragQueryPoint((HDROP)wParam, &pt);
-            ScreenToClient(HWnd, &pt);
-            TPoint ptLog{ (TCoord)pt.x, (TCoord)pt.y };
-            PixelToLogical(ptLog);
-            const auto pEle = TElement::EtHitTest(EtLastChild(), ptLog);
-            if (pEle)
-                pEle->CallEvent(EWM_DROP_WIN31, wParam, lParam);
+            if (DragQueryPoint((HDROP)wParam, &pt))// 落点位于客户区中
+            {
+                ScreenToClient(HWnd, &pt);
+                TPoint ptLog{ (TCoord)pt.x, (TCoord)pt.y };
+                PixelToLogical(ptLog);
+                const auto pEle = TElement::EtHitTest(EtLastChild(), ptLog);
+                if (pEle)
+                    pEle->CallEvent(EWM_DROP_WIN31, wParam, lParam);
+            }
         }
         return 0;
 
@@ -605,6 +616,8 @@ public:
     CallDefault:
         return __super::OnMessage(uMsg, wParam, lParam);
     }
+
+    virtual LRESULT OnElementNotify(TElement* pEle, ELENMHDR* pnm) noexcept { return 0; }
 
     template<CcpComInterface T>
     EckInline HRESULT UiaQueryInterface(T** p) noexcept
@@ -859,17 +872,18 @@ protected:
 * 实现了以下事件（除非特别说明，所有坐标均为逻辑坐标）
 * 未标注参数类型的原样转发Win32消息
 *
-* WM_MOUSEFIRST ~ WM_MOUSELAST          (MkFlags, Kw::Vec2*   ) InElement
+* WM_MOUSEFIRST ~ WM_MOUSELAST          (MkFlags, TPoint*     ) InElement
 * WM_MOUSELEAVE                         (0      , 0           )
 * WM_NCMOUSEMOVE ~ WM_NCXBUTTONDBLCLK
 * WM_KEYFIRST ~ WM_IME_KEYLAST          (Vk     , KeyDownFlags)
-* WM_NCHITTEST                          (0      , Kw::Vec2    ) InClient
+* WM_NCHITTEST                          (0      , TPoint      ) InClient
 * WM_SETCURSOR
 * WM_TIMER                              (Id     , 0           )
 * WM_CAPTURECHANGED                     (0      , pEleNew     )
 * WM_SETFOCUS                           (pEleOld, 0           )
 * WM_KILLFOCUS                          (pEleNew, 0           )
 * WM_GETDLGCODE                         (Vk     , MSG*        )
+* WM_NOTIFY                             (pEle   , ELENMHDR*   )
 *
 * 若某类派生自此类，则必须有下列方法
 * Destroy
@@ -1101,6 +1115,8 @@ public:
         return 0;
     }
 
+    virtual LRESULT OnNotify(ELENMHDR* pnm) noexcept { return 0; }
+
     virtual BOOL EhTransform(_Inout_ TPoint& pt, BOOL bInClient) noexcept { return FALSE; }
 
     virtual HRESULT EhUiaMakeInterface() noexcept
@@ -1164,6 +1180,27 @@ public:
         if ((GetStyle() & DES_BUBBLE_INPUT) && IsInputMessage(uMsg))
             return TRUE;
         return FALSE;
+    }
+
+    LRESULT SendNotify(ELENMHDR* pnm) noexcept
+    {
+        LRESULT lResult;
+        lResult = OnNotify(pnm);
+        if (pnm->bProcessed)
+            return lResult;
+        if (GetStyle() & DES_NOTIFY_WND)
+        {
+            lResult = GetContainer()->OnElementNotify((THost*)this, pnm);
+            if (pnm->bProcessed)
+                return lResult;
+        }
+        if ((GetStyle() & DES_NOTIFY_PARENT) && EtParent())
+        {
+            lResult = EtParent()->CallEvent(WM_NOTIFY, (WPARAM)this, (LPARAM)pnm);
+            if (pnm->bProcessed)
+                return lResult;
+        }
+        return 0;
     }
 
     EckInlineNdCe auto& GetEventChain() noexcept { return m_ec; }

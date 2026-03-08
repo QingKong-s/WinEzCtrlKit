@@ -251,18 +251,10 @@ public:
     {
         switch (uMsg)
         {
-        case WM_CREATE:
-        {
-            const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
-            m_DC.FromWindow(HWnd, GetClientWidth(), GetClientHeight());
-            Redraw({ 0, 0, GetClientWidth(), GetClientHeight() });
-            return lResult;
-        }
-
         case WM_SIZE:
         {
             const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
-            m_DC.ReSize(HWnd, LOWORD(lParam), HIWORD(lParam));
+            m_DC.ReSize(HWnd, GetClientWidth(), GetClientHeight());
             Redraw({ 0, 0, GetClientWidth(), GetClientHeight() });
             return lResult;
         }
@@ -276,6 +268,23 @@ public:
             EndPaint(HWnd, wParam, ps);
         }
         return 0;
+
+        case WM_CREATE:
+        {
+            const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
+            m_DC.FromWindow(HWnd, GetClientWidth(), GetClientHeight());
+            const auto hDC = m_DC.GetDC();
+            SelectClipRgn(hDC, nullptr);
+            SetBkMode(hDC, TRANSPARENT);
+            Redraw({ 0, 0, GetClientWidth(), GetClientHeight() });
+            return lResult;
+        }
+        case WM_DESTROY:
+        {
+            const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
+            m_DC.Destroy();
+            return lResult;
+        }
         }
         return __super::OnMessage(uMsg, wParam, lParam);
     }
@@ -346,9 +355,14 @@ inline void CElement::EndPaint(const PAINTINFO& ps) noexcept
     const auto hDC = GetDC();
     if (!(GetStyle() & DES_NO_CLIP))
     {
-        const auto hRgn = CreateRectRgnIndirect(&ps.rcOldClip);
-        SelectClipRgn(hDC, hRgn);
-        DeleteObject(hRgn);
+        if (EtParent())
+        {
+            const auto hRgn = CreateRectRgnIndirect(&ps.rcOldClip);
+            SelectClipRgn(hDC, hRgn);
+            DeleteObject(hRgn);
+        }
+        else
+            SelectClipRgn(hDC, nullptr);
         if (GetWindow().GetRenderFlags() & (RDF_GDIX_GEO | RDF_GDIX_TEXT))
         {
             GdipSetClipRectI(GetGraphics(),
@@ -425,9 +439,8 @@ inline TmResult TmGenericDrawBackground(
     {
         const auto hDC = pEle->GetDC();
         SetDCBrushColor(hDC, ArgbToColorref(pStyle->argbBack));
-        SelectObject(hDC, GetStockObject(DC_BRUSH));
-        SelectObject(hDC, GetStockObject(NULL_PEN));
-        Rectangle(hDC, rc.left, rc.top, rc.right, rc.bottom);
+        const auto hBrush = GetStockBrush(DC_BRUSH);
+        FillRect(hDC, &rc, hBrush);
 
         if (pStyle->dLeft || pStyle->dRight ||
             pStyle->dTop || pStyle->dBottom)
@@ -442,14 +455,31 @@ inline TmResult TmGenericDrawBackground(
                 SelectObject(Stock.hCDC, hOld);
             }
             SetDCBrushColor(hDC, ArgbToColorref(pStyle->argbBorder));
+            RECT rcBorder{ rc };
             if (pStyle->dLeft)
-                Rectangle(hDC, rc.left, rc.top, rc.left + pStyle->dLeft, rc.bottom);
+            {
+                rcBorder.right = rc.left + pStyle->dLeft;
+                FillRect(hDC, &rcBorder, hBrush);
+                rcBorder.right = rc.right;
+            }
             if (pStyle->dTop)
-                Rectangle(hDC, rc.left, rc.top, rc.right, rc.top + pStyle->dTop);
+            {
+                rcBorder.bottom = rc.top + pStyle->dTop;
+                FillRect(hDC, &rcBorder, hBrush);
+                rcBorder.bottom = rc.bottom;
+            }
             if (pStyle->dRight)
-                Rectangle(hDC, rc.right - pStyle->dRight, rc.top, rc.right, rc.bottom);
+            {
+                rcBorder.left = rc.right - pStyle->dRight;
+                FillRect(hDC, &rcBorder, hBrush);
+                rcBorder.left = rc.left;
+            }
             if (pStyle->dBottom)
-                Rectangle(hDC, rc.left, rc.bottom - pStyle->dBottom, rc.right, rc.bottom);
+            {
+                rcBorder.top = rc.bottom - pStyle->dBottom;
+                FillRect(hDC, &rcBorder, hBrush);
+                rcBorder.top = rc.top;
+            }
         }
     }
     else if (uRenderFlags & RDF_GDIX_GEO)

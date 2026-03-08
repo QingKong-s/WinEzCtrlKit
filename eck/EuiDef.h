@@ -31,6 +31,11 @@ enum : UINT
     RDF_ALPHA = 1u << 5,
 };
 
+enum : UINT
+{
+    NMC_COMMAND,
+};
+
 struct PAINTINFO
 {
     RECT rcOldClip;
