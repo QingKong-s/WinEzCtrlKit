@@ -1,51 +1,48 @@
 ﻿#pragma once
-#include "DuiTheme.h"
+#include "UiElement.h"
+#include "CReferenceCounted.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-class CElem;
+using namespace UiBasic::Declaration;
+
+class CElement;
 
 // 元素样式
 enum
 {
-    DES_BLURBKG = (1u << 0),	// 模糊背景
-    DES_DISABLE = (1u << 1),	// 已禁用
-    DES_VISIBLE = (1u << 2),	// 可见
-    DES_TRANSPARENT = (1u << 3),// 保留，当前无效
+    DES_BLURBKG = (1u << 31),	// 模糊背景
     // 元素的内容受周边其他内容影响，若无效区域与元素相交，
     // 则必须更新整个元素，设置时DES_BLURBKG强制设置此样式
-    DES_CONTENT_EXPAND = (1u << 4),
+    DES_CONTENT_EXPAND = (1u << 30),
     // 元素的内容受周边其他内容影响，确定更新区域时DUI系统发送
     // EWM_QUERY_EXPAND_RECT以获取扩展矩形
-    DES_CONTENT_EXPAND_RECT = (1u << 5),
+    DES_CONTENT_EXPAND_RECT = (1u << 29),
     // DUI系统应当检查当前元素的祖元素，因为它们可能设置了混合器
-    DES_PARENT_COMP = (1u << 6),
-    DES_BORDER = (1u << 7),     // 有边框 TODO
-    DES_NO_REDRAW = (1u << 8),	// 不允许重绘，一般不使用此样式
+    DES_PARENT_COMP = (1u << 28),
+    DES_NO_REDRAW = (1u << 27),	// 不允许重绘，一般不使用此样式
     // 对于手动混合元素，DUI不应自行分配后台缓存，而应按下列顺序请求缓存：
     // 调用CCompositor::CreateCacheBitmap，若失败，向元素的父级发送
     // EWM_CREATE_CACHE_BITMAP
-    DES_OWNER_COMP_CACHE = (1u << 9),
+    DES_OWNER_COMP_CACHE = (1u << 26),
     // 指示当前手动混合元素不使用后台缓存，
     // 设置后DUI系统适时调用CCompositor::PreRender
-    DES_COMP_NO_REDIRECTION = (1u << 10),
-    // GenElemNotify产生的通知不会发送到父级，而是发送到窗口
-    DES_NOTIFY_TO_WND = (1u << 11),
+    DES_COMP_NO_REDIRECTION = (1u << 25),
     // 【仅供内部使用】元素的后台缓存内容需要更新。
     // 设置该标志的意图是尽量减少手动混合元素的重渲染（特别是在播放动画时）。
     // 普通元素需要每次重渲染是因为其内容没有保存，但未设置DES_COMP_NO_REDIRECTION
     // 的手动混合标志都具有一副后台位图，内容为上一次渲染结果。
     // DUI系统直接在m_dwStyle字段上操作该位，该位永远不会传递到SetStyle
-    DESP_COMP_CONTENT_INVALID = (1u << 12),
+    DESP_COMP_CONTENT_INVALID = (1u << 24),
     // 指示基类事件处理函数应调用BeginPaint/EndPaint对
-    DES_BASE_BEGIN_END_PAINT = (1u << 13),
+    DES_BASE_BEGIN_END_PAINT = (1u << 23),
 
     // 【仅供内部使用】
     DESP_EXPANDED = DES_CONTENT_EXPAND | DES_CONTENT_EXPAND_RECT,
 };
 
 // 元素产生的通知
-enum :UINT
+enum : UINT
 {
     EE_COMMAND = 1,
     EE_KILLFOCUS,
@@ -141,15 +138,6 @@ struct RENDER_EVENT
     };
 };
 
-struct DRAGDROPINFO
-{
-    IDataObject* pDataObj;
-    DWORD grfKeyState;
-    POINTL ptScreen;
-    DWORD* pdwEffect;
-    HRESULT hr;
-};
-
 class CCompCacheSurface;
 struct CREATE_CACHE_BITMAP_INFO
 {
@@ -176,58 +164,77 @@ enum
     EWM_PRIVBEGIN,
 };
 
-// BeginPaint选项
-enum
-{
-    EBPF_DO_NOT_FILLBK = (1u << 0),
-};
-
 namespace Priv
 {
-    struct PAINT_EXTRA
+    struct PAINT_EXTRA// WM_PAINT的不透明lParam
     {
         float ox;
         float oy;
+        const D2D1_RECT_F* prcClipInClient;
     };
 }
 
-struct ELEMPAINTSTRU
+struct PAINTINFO
 {
-    D2D1_RECT_F rcfClip;		// 剪裁矩形，相对客户区
-    D2D1_RECT_F rcfClipInElem;	// 剪裁矩形，相对元素
+    D2D1_RECT_F rcfClip;        // 剪裁矩形，相对客户区
+    D2D1_RECT_F rcfClipInElem;  // 剪裁矩形，相对元素
     float ox;
     float oy;
+    BOOLEAN bClip;
 };
 
-// 所有通知结构的头
-struct DUINMHDR
-{
-    UINT uCode;
-};
+constexpr inline auto DrawTextLayoutFlags =
+D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT | D2D1_DRAW_TEXT_OPTIONS_NO_SNAP;
 
-// 通用自定义绘制结构
-struct NMECUSTOMDRAW : DUINMHDR
+class CBitmap final : public CReferenceCountedT<CBitmap>
 {
-    int idx;
-    DWORD dwStage;
-    Part ePart;
-    State eState;
-    D2D1_RECT_F rc;
-};
-
-namespace Priv
-{
-    struct CUSTOM_LAYER
+private:
+    ComPtr<ID2D1Bitmap1> m_pBitmap{};
+    D2D1_RECT_F m_rcSource{};
+public:
+    void SetSourceRect(const D2D1_RECT_F* prc) noexcept
     {
-        const D2D1_LAYER_PARAMETERS1* pParam;
-        ID2D1Layer* pLayer;
-    };
-}
+        if (prc)
+        {
+            m_rcSource = *prc;
+#ifdef _DEBUG
+            EckAssert(m_rcSource.left >= 0 && m_rcSource.top >= 0);
+            if (m_pBitmap.Get())
+            {
+                const auto size = m_pBitmap->GetSize();
+                EckAssert(m_rcSource.right <= size.width);
+                EckAssert(m_rcSource.bottom <= size.height);
+            }
+#endif
+        }
+        else
+            m_rcSource = { FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX };
+    }
 
-struct ELEM_MAP
-{
-    std::unordered_map<std::wstring_view, CElem*> hmIdToElem;
-    std::unordered_map<std::wstring_view, std::vector<CElem*>> hmClassToElem;
+    void Set(ID2D1Bitmap1* p, const D2D1_RECT_F* prc = nullptr) noexcept
+    {
+        m_pBitmap = p;
+        SetSourceRect(prc);
+    }
+    auto Get() const noexcept { return m_pBitmap.Get(); }
+
+    const D2D1_RECT_F* GetSourceRect() const noexcept
+    {
+        if (m_rcSource.left == FLT_MAX)
+            return nullptr;
+        else
+            return &m_rcSource;
+    }
+    D2D1_RECT_F GetActualSourceRect() const noexcept
+    {
+        if (m_rcSource.left == FLT_MAX)
+        {
+            const auto size = m_pBitmap->GetSize();
+            return { 0, 0, size.width, size.height };
+        }
+        else
+            return m_rcSource;
+    }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

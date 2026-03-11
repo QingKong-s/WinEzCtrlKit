@@ -7,7 +7,7 @@ enum : int
 {
     CxLabelFade = 40,
 };
-class CLabel : public CElem
+class CLabel : public CElement
 {
 private:
     IDWriteTextLayout* m_pLayout{};
@@ -34,12 +34,12 @@ private:
             return;
         float cx;
         if (m_pBmp)
-            cx = GetWidthF() - m_pBmp->GetSize().width -
+            cx = GetWidth() - m_pBmp->GetSize().width -
             GetTheme()->GetMetrics(Metrics::SmallPadding);
         else
-            cx = GetWidthF();
+            cx = GetWidth();
         g_pDwFactory->CreateTextLayout(pszText, cchText,
-            GetTextFormat(), cx, GetHeightF(), &m_pLayout);
+            GetTextFormat(), cx, GetHeight(), &m_pLayout);
     }
 
     EckInline void UpdateTextLayout()
@@ -49,7 +49,7 @@ private:
 
     void UpdateFadeBrush()
     {
-        const auto cx = GetWidthF();
+        const auto cx = GetWidth();
         const D2D1_GRADIENT_STOP Stop[]
         {
             { (cx - (float)CxLabelFade) / cx,m_crText },
@@ -68,7 +68,7 @@ public:
         {
         case WM_PAINT:
         {
-            ELEMPAINTSTRU ps;
+            PAINTINFO ps;
             BeginPaint(ps, wParam, lParam);
 
             if (m_bOnlyBitmap)
@@ -84,7 +84,7 @@ public:
                     const auto sz = m_pBmp->GetSize();
                     D2D1_RECT_F rc;
                     rc.left = x;
-                    rc.top = (GetHeightF() - sz.height) / 2.f;
+                    rc.top = (GetHeight() - sz.height) / 2.f;
                     rc.right = x + sz.width;
                     rc.bottom = rc.top + sz.height;
                     m_pDC->DrawBitmap(m_pBmp, rc);
@@ -128,12 +128,12 @@ public:
         case WM_SETFONT:
             UpdateTextLayout();
             if (lParam)
-                InvalidateRect();
+                Invalidate();
             break;
 
         case WM_ERASEBKGND:
         {
-            const auto* const pps = (ELEMPAINTSTRU*)lParam;
+            const auto* const pps = (PAINTINFO*)lParam;
             if (!m_bTransparent)
                 GetTheme()->DrawBackground(Part::LabelBk, State::Normal,
                     pps->rcfClipInElem, nullptr);
@@ -151,7 +151,7 @@ public:
             SafeRelease(m_pBmp);
             break;
         }
-        return CElem::OnEvent(uMsg, wParam, lParam);
+        return CElement::OnEvent(uMsg, wParam, lParam);
     }
 
     void SetBitmap(ID2D1Bitmap* pBmp)

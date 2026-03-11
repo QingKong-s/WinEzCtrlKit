@@ -25,14 +25,15 @@ namespace Declaration
         DES_NOTIFY_WND = 1u << 8,   // 元素产生的通知发送到窗口
         DES_NOTIFY_PARENT = 1u << 9,// 元素产生的通知发送到父元素
         DES_DBG_FRAME = 1u << 10,
+        DES_NO_CLIP = 1u << 11,     // 重画时不剪辑到元素矩形
     };
 
     enum : UINT
     {
         EWM_DUMMY = WM_USER_SAFE,
+
         EWM_SHOWFOCUS,  // void(bShow, 0)
         EWM_BUBBLE,     // BOOL(0, BBEVENT*)  返回是否拦截
-        EWM_SYSBEGIN,
 
         // 转发OLE拖放
         EWM_DRAGENTER,  // HRESULT(DRAGDROPINFO*, 0)
@@ -41,6 +42,32 @@ namespace Declaration
         EWM_DROP,       // HRESULT(DRAGDROPINFO*, 0)
 
         EWM_DROP_WIN31, // void(HDROP, 0)  转发Win3.1风格拖放WM_DROPFILES
+
+        WM_TICK,        // 定时器线程发送到窗口
+
+        EWM_SYSBEGIN,
+    };
+
+    enum : UINT
+    {
+        ENM_DUMMY,
+
+        ENM_COMMAND,
+        ENM_SCROLL,
+
+        ENM_SYSBEGIN,
+    };
+
+    enum : UINT
+    {
+        SaNormal = 0u,
+        SaHot = 1u << 0,
+        SaActive = 1u << 1,
+        SaDisable = 1u << 2,
+        SaFocus = 1u << 3,
+        SaSelected = 1u << 4,
+        SaMixed = 1u << 5,
+        SapLButtonDown = 1u << 6,
     };
 
     struct ELENMHDR
@@ -302,8 +329,11 @@ private:
 
     UINT m_UiaId{};
 
-    BOOLEAN m_bMouseCaptured{};
-    BOOLEAN m_bShowFocus{};
+    BITBOOL m_bMouseCaptured : 1{};
+    BITBOOL m_bShowFocus : 1{};
+    BITBOOL m_bDbgDrawFrame : 1{};
+    BITBOOL m_bDbgDrawDirtyRect : 1{};
+    BITBOOL m_bEnableOleDragDrop : 1{};
 private:
     void ElementDestroying(TElement* pEle) noexcept
     {
@@ -574,6 +604,7 @@ public:
 
         case WM_CREATE:
         {
+            m_iDpi = GetDpi(HWnd);
             RECT rcClient;
             GetClientRect(HWnd, &rcClient);
             m_cxClient = rcClient.right - rcClient.left;
@@ -583,12 +614,12 @@ public:
         break;
         case WM_DESTROY:
         {
-            auto pElem = EtFirstChild();
-            while (pElem)
+            auto pEle = EtFirstChild();
+            while (pEle)
             {
-                auto pNext = pElem->EtNext();
-                pElem->Destroy();
-                pElem = pNext;
+                auto pNext = pEle->EtNext();
+                pEle->Destroy();
+                pEle = pNext;
             }
             m_pEleFirstChild = m_pEleLastChild = nullptr;
             m_pEleFocus = m_pEleHover = m_pEleCurrNcHitTest =
@@ -632,6 +663,8 @@ protected:
         UpdateLogicalClientSize();
     }
     EckInlineNdCe int GetUserDpi() const noexcept { return m_iUserDpi; }
+
+    EckInlineNdCe int GetWindowDpi() const noexcept { return m_iDpi; }
 public:
     template<std::floating_point T>
     EckInlineNdCe T PixelToLogical(T v) const noexcept { return v * (T)96 / m_iUserDpi; }
@@ -663,7 +696,7 @@ public:
         pt.x = PixelToLogical(pt.x);
         pt.y = PixelToLogical(pt.y);
     }
-    EckInlineCe void PixelToLogical(_Inout_ TRect& rc) const noexcept
+    EckInlineCe void PixelToLogical(_Inout_ CcpRect auto& rc) const noexcept
     {
         rc.left = PixelToLogical(rc.left);
         rc.top = PixelToLogical(rc.top);
@@ -676,7 +709,7 @@ public:
         pt.x = LogicalToPixel(pt.x);
         pt.y = LogicalToPixel(pt.y);
     }
-    EckInlineCe void LogicalToPixel(_Inout_ TRect& rc) const noexcept
+    EckInlineCe void LogicalToPixel(_Inout_ CcpRect auto& rc) const noexcept
     {
         rc.left = LogicalToPixel(rc.left);
         rc.top = LogicalToPixel(rc.top);
@@ -788,6 +821,30 @@ public:
         p->AddRef();
         return S_OK;
     }
+
+    HRESULT EnableDragDrop(BOOL bEnable) noexcept
+    {
+        if (!!m_bEnableOleDragDrop == !!bEnable)
+            return S_FALSE;
+        HRESULT hr;
+        if (bEnable)
+        {
+            ComPtr<IDropTarget> pTarget;
+            hr = GetDropTarget(pTarget.RefOf());
+            if (FAILED(hr))
+                return hr;
+            hr = RegisterDragDrop(HWnd, pTarget.Get());
+        }
+        else
+        {
+            m_pDropTarget->SetContainer(nullptr);
+            m_pDropTarget.Clear();
+            hr = RevokeDragDrop(HWnd);
+        }
+        if (SUCCEEDED(hr))
+            m_bEnableOleDragDrop = !!bEnable;
+        return hr;
+    }
 protected:
     virtual HRESULT DragEnter(IDataObject* pDataObject,
         DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) noexcept
@@ -866,16 +923,21 @@ protected:
         }
         return S_OK;
     }
+public:
+    EckInlineCe void DbgSetDrawFrame(BOOL b) noexcept { m_bDbgDrawFrame = b; }
+    EckInlineNdCe BOOL DbgGetDrawFrame() const noexcept { return m_bDbgDrawFrame; }
+    EckInlineCe void DbgSetDrawDirtyRect(BOOL b) noexcept { m_bDbgDrawDirtyRect = b; }
+    EckInlineNdCe BOOL DbgGetDrawDirtyRect() const noexcept { return m_bDbgDrawDirtyRect; }
 };
 
 /*
 * 实现了以下事件（除非特别说明，所有坐标均为逻辑坐标）
 * 未标注参数类型的原样转发Win32消息
 *
-* WM_MOUSEFIRST ~ WM_MOUSELAST          (MkFlags, TPoint*     ) InElement
+* WM_MOUSEFIRST  ~ WM_MOUSELAST         (MkFlags, TPoint*     ) InElement
 * WM_MOUSELEAVE                         (0      , 0           )
 * WM_NCMOUSEMOVE ~ WM_NCXBUTTONDBLCLK
-* WM_KEYFIRST ~ WM_IME_KEYLAST          (Vk     , KeyDownFlags)
+* WM_KEYFIRST    ~ WM_IME_KEYLAST       (Vk     , KeyDownFlags)
 * WM_NCHITTEST                          (0      , TPoint      ) InClient
 * WM_SETCURSOR
 * WM_TIMER                              (Id     , 0           )
@@ -887,6 +949,10 @@ protected:
 *
 * 若某类派生自此类，则必须有下列方法
 * Destroy
+*
+* 且必须实现下列事件
+* WM_STYLECHANGED                       (uOld   , 0           )
+* WM_CREATE                             参数由派生类定义
 */
 template<class THost_, bool IsFloat>
 class CElement : public ILayout
@@ -1068,6 +1134,9 @@ private:
 
     UINT m_uStyle{};
     UINT m_UiaId{};
+
+    int m_iId{};
+    UINT m_uTmState{ SaNormal };
 public:
     using HSlot = decltype(m_ec)::HSlot;
 private:
@@ -1303,6 +1372,9 @@ protected:
 
         m_rc = {};
         m_ptInClient = {};
+
+        m_iId = 0;
+        m_uTmState = SaNormal;
     }
 protected:
     void SetStyle(UINT uStyle) noexcept
@@ -1364,6 +1436,7 @@ public:
             m_ptInClient.y + m_rc.bottom - m_rc.top
         };
     }
+    EckInlineNdCe auto& GetOffsetInClient() const noexcept { return m_ptInClient; }
 
     EckInlineCe void ClientToElement(_Inout_ CcpRect auto& rc) const noexcept
     {
@@ -1485,6 +1558,18 @@ public:
             pEle = pEle->EtNext();
         }
     }
+
+    void EtForEachElem(std::invocable<THost*> auto&& Fn, THost* pElemBegin) noexcept
+    {
+        auto p{ pElemBegin };
+        while (p)
+        {
+            EckCanCallbackContinue(Fn(p))
+                return;
+            EtForEachElem(Fn, p->EtFirstChild());
+            p = p->EtNext();
+        }
+    }
 protected:
     void SetZOrder(THost* pEleAfter) noexcept
     {
@@ -1582,6 +1667,77 @@ public:
         } while (pParent);
         return TRUE;
     }
+public:
+    EckInlineCe void PixelToLogical(_Inout_ TPoint& pt) const noexcept { GetContainer()->PixelToLogical(pt); }
+    EckInlineCe void PixelToLogical(_Inout_ CcpRect auto& rc) const noexcept { GetContainer()->PixelToLogical(rc); }
+    EckInlineCe void LogicalToPixel(_Inout_ TPoint& pt) const noexcept { GetContainer()->LogicalToPixel(pt); }
+    EckInlineCe void LogicalToPixel(_Inout_ CcpRect auto& rc) const noexcept { GetContainer()->LogicalToPixel(rc); }
+
+    EckInlineNd auto PixelToLogical(CcpNumber auto v) const noexcept { return GetContainer()->PixelToLogical(v); }
+    EckInlineNd auto LogicalToPixel(CcpNumber auto v) const noexcept { return GetContainer()->LogicalToPixel(v); }
+public:
+    EckInlineCe void SetId(int iId) noexcept { m_iId = iId; }
+    EckInlineNdCe int GetId() const noexcept { return m_iId; }
+protected:
+    // 返回状态是否改变
+    BOOL TmOnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
+    {
+        switch (uMsg)
+        {
+        case WM_MOUSEMOVE:
+            if (m_uTmState & SaHot)
+                break;
+            m_uTmState |= SaHot;
+            return TRUE;
+        case WM_MOUSELEAVE:
+            if (!(m_uTmState & SaHot))
+                break;
+            m_uTmState &= ~SaHot;
+            return TRUE;
+        case WM_LBUTTONDOWN:
+        case WM_LBUTTONDBLCLK:
+            m_uTmState |= (SaActive | SapLButtonDown);
+            GetContainer()->EleSetCapture((THost*)this);
+            return TRUE;
+        case WM_LBUTTONUP:
+            if (m_uTmState & SapLButtonDown)
+                GetContainer()->EleReleaseCapture();
+            return TRUE;
+        case WM_CAPTURECHANGED:
+            if (m_uTmState & SapLButtonDown)
+            {
+                m_uTmState &= ~(SaActive | SapLButtonDown);
+                return TRUE;
+            }
+            break;
+        case WM_SETFOCUS:
+            if (m_uTmState & SaFocus)
+                break;
+            m_uTmState |= SaFocus;
+            return TRUE;
+        case WM_KILLFOCUS:
+            if (!(m_uTmState & SaFocus))
+                break;
+            m_uTmState &= ~SaFocus;
+            return TRUE;
+        case WM_STYLECHANGED:
+            if (!(((UINT)wParam ^ GetStyle()) & DES_DISABLE))
+                break;
+            [[fallthrough]];
+        case WM_CREATE:
+            if (GetStyle() & DES_DISABLE)
+            {
+                m_uTmState |= SaDisable;
+                return TRUE;
+            }
+            break;
+        }
+        return FALSE;
+    }
+
+    EckInlineNdCe UINT& TmState() noexcept { return m_uTmState; }
+public:
+    EckInlineNdCe UINT GetThemeState() const noexcept { return m_uTmState; }
 };
 ECK_UIBASIC_NAMESPACE_END
 ECK_NAMESPACE_END

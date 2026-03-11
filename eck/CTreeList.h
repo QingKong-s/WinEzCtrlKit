@@ -1047,7 +1047,7 @@ private:
                         pt.y = m_cyClient;
                     m_rcDraggingSel = MakeRect(ptStart, pt);// 制矩形
 
-                    if (EquRect(rcOld, m_rcDraggingSel))// 范围未变，退出
+                    if (EqualRect(rcOld, m_rcDraggingSel))// 范围未变，退出
                     {
                         OffsetRect(m_rcDraggingSel, -m_dxContent, m_idxTopItem * m_cyItem);
                         break;

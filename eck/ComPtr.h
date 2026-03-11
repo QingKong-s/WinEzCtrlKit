@@ -75,15 +75,13 @@ public:
         requires std::is_convertible_v<U*, TInterface*>
     ComPtr& operator=(U* x) noexcept
     {
-        if (x != p)
-            ComPtr{ x }.Swap(*this);
+        ComPtr{ x }.Swap(*this);
         return *this;
     }
 
     ComPtr& operator=(const ComPtr& x) noexcept
     {
-        if (p != x.p)
-            ComPtr{ x }.Swap(*this);
+        ComPtr{ x }.Swap(*this);
         return *this;
     }
 
@@ -100,6 +98,8 @@ public:
         ComPtr{ x }.Swap(*this);
         return *this;
     }
+
+    EckInlineNdCe explicit operator bool() const noexcept { return !!p; }
 
     EckInlineNdCe TInterface* const* operator&() const noexcept { return &p; }
     EckInlineNdCe TInterface** operator&() noexcept { return &p; }
@@ -150,10 +150,6 @@ public:
     EckInline HRESULT As(ComPtr<U>& x) const noexcept
     {
         return p->QueryInterface(__uuidof(U), (void**)x.AddrOfClear());
-    }
-    EckInline HRESULT As(REFIID riid, ComPtr<IUnknown>& x) const noexcept
-    {
-        return p->QueryInterface(riid, (void**)x.AddrOfClear());
     }
     template<CcpComInterface U>
     EckInline HRESULT As(U*& x) const noexcept

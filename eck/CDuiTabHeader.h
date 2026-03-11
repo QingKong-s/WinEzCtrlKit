@@ -11,7 +11,7 @@ struct NMTTHDISPINFO : DUINMHDR
     int cchText;
 };
 
-class CTabHeader : public CElem
+class CTabHeader : public CElement
 {
 private:
     struct ITEM
@@ -30,7 +30,7 @@ public:
         {
         case WM_PAINT:
         {
-            ELEMPAINTSTRU ps;
+            PAINTINFO ps;
             BeginPaint(ps, wParam, lParam);
 
             EndPaint(ps);

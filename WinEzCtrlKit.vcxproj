@@ -399,6 +399,7 @@
     <ClInclude Include="eck\CEuiButton.h" />
     <ClInclude Include="eck\CIcoFileReader.h" />
     <ClInclude Include="eck\CMemoryDC.h" />
+    <ClInclude Include="eck\CMessageTimer.h" />
     <ClInclude Include="eck\CPixelEditor.h" />
     <ClInclude Include="eck\CReferenceCounted.h" />
     <ClInclude Include="eck\CScopeGuard.h" />

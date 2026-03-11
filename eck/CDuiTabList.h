@@ -101,7 +101,7 @@ protected:
         }
     }
 
-    void PostPaint(ELEMPAINTSTRU& ps) override
+    void PostPaint(PAINTINFO& ps) override
     {
         D2D1_COLOR_F cr;
         if (m_pec2->IsActive())
@@ -172,13 +172,13 @@ public:
                 {
                 });
             m_pec1->SetDuration(180);
-            InitEasingCurve(m_pec1);
+            InitializeEasingCurve(m_pec1);
 
             m_pec2 = new CEasingCurve{};
             m_pec2->SetProcedure(Easing::OutExpo);
             m_pec2->SetCallback(EasingProc);
             m_pec2->SetDuration(600);
-            InitEasingCurve(m_pec2);
+            InitializeEasingCurve(m_pec2);
 
             SetView(Type::List);
             SetSingleSel(TRUE);
@@ -216,7 +216,7 @@ public:
             m_pec2->Begin(0.f, 1.f, FALSE);
             m_pec1->SetCurrentTime(0.f);
             m_pec2->SetCurrentTime(0.f);
-            GetWnd()->WakeRenderThread();
+            GetWindow()->WakeRenderThread();
         }
         else if (pnm->uCode == LTE_ITEMCHANED)
         {

@@ -234,7 +234,7 @@ struct CEasyD2D
         return S_OK;
     }
 
-    HRESULT ReSize(UINT cBuffer, int cx, int cy, UINT uSwapChainFlags,
+    HRESULT ReSize(UINT cBuffer, UINT cx, UINT cy, UINT uSwapChainFlags,
         D2D1_ALPHA_MODE uBmpAlphaMode = D2D1_ALPHA_MODE_IGNORE,
         D2D1_BITMAP_OPTIONS uBmpOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
         float fDpi = 96.0f) noexcept
@@ -245,7 +245,7 @@ struct CEasyD2D
 
         HRESULT hr;
         if (FAILED(hr = m_pSwapChain->ResizeBuffers(cBuffer,
-            std::max(8, cx), std::max(8, cy), DXGI_FORMAT_UNKNOWN, uSwapChainFlags)))
+            std::max(8u, cx), std::max(8u, cy), DXGI_FORMAT_UNKNOWN, uSwapChainFlags)))
         {
             EckDbgPrintFormatMessage(hr);
             EckDbgBreak();

@@ -3,168 +3,193 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-class CButton : public CElem
+class CButton : public CElement
 {
 private:
-    ID2D1SolidColorBrush* m_pBrush{};
-    IDWriteTextLayout* m_pLayout{};
+    ComPtr<IDWriteTextLayout> m_pLayout{};
+    RcPtr<CBitmap> m_pBitmap{};
+    BOOLEAN m_bAutoScale{ TRUE };
+    BYTE m_eInter{ D2D1_INTERPOLATION_MODE_LINEAR };
+    float m_fOpacity{ 1.f };
 
-    ID2D1Bitmap* m_pImg{};
-    D2D1_SIZE_F m_sizeImg{};
-    float m_cxText{};
-    float m_cyText{};
-
-    BITBOOL m_bHot : 1{};
-    BITBOOL m_bLBtnDown : 1{};
-
-    BITBOOL m_bAutoScale : 1{ TRUE };
-
-    constexpr float CalcImageWidth() const
+    Kw::Vec2 CalculateBitmapSize() const noexcept
     {
-        const float Padding = GetTheme()->GetMetrics(Metrics::Padding);
-        if (m_pImg)
-            if (m_bAutoScale)
-                return (GetHeightF() - Padding * 2) * m_sizeImg.width / m_sizeImg.height;
-            else
-                return m_sizeImg.width;
-        else
-            return 0.f;
+        EckAssert(m_pBitmap.Get());
+        const auto rc = m_pBitmap->GetActualSourceRect();
+        const auto cx = rc.right - rc.left;
+        const auto cy = rc.bottom - rc.top;
+        if (m_bAutoScale)
+        {
+            const float dOuter = GetTheme()->GetMetric(IdMePaddingOuter);
+            const auto cyNew = GetHeight() - dOuter * 2;
+            return { cyNew * cx / cy, cyNew };
+        }
+        return { cx, cy };
     }
 
-    void UpdateTextLayout(PCWSTR pszText, int cchText)
+    void UpdateTextLayout(PCWSTR pszText, int cchText) noexcept
     {
-        const float Padding = GetTheme()->GetMetrics(Metrics::Padding);
-        const float Padding2 = GetTheme()->GetMetrics(Metrics::SmallPadding);
+        const float dOuter = GetTheme()->GetMetric(IdMePaddingOuter);
+        const float dInner = GetTheme()->GetMetric(IdMePaddingInner);
 
-        SafeRelease(m_pLayout);
-        g_pDwFactory->CreateTextLayout(pszText, cchText,
-            GetTextFormat(),
-            GetWidthF() - CalcImageWidth() - Padding * 2 - Padding2,
-            GetHeightF() - Padding * 2,
-            &m_pLayout);
-        if (m_pLayout)
-        {
-            DWRITE_TEXT_METRICS tm;
-            m_pLayout->GetMetrics(&tm);
-            m_cxText = tm.width;
-            m_cyText = tm.height;
-        }
-        else
-        {
-            m_cxText = 0.f;
-            m_cyText = 0.f;
-        }
+        float cxMax = GetWidth() - dOuter * 2.f;
+        if (m_pBitmap.Get())
+            cxMax -= (CalculateBitmapSize().x + dInner);
+
+        g_pDwFactory->CreateTextLayout(
+            pszText, cchText, GetTextFormat(),
+            cxMax, GetHeight() - dOuter * 2,
+            m_pLayout.AddrOfClear());
     }
 
-    void UpdateTextLayout()
+    void UpdateTextLayout() noexcept
     {
         UpdateTextLayout(GetText().Data(), GetText().Size());
     }
+
+    void TmpStateChanged() noexcept
+    {
+        Invalidate();
+        GetWindow().RdRenderAndPresent();
+    }
 public:
+    static RcPtr<CThemeBase> TmMakeDefaultTheme() noexcept;
+    static RcPtr<CThemeBase> TmDefaultTheme() noexcept;
+
+    static RcPtr<CThemeStyle> TmMakeDefaultStyle(BOOL bDarkMode) noexcept
+    {
+        auto p = RcPtr<CThemeStyle>::Make();
+        auto& vStyle = p->GetList();
+        vStyle.resize(3);
+        vStyle[0] =
+        {
+            .uState = SaNormal,
+            .argbFore = (bDarkMode ? 0xFF'FFFFFF : 0xFF'000000),
+            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'F0F0F0),
+            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
+        };
+        vStyle[1] =
+        {
+            .uState = SaHot,
+            .argbFore = (bDarkMode ? 0xFF'FFFFFF : 0xFF'000000),
+            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'E0E0E0),
+            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
+        };
+        vStyle[2] =
+        {
+            .uState = SaActive,
+            .argbFore = (bDarkMode ? 0xFF'FFFFFF : 0xFF'000000),
+            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
+            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
+        };
+        p->SetBorderWidth(1);
+        return p;
+    }
+
+    HRESULT EhUiaMakeInterface() noexcept;
+
     LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
         case WM_PAINT:
         {
-            ELEMPAINTSTRU ps;
+            PAINTINFO ps;
             BeginPaint(ps, wParam, lParam);
+            const CThemeStyle::Style* pSubStyle;
+            GetTheme()->Draw(this, IdPtNormal, GetRectInClientD2D(), &pSubStyle);
 
-            State eState;
-            if (m_bLBtnDown)
-                eState = State::Selected;
-            else if (m_bHot)
-                eState = State::Hot;
+            const float dInner = GetTheme()->GetMetric(IdMePaddingInner);
+
+            DWRITE_TEXT_METRICS tm;
+            if (m_pLayout.Get())
+                m_pLayout->GetMetrics(&tm);
             else
-                eState = State::Normal;
+                tm.width = tm.height = 0;
 
-            GetTheme()->DrawBackground(Part::Button, eState, GetViewRectF(), nullptr);
-
-            const float Padding = GetTheme()->GetMetrics(Metrics::Padding);
-            const float Padding2 = GetTheme()->GetMetrics(Metrics::SmallPadding);
-            if (m_pImg)
+            D2D1_RECT_F rc;
+            if (m_pBitmap.Get())
             {
-                D2D1_RECT_F rcImg;
-                if (m_bAutoScale)
-                {
-                    const auto cy = GetHeightF() - Padding * 2;
-                    const auto cx = cy * m_sizeImg.width / m_sizeImg.height;
-                    rcImg.left = Padding;
-                    rcImg.top = Padding;
-                    rcImg.right = rcImg.left + cx;
-                    rcImg.bottom = rcImg.top + cy;
-                }
-                else
-                {
-                    rcImg.left = (GetWidthF() - Padding * 2 - Padding2 -
-                        m_sizeImg.width - m_cxText) / 2.f;
-                    rcImg.top = (GetHeightF() - m_sizeImg.height) / 2.f;
-                    rcImg.right = rcImg.left + m_sizeImg.width;
-                    rcImg.bottom = rcImg.top + m_sizeImg.height;
-                }
-                m_pDC->DrawBitmap(m_pImg, rcImg);
+                const auto sizeBitmap = CalculateBitmapSize();
+                rc.left = (GetWidth() - sizeBitmap.x -
+                    (tm.width ? (dInner - tm.width) : 0.f)) / 2.f;
+                rc.top = (GetHeight() - sizeBitmap.y) / 2.f;
+                rc.right = rc.left + sizeBitmap.x;
+                rc.bottom = rc.top + sizeBitmap.y;
+                GetDC()->DrawBitmap(m_pBitmap->Get(), &rc, m_fOpacity,
+                    (D2D1_INTERPOLATION_MODE)m_eInter, m_pBitmap->GetSourceRect());
+                rc.left = rc.right + dInner;
+            }
+            else
+                rc.left = (GetWidth() - tm.width) / 2.f;
+
+            if (m_pLayout.Get() && pSubStyle)
+            {
+                Kw::Vec2 pt{ rc.left, (GetHeight() - tm.height) / 2.f };
+                pt += GetOffsetInClient();
+                GetDC()->DrawTextLayout(
+                    ReinterpretValue<D2D1_POINT_2F>(pt),
+                    m_pLayout.Get(),
+                    GetWindow().CcSetBrushColor(ArgbToD2DColorF(pSubStyle->argbFore)));
             }
 
-            if (m_pLayout)
-            {
-                D2D1_COLOR_F cr;
-                GetTheme()->GetSysColor(SysColor::Text, cr);
-                m_pBrush->SetColor(cr);
-                m_pDC->DrawTextLayout({ Padding + CalcImageWidth(),Padding },
-                    m_pLayout, m_pBrush, DrawTextLayoutFlags);
-            }
-
-            ECK_DUI_DBG_DRAW_FRAME;
+            DbgDrawFrame();
             EndPaint(ps);
         }
         return 0;
 
         case WM_MOUSEMOVE:
-        {
-            if (!m_bHot)
-            {
-                m_bHot = TRUE;
-                InvalidateRect();
-            }
-        }
-        return 0;
-
+            if (TmState() & SaHot)
+                break;
+            TmState() |= SaHot;
+            TmpStateChanged();
+            break;
         case WM_MOUSELEAVE:
-        {
-            if (m_bHot)
-            {
-                m_bHot = FALSE;
-                InvalidateRect();
-            }
-        }
-        return 0;
-
-        case WM_LBUTTONDBLCLK:// 连击修正
+            if (!(TmState() & SaHot))
+                break;
+            TmState() &= ~SaHot;
+            TmpStateChanged();
+            break;
         case WM_LBUTTONDOWN:
-        {
+        case WM_LBUTTONDBLCLK:
             SetFocus();
-            m_bLBtnDown = TRUE;
-            SetCapture();
-            InvalidateRect();
-        }
-        return 0;
-
+            TmState() |= (SaActive | SapLButtonDown);
+            GetContainer()->EleSetCapture((THost*)this);
+            TmpStateChanged();
+            break;
         case WM_LBUTTONUP:
-        {
-            if (m_bLBtnDown)
+            if (TmState() & SapLButtonDown)
+                GetContainer()->EleReleaseCapture();
+            TmpStateChanged();
+            break;
+        case WM_CAPTURECHANGED:
+            if (TmState() & SapLButtonDown)
             {
-                m_bLBtnDown = FALSE;
-                ReleaseCapture();
-                InvalidateRect();
-                const POINT pt ECK_GET_PT_LPARAM(lParam);
-                if (PtInRect(GetViewRectF(), pt))
-                {
-                    DUINMHDR nm{ EE_COMMAND };
-                    GenElemNotify(&nm);
-                }
+                TmState() &= ~(SaActive | SapLButtonDown);
+                TmpStateChanged();
             }
-        }
-        return 0;
+            break;
+        case WM_SETFOCUS:
+            if (TmState() & SaFocus)
+                break;
+            TmState() |= SaFocus;
+            TmpStateChanged();
+            break;
+        case WM_KILLFOCUS:
+            if (!(TmState() & SaFocus))
+                break;
+            TmState() &= ~SaFocus;
+            TmpStateChanged();
+            break;
+        case WM_STYLECHANGED:
+            if (!(((UINT)wParam ^ GetStyle()) & DES_DISABLE))
+                break;
+            if (GetStyle() & DES_DISABLE)
+            {
+                TmState() |= SaDisable;
+                TmpStateChanged();
+            }
+            break;
 
         case WM_SIZE:
             UpdateTextLayout();
@@ -172,47 +197,98 @@ public:
 
         case WM_SETTEXT:
             UpdateTextLayout((PCWSTR)lParam, (int)wParam);
-            InvalidateRect();
+            Invalidate();
             return 0;
-
         case WM_SETFONT:
             UpdateTextLayout();
-            if (lParam)
-                InvalidateRect();
             return 0;
 
         case WM_CREATE:
-            m_pDC->CreateSolidColorBrush({}, &m_pBrush);
-            return 0;
-
+            if (GetStyle() & DES_DISABLE)
+            {
+                TmState() |= SaDisable;
+                TmpStateChanged();
+            }
+            SetTheme(TmDefaultTheme().Get());
+            UpdateTextLayout();
+            break;
         case WM_DESTROY:
         {
-            SafeRelease(m_pBrush);
-            SafeRelease(m_pLayout);
-            SafeRelease(m_pImg);
-            m_bHot = FALSE;
-            m_bLBtnDown = FALSE;
+            m_pLayout.Clear();
+            m_pBitmap.Clear();
         }
         return 0;
         }
-        return CElem::OnEvent(uMsg, wParam, lParam);
+        return __super::OnEvent(uMsg, wParam, lParam);
     }
 
-    void SetBitmap(ID2D1Bitmap* pImg)
+    void EvtClick() noexcept
     {
-        ECK_DUILOCK;
-        std::swap(m_pImg, pImg);
-        if (m_pImg)
+        ELENMHDR nm{ ENM_COMMAND };
+        SendNotify(&nm);
+    }
+
+    EckInline void SetIcon(RcPtr<CBitmap> p) noexcept { m_pBitmap = p; }
+    EckInline RcPtr<CBitmap> GetIcon() noexcept { return m_pBitmap; }
+};
+
+class CTmButton : public CThemeBase
+{
+public:
+    TmResult Draw(CElement* pEle, UINT idPart, const D2D1_RECT_F& rc,
+        _Out_opt_ const CThemeStyle::Style** ppStyle) noexcept override
+    {
+        if (idPart != IdPtNormal)
         {
-            m_pImg->AddRef();
-            m_sizeImg = m_pImg->GetSize();
+            if (ppStyle)
+                *ppStyle = nullptr;
+            return TmResult::NotSupport;
         }
-        else
-            m_sizeImg = {};
-        UpdateTextLayout();
-        if (pImg)
-            pImg->Release();
+        const auto pStyle = pEle->TmSelectSubStyle();
+        if (ppStyle)
+            *ppStyle = pStyle;
+        if (!pStyle)
+            return TmResult::NoStyle;
+        return pEle->TmGenericDrawBackground(pStyle, rc);
     }
 };
+inline RcPtr<CThemeBase> CButton::TmMakeDefaultTheme() noexcept
+{
+    const auto p = RcPtr<CTmButton>::Make();
+    p->SetMetricCollection(TmDefaultMetricCollection().Get());
+    return p;
+}
+inline RcPtr<CThemeBase> CButton::TmDefaultTheme() noexcept
+{
+    static auto p{ TmMakeDefaultTheme() };
+    return p;
+}
+
+class CUiaButton : public CUnknownAppend<CUiaBase, IInvokeProvider>
+{
+    STDMETHODIMP GetPatternProvider(PATTERNID idPattern, IUnknown** pRetVal) override
+    {
+        if (idPattern == UIA_InvokePatternId)
+        {
+            *pRetVal = static_cast<IInvokeProvider*>(this);
+            AddRef();
+            return S_OK;
+        }
+        return CUiaBase::GetPatternProvider(idPattern, pRetVal);
+    }
+
+    STDMETHODIMP Invoke() override
+    {
+        DbgDynamicCast<CButton*>(m_pEle)->EvtClick();
+        return S_OK;
+    }
+};
+inline HRESULT CButton::EhUiaMakeInterface() noexcept
+{
+    const auto p = new CUiaButton{};
+    UiaSetInterface(p);
+    p->Release();
+    return S_OK;
+}
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

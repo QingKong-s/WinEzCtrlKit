@@ -4,7 +4,7 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-class CTitleBar : public CElem
+class CTitleBar : public CElement
 {
 protected:
     CDwmWndPartMgr m_DwmPartMgr{};
@@ -49,14 +49,14 @@ public:
         {
         case WM_PAINT:
         {
-            ELEMPAINTSTRU eps;
+            PAINTINFO eps;
             BeginPaint(eps, wParam, lParam);
 
             D2D1_RECT_F rcDst
             {
-                GetWidthF() - m_cxClose,
+                GetWidth() - m_cxClose,
                 0,
-                GetWidthF(),
+                GetWidth(),
                 (float)m_cyBtn
             };
             D2D1_RECT_F rcTemp;
@@ -64,7 +64,7 @@ public:
             RECT rc, rcBkg;
             DWMW_GET_PART_EXTRA Extra;
             const auto bDarkMode = ShouldAppsUseDarkMode();
-            const auto iUserDpi = GetWnd()->GetUserDpi();
+            const auto iUserDpi = GetWindow()->GetUserDpi();
             const auto dMargin = DpiScaleF(1.f, 96, iUserDpi);
             const auto eInterMode = (D2D1_INTERPOLATION_MODE)m_eInterMode;
 
@@ -78,7 +78,7 @@ public:
                     (D2D1_INTERPOLATION_MODE)m_eInterMode);
 
                 rcTemp = MakeD2DRectF(rc);
-                GetWnd()->Phy2Log(rcTemp);
+                GetWindow()->Phy2Log(rcTemp);
                 CenterRect(rcTemp, rcDst);
 
                 m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.f,
@@ -99,7 +99,7 @@ public:
                     (D2D1_INTERPOLATION_MODE)m_eInterMode);
 
                 rcTemp = MakeD2DRectF(rc);
-                GetWnd()->Phy2Log(rcTemp);
+                GetWindow()->Phy2Log(rcTemp);
                 CenterRect(rcTemp, rcDst);
 
                 m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.f,
@@ -119,7 +119,7 @@ public:
                     (D2D1_INTERPOLATION_MODE)m_eInterMode);
 
                 rcTemp = MakeD2DRectF(rc);
-                GetWnd()->Phy2Log(rcTemp);
+                GetWindow()->Phy2Log(rcTemp);
                 CenterRect(rcTemp, rcDst);
 
                 m_pDC->DrawBitmap(m_pBmpDwmWndAtlas, rcTemp, 1.0f,
@@ -135,7 +135,7 @@ public:
         case WM_NCHITTEST:
         {
             POINT pt ECK_GET_PT_LPARAM(lParam);
-            ClientToElem(pt);
+            ClientToElement(pt);
             const DwmWndPart ePart = HitTest(pt);
             switch (ePart)
             {
@@ -157,9 +157,9 @@ public:
         case WM_NCLBUTTONDOWN:
         {
             POINT pt ECK_GET_PT_LPARAM(lParam);
-            ScreenToClient(GetWnd()->HWnd, &pt);
-            ClientToElem(pt);
-            GetWnd()->Phy2Log(pt);
+            ScreenToClient(GetWindow()->HWnd, &pt);
+            ClientToElement(pt);
+            GetWindow()->Phy2Log(pt);
             const auto idxOld = m_idxPressed;
             m_idxPressed = HitTest(pt);
             if (IsNeedRedraw(idxOld, m_idxPressed))
@@ -172,24 +172,24 @@ public:
             if (m_idxPressed != DwmWndPart::Invalid)
             {
                 POINT pt ECK_GET_PT_LPARAM(lParam);
-                ScreenToClient(GetWnd()->HWnd, &pt);
-                ClientToElem(pt);
-                GetWnd()->Phy2Log(pt);
+                ScreenToClient(GetWindow()->HWnd, &pt);
+                ClientToElement(pt);
+                GetWindow()->Phy2Log(pt);
                 const auto idx = HitTest(pt);
                 if (m_idxPressed == idx)
                     switch (idx)
                     {
                     case DwmWndPart::Close:
-                        GetWnd()->PostMessageW(WM_SYSCOMMAND, SC_CLOSE, 0);
+                        GetWindow()->PostMessageW(WM_SYSCOMMAND, SC_CLOSE, 0);
                         break;
                     case DwmWndPart::Max:
                         if (m_bMaximized)
-                            GetWnd()->PostMessageW(WM_SYSCOMMAND, SC_RESTORE, 0);
+                            GetWindow()->PostMessageW(WM_SYSCOMMAND, SC_RESTORE, 0);
                         else
-                            GetWnd()->PostMessageW(WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+                            GetWindow()->PostMessageW(WM_SYSCOMMAND, SC_MAXIMIZE, 0);
                         break;
                     case DwmWndPart::Min:
-                        GetWnd()->PostMessageW(WM_SYSCOMMAND, SC_MINIMIZE, 0);
+                        GetWindow()->PostMessageW(WM_SYSCOMMAND, SC_MINIMIZE, 0);
                         break;
                     }
                 const auto idxOld = m_idxPressed;
@@ -203,9 +203,9 @@ public:
         case WM_NCMOUSEMOVE:
         {
             POINT pt ECK_GET_PT_LPARAM(lParam);
-            ScreenToClient(GetWnd()->HWnd, &pt);
-            ClientToElem(pt);
-            GetWnd()->Phy2Log(pt);
+            ScreenToClient(GetWindow()->HWnd, &pt);
+            ClientToElement(pt);
+            GetWindow()->Phy2Log(pt);
             const auto idxOld = m_idxHot;
             m_idxHot = HitTest(pt);
             if (IsNeedRedraw(m_idxHot, idxOld))
@@ -239,19 +239,19 @@ public:
 
         case WM_CREATE:
         {
-            GetWnd()->GetEventChain().Connect(this, &CTitleBar::OnWindowMessage, MHI_DUI_TITLEBAR);
-            m_bMaximized = IsZoomed(GetWnd()->HWnd);
+            GetWindow()->GetEventChain().Connect(this, &CTitleBar::OnWindowMessage, MHI_DUI_TITLEBAR);
+            m_bMaximized = IsZoomed(GetWindow()->HWnd);
             UpdateTitleBarInfo(TRUE);
             UpdateMetrics();
         }
         break;
 
         case WM_DESTROY:
-            GetWnd()->GetEventChain().Disconnect(MHI_DUI_TITLEBAR);
+            GetWindow()->GetEventChain().Disconnect(MHI_DUI_TITLEBAR);
             SafeRelease(m_pBmpDwmWndAtlas);
             break;
         }
-        return CElem::OnEvent(uMsg, wParam, lParam);
+        return CElement::OnEvent(uMsg, wParam, lParam);
     }
 
     void UpdateTitleBarInfo(BOOL bForceUpdate = FALSE)
@@ -278,7 +278,7 @@ public:
     {
         if (g_NtVer.uBuild >= WINVER_11_21H2)
         {
-            const auto iWndDpi = GetWnd()->GetDpiValue();
+            const auto iWndDpi = GetWindow()->GetDpiValue();
             //----计算高度
             m_cyBtn = (float)DaGetSystemMetrics(SM_CYSIZE, iWndDpi);
             m_cyBtn += float(DaGetSystemMetrics(SM_CXPADDEDBORDER, iWndDpi) +
@@ -315,8 +315,8 @@ public:
 
     DwmWndPart HitTest(POINT ptClient) const
     {
-        const auto cx = GetWidthF();
-        const auto cy = GetHeightF();
+        const auto cx = GetWidth();
+        const auto cy = GetHeight();
         if (ptClient.x < 0 || ptClient.x > cx || ptClient.y < 0 || ptClient.y > cy ||
             ptClient.y > m_cyBtn)
             return DwmWndPart::Invalid;
@@ -333,7 +333,7 @@ public:
     void InvalidateBtnRect()
     {
         const auto cxBtn = m_cxClose + m_cxMax + m_cxMin;
-        D2D1_RECT_F rc{ GetWidthF() - cxBtn,0,GetWidthF(),m_cyBtn };
+        D2D1_RECT_F rc{ GetWidth() - cxBtn,0,GetWidth(),m_cyBtn };
         InvalidateRect(rc);
     }
 

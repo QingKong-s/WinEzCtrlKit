@@ -75,6 +75,17 @@ struct RectI
     int bottom;
 };
 
+EckInlineNdCe Rect MakeRect(const RECT& rc) noexcept
+{
+    return { (float)rc.left, (float)rc.top, (float)rc.right, (float)rc.bottom };
+}
+
+#ifdef _D2D1_H_
+EckInlineNdCe const D2D1_RECT_F& MakeD2DRectF(const Kw::Rect& rc) noexcept
+{
+    return *(D2D1_RECT_F*)&rc;
+}
+#endif
 
 struct ColorF
 {
@@ -84,10 +95,14 @@ KW2D_NAMESPACE_END
 ECK_DEF_RECT_TRAITS(Kw::Rect);
 ECK_DEF_RECT_TRAITS(Kw::RectU);
 ECK_DEF_RECT_TRAITS(Kw::RectI);
-
 EckInlineNdCe BOOL PtInRect(CcpRect auto const& rc, Kw::Vec2 pt) noexcept
 {
     return ((pt.x >= (float)rc.left) && (pt.x < (float)rc.right) &&
         (pt.y >= (float)rc.top) && (pt.y < (float)rc.bottom));
+}
+
+EckInlineNdCe RECT MakeRect(const Kw::Rect& rc) noexcept
+{
+    return { (int)rc.left, (int)rc.top, (int)rc.right, (int)rc.bottom };
 }
 ECK_NAMESPACE_END

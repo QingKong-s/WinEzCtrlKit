@@ -30,7 +30,7 @@ struct HE_HITTEST
     BOOLEAN bHitDivider;
 };
 
-class CHeader : public CElem, public CFixedTimeLine
+class CHeader : public CElement, public CFixedTimeLine
 {
 public:
     constexpr static float CxDividerWidthHalf = 6;
@@ -69,7 +69,7 @@ private:
         else
             eState = State::Normal;
         rcItem.top = 0;
-        rcItem.bottom = GetHeightF();
+        rcItem.bottom = GetHeight();
         rcItem.left = e.x;
         rcItem.right = e.x + e.cx;
         GetTheme()->DrawBackground(Part::HeaderItem, eState,
@@ -86,7 +86,7 @@ private:
             {
                 EckAssert(nm.cchText > 0);
                 eck::g_pDwFactory->CreateTextLayout(nm.pszText, nm.cchText,
-                    GetTextFormat(), e.cx - Padding * 2, GetHeightF(), &e.pLayout);
+                    GetTextFormat(), e.cx - Padding * 2, GetHeight(), &e.pLayout);
             }
         }
         if (e.pLayout.Get())
@@ -131,7 +131,7 @@ public:
         {
         case WM_PAINT:
         {
-            ELEMPAINTSTRU ps;
+            PAINTINFO ps;
             BeginPaint(ps, wParam, lParam);
             float xMax{};
             for (int i{}; i < GetItemCount(); ++i)
@@ -172,7 +172,7 @@ public:
                     ReCalcItemX();
                     D2D1_RECT_F rc;
                     GetItemRect(m_idxDrag, rc);
-                    rc.right = GetWidthF();
+                    rc.right = GetWidth();
                     InvalidateRect(rc);
                     NMHEITEMNOTIFY nm;
                     nm.uCode = HEE_WIDTHCHANGED;
@@ -320,7 +320,7 @@ public:
         rcItem.left = e.x;
         rcItem.right = e.x + e.cx;
         rcItem.top = 0;
-        rcItem.bottom = GetHeightF();
+        rcItem.bottom = GetHeight();
     }
 
     void InvalidateItem(int idx)

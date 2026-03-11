@@ -4,7 +4,7 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-class CScrollBar : public CElem
+class CScrollBar : public CElement
 {
 public:
     enum class SbPart
@@ -39,7 +39,7 @@ public:
                     if (!m_psv->IsVisible())
                         return HTTRANSPARENT;
                     D2D1_POINT_2F pt{ MakeD2DPointF(ECK_GET_PT_LPARAM(lParam)) };
-                    ClientToElem(pt);
+                    ClientToElement(pt);
                     D2D1_RECT_F rc;
                     GetPartRect(rc, SbPart::Thumb);
                     if (!PtInRect(rc, pt))
@@ -55,15 +55,15 @@ public:
             {
                 m_bHot = TRUE;
                 m_pec->Begin(0.f, 1.f);
-                GetWnd()->WakeRenderThread();
+                GetWindow()->WakeRenderThread();
             }
             if (m_bDragThumb)
             {
                 const POINT pt ECK_GET_PT_LPARAM(lParam);
-                m_psv->OnMouseMove(m_bHorizontal ? pt.x - GetHeightF() : pt.y - GetWidthF());
+                m_psv->OnMouseMove(m_bHorizontal ? pt.x - GetHeight() : pt.y - GetWidth());
                 DUINMHDR nm{ m_bHorizontal ? EE_HSCROLL : EE_VSCROLL };
                 if (!GenElemNotify(&nm))
-                    InvalidateRect();
+                    Invalidate();
             }
         }
         return 0;
@@ -73,7 +73,7 @@ public:
             {
                 m_bHot = FALSE;
                 m_pec->Begin(1.f, 0.f);
-                GetWnd()->WakeRenderThread();
+                GetWindow()->WakeRenderThread();
             }
         }
         return 0;
@@ -89,7 +89,7 @@ public:
             if (PtInRect(rcf, ptf))
             {
                 m_bDragThumb = TRUE;
-                m_psv->OnLButtonDown(m_bHorizontal ? pt.x - GetHeightF() : pt.y - GetWidthF());
+                m_psv->OnLButtonDown(m_bHorizontal ? pt.x - GetHeight() : pt.y - GetWidth());
             }
             else
             {
@@ -103,7 +103,7 @@ public:
                         m_psv->GetPosition() + m_psv->GetPage());
                 DUINMHDR nm{ m_bHorizontal ? EE_HSCROLL : EE_VSCROLL };
                 if (!GenElemNotify(&nm))
-                    InvalidateRect();
+                    Invalidate();
             }
         }
         return 0;
@@ -120,15 +120,15 @@ public:
                     m_bDragThumb = FALSE;
                     DUINMHDR nm{ m_bHorizontal ? EE_HSCROLL : EE_VSCROLL };
                     if (!GenElemNotify(&nm))
-                        InvalidateRect();
+                        Invalidate();
                 }
             }
         }
         return 0;
         case WM_SIZE:
         {
-            const auto cx = GetWidthF(),
-                cy = GetHeightF();
+            const auto cx = GetWidth(),
+                cy = GetHeight();
             if (m_bHorizontal)
                 m_psv->SetViewSize(cx - 2.f * cy);
             else
@@ -139,7 +139,7 @@ public:
 
         case WM_PAINT:
         {
-            ELEMPAINTSTRU ps;
+            PAINTINFO ps;
             BeginPaint(ps, wParam, lParam);
 
             if (m_psv->IsVisible())
@@ -194,7 +194,7 @@ public:
         case WM_MOUSEWHEEL:
         case WM_MOUSEHWHEEL:
         {
-            const auto p = GetParentElem();
+            const auto p = EtParent();
             if (p)
                 return p->CallEvent(uMsg, wParam, lParam);
         }
@@ -203,38 +203,38 @@ public:
         case WM_CREATE:
         {
             m_pec = new CEasingCurve{};
-            InitEasingCurve(m_pec);
+            InitializeEasingCurve(m_pec);
             m_pec->SetCallback([](float fOld, float f, LPARAM lParam)
                 {
                     auto p = (CScrollBar*)lParam;
-                    p->InvalidateRect();
+                    p->Invalidate();
                 });
             m_pec->SetProcedure(Easing::OutSine);
             m_pec->SetDuration(160);
 
             m_psv = new CInertialScrollView{};
-            GetWnd()->RegisterTimeLine(m_psv);
+            GetWindow()->KctRegisterTimeLine(m_psv);
         }
         return 0;
 
         case WM_DESTROY:
         {
-            GetWnd()->UnregisterTimeLine(m_pec);
-            GetWnd()->UnregisterTimeLine(m_psv);
+            GetWindow()->KctUnregisterTimeLine(m_pec);
+            GetWindow()->KctUnregisterTimeLine(m_psv);
             SafeRelease(m_pec);
             SafeRelease(m_psv);
         }
         return 0;
         }
-        return CElem::OnEvent(uMsg, wParam, lParam);
+        return CElement::OnEvent(uMsg, wParam, lParam);
     }
 
     EckInlineNdCe auto GetScrollView() const noexcept { return m_psv; }
 
     void GetPartRect(D2D1_RECT_F& rc, SbPart eType)
     {
-        const auto cx = GetWidthF(),
-            cy = GetHeightF();
+        const auto cx = GetWidth(),
+            cy = GetHeight();
         if (m_bHorizontal)
             switch (eType)
             {

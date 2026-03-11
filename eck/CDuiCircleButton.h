@@ -10,7 +10,7 @@ struct NMCBTCUSTOMDRAW : NMECUSTOMDRAW
     ID2D1Bitmap* pImg;
 };
 
-class CCircleButton : public CElem
+class CCircleButton : public CElement
 {
 private:
     ID2D1Bitmap* m_pImg{};
@@ -27,11 +27,11 @@ private:
 
     BOOL PtInBtn(POINT ptInClient)
     {
-        const auto fRad = std::min(GetWidthF(), GetHeightF()) / 2.f;
+        const auto fRad = std::min(GetWidth(), GetHeight()) / 2.f;
         const D2D1_POINT_2F ptCenter
         {
-            GetOffsetInClientF().x + fRad,
-            GetOffsetInClientF().y + fRad
+            GetOffsetInClient().x + fRad,
+            GetOffsetInClient().y + fRad
         };
         return PtInCircle(MakeD2DPointF(ptInClient), ptCenter, fRad);
     }
@@ -42,7 +42,7 @@ public:
         {
         case WM_PAINT:
         {
-            ELEMPAINTSTRU ps;
+            PAINTINFO ps;
             BeginPaint(ps, wParam, lParam);
 
             State eState;
@@ -57,8 +57,8 @@ public:
             NMCBTCUSTOMDRAW cd;
             if (m_pImg)
             {
-                cd.rcImg.left = (GetWidthF() - m_sizeImg.width) / 2.f;
-                cd.rcImg.top = (GetHeightF() - m_sizeImg.height) / 2.f;
+                cd.rcImg.left = (GetWidth() - m_sizeImg.width) / 2.f;
+                cd.rcImg.top = (GetHeight() - m_sizeImg.height) / 2.f;
                 cd.rcImg.right = cd.rcImg.left + m_sizeImg.width;
                 cd.rcImg.bottom = cd.rcImg.top + m_sizeImg.height;
             }
@@ -95,7 +95,7 @@ public:
             if (!m_bHot)
             {
                 m_bHot = TRUE;
-                InvalidateRect();
+                Invalidate();
             }
         }
         return 0;
@@ -105,7 +105,7 @@ public:
             if (m_bHot)
             {
                 m_bHot = FALSE;
-                InvalidateRect();
+                Invalidate();
             }
         }
         return 0;
@@ -116,7 +116,7 @@ public:
             SetFocus();
             m_bLBtnDown = TRUE;
             SetCapture();
-            InvalidateRect();
+            Invalidate();
         }
         return 0;
 
@@ -126,9 +126,9 @@ public:
             {
                 m_bLBtnDown = FALSE;
                 ReleaseCapture();
-                InvalidateRect();
+                Invalidate();
                 POINT pt ECK_GET_PT_LPARAM(lParam);
-                ElemToClient(pt);
+                ElementToClient(pt);
                 if (PtInBtn(pt))
                 {
                     DUINMHDR nm{ EE_COMMAND };
@@ -142,7 +142,7 @@ public:
         {
             if (m_bAutoImgSize)
             {
-                m_sizeImg.width = std::min(GetWidthF(), GetHeightF());
+                m_sizeImg.width = std::min(GetWidth(), GetHeight());
                 m_sizeImg.width /= 1.414f;
                 m_sizeImg.height = m_sizeImg.width;
             }
@@ -157,7 +157,7 @@ public:
         }
         return 0;
         }
-        return CElem::OnEvent(uMsg, wParam, lParam);
+        return CElement::OnEvent(uMsg, wParam, lParam);
     }
 
     void SetImage(ID2D1Bitmap* pImg)

@@ -11,66 +11,7 @@ class CElement : public UiBasic::CElement<CElement, false>
 private:
     CStringW m_rsText{};
     RcPtr<CThemeBase> m_pTheme{};
-    RcPtr<CThemeStyleCollection> m_pStyleCollection{};
-    int m_iId{};
-protected:
-    UINT m_uTmState{ SaNormal };
-protected:
-    // 返回状态是否改变
-    BOOL TmOnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
-    {
-        switch (uMsg)
-        {
-        case WM_MOUSEMOVE:
-            if (m_uTmState & SaHot)
-                break;
-            m_uTmState |= SaHot;
-            return TRUE;
-        case WM_MOUSELEAVE:
-            if (!(m_uTmState & SaHot))
-                break;
-            m_uTmState &= ~SaHot;
-            return TRUE;
-        case WM_LBUTTONDOWN:
-        case WM_LBUTTONDBLCLK:
-            m_uTmState |= (SaActive | SapLButtonDown);
-            SetCapture();
-            return TRUE;
-        case WM_LBUTTONUP:
-            if (m_uTmState & SapLButtonDown)
-                ReleaseCapture();
-            return TRUE;
-        case WM_CAPTURECHANGED:
-            if (m_uTmState & SapLButtonDown)
-            {
-                m_uTmState &= ~(SaActive | SapLButtonDown);
-                return TRUE;
-            }
-            break;
-        case WM_SETFOCUS:
-            if (m_uTmState & SaFocus)
-                break;
-            m_uTmState |= SaFocus;
-            return TRUE;
-        case WM_KILLFOCUS:
-            if (!(m_uTmState & SaFocus))
-                break;
-            m_uTmState &= ~SaFocus;
-            return TRUE;
-        case WM_STYLECHANGED:
-            if (!(((UINT)wParam ^ GetStyle()) & DES_DISABLE))
-                break;
-            [[fallthrough]];
-        case WM_CREATE:
-            if (GetStyle() & DES_DISABLE)
-            {
-                m_uTmState |= SaDisable;
-                return TRUE;
-            }
-            break;
-        }
-        return FALSE;
-    }
+    RcPtr<CThemeStyle> m_pThemeStyle{};
 public:
     HRESULT EhUiaMakeInterface() noexcept override;
 
@@ -83,7 +24,6 @@ public:
         PreDestroy();
         CallEvent(WM_DESTROY, 0, 0);
         m_rsText.Clear();
-        m_iId = 0;
         PostDestroy();
     }
 
@@ -120,9 +60,6 @@ public:
     }
     EckInlineNdCe UINT GetStyle() const noexcept { return __super::GetStyle(); }
 
-    EckInline void SetId(int iId) noexcept { m_iId = iId; }
-    EckInlineNdCe int GetId() const noexcept { return m_iId; }
-
     EckInline void SetText(std::wstring_view svText) noexcept
     {
         m_rsText = svText;
@@ -152,10 +89,8 @@ public:
     EckInline void SetTheme(CThemeBase* p) noexcept { m_pTheme = p; }
     EckInlineNdCe CThemeBase* GetTheme() const noexcept { return m_pTheme.Get(); }
 
-    EckInlineNdCe UINT GetThemeState() const noexcept { return m_uTmState; }
-
-    EckInline void SetThemeStyleCollection(CThemeStyleCollection* p) noexcept { m_pStyleCollection = p; }
-    EckInlineNdCe auto GetThemeStyleCollection() const noexcept { return m_pStyleCollection.Get(); }
+    EckInline void SetThemeStyle(CThemeStyle* p) noexcept { m_pThemeStyle = p; }
+    EckInlineNdCe auto GetThemeStyle() const noexcept { return m_pThemeStyle.Get(); }
 };
 
 using BBEVENT = CElement::BBEVENT;
@@ -209,7 +144,7 @@ public:
 private:
     CMemoryDC m_DC{};
     GpPtr<GpGraphics> m_pGraphics{};
-    RENDER_STOCK m_RenderStock{};
+    RENDER_STOCK m_Stock{};
 
     UINT m_uRenderFlags{};
 
@@ -235,16 +170,16 @@ private:
 
     void RdCreateObjectCache() noexcept
     {
-        if (m_RenderStock.hCDC)
-            DeleteDC(m_RenderStock.hCDC);
+        if (m_Stock.hCDC)
+            DeleteDC(m_Stock.hCDC);
         const auto hDC = GetDC(HWnd);
-        m_RenderStock.hCDC = CreateCompatibleDC(hDC);
+        m_Stock.hCDC = CreateCompatibleDC(hDC);
         ReleaseDC(HWnd, hDC);
-        GdipCreateSolidFill(0, m_RenderStock.pBrush.AddrOfClear());
-        GdipCreatePen1(0, 1.f, Gdiplus::UnitPixel, m_RenderStock.pPen.AddrOfClear());
+        GdipCreateSolidFill(0, m_Stock.pBrush.AddrOfClear());
+        GdipCreatePen1(0, 1.f, Gdiplus::UnitPixel, m_Stock.pPen.AddrOfClear());
         GdipCreateStringFormat(
             Gdiplus::StringFormatFlagsNoWrap | Gdiplus::StringFormatFlagsNoClip,
-            LANG_NEUTRAL, m_RenderStock.pStrFmt.AddrOfClear());
+            LANG_NEUTRAL, m_Stock.pStrFmt.AddrOfClear());
     }
 public:
     LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
@@ -304,10 +239,10 @@ public:
 
     EckInlineNdCe auto& GetMemoryDC() const noexcept { return m_DC; }
     EckInlineNdCe auto GetGraphics() const noexcept { return m_pGraphics.Get(); }
-    EckInlineNdCe auto& GetRenderStock() const noexcept { return m_RenderStock; }
+    EckInlineNdCe auto& GetRenderStock() const noexcept { return m_Stock; }
     EckInline void SetStockStringFormatFromDtFlags(UINT uDt) noexcept
     {
-        m_RenderStock.SetStringFormatFromDtFlags(uDt);
+        m_Stock.SetStringFormatFromDtFlags(uDt);
     }
 
     EckInlineCe void SetRenderFlags(UINT uFlags) noexcept { m_uRenderFlags = uFlags; }
@@ -321,7 +256,7 @@ inline void CElement::Create(std::wstring_view svText, UINT uStyle, UINT uExStyl
     if (!pWnd && pParent)
         pWnd = &pParent->GetWindow();
     m_rsText = svText;
-    m_iId = iId;
+    SetId(iId);
     PreCreate(TRect{ x, y, x + cx, y + cy }, uStyle, pParent, pWnd);
     CallEvent(WM_CREATE, 0, (LPARAM)pData);
     CallEvent(WM_MOVE, 0, 0);
@@ -430,7 +365,7 @@ inline HRESULT CElement::EhUiaMakeInterface() noexcept
 
 inline TmResult TmGenericDrawBackground(
     CElement* pEle,
-    const CThemeStyleCollection::STYLE* pStyle,
+    const CThemeStyle::Style* pStyle,
     const RECT& rc) noexcept
 {
     const auto uRenderFlags = pEle->GetWindow().GetRenderFlags();
@@ -534,7 +469,7 @@ inline TmResult TmGenericDrawBackground(
 
 inline TmResult TmGenericDrawText(
     CElement* pEle,
-    const CThemeStyleCollection::STYLE* pStyle,
+    const CThemeStyle::Style* pStyle,
     const RECT& rc,
     UINT uDtFlags) noexcept
 {
@@ -568,28 +503,26 @@ inline TmResult TmGenericDrawText(
     return TmResult::Ok;
 }
 
-inline auto TmSelectStyle(CElement* pEle) noexcept
+inline auto TmSelectSubStyle(CElement* pEle) noexcept
 {
-    const auto pStyleCollection = pEle->GetThemeStyleCollection();
+    const auto pStyle = pEle->GetThemeStyle();
     const auto uState = pEle->GetThemeState();
-    const CThemeStyleCollection::STYLE* pStyle;
+    const CThemeStyle::Style* pSub;
     if (pEle->GetStyle() & DES_DISABLE)
+        pSub = pStyle->FindStyle(SaDisable);
+    else
     {
-        pStyle = pStyleCollection->FindStyle(SaDisable);
-        if (!pStyle)
-            pStyle = pStyleCollection->FindStyle(SaNormal);
+        if (uState & SaActive)
+            pSub = pStyle->FindStyle(SaActive);
+        else if (uState & SaHot)
+            pSub = pStyle->FindStyle(SaHot);
+        else
+            pSub = nullptr;
     }
 
-    if (uState & SaActive)
-        pStyle = pStyleCollection->FindStyle(SaActive);
-    else if (uState & SaHot)
-        pStyle = pStyleCollection->FindStyle(SaHot);
-    else
-        pStyle = nullptr;
-
-    if (!pStyle)
-        pStyle = pStyleCollection->FindStyle(SaNormal);
-    return pStyle;
+    if (!pSub)
+        pSub = pStyle->FindStyle(SaNormal);
+    return pSub;
 }
 ECK_EUI_NAMESPACE_END
 ECK_NAMESPACE_END

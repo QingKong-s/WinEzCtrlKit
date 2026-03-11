@@ -6,8 +6,8 @@ ECK_DUI_NAMESPACE_BEGIN
 class CSizeBox
 {
 private:
-    CElem* m_pElem{};
-    CElem::HSlot m_hSlot{};
+    CElement* m_pElem{};
+    CElement::HSlot m_hSlot{};
     HCURSOR m_hCursor{};
     int m_htTracking{};
     float cxBorder{ 3.f };
@@ -54,23 +54,23 @@ public:
             {
                 if (pt.y < cxBorder)
                     return HTTOPLEFT;
-                else if (pt.y >= m_pElem->GetHeightF() - cxBorder)
+                else if (pt.y >= m_pElem->GetHeight() - cxBorder)
                     return HTBOTTOMLEFT;
                 else
                     return HTLEFT;
             }
-            else if (pt.x >= m_pElem->GetWidthF() - cxBorder)
+            else if (pt.x >= m_pElem->GetWidth() - cxBorder)
             {
                 if (pt.y < cxBorder)
                     return HTTOPRIGHT;
-                else if (pt.y >= m_pElem->GetHeightF() - cxBorder)
+                else if (pt.y >= m_pElem->GetHeight() - cxBorder)
                     return HTBOTTOMRIGHT;
                 else
                     return HTRIGHT;
             }
             else if (pt.y < cxBorder)
                 return HTTOP;
-            else if (pt.y >= m_pElem->GetHeightF() - cxBorder)
+            else if (pt.y >= m_pElem->GetHeight() - cxBorder)
                 return HTBOTTOM;
         if (m_bAllowMove)
             return HTCLIENT;
@@ -86,7 +86,7 @@ public:
             if (!m_pElem->GetCapture())
             {
                 D2D1_POINT_2F pt ECK_GET_PT_LPARAM_F(lParam);
-                m_pElem->ClientToElem(pt);
+                m_pElem->ClientToElement(pt);
                 const int ht = HitTestBorder(pt);
                 if (ht != HTNOWHERE)
                 {
@@ -109,7 +109,7 @@ public:
             if (m_htTracking == HTNOWHERE)
                 break;
             D2D1_POINT_2F pt ECK_GET_PT_LPARAM_F(lParam);
-            m_pElem->ElemToClient(pt);
+            m_pElem->ElementToClient(pt);
             const auto dx = pt.x - m_ptStart.x;
             const auto dy = pt.y - m_ptStart.y;
             if (m_htTracking == HTCLIENT)
@@ -175,8 +175,8 @@ public:
             if (m_htTracking != HTNOWHERE)
             {
                 m_ptStart = pt;
-                m_pElem->ElemToClient(m_ptStart);
-                m_rcStart = m_pElem->GetRectF();
+                m_pElem->ElementToClient(m_ptStart);
+                m_rcStart = m_pElem->GetRect();
                 m_pElem->SetCapture();
             }
         }
@@ -197,11 +197,11 @@ public:
         return 0;
     }
 
-    void Attach(CElem* pElem) noexcept
+    void Attach(CElement* pEle) noexcept
     {
         if (m_pElem)
             Detach();
-        m_pElem = pElem;
+        m_pElem = pEle;
         m_hSlot = m_pElem->GetEventChain().Connect(this, &CSizeBox::OnEvent);
     }
     void Detach() noexcept

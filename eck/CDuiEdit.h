@@ -99,7 +99,7 @@ struct NMEDTXNOTIFY : DUINMHDR
     void* pData;
 };
 
-class CEdit : public CElem
+class CEdit : public CElement
 {
     friend class CEditTextHost;
 public:
@@ -147,12 +147,12 @@ private:
         // 并使用返回窗口的DPI
         // 2. 接收WM_USER + 0x148（即0x548），wParam和lParam分别为
         // X和Y方向的DPI。此消息未公开
-        const auto iDpi = GetWnd()->GetUserDpi();
+        const auto iDpi = GetWindow()->GetUserDpi();
         m_pSrv->TxSendMessage(0x548, iDpi, iDpi, nullptr);
         const auto pTf = GetTextFormat();
         if (pTf)
         {
-            m_DefCharFormat.yHeight = (LONG)GetWnd()->Log2PhyF(
+            m_DefCharFormat.yHeight = (LONG)GetWindow()->Log2PhyF(
                 pTf->GetFontSize() * 1440.f / 96.f);
             constexpr auto uBits = TXTBIT_CHARFORMATCHANGE;
             TxPropertyChanged(uBits, uBits);
@@ -166,12 +166,12 @@ private:
             if (m_eSingleLineAlignV == Align::Near)
                 goto Normal;
             const auto cy = m_DefCharFormat.yHeight * 96.f / 1440.f +
-                GetWnd()->Log2PhyF(2.f);
+                GetWindow()->Log2PhyF(2.f);
             float cyTop, cyBtm;
-            const auto cyExtra = GetWnd()->Log2PhyF(
-                GetHeightF() - m_mgTextAera.top - m_mgTextAera.bottom);
-            cyTop = GetWnd()->Log2PhyF(m_mgTextAera.top);
-            cyBtm = GetWnd()->Log2PhyF(m_mgTextAera.bottom);
+            const auto cyExtra = GetWindow()->Log2PhyF(
+                GetHeight() - m_mgTextAera.top - m_mgTextAera.bottom);
+            cyTop = GetWindow()->Log2PhyF(m_mgTextAera.top);
+            cyBtm = GetWindow()->Log2PhyF(m_mgTextAera.bottom);
             if (m_eSingleLineAlignV == Align::Center)
             {
                 const auto t = (cyExtra - cy) / 2;
@@ -182,9 +182,9 @@ private:
                 cyTop += (cyExtra - cy);
             m_rcViewInset =
             {
-                (int)GetWnd()->Log2PhyF(m_mgTextAera.left * 2540.f / 96.f),
+                (int)GetWindow()->Log2PhyF(m_mgTextAera.left * 2540.f / 96.f),
                 int(cyTop * 2540.f / 96.f),
-                (int)GetWnd()->Log2PhyF(m_mgTextAera.right * 2540.f / 96.f),
+                (int)GetWindow()->Log2PhyF(m_mgTextAera.right * 2540.f / 96.f),
                 int(cyBtm * 2540.f / 96.f)
             };
         }
@@ -193,10 +193,10 @@ private:
         Normal:
             m_rcViewInset =
             {
-                (int)GetWnd()->Log2PhyF(m_mgTextAera.left * 2540.f / 96.f),
-                (int)GetWnd()->Log2PhyF(m_mgTextAera.top * 2540.f / 96.f),
-                (int)GetWnd()->Log2PhyF(m_mgTextAera.right * 2540.f / 96.f),
-                (int)GetWnd()->Log2PhyF(m_mgTextAera.bottom * 2540.f / 96.f),
+                (int)GetWindow()->Log2PhyF(m_mgTextAera.left * 2540.f / 96.f),
+                (int)GetWindow()->Log2PhyF(m_mgTextAera.top * 2540.f / 96.f),
+                (int)GetWindow()->Log2PhyF(m_mgTextAera.right * 2540.f / 96.f),
+                (int)GetWindow()->Log2PhyF(m_mgTextAera.bottom * 2540.f / 96.f),
             };
         }
     }
@@ -216,12 +216,12 @@ public:
         break;
         case WM_PAINT:
         {
-            ELEMPAINTSTRU ps;
+            PAINTINFO ps;
             BeginPaint(ps, wParam, lParam);
 
             auto rcViewF{ GetViewRectF() };
             State eState;
-            if (GetWnd()->ElemGetFocus() == this)
+            if (GetWindow()->ElemGetFocus() == this)
                 eState = State::Focused;
             else if (m_bHot)
                 eState = State::Hot;
@@ -253,8 +253,8 @@ public:
             {
                 if (bNewClip)
                     m_pDC->PushAxisAlignedClip(rcClipF, D2D1_ANTIALIAS_MODE_ALIASED);
-                GetWnd()->Log2Phy(rcClipF);
-                GetWnd()->Log2Phy(rcViewF);
+                GetWindow()->Log2Phy(rcClipF);
+                GetWindow()->Log2Phy(rcViewF);
                 RECT rcClip, rcView{ MakeRect(rcViewF) };
                 CeilRect(rcClipF, rcClip);
                 m_pSrv->TxDrawD2D(m_pDC, (RECTL*)&rcView, &rcClip, TXTVIEW_ACTIVE);
@@ -278,8 +278,8 @@ public:
             if (!m_bHot)
             {
                 m_bHot = TRUE;
-                if (GetWnd()->ElemGetFocus() != this)
-                    InvalidateRect();
+                if (GetWindow()->ElemGetFocus() != this)
+                    Invalidate();
             }
             break;
 
@@ -287,8 +287,8 @@ public:
             if (m_bHot)
             {
                 m_bHot = FALSE;
-                if (GetWnd()->ElemGetFocus() != this)
-                    InvalidateRect();
+                if (GetWindow()->ElemGetFocus() != this)
+                    Invalidate();
             }
             return 0;
 
@@ -296,15 +296,15 @@ public:
         {
             const auto cxSB = GetTheme()->GetMetrics(Metrics::CxVScroll);
             const auto cySB = GetTheme()->GetMetrics(Metrics::CyHScroll);
-            m_SBV.SetRect({ GetWidthF() - cxSB,0,GetWidthF(),GetHeightF() });
+            m_SBV.SetRect({ GetWidth() - cxSB,0,GetWidth(),GetHeight() });
             m_SBH.SetRect({
                 0,
-                GetHeightF() - cySB - CyBottomBar,
-                GetWidthF(),
-                GetHeightF() - CyBottomBar });
-            m_SBV.GetScrollView()->SetPage(GetHeightF() -
+                GetHeight() - cySB - CyBottomBar,
+                GetWidth(),
+                GetHeight() - CyBottomBar });
+            m_SBV.GetScrollView()->SetPage(GetHeight() -
                 m_mgTextAera.top - m_mgTextAera.bottom);
-            m_SBH.GetScrollView()->SetPage(GetWidthF() -
+            m_SBH.GetScrollView()->SetPage(GetWidth() -
                 m_mgTextAera.left - m_mgTextAera.right);
             UpdateInsetRect();
             constexpr auto uBits = TXTBIT_CLIENTRECTCHANGE | TXTBIT_EXTENTCHANGE;
@@ -329,14 +329,14 @@ public:
         case WM_SETFOCUS:
             m_pSrv->OnTxUIActivate();
             m_pSrv->TxSendMessage(WM_SETFOCUS, 0, 0, nullptr);
-            InvalidateRect();
+            Invalidate();
             return 0;
 
         case WM_KILLFOCUS:
             m_pSrv->OnTxUIDeactivate();
             m_pSrv->TxSendMessage(WM_KILLFOCUS, 0, 0, nullptr);
             m_bCaretShow = FALSE;
-            InvalidateRect();
+            Invalidate();
             return 0;
 
         case WM_SETTEXT:
@@ -356,7 +356,7 @@ public:
             m_DefCharFormat.dwMask = CFM_FACE | CFM_SIZE |
                 CFM_WEIGHT | CFM_ITALIC | CFM_CHARSET;
             pTf->GetFontFamilyName(m_DefCharFormat.szFaceName, LF_FACESIZE);
-            m_DefCharFormat.yHeight = (LONG)roundf(GetWnd()->Log2PhyF(
+            m_DefCharFormat.yHeight = (LONG)roundf(GetWindow()->Log2PhyF(
                 pTf->GetFontSize() * 1440.f / 96.f));
             m_DefCharFormat.wWeight = (WORD)pTf->GetFontWeight();
             if (pTf->GetFontStyle() != DWRITE_FONT_STYLE_NORMAL)
@@ -411,7 +411,7 @@ public:
             m_pSrv->TxSetText(GetText().Data());
             m_pSrv->OnTxInPlaceActivate(nullptr);
             m_pSrv->OnTxUIActivate();
-            if (GetWnd()->GetUserDpi() != GetDpi(nullptr))
+            if (GetWindow()->GetUserDpi() != GetDpi(nullptr))
                 OnDpiChanged();
         }
         break;
@@ -448,7 +448,7 @@ public:
             ECK_DUILOCK;
             m_SBV.GetScrollView()->OnMouseWheel2(
                 -GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
-            GetWnd()->WakeRenderThread();
+            GetWindow()->WakeRenderThread();
         }
         else if (uMsg == WM_MOUSEHWHEEL)
         {
@@ -458,15 +458,15 @@ public:
             ECK_DUILOCK;
             m_SBH.GetScrollView()->OnMouseWheel2(
                 -GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
-            GetWnd()->WakeRenderThread();
+            GetWindow()->WakeRenderThread();
         }
         else if (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST)
         {
         TxSend:
             ECK_DUILOCK;
             POINT pt ECK_GET_PT_LPARAM(lParam);
-            ElemToClient(pt);
-            GetWnd()->Log2Phy(pt);
+            ElementToClient(pt);
+            GetWindow()->Log2Phy(pt);
             LRESULT lResult;
             if (m_pSrv->TxSendMessage(uMsg,
                 wParam, POINTTOPOINTS(pt), &lResult) == S_OK)
@@ -506,10 +506,10 @@ public:
     {
         POINT pt;
         GetScrollPosition(&pt);
-        (bHorz ? pt.x : pt.y) = DpiScale(nPos, GetWnd()->GetDpiValue(), 96);
+        (bHorz ? pt.x : pt.y) = DpiScale(nPos, GetWindow()->GetDpiValue(), 96);
         SetScrollPosition(&pt);
         if (bRedraw)
-            InvalidateRect();
+            Invalidate();
     }
 
     HRESULT LoadRtf(IStream* pStream)
@@ -1085,12 +1085,12 @@ public:
 
 inline HDC CEditTextHost::TxGetDC()
 {
-    return GetDC(m_pEdit->GetWnd()->HWnd);
+    return GetDC(m_pEdit->GetWindow()->HWnd);
 }
 
 inline INT CEditTextHost::TxReleaseDC(HDC hdc)
 {
-    return ReleaseDC(m_pEdit->GetWnd()->HWnd, hdc);
+    return ReleaseDC(m_pEdit->GetWindow()->HWnd, hdc);
 }
 
 inline BOOL CEditTextHost::TxShowScrollBar(INT fnBar, BOOL fShow)
@@ -1108,19 +1108,19 @@ inline BOOL CEditTextHost::TxEnableScrollBar(INT fuSBFlags, INT fuArrowflags)
 inline BOOL CEditTextHost::TxSetScrollRange(INT fnBar, LONG nMinPos, INT nMaxPos, BOOL fRedraw)
 {
     CCsGuard _{ m_pEdit->GetCriticalSection() };
-    const auto fMin = DpiScaleF((float)nMinPos, 96, m_pEdit->GetWnd()->GetDpiValue());
-    const auto fMax = DpiScaleF((float)nMaxPos, 96, m_pEdit->GetWnd()->GetDpiValue());
+    const auto fMin = DpiScaleF((float)nMinPos, 96, m_pEdit->GetWindow()->GetDpiValue());
+    const auto fMax = DpiScaleF((float)nMaxPos, 96, m_pEdit->GetWindow()->GetDpiValue());
     if (fnBar == SB_VERT || fnBar == SB_BOTH)
     {
         m_pEdit->m_SBV.GetScrollView()->SetRange(fMin, fMax);
         if (fRedraw)
-            m_pEdit->m_SBV.InvalidateRect();
+            m_pEdit->m_SBV.Invalidate();
     }
     if (fnBar == SB_HORZ || fnBar == SB_BOTH)
     {
         m_pEdit->m_SBH.GetScrollView()->SetRange(fMin, fMax);
         if (fRedraw)
-            m_pEdit->m_SBH.InvalidateRect();
+            m_pEdit->m_SBH.Invalidate();
     }
     return TRUE;
 }
@@ -1128,18 +1128,18 @@ inline BOOL CEditTextHost::TxSetScrollRange(INT fnBar, LONG nMinPos, INT nMaxPos
 inline BOOL CEditTextHost::TxSetScrollPos(INT fnBar, INT nPos, BOOL fRedraw)
 {
     CCsGuard _{ m_pEdit->GetCriticalSection() };
-    const auto fPos = m_pEdit->GetWnd()->Phy2LogF((float)nPos);
+    const auto fPos = m_pEdit->GetWindow()->Phy2LogF((float)nPos);
     if (fnBar == SB_VERT || fnBar == SB_BOTH)
     {
         m_pEdit->m_SBV.GetScrollView()->SetPosition(fPos);
         if (fRedraw)
-            m_pEdit->m_SBV.InvalidateRect();
+            m_pEdit->m_SBV.Invalidate();
     }
     if (fnBar == SB_HORZ || fnBar == SB_BOTH)
     {
         m_pEdit->m_SBH.GetScrollView()->SetPosition(fPos);
         if (fRedraw)
-            m_pEdit->m_SBH.InvalidateRect();
+            m_pEdit->m_SBH.Invalidate();
     }
     return TRUE;
 }
@@ -1149,12 +1149,12 @@ inline void CEditTextHost::TxInvalidateRect(LPCRECT prc, BOOL fMode)
     if (prc)
     {
         D2D1_RECT_F rc{ MakeD2DRectF(*prc) };
-        m_pEdit->GetWnd()->Phy2Log(rc);
-        m_pEdit->ClientToElem(rc);
+        m_pEdit->GetWindow()->Phy2Log(rc);
+        m_pEdit->ClientToElement(rc);
         m_pEdit->InvalidateRect(rc);
     }
     else
-        m_pEdit->InvalidateRect();
+        m_pEdit->Invalidate();
 }
 
 inline BOOL CEditTextHost::TxCreateCaret(HBITMAP hbmp, INT xWidth, INT yHeight)
@@ -1177,12 +1177,12 @@ inline BOOL CEditTextHost::TxSetCaretPos(INT x, INT y)
     const auto cx = rc.right - rc.left;
     const auto cy = rc.bottom - rc.top;
     rc = { (float)x,(float)y,float(x + cx),float(y + cy) };
-    m_pEdit->GetWnd()->Phy2Log(rc);
+    m_pEdit->GetWindow()->Phy2Log(rc);
     rc.left = ceilf(rc.left);
     rc.right = ceilf(rc.right);
     if (rc.right - rc.left < 1.f)
         rc.right = rc.left + 1.f;
-    m_pEdit->ClientToElem(rc);
+    m_pEdit->ClientToElement(rc);
     m_pEdit->InvalidateRect(rc);
     return TRUE;
 }
@@ -1217,12 +1217,12 @@ inline void CEditTextHost::TxSetCursor(HCURSOR hcur, BOOL fText)
 
 inline BOOL CEditTextHost::TxScreenToClient(LPPOINT lppt)
 {
-    return ScreenToClient(m_pEdit->GetWnd()->HWnd, lppt);
+    return ScreenToClient(m_pEdit->GetWindow()->HWnd, lppt);
 }
 
 inline BOOL CEditTextHost::TxClientToScreen(LPPOINT lppt)
 {
-    return ClientToScreen(m_pEdit->GetWnd()->HWnd, lppt);
+    return ClientToScreen(m_pEdit->GetWindow()->HWnd, lppt);
 }
 
 inline HRESULT CEditTextHost::TxActivate(LONG* plOldState)
@@ -1240,8 +1240,8 @@ inline HRESULT CEditTextHost::TxDeactivate(LONG lNewState)
 
 inline HRESULT CEditTextHost::TxGetClientRect(LPRECT prc)
 {
-    auto rcF{ m_pEdit->GetRectInClientF() };
-    m_pEdit->GetWnd()->Log2Phy(rcF);
+    auto rcF{ m_pEdit->GetRectInClient() };
+    m_pEdit->GetWindow()->Log2Phy(rcF);
     *prc = MakeRect(rcF);
     return S_OK;
 }
@@ -1312,8 +1312,8 @@ inline HRESULT CEditTextHost::TxGetAcceleratorPos(LONG* pcp)
 
 inline HRESULT CEditTextHost::TxGetExtent(LPSIZEL lpExtent)
 {
-    lpExtent->cx = (LONG)m_pEdit->GetWnd()->Log2PhyF(m_pEdit->GetWidthF() * 2540.f / 96.f);
-    lpExtent->cy = (LONG)m_pEdit->GetWnd()->Log2PhyF(m_pEdit->GetHeightF() * 2540.f / 96.f);
+    lpExtent->cx = (LONG)m_pEdit->GetWindow()->Log2PhyF(m_pEdit->GetWidth() * 2540.f / 96.f);
+    lpExtent->cy = (LONG)m_pEdit->GetWindow()->Log2PhyF(m_pEdit->GetHeight() * 2540.f / 96.f);
     return S_OK;
 }
 
@@ -1344,31 +1344,31 @@ inline HRESULT CEditTextHost::TxNotify(DWORD iNotify, void* pv)
 
 inline HIMC CEditTextHost::TxImmGetContext()
 {
-    return ImmGetContext(m_pEdit->GetWnd()->HWnd);
+    return ImmGetContext(m_pEdit->GetWindow()->HWnd);
 }
 
 inline void CEditTextHost::TxImmReleaseContext(HIMC himc)
 {
-    ImmReleaseContext(m_pEdit->GetWnd()->HWnd, himc);
+    ImmReleaseContext(m_pEdit->GetWindow()->HWnd, himc);
 }
 
 inline BOOL CEditTextHost::TxIsDoubleClickPending()
 {
     MSG msg;
-    return PeekMessageA(&msg, m_pEdit->GetWnd()->HWnd,
+    return PeekMessageA(&msg, m_pEdit->GetWindow()->HWnd,
         WM_LBUTTONDBLCLK, WM_LBUTTONDBLCLK, PM_NOREMOVE | PM_NOYIELD);
 }
 
 inline HRESULT CEditTextHost::TxGetWindow(HWND* phwnd)
 {
-    *phwnd = m_pEdit->GetWnd()->HWnd;
+    *phwnd = m_pEdit->GetWindow()->HWnd;
     return S_OK;
 }
 
 inline HRESULT CEditTextHost::TxSetForegroundWindow()
 {
-    if (!SetForegroundWindow(m_pEdit->GetWnd()->HWnd))
-        SetFocus(m_pEdit->GetWnd()->HWnd);
+    if (!SetForegroundWindow(m_pEdit->GetWindow()->HWnd))
+        SetFocus(m_pEdit->GetWindow()->HWnd);
     return S_OK;
 }
 
@@ -1385,8 +1385,8 @@ inline HCURSOR CEditTextHost::TxSetCursor2(HCURSOR hcur, BOOL bText)
 
 inline HRESULT CEditTextHost::TxGetWindowStyles(DWORD* pdwStyle, DWORD* pdwExStyle)
 {
-    *pdwStyle = m_pEdit->GetWnd()->GetStyle();
-    *pdwExStyle = m_pEdit->GetWnd()->GetExStyle();
+    *pdwStyle = m_pEdit->GetWindow()->GetStyle();
+    *pdwExStyle = m_pEdit->GetWindow()->GetExStyle();
     return S_OK;
 }
 

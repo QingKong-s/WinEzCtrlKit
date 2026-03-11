@@ -3,19 +3,14 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_EUI_NAMESPACE_BEGIN
-struct NM_BUTTON_CLICK : ELENMHDR
-{
-
-};
-
 class CButton : public CElement
 {
 public:
     static RcPtr<CThemeBase> TmDefaultTheme() noexcept;
 
-    static RcPtr<CThemeStyleCollection> TmMakeDefaultStyle(BOOL bDarkMode) noexcept
+    static RcPtr<CThemeStyle> TmMakeDefaultStyle(BOOL bDarkMode) noexcept
     {
-        auto p = RcPtr<CThemeStyleCollection>::Make();
+        auto p = RcPtr<CThemeStyle>::Make();
         auto& vStyle = p->GetList();
         vStyle.resize(3);
         vStyle[0] =
@@ -84,7 +79,7 @@ public:
 
     void EvtClick() noexcept
     {
-        ELENMHDR nm{ NMC_COMMAND };
+        ELENMHDR nm{ ENM_COMMAND };
         SendNotify(&nm);
     }
 };
@@ -96,7 +91,7 @@ public:
     {
         if (idPart != IdPtNormal)
             return TmResult::NotSupport;
-        const auto pStyle = TmSelectStyle(pEle);
+        const auto pStyle = TmSelectSubStyle(pEle);
         if (!pStyle)
             return TmResult::NoStyle;
         const auto r = TmGenericDrawBackground(pEle, pStyle, rc);
@@ -115,15 +110,15 @@ inline RcPtr<CThemeBase> CButton::TmDefaultTheme() noexcept
 
 class CUiaButton : public CUnknownAppend<CUiaBase, IInvokeProvider>
 {
-    STDMETHODIMP GetPatternProvider(PATTERNID patternId, IUnknown** pRetVal) override
+    STDMETHODIMP GetPatternProvider(PATTERNID idPattern, IUnknown** pRetVal) override
     {
-        if (patternId == UIA_InvokePatternId)
+        if (idPattern == UIA_InvokePatternId)
         {
             *pRetVal = static_cast<IInvokeProvider*>(this);
             AddRef();
             return S_OK;
         }
-        return CUiaBase::GetPatternProvider(patternId, pRetVal);
+        return CUiaBase::GetPatternProvider(idPattern, pRetVal);
     }
 
     STDMETHODIMP Invoke() override

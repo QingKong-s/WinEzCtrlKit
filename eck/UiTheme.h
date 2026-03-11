@@ -2,6 +2,35 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_UIBASIC_NAMESPACE_BEGIN
+namespace Declaration
+{
+    enum : UINT
+    {
+        IdTmBegin = 1,
+
+        IdCrBackground,
+        IdCrForeground,
+        IdCrBorder,
+
+        IdMeScrollBarWidth,
+        IdMeScrollThumbWidth,
+        IdMePaddingOuter,
+        IdMePaddingInner,
+        IdMeFocusPadding,
+        IdMeMinimumScrollThumb,
+
+        IdPtNormal,
+
+        IdSaNormal,
+        IdSaHot,
+        IdSaActive,
+        IdSaDisable,
+        IdSaFocus,
+
+        IdTmSystemBegin,
+    };
+}
+
 class CColorCollection final : public CReferenceCountedT<CColorCollection>
 {
 private:

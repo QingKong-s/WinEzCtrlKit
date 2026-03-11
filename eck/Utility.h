@@ -380,9 +380,14 @@ EckInlineNdCe COLORREF DeltaColorrefLuma(COLORREF cr, float d) noexcept
 #pragma endregion 颜色
 
 #pragma region 图形结构
-EckInlineNdCe BOOL EquRect(const RECT& rc1, const RECT& rc2) noexcept
+template<CcpRect T>
+EckInlineNdCe BOOL EqualRect(const T& rc1, const T& rc2) noexcept
 {
-    return rc1.left == rc2.left && rc1.top == rc2.top &&
+    if constexpr (RectTraits<T>::IsRcwh)
+        return rc1.x == rc2.x && rc1.y == rc2.y &&
+        rc1.cx == rc2.cx && rc1.cy == rc2.cy;
+    else
+        return rc1.left == rc2.left && rc1.top == rc2.top &&
         rc1.right == rc2.right && rc1.bottom == rc2.bottom;
 }
 
@@ -888,7 +893,6 @@ EckInlineNdCe D2D1_ELLIPSE MakeD2DEllipse(float x, float y, float w, float h) no
 {
     return D2D1_ELLIPSE{ { x + w / 2.f,y + h / 2.f },w / 2.f,h / 2.f };
 }
-#endif // _D2D1_H_
 
 EckInlineNdCe MARGINS D2DRectFToMargins(const D2D1_RECT_F& rc) noexcept
 {
@@ -908,15 +912,35 @@ EckInlineCe void RectCornerToPoint(const D2D1_RECT_F& rc,
     ppt[2] = { rc.left,rc.bottom };
     ppt[3] = { rc.right,rc.bottom };
 }
+#endif // _D2D1_H_
 
-EckInline void CeilRect(_Inout_ D2D1_RECT_F& rc) noexcept
+template<CcpRect T>
+EckInline void CeilRect(_Inout_ T& rc) noexcept
 {
-    rc.left = floorf(rc.left);
-    rc.top = floorf(rc.top);
-    rc.right = ceilf(rc.right);
-    rc.bottom = ceilf(rc.bottom);
+    if constexpr (RectTraits<T>::IsRcwh)
+    {
+        if constexpr (std::floating_point<decltype(rc.x)>)
+        {
+            rc.x = floorf(rc.x);
+            rc.y = floorf(rc.y);
+            rc.cx = ceilf(rc.cx);
+            rc.cy = ceilf(rc.cy);
+        }
+    }
+    else
+    {
+        if constexpr (std::floating_point<decltype(rc.left)>)
+        {
+            rc.left = floorf(rc.left);
+            rc.top = floorf(rc.top);
+            rc.right = ceilf(rc.right);
+            rc.bottom = ceilf(rc.bottom);
+        }
+    }
 }
-EckInline void CeilRect(const D2D1_RECT_F& rc, _Out_ RECT& rcOut) noexcept
+template<CcpRect T>
+    requires (!RectTraits<T>::IsRcwh)
+EckInline void CeilRect(const T& rc, _Out_ RECT& rcOut) noexcept
 {
     rcOut.left = (LONG)floorf(rc.left);
     rcOut.top = (LONG)floorf(rc.top);
@@ -1039,6 +1063,7 @@ EckInlineNdCe HRESULT HResultFromBool(BOOL b) noexcept
 }
 
 template<class T1, class T2>
+    requires (sizeof(T1) == sizeof(T2))
 EckInlineNdCe T1 ReinterpretValue(T2 v) noexcept
 {
     return std::bit_cast<T1>(v);

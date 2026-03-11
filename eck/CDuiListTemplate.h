@@ -54,7 +54,7 @@ enum
 };
 
 
-class CListTemplate : public CElem
+class CListTemplate : public CElement
 {
 public:
     enum class Type : BYTE
@@ -245,13 +245,13 @@ protected:
 
     virtual void IVPaintItem(const D2D1_RECT_F& rcPaint, NMLTCUSTOMDRAW& nm, LRESULT r) {}
 
-    virtual void PostPaint(ELEMPAINTSTRU& ps) {}
+    virtual void PostPaint(PAINTINFO& ps) {}
 
     void ReCalcHScroll()
     {
         if (m_eView == Type::Report)
         {
-            m_psvH->SetPage(GetWidthF());
+            m_psvH->SetPage(GetWidth());
             m_psvH->SetRange(0, m_Header.GetContentWidth() + GetRealGroupImageWidth());
             m_SBH.SetVisible(m_psvH->IsVisible());
         }
@@ -262,7 +262,7 @@ protected:
         if (!m_cyItem || !m_cxItem)
             return;
         ReCalcHScroll();
-        m_psvV->SetPage(GetHeightF());
+        m_psvV->SetPage(GetHeight());
         if (m_bGroup)
             return;
         switch (m_eView)
@@ -276,7 +276,7 @@ protected:
         break;
         case Type::Icon:
         {
-            m_cItemPerRow = int((GetWidthF() + m_cxPadding) / (m_cxItem + m_cxPadding));
+            m_cItemPerRow = int((GetWidth() + m_cxPadding) / (m_cxItem + m_cxPadding));
             const int cItemV = (GetItemCount() - 1) / m_cItemPerRow + 1;
             m_psvV->SetRange(-m_cyTopExtra, cItemV *
                 (m_cyItem + m_cyPadding) + m_cyBottomExtra);
@@ -342,7 +342,7 @@ protected:
     void ArrangeHeader(BOOL bRePos = FALSE)
     {
         auto cxContent = m_Header.GetContentWidth();
-        cxContent = std::max(cxContent, GetWidthF());
+        cxContent = std::max(cxContent, GetWidth());
         if (bRePos)
         {
             D2D1_RECT_F rc;
@@ -351,13 +351,13 @@ protected:
                 rc.left += m_cxGroupImage;
             rc.right = rc.left + cxContent;
             rc.top = 0;
-            rc.bottom = m_Header.GetHeightF();
+            rc.bottom = m_Header.GetHeight();
             m_Header.SetRect(rc);
         }
         else
         {
-            if (m_Header.GetWidthF() != cxContent)
-                m_Header.SetSize(cxContent, m_Header.GetHeightF());
+            if (m_Header.GetWidth() != cxContent)
+                m_Header.SetSize(cxContent, m_Header.GetHeight());
         }
     }
 
@@ -550,7 +550,7 @@ protected:
         }
     Skip:
         OffsetRect(m_rcDragSel, 0.f, dy);
-        InvalidateRect();
+        Invalidate();
     }
 
     void DragSelMouseMove(POINT pt, WPARAM wParam)
@@ -608,12 +608,12 @@ protected:
         }
     Skip:
         OffsetRect(m_rcDragSel, 0.f, dy);
-        InvalidateRect();
+        Invalidate();
     }
 
     void OnPaint(WPARAM wParam, LPARAM lParam)
     {
-        ELEMPAINTSTRU ps;
+        PAINTINFO ps;
         BeginPaint(ps, wParam, lParam);
         NMLTCUSTOMDRAW nm{};
         nm.uCode = EE_CUSTOMDRAW;
@@ -723,7 +723,7 @@ protected:
         {
             D2D1_RECT_F rcIm;
             GetInsertMarkRect(rcIm);
-            if (rcIm.bottom > 0.f && rcIm.top < GetHeightF())
+            if (rcIm.bottom > 0.f && rcIm.top < GetHeight())
             {
                 // TODO：插入标记
             }
@@ -752,7 +752,7 @@ protected:
     void OnVScroll()
     {
         ReCalculateTopItem();
-        InvalidateRect();
+        Invalidate();
         NMLTSCROLLED nm{ LTE_SCROLLED };
         CalcItemRangeInRect(GetViewRectF(), nm.idxBegin, nm.idxEnd);
         GenElemNotify(&nm);
@@ -783,7 +783,7 @@ protected:
                 {
                     0,
                     y1,
-                    GetWidthF(),
+                    GetWidth(),
                     y2 + m_cyItem
                 };
             }
@@ -806,8 +806,8 @@ public:
             {
                 if (ht.pt.x < 0) ht.pt.x = 0;
                 if (ht.pt.y < 0) ht.pt.y = 0;
-                if (ht.pt.x >= GetWidthF()) ht.pt.x = int(GetWidthF() - 1.f);
-                if (ht.pt.y >= GetHeightF()) ht.pt.y = int(GetHeightF() - 1.f);
+                if (ht.pt.x >= GetWidth()) ht.pt.x = int(GetWidth() - 1.f);
+                if (ht.pt.y >= GetHeight()) ht.pt.y = int(GetHeight() - 1.f);
                 if (m_bGroup)
                     GRDragSelMouseMove(ht.pt, wParam);
                 else
@@ -879,7 +879,7 @@ public:
                 m_psvH->OnMouseWheel2(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
             else
                 m_psvV->OnMouseWheel2(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
-            GetWnd()->WakeRenderThread();
+            GetWindow()->WakeRenderThread();
         }
         return 0;
 
@@ -896,7 +896,7 @@ public:
                 (((DUINMHDR*)lParam)->uCode == EE_HSCROLL))
             {
                 m_Header.SetPosition(-m_psvH->GetPosition() + (int)GetRealGroupImageWidth(), 0);
-                InvalidateRect();
+                Invalidate();
                 return TRUE;
             }
             else if ((wParam == (WPARAM)&m_Header))
@@ -933,8 +933,8 @@ public:
                             for (auto& e : m_vItem)
                                 e.pLayout.Clear();
                     }
-                    rc.right = GetWidthF();
-                    rc.bottom = GetHeightF();
+                    rc.right = GetWidth();
+                    rc.bottom = GetHeight();
                     InvalidateRect(rc);
                 }
                 return 0;
@@ -949,11 +949,11 @@ public:
             ReCalcScroll();
             const auto cxSB = GetTheme()->GetMetrics(Metrics::CxVScroll);
             m_SBV.SetRect({
-                GetWidthF() - cxSB,
+                GetWidth() - cxSB,
                 m_cyTopExtra,
-                GetWidthF(),
-                GetHeightF() - m_cyBottomExtra });
-            m_SBH.SetRect({ 0,GetHeightF() - cxSB,GetWidthF(),GetHeightF() });
+                GetWidth(),
+                GetHeight() - m_cyBottomExtra });
+            m_SBH.SetRect({ 0,GetHeight() - cxSB,GetWidth(),GetHeight() });
             ArrangeHeader();
         }
         return 0;
@@ -991,11 +991,11 @@ public:
             }
             else
             {
-                ClientToScreen(GetWnd()->HWnd, &pt);
+                ClientToScreen(GetWindow()->HWnd, &pt);
                 if (!m_bSingleSel && m_bEnableDragSel &&
-                    IsMouseMovedBeforeDragging(GetWnd()->HWnd, pt.x, pt.y))
+                    IsMouseMovedBeforeDragging(GetWindow()->HWnd, pt.x, pt.y))
                 {
-                    if (!GetWnd()->IsValid())
+                    if (!GetWindow()->IsValid())
                         return 0;
                     SetCapture();
                     if (!(wParam & (MK_CONTROL | MK_SHIFT)))
@@ -1008,8 +1008,8 @@ public:
                     m_rcDragSel = {};
                     if (ht.pt.x < 0) ht.pt.x = 0;
                     if (ht.pt.y < 0) ht.pt.y = 0;
-                    if (ht.pt.x >= GetWidthF()) ht.pt.x = int(GetWidthF() - 1);
-                    if (ht.pt.y >= GetHeightF()) ht.pt.y = int(GetHeightF() - 1);
+                    if (ht.pt.x >= GetWidth()) ht.pt.x = int(GetWidth() - 1);
+                    if (ht.pt.y >= GetHeight()) ht.pt.y = int(GetHeight() - 1);
                     m_ptDragSelStart = ht.pt;
                     m_ptDragSelStart.y += (int)m_psvV->GetPosition();
                     m_dCursorToItemMax = INT_MIN;
@@ -1029,7 +1029,7 @@ public:
             {
                 m_bDraggingSel = FALSE;
                 ReleaseCapture();
-                InvalidateRect();
+                Invalidate();
             }
         }
         return 0;
@@ -1039,7 +1039,7 @@ public:
             if (m_bDraggingSel)
             {
                 m_bDraggingSel = FALSE;
-                InvalidateRect();
+                Invalidate();
             }
         }
         return 0;
@@ -1065,7 +1065,7 @@ public:
                 {
                     auto pThis = (CListTemplate*)lParam;
                     pThis->ReCalculateTopItem();
-                    pThis->InvalidateRect();
+                    pThis->Invalidate();
                     if (pThis->m_psvV->IsStop() && pThis->GetItemCount())
                     {
                         NMLTSCROLLED nm{ LTE_SCROLLED };
@@ -1086,7 +1086,7 @@ public:
                 {
                     auto pThis = (CListTemplate*)lParam;
                     pThis->m_Header.SetPosition(-fPos + pThis->GetRealGroupImageWidth(), 0);
-                    pThis->InvalidateRect();
+                    pThis->Invalidate();
                 }, (LPARAM)this);
             m_psvH->SetDelta(40);
         }
@@ -1139,7 +1139,7 @@ public:
         {
         case Type::List:
             rc.left = 0;
-            rc.right = GetWidthF();
+            rc.right = GetWidth();
             rc.top = LVGetItemY(idx);
             rc.bottom = rc.top + m_cyItem;
             break;
@@ -1189,7 +1189,7 @@ public:
         {
         case Type::List:
             dx = 0;
-            cxContent = GetWidthF();
+            cxContent = GetWidth();
             break;
         case Type::Report:
             dx = -m_psvH->GetPosition();
@@ -1374,7 +1374,7 @@ public:
             else
             {
                 const auto iSbPos = m_psvV->GetPosition();
-                const auto cy = GetHeightF();
+                const auto cy = GetHeight();
                 float y0{ FLT_MAX }, y1{ FLT_MIN }, x{ FLT_MAX };
                 EckCounter(GetGroupCount(), i)
                 {
@@ -1384,7 +1384,7 @@ public:
                         // TODO: 通知组改变
                         e.uFlags &= ~LEIF_SELECTED;
                         const auto y = e.y - iSbPos;
-                        if ((y > -m_cyGroupHeader && y < GetHeightF()))
+                        if ((y > -m_cyGroupHeader && y < GetHeight()))
                         {
                             if (y0 == FLT_MAX)
                                 y0 = y;
@@ -1406,7 +1406,7 @@ public:
                             }
                             f.uFlags &= ~LEIF_SELECTED;
                             const auto y = f.y - iSbPos;
-                            if ((y > -m_cyItem && y < GetHeightF()))
+                            if ((y > -m_cyItem && y < GetHeight()))
                             {
                                 if (y0 == INT_MAX)
                                     y0 = y;
@@ -1418,7 +1418,7 @@ public:
                         ++i;
                     }
                 }
-                rcInvalid = { x, y0, GetWidthF(), y1 };
+                rcInvalid = { x, y0, GetWidth(), y1 };
             }
         }
         else
@@ -1572,7 +1572,7 @@ public:
             return;
         }
         rc.left = 0.f;
-        rc.right = GetWidthF();
+        rc.right = GetWidth();
         rc.top = LVGetItemY(m_idxInsertMark) - CyInsertMark * 2.f;
         rc.bottom = rc.top + CyInsertMark * 5.f;
     }
@@ -1620,7 +1620,7 @@ public:
             {
                 0,
                 LVGetItemY(idxBegin),
-                GetWidthF(),
+                GetWidth(),
                 LVGetItemY(idxEnd) + m_cyItem
             };
         }
@@ -1631,7 +1631,7 @@ public:
             {
                 (float)-m_psvH->GetPosition(),
                 LVGetItemY(idxBegin),
-                std::min(GetWidthF(), m_Header.GetContentWidth()),
+                std::min(GetWidth(), m_Header.GetContentWidth()),
                 LVGetItemY(idxEnd) + m_cyItem
             };
         }
@@ -1688,9 +1688,9 @@ public:
 
     EckInline void SetHeaderHeight(float cy)
     {
-        m_Header.SetSize(m_Header.GetWidthF(), cy);
+        m_Header.SetSize(m_Header.GetWidth(), cy);
     }
-    EckInlineNd float GetHeaderHeight() const noexcept { return m_Header.GetHeightF(); }
+    EckInlineNd float GetHeaderHeight() const noexcept { return m_Header.GetHeight(); }
 
     void SetColumnCount(int cItem,
         _In_reads_opt_(cItem) const float* pcx = nullptr) noexcept
@@ -1803,14 +1803,14 @@ public:
         float d;
         if (rcItem.top < m_cyTopExtra)
             d = rcItem.top - m_cyTopExtra;
-        else if (rcItem.bottom > GetHeightF() - m_cyBottomExtra)
-            d = rcItem.bottom - GetHeightF() + m_cyBottomExtra;
+        else if (rcItem.bottom > GetHeight() - m_cyBottomExtra)
+            d = rcItem.bottom - GetHeight() + m_cyBottomExtra;
         else
             return FALSE;
         if (bSmooth)
         {
             m_psvV->SmoothScrollDelta(d);
-            GetWnd()->WakeRenderThread();
+            GetWindow()->WakeRenderThread();
         }
         else
         {

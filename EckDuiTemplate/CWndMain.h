@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "CApp.h"
 
-class CWindowMain final : public Dui::CDuiWnd
+class CWindowMain final : public Dui::CDuiWindow
 {
 private:
 	Dui::CButton m_BT{};

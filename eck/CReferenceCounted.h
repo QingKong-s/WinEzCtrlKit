@@ -8,7 +8,13 @@ class CReferenceCounted
 private:
     std::atomic<UINT> m_cRef{ 1 };
 public:
+    CReferenceCounted() = default;
+    CReferenceCounted(const CReferenceCounted&) noexcept {}
+    CReferenceCounted(CReferenceCounted&&) noexcept {}
+    CReferenceCounted& operator=(const CReferenceCounted&) noexcept { return *this; }
+    CReferenceCounted& operator=(CReferenceCounted&&) noexcept { return *this; }
     virtual ~CReferenceCounted() = default;
+
     UINT Reference() noexcept { return ++m_cRef; }
     UINT Dereference() noexcept
     {
@@ -26,6 +32,12 @@ class CReferenceCountedT
 private:
     std::atomic<UINT> m_cRef{ 1 };
 public:
+    CReferenceCountedT() = default;
+    CReferenceCountedT(const CReferenceCountedT&) noexcept {}
+    CReferenceCountedT(CReferenceCountedT&&) noexcept {}
+    CReferenceCountedT& operator=(const CReferenceCountedT&) noexcept { return *this; }
+    CReferenceCountedT& operator=(CReferenceCountedT&&) noexcept { return *this; }
+
     UINT Reference() noexcept { return ++m_cRef; }
     UINT Dereference() noexcept
     {
@@ -44,6 +56,8 @@ std::is_base_of_v<CReferenceCounted, T> || std::is_base_of_v<CReferenceCountedT<
 template<CcpRcObject T>
 class RcPtr
 {
+    template<CcpRcObject U>
+    friend class RcPtr;
 private:
     T* p{};
 
@@ -81,18 +95,38 @@ public:
     }
     RcPtr(RcPtr&& x) noexcept { std::swap(p, x.p); }
 
+    template<class U>
+        requires std::is_convertible_v<U, T>
+    explicit RcPtr(U* x) noexcept : p{ x }
+    {
+        if (x)
+            x->Reference();
+    }
+
+    template<class U>
+        requires std::is_convertible_v<U*, T*>
+    RcPtr(const RcPtr<U>& x) noexcept : p{ x.p }
+    {
+        if (p)
+            p->Reference();
+    }
+    template<class U>
+        requires std::is_convertible_v<U*, T*>
+    RcPtr(RcPtr<U>&& x) noexcept : p{ x.p }
+    {
+        x.p = nullptr;
+    }
+
     ~RcPtr() { ReleaseIt(); }
 
     RcPtr& operator=(const RcPtr& x) noexcept
     {
-        if (p != x.p)
-            RcPtr{ x }.Swap(*this);
+        RcPtr{ x }.Swap(*this);
         return *this;
     }
     RcPtr& operator=(T* x) noexcept
     {
-        if (p != x)
-            RcPtr{ x }.Swap(*this);
+        RcPtr{ x }.Swap(*this);
         return *this;
     }
 
@@ -102,11 +136,36 @@ public:
         return *this;
     }
 
+    template<class U>
+        requires std::is_convertible_v<U, T>
+    RcPtr& operator=(U* x) noexcept
+    {
+        RcPtr{ x }.Swap(*this);
+        return *this;
+    }
+
+    template<class U>
+        requires std::is_convertible_v<U*, T*>
+    RcPtr& operator=(const RcPtr<U>& x) noexcept
+    {
+        RcPtr{ x }.Swap(*this);
+        return *this;
+    }
+    template<class U>
+        requires std::is_convertible_v<U*, T*>
+    RcPtr& operator=(RcPtr<U>&& x) noexcept
+    {
+        RcPtr{ x }.Swap(*this);
+        return *this;
+    }
+
     RcPtr& operator=(std::nullptr_t) noexcept
     {
         ReleaseIt();
         return *this;
     }
+
+    EckInlineNdCe explicit operator bool() const noexcept { return !!p; }
 
     UINT Clear() noexcept
     {

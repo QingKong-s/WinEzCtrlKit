@@ -75,7 +75,7 @@ private:
             if (!e.pLayout.Get())
             {
                 g_pDwFactory->CreateTextLayout(sldi.Group.pszText,
-                    sldi.Group.cchText, m_pTfGroup, GetWidthF() - Padding * 2.f,
+                    sldi.Group.cchText, m_pTfGroup, GetWidth() - Padding * 2.f,
                     (float)m_cyGroupHeader, &e.pLayout);
             }
             if (e.pLayout.Get())
@@ -95,7 +95,7 @@ private:
                 e.pLayout->GetMetrics(&tm);
                 const float yLine = rcText.top + (float)(m_cyGroupHeader / 2);
                 D2D1_POINT_2F pt1{ rcText.left + tm.width + Padding2 * 2.f ,yLine };
-                D2D1_POINT_2F pt2{ GetWidthF() - Padding2,yLine };
+                D2D1_POINT_2F pt2{ GetWidth() - Padding2,yLine };
                 if (pt1.x < pt2.x)
                     m_pDC->DrawLine(pt1, pt2, m_pBrush, (float)CyGroupLine);
             }

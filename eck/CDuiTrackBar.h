@@ -3,7 +3,7 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-class CTrackBar : public CElem
+class CTrackBar : public CElement
 {
 private:
     CEasingCurve m_ec{};
@@ -102,7 +102,7 @@ public:
         {
         case WM_PAINT:
         {
-            ELEMPAINTSTRU ps;
+            PAINTINFO ps;
             BeginPaint(ps, wParam, lParam);
 
             DTB_OPT Opt;
@@ -137,7 +137,7 @@ public:
             if (m_bTransparentSpace)
             {
                 POINT pt ECK_GET_PT_LPARAM(lParam);
-                ClientToElem(pt);
+                ClientToElement(pt);
 
                 D2D1_RECT_F rcTrack;
                 GetTrackRect(rcTrack);
@@ -158,7 +158,7 @@ public:
                     DUINMHDR nm{ TBE_POSCHANGED };
                     GenElemNotify(&nm);
                 }
-                InvalidateRect();
+                Invalidate();
             }
             else if (!m_bHover)
             {
@@ -166,7 +166,7 @@ public:
                 if (m_bThinTrack)
                 {
                     m_ec.Begin(0.f, 1.f);
-                    GetWnd()->WakeRenderThread();
+                    GetWindow()->WakeRenderThread();
                 }
             }
         }
@@ -180,7 +180,7 @@ public:
                 if (m_bThinTrack)
                 {
                     m_ec.Begin(1.f, 0.f);
-                    GetWnd()->WakeRenderThread();
+                    GetWindow()->WakeRenderThread();
                 }
             }
         }
@@ -200,7 +200,7 @@ public:
             else
             {
                 SetTrackPos(HitTest(pt));
-                InvalidateRect();
+                Invalidate();
                 DUINMHDR nm{ TBE_POSCHANGED };
                 GenElemNotify(&nm);
             }
@@ -215,7 +215,7 @@ public:
                 m_bLBtnDown = FALSE;
                 ReleaseCapture();
                 SetTrackPos(HitTest(pt));
-                InvalidateRect();
+                Invalidate();
                 DUINMHDR nm{ TBE_POSCHANGED };
                 GenElemNotify(&nm);
 
@@ -231,23 +231,23 @@ public:
 
         case WM_CREATE:
         {
-            InitEasingCurve(&m_ec);
+            InitializeEasingCurve(&m_ec);
             m_ec.SetDuration(200);
             m_ec.SetProcedure(Easing::OutSine);
             m_ec.SetCallback([](float fCurrValue, float fOldValue, LPARAM lParam)
                 {
-                    ((CElem*)lParam)->InvalidateRect();
+                    ((CElement*)lParam)->Invalidate();
                 });
         }
         [[fallthrough]];
         case WM_SIZE:
         {
             if (m_bAutoTrackSize)
-                m_cxyTrack = (m_bVertical ? GetWidthF() : GetHeightF()) * 0.6f;
+                m_cxyTrack = (m_bVertical ? GetWidth() : GetHeight()) * 0.6f;
         }
         break;
         }
-        return CElem::OnEvent(uMsg, wParam, lParam);
+        return CElement::OnEvent(uMsg, wParam, lParam);
     }
 
     void SetRange(float fMin, float fMax)
