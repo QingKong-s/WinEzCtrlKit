@@ -532,7 +532,7 @@ EckInline float Spring(float t, float x0, float dx, float dt) noexcept
 }
 ECK_EASING_NAMESPACE_END
 
-class CEasingCurve : public CUnknown<CEasingCurve, ITimeLine>
+class CEasingCurve : public ITimeLine
 {
 public:
     using FCallBack = void(*)(float fCurrValue, float fOldValue, LPARAM lParam);

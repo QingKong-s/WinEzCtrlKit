@@ -142,7 +142,4 @@ private:
         }
     };
 };
-
-template<class TThis>
-using CRefObj = CUnknown<TThis, IUnknown>;
 ECK_NAMESPACE_END

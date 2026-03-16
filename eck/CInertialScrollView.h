@@ -4,9 +4,7 @@
 #include "EasingCurve.h"
 
 ECK_NAMESPACE_BEGIN
-class CInertialScrollView :
-    public CScrollViewF,
-    public CUnknown<CInertialScrollView, ITimeLine>
+class CInertialScrollView : public CScrollViewF, public ITimeLine
 {
 public:
     using FInertialScrollProc = void(*)(float fPos, float fPrevPos, LPARAM lParam);

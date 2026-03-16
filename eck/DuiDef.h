@@ -44,17 +44,6 @@ enum
 // 元素产生的通知
 enum : UINT
 {
-    EE_COMMAND = 1,
-    EE_KILLFOCUS,
-    EE_SETFOCUS,
-    EE_CLICK,
-    EE_RCLICK,
-    EE_DBLCLICK,
-    EE_SCROLL,
-    EE_HSCROLL = EE_SCROLL,
-    EE_VSCROLL = EE_SCROLL,
-    EE_CUSTOMDRAW,		// NMECUSTOMDRAW*，返回CDRF_*
-
     // TrackBar
     TBE_POSCHANGED,		// 位置改变
     // List

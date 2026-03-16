@@ -81,10 +81,9 @@ EckInlineNdCe Rect MakeRect(const RECT& rc) noexcept
 }
 
 #ifdef _D2D1_H_
-EckInlineNdCe const D2D1_RECT_F& MakeD2DRectF(const Kw::Rect& rc) noexcept
-{
-    return *(D2D1_RECT_F*)&rc;
-}
+EckInlineNdCe const D2D1_RECT_F& MakeD2DRectF(const Kw::Rect& rc) noexcept { return *(D2D1_RECT_F*)&rc; }
+EckInlineNdCe const Rect& MakeRect(const D2D1_RECT_F& rc) noexcept { return *(Rect*)&rc; }
+EckInlineNdCe const D2D1_POINT_2F& MakeD2DPointF(const Kw::Vec2& pt) noexcept { return *(D2D1_POINT_2F*)&pt; }
 #endif
 
 struct ColorF

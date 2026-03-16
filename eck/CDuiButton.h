@@ -128,7 +128,7 @@ public:
                 Kw::Vec2 pt{ rc.left, (GetHeight() - tm.height) / 2.f };
                 pt += GetOffsetInClient();
                 GetDC()->DrawTextLayout(
-                    ReinterpretValue<D2D1_POINT_2F>(pt),
+                    Kw::MakeD2DPointF(pt),
                     m_pLayout.Get(),
                     GetWindow().CcSetBrushColor(ArgbToD2DColorF(pSubStyle->argbFore)));
             }
@@ -224,7 +224,7 @@ public:
 
     void EvtClick() noexcept
     {
-        ELENMHDR nm{ ENM_COMMAND };
+        ELENMHDR nm{ ENC_COMMAND };
         SendNotify(&nm);
     }
 

@@ -79,7 +79,7 @@ public:
 
     void EvtClick() noexcept
     {
-        ELENMHDR nm{ ENM_COMMAND };
+        ELENMHDR nm{ ENC_COMMAND };
         SendNotify(&nm);
     }
 };

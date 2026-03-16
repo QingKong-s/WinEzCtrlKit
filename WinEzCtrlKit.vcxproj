@@ -276,7 +276,6 @@
     <ClCompile Include="eck\CDateTimePicker.h" />
     <ClCompile Include="eck\CDialog.h" />
     <ClCompile Include="eck\CDrawPanel.h" />
-    <ClCompile Include="eck\CDuiCircleButton.h" />
     <ClCompile Include="eck\CDuiButton.h" />
     <ClCompile Include="eck\CDuiEdit.h" />
     <ClCompile Include="eck\CDuiLabel.h" />

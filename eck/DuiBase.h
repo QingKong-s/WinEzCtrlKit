@@ -18,6 +18,7 @@ ECK_DUI_NAMESPACE_BEGIN
 class CElement : public UiBasic::CElement<CElement, true>
 {
     friend class CDuiWindow;
+    using TBase = UiBasic::CElement<CElement, true>;
 private:
     // 缓存已混合的元素矩形，至少完全包含原始元素矩形，相对客户区
     Kw::Rect m_rcCompInClient{};
@@ -36,7 +37,7 @@ private:
     RcPtr<CThemeStyle> m_pThemeStyle{};
     ComPtr<IDWriteTextFormat> m_pTextFormat{};
 
-    void RedrawInternal(const Kw::Rect* prcInEle, BOOL bUpdateNow) noexcept;
+    void InvalidateInternal(const Kw::Rect* prcInEle, BOOL bUpdateNow) noexcept;
 
     void SetStyleWorker(DWORD uStyle) noexcept;
 
@@ -67,7 +68,7 @@ public:
     virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept;
 
     // 将缓动曲线对象的自定义参数设为this，并注册
-    EckInline void InitializeEasingCurve(CEasingCurve* pEc) noexcept;
+    EckInline void InitializeEasingCurve(CEasingCurve* pec) noexcept;
 
     void CeInflateRectWithExpandRadius(_Inout_ Kw::Rect& rc, float f) noexcept
     {
@@ -127,7 +128,10 @@ public:
         SetStyleWorker(uStyle);
         CallEvent(WM_STYLECHANGED, dwOldStyle, GetStyle());
     }
-    EckInlineNdCe UINT GetStyle() const noexcept { return __super::GetStyle(); }
+
+    using TBase::GetStyle;
+    using TBase::SetZOrder;
+    using TBase::SetVisible;
 
     EckInline void SetTheme(CThemeBase* p) noexcept { m_pTheme = p; }
     EckInlineNdCe auto& GetTheme() const noexcept { return m_pTheme; }
@@ -166,11 +170,15 @@ public:
 
     EckInline void Invalidate(const Kw::Rect& rcInEle, BOOL bUpdateNow = TRUE) noexcept
     {
-        RedrawInternal(&rcInEle, bUpdateNow);
+        InvalidateInternal(&rcInEle, bUpdateNow);
     }
     EckInline void Invalidate(BOOL bUpdateNow = TRUE) noexcept
     {
-        RedrawInternal(nullptr, bUpdateNow);
+        InvalidateInternal(nullptr, bUpdateNow);
+    }
+    EckInline void Invalidate(const D2D1_RECT_F& rcInEle, BOOL bUpdateNow = TRUE) noexcept
+    {
+        InvalidateInternal(&Kw::MakeRect(rcInEle), bUpdateNow);
     }
 
     void BeginPaint(_Out_ PAINTINFO& ps, WPARAM wParam, LPARAM lParam) noexcept;
@@ -188,6 +196,8 @@ public:
     EckInlineNdCe CElement* GetFocus() noexcept;
     EckInline BOOL SetTimer(UINT_PTR uId, UINT uElapse) noexcept;
     EckInline BOOL KillTimer(UINT_PTR uId) noexcept;
+
+    EckInline void KctWake() noexcept;
 
     EckInlineNdCe BOOL IsValid() const noexcept { return !!__super::GetContainer(); }
 
@@ -1088,8 +1098,6 @@ private:
     void KctShutdown() noexcept
     {
         m_MsgTimer.Stop();
-        for (const auto p : m_vTimeLine)
-            p->Release();
         m_vTimeLine.clear();
     }
 public:
@@ -1199,17 +1207,13 @@ public:
 
     EckInline void KctRegisterTimeLine(ITimeLine* pTl) noexcept
     {
-        pTl->AddRef();
         m_vTimeLine.emplace_back(pTl);
     }
     EckInline void KctUnregisterTimeLine(ITimeLine* pTl) noexcept
     {
         const auto it = std::find(m_vTimeLine.begin(), m_vTimeLine.end(), pTl);
         if (it != m_vTimeLine.end())
-        {
-            (*it)->Release();
             m_vTimeLine.erase(it);
-        }
     }
 
     EckInline void Redraw(BOOL bWake = TRUE) noexcept
@@ -1532,7 +1536,7 @@ inline LRESULT CElement::OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexce
     return __super::OnEvent(uMsg, wParam, lParam);
 }
 
-inline void CElement::RedrawInternal(const Kw::Rect* prcInEle, BOOL bUpdateNow) noexcept
+inline void CElement::InvalidateInternal(const Kw::Rect* prcInEle, BOOL bUpdateNow) noexcept
 {
     if (!IsVisible())
         return;
@@ -1577,10 +1581,10 @@ inline void CElement::BeginPaint(_Out_ PAINTINFO& ps, WPARAM, LPARAM lParam) noe
         GetWindow().BlurpDrawStyle(this, ps.rcfClip, ps.ox, ps.oy);
 }
 
-EckInline void CElement::InitializeEasingCurve(CEasingCurve* pEc) noexcept
+EckInline void CElement::InitializeEasingCurve(CEasingCurve* pec) noexcept
 {
-    pEc->SetCallbackData((LPARAM)this);
-    GetWindow().KctRegisterTimeLine(pEc);
+    pec->SetCallbackData((LPARAM)this);
+    GetWindow().KctRegisterTimeLine(pec);
 }
 
 inline void CElement::PostMoveSize(BOOL bSize, BOOL bMove, const Kw::Rect& rcOld) noexcept
@@ -1758,6 +1762,7 @@ EckInline     void      CElement::SetFocus()       noexcept { GetWindow().EleSet
 EckInlineNdCe CElement* CElement::GetFocus()       noexcept { return GetWindow().EleGetFocus(); }
 EckInline     BOOL      CElement::SetTimer(UINT_PTR uId, UINT uElapse) noexcept { return GetWindow().EleSetTimer(this, uId, uElapse); }
 EckInline     BOOL      CElement::KillTimer(UINT_PTR uId) noexcept { return GetWindow().EleKillTimer(this, uId); }
+EckInline     void      CElement::KctWake() noexcept { GetWindow().KctWake(); }
 EckInlineNdCe ID2D1Bitmap1* CElement::CcGetBitmap() const noexcept { return GetWindow().CcGetBitmap(); }
 
 class CUiaBase : public CElement::CUiaElement
@@ -1774,6 +1779,23 @@ public:
             return S_OK;
         }
         return __super::GetPropertyValue(idProp, pRetVal);
+    }
+    STDMETHODIMP get_BoundingRectangle(UiaRect* pRetVal) override
+    {
+        if (!m_pEle)
+        {
+            *pRetVal = {};
+            return UIA_E_ELEMENTNOTAVAILABLE;
+        }
+        auto rc{ ((CElement*)m_pEle)->GetWholeRectInClient() };
+        ((CElement*)m_pEle)->LogicalToPixel(rc);
+        RECT rcInScr{ (int)rc.left, (int)rc.top, (int)rc.right, (int)rc.bottom };
+        ClientToScreen(((CElement*)m_pEle)->GetWindow().HWnd, &rcInScr);
+        pRetVal->left = (double)rcInScr.left;
+        pRetVal->top = (double)rcInScr.top;
+        pRetVal->width = double(rcInScr.right - rcInScr.left);
+        pRetVal->height = double(rcInScr.bottom - rcInScr.top);
+        return S_OK;
     }
 };
 inline HRESULT CElement::EhUiaMakeInterface() noexcept

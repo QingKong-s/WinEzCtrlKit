@@ -51,6 +51,24 @@ public:
             m_cyPage = m_cyPageMax;
     }
 
+    void Initialize(
+        TCoord cxTile, TCoord cyTile,
+        TCoord cxPage, TCoord cyPage,
+        TCoord cxPageMax, TCoord cyPageMax,
+        BOOLEAN bIncPageSize = TRUE) noexcept
+    {
+        m_cxTile = cxTile;
+        m_cyTile = cyTile;
+        m_cxPage = std::min(cxPage, cxPageMax);
+        m_cyPage = std::min(cyPage, cyPageMax);
+        m_cxPageMax = cxPageMax;
+        m_cyPageMax = cyPageMax;
+        m_bIncPageSize = bIncPageSize;
+        m_vPage.Clear();
+        m_rgFree.Clear();
+        m_cTile = 0;
+    }
+
     // 返回线性索引
     TId Allocate(
         _Out_ TId& idxPage,

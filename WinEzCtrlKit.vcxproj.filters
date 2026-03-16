@@ -146,9 +146,6 @@
     <ClCompile Include="eck\CDuiButton.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CDuiCircleButton.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
     <ClCompile Include="eck\CDuiEdit.h">
       <Filter>ECK Include</Filter>
     </ClCompile>

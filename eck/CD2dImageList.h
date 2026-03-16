@@ -1,326 +1,159 @@
 ﻿#pragma once
-#include "CSelectionRange.h"
-#include "CUnknown.h"
-#include "CSrwLock.h"
-#include "Utility.h"
+#include "CRectPackTile.h"
+#include "ComPtr.h"
 
 ECK_NAMESPACE_BEGIN
-class CD2DImageList final : public CRefObj<CD2DImageList>
+class CD2DImageList
 {
+public:
+    constexpr static UINT InvalidId = UINT_MAX;
+
+    using TCoord = CRectPackTile::TCoord;
+
+    struct TEX
+    {
+        ComPtr<ID2D1Bitmap1> pTex;
+    };
 private:
-    CSrwLock m_Lk{};
-    ID2D1DeviceContext* m_pDC{};
-    std::vector<ID2D1Bitmap1*> m_vBmp{};
-    CSelectionRange m_FreeRange{};
-    D2D1_PIXEL_FORMAT m_PixelFormat{};
+    using TId = CRectPackTile::TId;
 
-    float m_cxLog{}, m_cyLog{};
-    float m_fPaddingLog{};
-    float m_fDpi{};
+    CRectPackTile m_Packer;
+    std::vector<TEX> m_vItem{};
+    ComPtr<ID2D1DeviceContext> m_pDC{};
+    DXGI_FORMAT m_eFormat{ DXGI_FORMAT_B8G8R8A8_UNORM };
+    float m_fDpi{ 96.f };
+    float m_cxTileLog{}, m_cyTileLog{};
+    float m_cxPageLog{}, m_cyPageLog{};
+public:
+    CD2DImageList(
+        float fDpi,
+        float cxTile, float cyTile,
+        float cxPage = 512, float cyPage = 256,
+        DXGI_FORMAT eFormat = DXGI_FORMAT_B8G8R8A8_UNORM,
+        BOOLEAN bIncPageSize = TRUE) noexcept :
+        m_Packer{
+            (TCoord)ceilf(cxTile * fDpi / 96.f) + 1,
+            (TCoord)ceilf(cyTile * fDpi / 96.f) + 1,
+            (TCoord)ceilf(cxPage),
+            (TCoord)ceilf(cyPage),
+            8192, 8192, bIncPageSize
+        },
+        m_eFormat{ eFormat },
+        m_fDpi{ fDpi },
+        m_cxTileLog{ cxTile }, m_cyTileLog{ cyTile },
+        m_cxPageLog{ cxPage }, m_cyPageLog{ cyPage }
+    {}
 
-    int m_cImg{};
-    int m_cCapacity{};
-    int m_cCapacityPerPack{};
-
-    EckInlineNd D2D1_SIZE_U PhyGetPackSize() const
+    HRESULT BindRenderTarget(ID2D1RenderTarget* pRT) noexcept
     {
-        return
+        return pRT->QueryInterface(m_pDC.AddrOfClear());
+    }
+
+    HRESULT Add(_Out_ UINT& uId) noexcept
+    {
+        if (!m_Packer.HasFreeTile())
         {
-            (UINT32)ceilf(m_cxLog * m_fDpi / 96.f),
-            (UINT32)ceilf(((m_cyLog + m_fPaddingLog) * m_cCapacityPerPack) * m_fDpi / 96.f)
-        };
-    }
+            TCoord cxPage, cyPage;
+            m_Packer.GetCurrentPageSize(cxPage, cyPage);
 
-    EckInlineNdCe int CalculatePackIndex(int idxImg) const
-    {
-        return idxImg / m_cCapacityPerPack;
-    }
-
-    EckInlineNdCe int CalculateImageIndexInPack(int idxImg) const
-    {
-        return idxImg % m_cCapacityPerPack;
-    }
-
-    EckInlineNd int PhyCalculateY(int idxImgInPack) const
-    {
-        return (int)ceilf(LogCalculateY(idxImgInPack) * m_fDpi / 96.f);
-    }
-
-    EckInlineNd int PhyYFromImgIndex(int idxImg) const
-    {
-        return (int)ceilf(LogYFromImageIndex(idxImg) * m_fDpi / 96.f);
-    }
-
-    EckInlineNd D2D1_RECT_U PhyGetSingleImageRect() const
-    {
-        return
-        {
-            0,0,
-            (UINT32)ceilf(m_cxLog * m_fDpi / 96.f),
-            (UINT32)ceilf(m_cyLog * m_fDpi / 96.f)
-        };
-    }
-
-    EckInlineNdCe float LogCalculateY(int idxImgInPack) const
-    {
-        return idxImgInPack * (m_cyLog + m_fPaddingLog);
-    }
-
-    EckInlineNdCe float LogYFromImageIndex(int idxImg) const
-    {
-        return CalculateImageIndexInPack(idxImg) * (m_cyLog + m_fPaddingLog);
-    }
-
-    HRESULT ReAllocate(int cCapacity)
-    {
-        HRESULT hr;
-        if (cCapacity <= m_cCapacity)
-            return S_FALSE;
-        const int idxBegin = (int)m_vBmp.size();
-        const int cPack = (cCapacity + m_cCapacityPerPack) / m_cCapacityPerPack;
-        EckAssert(cPack > (int)m_vBmp.size());
-        m_vBmp.resize(cPack);
-        const D2D1_BITMAP_PROPERTIES1 BmpProp
-        {
-            m_PixelFormat, m_fDpi, m_fDpi,
-            D2D1_BITMAP_OPTIONS_TARGET,
-        };
-
-        const auto Size = PhyGetPackSize();
-        for (int i = idxBegin; i < (int)m_vBmp.size(); ++i)
-        {
-            ID2D1Bitmap1* pBmp;
-            if (FAILED(hr = m_pDC->CreateBitmap(Size, nullptr, 0, BmpProp, &pBmp)))
+            const D2D1_BITMAP_PROPERTIES1 Prop
             {
-                // 若失败，回滚到调用此方法前的状态
-                for (int j = idxBegin; j < i; ++j)
-                    m_vBmp[j]->Release();
-                m_vBmp.resize(idxBegin);
+                .pixelFormat = { m_eFormat, D2D1_ALPHA_MODE_PREMULTIPLIED },
+                .dpiX = m_fDpi,
+                .dpiY = m_fDpi,
+            };
+            auto& e = m_vItem.emplace_back();
+            const auto hr = m_pDC->CreateBitmap(
+                { cxPage, cyPage }, nullptr, 0, Prop, &e.pTex);
+            if (FAILED(hr))
+            {
+                m_vItem.pop_back();
+                uId = InvalidId;
                 return hr;
             }
-            m_vBmp[i] = pBmp;
         }
 
-        m_FreeRange.IncludeRange(m_cCapacity, cPack * m_cCapacityPerPack - 1);
-        m_cCapacity = cPack * m_cCapacityPerPack;
+        TId idxPage;
+        TCoord x, y;
+        uId = m_Packer.Allocate(idxPage, x, y);
+        EckAssert(idxPage <= m_vItem.size());
         return S_OK;
     }
 
-    void DestroyNoLock()
-    {
-        for (auto e : m_vBmp)
-            if (e) e->Release();
-        m_vBmp.clear();
-        SafeRelease(m_pDC);
-        m_cCapacity = 0;
-        m_FreeRange.Clear();
-    }
-public:
-    ECK_DISABLE_COPY_MOVE_DEF_CONS(CD2DImageList);
-    CD2DImageList(float cx, float cy, float iPadding = 1, int cCapacityPerPack = 50)
-        : m_cxLog{ cx }, m_cyLog{ cy }, m_fPaddingLog{ iPadding },
-        m_cCapacityPerPack{ cCapacityPerPack } {}
+    void Discard(UINT uId) noexcept { m_Packer.Free(uId); }
 
-    ~CD2DImageList()
+    EckInlineNdCe D2D1_SIZE_U GetTilePixelSize() const noexcept
     {
-        CSrwWriteGuard _{ m_Lk };
-        DestroyNoLock();
+        TCoord cxTile, cyTile;
+        m_Packer.GetTileSize(cxTile, cyTile);
+        return { cxTile - GetPadding(), cyTile - GetPadding() };
     }
 
-    HRESULT BindRenderTarget(_In_ ID2D1RenderTarget* pRT)
+    // WARNING 数据应在右方和下方包含空白边界，边界大小由GetPadding()返回
+    HRESULT Upload(UINT uId, ID3D11DeviceContext* pContext,
+        PCVOID pData, UINT cbStride) const noexcept
     {
-        CSrwWriteGuard _{ m_Lk };
-        DestroyNoLock();
-        const auto hr = pRT->QueryInterface(&m_pDC);
-        if (FAILED(hr)) return hr;
+        TId idxPage;
+        TCoord x, y;
+        m_Packer.GetTilePosition(uId, idxPage, x, y);
+        const auto& e = m_vItem[idxPage];
 
-        m_PixelFormat = pRT->GetPixelFormat();
-        if (m_PixelFormat.format == DXGI_FORMAT_UNKNOWN)
-            m_PixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM;
-        m_PixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
-        pRT->GetDpi(&m_fDpi, &m_fDpi);
-        return S_OK;
+        TCoord cxTile, cyTile;
+        m_Packer.GetTileSize(cxTile, cyTile);
+
+        const D2D1_RECT_U rc{ x, y, x + cxTile, y + cyTile };
+        return e.pTex->CopyFromMemory(&rc, pData, cbStride);
     }
 
-    EckInline void Destroy()
+    // 返回以像素计的空白边界大小，上传数据时应在右方和下方包含该边界
+    EckInlineNdCe UINT GetPadding() const noexcept { return 1; }
+
+    // 返回页索引，使用物理坐标
+    constexpr UINT GetTileRectPixel(UINT uId, _Out_ D2D1_RECT_U& rc) const noexcept
     {
-        CSrwWriteGuard _{ m_Lk };
-        DestroyNoLock();
+        TId idxPage;
+        TCoord x, y;
+        m_Packer.GetTilePosition(uId, idxPage, x, y);
+        TCoord cxTile, cyTile;
+        m_Packer.GetTileSize(cxTile, cyTile);
+        rc.left = x;
+        rc.top = y;
+        rc.right = x + cxTile - 1;
+        rc.bottom = y + cyTile - 1;
+        return idxPage;
+    }
+    // 返回页索引，使用逻辑坐标
+    constexpr UINT GetTileRectLogical(UINT uId, _Out_ D2D1_RECT_F& rc) const noexcept
+    {
+        D2D1_RECT_U rcPixel;
+        const auto idxPage = GetTileRectPixel(uId, rcPixel);
+        rc.left = rcPixel.left * 96.f / m_fDpi;
+        rc.top = rcPixel.top * 96.f / m_fDpi;
+        rc.right = rcPixel.right * 96.f / m_fDpi;
+        rc.bottom = rcPixel.bottom * 96.f / m_fDpi;
+        return idxPage;
     }
 
-    /// <summary>
-    /// 加入图像。
-    /// 将图像追加到图像列表的末尾。函数在内部调用CopyFromBitmap复制图像。
-    /// 该方法不会执行缩放
-    /// </summary>
-    /// <param name="pBitmap">图像，像素格式必须兼容</param>
-    /// <param name="prcSrc">源矩形，物理坐标，若为nullptr则使用{ 0,0,单个图像宽度,单个图像高度 }</param>
-    /// <param name="phr">可选的接收HRESULT的变量</param>
-    /// <returns>新添加的图像的索引，若失败则返回-1</returns>
-    int AddImage(_In_ ID2D1Bitmap* pBitmap, const D2D1_RECT_U* prcSrc = nullptr,
-        _Out_opt_ HRESULT* phr = nullptr)
+    const auto& GetPageTexture(UINT idxPage) const noexcept { return m_vItem[idxPage].pTex; }
+
+    EckInlineCe void GetTileSize(_Out_ TCoord& cx, _Out_ TCoord& cy) const noexcept
     {
-        HRESULT hr;
-        int idxNew;
-        if (SUCCEEDED(hr = ReplaceImage(-1, pBitmap, prcSrc, &idxNew)))
-        {
-            if (phr) *phr = S_OK;
-            return idxNew;
-        }
-        CSrwWriteGuard _{ m_Lk };
-        if (FAILED(hr = ReAllocate(m_cImg + 1)))
-        {
-            if (phr) *phr = hr;
-            return -1;
-        }
-        idxNew = m_cImg++;
-
-        const D2D1_POINT_2U ptDst{ 0,(UINT32)PhyCalculateY(CalculateImageIndexInPack(idxNew)) };
-        D2D1_RECT_U rc;
-        if (!prcSrc)
-        {
-            rc = PhyGetSingleImageRect();
-            prcSrc = &rc;
-        }
-
-        const auto pBmp = m_vBmp[CalculatePackIndex(idxNew)];
-        hr = pBmp->CopyFromBitmap(&ptDst, pBitmap, prcSrc);
-        if (phr) *phr = hr;
-        if (SUCCEEDED(hr))
-        {
-            m_FreeRange.ExcludeItem(idxNew);
-            return idxNew;
-        }
-        else
-        {
-            --m_cImg;
-            return -1;
-        }
+        m_Packer.GetTileSize(cx, cy);
+        cx -= GetPadding();
+        cy -= GetPadding();
     }
 
-    /// <summary>
-    /// 绘制图像。
-    /// 绘制指定索引的图像到指定的矩形。函数使用ID2D1DeviceContext::DrawBitmap绘制图像。
-    /// </summary>
-    /// <param name="idxImg">图像索引</param>
-    /// <param name="rcDst">目标矩形</param>
-    /// <param name="fAlpha">透明度</param>
-    /// <param name="iInterpolationMode">插值模式</param>
-    /// <param name="pPerspectiveMatrix">绘制时应用的4x4矩阵变换</param>
-    /// <returns>HRESULT</returns>
-    HRESULT Draw(int idxImg, const D2D1_RECT_F& rcDst, float fAlpha = 1.f,
-        D2D1_INTERPOLATION_MODE iInterpolationMode = D2D1_INTERPOLATION_MODE_LINEAR,
-        const D2D1_MATRIX_4X4_F* pPerspectiveMatrix = nullptr)
+    EckInlineNdCe UINT GetPageCount() const noexcept { return m_Packer.GetPageCount(); }
+    EckInlineNdCe UINT GetCount() const noexcept { return m_Packer.GetCount(); }
+
+    void Draw(ID2D1DeviceContext* pDC, UINT uId, const D2D1_RECT_F& rcDst,
+        float fOpcity = 1.f,
+        D2D1_INTERPOLATION_MODE eInter = D2D1_INTERPOLATION_MODE_LINEAR) const noexcept
     {
-        EckAssert(idxImg >= 0 && idxImg < m_cImg);
-        CSrwWriteGuard _{ m_Lk };
-        const auto y = LogYFromImageIndex(idxImg);
-        const D2D1_RECT_F rcSrc{ 0.f,y,m_cxLog,y + m_cyLog };
-        m_pDC->DrawBitmap(m_vBmp[CalculatePackIndex(idxImg)], rcDst, fAlpha,
-            iInterpolationMode, &rcSrc, pPerspectiveMatrix);
-        return S_OK;
-    }
-
-    // 绘制图像。
-    // 绘制指定索引的图像到指定的矩形。函数使用ID2D1RenderTarget::DrawBitmap绘制图像。
-    HRESULT Draw2(int idxImg, const D2D1_RECT_F& rcDst, float fAlpha = 1.f,
-        D2D1_BITMAP_INTERPOLATION_MODE iInterpolationMode = D2D1_BITMAP_INTERPOLATION_MODE_LINEAR)
-    {
-        EckAssert(idxImg >= 0 && idxImg < m_cImg);
-        CSrwWriteGuard _{ m_Lk };
-        const auto y = LogYFromImageIndex(idxImg);
-        const D2D1_RECT_F rcSrc{ 0.f,y,m_cxLog,y + m_cyLog };
-        m_pDC->DrawBitmap(m_vBmp[CalculatePackIndex(idxImg)], rcDst, fAlpha,
-            iInterpolationMode, &rcSrc);
-        return S_OK;
-    }
-
-    // 丢弃图像。将指定索引的图像标记为空闲
-    HRESULT DiscardImage(int idxImg)
-    {
-        EckAssert(idxImg >= 0 && idxImg < m_cCapacity);
-        CSrwWriteGuard _{ m_Lk };
-        if (m_FreeRange.IsSelected(idxImg))
-            return S_FALSE;
-        m_FreeRange.IncludeRange(idxImg, idxImg);
-        --m_cImg;
-        return S_OK;
-    }
-
-    /// <summary>
-    /// 替换图像。
-    /// 替换指定索引的图像。函数在内部调用CopyFromBitmap复制图像。
-    /// 该方法不会执行缩放
-    /// </summary>
-    /// <param name="idxImg">索引，若为-1则自动选择第一个空闲的索引，
-    /// 在此种情况下若无空闲位置则返回E_NOT_SUFFICIENT_BUFFER</param>
-    /// <param name="pBitmap">源图像</param>
-    /// <param name="prcSrc">源矩形，若为nullptr则使用{ 0,0,单个图像宽度,单个图像高度 }</param>
-    /// <returns>HRESULT</returns>
-    HRESULT ReplaceImage(int idxImg, _In_ ID2D1Bitmap* pBitmap,
-        const D2D1_RECT_U* prcSrc = nullptr, _Out_opt_ int* pidxNew = nullptr)
-    {
-        EckAssert(idxImg < m_cImg);
-        CSrwWriteGuard _{ m_Lk };
-        BOOL bUseSpace{};
-        if (idxImg < 0)
-        {
-            bUseSpace = TRUE;
-            idxImg = m_FreeRange.GetFirstSelected();
-            if (idxImg < 0)
-            {
-                if (pidxNew) *pidxNew = -1;
-                return E_NOT_SUFFICIENT_BUFFER;
-            }
-        }
-        if (pidxNew) *pidxNew = idxImg;
-
-        const D2D1_POINT_2U ptDst{ 0,(UINT32)PhyYFromImgIndex(idxImg) };
-        D2D1_RECT_U rc;
-        if (!prcSrc)
-        {
-            rc = PhyGetSingleImageRect();
-            prcSrc = &rc;
-        }
-
-        const auto pBmp = m_vBmp[CalculatePackIndex(idxImg)];
-        if (HRESULT hr; FAILED(hr = pBmp->CopyFromBitmap(&ptDst, pBitmap, prcSrc)))
-            return hr;
-        m_FreeRange.ExcludeRange(idxImg, idxImg);
-        if (bUseSpace)
-            ++m_cImg;
-        return S_OK;
-    }
-
-    EckInline D2D1_SIZE_F GetImageSize()
-    {
-        CSrwReadGuard _{ m_Lk };
-        return { m_cxLog,m_cyLog };
-    }
-
-    EckInline void GetImageSize(float& cx, float& cy)
-    {
-        CSrwReadGuard _{ m_Lk };
-        cx = m_cxLog;
-        cy = m_cyLog;
-    }
-
-    EckInline int GetImageCount()
-    {
-        CSrwReadGuard _{ m_Lk };
-        return m_cImg;
-    }
-
-    EckInline int GetCapacity()
-    {
-        CSrwReadGuard _{ m_Lk };
-        return m_cCapacity;
-    }
-
-    EckInline void Reserve(int cImg)
-    {
-        CSrwWriteGuard _{ m_Lk };
-        ReAllocate(cImg);
+        D2D1_RECT_F rcSrc;
+        GetTileRectLogical(uId, rcSrc);
+        pDC->DrawBitmap(GetPageTexture(uId).Get(),
+            rcDst, fOpcity, eInter, &rcSrc);
     }
 };
 ECK_NAMESPACE_END

@@ -16,7 +16,7 @@ public:
     };
 private:
     CInertialScrollView* m_psv{};
-    CEasingCurve* m_pec{};
+    CEasingCurve m_ec{};
     BITBOOL m_bHot : 1{};
     BITBOOL m_bLBtnDown : 1{};
     BITBOOL m_bDragThumb : 1{};

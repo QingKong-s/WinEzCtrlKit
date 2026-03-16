@@ -75,15 +75,28 @@ public:
     void SetMetricCollection(CMetricCollection* p) noexcept { m_pMetric = p; }
     auto GetMetricCollection() const noexcept { return m_pMetric; }
 
-    UINT GetColor(UINT id) const noexcept
+    std::optional<UINT> GetColorOptional(UINT id) const noexcept
     {
-        const auto v = m_pColor->Get(id);
-        return v.value_or(0);
+        if (!m_pColor)
+            return std::nullopt;
+        return m_pColor->Get(id);
     }
-    float GetMetric(UINT id) const noexcept
+    UINT GetColor(UINT id, UINT argbDef = 0) const noexcept
     {
-        const auto v = m_pMetric->Get(id);
-        return v.value_or(0);
+        const auto v = GetColorOptional(id);
+        return v.has_value() ? v.value() : argbDef;
+    }
+
+    std::optional<float> GetMetricOptional(UINT id) const noexcept
+    {
+        if (!m_pMetric)
+            return std::nullopt;
+        return m_pMetric->Get(id);
+    }
+    float GetMetric(UINT id, float dDef = 0.f) const noexcept
+    {
+        const auto v = GetMetricOptional(id);
+        return v.has_value() ? v.value() : dDef;
     }
 };
 

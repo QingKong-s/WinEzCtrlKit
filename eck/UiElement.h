@@ -50,12 +50,12 @@ namespace Declaration
 
     enum : UINT
     {
-        ENM_DUMMY,
+        ENC_DUMMY,
 
-        ENM_COMMAND,
-        ENM_SCROLL,
+        ENC_COMMAND,
+        ENC_SCROLL,
 
-        ENM_SYSBEGIN,
+        ENC_SYSBEGIN,
     };
 
     enum : UINT
@@ -662,8 +662,8 @@ protected:
         m_iUserDpi = iDpi;
         UpdateLogicalClientSize();
     }
+public:
     EckInlineNdCe int GetUserDpi() const noexcept { return m_iUserDpi; }
-
     EckInlineNdCe int GetWindowDpi() const noexcept { return m_iDpi; }
 public:
     template<std::floating_point T>
