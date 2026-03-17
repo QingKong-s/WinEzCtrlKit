@@ -404,6 +404,7 @@
     <ClInclude Include="eck\CScopeGuard.h" />
     <ClInclude Include="eck\CWicBitmapLock.h" />
     <ClInclude Include="eck\EuiTheme.h" />
+    <ClInclude Include="eck\MediaTagID3v2Frame.h" />
     <ClInclude Include="eck\UiElement.h" />
     <ClInclude Include="eck\EuiBase.h" />
     <ClInclude Include="eck\EuiDef.h" />
