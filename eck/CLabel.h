@@ -575,14 +575,14 @@ public:
         laht.bHit = FALSE;
         laht.bHitImg = FALSE;
         laht.bHitText = FALSE;
-        if (PtInRect(RECT{ 0,0,m_cxClient,m_cyClient }, pt))
+        if (PointInRect(RECT{ 0,0,m_cxClient,m_cyClient }, pt))
         {
             laht.bHit = TRUE;
             if (m_bPartMetricsDirty)
                 CalculatePartsRect();
-            if (PtInRect(m_rcPartImg, pt))
+            if (PointInRect(m_rcPartImg, pt))
                 laht.bHitImg = TRUE;
-            else if (PtInRect(m_rcPartText, pt))
+            else if (PointInRect(m_rcPartText, pt))
                 laht.bHitText = TRUE;
             return TRUE;
         }

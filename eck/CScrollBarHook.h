@@ -362,12 +362,12 @@ public:
                 break;
             POINT pt ECK_GET_PT_LPARAM(lParam);
             ScreenToClient(pWnd->HWnd, &pt);
-            if (m_bVisibleV && PtInRect(m_rcSBV, pt))
+            if (m_bVisibleV && PointInRect(m_rcSBV, pt))
             {
                 Ctx.Processed();
                 return HTVSCROLL;
             }
-            if (m_bVisibleH && PtInRect(m_rcSBH, pt))
+            if (m_bVisibleH && PointInRect(m_rcSBH, pt))
             {
                 Ctx.Processed();
                 return HTHSCROLL;
@@ -698,7 +698,7 @@ public:
 
     Part HitTest(POINT pt) noexcept
     {
-        if (m_bVisibleV && PtInRect(m_rcSBV, pt))
+        if (m_bVisibleV && PointInRect(m_rcSBV, pt))
         {
             /*
             * ---	m_rcSBV.top
@@ -733,7 +733,7 @@ public:
             else// if (pt.y < m_rcSBV.bottom)
                 return Part::ArrowDown;
         }
-        else if (m_bVisibleH && PtInRect(&m_rcSBH, pt))
+        else if (m_bVisibleH && PointInRect(m_rcSBH, pt))
         {
             // m_rcSBH.left    m_xThumb	           m_rcSBH.right
             // |←|            | Thumb |        |→|

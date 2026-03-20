@@ -42,7 +42,7 @@ public:
                     ClientToElement(pt);
                     D2D1_RECT_F rc;
                     GetPartRect(rc, SbPart::Thumb);
-                    if (!PtInRect(rc, pt))
+                    if (!PointInRect(rc, pt))
                         return HTTRANSPARENT;
                 }
                 return HTCLIENT;
@@ -86,7 +86,7 @@ public:
             const D2D1_POINT_2F ptf{ MakeD2DPointF(pt) };
             D2D1_RECT_F rcf;
             GetPartRect(rcf, SbPart::Thumb);
-            if (PtInRect(rcf, ptf))
+            if (PointInRect(rcf, ptf))
             {
                 m_bDragThumb = TRUE;
                 m_psv->OnLButtonDown(m_bHorizontal ? pt.x - GetHeight() : pt.y - GetWidth());

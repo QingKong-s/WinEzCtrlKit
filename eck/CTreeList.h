@@ -2,11 +2,11 @@
 #include "CHeaderExt.h"
 #include "CEditExt.h"
 #include "CToolTip.h"
-#include "GraphicsHelper.h"
 #include "CtrlGraphics.h"
 #include "CScrollBar.h"
-
-#include <vssym32.h>
+#ifdef _DEBUG
+#include "Color.h"
+#endif
 
 ECK_NAMESPACE_BEGIN
 // 项目标志
@@ -616,7 +616,7 @@ private:
             rc.top = rcItem.top + (m_cyItem - m_sizeCheckBox.cy) / 2;
             rc.right = rc.left + m_sizeCheckBox.cx;
             rc.bottom = rc.top + m_sizeCheckBox.cy;
-            EckAssert(GetLowNBits(e->uFlags, 2) <= 2);
+            EckAssert(BitsLowN(e->uFlags, 2) <= 2);
             if (bFirstColVisible)
 #if ECK_OPT_SUPPORT_CLASSIC_THEME
                 if (!m_hThemeBT)
@@ -842,7 +842,7 @@ private:
             return;
 
         const auto piOrder = (int*)_malloca(sizeof(int) * cCol);
-        EckCheckMem(piOrder);
+        EckCheckMemory(piOrder);
         if (m_bSplitCol0)
         {
             HDITEMW hdi;
@@ -2417,7 +2417,7 @@ public:
                 GetPartRect(idx, TLIP_EXPANDBTN, rc);
                 if (rc.right > m_vCol.front().iRight)
                     rc.right = m_vCol.front().iRight;
-                if (PtInRect(&rc, tlht.pt))
+                if (PointInRect(rc, tlht.pt))
                 {
                     tlht.iPart = TLIP_EXPANDBTN;
                     goto EndPartTest;
@@ -2429,7 +2429,7 @@ public:
                 GetPartRect(idx, TLIP_CHECKBOX, rc);
                 if (rc.right > m_vCol.front().iRight)
                     rc.right = m_vCol.front().iRight;
-                if (PtInRect(&rc, tlht.pt))
+                if (PointInRect(rc, tlht.pt))
                 {
                     tlht.iPart = TLIP_CHECKBOX;
                     goto EndPartTest;
@@ -2441,7 +2441,7 @@ public:
                 GetPartRect(idx, TLIP_ICON, rc);
                 if (rc.right > m_vCol.front().iRight)
                     rc.right = m_vCol.front().iRight;
-                if (PtInRect(&rc, tlht.pt))
+                if (PointInRect(rc, tlht.pt))
                 {
                     tlht.iPart = TLIP_ICON;
                     goto EndPartTest;
@@ -2453,7 +2453,7 @@ public:
                 GetItemTextRect(idx, tlht.idxSubItemDisplay, rc);
                 if (IsRectEmpty(&rc))
                     tlht.uFlags |= TLHTF_NULLTEXT;
-                else if (PtInRect(&rc, tlht.pt))
+                else if (PointInRect(rc, tlht.pt))
                 {
                     tlht.iPart = TLIP_TEXT;
                     goto EndPartTest;
@@ -2775,7 +2775,7 @@ public:
         if (m_b3StateCheckBox)
         {
             EckAssert(m_bCheckBox);
-            const auto uNew = (GetLowNBits(m_vItem[idx]->uFlags, 2) + 1) % 3;
+            const auto uNew = (BitsLowN(m_vItem[idx]->uFlags, 2) + 1) % 3;
             m_vItem[idx]->uFlags &= ~(TLIF_CHECKED | TLIF_PARTIALCHECKED);
             m_vItem[idx]->uFlags |= uNew;
         }

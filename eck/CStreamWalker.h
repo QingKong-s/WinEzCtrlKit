@@ -95,14 +95,14 @@ public:
 
     CStreamWalker& operator+=(size_t cb)
     {
-        const auto hr = m_pStream->Seek(ToLi((LONGLONG)cb), STREAM_SEEK_CUR, nullptr);
+        const auto hr = m_pStream->Seek(ToLargeInt(cb), STREAM_SEEK_CUR, nullptr);
         if (FAILED(hr))
             throw XptHResult{ hr };
         return *this;
     }
     CStreamWalker& operator-=(size_t cb)
     {
-        const auto hr = m_pStream->Seek(ToLi(-(LONGLONG)cb), STREAM_SEEK_CUR, nullptr);
+        const auto hr = m_pStream->Seek(ToLargeInt(-(LONGLONG)cb), STREAM_SEEK_CUR, nullptr);
         if (FAILED(hr))
             throw XptHResult{ hr };
         return *this;
@@ -110,21 +110,21 @@ public:
 
     CStreamWalker& MoveToBegin()
     {
-        const auto hr = m_pStream->Seek(LiZero, STREAM_SEEK_SET, nullptr);
+        const auto hr = m_pStream->Seek({}, STREAM_SEEK_SET, nullptr);
         if (FAILED(hr))
             throw XptHResult{ hr };
         return *this;
     }
     CStreamWalker& MoveToEnd()
     {
-        const auto hr = m_pStream->Seek(LiZero, STREAM_SEEK_END, nullptr);
+        const auto hr = m_pStream->Seek({}, STREAM_SEEK_END, nullptr);
         if (FAILED(hr))
             throw XptHResult{ hr };
         return *this;
     }
     CStreamWalker& MoveTo(size_t x)
     {
-        const auto hr = m_pStream->Seek(ToLi((LONGLONG)x), STREAM_SEEK_SET, nullptr);
+        const auto hr = m_pStream->Seek(ToLargeInt(x), STREAM_SEEK_SET, nullptr);
         if (FAILED(hr))
             throw XptHResult{ hr };
         return *this;
@@ -134,7 +134,7 @@ public:
         size_t* pposNew = nullptr)
     {
         ULARGE_INTEGER uliNew;
-        const auto hr = m_pStream->Seek(ToLi(x), uOrg, &uliNew);
+        const auto hr = m_pStream->Seek(ToLargeInt(x), uOrg, &uliNew);
         if (FAILED(hr))
             throw XptHResult{ hr };
         if (pposNew)
@@ -145,7 +145,7 @@ public:
     size_t GetPosition()
     {
         ULARGE_INTEGER uli{};
-        const auto hr = m_pStream->Seek(LiZero, STREAM_SEEK_CUR, &uli);
+        const auto hr = m_pStream->Seek({}, STREAM_SEEK_CUR, &uli);
         if (FAILED(hr))
             throw XptHResult{ hr };
         return (size_t)uli.QuadPart;
@@ -191,10 +191,10 @@ public:
         if (SUCCEEDED(m_pStream->Clone(&pSelf)))
         {
             MoveTo(posSrc);
-            auto hr = pSelf->Seek(ToLi(posDst), STREAM_SEEK_SET, nullptr);
+            auto hr = pSelf->Seek(ToLargeInt(posDst), STREAM_SEEK_SET, nullptr);
             if (SUCCEEDED(hr))
             {
-                hr = m_pStream->CopyTo(pSelf.Get(), ToUli(cbSize), nullptr, nullptr);
+                hr = m_pStream->CopyTo(pSelf.Get(), ToULargeInt(cbSize), nullptr, nullptr);
                 if (SUCCEEDED(hr))
                     return;
             }
@@ -284,7 +284,7 @@ public:
         if (!cbSize)
             return;
         const auto uliStrmSize = GetSize();
-        m_pStream->SetSize(ToUli(GetSize() + cbSize));
+        m_pStream->SetSize(ToULargeInt(GetSize() + cbSize));
         if (pos != uliStrmSize)
             MoveData(pos + cbSize, pos, uliStrmSize - pos);
     }
@@ -303,7 +303,7 @@ public:
 
     void ReSize(size_t cbSize)
     {
-        const auto hr = m_pStream->SetSize(ToUli(cbSize));
+        const auto hr = m_pStream->SetSize(ToULargeInt(cbSize));
         if (FAILED(hr))
             throw XptHResult{ hr };
     }

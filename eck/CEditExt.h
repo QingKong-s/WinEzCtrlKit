@@ -249,8 +249,8 @@ public:
                 cchText = GetWindowTextLengthW(HWnd) + 10;
                 if (!cchText)
                     break;
-                pszText = (PWSTR)_malloca(Cch2CbW(cchText));
-                EckCheckMem(pszText);
+                pszText = (PWSTR)_malloca(CchToCbW(cchText));
+                EckCheckMemory(pszText);
                 GetText(pszText, cchText + 1);
                 lfValue = _wtof(pszText);
                 if (lfValue < -3.402823466e38)// 实际上正负值中间是有空隙的，不做判断了。。。
@@ -271,8 +271,8 @@ public:
                 cchText = GetWindowTextLengthW(HWnd) + 10;
                 if (!cchText)
                     break;
-                pszText = (PWSTR)_malloca(Cch2CbW(cchText));
-                EckCheckMem(pszText);
+                pszText = (PWSTR)_malloca(CchToCbW(cchText));
+                EckCheckMemory(pszText);
                 GetText(pszText, cchText);
                 lfValue = _wtof(pszText);
                 if (*(ULONGLONG*)&lfValue == 0xFFF0000000000000)

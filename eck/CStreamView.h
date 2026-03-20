@@ -83,7 +83,7 @@ public:
         case SEEK_SET:// 这种情况dlibMove应视为无符号
             m_pSeek = m_pMem + (size_t)dlibMove.QuadPart;
             if (plibNewPosition)
-                *plibNewPosition = ToUli(dlibMove);
+                *plibNewPosition = ToULargeInt(dlibMove);
             return S_OK;
 
         case SEEK_CUR:

@@ -43,7 +43,7 @@ EckInline NTSTATUS GetProcessPeb64(HANDLE hProcess, _Out_ ULONG64& Peb) noexcept
 
 inline NTSTATUS GetProcessPath(UINT uPid, CStringW& rsPath, BOOL bDosPath = TRUE) noexcept
 {
-    SYSTEM_PROCESS_ID_INFORMATION spii{ .ProcessId = DwordToPtr<HANDLE>(uPid) };
+    SYSTEM_PROCESS_ID_INFORMATION spii{ .ProcessId = DwordToPointer<HANDLE>(uPid) };
     NTSTATUS nts = NtQuerySystemInformation(SystemProcessIdInformation,
         &spii, sizeof(spii), nullptr);
     if (spii.ImageName.MaximumLength &&
@@ -406,8 +406,8 @@ inline NTSTATUS EnumerateProcess(std::vector<PROCESS_INFO>& vResult,
         {
             auto& e = vResult.emplace_back(
                 pspi->ImageName,
-                PtrToDword<ULONG>(pspi->UniqueProcessId),
-                PtrToDword<ULONG>(pspi->InheritedFromUniqueProcessId),
+                PointerToDword<ULONG>(pspi->UniqueProcessId),
+                PointerToDword<ULONG>(pspi->InheritedFromUniqueProcessId),
                 pspi->NumberOfThreads,
                 pspi->SessionId,
                 pspi->HandleCount,
@@ -433,7 +433,7 @@ inline NTSTATUS EnumerateProcess(std::vector<PROCESS_INFO>& vResult,
                 for (auto p = pBegin; p < pEnd; ++p)
                 {
                     auto& t = e.vThreads[p - pBegin];
-                    t.uTid = PtrToDword<ULONG>(p->ClientId.UniqueThread);
+                    t.uTid = PointerToDword<ULONG>(p->ClientId.UniqueThread);
                     t.StartAddress = p->StartAddress;
                     t.Priority = p->Priority;
                     t.BasePriority = p->BasePriority;
@@ -463,7 +463,7 @@ EckInline NTSTATUS GetProcessIdByName(
                 TcsCompareLength2I(svImage.data(), svImage.size(),
                     pspi->ImageName.Buffer, pspi->ImageName.Length / sizeof(WCHAR)) == 0)
             {
-                uPid = PtrToDword<UINT>(pspi->UniqueProcessId);
+                uPid = PointerToDword<UINT>(pspi->UniqueProcessId);
                 return FALSE;
             }
             return TRUE;
@@ -479,7 +479,7 @@ EckInline NTSTATUS GetProcessIdByName(
             if (pspi->ImageName.Length &&
                 TcsCompareLength2I(svImage.data(), svImage.size(),
                     pspi->ImageName.Buffer, pspi->ImageName.Length / sizeof(WCHAR)) == 0)
-                vPid.emplace_back(PtrToDword<UINT>(pspi->UniqueProcessId));
+                vPid.emplace_back(PointerToDword<UINT>(pspi->UniqueProcessId));
         });
 }
 

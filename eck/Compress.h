@@ -182,7 +182,7 @@ inline NTSTATUS Compress(_In_reads_bytes_(cbOrg) PCVOID pOrg, size_t cbOrg,
     ULONG cbRequired, Dummy;
     if (!NT_SUCCESS(nts = RtlGetCompressionWorkSpaceSize(uEngine, &cbRequired, &Dummy)))
         return nts;
-    UnqPtrMA<void> pWorkSpace{ malloc(cbRequired) };
+    UniquePtrMA<void> pWorkSpace{ malloc(cbRequired) };
     const auto cbOld = rbResult.Size();
     rbResult.ExtendToCapacity();
     if (rbResult.IsEmpty())

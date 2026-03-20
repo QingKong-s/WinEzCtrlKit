@@ -47,7 +47,7 @@ public:
             POINT pt ECK_GET_PT_LPARAM(lParam);
             ScreenToClient(HWnd, &pt);
             FixCursorPosition(pt);
-            if (PtInRect(m_rcBtn, pt))
+            if (PointInRect(m_rcBtn, pt))
                 return HTCLIENT;
         }
         break;
@@ -92,7 +92,7 @@ public:
         {
             POINT pt ECK_GET_PT_LPARAM(lParam);
             FixCursorPosition(pt);
-            if (PtInRect(m_rcBtn, pt))
+            if (PointInRect(m_rcBtn, pt))
             {
                 m_bBtnHot = TRUE;
                 RedrawButton();
@@ -128,7 +128,7 @@ public:
         {
             POINT pt ECK_GET_PT_LPARAM(lParam);
             FixCursorPosition(pt);
-            if (PtInRect(m_rcBtn, pt))
+            if (PointInRect(m_rcBtn, pt))
             {
                 SetCapture(HWnd);
                 m_bLBtnDown = TRUE;
@@ -148,7 +148,7 @@ public:
 
                 POINT pt ECK_GET_PT_LPARAM(lParam);
                 FixCursorPosition(pt);
-                if (PtInRect(m_rcBtn, pt))
+                if (PointInRect(m_rcBtn, pt))
                 {
                     OnButtonClick();
                     return 0;

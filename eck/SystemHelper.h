@@ -115,7 +115,7 @@ inline HRESULT GetCpuInfomation(CPUINFO& ci) noexcept
     // 取制造商
     __cpuid(Register, 0);
     std::swap(Register[2], Register[3]);
-    ci.rsVendor = StrX2W((PCSTR)&Register[1], 12);
+    ci.rsVendor = EcdMultiByteToWide((PCSTR)&Register[1], 12);
     /* */if (ci.rsVendor == L"GenuineIntel")
         ci.rsVendor = L"Intel Corporation.";
     else if (ci.rsVendor == L"AuthenticAMD" || ci.rsVendor == L"AMD ISBETTER")
@@ -142,7 +142,7 @@ inline HRESULT GetCpuInfomation(CPUINFO& ci) noexcept
         memcpy(szBrand + (i - 0x80000002) * 16, Register, sizeof(Register));
     }
     szBrand[48] = '\0';
-    ci.rsBrand = StrX2W(szBrand);
+    ci.rsBrand = EcdMultiByteToWide(szBrand);
     // 取序列号
     ci.rsSerialNum.ReSize(CchI32ToStrBuf * 2);
     __cpuid(Register, 1);
@@ -309,7 +309,7 @@ inline BOOL GetFileVersionInformation(PCWSTR pszFile, FILEVERINFO& fvi) noexcept
     if (!cbBuf)
         return FALSE;
     void* pBuf = malloc(cbBuf);
-    EckCheckMem(pBuf);
+    EckCheckMemory(pBuf);
     UniquePtr<DelMA<void>> _(pBuf);
     if (!GetFileVersionInfoW(pszFile, 0, cbBuf, pBuf))
         return FALSE;

@@ -26,8 +26,6 @@ public:
 
 // WARNING 非线程安全
 // WARNING 必须保证实例连接的所有资源都晚于实例销毁
-// 
-// TIntercept设为Intercept_T以指示信号可被拦截，此时在槽参数列表尾部增加SlotCtx
 template<class TIntercept, class TRet, class ...TArgs>
 class CEventChain
 {

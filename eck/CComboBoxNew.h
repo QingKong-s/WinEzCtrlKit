@@ -243,7 +243,7 @@ public:
                         m_cxClient,
                         m_cyClient
                     };
-                    if (PtInRect(rc, ECK_GET_PT_LPARAM(lParam)))
+                    if (PointInRect(rc, ECK_GET_PT_LPARAM(lParam)))
                     {
                         m_bHot = TRUE;
                         Redraw();

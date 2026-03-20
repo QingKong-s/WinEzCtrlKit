@@ -141,7 +141,7 @@ public:
 
                 D2D1_RECT_F rcTrack;
                 GetTrackRect(rcTrack);
-                if (!PtInRect(rcTrack, pt))
+                if (!PointInRect(rcTrack, pt))
                     return HTTRANSPARENT;
             }
         }
@@ -191,7 +191,7 @@ public:
             const POINT pt ECK_GET_PT_LPARAM(lParam);
             D2D1_RECT_F rcThumb;
             GetThumbRect(rcThumb);
-            if (PtInRect(rcThumb, MakeD2DPointF(pt)))
+            if (PointInRect(rcThumb, MakeD2DPointF(pt)))
             {
                 m_bLBtnDown = TRUE;
                 SetCapture();

@@ -101,7 +101,7 @@ namespace Priv
     {
         if (!pszU8)
             return {};
-        CStringW rs{ StrX2W(pszU8, (int)cchU8, CP_UTF8) };
+        CStringW rs{ EcdMultiByteToWide(pszU8, (int)cchU8, CP_UTF8) };
         if (pAlc && pAlc->free)
             pAlc->free(pAlc->ctx, pszU8);
         else
@@ -147,7 +147,7 @@ namespace Priv
         EckInlineNd double GetNumber() const noexcept { return yyjson_get_num((yyjson_val*)m_pVal); }
         EckInlineNd PCSTR GetString() const noexcept { return yyjson_get_str((yyjson_val*)m_pVal); }
         EckInlineNd size_t GetLength() const noexcept { return yyjson_get_len((yyjson_val*)m_pVal); }
-        EckInlineNd CStringW GetStringW() const noexcept { return StrX2W(GetString(), (int)GetLength(), CP_UTF8); }
+        EckInlineNd CStringW GetStringW() const noexcept { return EcdMultiByteToWide(GetString(), (int)GetLength(), CP_UTF8); }
     };
 }
 
@@ -597,7 +597,7 @@ public:
     {
         if (cchVal == SizeTMax)
             cchVal = wcslen(pszVal);
-        const auto u8 = StrW2X(pszVal, (int)cchVal, CP_UTF8);
+        const auto u8 = EcdWideToMultiByte(pszVal, (int)cchVal, CP_UTF8);
         return NewStringCopy(u8.Data(), u8.Size());
     }
     EckInlineNd CMutVal NewArray() const noexcept { return CMutVal(yyjson_mut_arr(m_pDoc), this); }
@@ -799,7 +799,7 @@ namespace Priv
                     return Doc.NewStringCopy(v.s, cch == UINT_MAX ? strlen(v.s) : cch);
             case Type::StringW:
             {
-                const auto u8 = StrW2X(v.ws, (int)cch, CP_UTF8);
+                const auto u8 = EcdWideToMultiByte(v.ws, (int)cch, CP_UTF8);
                 return Doc.NewStringCopy(u8.Data(), u8.Size());
             }
             ECK_UNREACHABLE;
@@ -854,7 +854,7 @@ namespace Priv
             break;
             case Type::StringW:
             {
-                const auto u8 = StrW2X(v.ws, (int)cch, CP_UTF8);
+                const auto u8 = EcdWideToMultiByte(v.ws, (int)cch, CP_UTF8);
                 Val.SetString(u8.Data(), u8.Size());
             }
             break;

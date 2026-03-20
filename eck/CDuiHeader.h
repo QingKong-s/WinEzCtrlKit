@@ -85,7 +85,7 @@ private:
             if (nm.pszText)
             {
                 EckAssert(nm.cchText > 0);
-                eck::g_pDwFactory->CreateTextLayout(nm.pszText, nm.cchText,
+                g_pDwFactory->CreateTextLayout(nm.pszText, nm.cchText,
                     GetTextFormat(), e.cx - Padding * 2, GetHeight(), &e.pLayout);
             }
         }

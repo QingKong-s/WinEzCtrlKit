@@ -210,7 +210,7 @@ static struct
 }
 s_WndClassInfo[]
 {
-    { },// WCN_DLG
+    { },// WCN_DIALOG
 #if ECK_OPT_NO_SIMPLE_WND_CLS
     { WCN_LABEL },
     { WCN_BK },
@@ -1654,7 +1654,7 @@ InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ UINT*
         .cbWndExtra = DLGWINDOWEXTRA,
         .hInstance = g_hInstance,
         .hCursor = LoadCursorW(nullptr, IDC_ARROW),
-        .lpszClassName = WCN_DLG
+        .lpszClassName = WCN_DIALOG
     };
 
     for (const auto& e : s_WndClassInfo)

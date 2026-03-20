@@ -1480,7 +1480,7 @@ public:
             {
                 pt0 = ptInClient;
                 pEle->EhTransform(pt0, TRUE);
-                if (PtInRect(pEle->GetRectInClient(), pt0))
+                if (PointInRect(pEle->GetRectInClient(), pt0))
                 {
                     const auto pHit = pEle->EtHitTest(ptInClient, pResult);
                     if (pHit)

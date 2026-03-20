@@ -30,49 +30,58 @@
     <ClInclude Include="targetver.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CMemoryDC.h">
+    <ClInclude Include="eck\CDuiEdit.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CEasyD2D.h">
+    <ClInclude Include="eck\CDuiHeader.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\GpPtr.h">
+    <ClInclude Include="eck\CDuiLabel.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CScopeGuard.h">
+    <ClInclude Include="eck\CDuiList.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CWicBitmapLock.h">
+    <ClInclude Include="eck\CDuiListTemplate.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CPixelEditor.h">
+    <ClInclude Include="eck\CDuiScrollBar.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CIcoFileReader.h">
+    <ClInclude Include="eck\CDuiTabHeader.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\EuiBase.h">
+    <ClInclude Include="eck\CDuiTabList.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\EuiDef.h">
+    <ClInclude Include="eck\CDuiTitleBar.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\UiElement.h">
+    <ClInclude Include="eck\CDuiTrackBar.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CEuiButton.h">
+    <ClInclude Include="eck\DuiBase.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CReferenceCounted.h">
+    <ClInclude Include="eck\DuiCompositor.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\EuiTheme.h">
+    <ClInclude Include="eck\DuiDef.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\CMessageTimer.h">
+    <ClInclude Include="eck\DuiElemSizeBox.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\MediaTagID3v2Frame.h">
+    <ClInclude Include="eck\DuiStdCompositor.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\DuiStdTheme.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\DuiTheme.h">
+      <Filter>ECK Include</Filter>
+    </ClInclude>
+    <ClInclude Include="eck\CListBoxExt.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
   </ItemGroup>
@@ -147,36 +156,6 @@
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\CDuiButton.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CDuiEdit.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CDuiHeader.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CDuiLabel.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CDuiList.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CDuiListTemplate.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CDuiScrollBar.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CDuiTabHeader.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CDuiTabList.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CDuiTitleBar.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CDuiTrackBar.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\CDummyWindow.h">
@@ -297,9 +276,6 @@
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\CListBox.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CListBoxExt.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\CListBoxNew.h">
@@ -515,33 +491,6 @@
     <ClCompile Include="eck\DpiApi.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\DuiBase.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\DuiCompositor.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\DuiCssParse.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\DuiCssTheme.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\DuiDef.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\DuiElemSizeBox.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\DuiStdCompositor.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\DuiStdTheme.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\DuiTheme.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
     <ClCompile Include="eck\DwLayoutPath.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
@@ -744,6 +693,54 @@
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\UiTheme.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\CEasyD2D.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\CEuiButton.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\CIcoFileReader.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\CMemoryDC.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\CMessageTimer.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\Color.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\CPixelEditor.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\CReferenceCounted.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\CScopeGuard.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\CWicBitmapLock.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\EuiBase.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\EuiDef.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\EuiTheme.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\GpPtr.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\MediaTagID3v2Frame.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
+    <ClCompile Include="eck\UiElement.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
   </ItemGroup>

@@ -92,7 +92,7 @@ private:
         }
     };
 
-    eck::CStringW m_rsName{};
+    CStringW m_rsName{};
     std::vector<SOURCE> m_vSource{};// 从小到大排序
     std::vector<PROPERTY> m_vProp{};// 从小到大排序
 public:

@@ -389,7 +389,7 @@ public:
                 << ReverseInteger(CalculateCrc32(byBuf + 4, wkChunk.GetPosition() - 4));
             wkChunk.MoveToBegin();
             // 写IDAT或fdAT
-            PngStream.Seek(ToLi(0), STREAM_SEEK_SET, nullptr);
+            PngStream.Seek(ToLargeInt(0), STREAM_SEEK_SET, nullptr);
             // WIC编码一帧
             HRESULT hr;
             ComPtr<IWICBitmapEncoder> pEncoder;

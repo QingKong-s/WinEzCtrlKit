@@ -568,7 +568,7 @@ public:
             LcsUtf16ReverseByteOrder(m_rsText.Data(), m_rsText.Size());
         }
         else
-            m_rsText = StrX2W((PCSTR)rbFile.Data(), (int)rbFile.Size(), uCp);
+            m_rsText = EcdMultiByteToWide((PCSTR)rbFile.Data(), (int)rbFile.Size(), uCp);
         return TRUE;
     }
 

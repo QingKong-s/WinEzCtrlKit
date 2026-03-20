@@ -223,12 +223,12 @@ inline ObjAttrErr OamFromString(std::wstring_view Str, TOamValFrom<E> Val) noexc
     if constexpr (BaseType <= ObjAttrType::ULongLong &&
         BaseType >= ObjAttrType::Char)
     {
-        const auto r = TcsToInt(Str.data(), Str.size(), Val);
+        const auto r = TcvToInt(Str.data(), Str.size(), Val);
         switch (r)
         {
-        case TcsCvtErr::Ok:			return ObjAttrErr::Ok;
-        case TcsCvtErr::Overflow:	return ObjAttrErr::Overflow;
-        case TcsCvtErr::Nothing:	return ObjAttrErr::InvalidValue;
+        case TcvResult::Ok:			return ObjAttrErr::Ok;
+        case TcvResult::Overflow:	return ObjAttrErr::Overflow;
+        case TcvResult::Nothing:	return ObjAttrErr::InvalidValue;
         }
     }
     else if constexpr (BaseType == ObjAttrType::Float ||
@@ -238,7 +238,7 @@ inline ObjAttrErr OamFromString(std::wstring_view Str, TOamValFrom<E> Val) noexc
         const auto cch = Str.size() - (pszBegin - Str.data());
         if (cch == 0)
             Val = 0;
-        const auto pszTmp = (PWSTR)_malloca(Cch2CbW(cch));
+        const auto pszTmp = (PWSTR)_malloca(CchToCbW(cch));
         TcsCopyLengthEnd(pszTmp, pszBegin, cch);
         PWSTR pszEnd;
         Val = (TObjAttrType<E>)wcstod(pszTmp, &pszEnd);
@@ -270,7 +270,7 @@ inline ObjAttrErr OamFromString(std::wstring_view Str, TOamValFrom<E> Val) noexc
     }
     else if constexpr (BaseType == ObjAttrType::Colorref)
     {
-        if (TcsToInt(Str.data(), Str.size(), Val) != TcsCvtErr::Ok)
+        if (TcvToInt(Str.data(), Str.size(), Val) != TcvResult::Ok)
             return ObjAttrErr::InvalidValue;
         return ObjAttrErr::Ok;
     }

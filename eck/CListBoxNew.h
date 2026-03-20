@@ -2,6 +2,9 @@
 #include "CWindow.h"
 #include "CtrlGraphics.h"
 #include "CSelectionRange.h"
+#ifdef _DEBUG
+#include "Color.h"
+#endif
 
 ECK_NAMESPACE_BEGIN
 enum : UINT
@@ -565,7 +568,7 @@ private:
             RECT rc;
             GetWindowRect(hWnd, &rc);
             ScreenToClient(hWnd, &rc);
-            if (!PtInRect(rc, POINT{ x,y }))// 光标在窗口外，关闭列表
+            if (!PointInRect(rc, POINT{ x,y }))// 光标在窗口外，关闭列表
             {
                 NMHDR nm;
                 FillNmhdr(nm, NM_LBN_DISMISS);
@@ -573,7 +576,7 @@ private:
                 return;
             }
             else if (rc = { 0,0,m_cxClient,m_cyClient };
-                !PtInRect(rc, POINT{ x,y }))// 试图拖动滚动条
+                !PointInRect(rc, POINT{ x,y }))// 试图拖动滚动条
             {
                 POINT ptScr{ x,y };
                 ClientToScreen(hWnd, &ptScr);
@@ -854,7 +857,7 @@ public:
             if (m_hComboBox)
             {
                 const RECT rcClient{ 0,0,m_cxClient,m_cyClient };
-                if (!PtInRect(&rcClient, ECK_GET_PT_LPARAM(lParam)))
+                if (!PointInRect(rcClient, ECK_GET_PT_LPARAM(lParam)))
                     break;
                 m_bRBtnDown = TRUE;
                 // 无需捕获鼠标
@@ -873,7 +876,7 @@ public:
             const RECT rcClient{ 0,0,m_cxClient,m_cyClient };
             if (m_hComboBox)
             {
-                if (!PtInRect(&rcClient, ECK_GET_PT_LPARAM(lParam)))// 客户区之外，可能正在右击滚动条
+                if (!PointInRect(rcClient, ECK_GET_PT_LPARAM(lParam)))// 客户区之外，可能正在右击滚动条
                 {
                     CbBeginProtectCapture();
                     const auto lResult = __super::OnMessage(uMsg, wParam, lParam);

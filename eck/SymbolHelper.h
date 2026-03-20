@@ -107,7 +107,7 @@ inline HRESULT DshMakeSymbolUrl(
     std::wstring_view svSymbolSrv = SymSrvMicrosoft
 ) noexcept
 {
-    const auto rsPdbW = StrX2W(PdbInfo.rsPdbFile.Data(),
+    const auto rsPdbW = EcdMultiByteToWide(PdbInfo.rsPdbFile.Data(),
         PdbInfo.rsPdbFile.Size(), CP_ACP);
     rsSymbolUrl.Clear();
     if (PdbInfo.rsPdbFile.IsEmpty())

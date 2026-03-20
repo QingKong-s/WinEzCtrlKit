@@ -247,7 +247,7 @@ struct StrList
         EckInlineNdCe bool operator==(const Iterator& x) const noexcept { return p == x.p; }
     };
 
-    eck::CStringW Str{};
+    CStringW Str{};
 
     EckInlineCe void Clear() noexcept { Str.Clear(); }
 
@@ -324,7 +324,7 @@ struct MUSICPIC
         }
         else
         {
-            pStream = new eck::CStreamView{ GetPictureData() };
+            pStream = new CStreamView{ GetPictureData() };
             return S_OK;
         }
     }
@@ -528,7 +528,7 @@ inline BOOL TagGetNumberAndTotal(std::wstring_view sv,
     _Out_ int& nNum, _Out_ int& nTotal) noexcept
 {
     PCWCH pEnd;
-    if (TcsToInt(sv.data(), sv.size(), nNum, 10, &pEnd) != TcsCvtErr::Ok)
+    if (TcvToInt(sv.data(), sv.size(), nNum, 10, &pEnd) != TcvResult::Ok)
     {
         nTotal = 0;
         return FALSE;
@@ -536,8 +536,8 @@ inline BOOL TagGetNumberAndTotal(std::wstring_view sv,
     const auto posSlash = sv.find(L'/', size_t(pEnd - sv.data()));
     if (posSlash != std::wstring_view::npos)
     {
-        if (TcsToInt(sv.data() + posSlash + 1,
-            sv.size() - (posSlash + 1), nTotal) != TcsCvtErr::Ok)
+        if (TcvToInt(sv.data() + posSlash + 1,
+            sv.size() - (posSlash + 1), nTotal) != TcvResult::Ok)
             return FALSE;
     }
     else

@@ -206,14 +206,14 @@ namespace Priv
         ScopedPath(ERR_CTX& ErrCtx_, std::wstring_view sv, int idxNode) noexcept
             : ErrCtx{ ErrCtx_ }, cchOld{ ErrCtx.rsPath.Size() }
         {
-            constexpr size_t cchBuf = TcsCvtCalcBufferSize<int>();
+            constexpr size_t cchBuf = TcvIntBufferSize<int>();
 
             auto p = ErrCtx.rsPath.PushBack(int(sv.size() + cchBuf));
             TcsCopyLength(p, sv.data(), sv.size());
             p += sv.size();
 
             PWCH pEnd;
-            TcsFromInt(p, cchBuf, idxNode, 10, TRUE, &pEnd);
+            TcvFromInt(p, cchBuf, idxNode, 10, TRUE, &pEnd);
             ErrCtx.rsPath.ReSize(int(pEnd - ErrCtx.rsPath.Data()));
         }
         void Pop() noexcept

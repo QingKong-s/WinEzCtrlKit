@@ -96,7 +96,7 @@ public:
         {
             const auto ocb = rb.Size();
             const auto pStream = new CByteBufferStream{ rb };
-            pStream->Seek(ToLi(0), STREAM_SEEK_END, nullptr);
+            pStream->Seek({}, STREAM_SEEK_END, nullptr);
             if (SUCCEEDED(ImageList_WriteEx(hIL, ILP_NORMAL, pStream)))
                 ((CTRLDATA_WND*)rb.Data())->uFlags |= SERDF_IMAGELIST;
             pStream->LeaveRelease();

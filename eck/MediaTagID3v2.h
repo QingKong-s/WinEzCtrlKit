@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "MediaTagID3v2Frame.h"
-#include "Compress.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_MEDIATAG_NAMESPACE_BEGIN
@@ -315,7 +314,7 @@ private:
         if (Pic.bLink)
         {
             pFrame->rbData.Clear();
-            StrW2U8(pFrame->rbData, Pic.GetPicturePath().Data(), Pic.GetPicturePath().Size());
+            EcdWideToUtf8(pFrame->rbData, Pic.GetPicturePath().Data(), Pic.GetPicturePath().Size());
         }
         else
             if (bMove)
@@ -453,7 +452,7 @@ public:
 
                 Pic.bLink = (p->rsMime == "-->");
                 if (Pic.bLink)
-                    Pic.varPic = StrX2W((PCSTR)p->rbData.Data(), (int)p->rbData.Size());
+                    Pic.varPic = EcdMultiByteToWide((PCSTR)p->rbData.Data(), (int)p->rbData.Size());
                 else
                     if (bMove)
                         Pic.varPic = std::move(p->rbData);
@@ -904,7 +903,7 @@ public:
                         m_Stream.MoveTo(Loc.posV2 +
                             sizeof(ID3v2_HEADER) + cbPrependTotal);
                         void* p = VAlloc(cbPadding);
-                        EckCheckMem(p);
+                        EckCheckMemory(p);
                         m_Stream.Write(p, (ULONG)cbPadding);
                         VFree(p);
                     }

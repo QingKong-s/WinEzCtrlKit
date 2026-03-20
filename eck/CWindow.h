@@ -118,7 +118,7 @@ struct SERIALIZE_OPT
         int nID, ::eck::PCVOID pData = nullptr) noexcept        \
     {                                                           \
         return Create(pszText, dwStyle, dwExStyle, x, y, cx, cy,\
-            hParent, ::eck::DwordToPtr<HMENU>(nID), pData);         \
+            hParent, ::eck::DwordToPointer<HMENU>(nID), pData);         \
     }
 
 // 按类名和实例句柄生成创建方法
@@ -468,7 +468,7 @@ public:
         int x, int y, int cx, int cy, HWND hParent, int nID, PCVOID pData = nullptr) noexcept
     {
         return Create(pszText, dwStyle, dwExStyle, x, y, cx, cy,
-            hParent, DwordToPtr<HMENU>(nID), pData);
+            hParent, DwordToPointer<HMENU>(nID), pData);
     }
 
     EckInline HWND NativeCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,

@@ -118,7 +118,7 @@ private:
 
     void UpdateDataMetrics() noexcept
     {
-        m_cRow = (int)DivUpper(m_cbData, D.cCol);
+        m_cRow = (int)CeilDivide(m_cbData, (size_t)D.cCol);
         WCHAR szBuf[CchI64ToStrBufNoRadix2];
         m_cxAddress = swprintf(szBuf, (D.bHexAddress ? L"%08Ix" : L"%08Iu"), m_cbData) * m_cxChar + D.cxGap * 2;
         m_cxData = (m_cxChar * 2 + D.cxGap) * D.cCol;
@@ -682,7 +682,7 @@ public:
 
     EckInlineNdCe int GetPartialVisibleRowCount() const noexcept
     {
-        return std::min(DivUpper(m_cyClient - m_cyChar - D.cyGap, m_cyChar + D.cyGap), m_cRow);
+        return std::min(CeilDivide(m_cyClient - m_cyChar - D.cyGap, m_cyChar + D.cyGap), m_cRow);
     }
 
     EckInlineNdCe int GetDataRegionWidth() const noexcept

@@ -145,9 +145,10 @@ EckInline std::wstring_view GetResourceStringForCurrentLocale(
 }
 #pragma endregion 资源
 
-#pragma region Utf8转换
+#pragma region 编码转换
 template<class TAllocator>
-void StrW2X(CByteBufferT<TAllocator>& rbResult,
+void EcdWideToMultiByte(
+    CByteBufferT<TAllocator>& rbResult,
     _In_reads_or_z_(cch) PCWCH pszText,
     int cch = -1,
     UINT uCP = CP_ACP,
@@ -165,7 +166,8 @@ void StrW2X(CByteBufferT<TAllocator>& rbResult,
     *(pszBuf + cchBuf) = '\0';
 }
 template<class TAllocator>
-void StrX2W(CByteBufferT<TAllocator>& rbResult,
+void EcdMultiByteToWide(
+    CByteBufferT<TAllocator>& rbResult,
     _In_reads_or_z_(cch) PCCH pszText,
     int cch,
     UINT uCP = CP_ACP,
@@ -183,81 +185,50 @@ void StrX2W(CByteBufferT<TAllocator>& rbResult,
 
 template<class TChar, class TTraits, class TAllocator>
     requires (sizeof(TChar) == 1)
-EckInline void StrW2U8(CStringT<TChar, TTraits, TAllocator>& rsResult,
+EckInline void EcdWideToUtf8(CStringT<TChar, TTraits, TAllocator>& rsResult,
     _In_reads_or_z_(cch) PCWCH pszText, int cch = -1) noexcept
 {
-    StrW2X(rsResult, pszText, cch, CP_UTF8, 0u);
+    EcdWideToMultiByte(rsResult, pszText, cch, CP_UTF8, 0u);
 }
 template<class TTraits = CCharTraits<CHAR>, class TAllocator = TStringDefaultAllocator<CHAR>>
-EckInlineNd auto StrW2U8(_In_reads_or_z_(cch) PCWCH pszText, int cch = -1) noexcept
+EckInlineNd auto EcdWideToUtf8(_In_reads_or_z_(cch) PCWCH pszText, int cch = -1) noexcept
 {
     CStringT<CHAR, TTraits, TAllocator> rs;
-    StrW2U8(rs, pszText, cch);
+    EcdWideToUtf8(rs, pszText, cch);
     return rs;
 }
 template<class TAllocator>
-void StrW2U8(CByteBufferT<TAllocator>& rbResult,
+void EcdWideToUtf8(CByteBufferT<TAllocator>& rbResult,
     _In_reads_or_z_(cch) PCWCH pszText, int cch = -1) noexcept
 {
-    StrW2X(rbResult, pszText, cch, CP_UTF8, 0u);
+    EcdWideToMultiByte(rbResult, pszText, cch, CP_UTF8, 0u);
 }
 
 template<class TChar, class TTraits, class TAllocator>
     requires (sizeof(TChar) == 2)
-EckInline void StrU82W(CStringT<TChar, TTraits, TAllocator>& rsResult,
+EckInline void EcdUtf8ToWide(CStringT<TChar, TTraits, TAllocator>& rsResult,
     _In_reads_or_z_(cch) PCCH pszText, int cch = -1) noexcept
 {
-    StrX2W(rsResult, pszText, cch, CP_UTF8, 0u);
+    EcdMultiByteToWide(rsResult, pszText, cch, CP_UTF8, 0u);
 }
 template<class TTraits = CCharTraits<WCHAR>, class TAllocator = TStringDefaultAllocator<WCHAR>>
-EckInlineNd auto StrU82W(_In_reads_or_z_(cch) PCCH pszText, int cch = -1) noexcept
+EckInlineNd auto EcdUtf8ToWide(_In_reads_or_z_(cch) PCCH pszText, int cch = -1) noexcept
 {
     CStringT<WCHAR, TTraits, TAllocator> rs;
-    StrU82W(rs, pszText, cch);
+    EcdUtf8ToWide(rs, pszText, cch);
     return rs;
 }
 template<class TAllocator>
-void StrU82W(CByteBufferT<TAllocator>& rbResult, _In_reads_or_z_(cch) PCCH pszText, int cch) noexcept
+void EcdUtf8ToWide(CByteBufferT<TAllocator>& rbResult, _In_reads_or_z_(cch) PCCH pszText, int cch) noexcept
 {
-    StrX2W(rbResult, pszText, cch, CP_UTF8);
+    EcdMultiByteToWide(rbResult, pszText, cch, CP_UTF8);
 }
 template<class TTraits = CCharTraits<WCHAR>, class TAllocator = TStringDefaultAllocator<WCHAR>, class T>
-EckInlineNd auto StrU82W(const CByteBufferT<T>& rb) noexcept
+EckInlineNd auto EcdUtf8ToWide(const CByteBufferT<T>& rb) noexcept
 {
-    return StrU82W<TTraits, TAllocator>((PCSTR)rb.Data(), (int)rb.Size());
+    return EcdUtf8ToWide<TTraits, TAllocator>((PCSTR)rb.Data(), (int)rb.Size());
 }
-
-inline NTSTATUS CalculateMd5(_In_reads_bytes_(cbData) PCVOID pData,
-    SIZE_T cbData, _Out_writes_bytes_all_(16) void* pResult) noexcept
-{
-    NTSTATUS nts;
-    BCRYPT_ALG_HANDLE hAlg;
-    UINT cbHashObject;
-    ULONG cbRet;
-    BCRYPT_HASH_HANDLE hHash{};
-    UCHAR* pHashObject{};
-    if (!NT_SUCCESS(nts = BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_MD5_ALGORITHM, nullptr, 0)))
-        return nts;
-    if (!NT_SUCCESS(nts = BCryptGetProperty(hAlg, BCRYPT_OBJECT_LENGTH, (BYTE*)&cbHashObject,
-        sizeof(UINT), &cbRet, 0)))
-        goto TidyUp;
-    pHashObject = (UCHAR*)_malloca(cbHashObject);
-    if (!NT_SUCCESS(nts = BCryptCreateHash(hAlg, &hHash, pHashObject, cbHashObject,
-        nullptr, 0, 0)))
-        goto TidyUp;
-    if (!NT_SUCCESS(nts = BCryptHashData(hHash, (BYTE*)pData, (ULONG)cbData, 0)))
-        goto TidyUp;
-    if (!NT_SUCCESS(nts = BCryptFinishHash(hHash, (UCHAR*)pResult, 16, 0)))
-        goto TidyUp;
-TidyUp:
-    if (hHash)
-        BCryptDestroyHash(hHash);
-    BCryptCloseAlgorithmProvider(hAlg, 0);
-    if (pHashObject)
-        _freea(pHashObject);
-    return nts;
-}
-#pragma endregion Utf8转换
+#pragma endregion 编码转换
 
 #pragma region 包装器
 EckInline void FreeSTRRET(const STRRET& strret) noexcept
@@ -350,23 +321,38 @@ inline CStringW FormatBin(PCVOID pData_, size_t cb, int iType) noexcept
     }
     return rsResult;
 }
-#pragma endregion 其他
 
-// 弃用
-EckInline BOOL IsFILETIMEZero(const FILETIME& ft) noexcept
+inline NTSTATUS CalculateMd5(
+    _In_reads_bytes_(cbData) PCVOID pData,
+    size_t cbData,
+    _Out_writes_bytes_all_(16) void* pResult) noexcept
 {
-    return ft.dwLowDateTime == 0 && ft.dwHighDateTime == 0;
+    NTSTATUS nts;
+    BCRYPT_ALG_HANDLE hAlg;
+    UINT cbHashObject;
+    ULONG cbRet;
+    BCRYPT_HASH_HANDLE hHash{};
+    UCHAR* pHashObject{};
+    if (!NT_SUCCESS(nts = BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_MD5_ALGORITHM, nullptr, 0)))
+        return nts;
+    if (!NT_SUCCESS(nts = BCryptGetProperty(hAlg, BCRYPT_OBJECT_LENGTH, (BYTE*)&cbHashObject,
+        sizeof(UINT), &cbRet, 0)))
+        goto TidyUp;
+    pHashObject = (UCHAR*)_malloca(cbHashObject);
+    if (!NT_SUCCESS(nts = BCryptCreateHash(hAlg, &hHash, pHashObject, cbHashObject,
+        nullptr, 0, 0)))
+        goto TidyUp;
+    if (!NT_SUCCESS(nts = BCryptHashData(hHash, (BYTE*)pData, (ULONG)cbData, 0)))
+        goto TidyUp;
+    if (!NT_SUCCESS(nts = BCryptFinishHash(hHash, (UCHAR*)pResult, 16, 0)))
+        goto TidyUp;
+TidyUp:
+    if (hHash)
+        BCryptDestroyHash(hHash);
+    BCryptCloseAlgorithmProvider(hAlg, 0);
+    if (pHashObject)
+        _freea(pHashObject);
+    return nts;
 }
-EckInline bool operator==(const FILETIME& ft1, const FILETIME& ft2) noexcept
-{
-    return CompareFileTime(&ft1, &ft2) == 0;
-}
-EckInline bool operator>(const FILETIME& ft1, const FILETIME& ft2) noexcept
-{
-    return CompareFileTime(&ft1, &ft2) == 1;
-}
-EckInline bool operator<(const FILETIME& ft1, const FILETIME& ft2) noexcept
-{
-    return CompareFileTime(&ft1, &ft2) == -1;
-}
+#pragma endregion 其他
 ECK_NAMESPACE_END

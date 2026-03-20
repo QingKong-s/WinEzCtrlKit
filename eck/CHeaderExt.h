@@ -771,7 +771,7 @@ public:
                     rc.left = rc.right - m_cxSplitBtn;
                     if (m_bSplitBtnHot)
                         rc.bottom -= ((rc.bottom - rc.top) / 2);
-                    if (PtInRect(rc, p->pt))
+                    if (PointInRect(rc, p->pt))
                         p->flags |= HHT_ONDROPDOWN;
                 }
             }

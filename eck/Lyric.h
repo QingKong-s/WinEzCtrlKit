@@ -231,7 +231,7 @@ private:
                 {
                     if (p - pLast <= 1)
                         return Result::TlFieldEmpty;
-                    TcsToInt(pLast, p - pLast - 1, n, 10);
+                    TcvToInt(pLast, p - pLast - 1, n, 10);
                     auto& Line = m_vLine.back();
                     Line.vWordTime.emplace_back().fTime = Line.fTime + (float)n / 1000.f;
                     if (pbAddLrc) *pbAddLrc = TRUE;
@@ -241,7 +241,7 @@ private:
                 {
                     if (p - pLast <= 1)
                         return Result::TlFieldEmpty;
-                    TcsToInt(pLast, p - pLast - 1, n, 10);
+                    TcvToInt(pLast, p - pLast - 1, n, 10);
                     fTime = (float)n * 60.f;
                     eState = State::S;
                     pLast = p;
@@ -254,7 +254,7 @@ private:
                 {
                     if (p - pLast <= 1)
                         return Result::TlFieldEmpty;
-                    TcsToInt(pLast, p - pLast - 1, n, 10);
+                    TcvToInt(pLast, p - pLast - 1, n, 10);
                     fTime += (float)n;
                     if (ch == chBracketR)
                     {
@@ -278,7 +278,7 @@ private:
                         return Result::TlFieldEmpty;
                     else if (cch != 1 && cch != 2 && cch != 3)
                         return Result::TlInvalidMsLength;
-                    TcsToInt(pLast, cch, n, 10);
+                    TcvToInt(pLast, cch, n, 10);
                     fTime += (float)n / (cch == 1 ? 10.f :
                         cch == 2 ? 100.f : 1000.f);
                     Fn_TimeLabelEnd(fTime);
@@ -409,7 +409,7 @@ private:
                 {
                     if (p - pLast <= 1)
                         return Result::TlFieldEmpty;
-                    TcsToInt(pLast, p - pLast - 1, n, 10);
+                    TcvToInt(pLast, p - pLast - 1, n, 10);
                     Val.f1 = (float)n / 1000.f;
                     eState = State::V2;
                     pLast = p;
@@ -422,7 +422,7 @@ private:
                 {
                     if (p - pLast <= 1)
                         return Result::TlFieldEmpty;
-                    TcsToInt(pLast, p - pLast - 1, n, 10);
+                    TcvToInt(pLast, p - pLast - 1, n, 10);
                     Val.f2 = (float)n / 1000.f;
                     if (b3Value)
                         eState = State::V3;
@@ -438,7 +438,7 @@ private:
                 {
                     if (p - pLast <= 1)
                         return Result::TlFieldEmpty;
-                    TcsToInt(pLast, p - pLast - 1, n, 10);
+                    TcvToInt(pLast, p - pLast - 1, n, 10);
                     Val.f3 = (float)n / 1000.f;
                     pLast = p;
                     return Result::Ok;
@@ -508,8 +508,8 @@ private:
             TopItem.cchLrc = TopItem.cchWordTotal;
         if (!cLine && bWordTime)
         {
-            const auto p = (PWCH)malloc(Cch2CbW(TopItem.cchLrc));
-            EckCheckMem(p);
+            const auto p = (PWCH)malloc(CchToCbW(TopItem.cchLrc));
+            EckCheckMemory(p);
             MgpCopyWordAsSentence(TopItem.vWordTime, p);
             *(p + TopItem.cchLrc) = L'\0';
             if (TopItem.bMAlloc)
@@ -538,10 +538,10 @@ private:
                     cchText += (1/*\n*/ + e.cchTranslation);
             }
         }
-        const auto cbBuf = Cch2CbW(cchText +
+        const auto cbBuf = CchToCbW(cchText +
             TopItem.cchLrc + 1/*\0*/ + 1/*\n*/ + TopItem.cchTranslation + 1/*\0*/);
         PWCH pszText = (PWCH)malloc(cbBuf);
-        EckCheckMem(pszText);
+        EckCheckMemory(pszText);
         PWCH p = pszText;
         if (TopItem.bMAlloc)
             free((void*)TopItem.pszLrc);

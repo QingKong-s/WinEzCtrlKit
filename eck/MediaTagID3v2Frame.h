@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "MediaTag.h"
+#include "Compress.h"
 
 #define ECK_ID3V2_FRAME_NAMESPACE_BEGIN namespace ID3v2 {
 #define ECK_ID3V2_FRAME_NAMESPACE_END   }
@@ -406,7 +407,7 @@ protected:
         switch (eEncoding)
         {
         case TextEncoding::Latin1:
-            StrW2X(rb, rsStr.Data(), rsStr.Size(), CP_ACP);
+            EcdWideToMultiByte(rb, rsStr.Data(), rsStr.Size(), CP_ACP);
             if (!bTerminator)
                 rb.PopBack(1);
             break;
@@ -437,7 +438,7 @@ protected:
         break;
 
         case TextEncoding::UTF8:
-            StrW2U8(rb, rsStr.Data(), rsStr.Size());
+            EcdWideToUtf8(rb, rsStr.Data(), rsStr.Size());
             if (!bTerminator)
                 rb.PopBack(1);
             break;
@@ -478,7 +479,7 @@ protected:
                 cb = w.CountStringLength<char>();
             if (!cb)
                 break;
-            StrX2W(rsResult, (PCCH)w.Data(), cb, CP_ACP);
+            EcdMultiByteToWide(rsResult, (PCCH)w.Data(), cb, CP_ACP);
             break;
 
         case 1:// UTF-16LE
@@ -525,7 +526,7 @@ protected:
                 cb = w.CountStringLength<char>();
             if (!cb)
                 break;
-            StrU82W(rsResult, (PCCH)w.Data(), cb);
+            EcdUtf8ToWide(rsResult, (PCCH)w.Data(), cb);
             break;
         default: ECK_UNREACHABLE;
         }
@@ -1064,7 +1065,7 @@ struct RVA2 final : public FRAME
 
         size_t cbFrame = rsId.Size() + 1 + vChannel.size() * 4;
         for (const auto& e : vChannel)
-            cbFrame += DivUpper(e.cPeekVolBit, 8);
+            cbFrame += CeilDivide<UINT>(e.cPeekVolBit, 8);
 
         auto w = PreSerialize(rb, Ctx, cbFrame);
         w << rsId;
@@ -1073,7 +1074,7 @@ struct RVA2 final : public FRAME
             w << e.eChannel;
             w.WriteReversed(e.shVol);
             w << e.cPeekVolBit;
-            w.WriteReversed(e.bsPeekVol.Data(), DivUpper(e.cPeekVolBit, 8));
+            w.WriteReversed(e.bsPeekVol.Data(), CeilDivide<UINT>(e.cPeekVolBit, 8));
         }
         return PostSerialize(rb, Ctx, cbFrame);
     }
@@ -1091,7 +1092,7 @@ struct RVA2 final : public FRAME
                 return Result::Enum;
             w.ReadReversed(e.shVol);
             w >> e.cPeekVolBit;
-            w.ReadReversed(e.bsPeekVol.Data(), DivUpper(e.cPeekVolBit, 8));
+            w.ReadReversed(e.bsPeekVol.Data(), CeilDivide<UINT>(e.cPeekVolBit, 8));
         }
         return PostDeserialize(rb, Ctx);
     }
@@ -1905,7 +1906,7 @@ struct RVAD final : public FRAME
             return Result::Value;
         bFileAlterDiscard = TRUE;
 
-        const size_t cbField = DivUpper(cBits, 8);
+        const size_t cbField = CeilDivide<UINT>(cBits, 8);
         size_t cbFrame = 2 + (cbField * 4);
         if (bHasBack)
             cbFrame += (cbField * 4);
@@ -1953,7 +1954,7 @@ struct RVAD final : public FRAME
         VolRightBack = VolLeftBack = PeakRightBack = PeakLeftBack = 0;
         VolCenter = PeakCenter = VolBass = PeakBass = 0;
 
-        const size_t cbField = DivUpper(cBits, 8);
+        const size_t cbField = CeilDivide<UINT>(cBits, 8);
         w.ReadReversed(&VolRight, cbField);
         w.ReadReversed(&VolLeft, cbField);
         if (!w.IsEnd())
@@ -2007,7 +2008,7 @@ struct EQUA final : public FRAME
             return Result::Value;
         bFileAlterDiscard = TRUE;
 
-        const size_t cbField = DivUpper(cBits, 8);
+        const size_t cbField = CeilDivide<UINT>(cBits, 8);
         const size_t cbFrame = 1 + vAdjust.size() * (2 + cbField);
         auto w = PreSerialize(rb, Ctx, cbFrame);
         w << cBits;
@@ -2028,7 +2029,7 @@ struct EQUA final : public FRAME
         if (!cBits || cBits > 63)
             return Result::Value;
         vAdjust.clear();
-        const size_t cbField = DivUpper(cBits, 8);
+        const size_t cbField = CeilDivide<UINT>(cBits, 8);
         while (!w.IsEnd())
         {
             auto& e = vAdjust.emplace_back();

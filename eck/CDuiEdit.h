@@ -197,6 +197,12 @@ private:
             };
         }
     }
+
+    void TmpStateChanged() noexcept
+    {
+        Invalidate();
+        GetWindow().RdRenderAndPresent();
+    }
 public:
     LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
@@ -218,14 +224,13 @@ public:
 
             auto rcViewF{ GetViewRect() };
             State eState;
-            if (GetWindow().ElemGetFocus() == this)
+            if (GetFocus() == this)
                 eState = State::Focused;
             else if (m_bHot)
                 eState = State::Hot;
             else
                 eState = State::Normal;
-            GetTheme()->DrawBackground(Part::Edit, eState,
-                rcViewF, nullptr);
+            GetTheme()->Draw(this, IdPtNormal, GetRectInClientD2D());
 
             rcViewF.top = rcViewF.bottom - CyBottomBar;
             if (eState != State::Focused)
@@ -324,12 +329,22 @@ public:
         break;
 
         case WM_SETFOCUS:
+            if (TmState() & SaFocus)
+                break;
+            TmState() |= SaFocus;
+            TmpStateChanged();
+
             m_pSrv->OnTxUIActivate();
             m_pSrv->TxSendMessage(WM_SETFOCUS, 0, 0, nullptr);
             Invalidate();
             return 0;
 
         case WM_KILLFOCUS:
+            if (!(TmState() & SaFocus))
+                break;
+            TmState() &= ~SaFocus;
+            TmpStateChanged();
+
             m_pSrv->OnTxUIDeactivate();
             m_pSrv->TxSendMessage(WM_KILLFOCUS, 0, 0, nullptr);
             m_bCaretShow = FALSE;

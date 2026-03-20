@@ -212,7 +212,7 @@ private:
             return -1;
         rcItem.left += c_LBPadding;
         rcItem.right = rcItem.left + m_cxCheckBox;
-        if (PtInRect(&rcItem, pt))
+        if (PointInRect(&rcItem, pt))
             return idx;
         else
             return -1;

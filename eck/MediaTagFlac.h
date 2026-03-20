@@ -85,7 +85,7 @@ private:
         r.Read(Pic.rsMime.Data(), t);// MIME类型字符串
 
         r.ReadReversed(t);// 描述字符串长度
-        Pic.rsDesc = StrX2W((PCCH)r.Data(), (int)t, CP_UTF8);
+        Pic.rsDesc = EcdMultiByteToWide((PCCH)r.Data(), (int)t, CP_UTF8);
         r += t;
 
         r.ReadReversed(Pic.cx).ReadReversed(Pic.cy).ReadReversed(Pic.bpp).ReadReversed(Pic.cColor);
@@ -242,8 +242,8 @@ public:
                 else if (e.rsKey.CompareI("TOTALTRACKS"sv) == 0 ||
                     e.rsKey.CompareI("TRACKTOTAL"sv) == 0)
                 {
-                    if (TcsToInt(e.rsValue.Data(), e.rsValue.Size(),
-                        mi.cTotalTrack) == TcsCvtErr::Ok)
+                    if (TcvToInt(e.rsValue.Data(), e.rsValue.Size(),
+                        mi.cTotalTrack) == TcvResult::Ok)
                         mi.uMaskChecked |= MIM_TRACK;
                 }
             }
@@ -261,7 +261,7 @@ public:
                         TRUE,
                         e.rsDesc,
                         e.rsMime,
-                        StrU82W(e.rbData));
+                        EcdUtf8ToWide(e.rbData));
                 else
                     if (bMove)
                         mi.vPic.emplace_back(
@@ -388,17 +388,17 @@ public:
             ECKTEMP_SET_VAL(mi.rsGenre, "GENRE"sv);
         if (mi.uMask & MIM_TRACK)
         {
-            WCHAR szBuf[TcsCvtCalcBufferSize<UINT>() * 2 + 1];
+            WCHAR szBuf[TcvIntBufferSize<UINT>() * 2 + 1];
             PWCH p;
             if (mi.nTrack >= 0)
             {
-                TcsFromInt(szBuf, ARRAYSIZE(szBuf), mi.nTrack, 10, TRUE, &p);
+                TcvFromInt(szBuf, ARRAYSIZE(szBuf), mi.nTrack, 10, TRUE, &p);
                 if (p != szBuf)
                     m_vItem.emplace_back("TRACKNUMBER"sv, CStringW{ szBuf, int(p - szBuf) });
             }
             if (mi.cTotalTrack > 0)
             {
-                TcsFromInt(szBuf, ARRAYSIZE(szBuf), mi.cTotalTrack, 10, TRUE, &p);
+                TcvFromInt(szBuf, ARRAYSIZE(szBuf), mi.cTotalTrack, 10, TRUE, &p);
                 if (p != szBuf)
                     m_vItem.emplace_back("TRACKTOTAL"sv, CStringW{ szBuf, int(p - szBuf) });
             }
@@ -424,7 +424,7 @@ public:
             if (e.bLink)
             {
                 const auto& rs = e.GetPicturePath();
-                StrW2U8(f.rbData, rs.Data(), rs.Size());
+                EcdWideToUtf8(f.rbData, rs.Data(), rs.Size());
             }
             else
                 if (bMove)
@@ -461,10 +461,10 @@ public:
                     .Read(&m_si.cbMaxFrame, 3);
                 ULONGLONG ull;
                 m_Stream >> ull;
-                m_si.cSampleRate = (UINT)GetLowNBits(ull, 20);
-                m_si.cChannels = (BYTE)GetLowNBits(ull >> 20, 3) + 1;
-                m_si.cBitsPerSample = (BYTE)GetLowNBits(ull >> 23, 5) + 1;
-                m_si.ullTotalSamples = GetHighNBits(ull, 36);
+                m_si.cSampleRate = (UINT)BitsLowN(ull, 20);
+                m_si.cChannels = (BYTE)BitsLowN(ull >> 20, 3) + 1;
+                m_si.cBitsPerSample = (BYTE)BitsLowN(ull >> 23, 5) + 1;
+                m_si.ullTotalSamples = BitsHighN(ull, 36);
                 m_Stream.Read(m_si.Md5, 16);
                 m_posStreamInfoEnd = m_Stream.GetPosition();
             }
@@ -477,7 +477,7 @@ public:
                 rsTemp.ReSize((int)t);
                 m_Stream.Read(rsTemp.Data(), t);
                 m_rsVendor.Clear();
-                StrU82W(m_rsVendor, rsTemp.Data(), rsTemp.Size());
+                EcdUtf8ToWide(m_rsVendor, rsTemp.Data(), rsTemp.Size());
 
                 UINT cItem;
                 m_Stream >> cItem;// 标签数量
@@ -501,7 +501,7 @@ public:
                     {
                         m_vItem.emplace_back(
                             rsTemp.SubString(0, pos - 1),
-                            StrU82W(rsTemp.Data() + pos, cchActual));
+                            EcdUtf8ToWide(rsTemp.Data() + pos, cchActual));
                     }
                 }
             }
@@ -650,7 +650,7 @@ public:
                     << GetIntegerByte<1>(cbPadding)
                     << GetIntegerByte<0>(cbPadding);
                 const auto p = VAlloc(cbPadding);
-                EckCheckMem(p);
+                EckCheckMemory(p);
                 m_Stream.Write(p, cbPadding);
                 VFree(p);
             }

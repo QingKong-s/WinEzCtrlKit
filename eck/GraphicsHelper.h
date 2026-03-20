@@ -297,9 +297,9 @@ inline BOOL DrawBackgroundImage32(HDC hDC, HDC hdcBitmap,
 
     case BkImgMode::Tile:// 平铺
     {
-        EckCounter(DivUpper(cx, cxImage), i)
+        EckCounter(CeilDivide(cx, cxImage), i)
         {
-            EckCounter(DivUpper(cy, cyImage), j)
+            EckCounter(CeilDivide(cy, cyImage), j)
                 if (!AlphaBlend(hDC, rc.left + i * cxImage, rc.top + j * cyImage, cxImage, cyImage,
                     hdcBitmap, 0, 0, cxImage, cyImage, bf))
                     return FALSE;
@@ -384,9 +384,9 @@ inline BOOL DrawBackgroundImage(HDC hDC, HDC hdcBitmap,
 
     case BkImgMode::Tile:// 平铺
     {
-        EckCounter(DivUpper(cx, cxImage), i)
+        EckCounter(CeilDivide(cx, cxImage), i)
         {
-            EckCounter(DivUpper(cy, cyImage), j)
+            EckCounter(CeilDivide(cy, cyImage), j)
                 if (!BitBlt(hDC, rc.left + i * cxImage, rc.top + j * cyImage, cxImage, cyImage,
                     hdcBitmap, 0, 0, SRCCOPY))
                     return FALSE;
@@ -470,9 +470,9 @@ inline GpStatus DrawBackgroundImage(GpGraphics* pGraphics, GpImage* pImage,
     case BkImgMode::Tile:// 平铺
     {
         GpStatus gps;
-        EckCounter(DivUpper(cx, cxImage), i)
+        EckCounter(CeilDivide(cx, cxImage), i)
         {
-            EckCounter(DivUpper(cy, cyImage), j)
+            EckCounter(CeilDivide(cy, cyImage), j)
                 if ((gps = GdipDrawImageRectI(pGraphics, pImage,
                     i * cxImage, j * cyImage, cxImage, cyImage)) != Gdiplus::Ok)
                     return gps;

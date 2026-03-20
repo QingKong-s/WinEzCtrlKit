@@ -12,7 +12,7 @@ template<CcpStdChar TChar_, class TCharTraits_, class TAllocator_>
 class CStringT;
 
 template<class TCharTraits, class TAllocator>
-CStringT<WCHAR, TCharTraits, TAllocator> StrX2W(PCSTR pszText, int cch, int uCP) noexcept;
+CStringT<WCHAR, TCharTraits, TAllocator> EcdMultiByteToWide(PCSTR pszText, int cch, int uCP) noexcept;
 
 template<CcpStdChar TChar_>
 struct CCharTraits
@@ -556,15 +556,9 @@ public:
         ReSize(cchAfter);
     }
 
-    /// <summary>
-    /// 替换
-    /// </summary>
-    /// <param name="posStart">替换位置</param>
-    /// <param name="cchReplacing">替换长度</param>
-    /// <param name="rsNew">用作替换的字符串</param>
-    EckInline void Replace(int posStart, int cchReplacing, const CStringT& rsNew)
+    EckInline void Replace(int posStart, int cchReplacing, std::wstring_view svNew)
     {
-        Replace(posStart, cchReplacing, rsNew.Data(), rsNew.Size());
+        Replace(posStart, cchReplacing, svNew.data(), (int)svNew.size());
     }
 
     /// <summary>
@@ -598,17 +592,11 @@ public:
         }
     }
 
-    /// <summary>
-    /// 子文本替换
-    /// </summary>
-    /// <param name="rsReplaced">被替换的字符串</param>
-    /// <param name="rsSrc">用作替换的字符串</param>
-    /// <param name="posStart">起始位置</param>
-    /// <param name="cReplacing">替换进行的次数，0为执行所有替换</param>
-    EckInline void ReplaceSubString(const CStringT& rsReplaced, const CStringT& rsSrc,
+    EckInline void ReplaceSubString(std::wstring_view svReplaced, std::wstring_view svSrc,
         int posStart = 0, int cReplacing = 0)
     {
-        ReplaceSubString(rsReplaced.Data(), rsReplaced.Size(), rsSrc.Data(), rsSrc.Size(), posStart, cReplacing);
+        ReplaceSubString(svReplaced.data(), (int)svReplaced.size(),
+            svSrc.data(), (int)svSrc.size(), posStart, cReplacing);
     }
 
     EckInline void MakeSpace(int cch, int posStart = 0)
@@ -629,9 +617,9 @@ public:
             TcsCopyLength(pszCurr, pszText, cchText);
         TCharTraits::Cut(Data(), Size());
     }
-    EckInline void MakeRepeatedSequence(int cCount, const CStringT& rsText, int posStart = 0)
+    EckInline void MakeRepeatedSequence(int cCount, std::wstring_view svText, int posStart = 0)
     {
-        MakeRepeatedStrSequence(rsText.Data(), rsText.Size(), cCount, posStart);
+        MakeRepeatedSequence(cCount, svText.data(), (int)svText.size(), posStart);
     }
 
     EckInline constexpr void Clear() noexcept
@@ -1436,24 +1424,31 @@ namespace Literals
     EckInline auto operator""_rs(PCSTR psz, size_t cch) { return CStringA(psz, (int)cch); }
 }
 
-EckInlineNd void ToFullWidth(CStringW& rs, PCWSTR pszText, int cchText = -1)
+EckInlineNd void LcsToFullWidth(
+    CStringW& rs,
+    _In_reads_or_z_(cch) PCWCH pszText,
+    int cch = -1) noexcept
 {
     const int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_FULLWIDTH,
-        pszText, cchText, nullptr, 0, nullptr, nullptr, 0);
+        pszText, cch, nullptr, 0, nullptr, nullptr, 0);
     LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_FULLWIDTH,
-        pszText, cchText, rs.PushBack(cchResult), cchResult, nullptr, nullptr, 0);
+        pszText, cch, rs.PushBack(cchResult), cchResult, nullptr, nullptr, 0);
 }
-EckInlineNd void ToHalfWidth(CStringW& rs, PCWSTR pszText, int cchText = -1)
+EckInlineNd void LcsToHalfWidth(
+    CStringW& rs,
+    _In_reads_or_z_(cch) PCWCH pszText,
+    int cch = -1) noexcept
 {
     const int cchResult = LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_HALFWIDTH,
-        pszText, cchText, nullptr, 0, nullptr, nullptr, 0);
+        pszText, cch, nullptr, 0, nullptr, nullptr, 0);
     LCMapStringEx(LOCALE_NAME_USER_DEFAULT, LCMAP_HALFWIDTH,
-        pszText, cchText, rs.PushBack(cchResult), cchResult, nullptr, nullptr, 0);
+        pszText, cch, rs.PushBack(cchResult), cchResult, nullptr, nullptr, 0);
 }
 
 template<class TChar, class TTraits, class TAllocator>
     requires (sizeof(TChar) == 1)
-void StrW2X(CStringT<TChar, TTraits, TAllocator>& rsResult,
+void EcdWideToMultiByte(
+    CStringT<TChar, TTraits, TAllocator>& rsResult,
     _In_reads_or_z_(cch) PCWCH pszText,
     int cch = -1,
     UINT uCP = CP_ACP,
@@ -1469,16 +1464,17 @@ void StrW2X(CStringT<TChar, TTraits, TAllocator>& rsResult,
         (PCH)rsResult.PushBackNoExtra(cchBuf), cchBuf, nullptr, nullptr);
 }
 template<class TTraits = CCharTraits<CHAR>, class TAllocator = TStringDefaultAllocator<CHAR>>
-EckInlineNd auto StrW2X(_In_reads_or_z_(cch) PCWCH pszText, int cch = -1, int uCP = CP_ACP) noexcept
+EckInlineNd auto EcdWideToMultiByte(_In_reads_or_z_(cch) PCWCH pszText, int cch = -1, int uCP = CP_ACP) noexcept
 {
     CStringT<CHAR, TTraits, TAllocator> rs{};
-    StrW2X(rs, pszText, cch, uCP);
+    EcdWideToMultiByte(rs, pszText, cch, uCP);
     return rs;
 }
 
 template<class TChar, class TTraits, class TAllocator>
     requires (sizeof(TChar) == 2)
-void StrX2W(CStringT<TChar, TTraits, TAllocator>& rsResult,
+void EcdMultiByteToWide(
+    CStringT<TChar, TTraits, TAllocator>& rsResult,
     _In_reads_or_z_(cch) PCCH pszText,
     int cch = -1,
     UINT uCP = CP_ACP,
@@ -1494,10 +1490,10 @@ void StrX2W(CStringT<TChar, TTraits, TAllocator>& rsResult,
         pszText, cch, rsResult.PushBackNoExtra(cchBuf), cchBuf);
 }
 template<class TTraits = CCharTraits<WCHAR>, class TAllocator = TStringDefaultAllocator<WCHAR>>
-EckInlineNd auto StrX2W(_In_reads_or_z_(cch) PCCH pszText, int cch = -1, int uCP = CP_ACP) noexcept
+EckInlineNd auto EcdMultiByteToWide(_In_reads_or_z_(cch) PCCH pszText, int cch = -1, int uCP = CP_ACP) noexcept
 {
     CStringT<WCHAR, TTraits, TAllocator> rs{};
-    StrX2W(rs, pszText, cch, uCP);
+    EcdMultiByteToWide(rs, pszText, cch, uCP);
     return rs;
 }
 

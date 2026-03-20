@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "ComPtr.h"
 #include "CByteBuffer.h"
-#include "Utility.h"
+#include "Color.h"
 
 ECK_NAMESPACE_BEGIN
 struct SNP_OUTPUT

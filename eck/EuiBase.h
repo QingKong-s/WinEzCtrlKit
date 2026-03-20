@@ -2,6 +2,7 @@
 #include "EuiTheme.h"
 #include "CMemoryDC.h"
 #include "GpPtr.h"
+#include "Color.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_EUI_NAMESPACE_BEGIN

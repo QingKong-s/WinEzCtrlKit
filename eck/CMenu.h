@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "ECK.h"
+#include "CString.h"
 
 ECK_NAMESPACE_BEGIN
 class CMenu

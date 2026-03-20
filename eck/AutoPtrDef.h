@@ -32,7 +32,7 @@ struct DelMA
 };
 
 template<class T = void>
-using UnqPtrMA = UniquePtr<DelMA<T>>;
+using UniquePtrMA = UniquePtr<DelMA<T>>;
 
 // WARNING 函数使用字节数
 template<class T>

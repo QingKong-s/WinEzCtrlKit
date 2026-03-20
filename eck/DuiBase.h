@@ -4,6 +4,7 @@
 #include "CEasyD2D.h"
 #include "EasingCurve.h"
 #include "CMessageTimer.h"
+#include "Color.h"
 #ifdef _DEBUG
 #include "Random.h"
 #endif

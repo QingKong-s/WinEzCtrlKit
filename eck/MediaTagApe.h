@@ -38,16 +38,16 @@ private:
         }
         EckInlineNdCe auto& GetStrList() noexcept { return std::get<0>(Value); }
         EckInlineNdCe auto& GetStrList() const noexcept { return std::get<0>(Value); }
-        EckInlineNdCe auto& GetBin() noexcept { return std::get<1>(Value); }
-        EckInlineNdCe auto& GetBin() const noexcept { return std::get<1>(Value); }
+        EckInlineNdCe auto& GetByteBuffer() noexcept { return std::get<1>(Value); }
+        EckInlineNdCe auto& GetByteBuffer() const noexcept { return std::get<1>(Value); }
     };
 
     struct PIC
     {
         PicType eType;
-        eck::CStringA rsKey;
-        eck::CStringW rsDesc;
-        eck::CByteBuffer rbData;
+        CStringA rsKey;
+        CStringW rsDesc;
+        CByteBuffer rbData;
         CStringA rsU8Cache;// 调用方可以随意修改此字段
     };
 
@@ -59,7 +59,7 @@ private:
 
     EckInlineNdCe static ItemType GetItemType(UINT uFlags) noexcept
     {
-        return (ItemType)GetLowNBits(uFlags >> 1, 2);
+        return (ItemType)BitsLowN(uFlags >> 1, 2);
     }
 
     static BOOL IsStringItem(const CStringA& rsKey) noexcept
@@ -164,7 +164,7 @@ public:
                     e.rsKey.CompareI("TRACKTOTAL"sv) == 0)
                 {
                     const auto& rs = e.GetStrList()[0];
-                    if (TcsToInt(rs.Data(), rs.Size(), mi.cTotalTrack) == TcsCvtErr::Ok)
+                    if (TcvToInt(rs.Data(), rs.Size(), mi.cTotalTrack) == TcvResult::Ok)
                         mi.uMaskChecked |= MIM_TRACK;
                 }
             }
@@ -271,24 +271,24 @@ public:
             ECKTEMP_SET_VAL(mi.rsGenre, "GENRE"sv);
         if (mi.uMask & MIM_TRACK)
         {
-            WCHAR szBuf[TcsCvtCalcBufferSize<UINT>() * 2 + 1];
+            WCHAR szBuf[TcvIntBufferSize<UINT>() * 2 + 1];
             PWCH p{};
             std::string_view svKey{};
             if (mi.nTrack >= 0)// 尝试写入音轨/总轨
             {
                 svKey = "TRACK"sv;
-                TcsFromInt(szBuf, ARRAYSIZE(szBuf), mi.nTrack, 10, TRUE, &p);
+                TcvFromInt(szBuf, ARRAYSIZE(szBuf), mi.nTrack, 10, TRUE, &p);
                 if (mi.cTotalTrack)
                 {
                     *p++ = L'/';
-                    TcsFromInt(p, size_t(szBuf + ARRAYSIZE(szBuf) - p),
+                    TcvFromInt(p, size_t(szBuf + ARRAYSIZE(szBuf) - p),
                         mi.cTotalTrack, 10, TRUE, &p);
                 }
             }
             else if (mi.cTotalTrack > 0)// 尝试写入总轨
             {
                 svKey = "TOTALTRACKS"sv;
-                TcsFromInt(szBuf, ARRAYSIZE(szBuf), mi.cTotalTrack, 10, TRUE, &p);
+                TcvFromInt(szBuf, ARRAYSIZE(szBuf), mi.cTotalTrack, 10, TRUE, &p);
             }
 
             if (!svKey.empty() && p != szBuf)
@@ -402,7 +402,7 @@ public:
                 auto& f = m_vPic.emplace_back(
                     eType,
                     std::move(e.rsKey),
-                    StrU82W(pBaseU8, cchDesc),
+                    EcdUtf8ToWide(pBaseU8, cchDesc),
                     CByteBuffer(cbData));
                 memcpy(f.rbData.Data(), w.Data() + cchDesc + 1, cbData);
                 w += cbVal;
@@ -420,20 +420,20 @@ public:
                     {
                         if (pos1 > pos0)
                             e.GetStrList().emplace_back(
-                                StrU82W(pBaseU8 + pos0, pos1 - pos0));
+                                EcdUtf8ToWide(pBaseU8 + pos0, pos1 - pos0));
                         pos0 = pos1 + 1;
                     }
                 }
                 if (pos1 > pos0)
                     e.GetStrList().emplace_back(
-                        StrU82W(pBaseU8 + pos0, pos1 - pos0));
+                        EcdUtf8ToWide(pBaseU8 + pos0, pos1 - pos0));
                 m_vItem.emplace_back(std::move(e));
             }
             else
             {
                 e.EnsureBin();
-                e.GetBin().ReSize(cbVal);
-                memcpy(e.GetBin().Data(), w.Data(), cbVal);
+                e.GetByteBuffer().ReSize(cbVal);
+                memcpy(e.GetByteBuffer().Data(), w.Data(), cbVal);
                 w += cbVal;
                 m_vItem.emplace_back(std::move(e));
             }
@@ -472,7 +472,7 @@ public:
                 {
                     if (bAppendNull)
                         e.rsU8Cache.PushBackChar('\0');
-                    StrW2U8(e.rsU8Cache, s.Data(), s.Size());
+                    EcdWideToUtf8(e.rsU8Cache, s.Data(), s.Size());
                     bAppendNull = TRUE;
                 }
                 cbBody += e.rsU8Cache.Size();
@@ -480,7 +480,7 @@ public:
             break;
             case ItemType::Reserved:
             case ItemType::Binary:
-                cbBody += e.GetBin().Size();
+                cbBody += e.GetByteBuffer().Size();
                 break;
             default:
                 ECK_UNREACHABLE;
@@ -489,7 +489,7 @@ public:
         for (auto& e : m_vPic)
         {
             e.rsU8Cache.Clear();
-            StrW2U8(e.rsU8Cache, e.rsDesc.Data(), e.rsDesc.Size());
+            EcdWideToUtf8(e.rsU8Cache, e.rsDesc.Data(), e.rsDesc.Size());
             cbBody += (e.rsKey.Size() + e.rsU8Cache.Size() + 1 + e.rbData.Size());
         }
 
@@ -577,7 +577,7 @@ public:
             break;
             case ItemType::Reserved:
             case ItemType::Binary:
-                m_Stream << (UINT)e.GetBin().Size() << uItemFlags << e.rsKey << e.GetBin();
+                m_Stream << (UINT)e.GetByteBuffer().Size() << uItemFlags << e.rsKey << e.GetByteBuffer();
                 break;
             }
         }

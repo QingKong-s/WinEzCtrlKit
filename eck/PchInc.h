@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "Utility.h"
+#include "Color.h"
 #include "CString.h"
 #include "CMessageBoxHook.h"
 #include "CMemoryDC.h"

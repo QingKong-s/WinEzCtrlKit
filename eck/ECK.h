@@ -352,33 +352,23 @@ ECK_NAMESPACE_END
 #pragma endregion Generator
 
 #ifdef _DEBUG
-#define EckCheckMem(p)	\
-            if (!(p))	\
-            {			\
+#define EckCheckMemory(p) \
+            if (!(p))     \
+            {             \
                 OutputDebugStringW(L"内存分配失败: " ECK_FILEW L"(" ECK_LINEW L")\r\n"); \
-                abort();\
+                abort();  \
             }
 #else
-#define EckCheckMem(p) ((void)(p))
+#define EckCheckMemory(p) \
+            if (!(p)) abort();
 #endif
 
-    ECK_NAMESPACE_BEGIN
-    inline namespace Literals
+ECK_NAMESPACE_BEGIN
+inline namespace Literals
 {
-    EckInline constexpr WORD operator""_us(ULONGLONG x)
-    {
-        return (WORD)x;
-    }
-
-    EckInline constexpr short operator""_ss(ULONGLONG x)
-    {
-        return (short)x;
-    }
-
-    EckInline constexpr BYTE operator""_by(ULONGLONG x)
-    {
-        return (BYTE)x;
-    }
+    EckInlineNdCe WORD operator""_us(ULONGLONG x) noexcept { return (WORD)x; }
+    EckInlineNdCe short operator""_ss(ULONGLONG x) noexcept { return (short)x; }
+    EckInlineNdCe BYTE operator""_by(ULONGLONG x) noexcept { return (BYTE)x; }
 }
 
 #pragma region Type
@@ -389,7 +379,7 @@ inline namespace BaseType
     using PCBYTE = const BYTE*;
     using PCVOID = const void*;
     using ECKENUM = BYTE;
-    using SSIZE_T = std::make_signed_t<SIZE_T>;
+    using SSIZE_T = std::make_signed_t<size_t>;
     using UINTBE = UINT;
     using PITEMIDLIST = LPITEMIDLIST;
     using PCITEMIDLIST = LPCITEMIDLIST;
@@ -589,7 +579,7 @@ constexpr inline TChar EOL_LF{ '\n' };
 template<class TChar>
 constexpr inline TChar EOL_CR{ '\r' };
 template<class TChar>
-constexpr inline TChar EOL_CRLF[]{ '\r','\n' };
+constexpr inline TChar EOL_CRLF[]{ '\r', '\n' };
 
 constexpr inline LARGE_INTEGER LiZero{};
 constexpr inline ULARGE_INTEGER UliMax{ .QuadPart = 0xFFFF'FFFF'FFFF'FFFF };
@@ -624,15 +614,13 @@ constexpr inline UINT CS_STDWND{ CS_DBLCLKS | CS_VREDRAW | CS_HREDRAW };
 
 constexpr inline HRESULT HrNotFound{ HRESULT_FROM_WIN32(ERROR_NOT_FOUND) };
 
-constexpr inline PCWSTR WCN_DLG = L"Eck.WndClass.CommDlg";
+constexpr inline PCWSTR WCN_DIALOG = L"Eck.WndClass.Dialog";
 
 constexpr inline PCWSTR WCN_DUMMY = L"Eck.WndClass.Dummy";
 #if ECK_OPT_NO_SIMPLE_WND_CLS
 constexpr inline PCWSTR WCN_LABEL = L"Eck.WndClass.Label";
-constexpr inline PCWSTR WCN_BK = L"Eck.WndClass.BK";
 constexpr inline PCWSTR WCN_LUNARCALENDAR = L"Eck.WndClass.LunarCalendar";
 constexpr inline PCWSTR WCN_FORM = L"Eck.WndClass.Form";
-constexpr inline PCWSTR WCN_TABHEADER = L"Eck.WndClass.TabHeader";
 constexpr inline PCWSTR WCN_SPLITBAR = L"Eck.WndClass.SplitBar";
 constexpr inline PCWSTR WCN_DRAWPANEL = L"Eck.WndClass.DrawPanel";
 constexpr inline PCWSTR WCN_LISTBOXNEW = L"Eck.WndClass.ListBoxNew";
@@ -640,15 +628,12 @@ constexpr inline PCWSTR WCN_TREELIST = L"Eck.WndClass.TreeList";
 constexpr inline PCWSTR WCN_COMBOBOXNEW = L"Eck.WndClass.ComboBoxNew";
 constexpr inline PCWSTR WCN_PICTUREBOX = L"Eck.WndClass.PictureBox";
 constexpr inline PCWSTR WCN_DUIHOST = L"Eck.WndClass.DuiHost";
-constexpr inline PCWSTR WCN_VECDRAWPANEL = L"Eck.WndClass.VectorDrawPanel";
 constexpr inline PCWSTR WCN_HEXEDIT = L"Eck.WndClass.HexEdit";
 constexpr inline PCWSTR WCN_HITTER = L"Eck.WndClass.Hitter";
 #else
 constexpr inline PCWSTR WCN_LABEL = WCN_DUMMY;
-constexpr inline PCWSTR WCN_BK = WCN_DUMMY;
 constexpr inline PCWSTR WCN_LUNARCALENDAR = WCN_DUMMY;
 constexpr inline PCWSTR WCN_FORM = WCN_DUMMY;
-constexpr inline PCWSTR WCN_TABHEADER = WCN_DUMMY;
 constexpr inline PCWSTR WCN_SPLITBAR = WCN_DUMMY;
 constexpr inline PCWSTR WCN_DRAWPANEL = WCN_DUMMY;
 constexpr inline PCWSTR WCN_LISTBOXNEW = WCN_DUMMY;
@@ -656,7 +641,6 @@ constexpr inline PCWSTR WCN_TREELIST = WCN_DUMMY;
 constexpr inline PCWSTR WCN_COMBOBOXNEW = WCN_DUMMY;
 constexpr inline PCWSTR WCN_PICTUREBOX = WCN_DUMMY;
 constexpr inline PCWSTR WCN_DUIHOST = WCN_DUMMY;
-constexpr inline PCWSTR WCN_VECDRAWPANEL = WCN_DUMMY;
 constexpr inline PCWSTR WCN_HEXEDIT = WCN_DUMMY;
 constexpr inline PCWSTR WCN_HITTER = WCN_DUMMY;
 #endif// defined(ECK_OPT_NO_SIMPLE_WND_CLS)
@@ -780,14 +764,14 @@ enum : ULONG
     WINVER_11_23H2 = 22631,
 };
 
-enum DispInfoMask : UINT
+// 显示信息掩码
+enum : UINT
 {
     DIM_TEXT = 1u << 0,
     DIM_IMAGE = 1u << 1,
     DIM_STATE = 1u << 2,
     DIM_LPARAM = 1u << 3,
 };
-ECK_ENUM_BIT_FLAGS(DispInfoMask);
 
 enum class EolType : BYTE
 {
@@ -811,7 +795,7 @@ enum class RegRoot : BYTE
     PerformanceText = 0x50,
     PerformanceNlsText = 0x60,
 };
-EckInline HKEY RegRootToKey(RegRoot e) { return HKEY(ULONG_PTR((ULONG)e | 0x80000000ul)); }
+EckInline HKEY RegRootToKey(RegRoot e) noexcept { return HKEY(ULONG_PTR((ULONG)e | 0x80000000ul)); }
 
 // 冒泡消息类别
 enum : BYTE
@@ -1133,7 +1117,7 @@ inline void DbgPrintLastError(BOOL bNewLine = TRUE) noexcept
     DbgPrintFormatMessage(u, bNewLine);
 }
 void DbgPrintWithLocation(PCWSTR pszFile, PCWSTR pszFunc, int iLine, PCWSTR pszMsg) noexcept;
-void DbgPrintWndMap() noexcept;
+void DbgPrintWindowMap() noexcept;
 
 #if !ECK_OPT_NO_DBG_MACRO
 #define EckDbgPrintLastError        ::eck::DbgPrintLastError

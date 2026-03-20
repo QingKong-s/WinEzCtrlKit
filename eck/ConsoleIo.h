@@ -126,10 +126,10 @@ namespace TypeIo
     template<class TChar, class TFmtInt, class TFmtChar>
     Ret ToStream(const TO_STREAM_CTRL& c, IoInt<TFmtInt, TFmtChar> v) noexcept
     {
-        const auto cchExtra = TcsCvtCalcBufferSize<TFmtInt>(v.Radix, v.FillWidth);
+        const auto cchExtra = TcvIntBufferSize<TFmtInt>(v.Radix, v.FillWidth);
         const auto p = (TChar*)c.rbDst.PushBack(cchExtra * 2);
         TChar* pEnd;
-        TcsFromInt(p, cchExtra, v.Num, v.Radix, TRUE, &pEnd, v.FillWidth, v.FillChar);
+        TcvFromInt(p, cchExtra, v.Num, v.Radix, TRUE, &pEnd, v.FillWidth, v.FillChar);
         c.rbDst.ReSize((BYTE*)pEnd - c.rbDst.Data());
         return Ret::Ok;
     }
@@ -178,8 +178,8 @@ namespace TypeIo
         const auto pEnd = (const TChar*)c.pEnd;
         const auto pCurr = (const TChar*)c.pCurr;
         const TChar* pScanEnd;
-        const auto r = TcsToInt(pCurr, pEnd - pCurr, i, 0, &pScanEnd);
-        if (r == TcsCvtErr::Ok || r == TcsCvtErr::Overflow)
+        const auto r = TcvToInt(pCurr, pEnd - pCurr, i, 0, &pScanEnd);
+        if (r == TcvResult::Ok || r == TcvResult::Overflow)
         {
             c.pCurr = (PCBYTE)pScanEnd;
             return Ret::Ok;

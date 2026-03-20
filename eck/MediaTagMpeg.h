@@ -143,7 +143,7 @@ public:
             m_Stream.MoveTo(m_posBegin);
             BYTE* pBuf = (BYTE*)VAlloc(4096);
             UniquePtr<DelVA<BYTE>> _(pBuf);
-            EckCheckMem(pBuf);
+            EckCheckMemory(pBuf);
             constexpr size_t cbSegment = 1024;
             BYTE bySync[2]{};
             EckLoop()

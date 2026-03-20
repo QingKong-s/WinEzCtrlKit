@@ -1413,7 +1413,7 @@ public:
         const size_t cbBuf = sizeof(RGNDATAHEADER) + sizeof(RECT) * cRc;
         UniquePtr<DelMA<RGNDATAHEADER>>
             pRgnData((RGNDATAHEADER*)malloc(cbBuf));
-        EckCheckMem(pRgnData);
+        EckCheckMemory(pRgnData);
         GetRect((RECT*)(pRgnData.get() + 1), cRc);
         pRgnData->dwSize = sizeof(RGNDATAHEADER);
         pRgnData->iType = RDH_RECTANGLES;

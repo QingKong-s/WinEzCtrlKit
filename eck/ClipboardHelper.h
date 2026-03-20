@@ -44,7 +44,7 @@ inline BOOL SetClipboardString(HWND hWnd,
 
     if (cch < 0)
         cch = (int)TcsLength(pszText);
-    const auto hData = GlobalAlloc(GMEM_MOVEABLE, Cch2CbW(cch));
+    const auto hData = GlobalAlloc(GMEM_MOVEABLE, CchToCbW(cch));
     if (!hData)
         return FALSE;
     void* const pData = GlobalLock(hData);

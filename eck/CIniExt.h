@@ -170,7 +170,7 @@ public:
             else
             {
                 T i;
-                TcsToInt(this->Data().rsValue.Data(),
+                TcvToInt(this->Data().rsValue.Data(),
                     this->Data().rsValue.Size(), i, bHex ? 16 : 0);
                 return i;
             }

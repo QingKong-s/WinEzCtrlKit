@@ -247,7 +247,7 @@ private:
     void TagpWriteString(const CStringW& rs, int cchMax, CStringA& rsWork) noexcept
     {
         rsWork.Clear();
-        StrW2X(rsWork, rs.Data(), std::min(rs.Size(), cchMax + 8));
+        EcdWideToMultiByte(rsWork, rs.Data(), std::min(rs.Size(), cchMax + 8));
         TagpZeroTail(rsWork, cchMax);
         m_Stream.Write(rsWork.Data(), cchMax);
     }
@@ -282,7 +282,7 @@ private:
         else
             cchNew = (int)TcsLength(pszWork);
         rs.Clear();
-        StrX2W(rs, pszWork, cchNew);
+        EcdMultiByteToWide(rs, pszWork, cchNew);
     }
 public:
     CID3v1(CMediaFile& File) noexcept : CTag{ File } {}
@@ -449,7 +449,7 @@ public:
 
         szTemp[4] = '\0';
         m_Stream.Read(szTemp, 4);
-        TcsToInt(szTemp, 4, m_Info.usYear, 10);
+        TcvToInt(szTemp, 4, m_Info.usYear, 10);
 
         m_Info.rsComment.ReSize(30);
         m_Stream.Read(szTemp, 30);
@@ -467,7 +467,7 @@ public:
                 cchTemp = std::min((int)TcsLength(szTemp), 30);
         }
         m_Info.rsComment.Clear();
-        StrX2W(m_Info.rsComment, szTemp, cchTemp);
+        EcdMultiByteToWide(m_Info.rsComment, szTemp, cchTemp);
 
         m_Stream >> m_Info.byGenre;
         return Result::Ok;
@@ -528,7 +528,7 @@ public:
         }
 
         rsTemp.Clear();
-        StrW2X(rsTemp, m_Info.rsComment.Data(),
+        EcdWideToMultiByte(rsTemp, m_Info.rsComment.Data(),
             std::min(m_Info.rsComment.Size(), 30 + 8));
         TagpZeroTail(rsTemp, 30);
         if (rsTemp.Size() <= 28)

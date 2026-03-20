@@ -348,7 +348,7 @@ public:
         const UINT uDlgFlags = (m_pOpt->uFlags & IPBF_FIXWIDTH) ?
             0 : (m_pOpt->uFlags & IPBF_DLGFLAGSMASK);
 
-        IntCreateModalDialog(0, WCN_DLG, m_pOpt->pszTitle,
+        IntCreateModalDialog(0, WCN_DIALOG, m_pOpt->pszTitle,
             WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPCHILDREN |
             ((m_pOpt->uFlags & IPBF_RESIZEABLE) ? (WS_SIZEBOX | WS_MAXIMIZEBOX) : 0),
             m_pOpt->x,

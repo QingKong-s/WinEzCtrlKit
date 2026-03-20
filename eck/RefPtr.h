@@ -61,6 +61,8 @@ public:
     T* operator->() const noexcept { return &p->Data; }
     T* Get() const noexcept { return p ? &p->Data : nullptr; }
 
+    explicit operator bool() const noexcept { return !!p; }
+
     UINT GetReferenceCount() const noexcept
     {
         return p ? p->cRef.load(std::memory_order_relaxed) : 0;

@@ -255,8 +255,8 @@ protected:
         e.cyExtra = Param.cyExtra;
     }
 public:
-    EckInlineNdCe static UINT Lf9Align(UINT u) noexcept { return GetLowNBits(u, 4); }
-    EckInlineNdCe static UINT LfLineAlign(UINT u) noexcept { return GetLowNBits(u, 2); }
+    EckInlineNdCe static UINT Lf9Align(UINT u) noexcept { return BitsLowN(u, 4); }
+    EckInlineNdCe static UINT LfLineAlign(UINT u) noexcept { return BitsLowN(u, 2); }
     // 互斥验证，若标志无效则返回FALSE
     EckInlineNdCe static BOOL LfValidateFlags(UINT u) noexcept
     {

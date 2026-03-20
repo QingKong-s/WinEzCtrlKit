@@ -19,7 +19,7 @@ public:
             m_Sequence = 0;
         }
         // 42位时间戳，22位序列号
-        return (ullNow << 22) | GetLowNBits(m_Sequence, 22);
+        return (ullNow << 22) | BitsLowN(m_Sequence, 22);
     }
 
     constexpr void Reset() noexcept

@@ -5,7 +5,7 @@ ECK_NAMESPACE_BEGIN
 struct TLEXTNODE
 {
     TLNODE Node;
-    std::vector<eck::CStringW> vText;
+    std::vector<CStringW> vText;
     LPARAM lParam;
     std::vector<TLEXTNODE*> vChildren;
 };

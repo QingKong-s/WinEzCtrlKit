@@ -580,7 +580,7 @@ public:
     {
         int iSelStart, iSelEnd;
         GetSelection(&iSelStart, &iSelEnd);
-        SetSelection(iSelPos, iSelPos + ValDistance(iSelStart, iSelEnd));
+        SetSelection(iSelPos, iSelPos + Distance(iSelStart, iSelEnd));
     }
 
     // 取选择起始位置
@@ -604,7 +604,7 @@ public:
     {
         int iStart, iEnd;
         GetSelection(&iStart, &iEnd);
-        return ValDistance(iStart, iEnd);
+        return Distance(iStart, iEnd);
     }
 
     // 置选择结束位置，保留选择起始位置
@@ -631,7 +631,7 @@ public:
         GetText(rs.Data(), iEnd + 1);
         if (iStart)
         {
-            const int cch = ValDistance(iStart, iEnd);
+            const int cch = Distance(iStart, iEnd);
             wmemmove(rs.Data(), rs.Data() + iStart, cch + 1/*结尾NULL*/);
             rs.ReSize(cch);
         }
@@ -654,7 +654,7 @@ public:
         if (iEnd < cchMax)
         {
             GetText(pszBuf, iEnd + 1);
-            const int cch = ValDistance(iStart, iEnd);
+            const int cch = Distance(iStart, iEnd);
             if (iStart)
                 wmemmove(pszBuf, pszBuf + iStart, cch + 1/*结尾NULL*/);
             return cch;
@@ -662,9 +662,9 @@ public:
         else
         {
             const auto pszTemp = (PWSTR)_malloca((iEnd + 1) * sizeof(WCHAR));
-            EckCheckMem(pszTemp);
+            EckCheckMemory(pszTemp);
             GetText(pszTemp, iEnd + 1);
-            const int cch = std::min(cchMax - 1, ValDistance(iStart, iEnd));
+            const int cch = std::min(cchMax - 1, Distance(iStart, iEnd));
             wmemcpy(pszBuf, pszTemp + iStart, cch + 1);
             _freea(pszTemp);
             return cch;

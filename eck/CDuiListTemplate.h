@@ -1254,7 +1254,7 @@ public:
     {
         leht.bHitGroupHeader = FALSE;
         leht.bHitGroupImage = FALSE;
-        if (!PtInRect(GetViewRectF(), leht.pt))
+        if (!PointInRect(GetViewRectF(), leht.pt))
             return -1;
 
         switch (m_eView)

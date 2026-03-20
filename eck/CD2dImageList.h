@@ -32,8 +32,8 @@ public:
         DXGI_FORMAT eFormat = DXGI_FORMAT_B8G8R8A8_UNORM,
         BOOLEAN bIncPageSize = TRUE) noexcept :
         m_Packer{
-            (TCoord)ceilf(cxTile * fDpi / 96.f) + 1,
-            (TCoord)ceilf(cyTile * fDpi / 96.f) + 1,
+            (TCoord)(ceilf(cxTile* fDpi / 96.f) + 1),
+            (TCoord)(ceilf(cyTile* fDpi / 96.f) + 1),
             (TCoord)ceilf(cxPage),
             (TCoord)ceilf(cyPage),
             8192, 8192, bIncPageSize
@@ -101,7 +101,7 @@ public:
         TCoord cxTile, cyTile;
         m_Packer.GetTileSize(cxTile, cyTile);
 
-        const D2D1_RECT_U rc{ x, y, x + cxTile, y + cyTile };
+        const D2D1_RECT_U rc{ x, y, UINT(x + cxTile), UINT(y + cyTile) };
         return e.pTex->CopyFromMemory(&rc, pData, cbStride);
     }
 

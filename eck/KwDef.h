@@ -94,7 +94,7 @@ KW2D_NAMESPACE_END
 ECK_DEF_RECT_TRAITS(Kw::Rect);
 ECK_DEF_RECT_TRAITS(Kw::RectU);
 ECK_DEF_RECT_TRAITS(Kw::RectI);
-EckInlineNdCe BOOL PtInRect(CcpRect auto const& rc, Kw::Vec2 pt) noexcept
+EckInlineNdCe BOOL PointInRect(CcpRect auto const& rc, Kw::Vec2 pt) noexcept
 {
     return ((pt.x >= (float)rc.left) && (pt.x < (float)rc.right) &&
         (pt.y >= (float)rc.top) && (pt.y < (float)rc.bottom));

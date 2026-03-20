@@ -478,14 +478,14 @@ public:
         rc.top = prcItem->top + m_cxPadding;
         rc.right = rc.left + m_cxIcon;
         rc.bottom = rc.top + m_cyIcon;
-        if (PtInRect(&rc, pt))
+        if (PointInRect(rc, pt))
             return TGLP_ICON;
 
         rc.left = rc.right + m_cxSubTaskPadding;
         rc.top = prcItem->top;
         rc.right = rc.left + m_Items[idxItem].cx;
         rc.bottom = rc.top + m_cySectionTitle;
-        if (PtInRect(&rc, pt))
+        if (PointInRect(rc, pt))
             return TGLP_SECTIONTITLE;
 
         rc.top = rc.bottom + m_cxPadding;
@@ -494,7 +494,7 @@ public:
         {
             auto& x = m_Items[idxItem].SubTasks[i];
             rc.right = rc.left + x.cx;
-            if (PtInRect(&rc, pt))
+            if (PointInRect(rc, pt))
             {
                 if (pidxSubTask)
                     *pidxSubTask = (int)i;
