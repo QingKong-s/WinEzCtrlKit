@@ -73,8 +73,8 @@ private:
     };
 
     PCBYTE m_pData{};
-    SIZE_T m_cbData{};
-    SIZE_T m_posFirstVisible{};
+    size_t m_cbData{};
+    size_t m_posFirstVisible{};
 
     std::vector<CHAR_COL> m_vCharCol{};
     CMemoryDC m_DC{};
@@ -100,8 +100,8 @@ private:
 
     int m_iDpi{ USER_DEFAULT_SCREEN_DPI };
 
-    SIZE_T m_posDragSelStart{ SIZETMax };
-    SIZE_T m_posDragSelEnd{ SIZETMax };
+    size_t m_posDragSelStart{ MaxSizeT };
+    size_t m_posDragSelEnd{ MaxSizeT };
 
     CTRLDATA_HEXEDIT D{};
 
@@ -197,7 +197,7 @@ private:
             OffsetRect(rcCharCol, cxCharCol, 0);
         }
         // 画选择区
-        if (m_posDragSelStart != SizeTMax && m_posDragSelEnd != SizeTMax)
+        if (m_posDragSelStart != MaxSizeT && m_posDragSelEnd != MaxSizeT)
         {
             const auto dy = -ScbGetPosition(SB_VERT) * GetRowHeight();
             size_t pos0, pos1;
@@ -459,7 +459,7 @@ public:
             const auto pos = HitTest(heht);
             if ((heht.bHitData || heht.bHitChar))
             {
-                m_posDragSelEnd = SIZETMax;
+                m_posDragSelEnd = MaxSizeT;
                 m_posDragSelStart = pos;
                 D.posCaret = pos;
                 D.idxCaretCol = (heht.bHitChar ? heht.idxCharCol : -1);
@@ -667,7 +667,7 @@ public:
         return CWindow::OnMessage(uMsg, wParam, lParam);
     }
 
-    void SetData(PCVOID pData, SIZE_T cbData) noexcept
+    void SetData(PCVOID pData, size_t cbData) noexcept
     {
         m_pData = (PCBYTE)pData;
         m_cbData = cbData;
@@ -794,11 +794,11 @@ public:
 
         if (heht.pt.x < 0 || heht.pt.x > std::min(xStart + m_cxContent, m_cxClient) ||
             heht.pt.y < 0 || heht.pt.y > GetPartialVisibleRowCount() * GetRowHeight() + GetHeaderHeight())
-            return SizeTMax;
+            return MaxSizeT;
         if (heht.pt.y < GetHeaderHeight())
         {
             heht.bHitHeader = TRUE;
-            return SizeTMax;
+            return MaxSizeT;
         }
         heht.idxRowInView = (heht.pt.y - GetHeaderHeight() + D.cyGap / 2) / GetRowHeight();
         int x = xStart + m_cxAddress;
@@ -807,7 +807,7 @@ public:
             heht.bHitAddress = TRUE;
             if (heht.pt.y < GetHeaderHeight() + heht.idxRowInView * GetRowHeight() - D.cyGap)
                 heht.bHitContent = TRUE;
-            return SizeTMax;
+            return MaxSizeT;
         }
         else if (heht.pt.x < x + m_cxData)// 数据
         {
@@ -832,7 +832,7 @@ public:
         }
         else
             heht.idxRowInView = -1;
-        return SizeTMax;
+        return MaxSizeT;
     }
 };
 ECK_NAMESPACE_END

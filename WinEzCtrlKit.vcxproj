@@ -281,7 +281,7 @@
     <ClInclude Include="eck\CDuiScrollBar.h" />
     <ClInclude Include="eck\CDuiTitleBar.h" />
     <ClInclude Include="eck\CDuiTrackBar.h" />
-    <ClCompile Include="eck\CDwmWndPartMgr.h" />
+    <ClCompile Include="eck\CUxDwmWindowTheme.h" />
     <ClCompile Include="eck\CEditNc.h" />
     <ClCompile Include="eck\CEvent.h" />
     <ClCompile Include="eck\CFontPicker.h" />

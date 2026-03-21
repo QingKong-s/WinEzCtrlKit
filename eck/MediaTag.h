@@ -548,7 +548,7 @@ inline BOOL TagGetNumberAndTotal(std::wstring_view sv,
 class CMediaFile final
 {
 public:
-    constexpr static size_t NPos = SizeTMax;
+    constexpr static size_t NPos = MaxSizeT;
 private:
     ComPtr<IStream> m_pStream{};
     UINT m_uTagType{};

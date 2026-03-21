@@ -123,11 +123,11 @@ namespace Priv
     }
     UninstallInfoSource[]
     {
-        { HKEY_LOCAL_MACHINE, EckStrAndLen(REGSTR_PATH_UNINSTALL) },
-        { HKEY_CURRENT_USER,  EckStrAndLen(REGSTR_PATH_UNINSTALL) },
+        { HKEY_LOCAL_MACHINE, EckArgString(REGSTR_PATH_UNINSTALL) },
+        { HKEY_CURRENT_USER,  EckArgString(REGSTR_PATH_UNINSTALL) },
 #ifdef _WIN64
-        { HKEY_LOCAL_MACHINE, EckStrAndLen(L"Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall") },
-        { HKEY_CURRENT_USER,  EckStrAndLen(L"Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall") },
+        { HKEY_LOCAL_MACHINE, EckArgString(L"Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall") },
+        { HKEY_CURRENT_USER,  EckArgString(L"Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall") },
 #endif
     };
 }

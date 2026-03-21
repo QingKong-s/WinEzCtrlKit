@@ -283,7 +283,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsStringLengthI(_In_reads_(Len) TPtr Str, size
 
 template<CcpStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr TcsRStringLength(_In_reads_(Len) TPtr Str, size_t Len,
-    _In_reads_(SubLen) ConstStdCharPtr_T<TPtr> SubStr, size_t SubLen, size_t posStart = SizeTMax) noexcept
+    _In_reads_(SubLen) ConstStdCharPtr_T<TPtr> SubStr, size_t SubLen, size_t posStart = MaxSizeT) noexcept
 {
     if (Len < SubLen)
         return nullptr;
@@ -298,7 +298,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsRStringLength(_In_reads_(Len) TPtr Str, size
 }
 template<CcpStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr TcsRStringLengthI(_In_reads_(Len) TPtr Str, size_t Len,
-    _In_reads_(SubLen) ConstStdCharPtr_T<TPtr> SubStr, size_t SubLen, size_t posStart = SizeTMax) noexcept
+    _In_reads_(SubLen) ConstStdCharPtr_T<TPtr> SubStr, size_t SubLen, size_t posStart = MaxSizeT) noexcept
 {
     if (Len < SubLen)
         return nullptr;
@@ -345,7 +345,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsCharFirstNotOf(_In_reads_(Len) TPtr Str, siz
 }
 template<CcpStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr TcsCharLastOf(_In_reads_(Len) TPtr Str, size_t Len,
-    _In_reads_(CharsLen) ConstStdCharPtr_T<TPtr> Chars, size_t CharsLen, size_t posStart = SizeTMax) noexcept
+    _In_reads_(CharsLen) ConstStdCharPtr_T<TPtr> Chars, size_t CharsLen, size_t posStart = MaxSizeT) noexcept
 {
     EckAssert(Len);
 #if defined(_MSC_VER) && _USE_STD_VECTOR_ALGORITHMS && 0
@@ -368,7 +368,7 @@ _Ret_maybenull_ EckInlineNd TPtr TcsCharLastOf(_In_reads_(Len) TPtr Str, size_t 
 }
 template<CcpStdCharPtr TPtr>
 _Ret_maybenull_ EckInlineNd TPtr TcsCharLastNotOf(_In_reads_(Len) TPtr Str, size_t Len,
-    _In_reads_(CharsLen) ConstStdCharPtr_T<TPtr> Chars, size_t CharsLen, size_t posStart = SizeTMax) noexcept
+    _In_reads_(CharsLen) ConstStdCharPtr_T<TPtr> Chars, size_t CharsLen, size_t posStart = MaxSizeT) noexcept
 {
     EckAssert(Len);
     for (auto p = Str + std::min(posStart, Len - 1); p >= Str; --p)
@@ -653,9 +653,9 @@ EckInlineNd TPtr TrimStringLeft(_In_reads_(cchText) TPtr pszText, int cchText) n
         return pszText;
     TPtr pFind;
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
-        pFind = (TPtr)TcsCharFirstNotOf(pszText, cchText, EckStrAndLen(SpaceCharsA));
+        pFind = (TPtr)TcsCharFirstNotOf(pszText, cchText, EckArgString(SpaceCharsA));
     else
-        pFind = (TPtr)TcsCharFirstNotOf(pszText, cchText, EckStrAndLen(SpaceCharsW));
+        pFind = (TPtr)TcsCharFirstNotOf(pszText, cchText, EckArgString(SpaceCharsW));
     return pFind ? pFind : pszText + cchText;
 }
 
@@ -668,9 +668,9 @@ EckInlineNd TPtr TrimStringRight(_In_reads_(cchText) TPtr pszText, int cchText) 
         return pszText;
     TPtr pFind;
     if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPtr>, char>)
-        pFind = (TPtr)TcsCharLastNotOf(pszText, cchText, EckStrAndLen(SpaceCharsA));
+        pFind = (TPtr)TcsCharLastNotOf(pszText, cchText, EckArgString(SpaceCharsA));
     else
-        pFind = (TPtr)TcsCharLastNotOf(pszText, cchText, EckStrAndLen(SpaceCharsW));
+        pFind = (TPtr)TcsCharLastNotOf(pszText, cchText, EckArgString(SpaceCharsW));
     return pFind ? pFind + 1 : pszText;
 }
 

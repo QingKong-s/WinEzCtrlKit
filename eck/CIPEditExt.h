@@ -21,11 +21,22 @@ private:
         ReleaseDC(HWnd, hDC);
         m_cxEdit = (cxClient - 3 - m_cxDot * 3) / 4;
     }
+
+    void InternalAttachNew() noexcept
+    {
+        HWND hEdit{};
+        EckCounter(4, i)
+        {
+            hEdit = FindWindowExW(HWnd, hEdit, L"Edit", nullptr);
+            m_hEdit[i] = hEdit;
+        }
+        UpdateEditMetrics();
+    }
 public:
     void AttachNew(HWND hWnd) noexcept override
     {
         __super::AttachNew(hWnd);
-        UpdateEditMetrics();
+        InternalAttachNew();
     }
 
     LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
@@ -102,12 +113,7 @@ public:
         case WM_CREATE:
         {
             const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
-            HWND hEdit{};
-            EckCounter(4, i)
-            {
-                hEdit = FindWindowExW(HWnd, hEdit, L"Edit", nullptr);
-                m_hEdit[i] = hEdit;
-            }
+            InternalAttachNew();
             return lResult;
         }
         }

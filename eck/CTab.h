@@ -204,7 +204,7 @@ public:
         return (BOOL)SendMessageW(TCM_SETITEMW, idx, (LPARAM)ptci);
     }
 
-    BOOL SetItemExtra(SIZE_T cbExtra) const noexcept
+    BOOL SetItemExtra(UINT cbExtra) const noexcept
     {
         return (BOOL)SendMessageW(TCM_SETITEMEXTRA, cbExtra, 0);
     }

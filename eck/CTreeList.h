@@ -318,7 +318,7 @@ private:
 #endif
     BITBOOL m_bExpandBtnHot : 1 = FALSE;		// 展开按钮是否点燃
     BITBOOL m_bDraggingSel : 1 = FALSE;			// 是否处于拖动选择状态
-    BITBOOL m_bFocusIndicatorVisible : 1 = Dbg;	// 焦点指示器是否可见
+    BITBOOL m_bFocusIndicatorVisible : 1 = Debug;	// 焦点指示器是否可见
     BITBOOL m_bHasFocus : 1 = FALSE;			// 是否有焦点
     BITBOOL m_bWaitEditDelay : 1 = FALSE;		// 是否等待编辑
     BITBOOL m_bBuildInEditChanged : 1 = FALSE;	// 内置编辑框内容是否已改变

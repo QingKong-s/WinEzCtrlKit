@@ -4,6 +4,7 @@
 #define ECK_OPT_CRT_DLL 1
 #endif
 #include "eck/Env.h"
+#include "eck/CUxDwmWindowTheme.h"
 
 using namespace std::literals;
 
@@ -20,6 +21,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     using namespace eck::Literals;
 
     MSG msg;
+
+    CUxDwmWindowTheme Udw{};
+    Udw.LoadDefaultTheme();
+    const auto sp = Udw.GetAtlasImageData();
 
     CTestWnd w;
     w.Create(L"示例Win32程序", WS_OVERLAPPEDWINDOW, 0, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, 0);

@@ -33,7 +33,7 @@ struct LYTMARGINS
 ECK_DEF_RECT_TRAITS_RCWH(LYTRECT);
 
 // 表示一个可调整位置和大小的对象，并提供非原子布局（如布局器）的管理能力
-// CWnd、Dui::CElem和内置布局器实现此接口
+// CWnd、UiBasic::CElement和内置布局器实现此接口
 struct __declspec(novtable) ILayout : public CObject
 {
     ECK_RTTI(ILayout, CObject);

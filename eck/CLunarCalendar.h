@@ -32,7 +32,7 @@ public:
         EckCounter(7, i)
         {
             GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT,
-                LOCALE_SSHORTESTDAYNAME1 + i, EckArrAndLen(m_szWeek[i]));
+                LOCALE_SSHORTESTDAYNAME1 + i, EckArgArray(m_szWeek[i]));
         }
     }
 

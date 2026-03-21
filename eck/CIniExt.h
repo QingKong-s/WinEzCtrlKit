@@ -423,7 +423,7 @@ private:
         }
 
         constexpr static TChar ValEnd[]{ ';','\n','\r' };
-        pR = TcsCharFirstOf(psz, cch, EckArrAndLen(ValEnd));
+        pR = TcsCharFirstOf(psz, cch, EckArgArray(ValEnd));
         if (!pR)// 若找不到值结束符，则包括到结尾
             pR = psz + cch;
         rsVal.Assign(psz, int(pR - psz));
@@ -434,7 +434,7 @@ private:
     static void ScanComments(TStr& rs, const TChar*& psz, size_t cch) noexcept
     {
         constexpr static TChar ValEnd[]{ '\n','\r' };
-        auto pR = TcsCharFirstOf(psz, cch, EckArrAndLen(ValEnd));
+        auto pR = TcsCharFirstOf(psz, cch, EckArgArray(ValEnd));
         if (!pR)
             pR = psz + cch;
         rs.PushBack(psz, int(pR - psz));

@@ -111,7 +111,7 @@ struct MODULE_INFO
         ULONG64 BaseAddress64{};
     };
 #endif// !defined(_WIN64)
-    SIZE_T cbImage{};
+    size_t cbImage{};
 };
 
 /// <summary>
@@ -331,15 +331,15 @@ struct PROCESS_INFO
     ULONG uSessionID;		// 会话ID
     ULONG cHandles;			// 句柄数
     ULONG cPageFaults;		// 页面错误数
-    SIZE_T cbPrivateWorkingSet;			// 专用工作集
-    SIZE_T cbWorkingSet;				// 工作集
-    SIZE_T cbPeakWorkingSet;			// 峰值工作集
-    SIZE_T cbQuotaPagedPoolUsage;		// 页面缓冲池
-    SIZE_T cbPeakQuotaPagedPoolUsage;	// 峰值页面缓冲池
-    SIZE_T cbQuotaNonPagedPoolUsage;	// 非页面缓冲池
-    SIZE_T cbPeakQuotaNonPagedPoolUsage;// 峰值非页面缓冲池
-    SIZE_T cbPageFileUsage;				// 已提交
-    SIZE_T cbPeakPageFileUsage;			// 峰值已提交
+    size_t cbPrivateWorkingSet;			// 专用工作集
+    size_t cbWorkingSet;				// 工作集
+    size_t cbPeakWorkingSet;			// 峰值工作集
+    size_t cbQuotaPagedPoolUsage;		// 页面缓冲池
+    size_t cbPeakQuotaPagedPoolUsage;	// 峰值页面缓冲池
+    size_t cbQuotaNonPagedPoolUsage;	// 非页面缓冲池
+    size_t cbPeakQuotaNonPagedPoolUsage;// 峰值非页面缓冲池
+    size_t cbPageFileUsage;				// 已提交
+    size_t cbPeakPageFileUsage;			// 峰值已提交
     CStringW rsFilePath;	// 进程路径
     std::vector<THREAD_INFO> vThreads;	// 线程信息
     std::vector<MODULE_INFO> vModules;	// 模块信息
@@ -367,7 +367,7 @@ inline NTSTATUS EnumerateProcess(
     void* pBuf;
     EckLoop()
     {
-        pBuf = VAlloc(cb);
+        pBuf = VAllocate(cb);
         if (!pBuf)
             return STATUS_NO_MEMORY;
         nts = NtQuerySystemInformation(SystemProcessInformation, pBuf, cb, &cb);
@@ -412,7 +412,7 @@ inline NTSTATUS EnumerateProcess(std::vector<PROCESS_INFO>& vResult,
                 pspi->SessionId,
                 pspi->HandleCount,
                 pspi->PageFaultCount,
-                (SIZE_T)pspi->WorkingSetPrivateSize.QuadPart,
+                (size_t)pspi->WorkingSetPrivateSize.QuadPart,
                 pspi->WorkingSetSize,
                 pspi->PeakWorkingSetSize,
                 pspi->QuotaPagedPoolUsage,

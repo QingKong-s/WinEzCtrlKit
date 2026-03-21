@@ -26,7 +26,7 @@ inline std::wstring_view HeaderGetParam(
         return {};
     const auto posEnd = FindStringLength(
         svHeader.data(), (int)svHeader.size(),
-        EckStrAndLen(L"\r\n"));
+        EckArgString(L"\r\n"));
     if (posEnd < 0)
         return {};
     const auto pszValue = TrimStringLeft(svHeader.data() + pos + svName.size() + 1/*冒号*/);
@@ -44,7 +44,7 @@ inline BOOL HeaderComplete(
 
 #undef ECK_TEMP_HIT
 #define ECK_TEMP_HIT(s) \
-    (FindStringLengthI(svHeader.data(), (int)svHeader.size(), EckStrAndLen(s)) < 0)
+    (FindStringLengthI(svHeader.data(), (int)svHeader.size(), EckArgString(s)) < 0)
 
     if (ECK_TEMP_HIT(L"User-Agent:"))
         rsHeader.PushBack(L"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n");
@@ -59,7 +59,7 @@ inline BOOL HeaderComplete(
     if (svMethod == L"GET"sv &&
         ECK_TEMP_HIT(L"Content-Type:"))
         rsHeader.PushBack(L"Content-Type: application/x-www-form-urlencoded\r\n");
-    rsHeader.ReplaceSubString(EckStrAndLen(L"Connection: keep-alive\r\n"), nullptr, 0, 0, 1);
+    rsHeader.ReplaceSubString(EckArgString(L"Connection: keep-alive\r\n"), nullptr, 0, 0, 1);
     if (!svCookies.empty())
     {
         auto pos0 = rsHeader.FindI(L"Cookie:"sv);
@@ -206,7 +206,7 @@ struct CHttpRequestAsync
         }
         Ctx{ this, Token };
 
-        constexpr SIZE_T BufSize{ 8192 };// 8K为建议大小
+        constexpr size_t BufSize{ 8192 };// 8K为建议大小
 
         const auto Ret = WinHttpSetStatusCallback(hConnect.get(),
             [](HINTERNET hInternet, DWORD_PTR dwContext, DWORD dwInternetStatus,
@@ -268,7 +268,7 @@ struct CHttpRequestAsync
                         [[fallthrough]];
                     case 2:
                     {
-                        pCtx->pBuf.reset(VAlloc(BufSize));
+                        pCtx->pBuf.reset(VAllocate(BufSize));
                         if (!pCtx->pBuf)
                         {
                             pCtx->Cancel(E_OUTOFMEMORY);

@@ -902,7 +902,7 @@ public:
                     {
                         m_Stream.MoveTo(Loc.posV2 +
                             sizeof(ID3v2_HEADER) + cbPrependTotal);
-                        void* p = VAlloc(cbPadding);
+                        void* p = VAllocate(cbPadding);
                         EckCheckMemory(p);
                         m_Stream.Write(p, (ULONG)cbPadding);
                         VFree(p);

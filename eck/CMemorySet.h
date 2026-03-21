@@ -13,15 +13,15 @@ private:
     {
         BLOCK* pNext;
         BYTE* pFreeBegin;
-        SIZE_T cbBlock;
+        size_t cbBlock;
     };
 
     BLOCK* m_pHead{};
-    SIZE_T m_cbPage{ 4096 };
+    size_t m_cbPage{ 4096 };
     CSrwLock m_Lk{};
 public:
-    [[nodiscard]] void* Allocate(SIZE_T cbSize,
-        SIZE_T cbAlign = sizeof(void*), BOOL bOnlySearchTop = TRUE) noexcept
+    [[nodiscard]] void* Allocate(size_t cbSize,
+        size_t cbAlign = sizeof(void*), BOOL bOnlySearchTop = TRUE) noexcept
     {
         if (cbSize == 0)
             return nullptr;
@@ -40,9 +40,9 @@ public:
             p = p->pNext;
         }
 
-        const SIZE_T cbBlock = AlignedSize(
+        const size_t cbBlock = AlignedSize(
             std::max(m_cbPage, cbSize + sizeof(BLOCK) + cbAlign), 4096);
-        const auto pBlock = (BLOCK*)VAlloc(cbBlock);
+        const auto pBlock = (BLOCK*)VAllocate(cbBlock);
         if (!pBlock)
             return nullptr;
         pBlock->pNext = m_pHead;
@@ -77,13 +77,13 @@ public:
         }
     }
 
-    EckInline void SetPageSize(SIZE_T cbPage) noexcept
+    EckInline void SetPageSize(size_t cbPage) noexcept
     {
         CSrwWriteGuard _{ m_Lk };
         m_cbPage = cbPage;
     }
 
-    EckInline SIZE_T GetPageSize() noexcept
+    EckInline size_t GetPageSize() noexcept
     {
         CSrwReadGuard _{ m_Lk };
         return m_cbPage;
@@ -100,8 +100,8 @@ private:
     struct PAGE
     {
         TPointer p;
-        SIZE_T cbSize;
-        SIZE_T cAlloc;
+        size_t cbSize;
+        size_t cAlloc;
     };
 
     CMemorySet m_MemSet{};

@@ -381,7 +381,7 @@ public:
     /// <param name="cItems">保留项目数</param>
     /// <param name="cbString">保留字符串长度</param>
     /// <returns>成功返回已预分配的项目总数，失败返回CB_ERRSPACE</returns>
-    EckInline int InitialzeStorage(int cItems, SIZE_T cbString) const noexcept
+    EckInline int InitialzeStorage(int cItems, UINT cbString) const noexcept
     {
         return (int)SendMessageW(CB_INITSTORAGE, cItems, cbString);
     }

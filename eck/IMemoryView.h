@@ -9,14 +9,11 @@ struct __declspec(uuid("B23501EB-3F09-4A54-94D4-F2054F17A381"))
     IMemoryView : public IUnknown
 {
     // 锁定对象，返回对象关联的内存地址和大小，在调用MemUnlock之前一直有效
-    STDMETHOD(MemLock)(void** ppData, SIZE_T* pSize) = 0;
-
+    STDMETHOD(MemLock)(void** ppData, size_t* pSize) = 0;
     // 解锁对象
     STDMETHOD(MemUnlock)() = 0;
-
     // 获取对象关联的内存地址和大小，当修改对象后返回的信息可能失效
-    STDMETHOD(MemGetPointer)(void** ppData, SIZE_T* pSize) = 0;
-
+    STDMETHOD(MemGetPointer)(void** ppData, size_t* pSize) = 0;
     // 是否已锁定
     STDMETHOD(MemIsLocked)(BOOL* pIsLocked) = 0;
 };

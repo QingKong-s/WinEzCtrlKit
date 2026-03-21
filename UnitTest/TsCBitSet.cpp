@@ -111,7 +111,7 @@ public:
     TEST_METHOD(TsParseBinText)
     {
         BS bs{};
-        bs.FromText(EckStrAndLen("1'0'1'1"), '1', '0', '\'');
+        bs.FromText(EckArgString("1'0'1'1"), '1', '0', '\'');
 
         Assert::IsTrue(bs.Test(0));
         Assert::IsTrue(bs.Test(1));

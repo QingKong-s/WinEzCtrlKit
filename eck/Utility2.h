@@ -287,41 +287,6 @@ inline void RandomBytes(_Out_ BYTE(&arr)[N]) noexcept
     RandomBytes(arr, N);
 }
 
-// iType  0 - 空格分割的十六进制  1 - 易语言字节集调试输出
-inline CStringW FormatBin(PCVOID pData_, size_t cb, int iType) noexcept
-{
-    const auto pData = (PCBYTE)pData_;
-    CStringW rsResult{};
-    if (!pData || !cb)
-    {
-        if (iType == 1)
-            rsResult.Assign(EckStrAndLen(L"{ }"));
-        return rsResult;
-    }
-
-    switch (iType)
-    {
-    case 0:
-    {
-        rsResult.Reserve((int)cb * 3 + 10);
-        for (SIZE_T i = 0u; i < cb; ++i)
-            rsResult.PushBackFormat(L"%02hhX ", pData[i]);
-    }
-    break;
-    case 1:
-    {
-        rsResult.Reserve((int)cb * 4 + 10);
-        rsResult.PushBack(EckStrAndLen(L"{ "));
-        rsResult.PushBackFormat(L"%hhu", pData[0]);
-        for (SIZE_T i = 1u; i < cb; ++i)
-            rsResult.PushBackFormat(L",%hhu", pData[i]);
-        rsResult.PushBack(EckStrAndLen(L" }"));
-    }
-    break;
-    }
-    return rsResult;
-}
-
 inline NTSTATUS CalculateMd5(
     _In_reads_bytes_(cbData) PCVOID pData,
     size_t cbData,

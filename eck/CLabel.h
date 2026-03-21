@@ -151,7 +151,7 @@ private:
                     m_rcPartImg.bottom - m_rcPartImg.top,
                     hCDC, 0, 0,
                     m_rcPartImg.right - m_rcPartImg.left,
-                    m_rcPartImg.bottom - m_rcPartImg.top, BlendFuncAlpha);
+                    m_rcPartImg.bottom - m_rcPartImg.top, BlendFunctionAlpha);
             else
                 BitBlt(hDC,
                     m_rcPartImg.left,

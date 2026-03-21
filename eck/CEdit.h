@@ -89,7 +89,7 @@ public:
     {
         const auto rsCueBanner = GetCueBanner((pOpt && pOpt->cchTextBuf ?
             pOpt->cchTextBuf : MAX_PATH));
-        const SIZE_T cbSize = sizeof(CTRLDATA_EDIT) + rsCueBanner.ByteSize();
+        const size_t cbSize = sizeof(CTRLDATA_EDIT) + rsCueBanner.ByteSize();
         CWindow::SerializeData(rb, pOpt);
         const auto p = (CTRLDATA_EDIT*)rb.PushBack(cbSize);
         p->iVer = CDV_EDIT_1;

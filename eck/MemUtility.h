@@ -2,8 +2,8 @@
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
-inline constexpr size_t INVALID_BIN_POS = SizeTMax;
-inline constexpr size_t BinNPos = SizeTMax;
+inline constexpr size_t INVALID_BIN_POS = MaxSizeT;
+inline constexpr size_t BinNPos = MaxSizeT;
 
 template<class TPtr>
 concept ccpIsPtr = std::is_pointer_v<TPtr>;
@@ -32,7 +32,7 @@ _Ret_maybenull_ EckInline TPtr MemMemory(_In_reads_bytes_(Len) TPtr Mem, size_t 
 
 template<ccpIsPtr TPtr, ccpIsPtr TPattern>
 _Ret_maybenull_ EckInline TPtr MemRMemory(_In_reads_bytes_(Len) TPtr Mem, size_t Len,
-    _In_reads_bytes_(SubLen) TPattern SubMem, size_t SubLen, size_t posStart = SizeTMax) noexcept
+    _In_reads_bytes_(SubLen) TPattern SubMem, size_t SubLen, size_t posStart = MaxSizeT) noexcept
 {
     if (Len < SubLen)
         return nullptr;
@@ -56,7 +56,7 @@ EckInlineNd size_t FindMemory(_In_reads_bytes_(cbMain) TPtr pMain, size_t cbMain
 }
 template<ccpIsPtr TPtr, ccpIsPtr TPattern>
 EckInlineNd size_t RFindMemory(_In_reads_bytes_(cbMain) TPtr pMain, size_t cbMain,
-    _In_reads_bytes_(cbSub) TPattern pSub, size_t cbSub, size_t posStart = SizeTMax) noexcept
+    _In_reads_bytes_(cbSub) TPattern pSub, size_t cbSub, size_t posStart = MaxSizeT) noexcept
 {
     const auto pFind = MemRMemory(pMain, cbMain, pSub, cbSub, posStart);
     return pFind ? ((PCBYTE)pFind - (PCBYTE)pMain) : -1;

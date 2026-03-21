@@ -973,15 +973,15 @@ public:
         EckLoop()
         {
             if constexpr (std::is_same_v<TChar, WCHAR>)
-                p0 = TcsCharFirstNotOf(p1, Size() - (p1 - pData), EckStrAndLen(SpaceCharsW));
+                p0 = TcsCharFirstNotOf(p1, Size() - (p1 - pData), EckArgString(SpaceCharsW));
             else
-                p0 = TcsCharFirstNotOf(p1, Size() - (p1 - pData), EckStrAndLen(SpaceCharsA));
+                p0 = TcsCharFirstNotOf(p1, Size() - (p1 - pData), EckArgString(SpaceCharsA));
             if (!p0)
                 break;
             if constexpr (std::is_same_v<TChar, WCHAR>)
-                p1 = TcsCharFirstOf(p0, Size() - (p0 - pData), EckStrAndLen(SpaceCharsW));
+                p1 = TcsCharFirstOf(p0, Size() - (p0 - pData), EckArgString(SpaceCharsW));
             else
-                p1 = TcsCharFirstOf(p0, Size() - (p0 - pData), EckStrAndLen(SpaceCharsA));
+                p1 = TcsCharFirstOf(p0, Size() - (p0 - pData), EckArgString(SpaceCharsA));
             if (!p1)
                 p1 = pData + Size();
             TcsMoveLength(pCurr, p0, p1 - p0);

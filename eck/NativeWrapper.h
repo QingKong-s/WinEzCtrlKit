@@ -2,16 +2,10 @@
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
-EckInline void* VAlloc(SIZE_T cb, ULONG ulProtect) noexcept
+EckInline void* VAllocate(size_t cb, ULONG ulProtect = PAGE_READWRITE) noexcept
 {
     void* p{};
     (void)NtAllocateVirtualMemory(NtCurrentProcess(), &p, 0, &cb, MEM_COMMIT, ulProtect);
-    return p;
-}
-EckInline void* VAlloc(SIZE_T cb) noexcept
-{
-    void* p{};
-    (void)NtAllocateVirtualMemory(NtCurrentProcess(), &p, 0, &cb, MEM_COMMIT, PAGE_READWRITE);
     return p;
 }
 EckInline NTSTATUS VFree(void* p) noexcept

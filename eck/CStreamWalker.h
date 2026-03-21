@@ -203,7 +203,7 @@ public:
         BOOL bExternalBuf = FALSE;
         if (!pMoveBuf)
         {
-            pMoveBuf = VAlloc(cbMoveBuf);
+            pMoveBuf = VAllocate(cbMoveBuf);
             if (!pMoveBuf)
                 throw XptHResult{ E_OUTOFMEMORY };
             bExternalBuf = TRUE;

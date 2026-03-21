@@ -832,7 +832,7 @@ private:
                     .psize = &Size,
                     .hdcSrc = hDC,
                     .pptSrc = &ptSrc,
-                    .pblend = &BlendFuncAlpha,
+                    .pblend = &BlendFunctionAlpha,
                     .dwFlags = ULW_ALPHA,
                     .prcDirty = bFullUpdate ? nullptr : &rcPhy,
                 };

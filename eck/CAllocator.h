@@ -105,7 +105,7 @@ struct CAllocatorVA
 
     EckInlineNd T* allocate(size_type c)
     {
-        auto p = (T*)VAlloc(c * sizeof(value_type));
+        auto p = (T*)VAllocate(c * sizeof(value_type));
         if (p)
             return p;
         else

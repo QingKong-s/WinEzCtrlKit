@@ -41,7 +41,7 @@ public:
 
     EckInline void AssertReference(LONG l) noexcept { EckAssert(this->m_cRef == l); }
 
-    HRESULT STDMETHODCALLTYPE Read(void* pv, ULONG cb, ULONG* pcbRead)
+    STDMETHODIMP Read(void* pv, ULONG cb, ULONG* pcbRead) override
     {
         if (pcbRead)
             *pcbRead = 0;
@@ -65,7 +65,7 @@ public:
         return hr;
     }
 
-    HRESULT STDMETHODCALLTYPE Write(const void* pv, ULONG cb, ULONG* pcbWritten)
+    STDMETHODIMP Write(const void* pv, ULONG cb, ULONG* pcbWritten) override
     {
         if (pcbWritten)
             *pcbWritten = 0;
@@ -83,7 +83,7 @@ public:
         return S_OK;
     }
 
-    HRESULT STDMETHODCALLTYPE Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition)
+    STDMETHODIMP Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition) override
     {
         if (plibNewPosition)
             plibNewPosition->QuadPart = m_posSeek - m_posBegin;
@@ -120,7 +120,7 @@ public:
         return STG_E_INVALIDFUNCTION;
     }
 
-    HRESULT STDMETHODCALLTYPE SetSize(ULARGE_INTEGER libNewSize)
+    STDMETHODIMP SetSize(ULARGE_INTEGER libNewSize) override
     {
         if (m_bLocked)
             return STG_E_ACCESSDENIED;
@@ -129,8 +129,8 @@ public:
         return S_OK;
     }
 
-    HRESULT STDMETHODCALLTYPE CopyTo(IStream* pstm, ULARGE_INTEGER cb,
-        ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten)
+    STDMETHODIMP CopyTo(IStream* pstm, ULARGE_INTEGER cb,
+        ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten) override
     {
         if (pcbRead)
             pcbRead->QuadPart = 0u;
@@ -155,27 +155,27 @@ public:
         return hr;
     }
 
-    HRESULT STDMETHODCALLTYPE Commit(DWORD grfCommitFlags)
+    STDMETHODIMP Commit(DWORD grfCommitFlags) override
     {
         return S_OK;
     }
 
-    HRESULT STDMETHODCALLTYPE Revert(void)
+    STDMETHODIMP Revert() override
     {
         return E_NOTIMPL;
     }
 
-    HRESULT STDMETHODCALLTYPE LockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType)
+    STDMETHODIMP LockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType) override
     {
         return E_NOTIMPL;
     }
 
-    HRESULT STDMETHODCALLTYPE UnlockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType)
+    STDMETHODIMP UnlockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType) override
     {
         return E_NOTIMPL;
     }
 
-    HRESULT STDMETHODCALLTYPE Stat(STATSTG* pstatstg, DWORD grfStatFlag)
+    STDMETHODIMP Stat(STATSTG* pstatstg, DWORD grfStatFlag) override
     {
         ZeroMemory(pstatstg, sizeof(STATSTG));
         pstatstg->type = STGTY_STREAM;
@@ -187,7 +187,7 @@ public:
         return S_OK;
     }
 
-    HRESULT STDMETHODCALLTYPE Clone(IStream** ppstm)
+    STDMETHODIMP Clone(IStream** ppstm) override
     {
         const auto p = new CByteBufferStreamT(m_rb);
         p->m_posSeek = m_posSeek;
@@ -197,14 +197,14 @@ public:
         return S_OK;
     }
 
-    HRESULT STDMETHODCALLTYPE MemGetPointer(void** ppvData, SIZE_T* pcbData)
+    STDMETHODIMP MemGetPointer(void** ppvData, size_t* pcbData) override
     {
         *ppvData = m_rb.Data();
         *pcbData = m_rb.Size();
         return S_OK;
     }
 
-    HRESULT STDMETHODCALLTYPE MemLock(void** ppvData, SIZE_T* pcbData)
+    STDMETHODIMP MemLock(void** ppvData, size_t* pcbData) override
     {
         *ppvData = m_rb.Data();
         *pcbData = m_rb.Size();
@@ -212,13 +212,13 @@ public:
         return S_OK;
     }
 
-    HRESULT STDMETHODCALLTYPE MemUnlock()
+    STDMETHODIMP MemUnlock() override
     {
         m_bLocked = FALSE;
         return S_OK;
     }
 
-    HRESULT STDMETHODCALLTYPE MemIsLocked(BOOL* pbLocked)
+    STDMETHODIMP MemIsLocked(BOOL* pbLocked) override
     {
         *pbLocked = m_bLocked;
         return S_OK;

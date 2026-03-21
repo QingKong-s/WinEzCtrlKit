@@ -261,40 +261,6 @@ public:
         return RegGetValueW(m_hKey, pszSubKey, pszValue, dwFlags, pdwType, pBuf, pcbBuf);
     }
 
-    /// <summary>
-    /// 取字节集注册项。
-    /// 绝对不能在当前句柄为HKEY_PERFORMANCE_DATA调用此方法
-    /// </summary>
-    /// <param name="pszSubKey">子项名称</param>
-    /// <param name="pszValue">值名称</param>
-    /// <param name="dwFlags">标志，本函数将自动添加类型限制标志</param>
-    /// <param name="plStatus">接收错误码变量的可选指针</param>
-    /// <returns>数据</returns>
-    [[nodiscard]] CByteBuffer GetValueBin(PCWSTR pszSubKey,
-        PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = nullptr) noexcept
-    {
-        EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
-        dwFlags |= RRF_RT_REG_BINARY;
-        if (plStatus)
-            *plStatus = ERROR_SUCCESS;
-        DWORD cb = 0u;
-        LSTATUS lStatus = GetValue(pszSubKey, pszValue, nullptr, &cb, dwFlags);
-        if (lStatus == ERROR_SUCCESS)
-        {
-            if (cb)
-            {
-                CByteBuffer rb(cb);
-                GetValue(pszSubKey, pszValue, rb.Data(), &cb, dwFlags);
-                return rb;
-            }
-            else
-                return {};
-        }
-        if (plStatus)
-            *plStatus = lStatus;
-        return {};
-    }
-
     [[nodiscard]] DWORD GetValueDword(PCWSTR pszSubKey,
         PCWSTR pszValue, DWORD dwFlags = 0u, LSTATUS* plStatus = nullptr) noexcept
     {
@@ -328,7 +294,8 @@ public:
         return 0u;
     }
 
-    LSTATUS GetValueString(CStringW& rs, PCWSTR pszSubKey, PCWSTR pszValue, DWORD dwFlags = 0u) noexcept
+    LSTATUS GetValueString(CStringW& rs, PCWSTR pszSubKey,
+        PCWSTR pszValue, DWORD dwFlags = 0u) noexcept
     {
         EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
         dwFlags |= RRF_RT_REG_SZ;
@@ -336,15 +303,32 @@ public:
         LSTATUS ls = GetValue(pszSubKey, pszValue, nullptr, &cb, dwFlags);
         if (ls == ERROR_SUCCESS)
         {
-            rs.Reserve(cb / sizeof(WCHAR));
-            ls = GetValue(pszSubKey, pszValue, rs.Data(), &cb, dwFlags);
-            if (cb)
-                rs.ReSize(cb / sizeof(WCHAR) - 1);
+            const auto cchOld = rs.Size();
+            ls = GetValue(pszSubKey, pszValue,
+                rs.PushBackNoExtra(cb / sizeof(WCHAR)), &cb, dwFlags);
+            rs.ReSize(cchOld + std::max(int(cb / sizeof(WCHAR)) - 1, 0));
         }
         return ls;
     }
 
-    EckInline LSTATUS QueryInfomation(PWSTR pszClassBuf = nullptr,
+    LSTATUS GetValueByteBuffer(CByteBuffer& rb, PCWSTR pszSubKey,
+        PCWSTR pszValue, DWORD dwFlags = 0u) noexcept
+    {
+        EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
+        dwFlags |= RRF_RT_REG_BINARY;
+        DWORD cb{};
+        auto ls = GetValue(pszSubKey, pszValue, nullptr, &cb, dwFlags);
+        if ((ls == ERROR_SUCCESS) && cb)
+        {
+            const auto cbOld = rb.Size();
+            ls = GetValue(pszSubKey, pszValue, rb.PushBackNoExtra(cb), &cb, dwFlags);
+            rb.ReSize(cbOld + cb);
+        }
+        return ls;
+    }
+
+    EckInline LSTATUS QueryInfomation(
+        PWSTR pszClassBuf = nullptr,
         DWORD* pcchClassBuf = nullptr,
         DWORD* pcSubKeys = nullptr,
         DWORD* pcchMaxSubKeyLen = nullptr,
@@ -364,29 +348,6 @@ public:
         DWORD* pcbBuf, DWORD* pdwType = nullptr) noexcept
     {
         return RegQueryValueExW(m_hKey, pszValue, nullptr, pdwType, (BYTE*)pBuf, pcbBuf);
-    }
-
-    [[nodiscard]] CByteBuffer QueryValueBin(PCWSTR pszValue, LSTATUS* plStatus = nullptr) noexcept
-    {
-        EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
-        if (plStatus)
-            *plStatus = ERROR_SUCCESS;
-        DWORD cb = 0u;
-        LSTATUS lStatus = QueryValue(pszValue, nullptr, &cb);
-        if (lStatus == ERROR_SUCCESS)
-        {
-            if (cb)
-            {
-                CByteBuffer rb(cb);
-                QueryValue(pszValue, rb.Data(), &cb);
-                return rb;
-            }
-            else
-                return {};
-        }
-        if (plStatus)
-            *plStatus = lStatus;
-        return {};
     }
 
     [[nodiscard]] DWORD QueryValueDword(PCWSTR pszValue, LSTATUS* plStatus = nullptr) noexcept
@@ -427,20 +388,38 @@ public:
         LSTATUS ls = QueryValue(pszValue, nullptr, &cb);
         if (ls == ERROR_SUCCESS)
         {
-            rs.Reserve(cb / sizeof(WCHAR));
-            ls = QueryValue(pszValue, rs.Data(), &cb, pdwType);
+            const auto cchOld = rs.Size();
+            ls = QueryValue(pszValue, rs.PushBackNoExtra(cb / sizeof(WCHAR)), &cb, pdwType);
             const auto cch = int(cb / sizeof(WCHAR));
             if (cch)
             {
-                if (*(rs.Data() + cch - 1) == 0)// 返回数据包含结尾NULL
-                    rs.ReSize(cch - 1);
+                if (*(rs.Data() + cchOld + cch - 1) == 0)// 返回数据包含结尾NULL
+                    rs.ReSize(cchOld + cch - 1);
                 else
                 {
-                    rs.ReSize(cch);
+                    rs.ReSize(cchOld + cch);
                     if (*pdwType == REG_MULTI_SZ)
                         rs.PushBackChar(0);
                 }
             }
+            else
+                rs.ReSize(cchOld);
+        }
+        return ls;
+    }
+
+    LSTATUS QueryValueByteBuffer(CByteBuffer& rb, PCWSTR pszValue, DWORD* pdwType = nullptr) noexcept
+    {
+        EckAssert(m_hKey != HKEY_PERFORMANCE_DATA);
+        DWORD cb{}, dwType{};
+        if (!pdwType)
+            pdwType = &dwType;
+        auto ls = QueryValue(pszValue, nullptr, &cb);
+        if ((ls == ERROR_SUCCESS) && cb)
+        {
+            const auto cbOld = rb.Size();
+            ls = QueryValue(pszValue, rb.PushBackNoExtra(cb), &cb);
+            rb.ReSize(cbOld + cb);
         }
         return ls;
     }

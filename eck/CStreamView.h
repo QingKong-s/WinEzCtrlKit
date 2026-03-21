@@ -9,10 +9,10 @@ class CStreamView : public CUnknown<CStreamView, IStream, IMemoryView>
 private:
     PCBYTE m_pMem{};
     PCBYTE m_pSeek{};
-    SIZE_T m_cbSize{};
+    size_t m_cbSize{};
 public:
     CStreamView() = default;
-    constexpr CStreamView(PCVOID p, SIZE_T cb) noexcept
+    constexpr CStreamView(PCVOID p, size_t cb) noexcept
         : m_pMem{ (PCBYTE)p }, m_cbSize{ cb }, m_pSeek{ (PCBYTE)p }
     {}
 
@@ -25,7 +25,7 @@ public:
     template<class T>
     constexpr CStreamView(const std::span<T>& s) noexcept : CStreamView(s.data(), s.size() * sizeof(T)) {}
 
-    EckInlineCe void SetData(PCVOID p, SIZE_T cb) noexcept
+    EckInlineCe void SetData(PCVOID p, size_t cb) noexcept
     {
         m_pMem = (PCBYTE)p;
         m_pSeek = m_pMem;
@@ -43,7 +43,7 @@ public:
 
     EckInline void AssertReference(LONG l) noexcept { EckAssert(m_cRef == l); }
 
-    HRESULT STDMETHODCALLTYPE Read(void* pv, ULONG cb, ULONG* pcbRead)
+    STDMETHODIMP Read(void* pv, ULONG cb, ULONG* pcbRead) override
     {
         if (pcbRead)
             *pcbRead = 0;
@@ -67,13 +67,13 @@ public:
         return hr;
     }
 
-    HRESULT STDMETHODCALLTYPE Write(const void* pv, ULONG cb, ULONG* pcbWritten)
+    STDMETHODIMP Write(const void* pv, ULONG cb, ULONG* pcbWritten) override
     {
         EckDbgBreak();
         return STG_E_ACCESSDENIED;
     }
 
-    HRESULT STDMETHODCALLTYPE Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition)
+    STDMETHODIMP Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition) override
     {
         if (plibNewPosition)
             plibNewPosition->QuadPart = (m_pSeek - m_pMem);
@@ -108,13 +108,13 @@ public:
         return STG_E_INVALIDFUNCTION;
     }
 
-    HRESULT STDMETHODCALLTYPE SetSize(ULARGE_INTEGER libNewSize)
+    STDMETHODIMP SetSize(ULARGE_INTEGER libNewSize) override
     {
         EckDbgBreak();
         return STG_E_ACCESSDENIED;
     }
 
-    HRESULT STDMETHODCALLTYPE CopyTo(IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten)
+    STDMETHODIMP CopyTo(IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten) override
     {
         if (pcbRead)
             pcbRead->QuadPart = 0u;
@@ -122,11 +122,11 @@ public:
             pcbWritten->QuadPart = 0u;
         if (!pstm)
             return STG_E_INVALIDPOINTER;
-        if ((SIZE_T)(m_pSeek - m_pMem) >= m_cbSize)
+        if (size_t(m_pSeek - m_pMem) >= m_cbSize)
             return S_FALSE;
 
         ULONG cbRead;
-        if ((SIZE_T)((m_pSeek - m_pMem) + cb.LowPart) > m_cbSize)
+        if (size_t((m_pSeek - m_pMem) + cb.LowPart) > m_cbSize)
             cbRead = (ULONG)(m_cbSize - (m_pSeek - m_pMem));
         else
             cbRead = cb.LowPart;
@@ -139,27 +139,27 @@ public:
         return hr;
     }
 
-    HRESULT STDMETHODCALLTYPE Commit(DWORD grfCommitFlags)
+    STDMETHODIMP Commit(DWORD grfCommitFlags) override
     {
         return E_NOTIMPL;
     }
 
-    HRESULT STDMETHODCALLTYPE Revert(void)
+    STDMETHODIMP Revert() override
     {
         return E_NOTIMPL;
     }
 
-    HRESULT STDMETHODCALLTYPE LockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType)
+    STDMETHODIMP LockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType) override
     {
         return E_NOTIMPL;
     }
 
-    HRESULT STDMETHODCALLTYPE UnlockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType)
+    STDMETHODIMP UnlockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType) override
     {
         return E_NOTIMPL;
     }
 
-    HRESULT STDMETHODCALLTYPE Stat(STATSTG* pstatstg, DWORD grfStatFlag)
+    STDMETHODIMP Stat(STATSTG* pstatstg, DWORD grfStatFlag) override
     {
         ZeroMemory(pstatstg, sizeof(STATSTG));
         pstatstg->type = STGTY_STREAM;
@@ -168,7 +168,7 @@ public:
         return S_OK;
     }
 
-    HRESULT STDMETHODCALLTYPE Clone(IStream** ppstm)
+    STDMETHODIMP Clone(IStream** ppstm) override
     {
         const auto pStream = new CStreamView(m_pMem, m_cbSize);
         pStream->m_pSeek = m_pSeek;
@@ -176,26 +176,26 @@ public:
         return S_OK;
     }
 
-    HRESULT STDMETHODCALLTYPE MemGetPointer(void** ppvData, SIZE_T* pcbData)
+    STDMETHODIMP MemGetPointer(void** ppvData, size_t* pcbData) override
     {
         *ppvData = (void*)m_pMem;
         *pcbData = m_cbSize;
         return S_OK;
     }
 
-    HRESULT STDMETHODCALLTYPE MemLock(void** ppvData, SIZE_T* pcbData)
+    STDMETHODIMP MemLock(void** ppvData, size_t* pcbData) override
     {
         *ppvData = nullptr;
         *pcbData = 0u;
         return E_NOTIMPL;
     }
 
-    HRESULT STDMETHODCALLTYPE MemUnlock()
+    STDMETHODIMP MemUnlock() override
     {
         return E_NOTIMPL;
     }
 
-    HRESULT STDMETHODCALLTYPE MemIsLocked(BOOL* pbLocked)
+    STDMETHODIMP MemIsLocked(BOOL* pbLocked) override
     {
         *pbLocked = FALSE;
         return E_NOTIMPL;

@@ -210,7 +210,7 @@ public:
     /// <param name="cItems"></param>
     /// <param name="cbString"></param>
     /// <returns>成功返回已预分配的项目总数，失败返回LB_ERRSPACE</returns>
-    EckInline int InitialzeStorage(int cItems, SIZE_T cbString) const noexcept
+    EckInline int InitialzeStorage(int cItems, UINT cbString) const noexcept
     {
         return (int)SendMessageW(LB_INITSTORAGE, cItems, cbString);
     }

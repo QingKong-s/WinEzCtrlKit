@@ -35,8 +35,8 @@ enum class CryptChain
 };
 
 
-inline NTSTATUS AesEncrypt(PCVOID pKey, SIZE_T cbKey, PCVOID pIv, SIZE_T cbIv,
-    PCVOID pOrg, SIZE_T cbOrg, CByteBuffer& rbResult,
+inline NTSTATUS AesEncrypt(PCVOID pKey, size_t cbKey, PCVOID pIv, size_t cbIv,
+    PCVOID pOrg, size_t cbOrg, CByteBuffer& rbResult,
     CryptChain eChain = CryptChain::CBC, ULONG cbBlock = 0) noexcept
 {
     NTSTATUS nts;
@@ -91,8 +91,8 @@ Tidyup:;
     return nts;
 }
 
-inline NTSTATUS DesDecrypt(PCVOID pKey, SIZE_T cbKey, PCVOID pIv, SIZE_T cbIv,
-    PCVOID pOrg, SIZE_T cbOrg, CByteBuffer& rbResult, CryptChain eChain = CryptChain::CBC,
+inline NTSTATUS DesDecrypt(PCVOID pKey, size_t cbKey, PCVOID pIv, size_t cbIv,
+    PCVOID pOrg, size_t cbOrg, CByteBuffer& rbResult, CryptChain eChain = CryptChain::CBC,
     ULONG ulPadding = BCRYPT_BLOCK_PADDING) noexcept
 {
     NTSTATUS nts;
@@ -136,8 +136,8 @@ Tidyup:;
     return nts;
 }
 
-inline NTSTATUS DesEncrypt(PCVOID pKey, SIZE_T cbKey, PCVOID pIv, SIZE_T cbIv,
-    PCVOID pOrg, SIZE_T cbOrg, CByteBuffer& rbResult, CryptChain eChain = CryptChain::CBC,
+inline NTSTATUS DesEncrypt(PCVOID pKey, size_t cbKey, PCVOID pIv, size_t cbIv,
+    PCVOID pOrg, size_t cbOrg, CByteBuffer& rbResult, CryptChain eChain = CryptChain::CBC,
     ULONG ulPadding = BCRYPT_BLOCK_PADDING) noexcept
 {
     NTSTATUS nts;
@@ -253,7 +253,7 @@ inline BOOL GetExponentAndModulusFromPEM(PCSTR pszKey, int cchKey,
     return TRUE;
 }
 
-inline BOOL MakeBCryptRsaKeyBlob(PCVOID pKey, SIZE_T cbKey, UCHAR*& pBlob, ULONG& cbBlob) noexcept
+inline BOOL MakeBCryptRsaKeyBlob(PCVOID pKey, size_t cbKey, UCHAR*& pBlob, ULONG& cbBlob) noexcept
 {
     BYTE* pKeyBlob;
     CByteBuffer rbExp{}, rbMod{};
@@ -278,8 +278,8 @@ inline BOOL MakeBCryptRsaKeyBlob(PCVOID pKey, SIZE_T cbKey, UCHAR*& pBlob, ULONG
     return TRUE;
 }
 
-inline NTSTATUS RsaEncrypt(PCVOID pKey, SIZE_T cbKey,
-    PCVOID pOrg, SIZE_T cbOrg, CByteBuffer& rbResult, ULONG ulPadding = BCRYPT_PAD_PKCS1) noexcept
+inline NTSTATUS RsaEncrypt(PCVOID pKey, size_t cbKey,
+    PCVOID pOrg, size_t cbOrg, CByteBuffer& rbResult, ULONG ulPadding = BCRYPT_PAD_PKCS1) noexcept
 {
     NTSTATUS nts;
     BCRYPT_ALG_HANDLE hAlg;

@@ -143,12 +143,16 @@ template<class TCharPtr>
 concept CcpNonConstStdCharPtr = std::is_pointer_v<TCharPtr> && CcpStdChar<std::remove_volatile_t<std::remove_reference_t<std::remove_pointer_t<TCharPtr>>>>;
 
 template<class T>
-concept CcpRectStruct = std::is_same_v<T, RECT> || std::is_same_v<T, RECTL> ||
-std::is_same_v<T, D2D1_RECT_F> || std::is_same_v<T, D2D1_RECT_U>;
+concept CcpRectStruct = std::is_same_v<T, RECT> || std::is_same_v<T, RECTL>
+#ifdef _D2D1_H_
+|| std::is_same_v<T, D2D1_RECT_F> || std::is_same_v<T, D2D1_RECT_U>;
+#endif
 
 template<class T>
-concept CcpPointStruct = std::is_same_v<T, POINT> || std::is_same_v<T, POINTL> ||
-std::is_same_v<T, D2D1_POINT_2F> || std::is_same_v<T, D2D1_POINT_2U>;
+concept CcpPointStruct = std::is_same_v<T, POINT> || std::is_same_v<T, POINTL>
+#ifdef _D2D1_H_
+|| std::is_same_v<T, D2D1_POINT_2F> || std::is_same_v<T, D2D1_POINT_2U>;
+#endif
 
 template<CcpStdCharPtr TPtr>
 using RemoveStdCharPtr_T = std::remove_cvref_t<std::remove_pointer_t<TPtr>>;
@@ -216,18 +220,18 @@ ECK_NAMESPACE_END
 #pragma endregion MacroTools
 
 #pragma region Generator
-#define EckInline				__forceinline
-#define EckInlineNd				__forceinline [[nodiscard]]
-#define EckInlineNdCe			[[nodiscard]] __forceinline constexpr
-#define EckInlineCe				__forceinline constexpr
+#define EckInline               __forceinline
+#define EckInlineNd             __forceinline [[nodiscard]]
+#define EckInlineNdCe           [[nodiscard]] __forceinline constexpr
+#define EckInlineCe             __forceinline constexpr
 
-#define EckNfInlineNd			inline [[nodiscard]]
-#define EckNfInlineNdCe			[[nodiscard]] inline constexpr
-#define EckNfInlineCe			inline constexpr
+#define EckNfInlineNd           inline [[nodiscard]]
+#define EckNfInlineNdCe         [[nodiscard]] inline constexpr
+#define EckNfInlineCe           inline constexpr
 
 #define ECKPROP(Getter, Setter) __declspec(property(get = Getter, put = Setter))
-#define ECKPROP_R(Getter)		__declspec(property(get = Getter))
-#define ECKPROP_W(Setter)		__declspec(property(put = Setter))
+#define ECKPROP_R(Getter)       __declspec(property(get = Getter))
+#define ECKPROP_W(Setter)       __declspec(property(put = Setter))
 
 #define EckCopyConstStringA(pszDst, Src) memcpy(pszDst, Src, ARRAYSIZE(Src))
 #define EckCopyConstStringW(pszDst, Src) wmemcpy(pszDst, Src, ARRAYSIZE(Src))
@@ -237,118 +241,118 @@ ECK_NAMESPACE_END
 #define EckIsStartWithConstStringIA(psz, sz) (_strnicmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
 #define EckIsStartWithConstStringIW(psz, sz) (_wcsnicmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
 
-#define EckStrAndLen(Arr)		Arr, (ARRAYSIZE(Arr) - 1)
-#define EckLenAndStr(Arr)		(ARRAYSIZE(Arr) - 1), Arr
+#define EckArgString(Arr)       Arr, (ARRAYSIZE(Arr) - 1)
+#define EckArgStringR(Arr)      (ARRAYSIZE(Arr) - 1), Arr
 
-#define EckArrAndLen(Arr)		Arr, ARRAYSIZE(Arr)
-#define EckLenAndArr(Arr)		ARRAYSIZE(Arr), Arr
+#define EckArgArray(Arr)        Arr, ARRAYSIZE(Arr)
+#define EckArgArrayR(Arr)       ARRAYSIZE(Arr), Arr
 
 // F为调用表达式，宏后跟回调应终止时执行的语句块
 // 示例：
 // EckCanCallbackContinue(Proc(Arg0, Arg1)) { break; }
-#define EckCanCallbackContinue(F)				\
-    if constexpr (std::is_void_v<decltype(F)>)	\
-        F;										\
+#define EckCanCallbackContinue(F)               \
+    if constexpr (std::is_void_v<decltype(F)>)  \
+        F;                                      \
     else if (!F)
 
 #define EckCounter(c, Var) \
     for(::eck::UnderlyingType_T<std::remove_cvref_t<decltype(c)>> Var = 0; Var < (c); ++Var)
 
-#define ECKPRIV_CounterNVMakeVarName2___(Name)	\
+#define ECKPRIV_CounterNVMakeVarName2___(Name)  \
     ECKPRIV_COUNT_##Name##___
-#define ECKPRIV_CounterNVMakeVarName___(Name)	\
+#define ECKPRIV_CounterNVMakeVarName___(Name)   \
     ECKPRIV_CounterNVMakeVarName2___(Name)
 
-#define EckCounterNV(c)			EckCounter((c), ECKPRIV_CounterNVMakeVarName___(__LINE__))
+#define EckCounterNV(c)         EckCounter((c), ECKPRIV_CounterNVMakeVarName___(__LINE__))
 
-#define EckLoop()				while (true)
+#define EckLoop()               while (true)
 
-#define EckOpt(Type, Name)		std::optional<Type> Name
-#define EckOptNul(Type, Name)	std::optional<Type> Name = std::nullopt
+#define EckOpt(Type, Name)      std::optional<Type> Name
+#define EckOptNul(Type, Name)   std::optional<Type> Name = std::nullopt
 
-#define ECKMAKEINTATOMW(i)		(PWSTR)((ULONG_PTR)((WORD)(i)))
+#define ECKMAKEINTATOMW(i)      (PWSTR)((ULONG_PTR)((WORD)(i)))
 
-#define ECKBOOLNOT(x)			((x) = !(x))
+#define ECKBOOLNOT(x)           ((x) = !(x))
 
-#define ECK_GET_PT_LPARAM(lParam)			{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) }
-#define ECK_GET_PT_LPARAM_F(lParam)			{ (float)GET_X_LPARAM(lParam),(float)GET_Y_LPARAM(lParam) }
+#define ECK_GET_PT_LPARAM(lParam)           { GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) }
+#define ECK_GET_PT_LPARAM_F(lParam)         { (float)GET_X_LPARAM(lParam),(float)GET_Y_LPARAM(lParam) }
 
-#define ECK_GET_SIZE_LPARAM(cx, cy, lParam)	{ (cx) = LOWORD(lParam); (cy) = HIWORD(lParam); }
+#define ECK_GET_SIZE_LPARAM(cx, cy, lParam) { (cx) = LOWORD(lParam); (cy) = HIWORD(lParam); }
 
-#define ECK_UNREACHABLE			__assume(0)
+#define ECK_UNREACHABLE         __assume(0)
 
 #define ECK_GUID(l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
             { l, w1, w2, { b1, b2,  b3,  b4,  b5,  b6,  b7,  b8 } }
 
-#define ECK_DISABLE_COPY_MOVE(e)			\
-            e(const e&) = delete;			\
+#define ECK_DISABLE_COPY_MOVE(e)            \
+            e(const e&) = delete;           \
             e& operator=(const e&) = delete;\
-            e(e&&) = delete;				\
+            e(e&&) = delete;                \
             e& operator=(e&&) = delete;
 
-#define ECK_DISABLE_COPY_MOVE_DEF_CONS(e)	\
-            e() = default;					\
-            e(const e&) = delete;			\
+#define ECK_DISABLE_COPY_MOVE_DEF_CONS(e)   \
+            e() = default;                  \
+            e(const e&) = delete;           \
             e& operator=(const e&) = delete;\
-            e(e&&) = delete;				\
+            e(e&&) = delete;                \
             e& operator=(e&&) = delete;
 
-#define ECK_DISABLE_COPY(e)					\
-            e(const e&) = delete;			\
+#define ECK_DISABLE_COPY(e)                 \
+            e(const e&) = delete;           \
             e& operator=(const e&) = delete;
 
-#define ECK_DISABLE_COPY_DEF_CONS(e)		\
-            e() = default;					\
-            e(const e&) = delete;			\
+#define ECK_DISABLE_COPY_DEF_CONS(e)        \
+            e() = default;                  \
+            e(const e&) = delete;           \
             e& operator=(const e&) = delete;
 
-#define ECK_ENUM_BIT_FLAGS(Type)								\
+#define ECK_ENUM_BIT_FLAGS(Type)                                \
             EckInline constexpr Type operator&(Type a, Type b)  \
-            {													\
-                return Type((std::underlying_type_t<Type>)a &	\
-                    (std::underlying_type_t<Type>)b);			\
-            }													\
+            { \
+                return Type((std::underlying_type_t<Type>)a &   \
+                    (std::underlying_type_t<Type>)b);           \
+            } \
             EckInline constexpr Type operator|(Type a, Type b)	\
-            {													\
-                return Type((std::underlying_type_t<Type>)a |	\
-                    (std::underlying_type_t<Type>)b);			\
-            }													\
-            EckInline constexpr Type operator~(Type a)			\
-            {													\
-                return Type(~(std::underlying_type_t<Type>)a);	\
-            }													\
-            EckInline constexpr Type operator^(Type a, Type b)	\
-            {													\
-                return Type((std::underlying_type_t<Type>)a ^	\
-                    (std::underlying_type_t<Type>)b);			\
-            }													\
-            EckInline constexpr Type& operator&=(Type& a, Type b)	\
-            {													\
-                a = a & b;										\
-                return a;										\
-            }													\
-            EckInline constexpr Type& operator|=(Type& a, Type b)	\
-            {													\
-                a = a | b;										\
-                return a;										\
-            }													\
-            EckInline constexpr Type& operator^=(Type& a, Type b)	\
-            {													\
-                a = a ^ b;										\
-                return a;										\
+            { \
+                return Type((std::underlying_type_t<Type>)a |   \
+                    (std::underlying_type_t<Type>)b);           \
+            } \
+            EckInline constexpr Type operator~(Type a)          \
+            { \
+                return Type(~(std::underlying_type_t<Type>)a);  \
+            } \
+            EckInline constexpr Type operator^(Type a, Type b)  \
+            { \
+                return Type((std::underlying_type_t<Type>)a ^   \
+                    (std::underlying_type_t<Type>)b);           \
+            } \
+            EckInline constexpr Type& operator&=(Type& a, Type b) \
+            {               \
+                a = a & b;  \
+                return a;   \
+            }               \
+            EckInline constexpr Type& operator|=(Type& a, Type b) \
+            {               \
+                a = a | b;  \
+                return a;   \
+            }               \
+            EckInline constexpr Type& operator^=(Type& a, Type b) \
+            {               \
+                a = a ^ b;  \
+                return a;   \
             }
 
-#define ECK_ENUM_BIT_FLAGS_FRIEND(Type)							\
-            friend constexpr Type operator&(Type a, Type b);	\
-            friend constexpr Type operator|(Type a, Type b);	\
-            friend constexpr Type operator~(Type a);			\
-            friend constexpr Type operator^(Type a, Type b);	\
-            friend constexpr Type& operator&=(Type& a, Type b);	\
-            friend constexpr Type& operator|=(Type& a, Type b);	\
+#define ECK_ENUM_BIT_FLAGS_FRIEND(Type)                         \
+            friend constexpr Type operator&(Type a, Type b);    \
+            friend constexpr Type operator|(Type a, Type b);    \
+            friend constexpr Type operator~(Type a);            \
+            friend constexpr Type operator^(Type a, Type b);    \
+            friend constexpr Type& operator&=(Type& a, Type b); \
+            friend constexpr Type& operator|=(Type& a, Type b); \
             friend constexpr Type& operator^=(Type& a, Type b);
 
-#define ECK_DISABLE_ARITHMETIC_OVERFLOW_WARNING	__pragma(warning(disable:26451))
-#define ECK_SUPPRESS_MISSING_ZERO_TERMINATION	__pragma(warning(suppress:6054))
+#define ECK_DISABLE_ARITHMETIC_OVERFLOW_WARNING __pragma(warning(disable:26451))
+#define ECK_SUPPRESS_MISSING_ZERO_TERMINATION   __pragma(warning(suppress:6054))
 #pragma endregion Generator
 
 #ifdef _DEBUG
@@ -581,16 +585,12 @@ constexpr inline TChar EOL_CR{ '\r' };
 template<class TChar>
 constexpr inline TChar EOL_CRLF[]{ '\r', '\n' };
 
-constexpr inline LARGE_INTEGER LiZero{};
-constexpr inline ULARGE_INTEGER UliMax{ .QuadPart = 0xFFFF'FFFF'FFFF'FFFF };
-
-constexpr inline size_t SizeTMax{ std::numeric_limits<size_t>::max() };
-constexpr inline SIZE_T SIZETMax{ (SIZE_T)SizeTMax };
+constexpr inline size_t MaxSizeT{ std::numeric_limits<size_t>::max() };
 
 #ifdef _DEBUG
-constexpr inline BOOL Dbg{ TRUE };
+constexpr inline BOOL Debug{ TRUE };
 #else
-constexpr inline BOOL Dbg{ FALSE };
+constexpr inline BOOL Debug{ FALSE };
 #endif
 
 #ifdef _WIN64
@@ -599,10 +599,10 @@ constexpr inline BOOL Win64{ TRUE };
 constexpr inline BOOL Win64{ FALSE };
 #endif
 
-constexpr inline BLENDFUNCTION BlendFuncAlpha{ AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
+constexpr inline BLENDFUNCTION BlendFunctionAlpha{ AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
 
 template<BYTE Alpha>
-constexpr inline BLENDFUNCTION BlendFuncAlphaN{ AC_SRC_OVER, 0, Alpha, AC_SRC_ALPHA };
+constexpr inline BLENDFUNCTION BlendFunctionAlphaN{ AC_SRC_OVER, 0, Alpha, AC_SRC_ALPHA };
 
 constexpr inline BYTE ColorFillAlpha{ 80 };
 
@@ -611,8 +611,6 @@ constexpr inline int MetricsExtraV{ 8 };
 constexpr inline UINT WM_USER_SAFE{ WM_USER + 3 };
 
 constexpr inline UINT CS_STDWND{ CS_DBLCLKS | CS_VREDRAW | CS_HREDRAW };
-
-constexpr inline HRESULT HrNotFound{ HRESULT_FROM_WIN32(ERROR_NOT_FOUND) };
 
 constexpr inline PCWSTR WCN_DIALOG = L"Eck.WndClass.Dialog";
 
@@ -1134,7 +1132,7 @@ void DbgPrintWindowMap() noexcept;
             pBase,                                   \
             (UINT)cbSize,                            \
             pCurr,                                   \
-            (UINT)(((SIZE_T)(pCurr)) - ((SIZE_T)(pBase)) - (cbSize))); \
+            (UINT)(((size_t)(pCurr)) - ((size_t)(pBase)) - (cbSize))); \
         EckDbgBreak();                               \
     }
 #define EckAssert(x)                (void)(!!(x) || (::eck::Assert(ECKWIDE(#x), ECK_FILEW, ECK_LINEW), 0))

@@ -271,7 +271,7 @@ private:
                     SelectObject(hCDC, hdi.hbm);
                     if (bm.bmBitsPixel == 32)
                         AlphaBlend(hDC, rc.left, y, bm.bmWidth, bm.bmHeight,
-                            hCDC, 0, 0, bm.bmWidth, bm.bmHeight, BlendFuncAlpha);
+                            hCDC, 0, 0, bm.bmWidth, bm.bmHeight, BlendFunctionAlpha);
                     else
                         BitBlt(hDC, rc.left, y, bm.bmWidth, bm.bmHeight,
                             hCDC, 0, 0, SRCCOPY);
@@ -376,7 +376,7 @@ private:
             SelectObject(hCDC, hdi.hbm);
             if (bm.bmBitsPixel == 32)
                 AlphaBlend(hDC, rc.left, y, bm.bmWidth, bm.bmHeight,
-                    hCDC, 0, 0, bm.bmWidth, bm.bmHeight, BlendFuncAlpha);
+                    hCDC, 0, 0, bm.bmWidth, bm.bmHeight, BlendFunctionAlpha);
             else
                 BitBlt(hDC, rc.left, y, bm.bmWidth, bm.bmHeight,
                     hCDC, 0, 0, SRCCOPY);

@@ -286,7 +286,7 @@ EckInline HRESULT EnableWindowNcDarkMode(HWND hWnd, BOOL bAllow) noexcept
 EckInline BOOL IsColorSchemeChangeMessage(LPARAM lParam) noexcept
 {
     return CompareStringOrdinal((PCWCH)lParam, -1,
-        EckStrAndLen(L"ImmersiveColorSet"), TRUE) == CSTR_EQUAL;
+        EckArgString(L"ImmersiveColorSet"), TRUE) == CSTR_EQUAL;
 }
 
 EckInline void RefreshImmersiveColorStuff() noexcept
@@ -1107,7 +1107,7 @@ namespace Priv
         const LOGFONTW& lf, float cy, int iDpi = 96) noexcept
     {
         WCHAR szLocaleName[LOCALE_NAME_MAX_LENGTH];
-        if (!GetUserDefaultLocaleName(EckArrAndLen(szLocaleName)))
+        if (!GetUserDefaultLocaleName(EckArgArray(szLocaleName)))
             return HRESULT_FROM_WIN32(NaGetLastError());
         return g_pDwFactory->CreateTextFormat(
             lf.lfFaceName,

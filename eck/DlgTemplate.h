@@ -189,7 +189,7 @@ inline HRESULT SerializeDialogTemplate(
         return HRESULT_FROM_WIN32(ERROR_BAD_FORMAT);
     if ((size_t)Dlg.cDlgItems != vItem.size())
         return E_BOUNDS;
-    SIZE_T cbTotal =
+    size_t cbTotal =
         sizeof(DLGTHEADER) /*头*/ +
         sizeof(WORD) * 3 /*菜单、窗口类、标题三个数组的第一个元素*/;
 

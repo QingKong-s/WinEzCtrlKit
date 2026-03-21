@@ -89,13 +89,13 @@ private:
     {
         if (vXPair.size() <= 1)
             return;
-        size_t idxDelBegin{ SizeTMax };
-        size_t idxDelEnd{ SizeTMax };
+        size_t idxDelBegin{ MaxSizeT };
+        size_t idxDelEnd{ MaxSizeT };
         for (size_t i = vXPair.size() - 1; i > 0; --i)
         {
             if (vXPair[i].xMin == vXPair[i - 1].xMax)
             {
-                if (idxDelBegin == SizeTMax)
+                if (idxDelBegin == MaxSizeT)
                 {
                     idxDelBegin = idxDelEnd = i - 1;
                     vXPair[i].xMin = vXPair[i - 1].xMin;
@@ -106,13 +106,13 @@ private:
                     vXPair[idxDelEnd + 1].xMin = vXPair[i - 1].xMin;
                 }
             }
-            else if (idxDelBegin != SizeTMax)
+            else if (idxDelBegin != MaxSizeT)
             {
                 vXPair.erase(vXPair.begin() + idxDelBegin, vXPair.begin() + idxDelEnd + 1);
-                idxDelBegin = idxDelEnd = SizeTMax;
+                idxDelBegin = idxDelEnd = MaxSizeT;
             }
         }
-        if (idxDelBegin != SizeTMax)
+        if (idxDelBegin != MaxSizeT)
             vXPair.erase(vXPair.begin() + idxDelBegin, vXPair.begin() + idxDelEnd + 1);
     }
 

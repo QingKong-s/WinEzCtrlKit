@@ -64,7 +64,7 @@ namespace Priv
             if (*p == '\r' || *p == '\n')
                 return size_t((PCBYTE)p - pBegin);
         }
-        return SizeTMax;
+        return MaxSizeT;
     }
 }
 
@@ -300,7 +300,7 @@ class CReader : public CFile
 private:
     CByteBuffer m_rbBuf{};
     size_t m_posCurr{};
-    size_t m_posEol{ SizeTMax };
+    size_t m_posEol{ MaxSizeT };
     USHORT m_cbMaxBuffer{ 64 };
     EolType m_eEol{ EolType::CRLF };
 
@@ -335,9 +335,9 @@ private:
             m_rbBuf.ReSize(posBegin + cbRead);
         }
 
-        if (m_posEol == SizeTMax)
+        if (m_posEol == MaxSizeT)
             m_posEol = Priv::ScanEol<TChar>(m_rbBuf.Data(), m_rbBuf.Size());
-        while (m_posEol == SizeTMax)
+        while (m_posEol == MaxSizeT)
         {
             posBegin = m_rbBuf.Size();
             Read(m_rbBuf.PushBack(m_cbMaxBuffer), m_cbMaxBuffer, &cbRead, &nts);
@@ -378,14 +378,14 @@ public:
     BOOL ScanLine(CStringT<TChar, TTrait, TAllocator>& rs) noexcept
     {
         EnsureReadToEol(FALSE);
-        if (m_posEol != SizeTMax)
+        if (m_posEol != MaxSizeT)
         {
             rs.PushBack((const TChar*)m_rbBuf.Data(), int(m_posEol / sizeof(TChar)));
             if (rs[m_posEol] == '\r' &&
                 m_posEol + 1 < rs.Size() && rs[m_posEol] == '\n')
                 ++m_posEol;// CRLF检测
             m_rbBuf.Erase(0, m_posEol + 1);
-            m_posEol = SizeTMax;
+            m_posEol = MaxSizeT;
         }
     }
 };

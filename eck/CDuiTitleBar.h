@@ -1,30 +1,31 @@
 ﻿#pragma once
 #include "DuiBase.h"
 #include "ImageHelper.h"
+#include "CUxDwmWindowTheme.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 class CTitleBar : public CElement
 {
 protected:
-    CDwmWndPartMgr m_DwmPartMgr{};
+    CUxDwmWindowTheme m_DwmPartMgr{};
     ID2D1Bitmap1* m_pBmpDwmWndAtlas{};
     float m_cxClose{};
     float m_cxMax{};
     float m_cxMin{};
     float m_cyBtn{};
-    DwmWndPart m_idxHot{ DwmWndPart::Invalid };
-    DwmWndPart m_idxPressed{ DwmWndPart::Invalid };
+    UdwPart m_idxHot{ UdwPart::Invalid };
+    UdwPart m_idxPressed{ UdwPart::Invalid };
     BOOLEAN m_bMaximized{};
     BYTE m_eInterMode{ (BYTE)D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR };
 
-    DwmWPartState GetPartState(DwmWndPart idx) const
+    UdwState GetPartState(UdwPart idx) const
     {
         if (m_idxPressed == idx)
-            return DwmWPartState::Pressed;
+            return UdwState::Pressed;
         else if (m_idxHot == idx)
-            return DwmWPartState::Hot;
-        return DwmWPartState::Normal;
+            return UdwState::Hot;
+        return UdwState::Normal;
     }
 
     LRESULT OnWindowMessage(CWindow* pWnd, UINT uMsg, WPARAM, LPARAM, SlotCtx&)
@@ -34,11 +35,11 @@ protected:
         return 0;
     }
 
-    static constexpr BOOL IsNeedRedraw(DwmWndPart ePart)
+    static constexpr BOOL IsNeedRedraw(UdwPart ePart)
     {
-        return ePart != DwmWndPart::Invalid && ePart != DwmWndPart::Extra;
+        return ePart != UdwPart::Invalid && ePart != UdwPart::Extra;
     }
-    static constexpr BOOL IsNeedRedraw(DwmWndPart ePartOle, DwmWndPart ePartNew)
+    static constexpr BOOL IsNeedRedraw(UdwPart ePartOle, UdwPart ePartNew)
     {
         return (ePartOle != ePartNew) && (IsNeedRedraw(ePartOle) || IsNeedRedraw(ePartNew));
     }
@@ -62,15 +63,15 @@ public:
             D2D1_RECT_F rcTemp;
 
             RECT rc, rcBkg;
-            DWMW_GET_PART_EXTRA Extra;
+            UDW_EXTRA Extra;
             const auto bDarkMode = ShouldAppsUseDarkMode();
             const auto iUserDpi = GetWindow()->GetUserDpi();
             const auto dMargin = DpiScaleF(1.f, 96, iUserDpi);
             const auto eInterMode = (D2D1_INTERPOLATION_MODE)m_eInterMode;
 
             m_pDC->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
-            if (m_DwmPartMgr.GetPartRect(rc, rcBkg, DwmWndPart::Close,
-                GetPartState(DwmWndPart::Close), bDarkMode, TRUE, iUserDpi, &Extra))
+            if (m_DwmPartMgr.GetPartRect(rc, rcBkg, UdwPart::Close,
+                GetPartState(UdwPart::Close), bDarkMode, TRUE, iUserDpi, &Extra))
             {
                 rcDst.left += dMargin;
                 DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
@@ -90,8 +91,8 @@ public:
             rcDst.right = rcDst.left + m_cxMax;
 
             if (m_DwmPartMgr.GetPartRect(rc, rcBkg,
-                m_bMaximized ? DwmWndPart::Restore : DwmWndPart::Max,
-                GetPartState(DwmWndPart::Max), bDarkMode, TRUE, iUserDpi, &Extra))
+                m_bMaximized ? UdwPart::Restore : UdwPart::Max,
+                GetPartState(UdwPart::Max), bDarkMode, TRUE, iUserDpi, &Extra))
             {
                 rcDst.left += dMargin;
                 DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
@@ -110,8 +111,8 @@ public:
             rcDst.left -= m_cxMin;
             rcDst.right = rcDst.left + m_cxMin;
 
-            if (m_DwmPartMgr.GetPartRect(rc, rcBkg, DwmWndPart::Min,
-                GetPartState(DwmWndPart::Min), bDarkMode, TRUE, iUserDpi, &Extra))
+            if (m_DwmPartMgr.GetPartRect(rc, rcBkg, UdwPart::Min,
+                GetPartState(UdwPart::Min), bDarkMode, TRUE, iUserDpi, &Extra))
             {
                 rcDst.left += (dMargin * 2);
                 DrawImageFromGrid(m_pDC, m_pBmpDwmWndAtlas, rcDst,
@@ -136,16 +137,16 @@ public:
         {
             POINT pt ECK_GET_PT_LPARAM(lParam);
             ClientToElement(pt);
-            const DwmWndPart ePart = HitTest(pt);
+            const UdwPart ePart = HitTest(pt);
             switch (ePart)
             {
-            case DwmWndPart::Close:
+            case UdwPart::Close:
                 return HTCLOSE;
-            case DwmWndPart::Max:
+            case UdwPart::Max:
                 return HTMAXBUTTON;
-            case DwmWndPart::Min:
+            case UdwPart::Min:
                 return HTMINBUTTON;
-            case DwmWndPart::Extra:
+            case UdwPart::Extra:
                 if (!m_bMaximized && pt.y < DaGetSystemMetrics(SM_CYFRAME, 96))
                     return HTTOP;
                 else
@@ -169,7 +170,7 @@ public:
 
         case WM_NCLBUTTONUP:
         {
-            if (m_idxPressed != DwmWndPart::Invalid)
+            if (m_idxPressed != UdwPart::Invalid)
             {
                 POINT pt ECK_GET_PT_LPARAM(lParam);
                 ScreenToClient(GetWindow()->HWnd, &pt);
@@ -179,22 +180,22 @@ public:
                 if (m_idxPressed == idx)
                     switch (idx)
                     {
-                    case DwmWndPart::Close:
+                    case UdwPart::Close:
                         GetWindow()->PostMessageW(WM_SYSCOMMAND, SC_CLOSE, 0);
                         break;
-                    case DwmWndPart::Max:
+                    case UdwPart::Max:
                         if (m_bMaximized)
                             GetWindow()->PostMessageW(WM_SYSCOMMAND, SC_RESTORE, 0);
                         else
                             GetWindow()->PostMessageW(WM_SYSCOMMAND, SC_MAXIMIZE, 0);
                         break;
-                    case DwmWndPart::Min:
+                    case UdwPart::Min:
                         GetWindow()->PostMessageW(WM_SYSCOMMAND, SC_MINIMIZE, 0);
                         break;
                     }
                 const auto idxOld = m_idxPressed;
-                m_idxPressed = DwmWndPart::Invalid;
-                if (IsNeedRedraw(idxOld, DwmWndPart::Invalid))
+                m_idxPressed = UdwPart::Invalid;
+                if (IsNeedRedraw(idxOld, UdwPart::Invalid))
                     InvalidateBtnRect();
             }
         }
@@ -215,11 +216,11 @@ public:
 
         case WM_MOUSELEAVE:
         {
-            if (m_idxHot != DwmWndPart::Invalid)
+            if (m_idxHot != UdwPart::Invalid)
             {
                 const auto idxOld = m_idxHot;
-                m_idxHot = DwmWndPart::Invalid;
-                if (IsNeedRedraw(idxOld, DwmWndPart::Invalid))
+                m_idxHot = UdwPart::Invalid;
+                if (IsNeedRedraw(idxOld, UdwPart::Invalid))
                     InvalidateBtnRect();
             }
         }
@@ -227,11 +228,11 @@ public:
 
         case WM_CAPTURECHANGED:
         {
-            if (m_idxPressed != DwmWndPart::Invalid)
+            if (m_idxPressed != UdwPart::Invalid)
             {
                 const auto idxOld = m_idxPressed;
-                m_idxPressed = DwmWndPart::Invalid;
-                if (IsNeedRedraw(idxOld, DwmWndPart::Invalid))
+                m_idxPressed = UdwPart::Invalid;
+                if (IsNeedRedraw(idxOld, UdwPart::Invalid))
                     InvalidateBtnRect();
             }
         }
@@ -258,10 +259,10 @@ public:
     {
         if (bForceUpdate || !m_DwmPartMgr.GetHTheme())
         {
-            m_DwmPartMgr.AnalyzeDefaultTheme();
+            m_DwmPartMgr.LoadDefaultTheme();
             PCVOID pData;
             UINT cbData;
-            m_DwmPartMgr.GetData(&pData, &cbData);
+            m_DwmPartMgr.GetAtlasImageData(&pData, &cbData);
             CStreamView Stream{ pData, cbData };
             {
                 ComPtr<IWICBitmapDecoder> pDecoder;
@@ -313,28 +314,28 @@ public:
         }
     }
 
-    DwmWndPart HitTest(POINT ptClient) const
+    UdwPart HitTest(POINT ptClient) const
     {
         const auto cx = GetWidth();
         const auto cy = GetHeight();
         if (ptClient.x < 0 || ptClient.x > cx || ptClient.y < 0 || ptClient.y > cy ||
             ptClient.y > m_cyBtn)
-            return DwmWndPart::Invalid;
+            return UdwPart::Invalid;
         if (ptClient.x > cx - m_cxClose)
-            return DwmWndPart::Close;
+            return UdwPart::Close;
         else if (ptClient.x > cx - m_cxMax - m_cxClose)
-            return DwmWndPart::Max;
+            return UdwPart::Max;
         else if (ptClient.x > cx - m_cxMin * 2 - m_cxClose)
-            return DwmWndPart::Min;
+            return UdwPart::Min;
         else
-            return DwmWndPart::Extra;
+            return UdwPart::Extra;
     }
 
     void InvalidateBtnRect()
     {
         const auto cxBtn = m_cxClose + m_cxMax + m_cxMin;
         D2D1_RECT_F rc{ GetWidth() - cxBtn,0,GetWidth(),m_cyBtn };
-        InvalidateRect(rc);
+        Invalidate(rc);
     }
 
     EckInlineCe void SetInterpolationMode(D2D1_INTERPOLATION_MODE eInterMode)

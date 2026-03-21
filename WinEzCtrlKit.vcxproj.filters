@@ -173,7 +173,7 @@
     <ClCompile Include="eck\CalcExp.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CDwmWndPartMgr.h">
+    <ClCompile Include="eck\CUxDwmWindowTheme.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\CDWriteFontFactory.h">

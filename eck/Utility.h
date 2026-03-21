@@ -10,10 +10,10 @@ ECK_NAMESPACE_BEGIN
 /// <param name="pCurr">当前地址</param>
 /// <param name="cbAlign">对齐尺寸</param>
 /// <returns>当前地址到下一对齐边界的距离，如果当前地址已经落在对齐边界上，则返回0</returns>
-EckInlineNdCe SIZE_T CalculateNextAlignmentBoundaryDistance(
-    const void* pStart, const void* pCurr, SIZE_T cbAlign) noexcept
+EckInlineNdCe size_t CalculateNextAlignmentBoundaryDistance(
+    const void* pStart, const void* pCurr, size_t cbAlign) noexcept
 {
-    SIZE_T uDistance = (SIZE_T)pCurr - (SIZE_T)pStart;
+    const auto uDistance = (size_t)pCurr - (size_t)pStart;
     return (((uDistance - 1u) / cbAlign + 1u) * cbAlign - uDistance);
 }
 

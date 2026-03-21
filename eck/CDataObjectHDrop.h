@@ -23,7 +23,7 @@ private:
             });
     }
 public:
-    static HRESULT CopyHGlobal(HGLOBAL hGlobalDst, HGLOBAL hGlobalSrc, SIZE_T cb = 0)
+    static HRESULT CopyHGlobal(HGLOBAL hGlobalDst, HGLOBAL hGlobalSrc, size_t cb = 0)
     {
         const auto pDst = GlobalLock(hGlobalDst);
         if (!pDst)

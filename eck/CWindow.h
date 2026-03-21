@@ -498,7 +498,7 @@ public:
         CStringW rsText = GetText();
         const auto dwStyle = GetStyle();
 
-        const SIZE_T cbSize = sizeof(CTRLDATA_WND) + rsText.ByteSize() +
+        const size_t cbSize = sizeof(CTRLDATA_WND) + rsText.ByteSize() +
             (IsBitSet(dwStyle, WS_HSCROLL) ? sizeof(SCROLLINFO) : 0) +
             (IsBitSet(dwStyle, WS_VSCROLL) ? sizeof(SCROLLINFO) : 0);
 

@@ -22,22 +22,22 @@ private:
         std::variant<std::vector<CStringW>, CByteBuffer> Value;
         CStringA rsU8Cache;// 调用方可以随意修改此字段
 
-        EckInlineCe auto& EnsureStrList(ItemType eType_ = ItemType::String) noexcept
+        EckInlineCe auto& WantStringList(ItemType eType_ = ItemType::String) noexcept
         {
             eType = eType_;
             if (Value.index() != 0)
                 return Value.emplace<0>();
             return std::get<0>(Value);
         }
-        EckInlineCe auto& EnsureBin() noexcept
+        EckInlineCe auto& WantByteBuffer() noexcept
         {
             eType = ItemType::Binary;
             if (Value.index() != 1)
                 return Value.emplace<1>();
             return std::get<1>(Value);
         }
-        EckInlineNdCe auto& GetStrList() noexcept { return std::get<0>(Value); }
-        EckInlineNdCe auto& GetStrList() const noexcept { return std::get<0>(Value); }
+        EckInlineNdCe auto& GetStringList() noexcept { return std::get<0>(Value); }
+        EckInlineNdCe auto& GetStringList() const noexcept { return std::get<0>(Value); }
         EckInlineNdCe auto& GetByteBuffer() noexcept { return std::get<1>(Value); }
         EckInlineNdCe auto& GetByteBuffer() const noexcept { return std::get<1>(Value); }
     };
@@ -83,13 +83,13 @@ public:
     {
 #undef ECKTEMP_GET_VAL
 #define ECKTEMP_GET_VAL(MiField)  \
-        if (e.GetStrList().empty()) \
+        if (e.GetStringList().empty()) \
             MiField.Clear();        \
         else                        \
             if (bMove)              \
-                MiField = std::move(e.GetStrList()[0]); \
+                MiField = std::move(e.GetStringList()[0]); \
             else                    \
-                MiField = e.GetStrList()[0]; \
+                MiField = e.GetStringList()[0]; \
 
         mi.Clear();
         const auto bMove = Opt.uFlags & SMOF_MOVE;
@@ -105,7 +105,7 @@ public:
             else if ((mi.uMask & MIM_ARTIST) &&
                 e.rsKey.CompareI("ARTIST"sv) == 0)
             {
-                for (const auto& f : e.GetStrList())
+                for (const auto& f : e.GetStringList())
                     mi.slArtist.PushBackString(f, Opt.svArtistDiv);
                 mi.uMaskChecked |= MIM_ARTIST;
             }
@@ -127,7 +127,7 @@ public:
             else if ((mi.uMask & MIM_COMMENT) &&
                 e.rsKey.CompareI("COMMENT"sv) == 0)
             {
-                for (const auto& f : e.GetStrList())
+                for (const auto& f : e.GetStringList())
                     mi.slComment.PushBackString(f, Opt.svCommDiv);
                 mi.uMaskChecked |= MIM_COMMENT;
             }
@@ -141,7 +141,7 @@ public:
             {
                 if (e.eType != ItemType::String)
                     continue;
-                if (e.GetStrList().empty() || e.GetStrList()[0].IsEmpty())
+                if (e.GetStringList().empty() || e.GetStringList()[0].IsEmpty())
                 {
                     mi.uMaskChecked |= MIM_TRACK;
                     continue;
@@ -150,7 +150,7 @@ public:
                 if (bTrackNum || e.rsKey.CompareI("TRACK"sv) == 0)
                 {
                     const auto n = mi.cTotalTrack;
-                    if (TagGetNumberAndTotal(e.GetStrList()[0].ToStringView(),
+                    if (TagGetNumberAndTotal(e.GetStringList()[0].ToStringView(),
                         mi.nTrack, mi.cTotalTrack))
                     {
                         mi.uMaskChecked |= MIM_TRACK;
@@ -163,7 +163,7 @@ public:
                 else if (e.rsKey.CompareI("TOTALTRACKS"sv) == 0 ||
                     e.rsKey.CompareI("TRACKTOTAL"sv) == 0)
                 {
-                    const auto& rs = e.GetStrList()[0];
+                    const auto& rs = e.GetStringList()[0];
                     if (TcvToInt(rs.Data(), rs.Size(), mi.cTotalTrack) == TcvResult::Ok)
                         mi.uMaskChecked |= MIM_TRACK;
                 }
@@ -239,9 +239,9 @@ public:
             ITEM e{};                    \
             e.rsKey.Assign(KeyStr);   \
             if (bMove)                   \
-                e.EnsureStrList().emplace_back(std::move(MiField)); \
+                e.WantStringList().emplace_back(std::move(MiField)); \
             else                         \
-                e.EnsureStrList().emplace_back(MiField); \
+                e.WantStringList().emplace_back(MiField); \
             m_vItem.emplace_back(std::move(e));          \
         }
 
@@ -250,7 +250,7 @@ public:
         {                                       \
             ITEM e{};                           \
             e.rsKey.Assign(KeyStr);          \
-            auto& v = e.EnsureStrList();        \
+            auto& v = e.WantStringList();        \
             for (const auto f : MiField)        \
                 v.emplace_back(f);              \
             m_vItem.emplace_back(std::move(e)); \
@@ -295,7 +295,7 @@ public:
             {
                 ITEM e{};
                 e.rsKey.Assign(svKey);
-                e.EnsureStrList().emplace_back(CStringW{ szBuf, int(p - szBuf) });
+                e.WantStringList().emplace_back(CStringW{ szBuf, int(p - szBuf) });
                 m_vItem.emplace_back(std::move(e));
             }
         }
@@ -331,10 +331,10 @@ public:
                     e.rsDesc,
                     std::move(rbData));
                 if (eType == PicType::Invalid)
-                    f.rsKey.Assign(EckStrAndLen("Cover Art"));
+                    f.rsKey.Assign(EckArgString("Cover Art"));
                 else
                 {
-                    f.rsKey.Assign(EckStrAndLen("Cover Art ("));
+                    f.rsKey.Assign(EckArgString("Cover Art ("));
                     f.rsKey.PushBack(TagPictureTypeToApeString(eType));
                     f.rsKey.PushBackChar(')');
                 }
@@ -346,12 +346,12 @@ public:
     Result ReadTag(UINT uFlags = 0u) noexcept override try
     {
         const auto& Loc = m_File.GetTagLocation();
-        if (Loc.posApeHdr == SIZETMax)
+        if (Loc.posApeHdr == MaxSizeT)
             return Result::NoTag;
         m_Stream.MoveTo(Loc.posApeHdr) >> m_Hdr;
         if (!TagCheckApeHeader(m_Hdr))
             return Result::Tag;
-        BYTE* const pBuf = (BYTE*)VAlloc(m_Hdr.cbBody + 4);
+        BYTE* const pBuf = (BYTE*)VAllocate(m_Hdr.cbBody + 4);
         if (!pBuf)
             return Result::OutOfMemory;
         const UniquePtr<DelVA<BYTE>> _{ pBuf };
@@ -368,7 +368,7 @@ public:
                 return Result::Length;
             e.eType = GetItemType(uItemFlags);
             w >> e.rsKey;
-            if (e.rsKey.IsStartWithI(EckStrAndLen("Cover Art")))
+            if (e.rsKey.IsStartWithI(EckArgString("Cover Art")))
             {
                 // 解析图片类型
                 PicType eType = PicType::Invalid;
@@ -419,19 +419,19 @@ public:
                     if (pBaseU8[pos1] == '\0')
                     {
                         if (pos1 > pos0)
-                            e.GetStrList().emplace_back(
+                            e.GetStringList().emplace_back(
                                 EcdUtf8ToWide(pBaseU8 + pos0, pos1 - pos0));
                         pos0 = pos1 + 1;
                     }
                 }
                 if (pos1 > pos0)
-                    e.GetStrList().emplace_back(
+                    e.GetStringList().emplace_back(
                         EcdUtf8ToWide(pBaseU8 + pos0, pos1 - pos0));
                 m_vItem.emplace_back(std::move(e));
             }
             else
             {
-                e.EnsureBin();
+                e.WantByteBuffer();
                 e.GetByteBuffer().ReSize(cbVal);
                 memcpy(e.GetByteBuffer().Data(), w.Data(), cbVal);
                 w += cbVal;
@@ -468,7 +468,7 @@ public:
             {
                 e.rsU8Cache.Clear();
                 BOOL bAppendNull{};
-                for (auto& s : e.GetStrList())
+                for (auto& s : e.GetStringList())
                 {
                     if (bAppendNull)
                         e.rsU8Cache.PushBackChar('\0');
@@ -505,7 +505,7 @@ public:
 
         size_t cbPadding{};
         const auto& Loc = m_File.GetTagLocation();
-        if (Loc.posApeTag != SIZETMax)
+        if (Loc.posApeTag != MaxSizeT)
             if (Loc.bPrependApe != !!(uFlags & MIF_PREPEND_TAG))
             {
                 m_Stream.Erase(Loc.posApeTag, Loc.cbApeTag);
@@ -591,7 +591,7 @@ public:
 
         if (cbPadding)
         {
-            const UniquePtr<DelVA<void>> p{ VAlloc(cbPadding) };
+            const UniquePtr<DelVA<void>> p{ VAllocate(cbPadding) };
             m_Stream << (UINT)cbPadding
                 << ((UINT)ItemType::Binary << 1)
                 << "Dummy"sv;

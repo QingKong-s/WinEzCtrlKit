@@ -63,7 +63,7 @@ public:
         NTSTATUS nts;
         IO_STATUS_BLOCK iosb;
 
-        const auto pBuf = (BYTE*)(pExternalBuf ? pExternalBuf : VAlloc(cbBuf));
+        const auto pBuf = (BYTE*)(pExternalBuf ? pExternalBuf : VAllocate(cbBuf));
         UniquePtr<DelVA<BYTE>> _{ pExternalBuf ? nullptr : pBuf };
 
         auto usPattern = StringViewToNtString(svPattern);
@@ -110,7 +110,7 @@ private:
     void AllocateBuffer() noexcept
     {
         m_bExternalBuf = FALSE;
-        m_pBuffer = VAlloc(m_cbBuffer);
+        m_pBuffer = VAllocate(m_cbBuffer);
     }
 
     void FreeBuffer() noexcept

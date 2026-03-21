@@ -142,7 +142,7 @@ private:
     {
         m_idxEnum = 0;
         GetCurrentRegistryPath(m_rsTmp);
-        m_rsTmp.PushBack(EckStrAndLen(L"shell"));
+        m_rsTmp.PushBack(EckArgString(L"shell"));
         const auto ls = m_RegKey.Open(RegRootToKey(Priv::ShmSource[m_idxSource].eKey),
             m_rsTmp.Data(), KEY_READ);
         if (ls != ERROR_SUCCESS)
@@ -386,7 +386,7 @@ public:
         if (m_IniDesktop.IsEmpty())
         {
             auto rsIniPath{ e.rsFile };
-            rsIniPath.PushBack(EckStrAndLen(L"desktop.ini"));
+            rsIniPath.PushBack(EckArgString(L"desktop.ini"));
             const auto rb = ReadInFile(rsIniPath.Data());
             m_IniDesktop.Load((PCWSTR)rb.Data(),
                 int(rb.Size() / sizeof(WCHAR)), INIE_IF_DISABLE_EXT);
@@ -409,7 +409,7 @@ public:
             Priv::ShmpLoadIndirectString(e.rsDisplayName);
 
         e.rsIcon.Clear();
-        if (e.rsFile.IsEndWithI(EckStrAndLen(L".lnk")))
+        if (e.rsFile.IsEndWithI(EckArgString(L".lnk")))
         {
             e.rsClsidOrCmd.Clear();
             ComPtr<IShellLinkW> psl;
@@ -447,7 +447,7 @@ public:
 
             if (e.rsIcon.Back() != L'\\')
                 e.rsIcon.PushBackChar(L'\\');
-            e.rsIcon.PushBack(EckStrAndLen(L"DefaultIcon"));
+            e.rsIcon.PushBack(EckArgString(L"DefaultIcon"));
             if (Key.Open(HKEY_CLASSES_ROOT, e.rsIcon.Data(), KEY_READ) == ERROR_SUCCESS)
                 Key.QueryValueString(e.rsIcon, nullptr);
             else
@@ -482,7 +482,7 @@ public:
     {
         Reset();
         const auto nts = ExpandEnvironmentString(m_rsWinXPath,
-            EckStrAndLen(LR"(%LocalAppData%\Microsoft\Windows\WinX)"));
+            EckArgString(LR"(%LocalAppData%\Microsoft\Windows\WinX)"));
         if (!NT_SUCCESS(nts))
             return WIN32_FROM_NTSTATUS(nts);
         return WIN32_FROM_NTSTATUS(m_EnumFile.Open(m_rsWinXPath.Data()));
@@ -522,7 +522,7 @@ public:
             }
             const int cchFileName = int(pInfo->FileNameLength / sizeof(WCHAR));
             if (*pInfo->FileName == L'.' ||
-                TcsEqualLength2I(pInfo->FileName, cchFileName, EckStrAndLen(L"desktop.ini")))
+                TcsEqualLength2I(pInfo->FileName, cchFileName, EckArgString(L"desktop.ini")))
                 continue;
 
             e.rsFile = m_rsWinXPath;

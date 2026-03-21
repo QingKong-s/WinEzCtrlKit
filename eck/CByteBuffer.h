@@ -469,7 +469,7 @@ public:
     {
         return FindMemory(Data(), Size(), pSub, cbSub, posStart);
     }
-    EckInline size_t RFind(PCVOID pSub, size_t cbSub, size_t posStart = SizeTMax) const noexcept
+    EckInline size_t RFind(PCVOID pSub, size_t cbSub, size_t posStart = MaxSizeT) const noexcept
     {
         return RFindMemory(Data(), Size(), pSub, cbSub, posStart);
     }

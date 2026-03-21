@@ -102,7 +102,7 @@ CStringW	g_rsRunningDir{};
 DWORD		g_dwTlsSlot{};
 NTVER		g_NtVer{};
 
-HMODULE		g_hModComCtl32{ (HMODULE)SIZETMax };
+HMODULE		g_hModComCtl32{ (HMODULE)MaxSizeT };
 
 #if !ECK_OPT_NO_GDIPLUS
 // For GdiPlus
@@ -1890,7 +1890,7 @@ DWORD GetThreadContextTlsSlot() noexcept
 
 void ThreadInitialize() noexcept
 {
-    if ((SIZE_T)g_hModComCtl32 == SIZETMax)
+    if ((size_t)g_hModComCtl32 == MaxSizeT)
         g_hModComCtl32 = GetModuleHandleW(L"comctl32.dll");
     EckAssert(!TlsGetValue(GetThreadContextTlsSlot()));
     const auto p = new ThreadContext{};

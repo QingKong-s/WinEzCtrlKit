@@ -108,10 +108,10 @@ public:
     CMediaFile& m_File;
     CStreamWalker m_Stream{};
 
-    SIZE_T m_posBegin{};
+    size_t m_posBegin{};
     MPEG_INFO m_Info{};
 public:
-    CMpegInfo(CMediaFile& File) :m_File{ File }, m_Stream(File.GetStream())
+    CMpegInfo(CMediaFile& File) noexcept : m_File{ File }, m_Stream(File.GetStream())
     {
         m_Stream.GetStream()->AddRef();
     }
@@ -124,7 +124,7 @@ public:
     Result Read() noexcept try
     {
         const auto& Loc = m_File.GetTagLocation();
-        if (Loc.posV2 != SIZETMax)
+        if (Loc.posV2 != MaxSizeT)
         {
             m_Stream.MoveTo(Loc.posV2);
             ID3v2_HEADER Hdr;
@@ -141,7 +141,7 @@ public:
         {
             // 没有同步字节，重新同步
             m_Stream.MoveTo(m_posBegin);
-            BYTE* pBuf = (BYTE*)VAlloc(4096);
+            BYTE* pBuf = (BYTE*)VAllocate(4096);
             UniquePtr<DelVA<BYTE>> _(pBuf);
             EckCheckMemory(pBuf);
             constexpr size_t cbSegment = 1024;

@@ -203,7 +203,7 @@ inline NTSTATUS IntGetPhysicalDriveIdentifier(F fnProcessData, int idxDrive) noe
         };
 
         constexpr DWORD cbBuf = 4096;
-        UniquePtr<DelVA<void>> pBuf(VAlloc(cbBuf));
+        UniquePtr<DelVA<void>> pBuf(VAllocate(cbBuf));
         DWORD cbRet{};
         if (NT_SUCCESS(nts = NaDeviceIoControl(hDevice, IOCTL_STORAGE_QUERY_PROPERTY,
             &spq, sizeof(spq), pBuf.get(), cbBuf, &cbRet)))

@@ -121,7 +121,7 @@ private:
     BITBOOL m_bHasFocus : 1 = FALSE;	// 是否有焦点
     BITBOOL m_bLBtnDown : 1 = FALSE;	// 鼠标左键已按下
     BITBOOL m_bRBtnDown : 1 = FALSE;	// 鼠标右键已按下
-    BITBOOL m_bFocusIndicatorVisible : 1 = Dbg;	// 焦点指示器是否可见
+    BITBOOL m_bFocusIndicatorVisible : 1 = Debug;	// 焦点指示器是否可见
     BITBOOL m_bNmDragging : 1 = FALSE;			// 正在拖放项目，产生NM_LBN_BEGINDRAG时设置为TRUE
     BITBOOL m_bTrackComboBoxList : 1 = FALSE;	// 正在作为组合框的下拉列表显示
     BITBOOL m_bProtectCapture : 1 = FALSE;		// 允许其他窗口占用鼠标捕获，通常用于弹出下拉列表时显示菜单等

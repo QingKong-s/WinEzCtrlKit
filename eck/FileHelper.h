@@ -109,19 +109,19 @@ namespace Priv
 
 inline NTSTATUS FileNtPathToDosPath(CStringW& rsBuf) noexcept
 {
-    if (rsBuf.IsStartWith(EckStrAndLen(LR"(\??\)")))
+    if (rsBuf.IsStartWith(EckArgString(LR"(\??\)")))
         rsBuf.Erase(0, 4);
-    else if (rsBuf.IsStartWithI(EckStrAndLen(LR"(\SystemRoot)")))
+    else if (rsBuf.IsStartWithI(EckArgString(LR"(\SystemRoot)")))
     {
         const auto pszRoot = NaGetNtSystemRoot();
         rsBuf.Replace(0, 11, pszRoot, (int)TcsLength(pszRoot));
     }
-    else if (rsBuf.IsStartWithI(EckStrAndLen(LR"(System32\)"))
+    else if (rsBuf.IsStartWithI(EckArgString(LR"(System32\)"))
 #ifdef _WIN64
-        || rsBuf.IsStartWithI(EckStrAndLen(LR"(SysWOW64\)"))
+        || rsBuf.IsStartWithI(EckArgString(LR"(SysWOW64\)"))
 #ifdef _M_ARM64
-        || rsBuf.IsStartWithI(EckStrAndLen(LR"(SysArm32\)"))
-        || rsBuf.IsStartWithI(EckStrAndLen(LR"(SyChpe32\)"))
+        || rsBuf.IsStartWithI(EckArgString(LR"(SysArm32\)"))
+        || rsBuf.IsStartWithI(EckArgString(LR"(SyChpe32\)"))
 #endif
 #endif
         )
@@ -132,7 +132,7 @@ inline NTSTATUS FileNtPathToDosPath(CStringW& rsBuf) noexcept
         TcsCopyLength(pszDst, pszRoot, cchRoot);
         *(pszDst + cchRoot) = L'\\';
     }
-    else if (rsBuf.IsStartWithI(EckStrAndLen(LR"(\Windows)")))
+    else if (rsBuf.IsStartWithI(EckArgString(LR"(\Windows)")))
     {
         const auto pszRoot = NaGetNtSystemRoot();
         const auto pszDst = rsBuf.Insert(0, 2);
