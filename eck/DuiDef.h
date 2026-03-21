@@ -44,6 +44,8 @@ enum
 // 元素产生的通知
 enum : UINT
 {
+    ENC_DUI_DUMMY = ENC_SYSBEGIN,
+
     // TrackBar
     TBE_POSCHANGED,		// 位置改变
     // List

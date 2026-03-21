@@ -796,13 +796,14 @@ public:
     EckInlineNdCe RTL_UNICODE_STRING_BUFFER ToNtStringBuffer() noexcept
     {
         if constexpr (std::is_same_v<TChar, WCHAR>)
-        {
             return
             {
                 .String = ToNtString(),
-                .ByteBuffer = {.Buffer = (PUCHAR)Data(),.Size = ByteCapacity() },
+                .ByteBuffer = {
+                    .Buffer = (PUCHAR)Data(),
+                    .Size = ByteCapacity()
+                },
             };
-        }
         else
             return {};
     }
@@ -933,7 +934,7 @@ public:
         return FindCharLastNotOf(Data(), Size(), pszChars, cchChars, posStart);
     }
 
-    void LTrim() noexcept
+    void TrimLeft() noexcept
     {
         if (IsEmpty())
             return;
@@ -942,14 +943,14 @@ public:
         TcsMoveLength(Data(), pszBegin, cchNew);
         ReSize(cchNew);
     }
-    void RTrim() noexcept
+    void TrimRight() noexcept
     {
         if (IsEmpty())
             return;
         const auto pszEnd = TrimStringRight(Data(), Size());
         ReSize(int(pszEnd - Data()));
     }
-    void LRTrim() noexcept
+    void TrimLeftRight() noexcept
     {
         if (IsEmpty())
             return;
@@ -964,7 +965,7 @@ public:
             ReSize(cchNew);
         }
     }
-    void AllTrim() noexcept
+    void TrimAll() noexcept
     {
         if (IsEmpty())
             return;

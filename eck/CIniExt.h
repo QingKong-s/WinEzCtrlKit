@@ -374,7 +374,7 @@ private:
         ++psz;
         if (!bKeepSpace)
         {
-            rsKey.RTrim();
+            rsKey.TrimRight();
             psz = TrimStringLeft(psz, int(pszEnd - psz));
         }
         // 值
@@ -414,7 +414,7 @@ private:
             return IniResult::SecRBracketNotFound;
         if (!bKeepSpace)
         {
-            rsKey.RTrim();
+            rsKey.TrimRight();
             if (IsBreakLineOrCommentChar(*psz))
                 return IniResult::Ok;
             const auto pL = TrimStringLeft(psz, (int)cch);

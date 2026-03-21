@@ -135,7 +135,7 @@ inline std::wstring_view GetResourceString(WORD wID, WORD wLangID,
     for (size_t i = 0; i < size_t(wID % 16); ++i)
         pszBegin += (*pszBegin + 1);
     const int cch = *pszBegin++;
-    return { pszBegin,(size_t)cch };
+    return { pszBegin, (size_t)cch };
 }
 
 EckInline std::wstring_view GetResourceStringForCurrentLocale(

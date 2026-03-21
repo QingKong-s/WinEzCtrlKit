@@ -67,6 +67,7 @@ public:
         CElement* pEle,
         UINT idPart,
         const D2D1_RECT_F& rc,
+        _In_opt_ const D2D1_RECT_F* prcClip = nullptr,
         _Out_opt_ const CThemeStyle::Style** ppStyle = nullptr) noexcept = 0;
 
     void SetColorCollection(CColorCollection* p) noexcept { m_pColor = p; }

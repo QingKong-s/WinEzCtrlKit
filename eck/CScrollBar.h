@@ -46,7 +46,7 @@ public:
         return si.nPos;
     }
 
-    EckInline int GetTrackPos() const noexcept
+    EckInline int GetTrackPosition() const noexcept
     {
         SCROLLINFO si;
         si.cbSize = sizeof(SCROLLINFO);

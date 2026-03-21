@@ -426,6 +426,8 @@ private:
 
     float m_fBlurDeviation{ 15.f };
 
+    ARGB m_argbAccent{ 0xFF'66CCFF };
+
     PresentMode m_ePresentMode{ PresentMode::FlipSwapChain };
 
     BITBOOL m_bBlurUseLayer : 1{};      // 模糊是否使用图层
@@ -1477,6 +1479,8 @@ public:
         m_rcInvalid = {};
         m_bFullUpdate = FALSE;
     }
+
+    EckInlineNdCe ARGB TmAccentColor() const noexcept { return m_argbAccent; }
 };
 
 inline BOOL CElement::Create(std::wstring_view svText, DWORD uStyle, DWORD dwExStyle,
@@ -1563,6 +1567,8 @@ inline void CElement::InvalidateInternal(const Kw::Rect* prcInEle, BOOL bUpdateN
     }
     GetWindow().CeUnion(rcTemp);
     GetWindow().RdInvalidate(rcTemp);
+    if (bUpdateNow)
+        GetWindow().RdRenderAndPresent();
 }
 
 inline void CElement::BeginPaint(_Out_ PAINTINFO& ps, WPARAM, LPARAM lParam) noexcept
@@ -1798,6 +1804,8 @@ public:
         pRetVal->height = double(rcInScr.bottom - rcInScr.top);
         return S_OK;
     }
+
+    EckInlineNdCe auto GetElement() const noexcept { return (CElement*)m_pEle; }
 };
 inline HRESULT CElement::EhUiaMakeInterface() noexcept
 {

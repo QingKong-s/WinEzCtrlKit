@@ -3,44 +3,55 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-class CTrackBar : public CElement
+class CTrackBar : public CElement, public ITimeLine
 {
+public:
+    const static inline UINT IdPtTrackH = TmNextResourceId();
+    const static inline UINT IdPtTrackV = TmNextResourceId();
+    const static inline UINT IdPtActiveTrackH = TmNextResourceId();
+    const static inline UINT IdPtActiveTrackV = TmNextResourceId();
+    const static inline UINT IdPtThumb = TmNextResourceId();
+    const static inline UINT IdCrThumb = TmNextResourceId();
 private:
-    CEasingCurve m_ec{};
+    CEasingCurveLite<Easing::FOutCubic> m_ec{};
 
     float m_fPos{};
     float m_fMin{};
     float m_fMax{ 100.0f };
+    float m_fSmallDelta{ 1.0f };
+    float m_fLargeDelta{ 10.0f };
+
     float m_fDragPos{};
     float m_cxyTrack{};
 
-    BITBOOL m_bLBtnDown : 1{};
-    BITBOOL m_bHover : 1{};
+    UINT m_msLastDur : 24{};
 
-    BITBOOL m_bVertical : 1{};
-    BITBOOL m_bGenEventWhenDragging : 1{};
-    BITBOOL m_bTransparentSpace : 1{};  // 空白部分穿透鼠标
-    BITBOOL m_bThinTrack : 1{};         // 轨道正常情况下显示为尺寸的一半，点燃时显示全尺寸
-    BITBOOL m_bAutoTrackSize : 1{};     // 根据控件尺寸自动调整轨道尺寸
+    UINT m_bAnActive : 1{};
 
-    // 取轨道尺寸
-    // 返回轨道在当前状态下的实际尺寸，考虑动画
-    float GetCxyTrack()
+    UINT m_bVertical : 1{};
+    UINT m_bGenEventWhenDragging : 1{};
+    UINT m_bTransparentSpace : 1{};  // 空白部分穿透鼠标
+    UINT m_bThinTrack : 1{};         // 轨道正常情况下显示为尺寸的一半，点燃时显示全尺寸
+    UINT m_bAutoTrackSize : 1{};     // 根据控件尺寸自动调整轨道尺寸
+
+    // 计算轨道在当前状态下的实际尺寸，考虑动画
+    constexpr float CalculateTrackShortSide() const noexcept
     {
         if (m_bThinTrack)
-            if (m_ec.IsActive())
-                return  m_cxyTrack / 2.f + m_cxyTrack / 2.f * m_ec.GetCurrentValue();
+            if (m_bAnActive)
+                return m_cxyTrack / 2.f + m_cxyTrack / 2.f * m_ec.K;
             else
-                return (m_bHover ? m_cxyTrack : m_cxyTrack / 2.f);
+                return ((GetThemeState() & SaHot) ? m_cxyTrack : (m_cxyTrack / 2.f));
         else
             return m_cxyTrack;
     }
 
-    float GetTrackRect(_Out_ D2D1_RECT_F& rc)
+    // 返回CalculateTrackShortSide的结果
+    constexpr float GetTrackRect(_Out_ Kw::Rect& rc) const noexcept
     {
-        rc = GetViewRectF();
-        const float cxyTrack = GetCxyTrack();
-        const float fRadius = GetTrackCapSpacing();
+        rc = GetViewRect();
+        const auto cxyTrack = CalculateTrackShortSide();
+        const auto fRadius = GetTrackCapSpacing();
         if (m_bVertical)
         {
             rc.left += (rc.right - rc.left - cxyTrack) / 2.f;
@@ -58,11 +69,11 @@ private:
         return cxyTrack;
     }
 
-    void GetThumbRect(float cxyTrack, const D2D1_RECT_F& rcTrack, _Out_ D2D1_RECT_F& rc)
+    constexpr void GetThumbRect(float cxyTrack,
+        const Kw::Rect& rcTrack, _Out_ Kw::Rect& rc) const noexcept
     {
-        const float cxy = m_bThinTrack ?
-            (GetTrackCapSpacing() * m_ec.GetCurrentValue()) :
-            GetTrackCapSpacing();
+        const auto cxy = m_bThinTrack ?
+            (GetTrackCapSpacing() * m_ec.K) : GetTrackCapSpacing();
         if (m_bVertical)
         {
             rc.left = (rcTrack.left + rcTrack.right) / 2.f - cxy;
@@ -76,10 +87,10 @@ private:
         rc.right = rc.left + cxy * 2;
         rc.bottom = rc.top + cxy * 2;
     }
-    void GetThumbRect(_Out_ D2D1_RECT_F& rc)
+    constexpr void GetThumbRect(_Out_ Kw::Rect& rc) const noexcept
     {
         const auto cxy = GetTrackRect(rc);
-        const float fScale = (GetTrackPos() - m_fMin) / (m_fMax - m_fMin);
+        const float fScale = (GetTrackPosition() - m_fMin) / (m_fMax - m_fMin);
         if (m_bVertical)
             rc.bottom = rc.top + (rc.bottom - rc.top) * fScale;
         else
@@ -87,7 +98,7 @@ private:
         GetThumbRect(cxy, rc, rc);
     }
 
-    void SetDragPos(float fPos)
+    constexpr void SetDragPosition(float fPos) noexcept
     {
         m_fDragPos = fPos;
         if (m_fDragPos < m_fMin)
@@ -95,7 +106,57 @@ private:
         else if (m_fDragPos > m_fMax)
             m_fDragPos = m_fMax;
     }
+
+    void ChangePosition(float fPos, BOOL bDragging, BOOL bUpdateNow = TRUE) noexcept
+    {
+        Kw::Rect rcOldThumb;
+        GetThumbRect(rcOldThumb);
+
+        SetDragPosition(fPos);
+        if (!bDragging || m_bGenEventWhenDragging)
+            EvtPositionChanged();
+
+        Kw::Rect rcThumb;
+        GetThumbRect(rcThumb);
+        UnionRect(rcThumb, rcThumb, rcOldThumb);
+        Invalidate(rcThumb, bUpdateNow);
+    }
 public:
+    static RcPtr<CThemeBase> TmMakeDefaultTheme() noexcept;
+    static RcPtr<CThemeBase> TmDefaultTheme() noexcept;
+
+    static RcPtr<CThemeStyle> TmMakeDefaultStyle(BOOL bDarkMode) noexcept
+    {
+        auto p = RcPtr<CThemeStyle>::Make();
+        auto& vStyle = p->GetList();
+        vStyle.resize(3);
+        vStyle[0] =
+        {
+            .uState = SaNormal,
+            .argbFore = (bDarkMode ? 0xFF'FFFFFF : 0xFF'000000),
+            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'F0F0F0),
+            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
+        };
+        vStyle[1] =
+        {
+            .uState = SaHot,
+            .argbFore = (bDarkMode ? 0xFF'FFFFFF : 0xFF'000000),
+            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'E0E0E0),
+            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
+        };
+        vStyle[2] =
+        {
+            .uState = SaActive,
+            .argbFore = (bDarkMode ? 0xFF'FFFFFF : 0xFF'000000),
+            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
+            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
+        };
+        p->SetBorderWidth(1);
+        return p;
+    }
+
+    HRESULT EhUiaMakeInterface() noexcept override;
+
     LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
@@ -105,29 +166,32 @@ public:
             PAINTINFO ps;
             BeginPaint(ps, wParam, lParam);
 
-            DTB_OPT Opt;
-            Opt.uFlags = DTBO_NEW_RADX | DTBO_NEW_RADY;
-            const float cxyTrack = GetTrackRect(Opt.rcClip);
-            Opt.fRadX = Opt.fRadY = cxyTrack / 2.f;
+            Kw::Rect rcTrack;
+            const auto cxyTrack = GetTrackRect(rcTrack);
+            ElementToClient(rcTrack);
 
-            GetTheme()->DrawBackground(Part::TrackBar, State::Normal,
-                Opt.rcClip, &Opt);
+            GetTheme()->Draw(
+                this,
+                m_bVertical ? IdPtTrackV : IdPtTrackH,
+                MakeD2DRectF(rcTrack));
 
-            const float fScale = (GetTrackPos() - m_fMin) / (m_fMax - m_fMin);
+            const float fScale = (GetTrackPosition() - m_fMin) / (m_fMax - m_fMin);
             if (m_bVertical)
-                Opt.rcClip.bottom = Opt.rcClip.top + (Opt.rcClip.bottom - Opt.rcClip.top) * fScale;
+                rcTrack.bottom = rcTrack.top + (rcTrack.bottom - rcTrack.top) * fScale;
             else
-                Opt.rcClip.right = Opt.rcClip.left + (Opt.rcClip.right - Opt.rcClip.left) * fScale;
-            GetTheme()->DrawBackground(Part::TrackBar, State::Selected,
-                Opt.rcClip, &Opt);
+                rcTrack.right = rcTrack.left + (rcTrack.right - rcTrack.left) * fScale;
+            GetTheme()->Draw(
+                this,
+                m_bVertical ? IdPtActiveTrackV : IdPtActiveTrackH,
+                MakeD2DRectF(rcTrack));
 
-            if (!m_bThinTrack || (m_bHover || m_ec.IsActive()))
+            if (!m_bThinTrack || ((GetThemeState() & SaHot) || m_bAnActive))
             {
-                GetThumbRect(cxyTrack, Opt.rcClip, Opt.rcClip);
-                GetTheme()->DrawBackground(Part::TrackBarThumb, State::Hot,
-                    Opt.rcClip, nullptr);
+                GetThumbRect(cxyTrack, rcTrack, rcTrack);
+                GetTheme()->Draw(this, IdPtThumb, MakeD2DRectF(rcTrack));
             }
-            ECK_DUI_DBG_DRAW_FRAME;
+
+            DbgDrawFrame();
             EndPaint(ps);
         }
         return 0;
@@ -136,10 +200,9 @@ public:
         {
             if (m_bTransparentSpace)
             {
-                POINT pt ECK_GET_PT_LPARAM(lParam);
+                auto pt = *(Kw::Vec2*)lParam;
                 ClientToElement(pt);
-
-                D2D1_RECT_F rcTrack;
+                Kw::Rect rcTrack;
                 GetTrackRect(rcTrack);
                 if (!PointInRect(rcTrack, pt))
                     return HTTRANSPARENT;
@@ -149,24 +212,16 @@ public:
 
         case WM_MOUSEMOVE:
         {
-            if (m_bLBtnDown)
+            if (TmState() & SapLButtonDown)
+                ChangePosition(HitTest(*(Kw::Vec2*)lParam), TRUE);
+            else if (!(TmState() & SaHot))
             {
-                const POINT pt ECK_GET_PT_LPARAM(lParam);
-                SetDragPos(HitTest(pt));
-                if (m_bGenEventWhenDragging)
-                {
-                    DUINMHDR nm{ TBE_POSCHANGED };
-                    GenElemNotify(&nm);
-                }
-                Invalidate();
-            }
-            else if (!m_bHover)
-            {
-                m_bHover = TRUE;
+                TmState() |= SaHot;
                 if (m_bThinTrack)
                 {
-                    m_ec.Begin(0.f, 1.f);
-                    GetWindow()->WakeRenderThread();
+                    m_ec.Start(0.f, 1.f, m_bAnActive);
+                    m_bAnActive = TRUE;
+                    GetWindow().KctWake();
                 }
             }
         }
@@ -174,13 +229,14 @@ public:
 
         case WM_MOUSELEAVE:
         {
-            if (!m_bLBtnDown && m_bHover)
+            if (!(TmState() & SapLButtonDown) && (TmState() & SaHot))
             {
-                m_bHover = FALSE;
+                TmState() &= ~SaHot;
                 if (m_bThinTrack)
                 {
-                    m_ec.Begin(1.f, 0.f);
-                    GetWindow()->WakeRenderThread();
+                    m_ec.Start(1.f, 0.f, m_bAnActive);
+                    m_bAnActive = TRUE;
+                    GetWindow().KctWake();
                 }
             }
         }
@@ -188,69 +244,58 @@ public:
 
         case WM_LBUTTONDOWN:
         {
-            const POINT pt ECK_GET_PT_LPARAM(lParam);
-            D2D1_RECT_F rcThumb;
+            const auto& pt = *(Kw::Vec2*)lParam;
+
+            Kw::Rect rcThumb;
             GetThumbRect(rcThumb);
-            if (PointInRect(rcThumb, MakeD2DPointF(pt)))
+            if (PointInRect(rcThumb, pt))
             {
-                m_bLBtnDown = TRUE;
+                TmState() |= SapLButtonDown;
                 SetCapture();
                 m_fDragPos = HitTest(pt);
             }
             else
-            {
-                SetTrackPos(HitTest(pt));
-                Invalidate();
-                DUINMHDR nm{ TBE_POSCHANGED };
-                GenElemNotify(&nm);
-            }
+                ChangePosition(HitTest(pt), FALSE);
         }
         return 0;
 
         case WM_LBUTTONUP:
         {
-            if (m_bLBtnDown)
-            {
-                const POINT pt ECK_GET_PT_LPARAM(lParam);
-                m_bLBtnDown = FALSE;
-                ReleaseCapture();
-                SetTrackPos(HitTest(pt));
-                Invalidate();
-                DUINMHDR nm{ TBE_POSCHANGED };
-                GenElemNotify(&nm);
+            if (!(TmState() & SapLButtonDown))
+                break;
+            TmState() &= ~SapLButtonDown;
+            ReleaseCapture();
 
-                if (m_bHover)
-                {
-                    m_bHover = FALSE;
-                    if (m_bThinTrack)
-                        m_ec.Begin(1.f, 0.f);
-                }
-            }
+            const auto& pt = *(Kw::Vec2*)lParam;
+            ChangePosition(HitTest(pt), FALSE);
         }
         return 0;
 
         case WM_CREATE:
-        {
-            InitializeEasingCurve(&m_ec);
-            m_ec.SetDuration(200);
-            m_ec.SetProcedure(Easing::OutSine);
-            m_ec.SetCallback([](float fCurrValue, float fOldValue, LPARAM lParam)
-                {
-                    ((CElement*)lParam)->Invalidate();
-                });
-        }
-        [[fallthrough]];
+            GetWindow().KctRegisterTimeLine(this);
+            [[fallthrough]];
         case WM_SIZE:
-        {
             if (m_bAutoTrackSize)
                 m_cxyTrack = (m_bVertical ? GetWidth() : GetHeight()) * 0.6f;
+            break;
+
+        case WM_DESTROY:
+            GetWindow().KctUnregisterTimeLine(this);
+            break;
         }
-        break;
-        }
-        return CElement::OnEvent(uMsg, wParam, lParam);
+        return __super::OnEvent(uMsg, wParam, lParam);
     }
 
-    void SetRange(float fMin, float fMax)
+    void TlTick(int ms) noexcept override
+    {
+        m_msLastDur = ms;
+        m_bAnActive = m_ec.Tick(ms, 200);
+        Invalidate(FALSE);
+    }
+    BOOL TlIsValid() noexcept override { return m_bAnActive; }
+    int TlGetCurrentInterval() noexcept override { return (int)m_msLastDur; }
+
+    constexpr void SetRange(float fMin, float fMax) noexcept
     {
         m_fMin = fMin;
         m_fMax = fMax;
@@ -259,8 +304,10 @@ public:
         else if (m_fPos > m_fMax)
             m_fPos = m_fMax;
     }
+    EckInlineNdCe float GetMinimum() const noexcept { return m_fMin; }
+    EckInlineNdCe float GetMaximum() const noexcept { return m_fMax; }
 
-    constexpr void SetTrackPos(float fPos)
+    constexpr void SetTrackPosition(float fPos) noexcept
     {
         m_fPos = fPos;
         if (m_fPos < m_fMin)
@@ -268,29 +315,37 @@ public:
         else if (m_fPos > m_fMax)
             m_fPos = m_fMax;
     }
-    EckInlineNdCe float GetTrackPos() const { return m_bLBtnDown ? m_fDragPos : m_fPos; }
+    EckInlineNdCe float GetTrackPosition() const noexcept
+    {
+        return (GetThemeState() & SapLButtonDown) ? m_fDragPos : m_fPos;
+    }
 
-    EckInlineCe void SetVertical(BOOL bVertical) { m_bVertical = bVertical; }
-    EckInlineNdCe BOOL GetVertical() const { return m_bVertical; }
+    EckInlineCe void SetVertical(BOOL bVertical) noexcept { m_bVertical = bVertical; }
+    EckInlineNdCe BOOL GetVertical() const noexcept { return m_bVertical; }
 
-    EckInlineCe void SetTrackSize(float f) { m_cxyTrack = f; }
-    EckInlineNdCe float GetTrackSize() const { return m_cxyTrack; }
+    EckInlineCe void SetTrackSize(float f) noexcept { m_cxyTrack = f; }
+    EckInlineNdCe float GetTrackSize() const noexcept { return m_cxyTrack; }
 
-    EckInlineCe void SetGenEventWhenDragging(BOOL b) { m_bGenEventWhenDragging = b; }
-    EckInlineNdCe BOOL GetGenEventWhenDragging() const { return m_bGenEventWhenDragging; }
+    EckInlineCe void SetGenEventWhenDragging(BOOL b) noexcept { m_bGenEventWhenDragging = b; }
+    EckInlineNdCe BOOL GetGenEventWhenDragging() const noexcept { return m_bGenEventWhenDragging; }
 
-    EckInlineCe void SetTransparentSpace(BOOL b) { m_bTransparentSpace = b; }
-    EckInlineNdCe BOOL GetTransparentSpace() const { return m_bTransparentSpace; }
+    EckInlineCe void SetTransparentSpace(BOOL b) noexcept { m_bTransparentSpace = b; }
+    EckInlineNdCe BOOL GetTransparentSpace() const noexcept { return m_bTransparentSpace; }
 
-    EckInlineCe void SetThinTrack(BOOL b) { m_bThinTrack = b; }
-    EckInlineNdCe BOOL GetThinTrack() const { return m_bThinTrack; }
+    EckInlineCe void SetThinTrack(BOOL b) noexcept { m_bThinTrack = b; }
+    EckInlineNdCe BOOL GetThinTrack() const noexcept { return m_bThinTrack; }
 
     EckInlineCe void SetAutoTrackSize(BOOL b) { m_bAutoTrackSize = b; }
     EckInlineNdCe BOOL GetAutoTrackSize() const { return m_bAutoTrackSize; }
 
-    float HitTest(POINT pt)
+    EckInlineCe void SetSmallDelta(float f) noexcept { m_fSmallDelta = f; }
+    EckInlineNdCe float GetSmallDelta() const noexcept { return m_fSmallDelta; }
+    EckInlineCe void SetLargeDelta(float f) noexcept { m_fLargeDelta = f; }
+    EckInlineNdCe float GetLargeDelta() const noexcept { return m_fLargeDelta; }
+
+    constexpr float HitTest(Kw::Vec2 pt) noexcept
     {
-        D2D1_RECT_F rcTrack;
+        Kw::Rect rcTrack;
         GetTrackRect(rcTrack);
 
         if (m_bVertical)
@@ -308,6 +363,125 @@ public:
     // 取端点处空白
     // 因滑块具有大小，故端点处留有一定空白以免滑块显示不全，此函数返回空白大小
     EckInlineNdCe float GetTrackCapSpacing() const noexcept { return m_cxyTrack * 3.f / 4.f; }
+
+    void EvtPositionChanged() noexcept
+    {
+        ELENMHDR nm{ ENC_POSCHANGED };
+        SendNotify(&nm);
+    }
 };
+
+
+class CTmTrackBar : public CThemeBase
+{
+public:
+    TmResult Draw(
+        CElement* pEle,
+        UINT idPart,
+        const D2D1_RECT_F& rc,
+        _In_opt_ const D2D1_RECT_F* prcClip,
+        _Out_opt_ const CThemeStyle::Style** ppStyle) noexcept override
+    {
+        const CThemeStyle::Style* pStyle{};
+        if (idPart == CTrackBar::IdPtTrackH ||
+            idPart == CTrackBar::IdPtTrackV ||
+            idPart == IdPtNormal)
+            pStyle = pEle->GetThemeStyle()->FindStyle(SaNormal);
+        else if (idPart == CTrackBar::IdPtActiveTrackH ||
+            idPart == CTrackBar::IdPtActiveTrackV)
+        {
+            pStyle = pEle->GetThemeStyle()->FindStyle(SaSelected);
+            if (!pStyle)
+                pStyle = pEle->GetThemeStyle()->FindStyle(SaNormal);
+        }
+        else if (idPart == CTrackBar::IdPtThumb)
+        {
+            auto cr = pEle->GetTheme()->GetColorOptional(CTrackBar::IdCrThumb);
+            if (!cr)
+                cr = pEle->GetWindow().TmAccentColor();
+
+            return TmResult::Ok;
+        }
+
+        if (ppStyle)
+            *ppStyle = pStyle;
+        if (!pStyle)
+            return TmResult::NoStyle;
+        return pEle->TmGenericDrawBackground(pStyle, rc);
+    }
+};
+inline RcPtr<CThemeBase> CTrackBar::TmMakeDefaultTheme() noexcept
+{
+    const auto p = RcPtr<CTmTrackBar>::Make();
+    p->SetMetricCollection(TmDefaultMetricCollection().Get());
+    return p;
+}
+inline RcPtr<CThemeBase> CTrackBar::TmDefaultTheme() noexcept
+{
+    static auto p{ TmMakeDefaultTheme() };
+    return p;
+}
+
+
+class CUiaTrackBar : public CUnknownAppend<CUiaBase, IRangeValueProvider>
+{
+    STDMETHODIMP GetPatternProvider(PATTERNID idPattern, IUnknown** pRetVal) override
+    {
+        if (idPattern == UIA_RangeValuePatternId)
+        {
+            *pRetVal = static_cast<IRangeValueProvider*>(this);
+            AddRef();
+            return S_OK;
+        }
+        return CUiaBase::GetPatternProvider(idPattern, pRetVal);
+    }
+
+    STDMETHODIMP SetValue(double val) override
+    {
+        if (GetElement()->GetStyle() & DES_DISABLE)
+            return UIA_E_ELEMENTNOTAVAILABLE;
+        const auto pEle = DbgDynamicCast<CTrackBar*>(GetElement());
+        pEle->SetTrackPosition((float)val);
+        pEle->EvtPositionChanged();
+        return S_OK;
+    }
+    STDMETHODIMP get_Value(double* pRetVal) override
+    {
+        *pRetVal = DbgDynamicCast<CTrackBar*>(GetElement())->GetTrackPosition();
+        return S_OK;
+    }
+    STDMETHODIMP get_IsReadOnly(BOOL* pRetVal) override
+    {
+        *pRetVal = TRUE;
+        return S_OK;
+    }
+    STDMETHODIMP get_Maximum(double* pRetVal) override
+    {
+        *pRetVal = DbgDynamicCast<CTrackBar*>(GetElement())->GetMaximum();
+        return S_OK;
+    }
+    STDMETHODIMP get_Minimum(double* pRetVal) override
+    {
+        *pRetVal = DbgDynamicCast<CTrackBar*>(GetElement())->GetMinimum();
+        return S_OK;
+    }
+    STDMETHODIMP get_LargeChange(double* pRetVal) override
+    {
+        *pRetVal = DbgDynamicCast<CTrackBar*>(GetElement())->GetLargeDelta();
+        return S_OK;
+    }
+    STDMETHODIMP get_SmallChange(double* pRetVal) override
+    {
+        *pRetVal = DbgDynamicCast<CTrackBar*>(GetElement())->GetSmallDelta();
+        return S_OK;
+    }
+};
+HRESULT CTrackBar::EhUiaMakeInterface() noexcept
+{
+    const auto p = new CUiaTrackBar{};
+    UiaSetInterface(p);
+    p->Release();
+    return S_OK;
+}
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

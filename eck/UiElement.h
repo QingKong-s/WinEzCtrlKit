@@ -53,7 +53,7 @@ namespace Declaration
         ENC_DUMMY,
 
         ENC_COMMAND,
-        ENC_SCROLL,
+        ENC_POSCHANGED,
 
         ENC_SYSBEGIN,
     };
@@ -938,7 +938,7 @@ public:
 * WM_MOUSELEAVE                         (0      , 0           )
 * WM_NCMOUSEMOVE ~ WM_NCXBUTTONDBLCLK
 * WM_KEYFIRST    ~ WM_IME_KEYLAST       (Vk     , KeyDownFlags)
-* WM_NCHITTEST                          (0      , TPoint      ) InClient
+* WM_NCHITTEST                          (0      , TPoint*     ) InClient
 * WM_SETCURSOR
 * WM_TIMER                              (Id     , 0           )
 * WM_CAPTURECHANGED                     (0      , pEleNew     )

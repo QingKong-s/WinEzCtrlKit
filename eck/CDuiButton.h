@@ -46,12 +46,6 @@ private:
     {
         UpdateTextLayout(GetText().Data(), GetText().Size());
     }
-
-    void TmpStateChanged() noexcept
-    {
-        Invalidate();
-        GetWindow().RdRenderAndPresent();
-    }
 public:
     static RcPtr<CThemeBase> TmMakeDefaultTheme() noexcept;
     static RcPtr<CThemeBase> TmDefaultTheme() noexcept;
@@ -86,7 +80,7 @@ public:
         return p;
     }
 
-    HRESULT EhUiaMakeInterface() noexcept;
+    HRESULT EhUiaMakeInterface() noexcept override;
 
     LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
@@ -97,7 +91,7 @@ public:
             PAINTINFO ps;
             BeginPaint(ps, wParam, lParam);
             const CThemeStyle::Style* pSubStyle;
-            GetTheme()->Draw(this, IdPtNormal, GetRectInClientD2D(), &pSubStyle);
+            GetTheme()->Draw(this, IdPtNormal, GetRectInClientD2D(), nullptr, &pSubStyle);
 
             const float dInner = GetTheme()->GetMetric(IdMePaddingInner);
 
@@ -142,44 +136,44 @@ public:
             if (TmState() & SaHot)
                 break;
             TmState() |= SaHot;
-            TmpStateChanged();
+            Invalidate();
             break;
         case WM_MOUSELEAVE:
             if (!(TmState() & SaHot))
                 break;
             TmState() &= ~SaHot;
-            TmpStateChanged();
+            Invalidate();
             break;
         case WM_LBUTTONDOWN:
         case WM_LBUTTONDBLCLK:
             SetFocus();
             TmState() |= (SaActive | SapLButtonDown);
             GetContainer()->EleSetCapture((THost*)this);
-            TmpStateChanged();
+            Invalidate();
             break;
         case WM_LBUTTONUP:
             if (TmState() & SapLButtonDown)
                 GetContainer()->EleReleaseCapture();
-            TmpStateChanged();
+            Invalidate();
             break;
         case WM_CAPTURECHANGED:
             if (TmState() & SapLButtonDown)
             {
                 TmState() &= ~(SaActive | SapLButtonDown);
-                TmpStateChanged();
+                Invalidate();
             }
             break;
         case WM_SETFOCUS:
             if (TmState() & SaFocus)
                 break;
             TmState() |= SaFocus;
-            TmpStateChanged();
+            Invalidate();
             break;
         case WM_KILLFOCUS:
             if (!(TmState() & SaFocus))
                 break;
             TmState() &= ~SaFocus;
-            TmpStateChanged();
+            Invalidate();
             break;
         case WM_STYLECHANGED:
             if (!(((UINT)wParam ^ GetStyle()) & DES_DISABLE))
@@ -187,7 +181,7 @@ public:
             if (GetStyle() & DES_DISABLE)
             {
                 TmState() |= SaDisable;
-                TmpStateChanged();
+                Invalidate();
             }
             break;
 
@@ -207,7 +201,7 @@ public:
             if (GetStyle() & DES_DISABLE)
             {
                 TmState() |= SaDisable;
-                TmpStateChanged();
+                Invalidate();
             }
             SetTheme(TmDefaultTheme().Get());
             UpdateTextLayout();
@@ -235,7 +229,11 @@ public:
 class CTmButton : public CThemeBase
 {
 public:
-    TmResult Draw(CElement* pEle, UINT idPart, const D2D1_RECT_F& rc,
+    TmResult Draw(
+        CElement* pEle,
+        UINT idPart,
+        const D2D1_RECT_F& rc,
+        _In_opt_ const D2D1_RECT_F* prcClip,
         _Out_opt_ const CThemeStyle::Style** ppStyle) noexcept override
     {
         if (idPart != IdPtNormal)
@@ -279,7 +277,9 @@ class CUiaButton : public CUnknownAppend<CUiaBase, IInvokeProvider>
 
     STDMETHODIMP Invoke() override
     {
-        DbgDynamicCast<CButton*>(m_pEle)->EvtClick();
+        if (GetElement()->GetStyle() & DES_DISABLE)
+            return UIA_E_ELEMENTNOTENABLED;
+        DbgDynamicCast<CButton*>(GetElement())->EvtClick();
         return S_OK;
     }
 };

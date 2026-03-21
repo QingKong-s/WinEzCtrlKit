@@ -58,7 +58,7 @@ static_assert(
 constexpr inline GUID DefaultWicPixelFormat
 ECK_GUID(0x6fddc324, 0x4e03, 0x4bfe, 0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x10);
 
-EckInline const GUID& WicImageTypeToGuid(ImageType e)
+EckInline const GUID& WicImageTypeToGuid(ImageType e) noexcept
 {
     return WicEncoderGuid[(size_t)e];
 }
@@ -334,11 +334,12 @@ inline HRESULT WicCreateIcon(
         .hbmColor = hbmColor
     };
     hIcon = CreateIconIndirect((ICONINFO*)&ii);
-    hr = HRESULT_FROM_WIN32(NaGetLastError());
+    if (!hIcon)
+        hr = HRESULT_FROM_WIN32(NaGetLastError());
     DeleteObject(hbmColor);
     if (bDeleteMask)
         DeleteObject(hbmMask);
-    return hIcon ? S_OK : hr;
+    return hr;
 }
 #pragma endregion Wic
 
@@ -503,7 +504,6 @@ namespace Priv
             return b;
         }
     };
-
 }
 
 inline GpStatus GpGetEncoderClsidFromMime(
