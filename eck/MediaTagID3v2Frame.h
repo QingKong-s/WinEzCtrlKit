@@ -343,7 +343,7 @@ protected:
         {
             cbBody = ReverseInteger(*(UINT*)Ctx.pFrameHdr->Size);
             if (cbBody != w.GetRemainingSize())
-                w.MoveToEnd() += 1;// throw
+                w.SeekToEnd() += 1;// throw
             if (Ctx.pFrameHdr->Flags[1] & ID3V23FF_HAS_GROUP_IDENTITY)
                 w >> byGroupId;
             if (Ctx.pFrameHdr->Flags[1] & ID3V23FF_ENCRYPTION)
@@ -355,7 +355,7 @@ protected:
         {
             cbBody = TagSyncSafeIntToUInt(Ctx.pFrameHdr->Size);
             if (cbBody != w.GetRemainingSize())
-                w.MoveToEnd() += 1;// throw
+                w.SeekToEnd() += 1;// throw
             if (Ctx.pFrameHdr->Flags[1] & ID3V24FF_HAS_GROUP_IDENTITY)
                 w >> byGroupId;
             if (Ctx.pFrameHdr->Flags[1] & ID3V24FF_ENCRYPTION)

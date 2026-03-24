@@ -184,6 +184,7 @@
     <ClCompile Include="eck\CGeometrySinkOffsetTranformer.h" />
     <ClCompile Include="eck\CMediaPlayer.h" />
     <ClCompile Include="eck\CColorReducing.h" />
+    <ClInclude Include="eck\Archive.h" />
     <ClInclude Include="eck\CDuiHeader.h" />
     <ClInclude Include="eck\CDuiListTemplate.h" />
     <ClInclude Include="eck\CDuiTabHeader.h" />

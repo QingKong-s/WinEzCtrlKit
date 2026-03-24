@@ -402,14 +402,14 @@ public:
 
         if (Loc.posV1Ext == CMediaFile::NPos)
         {
-            m_Stream.MoveTo(Loc.posV1 + 3);
+            m_Stream.Seek(Loc.posV1 + 3);
             TagpReadString(szTemp, 30, cchTemp, m_Info.rsTitle);
             TagpReadString(szTemp, 30, cchTemp, m_Info.rsArtist);
             TagpReadString(szTemp, 30, cchTemp, m_Info.rsAlbum);
         }
         else
         {
-            m_Stream.MoveTo(Loc.posV1Ext + 4);
+            m_Stream.Seek(Loc.posV1Ext + 4);
             TagpReadString(szTemp, 60, cchTemp, m_Info.rsTitle);
             TagpReadString(szTemp, 60, cchTemp, m_Info.rsArtist);
             TagpReadString(szTemp, 60, cchTemp, m_Info.rsAlbum);
@@ -443,7 +443,7 @@ public:
                 return Result::Ok;
             }
             else
-                m_Stream.MoveTo(Loc.posV1 + 93);
+                m_Stream.Seek(Loc.posV1 + 93);
         }
 #undef ECKTEMP_READ_STR
 
@@ -491,16 +491,16 @@ public:
         if (Loc.posV1Ext == CMediaFile::NPos)
             if (uFlags & MIF_CREATE_ID3V1_EXT)
                 if (Loc.posV1 == CMediaFile::NPos)
-                    m_Stream.MoveToEnd();
+                    m_Stream.SeekToEnd();
                 else
-                    m_Stream.MoveTo(Loc.posV1);
+                    m_Stream.Seek(Loc.posV1);
             else
             {
-                m_Stream.MoveTo(Loc.posV1);
+                m_Stream.Seek(Loc.posV1);
                 goto SkipID3v1Ext;
             }
         else
-            m_Stream.MoveTo(Loc.posV1Ext);
+            m_Stream.Seek(Loc.posV1Ext);
         // 写入1.2
         m_Stream.Write("TAG+", 4);
 

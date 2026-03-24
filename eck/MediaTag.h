@@ -582,7 +582,7 @@ private:
             APE_HEADER Hdr{};
             if (m_Loc.posV2 != NPos)// 检查前置ID3v2后面
             {
-                w.MoveTo(m_Loc.posV2 + m_Loc.cbID3v2) >> Hdr;
+                w.Seek(m_Loc.posV2 + m_Loc.cbID3v2) >> Hdr;
                 if (TagCheckApeHeader(Hdr) && (Hdr.dwFlags & APE_IS_HEADER))
                 {
                     m_Loc.posApeHdr = m_Loc.posV2 + m_Loc.cbID3v2;
@@ -596,7 +596,7 @@ private:
             else if (m_Loc.posV2Footer != NPos &&
                 m_Loc.posV2Footer >= m_Loc.cbID3v2 + 32u)// 检查追加ID3v2前面
             {
-                w.MoveTo(m_Loc.posV2Footer - m_Loc.cbID3v2 - 32u) >> Hdr;
+                w.Seek(m_Loc.posV2Footer - m_Loc.cbID3v2 - 32u) >> Hdr;
                 if (TagCheckApeHeader(Hdr) && !(Hdr.dwFlags & APE_IS_HEADER))
                 {
                     m_Loc.posApeHdr = m_Loc.posV2Footer - m_Loc.cbID3v2 - 32u;
@@ -615,10 +615,10 @@ private:
                 else
                 {
                     ID3v2_HEADER Id3Hdr{};
-                    w.MoveTo(m_Loc.posV2Footer - m_Loc.cbID3v2 - 10u) >> Id3Hdr;
+                    w.Seek(m_Loc.posV2Footer - m_Loc.cbID3v2 - 10u) >> Id3Hdr;
                     if (TagCheckID3v2Header(Id3Hdr))
                     {
-                        w.MoveTo(m_Loc.posV2Footer - m_Loc.cbID3v2 - 32u - 10u) >> Hdr;
+                        w.Seek(m_Loc.posV2Footer - m_Loc.cbID3v2 - 32u - 10u) >> Hdr;
                         if (TagCheckApeHeader(Hdr) && !(Hdr.dwFlags & APE_IS_HEADER))
                         {
                             m_Loc.posApeHdr = m_Loc.posV2Footer - m_Loc.cbID3v2 - 32u - 10u;
@@ -699,7 +699,7 @@ private:
             }
             else
             {
-                w.MoveToBegin() >> Hdr;
+                w.SeekToBegin() >> Hdr;
                 if (TagCheckApeHeader(Hdr) && (Hdr.dwFlags & APE_IS_HEADER))
                 {
                     m_Loc.posApeHdr = 0u;
@@ -716,7 +716,7 @@ private:
         if (cbSize > 10u)
         {
             ID3v2_HEADER hdr;
-            w.MoveToBegin() >> hdr;
+            w.SeekToBegin() >> hdr;
             if (TagCheckID3v2Header(hdr))
             {
                 // 若已找到标签头，则使用其内部的SEEK帧来寻找尾部标签，因此此处不需要继续查找标签尾
@@ -737,7 +737,7 @@ private:
                     {
                         if (cbSize > 128u + 227u + 10u)
                         {
-                            w.MoveTo(m_Loc.posV1Ext - 10) >> hdr;
+                            w.Seek(m_Loc.posV1Ext - 10) >> hdr;
                             if (TagCheckID3v2Header(hdr, FALSE))
                             {
                                 cbFrames = TagSyncSafeIntToUInt(hdr.Size);
@@ -757,7 +757,7 @@ private:
                     {
                         if (cbSize > 128u + 10u)
                         {
-                            w.MoveTo(m_Loc.posV1 - 10) >> hdr;
+                            w.Seek(m_Loc.posV1 - 10) >> hdr;
                             if (TagCheckID3v2Header(hdr, FALSE))
                             {
                                 cbFrames = TagSyncSafeIntToUInt(hdr.Size);
@@ -805,9 +805,9 @@ private:
     void DetectFlac(CStreamWalker& w) noexcept try
     {
         if (m_Loc.posV2 == NPos)
-            w.MoveToBegin();
+            w.SeekToBegin();
         else
-            w.MoveTo(m_Loc.posV2 + m_Loc.cbID3v2 + 10);
+            w.Seek(m_Loc.posV2 + m_Loc.cbID3v2 + 10);
         BYTE by[4];
         w >> by;
         // XXX: 若失配则向后查找

@@ -348,14 +348,14 @@ public:
         const auto& Loc = m_File.GetTagLocation();
         if (Loc.posApeHdr == MaxSizeT)
             return Result::NoTag;
-        m_Stream.MoveTo(Loc.posApeHdr) >> m_Hdr;
+        m_Stream.Seek(Loc.posApeHdr) >> m_Hdr;
         if (!TagCheckApeHeader(m_Hdr))
             return Result::Tag;
         BYTE* const pBuf = (BYTE*)VAllocate(m_Hdr.cbBody + 4);
         if (!pBuf)
             return Result::OutOfMemory;
         const UniquePtr<DelVA<BYTE>> _{ pBuf };
-        m_Stream.MoveTo(Loc.posApe).Read(pBuf, m_Hdr.cbBody);
+        m_Stream.Seek(Loc.posApe).Read(pBuf, m_Hdr.cbBody);
 
         CMemoryReader w{ pBuf, m_Hdr.cbBody };
         UINT cbVal, uItemFlags;
@@ -531,7 +531,7 @@ public:
                         cbPadding = 0;
                     }
                 }
-                m_Stream.MoveTo(Loc.posApeTag);
+                m_Stream.Seek(Loc.posApeTag);
             }
         else
         {
@@ -539,7 +539,7 @@ public:
             if (uFlags & MIF_PREPEND_TAG)
             {
                 m_Stream.Insert(0, cbTotal);
-                m_Stream.MoveToBegin();
+                m_Stream.SeekToBegin();
             }
             else
             {
@@ -555,7 +555,7 @@ public:
                 if (pos > cbFile)
                     return Result::Stream;
                 m_Stream.Insert(pos, cbTotal);
-                m_Stream.MoveTo(pos);
+                m_Stream.Seek(pos);
             }
         }
 

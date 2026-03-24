@@ -78,6 +78,9 @@
     <ClCompile Include="TsGpPtr.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="TsArchive.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">

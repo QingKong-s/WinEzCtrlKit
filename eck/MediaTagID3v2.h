@@ -189,9 +189,9 @@ private:
     {
         const auto& Loc = m_File.GetTagLocation();
         if (Loc.posV2 != CMediaFile::NPos)
-            m_Stream.MoveTo(Loc.posV2);
+            m_Stream.Seek(Loc.posV2);
         else if (Loc.posV2Footer != CMediaFile::NPos)
-            m_Stream.MoveTo(Loc.posV2FooterHdr);
+            m_Stream.Seek(Loc.posV2FooterHdr);
         else
         {
             m_cbPrependTag = m_cbTag = 0u;
@@ -678,7 +678,7 @@ public:
         size_t posActualEnd;
         if (Loc.posV2 != CMediaFile::NPos)
         {
-            m_Stream.MoveTo(Loc.posV2 + sizeof(ID3v2_HEADER));
+            m_Stream.Seek(Loc.posV2 + sizeof(ID3v2_HEADER));
             if (m_Header.Flags & ID3V2HF_EXTENDED_HEADER)
                 TagpSkipExtendedHeader();
 
@@ -701,13 +701,13 @@ public:
                 if (m_SeekVal >= m_Stream.GetSize() - sizeof(ID3v2_HEADER))
                     return Result::Length;
 
-                m_Stream.MoveTo(m_SeekVal);
+                m_Stream.Seek(m_SeekVal);
                 r = TagpParseFrameBody(m_SeekVal + m_cbTag);
             }
         }
         else if (Loc.posV2Footer != CMediaFile::NPos)
         {
-            m_Stream.MoveTo(Loc.posV2Footer);
+            m_Stream.Seek(Loc.posV2Footer);
             r = TagpParseFrameBody(Loc.posV2Footer + m_cbTag);
         }
         else
@@ -802,7 +802,7 @@ public:
                             cbPadding);
                     }
                 }
-                m_Stream.MoveTo(Loc.posV2Footer);
+                m_Stream.Seek(Loc.posV2Footer);
             }
             else if (m_SeekVal != CMediaFile::NPos)// 后置标签已通过SEEK帧定位
             {
@@ -822,7 +822,7 @@ public:
                             cbPadding);
                     }
                 }
-                m_Stream.MoveTo(m_SeekVal);
+                m_Stream.Seek(m_SeekVal);
             }
             else// 后置标签不存在，确定插入位置
             {
@@ -835,7 +835,7 @@ public:
                 else
                     posInsert = m_Stream.GetSize();
                 m_Stream.Insert(posInsert, rbAppend.Size() + sizeof(ID3v2_HEADER));
-                m_Stream.MoveTo(posInsert);
+                m_Stream.Seek(posInsert);
             }
 
             if (Loc.posV2 == CMediaFile::NPos)
@@ -900,7 +900,7 @@ public:
                 {
                     if (bAllowPadding && cbPadding <= 1024 && rbAppend.IsEmpty())
                     {
-                        m_Stream.MoveTo(Loc.posV2 +
+                        m_Stream.Seek(Loc.posV2 +
                             sizeof(ID3v2_HEADER) + cbPrependTotal);
                         void* p = VAllocate(cbPadding);
                         EckCheckMemory(p);
@@ -914,12 +914,12 @@ public:
                         cbPadding = 0u;
                     }
                 }
-                m_Stream.MoveTo(Loc.posV2);
+                m_Stream.Seek(Loc.posV2);
             }
             else
             {
                 m_Stream.Insert(0u, cbPrependTotal + sizeof(ID3v2_HEADER));
-                m_Stream.MoveToBegin();
+                m_Stream.SeekToBegin();
             }
             if (pcbPaddingExtHdrV23)// BACKFILL 扩展头填充大小
                 *pcbPaddingExtHdrV23 = ReverseInteger((UINT)cbPadding);

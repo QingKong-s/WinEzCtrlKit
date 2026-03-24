@@ -126,21 +126,21 @@ public:
         const auto& Loc = m_File.GetTagLocation();
         if (Loc.posV2 != MaxSizeT)
         {
-            m_Stream.MoveTo(Loc.posV2);
+            m_Stream.Seek(Loc.posV2);
             ID3v2_HEADER Hdr;
             m_Stream >> Hdr;
             m_posBegin = TagSyncSafeIntToUInt(Hdr.Size) + 10 + Loc.posV2;// 跳过ID3v2以避免错误同步
         }
         else
             m_posBegin = 0;
-        m_Stream.MoveTo(m_posBegin);
+        m_Stream.Seek(m_posBegin);
         // 同步到MPEG头
         BYTE byHdr[4]{};
         m_Stream >> byHdr;
         if (byHdr[0] != 0xFF && (byHdr[1] & 0b1110'0000_by) != 0b1110'0000_by)
         {
             // 没有同步字节，重新同步
-            m_Stream.MoveTo(m_posBegin);
+            m_Stream.Seek(m_posBegin);
             BYTE* pBuf = (BYTE*)VAllocate(4096);
             UniquePtr<DelVA<BYTE>> _(pBuf);
             EckCheckMemory(pBuf);
@@ -158,7 +158,7 @@ public:
                         if (bySync[0] == 0xFF && (bySync[1] & 0b1110'0000_by) == 0b1110'0000)
                         {
                             m_posBegin += (p - pBuf - 1);
-                            m_Stream.MoveTo(m_posBegin) >> byHdr;
+                            m_Stream.Seek(m_posBegin) >> byHdr;
                             goto SyncSucceed;
                         }
                     }
@@ -175,7 +175,7 @@ public:
                         if (bySync[0] == 0xFF && (bySync[1] & 0b1110'0000_by) == 0b1110'0000)
                         {
                             m_posBegin += (p - pBuf - 1);
-                            m_Stream.MoveTo(m_posBegin) >> byHdr;
+                            m_Stream.Seek(m_posBegin) >> byHdr;
                             goto SyncSucceed;
                         }
                     }

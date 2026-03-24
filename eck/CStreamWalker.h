@@ -108,21 +108,21 @@ public:
         return *this;
     }
 
-    CStreamWalker& MoveToBegin()
+    CStreamWalker& SeekToBegin()
     {
         const auto hr = m_pStream->Seek({}, STREAM_SEEK_SET, nullptr);
         if (FAILED(hr))
             throw XptHResult{ hr };
         return *this;
     }
-    CStreamWalker& MoveToEnd()
+    CStreamWalker& SeekToEnd()
     {
         const auto hr = m_pStream->Seek({}, STREAM_SEEK_END, nullptr);
         if (FAILED(hr))
             throw XptHResult{ hr };
         return *this;
     }
-    CStreamWalker& MoveTo(size_t x)
+    CStreamWalker& Seek(size_t x)
     {
         const auto hr = m_pStream->Seek(ToLargeInt(x), STREAM_SEEK_SET, nullptr);
         if (FAILED(hr))
@@ -130,8 +130,7 @@ public:
         return *this;
     }
 
-    CStreamWalker& Seek(SSIZE_T x, UINT uOrg = STREAM_SEEK_SET,
-        size_t* pposNew = nullptr)
+    CStreamWalker& Seek(SSIZE_T x, UINT uOrg, _Out_ size_t* pposNew = nullptr)
     {
         ULARGE_INTEGER uliNew;
         const auto hr = m_pStream->Seek(ToLargeInt(x), uOrg, &uliNew);
@@ -190,7 +189,7 @@ public:
         ComPtr<IStream> pSelf;
         if (SUCCEEDED(m_pStream->Clone(&pSelf)))
         {
-            MoveTo(posSrc);
+            Seek(posSrc);
             auto hr = pSelf->Seek(ToLargeInt(posDst), STREAM_SEEK_SET, nullptr);
             if (SUCCEEDED(hr))
             {
@@ -212,9 +211,9 @@ public:
 
         if (cbSize <= cbMoveBuf)
         {
-            MoveTo(posSrc);
+            Seek(posSrc);
             Read(pMoveBuf, (ULONG)cbSize);
-            MoveTo(posDst);
+            Seek(posDst);
             Write(pMoveBuf, (ULONG)cbSize);
             return;
         }
@@ -227,18 +226,18 @@ public:
             size_t posWrite = posDstEnd - cbMoveBuf;
             EckLoop()
             {
-                MoveTo(posRead);
+                Seek(posRead);
                 Read(pMoveBuf, cbMoveBuf);
-                MoveTo(posWrite);
+                Seek(posWrite);
                 Write(pMoveBuf, cbMoveBuf);
 
                 if (const auto cb = posRead - posSrc; cb < cbMoveBuf)
                 {
                     if (!cb)
                         break;
-                    MoveTo(posSrc);
+                    Seek(posSrc);
                     Read(pMoveBuf, cb);
-                    MoveTo(posDst);
+                    Seek(posDst);
                     Write(pMoveBuf, cb);
                     break;
                 }
@@ -255,18 +254,18 @@ public:
             size_t posWrite = posDst;
             EckLoop()
             {
-                MoveTo(posRead);
+                Seek(posRead);
                 Read(pMoveBuf, cbMoveBuf);
-                MoveTo(posWrite);
+                Seek(posWrite);
                 Write(pMoveBuf, cbMoveBuf);
 
                 if (const auto cb = posSrcEnd - (posRead + cbMoveBuf); cb < cbMoveBuf)
                 {
                     if (!cb)
                         break;
-                    MoveTo(posRead + cbMoveBuf);
+                    Seek(posRead + cbMoveBuf);
                     Read(pMoveBuf, cb);
-                    MoveTo(posWrite + cbMoveBuf);
+                    Seek(posWrite + cbMoveBuf);
                     Write(pMoveBuf, cb);
                     break;
                 }

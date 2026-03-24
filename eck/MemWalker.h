@@ -23,7 +23,7 @@ namespace Priv
         PCBYTE m_pBase{};
         size_t m_cbMax{};
 
-        EckInline void CheckRange(PCBYTE p)
+        EckInline void CheckRange(PCBYTE p) const
         {
             if (m_pBase + m_cbMax < p)
                 throw XptMemWalkerRange{ m_pBase, m_cbMax, p };
@@ -49,7 +49,7 @@ namespace Priv
         BYTE* m_pBase{};
         size_t m_cbMax{};
 
-        EckInline void CheckRange(BYTE* p)
+        EckInline void CheckRange(BYTE* p) const
         {
             if (m_pBase + m_cbMax < p)
                 throw XptMemWalkerRange{ m_pBase, m_cbMax, p };
@@ -76,10 +76,10 @@ namespace Priv
             return *this;
         }
 
-        template<class T>
+        template<CcpTrivial T>
         EckInline auto& operator<<(const T& Data) { return Write(&Data, sizeof(T)); }
 
-        template<class T>
+        template<CcpTrivial T>
         EckInline auto& WriteReversed(const T& Data) { return WriteReversed(&Data, sizeof(T)); }
 
         template<class T, class U>
@@ -147,10 +147,10 @@ namespace Priv
             return *this;
         }
 
-        template<class T>
+        template<CcpTrivial T>
         EckInline auto& operator>>(_Out_ T& Data) { return Read(&Data, sizeof(Data)); }
 
-        template<class T>
+        template<CcpTrivial T>
         EckInline auto& ReadReversed(_Out_ T& Data) { return ReadReversed(&Data, sizeof(T)); }
 
         template<class T, class U, class V>
@@ -162,7 +162,7 @@ namespace Priv
         }
 
         template<class T>
-        int CountStringLength()
+        int CountStringLength() const
         {
             auto p = (const T*)Data();
             const auto pEnd = (const T*)(this->m_pBase + this->m_cbMax);
@@ -179,7 +179,7 @@ namespace Priv
         }
 
         template<class T>
-        int CountStringLengthSafe() noexcept
+        int CountStringLengthSafe() const noexcept
         {
             auto p = (const T*)Data();
             const auto pEnd = (const T*)(this->m_pBase + this->m_cbMax);
@@ -198,7 +198,7 @@ namespace Priv
             return *this;
         }
 
-        EckInlineNdCe auto Data() noexcept { return this->m_pMem; }
+        EckInlineNdCe auto Data() const noexcept { return this->m_pMem; }
 
         EckInline auto& operator+=(size_t cb)
         {
@@ -213,17 +213,17 @@ namespace Priv
             return *this;
         }
 
-        EckInlineCe auto& MoveToBegin() noexcept
+        EckInlineCe auto& SeekToBegin() noexcept
         {
             this->m_pMem = this->m_pBase;
             return *this;
         }
-        EckInlineCe auto& MoveToEnd() noexcept
+        EckInlineCe auto& SeekToEnd() noexcept
         {
             this->m_pMem = this->m_pBase + this->m_cbMax;
             return *this;
         }
-        EckInline auto& MoveTo(size_t pos)
+        EckInline auto& Seek(size_t pos)
         {
             this->CheckRange(this->m_pBase + pos);
             this->m_pMem = this->m_pBase + pos;

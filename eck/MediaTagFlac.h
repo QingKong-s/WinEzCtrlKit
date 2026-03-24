@@ -102,7 +102,7 @@ private:
         const auto& Loc = m_File.GetTagLocation();
         if (Loc.posFlac == CMediaFile::NPos)
             return Result::NoTag;
-        m_Stream.MoveTo(Loc.posFlac) += 4;
+        m_Stream.Seek(Loc.posFlac) += 4;
         FLAC_BLOCK_HEADER Header;
         UINT cbBlock;
         do
@@ -440,7 +440,7 @@ public:
         const auto& Loc = m_File.GetTagLocation();
         if (Loc.posFlac == CMediaFile::NPos)
             return Result::NoTag;
-        m_Stream.MoveTo(Loc.posFlac) += 4;
+        m_Stream.Seek(Loc.posFlac) += 4;
         FLAC_BLOCK_HEADER Header;
         UINT cbBlock;
         UINT t;
@@ -643,7 +643,7 @@ public:
             {
                 bHasEnd = TRUE;
                 cbPadding -= 4;
-                m_Stream.MoveTo(m_posStreamInfoEnd + cbNewVorbisAndPic)
+                m_Stream.Seek(m_posStreamInfoEnd + cbNewVorbisAndPic)
                     // 这种情况下填充肯定为最后一个块
                     << BYTE(0b1000'0000 | (BYTE)BlockType::Padding)
                     << GetIntegerByte<2>(cbPadding)
@@ -664,7 +664,7 @@ public:
             bHasEnd = TRUE;
         }
 
-        m_Stream.MoveTo(m_posStreamInfoEnd);
+        m_Stream.Seek(m_posStreamInfoEnd);
         m_Stream << rbPic << rbVorbis;
         EckCounter(m_vBlock.size(), i)
         {

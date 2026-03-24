@@ -141,6 +141,8 @@ template<class TCharPtr>
 concept CcpStdCharPtr = std::is_pointer_v<TCharPtr> && CcpStdChar<std::remove_cvref_t<std::remove_pointer_t<TCharPtr>>>;
 template<class TCharPtr>
 concept CcpNonConstStdCharPtr = std::is_pointer_v<TCharPtr> && CcpStdChar<std::remove_volatile_t<std::remove_reference_t<std::remove_pointer_t<TCharPtr>>>>;
+template<class T>
+concept CcpTrivial = std::is_trivial_v<T>;
 
 template<class T>
 concept CcpRectStruct = std::is_same_v<T, RECT> || std::is_same_v<T, RECTL>

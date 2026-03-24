@@ -129,7 +129,7 @@ public:
         return nts;
     }
 
-    LONGLONG PosGet(_Out_opt_ NTSTATUS* pnts = nullptr) noexcept
+    LONGLONG GetPosition(_Out_opt_ NTSTATUS* pnts = nullptr) noexcept
     {
         IO_STATUS_BLOCK iosb;
         FILE_POSITION_INFORMATION Info;
@@ -138,7 +138,7 @@ public:
         if (pnts) *pnts = nts;
         return Info.CurrentByteOffset.QuadPart;
     }
-    CFile& PosSet(LONGLONG pos, _Out_opt_ NTSTATUS* pnts = nullptr) noexcept
+    CFile& Seek(LONGLONG pos, _Out_opt_ NTSTATUS* pnts = nullptr) noexcept
     {
         IO_STATUS_BLOCK iosb;
         const auto nts = NtSetInformationFile(m_hObject, &iosb,
@@ -146,21 +146,21 @@ public:
         if (pnts) *pnts = nts;
         return *this;
     }
-    CFile& PosDelta(LONGLONG d, _Out_opt_ NTSTATUS* pnts = nullptr) noexcept
+    CFile& SeekDelta(LONGLONG d, _Out_opt_ NTSTATUS* pnts = nullptr) noexcept
     {
         NTSTATUS nts;
-        const auto pos = PosGet(&nts);
+        const auto pos = GetPosition(&nts);
         if (NT_SUCCESS(nts))
-            PosSet(pos + d, pnts);
+            Seek(pos + d, pnts);
         else
             if (pnts) *pnts = nts;
         return *this;
     }
-    EckInline CFile& operator+=(LONGLONG d) noexcept { return PosDelta(d); }
-    EckInline CFile& operator-=(LONGLONG d) noexcept { return PosDelta(-d); }
+    EckInline CFile& operator+=(LONGLONG d) noexcept { return SeekDelta(d); }
+    EckInline CFile& operator-=(LONGLONG d) noexcept { return SeekDelta(-d); }
 
-    EckInline CFile& PosToBegin() noexcept { return PosSet(0); }
-    EckInline CFile& PosToEnd() noexcept { return PosSet(GetSize()); }
+    EckInline CFile& SeekToBegin() noexcept { return Seek(0); }
+    EckInline CFile& SeekToEnd() noexcept { return Seek(GetSize()); }
 
     EckInline NTSTATUS Flush() noexcept
     {
