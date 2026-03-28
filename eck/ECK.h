@@ -136,11 +136,11 @@ concept CcpNumberOrEnum = CcpNumber<T> || std::is_enum_v<T>;
 template<class T>
 concept CcpComInterface = std::is_base_of_v<IUnknown, std::remove_cvref_t<T>>;
 template<class TChar>
-concept CcpStdChar = std::is_same_v<TChar, CHAR> || std::is_same_v<TChar, WCHAR>;
+concept CcpChar = std::is_same_v<TChar, CHAR> || std::is_same_v<TChar, WCHAR>;
 template<class TCharPtr>
-concept CcpStdCharPtr = std::is_pointer_v<TCharPtr> && CcpStdChar<std::remove_cvref_t<std::remove_pointer_t<TCharPtr>>>;
+concept CcpCharPointer = std::is_pointer_v<TCharPtr> && CcpChar<std::remove_cvref_t<std::remove_pointer_t<TCharPtr>>>;
 template<class TCharPtr>
-concept CcpNonConstStdCharPtr = std::is_pointer_v<TCharPtr> && CcpStdChar<std::remove_volatile_t<std::remove_reference_t<std::remove_pointer_t<TCharPtr>>>>;
+concept CcpNonConstCharPointer = std::is_pointer_v<TCharPtr> && CcpChar<std::remove_volatile_t<std::remove_reference_t<std::remove_pointer_t<TCharPtr>>>>;
 template<class T>
 concept CcpTrivial = std::is_trivial_v<T>;
 
@@ -156,12 +156,12 @@ concept CcpPointStruct = std::is_same_v<T, POINT> || std::is_same_v<T, POINTL>
 || std::is_same_v<T, D2D1_POINT_2F> || std::is_same_v<T, D2D1_POINT_2U>;
 #endif
 
-template<CcpStdCharPtr TPtr>
-using RemoveStdCharPtr_T = std::remove_cvref_t<std::remove_pointer_t<TPtr>>;
-template<CcpStdCharPtr TPtr>
-using ConstStdCharPtr_T = const RemoveStdCharPtr_T<TPtr>*;
-template<CcpStdCharPtr TPtr1, CcpStdCharPtr TPtr2>
-constexpr inline bool IsSameStdCharPtr_V = std::is_same_v<RemoveStdCharPtr_T<TPtr1>, RemoveStdCharPtr_T<TPtr2>>;
+template<CcpCharPointer TPtr>
+using CharFromPointer_T = std::remove_cvref_t<std::remove_pointer_t<TPtr>>;
+template<CcpCharPointer TPtr>
+using ConstCharPointer_T = const CharFromPointer_T<TPtr>*;
+template<CcpCharPointer TPtr1, CcpCharPointer TPtr2>
+constexpr inline bool IsSameChar_V = std::is_same_v<CharFromPointer_T<TPtr1>, CharFromPointer_T<TPtr2>>;
 
 template<CcpIntOrEnum T, bool = std::is_enum_v<T>>
 struct UnderlyingType
@@ -309,36 +309,36 @@ ECK_NAMESPACE_END
             e& operator=(const e&) = delete;
 
 #define ECK_ENUM_BIT_FLAGS(Type)                                \
-            EckInline constexpr Type operator&(Type a, Type b)  \
+            EckInlineNdCe Type operator&(Type a, Type b)  \
             { \
                 return Type((std::underlying_type_t<Type>)a &   \
                     (std::underlying_type_t<Type>)b);           \
             } \
-            EckInline constexpr Type operator|(Type a, Type b)	\
+            EckInlineNdCe Type operator|(Type a, Type b)	\
             { \
                 return Type((std::underlying_type_t<Type>)a |   \
                     (std::underlying_type_t<Type>)b);           \
             } \
-            EckInline constexpr Type operator~(Type a)          \
+            EckInlineNdCe Type operator~(Type a)          \
             { \
                 return Type(~(std::underlying_type_t<Type>)a);  \
             } \
-            EckInline constexpr Type operator^(Type a, Type b)  \
+            EckInlineNdCe Type operator^(Type a, Type b)  \
             { \
                 return Type((std::underlying_type_t<Type>)a ^   \
                     (std::underlying_type_t<Type>)b);           \
             } \
-            EckInline constexpr Type& operator&=(Type& a, Type b) \
+            EckInlineCe Type& operator&=(Type& a, Type b) \
             {               \
                 a = a & b;  \
                 return a;   \
             }               \
-            EckInline constexpr Type& operator|=(Type& a, Type b) \
+            EckInlineCe Type& operator|=(Type& a, Type b) \
             {               \
                 a = a | b;  \
                 return a;   \
             }               \
-            EckInline constexpr Type& operator^=(Type& a, Type b) \
+            EckInlineCe Type& operator^=(Type& a, Type b) \
             {               \
                 a = a ^ b;  \
                 return a;   \

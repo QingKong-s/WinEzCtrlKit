@@ -737,7 +737,7 @@ EckInlineNdCe BYTE ByteFromHex(CHAR x1, CHAR x2) noexcept
 }
 
 EckInlineCe void ToStringUpper(_In_reads_bytes_(cb) PCVOID p, size_t cb,
-    _Out_writes_(cb * 2) CcpStdCharPtr auto pszResult) noexcept
+    _Out_writes_(cb * 2) CcpCharPointer auto pszResult) noexcept
 {
     EckCounter(cb, i)
     {
@@ -747,7 +747,7 @@ EckInlineCe void ToStringUpper(_In_reads_bytes_(cb) PCVOID p, size_t cb,
     }
 }
 EckInlineCe void ToStringLower(_In_reads_bytes_(cb) PCVOID p, size_t cb,
-    _Out_writes_(cb * 2) CcpStdCharPtr auto pszResult) noexcept
+    _Out_writes_(cb * 2) CcpCharPointer auto pszResult) noexcept
 {
     EckCounter(cb, i)
     {
@@ -765,7 +765,7 @@ EckInlineCe void FromString(_Out_writes_bytes_(cb) PVOID p, size_t cb,
 }
 
 EckInlineCe void Md5ToString(_In_reads_bytes_(16) PCVOID pMd5,
-    _Out_writes_(32) CcpStdCharPtr auto pszResult, BOOL bUpper = TRUE) noexcept
+    _Out_writes_(32) CcpCharPointer auto pszResult, BOOL bUpper = TRUE) noexcept
 {
     if (bUpper)
         ToStringUpper(pMd5, (size_t)16, pszResult);
@@ -774,7 +774,7 @@ EckInlineCe void Md5ToString(_In_reads_bytes_(16) PCVOID pMd5,
 }
 
 inline constexpr void GuidToString(const GUID& guid,
-    _Out_writes_(32) CcpStdCharPtr auto pszResult, BOOL bUpper = TRUE) noexcept
+    _Out_writes_(32) CcpCharPointer auto pszResult, BOOL bUpper = TRUE) noexcept
 {
     const BYTE* p = (const BYTE*)&guid;
     BYTE by[16];

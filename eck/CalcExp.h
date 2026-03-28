@@ -189,13 +189,13 @@ namespace Priv
     };
 }
 
-template<CcpStdCharPtr TPtr>
+template<CcpCharPointer TPtr>
 inline CalcExpResult CalculateExpression(
     _Out_ double& lfResult,
     _In_reads_or_z_(cchExp) TPtr pszExp,
     int cchExp = -1) noexcept
 {
-    using TChar = RemoveStdCharPtr_T<TPtr>;
+    using TChar = CharFromPointer_T<TPtr>;
     using TTraits = Priv::CeCharTraits<TChar>;
 
     lfResult = 0.;

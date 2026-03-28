@@ -51,7 +51,7 @@ EckInlineNdCe size_t TcvIntBufferSize(int iRadix = 10, int cchFillTo = 0) noexce
 /// <param name="iRadix">进制，在2到36之间，若为0则根据前缀自动判断进制，支持0x和0b</param>
 /// <param name="ppEnd">接收指向扫描结束位置下一个字符的指针，若失败，返回p的值</param>
 /// <returns>错误代码</returns>
-template<CcpStdCharPtr TPtr, std::integral TInt>
+template<CcpCharPointer TPtr, std::integral TInt>
 inline TcvResult TcvToInt(
     _In_reads_(cch) TPtr p,
     size_t cch,
@@ -153,7 +153,7 @@ inline TcvResult TcvToInt(
 /// <param name="cchFillTo">最小数字宽度（不包括负号），当实际数字位数小于该值时执行填充</param>
 /// <param name="chFill">用作填充的字符</param>
 /// <returns>错误代码</returns>
-template<CcpNonConstStdCharPtr TPtr, std::integral TInt>
+template<CcpNonConstCharPointer TPtr, std::integral TInt>
 inline TcvResult TcvFromInt(
     _Out_writes_(cch) TPtr p,
     size_t cch,
@@ -162,7 +162,7 @@ inline TcvResult TcvFromInt(
     BOOL bUpperCase = TRUE,
     _Outptr_opt_ TPtr* ppEnd = nullptr,
     int cchFillTo = 0,
-    RemoveStdCharPtr_T<TPtr> chFill = '0') noexcept
+    CharFromPointer_T<TPtr> chFill = '0') noexcept
 {
     EckAssert(iRadix >= 2 && iRadix <= 36);
     if (cch < TcvIntBufferSize<TInt>(iRadix, cchFillTo) - 1)
@@ -182,7 +182,7 @@ inline TcvResult TcvFromInt(
             Val = TUnsigned(0 - i);
         }
     }
-    using TChar = RemoveStdCharPtr_T<TPtr>;
+    using TChar = CharFromPointer_T<TPtr>;
 
     constexpr TChar DigU[]{ '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E',
     'F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z' };
@@ -258,7 +258,7 @@ namespace Priv
     }
 }
 
-template<CcpStdCharPtr TPtr, std::floating_point TFloat>
+template<CcpCharPointer TPtr, std::floating_point TFloat>
 inline TcvResult TcvToFloat(
     _In_reads_(cch) TPtr p,
     size_t cch,
@@ -267,7 +267,7 @@ inline TcvResult TcvToFloat(
     TcvFloatFmt eFmt = TcvFloatFmt::General,
     int iRadix = 10) noexcept
 {
-    using TChar = RemoveStdCharPtr_T<TPtr>;
+    using TChar = CharFromPointer_T<TPtr>;
 
     if (!cch)
     {
@@ -288,7 +288,7 @@ inline TcvResult TcvToFloat(
     return Priv::CharConvEcToTcvResult(r.ec);
 }
 
-template<CcpNonConstStdCharPtr TPtr, std::floating_point TFloat>
+template<CcpNonConstCharPointer TPtr, std::floating_point TFloat>
 inline TcvResult TcvFromFloat(
     _Out_writes_(cch) TPtr p,
     size_t cch,
@@ -297,7 +297,7 @@ inline TcvResult TcvFromFloat(
     TcvFloatFmt eFmt = TcvFloatFmt::General,
     int iPrecision = 6) noexcept
 {
-    using TChar = RemoveStdCharPtr_T<TPtr>;
+    using TChar = CharFromPointer_T<TPtr>;
 
     const auto pBufA = (PCH)p;
     const auto cchBufA = cch * sizeof(TChar);

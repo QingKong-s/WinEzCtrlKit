@@ -49,7 +49,7 @@ public:
     /// <param name="ch1">表示1的字符</param>
     /// <param name="ch0">表示0的字符</param>
     /// <param name="chIgnore">忽略的字符，可用作分隔</param>
-    template<CcpStdChar TChar>
+    template<CcpChar TChar>
     void FromText(_In_reads_(cch) const TChar* psz, int cch,
         TChar ch1, TChar ch0, TChar chIgnore = '\'') noexcept
     {

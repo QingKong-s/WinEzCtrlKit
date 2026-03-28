@@ -5,16 +5,16 @@
 #include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
-template<CcpStdChar TChar>
+template<CcpChar TChar>
 using TStringDefaultAllocator = CDefaultAllocator<TChar, int>;
 
-template<CcpStdChar TChar_, class TCharTraits_, class TAllocator_>
+template<CcpChar TChar_, class TCharTraits_, class TAllocator_>
 class CStringT;
 
 template<class TCharTraits, class TAllocator>
 CStringT<WCHAR, TCharTraits, TAllocator> EcdMultiByteToWide(PCSTR pszText, int cch, int uCP) noexcept;
 
-template<CcpStdChar TChar_>
+template<CcpChar TChar_>
 struct CCharTraits
 {
     using TChar = void;
@@ -44,11 +44,11 @@ struct CCharTraits<CHAR>
     EckInline static int GetFormatLengthV(PCSTR pszFmt, va_list vl) noexcept { return _vscprintf(pszFmt, vl); }
 };
 
-template<CcpStdChar TChar>
+template<CcpChar TChar>
 using TStringDefaultTraits = CCharTraits<TChar>;
 
 template<
-    CcpStdChar TChar_,
+    CcpChar TChar_,
     class TCharTraits_ = TStringDefaultTraits<TChar_>,
     class TAllocator_ = TStringDefaultAllocator<TChar_>
 >

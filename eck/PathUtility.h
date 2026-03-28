@@ -9,11 +9,11 @@ inline constexpr std::string_view
 IllegalPathCharA{ R"(\/:*?"<>|)" },
 IllegalPathCharWithDotA{ R"(\/:*?"<>|.)" };
 
-template<CcpStdCharPtr TPointer>
+template<CcpCharPointer TPointer>
 void PazLegalize(_In_z_ TPointer pszPath,
-    RemoveStdCharPtr_T<TPointer> chReplace = '_', BOOL bReplaceDot = FALSE) noexcept
+    CharFromPointer_T<TPointer> chReplace = '_', BOOL bReplaceDot = FALSE) noexcept
 {
-    if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPointer>, char>)
+    if constexpr (std::is_same_v<CharFromPointer_T<TPointer>, char>)
     {
         const auto IllegalChars{ bReplaceDot ? IllegalPathCharA : IllegalPathCharWithDotA };
         auto p{ pszPath };
@@ -28,11 +28,11 @@ void PazLegalize(_In_z_ TPointer pszPath,
             *p++ = chReplace;
     }
 }
-template<CcpStdCharPtr TPointer>
+template<CcpCharPointer TPointer>
 void PazLegalizeLength(_In_reads_(cchPath) TPointer pszPath, int cchPath,
-    RemoveStdCharPtr_T<TPointer> chReplace = '_', BOOL bReplaceDot = FALSE) noexcept
+    CharFromPointer_T<TPointer> chReplace = '_', BOOL bReplaceDot = FALSE) noexcept
 {
-    if constexpr (std::is_same_v<RemoveStdCharPtr_T<TPointer>, char>)
+    if constexpr (std::is_same_v<CharFromPointer_T<TPointer>, char>)
     {
         const auto IllegalChars{ bReplaceDot ? IllegalPathCharA : IllegalPathCharWithDotA };
         const auto pEnd = pszPath + cchPath;
@@ -50,7 +50,7 @@ void PazLegalizeLength(_In_reads_(cchPath) TPointer pszPath, int cchPath,
     }
 }
 
-template<CcpStdCharPtr TPointer>
+template<CcpCharPointer TPointer>
 HRESULT PazParseCommandLine(
     _In_reads_(cchCmdLine) TPointer pszCmdLine, int cchCmdLine,
     _Out_ TPointer& pszFile, _Out_ int& cchFile,
@@ -102,7 +102,7 @@ FileNameOk:;// 至此文件名处理完毕
     cchParam = int(pEnd - pszParam);
     return S_OK;
 }
-template<CcpStdCharPtr TPointer>
+template<CcpCharPointer TPointer>
 HRESULT PazParseCommandLineAndCut(
     _In_reads_(cchCmdLine) TPointer pszCmdLine, int cchCmdLine,
     _Out_ TPointer& pszFile, _Out_ int& cchFile,
@@ -121,7 +121,7 @@ HRESULT PazParseCommandLineAndCut(
     return hr;
 }
 
-EckNfInlineNd BOOL PazIsDotFileName(_In_reads_z_(3) CcpStdCharPtr auto pszFileName) noexcept
+EckNfInlineNd BOOL PazIsDotFileName(_In_reads_z_(3) CcpCharPointer auto pszFileName) noexcept
 {
     return pszFileName[0] == '.' && (pszFileName[1] == '\0' ||
         (pszFileName[1] == '.' && pszFileName[2] == '\0'));
