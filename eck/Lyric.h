@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "EncodingDetect.h"
-#include "StringConvert.h"
 
 #if 1
 #define EckLrcValidateHeap()		_CrtCheckMemory()

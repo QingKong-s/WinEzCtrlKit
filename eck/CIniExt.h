@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "CString.h"
-#include "StringConvert.h"
 
 #include <map>
 

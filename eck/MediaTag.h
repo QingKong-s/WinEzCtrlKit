@@ -1,16 +1,11 @@
 ﻿#pragma once
-#include "CString.h"
-#include "CByteBuffer.h"
 #include "CStreamWalker.h"
 #include "MemWalker.h"
 #include "CBitSet.h"
 #include "Utility2.h"
 #include "AutoPtrDef.h"
 #include "ComPtr.h"
-#include "StringConvert.h"
 #include "CStreamView.h"
-
-#include <variant>
 
 ECK_NAMESPACE_BEGIN
 ECK_MEDIATAG_NAMESPACE_BEGIN

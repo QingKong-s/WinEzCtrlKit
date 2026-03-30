@@ -1,6 +1,10 @@
 ﻿#pragma once
 #define GDIPVER 0x110
 
+#ifndef ECK_OPT_NO_RTTI
+#define ECK_OPT_NO_RTTI 1
+#endif
+
 #if ECK_OPT_DISABLE_5260
 __pragma(warning(disable:5260))
 #endif

@@ -617,9 +617,6 @@
     <ClCompile Include="eck\NetworkHelper.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
-    <ClCompile Include="eck\ObjectAttribute.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
     <ClCompile Include="eck\PathUtility.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
@@ -748,8 +745,5 @@
     <ResourceCompile Include="Win32Template.rc">
       <Filter>资源文件</Filter>
     </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>

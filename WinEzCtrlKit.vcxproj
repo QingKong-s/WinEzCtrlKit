@@ -341,7 +341,6 @@
     <ClCompile Include="eck\ITimeLine.h" />
     <ClCompile Include="eck\NativeWrapper.h" />
     <ClCompile Include="eck\NetworkHelper.h" />
-    <ClCompile Include="eck\ObjectAttribute.h" />
     <ClCompile Include="eck\CDataObjectHDrop.h" />
     <ClCompile Include="eck\PhysicalDriveId.h" />
     <ClCompile Include="eck\PrivateApi.h" />
@@ -419,9 +418,6 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Win32Template.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="cpp.hint" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

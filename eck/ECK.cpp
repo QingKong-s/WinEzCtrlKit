@@ -1686,7 +1686,7 @@ InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ UINT*
 
     // 运行目录
     GetModuleFile(NtCurrentImageBase(), g_rsRunningDir);
-    g_rsRunningDir.PazRemoveFileSpec();
+    g_rsRunningDir.PazRemoveFileName();
 
     HRESULT hr;
 #if !ECK_OPT_NO_DX

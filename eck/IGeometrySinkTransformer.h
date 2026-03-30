@@ -2,7 +2,7 @@
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
-constexpr IID IID_IGeometrySinkTransformer
+constexpr inline IID IID_IGeometrySinkTransformer
 { 0x6abd0903, 0x4980, 0x48a0, { 0xa7, 0xd4, 0x2a, 0x9c, 0x36, 0x36, 0x3d, 0x14 } };
 
 // 提供控制D2D简单几何接收器转换层的能力

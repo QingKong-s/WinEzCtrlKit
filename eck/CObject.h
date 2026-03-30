@@ -1,7 +1,10 @@
 ﻿#pragma once
-#include "ObjectAttribute.h"
+#include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
+#if ECK_OPT_NO_RTTI
+#define ECK_RTTI(Cls, Base)
+#else
 #define ECK_RTTI(Cls, Base)         \
     inline static ::eck::ClassInfo s_ClassInfo_##Cls \
     {                               \
@@ -14,9 +17,10 @@ ECK_NAMESPACE_BEGIN
     static constexpr ::eck::ClassInfo* RttiThisClass() \
     { return &s_ClassInfo_##Cls; }  \
     inline static ::eck::Priv::ClassRegister s_ClassRegister_##Cls{ &Cls::s_ClassInfo_##Cls };
-
+#endif // ECK_OPT_NO_RTTI
 
 class CObject;
+#if !ECK_OPT_NO_RTTI
 struct ClassInfo
 {
     using FNewObject = CObject * (*)();
@@ -32,8 +36,15 @@ namespace Priv
 {
     struct ClassRegister { ClassRegister(ClassInfo* pInfo) noexcept; };
 }
+#endif // !ECK_OPT_NO_RTTI
 
-// 绝对不能直接实例化此类
+#if ECK_OPT_NO_RTTI
+class __declspec(novtable) CObject
+{
+public:
+    virtual ~CObject() = default;
+};
+#else
 class __declspec(novtable) CObject
 {
     friend struct Priv::ClassRegister;
@@ -74,22 +85,6 @@ public:
     {
         return RttiIsKindOf(T::RttiThisClass());
     }
-
-    virtual ObjAttrErr GetSetAttribute(std::wstring_view svName,
-        std::wstring_view svValue, CStringW& rsValue, BOOL bSet) noexcept
-    {
-        return ObjAttrErr::InvalidAttr;
-    }
-
-    EckInline ObjAttrErr GetAttribute(std::wstring_view svName, CStringW& rsValue) noexcept
-    {
-        return GetSetAttribute(svName, {}, rsValue, FALSE);
-    }
-    EckInline ObjAttrErr SetAttribute(std::wstring_view svName, std::wstring_view svValue) noexcept
-    {
-        CStringW Dummy{};
-        return GetSetAttribute(svName, svValue, Dummy, TRUE);
-    }
 };
 
 inline Priv::ClassRegister::ClassRegister(ClassInfo* pInfo) noexcept
@@ -122,4 +117,5 @@ EckInlineNd CObject* RttiNewObject(std::wstring_view svClassName) noexcept
         return nullptr;
     return pInfo->NewObject();
 }
+#endif // ECK_OPT_NO_RTTI
 ECK_NAMESPACE_END

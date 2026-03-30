@@ -3,6 +3,7 @@
 #include "Allocator.h"
 #include "PathUtility.h"
 #include "Utility.h"
+#include "StringConvert.h"
 
 ECK_NAMESPACE_BEGIN
 template<CcpChar TChar>
@@ -1092,8 +1093,57 @@ public:
         return CompareI(sv.data(), (int)sv.size());
     }
 
+    template<CcpIntOrEnum T>
+    void PushBackNumber(
+        T x,
+        int iRadix = 10,
+        BOOL bUpperCase = FALSE,
+        int cchFillTo = 0,
+        TChar chFill = ' ') noexcept
+    {
+        using TInt = UnderlyingType_T<T>;
+        const auto cchBuf = TcvIntBufferSize<TInt>(iRadix, cchFillTo);
+        const auto p = PushBackNoExtra(cchBuf);
+        PWCH pEnd;
+        const auto r = TcvFromInt(p, cchBuf, (TInt)x,
+            iRadix, bUpperCase, &pEnd, cchFillTo, chFill);
+        ReSize(int(pEnd - Data()));
+    }
+    template<std::floating_point T>
+    void PushBackNumber(
+        T x,
+        int iPrecision = 6,
+        TcvFloatFmt eFmt = TcvFloatFmt::General) noexcept
+    {
+        const auto cchOld = Size();
+        PWCH pEnd;
+        TcvResult r;
+        int cchBuf = 24;
+        PushBackNoExtra(cchBuf);
+        EckLoop()
+        {
+            r = TcvFromFloat(Data() + cchOld, cchBuf, x,
+                &pEnd, eFmt, iPrecision);
+            if (r == TcvResult::Ok)
+            {
+                ReSize(int(pEnd - Data()));
+                break;
+            }
+            else if (r == TcvResult::BufferTooSmall)
+            {
+                cchBuf = cchBuf * 3 / 2;
+                PushBack(cchBuf);
+            }
+            else
+            {
+                ReSize(cchOld);
+                break;
+            }
+        }
+    }
+
     // 返回文件名的位置，注意：若分隔符在开头则返回-1
-    [[nodiscard]] int PazFindFileSpec() const noexcept
+    [[nodiscard]] int PazFindFileName() const noexcept
     {
         if (IsEmpty())
             return -1;
@@ -1113,9 +1163,9 @@ public:
         return -1;
     }
 
-    BOOL PazRemoveFileSpec() noexcept
+    BOOL PazRemoveFileName() noexcept
     {
-        const auto pos = PazFindFileSpec();
+        const auto pos = PazFindFileName();
         if (pos < 0)
             return FALSE;
         EckAssert(pos >= 1);
@@ -1123,9 +1173,9 @@ public:
         return TRUE;
     }
 
-    BOOL PazRenameFileSpec(TConstPointer pszNewName, int cchNewName = -1) noexcept
+    BOOL PazRenameFileName(TConstPointer pszNewName, int cchNewName = -1) noexcept
     {
-        const auto pos = PazFindFileSpec();
+        const auto pos = PazFindFileName();
         if (pos < 0)
             return FALSE;
         if (cchNewName < 0)
@@ -1226,7 +1276,7 @@ public:
 
     void PazFindFileName(BOOL bKeepExtension, _Out_ int& pos0, _Out_ int& pos1) const noexcept
     {
-        pos0 = PazFindFileSpec();
+        pos0 = PazFindFileName();
         if (bKeepExtension)
             pos1 = Size();
         else if ((pos1 = PazFindExtension()) < 0)
@@ -1278,10 +1328,10 @@ public:
 using CStringW = CStringT<WCHAR, CCharTraits<WCHAR>>;
 using CStringA = CStringT<CHAR, CCharTraits<CHAR>>;
 
+#pragma region Operator
 #undef EckTemp
 #define EckTemp CStringT<TChar, TCharTraits, TAllocator>
 
-#pragma region Operator
 template<class TChar, class TCharTraits, class TAllocator>
 EckInline EckTemp operator+(const EckTemp& rs1, const EckTemp& rs2)
 {
@@ -1348,6 +1398,8 @@ EckInlineNd std::weak_ordering operator<=>(const EckTemp& rs1, const EckTemp& rs
 {
     return TcsCompareLength2(rs1.Data(), rs1.Size(), rs2.Data(), rs2.Size()) <=> 0;
 }
+
+#undef EckTemp
 #pragma endregion Operator
 
 template<class TCharTraits, class TAllocator>
@@ -1357,7 +1409,6 @@ EckInline void DbgPrint(const CStringT<WCHAR, TCharTraits, TAllocator>& rs, int 
     if (bNewLine)
         OutputDebugStringW(L"\n");
 }
-
 template<class TCharTraits, class TAllocator>
 EckInline void DbgPrint(const CStringT<CHAR, TCharTraits, TAllocator>& rs, int iType = 1, BOOL bNewLine = TRUE) noexcept
 {
@@ -1366,44 +1417,23 @@ EckInline void DbgPrint(const CStringT<CHAR, TCharTraits, TAllocator>& rs, int i
         OutputDebugStringA("\n");
 }
 
-EckInlineNd CStringW ToString(int x, int iRadix = 10) noexcept
-{
-    CStringW rs(CchI32ToStrBuf);
-    _itow(x, rs.Data(), iRadix);
-    rs.ReCalculateLength();
-    return rs;
-}
-
-EckInlineNd CStringW ToString(UINT x, int iRadix = 10) noexcept
-{
-    CStringW rs(CchI32ToStrBuf);
-    _ultow(x, rs.Data(), iRadix);
-    rs.ReCalculateLength();
-    return rs;
-}
-
-EckInlineNd CStringW ToString(LONGLONG x, int iRadix = 10) noexcept
-{
-    CStringW rs(CchI64ToStrBuf);
-    _i64tow(x, rs.Data(), iRadix);
-    rs.ReCalculateLength();
-    return rs;
-}
-
-EckInlineNd CStringW ToString(ULONGLONG x, int iRadix = 10) noexcept
-{
-    CStringW rs(CchI64ToStrBuf);
-    _ui64tow(x, rs.Data(), iRadix);
-    rs.ReCalculateLength();
-    return rs;
-}
-
-EckInlineNd CStringW ToString(double x, int iPrecision = 6) noexcept
+template<std::integral T>
+EckInlineNd CStringW ToString(T x,
+    int iRadix = 10, BOOL bUpperCase = FALSE) noexcept
 {
     CStringW rs{};
-    rs.Format(L"%.*g", iPrecision, x);
+    rs.PushBackNumber(x, iRadix, bUpperCase);
     return rs;
 }
+template<std::floating_point T>
+EckInlineNd CStringW ToString(T x, int iPrecision = 6,
+    TcvFloatFmt eFmt = TcvFloatFmt::General) noexcept
+{
+    CStringW rs{};
+    rs.PushBackNumber(x, iPrecision, eFmt);
+    return rs;
+}
+
 
 namespace Literals
 {

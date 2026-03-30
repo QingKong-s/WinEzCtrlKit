@@ -2,7 +2,6 @@
 #include "CFile.h"
 #include "CByteBuffer.h"
 #include "CString.h"
-#include "StringConvert.h"
 
 #define ECK_CIO_NAMESPACE_BEGIN namespace Cio {
 #define ECK_CIO_NAMESPACE_END   }
