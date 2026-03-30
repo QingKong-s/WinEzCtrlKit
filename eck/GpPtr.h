@@ -71,10 +71,10 @@ public:
     EckInlineNdCe T** operator&() noexcept { return &p; }
     EckInlineNdCe T* const* operator&() const noexcept { return &p; }
 
-    EckInlineNdCe T** AddrOf() noexcept { return &p; }
-    EckInlineNdCe T* const* AddrOf() const noexcept { return &p; }
+    EckInlineNdCe T** At() noexcept { return &p; }
+    EckInlineNdCe T* const* At() const noexcept { return &p; }
 
-    EckInlineNdCe T** AddrOfClear() noexcept
+    EckInlineNdCe T** AtClear() noexcept
     {
         Clear();
         return &p;
@@ -114,27 +114,27 @@ public:
             std::is_same_v<T, GpCachedBitmap>)
             static_assert(!sizeof(T), "Unsupported Clone GDI+ type");
         else if constexpr (std::is_base_of_v<GpBrush, T>)
-            return GdipCloneBrush(p, (GpBrush**)pNew.AddrOfClear());
+            return GdipCloneBrush(p, (GpBrush**)pNew.AtClear());
         else if constexpr (std::is_same_v<T, GpPen>)
-            return GdipClonePen(p, pNew.AddrOfClear());
+            return GdipClonePen(p, pNew.AtClear());
         else if constexpr (std::is_base_of_v<GpCustomLineCap, T>)
-            return GdipCloneCustomLineCap(p, (GpCustomLineCap**)pNew.AddrOfClear());
+            return GdipCloneCustomLineCap(p, (GpCustomLineCap**)pNew.AtClear());
         else if constexpr (std::is_base_of_v<GpImage, T>)
-            return GdipCloneImage(p, (GpImage**)pNew.AddrOfClear());
+            return GdipCloneImage(p, (GpImage**)pNew.AtClear());
         else if constexpr (std::is_same_v<T, GpImageAttributes>)
-            return GdipCloneImageAttributes(p, pNew.AddrOfClear());
+            return GdipCloneImageAttributes(p, pNew.AtClear());
         else if constexpr (std::is_same_v<T, GpPath>)
-            return GdipClonePath(p, pNew.AddrOfClear());
+            return GdipClonePath(p, pNew.AtClear());
         else if constexpr (std::is_same_v<T, GpRegion>)
-            return GdipCloneRegion(p, pNew.AddrOfClear());
+            return GdipCloneRegion(p, pNew.AtClear());
         else if constexpr (std::is_same_v<T, GpMatrix>)
-            return GdipCloneMatrix(p, pNew.AddrOfClear());
+            return GdipCloneMatrix(p, pNew.AtClear());
         else if constexpr (std::is_same_v<T, GpFontFamily>)
-            return GdipCloneFontFamily(p, pNew.AddrOfClear());
+            return GdipCloneFontFamily(p, pNew.AtClear());
         else if constexpr (std::is_same_v<T, GpFont>)
-            return GdipCloneFont(p, pNew.AddrOfClear());
+            return GdipCloneFont(p, pNew.AtClear());
         else if constexpr (std::is_same_v<T, GpStringFormat>)
-            return GdipCloneStringFormat(p, pNew.AddrOfClear());
+            return GdipCloneStringFormat(p, pNew.AtClear());
         else
             static_assert(!sizeof(T), "Unsupported Clone GDI+ type");
     }

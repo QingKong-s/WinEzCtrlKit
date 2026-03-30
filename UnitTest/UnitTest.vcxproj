@@ -171,7 +171,6 @@
     <ClCompile Include="TsArchive.cpp" />
     <ClCompile Include="TsBaseN.cpp" />
     <ClCompile Include="TsCalcExp.cpp" />
-    <ClCompile Include="TsCArray.cpp" />
     <ClCompile Include="TsCBitSet.cpp" />
     <ClCompile Include="TsCColorReducing.cpp" />
     <ClCompile Include="TsCEventChain.cpp" />

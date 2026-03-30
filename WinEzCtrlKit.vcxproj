@@ -76,7 +76,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions);NOMINMAX;ECK_OPT_MYDBG;_CRTDBG_MAP_ALLOC;ECK_OPT_DISABLE_5260=1</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FloatingPointModel>Precise</FloatingPointModel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -100,7 +100,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions);NOMINMAX;ECK_OPT_MYDBG;ECK_OPT_DISABLE_5260=1</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FloatingPointModel>Precise</FloatingPointModel>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
@@ -127,7 +127,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;NOMINMAX;%(PreprocessorDefinitions);NOMINMAX;ECK_OPT_MYDBG;_CRTDBG_MAP_ALLOC;ECK_OPT_DISABLE_5260=1</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FloatingPointModel>Precise</FloatingPointModel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -152,7 +152,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions);NOMINMAX;ECK_OPT_MYDBG;ECK_OPT_DISABLE_5260=1</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FloatingPointModel>Precise</FloatingPointModel>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
@@ -178,7 +178,6 @@
     <ClCompile Include="eck\AutoPtrDef.h" />
     <ClCompile Include="eck\BaseN.h" />
     <ClCompile Include="eck\Alpc.h" />
-    <ClCompile Include="eck\CArray2D.h" />
     <ClCompile Include="eck\CD3DImageList.h" />
     <ClCompile Include="eck\CGeometryBounds.h" />
     <ClCompile Include="eck\CGeometrySinkOffsetTranformer.h" />
@@ -262,8 +261,7 @@
     <ClCompile Include="eck\ISO8601Time.h" />
     <ClCompile Include="eck\Json.h" />
     <ClCompile Include="eck\CEventChain.h" />
-    <ClCompile Include="eck\CAllocator.h" />
-    <ClCompile Include="eck\CArray.h" />
+    <ClCompile Include="eck\Allocator.h" />
     <ClCompile Include="eck\CBitSet.h" />
     <ClCompile Include="eck\CDummyWindow.h" />
     <ClCompile Include="eck\CColorPickBlock.h" />

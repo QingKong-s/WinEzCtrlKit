@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CAllocator.h"
+#include "Allocator.h"
 
 ECK_NAMESPACE_BEGIN
 template<class T_, class TAllocator_ = CDefaultAllocator<T_>>
@@ -7,20 +7,20 @@ template<class T_, class TAllocator_ = CDefaultAllocator<T_>>
 class CTrivialBuffer
 {
 public:
-    using TElem = T_;
+    using T = T_;
     using TAllocator = TAllocator_;
 
     using TAllocatorTraits = CAllocatorTraits<TAllocator>;
 
-    using TPointer = TElem*;
-    using TConstPointer = const TElem*;
+    using TPointer = T*;
+    using TConstPointer = const T*;
 
     using TIterator = TPointer;
     using TConstIterator = TConstPointer;
     using TReverseIterator = std::reverse_iterator<TIterator>;
     using TConstReverseIterator = std::reverse_iterator<TConstIterator>;
 private:
-    TElem* m_pData{};
+    T* m_pData{};
     size_t m_cSize{};
     size_t m_cCapacity{};
 
@@ -105,7 +105,7 @@ public:
     void Assign(_In_reads_(c) TConstPointer p, size_t c) noexcept
     {
         ReSizeExtra(c);
-        memcpy(m_pData, p, c * sizeof(TElem));
+        memcpy(m_pData, p, c * sizeof(T));
     }
 
     void Reserve(size_t c) noexcept
@@ -113,10 +113,12 @@ public:
         if (m_cCapacity >= c)
             return;
         const auto pOld = m_pData;
+        if constexpr (sizeof(T) & 1)
+            c += (c & 1);
         m_pData = m_Alloc.allocate(c);
         if (pOld)
         {
-            memcpy(m_pData, pOld, m_cSize * sizeof(TElem));
+            memcpy(m_pData, pOld, m_cSize * sizeof(T));
             m_Alloc.deallocate(pOld, m_cCapacity);
         }
         m_cCapacity = c;
@@ -140,7 +142,7 @@ public:
     EckInlineNdCe TConstPointer Data() const noexcept { return m_pData; }
 
     EckInlineNdCe size_t Size() const noexcept { return m_cSize; }
-    EckInlineNdCe size_t ByteSize() const noexcept { return m_cSize * sizeof(TElem); }
+    EckInlineNdCe size_t ByteSize() const noexcept { return m_cSize * sizeof(T); }
 
     EckInlineNdCe BOOL IsEmpty() const noexcept { return !m_cSize; }
 
@@ -167,18 +169,18 @@ public:
     {
         const auto cOld = Size();
         ReSizeExtra(Size() + c);
-        memcpy(Data() + cOld, p, c * sizeof(TElem));
+        memcpy(Data() + cOld, p, c * sizeof(T));
     }
 
-    EckInline void PushBack(const TElem& e) noexcept
+    EckInline void PushBack(const T& e) noexcept
     {
         const auto cOld = Size();
         ReSizeExtra(Size() + 1);
         Data()[cOld] = e;
     }
 
-    template<class T, size_t N>
-    EckInline void PushBack(std::span<T, N> sp) noexcept { PushBack(sp.data(), sp.size()); }
+    template<class U, size_t N>
+    EckInline void PushBack(std::span<U, N> sp) noexcept { PushBack(sp.data(), sp.size()); }
 
     EckInline auto PushBackSize(size_t c) noexcept
     {
@@ -189,19 +191,19 @@ public:
 
     EckInline auto& PushBack() noexcept { return *PushBackSize(1); }
 
-    void PushBackMultiple(const TElem& e, size_t c) noexcept
+    void PushBackMultiple(const T& e, size_t c) noexcept
     {
         const auto p = PushBackSize(c);
         for (size_t i = 0; i < c; ++i)
             p[i] = e;
     }
 
-    template<class... T>
-    auto& EmplaceBack(T&&... Args) noexcept
+    template<class... U>
+    auto& EmplaceBack(U&&... Args) noexcept
     {
         const auto cOld = Size();
         ReSizeExtra(Size() + 1);
-        new (Data() + cOld) TElem(std::forward<T>(Args)...);
+        new (Data() + cOld) T(std::forward<U>(Args)...);
         return Data()[cOld];
     }
 
@@ -217,7 +219,7 @@ public:
         memmove(
             Data() + pos,
             Data() + pos + c,
-            (Size() - pos - c) * sizeof(TElem));
+            (Size() - pos - c) * sizeof(T));
         m_cSize -= c;
     }
 
@@ -230,8 +232,8 @@ public:
         memmove(
             Data() + posStart + cNew,
             Data() + posStart + cReplacing,
-            (cOld - posStart - cReplacing) * sizeof(TElem));
-        memcpy(Data() + posStart, pNew, cNew * sizeof(TElem));
+            (cOld - posStart - cReplacing) * sizeof(T));
+        memcpy(Data() + posStart, pNew, cNew * sizeof(T));
     }
 
     TPointer InsertSize(size_t pos, size_t c) noexcept
@@ -242,17 +244,17 @@ public:
         memmove(
             Data() + pos + c,
             Data() + pos,
-            (cOld - pos) * sizeof(TElem));
+            (cOld - pos) * sizeof(T));
         return Data() + pos;
     }
 
     void Insert(size_t pos, _In_reads_(c) TConstPointer p, size_t c) noexcept
     {
         const auto pNew = InsertSize(pos, c);
-        memcpy(pNew, p, c * sizeof(TElem));
+        memcpy(pNew, p, c * sizeof(T));
     }
 
-    void Insert(size_t pos, const TElem& e) noexcept
+    void Insert(size_t pos, const T& e) noexcept
     {
         EckAssert(pos <= Size());
         const auto cOld = Size();
@@ -260,37 +262,64 @@ public:
         memmove(
             Data() + pos + 1,
             Data() + pos,
-            (cOld - pos) * sizeof(TElem));
+            (cOld - pos) * sizeof(T));
         Data()[pos] = e;
     }
 
     EckInline auto& Insert(size_t pos) noexcept { return *InsertSize(pos, 1); }
 
-    EckInline void InsertMultiple(size_t pos, const TElem& e, size_t c) noexcept
+    EckInline void InsertMultiple(size_t pos, const T& e, size_t c) noexcept
     {
         const auto p = InsertSize(pos, c);
         for (size_t i = 0; i < c; ++i)
             p[i] = e;
     }
 
-    EckInlineNdCe std::span<TElem> ToSpan() noexcept
+    EckInlineNdCe std::span<T> ToSpan() noexcept
     {
         return { Data(), Data() + Size() };
     }
-    EckInlineNdCe std::span<const TElem> ToSpan() const noexcept
+    EckInlineNdCe std::span<const T> ToSpan() const noexcept
     {
         return { Data(), Data() + Size() };
     }
 
-    EckInlineNdCe std::span<TElem> SubSpan(size_t pos, size_t c) noexcept
+    EckInlineNdCe std::span<T> SubSpan(size_t pos, size_t c) noexcept
     {
         EckAssert(pos + c <= Size());
         return { Data() + pos, Data() + pos + c };
     }
-    EckInlineNdCe std::span<const TElem> SubSpan(size_t pos, size_t c) const noexcept
+    EckInlineNdCe std::span<const T> SubSpan(size_t pos, size_t c) const noexcept
     {
         EckAssert(pos + c <= Size());
         return { Data() + pos, Data() + pos + c };
+    }
+
+    void Attach(const OWNED_RAW_BUFFER& Buffer) noexcept
+    {
+        EckAssert(!(Buffer.cbCapacity & 1) && Buffer.cbValid <= Buffer.cbCapacity);
+        m_Alloc.deallocate(m_pData, m_cCapacity);
+        if (Buffer.pData)
+        {
+            m_pData = (T*)Buffer.pData;
+            EckAssert(!(Buffer.cbValid % sizeof(T)) && !(Buffer.cbCapacity % sizeof(T)));
+            m_cSize = Buffer.cbValid / sizeof(T);
+            m_cCapacity = Buffer.cbCapacity / sizeof(T);
+        }
+        else
+        {
+            m_pData = nullptr;
+            m_cSize = m_cCapacity = 0;
+        }
+    }
+    void Detach(_Out_ OWNED_RAW_BUFFER& Buffer) noexcept
+    {
+        Buffer.pData = m_pData;
+        Buffer.cbValid = m_cSize * sizeof(T);
+        Buffer.cbCapacity = m_cCapacity * sizeof(T);
+        EckAssert(!(Buffer.cbCapacity & 1));
+        m_pData = nullptr;
+        m_cSize = m_cCapacity = 0u;
     }
 
     EckInlineNdCe TIterator begin() noexcept { return Data(); }

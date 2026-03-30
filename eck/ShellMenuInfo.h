@@ -104,7 +104,7 @@ namespace Priv
         rs.Reserve(64);
         SHLoadIndirectString(rs.Data(), rs.Data(),
             rs.Capacity(), nullptr);
-        rs.ReCalcLen();
+        rs.ReCalculateLength();
     }
 }
 
@@ -426,7 +426,7 @@ public:
                 if (FAILED(psl->GetIconLocation(
                     e.rsIcon.Data(), e.rsIcon.Capacity(), &idxIcon)))
                     goto Fail;
-                e.rsIcon.ReCalcLen();
+                e.rsIcon.ReCalculateLength();
                 e.rsIcon.PushBackFormat(L",%d", idxIcon);
             }
         Fail:;

@@ -107,16 +107,16 @@ public:
     EckInlineNdCe TInterface* Get() const noexcept { return p; }
     EckInlineNdCe TInterface* operator->() const noexcept { return p; }
 
-    EckInlineNdCe TInterface* const* AddrOf() const noexcept { return &p; }
-    EckInlineNdCe TInterface** AddrOf() noexcept { return &p; }
-    EckInline [[nodiscard]] TInterface** AddrOfClear() noexcept
+    EckInlineNdCe TInterface* const* At() const noexcept { return &p; }
+    EckInlineNdCe TInterface** At() noexcept { return &p; }
+    EckInline [[nodiscard]] TInterface** AtClear() noexcept
     {
         ReleaseIt();
         return &p;
     }
 
-    EckInlineNdCe TInterface*& RefOf() noexcept { return p; }
-    EckInlineNdCe TInterface*& RefOfClear() noexcept
+    EckInlineNdCe TInterface*& AtSelf() noexcept { return p; }
+    EckInlineNdCe TInterface*& AtSelfClear() noexcept
     {
         ReleaseIt();
         return p;
@@ -149,7 +149,7 @@ public:
     template<CcpComInterface U>
     EckInline HRESULT As(ComPtr<U>& x) const noexcept
     {
-        return p->QueryInterface(__uuidof(U), (void**)x.AddrOfClear());
+        return p->QueryInterface(__uuidof(U), (void**)x.AtClear());
     }
     template<CcpComInterface U>
     EckInline HRESULT As(U*& x) const noexcept

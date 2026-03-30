@@ -24,9 +24,6 @@
     <ClCompile Include="TsCalcExp.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="TsCArray.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="TsCBitSet.cpp">
       <Filter>源文件</Filter>
     </ClCompile>

@@ -97,7 +97,7 @@ private:
         IMFStreamDescriptor* pStream) noexcept
     {
         HRESULT hr;
-        hr = MFCreateTopologyNode(MF_TOPOLOGY_SOURCESTREAM_NODE, pNode.AddrOfClear());
+        hr = MFCreateTopologyNode(MF_TOPOLOGY_SOURCESTREAM_NODE, pNode.AtClear());
         if (FAILED(hr))
             return hr;
         pNode->SetUnknown(MF_TOPONODE_SOURCE, m_pSource.Get());
@@ -110,7 +110,7 @@ private:
         IMFActivate* pActivate) noexcept
     {
         HRESULT hr;
-        hr = MFCreateTopologyNode(MF_TOPOLOGY_OUTPUT_NODE, pNode.AddrOfClear());
+        hr = MFCreateTopologyNode(MF_TOPOLOGY_OUTPUT_NODE, pNode.AtClear());
         if (FAILED(hr))
             return hr;
         hr = pNode->SetObject(pActivate);
@@ -307,7 +307,7 @@ public:
         UINT cValidStream{};
         EckCounter(cStream, i)
         {
-            hr = pPresentation->GetStreamDescriptorByIndex(i, &bSelected, pStream.AddrOfClear());
+            hr = pPresentation->GetStreamDescriptorByIndex(i, &bSelected, pStream.AtClear());
             if (FAILED(hr))
             {
                 *pResult = OpenResult::EnumStream;
@@ -316,7 +316,7 @@ public:
             if (!bSelected)
                 continue;
             // 取类型
-            hr = pStream->GetMediaTypeHandler(pHandler.AddrOfClear());
+            hr = pStream->GetMediaTypeHandler(pHandler.AtClear());
             if (FAILED(hr))
             {
                 *pResult = OpenResult::MediaTypeHandler;
@@ -331,12 +331,12 @@ public:
             // 创建渲染器激活
             if (guidMajorType == MFMediaType_Audio)
             {
-                hr = MFCreateAudioRendererActivate(pActivate.AddrOfClear());
+                hr = MFCreateAudioRendererActivate(pActivate.AtClear());
                 m_bHasAudio = TRUE;
             }
             else if (hWndVideo)
             {
-                hr = MFCreateVideoRendererActivate(hWndVideo, pActivate.AddrOfClear());
+                hr = MFCreateVideoRendererActivate(hWndVideo, pActivate.AtClear());
                 m_bHasVideo = TRUE;
             }
             else

@@ -104,13 +104,7 @@
     <ClCompile Include="CTestWnd.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="eck\CAllocator.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CArray.h">
-      <Filter>ECK Include</Filter>
-    </ClCompile>
-    <ClCompile Include="eck\CArray2D.h">
+    <ClCompile Include="eck\Allocator.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
     <ClCompile Include="eck\CBitSet.h">

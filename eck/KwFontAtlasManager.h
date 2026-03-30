@@ -363,7 +363,7 @@ public:
         RECT rcTexBounds;
 
         hr = CreateGlyphAnalysis(
-            pGlyphRunAnalysis.RefOf(),
+            pGlyphRunAnalysis.AtSelf(),
             rcTexBounds,
             bClearType,
             xSnap,

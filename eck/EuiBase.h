@@ -176,11 +176,11 @@ private:
         const auto hDC = GetDC(HWnd);
         m_Stock.hCDC = CreateCompatibleDC(hDC);
         ReleaseDC(HWnd, hDC);
-        GdipCreateSolidFill(0, m_Stock.pBrush.AddrOfClear());
-        GdipCreatePen1(0, 1.f, Gdiplus::UnitPixel, m_Stock.pPen.AddrOfClear());
+        GdipCreateSolidFill(0, m_Stock.pBrush.AtClear());
+        GdipCreatePen1(0, 1.f, Gdiplus::UnitPixel, m_Stock.pPen.AtClear());
         GdipCreateStringFormat(
             Gdiplus::StringFormatFlagsNoWrap | Gdiplus::StringFormatFlagsNoClip,
-            LANG_NEUTRAL, m_Stock.pStrFmt.AddrOfClear());
+            LANG_NEUTRAL, m_Stock.pStrFmt.AtClear());
     }
 public:
     LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override

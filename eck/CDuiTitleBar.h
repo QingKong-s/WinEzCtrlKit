@@ -267,8 +267,8 @@ public:
             {
                 ComPtr<IWICBitmapDecoder> pDecoder;
                 ComPtr<IWICBitmapSource> pBitmap;
-                WicCreateDecoder(pDecoder.RefOf(), &Stream);
-                WicLoadSource(pBitmap.RefOf(), pDecoder.Get());
+                WicCreateDecoder(pDecoder.AtSelf(), &Stream);
+                WicLoadSource(pBitmap.AtSelf(), pDecoder.Get());
                 m_pDC->CreateBitmapFromWicBitmap(pBitmap.Get(), &m_pBmpDwmWndAtlas);
             }
             Stream.AssertReference(1);

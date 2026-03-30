@@ -408,7 +408,7 @@ public:
             m_pHost->SetEdit(this);
             IUnknown* pUnk{};
             TsiCreateTextServices(nullptr, m_pHost.Get(), &pUnk);
-            pUnk->QueryInterface(IID_ITextServices2, (void**)m_pSrv.AddrOfClear());
+            pUnk->QueryInterface(IID_ITextServices2, (void**)m_pSrv.AtClear());
             pUnk->Release();
 
             m_SBV.Create(nullptr, 0, 0, 0, 0, 0, 0, this);

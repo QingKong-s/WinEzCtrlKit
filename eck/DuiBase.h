@@ -524,7 +524,7 @@ private:
 
     void CcCreateBrush() noexcept
     {
-        GetDeviceContext()->CreateSolidColorBrush({}, m_Stock.pBrush.AddrOfClear());
+        GetDeviceContext()->CreateSolidColorBrush({}, m_Stock.pBrush.AtClear());
     }
 
     static EckInlineNdCe D2D1_ALPHA_MODE RdcD2DAlphaMode() noexcept { return D2D1_ALPHA_MODE_PREMULTIPLIED; }
@@ -1244,7 +1244,7 @@ public:
         {
             m_Stock.cxCache = cxPhy;
             m_Stock.cyCache = cyPhy;
-            BmCreate(cxPhy, cyPhy, m_Stock.pCacheBitmap.RefOfClear());
+            BmCreate(cxPhy, cyPhy, m_Stock.pCacheBitmap.AtSelfClear());
         }
     }
     void CcReserveBitmapLogical(float cx, float cy) noexcept
@@ -1269,12 +1269,12 @@ public:
         if (!m_Stock.pFxBlur.Get())
         {
             GetDeviceContext()->CreateEffect(
-                CLSID_D2D1GaussianBlur, m_Stock.pFxBlur.AddrOfClear());
+                CLSID_D2D1GaussianBlur, m_Stock.pFxBlur.AtClear());
             m_Stock.pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_BORDER_MODE,
                 D2D1_BORDER_MODE_HARD);
         }
         if (!m_Stock.pFxCrop.Get())
-            GetDeviceContext()->CreateEffect(CLSID_D2D1Crop, m_Stock.pFxCrop.AddrOfClear());
+            GetDeviceContext()->CreateEffect(CLSID_D2D1Crop, m_Stock.pFxCrop.AtClear());
     }
 private:
     HRESULT BlurpDrawEffect(ID2D1Effect* pFx,

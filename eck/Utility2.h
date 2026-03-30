@@ -4,7 +4,7 @@
 #include "Random.h"
 
 ECK_NAMESPACE_BEGIN
-#pragma region CRefBinT运算符
+#pragma region CByteBufferT运算符
 template<class TAllocator, class TChar, class TTraits, class TAllocator1>
 EckInline CByteBufferT<TAllocator>& operator<<(CByteBufferT<TAllocator>& rb, const CStringT<TChar, TTraits, TAllocator1>& rs)
 {
@@ -100,7 +100,7 @@ EckInline BOOL MoveResource(
     else
         return SwapResource(rb, rs);
 }
-#pragma endregion CRefBinT运算符
+#pragma endregion CByteBufferT运算符
 
 #pragma region 资源
 inline std::span<const BYTE> GetResource(PCWSTR pszName, PCWSTR pszType,

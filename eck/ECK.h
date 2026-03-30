@@ -542,6 +542,14 @@ inline namespace GpNameSpace
 #else
 using ARGB = UINT;
 #endif // !ECK_OPT_NO_GDIPLUS
+
+// CString、CByteBuffer等拆离得到的内存
+struct OWNED_RAW_BUFFER
+{
+    void* pData;
+    size_t cbValid;
+    size_t cbCapacity;// 总为偶数
+};
 #pragma endregion Type
 
 #pragma region Const

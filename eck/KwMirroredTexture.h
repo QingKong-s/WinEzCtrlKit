@@ -48,7 +48,7 @@ public:
 
         if (!bUpload)
             return g_pD3D11Device->CreateTexture2D(
-                &Desc, nullptr, m_pTexture.AddrOfClear());
+                &Desc, nullptr, m_pTexture.AtClear());
 
         const D3D11_SUBRESOURCE_DATA Data
         {
@@ -57,7 +57,7 @@ public:
             .SysMemSlicePitch = 0
         };
         return g_pD3D11Device->CreateTexture2D(
-            &Desc, &Data, m_pTexture.AddrOfClear());
+            &Desc, &Data, m_pTexture.AtClear());
     }
 
     void CpuReSize(BOOL bZero, TCoord cx, TCoord cy) noexcept
@@ -103,7 +103,7 @@ public:
         Desc.Height = m_cy;
         if (!bUpload)
             return g_pD3D11Device->CreateTexture2D(
-                &Desc, nullptr, m_pTexture.AddrOfClear());
+                &Desc, nullptr, m_pTexture.AtClear());
 
         const D3D11_SUBRESOURCE_DATA Data
         {
@@ -112,7 +112,7 @@ public:
             .SysMemSlicePitch = 0
         };
         return g_pD3D11Device->CreateTexture2D(
-            &Desc, &Data, m_pTexture.AddrOfClear());
+            &Desc, &Data, m_pTexture.AtClear());
     }
 
     template<class T>

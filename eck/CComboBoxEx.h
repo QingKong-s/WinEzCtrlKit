@@ -195,7 +195,7 @@ public:
         if (bRet)
         {
             if (cbei.pszText == rs.Data())
-                rs.ReCalcLen();
+                rs.ReCalculateLength();
             else
                 rs = cbei.pszText;
         }

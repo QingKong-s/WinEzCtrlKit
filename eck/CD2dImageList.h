@@ -46,7 +46,7 @@ public:
 
     HRESULT BindRenderTarget(ID2D1RenderTarget* pRT) noexcept
     {
-        return pRT->QueryInterface(m_pDC.AddrOfClear());
+        return pRT->QueryInterface(m_pDC.AtClear());
     }
 
     HRESULT Add(_Out_ UINT& uId) noexcept

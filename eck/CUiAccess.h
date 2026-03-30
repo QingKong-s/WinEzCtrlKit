@@ -16,7 +16,7 @@ public:
     CUiAccess() noexcept
     {
         NtOpenProcessTokenEx(NtCurrentProcess(),
-            TOKEN_ALL_ACCESS, 0, m_hTokenCurrProc.AddrOfClear());
+            TOKEN_ALL_ACCESS, 0, m_hTokenCurrProc.AtClear());
     }
 
     BOOL IsAcquired() const noexcept
@@ -83,7 +83,7 @@ public:
                     hProcess.Get(),
                     TOKEN_QUERY | TOKEN_DUPLICATE,
                     0,
-                    hToken.AddrOf());
+                    hToken.At());
                 if (!hToken.Get())
                     return TRUE;
                 // 检查
@@ -110,7 +110,7 @@ public:
                     .SecurityQualityOfService = &sqos,
                 };
                 NtDuplicateToken(hToken.Get(), TOKEN_IMPERSONATE, &oa,
-                    FALSE, TokenImpersonation, m_hTokenWinlogon.AddrOfClear());
+                    FALSE, TokenImpersonation, m_hTokenWinlogon.AtClear());
                 return FALSE;
             });
         if (!NT_SUCCESS(nts))
@@ -126,7 +126,7 @@ public:
         nts = NtSetInformationThread(
             NtCurrentThread(),
             ThreadImpersonationToken,
-            m_hTokenWinlogon.AddrOf(),
+            m_hTokenWinlogon.At(),
             sizeof(HANDLE));
         if (!NT_SUCCESS(nts))
             return nts;
@@ -150,7 +150,7 @@ public:
             &oa,
             FALSE,
             TokenPrimary,
-            hTokenUia.AddrOf());
+            hTokenUia.At());
         if (!NT_SUCCESS(nts))
             return nts;
         UINT u{ 1 };

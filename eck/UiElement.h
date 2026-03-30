@@ -830,7 +830,7 @@ public:
         if (bEnable)
         {
             ComPtr<IDropTarget> pTarget;
-            hr = GetDropTarget(pTarget.RefOf());
+            hr = GetDropTarget(pTarget.AtSelf());
             if (FAILED(hr))
                 return hr;
             hr = RegisterDragDrop(HWnd, pTarget.Get());
@@ -1559,14 +1559,14 @@ public:
         }
     }
 
-    void EtForEachElem(std::invocable<THost*> auto&& Fn, THost* pElemBegin) noexcept
+    void EtForEachElement(std::invocable<THost*> auto&& Fn, THost* pElemBegin) noexcept
     {
         auto p{ pElemBegin };
         while (p)
         {
             EckCanCallbackContinue(Fn(p))
                 return;
-            EtForEachElem(Fn, p->EtFirstChild());
+            EtForEachElement(Fn, p->EtFirstChild());
             p = p->EtNext();
         }
     }

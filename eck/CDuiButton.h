@@ -39,7 +39,7 @@ private:
         g_pDwFactory->CreateTextLayout(
             pszText, cchText, GetTextFormat(),
             cxMax, GetHeight() - dOuter * 2,
-            m_pLayout.AddrOfClear());
+            m_pLayout.AtClear());
     }
 
     void UpdateTextLayout() noexcept

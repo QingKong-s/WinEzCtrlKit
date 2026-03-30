@@ -62,7 +62,7 @@ struct CBuffer
         return g_pD3D11Device->CreateBuffer(
             &Desc,
             pData ? &InitData : nullptr,
-            pBuffer.AddrOfClear());
+            pBuffer.AtClear());
     }
     HRESULT CreateConstantBuffer(size_t cb, PCVOID pData = nullptr) noexcept
     {
@@ -101,7 +101,7 @@ struct CBuffer
 
     EckInlineNdCe auto operator->() const noexcept { return pBuffer.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pBuffer.Get(); }
-    EckInlineNdCe auto AddrOf() const noexcept { return pBuffer.AddrOf(); }
+    EckInlineNdCe auto At() const noexcept { return pBuffer.At(); }
     EckInline void Clear() noexcept { pBuffer.Clear(); }
 };
 
@@ -114,7 +114,7 @@ namespace Priv
 
         EckInlineNdCe auto operator->() const noexcept { return pShader.Get(); }
         EckInlineNdCe auto Get() const noexcept { return pShader.Get(); }
-        EckInlineNdCe auto AddrOf() const noexcept { return pShader.AddrOf(); }
+        EckInlineNdCe auto At() const noexcept { return pShader.At(); }
         EckInline void Clear() noexcept { pShader.Clear(); }
 
         EckInline HRESULT Create(ID3DBlob* pBlob) noexcept
@@ -131,7 +131,7 @@ struct CPixelShader : Priv::CShader<CPixelShader, ID3D11PixelShader>
         size_t cbBytecode) noexcept
     {
         return g_pD3D11Device->CreatePixelShader(pBytecode,
-            cbBytecode, nullptr, pShader.AddrOfClear());
+            cbBytecode, nullptr, pShader.AtClear());
     }
 };
 struct CVertexShader : Priv::CShader<CVertexShader, ID3D11VertexShader>
@@ -141,7 +141,7 @@ struct CVertexShader : Priv::CShader<CVertexShader, ID3D11VertexShader>
         size_t cbBytecode) noexcept
     {
         return g_pD3D11Device->CreateVertexShader(pBytecode,
-            cbBytecode, nullptr, pShader.AddrOfClear());
+            cbBytecode, nullptr, pShader.AtClear());
     }
 };
 struct CVSAndInputLayout
@@ -159,7 +159,7 @@ struct CVSAndInputLayout
         hr = Shader.Create(pBytecode, cbBytecode);
         if (FAILED(hr)) return hr;
         hr = g_pD3D11Device->CreateInputLayout(pInput, (UINT)cInput,
-            pBytecode, cbBytecode, pInputLayout.AddrOfClear());
+            pBytecode, cbBytecode, pInputLayout.AtClear());
         return hr;
     }
 
@@ -198,12 +198,12 @@ struct CTexture
         Desc.BindFlags = eBind;
         Desc.CPUAccessFlags = uCPUAccessFlags;
         Desc.MiscFlags = uMiscFlags;
-        return g_pD3D11Device->CreateTexture2D(&Desc, pInitData, pTexture.AddrOfClear());
+        return g_pD3D11Device->CreateTexture2D(&Desc, pInitData, pTexture.AtClear());
     }
 
     EckInlineNdCe auto operator->() const noexcept { return pTexture.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pTexture.Get(); }
-    EckInlineNdCe auto AddrOf() const noexcept { return pTexture.AddrOf(); }
+    EckInlineNdCe auto At() const noexcept { return pTexture.At(); }
     EckInline void Clear() noexcept { pTexture.Clear(); }
 };
 
@@ -226,7 +226,7 @@ struct CSampler
         Desc.ComparisonFunc = eComparisonFunc;
         if (pBorderColor)
             memcpy(Desc.BorderColor, pBorderColor, 4 * sizeof(float));
-        return g_pD3D11Device->CreateSamplerState(&Desc, pSampler.AddrOfClear());
+        return g_pD3D11Device->CreateSamplerState(&Desc, pSampler.AtClear());
     }
     HRESULT CreateBorder(
         _In_reads_opt_(4) const float* pBorderColor,
@@ -242,7 +242,7 @@ struct CSampler
 
     EckInlineNdCe auto operator->() const noexcept { return pSampler.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pSampler.Get(); }
-    EckInlineNdCe auto AddrOf() const noexcept { return pSampler.AddrOf(); }
+    EckInlineNdCe auto At() const noexcept { return pSampler.At(); }
     EckInline void Clear() noexcept { pSampler.Clear(); }
 };
 
@@ -255,7 +255,7 @@ struct CShaderResourceView
         const D3D11_SHADER_RESOURCE_VIEW_DESC& Desc) noexcept
     {
         return g_pD3D11Device->CreateShaderResourceView(
-            pResource, &Desc, pSrv.AddrOfClear());
+            pResource, &Desc, pSrv.AtClear());
     }
     HRESULT Create(
         ID3D11Resource* pResource,
@@ -272,7 +272,7 @@ struct CShaderResourceView
 
     EckInlineNdCe auto operator->() const noexcept { return pSrv.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pSrv.Get(); }
-    EckInlineNdCe auto AddrOf() const noexcept { return pSrv.AddrOf(); }
+    EckInlineNdCe auto At() const noexcept { return pSrv.At(); }
     EckInline void Clear() noexcept { pSrv.Clear(); }
 };
 
@@ -282,12 +282,12 @@ struct CRenderTargetView
 
     HRESULT Create(ID3D11Resource* pResource) noexcept
     {
-        return g_pD3D11Device->CreateRenderTargetView(pResource, nullptr, pRtv.AddrOfClear());
+        return g_pD3D11Device->CreateRenderTargetView(pResource, nullptr, pRtv.AtClear());
     }
 
     EckInlineNdCe auto operator->() const noexcept { return pRtv.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pRtv.Get(); }
-    EckInlineNdCe auto AddrOf() const noexcept { return pRtv.AddrOf(); }
+    EckInlineNdCe auto At() const noexcept { return pRtv.At(); }
     EckInline void Clear() noexcept { pRtv.Clear(); }
 };
 
@@ -298,12 +298,12 @@ struct CDepthStencilView
     HRESULT Create(ID3D11Resource* pResource,
         const D3D11_DEPTH_STENCIL_VIEW_DESC* pDesc = nullptr) noexcept
     {
-        return g_pD3D11Device->CreateDepthStencilView(pResource, nullptr, pDsv.AddrOfClear());
+        return g_pD3D11Device->CreateDepthStencilView(pResource, nullptr, pDsv.AtClear());
     }
 
     EckInlineNdCe auto operator->() const noexcept { return pDsv.Get(); }
     EckInlineNdCe auto Get() const noexcept { return pDsv.Get(); }
-    EckInlineNdCe auto AddrOf() const noexcept { return pDsv.AddrOf(); }
+    EckInlineNdCe auto At() const noexcept { return pDsv.At(); }
     EckInline void Clear() noexcept { pDsv.Clear(); }
 };
 

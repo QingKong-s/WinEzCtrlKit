@@ -181,7 +181,7 @@ public:
             return FALSE;
         }
         if (bReCalcLen)
-            rs.ReCalcLen();
+            rs.ReCalculateLength();
         return bRet;
     }
 

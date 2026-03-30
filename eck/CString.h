@@ -1,6 +1,6 @@
 ﻿#pragma once
-#pragma warning (disable:4996)
-#include "CAllocator.h"
+#pragma warning(disable : 4996)
+#include "Allocator.h"
 #include "PathUtility.h"
 #include "Utility.h"
 
@@ -329,60 +329,41 @@ public:
         }
     }
 
-    /// <summary>
-    /// 依附指针。
-    /// 先前的内存将被释放
-    /// </summary>
-    /// <param name="psz">指针，必须可通过当前分配器解分配</param>
-    /// <param name="cchCapacity">容量，**字节数**必须为偶数</param>
-    /// <param name="cchText">字符数</param>
-    void Attach(TPointer psz, int cchCapacity, int cchText) noexcept
+    void Attach(const OWNED_RAW_BUFFER& Buffer) noexcept
     {
-        EckAssert(cchCapacity > 0 && cchText >= 0);
-        EckAssert(!(cchCapacity & 1) && cchText < cchCapacity);
+        EckAssert(!(Buffer.cbCapacity & 1) && Buffer.cbValid <= Buffer.cbCapacity);
         if (!IsLocal())
             m_Alloc.deallocate(m_pszText, m_cchCapacity);
-        if (!psz)
+        if (Buffer.pData)
+        {
+            m_pszText = (TChar*)Buffer.pData;
+            EckAssert(!(Buffer.cbValid % sizeof(TChar)) && !(Buffer.cbCapacity % sizeof(TChar)));
+            m_cchText = Buffer.cbValid / sizeof(TChar);
+            m_cchCapacity = Buffer.cbCapacity / sizeof(TChar);
+        }
+        else
         {
             m_pszText = nullptr;
             m_cchText = m_cchCapacity = 0;
         }
-        else
-        {
-            m_cchCapacity = cchCapacity;
-            m_cchText = cchText;
-            m_pszText = psz;
-        }
     }
-
-    /// <summary>
-    /// 拆离指针
-    /// </summary>
-    /// <param name="cchCapacity">输出容量，**字节数**一定为偶数</param>
-    /// <param name="cchText">输出字符数</param>
-    /// <returns>指针，必须通过与当前分配器相等的分配器解分配</returns>
-    EckInlineNd TPointer Detach(_Out_ int& cchCapacity, _Out_ int& cchText) noexcept
+    void Detach(_Out_ OWNED_RAW_BUFFER& Buffer) noexcept
     {
         if (IsLocal())
         {
-            cchCapacity = m_cchCapacity;
-            const auto p = m_Alloc.allocate(cchCapacity);
-            // 必须在分配完毕后更新cchText，因为cchCapacity与cchText可能为同一个变量
-            cchText = m_cchText;
+            const auto p = m_Alloc.allocate(m_cchCapacity);
             TcsCopyLength(p, m_szLocal, m_cchText + 1);
-            return p;
+            Buffer.pData = p;
+            Buffer.cbValid = m_cchText * sizeof(TChar);
+            Buffer.cbCapacity = m_cchCapacity * sizeof(TChar);
         }
         else
         {
-            const auto pOld = m_pszText;
+            Buffer.pData = m_pszText;
+            Buffer.cbValid = m_cchText * sizeof(TChar);
+            Buffer.cbCapacity = m_cchCapacity * sizeof(TChar);
             m_pszText = nullptr;
-
-            cchCapacity = m_cchCapacity;
-            m_cchCapacity = 0;
-
-            cchText = m_cchText;
-            m_cchText = 0;
-            return pOld;
+            m_cchText = m_cchCapacity = 0;
         }
     }
 
@@ -478,12 +459,17 @@ public:
     }
 
     // 返回实际复制的字符数
-    EckInline int CopyTo(TPointer pszDst, int cch = -1) const noexcept
+    EckInline int CopyTo(_Out_writes_z_(cchMax) TPointer pszDst, int cchMax) const noexcept
     {
-        if (cch < 0 || cch > Size())
-            cch = Size();
-        TcsCopyLengthEnd(pszDst, Data(), cch);
-        return cch;
+        if (cchMax > Size())
+            cchMax = Size();
+        else
+        {
+            if (--cchMax < 0)
+                return 0;
+        }
+        TcsCopyLengthEnd(pszDst, Data(), cchMax);
+        return cchMax;
     }
 private:
     void ReserveReal(int cch)
@@ -527,7 +513,7 @@ public:
         TCharTraits::Cut(Data(), cch);
     }
 
-    EckInline int ReCalcLen() noexcept
+    EckInline int ReCalculateLength() noexcept
     {
         return m_cchText = (int)TcsLength(Data());
     }
@@ -1384,7 +1370,7 @@ EckInlineNd CStringW ToString(int x, int iRadix = 10) noexcept
 {
     CStringW rs(CchI32ToStrBuf);
     _itow(x, rs.Data(), iRadix);
-    rs.ReCalcLen();
+    rs.ReCalculateLength();
     return rs;
 }
 
@@ -1392,7 +1378,7 @@ EckInlineNd CStringW ToString(UINT x, int iRadix = 10) noexcept
 {
     CStringW rs(CchI32ToStrBuf);
     _ultow(x, rs.Data(), iRadix);
-    rs.ReCalcLen();
+    rs.ReCalculateLength();
     return rs;
 }
 
@@ -1400,7 +1386,7 @@ EckInlineNd CStringW ToString(LONGLONG x, int iRadix = 10) noexcept
 {
     CStringW rs(CchI64ToStrBuf);
     _i64tow(x, rs.Data(), iRadix);
-    rs.ReCalcLen();
+    rs.ReCalculateLength();
     return rs;
 }
 
@@ -1408,7 +1394,7 @@ EckInlineNd CStringW ToString(ULONGLONG x, int iRadix = 10) noexcept
 {
     CStringW rs(CchI64ToStrBuf);
     _ui64tow(x, rs.Data(), iRadix);
-    rs.ReCalcLen();
+    rs.ReCalculateLength();
     return rs;
 }
 

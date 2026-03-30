@@ -890,20 +890,17 @@ constexpr inline size_t FnvPrime = 16777619u;
 
 EckInlineNdCe size_t Fnv1aHash(PCBYTE p, size_t cb) noexcept
 {
-    size_t hash = FnvOffsetBasis;
+    size_t r = FnvOffsetBasis;
     EckCounter(cb, i)
     {
-        hash ^= p[i];
-        hash *= FnvPrime;
+        r ^= p[i];
+        r *= FnvPrime;
     }
-    return hash;
+    return r;
 }
 
-EckInline BOOL FloatEqual(float f1, float f2, float fEpsilon = FLT_EPSILON) noexcept
-{
-    return fabs(f1 - f2) < fEpsilon;
-}
-EckInline BOOL FloatEqual(double f1, double f2, double fEpsilon = DBL_EPSILON) noexcept
+template<std::floating_point T>
+EckInline BOOL FloatEqual(T f1, T f2, T fEpsilon = std::numeric_limits<T>::epsilon()) noexcept
 {
     return abs(f1 - f2) < fEpsilon;
 }

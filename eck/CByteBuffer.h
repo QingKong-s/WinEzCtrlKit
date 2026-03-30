@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "CAllocator.h"
+#include "Allocator.h"
 #include "MemUtility.h"
 #include "Utility.h"
 
@@ -143,7 +143,7 @@ public:
         return *this;
     }
 
-    EckInlineNd TAllocator GetAllocator() const { return m_Alloc; }
+    EckInlineNd auto& GetAllocator() const { return m_Alloc; }
     EckInlineNdCe BYTE& At(size_t idx) noexcept { EckAssert(idx < Size()); return *(Data() + idx); }
     EckInlineNdCe BYTE At(size_t idx) const noexcept { EckAssert(idx < Size()); return *(Data() + idx); }
     EckInlineNdCe BYTE& operator[](size_t idx) noexcept { return At(idx); }
@@ -173,47 +173,30 @@ public:
         Assign(x.data(), x.size_bytes());
     }
 
-    /// <summary>
-    /// 依附指针。
-    /// 先前的内存将被释放
-    /// </summary>
-    /// <param name="p">指针，必须可通过当前分配器解分配</param>
-    /// <param name="cbCapacity">容量，必须为偶数</param>
-    /// <param name="cb">当前长度</param>
-    void Attach(BYTE* p, size_t cbCapacity, size_t cb) noexcept
+    void Attach(const OWNED_RAW_BUFFER& Buffer) noexcept
     {
-        EckAssert(!(cbCapacity & 1) && cb <= cbCapacity);
+        EckAssert(!(Buffer.cbCapacity & 1) && Buffer.cbValid <= Buffer.cbCapacity);
         m_Alloc.deallocate(m_pStream, m_cbCapacity);
-        if (!p)
+        if (Buffer.pData)
+        {
+            m_pStream = (BYTE*)Buffer.pData;
+            m_cb = Buffer.cbValid;
+            m_cbCapacity = Buffer.cbCapacity;
+        }
+        else
         {
             m_pStream = nullptr;
             m_cb = m_cbCapacity = 0u;
         }
-        else
-        {
-            m_pStream = p;
-            m_cbCapacity = cbCapacity;
-            m_cb = cb;
-        }
     }
-
-    /// <summary>
-    /// 拆离指针
-    /// </summary>
-    /// <param name="cbCapacity">容量，一定为偶数</param>
-    /// <param name="cb">长度</param>
-    /// <returns>指针，必须通过与当前分配器相等的分配器解分配</returns>
-    EckInlineNd BYTE* Detach(_Out_ size_t& cbCapacity, _Out_ size_t& cb) noexcept
+    void Detach(_Out_ OWNED_RAW_BUFFER& Buffer) noexcept
     {
-        const auto pTemp = m_pStream;
+        Buffer.pData = m_pStream;
+        Buffer.cbValid = m_cb;
+        Buffer.cbCapacity = m_cbCapacity;
+        EckAssert(!(Buffer.cbCapacity & 1));
         m_pStream = nullptr;
-
-        cbCapacity = m_cbCapacity;
-        m_cbCapacity = 0u;
-
-        cb = m_cb;
-        m_cb = 0u;
-        return pTemp;
+        m_cb = m_cbCapacity = 0u;
     }
 
     EckInline size_t CopyTo(_Out_writes_(cbMax) void* pDst, size_t cbMax) const noexcept

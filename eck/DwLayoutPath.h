@@ -38,10 +38,10 @@ private:
         {
             const auto pUnknown = (IUnknown*)pClientDrawingContext;
             HRESULT hr;
-            hr = pUnknown->QueryInterface(m_pSink.AddrOfClear());
+            hr = pUnknown->QueryInterface(m_pSink.AtClear());
             if (FAILED(hr))
                 return E_NOINTERFACE;
-            hr = pUnknown->QueryInterface(m_pTransformer.AddrOfClear());
+            hr = pUnknown->QueryInterface(m_pTransformer.AtClear());
             if (FAILED(hr))
                 return E_NOINTERFACE;
         }
