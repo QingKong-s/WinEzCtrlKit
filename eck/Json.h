@@ -46,7 +46,7 @@ namespace Priv { struct InitializeProxy; }
 struct Array_T {};
 
 EckInline BOOL YyLocateStringPosition(PCSTR pszText, size_t cchText, size_t ocbPos,
-    size_t& nLine, size_t& nCol, size_t& nChar) noexcept
+    _Out_ size_t& nLine, _Out_ size_t& nCol, _Out_ size_t& nChar) noexcept
 {
     return yyjson_locate_pos(pszText, cchText, ocbPos, &nLine, &nCol, &nChar);
 }
@@ -85,13 +85,13 @@ namespace Priv
     template<class T>
     EckInline bool EqualIterator(const T& x, const T& y) noexcept
     {
-        if (x.m_iter.cur)
-            if (y.m_iter.cur)
-                return x.m_iter.cur == y.m_iter.cur;
+        if (x.m_Iter.cur)
+            if (y.m_Iter.cur)
+                return x.m_Iter.cur == y.m_Iter.cur;
             else
                 return !x.HasNext();
         else
-            if (y.m_iter.cur)
+            if (y.m_Iter.cur)
                 return !y.HasNext();
             else
                 return true;
@@ -316,42 +316,42 @@ public:
 
 struct ArrayIterator
 {
-    YyArrIter m_iter{};
+    YyArrIter m_Iter{};
 
     ArrayIterator() = default;
-    constexpr ArrayIterator(YyArrIter iter) noexcept : m_iter{ iter } {}
-    ArrayIterator(CValue val) noexcept : m_iter{ yyjson_arr_iter_with(val.GetPointer()) } {}
+    constexpr ArrayIterator(YyArrIter iter) noexcept : m_Iter{ iter } {}
+    ArrayIterator(CValue val) noexcept : m_Iter{ yyjson_arr_iter_with(val.GetPointer()) } {}
 
-    EckInline void FromValue(CValue val) noexcept { m_iter = yyjson_arr_iter_with(val.GetPointer()); }
-    EckInlineNd BOOL HasNext() const noexcept { return yyjson_arr_iter_has_next((YyArrIter*)&m_iter); }
-    EckInlineNd CValue Next() noexcept { return CValue(yyjson_arr_iter_next(&m_iter)); }
-    EckInlineCe CValue GetCurrent() const noexcept { return CValue(m_iter.cur); }
+    EckInline void FromValue(CValue val) noexcept { m_Iter = yyjson_arr_iter_with(val.GetPointer()); }
+    EckInlineNd BOOL HasNext() const noexcept { return yyjson_arr_iter_has_next((YyArrIter*)&m_Iter); }
+    EckInlineNd CValue Next() noexcept { return CValue(yyjson_arr_iter_next(&m_Iter)); }
+    EckInlineCe CValue GetCurrent() const noexcept { return CValue(m_Iter.cur); }
     EckInline ArrayIterator& operator++() noexcept { Next(); return *this; }
     EckInlineCe CValue operator*() const noexcept { return GetCurrent(); }
 };
-EckInline bool operator==(const ArrayIterator& x, const ArrayIterator& y) noexcept
+EckInlineNd bool operator==(const ArrayIterator& x, const ArrayIterator& y) noexcept
 {
     return Priv::EqualIterator<ArrayIterator>(x, y);
 }
 
 struct ObjectIterator
 {
-    YyObjIter m_iter{};
+    YyObjIter m_Iter{};
 
     ObjectIterator() = default;
-    constexpr ObjectIterator(YyObjIter iter) noexcept : m_iter{ iter } {}
-    ObjectIterator(CValue val) noexcept : m_iter{ yyjson_obj_iter_with(val.GetPointer()) } {}
+    constexpr ObjectIterator(YyObjIter iter) noexcept : m_Iter{ iter } {}
+    ObjectIterator(CValue val) noexcept : m_Iter{ yyjson_obj_iter_with(val.GetPointer()) } {}
 
-    EckInline void FromValue(CValue val) noexcept { m_iter = yyjson_obj_iter_with(val.GetPointer()); }
-    EckInlineNd BOOL HasNext() const noexcept { return yyjson_obj_iter_has_next((YyObjIter*)&m_iter); }
-    EckInlineNd CValue Next() noexcept { return CValue(yyjson_obj_iter_next(&m_iter)); }
-    EckInlineNd CValue Get(PCSTR pszKey) noexcept { return yyjson_obj_iter_get(&m_iter, pszKey); }
-    EckInlineNd CValue Get(PCSTR pszKey, size_t cchKey) noexcept { return yyjson_obj_iter_getn(&m_iter, pszKey, cchKey); }
-    EckInlineCe CValue GetCurrent() const noexcept { return CValue(m_iter.cur); }
+    EckInline void FromValue(CValue val) noexcept { m_Iter = yyjson_obj_iter_with(val.GetPointer()); }
+    EckInlineNd BOOL HasNext() const noexcept { return yyjson_obj_iter_has_next((YyObjIter*)&m_Iter); }
+    EckInlineNd CValue Next() noexcept { return CValue(yyjson_obj_iter_next(&m_Iter)); }
+    EckInlineNd CValue Get(PCSTR pszKey) noexcept { return yyjson_obj_iter_get(&m_Iter, pszKey); }
+    EckInlineNd CValue Get(PCSTR pszKey, size_t cchKey) noexcept { return yyjson_obj_iter_getn(&m_Iter, pszKey, cchKey); }
+    EckInlineCe CValue GetCurrent() const noexcept { return CValue(m_Iter.cur); }
     EckInline ObjectIterator& operator++() noexcept { Next(); return *this; }
     EckInlineCe CValue operator*() const noexcept { return GetCurrent(); }
 };
-EckInline bool operator==(const ObjectIterator& x, const ObjectIterator& y) noexcept
+EckInlineNd bool operator==(const ObjectIterator& x, const ObjectIterator& y) noexcept
 {
     return Priv::EqualIterator<ObjectIterator>(x, y);
 }
@@ -891,41 +891,49 @@ namespace Priv
 
 struct MutableArrayIterator
 {
-    YyMutArrIter m_iter{};
+    YyMutArrIter m_Iter{};
 
     MutableArrayIterator() = default;
-    constexpr MutableArrayIterator(const YyMutArrIter& iter) : m_iter{ iter } {}
-    MutableArrayIterator(CMutableValue val) :m_iter{ yyjson_mut_arr_iter_with(val.Ptr()) } {}
+    constexpr MutableArrayIterator(const YyMutArrIter& iter) : m_Iter{ iter } {}
+    MutableArrayIterator(CMutableValue val) :m_Iter{ yyjson_mut_arr_iter_with(val.Ptr()) } {}
 
-    EckInline void FromValue(CMutableValue val) { m_iter = yyjson_mut_arr_iter_with(val.Ptr()); }
-    EckInlineNd BOOL HasNext() const noexcept { return yyjson_mut_arr_iter_has_next((YyMutArrIter*)&m_iter); }
-    EckInlineNd CMutableValue Next() { return CMutableValue(yyjson_mut_arr_iter_next(&m_iter)); }
-    EckInline CMutableValue Remove() { return yyjson_mut_arr_iter_remove(&m_iter); }
-    EckInlineCe CMutableValue GetCurrent() const noexcept { return CMutableValue(m_iter.cur); }
+    EckInline void FromValue(CMutableValue val) { m_Iter = yyjson_mut_arr_iter_with(val.Ptr()); }
+    EckInlineNd BOOL HasNext() const noexcept { return yyjson_mut_arr_iter_has_next((YyMutArrIter*)&m_Iter); }
+    EckInlineNd CMutableValue Next() { return CMutableValue(yyjson_mut_arr_iter_next(&m_Iter)); }
+    EckInline CMutableValue Remove() { return yyjson_mut_arr_iter_remove(&m_Iter); }
+    EckInlineCe CMutableValue GetCurrent() const noexcept { return CMutableValue(m_Iter.cur); }
     EckInline MutableArrayIterator& operator++() { Next(); return *this; }
     EckInlineCe CMutableValue operator*() const noexcept { return GetCurrent(); }
 };
-EckInline bool operator==(const MutableArrayIterator& x, const MutableArrayIterator& y) { return Priv::EqualIterator<MutableArrayIterator>(x, y); }
+EckInlineNd bool operator==(const MutableArrayIterator& x,
+    const MutableArrayIterator& y) noexcept
+{
+    return Priv::EqualIterator<MutableArrayIterator>(x, y);
+}
 
 struct MutableObjectIterator
 {
-    YyMutObjIter m_iter;
+    YyMutObjIter m_Iter;
 
     MutableObjectIterator() = default;
-    constexpr MutableObjectIterator(const YyMutObjIter& iter) : m_iter{ iter } {}
-    MutableObjectIterator(CMutableValue val) :m_iter{ yyjson_mut_obj_iter_with(val.Ptr()) } {}
+    constexpr MutableObjectIterator(const YyMutObjIter& iter) : m_Iter{ iter } {}
+    MutableObjectIterator(CMutableValue val) :m_Iter{ yyjson_mut_obj_iter_with(val.Ptr()) } {}
 
-    EckInline void FromValue(CMutableValue val) { m_iter = yyjson_mut_obj_iter_with(val.Ptr()); }
-    EckInlineNd BOOL HasNext() const noexcept { return yyjson_mut_obj_iter_has_next((YyMutObjIter*)&m_iter); }
-    EckInlineNd CMutableValue Next() { return CMutableValue(yyjson_mut_obj_iter_next(&m_iter)); }
-    EckInlineNd CMutableValue Get(PCSTR pszKey) { return yyjson_mut_obj_iter_get(&m_iter, pszKey); }
-    EckInlineNd CMutableValue Get(PCSTR pszKey, size_t cchKey) { return yyjson_mut_obj_iter_getn(&m_iter, pszKey, cchKey); }
-    EckInline CMutableValue Remove() { return yyjson_mut_obj_iter_remove(&m_iter); }
-    EckInlineCe CMutableValue GetCurrent() const noexcept { return CMutableValue(m_iter.cur); }
+    EckInline void FromValue(CMutableValue val) { m_Iter = yyjson_mut_obj_iter_with(val.Ptr()); }
+    EckInlineNd BOOL HasNext() const noexcept { return yyjson_mut_obj_iter_has_next((YyMutObjIter*)&m_Iter); }
+    EckInlineNd CMutableValue Next() { return CMutableValue(yyjson_mut_obj_iter_next(&m_Iter)); }
+    EckInlineNd CMutableValue Get(PCSTR pszKey) { return yyjson_mut_obj_iter_get(&m_Iter, pszKey); }
+    EckInlineNd CMutableValue Get(PCSTR pszKey, size_t cchKey) { return yyjson_mut_obj_iter_getn(&m_Iter, pszKey, cchKey); }
+    EckInline CMutableValue Remove() { return yyjson_mut_obj_iter_remove(&m_Iter); }
+    EckInlineCe CMutableValue GetCurrent() const noexcept { return CMutableValue(m_Iter.cur); }
     EckInline MutableObjectIterator& operator++() { Next(); return *this; }
     EckInlineCe CMutableValue operator*() const noexcept { return GetCurrent(); }
 };
-EckInline bool operator==(const MutableObjectIterator& x, const MutableObjectIterator& y) { return Priv::EqualIterator<MutableObjectIterator>(x, y); }
+EckInlineNd bool operator==(const MutableObjectIterator& x,
+    const MutableObjectIterator& y) noexcept
+{
+    return Priv::EqualIterator<MutableObjectIterator>(x, y);
+}
 
 struct MutableArrayProxy
 {
