@@ -62,12 +62,14 @@ namespace Declaration
     {
         SaNormal = 0u,
         SaHot = 1u << 0,
-        SaActive = 1u << 1,
+        SaPressed = 1u << 1,
         SaDisable = 1u << 2,
         SaFocus = 1u << 3,
         SaSelected = 1u << 4,
         SaMixed = 1u << 5,
+
         SapLButtonDown = 1u << 6,
+        SapDarkMode = 1u << 7,
     };
 
     struct ELENMHDR
@@ -1679,65 +1681,17 @@ public:
     EckInlineCe void SetId(int iId) noexcept { m_iId = iId; }
     EckInlineNdCe int GetId() const noexcept { return m_iId; }
 protected:
-    // 返回状态是否改变
-    BOOL TmOnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
-    {
-        switch (uMsg)
-        {
-        case WM_MOUSEMOVE:
-            if (m_uTmState & SaHot)
-                break;
-            m_uTmState |= SaHot;
-            return TRUE;
-        case WM_MOUSELEAVE:
-            if (!(m_uTmState & SaHot))
-                break;
-            m_uTmState &= ~SaHot;
-            return TRUE;
-        case WM_LBUTTONDOWN:
-        case WM_LBUTTONDBLCLK:
-            m_uTmState |= (SaActive | SapLButtonDown);
-            GetContainer()->EleSetCapture((THost*)this);
-            return TRUE;
-        case WM_LBUTTONUP:
-            if (m_uTmState & SapLButtonDown)
-                GetContainer()->EleReleaseCapture();
-            return TRUE;
-        case WM_CAPTURECHANGED:
-            if (m_uTmState & SapLButtonDown)
-            {
-                m_uTmState &= ~(SaActive | SapLButtonDown);
-                return TRUE;
-            }
-            break;
-        case WM_SETFOCUS:
-            if (m_uTmState & SaFocus)
-                break;
-            m_uTmState |= SaFocus;
-            return TRUE;
-        case WM_KILLFOCUS:
-            if (!(m_uTmState & SaFocus))
-                break;
-            m_uTmState &= ~SaFocus;
-            return TRUE;
-        case WM_STYLECHANGED:
-            if (!(((UINT)wParam ^ GetStyle()) & DES_DISABLE))
-                break;
-            [[fallthrough]];
-        case WM_CREATE:
-            if (GetStyle() & DES_DISABLE)
-            {
-                m_uTmState |= SaDisable;
-                return TRUE;
-            }
-            break;
-        }
-        return FALSE;
-    }
-
     EckInlineNdCe UINT& TmState() noexcept { return m_uTmState; }
 public:
-    EckInlineNdCe UINT GetThemeState() const noexcept { return m_uTmState; }
+    EckInlineNdCe UINT TmGetState() const noexcept { return m_uTmState; }
+    EckInlineNdCe BOOL TmIsDarkMode() const noexcept { return !!(m_uTmState & SapDarkMode); }
+    EckInlineNdCe void TmSetDarkMode(BOOL bDark) noexcept
+    {
+        if (bDark)
+            m_uTmState |= SapDarkMode;
+        else
+            m_uTmState &= ~SapDarkMode;
+    }
 };
 ECK_UIBASIC_NAMESPACE_END
 ECK_NAMESPACE_END

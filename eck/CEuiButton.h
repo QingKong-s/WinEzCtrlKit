@@ -27,7 +27,7 @@ public:
         };
         vStyle[2] =
         {
-            .uState = SaActive,
+            .uState = SaPressed,
             .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
             .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
         };
@@ -39,7 +39,7 @@ public:
 
     LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
-        const auto uOldThemeState = GetThemeState();
+        const auto uOldThemeState = TmGetState();
         TmOnEvent(uMsg, wParam, lParam);
         switch (uMsg)
         {
@@ -56,8 +56,8 @@ public:
             SetFocus();
             break;
         case WM_LBUTTONUP:
-            if (!(GetThemeState() & SaActive) &&
-                uOldThemeState & SaActive)
+            if (!(TmGetState() & SaPressed) &&
+                uOldThemeState & SaPressed)
                 EvtClick();
             break;
         case WM_SETFOCUS:
@@ -72,7 +72,7 @@ public:
             SetTheme(TmDefaultTheme().Get());
             break;
         }
-        if ((GetThemeState() ^ uOldThemeState) & (SaHot | SaActive | SaDisable))
+        if ((TmGetState() ^ uOldThemeState) & (SaHot | SaPressed | SaDisable))
             Redraw();
         return __super::OnEvent(uMsg, wParam, lParam);
     }

@@ -8,9 +8,17 @@ class CButton : public CElement
 private:
     ComPtr<IDWriteTextLayout> m_pLayout{};
     RcPtr<CBitmap> m_pBitmap{};
+    BOOLEAN m_bSpacePressed{};
     BOOLEAN m_bAutoScale{ TRUE };
     BYTE m_eInter{ D2D1_INTERPOLATION_MODE_LINEAR };
     float m_fOpacity{ 1.f };
+    SimpleStyle m_Style[SsMax]
+    {
+        TmsSsMakeNormal(1.f),
+        TmsSsMakeHot(1.f),
+        TmsSsMakePressed(1.f),
+        TmsSsMakeDisabled(1.f),
+    };
 
     Kw::Vec2 CalculateBitmapSize() const noexcept
     {
@@ -47,37 +55,12 @@ private:
         UpdateTextLayout(GetText().Data(), GetText().Size());
     }
 public:
-    static RcPtr<CThemeBase> TmMakeDefaultTheme() noexcept;
-    static RcPtr<CThemeBase> TmDefaultTheme() noexcept;
-
-    static RcPtr<CThemeStyle> TmMakeDefaultStyle(BOOL bDarkMode) noexcept
+    static RcPtr<CThemeBase> TmMakeDefaultTheme(BOOL bDark) noexcept;
+    static RcPtr<CThemeBase> TmDefaultTheme(BOOL bDark) noexcept
     {
-        auto p = RcPtr<CThemeStyle>::Make();
-        auto& vStyle = p->GetList();
-        vStyle.resize(3);
-        vStyle[0] =
-        {
-            .uState = SaNormal,
-            .argbFore = (bDarkMode ? 0xFF'FFFFFF : 0xFF'000000),
-            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'F0F0F0),
-            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
-        };
-        vStyle[1] =
-        {
-            .uState = SaHot,
-            .argbFore = (bDarkMode ? 0xFF'FFFFFF : 0xFF'000000),
-            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'E0E0E0),
-            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
-        };
-        vStyle[2] =
-        {
-            .uState = SaActive,
-            .argbFore = (bDarkMode ? 0xFF'FFFFFF : 0xFF'000000),
-            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
-            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
-        };
-        p->SetBorderWidth(1);
-        return p;
+        static auto p1{ TmMakeDefaultTheme(TRUE) };
+        static auto p2{ TmMakeDefaultTheme(FALSE) };
+        return bDark ? p1 : p2;
     }
 
     HRESULT EhUiaMakeInterface() noexcept override;
@@ -90,8 +73,13 @@ public:
         {
             PAINTINFO ps;
             BeginPaint(ps, wParam, lParam);
-            const CThemeStyle::Style* pSubStyle;
-            GetTheme()->Draw(this, IdPtNormal, GetRectInClientD2D(), nullptr, &pSubStyle);
+            const auto& Ss = m_Style[TmSimpleStyleFromThemeState(TmGetState())];
+            GetTheme()->Draw(
+                this,
+                &Ss,
+                IdPtNormal,
+                GetRectInClientD2D(),
+                nullptr);
 
             const float dInner = GetTheme()->GetMetric(IdMePaddingInner);
 
@@ -117,14 +105,15 @@ public:
             else
                 rc.left = (GetWidth() - tm.width) / 2.f;
 
-            if (m_pLayout.Get() && pSubStyle)
+            if (m_pLayout.Get())
             {
                 Kw::Vec2 pt{ rc.left, (GetHeight() - tm.height) / 2.f };
                 pt += GetOffsetInClient();
                 GetDC()->DrawTextLayout(
                     Kw::MakeD2DPointF(pt),
                     m_pLayout.Get(),
-                    GetWindow().CcSetBrushColor(ArgbToD2DColorF(pSubStyle->argbFore)));
+                    GetWindow().CcSetBrushColor(
+                        ArgbToD2DColorF(GetTheme()->GetColor(Ss.idCrFore))));
             }
 
             DbgDrawFrame();
@@ -147,7 +136,7 @@ public:
         case WM_LBUTTONDOWN:
         case WM_LBUTTONDBLCLK:
             SetFocus();
-            TmState() |= (SaActive | SapLButtonDown);
+            TmState() |= (SaPressed | SapLButtonDown);
             GetContainer()->EleSetCapture((THost*)this);
             Invalidate();
             break;
@@ -159,10 +148,37 @@ public:
         case WM_CAPTURECHANGED:
             if (TmState() & SapLButtonDown)
             {
-                TmState() &= ~(SaActive | SapLButtonDown);
+                TmState() &= ~(SaPressed | SapLButtonDown);
                 Invalidate();
             }
             break;
+
+        case WM_KEYDOWN:
+        {
+            if (wParam != VK_SPACE || m_bSpacePressed)
+                break;
+            m_bSpacePressed = TRUE;
+            if (!(TmState() & SaPressed))
+            {
+                TmState() |= SaPressed;
+                Invalidate();
+            }
+        }
+        break;
+        case WM_KEYUP:
+        {
+            if (wParam != VK_SPACE || !m_bSpacePressed)
+                break;
+            m_bSpacePressed = FALSE;
+            if (TmState() & SaPressed)
+            {
+                EvtClick();
+                TmState() &= ~SaPressed;
+                Invalidate();
+            }
+        }
+        break;
+
         case WM_SETFOCUS:
             if (TmState() & SaFocus)
                 break;
@@ -203,7 +219,7 @@ public:
                 TmState() |= SaDisable;
                 Invalidate();
             }
-            SetTheme(TmDefaultTheme().Get());
+            SetTheme(TmDefaultTheme(TmIsDarkMode()).Get());
             UpdateTextLayout();
             break;
         case WM_DESTROY:
@@ -231,34 +247,23 @@ class CTmButton : public CThemeBase
 public:
     TmResult Draw(
         CElement* pEle,
+        const SimpleStyle* pStyle,
         UINT idPart,
         const D2D1_RECT_F& rc,
-        _In_opt_ const D2D1_RECT_F* prcClip,
-        _Out_opt_ const CThemeStyle::Style** ppStyle) noexcept override
+        _In_opt_ const D2D1_RECT_F* prcClip) noexcept override
     {
         if (idPart != IdPtNormal)
-        {
-            if (ppStyle)
-                *ppStyle = nullptr;
             return TmResult::NotSupport;
-        }
-        const auto pStyle = pEle->TmSelectSubStyle();
-        if (ppStyle)
-            *ppStyle = pStyle;
-        if (!pStyle)
-            return TmResult::NoStyle;
         return pEle->TmGenericDrawBackground(pStyle, rc);
     }
 };
-inline RcPtr<CThemeBase> CButton::TmMakeDefaultTheme() noexcept
+inline RcPtr<CThemeBase> CButton::TmMakeDefaultTheme(BOOL bDark) noexcept
 {
     const auto p = RcPtr<CTmButton>::Make();
-    p->SetMetricCollection(TmDefaultMetricCollection().Get());
-    return p;
-}
-inline RcPtr<CThemeBase> CButton::TmDefaultTheme() noexcept
-{
-    static auto p{ TmMakeDefaultTheme() };
+    p->SetMetricCollection(TmsMetricCollection().Get());
+    p->SetColorCollection(bDark ?
+        TmsColorCollectionDark().Get() :
+        TmsColorCollectionLight().Get());
     return p;
 }
 
@@ -277,6 +282,8 @@ class CUiaButton : public CUnknownAppend<CUiaBase, IInvokeProvider>
 
     STDMETHODIMP Invoke() override
     {
+        if (!GetElement())
+            return UIA_E_ELEMENTNOTAVAILABLE;
         if (GetElement()->GetStyle() & DES_DISABLE)
             return UIA_E_ELEMENTNOTENABLED;
         DbgDynamicCast<CButton*>(GetElement())->EvtClick();

@@ -407,6 +407,7 @@
     <ClCompile Include="eck\EuiBase.h" />
     <ClCompile Include="eck\EuiDef.h" />
     <ClCompile Include="eck\GpPtr.h" />
+    <ClInclude Include="eck\UiColor.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>

@@ -507,14 +507,14 @@ inline TmResult TmGenericDrawText(
 inline auto TmSelectSubStyle(CElement* pEle) noexcept
 {
     const auto pStyle = pEle->GetThemeStyle();
-    const auto uState = pEle->GetThemeState();
+    const auto uState = pEle->TmGetState();
     const CThemeStyle::Style* pSub;
     if (pEle->GetStyle() & DES_DISABLE)
         pSub = pStyle->FindStyle(SaDisable);
     else
     {
-        if (uState & SaActive)
-            pSub = pStyle->FindStyle(SaActive);
+        if (uState & SaPressed)
+            pSub = pStyle->FindStyle(SaPressed);
         else if (uState & SaHot)
             pSub = pStyle->FindStyle(SaHot);
         else

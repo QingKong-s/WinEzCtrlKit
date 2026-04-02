@@ -6,11 +6,35 @@ namespace Declaration
 {
     enum : UINT
     {
-        IdTmBegin = 1,
+        IdTmInvalid,
 
-        IdCrBackground,
-        IdCrForeground,
+        // Color
+
+        IdCrFore,
+        IdCrForeDisabled,
+
         IdCrBorder,
+        IdCrBorderHot,
+        IdCrBorderPressed,
+        IdCrBorderDisabled,
+
+        IdCrBack,
+        IdCrBackHot,
+        IdCrBackPressed,
+        IdCrBackDisabled,
+
+        IdCrAccent,
+        IdCrAccentHot,
+        IdCrAccentPressed,
+        IdCrAccentDisabled,
+        IdCrAccentFore,
+        IdCrAccentForeDisabled,
+
+        IdCrDanger,
+        IdCrDangerHot,
+        IdCrDangerPressed,
+
+        // Metric
 
         IdMeScrollBarWidth,
         IdMeScrollThumbWidth,
@@ -19,13 +43,9 @@ namespace Declaration
         IdMeFocusPadding,
         IdMeMinimumScrollThumb,
 
-        IdPtNormal,
+        // Part
 
-        IdSaNormal,
-        IdSaHot,
-        IdSaActive,
-        IdSaDisable,
-        IdSaFocus,
+        IdPtNormal,
 
         IdTmSystemBegin,
     };
@@ -44,12 +64,12 @@ private:
     EckInlineNdCe auto LowerBound(UINT id) noexcept
     {
         return std::lower_bound(m_vItem.begin(), m_vItem.end(), id,
-            [](const ITEM& e, UINT id) {return e.id < id; });
+            [](const ITEM& e, UINT id) { return e.id < id; });
     }
     EckInlineNdCe auto LowerBound(UINT id) const noexcept
     {
         return std::lower_bound(m_vItem.begin(), m_vItem.end(), id,
-            [](const ITEM& e, UINT id) {return e.id < id; });
+            [](const ITEM& e, UINT id) { return e.id < id; });
     }
 public:
     void Set(UINT id, UINT argb) noexcept

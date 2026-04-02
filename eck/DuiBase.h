@@ -35,7 +35,6 @@ private:
 
     CStringW m_rsText{};
     RcPtr<CThemeBase> m_pTheme{};
-    RcPtr<CThemeStyle> m_pThemeStyle{};
     ComPtr<IDWriteTextFormat> m_pTextFormat{};
 
     void InvalidateInternal(const Kw::Rect* prcInEle, BOOL bUpdateNow) noexcept;
@@ -137,9 +136,6 @@ public:
     EckInline void SetTheme(CThemeBase* p) noexcept { m_pTheme = p; }
     EckInlineNdCe auto& GetTheme() const noexcept { return m_pTheme; }
 
-    EckInline void SetThemeStyle(CThemeStyle* p) noexcept { m_pThemeStyle = p; }
-    EckInlineNdCe auto& GetThemeStyle() const noexcept { return m_pThemeStyle; }
-
     void SetCompositor(ICompositor* pCompositor, BOOL bAutoMarkParentComp = TRUE) noexcept
     {
         if (m_pCompositor.Get() == pCompositor)
@@ -198,7 +194,7 @@ public:
     EckInline BOOL SetTimer(UINT_PTR uId, UINT uElapse) noexcept;
     EckInline BOOL KillTimer(UINT_PTR uId) noexcept;
 
-    EckInline void KctWake() noexcept;
+    EckInline void KctWake() const noexcept;
 
     EckInlineNdCe BOOL IsValid() const noexcept { return !!__super::GetContainer(); }
 
@@ -324,32 +320,8 @@ public:
     }
 
     TmResult TmGenericDrawBackground(
-        const CThemeStyle::Style* pStyle,
+        const SimpleStyle* pStyle,
         const D2D1_RECT_F& rc) const noexcept;
-
-    const CThemeStyle::Style* TmSelectSubStyle() const noexcept
-    {
-        const auto pStyle = GetThemeStyle();
-        if (!pStyle)
-            return nullptr;
-        const auto uState = GetThemeState();
-        const CThemeStyle::Style* pSub;
-        if (GetStyle() & DES_DISABLE)
-            pSub = pStyle->FindStyle(SaDisable);
-        else
-        {
-            if (uState & SaActive)
-                pSub = pStyle->FindStyle(SaActive);
-            else if (uState & SaHot)
-                pSub = pStyle->FindStyle(SaHot);
-            else
-                pSub = nullptr;
-        }
-
-        if (!pSub)
-            pSub = pStyle->FindStyle(SaNormal);
-        return pSub;
-    }
 
     void DbgDrawFrame() const noexcept;
 };
@@ -1096,6 +1068,7 @@ private:
     {
         m_MsgTimer.SetTargetWindow(HWnd);
         m_MsgTimer.SetMessageValue(WM_TICK);
+        m_MsgTimer.SetInterval(14);
     }
 
     void KctShutdown() noexcept
@@ -1510,7 +1483,6 @@ inline void CElement::Destroy() noexcept
         m_pCompositor.Clear();
     }
     m_pTheme.Clear();
-    m_pThemeStyle.Clear();
     m_rsText.Clear();
 }
 
@@ -1690,58 +1662,36 @@ inline HRESULT CElement::CompUpdateCacheBitmap(float cx, float cy) noexcept
 }
 
 inline TmResult CElement::TmGenericDrawBackground(
-    const CThemeStyle::Style* pStyle, const D2D1_RECT_F& rc) const noexcept
+    const SimpleStyle* pStyle,
+    const D2D1_RECT_F& rc) const noexcept
 {
     const auto pDC = GetDC();
-    const auto pBrush = GetWindow().CcSetBrushColor(ArgbToD2DColorF(pStyle->argbBack));
-    pDC->FillRectangle(rc, pBrush);
+    const auto pBrush = GetWindow().CcSetBrushColor(
+        ArgbToD2DColorF(GetTheme()->GetColor(pStyle->idCrBack)));
+    if (pStyle->HasRoundConer())
+    {
+        D2D1_ROUNDED_RECT Rrc{ rc, pStyle->rRound, pStyle->rRound };
+        pDC->FillRoundedRectangle(Rrc, pBrush);
+    }
+    else
+        pDC->FillRectangle(rc, pBrush);
 
-    if (pStyle->dLeft == pStyle->dRight &&
-        pStyle->dTop == pStyle->dBottom &&
-        pStyle->dLeft == pStyle->dTop)
+    if (pStyle->HasBorder())
     {
-        if (pStyle->dLeft > 0.f)
+        const auto d = -pStyle->cxBorder / 2.f;
+        pBrush->SetColor(ArgbToD2DColorF(GetTheme()->GetColor(pStyle->idCrBorder)));
+        if (pStyle->HasRoundConer())
         {
-            auto rcFrame{ rc };
-            InflateRect(rcFrame, -pStyle->dLeft * 0.5f, -pStyle->dLeft * 0.5f);
-            pBrush->SetColor(ArgbToD2DColorF(pStyle->argbBorder));
-            pDC->DrawRectangle(rc, pBrush, pStyle->dLeft);
+            D2D1_ROUNDED_RECT Rrc{ rc, pStyle->rRound, pStyle->rRound };
+            InflateRect(Rrc.rect, d, d);
+            pDC->DrawRoundedRectangle(Rrc, pBrush, pStyle->cxBorder);
         }
-        return TmResult::Ok;
-    }
-    auto rcFrame{ rc };
-    pBrush->SetColor(ArgbToD2DColorF(pStyle->argbBorder));
-    if (pStyle->dLeft > 0.f)
-    {
-        const auto t = rcFrame.right;
-        rcFrame.right = std::min(rcFrame.left + pStyle->dLeft, t);
-        pDC->FillRectangle(rc, pBrush);
-        rcFrame.left = rcFrame.right;
-        rcFrame.right = t;
-    }
-    if (pStyle->dRight > 0.f)
-    {
-        const auto t = rcFrame.left;
-        rcFrame.left = std::max(rcFrame.right - pStyle->dRight, t);
-        pDC->FillRectangle(rc, pBrush);
-        rcFrame.right = rcFrame.left;
-        rcFrame.left = t;
-    }
-    if (pStyle->dTop > 0.f)
-    {
-        const auto t = rcFrame.bottom;
-        rcFrame.bottom = std::min(rcFrame.top + pStyle->dTop, t);
-        pDC->FillRectangle(rc, pBrush);
-        rcFrame.top = rcFrame.bottom;
-        rcFrame.bottom = t;
-    }
-    if (pStyle->dBottom > 0.f)
-    {
-        const auto t = rcFrame.top;
-        rcFrame.top = std::max(rcFrame.bottom - pStyle->dBottom, t);
-        pDC->FillRectangle(rc, pBrush);
-        rcFrame.bottom = rcFrame.top;
-        rcFrame.top = t;
+        else
+        {
+            D2D1_RECT_F rcFrame{ rc };
+            InflateRect(rcFrame, d, d);
+            pDC->DrawRectangle(rcFrame, pBrush, pStyle->cxBorder);
+        }
     }
     return TmResult::Ok;
 }
@@ -1769,7 +1719,7 @@ EckInline     void      CElement::SetFocus()       noexcept { GetWindow().EleSet
 EckInlineNdCe CElement* CElement::GetFocus()       noexcept { return GetWindow().EleGetFocus(); }
 EckInline     BOOL      CElement::SetTimer(UINT_PTR uId, UINT uElapse) noexcept { return GetWindow().EleSetTimer(this, uId, uElapse); }
 EckInline     BOOL      CElement::KillTimer(UINT_PTR uId) noexcept { return GetWindow().EleKillTimer(this, uId); }
-EckInline     void      CElement::KctWake() noexcept { GetWindow().KctWake(); }
+EckInline     void      CElement::KctWake() const noexcept { GetWindow().KctWake(); }
 EckInlineNdCe ID2D1Bitmap1* CElement::CcGetBitmap() const noexcept { return GetWindow().CcGetBitmap(); }
 
 class CUiaBase : public CElement::CUiaElement

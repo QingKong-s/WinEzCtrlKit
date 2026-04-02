@@ -12,6 +12,17 @@ public:
     const static inline UINT IdPtActiveTrackV = TmNextResourceId();
     const static inline UINT IdPtThumb = TmNextResourceId();
     const static inline UINT IdCrThumb = TmNextResourceId();
+
+    enum : UINT
+    {
+        SsThumb = SsHot,
+        SspDummy = SsMax,
+        SsThumbDisabled,
+        SsMaxNew
+    };
+
+    constexpr static float MeTrackSize = 6.f;
+    constexpr static float MeThumbSize = 16.f;
 private:
     CEasingCurveLite<Easing::FOutCubic> m_ec{};
 
@@ -22,9 +33,10 @@ private:
     float m_fLargeDelta{ 10.0f };
 
     float m_fDragPos{};
-    float m_cxyTrack{};
+    float m_cxyTrack{ MeTrackSize };
+    float m_cxyThumb{ MeThumbSize };
 
-    UINT m_msLastDur : 24{};
+    int m_msLastDuration{};
 
     UINT m_bAnActive : 1{};
 
@@ -34,6 +46,20 @@ private:
     UINT m_bThinTrack : 1{};         // 轨道正常情况下显示为尺寸的一半，点燃时显示全尺寸
     UINT m_bAutoTrackSize : 1{};     // 根据控件尺寸自动调整轨道尺寸
 
+    SimpleStyle m_Style[SsMaxNew]
+    {
+        // Track
+        { IdTmInvalid,        IdCrBack,           IdTmInvalid },
+        // Thumb
+        { IdCrAccent,         IdCrBack,           IdCrBorder, FLT_MAX, 1.f },
+        // Active Track
+        { IdTmInvalid,        IdCrAccent,         IdTmInvalid },
+        // Disabled Track
+        { IdTmInvalid,        IdCrAccentDisabled, IdTmInvalid },
+        // Disabled Thumb
+        { IdCrAccentDisabled, IdCrBackDisabled,   IdCrBorderDisabled, FLT_MAX, 1.f },
+    };
+
     // 计算轨道在当前状态下的实际尺寸，考虑动画
     constexpr float CalculateTrackShortSide() const noexcept
     {
@@ -41,7 +67,7 @@ private:
             if (m_bAnActive)
                 return m_cxyTrack / 2.f + m_cxyTrack / 2.f * m_ec.K;
             else
-                return ((GetThemeState() & SaHot) ? m_cxyTrack : (m_cxyTrack / 2.f));
+                return ((TmGetState() & SaHot) ? m_cxyTrack : (m_cxyTrack / 2.f));
         else
             return m_cxyTrack;
     }
@@ -51,20 +77,20 @@ private:
     {
         rc = GetViewRect();
         const auto cxyTrack = CalculateTrackShortSide();
-        const auto fRadius = GetTrackCapSpacing();
+        const auto dCap = GetTrackCapSpacing();
         if (m_bVertical)
         {
             rc.left += (rc.right - rc.left - cxyTrack) / 2.f;
             rc.right = rc.left + cxyTrack;
-            rc.top += fRadius;
-            rc.bottom -= fRadius;
+            rc.top += dCap;
+            rc.bottom -= dCap;
         }
         else
         {
             rc.top += (rc.bottom - rc.top - cxyTrack) / 2.f;
             rc.bottom = rc.top + cxyTrack;
-            rc.left += fRadius;
-            rc.right -= fRadius;
+            rc.left += dCap;
+            rc.right -= dCap;
         }
         return cxyTrack;
     }
@@ -112,9 +138,14 @@ private:
         Kw::Rect rcOldThumb;
         GetThumbRect(rcOldThumb);
 
-        SetDragPosition(fPos);
-        if (!bDragging || m_bGenEventWhenDragging)
-            EvtPositionChanged();
+        if (bDragging)
+        {
+            SetDragPosition(fPos);
+            if (m_bGenEventWhenDragging)
+                EvtPositionChanged();
+        }
+        else
+            m_fPos = fPos;
 
         Kw::Rect rcThumb;
         GetThumbRect(rcThumb);
@@ -122,37 +153,12 @@ private:
         Invalidate(rcThumb, bUpdateNow);
     }
 public:
-    static RcPtr<CThemeBase> TmMakeDefaultTheme() noexcept;
-    static RcPtr<CThemeBase> TmDefaultTheme() noexcept;
-
-    static RcPtr<CThemeStyle> TmMakeDefaultStyle(BOOL bDarkMode) noexcept
+    static RcPtr<CThemeBase> TmMakeDefaultTheme(BOOL bDark) noexcept;
+    static RcPtr<CThemeBase> TmDefaultTheme(BOOL bDark) noexcept
     {
-        auto p = RcPtr<CThemeStyle>::Make();
-        auto& vStyle = p->GetList();
-        vStyle.resize(3);
-        vStyle[0] =
-        {
-            .uState = SaNormal,
-            .argbFore = (bDarkMode ? 0xFF'FFFFFF : 0xFF'000000),
-            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'F0F0F0),
-            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
-        };
-        vStyle[1] =
-        {
-            .uState = SaHot,
-            .argbFore = (bDarkMode ? 0xFF'FFFFFF : 0xFF'000000),
-            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'E0E0E0),
-            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
-        };
-        vStyle[2] =
-        {
-            .uState = SaActive,
-            .argbFore = (bDarkMode ? 0xFF'FFFFFF : 0xFF'000000),
-            .argbBack = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
-            .argbBorder = (bDarkMode ? 0xFF'727272 : 0xFF'C0C0C0),
-        };
-        p->SetBorderWidth(1);
-        return p;
+        static auto p1{ TmMakeDefaultTheme(TRUE) };
+        static auto p2{ TmMakeDefaultTheme(FALSE) };
+        return bDark ? p1 : p2;
     }
 
     HRESULT EhUiaMakeInterface() noexcept override;
@@ -166,14 +172,17 @@ public:
             PAINTINFO ps;
             BeginPaint(ps, wParam, lParam);
 
+            const auto bDisabled = (GetStyle() & DES_DISABLE);
             Kw::Rect rcTrack;
             const auto cxyTrack = GetTrackRect(rcTrack);
             ElementToClient(rcTrack);
 
             GetTheme()->Draw(
                 this,
+                &m_Style[SsNormal],
                 m_bVertical ? IdPtTrackV : IdPtTrackH,
-                MakeD2DRectF(rcTrack));
+                MakeD2DRectF(rcTrack),
+                &ps.rcfClip);
 
             const float fScale = (GetTrackPosition() - m_fMin) / (m_fMax - m_fMin);
             if (m_bVertical)
@@ -182,13 +191,20 @@ public:
                 rcTrack.right = rcTrack.left + (rcTrack.right - rcTrack.left) * fScale;
             GetTheme()->Draw(
                 this,
+                &m_Style[bDisabled ? SsDisabled : SsPressed],
                 m_bVertical ? IdPtActiveTrackV : IdPtActiveTrackH,
-                MakeD2DRectF(rcTrack));
+                MakeD2DRectF(rcTrack),
+                &ps.rcfClip);
 
-            if (!m_bThinTrack || ((GetThemeState() & SaHot) || m_bAnActive))
+            if (!m_bThinTrack || ((TmGetState() & SaHot) || m_bAnActive))
             {
                 GetThumbRect(cxyTrack, rcTrack, rcTrack);
-                GetTheme()->Draw(this, IdPtThumb, MakeD2DRectF(rcTrack));
+                GetTheme()->Draw(
+                    this,
+                    &m_Style[bDisabled ? SsThumbDisabled : SsThumb],
+                    IdPtThumb,
+                    MakeD2DRectF(rcTrack),
+                    &ps.rcfClip);
             }
 
             DbgDrawFrame();
@@ -252,7 +268,6 @@ public:
             {
                 TmState() |= SapLButtonDown;
                 SetCapture();
-                m_fDragPos = HitTest(pt);
             }
             else
                 ChangePosition(HitTest(pt), FALSE);
@@ -273,6 +288,7 @@ public:
 
         case WM_CREATE:
             GetWindow().KctRegisterTimeLine(this);
+            SetTheme(TmDefaultTheme(TmIsDarkMode()).Get());
             [[fallthrough]];
         case WM_SIZE:
             if (m_bAutoTrackSize)
@@ -288,12 +304,12 @@ public:
 
     void TlTick(int ms) noexcept override
     {
-        m_msLastDur = ms;
+        m_msLastDuration = ms;
         m_bAnActive = m_ec.Tick(ms, 200);
         Invalidate(FALSE);
     }
     BOOL TlIsValid() noexcept override { return m_bAnActive; }
-    int TlGetCurrentInterval() noexcept override { return (int)m_msLastDur; }
+    int TlGetCurrentInterval() noexcept override { return (int)m_msLastDuration; }
 
     constexpr void SetRange(float fMin, float fMax) noexcept
     {
@@ -317,7 +333,7 @@ public:
     }
     EckInlineNdCe float GetTrackPosition() const noexcept
     {
-        return (GetThemeState() & SapLButtonDown) ? m_fDragPos : m_fPos;
+        return (TmGetState() & SapLButtonDown) ? m_fDragPos : m_fPos;
     }
 
     EckInlineCe void SetVertical(BOOL bVertical) noexcept { m_bVertical = bVertical; }
@@ -362,7 +378,7 @@ public:
 
     // 取端点处空白
     // 因滑块具有大小，故端点处留有一定空白以免滑块显示不全，此函数返回空白大小
-    EckInlineNdCe float GetTrackCapSpacing() const noexcept { return m_cxyTrack * 3.f / 4.f; }
+    EckInlineNdCe float GetTrackCapSpacing() const noexcept { return m_cxyThumb; }
 
     void EvtPositionChanged() noexcept
     {
@@ -377,51 +393,70 @@ class CTmTrackBar : public CThemeBase
 public:
     TmResult Draw(
         CElement* pEle,
+        const SimpleStyle* pStyle,
         UINT idPart,
         const D2D1_RECT_F& rc,
-        _In_opt_ const D2D1_RECT_F* prcClip,
-        _Out_opt_ const CThemeStyle::Style** ppStyle) noexcept override
+        _In_opt_ const D2D1_RECT_F* prcClip) noexcept override
     {
-        const CThemeStyle::Style* pStyle{};
         if (idPart == CTrackBar::IdPtTrackH ||
             idPart == CTrackBar::IdPtTrackV ||
-            idPart == IdPtNormal)
-            pStyle = pEle->GetThemeStyle()->FindStyle(SaNormal);
-        else if (idPart == CTrackBar::IdPtActiveTrackH ||
+            idPart == CTrackBar::IdPtActiveTrackH ||
             idPart == CTrackBar::IdPtActiveTrackV)
         {
-            pStyle = pEle->GetThemeStyle()->FindStyle(SaSelected);
-            if (!pStyle)
-                pStyle = pEle->GetThemeStyle()->FindStyle(SaNormal);
+            const auto cxShortSide =
+                (idPart == CTrackBar::IdPtTrackH || idPart == CTrackBar::IdPtActiveTrackH) ?
+                (rc.bottom - rc.top) :
+                (rc.right - rc.left);
+            if (pStyle->rRound > cxShortSide / 2.f)
+            {
+                auto NewStyle{ *pStyle };
+                NewStyle.rRound = cxShortSide / 2.f;
+                pEle->TmGenericDrawBackground(&NewStyle, rc);
+            }
+            else
+                pEle->TmGenericDrawBackground(pStyle, rc);
         }
         else if (idPart == CTrackBar::IdPtThumb)
         {
-            auto cr = pEle->GetTheme()->GetColorOptional(CTrackBar::IdCrThumb);
-            if (!cr)
-                cr = pEle->GetWindow().TmAccentColor();
+            const auto cxRect = rc.right - rc.left;
+            float r;
+            if (pStyle->rRound > cxRect / 2.f)
+            {
+                auto NewStyle{ *pStyle };
+                r = NewStyle.rRound = cxRect / 2.f;
+                pEle->TmGenericDrawBackground(&NewStyle, rc);
+            }
+            else
+            {
+                r = pStyle->rRound;
+                pEle->TmGenericDrawBackground(pStyle, rc);
+            }
 
+            if (pStyle->idCrFore != IdTmInvalid)
+            {
+                const auto pBrush = pEle->GetWindow().CcSetBrushColor(
+                    ArgbToD2DColorF(GetColor(pStyle->idCrFore)));
+                const auto r = cxRect / 2.f;
+                const D2D1_ELLIPSE Ell
+                {
+                    { (rc.left + rc.right) / 2.f, (rc.top + rc.bottom) / 2.f },
+                    r * 0.6f, r * 0.6f
+                };
+                pEle->GetDC()->FillEllipse(Ell, pBrush);
+            }
             return TmResult::Ok;
         }
-
-        if (ppStyle)
-            *ppStyle = pStyle;
-        if (!pStyle)
-            return TmResult::NoStyle;
-        return pEle->TmGenericDrawBackground(pStyle, rc);
     }
 };
-inline RcPtr<CThemeBase> CTrackBar::TmMakeDefaultTheme() noexcept
+inline RcPtr<CThemeBase> CTrackBar::TmMakeDefaultTheme(BOOL bDark) noexcept
 {
     const auto p = RcPtr<CTmTrackBar>::Make();
-    p->SetMetricCollection(TmDefaultMetricCollection().Get());
+    p->SetMetricCollection(TmsMetricCollection().Get());
+    p->SetColorCollection(bDark ?
+        TmsColorCollectionDark().Get() :
+        TmsColorCollectionLight().Get());
     return p;
 }
-inline RcPtr<CThemeBase> CTrackBar::TmDefaultTheme() noexcept
-{
-    static auto p{ TmMakeDefaultTheme() };
-    return p;
-}
-
 
 class CUiaTrackBar : public CUnknownAppend<CUiaBase, IRangeValueProvider>
 {
@@ -438,8 +473,10 @@ class CUiaTrackBar : public CUnknownAppend<CUiaBase, IRangeValueProvider>
 
     STDMETHODIMP SetValue(double val) override
     {
-        if (GetElement()->GetStyle() & DES_DISABLE)
+        if (!GetElement())
             return UIA_E_ELEMENTNOTAVAILABLE;
+        if (GetElement()->GetStyle() & DES_DISABLE)
+            return UIA_E_ELEMENTNOTENABLED;
         const auto pEle = DbgDynamicCast<CTrackBar*>(GetElement());
         pEle->SetTrackPosition((float)val);
         pEle->EvtPositionChanged();
@@ -447,36 +484,48 @@ class CUiaTrackBar : public CUnknownAppend<CUiaBase, IRangeValueProvider>
     }
     STDMETHODIMP get_Value(double* pRetVal) override
     {
+        if (!GetElement())
+            return UIA_E_ELEMENTNOTAVAILABLE;
         *pRetVal = DbgDynamicCast<CTrackBar*>(GetElement())->GetTrackPosition();
         return S_OK;
     }
     STDMETHODIMP get_IsReadOnly(BOOL* pRetVal) override
     {
-        *pRetVal = TRUE;
+        if (!GetElement())
+            return UIA_E_ELEMENTNOTAVAILABLE;
+        *pRetVal = FALSE;
         return S_OK;
     }
     STDMETHODIMP get_Maximum(double* pRetVal) override
     {
+        if (!GetElement())
+            return UIA_E_ELEMENTNOTAVAILABLE;
         *pRetVal = DbgDynamicCast<CTrackBar*>(GetElement())->GetMaximum();
         return S_OK;
     }
     STDMETHODIMP get_Minimum(double* pRetVal) override
     {
+        if (!GetElement())
+            return UIA_E_ELEMENTNOTAVAILABLE;
         *pRetVal = DbgDynamicCast<CTrackBar*>(GetElement())->GetMinimum();
         return S_OK;
     }
     STDMETHODIMP get_LargeChange(double* pRetVal) override
     {
+        if (!GetElement())
+            return UIA_E_ELEMENTNOTAVAILABLE;
         *pRetVal = DbgDynamicCast<CTrackBar*>(GetElement())->GetLargeDelta();
         return S_OK;
     }
     STDMETHODIMP get_SmallChange(double* pRetVal) override
     {
+        if (!GetElement())
+            return UIA_E_ELEMENTNOTAVAILABLE;
         *pRetVal = DbgDynamicCast<CTrackBar*>(GetElement())->GetSmallDelta();
         return S_OK;
     }
 };
-HRESULT CTrackBar::EhUiaMakeInterface() noexcept
+inline HRESULT CTrackBar::EhUiaMakeInterface() noexcept
 {
     const auto p = new CUiaTrackBar{};
     UiaSetInterface(p);

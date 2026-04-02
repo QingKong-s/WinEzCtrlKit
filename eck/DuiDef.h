@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "UiElement.h"
+#include "UiColor.h"
 #include "CReferenceCounted.h"
 
 ECK_NAMESPACE_BEGIN

@@ -24,6 +24,7 @@ __pragma(warning(disable:5260))
 #include <vsstyle.h>
 #include <dwmapi.h>
 #include <wincodec.h>
+#include <bcrypt.h>
 
 #if !ECK_OPT_NO_DWRITE
 #  include <dwrite.h>
@@ -151,14 +152,16 @@ concept CcpTrivial = std::is_trivial_v<T>;
 template<class T>
 concept CcpRectStruct = std::is_same_v<T, RECT> || std::is_same_v<T, RECTL>
 #ifdef _D2D1_H_
-|| std::is_same_v<T, D2D1_RECT_F> || std::is_same_v<T, D2D1_RECT_U>;
+|| std::is_same_v<T, D2D1_RECT_F> || std::is_same_v<T, D2D1_RECT_U>
 #endif
+;
 
 template<class T>
 concept CcpPointStruct = std::is_same_v<T, POINT> || std::is_same_v<T, POINTL>
 #ifdef _D2D1_H_
-|| std::is_same_v<T, D2D1_POINT_2F> || std::is_same_v<T, D2D1_POINT_2U>;
+|| std::is_same_v<T, D2D1_POINT_2F> || std::is_same_v<T, D2D1_POINT_2U>
 #endif
+;
 
 template<CcpCharPointer TPtr>
 using CharFromPointer_T = std::remove_cvref_t<std::remove_pointer_t<TPtr>>;
