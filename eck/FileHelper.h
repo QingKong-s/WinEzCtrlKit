@@ -75,7 +75,7 @@ EckInline NTSTATUS WriteToFile(_In_z_ PCWSTR pszFile, const CByteBuffer& rb) noe
     return WriteToFile(pszFile, rb.Data(), (DWORD)rb.Size());
 }
 
-namespace Priv
+namespace Detail
 {
     // 不得关闭返回的句柄
     inline NTSTATUS FilepOpenMountPointManager(_Out_ HANDLE& hMpmDevice) noexcept
@@ -141,7 +141,7 @@ inline NTSTATUS FileNtPathToDosPath(CStringW& rsBuf) noexcept
     else if (rsBuf.Front() == L'\\')
     {
         HANDLE hMpm;
-        auto nts = Priv::FilepOpenMountPointManager(hMpm);
+        auto nts = Detail::FilepOpenMountPointManager(hMpm);
         if (!NT_SUCCESS(nts))
             return nts;
         auto posDevEnd = rsBuf.FindChar(L'\\', 1);

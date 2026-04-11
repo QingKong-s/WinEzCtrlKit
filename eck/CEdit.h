@@ -732,7 +732,7 @@ public:
     }
 };
 
-namespace Priv
+namespace Detail
 {
     struct DDXE_EDIT
     {
@@ -769,11 +769,11 @@ inline CWindow::HSlot DdxBindEdit(CEdit& Ctrl, CWindow& Parent, Observable<CStri
         {
             ((CEdit*)p)->SetText(v.Data());
         }, &Ctrl);
-    return DdxpConnect<Priv::DdxFnEdit, MHI_DDX_EDIT>(Ctrl, Parent, Priv::DDXE_EDIT{ &o });
+    return DdxpConnect<Detail::DdxFnEdit, MHI_DDX_EDIT>(Ctrl, Parent, Detail::DDXE_EDIT{ &o });
 }
 inline BOOL DdxUnbindEdit(CEdit& Ctrl, CWindow& Parent, Observable<CStringW>& o) noexcept
 {
     o.ClearCallback();
-    return DdxpDisconnect<Priv::DdxFnEdit, MHI_DDX_EDIT>(Ctrl, Parent);
+    return DdxpDisconnect<Detail::DdxFnEdit, MHI_DDX_EDIT>(Ctrl, Parent);
 }
 ECK_NAMESPACE_END

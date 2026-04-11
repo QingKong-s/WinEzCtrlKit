@@ -42,7 +42,7 @@ inline HRESULT CreateShortcut(
     return pPersistFile->Save(pszLinkFile, TRUE);
 }
 
-namespace Priv
+namespace Detail
 {
     inline UINT __stdcall OpenInExplorerThread(void* pParam) noexcept
     {
@@ -118,7 +118,7 @@ namespace Priv
 /// <param name="vPath">路径</param>
 EckInline void OpenInExplorer(const std::vector<CStringW>& vPath) noexcept
 {
-    NtClose(CrtCreateThread(Priv::OpenInExplorerThread, new std::vector{ vPath }));
+    NtClose(CrtCreateThread(Detail::OpenInExplorerThread, new std::vector{ vPath }));
 }
 
 /// <summary>
@@ -128,7 +128,7 @@ EckInline void OpenInExplorer(const std::vector<CStringW>& vPath) noexcept
 /// <param name="pvPath">路径vector指针，传递后不可再使用</param>
 EckInline void OpenInExplorer(std::unique_ptr<std::vector<CStringW>>& pvPath) noexcept
 {
-    NtClose(CrtCreateThread(Priv::OpenInExplorerThread, pvPath.release()));
+    NtClose(CrtCreateThread(Detail::OpenInExplorerThread, pvPath.release()));
 }
 
 /// <summary>

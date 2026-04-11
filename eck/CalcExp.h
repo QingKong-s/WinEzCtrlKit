@@ -11,7 +11,7 @@ enum class CalcExpResult
     OpError,	// 运算符错误
 };
 
-namespace Priv
+namespace Detail
 {
     enum class CepOp : char
     {
@@ -196,7 +196,7 @@ inline CalcExpResult CalculateExpression(
     int cchExp = -1) noexcept
 {
     using TChar = CharFromPointer_T<TPtr>;
-    using TTraits = Priv::CeCharTraits<TChar>;
+    using TTraits = Detail::CeCharTraits<TChar>;
 
     lfResult = 0.;
     if (cchExp < 0)
@@ -226,7 +226,7 @@ inline CalcExpResult CalculateExpression(
         {
             bNumberBegin = FALSE;
             while (!vOp.empty() && vOp.back() != '(')
-                if (!Priv::CepDoOperation(vNum, vOp))
+                if (!Detail::CepDoOperation(vNum, vOp))
                     return CalcExpResult::OpError;
             if (vOp.empty())
                 return CalcExpResult::UnmatchedParentheses;
@@ -244,7 +244,7 @@ inline CalcExpResult CalculateExpression(
                 }
                 else
                     return CalcExpResult::AdjacentOp;
-            if (vOp.empty() || Priv::CepPriority(ch) > Priv::CepPriority(vOp.back()))
+            if (vOp.empty() || Detail::CepPriority(ch) > Detail::CepPriority(vOp.back()))
             {
                 vOp.push_back(ch);
                 continue;
@@ -253,9 +253,9 @@ inline CalcExpResult CalculateExpression(
             {
                 while (!vOp.empty() &&
                     vOp.back() != '(' &&
-                    Priv::CepPriority(ch) <= Priv::CepPriority(vOp.back()))
+                    Detail::CepPriority(ch) <= Detail::CepPriority(vOp.back()))
                 {
-                    if (!Priv::CepDoOperation(vNum, vOp))
+                    if (!Detail::CepDoOperation(vNum, vOp))
                         return CalcExpResult::OpError;
                 }
                 vOp.push_back(ch);
@@ -263,7 +263,7 @@ inline CalcExpResult CalculateExpression(
         }
         else if (TTraits::IsAlpha(ch))
         {
-            for (const auto& e : Priv::CalcExpConstList)
+            for (const auto& e : Detail::CalcExpConstList)
                 if (TcsCompareMaxLengthI(p, TTraits::GetConstName(e), e.cchName) == 0)
                 {
                     vNum.push_back(e.lfVal);
@@ -271,7 +271,7 @@ inline CalcExpResult CalculateExpression(
                     bNumberBegin = FALSE;
                     goto ExitSearchSym;
                 }
-            for (const auto& e : Priv::CalcExpFuncList)
+            for (const auto& e : Detail::CalcExpFuncList)
                 if (TcsCompareMaxLengthI(p, TTraits::GetFuntionName(e), e.cchName) == 0)
                 {
                     vOp.push_back((TChar)e.eOp);
@@ -286,7 +286,7 @@ inline CalcExpResult CalculateExpression(
             return CalcExpResult::InvalidChar;
     }
     while (!vOp.empty())
-        if (!Priv::CepDoOperation(vNum, vOp))
+        if (!Detail::CepDoOperation(vNum, vOp))
             return CalcExpResult::OpError;
     if (vNum.size() != 1)
         return CalcExpResult::OpError;

@@ -57,7 +57,7 @@ enum class AppwizStr
     Max
 };
 
-namespace Priv
+namespace Detail
 {
     constexpr inline PCWSTR AppwizStrs[size_t(AppwizStr::Max)]
     {
@@ -145,9 +145,9 @@ private:
 
     LSTATUS NextSource() noexcept
     {
-        if (m_idxCurrSource < ARRAYSIZE(Priv::UninstallInfoSource))
+        if (m_idxCurrSource < ARRAYSIZE(Detail::UninstallInfoSource))
         {
-            auto& ui = Priv::UninstallInfoSource[m_idxCurrSource++];
+            auto& ui = Detail::UninstallInfoSource[m_idxCurrSource++];
             auto ls = m_Reg.Open(ui.hRoot, ui.pszSubKey, KEY_READ);
             if (ls == ERROR_SUCCESS)
             {
@@ -263,9 +263,9 @@ public:
             {
                 Flags = AppwizFlags::Msi;// Certainly...
                 // 测试位于注册表的哪个源
-                EckCounter(ARRAYSIZE(Priv::UninstallInfoSource), i)
+                EckCounter(ARRAYSIZE(Detail::UninstallInfoSource), i)
                 {
-                    const auto& Src = Priv::UninstallInfoSource[i];
+                    const auto& Src = Detail::UninstallInfoSource[i];
                     StrBuffer.Assign(Src.pszSubKey, Src.cchSubKey);
                     StrBuffer.PushBackChar(L'\\');
                     StrBuffer.PushBack(pszKeyOrId, cchKeyOrId);
@@ -318,10 +318,10 @@ public:
                 for (size_t i = size_t(AppwizStr::MinImportant);
                     i < size_t(AppwizStr::MaxImportant); ++i)
                 {
-                    if (Priv::AppwizStrsMsi[i][0] == '/')
-                        GetStringValueRegistry(Priv::AppwizStrsMsi[i] + 1, Str[i]);
+                    if (Detail::AppwizStrsMsi[i][0] == '/')
+                        GetStringValueRegistry(Detail::AppwizStrsMsi[i] + 1, Str[i]);
                     else
-                        GetStringValueMsi(Priv::AppwizStrsMsi[i], Str[i]);
+                        GetStringValueMsi(Detail::AppwizStrsMsi[i], Str[i]);
                 }
             }
             else
@@ -329,7 +329,7 @@ public:
                 for (size_t i = size_t(AppwizStr::MinImportant);
                     i < size_t(AppwizStr::MaxImportant); ++i)
                 {
-                    GetStringValueRegistry(Priv::AppwizStrs[i], Str[i]);
+                    GetStringValueRegistry(Detail::AppwizStrs[i], Str[i]);
                 }
 
                 if (GetString(AppwizStr::KBNumber).cch)
@@ -430,7 +430,7 @@ public:
         void AcquireAllInfomation() noexcept
         {
             for (size_t i = size_t(AppwizStr::MaxImportant); i < size_t(AppwizStr::Max); ++i)
-                GetStringValueRegistry(Priv::AppwizStrs[i], Str[i]);
+                GetStringValueRegistry(Detail::AppwizStrs[i], Str[i]);
             // 补全非字符串信息
             EstimatedSize = 0;
             DWORD cbBuf{ sizeof(EstimatedSize) };
@@ -518,7 +518,7 @@ public:
     LSTATUS Next(_Inout_ CApp& App) noexcept
     {
         LSTATUS ls;
-        if (m_idxCurrSource < ARRAYSIZE(Priv::UninstallInfoSource))
+        if (m_idxCurrSource < ARRAYSIZE(Detail::UninstallInfoSource))
         {
             DWORD cbBuf{ (DWORD)m_rsBuffer.ByteCapacity() };
             // 枚举注册表
@@ -528,7 +528,7 @@ public:
                 {
                     if ((ls = NextSource()) != ERROR_SUCCESS)
                     {
-                        if (m_idxCurrSource >= ARRAYSIZE(Priv::UninstallInfoSource))
+                        if (m_idxCurrSource >= ARRAYSIZE(Detail::UninstallInfoSource))
                         {
                             m_idxCurr = 0;
                             m_rsBuffer.Reserve(40);

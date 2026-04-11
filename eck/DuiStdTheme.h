@@ -312,7 +312,7 @@ ScrollThumb {
 
 // 一般来说，标准主题作为其他一切主题的（直接或间接）上级主题，
 // 因为提供了系统颜色和度量的实现
-namespace Priv
+namespace Detail
 {
     class CStdTheme : public CCssTheme
     {
@@ -410,8 +410,8 @@ inline CssResult StMakeTheme(ITheme*& pTheme, BOOL bDark) noexcept
     const auto r = CssParse(bDark ? StdDark : StdLight, Css);
     if (r != CssResult::Ok)
         return r;
-    const auto p = (bDark ? static_cast<CCssTheme*>(new Priv::CStdThemeDark{}) :
-        static_cast<CCssTheme*>(new Priv::CStdThemeLight{}));
+    const auto p = (bDark ? static_cast<CCssTheme*>(new Detail::CStdThemeDark{}) :
+        static_cast<CCssTheme*>(new Detail::CStdThemeLight{}));
     p->FillCss(Css, {});
     pTheme = p;
     return CssResult::Ok;

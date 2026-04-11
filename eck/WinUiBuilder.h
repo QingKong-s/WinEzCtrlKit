@@ -44,7 +44,7 @@ struct TableBox;
 struct Default;
 struct Local;
 
-namespace Priv
+namespace Detail
 {
     // WARNING 必须与Proxy完全对齐
     enum class Type : BYTE
@@ -148,16 +148,16 @@ namespace Priv
 
     struct Container
     {
-        const std::initializer_list<Priv::Proxy>& il;
+        const std::initializer_list<Detail::Proxy>& il;
 
-        Container(const std::initializer_list<Priv::Proxy>& il_) noexcept : il{ il_ } {}
+        Container(const std::initializer_list<Detail::Proxy>& il_) noexcept : il{ il_ } {}
     };
 }
 
 #define ECK_UI_DECL_CONTAINER(Name) \
-    struct Name : Priv::Container \
+    struct Name : Detail::Container \
     { \
-        using Priv::Container::Container; \
+        using Detail::Container::Container; \
     }
 
 ECK_UI_DECL_CONTAINER(Window);
@@ -195,7 +195,7 @@ struct ERR_CTX
     CStringW rsPath;
 };
 
-namespace Priv
+namespace Detail
 {
     // 压入当前节点名称
     struct ScopedPath
@@ -254,7 +254,7 @@ namespace Priv
     };
 
     inline Result CfgCreateWindow(
-        const Priv::Proxy& pr,
+        const Detail::Proxy& pr,
         const PARENT_NODE& Parent,
         const DEF_PARAM& Default,
         const DEF_PARAM& Local,
@@ -262,7 +262,7 @@ namespace Priv
         _Out_ ILayout*& pNewObject,
         ERR_CTX& ErrCtx) noexcept;
     inline Result CfgCreateLayout(
-        const Priv::Proxy& pr,
+        const Detail::Proxy& pr,
         const PARENT_NODE& Parent,
         const DEF_PARAM& Default,
         const DEF_PARAM& Local,
@@ -271,7 +271,7 @@ namespace Priv
         ERR_CTX& ErrCtx) noexcept;
     // idxNode: pr在同级配置中的序号，从0开始，用于诊断
     inline Result CfgCreate(
-        const Priv::Proxy& pr,
+        const Detail::Proxy& pr,
         const PARENT_NODE& Parent,
         const DEF_PARAM& Default,
         const DEF_PARAM& Local,
@@ -279,7 +279,7 @@ namespace Priv
         int idxNode) noexcept;
 
     inline Result CfgParseDefault(
-        const Priv::Proxy& pr,
+        const Detail::Proxy& pr,
         DEF_PARAM& Param,
         BOOL bDefaultOrLocal) noexcept
     {
@@ -379,7 +379,7 @@ namespace Priv
     }
 
     inline Result CfgCreateWindow(
-        const Priv::Proxy& pr,
+        const Detail::Proxy& pr,
         const PARENT_NODE& Parent,
         const DEF_PARAM& Default,
         const DEF_PARAM& Local,
@@ -505,7 +505,7 @@ namespace Priv
     }
 
     inline Result CfgCreateLayout(
-        const Priv::Proxy& pr,
+        const Detail::Proxy& pr,
         const PARENT_NODE& Parent,
         const DEF_PARAM& Default,
         const DEF_PARAM& Local,
@@ -635,7 +635,7 @@ namespace Priv
     }
 
     inline Result CfgCreate(
-        const Priv::Proxy& pr,
+        const Detail::Proxy& pr,
         const PARENT_NODE& Parent,
         const DEF_PARAM& Default,
         const DEF_PARAM& Local,
@@ -702,17 +702,17 @@ namespace Priv
 inline Result Create(
     CWindow* pWndParent,
     ERR_CTX& ErrCtx,
-    Priv::Proxy pr) noexcept
+    Detail::Proxy pr) noexcept
 {
-    const Priv::PARENT_NODE Parent{ .pWndParent = pWndParent };
-    constexpr Priv::DEF_PARAM Default{};
-    constexpr Priv::DEF_PARAM Local{};
+    const Detail::PARENT_NODE Parent{ .pWndParent = pWndParent };
+    constexpr Detail::DEF_PARAM Default{};
+    constexpr Detail::DEF_PARAM Local{};
 
-    if (pr.GetType() == Priv::Type::List)
+    if (pr.GetType() == Detail::Type::List)
     {
-        for (int i{}; const auto& e : *pr.Get<Priv::Type::List>())
+        for (int i{}; const auto& e : *pr.Get<Detail::Type::List>())
         {
-            const auto r = Priv::CfgCreate(e, Parent, Default, Local, ErrCtx, i);
+            const auto r = Detail::CfgCreate(e, Parent, Default, Local, ErrCtx, i);
             if (r != Result::Ok)
                 return r;
             ++i;
@@ -720,7 +720,7 @@ inline Result Create(
         return Result::Ok;
     }
     else
-        return Priv::CfgCreate(pr, Parent, Default, Local, ErrCtx, 0);
+        return Detail::CfgCreate(pr, Parent, Default, Local, ErrCtx, 0);
 }
 ECK_UIBUILDER_NAMESPACE_END
 ECK_NAMESPACE_END

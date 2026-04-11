@@ -4,7 +4,7 @@
 #include "../ThirdPartyLib/UCharDet/uchardet.h"
 
 ECK_NAMESPACE_BEGIN
-namespace Priv
+namespace Detail
 {
     struct ECD_STRING
     {
@@ -67,7 +67,7 @@ namespace Priv
 // 代码页名称转值，失败返回0
 inline UINT EcdNameToCodePage(std::string_view svName) noexcept
 {
-    for (const auto& e : Priv::EcdEncodingMap)
+    for (const auto& e : Detail::EcdEncodingMap)
     {
         if (TcsEqualLength2I(svName.data(), svName.size(),
             e.svName.data(), e.svName.size()))

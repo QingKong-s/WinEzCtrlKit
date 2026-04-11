@@ -40,7 +40,7 @@ public:
     LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         const auto uOldThemeState = TmGetState();
-        TmOnEvent(uMsg, wParam, lParam);
+        //TmOnEvent(uMsg, wParam, lParam);
         switch (uMsg)
         {
         case WM_PAINT:

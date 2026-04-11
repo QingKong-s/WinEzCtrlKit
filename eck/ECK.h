@@ -115,7 +115,7 @@ enum MONITOR_DPI_TYPE;
 
 #define ECK_NAMESPACE_BEGIN             namespace eck {
 #define ECK_NAMESPACE_END               }
-#define ECK_PRIV_NAMESPACE_BEGIN        namespace Priv {
+#define ECK_PRIV_NAMESPACE_BEGIN        namespace Detail {
 #define ECK_PRIV_NAMESPACE_END          }
 #define ECK_DUI_NAMESPACE_BEGIN         namespace Dui {
 #define ECK_DUI_NAMESPACE_END           }
@@ -940,7 +940,7 @@ class CWindow;
 struct ThreadContext;
 
 using FQueueCallback = void(*)(void* pCtx);
-namespace Priv
+namespace Detail
 {
     struct QueuedCallback
     {
@@ -1028,7 +1028,7 @@ struct ThreadContext
     BOOLEAN bAppDarkMode{};		// 当前是否处于暗色模式
     //-------回调队列
     HHOOK hhkMsgFilter{};		// 在菜单、模态对话框、拖动选择等的消息循环中保持处理UI线程的回调
-    Priv::QueuedCallbackQueue Callback{};
+    Detail::QueuedCallbackQueue Callback{};
     //
     HWND hGhost{};
 

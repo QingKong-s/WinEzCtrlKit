@@ -105,7 +105,7 @@ struct CBuffer
     EckInline void Clear() noexcept { pBuffer.Clear(); }
 };
 
-namespace Priv
+namespace Detail
 {
     template<class TClass, class TInterface>
     struct CShader
@@ -124,7 +124,7 @@ namespace Priv
         }
     };
 }
-struct CPixelShader : Priv::CShader<CPixelShader, ID3D11PixelShader>
+struct CPixelShader : Detail::CShader<CPixelShader, ID3D11PixelShader>
 {
     EckInline HRESULT Create(
         _In_reads_bytes_(cbBytecode) PCVOID pBytecode,
@@ -134,7 +134,7 @@ struct CPixelShader : Priv::CShader<CPixelShader, ID3D11PixelShader>
             cbBytecode, nullptr, pShader.AtClear());
     }
 };
-struct CVertexShader : Priv::CShader<CVertexShader, ID3D11VertexShader>
+struct CVertexShader : Detail::CShader<CVertexShader, ID3D11VertexShader>
 {
     EckInline HRESULT Create(
         _In_reads_bytes_(cbBytecode) PCVOID pBytecode,

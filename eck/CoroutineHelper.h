@@ -213,7 +213,7 @@ struct CoroRetVal<void>
     constexpr void return_void() const noexcept {}
 };
 
-namespace Priv
+namespace Detail
 {
     struct CoroPromiseTokenAwaiter_T {};
 }
@@ -239,7 +239,7 @@ struct CoroTask
             return std::forward<T>(Awaitable);
         }
 
-        auto await_transform(Priv::CoroPromiseTokenAwaiter_T) noexcept
+        auto await_transform(Detail::CoroPromiseTokenAwaiter_T) noexcept
         {
             struct Token
             {
@@ -359,7 +359,7 @@ auto ToCoroPromiseBaseHandle(std::coroutine_handle<T> h)
     return std::coroutine_handle<CoroPromiseBase>::from_address(h.address());
 }
 
-namespace Priv
+namespace Detail
 {
     // 定时器
     struct CoroTimerAwaiter
@@ -440,7 +440,7 @@ namespace Priv
 }
 
 // 取承诺令牌
-EckInline auto CoroGetPromiseToken() { return Priv::CoroPromiseTokenAwaiter_T{}; }
+EckInline auto CoroGetPromiseToken() { return Detail::CoroPromiseTokenAwaiter_T{}; }
 
 // 在线程池中恢复当前协程
 EckInline auto CoroResumeBackground()
@@ -464,7 +464,7 @@ EckInline auto CoroResumeBackground()
 /// </summary>
 /// <param name="ms">正值为相对时间，负值为绝对时间</param>
 /// <returns>等待体</returns>
-EckInline auto CoroSleep(LONGLONG ms) { return Priv::CoroTimerAwaiter{ ms }; }
+EckInline auto CoroSleep(LONGLONG ms) { return Detail::CoroTimerAwaiter{ ms }; }
 
 /// <summary>
 /// 等待指定对象
@@ -474,7 +474,7 @@ EckInline auto CoroSleep(LONGLONG ms) { return Priv::CoroTimerAwaiter{ ms }; }
 /// <returns>等待体</returns>
 EckInline auto CoroWait(HANDLE hWaitable, LONGLONG msTimeout = LLONG_MAX)
 {
-    return Priv::CoroWaitableObjectAwaiter{ hWaitable, msTimeout };
+    return Detail::CoroWaitableObjectAwaiter{ hWaitable, msTimeout };
 }
 
 // 捕获UI线程上下文，稍后可使用co_await返回至UI线程
@@ -483,7 +483,7 @@ EckInline auto CoroCaptureUiThread(ThreadContext* ptc = nullptr)
     struct Context
     {
     private:
-        Priv::QueuedCallbackQueue* m_pCallback{};
+        Detail::QueuedCallbackQueue* m_pCallback{};
     public:
         UINT Priority{ UINT_MAX };
         BOOL IsWakeUiThread{ FALSE };

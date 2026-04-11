@@ -41,7 +41,7 @@ struct ArrayProxy;
 struct ObjectProxy;
 struct MutableArrayProxy;
 struct MutableObjectProxy;
-namespace Priv { struct InitializeProxy; }
+namespace Detail { struct InitializeProxy; }
 
 struct Array_T {};
 
@@ -51,7 +51,7 @@ EckInline BOOL YyLocateStringPosition(PCSTR pszText, size_t cchText, size_t ocbP
     return yyjson_locate_pos(pszText, cchText, ocbPos, &nLine, &nCol, &nChar);
 }
 
-namespace Priv
+namespace Detail
 {
     EckInline auto JsonValueAt(auto& This, PCSTR pszKey, size_t cchKey = MaxSizeT) noexcept
     {
@@ -151,7 +151,7 @@ namespace Priv
     };
 }
 
-class CValue : public Priv::CValueBase
+class CValue : public Detail::CValueBase
 {
 public:
     constexpr CValue(YyVal* pVal) noexcept : CValueBase{ (void*)pVal } {}
@@ -192,7 +192,7 @@ public:
     {
         size_t cchU8{};
         PSTR pszU8 = Write(&cchU8, uFlags, pAlc, pErr);
-        return Priv::WriteW(pszU8, cchU8, pAlc);
+        return Detail::WriteW(pszU8, cchU8, pAlc);
     }
 
     EckInlineNd CValue AtValue(PCSTR pszPtr, size_t cchPtr = MaxSizeT,
@@ -201,7 +201,7 @@ public:
         return CValue(yyjson_ptr_getx(GetPointer(), pszPtr,
             cchPtr == MaxSizeT ? strlen(pszPtr) : cchPtr, pErr));
     }
-    [[nodiscard]] CValue operator[](const auto& x) const noexcept { return Priv::JsonValueAtType(*this, x); }
+    [[nodiscard]] CValue operator[](const auto& x) const noexcept { return Detail::JsonValueAtType(*this, x); }
 
     EckInlineNd ArrayProxy AsArray() const noexcept;
     EckInlineNd ObjectProxy AsObject() const noexcept;
@@ -305,12 +305,12 @@ public:
     {
         size_t cchU8{};
         PSTR pszU8 = Write(&cchU8, uFlags, pAlc, pErr);
-        return Priv::WriteW(pszU8, cchU8, pAlc);
+        return Detail::WriteW(pszU8, cchU8, pAlc);
     }
     EckInlineNd CMutableDocument Clone(const YyAlc* pAlc = nullptr) const noexcept;
     EckInlineNd CValue operator[](PCSTR pszKey) const noexcept
     {
-        return Priv::JsonValueAt(*this, pszKey);
+        return Detail::JsonValueAt(*this, pszKey);
     }
 };
 
@@ -331,7 +331,7 @@ struct ArrayIterator
 };
 EckInlineNd bool operator==(const ArrayIterator& x, const ArrayIterator& y) noexcept
 {
-    return Priv::EqualIterator<ArrayIterator>(x, y);
+    return Detail::EqualIterator<ArrayIterator>(x, y);
 }
 
 struct ObjectIterator
@@ -353,7 +353,7 @@ struct ObjectIterator
 };
 EckInlineNd bool operator==(const ObjectIterator& x, const ObjectIterator& y) noexcept
 {
-    return Priv::EqualIterator<ObjectIterator>(x, y);
+    return Detail::EqualIterator<ObjectIterator>(x, y);
 }
 
 struct ArrayProxy
@@ -369,7 +369,7 @@ struct ObjectProxy
     EckInline ObjectIterator end() const noexcept { return ObjectIterator{}; }
 };
 
-class CMutableValue : public Priv::CValueBase
+class CMutableValue : public Detail::CValueBase
 {
 private:
     const CMutableDocument* m_pDoc{};
@@ -456,7 +456,7 @@ public:
     {
         size_t cchOut;
         const auto pszU8 = Write(cchOut, uFlags, pAlc, pErr);
-        return Priv::WriteW(pszU8, cchOut, pAlc);
+        return Detail::WriteW(pszU8, cchOut, pAlc);
     }
 
     EckInlineNd CMutableValue AtValue(PCSTR pszPtr, size_t cchPtr = MaxSizeT,
@@ -466,8 +466,8 @@ public:
             cchPtr == MaxSizeT ? strlen(pszPtr) : cchPtr, pCtx, pErr));
     }
 
-    EckInlineNd CMutableValue operator[](const auto& x) const noexcept { return Priv::JsonValueAtType(*this, x); }
-    EckInline const CMutableValue& operator=(Priv::InitializeProxy x) const noexcept;
+    EckInlineNd CMutableValue operator[](const auto& x) const noexcept { return Detail::JsonValueAtType(*this, x); }
+    EckInline const CMutableValue& operator=(Detail::InitializeProxy x) const noexcept;
     EckInlineCe void SetParentDocument(const CMutableDocument* pDoc) { m_pDoc = pDoc; }
 
     EckInlineNd MutableArrayProxy AsArray() const noexcept;
@@ -563,7 +563,7 @@ public:
     {
         size_t cchOut;
         const auto pszU8 = Write(cchOut, uFlags, pAlc, pErr);
-        return Priv::WriteW(pszU8, cchOut, pAlc);
+        return Detail::WriteW(pszU8, cchOut, pAlc);
     }
 
     EckInlineNd CMutableDocument Clone() const noexcept { return CMutableDocument(yyjson_mut_doc_mut_copy(m_pDoc, nullptr)); }
@@ -674,12 +674,12 @@ public:
 
     [[nodiscard]] CMutableValue operator[](PCSTR pszKey) const noexcept
     {
-        return Priv::JsonValueAt(*this, pszKey);
+        return Detail::JsonValueAt(*this, pszKey);
     }
-    EckInline const CMutableDocument& operator=(Priv::InitializeProxy x) const noexcept;
+    EckInline const CMutableDocument& operator=(Detail::InitializeProxy x) const noexcept;
 };
 
-namespace Priv
+namespace Detail
 {
     struct InitializeProxy
     {
@@ -908,7 +908,7 @@ struct MutableArrayIterator
 EckInlineNd bool operator==(const MutableArrayIterator& x,
     const MutableArrayIterator& y) noexcept
 {
-    return Priv::EqualIterator<MutableArrayIterator>(x, y);
+    return Detail::EqualIterator<MutableArrayIterator>(x, y);
 }
 
 struct MutableObjectIterator
@@ -932,7 +932,7 @@ struct MutableObjectIterator
 EckInlineNd bool operator==(const MutableObjectIterator& x,
     const MutableObjectIterator& y) noexcept
 {
-    return Priv::EqualIterator<MutableObjectIterator>(x, y);
+    return Detail::EqualIterator<MutableObjectIterator>(x, y);
 }
 
 struct MutableArrayProxy
@@ -948,12 +948,12 @@ struct MutableObjectProxy
     EckInline MutableObjectIterator end() const noexcept { return MutableObjectIterator{}; }
 };
 
-EckInline const CMutableValue& CMutableValue::operator=(Priv::InitializeProxy x) const noexcept
+EckInline const CMutableValue& CMutableValue::operator=(Detail::InitializeProxy x) const noexcept
 {
     x.ReplaceMutValue(*m_pDoc, *this);
     return *this;
 }
-EckInline const CMutableDocument& CMutableDocument::operator=(Priv::InitializeProxy x) const noexcept
+EckInline const CMutableDocument& CMutableDocument::operator=(Detail::InitializeProxy x) const noexcept
 {
     SetRoot(x.ToMutableValue(*this));
     return *this;

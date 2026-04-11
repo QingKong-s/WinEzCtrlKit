@@ -215,7 +215,7 @@ public:
     }
 };
 
-namespace Priv
+namespace Detail
 {
     struct DDXE_TRACKBAR
     {
@@ -249,8 +249,8 @@ inline CWindow::HSlot DdxBindTrackBar(CTrackBar& Ctrl, CWindow& Parent, Observab
         {
             ((CTrackBar*)p)->SetPosition((int)v);
         }, &Ctrl);
-    return DdxpConnect<Priv::DdxFnTrackBar, MHI_DDX_TRACKBAR>(Ctrl, Parent,
-        Priv::DDXE_TRACKBAR{
+    return DdxpConnect<Detail::DdxFnTrackBar, MHI_DDX_TRACKBAR>(Ctrl, Parent,
+        Detail::DDXE_TRACKBAR{
             &o, [](void* p, int v)
             {
                 ((Observable<T>*)p)->Get() = (T)v;
@@ -261,6 +261,6 @@ template<class T>
 inline CWindow::HSlot DdxUnbindTrackBar(CTrackBar& Ctrl, CWindow& Parent, Observable<T>& o) noexcept
 {
     o.ClearCallback();
-    return DdxpDisconnect<Priv::DdxFnTrackBar, MHI_DDX_TRACKBAR>(Ctrl, Parent);
+    return DdxpDisconnect<Detail::DdxFnTrackBar, MHI_DDX_TRACKBAR>(Ctrl, Parent);
 }
 ECK_NAMESPACE_END

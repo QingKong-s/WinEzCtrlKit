@@ -21,7 +21,7 @@ ECK_NAMESPACE_BEGIN
 // TODO 跨行跨列
 //
 
-namespace Priv
+namespace Detail
 {
     class CTableManager
     {
@@ -109,7 +109,7 @@ private:
     };
 
     CTrivialBuffer<ITEM> m_vItem{};
-    Priv::CTableManager m_Table{};
+    Detail::CTableManager m_Table{};
 
     static void UpdateObjectIdealSize(ITEM& e) noexcept
     {

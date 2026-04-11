@@ -156,7 +156,7 @@ enum
     EWM_PRIVBEGIN,
 };
 
-namespace Priv
+namespace Detail
 {
     struct PAINT_EXTRA// WM_PAINT的不透明lParam
     {

@@ -327,7 +327,7 @@ public:
     }
 };
 
-namespace Priv
+namespace Detail
 {
     struct DDXE_CHECKBOX
     {
@@ -361,8 +361,8 @@ inline CWindow::HSlot DdxBindCheckBox(CButton& Ctrl, CWindow& Parent, Observable
         {
             ((CButton*)p)->SetCheckState((int)v);
         }, &Ctrl);
-    return DdxpConnect<Priv::DdxFnCheckBox, MHI_DDX_CHECKBOX>(Ctrl, Parent,
-        Priv::DDXE_CHECKBOX{
+    return DdxpConnect<Detail::DdxFnCheckBox, MHI_DDX_CHECKBOX>(Ctrl, Parent,
+        Detail::DDXE_CHECKBOX{
             &o, [](void* p, int v)
             {
                 ((Observable<T>*)p)->Get() = (T)v;
@@ -373,6 +373,6 @@ template<class T>
 inline BOOL DdxUnbindCheckBox(CButton& Ctrl, CWindow& Parent, Observable<T>& o) noexcept
 {
     o.ClearCallback();
-    return DdxpDisconnect<Priv::DdxFnCheckBox, MHI_DDX_CHECKBOX>(Ctrl, Parent);
+    return DdxpDisconnect<Detail::DdxFnCheckBox, MHI_DDX_CHECKBOX>(Ctrl, Parent);
 }
 ECK_NAMESPACE_END

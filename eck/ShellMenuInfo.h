@@ -55,7 +55,7 @@ enum class ShmFlags : UINT
 };
 ECK_ENUM_BIT_FLAGS(ShmFlags);
 
-namespace Priv
+namespace Detail
 {
     constexpr inline struct
     {
@@ -143,7 +143,7 @@ private:
         m_idxEnum = 0;
         GetCurrentRegistryPath(m_rsTmp);
         m_rsTmp.PushBack(EckArgString(L"shell"));
-        const auto ls = m_RegKey.Open(RegRootToKey(Priv::ShmSource[m_idxSource].eKey),
+        const auto ls = m_RegKey.Open(RegRootToKey(Detail::ShmSource[m_idxSource].eKey),
             m_rsTmp.Data(), KEY_READ);
         if (ls != ERROR_SUCCESS)
             return ls;
@@ -156,8 +156,8 @@ private:
     {
         m_idxEnum = 0;
         GetCurrentRegistryPath(m_rsTmp);
-        m_rsTmp.PushBack(Priv::ShmCtxMenuHnd);
-        const auto ls = m_RegKey.Open(RegRootToKey(Priv::ShmSource[m_idxSource].eKey),
+        m_rsTmp.PushBack(Detail::ShmCtxMenuHnd);
+        const auto ls = m_RegKey.Open(RegRootToKey(Detail::ShmSource[m_idxSource].eKey),
             m_rsTmp.Data(), KEY_READ);
         if (ls != ERROR_SUCCESS)
             return ls;
@@ -212,14 +212,14 @@ private:
             ls = Key.QueryValueString(e.rsDisplayName, nullptr);
             if (ls != ERROR_SUCCESS)
             {
-                if (!bClsid || !Priv::ShmpQueryComDisplayName(
+                if (!bClsid || !Detail::ShmpQueryComDisplayName(
                     e.rsClsidOrCmd.Data(), e.rsDisplayName))
                     e.rsDisplayName.Assign(m_rsTmp.Data(), cchBuf);
             }
         }
         if (!e.rsDisplayName.IsEmpty() &&
             e.rsDisplayName.Front() == L'@')
-            Priv::ShmpLoadIndirectString(e.rsDisplayName);
+            Detail::ShmpLoadIndirectString(e.rsDisplayName);
         // 属性
         if (Key.IsValueExists(L"NeverDefault"))
             e.uFlags |= ShmFlags::NeverDefault;
@@ -245,7 +245,7 @@ private:
         CRegistryKey Key{ m_RegKey.GetHKey(),m_rsTmp.Data(),KEY_READ };// 当前项目
         // 注册表路径
         e.rsRegPath.Reserve(cchBuf + 36);
-        e.rsRegPath.Assign(Priv::ShmCtxMenuHnd);
+        e.rsRegPath.Assign(Detail::ShmCtxMenuHnd);
         e.rsRegPath.PushBackChar(L'\\');
         e.rsRegPath.PushBack(m_rsTmp.Data(), cchBuf);
         // CLSID
@@ -266,12 +266,12 @@ private:
         ls = Key.QueryValueString(e.rsDisplayName, L"MUIVerb");
         if (ls != ERROR_SUCCESS)
         {
-            if (!bClsid || !Priv::ShmpQueryComDisplayName(
+            if (!bClsid || !Detail::ShmpQueryComDisplayName(
                 e.rsClsidOrCmd.Data(), e.rsDisplayName))
                 e.rsDisplayName.Assign(m_rsTmp.Data(), cchBuf);
         }
         if (e.rsDisplayName.Front() == L'@')
-            Priv::ShmpLoadIndirectString(e.rsDisplayName);
+            Detail::ShmpLoadIndirectString(e.rsDisplayName);
         return ERROR_SUCCESS;
     }
 public:
@@ -329,7 +329,7 @@ public:
         if (m_idxSource == (BYTE)ShmSource::CustomType)
             rs = m_rsFileType;
         else
-            rs.Assign(Priv::ShmSource[m_idxSource].svSubKey);
+            rs.Assign(Detail::ShmSource[m_idxSource].svSubKey);
     }
 };
 
@@ -406,7 +406,7 @@ public:
         }
 
         if (e.rsDisplayName.Front() == L'@')
-            Priv::ShmpLoadIndirectString(e.rsDisplayName);
+            Detail::ShmpLoadIndirectString(e.rsDisplayName);
 
         e.rsIcon.Clear();
         if (e.rsFile.IsEndWithI(EckArgString(L".lnk")))
@@ -532,7 +532,7 @@ public:
                 e.uFlags |= ShmFlags::Hidden;
             e.rsDisplayName.Assign(pInfo->FileName, cchFileName);
             if (e.rsDisplayName.Front() == L'@')
-                Priv::ShmpLoadIndirectString(e.rsDisplayName);
+                Detail::ShmpLoadIndirectString(e.rsDisplayName);
             e.rsIcon.Clear();
             break;
         }

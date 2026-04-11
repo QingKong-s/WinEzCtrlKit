@@ -343,7 +343,7 @@ public:
     EckInlineNdCe TP_TIMER* GetTimer() const noexcept { return m_pTimer; }
 };
 
-namespace Priv
+namespace Detail
 {
     template<class TTuple, size_t... Idx>
     void CALLBACK EckTpSimpleCallback(PTP_CALLBACK_INSTANCE Instance, PVOID Context) noexcept
@@ -368,7 +368,7 @@ EckInline NTSTATUS TpSubmitSimpleCallback(TP_CALLBACK_ENVIRON* pEnv, F&& Fn, TAr
     auto pParam = std::make_unique<TTuple>(std::forward<F>(Fn), std::forward<TArgs>(Args)...);
 
     return TpSimpleTryPost(
-        Priv::MakeTpSimpleCallback<TTuple>(std::make_index_sequence<sizeof...(TArgs)>{}),
+        Detail::MakeTpSimpleCallback<TTuple>(std::make_index_sequence<sizeof...(TArgs)>{}),
         pParam.release(), pEnv);
 }
 ECK_NAMESPACE_END

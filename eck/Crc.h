@@ -2,7 +2,7 @@
 #include "ECK.h"
 
 ECK_NAMESPACE_BEGIN
-namespace Priv
+namespace Detail
 {
     constexpr inline UINT CrcTable[]
     {
@@ -47,7 +47,7 @@ inline constexpr UINT CalculateCrc32(_In_reads_bytes_(cbData) PCVOID pData, size
     UINT crc{ 0xFFFFFFFF };
     while (cbData--)
     {
-        crc = ((crc >> 8u) & 0x00FFFFFFu) ^ Priv::CrcTable[(crc ^ (*p)) & 0xFFu];
+        crc = ((crc >> 8u) & 0x00FFFFFFu) ^ Detail::CrcTable[(crc ^ (*p)) & 0xFFu];
         ++p;
     }
     return crc ^ 0xFFFFFFFF;

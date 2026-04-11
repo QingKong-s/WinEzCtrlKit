@@ -449,7 +449,7 @@ inline GpStatus GpScaleBitmap(
     return Gdiplus::Ok;
 }
 
-namespace Priv
+namespace Detail
 {
     class GpCodecCache
     {
@@ -509,7 +509,7 @@ namespace Priv
 inline GpStatus GpGetEncoderClsidFromMime(
     _In_z_ PCWSTR pszType, _Out_ CLSID& clsid) noexcept
 {
-    if (!Priv::GpCodecCache::EncoderFromMime(pszType, clsid))
+    if (!Detail::GpCodecCache::EncoderFromMime(pszType, clsid))
         return Gdiplus::UnknownImageFormat;
     return Gdiplus::Ok;
 }
@@ -575,7 +575,7 @@ inline HRESULT D2DLoadBitmap(
 }
 #endif// !ECK_OPT_NO_D2D
 
-namespace Priv
+namespace Detail
 {
     inline BYTE* GdiSaveDibHeader(
         CByteBuffer& rb,
@@ -627,7 +627,7 @@ inline BOOL GdiSaveDib(
 {
     if (cPaletteEntry && !pPalette)
         return FALSE;
-    auto p = Priv::GdiSaveDibHeader(rb, cbStride, cx, cy,
+    auto p = Detail::GdiSaveDibHeader(rb, cbStride, cx, cy,
         cBitPerPixel, cPaletteEntry, cPaletteImportant);
     // 制颜色表
     const size_t cbPalette = sizeof(RGBQUAD) * cPaletteEntry;
@@ -647,7 +647,7 @@ inline BOOL GdiSaveDib(CByteBuffer& rb, HBITMAP hDib) noexcept
     if (!GetObjectW(hDib, sizeof(ds), &ds))
         return FALSE;
 
-    auto p = Priv::GdiSaveDibHeader(
+    auto p = Detail::GdiSaveDibHeader(
         rb, ds.dsBm.bmWidthBytes,
         ds.dsBmih.biWidth, ds.dsBmih.biHeight,
         ds.dsBmih.biBitCount,
@@ -689,7 +689,7 @@ inline BOOL GdiSaveDdbAs32bppDib(
     if (!GetObjectW(hDdb, sizeof(bm), &bm))
         return FALSE;
 
-    auto p = Priv::GdiSaveDibHeader(
+    auto p = Detail::GdiSaveDibHeader(
         rb, bm.bmWidth * 4,
         bm.bmWidth, -bm.bmHeight, 32);
 

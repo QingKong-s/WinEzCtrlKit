@@ -1,10 +1,10 @@
 ﻿#pragma once
+#include "DuiDef.h"
 #include "DuiCompositor.h"
 #include "DuiTheme.h"
 #include "CEasyD2D.h"
 #include "EasingCurve.h"
 #include "CMessageTimer.h"
-#include "Color.h"
 #ifdef _DEBUG
 #include "Random.h"
 #endif
@@ -502,7 +502,7 @@ private:
     static EckInlineNdCe D2D1_ALPHA_MODE RdcD2DAlphaMode() noexcept { return D2D1_ALPHA_MODE_PREMULTIPLIED; }
     static EckInlineNdCe DXGI_ALPHA_MODE RdcDxgiAlphaMode() noexcept { return DXGI_ALPHA_MODE_PREMULTIPLIED; }
 
-    void RdRenderTree(CElement* pEle, const Kw::Rect& rc, Priv::PAINT_EXTRA* pExtra) noexcept
+    void RdRenderTree(CElement* pEle, const Kw::Rect& rc, Detail::PAINT_EXTRA* pExtra) noexcept
     {
         const auto pDC = GetDeviceContext();
         Kw::Rect rcClip;// 相对客户区
@@ -701,7 +701,7 @@ private:
         };
         OffsetRect(rcFinalF, -ptLogOffsetFinalF.x, -ptLogOffsetFinalF.y);
         CeilRect(rcFinalF);
-        Priv::PAINT_EXTRA Extra;
+        Detail::PAINT_EXTRA Extra;
         if (rer & RER_REDIRECTION)
         {
             const D2D1_POINT_2F ptOrgLogF
@@ -785,7 +785,7 @@ private:
                     --rcF.bottom;
                 }
             }
-            Priv::PAINT_EXTRA Extra{};
+            Detail::PAINT_EXTRA Extra{};
             RdRenderTree(EtFirstChild(), rcF, &Extra);
             if (m_ePresentMode == PresentMode::UpdateLayeredWindow)
             {
@@ -1545,7 +1545,7 @@ inline void CElement::InvalidateInternal(const Kw::Rect* prcInEle, BOOL bUpdateN
 
 inline void CElement::BeginPaint(_Out_ PAINTINFO& ps, WPARAM, LPARAM lParam) noexcept
 {
-    const auto pExtra = (Priv::PAINT_EXTRA*)lParam;
+    const auto pExtra = (Detail::PAINT_EXTRA*)lParam;
     ps.rcfClip = *pExtra->prcClipInClient;
     ps.rcfClipInElem = ps.rcfClip;
     ClientToElement(ps.rcfClipInElem);

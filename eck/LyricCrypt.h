@@ -3,7 +3,7 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_LYRIC_NAMESPACE_BEGIN
-namespace Priv
+namespace Detail
 {
     typedef enum {
         QRC_DES_ENCRYPT,
@@ -258,17 +258,17 @@ inline BOOL QrcDecrypt(_Inout_bytecount_(cb) void* p, size_t cb, CByteBuffer& rb
 {
     if (!p || cb <= 11)
         return FALSE;
-    Priv::Qmc1Decrypt((BYTE*)p, cb);
+    Detail::Qmc1Decrypt((BYTE*)p, cb);
     p = (BYTE*)p + 11;
     cb -= 11;
     if (cb % 8)
         return FALSE;
     constexpr BYTE Key[]{ "!@#)(*$%123ZXC!@!@#)(NHL" };
     BYTE Sch[3][16][6]{}, Out[8];
-    Priv::Qrc3DesSetupKey(Key, Sch, Priv::QRC_DES_DECRYPT);
+    Detail::Qrc3DesSetupKey(Key, Sch, Detail::QRC_DES_DECRYPT);
     for (auto q = (BYTE*)p; q < (BYTE*)p + cb; q += 8)
     {
-        Priv::Qrc3DesCrypt(q, Out, Sch);
+        Detail::Qrc3DesCrypt(q, Out, Sch);
         memcpy(q, Out, sizeof(Out));
     }
     return ZLibSuccess(ZLibDecompress(p, cb, rbResult));

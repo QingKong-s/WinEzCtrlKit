@@ -8,7 +8,7 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_CIO_NAMESPACE_BEGIN
-namespace Priv
+namespace Detail
 {
     template<class TChar>
     EckInlineNdCe UINT CodePageFromCharType() noexcept
@@ -166,7 +166,7 @@ namespace TypeIo
     template<class TChar, class TCharString, size_t N>
     Ret ToStream(const TO_STREAM_CTRL& c, const TCharString(&s)[N]) noexcept
     {
-        constexpr UINT cpInput = Priv::CodePageFromCharType<TCharString>();
+        constexpr UINT cpInput = Detail::CodePageFromCharType<TCharString>();
         return ToStream<TChar>(c, IoCstStr<TCharString>{ s, cpInput });
     }
 
@@ -206,7 +206,7 @@ namespace TypeIo
     template<class TChar, class TCharString, size_t N>
     Ret FromStream(FROM_STREAM_CTRL& c, const TCharString(&s)[N]) noexcept
     {
-        constexpr UINT cpInput = Priv::CodePageFromCharType<TCharString>();
+        constexpr UINT cpInput = Detail::CodePageFromCharType<TCharString>();
         return FromStream<TChar>(c, IoCstStr<TCharString>{ s, cpInput });
     }
 
@@ -284,7 +284,7 @@ public:
     {
         if constexpr (sizeof...(Args))
             PushBackBuffer(Args...);
-        Priv::PushBackEol<TChar>(m_rbBuf, m_eEol);
+        Detail::PushBackEol<TChar>(m_rbBuf, m_eEol);
         Flush();
         return *this;
     }
@@ -335,7 +335,7 @@ private:
         }
 
         if (m_posEol == MaxSizeT)
-            m_posEol = Priv::ScanEol<TChar>(m_rbBuf.Data(), m_rbBuf.Size());
+            m_posEol = Detail::ScanEol<TChar>(m_rbBuf.Data(), m_rbBuf.Size());
         while (m_posEol == MaxSizeT)
         {
             posBegin = m_rbBuf.Size();
@@ -343,7 +343,7 @@ private:
             if (cbRead)
             {
                 m_rbBuf.ReSize(posBegin + cbRead);
-                m_posEol = Priv::ScanEol<TChar>(m_rbBuf.Data(), m_rbBuf.Size(), posBegin);
+                m_posEol = Detail::ScanEol<TChar>(m_rbBuf.Data(), m_rbBuf.Size(), posBegin);
             }
             else
                 break;

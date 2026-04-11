@@ -3,7 +3,7 @@
 #include "CString.h"
 
 ECK_NAMESPACE_BEGIN
-namespace Priv
+namespace Detail
 {
     struct XptMemWalker {};
     struct XptMemWalkerRange : XptMemWalker
@@ -235,6 +235,6 @@ namespace Priv
     };
 }
 
-using CMemoryReader = Priv::CMemoryWalkerWarpper<Priv::CMemoryReaderBase>;
-using CMemoryWalker = Priv::CMemoryWalkerWarpper<Priv::CMemoryWalkerBase>;
+using CMemoryReader = Detail::CMemoryWalkerWarpper<Detail::CMemoryReaderBase>;
+using CMemoryWalker = Detail::CMemoryWalkerWarpper<Detail::CMemoryWalkerBase>;
 ECK_NAMESPACE_END

@@ -79,7 +79,7 @@ struct SRB_IO_CONTROL
     ULONG Length;
 };
 
-namespace Priv
+namespace Detail
 {
     inline constexpr UINT CalculateDriveIdentifier(const IDENTIFY_DATA* pidd) noexcept
     {

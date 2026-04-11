@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "DuiDef.h"
 #include "UiTheme.h"
+#include "Color.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN

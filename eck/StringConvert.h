@@ -6,7 +6,7 @@
 #include <charconv>
 
 ECK_NAMESPACE_BEGIN
-namespace Priv
+namespace Detail
 {
     constexpr inline BYTE CharToDigitTable[]{ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
@@ -37,9 +37,9 @@ template<std::integral TInt>
 EckInlineNdCe size_t TcvIntBufferSize(int iRadix = 10, int cchFillTo = 0) noexcept
 {
     if constexpr (sizeof(TInt) == 8)
-        return std::max((size_t)Priv::TableI64StringSize[iRadix], (size_t)cchFillTo) + 2;
+        return std::max((size_t)Detail::TableI64StringSize[iRadix], (size_t)cchFillTo) + 2;
     else
-        return std::max((size_t)Priv::TableI32StringSize[iRadix], (size_t)cchFillTo) + 2;
+        return std::max((size_t)Detail::TableI32StringSize[iRadix], (size_t)cchFillTo) + 2;
 }
 
 /// <summary>
@@ -113,9 +113,9 @@ inline TcvResult TcvToInt(
     for (; p < pEnd; ++p)
     {
         const auto ch = *p;
-        if (ch >= ARRAYSIZE(Priv::CharToDigitTable))
+        if (ch >= ARRAYSIZE(Detail::CharToDigitTable))
             break;
-        const int Digit = Priv::CharToDigitTable[ch];
+        const int Digit = Detail::CharToDigitTable[ch];
         if (Digit >= iRadix)
             break;
         if (Result > (Max - Digit) / iRadix)
@@ -228,7 +228,7 @@ enum class TcvFloatFmt
     Scientific = std::chars_format::scientific,
 };
 
-namespace Priv
+namespace Detail
 {
     EckInlineNdCe TcvResult CharConvEcToTcvResult(std::errc ec) noexcept
     {
@@ -279,13 +279,13 @@ inline TcvResult TcvToFloat(
         ++p, --cch;
     const fast_float::parse_options_t<TChar> Opt
     {
-        Priv::TcvFloatFormatToFastFloatFormat(eFmt),
+        Detail::TcvFloatFormatToFastFloatFormat(eFmt),
         '.',
         iRadix
     };
     const auto r = fast_float::from_chars_float_advanced(p, p + cch, f, Opt);
     if (ppEnd) *ppEnd = (TPtr)r.ptr;
-    return Priv::CharConvEcToTcvResult(r.ec);
+    return Detail::CharConvEcToTcvResult(r.ec);
 }
 
 template<CcpNonConstCharPointer TPtr, std::floating_point TFloat>
@@ -324,7 +324,7 @@ inline TcvResult TcvFromFloat(
         else
         {
             if (ppEnd) *ppEnd = p;
-            return Priv::CharConvEcToTcvResult(r.ec);
+            return Detail::CharConvEcToTcvResult(r.ec);
         }
     else
         if (r.ec == std::errc{})
@@ -337,7 +337,7 @@ inline TcvResult TcvFromFloat(
         else
         {
             if (ppEnd) *ppEnd = p;
-            return Priv::CharConvEcToTcvResult(r.ec);
+            return Detail::CharConvEcToTcvResult(r.ec);
         }
 }
 ECK_NAMESPACE_END

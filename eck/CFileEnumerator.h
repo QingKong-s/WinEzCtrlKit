@@ -5,7 +5,7 @@
 #include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
-namespace Priv
+namespace Detail
 {
     template<class T>
     EckInlineNdCe static FILE_INFORMATION_CLASS FileInformationClass() noexcept
@@ -60,7 +60,7 @@ public:
         size_t cbBuf = 4096u,
         _Out_writes_bytes_opt_(cbBuf) void* pExternalBuf = nullptr) noexcept
     {
-        constexpr auto eCls = Priv::FileInformationClass<T>();
+        constexpr auto eCls = Detail::FileInformationClass<T>();
         if constexpr (!eCls)
             return STATUS_NOT_SUPPORTED;
         NTSTATUS nts;
@@ -131,7 +131,7 @@ public:
         _Out_ T*& pInfo,
         std::wstring_view svPattern = {}) noexcept
     {
-        constexpr auto eCls = Priv::FileInformationClass<T>();
+        constexpr auto eCls = Detail::FileInformationClass<T>();
         if constexpr (!eCls)
             return STATUS_NOT_SUPPORTED;
         NTSTATUS nts;

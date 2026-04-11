@@ -380,7 +380,7 @@ inline BOOL GetFileVersionInformation(PCWSTR pszFile, FILEVERINFO& fvi) noexcept
     return TRUE;
 }
 
-namespace Priv
+namespace Detail
 {
     template<class T>
     EckInlineNdCe INPUT KeyboardEventGetArg(T wVk) noexcept
@@ -398,7 +398,7 @@ namespace Priv
 template<class...T>
 inline UINT KeyboardEvent(T...wVk) noexcept
 {
-    INPUT Args[]{ Priv::KeyboardEventGetArg(wVk)... };
+    INPUT Args[]{ Detail::KeyboardEventGetArg(wVk)... };
     INPUT input[ARRAYSIZE(Args) * 2];
     memcpy(input, Args, sizeof(Args));
     for (auto& e : Args)

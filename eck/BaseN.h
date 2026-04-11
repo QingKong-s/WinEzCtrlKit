@@ -3,7 +3,7 @@
 #include "CString.h"
 
 ECK_NAMESPACE_BEGIN
-namespace Priv
+namespace Detail
 {
     inline constexpr BYTE Base64DecodeTable[]
     {
@@ -62,7 +62,7 @@ inline void Base64Decode(_In_reads_or_z_(cch) PCCH psz, int cch, CByteBuffer& rb
         if (i == 4)
         {
             for (i = 0; i < 4; i++)
-                temp[i] = Priv::Base64DecodeTable[temp[i]];
+                temp[i] = Detail::Base64DecodeTable[temp[i]];
 
             rb[idxBin++] = (temp[0] << 2) + ((temp[1] & 0x30) >> 4);
             rb[idxBin++] = ((temp[1] & 0xf) << 4) + ((temp[2] & 0x3c) >> 2);
@@ -77,7 +77,7 @@ inline void Base64Decode(_In_reads_or_z_(cch) PCCH psz, int cch, CByteBuffer& rb
         for (j = i; j < 4; j++)
             temp[j] = 0;
         for (j = 0; j < 4; j++)
-            temp[j] = Priv::Base64DecodeTable[temp[j]];
+            temp[j] = Detail::Base64DecodeTable[temp[j]];
         if (i >= 2)
             rb[idxBin++] = (temp[0] << 2) | ((temp[1] & 0x30) >> 4);
         if (i >= 3)
@@ -114,7 +114,7 @@ inline void Base64Encode(_In_reads_bytes_(cb) PCVOID p_, size_t cb, CStringA& rs
             t4[3] = t3[2] & 0x3f;
 
             for (i = 0; (i < 4); i++)
-                pDst[pos++] = Priv::Base64EncodeTable[t4[i]];
+                pDst[pos++] = Detail::Base64EncodeTable[t4[i]];
             i = 0;
         }
     }
@@ -130,7 +130,7 @@ inline void Base64Encode(_In_reads_bytes_(cb) PCVOID p_, size_t cb, CStringA& rs
         t4[3] = t3[2] & 0x3f;
 
         for (j = 0; (j < i + 1); j++)
-            pDst[pos++] = Priv::Base64EncodeTable[t4[j]];
+            pDst[pos++] = Detail::Base64EncodeTable[t4[j]];
 
         while ((i++ < 3))
             pDst[pos++] = '=';

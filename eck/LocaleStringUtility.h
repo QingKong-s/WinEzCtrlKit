@@ -109,7 +109,7 @@ EckInlineNd int LcswIsEndWithI(_In_reads_(Len) PCWCH Str, int Len,
         uFlags | FIND_ENDSWITH | NORM_IGNORECASE, pcchMatch, pszLocaleName);
 }
 
-namespace Priv
+namespace Detail
 {
     // http://bjoern.hoehrmann.de/utf-8/decoder/dfa/
     /*
@@ -157,11 +157,11 @@ enum : BYTE
 inline void LcsUtf8DecodeChar(
     _Inout_ BYTE& byState, _Inout_ UINT& uCodePoint, UINT byUtf8)
 {
-    const UINT Type = Priv::Utf8Dfa[byUtf8];
+    const UINT Type = Detail::Utf8Dfa[byUtf8];
     uCodePoint = (byState != UTF8DC_ACCEPT) ?
         (byUtf8 & 0x3fu) | (uCodePoint << 6) :
         (0xff >> Type) & (byUtf8);
-    byState = Priv::Utf8Dfa[256 + byState * 16 + Type];
+    byState = Detail::Utf8Dfa[256 + byState * 16 + Type];
 }
 
 EckNfInlineNdCe int LcsUtf8CountChar(

@@ -1994,12 +1994,12 @@ void ThreadUninitialize() noexcept
     TlsSetValue(GetThreadContextTlsSlot(), nullptr);
 }
 
-Priv::QueuedCallbackQueue::QueuedCallbackQueue() noexcept
+Detail::QueuedCallbackQueue::QueuedCallbackQueue() noexcept
 {
     RtlInitializeSRWLock(&Lk);
     dwTid = NtCurrentThreadId32();
 }
-void Priv::QueuedCallbackQueue::EnQueueCoroutine(void* pCoroutine,
+void Detail::QueuedCallbackQueue::EnQueueCoroutine(void* pCoroutine,
     UINT nPriority, BOOL bWakeUiThread, ULONGLONG Tag, BOOL bClearExistingTag) noexcept
 {
     EckAssert(pCoroutine);
@@ -2018,7 +2018,7 @@ void Priv::QueuedCallbackQueue::EnQueueCoroutine(void* pCoroutine,
     if (bWakeUiThread)
         PostThreadMessageW(dwTid, WM_NULL, 0, 0);
 }
-void Priv::QueuedCallbackQueue::UnlockedDeQueue() noexcept
+void Detail::QueuedCallbackQueue::UnlockedDeQueue() noexcept
 {
     if (!q.empty())
     {

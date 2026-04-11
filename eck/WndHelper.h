@@ -1101,7 +1101,7 @@ EckNfInlineNd HFONT DftCreateWithSize(int cy, int iDpi = 96) noexcept
 }
 
 #if !ECK_OPT_NO_DWRITE
-namespace Priv
+namespace Detail
 {
     EckNfInlineNd HRESULT DftpCreate(_Out_ IDWriteTextFormat*& pTf,
         const LOGFONTW& lf, float cy, int iDpi = 96) noexcept
@@ -1127,14 +1127,14 @@ EckNfInlineNd HRESULT DftCreateDWriteWithSize(
     LOGFONTW lf;
     if (!DftGetLogFont(lf, iDpi))
         return HRESULT_FROM_WIN32(NaGetLastError());
-    return Priv::DftpCreate(pTf, lf, cy, iDpi);
+    return Detail::DftpCreate(pTf, lf, cy, iDpi);
 }
 EckNfInlineNd HRESULT DftCreateDWrite(_Out_ IDWriteTextFormat*& pTf, int iDpi = 96) noexcept
 {
     LOGFONTW lf;
     if (!DftGetLogFont(lf, iDpi))
         return HRESULT_FROM_WIN32(NaGetLastError());
-    return Priv::DftpCreate(pTf, lf, fabs((float)lf.lfHeight), 96);
+    return Detail::DftpCreate(pTf, lf, fabs((float)lf.lfHeight), 96);
 }
 #endif // !ECK_OPT_NO_DWRITE
 #pragma endregion SystemFont

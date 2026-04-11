@@ -16,7 +16,7 @@ ECK_NAMESPACE_BEGIN
     { return &s_ClassInfo_##Cls; }	\
     static constexpr ::eck::ClassInfo* RttiThisClass() \
     { return &s_ClassInfo_##Cls; }  \
-    inline static ::eck::Priv::ClassRegister s_ClassRegister_##Cls{ &Cls::s_ClassInfo_##Cls };
+    inline static ::eck::Detail::ClassRegister s_ClassRegister_##Cls{ &Cls::s_ClassInfo_##Cls };
 #endif // ECK_OPT_NO_RTTI
 
 class CObject;
@@ -32,7 +32,7 @@ struct ClassInfo
     EckInlineNd CObject* NewObject() const noexcept { return pfnNewObject(); }
 };
 
-namespace Priv
+namespace Detail
 {
     struct ClassRegister { ClassRegister(ClassInfo* pInfo) noexcept; };
 }
@@ -47,11 +47,11 @@ public:
 #else
 class __declspec(novtable) CObject
 {
-    friend struct Priv::ClassRegister;
+    friend struct Detail::ClassRegister;
 public:
     inline static ClassInfo s_ClassInfo_CObject{ L"CObject"sv };
 private:
-    inline static Priv::ClassRegister s_ClassRegister_CObject{ &s_ClassInfo_CObject };
+    inline static Detail::ClassRegister s_ClassRegister_CObject{ &s_ClassInfo_CObject };
 public:
     virtual ~CObject() = default;
 
@@ -87,7 +87,7 @@ public:
     }
 };
 
-inline Priv::ClassRegister::ClassRegister(ClassInfo* pInfo) noexcept
+inline Detail::ClassRegister::ClassRegister(ClassInfo* pInfo) noexcept
 {
     EckAssert(!CObject::RttiClassMap().contains(pInfo->svClassName));
     CObject::RttiClassMap().emplace(pInfo->svClassName, pInfo);
