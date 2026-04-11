@@ -222,4 +222,25 @@ EckInlineNdCe COLORREF DeltaColorrefLuma(COLORREF cr, float d) noexcept
         std::clamp(int(GetGValue(cr) + d * 255), 0, 0xFF),
         std::clamp(int(GetBValue(cr) + d * 255), 0, 0xFF));
 }
+
+EckInlineNdCe D2D1_COLOR_F LerpD2DColorF(
+    const D2D1_COLOR_F& c1,
+    const D2D1_COLOR_F& c2,
+    float fLerp) noexcept
+{
+    return {
+        c1.r + (c2.r - c1.r) * fLerp,
+        c1.g + (c2.g - c1.g) * fLerp,
+        c1.b + (c2.b - c1.b) * fLerp,
+        c1.a + (c2.a - c1.a) * fLerp,
+    };
+}
+EckInlineNdCe ARGB LerpArgb(ARGB c1, ARGB c2, float fLerp) noexcept
+{
+    return BytesToInteger<ARGB>(
+        BYTE(GetArgbB(c1) + (GetArgbB(c2) - GetArgbB(c1)) * fLerp),
+        BYTE(GetArgbG(c1) + (GetArgbG(c2) - GetArgbG(c1)) * fLerp),
+        BYTE(GetArgbR(c1) + (GetArgbR(c2) - GetArgbR(c1)) * fLerp),
+        BYTE(GetArgbA(c1) + (GetArgbA(c2) - GetArgbA(c1)) * fLerp));
+}
 ECK_NAMESPACE_END

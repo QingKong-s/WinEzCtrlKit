@@ -54,6 +54,8 @@ namespace Declaration
 
         ENC_COMMAND,
         ENC_POSCHANGED,
+        ENC_HSCROLL,
+        ENC_VSCROLL,
 
         ENC_SYSBEGIN,
     };

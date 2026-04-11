@@ -1667,7 +1667,7 @@ inline TmResult CElement::TmGenericDrawBackground(
 {
     const auto pDC = GetDC();
     const auto pBrush = GetWindow().CcSetBrushColor(
-        ArgbToD2DColorF(GetTheme()->GetColor(pStyle->idCrBack)));
+        ArgbToD2DColorF(GetTheme()->GetStyleColor(pStyle, SfBack)));
     if (pStyle->HasRoundConer())
     {
         D2D1_ROUNDED_RECT Rrc{ rc, pStyle->rRound, pStyle->rRound };
@@ -1679,7 +1679,8 @@ inline TmResult CElement::TmGenericDrawBackground(
     if (pStyle->HasBorder())
     {
         const auto d = -pStyle->cxBorder / 2.f;
-        pBrush->SetColor(ArgbToD2DColorF(GetTheme()->GetColor(pStyle->idCrBorder)));
+        pBrush->SetColor(ArgbToD2DColorF(
+            GetTheme()->GetStyleColor(pStyle, SfBorder)));
         if (pStyle->HasRoundConer())
         {
             D2D1_ROUNDED_RECT Rrc{ rc, pStyle->rRound, pStyle->rRound };

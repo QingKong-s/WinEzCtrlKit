@@ -15,10 +15,12 @@ public:
 
     enum : UINT
     {
-        SsThumb = SsHot,
-        SspDummy = SsMax,
+        SsTrack,
+        SsTrackActive,
+        SsTrackDisabled,
+        SsThumb,
         SsThumbDisabled,
-        SsMaxNew
+        SsMax
     };
 
     constexpr static float MeTrackSize = 6.f;
@@ -38,25 +40,25 @@ private:
 
     int m_msLastDuration{};
 
-    UINT m_bAnActive : 1{};
+    BITBOOL m_bAnActive : 1{};
 
-    UINT m_bVertical : 1{};
-    UINT m_bGenEventWhenDragging : 1{};
-    UINT m_bTransparentSpace : 1{};  // 空白部分穿透鼠标
-    UINT m_bThinTrack : 1{};         // 轨道正常情况下显示为尺寸的一半，点燃时显示全尺寸
-    UINT m_bAutoTrackSize : 1{};     // 根据控件尺寸自动调整轨道尺寸
+    BITBOOL m_bVertical : 1{};
+    BITBOOL m_bGenEventWhenDragging : 1{};
+    BITBOOL m_bTransparentSpace : 1{};  // 空白部分穿透鼠标
+    BITBOOL m_bThinTrack : 1{};         // 轨道正常情况下显示为尺寸的一半，点燃时显示全尺寸
+    BITBOOL m_bAutoTrackSize : 1{};     // 根据控件尺寸自动调整轨道尺寸
 
-    SimpleStyle m_Style[SsMaxNew]
+    SimpleStyle m_Style[SsMax]
     {
         // Track
         { IdTmInvalid,        IdCrBack,           IdTmInvalid },
+        // Track Active
+        { IdTmInvalid,        IdCrAccent,         IdTmInvalid },
+        // Track Disabled
+        { IdTmInvalid,        IdCrAccentDisabled, IdTmInvalid },
         // Thumb
         { IdCrAccent,         IdCrBack,           IdCrBorder, FLT_MAX, 1.f },
-        // Active Track
-        { IdTmInvalid,        IdCrAccent,         IdTmInvalid },
-        // Disabled Track
-        { IdTmInvalid,        IdCrAccentDisabled, IdTmInvalid },
-        // Disabled Thumb
+        // Thumb Disabled
         { IdCrAccentDisabled, IdCrBackDisabled,   IdCrBorderDisabled, FLT_MAX, 1.f },
     };
 
@@ -179,7 +181,7 @@ public:
 
             GetTheme()->Draw(
                 this,
-                &m_Style[SsNormal],
+                &m_Style[SsTrack],
                 m_bVertical ? IdPtTrackV : IdPtTrackH,
                 MakeD2DRectF(rcTrack),
                 &ps.rcfClip);
@@ -191,7 +193,7 @@ public:
                 rcTrack.right = rcTrack.left + (rcTrack.right - rcTrack.left) * fScale;
             GetTheme()->Draw(
                 this,
-                &m_Style[bDisabled ? SsDisabled : SsPressed],
+                &m_Style[bDisabled ? SsTrackDisabled : SsTrackActive],
                 m_bVertical ? IdPtActiveTrackV : IdPtActiveTrackH,
                 MakeD2DRectF(rcTrack),
                 &ps.rcfClip);
@@ -259,6 +261,7 @@ public:
         return 0;
 
         case WM_LBUTTONDOWN:
+        case WM_LBUTTONDBLCLK:
         {
             const auto& pt = *(Kw::Vec2*)lParam;
 
@@ -275,6 +278,7 @@ public:
         return 0;
 
         case WM_LBUTTONUP:
+        case WM_CAPTURECHANGED:
         {
             if (!(TmState() & SapLButtonDown))
                 break;
@@ -305,7 +309,7 @@ public:
     void TlTick(int ms) noexcept override
     {
         m_msLastDuration = ms;
-        m_bAnActive = m_ec.Tick(ms, 200);
+        m_bAnActive = m_ec.Tick((float)ms, 200);
         Invalidate(FALSE);
     }
     BOOL TlIsValid() noexcept override { return m_bAnActive; }
@@ -432,10 +436,10 @@ public:
                 pEle->TmGenericDrawBackground(pStyle, rc);
             }
 
-            if (pStyle->idCrFore != IdTmInvalid)
+            if (pStyle->CrFore != IdTmInvalid)
             {
                 const auto pBrush = pEle->GetWindow().CcSetBrushColor(
-                    ArgbToD2DColorF(GetColor(pStyle->idCrFore)));
+                    ArgbToD2DColorF(GetColor(pStyle->CrFore)));
                 const auto r = cxRect / 2.f;
                 const D2D1_ELLIPSE Ell
                 {
@@ -469,6 +473,16 @@ class CUiaTrackBar : public CUnknownAppend<CUiaBase, IRangeValueProvider>
             return S_OK;
         }
         return CUiaBase::GetPatternProvider(idPattern, pRetVal);
+    }
+    STDMETHODIMP GetPropertyValue(PROPERTYID idProp, VARIANT* pRetVal) override
+    {
+        if (idProp == UIA_ControlTypePropertyId)
+        {
+            pRetVal->vt = VT_I4;
+            pRetVal->intVal = UIA_SliderControlTypeId;
+            return S_OK;
+        }
+        return CUiaBase::GetPropertyValue(idProp, pRetVal);
     }
 
     STDMETHODIMP SetValue(double val) override

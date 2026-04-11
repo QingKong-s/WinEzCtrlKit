@@ -5,59 +5,62 @@
 #include "Utility.h"
 
 ECK_NAMESPACE_BEGIN
-class CFileEnumerator : public CNtObject
+namespace Priv
 {
-public:
-    using TDefInfo = FILE_FULL_DIR_INFORMATION;
-
-    template<class TInfoStruct>
-    EckInlineNdCe static FILE_INFORMATION_CLASS StructToClassEnum() noexcept
+    template<class T>
+    EckInlineNdCe static FILE_INFORMATION_CLASS FileInformationClass() noexcept
     {
-        if constexpr (std::is_same_v<TInfoStruct, FILE_DIRECTORY_INFORMATION>)
+        if constexpr (std::is_same_v<T, FILE_DIRECTORY_INFORMATION>)
             return FileDirectoryInformation;
-        else if constexpr (std::is_same_v<TInfoStruct, FILE_FULL_DIR_INFORMATION>)
+        else if constexpr (std::is_same_v<T, FILE_FULL_DIR_INFORMATION>)
             return FileFullDirectoryInformation;
-        else if constexpr (std::is_same_v<TInfoStruct, FILE_BOTH_DIR_INFORMATION>)
+        else if constexpr (std::is_same_v<T, FILE_BOTH_DIR_INFORMATION>)
             return FileBothDirectoryInformation;
-        else if constexpr (std::is_same_v<TInfoStruct, FILE_QUOTA_INFORMATION>)
+        else if constexpr (std::is_same_v<T, FILE_QUOTA_INFORMATION>)
             return FileQuotaInformation;
-        else if constexpr (std::is_same_v<TInfoStruct, FILE_ID_BOTH_DIR_INFORMATION>)
+        else if constexpr (std::is_same_v<T, FILE_ID_BOTH_DIR_INFORMATION>)
             return FileIdBothDirectoryInformation;
-        else if constexpr (std::is_same_v<TInfoStruct, FILE_ID_FULL_DIR_INFORMATION>)
+        else if constexpr (std::is_same_v<T, FILE_ID_FULL_DIR_INFORMATION>)
             return FileIdFullDirectoryInformation;
-        else if constexpr (std::is_same_v<TInfoStruct, FILE_ID_GLOBAL_TX_DIR_INFORMATION>)
+        else if constexpr (std::is_same_v<T, FILE_ID_GLOBAL_TX_DIR_INFORMATION>)
             return FileIdGlobalTxDirectoryInformation;
-        else if constexpr (std::is_same_v<TInfoStruct, FILE_ID_EXTD_DIR_INFORMATION>)
+        else if constexpr (std::is_same_v<T, FILE_ID_EXTD_DIR_INFORMATION>)
             return FileIdExtdDirectoryInformation;
-        else if constexpr (std::is_same_v<TInfoStruct, FILE_ID_EXTD_BOTH_DIR_INFORMATION>)
+        else if constexpr (std::is_same_v<T, FILE_ID_EXTD_BOTH_DIR_INFORMATION>)
             return FileIdExtdBothDirectoryInformation;
         else
             return 0;
     }
+}
+
+
+class CFileEnumerator : public CNtObject
+{
+public:
+    using TDefault = FILE_FULL_DIR_INFORMATION;
 public:
     NTSTATUS Open(_In_z_ PCWSTR pszPath, HANDLE hRoot = nullptr) noexcept
     {
-        Clear();
         NTSTATUS nts;
-        m_hObject = NaOpenFile(
+        Attach(NaOpenFile(
             pszPath,
             FILE_LIST_DIRECTORY | SYNCHRONIZE,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
             FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT,
-            &nts, nullptr, FALSE, hRoot);
+            &nts, nullptr, FALSE, hRoot));
         return nts;
     }
 
     // 函数为每个枚举到的文件调用回调函数，直至枚举完毕或回调函数取消枚举。
     // 若回调取消枚举，此函数返回STATUS_MORE_ENTRIES
-    template<class TInfoStruct = TDefInfo, std::invocable<TInfoStruct&> F>
+    template<class T = TDefault, std::invocable<T&> F>
     NTSTATUS Enumerate(
         F&& Fn,
         std::wstring_view svPattern,
         size_t cbBuf = 4096u,
         _Out_writes_bytes_opt_(cbBuf) void* pExternalBuf = nullptr) noexcept
     {
-        constexpr auto eCls = StructToClassEnum<TInfoStruct>();
+        constexpr auto eCls = Priv::FileInformationClass<T>();
         if constexpr (!eCls)
             return STATUS_NOT_SUPPORTED;
         NTSTATUS nts;
@@ -77,14 +80,14 @@ public:
             return nts;
         EckLoop()
         {
-            auto pInfo = (TInfoStruct*)pBuf;
+            auto pInfo = (T*)pBuf;
             EckLoop()
             {
                 EckCanCallbackContinue(Fn(*pInfo))
                     return STATUS_MORE_ENTRIES;
                 if (pInfo->NextEntryOffset == 0)
                     break;
-                pInfo = (TInfoStruct*)((BYTE*)pInfo + pInfo->NextEntryOffset);
+                pInfo = (T*)((BYTE*)pInfo + pInfo->NextEntryOffset);
             }
             nts = NtQueryDirectoryFile(m_hObject, nullptr, nullptr, nullptr, &iosb,
                 pBuf, (ULONG)cbBuf, eCls, FALSE, nullptr, FALSE);
@@ -123,12 +126,12 @@ public:
 
     // 调用本函数后获得一个枚举条目信息。
     // 调用方使用NT_SUCCESS宏判断枚举是否已终止
-    template<class TInfoStruct = TDefInfo>
+    template<class T = TDefault>
     NTSTATUS Next(
-        _Out_ TInfoStruct*& pInfo,
+        _Out_ T*& pInfo,
         std::wstring_view svPattern = {}) noexcept
     {
-        constexpr auto eCls = StructToClassEnum<TInfoStruct>();
+        constexpr auto eCls = Priv::FileInformationClass<T>();
         if constexpr (!eCls)
             return STATUS_NOT_SUPPORTED;
         NTSTATUS nts;
@@ -153,7 +156,7 @@ public:
         }
         else
         {
-            pInfo = (TInfoStruct*)m_pCurrItem;
+            pInfo = (T*)m_pCurrItem;
             if (pInfo->NextEntryOffset == 0)
                 m_pCurrItem = INVALID_HANDLE_VALUE;
             else

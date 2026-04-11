@@ -17,31 +17,43 @@ enum class TmResult
 
 class CElement;
 
-// 简单四态颜色支持
-
 enum : UINT
 {
-    SsNormal,
-    SsHot,
-    SsPressed,
-    SsDisabled,
-
-    SsMax
+    SfFore,
+    SfBack,
+    SfBorder,
 };
 
 struct SimpleStyle
 {
-    UINT idCrFore;
-    UINT idCrBack;
-    UINT idCrBorder;
+    union
+    {
+        struct
+        {
+            UINT CrFore;
+            UINT CrBack;
+            UINT CrBorder;
+        };
+        UINT Cr[3];
+    };
 
     float rRound;
     float cxBorder;
+    union
+    {
+        struct
+        {
+            BOOLEAN bForeArgb;
+            BOOLEAN bBackArgb;
+            BOOLEAN bBorderArgb;
+        };
+        UINT bArgb[3];
+    };
 
     EckInlineNdCe BOOL HasRoundConer() const noexcept { return rRound >= 1.f; }
     EckInlineNdCe BOOL HasBorder() const noexcept
     {
-        return cxBorder >= 1.f && idCrBorder != IdTmInvalid;
+        return cxBorder >= 1.f && CrBorder != IdTmInvalid;
     }
 };
 
@@ -66,14 +78,25 @@ public:
 
     std::optional<UINT> GetColorOptional(UINT id) const noexcept
     {
-        if (!m_pColor)
+        if (!m_pColor || id == IdTmInvalid)
             return std::nullopt;
         return m_pColor->Get(id);
     }
     UINT GetColor(UINT id, UINT argbDef = 0) const noexcept
     {
+        if (id == IdTmInvalid)
+            return argbDef;
         const auto v = GetColorOptional(id);
         return v.value_or(argbDef);
+    }
+    UINT GetStyleColor(const SimpleStyle* pStyle, UINT sf, UINT argbDef = 0) const noexcept
+    {
+        const auto u = pStyle->Cr[sf];
+        const auto bArgb = pStyle->bArgb[sf];
+        if (bArgb)
+            return u;
+        else
+            return GetColor(u, argbDef);
     }
 
     std::optional<float> GetMetricOptional(UINT id) const noexcept
@@ -88,6 +111,58 @@ public:
         return v.value_or(dDef);
     }
 };
+
+inline std::optional<ARGB> TmSsLerpColor(CThemeBase* pTheme,
+    BOOL bArgbOrId, UINT cr1, UINT cr2, float fLerp) noexcept
+{
+    std::optional<ARGB> oc1, oc2;
+    oc1 = bArgbOrId ? cr1 : pTheme->GetColorOptional(cr1);
+    oc2 = bArgbOrId ? cr2 : pTheme->GetColorOptional(cr2);
+    if (!oc1 || !oc2)
+        return std::nullopt;
+    if (!oc1)
+        oc1 = 0;
+    if (!oc2)
+        oc2 = 0;
+    return LerpArgb(*oc1, *oc2, fLerp);
+}
+
+inline SimpleStyle TmSsLerp(
+    CThemeBase* pTheme,
+    const SimpleStyle& s1,
+    const SimpleStyle& s2,
+    float fLerp) noexcept
+{
+    SimpleStyle s;
+    s.rRound = s1.rRound + (s2.rRound - s1.rRound) * fLerp;
+    s.cxBorder = s1.cxBorder + (s2.cxBorder - s1.cxBorder) * fLerp;
+
+    const auto crFore = TmSsLerpColor(pTheme, s1.bForeArgb, s1.CrFore, s2.CrFore, fLerp);
+    if (crFore)
+    {
+        s.CrFore = *crFore;
+        s.bForeArgb = TRUE;
+    }
+    else
+        s.CrFore = IdTmInvalid;
+    const auto crBack = TmSsLerpColor(pTheme, s1.bBackArgb, s1.CrBack, s2.CrBack, fLerp);
+    if (crBack)
+    {
+        s.CrBack = *crBack;
+        s.bBackArgb = TRUE;
+    }
+    else
+        s.CrBack = IdTmInvalid;
+    const auto crBorder = TmSsLerpColor(pTheme, s1.bBorderArgb, s1.CrBorder, s2.CrBorder, fLerp);
+    if (crBorder)
+    {
+        s.CrBorder = *crBorder;
+        s.bBorderArgb = TRUE;
+    }
+    else
+        s.CrBorder = IdTmInvalid;
+    return s;
+}
 
 enum : UINT
 {
@@ -201,16 +276,6 @@ EckInlineNdCe SimpleStyle TmsSsMakePressed(float cxBorder = 0.f, float r = 0.f) 
 EckInlineNdCe SimpleStyle TmsSsMakeDisabled(float cxBorder = 0.f, float r = 0.f) noexcept
 {
     return { IdCrFore, IdCrBackDisabled, IdCrBorderDisabled, r, cxBorder };
-}
-EckInlineNdCe UINT TmSimpleStyleFromThemeState(UINT sa) noexcept
-{
-    if (sa & SaDisable)
-        return SsDisabled;
-    if (sa & SaPressed)
-        return SsPressed;
-    if (sa & SaHot)
-        return SsHot;
-    return SsNormal;
 }
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

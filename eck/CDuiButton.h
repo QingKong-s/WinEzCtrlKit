@@ -5,6 +5,15 @@ ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 class CButton : public CElement
 {
+public:
+    enum : UINT
+    {
+        SsNormal,
+        SsHot,
+        SsPressed,
+        SsDisabled,
+        SsMax
+    };
 private:
     ComPtr<IDWriteTextLayout> m_pLayout{};
     RcPtr<CBitmap> m_pBitmap{};
@@ -53,6 +62,17 @@ private:
     void UpdateTextLayout() noexcept
     {
         UpdateTextLayout(GetText().Data(), GetText().Size());
+    }
+
+    EckInlineNdCe static UINT TmSimpleStyleFromThemeState(UINT sa) noexcept
+    {
+        if (sa & SaDisable)
+            return SsDisabled;
+        if (sa & SaPressed)
+            return SsPressed;
+        if (sa & SaHot)
+            return SsHot;
+        return SsNormal;
     }
 public:
     static RcPtr<CThemeBase> TmMakeDefaultTheme(BOOL bDark) noexcept;
@@ -113,7 +133,7 @@ public:
                     Kw::MakeD2DPointF(pt),
                     m_pLayout.Get(),
                     GetWindow().CcSetBrushColor(
-                        ArgbToD2DColorF(GetTheme()->GetColor(Ss.idCrFore))));
+                        ArgbToD2DColorF(GetTheme()->GetColor(Ss.CrFore))));
             }
 
             DbgDrawFrame();
@@ -278,6 +298,16 @@ class CUiaButton : public CUnknownAppend<CUiaBase, IInvokeProvider>
             return S_OK;
         }
         return CUiaBase::GetPatternProvider(idPattern, pRetVal);
+    }
+    STDMETHODIMP GetPropertyValue(PROPERTYID idProp, VARIANT* pRetVal) override
+    {
+        if (idProp == UIA_ControlTypePropertyId)
+        {
+            pRetVal->vt = VT_I4;
+            pRetVal->intVal = UIA_ButtonControlTypeId;
+            return S_OK;
+        }
+        return CUiaBase::GetPropertyValue(idProp, pRetVal);
     }
 
     STDMETHODIMP Invoke() override

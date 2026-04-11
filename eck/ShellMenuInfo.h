@@ -363,7 +363,7 @@ public:
     LSTATUS Next(ShmItem& e) noexcept
     {
         e.uFlags = ShmFlags::None;
-        CFileEnumeratorSingle::TDefInfo* pInfo;
+        CFileEnumeratorSingle::TDefault* pInfo;
         NTSTATUS nts;
         EckLoop()
         {
@@ -491,7 +491,7 @@ public:
     W32ERR Next(ShmItem& e) noexcept
     {
         NTSTATUS nts;
-        CFileEnumeratorSingle::TDefInfo* pInfo;
+        CFileEnumeratorSingle::TDefault* pInfo;
         if (!m_EnumStartMenu.Get())
         {
             EckLoop()

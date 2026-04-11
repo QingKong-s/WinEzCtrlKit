@@ -101,7 +101,7 @@ class CEdit : public CElement
 {
     friend class CEditTextHost;
 public:
-    constexpr static DWORD DefaultTxProp =
+    constexpr static DWORD DefaultTxProperty =
         TXTBIT_WORDWRAP | TXTBIT_MULTILINE | TXTBIT_DISABLEDRAG;
     constexpr static float
         CxyMargin = 6,
@@ -122,7 +122,7 @@ private:
     RECT m_rcViewInset{};
 
     D2D1_RECT_F m_rcCaret{};
-    DWORD m_dwTxProp{ DefaultTxProp };
+    DWORD m_dwTxProp{ DefaultTxProperty };
     WCHAR m_chPassword{ L'*' };
     Align m_eSingleLineAlignV{ Align::Center };
 
@@ -317,7 +317,7 @@ public:
         case WM_NOTIFY:
         {
             const auto pnm = (ELENMHDR*)lParam;
-            if (pnm->uNotify == ENC_SCROLL)
+            if (pnm->uNotify == ENC_POSCHANGED)
             {
                 if (wParam == (WPARAM)&m_SBV)
                     Scroll(FALSE, (int)m_SBV.GetScrollView()->GetPosition());
@@ -1274,18 +1274,17 @@ inline HRESULT CEditTextHost::TxGetParaFormat(const PARAFORMAT** ppPF)
 
 inline COLORREF CEditTextHost::TxGetSysColor(int nIndex)
 {
-    D2D1_COLOR_F cr;
     switch (nIndex)
     {
     case COLOR_WINDOWTEXT:
     {
-        const auto v = m_pEdit->GetTheme()->GetColorOptional(IdCrForeground);
-        return v ? v.value() : PtcCurrent()->crDefText;
+        const auto v = m_pEdit->GetTheme()->GetColorOptional(IdCrFore);
+        return v ? ArgbToColorref(v.value()) : PtcCurrent()->crDefText;
     }
     case COLOR_WINDOW:
     {
-        const auto v = m_pEdit->GetTheme()->GetColorOptional(IdCrBackground);
-        return v ? v.value() : PtcCurrent()->crDefText;
+        const auto v = m_pEdit->GetTheme()->GetColorOptional(IdCrBack);
+        return v ? ArgbToColorref(v.value()) : PtcCurrent()->crDefBkg;
     }
     }
     return GetSysColor(nIndex);

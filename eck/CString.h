@@ -772,7 +772,7 @@ public:
 
     EckInlineNdCe auto ToSpan() const noexcept
     {
-        return std::span<TChar>(Data(), ByteSize());
+        return std::span<TChar>(Data(), Size());
     }
 
     EckInlineNdCe TNtString ToNtString() noexcept
@@ -1301,8 +1301,8 @@ public:
         PazFindFileName(bKeepExtension, pos0, pos1);
         if (pos0 < 0)
             return FALSE;
-        rsFileName.PushBackNoExtra(pos1 - pos0);
-        TcsCopyLength(rsFileName.Data(), Data() + pos0, pos1 - pos0);
+        const auto p = rsFileName.PushBackNoExtra(pos1 - pos0);
+        TcsCopyLength(p, Data() + pos0, pos1 - pos0);
         return TRUE;
     }
 
@@ -1367,22 +1367,22 @@ EckInlineNd bool operator==(const TChar* psz2, const EckTemp& rs1) noexcept
 }
 
 template<class TChar, class TCharTraits, class TAllocator>
-EckInlineNd std::weak_ordering operator<=>(const EckTemp& rs1, const TChar* psz2) noexcept
+EckInlineNd std::strong_ordering operator<=>(const EckTemp& rs1, const TChar* psz2) noexcept
 {
     if (rs1.IsEmpty())
-        return psz2 ? std::weak_ordering::less : std::weak_ordering::equivalent;
+        return psz2 ? std::strong_ordering::less : std::strong_ordering::equivalent;
     else if (!psz2)
-        return std::weak_ordering::greater;
+        return std::strong_ordering::greater;
     else
         return TcsCompareLength2(rs1.Data(), rs1.Size(), psz2, (int)TcsLength(psz2)) <=> 0;
 }
 template<class TChar, class TCharTraits, class TAllocator>
-EckInlineNd std::weak_ordering operator<=>(const TChar* psz2, const EckTemp& rs1) noexcept
+EckInlineNd std::strong_ordering operator<=>(const TChar* psz2, const EckTemp& rs1) noexcept
 {
     if (!psz2)
-        return rs1.IsEmpty() ? std::weak_ordering::equivalent : std::weak_ordering::less;
+        return rs1.IsEmpty() ? std::strong_ordering::equivalent : std::strong_ordering::less;
     else if (rs1.IsEmpty())
-        return std::weak_ordering::greater;
+        return std::strong_ordering::greater;
     else
         return TcsCompareLength2(psz2, (int)TcsLength(psz2), rs1.Data(), rs1.Size()) <=> 0;
 }

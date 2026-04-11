@@ -4,192 +4,237 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-class CScrollBar : public CElement
+class CScrollBar : public CElement, public ITimeLine
 {
 public:
-    enum class SbPart
+    const static inline UINT IdPtTrackH = TmNextResourceId();
+    const static inline UINT IdPtTrackV = TmNextResourceId();
+    const static inline UINT IdPtThumbH = TmNextResourceId();
+    const static inline UINT IdPtThumbV = TmNextResourceId();
+    const static inline UINT IdCrThumb = TmNextResourceId();
+
+    enum class Part
     {
         Button1,
         Button2,
         Track,
         Thumb,
     };
+
+    enum : UINT
+    {
+        SsTrack,
+        SsTrackHot,
+        SsTrackDisabled,
+        SsThumb,
+        SsThumbHot,
+        SsThumbDisabled,
+        SsMax
+    };
 private:
-    CInertialScrollView* m_psv{};
-    CEasingCurve m_ec{};
-    BITBOOL m_bHot : 1{};
-    BITBOOL m_bLBtnDown : 1{};
+    CInertialScrollView m_sv{};
+    CEasingCurveLite<Easing::FOutCubic> m_ec{};
+
     BITBOOL m_bDragThumb : 1{};
+    BITBOOL m_bAnActive : 1{};
+    BITBOOL m_bThumbHot : 1{};
 
     BITBOOL m_bHorizontal : 1{};
     BITBOOL m_bTransparentTrack : 1{ TRUE };
+
+    SimpleStyle m_Style[SsMax]
+    {
+        // Track
+        { IdTmInvalid, IdTmInvalid,        IdTmInvalid },
+        // Track Hot
+        { IdTmInvalid, IdCrBorder,         IdTmInvalid },
+        // Track Disabled
+        { IdTmInvalid, IdCrBorderDisabled, IdTmInvalid },
+        // Thumb
+        { IdCrBorder,  IdCrBorder,         IdCrBorder, FLT_MAX, 1.f },
+        // Thumb Hot
+        { IdCrBorder,  IdCrBorderHot,      IdCrBorder, FLT_MAX, 1.f },
+        // Thumb Disabled
+        { IdTmInvalid, IdCrBorderDisabled, IdTmInvalid },
+    };
+
+    void OnPaint(WPARAM wParam, LPARAM lParam) noexcept
+    {
+        PAINTINFO ps;
+        BeginPaint(ps, wParam, lParam);
+
+        if (m_sv.IsVisible())
+        {
+            Kw::Rect rcThumb;
+            GetPartRect(rcThumb, Part::Thumb);
+            float cxyLeave, cxyMin;
+            if (m_bHorizontal)
+            {
+                cxyLeave = (rcThumb.bottom - rcThumb.top) / 3 * 2;
+                cxyMin = (rcThumb.bottom - rcThumb.top) - cxyLeave;
+            }
+            else
+            {
+                cxyLeave = (rcThumb.right - rcThumb.left) / 3 * 2;
+                cxyMin = (rcThumb.right - rcThumb.left) - cxyLeave;
+            }
+
+            if (m_bAnActive)
+            {
+                const auto Style = TmSsLerp(
+                    GetTheme().Get(),
+                    m_Style[SsTrack],
+                    m_Style[SsTrackHot],
+                    m_ec.K);
+
+                GetTheme()->Draw(
+                    this,
+                    &Style,
+                    m_bHorizontal ? IdPtTrackH : IdPtTrackV,
+                    GetViewRectD2D(),
+                    &ps.rcfClip);
+
+                if (m_bHorizontal)
+                    rcThumb.top = rcThumb.bottom - cxyMin - cxyLeave * m_ec.K;
+                else
+                    rcThumb.left = rcThumb.right - cxyMin - cxyLeave * m_ec.K;
+            }
+            else
+            {
+                if (TmGetState() & SaHot)
+                {
+                    GetTheme()->Draw(
+                        this,
+                        &m_Style[SsTrackHot],
+                        m_bHorizontal ? IdPtTrackH : IdPtTrackV,
+                        GetViewRectD2D(),
+                        &ps.rcfClip);
+                }
+                else
+                {
+                    if (m_bHorizontal)
+                        rcThumb.top += cxyLeave;
+                    else
+                        rcThumb.left += cxyLeave;
+                }
+            }
+
+            GetTheme()->Draw(
+                this,
+                &m_Style[m_bThumbHot ? SsThumbHot : SsThumb],
+                m_bHorizontal ? IdPtThumbH : IdPtThumbV,
+                Kw::MakeD2DRectF(rcThumb),
+                &ps.rcfClip);
+        }
+
+        EndPaint(ps);
+    }
 public:
     LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
     {
         switch (uMsg)
         {
+        case WM_PAINT:
+            OnPaint(wParam, lParam);
+            return 0;
+
         case WM_NCHITTEST:
         {
-            if (m_bHot)
-                return HTCLIENT;
-            else
+            if (m_bTransparentTrack && !(TmGetState() & SaHot))
             {
-                if (m_bTransparentTrack)
-                {
-                    if (!m_psv->IsVisible())
-                        return HTTRANSPARENT;
-                    D2D1_POINT_2F pt{ MakeD2DPointF(ECK_GET_PT_LPARAM(lParam)) };
-                    ClientToElement(pt);
-                    D2D1_RECT_F rc;
-                    GetPartRect(rc, SbPart::Thumb);
-                    if (!PointInRect(rc, pt))
-                        return HTTRANSPARENT;
-                }
-                return HTCLIENT;
+                if (!m_sv.IsVisible())
+                    return HTTRANSPARENT;
+                auto pt = *(Kw::Vec2*)lParam;
+                ClientToElement(pt);
+                Kw::Rect rc;
+                GetPartRect(rc, Part::Thumb);
+                if (!PointInRect(rc, pt))
+                    return HTTRANSPARENT;
             }
         }
         break;
+
         case WM_MOUSEMOVE:
         {
-            if (!m_bHot)
+            if (!(TmState() & SaHot))
             {
-                m_bHot = TRUE;
-                m_pec->Begin(0.f, 1.f);
-                GetWindow()->WakeRenderThread();
+                TmState() |= SaHot;
+                m_ec.Start(0.f, 1.f, m_bAnActive);
+                KctWake();
             }
             if (m_bDragThumb)
             {
-                const POINT pt ECK_GET_PT_LPARAM(lParam);
-                m_psv->OnMouseMove(m_bHorizontal ? pt.x - GetHeight() : pt.y - GetWidth());
-                DUINMHDR nm{ m_bHorizontal ? EE_HSCROLL : EE_VSCROLL };
-                if (!GenElemNotify(&nm))
-                    Invalidate();
+                const auto pt = *(Kw::Vec2*)lParam;
+                m_sv.OnMouseMove(m_bHorizontal ? pt.x - GetHeight() : pt.y - GetWidth());
+                EvtScroll();
             }
         }
         return 0;
+
         case WM_MOUSELEAVE:
         {
-            if (m_bHot && !m_bDragThumb)
+            if ((TmState() & SaHot) && !m_bDragThumb)
             {
-                m_bHot = FALSE;
-                m_pec->Begin(1.f, 0.f);
-                GetWindow()->WakeRenderThread();
+                TmState() &= ~SaHot;
+                m_ec.Start(1.f, 0.f, m_bAnActive);
+                KctWake();
             }
         }
         return 0;
-        case WM_LBUTTONDBLCLK:
+
         case WM_LBUTTONDOWN:
+        case WM_LBUTTONDBLCLK:
         {
             SetCapture();
-            m_bLBtnDown = TRUE;
-            const POINT pt ECK_GET_PT_LPARAM(lParam);
-            const D2D1_POINT_2F ptf{ MakeD2DPointF(pt) };
-            D2D1_RECT_F rcf;
-            GetPartRect(rcf, SbPart::Thumb);
-            if (PointInRect(rcf, ptf))
+            TmState() |= SapLButtonDown;
+            const auto pt = *(Kw::Vec2*)lParam;
+            Kw::Rect rc;
+            GetPartRect(rc, Part::Thumb);
+            if (PointInRect(rc, pt))
             {
                 m_bDragThumb = TRUE;
-                m_psv->OnLButtonDown(m_bHorizontal ? pt.x - GetHeight() : pt.y - GetWidth());
+                m_sv.OnLButtonDown(m_bHorizontal ? pt.x - GetHeight() : pt.y - GetWidth());
             }
             else
             {
                 if (m_bHorizontal)
-                    m_psv->SetPosition(ptf.x < rcf.left ?
-                        m_psv->GetPosition() - m_psv->GetPage() :
-                        m_psv->GetPosition() + m_psv->GetPage());
+                    m_sv.SetPosition(pt.x < rc.left ?
+                        m_sv.GetPosition() - m_sv.GetPage() :
+                        m_sv.GetPosition() + m_sv.GetPage());
                 else
-                    m_psv->SetPosition(ptf.y < rcf.top ?
-                        m_psv->GetPosition() - m_psv->GetPage() :
-                        m_psv->GetPosition() + m_psv->GetPage());
-                DUINMHDR nm{ m_bHorizontal ? EE_HSCROLL : EE_VSCROLL };
-                if (!GenElemNotify(&nm))
-                    Invalidate();
+                    m_sv.SetPosition(pt.y < rc.top ?
+                        m_sv.GetPosition() - m_sv.GetPage() :
+                        m_sv.GetPosition() + m_sv.GetPage());
+                EvtScroll();
             }
         }
         return 0;
+
         case WM_CAPTURECHANGED:
         case WM_LBUTTONUP:
         {
-            if (m_bLBtnDown)
+            if (!(TmState() & SapLButtonDown))
+                break;
+            TmState() &= ~SapLButtonDown;
+            ReleaseCapture();
+            if (m_bDragThumb)
             {
-                m_bLBtnDown = FALSE;
-                ReleaseCapture();
-                if (m_bDragThumb)
-                {
-                    m_psv->OnLButtonUp();
-                    m_bDragThumb = FALSE;
-                    DUINMHDR nm{ m_bHorizontal ? EE_HSCROLL : EE_VSCROLL };
-                    if (!GenElemNotify(&nm))
-                        Invalidate();
-                }
+                m_bDragThumb = FALSE;
+                m_sv.OnLButtonUp();
+                EvtScroll();
             }
         }
         return 0;
+
         case WM_SIZE:
         {
-            const auto cx = GetWidth(),
-                cy = GetHeight();
+            const auto cx = GetWidth(), cy = GetHeight();
             if (m_bHorizontal)
-                m_psv->SetViewSize(cx - 2.f * cy);
+                m_sv.SetViewSize(cx - 2.f * cy);
             else
-                m_psv->SetViewSize(cy - 2 * cx);
+                m_sv.SetViewSize(cy - 2.f * cx);
         }
         break;
-        return 0;
-
-        case WM_PAINT:
-        {
-            PAINTINFO ps;
-            BeginPaint(ps, wParam, lParam);
-
-            if (m_psv->IsVisible())
-            {
-                D2D1_RECT_F rc;
-                GetPartRect(rc, SbPart::Thumb);
-                float cxyLeave, cxyMin;
-                if (m_bHorizontal)
-                {
-                    cxyLeave = (rc.bottom - rc.top) / 3 * 2;
-                    cxyMin = (rc.bottom - rc.top) - cxyLeave;
-                }
-                else
-                {
-                    cxyLeave = (rc.right - rc.left) / 3 * 2;
-                    cxyMin = (rc.right - rc.left) - cxyLeave;
-                }
-                if (m_pec->IsActive())
-                {
-                    DTB_OPT Opt;
-                    Opt.uFlags = DTBO_NEW_OPACITY;
-                    Opt.fOpacity = m_pec->GetCurrentValue();
-                    GetTheme()->DrawBackground(Part::ScrollBar, State::Hot,
-                        GetViewRectF(), &Opt);
-                    if (m_bHorizontal)
-                        rc.top = rc.bottom - cxyMin - cxyLeave * m_pec->GetCurrentValue();
-                    else
-                        rc.left = rc.right - cxyMin - cxyLeave * m_pec->GetCurrentValue();
-                }
-                else
-                {
-                    if (!m_bHot)
-                    {
-                        if (m_bHorizontal)
-                            rc.top += cxyLeave;
-                        else
-                            rc.left += cxyLeave;
-                    }
-                    else
-                        GetTheme()->DrawBackground(Part::ScrollBar, State::Hot,
-                            GetViewRectF(), nullptr);
-                }
-
-                GetTheme()->DrawBackground(Part::ScrollThumb,
-                    State::Normal, rc, nullptr);
-            }
-
-            EndPaint(ps);
-        }
-        return 0;
 
         case WM_MOUSEWHEEL:
         case WM_MOUSEHWHEEL:
@@ -201,63 +246,46 @@ public:
         break;
 
         case WM_CREATE:
-        {
-            m_pec = new CEasingCurve{};
-            InitializeEasingCurve(m_pec);
-            m_pec->SetCallback([](float fOld, float f, LPARAM lParam)
-                {
-                    auto p = (CScrollBar*)lParam;
-                    p->Invalidate();
-                });
-            m_pec->SetProcedure(Easing::OutSine);
-            m_pec->SetDuration(160);
-
-            m_psv = new CInertialScrollView{};
-            GetWindow()->KctRegisterTimeLine(m_psv);
-        }
-        return 0;
+            GetWindow().KctRegisterTimeLine(this);
+            GetWindow().KctRegisterTimeLine(&m_sv);
+            return 0;
 
         case WM_DESTROY:
-        {
-            GetWindow()->KctUnregisterTimeLine(m_pec);
-            GetWindow()->KctUnregisterTimeLine(m_psv);
-            SafeRelease(m_pec);
-            SafeRelease(m_psv);
-        }
-        return 0;
+            GetWindow().KctUnregisterTimeLine(this);
+            GetWindow().KctUnregisterTimeLine(&m_sv);
+            return 0;
         }
         return CElement::OnEvent(uMsg, wParam, lParam);
     }
 
-    EckInlineNdCe auto GetScrollView() const noexcept { return m_psv; }
+    EckInlineNdCe auto& GetScrollView() const noexcept { return m_sv; }
 
-    void GetPartRect(D2D1_RECT_F& rc, SbPart eType)
+    void GetPartRect(_Out_ Kw::Rect& rc, Part eType) const noexcept
     {
-        const auto cx = GetWidth(),
-            cy = GetHeight();
+        const auto cx = GetWidth(), cy = GetHeight();
         if (m_bHorizontal)
             switch (eType)
             {
-            case SbPart::Button1:
-                rc = { 0,0,cy,cy };
+            case Part::Button1:
+                rc = { 0, 0, cy, cy };
                 return;
-            case SbPart::Button2:
-                rc = { cx - cy,0,cx,cy };
+            case Part::Button2:
+                rc = { cx - cy, 0, cx, cy };
                 return;
-            case SbPart::Track:
-                rc = { cy,0,cx - cy,cy };
+            case Part::Track:
+                rc = { cy, 0, cx - cy, cy };
                 return;
-            case SbPart::Thumb:
+            case Part::Thumb:
             {
-                if (!m_psv->IsVisible())
+                if (!m_sv.IsVisible())
                 {
                     rc = {};
                     return;
                 }
-                const auto cyThumb = GetTheme()->GetMetrics(Metrics::CyHThumb);
-                const auto cxyThumb = m_psv->GetThumbSize();
-                rc.left = cy + m_psv->GetThumbPosition(cxyThumb);
-                rc.top = (cy - cyThumb) / 2;
+                const auto cyThumb = GetTheme()->GetMetric(IdMeScrollThumbWidth);
+                const auto cxyThumb = m_sv.GetThumbSize();
+                rc.left = cy + m_sv.GetThumbPosition(cxyThumb);
+                rc.top = (cy - cyThumb) / 2.f;
                 rc.right = rc.left + cxyThumb;
                 rc.bottom = rc.top + cyThumb;
             }
@@ -266,32 +294,31 @@ public:
         else
             switch (eType)
             {
-            case SbPart::Button1:
-                rc = { 0,0,cx,cx };
+            case Part::Button1:
+                rc = { 0, 0, cx, cx };
                 return;
-            case SbPart::Button2:
-                rc = { 0,cy - cx,cx,cy };
+            case Part::Button2:
+                rc = { 0, cy - cx, cx, cy };
                 return;
-            case SbPart::Track:
-                rc = { 0,cx,cx,cy - cx };
+            case Part::Track:
+                rc = { 0, cx, cx, cy - cx };
                 return;
-            case SbPart::Thumb:
+            case Part::Thumb:
             {
-                if (!m_psv->IsVisible())
+                if (!m_sv.IsVisible())
                 {
                     rc = {};
                     return;
                 }
-                const auto cxThumb = (int)GetTheme()->GetMetrics(Metrics::CxVThumb);
-                const auto cxyThumb = m_psv->GetThumbSize();
-                rc.left = (cx - cxThumb) / 2;
-                rc.top = cx + m_psv->GetThumbPosition(cxyThumb);
+                const auto cxThumb = GetTheme()->GetMetric(IdMeScrollThumbWidth);
+                const auto cxyThumb = m_sv.GetThumbSize();
+                rc.left = (cx - cxThumb) / 2.f;
+                rc.top = cx + m_sv.GetThumbPosition(cxyThumb);
                 rc.right = rc.left + cxThumb;
                 rc.bottom = rc.top + cxyThumb;
             }
             return;
             }
-        ECK_UNREACHABLE;
     }
 
     EckInlineCe void SetHorizontal(BOOL b) noexcept { m_bHorizontal = b; }
@@ -299,6 +326,12 @@ public:
 
     EckInlineCe void SetTransparentTrack(BOOL b) noexcept { m_bTransparentTrack = b; }
     EckInlineNdCe BOOL GetTransparentTrack() const noexcept { return m_bTransparentTrack; }
+
+    void EvtScroll() noexcept
+    {
+        ELENMHDR nm{ m_bHorizontal ? ENC_HSCROLL : ENC_VSCROLL };
+        SendNotify(&nm);
+    }
 };
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END
