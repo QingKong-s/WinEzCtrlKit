@@ -51,8 +51,8 @@ public:
 
         Align eAlignV{};
         Align eAlignH{};
-        BkImgMode eImgModeFore{};
-        BkImgMode eImgModeBack{};
+        ImageMode eImgModeFore{};
+        ImageMode eImgModeBack{};
 
         RcPtr<CImage> pImgFore{};
         RcPtr<CImage> pImgBack{};

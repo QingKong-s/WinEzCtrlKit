@@ -1219,7 +1219,7 @@ public:
 
     EckInline LRESULT CallEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
-        SlotCtx Ctx{};
+        Slot Ctx{};
         const auto r = m_ec.EmitWithContext(Ctx, uMsg, wParam, lParam);
         if (Ctx.IsProcessed())
             return r;

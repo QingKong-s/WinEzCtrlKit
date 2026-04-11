@@ -52,7 +52,7 @@ public:
 
     BOOL FromInformation(const FONTPICKERINFO& fpi) noexcept
     {
-        WCHAR szBuf[LF_FACESIZE + CchI32ToStrBufNoRadix2 * 2 + 5];
+        WCHAR szBuf[LF_FACESIZE + Int32StringBufferSize * 2 + 5];
         swprintf_s(szBuf, L"%s,%d,%d", fpi.pszFontName, fpi.iPointSize, fpi.iWeight);
         SetText(szBuf);
         return TRUE;
@@ -81,7 +81,7 @@ public:
         CFontDialog Dlg{};
         if (Dlg.CreateModalDialog(nullptr, &cf))
         {
-            WCHAR szBuf[LF_FACESIZE + CchI32ToStrBufNoRadix2 * 2 + 5];
+            WCHAR szBuf[LF_FACESIZE + Int32StringBufferSize * 2 + 5];
             swprintf_s(szBuf, L"%s,%d,%d", lf.lfFaceName, cf.iPointSize / 10, lf.lfWeight);
             SetText(szBuf);
         }

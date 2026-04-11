@@ -48,7 +48,7 @@ protected:
 
     EckInline INT_PTR IntCreateModalDialog(
         HINSTANCE hInst, PCWSTR pszTemplate, HWND hParent,
-        LPARAM lParam = 0, FWndCreating pfnCreatingProc = nullptr) noexcept
+        LPARAM lParam = 0, FWindowCreating pfnCreatingProc = nullptr) noexcept
     {
         m_bModal = TRUE;
 
@@ -78,7 +78,7 @@ protected:
 
     EckInline HWND IntCreateModelessDialog(
         HINSTANCE hInst, PCWSTR pszTemplate, HWND hParent,
-        LPARAM lParam = 0, FWndCreating pfnCreatingProc = nullptr) noexcept
+        LPARAM lParam = 0, FWindowCreating pfnCreatingProc = nullptr) noexcept
     {
         m_bModal = FALSE;
         BeginCbtHook(this, pfnCreatingProc);
@@ -213,7 +213,7 @@ public:
 protected:
     INT_PTR IntCreateModalDialog(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
         int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
-        UINT uDlgFlags = 0u, FWndCreating pfnCreatingProc = nullptr) noexcept
+        UINT uDlgFlags = 0u, FWindowCreating pfnCreatingProc = nullptr) noexcept
     {
         const HWND hOwner = PreModal(hParent);
         BOOL bNeedEnableOwner;
@@ -240,7 +240,7 @@ protected:
 
     HWND IntCreateModelessDialog(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
         int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
-        UINT uDlgFlags = 0u, FWndCreating pfnCreatingProc = nullptr) noexcept
+        UINT uDlgFlags = 0u, FWindowCreating pfnCreatingProc = nullptr) noexcept
     {
         POINT pt;
         if (IsBitSet(uDlgFlags, DLGNCF_CENTERPARENT))

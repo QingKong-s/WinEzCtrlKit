@@ -15,7 +15,7 @@ enum : UINT
     TAG_INVALID = 0u,
     TAG_NONE = 1u << 0,
     TAG_ID3V1 = 1u << 1,
-    TAG_ID3V1Ext = 1u << 2,
+    TAG_ID3V1EXT = 1u << 2,
     TAG_ID3V2_3 = 1u << 3,
     TAG_ID3V2_4 = 1u << 4,
     TAG_FLAC = 1u << 5,
@@ -662,7 +662,7 @@ private:
                 if (memcmp(by, "TAG+", 4) == 0)
                 {
                     m_Loc.posV1Ext = w.GetPosition() - 4u;
-                    m_uTagType |= TAG_ID3V1Ext;
+                    m_uTagType |= TAG_ID3V1EXT;
                 }
             }
         }

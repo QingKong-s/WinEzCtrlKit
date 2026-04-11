@@ -347,7 +347,7 @@ private:
     }
 public:
     LRESULT OnWindowMessage(CWindow* pWnd, UINT uMsg,
-        WPARAM wParam, LPARAM lParam, SlotCtx& Ctx) noexcept
+        WPARAM wParam, LPARAM lParam, Slot& Ctx) noexcept
     {
         if (Ctx.IsDeleting())
         {

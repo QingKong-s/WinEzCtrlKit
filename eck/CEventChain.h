@@ -6,18 +6,18 @@ struct Intercept_T {};
 struct InterceptDelete_T {};
 struct NoIntercept_T {};
 
-struct SlotCtx
+struct Slot
 {
-    template<class TIntercept, class TRet, class ...TArgs>
+    template<class TIntercept, class TReturn, class ...TArguments>
     friend class CEventChain;
 private:
     BOOL m_bDeleting{};
     BOOL m_bProcessed{};
     void* m_pCurrNode{};
 
-    constexpr SlotCtx(void* pCurrNode) noexcept : m_pCurrNode{ pCurrNode } {}
+    constexpr Slot(void* pCurrNode) noexcept : m_pCurrNode{ pCurrNode } {}
 public:
-    SlotCtx() = default;
+    Slot() = default;
 
     EckInlineNdCe BOOL IsDeleting() const noexcept { return m_bDeleting; }
     EckInlineCe void Processed(BOOL b = TRUE) noexcept { m_bProcessed = b; }
@@ -26,40 +26,40 @@ public:
 
 // WARNING 非线程安全
 // WARNING 必须保证实例连接的所有资源都晚于实例销毁
-template<class TIntercept, class TRet, class ...TArgs>
+template<class TIntercept, class TReturn, class ...TArguments>
 class CEventChain
 {
 public:
-    constexpr static bool IsRetVoid = std::is_same_v<TRet, void>;
+    constexpr static bool IsReturnVoid = std::is_same_v<TReturn, void>;
     constexpr static bool IsIntercept = !std::is_same_v<TIntercept, NoIntercept_T>;
     constexpr static bool IsInterceptDelete = std::is_same_v<TIntercept, InterceptDelete_T>;
 
     using FSlotPointer = std::conditional_t<
         IsIntercept,
-        TRet(*)(TArgs..., SlotCtx&),
-        TRet(*)(TArgs...)
+        TReturn(*)(TArguments..., Slot&),
+        TReturn(*)(TArguments...)
     >;
 
     template<class TCls>
     using FSlotMethodPointer = std::conditional_t<
         IsIntercept,
-        TRet(TCls::*)(TArgs..., SlotCtx&),
-        TRet(TCls::*)(TArgs...)
+        TReturn(TCls::*)(TArguments..., Slot&),
+        TReturn(TCls::*)(TArguments...)
     >;
     template<class TCls>
     using FSlotMethodPointerConst = std::conditional_t<
         IsIntercept,
-        TRet(TCls::*)(TArgs..., SlotCtx&) const,
-        TRet(TCls::*)(TArgs...) const
+        TReturn(TCls::*)(TArguments..., Slot&) const,
+        TReturn(TCls::*)(TArguments...) const
     >;
 
     using FSlot = std::conditional_t<
         IsIntercept,
-        std::function<TRet(TArgs..., SlotCtx&)>,
-        std::function<TRet(TArgs...)>
+        std::function<TReturn(TArguments..., Slot&)>,
+        std::function<TReturn(TArguments...)>
     >;
 private:
-    using TReturnDefault = std::conditional_t<IsRetVoid, std::monostate, TRet>;
+    using TReturnDefault = std::conditional_t<IsReturnVoid, std::monostate, TReturn>;
 
     struct NODE
     {
@@ -90,16 +90,16 @@ private:
         const auto pNext = pNode->pNext;
         if constexpr (IsInterceptDelete)
         {
-            SlotCtx Ctx{};
+            Slot Ctx{};
             Ctx.m_bDeleting = TRUE;
-            pNode->Fn(TArgs{}..., Ctx);
+            pNode->Fn(TArguments{}..., Ctx);
         }
         delete pNode;
         return pNext;
     }
 
-    TRet EmitStartWith(_In_ NODE* pNode, _In_opt_ NODE* pPrev,
-        SlotCtx& Ctx, TArgs... Args) noexcept
+    TReturn EmitStartWith(_In_ NODE* pNode, _In_opt_ NODE* pPrev,
+        Slot& Ctx, TArguments... Args) noexcept
     {
         Ctx.m_bDeleting = FALSE;
         EckLoop()
@@ -119,7 +119,7 @@ private:
             {
                 Ctx.m_pCurrNode = pNode;
                 Ctx.m_bProcessed = FALSE;
-                if constexpr (IsRetVoid)
+                if constexpr (IsReturnVoid)
                 {
                     pNode->Fn(Args..., Ctx);
                     --pNode->cEnter;
@@ -143,7 +143,7 @@ private:
             if (!(pNode = pNode->pNext))
                 break;
         }
-        if constexpr (!IsRetVoid)
+        if constexpr (!IsReturnVoid)
             return {};
     }
 public:
@@ -169,23 +169,23 @@ public:
         }
     }
 
-    EckInline TRet EmitWithContext(SlotCtx& Ctx, TArgs ...Args) noexcept
+    EckInline TReturn EmitWithContext(Slot& Ctx, TArguments ...Args) noexcept
     {
         if (m_pHead)
             return EmitStartWith(m_pHead, nullptr, Ctx, Args...);
-        if constexpr (!IsRetVoid)
+        if constexpr (!IsReturnVoid)
             return {};
     }
-    EckInline TRet EmitWithDefault(SlotCtx& Ctx, TReturnDefault&& Def, TArgs ...Args) noexcept
+    EckInline TReturn EmitWithDefault(Slot& Ctx, TReturnDefault&& Def, TArguments ...Args) noexcept
     {
         if (m_pHead)
             return EmitStartWith(m_pHead, nullptr, Ctx, Args...);
-        if constexpr (!IsRetVoid)
+        if constexpr (!IsReturnVoid)
             return Def;
     }
-    EckInline TRet Emit(TArgs ...Args) noexcept
+    EckInline TReturn Emit(TArguments ...Args) noexcept
     {
-        SlotCtx Ctx{};
+        Slot Ctx{};
         return EmitWithContext(Ctx, Args...);
     }
 private:
@@ -262,12 +262,12 @@ public:
     {
         EckAssert(&ec != this);
         if constexpr (IsIntercept)
-            return IntConnect([&](TArgs ...Args, SlotCtx& Ctx)->TRet
+            return IntConnect([&](TArguments ...Args, Slot& Ctx)->TReturn
                 {
                     return ec.EmitWithContext(Ctx, Args...);
                 }, uId, (NODE*)pAfter);
         else
-            return IntConnect([&](TArgs ...Args)->TRet
+            return IntConnect([&](TArguments ...Args)->TReturn
                 {
                     ec.Emit(Args...);
                 }, uId, (NODE*)pAfter);
@@ -333,13 +333,13 @@ public:
 
     // 调用下一槽。
     // 此方法将重置上下文状态，若要保留状态，则应在此方法返回后重新设置状态或复制上下文
-    TRet CallNext(SlotCtx& Ctx, TArgs ...Args) noexcept
+    TReturn CallNext(Slot& Ctx, TArguments ...Args) noexcept
     {
         EckAssert(Ctx.m_pCurrNode && ((NODE*)Ctx.m_pCurrNode)->pThis == this);
         const auto pNext = ((NODE*)Ctx.m_pCurrNode)->pNext;
         if (pNext)
             return EmitStartWith(pNext, (NODE*)Ctx.m_pCurrNode, Ctx, Args...);
-        if constexpr (!IsRetVoid)
+        if constexpr (!IsReturnVoid)
             return {};
     }
 

@@ -24,7 +24,7 @@ private:
     BOOLEAN m_bFullElem{};
     BOOLEAN m_bUserColor{};
     BOOLEAN m_bFade{};
-    BkImgMode m_eBkImgMode{ BkImgMode::TopLeft };
+    ImageMode m_eBkImgMode{ ImageMode::TopLeft };
     BYTE m_eInterMode{ D2D1_INTERPOLATION_MODE_LINEAR };
 
     void UpdateTextLayout(PCWSTR pszText, int cchText)
@@ -196,8 +196,8 @@ public:
     EckInlineCe void SetFullElem(BOOL b) { m_bFullElem = b; }
     EckInlineNdCe BOOL GetFullElem() const { return m_bFullElem; }
 
-    EckInlineCe void SetBackgroundMode(BkImgMode e) { m_eBkImgMode = e; }
-    EckInlineNdCe BkImgMode GetBackgroundMode() const { return m_eBkImgMode; }
+    EckInlineCe void SetBackgroundMode(ImageMode e) { m_eBkImgMode = e; }
+    EckInlineNdCe ImageMode GetBackgroundMode() const { return m_eBkImgMode; }
 
     EckInlineCe void SetInterMode(D2D1_INTERPOLATION_MODE e) { m_eInterMode = e; }
     EckInlineNdCe D2D1_INTERPOLATION_MODE GetInterMode() const { return (D2D1_INTERPOLATION_MODE)m_eInterMode; }

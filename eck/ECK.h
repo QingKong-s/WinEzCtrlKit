@@ -242,11 +242,11 @@ ECK_NAMESPACE_END
 #define ECKPROP_R(Getter)       __declspec(property(get = Getter))
 #define ECKPROP_W(Setter)       __declspec(property(put = Setter))
 
-#define EckCopyConstStringA(pszDst, Src) memcpy(pszDst, Src, ARRAYSIZE(Src))
-#define EckCopyConstStringW(pszDst, Src) wmemcpy(pszDst, Src, ARRAYSIZE(Src))
+#define EckCopyConstStringA(pszDst, Src)     memcpy(pszDst, Src, ARRAYSIZE(Src))
+#define EckCopyConstStringW(pszDst, Src)     wmemcpy(pszDst, Src, ARRAYSIZE(Src))
 
-#define EckIsStartWithConstStringA(psz, sz) (strncmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
-#define EckIsStartWithConstStringW(psz, sz) (wcsncmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
+#define EckIsStartWithConstStringA(psz, sz)  (strncmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
+#define EckIsStartWithConstStringW(psz, sz)  (wcsncmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
 #define EckIsStartWithConstStringIA(psz, sz) (_strnicmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
 #define EckIsStartWithConstStringIW(psz, sz) (_wcsnicmp(psz, sz, ARRAYSIZE(sz) - 1) == 0)
 
@@ -275,9 +275,6 @@ ECK_NAMESPACE_END
 #define EckCounterNV(c)         EckCounter((c), ECKPRIV_CounterNVMakeVarName___(__LINE__))
 
 #define EckLoop()               while (true)
-
-#define EckOpt(Type, Name)      std::optional<Type> Name
-#define EckOptNul(Type, Name)   std::optional<Type> Name = std::nullopt
 
 #define ECKMAKEINTATOMW(i)      (PWSTR)((ULONG_PTR)((WORD)(i)))
 
@@ -366,8 +363,7 @@ ECK_NAMESPACE_END
 
 #ifdef _DEBUG
 #define EckCheckMemory(p) \
-            if (!(p))     \
-            {             \
+            if (!(p)) {   \
                 OutputDebugStringW(L"内存分配失败: " ECK_FILEW L"(" ECK_LINEW L")\r\n"); \
                 abort();  \
             }
@@ -407,29 +403,6 @@ union BIT128
     BYTE u8[16];
 };
 
-struct MD5
-{
-    BIT128 v;
-};
-
-union GPARGB
-{
-    struct
-    {
-        BYTE b, g, r, a;
-    };
-    DWORD dw;
-};
-
-union GDIARGB
-{
-    struct
-    {
-        BYTE r, g, b, a;
-    };
-    DWORD dw;
-};
-
 union BIT256
 {
     BIT128 u128[2];
@@ -437,6 +410,22 @@ union BIT256
     UINT32 u32[8];
     UINT16 u16[16];
     BYTE u8[32];
+};
+
+struct MD5
+{
+    BIT128 v;
+};
+
+union GPARGB
+{
+    struct { BYTE b, g, r, a; };
+    DWORD dw;
+};
+union GDIARGB
+{
+    struct { BYTE r, g, b, a; };
+    DWORD dw;
 };
 
 // 左顶宽高矩形
@@ -449,7 +438,7 @@ struct RCWH
 };
 
 // NMCD扩展
-struct NMCUSTOMDRAWEXT :NMCUSTOMDRAW
+struct NMCUSTOMDRAWEXT : NMCUSTOMDRAW
 {
     int iStateId;
     int iPartId;
@@ -562,22 +551,22 @@ struct OWNED_RAW_BUFFER
 #pragma region Const
 // 控件序列化数据对齐
 #ifdef _WIN64
-#	define ECK_CTRLDATA_ALIGN	8
+#define ECK_CTRLDATA_ALIGN	8
 #else
-#	define ECK_CTRLDATA_ALIGN	4
+#define ECK_CTRLDATA_ALIGN	4
 #endif
 
-constexpr inline auto CchI32ToStrBufNoRadix2 = std::max({
+constexpr inline auto Int32StringBufferSize = std::max({
     _MAX_ITOSTR_BASE16_COUNT,_MAX_ITOSTR_BASE10_COUNT,_MAX_ITOSTR_BASE8_COUNT,
     _MAX_LTOSTR_BASE16_COUNT ,_MAX_LTOSTR_BASE10_COUNT ,_MAX_LTOSTR_BASE8_COUNT,
     _MAX_ULTOSTR_BASE16_COUNT,_MAX_ULTOSTR_BASE10_COUNT,_MAX_ULTOSTR_BASE8_COUNT });
-constexpr inline auto CchI64ToStrBufNoRadix2 = std::max({
+constexpr inline auto Int64StringBufferSize = std::max({
     _MAX_I64TOSTR_BASE16_COUNT,_MAX_I64TOSTR_BASE10_COUNT,_MAX_I64TOSTR_BASE8_COUNT,
     _MAX_U64TOSTR_BASE16_COUNT,_MAX_U64TOSTR_BASE10_COUNT,_MAX_U64TOSTR_BASE8_COUNT });
 
-constexpr inline auto CchI32ToStrBuf = std::max({ CchI32ToStrBufNoRadix2,
+constexpr inline auto Int32StringBufferSizeRadix2 = std::max({ Int32StringBufferSize,
     _MAX_ITOSTR_BASE2_COUNT,_MAX_LTOSTR_BASE2_COUNT,_MAX_ULTOSTR_BASE2_COUNT });
-constexpr inline auto CchI64ToStrBuf = std::max({ CchI64ToStrBufNoRadix2,
+constexpr inline auto Int64StringBufferSizeRadix2 = std::max({ Int64StringBufferSize,
     _MAX_I64TOSTR_BASE2_COUNT,_MAX_U64TOSTR_BASE2_COUNT });
 
 constexpr inline double Pi = 3.141592653589793;
@@ -625,7 +614,7 @@ constexpr inline BYTE ColorFillAlpha{ 80 };
 
 constexpr inline int MetricsExtraV{ 8 };
 
-constexpr inline UINT WM_USER_SAFE{ WM_USER + 3 };
+constexpr inline UINT WM_USER_SAFE{ WM_USER + 10 };
 
 constexpr inline UINT CS_STDWND{ CS_DBLCLKS | CS_VREDRAW | CS_HREDRAW };
 
@@ -671,8 +660,8 @@ const inline UINT MessageBubble = RegisterWindowMessageW(MSGREG_BUBBLE);
 enum class InitStatus
 {
     Ok,
-    RegWndClass,
-    GdiplusInit,
+    WindowClass,
+    Gdiplus,
     WicFactory,
     DWriteFactory,
     D2DFactory,
@@ -691,13 +680,13 @@ enum class Align : BYTE
 // For AnimateWindow
 enum class AnimateStyle : BYTE
 {
-    Roll,	// 滚动
-    Slide,	// 滑动
-    Center,	// 折叠
-    Blend	// 淡入淡出
+    Roll,   // 滚动
+    Slide,  // 滑动
+    Center, // 折叠
+    Blend   // 淡入淡出
 };
 
-enum class ClrPart : BYTE
+enum class ColorPart : BYTE
 {
     Text,
     Bk,
@@ -797,7 +786,7 @@ enum class EolType : BYTE
     LF,
 };
 
-enum class RegRoot : BYTE
+enum class RegistryRoot : BYTE
 {
     ClassesRoot,
     CurrentUser,
@@ -810,7 +799,7 @@ enum class RegRoot : BYTE
     PerformanceText = 0x50,
     PerformanceNlsText = 0x60,
 };
-EckInline HKEY RegRootToKey(RegRoot e) noexcept { return HKEY(ULONG_PTR((ULONG)e | 0x80000000ul)); }
+EckInline HKEY RegistryRootToKey(RegistryRoot e) noexcept { return HKEY(ULONG_PTR((ULONG)e | 0x80000000ul)); }
 
 // 冒泡消息类别
 enum : BYTE
@@ -825,7 +814,7 @@ enum : BYTE
 #pragma endregion Enum
 
 #pragma region Global
-extern NTVER g_NtVer;
+extern NTVER g_NtVersion;
 
 extern HINSTANCE g_hInstance;
 extern IWICImagingFactory* g_pWicFactory;
@@ -855,7 +844,7 @@ extern IDXGIDebug* g_pDxgiDebug;
 #endif
 #endif// !ECK_OPT_NO_DX
 
-extern HMODULE g_hModComCtl32;
+extern HMODULE g_hModCommonControl;
 
 #if ECK_OPT_DYN_NF
 using FGetDpiForWindow = UINT(WINAPI*)(HWND);
@@ -948,7 +937,7 @@ namespace Detail
         std::variant<std::function<void()>, void*> Callback;
         ULONGLONG Tag;
 
-        constexpr std::weak_ordering operator<=>(const QueuedCallback& x) const
+        EckInlineNdCe std::weak_ordering operator<=>(const QueuedCallback& x) const
         {
             return nPriority <=> x.nPriority;
         }
@@ -992,20 +981,20 @@ namespace Detail
     };
 }
 
-using FWndCreating = void(*)(HWND hWnd, CBT_CREATEWNDW* pcs, ThreadContext* pThreadCtx);
+using FWindowCreating = void(*)(HWND hWnd, CBT_CREATEWNDW* pcs, ThreadContext* ptc);
 struct ThreadContext
 {
-    struct WND
+    struct WINDOW
     {
         CWindow* pWnd;
         BOOLEAN bTopLevel;
         BYTE uBubbleFlags;
     };
     //-------窗口映射
-    std::unordered_map<HWND, WND> hmWnd{};
+    std::unordered_map<HWND, WINDOW> hmWnd{};
     HHOOK hhkTempCBT{};
-    CWindow* pCurrWnd{};                // 当前正在创建窗口所属的CWnd指针
-    FWndCreating pfnWndCreatingProc{};  // 当前创建窗口时要调用的过程
+    CWindow* pCurrWnd{};                    // 当前正在创建窗口所属的CWnd指针
+    FWindowCreating pfnWndCreatingProc{};   // 当前创建窗口时要调用的过程
     //-------暗色处理
     // 不钩取GetSysColorBrush，因为它的返回值可以被删除，
     // 因此也不钩取GetSysColor，以免两个应得到相同结果函数的行为不同
@@ -1035,12 +1024,12 @@ struct ThreadContext
     void WmAdd(HWND hWnd, CWindow* pWnd, BOOL bTopLevel) noexcept;
     void WmRemove(HWND hWnd) noexcept;
     CWindow* WmAt(HWND hWnd) const noexcept;
-    WND* WmAtInternal(HWND hWnd) noexcept;
+    WINDOW* WmAtInternal(HWND hWnd) noexcept;
     // BBWM_*
     void WmSetBubbleFlags(HWND hWnd, BYTE uFlags) noexcept;
 
     void TwmMarkTopLevel(HWND hWnd, BOOL bTopLevel) noexcept;
-    WND TwmAt(HWND hWnd) noexcept;
+    WINDOW TwmAt(HWND hWnd) noexcept;
     void TwmEnableNcDarkMode(BOOL bDark) noexcept;
     void TwmBroadcastThemeChanged() noexcept;
 
@@ -1061,7 +1050,7 @@ void ThreadUninitialize() noexcept;
 // 取线程上下文
 EckInlineNd ThreadContext* PtcCurrent() noexcept { return (ThreadContext*)TlsGetValue(GetThreadContextTlsSlot()); }
 
-HHOOK BeginCbtHook(CWindow* pCurrWnd, FWndCreating pfnCreatingProc = nullptr) noexcept;
+HHOOK BeginCbtHook(CWindow* pCurrWnd, FWindowCreating pfnCreatingProc = nullptr) noexcept;
 void EndCbtHook() noexcept;
 
 /// <summary>

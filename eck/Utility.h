@@ -81,21 +81,21 @@ EckInlineCe void SetIntegerByte(T& i, BYTE by) noexcept
 /// <summary>
 /// 字节组到整数
 /// </summary>
-/// <typeparam name="TRet"></typeparam>
+/// <typeparam name="TReturn"></typeparam>
 /// <typeparam name="...T"></typeparam>
 /// <param name="...by">字节组，个数必须等于sizeof(TRet)</param>
 /// <returns>整数</returns>
-template<std::integral TRet, class... T>
-EckInlineNdCe TRet BytesToInteger(T... by) noexcept
+template<std::integral TReturn, class... T>
+EckInlineNdCe TReturn BytesToInteger(T... by) noexcept
 {
-    static_assert(sizeof...(T) == sizeof(TRet));
+    static_assert(sizeof...(T) == sizeof(TReturn));
     int i = 0;
     auto Fn = [&i](BYTE by)
         {
             ++i;
             return by << (8 * (i - 1));
         };
-    return (TRet)(... | Fn((BYTE)by));
+    return (TReturn)(... | Fn((BYTE)by));
 }
 
 template<std::integral T>

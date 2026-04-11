@@ -216,10 +216,10 @@ public:
         _Out_opt_ UDW_EXTRA* pExtra = nullptr) const noexcept
     {
         if (// 暗色模式需要1809+
-            (g_NtVer.uBuild < WINVER_1809 && bDark) ||
+            (g_NtVersion.uBuild < WINVER_1809 && bDark) ||
             // 暂不支持Win7及以下版本
-            (g_NtVer.uMajor < 6) ||
-            (g_NtVer.uMajor == 6 && g_NtVer.uMinor < 2))
+            (g_NtVersion.uMajor < 6) ||
+            (g_NtVersion.uMajor == 6 && g_NtVersion.uMinor < 2))
         {
             rc = {};
             rcBkg = {};
@@ -244,7 +244,7 @@ public:
             (bDark ? DWMWB_DARKBEGIN : DWMWB_LIGHTBEGIN) +
             (int)ePart * 4 +
             idxDpiVer +
-            (g_NtVer.uMajor == 6 && (g_NtVer.uMinor == 2 || g_NtVer.uMinor == 3) ? 1 : 0);
+            (g_NtVersion.uMajor == 6 && (g_NtVersion.uMinor == 2 || g_NtVersion.uMinor == 3) ? 1 : 0);
         const auto& Glyph = m_vItem[idxGlyph];
         // 图标都没有Margin，无需处理
         const int cy = Glyph.rcInAtlas.bottom - Glyph.rcInAtlas.top;

@@ -201,7 +201,7 @@ EckInline CWindow* CWindowFromHWND(HWND hWnd) noexcept { return PtcCurrent()->Wm
 
 class CWindow : public ILayout
 {
-    friend HHOOK BeginCbtHook(CWindow*, FWndCreating) noexcept;
+    friend HHOOK BeginCbtHook(CWindow*, FWindowCreating) noexcept;
 public:
     ECK_RTTI(CWindow, ILayout);
 
@@ -217,7 +217,7 @@ public:
 protected:
     EckInline HWND IntCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
         int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
-        FWndCreating pfnCreatingProc = nullptr) noexcept
+        FWindowCreating pfnCreatingProc = nullptr) noexcept
     {
         BeginCbtHook(this, pfnCreatingProc);
 #ifdef _DEBUG
@@ -273,7 +273,7 @@ protected:
 
     EckInline LRESULT CallProcedure(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
-        SlotCtx Ctx{};
+        Slot Ctx{};
         const auto r = m_ec.EmitWithContext(Ctx, this, uMsg, wParam, lParam);
         if (Ctx.IsProcessed())
             return r;
@@ -473,7 +473,7 @@ public:
 
     EckInline HWND NativeCreate(DWORD dwExStyle, PCWSTR pszClass, PCWSTR pszText, DWORD dwStyle,
         int x, int y, int cx, int cy, HWND hParent, HMENU hMenu, HINSTANCE hInst, void* pParam,
-        FWndCreating pfnCreatingProc = nullptr) noexcept
+        FWindowCreating pfnCreatingProc = nullptr) noexcept
     {
         return IntCreate(dwExStyle, pszClass, pszText, dwStyle,
             x, y, cx, cy, hParent, hMenu, hInst, pParam, pfnCreatingProc);
@@ -630,16 +630,11 @@ public:
         return PointerStepBytes(p, ((const CTRLDATA_WND*)p)->Size());
     }
 
-    /// <summary>
-    /// 重新创建窗口。
-    /// 函数先序列化数据，然后销毁当前窗口，最后创建新窗口，期间将自动调整窗口映射
-    /// </summary>
-    /// <param name="dwNewStyle">可选的窗口样式，将覆盖序列化数据中的样式</param>
-    /// <param name="dwNewExStyle">可选的扩展窗口样式，将覆盖序列化数据中的样式</param>
-    /// <param name="rcPos">可选的位置（左顶宽高），将覆盖旧位置</param>
-    /// <returns>窗口句柄</returns>
-    HWND ReCreate(EckOptNul(DWORD, dwNewStyle), EckOptNul(DWORD, dwNewExStyle),
-        EckOptNul(RECT, rcPos), const SERIALIZE_OPT* pSerOpt = nullptr) noexcept
+    HWND ReCreate(
+        std::optional<DWORD> dwNewStyle = std::nullopt,
+        std::optional<DWORD> dwNewExStyle = std::nullopt,
+        std::optional<RECT> rcPos = std::nullopt,
+        const SERIALIZE_OPT* pSerOpt = nullptr) noexcept
     {
         CByteBuffer rb{};
         SerializeData(rb, pSerOpt);

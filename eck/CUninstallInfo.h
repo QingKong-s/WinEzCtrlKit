@@ -438,7 +438,7 @@ public:
 
             // MajorVersion、MinorVersion、VersionMajor、VersionMinor
             // 某些程序填写为字符串，因此使用字符串缓冲区接收
-            WCHAR szBuf[CchI32ToStrBufNoRadix2];
+            WCHAR szBuf[Int32StringBufferSize];
             DWORD dwType;
             BOOL bMajorRead{}, bMinorRead{};
             cbBuf = sizeof(szBuf);

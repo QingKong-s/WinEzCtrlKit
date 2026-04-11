@@ -219,14 +219,14 @@ namespace Detail
 }
 
 // 标准任务
-template<class TRet = void, class TProgress = void>
+template<class TReturn = void, class TProgress = void>
 struct CoroTask
 {
     struct promise_type;
 
     std::coroutine_handle<promise_type> hCoroutine{};
 
-    struct promise_type : CoroPromiseBase_T<TProgress>, CoroRetVal<TRet>
+    struct promise_type : CoroPromiseBase_T<TProgress>, CoroRetVal<TReturn>
     {
         CoroTask get_return_object() noexcept
         {

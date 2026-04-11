@@ -339,7 +339,7 @@ namespace Detail
 
     struct DdxFnCheckBox : public CDdxControlCollection<DDXE_CHECKBOX>
     {
-        LRESULT operator()(CWindow* pWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
+        LRESULT operator()(CWindow* pWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, Slot& Ctx)
         {
             if (uMsg == WM_COMMAND && HIWORD(wParam) == BN_CLICKED)
             {

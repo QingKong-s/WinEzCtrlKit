@@ -922,7 +922,7 @@ private:
         m_bWaitEditDelay = FALSE;
     }
 
-    LRESULT OnMessageEdit(CWindow* pWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx) noexcept
+    LRESULT OnMessageEdit(CWindow* pWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, Slot& Ctx) noexcept
     {
         switch (uMsg)
         {
@@ -1634,7 +1634,7 @@ public:
             if (!m_bInstalledHeaderHook)
             {
                 m_Header.GetEventChain().Connect(
-                    [this](CWindow*, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)->LRESULT
+                    [this](CWindow*, UINT uMsg, WPARAM wParam, LPARAM lParam, Slot& Ctx)->LRESULT
                     {
                         if (uMsg == HDM_LAYOUT && m_cyHeader > 0)
                         {

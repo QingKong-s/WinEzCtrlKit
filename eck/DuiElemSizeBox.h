@@ -77,7 +77,7 @@ public:
         return HTNOWHERE;
     }
 
-    LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx) noexcept
+    LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam, Slot& Ctx) noexcept
     {
         switch (uMsg)
         {

@@ -104,8 +104,7 @@ Exit:;
 inline HRESULT DshMakeSymbolUrl(
     CStringW& rsSymbolUrl,
     const PDBInfo& PdbInfo,
-    std::wstring_view svSymbolSrv = SymSrvMicrosoft
-) noexcept
+    std::wstring_view svSymbolSrv = SymSrvMicrosoft) noexcept
 {
     const auto rsPdbW = EcdMultiByteToWide(PdbInfo.rsPdbFile.Data(),
         PdbInfo.rsPdbFile.Size(), CP_ACP);
@@ -127,8 +126,7 @@ inline HRESULT DshInit(
     _Out_ HANDLE& hProcess,
     UINT uOptions = SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_ANYTHING,
     PCWSTR pszUserSearchPath = nullptr,
-    BOOL bInvadeProcess = FALSE
-) noexcept
+    BOOL bInvadeProcess = FALSE) noexcept
 {
     NTSTATUS nts;
     hProcess = NaOpenProcess(SYNCHRONIZE, FALSE, NtCurrentProcessId32(), &nts);

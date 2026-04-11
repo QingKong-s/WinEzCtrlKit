@@ -30,7 +30,7 @@ private:
 
     COLORREF m_crBk{ CLR_DEFAULT };
 
-    BkImgMode m_iViewMode{ BkImgMode::TopLeft };
+    ImageMode m_iViewMode{ ImageMode::TopLeft };
 
     BITBOOL m_bScalable : 1 = FALSE;
     BITBOOL m_b32BppHBitmap : 1 = FALSE;
@@ -127,8 +127,8 @@ public:
         return Gdiplus::Ok;
     }
 
-    EckInlineCe void SetViewMode(BkImgMode i) noexcept { m_iViewMode = i; }
-    EckInlineNdCe BkImgMode GetViewMode() const noexcept { return m_iViewMode; }
+    EckInlineCe void SetViewMode(ImageMode i) noexcept { m_iViewMode = i; }
+    EckInlineNdCe ImageMode GetViewMode() const noexcept { return m_iViewMode; }
 
     EckInlineCe void SetFillImage(BOOL b) noexcept { m_bFillWndImage = b; }
     EckInlineNdCe BOOL GetFillImage() const noexcept { return m_bFillWndImage; }

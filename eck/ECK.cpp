@@ -49,9 +49,9 @@ void InitializePrivateApi() noexcept
         GetProcAddress(hModUx, MAKEINTRESOURCEA(49));
 
 #if !ECK_OPT_NO_DARKMODE
-    if (g_NtVer.uMajor >= 10 && g_NtVer.uBuild >= WINVER_1809)
+    if (g_NtVersion.uMajor >= 10 && g_NtVersion.uBuild >= WINVER_1809)
     {
-        if (g_NtVer.uBuild > WINVER_1903)
+        if (g_NtVersion.uBuild > WINVER_1903)
         {
             pfnShouldSystemUseDarkMode = (FShouldSystemUseDarkMode)
                 GetProcAddress(hModUx, MAKEINTRESOURCEA(138));
@@ -100,9 +100,9 @@ void InitializePrivateApi() noexcept
 HINSTANCE	g_hInstance{};
 CStringW	g_rsRunningDir{};
 DWORD		g_dwTlsSlot{};
-NTVER		g_NtVer{};
+NTVER		g_NtVersion{};
 
-HMODULE		g_hModComCtl32{ (HMODULE)MaxSizeT };
+HMODULE		g_hModCommonControl{ (HMODULE)MaxSizeT };
 
 #if !ECK_OPT_NO_GDIPLUS
 // For GdiPlus
@@ -428,7 +428,7 @@ static void UxfpOnThemeClose(HTHEME hTheme) noexcept
 
 EckInline constexpr BOOL UxfpIsDarkTaskDialogAvailable() noexcept
 {
-    return g_NtVer.uBuild >= WINVER_11_21H2;
+    return g_NtVersion.uBuild >= WINVER_11_21H2;
 }
 
 HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
@@ -439,7 +439,7 @@ HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
         return S_FALSE;
     const auto hTheme = OpenThemeData(pWnd->GetHWND(), L"Menu");
     auto Fn = [hTheme = hTheme](CWindow* pWnd, UINT uMsg,
-        WPARAM wParam, LPARAM lParam, SlotCtx& Ctx) mutable -> LRESULT
+        WPARAM wParam, LPARAM lParam, Slot& Ctx) mutable -> LRESULT
         {
             if (Ctx.IsDeleting())
             {
@@ -1620,7 +1620,7 @@ InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ UINT*
     *puErrCode = 0;
 
     g_hInstance = hInstance;
-    RtlGetNtVersionNumbers(&g_NtVer.uMajor, &g_NtVer.uMinor, &g_NtVer.uBuild);
+    RtlGetNtVersionNumbers(&g_NtVersion.uMajor, &g_NtVersion.uMinor, &g_NtVersion.uBuild);
     InitializePrivateApi();
 #if ECK_OPT_DYN_NF
     InitializeNewApi();
@@ -1640,7 +1640,7 @@ InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ UINT*
         if (gps != Gdiplus::Ok)
         {
             *puErrCode = gps;
-            return InitStatus::GdiplusInit;
+            return InitStatus::Gdiplus;
         }
     }
 #endif// !ECK_OPT_NO_GDIPLUS
@@ -1667,7 +1667,7 @@ InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ UINT*
                 *puErrCode = GetLastError();
                 EckDbgPrintFormatMessage(*puErrCode);
                 EckDbgBreak();
-                return InitStatus::RegWndClass;
+                return InitStatus::WindowClass;
             }
             break;
         case RWCT_CUSTOM:
@@ -1676,7 +1676,7 @@ InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ UINT*
                 *puErrCode = GetLastError();
                 EckDbgPrintFormatMessage(*puErrCode);
                 EckDbgBreak();
-                return InitStatus::RegWndClass;
+                return InitStatus::WindowClass;
             }
             break;
         default:
@@ -1800,7 +1800,7 @@ InitStatus Initialize(HINSTANCE hInstance, const INITPARAM* pip, _Out_opt_ UINT*
 
 #if !ECK_OPT_NO_DARKMODE
     if (!(pip->uFlags & EIF_NODARKMODE) &&
-        g_NtVer.uMajor >= 10 && g_NtVer.uBuild >= WINVER_1809)
+        g_NtVersion.uMajor >= 10 && g_NtVersion.uBuild >= WINVER_1809)
     {
         SetPreferredAppMode(PreferredAppMode::AllowDark);
         RefreshImmersiveColorStuff();
@@ -1890,8 +1890,8 @@ DWORD GetThreadContextTlsSlot() noexcept
 
 void ThreadInitialize() noexcept
 {
-    if ((size_t)g_hModComCtl32 == MaxSizeT)
-        g_hModComCtl32 = GetModuleHandleW(L"comctl32.dll");
+    if ((size_t)g_hModCommonControl == MaxSizeT)
+        g_hModCommonControl = GetModuleHandleW(L"comctl32.dll");
     EckAssert(!TlsGetValue(GetThreadContextTlsSlot()));
     const auto p = new ThreadContext{};
     TlsSetValue(GetThreadContextTlsSlot(), p);
@@ -2032,7 +2032,7 @@ void ThreadContext::WmAdd(HWND hWnd, CWindow* pWnd, BOOL bTopLevel) noexcept
 {
     EckAssert(IsWindow(hWnd) && pWnd);
     hmWnd.insert(std::make_pair(hWnd,
-        WND{
+        WINDOW{
             .pWnd = pWnd,
             .bTopLevel = (BOOLEAN)bTopLevel
         }));
@@ -2059,7 +2059,7 @@ CWindow* ThreadContext::WmAt(HWND hWnd) const noexcept
         return nullptr;
 }
 
-ThreadContext::WND* ThreadContext::WmAtInternal(HWND hWnd) noexcept
+ThreadContext::WINDOW* ThreadContext::WmAtInternal(HWND hWnd) noexcept
 {
     const auto it = hmWnd.find(hWnd);
     if (it != hmWnd.end())
@@ -2082,7 +2082,7 @@ void ThreadContext::TwmMarkTopLevel(HWND hWnd, BOOL bTopLevel) noexcept
         it->second.bTopLevel = bTopLevel;
 }
 
-ThreadContext::WND ThreadContext::TwmAt(HWND hWnd) noexcept
+ThreadContext::WINDOW ThreadContext::TwmAt(HWND hWnd) noexcept
 {
     const auto it = hmWnd.find(hWnd);
     if (it != hmWnd.end())
@@ -2190,7 +2190,7 @@ HWND ThreadContext::CreateGhostWindow(BOOL bMsgOnly) noexcept
 #pragma endregion Thread
 
 #pragma region Wnd
-HHOOK BeginCbtHook(CWindow* pCurrWnd, FWndCreating pfnCreatingProc) noexcept
+HHOOK BeginCbtHook(CWindow* pCurrWnd, FWindowCreating pfnCreatingProc) noexcept
 {
     EckAssert(pCurrWnd);
     const auto pCtx = PtcCurrent();

@@ -27,14 +27,14 @@ public:
         return x * 2;
     }
 
-    void InterceptMethod(int x, SlotCtx& ctx)
+    void InterceptMethod(int x, Slot& ctx)
     {
         value = x;
         if (x > 100)
             ctx.Processed(TRUE);
     }
 
-    int InterceptMethodWithReturn(int x, SlotCtx& ctx)
+    int InterceptMethodWithReturn(int x, Slot& ctx)
     {
         value = x;
         if (x > 100)
@@ -62,14 +62,14 @@ int TestFuncWithReturn(int x)
     return x * 3;
 }
 
-void InterceptFunc(int x, SlotCtx& ctx)
+void InterceptFunc(int x, Slot& ctx)
 {
     g_testValue = x;
     if (x > 50)
         ctx.Processed(TRUE);
 }
 
-int InterceptFuncWithReturn(int x, SlotCtx& ctx)
+int InterceptFuncWithReturn(int x, Slot& ctx)
 {
     g_testValue = x;
     if (x > 50)
@@ -106,7 +106,7 @@ public:
     {
         CEventChain<Intercept_T, int, int> signal;
 
-        signal.Connect([](int x, SlotCtx& Ctx)
+        signal.Connect([](int x, Slot& Ctx)
             {
                 Ctx.Processed(TRUE);
                 return x * 2; });
@@ -298,9 +298,9 @@ public:
         CEventChain<Intercept_T, void, int> signal;
         std::vector<int> order;
 
-        signal.Connect([&](int x, SlotCtx& ctx) { order.push_back(3); });
-        signal.Connect([&](int x, SlotCtx& ctx) { order.push_back(2); });
-        signal.Connect([&](int x, SlotCtx& ctx) {
+        signal.Connect([&](int x, Slot& ctx) { order.push_back(3); });
+        signal.Connect([&](int x, Slot& ctx) { order.push_back(2); });
+        signal.Connect([&](int x, Slot& ctx) {
             order.push_back(1);
             if (x > 50)
                 ctx.Processed(TRUE);
@@ -324,7 +324,7 @@ public:
     {
         CEventChain<Intercept_T, int, int> signal;
 
-        signal.Connect([](int x, SlotCtx& ctx) -> int {
+        signal.Connect([](int x, Slot& ctx) -> int {
             if (x > 50)
             {
                 ctx.Processed(TRUE);
@@ -332,7 +332,7 @@ public:
             }
             return x * 2;
             });
-        signal.Connect([](int x, SlotCtx& ctx) -> int { return x * 5; });
+        signal.Connect([](int x, Slot& ctx) -> int { return x * 5; });
 
         int result1 = signal.Emit(100);
         Assert::AreEqual(1000, result1); // 被拦截，返回 100 * 10
@@ -346,7 +346,7 @@ public:
     {
         CEventChain<Intercept_T, void, int> signal;
 
-        signal.Connect([](int x, SlotCtx& ctx) { g_calls.push_back(999); });
+        signal.Connect([](int x, Slot& ctx) { g_calls.push_back(999); });
         signal.Connect(InterceptFunc);
 
         signal.Emit(100);
@@ -363,7 +363,7 @@ public:
         CEventChain<Intercept_T, void, int> signal;
         TempClass obj;
 
-        signal.Connect([](int x, SlotCtx& ctx) { g_calls.push_back(888); });
+        signal.Connect([](int x, Slot& ctx) { g_calls.push_back(888); });
         signal.Connect(&obj, &TempClass::InterceptMethod);
 
         signal.Emit(200);
@@ -379,11 +379,11 @@ public:
     {
         CEventChain<Intercept_T, int, int> signal;
 
-        signal.Connect([](int x, SlotCtx& ctx) -> int {
+        signal.Connect([](int x, Slot& ctx) -> int {
             ctx.Processed(TRUE);
             return x + 100;
             });
-        signal.Connect([&signal](int x, SlotCtx& ctx) -> int {
+        signal.Connect([&signal](int x, Slot& ctx) -> int {
             if (x > 50)
             {
                 // 修改参数并调用下一个槽
@@ -551,15 +551,15 @@ public:
         CEventChain<Intercept_T, void, int> signal2;
         std::vector<int> order;
 
-        signal2.Connect([&](int x, SlotCtx& ctx) { order.push_back(21); });
-        signal2.Connect([&](int x, SlotCtx& ctx) {
+        signal2.Connect([&](int x, Slot& ctx) { order.push_back(21); });
+        signal2.Connect([&](int x, Slot& ctx) {
             order.push_back(20);
             if (x > 50)
                 ctx.Processed(TRUE);
             });
 
         signal1.Connect(signal2);
-        signal1.Connect([&](int x, SlotCtx& ctx) { order.push_back(10); });
+        signal1.Connect([&](int x, Slot& ctx) { order.push_back(10); });
 
         signal1.Emit(100);
 
@@ -596,14 +596,14 @@ public:
     {
         CEventChain<Intercept_T, std::string, int, std::string> signal;
 
-        signal.Connect([](int i, std::string s, SlotCtx& ctx) {
+        signal.Connect([](int i, std::string s, Slot& ctx) {
             return "no2";
             });
-        signal.Connect([](int i, std::string s, SlotCtx& ctx) {
+        signal.Connect([](int i, std::string s, Slot& ctx) {
             ctx.Processed(TRUE);
             return s + std::to_string(i);
             });
-        signal.Connect([](int i, std::string s, SlotCtx& ctx) {
+        signal.Connect([](int i, std::string s, Slot& ctx) {
             return "no1";
             });
 
@@ -660,12 +660,12 @@ public:
     TEST_METHOD(TsEmitWithDefault)
     {
         CEventChain<Intercept_T, int, int> signal;
-        SlotCtx ctx;
+        Slot ctx;
 
         int result = signal.EmitWithDefault(ctx, 999, 42);
         Assert::AreEqual(999, result); // 空信号返回默认值
 
-        signal.Connect([](int x, SlotCtx& ctx)
+        signal.Connect([](int x, Slot& ctx)
             {
                 ctx.Processed(TRUE);
                 return x * 2;

@@ -161,7 +161,7 @@ protected:
             m_LB.GetItemCount() * m_LB.GetItemHeight() + DaGetSystemMetrics(SM_CYEDGE, m_iDpi) * 2);
     }
 
-    LRESULT OnEditMessage(CWindow* pWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx)
+    LRESULT OnEditMessage(CWindow* pWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, Slot& Ctx)
     {
         switch (uMsg)
         {

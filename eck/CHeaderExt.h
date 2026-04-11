@@ -445,8 +445,8 @@ private:
                 {
                     hdi.pvFilter = &Val.i;
                     GetItem(idx, &hdi);
-                    if (m_rsTextBuf.Size() < CchI32ToStrBufNoRadix2)
-                        m_rsTextBuf.ReSize(CchI32ToStrBufNoRadix2);
+                    if (m_rsTextBuf.Size() < Int32StringBufferSize)
+                        m_rsTextBuf.ReSize(Int32StringBufferSize);
                     const auto cch = _swprintf(m_rsTextBuf.Data(), L"%d", Val.i);
                     PrepareTextColorFilter(hDC, e);
                     DrawTextW(hDC, m_rsTextBuf.Data(), cch, &rc,
@@ -493,7 +493,7 @@ private:
         {
             m_DcFilterBmp.Attach(
                 CreateCompatibleDC(nullptr),
-                (HBITMAP)LoadImageW(g_hModComCtl32, MAKEINTRESOURCEW(140),
+                (HBITMAP)LoadImageW(g_hModCommonControl, MAKEINTRESOURCEW(140),
                     IMAGE_BITMAP, 0, 0, LR_SHARED),
                 TRUE);
 
@@ -502,7 +502,7 @@ private:
             m_sizeFilter = { bm.bmWidth,bm.bmHeight };
 
             m_rsEnterTextHere.Assign(
-                GetResourceStringForCurrentLocale(0x1050, g_hModComCtl32));
+                GetResourceStringForCurrentLocale(0x1050, g_hModCommonControl));
         }
     }
 

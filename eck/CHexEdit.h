@@ -119,7 +119,7 @@ private:
     void UpdateDataMetrics() noexcept
     {
         m_cRow = (int)CeilDivide(m_cbData, (size_t)D.cCol);
-        WCHAR szBuf[CchI64ToStrBufNoRadix2];
+        WCHAR szBuf[Int64StringBufferSize];
         m_cxAddress = swprintf(szBuf, (D.bHexAddress ? L"%08Ix" : L"%08Iu"), m_cbData) * m_cxChar + D.cxGap * 2;
         m_cxData = (m_cxChar * 2 + D.cxGap) * D.cCol;
         m_cxContent = m_cxAddress + m_cxData + D.cxGap + int(m_vCharCol.size() * (GetCharColumnWidth() + D.cxGap));
@@ -163,7 +163,7 @@ private:
 
     void OnPaint(HDC hDC, const RECT& rcPaint) noexcept
     {
-        WCHAR szBuf[CchI64ToStrBufNoRadix2];
+        WCHAR szBuf[Int64StringBufferSize];
         // 画列头
         int xStart = -ScbGetPosition(SB_HORZ);
 

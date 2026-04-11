@@ -2,8 +2,11 @@
 #include "CString.h"
 
 ECK_NAMESPACE_BEGIN
-inline void UrlEncode(_In_reads_or_z_(cchText) PCCH pszText,
-    int cchText, CStringA& rs, BOOL bPlusForSpace = TRUE) noexcept
+inline void UrlEncode(
+    _In_reads_or_z_(cchText) PCCH pszText,
+    int cchText,
+    CStringA& rs,
+    BOOL bPlusForSpace = TRUE) noexcept
 {
     if (cchText < 0)
         cchText = (int)TcsLength(pszText);
@@ -25,14 +28,19 @@ inline void UrlEncode(_In_reads_or_z_(cchText) PCCH pszText,
     }
 }
 
-EckInline void UrlEncode(_In_reads_or_z_(cchText) const char8_t* pszText,
-    int cchText, CStringA& rs, BOOL bPlusForSpace = TRUE) noexcept
+EckInline void UrlEncode(
+    _In_reads_or_z_(cchText) const char8_t* pszText,
+    int cchText,
+    CStringA& rs,
+    BOOL bPlusForSpace = TRUE) noexcept
 {
     return UrlEncode((PCCH)pszText, cchText, rs, bPlusForSpace);
 }
 
-inline void UrlDecode(_In_reads_or_z_(cchText) PCCH pszText,
-    int cchText, CStringA& rs) noexcept
+inline void UrlDecode(
+    _In_reads_or_z_(cchText) PCCH pszText,
+    int cchText,
+    CStringA& rs) noexcept
 {
     if (cchText < 0)
         cchText = (int)TcsLength(pszText);
@@ -55,8 +63,10 @@ inline void UrlDecode(_In_reads_or_z_(cchText) PCCH pszText,
     }
 }
 
-EckInline void UrlDecode(_In_reads_or_z_(cchText) const char8_t* pszText,
-    int cchText, CStringA& rs) noexcept
+EckInline void UrlDecode(
+    _In_reads_or_z_(cchText) const char8_t* pszText,
+    int cchText,
+    CStringA& rs) noexcept
 {
     UrlDecode((PCCH)pszText, cchText, rs);
 }

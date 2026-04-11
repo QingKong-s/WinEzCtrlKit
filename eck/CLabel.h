@@ -52,7 +52,7 @@ private:
     HFONT m_hFont{};		// 字体，无需销毁
     CStringW m_rsText{};
 
-    BkImgMode m_eBkImgMode{ BkImgMode::TopLeft };		// 底图模式
+    ImageMode m_eBkImgMode{ ImageMode::TopLeft };		// 底图模式
     GradientMode m_eGradientMode{ GradientMode::None };	// 渐变模式
     Align m_eAlignH{};	// 横向对齐
     Align m_eAlignV{};	// 纵向对齐
@@ -409,7 +409,7 @@ public:
             m_hbmBkImg = nullptr;
             m_hbmImg = nullptr;
             m_hFont = nullptr;
-            m_eBkImgMode = BkImgMode::TopLeft;
+            m_eBkImgMode = ImageMode::TopLeft;
             m_eGradientMode = GradientMode::None;
             m_eAlignH = Align::Near;
             m_eAlignV = Align::Near;
@@ -462,8 +462,8 @@ public:
     }
     EckInlineNdCe HBITMAP GetBackgroundImage() const noexcept { return m_hbmBkImg; }
 
-    EckInlineCe void SetBackgroundMode(BkImgMode iBkImgMode) noexcept { m_eBkImgMode = iBkImgMode; }
-    EckInlineNdCe BkImgMode GetBackgroundMode() const noexcept { return m_eBkImgMode; }
+    EckInlineCe void SetBackgroundMode(ImageMode iBkImgMode) noexcept { m_eBkImgMode = iBkImgMode; }
+    EckInlineNdCe ImageMode GetBackgroundMode() const noexcept { return m_eBkImgMode; }
 
     HBITMAP SetImage(HBITMAP hBitmap) noexcept
     {
@@ -504,21 +504,21 @@ public:
     }
     EckInlineNdCe Prefix GetPrefixMode() const noexcept { return m_ePrefixMode; }
 
-    void SetColor(ClrPart ePart, COLORREF cr) noexcept
+    void SetColor(ColorPart ePart, COLORREF cr) noexcept
     {
         switch (ePart)
         {
-        case ClrPart::Text:
+        case ColorPart::Text:
             m_crText = cr;
             SetTextColor(m_DC.GetDC(), cr);
             break;
-        case ClrPart::Bk:
+        case ColorPart::Bk:
             m_crBk = cr;
             if (cr == CLR_DEFAULT)
                 cr = GetSysColor(COLOR_BTNFACE);
             SetDCBrushColor(m_DC.GetDC(), cr);
             break;
-        case ClrPart::TextBk:
+        case ColorPart::TextBk:
             m_crTextBk = cr;
             if (cr == CLR_DEFAULT)
                 SetBkMode(m_DC.GetDC(), TRANSPARENT);
@@ -534,13 +534,13 @@ public:
         Redraw();
     }
 
-    constexpr COLORREF GetColor(ClrPart ePart) const noexcept
+    constexpr COLORREF GetColor(ColorPart ePart) const noexcept
     {
         switch (ePart)
         {
-        case ClrPart::Text: return m_crText;
-        case ClrPart::Bk: return m_crBk;
-        case ClrPart::TextBk: return m_crTextBk;
+        case ColorPart::Text: return m_crText;
+        case ColorPart::Bk: return m_crBk;
+        case ColorPart::TextBk: return m_crTextBk;
         }
         ECK_UNREACHABLE;
     }

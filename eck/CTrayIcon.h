@@ -49,7 +49,7 @@ private:
         return TRUE;
     }
 
-    LRESULT OnMessage(CWindow* pWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, SlotCtx& Ctx) noexcept
+    LRESULT OnMessage(CWindow* pWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, Slot& Ctx) noexcept
     {
         if (uMsg == WM_DESTROY)
         {

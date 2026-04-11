@@ -103,25 +103,25 @@ public:
         DestructEntry();
     }
 
-    template<class... TArgs>
+    template<class... TArguments>
     EckInlineNd THandle Allocate(
         _Out_opt_ T** ppEntry = nullptr,
         _Out_opt_ ULONG* pidxHandle = nullptr,
-        TArgs &&... Args) noexcept
+        TArguments &&... Args) noexcept
     {
         const auto h = m_HandleTable.Allocate(pidxHandle);
         h->Flags |= RTL_HANDLE_ALLOCATED;
         const auto p = Validate((THandle)h);
-        new (p) T{ std::forward<TArgs>(Args)... };
+        new (p) T{ std::forward<TArguments>(Args)... };
         if (ppEntry)
             *ppEntry = p;
         return h;
     }
 
-    template<class... TArgs>
-    EckInlineNd THandle Allocate2(TArgs &&... Args) noexcept
+    template<class... TArguments>
+    EckInlineNd THandle Allocate2(TArguments &&... Args) noexcept
     {
-        return Allocate(nullptr, nullptr, std::forward<TArgs>(Args)...);
+        return Allocate(nullptr, nullptr, std::forward<TArguments>(Args)...);
     }
 
     EckInline BOOL Free(THandle Handle) noexcept

@@ -1110,7 +1110,7 @@ public:
         if (!pParent)
             return FALSE;
         const auto hSlot = pParent->GetEventChain().Connect(
-            [cy, bSetOrAdd](CWindow*, UINT uMsg, WPARAM, LPARAM lParam, SlotCtx& Ctx)->LRESULT
+            [cy, bSetOrAdd](CWindow*, UINT uMsg, WPARAM, LPARAM lParam, Slot& Ctx)->LRESULT
             {
                 if (uMsg == WM_MEASUREITEM)
                 {

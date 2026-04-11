@@ -125,12 +125,12 @@ public:
     }
 
     // F = void()(..., PTP_CALLBACK_INSTANCE Instance, PTP_WORK Work)
-    template<class F, class... TArgs>
-    EckInline NTSTATUS Create2(TP_CALLBACK_ENVIRON* pEnv, F&& Fn, TArgs&&... Args) noexcept
+    template<class F, class... TArguments>
+    EckInline NTSTATUS Create2(TP_CALLBACK_ENVIRON* pEnv, F&& Fn, TArguments&&... Args) noexcept
     {
-        using TTuple = std::tuple<std::decay_t<F>, std::decay_t<TArgs>...>;
-        auto pParam = std::make_unique<TTuple>(std::forward<F>(Fn), std::forward<TArgs>(Args)...);
-        return Create(MakeCallback<TTuple>(std::make_index_sequence<sizeof...(TArgs) + 1>{}),
+        using TTuple = std::tuple<std::decay_t<F>, std::decay_t<TArguments>...>;
+        auto pParam = std::make_unique<TTuple>(std::forward<F>(Fn), std::forward<TArguments>(Args)...);
+        return Create(MakeCallback<TTuple>(std::make_index_sequence<sizeof...(TArguments) + 1>{}),
             pParam.release(), pEnv);
     }
 
@@ -201,12 +201,12 @@ public:
     }
 
     // F = void()(..., PTP_CALLBACK_INSTANCE Instance, PTP_WAIT Wait, TP_WAIT_RESULT Result)
-    template<class F, class... TArgs>
-    EckInline NTSTATUS Create2(TP_CALLBACK_ENVIRON* pEnv, F&& Fn, TArgs&&... Args) noexcept
+    template<class F, class... TArguments>
+    EckInline NTSTATUS Create2(TP_CALLBACK_ENVIRON* pEnv, F&& Fn, TArguments&&... Args) noexcept
     {
-        using TTuple = std::tuple<std::decay_t<F>, std::decay_t<TArgs>...>;
-        auto pParam = std::make_unique<TTuple>(std::forward<F>(Fn), std::forward<TArgs>(Args)...);
-        return Create(MakeCallback<TTuple>(std::make_index_sequence<sizeof...(TArgs) + 2>{}),
+        using TTuple = std::tuple<std::decay_t<F>, std::decay_t<TArguments>...>;
+        auto pParam = std::make_unique<TTuple>(std::forward<F>(Fn), std::forward<TArguments>(Args)...);
+        return Create(MakeCallback<TTuple>(std::make_index_sequence<sizeof...(TArguments) + 2>{}),
             pParam.release(), pEnv);
     }
 
@@ -305,12 +305,12 @@ public:
     }
 
     // F = void()(..., PTP_CALLBACK_INSTANCE Instance, PTP_TIMER Timer)
-    template<class F, class... TArgs>
-    EckInline NTSTATUS Create2(TP_CALLBACK_ENVIRON* pEnv, F&& Fn, TArgs&&... Args) noexcept
+    template<class F, class... TArguments>
+    EckInline NTSTATUS Create2(TP_CALLBACK_ENVIRON* pEnv, F&& Fn, TArguments&&... Args) noexcept
     {
-        using TTuple = std::tuple<std::decay_t<F>, std::decay_t<TArgs>...>;
-        auto pParam = std::make_unique<TTuple>(std::forward<F>(Fn), std::forward<TArgs>(Args)...);
-        return Create(MakeCallback<TTuple>(std::make_index_sequence<sizeof...(TArgs) + 1>{}),
+        using TTuple = std::tuple<std::decay_t<F>, std::decay_t<TArguments>...>;
+        auto pParam = std::make_unique<TTuple>(std::forward<F>(Fn), std::forward<TArguments>(Args)...);
+        return Create(MakeCallback<TTuple>(std::make_index_sequence<sizeof...(TArguments) + 1>{}),
             pParam.release(), pEnv);
     }
 
@@ -361,14 +361,14 @@ namespace Detail
 }
 
 // F = void()(..., PTP_CALLBACK_INSTANCE Instance)
-template<class F, class... TArgs>
-EckInline NTSTATUS TpSubmitSimpleCallback(TP_CALLBACK_ENVIRON* pEnv, F&& Fn, TArgs&&... Args) noexcept
+template<class F, class... TArguments>
+EckInline NTSTATUS TpSubmitSimpleCallback(TP_CALLBACK_ENVIRON* pEnv, F&& Fn, TArguments&&... Args) noexcept
 {
-    using TTuple = std::tuple<std::decay_t<F>, std::decay_t<TArgs>...>;
-    auto pParam = std::make_unique<TTuple>(std::forward<F>(Fn), std::forward<TArgs>(Args)...);
+    using TTuple = std::tuple<std::decay_t<F>, std::decay_t<TArguments>...>;
+    auto pParam = std::make_unique<TTuple>(std::forward<F>(Fn), std::forward<TArguments>(Args)...);
 
     return TpSimpleTryPost(
-        Detail::MakeTpSimpleCallback<TTuple>(std::make_index_sequence<sizeof...(TArgs)>{}),
+        Detail::MakeTpSimpleCallback<TTuple>(std::make_index_sequence<sizeof...(TArguments)>{}),
         pParam.release(), pEnv);
 }
 ECK_NAMESPACE_END

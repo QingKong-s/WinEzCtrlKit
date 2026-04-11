@@ -20,7 +20,7 @@ private:
     int m_cxClient{},
         m_cyClient{};
 
-    BkImgMode m_eBkImageMode{ BkImgMode::TopLeft };
+    ImageMode m_eBkImageMode{ ImageMode::TopLeft };
 
     BITBOOL m_bMoveable : 1 = TRUE;
     BITBOOL m_bFillWndImage : 1 = FALSE;
@@ -29,7 +29,7 @@ private:
     BITBOOL m_bClrDisableEdit : 1 = FALSE;
 public:
     ECKPROP(GetBackgroundImage, SetBackgroundImage) HBITMAP		BkImage;		// 背景图片
-    ECKPROP(GetBackgroundMode, SetBackgroundMode)   BkImgMode	BkImageMode;	// 背景图片模式
+    ECKPROP(GetBackgroundMode, SetBackgroundMode)   ImageMode	BkImageMode;	// 背景图片模式
     ECKPROP(GetBackgroundFillWindow, SetBackgroundFillWindow)   BOOL		FillWndImage;   // 全窗口绘制背景图片
     ECKPROP(GetMoveable, SetMoveable)               BOOL		Moveable;		// 可否移动
     ECKPROP(GetEscClose, SetEscClose)               BOOL		EscClose;		// ESC关闭
@@ -141,8 +141,8 @@ public:
     }
     EckInlineNdCe HBITMAP GetBackgroundImage() const noexcept { return m_hbmBk; }
 
-    EckInlineCe void SetBackgroundMode(BkImgMode iMode) noexcept { m_eBkImageMode = iMode; }
-    EckInlineNdCe BkImgMode GetBackgroundMode() const noexcept { return m_eBkImageMode; }
+    EckInlineCe void SetBackgroundMode(ImageMode iMode) noexcept { m_eBkImageMode = iMode; }
+    EckInlineNdCe ImageMode GetBackgroundMode() const noexcept { return m_eBkImageMode; }
 
     EckInlineCe void SetBackgroundFillWindow(BOOL b) noexcept { m_bFillWndImage = b; }
     EckInlineNdCe BOOL GetBackgroundFillWindow() const noexcept { return m_bFillWndImage; }

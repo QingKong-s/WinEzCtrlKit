@@ -223,6 +223,7 @@ EckInlineNdCe COLORREF DeltaColorrefLuma(COLORREF cr, float d) noexcept
         std::clamp(int(GetBValue(cr) + d * 255), 0, 0xFF));
 }
 
+#ifdef _D2D1_H_
 EckInlineNdCe D2D1_COLOR_F LerpD2DColorF(
     const D2D1_COLOR_F& c1,
     const D2D1_COLOR_F& c2,
@@ -235,6 +236,7 @@ EckInlineNdCe D2D1_COLOR_F LerpD2DColorF(
         c1.a + (c2.a - c1.a) * fLerp,
     };
 }
+#endif // _D2D1_H_
 EckInlineNdCe ARGB LerpArgb(ARGB c1, ARGB c2, float fLerp) noexcept
 {
     return BytesToInteger<ARGB>(

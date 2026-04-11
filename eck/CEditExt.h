@@ -179,7 +179,7 @@ public:
 
         case WM_KILLFOCUS:
         {
-            WCHAR szValue[CchI64ToStrBufNoRadix2]{};
+            WCHAR szValue[Int64StringBufferSize]{};
             LONGLONG llValue;
             double lfValue;
 
@@ -477,26 +477,26 @@ public:
         return FALSE;
     }
 
-    void SetColor(ClrPart ePart, COLORREF cr) noexcept
+    void SetColor(ColorPart ePart, COLORREF cr) noexcept
     {
         switch (ePart)
         {
-        case ClrPart::Text: m_crText = cr; break;
-        case ClrPart::TextBk: m_crTextBk = cr; break;
-        case ClrPart::Bk:
+        case ColorPart::Text: m_crText = cr; break;
+        case ColorPart::TextBk: m_crTextBk = cr; break;
+        case ColorPart::Bk:
             m_crBk = cr;
             SendMessageW(WM_NCPAINT, 0, 0);
             break;
         }
     }
 
-    constexpr COLORREF GetColor(ClrPart ePart) const  noexcept
+    constexpr COLORREF GetColor(ColorPart ePart) const  noexcept
     {
         switch (ePart)
         {
-        case ClrPart::Text: return m_crText;
-        case ClrPart::TextBk: return m_crTextBk;
-        case ClrPart::Bk: return m_crBk;
+        case ColorPart::Text: return m_crText;
+        case ColorPart::TextBk: return m_crTextBk;
+        case ColorPart::Bk: return m_crBk;
         default: return CLR_INVALID;
         }
     }

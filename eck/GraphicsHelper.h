@@ -240,7 +240,7 @@ inline BOOL FillGradientRect(HDC hDC, const RECT& rc,
         bVertical ? GRADIENT_FILL_RECT_V : GRADIENT_FILL_RECT_H);
 }
 
-enum class BkImgMode : BYTE
+enum class ImageMode : BYTE
 {
     TopLeft,// 左上
     Tile,	// 平铺
@@ -263,7 +263,7 @@ enum class BkImgMode : BYTE
 /// <returns>AlphaBlend的返回值</returns>
 inline BOOL DrawBackgroundImage32(HDC hDC, HDC hdcBitmap,
     const RECT& rc, int cxImage, int cyImage,
-    BkImgMode iMode, BOOL bFullRgnImage) noexcept
+    ImageMode iMode, BOOL bFullRgnImage) noexcept
 {
     constexpr BLENDFUNCTION bf{ AC_SRC_OVER,0,255,AC_SRC_ALPHA };
     const int
@@ -280,7 +280,7 @@ inline BOOL DrawBackgroundImage32(HDC hDC, HDC hdcBitmap,
 
     switch (iMode)
     {
-    case BkImgMode::TopLeft:// 居左上
+    case ImageMode::TopLeft:// 居左上
     {
         if (bFullRgnImage)
         {
@@ -295,7 +295,7 @@ inline BOOL DrawBackgroundImage32(HDC hDC, HDC hdcBitmap,
     }
     ECK_UNREACHABLE;
 
-    case BkImgMode::Tile:// 平铺
+    case ImageMode::Tile:// 平铺
     {
         EckCounter(CeilDivide(cx, cxImage), i)
         {
@@ -308,7 +308,7 @@ inline BOOL DrawBackgroundImage32(HDC hDC, HDC hdcBitmap,
     }
     ECK_UNREACHABLE;
 
-    case BkImgMode::Center:// 居中
+    case ImageMode::Center:// 居中
     {
         if (bFullRgnImage)
         {
@@ -323,10 +323,10 @@ inline BOOL DrawBackgroundImage32(HDC hDC, HDC hdcBitmap,
     }
     ECK_UNREACHABLE;
 
-    case BkImgMode::Stretch:// 缩放
+    case ImageMode::Stretch:// 缩放
         return AlphaBlend(hDC, rc.left, rc.top, cx, cy, hdcBitmap, 0, 0, cxImage, cyImage, bf);
 
-    case BkImgMode::StretchKeepAspectRatio:// 缩放保持纵横比
+    case ImageMode::StretchKeepAspectRatio:// 缩放保持纵横比
     {
         RECT rc1{ 0,0,cxImage,cyImage };
         AdjustRectToFitAnother(rc1, rc);
@@ -352,7 +352,7 @@ inline BOOL DrawBackgroundImage32(HDC hDC, HDC hdcBitmap,
 /// <returns>BitBlt的返回值</returns>
 inline BOOL DrawBackgroundImage(HDC hDC, HDC hdcBitmap,
     const RECT& rc, int cxImage, int cyImage,
-    BkImgMode iMode, BOOL bFullRgnImage) noexcept
+    ImageMode iMode, BOOL bFullRgnImage) noexcept
 {
     const int
         cx = rc.right - rc.left,
@@ -368,7 +368,7 @@ inline BOOL DrawBackgroundImage(HDC hDC, HDC hdcBitmap,
 
     switch (iMode)
     {
-    case BkImgMode::TopLeft:// 居左上
+    case ImageMode::TopLeft:// 居左上
     {
         if (bFullRgnImage)
         {
@@ -382,7 +382,7 @@ inline BOOL DrawBackgroundImage(HDC hDC, HDC hdcBitmap,
     }
     ECK_UNREACHABLE;
 
-    case BkImgMode::Tile:// 平铺
+    case ImageMode::Tile:// 平铺
     {
         EckCounter(CeilDivide(cx, cxImage), i)
         {
@@ -395,7 +395,7 @@ inline BOOL DrawBackgroundImage(HDC hDC, HDC hdcBitmap,
     }
     ECK_UNREACHABLE;
 
-    case BkImgMode::Center:// 居中
+    case ImageMode::Center:// 居中
     {
         if (bFullRgnImage)
         {
@@ -410,10 +410,10 @@ inline BOOL DrawBackgroundImage(HDC hDC, HDC hdcBitmap,
     }
     ECK_UNREACHABLE;
 
-    case BkImgMode::Stretch:// 缩放
+    case ImageMode::Stretch:// 缩放
         return BitBlt(hDC, rc.left, rc.top, cx, cy, hdcBitmap, 0, 0, SRCCOPY);
 
-    case BkImgMode::StretchKeepAspectRatio:// 缩放保持纵横比
+    case ImageMode::StretchKeepAspectRatio:// 缩放保持纵横比
     {
         RECT rc1{ 0,0,cxImage,cyImage };
         AdjustRectToFitAnother(rc1, rc);
@@ -440,7 +440,7 @@ inline BOOL DrawBackgroundImage(HDC hDC, HDC hdcBitmap,
 /// <returns>BitBlt的返回值</returns>
 inline GpStatus DrawBackgroundImage(GpGraphics* pGraphics, GpImage* pImage,
     const RECT& rc, int cxImage, int cyImage,
-    BkImgMode iMode, BOOL bFullRgnImage) noexcept
+    ImageMode iMode, BOOL bFullRgnImage) noexcept
 {
     const int
         cx = rc.right - rc.left,
@@ -453,7 +453,7 @@ inline GpStatus DrawBackgroundImage(GpGraphics* pGraphics, GpImage* pImage,
 
     switch (iMode)
     {
-    case BkImgMode::TopLeft:// 居左上
+    case ImageMode::TopLeft:// 居左上
     {
         if (bFullRgnImage)
         {
@@ -467,7 +467,7 @@ inline GpStatus DrawBackgroundImage(GpGraphics* pGraphics, GpImage* pImage,
     }
     ECK_UNREACHABLE;
 
-    case BkImgMode::Tile:// 平铺
+    case ImageMode::Tile:// 平铺
     {
         GpStatus gps;
         EckCounter(CeilDivide(cx, cxImage), i)
@@ -481,7 +481,7 @@ inline GpStatus DrawBackgroundImage(GpGraphics* pGraphics, GpImage* pImage,
     }
     ECK_UNREACHABLE;
 
-    case BkImgMode::Center:// 居中
+    case ImageMode::Center:// 居中
     {
         if (bFullRgnImage)
         {
@@ -496,10 +496,10 @@ inline GpStatus DrawBackgroundImage(GpGraphics* pGraphics, GpImage* pImage,
     }
     ECK_UNREACHABLE;
 
-    case BkImgMode::Stretch:// 缩放
+    case ImageMode::Stretch:// 缩放
         return GdipDrawImageRectI(pGraphics, pImage, rc.left, rc.top, cx, cy);
 
-    case BkImgMode::StretchKeepAspectRatio:// 缩放保持纵横比
+    case ImageMode::StretchKeepAspectRatio:// 缩放保持纵横比
     {
         RECT rc1{ 0,0,cxImage,cyImage };
         AdjustRectToFitAnother(rc1, rc);
@@ -515,7 +515,7 @@ inline GpStatus DrawBackgroundImage(GpGraphics* pGraphics, GpImage* pImage,
 #if !ECK_OPT_NO_D2D
 inline void DrawBackgroundImage(ID2D1RenderTarget* pRT, ID2D1Bitmap* pBmp,
     const D2D1_RECT_F& rc, float cxImage, float cyImage,
-    BkImgMode iMode, BOOL bFullRgnImage,
+    ImageMode iMode, BOOL bFullRgnImage,
     D2D1_BITMAP_INTERPOLATION_MODE eInterp = D2D1_BITMAP_INTERPOLATION_MODE_LINEAR) noexcept
 {
     const float
@@ -530,7 +530,7 @@ inline void DrawBackgroundImage(ID2D1RenderTarget* pRT, ID2D1Bitmap* pBmp,
 
     switch (iMode)
     {
-    case BkImgMode::TopLeft:// 居左上
+    case ImageMode::TopLeft:// 居左上
     {
         if (bFullRgnImage)
         {
@@ -543,7 +543,7 @@ inline void DrawBackgroundImage(ID2D1RenderTarget* pRT, ID2D1Bitmap* pBmp,
     }
     return;
 
-    case BkImgMode::Tile:// 平铺
+    case ImageMode::Tile:// 平铺
     {
         EckCounter((int)ceilf(cx / cxImage), i)
         {
@@ -555,7 +555,7 @@ inline void DrawBackgroundImage(ID2D1RenderTarget* pRT, ID2D1Bitmap* pBmp,
     }
     return;
 
-    case BkImgMode::Center:// 居中
+    case ImageMode::Center:// 居中
     {
         if (bFullRgnImage)
         {
@@ -571,11 +571,11 @@ inline void DrawBackgroundImage(ID2D1RenderTarget* pRT, ID2D1Bitmap* pBmp,
     }
     return;
 
-    case BkImgMode::Stretch:// 缩放
+    case ImageMode::Stretch:// 缩放
         pRT->DrawBitmap(pBmp, rc, 1.f, eInterp);
         return;
 
-    case BkImgMode::StretchKeepAspectRatio:// 缩放保持纵横比
+    case ImageMode::StretchKeepAspectRatio:// 缩放保持纵横比
     {
         D2D1_RECT_F rc1{ 0,0,cxImage,cyImage };
         AdjustRectToFitAnother(rc1, rc);
@@ -588,7 +588,7 @@ inline void DrawBackgroundImage(ID2D1RenderTarget* pRT, ID2D1Bitmap* pBmp,
 
 inline void DrawBackgroundImage(ID2D1DeviceContext* pRT, ID2D1Bitmap* pBmp,
     const D2D1_RECT_F& rc, float cxImage, float cyImage,
-    BkImgMode iMode, BOOL bFullRgnImage,
+    ImageMode iMode, BOOL bFullRgnImage,
     D2D1_INTERPOLATION_MODE eInterp = D2D1_INTERPOLATION_MODE_LINEAR) noexcept
 {
     const float
@@ -603,7 +603,7 @@ inline void DrawBackgroundImage(ID2D1DeviceContext* pRT, ID2D1Bitmap* pBmp,
 
     switch (iMode)
     {
-    case BkImgMode::TopLeft:// 居左上
+    case ImageMode::TopLeft:// 居左上
     {
         if (bFullRgnImage)
         {
@@ -616,7 +616,7 @@ inline void DrawBackgroundImage(ID2D1DeviceContext* pRT, ID2D1Bitmap* pBmp,
     }
     return;
 
-    case BkImgMode::Tile:// 平铺
+    case ImageMode::Tile:// 平铺
     {
         EckCounter((int)ceilf(cx / cxImage), i)
         {
@@ -628,7 +628,7 @@ inline void DrawBackgroundImage(ID2D1DeviceContext* pRT, ID2D1Bitmap* pBmp,
     }
     return;
 
-    case BkImgMode::Center:// 居中
+    case ImageMode::Center:// 居中
     {
         if (bFullRgnImage)
         {
@@ -644,11 +644,11 @@ inline void DrawBackgroundImage(ID2D1DeviceContext* pRT, ID2D1Bitmap* pBmp,
     }
     return;
 
-    case BkImgMode::Stretch:// 缩放
+    case ImageMode::Stretch:// 缩放
         pRT->DrawBitmap(pBmp, rc, 1.f, eInterp);
         return;
 
-    case BkImgMode::StretchKeepAspectRatio:// 缩放保持纵横比
+    case ImageMode::StretchKeepAspectRatio:// 缩放保持纵横比
     {
         D2D1_RECT_F rc1{ 0,0,cxImage,cyImage };
         AdjustRectToFitAnother(rc1, rc);

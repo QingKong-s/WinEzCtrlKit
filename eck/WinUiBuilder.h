@@ -184,7 +184,7 @@ enum class Result
     InvalidLayout,      // 不支持的布局类型
     Win32,              // Win32错误，已设置LastError
 
-    NoCWnd,             // 未指定CWnd
+    NoCWindow,          // 未指定CWindow
     NoCLayoutBase,      // 未指定CLayoutBase
 
     DefaultAfterLocal,  // Default出现在Local之后
@@ -479,7 +479,7 @@ namespace Detail
         }
     EndLoop:
         if (!pWnd)
-            return Result::NoCWnd;
+            return Result::NoCWindow;
         const auto hParent = Parent.pWndParent ? Parent.pWndParent->GetHWND() : nullptr;
         pWnd->Create(pszCaption, dwStyle, dwExStyle,
             rc.x, rc.y, rc.cx, rc.cy, hParent, iId);

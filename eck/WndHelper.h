@@ -201,7 +201,7 @@ EckInline HRESULT EnableWindowMica(HWND hWnd, UINT uType = 2) noexcept
 EckInline HRESULT EnableWindowMica(HWND hWnd,
     DWM_SYSTEMBACKDROP_TYPE uType = DWMSBT_MAINWINDOW) noexcept
 {
-    if (g_NtVer.uBuild >= 22621)
+    if (g_NtVersion.uBuild >= 22621)
         return DwmSetWindowAttribute(hWnd, DWMWA_SYSTEMBACKDROP_TYPE, &uType, sizeof(uType));
     else
         return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
@@ -274,7 +274,7 @@ EckInline void EndPaint(HWND hWnd, WPARAM wParam, const PAINTSTRUCT& ps) noexcep
 #pragma region Color
 EckInline HRESULT EnableWindowNcDarkMode(HWND hWnd, BOOL bAllow) noexcept
 {
-    if (g_NtVer.uBuild > WINVER_11_21H2)
+    if (g_NtVersion.uBuild > WINVER_11_21H2)
         return DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &bAllow, sizeof(bAllow));
     else
     {
@@ -404,7 +404,7 @@ inline BOOL MsgOnSettingChangeFixDpiAwareV2(HWND hWnd, WPARAM wParam, LPARAM lPa
     BOOL bRestoreSize = FALSE) noexcept
 {
     if (wParam == SPI_SETLOGICALDPIOVERRIDE /*since NT 6.2*/ &&
-        g_NtVer.uBuild > WINVER_11_23H2 /*经粗略测试Bug在此版本之后引入*/ &&
+        g_NtVersion.uBuild > WINVER_11_23H2 /*经粗略测试Bug在此版本之后引入*/ &&
         (GetWindowLongPtrW(hWnd, GWL_EXSTYLE) & WS_EX_TOOLWINDOW))
     {
         RECT rc;

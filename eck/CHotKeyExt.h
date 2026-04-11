@@ -21,7 +21,7 @@ public:
             PAINTSTRUCT ps;
             BeginPaint(HWnd, wParam, ps);
 
-            const auto svPlus = GetResourceStringForCurrentLocale(0x0401, g_hModComCtl32);
+            const auto svPlus = GetResourceStringForCurrentLocale(0x0401, g_hModCommonControl);
             UINT uFunc;
             const auto vk = GetHotKey(uFunc);
 
@@ -57,7 +57,7 @@ public:
             }
             else
             {
-                const auto svNone = GetResourceStringForCurrentLocale(0x0402, g_hModComCtl32);
+                const auto svNone = GetResourceStringForCurrentLocale(0x0402, g_hModCommonControl);
                 wcscpy(szBuf, svNone.data());
                 pos = (int)svNone.size();
             }

@@ -59,20 +59,20 @@ namespace Detail
 {
     constexpr inline struct
     {
-        RegRoot eKey;
+        RegistryRoot eKey;
         std::wstring_view svSubKey;
     }
     ShmSource[]
     {
-        { RegRoot::ClassesRoot,LR"(*\)"sv },
-        { RegRoot::ClassesRoot,LR"(Folder\)"sv },
-        { RegRoot::ClassesRoot,LR"(Directory\)"sv },
-        { RegRoot::ClassesRoot,LR"(Drive\)"sv },
-        { RegRoot::ClassesRoot,LR"(AllFileSystemObjects\)"sv },
-        { RegRoot::ClassesRoot,LR"(Directory\Background\)"sv },
-        { RegRoot::ClassesRoot,LR"(DesktopBackground\)"sv },
-        { RegRoot::ClassesRoot,LR"(CLSID\{20D04FE0-3AEA-1069-A2D8-08002B30309D}\)"sv },
-        { RegRoot::ClassesRoot,LR"(CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\)"sv },
+        { RegistryRoot::ClassesRoot,LR"(*\)"sv },
+        { RegistryRoot::ClassesRoot,LR"(Folder\)"sv },
+        { RegistryRoot::ClassesRoot,LR"(Directory\)"sv },
+        { RegistryRoot::ClassesRoot,LR"(Drive\)"sv },
+        { RegistryRoot::ClassesRoot,LR"(AllFileSystemObjects\)"sv },
+        { RegistryRoot::ClassesRoot,LR"(Directory\Background\)"sv },
+        { RegistryRoot::ClassesRoot,LR"(DesktopBackground\)"sv },
+        { RegistryRoot::ClassesRoot,LR"(CLSID\{20D04FE0-3AEA-1069-A2D8-08002B30309D}\)"sv },
+        { RegistryRoot::ClassesRoot,LR"(CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\)"sv },
     };
     constexpr inline std::wstring_view ShmCtxMenuHnd{ L"shellex\\ContextMenuHandlers"sv };
 
@@ -111,7 +111,7 @@ namespace Detail
 struct ShmItem
 {
     ShmFlags uFlags{};
-    RegRoot eRegRoot{};			// 注册表根
+    RegistryRoot eRegRoot{};			// 注册表根
     CStringW rsRegPath{};		// 注册表全路径
     CStringW rsDisplayName{};	// 显示名称
     CStringW rsClsidOrCmd{};	// 若有ShmFlags::Com，则为CLSID，否则为命令行
@@ -143,7 +143,7 @@ private:
         m_idxEnum = 0;
         GetCurrentRegistryPath(m_rsTmp);
         m_rsTmp.PushBack(EckArgString(L"shell"));
-        const auto ls = m_RegKey.Open(RegRootToKey(Detail::ShmSource[m_idxSource].eKey),
+        const auto ls = m_RegKey.Open(RegistryRootToKey(Detail::ShmSource[m_idxSource].eKey),
             m_rsTmp.Data(), KEY_READ);
         if (ls != ERROR_SUCCESS)
             return ls;
@@ -157,7 +157,7 @@ private:
         m_idxEnum = 0;
         GetCurrentRegistryPath(m_rsTmp);
         m_rsTmp.PushBack(Detail::ShmCtxMenuHnd);
-        const auto ls = m_RegKey.Open(RegRootToKey(Detail::ShmSource[m_idxSource].eKey),
+        const auto ls = m_RegKey.Open(RegistryRootToKey(Detail::ShmSource[m_idxSource].eKey),
             m_rsTmp.Data(), KEY_READ);
         if (ls != ERROR_SUCCESS)
             return ls;

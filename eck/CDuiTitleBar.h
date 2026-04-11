@@ -28,7 +28,7 @@ protected:
         return UdwState::Normal;
     }
 
-    LRESULT OnWindowMessage(CWindow* pWnd, UINT uMsg, WPARAM, LPARAM, SlotCtx&)
+    LRESULT OnWindowMessage(CWindow* pWnd, UINT uMsg, WPARAM, LPARAM, Slot&)
     {
         if (uMsg == WM_WINDOWPOSCHANGED)
             m_bMaximized = IsZoomed(pWnd->HWnd);
@@ -277,7 +277,7 @@ public:
 
     void UpdateMetrics()
     {
-        if (g_NtVer.uBuild >= WINVER_11_21H2)
+        if (g_NtVersion.uBuild >= WINVER_11_21H2)
         {
             const auto iWndDpi = GetWindow()->GetDpiValue();
             //----计算高度
@@ -300,7 +300,7 @@ public:
             return;
         }
 
-        if (g_NtVer.uMajor == 6 && (g_NtVer.uMinor == 2 || g_NtVer.uMinor == 3))
+        if (g_NtVersion.uMajor == 6 && (g_NtVersion.uMinor == 2 || g_NtVersion.uMinor == 3))
         {
             m_cxClose = 46;
             m_cxMax = m_cxMin = m_cxClose * 80 / 150;

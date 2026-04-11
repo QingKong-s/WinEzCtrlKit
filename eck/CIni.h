@@ -412,7 +412,7 @@ public:
     EckInline BOOL WriteInt(PCWSTR pszSection, PCWSTR pszKey,
         int Value, BOOL bMustExist = FALSE) noexcept
     {
-        WCHAR szValue[CchI32ToStrBufNoRadix2];
+        WCHAR szValue[Int32StringBufferSize];
         _itow(Value, szValue, 10);
         return WriteValue(pszSection, pszKey, szValue, bMustExist, FALSE);
     }
