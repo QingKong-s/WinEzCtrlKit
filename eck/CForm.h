@@ -43,7 +43,7 @@ public:
         {
         case WM_KEYDOWN:
         {
-            if (m_bEscClose && Msg.wParam == VK_ESCAPE && IsWindowEnabled(GetHWND()))
+            if (m_bEscClose && Msg.wParam == VK_ESCAPE && IsWindowEnabled(GetHWnd()))
             {
                 PostMessageW(WM_CLOSE, 0, 0);
                 return TRUE;
@@ -52,8 +52,8 @@ public:
         break;
         case WM_LBUTTONDOWN:
         {
-            if (m_bMoveAnywhere && IsWindowEnabled(GetHWND()))
-                if ((Msg.hwnd == GetHWND() ||
+            if (m_bMoveAnywhere && IsWindowEnabled(GetHWnd()))
+                if ((Msg.hwnd == GetHWnd() ||
                     (::SendMessageW(Msg.hwnd, WM_GETDLGCODE, Msg.wParam, (LPARAM)&Msg) & DLGC_STATIC)))
                 {
                     PostMessageW(WM_NCLBUTTONDOWN, HTCAPTION, 0);
@@ -150,7 +150,7 @@ public:
     EckInline void SetMoveable(BOOL bMoveable) noexcept
     {
         m_bMoveable = bMoveable;
-        CMenu SysMenu(GetSystemMenu(GetHWND(), FALSE));
+        CMenu SysMenu(GetSystemMenu(GetHWnd(), FALSE));
         if (bMoveable)
             SysMenu.EnableItem(SC_MOVE, MF_GRAYED, FALSE);
         else

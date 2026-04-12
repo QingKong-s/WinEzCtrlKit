@@ -437,7 +437,7 @@ HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
     auto& Sig = pWnd->GetEventChain();
     if (Sig.FindSlot(MHI_UXF_MENU))
         return S_FALSE;
-    const auto hTheme = OpenThemeData(pWnd->GetHWND(), L"Menu");
+    const auto hTheme = OpenThemeData(pWnd->GetHWnd(), L"Menu");
     auto Fn = [hTheme = hTheme](CWindow* pWnd, UINT uMsg,
         WPARAM wParam, LPARAM lParam, Slot& Ctx) mutable -> LRESULT
         {
@@ -2206,7 +2206,7 @@ HHOOK BeginCbtHook(CWindow* pCurrWnd, FWindowCreating pfnCreatingProc) noexcept
                 // 执行CWnd初始化
                 EckAssert(!pCtx->pCurrWnd->m_hWnd);
                 pCtx->pCurrWnd->m_pfnRealProc =
-                    SetWindowProcedure((HWND)wParam, CWindow::EckWndProc);
+                    SetWindowProcedure((HWND)wParam, CWindow::EckWindowProcedure);
                 pCtx->pCurrWnd->m_hWnd = (HWND)wParam;
                 // 窗口映射
                 pCtx->WmAdd(

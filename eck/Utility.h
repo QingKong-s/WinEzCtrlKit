@@ -203,9 +203,14 @@ EckInlineNdCe RECT MakeRect(int x, int y, int cx, int cy) noexcept
 }
 
 #if !ECK_OPT_NO_GDIPLUS
-EckInline GpRectF MakeGpRectF(const RECT& rc) noexcept
+EckInlineNd GpRectF MakeGpRectF(const RECT& rc) noexcept
 {
-    return { (REAL)rc.left,(REAL)rc.top,(REAL)(rc.right - rc.left),(REAL)(rc.bottom - rc.top) };
+    return {
+        (float)rc.left,
+        (float)rc.top,
+        float(rc.right - rc.left),
+        float(rc.bottom - rc.top)
+    };
 }
 #endif
 

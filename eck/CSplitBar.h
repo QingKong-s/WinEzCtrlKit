@@ -54,18 +54,18 @@ private:
 
     EckInline void UpdateMarkWindowAlpha() noexcept
     {
-        SetLayeredWindowAttributes(m_BkMark.GetHWND(), 0, m_byMarkAlpha, LWA_ALPHA);
+        SetLayeredWindowAttributes(m_BkMark.GetHWnd(), 0, m_byMarkAlpha, LWA_ALPHA);
     }
 
     EckInline void MoveMark(int x, int y) noexcept
     {
-        SetWindowPos(m_BkMark.GetHWND(), nullptr, x, y, 0, 0,
+        SetWindowPos(m_BkMark.GetHWnd(), nullptr, x, y, 0, 0,
             SWP_NOZORDER | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
     }
 
     EckInline void HideMark() noexcept
     {
-        ShowWindow(m_BkMark.GetHWND(), SW_HIDE);
+        ShowWindow(m_BkMark.GetHWnd(), SW_HIDE);
     }
 
     int CursorPointToSqlitPosition(POINT ptClient) noexcept
@@ -164,7 +164,7 @@ public:
         case WM_SIZE:
         {
             ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
-            SetWindowPos(m_BkMark.GetHWND(), nullptr, 0, 0, m_cxClient, m_cyClient,
+            SetWindowPos(m_BkMark.GetHWnd(), nullptr, 0, 0, m_cxClient, m_cyClient,
                 SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
         }
         return 0;

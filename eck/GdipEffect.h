@@ -6,14 +6,14 @@ struct CGpColorMatrix
 {
     struct Proxy
     {
-        REAL* p;
+        float* p;
 
         EckInlineNdCe float& operator[](int i) { return p[i]; }
     };
 
     struct ConstProxy
     {
-        const REAL* p;
+        const float* p;
 
         EckInlineNdCe const float& operator[](int i) const { return p[i]; }
     };
@@ -325,18 +325,18 @@ class CGpFxColorLut : public CGpFx
 {
 public:
     CGpFxColorLut() = default;
-    CGpFxColorLut(const GpColorLUTParams& Params) noexcept
+    CGpFxColorLut(const GpColorLutParams& Params) noexcept
     {
         GdipCreateEffect(Gdiplus::ColorLUTEffectGuid, &m_pEffect);
         GdipSetEffectParameters(m_pEffect, &Params, sizeof(Params));
     }
 
-    EckInline GpStatus SetParameters(const GpColorLUTParams& Params) noexcept
+    EckInline GpStatus SetParameters(const GpColorLutParams& Params) noexcept
     {
         return GdipSetEffectParameters(m_pEffect, &Params, sizeof(Params));
     }
 
-    EckInline GpStatus GetParameters(GpColorLUTParams& Params) const noexcept
+    EckInline GpStatus GetParameters(GpColorLutParams& Params) const noexcept
     {
         UINT Dummy{ sizeof(Params) };
         return GdipGetEffectParameters(m_pEffect, &Dummy, &Params);
@@ -373,7 +373,7 @@ class CGpFxHSL : public CGpFx
 {
 public:
     CGpFxHSL() = default;
-    CGpFxHSL(const GpHSLParams& Params) noexcept
+    CGpFxHSL(const GpHslParams& Params) noexcept
     {
         GdipCreateEffect(Gdiplus::HueSaturationLightnessEffectGuid, &m_pEffect);
         GdipSetEffectParameters(m_pEffect, &Params, sizeof(Params));
@@ -386,12 +386,12 @@ public:
         : CGpFxHSL{ { nHue, nSaturation, nLightness } }
     {}
 
-    EckInline GpStatus SetParameters(const GpHSLParams& Params) noexcept
+    EckInline GpStatus SetParameters(const GpHslParams& Params) noexcept
     {
         return GdipSetEffectParameters(m_pEffect, &Params, sizeof(Params));
     }
 
-    EckInline GpStatus GetParameters(GpHSLParams& Params) const noexcept
+    EckInline GpStatus GetParameters(GpHslParams& Params) const noexcept
     {
         UINT Dummy{ sizeof(Params) };
         return GdipGetEffectParameters(m_pEffect, &Dummy, &Params);

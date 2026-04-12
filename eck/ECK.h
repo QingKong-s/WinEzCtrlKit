@@ -507,7 +507,6 @@ inline namespace GpNameSpace
     ECK_USING_GDIP_TYPE(GpCachedBitmap);
 
     ECK_USING_GDIP_TYPE(ARGB);
-    ECK_USING_GDIP_TYPE(REAL);
     ECK_USING_GDIP_TYPE(GpStatus);
     ECK_USING_GDIP_TYPE(GpRectF);
     ECK_USING_GDIP_TYPE(GpRect);
@@ -528,9 +527,9 @@ inline namespace GpNameSpace
     using GpTintParams = Gdiplus::TintParams;
     using GpRedEyeCorrectionParams = Gdiplus::RedEyeCorrectionParams;
     using GpColorMatrix = Gdiplus::ColorMatrix;
-    using GpColorLUTParams = Gdiplus::ColorLUTParams;
+    using GpColorLutParams = Gdiplus::ColorLUTParams;
     using GpBrightnessContrastParams = Gdiplus::BrightnessContrastParams;
-    using GpHSLParams = Gdiplus::HueSaturationLightnessParams;
+    using GpHslParams = Gdiplus::HueSaturationLightnessParams;
     using GpColorBalanceParams = Gdiplus::ColorBalanceParams;
     using GpLevelsParams = Gdiplus::LevelsParams;
     using GpColorCurveParams = Gdiplus::ColorCurveParams;

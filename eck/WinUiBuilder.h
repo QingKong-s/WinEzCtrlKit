@@ -480,12 +480,12 @@ namespace Detail
     EndLoop:
         if (!pWnd)
             return Result::NoCWindow;
-        const auto hParent = Parent.pWndParent ? Parent.pWndParent->GetHWND() : nullptr;
+        const auto hParent = Parent.pWndParent ? Parent.pWndParent->GetHWnd() : nullptr;
         pWnd->Create(pszCaption, dwStyle, dwExStyle,
             rc.x, rc.y, rc.cx, rc.cy, hParent, iId);
         if (hFont)
             pWnd->SetFont(hFont);
-        if (!pWnd->GetHWND())
+        if (!pWnd->GetHWnd())
             return Result::Win32;
 
         if (it != il.end())

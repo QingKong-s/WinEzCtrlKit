@@ -243,9 +243,9 @@ protected:
     {
         static_assert(sizeof(T) >= sizeof(NMHDR));
         auto p = (NMHDR*)&nm;
-        p->hwndFrom = GetHWND();
+        p->hwndFrom = GetHWnd();
         p->code = uCode;
-        p->idFrom = GetDlgCtrlID(GetHWND());
+        p->idFrom = GetDlgCtrlID(GetHWnd());
     }
     EckInline LRESULT SendNotify(auto& nm, HWND hParent) const noexcept
     {
@@ -253,7 +253,7 @@ protected:
     }
     EckInline LRESULT SendNotify(auto& nm) const noexcept
     {
-        return SendNotify(nm, GetParent(GetHWND()));
+        return SendNotify(nm, GetParent(GetHWnd()));
     }
     EckInline LRESULT FillNmhdrAndSendNotify(auto& nm, HWND hParent, UINT uCode) const noexcept
     {
@@ -280,27 +280,9 @@ protected:
         return OnMessage(uMsg, wParam, lParam);
     }
 public:
-    ECKPROP_R(GetHWND)					HWND		HWnd;			// 窗口句柄
-    ECKPROP(GetFont, SetFont)			HFONT		HFont;			// 字体句柄
-    ECKPROP(GetStyle, SetStyle)			DWORD		Style;			// 窗口样式
-    ECKPROP(GetExStyle, SetExStyle)		DWORD		ExStyle;		// 扩展窗口样式
-    ECKPROP_R(GetText)					CStringW	Text;			// 标题
-    ECKPROP(GetFrameType, SetFrameType) enum class FrameType FrameType;		// 边框类型
-    ECKPROP(GetScrollBar, SetScrollBar) ScrollType	ScrollBarType;	// 滚动条类型
-    ECKPROP(IsVisible, SetVisibility)	BOOL		Visible;		// 可视
-    ECKPROP(IsEnabled, Enable)			BOOL		Enabled;		// 可用（未禁止）
-    ECKPROP_W(SetRedraw)				BOOL		Redrawable;		// 可重画
-    ECKPROP(GetLeft, SetLeft)			int			Left;			// 左边，相对父窗口
-    ECKPROP(GetTop, SetTop)				int			Top;			// 顶边，相对父窗口
-    ECKPROP(GetWidth, SetWidth)			int			Width;			// 宽度
-    ECKPROP(GetHeight, SetHeight)		int			Height;			// 高度
-    ECKPROP(GetPosition, SetPosition)	POINT		Position;		// 位置
-    ECKPROP(GetSize, SetSize)			SIZE		Size;			// 尺寸
-    ECKPROP_R(GetClientWidth)			int			ClientWidth;	// 客户区宽度
-    ECKPROP_R(GetClientHeight)			int			ClientHeight;	// 客户区高度
+    ECKPROP_R(GetHWnd) HWND HWnd;
 
-
-    static LRESULT CALLBACK EckWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
+    static LRESULT CALLBACK EckWindowProcedure(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
         const auto pCtx = PtcCurrent();
         const auto e = pCtx->WmAtInternal(hWnd);
@@ -455,7 +437,7 @@ public:
     EckInline virtual void AttachNew(HWND hWnd) noexcept
     {
         CWindow::Attach(hWnd);
-        m_pfnRealProc = eck::SetWindowProcedure(hWnd, EckWndProc);
+        m_pfnRealProc = eck::SetWindowProcedure(hWnd, EckWindowProcedure);
     }
 
     // 拆离句柄，并重置状态
@@ -622,7 +604,7 @@ public:
         return { TLytCoord(size.cx), TLytCoord(size.cy) };
     }
     void LoShow(BOOL bShow) noexcept override { Show(bShow ? SW_SHOW : SW_HIDE); }
-    HWND LoGetHWND() noexcept override { return GetHWND(); }
+    HWND LoGetHWND() noexcept override { return GetHWnd(); }
 
     // 跳到当前类序列化数据的尾部
     EckInlineNdCe static PCVOID SkipBaseData(PCVOID p) noexcept
@@ -640,7 +622,7 @@ public:
         SerializeData(rb, pSerOpt);
         const HWND hParent = GetParent(m_hWnd);
         const int iID = GetDlgCtrlID(m_hWnd);
-        const HFONT hFont = HFont;
+        const HFONT hFont = GetFont();
 
         RCWH NewPos;
         if (!rcPos.has_value())
@@ -678,11 +660,11 @@ public:
             ScbSetInfomation(SB_HORZ, pData->ScrollInfoHorz());
         if (pData->uFlags & SERDF_SBV)
             ScbSetInfomation(SB_VERT, pData->ScrollInfoVert());
-        HFont = hFont;
+        SetFont(hFont);
         return m_hWnd;
     }
 
-    EckInlineNdCe HWND GetHWND() const noexcept { return m_hWnd; }
+    EckInlineNdCe HWND GetHWnd() const noexcept { return m_hWnd; }
 
     EckInline void FrameChanged() const noexcept
     {
@@ -704,7 +686,7 @@ public:
         return InvalidateRect(m_hWnd, &rc, bErase);
     }
 
-    void SetFrameType(enum class FrameType eType) const noexcept
+    void SetFrameType(FrameType eType) const noexcept
     {
         DWORD dwStyle = GetStyle() & ~WS_BORDER;
         DWORD dwExStyle = GetExStyle()
@@ -722,7 +704,7 @@ public:
         SetStyle(dwStyle);
         SetExStyle(dwExStyle);
     }
-    [[nodiscard]] enum class FrameType GetFrameType() const noexcept
+    [[nodiscard]] FrameType GetFrameType() const noexcept
     {
         const DWORD dwStyle = GetStyle();
         const DWORD dwExStyle = GetExStyle();
@@ -909,7 +891,7 @@ public:
     EckInlineNd CStringW GetWindowClass() const noexcept
     {
         CStringW rs(256);
-        rs.ReSize(GetClassNameW(GetHWND(), rs.Data(), 256 + 1));
+        rs.ReSize(GetClassNameW(GetHWnd(), rs.Data(), 256 + 1));
         return rs;
     }
 
@@ -1104,7 +1086,7 @@ public:
         if (!IsWindow(m_hWnd))
             EckAssert(!m_hWnd);
 #endif // _DEBUG
-        return !!GetHWND();
+        return !!GetHWnd();
     }
 
     EckInline WNDPROC SetWindowProcedure(WNDPROC pfnWndProc) noexcept
