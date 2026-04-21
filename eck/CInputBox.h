@@ -220,7 +220,7 @@ public:
                 (IsBitSet(m_pOpt->uFlags,IPBF_MULTILINE) ?
                     DpiScale(100, m_iDpi) : m_cySingleLineText)
             };
-            DaAdjustWindowRectEx(&rc, Style, FALSE, ExStyle, m_iDpi);
+            DaAdjustWindowRectEx(&rc, GetStyle(), FALSE, GetExStyle(), m_iDpi);
 
             POINT pt;
             if (IsBitSet(m_pOpt->uFlags, IPBF_CENTERPARENT))

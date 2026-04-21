@@ -312,7 +312,7 @@ public:
                 if (pdis->CtlID == 0x470)
                 {
                     LOGFONTW lf;
-                    GetObjectW(HFont, sizeof(lf), &lf);
+                    GetObjectW(GetFont(), sizeof(lf), &lf);
                     const auto nDefHeight = lf.lfHeight;
                     if (SUCCEEDED(MatchLogFontFromFamilyName(pszBuf, lf)) &&
                         lf.lfCharSet != SYMBOL_CHARSET)
@@ -329,7 +329,7 @@ public:
                     }
                 }
                 if (!hFont)
-                    hFont = HFont;
+                    hFont = GetFont();
                 const auto hOldFont = (HFONT)SelectObject(pdis->hDC, hFont);
                 if (pdis->itemState & ODS_SELECTED)
                 {

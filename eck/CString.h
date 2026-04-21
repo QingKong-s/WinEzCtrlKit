@@ -1103,7 +1103,7 @@ public:
     {
         using TInt = UnderlyingType_T<T>;
         const auto cchBuf = TcvIntBufferSize<TInt>(iRadix, cchFillTo);
-        const auto p = PushBackNoExtra(cchBuf);
+        const auto p = PushBackNoExtra((int)cchBuf);
         PWCH pEnd;
         const auto r = TcvFromInt(p, cchBuf, (TInt)x,
             iRadix, bUpperCase, &pEnd, cchFillTo, chFill);

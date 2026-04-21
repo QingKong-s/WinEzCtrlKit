@@ -361,17 +361,6 @@ ECK_NAMESPACE_END
 #define ECK_SUPPRESS_MISSING_ZERO_TERMINATION   __pragma(warning(suppress:6054))
 #pragma endregion Generator
 
-#ifdef _DEBUG
-#define EckCheckMemory(p) \
-            if (!(p)) {   \
-                OutputDebugStringW(L"内存分配失败: " ECK_FILEW L"(" ECK_LINEW L")\r\n"); \
-                abort();  \
-            }
-#else
-#define EckCheckMemory(p) \
-            if (!(p)) abort();
-#endif
-
 ECK_NAMESPACE_BEGIN
 inline namespace Literals
 {

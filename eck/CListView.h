@@ -1125,14 +1125,14 @@ public:
                 return 0;
             }, MHI_LISTVIEW_ROWHEIGHT);
 
-        Style |= LVS_OWNERDRAWFIXED;
+        SetStyle(GetStyle() | LVS_OWNERDRAWFIXED);
         WINDOWPOS wp
         {
             .hwnd = HWnd,
             .flags = SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW
         };
         SendMessageW(WM_WINDOWPOSCHANGED, 0, (LPARAM)&wp);
-        Style &= ~LVS_OWNERDRAWFIXED;
+        SetStyle(GetStyle() & ~LVS_OWNERDRAWFIXED);
         pParent->GetEventChain().Disconnect(hSlot);
         return TRUE;
     }

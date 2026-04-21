@@ -43,7 +43,7 @@ private:
     BITBOOL m_bAnActive : 1{};
 
     BITBOOL m_bVertical : 1{};
-    BITBOOL m_bGenEventWhenDragging : 1{};
+    BITBOOL m_bThumbTrack : 1{};
     BITBOOL m_bTransparentSpace : 1{};  // 空白部分穿透鼠标
     BITBOOL m_bThinTrack : 1{};         // 轨道正常情况下显示为尺寸的一半，点燃时显示全尺寸
     BITBOOL m_bAutoTrackSize : 1{};     // 根据控件尺寸自动调整轨道尺寸
@@ -143,7 +143,7 @@ private:
         if (bDragging)
         {
             SetDragPosition(fPos);
-            if (m_bGenEventWhenDragging)
+            if (m_bThumbTrack)
                 EvtPositionChanged();
         }
         else
@@ -346,8 +346,8 @@ public:
     EckInlineCe void SetTrackSize(float f) noexcept { m_cxyTrack = f; }
     EckInlineNdCe float GetTrackSize() const noexcept { return m_cxyTrack; }
 
-    EckInlineCe void SetGenEventWhenDragging(BOOL b) noexcept { m_bGenEventWhenDragging = b; }
-    EckInlineNdCe BOOL GetGenEventWhenDragging() const noexcept { return m_bGenEventWhenDragging; }
+    EckInlineCe void SetThumbTrack(BOOL b) noexcept { m_bThumbTrack = b; }
+    EckInlineNdCe BOOL GetThumbTrack() const noexcept { return m_bThumbTrack; }
 
     EckInlineCe void SetTransparentSpace(BOOL b) noexcept { m_bTransparentSpace = b; }
     EckInlineNdCe BOOL GetTransparentSpace() const noexcept { return m_bTransparentSpace; }
@@ -485,14 +485,15 @@ class CUiaTrackBar : public CUnknownAppend<CUiaBase, IRangeValueProvider>
         return CUiaBase::GetPropertyValue(idProp, pRetVal);
     }
 
-    STDMETHODIMP SetValue(double val) override
+    STDMETHODIMP SetValue(double Val) override
     {
         if (!GetElement())
             return UIA_E_ELEMENTNOTAVAILABLE;
         if (GetElement()->GetStyle() & DES_DISABLE)
             return UIA_E_ELEMENTNOTENABLED;
         const auto pEle = DbgDynamicCast<CTrackBar*>(GetElement());
-        pEle->SetTrackPosition((float)val);
+        pEle->SetTrackPosition((float)Val);
+        pEle->Invalidate();
         pEle->EvtPositionChanged();
         return S_OK;
     }

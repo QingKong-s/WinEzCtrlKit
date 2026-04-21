@@ -380,7 +380,7 @@ private:
                 if (!pColMetrics)
                 {
                     pColMetrics = (int*)_malloca(cCol * 2 * sizeof(int));
-                    EckCheckMemory(pColMetrics);
+                    CheckPointer(pColMetrics);
                     GetColumnMetrics(pColMetrics, cCol, pnmlvcd->nmcd.rc.left);
                 }
             }
@@ -803,9 +803,9 @@ private:
 
     void InitializeForNewWindow(HWND hWnd) noexcept
     {
-        if (Style & LVS_EDITLABELS)
+        if (GetStyle() & LVS_EDITLABELS)
         {
-            Style &= ~LVS_EDITLABELS;
+            SetStyle(GetStyle() & ~LVS_EDITLABELS);
             m_bEditLabel = TRUE;
         }
         else
@@ -817,7 +817,7 @@ private:
             m_Header.AttachNew(hHeader);
         m_hTheme = OpenThemeData(hWnd, L"ListView");
         m_iViewType = (int)GetView();
-        UpdateStyleOptions(Style);
+        UpdateStyleOptions(GetStyle());
         UpdateLvExOptions(GetLVExtendStyle());
         m_iDpi = GetDpi(hWnd);
         m_bHasFocus = (GetFocus() == hWnd);
@@ -974,7 +974,7 @@ private:
                 edi.cchText = (int)wcslen(li.pszText);
             }
 
-            const auto hFont = HFont;
+            const auto hFont = GetFont();
             const auto hOld = SelectObject(m_DcAlpha.GetDC(), hFont);
             GetTextExtentPoint32W(m_DcAlpha.GetDC(), edi.pszText, edi.cchText,
                 (SIZE*)&edi.rcIdeal + 1);
@@ -1051,32 +1051,12 @@ private:
             SetFocus(m_pEdit->HWnd);
             if (!m_hmsEdit)
                 m_hmsEdit = m_pEdit->GetEventChain().Connect(this, &CListViewExt::OnMessageEdit);
-            m_pEdit->HFont = HFont;
+            m_pEdit->SetFont(GetFont());
             m_pEdit->SetFrameType(FrameType::Single);
             m_pEdit->FrameChanged();
         }
     }
 public:
-    ECKPROP(LveGetTextColor, LveSetTextColor)               COLORREF TextColor;
-    ECKPROP(LveGetOddLineTextColor, LveSetOddLineTextColor) COLORREF OddLineTextColor;
-    ECKPROP(LveGetEvenLineTextColor, LveSetEvenLineTextColor)               COLORREF EvenLineTextColor;
-    ECKPROP(LveGetOddLineBackgroundColor, LveSetOddLineBackgroundColor)     COLORREF OddLineBkColor;
-    ECKPROP(LveGetEvenLineBackgroundColor, LveSetEvenLineBackgroundColor)   COLORREF EvenLineBkColor;
-    ECKPROP(LveGetGridLineHColor, LveSetGridLineHColor)     COLORREF GridLineHColor;
-    ECKPROP(LveGetGridLineVColor, LveSetGridLineVColor)     COLORREF GridLineVColor;
-    ECKPROP(LveGetHeaderTextColor, LveSetHeaderTextColor)   COLORREF HeaderTextColor;
-    ECKPROP(LveGetCustomDraw, LveSetCustomDraw)             BOOL CustomDraw;
-    ECKPROP(LveGetAutoDarkMode, LveSetAutoDarkMode)         BOOL AutoDarkMode;
-    ECKPROP(LveGetAlphaColorInDark, LveSetAlphaColorInDark) BOOL AlphaColorInDark;
-    ECKPROP(LveGetAlphaValue, LveSetAlphaValue)             BYTE AlphaValue;
-    ECKPROP(LveGetAutoColorPack, LveSetAutoColorPack)       BOOL AutoColorPack;
-    ECKPROP(LveGetAddSplitterForColor, LveSetAddSplitterForColor) BOOL AddSplitterForClr;
-    ECKPROP(LveGetCtrlASelectAll, LveSetCtrlASelectAll)     BOOL CtrlASelectAll;
-    ECKPROP(LveGetImplementOwnerDataNotify, LveSetImplementOwnerDataNotify)	BOOL ImplOwnerDataNotify;
-    ECKPROP(LveGetDoNotWrapInTile, LveSetDoNotWrapInTile)   BOOL DoNotWrapInTile;
-    ECKPROP(LveGetOwnerDataBufferSize, LveSetOwnerDataBufferSize) int OwnerDataBufferSize;
-    ECKPROP_W(LveSetHeaderHeight)                           int HeaderHeight;
-
     ~CListViewExt()
     {
         for (const auto e : m_vRecycleData)

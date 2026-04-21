@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "ECK.h"
+#include "Check.h"
 
 ECK_NAMESPACE_BEGIN
 using TDefaultCowByteBufferAllocator = std::allocator<BYTE>;
@@ -28,7 +28,7 @@ private:
         EckAssert(cbSize <= cbCapacity);
         cbCapacity = std::max(cbCapacity, (size_t)16);
         const auto p = m_Alloc.allocate(sizeof(ControlBlock) + cbCapacity);
-        EckCheckMemory(p);
+        CheckPointer(p);
         return new (p) ControlBlock(cbCapacity, cbSize);
     }
 

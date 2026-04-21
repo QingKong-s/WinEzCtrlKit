@@ -6,6 +6,7 @@
 #include "AutoPtrDef.h"
 #include "ComPtr.h"
 #include "CStreamView.h"
+#include "Check.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_MEDIATAG_NAMESPACE_BEGIN

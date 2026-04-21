@@ -3,6 +3,7 @@
 #include "ComPtr.h"
 #include "AutoPtrDef.h"
 #include "CString.h"
+#include "Check.h"
 
 #include <intrin.h>
 #include <wbemcli.h>
@@ -309,7 +310,7 @@ inline BOOL GetFileVersionInformation(PCWSTR pszFile, FILEVERINFO& fvi) noexcept
     if (!cbBuf)
         return FALSE;
     void* pBuf = malloc(cbBuf);
-    EckCheckMemory(pBuf);
+    CheckPointer(pBuf);
     UniquePtr<DelMA<void>> _(pBuf);
     if (!GetFileVersionInfoW(pszFile, 0, cbBuf, pBuf))
         return FALSE;

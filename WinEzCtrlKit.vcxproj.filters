@@ -743,6 +743,9 @@
     <ClCompile Include="eck\UiElement.h">
       <Filter>ECK Include</Filter>
     </ClCompile>
+    <ClCompile Include="eck\Check.h">
+      <Filter>ECK Include</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Win32Template.rc">

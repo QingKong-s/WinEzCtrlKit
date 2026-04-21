@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "CWindow.h"
 #include "DDX.h"
+#include "Check.h"
 
 ECK_NAMESPACE_BEGIN
 inline constexpr int CDV_EDIT_1 = 0;
@@ -662,7 +663,7 @@ public:
         else
         {
             const auto pszTemp = (PWSTR)_malloca((iEnd + 1) * sizeof(WCHAR));
-            EckCheckMemory(pszTemp);
+            CheckPointer(pszTemp);
             GetText(pszTemp, iEnd + 1);
             const int cch = std::min(cchMax - 1, Distance(iStart, iEnd));
             wmemcpy(pszBuf, pszTemp + iStart, cch + 1);

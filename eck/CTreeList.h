@@ -842,7 +842,7 @@ private:
             return;
 
         const auto piOrder = (int*)_malloca(sizeof(int) * cCol);
-        EckCheckMemory(piOrder);
+        CheckPointer(piOrder);
         if (m_bSplitCol0)
         {
             HDITEMW hdi;
@@ -947,9 +947,9 @@ private:
     void UpdateHeaderPosition() noexcept
     {
         if (m_bSplitCol0)
-            m_Header.Left = m_dxContent + m_vCol.front().iRight;
+            m_Header.SetLeft(m_dxContent + m_vCol.front().iRight);
         else
-            m_Header.Left = m_dxContent;
+            m_Header.SetLeft(m_dxContent);
     }
 
     void BeginDraggingSelect(UINT uMk, int xBegin, int yBegin) noexcept
@@ -2080,7 +2080,7 @@ public:
             UpdateDCAttribute();
 
             UpdateScrollBar();
-            m_Header.Size = SIZE{ std::max(m_cxItem, m_cxClient),m_cyHeader };
+            m_Header.SetSize({ std::max(m_cxItem, m_cxClient), m_cyHeader });
 
             TTTOOLINFOW ti;
             ti.cbSize = sizeof(ti);
@@ -2203,10 +2203,11 @@ public:
             m_cyItem = m_Ds.cyItemDef;
             m_DC.FromWindow(HWnd);
             UpdateDCAttribute();
-            m_Header.Create(nullptr, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
-                0, 0, ClientWidth, m_Ds.cyHeaderDef, HWnd, IDC_HEADER);
+            m_Header.Create(nullptr,
+                WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
+                0, 0, GetClientWidth(), m_Ds.cyHeaderDef, HWnd, IDC_HEADER);
             //m_HeaderFixed.Create(NULL, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
-            //	0, 0, ClientWidth, m_Ds.cyHeaderDef, HWnd, IDC_HEADERFIXED);
+            //	0, 0, GetClientWidth(), m_Ds.cyHeaderDef, HWnd, IDC_HEADERFIXED);
             SetExplorerTheme();
             m_hThemeTV = OpenThemeData(HWnd, L"TreeView");
             m_hThemeLV = OpenThemeData(nullptr, L"ItemsView::ListView");
@@ -2664,7 +2665,7 @@ public:
         ScbSetInfomation(SB_HORZ, &si);
         ScbGetInfomation(SB_HORZ, &si);
         m_dxContent = -si.nPos;
-        m_Header.Left = m_dxContent;
+        m_Header.SetLeft(m_dxContent);
         Redraw();
     }
 
@@ -3262,7 +3263,7 @@ public:
         std::swap(m_cyHeader, cy);
         if (m_cyHeader != cy)
         {
-            m_Header.Height = cy;
+            m_Header.SetHeight(cy);
             Redraw();
         }
     }

@@ -210,6 +210,7 @@
     <ClCompile Include="eck\CSequenceIdGenerator.h" />
     <ClCompile Include="eck\ConsoleIo.h" />
     <ClCompile Include="eck\CGeometryPath.h" />
+    <ClCompile Include="eck\Check.h" />
     <ClInclude Include="eck\DuiElemSizeBox.h" />
     <ClCompile Include="eck\DwLayoutPath.h" />
     <ClCompile Include="eck\EncodingDetect.h" />

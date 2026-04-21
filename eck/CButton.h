@@ -238,21 +238,21 @@ public:
         SendMessageW(BM_SETSTYLE, dwStyle, bRedraw);
     }
 
-    EckInline Type GetButtonType() const noexcept { return Type(Style & ButtonTypeMask); }
+    EckInline Type GetButtonType() const noexcept { return Type(GetStyle() & ButtonTypeMask); }
 
     void SetButtonType(Type eType) const noexcept
     {
-        Style = (Style & ~ButtonTypeMask) | (DWORD)eType;
+        SetStyle((GetStyle() & ~ButtonTypeMask) | (DWORD)eType);
     }
     BOOL GetButtonDefault() const noexcept
     {
-        return !!(Style &
+        return !!(GetStyle() &
             (BS_DEFPUSHBUTTON | BS_DEFSPLITBUTTON | BS_DEFCOMMANDLINK));
     }
 
     void SetButtonDefault(BOOL bDef) const noexcept
     {
-        auto dwStyle = Style;
+        const auto dwStyle = GetStyle();
         auto iType = dwStyle & ButtonTypeMask;
         if (iType == BS_PUSHBUTTON || iType == BS_DEFPUSHBUTTON)
             iType = bDef ? BS_DEFPUSHBUTTON : BS_PUSHBUTTON;
@@ -262,8 +262,7 @@ public:
             iType = bDef ? BS_DEFCOMMANDLINK : BS_COMMANDLINK;
         else
             return;
-        dwStyle = (dwStyle & ~ButtonTypeMask) | iType;
-        Style = dwStyle;
+        SetStyle((dwStyle & ~ButtonTypeMask) | iType);
     }
 
     /// 指定图片和文本是否同时显示

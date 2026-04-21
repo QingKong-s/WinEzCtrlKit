@@ -51,7 +51,7 @@ protected:
     void UpdateTextInfomation()
     {
         const auto hDC = GetDC(HWnd);
-        SelectObject(hDC, HFont);
+        SelectObject(hDC, GetFont());
         TEXTMETRICW tm;
         GetTextMetricsW(hDC, &tm);
         m_cyText = tm.tmHeight;
@@ -122,7 +122,7 @@ public:
                 RECT rcText;
                 GetRect(&rcText);
 
-                const auto hOld = SelectObject(ps.hdc, HFont);
+                const auto hOld = SelectObject(ps.hdc, GetFont());
                 const auto crOld = SetTextColor(ps.hdc, PtcCurrent()->crGray1);
                 DrawTextW(ps.hdc, m_rsCueBanner.Data(), m_rsCueBanner.Size(), &rcText,
                     DT_WORDBREAK | DT_NOPREFIX | DT_EDITCONTROL);
@@ -250,7 +250,7 @@ public:
                 if (!cchText)
                     break;
                 pszText = (PWSTR)_malloca(CchToCbW(cchText));
-                EckCheckMemory(pszText);
+                CheckPointer(pszText);
                 GetText(pszText, cchText + 1);
                 lfValue = _wtof(pszText);
                 if (lfValue < -3.402823466e38)// 实际上正负值中间是有空隙的，不做判断了。。。
@@ -272,7 +272,7 @@ public:
                 if (!cchText)
                     break;
                 pszText = (PWSTR)_malloca(CchToCbW(cchText));
-                EckCheckMemory(pszText);
+                CheckPointer(pszText);
                 GetText(pszText, cchText);
                 lfValue = _wtof(pszText);
                 if (*(ULONGLONG*)&lfValue == 0xFFF0000000000000)

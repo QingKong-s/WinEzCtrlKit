@@ -540,7 +540,7 @@ private:
         m_hThemeCB = OpenThemeData(hWnd, L"Button");
         UpdateThemeMetrics();
 
-        UpdateStyleOptions(Style);
+        UpdateStyleOptions(GetStyle());
 
         m_vData.clear();
         if (const int cCol = GetItemCount(); cCol)
