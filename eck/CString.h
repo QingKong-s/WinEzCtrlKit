@@ -218,7 +218,7 @@ public:
         return *this;
     }
 
-    EckInline CStringT& operator=(TNtString x) { Assign(x.Buffer, (int)x.Length); }
+    EckInline CStringT& operator=(TNtString x) { Assign(x.Buffer, int(x.Length / sizeof(TChar))); }
 
     EckInlineNdCe TChar& At(int x) noexcept { EckAssert(x >= 0 && x < Size()); return *(Data() + x); }
     EckInlineNdCe TChar At(int x) const noexcept { EckAssert(x >= 0 && x < Size()); return *(Data() + x); }
@@ -259,7 +259,7 @@ public:
 
     EckInline int Assign(TNtString nts)
     {
-        return Assign((TConstPointer)nts.Buffer, (int)nts.Length);
+        return Assign(nts.Buffer, int(nts.Length / sizeof(TChar)));
     }
 
     template<class TTraits, class TAllocator1>
