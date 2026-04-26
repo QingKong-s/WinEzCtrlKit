@@ -13,8 +13,8 @@ private:
     float cxBorder{ 3.f };
     BOOLEAN m_bAllowMove{ TRUE };
     BOOLEAN m_bAllowSize{ TRUE };
-    D2D1_POINT_2F m_ptStart{};
-    D2D1_RECT_F m_rcStart{};
+    Kw::Vec2 m_ptStart{};
+    Kw::Rect m_rcStart{};
 public:
     ECK_DISABLE_COPY_MOVE_DEF_CONS(CSizeBox);
     ~CSizeBox() { Detach(); }
@@ -47,7 +47,7 @@ public:
         return LoadCursorW(nullptr, pszCursor);
     }
 
-    int HitTestBorder(D2D1_POINT_2F pt) const noexcept
+    int HitTestBorder(Kw::Vec2 pt) const noexcept
     {
         if (m_bAllowSize)
             if (pt.x < cxBorder)
@@ -85,7 +85,7 @@ public:
         {
             if (!m_pElem->GetCapture())
             {
-                D2D1_POINT_2F pt ECK_GET_PT_LPARAM_F(lParam);
+                auto pt = *(Kw::Vec2*)lParam;
                 m_pElem->ClientToElement(pt);
                 const int ht = HitTestBorder(pt);
                 if (ht != HTNOWHERE)
@@ -108,7 +108,7 @@ public:
         {
             if (m_htTracking == HTNOWHERE)
                 break;
-            D2D1_POINT_2F pt ECK_GET_PT_LPARAM_F(lParam);
+            auto pt = *(Kw::Vec2*)lParam;
             m_pElem->ElementToClient(pt);
             const auto dx = pt.x - m_ptStart.x;
             const auto dy = pt.y - m_ptStart.y;
@@ -170,7 +170,7 @@ public:
         break;
         case WM_LBUTTONDOWN:
         {
-            const D2D1_POINT_2F pt ECK_GET_PT_LPARAM_F(lParam);
+            const auto& pt = *(Kw::Vec2*)lParam;
             m_htTracking = HitTestBorder(pt);
             if (m_htTracking != HTNOWHERE)
             {

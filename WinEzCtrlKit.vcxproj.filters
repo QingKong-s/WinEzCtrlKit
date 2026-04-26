@@ -69,7 +69,7 @@
     <ClInclude Include="eck\DuiDef.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\DuiElemSizeBox.h">
+    <ClInclude Include="eck\DuiSizeBox.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
     <ClInclude Include="eck\DuiStdCompositor.h">
