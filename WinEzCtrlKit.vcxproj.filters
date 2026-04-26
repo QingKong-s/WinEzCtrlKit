@@ -75,9 +75,6 @@
     <ClInclude Include="eck\DuiStdCompositor.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
-    <ClInclude Include="eck\DuiStdTheme.h">
-      <Filter>ECK Include</Filter>
-    </ClInclude>
     <ClInclude Include="eck\DuiTheme.h">
       <Filter>ECK Include</Filter>
     </ClInclude>
