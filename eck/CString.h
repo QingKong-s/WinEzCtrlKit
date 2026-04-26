@@ -557,7 +557,9 @@ public:
     /// <param name="cchSrc">用作替换的字符串长度</param>
     /// <param name="posStart">起始位置</param>
     /// <param name="cReplacing">替换进行的次数，0为执行所有替换</param>
-    void ReplaceSubString(TConstPointer pszReplaced, int cchReplaced, TConstPointer pszSrc, int cchSrc,
+    void ReplaceSubString(
+        TConstPointer pszReplaced, int cchReplaced,
+        TConstPointer pszSrc, int cchSrc,
         int posStart = 0, int cReplacing = 0)
     {
         EckAssert(pszReplaced);
@@ -711,7 +713,10 @@ public:
 
     EckInline int FormatV(_Printf_format_string_ TConstPointer pszFmt, va_list vl)
     {
-        const int cch = TCharTraits::GetFormatLengthV(pszFmt, vl);
+        va_list vl1;
+        va_copy(vl1, vl);
+        const int cch = TCharTraits::GetFormatLengthV(pszFmt, vl1);
+        va_end(vl1);
         if (cch <= 0)
             return 0;
         ReSizeExtra(cch);
@@ -730,7 +735,10 @@ public:
 
     EckInline int PushBackFormatV(_Printf_format_string_ TConstPointer pszFmt, va_list vl)
     {
-        const int cch = TCharTraits::GetFormatLengthV(pszFmt, vl);
+        va_list vl1;
+        va_copy(vl1, vl);
+        const int cch = TCharTraits::GetFormatLengthV(pszFmt, vl1);
+        va_end(vl1);
         if (cch <= 0)
             return 0;
         TCharTraits::FormatV(PushBack(cch), pszFmt, vl);
@@ -775,9 +783,13 @@ public:
         return std::span<TChar>(Data(), Size());
     }
 
-    EckInlineNdCe TNtString ToNtString() noexcept
+    EckInlineNdCe TNtString ToNtStringWritable() noexcept
     {
         return TNtString{ (USHORT)ByteSizePure(), (USHORT)ByteCapacity(), Data() };
+    }
+    EckInlineNdCe TNtString ToNtString() const noexcept
+    {
+        return TNtString{ (USHORT)ByteSizePure(), (USHORT)ByteSize(), (TPointer)Data() };
     }
 
     EckInlineNdCe RTL_UNICODE_STRING_BUFFER ToNtStringBuffer() noexcept
@@ -1094,7 +1106,7 @@ public:
     }
 
     template<CcpIntOrEnum T>
-    void PushBackNumber(
+    TcvResult PushBackNumber(
         T x,
         int iRadix = 10,
         BOOL bUpperCase = FALSE,
@@ -1108,9 +1120,10 @@ public:
         const auto r = TcvFromInt(p, cchBuf, (TInt)x,
             iRadix, bUpperCase, &pEnd, cchFillTo, chFill);
         ReSize(int(pEnd - Data()));
+        return r;
     }
     template<std::floating_point T>
-    void PushBackNumber(
+    TcvResult PushBackNumber(
         T x,
         int iPrecision = 6,
         TcvFloatFmt eFmt = TcvFloatFmt::General) noexcept
@@ -1137,30 +1150,16 @@ public:
             else
             {
                 ReSize(cchOld);
-                break;
+                return r;
             }
         }
+        return TcvResult::Ok;
     }
 
     // 返回文件名的位置，注意：若分隔符在开头则返回-1
-    [[nodiscard]] int PazFindFileName() const noexcept
+    EckInlineNd int PazFindFileName() const noexcept
     {
-        if (IsEmpty())
-            return -1;
-        auto pEnd = Data() + Size() - 1;
-        if (Back() == '\\' || Back() == '/')
-            --pEnd;// 如果以反斜杠结尾，则跳过
-        for (auto p = pEnd; p != Data(); --p)
-        {
-            const auto ch = *p;
-            if (ch == '\\' || ch == '/')
-            {
-                if (p < Data() + 2)// NT路径或UNC路径的起始
-                    return -1;
-                return int(p + 1 - Data());
-            }
-        }
-        return -1;
+        return eck::PazFindFileName(Data(), Size());
     }
 
     BOOL PazRemoveFileName() noexcept
@@ -1185,21 +1184,9 @@ public:
         return TRUE;
     }
 
-    [[nodiscard]] int PazFindExtension() const noexcept
+    EckInlineNd int PazFindExtension() const noexcept
     {
-        if (IsEmpty())
-            return -1;
-        int pos{ -1 };
-        for (auto p = Data() + Size() - 1; p != Data(); --p)
-        {
-            const auto ch = *p;
-            if (ch == '.')
-                return int(p - Data());
-            else if (ch == ' ' /*扩展名内不能有空格*/ ||
-                ch == '\\' || ch == '/')
-                return -1;
-        }
-        return -1;
+        return eck::PazFindExtension(Data(), Size());
     }
 
     BOOL PazRemoveExtension() noexcept

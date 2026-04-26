@@ -134,4 +134,50 @@ EckNfInlineNd BOOL PazIsDotFileName(
     return (cbFileName == sizeof(WCHAR) && pszFileName[0] == L'.') ||
         (cbFileName == sizeof(WCHAR) * 2 && pszFileName[0] == L'.' && pszFileName[1] == L'.');
 }
+
+// 返回文件名的位置，注意：若分隔符在开头则返回-1
+EckNfInlineNd int PazFindFileName(
+    _In_reads_or_z_(cchPath) CcpCharPointer auto pszPath,
+    int cchPath) noexcept
+{
+    if (cchPath < 0)
+        cchPath = (int)TcsLength(pszPath);
+    if (!pszPath || !cchPath)
+        return -1;
+    auto pEnd = pszPath + cchPath - 1;
+    if (*pEnd == '\\' || *pEnd == '/')
+        --pEnd;// 如果以反斜杠结尾，则跳过
+    for (auto p = pEnd; p != pszPath; --p)
+    {
+        const auto ch = *p;
+        if (ch == '\\' || ch == '/')
+        {
+            if (p < pszPath + 2)// NT路径或UNC路径的起始
+                return -1;
+            return int(p + 1 - pszPath);
+        }
+    }
+    return -1;
+}
+
+EckNfInlineNd int PazFindExtension(
+    _In_reads_(cchPath) PCWSTR pszPath,
+    int cchPath) noexcept
+{
+    if (cchPath < 0)
+        cchPath = (int)TcsLength(pszPath);
+    if (!pszPath || !cchPath)
+        return -1;
+    int pos{ -1 };
+    for (auto p = pszPath + cchPath - 1; p != pszPath; --p)
+    {
+        const auto ch = *p;
+        if (ch == '.')
+            return int(p - pszPath);
+        else if (ch == ' ' /*扩展名内不能有空格*/ ||
+            ch == '\\' || ch == '/')
+            return -1;
+    }
+    return -1;
+}
 ECK_NAMESPACE_END
