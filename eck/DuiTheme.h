@@ -2,6 +2,8 @@
 #include "UiTheme.h"
 #include "Color.h"
 
+#include <any>
+
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 using UiBasic::CColorCollection;
@@ -13,6 +15,7 @@ enum class TmResult
     NoStyle,
     NotSupport,
     NoFont,
+    InvalidType,
 };
 
 class CElement;
@@ -69,6 +72,15 @@ public:
         UINT idPart,
         const D2D1_RECT_F& rc,
         _In_opt_ const D2D1_RECT_F* prcClip = nullptr) noexcept = 0;
+
+    virtual TmResult SetExtra(UINT idExtra, const std::any& Val) noexcept
+    {
+        return TmResult::NotSupport;
+    }
+    virtual std::optional<std::any> GetExtra(UINT idExtra) const noexcept
+    {
+        return std::nullopt;
+    }
 
     void SetColorCollection(CColorCollection* p) noexcept { m_pColor = p; }
     auto& GetColorCollection() const noexcept { return m_pColor; }

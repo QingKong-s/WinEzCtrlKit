@@ -38,7 +38,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     const auto pt = eck::CalculateCenterWindowPosition(nullptr, size.cx, size.cy, FALSE);
     pWnd->Create(L"示例Win32程序", WS_OVERLAPPEDWINDOW, 0,
         pt.x, pt.y, size.cx, size.cy, nullptr, 0);
-    pWnd->Visible = TRUE;
+    pWnd->Show(SW_SHOW);
 
     MSG msg;
     while (GetMessageW(&msg, nullptr, 0, 0))

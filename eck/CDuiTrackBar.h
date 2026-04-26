@@ -13,6 +13,8 @@ public:
     const static inline UINT IdPtThumb = TmNextResourceId();
     const static inline UINT IdCrThumb = TmNextResourceId();
 
+    const static inline UINT IdEtThumbCircleScale = TmNextResourceId();
+
     enum : UINT
     {
         SsTrack,
@@ -25,6 +27,9 @@ public:
 
     constexpr static float MeTrackSize = 6.f;
     constexpr static float MeThumbSize = 16.f;
+
+    constexpr static float ThumbCircleScaleNormal = 0.6f;
+    constexpr static float ThumbCircleScaleHot = 0.45f;
 private:
     CEasingCurveLite<Easing::FOutCubic> m_ec{};
 
@@ -57,7 +62,7 @@ private:
         // Track Disabled
         { IdTmInvalid,        IdCrAccentDisabled, IdTmInvalid },
         // Thumb
-        { IdCrAccent,         IdCrBack,           IdCrBorder, FLT_MAX, 1.f },
+        { IdCrAccent,         IdCrBack,           IdCrBorder,         FLT_MAX, 1.f },
         // Thumb Disabled
         { IdCrAccentDisabled, IdCrBackDisabled,   IdCrBorderDisabled, FLT_MAX, 1.f },
     };
@@ -79,7 +84,7 @@ private:
     {
         rc = GetViewRect();
         const auto cxyTrack = CalculateTrackShortSide();
-        const auto dCap = GetTrackCapSpacing();
+        const auto dCap = GetTrackCapSpace();
         if (m_bVertical)
         {
             rc.left += (rc.right - rc.left - cxyTrack) / 2.f;
@@ -101,7 +106,7 @@ private:
         const Kw::Rect& rcTrack, _Out_ Kw::Rect& rc) const noexcept
     {
         const auto cxy = m_bThinTrack ?
-            (GetTrackCapSpacing() * m_ec.K) : GetTrackCapSpacing();
+            (GetTrackCapSpace() * m_ec.K) : GetTrackCapSpace();
         if (m_bVertical)
         {
             rc.left = (rcTrack.left + rcTrack.right) / 2.f - cxy;
@@ -126,15 +131,6 @@ private:
         GetThumbRect(cxy, rc, rc);
     }
 
-    constexpr void SetDragPosition(float fPos) noexcept
-    {
-        m_fDragPos = fPos;
-        if (m_fDragPos < m_fMin)
-            m_fDragPos = m_fMin;
-        else if (m_fDragPos > m_fMax)
-            m_fDragPos = m_fMax;
-    }
-
     void ChangePosition(float fPos, BOOL bDragging, BOOL bUpdateNow = TRUE) noexcept
     {
         Kw::Rect rcOldThumb;
@@ -142,7 +138,7 @@ private:
 
         if (bDragging)
         {
-            SetDragPosition(fPos);
+            m_fDragPos = fPos;
             if (m_bThumbTrack)
                 EvtPositionChanged();
         }
@@ -201,6 +197,11 @@ public:
             if (!m_bThinTrack || ((TmGetState() & SaHot) || m_bAnActive))
             {
                 GetThumbRect(cxyTrack, rcTrack, rcTrack);
+                constexpr float d = ThumbCircleScaleHot - ThumbCircleScaleNormal;
+                const auto k =
+                    m_bAnActive ? (m_ec.K * d + ThumbCircleScaleNormal) :
+                    (TmGetState() & SaHot) ? ThumbCircleScaleHot : ThumbCircleScaleNormal;
+                GetTheme()->SetExtra(IdEtThumbCircleScale, k);
                 GetTheme()->Draw(
                     this,
                     &m_Style[bDisabled ? SsThumbDisabled : SsThumb],
@@ -235,12 +236,9 @@ public:
             else if (!(TmState() & SaHot))
             {
                 TmState() |= SaHot;
-                if (m_bThinTrack)
-                {
-                    m_ec.Start(0.f, 1.f, m_bAnActive);
-                    m_bAnActive = TRUE;
-                    GetWindow().KctWake();
-                }
+                m_ec.Start(0.f, 1.f, m_bAnActive);
+                m_bAnActive = TRUE;
+                GetWindow().KctWake();
             }
         }
         return 0;
@@ -250,12 +248,9 @@ public:
             if (!(TmState() & SapLButtonDown) && (TmState() & SaHot))
             {
                 TmState() &= ~SaHot;
-                if (m_bThinTrack)
-                {
-                    m_ec.Start(1.f, 0.f, m_bAnActive);
-                    m_bAnActive = TRUE;
-                    GetWindow().KctWake();
-                }
+                m_ec.Start(1.f, 0.f, m_bAnActive);
+                m_bAnActive = TRUE;
+                GetWindow().KctWake();
             }
         }
         return 0;
@@ -271,6 +266,7 @@ public:
             {
                 TmState() |= SapLButtonDown;
                 SetCapture();
+                m_fDragPos = m_fPos;
             }
             else
                 ChangePosition(HitTest(pt), FALSE);
@@ -310,7 +306,14 @@ public:
     {
         m_msLastDuration = ms;
         m_bAnActive = m_ec.Tick((float)ms, 200);
-        Invalidate(FALSE);
+        if (m_bThinTrack)
+            Invalidate(FALSE);
+        else
+        {
+            Kw::Rect rc;
+            GetThumbRect(rc);
+            Invalidate(rc, FALSE);
+        }
     }
     BOOL TlIsValid() noexcept override { return m_bAnActive; }
     int TlGetCurrentInterval() noexcept override { return (int)m_msLastDuration; }
@@ -319,21 +322,14 @@ public:
     {
         m_fMin = fMin;
         m_fMax = fMax;
-        if (m_fPos < m_fMin)
-            m_fPos = m_fMin;
-        else if (m_fPos > m_fMax)
-            m_fPos = m_fMax;
+        m_fPos = std::clamp(m_fPos, m_fMin, m_fMax);
     }
     EckInlineNdCe float GetMinimum() const noexcept { return m_fMin; }
     EckInlineNdCe float GetMaximum() const noexcept { return m_fMax; }
 
     constexpr void SetTrackPosition(float fPos) noexcept
     {
-        m_fPos = fPos;
-        if (m_fPos < m_fMin)
-            m_fPos = m_fMin;
-        else if (m_fPos > m_fMax)
-            m_fPos = m_fMax;
+        m_fPos = std::clamp(fPos, m_fMin, m_fMax);
     }
     EckInlineNdCe float GetTrackPosition() const noexcept
     {
@@ -367,22 +363,17 @@ public:
     {
         Kw::Rect rcTrack;
         GetTrackRect(rcTrack);
-
+        float k;
         if (m_bVertical)
-        {
-            const float fScale = (pt.y - rcTrack.top) / (rcTrack.bottom - rcTrack.top);
-            return m_fMin + (m_fMax - m_fMin) * fScale;
-        }
+            k = (pt.y - rcTrack.top) / (rcTrack.bottom - rcTrack.top);
         else
-        {
-            const float fScale = (pt.x - rcTrack.left) / (rcTrack.right - rcTrack.left);
-            return m_fMin + (m_fMax - m_fMin) * fScale;
-        }
+            k = (pt.x - rcTrack.left) / (rcTrack.right - rcTrack.left);
+        return std::clamp(m_fMin + (m_fMax - m_fMin) * k, m_fMin, m_fMax);
     }
 
     // 取端点处空白
     // 因滑块具有大小，故端点处留有一定空白以免滑块显示不全，此函数返回空白大小
-    EckInlineNdCe float GetTrackCapSpacing() const noexcept { return m_cxyThumb; }
+    EckInlineNdCe float GetTrackCapSpace() const noexcept { return m_cxyThumb; }
 
     void EvtPositionChanged() noexcept
     {
@@ -394,6 +385,8 @@ public:
 
 class CTmTrackBar : public CThemeBase
 {
+private:
+    float m_kThumbCircleScale{ CTrackBar::ThumbCircleScaleNormal };
 public:
     TmResult Draw(
         CElement* pEle,
@@ -444,13 +437,33 @@ public:
                 const D2D1_ELLIPSE Ell
                 {
                     { (rc.left + rc.right) / 2.f, (rc.top + rc.bottom) / 2.f },
-                    r * 0.6f, r * 0.6f
+                    r * m_kThumbCircleScale, r * m_kThumbCircleScale
                 };
                 pEle->GetDC()->FillEllipse(Ell, pBrush);
             }
             return TmResult::Ok;
         }
+        return TmResult::NotSupport;
     }
+
+    TmResult SetExtra(UINT idExtra, const std::any& Val) noexcept override
+    {
+        if (idExtra == CTrackBar::IdEtThumbCircleScale)
+        {
+            if (Val.type() != typeid(float))
+                return TmResult::InvalidType;
+            m_kThumbCircleScale = std::any_cast<float>(Val);
+            return TmResult::Ok;
+        }
+        return __super::SetExtra(idExtra, Val);
+    }
+    std::optional<std::any> GetExtra(UINT idExtra) const noexcept override
+    {
+        if (idExtra == CTrackBar::IdEtThumbCircleScale)
+            return m_kThumbCircleScale;
+        return __super::GetExtra(idExtra);
+    }
+
 };
 inline RcPtr<CThemeBase> CTrackBar::TmMakeDefaultTheme(BOOL bDark) noexcept
 {
