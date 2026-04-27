@@ -31,7 +31,7 @@ public:
     constexpr static float ThumbCircleScaleNormal = 0.6f;
     constexpr static float ThumbCircleScaleHot = 0.45f;
 private:
-    CEasingCurveLite<Easing::FOutCubic> m_ec{};
+    EasingCurve<Easing::FOutCubic> m_ec{};
 
     float m_fPos{};
     float m_fMin{};

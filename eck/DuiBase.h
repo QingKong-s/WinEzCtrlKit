@@ -67,9 +67,6 @@ public:
 
     virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept;
 
-    // 将缓动曲线对象的自定义参数设为this，并注册
-    EckInline void InitializeEasingCurve(CEasingCurve* pec) noexcept;
-
     void CeInflateRectWithExpandRadius(_Inout_ Kw::Rect& rc, float f) noexcept
     {
         auto rcTemp{ rc };
@@ -1558,12 +1555,6 @@ inline void CElement::BeginPaint(_Out_ PAINTINFO& ps, WPARAM, LPARAM lParam) noe
     }
     if ((GetStyle() & DES_BLURBKG) && !GetCompositor())
         GetWindow().BlurpDrawStyle(this, ps.rcfClip, ps.ox, ps.oy);
-}
-
-EckInline void CElement::InitializeEasingCurve(CEasingCurve* pec) noexcept
-{
-    pec->SetCallbackData((LPARAM)this);
-    GetWindow().KctRegisterTimeLine(pec);
 }
 
 inline void CElement::PostMoveSize(BOOL bSize, BOOL bMove, const Kw::Rect& rcOld) noexcept

@@ -33,7 +33,7 @@ public:
     };
 private:
     CInertialScrollView m_sv{};
-    CEasingCurveLite<Easing::FOutCubic> m_ec{};
+    EasingCurve<Easing::FOutCubic> m_ec{};
 
     float m_fSmallDelta{ 1.f };
 

@@ -532,110 +532,12 @@ EckInline float Spring(float t, float x0, float dx, float dt) noexcept
 }
 ECK_EASING_NAMESPACE_END
 
-class CEasingCurve : public ITimeLine
-{
-public:
-    using FCallBack = void(*)(float fCurrValue, float fOldValue, LPARAM lParam);
-private:
-    float m_fCurrTime{};
-    float m_fDuration{};
-    float m_fStart{};
-    float m_fDistance{};
-
-    float m_fCurrValue{};
-
-    int m_iCurrInterval{};
-
-    LPARAM m_lParam{};
-    FCallBack m_pfnCallback{};
-    Easing::FAn m_pfnAn{ Easing::Linear };
-
-    BOOLEAN m_bActive{};
-    BOOLEAN m_bReverse{};
-    BOOLEAN m_bEnd{};
-
-    EckInline BOOL IntTick(float fMs) noexcept
-    {
-        m_fCurrTime += fMs;
-        BOOL bEnd = FALSE;
-        if (m_fCurrTime > m_fDuration)
-        {
-            EckAssert(fMs > 0.f);
-            m_fCurrTime = m_fDuration;
-            bEnd = TRUE;
-        }
-        else if (m_fCurrTime < 0.f)
-        {
-            EckAssert(fMs < 0.f);
-            m_fCurrTime = 0.f;
-            bEnd = TRUE;
-        }
-
-        m_fCurrValue = m_pfnAn(m_fCurrTime, m_fStart, m_fDistance, m_fDuration);
-        return bEnd;
-    }
-public:
-    ECK_DISABLE_COPY_MOVE_DEF_CONS(CEasingCurve)
-public:
-    virtual ~CEasingCurve() = default;
-
-    void TlTick(int iMs) noexcept override
-    {
-        m_iCurrInterval = iMs;
-        EckAssert(m_pfnCallback);
-        const float fOldValue = m_fCurrValue;
-        m_bEnd = IntTick(float(m_bReverse ? -iMs : iMs));
-        m_pfnCallback(m_fCurrValue, fOldValue, m_lParam);
-        if (m_bEnd)
-            End();
-    }
-
-    EckInline BOOL TlIsValid() noexcept override { return m_bActive; }
-    EckInline int TlGetCurrentInterval() noexcept override { return m_iCurrInterval; }
-    // 
-    EckInlineCe void SetProcedure(Easing::FAn pfnAn) noexcept { m_pfnAn = pfnAn; }
-    EckInlineCe void SetCallbackData(LPARAM lParam) noexcept { m_lParam = lParam; }
-    EckInlineNdCe LPARAM GetCallbackData() const noexcept { return m_lParam; }
-    EckInline void SetCallback(FCallBack pfnCallBack) noexcept { m_pfnCallback = pfnCallBack; }
-
-    EckInlineCe void SetDuration(float fDuration) noexcept { m_fDuration = fDuration; }
-    EckInlineNdCe float GetDuration() const noexcept { return m_fDuration; }
-
-    EckInlineCe void SetDistance(float fDistance) noexcept { m_fDistance = fDistance; }
-    EckInlineNdCe float GetDistance() const noexcept { return m_fDistance; }
-
-    EckInline void SetCurrentTime(float fCurrTime) noexcept { m_fCurrTime = fCurrTime; }
-    EckInlineNdCe float GetCurrentTime() const noexcept { return m_fCurrTime; }
-
-    EckInline void SetReverse(BOOL bReverse) { m_bReverse = bReverse; }
-    EckInlineNdCe BOOL GetReverse() const { return m_bReverse; }
-
-    EckInlineCe void Begin(float fStart, float fEnd, BOOL bCheckActive = TRUE) noexcept
-    {
-        m_fStart = (bCheckActive && m_bActive) ? m_fCurrValue : fStart;
-        m_fDistance = fEnd - m_fStart;
-        m_fCurrTime = 0.f;
-        m_bActive = TRUE;
-    }
-
-    EckInlineCe void End() noexcept
-    {
-        m_fCurrValue = m_fStart + m_fDistance;
-        m_bActive = FALSE;
-    }
-
-    EckInlineNdCe float GetStart() const noexcept { return m_fStart; }
-    EckInlineNdCe float GetCurrentValue() const noexcept { return m_fCurrValue; }
-    EckInlineNdCe BOOL IsActive() const noexcept { return m_bActive; }
-    EckInlineNdCe BOOL IsStop() const noexcept { return m_bEnd; }
-};
-
 // 表示单条动画曲线
-// 调用方通常使用CEasingCurveLite表示曲线当前参数，一个BOOLEAN指示曲线是否正在运行
+// 调用方通常使用EasingCurve表示曲线当前参数，一个BOOLEAN指示曲线是否正在运行
 // 和开始、结束、动画时间等常量描述一个完整的动画曲线
 // 本类不存储任何可能为常量的信息，也不存储状态的BOOLEAN变量，有助于节约内存
 template<class FAn>
-struct CEasingCurveLite
+struct EasingCurve
 {
     float Time{};
     float Begin{};
