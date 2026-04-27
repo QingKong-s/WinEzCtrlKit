@@ -297,7 +297,7 @@ public:
         {
             const auto cx = GetWidth();
             const auto cy = GetHeight();
-            const auto cxySB = GetTheme()->GetMetric(IdMeScrollBarWidth);
+            const auto cxySB = GetTheme()->GetMetric(IdMeScrollBar);
             m_SBV.SetRect({ cx - cxySB, 0.f, cx, cy });
             m_SBH.SetRect({
                 0,

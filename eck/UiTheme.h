@@ -36,11 +36,11 @@ namespace Declaration
 
         // Metric
 
-        IdMeScrollBarWidth,
-        IdMeScrollThumbWidth,
         IdMePaddingOuter,
         IdMePaddingInner,
         IdMeFocusPadding,
+        IdMeScrollBar,
+        IdMeScrollThumbPadding,
         IdMeMinimumScrollThumb,
 
         // Part

@@ -130,7 +130,7 @@ inline std::optional<ARGB> TmSsLerpColor(CThemeBase* pTheme,
     std::optional<ARGB> oc1, oc2;
     oc1 = bArgbOrId ? cr1 : pTheme->GetColorOptional(cr1);
     oc2 = bArgbOrId ? cr2 : pTheme->GetColorOptional(cr2);
-    if (!oc1 || !oc2)
+    if (!oc1 && !oc2)
         return std::nullopt;
     if (!oc1)
         oc1 = 0;
@@ -192,11 +192,11 @@ EckInlineNd UINT TmNextResourceId() noexcept
 inline RcPtr<CMetricCollection> TmsMakeMetricCollection() noexcept
 {
     const auto p = RcPtr<CMetricCollection>::Make();
-    p->Set(IdMeScrollBarWidth, 16.f);
-    p->Set(IdMeScrollThumbWidth, 12.f);
     p->Set(IdMePaddingOuter, 6.f);
     p->Set(IdMePaddingInner, 4.f);
     p->Set(IdMeFocusPadding, 2.f);
+    p->Set(IdMeScrollBar, 18.f);
+    p->Set(IdMeScrollThumbPadding, 4.f);
     p->Set(IdMeMinimumScrollThumb, 15.f);
     return p;
 }
@@ -288,6 +288,17 @@ EckInlineNdCe SimpleStyle TmsSsMakePressed(float cxBorder = 0.f, float r = 0.f) 
 EckInlineNdCe SimpleStyle TmsSsMakeDisabled(float cxBorder = 0.f, float r = 0.f) noexcept
 {
     return { IdCrFore, IdCrBackDisabled, IdCrBorderDisabled, r, cxBorder };
+}
+
+template<std::derived_from<CThemeBase> TTheme>
+EckInline auto TmMakeTheme(BOOL bDark) noexcept
+{
+    const auto p = RcPtr<TTheme>::Make();
+    p->SetMetricCollection(TmsMetricCollection().Get());
+    p->SetColorCollection(bDark ?
+        TmsColorCollectionDark().Get() :
+        TmsColorCollectionLight().Get());
+    return p;
 }
 ECK_DUI_NAMESPACE_END
 ECK_NAMESPACE_END

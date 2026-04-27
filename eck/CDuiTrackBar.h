@@ -43,7 +43,7 @@ private:
     float m_cxyTrack{ MeTrackSize };
     float m_cxyThumb{ MeThumbSize };
 
-    int m_msLastDuration{};
+    USHORT m_msLastDuration{};
 
     BITBOOL m_bAnActive : 1{};
 
@@ -52,6 +52,7 @@ private:
     BITBOOL m_bTransparentSpace : 1{};  // 空白部分穿透鼠标
     BITBOOL m_bThinTrack : 1{};         // 轨道正常情况下显示为尺寸的一半，点燃时显示全尺寸
     BITBOOL m_bAutoTrackSize : 1{};     // 根据控件尺寸自动调整轨道尺寸
+    BITBOOL m_bReverseDirection : 1{};
 
     SimpleStyle m_Style[SsMax]
     {
@@ -102,37 +103,68 @@ private:
         return cxyTrack;
     }
 
-    constexpr void GetThumbRect(float cxyTrack,
-        const Kw::Rect& rcTrack, _Out_ Kw::Rect& rc) const noexcept
+    // rc输入FilledTrack矩形，输出Thumb矩形
+    constexpr void GetThumbRect(float cxyTrack, _Inout_ Kw::Rect& rc) const noexcept
     {
         const auto cxy = m_bThinTrack ?
             (GetTrackCapSpace() * m_ec.K) : GetTrackCapSpace();
         if (m_bVertical)
         {
-            rc.left = (rcTrack.left + rcTrack.right) / 2.f - cxy;
-            rc.top = rcTrack.bottom - cxy;
+            rc.left = (rc.left + rc.right) / 2.f - cxy;
+            rc.right = rc.left + cxy * 2;
+            if (m_bReverseDirection)
+            {
+                rc.top = rc.bottom - cxy;
+                rc.bottom += cxy;
+            }
+            else
+            {
+                rc.top -= cxy;
+                rc.bottom = rc.top + cxy * 2;
+            }
         }
         else
         {
-            rc.left = rcTrack.right - cxy;
-            rc.top = (rcTrack.top + rcTrack.bottom) / 2.f - cxy;
+            rc.top = (rc.top + rc.bottom) / 2.f - cxy;
+            rc.bottom = rc.top + cxy * 2;
+            if (m_bReverseDirection)
+            {
+                rc.left -= cxy;
+                rc.right = rc.left + cxy * 2;
+            }
+            else
+            {
+                rc.left = rc.right - cxy;
+                rc.right += cxy;
+            }
         }
-        rc.right = rc.left + cxy * 2;
-        rc.bottom = rc.top + cxy * 2;
     }
     constexpr void GetThumbRect(_Out_ Kw::Rect& rc) const noexcept
     {
         const auto cxy = GetTrackRect(rc);
+        TrackRectToFilledTrackRect(rc);
+        GetThumbRect(cxy, rc);
+    }
+
+    constexpr void TrackRectToFilledTrackRect(Kw::Rect& rc) const noexcept
+    {
         const float fScale = (GetTrackPosition() - m_fMin) / (m_fMax - m_fMin);
         if (m_bVertical)
-            rc.bottom = rc.top + (rc.bottom - rc.top) * fScale;
+            if (m_bReverseDirection)
+                rc.bottom = rc.top + (rc.bottom - rc.top) * fScale;
+            else
+                rc.top = rc.bottom - (rc.bottom - rc.top) * fScale;
         else
-            rc.right = rc.left + (rc.right - rc.left) * fScale;
-        GetThumbRect(cxy, rc, rc);
+            if (m_bReverseDirection)
+                rc.left = rc.right - (rc.right - rc.left) * fScale;
+            else
+                rc.right = rc.left + (rc.right - rc.left) * fScale;
     }
 
     void ChangePosition(float fPos, BOOL bDragging, BOOL bUpdateNow = TRUE) noexcept
     {
+        if (FloatEqual(fPos, m_fPos))
+            return;
         Kw::Rect rcOldThumb;
         GetThumbRect(rcOldThumb);
 
@@ -143,7 +175,10 @@ private:
                 EvtPositionChanged();
         }
         else
+        {
             m_fPos = fPos;
+            EvtPositionChanged();
+        }
 
         Kw::Rect rcThumb;
         GetThumbRect(rcThumb);
@@ -182,11 +217,7 @@ public:
                 MakeD2DRectF(rcTrack),
                 &ps.rcfClip);
 
-            const float fScale = (GetTrackPosition() - m_fMin) / (m_fMax - m_fMin);
-            if (m_bVertical)
-                rcTrack.bottom = rcTrack.top + (rcTrack.bottom - rcTrack.top) * fScale;
-            else
-                rcTrack.right = rcTrack.left + (rcTrack.right - rcTrack.left) * fScale;
+            TrackRectToFilledTrackRect(rcTrack);
             GetTheme()->Draw(
                 this,
                 &m_Style[bDisabled ? SsTrackDisabled : SsTrackActive],
@@ -196,7 +227,7 @@ public:
 
             if (!m_bThinTrack || ((TmGetState() & SaHot) || m_bAnActive))
             {
-                GetThumbRect(cxyTrack, rcTrack, rcTrack);
+                GetThumbRect(cxyTrack, rcTrack);
                 constexpr float d = ThumbCircleScaleHot - ThumbCircleScaleNormal;
                 const auto k =
                     m_bAnActive ? (m_ec.K * d + ThumbCircleScaleNormal) :
@@ -258,6 +289,7 @@ public:
         case WM_LBUTTONDOWN:
         case WM_LBUTTONDBLCLK:
         {
+            SetFocus();
             const auto& pt = *(Kw::Vec2*)lParam;
 
             Kw::Rect rcThumb;
@@ -280,9 +312,44 @@ public:
                 break;
             TmState() &= ~SapLButtonDown;
             ReleaseCapture();
+            ChangePosition(
+                (uMsg == WM_CAPTURECHANGED) ?
+                m_fDragPos :
+                HitTest(*(Kw::Vec2*)lParam), FALSE);
+        }
+        return 0;
 
-            const auto& pt = *(Kw::Vec2*)lParam;
-            ChangePosition(HitTest(pt), FALSE);
+        case WM_MOUSEWHEEL:
+        case WM_MOUSEHWHEEL:
+        {
+            if (!(TmState() & SapLButtonDown))
+            {
+                const auto d = -GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA;
+                ChangePosition(GetTrackPosition() + d, FALSE);
+            }
+        }
+        return 0;
+
+        case WM_KEYDOWN:
+        {
+            if (TmState() & SapLButtonDown)
+                break;
+            float d{};
+            switch (wParam)
+            {
+            case VK_LEFT:
+            case VK_UP:     d = -m_fSmallDelta;  break;
+            case VK_RIGHT:
+            case VK_DOWN:   d = m_fSmallDelta;   break;
+            case VK_PRIOR:  d = -m_fLargeDelta;  break;
+            case VK_NEXT:   d = m_fLargeDelta;   break;
+            case VK_HOME:   d = m_fMin - m_fPos; break;
+            case VK_END:    d = m_fMax - m_fPos; break;
+            default:
+                goto Skip;
+            }
+            ChangePosition(std::clamp(m_fPos + d, m_fMin, m_fMax), FALSE);
+        Skip:;
         }
         return 0;
 
@@ -304,7 +371,7 @@ public:
 
     void TlTick(int ms) noexcept override
     {
-        m_msLastDuration = ms;
+        m_msLastDuration = (USHORT)ms;
         m_bAnActive = m_ec.Tick((float)ms, 200);
         if (m_bThinTrack)
             Invalidate(FALSE);
@@ -336,7 +403,7 @@ public:
         return (TmGetState() & SapLButtonDown) ? m_fDragPos : m_fPos;
     }
 
-    EckInlineCe void SetVertical(BOOL bVertical) noexcept { m_bVertical = bVertical; }
+    EckInlineCe void SetVertical(BOOL b) noexcept { m_bVertical = b; }
     EckInlineNdCe BOOL GetVertical() const noexcept { return m_bVertical; }
 
     EckInlineCe void SetTrackSize(float f) noexcept { m_cxyTrack = f; }
@@ -354,6 +421,9 @@ public:
     EckInlineCe void SetAutoTrackSize(BOOL b) { m_bAutoTrackSize = b; }
     EckInlineNdCe BOOL GetAutoTrackSize() const { return m_bAutoTrackSize; }
 
+    EckInlineCe void SetReverseDirection(BOOL b) noexcept { m_bReverseDirection = b; }
+    EckInlineNdCe BOOL GetReverseDirection() const noexcept { return m_bReverseDirection; }
+
     EckInlineCe void SetSmallDelta(float f) noexcept { m_fSmallDelta = f; }
     EckInlineNdCe float GetSmallDelta() const noexcept { return m_fSmallDelta; }
     EckInlineCe void SetLargeDelta(float f) noexcept { m_fLargeDelta = f; }
@@ -365,9 +435,15 @@ public:
         GetTrackRect(rcTrack);
         float k;
         if (m_bVertical)
-            k = (pt.y - rcTrack.top) / (rcTrack.bottom - rcTrack.top);
+            if (m_bReverseDirection)
+                k = (pt.y - rcTrack.top) / (rcTrack.bottom - rcTrack.top);
+            else
+                k = (rcTrack.bottom - pt.y) / (rcTrack.bottom - rcTrack.top);
         else
-            k = (pt.x - rcTrack.left) / (rcTrack.right - rcTrack.left);
+            if (m_bReverseDirection)
+                k = (rcTrack.right - pt.x) / (rcTrack.right - rcTrack.left);
+            else
+                k = (pt.x - rcTrack.left) / (rcTrack.right - rcTrack.left);
         return std::clamp(m_fMin + (m_fMax - m_fMin) * k, m_fMin, m_fMax);
     }
 
@@ -467,12 +543,7 @@ public:
 };
 inline RcPtr<CThemeBase> CTrackBar::TmMakeDefaultTheme(BOOL bDark) noexcept
 {
-    const auto p = RcPtr<CTmTrackBar>::Make();
-    p->SetMetricCollection(TmsMetricCollection().Get());
-    p->SetColorCollection(bDark ?
-        TmsColorCollectionDark().Get() :
-        TmsColorCollectionLight().Get());
-    return p;
+    return TmMakeTheme<CTmTrackBar>(bDark);
 }
 
 class CUiaTrackBar : public CUnknownAppend<CUiaBase, IRangeValueProvider>

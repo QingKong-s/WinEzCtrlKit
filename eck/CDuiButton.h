@@ -279,12 +279,7 @@ public:
 };
 inline RcPtr<CThemeBase> CButton::TmMakeDefaultTheme(BOOL bDark) noexcept
 {
-    const auto p = RcPtr<CTmButton>::Make();
-    p->SetMetricCollection(TmsMetricCollection().Get());
-    p->SetColorCollection(bDark ?
-        TmsColorCollectionDark().Get() :
-        TmsColorCollectionLight().Get());
-    return p;
+    return TmMakeTheme<CTmButton>(bDark);
 }
 
 class CUiaButton : public CUnknownAppend<CUiaBase, IInvokeProvider>
