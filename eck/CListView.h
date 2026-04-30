@@ -1106,7 +1106,7 @@ public:
 
     BOOL SetRowHeight(int cy, BOOL bSetOrAdd = TRUE) const noexcept
     {
-        const auto pParent = CWindowFromHWND(GetParent(HWnd));
+        const auto pParent = CWindowFromHandle(GetParent(Handle));
         if (!pParent)
             return FALSE;
         const auto hSlot = pParent->GetEventChain().Connect(
@@ -1128,7 +1128,7 @@ public:
         SetStyle(GetStyle() | LVS_OWNERDRAWFIXED);
         WINDOWPOS wp
         {
-            .hwnd = HWnd,
+            .hwnd = Handle,
             .flags = SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW
         };
         SendMessageW(WM_WINDOWPOSCHANGED, 0, (LPARAM)&wp);
@@ -1139,7 +1139,7 @@ public:
 
     BOOL MakePretty_RowHeight() const noexcept
     {
-        return SetRowHeight(DpiScale(6, GetDpi(HWnd)), FALSE);
+        return SetRowHeight(DpiScale(6, GetDpi(Handle)), FALSE);
     }
 
     BOOL MakePretty() const noexcept

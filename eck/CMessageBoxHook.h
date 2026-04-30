@@ -11,8 +11,8 @@ private:
 
     void UpdateMetrics(int iDpi) noexcept
     {
-        const auto hStatic = GetDlgItem(HWnd, 0xFFFF);
-        const auto hStaticIcon = GetDlgItem(HWnd, 0x14);
+        const auto hStatic = GetDlgItem(Handle, 0xFFFF);
+        const auto hStaticIcon = GetDlgItem(Handle, 0x14);
         // 内部测高机制过于复杂，这里使用静态控件的高度
         RECT rcTemp;
         GetClientRect(hStatic, &rcTemp);
@@ -32,7 +32,7 @@ private:
         // User32的计算方法，不应仿照其底边计算方式，
         // 因为其得出的数值不准确，实际上超过了客户区高度
         const int cyTextMargin = (14 * tm.tmHeight + 4) >> 3;
-        GetClientRect(HWnd, &m_rcMainPanel);
+        GetClientRect(Handle, &m_rcMainPanel);
         m_rcCommandEdge = m_rcMainPanel;
         m_rcMainPanel.bottom = std::max(cyText, cyIcon) + cyTextMargin * 2;
         m_rcCommandEdge.top = m_rcMainPanel.bottom;
@@ -48,12 +48,12 @@ public:
                 break;
             const auto* const ptc = PtcCurrent();
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, &ps);
+            BeginPaint(Handle, &ps);
             SetDCBrushColor(ps.hdc, ptc->crDefBkg);
             FillRect(ps.hdc, &m_rcMainPanel, GetStockBrush(DC_BRUSH));
             SetDCBrushColor(ps.hdc, ptc->crDefBtnFace);
             FillRect(ps.hdc, &m_rcCommandEdge, GetStockBrush(DC_BRUSH));
-            EndPaint(HWnd, &ps);
+            EndPaint(Handle, &ps);
         }
         return 0;
 
@@ -61,7 +61,7 @@ public:
         {
             // Call默认过程，先执行初始化
             const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
-            if (HWND hStaticIcon; hStaticIcon = GetDlgItem(HWnd, 0x14))
+            if (HWND hStaticIcon; hStaticIcon = GetDlgItem(Handle, 0x14))
             {
                 m_hIcon = (HICON)::SendMessageW(hStaticIcon, STM_GETICON, 0, 0);
                 // OD修正图标白底
@@ -69,8 +69,8 @@ public:
                     (GetWindowLongPtrW(hStaticIcon, GWL_STYLE) & ~SS_ICON) | SS_OWNERDRAW);
             }
 
-            UpdateMetrics(GetDpi(HWnd));
-            EnableWindowNcDarkMode(HWnd, ShouldAppsUseDarkMode());
+            UpdateMetrics(GetDpi(Handle));
+            EnableWindowNcDarkMode(Handle, ShouldAppsUseDarkMode());
             return lResult;
         }
         break;
@@ -123,7 +123,7 @@ public:
             if (ShouldAppsUseDarkMode())// 焦点指示器状态改变将导致重绘错误。。。。
             {
                 const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
-                RedrawWindow(HWnd, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
+                RedrawWindow(Handle, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
                 return lResult;
             }
         }

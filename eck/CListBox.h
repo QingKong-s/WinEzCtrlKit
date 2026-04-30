@@ -342,7 +342,7 @@ public:
         RECT rcItem;
         if (GetItemRect(idx, &rcItem) == LB_ERR)
             return;
-        InvalidateRect(HWnd, &rcItem, TRUE);
+        InvalidateRect(Handle, &rcItem, TRUE);
     }
 };
 ECK_NAMESPACE_END

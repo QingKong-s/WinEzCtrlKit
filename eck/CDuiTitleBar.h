@@ -31,7 +31,7 @@ protected:
     LRESULT OnWindowMessage(CWindow* pWnd, UINT uMsg, WPARAM, LPARAM, Slot&)
     {
         if (uMsg == WM_WINDOWPOSCHANGED)
-            m_bMaximized = IsZoomed(pWnd->HWnd);
+            m_bMaximized = IsZoomed(pWnd->Handle);
         return 0;
     }
 
@@ -158,7 +158,7 @@ public:
         case WM_NCLBUTTONDOWN:
         {
             POINT pt ECK_GET_PT_LPARAM(lParam);
-            ScreenToClient(GetWindow()->HWnd, &pt);
+            ScreenToClient(GetWindow()->Handle, &pt);
             ClientToElement(pt);
             GetWindow()->Phy2Log(pt);
             const auto idxOld = m_idxPressed;
@@ -173,7 +173,7 @@ public:
             if (m_idxPressed != UdwPart::Invalid)
             {
                 POINT pt ECK_GET_PT_LPARAM(lParam);
-                ScreenToClient(GetWindow()->HWnd, &pt);
+                ScreenToClient(GetWindow()->Handle, &pt);
                 ClientToElement(pt);
                 GetWindow()->Phy2Log(pt);
                 const auto idx = HitTest(pt);
@@ -204,7 +204,7 @@ public:
         case WM_NCMOUSEMOVE:
         {
             POINT pt ECK_GET_PT_LPARAM(lParam);
-            ScreenToClient(GetWindow()->HWnd, &pt);
+            ScreenToClient(GetWindow()->Handle, &pt);
             ClientToElement(pt);
             GetWindow()->Phy2Log(pt);
             const auto idxOld = m_idxHot;
@@ -241,7 +241,7 @@ public:
         case WM_CREATE:
         {
             GetWindow()->GetEventChain().Connect(this, &CTitleBar::OnWindowMessage, MHI_DUI_TITLEBAR);
-            m_bMaximized = IsZoomed(GetWindow()->HWnd);
+            m_bMaximized = IsZoomed(GetWindow()->Handle);
             UpdateTitleBarInfo(TRUE);
             UpdateMetrics();
         }
@@ -257,7 +257,7 @@ public:
 
     void UpdateTitleBarInfo(BOOL bForceUpdate = FALSE)
     {
-        if (bForceUpdate || !m_DwmPartMgr.GetHTheme())
+        if (bForceUpdate || !m_DwmPartMgr.GetThemeHandle())
         {
             m_DwmPartMgr.LoadDefaultTheme();
             PCVOID pData;

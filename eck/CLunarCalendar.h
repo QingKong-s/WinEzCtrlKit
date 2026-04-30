@@ -63,7 +63,7 @@ public:
 
         case WM_CREATE:
         {
-            m_hTheme = OpenThemeData(HWnd, L"MonthCal");
+            m_hTheme = OpenThemeData(Handle, L"MonthCal");
             UpdateTipText();
         }
         break;
@@ -72,9 +72,9 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, wParam, ps);
+            BeginPaint(Handle, wParam, ps);
             Paint(ps.hdc, ps.rcPaint);
-            EndPaint(HWnd, wParam, ps);
+            EndPaint(Handle, wParam, ps);
         }
         return 0;
         }

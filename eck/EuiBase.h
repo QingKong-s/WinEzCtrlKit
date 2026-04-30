@@ -173,9 +173,9 @@ private:
     {
         if (m_Stock.hCDC)
             DeleteDC(m_Stock.hCDC);
-        const auto hDC = GetDC(HWnd);
+        const auto hDC = GetDC(Handle);
         m_Stock.hCDC = CreateCompatibleDC(hDC);
-        ReleaseDC(HWnd, hDC);
+        ReleaseDC(Handle, hDC);
         GdipCreateSolidFill(0, m_Stock.pBrush.AtClear());
         GdipCreatePen1(0, 1.f, Gdiplus::UnitPixel, m_Stock.pPen.AtClear());
         GdipCreateStringFormat(
@@ -190,7 +190,7 @@ public:
         case WM_SIZE:
         {
             const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
-            m_DC.ReSize(HWnd, GetClientWidth(), GetClientHeight());
+            m_DC.ReSize(Handle, GetClientWidth(), GetClientHeight());
             Redraw({ 0, 0, GetClientWidth(), GetClientHeight() });
             return lResult;
         }
@@ -199,16 +199,16 @@ public:
         case WM_PRINTCLIENT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, wParam, ps);
+            BeginPaint(Handle, wParam, ps);
             BitBltPs(ps, m_DC.GetDC());
-            EndPaint(HWnd, wParam, ps);
+            EndPaint(Handle, wParam, ps);
         }
         return 0;
 
         case WM_CREATE:
         {
             const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
-            m_DC.FromWindow(HWnd, GetClientWidth(), GetClientHeight());
+            m_DC.FromWindow(Handle, GetClientWidth(), GetClientHeight());
             const auto hDC = m_DC.GetDC();
             SelectClipRgn(hDC, nullptr);
             SetBkMode(hDC, TRANSPARENT);
@@ -232,10 +232,10 @@ public:
         if (IsRectEmpty(rc0))
             return;
         RdRenderTree(EtFirstChild(), rc0);
-        const auto hDC = GetDC(HWnd);
+        const auto hDC = GetDC(Handle);
         BitBlt(hDC, rc0.left, rc0.top, rc0.right - rc0.left, rc0.bottom - rc0.top,
             m_DC.GetDC(), rc0.left, rc0.top, SRCCOPY);
-        ReleaseDC(HWnd, hDC);
+        ReleaseDC(Handle, hDC);
     }
 
     EckInlineNdCe auto& GetMemoryDC() const noexcept { return m_DC; }

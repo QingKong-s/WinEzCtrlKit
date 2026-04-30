@@ -28,8 +28,8 @@ public:
         case WM_LBUTTONDOWN:
             m_bCaptured = TRUE;
             Redraw();
-            UpdateWindow(HWnd);
-            SetCapture(HWnd);
+            UpdateWindow(Handle);
+            SetCapture(Handle);
             SetCursor(m_hcHit ? m_hcHit : m_hcDef);
             return 0;
 
@@ -39,7 +39,7 @@ public:
             {
                 m_bCaptured = FALSE;
                 Redraw();
-                UpdateWindow(HWnd);
+                UpdateWindow(Handle);
                 ReleaseCapture();
                 NMHTTSEL nm;
                 GetCursorPos(&nm.pt);
@@ -58,12 +58,12 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, &ps);
+            BeginPaint(Handle, &ps);
             SetDCBrushColor(ps.hdc, PtcCurrent()->crDefBkg);
             FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
             if (!m_bCaptured)
                 DrawIcon(ps.hdc, 0, 0, (HICON)(m_hcNormal ? m_hcNormal : m_hcDef));
-            EndPaint(HWnd, &ps);
+            EndPaint(Handle, &ps);
         }
         return 0;
 

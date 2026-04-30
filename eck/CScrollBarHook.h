@@ -292,7 +292,7 @@ private:
         }
 
         if (m_bVisibleV && m_bVisibleH &&
-            ShouldWindowDisplaySizeGrip(m_pWnd->HWnd, m_iDpi))
+            ShouldWindowDisplaySizeGrip(m_pWnd->Handle, m_iDpi))
         {
             rc.left = m_rcSBH.right;
             rc.top = m_rcSBV.bottom;
@@ -304,9 +304,9 @@ private:
 
     void Redraw() noexcept
     {
-        const auto hDC = GetWindowDC(m_pWnd->HWnd);
+        const auto hDC = GetWindowDC(m_pWnd->Handle);
         Redraw(hDC);
-        ReleaseDC(m_pWnd->HWnd, hDC);
+        ReleaseDC(m_pWnd->Handle, hDC);
     }
 
     void GenerateScrollMessage(Part ePart) noexcept
@@ -333,8 +333,8 @@ private:
 
     void CancelRepeat() noexcept
     {
-        KillTimer(m_pWnd->HWnd, IDT_REPEAT_DELAY);
-        KillTimer(m_pWnd->HWnd, IDT_REPEAT);
+        KillTimer(m_pWnd->Handle, IDT_REPEAT_DELAY);
+        KillTimer(m_pWnd->Handle, IDT_REPEAT);
     }
 
     void Cleanup() noexcept
@@ -361,7 +361,7 @@ public:
             if (!m_bVisibleH && !m_bVisibleV)
                 break;
             POINT pt ECK_GET_PT_LPARAM(lParam);
-            ScreenToClient(pWnd->HWnd, &pt);
+            ScreenToClient(pWnd->Handle, &pt);
             if (m_bVisibleV && PointInRect(m_rcSBV, pt))
             {
                 Ctx.Processed();
@@ -432,7 +432,7 @@ public:
 
                 POINT pt ECK_GET_PT_LPARAM(lParam);
                 if (uMsg == WM_NCLBUTTONUP)
-                    ScreenToClient(pWnd->HWnd, &pt);
+                    ScreenToClient(pWnd->Handle, &pt);
                 const auto ePart = HitTest(pt);
                 const auto eHot = (
                     ePart == Part::ThumbV ? HotState::VSB :
@@ -454,7 +454,7 @@ public:
             Ctx.Processed();
             POINT pt;
             GetCursorPos(&pt);
-            ScreenToClient(pWnd->HWnd, &pt);
+            ScreenToClient(pWnd->Handle, &pt);
             GenerateScrollMessage(HitTest(pt));
         }
         break;
@@ -521,7 +521,7 @@ public:
                 break;
             Ctx.Processed();
             POINT pt ECK_GET_PT_LPARAM(lParam);
-            ScreenToClient(pWnd->HWnd, &pt);
+            ScreenToClient(pWnd->Handle, &pt);
             const auto ePart = HitTest(pt);
             m_eLBtnDownPart = ePart;
             if (wParam == HTVSCROLL)
@@ -545,13 +545,13 @@ public:
                 }
             }
             GenerateScrollMessage(ePart);
-            SetCapture(pWnd->HWnd);
+            SetCapture(pWnd->Handle);
             CancelRepeat();
             if (m_eLBtnDownPart != Part::Invalid &&
                 m_eLBtnDownPart != Part::ThumbV &&
                 m_eLBtnDownPart != Part::ThumbH)
             {
-                SetTimer(pWnd->HWnd, IDT_REPEAT_DELAY, TE_REPEAT_DELAY,
+                SetTimer(pWnd->Handle, IDT_REPEAT_DELAY, TE_REPEAT_DELAY,
                     [](HWND hWnd, UINT, UINT_PTR uId, DWORD)
                     {
                         KillTimer(hWnd, uId);
@@ -583,7 +583,7 @@ public:
             TRACKMOUSEEVENT tme;
             tme.cbSize = sizeof(tme);
             tme.dwFlags = TME_LEAVE | TME_NONCLIENT;
-            tme.hwndTrack = pWnd->HWnd;
+            tme.hwndTrack = pWnd->Handle;
             TrackMouseEvent(&tme);
             if (eOldHot != m_eHotState)
                 Redraw();
@@ -629,7 +629,7 @@ public:
         case WM_THEMECHANGED:
         {
             CloseThemeData(m_hTheme);
-            m_hTheme = OpenNcThemeData(m_pWnd->HWnd, L"ScrollBar");
+            m_hTheme = OpenNcThemeData(m_pWnd->Handle, L"ScrollBar");
             Redraw();
         }
         break;
@@ -637,7 +637,7 @@ public:
         case WM_DPICHANGED:
         case WM_DPICHANGED_BEFOREPARENT:
         {
-            m_iDpi = GetDpi(pWnd->HWnd);
+            m_iDpi = GetDpi(pWnd->Handle);
             if (m_bStdSize)
                 UpdateStandardSize();
         }
@@ -654,9 +654,9 @@ public:
     {
         if (pWnd->GetEventChain().FindSlot(MHI_SCROLLBAR_HOOK))
             return S_FALSE;
-        SetPropW(pWnd->HWnd, PROP_SBHOOK, this);
+        SetPropW(pWnd->Handle, PROP_SBHOOK, this);
         m_pWnd = pWnd;
-        m_iDpi = GetDpi(pWnd->HWnd);
+        m_iDpi = GetDpi(pWnd->Handle);
 
         UpdateStandardSize();
 
@@ -666,9 +666,9 @@ public:
         pWnd->ScbGetInfomation(SB_VERT, &si);
         m_ViewV.SetScrollInfomation(si);
 
-        m_hTheme = OpenNcThemeData(pWnd->HWnd, L"ScrollBar");
+        m_hTheme = OpenNcThemeData(pWnd->Handle, L"ScrollBar");
 
-        GetWindowRect(pWnd->HWnd, &m_rcWnd);
+        GetWindowRect(pWnd->Handle, &m_rcWnd);
         m_rcWnd.right -= m_rcWnd.left;
         m_rcWnd.bottom -= m_rcWnd.top;
         m_rcWnd.left = 0;
@@ -868,6 +868,6 @@ public:
     EckInlineCe void SetStandardSize(BOOL bStdSize) noexcept { m_bStdSize = bStdSize; }
     EckInlineNdCe BOOL GetStandardSize() const noexcept { return m_bStdSize; }
 
-    EckInlineNdCe HTHEME GetHTheme() const noexcept { return m_hTheme; }
+    EckInlineNdCe HTHEME GetThemeHandle() const noexcept { return m_hTheme; }
 };
 ECK_NAMESPACE_END

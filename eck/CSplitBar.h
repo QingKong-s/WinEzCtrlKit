@@ -42,10 +42,10 @@ private:
         {
             Ctx.Processed();
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, wParam, ps);
+            BeginPaint(Handle, wParam, ps);
             SetDCBrushColor(ps.hdc, m_crMark);
             FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
-            EndPaint(HWnd, wParam, ps);
+            EndPaint(Handle, wParam, ps);
         }
         return 0;
         }
@@ -54,18 +54,18 @@ private:
 
     EckInline void UpdateMarkWindowAlpha() noexcept
     {
-        SetLayeredWindowAttributes(m_BkMark.GetHWnd(), 0, m_byMarkAlpha, LWA_ALPHA);
+        SetLayeredWindowAttributes(m_BkMark.GetHandle(), 0, m_byMarkAlpha, LWA_ALPHA);
     }
 
     EckInline void MoveMark(int x, int y) noexcept
     {
-        SetWindowPos(m_BkMark.GetHWnd(), nullptr, x, y, 0, 0,
+        SetWindowPos(m_BkMark.GetHandle(), nullptr, x, y, 0, 0,
             SWP_NOZORDER | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
     }
 
     EckInline void HideMark() noexcept
     {
-        ShowWindow(m_BkMark.GetHWnd(), SW_HIDE);
+        ShowWindow(m_BkMark.GetHandle(), SW_HIDE);
     }
 
     int CursorPointToSqlitPosition(POINT ptClient) noexcept
@@ -146,13 +146,13 @@ public:
                 if (m_bHorizontal)
                 {
                     ptNew.y = xyPos;
-                    ClientToScreen(GetParent(HWnd), &ptNew);
+                    ClientToScreen(GetParent(Handle), &ptNew);
                     ptNew.x = m_xyFixed;
                 }
                 else
                 {
                     ptNew.x = xyPos;
-                    ClientToScreen(GetParent(HWnd), &ptNew);
+                    ClientToScreen(GetParent(Handle), &ptNew);
                     ptNew.y = m_xyFixed;
                 }
 
@@ -164,7 +164,7 @@ public:
         case WM_SIZE:
         {
             ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
-            SetWindowPos(m_BkMark.GetHWnd(), nullptr, 0, 0, m_cxClient, m_cyClient,
+            SetWindowPos(m_BkMark.GetHandle(), nullptr, 0, 0, m_cxClient, m_cyClient,
                 SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
         }
         return 0;
@@ -172,21 +172,21 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, &ps);
+            BeginPaint(Handle, &ps);
             SetDCBrushColor(ps.hdc, m_crBk == CLR_DEFAULT ? PtcCurrent()->crDefBkg : m_crBk);
             FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
-            EndPaint(HWnd, &ps);
+            EndPaint(Handle, &ps);
         }
         return 0;
 
         case WM_LBUTTONDBLCLK:// 连击修正
         case WM_LBUTTONDOWN:
         {
-            SetFocus(HWnd);
-            SetCapture(HWnd);
+            SetFocus(Handle);
+            SetCapture(Handle);
             m_bLBtnDown = TRUE;
             RECT rc;
-            GetWindowRect(HWnd, &rc);
+            GetWindowRect(Handle, &rc);
 
             if (m_bHorizontal)
             {
@@ -233,7 +233,7 @@ public:
         {
             m_BkMark.Create(nullptr, WS_POPUP | WS_DISABLED,
                 WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_NOACTIVATE,
-                -32000, -32000, 0, 0, HWnd, 0);
+                -32000, -32000, 0, 0, Handle, 0);
             UpdateMarkWindowAlpha();
         }
         break;

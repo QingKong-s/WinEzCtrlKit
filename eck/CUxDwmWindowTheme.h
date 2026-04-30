@@ -289,6 +289,6 @@ public:
 
     EckInlineNdCe auto& AtPart(int idx) const noexcept { return m_vItem[idx]; }
 
-    EckInlineNdCe HTHEME GetHTheme() const noexcept { return m_hTheme; }
+    EckInlineNdCe HTHEME GetThemeHandle() const noexcept { return m_hTheme; }
 };
 ECK_NAMESPACE_END

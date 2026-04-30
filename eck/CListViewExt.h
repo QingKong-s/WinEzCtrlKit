@@ -911,14 +911,14 @@ private:
         m_bWaitEditDelay = TRUE;
         m_idxEditing = idx;
         m_idxEditSubItem = idxSubItemDisplay;
-        SetTimer(HWnd, IDT_EDIT_DELAY, GetDoubleClickTime(), nullptr);
+        SetTimer(Handle, IDT_EDIT_DELAY, GetDoubleClickTime(), nullptr);
     }
 
     void CancelEditDelay() noexcept
     {
         if (!m_bWaitEditDelay)
             return;
-        KillTimer(HWnd, IDT_EDIT_DELAY);
+        KillTimer(Handle, IDT_EDIT_DELAY);
         m_bWaitEditDelay = FALSE;
     }
 
@@ -983,7 +983,7 @@ private:
 
 
             RCWH rcClient;
-            GetClientRect(HWnd, (RECT*)&rcClient);
+            GetClientRect(Handle, (RECT*)&rcClient);
 
             RECT rc;
             if (m_iViewType == LV_VIEW_DETAILS)
@@ -1046,9 +1046,9 @@ private:
                 dwStyle |= ES_CENTER;
             m_pEdit->Create(edi.pszText, dwStyle, 0,
                 edi.rcIdeal.x, edi.rcIdeal.y, edi.rcIdeal.cx, edi.rcIdeal.cy,
-                HWnd, 0);
+                Handle, 0);
             m_pEdit->SelectAll();
-            SetFocus(m_pEdit->HWnd);
+            SetFocus(m_pEdit->Handle);
             if (!m_hmsEdit)
                 m_hmsEdit = m_pEdit->GetEventChain().Connect(this, &CListViewExt::OnMessageEdit);
             m_pEdit->SetFont(GetFont());
@@ -1087,7 +1087,7 @@ public:
             if (!m_bGridLines || (m_iViewType != LV_VIEW_DETAILS))
                 break;
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, wParam, ps);
+            BeginPaint(Handle, wParam, ps);
             CListView::OnMessage(WM_PAINT, (WPARAM)ps.hdc, 0);
 
             RECT rcItem;
@@ -1131,14 +1131,14 @@ public:
                 }
                 SelectObject(ps.hdc, hOld);
             }
-            EndPaint(HWnd, wParam, ps);
+            EndPaint(Handle, wParam, ps);
             return 0;
         }
         break;
 
         case WM_NOTIFY:
         {
-            if (m_bEditLabel && m_bEnableExtEdit && m_Header.HWnd == ((NMHDR*)lParam)->hwndFrom)
+            if (m_bEditLabel && m_bEnableExtEdit && m_Header.Handle == ((NMHDR*)lParam)->hwndFrom)
             {
                 switch (((NMHDR*)lParam)->code)
                 {
@@ -1238,7 +1238,7 @@ public:
         case WM_THEMECHANGED:
         {
             CloseThemeData(m_hTheme);
-            m_hTheme = OpenThemeData(HWnd, L"ListView");
+            m_hTheme = OpenThemeData(Handle, L"ListView");
             if (m_ptc)
                 HandleThemeChange();
         }
@@ -1256,7 +1256,7 @@ public:
         break;
 
         case WM_DPICHANGED_BEFOREPARENT:
-            m_iDpi = GetDpi(HWnd);
+            m_iDpi = GetDpi(Handle);
             m_cxEdge = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
             break;
 
@@ -1283,7 +1283,7 @@ public:
         {
             const auto lResult = CListView::OnMessage(uMsg, wParam, lParam);
             if (!lResult)
-                InitializeForNewWindow(HWnd);
+                InitializeForNewWindow(Handle);
             return lResult;
         }
         break;
@@ -1638,7 +1638,7 @@ public:
         // force recalc it
         Update();
         RECT rc;
-        GetClientRect(HWnd, &rc);
+        GetClientRect(Handle, &rc);
         SendMessageW(WM_SIZE, 0, MAKELPARAM(rc.right, rc.bottom));
     }
 

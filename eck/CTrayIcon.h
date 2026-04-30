@@ -60,7 +60,7 @@ private:
         {
             NOTIFYICONDATAW nid;
             nid.cbSize = sizeof(nid);
-            nid.hWnd = pWnd->HWnd;
+            nid.hWnd = pWnd->Handle;
             nid.uCallbackMessage = MessageTray;
             for (auto it = m_vItem.begin(); it != m_vItem.end(); )
             {
@@ -119,7 +119,7 @@ public:
     {
         NOTIFYICONDATAW nid;
         nid.cbSize = sizeof(nid);
-        nid.hWnd = m_pWnd->HWnd;
+        nid.hWnd = m_pWnd->Handle;
         nid.uID = uId;
         nid.uFlags = NIF_MESSAGE | NIF_STATE | (bUseStdTip ? NIF_SHOWTIP : 0);
         nid.uCallbackMessage = MessageTray;
@@ -165,7 +165,7 @@ public:
 
         NOTIFYICONDATAW nid;
         nid.cbSize = sizeof(nid);
-        nid.hWnd = m_pWnd->HWnd;
+        nid.hWnd = m_pWnd->Handle;
         nid.uID = uId;
         nid.uFlags = uFlags;
 
@@ -209,7 +209,7 @@ public:
         m_vItem.erase(it);
         NOTIFYICONDATAW nid;
         nid.cbSize = sizeof(nid);
-        nid.hWnd = m_pWnd->HWnd;
+        nid.hWnd = m_pWnd->Handle;
         nid.uID = uId;
         nid.uFlags = 0;
         return Shell_NotifyIconW(NIM_DELETE, &nid);
@@ -222,7 +222,7 @@ public:
         nid.uFlags = 0;
         for (const auto& e : m_vItem)
         {
-            nid.hWnd = m_pWnd->HWnd;
+            nid.hWnd = m_pWnd->Handle;
             nid.uID = e.uId;
             Shell_NotifyIconW(NIM_DELETE, &nid);
         }
@@ -233,7 +233,7 @@ public:
     {
         NOTIFYICONDATAW nid;
         nid.cbSize = sizeof(nid);
-        nid.hWnd = m_pWnd->HWnd;
+        nid.hWnd = m_pWnd->Handle;
         nid.uID = uId;
         nid.uFlags = 0;
         return Shell_NotifyIconW(NIM_SETFOCUS, &nid);
@@ -249,7 +249,7 @@ public:
     {
         NOTIFYICONDATAW nid;
         nid.cbSize = sizeof(nid);
-        nid.hWnd = m_pWnd->HWnd;
+        nid.hWnd = m_pWnd->Handle;
         nid.uID = uId;
         nid.uFlags = NIF_INFO | (bRealTime ? NIF_REALTIME : 0);
 
@@ -274,7 +274,7 @@ public:
     {
         NOTIFYICONDATAW nid;
         nid.cbSize = sizeof(nid);
-        nid.hWnd = m_pWnd->HWnd;
+        nid.hWnd = m_pWnd->Handle;
         nid.uID = uId;
         nid.uFlags = NIF_INFO;
         nid.szInfo[0] = L'\0';

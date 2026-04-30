@@ -309,7 +309,7 @@ public:
                 case MouseOpt::TransparentSpace:
                 {
                     POINT pt{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) };
-                    ScreenToClient(HWnd, &pt);
+                    ScreenToClient(Handle, &pt);
                     LA_HITTEST laht;
                     HitTest(pt, laht);
                     if (!laht.bHitImg && !laht.bHitText)
@@ -336,7 +336,7 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, wParam, ps);
+            BeginPaint(Handle, wParam, ps);
             if (m_bTransparent)
             {
                 SaveDC(ps.hdc);
@@ -349,7 +349,7 @@ public:
                 Paint(m_DC.GetDC(), ps.rcPaint);
                 BitBltPs(ps, m_DC.GetDC());
             }
-            EndPaint(HWnd, wParam, ps);
+            EndPaint(Handle, wParam, ps);
         }
         return 0;
 
@@ -389,7 +389,7 @@ public:
         {
             m_cxClient = LOWORD(lParam);
             m_cyClient = HIWORD(lParam);
-            m_DC.ReSize(HWnd, m_cxClient, m_cyClient);
+            m_DC.ReSize(Handle, m_cxClient, m_cyClient);
             SetDCAttributes(m_DC.GetDC());
             CalculatePartsRect();
         }
@@ -398,7 +398,7 @@ public:
         case WM_CREATE:
         {
             m_rsText = ((CREATESTRUCTW*)lParam)->lpszName;
-            m_DC.FromWindow(HWnd);
+            m_DC.FromWindow(Handle);
             SetDCAttributes(m_DC.GetDC());
         }
         break;

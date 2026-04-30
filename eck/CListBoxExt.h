@@ -512,7 +512,7 @@ public:
             tme.cbSize = sizeof(TRACKMOUSEEVENT);
             tme.dwFlags = TME_HOVER | TME_LEAVE;
             tme.dwHoverTime = 400;
-            tme.hwndTrack = HWnd;
+            tme.hwndTrack = Handle;
             TrackMouseEvent(&tme);
         }
         break;
@@ -523,8 +523,8 @@ public:
                 break;
             ::SendMessageW(m_hToolTip, TTM_TRACKACTIVATE, FALSE, (LPARAM)&m_ti);
             POINT ptScr{ GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam) };
-            ClientToScreen(HWnd, &ptScr);
-            int idx = LBItemFromPt(HWnd, ptScr, FALSE);
+            ClientToScreen(Handle, &ptScr);
+            int idx = LBItemFromPt(Handle, ptScr, FALSE);
             if (idx < 0)
                 break;
             ::SendMessageW(m_hToolTip, TTM_GETTOOLINFOW, 0, (LPARAM)&m_ti);

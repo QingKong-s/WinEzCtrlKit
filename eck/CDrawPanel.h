@@ -26,9 +26,9 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, &ps);
+            BeginPaint(Handle, &ps);
             BitBltPs(&ps, m_DC.GetDC());
-            EndPaint(HWnd, &ps);
+            EndPaint(Handle, &ps);
         }
         return 0;
         case WM_SIZE:
@@ -36,10 +36,10 @@ public:
             const auto cx = (int)LOWORD(lParam);
             const auto cy = (int)HIWORD(lParam);
 
-            const auto hDC = GetDC(HWnd);
+            const auto hDC = GetDC(Handle);
 
             CMemoryDC DC{};
-            DC.FromWindow(HWnd, cx, cy);
+            DC.FromWindow(Handle, cx, cy);
 
             const RECT rc{ 0, 0, cx, cy };
             FillRect(DC.GetDC(), &rc, m_hbrBK);
@@ -59,8 +59,8 @@ public:
         case WM_CREATE:
         {
             RECT rc;
-            GetClientRect(HWnd, &rc);
-            m_DC.FromWindow(HWnd);
+            GetClientRect(Handle, &rc);
+            m_DC.FromWindow(Handle);
             FillRect(m_DC.GetDC(), &rc, m_hbrBK);
             GdipCreateFromHDC(m_DC.GetDC(), &m_pGraphics);
             GdipSetSmoothingMode(m_pGraphics, Gdiplus::SmoothingModeHighQuality);
@@ -96,14 +96,14 @@ public:
         switch (uMsg)
         {
         case WM_PAINT:
-            ValidateRect(HWnd, nullptr);
+            ValidateRect(Handle, nullptr);
             m_D2D.GetSwapChain()->Present(0, 0);
             return 0;
         case WM_SIZE:
             m_D2D.ReSize(0, LOWORD(lParam), HIWORD(lParam), 0);
             return 0;
         case WM_CREATE:
-            m_D2D.Create(EZD2D_PARAM::MakeBitblt(HWnd, g_pDxgiFactory, g_pDxgiDevice, g_pD2DDevice, 0, 0));
+            m_D2D.Create(EZD2D_PARAM::MakeBitblt(Handle, g_pDxgiFactory, g_pDxgiDevice, g_pD2DDevice, 0, 0));
             return 0;
         }
         return __super::OnMessage(uMsg, wParam, lParam);

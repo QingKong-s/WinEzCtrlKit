@@ -6,7 +6,7 @@ void CWindowMain::DmNewDpi(int iDpi) noexcept
     const int iDpiOld = m_iDpi;
     m_iDpi = iDpi;
     m_Layout.LoOnDpiChanged(iDpi);
-    eck::ReCreateAndApplyFontForDpiChanged(HWnd, m_hFont, iDpi, iDpiOld);
+    eck::ReCreateAndApplyFontForDpiChanged(Handle, m_hFont, iDpi, iDpiOld);
     DmUpdateFixedSize();
 }
 
@@ -24,7 +24,7 @@ LRESULT CWindowMain::OnCreate(CREATESTRUCT* pcs) noexcept
 {
     eck::PtcCurrent()->UpdateDefaultColor();
 
-    m_iDpi = eck::GetDpi(HWnd);
+    m_iDpi = eck::GetDpi(Handle);
     m_hFont = eck::DftCreate(m_iDpi);
 
     constexpr DWORD Style = WS_CHILD | WS_VISIBLE | WS_TABSTOP;
@@ -112,8 +112,8 @@ LRESULT CWindowMain::OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
         switch (HIWORD(wParam))
         {
         case BN_CLICKED:
-            if ((LPARAM)m_BTLogin.HWnd == lParam)
-                MessageBoxW(HWnd, L"Hello World!", L"Hello", MB_OK);
+            if ((LPARAM)m_BTLogin.Handle == lParam)
+                MessageBoxW(Handle, L"Hello World!", L"Hello", MB_OK);
             return 0;
         }
     }
@@ -127,14 +127,14 @@ LRESULT CWindowMain::OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
         return 0;
 
     case WM_SYSCOLORCHANGE:
-        eck::MsgOnSystemColorChangeMainWindow(HWnd, wParam, lParam);
+        eck::MsgOnSystemColorChangeMainWindow(Handle, wParam, lParam);
         break;
     case WM_SETTINGCHANGE:
-        eck::MsgOnSettingChangeMainWindow(HWnd, wParam, lParam);
+        eck::MsgOnSettingChangeMainWindow(Handle, wParam, lParam);
         break;
     case WM_DPICHANGED:
         DmNewDpi(HIWORD(wParam));
-        eck::MsgOnDpiChanged(HWnd, lParam);
+        eck::MsgOnDpiChanged(Handle, lParam);
         return 0;
     }
     return __super::OnMessage(uMsg, wParam, lParam);
@@ -142,7 +142,7 @@ LRESULT CWindowMain::OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
 
 BOOL CWindowMain::PreTranslateMessage(const MSG& Msg) noexcept
 {
-    if (IsDialogMessageW(HWnd, (MSG*)&Msg))
+    if (IsDialogMessageW(Handle, (MSG*)&Msg))
         return TRUE;
     return __super::PreTranslateMessage(Msg);
 }

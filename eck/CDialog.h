@@ -89,7 +89,7 @@ protected:
 public:
     static INT_PTR CALLBACK EckDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
-        const auto pDlg = DbgDynamicCast<CDialog*>(CWindowFromHWND(hDlg));
+        const auto pDlg = DbgDynamicCast<CDialog*>(CWindowFromHandle(hDlg));
 #ifdef _DEBUG
         if (!pDlg)
         {
@@ -109,7 +109,7 @@ public:
         {
         case WM_NCCREATE:
             m_iResult = 0;
-            SetWindowLongPtrW(HWnd, DWLP_DLGPROC, (LONG_PTR)EckDlgProc);
+            SetWindowLongPtrW(Handle, DWLP_DLGPROC, (LONG_PTR)EckDlgProc);
 #ifdef _DEBUG
             m_bDlgProcInit = TRUE;
             break;

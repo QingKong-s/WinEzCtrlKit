@@ -42,9 +42,9 @@ public:
         int iPt{ 9 }, iWeight{ 400 };
         (void)swscanf(rs.Data() + iPos, L",%d,%d", &iPt, &iWeight);
 
-        const HDC hDC = GetDC(HWnd);
+        const HDC hDC = GetDC(Handle);
         lf.lfHeight = -MulDiv(iPt, GetDeviceCaps(hDC, LOGPIXELSY), 72);
-        ReleaseDC(HWnd, hDC);
+        ReleaseDC(Handle, hDC);
 
         lf.lfWeight = iWeight;
         return TRUE;
@@ -75,7 +75,7 @@ public:
         const BOOL bHasInfo = ToLogFont(lf);
 
         CHOOSEFONTW cf{ sizeof(CHOOSEFONTW) };
-        cf.hwndOwner = HWnd;
+        cf.hwndOwner = Handle;
         cf.lpLogFont = &lf;
         cf.Flags = m_uCfFlags | (bHasInfo ? CF_INITTOLOGFONTSTRUCT : 0u);
         CFontDialog Dlg{};

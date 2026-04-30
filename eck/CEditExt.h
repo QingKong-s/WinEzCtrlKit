@@ -50,12 +50,12 @@ protected:
 
     void UpdateTextInfomation()
     {
-        const auto hDC = GetDC(HWnd);
+        const auto hDC = GetDC(Handle);
         SelectObject(hDC, GetFont());
         TEXTMETRICW tm;
         GetTextMetricsW(hDC, &tm);
         m_cyText = tm.tmHeight;
-        ReleaseDC(HWnd, hDC);
+        ReleaseDC(Handle, hDC);
     }
 
     EckInline constexpr RECT GetSingleLineTextRect()
@@ -116,7 +116,7 @@ public:
                 !m_rsCueBanner.IsEmpty())
             {
                 PAINTSTRUCT ps;
-                BeginPaint(HWnd, wParam, ps);
+                BeginPaint(Handle, wParam, ps);
 
                 CEdit::OnMessage(WM_PAINT, (WPARAM)ps.hdc, 0);
                 RECT rcText;
@@ -129,7 +129,7 @@ public:
                 SetTextColor(ps.hdc, crOld);
                 SelectObject(ps.hdc, hOld);
 
-                EndPaint(HWnd, wParam, ps);
+                EndPaint(Handle, wParam, ps);
                 return 0;
             }
         }
@@ -138,7 +138,7 @@ public:
         case WM_KEYDOWN:
             if (m_bCtrlASelectAll && wParam == 'A')
                 if (GetKeyState(VK_CONTROL) & 0x80000000)
-                    ::SendMessageW(HWnd, EM_SETSEL, 0, -1);// Ctrl + A全选
+                    ::SendMessageW(Handle, EM_SETSEL, 0, -1);// Ctrl + A全选
             break;
 
         case WM_CHAR:
@@ -246,7 +246,7 @@ public:
 
             case InputMode::Float:
             {
-                cchText = GetWindowTextLengthW(HWnd) + 10;
+                cchText = GetWindowTextLengthW(Handle) + 10;
                 if (!cchText)
                     break;
                 pszText = (PWSTR)_malloca(CchToCbW(cchText));
@@ -268,7 +268,7 @@ public:
 
             case InputMode::Double:
             {
-                cchText = GetWindowTextLengthW(HWnd) + 10;
+                cchText = GetWindowTextLengthW(Handle) + 10;
                 if (!cchText)
                     break;
                 pszText = (PWSTR)_malloca(CchToCbW(cchText));
@@ -293,7 +293,7 @@ public:
             }
 
             if (pszCorrectValue)
-                SetWindowTextW(HWnd, pszCorrectValue);
+                SetWindowTextW(Handle, pszCorrectValue);
         }
         break;
 
@@ -330,7 +330,7 @@ public:
             CEdit::OnMessage(uMsg, wParam, lParam);// 画默认边框
             if (GetMultiLine())
                 return 0;
-            const HDC hDC = GetWindowDC(HWnd);
+            const HDC hDC = GetWindowDC(Handle);
             RECT rcWnd{ 0,0,m_cxWnd,m_cyWnd };
             const RECT rcText{ GetSingleLineTextRect() };
             // 非客户区矩形减掉边框
@@ -348,7 +348,7 @@ public:
             // 填充背景
             SetDCBrushColor(hDC, m_crBk != CLR_DEFAULT ? m_crBk : PtcCurrent()->crDefBkg);
             FillRect(hDC, &rcWnd, GetStockBrush(DC_BRUSH));
-            ReleaseDC(HWnd, hDC);
+            ReleaseDC(Handle, hDC);
         }
         return 0;
 
@@ -424,7 +424,7 @@ public:
             {
                 if (m_bMultiLineCueBanner)
                 {
-                    const auto bEmpty = !GetWindowTextLengthW(HWnd);
+                    const auto bEmpty = !GetWindowTextLengthW(Handle);
                     if (m_bEmpty != bEmpty)
                     {
                         m_bEmpty = bEmpty;
@@ -471,7 +471,7 @@ public:
         {
             if (Size.cx <= 0)
                 Size.cx = (TLytCoord)m_cxWnd;
-            Size.cy = TLytCoord(m_cyText + DaGetSystemMetrics(SM_CYEDGE, GetDpi(HWnd)) * 2);
+            Size.cy = TLytCoord(m_cyText + DaGetSystemMetrics(SM_CYEDGE, GetDpi(Handle)) * 2);
             return TRUE;
         }
         return FALSE;
@@ -526,7 +526,7 @@ public:
     void SetMultiLineCueBanner(BOOL bMultiLineCueBanner) noexcept
     {
         m_bMultiLineCueBanner = bMultiLineCueBanner;
-        const auto bEmpty = !GetWindowTextLengthW(HWnd);
+        const auto bEmpty = !GetWindowTextLengthW(Handle);
         if (m_bEmpty != bEmpty)
         {
             m_bEmpty = bEmpty;

@@ -172,7 +172,7 @@ private:
                 *pRetVal = nullptr;
                 return UIA_E_ELEMENTNOTAVAILABLE;
             }
-            return UiaHostProviderFromHwnd(m_pContainer->HWnd, pRetVal);
+            return UiaHostProviderFromHwnd(m_pContainer->Handle, pRetVal);
         }
         // -----IRawElementProviderFragment-----
 
@@ -207,7 +207,7 @@ private:
                 return UIA_E_ELEMENTNOTAVAILABLE;
             }
             RECT rcInScr{ 0, 0, m_pContainer->m_cxClient, m_pContainer->m_cyClient };
-            ClientToScreen(m_pContainer->HWnd, &rcInScr);
+            ClientToScreen(m_pContainer->Handle, &rcInScr);
             pRetVal->left = (double)rcInScr.left;
             pRetVal->top = (double)rcInScr.top;
             pRetVal->width = double(rcInScr.right - rcInScr.left);
@@ -235,7 +235,7 @@ private:
             if (!m_pContainer)
                 return UIA_E_ELEMENTNOTAVAILABLE;
             POINT ptInClient{ (int)x, (int)y };
-            ScreenToClient(m_pContainer->HWnd, &ptInClient);
+            ScreenToClient(m_pContainer->Handle, &ptInClient);
             TPoint pt{ (TCoord)ptInClient.x, (TCoord)ptInClient.y };
             m_pContainer->PixelToLogical(pt);
             const auto pEle = TElement::EtHitTest(m_pContainer->EtLastChild(), pt);
@@ -354,7 +354,7 @@ private:
         {
             if (it->pEle == pEle)
             {
-                KillTimer(HWnd, it->uId);
+                KillTimer(Handle, it->uId);
                 it = m_vTimer.erase(it);
             }
             else
@@ -413,7 +413,7 @@ public:
                 TRACKMOUSEEVENT tme;
                 tme.cbSize = sizeof(tme);
                 tme.dwFlags = TME_LEAVE;
-                tme.hwndTrack = HWnd;
+                tme.hwndTrack = Handle;
                 TrackMouseEvent(&tme);
             }
             goto CallDefault;
@@ -423,7 +423,7 @@ public:
             if (m_bMouseCaptured)
             {
                 POINT pt ECK_GET_PT_LPARAM(lParam);
-                ScreenToClient(HWnd, &pt);
+                ScreenToClient(Handle, &pt);
                 TPoint ptLog{ (TCoord)pt.x, (TCoord)pt.y };
                 PixelToLogical(ptLog);
                 m_pEleCurrNcHitTest = TElement::EtHitTest(EtLastChild(), ptLog);
@@ -443,7 +443,7 @@ public:
                 TRACKMOUSEEVENT tme;
                 tme.cbSize = sizeof(tme);
                 tme.dwFlags = TME_LEAVE | TME_NONCLIENT;
-                tme.hwndTrack = HWnd;
+                tme.hwndTrack = Handle;
                 TrackMouseEvent(&tme);
             }
             else if (uMsg == WM_NCLBUTTONDOWN)// 修正放开事件
@@ -507,7 +507,7 @@ public:
             if (lResult != HTCLIENT)
                 return lResult;
             POINT pt ECK_GET_PT_LPARAM(lParam);
-            ScreenToClient(HWnd, &pt);
+            ScreenToClient(Handle, &pt);
             TPoint ptLog{ (TCoord)pt.x, (TCoord)pt.y };
             PixelToLogical(ptLog);
             LRESULT lResultNew;
@@ -577,7 +577,7 @@ public:
             POINT pt;
             if (DragQueryPoint((HDROP)wParam, &pt))// 落点位于客户区中
             {
-                ScreenToClient(HWnd, &pt);
+                ScreenToClient(Handle, &pt);
                 TPoint ptLog{ (TCoord)pt.x, (TCoord)pt.y };
                 PixelToLogical(ptLog);
                 const auto pEle = TElement::EtHitTest(EtLastChild(), ptLog);
@@ -592,24 +592,24 @@ public:
             if (lParam == UiaRootObjectId)
             {
                 UiaMakeInterface();
-                return UiaReturnRawElementProvider(HWnd, wParam, lParam, m_pUia.Get());
+                return UiaReturnRawElementProvider(Handle, wParam, lParam, m_pUia.Get());
             }
         }
         break;
 
         case WM_DPICHANGED:
             m_iDpi = HIWORD(wParam);
-            MsgOnDpiChanged(HWnd, lParam);
+            MsgOnDpiChanged(Handle, lParam);
             return 0;
         case WM_DPICHANGED_AFTERPARENT:
-            m_iDpi = GetDpi(HWnd);
+            m_iDpi = GetDpi(Handle);
             return 0;
 
         case WM_CREATE:
         {
-            m_iDpi = GetDpi(HWnd);
+            m_iDpi = GetDpi(Handle);
             RECT rcClient;
-            GetClientRect(HWnd, &rcClient);
+            GetClientRect(Handle, &rcClient);
             m_cxClient = rcClient.right - rcClient.left;
             m_cyClient = rcClient.bottom - rcClient.top;
             UpdateLogicalClientSize();
@@ -636,7 +636,7 @@ public:
                     StructureChangeType_ChildRemoved,
                     nullptr, 0);
                 m_pUia.Clear();
-                UiaReturnRawElementProvider(HWnd, 0, 0, nullptr);
+                UiaReturnRawElementProvider(Handle, 0, 0, nullptr);
             }
 
             if (m_pDropTarget.Get())
@@ -736,7 +736,7 @@ public:
 public:
     TElement* EleSetFocus(TElement* pEle) noexcept
     {
-        SetFocus(HWnd);
+        SetFocus(Handle);
         if (m_pEleFocus == pEle)
             return m_pEleFocus;
         if (pEle && (pEle->GetStyle() & DES_NO_FOCUSABLE))
@@ -755,9 +755,9 @@ public:
     {
         auto pOld = m_pEleMouseCapture;
         m_pEleMouseCapture = pEle;
-        if (GetCapture() != HWnd)
+        if (GetCapture() != Handle)
         {
-            SetCapture(HWnd);
+            SetCapture(Handle);
             m_bMouseCaptured = TRUE;
         }
         if (pOld)
@@ -775,7 +775,7 @@ public:
 
     BOOL EleSetTimer(TElement* pEle, UINT_PTR uId, UINT uElapse) noexcept
     {
-        if (!SetTimer(HWnd, uId, uElapse, nullptr))
+        if (!SetTimer(Handle, uId, uElapse, nullptr))
             return FALSE;
         for (auto& e : m_vTimer)
         {
@@ -791,7 +791,7 @@ public:
         {
             if (it->pEle == pEle && it->uId == uId)
             {
-                KillTimer(HWnd, uId);
+                KillTimer(Handle, uId);
                 m_vTimer.erase(it);
                 return TRUE;
             }
@@ -836,13 +836,13 @@ public:
             hr = GetDropTarget(pTarget.AtSelf());
             if (FAILED(hr))
                 return hr;
-            hr = RegisterDragDrop(HWnd, pTarget.Get());
+            hr = RegisterDragDrop(Handle, pTarget.Get());
         }
         else
         {
             m_pDropTarget->SetContainer(nullptr);
             m_pDropTarget.Clear();
-            hr = RevokeDragDrop(HWnd);
+            hr = RevokeDragDrop(Handle);
         }
         if (SUCCEEDED(hr))
             m_bEnableOleDragDrop = !!bEnable;
@@ -856,7 +856,7 @@ protected:
         m_pDataObject = pDataObject;
 
         POINT ptInClient{ pt.x, pt.y };
-        ScreenToClient(HWnd, &ptInClient);
+        ScreenToClient(Handle, &ptInClient);
         TPoint ptLog{ (TCoord)ptInClient.x, (TCoord)ptInClient.y };
         PixelToLogical(ptLog);
 
@@ -872,7 +872,7 @@ protected:
     virtual HRESULT DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) noexcept
     {
         POINT ptInClient{ pt.x, pt.y };
-        ScreenToClient(HWnd, &ptInClient);
+        ScreenToClient(Handle, &ptInClient);
         TPoint ptLog{ (TCoord)ptInClient.x, (TCoord)ptInClient.y };
         PixelToLogical(ptLog);
 
@@ -912,7 +912,7 @@ protected:
         m_pDataObject.Clear();
 
         POINT ptInClient{ pt.x, pt.y };
-        ScreenToClient(HWnd, &ptInClient);
+        ScreenToClient(Handle, &ptInClient);
         TPoint ptLog{ (TCoord)ptInClient.x, (TCoord)ptInClient.y };
         PixelToLogical(ptLog);
 
@@ -1091,7 +1091,7 @@ public:
             TRect rc{ m_pEle->GetRectInClient() };
             m_pEle->GetContainer()->LogicalToPixel(rc);
             RECT rcInScr{ (int)rc.left, (int)rc.top, (int)rc.right, (int)rc.bottom };
-            ClientToScreen(m_pEle->GetContainer()->HWnd, &rcInScr);
+            ClientToScreen(m_pEle->GetContainer()->Handle, &rcInScr);
             pRetVal->left = (double)rcInScr.left;
             pRetVal->top = (double)rcInScr.top;
             pRetVal->width = double(rcInScr.right - rcInScr.left);

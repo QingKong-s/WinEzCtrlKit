@@ -1704,14 +1704,14 @@ public:
         [[fallthrough]];
         case WM_NCMOUSEMOVE:
         {
-            MSG msg{ HWnd,uMsg,wParam,lParam };
+            MSG msg{ Handle,uMsg,wParam,lParam };
             m_ToolTip.RelayEvent(&msg);
         }
         break;
 
         case WM_MOUSEMOVE:
         {
-            MSG msg{ HWnd,uMsg,wParam,lParam };
+            MSG msg{ Handle,uMsg,wParam,lParam };
             m_ToolTip.RelayEvent(&msg);
 
             TLHITTEST tlht;
@@ -1742,7 +1742,7 @@ public:
             TRACKMOUSEEVENT tme;
             tme.cbSize = sizeof(tme);
             tme.dwFlags = TME_LEAVE;
-            tme.hwndTrack = HWnd;
+            tme.hwndTrack = Handle;
             TrackMouseEvent(&tme);
         }
         return 0;
@@ -1750,7 +1750,7 @@ public:
         case WM_NOTIFY:
         {
             const auto pnmhdr = (NMHDR*)lParam;
-            if (pnmhdr->hwndFrom == m_Header.HWnd)
+            if (pnmhdr->hwndFrom == m_Header.Handle)
                 switch (pnmhdr->code)
                 {
                 case HDN_ITEMCHANGEDW:
@@ -1761,7 +1761,7 @@ public:
                     {
                         UpdateColumnInfomation();
                         UpdateScrollBar();
-                        SetWindowPos(m_Header.HWnd, nullptr, m_dxContent, 0,
+                        SetWindowPos(m_Header.Handle, nullptr, m_dxContent, 0,
                             std::max(m_cxItem, m_cxClient), m_cyHeader, SWP_NOZORDER | SWP_NOACTIVATE);
                         Redraw();
                     }
@@ -1790,7 +1790,7 @@ public:
                 }
                 return 0;
                 }
-            else if (m_bSplitCol0 && pnmhdr->hwndFrom == m_HeaderFixed.HWnd)
+            else if (m_bSplitCol0 && pnmhdr->hwndFrom == m_HeaderFixed.Handle)
             {
                 switch (pnmhdr->code)
                 {
@@ -1802,7 +1802,7 @@ public:
                     {
                         UpdateColumnInfomation();
                         UpdateScrollBar();
-                        SetWindowPos(m_HeaderFixed.HWnd, nullptr, 0, 0,
+                        SetWindowPos(m_HeaderFixed.Handle, nullptr, 0, 0,
                             m_vCol.front().iRight, m_cyHeader, SWP_NOZORDER | SWP_NOACTIVATE);
                         Redraw();
                     }
@@ -1810,7 +1810,7 @@ public:
                 return FALSE;
                 }
             }
-            else if (pnmhdr->hwndFrom == m_ToolTip.HWnd)
+            else if (pnmhdr->hwndFrom == m_ToolTip.Handle)
                 switch (pnmhdr->code)
                 {
                 case TTN_GETDISPINFOW:
@@ -1818,7 +1818,7 @@ public:
                     auto p = (NMTTDISPINFOW*)lParam;
                     if (p->uFlags & TTF_IDISHWND)
                     {
-                        if (p->hdr.idFrom != (UINT_PTR)HWnd)
+                        if (p->hdr.idFrom != (UINT_PTR)Handle)
                             return 0;
                     }
                     else
@@ -1829,7 +1829,7 @@ public:
 
                     const auto uPos = GetMessagePos();
                     POINT pt ECK_GET_PT_LPARAM(uPos);
-                    ScreenToClient(HWnd, &pt);
+                    ScreenToClient(Handle, &pt);
 
                     TLHITTEST tlht;
                     tlht.pt = pt;
@@ -1883,9 +1883,9 @@ public:
                         {
                             RECT rc;
                             GetItemTextRect(m_idxToolTip, m_idxToolTipSubItemDisplay, rc);
-                            ClientToScreen(HWnd, &rc);
+                            ClientToScreen(Handle, &rc);
                             m_ToolTip.AdjustRect(TRUE, &rc);
-                            SetWindowPos(m_ToolTip.HWnd, HWND_TOPMOST,
+                            SetWindowPos(m_ToolTip.Handle, HWND_TOPMOST,
                                 rc.left, rc.top, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE);
                         }
                     }
@@ -1953,9 +1953,9 @@ public:
             else
             {
                 RECT rc{ 0,m_cyHeader,m_cxClient,m_cyClient };
-                ScrollWindowEx(HWnd, 0, (iOld - si.nPos) * m_cyItem, &rc, &rc, nullptr, nullptr, SW_INVALIDATE);
+                ScrollWindowEx(Handle, 0, (iOld - si.nPos) * m_cyItem, &rc, &rc, nullptr, nullptr, SW_INVALIDATE);
             }
-            UpdateWindow(HWnd);
+            UpdateWindow(Handle);
         }
         return 0;
 
@@ -2011,7 +2011,7 @@ public:
                 ScrollV(SignValue(dLine) * ScbGetPage(SB_VERT));
             else
                 ScrollV(dLine);
-            UpdateWindow(HWnd);
+            UpdateWindow(Handle);
         }
         return 0;
 
@@ -2023,13 +2023,13 @@ public:
                 ScrollH(SignValue(dx) * m_cxClient);
             else
                 ScrollH(dx);
-            UpdateWindow(HWnd);
+            UpdateWindow(Handle);
         }
         return 0;
 
         case WM_COMMAND:
         {
-            if (HIWORD(wParam) == EN_CHANGE && lParam == (LPARAM)m_Edit.HWnd)
+            if (HIWORD(wParam) == EN_CHANGE && lParam == (LPARAM)m_Edit.Handle)
                 m_bBuildInEditChanged = TRUE;
         }
         break;
@@ -2038,7 +2038,7 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, wParam, ps);
+            BeginPaint(Handle, wParam, ps);
             const int yOrg = ps.rcPaint.top;
             if (ps.rcPaint.top < m_cyHeader)// 永远不在表头控件区域内重画
                 ps.rcPaint.top = m_cyHeader;
@@ -2069,14 +2069,14 @@ public:
             PaintDraggingSelectRect(m_DC.GetDC());
             BitBltPs(&ps, m_DC.GetDC());
             ps.rcPaint.top = yOrg;
-            EndPaint(HWnd, wParam, ps);
+            EndPaint(Handle, wParam, ps);
         }
         return 0;
 
         case WM_SIZE:
         {
             ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
-            m_DC.ReSize(HWnd, m_cxClient, m_cyClient);
+            m_DC.ReSize(Handle, m_cxClient, m_cyClient);
             UpdateDCAttribute();
 
             UpdateScrollBar();
@@ -2084,7 +2084,7 @@ public:
 
             TTTOOLINFOW ti;
             ti.cbSize = sizeof(ti);
-            ti.hwnd = HWnd;
+            ti.hwnd = Handle;
             ti.uId = TLI_MAIN;
             ti.rect = { 0,0,m_cxClient,m_cyClient };
             m_ToolTip.NewToolRect(&ti);
@@ -2092,12 +2092,12 @@ public:
         return 0;
 
         case WM_KEYDOWN:
-            OnKeyDown(HWnd, uMsg, wParam, lParam);
+            OnKeyDown(Handle, uMsg, wParam, lParam);
             break;
 
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
-            OnLRButtonDown(HWnd, uMsg, wParam, lParam);
+            OnLRButtonDown(Handle, uMsg, wParam, lParam);
             break;
         case WM_LBUTTONUP:
         {
@@ -2144,7 +2144,7 @@ public:
             nm.lParam = lParam;
             FillNmhdrAndSendNotify(nm, NM_TL_MOUSECLICK);
 
-            MSG msg{ HWnd,uMsg,wParam,lParam };
+            MSG msg{ Handle,uMsg,wParam,lParam };
             m_ToolTip.RelayEvent(&msg);
         }
         break;
@@ -2183,7 +2183,7 @@ public:
         {
             if (wParam != IDT_EDITDELAY)
                 break;
-            KillTimer(HWnd, IDT_EDITDELAY);
+            KillTimer(Handle, IDT_EDITDELAY);
             if (m_bWaitEditDelay && m_idxEditing >= 0)
             {
                 const int idx = m_idxEditing;
@@ -2197,38 +2197,38 @@ public:
         case WM_CREATE:
         {
             m_hParent = ((CREATESTRUCTW*)lParam)->hwndParent;
-            m_iDpi = GetDpi(HWnd);
+            m_iDpi = GetDpi(Handle);
             UpdateDpiSize(m_Ds, m_iDpi);
             m_cyHeader = m_Ds.cyHeaderDef;
             m_cyItem = m_Ds.cyItemDef;
-            m_DC.FromWindow(HWnd);
+            m_DC.FromWindow(Handle);
             UpdateDCAttribute();
             m_Header.Create(nullptr,
                 WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
-                0, 0, GetClientWidth(), m_Ds.cyHeaderDef, HWnd, IDC_HEADER);
+                0, 0, GetClientWidth(), m_Ds.cyHeaderDef, Handle, IDC_HEADER);
             //m_HeaderFixed.Create(NULL, WS_CHILD | WS_VISIBLE | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP, 0,
-            //	0, 0, GetClientWidth(), m_Ds.cyHeaderDef, HWnd, IDC_HEADERFIXED);
+            //	0, 0, GetClientWidth(), m_Ds.cyHeaderDef, Handle, IDC_HEADERFIXED);
             SetExplorerTheme();
-            m_hThemeTV = OpenThemeData(HWnd, L"TreeView");
+            m_hThemeTV = OpenThemeData(Handle, L"TreeView");
             m_hThemeLV = OpenThemeData(nullptr, L"ItemsView::ListView");
-            m_hThemeBT = OpenThemeData(HWnd, L"Button");
+            m_hThemeBT = OpenThemeData(Handle, L"Button");
             UpdateThemeInfomation();
-            m_bHasFocus = (GetFocus() == HWnd);
+            m_bHasFocus = (GetFocus() == Handle);
             UpdateSystemParameter();
 
             m_ToolTip.Create(nullptr, TTS_NOPREFIX, WS_EX_TRANSPARENT,
-                0, 0, 0, 0, HWnd, nullptr);
+                0, 0, 0, 0, Handle, nullptr);
             TTTOOLINFOW ti{ sizeof(TTTOOLINFOW) };
             ti.uFlags = TTF_TRANSPARENT;
-            ti.hwnd = HWnd;
+            ti.hwnd = Handle;
             ti.uId = TLI_MAIN;
             ti.lpszText = LPSTR_TEXTCALLBACKW;
             m_ToolTip.AddTool(&ti);
 
             m_SBV.Create(nullptr, WS_CHILD | (m_bSplitCol0 ? WS_VISIBLE : 0) | SBS_VERT, 0,
-                0, 0, 0, 0, HWnd, IDC_SBV);
+                0, 0, 0, 0, Handle, IDC_SBV);
             m_SBH.Create(nullptr, WS_CHILD | (m_bSplitCol0 ? WS_VISIBLE : 0) | SBS_HORZ, 0,
-                0, 0, 0, 0, HWnd, IDC_SBH);
+                0, 0, 0, 0, Handle, IDC_SBH);
             UpdateScrollBar();
         }
         return 0;
@@ -2246,16 +2246,16 @@ public:
             return (LRESULT)m_hFont;
 
         case WM_DPICHANGED_BEFOREPARENT:
-            UpdateDpiSize(m_Ds, m_iDpi = GetDpi(HWnd));
+            UpdateDpiSize(m_Ds, m_iDpi = GetDpi(Handle));
             [[fallthrough]];
         case WM_THEMECHANGED:
         {
             CloseThemeData(m_hThemeTV);
-            m_hThemeTV = OpenThemeData(HWnd, L"TreeView");
+            m_hThemeTV = OpenThemeData(Handle, L"TreeView");
             CloseThemeData(m_hThemeLV);
             m_hThemeLV = OpenThemeData(nullptr, L"ItemsView::ListView");
             CloseThemeData(m_hThemeBT);
-            m_hThemeBT = OpenThemeData(HWnd, L"Button");
+            m_hThemeBT = OpenThemeData(Handle, L"Button");
             UpdateThemeInfomation();
             UpdateDCAttribute();
             Redraw();
@@ -3357,7 +3357,7 @@ public:
             m_Edit.SelectAll();
             m_Edit.Show(SW_SHOW);
             m_bBuildInEditChanged = FALSE;
-            SetFocus(m_Edit.HWnd);
+            SetFocus(m_Edit.Handle);
         }
     }
 
@@ -3376,7 +3376,7 @@ public:
         nm.idx = m_idxEditing;
         nm.idxSubItemDisplay = m_idxEditingSubItemDisplay;
         nm.idxSubItem = ColumnDisplayToActual(m_idxEditingSubItemDisplay);
-        if (m_Edit.HWnd)
+        if (m_Edit.Handle)
             nm.uFlags = TLEDF_BUILDINEDIT |
             ((bNotifySave && m_bBuildInEditChanged) ? TLEDF_SHOULDSAVETEXT : 0);
         else

@@ -437,7 +437,7 @@ HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
     auto& ec = pWnd->GetEventChain();
     if (ec.FindSlot(MHI_UXF_MENU))
         return S_FALSE;
-    const auto hTheme = OpenThemeData(pWnd->GetHWnd(), L"Menu");
+    const auto hTheme = OpenThemeData(pWnd->GetHandle(), L"Menu");
     auto Fn = [hTheme = hTheme](CWindow* pWnd, UINT uMsg,
         WPARAM wParam, LPARAM lParam, Slot& Ctx) mutable -> LRESULT
         {
@@ -457,13 +457,13 @@ HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
 
                 MENUBARINFO mbi;
                 mbi.cbSize = sizeof(mbi);
-                GetMenuBarInfo(pWnd->HWnd, OBJID_MENU, 0, &mbi);
+                GetMenuBarInfo(pWnd->Handle, OBJID_MENU, 0, &mbi);
                 RECT rcWindow;
-                GetWindowRect(pWnd->HWnd, &rcWindow);
+                GetWindowRect(pWnd->Handle, &rcWindow);
                 OffsetRect(&mbi.rcBar, -rcWindow.left, -rcWindow.top);
                 DrawThemeBackground(hTheme, ((UAHMENU*)lParam)->hdc,
                     MENU_BARBACKGROUND,
-                    (GetForegroundWindow() == pWnd->HWnd) ? MB_ACTIVE : MB_INACTIVE,
+                    (GetForegroundWindow() == pWnd->Handle) ? MB_ACTIVE : MB_INACTIVE,
                     &mbi.rcBar, nullptr);
             }
             return 0;
@@ -513,14 +513,14 @@ HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
                 else
                     DrawThemeBackground(hTheme, pudmi->um.hdc,
                         MENU_BARBACKGROUND,
-                        (GetForegroundWindow() == pWnd->HWnd) ? MB_ACTIVE : MB_INACTIVE,
+                        (GetForegroundWindow() == pWnd->Handle) ? MB_ACTIVE : MB_INACTIVE,
                         &pudmi->dis.rcItem, nullptr);
                 DrawThemeText(hTheme, pudmi->um.hdc, MENU_BARITEM, iState,
                     szText, mii.cch, dwDtFlags, 0, &pudmi->dis.rcItem);
             }
             return 0;
             case WM_NCACTIVATE:
-                if (IsIconic(pWnd->HWnd))
+                if (IsIconic(pWnd->Handle))
                     break;
                 [[fallthrough]];
             case WM_NCPAINT:
@@ -536,7 +536,7 @@ HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
                     return lResult;
                 }
                 pWnd->OnMessage(uMsg, wParam, lParam);
-                const auto hWnd = pWnd->HWnd;
+                const auto hWnd = pWnd->Handle;
 
                 MENUBARINFO mbi;
                 mbi.cbSize = sizeof(mbi);
@@ -567,7 +567,7 @@ HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
             case WM_CREATE:
             case WM_THEMECHANGED:
                 CloseThemeData(hTheme);
-                hTheme = OpenThemeData(pWnd->HWnd, L"Menu");
+                hTheme = OpenThemeData(pWnd->Handle, L"Menu");
                 break;
             case WM_DESTROY:
                 CloseThemeData(hTheme);
@@ -1883,10 +1883,7 @@ void Uninitialize() noexcept
 #pragma endregion Initialize
 
 #pragma region Thread
-DWORD GetThreadContextTlsSlot() noexcept
-{
-    return g_dwTlsSlot;
-}
+DWORD GetThreadContextTlsSlot() noexcept { return g_dwTlsSlot; }
 
 void ThreadInitialize() noexcept
 {
@@ -1901,7 +1898,7 @@ void ThreadInitialize() noexcept
 #else
     p->hhkCbtDarkMode = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
         {
-            constexpr static PCWSTR CommCtrlCls[]// 需要被设置主题的通用控件
+            constexpr static PCWSTR ThemeControl[]// 需要被设置主题的通用控件
             {
                 WC_HEADERW,
                 WC_LISTVIEWW,
@@ -1925,14 +1922,14 @@ void ThreadInitialize() noexcept
                     ARRAYSIZE(WC_SCROLLBARW),
                 }) + 1;
 
-            const auto* const p = PtcCurrent();
-            if (iCode == HCBT_CREATEWND && p->bEnableDarkModeHook)
+            const auto* const ptc = PtcCurrent();
+            if (iCode == HCBT_CREATEWND && ptc->bEnableDarkModeHook)
             {
                 const auto pccw = (CBT_CREATEWNDW*)lParam;
                 const auto hWnd = (HWND)wParam;
                 AllowDarkModeForWindow(hWnd, TRUE);
 
-                const auto lResult = CallNextHookEx(p->hhkCbtDarkMode, iCode, wParam, lParam);
+                const auto lResult = CallNextHookEx(ptc->hhkCbtDarkMode, iCode, wParam, lParam);
                 if (IsWindow(hWnd))
                 {
                     const BOOL bPszIsId = IS_INTRESOURCE(pccw->lpcs->lpszClass);
@@ -1940,8 +1937,8 @@ void ThreadInitialize() noexcept
                     if (bPszIsId)
                         GetClassNameW(hWnd, szCls, MaxClsBuf);
 
-                    const auto itEnd = CommCtrlCls + ARRAYSIZE(CommCtrlCls);
-                    const auto it = std::find_if(CommCtrlCls, itEnd,
+                    const auto itEnd = ThemeControl + ARRAYSIZE(ThemeControl);
+                    const auto it = std::find_if(ThemeControl, itEnd,
                         [szCls, bPszIsId, pccw](PCWSTR psz)
                         {
                             if (bPszIsId)
@@ -1952,8 +1949,8 @@ void ThreadInitialize() noexcept
 
                     if (it != itEnd)
                     {
-                        if (it == CommCtrlCls + 0/*Header*/ ||
-                            it == CommCtrlCls + 1/*ListView*/)
+                        if (it == ThemeControl + 0/*Header*/ ||
+                            it == ThemeControl + 1/*ListView*/)
                             SetWindowTheme(hWnd, L"ItemsView", nullptr);
                         else
                             SetWindowTheme(hWnd, L"Explorer", nullptr);
@@ -1962,15 +1959,15 @@ void ThreadInitialize() noexcept
                 return lResult;
             }
 
-            return CallNextHookEx(p->hhkCbtDarkMode, iCode, wParam, lParam);
+            return CallNextHookEx(ptc->hhkCbtDarkMode, iCode, wParam, lParam);
         }, nullptr, NtCurrentThreadId32());
 #endif // ECK_OPT_NO_DARKMODE
 
     p->hhkMsgFilter = SetWindowsHookExW(WH_MSGFILTER, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
         {
-            const auto pCtx = PtcCurrent();
-            pCtx->DoCallback();
-            return CallNextHookEx(pCtx->hhkMsgFilter, iCode, wParam, lParam);
+            const auto ptc = PtcCurrent();
+            ptc->DoCallback();
+            return CallNextHookEx(ptc->hhkMsgFilter, iCode, wParam, lParam);
         }, nullptr, NtCurrentThreadId32());
 }
 
@@ -2193,54 +2190,54 @@ HWND ThreadContext::CreateGhostWindow(BOOL bMsgOnly) noexcept
 HHOOK BeginCbtHook(CWindow* pCurrWnd, FWindowCreating pfnCreatingProc) noexcept
 {
     EckAssert(pCurrWnd);
-    const auto pCtx = PtcCurrent();
-    pCtx->pCurrWnd = pCurrWnd;
-    pCtx->pfnWndCreatingProc = pfnCreatingProc;
-    EckAssert(!pCtx->hhkTempCBT);
-    pCtx->hhkTempCBT = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
+    const auto ptc = PtcCurrent();
+    ptc->pCurrWnd = pCurrWnd;
+    ptc->pfnWndCreatingProc = pfnCreatingProc;
+    EckAssert(!ptc->hhkTempCBT);
+    ptc->hhkTempCBT = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
         {
-            const auto pCtx = PtcCurrent();
+            const auto ptc = PtcCurrent();
             if (iCode == HCBT_CREATEWND)
             {
                 const auto pcbtcw = (CBT_CREATEWNDW*)lParam;
-                // 执行CWnd初始化
-                EckAssert(!pCtx->pCurrWnd->m_hWnd);
-                pCtx->pCurrWnd->m_pfnRealProc =
+                // 执行CWindow初始化
+                EckAssert(!ptc->pCurrWnd->m_hWnd);
+                ptc->pCurrWnd->m_pfnRealProc =
                     SetWindowProcedure((HWND)wParam, CWindow::EckWindowProcedure);
-                pCtx->pCurrWnd->m_hWnd = (HWND)wParam;
+                ptc->pCurrWnd->m_hWnd = (HWND)wParam;
                 // 窗口映射
-                pCtx->WmAdd(
+                ptc->WmAdd(
                     (HWND)wParam,
-                    pCtx->pCurrWnd,
+                    ptc->pCurrWnd,
                     !(pcbtcw->lpcs->style & WS_CHILD));
 
-                if (pCtx->pfnWndCreatingProc)
-                    pCtx->pfnWndCreatingProc((HWND)wParam, pcbtcw, pCtx);
+                if (ptc->pfnWndCreatingProc)
+                    ptc->pfnWndCreatingProc((HWND)wParam, pcbtcw, ptc);
                 EndCbtHook();
             }
-            return CallNextHookEx(pCtx->hhkTempCBT, iCode, wParam, lParam);
+            return CallNextHookEx(ptc->hhkTempCBT, iCode, wParam, lParam);
         }, nullptr, NtCurrentThreadId32());
-    return pCtx->hhkTempCBT;
+    return ptc->hhkTempCBT;
 }
 
 void EndCbtHook() noexcept
 {
-    const auto pCtx = PtcCurrent();
-    EckAssert(pCtx->hhkTempCBT);
-    UnhookWindowsHookEx(pCtx->hhkTempCBT);
-    pCtx->hhkTempCBT = nullptr;
+    const auto ptc = PtcCurrent();
+    EckAssert(ptc->hhkTempCBT);
+    UnhookWindowsHookEx(ptc->hhkTempCBT);
+    ptc->hhkTempCBT = nullptr;
 }
 
 BOOL PreTranslateMessage(const MSG& Msg) noexcept
 {
     HWND hWnd = Msg.hwnd;
     CWindow* pWnd;
-    const auto pCtx = PtcCurrent();
-    pCtx->DoCallback();
+    const auto ptc = PtcCurrent();
+    ptc->DoCallback();
 
     while (hWnd)
     {
-        pWnd = pCtx->WmAt(hWnd);
+        pWnd = ptc->WmAt(hWnd);
         if (pWnd && pWnd->PreTranslateMessage(Msg))
             return TRUE;
         hWnd = GetParent(hWnd);

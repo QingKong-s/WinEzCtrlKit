@@ -55,7 +55,7 @@ protected:
         EckAssert(m_pED && m_eView == View::DropDownEdit);
         RCWH rc;
         GetEditRect(rc);
-        SetWindowPos(m_pED->HWnd, nullptr,
+        SetWindowPos(m_pED->Handle, nullptr,
             rc.x, rc.y, rc.cx, rc.cy,
             SWP_NOZORDER | SWP_NOACTIVATE | (bShow ? SWP_SHOWWINDOW : 0));
     }
@@ -172,11 +172,11 @@ protected:
             * 不会重置选择位置。无法从外部设置此样式，因为其行为不明确。
             * 这里处理WM_LBUTTONDOWN模拟。
             */
-            if (GetFocus() == pWnd->HWnd)
+            if (GetFocus() == pWnd->Handle)
                 break;
             Ctx.Processed();// Eat it.
             m_bHasFocus = TRUE;
-            SetFocus(pWnd->HWnd);
+            SetFocus(pWnd->Handle);
             m_pED->SelectAll();
             Redraw();
             return 0;
@@ -211,13 +211,13 @@ public:
         {
         case WM_PRINTCLIENT:
         case WM_PAINT:
-            OnPaint(HWnd, wParam);
+            OnPaint(Handle, wParam);
             return 0;
 
         case WM_SIZE:
         {
             ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
-            m_DC.ReSize(HWnd, m_cxClient, m_cyClient);
+            m_DC.ReSize(Handle, m_cxClient, m_cyClient);
             SetBkMode(m_DC.GetDC(), TRANSPARENT);
             UpdateDropSize();
             if (m_eView == View::DropDownEdit)
@@ -254,7 +254,7 @@ public:
             TRACKMOUSEEVENT tme;
             tme.cbSize = sizeof(tme);
             tme.dwFlags = TME_LEAVE;
-            tme.hwndTrack = HWnd;
+            tme.hwndTrack = Handle;
             TrackMouseEvent(&tme);
         }
         break;
@@ -271,7 +271,7 @@ public:
 
         case WM_LBUTTONDBLCLK:
         case WM_LBUTTONDOWN:
-            SetFocus(HWnd);
+            SetFocus(Handle);
             if (m_bDrop)
                 DismissList();
             else
@@ -296,7 +296,7 @@ public:
         case WM_NOTIFY:
         {
             const auto pnmhdr = (NMHDR*)lParam;
-            if (pnmhdr->hwndFrom == m_LB.HWnd)
+            if (pnmhdr->hwndFrom == m_LB.Handle)
                 switch (pnmhdr->code)
                 {
                 case NM_LBN_ITEMCHANGED:
@@ -307,7 +307,7 @@ public:
                         if (m_eView == View::DropDown)
                         {
                             Redraw();
-                            UpdateWindow(HWnd);
+                            UpdateWindow(Handle);
                         }
                         else
                         {
@@ -335,8 +335,8 @@ public:
 
                 default:
                 ForwardNotify:
-                    pnmhdr->hwndFrom = HWnd;
-                    pnmhdr->idFrom = GetDlgCtrlID(HWnd);
+                    pnmhdr->hwndFrom = Handle;
+                    pnmhdr->idFrom = GetDlgCtrlID(Handle);
                     return ::SendMessageW(m_hParent, uMsg, pnmhdr->idFrom, lParam);
                 }
         }
@@ -344,7 +344,7 @@ public:
 
         case WM_COMMAND:
         {
-            if (m_pED && HWND(lParam) == m_pED->HWnd)
+            if (m_pED && HWND(lParam) == m_pED->Handle)
                 switch (HIWORD(wParam))
                 {
                 case EN_CHANGE:
@@ -406,7 +406,7 @@ public:
         case WM_THEMECHANGED:
         {
             CloseThemeData(m_hTheme);
-            m_hTheme = OpenThemeData(HWnd, L"Combobox");
+            m_hTheme = OpenThemeData(Handle, L"Combobox");
             m_LB.SendMessageW(WM_THEMECHANGED, wParam, lParam);
         }
         break;
@@ -414,19 +414,19 @@ public:
         case WM_CREATE:
         {
             m_hParent = ((CREATESTRUCTW*)lParam)->hwndParent;
-            m_iDpi = GetDpi(HWnd);
+            m_iDpi = GetDpi(Handle);
 #if _DEBUG
             m_LB.DbgTag = L"CComboBoxNew::m_LB";
 #endif
             m_LB.Create(nullptr, WS_POPUP | WS_BORDER,
                 WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TOPMOST,
-                0, 0, ((CREATESTRUCTW*)lParam)->cx, 500, HWnd, nullptr);
-            SetWindowLongPtrW(m_LB.HWnd, GWLP_HWNDPARENT, (LONG_PTR)HWnd);
-            m_LB.SetComboBox(HWnd);
+                0, 0, ((CREATESTRUCTW*)lParam)->cx, 500, Handle, nullptr);
+            SetWindowLongPtrW(m_LB.Handle, GWLP_HWNDPARENT, (LONG_PTR)Handle);
+            m_LB.SetComboBox(Handle);
             m_LB.SetGenerateItemNotify(TRUE);
 
-            m_hTheme = OpenThemeData(HWnd, L"Combobox");
-            m_DC.FromWindow(HWnd);
+            m_hTheme = OpenThemeData(Handle, L"Combobox");
+            m_DC.FromWindow(Handle);
             SetBkMode(m_DC.GetDC(), TRANSPARENT);
         }
         break;
@@ -457,16 +457,16 @@ public:
             return;
         m_bDrop = TRUE;
         Redraw();
-        UpdateWindow(HWnd);
+        UpdateWindow(Handle);
 
         RECT rc;
-        GetWindowRect(HWnd, &rc);
+        GetWindowRect(Handle, &rc);
 
         int cyReal{ m_cyDrop };
         BOOL bDown{ TRUE };
         MONITORINFO mi;
         mi.cbSize = sizeof(mi);
-        if (GetMonitorInfoW(MonitorFromWindow(HWnd, MONITOR_DEFAULTTONEAREST), &mi) &&
+        if (GetMonitorInfoW(MonitorFromWindow(Handle, MONITOR_DEFAULTTONEAREST), &mi) &&
             rc.bottom + cyReal > mi.rcWork.bottom)// 向下没有足够空间
         {
             if (rc.top - cyReal < mi.rcWork.top)// 向上没有足够空间
@@ -487,7 +487,7 @@ public:
         if (!bDown)
             rc.bottom = rc.top - cyReal;
 
-        SetWindowPos(m_LB.HWnd, HWND_TOPMOST,
+        SetWindowPos(m_LB.Handle, HWND_TOPMOST,
             rc.left, rc.bottom, m_cxDrop, cyReal, SWP_NOACTIVATE);
 
         m_LB.EnsureVisible(m_LB.GetCurrentSelection());
@@ -500,7 +500,7 @@ public:
         case AnimateStyle::Center: uFlags |= AW_CENTER; break;
         case AnimateStyle::Blend: uFlags |= AW_BLEND; break;
         }
-        AnimateWindow(m_LB.HWnd, 160, uFlags);
+        AnimateWindow(m_LB.Handle, 160, uFlags);
         m_LB.CbEnterTrack();
     }
 
@@ -557,7 +557,7 @@ public:
                 GetEditRect(rc);
                 m_pED->Create(nmdi.Item.pszText,
                     WS_CHILD | WS_VISIBLE | WS_TABSTOP, 0,
-                    rc.x, rc.y, rc.cx, rc.cy, HWnd, 0);
+                    rc.x, rc.y, rc.cx, rc.cy, Handle, 0);
             }
         }
         else
@@ -578,6 +578,6 @@ public:
     EckInlineCe void SetMatchEditToItem(BOOL b) { m_bMatchEditToItem = b; }
     EckInlineNdCe BOOL GetMatchEditToItem() const { return m_bMatchEditToItem; }
 
-    EckInlineNdCe HTHEME GetHTheme() const { return m_hTheme; }
+    EckInlineNdCe HTHEME GetThemeHandle() const { return m_hTheme; }
 };
 ECK_NAMESPACE_END

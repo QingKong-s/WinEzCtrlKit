@@ -1156,8 +1156,8 @@ inline RcPtr<CThemeBase> CEdit::TmMakeDefaultTheme(BOOL bDark) noexcept
     return TmMakeTheme<CTmEdit>(bDark);
 }
 
-inline HDC CEditTextHost::TxGetDC() { return GetDC(m_pEdit->GetWindow().HWnd); }
-inline INT CEditTextHost::TxReleaseDC(HDC hdc) { return ReleaseDC(m_pEdit->GetWindow().HWnd, hdc); }
+inline HDC CEditTextHost::TxGetDC() { return GetDC(m_pEdit->GetWindow().Handle); }
+inline INT CEditTextHost::TxReleaseDC(HDC hdc) { return ReleaseDC(m_pEdit->GetWindow().Handle, hdc); }
 
 inline BOOL CEditTextHost::TxShowScrollBar(INT fnBar, BOOL fShow)
 {
@@ -1288,12 +1288,12 @@ inline void CEditTextHost::TxSetCursor(HCURSOR hcur, BOOL fText)
 
 inline BOOL CEditTextHost::TxScreenToClient(LPPOINT lppt)
 {
-    return ScreenToClient(m_pEdit->GetWindow().HWnd, lppt);
+    return ScreenToClient(m_pEdit->GetWindow().Handle, lppt);
 }
 
 inline BOOL CEditTextHost::TxClientToScreen(LPPOINT lppt)
 {
-    return ClientToScreen(m_pEdit->GetWindow().HWnd, lppt);
+    return ClientToScreen(m_pEdit->GetWindow().Handle, lppt);
 }
 
 inline HRESULT CEditTextHost::TxActivate(LONG* plOldState)
@@ -1417,31 +1417,31 @@ inline HRESULT CEditTextHost::TxNotify(DWORD iNotify, void* pv)
 
 inline HIMC CEditTextHost::TxImmGetContext()
 {
-    return ImmGetContext(m_pEdit->GetWindow().HWnd);
+    return ImmGetContext(m_pEdit->GetWindow().Handle);
 }
 
 inline void CEditTextHost::TxImmReleaseContext(HIMC himc)
 {
-    ImmReleaseContext(m_pEdit->GetWindow().HWnd, himc);
+    ImmReleaseContext(m_pEdit->GetWindow().Handle, himc);
 }
 
 inline BOOL CEditTextHost::TxIsDoubleClickPending()
 {
     MSG Msg;
-    return PeekMessageA(&Msg, m_pEdit->GetWindow().HWnd,
+    return PeekMessageA(&Msg, m_pEdit->GetWindow().Handle,
         WM_LBUTTONDBLCLK, WM_LBUTTONDBLCLK, PM_NOREMOVE | PM_NOYIELD);
 }
 
 inline HRESULT CEditTextHost::TxGetWindow(HWND* phwnd)
 {
-    *phwnd = m_pEdit->GetWindow().HWnd;
+    *phwnd = m_pEdit->GetWindow().Handle;
     return S_OK;
 }
 
 inline HRESULT CEditTextHost::TxSetForegroundWindow()
 {
-    if (!SetForegroundWindow(m_pEdit->GetWindow().HWnd))
-        SetFocus(m_pEdit->GetWindow().HWnd);
+    if (!SetForegroundWindow(m_pEdit->GetWindow().Handle))
+        SetFocus(m_pEdit->GetWindow().Handle);
     //m_pEdit->SetFocus();
     return S_OK;
 }

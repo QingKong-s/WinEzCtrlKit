@@ -509,7 +509,7 @@ private:
     void UpdateThemeMetrics() noexcept
     {
         SIZE size;
-        const HDC hDC = GetDC(HWnd);
+        const HDC hDC = GetDC(Handle);
         GetThemePartSize(m_hThemeCB, hDC, BP_CHECKBOX, CBS_UNCHECKEDNORMAL,
             nullptr, TS_DRAW, &size);
         m_cxCheckBox = size.cx;
@@ -523,7 +523,7 @@ private:
             m_cxSplitBtn = size.cx;
         else
             m_cxSplitBtn = m_cyMenuCheck;
-        ReleaseDC(HWnd, hDC);
+        ReleaseDC(Handle, hDC);
     }
 
     void InitializeForNewWindow(HWND hWnd) noexcept
@@ -627,7 +627,7 @@ public:
                 {
                     RECT rc;
                     GetItemRect(m_idxHotItem, &rc);
-                    InvalidateRect(HWnd, &rc, FALSE);
+                    InvalidateRect(Handle, &rc, FALSE);
                 }
             }
             if (b2 != m_bFilterBtnHot)
@@ -637,14 +637,14 @@ public:
                 {
                     RECT rc;
                     GetItemRect(m_idxHotItem, &rc);
-                    InvalidateRect(HWnd, &rc, FALSE);
+                    InvalidateRect(Handle, &rc, FALSE);
                 }
             }
 
             //TRACKMOUSEEVENT tme;
             //tme.cbSize = sizeof(tme);
             //tme.dwFlags = TME_LEAVE;
-            //tme.hwndTrack = HWnd;
+            //tme.hwndTrack = Handle;
             //TrackMouseEvent(&tme);
         }
         break;
@@ -689,10 +689,10 @@ public:
                     m_pEDFilter->AttachNew(HWND(lParam));
                     m_pEDFilter->SetFrameType(FrameType::Single);
                     RECT rc;
-                    GetClientRect(m_pEDFilter->HWnd, &rc);
+                    GetClientRect(m_pEDFilter->Handle, &rc);
                     rc.left = rc.right / 2;
                     rc.top = rc.bottom / 2;
-                    MapWindowPoints(HWND(lParam), HWnd, (POINT*)&rc, 1);
+                    MapWindowPoints(HWND(lParam), Handle, (POINT*)&rc, 1);
                     HDHITTESTINFO hdhti;
                     hdhti.pt = *(POINT*)&rc;
                     hdhti.iItem = -1;
@@ -715,9 +715,9 @@ public:
         case WM_THEMECHANGED:
         {
             CloseThemeData(m_hTheme);
-            m_hTheme = OpenThemeData(HWnd, L"Header");
+            m_hTheme = OpenThemeData(Handle, L"Header");
             CloseThemeData(m_hThemeCB);
-            m_hThemeCB = OpenThemeData(HWnd, L"Button");
+            m_hThemeCB = OpenThemeData(Handle, L"Button");
             UpdateThemeMetrics();
         }
         break;
@@ -735,7 +735,7 @@ public:
 
         case WM_DPICHANGED_BEFOREPARENT:
         {
-            m_iDpi = GetDpi(HWnd);
+            m_iDpi = GetDpi(Handle);
             UpdateDpiSize(m_Ds, m_iDpi);
             m_cxEdge = DaGetSystemMetrics(SM_CXEDGE, m_iDpi);
             m_cyMenuCheck = DaGetSystemMetrics(SM_CYMENUCHECK, m_iDpi);
@@ -746,7 +746,7 @@ public:
         case WM_CREATE:
         {
             const auto lResult = CHeader::OnMessage(uMsg, wParam, lParam);
-            InitializeForNewWindow(HWnd);
+            InitializeForNewWindow(Handle);
             return lResult;
         }
         break;
@@ -865,7 +865,7 @@ public:
                 {
                     RECT rc;
                     GetItemRect(idx, &rc);
-                    InvalidateRect(HWnd, &rc, FALSE);
+                    InvalidateRect(Handle, &rc, FALSE);
                 }
             }
             break;

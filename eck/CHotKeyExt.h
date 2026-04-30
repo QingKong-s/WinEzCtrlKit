@@ -17,9 +17,9 @@ public:
         {
             if (!ShouldAppsUseDarkMode())
                 break;
-            HideCaret(HWnd);
+            HideCaret(Handle);
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, wParam, ps);
+            BeginPaint(Handle, wParam, ps);
 
             const auto svPlus = GetResourceStringForCurrentLocale(0x0401, g_hModCommonControl);
             UINT uFunc;
@@ -63,7 +63,7 @@ public:
             }
 
             const auto* const ptc = PtcCurrent();
-            const auto iDpi = GetDpi(HWnd);
+            const auto iDpi = GetDpi(Handle);
             const auto cxBorder = DaGetSystemMetrics(SM_CXBORDER, iDpi);
             const auto cyBorder = DaGetSystemMetrics(SM_CYBORDER, iDpi);
 
@@ -71,7 +71,7 @@ public:
             FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
             const auto hOld = SelectObject(ps.hdc, GetFont());
             SetBkMode(ps.hdc, TRANSPARENT);
-            if (IsWindowEnabled(HWnd))
+            if (IsWindowEnabled(Handle))
                 SetTextColor(ps.hdc, ptc->crDefText);
             else
                 SetTextColor(ps.hdc, ptc->crGray1);
@@ -80,11 +80,11 @@ public:
             SIZE size;
             GetTextExtentPoint32W(ps.hdc, szBuf, pos, &size);
 
-            if (GetFocus() == HWnd)
+            if (GetFocus() == Handle)
                 SetCaretPos(size.cx + cxBorder, cyBorder);
-            ShowCaret(HWnd);
+            ShowCaret(Handle);
 
-            EndPaint(HWnd, wParam, ps);
+            EndPaint(Handle, wParam, ps);
         }
         return 0;
         }

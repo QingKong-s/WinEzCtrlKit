@@ -52,7 +52,7 @@ namespace Detail
         Invalid,
         List,
 
-        CWnd,
+        CWindow,
         CLayoutBase,
         String,
         Font,
@@ -425,8 +425,8 @@ namespace Detail
                     return r;
                 bLocal = TRUE;
                 break;
-            case Type::CWnd:
-                pWnd = it->Get<Type::CWnd>();
+            case Type::CWindow:
+                pWnd = it->Get<Type::CWindow>();
                 break;
             case Type::String:
                 pszCaption = it->Get<Type::String>();
@@ -480,12 +480,12 @@ namespace Detail
     EndLoop:
         if (!pWnd)
             return Result::NoCWindow;
-        const auto hParent = Parent.pWndParent ? Parent.pWndParent->GetHWnd() : nullptr;
+        const auto hParent = Parent.pWndParent ? Parent.pWndParent->GetHandle() : nullptr;
         pWnd->Create(pszCaption, dwStyle, dwExStyle,
             rc.x, rc.y, rc.cx, rc.cy, hParent, iId);
         if (hFont)
             pWnd->SetFont(hFont);
-        if (!pWnd->GetHWnd())
+        if (!pWnd->GetHandle())
             return Result::Win32;
 
         if (it != il.end())

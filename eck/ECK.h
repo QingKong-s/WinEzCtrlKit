@@ -981,7 +981,7 @@ struct ThreadContext
     //-------窗口映射
     std::unordered_map<HWND, WINDOW> hmWnd{};
     HHOOK hhkTempCBT{};
-    CWindow* pCurrWnd{};                    // 当前正在创建窗口所属的CWnd指针
+    CWindow* pCurrWnd{};                    // 当前正在创建窗口所属的CWindow指针
     FWindowCreating pfnWndCreatingProc{};   // 当前创建窗口时要调用的过程
     //-------暗色处理
     // 不钩取GetSysColorBrush，因为它的返回值可以被删除，

@@ -196,8 +196,8 @@ struct BBMSG
     LRESULT lResult;
 };
 
-// 窗口句柄到CWnd指针
-EckInline CWindow* CWindowFromHWND(HWND hWnd) noexcept { return PtcCurrent()->WmAt(hWnd); }
+// 窗口句柄到CWindow指针
+EckInline CWindow* CWindowFromHandle(HWND hWnd) noexcept { return PtcCurrent()->WmAt(hWnd); }
 
 class CWindow : public ILayout
 {
@@ -243,9 +243,9 @@ protected:
     {
         static_assert(sizeof(T) >= sizeof(NMHDR));
         auto p = (NMHDR*)&nm;
-        p->hwndFrom = GetHWnd();
+        p->hwndFrom = GetHandle();
         p->code = uCode;
-        p->idFrom = GetDlgCtrlID(GetHWnd());
+        p->idFrom = GetDlgCtrlID(GetHandle());
     }
     EckInline LRESULT SendNotify(auto& nm, HWND hParent) const noexcept
     {
@@ -253,7 +253,7 @@ protected:
     }
     EckInline LRESULT SendNotify(auto& nm) const noexcept
     {
-        return SendNotify(nm, GetParent(GetHWnd()));
+        return SendNotify(nm, GetParent(GetHandle()));
     }
     EckInline LRESULT FillNmhdrAndSendNotify(auto& nm, HWND hParent, UINT uCode) const noexcept
     {
@@ -268,7 +268,7 @@ protected:
 
     LRESULT DefaultNotifyMessage(HWND hParent, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
-        return CWindowFromHWND(hParent)->OnMessage(uMsg, wParam, lParam);
+        return CWindowFromHandle(hParent)->OnMessage(uMsg, wParam, lParam);
     }
 
     EckInline LRESULT CallProcedure(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
@@ -280,7 +280,7 @@ protected:
         return OnMessage(uMsg, wParam, lParam);
     }
 public:
-    ECKPROP_R(GetHWnd) HWND HWnd;
+    ECKPROP_R(GetHandle) HWND Handle;
 
     static LRESULT CALLBACK EckWindowProcedure(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
@@ -364,7 +364,7 @@ public:
                 EnableWindowNcDarkMode(hWnd, ShouldAppsUseDarkMode());
         }
         break;
-        case WM_NCDESTROY:// 窗口生命周期中的最后一个消息，在这里解绑HWND和CWnd，从窗口映射中清除无效内容
+        case WM_NCDESTROY:// 窗口生命周期中的最后一个消息，在这里解绑HWND和CWindow，从窗口映射中清除无效内容
         {
             const auto lResult = e->pWnd->CallProcedure(uMsg, wParam, lParam);
             (void)e->pWnd->CWindow::Detach();// 控件类可能不允许拆离，必须使用基类拆离
@@ -406,7 +406,7 @@ public:
     virtual ~CWindow()
     {
 #ifdef _DEBUG
-        // 对于已添加进映射的窗口，CWnd的生命周期必须在窗口生命周期之内
+        // 对于已添加进映射的窗口，CWindow的生命周期必须在窗口生命周期之内
         if (m_hWnd)
             EckAssert(((PtcCurrent()->WmAt(m_hWnd) == this) ? (!m_hWnd) : TRUE));
 #endif // _DEBUG
@@ -417,7 +417,7 @@ public:
     {
         EckAssert(!m_hWnd);// 当前类必须未持有句柄
         const auto pCtx = PtcCurrent();
-        EckAssert(!pCtx->WmAt(hWnd));// 新句柄必须未被CWnd持有
+        EckAssert(!pCtx->WmAt(hWnd));// 新句柄必须未被CWindow持有
         m_hWnd = hWnd;
         pCtx->WmAdd(hWnd, this, !(GetStyle() & WS_CHILD));
     }
@@ -427,9 +427,9 @@ public:
     {
         HWND hWnd = nullptr;
         std::swap(hWnd, m_hWnd);
-        const auto pCtx = PtcCurrent();
-        EckAssert(pCtx->WmAt(hWnd) == this);// 检查匹配性
-        pCtx->WmRemove(hWnd);
+        const auto ptc = PtcCurrent();
+        EckAssert(ptc->WmAt(hWnd) == this);// 检查匹配性
+        ptc->WmRemove(hWnd);
         return hWnd;
     }
 
@@ -528,7 +528,7 @@ public:
     /// </summary>
     virtual LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
-        return CallWindowProcW(m_pfnRealProc, HWnd, uMsg, wParam, lParam);
+        return CallWindowProcW(m_pfnRealProc, Handle, uMsg, wParam, lParam);
     }
 
     /// <summary>
@@ -560,7 +560,7 @@ public:
         _Out_ BOOL& bProcessed) noexcept
     {
         bProcessed = FALSE;
-        auto hParent = GetParent(HWnd);
+        auto hParent = GetParent(Handle);
         if (!hParent)
             return 0;
         const auto pCtx = PtcCurrent();
@@ -604,7 +604,7 @@ public:
         return { TLytCoord(size.cx), TLytCoord(size.cy) };
     }
     void LoShow(BOOL bShow) noexcept override { Show(bShow ? SW_SHOW : SW_HIDE); }
-    HWND LoGetHWND() noexcept override { return GetHWnd(); }
+    HWND LoGetHWND() noexcept override { return GetHandle(); }
 
     // 跳到当前类序列化数据的尾部
     EckInlineNdCe static PCVOID SkipBaseData(PCVOID p) noexcept
@@ -664,7 +664,7 @@ public:
         return m_hWnd;
     }
 
-    EckInlineNdCe HWND GetHWnd() const noexcept { return m_hWnd; }
+    EckInlineNdCe HWND GetHandle() const noexcept { return m_hWnd; }
 
     EckInline void FrameChanged() const noexcept
     {
@@ -891,7 +891,7 @@ public:
     EckInlineNd CStringW GetWindowClass() const noexcept
     {
         CStringW rs(256);
-        rs.ReSize(GetClassNameW(GetHWnd(), rs.Data(), 256 + 1));
+        rs.ReSize(GetClassNameW(GetHandle(), rs.Data(), 256 + 1));
         return rs;
     }
 
@@ -1086,7 +1086,7 @@ public:
         if (!IsWindow(m_hWnd))
             EckAssert(!m_hWnd);
 #endif // _DEBUG
-        return !!GetHWnd();
+        return !!GetHandle();
     }
 
     EckInline WNDPROC SetWindowProcedure(WNDPROC pfnWndProc) noexcept

@@ -47,7 +47,7 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, &ps);
+            BeginPaint(Handle, &ps);
             SetDCBrushColor(ps.hdc, m_crBk == CLR_DEFAULT ? PtcCurrent()->crDefBkg : m_crBk);
             FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
 
@@ -91,7 +91,7 @@ public:
                     DeleteDC(hCDC);
                 }
             }
-            EndPaint(HWnd, &ps);
+            EndPaint(Handle, &ps);
         }
         return 0;
         case WM_SIZE:

@@ -98,10 +98,10 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, &ps);
+            BeginPaint(Handle, &ps);
             SetDCBrushColor(ps.hdc, PtcCurrent()->crDefBkg);
             FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
-            EndPaint(HWnd, &ps);
+            EndPaint(Handle, &ps);
         }
         return 0;
         }
@@ -382,15 +382,15 @@ public:
             if (!ShouldAppsUseDarkMode())
                 break;
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, &ps);
-            const auto hBTSample = GetDlgItem(HWnd, 0x431);
+            BeginPaint(Handle, &ps);
+            const auto hBTSample = GetDlgItem(Handle, 0x431);
             RECT rc;
             GetWindowRect(hBTSample, &rc);
-            ScreenToClient(HWnd, &rc);
+            ScreenToClient(Handle, &rc);
             if (IsRectsIntersect(ps.rcPaint, rc))
             {
                 const auto* const ptc = PtcCurrent();
-                const auto hCBBColor = GetDlgItem(HWnd, 0x473);
+                const auto hCBBColor = GetDlgItem(Handle, 0x473);
                 COLORREF cr{ CLR_INVALID };
                 if (GetWindowLongPtrW(hCBBColor, GWL_STYLE) & WS_VISIBLE)
                 {
@@ -418,7 +418,7 @@ public:
                     DT_SINGLELINE | DT_CENTER | DT_VCENTER | DT_NOPREFIX);
                 DeleteObject(hFont);
             }
-            EndPaint(HWnd, &ps);
+            EndPaint(Handle, &ps);
         }
         return 0;
         }

@@ -54,14 +54,14 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, wParam, ps);
+            BeginPaint(Handle, wParam, ps);
             CMemoryDC DC{};
-            DC.FromWindow(HWnd, ps.rcPaint.right - ps.rcPaint.left,
+            DC.FromWindow(Handle, ps.rcPaint.right - ps.rcPaint.left,
                 ps.rcPaint.bottom - ps.rcPaint.top);
             SetWindowOrgEx(DC.GetDC(), ps.rcPaint.left, ps.rcPaint.top, nullptr);
             __super::OnMessage(WM_PAINT, (WPARAM)DC.GetDC(), lParam);
             BitBltPs(&ps, DC.GetDC());
-            EndPaint(HWnd, wParam, ps);
+            EndPaint(Handle, wParam, ps);
         }
         return 0;
         }

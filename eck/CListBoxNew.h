@@ -424,7 +424,7 @@ private:
         const auto srOld = m_SelRange;
         int idxOldSelBegin = -1, idxOldSelEnd = -1,
             idxOld0 = idxBegin, idxOld1 = -1;
-        while (GetCapture() == HWnd)// 如果捕获改变则应立即退出拖动循环
+        while (GetCapture() == Handle)// 如果捕获改变则应立即退出拖动循环
         {
             if (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
             {
@@ -538,7 +538,7 @@ private:
                     }
 
                     Redraw();
-                    UpdateWindow(HWnd);
+                    UpdateWindow(Handle);
                 }
                 break;
 
@@ -826,7 +826,7 @@ public:
             TRACKMOUSEEVENT tme;
             tme.cbSize = sizeof(TRACKMOUSEEVENT);
             tme.dwFlags = TME_LEAVE;
-            tme.hwndTrack = HWnd;
+            tme.hwndTrack = Handle;
             TrackMouseEvent(&tme);
         }
         break;
@@ -836,20 +836,20 @@ public:
             ECK_GET_SIZE_LPARAM(m_cxClient, m_cyClient, lParam);
             ScbSetPage(SB_VERT, m_cyClient);
             ReCalculateTopItem();
-            m_DC.ReSize(HWnd, m_cxClient, m_cyClient);
+            m_DC.ReSize(Handle, m_cxClient, m_cyClient);
         }
         break;
 
         case WM_PRINTCLIENT:
         case WM_PAINT:
-            OnPaint(HWnd, wParam);
+            OnPaint(Handle, wParam);
             return 0;
 
         case WM_VSCROLL:
-            return HANDLE_WM_VSCROLL(HWnd, wParam, lParam, OnVScroll);
+            return HANDLE_WM_VSCROLL(Handle, wParam, lParam, OnVScroll);
 
         case WM_MOUSEWHEEL:
-            HANDLE_WM_MOUSEWHEEL(HWnd, wParam, lParam, OnMouseWheel);
+            HANDLE_WM_MOUSEWHEEL(Handle, wParam, lParam, OnMouseWheel);
             break;
 
         case WM_RBUTTONDOWN:
@@ -866,7 +866,7 @@ public:
             else
             {
                 m_bRBtnDown = TRUE;
-                SetCapture(HWnd);
+                SetCapture(Handle);
             }
         }
         break;
@@ -880,7 +880,7 @@ public:
                 {
                     CbBeginProtectCapture();
                     const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
-                    SetCapture(HWnd);
+                    SetCapture(Handle);
                     CbEndProtectCapture();
                     return lResult;
                 }
@@ -899,7 +899,7 @@ public:
         break;
 
         case WM_LBUTTONDOWN:
-            HANDLE_WM_LBUTTONDOWN(HWnd, wParam, lParam, OnLButtonDown);
+            HANDLE_WM_LBUTTONDOWN(Handle, wParam, lParam, OnLButtonDown);
             break;
 
         case WM_LBUTTONUP:
@@ -1066,7 +1066,7 @@ public:
                 {
                     POINT pt;
                     GetCursorPos(&pt);
-                    ScreenToClient(HWnd, &pt);
+                    ScreenToClient(Handle, &pt);
                     OnMessage(WM_LBUTTONUP, 0, POINTTOPOINTS(pt));
                 }
             }
@@ -1114,13 +1114,13 @@ public:
         case WM_THEMECHANGED:
         {
             CloseThemeData(m_hTheme);
-            m_hTheme = OpenThemeData(HWnd, L"ListView");
+            m_hTheme = OpenThemeData(Handle, L"ListView");
         }
         return 0;
 
         case WM_DPICHANGED_BEFOREPARENT:
         {
-            m_iDpi = GetDpi(HWnd);
+            m_iDpi = GetDpi(Handle);
             if (m_bAutoItemHeight)
             {
                 UpdateDefaultItemHeight();
@@ -1130,7 +1130,7 @@ public:
         return 0;
 
         case WM_CREATE:
-            HANDLE_WM_CREATE(HWnd, wParam, lParam, OnCreate);
+            HANDLE_WM_CREATE(Handle, wParam, lParam, OnCreate);
             break;
 
         case WM_DESTROY:
@@ -1246,8 +1246,8 @@ public:
         ScbSetInfomation(SB_VERT, &si);
         ScbGetInfomation(SB_VERT, &si);
         ReCalculateTopItem();
-        ScrollWindow(HWnd, 0, yOld - si.nPos, nullptr, nullptr);
-        UpdateWindow(HWnd);
+        ScrollWindow(Handle, 0, yOld - si.nPos, nullptr, nullptr);
+        UpdateWindow(Handle);
     }
 
     void RedrawItem(int idx) noexcept
@@ -1309,14 +1309,14 @@ public:
         if (h)
             m_hParent = h;
         else
-            m_hParent = GetParent(HWnd);
+            m_hParent = GetParent(Handle);
     }
 
     EckInlineNdCe HWND GetComboBox() const noexcept { return m_hComboBox; }
 
     EckInline void CbEnterTrack() noexcept
     {
-        SetCapture(HWnd);
+        SetCapture(Handle);
         m_bTrackComboBoxList = TRUE;
     }
 
@@ -1425,6 +1425,6 @@ public:
     EckInlineCe void SetGenerateItemNotify(BOOL b) noexcept { m_bGenItemNotify = b; }
     EckInlineNdCe BOOL GetGenerateItemNotify() const noexcept { return m_bGenItemNotify; }
 
-    EckInlineNdCe HTHEME GetHTheme() const noexcept { return m_hTheme; }
+    EckInlineNdCe HTHEME GetThemeHandle() const noexcept { return m_hTheme; }
 };
 ECK_NAMESPACE_END

@@ -45,7 +45,7 @@ public:
         case WM_NCHITTEST:
         {
             POINT pt ECK_GET_PT_LPARAM(lParam);
-            ScreenToClient(HWnd, &pt);
+            ScreenToClient(Handle, &pt);
             FixCursorPosition(pt);
             if (PointInRect(m_rcBtn, pt))
                 return HTCLIENT;
@@ -63,11 +63,11 @@ public:
             else
             {
                 RECT rc;
-                GetWindowRect(HWnd, &rc);
+                GetWindowRect(Handle, &rc);
                 cyWnd = rc.bottom - rc.top;
             }
 
-            const int cxBtn = (m_cxBtn ? m_cxBtn : DpiScale(20, GetDpi(HWnd)));
+            const int cxBtn = (m_cxBtn ? m_cxBtn : DpiScale(20, GetDpi(Handle)));
             m_rcBtn.right = m_rcMargins.left + (prcClient->right - prcClient->left);
             m_rcBtn.left = m_rcBtn.right - cxBtn;
             m_rcBtn.top = m_rcMargins.top;
@@ -81,9 +81,9 @@ public:
         case WM_NCPAINT:
         {
             const auto lResult = CEditExt::OnMessage(uMsg, wParam, lParam);
-            const HDC hDC = GetWindowDC(HWnd);
+            const HDC hDC = GetWindowDC(Handle);
             OnPaintButton(hDC);
-            ReleaseDC(HWnd, hDC);
+            ReleaseDC(Handle, hDC);
             return lResult;
         }
         break;
@@ -100,7 +100,7 @@ public:
                 TRACKMOUSEEVENT tme;
                 tme.cbSize = sizeof(tme);
                 tme.dwFlags = TME_LEAVE;
-                tme.hwndTrack = HWnd;
+                tme.hwndTrack = Handle;
                 TrackMouseEvent(&tme);
                 return 0;
             }
@@ -130,7 +130,7 @@ public:
             FixCursorPosition(pt);
             if (PointInRect(m_rcBtn, pt))
             {
-                SetCapture(HWnd);
+                SetCapture(Handle);
                 m_bLBtnDown = TRUE;
                 RedrawButton();
                 return 0;

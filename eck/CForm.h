@@ -43,7 +43,7 @@ public:
         {
         case WM_KEYDOWN:
         {
-            if (m_bEscClose && Msg.wParam == VK_ESCAPE && IsWindowEnabled(GetHWnd()))
+            if (m_bEscClose && Msg.wParam == VK_ESCAPE && IsWindowEnabled(GetHandle()))
             {
                 PostMessageW(WM_CLOSE, 0, 0);
                 return TRUE;
@@ -52,8 +52,8 @@ public:
         break;
         case WM_LBUTTONDOWN:
         {
-            if (m_bMoveAnywhere && IsWindowEnabled(GetHWnd()))
-                if ((Msg.hwnd == GetHWnd() ||
+            if (m_bMoveAnywhere && IsWindowEnabled(GetHandle()))
+                if ((Msg.hwnd == GetHandle() ||
                     (::SendMessageW(Msg.hwnd, WM_GETDLGCODE, Msg.wParam, (LPARAM)&Msg) & DLGC_STATIC)))
                 {
                     PostMessageW(WM_NCLBUTTONDOWN, HTCAPTION, 0);
@@ -99,7 +99,7 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, wParam, ps);
+            BeginPaint(Handle, wParam, ps);
             SetDCBrushColor(ps.hdc, m_crBk == CLR_DEFAULT ?
                 PtcCurrent()->crDefBkg : m_crBk);
             FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
@@ -112,7 +112,7 @@ public:
                     m_eBkImageMode, m_bFillWndImage);
                 DeleteDC(hCDC);
             }
-            EndPaint(HWnd, wParam, ps);
+            EndPaint(Handle, wParam, ps);
         }
         return 0;
 
@@ -150,7 +150,7 @@ public:
     EckInline void SetMoveable(BOOL bMoveable) noexcept
     {
         m_bMoveable = bMoveable;
-        CMenu SysMenu(GetSystemMenu(GetHWnd(), FALSE));
+        CMenu SysMenu(GetSystemMenu(GetHandle(), FALSE));
         if (bMoveable)
             SysMenu.EnableItem(SC_MOVE, MF_GRAYED, FALSE);
         else

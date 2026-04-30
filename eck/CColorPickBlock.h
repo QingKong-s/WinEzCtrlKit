@@ -78,7 +78,7 @@ public:
         case WM_LBUTTONDBLCLK:
         {
             CHOOSECOLORW cc{ sizeof(CHOOSECOLORW) };
-            cc.hwndOwner = HWnd;
+            cc.hwndOwner = Handle;
             cc.Flags = m_uCCFlags;
             cc.lpCustColors = m_crCust;
             if (ChooseColorW(&cc))

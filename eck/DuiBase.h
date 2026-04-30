@@ -822,7 +822,7 @@ private:
                     .dwFlags = ULW_ALPHA,
                     .prcDirty = bFullUpdate ? nullptr : &rcPhy,
                 };
-                UpdateLayeredWindowIndirect(HWnd, &ulwi);
+                UpdateLayeredWindowIndirect(Handle, &ulwi);
                 constexpr RECT rcEmpty{};
                 hr = m_pGdiInterop->ReleaseDC(&rcEmpty);
 #ifdef _DEBUG
@@ -916,7 +916,7 @@ private:
         {
         case PresentMode::BitBltSwapChain:
         {
-            auto Param = EZD2D_PARAM::MakeBitblt(HWnd, g_pDxgiFactory, g_pDxgiDevice,
+            auto Param = EZD2D_PARAM::MakeBitblt(Handle, g_pDxgiFactory, g_pDxgiDevice,
                 g_pD2DDevice, cx, cy, fDpi);
             Param.uBmpAlphaMode = RdcD2DAlphaMode();
             m_D2D.Create(Param);
@@ -924,7 +924,7 @@ private:
         break;
         case PresentMode::FlipSwapChain:
         {
-            auto Param = EZD2D_PARAM::MakeFlip(HWnd, g_pDxgiFactory, g_pDxgiDevice,
+            auto Param = EZD2D_PARAM::MakeFlip(Handle, g_pDxgiFactory, g_pDxgiDevice,
                 g_pD2DDevice, cx, cy, fDpi);
             Param.uBmpAlphaMode = RdcD2DAlphaMode();
             Param.uFlags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
@@ -945,7 +945,7 @@ private:
                 &m_D2D.m_pDC);
 
             DCompositionCreateDevice3(g_pDxgiDevice, IID_PPV_ARGS(&m_pDcDevice));
-            m_pDcDevice->CreateTargetForHwnd(HWnd, TRUE, &m_pDcTarget);
+            m_pDcDevice->CreateTargetForHwnd(Handle, TRUE, &m_pDcTarget);
             m_pDcDevice->CreateVisual(&m_pDcVisual);
             m_pDcDevice->CreateSurface(cx, cy,
                 DXGI_FORMAT_B8G8R8A8_UNORM,
@@ -967,7 +967,7 @@ private:
             RtProp.usage = D2D1_RENDER_TARGET_USAGE_NONE;
             RtProp.minLevel = D2D1_FEATURE_LEVEL_DEFAULT;
             D2D1_HWND_RENDER_TARGET_PROPERTIES HwRtProp;
-            HwRtProp.hwnd = HWnd;
+            HwRtProp.hwnd = Handle;
             HwRtProp.pixelSize = { cx, cy };
             HwRtProp.presentOptions = D2D1_PRESENT_OPTIONS_IMMEDIATELY;
             g_pD2DFactory->CreateHwndRenderTarget(RtProp, HwRtProp, &m_pRtHwnd);
@@ -1079,7 +1079,7 @@ private:
 
     void KctInitialize() noexcept
     {
-        m_MsgTimer.SetTargetWindow(HWnd);
+        m_MsgTimer.SetTargetWindow(Handle);
         m_MsgTimer.SetMessageValue(WM_TICK);
         m_MsgTimer.SetInterval(14);
     }
@@ -1121,14 +1121,14 @@ public:
                 m_ePresentMode == PresentMode::WindowRenderTarget)
             {
                 RECT rcInvalid;
-                GetUpdateRect(HWnd, &rcInvalid, FALSE);
-                ValidateRect(HWnd, nullptr);
+                GetUpdateRect(Handle, &rcInvalid, FALSE);
+                ValidateRect(Handle, nullptr);
                 Kw::Rect rcF{ Kw::MakeRect(rcInvalid) };
                 PixelToLogical(rcF);
                 RdInvalidate(rcF);
             }
             else
-                ValidateRect(HWnd, nullptr);
+                ValidateRect(Handle, nullptr);
         }
         return 0;
 
@@ -1761,7 +1761,7 @@ public:
         auto rc{ ((CElement*)m_pEle)->GetWholeRectInClient() };
         ((CElement*)m_pEle)->LogicalToPixel(rc);
         RECT rcInScr{ (int)rc.left, (int)rc.top, (int)rc.right, (int)rc.bottom };
-        ClientToScreen(((CElement*)m_pEle)->GetWindow().HWnd, &rcInScr);
+        ClientToScreen(((CElement*)m_pEle)->GetWindow().Handle, &rcInScr);
         pRetVal->left = (double)rcInScr.left;
         pRetVal->top = (double)rcInScr.top;
         pRetVal->width = double(rcInScr.right - rcInScr.left);

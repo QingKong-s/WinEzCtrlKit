@@ -991,9 +991,9 @@ public:
             }
             else
             {
-                ClientToScreen(GetWindow()->HWnd, &pt);
+                ClientToScreen(GetWindow()->Handle, &pt);
                 if (!m_bSingleSel && m_bEnableDragSel &&
-                    IsMouseMovedBeforeDragging(GetWindow()->HWnd, pt.x, pt.y))
+                    IsMouseMovedBeforeDragging(GetWindow()->Handle, pt.x, pt.y))
                 {
                     if (!GetWindow()->IsValid())
                         return 0;

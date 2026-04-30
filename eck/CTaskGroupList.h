@@ -235,7 +235,7 @@ public:
             TRACKMOUSEEVENT tme;
             tme.cbSize = sizeof(TRACKMOUSEEVENT);
             tme.dwFlags = TME_LEAVE;
-            tme.hwndTrack = HWnd;
+            tme.hwndTrack = Handle;
             TrackMouseEvent(&tme);
 
             return lResult;
@@ -271,7 +271,7 @@ public:
                 if (uPart == TGLP_SECTIONTITLE || uPart == TGLP_SUBTASK)
                 {
                     m_bLBtnDown = TRUE;
-                    SetCapture(HWnd);
+                    SetCapture(Handle);
                     RedrawItems(lvhti.iItem, lvhti.iItem);
                     return 0;
                 }
@@ -323,7 +323,7 @@ public:
 
         case WM_DPICHANGED_AFTERPARENT:
         {
-            int iDpi = GetDpi(HWnd);
+            int iDpi = GetDpi(Handle);
             m_cxPadding = DpiScale(c_iPadding, iDpi);
             m_cxSubTaskPadding = DpiScale(c_iSubTaskPadding, iDpi);
         }

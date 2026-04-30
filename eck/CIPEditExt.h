@@ -14,11 +14,11 @@ private:
 
     void UpdateEditMetrics(int cxClient) noexcept
     {
-        const auto hDC = GetDC(HWnd);
+        const auto hDC = GetDC(Handle);
         const auto hOld = SelectObject(hDC, m_hFont);
         GetCharWidth32W(hDC, L'.', L'.', &m_cxDot);
         SelectObject(hDC, hOld);
-        ReleaseDC(HWnd, hDC);
+        ReleaseDC(Handle, hDC);
         m_cxEdit = (cxClient - 3 - m_cxDot * 3) / 4;
     }
 
@@ -27,7 +27,7 @@ private:
         HWND hEdit{};
         EckCounter(4, i)
         {
-            hEdit = FindWindowExW(HWnd, hEdit, L"Edit", nullptr);
+            hEdit = FindWindowExW(Handle, hEdit, L"Edit", nullptr);
             m_hEdit[i] = hEdit;
         }
         UpdateEditMetrics();
@@ -49,7 +49,7 @@ public:
             if (!ShouldAppsUseDarkMode())
                 break;
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, wParam, ps);
+            BeginPaint(Handle, wParam, ps);
             const auto* const ptc = PtcCurrent();
             SetDCBrushColor(ps.hdc, ptc->crDefBkg);
             FillRect(ps.hdc, &ps.rcPaint, (HBRUSH)GetStockObject(DC_BRUSH));
@@ -66,7 +66,7 @@ public:
             }
             SelectObject(ps.hdc, hOld);
 
-            EndPaint(HWnd, wParam, ps);
+            EndPaint(Handle, wParam, ps);
         }
         return 0;
 
@@ -101,7 +101,7 @@ public:
             const auto lResult = __super::OnMessage(uMsg, wParam, lParam);
             m_hFont = (HFONT)wParam;
             RECT rc;
-            GetClientRect(HWnd, &rc);
+            GetClientRect(Handle, &rc);
             UpdateEditMetrics(rc.right - rc.left);
             return lResult;
         }
@@ -123,7 +123,7 @@ public:
     void UpdateEditMetrics() noexcept
     {
         RECT rc;
-        GetClientRect(HWnd, &rc);
+        GetClientRect(Handle, &rc);
         UpdateEditMetrics(rc.right - rc.left);
     }
 

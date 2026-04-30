@@ -90,20 +90,20 @@ private:
         const int cyED = ((m_pOpt->uFlags & IPBF_MULTILINE) ?
             m_cyClient - y - m_Ds.TextPadding - m_Ds.cyBT - m_Ds.Margin :
             m_cySingleLineText);
-        hDwp = DeferWindowPos(hDwp, m_ED.HWnd, nullptr,
+        hDwp = DeferWindowPos(hDwp, m_ED.Handle, nullptr,
             m_Ds.Margin,
             y,
             m_cxClient - m_Ds.Margin * 2,
             cyED,
             SWP_NOZORDER | SWP_NOACTIVATE);
         y = m_cyClient - m_Ds.Margin - m_Ds.cyBT;
-        hDwp = DeferWindowPos(hDwp, m_BTCancel.HWnd, nullptr,
+        hDwp = DeferWindowPos(hDwp, m_BTCancel.Handle, nullptr,
             m_cxClient - m_Ds.Margin - m_Ds.cxBT,
             y,
             m_Ds.cxBT,
             m_Ds.cyBT,
             SWP_NOZORDER | SWP_NOACTIVATE);
-        hDwp = DeferWindowPos(hDwp, m_BTOk.HWnd, nullptr,
+        hDwp = DeferWindowPos(hDwp, m_BTOk.Handle, nullptr,
             m_cxClient - m_Ds.Margin - m_Ds.cxBT * 2 - m_Ds.TextPadding,
             y,
             m_Ds.cxBT,
@@ -153,7 +153,7 @@ private:
         else
             rs.PushBack(L"OK    Cancel");
         rs.PushBack(pszDiv3);
-        SetClipboardString(HWnd, rs.Data(), rs.Size());
+        SetClipboardString(Handle, rs.Data(), rs.Size());
     }
 public:
     BOOL PreTranslateMessage(const MSG& Msg) noexcept override
@@ -162,7 +162,7 @@ public:
         {
             if (Msg.wParam == 'C' && (GetAsyncKeyState(VK_CONTROL) & 0x8000))
             {
-                if (GetFocus() == m_ED.HWnd)
+                if (GetFocus() == m_ED.Handle)
                 {
                     int iSelBegin, iSelEnd;
                     m_ED.GetSelection(&iSelBegin, &iSelEnd);
@@ -237,7 +237,7 @@ public:
         UpdateDpiControlSize();
         ApplyWindowFont(hDlg, m_hFont);
         Show(SW_SHOW);
-        SetFocus(m_ED.HWnd);
+        SetFocus(m_ED.Handle);
         return FALSE;
     }
 
@@ -249,7 +249,7 @@ public:
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            BeginPaint(HWnd, wParam, ps);
+            BeginPaint(Handle, wParam, ps);
             const auto* const ptc = PtcCurrent();
             SetDCBrushColor(ps.hdc, ptc->crDefBkg);
             FillRect(ps.hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
@@ -266,7 +266,7 @@ public:
             rc.top += (m_cyMainTip + m_Ds.TextPadding);
             DrawThemeTextEx(m_hTheme, ps.hdc, TEXT_BODYTEXT, 0, m_pOpt->pszTip, -1,
                 DT_NOPREFIX | DT_EDITCONTROL | DT_WORDBREAK | DT_NOCLIP, &rc, nullptr);
-            EndPaint(HWnd, wParam, ps);
+            EndPaint(Handle, wParam, ps);
         }
         return 0;
 
@@ -281,18 +281,18 @@ public:
         case WM_DPICHANGED:
         {
             const auto prc = (RECT*)lParam;
-            SetWindowPos(HWnd, nullptr,
+            SetWindowPos(Handle, nullptr,
                 prc->left, prc->top, prc->right - prc->left, prc->bottom - prc->top,
                 SWP_NOZORDER | SWP_NOACTIVATE);
 
             CloseThemeData(m_hTheme);
-            m_hTheme = OpenThemeData(HWnd, L"TextStyle");
+            m_hTheme = OpenThemeData(Handle, L"TextStyle");
 
             const int iOldDpi = m_iDpi;
             UpdateDpi(LOWORD(wParam));
             const auto hOldFont = m_hFont;
             m_hFont = ReCreateFontForDpiChanged(m_hFont, m_iDpi, iOldDpi);
-            ApplyWindowFont(HWnd, m_hFont);
+            ApplyWindowFont(Handle, m_hFont);
             DeleteObject(hOldFont);
 
             UpdateTextMetrics();
@@ -303,7 +303,7 @@ public:
 
         case WM_THEMECHANGED:
             CloseThemeData(m_hTheme);
-            m_hTheme = OpenThemeData(HWnd, L"TextStyle");
+            m_hTheme = OpenThemeData(Handle, L"TextStyle");
             Redraw();
             break;
 

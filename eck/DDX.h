@@ -161,7 +161,7 @@ EckInlineNd CWindow::HSlot DdxpConnect(CWindow& Ctrl, CWindow& Parent, const TEx
     auto hSlot = ec.FindSlot(Id);
     if (!hSlot)
         hSlot = ec.Connect(Fn{}, Id);
-    ec.GetFunctionTarget<Fn>(hSlot)->Add(Ctrl.HWnd, Extra);
+    ec.GetFunctionTarget<Fn>(hSlot)->Add(Ctrl.Handle, Extra);
     return hSlot;
 }
 template<class Fn, USHORT Id>
@@ -170,7 +170,7 @@ EckInlineNd BOOL DdxpDisconnect(CWindow& Ctrl, CWindow& Parent) noexcept
     auto& ec = Parent.GetEventChain();
     const auto hSlot = ec.FindSlot(Id);
     if (hSlot)
-        return ec.GetFunctionTarget<Fn>(hSlot)->Remove(Ctrl.HWnd);
+        return ec.GetFunctionTarget<Fn>(hSlot)->Remove(Ctrl.Handle);
     return FALSE;
 }
 ECK_NAMESPACE_END
