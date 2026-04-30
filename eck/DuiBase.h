@@ -11,9 +11,6 @@
 
 #include <dcomp.h>
 
-#define ECK_DUILOCK
-#define ECK_DUILOCKWND
-
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 class CElement : public UiBasic::CElement<CElement, true>
@@ -67,7 +64,7 @@ public:
 
     virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept;
 
-    void CeInflateRectWithExpandRadius(_Inout_ Kw::Rect& rc, float f) noexcept
+    void CeInflateRectWithExpandRadius(_Inout_ Kw::Rect& rc, float f) const noexcept
     {
         auto rcTemp{ rc };
         InflateRect(rcTemp, f, f);
@@ -100,6 +97,8 @@ public:
         PostMoveSize(TRUE, FALSE, rcOld);
     }
 
+    void LoShow(BOOL bShow) noexcept override { SetVisible(bShow); }
+
     void LoSetPosition(LYTPOINT pt) noexcept override { SetPosition((float)pt.x, (float)pt.y); }
     void LoSetSize(LYTSIZE size) noexcept override { SetSize((float)size.cx, (float)size.cy); }
     void LoSetRect(const LYTRECT& rc) noexcept override
@@ -128,7 +127,22 @@ public:
 
     using TBase::GetStyle;
     using TBase::SetZOrder;
-    using TBase::SetVisible;
+
+    void SetVisible(BOOL b) noexcept
+    {
+        auto u = GetStyle();
+        if (b)
+            if (u & DES_VISIBLE)
+                return;
+            else
+                u |= DES_VISIBLE;
+        else
+            if (u & DES_VISIBLE)
+                u &= ~DES_VISIBLE;
+            else
+                return;
+        SetStyle(u);
+    }
 
     EckInline void SetTheme(CThemeBase* p) noexcept { m_pTheme = p; }
     EckInlineNdCe auto& GetTheme() const noexcept { return m_pTheme; }
@@ -400,7 +414,8 @@ private:
     PresentMode m_ePresentMode{ PresentMode::FlipSwapChain };
 
     BITBOOL m_bBlurUseLayer : 1{};      // 模糊是否使用图层
-    BITBOOL m_bTransparent : 1{ TRUE };       // 窗口是透明的
+    BITBOOL m_bTransparent : 1{ TRUE }; // 窗口是透明的
+    BITBOOL m_bLockUpdate : 1{};
 
     BITBOOL m_bFullUpdate : 1{ TRUE };  // 当前是否需要完全重绘
     BITBOOL m_bWaitSwapChain : 1{};
@@ -1058,6 +1073,7 @@ private:
 
         if (!bActiveTimeLine)
             m_MsgTimer.Pause();
+        RdRenderAndPresent();
         return bActiveTimeLine;
     }
 
@@ -1400,15 +1416,18 @@ public:
 
     EckInlineNdCe ID2D1DeviceContext* GetDeviceContext() const noexcept { return m_D2D.GetDC(); }
 
-    void RdInvalidate(const Kw::Rect& rc)
+    void RdInvalidate(const Kw::Rect& rc, BOOL bUpdateNow = TRUE)
     {
         EckAssert(!IsRectEmpty(rc));
         UnionRect(m_rcInvalid, m_rcInvalid, rc);
-        RdRenderAndPresent();
+        if (bUpdateNow)
+            RdRenderAndPresent();
     }
 
     void RdRenderAndPresent() noexcept
     {
+        if (m_bLockUpdate)
+            return;
         m_bWaitSwapChain = FALSE;
         const Kw::Rect rcClient{ 0, 0, GetClientWidthLogical(), GetClientHeightLogical() };
         Kw::Rect rc;
@@ -1448,6 +1467,14 @@ public:
         }
         m_rcInvalid = {};
         m_bFullUpdate = FALSE;
+    }
+
+    EckInline void RdLockUpdate() noexcept { m_bLockUpdate = TRUE; }
+    EckInline void RdUnlockUpdate(BOOL bUpdateNow = TRUE) noexcept
+    {
+        m_bLockUpdate = FALSE;
+        if (bUpdateNow)
+            RdRenderAndPresent();
     }
 
     EckInlineNdCe ARGB TmAccentColor() const noexcept { return m_argbAccent; }
@@ -1535,9 +1562,7 @@ inline void CElement::InvalidateInternal(const Kw::Rect* prcInEle, BOOL bUpdateN
         } while (pEle = pEle->EtParent());
     }
     GetWindow().CeUnion(rcTemp);
-    GetWindow().RdInvalidate(rcTemp);
-    if (bUpdateNow)
-        GetWindow().RdRenderAndPresent();
+    GetWindow().RdInvalidate(rcTemp, bUpdateNow);
 }
 
 inline void CElement::BeginPaint(_Out_ PAINTINFO& ps, WPARAM, LPARAM lParam) noexcept
@@ -1584,10 +1609,7 @@ inline void CElement::PostMoveSize(BOOL bSize, BOOL bMove, const Kw::Rect& rcOld
     Kw::Rect rc;
     UnionRect(rc, rcOld, GetWholeRectInClient());
     if (!IsRectEmpty(rc))
-    {
         Invalidate(rc);
-        GetWindow().RdInvalidate(rc);
-    }
 }
 
 inline void CElement::SetStyleWorker(DWORD uStyle) noexcept
@@ -1659,7 +1681,7 @@ inline TmResult CElement::TmGenericDrawBackground(
     const auto pDC = GetDC();
     const auto pBrush = GetWindow().CcSetBrushColor(
         ArgbToD2DColorF(GetTheme()->GetStyleColor(pStyle, SfBack)));
-    if (pStyle->HasRoundConer())
+    if (pStyle->HasRoundCorner())
     {
         D2D1_ROUNDED_RECT Rrc{ rc, pStyle->rRound, pStyle->rRound };
         pDC->FillRoundedRectangle(Rrc, pBrush);
@@ -1672,7 +1694,7 @@ inline TmResult CElement::TmGenericDrawBackground(
         const auto d = -pStyle->cxBorder / 2.f;
         pBrush->SetColor(ArgbToD2DColorF(
             GetTheme()->GetStyleColor(pStyle, SfBorder)));
-        if (pStyle->HasRoundConer())
+        if (pStyle->HasRoundCorner())
         {
             D2D1_ROUNDED_RECT Rrc{ rc, pStyle->rRound, pStyle->rRound };
             InflateRect(Rrc.rect, d, d);

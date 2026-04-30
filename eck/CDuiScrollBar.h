@@ -4,9 +4,17 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-class CScrollBar : public CElement, public ITimeLine
+class CScrollBar : public CElement, public ITimeLine, public IScrollController
 {
 public:
+    struct EVT_SCROLL : ELENMHDR
+    {
+        float fPos;
+        float fPrevPos;
+        BOOLEAN bAnimating;
+        BOOLEAN bVertical;
+    };
+
     const static inline UINT IdPtTrackH = TmNextResourceId();
     const static inline UINT IdPtTrackV = TmNextResourceId();
     const static inline UINT IdPtThumbH = TmNextResourceId();
@@ -34,6 +42,8 @@ public:
 private:
     CInertialScrollView m_sv{};
     EasingCurve<Easing::FOutCubic> m_ec{};
+    FSccCallback m_pfnSccCallback{};
+    void* m_pSccCallbackUser{};
 
     float m_fSmallDelta{ 1.f };
 
@@ -51,13 +61,13 @@ private:
         // Track
         { IdTmInvalid, IdTmInvalid,        IdTmInvalid },
         // Track Hot
-        { IdTmInvalid, IdCrBorder,         IdTmInvalid },
+        { IdTmInvalid, IdCrBack,           IdTmInvalid },
         // Track Disabled
-        { IdTmInvalid, IdCrBorderDisabled, IdTmInvalid },
+        { IdTmInvalid, IdCrBackDisabled,   IdTmInvalid },
         // Thumb
-        { IdCrBorder,  IdCrBorder,         IdCrBorder },
+        { IdTmInvalid, IdCrBorder,         IdTmInvalid },
         // Thumb Hot
-        { IdCrBorder,  IdCrBorderHot,      IdCrBorder },
+        { IdTmInvalid, IdCrBorderHot,      IdTmInvalid },
         // Thumb Disabled
         { IdTmInvalid, IdCrBorderDisabled, IdTmInvalid },
     };
@@ -290,6 +300,14 @@ public:
             GetWindow().KctRegisterTimeLine(this);
             GetWindow().KctRegisterTimeLine(&m_sv);
             SetTheme(TmDefaultTheme(TmIsDarkMode()).Get());
+            m_sv.SetCallback([](float fPos, float fPrevPos, void* pUser)
+                {
+                    EVT_SCROLL nm{};
+                    nm.fPos = fPos;
+                    nm.fPrevPos = fPrevPos;
+                    nm.bAnimating = TRUE;
+                    ((CScrollBar*)pUser)->EvtScroll(nm);
+                }, this);
             break;
 
         case WM_DESTROY:
@@ -309,7 +327,9 @@ public:
     BOOL TlIsValid() noexcept override { return m_bAnActive; }
     int TlGetCurrentInterval() noexcept override { return (int)m_msLastDuration; }
 
-    EckInlineNdCe auto& GetScrollView() const noexcept { return m_sv; }
+    // 外部不得对视图调用SetCallback，滚动条统一管理动画和非动画滚动事件，
+    // 若已设置Scc回调，则事件仅发送到回调，否则发送通知
+    EckInlineNdCe auto& GetScrollView() noexcept { return m_sv; }
 
     void GetPartRect(_Out_ Kw::Rect& rc, Part eType) const noexcept
     {
@@ -370,13 +390,63 @@ public:
 
     EckInlineCe void SetSmallDelta(float f) noexcept { m_fSmallDelta = f; }
     EckInlineNdCe float GetSmallDelta() const noexcept { return m_fSmallDelta; }
+
     EckInlineCe void SetLargeDelta(float f) noexcept { m_sv.SetPage(f); }
     EckInlineNdCe float GetLargeDelta() const noexcept { return m_sv.GetPage(); }
+    EckInlineCe void SetPage(float f) noexcept { SetLargeDelta(f); }
+    EckInlineNdCe float GetPage() const noexcept { return GetLargeDelta(); }
 
     void EvtScroll() noexcept
     {
-        ELENMHDR nm{ m_bVertical ? ENC_VSCROLL : ENC_HSCROLL };
-        SendNotify(&nm);
+        EVT_SCROLL nm{ ENC_SCROLL };
+        nm.fPos = m_sv.GetPosition();
+        EvtScroll(nm);
+    }
+    void EvtScroll(EVT_SCROLL& nm) noexcept
+    {
+        if (m_pfnSccCallback)
+        {
+            const SCC_CALLBACK_DATA Data
+            {
+                .fPos = nm.fPos,
+                .fPrevPos = nm.fPrevPos,
+                .bAnimating = nm.bAnimating,
+                .pUser = m_pSccCallbackUser
+            };
+            m_pfnSccCallback(Data);
+        }
+        else
+        {
+            nm.bVertical = m_bVertical;
+            SendNotify(&nm);
+        }
+    }
+
+    float SccGetPosition() const noexcept override { return m_sv.GetPosition(); }
+    void SccSetPosition(float x) noexcept override { m_sv.SetPosition(x); }
+    float SccGetPage() const noexcept override { return m_sv.GetPage(); }
+    void SccSetPage(float x) noexcept override { m_sv.SetPage(x); }
+    float SccGetMinimum() const noexcept override { return m_sv.GetMinimum(); }
+    void SccSetMinimum(float x) noexcept override { m_sv.SetMinimum(x); }
+    float SccGetMaximum() const noexcept override { return m_sv.GetMaximum(); }
+    void SccSetMaximum(float x) noexcept override { m_sv.SetMaximum(x); }
+    void SccSetRange(float Min, float Max) noexcept override { m_sv.SetRange(Min, Max); }
+    void SccSetVisible(BOOL b) noexcept override { SetVisible(b); }
+    void SccRedraw() noexcept override { Invalidate(); }
+
+    void SccMouseWheel(float d) noexcept override { m_sv.OnMouseWheel2(d); }
+    void SccScrollDelta(float d, BOOL bSmooth) noexcept override
+    {
+        if (bSmooth)
+            m_sv.SmoothScrollDelta(d);
+        else
+            m_sv.SetPosition(m_sv.GetPosition() + d);
+    }
+
+    void SccSetCallback(FSccCallback pfnCallback, void* pUser) noexcept override
+    {
+        m_pfnSccCallback = pfnCallback;
+        m_pSccCallbackUser = pUser;
     }
 };
 

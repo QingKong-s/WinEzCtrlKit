@@ -1,11 +1,14 @@
 ﻿#pragma once
 #include "UiElement.h"
 #include "UiColor.h"
+#include "UiScroll.h"
 #include "CReferenceCounted.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
 using namespace UiBasic::Declaration;
+
+using IScrollController = UiBasic::IScrollControllerT<float>;
 
 class CElement;
 

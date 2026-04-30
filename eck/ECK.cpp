@@ -426,7 +426,7 @@ static void UxfpOnThemeClose(HTHEME hTheme) noexcept
     }
 }
 
-EckInline constexpr BOOL UxfpIsDarkTaskDialogAvailable() noexcept
+EckInlineNdCe BOOL UxfpIsDarkTaskDialogAvailable() noexcept
 {
     return g_NtVersion.uBuild >= WINVER_11_21H2;
 }
@@ -434,8 +434,8 @@ EckInline constexpr BOOL UxfpIsDarkTaskDialogAvailable() noexcept
 HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
 {
     // 参考：https://github.com/adzm/win32-custom-menubar-aero-theme
-    auto& Sig = pWnd->GetEventChain();
-    if (Sig.FindSlot(MHI_UXF_MENU))
+    auto& ec = pWnd->GetEventChain();
+    if (ec.FindSlot(MHI_UXF_MENU))
         return S_FALSE;
     const auto hTheme = OpenThemeData(pWnd->GetHWnd(), L"Menu");
     auto Fn = [hTheme = hTheme](CWindow* pWnd, UINT uMsg,
@@ -580,7 +580,7 @@ HRESULT UxfMenuInitialize(CWindow* pWnd) noexcept
             return 0;
         };
 
-    Sig.Connect(Fn, MHI_UXF_MENU);
+    ec.Connect(Fn, MHI_UXF_MENU);
     return S_OK;
 }
 

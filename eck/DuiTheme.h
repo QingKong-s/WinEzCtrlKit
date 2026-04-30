@@ -50,10 +50,10 @@ struct SimpleStyle
             BOOLEAN bBackArgb;
             BOOLEAN bBorderArgb;
         };
-        UINT bArgb[3];
+        BOOLEAN bArgb[3];
     };
 
-    EckInlineNdCe BOOL HasRoundConer() const noexcept { return rRound >= 1.f; }
+    EckInlineNdCe BOOL HasRoundCorner() const noexcept { return rRound >= 1.f; }
     EckInlineNdCe BOOL HasBorder() const noexcept
     {
         return cxBorder >= 1.f && CrBorder != IdTmInvalid;

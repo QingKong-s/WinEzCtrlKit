@@ -54,8 +54,7 @@ namespace Declaration
 
         ENC_COMMAND,
         ENC_POSCHANGED,
-        ENC_HSCROLL,
-        ENC_VSCROLL,
+        ENC_SCROLL,
 
         ENC_SYSBEGIN,
     };
@@ -1167,7 +1166,6 @@ public:
     {
         return { (TLytCoord)GetWidth(), (TLytCoord)GetHeight() };
     }
-    void LoShow(BOOL bShow) noexcept override { SetVisible(bShow); }
 
     virtual LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
     {
@@ -1642,22 +1640,6 @@ protected:
         }
     }
 #pragma endregion ElementTree
-protected:
-    void SetVisible(BOOL b) noexcept
-    {
-        auto u = GetStyle();
-        if (b)
-            if (u & DES_VISIBLE)
-                return;
-            else
-                u |= DES_VISIBLE;
-        else
-            if (u & DES_VISIBLE)
-                u &= ~DES_VISIBLE;
-            else
-                return;
-        SetStyle(u);
-    }
 public:
     // 是否可见。函数自底向上遍历父元素，如果存在不可见父元素，则返回FALSE，否则返回TRUE。
     EckInlineNdCe BOOL IsVisible() const noexcept

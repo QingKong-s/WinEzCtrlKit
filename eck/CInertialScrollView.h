@@ -7,7 +7,7 @@ ECK_NAMESPACE_BEGIN
 class CInertialScrollView : public CScrollViewF, public ITimeLine
 {
 public:
-    using FCallback = void(*)(float fPos, float fPrevPos, LPARAM lParam);
+    using FCallback = void(*)(float fPos, float fPrevPos, void* pUser);
 protected:
     float m_fStart{};           // 起始位置
     float m_fDistance{};        // 当前动画应滚动的总距离
@@ -18,7 +18,7 @@ protected:
     int m_iCurrInterval{};
 
     FCallback m_pfnCallback{};
-    LPARAM m_lParam{};
+    void* m_pUser{};
 
     BOOL m_bValid{};
     BOOL m_bStop{ TRUE };
@@ -36,7 +36,7 @@ public:
         else
             m_bStop = (m_fDistance > 0.f ?
                 (f >= m_fStart + m_fDistance) : (f <= m_fStart + m_fDistance));
-        m_pfnCallback(GetPosition(), fPrevPos, m_lParam);
+        m_pfnCallback(GetPosition(), fPrevPos, m_pUser);
         if (m_bStop)
             InterruptAnimation();
     }
@@ -66,10 +66,10 @@ public:
         m_bValid = TRUE;
     }
 
-    EckInlineCe void SetCallback(FCallback pfnCallBack, LPARAM lParam) noexcept
+    EckInlineCe void SetCallback(FCallback pfnCallBack, void* pUser) noexcept
     {
         m_pfnCallback = pfnCallBack;
-        m_lParam = lParam;
+        m_pUser = pUser;
     }
 
     EckInlineCe void SetDuration(float iDuration) noexcept { m_fDuration = iDuration; }

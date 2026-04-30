@@ -44,7 +44,7 @@ public:
     BOOL TxSetScrollRange(INT fnBar, LONG nMinPos, INT nMaxPos, BOOL fRedraw);
     BOOL TxSetScrollPos(INT fnBar, INT nPos, BOOL fRedraw);
     void TxInvalidateRect(LPCRECT prc, BOOL fMode);
-    void TxViewChange(BOOL fUpdate) {}
+    void TxViewChange(BOOL fUpdate);
     BOOL TxCreateCaret(HBITMAP hbmp, INT xWidth, INT yHeight);
     BOOL TxShowCaret(BOOL fShow);
     BOOL TxSetCaretPos(INT x, INT y);
@@ -109,9 +109,29 @@ public:
         CxyMarginHIMETRIC = CxyMargin * 2540 / 96,
         CyBottomMarginHIMETRIC = CyBottomMargin * 2540 / 96,
         CyBottomBar = CyBottomMargin - CxyMargin;
+
+    enum : UINT
+    {
+        SsNormal,
+        SsHot,
+        SsFocus,
+        SsDisabled,
+        SsMax
+    };
+public:
+    static RcPtr<CThemeBase> TmMakeDefaultTheme(BOOL bDark) noexcept;
+    static RcPtr<CThemeBase> TmDefaultTheme(BOOL bDark) noexcept
+    {
+        static auto p1{ TmMakeDefaultTheme(TRUE) };
+        static auto p2{ TmMakeDefaultTheme(FALSE) };
+        return bDark ? p1 : p2;
+    }
 private:
-    CScrollBar m_SBH{};
-    CScrollBar m_SBV{};
+    std::unique_ptr<CScrollBar> m_pSBHorz{};
+    std::unique_ptr<CScrollBar> m_pSBVert{};
+
+    IScrollController* m_pSccH{};
+    IScrollController* m_pSccV{};
 
     ComPtr<CEditTextHost> m_pHost{};
     ComPtr<ITextServices2> m_pSrv{};
@@ -127,14 +147,32 @@ private:
     Align m_eSingleLineAlignV{ Align::Center };
 
     BITBOOL m_bCaretShow : 1{};
-    BITBOOL m_bHot : 1{};
+    // NOTE 260428
+    // TxInvalidateRect假定实现是“类InvalidateRect”的，即仅记录
+    // 无效矩形，而不立即触发重绘（重绘间接导致对TxDrawD2D的调用）。
+    // 必须尊重此种假设，否则将导致无穷递归调用
+    BITBOOL m_bInPaint : 1{};
 
     // 收到WM_SETFONT时是否同步文本格式
     BITBOOL m_bAutoSyncTextFmt : 1{ TRUE };
-    // 指示使用RichEdit内部自带滚动机制，因在渲染线程操作RE的影响未知，故提供此后备选项
+    // 指示使用RichEdit内部自带滚动机制
     BITBOOL m_bREScrollAn : 1{};
     // 单行模式下按m_eSingleLineAlignV字段垂直对齐
     BITBOOL m_bSlAutoAlignV : 1{ TRUE };
+    // 使用内置滚动条，FALSE指示使用了外部的滚动控制器
+    BITBOOL m_bUseBuiltInScrollBar : 1{ TRUE };
+
+    SimpleStyle m_Style[SsMax]
+    {
+        // Normal
+        { IdTmInvalid, IdCrBack,         IdTmInvalid },
+        // Hot
+        { IdTmInvalid, IdCrBack,         IdTmInvalid },
+        // Focus
+        { IdTmInvalid, IdCrBack,         IdCrBorderPressed, 0.f, 1.f },
+        // Disabled
+        { IdTmInvalid, IdCrBackDisabled, IdTmInvalid },
+    };
 
     void OnDpiChanged()
     {
@@ -198,10 +236,63 @@ private:
         }
     }
 
-    void TmpStateChanged() noexcept
+    EckInlineNdCe static UINT TmSimpleStyleFromThemeState(UINT sa) noexcept
     {
-        Invalidate();
-        GetWindow().RdRenderAndPresent();
+        if (sa & SaDisable)
+            return SsDisabled;
+        if (sa & SaFocus)
+            return SsFocus;
+        if (sa & SaHot)
+            return SsHot;
+        return SsNormal;
+    }
+
+    void ScbCreateElement(BOOL bVert, BOOL bHorz) noexcept
+    {
+        if (!m_bUseBuiltInScrollBar)
+            return;
+        if (bVert)
+        {
+            if (!m_pSBVert)
+                m_pSBVert = std::make_unique<CScrollBar>();
+            m_pSccV = m_pSBVert.get();
+            if (!m_pSBVert->IsValid())
+            {
+                m_pSBVert->Create({}, DES_NO_FOCUSABLE | DES_VISIBLE, 0, 0, 0, 0, 0, this);
+                m_pSBVert->SetVertical(TRUE);
+            }
+        }
+        if (bHorz)
+        {
+            if (!m_pSBHorz)
+                m_pSBHorz = std::make_unique<CScrollBar>();
+            m_pSccH = m_pSBHorz.get();
+            if (!m_pSBHorz->IsValid())
+                m_pSBHorz->Create({}, DES_NO_FOCUSABLE | DES_VISIBLE, 0, 0, 0, 0, 0, this);
+        }
+    }
+
+    void ScbOnSize() noexcept
+    {
+        if ((!m_pSBHorz && !m_pSBVert) || !m_bUseBuiltInScrollBar)
+            return;
+        const auto cx = GetWidth();
+        const auto cy = GetHeight();
+        const auto cxySB = GetTheme()->GetMetric(IdMeScrollBar);
+        if (m_pSBHorz)
+        {
+            m_pSBHorz->SetRect({
+                0,
+                cy - cxySB - CyBottomBar,
+                cx,
+                cy - CyBottomBar });
+            m_pSBHorz->SetPage(cx - m_mgTextAera.left - m_mgTextAera.right);
+        }
+        if (m_pSBVert)
+        {
+            m_pSBVert->SetRect({ cx - cxySB, 0.f, cx, cy });
+            m_pSBVert->SetPage(cy - m_mgTextAera.top - m_mgTextAera.bottom);
+        }
     }
 public:
     LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
@@ -219,36 +310,24 @@ public:
         break;
         case WM_PAINT:
         {
+            m_bInPaint = TRUE;
             PAINTINFO ps;
             BeginPaint(ps, wParam, lParam);
 
-            auto rcViewF{ GetViewRect() };
-            State eState;
-            if (GetFocus() == this)
-                eState = State::Focused;
-            else if (m_bHot)
-                eState = State::Hot;
-            else
-                eState = State::Normal;
-            GetTheme()->Draw(this, IdPtNormal, GetRectInClientD2D());
+            auto rcF = GetRectInClientD2D();
+            const auto& Ss = m_Style[TmSimpleStyleFromThemeState(TmGetState())];
+            GetTheme()->Draw(this, &Ss, IdPtNormal, rcF, nullptr);
 
-            rcViewF.top = rcViewF.bottom - CyBottomBar;
-            if (eState != State::Focused)
-                eState = State::Normal;
-            GetTheme()->DrawBackground(Part::EditBottomBar, eState,
-                rcViewF, nullptr);
-            rcViewF.top = 0.f;
-
-            D2D1_RECT_F rcClipF{ ps.rcfClipInElem };
+            D2D1_RECT_F rcClipF{ ps.rcfClip };
             BOOL bNewClip{};
-            if (rcClipF.top - rcViewF.top < m_mgTextAera.top)
+            if (rcClipF.top - rcF.top < m_mgTextAera.top)
             {
-                rcClipF.top = rcViewF.top + m_mgTextAera.top;
+                rcClipF.top = rcF.top + m_mgTextAera.top;
                 bNewClip = TRUE;
             }
-            if (rcViewF.bottom - rcClipF.bottom < m_mgTextAera.bottom)
+            if (rcF.bottom - rcClipF.bottom < m_mgTextAera.bottom)
             {
-                rcClipF.bottom = rcViewF.bottom - m_mgTextAera.bottom;
+                rcClipF.bottom = rcF.bottom - m_mgTextAera.bottom;
                 bNewClip = TRUE;
             }
             if (!IsRectEmpty(rcClipF))
@@ -256,10 +335,10 @@ public:
                 if (bNewClip)
                     GetDC()->PushAxisAlignedClip(rcClipF, D2D1_ANTIALIAS_MODE_ALIASED);
                 LogicalToPixel(rcClipF);
-                LogicalToPixel(rcViewF);
-                RECT rcClip, rcView{ MakeRect(rcViewF) };
+                LogicalToPixel(rcF);
+                RECT rcClip, rc{ MakeRect(rcF) };
                 CeilRect(rcClipF, rcClip);
-                m_pSrv->TxDrawD2D(GetDC(), (RECTL*)&rcView, &rcClip, TXTVIEW_ACTIVE);
+                m_pSrv->TxDrawD2D(GetDC(), (RECTL*)&rc, &rcClip, TXTVIEW_ACTIVE);
                 if (bNewClip)
                     GetDC()->PopAxisAlignedClip();
             }
@@ -267,72 +346,47 @@ public:
             if (m_bCaretShow)
             {
                 const auto pBrush = GetWindow().CcSetBrushColor(
-                    ArgbToD2DColorF(GetTheme()->GetColor(IdCrForeground)));
-                GetDC()->FillRectangle(m_rcCaret, pBrush);
+                    ArgbToD2DColorF(GetTheme()->GetColor(IdCrFore)));
+                auto rcCaret{ m_rcCaret };
+                ElementToClient(rcCaret);
+                GetDC()->FillRectangle(rcCaret, pBrush);
             }
 
+            DbgDrawFrame();
             EndPaint(ps);
+            m_bInPaint = FALSE;
         }
         return 0;
 
         case WM_MOUSEMOVE:
-            if (!m_bHot)
+            if (!(TmState() & SaHot))
             {
-                m_bHot = TRUE;
-                if (GetFocus() != this)
-                    Invalidate();
+                TmState() |= SaHot;
+                Invalidate();
             }
             break;
 
         case WM_MOUSELEAVE:
-            if (m_bHot)
+            if (TmState() & SaHot)
             {
-                m_bHot = FALSE;
-                if (GetFocus() != this)
-                    Invalidate();
+                TmState() &= ~SaHot;
+                Invalidate();
             }
             return 0;
 
         case WM_SIZE:
         {
-            const auto cx = GetWidth();
-            const auto cy = GetHeight();
-            const auto cxySB = GetTheme()->GetMetric(IdMeScrollBar);
-            m_SBV.SetRect({ cx - cxySB, 0.f, cx, cy });
-            m_SBH.SetRect({
-                0,
-                cy - cxySB - CyBottomBar,
-                cx,
-                cy - CyBottomBar });
-            m_SBV.GetScrollView()->SetPage(cy -
-                m_mgTextAera.top - m_mgTextAera.bottom);
-            m_SBH.GetScrollView()->SetPage(cx -
-                m_mgTextAera.left - m_mgTextAera.right);
+            ScbOnSize();
             UpdateInsetRect();
             constexpr auto uBits = TXTBIT_CLIENTRECTCHANGE | TXTBIT_EXTENTCHANGE;
             TxPropertyChanged(uBits, uBits);
         }
         return 0;
 
-        case WM_NOTIFY:
-        {
-            const auto pnm = (ELENMHDR*)lParam;
-            if (pnm->uNotify == ENC_POSCHANGED)
-            {
-                if (wParam == (WPARAM)&m_SBV)
-                    Scroll(FALSE, (int)m_SBV.GetScrollView()->GetPosition());
-                else if (wParam == (WPARAM)&m_SBH)
-                    Scroll(TRUE, (int)m_SBH.GetScrollView()->GetPosition());
-                return 0;
-            }
-        }
-        break;
-
         case WM_SETFOCUS:
             if (TmState() & SaFocus)
                 break;
             TmState() |= SaFocus;
-            TmpStateChanged();
 
             m_pSrv->OnTxUIActivate();
             m_pSrv->TxSendMessage(WM_SETFOCUS, 0, 0, nullptr);
@@ -343,7 +397,6 @@ public:
             if (!(TmState() & SaFocus))
                 break;
             TmState() &= ~SaFocus;
-            TmpStateChanged();
 
             m_pSrv->OnTxUIDeactivate();
             m_pSrv->TxSendMessage(WM_KILLFOCUS, 0, 0, nullptr);
@@ -402,30 +455,19 @@ public:
 
         case WM_CREATE:
         {
+            GetWindow().RdLockUpdate();
+            ScbCreateElement(TRUE, TRUE);
+            SetTheme(TmDefaultTheme(TmIsDarkMode()).Get());
+
             if (!TsiIsAvailable())
                 TsiInit();
             m_pHost.Attach(new CEditTextHost{});
             m_pHost->SetEdit(this);
-            IUnknown* pUnk{};
+            ComPtr<IUnknown> pUnk;
+
             TsiCreateTextServices(nullptr, m_pHost.Get(), &pUnk);
             pUnk->QueryInterface(IID_ITextServices2, (void**)m_pSrv.AtClear());
-            pUnk->Release();
 
-            m_SBV.Create(nullptr, 0, 0, 0, 0, 0, 0, this);
-            m_SBV.GetScrollView()->SetCallback([](float fPos, float fPrevPos, LPARAM lParam)
-                {
-                    const auto pThis = (CEdit*)lParam;
-                    if (!pThis->m_bREScrollAn && (int)fPos != (int)fPrevPos)
-                        pThis->Scroll(FALSE, (int)fPos);
-                }, (LPARAM)this);
-            m_SBH.Create(nullptr, 0, 0, 0, 0, 0, 0, this);
-            m_SBH.SetHorizontal(TRUE);
-            m_SBH.GetScrollView()->SetCallback([](float fPos, float fPrevPos, LPARAM lParam)
-                {
-                    const auto pThis = (CEdit*)lParam;
-                    if (!pThis->m_bREScrollAn && (int)fPos != (int)fPrevPos)
-                        pThis->Scroll(TRUE, (int)fPos);
-                }, (LPARAM)this);
             constexpr auto uBits = TO_DEFAULTCOLOREMOJI | TO_DISPLAYFONTCOLOR;
             SetTypographyOptions(uBits, uBits);
             m_pSrv->TxSetText(GetText().Data());
@@ -433,6 +475,7 @@ public:
             m_pSrv->OnTxUIActivate();
             if (GetWindow().GetUserDpi() != GetDpi(nullptr))
                 OnDpiChanged();
+            GetWindow().RdUnlockUpdate();
         }
         break;
 
@@ -453,9 +496,7 @@ public:
                 goto TxSend;// 缩放
             if (wParam & MK_SHIFT)
                 goto ScrollH;// 横向滚动
-            ECK_DUILOCK;
-            m_SBV.GetScrollView()->OnMouseWheel2(
-                -GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
+            m_pSccV->SccMouseWheel(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
             KctWake();
         }
         else if (uMsg == WM_MOUSEHWHEEL)
@@ -463,16 +504,15 @@ public:
             if (m_bREScrollAn)
                 goto TxSend;
         ScrollH:
-            ECK_DUILOCK;
-            m_SBH.GetScrollView()->OnMouseWheel2(
-                -GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
+            m_pSccH->SccMouseWheel(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
             KctWake();
         }
         else if (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST)
         {
         TxSend:
-            ECK_DUILOCK;
-            Kw::Vec2 pt ECK_GET_PT_LPARAM_F(lParam);
+            if (uMsg == WM_LBUTTONDOWN || uMsg == WM_RBUTTONDOWN)
+                SetFocus();
+            auto pt = *(Kw::Vec2*)lParam;
             ElementToClient(pt);
             GetWindow().LogicalToPixel(pt);
             LRESULT lResult;
@@ -484,7 +524,6 @@ public:
         else if ((uMsg >= WM_KEYFIRST && uMsg <= WM_IME_KEYLAST) ||
             uMsg == WM_TIMER)
         {
-            ECK_DUILOCK;
             if (uMsg == WM_KEYDOWN)
             {
                 if ((wParam == '0' || wParam == VK_NUMPAD0) &&
@@ -498,17 +537,24 @@ public:
         return __super::OnEvent(uMsg, wParam, lParam);
     }
 
+    void SccSetController(IScrollController* pSccV, IScrollController* pSccH)
+    {
+        m_bUseBuiltInScrollBar = (!pSccH && !pSccV);
+        m_pSccV = pSccV;
+        m_pSccH = pSccH;
+    }
+
     void ShowScrollBar(int nBar, BOOL bShow)
     {
         if (nBar == SB_BOTH)
         {
-            m_SBV.SetVisible(bShow);
-            m_SBH.SetVisible(bShow);
+            m_pSccV->SccSetVisible(bShow);
+            m_pSccH->SccSetVisible(bShow);
         }
         else if (nBar == SB_HORZ)
-            m_SBH.SetVisible(bShow);
+            m_pSccH->SccSetVisible(bShow);
         else if (nBar == SB_VERT)
-            m_SBV.SetVisible(bShow);
+            m_pSccV->SccSetVisible(bShow);
     }
 
     void Scroll(BOOL bHorz, int nPos, BOOL bRedraw = TRUE)
@@ -550,7 +596,6 @@ public:
 
     HRESULT SaveRtf(IStream* pStream) const
     {
-        pStream->AddRef();
         EDITSTREAM es;
         es.dwCookie = (DWORD_PTR)pStream;
         es.dwError = 0;
@@ -560,7 +605,6 @@ public:
                 return (DWORD)pStream->Write(pbBuff, (ULONG)cb, (ULONG*)pcb);
             };
         StreamOut(SF_RTF, &es);
-        pStream->Release();
         return es.dwError;
     }
 
@@ -1092,15 +1136,28 @@ public:
     }
 };
 
-inline HDC CEditTextHost::TxGetDC()
+class CTmEdit : public CThemeBase
 {
-    return GetDC(m_pEdit->GetWindow().HWnd);
+public:
+    TmResult Draw(
+        CElement* pEle,
+        const SimpleStyle* pStyle,
+        UINT idPart,
+        const D2D1_RECT_F& rc,
+        _In_opt_ const D2D1_RECT_F* prcClip) noexcept override
+    {
+        if (idPart != IdPtNormal)
+            return TmResult::NotSupport;
+        return pEle->TmGenericDrawBackground(pStyle, rc);
+    }
+};
+inline RcPtr<CThemeBase> CEdit::TmMakeDefaultTheme(BOOL bDark) noexcept
+{
+    return TmMakeTheme<CTmEdit>(bDark);
 }
 
-inline INT CEditTextHost::TxReleaseDC(HDC hdc)
-{
-    return ReleaseDC(m_pEdit->GetWindow().HWnd, hdc);
-}
+inline HDC CEditTextHost::TxGetDC() { return GetDC(m_pEdit->GetWindow().HWnd); }
+inline INT CEditTextHost::TxReleaseDC(HDC hdc) { return ReleaseDC(m_pEdit->GetWindow().HWnd, hdc); }
 
 inline BOOL CEditTextHost::TxShowScrollBar(INT fnBar, BOOL fShow)
 {
@@ -1121,15 +1178,15 @@ inline BOOL CEditTextHost::TxSetScrollRange(INT fnBar, LONG nMinPos, INT nMaxPos
     const auto fMax = DpiScale((float)nMaxPos, 96, iDpi);
     if (fnBar == SB_VERT || fnBar == SB_BOTH)
     {
-        m_pEdit->m_SBV.GetScrollView()->SetRange(fMin, fMax);
+        m_pEdit->m_pSccV->SccSetRange(fMin, fMax);
         if (fRedraw)
-            m_pEdit->m_SBV.Invalidate();
+            m_pEdit->m_pSccV->SccRedraw();
     }
     if (fnBar == SB_HORZ || fnBar == SB_BOTH)
     {
-        m_pEdit->m_SBH.GetScrollView()->SetRange(fMin, fMax);
+        m_pEdit->m_pSccH->SccSetRange(fMin, fMax);
         if (fRedraw)
-            m_pEdit->m_SBH.Invalidate();
+            m_pEdit->m_pSccH->SccRedraw();
     }
     return TRUE;
 }
@@ -1139,15 +1196,15 @@ inline BOOL CEditTextHost::TxSetScrollPos(INT fnBar, INT nPos, BOOL fRedraw)
     const auto fPos = m_pEdit->PixelToLogical((float)nPos);
     if (fnBar == SB_VERT || fnBar == SB_BOTH)
     {
-        m_pEdit->m_SBV.GetScrollView()->SetPosition(fPos);
+        m_pEdit->m_pSccV->SccSetPosition(fPos);
         if (fRedraw)
-            m_pEdit->m_SBV.Invalidate();
+            m_pEdit->m_pSccV->SccRedraw();
     }
     if (fnBar == SB_HORZ || fnBar == SB_BOTH)
     {
-        m_pEdit->m_SBH.GetScrollView()->SetPosition(fPos);
+        m_pEdit->m_pSccH->SccSetPosition(fPos);
         if (fRedraw)
-            m_pEdit->m_SBH.Invalidate();
+            m_pEdit->m_pSccH->SccRedraw();
     }
     return TRUE;
 }
@@ -1159,10 +1216,16 @@ inline void CEditTextHost::TxInvalidateRect(LPCRECT prc, BOOL fMode)
         D2D1_RECT_F rc{ MakeD2DRectF(*prc) };
         m_pEdit->PixelToLogical(rc);
         m_pEdit->ClientToElement(rc);
-        m_pEdit->Invalidate(rc);
+        m_pEdit->Invalidate(rc, !m_pEdit->m_bInPaint);
     }
     else
-        m_pEdit->Invalidate();
+        m_pEdit->Invalidate(!m_pEdit->m_bInPaint);
+}
+
+inline void CEditTextHost::TxViewChange(BOOL fUpdate)
+{
+    if (fUpdate)
+        m_pEdit->GetWindow().RdRenderAndPresent();
 }
 
 inline BOOL CEditTextHost::TxCreateCaret(HBITMAP hbmp, INT xWidth, INT yHeight)
@@ -1175,7 +1238,7 @@ inline BOOL CEditTextHost::TxShowCaret(BOOL fShow)
 {
     m_pEdit->m_bCaretShow = fShow;
     auto rc{ m_pEdit->m_rcCaret };
-    m_pEdit->Invalidate(rc);
+    m_pEdit->Invalidate(rc, !m_pEdit->m_bInPaint);
     return TRUE;
 }
 
@@ -1191,7 +1254,7 @@ inline BOOL CEditTextHost::TxSetCaretPos(INT x, INT y)
     if (rc.right - rc.left < 1.f)
         rc.right = rc.left + 1.f;
     m_pEdit->ClientToElement(rc);
-    m_pEdit->Invalidate(rc);
+    m_pEdit->Invalidate(rc, !m_pEdit->m_bInPaint);
     return TRUE;
 }
 
@@ -1364,8 +1427,8 @@ inline void CEditTextHost::TxImmReleaseContext(HIMC himc)
 
 inline BOOL CEditTextHost::TxIsDoubleClickPending()
 {
-    MSG msg;
-    return PeekMessageA(&msg, m_pEdit->GetWindow().HWnd,
+    MSG Msg;
+    return PeekMessageA(&Msg, m_pEdit->GetWindow().HWnd,
         WM_LBUTTONDBLCLK, WM_LBUTTONDBLCLK, PM_NOREMOVE | PM_NOYIELD);
 }
 
@@ -1379,6 +1442,7 @@ inline HRESULT CEditTextHost::TxSetForegroundWindow()
 {
     if (!SetForegroundWindow(m_pEdit->GetWindow().HWnd))
         SetFocus(m_pEdit->GetWindow().HWnd);
+    //m_pEdit->SetFocus();
     return S_OK;
 }
 
@@ -1400,16 +1464,8 @@ inline HRESULT CEditTextHost::TxGetWindowStyles(DWORD* pdwStyle, DWORD* pdwExSty
     return S_OK;
 }
 
-inline HRESULT CEditTextHost::TxShowDropCaret(BOOL fShow, HDC hdc, LPCRECT prc)
-{
-    return E_NOTIMPL;
-}
-
-inline HRESULT CEditTextHost::TxDestroyCaret()
-{
-    return E_NOTIMPL;
-}
-
+inline HRESULT CEditTextHost::TxShowDropCaret(BOOL fShow, HDC hdc, LPCRECT prc) { return E_NOTIMPL; }
+inline HRESULT CEditTextHost::TxDestroyCaret() { return E_NOTIMPL; }
 inline HRESULT CEditTextHost::TxGetHorzExtent(LONG* plHorzExtent)
 {
     return E_NOTIMPL;
