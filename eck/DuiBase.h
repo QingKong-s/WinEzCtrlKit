@@ -411,11 +411,12 @@ private:
 
     ARGB m_argbAccent{ 0xFF'66CCFF };
 
+    USHORT m_cLockUpdate{};
+
     PresentMode m_ePresentMode{ PresentMode::FlipSwapChain };
 
     BITBOOL m_bBlurUseLayer : 1{};      // 模糊是否使用图层
     BITBOOL m_bTransparent : 1{ TRUE }; // 窗口是透明的
-    BITBOOL m_bLockUpdate : 1{};
 
     BITBOOL m_bFullUpdate : 1{ TRUE };  // 当前是否需要完全重绘
     BITBOOL m_bWaitSwapChain : 1{};
@@ -514,7 +515,7 @@ private:
     static EckInlineNdCe D2D1_ALPHA_MODE RdcD2DAlphaMode() noexcept { return D2D1_ALPHA_MODE_PREMULTIPLIED; }
     static EckInlineNdCe DXGI_ALPHA_MODE RdcDxgiAlphaMode() noexcept { return DXGI_ALPHA_MODE_PREMULTIPLIED; }
 
-    void RdRenderTree(CElement* pEle, const Kw::Rect& rc, Detail::PAINT_EXTRA* pExtra) noexcept
+    void RdpRenderTree(CElement* pEle, const Kw::Rect& rc, Detail::PAINT_EXTRA* pExtra) noexcept
     {
         const auto pDC = GetDeviceContext();
         Kw::Rect rcClip;// 相对客户区
@@ -577,10 +578,10 @@ private:
             if (pEle->GetCompositor())
             {
                 if (uStyle & DES_COMP_NO_REDIRECTION)
-                    RdRenderTree(pEle->EtFirstChild(), rcClip, pExtra);
+                    RdpRenderTree(pEle->EtFirstChild(), rcClip, pExtra);
                 else
                 {
-                    RdRenderTree(pEle->EtFirstChild(), rcClip, pExtra);
+                    RdpRenderTree(pEle->EtFirstChild(), rcClip, pExtra);
                     pDC->Flush();
                     pDC->SetTarget(pOldTarget);
                     pOldTarget->Release();
@@ -625,7 +626,7 @@ private:
 #endif
             }
             else
-                RdRenderTree(pEle->EtFirstChild(), rcClip, pExtra);
+                RdpRenderTree(pEle->EtFirstChild(), rcClip, pExtra);
         NextElem:
             pEle = pEle->EtNext();
         }
@@ -730,7 +731,7 @@ private:
             Extra.oy = ptLogOffsetFinalF.y;
         }
         pDC->SetTransform(D2D1::Matrix3x2F::Translation(Extra.ox, Extra.oy));
-        RdRenderTree(EtFirstChild(), rcFinalF, &Extra);
+        RdpRenderTree(EtFirstChild(), rcFinalF, &Extra);
 
 #ifdef _DEBUG
         if (DbgGetDrawDirtyRect())
@@ -754,7 +755,7 @@ private:
         else
             m_pDcDevice->Commit();
     }
-    void RdRender(const Kw::Rect& rc, BOOL bFullUpdate = FALSE,
+    void RdpRender(const Kw::Rect& rc, BOOL bFullUpdate = FALSE,
         RECT* prcPhy = nullptr) noexcept
     {
         const auto pDC = GetDeviceContext();
@@ -798,7 +799,7 @@ private:
                 }
             }
             Detail::PAINT_EXTRA Extra{};
-            RdRenderTree(EtFirstChild(), rcF, &Extra);
+            RdpRenderTree(EtFirstChild(), rcF, &Extra);
             if (m_ePresentMode == PresentMode::UpdateLayeredWindow)
             {
                 HDC hDC;
@@ -1061,6 +1062,7 @@ private:
     // 若仍存在活动的时间线，返回TRUE
     BOOL KctClockTick(int ms) noexcept
     {
+        RdLockUpdate();
         BOOL bActiveTimeLine{};
         constexpr int iDeltaTime = TickInterval;
         for (const auto e : m_vTimeLine)
@@ -1073,7 +1075,7 @@ private:
 
         if (!bActiveTimeLine)
             m_MsgTimer.Pause();
-        RdRenderAndPresent();
+        RdUnlockUpdate();
         return bActiveTimeLine;
     }
 
@@ -1426,7 +1428,7 @@ public:
 
     void RdRenderAndPresent() noexcept
     {
-        if (m_bLockUpdate)
+        if (m_cLockUpdate)
             return;
         m_bWaitSwapChain = FALSE;
         const Kw::Rect rcClient{ 0, 0, GetClientWidthLogical(), GetClientHeightLogical() };
@@ -1444,7 +1446,7 @@ public:
             m_ePresentMode == PresentMode::FlipSwapChain ||
             m_ePresentMode == PresentMode::BitBltSwapChain);
         RECT rcPhy;
-        RdRender(rc, m_bFullUpdate, bWantPhyRect ? &rcPhy : nullptr);
+        RdpRender(rc, m_bFullUpdate, bWantPhyRect ? &rcPhy : nullptr);
 
         DXGI_PRESENT_PARAMETERS pp{};
         if (bWantPhyRect)
@@ -1469,11 +1471,10 @@ public:
         m_bFullUpdate = FALSE;
     }
 
-    EckInline void RdLockUpdate() noexcept { m_bLockUpdate = TRUE; }
+    EckInline void RdLockUpdate() noexcept { ++m_cLockUpdate; }
     EckInline void RdUnlockUpdate(BOOL bUpdateNow = TRUE) noexcept
     {
-        m_bLockUpdate = FALSE;
-        if (bUpdateNow)
+        if (!--m_cLockUpdate && bUpdateNow)
             RdRenderAndPresent();
     }
 

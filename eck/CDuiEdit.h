@@ -147,11 +147,6 @@ private:
     Align m_eSingleLineAlignV{ Align::Center };
 
     BITBOOL m_bCaretShow : 1{};
-    // NOTE 260428
-    // TxInvalidateRect假定实现是“类InvalidateRect”的，即仅记录
-    // 无效矩形，而不立即触发重绘（重绘间接导致对TxDrawD2D的调用）。
-    // 必须尊重此种假设，否则将导致无穷递归调用
-    BITBOOL m_bInPaint : 1{};
 
     // 收到WM_SETFONT时是否同步文本格式
     BITBOOL m_bAutoSyncTextFmt : 1{ TRUE };
@@ -187,7 +182,7 @@ private:
         const auto pTf = GetTextFormat();
         if (pTf)
         {
-            m_DefCharFormat.yHeight = (LONG)GetWindow().LogicalToPixel(
+            m_DefCharFormat.yHeight = (LONG)LogicalToPixel(
                 pTf->GetFontSize() * 1440.f / 96.f);
             constexpr auto uBits = TXTBIT_CHARFORMATCHANGE;
             TxPropertyChanged(uBits, uBits);
@@ -251,6 +246,7 @@ private:
     {
         if (!m_bUseBuiltInScrollBar)
             return;
+        SccDisconnectEvent();
         if (bVert)
         {
             if (!m_pSBVert)
@@ -270,6 +266,7 @@ private:
             if (!m_pSBHorz->IsValid())
                 m_pSBHorz->Create({}, DES_NO_FOCUSABLE | DES_VISIBLE, 0, 0, 0, 0, 0, this);
         }
+        SccConnectEvent();
     }
 
     void ScbOnSize() noexcept
@@ -279,20 +276,56 @@ private:
         const auto cx = GetWidth();
         const auto cy = GetHeight();
         const auto cxySB = GetTheme()->GetMetric(IdMeScrollBar);
-        if (m_pSBHorz)
-        {
+        if (m_pSBVert && m_pSBVert->IsValid())
+            m_pSBVert->SetRect({ cx - cxySB, 0.f, cx, cy });
+        if (m_pSBHorz && m_pSBHorz->IsValid())
             m_pSBHorz->SetRect({
-                0,
+                0.f,
                 cy - cxySB - CyBottomBar,
                 cx,
                 cy - CyBottomBar });
-            m_pSBHorz->SetPage(cx - m_mgTextAera.left - m_mgTextAera.right);
-        }
-        if (m_pSBVert)
-        {
-            m_pSBVert->SetRect({ cx - cxySB, 0.f, cx, cy });
-            m_pSBVert->SetPage(cy - m_mgTextAera.top - m_mgTextAera.bottom);
-        }
+    }
+
+    void SccUpdatePage() noexcept
+    {
+        if (m_pSccV)
+            m_pSccV->SccSetPage(GetHeight() - m_mgTextAera.top - m_mgTextAera.bottom);
+        if (m_pSccH)
+            m_pSccH->SccSetPage(GetWidth() - m_mgTextAera.left - m_mgTextAera.right);
+    }
+
+    EckInline void SccpScrollCallback(BOOL bHorz, float fPos) noexcept
+    {
+        GetWindow().RdLockUpdate();
+        Scroll(bHorz, fPos);
+        GetWindow().RdUnlockUpdate();
+    }
+
+    void SccConnectEvent() noexcept
+    {
+        if (m_pSccV)
+            m_pSccV->SccSetCallback(
+                [](const IScrollController::SCC_CALLBACK_DATA& Data)
+                {
+                    if ((int)Data.fPos == (int)Data.fPrevPos)
+                        return;
+                    ((CEdit*)Data.pUser)->SccpScrollCallback(FALSE, Data.fPos);
+                }, this);
+        if (m_pSccH)
+            m_pSccH->SccSetCallback(
+                [](const IScrollController::SCC_CALLBACK_DATA& Data)
+                {
+                    if ((int)Data.fPos == (int)Data.fPrevPos)
+                        return;
+                    ((CEdit*)Data.pUser)->SccpScrollCallback(TRUE, Data.fPos);
+                }, this);
+    }
+    void SccDisconnectEvent() noexcept
+    {
+        if (m_pSccV)
+            m_pSccV->SccSetCallback(nullptr, nullptr);
+        if (m_pSccH)
+            m_pSccH->SccSetCallback(nullptr, nullptr);
     }
 public:
     LRESULT OnEvent(UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept override
@@ -310,7 +343,12 @@ public:
         break;
         case WM_PAINT:
         {
-            m_bInPaint = TRUE;
+            // NOTE 260428
+            // TxInvalidateRect假定实现是“类InvalidateRect”的，即仅记录
+            // 无效矩形，而不立即触发重绘（重绘间接导致对TxDrawD2D的调用）。
+            // 必须尊重此种假设，否则将导致无穷递归调用
+            GetWindow().RdLockUpdate();
+
             PAINTINFO ps;
             BeginPaint(ps, wParam, lParam);
 
@@ -354,7 +392,8 @@ public:
 
             DbgDrawFrame();
             EndPaint(ps);
-            m_bInPaint = FALSE;
+
+            GetWindow().RdUnlockUpdate(FALSE);
         }
         return 0;
 
@@ -377,6 +416,7 @@ public:
         case WM_SIZE:
         {
             ScbOnSize();
+            SccUpdatePage();
             UpdateInsetRect();
             constexpr auto uBits = TXTBIT_CLIENTRECTCHANGE | TXTBIT_EXTENTCHANGE;
             TxPropertyChanged(uBits, uBits);
@@ -421,7 +461,7 @@ public:
             m_DefCharFormat.dwMask = CFM_FACE | CFM_SIZE |
                 CFM_WEIGHT | CFM_ITALIC | CFM_CHARSET;
             pTf->GetFontFamilyName(m_DefCharFormat.szFaceName, LF_FACESIZE);
-            m_DefCharFormat.yHeight = (LONG)roundf(GetWindow().LogicalToPixel(
+            m_DefCharFormat.yHeight = (LONG)roundf(LogicalToPixel(
                 pTf->GetFontSize() * 1440.f / 96.f));
             m_DefCharFormat.wWeight = (WORD)pTf->GetFontWeight();
             if (pTf->GetFontStyle() != DWRITE_FONT_STYLE_NORMAL)
@@ -493,10 +533,10 @@ public:
         if (uMsg == WM_MOUSEWHEEL)
         {
             if (m_bREScrollAn || (wParam & MK_CONTROL))
-                goto TxSend;// 缩放
+                goto TxSend;// RE处理平滑滚动 或 缩放
             if (wParam & MK_SHIFT)
                 goto ScrollH;// 横向滚动
-            m_pSccV->SccMouseWheel(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
+            m_pSccV->SccMouseWheel(float(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA));
             KctWake();
         }
         else if (uMsg == WM_MOUSEHWHEEL)
@@ -504,7 +544,7 @@ public:
             if (m_bREScrollAn)
                 goto TxSend;
         ScrollH:
-            m_pSccH->SccMouseWheel(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
+            m_pSccH->SccMouseWheel(float(-GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA));
             KctWake();
         }
         else if (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST)
@@ -514,7 +554,7 @@ public:
                 SetFocus();
             auto pt = *(Kw::Vec2*)lParam;
             ElementToClient(pt);
-            GetWindow().LogicalToPixel(pt);
+            LogicalToPixel(pt);
             LRESULT lResult;
             const POINT pt1{ (int)pt.x, (int)pt.y };
             if (m_pSrv->TxSendMessage(uMsg,
@@ -539,9 +579,11 @@ public:
 
     void SccSetController(IScrollController* pSccV, IScrollController* pSccH)
     {
+        SccDisconnectEvent();
         m_bUseBuiltInScrollBar = (!pSccH && !pSccV);
         m_pSccV = pSccV;
         m_pSccH = pSccH;
+        SccConnectEvent();
     }
 
     void ShowScrollBar(int nBar, BOOL bShow)
@@ -557,11 +599,11 @@ public:
             m_pSccV->SccSetVisible(bShow);
     }
 
-    void Scroll(BOOL bHorz, int nPos, BOOL bRedraw = TRUE)
+    void Scroll(BOOL bHorz, float fPos, BOOL bRedraw = TRUE)
     {
         POINT pt;
         GetScrollPosition(&pt);
-        (bHorz ? pt.x : pt.y) = DpiScale(nPos, GetWindow().GetWindowDpi(), 96);
+        (bHorz ? pt.x : pt.y) = (int)LogicalToPixel(fPos);
         SetScrollPosition(&pt);
         if (bRedraw)
             Invalidate();
@@ -608,7 +650,7 @@ public:
         return es.dwError;
     }
 
-    // 此函数覆盖目标文件
+    // WARNING 此函数覆盖目标文件
     HRESULT SaveRtf(PCWSTR pszFile) const
     {
         HRESULT hr;
@@ -1173,9 +1215,8 @@ inline BOOL CEditTextHost::TxEnableScrollBar(INT fuSBFlags, INT fuArrowflags)
 
 inline BOOL CEditTextHost::TxSetScrollRange(INT fnBar, LONG nMinPos, INT nMaxPos, BOOL fRedraw)
 {
-    const auto iDpi = m_pEdit->GetWindow().GetWindowDpi();
-    const auto fMin = DpiScale((float)nMinPos, 96, iDpi);
-    const auto fMax = DpiScale((float)nMaxPos, 96, iDpi);
+    const auto fMin = m_pEdit->PixelToLogical((float)nMinPos);
+    const auto fMax = m_pEdit->PixelToLogical((float)nMaxPos);
     if (fnBar == SB_VERT || fnBar == SB_BOTH)
     {
         m_pEdit->m_pSccV->SccSetRange(fMin, fMax);
@@ -1216,10 +1257,10 @@ inline void CEditTextHost::TxInvalidateRect(LPCRECT prc, BOOL fMode)
         D2D1_RECT_F rc{ MakeD2DRectF(*prc) };
         m_pEdit->PixelToLogical(rc);
         m_pEdit->ClientToElement(rc);
-        m_pEdit->Invalidate(rc, !m_pEdit->m_bInPaint);
+        m_pEdit->Invalidate(rc);
     }
     else
-        m_pEdit->Invalidate(!m_pEdit->m_bInPaint);
+        m_pEdit->Invalidate();
 }
 
 inline void CEditTextHost::TxViewChange(BOOL fUpdate)
@@ -1238,7 +1279,7 @@ inline BOOL CEditTextHost::TxShowCaret(BOOL fShow)
 {
     m_pEdit->m_bCaretShow = fShow;
     auto rc{ m_pEdit->m_rcCaret };
-    m_pEdit->Invalidate(rc, !m_pEdit->m_bInPaint);
+    m_pEdit->Invalidate(rc);
     return TRUE;
 }
 
@@ -1254,7 +1295,7 @@ inline BOOL CEditTextHost::TxSetCaretPos(INT x, INT y)
     if (rc.right - rc.left < 1.f)
         rc.right = rc.left + 1.f;
     m_pEdit->ClientToElement(rc);
-    m_pEdit->Invalidate(rc, !m_pEdit->m_bInPaint);
+    m_pEdit->Invalidate(rc);
     return TRUE;
 }
 
@@ -1312,7 +1353,7 @@ inline HRESULT CEditTextHost::TxDeactivate(LONG lNewState)
 inline HRESULT CEditTextHost::TxGetClientRect(LPRECT prc)
 {
     auto rcF{ m_pEdit->GetRectInClient() };
-    m_pEdit->GetWindow().LogicalToPixel(rcF);
+    m_pEdit->LogicalToPixel(rcF);
     *prc = MakeRect(rcF);
     return S_OK;
 }
@@ -1385,8 +1426,8 @@ inline HRESULT CEditTextHost::TxGetAcceleratorPos(LONG* pcp)
 
 inline HRESULT CEditTextHost::TxGetExtent(LPSIZEL lpExtent)
 {
-    lpExtent->cx = (LONG)m_pEdit->GetWindow().LogicalToPixel(m_pEdit->GetWidth() * 2540.f / 96.f);
-    lpExtent->cy = (LONG)m_pEdit->GetWindow().LogicalToPixel(m_pEdit->GetHeight() * 2540.f / 96.f);
+    lpExtent->cx = (LONG)m_pEdit->LogicalToPixel(m_pEdit->GetWidth() * 2540.f / 96.f);
+    lpExtent->cy = (LONG)m_pEdit->LogicalToPixel(m_pEdit->GetHeight() * 2540.f / 96.f);
     return S_OK;
 }
 
@@ -1442,7 +1483,6 @@ inline HRESULT CEditTextHost::TxSetForegroundWindow()
 {
     if (!SetForegroundWindow(m_pEdit->GetWindow().Handle))
         SetFocus(m_pEdit->GetWindow().Handle);
-    //m_pEdit->SetFocus();
     return S_OK;
 }
 

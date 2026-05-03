@@ -197,10 +197,13 @@ public:
                 // 减去Cap
                 m_sv.OnMouseMove(m_bVertical ?
                     pt.y - GetWidth() : pt.x - GetHeight());
+
+                GetWindow().RdLockUpdate();// 合批滚动条与被滚动内容
                 EvtScroll();
                 GetPartRect(rcThumb, Part::Thumb);
                 UnionRect(rcThumb, rcThumb, rcThumbOld);
                 Invalidate(rcThumb);
+                GetWindow().RdUnlockUpdate();
             }
         }
         return 0;

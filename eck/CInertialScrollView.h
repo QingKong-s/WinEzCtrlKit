@@ -15,21 +15,21 @@ protected:
     float m_fDuration{ 400.f }; // 动画总时间
     float m_fDelta{ 80.f };     // 每次滚动的距离
 
-    int m_iCurrInterval{};
+    USHORT m_msCurrInterval{};
+
+    BOOLEAN m_bValid{};
+    BOOLEAN m_bStop{ TRUE };
 
     FCallback m_pfnCallback{};
     void* m_pUser{};
-
-    BOOL m_bValid{};
-    BOOL m_bStop{ TRUE };
 public:
     virtual ~CInertialScrollView() = default;
 
-    void TlTick(int iMs) noexcept override
+    void TlTick(int ms) noexcept override
     {
-        m_iCurrInterval = iMs;
+        m_msCurrInterval = (USHORT)ms;
         const float fPrevPos = GetPosition();
-        m_fSustain += iMs;
+        m_fSustain += ms;
         const float f = Easing::OutCubic(m_fSustain, m_fStart, m_fDistance, m_fDuration);
         if (SetPosition(f))
             m_bStop = TRUE;
@@ -41,9 +41,9 @@ public:
             InterruptAnimation();
     }
     EckInline BOOL TlIsValid() noexcept override { return m_bValid; }
-    EckInline int TlGetCurrentInterval() noexcept override { return m_iCurrInterval; }
+    EckInline int TlGetCurrentInterval() noexcept override { return m_msCurrInterval; }
     // 
-    EckInline void OnMouseWheel2(int iWheelDelta) noexcept { SmoothScrollDelta(m_fDelta * iWheelDelta); }
+    EckInline void OnMouseWheel2(float dWheel) noexcept { SmoothScrollDelta(m_fDelta * dWheel); }
 
     EckInlineCe void InterruptAnimation() noexcept
     {
@@ -52,11 +52,13 @@ public:
         m_fDistance = 0.f;
     }
 
-    constexpr void SmoothScrollDelta(float iDelta) noexcept
+    constexpr void SmoothScrollDelta(float d) noexcept
     {
+        if (d == 0.f)
+            return;
         m_fStart = GetPosition();
         // 计算新的滚动距离；将原先的滚动距离减去已经滑动完的位移再加上滚动事件产生的位移
-        m_fDistance = ((m_fDuration - m_fSustain) * m_fDistance / m_fDuration) + iDelta;
+        m_fDistance = ((m_fDuration - m_fSustain) * m_fDistance / m_fDuration) + d;
         if (m_fDistance + m_fStart > GetMaxWithPage())
             m_fDistance = GetMaxWithPage() - m_fStart;
         if (m_fDistance + m_fStart < GetMinimum())

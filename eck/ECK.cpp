@@ -1982,7 +1982,7 @@ void ThreadUninitialize() noexcept
         EckDbgBreak();
     }
 #endif // _DEBUG
-    UnhookWindowsHookEx(p->hhkTempCBT);
+    UnhookWindowsHookEx(p->hhkCbtCreate);
     UnhookWindowsHookEx(p->hhkCbtDarkMode);
     UnhookWindowsHookEx(p->hhkMsgFilter);
     if (p->hGhost)
@@ -2193,8 +2193,9 @@ HHOOK BeginCbtHook(CWindow* pCurrWnd, FWindowCreating pfnCreatingProc) noexcept
     const auto ptc = PtcCurrent();
     ptc->pCurrWnd = pCurrWnd;
     ptc->pfnWndCreatingProc = pfnCreatingProc;
-    EckAssert(!ptc->hhkTempCBT);
-    ptc->hhkTempCBT = SetWindowsHookExW(WH_CBT, [](int iCode, WPARAM wParam, LPARAM lParam)->LRESULT
+    EckAssert(!ptc->hhkCbtCreate);
+    ptc->hhkCbtCreate = SetWindowsHookExW(WH_CBT,
+        [](int iCode, WPARAM wParam, LPARAM lParam) -> LRESULT
         {
             const auto ptc = PtcCurrent();
             if (iCode == HCBT_CREATEWND)
@@ -2215,17 +2216,17 @@ HHOOK BeginCbtHook(CWindow* pCurrWnd, FWindowCreating pfnCreatingProc) noexcept
                     ptc->pfnWndCreatingProc((HWND)wParam, pcbtcw, ptc);
                 EndCbtHook();
             }
-            return CallNextHookEx(ptc->hhkTempCBT, iCode, wParam, lParam);
+            return CallNextHookEx(ptc->hhkCbtCreate, iCode, wParam, lParam);
         }, nullptr, NtCurrentThreadId32());
-    return ptc->hhkTempCBT;
+    return ptc->hhkCbtCreate;
 }
 
 void EndCbtHook() noexcept
 {
     const auto ptc = PtcCurrent();
-    EckAssert(ptc->hhkTempCBT);
-    UnhookWindowsHookEx(ptc->hhkTempCBT);
-    ptc->hhkTempCBT = nullptr;
+    EckAssert(ptc->hhkCbtCreate);
+    UnhookWindowsHookEx(ptc->hhkCbtCreate);
+    ptc->hhkCbtCreate = nullptr;
 }
 
 BOOL PreTranslateMessage(const MSG& Msg) noexcept

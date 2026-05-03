@@ -22,14 +22,12 @@ protected:
     BOOL m_bLBtnDown = FALSE;
 #endif // _DEBUG
 
-    BOOL constexpr RangeChanged() noexcept
+    // 若数据超界返回TRUE
+    constexpr BOOL RangeChanged() noexcept
     {
         if (!IsValid())
-        {
             SetPositionUncheck(GetMinimum());
-            return TRUE;
-        }
-        if (GetPosition() < GetMinimum())
+        else if (GetPosition() < GetMinimum())
             SetPositionUncheck(GetMinimum());
         else if (GetPosition() > GetMaxWithPage())
             SetPositionUncheck(GetMaxWithPage());
@@ -61,6 +59,7 @@ public:
     }
 
     EckInlineCe T GetPosition() const noexcept { return m_Pos; }
+    // 若数据超界返回TRUE
     EckInlineCe BOOL SetPosition(T Pos) noexcept
     {
         m_Pos = Pos;

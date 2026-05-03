@@ -980,7 +980,7 @@ struct ThreadContext
     };
     //-------窗口映射
     std::unordered_map<HWND, WINDOW> hmWnd{};
-    HHOOK hhkTempCBT{};
+    HHOOK hhkCbtCreate{};
     CWindow* pCurrWnd{};                    // 当前正在创建窗口所属的CWindow指针
     FWindowCreating pfnWndCreatingProc{};   // 当前创建窗口时要调用的过程
     //-------暗色处理
@@ -1027,7 +1027,6 @@ struct ThreadContext
     HWND CreateGhostWindow(BOOL bMsgOnly = FALSE) noexcept;
 };
 
-// 取线程上下文TLS槽
 DWORD GetThreadContextTlsSlot() noexcept;
 // 初始化线程上下文。
 // 在调用线程上初始化线程上下文，在使用任何ECK窗口功能前必须调用此函数
@@ -1035,7 +1034,7 @@ void ThreadInitialize() noexcept;
 // 反初始化线程上下文。
 // 调用此函数后不允许使用任何ECK窗口对象
 void ThreadUninitialize() noexcept;
-// 取线程上下文
+
 EckInlineNd ThreadContext* PtcCurrent() noexcept { return (ThreadContext*)TlsGetValue(GetThreadContextTlsSlot()); }
 
 HHOOK BeginCbtHook(CWindow* pCurrWnd, FWindowCreating pfnCreatingProc = nullptr) noexcept;
