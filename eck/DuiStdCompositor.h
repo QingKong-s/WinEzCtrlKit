@@ -4,123 +4,151 @@
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
-// 四边形映射变换，必须使用CalcDistortMatrix/CalcInverseDistortMatrix计算矩阵
-struct CCompositorCornerMapping : public ICompositor
+// 四边形映射变换，必须使用CalculateDistortMatrix/CalculateInverseDistortMatrix计算矩阵
+class CCompositorCornerMapping : public CCompositor
 {
-    DirectX::XMMATRIX Mat{};
-    DirectX::XMMATRIX MatR{};
-    float Opacity{ 1.f };
-
-    void TransformPoint(CElement* pEle,
-        _Inout_ Kw::Vec2& pt, BOOL bNormalToComposited) noexcept override
+private:
+    DirectX::XMFLOAT4X4A m_Matrix{};
+    DirectX::XMFLOAT4X4A m_MatrixR{};
+    float m_Opacity{ 1.f };
+public:
+    void TransformPoint(_Inout_ Kw::Vec2& pt, BOOL bNormalToComposited) noexcept override
     {
         const DirectX::XMFLOAT4A v{ pt.x, pt.y, 0.f, 1.f };
-        auto p = DirectX::XMVector4Transform(DirectX::XMLoadFloat4A(&v),
-            bNormalToComposited ? MatR : Mat);
+        auto p = DirectX::XMVector4Transform(
+            DirectX::XMLoadFloat4A(&v),
+            DirectX::XMLoadFloat4x4A(bNormalToComposited ? &m_MatrixR : &m_Matrix));
         const auto w = DirectX::XMVectorGetW(p);
         p = DirectX::XMVectorDivide(p, DirectX::XMVectorSet(w, w, w, w));
         pt.x = DirectX::XMVectorGetX(p);
         pt.y = DirectX::XMVectorGetY(p);
     }
 
-    void CalculateCompositedRect(CElement* pEle, _Out_ D2D1_RECT_F& rc,
-        BOOL bInClientOrParent) noexcept override
+    void CalculateCompositedRect(_Out_ D2D1_RECT_F& rc, BOOL bInClientOrParent) noexcept override
     {
-        const auto cx = pEle->GetWidth();
-        const auto cy = pEle->GetHeight();
-        const D2D1_POINT_2F pt[]{ { 0,0 }, { cx,0 }, { cx,cy }, { 0,cy } };
+        const auto cx = GetElement()->GetWidth();
+        const auto cy = GetElement()->GetHeight();
+        const D2D1_POINT_2F pt[]{ { 0, 0 }, { cx, 0 }, { cx, cy }, { 0, cy } };
 
-        float l{ FLT_MAX }, t{ FLT_MAX }, r{ FLT_MIN }, b{ FLT_MIN };
+        rc = { FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX };
+        const auto m = DirectX::XMLoadFloat4x4A(&m_Matrix);
         for (const auto e : pt)
         {
-            const DirectX::XMFLOAT4A v{ e.x,e.y,0.f,1.f };
-            auto p = DirectX::XMVector4Transform(
-                DirectX::XMLoadFloat4A(&v), Mat);
+            const DirectX::XMFLOAT4A v{ e.x, e.y, 0.f, 1.f };
+            auto p = DirectX::XMVector4Transform(DirectX::XMLoadFloat4A(&v), m);
             const auto w = DirectX::XMVectorGetW(p);
             p = DirectX::XMVectorDivide(p, DirectX::XMVectorSet(w, w, w, w));
             const auto x = DirectX::XMVectorGetX(p);
             const auto y = DirectX::XMVectorGetY(p);
-            if (x < l) l = x;
-            if (x > r) r = x;
-            if (y < t) t = y;
-            if (y > b) b = y;
+            if (x < rc.left) rc.left = x;
+            if (x > rc.right) rc.right = x;
+            if (y < rc.top) rc.top = y;
+            if (y > rc.bottom) rc.bottom = y;
         }
-        rc = { l,t,r,b };
-        pEle->ElementToClient(rc);
-        if (!bInClientOrParent && pEle->EtParent())
-            pEle->EtParent()->ClientToElement(rc);
+        GetElement()->ElementToClient(rc);
+        if (!bInClientOrParent && GetElement()->EtParent())
+            GetElement()->EtParent()->ClientToElement(rc);
     }
+
     BOOL IsInPlace() const noexcept override { return FALSE; }
+
     void PostRender(COMP_RENDER_INFO& cri) noexcept override
     {
-        cri.pDC->DrawBitmap(cri.pBitmap, cri.rcDst, Opacity,
-            D2D1_INTERPOLATION_MODE_LINEAR, cri.rcSrc, (D2D1_MATRIX_4X4_F*)&Mat);
+        cri.pDC->DrawBitmap(cri.pBitmap, cri.rcDst, m_Opacity,
+            D2D1_INTERPOLATION_MODE_LINEAR, cri.rcSrc, (D2D1_MATRIX_4X4_F*)&m_Matrix);
     }
+
+    EckInlineNdCe auto AtMatrix() noexcept { return &m_Matrix; }
+    EckInlineNdCe auto AtMatrixR() noexcept { return &m_MatrixR; }
+
+    EckInlineCe void SetOpacity(float f) noexcept { m_Opacity = f; }
+    EckInlineNdCe float GetOpacity() const noexcept { return m_Opacity; }
 };
 
 // 2D仿射变换
-struct CCompositor2DAffineTransform : public ICompositor
+struct CCompositor2DAffineTransform : public CCompositor
 {
-    D2D1::Matrix3x2F Mat{};
-    D2D1::Matrix3x2F MatR{};
-    float Opacity{ 1.f };
-
-    void TransformPoint(CElement* pEle,
-        _Inout_ Kw::Vec2& pt, BOOL bNormalToComposited) noexcept override
+private:
+    D2D1::Matrix3x2F m_Matrix{};
+    D2D1::Matrix3x2F m_MatrixR{};
+    float m_Opacity{ 1.f };
+public:
+    void TransformPoint(_Inout_ Kw::Vec2& pt, BOOL bNormalToComposited) noexcept override
     {
         D2D1_POINT_2F pt0;
         if (bNormalToComposited)
-            pt0 = MatR.TransformPoint({ pt.x, pt.y });
+            pt0 = m_MatrixR.TransformPoint({ pt.x, pt.y });
         else
-            pt0 = Mat.TransformPoint({ pt.x, pt.y });
+            pt0 = m_Matrix.TransformPoint({ pt.x, pt.y });
         pt.x = pt0.x;
         pt.y = pt0.y;
     }
-    void CalculateCompositedRect(CElement* pEle, _Out_ D2D1_RECT_F& rc,
-        BOOL bInClientOrParent) noexcept override
+
+    void CalculateCompositedRect(_Out_ D2D1_RECT_F& rc, BOOL bInClientOrParent) noexcept override
     {
-        const auto cx = pEle->GetWidth();
-        const auto cy = pEle->GetHeight();
-        D2D1_POINT_2F pt[]{ { 0, 0 }, { cx, cy } };
-        pt[0] = Mat.TransformPoint(pt[0]);
-        pt[1] = Mat.TransformPoint(pt[1]);
-        rc = { pt[0].x,pt[0].y,pt[1].x,pt[1].y };
-        pEle->ElementToClient(rc);
-        if (!bInClientOrParent && pEle->EtParent())
-            pEle->EtParent()->ClientToElement(rc);
+        const auto cx = GetElement()->GetWidth();
+        const auto cy = GetElement()->GetHeight();
+        const D2D1_POINT_2F pt[]{ { 0, 0 }, { cx, 0 }, { cx, cy }, { 0, cy } };
+        rc = { FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX };
+        for (const auto& e : pt)
+        {
+            const auto pt0 = m_Matrix.TransformPoint(e);
+            if (pt0.x < rc.left) rc.left = pt0.x;
+            if (pt0.x > rc.right) rc.right = pt0.x;
+            if (pt0.y < rc.top) rc.top = pt0.y;
+            if (pt0.y > rc.bottom) rc.bottom = pt0.y;
+        }
+        GetElement()->ElementToClient(rc);
+        if (!bInClientOrParent && GetElement()->EtParent())
+            GetElement()->EtParent()->ClientToElement(rc);
     }
+
     BOOL IsInPlace() const noexcept override { return FALSE; }
+
     void PostRender(COMP_RENDER_INFO& cri) noexcept override
     {
         D2D1::Matrix3x2F MatOld;
         cri.pDC->GetTransform(&MatOld);
-        cri.pDC->SetTransform(Mat * MatOld);
-        cri.pDC->DrawBitmap(cri.pBitmap, cri.rcDst, Opacity,
-            D2D1_INTERPOLATION_MODE_LINEAR, cri.rcSrc);
+        cri.pDC->SetTransform(m_Matrix * MatOld);
+        cri.pDC->DrawBitmap(cri.pBitmap, cri.rcDst, m_Opacity,
+            D2D1_INTERPOLATION_MODE_LINEAR, 0);// cri.rcSrc);
         cri.pDC->SetTransform(MatOld);
     }
 
-    void InverseMatrix() noexcept
+    EckInline void SetMatrix(const D2D1::Matrix3x2F& Mat) noexcept
     {
-        MatR = Mat;
-        MatR.Invert();
+        m_Matrix = m_MatrixR = Mat;
+        m_MatrixR.Invert();
     }
+    EckInline void SetMatrix(const D2D1::Matrix3x2F& Mat,
+        const D2D1::Matrix3x2F& MatR) noexcept
+    {
+        m_Matrix = Mat;
+        m_MatrixR = MatR;
+    }
+    EckInlineNdCe auto& GetMatrix() const noexcept { return m_Matrix; }
+    EckInlineNdCe auto& GetMatrixR() const noexcept { return m_MatrixR; }
+
+    EckInlineCe void SetOpacity(float f) noexcept { m_Opacity = f; }
+    EckInlineNdCe float GetOpacity() const noexcept { return m_Opacity; }
 };
 
 // 页面切换相关动画
-class CCompositorPageAn : public ICompositor
+// HACK
+class CCompositorPageAn : public CCompositor
 {
 public:
     enum class Type : BYTE// 动画类型
     {
         Sticker,		// 贴纸
-        Opacity,		// 透明度
+        m_Opacity,		// 透明度
         Scale,			// 缩放
         ScaleOpacity,	// 缩放+透明度
         ScaleBlur, 		// 缩放+模糊
         Translation,	// 平移
         TranslationOpacity,	// 平移+透明度
     };
+
     enum class Corner : BYTE// 贴纸强调顶点
     {
         LT,
@@ -128,33 +156,44 @@ public:
         LB,
         RB,
     };
-
-    float Scale{ 1.f };
-    float Opacity{ 1.f };
-    float Dx{};
-    float Dy{};
-    D2D1_POINT_2F RefPoint{};
-    Corner Corner{};
 private:
-    Type m_eType{};
-    RcPtr<CCompositorCornerMapping> m_pCornerMap{};
-    RcPtr<CCompositor2DAffineTransform> m_p2DAffine{};
+    CCompositorCornerMapping m_CompCornerMap{};
+    CCompositor2DAffineTransform m_Comp2DAffine{};
+
     ComPtr<ID2D1Effect> m_pFxBlur{};
     ComPtr<ID2D1Effect> m_pFxCrop{};
-    ComPtr<ID2D1DeviceContext> m_pDC{};
+
+    float Scale{ 1.f };
+    float m_Opacity{ 1.f };
+    float Dx{};
+    float Dy{};
+    D2D1_POINT_2F Point{};
+    Corner Corner{};
+    Type m_eType{};
 public:
-    void TransformPoint(CElement* pEle,
-        _Inout_ Kw::Vec2& pt, BOOL bNormalToComposited) noexcept override
+    void Attach(CElement* pEle) noexcept override
+    {
+        __super::Attach(pEle);
+        m_CompCornerMap.Attach(pEle);
+        m_Comp2DAffine.Attach(pEle);
+        if (!pEle)
+        {
+            m_pFxBlur.Clear();
+            m_pFxCrop.Clear();
+        }
+    }
+
+    void TransformPoint(_Inout_ Kw::Vec2& pt, BOOL bNormalToComposited) noexcept override
     {
         switch (m_eType)
         {
         case Type::Sticker:
-            m_pCornerMap->TransformPoint(pEle, pt, bNormalToComposited);
+            m_CompCornerMap.TransformPoint(pt, bNormalToComposited);
             break;
         case Type::Scale:
         case Type::ScaleOpacity:
         case Type::ScaleBlur:
-            m_p2DAffine->TransformPoint(pEle, pt, bNormalToComposited);
+            m_Comp2DAffine.TransformPoint(pt, bNormalToComposited);
             break;
         case Type::Translation:
             if (bNormalToComposited)
@@ -171,23 +210,23 @@ public:
         }
     }
 
-    void CalculateCompositedRect(CElement* pEle, _Out_ D2D1_RECT_F& rc,
-        BOOL bInClientOrParent) noexcept override
+    void CalculateCompositedRect(_Out_ D2D1_RECT_F& rc, BOOL bInClientOrParent) noexcept override
     {
         switch (m_eType)
         {
         case Type::Sticker:
-            m_pCornerMap->CalculateCompositedRect(pEle, rc, bInClientOrParent);
+            m_CompCornerMap.CalculateCompositedRect(rc, bInClientOrParent);
             break;
         case Type::Scale:
         case Type::ScaleOpacity:
         case Type::ScaleBlur:
-            m_p2DAffine->CalculateCompositedRect(pEle, rc, bInClientOrParent);
+            m_Comp2DAffine.CalculateCompositedRect(rc, bInClientOrParent);
             break;
         case Type::Translation:
         case Type::TranslationOpacity:
-            *(Kw::Rect*)&rc =
-                (bInClientOrParent ? pEle->GetRectInClient() : pEle->GetRect());
+            *(Kw::Rect*)&rc = (bInClientOrParent ?
+                GetElement()->GetRectInClient() :
+                GetElement()->GetRect());
             OffsetRect(rc, Dx, Dy);
             break;
         default:
@@ -196,28 +235,28 @@ public:
         }
     }
 
-    BOOL IsInPlace() const noexcept override { return m_eType == Type::Opacity; }
+    BOOL IsInPlace() const noexcept override { return m_eType == Type::m_Opacity; }
 
     void PostRender(COMP_RENDER_INFO& cri) noexcept override
     {
         switch (m_eType)
         {
         case Type::Sticker:
-            m_pCornerMap->PostRender(cri);
+            m_CompCornerMap.PostRender(cri);
             break;
-        case Type::Opacity:
-            cri.pDC->DrawBitmap(cri.pBitmap, cri.rcDst, Opacity,
+        case Type::m_Opacity:
+            cri.pDC->DrawBitmap(cri.pBitmap, cri.rcDst, m_Opacity,
                 D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, cri.rcSrc);
             break;
         case Type::Scale:
         case Type::ScaleOpacity:
-            m_p2DAffine->PostRender(cri);
+            m_Comp2DAffine.PostRender(cri);
             break;
         case Type::ScaleBlur:
         {
             D2D1::Matrix3x2F MatOld;
             cri.pDC->GetTransform(&MatOld);
-            cri.pDC->SetTransform(m_p2DAffine->Mat * MatOld);
+            cri.pDC->SetTransform(m_Comp2DAffine.GetMatrix() * MatOld);
             m_pFxCrop->SetInput(0, cri.pBitmap);
             m_pFxCrop->SetValue(D2D1_CROP_PROP_RECT, cri.rcSrc);
             m_pFxBlur->SetInputEffect(0, m_pFxCrop.Get());
@@ -232,100 +271,39 @@ public:
             auto rcDst = cri.rcDst;
             OffsetRect(rcDst, (float)Dx, (float)Dy);
             cri.pDC->DrawBitmap(cri.pBitmap, rcDst,
-                m_eType == Type::Translation ? 1.f : Opacity,
+                m_eType == Type::Translation ? 1.f : m_Opacity,
                 D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR, cri.rcSrc);
         }
         break;
         }
     }
 
-    void InitAsSticker()
+    void Initialize(Type eType) noexcept
     {
-        m_eType = Type::Sticker;
-        if (!m_pCornerMap)
-            m_pCornerMap = RcPtr<CCompositorCornerMapping>::Make();
-    }
-    void InitAsOpacity(float fOpacity = 1.f)
-    {
-        m_eType = Type::Opacity;
-        Opacity = fOpacity;
-    }
-    void InitAsScale()
-    {
-        m_eType = Type::Scale;
-        if (!m_p2DAffine)
-            m_p2DAffine = RcPtr<CCompositor2DAffineTransform>::Make();
-    }
-    void InitAsScaleOpacity(float fOpacity = 1.f)
-    {
-        m_eType = Type::ScaleOpacity;
-        Opacity = fOpacity;
-        if (!m_p2DAffine)
-            m_p2DAffine = RcPtr<CCompositor2DAffineTransform>::Make();
-    }
-    void InitAsScaleBlur(float fOpacity = 1.f)
-    {
-        m_eType = Type::ScaleBlur;
-        Opacity = fOpacity;
-        if (!m_p2DAffine)
-            m_p2DAffine = RcPtr<CCompositor2DAffineTransform>::Make();
-        if (!m_pFxBlur)
+        m_eType = eType;
+        if (eType == Type::ScaleBlur)
         {
-            m_pDC->CreateEffect(CLSID_D2D1GaussianBlur, &m_pFxBlur);
-            m_pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_BORDER_MODE,
-                D2D1_BORDER_MODE_SOFT);
-        }
-        if (!m_pFxCrop)
-            m_pDC->CreateEffect(CLSID_D2D1Crop, &m_pFxCrop);
-    }
-    void InitAsTranslation(float dx = 0, float dy = 0)
-    {
-        m_eType = Type::Translation;
-        Dx = dx;
-        Dy = dy;
-    }
-    void InitAsTranslationOpacity(float dx = 0, float dy = 0, float fOpacity = 1.f)
-    {
-        m_eType = Type::TranslationOpacity;
-        Dx = dx;
-        Dy = dy;
-        Opacity = fOpacity;
-    }
-
-    void SetWorkDC(ID2D1DeviceContext* pDC)
-    {
-        m_pDC = pDC;
-        m_pFxBlur.Clear();
-        m_pFxCrop.Clear();
-    }
-
-    void Set2DAffineTransform(const D2D1::Matrix3x2F& Mat) noexcept
-    {
-        if (m_p2DAffine)
-        {
-            m_p2DAffine->Mat = Mat;
-            m_p2DAffine->InverseMatrix();
+            if (!m_pFxBlur)
+            {
+                GetElement()->GetDC()->CreateEffect(CLSID_D2D1GaussianBlur, &m_pFxBlur);
+                m_pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_BORDER_MODE,
+                    D2D1_BORDER_MODE_SOFT);
+            }
+            if (!m_pFxCrop)
+                GetElement()->GetDC()->CreateEffect(CLSID_D2D1Crop, &m_pFxCrop);
         }
     }
+
 
     void Update2DAffineTransform() noexcept
     {
-        Set2DAffineTransform(D2D1::Matrix3x2F::Scale(
-            Scale, Scale, RefPoint));
+        m_Comp2DAffine.SetMatrix(D2D1::Matrix3x2F::Scale(Scale, Scale, Point));
     }
 
     void SetBlurStdDeviation(float fStdDev) noexcept
     {
         if (m_pFxBlur)
             m_pFxBlur->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, fStdDev);
-    }
-
-    void UpdateOpacity() noexcept
-    {
-        if (m_p2DAffine)
-            m_p2DAffine->Opacity = Opacity;
-        if (m_pCornerMap)
-            m_pCornerMap->Opacity = Opacity;
     }
 };
 ECK_DUI_NAMESPACE_END

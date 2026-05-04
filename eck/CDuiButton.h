@@ -16,7 +16,7 @@ public:
     };
 private:
     ComPtr<IDWriteTextLayout> m_pLayout{};
-    RcPtr<CBitmap> m_pBitmap{};
+    CBitmap m_Bitmap{};
     BOOLEAN m_bSpacePressed{};
     BOOLEAN m_bAutoScale{ TRUE };
     BYTE m_eInter{ D2D1_INTERPOLATION_MODE_LINEAR };
@@ -31,8 +31,8 @@ private:
 
     Kw::Vec2 CalculateBitmapSize() const noexcept
     {
-        EckAssert(m_pBitmap.Get());
-        const auto rc = m_pBitmap->GetActualSourceRect();
+        EckAssert(m_Bitmap.Get());
+        const auto rc = m_Bitmap.GetActualSourceRect();
         const auto cx = rc.right - rc.left;
         const auto cy = rc.bottom - rc.top;
         if (m_bAutoScale)
@@ -50,7 +50,7 @@ private:
         const float dInner = GetTheme()->GetMetric(IdMePaddingInner);
 
         float cxMax = GetWidth() - dOuter * 2.f;
-        if (m_pBitmap.Get())
+        if (m_Bitmap.Get())
             cxMax -= (CalculateBitmapSize().x + dInner);
 
         g_pDwFactory->CreateTextLayout(
@@ -110,7 +110,7 @@ public:
                 tm.width = tm.height = 0;
 
             D2D1_RECT_F rc;
-            if (m_pBitmap.Get())
+            if (m_Bitmap.Get())
             {
                 const auto sizeBitmap = CalculateBitmapSize();
                 rc.left = (GetWidth() - sizeBitmap.x -
@@ -118,8 +118,8 @@ public:
                 rc.top = (GetHeight() - sizeBitmap.y) / 2.f;
                 rc.right = rc.left + sizeBitmap.x;
                 rc.bottom = rc.top + sizeBitmap.y;
-                GetDC()->DrawBitmap(m_pBitmap->Get(), &rc, m_fOpacity,
-                    (D2D1_INTERPOLATION_MODE)m_eInter, m_pBitmap->GetSourceRect());
+                GetDC()->DrawBitmap(m_Bitmap.Get(), &rc, m_fOpacity,
+                    (D2D1_INTERPOLATION_MODE)m_eInter, m_Bitmap.GetSourceRect());
                 rc.left = rc.right + dInner;
             }
             else
@@ -245,7 +245,7 @@ public:
         case WM_DESTROY:
         {
             m_pLayout.Clear();
-            m_pBitmap.Clear();
+            m_Bitmap.Clear();
         }
         return 0;
         }
@@ -258,8 +258,8 @@ public:
         SendNotify(&nm);
     }
 
-    EckInline void SetIcon(RcPtr<CBitmap> p) noexcept { m_pBitmap = p; }
-    EckInline RcPtr<CBitmap> GetIcon() noexcept { return m_pBitmap; }
+    EckInline void SetIcon(const CBitmap& p) noexcept { m_Bitmap = p; }
+    EckInlineNdCe auto& GetIcon() const noexcept { return m_Bitmap; }
 };
 
 class CTmButton : public CThemeBase

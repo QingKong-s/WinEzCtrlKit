@@ -18,17 +18,7 @@ class CElement : public UiBasic::CElement<CElement, true>
     friend class CDuiWindow;
     using TBase = UiBasic::CElement<CElement, true>;
 private:
-    // 缓存已混合的元素矩形，至少完全包含原始元素矩形，相对客户区
-    Kw::Rect m_rcCompInClient{};
-    Kw::Rect m_rcRealCompInClient{};// 实际计算得到的混合矩形
-    RcPtr<ICompositor> m_pCompositor{};
-    union
-    {
-        void* PRIV_Dummy{};
-        ID2D1Bitmap1* m_pCompBitmap;// 内容渲染到的位图
-        // 内容渲染到的缓存表面，设置DES_OWNER_COMP_CACHE时有效
-        CCompCacheSurface* m_pCompCacheSurface;
-    };
+    CCompositor* m_pCompositor{};
 
     CStringW m_rsText{};
     RcPtr<CThemeBase> m_pTheme{};
@@ -147,27 +137,23 @@ public:
     EckInline void SetTheme(CThemeBase* p) noexcept { m_pTheme = p; }
     EckInlineNdCe auto& GetTheme() const noexcept { return m_pTheme; }
 
-    void SetCompositor(ICompositor* pCompositor, BOOL bAutoMarkParentComp = TRUE) noexcept
+    void SetCompositor(CCompositor* pCompositor, BOOL bAutoMarkParentComp = TRUE) noexcept
     {
-        if (m_pCompositor.Get() == pCompositor)
+        if (m_pCompositor == pCompositor)
             return;
+        if (m_pCompositor)
+            m_pCompositor->Attach(nullptr);
         m_pCompositor = pCompositor;
-        CompInvalidateCacheBitmap();
-        if (m_pCompositor.Get())
+        if (bAutoMarkParentComp)
+            CompMarkChildrenParentComposited(!!m_pCompositor);
+        if (m_pCompositor)
+        {
+            m_pCompositor->Attach(this);
             CompUpdateCompositedRect();
-        if (m_pCompositor.Get())
-        {
             CompMarkDirty();
-            if (bAutoMarkParentComp)
-                CompMarkChildrenParentComposited(TRUE);
-        }
-        else
-        {
-            if (bAutoMarkParentComp)
-                CompMarkChildrenParentComposited(FALSE);
         }
     }
-    EckInlineNdCe const RcPtr<ICompositor>& GetCompositor() const noexcept { return m_pCompositor; }
+    EckInlineNdCe CCompositor* GetCompositor() const noexcept { return m_pCompositor; }
 
     void SetTextFormat(IDWriteTextFormat* pTf) noexcept
     {
@@ -212,8 +198,8 @@ public:
     // 取完全包围元素的矩形，相对客户区
     EckInlineNdCe Kw::Rect GetWholeRectInClient() const noexcept
     {
-        return (GetCompositor() && !GetCompositor()->IsInPlace()) ?
-            m_rcCompInClient : GetRectInClient();
+        return (m_pCompositor && !m_pCompositor->IsInPlace()) ?
+            Kw::MakeRect(m_pCompositor->EleGetCompositedRect()) : GetRectInClient();
     }
 
     EckInlineNdCe CElement* CompGetFirstCompositedAncestor() const noexcept
@@ -221,35 +207,38 @@ public:
         if (GetStyle() & DES_PARENT_COMP)
         {
             auto pParent = EtParent();
-            while (pParent && !pParent->GetCompositor())
+            while (pParent && !pParent->m_pCompositor)
                 pParent = pParent->EtParent();
             return pParent;
         }
         return nullptr;
     }
 
-    void CompUpdateCompositedRect() noexcept
+    EckInline void CompUpdateCompositedRect() noexcept
     {
-        if (!GetCompositor()->IsInPlace())
-        {
-            GetCompositor()->CalculateCompositedRect(
-                this, *(D2D1_RECT_F*)&m_rcCompInClient, TRUE);
-            m_rcRealCompInClient = m_rcCompInClient;
-            UnionRect(m_rcCompInClient, m_rcCompInClient, GetRectInClient());
-        }
+        m_pCompositor->EleUpdateCompositedRect(GetRectInClientD2D());
+    }
+
+    EckInlineNdCe const D2D1_RECT_F& CompGetCompositedRect() const noexcept
+    {
+        return m_pCompositor->EleGetCompositedRect();
+    }
+    EckInlineNdCe const D2D1_RECT_F& CompGetRealCompositedRect() const noexcept
+    {
+        return m_pCompositor->EleGetRealCompositedRect();
     }
 
     EckInlineNdCe BOOL CompIsNeedCoordinateTransform() const noexcept
     {
-        return GetCompositor() || (GetStyle() & DES_PARENT_COMP);
+        return m_pCompositor || (GetStyle() & DES_PARENT_COMP);
     }
 
     // 坐标相对元素
     void CompTransformCoordinate(_Inout_ Kw::Vec2& pt, BOOL bNormalToComposited) noexcept
     {
-        if (GetCompositor() && !(GetStyle() & DES_PARENT_COMP))// OPTIMIZATION
+        if (m_pCompositor && !(GetStyle() & DES_PARENT_COMP))// OPTIMIZATION
         {
-            GetCompositor()->TransformPoint(this, pt, bNormalToComposited);
+            m_pCompositor->TransformPoint(pt, bNormalToComposited);
             return;
         }
         CElement* pTrans[16]{};
@@ -257,7 +246,7 @@ public:
         auto pEle{ this };
         do
         {
-            const auto pCompositor = pEle->GetCompositor();
+            const auto pCompositor = pEle->m_pCompositor;
             if (pCompositor)
             {
                 *pp++ = pEle;
@@ -285,11 +274,11 @@ public:
         for (; pp >= pTrans; --pp)
         {
             pEle = *pp;
-            const auto pCompositor = pEle->GetCompositor();
+            const auto pCompositor = pEle->m_pCompositor;
             if (pCompositor)
             {
                 pEle->ClientToElement(pt);
-                pCompositor->TransformPoint(pEle, pt, bNormalToComposited);
+                pCompositor->TransformPoint(pt, bNormalToComposited);
                 pEle->ElementToClient(pt);
             }
             else if (pEle->GetStyle() & DES_PARENT_COMP)
@@ -307,12 +296,13 @@ public:
 
     EckInline void CompInvalidateCacheBitmap() noexcept
     {
-        SafeRelease(m_pCompBitmap);
+        if (m_pCompositor)
+            m_pCompositor->EleInvalidateCacheBitmap();
     }
 
     EckInlineCe void CompMarkDirty() noexcept
     {
-        if (GetCompositor())
+        if (m_pCompositor)
             __super::SetStyle(__super::GetStyle() | DESP_COMP_CONTENT_INVALID);
     }
 
@@ -329,6 +319,8 @@ public:
             pEle = pEle->EtNext();
         }
     }
+
+    EckInlineNdCe auto& CompGetCacheBitmap() const noexcept { return m_pCompositor->EleGetCacheBitmap(); }
 
     TmResult TmGenericDrawBackground(
         const SimpleStyle* pStyle,
@@ -548,27 +540,22 @@ private:
                 else
                 {
                     if (!(uStyle & DESP_COMP_CONTENT_INVALID) &&
-                        pEle->m_pCompBitmap)
+                        pEle->CompGetCacheBitmap().Get())
                         goto SkipCompReRender;
                     pDC->Flush();
                     pDC->GetTarget(&pOldTarget);
-                    pEle->CompUpdateCacheBitmap(rcElem.right - rcElem.left,
+                    pEle->CompUpdateCacheBitmap(
+                        rcElem.right - rcElem.left,
                         rcElem.bottom - rcElem.top);
                     pDC->GetTransform(&Mat);
-                    if (pEle->GetStyle() & DES_OWNER_COMP_CACHE)
-                    {
-                        pDC->SetTarget(pEle->m_pCompCacheSurface->GetBitmap());
-                        const auto& rcValid = pEle->m_pCompCacheSurface->GetValidRect();
-                        pDC->SetTransform(D2D1::Matrix3x2F::Translation(
-                            rcValid.left - rcElem.left, rcValid.top - rcElem.top));
-                    }
-                    else
-                    {
-                        pDC->SetTarget(pEle->m_pCompBitmap);
-                        pDC->SetTransform(D2D1::Matrix3x2F::Translation(
-                            -rcElem.left, -rcElem.top));
-                    }
-                    pDC->PushAxisAlignedClip((D2D1_RECT_F*)&rcElem, D2D1_ANTIALIAS_MODE_ALIASED);
+
+                    pDC->SetTarget(pEle->CompGetCacheBitmap().Get());
+                    const auto rcValid = pEle->CompGetCacheBitmap().GetActualSourceRect();
+                    pDC->SetTransform(D2D1::Matrix3x2F::Translation(
+                        rcValid.left - rcElem.left,
+                        rcValid.top - rcElem.top));
+
+                    pDC->PushAxisAlignedClip(Kw::MakeD2DRectF(rcElem), D2D1_ANTIALIAS_MODE_ALIASED);
                     pDC->Clear({});
                     pDC->PopAxisAlignedClip();
                 }
@@ -586,40 +573,31 @@ private:
                     pDC->SetTarget(pOldTarget);
                     pOldTarget->Release();
                 }
-            SkipCompReRender:;
+            SkipCompReRender:
+                cri.pBitmap = pEle->CompGetCacheBitmap().Get();
                 if (pEle->GetStyle() & DES_OWNER_COMP_CACHE)
-                {
-                    cri.pBitmap = pEle->m_pCompCacheSurface->GetBitmap();
-                    cri.rcSrc = pEle->m_pCompCacheSurface->GetValidRect();
-                }
+                    cri.rcSrc = pEle->CompGetCacheBitmap().GetActualSourceRect();
                 else
-                {
-                    cri.pBitmap = pEle->m_pCompBitmap;
                     cri.rcSrc = Kw::MakeD2DRectF(pEle->GetViewRect());
-                }
-                auto rcRealClip{ pEle->GetWholeRectInClient() };
-                IntersectRect(rcRealClip, rcRealClip, rc);
-                pEle->ClientToElement(rcRealClip);
+
                 pDC->SetTransform(D2D1::Matrix3x2F::Translation(
                     rcElem.left, rcElem.top));
-                pDC->PushAxisAlignedClip((D2D1_RECT_F*)&rcRealClip, D2D1_ANTIALIAS_MODE_ALIASED);
                 if (uStyle & DES_BLURBKG)
                 {
-                    Kw::Rect rc0{ pEle->m_rcRealCompInClient };
-                    IntersectRect(rc0, rc0, rc);
-                    BlurpDrawStyle(pEle, Kw::MakeD2DRectF(rc0),
-                        pExtra->ox, pExtra->oy);
+                    auto rc0{ Kw::MakeD2DRectF(rc) };
+                    IntersectRect(rc0, rc0, pEle->CompGetCompositedRect());
+                    BlurpDrawStyle(pEle, rc0, pExtra->ox, pExtra->oy);
                 }
+
                 pEle->GetCompositor()->PostRender(cri);
-                pDC->PopAxisAlignedClip();
                 pDC->SetTransform(Mat);
 #ifdef _DEBUG
                 const auto pBr = CcGetBrush();
                 pBr->SetColor(D2D1::ColorF(D2D1::ColorF::Aqua));
-                pDC->DrawRectangle(Kw::MakeD2DRectF(pEle->m_rcCompInClient), pBr);
+                pDC->DrawRectangle(pEle->CompGetCompositedRect(), pBr);
 
                 pBr->SetColor(D2D1::ColorF(D2D1::ColorF::Green));
-                pDC->DrawRectangle(Kw::MakeD2DRectF(pEle->m_rcRealCompInClient), pBr);
+                pDC->DrawRectangle(pEle->CompGetRealCompositedRect(), pBr);
 
                 pBr->SetColor(D2D1::ColorF(D2D1::ColorF::Orange));
                 pDC->DrawRectangle(pEle->GetRectInClientD2D(), pBr);
@@ -730,8 +708,11 @@ private:
             Extra.ox = ptLogOffsetFinalF.x;
             Extra.oy = ptLogOffsetFinalF.y;
         }
+        pDC->PushAxisAlignedClip(
+            Kw::MakeD2DRectF(rcF), D2D1_ANTIALIAS_MODE_ALIASED);
         pDC->SetTransform(D2D1::Matrix3x2F::Translation(Extra.ox, Extra.oy));
         RdpRenderTree(EtFirstChild(), rcFinalF, &Extra);
+        pDC->PopAxisAlignedClip();
 
 #ifdef _DEBUG
         if (DbgGetDrawDirtyRect())
@@ -755,6 +736,7 @@ private:
         else
             m_pDcDevice->Commit();
     }
+    // TODO 重构渲染事件钩出和擦除逻辑
     void RdpRender(const Kw::Rect& rc, BOOL bFullUpdate = FALSE,
         RECT* prcPhy = nullptr) noexcept
     {
@@ -799,7 +781,10 @@ private:
                 }
             }
             Detail::PAINT_EXTRA Extra{};
+            pDC->PushAxisAlignedClip(
+                Kw::MakeD2DRectF(rcF), D2D1_ANTIALIAS_MODE_ALIASED);
             RdpRenderTree(EtFirstChild(), rcF, &Extra);
+            pDC->PopAxisAlignedClip();
             if (m_ePresentMode == PresentMode::UpdateLayeredWindow)
             {
                 HDC hDC;
@@ -1502,10 +1487,10 @@ inline void CElement::Destroy() noexcept
     __super::PreDestroy();
     CallEvent(WM_DESTROY, 0, 0);
     __super::PostDestroy();
-    if (GetCompositor())
+    if (m_pCompositor)
     {
         CompInvalidateCacheBitmap();
-        m_pCompositor.Clear();
+        m_pCompositor = nullptr;
     }
     m_pTheme.Clear();
     m_rsText.Clear();
@@ -1587,21 +1572,12 @@ inline void CElement::PostMoveSize(BOOL bSize, BOOL bMove, const Kw::Rect& rcOld
 {
     if (bSize)
     {
-        if (GetCompositor() && m_pCompBitmap)
+        if (m_pCompositor && CompGetCacheBitmap().Get())
         {
-            if (GetStyle() & DES_OWNER_COMP_CACHE)
-            {
-                const auto& rcValid = m_pCompCacheSurface->GetValidRect();
-                if (rcValid.right - rcValid.left < GetWidth() ||
-                    rcValid.bottom - rcValid.top < GetHeight())
-                    CompInvalidateCacheBitmap();
-            }
-            else
-            {
-                const auto size = m_pCompBitmap->GetSize();
-                if (size.width < GetWidth() || size.height < GetHeight())
-                    CompInvalidateCacheBitmap();
-            }
+            const auto rcValid = CompGetCacheBitmap().GetActualSourceRect();
+            if (rcValid.right - rcValid.left < GetWidth() ||
+                rcValid.bottom - rcValid.top < GetHeight())
+                CompInvalidateCacheBitmap();
         }
         CallEvent(WM_SIZE, 0, 0);
     }
@@ -1631,48 +1607,33 @@ inline void CElement::SetStyleWorker(DWORD uStyle) noexcept
 
 inline HRESULT CElement::CompUpdateCacheBitmap(float cx, float cy) noexcept
 {
-    if (m_pCompBitmap)
+    if (CompGetCacheBitmap().Get())
     {
         float cxOld, cyOld;
-        if (GetStyle() & DES_OWNER_COMP_CACHE)
-        {
-            const auto rc = m_pCompCacheSurface->GetValidRect();
-            cxOld = rc.right - rc.left;
-            cyOld = rc.bottom - rc.top;
-        }
-        else
-        {
-            const auto size = m_pCompBitmap->GetSize();
-            cxOld = size.width;
-            cyOld = size.height;
-        }
+        const auto rcValid = CompGetCacheBitmap().GetActualSourceRect();
+        cxOld = rcValid.right - rcValid.left;
+        cyOld = rcValid.bottom - rcValid.top;
+
         if (cxOld >= cx && cyOld >= cy)
             return S_FALSE;
         else
             CompInvalidateCacheBitmap();
     }
 
+    HRESULT hr;
     const int cxPhy = (int)ceilf(LogicalToPixel((float)cx));
     const int cyPhy = (int)ceilf(LogicalToPixel((float)cy));
+    CBitmap Bitmap{};
     if (GetStyle() & DES_OWNER_COMP_CACHE)
-    {
-        if (FAILED(GetCompositor()->CreateCacheBitmap(
-            cxPhy, cyPhy, m_pCompCacheSurface)))
-        {
-            CREATE_CACHE_BITMAP_INFO ccbi;
-            ccbi.cxPhy = cxPhy;
-            ccbi.cyPhy = cyPhy;
-            ccbi.hr = E_NOTIMPL;
-            const auto pNotifyElem = EtParent() ? EtParent() : this;
-            if (pNotifyElem->CallEvent(
-                EWM_CREATE_CACHE_BITMAP, (WPARAM)&ccbi, 0))
-                m_pCompCacheSurface = ccbi.pCacheSurface;
-            return ccbi.hr;
-        }
-    }
+        hr = m_pCompositor->CreateCacheBitmap(cxPhy, cyPhy, Bitmap);
     else
-        GetWindow().BmCreate(cxPhy, cyPhy, m_pCompBitmap);
-    return S_OK;
+    {
+        ComPtr<ID2D1Bitmap1> pBitmap;
+        hr = GetWindow().BmCreate(cxPhy, cyPhy, pBitmap.AtSelf());
+        Bitmap.Set(pBitmap.Get());
+    }
+    m_pCompositor->EleUpdateCacheBitmap(Bitmap);
+    return hr;
 }
 
 inline TmResult CElement::TmGenericDrawBackground(

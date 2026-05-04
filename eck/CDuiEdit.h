@@ -611,7 +611,6 @@ public:
 
     HRESULT LoadRtf(IStream* pStream)
     {
-        pStream->AddRef();
         EDITSTREAM es;
         es.dwCookie = (DWORD_PTR)pStream;
         es.dwError = 0;
@@ -621,7 +620,6 @@ public:
                 return (DWORD)pStream->Read(pbBuff, (ULONG)cb, (ULONG*)pcb);
             };
         StreamIn(SF_RTF, &es);
-        pStream->Release();
         return es.dwError;
     }
 

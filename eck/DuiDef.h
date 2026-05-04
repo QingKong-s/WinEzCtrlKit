@@ -2,7 +2,6 @@
 #include "UiElement.h"
 #include "UiColor.h"
 #include "UiScroll.h"
-#include "CReferenceCounted.h"
 
 ECK_NAMESPACE_BEGIN
 ECK_DUI_NAMESPACE_BEGIN
@@ -25,9 +24,8 @@ enum
     // DUI系统应当检查当前元素的祖元素，因为它们可能设置了混合器
     DES_PARENT_COMP = (1u << 28),
     DES_NO_REDRAW = (1u << 27),	// 不允许重绘，一般不使用此样式
-    // 对于手动混合元素，DUI不应自行分配后台缓存，而应按下列顺序请求缓存：
-    // 调用CCompositor::CreateCacheBitmap，若失败，向元素的父级发送
-    // EWM_CREATE_CACHE_BITMAP
+    // 对于手动混合元素，DUI不应自行分配后台缓存，
+    // 而应调用CCompositor::CreateCacheBitmap
     DES_OWNER_COMP_CACHE = (1u << 26),
     // 指示当前手动混合元素不使用后台缓存，
     // 设置后DUI系统适时调用CCompositor::PreRender
@@ -133,14 +131,6 @@ struct RENDER_EVENT
     };
 };
 
-class CCompCacheSurface;
-struct CREATE_CACHE_BITMAP_INFO
-{
-    int cxPhy;
-    int cyPhy;
-    CCompCacheSurface* pCacheSurface;
-    HRESULT hr;
-};
 // 元素事件
 enum
 {
@@ -181,7 +171,7 @@ struct PAINTINFO
 constexpr inline auto DrawTextLayoutFlags =
 D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT | D2D1_DRAW_TEXT_OPTIONS_NO_SNAP;
 
-class CBitmap final : public CReferenceCountedT<CBitmap>
+class CBitmap final
 {
 private:
     ComPtr<ID2D1Bitmap1> m_pBitmap{};
@@ -211,7 +201,13 @@ public:
         m_pBitmap = p;
         SetSourceRect(prc);
     }
-    auto Get() const noexcept { return m_pBitmap.Get(); }
+    EckInlineNdCe auto Get() const noexcept { return m_pBitmap.Get(); }
+
+    void Clear() noexcept
+    {
+        m_pBitmap = nullptr;
+        m_rcSource.left = FLT_MAX;
+    }
 
     const D2D1_RECT_F* GetSourceRect() const noexcept
     {
